@@ -1258,10 +1258,6 @@ CERT_CheckForEvilCert(CERTCertificate *cert);
 CERTGeneralName *
 CERT_GetCertificateNames(CERTCertificate *cert, PRArenaPool *arena);
 
-
-SECStatus 
-CERT_EncodeSubjectKeyID(PRArenaPool *arena, char *value, int len, SECItem *encodedValue);
-
 char *
 CERT_GetNickName(CERTCertificate   *cert, CERTCertDBHandle *handle, PRArenaPool *nicknameArena);
 
