@@ -70,10 +70,8 @@ static PZLock *      cacheLock = NULL;
 static SECStatus
 ssl_InitClientSessionCacheLock(void)
 {
-    if (!cacheLock) {
-        cacheLock = PZ_NewLock(nssILockCache);
-    }
-    return cacheLock ? SECSuccess:SECFailure;
+    cacheLock = PZ_NewLock(nssILockCache);
+    return cacheLock ? SECSuccess : SECFailure;
 }
 
 static PRBool LocksInitializedEarly = PR_FALSE;
@@ -93,7 +91,7 @@ initLocks(void)
 static PRCallOnceType lockOnce;
 
 /* lateInit means that the call is not happening during a 1-time
- * initialization function
+ * initialization function, but rather during dynamic, lazy initialization
  */
 SECStatus
 ssl_InitLocks(PRBool lateInit)
