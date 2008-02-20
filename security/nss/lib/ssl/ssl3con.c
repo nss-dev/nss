@@ -3950,10 +3950,8 @@ SSL3_ShutdownServerCache(void)
 
 SECStatus ssl_InitSymWrapKeysLock(void)
 {
-    if (!symWrapKeysLock) {
-        symWrapKeysLock = PZ_NewLock(nssILockOther);
-    }
-    return symWrapKeysLock ? SECSuccess:SECFailure;
+    symWrapKeysLock = PZ_NewLock(nssILockOther);
+    return symWrapKeysLock ? SECSuccess : SECFailure;
 }
 
 /* Try to get wrapping key for mechanism from in-memory array.
