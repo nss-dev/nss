@@ -1147,8 +1147,9 @@ nss_ZRealloc
 PRStatus 
 nssArena_Shutdown(void)
 {
-  PRStatus rv;
-
+  PRStatus rv = PR_SUCCESS;
+#ifdef DEBUG
   rv = nssPointerTracker_finalize(&arena_pointer_tracker);
+#endif
   return rv;
 }
