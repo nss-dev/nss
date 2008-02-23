@@ -520,6 +520,13 @@ extern const NSSError NSS_ERROR_INVALID_ARENA;
 #endif /* DEBUG */
 
 /*
+ * Private function to be called by NSS_Shutdown to cleanup nssArena 
+ * bookkeeping.
+ */
+extern PRStatus
+nssArena_Shutdown(void);
+
+/*
  * nssArenaHashAllocOps
  *
  * This constant structure contains allocation callbacks designed for
