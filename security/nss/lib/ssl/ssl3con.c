@@ -535,7 +535,8 @@ static void SSL_AtomicIncrementLong(long * x)
         PR_AtomicIncrement((PRInt32 *)x);
     } else {
     	tooLong * tl = (tooLong *)x;
-	PR_AtomicIncrement(&tl->low) || PR_AtomicIncrement(&tl->high);
+	if (PR_AtomicIncrement(&tl->low) == 0)
+	    PR_AtomicIncrement(&tl->high);
     }
 }
 
