@@ -40,7 +40,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-/* TLS extension code moved here from ssl3con.c */
+/* TLS extension code moved here from ssl3ecc.c */
 /* $Id$ */
 
 #include "nssrenam.h"
@@ -151,8 +151,9 @@ ssl3_GenerateSessionTicketKeysPKCS11(void *data)
     /* Get a copy of the session keys from shared memory. */
     PORT_Memcpy(key_name, SESS_TICKET_KEY_NAME_PREFIX,
 	sizeof(SESS_TICKET_KEY_NAME_PREFIX));
-    if (!ssl_GetSessionTicketKeysPKCS11(svrPrivKey, svrPubKey, ss->pkcs11PinArg,
-	    &key_name[4], &session_ticket_enc_key_pkcs11,
+    if (!ssl_GetSessionTicketKeysPKCS11(svrPrivKey, svrPubKey,
+	    ss->pkcs11PinArg, &key_name[4],
+	    &session_ticket_enc_key_pkcs11,
 	    &session_ticket_mac_key_pkcs11))
 	return PR_FAILURE;
 
@@ -222,20 +223,20 @@ ssl3_GetSessionTicketKeys(const unsigned char **aes_key,
  * In the second generation, this table will be dynamic, and functions
  * will be registered here.
  */
-static const ssl3HelloExtensionHandler client_handlers[] = {
-    { server_name_xtn, &ssl3_HandleServerNameExt    },
-    { session_ticket_xtn, &ssl3_ClientHandleSessionTicketExt },
+static const ssl3HelloExtensionHandler clientHelloHandlers[] = {
+    { server_name_xtn, &ssl3_HandleServerNameExt },
+#ifdef NSS_ENABLE_ECC
+    { elliptic_curves_xtn, &ssl3_HandleSupportedCurvesExt },
+    { ec_point_formats_xtn, &ssl3_HandleSupportedPointFormatsExt },
+#endif
+    { session_ticket_xtn, &ssl3_ServerHandleSessionTicketExt },
     { -1, NULL }
 };
 
-static const ssl3HelloExtensionHandler server_handlers[] = {
-    { server_name_xtn, &ssl3_HandleServerNameExt    },
-#ifdef NSS_ENABLE_ECC
-    { elliptic_curves_xtn, &ssl3_HandleSupportedCurvesExt },
-    { elliptic_point_formats_xtn,
-      &ssl3_HandleSupportedPointExt   },
-#endif
-    { session_ticket_xtn, &ssl3_ServerHandleSessionTicketExt },
+static const ssl3HelloExtensionHandler serverHelloHandlers[] = {
+    { server_name_xtn, &ssl3_HandleServerNameExt },
+    /* TODO: add a handler for ec_point_formats_xtn */
+    { session_ticket_xtn, &ssl3_ClientHandleSessionTicketExt },
     { -1, NULL }
 };
 
@@ -245,22 +246,23 @@ static const ssl3HelloExtensionHandler server_handlers[] = {
  * and sender functions are registered there.
  */
 static const 
-ssl3HelloExtensionSender clientHelloSenders[MAX_EXTENSION_SENDERS] = {
+ssl3HelloExtensionSender clientHelloSenders[MAX_EXTENSIONS] = {
     { server_name_xtn, &ssl3_SendServerNameExt },
 #ifdef NSS_ENABLE_ECC
     { elliptic_curves_xtn, &ssl3_SendSupportedCurvesExt },
-    { elliptic_point_formats_xtn,
-      &ssl3_SendSupportedPointExt },
+    { ec_point_formats_xtn, &ssl3_SendSupportedPointFormatsExt },
+#else
+    { -1, NULL },
+    { -1, NULL },
 #endif
     { session_ticket_xtn, ssl3_SendSessionTicketExt },
-    { -1, NULL }
 };
 
 static PRBool
-arrayContainsExtension(PRUint16 *array, PRUint32 array_len, PRUint16 ex_type)
+arrayContainsExtension(const PRUint16 *array, PRUint32 len, PRUint16 ex_type)
 {
     int i;
-    for (i = 0; i < array_len; i++) {
+    for (i = 0; i < len; i++) {
 	if (ex_type == array[i])
 	    return PR_TRUE;
     }
@@ -271,14 +273,14 @@ PRBool
 ssl3_ExtensionNegotiated(sslSocket *ss, PRUint16 ex_type) {
     TLSExtensionData *xtnData = &ss->xtnData;
     return arrayContainsExtension(xtnData->negotiated,
-	xtnData->numNegotiated, ex_type);
+	                          xtnData->numNegotiated, ex_type);
 }
 
-PRBool
+static PRBool
 ssl3_ClientExtensionAdvertised(sslSocket *ss, PRUint16 ex_type) {
     TLSExtensionData *xtnData = &ss->xtnData;
     return arrayContainsExtension(xtnData->advertised,
-	xtnData->numAdvertised, ex_type);
+	                          xtnData->numAdvertised, ex_type);
 }
 
 /* Format an SNI extension, using the name from the socket's URL,
@@ -330,6 +332,7 @@ ssl3_SendServerNameExt(
 SECStatus
 ssl3_HandleServerNameExt(sslSocket * ss, PRUint16 ex_type, SECItem *data)
 {
+    /* TODO: if client, should verify extension_data is empty. */
     /* For now, we ignore this, as if we didn't understand it. :-)  */
     return SECSuccess;
 }
@@ -718,7 +721,7 @@ loser:
  */
 SECStatus
 ssl3_ClientHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
-    SECItem *data)
+                                  SECItem *data)
 {
     if (data->len != 0)
 	return SECFailure;
@@ -730,7 +733,7 @@ ssl3_ClientHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 
 SECStatus
 ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
-    SECItem *data)
+                                  SECItem *data)
 {
     SECStatus rv;
     SECItem *decrypted_state = NULL;
@@ -1139,7 +1142,7 @@ ssl3_ConsumeFromItem(SECItem *item, unsigned char **buf, PRUint32 bytes)
 
 static SECStatus
 ssl3_ParseEncryptedSessionTicket(sslSocket *ss, SECItem *data,
-    EncryptedSessionTicket *enc_session_ticket)
+                                 EncryptedSessionTicket *enc_session_ticket)
 {
     if (ssl3_ConsumeFromItem(data, &enc_session_ticket->key_name,
 	    SESS_TICKET_KEY_NAME_LEN) != SECSuccess)
@@ -1160,22 +1163,22 @@ ssl3_ParseEncryptedSessionTicket(sslSocket *ss, SECItem *data,
 }
 
 /* go through hello extensions in buffer "b".
- * For each one, find the extension handler in the table above, and 
+ * For each one, find the extension handler in the appropriate table, and 
  * if present, invoke that handler.  
- * ignore any extensions with unknown extension types.
+ * Servers ignore any extensions with unknown extension types.
+ * Clients reject any extensions with unadvertised extension types.
  */
 SECStatus 
 ssl3_HandleHelloExtensions(sslSocket *ss, SSL3Opaque **b, PRUint32 *length)
 {
     const ssl3HelloExtensionHandler * handlers =
-	ss->sec.isServer ? server_handlers : client_handlers;
+	ss->sec.isServer ? clientHelloHandlers : serverHelloHandlers;
 
     while (*length) {
+	const ssl3HelloExtensionHandler * handler;
 	SECStatus rv;
 	PRInt32   extension_type;
 	SECItem   extension_data;
-	TLSExtensionData *xtnData = &ss->xtnData;
-	const ssl3HelloExtensionHandler * handler;
 
 	/* Get the extension's type field */
 	extension_type = ssl3_ConsumeHandshakeNumber(ss, 2, b, length);
@@ -1192,16 +1195,15 @@ ssl3_HandleHelloExtensions(sslSocket *ss, SSL3Opaque **b, PRUint32 *length)
 	 */
 	if (!ss->sec.isServer &&
 	    !ssl3_ClientExtensionAdvertised(ss, extension_type))
-	    return SECFailure;
+	    return SECFailure;  /* TODO: send unsupported_extension alert */
 
 	/* Check whether an extension has been sent multiple times. */
-	if (arrayContainsExtension(xtnData->negotiated,
-		xtnData->numNegotiated, extension_type))
+	if (ssl3_ExtensionNegotiated(ss, extension_type))
 	    return SECFailure;
 
-	/* find extension_type in table of Client Hello Extension Handlers */
+	/* find extension_type in table of Hello Extension Handlers */
 	for (handler = handlers; handler->ex_type >= 0; handler++) {
-	    /* if found,  Call this handler */
+	    /* if found, call this handler */
 	    if (handler->ex_type == extension_type) {
 		rv = (*handler->ex_handler)(ss, (PRUint16)extension_type, 
 	                                         	&extension_data);
@@ -1221,9 +1223,9 @@ ssl3_RegisterServerHelloExtensionSender(sslSocket *ss, PRUint16 ex_type,
 				        ssl3HelloExtensionSenderFunc cb)
 {
     int i;
-    ssl3HelloExtensionSender *sender = &ss->xtnData.senders[0];
+    ssl3HelloExtensionSender *sender = &ss->xtnData.serverSenders[0];
 
-    for (i = 0; i < MAX_EXTENSION_SENDERS; ++i, ++sender) {
+    for (i = 0; i < MAX_EXTENSIONS; ++i, ++sender) {
         if (!sender->ex_sender) {
 	    sender->ex_type   = ex_type;
 	    sender->ex_sender = cb;
@@ -1236,7 +1238,7 @@ ssl3_RegisterServerHelloExtensionSender(sslSocket *ss, PRUint16 ex_type,
 	    break;
 	}
     }
-    PORT_Assert(i < MAX_EXTENSION_SENDERS); /* table needs to grow */
+    PORT_Assert(i < MAX_EXTENSIONS); /* table needs to grow */
     PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
     return SECFailure;
 }
@@ -1252,7 +1254,7 @@ ssl3_CallHelloExtensionSenders(sslSocket *ss, PRBool append, PRUint32 maxBytes,
     if (!sender)
     	sender = &clientHelloSenders[0];
 
-    for (i = 0; i < MAX_EXTENSION_SENDERS; ++i, ++sender) {
+    for (i = 0; i < MAX_EXTENSIONS; ++i, ++sender) {
 	if (sender->ex_sender) {
 	    PRInt32 extLen = (*sender->ex_sender)(ss, append, maxBytes);
 	    if (extLen < 0)

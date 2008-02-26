@@ -345,14 +345,17 @@ typedef struct {
 } EncryptedSessionTicket;
 
 /* Supported extensions. */
+/* Update MAX_EXTENSIONS whenever a new extension type is added. */
 typedef enum {
     server_name_xtn              = 0,
 #ifdef NSS_ENABLE_ECC
     elliptic_curves_xtn          = 10,
-    elliptic_point_formats_xtn   = 11,
+    ec_point_formats_xtn         = 11,
 #endif
     session_ticket_xtn           = 35
 } ExtensionType;
+
+#define MAX_EXTENSIONS             4
 
 #define TLS_EX_SESS_TICKET_MAC_LENGTH       32
 

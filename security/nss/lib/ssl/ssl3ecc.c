@@ -1070,7 +1070,7 @@ ssl3_SendSupportedCurvesExt(
  * which says that we only support uncompressed points.
  */
 PRInt32
-ssl3_SendSupportedPointExt(
+ssl3_SendSupportedPointFormatsExt(
 			sslSocket * ss,
 			PRBool      append,
 			PRUint32    maxBytes)
@@ -1084,7 +1084,7 @@ ssl3_SendSupportedPointExt(
 	if (!ss->sec.isServer) {
 	    TLSExtensionData *xtnData = &ss->xtnData;
 	    xtnData->advertised[xtnData->numAdvertised++] =
-		elliptic_point_formats_xtn;
+		ec_point_formats_xtn;
 	}
     }
     return (sizeof ECPtFmt);
@@ -1094,7 +1094,8 @@ ssl3_SendSupportedPointExt(
  * Since that is all we support.  Disable ECC cipher suites if it doesn't.
  */
 SECStatus
-ssl3_HandleSupportedPointExt(sslSocket *ss, PRUint16 ex_type, SECItem *data)
+ssl3_HandleSupportedPointFormatsExt(sslSocket *ss, PRUint16 ex_type,
+                                    SECItem *data)
 {
     int i;
 
@@ -1108,7 +1109,7 @@ ssl3_HandleSupportedPointExt(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 	    /* indicate that we should send a reply */
 	    SECStatus rv;
 	    rv = ssl3_RegisterServerHelloExtensionSender(ss, ex_type,
-			      &ssl3_SendSupportedPointExt);
+			      &ssl3_SendSupportedPointFormatsExt);
 	    return rv;
 	}
     }

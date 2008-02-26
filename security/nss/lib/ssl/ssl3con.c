@@ -6234,7 +6234,7 @@ ssl3_SendServerHello(sslSocket *ss)
     sid = ss->sec.ci.sid;
 
     extensions_len = ssl3_CallHelloExtensionSenders(ss, PR_FALSE, maxBytes,
-	&ss->xtnData.senders[0]);
+	&ss->xtnData.serverSenders[0]);
     if (extensions_len > 0)
     	extensions_len += 2; /* Add sizeof total extension length */
 
@@ -6286,7 +6286,7 @@ ssl3_SendServerHello(sslSocket *ss)
 	if (rv != SECSuccess) 
 	    return rv;	/* err set by ssl3_SetupPendingCipherSpec */
 	sent_len = ssl3_CallHelloExtensionSenders(ss, PR_TRUE, extensions_len,
-	    &ss->xtnData.senders[0]);
+	    &ss->xtnData.serverSenders[0]);
         PORT_Assert(sent_len == extensions_len);
 	if (sent_len != extensions_len) {
 	    if (sent_len >= 0)

@@ -176,8 +176,6 @@ typedef enum { SSLAppOpRead = 0,
 /* This makes the cert cache entry exactly 4k. */
 #define SSL_MAX_CACHED_CERT_LEN		4060
 
-#define MAX_EXTENSION_SENDERS		8
-
 #define NUM_MIXERS                      9
 
 /* Mask of the 25 named curves we support. */
@@ -710,12 +708,12 @@ typedef struct SessionTicketDataStr      SessionTicketData;
 
 struct TLSExtensionDataStr {
     /* registered callbacks that send server hello extensions */
-    ssl3HelloExtensionSender senders[MAX_EXTENSION_SENDERS];
+    ssl3HelloExtensionSender serverSenders[MAX_EXTENSIONS];
     /* Keep track of the extensions that are negotiated. */
     PRUint16 numAdvertised;
     PRUint16 numNegotiated;
-    PRUint16 advertised[MAX_EXTENSION_SENDERS];
-    PRUint16 negotiated[MAX_EXTENSION_SENDERS];
+    PRUint16 advertised[MAX_EXTENSIONS];
+    PRUint16 negotiated[MAX_EXTENSIONS];
 
     /* SessionTicket Extension related data. */
     PRBool ticketTimestampVerified;
@@ -1453,7 +1451,7 @@ extern SECStatus ssl3_HandleServerNameExt(sslSocket * ss,
     PRUint16 ex_type, SECItem *data);
 extern SECStatus ssl3_HandleSupportedCurvesExt(sslSocket * ss,
     PRUint16 ex_type, SECItem *data);
-extern SECStatus ssl3_HandleSupportedPointExt(sslSocket * ss,
+extern SECStatus ssl3_HandleSupportedPointFormatsExt(sslSocket * ss,
     PRUint16 ex_type, SECItem *data);
 extern SECStatus ssl3_ClientHandleSessionTicketExt(sslSocket *ss,
     PRUint16 ex_type, SECItem *data);
@@ -1469,7 +1467,7 @@ extern PRInt32 ssl3_SendSessionTicketExt(sslSocket *ss, PRBool append,
 #ifdef NSS_ENABLE_ECC
 extern PRInt32 ssl3_SendSupportedCurvesExt(sslSocket *ss,
     PRBool append, PRUint32 maxBytes);
-extern PRInt32 ssl3_SendSupportedPointExt(sslSocket *ss,
+extern PRInt32 ssl3_SendSupportedPointFormatsExt(sslSocket *ss,
     PRBool append, PRUint32 maxBytes);
 #endif
 
@@ -1478,7 +1476,6 @@ extern SECStatus ssl3_HandleHelloExtensions(sslSocket *ss,
 			SSL3Opaque **b, PRUint32 *length);
 
 /* Hello Extension related routines. */
-extern PRBool ssl3_ClientExtensionAdvertised(sslSocket *ss, PRUint16 ex_type);
 extern PRBool ssl3_ExtensionNegotiated(sslSocket *ss, PRUint16 ex_type);
 extern SECStatus ssl3_SetSIDSessionTicket(sslSessionID *sid,
     NewSessionTicket *session_ticket);
