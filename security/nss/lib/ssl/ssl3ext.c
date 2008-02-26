@@ -1163,7 +1163,7 @@ ssl3_ParseEncryptedSessionTicket(sslSocket *ss, SECItem *data,
 }
 
 /* go through hello extensions in buffer "b".
- * For each one, find the extension handler in the appropriate table, and 
+ * For each one, find the extension handler in the table, and 
  * if present, invoke that handler.  
  * Servers ignore any extensions with unknown extension types.
  * Clients reject any extensions with unadvertised extension types.
