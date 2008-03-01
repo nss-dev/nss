@@ -1638,7 +1638,7 @@ ssl_GetWrappingKey( PRInt32                   symWrapMechIndex,
 
 PRBool
 ssl_GetSessionTicketKeys(uint8 *keyName, unsigned char *encKey,
-    unsigned char *macKey)
+                         unsigned char *macKey)
 {
     PRBool rv = PR_FALSE;
     PRUint32  now = 0;
@@ -1665,20 +1665,20 @@ ssl_GetSessionTicketKeys(uint8 *keyName, unsigned char *encKey,
 
  loser:
     UnlockSidCacheLock(cache->keyCacheLock);
-    if (*(cache->ticketKeysValid)) {
+    if (rv) {
 	PORT_Memcpy(keyName, cache->ticketKeyNameSuffix,
 	    SESS_TICKET_KEY_VAR_NAME_LEN);
 	PORT_Memcpy(encKey, cache->ticketEncKey->bytes, 32);
 	PORT_Memcpy(macKey, cache->ticketMacKey->bytes, SHA256_LENGTH);
-	return PR_TRUE;
     }
     return rv;
 }
 
 PRBool
 ssl_GetSessionTicketKeysPKCS11(SECKEYPrivateKey *svrPrivKey,
-    SECKEYPublicKey *svrPubKey, void *pwArg, unsigned char *keyName,
-    PK11SymKey **aesKey, PK11SymKey **macKey)
+                               SECKEYPublicKey *svrPubKey, void *pwArg,
+                               unsigned char *keyName, PK11SymKey **aesKey,
+                               PK11SymKey **macKey)
 {
     PK11SlotInfo *slot;
     PRUint32 now = 0;
@@ -1687,7 +1687,7 @@ ssl_GetSessionTicketKeysPKCS11(SECKEYPrivateKey *svrPrivKey,
     PK11SymKey *macKeyTmp = NULL;
     SECItem wrappedAesKey = {siBuffer, NULL, 0};
     SECItem wrappedMacKey = {siBuffer, NULL, 0};
-    PRStatus rv = SECFailure;
+    PRBool rv = PR_FALSE;
     cacheDesc *cache = &globalCache;
 
     /* No need to grab a lock, we are reading. */
@@ -1714,15 +1714,15 @@ ssl_GetSessionTicketKeysPKCS11(SECKEYPrivateKey *svrPrivKey,
 	    SSL_DBG(("%d: SSL[%s]: Unable to unwrap session ticket keys.",
 			SSL_GETPID(), "unknown"));
 	    return PR_FALSE;
-	} else {
-	    PORT_Memcpy(keyName, cache->ticketKeyNameSuffix,
-		SESS_TICKET_KEY_VAR_NAME_LEN);
-	    *aesKey = aesKeyTmp;
-	    *macKey = macKeyTmp;
-	    SSL_DBG(("%d: SSL[%s]: Successfully unwrapped session ticket keys.",
-			SSL_GETPID(), "unknown"));
-	    return PR_TRUE;
 	}
+
+	PORT_Memcpy(keyName, cache->ticketKeyNameSuffix,
+	    SESS_TICKET_KEY_VAR_NAME_LEN);
+	*aesKey = aesKeyTmp;
+	*macKey = macKeyTmp;
+	SSL_DBG(("%d: SSL[%s]: Successfully unwrapped session ticket keys.",
+		    SSL_GETPID(), "unknown"));
+	return PR_TRUE;
     }
 
     /* Keys do not exist, create them. */
@@ -1794,7 +1794,7 @@ ssl_GetSessionTicketKeysPKCS11(SECKEYPrivateKey *svrPrivKey,
 	SESS_TICKET_KEY_VAR_NAME_LEN);
     *aesKey = aesKeyTmp;
     *macKey = macKeyTmp;
-    rv = SECSuccess;
+    rv = PR_TRUE;
 
  loser:
     UnlockSidCacheLock(cache->keyCacheLock);
@@ -1803,19 +1803,13 @@ ssl_GetSessionTicketKeysPKCS11(SECKEYPrivateKey *svrPrivKey,
     if (wrappedMacKey.data)
 	SECITEM_FreeItem(&wrappedMacKey, PR_FALSE);
 
-    if (rv != SECSuccess) {
-	if (aesKeyTmp) {
+    if (!rv) {
+	if (aesKeyTmp)
 	    PK11_FreeSymKey(aesKeyTmp);
-	    aesKeyTmp = NULL;
-	}
-	if (macKeyTmp) {
+	if (macKeyTmp)
 	    PK11_FreeSymKey(macKeyTmp);
-	    aesKeyTmp = NULL;
-	}
-	return PR_FALSE;
-    } else {
-	return PR_TRUE;
     }
+    return rv;
 }
 
 /* The caller passes in the new value it wants
