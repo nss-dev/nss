@@ -110,8 +110,8 @@ ssl_DestroySID(sslSessionID *sid)
     if ( sid->localCert ) {
 	CERT_DestroyCertificate(sid->localCert);
     }
-    if (sid->u.ssl3.session_ticket.ticket.data) {
-	SECITEM_FreeItem(&sid->u.ssl3.session_ticket.ticket, PR_FALSE);
+    if (sid->u.ssl3.sessionTicket.ticket.data) {
+	SECITEM_FreeItem(&sid->u.ssl3.sessionTicket.ticket, PR_FALSE);
     }
     
     PORT_ZFree(sid, sizeof(sslSessionID));
@@ -250,7 +250,7 @@ CacheSID(sslSessionID *sid)
 		  sid->u.ssl2.cipherArg.data, sid->u.ssl2.cipherArg.len));
     } else {
 	if (sid->u.ssl3.sessionIDLength == 0 &&
-	    sid->u.ssl3.session_ticket.ticket.data == NULL)
+	    sid->u.ssl3.sessionTicket.ticket.data == NULL)
 	    return;
 	/* Client generates the SessionID if this was a stateless resume. */
 	if (sid->u.ssl3.sessionIDLength == 0) {
@@ -398,22 +398,22 @@ ssl3_SetSIDSessionTicket(sslSessionID *sid, NewSessionTicket *session_ticket)
     /* A server might have sent us an empty ticket, which has the
      * effect of clearing the previously known ticket.
      */
-    if (sid->u.ssl3.session_ticket.ticket.data)
-	SECITEM_FreeItem(&sid->u.ssl3.session_ticket.ticket, PR_FALSE);
+    if (sid->u.ssl3.sessionTicket.ticket.data)
+	SECITEM_FreeItem(&sid->u.ssl3.sessionTicket.ticket, PR_FALSE);
     if (session_ticket->ticket.len > 0) {
-	rv = SECITEM_CopyItem(NULL, &sid->u.ssl3.session_ticket.ticket,
+	rv = SECITEM_CopyItem(NULL, &sid->u.ssl3.sessionTicket.ticket,
 	    &session_ticket->ticket);
 	if (rv != SECSuccess) {
 	    UNLOCK_CACHE;
 	    return rv;
 	}
     } else {
-	sid->u.ssl3.session_ticket.ticket.data = NULL;
-	sid->u.ssl3.session_ticket.ticket.len = 0;
+	sid->u.ssl3.sessionTicket.ticket.data = NULL;
+	sid->u.ssl3.sessionTicket.ticket.len = 0;
     }
-    sid->u.ssl3.session_ticket.received_timestamp =
+    sid->u.ssl3.sessionTicket.received_timestamp =
 	session_ticket->received_timestamp;
-    sid->u.ssl3.session_ticket.ticket_lifetime_hint =
+    sid->u.ssl3.sessionTicket.ticket_lifetime_hint =
 	session_ticket->ticket_lifetime_hint;
 
     UNLOCK_CACHE;

@@ -3576,7 +3576,7 @@ ssl3_SendClientHello(sslSocket *ss)
 
 	/* Are we attempting a stateless session resume? */
 	if (sid->version > SSL_LIBRARY_VERSION_3_0 &&
-	    sid->u.ssl3.session_ticket.ticket.data)
+	    sid->u.ssl3.sessionTicket.ticket.data)
 	    SSL_AtomicIncrementLong(& ssl3stats.sch_sid_stateless_resumes );
 
 	rv = ssl3_NegotiateVersion(ss, sid->version);
@@ -4779,7 +4779,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
 	/* If we sent a session ticket, then this is a stateless resume. */
 	if (sid->version > SSL_LIBRARY_VERSION_3_0 &&
-	    sid->u.ssl3.session_ticket.ticket.data != NULL)
+	    sid->u.ssl3.sessionTicket.ticket.data != NULL)
 	    SSL_AtomicIncrementLong(& ssl3stats.hsh_sid_stateless_resumes );
 
 	if (ssl3_ExtensionNegotiated(ss, session_ticket_xtn))

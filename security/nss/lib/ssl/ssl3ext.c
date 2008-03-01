@@ -255,7 +255,7 @@ ssl3HelloExtensionSender clientHelloSenders[MAX_EXTENSIONS] = {
     { -1, NULL },
     { -1, NULL },
 #endif
-    { session_ticket_xtn, ssl3_SendSessionTicketExt },
+    { session_ticket_xtn, ssl3_SendSessionTicketExt }
 };
 
 static PRBool
@@ -365,7 +365,7 @@ ssl3_SendSessionTicketExt(
      */
     if (!ss->sec.isServer) {
 	sslSessionID *sid = ss->sec.ci.sid;
-	session_ticket = &sid->u.ssl3.session_ticket;
+	session_ticket = &sid->u.ssl3.sessionTicket;
 	if (session_ticket->ticket.data) {
 	    if (ss->xtnData.ticketTimestampVerified) {
 		extension_length += session_ticket->ticket.len;

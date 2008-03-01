@@ -633,7 +633,7 @@ struct sslSessionIDStr {
 	    /* Session ticket if we have one, is sent as an extension in the
 	     * ClientHello message.  This field is used by clients.
 	     */
-	    NewSessionTicket  session_ticket;
+	    NewSessionTicket  sessionTicket;
 	} ssl3;
     } u;
 };
@@ -1448,27 +1448,27 @@ extern SECStatus ssl3_CacheWrappedMasterSecret(sslSocket *ss,
 
 /* Functions that handle ClientHello and ServerHello extensions. */
 extern SECStatus ssl3_HandleServerNameExt(sslSocket * ss,
-    PRUint16 ex_type, SECItem *data);
+			PRUint16 ex_type, SECItem *data);
 extern SECStatus ssl3_HandleSupportedCurvesExt(sslSocket * ss,
-    PRUint16 ex_type, SECItem *data);
+			PRUint16 ex_type, SECItem *data);
 extern SECStatus ssl3_HandleSupportedPointFormatsExt(sslSocket * ss,
-    PRUint16 ex_type, SECItem *data);
+			PRUint16 ex_type, SECItem *data);
 extern SECStatus ssl3_ClientHandleSessionTicketExt(sslSocket *ss,
-    PRUint16 ex_type, SECItem *data);
+			PRUint16 ex_type, SECItem *data);
 extern SECStatus ssl3_ServerHandleSessionTicketExt(sslSocket *ss,
-    PRUint16 ex_type, SECItem *data);
+			PRUint16 ex_type, SECItem *data);
 
 /* ClientHello and ServerHello extension senders.
  * Note that not all extension senders are exposed here; only those that
  * that need exposure.
  */
 extern PRInt32 ssl3_SendSessionTicketExt(sslSocket *ss, PRBool append,
-    PRUint32 maxBytes);
+			PRUint32 maxBytes);
 #ifdef NSS_ENABLE_ECC
 extern PRInt32 ssl3_SendSupportedCurvesExt(sslSocket *ss,
-    PRBool append, PRUint32 maxBytes);
+			PRBool append, PRUint32 maxBytes);
 extern PRInt32 ssl3_SendSupportedPointFormatsExt(sslSocket *ss,
-    PRBool append, PRUint32 maxBytes);
+			PRBool append, PRUint32 maxBytes);
 #endif
 
 /* call the registered extension handlers. */
@@ -1478,13 +1478,14 @@ extern SECStatus ssl3_HandleHelloExtensions(sslSocket *ss,
 /* Hello Extension related routines. */
 extern PRBool ssl3_ExtensionNegotiated(sslSocket *ss, PRUint16 ex_type);
 extern SECStatus ssl3_SetSIDSessionTicket(sslSessionID *sid,
-    NewSessionTicket *session_ticket);
+			NewSessionTicket *session_ticket);
 extern SECStatus ssl3_SendNewSessionTicket(sslSocket *ss);
 extern PRBool ssl_GetSessionTicketKeys(uint8 *key_name, unsigned char *encKey,
-                                       unsigned char *macKey);
+			unsigned char *macKey);
 extern PRBool ssl_GetSessionTicketKeysPKCS11(SECKEYPrivateKey *svrPrivKey,
-    SECKEYPublicKey *svrPubKey, void *pwArg, unsigned char *keyName,
-    PK11SymKey **aesKey, PK11SymKey **macKey);
+			SECKEYPublicKey *svrPubKey, void *pwArg,
+			unsigned char *keyName, PK11SymKey **aesKey,
+			PK11SymKey **macKey);
 
 /* Tell clients to consider tickets valid for this long. */
 #define TLS_EX_SESS_TICKET_LIFETIME_HINT    (2 * 24 * 60 * 60) /* 2 days */
