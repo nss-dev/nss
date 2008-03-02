@@ -43,67 +43,68 @@ s_mp_mul_comba_4 PROC
         push r12
         push rbp
         push rbx
+        sub rsp, 64
         mov r9, qword ptr [16+rdi]
         mov rbx, rdx
         mov rdx, qword ptr [16+rsi]
         mov rax, qword ptr [r9]
-        mov qword ptr [-64+rsp], rax
+        mov qword ptr [-64+64+rsp], rax
         mov r8, qword ptr [8+r9]
-        mov qword ptr [-56+rsp], r8
+        mov qword ptr [-56+64+rsp], r8
         mov rbp, qword ptr [16+r9]
-        mov qword ptr [-48+rsp], rbp
+        mov qword ptr [-48+64+rsp], rbp
         mov r12, qword ptr [24+r9]
-        mov qword ptr [-40+rsp], r12
+        mov qword ptr [-40+64+rsp], r12
         mov rcx, qword ptr [rdx]
-        mov qword ptr [-32+rsp], rcx
+        mov qword ptr [-32+64+rsp], rcx
         mov r10, qword ptr [8+rdx]
-        mov qword ptr [-24+rsp], r10
+        mov qword ptr [-24+64+rsp], r10
         mov r11, qword ptr [16+rdx]
         xor r10d, r10d
         mov r8, r10
         mov r9, r10
         mov rbp, r10
-        mov qword ptr [-16+rsp], r11
+        mov qword ptr [-16+64+rsp], r11
         mov r11, qword ptr [16+rbx]
         mov rax, qword ptr [24+rdx]
-        mov qword ptr [-8+rsp], rax
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [-32+rsp]
+        mov qword ptr [-8+64+rsp], rax
+        mov rax, qword ptr [-64+64+rsp]
+        mul qword ptr [-32+64+rsp]
         add r8, rax
         adc r9, rdx
         adc rbp, 0
         mov qword ptr [r11], r8
         mov r8, rbp
         mov rbp, r10
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [-24+rsp]
+        mov rax, qword ptr [-64+64+rsp]
+        mul qword ptr [-24+64+rsp]
         add r9, rax
         adc r8, rdx
         adc rbp, 0
         mov r12, rbp
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [-32+rsp]
+        mov rax, qword ptr [-56+64+rsp]
+        mul qword ptr [-32+64+rsp]
         add r9, rax
         adc r8, rdx
         adc r12, 0
         mov qword ptr [8+r11], r9
         mov r9, r12
         mov r12, r10
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [-16+rsp]
+        mov rax, qword ptr [-64+64+rsp]
+        mul qword ptr [-16+64+rsp]
         add r8, rax
         adc r9, rdx
         adc r12, 0
         mov rcx, r12
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [-24+rsp]
+        mov rax, qword ptr [-56+64+rsp]
+        mul qword ptr [-24+64+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [-32+rsp]
+        mov rax, qword ptr [-48+64+rsp]
+        mul qword ptr [-32+64+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -111,25 +112,25 @@ s_mp_mul_comba_4 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [-8+rsp]
+        mov rax, qword ptr [-64+64+rsp]
+        mul qword ptr [-8+64+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [-16+rsp]
+        mov rax, qword ptr [-56+64+rsp]
+        mul qword ptr [-16+64+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [-24+rsp]
+        mov rax, qword ptr [-48+64+rsp]
+        mul qword ptr [-24+64+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [-32+rsp]
+        mov rax, qword ptr [-40+64+rsp]
+        mul qword ptr [-32+64+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -137,20 +138,20 @@ s_mp_mul_comba_4 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [-8+rsp]
+        mov rax, qword ptr [-56+64+rsp]
+        mul qword ptr [-8+64+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [-16+rsp]
+        mov rax, qword ptr [-48+64+rsp]
+        mul qword ptr [-16+64+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [-24+rsp]
+        mov rax, qword ptr [-40+64+rsp]
+        mul qword ptr [-24+64+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -158,23 +159,23 @@ s_mp_mul_comba_4 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [-8+rsp]
+        mov rax, qword ptr [-48+64+rsp]
+        mul qword ptr [-8+64+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov r12, r8
         mov rbp, r9
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [-16+rsp]
+        mov rax, qword ptr [-40+64+rsp]
+        mul qword ptr [-16+64+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
         mov qword ptr [40+r11], rcx
         mov r8, rbp
         mov rcx, r12
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [-8+rsp]
+        mov rax, qword ptr [-40+64+rsp]
+        mul qword ptr [-8+64+rsp]
         add r8, rax
         adc rcx, rdx
         adc r10, 0
@@ -201,6 +202,7 @@ L9:
         test edx, edx
         cmovne r11d, esi
         mov dword ptr [rbx], r11d
+        add rsp, 64
         pop rbx
         pop rbp
         pop r12
@@ -229,83 +231,83 @@ s_mp_mul_comba_8 PROC
         push rbp
         push rbx
         mov rbx, rdx
-        sub rsp, 8
+        sub rsp, 8+128
         mov rdx, qword ptr [16+rdi]
         mov r8, qword ptr [rdx]
-        mov qword ptr [-120+rsp], r8
+        mov qword ptr [-120+128+rsp], r8
         mov rbp, qword ptr [8+rdx]
-        mov qword ptr [-112+rsp], rbp
+        mov qword ptr [-112+128+rsp], rbp
         mov r9, qword ptr [16+rdx]
-        mov qword ptr [-104+rsp], r9
+        mov qword ptr [-104+128+rsp], r9
         mov r12, qword ptr [24+rdx]
-        mov qword ptr [-96+rsp], r12
+        mov qword ptr [-96+128+rsp], r12
         mov rcx, qword ptr [32+rdx]
-        mov qword ptr [-88+rsp], rcx
+        mov qword ptr [-88+128+rsp], rcx
         mov r10, qword ptr [40+rdx]
-        mov qword ptr [-80+rsp], r10
+        mov qword ptr [-80+128+rsp], r10
         mov r11, qword ptr [48+rdx]
-        mov qword ptr [-72+rsp], r11
+        mov qword ptr [-72+128+rsp], r11
         mov rax, qword ptr [56+rdx]
         mov rdx, qword ptr [16+rsi]
-        mov qword ptr [-64+rsp], rax
+        mov qword ptr [-64+128+rsp], rax
         mov r8, qword ptr [rdx]
-        mov qword ptr [-56+rsp], r8
+        mov qword ptr [-56+128+rsp], r8
         mov rbp, qword ptr [8+rdx]
-        mov qword ptr [-48+rsp], rbp
+        mov qword ptr [-48+128+rsp], rbp
         mov r9, qword ptr [16+rdx]
-        mov qword ptr [-40+rsp], r9
+        mov qword ptr [-40+128+rsp], r9
         mov r12, qword ptr [24+rdx]
-        mov qword ptr [-32+rsp], r12
+        mov qword ptr [-32+128+rsp], r12
         mov rcx, qword ptr [32+rdx]
-        mov qword ptr [-24+rsp], rcx
+        mov qword ptr [-24+128+rsp], rcx
         mov r10, qword ptr [40+rdx]
-        mov qword ptr [-16+rsp], r10
+        mov qword ptr [-16+128+rsp], r10
         mov r11, qword ptr [48+rdx]
         xor r10d, r10d
         mov r8, r10
         mov r9, r10
         mov rbp, r10
-        mov qword ptr [-8+rsp], r11
+        mov qword ptr [-8+128+rsp], r11
         mov r11, qword ptr [16+rbx]
         mov rax, qword ptr [56+rdx]
-        mov qword ptr [rsp], rax
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [-56+rsp]
+        mov qword ptr [128+rsp], rax
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [-56+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rbp, 0
         mov qword ptr [r11], r8
         mov r8, rbp
         mov rbp, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [-48+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [-48+128+rsp]
         add r9, rax
         adc r8, rdx
         adc rbp, 0
         mov r12, rbp
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [-56+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [-56+128+rsp]
         add r9, rax
         adc r8, rdx
         adc r12, 0
         mov qword ptr [8+r11], r9
         mov r9, r12
         mov r12, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [-40+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [-40+128+rsp]
         add r8, rax
         adc r9, rdx
         adc r12, 0
         mov rcx, r12
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [-48+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [-48+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [-56+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [-56+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -313,25 +315,25 @@ s_mp_mul_comba_8 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [-32+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [-32+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [-40+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [-40+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [-48+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [-48+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [-56+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [-56+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -339,30 +341,30 @@ s_mp_mul_comba_8 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [-24+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [-24+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [-32+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [-32+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [-40+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [-40+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [-48+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [-48+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [-56+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [-56+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -370,35 +372,35 @@ s_mp_mul_comba_8 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [-16+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [-16+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [-24+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [-24+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [-32+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [-32+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [-40+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [-40+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [-48+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [-48+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [-56+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [-56+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -406,40 +408,40 @@ s_mp_mul_comba_8 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [-8+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [-8+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [-16+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [-16+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [-24+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [-24+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [-32+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [-32+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [-40+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [-40+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [-48+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [-48+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [-56+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [-56+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -447,45 +449,45 @@ s_mp_mul_comba_8 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [-8+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [-8+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [-16+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [-16+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [-24+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [-24+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [-32+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [-32+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [-40+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [-40+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [-48+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [-48+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [-56+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [-56+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -493,40 +495,40 @@ s_mp_mul_comba_8 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [-8+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [-8+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [-16+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [-16+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [-24+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [-24+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [-32+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [-32+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [-40+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [-40+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [-48+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [-48+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -534,35 +536,35 @@ s_mp_mul_comba_8 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [-8+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [-8+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [-16+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [-16+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [-24+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [-24+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [-32+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [-32+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [-40+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [-40+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -570,30 +572,30 @@ s_mp_mul_comba_8 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [-8+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [-8+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [-16+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [-16+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [-24+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [-24+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [-32+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [-32+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -601,25 +603,25 @@ s_mp_mul_comba_8 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [-8+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [-8+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [-16+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [-16+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [-24+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [-24+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -627,20 +629,20 @@ s_mp_mul_comba_8 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [-8+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [-8+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [-16+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [-16+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -648,23 +650,23 @@ s_mp_mul_comba_8 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov r12, r8
         mov rbp, r9
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [-8+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [-8+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
         mov qword ptr [104+r11], rcx
         mov r8, rbp
         mov rcx, r12
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [128+rsp]
         add r8, rax
         adc rcx, rdx
         adc r10, 0
@@ -691,7 +693,7 @@ L35:
         test r11d, r11d
         cmovne edx, esi
         mov dword ptr [rbx], edx
-        add rsp, 8
+        add rsp, 8+128
         pop rbx
         pop rbp
         pop r12
@@ -720,115 +722,115 @@ s_mp_mul_comba_16 PROC
         push rbp
         push rbx
         mov rbx, rdx
-        sub rsp, 136
+        sub rsp, 136+128
         mov rax, qword ptr [16+rdi]
         mov r8, qword ptr [rax]
-        mov qword ptr [-120+rsp], r8
+        mov qword ptr [-120+128+rsp], r8
         mov rbp, qword ptr [8+rax]
-        mov qword ptr [-112+rsp], rbp
+        mov qword ptr [-112+128+rsp], rbp
         mov r9, qword ptr [16+rax]
-        mov qword ptr [-104+rsp], r9
+        mov qword ptr [-104+128+rsp], r9
         mov r12, qword ptr [24+rax]
-        mov qword ptr [-96+rsp], r12
+        mov qword ptr [-96+128+rsp], r12
         mov rcx, qword ptr [32+rax]
-        mov qword ptr [-88+rsp], rcx
+        mov qword ptr [-88+128+rsp], rcx
         mov r10, qword ptr [40+rax]
-        mov qword ptr [-80+rsp], r10
+        mov qword ptr [-80+128+rsp], r10
         mov rdx, qword ptr [48+rax]
-        mov qword ptr [-72+rsp], rdx
+        mov qword ptr [-72+128+rsp], rdx
         mov r11, qword ptr [56+rax]
-        mov qword ptr [-64+rsp], r11
+        mov qword ptr [-64+128+rsp], r11
         mov r8, qword ptr [64+rax]
-        mov qword ptr [-56+rsp], r8
+        mov qword ptr [-56+128+rsp], r8
         mov rbp, qword ptr [72+rax]
-        mov qword ptr [-48+rsp], rbp
+        mov qword ptr [-48+128+rsp], rbp
         mov r9, qword ptr [80+rax]
-        mov qword ptr [-40+rsp], r9
+        mov qword ptr [-40+128+rsp], r9
         mov r12, qword ptr [88+rax]
-        mov qword ptr [-32+rsp], r12
+        mov qword ptr [-32+128+rsp], r12
         mov rcx, qword ptr [96+rax]
-        mov qword ptr [-24+rsp], rcx
+        mov qword ptr [-24+128+rsp], rcx
         mov r10, qword ptr [104+rax]
-        mov qword ptr [-16+rsp], r10
+        mov qword ptr [-16+128+rsp], r10
         mov rdx, qword ptr [112+rax]
-        mov qword ptr [-8+rsp], rdx
+        mov qword ptr [-8+128+rsp], rdx
         mov r11, qword ptr [120+rax]
-        mov qword ptr [rsp], r11
+        mov qword ptr [128+rsp], r11
         mov r11, qword ptr [16+rsi]
         mov r8, qword ptr [r11]
-        mov qword ptr [8+rsp], r8
+        mov qword ptr [8+128+rsp], r8
         mov rbp, qword ptr [8+r11]
-        mov qword ptr [16+rsp], rbp
+        mov qword ptr [16+128+rsp], rbp
         mov r9, qword ptr [16+r11]
-        mov qword ptr [24+rsp], r9
+        mov qword ptr [24+128+rsp], r9
         mov r12, qword ptr [24+r11]
-        mov qword ptr [32+rsp], r12
+        mov qword ptr [32+128+rsp], r12
         mov rcx, qword ptr [32+r11]
-        mov qword ptr [40+rsp], rcx
+        mov qword ptr [40+128+rsp], rcx
         mov r10, qword ptr [40+r11]
-        mov qword ptr [48+rsp], r10
+        mov qword ptr [48+128+rsp], r10
         mov rdx, qword ptr [48+r11]
-        mov qword ptr [56+rsp], rdx
+        mov qword ptr [56+128+rsp], rdx
         mov rax, qword ptr [56+r11]
-        mov qword ptr [64+rsp], rax
+        mov qword ptr [64+128+rsp], rax
         mov r8, qword ptr [64+r11]
-        mov qword ptr [72+rsp], r8
+        mov qword ptr [72+128+rsp], r8
         mov rbp, qword ptr [72+r11]
-        mov qword ptr [80+rsp], rbp
+        mov qword ptr [80+128+rsp], rbp
         mov r9, qword ptr [80+r11]
-        mov qword ptr [88+rsp], r9
+        mov qword ptr [88+128+rsp], r9
         mov r12, qword ptr [88+r11]
-        mov qword ptr [96+rsp], r12
+        mov qword ptr [96+128+rsp], r12
         mov rcx, qword ptr [96+r11]
-        mov qword ptr [104+rsp], rcx
+        mov qword ptr [104+128+rsp], rcx
         mov r10, qword ptr [104+r11]
-        mov qword ptr [112+rsp], r10
+        mov qword ptr [112+128+rsp], r10
         mov rdx, qword ptr [112+r11]
         xor r10d, r10d
         mov r8, r10
         mov r9, r10
         mov rbp, r10
-        mov qword ptr [120+rsp], rdx
+        mov qword ptr [120+128+rsp], rdx
         mov rax, qword ptr [120+r11]
-        mov qword ptr [128+rsp], rax
+        mov qword ptr [128+128+rsp], rax
         mov r11, qword ptr [16+rbx]
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [8+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rbp, 0
         mov qword ptr [r11], r8
         mov r8, rbp
         mov rbp, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [16+128+rsp]
         add r9, rax
         adc r8, rdx
         adc rbp, 0
         mov r12, rbp
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [8+128+rsp]
         add r9, rax
         adc r8, rdx
         adc r12, 0
         mov qword ptr [8+r11], r9
         mov r9, r12
         mov r12, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [24+128+rsp]
         add r8, rax
         adc r9, rdx
         adc r12, 0
         mov rcx, r12
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [16+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [8+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -836,25 +838,25 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [32+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [24+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [16+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [8+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -862,30 +864,30 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [40+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [32+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [24+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [16+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [8+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -893,35 +895,35 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [48+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [40+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [32+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [24+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [16+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [8+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -929,40 +931,40 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [56+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [48+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [40+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [32+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [24+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [16+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [8+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -970,45 +972,45 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [64+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [56+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [48+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [40+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [32+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [24+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [16+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [8+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -1016,50 +1018,50 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [72+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [64+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [56+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [48+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [40+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [32+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [24+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [16+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [8+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -1067,55 +1069,55 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [80+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [72+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [64+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [56+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [48+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [40+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [32+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [24+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [16+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [8+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -1123,60 +1125,60 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [88+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [80+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [72+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [64+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [56+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [48+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [40+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [32+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [24+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [16+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [8+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -1184,65 +1186,65 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [96+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [88+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [80+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [72+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [64+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [56+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [48+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [40+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [32+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [24+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [16+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [8+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -1250,70 +1252,70 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [104+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [96+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [88+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [80+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [72+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [64+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [56+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [48+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [40+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [32+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [24+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [16+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [8+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -1321,75 +1323,75 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [112+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [104+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [96+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [88+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [80+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [72+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [64+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [56+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [48+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [40+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [32+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [24+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [16+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [8+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -1397,80 +1399,80 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [120+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [112+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [104+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [96+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [88+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [80+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [72+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [64+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [56+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [48+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [40+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [32+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [24+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [16+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [8+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -1478,85 +1480,85 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-120+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-120+128+rsp]
+        mul qword ptr [128+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [120+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [112+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [104+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [96+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [88+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [80+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [72+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [64+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [56+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [48+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [40+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [32+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [24+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [16+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [rsp]
-        mul qword ptr [8+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [8+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -1564,80 +1566,80 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-112+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-112+128+rsp]
+        mul qword ptr [128+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [120+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [112+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [104+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [96+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [88+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [80+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [72+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [64+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [56+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [48+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [40+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [32+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [24+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [rsp]
-        mul qword ptr [16+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [16+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -1645,75 +1647,75 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-104+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-104+128+rsp]
+        mul qword ptr [128+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [120+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [112+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [104+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [96+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [88+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [80+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [72+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [64+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [56+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [48+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [40+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [32+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [rsp]
-        mul qword ptr [24+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [24+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -1721,70 +1723,70 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-96+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-96+128+rsp]
+        mul qword ptr [128+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [120+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [112+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [104+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [96+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [88+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [80+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [72+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [64+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [56+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [48+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [40+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [rsp]
-        mul qword ptr [32+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [32+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -1792,65 +1794,65 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-88+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-88+128+rsp]
+        mul qword ptr [128+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [120+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [112+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [104+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [96+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [88+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [80+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [72+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [64+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [56+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [48+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [rsp]
-        mul qword ptr [40+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [40+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -1858,60 +1860,60 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-80+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-80+128+rsp]
+        mul qword ptr [128+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [120+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [112+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [104+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [96+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [88+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [80+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [72+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [64+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [56+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [rsp]
-        mul qword ptr [48+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [48+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -1919,55 +1921,55 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-72+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-72+128+rsp]
+        mul qword ptr [128+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [120+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [112+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [104+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [96+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [88+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [80+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [72+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [64+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [rsp]
-        mul qword ptr [56+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [56+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -1975,50 +1977,50 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-64+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-64+128+rsp]
+        mul qword ptr [128+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [120+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [112+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [104+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [96+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [88+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [80+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [72+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [rsp]
-        mul qword ptr [64+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [64+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -2026,45 +2028,45 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-56+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-56+128+rsp]
+        mul qword ptr [128+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [120+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [112+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [104+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [96+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [88+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [80+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [rsp]
-        mul qword ptr [72+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [72+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -2072,40 +2074,40 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-48+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-48+128+rsp]
+        mul qword ptr [128+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [120+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [112+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [104+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [96+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [88+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [rsp]
-        mul qword ptr [80+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [80+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -2113,35 +2115,35 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-40+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-40+128+rsp]
+        mul qword ptr [128+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [120+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [112+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [104+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [96+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [rsp]
-        mul qword ptr [88+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [88+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -2149,30 +2151,30 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-32+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-32+128+rsp]
+        mul qword ptr [128+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [120+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [112+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [104+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [rsp]
-        mul qword ptr [96+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [96+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -2180,25 +2182,25 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-24+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-24+128+rsp]
+        mul qword ptr [128+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [120+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [112+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov rbp, r9
         mov r12, r8
-        mov rax, qword ptr [rsp]
-        mul qword ptr [104+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [104+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
@@ -2206,20 +2208,20 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov r8, rbp
         mov rcx, r10
-        mov rax, qword ptr [-16+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-16+128+rsp]
+        mul qword ptr [128+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [120+128+rsp]
         add r8, rax
         adc r9, rdx
         adc rcx, 0
         mov rbp, r9
         mov r12, rcx
-        mov rax, qword ptr [rsp]
-        mul qword ptr [112+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [112+128+rsp]
         add r8, rax
         adc rbp, rdx
         adc r12, 0
@@ -2227,23 +2229,23 @@ s_mp_mul_comba_16 PROC
         mov r9, r12
         mov rcx, rbp
         mov r8, r10
-        mov rax, qword ptr [-8+rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [-8+128+rsp]
+        mul qword ptr [128+128+rsp]
         add rcx, rax
         adc r9, rdx
         adc r8, 0
         mov r12, r8
         mov rbp, r9
-        mov rax, qword ptr [rsp]
-        mul qword ptr [120+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [120+128+rsp]
         add rcx, rax
         adc rbp, rdx
         adc r12, 0
         mov qword ptr [232+r11], rcx
         mov r8, rbp
         mov rcx, r12
-        mov rax, qword ptr [rsp]
-        mul qword ptr [128+rsp]
+        mov rax, qword ptr [128+rsp]
+        mul qword ptr [128+128+rsp]
         add r8, rax
         adc rcx, rdx
         adc r10, 0
@@ -2270,7 +2272,7 @@ L76:
         test edx, edx
         cmovne r11d, esi
         mov dword ptr [rbx], r11d
-        add rsp, 136
+        add rsp, 136+128
         pop rbx
         pop rbp
         pop r12
@@ -7857,6 +7859,7 @@ s_mp_sqr_comba_4 PROC
         mov rsi, rdx
 
         push rbp
+	sub rsp,80
         mov r11, rsi
         xor esi, esi
         mov r10, rsi
@@ -7871,7 +7874,7 @@ s_mp_sqr_comba_4 PROC
         add r10, rax
         adc rbx, rdx
         adc rdi, 0
-        mov qword ptr [-72+rsp], r10
+        mov qword ptr [-72+80+rsp], r10
         mov rax, qword ptr [rcx]
         mul qword ptr [8+rcx]
         add rbx, rax
@@ -7880,7 +7883,7 @@ s_mp_sqr_comba_4 PROC
         add rbx, rax
         adc rdi, rdx
         adc rbp, 0
-        mov qword ptr [-64+rsp], rbx
+        mov qword ptr [-64+80+rsp], rbx
         mov rax, qword ptr [rcx]
         mul qword ptr [16+rcx]
         add rdi, rax
@@ -7896,7 +7899,7 @@ s_mp_sqr_comba_4 PROC
         add rdi, rax
         adc rbx, rdx
         adc rbp, 0
-        mov qword ptr [-56+rsp], rdi
+        mov qword ptr [-56+80+rsp], rdi
         mov r9, rbp
         mov r8, rbx
         mov rdi, rsi
@@ -7918,7 +7921,7 @@ s_mp_sqr_comba_4 PROC
         add r8, rax
         adc rbx, rdx
         adc rbp, 0
-        mov qword ptr [-48+rsp], r8
+        mov qword ptr [-48+80+rsp], r8
         mov r9, rbp
         mov rdi, rbx
         mov r8, rsi
@@ -7940,7 +7943,7 @@ s_mp_sqr_comba_4 PROC
         adc rbx, rdx
         adc rbp, 0
         mov rax, rbp
-        mov qword ptr [-40+rsp], rdi
+        mov qword ptr [-40+80+rsp], rdi
         mov rbp, rbx
         mov rdi, rax
         mov rbx, rsi
@@ -7952,7 +7955,7 @@ s_mp_sqr_comba_4 PROC
         add rbp, rax
         adc rdi, rdx
         adc rbx, 0
-        mov qword ptr [-32+rsp], rbp
+        mov qword ptr [-32+80+rsp], rbp
         mov r9, rbx
         mov rax, qword ptr [24+rcx]
         mul rax
@@ -7960,22 +7963,22 @@ s_mp_sqr_comba_4 PROC
         adc r9, rdx
         adc rsi, 0
         mov rdx, qword ptr [16+r11]
-        mov qword ptr [-24+rsp], rdi
-        mov qword ptr [-16+rsp], r9
+        mov qword ptr [-24+80+rsp], rdi
+        mov qword ptr [-16+80+rsp], r9
         mov qword ptr [rdx], r10
-        mov r8, qword ptr [-64+rsp]
+        mov r8, qword ptr [-64+80+rsp]
         mov qword ptr [8+rdx], r8
-        mov rbp, qword ptr [-56+rsp]
+        mov rbp, qword ptr [-56+80+rsp]
         mov qword ptr [16+rdx], rbp
-        mov rdi, qword ptr [-48+rsp]
+        mov rdi, qword ptr [-48+80+rsp]
         mov qword ptr [24+rdx], rdi
-        mov rsi, qword ptr [-40+rsp]
+        mov rsi, qword ptr [-40+80+rsp]
         mov qword ptr [32+rdx], rsi
-        mov rbx, qword ptr [-32+rsp]
+        mov rbx, qword ptr [-32+80+rsp]
         mov qword ptr [40+rdx], rbx
-        mov rcx, qword ptr [-24+rsp]
+        mov rcx, qword ptr [-24+80+rsp]
         mov qword ptr [48+rdx], rcx
-        mov rax, qword ptr [-16+rsp]
+        mov rax, qword ptr [-16+80+rsp]
         mov qword ptr [56+rdx], rax
         mov edx, dword ptr [8+r11]
         test edx, edx
@@ -8008,6 +8011,7 @@ L171:
 L168:
         xor eax, eax
 L169:
+	add rsp,80
         pop rbx
         pop rbp
         mov dword ptr [r11], eax
@@ -8046,14 +8050,14 @@ s_mp_sqr_comba_8 PROC
         mov rsi, r9
         push rbx
         mov rbx, r9
-        sub rsp, 8
+        sub rsp, 8+128
         mov rcx, qword ptr [16+rdi]
         mov rax, qword ptr [rcx]
         mul rax
         add r14, rax
         adc rbx, rdx
         adc r12, 0
-        mov qword ptr [-120+rsp], r14
+        mov qword ptr [-120+128+rsp], r14
         mov rax, qword ptr [rcx]
         mul qword ptr [8+rcx]
         add rbx, rax
@@ -8062,7 +8066,7 @@ s_mp_sqr_comba_8 PROC
         add rbx, rax
         adc r12, rdx
         adc r10, 0
-        mov qword ptr [-112+rsp], rbx
+        mov qword ptr [-112+128+rsp], rbx
         mov rax, qword ptr [rcx]
         mul qword ptr [16+rcx]
         add r12, rax
@@ -8079,7 +8083,7 @@ s_mp_sqr_comba_8 PROC
         add r12, rax
         adc rbx, rdx
         adc r10, 0
-        mov qword ptr [-104+rsp], r12
+        mov qword ptr [-104+128+rsp], r12
         mov rdi, r10
         mov r11, rbx
         mov rax, qword ptr [rcx]
@@ -8102,7 +8106,7 @@ s_mp_sqr_comba_8 PROC
         adc rbx, rdx
         adc r10, 0
         mov rsi, r9
-        mov qword ptr [-96+rsp], r11
+        mov qword ptr [-96+128+rsp], r11
         mov r8, r10
         mov r12, rbx
         mov r11, r9
@@ -8130,7 +8134,7 @@ s_mp_sqr_comba_8 PROC
         add r12, rax
         adc rbx, rdx
         adc r10, 0
-        mov qword ptr [-88+rsp], r12
+        mov qword ptr [-88+128+rsp], r12
         mov rax, qword ptr [rcx]
         mul qword ptr [40+rcx]
         mov r8, rax
@@ -8152,7 +8156,7 @@ s_mp_sqr_comba_8 PROC
         add rbx, r8
         adc r10, rdi
         adc r11, rsi
-        mov qword ptr [-80+rsp], rbx
+        mov qword ptr [-80+128+rsp], rbx
         mov rax, qword ptr [rcx]
         mul qword ptr [48+rcx]
         mov r8, rax
@@ -8187,7 +8191,7 @@ s_mp_sqr_comba_8 PROC
         add r10, rax
         adc rbx, rdx
         adc r11, 0
-        mov qword ptr [-72+rsp], r10
+        mov qword ptr [-72+128+rsp], r10
         mov r10, r11
         mov rax, qword ptr [rcx]
         mul qword ptr [56+rcx]
@@ -8216,7 +8220,7 @@ s_mp_sqr_comba_8 PROC
         add rbx, r8
         adc r10, rdi
         adc rax, rsi
-        mov qword ptr [-64+rsp], rbx
+        mov qword ptr [-64+128+rsp], rbx
         mov r11, rax
         mov rbx, r9
         mov rax, qword ptr [8+rcx]
@@ -8252,7 +8256,7 @@ s_mp_sqr_comba_8 PROC
         add r10, rax
         adc rbx, rdx
         adc r11, 0
-        mov qword ptr [-56+rsp], r10
+        mov qword ptr [-56+128+rsp], r10
         mov r10, r9
         mov rax, qword ptr [16+rcx]
         mul qword ptr [56+rcx]
@@ -8277,7 +8281,7 @@ s_mp_sqr_comba_8 PROC
         add rbx, r8
         adc r11, r12
         adc r10, rax
-        mov qword ptr [-48+rsp], rbx
+        mov qword ptr [-48+128+rsp], rbx
         mov r12, r11
         mov rsi, r10
         mov rbx, r9
@@ -8307,7 +8311,7 @@ s_mp_sqr_comba_8 PROC
         add r12, rax
         adc r10, rdx
         adc rbx, 0
-        mov qword ptr [-40+rsp], r12
+        mov qword ptr [-40+128+rsp], r12
         mov r8, rbx
         mov rdi, r10
         mov rax, qword ptr [32+rcx]
@@ -8328,7 +8332,7 @@ s_mp_sqr_comba_8 PROC
         add rdi, rax
         adc r10, rdx
         adc rbx, 0
-        mov qword ptr [-32+rsp], rdi
+        mov qword ptr [-32+128+rsp], rdi
         mov rsi, rbx
         mov r12, r10
         mov rax, qword ptr [40+rcx]
@@ -8346,7 +8350,7 @@ s_mp_sqr_comba_8 PROC
         add r12, rax
         adc r10, rdx
         adc rbx, 0
-        mov qword ptr [-24+rsp], r12
+        mov qword ptr [-24+128+rsp], r12
         mov rdi, r10
         mov rsi, rbx
         mov r10, r9
@@ -8360,7 +8364,7 @@ s_mp_sqr_comba_8 PROC
         add rdi, rax
         adc rsi, rdx
         adc r10, 0
-        mov qword ptr [-16+rsp], rdi
+        mov qword ptr [-16+128+rsp], rdi
         mov r8, r10
         mov rax, qword ptr [56+rcx]
         mul rax
@@ -8368,38 +8372,38 @@ s_mp_sqr_comba_8 PROC
         adc r8, rdx
         adc r9, 0
         mov rax, qword ptr [16+rbp]
-        mov qword ptr [-8+rsp], rsi
-        mov qword ptr [rsp], r8
+        mov qword ptr [-8+128+rsp], rsi
+        mov qword ptr [128+rsp], r8
         mov qword ptr [rax], r14
-        mov rbx, qword ptr [-112+rsp]
+        mov rbx, qword ptr [-112+128+rsp]
         mov qword ptr [8+rax], rbx
-        mov rcx, qword ptr [-104+rsp]
+        mov rcx, qword ptr [-104+128+rsp]
         mov qword ptr [16+rax], rcx
-        mov rdx, qword ptr [-96+rsp]
+        mov rdx, qword ptr [-96+128+rsp]
         mov qword ptr [24+rax], rdx
-        mov r14, qword ptr [-88+rsp]
+        mov r14, qword ptr [-88+128+rsp]
         mov qword ptr [32+rax], r14
-        mov r13, qword ptr [-80+rsp]
+        mov r13, qword ptr [-80+128+rsp]
         mov qword ptr [40+rax], r13
-        mov r12, qword ptr [-72+rsp]
+        mov r12, qword ptr [-72+128+rsp]
         mov qword ptr [48+rax], r12
-        mov r11, qword ptr [-64+rsp]
+        mov r11, qword ptr [-64+128+rsp]
         mov qword ptr [56+rax], r11
-        mov r10, qword ptr [-56+rsp]
+        mov r10, qword ptr [-56+128+rsp]
         mov qword ptr [64+rax], r10
-        mov r9, qword ptr [-48+rsp]
+        mov r9, qword ptr [-48+128+rsp]
         mov qword ptr [72+rax], r9
-        mov r8, qword ptr [-40+rsp]
+        mov r8, qword ptr [-40+128+rsp]
         mov qword ptr [80+rax], r8
-        mov rdi, qword ptr [-32+rsp]
+        mov rdi, qword ptr [-32+128+rsp]
         mov qword ptr [88+rax], rdi
-        mov rsi, qword ptr [-24+rsp]
+        mov rsi, qword ptr [-24+128+rsp]
         mov qword ptr [96+rax], rsi
-        mov rbx, qword ptr [-16+rsp]
+        mov rbx, qword ptr [-16+128+rsp]
         mov qword ptr [104+rax], rbx
-        mov rcx, qword ptr [-8+rsp]
+        mov rcx, qword ptr [-8+128+rsp]
         mov qword ptr [112+rax], rcx
-        mov rdx, qword ptr [rsp]
+        mov rdx, qword ptr [128+rsp]
         mov qword ptr [120+rax], rdx
         mov edx, dword ptr [8+rbp]
         test edx, edx
@@ -8433,7 +8437,7 @@ L192:
         xor eax, eax
 L193:
         mov dword ptr [rbp], eax
-        add rsp, 8
+        add rsp, 8+128
         pop rbx
         pop rbp
         pop r12
