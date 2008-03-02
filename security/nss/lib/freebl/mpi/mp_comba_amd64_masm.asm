@@ -2279,7 +2279,7 @@ s_mp_mul_comba_16 ENDP
 ; void s_mp_mul_comba_32(const mp_int *A, const mp_int *B, mp_int *C)
 
 
-s_mp_mul_comba_32 PROC
+s_mp_mul_comba_32 PROC ; a "FRAME" function
 
         push rdi
         push rsi
@@ -2298,7 +2298,7 @@ s_mp_mul_comba_32 PROC
         mov r12, rsi
         push rbx
         mov rbx, rdi
-        sub rsp, 520
+        sub rsp, 520+32			; +32 for "home" storage
 ;        mov rsi, qword ptr [16+rdi]
 ;        lea rdi, qword ptr [-544+rbp]
         mov rdx, qword ptr [16+rdi]
@@ -7824,7 +7824,7 @@ L149:
         test r9d, r9d
         cmovne edx, ecx
         mov dword ptr [r13], edx
-        add rsp, 520
+        add rsp, 520+32			; +32 for "home" storage
         pop rbx
         pop r12
         pop r13
@@ -8452,7 +8452,7 @@ s_mp_sqr_comba_8 ENDP
 
 ; void s_mp_sqr_comba_16(const mp_int *A, mp_int *B)
 
-s_mp_sqr_comba_16 PROC
+s_mp_sqr_comba_16 PROC ; A "FRAME" function
 
         push rdi
         push rsi
@@ -8474,7 +8474,7 @@ s_mp_sqr_comba_16 PROC
         mov r12, r9
         push rbx
         mov rbx, r9
-        sub rsp, 256
+        sub rsp, 256+32			; +32 for "home" storage
         mov rcx, qword ptr [16+rdi]
         mov rax, qword ptr [rcx]
         mul rax
@@ -9521,23 +9521,15 @@ L230:
         test edx, edx
         je L232
         mov eax, dword ptr [r14]
-        mov dword ptr [r14], eax
-        add rsp, 256
-        pop rbx
-        pop r12
-        pop r13
-        pop r14
-        pop rbp
-        pop rsi
-        pop rdi
+        jmp L233
 
-        ret
 L235:
         mov dword ptr [8+r14], edx
 L232:
         xor eax, eax
+L233:
         mov dword ptr [r14], eax
-        add rsp, 256
+        add rsp, 256+32			; +32 for "home" storage
         pop rbx
         pop r12
         pop r13
@@ -9553,7 +9545,7 @@ s_mp_sqr_comba_16 ENDP
 
 ; void s_mp_sqr_comba_32(const mp_int *A, mp_int *B);
 
-s_mp_sqr_comba_32 PROC
+s_mp_sqr_comba_32 PROC ; A "FRAME" function
 
         push rdi
         push rsi
@@ -9575,7 +9567,7 @@ s_mp_sqr_comba_32 PROC
         mov r12, r10
         push rbx
         mov rbx, r10
-        sub rsp, 512
+        sub rsp, 512+32			; +32 for "home" storage
         mov rcx, qword ptr [16+rdi]
         mov rax, qword ptr [rcx]
         mul rax
@@ -13039,24 +13031,15 @@ L302:
         test edx, edx
         je L304
         mov eax, dword ptr [r14]
-        mov dword ptr [r14], eax
-        add rsp, 512
-        pop rbx
-        pop r12
-        pop r13
-        pop r14
-        pop rbp
+        jmp L305
 
-        pop rsi
-        pop rdi
-
-        ret
 L307:
         mov dword ptr [8+r14], edx
 L304:
         xor eax, eax
+L305:
         mov dword ptr [r14], eax
-        add rsp, 512
+        add rsp, 512+32			; +32 for "home" storage
         pop rbx
         pop r12
         pop r13
