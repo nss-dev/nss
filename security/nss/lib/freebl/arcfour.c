@@ -46,7 +46,8 @@
 
 /* Architecture-dependent defines */
 
-#if defined(SOLARIS) || defined(HPUX) || defined(i386) || defined(IRIX)
+#if defined(SOLARIS) || defined(HPUX) || defined(i386) || defined(IRIX) || \
+    defined(_WIN64)
 /* Convert the byte-stream to a word-stream */
 #define CONVERT_TO_WORDS
 #endif
@@ -56,7 +57,7 @@
  * much longer to write bytes than to write longs, or when using 
  * assembler code that required it.
  */
-#define USE_LONG
+#define USE_WORD
 #endif
 
 #if defined(_WIN32_WCE)
@@ -64,15 +65,15 @@
 #define WORD ARC4WORD
 #endif
 
-#if defined(IS_64) && !defined(__sparc) && !defined(NSS_USE_64) 
-typedef unsigned long long WORD;
+#if (defined(IS_64) && !defined(__sparc))
+typedef PRUint64 WORD;
 #else
-typedef unsigned long WORD;
+typedef PRUint32 WORD;
 #endif
 #define WORDSIZE sizeof(WORD)
 
-#ifdef USE_LONG
-typedef unsigned long Stype;
+#if defined(USE_WORD)
+typedef WORD Stype;
 #else
 typedef PRUint8 Stype;
 #endif
@@ -216,7 +217,7 @@ RC4_DestroyContext(RC4Context *cx, PRBool freeit)
 }
 
 #if defined(NSS_BEVAND_ARCFOUR)
-extern void ARCFOUR(RC4Context *cx, unsigned long inputLen, 
+extern void ARCFOUR(RC4Context *cx, WORD inputLen, 
 	const unsigned char *input, unsigned char *output);
 #else
 /*
@@ -636,4 +637,4 @@ SECStatus RC4_Decrypt(RC4Context *cx, unsigned char *output,
 }
 
 #undef CONVERT_TO_WORDS
-#undef USE_LONG
+#undef USE_WORD
