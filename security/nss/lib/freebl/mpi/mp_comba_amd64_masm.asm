@@ -30,7 +30,7 @@ public s_mp_sqr_comba_32
 
 ; void s_mp_mul_comba_4(const mp_int *A, const mp_int *B, mp_int *C)
 
-	ALIGN 16
+        ALIGN 16
 s_mp_mul_comba_4 PROC
 
         push rdi
@@ -186,7 +186,7 @@ s_mp_mul_comba_4 PROC
         mov qword ptr [56+r11], rcx
         mov dword ptr [8+rbx], 8
         jne L9
-	ALIGN 16
+        ALIGN 16
 L18:
         mov edx, dword ptr [8+rbx]
         lea edi, dword ptr [-1+rdx]
@@ -217,7 +217,7 @@ s_mp_mul_comba_4 ENDP
 
 ; void s_mp_mul_comba_8(const mp_int *A, const mp_int *B, mp_int *C)
 
-	ALIGN 16
+        ALIGN 16
 s_mp_mul_comba_8 PROC
 
         push rdi
@@ -677,7 +677,7 @@ s_mp_mul_comba_8 PROC
         mov qword ptr [120+r11], rcx
         mov dword ptr [8+rbx], 16
         jne L35
-	ALIGN 16
+        ALIGN 16
 L43:
         mov edx, dword ptr [8+rbx]
         lea edi, dword ptr [-1+rdx]
@@ -708,7 +708,7 @@ s_mp_mul_comba_8 ENDP
 
 ; void s_mp_mul_comba_16(const mp_int *A, const mp_int *B, mp_int *C);
 
-	ALIGN 16
+        ALIGN 16
 s_mp_mul_comba_16 PROC
 
         push rdi
@@ -2256,7 +2256,7 @@ s_mp_mul_comba_16 PROC
         mov qword ptr [248+r11], rcx
         mov dword ptr [8+rbx], 32
         jne L76
-	ALIGN 16
+        ALIGN 16
 L84:
         mov edx, dword ptr [8+rbx]
         lea edi, dword ptr [-1+rdx]
@@ -2287,7 +2287,7 @@ s_mp_mul_comba_16 ENDP
 ; void s_mp_mul_comba_32(const mp_int *A, const mp_int *B, mp_int *C)
 
 
-	ALIGN 16
+        ALIGN 16
 s_mp_mul_comba_32 PROC ; a "FRAME" function
 
         push rdi
@@ -7818,7 +7818,7 @@ s_mp_mul_comba_32 PROC ; a "FRAME" function
         mov qword ptr [504+r9], rsi
         mov dword ptr [8+r13], 64
         jne L149
-	ALIGN 16
+        ALIGN 16
 L157:
         mov edx, dword ptr [8+r13]
         lea ebx, dword ptr [-1+rdx]
@@ -7849,7 +7849,7 @@ s_mp_mul_comba_32 ENDP
 
 ; void s_mp_sqr_comba_4(const mp_int *A, mp_int *B);
 
-	ALIGN 16
+        ALIGN 16
 s_mp_sqr_comba_4 PROC
 
         push rdi
@@ -7859,7 +7859,7 @@ s_mp_sqr_comba_4 PROC
         mov rsi, rdx
 
         push rbp
-	sub rsp,80
+        sub rsp, 80
         mov r11, rsi
         xor esi, esi
         mov r10, rsi
@@ -7989,7 +7989,7 @@ s_mp_sqr_comba_4 PROC
         cmp dword ptr [rsi+r10*8], 0
         jne L166
         mov edx, ecx
-	ALIGN 16
+        ALIGN 16
 L167:
         test edx, edx
         mov ecx, edx
@@ -8004,14 +8004,14 @@ L166:
         test edx, edx
         je L168
         mov eax, dword ptr [r11]
-	jmp L169
+        jmp L169
 
 L171:
         mov dword ptr [8+r11], edx
 L168:
         xor eax, eax
 L169:
-	add rsp,80
+        add rsp, 80
         pop rbx
         pop rbp
         mov dword ptr [r11], eax
@@ -8026,7 +8026,7 @@ s_mp_sqr_comba_4 ENDP
 
 ; void s_mp_sqr_comba_8(const mp_int *A, mp_int *B);
 
-	ALIGN 16
+        ALIGN 16
 s_mp_sqr_comba_8 PROC
 
         push rdi
@@ -8414,7 +8414,7 @@ s_mp_sqr_comba_8 PROC
         cmp dword ptr [rsi+r14*8], 0
         jne L190
         mov edx, ecx
-	ALIGN 16
+        ALIGN 16
 L191:
         test edx, edx
         mov ecx, edx
@@ -8454,7 +8454,7 @@ s_mp_sqr_comba_8 ENDP
 
 ; void s_mp_sqr_comba_16(const mp_int *A, mp_int *B)
 
-	ALIGN 16
+        ALIGN 16
 s_mp_sqr_comba_16 PROC ; A "FRAME" function
 
         push rdi
@@ -9510,7 +9510,7 @@ s_mp_sqr_comba_16 PROC ; A "FRAME" function
         cmp dword ptr [rsi+r9*8], 0
         jne L230
         mov edx, ecx
-	ALIGN 16
+        ALIGN 16
 L231:
         test edx, edx
         mov ecx, edx
@@ -9549,7 +9549,7 @@ s_mp_sqr_comba_16 ENDP
 
 ; void s_mp_sqr_comba_32(const mp_int *A, mp_int *B);
 
-	ALIGN 16
+        ALIGN 16
 s_mp_sqr_comba_32 PROC ; A "FRAME" function
 
         push rdi
@@ -13022,7 +13022,7 @@ s_mp_sqr_comba_32 PROC ; A "FRAME" function
         cmp dword ptr [rsi+r10*8], 0
         jne L302
         mov edx, ecx
-	ALIGN 16
+        ALIGN 16
 L303:
         test edx, edx
         mov ecx, edx
