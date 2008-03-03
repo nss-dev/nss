@@ -496,7 +496,6 @@ int main(int argc, char **argv)
     PRFileDesc *       std_out;
     CERTCertDBHandle * handle;
     char *             host	=  NULL;
-    char *             port	=  "443";
     char *             certDir  =  NULL;
     char *             nickname =  NULL;
     char *             cipherString = NULL;
@@ -523,7 +522,7 @@ int main(int argc, char **argv)
     PRBool             skipProtoHeader = PR_FALSE;
     int                headerSeparatorPtrnId = 0;
     int                error = 0;
-    PRUint16           portno;
+    PRUint16           portno = 443;
     PLOptState *optstate;
     PLOptStatus optstatus;
     PRStatus prStatus;
@@ -578,7 +577,7 @@ int main(int argc, char **argv)
 
 	  case 'o': override = 1; 			break;
 
-	  case 'p': port = strdup(optstate->value);	break;
+	  case 'p': portno = (PRUint16)atoi(optstate->value);	break;
 
 	  case 'q': pingServerFirst = PR_TRUE;          break;
 
@@ -597,8 +596,8 @@ int main(int argc, char **argv)
     if (optstatus == PL_OPT_BAD)
 	Usage(progName);
 
-    if (!host || !port) Usage(progName);
-    portno = (PRUint16)atoi(port);
+    if (!host || !portno) 
+    	Usage(progName);
 
     if (!certDir) {
 	certDir = SECU_DefaultSSLDir();	/* Look in $SSL_DIR */
@@ -1039,6 +1038,9 @@ int main(int argc, char **argv)
     }
 
   done:
+    PORT_Free(nickname);
+    PORT_Free(password);
+    PORT_Free(host);
     PR_Close(s);
     SSL_ClearSessionCache();
     if (NSS_Shutdown() != SECSuccess) {
