@@ -51,7 +51,7 @@
 #include "blapi.h"
 #include "prinit.h"
 
-static uint8          key_name[SESS_TICKET_KEY_NAME_LEN];
+static unsigned char  key_name[SESS_TICKET_KEY_NAME_LEN];
 static PK11SymKey    *session_ticket_enc_key_pkcs11 = NULL;
 static PK11SymKey    *session_ticket_mac_key_pkcs11 = NULL;
 

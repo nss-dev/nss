@@ -1636,12 +1636,166 @@ ssl_GetWrappingKey( PRInt32                   symWrapMechIndex,
     return rv;
 }
 
+/* Wrap and cache a session ticket key. */
+static PRBool
+WrapTicketKey(SECKEYPublicKey *svrPubKey, PK11SymKey *symKey,
+              const char *keyName, encKeyCacheEntry* cacheEntry)
+{
+    SECItem wrappedKey = {siBuffer, NULL, 0};
+
+    wrappedKey.len = SECKEY_PublicKeyStrength(svrPubKey);
+    PORT_Assert(wrappedKey.len <= sizeof(cacheEntry->bytes));
+    if (wrappedKey.len > sizeof(cacheEntry->bytes))
+	return PR_FALSE;
+    wrappedKey.data = cacheEntry->bytes;
+
+    if (PK11_PubWrapSymKey(CKM_RSA_PKCS, svrPubKey, symKey, &wrappedKey)
+	    != SECSuccess) {
+	SSL_DBG(("%d: SSL[%s]: Unable to wrap session ticket %s.",
+		    SSL_GETPID(), "unknown", keyName));
+	return PR_FALSE;
+    }
+    cacheEntry->length = wrappedKey.len;
+    return PR_TRUE;
+}
+
+static PRBool
+GenerateAndWrapTicketKeys(SECKEYPublicKey *svrPubKey, void *pwArg,
+                          unsigned char *keyName, PK11SymKey **aesKey,
+                          PK11SymKey **macKey)
+{
+    PK11SlotInfo *slot;
+    CK_MECHANISM_TYPE mechanismArray[2];
+    PK11SymKey *aesKeyTmp = NULL;
+    PK11SymKey *macKeyTmp = NULL;
+    cacheDesc *cache = &globalCache;
+
+    if (PK11_GenerateRandom(cache->ticketKeyNameSuffix,
+	    SESS_TICKET_KEY_VAR_NAME_LEN) != SECSuccess) {
+	SSL_DBG(("%d: SSL[%s]: Unable to generate random key name bytes.",
+		    SSL_GETPID(), "unknown"));
+	goto loser;
+    }
+
+    mechanismArray[0] = CKM_AES_CBC;
+    mechanismArray[1] = CKM_SHA256_HMAC;
+
+    slot = PK11_GetBestSlotMultiple(mechanismArray, 2, pwArg);
+    if (slot) {
+	aesKeyTmp = PK11_KeyGen(slot, mechanismArray[0], NULL, 32, pwArg);
+	macKeyTmp = PK11_KeyGen(slot, mechanismArray[1], NULL, SHA256_LENGTH,
+				pwArg);
+	PK11_FreeSlot(slot);
+    }
+
+    if (aesKeyTmp == NULL || macKeyTmp == NULL) {
+	SSL_DBG(("%d: SSL[%s]: Unable to generate session ticket keys.",
+		    SSL_GETPID(), "unknown"));
+	goto loser;
+    }
+
+    /* Export the keys to the shared cache in wrapped form. */
+    if (!WrapTicketKey(svrPubKey, aesKeyTmp, "enc key", cache->ticketEncKey))
+	goto loser;
+    if (!WrapTicketKey(svrPubKey, macKeyTmp, "mac key", cache->ticketMacKey))
+	goto loser;
+
+    PORT_Memcpy(keyName, cache->ticketKeyNameSuffix,
+	SESS_TICKET_KEY_VAR_NAME_LEN);
+    *aesKey = aesKeyTmp;
+    *macKey = macKeyTmp;
+    return PR_TRUE;
+
+loser:
+    if (aesKeyTmp)
+	PK11_FreeSymKey(aesKeyTmp);
+    if (macKeyTmp)
+	PK11_FreeSymKey(macKeyTmp);
+    return PR_FALSE;
+}
+
+static PRBool
+UnwrapCachedTicketKeys(SECKEYPrivateKey *svrPrivKey, unsigned char *keyName,
+                       PK11SymKey **aesKey, PK11SymKey **macKey)
+{
+    SECItem wrappedKey = {siBuffer, NULL, 0};
+    PK11SymKey *aesKeyTmp = NULL;
+    PK11SymKey *macKeyTmp = NULL;
+    cacheDesc *cache = &globalCache;
+
+    wrappedKey.data = cache->ticketEncKey->bytes;
+    wrappedKey.len = cache->ticketEncKey->length;
+    PORT_Assert(wrappedKey.len <= sizeof(cache->ticketEncKey->bytes));
+    aesKeyTmp = PK11_PubUnwrapSymKey(svrPrivKey, &wrappedKey,
+	CKM_AES_CBC, CKA_DECRYPT, 0);
+
+    wrappedKey.data = cache->ticketMacKey->bytes;
+    wrappedKey.len = cache->ticketMacKey->length;
+    PORT_Assert(wrappedKey.len <= sizeof(cache->ticketMacKey->bytes));
+    macKeyTmp = PK11_PubUnwrapSymKey(svrPrivKey, &wrappedKey,
+	CKM_SHA256_HMAC, CKA_SIGN, 0);
+
+    if (aesKeyTmp == NULL || macKeyTmp == NULL) {
+	SSL_DBG(("%d: SSL[%s]: Unable to unwrap session ticket keys.",
+		    SSL_GETPID(), "unknown"));
+	goto loser;
+    }
+    SSL_DBG(("%d: SSL[%s]: Successfully unwrapped session ticket keys.",
+		SSL_GETPID(), "unknown"));
+
+    PORT_Memcpy(keyName, cache->ticketKeyNameSuffix,
+	SESS_TICKET_KEY_VAR_NAME_LEN);
+    *aesKey = aesKeyTmp;
+    *macKey = macKeyTmp;
+    return PR_TRUE;
+
+loser:
+    if (aesKeyTmp)
+	PK11_FreeSymKey(aesKeyTmp);
+    if (macKeyTmp)
+	PK11_FreeSymKey(macKeyTmp);
+    return PR_FALSE;
+}
+
 PRBool
-ssl_GetSessionTicketKeys(uint8 *keyName, unsigned char *encKey,
+ssl_GetSessionTicketKeysPKCS11(SECKEYPrivateKey *svrPrivKey,
+                               SECKEYPublicKey *svrPubKey, void *pwArg,
+                               unsigned char *keyName, PK11SymKey **aesKey,
+                               PK11SymKey **macKey)
+{
+    PRUint32 now = 0;
+    PRBool rv = PR_FALSE;
+    PRBool keysGenerated = PR_FALSE;
+    cacheDesc *cache = &globalCache;
+
+    now = LockSidCacheLock(cache->keyCacheLock, now);
+    if (!now)
+	return rv;
+
+    if (!*(cache->ticketKeysValid)) {
+	/* Keys do not exist, create them. */
+	if (!GenerateAndWrapTicketKeys(svrPubKey, pwArg, keyName,
+		aesKey, macKey))
+	    goto loser;
+	keysGenerated = PR_TRUE;
+	*(cache->ticketKeysValid) = 1;
+    }
+
+    rv = PR_TRUE;
+
+ loser:
+    UnlockSidCacheLock(cache->keyCacheLock);
+    if (rv && !keysGenerated)
+	rv = UnwrapCachedTicketKeys(svrPrivKey, keyName, aesKey, macKey);
+    return rv;
+}
+
+PRBool
+ssl_GetSessionTicketKeys(unsigned char *keyName, unsigned char *encKey,
                          unsigned char *macKey)
 {
     PRBool rv = PR_FALSE;
-    PRUint32  now = 0;
+    PRUint32 now = 0;
     cacheDesc *cache = &globalCache;
 
     /* Grab lock. */
@@ -1670,144 +1824,6 @@ ssl_GetSessionTicketKeys(uint8 *keyName, unsigned char *encKey,
 	    SESS_TICKET_KEY_VAR_NAME_LEN);
 	PORT_Memcpy(encKey, cache->ticketEncKey->bytes, 32);
 	PORT_Memcpy(macKey, cache->ticketMacKey->bytes, SHA256_LENGTH);
-    }
-    return rv;
-}
-
-PRBool
-ssl_GetSessionTicketKeysPKCS11(SECKEYPrivateKey *svrPrivKey,
-                               SECKEYPublicKey *svrPubKey, void *pwArg,
-                               unsigned char *keyName, PK11SymKey **aesKey,
-                               PK11SymKey **macKey)
-{
-    PK11SlotInfo *slot;
-    PRUint32 now = 0;
-    CK_MECHANISM_TYPE mechanismArray[2];
-    PK11SymKey *aesKeyTmp = NULL;
-    PK11SymKey *macKeyTmp = NULL;
-    SECItem wrappedAesKey = {siBuffer, NULL, 0};
-    SECItem wrappedMacKey = {siBuffer, NULL, 0};
-    PRBool rv = PR_FALSE;
-    cacheDesc *cache = &globalCache;
-
-    /* No need to grab a lock, we are reading. */
-    if (*(cache->ticketKeysValid)) {
-	wrappedAesKey.type = siBuffer;
-	wrappedAesKey.data = cache->ticketEncKey->bytes;
-	wrappedAesKey.len = cache->ticketEncKey->length;
-	PORT_Assert(wrappedAesKey.len <= sizeof(cache->ticketEncKey->bytes));
-	aesKeyTmp = PK11_PubUnwrapSymKey(svrPrivKey, &wrappedAesKey,
-	    CKM_AES_CBC, CKA_DECRYPT, 0);
-
-	wrappedMacKey.type = siBuffer;
-	wrappedMacKey.data = cache->ticketMacKey->bytes;
-	wrappedMacKey.len = cache->ticketMacKey->length;
-	PORT_Assert(wrappedMacKey.len <= sizeof(cache->ticketMacKey->bytes));
-	macKeyTmp = PK11_PubUnwrapSymKey(svrPrivKey, &wrappedMacKey,
-	    CKM_SHA256_HMAC, CKA_SIGN, 0);
-
-	if (aesKeyTmp == NULL || macKeyTmp == NULL) {
-	    if (aesKeyTmp)
-		PK11_FreeSymKey(aesKeyTmp);
-	    if (macKeyTmp)
-		PK11_FreeSymKey(macKeyTmp);
-	    SSL_DBG(("%d: SSL[%s]: Unable to unwrap session ticket keys.",
-			SSL_GETPID(), "unknown"));
-	    return PR_FALSE;
-	}
-
-	PORT_Memcpy(keyName, cache->ticketKeyNameSuffix,
-	    SESS_TICKET_KEY_VAR_NAME_LEN);
-	*aesKey = aesKeyTmp;
-	*macKey = macKeyTmp;
-	SSL_DBG(("%d: SSL[%s]: Successfully unwrapped session ticket keys.",
-		    SSL_GETPID(), "unknown"));
-	return PR_TRUE;
-    }
-
-    /* Keys do not exist, create them. */
-    now = LockSidCacheLock(cache->keyCacheLock, now);
-    if (!now) {
-	SSL_DBG(("%d: SSL[%s]: Unable to grab keyCacheLock.",
-		    SSL_GETPID(), "unknown"));
-	return PR_FALSE;
-    }
-
-    if (PK11_GenerateRandom(cache->ticketKeyNameSuffix,
-	    SESS_TICKET_KEY_VAR_NAME_LEN) != SECSuccess) {
-	SSL_DBG(("%d: SSL[%s]: Unable to generate random key_name bytes.",
-		    SSL_GETPID(), "unknown"));
-	goto loser;
-    }
-
-    mechanismArray[0] = CKM_AES_CBC;
-    mechanismArray[1] = CKM_SHA256_HMAC;
-
-    slot = PK11_GetBestSlotMultiple(mechanismArray, 2, pwArg);
-    aesKeyTmp = PK11_KeyGen(slot, mechanismArray[0], NULL, 32, pwArg);
-    macKeyTmp = PK11_KeyGen(slot, mechanismArray[1], NULL, SHA256_LENGTH, pwArg);
-    PK11_FreeSlot(slot);
-
-    if (aesKeyTmp == NULL || macKeyTmp == NULL) {
-	SSL_DBG(("%d: SSL[%s]: Unable to generate session ticket keys.",
-		    SSL_GETPID(), "unknown"));
-	goto loser;
-    }
-
-    /* Export the keys to the shared cache in wrapped form. */
-    wrappedAesKey.len = SECKEY_PublicKeyStrength(svrPubKey);
-    PORT_Assert(wrappedAesKey.len <= sizeof(cache->ticketEncKey->bytes));
-    if (wrappedAesKey.len > sizeof(cache->ticketEncKey->bytes))
-	goto loser;
-    wrappedAesKey.data = (unsigned char*)PORT_Alloc(wrappedAesKey.len);
-
-    if (PK11_PubWrapSymKey(CKM_RSA_PKCS, svrPubKey,
-	    aesKeyTmp, &wrappedAesKey) != SECSuccess) {
-	SSL_DBG(("%d: SSL[%s]: Unable to wrap session ticket enc key.",
-		    SSL_GETPID(), "unknown"));
-	goto loser;
-    }
-
-    wrappedMacKey.len  = SECKEY_PublicKeyStrength(svrPubKey);
-    PORT_Assert(wrappedMacKey.len <= sizeof(cache->ticketMacKey->bytes));
-    if (wrappedMacKey.len > sizeof(cache->ticketMacKey->bytes))
-	goto loser;
-    wrappedMacKey.data = (unsigned char*)PORT_Alloc(wrappedMacKey.len);
-
-    if (PK11_PubWrapSymKey(CKM_RSA_PKCS, svrPubKey,
-	    macKeyTmp, &wrappedMacKey) != SECSuccess) {
-	SSL_DBG(("%d: SSL[%s]: Unable to wrap session ticket mac key.",
-		    SSL_GETPID(), "unknown"));
-	goto loser;
-    }
-
-    cache->ticketEncKey->length = wrappedAesKey.len;
-    cache->ticketMacKey->length = wrappedMacKey.len;
-
-    PORT_Memcpy(cache->ticketEncKey->bytes, wrappedAesKey.data,
-	wrappedAesKey.len);
-    PORT_Memcpy(cache->ticketMacKey->bytes, wrappedMacKey.data,
-	wrappedMacKey.len);
-    *(cache->ticketKeysValid) = 1;
-
-    PORT_Memcpy(keyName, cache->ticketKeyNameSuffix,
-	SESS_TICKET_KEY_VAR_NAME_LEN);
-    *aesKey = aesKeyTmp;
-    *macKey = macKeyTmp;
-    rv = PR_TRUE;
-
- loser:
-    UnlockSidCacheLock(cache->keyCacheLock);
-    if (wrappedAesKey.data)
-	SECITEM_FreeItem(&wrappedAesKey, PR_FALSE);
-    if (wrappedMacKey.data)
-	SECITEM_FreeItem(&wrappedMacKey, PR_FALSE);
-
-    if (!rv) {
-	if (aesKeyTmp)
-	    PK11_FreeSymKey(aesKeyTmp);
-	if (macKeyTmp)
-	    PK11_FreeSymKey(macKeyTmp);
     }
     return rv;
 }
