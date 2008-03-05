@@ -1047,7 +1047,7 @@ static const PRUint8 ECPtFmt[6] = {
  * which says that we support all TLS-defined named curves.
  */
 PRInt32
-ssl3_SendSupportedCurvesExt(
+ssl3_SendSupportedCurvesXtn(
 			sslSocket * ss,
 			PRBool      append,
 			PRUint32    maxBytes)
@@ -1070,7 +1070,7 @@ ssl3_SendSupportedCurvesExt(
  * which says that we only support uncompressed points.
  */
 PRInt32
-ssl3_SendSupportedPointFormatsExt(
+ssl3_SendSupportedPointFormatsXtn(
 			sslSocket * ss,
 			PRBool      append,
 			PRUint32    maxBytes)
@@ -1094,7 +1094,7 @@ ssl3_SendSupportedPointFormatsExt(
  * Since that is all we support.  Disable ECC cipher suites if it doesn't.
  */
 SECStatus
-ssl3_HandleSupportedPointFormatsExt(sslSocket *ss, PRUint16 ex_type,
+ssl3_HandleSupportedPointFormatsXtn(sslSocket *ss, PRUint16 ex_type,
                                     SECItem *data)
 {
     int i;
@@ -1109,7 +1109,7 @@ ssl3_HandleSupportedPointFormatsExt(sslSocket *ss, PRUint16 ex_type,
 	    /* indicate that we should send a reply */
 	    SECStatus rv;
 	    rv = ssl3_RegisterServerHelloExtensionSender(ss, ex_type,
-			      &ssl3_SendSupportedPointFormatsExt);
+			      &ssl3_SendSupportedPointFormatsXtn);
 	    return rv;
 	}
     }
@@ -1141,7 +1141,7 @@ ECName ssl3_GetSvrCertCurveName(sslSocket *ss)
  * by the remote client, and disable all ECC cipher suites if not.
  */
 SECStatus
-ssl3_HandleSupportedCurvesExt(sslSocket *ss, PRUint16 ex_type, SECItem *data)
+ssl3_HandleSupportedCurvesXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 {
     PRInt32  list_len;
     PRUint32 peerCurves   = 0;

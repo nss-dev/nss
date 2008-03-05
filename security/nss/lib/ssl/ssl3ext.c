@@ -61,7 +61,7 @@ static unsigned char  session_ticket_mac_key[SHA256_LENGTH];
 static PRBool         session_ticket_keys_initialized = PR_FALSE;
 static PRCallOnceType generate_session_keys_once;
 
-static PRInt32 ssl3_SendServerNameExt(sslSocket * ss,
+static PRInt32 ssl3_SendServerNameXtn(sslSocket * ss,
     PRBool append, PRUint32 maxBytes);
 static SECStatus ssl3_ParseEncryptedSessionTicket(sslSocket *ss,
     SECItem *data, EncryptedSessionTicket *enc_session_ticket);
@@ -223,19 +223,19 @@ ssl3_GetSessionTicketKeys(const unsigned char **aes_key,
  * will be registered here.
  */
 static const ssl3HelloExtensionHandler clientHelloHandlers[] = {
-    { server_name_xtn, &ssl3_HandleServerNameExt },
+    { server_name_xtn, &ssl3_HandleServerNameXtn },
 #ifdef NSS_ENABLE_ECC
-    { elliptic_curves_xtn, &ssl3_HandleSupportedCurvesExt },
-    { ec_point_formats_xtn, &ssl3_HandleSupportedPointFormatsExt },
+    { elliptic_curves_xtn, &ssl3_HandleSupportedCurvesXtn },
+    { ec_point_formats_xtn, &ssl3_HandleSupportedPointFormatsXtn },
 #endif
-    { session_ticket_xtn, &ssl3_ServerHandleSessionTicketExt },
+    { session_ticket_xtn, &ssl3_ServerHandleSessionTicketXtn },
     { -1, NULL }
 };
 
 static const ssl3HelloExtensionHandler serverHelloHandlers[] = {
-    { server_name_xtn, &ssl3_HandleServerNameExt },
+    { server_name_xtn, &ssl3_HandleServerNameXtn },
     /* TODO: add a handler for ec_point_formats_xtn */
-    { session_ticket_xtn, &ssl3_ClientHandleSessionTicketExt },
+    { session_ticket_xtn, &ssl3_ClientHandleSessionTicketXtn },
     { -1, NULL }
 };
 
@@ -246,15 +246,15 @@ static const ssl3HelloExtensionHandler serverHelloHandlers[] = {
  */
 static const 
 ssl3HelloExtensionSender clientHelloSenders[MAX_EXTENSIONS] = {
-    { server_name_xtn, &ssl3_SendServerNameExt },
+    { server_name_xtn, &ssl3_SendServerNameXtn },
 #ifdef NSS_ENABLE_ECC
-    { elliptic_curves_xtn, &ssl3_SendSupportedCurvesExt },
-    { ec_point_formats_xtn, &ssl3_SendSupportedPointFormatsExt },
+    { elliptic_curves_xtn, &ssl3_SendSupportedCurvesXtn },
+    { ec_point_formats_xtn, &ssl3_SendSupportedPointFormatsXtn },
 #else
     { -1, NULL },
     { -1, NULL },
 #endif
-    { session_ticket_xtn, ssl3_SendSessionTicketExt }
+    { session_ticket_xtn, ssl3_SendSessionTicketXtn }
 };
 
 static PRBool
@@ -286,7 +286,7 @@ ssl3_ClientExtensionAdvertised(sslSocket *ss, PRUint16 ex_type) {
  * unless that name is a dotted decimal string.
  */
 static PRInt32 
-ssl3_SendServerNameExt(
+ssl3_SendServerNameXtn(
 			sslSocket * ss,
 			PRBool      append,
 			PRUint32    maxBytes)
@@ -329,7 +329,7 @@ ssl3_SendServerNameExt(
 
 /* handle an incoming SNI extension, by ignoring it. */
 SECStatus
-ssl3_HandleServerNameExt(sslSocket * ss, PRUint16 ex_type, SECItem *data)
+ssl3_HandleServerNameXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
 {
     /* TODO: if client, should verify extension_data is empty. */
     /* TODO: if server, should send empty extension_data. */
@@ -342,7 +342,7 @@ ssl3_HandleServerNameExt(sslSocket * ss, PRUint16 ex_type, SECItem *data)
  * sends an empty ticket.  Servers always send empty tickets.
  */
 PRInt32
-ssl3_SendSessionTicketExt(
+ssl3_SendSessionTicketXtn(
 			sslSocket * ss,
 			PRBool      append,
 			PRUint32    maxBytes)
@@ -720,7 +720,7 @@ loser:
  * message is expected during the handshake.
  */
 SECStatus
-ssl3_ClientHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
+ssl3_ClientHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
                                   SECItem *data)
 {
     if (data->len != 0)
@@ -732,7 +732,7 @@ ssl3_ClientHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 }
 
 SECStatus
-ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
+ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
                                   SECItem *data)
 {
     SECStatus rv;

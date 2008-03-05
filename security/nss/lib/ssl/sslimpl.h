@@ -1447,27 +1447,27 @@ extern SECStatus ssl3_CacheWrappedMasterSecret(sslSocket *ss,
 			SSL3KEAType effectiveExchKeyType);
 
 /* Functions that handle ClientHello and ServerHello extensions. */
-extern SECStatus ssl3_HandleServerNameExt(sslSocket * ss,
+extern SECStatus ssl3_HandleServerNameXtn(sslSocket * ss,
 			PRUint16 ex_type, SECItem *data);
-extern SECStatus ssl3_HandleSupportedCurvesExt(sslSocket * ss,
+extern SECStatus ssl3_HandleSupportedCurvesXtn(sslSocket * ss,
 			PRUint16 ex_type, SECItem *data);
-extern SECStatus ssl3_HandleSupportedPointFormatsExt(sslSocket * ss,
+extern SECStatus ssl3_HandleSupportedPointFormatsXtn(sslSocket * ss,
 			PRUint16 ex_type, SECItem *data);
-extern SECStatus ssl3_ClientHandleSessionTicketExt(sslSocket *ss,
+extern SECStatus ssl3_ClientHandleSessionTicketXtn(sslSocket *ss,
 			PRUint16 ex_type, SECItem *data);
-extern SECStatus ssl3_ServerHandleSessionTicketExt(sslSocket *ss,
+extern SECStatus ssl3_ServerHandleSessionTicketXtn(sslSocket *ss,
 			PRUint16 ex_type, SECItem *data);
 
 /* ClientHello and ServerHello extension senders.
  * Note that not all extension senders are exposed here; only those that
  * that need exposure.
  */
-extern PRInt32 ssl3_SendSessionTicketExt(sslSocket *ss, PRBool append,
+extern PRInt32 ssl3_SendSessionTicketXtn(sslSocket *ss, PRBool append,
 			PRUint32 maxBytes);
 #ifdef NSS_ENABLE_ECC
-extern PRInt32 ssl3_SendSupportedCurvesExt(sslSocket *ss,
+extern PRInt32 ssl3_SendSupportedCurvesXtn(sslSocket *ss,
 			PRBool append, PRUint32 maxBytes);
-extern PRInt32 ssl3_SendSupportedPointFormatsExt(sslSocket *ss,
+extern PRInt32 ssl3_SendSupportedPointFormatsXtn(sslSocket *ss,
 			PRBool append, PRUint32 maxBytes);
 #endif
 

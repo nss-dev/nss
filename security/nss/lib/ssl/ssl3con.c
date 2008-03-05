@@ -5705,7 +5705,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
      */
     if (ssl3_ExtensionNegotiated(ss, session_ticket_xtn) && sid == NULL) {
 	ssl3_RegisterServerHelloExtensionSender(ss,
-	    session_ticket_xtn, ssl3_SendSessionTicketExt);
+	    session_ticket_xtn, ssl3_SendSessionTicketXtn);
     }
 
     if (sid != NULL) {
