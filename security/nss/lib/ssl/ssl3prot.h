@@ -333,8 +333,9 @@ typedef struct {
     } identity;
 } ClientIdentity;
 
-#define SESS_TICKET_KEY_NAME_PREFIX    "NSS!"
 #define SESS_TICKET_KEY_NAME_LEN       16
+#define SESS_TICKET_KEY_NAME_PREFIX    "NSS!"
+#define SESS_TICKET_KEY_NAME_PREFIX_LEN 4
 #define SESS_TICKET_KEY_VAR_NAME_LEN   12
 
 typedef struct {

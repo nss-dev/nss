@@ -152,9 +152,8 @@ ssl3_GenerateSessionTicketKeysPKCS11(void *data)
     PORT_Memcpy(key_name, SESS_TICKET_KEY_NAME_PREFIX,
 	sizeof(SESS_TICKET_KEY_NAME_PREFIX));
     if (!ssl_GetSessionTicketKeysPKCS11(svrPrivKey, svrPubKey,
-	    ss->pkcs11PinArg, &key_name[4],
-	    &session_ticket_enc_key_pkcs11,
-	    &session_ticket_mac_key_pkcs11))
+	    ss->pkcs11PinArg, &key_name[SESS_TICKET_KEY_NAME_PREFIX_LEN],
+	    &session_ticket_enc_key_pkcs11, &session_ticket_mac_key_pkcs11))
 	return PR_FAILURE;
 
     rv = NSS_RegisterShutdown(ssl3_SessionTicketShutdown, NULL);
@@ -191,8 +190,8 @@ ssl3_GenerateSessionTicketKeys(void)
     PORT_Memcpy(key_name, SESS_TICKET_KEY_NAME_PREFIX,
 	sizeof(SESS_TICKET_KEY_NAME_PREFIX));
 
-    if (!ssl_GetSessionTicketKeys(&key_name[4], session_ticket_enc_key,
-	    session_ticket_mac_key))
+    if (!ssl_GetSessionTicketKeys(&key_name[SESS_TICKET_KEY_NAME_PREFIX_LEN],
+	    session_ticket_enc_key, session_ticket_mac_key))
 	return PR_FAILURE;
 
     session_ticket_keys_initialized = PR_TRUE;
@@ -333,6 +332,7 @@ SECStatus
 ssl3_HandleServerNameExt(sslSocket * ss, PRUint16 ex_type, SECItem *data)
 {
     /* TODO: if client, should verify extension_data is empty. */
+    /* TODO: if server, should send empty extension_data. */
     /* For now, we ignore this, as if we didn't understand it. :-)  */
     return SECSuccess;
 }

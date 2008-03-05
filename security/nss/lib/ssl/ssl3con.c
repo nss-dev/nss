@@ -5624,21 +5624,20 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     desc = handshake_failure;
 
-    /* Handle TLS hello extensions, for SSL3 & TLS, We don not know if
+    /* Handle TLS hello extensions for SSL3 & TLS. We don not know if
      * we are restarting a previous session until extensions have been
      * parsed, since we might have received a SessionTicket extension.
+     * Note: we allow extensions even when negotiating SSL3 for the sake
+     * of interoperability (and backwards compatibility).
      */
 
-    /* We might be starting a session renegotiation in which case we should
+    /* We might be starting session renegotiation in which case we should
      * clear previous state.
      */
     PORT_Memset(&ss->xtnData, 0, sizeof(TLSExtensionData));
     ss->statelessResume = PR_FALSE;
 
-    /* OpenSSL 0.9.8g sends TLS extensions even when negotiating SSL3,
-     * so we simply ignore any trailing bytes if the negotiated
-     * version is not TLS. */
-    if (length && ss->version > SSL_LIBRARY_VERSION_3_0) {
+    if (length) {
 	/* Get length of hello extensions */
 	PRInt32 extension_length;
 	extension_length = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
