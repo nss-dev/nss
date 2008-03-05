@@ -1060,7 +1060,8 @@ ssl3_SendSupportedCurvesXtn(
 	    return -1;
 	if (!ss->sec.isServer) {
 	    TLSExtensionData *xtnData = &ss->xtnData;
-	    xtnData->advertised[xtnData->numAdvertised++] = elliptic_curves_xtn;
+	    xtnData->advertised[xtnData->numAdvertised++] =
+		elliptic_curves_xtn;
 	}
     }
     return (sizeof EClist);
