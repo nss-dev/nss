@@ -148,10 +148,6 @@ static PRTime lastThrottleUp;
 static PRInt32 remaining_connections;  /* number of connections left */
 static int active_threads = 8; /* number of threads currently trying to
                                ** connect */
-static PRInt32 addr_in_use_errors = 0; /* Accomodate a Winsock bug that
-                                       ** results in ports being bound to
-                                       ** despite being in use. */
-
 static PRInt32 numUsed;
 /* end of variables protected by threadLock */
 
@@ -823,8 +819,6 @@ retry:
 	    PR_Sleep(PR_MillisecondsToInterval(sleepInterval));
 	    sleepInterval <<= 1;
 	    goto retry;
-	} else if (err == PR_ADDRESS_IN_USE_ERROR) {
-	    PR_AtomicIncrement(&addr_in_use_errors);
 	}
 	errWarn("PR_Connect");
 	rv = SECFailure;
@@ -1515,16 +1509,16 @@ main(int argc, char **argv)
 	    ssl3stats->hsh_sid_stateless_resumes);
     }
 
-    if (!NoReuse)
-	exitVal = (enableSessionTickets &&
-                (ssl3stats->hsh_sid_stateless_resumes !=
-                connections - addr_in_use_errors - 1)) ||
-                (!enableSessionTickets &&
-                ((ssl3stats->hsh_sid_cache_misses > 1) ||
-                (ssl3stats->hsh_sid_stateless_resumes != 0))) ||
-                (ssl3stats->hsh_sid_cache_not_ok != 0) ||
-                (certsTested > 1);
-    else {
+    if (!NoReuse) {
+	if (enableSessionTickets)
+	    exitVal = (ssl3stats->hsh_sid_stateless_resumes == 0);
+	else
+	    exitVal = (ssl3stats->hsh_sid_cache_misses > 1) ||
+		      (ssl3stats->hsh_sid_stateless_resumes != 0);
+	if (!exitVal)
+	    exitVal = (ssl3stats->hsh_sid_cache_not_ok != 0) ||
+		      (certsTested > 1);
+    } else {
 	printf("strsclnt: NoReuse - %d server certificates tested.\n",
                certsTested);
         if (ssl3stats->hsh_sid_cache_hits +
