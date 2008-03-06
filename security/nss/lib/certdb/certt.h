@@ -939,7 +939,10 @@ typedef enum {
 				 * Set in value.scalar.ul */
    cert_pi_certStores      = 10,/* Bitmask of Cert Store flags (see below)
 				 * Set in value.scalar.ui */
-   
+   cert_pi_trustAnchors    = 11,/* specify the list of trusted roots to 
+				 * validate against. If the list in NULL all
+				 * default trusted roots are used.
+				 * Specified in value.pointer.chain */
    cert_pi_max                  /* SPECIAL: signifies maximum allowed value,
 				 *  can increase in future releases */
 } CERTValParamInType;
