@@ -2521,10 +2521,6 @@ ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
     SSL_TRC(3, ("%d: SSL3[%d]: handle change_cipher_spec record",
 		SSL_GETPID(), ss->fd));
 
-    /* When doing a stateless resume, OpenSSL sends the SessionTicket
-     * extension but does not send a NewSessionTicket message so we
-     * work around the bug here.
-     */
     if (ws != wait_change_cipher) {
 	(void)SSL3_SendAlert(ss, alert_fatal, unexpected_message);
 	PORT_SetError(SSL_ERROR_RX_UNEXPECTED_CHANGE_CIPHER);
@@ -5624,7 +5620,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     desc = handshake_failure;
 
-    /* Handle TLS hello extensions for SSL3 & TLS. We don not know if
+    /* Handle TLS hello extensions for SSL3 & TLS. We do not know if
      * we are restarting a previous session until extensions have been
      * parsed, since we might have received a SessionTicket extension.
      * Note: we allow extensions even when negotiating SSL3 for the sake
@@ -6260,11 +6256,11 @@ ssl3_SendServerHello(sslSocket *ss)
 	return rv;	/* err set by AppendHandshake. */
     }
 
-    if (sid && sid->u.ssl3.sessionIDLength > 0)
+    if (sid)
 	rv = ssl3_AppendHandshakeVariable(
 	    ss, sid->u.ssl3.sessionID, sid->u.ssl3.sessionIDLength, 1);
     else
-	rv = ssl3_AppendHandshakeNumber(ss, 0, 1);
+	rv = ssl3_AppendHandshakeVariable(ss, NULL, 0, 1);
     if (rv != SECSuccess) {
 	return rv;	/* err set by AppendHandshake. */
     }
@@ -7647,7 +7643,7 @@ ssl3_CacheWrappedMasterSecret(sslSocket *ss, sslSessionID *sid,
 	wmsItem.data = sid->u.ssl3.keys.wrapped_master_secret;
 	wmsItem.len  = sizeof sid->u.ssl3.keys.wrapped_master_secret;
 	rv = PK11_WrapSymKey(mechanism, NULL, wrappingKey,
-			     ss->ssl3.crSpec->master_secret, &wmsItem);
+			     spec->master_secret, &wmsItem);
 	/* rv is examined below. */
 	sid->u.ssl3.keys.wrapped_master_secret_len = wmsItem.len;
 	PK11_FreeSymKey(wrappingKey);
