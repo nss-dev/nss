@@ -580,7 +580,6 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
     PRBool	      isTLS = PR_FALSE;
     PRBool	      isDH = PR_FALSE;
     SSLCipherSuiteInfo csdef;
-    PRBool	      extractable;
     PRBool	      testrsa = PR_FALSE;
     PRBool	      testrsa_export = PR_FALSE;
     PRBool	      testecdh = PR_FALSE;
@@ -599,7 +598,10 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
     rv = SECFailure;
     
     /* determine which KEAs to test */
-    for (i=0; i < nsuites && (suite = *ciphersuites++) != NULL; i++) {
+    /* 0 (SSL_NULL_WITH_NULL_NULL) is used as a list terminator because
+     * SSL3 and TLS specs forbid negotiating that cipher suite number.
+     */
+    for (i=0; i < nsuites && (suite = *ciphersuites++) != 0; i++) {
 	/* skip SSL2 cipher suites and ones NSS doesn't support */
 	if (SSL_GetCipherSuiteInfo(suite, &csdef, sizeof(csdef)) != SECSuccess
 	    || SSL_IS_SSL2_CIPHER(suite) )
