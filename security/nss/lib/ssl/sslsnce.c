@@ -73,7 +73,6 @@
  *     PRBool                   ticketKeysValid;
  * } cacheMemCacheData;
  */
-#include "nssrenam.h"
 #include "seccomon.h"
 
 #if (defined(XP_UNIX) || defined(XP_WIN32) || defined (XP_OS2) || defined(XP_BEOS)) && !defined(_WIN32_WCE)
