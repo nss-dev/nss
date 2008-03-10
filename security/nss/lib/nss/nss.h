@@ -197,6 +197,21 @@ extern SECStatus NSS_Initialize(const char *configdir,
 	const char *secmodName, PRUint32 flags);
 
 /*
+ * same as NSS_Init, but checks to see if we need to merge an
+ * old database in.
+ *   updatedir is the directory where the old database lives.
+ *   updCertPrefix is the certPrefix for the old database.
+ *   updKeyPrefix is the keyPrefix for the old database.
+ *   updateID is a unique identifier chosen by the application for
+ *      the specific database.
+ *   updatName is the name the user will be prompted for when
+ *      asking to authenticate to the old database  */
+extern SECStatus NSS_InitWithMerge(const char *configdir, 
+	const char *certPrefix, const char *keyPrefix, const char *secmodName,
+	const char *updatedir,  const char *updCertPrefix, 
+	const char *updKeyPrefix, const char *updateID, 
+	const char *updateName, PRUint32 flags);
+/*
  * initialize NSS without a creating cert db's, key db's, or secmod db's.
  */
 SECStatus NSS_NoDB_Init(const char *configdir);
