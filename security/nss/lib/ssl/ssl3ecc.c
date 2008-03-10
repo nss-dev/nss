@@ -42,7 +42,6 @@
 /* ECC code moved here from ssl3con.c */
 /* $Id$ */
 
-#include "nssrenam.h"
 #include "nss.h"
 #include "cert.h"
 #include "ssl.h"

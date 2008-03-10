@@ -41,7 +41,6 @@
  * ***** END LICENSE BLOCK ***** */
 /* $Id$ */
 
-#include "nssrenam.h"
 #include "cert.h"
 #include "ssl.h"
 #include "cryptohi.h"	/* for DSAU_ stuff */
