@@ -1628,6 +1628,16 @@ extern SECStatus CERT_PKIXVerifyCert(
  */
 extern SECStatus CERT_PKIXSetDefaults(CERTValInParam *paramsIn);
 
+/* Makes old cert validation APIs(CERT_VerifyCert, CERT_VerifyCertificate)
+ * to use libpkix validation engine. The function should be called ones at
+ * application initialization time.
+ * Function is not thread safe.*/
+SECStatus CERT_SetUsePKIXForValidation(PRBool enable);
+
+/* The function return PR_TRUE if cert validation should use
+ * libpkix cert validation engine. */
+PRBool CERT_GetUsePKIXForValidation();
+
 SEC_END_PROTOS
 
 #endif /* _CERT_H_ */

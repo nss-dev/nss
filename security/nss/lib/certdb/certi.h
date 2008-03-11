@@ -276,14 +276,6 @@ SECStatus DPCache_GetCRLEntry(CRLDPCache* cache, PRBool readlocked,
  */
 void CERT_MapStanError();
 
-/* Programatical interface to switch to and from libpkix cert
- * validation engine. */
-SECStatus cert_SetPKIXValidation(PRBool enable);
-
-/* The function return PR_TRUE if cert validation should go
- * through libpkix cert validation engine. */
-PRBool cert_UsePKIXValidation();
-
 /* Interface function for libpkix cert validation engine:
  * cert_verify wrapper. */
 SECStatus

@@ -581,7 +581,7 @@ loser:
 	} else {
             char *ev = getenv("NSS_ENABLE_PKIX_VERIFY");
             if (ev && ev[0]) {
-                cert_SetPKIXValidation(PR_TRUE);
+                CERT_SetUsePKIXForValidation(PR_TRUE);
             }
         }
     }
