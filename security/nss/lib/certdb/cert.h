@@ -1603,6 +1603,29 @@ CERT_EncodeNoticeReference(PRArenaPool *arena,
                            CERTNoticeReference *reference,
                            SECItem *dest);
 
+/*
+ * Returns a pointer to a static structure.
+ */
+extern const CERTRevocationFlags*
+CERT_GetPKIXVerifyNistRevocationPolicy();
+
+/*
+ * Returns a pointer to a static structure.
+ */
+extern const CERTRevocationFlags*
+CERT_GetPKIXVerifyNSS_3_11_OCSP_Enabled_Soft_Policy();
+
+/*
+ * Returns a pointer to a static structure.
+ */
+extern const CERTRevocationFlags*
+CERT_GetPKIXVerifyNSS_3_11_OCSP_Enabled_Hard_Policy();
+
+/*
+ * Returns a pointer to a static structure.
+ */
+extern const CERTRevocationFlags*
+CERT_GetPKIXVerifyNSS_3_11_OCSP_Disabled_Policy();
 
 /*
  * Verify a Cert with libpkix
