@@ -1613,19 +1613,19 @@ CERT_GetPKIXVerifyNistRevocationPolicy();
  * Returns a pointer to a static structure.
  */
 extern const CERTRevocationFlags*
-CERT_GetPKIXVerifyNSS_3_11_OCSP_Enabled_Soft_Policy();
+CERT_GetClassicOCSPEnabledSoftFailurePolicy();
 
 /*
  * Returns a pointer to a static structure.
  */
 extern const CERTRevocationFlags*
-CERT_GetPKIXVerifyNSS_3_11_OCSP_Enabled_Hard_Policy();
+CERT_GetClassicOCSPEnabledHardFailurePolicy();
 
 /*
  * Returns a pointer to a static structure.
  */
 extern const CERTRevocationFlags*
-CERT_GetPKIXVerifyNSS_3_11_OCSP_Disabled_Policy();
+CERT_GetClassicOCSPDisabledPolicy();
 
 /*
  * Verify a Cert with libpkix
