@@ -1515,11 +1515,6 @@ extern SECItem *
 CERT_GetSPKIDigest(PRArenaPool *arena, const CERTCertificate *cert,
                    SECOidTag digestAlg, SECItem *fill);
 
-/*
- * fill in nsCertType field of the cert based on the cert extension
- */
-extern SECStatus cert_GetCertType(CERTCertificate *cert);
-
 
 SECStatus CERT_CheckCRL(CERTCertificate* cert, CERTCertificate* issuer,
                         SECItem* dp, int64 t, void* wincx);

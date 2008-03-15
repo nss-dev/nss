@@ -70,6 +70,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #include "certdb.h"
 #include "certt.h"
 #include "cert.h"
+#include "certi.h"
 #include "pk11func.h"
 #include "pkistore.h"
 #include "secmod.h"
@@ -810,6 +811,14 @@ fill_CERTCertificateFields(NSSCertificate *c, CERTCertificate *cc, PRBool forced
     cc->isperm = PR_TRUE;  /* by default */
     /* pointer back */
     cc->nssCertificate = c;
+    if (trust) {
+	/* force the cert type to be recomputed to include trust info */
+	PRUint32 nsCertType = cert_ComputeCertType(cc);
+
+	/* Assert that it is safe to cast &cc->nsCertType to "PRInt32 *" */
+	PORT_Assert(sizeof(cc->nsCertType) == sizeof(PRInt32));
+	PR_AtomicSet((PRInt32 *)&cc->nsCertType, nsCertType);
+    }
 }
 
 static CERTCertificate *
