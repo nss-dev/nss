@@ -292,5 +292,16 @@ SECStatus cert_InitLocks(void);
 
 SECStatus cert_DestroyLocks(void);
 
+/*
+ * fill in nsCertType field of the cert based on the cert extension
+ */
+extern SECStatus cert_GetCertType(CERTCertificate *cert);
+
+/*
+ * compute and return the value of nsCertType for cert, but do not 
+ * update the CERTCertificate.
+ */
+extern PRUint32 cert_ComputeCertType(CERTCertificate *cert);
+
 #endif /* _CERTI_H_ */
 
