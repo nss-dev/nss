@@ -2320,6 +2320,7 @@ static CERTSignedCrl* GetBestCRL(CRLDPCache* cache, PRBool entries)
     if (0 == cache->ncrls)
     {
         /* empty cache*/
+        PORT_SetError(SEC_ERROR_CRL_NOT_FOUND);
         return NULL;
     }    
 
@@ -2345,6 +2346,7 @@ static CERTSignedCrl* GetBestCRL(CRLDPCache* cache, PRBool entries)
         }
     }
 
+    PORT_SetError(SEC_ERROR_CRL_NOT_FOUND);
     return NULL;
 }
 
