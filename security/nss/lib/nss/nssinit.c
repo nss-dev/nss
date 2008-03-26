@@ -573,7 +573,7 @@ loser:
 
     if (SECSuccess == rv) {
 	pkixError = PKIX_Initialize
-	    (PKIX_FALSE, PKIX_FALSE, PKIX_MAJOR_VERSION, PKIX_MINOR_VERSION,
+	    (PKIX_FALSE, PKIX_MAJOR_VERSION, PKIX_MINOR_VERSION,
 	    PKIX_MINOR_VERSION, &actualMinorVersion, &plContext);
 
 	if (pkixError != NULL) {
