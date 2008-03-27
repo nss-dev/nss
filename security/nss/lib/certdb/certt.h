@@ -1180,7 +1180,7 @@ typedef struct CERTValParamInValueStr {
         const void*    p;
         const char*    s;
         const CERTCertificate* cert;
-	const CERTCertList *chain;
+        const CERTCertList *chain;
         const CERTRevocationFlags *revocation;
     } pointer;
     union {
@@ -1188,7 +1188,7 @@ typedef struct CERTValParamInValueStr {
         const PRUint32 *pui;
         const PRInt64  *pl;
         const PRUint64 *pul;
-	const SECOidTag *oids;
+        const SECOidTag *oids;
     } array;
     int arraySize;
 } CERTValParamInValue;
@@ -1206,13 +1206,13 @@ typedef struct CERTValParamOutValueStr {
     union {
         void*    p;
         char*    s;
-	CERTVerifyLog *log;
+        CERTVerifyLog *log;
         CERTCertificate* cert;
-	CERTCertList *chain;
+        CERTCertList *chain;
     } pointer;
     union {
-	void 	  *p;
-	SECOidTag *oids;
+        void 	  *p;
+        SECOidTag *oids;
     } array;
     int arraySize;
 } CERTValParamOutValue;
