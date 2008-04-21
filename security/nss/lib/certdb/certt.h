@@ -939,10 +939,13 @@ typedef enum {
 				 * Set in value.pointer.revocation */
    cert_pi_certStores      = 10,/* Bitmask of Cert Store flags (see below)
 				 * Set in value.scalar.ui */
-   cert_pi_trustAnchors    = 11,/* specify the list of trusted roots to 
+   cert_pi_trustAnchors    = 11,/* Specify the list of trusted roots to 
 				 * validate against. If the list in NULL all
 				 * default trusted roots are used.
 				 * Specified in value.pointer.chain */
+   cert_pi_useAIACertFetch = 12, /* Enables cert fetching using AIA extension.
+				 * Default is off.
+                                     * Value is in value.scalar.b */
    cert_pi_max                  /* SPECIAL: signifies maximum allowed value,
 				 *  can increase in future releases */
 } CERTValParamInType;
