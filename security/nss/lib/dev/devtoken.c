@@ -70,8 +70,6 @@ nssToken_Destroy (
 	if (PR_AtomicDecrement(&tok->base.refCount) == 0) {
 	    PZ_DestroyLock(tok->base.lock);
 	    nssTokenObjectCache_Destroy(tok->cache);
-	    /* in 3.4 the token manages the slot, not the other way around */
-	    nssSlot_Destroy(tok->slot);
 	    return nssArena_Destroy(tok->base.arena);
 	}
     }
