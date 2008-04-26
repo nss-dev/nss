@@ -550,6 +550,14 @@ extern CERTCertificate *
 CERT_FindCertBySubjectKeyID (CERTCertDBHandle *handle, SECItem *subjKeyID);
 
 /*
+** Encode Certificate SKID (Subject Key ID) extension.
+**
+*/
+extern SECStatus 
+CERT_EncodeSubjectKeyID(PRArenaPool *arena, const SECItem* srcString,
+                        SECItem *encodedValue);
+
+/*
 ** Find a certificate in the database by a nickname
 **	"nickname" is the ascii string nickname to look for
 */
