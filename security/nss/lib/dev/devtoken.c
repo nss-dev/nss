@@ -70,6 +70,10 @@ nssToken_Destroy (
 	if (PR_AtomicDecrement(&tok->base.refCount) == 0) {
 	    PZ_DestroyLock(tok->base.lock);
 	    nssTokenObjectCache_Destroy(tok->cache);
+	    /* The token holds the first/last reference to the slot.
+	     * When the token is actually destroyed, that ref must go too.
+	     */
+	    (void)nssSlot_Destroy(tok->slot);
 	    return nssArena_Destroy(tok->base.arena);
 	}
     }
