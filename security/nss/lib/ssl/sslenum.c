@@ -44,6 +44,17 @@
 #include "ssl.h"
 #include "sslproto.h"
 
+/*
+ * The ciphers are listed in the following order:
+ * - stronger ciphers before weaker ciphers
+ * - national ciphers before international ciphers
+ * - faster ciphers before slower ciphers
+ *
+ * National ciphers such as Camellia are listed before international ciphers
+ * such as AES and RC4 to allow servers that prefer Camellia to negotiate
+ * Camellia without having to disable AES and RC4, which are needed for
+ * interoperability with clients that don't yet implement Camellia.
+ */
 const PRUint16 SSL_ImplementedCiphers[] = {
 
     /* 256-bit */
