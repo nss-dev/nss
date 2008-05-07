@@ -159,6 +159,15 @@ int hMACsize=0;
 				 +                          \
 				 (((PRUint32)((PRUint8*)x)[2]) << 0)  \
 				 ) )
+#define GET_32(x) ((PRUint32)   (  \
+				 (((PRUint32)((PRUint8*)x)[0]) << 24) \
+				 +                          \
+				 (((PRUint32)((PRUint8*)x)[1]) << 16) \
+				 +                          \
+				 (((PRUint32)((PRUint8*)x)[2]) << 8)  \
+				 +                          \
+				 (((PRUint32)((PRUint8*)x)[3]) << 0)  \
+				 ) )
 
 void print_hex(int amt, unsigned char *buf);
 void read_stream_bytes(unsigned char *d, DataBufferList *db, int length);
@@ -758,7 +767,7 @@ void print_ssl3_handshake(unsigned char *tbuf,
 	    int sidlength = (int)hsdata[2+32];
 	    PR_fprintf(PR_STDOUT,"            session ID = {\n");
 	    PR_fprintf(PR_STDOUT,"                length = %d\n",sidlength);
-	    PR_fprintf(PR_STDOUT,"                contents = {..}\n");
+	    PR_fprintf(PR_STDOUT,"                contents = {...}\n");
 	    if (sslhexparse) print_hex(sidlength,&hsdata[2+32+1]);
 	    PR_fprintf(PR_STDOUT,"            }\n");
 	    pos = 2+32+1+sidlength;
@@ -824,7 +833,7 @@ void print_ssl3_handshake(unsigned char *tbuf,
 	PR_fprintf(PR_STDOUT,"            session ID = {\n");
 	sidlength = (int)hsdata[2+32];
 	PR_fprintf(PR_STDOUT,"                length = %d\n",sidlength);
-	PR_fprintf(PR_STDOUT,"                contents = {..}\n");
+	PR_fprintf(PR_STDOUT,"                contents = {...}\n");
 	if (sslhexparse) print_hex(sidlength,&hsdata[2+32+1]);
 	PR_fprintf(PR_STDOUT,"            }\n");
 	pos = 2+32+1+sidlength;
@@ -850,16 +859,31 @@ void print_ssl3_handshake(unsigned char *tbuf,
 
     case 4: /* new session ticket */
       {
-        /*
-         * XXX: parse the message:
-         * struct {
-         *     uint32 ticket_lifetime_hint;
-         *     opaque ticket<0..2^16-1>;
-         * } NewSessionTicket;
-         */
-	PR_fprintf(PR_STDOUT,"         NewSessionTicket [%d] {\n",
-	                     sslh.length);
-	if (sslhexparse) print_hex(sslh.length, hsdata);
+	PRUint32 lifetimehint;
+	PRUint16 ticketlength;
+	char lifetime[32];
+	lifetimehint = GET_32(hsdata);
+	if (lifetimehint) {
+	  PRExplodedTime et;
+	  PRTime t = lifetimehint;
+	  t *= PR_USEC_PER_SEC;
+	  PR_ExplodeTime(t, PR_GMTParameters, &et);
+	  /* use HTTP Cookie header's date format */
+	  PR_FormatTimeUSEnglish(lifetime, sizeof lifetime,
+				 "%a, %d-%b-%Y %H:%M:%S GMT", &et);
+	} else {
+	  /* 0 means the lifetime of the ticket is unspecified */
+	  strcpy(lifetime, "unspecified");
+	}
+	ticketlength = GET_SHORT((hsdata+4));
+	PR_fprintf(PR_STDOUT,"         NewSessionTicket {\n");
+	PR_fprintf(PR_STDOUT,"            ticket_lifetime_hint = %s\n",
+		   lifetime);
+	PR_fprintf(PR_STDOUT,"            ticket = {\n");
+	PR_fprintf(PR_STDOUT,"                length = %d\n",ticketlength);
+	PR_fprintf(PR_STDOUT,"                contents = {...}\n");
+	if (sslhexparse) print_hex(ticketlength,&hsdata[4+2]);
+	PR_fprintf(PR_STDOUT,"            }\n");
 	PR_fprintf(PR_STDOUT,"         }\n");
       }
       break;
