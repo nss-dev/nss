@@ -284,3 +284,18 @@ nss_ClearErrorStack ( void)
   es->stack[0] = 0;
   return;
 }
+
+/*
+ * nss_DestroyErrorStack
+ *
+ * This routine frees the calling thread's error stack.
+ */
+
+NSS_IMPLEMENT void
+nss_DestroyErrorStack ( void)
+{
+  if( 0 != error_stack_index ) {
+    PR_SetThreadPrivate(error_stack_index, NULL);
+  }
+  return;
+}
