@@ -630,6 +630,8 @@ get_token_objects_for_cache (
 	    nssToken_AddRef(cache->objects[objectType][j]->object->token);
 	    nssArena_Destroy(cache->objects[objectType][j]->arena);
 	}
+	nss_ZFreeIf(cache->objects[objectType]);
+	cache->objects[objectType] = NULL;
 	nssCryptokiObjectArray_Destroy(objects);
     }
     cache->searchedObjectType[objectType] = PR_TRUE;
