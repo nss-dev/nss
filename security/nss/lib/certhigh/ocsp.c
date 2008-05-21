@@ -1516,10 +1516,11 @@ loser:
 SECStatus
 CERT_DestroyOCSPCertID(CERTOCSPCertID* certID)
 {
-    if (certID->poolp) {
+    if (certID && certID->poolp) {
 	PORT_FreeArena(certID->poolp, PR_FALSE);
 	return SECSuccess;
     }
+    PORT_SetError(SEC_ERROR_INVALID_ARGS);
     return SECFailure;
 }
 
