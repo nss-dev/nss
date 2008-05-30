@@ -694,6 +694,10 @@ print_subject_graph(dbDebugInfo *info, certDBSubjectEntryMap *subjMap,
 	}
 	if (!subjMap->pNickname && !subjMap->pSMime) {
 	    printnode(info, "******************* ", -1);
+	}
+    }
+    if (direction == GOBOTH) { 
+	if (!subjMap->pNickname && !subjMap->pSMime) {
 	    info->dbErrors[NoNicknameOrSMimeForSubject]++;
 	}
 	if (subjMap->pNickname && subjMap->pSMime) {

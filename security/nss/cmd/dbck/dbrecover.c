@@ -584,27 +584,30 @@ findNewestSubjectForEmail(NSSLOWCERTCertDBHandle *handle, int subjectNum,
 }
 
 NSSLOWCERTCertDBHandle *
-DBCK_ReconstructDBFromCerts(NSSLOWCERTCertDBHandle *oldhandle, char *newdbname,
-                            PRFileDesc *outfile, PRBool removeExpired,
-                            PRBool requireProfile, PRBool singleEntry,
+DBCK_ReconstructDBFromCerts(NSSLOWCERTCertDBHandle *oldhandle, 
+                            char *newdbname,
+                            PRFileDesc *outfile, 
+			    PRBool removeExpired,
+                            PRBool requireProfile, 
+			    PRBool singleEntry,
                             PRBool promptUser)
 {
-    SECStatus rv;
-    dbRestoreInfo info;
     certDBEntryContentVersion *oldContentVersion;
-    certDBArray dbArray;
-    int i;
+    SECStatus     rv;
+    int           i;
+    dbRestoreInfo info;
+    certDBArray   dbArray;
 
     PORT_Memset(&dbArray, 0, sizeof(dbArray));
     PORT_Memset(&info, 0, sizeof(info));
     info.verbose = (outfile) ? PR_TRUE : PR_FALSE;
-    info.out = (outfile) ? outfile : PR_STDOUT;
-    info.removeType[dbInvalidCert] = removeExpired;
-    info.removeType[dbNoSMimeProfile] = requireProfile;
-    info.removeType[dbOlderCert] = singleEntry;
-    info.promptUser[dbInvalidCert]  = promptUser;
+    info.out     = (outfile) ? outfile : PR_STDOUT;
+    info.removeType[dbInvalidCert]     = removeExpired;
+    info.removeType[dbNoSMimeProfile]  = requireProfile;
+    info.removeType[dbOlderCert]       = singleEntry;
+    info.promptUser[dbInvalidCert]     = promptUser;
     info.promptUser[dbNoSMimeProfile]  = promptUser;
-    info.promptUser[dbOlderCert]  = promptUser;
+    info.promptUser[dbOlderCert]       = promptUser;
 
     /*  Allocate a handle to fill with CERT_OpenCertDB below.  */
     info.handle = PORT_ZNew(NSSLOWCERTCertDBHandle);
@@ -629,7 +632,9 @@ DBCK_ReconstructDBFromCerts(NSSLOWCERTCertDBHandle *oldhandle, char *newdbname,
      */
     fillDBEntryArray(oldhandle, certDBEntryTypeCert, &dbArray.certs);
     for (elem = PR_LIST_HEAD(&dbArray->certs.link);
-         elem != &dbArray->certs.link; elem = PR_NEXT_LINK(elem)) {
+         elem != &dbArray->certs.link; 
+	 elem = PR_NEXT_LINK(elem)) {
+
 	node = LISTNODE_CAST(elem);
 	addCertToDB((certDBEntryCert*)&node->entry, &info, oldhandle);
 	/* entries get destroyed in addCertToDB */
@@ -652,10 +657,10 @@ DBCK_ReconstructDBFromCerts(NSSLOWCERTCertDBHandle *oldhandle, char *newdbname,
 
     /*  Copy over the version record.  */
     /*  XXX Already exists - and _must_ be correct... */
-    /*
+#if 0
     versionEntry = ReadDBVersionEntry(oldhandle);
     rv = WriteDBVersionEntry(info.handle, versionEntry);
-    */
+#endif
 
     /*  Copy over the content version record.  */
     /*  XXX Can probably get useful info from old content version?
@@ -676,27 +681,26 @@ DBCK_ReconstructDBFromCerts(NSSLOWCERTCertDBHandle *oldhandle, char *newdbname,
 #endif
 
     PR_fprintf(info.out, "Database had %d certificates.\n", info.nOldCerts);
-
     PR_fprintf(info.out, "Reconstructed %d certificates.\n", info.nCerts);
-    PR_fprintf(info.out, "(ax) Rejected %d expired certificates.\n", 
-                       info.dbErrors[dbInvalidCert]);
-    PR_fprintf(info.out, "(as) Rejected %d S/MIME certificates missing a profile.\n", 
-                       info.dbErrors[dbNoSMimeProfile]);
-    PR_fprintf(info.out, "(ar) Rejected %d certificates for which a newer certificate was found.\n", 
-                       info.dbErrors[dbOlderCert]);
-    PR_fprintf(info.out, "     Rejected %d corrupt certificates.\n", 
-                       info.dbErrors[dbBadCertificate]);
-    PR_fprintf(info.out, "     Rejected %d certificates which did not write to the DB.\n", 
-                       info.dbErrors[dbCertNotWrittenToDB]);
+    PR_fprintf(info.out, 
+    "(ax) Rejected %d expired certificates.\n"
+    "(as) Rejected %d S/MIME certificates missing a profile.\n"
+    "(ar) Rejected %d certificates for which a newer certificate was found.\n"
+    "     Rejected %d corrupt certificates.\n", 
+    "     Rejected %d certificates which did not write to the DB.\n", 
+                       info.dbErrors[dbInvalidCert],
+                       info.dbErrors[dbNoSMimeProfile],
+                       info.dbErrors[dbOlderCert],
+                       info.dbErrors[dbBadCertificate],
+                       info.dbErrors[dbCertNotWrittenToDB] );
 
-    if (rv)
-	goto loser;
-
-    return info.handle;
-
+    if (rv) {
 loser:
-    if (info.handle) 
-	PORT_Free(info.handle);
-    return NULL;
+	if (info.handle) {
+	    PORT_Free(info.handle);
+	    info.handle = NULL;
+    	}
+    }
+    return info.handle;
 }
 
