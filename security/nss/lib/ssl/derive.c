@@ -196,7 +196,7 @@ ssl3_KeyAndMacDeriveBypass(
 	 *                      ServerHello.random + ClientHello.random)) +
 	 *     [...];
 	 */
-	int made = 0;
+	unsigned int made = 0;
 	for (i = 0; made < block_needed && i < NUM_MIXERS; ++i) {
 	    unsigned int    outLen;
 	    unsigned char   sha_out[SHA1_LENGTH];
@@ -488,7 +488,7 @@ ssl3_MasterKeyDeriveBypass(
 	}
     } else {
 	int i;
-	int made = 0;
+	unsigned int made = 0;
 	for (i = 0; i < 3; i++) {
 	    unsigned int    outLen;
 	    unsigned char   sha_out[SHA1_LENGTH];
