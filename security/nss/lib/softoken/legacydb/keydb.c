@@ -1382,6 +1382,7 @@ nsslowkey_GetPWCheckEntry(NSSLOWKEYDBHandle *handle,NSSLOWKEYPasswordEntry *entr
 	goto loser;
     }
     algorithm = SECOID_FindOIDTag(&oid);
+    entryData.type = siBuffer;
     entryData.len = dbkey->derPK.len - (oid.len+1);
     entryData.data = &dbkey->derPK.data[oid.len+1];
 

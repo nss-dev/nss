@@ -599,7 +599,6 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
     CK_MECHANISM_TYPE mechanism_array[2];
     SECItem           enc_pms = {siBuffer, NULL, 0};
     PRBool	      isTLS = PR_FALSE;
-    PRBool	      isDH = PR_FALSE;
     SSLCipherSuiteInfo csdef;
     PRBool	      testrsa = PR_FALSE;
     PRBool	      testrsa_export = PR_FALSE;
