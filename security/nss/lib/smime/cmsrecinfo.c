@@ -465,7 +465,6 @@ NSS_CMSRecipientInfo_WrapBulkKey(NSSCMSRecipientInfo *ri, PK11SymKey *bulkkey,
     CERTCertificate *cert;
     SECOidTag certalgtag;
     SECStatus rv = SECSuccess;
-    SECItem *params = NULL;
     NSSCMSRecipientEncryptedKey *rek;
     NSSCMSOriginatorIdentifierOrKey *oiok;
     CERTSubjectPublicKeyInfo *spki, *freeSpki = NULL;

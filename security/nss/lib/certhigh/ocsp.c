@@ -2718,7 +2718,7 @@ ocsp_ParseURL(const char *url, char **pHostname, PRUint16 *pPort, char **pPath)
     unsigned short port = 80;		/* default, in case not in url */
     char *hostname = NULL;
     char *path = NULL;
-    char *save;
+    const char *save;
     char c;
     int len;
 
