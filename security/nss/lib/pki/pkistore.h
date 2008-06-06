@@ -107,18 +107,6 @@ struct nssCertificateStoreTraceStr {
 
 typedef struct nssCertificateStoreTraceStr nssCertificateStoreTrace;
 
-static void nssCertificateStore_Check(nssCertificateStoreTrace* a,
-				      nssCertificateStoreTrace* b) {
-    PORT_Assert(a->locked);
-    PORT_Assert(b->unlocked);
-
-    PORT_Assert(!a->unlocked);
-    PORT_Assert(!b->locked);
-
-    PORT_Assert(a->lock == b->lock);
-    PORT_Assert(a->store == b->store);
-}
-
 NSS_EXTERN void
 nssCertificateStore_Lock (
   nssCertificateStore *store, nssCertificateStoreTrace* out
@@ -126,7 +114,7 @@ nssCertificateStore_Lock (
 
 NSS_EXTERN void
 nssCertificateStore_Unlock (
-  nssCertificateStore *store, nssCertificateStoreTrace* in,
+  nssCertificateStore *store, const nssCertificateStoreTrace* in,
   nssCertificateStoreTrace* out
 );
 
