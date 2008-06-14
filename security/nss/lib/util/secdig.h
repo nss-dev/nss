@@ -94,7 +94,7 @@ extern void SGN_DestroyDigestInfo(SGNDigestInfo *info);
 ** XXX It might be nice to combine the create and encode functions.
 ** I think that is all anybody ever wants to do anyway.
 */
-extern SECItem *SGN_EncodeDigestInfo(PRArenaPool *poolp, SECItem *dest,
+extern SECItem *SGN_EncodeDigestInfo(PLArenaPool *poolp, SECItem *dest,
 				     SGNDigestInfo *diginfo);
 
 /*
@@ -120,7 +120,7 @@ extern SGNDigestInfo *SGN_DecodeDigestInfo(SECItem *didata);
 ** A return value of SECFailure indicates an error.  A return
 ** of SECSuccess indicates no error occured.
 */
-extern SECStatus  SGN_CopyDigestInfo(PRArenaPool *poolp,
+extern SECStatus  SGN_CopyDigestInfo(PLArenaPool *poolp,
 					SGNDigestInfo *a, 
 					SGNDigestInfo *b);
 

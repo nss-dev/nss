@@ -61,7 +61,7 @@ extern void SECKEY_DestroySubjectPublicKeyInfo(CERTSubjectPublicKeyInfo *spki);
 ** Copy subject-public-key-info "src" to "dst". "dst" is filled in
 ** appropriately (memory is allocated for each of the sub objects).
 */
-extern SECStatus SECKEY_CopySubjectPublicKeyInfo(PRArenaPool *arena,
+extern SECStatus SECKEY_CopySubjectPublicKeyInfo(PLArenaPool *arena,
 					     CERTSubjectPublicKeyInfo *dst,
 					     CERTSubjectPublicKeyInfo *src);
 
@@ -222,7 +222,7 @@ SECKEY_DestroyEncryptedPrivateKeyInfo(SECKEYEncryptedPrivateKeyInfo *epki,
  * returned.  otherwise, SECSuccess is returned.
  */
 extern SECStatus
-SECKEY_CopyPrivateKeyInfo(PRArenaPool *poolp,
+SECKEY_CopyPrivateKeyInfo(PLArenaPool *poolp,
 			  SECKEYPrivateKeyInfo *to,
 			  SECKEYPrivateKeyInfo *from);
 
@@ -238,7 +238,7 @@ SECKEY_CacheStaticFlags(SECKEYPrivateKey* key);
  * returned.  otherwise, SECSuccess is returned.
  */
 extern SECStatus
-SECKEY_CopyEncryptedPrivateKeyInfo(PRArenaPool *poolp,
+SECKEY_CopyEncryptedPrivateKeyInfo(PLArenaPool *poolp,
 				   SECKEYEncryptedPrivateKeyInfo *to,
 				   SECKEYEncryptedPrivateKeyInfo *from);
 /*

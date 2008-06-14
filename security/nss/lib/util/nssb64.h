@@ -100,7 +100,7 @@ NSSBase64Encoder_Destroy (NSSBase64Encoder *data, PRBool abort_p);
  * Return value is NULL on error, the Item (allocated or provided) otherwise.
  */
 extern SECItem *
-NSSBase64_DecodeBuffer (PRArenaPool *arenaOpt, SECItem *outItemOpt,
+NSSBase64_DecodeBuffer (PLArenaPool *arenaOpt, SECItem *outItemOpt,
 			const char *inStr, unsigned int inLen);
 
 /*
@@ -120,7 +120,7 @@ NSSBase64_DecodeBuffer (PRArenaPool *arenaOpt, SECItem *outItemOpt,
  * otherwise.
  */
 extern char *
-NSSBase64_EncodeItem (PRArenaPool *arenaOpt, char *outStrOpt,
+NSSBase64_EncodeItem (PLArenaPool *arenaOpt, char *outStrOpt,
 		      unsigned int maxOutLen, SECItem *inItem);
 
 SEC_END_PROTOS
