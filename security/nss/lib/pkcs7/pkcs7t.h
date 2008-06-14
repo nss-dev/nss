@@ -108,7 +108,7 @@ typedef struct SEC_PKCS7SMIMEKEAParametersStr SEC_PKCS7SMIMEKEAParameters;
 typedef struct SEC_PKCS7AttributeStr SEC_PKCS7Attribute;
 
 struct SEC_PKCS7ContentInfoStr {
-    PRArenaPool *poolp;			/* local; not part of encoding */
+    PLArenaPool *poolp;			/* local; not part of encoding */
     PRBool created;			/* local; not part of encoding */
     int refCount;			/* local; not part of encoding */
     SECOidData *contentTypeTag;		/* local; not part of encoding */

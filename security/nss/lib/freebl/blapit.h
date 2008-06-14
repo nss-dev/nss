@@ -205,7 +205,7 @@ typedef struct AESKeyWrapContextStr AESKeyWrapContext;
 
 /* member names from PKCS#1, section 7.1 */
 struct RSAPublicKeyStr {
-    PRArenaPool * arena;
+    PLArenaPool * arena;
     SECItem modulus;
     SECItem publicExponent;
 };
@@ -213,7 +213,7 @@ typedef struct RSAPublicKeyStr RSAPublicKey;
 
 /* member names from PKCS#1, section 7.2 */
 struct RSAPrivateKeyStr {
-    PRArenaPool * arena;
+    PLArenaPool * arena;
     SECItem version;
     SECItem modulus;
     SECItem publicExponent;
@@ -232,7 +232,7 @@ typedef struct RSAPrivateKeyStr RSAPrivateKey;
 */
 
 struct PQGParamsStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     SECItem prime;    /* p */
     SECItem subPrime; /* q */
     SECItem base;     /* g */
@@ -241,7 +241,7 @@ struct PQGParamsStr {
 typedef struct PQGParamsStr PQGParams;
 
 struct PQGVerifyStr {
-    PRArenaPool * arena;	/* includes this struct, seed, & h. */
+    PLArenaPool * arena;	/* includes this struct, seed, & h. */
     unsigned int  counter;
     SECItem       seed;
     SECItem       h;
@@ -267,14 +267,14 @@ typedef struct DSAPrivateKeyStr DSAPrivateKey;
 */
 
 struct DHParamsStr {
-    PRArenaPool * arena;
+    PLArenaPool * arena;
     SECItem prime; /* p */
     SECItem base; /* g */
 };
 typedef struct DHParamsStr DHParams;
 
 struct DHPublicKeyStr {
-    PRArenaPool * arena;
+    PLArenaPool * arena;
     SECItem prime;
     SECItem base;
     SECItem publicValue;
@@ -282,7 +282,7 @@ struct DHPublicKeyStr {
 typedef struct DHPublicKeyStr DHPublicKey;
 
 struct DHPrivateKeyStr {
-    PRArenaPool * arena;
+    PLArenaPool * arena;
     SECItem prime;
     SECItem base;
     SECItem publicValue;
@@ -333,7 +333,7 @@ struct ECCurveStr {
 typedef struct ECCurveStr ECCurve;
 
 struct ECParamsStr {
-    PRArenaPool * arena;
+    PLArenaPool * arena;
     ECParamsType  type;
     ECFieldID     fieldID;
     ECCurve       curve; 
