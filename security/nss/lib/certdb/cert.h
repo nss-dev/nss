@@ -1279,24 +1279,6 @@ CERT_CreateSubjectCertList(CERTCertList *certList, CERTCertDBHandle *handle,
 			   SECItem *name, PRTime sorttime, PRBool validOnly);
 
 /*
- * Creates or adds to a list of all certs with a give nickname, sorted by
- * validity time, newest first.  Invalid certs are considered older than valid
- * certs. If validOnly is set, do not include invalid certs on list.
- */
-CERTCertList *
-CERT_CreateNicknameCertList(CERTCertList *certList, CERTCertDBHandle *handle,
-			    char *nickname, PRTime sorttime, PRBool validOnly);
-
-/*
- * Creates or adds to a list of all certs with a give email addr, sorted by
- * validity time, newest first.  Invalid certs are considered older than valid
- * certs. If validOnly is set, do not include invalid certs on list.
- */
-CERTCertList *
-CERT_CreateEmailAddrCertList(CERTCertList *certList, CERTCertDBHandle *handle,
-			     char *emailAddr, PRTime sorttime, PRBool validOnly);
-
-/*
  * remove certs from a list that don't have keyUsage and certType
  * that match the given usage.
  */
