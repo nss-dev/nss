@@ -282,7 +282,7 @@ SECStatus
 cert_VerifyCertChainPkix(CERTCertificate *cert,
                          PRBool checkSig,
                          SECCertUsage     requiredUsage,
-                         PRUint64         time,
+                         PRTime           time,
                          void            *wincx,
                          CERTVerifyLog   *log,
                          PRBool          *sigError,
