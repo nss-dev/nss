@@ -1231,6 +1231,16 @@ typedef struct {
 } CERTValOutParam;
 
 /*
+ * Levels of standards conformance strictness for CERT_NameToAsciiInvertible
+ */
+typedef enum CertStrictnessLevels {
+    CERT_N2A_READABLE   =  0, /* maximum human readability */
+    CERT_N2A_STRICT     = 10, /* strict RFC compliance    */
+    CERT_N2A_INVERTIBLE = 20  /* maximum invertibility,
+                                 all DirectoryStrings encoded in hex */
+} CertStrictnessLevel;
+
+/*
  * policy flag defines
  */
 #define CERT_POLICY_FLAG_NO_MAPPING    1
