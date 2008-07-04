@@ -749,7 +749,7 @@ PK11_GenerateKeyPairWithFlags(PK11SlotInfo *slot,CK_MECHANISM_TYPE type,
     SECKEYPQGParams *dsaParams;
     SECKEYDHParams * dhParams;
     CK_MECHANISM mechanism;
-    CK_MECHANISM test_mech;
+    CK_MECHANISM test_mech, test_mech2;
     CK_SESSION_HANDLE session_handle;
     CK_RV crv;
     CK_OBJECT_HANDLE privID,pubID;
@@ -824,8 +824,13 @@ PK11_GenerateKeyPairWithFlags(PK11SlotInfo *slot,CK_MECHANISM_TYPE type,
     mechanism.mechanism = type;
     mechanism.pParameter = NULL;
     mechanism.ulParameterLen = 0;
+
     test_mech.pParameter = NULL;
     test_mech.ulParameterLen = 0;
+
+    test_mech2.mechanism = CKM_INVALID_MECHANISM;
+    test_mech2.pParameter = NULL;
+    test_mech2.ulParameterLen = 0;
 
     /* set up the private key template */
     privattrs = privTemplate;
@@ -894,12 +899,16 @@ PK11_GenerateKeyPairWithFlags(PK11SlotInfo *slot,CK_MECHANISM_TYPE type,
 	              ecParams->len);   attrs++;
         pubTemplate = ecPubTemplate;
         keyType = ecKey;
-	/* XXX An EC key can be used for other mechanisms too such
-	 * as CKM_ECDSA and CKM_ECDSA_SHA1. How can we reflect
-	 * that in test_mech.mechanism so the CKA_SIGN, CKA_VERIFY
-	 * attributes are set correctly? 
-	 */
-        test_mech.mechanism = CKM_ECDH1_DERIVE;
+	/*
+	 * ECC supports 2 different mechanism types (unlike RSA, which
+	 * supports different usages with the same mechanism).
+	 * We may need to query both mechanism types and or the results
+	 * together -- but we only do that if either the user has
+	 * requested both usages, or not specified any usages.
+ 	 */
+	/* neither was specified default to both */
+	test_mech.mechanism = CKM_ECDH1_DERIVE;
+	test_mech2.mechanism = CKM_ECDSA;
         break;
     default:
 	PORT_SetError( SEC_ERROR_BAD_KEY );
@@ -910,29 +919,54 @@ PK11_GenerateKeyPairWithFlags(PK11SlotInfo *slot,CK_MECHANISM_TYPE type,
     if (!slot->isThreadSafe) PK11_EnterSlotMonitor(slot);
     crv = PK11_GETTAB(slot)->C_GetMechanismInfo(slot->slotID,
 				test_mech.mechanism,&mechanism_info);
+    /*
+     * EC keys are used in multiple different types of mechanism, if we
+     * are using dual use keys, we need to query the the second mechanism
+     * as well.
+     */
+    if (test_mech2.mechanism != CKM_INVALID_MECHANISM) {
+	CK_MECHANISM_INFO mechanism_info2;
+	CK_RV crv2;
+
+	if (crv != CKR_OK) {
+	    /* the first failed, make sure there is no trash in the
+	     * mechanism flags when we or it below */
+	    mechanism_info.flags = 0;
+	}
+	crv2 = PK11_GETTAB(slot)->C_GetMechanismInfo(slot->slotID,
+				test_mech2.mechanism, &mechanism_info2);
+	if (crv2 == CKR_OK) {
+	    crv = CKR_OK; /* succeed if either mechnaism info succeeds */
+	    /* combine the 2 sets of mechnanism flags */
+	    mechanism_info.flags |= mechanism_info2.flags;
+	}
+    }
     if (!slot->isThreadSafe) PK11_ExitSlotMonitor(slot);
     if ((crv != CKR_OK) || (mechanism_info.flags == 0)) {
 	/* must be old module... guess what it should be... */
 	switch (test_mech.mechanism) {
-	case CKM_RSA_PKCS:
-		mechanism_info.flags = (CKF_SIGN | CKF_DECRYPT | 
-			CKF_WRAP | CKF_VERIFY_RECOVER | CKF_ENCRYPT | CKF_WRAP);;
-		break;
-	case CKM_DSA:
-		mechanism_info.flags = CKF_SIGN | CKF_VERIFY;
-		break;
-	case CKM_DH_PKCS_DERIVE:
-		mechanism_info.flags = CKF_DERIVE;
-		break;
-	case CKM_ECDH1_DERIVE:
-		mechanism_info.flags = CKF_DERIVE;
-		break;
-	case CKM_ECDSA:
+ 	case CKM_RSA_PKCS:
+	    mechanism_info.flags = (CKF_SIGN | CKF_DECRYPT | 
+		CKF_WRAP | CKF_VERIFY_RECOVER | CKF_ENCRYPT | CKF_WRAP);
+	    break;
+ 	case CKM_DSA:
+	    mechanism_info.flags = CKF_SIGN | CKF_VERIFY;
+	    break;
+ 	case CKM_DH_PKCS_DERIVE:
+	    mechanism_info.flags = CKF_DERIVE;
+	    break;
+ 	case CKM_ECDH1_DERIVE:
+	    mechanism_info.flags = CKF_DERIVE;
+	    if (test_mech2.mechanism == CKM_ECDSA) {
+		mechanism_info.flags |= CKF_SIGN | CKF_VERIFY;
+	    }
+	    break;
+ 	case CKM_ECDSA:
 	case CKM_ECDSA_SHA1:
-		mechanism_info.flags = CKF_SIGN | CKF_VERIFY;
-		break;
-	default:
-	       break;
+	    mechanism_info.flags =  CKF_SIGN | CKF_VERIFY;
+	    break;
+ 	default:
+	    break;
 	}
     }
     /* set the public key attributes */
