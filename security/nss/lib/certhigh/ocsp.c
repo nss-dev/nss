@@ -4481,7 +4481,7 @@ loser:
  *
  * The result needs to be freed (PORT_Free) when no longer in use.
  */
-static char *
+char *
 ocsp_GetResponderLocation(CERTCertDBHandle *handle, CERTCertificate *cert,
 			  PRBool *isDefault)
 {
