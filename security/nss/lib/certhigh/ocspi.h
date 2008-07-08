@@ -138,4 +138,25 @@ SECStatus
 cert_RememberOCSPProcessingFailure(CERTOCSPCertID *certID,
                                    PRBool         *certIDWasConsumed);
 
+/*
+ * FUNCTION: ocsp_GetResponderLocation
+ *  Check ocspx context for user-designated responder URI first. If not
+ *  found, checks cert AIA extension.
+ * INPUTS:
+ *  CERTCertDBHandle *handle
+ *    certificate DB of the cert that is being checked
+ *  CERTCertificate *cert
+ *     The certificate being examined.
+ *  PRBool *certIDWasConsumed
+ *    Out parameter, if set to true, URI of default responder is
+ *    returned.
+ *  RETURN:
+ *    Responder URI.
+ */
+char *
+ocsp_GetResponderLocation(CERTCertDBHandle *handle,
+                          CERTCertificate *cert,
+                          PRBool *isDefault);
+
+
 #endif /* _OCSPI_H_ */
