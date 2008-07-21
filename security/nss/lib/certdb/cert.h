@@ -1155,9 +1155,6 @@ CERT_FindSMimeProfile(CERTCertificate *cert);
 SECStatus
 CERT_AddNewCerts(CERTCertDBHandle *handle);
 
-CERTPackageType
-CERT_CertPackageType(SECItem *package, SECItem *certitem);
-
 CERTCertificatePolicies *
 CERT_DecodeCertificatePoliciesExtension(SECItem *extnValue);
 
