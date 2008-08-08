@@ -241,7 +241,7 @@ main(int argc, char **argv)
     if (!inFile) inFile = stdin;
     if (!outFile) outFile = stdout;
 
-    /* Call the libsec initialization routines */
+    /* Call the NSS initialization routines */
     PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     rv = NSS_Init(SECU_ConfigDirectory(NULL));
     if (rv != SECSuccess) {
