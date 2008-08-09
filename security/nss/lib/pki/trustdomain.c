@@ -52,7 +52,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 
 #include "cert.h"
 #include "pki3hack.h"
-
+#include "pk11pub.h"
 #include "nssrwlk.h"
 
 #define NSSTRUSTDOMAIN_DEFAULT_CACHE_SIZE 32
@@ -169,9 +169,18 @@ nssTrustDomain_GetActiveSlots (
     NSSRWLock_UnlockRead(td->tokensLock);
     count = 0;
     for (tp = tokens; *tp; tp++) {
-	slots[count++] = nssToken_GetSlot(*tp);
+        NSSSlot * slot = nssToken_GetSlot(*tp);
+        if (!PK11_IsDisabled(slot->pk11slot)) {
+            slots[count++] = slot;
+        } else {
+	    nssSlot_Destroy(slot);
+	}
     }
     nss_ZFreeIf(tokens);
+    if (!count) {
+	nss_ZFreeIf(slots);
+    	slots = NULL;
+    }
     return slots;
 }
 

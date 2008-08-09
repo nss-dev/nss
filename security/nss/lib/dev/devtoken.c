@@ -307,6 +307,7 @@ find_objects (
     nssSession *session = (sessionOpt) ? sessionOpt : tok->defaultSession;
 
     /* Don't ask the module to use an invalid session handle. */
+    PORT_Assert(session->handle != CK_INVALID_SESSION);
     if (session->handle == CK_INVALID_SESSION) {
 	ckrv = CKR_SESSION_HANDLE_INVALID;
 	goto loser;                
