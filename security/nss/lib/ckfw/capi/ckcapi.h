@@ -61,8 +61,8 @@ static const char CKCAPI_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #include "ckt.h"
 #endif /* CKT_H */
 
-#include "WTypes.h"
-#include "WinCrypt.h"
+#include "wtypes.h"
+#include "wincrypt.h"
 
 /*
  * statically defined raw objects. Allows us to data description objects
