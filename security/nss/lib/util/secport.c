@@ -63,7 +63,7 @@
 #include "prthread.h"
 #endif /* THREADMARK */
 
-#if defined(XP_UNIX) || defined(XP_MAC) || defined(XP_OS2) || defined(XP_BEOS)
+#if defined(XP_UNIX) || defined(XP_OS2) || defined(XP_BEOS)
 #include <stdlib.h>
 #else
 #include "wtypes.h"
@@ -634,7 +634,7 @@ PORT_UCS2_ASCIIConversion(PRBool toUnicode, unsigned char *inBuf,
 int
 NSS_PutEnv(const char * envVarName, const char * envValue)
 {
-#if  defined(XP_MAC) || defined(_WIN32_WCE)
+#ifdef _WIN32_WCE
     return SECFailure;
 #else
     SECStatus result = SECSuccess;
