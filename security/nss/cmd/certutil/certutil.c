@@ -537,7 +537,7 @@ ListCerts(CERTCertDBHandle *handle, char *nickname, PK11SlotInfo *slot,
 {
     SECStatus rv;
 
-    if (!ascii && !raw) {
+    if (!ascii && !raw && !nickname) {
         PR_fprintf(outfile, "\n%-60s %-5s\n%-60s %-5s\n\n",
                    "Certificate Nickname", "Trust Attributes", "",
                    "SSL,S/MIME,JAR/XPI");
