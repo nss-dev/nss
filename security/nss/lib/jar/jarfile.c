@@ -638,7 +638,7 @@ static int jar_extract_mf (JAR *jar, jarArch format, JAR_FILE fp, char *ext)
   ZZList *list;
 
   char *fn, *e;
-  char ZHUGEP *manifest = NULL;
+  char ZHUGEP *manifest;
 
   long length;
   int status, ret = 0, num;
