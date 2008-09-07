@@ -242,6 +242,23 @@ NSC_DestroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject)
  */
 
 
+/*
+ * map SEC_ERROR_xxx to CKR_xxx.
+ */
+static CK_RV
+sftk_MapCryptError(int error)
+{
+    switch (error) {
+	case SEC_ERROR_INVALID_ARGS:
+	    return CKR_ARGUMENTS_BAD;
+	case SEC_ERROR_INPUT_LEN:
+	    return CKR_DATA_LEN_RANGE;
+	case SEC_ERROR_OUTPUT_LEN:
+	    return CKR_BUFFER_TOO_SMALL;
+    }
+    return CKR_DEVICE_ERROR;
+}
+ 
 /* 
  * return a context based on the SFTKContext type.
  */
@@ -797,7 +814,9 @@ CK_RV NSC_EncryptUpdate(CK_SESSION_HANDLE hSession,
     	    rv = (*context->update)(context->cipherInfo, pEncryptedPart, 
 		&padoutlen, context->blockSize, context->padBuf,
 							context->blockSize);
-    	    if (rv != SECSuccess) return CKR_DEVICE_ERROR;
+	    if (rv != SECSuccess) {
+		return sftk_MapCryptError(PORT_GetError());
+	    }
 	    pEncryptedPart += padoutlen;
 	    maxout -= padoutlen;
 	}
@@ -821,7 +840,10 @@ CK_RV NSC_EncryptUpdate(CK_SESSION_HANDLE hSession,
     rv = (*context->update)(context->cipherInfo,pEncryptedPart, 
 					&outlen, maxout, pPart, ulPartLen);
     *pulEncryptedPartLen = (CK_ULONG) (outlen + padoutlen);
-    return (rv == SECSuccess) ? CKR_OK : CKR_DEVICE_ERROR;
+    if (rv != SECSuccess) {
+	return sftk_MapCryptError(PORT_GetError());
+    }
+    return CKR_OK;
 }
 
 
