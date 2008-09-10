@@ -301,10 +301,10 @@ AddModule(char *moduleName, char *libFile, char *cipherString,
 		       moduleName, errtxt);
 	    PR_Free(errtxt);
 	} else {
-	    PR_fprintf(PR_STDERR, errStrings[ADD_MODULE_FAILED_ERR], 
-		       moduleName);
+	    PR_fprintf(PR_STDERR, errStrings[ADD_MODULE_FAILED_STATUS_ERR], 
+		       moduleName, SECU_Strerror(PORT_GetError()));
 	}
-	return ADD_MODULE_FAILED_ERR;
+	return ADD_MODULE_FAILED_STATUS_ERR;
     } else {
 	PR_fprintf(PR_STDOUT, msgStrings[ADD_MODULE_SUCCESS_MSG], moduleName);
 	return SUCCESS;
