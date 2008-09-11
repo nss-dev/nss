@@ -297,14 +297,14 @@ AddModule(char *moduleName, char *libFile, char *cipherString,
 	    copied = PR_GetErrorText(errtxt);
 	}
 	if (copied && errtxt) {
-	    PR_fprintf(PR_STDERR, errStrings[ADD_MODULE_FAILED_STATUS_ERR], 
+	    PR_fprintf(PR_STDERR, errStrings[ADD_MODULE_FAILED_ERR], 
 		       moduleName, errtxt);
 	    PR_Free(errtxt);
 	} else {
-	    PR_fprintf(PR_STDERR, errStrings[ADD_MODULE_FAILED_STATUS_ERR], 
+	    PR_fprintf(PR_STDERR, errStrings[ADD_MODULE_FAILED_ERR], 
 		       moduleName, SECU_Strerror(PORT_GetError()));
 	}
-	return ADD_MODULE_FAILED_STATUS_ERR;
+	return ADD_MODULE_FAILED_ERR;
     } else {
 	PR_fprintf(PR_STDOUT, msgStrings[ADD_MODULE_SUCCESS_MSG], moduleName);
 	return SUCCESS;
