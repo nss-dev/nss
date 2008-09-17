@@ -374,3 +374,11 @@ CERT_DecodeCRLIssuingDistributionPoint (PRArenaPool *arena,
 
    return (rv);
 }
+
+SECStatus
+CERT_EncodeCRLIssuingDistributionPoint(PLArenaPool *arena,
+                                       CERTCrlIssuingDistributionPoint *value,
+                                       SECItem *encodedValue)
+{
+    return SECFailure;
+}

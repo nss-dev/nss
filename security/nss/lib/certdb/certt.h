@@ -644,6 +644,20 @@ typedef enum CERTCRLEntryReasonCodeEnum {
     crlEntryReasonAaCompromise = 10
 } CERTCRLEntryReasonCode;
 
+/* enum for CRL Entry Reason Code */
+typedef enum CERTCRLDPReasonFlagsEnum {
+    crlDpReasonFlagUnspecified = 0,
+    crlDpReasonFlagKeyCompromise = 1,
+    crlDpReasonFlagCaCompromise = 2,
+    crlDpReasonFlagAffiliationChanged = 3,
+    crlDpReasonFlagSuperseded = 4,
+    crlDpReasonFlagCessationOfOperation = 5,
+    crlDpReasonFlagcertificatedHold = 6,
+    crlDpReasonFlagPrivilegeWithdrawn = 7,
+    crlDpReasonFlagAaCompromise = 8,
+    crlDpReasonFlagIndex,
+} CERTCRLDPReasonFlags;
+
 /* If we needed to extract the general name field, use this */
 /* General Name types */
 typedef enum CERTGeneralNameTypeEnum {

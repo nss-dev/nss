@@ -959,6 +959,7 @@ VFY_VerifyDigestWithAlgorithmID;
 ;+};
 ;+NSS_3.12.1 { 	# NSS 3.12.1 release
 ;+    global:
+CERT_EncodeCRLIssuingDistributionPoint;
 CERT_NameToAsciiInvertible;
 PK11_FindCertFromDERCertItem;
 ;+    local:

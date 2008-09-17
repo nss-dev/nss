@@ -609,6 +609,164 @@ crlgen_AddCrlNumber(CRLGENGeneratorData *crlGenData, const char **dataArr)
 
 }
 
+/* SECItem data pointer to encoded "TRUE" value */
+static const unsigned char hextrue = 0xff;
+
+/* Creates and adds CRLIDP extension to extension handle. */
+static SECStatus
+crlgen_AddCrlIdp(CRLGENGeneratorData *crlGenData, const char **dataArr)
+{
+    CERTCrlIssuingDistributionPoint crlIdp;
+    PRArenaPool *arena = NULL;
+    void *extHandle = crlGenData->crlExtHandle;
+    SECStatus rv = SECFailure;
+    unsigned char bitField = (char)0x00;
+    const char *keyword = NULL;
+    int elemNum;
+
+    PORT_Assert(dataArr && crlGenData);
+    if (!crlGenData || !dataArr) {
+        goto loser;
+    }
+
+    if (!dataArr[0] || !dataArr[1]) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        crlgen_PrintError(crlGenData->parsedLineNum,
+                          "insufficient number of arguments.\n");
+        goto loser;
+    }
+
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (arena == NULL) {
+        goto loser;
+    }
+
+    /* Set defaults */
+    PORT_Memset(&crlIdp, 0, sizeof(crlIdp));
+
+    /* starting from the third element in dataArr, since first is the name
+     * of the extension, and the second is the criticality flag. */
+    for (elemNum = 2; dataArr[elemNum]; elemNum++) {
+        char *value = NULL;
+
+        if (keyword == NULL) {
+            keyword = dataArr[elemNum];
+            continue;
+        } else {
+            value = (char*)dataArr[elemNum];
+        }
+        /* Parsing full name of distribution point */
+        if (!PORT_Strcmp(keyword, "fullName")) {
+            CERTGeneralName *nameList = 
+                crlgen_GetGeneralName(arena, crlGenData, value);
+            if (!nameList) {
+                goto loser;
+            }
+            crlIdp.distPointName.distPoint.fullName = nameList;
+            crlIdp.distPointName.distPointType = generalName;
+        }
+        /* Parsing RDN name of distribution point */
+        if (!PORT_Strcmp(keyword, "relativeName")) {
+            CERTName *directoryName = CERT_AsciiToName (value);
+            if (!directoryName) {
+                goto loser;
+            }
+            rv = CERT_CopyRDN(arena, 
+                              &crlIdp.distPointName.distPoint.relativeName,
+                              directoryName->rdns[0]);
+            if (rv != SECSuccess) {
+                goto loser;
+            }
+            CERT_DestroyName(directoryName);
+            crlIdp.distPointName.distPointType =  relativeDistinguishedName;
+        }
+        /* Parsing onlyContainsUserCerts boolean field */
+        if (!PORT_Strcmp(keyword, "onlyUserCerts")) {
+            if (!PORT_Strcmp(value, "TRUE")) {
+                crlIdp.onlyContainsUserCerts.data = (unsigned char*)&hextrue;
+                crlIdp.onlyContainsUserCerts.len = 1;
+            }
+        }
+        /* Parsing onlyContainsCaCerts boolean field */
+        if (!PORT_Strcmp(keyword, "onlyCaCerts")) {
+            if (!PORT_Strcmp(value, "TRUE")) {
+                crlIdp.onlyContainsCACerts.data = (unsigned char*)&hextrue;
+                crlIdp.onlyContainsCACerts.len = 1;
+            }
+        }
+        /* Parsing onlySomeReasons reason bit flag */
+        if (!PORT_Strcmp(keyword, "onlySomeReasons")) {
+            char *tokenPtr = NULL;
+            char *valStr = value;
+            int revFlag = 0;
+
+            if (*value == '\0') {
+                PORT_SetError(SEC_ERROR_INVALID_ARGS);
+                crlgen_PrintError(crlGenData->parsedLineNum,
+                                  "insufficient number of arguments for "
+                                  "onlySomeReasons field.\n");
+                goto loser;
+            }
+            do {
+                if (tokenPtr) {
+                    valStr = tokenPtr + 1;
+                }
+                tokenPtr = PORT_Strchr(valStr, ',');
+                if (tokenPtr) {
+                    /* found a comma in the value: will deal with multiple
+                     * elements. */
+                    *tokenPtr = '\0';
+                }
+                revFlag = atoi(valStr);
+                if ((revFlag == 0 && *valStr != '0') || 
+                    revFlag >= crlDpReasonFlagIndex) {
+                    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+                    crlgen_PrintError(crlGenData->parsedLineNum,
+                                      "unknown reason flag in onlySomeReasons"
+                                      "field.\n");
+                    goto loser;
+                }
+                bitField |= revFlag;
+            } while (tokenPtr);
+            crlIdp.onlySomeReasons.data = (unsigned char*)&bitField;
+            crlIdp.onlySomeReasons.len = 1;
+        }
+        /* Parsing indirectCrl boolean field */
+        if (!PORT_Strcmp(keyword, "indirectCrl")) {
+            if (!PORT_Strcmp(value, "TRUE")) {
+                crlIdp.indirectCrl.data = (unsigned char*)&hextrue;
+                crlIdp.indirectCrl.len = 1;
+            }
+        }
+        /* Parsing onlyContainsAttrCerts boolean field */
+        if (!PORT_Strcmp(keyword, "onlyAttrCerts")) {
+            if (!PORT_Strcmp(value, "TRUE")) {
+                crlIdp.onlyContainsAttrCerts.data = (unsigned char*)&hextrue;
+                crlIdp.onlyContainsAttrCerts.len = 1;
+            }
+        }
+        keyword = NULL;
+    }
+    
+    if (keyword) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        crlgen_PrintError(crlGenData->parsedLineNum,
+                          "insufficient number of arguments.\n");
+        goto loser;
+    }
+
+    rv =
+        SECU_EncodeAndAddExtensionValue(arena, extHandle, &crlIdp,
+                                        (*dataArr[1] == '1') ? PR_TRUE : PR_FALSE,
+                                        SEC_OID_X509_ISSUING_DISTRIBUTION_POINT, 
+              (EXTEN_EXT_VALUE_ENCODER) CERT_EncodeCRLIssuingDistributionPoint);
+loser:
+    if (arena)
+        PORT_FreeArena(arena, PR_FALSE);
+    return rv;
+
+}
+
 
 /* Creates Cert Revocation Reason code extension. Encodes it and
  * returns as SECItem structure */
@@ -1035,6 +1193,8 @@ crlgen_AddExtension(CRLGENGeneratorData *crlGenData, const char **extData)
         return crlgen_AddIssuerAltNames(crlGenData, extData);
     else if (!PORT_Strcmp(*extData, "crlNumber"))
         return crlgen_AddCrlNumber(crlGenData, extData);
+    else if (!PORT_Strcmp(*extData, "crlIdp"))
+        return crlgen_AddCrlIdp(crlGenData, extData);
     else if (!PORT_Strcmp(*extData, "reasonCode"))
         return crlgen_AddEntryExtension(crlGenData, extData, "reasonCode",
                                         crlgen_CreateReasonCode);
@@ -1348,7 +1508,7 @@ crlgen_updateCrlFn_extension(CRLGENGeneratorData *crlGenData, void *str)
 }
 
 /* Defines maximum number of fields extension may have */
-#define MAX_EXT_DATA_LENGTH 10
+#define MAX_EXT_DATA_LENGTH 20
 
 /* Sets parsed extension data for CRL entries/CRL extensions update
  * into temporary structure */ 

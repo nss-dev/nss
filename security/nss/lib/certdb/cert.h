@@ -937,6 +937,9 @@ extern CERTCrlDistributionPoints * CERT_DecodeCRLDistributionPoints
 extern SECStatus CERT_DecodeCRLIssuingDistributionPoint (PLArenaPool *arena,
              SECItem *encodedValue, CERTCrlIssuingDistributionPoint **pValue);
 
+extern SECStatus CERT_EncodeCRLIssuingDistributionPoint(PLArenaPool *arena,
+                CERTCrlIssuingDistributionPoint *value, SECItem *encodedValue);
+
 /* Extract certain name type from a generalName */
 extern void *CERT_GetGeneralNameByType
    (CERTGeneralName *genNames, CERTGeneralNameType type, PRBool derFormat);
