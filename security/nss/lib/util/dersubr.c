@@ -264,3 +264,26 @@ DER_GetUInteger(SECItem *it)
     }
     return ival;
 }
+
+/*
+** Similar to DER_GetUInteger, but without most significant bit checking
+*/
+unsigned long
+DER_GetUIntegerBits(SECItem *it)
+{
+    unsigned long ival = 0;
+    unsigned len = it->len;
+    unsigned char *cp = it->data;
+    unsigned long overflow = 0xffUL << ((sizeof(ival) - 1) * 8);
+
+    while (len) {
+        if (ival & overflow) {
+            PORT_SetError(SEC_ERROR_BAD_DER);
+            return ULONG_MAX;
+        }
+        ival = ival << 8;
+        ival |= *cp++;
+        --len;
+    }
+    return ival;
+}

@@ -11,15 +11,15 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is the PKIX-C library.
+ * The Original Code is the Netscape security libraries.
  *
  * The Initial Developer of the Original Code is
- * Sun Microsystems, Inc.
- * Portions created by the Initial Developer are
- * Copyright 2004-2007 Sun Microsystems, Inc.  All Rights Reserved.
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1994-2000
+ * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *   Sun Microsystems, Inc.
+ *   Sun Microsystems
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -35,14 +35,14 @@
  *
  * ***** END LICENSE BLOCK ***** */
 /*
- * pkix_pl_crl.h
+ * pkix_pl_certdp.h
  *
- * CRL Object Type Definitions
+ * CertDistributionPoint Object Definitions
  *
  */
 
-#ifndef _PKIX_PL_CRL_H
-#define _PKIX_PL_CRL_H
+#ifndef _PKIX_PL_CERTDP_H
+#define _PKIX_PL_CERTDP_H
 
 #include "pkix_pl_common.h"
 
@@ -50,36 +50,27 @@
 extern "C" {
 #endif
 
-struct PKIX_PL_CRLStruct {
-        CERTSignedCrl *nssSignedCrl;
-        PKIX_PL_X500Name *issuer;
-        PKIX_PL_OID *signatureAlgId;
-        PKIX_PL_BigInt *crlNumber;
-        PKIX_Boolean crlNumberAbsent;
-        PKIX_List *crlEntryList; /* list of PKIX_PL_CRLEntry */
-        PKIX_PL_IssuingDistributionPoint *issuingDistPoint;
-        PKIX_Boolean issuingDistPointAbsent;
-        PKIX_List *critExtOids;
+struct PKIX_PL_CertDistributionPointStruct {
+        CRLDistributionPoint *nssCrlDp;
+        PKIX_PL_DistributionPointName *dpName;
+        PKIX_Boolean dpNameAbsent;
+        PKIX_UInt32 reasons;
+        PKIX_Boolean reasonsProcess;
+        PKIX_List *crlIssuerList; /* list of PKIX_PL_GeneralName */
 };
 
 /* see source file for function documentation */
 
-PKIX_Error *pkix_pl_CRL_RegisterSelf(void *plContext);
+PKIX_Error *pkix_pl_CertDistributionPoint_RegisterSelf(void *plContext);
 
-PKIX_Error *
-pkix_pl_CRL_CreateWithSignedCRL(
-        CERTSignedCrl *nssSignedCrl,
-        PKIX_PL_CRL **pCrl,
+PKIX_Error *pkix_pl_CertDistributionPoint_Create(
+        CRLDistributionPoint *nssDistPoint,
+        PKIX_PL_CertDistributionPoint **pDistPoint,
         void *plContext);
 
-PKIX_Error *
-pkix_pl_CRL_CreateToList(
-        SECItem *derCrlItem,
-        PKIX_List *crlList,
-        void *plContext);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _PKIX_PL_CRL_H */
+#endif /* _PKIX_PL_CERTDP_H */

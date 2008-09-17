@@ -66,6 +66,9 @@
 #include "pkix_pl_crlentry.h"
 #include "pkix_pl_crl.h"
 #include "pkix_pl_colcertstore.h"
+#include "pkix_pl_certdp.h"
+/* #include "pkix_pl_dpname.h" */
+/* #include "pkix_pl_issuingdp.h" */
 #include "pkix_pl_ldapcertstore.h"
 #include "pkix_pl_ldapdefaultclient.h"
 #include "pkix_pl_ldaprequest.h"

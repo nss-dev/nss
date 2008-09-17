@@ -851,6 +851,474 @@ PKIX_PL_BasicConstraints_GetPathLenConstraint(
         PKIX_PL_CertBasicConstraints *basicConstraints,
         PKIX_Int32 *pPathLenConstraint,
         void *plContext);
+/*
+ * FUNCTION: PKIX_PL_CRL_GetIssuingDistributionPoint
+ * DESCRIPTION:
+ *
+ *  Retrieves a pointer to the IssuingDistributionPoint found in the issuing
+ *  distribution point extension of the CRL pointed to by "crl" and stores it
+ *  at "pIssuingDistPoint". If "crl" does not have an issuing distribution
+ *  point extension, this function stores NULL at "pIssuingDistPoint". Once
+ *  created, an IssuingDistributionPoint object is immutable.
+ *
+ *  issuingDistributionPoint ::= SEQUENCE {
+ *      distributionPoint               [0]     DistributionPointName OPTIONAL,
+ *      onlyContainsUserCerts           [1]     BOOLEAN DEFAULT FALSE,
+ *      onlyContainsCACerts             [2]     BOOLEAN DEFAULT FALSE,
+ *      onlySomeReasons                 [3]     ReasonFlags OPTIONAL,
+ *      indirectCRL                     [4]     BOOLEAN DEFAULT FALSE,
+ *      onlyContainsAttributeCerts      [5]     BOOLEAN DEFAULT FALSE }
+ *
+ * PARAMETERS:
+ *  "crl"
+ *      Address of CRL whose Issuing Distribution Point is to be stored.
+ *      Must be non-NULL.
+ *  "pIssuingDistPoint"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CRL Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_CRL_GetIssuingDistributionPoint(
+        PKIX_PL_CRL *crl,
+        PKIX_PL_IssuingDistributionPoint **pIssuingDistPoint,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_IssuingDistributionPoint_GetDistributionPointName
+ * DESCRIPTION:
+ *
+ *  Retrieves a pointer to a DistributionPointName representing the
+ *  distributionPoint of the IssuingDistributionPoint pointed to by
+ *  "issuingDistPoint" and stores it at "pDistPointName".
+ *
+ *  issuingDistributionPoint ::= SEQUENCE {
+ *      distributionPoint               [0]     DistributionPointName OPTIONAL,
+ *      onlyContainsUserCerts           [1]     BOOLEAN DEFAULT FALSE,
+ *      onlyContainsCACerts             [2]     BOOLEAN DEFAULT FALSE,
+ *      onlySomeReasons                 [3]     ReasonFlags OPTIONAL,
+ *      indirectCRL                     [4]     BOOLEAN DEFAULT FALSE,
+ *      onlyContainsAttributeCerts      [5]     BOOLEAN DEFAULT FALSE }
+ *
+ * PARAMETERS:
+ *  "issuingDistPoint"
+ *      Address of IssuingDistributionPoint whose distribution point name is to
+ *      be stored. Must be non-NULL.
+ *  "pDistPointName"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CRL Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_IssuingDistributionPoint_GetDistributionPointName(
+        PKIX_PL_IssuingDistributionPoint *issuingDistPoint,
+        PKIX_PL_DistributionPointName **pDistPointName,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_IssuingDistributionPoint_GetOnlyContainsUserCerts
+ * DESCRIPTION:
+ *
+ *  Retrieves a pointer to a Boolean value representing the
+ *  onlyContainsUserCerts component of the IssuingDistributionPoint object
+ *  pointed to by "issuingDistPoint" and stores it at "pOnlyUserCerts".
+ *
+ *  issuingDistributionPoint ::= SEQUENCE {
+ *      distributionPoint               [0]     DistributionPointName OPTIONAL,
+ *      onlyContainsUserCerts           [1]     BOOLEAN DEFAULT FALSE,
+ *      onlyContainsCACerts             [2]     BOOLEAN DEFAULT FALSE,
+ *      onlySomeReasons                 [3]     ReasonFlags OPTIONAL,
+ *      indirectCRL                     [4]     BOOLEAN DEFAULT FALSE,
+ *      onlyContainsAttributeCerts      [5]     BOOLEAN DEFAULT FALSE }
+ *
+ * PARAMETERS:
+ *  "issuingDistPoint"
+ *      Address of IssuingDistributionPoint whose onlyContainsUserCerts field
+ *      is to be stored. Must be non-NULL.
+ *  "pOnlyUserCerts"
+ *      Address of Boolean result. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CRL Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_IssuingDistributionPoint_GetOnlyContainsUserCerts(
+        PKIX_PL_IssuingDistributionPoint *issuingDistPoint,
+        PKIX_Boolean *pOnlyUserCerts,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_IssuingDistributionPoint_GetOnlyContainsCACerts
+ * DESCRIPTION:
+ *
+ *  Retrieves a pointer to a Boolean value representing the
+ *  onlyContainsCACerts component of the IssuingDistributionPoint object
+ *  pointed to by "issuingDistPoint" and stores it at "pOnlyCACerts".
+ *
+ *  issuingDistributionPoint ::= SEQUENCE {
+ *      distributionPoint               [0]     DistributionPointName OPTIONAL,
+ *      onlyContainsUserCerts           [1]     BOOLEAN DEFAULT FALSE,
+ *      onlyContainsCACerts             [2]     BOOLEAN DEFAULT FALSE,
+ *      onlySomeReasons                 [3]     ReasonFlags OPTIONAL,
+ *      indirectCRL                     [4]     BOOLEAN DEFAULT FALSE,
+ *      onlyContainsAttributeCerts      [5]     BOOLEAN DEFAULT FALSE }
+ *
+ * PARAMETERS:
+ *  "issuingDistPoint"
+ *      Address of IssuingDistributionPoint whose onlyContainsCACerts field
+ *      is to be stored. Must be non-NULL.
+ *  "pOnlyCACerts"
+ *      Address of Boolean result. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CRL Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_IssuingDistributionPoint_GetOnlyContainsCACerts(
+        PKIX_PL_IssuingDistributionPoint *issuingDistPoint,
+        PKIX_Boolean *pOnlyCACerts,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_IssuingDistributionPoint_GetOnlySomeReasons
+ * DESCRIPTION:
+ *
+ *  Retrieves the reason flags of the IssuingDistributionPoint pointed to by
+ *  "issuingDistPoint" and stores it at "pReasonFlags". The reason flag bit
+ *  values  specified in pkixt.h are supported.
+ *
+ *  issuingDistributionPoint ::= SEQUENCE {
+ *      distributionPoint               [0]     DistributionPointName OPTIONAL,
+ *      onlyContainsUserCerts           [1]     BOOLEAN DEFAULT FALSE,
+ *      onlyContainsCACerts             [2]     BOOLEAN DEFAULT FALSE,
+ *      onlySomeReasons                 [3]     ReasonFlags OPTIONAL,
+ *      indirectCRL                     [4]     BOOLEAN DEFAULT FALSE,
+ *      onlyContainsAttributeCerts      [5]     BOOLEAN DEFAULT FALSE }
+ *
+ *  ReasonFlags ::= BIT STRING {
+ *      unused                  (0),
+ *      keyCompromise           (1),
+ *      cACompromise            (2),
+ *      affiliationChanged      (3),
+ *      superseded              (4),
+ *      cessationOfOperation    (5),
+ *      certificateHold         (6),
+ *      privilegeWithdrawn      (7),
+ *      aACompromise            (8) }
+ *
+ * PARAMETERS:
+ *  "issuingDistPoint"
+ *      Address of CertDistributionPoint whose reason flags are to be stored.
+ *      Must be non-NULL.
+ *  "pReasonFlags"
+ *      Address where PKIX_UInt32 will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CRL Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_IssuingDistributionPoint_GetOnlySomeReasons(
+        PKIX_PL_IssuingDistributionPoint *issuingDistPoint,
+        PKIX_UInt32 *pReasonFlags,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_IssuingDistributionPoint_GetIndirectCRL
+ * DESCRIPTION:
+ *
+ *  Retrieves a pointer to a Boolean value representing the indirectCRL
+ *  component of the IssuingDistributionPoint object pointed to by
+ *  "issuingDistPoint" and stores it at "pIndirectCRL".
+ *
+ *  issuingDistributionPoint ::= SEQUENCE {
+ *      distributionPoint               [0]     DistributionPointName OPTIONAL,
+ *      onlyContainsUserCerts           [1]     BOOLEAN DEFAULT FALSE,
+ *      onlyContainsCACerts             [2]     BOOLEAN DEFAULT FALSE,
+ *      onlySomeReasons                 [3]     ReasonFlags OPTIONAL,
+ *      indirectCRL                     [4]     BOOLEAN DEFAULT FALSE,
+ *      onlyContainsAttributeCerts      [5]     BOOLEAN DEFAULT FALSE }
+ *
+ * PARAMETERS:
+ *  "issuingDistPoint"
+ *      Address of IssuingDistributionPoint whose indirectCRL field is to be
+ *      stored. Must be non-NULL.
+ *  "pIndirectCRL"
+ *      Address of Boolean result. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CRL Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_IssuingDistributionPoint_GetIndirectCRL(
+        PKIX_PL_IssuingDistributionPoint *issuingDistPoint,
+        PKIX_Boolean *pIndirectCRL,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_IssuingDistributionPoint_GetOnlyContainsAttrCerts
+ * DESCRIPTION:
+ *
+ *  Retrieves a pointer to a Boolean value representing the
+ *  onlyContainsAttributeCerts component of the IssuingDistributionPoint
+ *  object pointed to by "issuingDistPoint" and stores it at "pOnlyAttrCerts".
+ *
+ *  issuingDistributionPoint ::= SEQUENCE {
+ *      distributionPoint               [0]     DistributionPointName OPTIONAL,
+ *      onlyContainsUserCerts           [1]     BOOLEAN DEFAULT FALSE,
+ *      onlyContainsCACerts             [2]     BOOLEAN DEFAULT FALSE,
+ *      onlySomeReasons                 [3]     ReasonFlags OPTIONAL,
+ *      indirectCRL                     [4]     BOOLEAN DEFAULT FALSE,
+ *      onlyContainsAttributeCerts      [5]     BOOLEAN DEFAULT FALSE }
+ *
+ * PARAMETERS:
+ *  "issuingDistPoint"
+ *      Address of IssuingDistributionPoint whose onlyContainsAttributeCerts
+ *      field is to be stored. Must be non-NULL.
+ *  "pOnlyAttrCerts"
+ *      Address of Boolean result. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CRL Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_IssuingDistributionPoint_GetOnlyContainsAttrCerts(
+        PKIX_PL_IssuingDistributionPoint *issuingDistPoint,
+        PKIX_Boolean *pOnlyAttrCerts,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_Cert_GetCRLDistributionPoints
+ * DESCRIPTION:
+ *
+ *  Retrieves a pointer to a List of CertDistributionPoints found in the
+ *  CRL distribution points extension of the Cert pointed to by "cert" and
+ *  stores it at "pDistPoints". If "cert" does not have a CRL distribution
+ *  points extension, this function stores NULL at "pDistPoints". Once
+ *  created, a CertDistributionPoint object is immutable.
+ *
+ *  Note that the List returned by this function is immutable.
+ *
+ *  CRLDistributionPoints ::= SEQUENCE SIZE (1..MAX) OF DistributionPoint
+ *
+ *  DistributionPoint ::= SEQUENCE {
+ *      distributionPoint       [0]     DistributionPointName OPTIONAL,
+ *      reasons                 [1]     ReasonFlags OPTIONAL,
+ *      cRLIssuer               [2]     GeneralNames OPTIONAL }
+ *
+ * PARAMETERS:
+ *  "cert"
+ *      Address of Cert whose CertDistributionPoints are to be stored.
+ *      Must be non-NULL.
+ *  "pDistPoints"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_Cert_GetCRLDistributionPoints(
+        PKIX_PL_Cert *cert,
+        PKIX_List **pDistPoints, /* list of PKIX_PL_CertDistributionPoint */
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_CertDistributionPoint_GetDistributionPointName
+ * DESCRIPTION:
+ *
+ *  Retrieves a pointer to a DistributionPointName representing the
+ *  distributionPoint of the CertDistributionPoint pointed to by "distPoint"
+ *  and stores it at "pDistPointName".
+ *
+ *  CRLDistributionPoints ::= SEQUENCE SIZE (1..MAX) OF DistributionPoint
+ *
+ *  DistributionPoint ::= SEQUENCE {
+ *      distributionPoint       [0]     DistributionPointName OPTIONAL,
+ *      reasons                 [1]     ReasonFlags OPTIONAL,
+ *      cRLIssuer               [2]     GeneralNames OPTIONAL }
+ *
+ * PARAMETERS:
+ *  "distPoint"
+ *      Address of CertDistributionPoint whose distribution point name is to
+ *      be stored. Must be non-NULL.
+ *  "pDistPointName"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_CertDistributionPoint_GetDistributionPointName(
+        PKIX_PL_CertDistributionPoint *distPoint,
+        PKIX_PL_DistributionPointName **pDistPointName,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_DistributionPointName_GetFullNames
+ * DESCRIPTION:
+ *
+ *  Retrieves a pointer to a List of GeneralNames representing the fullName of
+ *  the DistributionPointName pointed to by "distPointName" and stores it at
+ *  "pDistPointFullNames".
+ *
+ *  CRLDistributionPoints ::= SEQUENCE SIZE (1..MAX) OF DistributionPoint
+ *
+ *  DistributionPoint ::= SEQUENCE {
+ *      distributionPoint       [0]     DistributionPointName OPTIONAL,
+ *      reasons                 [1]     ReasonFlags OPTIONAL,
+ *      cRLIssuer               [2]     GeneralNames OPTIONAL }
+ *
+ *  DistributionPointName ::= CHOICE {
+ *      fullName                [0]     GeneralNames,
+ *      nameRelativeToCRLIssuer [1]     RelativeDistinguishedName }
+ *
+ * PARAMETERS:
+ *  "distPointName"
+ *      Address of DistributionPointName whose full names are to be stored.
+ *      Must be non-NULL.
+ *  "pDistPointFullNames"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_DistributionPointName_GetFullNames(
+        PKIX_PL_DistributionPointName *distPointName,
+        PKIX_List **pDistPointFullNames, /* list of PKIX_PL_GeneralName */
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_CertDistributionPoint_GetReasons
+ * DESCRIPTION:
+ *
+ *  Retrieves the reason flags of the CertDistributionPoint pointed to by
+ *  "distPoint" and stores it at "pReasonFlags". The reason flag bit values
+ *  specified in pkixt.h are supported.
+ *
+ *  DistributionPoint ::= SEQUENCE {
+ *      distributionPoint       [0]     DistributionPointName OPTIONAL,
+ *      reasons                 [1]     ReasonFlags OPTIONAL,
+ *      cRLIssuer               [2]     GeneralNames OPTIONAL }
+ *
+ *  ReasonFlags ::= BIT STRING {
+ *      unused                  (0),
+ *      keyCompromise           (1),
+ *      cACompromise            (2),
+ *      affiliationChanged      (3),
+ *      superseded              (4),
+ *      cessationOfOperation    (5),
+ *      certificateHold         (6),
+ *      privilegeWithdrawn      (7),
+ *      aACompromise            (8) }
+ *
+ * PARAMETERS:
+ *  "distPoint"
+ *      Address of CertDistributionPoint whose reason flags are to be stored.
+ *      Must be non-NULL.
+ *  "pReasonFlags"
+ *      Address where PKIX_UInt32 will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_CertDistributionPoint_GetReasons(
+        PKIX_PL_CertDistributionPoint *distPoint,
+        PKIX_UInt32 *pReasonFlags,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_CertDistributionPoint_GetCrlIssuerNames
+ * DESCRIPTION:
+ *
+ *  Retrieves a pointer to a List of GeneralNames representing the crlIssuer
+ *  of the CertDistributionPoint pointed to by "distPoint" and stores it at
+ *  "pCRLIssuerNames".
+ *
+ *  CRLDistributionPoints ::= SEQUENCE SIZE (1..MAX) OF DistributionPoint
+ *
+ *  DistributionPoint ::= SEQUENCE {
+ *      distributionPoint       [0]     DistributionPointName OPTIONAL,
+ *      reasons                 [1]     ReasonFlags OPTIONAL,
+ *      cRLIssuer               [2]     GeneralNames OPTIONAL }
+ *
+ * PARAMETERS:
+ *  "distPoint"
+ *      Address of CertDistributionPoint whose crl issuer names are to be
+ *      stored. Must be non-NULL.
+ *  "pCRLIssuerNames"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_CertDistributionPoint_GetCrlIssuerNames(
+        PKIX_PL_CertDistributionPoint *distPoint,
+        PKIX_List **pCRLIssuerNames, /* list of PKIX_PL_GeneralName */
+        void *plContext);
 
 /*
  * FUNCTION: PKIX_PL_Cert_GetPolicyInformation

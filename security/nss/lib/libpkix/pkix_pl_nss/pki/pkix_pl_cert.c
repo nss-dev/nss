@@ -900,6 +900,8 @@ pkix_pl_Cert_ToString_Helper(
         PKIX_Int32 certExplicitPolicy = 0;
         PKIX_Int32 certInhibitMapping = 0;
         PKIX_Int32 certInhibitAnyPolicy = 0;
+        PKIX_List *distPoints = NULL;
+        PKIX_PL_String *distPointsString = NULL;
         PKIX_PL_CertNameConstraints *nameConstraints = NULL;
         PKIX_PL_String *nameConstraintsString = NULL;
         PKIX_List *authorityInfoAccess = NULL;
@@ -939,6 +941,7 @@ pkix_pl_Cert_ToString_Helper(
                         "\tExplicitPolicy:  %d\n"
                         "\tInhibitMapping:  %d\n"
                         "\tInhibitAnyPolicy:%d\n"
+                        "\tDistPoints:      %s\n"
                         "\tNameConstraints: %s\n"
                         "\tAuthorityInfoAccess: %s\n"
                         "\tSubjectInfoAccess: %s\n"
@@ -1092,6 +1095,14 @@ pkix_pl_Cert_ToString_Helper(
                 (cert, &certInhibitAnyPolicy, plContext),
                 PKIX_CERTGETINHIBITANYPOLICYFAILED);
 
+        /* DistributionPoints */
+        PKIX_CHECK(PKIX_PL_Cert_GetCRLDistributionPoints
+                (cert, &distPoints, plContext),
+                PKIX_GETCRLDISTRIBUTIONPOINTSFAILED);
+
+        PKIX_TOSTRING(distPoints, &distPointsString, plContext,
+                PKIX_LISTTOSTRINGFAILED);
+
         /* Name Constraints */
         PKIX_CHECK(PKIX_PL_Cert_GetNameConstraints
                 (cert, &nameConstraints, plContext),
@@ -1138,6 +1149,7 @@ pkix_pl_Cert_ToString_Helper(
                     certExplicitPolicy,         /* an Int32, not a String */
                     certInhibitMapping,         /* an Int32, not a String */
                     certInhibitAnyPolicy,       /* an Int32, not a String */
+                    distPointsString,
                     nameConstraintsString,
                     authorityInfoAccessString,
                     subjectInfoAccessString,
@@ -1173,6 +1185,8 @@ cleanup:
         PKIX_DECREF(certPolicyInfoString);
         PKIX_DECREF(certPolicyMappings);
         PKIX_DECREF(certPolicyMappingsString);
+        PKIX_DECREF(distPoints);
+        PKIX_DECREF(distPointsString);
         PKIX_DECREF(nameConstraints);
         PKIX_DECREF(nameConstraintsString);
         PKIX_DECREF(authorityInfoAccess);
@@ -1216,6 +1230,7 @@ pkix_pl_Cert_Destroy(
         PKIX_DECREF(cert->certBasicConstraints);
         PKIX_DECREF(cert->certPolicyInfos);
         PKIX_DECREF(cert->certPolicyMappings);
+        PKIX_DECREF(cert->distPoints);
         PKIX_DECREF(cert->nameConstraints);
         PKIX_DECREF(cert->store);
         PKIX_DECREF(cert->authorityInfoAccess);
@@ -1481,6 +1496,7 @@ pkix_pl_Cert_CreateWithNSSCert(
         cert->policyConstraintsInhibitMappingSkipCerts = 0;
         cert->inhibitAnyPolicyProcessed = PKIX_FALSE;
         cert->inhibitAnySkipCerts = 0;
+        cert->distPoints = NULL;
         cert->nameConstraints = NULL;
         cert->nameConstraintsAbsent = PKIX_FALSE;
         cert->arenaNameConstraints = NULL;
@@ -3108,6 +3124,76 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
+
+/*
+ * FUNCTION: PKIX_PL_Cert_GetCRLDistributionPoints
+ * (see comments in pkix_pl_pki.h)
+ */
+PKIX_Error *
+PKIX_PL_Cert_GetCRLDistributionPoints(
+        PKIX_PL_Cert *cert,
+        PKIX_List **pDistPoints, /* list of PKIX_PL_CertDistributionPoint */
+        void *plContext)
+{
+        CERTCrlDistributionPoints *nssDistPoints = NULL;
+        CRLDistributionPoint **nssCrlDistPoints = NULL;
+        CRLDistributionPoint *nssCrlDistPoint = NULL;
+        CERTCertificate *nssCert = NULL;
+        PKIX_PL_CertDistributionPoint *dp = NULL;
+        PKIX_List *dpList = NULL;
+
+        PKIX_ENTER(CERT, "PKIX_PL_Cert_GetCRLDistributionPoints");
+        PKIX_NULLCHECK_TWO(cert, pDistPoints);
+
+        /* if we don't have a cached copy from before, we create one */
+	if (cert->distPoints == NULL) {
+	    PKIX_OBJECT_LOCK(cert);
+	    if (cert->distPoints == NULL) {
+		nssCert = cert->nssCert;
+		PKIX_CERT_DEBUG
+		    ("\t\tCalling CERT_FindCRLDistributionPoints\n");
+		nssDistPoints = CERT_FindCRLDistributionPoints(nssCert);
+		if (nssDistPoints) {
+		    nssCrlDistPoints = nssDistPoints->distPoints;
+		    if (nssCrlDistPoints) {
+			PKIX_CHECK(PKIX_List_Create(&dpList, plContext),
+			    PKIX_LISTCREATEFAILED);
+			while (*nssCrlDistPoints) {
+			    nssCrlDistPoint = *nssCrlDistPoints;
+			    PKIX_CHECK(pkix_pl_CertDistributionPoint_Create
+				(nssCrlDistPoint,
+				&dp,
+				plContext),
+				PKIX_CERTDISTRIBUTIONPOINTCREATEFAILED);
+			    PKIX_CHECK(PKIX_List_AppendItem
+				(dpList,
+				(PKIX_PL_Object *)dp,
+				plContext),
+				PKIX_LISTAPPENDITEMFAILED);
+			    PKIX_DECREF(dp);
+			    nssCrlDistPoints++;
+			}
+			PKIX_CHECK(PKIX_List_SetImmutable
+			    (dpList, plContext),
+			    PKIX_LISTSETIMMUTABLEFAILED);
+			cert->distPoints = dpList;
+		    }
+		}
+	    }
+	    PKIX_OBJECT_UNLOCK(cert);
+	}
+        PKIX_INCREF(cert->distPoints);
+        *pDistPoints = cert->distPoints;
+
+cleanup:
+        PKIX_DECREF(dp);
+        if (PKIX_ERROR_RECEIVED){
+                PKIX_DECREF(dpList);
+        }
+        PKIX_RETURN(CERT);
+}
+
+
 /*
  * FUNCTION: PKIX_PL_Cert_GetNameConstraints
  * (see comments in pkix_pl_pki.h)
@@ -3408,11 +3494,8 @@ PKIX_PL_Cert_GetAuthorityInfoAccess(
 
         /* if we don't have a cached copy from before, we create one */
         if (cert->authorityInfoAccess == NULL) {
-
                 PKIX_OBJECT_LOCK(cert);
-
                 if (cert->authorityInfoAccess == NULL) {
-
                     PKIX_PL_NSSCALLRV(CERT, encodedAIA, SECITEM_AllocItem,
                         (NULL, NULL, 0));
 

@@ -350,11 +350,13 @@ pkix_pl_CRL_Destroy(
         CERT_DestroyCrl(crl->nssSignedCrl);
         crl->nssSignedCrl = NULL;
         crl->crlNumberAbsent = PKIX_FALSE;
+        crl->issuingDistPointAbsent = PKIX_FALSE;
 
         PKIX_DECREF(crl->issuer);
         PKIX_DECREF(crl->signatureAlgId);
         PKIX_DECREF(crl->crlNumber);
         PKIX_DECREF(crl->crlEntryList);
+        PKIX_DECREF(crl->issuingDistPoint);
         PKIX_DECREF(crl->critExtOids);
 
 cleanup:
@@ -396,6 +398,7 @@ pkix_pl_CRL_ToString_Helper(
         PKIX_PL_OID *nssSignatureAlgId = NULL;
         PKIX_PL_BigInt *crlNumber = NULL;
         PKIX_List *crlEntryList = NULL;
+	PKIX_PL_IssuingDistributionPoint *crlIssuingDistPoint = NULL;
         PKIX_List *critExtOIDs = NULL;
         PKIX_PL_String *formatString = NULL;
         PKIX_PL_String *crlIssuerString = NULL;
@@ -404,6 +407,7 @@ pkix_pl_CRL_ToString_Helper(
         PKIX_PL_String *nssSignatureAlgIdString = NULL;
         PKIX_PL_String *crlNumberString = NULL;
         PKIX_PL_String *crlEntryListString = NULL;
+	PKIX_PL_String *crlIssuingDistPointString = NULL;
         PKIX_PL_String *critExtOIDsString = NULL;
         PKIX_PL_String *crlString = NULL;
 
@@ -421,6 +425,7 @@ pkix_pl_CRL_ToString_Helper(
                 "\n"
                 "\tEntry List:      %s\n"
                 "\n"
+		"\tIssuingDistPoint:%s\n"
                 "\tCritExtOIDs:     %s\n"
                 "]\n";
 
@@ -484,6 +489,16 @@ pkix_pl_CRL_ToString_Helper(
         PKIX_TOSTRING(crlEntryList, &crlEntryListString, plContext,
                     PKIX_LISTTOSTRINGFAILED);
 
+        /* CRL Issuing Distribution Point */
+        PKIX_CHECK(PKIX_PL_CRL_GetIssuingDistributionPoint
+                    (crl, &crlIssuingDistPoint, plContext),
+                    PKIX_CRLGETISSUINGDISTRIBUTIONPOINTFAILED);
+
+        PKIX_TOSTRING(crlIssuingDistPoint,
+                    &crlIssuingDistPointString,
+                    plContext,
+                    PKIX_ISSUINGDISTRIBUTIONPOINTTOSTRINGFAILED);
+
         /* CriticalExtensionOIDs */
         PKIX_CHECK(PKIX_PL_CRL_GetCriticalExtensionOIDs
                     (crl, &critExtOIDs, plContext),
@@ -503,6 +518,7 @@ pkix_pl_CRL_ToString_Helper(
                     nssSignatureAlgIdString,
                     crlNumberString,
                     crlEntryListString,
+		    crlIssuingDistPointString,
                     critExtOIDsString),
                     PKIX_SPRINTFFAILED);
 
@@ -514,6 +530,7 @@ cleanup:
         PKIX_DECREF(nssSignatureAlgId);
         PKIX_DECREF(crlNumber);
         PKIX_DECREF(crlEntryList);
+	PKIX_DECREF(crlIssuingDistPoint);
         PKIX_DECREF(critExtOIDs);
         PKIX_DECREF(crlIssuerString);
         PKIX_DECREF(lastUpdateString);
@@ -521,6 +538,7 @@ cleanup:
         PKIX_DECREF(nssSignatureAlgIdString);
         PKIX_DECREF(crlNumberString);
         PKIX_DECREF(crlEntryListString);
+	PKIX_DECREF(crlIssuingDistPointString);
         PKIX_DECREF(critExtOIDsString);
         PKIX_DECREF(formatString);
 
@@ -815,6 +833,8 @@ pkix_pl_CRL_CreateWithSignedCRL(
         crl->crlNumber = NULL;
         crl->crlNumberAbsent = PKIX_FALSE;
         crl->crlEntryList = NULL;
+	crl->issuingDistPoint = NULL;
+	crl->issuingDistPointAbsent = PKIX_FALSE;
         crl->critExtOids = NULL;
 
         *pCrl = crl;
@@ -1220,5 +1240,57 @@ cleanup:
         PKIX_DECREF(verifySig);
         PKIX_DECREF(cachedSig);
 
+        PKIX_RETURN(CRL);
+}
+
+/*
+ * FUNCTION: PKIX_PL_CRL_GetIssuingDistributionPoint
+ * (see comments in pkix_pl_pki.h)
+ */
+PKIX_Error *
+PKIX_PL_CRL_GetIssuingDistributionPoint(
+        PKIX_PL_CRL *crl,
+        PKIX_PL_IssuingDistributionPoint **pIssuingDistPoint,
+        void *plContext)
+{
+        CERTCrlIssuingDistributionPoint *nssIssuingDistPoint = NULL;
+        SECStatus status;
+        PKIX_PL_IssuingDistributionPoint *issuingDistPoint = NULL;
+
+        PKIX_ENTER(CRL, "PKIX_PL_CRL_GetIssuingDistributionPoint");
+        PKIX_NULLCHECK_THREE(crl, crl->nssSignedCrl, pIssuingDistPoint);
+
+        /* There are data, we not processed in yet */
+        if (!crl->issuingDistPointAbsent && crl->issuingDistPoint == NULL &&
+            crl->nssSignedCrl->crl.extensions != NULL) {
+
+                PKIX_OBJECT_LOCK(crl);
+
+                if (!crl->issuingDistPointAbsent &&
+                    crl->issuingDistPoint == NULL &&
+                    crl->nssSignedCrl->crl.extensions != NULL) {
+
+                    PKIX_CRL_DEBUG
+                        ("\t\tCalling CERT_FindCRLIssuingDistPointExten\n");
+                    status = CERT_FindCRLIssuingDistPointExten
+                            (&crl->nssSignedCrl->crl, &nssIssuingDistPoint);
+
+                    if (status == SECSuccess) {
+                        PKIX_CHECK(pkix_pl_IssuingDistributionPoint_Create
+                                (nssIssuingDistPoint,
+                                &issuingDistPoint,
+                                plContext),
+				PKIX_ISSUINGDISTRIBUTIONPOINTCREATEFAILED);
+                        crl->issuingDistPoint = issuingDistPoint;
+                    } else {
+                        crl->issuingDistPointAbsent = PKIX_TRUE;
+                    }
+                }
+                PKIX_OBJECT_UNLOCK(crl);
+        }
+        PKIX_INCREF(crl->issuingDistPoint);
+        *pIssuingDistPoint = crl->issuingDistPoint;
+
+cleanup:
         PKIX_RETURN(CRL);
 }

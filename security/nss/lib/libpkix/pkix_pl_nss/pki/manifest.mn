@@ -44,14 +44,17 @@ EXPORTS = \
 PRIVATE_EXPORTS = \
 	pkix_pl_basicconstraints.h \
 	pkix_pl_cert.h \
+	pkix_pl_certdp.h \
 	pkix_pl_certpolicyinfo.h \
 	pkix_pl_certpolicymap.h \
 	pkix_pl_certpolicyqualifier.h \
 	pkix_pl_crl.h \
 	pkix_pl_crlentry.h \
 	pkix_pl_date.h \
+	pkix_pl_dpname.h \
 	pkix_pl_generalname.h \
 	pkix_pl_infoaccess.h \
+	pkix_pl_issuingdp.h \
 	pkix_pl_nameconstraints.h \
 	pkix_pl_ocsprequest.h \
 	pkix_pl_ocspresponse.h \
@@ -65,14 +68,17 @@ MODULE = nss
 CSRCS = \
 	pkix_pl_basicconstraints.c \
 	pkix_pl_cert.c \
+	pkix_pl_certdp.c \
 	pkix_pl_certpolicyinfo.c \
 	pkix_pl_certpolicymap.c \
 	pkix_pl_certpolicyqualifier.c \
 	pkix_pl_crl.c \
 	pkix_pl_crlentry.c \
 	pkix_pl_date.c \
+	pkix_pl_dpname.c \
 	pkix_pl_generalname.c \
 	pkix_pl_infoaccess.c \
+	pkix_pl_issuingdp.c \
 	pkix_pl_nameconstraints.c \
 	pkix_pl_ocsprequest.c \
 	pkix_pl_ocspresponse.c \

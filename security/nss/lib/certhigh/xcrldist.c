@@ -91,6 +91,48 @@ const SEC_ASN1Template CERTCRLDistributionPointsTemplate[] = {
     {SEC_ASN1_SEQUENCE_OF, 0, CRLDistributionPointTemplate}
 };
 
+/* Templates for CRL Issuing Distribution Point */
+static const SEC_ASN1Template CRLIDPFullNameTemplate[] = {
+    {SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_CONSTRUCTED | 0,
+     offsetof (CERTCrlIssuingDistributionPoint,derFullName),
+    CERT_GeneralNamesTemplate}
+};
+
+static const SEC_ASN1Template CRLIDPRelativeNameTemplate[] = {
+    {SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_CONSTRUCTED | 1, 
+     offsetof (CERTCrlIssuingDistributionPoint,
+               distPointName.distPoint.relativeName),
+     CERT_RDNTemplate}
+};
+         
+static const SEC_ASN1Template CRLIssuingDistributionPointTemplate[] = {
+    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(CERTCrlIssuingDistributionPoint) },
+        { SEC_ASN1_OPTIONAL | SEC_ASN1_CONTEXT_SPECIFIC |
+            SEC_ASN1_CONSTRUCTED | SEC_ASN1_EXPLICIT | 0,
+            offsetof(CERTCrlIssuingDistributionPoint,derDistPoint), 
+	                                                      SEC_AnyTemplate},
+        { SEC_ASN1_OPTIONAL | SEC_ASN1_CONTEXT_SPECIFIC | 1,
+          offsetof(CERTCrlIssuingDistributionPoint,onlyContainsUserCerts),
+          SEC_BooleanTemplate },
+
+        { SEC_ASN1_OPTIONAL | SEC_ASN1_CONTEXT_SPECIFIC | 2,
+          offsetof(CERTCrlIssuingDistributionPoint,onlyContainsCACerts),
+          SEC_BooleanTemplate },
+
+        { SEC_ASN1_OPTIONAL | SEC_ASN1_CONTEXT_SPECIFIC | 3,
+          offsetof(CERTCrlIssuingDistributionPoint,bitsmap),
+          SEC_BitStringTemplate},
+        { SEC_ASN1_OPTIONAL | SEC_ASN1_CONTEXT_SPECIFIC | 4,
+          offsetof(CERTCrlIssuingDistributionPoint,indirectCrl),
+          SEC_BooleanTemplate },
+
+        { SEC_ASN1_OPTIONAL | SEC_ASN1_CONTEXT_SPECIFIC | 5,
+          offsetof(CERTCrlIssuingDistributionPoint,onlyContainsAttrCerts),
+          SEC_BooleanTemplate },
+
+    { 0 }
+};
+
 SECStatus
 CERT_EncodeCRLDistributionPoints (PLArenaPool *arena, 
 				  CERTCrlDistributionPoints *value,
@@ -160,8 +202,8 @@ CERT_EncodeCRLDistributionPoints (PLArenaPool *arena,
 	}
 	if (rv != SECSuccess)
 	    break;
-	if (!SEC_ASN1EncodeItem(arena, derValue, value, 
-		CERTCRLDistributionPointsTemplate)) {
+        if (SEC_ASN1EncodeItem (arena, derValue, value, 
+	                        CERTCRLDistributionPointsTemplate) == NULL) {
 	    rv = SECFailure;
 	    break;
 	}
@@ -246,4 +288,89 @@ CERT_DecodeCRLDistributionPoints (PLArenaPool *arena, SECItem *encodedValue)
 	} /* end while points remain */
    } while (0);
    return (rv == SECSuccess ? value : NULL);
+}
+
+SECStatus
+CERT_DecodeCRLIssuingDistributionPoint (PRArenaPool *arena, 
+            SECItem *encodedValue, CERTCrlIssuingDistributionPoint **pValue)
+{
+   CERTCrlIssuingDistributionPoint *value = NULL;    
+   SECStatus rv;
+   SECItem newEncodedValue;
+
+   PORT_Assert (arena);
+   do {
+        value = (CERTCrlIssuingDistributionPoint*)PORT_ArenaZAlloc
+                (arena, sizeof (*value));
+        if (value == NULL) {
+            rv = SECFailure;
+            break;
+        }
+
+        /* copy the DER into the arena, since Quick DER returns data that points
+           into the DER input, which may get freed by the caller */
+        rv = SECITEM_CopyItem(arena, &newEncodedValue, encodedValue);
+        if ( rv != SECSuccess ) {
+            break;
+        }
+
+        rv = SEC_QuickDERDecodeItem
+             (arena, value, CRLIssuingDistributionPointTemplate,
+              &newEncodedValue);
+        if (rv != SECSuccess)
+            break;
+
+        /* get the data if the distributionPointName is not omitted */
+        if (value->derDistPoint.data != NULL) {
+            value->distPointName.distPointType = (DistributionPointTypes)
+                    ((value->derDistPoint.data[0] & 0x1f) +1);
+            if (value->distPointName.distPointType == generalName) {
+                SECItem innerDER;
+                
+                innerDER.data = NULL;
+                rv = SEC_QuickDERDecodeItem
+                        (arena, value, CRLIDPFullNameTemplate,
+                         &value->derDistPoint);
+                if (rv != SECSuccess)
+                    break;
+
+                value->distPointName.distPoint.fullName = 
+			cert_DecodeGeneralNames(arena, value->derFullName);
+
+                if (!value->distPointName.distPoint.fullName)
+                    break;
+            }
+            else if (value->distPointName.distPointType == 
+	                                       relativeDistinguishedName) {
+                rv = SEC_QuickDERDecodeItem
+                        (arena, value, CRLIDPRelativeNameTemplate,
+                         &(value->derDistPoint));
+                if (rv != SECSuccess)
+                    break;
+            }
+            else {
+                PORT_SetError (SEC_ERROR_EXTENSION_VALUE_INVALID);
+                break;
+            }
+        }
+
+        /* Get the onlySomeReasons if it's not omitted in the encoding */
+        if (value->bitsmap.data != NULL) {
+            value->onlySomeReasons.data = (unsigned char*) PORT_ArenaAlloc
+                    (arena, (value->bitsmap.len + 7) >> 3);
+            if (!value->onlySomeReasons.data) {
+                rv = SECFailure;
+                break;
+            }
+            value->onlySomeReasons.len = ((value->bitsmap.len + 7) >> 3);
+            PORT_Memcpy (value->onlySomeReasons.data,
+                         value->bitsmap.data,
+                         value->onlySomeReasons.len);
+        }
+
+   } while (0);
+
+   *pValue = value; /* consider failure free XXX */
+
+   return (rv);
 }

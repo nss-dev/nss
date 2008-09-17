@@ -61,14 +61,11 @@ pkix_BuildParams_Destroy(
 
         /* Check that this object is a build params object */
         PKIX_CHECK(pkix_CheckType(object, PKIX_BUILDPARAMS_TYPE, plContext),
-                    "Object is not a build params object");
-
+                    PKIX_OBJECTNOTBUILDPARAMS);
         params = (PKIX_BuildParams *)object;
-
         PKIX_DECREF(params->procParams);
 
 cleanup:
-
         PKIX_RETURN(BUILDPARAMS);
 }
 
@@ -92,13 +89,12 @@ pkix_BuildParams_Equals(
         PKIX_NULLCHECK_THREE(first, second, pResult);
 
         PKIX_CHECK(pkix_CheckType(first, PKIX_BUILDPARAMS_TYPE, plContext),
-                    "First Argument is not a BuildParams object");
+                    PKIX_OBJECTNOTBUILDPARAMS);
 
         PKIX_CHECK(PKIX_PL_Object_GetType(second, &secondType, plContext),
                     PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         *pResult = PKIX_FALSE;
-
         if (secondType != PKIX_BUILDPARAMS_TYPE) goto cleanup;
 
         firstBuildParams = (PKIX_BuildParams *)first;
@@ -116,7 +112,6 @@ pkix_BuildParams_Equals(
         *pResult = cmpResult;
 
 cleanup:
-
         PKIX_RETURN(BUILDPARAMS);
 }
 
@@ -138,7 +133,7 @@ pkix_BuildParams_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_BUILDPARAMS_TYPE, plContext),
-                    "Object is not a processingParams object");
+                    PKIX_OBJECTNOTBUILDPARAMS);
 
         buildParams = (PKIX_BuildParams*)object;
 
@@ -149,11 +144,9 @@ pkix_BuildParams_Hashcode(
                     PKIX_OBJECTHASHCODEFAILED);
 
         hash = 31 * procParamsHash;
-
         *pHashcode = hash;
 
 cleanup:
-
         PKIX_RETURN(BUILDPARAMS);
 }
 
@@ -171,7 +164,6 @@ pkix_BuildParams_ToString(
         char *asciiFormat = NULL;
         PKIX_PL_String *formatString = NULL;
         PKIX_PL_String *buildParamsString = NULL;
-
         PKIX_PL_String *procParamsString = NULL;
 
         PKIX_ENTER(BUILDPARAMS, "pkix_BuildParams_ToString");

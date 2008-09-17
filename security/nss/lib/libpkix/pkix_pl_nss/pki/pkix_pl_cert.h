@@ -79,6 +79,7 @@ struct PKIX_PL_CertStruct {
         PKIX_Int32 policyConstraintsInhibitMappingSkipCerts;
         PKIX_Boolean inhibitAnyPolicyProcessed;
         PKIX_Int32 inhibitAnySkipCerts;
+        PKIX_List *distPoints;
         PKIX_PL_CertNameConstraints *nameConstraints;
         PKIX_Boolean nameConstraintsAbsent;
         PKIX_Boolean cacheFlag;

@@ -74,6 +74,7 @@ typedef struct CERTCertificateListStr            CERTCertificateList;
 typedef struct CERTCertificateRequestStr         CERTCertificateRequest;
 typedef struct CERTCrlStr                        CERTCrl;
 typedef struct CERTCrlDistributionPointsStr      CERTCrlDistributionPoints; 
+typedef struct CERTCrlIssuingDistributionPointStr CERTCrlIssuingDistributionPoint;
 typedef struct CERTCrlEntryStr                   CERTCrlEntry;
 typedef struct CERTCrlHeadNodeStr                CERTCrlHeadNode;
 typedef struct CERTCrlKeyStr                     CERTCrlKey;
@@ -100,6 +101,7 @@ typedef struct CERTValidityStr                   CERTValidity;
 typedef struct CERTVerifyLogStr                  CERTVerifyLog;
 typedef struct CERTVerifyLogNodeStr              CERTVerifyLogNode;
 typedef struct CRLDistributionPointStr           CRLDistributionPoint;
+typedef struct CERTDistributionPointNameStr      CERTDistributionPointName;
 
 /* CRL extensions type */
 typedef unsigned long CERTCrlNumber;
@@ -751,6 +753,33 @@ struct CRLDistributionPointStr {
 
 struct CERTCrlDistributionPointsStr {
     CRLDistributionPoint **distPoints;
+};
+
+/*
+ * define the types of CRL Issuing Distribution points
+ */
+
+struct CERTDistributionPointNameStr {
+    DistributionPointTypes distPointType;
+    union {
+        CERTGeneralName *fullName;
+        CERTRDN relativeName;
+    } distPoint;    
+};
+
+struct CERTCrlIssuingDistributionPointStr {
+    CERTDistributionPointName distPointName;
+
+    SECItem onlyContainsUserCerts;
+    SECItem onlyContainsCACerts;
+    SECItem onlySomeReasons;
+    SECItem indirectCrl;
+    SECItem onlyContainsAttrCerts;
+
+    SECItem derDistPoint;
+    SECItem **derFullName;
+    SECItem derRelativeName;
+    SECItem bitsmap;
 };
 
 /*

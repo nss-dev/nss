@@ -329,7 +329,6 @@ CONST_OID netscapeAOLScreenname[] 	= { NETSCAPE_NAME_COMPONENTS, 0x02 };
 /* OIDs needed for cert server */
 CONST_OID netscapeRecoveryRequest[] 	= { NETSCAPE_CERT_SERVER_CRMF, 0x01 };
 
-
 /* Standard x.509 v3 Certificate & CRL Extensions */
 CONST_OID x509SubjectDirectoryAttr[]  		= { ID_CE_OID,  9 };
 CONST_OID x509SubjectKeyID[]          		= { ID_CE_OID, 14 };
@@ -801,7 +800,6 @@ const static SECOidData oids[] = {
 	"Strong Crypto Export Approved",
 	CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
 
-
     /* x.509 v3 certificate extensions */
     OD( x509SubjectDirectoryAttr, SEC_OID_X509_SUBJECT_DIRECTORY_ATTR,
 	"Certificate Subject Directory Attributes",
@@ -829,7 +827,7 @@ const static SECOidData oids[] = {
 	CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
     OD( x509CRLDistPoints, SEC_OID_X509_CRL_DIST_POINTS, 
 	"CRL Distribution Points",
-	CKM_INVALID_MECHANISM, FAKE_SUPPORTED_CERT_EXTENSION ),
+ 	CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
     OD( x509CertificatePolicies, SEC_OID_X509_CERTIFICATE_POLICIES,
  	"Certificate Policies",
         CKM_INVALID_MECHANISM, FAKE_SUPPORTED_CERT_EXTENSION ),
@@ -1519,7 +1517,7 @@ const static SECOidData oids[] = {
 	FAKE_SUPPORTED_CERT_EXTENSION ),
     OD( x509IssuingDistributionPoint, SEC_OID_X509_ISSUING_DISTRIBUTION_POINT,
         "Issuing Distribution Point", CKM_INVALID_MECHANISM,
-	FAKE_SUPPORTED_CERT_EXTENSION ),
+	SUPPORTED_CERT_EXTENSION ),
     OD( x509CertIssuer,               SEC_OID_X509_CERT_ISSUER,
         "Certificate Issuer Extension",CKM_INVALID_MECHANISM,
 	FAKE_SUPPORTED_CERT_EXTENSION ),

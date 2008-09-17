@@ -111,6 +111,11 @@ extern SECStatus DER_SetUInteger(PLArenaPool *arena, SECItem *dst, PRUint32 src)
 extern long DER_GetInteger(SECItem *src);
 
 /*
+** Similar to DER_GetUInteger, but without most significant bit checking
+*/
+extern unsigned long DER_GetUIntegerBits(SECItem *it);
+
+/*
 ** Decode a der encoded *unsigned* integer that is stored in "src".
 ** If the ULONG_MAX is returned, then the caller should check the error
 ** in XP_GetError() to see if an overflow occurred (SEC_ERROR_BAD_DER).

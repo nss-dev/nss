@@ -63,6 +63,7 @@ struct pkix_DefaultCRLCheckerState {
         PKIX_UInt32 reasonCodeMask;
         PKIX_UInt32 certsRemaining;
         PKIX_PL_OID *crlReasonCodeOID;
+        PKIX_PL_OID *crlDistPointsOID;
 
         PKIX_PL_X500Name *certIssuer;
         PKIX_PL_BigInt *certSerialNumber;

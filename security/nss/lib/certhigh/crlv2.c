@@ -169,6 +169,27 @@ loser:
     return (rv);
 }
 
+SECStatus CERT_FindCRLIssuingDistPointExten (CERTCrl *crl, 
+                              CERTCrlIssuingDistributionPoint **pValue)
+{
+    SECItem encodedExtenValue;
+    SECStatus rv;
+
+    rv = cert_FindExtension
+            (crl->extensions, SEC_OID_X509_ISSUING_DISTRIBUTION_POINT,
+            &encodedExtenValue);
+
+    if ( rv != SECSuccess )
+        return (rv);
+
+    rv = CERT_DecodeCRLIssuingDistributionPoint
+            (crl->arena, &encodedExtenValue, pValue);
+
+    PORT_Free (encodedExtenValue.data);
+
+    return (rv);
+}
+
 SECStatus CERT_FindInvalidDateExten (CERTCrl *crl, int64 *value)
 {
     SECItem encodedExtenValue;

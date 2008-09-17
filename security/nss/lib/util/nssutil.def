@@ -64,6 +64,7 @@ DER_GeneralizedDayToAscii_Util;
 DER_GeneralizedTimeToTime_Util;
 DER_GetInteger_Util;
 DER_GetUInteger;
+DER_GetUIntegerBits;
 DER_LengthLength;
 DER_Lengths_Util;
 DER_SetUInteger;

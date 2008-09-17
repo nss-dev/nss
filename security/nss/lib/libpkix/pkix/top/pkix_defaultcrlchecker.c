@@ -93,6 +93,7 @@ pkix_DefaultCRLCheckerState_Destroy(
         PKIX_DECREF(state->testDate);
         PKIX_DECREF(state->prevPublicKey);
         PKIX_DECREF(state->prevPublicKeyList);
+        PKIX_DECREF(state->crlDistPointsOID);
         PKIX_DECREF(state->crlReasonCodeOID);
         PKIX_DECREF(state->certIssuer);
         PKIX_DECREF(state->certSerialNumber);
@@ -217,6 +218,12 @@ pkix_DefaultCRLCheckerState_Create(
         state->certsRemaining = certsRemaining;
 
         PKIX_CHECK(PKIX_PL_OID_Create
+                    (PKIX_CRLDISTRIBUTIONPOINT_OID,
+                    &state->crlDistPointsOID,
+                    plContext),
+                    PKIX_OIDCREATEFAILED);
+
+        PKIX_CHECK(PKIX_PL_OID_Create
                     (PKIX_CRLREASONCODE_OID,
                     &state->crlReasonCodeOID,
                     plContext),
@@ -328,6 +335,9 @@ pkix_DefaultCRLChecker_CheckCRLs(
                             PKIX_LISTGETITEMFAILED);
 
                 /*
+                 * Currently only basic's are implemented, no issuing
+                 * distribution point or implemented yet.
+                 *
                  * Checking serial number (issuer done in selector) then
                  * verify signature. If matches, get the CRL reason(s).
                  */
@@ -400,6 +410,7 @@ pkix_DefaultCRLChecker_CheckCRLs(
                         /*
                          * Uncomment this after we have implemented
                          * checkers for all the critical extensions.
+                         * We didn't process DistributionPoint yet...
                          *
                          * PKIX_ERROR
                          *      ("Unrecognized CRL Critical Extension");

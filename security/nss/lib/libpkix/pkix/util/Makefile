@@ -60,6 +60,7 @@ include $(CORE_DEPTH)/coreconf/config.mk
 #######################################################################
 
 include config.mk
+DEFINES += -DIN_LIBPKIX
 
 #######################################################################
 # (5) Execute "global" rules. (OPTIONAL)                              #

@@ -934,6 +934,9 @@ extern CERTAuthKeyID *CERT_DecodeAuthKeyID
 extern CERTCrlDistributionPoints * CERT_DecodeCRLDistributionPoints
    (PLArenaPool *arena, SECItem *der);
 
+extern SECStatus CERT_DecodeCRLIssuingDistributionPoint (PLArenaPool *arena,
+             SECItem *encodedValue, CERTCrlIssuingDistributionPoint **pValue);
+
 /* Extract certain name type from a generalName */
 extern void *CERT_GetGeneralNameByType
    (CERTGeneralName *genNames, CERTGeneralNameType type, PRBool derFormat);
@@ -1050,6 +1053,9 @@ extern SECStatus CERT_FindCRLNumberExten (PLArenaPool *arena, CERTCrl *crl,
 
 extern SECStatus CERT_FindCRLEntryReasonExten (CERTCrlEntry *crlEntry,
 					       CERTCRLEntryReasonCode *value);
+
+extern SECStatus CERT_FindCRLIssuingDistPointExten (CERTCrl *crl,
+				  CERTCrlIssuingDistributionPoint **pValue);
 
 extern void CERT_FreeNicknames(CERTCertNicknames *nicknames);
 

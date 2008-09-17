@@ -639,6 +639,9 @@ extern PLHashNumber PR_CALLBACK pkix_ErrorGen_Hash (const void *key);
 #define PKIX_COLLECTIONCERTSTORECONTEXTDEBUG      1
 #define PKIX_DEFAULTCRLCHECKERSTATEDEBUG          1
 #define PKIX_CERTPOLICYMAPDEBUG                   1
+#define PKIX_CERTDISTRIBUTIONPOINTDEBUG           1
+#define PKIX_DISTRIBUTIONPOINTNAMEDEBUG           1
+#define PKIX_ISSUINGDISTRIBUTIONPOINTDEBUG        1
 #define PKIX_BUILDDEBUG                           1
 #define PKIX_BUILDRESULTDEBUG                     1
 #define PKIX_FORWARDBUILDERSTATEDEBUG             1
@@ -1183,6 +1186,36 @@ extern PLHashNumber PR_CALLBACK pkix_ErrorGen_Hash (const void *key);
 #define PKIX_CERTPOLICYMAP_DEBUG_ARG(expr, arg)
 #endif
 
+#if PKIX_CERTDISTRIBUTIONPOINTDEBUG
+#define PKIX_CERTDISTRIBUTIONPOINT_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_CERTDISTRIBUTIONPOINT_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_CERTDISTRIBUTIONPOINT_DEBUG(expr)
+#define PKIX_CERTDISTRIBUTIONPOINT_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_DISTRIBUTIONPOINTNAMEDEBUG
+#define PKIX_DISTRIBUTIONPOINTNAME_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_DISTRIBUTIONPOINTNAME_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_DISTRIBUTIONPOINTNAME_DEBUG(expr)
+#define PKIX_DISTRIBUTIONPOINTNAME_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_ISSUINGDISTRIBUTIONPOINTDEBUG
+#define PKIX_ISSUINGDISTRIBUTIONPOINT_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_ISSUINGDISTRIBUTIONPOINT_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_ISSUINGDISTRIBUTIONPOINT_DEBUG(expr)
+#define PKIX_ISSUINGDISTRIBUTIONPOINT_DEBUG_ARG(expr, arg)
+#endif
+
 #if PKIX_BUILDRESULTDEBUG
 #define PKIX_BUILDRESULT_DEBUG(expr) \
         PKIX_DEBUG(expr)
@@ -1461,6 +1494,11 @@ struct pkix_ClassTable_EntryStruct {
  * descriptive name for an error code. This is used by the default
  * PKIX_PL_Error_ToString function.
  */
+/* #if defined(_WIN32) && !defined(IN_LIBPKIX) && !defined(NSS_USE_STATIC_LIBS) */
+/* extern __declspec(dllimport) const char *PKIX_ERRORNAMES[PKIX_NUMERRORS]; */
+/* #else */
+/* extern const char *PKIX_ERRORNAMES[PKIX_NUMERRORS]; */
+/* #endif */
 extern const char *PKIX_ERRORCLASSNAMES[PKIX_NUMERRORCLASSES];
 
 #define MAX_STACK_DEPTH         1000
