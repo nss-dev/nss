@@ -389,6 +389,7 @@ notder:
 	rv = CERT_DecodeCertPackage((char *)bincert, binLen, f, arg);
 	
     } else {
+	PORT_SetError(SEC_ERROR_BAD_DER);
 	rv = SECFailure;
     }
   }
