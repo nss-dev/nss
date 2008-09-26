@@ -554,9 +554,8 @@ PK11_FindSlotsByNames(const char *dllName, const char* slotName,
                     (0==PORT_Strcmp(tmpSlot->token_name, tokenName)))) &&
                     ( (!slotName) || (tmpSlot->slot_name &&
                     (0==PORT_Strcmp(tmpSlot->slot_name, slotName)))) ) {
-                    PK11SlotInfo* slot = PK11_ReferenceSlot(tmpSlot);
-                    if (slot) {
-                        PK11_AddSlotToList(slotList, slot);
+                    if (tmpSlot) {
+                        PK11_AddSlotToList(slotList, tmpSlot);
                         slotcount++;
                     }
                 }
