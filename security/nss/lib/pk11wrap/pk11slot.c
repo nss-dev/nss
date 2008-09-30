@@ -1341,12 +1341,12 @@ PK11_InitSlot(SECMODModule *mod,CK_SLOT_ID slotID,PK11SlotInfo *slot)
 	    slot->disabled = PR_TRUE;
 	    slot->reason = PK11_DIS_COULD_NOT_INIT_TOKEN;
 	}
-    }
-    if (pk11_isRootSlot(slot)) {
-	if (!slot->hasRootCerts) {
-	    slot->module->trustOrder = 100;
+	if (rv == SECSuccess && pk11_isRootSlot(slot)) {
+	    if (!slot->hasRootCerts) {
+		slot->module->trustOrder = 100;
+	    }
+	    slot->hasRootCerts= PR_TRUE;
 	}
-	slot->hasRootCerts= PR_TRUE;
     }
 }
 
