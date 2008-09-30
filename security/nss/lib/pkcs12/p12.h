@@ -151,12 +151,6 @@ SEC_PKCS12AddCertAndKey(SEC_PKCS12ExportContext *p12ctxt,
 			void *keySafe, void *keyNestedDest, 
 			PRBool shroudKey, SECItem *pwitem, SECOidTag algorithm);
 
-extern SECStatus
-SEC_PKCS12AddDERCertAndEncryptedKey(SEC_PKCS12ExportContext *p12ctxt, 
-			void *certSafe, void *certNestedDest, SECItem *derCert,
-			void *keySafe, void *keyNestedDest, 
-			SECKEYEncryptedPrivateKeyInfo *epki, char *nickname);
-
 extern void *
 SEC_PKCS12CreateNestedSafeContents(SEC_PKCS12ExportContext *p12ctxt,
 				   void *baseSafe, void *nestedDest);
