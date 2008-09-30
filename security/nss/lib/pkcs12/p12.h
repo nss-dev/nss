@@ -145,6 +145,15 @@ SEC_PKCS12AddKeyForCert(SEC_PKCS12ExportContext *p12ctxt,
 			SECItem *keyId, SECItem *nickName);
 
 extern SECStatus
+SEC_PKCS12AddCertOrChainAndKey(SEC_PKCS12ExportContext *p12ctxt, 
+			void *certSafe, void *certNestedDest, 
+			CERTCertificate *cert, CERTCertDBHandle *certDb,
+			void *keySafe, void *keyNestedDest, PRBool shroudKey, 
+			SECItem *pwitem, SECOidTag algorithm,
+			PRBool includeCertChain);
+
+
+extern SECStatus
 SEC_PKCS12AddCertAndKey(SEC_PKCS12ExportContext *p12ctxt, 
 			void *certSafe, void *certNestedDest, 
 			CERTCertificate *cert, CERTCertDBHandle *certDb,

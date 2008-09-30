@@ -1334,25 +1334,27 @@ loser:
     return rv;
 }
 
-/* SEC_PKCS12AddCertAndKey
+/* SEC_PKCS12AddCertOrChainAndKey
  *	Add a certificate and key pair to be exported.
  *
- *	p12ctxt - the export context 
- * 	certSafe - the safeInfo where the cert is stored
- *	certNestedDest - the nested safeContents to store the cert
- *	keySafe - the safeInfo where the key is stored
- *	keyNestedDest - the nested safeContents to store the key
- *	shroudKey - extract the private key encrypted?
- *	pwitem - the password with which the key is encrypted
- *	algorithm - the algorithm with which the key is encrypted
+ *	p12ctxt          - the export context 
+ * 	certSafe         - the safeInfo where the cert is stored
+ *	certNestedDest   - the nested safeContents to store the cert
+ *	keySafe          - the safeInfo where the key is stored
+ *	keyNestedDest    - the nested safeContents to store the key
+ *	shroudKey        - extract the private key encrypted?
+ *	pwitem           - the password with which the key is encrypted
+ *	algorithm        - the algorithm with which the key is encrypted
+ *	includeCertChain - also add certs from chain to bag.
  */
 SECStatus
-SEC_PKCS12AddCertAndKey(SEC_PKCS12ExportContext *p12ctxt, 
-			void *certSafe, void *certNestedDest, 
-			CERTCertificate *cert, CERTCertDBHandle *certDb,
-			void *keySafe, void *keyNestedDest, 
-			PRBool shroudKey, SECItem *pwitem, SECOidTag algorithm)
-{		
+SEC_PKCS12AddCertOrChainAndKey(SEC_PKCS12ExportContext *p12ctxt, 
+			       void *certSafe, void *certNestedDest, 
+			       CERTCertificate *cert, CERTCertDBHandle *certDb,
+			       void *keySafe, void *keyNestedDest, 
+			       PRBool shroudKey, SECItem *pwitem, 
+			       SECOidTag algorithm, PRBool includeCertChain)
+{
     SECStatus rv = SECFailure;
     SGNDigestInfo *digest = NULL;
     void *mark = NULL;
@@ -1373,7 +1375,7 @@ SEC_PKCS12AddCertAndKey(SEC_PKCS12ExportContext *p12ctxt,
     /* add the certificate */
     rv = SEC_PKCS12AddCert(p12ctxt, (SEC_PKCS12SafeInfo*)certSafe, 
 			   (SEC_PKCS12SafeInfo*)certNestedDest, cert, certDb,
-    			   &digest->digest, PR_TRUE);
+    			   &digest->digest, includeCertChain);
     if(rv != SECSuccess) {
 	goto loser;
     }
@@ -1398,6 +1400,20 @@ loser:
     
     return SECFailure; 
 }
+
+/* like SEC_PKCS12AddCertOrChainAndKey, but always adds cert chain */
+SECStatus
+SEC_PKCS12AddCertAndKey(SEC_PKCS12ExportContext *p12ctxt, 
+			void *certSafe, void *certNestedDest, 
+			CERTCertificate *cert, CERTCertDBHandle *certDb,
+			void *keySafe, void *keyNestedDest, 
+			PRBool shroudKey, SECItem *pwItem, SECOidTag algorithm)
+{
+    return SEC_PKCS12AddCertOrChainAndKey(p12ctxt, certSafe, certNestedDest,
+    		cert, certDb, keySafe, keyNestedDest, shroudKey, pwItem, 
+		algorithm, PR_TRUE);
+}
+
 
 /* SEC_PKCS12CreateNestedSafeContents
  * 	Allows nesting of safe contents to be implemented.  No limit imposed on 
