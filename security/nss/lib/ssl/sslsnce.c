@@ -1179,9 +1179,6 @@ SSL_ConfigServerSessionIDCacheInstance(	cacheDesc *cache,
 {
     SECStatus rv;
 
-#if defined(DEBUG_nelsonb)
-    printf("sizeof(sidCacheEntry) == %u\n", sizeof(sidCacheEntry));
-#endif
     PORT_Assert(sizeof(sidCacheEntry) == 192);
     PORT_Assert(sizeof(certCacheEntry) == 4096);
 
