@@ -387,7 +387,10 @@ create_object (
         goto loser;
     }
     session = nssToken_GetDefaultSession(object->token);
-
+    if (!session) {
+        nss_SetError(NSS_ERROR_INVALID_POINTER);
+        goto loser;
+    }
     arena = nssArena_Create();
     if (!arena) {
 	goto loser;
