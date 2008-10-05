@@ -213,7 +213,7 @@ PRBool PORT_ISO88591_UTF8Conversion(const unsigned char *inBuf,
 			unsigned int inBufLen, unsigned char *outBuf,
 			unsigned int maxOutBufLen, unsigned int *outBufLen);
 
-PR_EXTERN(PRBool)
+extern PRBool
 sec_port_ucs4_utf8_conversion_function
 (
   PRBool toUnicode,
@@ -224,7 +224,7 @@ sec_port_ucs4_utf8_conversion_function
   unsigned int *outBufLen
 );
 
-PR_EXTERN(PRBool)
+extern PRBool
 sec_port_ucs2_utf8_conversion_function
 (
   PRBool toUnicode,
