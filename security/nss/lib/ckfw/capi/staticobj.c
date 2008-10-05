@@ -67,8 +67,8 @@ static const NSSItem nss_ckcapi_items_1 [] = {
   { (void *)"Mozilla CAPI Access", (PRUint32)20 }
 };
 
-PR_IMPLEMENT_DATA(ckcapiInternalObject) nss_ckcapi_data[] = {
+ckcapiInternalObject nss_ckcapi_data[] = {
   { ckcapiRaw, { 5, nss_ckcapi_types_1, nss_ckcapi_items_1} , {NULL} },
 };
 
-PR_IMPLEMENT_DATA(const PRUint32) nss_ckcapi_nObjects = 1;
+const PRUint32 nss_ckcapi_nObjects = 1;

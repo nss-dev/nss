@@ -61,10 +61,10 @@ static const char NSSBASET_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
  */
 
 #define DUMMY	/* dummy */
-#define NSS_EXTERN         PR_EXTERN(DUMMY)
-#define NSS_IMPLEMENT      PR_IMPLEMENT(DUMMY)
-#define NSS_EXTERN_DATA    PR_EXTERN_DATA(DUMMY)
-#define NSS_IMPLEMENT_DATA PR_IMPLEMENT_DATA(DUMMY)
+#define NSS_EXTERN         extern
+#define NSS_EXTERN_DATA    extern
+#define NSS_IMPLEMENT      
+#define NSS_IMPLEMENT_DATA 
 
 PR_BEGIN_EXTERN_C
 

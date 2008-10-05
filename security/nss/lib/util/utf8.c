@@ -163,7 +163,7 @@ sec_port_read_utf8(unsigned int *index, unsigned char *inBuf, unsigned int inBuf
   return result;
 }
 
-PR_IMPLEMENT(PRBool)
+PRBool
 sec_port_ucs4_utf8_conversion_function
 (
   PRBool toUnicode,
@@ -287,7 +287,7 @@ sec_port_ucs4_utf8_conversion_function
   }
 }
 
-PR_IMPLEMENT(PRBool)
+PRBool
 sec_port_ucs2_utf8_conversion_function
 (
   PRBool toUnicode,
