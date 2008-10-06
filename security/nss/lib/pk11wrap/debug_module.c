@@ -35,6 +35,7 @@
  * ***** END LICENSE BLOCK ***** */
 #include "prlog.h"
 #include <stdio.h>
+#include "cert.h"  /* for CERT_DerNameToAscii & CERT_Hexify */
 
 static PRLogModuleInfo *modlog = NULL;
 
@@ -52,7 +53,6 @@ static void print_final_statistics(void);
 
 static void get_attr_type_str(CK_ATTRIBUTE_TYPE atype, char *str, int len)
 {
-#ifndef AIX_64BIT
 #define CASE(attr) case attr: a = #attr ; break
 
     const char * a = NULL;
@@ -154,14 +154,12 @@ static void get_attr_type_str(CK_ATTRIBUTE_TYPE atype, char *str, int len)
     if (a)
 	PR_snprintf(str, len, "%s", a);
     else
-#endif
 	PR_snprintf(str, len, "0x%p", atype);
 }
 
 static void get_obj_class(CK_OBJECT_CLASS objClass, char *str, int len)
 {
 
-#ifndef AIX_64BIT
     const char * a = NULL;
 
     switch (objClass) {
@@ -181,13 +179,11 @@ static void get_obj_class(CK_OBJECT_CLASS objClass, char *str, int len)
     if (a)
 	PR_snprintf(str, len, "%s", a);
     else
-#endif
 	PR_snprintf(str, len, "0x%p", objClass);
 }
 
 static void get_trust_val(CK_TRUST trust, char *str, int len)
 {
-#ifndef AIX_64BIT
     const char * a = NULL;
 
     switch (trust) {
@@ -203,13 +199,11 @@ static void get_trust_val(CK_TRUST trust, char *str, int len)
     if (a)
 	PR_snprintf(str, len, "%s", a);
     else
-#endif
 	PR_snprintf(str, len, "0x%p", trust);
 }
 
 static void log_rv(CK_RV rv)
 {
-#ifndef AIX_64BIT
     const char * a = NULL;
 
     switch (rv) {
@@ -304,40 +298,289 @@ static void log_rv(CK_RV rv)
     if (a)
 	PR_LOG(modlog, 1, ("  rv = %s\n", a));
     else
-#endif
 	PR_LOG(modlog, 1, ("  rv = 0x%x\n", rv));
+}
+
+static void log_state(CK_STATE state)
+{
+    const char * a = NULL;
+
+    switch (state) {
+    CASE(CKS_RO_PUBLIC_SESSION);
+    CASE(CKS_RO_USER_FUNCTIONS);
+    CASE(CKS_RW_PUBLIC_SESSION);
+    CASE(CKS_RW_USER_FUNCTIONS);
+    CASE(CKS_RW_SO_FUNCTIONS);
+    default: break;
+    }
+    if (a)
+	PR_LOG(modlog, 1, ("  state = %s\n", a));
+    else
+	PR_LOG(modlog, 1, ("  state = 0x%x\n", state));
+}
+
+static void print_mechanism(CK_MECHANISM_PTR m)
+{
+
+    const char * a = NULL;
+
+    switch (m->mechanism) {
+    CASE(CKM_AES_CBC);
+    CASE(CKM_AES_CBC_ENCRYPT_DATA);
+    CASE(CKM_AES_CBC_PAD);
+    CASE(CKM_AES_ECB);
+    CASE(CKM_AES_ECB_ENCRYPT_DATA);
+    CASE(CKM_AES_KEY_GEN);
+    CASE(CKM_AES_MAC);
+    CASE(CKM_AES_MAC_GENERAL);
+    CASE(CKM_CAMELLIA_CBC);
+    CASE(CKM_CAMELLIA_CBC_ENCRYPT_DATA);
+    CASE(CKM_CAMELLIA_CBC_PAD);
+    CASE(CKM_CAMELLIA_ECB);
+    CASE(CKM_CAMELLIA_ECB_ENCRYPT_DATA);
+    CASE(CKM_CAMELLIA_KEY_GEN);
+    CASE(CKM_CAMELLIA_MAC);
+    CASE(CKM_CAMELLIA_MAC_GENERAL);
+    CASE(CKM_CDMF_CBC);
+    CASE(CKM_CDMF_CBC_PAD);
+    CASE(CKM_CDMF_ECB);
+    CASE(CKM_CDMF_KEY_GEN);
+    CASE(CKM_CDMF_MAC);
+    CASE(CKM_CDMF_MAC_GENERAL);
+    CASE(CKM_CMS_SIG);
+    CASE(CKM_CONCATENATE_BASE_AND_DATA);
+    CASE(CKM_CONCATENATE_BASE_AND_KEY);
+    CASE(CKM_CONCATENATE_DATA_AND_BASE);
+    CASE(CKM_DES2_KEY_GEN);
+    CASE(CKM_DES3_CBC);
+    CASE(CKM_DES3_CBC_ENCRYPT_DATA);
+    CASE(CKM_DES3_CBC_PAD);
+    CASE(CKM_DES3_ECB);
+    CASE(CKM_DES3_ECB_ENCRYPT_DATA);
+    CASE(CKM_DES3_KEY_GEN);
+    CASE(CKM_DES3_MAC);
+    CASE(CKM_DES3_MAC_GENERAL);
+    CASE(CKM_DES_CBC);
+    CASE(CKM_DES_CBC_ENCRYPT_DATA);
+    CASE(CKM_DES_CBC_PAD);
+    CASE(CKM_DES_CFB64);
+    CASE(CKM_DES_CFB8);
+    CASE(CKM_DES_ECB);
+    CASE(CKM_DES_ECB_ENCRYPT_DATA);
+    CASE(CKM_DES_KEY_GEN);
+    CASE(CKM_DES_MAC);
+    CASE(CKM_DES_MAC_GENERAL);
+    CASE(CKM_DES_OFB64);
+    CASE(CKM_DES_OFB8);
+    CASE(CKM_DH_PKCS_DERIVE);
+    CASE(CKM_DH_PKCS_KEY_PAIR_GEN);
+    CASE(CKM_DH_PKCS_PARAMETER_GEN);
+    CASE(CKM_DSA);
+    CASE(CKM_DSA_KEY_PAIR_GEN);
+    CASE(CKM_DSA_PARAMETER_GEN);
+    CASE(CKM_DSA_SHA1);
+    CASE(CKM_ECDH1_COFACTOR_DERIVE);
+    CASE(CKM_ECDH1_DERIVE);
+    CASE(CKM_ECDSA);
+    CASE(CKM_ECDSA_SHA1);
+    CASE(CKM_ECMQV_DERIVE);
+    CASE(CKM_EC_KEY_PAIR_GEN);	     /* also CASE(CKM_ECDSA_KEY_PAIR_GEN); */
+    CASE(CKM_EXTRACT_KEY_FROM_KEY);
+    CASE(CKM_FASTHASH);
+    CASE(CKM_FORTEZZA_TIMESTAMP);
+    CASE(CKM_GENERIC_SECRET_KEY_GEN);
+    CASE(CKM_IDEA_CBC);
+    CASE(CKM_IDEA_CBC_PAD);
+    CASE(CKM_IDEA_ECB);
+    CASE(CKM_IDEA_KEY_GEN);
+    CASE(CKM_IDEA_MAC);
+    CASE(CKM_IDEA_MAC_GENERAL);
+    CASE(CKM_KEA_KEY_DERIVE);
+    CASE(CKM_KEA_KEY_PAIR_GEN);
+    CASE(CKM_KEY_WRAP_LYNKS);
+    CASE(CKM_KEY_WRAP_SET_OAEP);
+    CASE(CKM_MD2);
+    CASE(CKM_MD2_HMAC);
+    CASE(CKM_MD2_HMAC_GENERAL);
+    CASE(CKM_MD2_KEY_DERIVATION);
+    CASE(CKM_MD2_RSA_PKCS);
+    CASE(CKM_MD5);
+    CASE(CKM_MD5_HMAC);
+    CASE(CKM_MD5_HMAC_GENERAL);
+    CASE(CKM_MD5_KEY_DERIVATION);
+    CASE(CKM_MD5_RSA_PKCS);
+    CASE(CKM_PBA_SHA1_WITH_SHA1_HMAC);
+    CASE(CKM_PBE_MD2_DES_CBC);
+    CASE(CKM_PBE_MD5_DES_CBC);
+    CASE(CKM_PBE_SHA1_DES2_EDE_CBC);
+    CASE(CKM_PBE_SHA1_DES3_EDE_CBC);
+    CASE(CKM_PBE_SHA1_RC2_128_CBC);
+    CASE(CKM_PBE_SHA1_RC2_40_CBC);
+    CASE(CKM_PBE_SHA1_RC4_128);
+    CASE(CKM_PBE_SHA1_RC4_40);
+    CASE(CKM_PKCS5_PBKD2);
+    CASE(CKM_RC2_CBC);
+    CASE(CKM_RC2_CBC_PAD);
+    CASE(CKM_RC2_ECB);
+    CASE(CKM_RC2_KEY_GEN);
+    CASE(CKM_RC2_MAC);
+    CASE(CKM_RC2_MAC_GENERAL);
+    CASE(CKM_RC4);
+    CASE(CKM_RC4_KEY_GEN);
+    CASE(CKM_RC5_CBC);
+    CASE(CKM_RC5_CBC_PAD);
+    CASE(CKM_RC5_ECB);
+    CASE(CKM_RC5_KEY_GEN);
+    CASE(CKM_RC5_MAC);
+    CASE(CKM_RC5_MAC_GENERAL);
+    CASE(CKM_RIPEMD128);
+    CASE(CKM_RIPEMD128_HMAC);
+    CASE(CKM_RIPEMD128_HMAC_GENERAL);
+    CASE(CKM_RIPEMD128_RSA_PKCS);
+    CASE(CKM_RIPEMD160);
+    CASE(CKM_RIPEMD160_HMAC);
+    CASE(CKM_RIPEMD160_HMAC_GENERAL);
+    CASE(CKM_RIPEMD160_RSA_PKCS);
+    CASE(CKM_RSA_9796);
+    CASE(CKM_RSA_PKCS);
+    CASE(CKM_RSA_PKCS_KEY_PAIR_GEN);
+    CASE(CKM_RSA_PKCS_OAEP);
+    CASE(CKM_RSA_PKCS_PSS);
+    CASE(CKM_RSA_X9_31);
+    CASE(CKM_RSA_X9_31_KEY_PAIR_GEN);
+    CASE(CKM_RSA_X_509);
+    CASE(CKM_SHA1_KEY_DERIVATION);
+    CASE(CKM_SHA1_RSA_PKCS);
+    CASE(CKM_SHA1_RSA_PKCS_PSS);
+    CASE(CKM_SHA1_RSA_X9_31);
+    CASE(CKM_SHA224);
+    CASE(CKM_SHA224_HMAC);
+    CASE(CKM_SHA224_HMAC_GENERAL);
+    CASE(CKM_SHA224_KEY_DERIVATION);
+    CASE(CKM_SHA224_RSA_PKCS);
+    CASE(CKM_SHA224_RSA_PKCS_PSS);
+    CASE(CKM_SHA256);
+    CASE(CKM_SHA256_HMAC);
+    CASE(CKM_SHA256_HMAC_GENERAL);
+    CASE(CKM_SHA256_KEY_DERIVATION);
+    CASE(CKM_SHA256_RSA_PKCS);
+    CASE(CKM_SHA256_RSA_PKCS_PSS);
+    CASE(CKM_SHA384);
+    CASE(CKM_SHA384_HMAC);
+    CASE(CKM_SHA384_HMAC_GENERAL);
+    CASE(CKM_SHA384_KEY_DERIVATION);
+    CASE(CKM_SHA384_RSA_PKCS);
+    CASE(CKM_SHA384_RSA_PKCS_PSS);
+    CASE(CKM_SHA512);
+    CASE(CKM_SHA512_HMAC);
+    CASE(CKM_SHA512_HMAC_GENERAL);
+    CASE(CKM_SHA512_KEY_DERIVATION);
+    CASE(CKM_SHA512_RSA_PKCS);
+    CASE(CKM_SHA512_RSA_PKCS_PSS);
+    CASE(CKM_SHA_1);
+    CASE(CKM_SHA_1_HMAC);
+    CASE(CKM_SHA_1_HMAC_GENERAL);
+    CASE(CKM_SKIPJACK_CBC64);
+    CASE(CKM_SKIPJACK_CFB16);
+    CASE(CKM_SKIPJACK_CFB32);
+    CASE(CKM_SKIPJACK_CFB64);
+    CASE(CKM_SKIPJACK_CFB8);
+    CASE(CKM_SKIPJACK_ECB64);
+    CASE(CKM_SKIPJACK_KEY_GEN);
+    CASE(CKM_SKIPJACK_OFB64);
+    CASE(CKM_SKIPJACK_PRIVATE_WRAP);
+    CASE(CKM_SKIPJACK_RELAYX);
+    CASE(CKM_SKIPJACK_WRAP);
+    CASE(CKM_SSL3_KEY_AND_MAC_DERIVE);
+    CASE(CKM_SSL3_MASTER_KEY_DERIVE);
+    CASE(CKM_SSL3_MASTER_KEY_DERIVE_DH);
+    CASE(CKM_SSL3_MD5_MAC);
+    CASE(CKM_SSL3_PRE_MASTER_KEY_GEN);
+    CASE(CKM_SSL3_SHA1_MAC);
+    CASE(CKM_TLS_KEY_AND_MAC_DERIVE);
+    CASE(CKM_TLS_MASTER_KEY_DERIVE);
+    CASE(CKM_TLS_MASTER_KEY_DERIVE_DH);
+    CASE(CKM_TLS_PRE_MASTER_KEY_GEN);
+    CASE(CKM_TLS_PRF);
+    CASE(CKM_TWOFISH_CBC);
+    CASE(CKM_TWOFISH_KEY_GEN);
+    CASE(CKM_X9_42_DH_DERIVE);
+    CASE(CKM_X9_42_DH_HYBRID_DERIVE);
+    CASE(CKM_X9_42_DH_KEY_PAIR_GEN);
+    CASE(CKM_X9_42_DH_PARAMETER_GEN);
+    CASE(CKM_X9_42_MQV_DERIVE);
+    CASE(CKM_XOR_BASE_AND_DATA);
+    default: break;
+    }
+    if (a)
+	PR_LOG(modlog, 4, ("      mechanism = %s", a));
+    else
+	PR_LOG(modlog, 4, ("      mechanism = 0x%p", m->mechanism));
+}
+
+static void get_key_type(CK_KEY_TYPE keyType, char *str, int len)
+{
+
+    const char * a = NULL;
+
+    switch (keyType) {
+    CASE(CKK_AES);
+    CASE(CKK_CAMELLIA);
+    CASE(CKK_CDMF);
+    CASE(CKK_DES);
+    CASE(CKK_DES2);
+    CASE(CKK_DES3);
+    CASE(CKK_DH);
+    CASE(CKK_DSA);
+    CASE(CKK_EC);		/* also CASE(CKK_ECDSA); */
+    CASE(CKK_GENERIC_SECRET);
+    CASE(CKK_IDEA);
+    CASE(CKK_INVALID_KEY_TYPE);
+    CASE(CKK_KEA);
+    CASE(CKK_RC2);
+    CASE(CKK_RC4);
+    CASE(CKK_RC5);
+    CASE(CKK_RSA);
+    CASE(CKK_SKIPJACK);
+    CASE(CKK_TWOFISH);
+    CASE(CKK_X9_42_DH);
+    default: break;
+    }
+    if (a)
+	PR_snprintf(str, len, "%s", a);
+    else
+	PR_snprintf(str, len, "0x%p", keyType);
 }
 
 static void print_attr_value(CK_ATTRIBUTE_PTR attr)
 {
     char atype[48];
-    char valstr[48];
+    char valstr[49];
     int len;
+
     get_attr_type_str(attr->type, atype, sizeof atype);
     switch (attr->type) {
-    case CKA_TOKEN:
-    case CKA_PRIVATE:
-    case CKA_SENSITIVE:
-    case CKA_ENCRYPT:
+    case CKA_ALWAYS_SENSITIVE:
     case CKA_DECRYPT:
-    case CKA_WRAP:
-    case CKA_UNWRAP:
-    case CKA_SIGN:
-    case CKA_SIGN_RECOVER:
-    case CKA_VERIFY:
-    case CKA_VERIFY_RECOVER:
     case CKA_DERIVE:
+    case CKA_ENCRYPT:
     case CKA_EXTRACTABLE:
     case CKA_LOCAL:
-    case CKA_NEVER_EXTRACTABLE:
-    case CKA_ALWAYS_SENSITIVE:
     case CKA_MODIFIABLE:
+    case CKA_NEVER_EXTRACTABLE:
+    case CKA_PRIVATE:
+    case CKA_SENSITIVE:
+    case CKA_SIGN:
+    case CKA_SIGN_RECOVER:
+    case CKA_TOKEN:
+    case CKA_UNWRAP:
+    case CKA_VERIFY:
+    case CKA_VERIFY_RECOVER:
+    case CKA_WRAP:
 	if (attr->ulValueLen > 0 && attr->pValue) {
 	    CK_BBOOL tf = *((CK_BBOOL *)attr->pValue);
-	    len = sizeof(valstr);
-	    PR_snprintf(valstr, len, "%s", tf ? "CK_TRUE" : "CK_FALSE");
 	    PR_LOG(modlog, 4, ("    %s = %s [%d]", 
-	           atype, valstr, attr->ulValueLen));
+	           atype, tf ? "CK_TRUE" : "CK_FALSE", attr->ulValueLen));
 	    break;
 	}
     case CKA_CLASS:
@@ -348,13 +591,21 @@ static void print_attr_value(CK_ATTRIBUTE_PTR attr)
 	           atype, valstr, attr->ulValueLen));
 	    break;
 	}
-    case CKA_TRUST_SERVER_AUTH:
     case CKA_TRUST_CLIENT_AUTH:
     case CKA_TRUST_CODE_SIGNING:
     case CKA_TRUST_EMAIL_PROTECTION:
+    case CKA_TRUST_SERVER_AUTH:
 	if (attr->ulValueLen > 0 && attr->pValue) {
 	    CK_TRUST trust = *((CK_TRUST *)attr->pValue);
 	    get_trust_val(trust, valstr, sizeof valstr);
+	    PR_LOG(modlog, 4, ("    %s = %s [%d]", 
+	           atype, valstr, attr->ulValueLen));
+	    break;
+	}
+    case CKA_KEY_TYPE:
+	if (attr->ulValueLen > 0 && attr->pValue) {
+	    CK_KEY_TYPE keyType = *((CK_KEY_TYPE *)attr->pValue);
+	    get_obj_class(keyType, valstr, sizeof valstr);
 	    PR_LOG(modlog, 4, ("    %s = %s [%d]", 
 	           atype, valstr, attr->ulValueLen));
 	    break;
@@ -365,12 +616,66 @@ static void print_attr_value(CK_ATTRIBUTE_PTR attr)
 	if (attr->ulValueLen > 0 && attr->pValue) {
 	    len = PR_MIN(attr->ulValueLen + 1, sizeof valstr);
 	    PR_snprintf(valstr, len, "%s", attr->pValue);
-	    PR_LOG(modlog, 4, ("    %s = %s [%d]", 
+	    PR_LOG(modlog, 4, ("    %s = \"%s\" [%d]", 
 	           atype, valstr, attr->ulValueLen));
 	    break;
 	}
+    case CKA_ISSUER:
+    case CKA_SUBJECT:
+	if (attr->ulValueLen > 0 && attr->pValue) {
+	    char * asciiName;
+	    SECItem derName;
+	    derName.type = siDERNameBuffer;
+	    derName.data = attr->pValue;
+	    derName.len  = attr->ulValueLen;
+	    asciiName = CERT_DerNameToAscii(&derName);
+	    if (asciiName) {
+		PR_LOG(modlog, 4, ("    %s = %s [%d]", 
+		       atype, asciiName, attr->ulValueLen));
+	    	PORT_Free(asciiName);
+		break;
+	    }
+	    /* else fall through and treat like a binary buffer */
+	}
+    case CKA_ID:
+	if (attr->ulValueLen > 0 && attr->pValue) {
+	    unsigned char * pV = attr->pValue;
+	    for (len = (int)attr->ulValueLen; len > 0; --len) {
+		unsigned int ch = *pV++;
+		if (ch >= 0x20 && ch < 0x7f) 
+		    continue;
+		if (!ch && len == 1)  /* will ignore NUL if last character */
+		    continue;
+		break;
+	    }
+	    if (!len) {	/* entire string is printable */
+		len = PR_MIN(attr->ulValueLen + 1, sizeof valstr);
+		PR_snprintf(valstr, len, "%s", attr->pValue);
+		PR_LOG(modlog, 4, ("    %s = \"%s\" [%d]", 
+		       atype, valstr, attr->ulValueLen));
+		break;
+	    }
+	    /* else fall through and treat like a binary buffer */
+	}
+    case CKA_SERIAL_NUMBER:
     default:
-	PR_LOG(modlog, 4, ("    %s = 0x%p [%d]", 
+	if (attr->ulValueLen > 0 && attr->pValue) {
+	    char * hexBuf;
+	    SECItem attrBuf;
+	    attrBuf.type = siDERNameBuffer;
+	    attrBuf.data = attr->pValue;
+	    attrBuf.len  = PR_MIN(attr->ulValueLen, (sizeof valstr)/2);
+
+	    hexBuf = CERT_Hexify(&attrBuf, PR_FALSE);
+	    if (hexBuf) {
+		PR_LOG(modlog, 4, ("    %s = %s [%d]", 
+		       atype, hexBuf, attr->ulValueLen));
+	    	PORT_Free(hexBuf);
+		break;
+	    }
+	    /* else fall through and show only the address. :( */
+	}
+	PR_LOG(modlog, 4, ("    %s = [0x%p] [%d]", 
 	       atype, attr->pValue, attr->ulValueLen));
 	break;
     }
@@ -382,11 +687,6 @@ static void print_template(CK_ATTRIBUTE_PTR templ, CK_ULONG tlen)
     for (i=0; i<tlen; i++) {
 	print_attr_value(&templ[i]);
     }
-}
-
-static void print_mechanism(CK_MECHANISM_PTR m)
-{
-    PR_LOG(modlog, 4, ("      mechanism = 0x%p", m->mechanism));
 }
 
 struct nssdbg_prof_str {
@@ -600,6 +900,18 @@ CK_RV NSSDBGC_GetInfo(
     nssdbg_start_time(FUNC_C_GETINFO,&start);
     rv = module_functions->C_GetInfo(pInfo);
     nssdbg_finish_time(FUNC_C_GETINFO,start);
+    if (rv == CKR_OK) {
+	PR_LOG(modlog, 4, ("  cryptoki version: %d.%d", 
+			   pInfo->cryptokiVersion.major,
+			   pInfo->cryptokiVersion.minor));
+	PR_LOG(modlog, 4, ("  manufacturerID = \"%.32s\"", 
+	                   pInfo->manufacturerID));
+	PR_LOG(modlog, 4, ("  library description = \"%.32s\"", 
+	                   pInfo->libraryDescription));
+	PR_LOG(modlog, 4, ("  library version: %d.%d", 
+			   pInfo->libraryVersion.major,
+			   pInfo->libraryVersion.minor));
+    }
     log_rv(rv);
     return rv;
 }
@@ -658,9 +970,24 @@ CK_RV NSSDBGC_GetSlotInfo(
     PR_LOG(modlog, 3, ("  slotID = 0x%x", slotID));
     PR_LOG(modlog, 3, ("  pInfo = 0x%p", pInfo));
     nssdbg_start_time(FUNC_C_GETSLOTINFO,&start);
-    rv = module_functions->C_GetSlotInfo(slotID,
-                                 pInfo);
+    rv = module_functions->C_GetSlotInfo(slotID, pInfo);
     nssdbg_finish_time(FUNC_C_GETSLOTINFO,start);
+    if (rv == CKR_OK) {
+	PR_LOG(modlog, 4, ("  slotDescription = \"%.64s\"", 
+	                   pInfo->slotDescription));
+	PR_LOG(modlog, 4, ("  manufacturerID = \"%.32s\"", 
+	                   pInfo->manufacturerID));
+	PR_LOG(modlog, 4, ("  flags = %s %s %s",
+	    pInfo->flags & CKF_HW_SLOT          ? "CKF_HW_SLOT" : "",
+	    pInfo->flags & CKF_REMOVABLE_DEVICE ? "CKF_REMOVABLE_DEVICE" : "",
+	    pInfo->flags & CKF_TOKEN_PRESENT    ? "CKF_TOKEN_PRESENT" : ""));
+	PR_LOG(modlog, 4, ("  hardware version: %d.%d", 
+			    pInfo->hardwareVersion.major,
+			    pInfo->hardwareVersion.minor));
+	PR_LOG(modlog, 4, ("  firmware version: %d.%d", 
+			    pInfo->firmwareVersion.major,
+			    pInfo->firmwareVersion.minor));
+    }
     log_rv(rv);
     return rv;
 }
@@ -679,6 +1006,30 @@ CK_RV NSSDBGC_GetTokenInfo(
     rv = module_functions->C_GetTokenInfo(slotID,
                                  pInfo);
     nssdbg_finish_time(FUNC_C_GETTOKENINFO,start);
+    if (rv == CKR_OK) {
+    	PR_LOG(modlog, 4, ("  label = \"%.32s\"", pInfo->label));
+	PR_LOG(modlog, 4, ("  manufacturerID = \"%.32s\"", 
+	                   pInfo->manufacturerID));
+    	PR_LOG(modlog, 4, ("  model = \"%.16s\"", pInfo->model));
+    	PR_LOG(modlog, 4, ("  serial = \"%.16s\"", pInfo->serialNumber));
+	PR_LOG(modlog, 4, ("  flags = %s %s %s %s",
+	    pInfo->flags & CKF_RNG             ? "CKF_RNG" : "",
+	    pInfo->flags & CKF_WRITE_PROTECTED ? "CKF_WRITE_PROTECTED" : "",
+	    pInfo->flags & CKF_LOGIN_REQUIRED  ? "CKF_LOGIN_REQUIRED" : "",
+	    pInfo->flags & CKF_USER_PIN_INITIALIZED ? "CKF_USER_PIN_INIT" : ""));
+	PR_LOG(modlog, 4, ("  maxSessions = %u, Sessions = %u", 
+	                   pInfo->ulMaxSessionCount, pInfo->ulSessionCount));
+	PR_LOG(modlog, 4, ("  maxRwSessions = %u, RwSessions = %u", 
+	                   pInfo->ulMaxRwSessionCount, 
+			   pInfo->ulRwSessionCount));
+	/* ignore Max & Min Pin Len, Public and Private Memory */
+	PR_LOG(modlog, 4, ("  hardware version: %d.%d", 
+			    pInfo->hardwareVersion.major,
+			    pInfo->hardwareVersion.minor));
+	PR_LOG(modlog, 4, ("  firmware version: %d.%d", 
+			    pInfo->firmwareVersion.major,
+			    pInfo->firmwareVersion.minor));
+    }
     log_rv(rv);
     return rv;
 }
@@ -875,6 +1226,14 @@ CK_RV NSSDBGC_GetSessionInfo(
     rv = module_functions->C_GetSessionInfo(hSession,
                                  pInfo);
     nssdbg_finish_time(FUNC_C_GETSESSIONINFO,start);
+    if (rv == CKR_OK) {
+	PR_LOG(modlog, 4, ("  slotID = 0x%x", pInfo->slotID));
+	log_state(pInfo->state);
+	PR_LOG(modlog, 4, ("  flags = %s %s",
+	    pInfo->flags & CKF_RW_SESSION     ? "CKF_RW_SESSION" : "",
+	    pInfo->flags & CKF_SERIAL_SESSION ? "CKF_SERIAL_SESSION" : ""));
+	PR_LOG(modlog, 4, ("  deviceError = 0x%x", pInfo->ulDeviceError));
+    }
     log_rv(rv);
     return rv;
 }
@@ -1932,8 +2291,8 @@ CK_RV NSSDBGC_GenerateKeyPair(
     PR_LOG(modlog, 3, ("  pPrivateKeyTemplate = 0x%p", pPrivateKeyTemplate));
     PR_LOG(modlog, 3, ("  ulPrivateKeyAttributeCount = %d", ulPrivateKeyAttributeCount));
     PR_LOG(modlog, 3, ("  phPublicKey = 0x%p", phPublicKey));
-    PR_LOG(modlog, 3, ("  phPrivateKey = 0x%p", phPrivateKey));
     print_template(pPublicKeyTemplate, ulPublicKeyAttributeCount);
+    PR_LOG(modlog, 3, ("  phPrivateKey = 0x%p", phPrivateKey));
     print_template(pPrivateKeyTemplate, ulPrivateKeyAttributeCount);
     print_mechanism(pMechanism);
     nssdbg_start_time(FUNC_C_GENERATEKEYPAIR,&start);
