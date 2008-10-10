@@ -1059,6 +1059,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    FPRINTF(stderr, "tstclnt: exiting with return code %d\n", error);
     PR_Cleanup();
     return error;
 }
