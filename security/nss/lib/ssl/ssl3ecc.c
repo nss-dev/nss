@@ -1190,17 +1190,18 @@ ssl3_SendServerNameIndicationExtension(
 			PRBool      append,
 			PRUint32    maxBytes)
 {
-    PRUint32 len, span;
+    PRUint32 len;
+    PRNetAddr netAddr;
+
     /* must have a hostname */
     if (!ss || !ss->url || !ss->url[0])
     	return 0;
-    /* must have at lest one character other than [0-9\.] */
-    len  = PORT_Strlen(ss->url);
-    span = strspn(ss->url, "0123456789.");
-    if (len == span) {
-    	/* is a dotted decimal IP address */
+    /* must not be an IPv4 or IPv6 address */
+    if (PR_SUCCESS == PR_StringToNetAddr(ss->url, &netAddr)) {
+    	/* is an IP address (v4 or v6) */
 	return 0;
     }
+    len  = PORT_Strlen(ss->url);
     if (append && maxBytes >= len + 9) {
 	SECStatus rv;
 	/* extension_type */
