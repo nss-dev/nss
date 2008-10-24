@@ -2510,22 +2510,50 @@ pkix_BuildForwardDepthFirstSearch(
 
             if (state->status == BUILD_AIAPENDING &&
                 state->buildConstants.aiaMgr) {
-                PKIX_CHECK(PKIX_PL_AIAMgr_GetAIACerts
+                pkixErrorResult = PKIX_PL_AIAMgr_GetAIACerts
                         (state->buildConstants.aiaMgr,
                         state->prevCert,
                         &nbio,
                         &unfilteredCerts,
-                        plContext),
-                        PKIX_AIAMGRGETAIACERTSFAILED);
+                         plContext);
 
                 if (nbio != NULL) {
                         /* IO still pending, resume later */
                         *pNBIOContext = nbio;
                         goto cleanup;
                 }
-
                 state->numCerts = 0;
-
+                if (pkixErrorResult) {
+                    pkixErrorClass = pkixErrorResult->errClass;
+                    if (pkixErrorClass == PKIX_FATAL_ERROR) {
+                        goto fatal;
+                    }
+                    PKIX_DECREF(finalError);
+                    finalError = pkixErrorResult;
+                    pkixErrorResult = NULL;
+                    if (state->verifyNode != NULL) {
+                        /* state->verifyNode is the object that contains a list
+                         * of verifyNodes. verifyNodes contains cert chain build
+                         * failures that occured on this level of chian building.
+                         * Here, creating new verify node
+                         * to log the failure and adding it to the list. */
+                        PKIX_CHECK_FATAL(pkix_VerifyNode_Create
+                                         (state->prevCert,
+                                          0, NULL,
+                                          &verifyNode,
+                                          plContext),
+                                         PKIX_VERIFYNODECREATEFAILED);
+                        PKIX_CHECK_FATAL(pkix_VerifyNode_SetError
+                                         (verifyNode, finalError, plContext),
+                                         PKIX_VERIFYNODESETERRORFAILED);
+                        PKIX_CHECK_FATAL(pkix_VerifyNode_AddToTree
+                                         (state->verifyNode,
+                                          verifyNode,
+                                          plContext),
+                                         PKIX_VERIFYNODEADDTOTREEFAILED);
+                        PKIX_DECREF(verifyNode);
+                    }
+                }
 #ifdef PKIX_BUILDDEBUG
                 /* Turn this on to trace the List of Certs, before CertSelect */
                 {
