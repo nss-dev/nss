@@ -130,6 +130,7 @@ typedef struct PKIX_VerifyNodeStruct PKIX_VerifyNode;
  * consistently across platforms
  */
 
+typedef struct PKIX_PL_NssContextStruct PKIX_PL_NssContext;
 typedef struct PKIX_PL_ObjectStruct PKIX_PL_Object;
 typedef struct PKIX_PL_ByteArrayStruct PKIX_PL_ByteArray;
 typedef struct PKIX_PL_HashTableStruct PKIX_PL_HashTable;
