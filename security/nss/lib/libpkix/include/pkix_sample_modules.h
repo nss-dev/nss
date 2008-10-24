@@ -422,6 +422,45 @@ PKIX_Error *
 PKIX_PL_NssContext_Destroy(
         void *nssContext);
 
+/*
+ * FUNCTION: PKIX_PL_NssContext_SetTimeout
+ * DESCRIPTION:
+ *
+ * Sets IO timeout for network operations like OCSP response and cert
+ * fetching.
+ *
+ * PARAMETERS:
+ *  "nssContext"
+ *      Address of NssContext to be destroyed. Must be non-NULL.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Context Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_NssContext_SetTimeout(PKIX_UInt32 timeout, PKIX_PL_NssContext *nssContext);
+
+/*
+ * FUNCTION: PKIX_PL_NssContext_SetMaxResponseLen
+ * DESCRIPTION:
+ *
+ * Sets maximum responce length allowed during network IO operations.
+ *
+ * PARAMETERS:
+ *  "nssContext"
+ *      Address of NssContext to be destroyed. Must be non-NULL.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Context Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_NssContext_SetMaxResponseLen(PKIX_UInt32 len, PKIX_PL_NssContext *nssContext);
+
 #ifdef __cplusplus
 }
 #endif

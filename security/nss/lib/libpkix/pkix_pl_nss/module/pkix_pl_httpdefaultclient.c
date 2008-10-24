@@ -420,9 +420,11 @@ pkix_pl_HttpDefaultClient_Create(
                 plContext),
                 PKIX_COULDNOTCREATEHTTPDEFAULTCLIENTOBJECT);
 
+        /* Client timeout is overwritten in HttpDefaultClient_RequestCreate
+         * function. Default value will be ignored. */
+        client->timeout = 0;
         client->connectStatus = HTTP_NOT_CONNECTED;
         client->portnum = portnum;
-        client->timeout = PR_INTERVAL_NO_WAIT; /* PR_INTERVAL_NO_TIMEOUT; */
         client->bytesToWrite = 0;
         client->bytesToRead = 0;
         client->send_http_data_len = 0;
@@ -541,24 +543,16 @@ PKIX_Error *
 pkix_pl_HttpDefaultClient_RegisterSelf(void *plContext)
 {
         extern pkix_ClassTable_Entry systemClasses[PKIX_NUMTYPES];
-        pkix_ClassTable_Entry entry;
+        pkix_ClassTable_Entry *entry =
+            &systemClasses[PKIX_HTTPDEFAULTCLIENT_TYPE];
 
-        PKIX_ENTER
-                (HTTPDEFAULTCLIENT,
+        PKIX_ENTER(HTTPDEFAULTCLIENT,
                 "pkix_pl_HttpDefaultClient_RegisterSelf");
 
-        entry.description = "HttpDefaultClient";
-        entry.objCounter = 0;
-        entry.typeObjectSize = sizeof(PKIX_PL_HttpDefaultClient);
-        entry.destructor = pkix_pl_HttpDefaultClient_Destroy;
-        entry.equalsFunction = NULL;
-        entry.hashcodeFunction = NULL;
-        entry.toStringFunction = NULL;
-        entry.comparator = NULL;
-        entry.duplicateFunction = NULL;
-
-        systemClasses[PKIX_HTTPDEFAULTCLIENT_TYPE] = entry;
-
+        entry->description = "HttpDefaultClient";
+        entry->typeObjectSize = sizeof(PKIX_PL_HttpDefaultClient);
+        entry->destructor = pkix_pl_HttpDefaultClient_Destroy;
+ 
         httpClient.version = 1;
         httpClient.fcnTable.ftable1 = vtable;
         (void)SEC_RegisterDefaultHttpClient(&httpClient);
