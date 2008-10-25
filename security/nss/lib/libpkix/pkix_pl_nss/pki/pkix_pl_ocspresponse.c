@@ -532,7 +532,10 @@ pkix_pl_OcspResponse_Create(
 
                 if (rv != SECSuccess) {
                         PKIX_ERROR(PKIX_OCSPSERVERERROR);
-                }       
+                }
+                /* responseContentType is a pointer to the null-terminated
+                 * string returned by httpclient. Memory allocated for context
+                 * type will be freed with freeing of the HttpClient struct. */
                 if (PORT_Strcasecmp(responseContentType, 
                                    "application/ocsp-response")) {
                        PKIX_ERROR(PKIX_OCSPSERVERERROR);
@@ -564,15 +567,15 @@ pkix_pl_OcspResponse_Create(
 cleanup:
 
         if (path != NULL) {
-                PKIX_PL_NSSCALL(OCSPRESPONSE, PORT_Free, (path));
+            PORT_Free(path);
         }
 
         if (hostname != NULL) {
-                PKIX_PL_NSSCALL(OCSPRESPONSE, PORT_Free, (hostname));
+            PORT_Free(hostname);
         }
 
         if (PKIX_ERROR_RECEIVED){
-                PKIX_DECREF(ocspResponse);
+            PKIX_DECREF(ocspResponse);
         }
 
         PKIX_RETURN(OCSPRESPONSE);
