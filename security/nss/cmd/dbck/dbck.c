@@ -459,7 +459,7 @@ mapSubjectEntries(certDBArray *dbArray)
 	subjectEntry = (certDBEntrySubject *)&subjNode->entry;
 	subjMap = (certDBSubjectEntryMap *)subjNode->appData;
 	/* need to alloc memory here for array of matching certs. */
-	subjMap->pCerts = PORT_ArenaAlloc(subjMap->arena, 
+	subjMap->pCerts = PORT_ArenaZAlloc(subjMap->arena, 
 	                                  subjectEntry->ncerts*sizeof(int));
 	subjMap->numCerts = subjectEntry->ncerts;
 	subjMap->pNickname = NoNickname;
