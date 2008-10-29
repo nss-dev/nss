@@ -305,13 +305,9 @@ run_cycles()
 cycles="standard pkix upgradedb sharedb"
 CYCLES=${NSS_CYCLES:-$cycles}
 
-tests="cipher libpkix cert dbtests tools fips sdr crmf smime ssl ocsp merge pkits"
+tests="cipher libpkix cert dbtests tools fips sdr crmf smime ssl ocsp merge pkits chains"
 TESTS=${NSS_TESTS:-$tests}
 
-# FIXME: move check for ${BUILD_LIBPKIX_TESTS} to libpkix.sh
-if [ -z "${BUILD_LIBPKIX_TESTS}" ] ; then
-    TESTS=`echo "${TESTS}" | sed -e "s/libpkix//"`
-fi
 ALL_TESTS=${TESTS}
 
 nss_ssl_tests="crl bypass_normal normal_bypass fips_normal normal_fips iopr"
