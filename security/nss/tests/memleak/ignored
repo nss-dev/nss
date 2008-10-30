@@ -28,8 +28,8 @@
 **/PR_CallOnce/InitializeArenas/PR_NewLock/**
 
 #458905
-**/nssArena_Create/**
+**/cert_createObject/nssTrustDomain_AddCertsToCache/add_cert_to_cache/**
 
 #459237
-**/strftime/**
+**/PR_FormatTime/strftime/**
 
