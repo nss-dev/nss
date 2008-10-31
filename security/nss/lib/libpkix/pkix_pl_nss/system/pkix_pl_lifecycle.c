@@ -233,11 +233,10 @@ PKIX_PL_Initialize(
         pkix_PolicyCheckerState_RegisterSelf(plContext);
 
         pkix_pl_CollectionCertStoreContext_RegisterSelf(plContext); /* 41-50 */
-        pkix_DefaultCRLCheckerState_RegisterSelf(plContext);
+        pkix_CrlChecker_RegisterSelf(plContext);
         pkix_ForwardBuilderState_RegisterSelf(plContext);
         pkix_SignatureCheckerState_RegisterSelf(plContext);
         pkix_NameConstraintsCheckerState_RegisterSelf(plContext);
-        pkix_DefaultRevocationChecker_RegisterSelf(plContext);
         pkix_pl_LdapRequest_RegisterSelf(plContext);
         pkix_pl_LdapResponse_RegisterSelf(plContext);
         pkix_pl_LdapDefaultClient_RegisterSelf(plContext);
