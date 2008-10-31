@@ -58,20 +58,20 @@
 #include "pkix_comcertselparams.h"
 #include "pkix_comcrlselparams.h"
 #include "pkix_crlselector.h"
-#include "pkix_defaultcrlchecker.h"
-#include "pkix_defaultrevchecker.h"
 #include "pkix_error.h"
 #include "pkix_expirationchecker.h"
 #include "pkix_list.h"
 #include "pkix_logger.h"
 #include "pkix_namechainingchecker.h"
 #include "pkix_nameconstraintschecker.h"
-#include "pkix_ocspchecker.h"
 #include "pkix_policychecker.h"
 #include "pkix_policynode.h"
 #include "pkix_procparams.h"
 #include "pkix_resourcelimits.h"
+#include "pkix_revocationmethod.h"
 #include "pkix_revocationchecker.h"
+#include "pkix_crlchecker.h"
+#include "pkix_ocspchecker.h"
 #include "pkix_signaturechecker.h"
 #include "pkix_store.h"
 #include "pkix_targetcertchecker.h"
@@ -953,6 +953,16 @@ extern PLHashNumber PR_CALLBACK pkix_ErrorGen_Hash (const void *key);
 #define PKIX_REVOCATIONCHECKER_DEBUG_ARG(expr, arg)
 #endif
 
+#if PKIX_REVOCATIONMETHODDEBUG
+#define PKIX_REVOCATIONMETHOD_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_REVOCATIONMETHOD_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_REVOCATIONMETHOD_DEBUG(expr)
+#define PKIX_REVOCATIONMETHOD_DEBUG_ARG(expr, arg)
+#endif
+
 #if PKIX_CERTSELECTORDEBUG
 #define PKIX_CERTSELECTOR_DEBUG(expr) \
         PKIX_DEBUG(expr)
@@ -1163,14 +1173,14 @@ extern PLHashNumber PR_CALLBACK pkix_ErrorGen_Hash (const void *key);
 #define PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG_ARG(expr, arg)
 #endif
 
-#if PKIX_DEFAULTCRLCHECKERSTATEDEBUG
-#define PKIX_DEFAULTCRLCHECKERSTATE_DEBUG(expr) \
+#if PKIX_CRLCHECKERDEBUG
+#define PKIX_CRLCHECKER_DEBUG(expr) \
         PKIX_DEBUG(expr)
-#define PKIX_DEFAULTCRLCHECKERSTATE_DEBUG_ARG(expr, arg) \
+#define PKIX_CRLCHECKER_DEBUG_ARG(expr, arg) \
         PKIX_DEBUG_ARG(expr, arg)
 #else
-#define PKIX_DEFAULTCRLCHECKERSTATE_DEBUG(expr)
-#define PKIX_DEFAULTCRLCHECKERSTATE_DEBUG_ARG(expr, arg)
+#define PKIX_CRLCHECKER_DEBUG(expr)
+#define PKIX_CRLCHECKER_DEBUG_ARG(expr, arg)
 #endif
 
 #if PKIX_CERTPOLICYMAPDEBUG
@@ -1233,14 +1243,14 @@ extern PLHashNumber PR_CALLBACK pkix_ErrorGen_Hash (const void *key);
 #define PKIX_CONTEXT_DEBUG_ARG(expr, arg)
 #endif
 
-#if PKIX_DEFAULTREVOCATIONCHECKERDEBUG
-#define PKIX_DEFAULTREVOCATIONCHECKER_DEBUG(expr) \
+#if PKIX_REVOCATIONCHECKERDEBUG
+#define PKIX_REVOCATIONCHECKER_DEBUG(expr) \
         PKIX_DEBUG(expr)
-#define PKIX_DEFAULTREVOCATIONCHECKER_DEBUG_ARG(expr, arg) \
+#define PKIX_REVOCATIONCHECKER_DEBUG_ARG(expr, arg) \
         PKIX_DEBUG_ARG(expr, arg)
 #else
-#define PKIX_DEFAULTREVOCATIONCHECKER_DEBUG(expr)
-#define PKIX_DEFAULTREVOCATIONCHECKER_DEBUG_ARG(expr, arg)
+#define PKIX_REVOCATIONCHECKER_DEBUG(expr)
+#define PKIX_REVOCATIONCHECKER_DEBUG_ARG(expr, arg)
 #endif
 
 #if PKIX_LDAPREQUESTDEBUG

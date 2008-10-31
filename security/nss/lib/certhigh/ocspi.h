@@ -156,7 +156,17 @@ cert_RememberOCSPProcessingFailure(CERTOCSPCertID *certID,
 char *
 ocsp_GetResponderLocation(CERTCertDBHandle *handle,
                           CERTCertificate *cert,
+                          PRBool canUseDefaultLocation,
                           PRBool *isDefault);
 
+/* FUNCTION: ocsp_FetchingFailureIsVerificationFailure
+ * The function checks the global ocsp settings and
+ * tells how to treat an ocsp response fetching failure.
+ * RETURNS:
+ *   if PR_TRUE is returned, then treat fetching as a
+ *   revoked cert status.
+ */
+PRBool
+ocsp_FetchingFailureIsVerificationFailure();
 
 #endif /* _OCSPI_H_ */

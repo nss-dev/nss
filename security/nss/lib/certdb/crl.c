@@ -946,10 +946,6 @@ static SECStatus DPCache_AddCRL(CRLDPCache* cache, CachedCrl* crl,
 static SECStatus DPCache_FetchFromTokens(CRLDPCache* cache, PRTime vfdate,
                                          void* wincx);
 
-/* check if a particular SN is in the CRL cache and return its entry */
-static SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
-                                CERTCrlEntry** returned);
-
 /* update the content of the CRL cache, including fetching of CRLs, and
    reprocessing with specified issuer and date */
 static SECStatus DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate* issuer,
@@ -1713,7 +1709,7 @@ static SECStatus CachedCrl_GetEntry(CachedCrl* crl, SECItem* sn,
 }
 
 /* check if a particular SN is in the CRL cache and return its entry */
-static SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
+SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
                                 CERTCrlEntry** returned)
 {
     if (!cache || !sn || !returned)

@@ -1316,6 +1316,8 @@ PKIX_PL_CollectionCertStore_Create(
                     NULL, /* GetCertContinue */
                     NULL, /* GetCRLContinue */
                     pkix_pl_CollectionCertStore_CheckTrust,
+                    NULL,      /* can not store crls */
+                    NULL,      /* can not do revocation check */
                     (PKIX_PL_Object *)colCertStoreContext,
                     PKIX_TRUE, /* cache flag */
                     PKIX_TRUE, /* local - no network I/O */

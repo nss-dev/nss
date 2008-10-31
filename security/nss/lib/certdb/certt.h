@@ -1059,7 +1059,7 @@ typedef enum {
 /*
  * Defines the behavior if we are unable to obtain fresh information.
  * INGORE means:
- *        Return "test succeded, not revoked"
+ *      Return "cert status unknown"
  * FAIL means:
  *      Return "cert revoked".
  */

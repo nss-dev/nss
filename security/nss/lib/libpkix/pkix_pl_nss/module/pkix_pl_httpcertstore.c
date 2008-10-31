@@ -988,6 +988,8 @@ pkix_pl_HttpCertStore_CreateWithAsciiName(
                 pkix_pl_HttpCertStore_GetCertContinue,
                 pkix_pl_HttpCertStore_GetCRLContinue,
                 NULL,       /* don't support trust */
+                NULL,      /* can not store crls */
+                NULL,      /* can not do revocation check */
                 (PKIX_PL_Object *)httpCertStore,
                 PKIX_TRUE,  /* cache flag */
                 PKIX_FALSE, /* not local */

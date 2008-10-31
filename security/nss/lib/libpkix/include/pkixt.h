@@ -121,8 +121,9 @@ typedef struct PKIX_ListStruct PKIX_List;
 typedef struct PKIX_ForwardBuilderStateStruct PKIX_ForwardBuilderState;
 typedef struct PKIX_DefaultRevocationCheckerStruct
                         PKIX_DefaultRevocationChecker;
-typedef struct PKIX_OcspCheckerStruct PKIX_OcspChecker;
 typedef struct PKIX_VerifyNodeStruct PKIX_VerifyNode;
+typedef enum PKIX_RevocationMethodTypeEnum PKIX_RevocationMethodType;
+typedef enum PKIX_RevocationStatusEnum PKIX_RevocationStatus;
 
 /* Portability Layer (PL) data types
  *
@@ -222,8 +223,7 @@ typedef int PKIX_Boolean;
     TYPEMACRO(CRLENTRY), \
     TYPEMACRO(CRLSELECTOR), \
     TYPEMACRO(DATE), \
-    TYPEMACRO(DEFAULTCRLCHECKERSTATE), \
-    TYPEMACRO(DEFAULTREVOCATIONCHECKER), \
+    TYPEMACRO(CRLCHECKER), \
     TYPEMACRO(EKUCHECKER), \
     TYPEMACRO(ERROR), \
     TYPEMACRO(FORWARDBUILDERSTATE), \
@@ -245,10 +245,10 @@ typedef int PKIX_Boolean;
     TYPEMACRO(OCSPREQUEST), \
     TYPEMACRO(OCSPRESPONSE), \
     TYPEMACRO(OID), \
+    TYPEMACRO(REVOCATIONCHECKER), \
     TYPEMACRO(PROCESSINGPARAMS), \
     TYPEMACRO(PUBLICKEY), \
     TYPEMACRO(RESOURCELIMITS), \
-    TYPEMACRO(REVOCATIONCHECKER), \
     TYPEMACRO(RWLOCK), \
     TYPEMACRO(SIGNATURECHECKERSTATE), \
     TYPEMACRO(SOCKET), \
@@ -314,9 +314,8 @@ typedef enum {     /* Now invoke all those TYPEMACROs to assign the numbers */
    ERRMACRO(CRL), \
    ERRMACRO(CRLENTRY), \
    ERRMACRO(CRLSELECTOR), \
+   ERRMACRO(CRLCHECKER), \
    ERRMACRO(DATE), \
-   ERRMACRO(DEFAULTCRLCHECKERSTATE), \
-   ERRMACRO(DEFAULTREVOCATIONCHECKER), \
    ERRMACRO(EKUCHECKER), \
    ERRMACRO(ERROR), \
    ERRMACRO(FATAL), \
@@ -345,6 +344,7 @@ typedef enum {     /* Now invoke all those TYPEMACROs to assign the numbers */
    ERRMACRO(PROCESSINGPARAMS), \
    ERRMACRO(PUBLICKEY), \
    ERRMACRO(RESOURCELIMITS), \
+   ERRMACRO(REVOCATIONMETHOD), \
    ERRMACRO(REVOCATIONCHECKER), \
    ERRMACRO(RWLOCK), \
    ERRMACRO(SIGNATURECHECKERSTATE), \
