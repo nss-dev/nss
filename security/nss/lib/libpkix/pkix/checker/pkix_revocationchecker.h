@@ -163,21 +163,6 @@ extern "C" {
 #define PKIX_REV_MI_NO_OVERALL_INFO_REQUIREMENT       0x00L
 #define PKIX_REV_MI_REQUIRE_SOME_FRESH_INFO_AVAILABLE 0x02L
 
-
-/* Available revocation method types. */
-enum PKIX_RevocationMethodTypeEnum {
-    PKIX_RevocationMethod_CRL = 0,
-    PKIX_RevocationMethod_OCSP,
-    PKIX_RevocationMethod_MAX,
-};
-
-/* A set of statuses revocation checker operates on */
-enum PKIX_RevocationStatusEnum {
-    PKIX_RevStatus_NoInfo = 0,
-    PKIX_RevStatus_Revoked,
-    PKIX_RevStatus_Success,
-};
-
 /* Defines check time for the cert, revocation methods lists and
  * flags for leaf and chain certs revocation tests. */
 struct PKIX_RevocationCheckerStruct {
