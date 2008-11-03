@@ -122,8 +122,6 @@ typedef struct PKIX_ForwardBuilderStateStruct PKIX_ForwardBuilderState;
 typedef struct PKIX_DefaultRevocationCheckerStruct
                         PKIX_DefaultRevocationChecker;
 typedef struct PKIX_VerifyNodeStruct PKIX_VerifyNode;
-typedef enum PKIX_RevocationMethodTypeEnum PKIX_RevocationMethodType;
-typedef enum PKIX_RevocationStatusEnum PKIX_RevocationStatus;
 
 /* Portability Layer (PL) data types
  *
@@ -487,6 +485,21 @@ PKIX_Error* PKIX_ALLOC_ERROR(void);
 #define PKIX_EXTENDEDKEYUSAGE_OID              "2.5.29.37"
 #define PKIX_INHIBITANYPOLICY_OID              "2.5.29.54"
 #define PKIX_NSCERTTYPE_OID "2.16.840.1.113730.1.1"
+
+/* Available revocation method types. */
+typedef enum PKIX_RevocationMethodTypeEnum {
+    PKIX_RevocationMethod_CRL = 0,
+    PKIX_RevocationMethod_OCSP,
+    PKIX_RevocationMethod_MAX,
+} PKIX_RevocationMethodType;
+
+/* A set of statuses revocation checker operates on */
+typedef enum PKIX_RevocationStatusEnum {
+    PKIX_RevStatus_NoInfo = 0,
+    PKIX_RevStatus_Revoked,
+    PKIX_RevStatus_Success,
+} PKIX_RevocationStatus;
+
 
 #ifdef __cplusplus
 }
