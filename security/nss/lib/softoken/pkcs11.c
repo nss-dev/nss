@@ -69,6 +69,12 @@
 #include "sftkdb.h"
 #include "sftkpars.h"
 
+#ifdef SOLARIS
+#include <sys/systeminfo.h>
+#include <unistd.h>
+pid_t myPid;
+#endif
+
 /*
  * ******************** Static data *******************************
  */
@@ -465,6 +471,10 @@ static PRBool nsc_init = PR_FALSE;
 #if defined(XP_UNIX) && !defined(NO_PTHREADS)
 
 #include <pthread.h>
+
+#ifdef SOLARIS
+PRBool usePthread_atfork;
+#endif
 
 PRBool forked = PR_FALSE;
 
@@ -2551,7 +2561,33 @@ loser:
 
 #if defined(XP_UNIX) && !defined(NO_PTHREADS)
     if (CKR_OK == crv) {
+#ifdef SOLARIS
+        /* Before Solaris 10, fork handlers are not unregistered at dlclose()
+         * time. So, we only use pthread_atfork on Solaris 10 and later. For
+         * earlier versions, we use PID checks.
+         */
+        char buf[200];
+        int major = 0, minor = 0;
+
+        long rv = sysinfo(SI_RELEASE, buf, sizeof(buf));
+        if (rv > 0 && rv < sizeof(buf)) {
+            if (2 == sscanf(buf, "%d.%d", &major, &minor)) {
+                /* Are we on Solaris 10 or greater ? */
+                if (major >5 || (5 == major && minor >= 10)) {
+                    /* we are safe to use pthread_atfork */
+                    usePthread_atfork = PR_TRUE;
+                }
+            }
+        }
+        if (usePthread_atfork) {
+            pthread_atfork(NULL, NULL, ForkedChild);
+        } else {
+            myPid = getpid();
+        }
+
+#else
         pthread_atfork(NULL, NULL, ForkedChild);
+#endif
     }
 #endif
     return crv;
@@ -2599,6 +2635,12 @@ CK_RV nsc_CommonFinalize (CK_VOID_PTR pReserved, PRBool isFIPS)
     /* clean up the default OID table */
     SECOID_Shutdown();
     nsc_init = PR_FALSE;
+
+#ifdef SOLARIS
+    if (!usePthread_atfork) {
+        myPid = 0; /* allow reinitialization */
+    }
+#endif
 
     return CKR_OK;
 }

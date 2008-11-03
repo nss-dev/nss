@@ -266,14 +266,56 @@ extern PRBool sftk_fatalError;
 */
 #if defined(XP_UNIX) && !defined(NO_PTHREADS)
 
+/* Unix platforms with POSIX threads */
 extern PRBool forked;
 
 extern void ForkedChild(void);
 
-#define CHECK_FORK() \
-    do { if (forked) return CKR_DEVICE_ERROR; } while (0)
+#ifdef DEBUG
+
+#define FORK_ASSERT() \
+    { \
+        char* forkAssert = getenv("NSS_STRICT_NOFORK"); \
+        if ( (!forkAssert) || \
+             ( forkAssert && (0 == strcmp(forkAssert, "1"))) ) { \
+            PORT_Assert(0); \
+        } \
+    }
 
 #else
+
+#define FORK_ASSERT()
+
+#endif
+
+#ifdef SOLARIS
+
+/* s8, s9 use PID checks, s10 uses pthread_atfork */
+
+extern PRBool usePthread_atfork;
+#include <unistd.h>
+extern pid_t myPid;
+
+#define CHECK_FORK() \
+    do { \
+        if ( (usePthread_atfork && forked) || (myPid && myPid != getpid()) ) { \
+            FORK_ASSERT(); \
+            return CKR_DEVICE_ERROR; \
+        } \
+    } while (0)
+
+#else
+
+/* All other Unix pthread platforms only use pthread_atfork */
+
+#define CHECK_FORK() \
+    do { if (forked) { FORK_ASSERT(); return CKR_DEVICE_ERROR; } while (0)
+    
+#endif
+
+#else
+
+/* non-Unix or non-POSIX thread platforms */
 
 #define CHECK_FORK()
 
