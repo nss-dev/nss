@@ -29,6 +29,7 @@
 
 #458905
 **/cert_createObject/nssTrustDomain_AddCertsToCache/add_cert_to_cache/**
+**/cert_createObject/nssTrustDomain_AddCertsToCache/nssArena_Create/**
 
 #459237
 **/PR_FormatTime/strftime/**
