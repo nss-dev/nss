@@ -309,7 +309,7 @@ extern pid_t myPid;
 /* All other Unix pthread platforms only use pthread_atfork */
 
 #define CHECK_FORK() \
-    do { if (forked) { FORK_ASSERT(); return CKR_DEVICE_ERROR; } while (0)
+    do { if (forked) { FORK_ASSERT(); return CKR_DEVICE_ERROR; } } while (0)
     
 #endif
 
