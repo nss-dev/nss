@@ -309,6 +309,7 @@ pkix_pl_HttpDefaultClient_HdrCheckComplete(
              /* set available number of bytes in the buffer */
              client->capacity = contentLength;
              client->connectStatus = HTTP_RECV_BODY;
+             *pKeepGoing = PKIX_TRUE;
              break;
  
          default:
@@ -324,10 +325,10 @@ pkix_pl_HttpDefaultClient_HdrCheckComplete(
               */
              if (client->filledupBytes < contentLength) {
                  client->connectStatus = HTTP_RECV_BODY;
+                 *pKeepGoing = PKIX_TRUE;
              } else {
                  client->connectStatus = HTTP_COMPLETE;
                  *pKeepGoing = PKIX_FALSE;
-                 goto cleanup;
              }
          }
  
@@ -346,9 +347,6 @@ pkix_pl_HttpDefaultClient_HdrCheckComplete(
          PKIX_CHECK(PKIX_PL_Free(client->rcvBuf, plContext),
                     PKIX_FREEFAILED);
          client->rcvBuf = body;
- 
-
-        *pKeepGoing = PKIX_TRUE;
 
 cleanup:
 
@@ -478,8 +476,10 @@ pkix_pl_HttpDefaultClient_Destroy(
 
         client = (PKIX_PL_HttpDefaultClient *)object;
 
-        PKIX_PL_Free(client->rcvHeaders, plContext);
-        client->rcvHeaders = NULL;
+        if (client->rcvHeaders) {
+            PKIX_PL_Free(client->rcvHeaders, plContext);
+            client->rcvHeaders = NULL;
+        }
 
         if (client->GETBuf != NULL) {
                 PR_smprintf_free(client->GETBuf);
