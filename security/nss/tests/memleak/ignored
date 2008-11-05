@@ -34,3 +34,6 @@
 #459237
 **/PR_FormatTime/strftime/**
 
+#463208
+**/sqlite3UnixFullPathname/_getcwd/**
+
