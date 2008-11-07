@@ -532,6 +532,35 @@ verify_cert()
     fi
 }
 
+############################ parse_result ##############################
+# local shell function to process expected result value
+# this function was created for case that expected result depends on
+# some conditions - in our case type of cert DB
+#
+# default results are pass and fail
+# this function added parsable values in format:
+# type1:value1 type2:value2 .... typex:valuex
+#
+# allowed types are dbm, sql, all (all means all other cases)
+# allowed values are pass and fail
+#
+# if this format is not used, EXP_RESULT will stay unchanged (this also
+# covers pass and fail states)
+########################################################################
+parse_result()
+{
+    for RES in ${EXP_RESULT}
+    do
+        RESTYPE=$(echo ${RES} | cut -d: -f1)
+        RESSTAT=$(echo ${RES} | cut -d: -f2)
+
+        if [ "${RESTYPE}" = "${NSS_DEFAULT_DB_TYPE}" -o "${RESTYPE}" = "all" ]; then
+            EXP_RESULT=${RESSTAT}
+            break
+        fi
+    done
+}
+
 ############################ parse_config ##############################
 # local shell function to parse and process file containing certificate
 # chain configuration and list of tests
@@ -617,6 +646,7 @@ parse_config()
             ;;
         "result")
             EXP_RESULT="${VALUE}"
+            parse_result
             ;;
         "scenario")
             SCENARIO="${VALUE}: "
