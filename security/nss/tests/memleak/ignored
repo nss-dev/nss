@@ -37,3 +37,6 @@
 #463208
 **/sqlite3UnixFullPathname/_getcwd/**
 
+#463631
+vfychain/main/PL_CreateOptState/**
+
