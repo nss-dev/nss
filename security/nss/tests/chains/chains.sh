@@ -71,6 +71,8 @@ chains_init()
 
     CHAINS_SCENARIOS="${QADIR}/chains/scenarios/scenarios"
 
+    AIA_FILES="${HOSTDIR}/aiafiles"
+
     html_head "Certificate Chains Tests"
 }
 
@@ -326,6 +328,7 @@ ${NSS_AIA_HTTP}/${CERT_PUBLIC}
             if [ -n "${NSS_AIA_PATH}" ]; then
                 cp ${CERT_LOCAL} ${NSS_AIA_PATH}/${CERT_PUBLIC}
                 chmod a+r ${NSS_AIA_PATH}/${CERT_PUBLIC}
+                echo ${NSS_AIA_PATH}/${CERT_PUBLIC} >> ${AIA_FILES}
             fi
         done
 
@@ -666,9 +669,16 @@ chains_main()
 {
     while read LINE 
     do
-        parse_config < "${QADIR}/chains/scenarios/${LINE}"
-    done < "${CHAINS_SCENARIOS}"
+        > ${AIA_FILES}
 
+        parse_config < "${QADIR}/chains/scenarios/${LINE}"
+
+        while read AIA_FILE
+        do
+            rm ${AIA_FILE} 
+        done < ${AIA_FILES}
+        rm ${AIA_FILES}
+    done < "${CHAINS_SCENARIOS}"
 }
 
 ################################ main ##################################
