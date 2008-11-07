@@ -290,6 +290,7 @@ ssl_cov()
                
   p=""
 
+  exec < ${SSLCOV}
   while read ectype tls param testname
   do
       p=`echo "$testname" | sed -e "s/_.*//"`   #sonmi, only run extended test on SSL3 and TLS
@@ -351,7 +352,7 @@ ssl_cov()
           html_msg $ret 0 "${testname}" \
                    "produced a returncode of $ret, expected is 0"
       fi
-  done < ${SSLCOV}
+  done
 
   kill_selfserv
   html "</TABLE><BR>"
@@ -364,6 +365,7 @@ ssl_auth()
 {
   html_head "SSL Client Authentication $NORM_EXT - $BYPASS_STRING $ECC_STRING"
 
+  exec < ${SSLAUTH}
   while read ectype value sparam cparam testname
   do
       if [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
@@ -386,7 +388,7 @@ ssl_auth()
                    "produced a returncode of $ret, expected is $value"
           kill_selfserv
       fi
-  done < ${SSLAUTH}
+  done
 
   html "</TABLE><BR>"
 }
@@ -399,6 +401,7 @@ ssl_stress()
 {
   html_head "SSL Stress Test $NORM_EXT - $BYPASS_STRING $ECC_STRING"
 
+  exec < ${SSLSTRESS}
   while read ectype value sparam cparam testname
   do
       if [ -z "$ectype" ]; then
@@ -446,7 +449,7 @@ ssl_stress()
           fi
           kill_selfserv
       fi
-  done < ${SSLSTRESS}
+  done
 
   html "</TABLE><BR>"
 }
@@ -465,6 +468,7 @@ ssl_crl_ssl()
   CRL_GROUP_RANGE=$CRL_GRP_1_RANGE
   UNREVOKED_CERT=$UNREVOKED_CERT_GRP_1
 
+  exec < ${SSLAUTH}
   while read ectype value sparam cparam testname
   do
     if [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
@@ -521,7 +525,7 @@ ssl_crl_ssl()
 	  kill_selfserv
 	done
     fi
-  done < ${SSLAUTH}
+  done
 
   html "</TABLE><BR>"
 }
@@ -645,6 +649,7 @@ ssl_crl_cache()
     do
     sparam=$SERV_ARG
     start_selfserv
+    exec < ${SSLAUTH_TMP}
     while read ectype value sparam cparam testname
       do
       if [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
@@ -728,7 +733,7 @@ ssl_crl_cache()
         kill_selfserv
         start_selfserv
       fi
-    done < ${SSLAUTH_TMP}
+    done
     kill_selfserv
     SERV_ARG="${SERV_ARG}_-r"
     rm -f ${SSLAUTH_TMP}
