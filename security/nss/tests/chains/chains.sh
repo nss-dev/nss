@@ -71,6 +71,8 @@ chains_init()
 
     CHAINS_SCENARIOS="${QADIR}/chains/scenarios/scenarios"
 
+    CERT_SN=$(date '+%m%d%H%M%S')
+
     AIA_FILES="${HOSTDIR}/aiafiles"
 
     html_head "Certificate Chains Tests"
@@ -116,12 +118,13 @@ create_root_ca()
     ENTITY=$1
     ENTITY_DB=${ENTITY}DB
 
+    CERT_SN=$(expr ${CERT_SN} + 1)
     date >> ${NOISE_FILE} 2>&1
 
     TESTNAME="Creating Root CA ${ENTITY}"
     echo "${SCRIPTNAME}: ${TESTNAME}"
-    echo "certutil -s \"CN=${ENTITY} ROOT CA, O=${ENTITY}, C=US\" -S -n ${ENTITY} -t CTu,CTu,CTu -v 600 -x -d ${ENTITY_DB} -1 -2 -5 -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE}"
-    ${BINDIR}/certutil -s "CN=${ENTITY} ROOT CA, O=${ENTITY}, C=US" -S -n ${ENTITY} -t CTu,CTu,CTu -v 600 -x -d ${ENTITY_DB} -1 -2 -5 -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} <<CERT
+    echo "certutil -s \"CN=${ENTITY} ROOT CA, O=${ENTITY}, C=US\" -S -n ${ENTITY} -t CTu,CTu,CTu -v 600 -x -d ${ENTITY_DB} -1 -2 -5 -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -m ${CERT_SN}"
+    ${BINDIR}/certutil -s "CN=${ENTITY} ROOT CA, O=${ENTITY}, C=US" -S -n ${ENTITY} -t CTu,CTu,CTu -v 600 -x -d ${ENTITY_DB} -1 -2 -5 -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -m ${CERT_SN} <<CERT
 5
 6
 9
@@ -369,6 +372,8 @@ sign_cert()
     REQ=${ENTITY}Req.der
     CERT=${ENTITY}${ISSUER}.der
 
+    CERT_SN=$(expr ${CERT_SN} + 1)
+
     EMAIL_OPT=
     if [ "${TYPE}" = "Bridge" ]; then
         EMAIL_OPT="-7 ${ENTITY}@${ISSUER}"
@@ -381,8 +386,8 @@ sign_cert()
 
     TESTNAME="Creating certficate ${CERT} signed by ${ISSUER}"
     echo "${SCRIPTNAME}: ${TESTNAME}"
-    echo "certutil -C -c ${ISSUER} -v 60 -d ${ISSUER_DB} -i ${REQ} -o ${CERT} -f ${ISSUER_DB}/dbpasswd ${EMAIL_OPT} ${OPTIONS}"
-    echo "${DATA}" | ${BINDIR}/certutil -C -c ${ISSUER} -v 60 -d ${ISSUER_DB} -i ${REQ} -o ${CERT} -f ${ISSUER_DB}/dbpasswd ${EMAIL_OPT} ${OPTIONS}
+    echo "certutil -C -c ${ISSUER} -v 60 -d ${ISSUER_DB} -i ${REQ} -o ${CERT} -f ${ISSUER_DB}/dbpasswd -m ${CERT_SN} ${EMAIL_OPT} ${OPTIONS}"
+    echo "${DATA}" | ${BINDIR}/certutil -C -c ${ISSUER} -v 60 -d ${ISSUER_DB} -i ${REQ} -o ${CERT} -f ${ISSUER_DB}/dbpasswd -m ${CERT_SN} ${EMAIL_OPT} ${OPTIONS}
     html_msg $? 0 "${SCENARIO}${TESTNAME}"
 
     TESTNAME="Importing certificate ${CERT} to ${ENTITY_DB} database"
