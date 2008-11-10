@@ -74,6 +74,7 @@ chains_init()
     CERT_SN=$(date '+%m%d%H%M%S')
 
     AIA_FILES="${HOSTDIR}/aiafiles"
+    PK7_NONCE=1;
 
     html_head "Certificate Chains Tests"
 }
@@ -312,16 +313,17 @@ process_aia()
 "
 
         for ITEM in ${AIA}; do
+            PK7_NONCE=`expr $PK7_NONCE + 1`
 
             echo ${ITEM} | grep ":"
             if [ $? -eq 0 ]; then
                 CERT_NICK=`echo ${ITEM} | cut -d: -f1`
                 CERT_ISSUER=`echo ${ITEM} | cut -d: -f2`
                 CERT_LOCAL="${CERT_NICK}${CERT_ISSUER}.der"
-                CERT_PUBLIC="${HOST}-$$-${CERT_NICK}${CERT_ISSUER}.der"
+                CERT_PUBLIC="${HOST}-$$-${CERT_NICK}${CERT_ISSUER}-${PK7_NONCE}.der"
             else
                 CERT_LOCAL="${ITEM}.p7"
-                CERT_PUBLIC="${HOST}-$$-${ITEM}.p7"
+                CERT_PUBLIC="${HOST}-$$-${ITEM}-${PK7_NONCE}.p7"
             fi
 
             DATA="${DATA}7
