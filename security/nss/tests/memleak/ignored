@@ -40,3 +40,6 @@
 #463631
 vfychain/main/PL_CreateOptState/**
 
+#464049
+vfychain/main/SEC_PrintCertificateAndTrust/**
+
