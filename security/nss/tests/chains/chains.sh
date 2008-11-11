@@ -72,9 +72,9 @@ chains_init()
     CHAINS_SCENARIOS="${QADIR}/chains/scenarios/scenarios"
 
     CERT_SN=$(date '+%m%d%H%M%S')
+    PK7_NONCE=$CERT_SN;
 
     AIA_FILES="${HOSTDIR}/aiafiles"
-    PK7_NONCE=1;
 
     html_head "Certificate Chains Tests"
 }
