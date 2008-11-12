@@ -33,13 +33,11 @@
 
 #459237
 **/PR_FormatTime/strftime/**
+**/PR_FormatTime/__strftime_std/**
 
 #463208
 **/sqlite3UnixFullPathname/_getcwd/**
 
 #463631
 vfychain/main/PL_CreateOptState/**
-
-#464049
-vfychain/main/SEC_PrintCertificateAndTrust/**
 
