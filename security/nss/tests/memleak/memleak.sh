@@ -82,6 +82,7 @@ memleak_init()
 	TMP_SORTED="${HOSTDIR}/sorted$$"
 	TMP_COUNT="${HOSTDIR}/count$$"
 	TMP_DBX="${HOSTDIR}/dbx$$"
+	TMP_DBXERR="${HOSTDIR}/dbxerr$$"
 	
 	PORT=${PORT:-8443}
 	
@@ -328,10 +329,11 @@ run ${ATTR}
 	echo "${SCRIPTNAME}: -------- DBX commands:"
 	echo "${DBX_CMD}"
 	
-	echo "${DBX_CMD}" | ${DBX} ${COMMAND} 2>/dev/null | grep -v Reading > ${TMP_DBX}
+	echo "${DBX_CMD}" | ${DBX} ${COMMAND} 2> ${TMP_DBXERR} | grep -v Reading > ${TMP_DBX}
 	cat ${TMP_DBX} 1>&2
+	cat ${TMP_DBXERR}
 	
-	grep "exit code is 0" ${TMP_DBX}
+	grep "exit code is" ${TMP_DBX}
 	return $?
 }
 
