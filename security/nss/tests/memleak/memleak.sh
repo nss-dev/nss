@@ -332,8 +332,9 @@ run ${ATTR}
 	echo "${DBX_CMD}" | ${DBX} ${COMMAND} 2> ${TMP_DBXERR} | grep -v Reading > ${TMP_DBX}
 	cat ${TMP_DBX} 1>&2
 	cat ${TMP_DBXERR}
-	
+
 	grep "exit code is" ${TMP_DBX}
+	grep "exit code is 0" ${TMP_DBX}
 	return $?
 }
 
