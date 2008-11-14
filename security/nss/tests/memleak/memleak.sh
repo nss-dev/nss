@@ -334,7 +334,7 @@ run ${ATTR}
 	cat ${TMP_DBXERR}
 
 	grep "exit code is" ${TMP_DBX}
-	grep "exit code is 0" ${TMP_DBX}
+	grep "exit code is 0" ${TMP_DBX} > /dev/null
 	return $?
 }
 
