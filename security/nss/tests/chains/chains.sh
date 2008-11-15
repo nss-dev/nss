@@ -73,6 +73,7 @@ chains_init()
 
     CERT_SN=$(date '+%m%d%H%M%S')
     PK7_NONCE=$CERT_SN;
+    DATA_FILE="${HOSTDIR}/interaction.dat.$$"
 
     AIA_FILES="${HOSTDIR}/aiafiles"
 
@@ -175,8 +176,10 @@ y"
     TESTNAME="Creating ${TYPE} certifiate request ${REQ}"
     echo "${SCRIPTNAME}: ${TESTNAME}"
     echo "certutil -s \"CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US\" -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ}"
-    echo "${EXT_DATA}" | ${BINDIR}/certutil -s "CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US" -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ}
+    echo "${EXT_DATA}" > ${DATA_FILE}
+    ${BINDIR}/certutil -s "CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US" -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ} < ${DATA_FILE}
     html_msg $? 0 "${SCENARIO}${TESTNAME}"
+    rm -rf ${DATA_FILE}
 }
 
 ############################ create_entity #############################
@@ -389,8 +392,10 @@ sign_cert()
     TESTNAME="Creating certficate ${CERT} signed by ${ISSUER}"
     echo "${SCRIPTNAME}: ${TESTNAME}"
     echo "certutil -C -c ${ISSUER} -v 60 -d ${ISSUER_DB} -i ${REQ} -o ${CERT} -f ${ISSUER_DB}/dbpasswd -m ${CERT_SN} ${EMAIL_OPT} ${OPTIONS}"
-    echo "${DATA}" | ${BINDIR}/certutil -C -c ${ISSUER} -v 60 -d ${ISSUER_DB} -i ${REQ} -o ${CERT} -f ${ISSUER_DB}/dbpasswd -m ${CERT_SN} ${EMAIL_OPT} ${OPTIONS}
+    echo "${DATA}" > ${DATA_FILE}
+    ${BINDIR}/certutil -C -c ${ISSUER} -v 60 -d ${ISSUER_DB} -i ${REQ} -o ${CERT} -f ${ISSUER_DB}/dbpasswd -m ${CERT_SN} ${EMAIL_OPT} ${OPTIONS} < ${DATA_FILE}
     html_msg $? 0 "${SCENARIO}${TESTNAME}"
+    rm -f ${DATA_FILE}
 
     TESTNAME="Importing certificate ${CERT} to ${ENTITY_DB} database"
     echo "${SCRIPTNAME}: ${TESTNAME}"
