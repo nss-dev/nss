@@ -37,6 +37,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 /* $Id$ */
+
+#ifdef FREEBL_NO_DEPEND
+#include "stubs.h"
+#endif
+
 #include "prcpucfg.h"
 #if defined(_X86_) || defined(SHA_NO_LONG_LONG)
 #define NOUNROLL512 1

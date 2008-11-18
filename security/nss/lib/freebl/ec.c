@@ -37,6 +37,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+#ifdef FREEBL_NO_DEPEND
+#include "stubs.h"
+#endif
+
+
 #include "blapi.h"
 #include "prerr.h"
 #include "secerr.h"

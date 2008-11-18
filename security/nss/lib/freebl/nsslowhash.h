@@ -1,4 +1,7 @@
-/* ***** BEGIN LICENSE BLOCK *****
+/*
+ * PKCS #11 FIPS Power-Up Self Test.
+ *
+ * ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -11,11 +14,11 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is the Netscape security libraries.
+ * The Original Code is Red Hat, Inc.
  *
  * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1994-2000
+ * Red Hat, Inc.
+ * Portions created by the Initial Developer are Copyright (C) 2008
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -34,17 +37,26 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#ifdef FREEBL_NO_DEPEND
-#include "stubs.h"
-#endif
+/*
+ * Provide FIPS validated hashing for applications that only need hashing.
+ * NOTE: mac'ing requires keys and will not work in this interface.
+ * Also NOTE: this only works with Hashing. Only the FIPS interface is enabled.
+ */
 
-#include "seccomon.h"
-#if defined(XP_UNIX) || defined(XP_BEOS)
-#include "unix_rand.c"
-#endif
-#ifdef XP_WIN
-#include "win_rand.c"
-#endif
-#ifdef XP_OS2
-#include "os2_rand.c"
-#endif
+typedef struct NSSLOWInitContextStr NSSLOWInitContext;
+typedef struct NSSLOWHASHContextStr NSSLOWHASHContext;
+
+NSSLOWInitContext *NSSLOW_Init(void);
+void NSSLOW_Shutdown(NSSLOWInitContext *context);
+NSSLOWHASHContext *NSSLOWHASH_NewContext(
+			NSSLOWInitContext *initContext, 
+			HASH_HashType hashType);
+void NSSLOWHASH_Begin(NSSLOWHASHContext *context);
+void NSSLOWHASH_Update(NSSLOWHASHContext *context, 
+			const unsigned char *buf, 
+			unsigned int len);
+void NSSLOWHASH_End(NSSLOWHASHContext *context, 
+			unsigned char *buf, 
+			unsigned int *ret, unsigned int len);
+void NSSLOWHASH_Destroy(NSSLOWHASHContext *context);
+int NSSLOWHASH_Length(NSSLOWHASHContext *context); 

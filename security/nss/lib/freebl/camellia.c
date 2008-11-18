@@ -39,6 +39,10 @@
  * $Id$
  */
 
+#ifdef FREEBL_NO_DEPEND
+#include "stubs.h"
+#endif
+
 #include "prinit.h"
 #include "prerr.h"
 #include "secerr.h"
