@@ -37,9 +37,14 @@
  * ***** END LICENSE BLOCK ***** */
 /* $Id$ */
 
+#ifdef FREEBL_NO_DEPEND
+#include "stubs.h"
+#endif
+
 #include "sechash.h"
 #include "alghmac.h"
 #include "blapi.h"
+
 
 #define PHASH_STATE_MAX_LEN SHA1_LENGTH
 

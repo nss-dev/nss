@@ -39,8 +39,13 @@
  * ***** END LICENSE BLOCK ***** */
 /* $Id$ */
 
+#ifdef FREEBL_NO_DEPEND
+extern int FREEBL_InitStubs(void);
+#endif
+
 #include "loader.h"
 #include "alghmac.h"
+
 
 static const struct FREEBLVectorStr vector = 
 {
@@ -250,6 +255,9 @@ FREEBL_GetVector(void)
     volatile char c;
 
     c = __nss_freebl_rcsid[0] + __nss_freebl_sccsid[0]; 
+#ifdef FREEBL_NO_DEPEND
+    FREEBL_InitStubs();
+#endif
     return &vector;
 }
 
