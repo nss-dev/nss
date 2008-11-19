@@ -69,10 +69,22 @@
 #include "sftkdb.h"
 #include "sftkpars.h"
 
-#ifdef SOLARIS
-#include <sys/systeminfo.h>
+#ifndef NO_FORK_CHECK
+
+#if defined(CHECK_FORK_PTHREAD) || defined(CHECK_FORK_MIXED)
+PRBool forked = PR_FALSE;
+#endif
+
+#if defined(CHECK_FORK_GETPID) || defined(CHECK_FORK_MIXED)
 #include <unistd.h>
 pid_t myPid;
+#endif
+
+#ifdef CHECK_FORK_MIXED
+#include <sys/systeminfo.h>
+PRBool usePthread_atfork;
+#endif
+
 #endif
 
 /*
@@ -468,17 +480,11 @@ static const CK_ULONG mechanismCount = sizeof(mechanisms)/sizeof(mechanisms[0]);
 
 static PRBool nsc_init = PR_FALSE;
 
-#if defined(XP_UNIX) && !defined(NO_PTHREADS)
+#if defined(CHECK_FORK_PTHREAD) || defined(CHECK_FORK_MIXED)
 
 #include <pthread.h>
 
-#ifdef SOLARIS
-PRBool usePthread_atfork;
-#endif
-
-PRBool forked = PR_FALSE;
-
-void ForkedChild(void)
+static void ForkedChild(void)
 {
     if (nsc_init || nsf_init) {
         forked = PR_TRUE;
@@ -2367,6 +2373,16 @@ SFTK_DestroySlotData(SFTKSlot *slot)
     return CKR_OK;
 }
 
+#ifndef NO_FORK_CHECK
+
+static CK_RV ForkCheck(void)
+{
+    CHECK_FORK();
+    return CKR_OK;
+}
+
+#endif
+
 /*
  * handle the SECMOD.db
  */
@@ -2381,8 +2397,8 @@ NSC_ModuleDBFunc(unsigned long function,char *parameters, void *args)
     static char *success="Success";
     char **rvstr = NULL;
 
-#if defined(XP_UNIX) && !defined(NO_PTHREADS)
-    if (forked) return NULL;
+#ifndef NO_FORK_CHECK
+    if (CKR_OK != ForkCheck()) return NULL;
 #endif
 
     secmod = sftk_getSecmodName(parameters, &dbType, &appName,&filename, &rw);
@@ -2559,9 +2575,9 @@ loser:
         sftk_InitFreeLists();
     }
 
-#if defined(XP_UNIX) && !defined(NO_PTHREADS)
+#ifndef NO_FORK_CHECK
     if (CKR_OK == crv) {
-#ifdef SOLARIS
+#if defined(CHECK_FORK_MIXED)
         /* Before Solaris 10, fork handlers are not unregistered at dlclose()
          * time. So, we only use pthread_atfork on Solaris 10 and later. For
          * earlier versions, we use PID checks.
@@ -2585,8 +2601,12 @@ loser:
             myPid = getpid();
         }
 
-#else
+#elif defined(CHECK_FORK_PTHREAD)
         pthread_atfork(NULL, NULL, ForkedChild);
+#elif defined(CHECK_FORK_GETPID)
+        myPid = getpid();
+#else
+#error Incorrect fork check method.
 #endif
     }
 #endif
@@ -2638,10 +2658,12 @@ CK_RV nsc_CommonFinalize (CK_VOID_PTR pReserved, PRBool isFIPS)
 
 #ifdef SOLARIS
     if (!usePthread_atfork) {
-        myPid = 0; /* allow reinitialization */
+        myPid = 0; /* allow CHECK_FORK in the next softoken initialization to
+                    * succeed */
     }
+#elif defined(XP_UNIX) && !defined(LINUX)
+    myPid = 0; /* allow reinitialization */
 #endif
-
     return CKR_OK;
 }
 

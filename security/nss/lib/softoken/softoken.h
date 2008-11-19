@@ -262,22 +262,16 @@ extern void sftk_AuditDigestKey(CK_SESSION_HANDLE hSession,
 extern PRBool sftk_fatalError;
 
 /*
-** macros to check for forked child after C_Initialize
+** macros to check for forked child process after C_Initialize
 */
-#if defined(XP_UNIX) && !defined(NO_PTHREADS)
-
-/* Unix platforms with POSIX threads */
-extern PRBool forked;
-
-extern void ForkedChild(void);
+#if defined(XP_UNIX) && !defined(NO_CHECK_FORK)
 
 #ifdef DEBUG
 
 #define FORK_ASSERT() \
     { \
         char* forkAssert = getenv("NSS_STRICT_NOFORK"); \
-        if ( (!forkAssert) || \
-             ( forkAssert && (0 == strcmp(forkAssert, "1"))) ) { \
+        if ( (!forkAssert) || (0 == strcmp(forkAssert, "1")) ) { \
             PORT_Assert(0); \
         } \
     }
@@ -288,36 +282,88 @@ extern void ForkedChild(void);
 
 #endif
 
+/* we have 3 methods of implementing the fork checks :
+ * - Solaris "mixed" method
+ * - pthread_atfork method
+ * - getpid method
+ */
+
+#if !defined (CHECK_FORK_MIXED) && !defined(CHECK_FORK_PTHREAD) && \
+    !defined (CHECK_FORK_GETPID)
+
+/* Choose fork check method automatically unless specified
+ * This section should be updated as more platforms get pthread fixes
+ * to unregister fork handlers in dlclose.
+ */
+
 #ifdef SOLARIS
 
-/* s8, s9 use PID checks, s10 uses pthread_atfork */
+/* Solaris 8, s9 use PID checks, s10 uses pthread_atfork */
+
+#define CHECK_FORK_MIXED
+
+#elif defined(LINUX)
+
+#define CHECK_FORK_PTHREAD
+
+#else
+
+/* Other Unix platforms use only PID checks. Even if pthread_atfork is
+ * available, the behavior of dlclose isn't guaranteed by POSIX to
+ * unregister the fork handler. */
+
+#define CHECK_FORK_GETPID
+
+#endif
+
+#endif
+
+#if defined(CHECK_FORK_MIXED)
 
 extern PRBool usePthread_atfork;
 #include <unistd.h>
 extern pid_t myPid;
+extern PRBool forked;
 
 #define CHECK_FORK() \
     do { \
-        if ( (usePthread_atfork && forked) || (myPid && myPid != getpid()) ) { \
+        if (usePthread_atfork ? forked : (myPid && myPid != getpid()) ) { \
             FORK_ASSERT(); \
             return CKR_DEVICE_ERROR; \
         } \
     } while (0)
 
-#else
+#elif defined(CHECK_FORK_PTHREAD)
 
-/* All other Unix pthread platforms only use pthread_atfork */
+extern PRBool forked;
 
 #define CHECK_FORK() \
     do { if (forked) { FORK_ASSERT(); return CKR_DEVICE_ERROR; } } while (0)
+
+#else
+
+#include <unistd.h>
+extern pid_t myPid;
+
+#define CHECK_FORK() \
+    do { \
+        if (myPid && myPid != getpid()) { \
+            FORK_ASSERT(); \
+            return CKR_DEVICE_ERROR; \
+        } \
+    } while (0)
     
 #endif
 
 #else
 
-/* non-Unix or non-POSIX thread platforms */
+/* non-Unix platforms, or fork check disabled */
 
 #define CHECK_FORK()
+
+#ifndef NO_FORK_CHECK
+#define NO_FORK_CHECK
+#endif
 
 #endif
 

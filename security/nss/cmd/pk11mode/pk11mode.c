@@ -49,10 +49,9 @@
 #include <string.h>
 #include <stdarg.h>
 
-#if defined(XP_UNIX) && !defined(NO_PTHREADS)
+#if defined(XP_UNIX) && !defined(NO_FORK_CHECK)
 #include <unistd.h>
 #include <sys/wait.h>
-#define DO_FORK_CHECK 1
 #endif
 
 #ifdef _WIN32
@@ -551,7 +550,7 @@ CK_RV PKM_RecoverFunctions(CK_FUNCTION_LIST_PTR pFunctionList,
                     CK_MECHANISM *signMech, const CK_BYTE * pData, 
                     CK_ULONG pDataLen);
 CK_RV PKM_ForkCheck(int expected, CK_FUNCTION_LIST_PTR fList,
-		    PRBool forkAssert);
+		    PRBool forkAssert, CK_C_INITIALIZE_ARGS_NSS *initArgs);
 
 void  PKM_Help(); 
 void  PKM_CheckPath(char *string);
@@ -629,7 +628,7 @@ int main(int argc, char **argv)
     {
         /* first, try to fork without softoken loaded to make sure
          * everything is OK */
-        crv = PKM_ForkCheck(123, NULL, PR_FALSE);
+        crv = PKM_ForkCheck(123, NULL, PR_FALSE, NULL);
         if (crv != CKR_OK)
             goto cleanup;
     }
@@ -693,7 +692,7 @@ int main(int argc, char **argv)
     {
         /* now, try to fork with softoken loaded, but not initialized */
         crv = PKM_ForkCheck(CKR_CRYPTOKI_NOT_INITIALIZED, pFunctionList,
-			    PR_TRUE);
+			    PR_TRUE, NULL);
         if (crv != CKR_OK)
             goto cleanup;
     }
@@ -733,7 +732,7 @@ int main(int argc, char **argv)
          * by the PKCS#11 return code.
          */
         /* try to fork with softoken both loaded and initialized */
-        crv = PKM_ForkCheck(CKR_DEVICE_ERROR, pFunctionList, PR_FALSE);
+        crv = PKM_ForkCheck(CKR_DEVICE_ERROR, pFunctionList, PR_FALSE, NULL);
         if (crv != CKR_OK)
             goto cleanup;
     }
@@ -920,14 +919,14 @@ int main(int argc, char **argv)
     {
         /* try to fork with softoken still loaded, but de-initialized */
         crv = PKM_ForkCheck(CKR_CRYPTOKI_NOT_INITIALIZED, pFunctionList,
-	                    PR_TRUE);
+	                    PR_TRUE, NULL);
         if (crv != CKR_OK)
             goto cleanup;
     }
 
     if (pSlotList) free(pSlotList);
 
-    /* demostrate how an application can be in Hybrid mode */
+    /* demonstrate how an application can be in Hybrid mode */
     /* PKM_HybridMode shows how to switch between NONFIPS */
     /* mode to FIPS mode */
 
@@ -939,6 +938,29 @@ int main(int argc, char **argv)
         PKM_Error( "PKM_HybridMode failed with 0x%08X, %-26s\n", crv, 
                    PKM_CK_RVtoStr(crv));
         goto cleanup;
+    }
+
+    if (doForkTests) {
+        /* testing one more C_Initialize / C_Finalize to exercise getpid()
+         * fork check code */
+        crv = pFunctionList->C_Initialize(&initArgs);
+        if (crv == CKR_OK) {
+            PKM_LogIt("C_Initialize succeeded\n");
+        } else {
+            PKM_Error( "C_Initialize failed with 0x%08X, %-26s\n", crv, 
+                       PKM_CK_RVtoStr(crv));
+            goto cleanup;
+        }
+        crv = pFunctionList->C_Finalize(NULL);
+        if (crv == CKR_OK) {
+            PKM_LogIt("C_Finalize succeeded\n");
+        } else {
+            PKM_Error( "C_Finalize failed with 0x%08X, %-26s\n", crv, 
+                       PKM_CK_RVtoStr(crv));
+            goto cleanup;
+        }
+        /* try to C_Initialize / C_Finalize in child. This should succeed */
+        crv = PKM_ForkCheck(CKR_OK, pFunctionList, PR_TRUE, &initArgs);
     }
 
     PKM_LogIt("unloading NSS PKCS # 11 softoken and exiting\n");
@@ -966,10 +988,9 @@ cleanup:
         PR_UnloadLibrary(lib);
     }
 #endif
-    if (CKR_OK == crv && doForkTests)
-    {
+    if (CKR_OK == crv && doForkTests && !disableUnload) {
         /* try to fork with softoken both de-initialized and unloaded */
-        crv = PKM_ForkCheck(123, NULL, PR_TRUE);
+        crv = PKM_ForkCheck(123, NULL, PR_TRUE, NULL);
     }
 
     printf("**** Total number of TESTS ran in %s is %d. ****\n", 
@@ -5411,10 +5432,10 @@ void PKM_CheckPath(char *string)
 }
 
 CK_RV PKM_ForkCheck(int expected, CK_FUNCTION_LIST_PTR fList,
-		    PRBool forkAssert)
+		    PRBool forkAssert, CK_C_INITIALIZE_ARGS_NSS *initArgs)
 {
     CK_RV crv = CKR_OK;
-#ifdef DO_FORK_CHECK
+#ifndef NO_FORK_CHECK
     int rc = -1;
     int retStatus = 0;
     NUMTESTS++; /* increment NUMTESTS */
@@ -5431,14 +5452,29 @@ CK_RV PKM_ForkCheck(int expected, CK_FUNCTION_LIST_PTR fList,
         break;
     case 0:
         if (fList) {
-            /* If softoken is loaded, make a PKCS#11 call in the child.
-             * This call should always fail. If softoken is uninitialized,
-             * it fails with CKR_CRYPTOKI_NOT_INITIALIZED .
-             * If it was initialized in the parent, the fork check should
-             * kick in, and make it return CKR_DEVICE_ERROR .
-             */
-            CK_RV child_crv = fList->C_GetTokenInfo(NULL, NULL);
-            exit(child_crv & 255);
+            if (!initArgs) {
+                /* If softoken is loaded, make a PKCS#11 call to C_GetTokenInfo
+                 * in the child. This call should always fail.
+                 * If softoken is uninitialized,
+                 * it fails with CKR_CRYPTOKI_NOT_INITIALIZED.
+                 * If it was initialized in the parent, the fork check should
+                 * kick in, and make it return CKR_DEVICE_ERROR.
+                 */
+                CK_RV child_crv = fList->C_GetTokenInfo(NULL, NULL);
+                exit(child_crv & 255);
+            } else {
+                /* If softoken is loaded, make a PKCS#11 call to C_Initialize
+                 * in the child. This call should always fail.
+                 * If softoken is uninitialized, this should succeed.
+                 * If it was initialized in the parent, the fork check should
+                 * kick in, and make it return CKR_DEVICE_ERROR.
+                 */
+                CK_RV child_crv = fList->C_Initialize(initArgs);
+                if (CKR_OK == child_crv) {
+                    child_crv = fList->C_Finalize(NULL);
+                }
+                exit(child_crv & 255);
+            }
         }
         exit(expected & 255);
     default:
