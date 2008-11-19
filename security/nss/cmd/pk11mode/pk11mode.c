@@ -52,6 +52,10 @@
 #if defined(XP_UNIX) && !defined(NO_FORK_CHECK)
 #include <unistd.h>
 #include <sys/wait.h>
+#else
+#ifndef NO_FORK_CHECK
+#define NO_FORK_CHECK
+#endif
 #endif
 
 #ifdef _WIN32
