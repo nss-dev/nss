@@ -833,6 +833,9 @@ add_cert_to_cache (
 	    goto loser;
 	}
 #endif
+    } else {
+    	/* A new subject entry was not created.  arena is unused. */
+	nssArena_Destroy(arena);
     }
     rvCert = cert;
     PZ_Unlock(td->cache->lock);
