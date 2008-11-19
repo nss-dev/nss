@@ -77,9 +77,9 @@ endif
 ifdef FREEBL_NO_DEPEND
 	DEFINES += -DFREEBL_NO_DEPEND
 endif
-# des.c wants _X86_ defined for intel CPUs.  
+# some codes want _X86_ defined for intel CPUs.
 # coreconf does this for windows, but not for Linux, FreeBSD, etc.
-ifeq ($(CPU_ARCH),x86)
+ifeq (,$(filter-out x86 x86_64,$(CPU_ARCH)))
 ifneq (,$(filter-out WIN%,$(OS_TARGET)))
 	OS_REL_CFLAGS += -D_X86_
 endif
