@@ -1240,8 +1240,7 @@ do {
     if (leakedObjNum) {
         pkix_pl_lifecycle_ObjectTableUpdate(objCountTable); 
     }
-
-    PR_LOG(pkixLog, 1, ("Memory leak test: Loop %d\n", memLeakLoopCount++));
+    memLeakLoopCount += 1;
 #endif /* PKIX_OBJECT_LEAK_TEST */
 
     error =
@@ -1312,8 +1311,8 @@ cleanup:
         pkix_pl_lifecycle_ObjectLeakCheck(leakedObjNum ? objCountTable : NULL);
     
     if (pkixLog && leakedObjNum) {
-        PR_LOG(pkixLog, 1, ("The generated error caused an object leaks. "
-                            "Stack %s\n", errorFnStackString));
+        PR_LOG(pkixLog, 1, ("The generated error caused an object leaks. Loop %d."
+                            "Stack %s\n", memLeakLoopCount, errorFnStackString));
     }
     PR_Free(errorFnStackString);
     errorFnStackString = NULL;
@@ -2105,8 +2104,7 @@ do {
     if (leakedObjNum) {
         pkix_pl_lifecycle_ObjectTableUpdate(objCountTable);
     }
-
-    PR_LOG(pkixLog, 1, ("Memory leak test: Loop %d\n", memLeakLoopCount++));
+    memLeakLoopCount += 1;
 #endif /* PKIX_OBJECT_LEAK_TEST */
 
     error = PKIX_PL_NssContext_Create(
@@ -2276,8 +2274,8 @@ cleanup:
         pkix_pl_lifecycle_ObjectLeakCheck(leakedObjNum ? objCountTable : NULL);
 
     if (pkixLog && leakedObjNum) {
-        PR_LOG(pkixLog, 1, ("The generated error caused an object leaks. "
-                            "Stack %s\n", errorFnStackString));
+        PR_LOG(pkixLog, 1, ("The generated error caused an object leaks. Loop %d."
+                            "Stack %s\n", memLeakLoopCount, errorFnStackString));
     }
     PR_Free(errorFnStackString);
     errorFnStackString = NULL;
