@@ -41,8 +41,10 @@ include $(CORE_DEPTH)/coreconf/config.mk
 include config.mk
 include $(CORE_DEPTH)/coreconf/rules.mk
 
+ifneq ($(OS_ARCH),WINCE)
 ifdef MOZILLA_CLIENT
 NSS_BUILD_CAPI = 1
+endif
 endif
 
 # This'll need some help from a build person.

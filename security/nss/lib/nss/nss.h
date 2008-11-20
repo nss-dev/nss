@@ -41,10 +41,6 @@
 #ifndef __nss_h_
 #define __nss_h_
 
-#include "seccomon.h"
-
-SEC_BEGIN_PROTOS
-
 /* The private macro _NSS_ECC_STRING is for NSS internal use only. */
 #ifdef NSS_ENABLE_ECC
 #ifdef NSS_ECC_MORE_THAN_SUITE_B
@@ -75,6 +71,12 @@ SEC_BEGIN_PROTOS
 #define NSS_VMINOR   12
 #define NSS_VPATCH   3
 #define NSS_BETA     PR_TRUE
+
+#ifndef RC_INVOKED
+
+#include "seccomon.h"
+
+SEC_BEGIN_PROTOS
 
 /*
  * Return a boolean that indicates whether the underlying library
@@ -262,4 +264,5 @@ void nss_DumpCertificateCacheInfo(void);
 
 SEC_END_PROTOS
 
+#endif /* RC_INVOKED */
 #endif /* __nss_h_ */
