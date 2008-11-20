@@ -882,8 +882,13 @@ cert_PkixErrorToNssCode(
             if (!pkixLog) break;
         }
         if (pkixLog) {
+#ifdef PKIX_ERROR_DESCRIPTION            
             PR_LOG(pkixLog, 2, ("Error at level %d: %s\n", errLevel,
                                 PKIX_ErrorText[errPtr->errCode]));
+#else
+            PR_LOG(pkixLog, 2, ("Error at level %d: Error code %d\n", errLevel,
+                                errPtr->errCode));
+#endif /* PKIX_ERROR_DESCRIPTION */
         }
         errPtr = errPtr->cause;
         errLevel += 1; 
