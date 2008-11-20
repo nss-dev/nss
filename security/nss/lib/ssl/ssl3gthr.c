@@ -204,8 +204,11 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 	cText.version = (ss->gs.hdr[1] << 8) | ss->gs.hdr[2];
 	cText.buf     = &ss->gs.inbuf;
 	rv = ssl3_HandleRecord(ss, &cText, &ss->gs.buf);
+	if (ss->recvdCloseNotify) {
+	    return 0;
+	}
 	if (rv < 0) {
-	    return ss->recvdCloseNotify ? 0 : rv;
+	    return rv;
 	}
     } while (ss->ssl3.hs.ws != idle_handshake && ss->gs.buf.len == 0);
 
