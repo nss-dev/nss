@@ -1033,7 +1033,6 @@ cleanup:
             verifyNode->error = pkixErrorResult; \
         } \
         pkixErrorCode = errCode; \
-        pkixErrorMsg = PKIX_ErrorText[errCode]; \
         goto cleanup; \
     }
 

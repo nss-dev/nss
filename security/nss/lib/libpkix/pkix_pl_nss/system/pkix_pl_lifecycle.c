@@ -129,7 +129,7 @@ pkix_pl_lifecycle_ObjectLeakCheck(int *initObjCountTable)
                 className = entry->description;
                 if (!className) {
                     className = classNameBuff;
-                    sprintf(className, "Unknown(ref %d)", 
+                    PR_snprintf(className, 128, "Unknown(ref %d)", 
                             entry->objCounter);
                 }
 
