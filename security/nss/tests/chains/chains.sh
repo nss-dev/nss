@@ -534,6 +534,8 @@ verify_cert()
         ${RUN_COMMAND_DBG} ${BINDIR}/vfychain ${DB_OPT} -pp -vv ${FETCH_OPT} ${POLICY_OPT} ${VFY_CERTS} ${TRUST_OPT} 2>> ${LOGFILE}
         RESULT=$?
     fi
+
+    echo "Returned value is ${RESULT}, expected result is ${EXP_RESULT}"
     
     if [ "${EXP_RESULT}" = "pass" -a ${RESULT} -eq 0 ]; then
         html_passed "${SCENARIO}${TESTNAME}"
