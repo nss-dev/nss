@@ -54,6 +54,10 @@ const char * const PKIX_ErrorText[] =
 #include "pkix_errorstrings.h"
 };
 
+#else
+
+#include "prprf.h"
+
 #endif /* PKIX_ERROR_DESCRIPTION */
 
 extern const int PKIX_PLErrorIndex[];
