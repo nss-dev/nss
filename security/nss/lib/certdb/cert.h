@@ -1108,7 +1108,7 @@ char *CERT_FixupEmailAddr(const char *emailAddr);
 
 /* decode string representation of trust flags into trust struct */
 SECStatus
-CERT_DecodeTrustString(CERTCertTrust *trust, char *trusts);
+CERT_DecodeTrustString(CERTCertTrust *trust, const char *trusts);
 
 /* encode trust struct into string representation of trust flags */
 char *
