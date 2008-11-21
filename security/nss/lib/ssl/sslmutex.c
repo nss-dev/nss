@@ -37,7 +37,7 @@
 
 #include "seccomon.h"
 /* This ifdef should match the one in sslsnce.c */
-#if (defined(XP_UNIX) || defined(XP_WIN32) || defined (XP_OS2) || defined(XP_BEOS))
+#if defined(XP_UNIX) || defined(XP_WIN32) || defined (XP_OS2) || defined(XP_BEOS)
 
 #include "sslmutex.h"
 #include "prerr.h"
