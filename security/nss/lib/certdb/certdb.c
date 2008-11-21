@@ -2374,7 +2374,7 @@ CERT_FixupEmailAddr(const char *emailAddr)
  * NOTE - don't allow encode of govt-approved or invisible bits
  */
 SECStatus
-CERT_DecodeTrustString(CERTCertTrust *trust, char *trusts)
+CERT_DecodeTrustString(CERTCertTrust *trust, const char *trusts)
 {
     unsigned int i;
     unsigned int *pflags;
