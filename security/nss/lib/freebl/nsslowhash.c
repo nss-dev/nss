@@ -1,7 +1,4 @@
-/*
- * PKCS #11 FIPS Power-Up Self Test.
- *
- * ***** BEGIN LICENSE BLOCK *****
+/* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -270,7 +267,7 @@ struct NSSLOWHASHContextStr {
    
 };
 
-int post = 0;
+static int post = 0;
 
 static NSSLOWInitContext dummyContext = { 0 };
 
@@ -280,7 +277,6 @@ NSSLOW_Init(void)
     SECStatus rv;
     CK_RV crv;
     PRBool nsprAvailable = PR_FALSE;
-    NSSLOWInitContext *context = NULL;
 
 
     rv = FREEBL_InitStubs();
@@ -362,7 +358,7 @@ NSSLOWHASH_Destroy(NSSLOWHASHContext *context)
    PORT_Free(context);
 }
 
-int
+unsigned int
 NSSLOWHASH_Length(NSSLOWHASHContext *context)
 {
    return context->hashObj->length;

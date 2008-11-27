@@ -3,6 +3,7 @@
  *
  * These symbols are overridden once real NSPR, and libutil are attached.
  */
+#define _GNU_SOURCE 1
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -10,9 +11,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/time.h>
-#define __USE_GNU 
 #include <dlfcn.h>
-#include <pthread.h>
 #include <prio.h>
 #include <prlink.h>
 #include <prlog.h>
@@ -125,7 +124,7 @@ STUB_DECLARE(PRInt32,PR_Read,(PRFileDesc *fd, void *buf, PRInt32 amount));
 STUB_DECLARE(PROffset32,PR_Seek,(PRFileDesc *fd, PROffset32 offset, 
 			PRSeekWhence whence));
 STUB_DECLARE(PRStatus,PR_Sleep,(PRIntervalTime ticks));
-STUB_DECLARE(void,PR_Unlock,(PRLock *lock));
+STUB_DECLARE(PRStatus,PR_Unlock,(PRLock *lock));
 
 STUB_DECLARE(SECItem *,SECITEM_AllocItem_Util,(PRArenaPool *arena, 
 			SECItem *item,unsigned int len));
@@ -369,12 +368,12 @@ PR_NewLock_stub(void)
     return NULL;
 }
 
-extern void
+extern PRStatus
 PR_Unlock_stub(PRLock *lock)
 {
     STUB_SAFE_CALL1(PR_Unlock, lock);
     abort();
-    return;
+    return PR_FAILURE;
 }
 
 extern void
@@ -401,7 +400,7 @@ PR_CallOnce_stub(PRCallOnceType *once, PRCallOnceFN func)
 {
     STUB_SAFE_CALL2(PR_CallOnce, once, func);
     abort();
-    return SECFailure;
+    return PR_FAILURE;
 }
 
 

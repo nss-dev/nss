@@ -1,7 +1,4 @@
-/*
- * PKCS #11 FIPS Power-Up Self Test.
- *
- * ***** BEGIN LICENSE BLOCK *****
+/* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -59,4 +56,4 @@ void NSSLOWHASH_End(NSSLOWHASHContext *context,
 			unsigned char *buf, 
 			unsigned int *ret, unsigned int len);
 void NSSLOWHASH_Destroy(NSSLOWHASHContext *context);
-int NSSLOWHASH_Length(NSSLOWHASHContext *context); 
+unsigned int NSSLOWHASH_Length(NSSLOWHASHContext *context); 

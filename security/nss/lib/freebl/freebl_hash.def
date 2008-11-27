@@ -56,7 +56,7 @@ FREEBL_GetVector;
 ;+    local:
 ;+       *;
 ;+};
-;+NSSRAWHASH_3.12 {               # NSS 3.12 release
+;+NSSRAWHASH_3.12.3 {             # NSS 3.12.3 release
 ;+    global:
 NSSLOW_Init;
 NSSLOW_Shutdown;
