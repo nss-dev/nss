@@ -89,7 +89,7 @@ static SECStatus single_process_sslMutex_Lock(sslMutex* pMutex)
     return SECSuccess;
 }
 
-#if defined(LINUX) || defined(AIX) || defined(VMS) || defined(BEOS) || defined(BSDI) || defined(NETBSD) || defined(OPENBSD)
+#if defined(LINUX) || defined(AIX) || defined(VMS) || defined(BEOS) || defined(BSDI) || (defined(NETBSD) && __NetBSD_Version__ < 500000000) || defined(OPENBSD)
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -141,6 +141,7 @@ sslMutex_Init(sslMutex *pMutex, int shared)
 
     err = pipe(pMutex->u.pipeStr.mPipes);
     if (err) {
+	nss_MD_unix_map_default_error(errno);
 	return err;
     }
 #if NONBLOCKING_POSTS
