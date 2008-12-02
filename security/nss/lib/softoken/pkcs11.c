@@ -2392,7 +2392,11 @@ NSC_ModuleDBFunc(unsigned long function,char *parameters, void *args)
     char *secmod = NULL;
     char *appName = NULL;
     char *filename = NULL;
+#ifdef NSS_DISABLE_DBM
+    SDBType dbType = SDB_SQL;
+#else
     SDBType dbType = SDB_LEGACY;
+#endif
     PRBool rw;
     static char *success="Success";
     char **rvstr = NULL;

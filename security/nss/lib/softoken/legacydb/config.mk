@@ -43,10 +43,11 @@ ifdef MOZILLA_SECURITY_BUILD
 	CRYPTODIR=../crypto
 endif
 
-EXTRA_LIBS += \
-	$(CRYPTOLIB) \
-	$(DIST)/lib/$(LIB_PREFIX)dbm.$(LIB_SUFFIX) \
-	$(NULL)
+EXTRA_LIBS +=	$(CRYPTOLIB) 
+
+ifndef NSS_DISABLE_DBM
+EXTRA_LIBS +=	$(DIST)/lib/$(LIB_PREFIX)dbm.$(LIB_SUFFIX) 
+endif
 
 # can't do this in manifest.mn because OS_TARGET isn't defined there.
 ifeq (,$(filter-out WIN%,$(OS_TARGET)))

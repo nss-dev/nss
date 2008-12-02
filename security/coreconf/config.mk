@@ -190,6 +190,10 @@ ifdef BUILD_LIBPKIX_TESTS
 DEFINES += -DBUILD_LIBPKIX_TESTS
 endif
 
+ifdef NSS_DISABLE_DBM
+DEFINES += -DNSS_DISABLE_DBM
+endif
+
 # Avoid building object leak test code for optimized library
 ifndef BUILD_OPT
 ifdef PKIX_OBJECT_LEAK_TEST

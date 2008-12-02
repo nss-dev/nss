@@ -52,7 +52,6 @@
 #include "genname.h"
 #include "keyhi.h"
 #include "secitem.h"
-#include "mcom_db.h"
 #include "certdb.h"
 #include "prprf.h"
 #include "sechash.h"
