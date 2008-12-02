@@ -329,7 +329,7 @@ run ${ATTR}
 	echo "${SCRIPTNAME}: -------- DBX commands:"
 	echo "${DBX_CMD}"
 	
-	echo "${DBX_CMD}" | ${DBX} ${COMMAND} 2> ${TMP_DBXERR} | grep -v Reading > ${TMP_DBX}
+	( echo "${DBX_CMD}" | ${DBX} ${COMMAND} 2> ${TMP_DBXERR} | grep -v Reading > ${TMP_DBX} )
 	cat ${TMP_DBX} 1>&2
 	cat ${TMP_DBXERR}
 
@@ -527,9 +527,11 @@ run_ciphers_server()
 			LOGFILE=${LOGDIR}/${LOGNAME}.log
 			echo "Running ${LOGNAME}"
 			
-			run_selfserv_dbg 2>> ${LOGFILE} &
-			sleep 5
-			run_strsclnt
+			(
+			    run_selfserv_dbg 2>> ${LOGFILE} &
+			    sleep 5
+			    run_strsclnt
+			)
 			
 			sleep 20
 			clear_freebl
@@ -566,9 +568,11 @@ run_ciphers_client()
 			LOGFILE=${LOGDIR}/${LOGNAME}.log
 			echo "Running ${LOGNAME}"
 			
-			run_selfserv &
-			sleep 5
-			run_strsclnt_dbg 2>> ${LOGFILE}
+			(
+			    run_selfserv &
+			    sleep 5
+			    run_strsclnt_dbg 2>> ${LOGFILE}
+			)
 			
 			sleep 20
 			clear_freebl
