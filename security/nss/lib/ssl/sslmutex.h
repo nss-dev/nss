@@ -59,6 +59,10 @@
 #include "prtypes.h"
 #include "prlock.h"
 
+#if defined(NETBSD)
+#include <sys/param.h> /* for __NetBSD_Version__ */
+#endif
+
 #if defined(WIN32)
 
 #include <wtypes.h>
@@ -79,7 +83,7 @@ typedef struct
 
 typedef int    sslPID;
 
-#elif defined(LINUX) || defined(AIX) || defined(VMS) || defined(BEOS) || defined(BSDI) || defined(NETBSD) || defined(OPENBSD)
+#elif defined(LINUX) || defined(AIX) || defined(VMS) || defined(BEOS) || defined(BSDI) || (defined(NETBSD) && __NetBSD_Version__ < 500000000) || defined(OPENBSD)
 
 #include <sys/types.h>
 #include "prtypes.h"
