@@ -195,7 +195,12 @@ nssToken_CreateFromPK11SlotInfo(NSSTrustDomain *td, PK11SlotInfo *nss3slot)
                                                        nss3slot->session,
                                                        nss3slot->sessionLock,
                                                        nss3slot->defRWSession);
-    /* continue, even if rvToken->defaultSession is NULL */
+#if 0 /* we should do this instead of blindly continuing. */
+    if (!rvToken->defaultSession) {
+	PORT_SetError(SEC_ERROR_NO_TOKEN);
+    	goto loser;
+    }
+#endif
     if (!PK11_IsInternal(nss3slot) && PK11_IsHW(nss3slot)) {
 	rvToken->cache = nssTokenObjectCache_Create(rvToken, 
 	                                            PR_TRUE, PR_TRUE, PR_TRUE);
@@ -271,7 +276,7 @@ nssSlot_Refresh
 {
     PK11SlotInfo *nss3slot = slot->pk11slot;
     PRBool doit = PR_FALSE;
-    if (slot->token->base.name[0] == 0) {
+    if (slot->token && slot->token->base.name[0] == 0) {
 	doit = PR_TRUE;
     }
     if (PK11_InitToken(nss3slot, PR_FALSE) != SECSuccess) {
