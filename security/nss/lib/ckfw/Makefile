@@ -41,10 +41,8 @@ include $(CORE_DEPTH)/coreconf/config.mk
 include config.mk
 include $(CORE_DEPTH)/coreconf/rules.mk
 
-ifneq ($(OS_ARCH),WINCE)
 ifdef MOZILLA_CLIENT
 NSS_BUILD_CAPI = 1
-endif
 endif
 
 # This'll need some help from a build person.
@@ -63,7 +61,7 @@ endif
 export:: private_export
 
 # can't do this in manifest.mn because OS_TARGET isn't defined there.
-ifeq (,$(filter-out WIN%,$(OS_TARGET)))
+ifeq (,$(filter-out WINNT WIN95,$(OS_TARGET))) # list omits WINCE
 ifdef NSS_BUILD_CAPI
 DIRS += capi
 endif
