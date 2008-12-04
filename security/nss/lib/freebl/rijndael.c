@@ -47,6 +47,11 @@
 #include "blapi.h"
 #include "rijndael.h"
 
+#if USE_HW_AES
+#include "intel-aes.h"
+#include "mpi.h"
+#endif
+
 /*
  * There are currently five ways to build this code, varying in performance
  * and code size.
@@ -849,6 +854,8 @@ rijndael_encryptECB(AESContext *cx, unsigned char *output,
 {
     SECStatus rv;
     AESBlockFunc *encryptor;
+
+
     encryptor = (blocksize == RIJNDAEL_MIN_BLOCKSIZE) 
 				  ? &rijndael_encryptBlock128 
 				  : &rijndael_encryptBlock;
@@ -907,6 +914,7 @@ rijndael_decryptECB(AESContext *cx, unsigned char *output,
 {
     SECStatus rv;
     AESBlockFunc *decryptor;
+
     decryptor = (blocksize == RIJNDAEL_MIN_BLOCKSIZE) 
 				  ? &rijndael_decryptBlock128 
 				  : &rijndael_decryptBlock;
@@ -933,6 +941,7 @@ rijndael_decryptCBC(AESContext *cx, unsigned char *output,
     unsigned char *out;
     unsigned int j;
     unsigned char newIV[RIJNDAEL_MAX_BLOCKSIZE];
+
 
     if (!inputLen) 
 	return SECSuccess;
@@ -978,11 +987,16 @@ AESContext * AES_AllocateContext(void)
     return PORT_ZNew(AESContext);
 }
 
+
 SECStatus   
 AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize, 
 	        const unsigned char *iv, int mode, unsigned int encrypt,
 	        unsigned int blocksize)
 {
+#if USE_HW_AES
+    static int has_intel_aes;
+    PRBool use_hw_aes = PR_FALSE;
+#endif
     unsigned int Nk;
     /* According to Rijndael AES Proposal, section 12.1, block and key
      * lengths between 128 and 256 bits are supported, as long as the
@@ -1010,6 +1024,16 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
     	return SECFailure;
     }
+#if USE_HW_AES
+    if (has_intel_aes == 0) {
+	unsigned long eax, ebx, ecx, edx;
+
+	freebl_cpuid(1, &eax, &ebx, &ecx, &edx);
+	has_intel_aes = (ecx & (1 << 25)) != 0 ? 1 : -1;
+    }
+    use_hw_aes = (PRBool)
+		(has_intel_aes > 0 && (keysize % 8) == 0 && blocksize == 16);
+#endif
     /* Nb = (block size in bits) / 32 */
     cx->Nb = blocksize / 4;
     /* Nk = (key size in bits) / 32 */
@@ -1019,22 +1043,51 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
     /* copy in the iv, if neccessary */
     if (mode == NSS_AES_CBC) {
 	memcpy(cx->iv, iv, blocksize);
-	cx->worker = (encrypt) ? &rijndael_encryptCBC : &rijndael_decryptCBC;
+#if USE_HW_AES
+	if (use_hw_aes) {
+	    cx->worker = intel_aes_cbc_worker(encrypt, keysize);
+	} else
+#endif
+	    cx->worker = (encrypt
+			  ? &rijndael_encryptCBC : &rijndael_decryptCBC);
     } else {
-	cx->worker = (encrypt) ? &rijndael_encryptECB : &rijndael_decryptECB;
+#if  USE_HW_AES
+	if (use_hw_aes) {
+	    cx->worker = intel_aes_ecb_worker(encrypt, keysize);
+	} else
+#endif
+	    cx->worker = (encrypt
+			  ? &rijndael_encryptECB : &rijndael_decryptECB);
     }
     PORT_Assert((cx->Nb * (cx->Nr + 1)) <= RIJNDAEL_MAX_EXP_KEY_SIZE);
     if ((cx->Nb * (cx->Nr + 1)) > RIJNDAEL_MAX_EXP_KEY_SIZE) {
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
 	goto cleanup;
     }
-    /* Generate expanded key */
-    if (encrypt) {
-	if (rijndael_key_expansion(cx, key, Nk) != SECSuccess)
-	    goto cleanup;
-    } else {
-	if (rijndael_invkey_expansion(cx, key, Nk) != SECSuccess)
-	    goto cleanup;
+#ifdef USE_HW_AES
+    if (use_hw_aes) {
+	intel_aes_init(encrypt, keysize);
+    } else
+#endif
+    {
+
+#if defined(RIJNDAEL_GENERATE_TABLES) ||  \
+	defined(RIJNDAEL_GENERATE_TABLES_MACRO)
+	if (rijndaelTables == NULL) {
+	    if (PR_CallOnce(&coRTInit, init_rijndael_tables)
+	      != PR_SUCCESS) {
+		return SecFailure;
+	    }
+	}
+#endif
+	/* Generate expanded key */
+	if (encrypt) {
+	    if (rijndael_key_expansion(cx, key, Nk) != SECSuccess)
+		goto cleanup;
+	} else {
+	    if (rijndael_invkey_expansion(cx, key, Nk) != SECSuccess)
+		goto cleanup;
+	}
     }
     return SECSuccess;
 cleanup:
@@ -1104,15 +1157,6 @@ AES_Encrypt(AESContext *cx, unsigned char *output,
 	return SECFailure;
     }
     *outputLen = inputLen;
-#if defined(RIJNDAEL_GENERATE_TABLES) ||  \
-    defined(RIJNDAEL_GENERATE_TABLES_MACRO)
-    if (rijndaelTables == NULL) {
-	if (PR_CallOnce(&coRTInit, init_rijndael_tables) 
-	      != PR_SUCCESS) {
-	    return PR_FAILURE;
-	}
-    }
-#endif
     return (*cx->worker)(cx, output, outputLen, maxOutputLen,	
                              input, inputLen, blocksize);
 }
@@ -1144,16 +1188,6 @@ AES_Decrypt(AESContext *cx, unsigned char *output,
 	return SECFailure;
     }
     *outputLen = inputLen;
-#if defined(RIJNDAEL_GENERATE_TABLES) ||  \
-    defined(RIJNDAEL_GENERATE_TABLES_MACRO)
-    if (rijndaelTables == NULL) {
-	if (PR_CallOnce(&coRTInit, init_rijndael_tables) 
-	      != PR_SUCCESS) {
-	    return PR_FAILURE;
-	}
-    }
-#endif
     return (*cx->worker)(cx, output, outputLen, maxOutputLen,	
                              input, inputLen, blocksize);
 }
-
