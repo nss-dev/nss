@@ -76,6 +76,8 @@ chains_init()
 
     AIA_FILES="${HOSTDIR}/aiafiles"
 
+    CU_DATA=${HOSTDIR}/cu_data
+
     html_head "Certificate Chains Tests"
 }
 
@@ -88,6 +90,16 @@ chains_cleanup()
     html "</TABLE><BR>"
     cd ${QADIR}
     . common/cleanup.sh
+}
+
+############################ print_cu_data #############################
+# local shell function to print certutil input data
+########################################################################
+print_cu_data()
+{
+    echo "=== Certutil input data ==="
+    cat ${CU_DATA}
+    echo "==="
 }
 
 ############################# create_db ################################
@@ -122,11 +134,7 @@ create_root_ca()
     CERT_SN=$(expr ${CERT_SN} + 1)
     date >> ${NOISE_FILE} 2>&1
 
-    TESTNAME="Creating Root CA ${ENTITY}"
-    echo "${SCRIPTNAME}: ${TESTNAME}"
-    echo "certutil -s \"CN=${ENTITY} ROOT CA, O=${ENTITY}, C=US\" -S -n ${ENTITY} -t CTu,CTu,CTu -v 600 -x -d ${ENTITY_DB} -1 -2 -5 -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -m ${CERT_SN}"
-    ${BINDIR}/certutil -s "CN=${ENTITY} ROOT CA, O=${ENTITY}, C=US" -S -n ${ENTITY} -t CTu,CTu,CTu -v 600 -x -d ${ENTITY_DB} -1 -2 -5 -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -m ${CERT_SN} <<CERT
-5
+    echo "5
 6
 9
 n
@@ -137,8 +145,13 @@ n
 6
 7
 9
-n
-CERT
+n" > ${CU_DATA}
+
+    TESTNAME="Creating Root CA ${ENTITY}"
+    echo "${SCRIPTNAME}: ${TESTNAME}"
+    echo "certutil -s \"CN=${ENTITY} ROOT CA, O=${ENTITY}, C=US\" -S -n ${ENTITY} -t CTu,CTu,CTu -v 600 -x -d ${ENTITY_DB} -1 -2 -5 -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -m ${CERT_SN} < ${CU_DATA}"
+    print_cu_data
+    ${BINDIR}/certutil -s "CN=${ENTITY} ROOT CA, O=${ENTITY}, C=US" -S -n ${ENTITY} -t CTu,CTu,CTu -v 600 -x -d ${ENTITY_DB} -1 -2 -5 -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -m ${CERT_SN} < ${CU_DATA}
     html_msg $? 0 "${SCENARIO}${TESTNAME}"
 
     TESTNAME="Exporting Root CA ${ENTITY}.der"
@@ -169,15 +182,15 @@ create_cert_req()
         EXT_DATA="y
 -1
 y"
-
     fi
+
+    echo "${EXT_DATA}" > ${CU_DATA}
 
     TESTNAME="Creating ${TYPE} certifiate request ${REQ}"
     echo "${SCRIPTNAME}: ${TESTNAME}"
-    echo "certutil -s \"CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US\" -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ}"
-    ${BINDIR}/certutil -s "CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US" -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ} <<EOF
-${EXT_DATA}
-EOF
+    echo "certutil -s \"CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US\" -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ} < ${CU_DATA}"
+    print_cu_data
+    ${BINDIR}/certutil -s "CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US" -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ} < ${CU_DATA} 
     html_msg $? 0 "${SCENARIO}${TESTNAME}"
 }
 
@@ -317,7 +330,7 @@ process_aia()
         for ITEM in ${AIA}; do
             PK7_NONCE=`expr $PK7_NONCE + 1`
 
-            echo ${ITEM} | grep ":"
+            echo ${ITEM} | grep ":" > /dev/null
             if [ $? -eq 0 ]; then
                 CERT_NICK=`echo ${ITEM} | cut -d: -f1`
                 CERT_ISSUER=`echo ${ITEM} | cut -d: -f2`
@@ -388,12 +401,13 @@ sign_cert()
 
     process_extensions 
 
+    echo "${DATA}" > ${CU_DATA}
+
     TESTNAME="Creating certficate ${CERT} signed by ${ISSUER}"
     echo "${SCRIPTNAME}: ${TESTNAME}"
-    echo "certutil -C -c ${ISSUER} -v 60 -d ${ISSUER_DB} -i ${REQ} -o ${CERT} -f ${ISSUER_DB}/dbpasswd -m ${CERT_SN} ${EMAIL_OPT} ${OPTIONS}"
-    ${BINDIR}/certutil -C -c ${ISSUER} -v 60 -d ${ISSUER_DB} -i ${REQ} -o ${CERT} -f ${ISSUER_DB}/dbpasswd -m ${CERT_SN} ${EMAIL_OPT} ${OPTIONS} <<EOF
-${DATA}
-EOF
+    echo "certutil -C -c ${ISSUER} -v 60 -d ${ISSUER_DB} -i ${REQ} -o ${CERT} -f ${ISSUER_DB}/dbpasswd -m ${CERT_SN} ${EMAIL_OPT} ${OPTIONS} < ${CU_DATA}"
+    print_cu_data
+    ${BINDIR}/certutil -C -c ${ISSUER} -v 60 -d ${ISSUER_DB} -i ${REQ} -o ${CERT} -f ${ISSUER_DB}/dbpasswd -m ${CERT_SN} ${EMAIL_OPT} ${OPTIONS} < ${CU_DATA}
     html_msg $? 0 "${SCENARIO}${TESTNAME}"
 
     TESTNAME="Importing certificate ${CERT} to ${ENTITY_DB} database"
@@ -495,7 +509,7 @@ verify_cert()
     done
 
     for ITEM in ${TRUST}; do
-        echo ${ITEM} | grep ":"
+        echo ${ITEM} | grep ":" > /dev/null
         if [ $? -eq 0 ]; then
             CERT_NICK=`echo ${ITEM} | cut -d: -f1`
             CERT_ISSUER=`echo ${ITEM} | cut -d: -f2`
