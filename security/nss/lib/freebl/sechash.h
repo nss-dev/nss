@@ -39,6 +39,7 @@
 
 #include "seccomon.h"
 #include "hasht.h"
+#include "secoidt.h"
 
 SEC_BEGIN_PROTOS
 
@@ -49,6 +50,8 @@ SEC_BEGIN_PROTOS
 extern unsigned int  HASH_ResultLen(HASH_HashType type);
 
 extern unsigned int  HASH_ResultLenContext(HASHContext *context);
+
+extern unsigned int  HASH_ResultLenByOidTag(SECOidTag hashOid);
 
 extern SECStatus     HASH_HashBuf(HASH_HashType type,
 				 unsigned char *dest,
@@ -73,6 +76,10 @@ extern void          HASH_End(HASHContext *context,
 			     unsigned int max_result_len);
 
 extern const SECHashObject * HASH_GetHashObject(HASH_HashType type);
+
+extern const SECHashObject * HASH_GetHashObjectByOidTag(SECOidTag hashOid);
+
+extern HASH_HashType HASH_GetHashTypeByOidTag(SECOidTag hashOid);
 
 SEC_END_PROTOS
 
