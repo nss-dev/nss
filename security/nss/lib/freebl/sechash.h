@@ -74,6 +74,8 @@ extern void          HASH_End(HASHContext *context,
 			     unsigned char *result,
 			     unsigned int *result_len,
 			     unsigned int max_result_len);
+			     
+extern HASH_HashType HASH_GetType(HASHContext *context);
 
 extern const SECHashObject * HASH_GetHashObject(HASH_HashType type);
 
