@@ -134,6 +134,11 @@ create_root_ca()
     CERT_SN=$(expr ${CERT_SN} + 1)
     date >> ${NOISE_FILE} 2>&1
 
+    CTYPE_OPT=
+    if [ -n "${CTYPE}" ]; then
+        CTYPE_OPT="-k ${CTYPE}"
+    fi
+
     echo "5
 6
 9
@@ -149,9 +154,9 @@ n" > ${CU_DATA}
 
     TESTNAME="Creating Root CA ${ENTITY}"
     echo "${SCRIPTNAME}: ${TESTNAME}"
-    echo "certutil -s \"CN=${ENTITY} ROOT CA, O=${ENTITY}, C=US\" -S -n ${ENTITY} -t CTu,CTu,CTu -v 600 -x -d ${ENTITY_DB} -1 -2 -5 -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -m ${CERT_SN} < ${CU_DATA}"
+    echo "certutil -s \"CN=${ENTITY} ROOT CA, O=${ENTITY}, C=US\" -S -n ${ENTITY} ${CTYPE_OPT} -t CTu,CTu,CTu -v 600 -x -d ${ENTITY_DB} -1 -2 -5 -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -m ${CERT_SN} < ${CU_DATA}"
     print_cu_data
-    ${BINDIR}/certutil -s "CN=${ENTITY} ROOT CA, O=${ENTITY}, C=US" -S -n ${ENTITY} -t CTu,CTu,CTu -v 600 -x -d ${ENTITY_DB} -1 -2 -5 -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -m ${CERT_SN} < ${CU_DATA}
+    ${BINDIR}/certutil -s "CN=${ENTITY} ROOT CA, O=${ENTITY}, C=US" -S -n ${ENTITY} ${CTYPE_OPT} -t CTu,CTu,CTu -v 600 -x -d ${ENTITY_DB} -1 -2 -5 -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -m ${CERT_SN} < ${CU_DATA}
     html_msg $? 0 "${SCENARIO}${TESTNAME}"
 
     TESTNAME="Exporting Root CA ${ENTITY}.der"
@@ -175,6 +180,11 @@ create_cert_req()
 
     date >> ${NOISE_FILE} 2>&1
 
+    CTYPE_OPT=
+    if [ -n "${CTYPE}" ]; then
+        CTYPE_OPT="-k ${CTYPE}"
+    fi
+
     CA_FLAG=
     EXT_DATA=
     if [ "${TYPE}" != "EE" ]; then
@@ -188,9 +198,9 @@ y"
 
     TESTNAME="Creating ${TYPE} certifiate request ${REQ}"
     echo "${SCRIPTNAME}: ${TESTNAME}"
-    echo "certutil -s \"CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US\" -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ} < ${CU_DATA}"
+    echo "certutil -s \"CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US\" ${CTYPE_OPT} -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ} < ${CU_DATA}"
     print_cu_data
-    ${BINDIR}/certutil -s "CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US" -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ} < ${CU_DATA} 
+    ${BINDIR}/certutil -s "CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US" ${CTYPE_OPT} -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ} < ${CU_DATA} 
     html_msg $? 0 "${SCENARIO}${TESTNAME}"
 }
 
@@ -604,6 +614,7 @@ parse_config()
             ENTITY="${VALUE}"
             TYPE=
             ISSUER=
+            CTYPE=
             POLICY=
             MAPPING=
             INHIBIT=
@@ -627,6 +638,9 @@ parse_config()
             MAPPING=
             INHIBIT=
             AIA=
+            ;;
+        "ctype") 
+            CTYPE="${VALUE}"
             ;;
         "policy")
             POLICY="${POLICY} ${VALUE}"
