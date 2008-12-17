@@ -239,9 +239,19 @@ static const struct FREEBLVectorStr vector =
     Camellia_Encrypt,
     Camellia_Decrypt,
 
-    /* End of Version 3.010. */
     PQG_DestroyParams,
     PQG_DestroyVerify,
+
+    /* End of Version 3.010. */
+
+    SEED_InitContext,
+    SEED_AllocateContext,
+    SEED_CreateContext,
+    SEED_DestroyContext,
+    SEED_Encrypt,
+    SEED_Decrypt
+
+    /* End of Version 3.011. */
 
 };
 

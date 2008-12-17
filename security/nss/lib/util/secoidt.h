@@ -446,6 +446,8 @@ typedef enum {
 
     SEC_OID_ISO_SHA1_WITH_RSA_SIGNATURE     = 301,
 
+    SEC_OID_SEED_CBC			    = 302,
+
     SEC_OID_TOTAL
 } SECOidTag;
 
