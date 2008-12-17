@@ -150,6 +150,7 @@ CSRCS = \
 	rsa.c \
 	shvfy.c \
 	tlsprfalg.c \
+	seed.c \
 	$(MPI_SRCS) \
 	$(MPCPU_SRCS) \
 	$(ECL_SRCS) \
@@ -172,6 +173,7 @@ ALL_HDRS =  \
 	sha256.h \
 	shsign.h \
 	vis_proto.h \
+	seed.h \
 	$(NULL)
 
 

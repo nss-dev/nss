@@ -486,6 +486,44 @@ DES_Decrypt(DESContext *cx, unsigned char *output, unsigned int *outputLen,
   return (vector->p_DES_Decrypt)(cx, output, outputLen, maxOutputLen, input, 
 	                         inputLen);
 }
+SEEDContext *
+SEED_CreateContext(const unsigned char *key, const unsigned char *iv,
+		  int mode, PRBool encrypt)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return (vector->p_SEED_CreateContext)(key, iv, mode, encrypt);
+}
+
+void 
+SEED_DestroyContext(SEEDContext *cx, PRBool freeit)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_SEED_DestroyContext)(cx, freeit);
+}
+
+SECStatus 
+SEED_Encrypt(SEEDContext *cx, unsigned char *output, unsigned int *outputLen, 
+	    unsigned int maxOutputLen, const unsigned char *input, 
+	    unsigned int inputLen)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_SEED_Encrypt)(cx, output, outputLen, maxOutputLen, input, 
+	                         inputLen);
+}
+
+SECStatus 
+SEED_Decrypt(SEEDContext *cx, unsigned char *output, unsigned int *outputLen, 
+	    unsigned int maxOutputLen, const unsigned char *input, 
+	    unsigned int inputLen)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_SEED_Decrypt)(cx, output, outputLen, maxOutputLen, input, 
+	                         inputLen);
+}
 
 AESContext *
 AES_CreateContext(const unsigned char *key, const unsigned char *iv, 
@@ -1357,6 +1395,16 @@ DES_InitContext(DESContext *cx, const unsigned char *key,
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return SECFailure;
   return (vector->p_DES_InitContext)(cx, key, keylen, iv, mode, encrypt, xtra);
+}
+
+SECStatus 
+SEED_InitContext(SEEDContext *cx, const unsigned char *key, 
+		unsigned int keylen, const unsigned char *iv, int mode,
+		unsigned int encrypt, unsigned int xtra)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_SEED_InitContext)(cx, key, keylen, iv, mode, encrypt, xtra);
 }
 
 SECStatus 

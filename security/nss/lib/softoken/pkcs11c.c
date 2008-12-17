@@ -693,6 +693,40 @@ finish_des:
 	context->update = (SFTKCipher) (isEncrypt ? DES_Encrypt : DES_Decrypt);
 	context->destroy = (SFTKDestroy) DES_DestroyContext;
 	break;
+    case CKM_SEED_CBC_PAD:
+	context->doPad = PR_TRUE;
+	/* fall thru */
+    case CKM_SEED_CBC:
+        if (!pMechanism->pParameter ||
+	     pMechanism->ulParameterLen != 16) {
+            crv = CKR_MECHANISM_PARAM_INVALID;
+            break;
+        }
+        /* fall thru */
+    case CKM_SEED_ECB:
+	context->blockSize = 16;
+	if (key_type != CKK_SEED) {
+	    crv = CKR_KEY_TYPE_INCONSISTENT;
+	    break;
+	}
+	att = sftk_FindAttribute(key,CKA_VALUE);
+	if (att == NULL) {
+	    crv = CKR_KEY_HANDLE_INVALID;
+	    break;
+	}
+	context->cipherInfo = SEED_CreateContext(
+	    (unsigned char*)att->attrib.pValue,
+	    (unsigned char*)pMechanism->pParameter,
+	    pMechanism->mechanism == CKM_SEED_ECB ? NSS_SEED : NSS_SEED_CBC,
+	    isEncrypt, att->attrib.ulValueLen, 16);
+	sftk_FreeAttribute(att);
+	if (context->cipherInfo == NULL) {
+	    crv = CKR_HOST_MEMORY;
+	    break;
+	}
+	context->update = (SFTKCipher)(isEncrypt ? SEED_Encrypt : SEED_Decrypt);
+	context->destroy = (SFTKDestroy) SEED_DestroyContext;
+	break;
 
     case CKM_CAMELLIA_CBC_PAD:
 	context->doPad = PR_TRUE;
@@ -1685,6 +1719,16 @@ sftk_InitCBCMac(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 	blockSize = 8;
 	PORT_Memset(ivBlock,0,blockSize);
 	cbc_mechanism.mechanism = CKM_CDMF_CBC;
+	cbc_mechanism.pParameter = &ivBlock;
+	cbc_mechanism.ulParameterLen = blockSize;
+	break;
+    case CKM_SEED_MAC_GENERAL:
+	mac_bytes = *(CK_ULONG *)pMechanism->pParameter;
+	/* fall through */
+    case CKM_SEED_MAC:
+	blockSize = 16;
+	PORT_Memset(ivBlock,0,blockSize);
+	cbc_mechanism.mechanism = CKM_SEED_CBC;
 	cbc_mechanism.pParameter = &ivBlock;
 	cbc_mechanism.ulParameterLen = blockSize;
 	break;
@@ -2904,6 +2948,10 @@ nsc_SetupBulkKeyGen(CK_MECHANISM_TYPE mechanism, CK_KEY_TYPE *key_type,
 	*key_type = CKK_DES3;
 	*key_length = 24;
 	break;
+    case CKM_SEED_KEY_GEN:
+	*key_type = CKK_SEED;
+	*key_length = 16;
+	break;
     case CKM_CAMELLIA_KEY_GEN:
 	*key_type = CKK_CAMELLIA;
 	if (*key_length == 0) crv = CKR_TEMPLATE_INCOMPLETE;
@@ -3152,6 +3200,7 @@ CK_RV NSC_GenerateKey(CK_SESSION_HANDLE hSession,
     case CKM_RC2_KEY_GEN:
     case CKM_RC4_KEY_GEN:
     case CKM_GENERIC_SECRET_KEY_GEN:
+    case CKM_SEED_KEY_GEN:
     case CKM_CAMELLIA_KEY_GEN:
     case CKM_AES_KEY_GEN:
 #if NSS_SOFTOKEN_DOES_RC5

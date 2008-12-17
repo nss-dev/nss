@@ -517,6 +517,30 @@ extern SECStatus DES_Decrypt(DESContext *cx, unsigned char *output,
 			    const unsigned char *input, unsigned int inputLen);
 
 /******************************************/
+/* 
+** SEED symmetric block cypher		  
+*/
+extern SEEDContext *
+SEED_CreateContext(const unsigned char *key, const unsigned char *iv, 
+		   int mode, PRBool encrypt);
+extern SEEDContext *SEED_AllocateContext(void);
+extern SECStatus   SEED_InitContext(SEEDContext *cx, 
+				    const unsigned char *key, 
+				    unsigned int keylen, 
+				    const unsigned char *iv, 
+				    int mode, unsigned int encrypt, 
+				    unsigned int );
+extern void SEED_DestroyContext(SEEDContext *cx, PRBool freeit);
+extern SECStatus 
+SEED_Encrypt(SEEDContext *cx, unsigned char *output, 
+	     unsigned int *outputLen, unsigned int maxOutputLen, 
+	     const unsigned char *input, unsigned int inputLen);
+extern SECStatus 
+SEED_Decrypt(SEEDContext *cx, unsigned char *output, 
+	     unsigned int *outputLen, unsigned int maxOutputLen, 
+             const unsigned char *input, unsigned int inputLen);
+
+/******************************************/
 /*
 ** AES symmetric block cypher (Rijndael)
 */
