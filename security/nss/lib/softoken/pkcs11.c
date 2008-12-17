@@ -61,7 +61,6 @@
 #include "secder.h"
 #include "secport.h"
 #include "secrng.h"
-#include "nss.h"
 #include "prtypes.h"
 #include "nspr.h"
 #include "softkver.h"
