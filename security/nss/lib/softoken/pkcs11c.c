@@ -718,7 +718,7 @@ finish_des:
 	    (unsigned char*)att->attrib.pValue,
 	    (unsigned char*)pMechanism->pParameter,
 	    pMechanism->mechanism == CKM_SEED_ECB ? NSS_SEED : NSS_SEED_CBC,
-	    isEncrypt, att->attrib.ulValueLen, 16);
+	    isEncrypt);
 	sftk_FreeAttribute(att);
 	if (context->cipherInfo == NULL) {
 	    crv = CKR_HOST_MEMORY;
