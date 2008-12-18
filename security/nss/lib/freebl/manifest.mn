@@ -91,6 +91,8 @@ EXPORTS = \
 	blapit.h \
 	shsign.h \
 	ecl-exp.h \
+	hasht.h \
+	sechash.h \
 	$(LOWHASH_EXPORTS) \
 	$(NULL)
 
@@ -102,8 +104,6 @@ PRIVATE_EXPORTS = \
 	ec.h \
 	ecl.h \
 	ecl-curve.h \
-	hasht.h \
-	sechash.h \
 	$(NULL)
 
 MPI_HDRS = mpi-config.h mpi.h mpi-priv.h mplogic.h mpprime.h logtab.h mp_gf2m.h
