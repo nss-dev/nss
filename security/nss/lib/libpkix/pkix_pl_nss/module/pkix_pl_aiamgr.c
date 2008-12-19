@@ -697,6 +697,7 @@ cleanup:
                 PKIX_DECREF(aiaMgr->client.ldapClient);
         }
 
+        PKIX_DECREF(certs);
         PKIX_DECREF(ia);
 
         PKIX_RETURN(AIAMGR);

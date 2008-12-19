@@ -1540,6 +1540,7 @@ pkix_CheckForGeneratedError(PKIX_StdVars * stdVars,
     while(fnStackNameArr[pos]) {
         strLen += PORT_Strlen(fnStackNameArr[pos++]) + 1;
     }
+    strLen += 1; /* end of line. */
     pos = 0;
     errorFnStackString = PORT_ZAlloc(strLen);
     while(fnStackNameArr[pos]) {
