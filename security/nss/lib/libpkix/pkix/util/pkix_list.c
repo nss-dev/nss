@@ -1277,9 +1277,10 @@ pkix_List_BubbleSort(
         }
 
         *pSortedList = sortedList;
-
+        sortedList = NULL;
 cleanup:
 
+        PKIX_DECREF(sortedList);
         PKIX_DECREF(leastObj);
         PKIX_DECREF(cmpObj);
 

@@ -3211,6 +3211,26 @@ cleanup:
         }
 
 fatal:
+        if (state->parentState) {
+            /* parentState in "state" object should be NULL at this point.
+             * If itn't, that means that we got fatal error(we have jumped to
+             * "fatal" label) and we should destroy all state except the top one. */
+            while (state->parentState) {
+                PKIX_Error *error = NULL;
+                PKIX_ForwardBuilderState *prntState = state->parentState;
+                /* Dumb: need to increment parentState to avoid destruction
+                 * of "build constants"(they get destroyed when parentState is
+                 * set to NULL. But later, need to decref to return to the
+                 * previous status. */
+                PKIX_INCREF(prntState);
+                error = PKIX_PL_Object_DecRef((PKIX_PL_Object*)state, plContext);
+                if (error) {
+                    PKIX_PL_Object_DecRef((PKIX_PL_Object*)error, plContext);
+                }
+                PKIX_DECREF(prntState);
+                state = prntState;
+            }
+        }
         PKIX_DECREF(parentState);
         PKIX_DECREF(childState);
         PKIX_DECREF(valResult);

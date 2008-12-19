@@ -2191,7 +2191,9 @@ do {
     }
 
 #ifdef PKIX_OBJECT_LEAK_TEST
-    PORT_Assert(!errorGenerated);
+    /* Can not continue if error was generated but not returned.
+     * Jumping to cleanup. */
+    if (errorGenerated) goto cleanup;
 #endif /* PKIX_OBJECT_LEAK_TEST */
 
     oparam = cert_pkix_FindOutputParam(paramsOut, cert_po_trustAnchor);
