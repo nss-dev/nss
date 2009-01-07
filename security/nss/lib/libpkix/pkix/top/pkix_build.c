@@ -3220,14 +3220,14 @@ fatal:
                 PKIX_ForwardBuilderState *prntState = state->parentState;
                 /* Dumb: need to increment parentState to avoid destruction
                  * of "build constants"(they get destroyed when parentState is
-                 * set to NULL. But later, need to decref to return to the
-                 * previous status. */
+                 * set to NULL. */
                 PKIX_INCREF(prntState);
                 error = PKIX_PL_Object_DecRef((PKIX_PL_Object*)state, plContext);
                 if (error) {
                     PKIX_PL_Object_DecRef((PKIX_PL_Object*)error, plContext);
                 }
-                PKIX_DECREF(prntState);
+                /* No need to decref the parent state. It was already done by
+                 * pkix_ForwardBuilderState_Destroy function. */
                 state = prntState;
             }
         }
