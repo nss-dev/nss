@@ -45,6 +45,7 @@
 #define _PKIX_BUILD_H
 #include "pkix_tools.h"
 #include "pkix_pl_ldapt.h"
+#include "pkix_ekuchecker.h"
 
 #ifdef __cplusplus
 extern "C" {

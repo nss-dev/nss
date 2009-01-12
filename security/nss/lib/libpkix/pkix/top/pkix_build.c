@@ -1268,6 +1268,9 @@ cleanup:
  *      Address of List of Certs to be validated. Must be non-NULL.
  *  "anchor"
  *      Address of TrustAnchor to be used. Must be non-NULL.
+ *  "addEkuChecker"
+ *      Boolean flags that tells to add eku checker to the list
+ *      of checkers. Only needs to be done for existing chain revalidation.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -1282,6 +1285,7 @@ pkix_Build_ValidationCheckers(
         PKIX_ForwardBuilderState *state,
         PKIX_List *certChain,
         PKIX_TrustAnchor *anchor,
+        PKIX_Boolean addEkuChecker,
         void *plContext)
 {
         PKIX_List *checkers = NULL;
@@ -1294,6 +1298,7 @@ pkix_Build_ValidationCheckers(
         PKIX_CertChainChecker *sigChecker = NULL;
         PKIX_CertChainChecker *policyChecker = NULL;
         PKIX_CertChainChecker *userChecker = NULL;
+        PKIX_CertChainChecker *ekuChecker = NULL;
         PKIX_List *userCheckersList = NULL;
         PKIX_List *userCheckerExtOIDs = NULL;
         PKIX_PL_OID *oid = NULL;
@@ -1321,6 +1326,23 @@ pkix_Build_ValidationCheckers(
                 PKIX_LISTGETLENGTHFAILED);
 
         procParams = state->buildConstants.procParams;
+
+        /* Do need to add eku checker for chains, that we just
+         * built. KU and EKU get checked by certificate selector
+         * during chain construction. For other cases when trying
+         * short cut or for cached chain we need to verify key
+         * usage again. For those cases the function shoud be
+         * called with addEkuChecker set to true. */
+        if (addEkuChecker) {
+            PKIX_CHECK(
+                PKIX_EkuChecker_Create(procParams, &ekuChecker,
+                                       plContext),
+                PKIX_EKUCHECKERINITIALIZEFAILED);
+            
+            PKIX_CHECK(PKIX_List_AppendItem
+                       (checkers, (PKIX_PL_Object *)ekuChecker, plContext),
+                       PKIX_LISTAPPENDITEMFAILED);
+        }
 
         PKIX_CHECK(PKIX_ProcessingParams_GetInitialPolicies
                 (procParams, &initialPolicies, plContext),
@@ -1463,8 +1485,8 @@ pkix_Build_ValidationCheckers(
         state->reversedCertChain = reversedCertChain;
         PKIX_INCREF(buildCheckedCritExtOIDsList);
         state->checkedCritExtOIDs = buildCheckedCritExtOIDsList;
-        PKIX_INCREF(checkers);
         state->checkerChain = checkers;
+        checkers = NULL;
         state->certCheckedIndex = 0;
         state->checkerIndex = 0;
         state->revChecking = PKIX_FALSE;
@@ -1484,6 +1506,7 @@ cleanup:
         PKIX_DECREF(userChecker);
         PKIX_DECREF(userCheckersList);
         PKIX_DECREF(userCheckerExtOIDs);
+        PKIX_DECREF(ekuChecker);
 
         PKIX_RETURN(BUILD);
 }
@@ -1682,6 +1705,10 @@ pkix_Build_BuildSelectorAndParams(
         PKIX_CertSelector *certSel = NULL;
         PKIX_PL_X500Name *currentIssuer = NULL;
         PKIX_PL_Date *testDate = NULL;
+        PKIX_CertSelector *callerCertSelector = NULL;
+        PKIX_ComCertSelParams *callerComCertSelParams = NULL;
+        PKIX_UInt32 reqKu = 0;
+        PKIX_List   *reqEkuOids = NULL;
 
         PKIX_ENTER(BUILD, "pkix_Build_BuildSelectorAndParams");
         PKIX_NULLCHECK_THREE(state, state->prevCert, state->traversedSubjNames);
@@ -1712,6 +1739,40 @@ pkix_Build_BuildSelectorAndParams(
                 (certSelParams, state->traversedSubjNames, plContext),
                 PKIX_COMCERTSELPARAMSSETPATHTONAMESFAILED);
 
+        PKIX_CHECK(PKIX_ProcessingParams_GetTargetCertConstraints
+                    (state->buildConstants.procParams,
+                     &callerCertSelector, plContext),
+                    PKIX_PROCESSINGPARAMSGETTARGETCERTCONSTRAINTSFAILED);
+
+        if (callerCertSelector != NULL) {
+
+            /* Get initial EKU OIDs from ComCertSelParams, if set */
+            PKIX_CHECK(PKIX_CertSelector_GetCommonCertSelectorParams
+                       (callerCertSelector, &callerComCertSelParams, plContext),
+                       PKIX_CERTSELECTORGETCOMMONCERTSELECTORPARAMSFAILED);
+
+            if (callerComCertSelParams != NULL) {
+                PKIX_CHECK(PKIX_ComCertSelParams_GetExtendedKeyUsage
+                           (callerComCertSelParams, &reqEkuOids, plContext),
+                           PKIX_COMCERTSELPARAMSGETEXTENDEDKEYUSAGEFAILED);
+
+                PKIX_CHECK(PKIX_ComCertSelParams_GetKeyUsage
+                           (callerComCertSelParams, &reqKu, plContext),
+                           PKIX_COMCERTSELPARAMSGETEXTENDEDKEYUSAGEFAILED);
+            }
+        }
+
+        PKIX_CHECK(
+            PKIX_ComCertSelParams_SetKeyUsage(certSelParams, reqKu,
+                                              plContext),
+            PKIX_COMCERTSELPARAMSSETKEYUSAGEFAILED);
+        
+        PKIX_CHECK(
+            PKIX_ComCertSelParams_SetExtendedKeyUsage(certSelParams,
+                                                      reqEkuOids,
+                                                      plContext),
+            PKIX_COMCERTSELPARAMSSETEXTKEYUSAGEFAILED);
+
         PKIX_CHECK(PKIX_CertSelector_Create
                 (NULL, NULL, &state->certSel, plContext),
                 PKIX_CERTSELECTORCREATEFAILED);
@@ -1730,6 +1791,9 @@ cleanup:
         PKIX_DECREF(certSel);
         PKIX_DECREF(currentIssuer);
         PKIX_DECREF(testDate);
+        PKIX_DECREF(reqEkuOids);
+        PKIX_DECREF(callerComCertSelParams);
+        PKIX_DECREF(callerCertSelector);
 
         PKIX_RETURN(BUILD);
 }
@@ -2706,6 +2770,9 @@ pkix_BuildForwardDepthFirstSearch(
                       (state,
                       state->trustChain,
                       trustAnchor,
+                      PKIX_FALSE, /* do not add eku checker
+                                   * since eku was already
+                                   * checked */
                       plContext),
                       PKIX_BUILDVALIDATIONCHECKERSFAILED);
 
@@ -2869,6 +2936,9 @@ pkix_BuildForwardDepthFirstSearch(
                                     (state,
                                     state->trustChain,
                                     trustAnchor,
+                                    PKIX_FALSE, /* do not add eku checker
+                                                 * since eku was already
+                                                 * checked */
                                     plContext),
                                     PKIX_BUILDVALIDATIONCHECKERSFAILED);
 
@@ -3396,7 +3466,8 @@ pkix_Build_TryShortcut(
                 
                 PKIX_CHECK(
                     pkix_Build_ValidationCheckers(state, state->trustChain,
-                                                  anchor, plContext),
+                                                  anchor, PKIX_TRUE, 
+                                                  plContext),
                     PKIX_BUILDVALIDATIONCHECKERSFAILED);
                 
                 PKIX_CHECK_ONLY_FATAL(
@@ -3562,6 +3633,7 @@ pkix_Build_CheckInCache(
                    (state,
                     certList,
                     matchingAnchor,
+                    PKIX_TRUE,  /* Adding eku checker. */
                     plContext),
                    PKIX_BUILDVALIDATIONCHECKERSFAILED);
         
@@ -3994,7 +4066,7 @@ pkix_Build_InitiateBuildChain(
                 }
             }
 
-            PKIX_CHECK(
+            PKIX_CHECK_ONLY_FATAL(
                 pkix_Build_CheckInCache(state, &buildResult,
                                         &nbioContext, plContext),
                 PKIX_UNABLETOBUILDCHAIN);
