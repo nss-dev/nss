@@ -116,7 +116,7 @@ pkix_EkuChecker_GetRequiredEku(
         void *plContext);
 
 /* see source file for function documentation */
-PKIX_Error *pkix_pl_EkuChecker_RegisterSelf(void *plContext);
+PKIX_Error *pkix_EkuChecker_RegisterSelf(void *plContext);
 
 #ifdef __cplusplus
 }
