@@ -44,6 +44,7 @@ PRIVATE_EXPORTS = \
 	pkix_basicconstraintschecker.h \
 	pkix_certchainchecker.h \
 	pkix_crlchecker.h \
+        pkix_ekuchecker.h \
 	pkix_expirationchecker.h \
 	pkix_namechainingchecker.h \
 	pkix_nameconstraintschecker.h \
@@ -61,6 +62,7 @@ CSRCS = \
 	pkix_basicconstraintschecker.c \
 	pkix_certchainchecker.c \
 	pkix_crlchecker.c \
+	pkix_ekuchecker.c \
 	pkix_expirationchecker.c \
 	pkix_namechainingchecker.c \
 	pkix_nameconstraintschecker.c \
