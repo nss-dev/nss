@@ -2896,7 +2896,7 @@ pkix_BuildForwardDepthFirstSearch(
                                    PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
                         PKIX_CHECK(
                             PKIX_RevocationChecker_Check(
-                                state->candidateCert, trustedCert,
+                                state->prevCert, trustedCert,
                                 state->buildConstants.revChecker,
                                 state->buildConstants.procParams,
                                 PKIX_FALSE,
@@ -3419,7 +3419,7 @@ pkix_Build_TryShortcut(
                                PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
                     PKIX_CHECK(
                         PKIX_RevocationChecker_Check(
-                                        state->candidateCert, trustedCert,
+                                        state->prevCert, trustedCert,
                                         state->buildConstants.revChecker,
                                         state->buildConstants.procParams,
                                         PKIX_FALSE,
