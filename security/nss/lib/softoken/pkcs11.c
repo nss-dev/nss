@@ -1190,6 +1190,21 @@ validateSecretKey(SFTKSession *session, SFTKObject *object,
 						 attribute->attrib.ulValueLen);
 	sftk_FreeAttribute(attribute);
 	break;
+    case CKK_AES:
+	attribute = sftk_FindAttribute(object,CKA_VALUE);
+	/* shouldn't happen */
+	if (attribute == NULL) 
+	    return CKR_TEMPLATE_INCOMPLETE;
+	if (attribute->attrib.ulValueLen != 16 &&
+	    attribute->attrib.ulValueLen != 24 &&
+	    attribute->attrib.ulValueLen != 32) {
+	    sftk_FreeAttribute(attribute);
+	    return CKR_KEY_SIZE_RANGE;
+	}
+	crv = sftk_forceAttribute(object, CKA_VALUE_LEN, 
+			&attribute->attrib.ulValueLen, sizeof(CK_ULONG));
+	sftk_FreeAttribute(attribute);
+	break;
     default:
 	break;
     }
