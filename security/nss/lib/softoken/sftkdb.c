@@ -76,11 +76,18 @@ static PRBool
 sftkdb_isULONGAttribute(CK_ATTRIBUTE_TYPE type) 
 {
     switch(type) {
-    case CKA_CLASS:
-    case CKA_CERTIFICATE_TYPE:
     case CKA_CERTIFICATE_CATEGORY:
-    case CKA_KEY_TYPE:
+    case CKA_CERTIFICATE_TYPE:
+    case CKA_CLASS:
     case CKA_JAVA_MIDP_SECURITY_DOMAIN:
+    case CKA_KEY_GEN_MECHANISM:
+    case CKA_KEY_TYPE:
+    case CKA_MECHANISM_TYPE:
+    case CKA_MODULUS_BITS:
+    case CKA_PRIME_BITS:
+    case CKA_SUBPRIME_BITS:
+    case CKA_VALUE_BITS:
+    case CKA_VALUE_LEN:
 
     case CKA_TRUST_DIGITAL_SIGNATURE:
     case CKA_TRUST_NON_REPUDIATION:
