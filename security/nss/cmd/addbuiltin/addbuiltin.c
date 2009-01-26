@@ -75,11 +75,13 @@ char *getTrustString(unsigned int trust)
     } else {
 	if (trust & CERTDB_TRUSTED_CA) {
 		return "CKT_NETSCAPE_TRUSTED_DELEGATOR";
+	} else if (trust & CERTDB_VALID_CA) {
+		return "CKT_NETSCAPE_VALID_DELEGATOR";
 	} else {
-		return "CKT_NETSCAPE_VALID";
+		return "CKT_NETSCAPE_TRUST_UNKNOWN";
 	}
     }
-    return "CKT_NETSCAPE_VALID"; /* not reached */
+    return "CKT_NETSCAPE_TRUST_UNKNOWN"; /* not reached */
 }
 
 static const SEC_ASN1Template serialTemplate[] = {

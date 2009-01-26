@@ -278,6 +278,8 @@ sec_PKCS7CreateEncryptObject (PRArenaPool *poolp, PK11SymKey *key,
     if (needToEncodeAlgid) {
 	rv = PK11_ParamToAlgid(algtag,param,poolp,algid);
 	if(rv != SECSuccess) {
+	    PORT_Free (result);
+            SECITEM_FreeItem(param,PR_TRUE);
 	    return NULL;
 	}
     }

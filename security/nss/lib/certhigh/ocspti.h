@@ -279,6 +279,7 @@ struct ocspResponseBytesStr {
  * the C data structure here and in some shared code to operate on them.
  */
 struct ocspBasicOCSPResponseStr {
+    SECItem tbsResponseDataDER;
     ocspResponseData *tbsResponseData;	/* "tbs" == To Be Signed */
     ocspSignature responseSignature;
 };

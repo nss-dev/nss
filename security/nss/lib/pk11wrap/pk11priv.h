@@ -109,10 +109,6 @@ void PK11_ClearSlotList(PK11SlotInfo *slot);
 /******************************************************************
  *           Slot initialization
  ******************************************************************/
-PRBool PK11_VerifyMechanism(PK11SlotInfo *slot,PK11SlotInfo *intern,
-  CK_MECHANISM_TYPE mech, SECItem *data, SECItem *iv);
-PRBool PK11_VerifySlotMechanisms(PK11SlotInfo *slot);
-SECStatus pk11_CheckVerifyTest(PK11SlotInfo *slot);
 SECStatus PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts);
 void PK11_InitSlot(SECMODModule *mod,CK_SLOT_ID slotID,PK11SlotInfo *slot);
 PRBool PK11_NeedPWInitForSlot(PK11SlotInfo *slot);
@@ -207,7 +203,7 @@ SECStatus PK11_SetObjectNickname(PK11SlotInfo *slot, CK_OBJECT_HANDLE id,
 
 /* private */
 SECStatus pk11_TraverseAllSlots( SECStatus (*callback)(PK11SlotInfo *,void *),
-	void *cbArg, void *pwArg);
+	void *cbArg, PRBool forceLogin, void *pwArg);
 
 /* fetch multiple CRLs for a specific issuer */
 SECStatus pk11_RetrieveCrls(CERTCrlHeadNode *nodes, SECItem* issuer,

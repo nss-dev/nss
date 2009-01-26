@@ -55,7 +55,7 @@ AS=ml.exe
 ## might work ... I haven't tested it.
 ##
 #PERL=/usr/bin/perl
-PERL=perl
+#PERL=perl
 
 ##
 ## Define CFLAGS to contain any local options your compiler

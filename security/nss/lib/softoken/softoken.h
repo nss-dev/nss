@@ -81,7 +81,7 @@ extern unsigned char *RSA_FormatOneBlock(unsigned int modulusLen,
 /*
  * convenience wrappers for doing single RSA operations. They create the
  * RSA context internally and take care of the formatting
- * requirements. Blinding happens automagically within RSA_SignHash and
+ * requirements. Blinding happens automagically within RSA_Sign and
  * RSA_DecryptBlock.
  */
 extern
@@ -89,9 +89,19 @@ SECStatus RSA_Sign(NSSLOWKEYPrivateKey *key, unsigned char *output,
 		       unsigned int *outputLen, unsigned int maxOutputLen,
 		       unsigned char *input, unsigned int inputLen);
 extern
+SECStatus RSA_HashSign(SECOidTag hashOid,
+			NSSLOWKEYPrivateKey *key, unsigned char *sig,
+			unsigned int *sigLen, unsigned int maxLen,
+			unsigned char *hash, unsigned int hashLen);
+extern
 SECStatus RSA_CheckSign(NSSLOWKEYPublicKey *key, unsigned char *sign,
 			    unsigned int signLength, unsigned char *hash,
 			    unsigned int hashLength);
+extern
+SECStatus RSA_HashCheckSign(SECOidTag hashOid,
+			    NSSLOWKEYPublicKey *key, unsigned char *sig,
+			    unsigned int sigLen, unsigned char *digest,
+			    unsigned int digestLen);
 extern
 SECStatus RSA_CheckSignRecover(NSSLOWKEYPublicKey *key, unsigned char *data,
     			    unsigned int *data_len,unsigned int max_output_len, 
@@ -131,6 +141,14 @@ SECStatus RSA_DecryptRaw(NSSLOWKEYPrivateKey *key, unsigned char *output,
 			     unsigned int *output_len,
     			     unsigned int max_output_len,
 			     unsigned char *input, unsigned int input_len);
+#ifdef NSS_ENABLE_ECC
+/*
+** pepare an ECParam structure from DEREncoded params
+ */
+extern SECStatus EC_FillParams(PRArenaPool *arena,
+                               const SECItem *encodedParams, ECParams *params);
+#endif
+
 
 /*
 ** Prepare a buffer for DES encryption, growing to the appropriate boundary,
@@ -158,6 +176,83 @@ extern CK_RV sftk_fipsPowerUpSelfTest( void );
 ** make known fixed PKCS #11 key types to their sizes in bytes
 */	
 unsigned long sftk_MapKeySize(CK_KEY_TYPE keyType);
+
+/*
+** FIPS 140-2 auditing
+*/
+extern PRBool sftk_audit_enabled;
+
+extern void sftk_LogAuditMessage(NSSAuditSeverity severity, const char *msg);
+
+extern void sftk_AuditCreateObject(CK_SESSION_HANDLE hSession,
+			CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount,
+			CK_OBJECT_HANDLE_PTR phObject, CK_RV rv);
+
+extern void sftk_AuditCopyObject(CK_SESSION_HANDLE hSession,
+			CK_OBJECT_HANDLE hObject,
+			CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount,
+			CK_OBJECT_HANDLE_PTR phNewObject, CK_RV rv);
+
+extern void sftk_AuditDestroyObject(CK_SESSION_HANDLE hSession,
+			CK_OBJECT_HANDLE hObject, CK_RV rv);
+
+extern void sftk_AuditGetObjectSize(CK_SESSION_HANDLE hSession,
+			CK_OBJECT_HANDLE hObject, CK_ULONG_PTR pulSize,
+			CK_RV rv);
+
+extern void sftk_AuditGetAttributeValue(CK_SESSION_HANDLE hSession,
+			CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate,
+			CK_ULONG ulCount, CK_RV rv);
+
+extern void sftk_AuditSetAttributeValue(CK_SESSION_HANDLE hSession,
+			CK_OBJECT_HANDLE hObject, CK_ATTRIBUTE_PTR pTemplate,
+			CK_ULONG ulCount, CK_RV rv);
+
+extern void sftk_AuditCryptInit(const char *opName,
+			CK_SESSION_HANDLE hSession,
+			CK_MECHANISM_PTR pMechanism,
+			CK_OBJECT_HANDLE hKey, CK_RV rv);
+
+extern void sftk_AuditGenerateKey(CK_SESSION_HANDLE hSession,
+			CK_MECHANISM_PTR pMechanism,
+			CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount,
+			CK_OBJECT_HANDLE_PTR phKey, CK_RV rv);
+
+extern void sftk_AuditGenerateKeyPair(CK_SESSION_HANDLE hSession,
+			CK_MECHANISM_PTR pMechanism,
+			CK_ATTRIBUTE_PTR pPublicKeyTemplate,
+			CK_ULONG ulPublicKeyAttributeCount,
+			CK_ATTRIBUTE_PTR pPrivateKeyTemplate,
+			CK_ULONG ulPrivateKeyAttributeCount,
+			CK_OBJECT_HANDLE_PTR phPublicKey,
+			CK_OBJECT_HANDLE_PTR phPrivateKey, CK_RV rv);
+
+extern void sftk_AuditWrapKey(CK_SESSION_HANDLE hSession,
+			CK_MECHANISM_PTR pMechanism,
+			CK_OBJECT_HANDLE hWrappingKey, CK_OBJECT_HANDLE hKey,
+			CK_BYTE_PTR pWrappedKey,
+			CK_ULONG_PTR pulWrappedKeyLen, CK_RV rv);
+
+extern void sftk_AuditUnwrapKey(CK_SESSION_HANDLE hSession,
+			CK_MECHANISM_PTR pMechanism,
+			CK_OBJECT_HANDLE hUnwrappingKey,
+			CK_BYTE_PTR pWrappedKey, CK_ULONG ulWrappedKeyLen,
+			CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulAttributeCount,
+			CK_OBJECT_HANDLE_PTR phKey, CK_RV rv);
+
+extern void sftk_AuditDeriveKey(CK_SESSION_HANDLE hSession,
+			CK_MECHANISM_PTR pMechanism,
+			CK_OBJECT_HANDLE hBaseKey,
+			CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulAttributeCount,
+			CK_OBJECT_HANDLE_PTR phKey, CK_RV rv);
+
+extern void sftk_AuditDigestKey(CK_SESSION_HANDLE hSession,
+			CK_OBJECT_HANDLE hKey, CK_RV rv);
+
+/*
+** FIPS 140-2 Error state
+*/
+extern PRBool sftk_fatalError;
 
 SEC_END_PROTOS
 

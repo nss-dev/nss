@@ -21,6 +21,8 @@
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):
+#   Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
+#   Slavomir Katuscak <slavomir.katuscak@sun.com>, Sun Microsystems
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -66,6 +68,9 @@ ssl_init()
       cd ../common
       . ./init.sh
   fi
+  if [ -z "${IOPR_SSL_SOURCED}" ]; then
+      . ../iopr/ssl_iopr.sh
+  fi
   if [ ! -r $CERT_LOG_FILE ]; then  # we need certificates here
       cd ../cert
       . ./cert.sh
@@ -73,11 +78,17 @@ ssl_init()
   SCRIPTNAME=ssl.sh
   echo "$SCRIPTNAME: SSL tests ==============================="
 
-  grep "SUCCESS: SSL passed" $CERT_LOG_FILE >/dev/null &&
-  grep "SUCCESS: SSL CRL prep passed" $CERT_LOG_FILE >/dev/null || {
+  grep "SUCCESS: SSL passed" $CERT_LOG_FILE >/dev/null || {
       html_head "SSL Test failure"
-      Exit 8 "Fatal - SSL of cert.sh needs to pass first"
+      Exit 8 "Fatal - cert.sh needs to pass first"
   }
+
+  if [ -z "$NSS_TEST_DISABLE_CRL" ] ; then
+      grep "SUCCESS: SSL CRL prep passed" $CERT_LOG_FILE >/dev/null || {
+          html_head "SSL Test failure"
+          Exit 8 "Fatal - SSL of cert.sh needs to pass first"
+      }
+  fi
 
   PORT=${PORT-8443}
 
@@ -102,6 +113,12 @@ ssl_init()
   USER_NICKNAME=TestUser
   NORM_EXT=""
 
+  if [ -n "$NSS_ENABLE_ECC" ] ; then
+      ECC_STRING=" - with ECC"
+  else
+      ECC_STRING=""
+  fi
+
   cd ${CLIENTDIR}
 }
 
@@ -118,17 +135,18 @@ is_selfserv_alive()
           Exit 9 "Fatal - selfserv pid file ${SERVERPID} does not exist"
       fi
   fi
-  if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "CYGWIN_NT" ]; then
+  
+  if [ "${OS_ARCH}" = "WINNT" ] && \
+     [ "$OS_NAME" = "CYGWIN_NT" -o "$OS_NAME" = "MINGW32_NT" ]; then
       PID=${SHELL_SERVERPID}
   else
       PID=`cat ${SERVERPID}`
   fi
-  #if  [ "${OS_ARCH}" = "Linux" ]; then
-      kill -0 $PID >/dev/null 2>/dev/null || Exit 10 "Fatal - selfserv process not detectable"
-  #else
-      #$PS -e | grep $PID >/dev/null || \
-          #Exit 10 "Fatal - selfserv process not detectable"
-  #fi
+
+  echo "kill -0 ${PID} >/dev/null 2>/dev/null" 
+  kill -0 ${PID} >/dev/null 2>/dev/null || Exit 10 "Fatal - selfserv process not detectable"
+
+  echo "selfserv with PID ${PID} found at `date`"
 }
 
 ########################### wait_for_selfserv ##########################
@@ -136,19 +154,22 @@ is_selfserv_alive()
 ########################################################################
 wait_for_selfserv()
 {
+  echo "trying to connect to selfserv at `date`"
   echo "tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \\"
   echo "        -d ${P_R_CLIENTDIR} < ${REQUEST_FILE}"
-  #echo "tstclnt -q started at `date`"
   tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \
           -d ${P_R_CLIENTDIR} < ${REQUEST_FILE}
   if [ $? -ne 0 ]; then
-      html_failed "<TR><TD> Wait for Server "
-      echo "RETRY: tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \\"
-      echo "               -d ${P_R_CLIENTDIR} < ${REQUEST_FILE}"
+      sleep 5
+      echo "retrying to connect to selfserv at `date`"
+      echo "tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \\"
+      echo "        -d ${P_R_CLIENTDIR} < ${REQUEST_FILE}"
       tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \
               -d ${P_R_CLIENTDIR} < ${REQUEST_FILE}
-  elif [ sparam = "-c ABCDEFabcdefghijklmnvy" ] ; then # "$1" = "cov" ] ; then
-      html_passed "<TR><TD> Wait for Server"
+      if [ $? -ne 0 ]; then
+          html_failed "<TR><TD> Waiting for Server"
+          echo "${SCRIPTNAME}: Waiting for Server - FAILED"
+      fi
   fi
   is_selfserv_alive
 }
@@ -158,23 +179,39 @@ wait_for_selfserv()
 ########################################################################
 kill_selfserv()
 {
-  if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "CYGWIN_NT" ]; then
+  if [ "${OS_ARCH}" = "WINNT" ] && \
+     [ "$OS_NAME" = "CYGWIN_NT" -o "$OS_NAME" = "MINGW32_NT" ]; then
       PID=${SHELL_SERVERPID}
   else
       PID=`cat ${SERVERPID}`
   fi
-  ${KILL} ${PID}
+
+  echo "trying to kill selfserv with PID ${PID} at `date`"
+
+  if [ "${OS_ARCH}" = "WINNT" -o "${OS_ARCH}" = "WIN95" -o "${OS_ARCH}" = "OS2" ]; then
+      echo "${KILL} ${PID}"
+      ${KILL} ${PID}
+  else
+      echo "${KILL} -USR1 ${PID}"
+      ${KILL} -USR1 ${PID}
+  fi
   wait ${PID}
   if [ ${fileout} -eq 1 ]; then
       cat ${SERVEROUTFILE}
   fi
+
   # On Linux selfserv needs up to 30 seconds to fully die and free
   # the port.  Wait until the port is free. (Bug 129701)
   if [ "${OS_ARCH}" = "Linux" ]; then
+      echo "selfserv -b -p ${PORT} 2>/dev/null;"
       until selfserv -b -p ${PORT} 2>/dev/null; do
+          echo "RETRY: selfserv -b -p ${PORT} 2>/dev/null;"
           sleep 1
       done
   fi
+
+  echo "selfserv with PID ${PID} killed at `date`"
+
   rm ${SERVERPID}
 }
 
@@ -189,16 +226,25 @@ start_selfserv()
       echo "$SCRIPTNAME: $testname ----"
   fi
   sparam=`echo $sparam | sed -e 's;_; ;g'`
+  if [ -n "$NSS_ENABLE_ECC" ] && \
+     [ -z "$NO_ECC_CERTS" -o "$NO_ECC_CERTS" != "1"  ] ; then
+      ECC_OPTIONS="-e ${HOSTADDR}-ec"
+  else
+      ECC_OPTIONS=""
+  fi
+  if [ "$1" = "mixed" ]; then
+      ECC_OPTIONS="-e ${HOSTADDR}-ecmixed"
+  fi
+  echo "selfserv starting at `date`"
   echo "selfserv -D -p ${PORT} -d ${P_R_SERVERDIR} -n ${HOSTADDR} ${SERVER_OPTIONS} \\"
-  echo "         -w nss ${sparam} -i ${R_SERVERPID} $verbose &"
-  echo "selfserv started at `date`"
+  echo "         ${ECC_OPTIONS} -w nss ${sparam} -i ${R_SERVERPID} $verbose &"
   if [ ${fileout} -eq 1 ]; then
       selfserv -D -p ${PORT} -d ${P_R_SERVERDIR} -n ${HOSTADDR} ${SERVER_OPTIONS} \
-               -w nss ${sparam} -i ${R_SERVERPID} $verbose \
+               ${ECC_OPTIONS} -w nss ${sparam} -i ${R_SERVERPID} $verbose \
                > ${SERVEROUTFILE} 2>&1 &
   else
       selfserv -D -p ${PORT} -d ${P_R_SERVERDIR} -n ${HOSTADDR} ${SERVER_OPTIONS} \
-               -w nss ${sparam} -i ${R_SERVERPID} $verbose &
+               ${ECC_OPTIONS} -w nss ${sparam} -i ${R_SERVERPID} $verbose &
   fi
   # The PID $! returned by the MKS or Cygwin shell is not the PID of
   # the real background process, but rather the PID of a helper
@@ -214,6 +260,15 @@ start_selfserv()
   # other than the MKS shell.)
   SHELL_SERVERPID=$!
   wait_for_selfserv
+
+  if [ "${OS_ARCH}" = "WINNT" ] && \
+     [ "$OS_NAME" = "CYGWIN_NT" -o "$OS_NAME" = "MINGW32_NT" ]; then
+      PID=${SHELL_SERVERPID}
+  else
+      PID=`cat ${SERVERPID}`
+  fi
+
+  echo "selfserv with PID ${PID} started at `date`"
 }
 
 ############################## ssl_cov #################################
@@ -221,28 +276,69 @@ start_selfserv()
 ########################################################################
 ssl_cov()
 {
-  html_head "SSL Cipher Coverage $NORM_EXT - $BYPASS_STRING"
+  html_head "SSL Cipher Coverage $NORM_EXT - $BYPASS_STRING $ECC_STRING"
 
   testname=""
-  sparam="-c ABCDEFabcdefghijklmnvyz"
+  if [ -n "$NSS_ENABLE_ECC" ] ; then
+      sparam="$CLONG"
+  else
+      sparam="$CSHORT"
+  fi
+
+  mixed=0
   start_selfserv # Launch the server
                
   p=""
 
-  while read tls param testname
+  exec < ${SSLCOV}
+  while read ectype tls param testname
   do
-      p=`echo "$testname" | sed -e "s/ .*//"`   #sonmi, only run extended test on SSL3 and TLS
+      p=`echo "$testname" | sed -e "s/_.*//"`   #sonmi, only run extended test on SSL3 and TLS
+
+      echo "$testname" | grep EXPORT > /dev/null 2>&1 
+      exp=$?
       
       if [ "$p" = "SSL2" -a "$NORM_EXT" = "Extended Test" ] ; then
           echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
-      elif [ "$tls" != "#" ] ; then
+      elif [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
+          echo "$SCRIPTNAME: skipping  $testname (ECC only)"
+      elif [ "$p" = "SSL2" -o "$exp" -eq 0 ] && [ "$BYPASS_STRING" = "Server FIPS" ] ; then
+          echo "$SCRIPTNAME: skipping  $testname (non-FIPS only)"
+      elif [ "$ectype" != "#" ] ; then
           echo "$SCRIPTNAME: running $testname ----------------------------"
           TLS_FLAG=-T
-          if [ $tls = "TLS" ]; then
+          if [ "$tls" = "TLS" ]; then
               TLS_FLAG=""
           fi
 
-          is_selfserv_alive
+# These five tests need an EC cert signed with RSA
+# This requires a different certificate loaded in selfserv
+# due to a (current) NSS limitation of only loaded one cert
+# per type so the default selfserv setup will not work.
+#:C00B TLS ECDH RSA WITH NULL SHA
+#:C00C TLS ECDH RSA WITH RC4 128 SHA
+#:C00D TLS ECDH RSA WITH 3DES EDE CBC SHA
+#:C00E TLS ECDH RSA WITH AES 128 CBC SHA
+#:C00F TLS ECDH RSA WITH AES 256 CBC SHA
+
+          if [ $mixed -eq 0 ]; then
+            if [ "${param}" = ":C00B" -o "${param}" = ":C00C" -o "${param}" = ":C00D" -o "${param}" = ":C00E" -o "${param}" = ":C00F" ]; then
+              kill_selfserv
+              start_selfserv mixed
+              mixed=1
+            else
+              is_selfserv_alive
+            fi
+          else 
+            if [ "${param}" = ":C00B" -o "${param}" = ":C00C" -o "${param}" = ":C00D" -o "${param}" = ":C00E" -o "${param}" = ":C00F" ]; then
+              is_selfserv_alive
+            else
+              kill_selfserv
+              start_selfserv
+              mixed=0
+            fi
+          fi
+
           echo "tstclnt -p ${PORT} -h ${HOSTADDR} -c ${param} ${TLS_FLAG} ${CLIENT_OPTIONS} \\"
           echo "        -f -d ${P_R_CLIENTDIR} < ${REQUEST_FILE}"
 
@@ -253,9 +349,10 @@ ssl_cov()
           ret=$?
           cat ${TMP}/$HOST.tmp.$$ 
           rm ${TMP}/$HOST.tmp.$$ 2>/dev/null
-          html_msg $ret 0 "${testname}"
+          html_msg $ret 0 "${testname}" \
+                   "produced a returncode of $ret, expected is 0"
       fi
-  done < ${SSLCOV}
+  done
 
   kill_selfserv
   html "</TABLE><BR>"
@@ -266,11 +363,14 @@ ssl_cov()
 ########################################################################
 ssl_auth()
 {
-  html_head "SSL Client Authentication $NORM_EXT - $BYPASS_STRING"
+  html_head "SSL Client Authentication $NORM_EXT - $BYPASS_STRING $ECC_STRING"
 
-  while read value sparam cparam testname
+  exec < ${SSLAUTH}
+  while read ectype value sparam cparam testname
   do
-      if [ $value != "#" ]; then
+      if [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
+          echo "$SCRIPTNAME: skipping  $testname (ECC only)"
+      elif [ "$ectype" != "#" ]; then
           cparam=`echo $cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
           start_selfserv
 
@@ -288,7 +388,7 @@ ssl_auth()
                    "produced a returncode of $ret, expected is $value"
           kill_selfserv
       fi
-  done < ${SSLAUTH}
+  done
 
   html "</TABLE><BR>"
 }
@@ -299,17 +399,36 @@ ssl_auth()
 ########################################################################
 ssl_stress()
 {
-  html_head "SSL Stress Test $NORM_EXT - $BYPASS_STRING"
+  html_head "SSL Stress Test $NORM_EXT - $BYPASS_STRING $ECC_STRING"
 
-  while read value sparam cparam testname
+  exec < ${SSLSTRESS}
+  while read ectype value sparam cparam testname
   do
+      if [ -z "$ectype" ]; then
+          # silently ignore blank lines
+          continue
+      fi
       p=`echo "$testname" | sed -e "s/Stress //" -e "s/ .*//"`   #sonmi, only run extended test on SSL3 and TLS
       if [ "$p" = "SSL2" -a "$NORM_EXT" = "Extended Test" ] ; then
           echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
-      elif [ $value != "#" ]; then
-          cparam=`echo $cparam | sed -e 's;_; ;g'`
-          start_selfserv
-          if [ `uname -n` = "sjsu" ] ; then
+      elif [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
+          echo "$SCRIPTNAME: skipping  $testname (ECC only)"
+      elif [ "$p" = "SSL2" -a "$BYPASS_STRING" = "Server FIPS" ] ; then
+          echo "$SCRIPTNAME: skipping  $testname (non-FIPS only)"
+      elif [ "$ectype" != "#" ]; then
+          cparam=`echo $cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
+
+# These tests need the mixed cert 
+# Stress TLS ECDH-RSA AES 128 CBC with SHA (no reuse)
+# Stress TLS ECDH-RSA AES 128 CBC with SHA (no reuse, client auth)
+          p=`echo "$sparam" | sed -e "s/\(.*\)\(-c_:C0..\)\(.*\)/\2/"`;
+          if [ "$p" = "-c_:C00E" ]; then
+              start_selfserv mixed
+          else
+              start_selfserv
+          fi
+
+          if [ "`uname -n`" = "sjsu" ] ; then
               echo "debugging disapering selfserv... ps -ef | grep selfserv"
               ps -ef | grep selfserv
           fi
@@ -321,14 +440,16 @@ ssl_stress()
                    $verbose ${HOSTADDR}
           ret=$?
           echo "strsclnt completed at `date`"
-          html_msg $ret $value "${testname}"
-          if [ `uname -n` = "sjsu" ] ; then
+          html_msg $ret $value \
+                   "${testname}" \
+                   "produced a returncode of $ret, expected is $value. "
+          if [ "`uname -n`" = "sjsu" ] ; then
               echo "debugging disapering selfserv... ps -ef | grep selfserv"
               ps -ef | grep selfserv
           fi
           kill_selfserv
       fi
-  done < ${SSLSTRESS}
+  done
 
   html "</TABLE><BR>"
 }
@@ -339,7 +460,7 @@ ssl_stress()
 
 ssl_crl_ssl()
 {
-  html_head "CRL SSL Client Tests $NORM_EXT"
+  html_head "CRL SSL Client Tests $NORM_EXT $ECC_STRING"
   
   # Using First CRL Group for this test. There are $CRL_GRP_1_RANGE certs in it.
   # Cert number $UNREVOKED_CERT_GRP_1 was not revoked
@@ -347,9 +468,12 @@ ssl_crl_ssl()
   CRL_GROUP_RANGE=$CRL_GRP_1_RANGE
   UNREVOKED_CERT=$UNREVOKED_CERT_GRP_1
 
-  while read value sparam cparam testname
+  exec < ${SSLAUTH}
+  while read ectype value sparam cparam testname
   do
-    if [ $value != "#" ]; then
+    if [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
+        echo "$SCRIPTNAME: skipping $testname (ECC only)"
+    elif [ "$ectype" != "#" ]; then
 	servarg=`echo $sparam | awk '{r=split($0,a,"-r") - 1;print r;}'`
 	pwd=`echo $cparam | grep nss`
 	user=`echo $cparam | grep TestUser`
@@ -401,7 +525,7 @@ ssl_crl_ssl()
 	  kill_selfserv
 	done
     fi
-  done < ${SSLAUTH}
+  done
 
   html "</TABLE><BR>"
 }
@@ -443,6 +567,7 @@ is_revoked() {
 
 load_group_crl() {
     group=$1
+    ectype=$2
 
     OUTFILE_TMP=${TMP}/$HOST.tmp.$$
     grpBegin=`eval echo \$\{CRL_GRP_${group}_BEGIN\}`
@@ -454,6 +579,15 @@ load_group_crl() {
         return 1;
     fi
     
+    # Add -ec suffix for ECC
+    if [ "$ectype" = "ECC" ] ; then
+      ecsuffix="-ec"
+      eccomment="ECC "
+    else
+      ecsuffix=""
+      eccomment=""
+    fi
+    
     if [ "$RELOAD_CRL" != "" ]; then
         if [ $group -eq 1 ]; then
             echo "==================== Resetting to group 1 crl ==================="
@@ -461,18 +595,18 @@ load_group_crl() {
             start_selfserv
             is_selfserv_alive
         fi
-        echo "================= Reloading CRL for group $grpBegin - $grpEnd ============="
+        echo "================= Reloading ${eccomment}CRL for group $grpBegin - $grpEnd ============="
 
         echo "tstclnt -p ${PORT} -h ${HOSTADDR} -f -d ${R_CLIENTDIR} \\"
-        echo "          -w nss -n TestUser${UNREVOKED_CERT_GRP_1}"
+        echo "          -w nss -n TestUser${UNREVOKED_CERT_GRP_1}${ecsuffix}"
         echo "Request:"
-        echo "GET crl://${SERVERDIR}/root.crl_${grpBegin}-${grpEnd}"
+        echo "GET crl://${SERVERDIR}/root.crl_${grpBegin}-${grpEnd}${ecsuffix}"
         echo ""
         echo "RELOAD time $i"
         tstclnt -p ${PORT} -h ${HOSTADDR} -f  \
-            -d ${R_CLIENTDIR} -w nss -n TestUser${UNREVOKED_CERT_GRP_1} \
-            <<_EOF_REQUEST_ >${OUTFILE_TMP}  2>&1
-GET crl://${SERVERDIR}/root.crl_${grpBegin}-${grpEnd}
+            -d ${R_CLIENTDIR} -w nss -n TestUser${UNREVOKED_CERT_GRP_1}${ecsuffix} \
+	    >${OUTFILE_TMP}  2>&1 <<_EOF_REQUEST_
+GET crl://${SERVERDIR}/root.crl_${grpBegin}-${grpEnd}${ecsuffix}
 
 _EOF_REQUEST_
         cat ${OUTFILE_TMP}
@@ -485,11 +619,12 @@ _EOF_REQUEST_
         echo "=== Updating DB for group $grpBegin - $grpEnd and restarting selfserv ====="
 
         kill_selfserv
-        CU_ACTION="Importing CRL for groups $grpBegin - $grpEnd"
-        crlu -d ${R_SERVERDIR} -I -i ${SERVERDIR}/root.crl_${grpBegin}-${grpEnd} \
+        CU_ACTION="Importing ${eccomment}CRL for groups $grpBegin - $grpEnd"
+        crlu -d ${R_SERVERDIR} -I -i ${SERVERDIR}/root.crl_${grpBegin}-${grpEnd}${ecsuffix} \
              -p ../tests.pw.928
         ret=$?
         if [ "$ret" -eq 0 ]; then
+	    html_passed "<TR><TD> ${CU_ACTION}"
             return 1
         fi
         start_selfserv        
@@ -502,7 +637,7 @@ _EOF_REQUEST_
 
 ssl_crl_cache()
 {
-  html_head "Cache CRL SSL Client Tests $NORM_EXT"
+  html_head "Cache CRL SSL Client Tests $NORM_EXT $ECC_STRING"
   SSLAUTH_TMP=${TMP}/authin.tl.tmp
   SERV_ARG=-r_-r
   rm -f ${SSLAUTH_TMP}
@@ -514,83 +649,91 @@ ssl_crl_cache()
     do
     sparam=$SERV_ARG
     start_selfserv
-    while read value sparam cparam testname
+    exec < ${SSLAUTH_TMP}
+    while read ectype value sparam cparam testname
       do
-      servarg=`echo $sparam | awk '{r=split($0,a,"-r") - 1;print r;}'`
-      pwd=`echo $cparam | grep nss`
-      user=`echo $cparam | grep TestUser`
-      _cparam=$cparam
-      case $servarg in
-          1) if [ -z "$pwd" -o -z "$user" ]; then
-              rev_modvalue=0
-              else
-              rev_modvalue=254
-              fi
-              ;;
-          2) rev_modvalue=254 ;;
+      if [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
+        echo "$SCRIPTNAME: skipping  $testname (ECC only)"
+      else
+        servarg=`echo $sparam | awk '{r=split($0,a,"-r") - 1;print r;}'`
+        pwd=`echo $cparam | grep nss`
+        user=`echo $cparam | grep TestUser`
+        _cparam=$cparam
+        case $servarg in
+            1) if [ -z "$pwd" -o -z "$user" ]; then
+                rev_modvalue=0
+                else
+                rev_modvalue=254
+                fi
+                ;;
+            2) rev_modvalue=254 ;;
 
-          3) if [ -z "$pwd" -o -z "$user" ]; then
-              rev_modvalue=0
-              else
-              rev_modvalue=1
-              fi
-              ;;
-          4) rev_modvalue=1 ;;
-	esac
-      TEMP_NUM=0
-      LOADED_GRP=1
-      while [ ${LOADED_GRP} -le ${TOTAL_GRP_NUM} ]
-        do
-        while [ $TEMP_NUM -lt $TOTAL_CRL_RANGE ]
+            3) if [ -z "$pwd" -o -z "$user" ]; then
+                rev_modvalue=0
+                else
+                rev_modvalue=1
+                fi
+                ;;
+            4) rev_modvalue=1 ;;
+	  esac
+        TEMP_NUM=0
+        LOADED_GRP=1
+        while [ ${LOADED_GRP} -le ${TOTAL_GRP_NUM} ]
           do
-          CURR_SER_NUM=`expr ${CRL_GRP_1_BEGIN} + ${TEMP_NUM}`
-          TEMP_NUM=`expr $TEMP_NUM + 1`
-          USER_NICKNAME="TestUser${CURR_SER_NUM}"
-          cparam=`echo $_cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
-          
-          echo "Server Args: $SERV_ARG"
-          echo "tstclnt -p ${PORT} -h ${HOSTADDR} -f -d ${R_CLIENTDIR} \\"
-          echo "        ${cparam}  < ${REQUEST_FILE}"
-          rm ${TMP}/$HOST.tmp.$$ 2>/dev/null
-          tstclnt -p ${PORT} -h ${HOSTADDR} -f ${cparam} \
-	      -d ${R_CLIENTDIR} < ${REQUEST_FILE} \
-              >${TMP}/$HOST.tmp.$$  2>&1
-          ret=$?
-          cat ${TMP}/$HOST.tmp.$$ 
-          rm ${TMP}/$HOST.tmp.$$ 2>/dev/null
-          is_revoked ${CURR_SER_NUM} ${LOADED_GRP}
-          isRevoked=$?
-          if [ $isRevoked -eq 0 ]; then
-              modvalue=$rev_modvalue
-              testAddMsg="revoked"
-          else
-              modvalue=$value
-              testAddMsg="not revoked"
-          fi
-          
-          is_selfserv_alive
-          ss_status=$?
-          if [ "$ss_status" -ne 0 ]; then
-              html_msg $ret $modvalue \
-                  "${testname}(cert ${USER_NICKNAME} - $testAddMsg)" \
-                  "produced a returncode of $ret, expected is $modvalue. " \
-                  "selfserv is not alive!"
-          else
-              html_msg $ret $modvalue \
-                  "${testname}(cert ${USER_NICKNAME} - $testAddMsg)" \
-                  "produced a returncode of $ret, expected is $modvalue"
+          while [ $TEMP_NUM -lt $TOTAL_CRL_RANGE ]
+            do
+            CURR_SER_NUM=`expr ${CRL_GRP_1_BEGIN} + ${TEMP_NUM}`
+            TEMP_NUM=`expr $TEMP_NUM + 1`
+            USER_NICKNAME="TestUser${CURR_SER_NUM}"
+            cparam=`echo $_cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
+
+            echo "Server Args: $SERV_ARG"
+            echo "tstclnt -p ${PORT} -h ${HOSTADDR} -f -d ${R_CLIENTDIR} \\"
+            echo "        ${cparam}  < ${REQUEST_FILE}"
+            rm ${TMP}/$HOST.tmp.$$ 2>/dev/null
+            tstclnt -p ${PORT} -h ${HOSTADDR} -f ${cparam} \
+	        -d ${R_CLIENTDIR} < ${REQUEST_FILE} \
+                >${TMP}/$HOST.tmp.$$  2>&1
+            ret=$?
+            cat ${TMP}/$HOST.tmp.$$ 
+            rm ${TMP}/$HOST.tmp.$$ 2>/dev/null
+            is_revoked ${CURR_SER_NUM} ${LOADED_GRP}
+            isRevoked=$?
+            if [ $isRevoked -eq 0 ]; then
+                modvalue=$rev_modvalue
+                testAddMsg="revoked"
+            else
+                modvalue=$value
+                testAddMsg="not revoked"
+            fi
+
+            is_selfserv_alive
+            ss_status=$?
+            if [ "$ss_status" -ne 0 ]; then
+                html_msg $ret $modvalue \
+                    "${testname}(cert ${USER_NICKNAME} - $testAddMsg)" \
+                    "produced a returncode of $ret, expected is $modvalue. " \
+                    "selfserv is not alive!"
+            else
+                html_msg $ret $modvalue \
+                    "${testname}(cert ${USER_NICKNAME} - $testAddMsg)" \
+                    "produced a returncode of $ret, expected is $modvalue"
+            fi
+          done
+          LOADED_GRP=`expr $LOADED_GRP + 1`
+          TEMP_NUM=0
+          if [ "$LOADED_GRP" -le "$TOTAL_GRP_NUM" ]; then
+              load_group_crl $LOADED_GRP $ectype
+              html_msg $ret 0 "Load group $LOADED_GRP ${eccomment}crl " \
+                  "produced a returncode of $ret, expected is 0"
           fi
         done
-        LOADED_GRP=`expr $LOADED_GRP + 1`
-        TEMP_NUM=0
-        if [ "$LOADED_GRP" -le "$TOTAL_GRP_NUM" ]; then
-            load_group_crl $LOADED_GRP
-            html_msg $ret 0 "Load group $LOADED_GRP crl " \
-                "produced a returncode of $ret, expected is 0"
-        fi
-      done
-      load_group_crl 1
-    done < ${SSLAUTH_TMP}
+        # Restart selfserv to roll back to two initial group 1 crls
+        # TestCA CRL and TestCA-ec CRL 
+        kill_selfserv
+        start_selfserv
+      fi
+    done
     kill_selfserv
     SERV_ARG="${SERV_ARG}_-r"
     rm -f ${SSLAUTH_TMP}
@@ -637,7 +780,7 @@ ssl_run()
     ssl_auth
     ssl_stress
 
-    # the next round off ssl tests will only run if these vars are reset
+    # the next round of ssl tests will only run if these vars are reset
     SERVERDIR=$ORIG_SERVERDIR
     CLIENTDIR=$ORIG_CLIENTDIR
     R_SERVERDIR=$ORIG_R_SERVERDIR
@@ -647,12 +790,47 @@ ssl_run()
     USER_NICKNAME=TestUser
     NORM_EXT=
     cd ${QADIR}/ssl
-    ssl_cleanup
+}
+
+############################ ssl_set_fips ##############################
+# local shell function to set FIPS mode on/off
+########################################################################
+ssl_set_fips()
+{
+    DBDIR=$1
+    FIPSMODE=$2
+    TESTNAME=$3
+    MODUTIL="modutil"
+
+    [ "${FIPSMODE}" = "true" ]
+    RET_EXP=$?
+
+    echo "${SCRIPTNAME}: ${TESTNAME}"
+
+    echo "${MODUTIL} -dbdir ${DBDIR} -fips ${FIPSMODE} -force"
+    ${MODUTIL} -dbdir ${DBDIR} -fips ${FIPSMODE} -force 2>&1
+    RET=$?  
+    html_msg "${RET}" "0" "${TESTNAME} (modutil -fips ${FIPSMODE})" \
+             "produced a returncode of ${RET}, expected is 0"
+
+    echo "${MODUTIL} -dbdir ${DBDIR} -list"
+    DBLIST=`${MODUTIL} -dbdir ${DBDIR} -list 2>&1`
+    RET=$?  
+    html_msg "${RET}" "0" "${TESTNAME} (modutil -list)" \
+             "produced a returncode of ${RET}, expected is 0"
+
+    echo "${DBLIST}" | grep "FIPS PKCS #11"
+    RET=$?
+    html_msg "${RET}" "${RET_EXP}" "${TESTNAME} (grep \"FIPS PKCS #11\")" \
+             "produced a returncode of ${RET}, expected is ${RET_EXP}"
 }
 
 ################## main #################################################
 
 #this script may be sourced from the distributed stress test - in this case do nothing...
+
+CSHORT="-c ABCDEFcdefgijklmnvyz"
+CLONG="-c ABCDEF:C001:C002:C003:C004:C005:C006:C007:C008:C009:C00A:C00B:C00C:C00D:C00E:C00F:C010:C011:C012:C013:C014cdefgijklmnvyz"
 
 if [ -z  "$DO_REM_ST" -a -z  "$DO_DIST_ST" ] ; then
 
@@ -666,18 +844,64 @@ if [ -z  "$DO_REM_ST" -a -z  "$DO_DIST_ST" ] ; then
     ORIG_P_R_SERVERDIR=$P_R_SERVERDIR
     ORIG_P_R_CLIENTDIR=$P_R_CLIENTDIR
 
-    ssl_crl_ssl
-    ssl_crl_cache
+    if [ -z "$NSS_TEST_DISABLE_CRL" ] ; then
+        ssl_crl_ssl
+        ssl_crl_cache
+    else
+        echo "$SCRIPTNAME: Skipping CRL Client Tests"
+    fi
+
+    # Test all combinations of client bypass and server bypass
+
+    if [ -z "$NSS_TEST_DISABLE_CIPHERS" ] ; then
+	if [ -n "$NSS_TEST_DISABLE_BYPASS" ] ; then
+            SERVER_OPTIONS=""
+            CLIENT_OPTIONS=""
+            BYPASS_STRING="No Bypass"
+            ssl_run
+	fi
+
+        if [ -z "$NSS_TEST_DISABLE_BYPASS" -a -z "$NSS_TEST_DISABLE_CLIENT_BYPASS" ] ; then
+            CLIENT_OPTIONS="-B -s"
+            SERVER_OPTIONS=""
+            BYPASS_STRING="Client Bypass"
+            ssl_run
+        else
+            echo "$SCRIPTNAME: Skipping Cipher Coverage - Client Bypass Tests"
+        fi
+
+        if [ -z "$NSS_TEST_DISABLE_BYPASS" -a -z "$NSS_TEST_DISABLE_SERVER_BYPASS" ] ; then
+            SERVER_OPTIONS="-B -s"
+            CLIENT_OPTIONS=""
+            BYPASS_STRING="Server Bypass"
+            ssl_run
+        else
+            echo "$SCRIPTNAME: Skipping Cipher Coverage - Server Bypass Tests"
+        fi
+
+        if [ -z "$NSS_TEST_DISABLE_FIPS" ] ; then
+            CLIENT_OPTIONS=""
+            SERVER_OPTIONS=""
+            BYPASS_STRING="Server FIPS"
+
+            html_head "SSL - FIPS mode on"
+            ssl_set_fips "${SERVERDIR}" "true" "Turning FIPS on for the server"
+            ssl_set_fips "${EXT_SERVERDIR}" "true" "Turning FIPS on for the extended server" 
+            html "</TABLE><BR>"
+
+            ssl_run
+
+            html_head "SSL - FIPS mode off"
+            ssl_set_fips "${SERVERDIR}" "false" "Turning FIPS off for the server"
+            ssl_set_fips "${EXT_SERVERDIR}" "false" "Turning FIPS off for the extended server"
+            html "</TABLE><BR>"
+        else
+            echo "$SCRIPTNAME: Skipping Cipher Coverage - FIPS Tests"
+        fi
+    else
+        echo "$SCRIPTNAME: Skipping Cipher Coverage Tests"
+    fi
+
+    ssl_iopr_run
     ssl_cleanup
-
-    # Test all combinations of server bypass and client bypass
-    CLIENT_OPTIONS="-B -s"
-    SERVER_OPTIONS=""
-    BYPASS_STRING="Client Bypass"
-    ssl_run
-    SERVER_OPTIONS="-B -s"
-    CLIENT_OPTIONS=""
-    BYPASS_STRING="Server Bypass"
-    ssl_run
-
 fi

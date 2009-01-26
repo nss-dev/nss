@@ -70,7 +70,8 @@
 #include "nss.h"
 
 #define MIN_KEY_BITS		512
-#define MAX_KEY_BITS		2048
+/* MAX_KEY_BITS should agree with MAX_RSA_MODULUS in freebl */
+#define MAX_KEY_BITS		8192
 #define DEFAULT_KEY_BITS	1024
 
 #define GEN_BREAK(e) rv=e; break;
@@ -354,10 +355,11 @@ AddCert(PK11SlotInfo *slot, CERTCertDBHandle *handle, char *name, char *trusts,
 	    GEN_BREAK(SECFailure);
 	}
 
-	if (!PK11_IsFriendly(slot)) {
+	if (PK11_IsFIPS() || !PK11_IsInternal(slot)) {
 	    rv = PK11_Authenticate(slot, PR_TRUE, pwdata);
 	    if (rv != SECSuccess) {
-		SECU_PrintError(progName, "could not authenticate to token or database");
+		SECU_PrintError(progName, "could not authenticate to token %s.",
+                                PK11_GetTokenName(slot));
 		GEN_BREAK(SECFailure);
 	    }
 	}
@@ -636,8 +638,14 @@ listCerts(CERTCertDBHandle *handle, char *name, PK11SlotInfo *slot,
     CERTCertListNode *node;
 
     /* List certs on a non-internal slot. */
-    if (!PK11_IsFriendly(slot) && PK11_NeedLogin(slot))
-	    PK11_Authenticate(slot, PR_TRUE, pwarg);
+    if (!PK11_IsFriendly(slot) && PK11_NeedLogin(slot)) {
+        SECStatus newrv = PK11_Authenticate(slot, PR_TRUE, pwarg);
+        if (newrv != SECSuccess) {
+            SECU_PrintError(progName, "could not authenticate to token %s.",
+                            PK11_GetTokenName(slot));
+            return SECFailure;
+        }
+    }
     if (name) {
 	CERTCertificate *the_cert;
 	the_cert = CERT_FindCertByNicknameOrEmailAddr(handle, name);
@@ -648,10 +656,20 @@ listCerts(CERTCertDBHandle *handle, char *name, PK11SlotInfo *slot,
 		return SECFailure;
 	    }
 	}
+	/* Here, we have one cert with the desired nickname or email 
+	 * address.  Now, we will attempt to get a list of ALL certs 
+	 * with the same subject name as the cert we have.  That list 
+	 * should contain, at a minimum, the one cert we have already found.
+	 * If the list of certs is empty (NULL), the libraries have failed.
+	 */
 	certs = CERT_CreateSubjectCertList(NULL, handle, &the_cert->derSubject,
 		PR_Now(), PR_FALSE);
 	CERT_DestroyCertificate(the_cert);
-
+	if (!certs) {
+	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	    SECU_PrintError(progName, "problem printing certificates");
+	    return SECFailure;
+	}
 	for (node = CERT_LIST_HEAD(certs); !CERT_LIST_END(node,certs);
 						node = CERT_LIST_NEXT(node)) {
 	    the_cert = node->cert;
@@ -699,7 +717,7 @@ listCerts(CERTCertDBHandle *handle, char *name, PK11SlotInfo *slot,
 }
 
 static SECStatus
-ListCerts(CERTCertDBHandle *handle, char *name, PK11SlotInfo *slot,
+ListCerts(CERTCertDBHandle *handle, char *nickname, PK11SlotInfo *slot,
           PRBool raw, PRBool ascii, PRFileDesc *outfile, secuPWData *pwdata)
 {
     SECStatus rv;
@@ -717,7 +735,7 @@ ListCerts(CERTCertDBHandle *handle, char *name, PK11SlotInfo *slot,
 	CERT_DestroyCertList(list);
 	return SECSuccess;
     } else {
-	rv = listCerts(handle,name,slot,raw,ascii,outfile,pwdata);
+	rv = listCerts(handle,nickname,slot,raw,ascii,outfile,pwdata);
     }
     return rv;
 }
@@ -762,6 +780,9 @@ ValidateCert(CERTCertDBHandle *handle, char *name, char *date,
     }
     
     switch (*certUsage) {
+	case 'O':
+	    usage = certificateUsageStatusResponder;
+	    break;
 	case 'C':
 	    usage = certificateUsageSSLClient;
 	    break;
@@ -865,67 +886,167 @@ printKeyCB(SECKEYPublicKey *key, SECItem *data, void *arg)
     return SECSuccess;
 }
 
-/* callback for listing certs through pkcs11 */
-static SECStatus
-secu_PrintKey(FILE *out, int count, SECKEYPrivateKey *key)
+static PRBool
+ItemIsPrintableASCII(const SECItem * item)
 {
-    char *name;
-
-    name = PK11_GetPrivateKeyNickname(key);
-    if (name == NULL) {
-	/* should look up associated cert */
-	name = PORT_Strdup("< orphaned >");
+    unsigned char *src = item->data;
+    unsigned int   len = item->len;
+    while (len-- > 0) {
+        unsigned char uc = *src++;
+	if (uc < 0x20 || uc > 0x7e) 
+	    return PR_FALSE;
     }
-    fprintf(out, "<%d> %s\n", count, name);
-    PORT_Free(name);
+    return PR_TRUE;
+}
+
+/* Caller ensures that dst is at least item->len*2+1 bytes long */
+static void
+SECItemToHex(const SECItem * item, char * dst)
+{
+    if (dst && item && item->data) {
+	unsigned char * src = item->data;
+	unsigned int    len = item->len;
+	for (; len > 0; --len, dst += 2) {
+	    sprintf(dst, "%02x", *src++);
+	}
+	*dst = '\0';
+    }
+}
+
+static const char * const keyTypeName[] = {
+  "null", "rsa", "dsa", "fortezza", "dh", "kea", "ec" };
+
+#define MAX_CKA_ID_BIN_LEN 20
+#define MAX_CKA_ID_STR_LEN 40
+
+/* print key number, key ID (in hex or ASCII), key label (nickname) */
+static SECStatus
+PrintKey(PRFileDesc *out, const char *nickName, int count, 
+         SECKEYPrivateKey *key, void *pwarg)
+{
+    SECItem * ckaID;
+    char ckaIDbuf[MAX_CKA_ID_STR_LEN + 4];
+
+    pwarg = NULL;
+    ckaID = PK11_GetLowLevelKeyIDForPrivateKey(key);
+    if (!ckaID) {
+	strcpy(ckaIDbuf, "(no CKA_ID)");
+    } else if (ItemIsPrintableASCII(ckaID)) {
+	int len = PR_MIN(MAX_CKA_ID_STR_LEN, ckaID->len);
+	ckaIDbuf[0] = '"';
+	memcpy(ckaIDbuf + 1, ckaID->data, len);
+	ckaIDbuf[1 + len] = '"';
+	ckaIDbuf[2 + len] = '\0';
+    } else {
+    	/* print ckaid in hex */
+	SECItem idItem = *ckaID;
+	if (idItem.len > MAX_CKA_ID_BIN_LEN)
+	    idItem.len = MAX_CKA_ID_BIN_LEN;
+        SECItemToHex(&idItem, ckaIDbuf);
+    }
+
+    PR_fprintf(out, "<%2d> %-8.8s %-42.42s %s\n", count, 
+               keyTypeName[key->keyType], ckaIDbuf, nickName);
+    SECITEM_ZfreeItem(ckaID, PR_TRUE);
 
     return SECSuccess;
 }
 
+/* returns SECSuccess if ANY keys are found, SECFailure otherwise. */
 static SECStatus
-listKeys(PK11SlotInfo *slot, KeyType keyType, void *pwarg)
+ListKeysInSlot(PK11SlotInfo *slot, const char *nickName, KeyType keyType, 
+               void *pwarg)
 {
     SECKEYPrivateKeyList *list;
     SECKEYPrivateKeyListNode *node;
-    int count;
+    int count = 0;
 
-    if (PK11_NeedLogin(slot))
-	    PK11_Authenticate(slot, PR_TRUE, pwarg);
+    if (PK11_NeedLogin(slot)) {
+        SECStatus rv = PK11_Authenticate(slot, PR_TRUE, pwarg);
+        if (rv != SECSuccess) {
+            SECU_PrintError(progName, "could not authenticate to token %s.",
+                            PK11_GetTokenName(slot));
+            return SECFailure;
+        }
+    }
 
-    list = PK11_ListPrivateKeysInSlot(slot);
+    if (nickName && nickName[0]) 
+	list = PK11_ListPrivKeysInSlot(slot, (char *)nickName, pwarg);
+    else
+	list = PK11_ListPrivateKeysInSlot(slot);
     if (list == NULL) {
 	SECU_PrintError(progName, "problem listing keys");
 	return SECFailure;
     }
-    for (count=0, node=PRIVKEY_LIST_HEAD(list) ; !PRIVKEY_LIST_END(node,list);
-			  node= PRIVKEY_LIST_NEXT(node),count++) {
-	secu_PrintKey(stdout, count, node->key);
+    for (node=PRIVKEY_LIST_HEAD(list); 
+             !PRIVKEY_LIST_END(node,list);
+	 node=PRIVKEY_LIST_NEXT(node)) {
+	char * keyName;
+	static const char orphan[] = { "(orphan)" };
+
+	if (keyType != nullKey && keyType != node->key->keyType)
+	    continue;
+        keyName = PK11_GetPrivateKeyNickname(node->key);
+	if (!keyName || !keyName[0]) {
+	    /* Try extra hard to find nicknames for keys that lack them. */
+	    CERTCertificate * cert;
+	    PORT_Free((void *)keyName);
+	    keyName = NULL;
+	    cert = PK11_GetCertFromPrivateKey(node->key);
+	    if (cert) {
+		if (cert->nickname && !cert->nickname[0]) {
+		    keyName = PORT_Strdup(cert->nickname);
+		} else if (cert->emailAddr && cert->emailAddr[0]) {
+		    keyName = PORT_Strdup(cert->emailAddr);
+		}
+		CERT_DestroyCertificate(cert);
+	    }
+	}
+	if (nickName) {
+	    if (!keyName || PL_strcmp(keyName,nickName)) {
+		/* PKCS#11 module returned unwanted keys */
+	        PORT_Free((void *)keyName);
+		continue;
+	    }
+	}
+	if (!keyName)
+	    keyName = (char *)orphan;
+
+	PrintKey(PR_STDOUT, keyName, count, node->key, pwarg);
+
+	if (keyName != (char *)orphan)
+	    PORT_Free((void *)keyName);
+	count++;
     }
     SECKEY_DestroyPrivateKeyList(list);
 
     if (count == 0) {
-	fprintf(stderr, "%s: no keys found\n", progName);
+	PR_fprintf(PR_STDOUT, "%s: no keys found\n", progName);
 	return SECFailure;
     }
     return SECSuccess;
 }
 
+/* returns SECSuccess if ANY keys are found, SECFailure otherwise. */
 static SECStatus
-ListKeys(PK11SlotInfo *slot, char *keyname, int index, 
+ListKeys(PK11SlotInfo *slot, const char *nickName, int index, 
          KeyType keyType, PRBool dopriv, secuPWData *pwdata)
 {
-    SECStatus rv = SECSuccess;
+    SECStatus rv = SECFailure;
 
     if (slot == NULL) {
 	PK11SlotList *list;
 	PK11SlotListElement *le;
 
 	list= PK11_GetAllTokens(CKM_INVALID_MECHANISM,PR_FALSE,PR_FALSE,pwdata);
-	if (list) for (le = list->head; le; le = le->next) {
-	    rv = listKeys(le->slot,keyType,pwdata);
+	if (list) {
+	    for (le = list->head; le; le = le->next) {
+		rv &= ListKeysInSlot(le->slot,nickName,keyType,pwdata);
+	    }
+	    PK11_FreeSlotList(list);
 	}
     } else {
-	rv = listKeys(slot,keyType,pwdata);
+	rv = ListKeysInSlot(slot,nickName,keyType,pwdata);
     }
     return rv;
 }
@@ -938,8 +1059,14 @@ DeleteKey(char *nickname, secuPWData *pwdata)
     PK11SlotInfo *slot;
 
     slot = PK11_GetInternalKeySlot();
-    if (PK11_NeedLogin(slot))
-	PK11_Authenticate(slot, PR_TRUE, pwdata);
+    if (PK11_NeedLogin(slot)) {
+        SECStatus rv = PK11_Authenticate(slot, PR_TRUE, pwdata);
+        if (rv != SECSuccess) {
+            SECU_PrintError(progName, "could not authenticate to token %s.",
+                            PK11_GetTokenName(slot));
+            return SECFailure;
+        }
+    }
     cert = PK11_FindCertFromNickname(nickname, pwdata);
     if (!cert) {
 	PK11_FreeSlot(slot);
@@ -993,6 +1120,7 @@ Usage(char *progName)
     FPS "Usage:  %s -T [-d certdir] [-P dbprefix] [-h token-name] [-f pwfile]\n", progName);
     FPS "\t%s -A -n cert-name -t trustargs [-d certdir] [-P dbprefix] [-a] [-i input]\n", 
     	progName);
+    FPS "\t%s -B -i batch-file\n", progName);
     FPS "\t%s -C [-c issuer-name | -x] -i cert-request-file -o cert-file\n"
 	"\t\t [-m serial-number] [-w warp-months] [-v months-valid]\n"
         "\t\t [-f pwfile] [-d certdir] [-P dbprefix] [-1] [-2] [-3] [-4] [-5]\n"
@@ -1041,6 +1169,9 @@ static void LongUsage(char *progName)
 
     FPS "%-15s Add a certificate to the database        (create if needed)\n",
 	"-A");
+    FPS "%-20s\n", "   All options under -E apply");
+    FPS "%-15s Run a series of certutil commands from a batch file\n", "-B");
+    FPS "%-20s Specify the batch file\n", "   -i batch-file");
     FPS "%-15s Add an Email certificate to the database (create if needed)\n",
 	"-E");
     FPS "%-20s Specify the nickname of the certificate to add\n",
@@ -1133,23 +1264,26 @@ static void LongUsage(char *progName)
 #ifdef NSS_ENABLE_ECC
     FPS "%-20s Elliptic curve name (ec only)\n",
 	"   -q curve-name");
-    FPS "%-20s One of sect163k1, nistk163, sect163r1, sect163r2,\n", "");
+    FPS "%-20s One of nistp256, nistp384, nistp521\n", "");
+#ifdef NSS_ECC_MORE_THAN_SUITE_B
+    FPS "%-20s sect163k1, nistk163, sect163r1, sect163r2,\n", "");
     FPS "%-20s nistb163, sect193r1, sect193r2, sect233k1, nistk233,\n", "");
     FPS "%-20s sect233r1, nistb233, sect239k1, sect283k1, nistk283,\n", "");
     FPS "%-20s sect283r1, nistb283, sect409k1, nistk409, sect409r1,\n", "");
     FPS "%-20s nistb409, sect571k1, nistk571, sect571r1, nistb571,\n", "");
-    FPS "%-20s secp169k1, secp160r1, secp160r2, secp192k1, secp192r1,\n", "");
+    FPS "%-20s secp160k1, secp160r1, secp160r2, secp192k1, secp192r1,\n", "");
     FPS "%-20s nistp192, secp224k1, secp224r1, nistp224, secp256k1,\n", "");
-    FPS "%-20s secp256r1, nistp256, secp384r1, nistp384, secp521r1,\n", "");
-    FPS "%-20s nistp521, prime192v1, prime192v2, prime192v3, \n", "");
+    FPS "%-20s secp256r1, secp384r1, secp521r1,\n", "");
+    FPS "%-20s prime192v1, prime192v2, prime192v3, \n", "");
     FPS "%-20s prime239v1, prime239v2, prime239v3, c2pnb163v1, \n", "");
     FPS "%-20s c2pnb163v2, c2pnb163v3, c2pnb176v1, c2tnb191v1, \n", "");
-    FPS "%-20s c2tnb191v2, c2tnb191v3, c2onb191v4, c2onb191v5, \n", "");
+    FPS "%-20s c2tnb191v2, c2tnb191v3,  \n", "");
     FPS "%-20s c2pnb208w1, c2tnb239v1, c2tnb239v2, c2tnb239v3, \n", "");
-    FPS "%-20s c2onb239v4, c2onb239v5, c2pnb272w1, c2pnb304w1, \n", "");
+    FPS "%-20s c2pnb272w1, c2pnb304w1, \n", "");
     FPS "%-20s c2tnb359w1, c2pnb368w1, c2tnb431r1, secp112r1, \n", "");
     FPS "%-20s secp112r2, secp128r1, secp128r2, sect113r1, sect113r2\n", "");
     FPS "%-20s sect131r1, sect131r2\n", "");
+#endif /* NSS_ECC_MORE_THAN_SUITE_B */
 #endif
     FPS "%-20s Key database directory (default is ~/.netscape)\n",
 	"   -d keydir");
@@ -1177,18 +1311,19 @@ static void LongUsage(char *progName)
 	"   -X");
     FPS "\n");
 
-    FPS "%-15s List all keys\n", /*, or print out a single named key\n",*/
+    FPS "%-15s List all private keys\n",
         "-K");
-    FPS "%-20s Name of token in which to look for keys (default is internal,"
-	" use \"all\" to list keys on all tokens)\n",
+          FPS "%-20s Name of token to search (\"all\" for all tokens)\n",
 	"   -h token-name ");
+
+    FPS "%-20s Key type (\"all\" (default), \"dsa\","
 #ifdef NSS_ENABLE_ECC
-    FPS "%-20s Type of key pair to list (\"all\", \"dsa\", \"ec\", \"rsa\" (default))\n",
-	"   -k key-type");
-#else
-    FPS "%-20s Type of key pair to list (\"all\", \"dsa\", \"rsa\" (default))\n",
-	"   -k key-type");
+                                                    " \"ec\","
 #endif
+                                                             " \"rsa\")\n",
+	"   -k key-type");
+    FPS "%-20s The nickname of the key or associated certificate\n",
+	"   -n name");
     FPS "%-20s Specify the password file\n",
         "   -f password-file");
     FPS "%-20s Key database directory (default is ~/.netscape)\n",
@@ -1292,6 +1427,8 @@ static void LongUsage(char *progName)
 	"   -p phone");
     FPS "%-20s Output the cert request in ASCII (RFC1113); default is binary\n",
 	"   -a");
+    FPS "%-20s \n",
+	"   See -S for available extension options");
     FPS "\n");
 
     FPS "%-15s Validate a certificate\n",
@@ -1307,6 +1444,7 @@ static void LongUsage(char *progName)
     FPS "%-25s V \t SSL Server\n", "");
     FPS "%-25s S \t Email signer\n", "");
     FPS "%-25s R \t Email Recipient\n", "");   
+    FPS "%-25s O \t OCSP status responder\n", "");   
     FPS "%-20s Cert database directory (default is ~/.netscape)\n",
 	"   -d certdir");
     FPS "%-20s Cert & Key database prefix\n",
@@ -1390,7 +1528,7 @@ MakeV1Cert(	CERTCertDBHandle *	handle,
 		PRBool 			selfsign, 
 		unsigned int 		serialNumber,
 		int 			warpmonths,
-                int                     validitylength)
+                int                     validityMonths)
 {
     CERTCertificate *issuerCert = NULL;
     CERTValidity *validity;
@@ -1414,19 +1552,19 @@ MakeV1Cert(	CERTCertDBHandle *	handle,
 	now = PR_ImplodeTime (&printableTime);
 	PR_ExplodeTime (now, PR_GMTParameters, &printableTime);
     }
-    printableTime.tm_month += validitylength;
-    printableTime.tm_month += 3;
+    printableTime.tm_month += validityMonths;
     after = PR_ImplodeTime (&printableTime);
 
     /* note that the time is now in micro-second unit */
     validity = CERT_CreateValidity (now, after);
-
-    cert = CERT_CreateCertificate(serialNumber, 
+    if (validity) {
+        cert = CERT_CreateCertificate(serialNumber, 
 				  (selfsign ? &req->subject 
 				            : &issuerCert->subject), 
 	                          validity, req);
     
-    CERT_DestroyValidity(validity);
+        CERT_DestroyValidity(validity);
+    }
     if ( issuerCert ) {
 	CERT_DestroyCertificate (issuerCert);
     }
@@ -1561,7 +1699,7 @@ AddOidToSequence(CERTOidSequence *os, SECOidTag oidTag)
   return SECSuccess;
 }
 
-SEC_ASN1_MKSUB(SEC_ObjectIDTemplate);
+SEC_ASN1_MKSUB(SEC_ObjectIDTemplate)
 
 const SEC_ASN1Template CERT_OidSeqTemplate[] = {
     { SEC_ASN1_SEQUENCE_OF | SEC_ASN1_XTRN,
@@ -2189,7 +2327,7 @@ CreateCert(
 	SECOidTag hashAlgTag,
 	unsigned int serialNumber, 
 	int     warpmonths,
-	int     validitylength,
+	int     validityMonths,
 	const char *emailAddrs,
 	const char *dnsNames,
 	PRBool  ascii,
@@ -2224,7 +2362,7 @@ CreateCert(
 	}
 
 	subjectCert = MakeV1Cert (handle, certReq, issuerNickName, selfsign,
-				  serialNumber, warpmonths, validitylength);
+				  serialNumber, warpmonths, validityMonths);
 	if (subjectCert == NULL) {
 	    GEN_BREAK (SECFailure)
 	}
@@ -2302,7 +2440,8 @@ enum {
     cmd_ListModules,
     cmd_CheckCertValidity,
     cmd_ChangePassword,
-    cmd_Version
+    cmd_Version,
+    cmd_Batch
 };
 
 /*  Certutil options */
@@ -2344,8 +2483,7 @@ enum {
     opt_RW,
     opt_Exponent,
     opt_NoiseFile,
-    opt_Hash,
-    opt_Batch
+    opt_Hash
 };
 
 static int 
@@ -2367,11 +2505,12 @@ certutil_main(int argc, char **argv, PRBool initialize)
     int         publicExponent  = 0x010001;
     unsigned int serialNumber   = 0;
     int         warpmonths      = 0;
-    int         validitylength  = 0;
+    int         validityMonths  = 3;
     int         commandsEntered = 0;
     char        commandToRun    = '\0';
     secuPWData  pwdata          = { PW_NONE, 0 };
     PRBool 	readOnly	= PR_FALSE;
+    PRBool      initialized     = PR_FALSE;
 
     SECKEYPrivateKey *privkey = NULL;
     SECKEYPublicKey *pubkey = NULL;
@@ -2401,7 +2540,8 @@ secuCommandFlag certutil_commands[] =
 	{ /* cmd_ListModules         */  'U', PR_FALSE, 0, PR_FALSE },
 	{ /* cmd_CheckCertValidity   */  'V', PR_FALSE, 0, PR_FALSE },
 	{ /* cmd_ChangePassword      */  'W', PR_FALSE, 0, PR_FALSE },
-	{ /* cmd_Version             */  'Y', PR_FALSE, 0, PR_FALSE }
+	{ /* cmd_Version             */  'Y', PR_FALSE, 0, PR_FALSE },
+	{ /* cmd_Batch               */  'B', PR_FALSE, 0, PR_FALSE }
 };
 
 secuCommandFlag certutil_options[] =
@@ -2443,8 +2583,7 @@ secuCommandFlag certutil_options[] =
 	{ /* opt_RW                  */  'X', PR_FALSE, 0, PR_FALSE },
 	{ /* opt_Exponent            */  'y', PR_TRUE,  0, PR_FALSE },
 	{ /* opt_NoiseFile           */  'z', PR_TRUE,  0, PR_FALSE },
-	{ /* opt_Hash                */  'Z', PR_TRUE,  0, PR_FALSE },
-	{ /* opt_Batch               */  'B', PR_TRUE,  0, PR_FALSE }
+	{ /* opt_Hash                */  'Z', PR_TRUE,  0, PR_FALSE }
 };
 
 
@@ -2526,6 +2665,8 @@ secuCommandFlag certutil_options[] =
 	               progName, arg);
 	    return 255;
 	}
+    } else if (certutil.commands[cmd_ListKeys].activated) {
+	keytype = nullKey;
     }
 
     /*  -m serial number */
@@ -2576,8 +2717,8 @@ secuCommandFlag certutil_options[] =
 
     /*  -v validity period  */
     if (certutil.options[opt_Validity].activated) {
-	validitylength = PORT_Atoi(certutil.options[opt_Validity].arg);
-	if (validitylength < 0) {
+	validityMonths = PORT_Atoi(certutil.options[opt_Validity].arg);
+	if (validityMonths < 0) {
 	    PR_fprintf(PR_STDERR, "%s -v: incorrect validity period: \"%s\"\n",
 	               progName, certutil.options[opt_Validity].arg);
 	    return 255;
@@ -2801,6 +2942,7 @@ secuCommandFlag certutil_options[] =
 	    rv = SECFailure;
 	    goto shutdown;
         }
+        initialized = PR_TRUE;
     	SECU_RegisterDynamicOids();
     }
     certHandle = CERT_GetDefaultCertDB();
@@ -2813,6 +2955,21 @@ secuCommandFlag certutil_options[] =
 	slot = PK11_GetInternalKeySlot();
     else if (slotname != NULL)
 	slot = PK11_FindSlotByName(slotname);
+   
+    if ( !slot && (certutil.commands[cmd_NewDBs].activated ||
+         certutil.commands[cmd_ModifyCertTrust].activated  || 
+         certutil.commands[cmd_ChangePassword].activated   ||
+         certutil.commands[cmd_TokenReset].activated       ||
+         certutil.commands[cmd_CreateAndAddCert].activated ||
+         certutil.commands[cmd_AddCert].activated          ||
+         certutil.commands[cmd_AddEmailCert].activated)) {
+      
+         SECU_PrintError(progName, "could not find the slot %s",slotname);
+         rv = SECFailure;
+         goto shutdown;
+    }
+
+
 
     /*  If creating new database, initialize the password.  */
     if (certutil.commands[cmd_NewDBs].activated) {
@@ -2881,8 +3038,14 @@ secuCommandFlag certutil_options[] =
     if (certutil.commands[cmd_CheckCertValidity].activated) {
 	/* XXX temporary hack for fips - must log in to get priv key */
 	if (certutil.options[opt_VerifySig].activated) {
-	    if (slot && PK11_NeedLogin(slot))
-		PK11_Authenticate(slot, PR_TRUE, &pwdata);
+	    if (slot && PK11_NeedLogin(slot)) {
+                SECStatus newrv = PK11_Authenticate(slot, PR_TRUE, &pwdata);
+                if (newrv != SECSuccess) {
+                    SECU_PrintError(progName, "could not authenticate to token %s.",
+                                    PK11_GetTokenName(slot));
+                    goto shutdown;
+                }
+            }
 	}
 	rv = ValidateCert(certHandle, name, 
 	                  certutil.options[opt_ValidityTime].arg,
@@ -2994,7 +3157,7 @@ secuCommandFlag certutil_options[] =
 	rv = CreateCert(certHandle, 
 	                certutil.options[opt_IssuerName].arg,
 	                inFile, outFile, privkey, &pwdata, hashAlgTag,
-	                serialNumber, warpmonths, validitylength,
+	                serialNumber, warpmonths, validityMonths,
 		        certutil.options[opt_ExtendedEmailAddrs].arg,
 		        certutil.options[opt_ExtendedDNSNames].arg,
 	                certutil.options[opt_ASCIIForIO].activated,
@@ -3074,13 +3237,21 @@ shutdown:
      * - each line in the batch file is limited to 512 characters
     */
 
-    if ((SECSuccess == rv) && certutil.options[opt_Batch].activated) {
-	FILE* batchFile = fopen(certutil.options[opt_Batch].arg, "r");
+    if ((SECSuccess == rv) && certutil.commands[cmd_Batch].activated) {
+	FILE* batchFile = NULL;
         char nextcommand[512];
+        if (!certutil.options[opt_InputFile].activated ||
+            !certutil.options[opt_InputFile].arg) {
+	    PR_fprintf(PR_STDERR,
+	               "%s:  no batch input file specified.\n",
+	               progName);
+	    return 255;
+        }
+        batchFile = fopen(certutil.options[opt_InputFile].arg, "r");
         if (!batchFile) {
 	    PR_fprintf(PR_STDERR,
 	               "%s:  unable to open \"%s\" for reading (%ld, %ld).\n",
-	               progName, certutil.options[opt_Batch].arg,
+	               progName, certutil.options[opt_InputFile].arg,
 	               PR_GetError(), PR_GetOSError());
 	    return 255;
         }
@@ -3144,7 +3315,7 @@ shutdown:
         fclose(batchFile);
     }
 
-    if ((initialize == PR_TRUE) && NSS_Shutdown() != SECSuccess) {
+    if ((initialized == PR_TRUE) && NSS_Shutdown() != SECSuccess) {
         exit(1);
     }
 
