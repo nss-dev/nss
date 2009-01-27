@@ -880,12 +880,12 @@ sftkdb_checkConflicts(SDB *db, CK_OBJECT_CLASS objectType,
     /* fetch the subject of the source. For creation and merge, this should
      * be found in the template */
     attr2 = sftkdb_getAttributeFromConstTemplate(CKA_SUBJECT, ptemplate, len);
-    if ((attr2 == NULL) || (attr2->ulValueLen == 0)) {
-	if (sourceID == CK_INVALID_HANDLE) {
+    if (sourceID == CK_INVALID_HANDLE) {
+	if ((attr2 == NULL) || ((CK_LONG)attr2->ulValueLen < 0)) {
 	    crv = CKR_TEMPLATE_INCOMPLETE; 
 	    goto done;
 	}
-
+    } else if ((attr2 == NULL) || ((CK_LONG)attr2->ulValueLen <= 0)) {
 	/* sourceID is set if we are trying to modify an existing entry instead
 	 * of creating a new one. In this case the subject may not be (probably
 	 * isn't) in the template, we have to read it from the database */
@@ -896,11 +896,11 @@ sftkdb_checkConflicts(SDB *db, CK_OBJECT_CLASS objectType,
 	if (crv != CKR_OK) {
 	    goto done;
 	}
-	if (subject.ulValueLen <= 0) {
+	if ((CK_LONG)subject.ulValueLen < 0) {
 	    crv = CKR_DEVICE_ERROR; /* closest pkcs11 error to corrupted DB */
 	    goto done;
 	}
-	temp1 = subject.pValue = PORT_Alloc(subject.ulValueLen);
+	temp1 = subject.pValue = PORT_Alloc(++subject.ulValueLen);
 	if (temp1 == NULL) {
 	    crv = CKR_HOST_MEMORY;
 	    goto done;
@@ -941,7 +941,7 @@ sftkdb_checkConflicts(SDB *db, CK_OBJECT_CLASS objectType,
      * source subject is too big, and therefore not a match. GetAttributeValue 
      * will return CKR_BUFFER_TOO_SMALL. Otherwise it should be exactly enough 
      * space (or enough space to be able to compare the result. */
-    temp2 = findTemplate[0].pValue = PORT_Alloc(attr2->ulValueLen);
+    temp2 = findTemplate[0].pValue = PORT_Alloc(++findTemplate[0].ulValueLen);
     if (temp2 == NULL) {
 	crv = CKR_HOST_MEMORY;
 	goto done;
@@ -961,7 +961,9 @@ sftkdb_checkConflicts(SDB *db, CK_OBJECT_CLASS objectType,
     /* Ok, we have both subjects, make sure they are the same. 
      * Compare the subjects */
     if ((findTemplate[0].ulValueLen != attr2->ulValueLen) || 
-	(PORT_Memcmp(findTemplate[0].pValue,attr2->pValue,attr2->ulValueLen) != 0)) {
+	(attr2->ulValueLen > 0 &&
+	 PORT_Memcmp(findTemplate[0].pValue, attr2->pValue, attr2->ulValueLen) 
+	 != 0)) {
     	crv = CKR_ATTRIBUTE_VALUE_INVALID; 
 	goto loser;
     }
