@@ -2577,9 +2577,11 @@ CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
 	    sftk_closePeer(isFIPS);
 	    if (sftk_audit_enabled) {
 		if (isFIPS && nsc_init) {
-		    sftk_LogAuditMessage(NSS_AUDIT_INFO, "enabled FIPS mode");
+		    sftk_LogAuditMessage(NSS_AUDIT_INFO, NSS_AUDIT_FIPS_STATE, 
+				"enabled FIPS mode");
 		} else {
-		    sftk_LogAuditMessage(NSS_AUDIT_INFO, "disabled FIPS mode");
+		    sftk_LogAuditMessage(NSS_AUDIT_INFO, NSS_AUDIT_FIPS_STATE, 
+				"disabled FIPS mode");
 		}
 	    }
 	}

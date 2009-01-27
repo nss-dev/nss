@@ -189,7 +189,8 @@ unsigned long sftk_MapKeySize(CK_KEY_TYPE keyType);
 */
 extern PRBool sftk_audit_enabled;
 
-extern void sftk_LogAuditMessage(NSSAuditSeverity severity, const char *msg);
+extern void sftk_LogAuditMessage(NSSAuditSeverity severity, 
+				 NSSAuditType, const char *msg);
 
 extern void sftk_AuditCreateObject(CK_SESSION_HANDLE hSession,
 			CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount,
