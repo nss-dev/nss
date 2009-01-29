@@ -2696,7 +2696,7 @@ pkix_BuildForwardDepthFirstSearch(
                 PKIX_RevocationStatus revStatus;
                 PKIX_UInt32 reasonCode;
 
-                PKIX_CHECK(
+                verifyError =
                     PKIX_RevocationChecker_Check(
                              state->prevCert, state->candidateCert,
                              state->buildConstants.revChecker,
@@ -2705,15 +2705,19 @@ pkix_BuildForwardDepthFirstSearch(
                              (state->parentState == NULL) ?
                                               PKIX_TRUE : PKIX_FALSE,
                              &revStatus, &reasonCode,
-                             &nbio, plContext),
-                    PKIX_REVCHECKERCHECKFAILED);
+                             &nbio, plContext);
                 if (nbio != NULL) {
                     *pNBIOContext = nbio;
                     goto cleanup;
                 }
-                if (revStatus == PKIX_RevStatus_Revoked) {
-                    PKIX_ERROR_CREATE(VALIDATE, PKIX_CERTIFICATEREVOKED,
-                                      verifyError);
+                if (revStatus == PKIX_RevStatus_Revoked || verifyError) {
+                    if (!verifyError) {
+                        /* if verifyError is returned then use it as
+                         * it has a detailed revocation error code.
+                         * Otherwise create a new error */
+                        PKIX_ERROR_CREATE(VALIDATE, PKIX_CERTIFICATEREVOKED,
+                                          verifyError);
+                    }
                     if (state->verifyNode != NULL) {
                             PKIX_CHECK_FATAL(pkix_VerifyNode_SetError
                                     (verifyNode, verifyError, plContext),
@@ -2894,7 +2898,7 @@ pkix_BuildForwardDepthFirstSearch(
                         PKIX_CHECK(PKIX_TrustAnchor_GetTrustedCert
                                    (trustAnchor, &trustedCert, plContext),
                                    PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
-                        PKIX_CHECK(
+                        verifyError =
                             PKIX_RevocationChecker_Check(
                                 state->prevCert, trustedCert,
                                 state->buildConstants.revChecker,
@@ -2903,16 +2907,20 @@ pkix_BuildForwardDepthFirstSearch(
                                 (state->certIndex == 0) ? PKIX_TRUE :
                                                           PKIX_FALSE,
                                 &revStatus, &reasonCode,
-                                &nbio, plContext),
-                            PKIX_REVCHECKERCHECKFAILED);
+                                &nbio, plContext);
                         PKIX_DECREF(trustedCert);
                         if (nbio != NULL) {
                             *pNBIOContext = nbio;
                             goto cleanup;
                         }
-                        if (revStatus == PKIX_RevStatus_Revoked) {
-                          PKIX_ERROR_CREATE(VALIDATE, PKIX_CERTIFICATEREVOKED,
-                                            verifyError);
+                        if (revStatus == PKIX_RevStatus_Revoked || verifyError) {
+                          if (!verifyError) {
+                              /* if verifyError is returned then use it as
+                               * it has a detailed revocation error code.
+                               * Otherwise create a new error */
+                              PKIX_ERROR_CREATE(VALIDATE, PKIX_CERTIFICATEREVOKED,
+                                                verifyError);
+                          }
                           if (state->verifyNode != NULL) {
                               PKIX_CHECK_FATAL(
                                   pkix_VerifyNode_SetError(verifyNode,
@@ -3417,7 +3425,7 @@ pkix_Build_TryShortcut(
                     PKIX_CHECK(PKIX_TrustAnchor_GetTrustedCert
                                (anchor, &trustedCert, plContext),
                                PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
-                    PKIX_CHECK(
+                    validationError =
                         PKIX_RevocationChecker_Check(
                                         state->prevCert, trustedCert,
                                         state->buildConstants.revChecker,
@@ -3426,16 +3434,20 @@ pkix_Build_TryShortcut(
                                         (state->certIndex == 0) ? PKIX_TRUE :
                                                                   PKIX_FALSE,
                                         &revStatus, &reasonCode,
-                                        &nbioContext, plContext),
-                        PKIX_REVCHECKERCHECKFAILED);
+                                        &nbioContext, plContext);
                     if (nbioContext != NULL) {
                         *pNBIOContext = nbioContext;
                         goto cleanup;
                     }
                     PKIX_DECREF(trustedCert);
-                    if (revStatus == PKIX_RevStatus_Revoked) {
-                        PKIX_ERROR_CREATE(VALIDATE, PKIX_CERTIFICATEREVOKED,
-                                          validationError);
+                    if (revStatus == PKIX_RevStatus_Revoked || validationError) {
+                        if (!validationError) {
+                            /* if validationError is returned then use it as
+                             * it has a detailed revocation error code.
+                             * Otherwise create a new error */
+                            PKIX_ERROR_CREATE(VALIDATE, PKIX_CERTIFICATEREVOKED,
+                                              validationError);
+                        }
                         if (state->verifyNode != NULL) {
                             PKIX_CHECK_FATAL(
                                 pkix_VerifyNode_Create(state->prevCert,
