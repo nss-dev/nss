@@ -398,15 +398,16 @@ PKIX_RevocationChecker_Check(
                                                methodFlags, &revStatus,
                                                pReasonCode, plContext);
                 methodStatus[methodNum] = revStatus;
+                if (revStatus == PKIX_RevStatus_Revoked) {
+                    /* if error was generated use it as final error. */
+                    overallStatus = PKIX_RevStatus_Revoked;
+                    goto cleanup;
+                }
                 if (pkixErrorResult) {
                     /* Disregard errors. Only returned revStatus matters. */
                     PKIX_PL_Object_DecRef((PKIX_PL_Object*)pkixErrorResult,
                                           plContext);
                     pkixErrorResult = NULL;
-                }
-                if (revStatus == PKIX_RevStatus_Revoked) {
-                    overallStatus = PKIX_RevStatus_Revoked;
-                    goto cleanup;
                 }
             }
             if ((!(revFlags & PKIX_REV_MI_TEST_ALL_LOCAL_INFORMATION_FIRST) ||
@@ -423,15 +424,16 @@ PKIX_RevocationChecker_Check(
                                                       &revStatus, pReasonCode,
                                                       &nbioContext, plContext);
                     methodStatus[methodNum] = revStatus;
+                    if (revStatus == PKIX_RevStatus_Revoked) {
+                        /* if error was generated use it as final error. */
+                        overallStatus = PKIX_RevStatus_Revoked;
+                        goto cleanup;
+                    }
                     if (pkixErrorResult) {
                         /* Disregard errors. Only returned revStatus matters. */
                         PKIX_PL_Object_DecRef((PKIX_PL_Object*)pkixErrorResult,
                                               plContext);
                         pkixErrorResult = NULL;
-                    }
-                    if (revStatus == PKIX_RevStatus_Revoked) {
-                        overallStatus = PKIX_RevStatus_Revoked;
-                        goto cleanup;
                     }
                 } else if (methodFlags &
                            PKIX_REV_M_FAIL_ON_MISSING_FRESH_INFO) {
