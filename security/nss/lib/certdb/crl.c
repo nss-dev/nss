@@ -1644,7 +1644,7 @@ static SECStatus DPCache_FetchFromTokens(CRLDPCache* cache, PRTime vfdate,
                     rv = CachedCrl_Destroy(returned);
                     returned = NULL;
                 }
-                else
+                else if (vfdate)
                 {
                     rv = CachedCrl_Verify(cache, returned, vfdate, wincx);
                 }
