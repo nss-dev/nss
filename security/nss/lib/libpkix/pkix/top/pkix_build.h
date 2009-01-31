@@ -119,7 +119,6 @@ struct PKIX_ForwardBuilderStateStruct{
         PKIX_UInt32 numFanout;
         PKIX_UInt32 numDepth;
         PKIX_UInt32 reasonCode;
-        PKIX_Boolean dsaParamsNeeded;
         PKIX_Boolean revCheckDelayed;
         PKIX_Boolean canBeCached;
         PKIX_Boolean useOnlyLocal;
