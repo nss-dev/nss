@@ -269,7 +269,8 @@ pkix_CrlChecker_CheckLocal(
             if (storeCheckRevocationFn) {
                 PKIX_CHECK(
                     storeCheckRevocationFn(certStore, cert, issuer,
-                                           date, &reasonCode,
+                                           date, PKIX_TRUE /* delay sig check */,
+                                           &reasonCode,
                                            &revStatus, plContext),
                     PKIX_CERTSTORECRLCHECKFAILED);
                 if (revStatus == PKIX_RevStatus_Revoked) {
@@ -428,6 +429,7 @@ pkix_CrlChecker_CheckExternal(
         
         PKIX_CHECK(
             storeCheckRevocationFn(certStore, cert, issuer, date,
+                                   PKIX_FALSE /* do not delay sig check */,
                                    &reasonCode, &revStatus, plContext),
             PKIX_CERTSTORECRLCHECKFAILED);
         if (revStatus != PKIX_RevStatus_NoInfo) {
