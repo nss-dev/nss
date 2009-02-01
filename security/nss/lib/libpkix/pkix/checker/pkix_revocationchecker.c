@@ -395,7 +395,9 @@ PKIX_RevocationChecker_Check(
                     (*method->localRevChecker)(cert, issuer,
                                                revChecker->date,
                                                method, procParams,
-                                               methodFlags, &revStatus,
+                                               methodFlags, 
+                                               chainVerificationState,
+                                               &revStatus,
                                                pReasonCode, plContext);
                 methodStatus[methodNum] = revStatus;
                 if (revStatus == PKIX_RevStatus_Revoked) {
