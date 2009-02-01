@@ -226,6 +226,7 @@ pkix_CrlChecker_CheckLocal(
         pkix_RevocationMethod *checkerObject,
         PKIX_ProcessingParams *procParams,
         PKIX_UInt32 methodFlags,
+        PKIX_Boolean chainVerificationState,
         PKIX_RevocationStatus *pRevStatus,
         PKIX_UInt32 *pReasonCode,
         void *plContext)
@@ -269,7 +270,10 @@ pkix_CrlChecker_CheckLocal(
             if (storeCheckRevocationFn) {
                 PKIX_CHECK(
                     storeCheckRevocationFn(certStore, cert, issuer,
-                                           date, PKIX_TRUE /* delay sig check */,
+                                           date,
+                                           /* delay sig check if building
+                                            * a chain */
+                                           !chainVerificationState,
                                            &reasonCode,
                                            &revStatus, plContext),
                     PKIX_CERTSTORECRLCHECKFAILED);
