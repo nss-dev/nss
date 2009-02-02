@@ -796,7 +796,7 @@ pkix_CheckChain(
                             PKIX_RevocationChecker_Check(
                                       cert, issuer, revChecker,
                                       procParams, PKIX_TRUE,
-                                      (j == 0) ? PKIX_TRUE : PKIX_FALSE,
+                                      (j == numCerts - 1) ? PKIX_TRUE : PKIX_FALSE,
                                       &revStatus, pReasonCode,
                                       &nbioContext, plContext);
                         if (nbioContext != NULL) {

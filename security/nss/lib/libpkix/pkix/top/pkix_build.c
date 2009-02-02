@@ -3766,12 +3766,6 @@ pkix_Build_InitiateBuildChain(
                     (procParams, &testDate, plContext),
                     PKIX_PROCESSINGPARAMSGETDATEFAILED);
     
-            if (!testDate) {
-                    PKIX_CHECK(PKIX_PL_Date_Create_UTCTime
-                            (NULL, &testDate, plContext),
-                            PKIX_DATECREATEUTCTIMEFAILED);
-            }
-    
             PKIX_CHECK(PKIX_ProcessingParams_GetTrustAnchors
                     (procParams, &anchors, plContext),
                     PKIX_PROCESSINGPARAMSGETTRUSTANCHORSFAILED);

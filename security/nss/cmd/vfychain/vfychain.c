@@ -680,10 +680,6 @@ breakout:
         cvin[inParamIndex].value.scalar.b = certFetching;
         inParamIndex++;
 
-        cvin[inParamIndex].type = cert_pi_date;
-        cvin[inParamIndex].value.scalar.time = time;
-        inParamIndex++;
-
         rev.leafTests.cert_rev_flags_per_method = revFlagsLeaf;
         rev.chainTests.cert_rev_flags_per_method = revFlagsChain;
         secStatus = configureRevocationParams(&rev);
@@ -695,6 +691,10 @@ breakout:
         cvin[inParamIndex].type = cert_pi_revocationFlags;
         cvin[inParamIndex].value.pointer.revocation = &rev;
 	inParamIndex++;
+
+        cvin[inParamIndex].type = cert_pi_date;
+        cvin[inParamIndex].value.scalar.time = time;
+        inParamIndex++;
 
         cvin[inParamIndex].type = cert_pi_end;
         
