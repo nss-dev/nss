@@ -462,6 +462,8 @@ lg_getKeyDB(SDB *sdb)
     return lgdb_p->keyDB;
 }
 
+PRBool parentForkedAfterC_Initialize;
+
 void lg_SetForkState(PRBool forked)
 {
     parentForkedAfterC_Initialize = forked;
@@ -503,8 +505,6 @@ lg_CompareValues(const void *v1, const void *v2)
     PLHashNumber value2 = (PLHashNumber) v2;
     return (value1 == value2);
 }
-
-PRBool parentForkedAfterC_Initialize;
 
 /*
  * helper function to wrap a NSSLOWCERTCertDBHandle or a NSSLOWKEYDBHandle

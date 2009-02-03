@@ -1402,6 +1402,9 @@ loser:
 CK_RV
 sftkdb_CloseDB(SFTKDBHandle *handle)
 {
+#ifdef NO_FORK_CHECK
+    PRBool parentForkedAfterC_Initialize = PR_FALSE;
+#endif
     if (handle == NULL) {
 	return CKR_OK;
     }
