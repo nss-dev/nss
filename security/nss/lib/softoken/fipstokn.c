@@ -495,7 +495,7 @@ CK_RV FC_Initialize(CK_VOID_PTR pReserved) {
     const char *envp;
     CK_RV crv;
 
-    CHECK_FORK();
+    sftk_ForkReset(pReserved, &crv);
 
     if (nsf_init) {
 	return CKR_CRYPTOKI_ALREADY_INITIALIZED;
@@ -538,12 +538,16 @@ CK_RV FC_Initialize(CK_VOID_PTR pReserved) {
 CK_RV FC_Finalize (CK_VOID_PTR pReserved) {
    CK_RV crv;
 
-   CHECK_FORK();
+   if (sftk_ForkReset(pReserved, &crv)) {
+       return crv;
+   }
 
    if (!nsf_init) {
       return CKR_OK;
    }
+
    crv = nsc_CommonFinalize (pReserved, PR_TRUE);
+
    nsf_init = (PRBool) !(crv == CKR_OK);
    return crv;
 }

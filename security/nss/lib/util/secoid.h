@@ -147,6 +147,8 @@ extern SECStatus SECOID_Shutdown(void);
 extern SECStatus SEC_StringToOID(PLArenaPool *pool, SECItem *to, 
                                  const char *from, PRUint32 len);
 
+extern void UTIL_SetForkState(PRBool forked);
+
 SEC_END_PROTOS
 
 #endif /* _SECOID_H_ */

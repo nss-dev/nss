@@ -53,6 +53,8 @@ SEC_BEGIN_PROTOS
 ** buffer must be at least the size of the public key modulus.
 */
 
+extern SECStatus BL_Init(void);
+
 /*
 ** Generate and return a new RSA public and private key.
 **	Both keys are encoded in a single RSAPrivateKey structure.
@@ -1192,6 +1194,8 @@ PRBool BLAPI_VerifySelf(const char *name);
 
 /*********************************************************************/
 extern const SECHashObject * HASH_GetRawHashObject(HASH_HashType hashType);
+
+extern void BL_SetForkState(PRBool forked);
 
 SEC_END_PROTOS
 

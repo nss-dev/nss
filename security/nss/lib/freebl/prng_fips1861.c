@@ -53,6 +53,7 @@
 #include "sha256.h"
 #include "secrng.h"	/* for RNG_GetNoise() */
 #include "secmpi.h"
+#include "blapii.h"
 
 /*
  * The minimum amount of seed data required before the generator will
@@ -188,7 +189,7 @@ freeRNGContext()
     SECStatus rv;
 
     /* destroy context lock */
-    PZ_DestroyLock(globalrng->lock);
+    SKIP_AFTER_FORK(PZ_DestroyLock(globalrng->lock));
 
     /* zero global RNG context except for XKEY to preserve entropy */
     rv = SHA256_HashBuf(inputhash, globalrng->XKEY, BSIZE);

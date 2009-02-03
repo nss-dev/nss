@@ -60,6 +60,7 @@
 #include "lgglue.h"
 #include "sftkpars.h"
 #include "secerr.h"
+#include "softoken.h"
 
 /*
  * We want all databases to have the same binary representation independent of
@@ -1405,13 +1406,19 @@ sftkdb_CloseDB(SFTKDBHandle *handle)
 	return CKR_OK;
     }
     if (handle->update) {
+        if (handle->db->sdb_SetForkState) {
+            (*handle->db->sdb_SetForkState)(parentForkedAfterC_Initialize);
+        }
 	(*handle->update->sdb_Close)(handle->update);
     }
     if (handle->db) {
+        if (handle->db->sdb_SetForkState) {
+            (*handle->db->sdb_SetForkState)(parentForkedAfterC_Initialize);
+        }
 	(*handle->db->sdb_Close)(handle->db);
     }
     if (handle->passwordLock) {
-	PZ_DestroyLock(handle->passwordLock);
+	SKIP_AFTER_FORK(PZ_DestroyLock(handle->passwordLock));
     }
     if (handle->updatePasswordKey) {
 	SECITEM_FreeItem(handle->updatePasswordKey, PR_TRUE);
@@ -1759,7 +1766,7 @@ typedef enum {
 } sftkdbUpdateStatus;
 
 /*
- * helper function to reconsile a single trust entry.
+ * helper function to reconcile a single trust entry.
  *   Identify which trust entry we want to keep.
  *   If we don't need to do anything (the records are already equal).
  *       return SFTKDB_DO_NOTHING.
@@ -1774,7 +1781,7 @@ typedef enum {
  *   any SFTKDB_MODIFY_OBJECT returns.
  */
 sftkdbUpdateStatus
-sftkdb_reconsileTrustEntry(PRArenaPool *arena, CK_ATTRIBUTE *target, 
+sftkdb_reconcileTrustEntry(PRArenaPool *arena, CK_ATTRIBUTE *target, 
 			   CK_ATTRIBUTE *source)
 {
     CK_ULONG targetTrust = sftkdb_getULongFromTemplate(target->type,
@@ -1858,12 +1865,12 @@ const CK_ATTRIBUTE_TYPE sftkdb_trustList[] =
 #define SFTK_TRUST_TEMPLATE_COUNT \
 		(sizeof(sftkdb_trustList)/sizeof(sftkdb_trustList[0]))
 /*
- * Run through the list of known trust types, and reconsile each trust
+ * Run through the list of known trust types, and reconcile each trust
  * entry one by one. Keep track of we really need to write out the source
  * trust object (overwriting the existing one).
  */
 static sftkdbUpdateStatus
-sftkdb_reconsileTrust(PRArenaPool *arena, SDB *db, CK_OBJECT_HANDLE id, 
+sftkdb_reconcileTrust(PRArenaPool *arena, SDB *db, CK_OBJECT_HANDLE id, 
 		      CK_ATTRIBUTE *ptemplate, CK_ULONG *plen)
 {
     CK_ATTRIBUTE trustTemplate[SFTK_TRUST_TEMPLATE_COUNT];
@@ -1909,7 +1916,7 @@ sftkdb_reconsileTrust(PRArenaPool *arena, SDB *db, CK_OBJECT_HANDLE id,
 	    continue;
 		
 	}
-	status = sftkdb_reconsileTrustEntry(arena, &trustTemplate[i], attr);
+	status = sftkdb_reconcileTrustEntry(arena, &trustTemplate[i], attr);
 	if (status == SFTKDB_MODIFY_OBJECT) {
 	    update = SFTKDB_MODIFY_OBJECT;
 	} else if (status == SFTKDB_DROP_ATTRIBUTE) {
@@ -2071,9 +2078,9 @@ sftkdb_updateObjectTemplate(PRArenaPool *arena, SDB *db,
 		return sftkdb_handleIDAndName(arena, db, id, ptemplate, plen);
 	    case CKO_NSS_TRUST:
 		/* if we have conflicting trust object types,
-		 * we need to reconsile them */
+		 * we need to reconcile them */
 		*targetID = id;
-		return sftkdb_reconsileTrust(arena, db, id, ptemplate, plen);
+		return sftkdb_reconcileTrust(arena, db, id, ptemplate, plen);
 	    case CKO_SECRET_KEY:
 		/* secret keys in the old database are all sdr keys, 
 		 * unfortunately they all appear to have the same CKA_ID, 
@@ -2373,12 +2380,12 @@ sftk_getKeyDB(SFTKSlot *slot)
 {
     SFTKDBHandle *dbHandle;
 
-    PZ_Lock(slot->slotLock);
+    SKIP_AFTER_FORK(PZ_Lock(slot->slotLock));
     dbHandle = slot->keyDB;
     if (dbHandle) {
         PR_AtomicIncrement(&dbHandle->ref);
     }
-    PZ_Unlock(slot->slotLock);
+    SKIP_AFTER_FORK(PZ_Unlock(slot->slotLock));
     return dbHandle;
 }
 
