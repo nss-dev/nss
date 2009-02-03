@@ -412,6 +412,9 @@ sftkdbCall_Shutdown(void)
 	return CKR_OK;
     }
     if (legacy_glue_shutdown) {
+#ifdef NO_FORK_CHECK
+	PRBool parentForkedAfterC_Initialize = PR_FALSE;
+#endif
 	crv = (*legacy_glue_shutdown)(parentForkedAfterC_Initialize);
     }
     disableUnload = PR_GetEnv("NSS_DISABLE_UNLOAD");
