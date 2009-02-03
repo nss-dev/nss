@@ -317,12 +317,7 @@ void RNG_FileForRNG(const char *filename)
     PRFileInfo      infoBuf;
     unsigned char   buffer[1024];
 
-    /* windows doesn't initialize all the bytes in the stat buf,
-     * so initialize them all here to avoid UMRs.
-     */
-    memset(&infoBuf, 0, sizeof infoBuf);
-
-    if (PR_GetFileInfo(filename, &infoBuf) < 0)
+    if (PR_GetFileInfo(filename, &infoBuf) != PR_SUCCESS)
         return;
 
     RNG_RandomUpdate((unsigned char*)&infoBuf, sizeof(infoBuf));
@@ -348,6 +343,12 @@ void RNG_FileForRNG(const char *filename)
     RNG_RandomUpdate(buffer, nBytes);
 }
 
+/*
+ * The Windows CE and Windows Mobile FIPS Security Policy, page 13,
+ * (http://csrc.nist.gov/groups/STM/cmvp/documents/140-1/140sp/140sp825.pdf)
+ * says CeGenRandom is the right function to call for creating a seed
+ * for a random number generator.
+ */
 size_t RNG_SystemRNG(void *dest, size_t maxLen)
 {
     size_t bytes = 0;
