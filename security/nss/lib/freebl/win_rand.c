@@ -149,13 +149,9 @@ EnumSystemFilesInFolder(PRInt32 (*func)(const char *), PRUnichar* szSysDir)   {
     do {
 	// pass the full pathname to the callback
 	_snwprintf(szFileName,_MAX_PATH, L"%s\\%s", szSysDir, fdData.cFileName);
-	if (fdData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-	    EnumSystemFilesInFolder(func, szFileName);
-	} else {
-	    WideCharToMultiByte(CP_ACP, 0, szFileName, -1, 
-				narrowFileName,_MAX_PATH,0,0);
-	    (*func)(narrowFileName);
-	}
+	WideCharToMultiByte(CP_ACP, 0, szFileName, -1,
+			    narrowFileName, _MAX_PATH, NULL, NULL);
+	(*func)(narrowFileName);
 	iStatus = FindNextFileW(lFindHandle, &fdData);
     } while (iStatus != 0);
     FindClose(lFindHandle);
