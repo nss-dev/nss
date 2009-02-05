@@ -732,6 +732,10 @@ crl_storeCRL (PK11SlotInfo *slot,char *url,
 	    crl = newCrl;
 	    crl->slot = PK11_ReferenceSlot(slot);
 	    crl->pkcs11ID = oldCrl->pkcs11ID;
+	    if (oldCrl->url && !url)
+	        url = oldCrl->url;
+	    if (url)
+		crl->url = PORT_ArenaStrdup(crl->arena, url);
 	    goto done;
 	}
         if (!SEC_CrlIsNewer(&newCrl->crl,&oldCrl->crl)) {
@@ -754,7 +758,7 @@ crl_storeCRL (PK11SlotInfo *slot,char *url,
         }
 
         /* if we have a url in the database, use that one */
-        if (oldCrl->url) {
+        if (oldCrl->url && !url) {
 	    url = oldCrl->url;
         }
 
