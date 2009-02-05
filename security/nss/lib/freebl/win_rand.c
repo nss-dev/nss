@@ -39,7 +39,7 @@
 
 #ifdef XP_WIN
 #include <windows.h>
-#include "shlobj.h"     /* for CSIDL constants */
+#include <shlobj.h>     /* for CSIDL constants */
 
 #if defined(_WIN32_WCE)
 #include <stdlib.h>	/* Win CE puts lots of stuff here. */
@@ -149,9 +149,13 @@ EnumSystemFilesInFolder(PRInt32 (*func)(const char *), PRUnichar* szSysDir)   {
     do {
 	// pass the full pathname to the callback
 	_snwprintf(szFileName,_MAX_PATH, L"%s\\%s", szSysDir, fdData.cFileName);
-	WideCharToMultiByte(CP_ACP, 0, szFileName, -1, 
-			    narrowFileName,_MAX_PATH,0,0);
-	(*func)(narrowFileName);
+	if (fdData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+	    EnumSystemFilesInFolder(func, szFileName);
+	} else {
+	    WideCharToMultiByte(CP_ACP, 0, szFileName, -1, 
+				narrowFileName,_MAX_PATH,0,0);
+	    (*func)(narrowFileName);
+	}
 	iStatus = FindNextFileW(lFindHandle, &fdData);
     } while (iStatus != 0);
     FindClose(lFindHandle);
