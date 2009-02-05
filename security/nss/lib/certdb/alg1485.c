@@ -387,7 +387,7 @@ CERT_ParseRFC1485AVA(PRArenaPool *arena, char **pbp, char *endptr,
     /* insist that if we haven't finished we've stopped on a separator */
     bp = *pbp;
     if (bp < endptr) {
-	if (singleAVA || (*bp != ',' && *bp != ';')) {
+	if (singleAVA || (*bp != ',' && *bp != ';' && *bp != '+')) {
 	    *pbp = bp;
 	    goto loser;
 	}
@@ -459,7 +459,7 @@ ParseRFC1485Name(char *buf, int len)
     CERTName *name;
     char *bp, *e;
     CERTAVA *ava;
-    CERTRDN *rdn;
+    CERTRDN *rdn = NULL;
 
     name = CERT_CreateName(NULL);
     if (name == NULL) {
@@ -470,11 +470,20 @@ ParseRFC1485Name(char *buf, int len)
     bp = buf;
     while (bp < e) {
 	ava = CERT_ParseRFC1485AVA(name->arena, &bp, e, PR_FALSE);
-	if (ava == 0) goto loser;
-	rdn = CERT_CreateRDN(name->arena, ava, (CERTAVA *)0);
-	if (rdn == 0) goto loser;
-	rv = CERT_AddRDN(name, rdn);
-	if (rv) goto loser;
+	if (ava == 0) 
+	    goto loser;
+	if (!rdn) {
+	    rdn = CERT_CreateRDN(name->arena, ava, (CERTAVA *)0);
+	    if (rdn == 0) 
+		goto loser;
+	    rv = CERT_AddRDN(name, rdn);
+	} else {
+	    rv = CERT_AddAVA(name->arena, rdn, ava);
+	}
+	if (rv) 
+	    goto loser;
+	if (bp[-1] != '+')
+	    rdn = NULL; /* done with this RDN */
 	skipSpace(&bp, e);
     }
 
