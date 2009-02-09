@@ -131,55 +131,77 @@ size_t RNG_GetNoise(void *buf, size_t maxbuf)
     return n;
 }
 
+typedef PRInt32 (* Handler)(const char *);
+#define MAX_DEPTH 2
+
 static void
-EnumSystemFilesInFolder(PRInt32 (*func)(const char *), PRUnichar* szSysDir)   {
-    int                 iStatus;
+EnumSystemFilesInFolder(Handler func, PRUnichar* szSysDir, int maxDepth) 
+{
+    int                 iContinue;
+    HANDLE              lFindHandle;
+    WIN32_FIND_DATAW    fdData;
     PRUnichar           szFileName[_MAX_PATH];
     char                narrowFileName[_MAX_PATH];
-    WIN32_FIND_DATAW    fdData;
-    HANDLE              lFindHandle;
+
+    if (maxDepth < 0)
+    	return;
     // tack *.* on the end so we actually look for files. this will
     // not overflow
     wcscpy(szFileName, szSysDir);
     wcscat(szFileName, L"\\*.*");
-      
+
     lFindHandle = FindFirstFileW(szFileName, &fdData);
     if (lFindHandle == INVALID_HANDLE_VALUE)
-	return;
+        return;
     do {
-	// pass the full pathname to the callback
-	_snwprintf(szFileName,_MAX_PATH, L"%s\\%s", szSysDir, fdData.cFileName);
-	WideCharToMultiByte(CP_ACP, 0, szFileName, -1,
-			    narrowFileName, _MAX_PATH, NULL, NULL);
-	(*func)(narrowFileName);
-	iStatus = FindNextFileW(lFindHandle, &fdData);
-    } while (iStatus != 0);
+	iContinue = 1;
+	if (wcscmp(fdData.cFileName, L".") == 0 ||
+            wcscmp(fdData.cFileName, L"..") == 0) {
+	    // skip "." and ".."
+	} else {
+	    // pass the full pathname to the callback
+	    _snwprintf(szFileName, _MAX_PATH, L"%s\\%s", szSysDir, 
+		       fdData.cFileName);
+	    if (fdData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+		EnumSystemFilesInFolder(func, szFileName, maxDepth - 1);
+	    } else {
+		iContinue = WideCharToMultiByte(CP_ACP, 0, szFileName, -1, 
+						narrowFileName, _MAX_PATH, 
+						NULL, NULL);
+		if (iContinue)
+		    iContinue = !(*func)(narrowFileName);
+	    }
+	}
+	if (iContinue)
+	    iContinue = FindNextFileW(lFindHandle, &fdData);
+    } while (iContinue);
     FindClose(lFindHandle);
 }
 
 static BOOL
-EnumSystemFiles(PRInt32 (*func)(const char *))
+EnumSystemFiles(Handler func)
 {
     PRUnichar szSysDir[_MAX_PATH];
     static const int folders[] = {
     	CSIDL_BITBUCKET,  
-	CSIDL_RECENT
+	CSIDL_RECENT,
 #ifndef WINCE		     
-	, CSIDL_INTERNET_CACHE, 
+	CSIDL_INTERNET_CACHE, 
 	CSIDL_COMPUTERSNEARME, 
-	CSIDL_HISTORY
+	CSIDL_HISTORY,
 #endif
+	0
     };
     int i = 0;
     if (_MAX_PATH > (i = GetTempPathW(_MAX_PATH, szSysDir))) {
-        if ( i > 0 && szSysDir[i-1] == L'\\')
+        if (i > 0 && szSysDir[i-1] == L'\\')
 	    szSysDir[i-1] = L'\0'; // we need to lop off the trailing slash
-        EnumSystemFilesInFolder(func, szSysDir);
+        EnumSystemFilesInFolder(func, szSysDir, MAX_DEPTH);
     }
-    for(i = 0; i < (sizeof(folders)/ sizeof(folders[0])) ; i++) {
-        DWORD rv = SHGetSpecialFolderPathW(NULL,szSysDir,folders[i],0);
+    for(i = 0; folders[i]; i++) {
+        DWORD rv = SHGetSpecialFolderPathW(NULL, szSysDir, folders[i], 0);
         if (szSysDir[0])
-            EnumSystemFilesInFolder(func, szSysDir);
+            EnumSystemFilesInFolder(func, szSysDir, MAX_DEPTH);
         szSysDir[0] =  L'\0';
     }
     return PR_TRUE;
