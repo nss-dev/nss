@@ -126,7 +126,6 @@ pkix_ForwardBuilderState_Destroy(
         state->numAias = 0;
         state->certIndex = 0;
         state->aiaIndex = 0;
-        state->anchorIndex = 0;
         state->certCheckedIndex = 0;
         state->checkerIndex = 0;
         state->hintCertIndex = 0;
@@ -256,7 +255,6 @@ pkix_ForwardBuilderState_Create(
         state->numAias = 0;
         state->certIndex = 0;
         state->aiaIndex = 0;
-        state->anchorIndex = 0;
         state->certCheckedIndex = 0;
         state->checkerIndex = 0;
         state->hintCertIndex = 0;
@@ -494,8 +492,6 @@ pkix_ForwardBuilderState_ToString
             case BUILD_CHECKTRUSTED2:   asciiStatus = "BUILD_CHECKTRUSTED2";
                                         break;
             case BUILD_ADDTOCHAIN:      asciiStatus = "BUILD_ADDTOCHAIN";
-                                        break;
-            case BUILD_CHECKWITHANCHORS:asciiStatus = "BUILD_CHECKWITHANCHORS";
                                         break;
             case BUILD_CRL2:            asciiStatus = "BUILD_CRL2";
                                         break;
@@ -741,183 +737,6 @@ pkix_ForwardBuilderState_IsIOPending(
 /* --Private-BuildChain-Functions------------------------------------------- */
 
 /*
- * FUNCTION: pkix_Build_CheckCertAgainstAnchor
- * DESCRIPTION:
- *
- *  Checks whether the Cert pointed to by "candidateCert" successfully chains to
- *  the TrustAnchor pointed to by "anchor". Successful chaining includes
- *  successful subject/issuer name chaining, using the List of traversed subject
- *  names pointed to by "traversedSubjNames" to check for name constraints
- *  violation, and successful signature verification. If the "candidateCert"
- *  successfully chains, PKIX_TRUE is stored at the address pointed to by
- *  "pPassed". Otherwise PKIX_FALSE is stored.
- *
- *  If a non-NULL VerifyNode is supplied, then this function will, in the event
- *  of a failure, set the Error associated with the failure in the VerifyNode.
- *  .
- *
- * PARAMETERS:
- *  "candidateCert"
- *      Address of Cert that is being checked. Must be non-NULL.
- *  "anchor"
- *      Address of TrustAnchor with which the Cert must successfully chain.
- *      Must be non-NULL.
- *  "traversedSubjNames"
- *      Address of List of subject names in certificates previously traversed.
- *      Must be non-NULL.
- *  "pPassed"
- *      Address at which Boolean result is stored. Must be non-NULL.
- *  "verifyNode"
- *      Address of the VerifyNode to receive the Error. May be NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Build Error if the function fails in a non-fatal way
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-static PKIX_Error *
-pkix_Build_CheckCertAgainstAnchor(
-        PKIX_PL_Cert *candidateCert,
-        PKIX_TrustAnchor *anchor,
-        PKIX_List *traversedSubjNames,
-        PKIX_Boolean *pPassed,
-        PKIX_VerifyNode *verifyNode,
-        void *plContext)
-{
-        PKIX_PL_Cert *trustedCert = NULL;
-        PKIX_PL_CertNameConstraints *anchorNC = NULL;
-        PKIX_CertSelector *certSel = NULL;
-        PKIX_ComCertSelParams *certSelParams = NULL;
-        PKIX_PL_X500Name *trustedSubject = NULL;
-        PKIX_PL_X500Name *candidateIssuer = NULL;
-        PKIX_CertSelector_MatchCallback selectorMatch = NULL;
-        PKIX_Boolean certMatch = PKIX_TRUE;
-        PKIX_Boolean anchorMatch = PKIX_FALSE;
-        PKIX_VerifyNode *anchorVerifyNode = NULL;
-        PKIX_Error *verifyError = NULL;
-
-        PKIX_ENTER(BUILD, "pkix_Build_CheckCertAgainstAnchor");
-        PKIX_NULLCHECK_THREE(anchor, candidateCert, pPassed);
-
-        *pPassed = PKIX_FALSE;
-
-        PKIX_CHECK(PKIX_TrustAnchor_GetTrustedCert
-                    (anchor, &trustedCert, plContext),
-                    PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
-
-        PKIX_CHECK(PKIX_PL_Cert_GetSubject
-                    (trustedCert, &trustedSubject, plContext),
-                    PKIX_CERTGETSUBJECTFAILED);
-
-        PKIX_NULLCHECK_ONE(trustedSubject);
-
-        PKIX_CHECK(PKIX_PL_Cert_GetIssuer
-                    (candidateCert, &candidateIssuer, plContext),
-                    PKIX_CERTGETISSUERFAILED);
-
-        PKIX_CHECK(PKIX_PL_X500Name_Match
-                    (trustedSubject, candidateIssuer, &anchorMatch, plContext),
-                    PKIX_X500NAMEMATCHFAILED);
-
-        if (!anchorMatch) {
-                goto cleanup;
-        }
-
-        PKIX_CHECK(PKIX_TrustAnchor_GetNameConstraints
-                    (anchor, &anchorNC, plContext),
-                    PKIX_TRUSTANCHORGETNAMECONSTRAINTSFAILED);
-
-        if (anchorNC == NULL) {
-                PKIX_CHECK(PKIX_CertSelector_Create
-                            (NULL, NULL, &certSel, plContext),
-                            PKIX_CERTSELECTORCREATEFAILED);
-
-                PKIX_CHECK(PKIX_ComCertSelParams_Create
-                            (&certSelParams, plContext),
-                            PKIX_COMCERTSELPARAMSCREATEFAILED);
-
-                PKIX_NULLCHECK_ONE(traversedSubjNames);
-
-                PKIX_CHECK(PKIX_ComCertSelParams_SetPathToNames
-                        (certSelParams, traversedSubjNames, plContext),
-                        PKIX_COMCERTSELPARAMSSETPATHTONAMESFAILED);
-
-                PKIX_CHECK(PKIX_CertSelector_SetCommonCertSelectorParams
-                        (certSel, certSelParams, plContext),
-                        PKIX_CERTSELECTORSETCOMMONCERTSELECTORPARAMSFAILED);
-
-                PKIX_CHECK(PKIX_CertSelector_GetMatchCallback
-                        (certSel, &selectorMatch, plContext),
-                        PKIX_CERTSELECTORGETMATCHCALLBACKFAILED);
-
-                PKIX_CHECK(selectorMatch
-                        (certSel, candidateCert, &certMatch, plContext),
-                        PKIX_SELECTORMATCHFAILED);
-
-                if (!certMatch) {
-                        goto cleanup;
-                }
-
-        }
-
-cleanup:
-
-        if (PKIX_ERROR_RECEIVED || !anchorMatch || !certMatch) {
-                if (pkixErrorClass == PKIX_FATAL_ERROR) {
-                        goto fatal;
-                }
-                if (verifyNode != NULL) {
-                        if (!anchorMatch) {
-                            PKIX_ERROR_CREATE
-                                (BUILD,
-                                PKIX_ANCHORDIDNOTCHAINTOCERT,
-                                verifyError);
-                        } else if (!certMatch) {
-                            PKIX_ERROR_CREATE
-                                (BUILD,
-                                PKIX_ANCHORDIDNOTPASSCERTSELECTORCRITERIA,
-                                verifyError);
-                        } else {
-                            verifyError = pkixErrorResult;
-                            pkixErrorResult = NULL;
-                        }
-                        PKIX_DECREF(pkixErrorResult);
-                }
-        } else {
-                *pPassed = PKIX_TRUE;
-        }
-
-        if (verifyNode != NULL) {
-                PKIX_CHECK_FATAL(pkix_VerifyNode_Create
-                        (trustedCert,
-                        1,
-                        verifyError,
-                        &anchorVerifyNode,
-                        plContext),
-                        PKIX_VERIFYNODECREATEFAILED);
-                PKIX_CHECK_FATAL(pkix_VerifyNode_AddToTree
-                        (verifyNode, anchorVerifyNode, plContext),
-                        PKIX_VERIFYNODEADDTOTREEFAILED);
-                PKIX_DECREF(verifyError);
-        }
-
-fatal:
-        PKIX_DECREF(verifyError);
-        PKIX_DECREF(anchorVerifyNode);
-        PKIX_DECREF(trustedCert);
-        PKIX_DECREF(anchorNC);
-        PKIX_DECREF(certSel);
-        PKIX_DECREF(certSelParams);
-        PKIX_DECREF(trustedSubject);
-        PKIX_DECREF(candidateIssuer);
-
-        PKIX_RETURN(BUILD);
-}
-
-/*
  * FUNCTION: pkix_Build_SortCertComparator
  * DESCRIPTION:
  *
@@ -1082,6 +901,7 @@ pkix_Build_VerifyCertificate(
         PKIX_PL_PublicKey *candidatePubKey = NULL;
         PKIX_CertChainChecker *userChecker = NULL;
         PKIX_CertChainChecker_CheckCallback checkerCheck = NULL;
+        PKIX_Boolean trustOnlyUserAnchors = PKIX_FALSE;
         void *nbioContext = NULL;
         
         PKIX_ENTER(BUILD, "pkix_Build_VerifyCertificate");
@@ -1096,11 +916,15 @@ pkix_Build_VerifyCertificate(
 
         /* If user defined trust anchor list is not empty, do not
          * trust any certs except to the ones that are in the list */
-        if (!state->buildConstants.numAnchors) {
-            PKIX_CHECK(PKIX_PL_Cert_IsCertTrusted
-                       (candidateCert, &trusted, plContext),
-                       PKIX_CERTISCERTTRUSTEDFAILED);
+        if (state->buildConstants.numAnchors) {
+            trustOnlyUserAnchors = PKIX_TRUE;
         }
+
+        PKIX_CHECK(
+            PKIX_PL_Cert_IsCertTrusted(candidateCert,
+                                       trustOnlyUserAnchors,
+                                       &trusted, plContext),
+            PKIX_CERTISCERTTRUSTEDFAILED);
 
         *pTrusted = trusted;
 
@@ -1203,7 +1027,6 @@ pkix_Build_VerifyCertificate(
         }
 
 cleanup:
-
         PKIX_DECREF(candidateCert);
         PKIX_DECREF(candidatePubKey);
         PKIX_DECREF(userChecker);
@@ -1754,137 +1577,77 @@ cleanup:
         PKIX_RETURN(BUILD);
 }
 
-/*
- * FUNCTION: pkix_Build_CombineWithTrust
- * DESCRIPTION:
- *
- *  Adds each Cert in the List pointed to by "fromList" to the List pointed
- *  to by "toList", if it is not already a member of that List. If it is a
- *  member of both Lists, then the two instances are checked to see if either
- *  is trusted, in which case the trusted one is retained. In other words,
- *  "toList" becomes the union of the two sets, with trust preserved.
- *
- *  It is assumed that fromList does not contain duplicates. Therefore as
- *  elements of "fromlist" are added to "tolist", subsequent additions do
- *  not need to be checked for equality against these new members.
- *
- * PARAMETERS:
- *  "fromList"
- *      Address of a List of Certs to be added, if not already present, to
- *      "toList". Must be non-NULL, but may be empty.
- *  "toList"
- *      Address of a List of Certs to be augmented by "fromList". Must be
- *      non-NULL, but may be empty.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Not Thread Safe - assumes exclusive access to "toList"
- *  (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds
- *  Returns a Build Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way
- */
-static PKIX_Error *
-pkix_Build_CombineWithTrust(
-        PKIX_List *toList,
-        PKIX_List *fromList,
-        void *plContext)
+/* Match trust anchor to select params in order to find next cert. */
+static PKIX_Error*
+pkix_Build_SelectCertsFromTrustAnchors(
+    PKIX_List *trustAnchorsList,
+    PKIX_ComCertSelParams *certSelParams,
+    PKIX_List **pMatchList,
+    void *plContext) 
 {
-        PKIX_Boolean match = PKIX_FALSE;
-        PKIX_Boolean trusted = PKIX_FALSE;
-        PKIX_UInt32 fromlistLen = 0;
-        PKIX_UInt32 originalTolistLen = 0;
-        PKIX_UInt32 fromlistIx = 0;
-        PKIX_UInt32 tolistIx = 0;
-        PKIX_PL_Object *fObject = NULL;
-        PKIX_PL_Object *tObject = NULL;
+    int anchorIndex = 0;
+    PKIX_TrustAnchor *anchor = NULL;
+    PKIX_PL_Cert *trustedCert = NULL;
+    PKIX_List *matchList = NULL;
+    PKIX_CertSelector *certSel = NULL;
+    PKIX_CertSelector_MatchCallback selectorMatchCB = NULL;
+    PKIX_Boolean certMatch = PKIX_TRUE;
 
-        PKIX_ENTER(BUILD, "pkix_Build_CombineWithTrust");
-        PKIX_NULLCHECK_TWO(fromList, toList);
+    PKIX_ENTER(BUILD, "pkix_Build_SelectCertsFromTrustAnchors");
+    
+    PKIX_CHECK(PKIX_CertSelector_Create
+               (NULL, NULL, &certSel, plContext),
+               PKIX_CERTSELECTORCREATEFAILED);
+    PKIX_CHECK(PKIX_CertSelector_SetCommonCertSelectorParams
+               (certSel, certSelParams, plContext),
+               PKIX_CERTSELECTORSETCOMMONCERTSELECTORPARAMSFAILED);
+    PKIX_CHECK(PKIX_CertSelector_GetMatchCallback
+               (certSel, &selectorMatchCB, plContext),
+               PKIX_CERTSELECTORGETMATCHCALLBACKFAILED);
 
-        PKIX_CHECK(PKIX_List_GetLength(fromList, &fromlistLen, plContext),
-                PKIX_LISTGETLENGTHFAILED);
-
-        PKIX_CHECK(PKIX_List_GetLength(toList, &originalTolistLen, plContext),
-                PKIX_LISTGETLENGTHFAILED);
-
-        for (fromlistIx = 0; fromlistIx < fromlistLen; fromlistIx++) {
-
-                PKIX_CHECK(PKIX_List_GetItem
-                        (fromList, fromlistIx, &fObject, plContext),
-                        PKIX_LISTGETITEMFAILED);
-
-                PKIX_NULLCHECK_ONE(fObject);
-
-                match = PKIX_FALSE;
-                for (tolistIx = 0; tolistIx < originalTolistLen; tolistIx++) {
-                        PKIX_CHECK(PKIX_List_GetItem
-                                (toList, tolistIx, &tObject, plContext),
-                                PKIX_LISTGETITEMFAILED);
-
-                        PKIX_NULLCHECK_ONE(tObject);
-
-                        PKIX_CHECK(PKIX_PL_Object_Equals
-                                (fObject, tObject, &match, plContext),
-                                PKIX_OBJECTEQUALSFAILED);
-
-                        if (match) {
-                                PKIX_CHECK(pkix_CheckType
-                                        (tObject, PKIX_CERT_TYPE, plContext),
-                                        PKIX_OBJECTNOTCERT);
-
-                                PKIX_CHECK(PKIX_PL_Cert_IsCertTrusted
-                                        ((PKIX_PL_Cert *)tObject, &trusted,
-                                         plContext),
-                                        PKIX_CERTISCERTTRUSTEDFAILED);
-        
-                                /* If tObject is a trusted cert, keep it. */
-                                if (trusted == PKIX_TRUE) {
-                                        PKIX_DECREF(tObject);
-                                        break;
-                                }
-
-                                PKIX_CHECK(pkix_CheckType
-                                        (fObject, PKIX_CERT_TYPE, plContext),
-                                        PKIX_OBJECTNOTCERT);
-
-                                PKIX_CHECK(PKIX_PL_Cert_IsCertTrusted
-                                        ((PKIX_PL_Cert *)fObject, &trusted,
-                                         plContext),
-                                        PKIX_CERTISCERTTRUSTEDFAILED);
-
-                                /* If fObject is a trusted cert, replace it. */
-                                if (trusted == PKIX_TRUE) {
-                                        PKIX_CHECK(PKIX_List_SetItem
-                                                (toList,
-                                                tolistIx,
-                                                fObject,
-                                                plContext),
-                                                PKIX_LISTSETITEMFAILED);
-                                        PKIX_DECREF(tObject);
-                                        break;
-                                }
-                        }
-                        PKIX_DECREF(tObject);
-                }
-
-                if (match == PKIX_FALSE) {
-                        PKIX_CHECK(PKIX_List_AppendItem
-                                (toList, fObject, plContext),
-                                PKIX_LISTAPPENDITEMFAILED);
-                }
-
-                PKIX_DECREF(fObject);
+    for (anchorIndex = 0;anchorIndex < trustAnchorsList->length; anchorIndex++) {
+        PKIX_CHECK(
+            PKIX_List_GetItem(trustAnchorsList,
+                              anchorIndex,
+                              (PKIX_PL_Object **)&anchor,
+                              plContext),
+            PKIX_LISTGETITEMFAILED);
+        PKIX_CHECK(PKIX_TrustAnchor_GetTrustedCert
+                   (anchor, &trustedCert, plContext),
+                   PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
+        pkixErrorResult =
+            (*selectorMatchCB)(certSel, trustedCert,
+                               &certMatch, plContext);
+        if (!pkixErrorResult && certMatch) {
+            if (!matchList) {
+                PKIX_CHECK(PKIX_List_Create(&matchList,
+                                            plContext),
+                           PKIX_LISTCREATEFAILED);
+            }
+            PKIX_CHECK(
+                PKIX_List_AppendItem(matchList,
+                    (PKIX_PL_Object*)trustedCert,
+                                     plContext),
+                PKIX_LISTAPPENDITEMFAILED);
+        } else {
+            PKIX_DECREF(pkixErrorResult);
         }
+        PKIX_DECREF(trustedCert);
+        PKIX_DECREF(anchor);
+     }
+    
+    *pMatchList = matchList;
+    matchList = NULL;
 
 cleanup:
-
-        PKIX_DECREF(fObject);
-        PKIX_DECREF(tObject);
-
-        PKIX_RETURN(BUILD);
+    PKIX_DECREF(matchList);
+    PKIX_DECREF(trustedCert);
+    PKIX_DECREF(anchor);
+    PKIX_DECREF(certSel);
+    
+    PKIX_RETURN(BUILD);
 }
+
 
 /*
  * FUNCTION: pkix_Build_GatherCerts
@@ -1933,11 +1696,10 @@ pkix_Build_GatherCerts(
         PKIX_Boolean certStoreIsCached = PKIX_FALSE;
         PKIX_Boolean certStoreIsLocal = PKIX_FALSE;
         PKIX_Boolean foundInCache = PKIX_FALSE;
-        PKIX_Boolean listIsEmpty = PKIX_FALSE;
         PKIX_CertStore *certStore = NULL;
         PKIX_CertStore_CertCallback getCerts = NULL;
         PKIX_List *certsFound = NULL;
-        PKIX_List *sorted = NULL;
+        PKIX_List *trustedCertList = NULL;
         void *nbioContext = NULL;
 
         PKIX_ENTER(BUILD, "pkix_Build_GatherCerts");
@@ -1946,22 +1708,7 @@ pkix_Build_GatherCerts(
         nbioContext = *pNBIOContext;
         *pNBIOContext = NULL;
 
-        PKIX_CHECK(
-            PKIX_List_IsEmpty(state->candidateCerts, &listIsEmpty, plContext),
-            PKIX_LISTISEMPTYFAILED);
-
-        /* The caller is responsible to make sure that the list is empty */
-#ifdef UNDEF
-        /* I suspect that the list will not be empty. Commenting the assertion
-         * out for now. More work needs to be done for bug 418544 to clean up
-         * code related to candidateCerts list */
-        PORT_Assert(listIsEmpty);
-#endif
-        if (!listIsEmpty) {
-            PKIX_DECREF(state->candidateCerts);
-            PKIX_CHECK(PKIX_List_Create(&state->candidateCerts, plContext),
-                       PKIX_LISTCREATEFAILED);
-        }
+        PKIX_DECREF(state->candidateCerts);
 
         while (state->certStoreIndex < state->buildConstants.numCertStores) {
 
@@ -2060,11 +1807,6 @@ pkix_Build_GatherCerts(
                         state->status = BUILD_GATHERPENDING;
                         *pNBIOContext = nbioContext;
                         goto cleanup;
-                    } else {
-                        PKIX_CHECK(pkix_Build_CombineWithTrust
-                                (state->candidateCerts, certsFound, plContext),
-                                PKIX_BUILDCOMBINEWITHTRUSTFAILED);
-                        PKIX_DECREF(certsFound);
                     }
                 }
 
@@ -2073,26 +1815,40 @@ pkix_Build_GatherCerts(
                 ++(state->certStoreIndex);
         }
 
+        if (certsFound && certsFound->length > 1) {
+            PKIX_List *sorted = NULL;
+            
+            /* sort Certs to try to optimize search */
+            PKIX_CHECK(pkix_Build_SortCandidateCerts
+                       (certsFound, &sorted, plContext),
+                       PKIX_BUILDSORTCANDIDATECERTSFAILED);
+            PKIX_DECREF(certsFound);
+            certsFound = sorted;
+        }
+
+        PKIX_CHECK(
+            pkix_Build_SelectCertsFromTrustAnchors(
+                state->buildConstants.anchors,
+                certSelParams, &trustedCertList,
+                plContext),
+            PKIX_FAILTOSELECTCERTSFROMANCHORS);
+
+        PKIX_CHECK(
+            pkix_List_MergeLists(trustedCertList,
+                                 certsFound,
+                                 &state->candidateCerts,
+                                 plContext),
+            PKIX_LISTMERGEFAILED);
+
         /* No, return the list we have gathered */
         PKIX_CHECK(PKIX_List_GetLength
                 (state->candidateCerts, &state->numCerts, plContext),
                 PKIX_LISTGETLENGTHFAILED);
 
-        if (state->numCerts > 1) {
-                /* sort Certs to try to optimize search */
-                PKIX_CHECK(pkix_Build_SortCandidateCerts
-                        (state->candidateCerts, &sorted, plContext),
-                        PKIX_BUILDSORTCANDIDATECERTSFAILED);
-
-                PKIX_DECREF(state->candidateCerts);
-                state->candidateCerts = sorted;
-                sorted = NULL;
-        }
-
         state->certIndex = 0;
 
 cleanup:
-
+        PKIX_DECREF(trustedCertList);
         PKIX_DECREF(certStore);
         PKIX_DECREF(certsFound);
 
@@ -2266,7 +2022,6 @@ pkix_BuildForwardDepthFirstSearch(
         PKIX_Boolean trusted = PKIX_FALSE;
         PKIX_Boolean isSelfIssued = PKIX_FALSE;
         PKIX_Boolean canBeCached = PKIX_FALSE;
-        PKIX_Boolean passed = PKIX_FALSE;
         PKIX_Boolean revocationCheckingExists = PKIX_FALSE;
         PKIX_Boolean needsCRLChecking = PKIX_FALSE;
         PKIX_Boolean ioPending = PKIX_FALSE;
@@ -2808,170 +2563,8 @@ pkix_BuildForwardDepthFirstSearch(
                             plContext),
                             PKIX_LISTAPPENDITEMFAILED);
 
-                    state->status = BUILD_CHECKWITHANCHORS;
-                    state->anchorIndex = 0;
+                    state->status = BUILD_EXTENDCHAIN;
             }
-
-            while ((state->status == BUILD_CHECKWITHANCHORS) ||
-                (state->status == BUILD_CRL2) ||
-                (state->status == BUILD_VALCHAIN2)) {
-                    if (state->anchorIndex >=
-                            state->buildConstants.numAnchors) {
-                                   state->status = BUILD_EXTENDCHAIN;
-                            break;
-                    } else {
-
-                            PKIX_CHECK(PKIX_List_GetItem
-                                    (state->buildConstants.anchors,
-                                    state->anchorIndex,
-                                    (PKIX_PL_Object **)&trustAnchor,
-                                    plContext),
-                                    PKIX_LISTGETITEMFAILED);
-
-                    }
-
-                    if (state->status == BUILD_CHECKWITHANCHORS) {
-
-                            /*
-                             * Does this Trust Anchor chain to this cert?
-                             * (If state->verifyNode is non-NULL, this function
-                             * chains a verifyNode for each anchor checked.)
-                             */
-                            PKIX_CHECK(pkix_Build_CheckCertAgainstAnchor
-                                    (state->candidateCert,
-                                    trustAnchor,
-                                    state->traversedSubjNames,
-                                    &passed,
-                                    verifyNode,
-                                    plContext),
-                                    PKIX_CHECKCERTAGAINSTANCHORFAILED);
-
-                            if (passed == PKIX_TRUE) {
-                                    if (state->buildConstants.revChecker) {
-                                            state->status = BUILD_CRL2;
-                                    } else {
-                                            state->status = BUILD_VALCHAIN;
-                                    }
-                            } /* else increment anchorIndex and try next */
-                    }
-
-                    if (state->status == BUILD_CRL2) {
-                        PKIX_RevocationStatus revStatus;
-                        PKIX_UInt32 reasonCode;
-
-                        PKIX_CHECK(PKIX_TrustAnchor_GetTrustedCert
-                                   (trustAnchor, &trustedCert, plContext),
-                                   PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
-                        verifyError =
-                            PKIX_RevocationChecker_Check(
-                                state->prevCert, trustedCert,
-                                state->buildConstants.revChecker,
-                                state->buildConstants.procParams,
-                                PKIX_FALSE,
-                                (state->certIndex == 0) ? PKIX_TRUE :
-                                                          PKIX_FALSE,
-                                &revStatus, &reasonCode,
-                                &nbio, plContext);
-                        PKIX_DECREF(trustedCert);
-                        if (nbio != NULL) {
-                            *pNBIOContext = nbio;
-                            goto cleanup;
-                        }
-                        if (revStatus == PKIX_RevStatus_Revoked || verifyError) {
-                          if (!verifyError) {
-                              /* if verifyError is returned then use it as
-                               * it has a detailed revocation error code.
-                               * Otherwise create a new error */
-                              PKIX_ERROR_CREATE(VALIDATE, PKIX_CERTIFICATEREVOKED,
-                                                verifyError);
-                          }
-                          if (state->verifyNode != NULL) {
-                              PKIX_CHECK_FATAL(
-                                  pkix_VerifyNode_SetError(verifyNode,
-                                                           verifyError,
-                                                           plContext),
-                                  PKIX_VERIFYNODESETERRORFAILED);
-                          }
-                          PKIX_DECREF(finalError);
-                          finalError = verifyError;
-                          verifyError = NULL;
-                          /* try again with the next trust anchor */
-                          state->status = BUILD_CHECKWITHANCHORS;
-                      } else {
-                          state->status = BUILD_VALCHAIN;
-                      }
-                    }
-
-                    if (state->status == BUILD_VALCHAIN) {
-                            /* Does the chain pass all validation tests? */
-                            PKIX_CHECK(pkix_Build_ValidationCheckers
-                                    (state,
-                                    state->trustChain,
-                                    trustAnchor,
-                                    PKIX_FALSE, /* do not add eku checker
-                                                 * since eku was already
-                                                 * checked */
-                                    plContext),
-                                    PKIX_BUILDVALIDATIONCHECKERSFAILED);
-
-                            state->status = BUILD_VALCHAIN2;
-                    }
-
-                    if (state->status == BUILD_VALCHAIN2) {
-                        verifyError =
-                            pkix_Build_ValidateEntireChain(state,
-                                                           trustAnchor,
-                                                           &nbio,
-                                                           &valResult,
-                                                           verifyNode,
-                                                           plContext);
-                            if (nbio != NULL) {
-                                    /* IO still pending, resume later */
-                                    goto cleanup;
-                            } else {
-                                    PKIX_DECREF(state->reversedCertChain);
-                                    PKIX_DECREF(state->checkedCritExtOIDs);
-                                    PKIX_DECREF(state->checkerChain);
-                                    /* check error for fatal status. */
-                                    if (verifyError) {
-                                        pkixTempErrorReceived = PKIX_TRUE;
-                                        pkixErrorClass = verifyError->errClass;
-                                        if (pkixErrorClass == PKIX_FATAL_ERROR) {
-                                            pkixErrorResult = verifyError;
-                                            verifyError = NULL;
-                                            goto fatal;
-                                        }
-                                    }
-                                    if (state->verifyNode != NULL) {
-                                        PKIX_CHECK_FATAL
-                                            (pkix_VerifyNode_AddToTree
-                                             (state->verifyNode,
-                                              verifyNode,
-                                              plContext),
-                                             PKIX_VERIFYNODEADDTOTREEFAILED);
-                                        PKIX_DECREF(verifyNode);
-                                    }
-                                    if (!PKIX_ERROR_RECEIVED) {
-                                        *pValResult = valResult;
-                                        valResult = NULL;
-                                        /* Make IsIOPending FALSE */
-                                        state->status = BUILD_VALCHAIN;
-                                        goto cleanup;
-                                    }
-                                    PKIX_DECREF(finalError);
-                                    finalError = verifyError;
-                                    verifyError = NULL;
-                                     /* Reset temp error that was set by 
-                                     * PKIX_CHECK_ONLY_FATAL and continue */
-                                    pkixTempErrorReceived = PKIX_FALSE;
-                            }
-
-                            state->status = BUILD_CHECKWITHANCHORS;
-                    }
-
-                    PKIX_DECREF(trustAnchor);
-                    state->anchorIndex++;
-            } /* while (anchorIndex < numAnchors) */
 
             if (state->status == BUILD_EXTENDCHAIN) {
 
@@ -3304,206 +2897,6 @@ fatal:
 }
 
 /*
- * FUNCTION: pkix_Build_TryShortcut
- * DESCRIPTION:
- *
- *  This function checks whether the target cert in "state", subject to the name
- *  constraints specified by "targetSubjNames", forms a complete trust chain
- *  with any of the trust anchors.
- * 
- *  If a revChecker using non-blocking I/O returns with an indication that I/O
- *  is in progress, this function stores the NBIOContext (returned by the
- *  checker) at "pNBIOContext". Otherwise, it stores NULL at "pNBIOContext" and
- *  indicates in "pAnchor" whether a complete trust chain was found. If no
- *  successful trust chain is found, NULL is stored at "pAnchor". If a
- *  successful trust chain is found, the anchor that completed the chain is
- *  stored at "pAnchor".
- *
- * PARAMETERS:
- *  "state"
- *      Address of ForwardBuilderState to be used. Must be non-NULL.
- *  "targetSubjNames"
- *      Address of List of subject names in targetCertificate. Must be non-NULL.
- *  "pNBIOContext"
- *      Address at which the NBIOContext is stored indicating whether the
- *      checking is complete. Must be non-NULL.
- *  "pAnchor"
- *      Address at which successful trustAnchor is stored, if trustAnchor and
- *      Certificate form a complete trust chain. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Build Error if the function fails in a non-fatal way
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-static PKIX_Error *
-pkix_Build_TryShortcut(
-        PKIX_ForwardBuilderState *state,
-        PKIX_List *targetSubjNames,
-        void **pNBIOContext,
-        PKIX_TrustAnchor **pAnchor,
-        PKIX_ValidateResult **pValResult,
-        void *plContext)
-{
-        PKIX_Boolean passed = PKIX_FALSE;
-        void *nbioContext = NULL;
-        PKIX_TrustAnchor *anchor = NULL;
-        PKIX_PL_Cert *trustedCert = NULL;
-        PKIX_PL_Object *revCheckerState = NULL;
-        PKIX_Error *validationError = NULL;
-        PKIX_VerifyNode *verifyNode = NULL;
-        PKIX_ValidateResult *valResult = NULL;
-
-        PKIX_ENTER(BUILD, "pkix_Build_TryShortcut");
-        PKIX_NULLCHECK_THREE(state, pNBIOContext, pAnchor);
-
-        *pNBIOContext = NULL; /* prepare in case of error exit */
-
-        /*
-         * Does the target cert, with any of our trust
-         * anchors, form a complete trust chain?
-         */
-        while (state->anchorIndex < state->buildConstants.numAnchors) {
-                PKIX_CHECK(PKIX_List_GetItem
-                        (state->buildConstants.anchors,
-                        state->anchorIndex,
-                        (PKIX_PL_Object **)&anchor,
-                        plContext),
-                        PKIX_LISTGETITEMFAILED);
-                PKIX_CHECK(pkix_Build_CheckCertAgainstAnchor
-                        (state->prevCert,
-                        anchor,
-                        targetSubjNames,
-                        &passed,
-                        state->verifyNode,
-                        plContext),
-                        PKIX_CHECKCERTAGAINSTANCHORFAILED);
-
-                if (passed != PKIX_TRUE) {
-                    PKIX_DECREF(anchor);
-                    state->anchorIndex++;
-                    continue;
-                }
-
-                if (state->buildConstants.revChecker != NULL) {
-                    PKIX_RevocationStatus revStatus;
-                    PKIX_UInt32 reasonCode;
-                    
-                    PKIX_CHECK(PKIX_TrustAnchor_GetTrustedCert
-                               (anchor, &trustedCert, plContext),
-                               PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
-                    validationError =
-                        PKIX_RevocationChecker_Check(
-                                        state->prevCert, trustedCert,
-                                        state->buildConstants.revChecker,
-                                        state->buildConstants.procParams,
-                                        PKIX_FALSE,
-                                        (state->certIndex == 0) ? PKIX_TRUE :
-                                                                  PKIX_FALSE,
-                                        &revStatus, &reasonCode,
-                                        &nbioContext, plContext);
-                    if (nbioContext != NULL) {
-                        *pNBIOContext = nbioContext;
-                        goto cleanup;
-                    }
-                    PKIX_DECREF(trustedCert);
-                    if (revStatus == PKIX_RevStatus_Revoked || validationError) {
-                        if (!validationError) {
-                            /* if validationError is returned then use it as
-                             * it has a detailed revocation error code.
-                             * Otherwise create a new error */
-                            PKIX_ERROR_CREATE(VALIDATE, PKIX_CERTIFICATEREVOKED,
-                                              validationError);
-                        }
-                        if (state->verifyNode != NULL) {
-                            PKIX_CHECK_FATAL(
-                                pkix_VerifyNode_Create(state->prevCert,
-                                                       0, validationError,
-                                                       &verifyNode,
-                                                       plContext),
-                                PKIX_VERIFYNODECREATEFAILED);
-                            PKIX_CHECK_FATAL(
-                                pkix_VerifyNode_AddToTree(state->verifyNode,
-                                                          verifyNode,
-                                                          plContext),
-                                PKIX_VERIFYNODEADDTOTREEFAILED);
-                            PKIX_DECREF(verifyNode);
-                        }
-                        PKIX_DECREF(validationError);
-                        /* contunue to the next anchor */
-                        PKIX_DECREF(anchor);
-                        state->anchorIndex++;
-                        continue;
-                    }
-                }
-
-                PKIX_CHECK_FATAL(
-                    pkix_VerifyNode_Create(state->prevCert, 0, NULL,
-                                           &verifyNode,
-                                           plContext),
-                    PKIX_VERIFYNODECREATEFAILED);
-                
-                PKIX_CHECK(
-                    pkix_Build_ValidationCheckers(state, state->trustChain,
-                                                  anchor, PKIX_TRUE, 
-                                                  plContext),
-                    PKIX_BUILDVALIDATIONCHECKERSFAILED);
-                
-                PKIX_CHECK_ONLY_FATAL(
-                    pkix_Build_ValidateEntireChain(state, anchor, &nbioContext,
-                                                   &valResult, verifyNode,
-                                                   plContext),
-                    PKIX_BUILDVALIDATEENTIRECHAINFAILED);
-                
-                if (nbioContext != NULL) {
-                    /* IO still pending, resume later */
-                    *pNBIOContext = nbioContext;
-                    goto cleanup;
-                }
-                /* Cleanup after pkix_Build_ValidateEntireChain. */
-                PKIX_DECREF(state->reversedCertChain);
-                PKIX_DECREF(state->checkedCritExtOIDs);
-                PKIX_DECREF(state->checkerChain);
-                if (state->verifyNode != NULL) {
-                    PKIX_CHECK_FATAL(
-                        pkix_VerifyNode_AddToTree(state->verifyNode,
-                                                  verifyNode, plContext),
-                        PKIX_VERIFYNODEADDTOTREEFAILED);
-                    PKIX_DECREF(verifyNode);
-                }
-                
-                if (!PKIX_ERROR_RECEIVED) {
-                    *pValResult = valResult;
-                    valResult = NULL;
-                    break;
-                }
-                /* Reset temp error that was set by 
-                 * PKIX_CHECK_ONLY_FATAL and continue */
-                pkixTempErrorReceived = PKIX_FALSE;
-                PKIX_DECREF(anchor);
-                state->anchorIndex++;
-        } /* while (state->anchorIndex < state->buildConstants.numAnchors) */
-
-        *pAnchor = anchor;
-        anchor = NULL;
-
-cleanup:
-fatal:
-
-        PKIX_DECREF(validationError);
-        PKIX_DECREF(valResult);
-        PKIX_DECREF(verifyNode);
-        PKIX_DECREF(trustedCert);
-        PKIX_DECREF(revCheckerState);
-        PKIX_DECREF(anchor);
-
-        PKIX_RETURN(BUILD);
-}
-
-/*
  * FUNCTION: pkix_Build_CheckInCache
  * DESCRIPTION:
  *
@@ -3590,10 +2983,20 @@ pkix_Build_CheckInCache(
                    (matchingAnchor, &trustedCert, plContext),
                    PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
         
-        PKIX_CHECK(PKIX_PL_Cert_IsCertTrusted
-                   (trustedCert, &trusted, plContext),
-                   PKIX_CERTISCERTTRUSTEDFAILED);
-        
+        if (!state->buildConstants.anchors) {
+            PKIX_CHECK(PKIX_PL_Cert_IsCertTrusted
+                       (trustedCert, PKIX_FALSE, &trusted, plContext),
+                       PKIX_CERTISCERTTRUSTEDFAILED);
+        } else {
+            /* Check if it is one of the trust anchors */
+            PKIX_CHECK(
+                pkix_List_Contains(state->buildConstants.anchors,
+                                   (PKIX_PL_Object *)matchingAnchor,
+                                   &trusted,
+                                   plContext),
+                PKIX_LISTCONTAINSFAILED);
+        }
+
         if (!trusted) {
             goto cleanup;
         }
@@ -4062,26 +3465,6 @@ pkix_Build_InitiateBuildChain(
                     &targetSubjNames,
                     plContext),
                     PKIX_CERTGETALLSUBJECTNAMESFAILED);
-        }
-
-        /*
-         * We can avoid the search if this cert, with any of our trust
-         * anchors, forms a complete trust chain.
-         */
-        PKIX_CHECK_ONLY_FATAL(pkix_Build_TryShortcut
-                (state,
-                targetSubjNames,
-                &nbioContext,
-                &matchingAnchor,
-                &valResult,
-                plContext),
-                PKIX_BUILDTRYSHORTCUTFAILED);
-
-        if (nbioContext != NULL) {
-                *pNBIOContext = nbioContext;
-                PKIX_INCREF(state);
-                *pState = state;
-                goto cleanup;
         }
 
         state->status = BUILD_INITIAL;

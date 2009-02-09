@@ -769,9 +769,6 @@ pkix_pl_Pk11CertStore_GetCert(
         /* Don't throw away the list if one cert was bad! */
         pkixTempErrorReceived = PKIX_FALSE;
 
-        PKIX_CHECK(PKIX_List_SetImmutable(filtered, plContext),
-                PKIX_LISTSETIMMUTABLEFAILED);
-
         *pCertList = filtered;
         filtered = NULL;
 
@@ -860,9 +857,6 @@ pkix_pl_Pk11CertStore_GetCRL(
 
         /* Don't throw away the list if one CRL was bad! */
         pkixTempErrorReceived = PKIX_FALSE;
-
-        PKIX_CHECK(PKIX_List_SetImmutable(filtered, plContext),
-                PKIX_LISTSETIMMUTABLEFAILED);
 
         *pCrlList = filtered;
         filtered = NULL;
