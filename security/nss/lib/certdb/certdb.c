@@ -938,14 +938,14 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
 	goto loser;
     }
 
+    /* determine if this is a root cert */
+    cert->isRoot = cert_IsRootCert(cert);
+
     /* initialize the certType */
     rv = cert_GetCertType(cert);
     if ( rv != SECSuccess ) {
 	goto loser;
     }
-
-    /* determine if this is a root cert */
-    cert->isRoot = cert_IsRootCert(cert);
 
     tmpname = CERT_NameToAscii(&cert->subject);
     if ( tmpname != NULL ) {
