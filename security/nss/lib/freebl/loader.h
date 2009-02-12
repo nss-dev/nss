@@ -44,7 +44,7 @@
 
 #include "blapi.h"
 
-#define FREEBL_VERSION 0x030A
+#define FREEBL_VERSION 0x030B
 
 struct FREEBLVectorStr {
 
@@ -516,12 +516,30 @@ struct FREEBLVectorStr {
                             unsigned int *outputLen, unsigned int maxOutputLen,
                             const unsigned char *input, unsigned int inputLen);
 
-   /* Version 3.011 came to here */
+
 
  SECStatus (* p_BL_Init)(void);
  void ( * p_BL_SetForkState)(PRBool);
 
-   /* Version 3.012 came to here */
+ SECStatus (* p_PRNGTEST_Instantiate)(const PRUint8 *entropy, 
+				      int entropy_len, 
+				      const PRUint8 *nonce, 
+				      int nonce_len,
+				      const PRUint8 *personal_string, 
+				      int ps_len);
+
+ SECStatus (* p_PRNGTEST_Reseed)(PRUint8 *entropy, 
+				 int entropy_len, 
+				 const PRUint8 *additional, 
+				 int additional_len);
+
+ SECStatus (* p_PRNGTEST_Generate)(PRUint8 *bytes, 
+				   int byte_Len, 
+				   const PRUint8 *additional, 
+				   int additional_len);
+
+ SECStatus (* p_PRNGTEST_Uninstantiate)(void);
+   /* Version 3.011 came to here */
 };
 
 typedef struct FREEBLVectorStr FREEBLVector;

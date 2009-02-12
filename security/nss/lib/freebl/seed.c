@@ -34,6 +34,10 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+#ifdef FREEBL_NO_DEPEND
+#include "stubs.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

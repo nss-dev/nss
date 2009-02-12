@@ -1081,22 +1081,8 @@ extern void RNG_SystemInfoForRNG(void);
  */
 
 /*
- * Given the seed-key and the seed, generate the random output.
- *
- * Parameters:
- *   XKEY [input/output]: the state of the RNG (seed-key)
- *   XSEEDj [input]: optional user input (seed)
- *   x_j [output]: output of the RNG
- *
- * Return value:
- * This function usually returns SECSuccess.  The only reason
- * this function returns SECFailure is that XSEEDj equals
- * XKEY, including the intermediate XKEY value between the two
- * iterations.  (This test is actually a FIPS 140-2 requirement
- * and not required for FIPS algorithm testing, but it is too
- * hard to separate from this function.)  If this function fails,
- * XKEY is not updated, but some data may have been written to
- * x_j, which should be ignored.
+ * FIPS186Change_GenerateX is now deprecated. It will return SEC_Failure with
+ * the error set to SEC_ERROR_LIBRARY_FAILURE.
  */
 extern SECStatus
 FIPS186Change_GenerateX(unsigned char *XKEY,
@@ -1115,6 +1101,27 @@ extern SECStatus
 FIPS186Change_ReduceModQForDSA(const unsigned char *w,
                                const unsigned char *q,
                                unsigned char *xj);
+
+/*
+ * The following functions are for FIPS poweron self test and FIPS algorithm
+ * testing.
+ */
+extern SECStatus
+PRNGTEST_Instantiate(const PRUint8 *entropy, int entropy_len, 
+		const PRUint8 *nonce, int nonce_len,
+		const PRUint8 *personal_string, int ps_len);
+
+extern SECStatus
+PRNGTEST_Reseed(PRUint8 *entropy, int entropy_len, 
+		  const PRUint8 *additional, int additional_len);
+
+extern SECStatus
+PRNGTEST_Generate(PRUint8 *bytes, int byte_Len, 
+		  const PRUint8 *additional, int additional_len);
+
+extern SECStatus
+PRNGTEST_Uninstantiate(void);
+
 
 /* Generate PQGParams and PQGVerify structs.
  * Length of seed and length of h both equal length of P. 
