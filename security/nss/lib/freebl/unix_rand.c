@@ -47,6 +47,7 @@
 #include "secerr.h"
 #include "prerror.h"
 #include "prthread.h"
+#include "prprf.h"
 
 size_t RNG_FileUpdate(const char *fileName, size_t limit);
 
@@ -891,6 +892,12 @@ safe_pclose(FILE *fp)
  */
 #define DO_NETSTAT 1
 
+#if defined(BSDI)
+    static char netstat_ni_cmd[] = "netstat -nis";
+#else
+    static char netstat_ni_cmd[] = "netstat -ni";
+#endif
+
 void RNG_SystemInfoForRNG(void)
 {
     FILE *fp;
@@ -923,11 +930,6 @@ void RNG_SystemInfoForRNG(void)
     };
 #endif
 
-#if defined(BSDI)
-    static char netstat_ni_cmd[] = "netstat -nis";
-#else
-    static char netstat_ni_cmd[] = "netstat -ni";
-#endif
 
     GiveSystemInfo();
 
@@ -961,7 +963,13 @@ void RNG_SystemInfoForRNG(void)
     /* If the user points us to a random file, pass it through the rng */
     randfile = getenv("NSRANDFILE");
     if ( ( randfile != NULL ) && ( randfile[0] != '\0') ) {
-	RNG_FileForRNG(randfile);
+	char *randCountString = getenv("NSRANDCOUNT");
+	int randCount = randCountString ? atoi(randCountString) : 0;
+	if (randCount == 0) {
+	    RNG_FileUpdate(randfile, randCount);
+	} else {
+	    RNG_FileForRNG(randfile);
+	}
     }
 
     /* pass other files through */
@@ -1126,6 +1134,94 @@ void RNG_FileForRNG(const char *fileName)
     RNG_FileUpdate(fileName, TOTAL_FILE_LIMIT);
 }
 
+void ReadSingleFile(const char *fileName)
+{
+    FILE *        file;
+    unsigned char buffer[BUFSIZ];
+    
+    file = fopen((char *)fileName, "rb");
+    if (file != NULL) {
+	while (fread(buffer, 1, sizeof(buffer), file) > 0)
+	    ;
+	fclose(file);
+    } 
+
+    return;
+}
+
+#include <dirent.h>
+
+/*
+ * read one file out of either /etc or the user's home directory.
+ * fileToRead tells which file to read.
+ *
+ * return 1 if it's time to reset the fileToRead (no more files to read).
+ */
+int ReadOneFile(int fileToRead)
+{
+    char *dir = "/etc";
+    DIR *fd = opendir(dir);
+    int resetCount = 0;
+    struct dirent entry, firstEntry;
+    int i, error = -1;
+
+    if (fd == NULL) {
+	dir = getenv("HOME");
+	if (dir) {
+	    fd = opendir(dir);
+	}
+    }
+    if (fd == NULL) {
+	return 1;
+    }
+
+    for (i=0; i <= fileToRead; i++) {
+	struct dirent *result = NULL;
+	error = readdir_r(fd, &entry, &result);
+	if (error != 0 || result == NULL)  {
+	    resetCount = 1; /* read to the end, start again at the beginning */
+	    if (i != 0) {
+		/* ran out of entries in the directory, use the first one */
+	 	entry = firstEntry;
+	 	error = 0;
+	 	break;
+	    }
+	    /* if i== 0, there were no readable entries in the directory */
+	    break;
+	}
+	if (i==0) {
+	    /* save the first entry in case we run out of entries */
+	    firstEntry = entry;
+	}
+    }
+
+    if (error == 0) {
+	char filename[NAME_MAX*2];
+	int count = snprintf(filename, sizeof filename, 
+				"%s/%s",dir, &entry.d_name[0]);
+	if (count >= 1) {
+	    ReadSingleFile(filename);
+	}
+    } 
+
+    closedir(fd);
+    return resetCount;
+}
+
+/*
+ * do something to try to introduce more noise into the 'GetNoise' call
+ */
+static void rng_systemJitter(void)
+{
+   static int fileToRead = 1;
+
+   if (ReadOneFile(fileToRead)) {
+	fileToRead = 1;
+   } else {
+	fileToRead++;
+   }
+}
+
 size_t RNG_SystemRNG(void *dest, size_t maxLen)
 {
     FILE *file;
@@ -1135,8 +1231,7 @@ size_t RNG_SystemRNG(void *dest, size_t maxLen)
 
     file = fopen("/dev/urandom", "r");
     if (file == NULL) {
-	PORT_SetError(PR_NOT_IMPLEMENTED_ERROR);
-	return fileBytes;
+	return rng_systemFromNoise(dest, maxLen);
     }
     while (maxLen > fileBytes) {
 	bytes = maxLen - fileBytes;
