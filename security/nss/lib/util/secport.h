@@ -154,7 +154,7 @@ SEC_END_PROTOS
 
 /* Please, keep these defines sorted alphabetically.  Thanks! */
 
-#define PORT_Atoi 	atoi
+#define PORT_Atoi(buff)	(int)strtol(buff, NULL, 10)
 
 #define PORT_Memcmp 	memcmp
 #define PORT_Memcpy 	memcpy
