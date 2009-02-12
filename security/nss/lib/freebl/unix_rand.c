@@ -1151,6 +1151,10 @@ void ReadSingleFile(const char *fileName)
 
 #include <dirent.h>
 
+#ifndef NAME_MAX
+#define NAME_MAX 256
+#endif
+
 /*
  * read one file out of either /etc or the user's home directory.
  * fileToRead tells which file to read.
