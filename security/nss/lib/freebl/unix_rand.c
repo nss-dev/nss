@@ -283,7 +283,7 @@ GiveSystemInfo(void)
 }
 #endif
 #endif /* Sun */
-
+
 #if defined(__hpux)
 #include <sys/unistd.h>
 
@@ -324,7 +324,7 @@ GiveSystemInfo(void)
     RNG_RandomUpdate(&si, sizeof(si));
 }
 #endif /* HPUX */
-
+
 #if defined(OSF1)
 #include <sys/types.h>
 #include <sys/sysinfo.h>
@@ -367,7 +367,7 @@ GetHighResClock(void *buf, size_t maxbytes)
 }
 
 #endif /* Alpha */
-
+
 #if defined(_IBMR2)
 static size_t
 GetHighResClock(void *buf, size_t maxbytes)
@@ -381,7 +381,7 @@ GiveSystemInfo(void)
     /* XXX haven't found any yet! */
 }
 #endif /* IBM R2 */
-
+
 #if defined(LINUX)
 #include <sys/sysinfo.h>
 
@@ -436,7 +436,6 @@ GiveSystemInfo(void)
 
 #endif /* NCR */
 
-
 #if defined(sgi)
 #include <fcntl.h>
 #undef PRIVATE
@@ -556,7 +555,7 @@ static size_t GetHighResClock(void *buf, size_t maxbuf)
     return CopyLowBits(buf, maxbuf, &s0, cntr_size);
 }
 #endif
-
+
 #if defined(sony)
 #include <sys/systeminfo.h>
 
@@ -732,7 +731,7 @@ GiveSystemInfo(void)
     }
 }
 #endif /* nec_ews */
-
+
 size_t RNG_GetNoise(void *buf, size_t maxbytes)
 {
     struct timeval tv;
@@ -1163,6 +1162,7 @@ int ReadOneFile(int fileToRead)
     char *dir = "/etc";
     DIR *fd = opendir(dir);
     int resetCount = 0;
+#undef NAME_MAX
 #ifdef SOLARIS
      /* grumble, Solaris does not define struc dirent to be the full length */
     typedef union {
@@ -1170,12 +1170,15 @@ int ReadOneFile(int fileToRead)
 	struct dirent dir;
     } dirent_hack;
     dirent_hack entry, firstEntry;
+
 #define entry_dir entry.dir
 #define NAME_MAX MAXNAMELEN
 #else
     struct dirent entry, firstEntry;
 #define entry_dir entry
+#define NAME_MAX sizeof(struct dirent)
 #endif
+
     int i, error = -1;
 
     if (fd == NULL) {
