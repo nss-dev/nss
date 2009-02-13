@@ -1149,11 +1149,8 @@ void ReadSingleFile(const char *fileName)
     return;
 }
 
+#define _POSIX_PTHREAD_SEMANTICS
 #include <dirent.h>
-
-#ifndef NAME_MAX
-#define NAME_MAX 256
-#endif
 
 /*
  * read one file out of either /etc or the user's home directory.
@@ -1166,7 +1163,19 @@ int ReadOneFile(int fileToRead)
     char *dir = "/etc";
     DIR *fd = opendir(dir);
     int resetCount = 0;
+#ifdef SOLARIS
+     /* grumble, Solaris does not define struc dirent to be the full length */
+    typedef union {
+	unsigned char space[sizeof dirent + NAXNAMELEN];
+	struct dirent dir;
+    } dirent_hack;
+    dirent_hach entry, firstEntry;
+#define entry_dir entry.dir
+#define NAME_MAX MAXNAMELEN
+#else
     struct dirent entry, firstEntry;
+#define entry_dir entry
+#endif
     int i, error = -1;
 
     if (fd == NULL) {
@@ -1181,7 +1190,7 @@ int ReadOneFile(int fileToRead)
 
     for (i=0; i <= fileToRead; i++) {
 	struct dirent *result = NULL;
-	error = readdir_r(fd, &entry, &result);
+	error = readdir_r(fd, &entry_dir, &result);
 	if (error != 0 || result == NULL)  {
 	    resetCount = 1; /* read to the end, start again at the beginning */
 	    if (i != 0) {
@@ -1202,7 +1211,7 @@ int ReadOneFile(int fileToRead)
     if (error == 0) {
 	char filename[NAME_MAX*2];
 	int count = snprintf(filename, sizeof filename, 
-				"%s/%s",dir, &entry.d_name[0]);
+				"%s/%s",dir, &entry_dir.d_name[0]);
 	if (count >= 1) {
 	    ReadSingleFile(filename);
 	}
