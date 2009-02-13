@@ -1166,10 +1166,10 @@ int ReadOneFile(int fileToRead)
 #ifdef SOLARIS
      /* grumble, Solaris does not define struc dirent to be the full length */
     typedef union {
-	unsigned char space[sizeof dirent + NAXNAMELEN];
+	unsigned char space[sizeof(struct dirent) + MAXNAMELEN];
 	struct dirent dir;
     } dirent_hack;
-    dirent_hach entry, firstEntry;
+    dirent_hack entry, firstEntry;
 #define entry_dir entry.dir
 #define NAME_MAX MAXNAMELEN
 #else
