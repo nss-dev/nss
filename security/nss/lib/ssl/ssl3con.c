@@ -905,7 +905,8 @@ ssl3_VerifySignedHashes(SSL3Hashes *hash, CERTCertificate *cert,
     case dsaKey:
 	hashItem.data = hash->sha;
 	hashItem.len = sizeof(hash->sha);
-	if (isTLS) {
+	/* Allow DER encoded DSA signatures in SSL 3.0 */
+	if (isTLS || buf->len != DSA_SIGNATURE_LEN) {
 	    signature = DSAU_DecodeDerSig(buf);
 	    if (!signature) {
 	    	PORT_SetError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
