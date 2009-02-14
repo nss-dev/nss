@@ -1947,6 +1947,7 @@ CERTCertList *
 CERT_GetCertChainFromCert(CERTCertificate *cert, int64 time, SECCertUsage usage)
 {
     CERTCertList *chain = NULL;
+    int count = 0;
 
     if (NULL == cert) {
         return NULL;
@@ -1964,7 +1965,7 @@ CERT_GetCertChainFromCert(CERTCertificate *cert, int64 time, SECCertUsage usage)
         return NULL;
     }
 
-    while (cert != NULL) {
+    while (cert != NULL && ++count <= CERT_MAX_CERT_CHAIN) {
 	if (SECSuccess != CERT_AddCertToListTail(chain, cert)) {
             /* return partial chain */
             PORT_SetError(SEC_ERROR_NO_MEMORY);
