@@ -46,6 +46,9 @@ in this Software without prior written authorization from The Open Group.
 #endif
 
 #include <stdarg.h>
+#ifdef _WIN32
+#include <io.h>
+#endif
 
 #ifdef MINIX
 #define USE_CHMOD	1
@@ -386,9 +389,13 @@ main(int argc, char *argv[])
 		fatalerr("Too many -I flags.\n");
 	    *incp++ = PREINCDIR;
 #endif
-#ifdef __UNIXOS2__
+#if defined(__UNIXOS2__) || defined(_MSC_VER)
 	    {
+#if defined(_MSC_VER)
+		char *emxinc = getenv("INCLUDE");
+#else
 		char *emxinc = getenv("C_INCLUDE_PATH");
+#endif
 		/* can have more than one component */
 		if (emxinc) {
 		    char *beg, *end;
@@ -717,10 +724,13 @@ char *getnextline(struct filepointer *filep)
 	if (*bol != '#')
 		bol = NULL;
 done:
-	if (bol && whitespace) {
+#if !defined(__UNIXOS2__) && !defined(_MSC_VER) && !defined(_WIN32)
+	/* Don't print warnings for system header files */
+	if (bol && whitespace && !strstr(filep->f_name, INCLUDEDIR)) {
 		warning("%s:  non-portable whitespace encountered at line %d\n",
 			filep->f_name, lineno);
 	}
+#endif
 	filep->f_p = p;
 	filep->f_line = lineno;
 #ifdef DEBUG_DUMP
