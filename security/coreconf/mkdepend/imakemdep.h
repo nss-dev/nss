@@ -516,6 +516,9 @@ char *cpp_argv[ARGUMENTS] = {
  *     them to the the following table.  The definition of struct symtab is
  *     in util/makedepend/def.h.
  */
+#define QUOTEIT(x) #x
+#define QUOTEEXPANSION(x) QUOTEIT(x)
+
 struct symtab	predefs[] = {
 #ifdef apollo
 	{"apollo", "1"},
@@ -724,6 +727,52 @@ struct symtab	predefs[] = {
 #endif
 #ifdef __EMX__
 	{"__EMX__", "1"},
+#endif
+	/* ADDED THE FOLLOWING SYMBOLS FOR WINDOWS */
+#ifdef _WIN32
+	{"_WIN32", QUOTEEXPANSION(_WIN32) },
+#endif
+#ifdef _WIN64
+	{"_WIN64", QUOTEEXPANSION(_WIN64) },
+#endif
+#ifdef _X86
+	{"_X86", QUOTEEXPANSION(_X86) },
+#endif
+#ifdef _X86_
+	{"_X86_", QUOTEEXPANSION(_X86_) },
+#endif
+#ifdef _X86_64
+	{"_X86_64", QUOTEEXPANSION(_X86_64) },
+#endif
+#ifdef _X86_64_
+	{"_X86_64_", QUOTEEXPANSION(_X86_64_) },
+#endif
+#ifdef _DEBUG
+	{"_DEBUG", QUOTEEXPANSION(_DEBUG) },
+#endif
+#ifdef _DLL
+	{"_DLL", QUOTEEXPANSION(_DLL) },
+#endif
+#ifdef _M_IX86
+	{"_M_IX86", QUOTEEXPANSION(_M_IX86) },
+#endif
+#ifdef _M_X64
+	{"_M_X64", QUOTEEXPANSION(_M_X64) },
+#endif
+#ifdef _MSC_FULL_VER
+	{"_MSC_FULL_VER", QUOTEEXPANSION(_MSC_FULL_VER) },
+#endif
+#ifdef _MSC_VER
+	{"_MSC_VER", QUOTEEXPANSION(_MSC_VER) },
+#endif
+#ifdef _MSVC_RUNTIME_CHECKS
+	{"_MSVC_RUNTIME_CHECKS", QUOTEEXPANSION(_MSVC_RUNTIME_CHECKS) },
+#endif
+#ifdef _MT
+	{"_MT", QUOTEEXPANSION(_MT) },
+#endif
+#ifdef _CHAR_UNSIGNED
+	{"_CHAR_UNSIGNED", QUOTEEXPANSION(_CHAR_UNSIGNED) },
 #endif
 	/* add any additional symbols before this line */
 	{NULL, NULL}
