@@ -38,6 +38,7 @@
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
+#include <limits.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -1162,9 +1163,8 @@ int ReadOneFile(int fileToRead)
     char *dir = "/etc";
     DIR *fd = opendir(dir);
     int resetCount = 0;
-#undef NAME_MAX
 #ifdef SOLARIS
-     /* grumble, Solaris does not define struc dirent to be the full length */
+     /* grumble, Solaris does not define struct dirent to be the full length */
     typedef union {
 	unsigned char space[sizeof(struct dirent) + MAXNAMELEN];
 	struct dirent dir;
@@ -1172,11 +1172,9 @@ int ReadOneFile(int fileToRead)
     dirent_hack entry, firstEntry;
 
 #define entry_dir entry.dir
-#define NAME_MAX MAXNAMELEN
 #else
     struct dirent entry, firstEntry;
 #define entry_dir entry
-#define NAME_MAX sizeof(struct dirent)
 #endif
 
     int i, error = -1;
@@ -1212,7 +1210,7 @@ int ReadOneFile(int fileToRead)
     }
 
     if (error == 0) {
-	char filename[NAME_MAX*2];
+	char filename[PATH_MAX];
 	int count = snprintf(filename, sizeof filename, 
 				"%s/%s",dir, &entry_dir.d_name[0]);
 	if (count >= 1) {
