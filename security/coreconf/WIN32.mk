@@ -118,6 +118,11 @@ ifdef NS_USE_GCC
 	DEFINES    += -DDEBUG -D_DEBUG -UNDEBUG -DDEBUG_$(USERNAME)
     endif
 else # !NS_USE_GCC
+    OS_CFLAGS += -W3 -nologo
+    OS_DLLFLAGS += -nologo -DLL -SUBSYSTEM:WINDOWS
+    ifndef MOZ_DEBUG_SYMBOLS
+	OS_DLLFLAGS += -PDB:NONE
+    endif
     ifdef BUILD_OPT
 	OS_CFLAGS  += -MD
 	ifeq (11,$(ALLOW_OPT_CODE_SIZE)$(OPT_CODE_SIZE))
@@ -175,6 +180,17 @@ ifdef USE_64
 DEFINES += -DWIN64
 else
 DEFINES += -DWIN32
+endif
+
+ifeq ($(CPU_ARCH), x386)
+ifdef USE_64
+	DEFINES += -D_AMD64_
+else
+	DEFINES += -D_X86_
+endif
+endif
+ifeq ($(CPU_ARCH), ALPHA)
+	DEFINES += -D_ALPHA_=1
 endif
 
 ifdef MAPFILE
