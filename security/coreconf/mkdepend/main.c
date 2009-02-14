@@ -392,14 +392,14 @@ main(int argc, char *argv[])
 #if defined(__UNIXOS2__) || defined(_MSC_VER)
 	    {
 #if defined(_MSC_VER)
-		char *emxinc = getenv("INCLUDE");
+		char *includepath = getenv("INCLUDE");
 #else
-		char *emxinc = getenv("C_INCLUDE_PATH");
+		char *includepath = getenv("C_INCLUDE_PATH");
 #endif
 		/* can have more than one component */
-		if (emxinc) {
+		if (includepath) {
 		    char *beg, *end;
-		    beg= (char*)strdup(emxinc);
+		    beg= (char*)strdup(includepath);
 		    for (;;) {
 			end = (char*)strchr(beg,';');
 			if (end) *end = 0;
@@ -411,7 +411,7 @@ main(int argc, char *argv[])
 		    }
 		}
 	    }
-#else /* !__UNIXOS2__, does not use INCLUDEDIR at all */
+#else /* !__UNIXOS2__ && !_MSC_VER, does not use INCLUDEDIR at all */
 	    if (incp >= includedirs + MAXDIRS)
 		fatalerr("Too many -I flags.\n");
 	    *incp++ = INCLUDEDIR;
