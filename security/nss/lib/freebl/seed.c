@@ -614,7 +614,6 @@ SEED_Encrypt(SEEDContext *cx, unsigned char *out, unsigned int *outLen,
              unsigned int maxOutLen, const unsigned char *in, 
              unsigned int inLen)
 {
-    int num = 0;
     if (!cx) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
@@ -649,7 +648,6 @@ SEED_Decrypt(SEEDContext *cx, unsigned char *out, unsigned int *outLen,
              unsigned int maxOutLen, const unsigned char *in, 
              unsigned int inLen)
 {
-    int num = 0;
     if (!cx) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
