@@ -171,8 +171,8 @@ endif
 	LDFLAGS    += /FIXED:NO
     endif
     # Convert certain deadly warnings to errors (see list at end of file)
-    OS_CFLAGS += -we4002 -we4003 -we4004 -we4006 -we4009 \
-     -we4013 -we4015 -we4033 -we4035 -we4045 -we4053 -we4054 -we4063 \
+    OS_CFLAGS += -we4002 -we4003 -we4004 -we4006 -we4009 -we4013 \
+     -we4015 -we4028 -we4033 -we4035 -we4045 -we4053 -we4054 -we4063 \
      -we4064 -we4078 -we4087 -we4098 -we4390 -we4551 -we4553 -we4715
 endif # NS_USE_GCC
 
@@ -333,6 +333,7 @@ endif
 # 4006: #undef expected an identifier
 # 4009: string too big; trailing characters truncated
 # 4015: 'identifier' : type of bit field must be integral
+# 4028: formal parameter different from declaration
 # 4033: 'function' must return a value
 # 4035: 'function' : no return value
 # 4045: 'identifier' : array bounds overflow
