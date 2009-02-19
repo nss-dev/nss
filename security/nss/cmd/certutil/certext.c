@@ -44,7 +44,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <errno.h>
 
 #if defined(WIN32)
 #include "fcntl.h"
@@ -362,14 +361,17 @@ AddKeyUsage (void *extHandle, const char *userSuppliedValue)
                     buffer, sizeof(buffer)) == SECFailure) {
                 return SECFailure;
             }
-            errno = 0;
             value = PORT_Atoi (buffer);
-            if (errno) {
-                /* can not parse user input */
-                continue;
-            }
             if (value < 0 || value > 6)
                 break;
+            if (value == 0) {
+                /* Checking that zero value of variable 'value'
+                 * corresponds to '0' input made by user */
+                char *chPtr = strchr(buffer, '0');
+                if (chPtr == NULL) {
+                    continue;
+                }
+            }
             keyUsage |= (0x80 >> value);
         }
         isCriticalExt = GetYesNo("Is this a critical extension [y/N]?");
@@ -546,11 +548,15 @@ AddExtKeyUsage (void *extHandle, const char *userSuppliedValue)
                     buffer, sizeof(buffer)) == SECFailure) {
                 GEN_BREAK(SECFailure);
             }
-            errno = 0;
             value = PORT_Atoi(buffer);
-            if (errno) {
-                /* can not parse user input */
-                continue;
+            
+            if (value == 0) {
+                /* Checking that zero value of variable 'value'
+                 * corresponds to '0' input made by user */
+                char *chPtr = strchr(buffer, '0');
+                if (chPtr == NULL) {
+                    continue;
+                }
             }
         } else {
             if (parseNextCmdInput(extKeyUsageKeyWordArray, &value, &nextPos,
@@ -642,14 +648,17 @@ AddNscpCertType (void *extHandle, const char *userSuppliedValue)
                     buffer, sizeof(buffer)) == SECFailure) {
                 return SECFailure;
             }
-            errno = 0;
             value = PORT_Atoi (buffer);
-            if (errno) {
-                /* can not parse user input */
-                continue;
-            }
             if (value < 0 || value > 7)
                 break;
+            if (value == 0) {
+                /* Checking that zero value of variable 'value'
+                 * corresponds to '0' input made by user */
+                char *chPtr = strchr(buffer, '0');
+                if (chPtr == NULL) {
+                    continue;
+                }
+            }
             keyUsage |= (0x80 >> value);
         }
         isCriticalExt = GetYesNo("Is this a critical extension [y/N]?");
@@ -953,11 +962,14 @@ AddCrlDistPoint(void *extHandle)
                 buffer, sizeof(buffer)) == SECFailure) {
             GEN_BREAK(SECFailure);
         }
-        errno = 0;
         intValue = PORT_Atoi (buffer);
-        if (errno) {
-            /* can not parse user input. setting to -1 */
-            intValue = -1;
+        if (intValue == 0) {
+            /* Checking that zero value of variable 'value'
+             * corresponds to '0' input made by user */
+            char *chPtr = strchr(buffer, '0');
+            if (chPtr == NULL) {
+                intValue = -1;
+            }
         }
         if (intValue >= 0 && intValue <8) {
             current->reasons.data = PORT_ArenaAlloc (arena, sizeof(char));
