@@ -522,21 +522,21 @@ struct FREEBLVectorStr {
  void ( * p_BL_SetForkState)(PRBool);
 
  SECStatus (* p_PRNGTEST_Instantiate)(const PRUint8 *entropy, 
-				      int entropy_len, 
+				      unsigned int entropy_len, 
 				      const PRUint8 *nonce, 
-				      int nonce_len,
+				      unsigned int nonce_len,
 				      const PRUint8 *personal_string, 
-				      int ps_len);
+				      unsigned int ps_len);
 
  SECStatus (* p_PRNGTEST_Reseed)(PRUint8 *entropy, 
-				 int entropy_len, 
+				 unsigned int entropy_len, 
 				 const PRUint8 *additional, 
-				 int additional_len);
+				 unsigned int additional_len);
 
  SECStatus (* p_PRNGTEST_Generate)(PRUint8 *bytes, 
-				   int byte_Len, 
+				   unsigned int byte_Len, 
 				   const PRUint8 *additional, 
-				   int additional_len);
+				   unsigned int additional_len);
 
  SECStatus (* p_PRNGTEST_Uninstantiate)(void);
    /* Version 3.011 came to here */

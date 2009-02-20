@@ -965,7 +965,7 @@ void RNG_SystemInfoForRNG(void)
     if ( ( randfile != NULL ) && ( randfile[0] != '\0') ) {
 	char *randCountString = getenv("NSRANDCOUNT");
 	int randCount = randCountString ? atoi(randCountString) : 0;
-	if (randCount == 0) {
+	if (randCount != 0) {
 	    RNG_FileUpdate(randfile, randCount);
 	} else {
 	    RNG_FileForRNG(randfile);
@@ -1152,6 +1152,22 @@ void ReadSingleFile(const char *fileName)
 #define _POSIX_PTHREAD_SEMANTICS
 #include <dirent.h>
 
+PRBool
+ReadFileOK(char *dir, char *file)
+{
+    struct stat   stat_buf;
+    char filename[PATH_MAX];
+    int count = snprintf(filename, sizeof filename, "%s/%s",dir, file);
+
+    if (count <= 0) {
+	return PR_FALSE; /* name too long, can't read it anyway */
+    }
+    
+    if (stat(filename, &stat_buf) < 0)
+	return PR_FALSE; /* can't stat, probably can't read it then as well */
+    return S_ISREG(stat_buf.st_mode) ? PR_TRUE : PR_FALSE;
+}
+
 /*
  * read one file out of either /etc or the user's home directory.
  * fileToRead tells which file to read.
@@ -1191,7 +1207,10 @@ int ReadOneFile(int fileToRead)
 
     for (i=0; i <= fileToRead; i++) {
 	struct dirent *result = NULL;
-	error = readdir_r(fd, &entry_dir, &result);
+	do {
+	    error = readdir_r(fd, &entry_dir, &result);
+	} while (error == 0 && result != NULL  &&
+					!ReadFileOK(dir,&result->d_name[0]));
 	if (error != 0 || result == NULL)  {
 	    resetCount = 1; /* read to the end, start again at the beginning */
 	    if (i != 0) {
