@@ -158,9 +158,9 @@ static RNGContext theGlobalRng;
  * if input_string_2 is not supplied, NULL should be passed for this parameter.
  */
 static SECStatus
-prng_Hash_df(PRUint8 *requested_bytes, int no_of_bytes_to_return, 
-	const PRUint8 *input_string_1, int input_string_1_len, 
-	const PRUint8 *input_string_2, int input_string_2_len)
+prng_Hash_df(PRUint8 *requested_bytes, unsigned int no_of_bytes_to_return, 
+	const PRUint8 *input_string_1, unsigned int input_string_1_len, 
+	const PRUint8 *input_string_2, unsigned int input_string_2_len)
 {
     SHA256Context ctx;
     PRUint32 tmp;
@@ -193,7 +193,7 @@ prng_Hash_df(PRUint8 *requested_bytes, int no_of_bytes_to_return,
  * normal operation, NSS calculates them all together in a single call.
  */
 static SECStatus
-prng_instantiate(RNGContext *rng, PRUint8 *bytes, int len)
+prng_instantiate(RNGContext *rng, PRUint8 *bytes, unsigned int len)
 {
     prng_Hash_df(V(rng), VSize(rng), bytes, len, NULL, 0);
     rng->V_type = prngCGenerateType;
@@ -214,16 +214,16 @@ prng_instantiate(RNGContext *rng, PRUint8 *bytes, int len)
  */
 static
 SECStatus
-prng_reseed(RNGContext *rng, const PRUint8 *entropy, int entropy_len,
-	const PRUint8 *additional_input, int additional_input_len)
+prng_reseed(RNGContext *rng, const PRUint8 *entropy, unsigned int entropy_len,
+	const PRUint8 *additional_input, unsigned int additional_input_len)
 {
     PRUint8 noiseData[(sizeof rng->V_Data)+PRNG_SEEDLEN];
     PRUint8 *noise = &noiseData[0];
 
     /* if entropy wasn't supplied, fetch it. (normal operationg case) */
     if (entropy == NULL) {
-    	entropy_len = RNG_SystemRNG(&noiseData[sizeof rng->V_Data],
-				    PRNG_SEEDLEN);
+    	entropy_len = (unsigned int) RNG_SystemRNG(
+			&noiseData[sizeof rng->V_Data], PRNG_SEEDLEN);
     } else {
 	/* NOTE: this code is only available for testing, not to applications */
 	/* if entropy was too big for the stack variable, get it from malloc */
@@ -285,7 +285,7 @@ prng_reseed(RNGContext *rng, const PRUint8 *entropy, int entropy_len,
  */
 static void
 prng_Hashgen(RNGContext *rng, PRUint8 *returned_bytes, 
-	     int no_of_returned_bytes)
+	     unsigned int no_of_returned_bytes)
 {
     PRUint8 data[VSize(rng)];
 
@@ -301,7 +301,9 @@ prng_Hashgen(RNGContext *rng, PRUint8 *returned_bytes,
 	SHA256_End(&ctx, returned_bytes, &len, no_of_returned_bytes);
 	returned_bytes += len;
 	no_of_returned_bytes -= len;
-	PRNG_ADD_CARRY_ONLY(data, (sizeof data) -1, no_of_returned_bytes);
+	/* The carry parameter is a bool (increment or not). 
+	 * This increments data if no_of_returned_bytes is not zero */
+	PRNG_ADD_CARRY_ONLY(data, (sizeof data)- 1, no_of_returned_bytes);
     }
     PORT_Memset(data, 0, sizeof data); 
 }
@@ -314,8 +316,9 @@ prng_Hashgen(RNGContext *rng, PRUint8 *returned_bytes,
  */
 static SECStatus
 prng_generateNewBytes(RNGContext *rng, 
-		PRUint8 *returned_bytes, int no_of_returned_bytes,
-		const PRUint8 *additional_input,int additional_input_len)
+		PRUint8 *returned_bytes, unsigned int no_of_returned_bytes,
+		const PRUint8 *additional_input,
+		unsigned int additional_input_len)
 {
     PRUint8 H[SHA256_LENGTH]; /* both H and w since they 
 				     * aren't used concurrently */
@@ -378,7 +381,7 @@ static const PRCallOnceType pristineCallOnce;
 static PRCallOnceType coRNGInit;
 static PRStatus rng_init(void)
 {
-    PRUint8 bytes[PRNG_SEEDLEN];
+    PRUint8 bytes[PRNG_SEEDLEN*2]; /* entropy + nonce */
     unsigned int numBytes;
     if (globalrng == NULL) {
 	/* create a new global RNG context */
@@ -393,7 +396,7 @@ static PRStatus rng_init(void)
 	}
 
 	/* Try to get some seed data for the RNG */
-	numBytes = RNG_SystemRNG(bytes, sizeof bytes);
+	numBytes = (unsigned int) RNG_SystemRNG(bytes, sizeof bytes);
 	PORT_Assert(numBytes == 0 || numBytes == sizeof bytes);
 	if (numBytes != 0) {
 	    /* if this is our first call,  instantiate, otherwise reseed 
@@ -405,7 +408,7 @@ static PRStatus rng_init(void)
 		prng_reseed(globalrng, bytes, numBytes, NULL, 0);
 	    }
 	    memset(bytes, 0, numBytes);
-	} else if (PORT_GetError() != PR_NOT_IMPLEMENTED_ERROR) {
+	} else {
 	    PZ_DestroyLock(globalrng->lock);
 	    globalrng->lock = NULL;
 	    globalrng->isValid = PR_FALSE;
@@ -514,13 +517,13 @@ RNG_RandomUpdate(const void *data, size_t bytes)
     /* if we're passed more than our additionalCache, simply
      * call reseed with that data */
     if (bytes > sizeof (globalrng->additionalDataCache)) {
-	rv = prng_reseed(globalrng, NULL, 0, data, bytes);
+	rv = prng_reseed(globalrng, NULL, 0, data, (unsigned int) bytes);
     /* if we aren't going to overflow the buffer, just cache it */
     } else if (bytes < ((sizeof globalrng->additionalDataCache)
 				- globalrng->additionalAvail)) {
 	PORT_Memcpy(globalrng->additionalDataCache+globalrng->additionalAvail,
 		    data, bytes);
-	globalrng->additionalAvail += bytes;
+	globalrng->additionalAvail += (PRUint32) bytes;
 	rv = SECSuccess;
     } else {
 	/* we are going to overflow the buffer. In this case we will fill
@@ -544,7 +547,7 @@ RNG_RandomUpdate(const void *data, size_t bytes)
 
 	/* copy the rest into the cache */
 	PORT_Memcpy(globalrng->additionalDataCache, data, bytes);
-	globalrng->additionalAvail = bytes;
+	globalrng->additionalAvail = (PRUint32) bytes;
     }
 		
     PZ_Unlock(globalrng->lock);
@@ -764,9 +767,9 @@ RNGContext testContext;
  * other NIST SP 800 algorithms may used in the future.
  */
 SECStatus
-PRNGTEST_Instantiate(const PRUint8 *entropy, int entropy_len, 
-		const PRUint8 *nonce, int nonce_len,
-		const PRUint8 *personal_string, int ps_len)
+PRNGTEST_Instantiate(const PRUint8 *entropy, unsigned int entropy_len, 
+		const PRUint8 *nonce, unsigned int nonce_len,
+		const PRUint8 *personal_string, unsigned int ps_len)
 {
    int byte_len = entropy_len + nonce_len + ps_len;
    PRUint8 *bytes = PORT_Alloc(byte_len);
@@ -794,8 +797,8 @@ PRNGTEST_Instantiate(const PRUint8 *entropy, int entropy_len,
 }
 
 SECStatus
-PRNGTEST_Reseed(PRUint8 *entropy, int entropy_len, 
-		  const PRUint8 *additional, int additional_len)
+PRNGTEST_Reseed(PRUint8 *entropy, unsigned int entropy_len, 
+		  const PRUint8 *additional, unsigned int additional_len)
 {
     if (!testContext.isValid) {
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -807,8 +810,8 @@ PRNGTEST_Reseed(PRUint8 *entropy, int entropy_len,
 }
 
 SECStatus
-PRNGTEST_Generate(PRUint8 *bytes, int byte_len, 
-		  const PRUint8 *additional, int additional_len)
+PRNGTEST_Generate(PRUint8 *bytes, unsigned int byte_len, 
+		  const PRUint8 *additional, unsigned int additional_len)
 {
     if (!testContext.isValid) {
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
