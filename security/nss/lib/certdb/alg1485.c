@@ -102,7 +102,7 @@ static const NameToKind name2kinds[] = {
 /* end of IANA registered type names */
 
 /* legacy keywords */
-    { "E",             128, SEC_OID_PKCS9_EMAIL_ADDRESS,SEC_ASN1_DS},
+    { "E",             128, SEC_OID_PKCS9_EMAIL_ADDRESS,SEC_ASN1_IA5_STRING},
 
 #if 0 /* removed.  Not yet in any IETF draft or RFC. */
     { "pseudonym",      64, SEC_OID_AVA_PSEUDONYM,      SEC_ASN1_DS},
