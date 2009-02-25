@@ -118,7 +118,7 @@ static const NSSItem ckcapi_trueItem = {
 static const NSSItem ckcapi_falseItem = { 
   (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) };
 static const NSSItem ckcapi_x509Item = { 
-  (void *)&ckc_x509, (PRUint32)sizeof(CKC_X_509) };
+  (void *)&ckc_x509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) };
 static const NSSItem ckcapi_rsaItem = { 
   (void *)&ckk_rsa, (PRUint32)sizeof(CK_KEY_TYPE) };
 static const NSSItem ckcapi_certClassItem = { 
