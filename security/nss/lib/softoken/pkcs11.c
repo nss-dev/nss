@@ -72,6 +72,8 @@ PRBool parentForkedAfterC_Initialize;
 
 #ifndef NO_FORK_CHECK
 
+PRBool sftkForkCheckDisabled;
+
 #if defined(CHECK_FORK_PTHREAD) || defined(CHECK_FORK_MIXED)
 PRBool forked = PR_FALSE;
 #endif
@@ -2520,6 +2522,8 @@ CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
     if (isFIPS) {
 	loginWaitTime = PR_SecondsToInterval(1);
     }
+
+    ENABLE_FORK_CHECK();
 
     rv = SECOID_Init();
     if (rv != SECSuccess) {
