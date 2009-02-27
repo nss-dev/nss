@@ -76,10 +76,6 @@
 # endif
 #endif
 
-#if defined(__WATCOMC__) || defined(__WATCOM_CPLUSPLUS__)
-#include "watcomfx.h"
-#endif
-
 #if defined(_WIN32_WCE)
 #include <windef.h>
 #include <types.h>
