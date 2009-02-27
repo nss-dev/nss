@@ -60,7 +60,6 @@ EXPORTS = \
 	secport.h \
 	secerr.h \
 	utilrename.h \
-	watcomfx.h \
 	$(NULL)
 
 PRIVATE_EXPORTS = \
