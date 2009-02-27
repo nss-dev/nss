@@ -2545,8 +2545,16 @@ pkix_BuildForwardDepthFirstSearch(
                      * adding more Certs to it can't help.
                      */
                     if (state->certLoopingDetected) {
-                            PKIX_ERROR
-                                (PKIX_LOOPDISCOVEREDDUPCERTSNOTALLOWED);
+                            PKIX_DECREF(verifyError);
+                            PKIX_ERROR_CREATE(BUILD, 
+                                         PKIX_LOOPDISCOVEREDDUPCERTSNOTALLOWED,
+                                         verifyError);
+                            PKIX_CHECK_FATAL(
+                                pkix_VerifyNode_SetError(state->verifyNode,
+                                                         verifyError,
+                                                         plContext),
+                                PKIX_VERIFYNODESETERRORFAILED);
+                            PKIX_DECREF(verifyError);
                     }
                     state->status = BUILD_GETNEXTCERT;
             }
@@ -2745,6 +2753,29 @@ pkix_BuildForwardDepthFirstSearch(
                         PKIX_CHECK(PKIX_List_DeleteItem
                                 (state->trustChain, numChained - 1, plContext),
                                 PKIX_LISTDELETEITEMFAILED);
+                        
+                        /* local and aia fetching returned no good certs.
+                         * Creating a verify node in the parent that tells
+                         * us this. */
+                        if (!state->verifyNode) {
+                            PKIX_CHECK_FATAL(
+                                pkix_VerifyNode_Create(state->prevCert,
+                                                       0, NULL, 
+                                                       &state->verifyNode,
+                                                       plContext),
+                                PKIX_VERIFYNODECREATEFAILED);
+                        }
+                        /* Updating the log with the error. */
+                        PKIX_DECREF(verifyError);
+                        PKIX_ERROR_CREATE(BUILD, PKIX_SECERRORUNKNOWNISSUER,
+                                          verifyError);
+                        PKIX_CHECK_FATAL(
+                            pkix_VerifyNode_SetError(state->verifyNode,
+                                                     verifyError,
+                                                     plContext),
+                            PKIX_VERIFYNODESETERRORFAILED);
+                        PKIX_DECREF(verifyError);
+
                         PKIX_INCREF(state->parentState);
                         parentState = state->parentState;
                         PKIX_DECREF(verifyNode);
@@ -2849,6 +2880,12 @@ cleanup:
             }
             pkixErrorCode = PKIX_SECERRORUNKNOWNISSUER;
             pkixErrorReceived = PKIX_TRUE;
+            PKIX_ERROR_CREATE(BUILD, PKIX_SECERRORUNKNOWNISSUER,
+                              verifyError);
+            PKIX_CHECK_FATAL(
+                pkix_VerifyNode_SetError(verifyNode, verifyError,
+                                         plContext),
+                PKIX_VERIFYNODESETERRORFAILED);
         } else {
             pkixErrorResult = verifyError;
             verifyError = NULL;
