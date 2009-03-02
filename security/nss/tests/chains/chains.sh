@@ -385,6 +385,20 @@ n"
     fi
 }
 
+process_ocsp()
+{
+    if [ -n "${OCSP}" ]; then
+        OPTIONS="${OPTIONS} --extAIA"
+
+        DATA="${DATA}2
+7
+${NSS_AIA_OCSP}:${OCSP}
+0
+n
+n"
+    fi
+}
+
 ########################## process_extension ###########################
 # local shell function to process entity extension parameters and 
 # generate input for certutil
@@ -398,6 +412,7 @@ process_extensions()
     process_mapping
     process_inhibit
     process_aia
+    process_ocsp
 }
 
 ############################## sign_cert ###############################
@@ -459,6 +474,24 @@ create_pkcs7()
     ${BINDIR}/cmsutil -O -r "${EMAILS}" -d ${ENTITY_DB} > ${ENTITY}.p7
     html_msg $? 0 "${SCENARIO}${TESTNAME}"
 }
+
+############################# import_key ###############################
+# local shell function to import private key + cert into database
+########################################################################
+import_key()
+{
+    KEY_NAME=$1.p12
+    DB=$2
+
+    KEY_FILE=${QADIR}/libpkix/certs/${KEY_NAME}
+
+    TESTNAME="Importing p12 key ${KEY_NAME} to ${DB} database"
+    echo "${SCRIPTNAME}: ${TESTNAME}"
+    echo "${BINDIR}/pk12util -d ${DB} -i ${KEY_FILE} -k ${DB}/dbpasswd -W nssnss"
+    ${BINDIR}/pk12util -d ${DB} -i ${KEY_FILE} -k ${DB}/dbpasswd -W nssnss
+    html_msg $? 0 "${SCENARIO}${TESTNAME}"
+}
+
 
 ############################# import_cert ##############################
 # local shell function to import certificate into database
@@ -703,6 +736,7 @@ parse_config()
             MAPPING=
             INHIBIT=
             AIA=
+            OCSP=
             DB=
             EMAILS=
             ;;
@@ -738,6 +772,9 @@ parse_config()
         "aia")
             AIA="${AIA} ${VALUE}"
             ;;
+        "ocsp")
+            OCSP="${VALUE}"
+            ;;
         "db")
             DB="${VALUE}DB"
             create_db "${DB}"
@@ -746,6 +783,10 @@ parse_config()
             IMPORT="${VALUE}"
             import_cert "${IMPORT}" "${DB}"
             import_crl "${IMPORT}" "${DB}"
+            ;;
+        "import_key")
+            IMPORT="${VALUE}"
+            import_key "${IMPORT}" "${DB}"
             ;;
         "crl")
             ISSUER="${VALUE}"
