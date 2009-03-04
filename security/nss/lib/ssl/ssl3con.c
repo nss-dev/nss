@@ -1949,7 +1949,7 @@ spec_locked_loser:
 }
 
 /* Process the plain text before sending it.
- * Returns the number of bytes of plaintext that were succesfully sent
+ * Returns the number of bytes of plaintext that were successfully sent
  * 	plus the number of bytes of plaintext that were copied into the
  *	output (write) buffer.
  * Returns SECFailure on a hard IO error, memory error, or crypto error.

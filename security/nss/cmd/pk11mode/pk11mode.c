@@ -5362,7 +5362,7 @@ CK_RV PKM_Digest(CK_FUNCTION_LIST_PTR pFunctionList,
         if  ( (digest1Len == digest2Len) 
             && (memcmp(digest1, digest2, digest1Len) == 0) ) {
                 PKM_LogIt("Single and Multiple-part message digest "
-                    "operations succesful\n");
+                    "operations successful\n");
             } else {
                 PKM_Error("Single and Multiple-part message digest "
                     "operations failed\n");
@@ -5370,7 +5370,7 @@ CK_RV PKM_Digest(CK_FUNCTION_LIST_PTR pFunctionList,
     } else {
         if  (digest1Len == digest2Len) { 
             PKM_LogIt("PKM_Digest Single and Multiple-part message digest "
-                "operations succesful\n");
+                "operations successful\n");
         } else {
             PKM_Error("PKM_Digest Single and Multiple-part message digest "
                 "operations failed\n");

@@ -1281,7 +1281,7 @@ loser:
 }
 
 /*
- * loose our cached password
+ * lose our cached password
  */
 SECStatus
 sftkdb_ClearPassword(SFTKDBHandle *keydb)
