@@ -877,7 +877,7 @@ ssl2_CalcMAC(PRUint8             * result,
 ** Send some data in the clear. 
 ** Package up data with the length header and send it.
 **
-** Return count of bytes succesfully written, or negative number (failure).
+** Return count of bytes successfully written, or negative number (failure).
 */
 static PRInt32 
 ssl2_SendClear(sslSocket *ss, const PRUint8 *in, PRInt32 len, PRInt32 flags)
@@ -1808,7 +1808,7 @@ ssl2_QualifyCypherSpecs(sslSocket *ss,
 /*
 ** Pick the best cipher we can find, given the array of server cipher
 ** specs.  Returns cipher number (e.g. SSL_CK_*), or -1 for no overlap.
-** If succesful, stores the master key size (bytes) in *pKeyLen.
+** If successful, stores the master key size (bytes) in *pKeyLen.
 **
 ** This is correct only for the client side, but presently
 ** this function is only called from 

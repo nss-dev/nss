@@ -1149,7 +1149,7 @@ PQG_ParamGenSeedLen(
  *  If vfy is non-NULL, test PQGParams to make sure they were generated
  *       using the specified seed, counter, and h values.
  *
- *  Return value indicates whether Verification operation ran succesfully
+ *  Return value indicates whether Verification operation ran successfully
  *  to completion, but does not indicate if PQGParams are valid or not.
  *  If return value is SECSuccess, then *pResult has these meanings:
  *       SECSuccess: PQGParams are valid.
