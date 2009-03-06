@@ -888,7 +888,7 @@ pkix_pl_OcspResponse_VerifySignature(
         } else {
             SECCertUsage certUsage;
             if (CERT_IsCACert(response->signerCert, NULL)) {
-                certUsage = certUsageVerifyCA;
+                certUsage = certUsageAnyCA;
             } else {
                 certUsage = certUsageStatusResponder;
             }

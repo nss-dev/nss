@@ -3855,7 +3855,7 @@ CERT_VerifyOCSPResponseSignature(CERTOCSPResponse *response,
     } else {
         SECCertUsage certUsage;
         if (CERT_IsCACert(signerCert, NULL)) {
-            certUsage = certUsageVerifyCA;
+            certUsage = certUsageAnyCA;
         } else {
             certUsage = certUsageStatusResponder;
         }
