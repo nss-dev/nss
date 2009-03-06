@@ -527,6 +527,7 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
       case certUsageEmailRecipient:
       case certUsageObjectSigner:
       case certUsageVerifyCA:
+      case certUsageAnyCA:
       case certUsageStatusResponder:
 	if ( CERT_TrustFlagsForCACertUsage(certUsage, &requiredFlags,
 					   &trustType) != SECSuccess ) {
@@ -735,7 +736,7 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
 	        certUsage != certUsageStatusResponder) {
 
 	        /*
-	         * check the trust parms of the issuer
+	         * XXX This choice of trustType seems arbitrary.
 	         */
 	        if ( certUsage == certUsageVerifyCA ) {
 	            if ( subjectCert->nsCertType & NS_CERT_TYPE_EMAIL_CA ) {
@@ -748,13 +749,12 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
 	        }
 
 	        flags = SEC_GET_TRUST_FLAGS(issuerCert->trust, trustType);
-
+	        if (( flags & requiredFlags ) == requiredFlags) {
+	            /* we found a trusted one, so return */
+	            rv = rvFinal; 
+	            goto done;
+	        }
 	        if (flags & CERTDB_VALID_CA) {
-	            if ( ( flags & requiredFlags ) == requiredFlags) {
-	                /* we found a trusted one, so return */
-	                rv = rvFinal; 
-	                goto done;
-	            }
 	            validCAOverride = PR_TRUE;
 	        }
 	    } else {
@@ -1004,13 +1004,12 @@ CERT_VerifyCACertForUsage(CERTCertDBHandle *handle, CERTCertificate *cert,
 	 * check the trust parms of the issuer
 	 */
 	flags = SEC_GET_TRUST_FLAGS(cert->trust, trustType);
-	    
+	if ( ( flags & requiredFlags ) == requiredFlags) {
+	    /* we found a trusted one, so return */
+	    rv = rvFinal; 
+	    goto done;
+	}
 	if (flags & CERTDB_VALID_CA) {
-	    if ( ( flags & requiredFlags ) == requiredFlags) {
-		/* we found a trusted one, so return */
-		rv = rvFinal; 
-		goto done;
-	    }
 	    validCAOverride = PR_TRUE;
 	}
     }
@@ -1377,6 +1376,7 @@ CERT_VerifyCert(CERTCertDBHandle *handle, CERTCertificate *cert,
 	}
 	break;
       case certUsageVerifyCA:
+      case certUsageAnyCA:
 	requiredKeyUsage = KU_KEY_CERT_SIGN;
 	requiredCertType = NS_CERT_TYPE_CA;
 	if ( ! ( certType & NS_CERT_TYPE_CA ) ) {
