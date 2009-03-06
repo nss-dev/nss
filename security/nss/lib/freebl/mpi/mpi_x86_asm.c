@@ -40,7 +40,7 @@
 
 #include "mpi-priv.h"
 
-static int is_sse = 0;
+static int is_sse = -1;
 extern unsigned long s_mpi_is_sse2();
 
 /*
