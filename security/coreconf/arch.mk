@@ -311,12 +311,12 @@ OS_CONFIG = $(OS_TARGET)$(OS_RELEASE)
 #
 
 ifdef BUILD_OPT
-	OBJDIR_TAG = $(64BIT_TAG)_OPT
+    OBJDIR_TAG = $(64BIT_TAG)_OPT
 else
     ifdef BUILD_IDG
-	    OBJDIR_TAG = $(64BIT_TAG)_IDG
+	OBJDIR_TAG = $(64BIT_TAG)_IDG
     else
-	    OBJDIR_TAG = $(64BIT_TAG)_DBG
+	OBJDIR_TAG = $(64BIT_TAG)_DBG
     endif
 endif
 
@@ -331,7 +331,7 @@ endif
 
 OBJDIR_NAME = $(OS_TARGET)$(OS_RELEASE)$(CPU_TAG)$(COMPILER_TAG)$(LIBC_TAG)$(IMPL_STRATEGY)$(OBJDIR_TAG).OBJ
 
-ifeq (,$(filter-out WINNT WIN95 WINCE,$(OS_TARGET)))
+ifeq (,$(filter-out WIN%,$(OS_TARGET)))
 ifndef BUILD_OPT
 #
 # Define USE_DEBUG_RTL if you want to use the debug runtime library
