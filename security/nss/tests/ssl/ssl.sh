@@ -166,16 +166,16 @@ wait_for_selfserv()
 {
   echo "trying to connect to selfserv at `date`"
   echo "tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \\"
-  echo "        -d ${P_R_CLIENTDIR} < ${REQUEST_FILE}"
+  echo "        -d ${P_R_CLIENTDIR} -v < ${REQUEST_FILE}"
   ${BINDIR}/tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \
-          -d ${P_R_CLIENTDIR} < ${REQUEST_FILE}
+          -d ${P_R_CLIENTDIR} -v < ${REQUEST_FILE}
   if [ $? -ne 0 ]; then
       sleep 5
       echo "retrying to connect to selfserv at `date`"
       echo "tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \\"
-      echo "        -d ${P_R_CLIENTDIR} < ${REQUEST_FILE}"
+      echo "        -d ${P_R_CLIENTDIR} -v < ${REQUEST_FILE}"
       ${BINDIR}/tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \
-              -d ${P_R_CLIENTDIR} < ${REQUEST_FILE}
+              -d ${P_R_CLIENTDIR} -v < ${REQUEST_FILE}
       if [ $? -ne 0 ]; then
           html_failed "Waiting for Server"
       fi
