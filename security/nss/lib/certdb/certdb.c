@@ -1446,32 +1446,61 @@ CERT_AddOKDomainName(CERTCertificate *cert, const char *hn)
 ** returns SECFailure with SSL_ERROR_BAD_CERT_DOMAIN if no match,
 ** returns SECFailure with some other error code if another error occurs.
 **
-** may modify cn, so caller must pass a modifiable copy.
+** This function may modify string cn, so caller must pass a modifiable copy.
 */
 static SECStatus
 cert_TestHostName(char * cn, const char * hn)
 {
-    int regvalid = PORT_RegExpValid(cn);
-    if (regvalid != NON_SXP) {
-	SECStatus rv;
-	/* cn is a regular expression, try to match the shexp */
-	int match = PORT_RegExpCaseSearch(hn, cn);
+    static int useShellExp = -1;
 
-	if ( match == 0 ) {
-	    rv = SECSuccess;
-	} else {
-	    PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
-	    rv = SECFailure;
+    if (useShellExp < 0) {
+        useShellExp = (NULL != PR_GetEnv("NSS_USE_SHEXP_IN_CERT_NAME"));
+    }
+    if (useShellExp) {
+    	/* Backward compatible code, uses Shell Expressions (SHEXP). */
+	int regvalid = PORT_RegExpValid(cn);
+	if (regvalid != NON_SXP) {
+	    SECStatus rv;
+	    /* cn is a regular expression, try to match the shexp */
+	    int match = PORT_RegExpCaseSearch(hn, cn);
+
+	    if ( match == 0 ) {
+		rv = SECSuccess;
+	    } else {
+		PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
+		rv = SECFailure;
+	    }
+	    return rv;
 	}
-	return rv;
-    } 
-    /* cn is not a regular expression */
+    } else {
+	/* New approach conforms to RFC 2818. */
+	char *wildcard    = PORT_Strchr(cn, '*');
+	char *firstcndot  = PORT_Strchr(cn, '.');
+	char *secondcndot = firstcndot ? PORT_Strchr(firstcndot+1, '.') : NULL;
+	char *firsthndot  = PORT_Strchr(hn, '.');
 
-    /* compare entire hn with cert name */
+	/* For a cn pattern to be considered valid, the wildcard character...
+	 * - may occur only in a DNS name with at least 3 components, and
+	 * - may occur only as last character in the first component, and
+	 * - may be preceded by additional characters
+	 */
+	if (wildcard && secondcndot && secondcndot[1] && firsthndot 
+	    && firstcndot  - wildcard  == 1
+	    && secondcndot - firstcndot > 1
+	    && PORT_Strrchr(cn, '*') == wildcard
+	    && !PORT_Strncasecmp(cn, hn, wildcard - cn)
+	    && !PORT_Strcasecmp(firstcndot, firsthndot)) {
+	    /* valid wildcard pattern match */
+	    return SECSuccess;
+	}
+    }
+    /* String cn has no wildcard or shell expression.  
+     * Compare entire string hn with cert name. 
+     */
     if (PORT_Strcasecmp(hn, cn) == 0) {
 	return SECSuccess;
     }
-	    
+
     PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
     return SECFailure;
 }
