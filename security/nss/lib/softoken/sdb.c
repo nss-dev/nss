@@ -63,6 +63,8 @@
 #include "prenv.h"
 #include "prsystem.h" /* for PR_GetDirectorySeparator() */
 
+#include "sys/stat.h"
+
 #ifdef SQLITE_UNSAFE_THREADS
 #include "prlock.h"
 /*
@@ -1686,6 +1688,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
     PRIntervalTime now = 0;
     char *env;
     PRBool enableCache = PR_FALSE;
+    PRBool create;
 
     *pSdb = NULL;
     *inUpdate = 0;
@@ -1695,7 +1698,8 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
      * sqlite3 will always create it.
      */
     LOCK_SQLITE();
-    if ((flags == SDB_RDONLY) && PR_Access(dbname, PR_ACCESS_EXISTS)) {
+    create = (PR_Access(dbname, PR_ACCESS_EXISTS) != PR_SUCCESS);
+    if ((flags == SDB_RDONLY) && create) {
 	error = sdb_mapSQLError(type, SQLITE_CANTOPEN);
 	goto loser;
     }
@@ -1703,6 +1707,12 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
     if (sqlerr != SQLITE_OK) {
 	error = sdb_mapSQLError(type, sqlerr); 
 	goto loser;
+    }
+    /* sql created the file, but it doesn't set appropriate modes for
+     * a database */
+    if (create) {
+	/* NO NSPR call for this? :( */
+	chmod (dbname, 0600);
     }
 
     if (flags != SDB_RDONLY) {
