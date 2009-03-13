@@ -76,6 +76,7 @@ CERT_VerifySignedDataWithPublicKey(CERTSignedData *sd,
 {
     SECStatus        rv;
     SECItem          sig;
+    SECOidTag        hashAlg = SEC_OID_UNKNOWN;
 
     if ( !pubKey || !sd ) {
 	PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
@@ -88,9 +89,18 @@ CERT_VerifySignedDataWithPublicKey(CERTSignedData *sd,
     DER_ConvertBitString(&sig);
 
     rv = VFY_VerifyDataWithAlgorithmID(sd->data.data, sd->data.len, pubKey, 
-			&sig, &sd->signatureAlgorithm, NULL, wincx);
-
-    return rv ? SECFailure : SECSuccess;
+			&sig, &sd->signatureAlgorithm, &hashAlg, wincx);
+    if (rv == SECSuccess) {
+        /* Are we honoring signatures for this algorithm?  */
+	PRUint32 policyFlags = 0;
+	rv = NSS_GetAlgorithmPolicy(hashAlg, &policyFlags);
+	if (rv == SECSuccess && 
+	    !(policyFlags & NSS_USE_ALG_IN_CERT_SIGNATURE)) {
+	    PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+	    rv = SECFailure;
+	}
+    }
+    return rv;
 }
 
 /*
