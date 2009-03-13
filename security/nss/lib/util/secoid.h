@@ -149,6 +149,27 @@ extern SECStatus SEC_StringToOID(PLArenaPool *pool, SECItem *to,
 
 extern void UTIL_SetForkState(PRBool forked);
 
+/*
+ * Accessor functions for new opaque extended SECOID table.
+ * Any of these functions may return SECSuccess or SECFailure with the error 
+ * code set to SEC_ERROR_UNKNOWN_OBJECT_TYPE if the SECOidTag is out of range.
+ */
+
+/* The Get function outputs the 32-bit value associated with the SECOidTag.
+ * Flags bits are the NSS_USE_ALG_ #defines in "secoidt.h".
+ * Default value for any algorithm is 0xffffffff (enabled for all purposes).
+ * No value is output if function returns SECFailure.
+ */
+extern SECStatus NSS_GetAlgorithmPolicy(SECOidTag tag, PRUint32 *pValue);
+
+/* The Set function modifies the stored value according to the following
+ * algorithm:
+ *   policy[tag] = (policy[tag] & ~clearBits) | setBits;
+ */
+extern SECStatus
+NSS_SetAlgorithmPolicy(SECOidTag tag, PRUint32 setBits, PRUint32 clearBits);
+
+
 SEC_END_PROTOS
 
 #endif /* _SECOID_H_ */
