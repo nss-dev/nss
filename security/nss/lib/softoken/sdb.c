@@ -62,8 +62,10 @@
 #include "prmon.h"
 #include "prenv.h"
 #include "prsystem.h" /* for PR_GetDirectorySeparator() */
-
 #include "sys/stat.h"
+#if defined (_WIN32)
+#include <io.h>
+#endif
 
 #ifdef SQLITE_UNSAFE_THREADS
 #include "prlock.h"
