@@ -998,7 +998,6 @@ secu_PrintRawString(FILE *out, SECItem *si, char *m, int level)
 	SECU_Indent(out, level); 
 	column = level*INDENT_MULT;
     }
-    fprintf(out, "\""); column++;
 
     for (i = 0; i < si->len; i++) {
 	unsigned char val = si->data[i];
@@ -1010,7 +1009,6 @@ secu_PrintRawString(FILE *out, SECItem *si, char *m, int level)
 	fprintf(out,"%c", printable[val]); column++;
     }
 
-    fprintf(out, "\""); column++;
     if (column != level*INDENT_MULT || column > 76) {
 	secu_Newline(out);
     }
