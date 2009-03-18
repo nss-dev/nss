@@ -373,7 +373,7 @@ ${NSS_AIA_HTTP}/${CERT_PUBLIC}
 "
 
             if [ -n "${NSS_AIA_PATH}" ]; then
-                cp ${CERT_LOCAL} ${NSS_AIA_PATH}/${CERT_PUBLIC}
+                cp ${CERT_LOCAL} ${NSS_AIA_PATH}/${CERT_PUBLIC} 2> /dev/null
                 chmod a+r ${NSS_AIA_PATH}/${CERT_PUBLIC}
                 echo ${NSS_AIA_PATH}/${CERT_PUBLIC} >> ${AIA_FILES}
             fi
@@ -517,7 +517,7 @@ import_cert()
     IS_ASCII=`grep -c -- "-----BEGIN CERTIFICATE-----" ${CERT_FILE}`
 
     ASCII_OPT=
-    if [ ${IS_ASCII} -gt 0 ]; then
+    if [ "${IS_ASCII}" -gt 0 ]; then
         ASCII_OPT="-a"
     fi
    
@@ -668,11 +668,20 @@ verify_cert()
     echo "vfychain ${DB_OPT} -pp -vv ${REV_OPTS} ${FETCH_OPT} ${POLICY_OPT} ${VFY_CERTS} ${TRUST_OPT}"
 
     if [ -z "${MEMLEAK_DBG}" ]; then
-        ${BINDIR}/vfychain ${DB_OPT} -pp -vv ${REV_OPTS} ${FETCH_OPT} ${POLICY_OPT} ${VFY_CERTS} ${TRUST_OPT} 
+        VFY_OUT=$(${BINDIR}/vfychain ${DB_OPT} -pp -vv ${REV_OPTS} ${FETCH_OPT} ${POLICY_OPT} ${VFY_CERTS} ${TRUST_OPT})
         RESULT=$?
+        echo "${VFY_OUT}"
     else 
-        ${RUN_COMMAND_DBG} ${BINDIR}/vfychain ${REV_OPTS} ${DB_OPT} -pp -vv ${FETCH_OPT} ${POLICY_OPT} ${VFY_CERTS} ${TRUST_OPT} 2>> ${LOGFILE}
+        VFY_OUT=$(${RUN_COMMAND_DBG} ${BINDIR}/vfychain ${REV_OPTS} ${DB_OPT} -pp -vv ${FETCH_OPT} ${POLICY_OPT} ${VFY_CERTS} ${TRUST_OPT} 2>> ${LOGFILE})
         RESULT=$?
+        echo "${VFY_OUT}"
+    fi
+
+    echo "${VFY_OUT}" | grep "ERROR -5990: I/O operation timed out" > /dev/null
+    if [ $? -eq 0 ]; then
+        echo "Result of this test is not valid due to network time out."
+        html_unknown "${SCENARIO}${TESTNAME}"
+        return
     fi
 
     echo "Returned value is ${RESULT}, expected result is ${EXP_RESULT}"
@@ -850,6 +859,9 @@ parse_config()
                 LOGFILE="${LOGDIR}/${LOGNAME}"
             fi
             ;;
+        "sleep")
+            sleep ${VALUE}
+            ;;
         "break")
             break
             ;;
@@ -903,7 +915,7 @@ chains_main()
 
         while read AIA_FILE
         do
-            rm ${AIA_FILE} 
+            rm ${AIA_FILE} 2> /dev/null
         done < ${AIA_FILES}
         rm ${AIA_FILES}
     done < "${CHAINS_SCENARIOS}"

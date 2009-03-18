@@ -224,6 +224,15 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         html "<TR><TD>#${MSG_ID}: $1 ${HTML_FAILED}"
         echo "${SCRIPTNAME}: #${MSG_ID}: $* - FAILED"
     }
+    html_unknown()
+    {
+        html_detect_core "$@" || return
+        MSG_ID=`cat ${MSG_ID_FILE}`
+        MSG_ID=`expr ${MSG_ID} + 1`
+        echo ${MSG_ID} > ${MSG_ID_FILE}
+        html "<TR><TD>#${MSG_ID}: $1 ${HTML_UNKNOWN}"
+        echo "${SCRIPTNAME}: #${MSG_ID}: $* - UNKNOWN"
+    }
     html_detect_core()
     {
         detect_core
@@ -255,6 +264,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     HTML_FAILED='</TD><TD bgcolor=red>Failed</TD><TR>'
     HTML_FAILED_CORE='</TD><TD bgcolor=red>Failed Core</TD><TR>'
     HTML_PASSED='</TD><TD bgcolor=lightGreen>Passed</TD><TR>'
+    HTML_UNKNOWN='</TD><TD>Unknown/TD><TR>'
     TABLE_ARGS=
 
 
