@@ -593,7 +593,7 @@ sftk_hasNullPassword(SFTKSlot *slot, SFTKDBHandle *keydb)
 	PRBool tokenRemoved = PR_FALSE;
     	SECStatus rv = sftkdb_CheckPassword(keydb, "", &tokenRemoved);
 	if (tokenRemoved) {
-	    sftk_CloseAllSessions(slot);
+	    sftk_CloseAllSessions(slot,PR_FALSE);
 	}
 	return (rv  == SECSuccess);
     }
@@ -2236,22 +2236,30 @@ loser:
 }
 
 
-CK_RV sftk_CloseAllSessions(SFTKSlot *slot)
+CK_RV sftk_CloseAllSessions(SFTKSlot *slot, PRBool logout)
 {
     SFTKSession *session;
     unsigned int i;
     SFTKDBHandle *handle;
 
     /* first log out the card */
-    handle = sftk_getKeyDB(slot);
-    SKIP_AFTER_FORK(PZ_Lock(slot->slotLock));
-    slot->isLoggedIn = PR_FALSE;
-    if (handle) {
-	sftkdb_ClearPassword(handle);
-    }
-    SKIP_AFTER_FORK(PZ_Unlock(slot->slotLock));
-    if (handle) {
-        sftk_freeDB(handle);
+    /* special case - if we are in a middle of upgrade, we want to close the
+     * sessions to fake a token removal to tell the upper level code we have
+     * switched from one database to another, but we don't want to 
+     * explicity logout in case we can continue the upgrade with the 
+      * existing password if possible.
+     */
+    if (logout) {
+	handle = sftk_getKeyDB(slot);
+	SKIP_AFTER_FORK(PZ_Lock(slot->slotLock));
+	slot->isLoggedIn = PR_FALSE;
+	if (handle) {
+	    sftkdb_ClearPassword(handle);
+	}
+	SKIP_AFTER_FORK(PZ_Unlock(slot->slotLock));
+	if (handle) {
+            sftk_freeDB(handle);
+	}
     }
 
     /* now close all the current sessions */
@@ -2327,7 +2335,7 @@ SFTK_ShutdownSlot(SFTKSlot *slot)
      * the sessHashSize variable guarentees we have all the session
      * mechanism set up */
     if (slot->head) {
-	sftk_CloseAllSessions(slot);
+	sftk_CloseAllSessions(slot, PR_TRUE);
      }
 
     /* clear all objects.. session objects are cleared as a result of
@@ -3207,7 +3215,7 @@ CK_RV NSC_InitPIN(CK_SESSION_HANDLE hSession,
     /* change the data base */
     rv = sftkdb_ChangePassword(handle, NULL, newPinStr, &tokenRemoved);
     if (tokenRemoved) {
-	sftk_CloseAllSessions(slot);
+	sftk_CloseAllSessions(slot, PR_FALSE);
     }
     sftk_freeDB(handle);
     handle = NULL;
@@ -3290,7 +3298,7 @@ CK_RV NSC_SetPIN(CK_SESSION_HANDLE hSession, CK_CHAR_PTR pOldPin,
     PR_Lock(slot->pwCheckLock);
     rv = sftkdb_ChangePassword(handle, oldPinStr, newPinStr, &tokenRemoved);
     if (tokenRemoved) {
-	sftk_CloseAllSessions(slot);
+	sftk_CloseAllSessions(slot, PR_FALSE);
     }
     sftk_freeDB(handle);
     handle = NULL;
@@ -3434,7 +3442,7 @@ CK_RV NSC_CloseAllSessions (CK_SLOT_ID slotID)
     slot = sftk_SlotFromID(slotID, PR_FALSE);
     if (slot == NULL) return CKR_SLOT_ID_INVALID;
 
-    return sftk_CloseAllSessions(slot);
+    return sftk_CloseAllSessions(slot, PR_TRUE);
 }
 
 
@@ -3545,7 +3553,7 @@ CK_RV NSC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
     PR_Lock(slot->pwCheckLock);
     rv = sftkdb_CheckPassword(handle,pinStr, &tokenRemoved);
     if (tokenRemoved) {
-	sftk_CloseAllSessions(slot);
+	sftk_CloseAllSessions(slot,PR_FALSE);
     }
     if ((rv != SECSuccess) && (slot->slotID == FIPS_SLOT_ID)) {
 	PR_Sleep(loginWaitTime);

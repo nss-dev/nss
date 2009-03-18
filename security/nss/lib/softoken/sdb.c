@@ -1513,6 +1513,10 @@ sdb_PutMetaData(SDB *sdb, const char *id, const SECItem *item1,
     int retry = 0;
     const char *cmd = PW_CREATE_CMD;
 
+    if ((sdb->sdb_flags & SDB_RDONLY) != 0) {
+	return CKR_TOKEN_WRITE_PROTECTED;
+    }
+
     LOCK_SQLITE()  
     error = sdb_openDBLocal(sdb_p, &sqlDB, NULL);
     if (error != CKR_OK) {
