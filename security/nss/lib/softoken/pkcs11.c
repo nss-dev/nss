@@ -593,7 +593,7 @@ sftk_hasNullPassword(SFTKSlot *slot, SFTKDBHandle *keydb)
 	PRBool tokenRemoved = PR_FALSE;
     	SECStatus rv = sftkdb_CheckPassword(keydb, "", &tokenRemoved);
 	if (tokenRemoved) {
-	    sftk_CloseAllSessions(slot,PR_FALSE);
+	    sftk_CloseAllSessions(slot, PR_FALSE);
 	}
 	return (rv  == SECSuccess);
     }
@@ -3553,7 +3553,7 @@ CK_RV NSC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
     PR_Lock(slot->pwCheckLock);
     rv = sftkdb_CheckPassword(handle,pinStr, &tokenRemoved);
     if (tokenRemoved) {
-	sftk_CloseAllSessions(slot,PR_FALSE);
+	sftk_CloseAllSessions(slot, PR_FALSE);
     }
     if ((rv != SECSuccess) && (slot->slotID == FIPS_SLOT_ID)) {
 	PR_Sleep(loginWaitTime);
