@@ -675,7 +675,6 @@ escapeAndQuote(char *dst, int dstlen, char *src, int srclen, EQMode *pEQMode)
 	} else {
 	    if (NEEDS_ESCAPE(c) || (SPECIAL_CHAR(c) && mode == fullEscape)) {
 		*dst++ = C_BACKSLASH;
-		*dst++ = c;
 	    }
 	    *dst++ = c;
 	}
