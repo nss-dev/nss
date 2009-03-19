@@ -213,8 +213,13 @@ ifdef NS_USE_GCC
 	AS	= $(CC)
 	ASFLAGS = $(INCLUDES)
 else
+ifdef USE_64
+	AS	= ml64.exe
+	ASFLAGS = -Cp -Sn -Zi $(INCLUDES)
+else
 	AS	= ml.exe
 	ASFLAGS = -Cp -Sn -Zi -coff $(INCLUDES)
+endif
 endif
 
 #
