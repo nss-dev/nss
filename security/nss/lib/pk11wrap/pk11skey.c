@@ -2218,3 +2218,10 @@ PK11_GenerateFortezzaIV(PK11SymKey *symKey,unsigned char *iv,int len)
     PK11_ExitSlotMonitor(symKey->slot);
     return rv;
 }
+
+CK_OBJECT_HANDLE
+PK11_GetSymKeyHandle(PK11SymKey *symKey)
+{
+    return symKey->objectID;
+}
+
