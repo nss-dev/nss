@@ -203,8 +203,14 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
 	    PK11_SETATTRS(attrs, CKA_EC_PARAMS, 
 		          pubKey->u.ec.DEREncodedParams.data,
 		          pubKey->u.ec.DEREncodedParams.len); attrs++;
-	    PK11_SETATTRS(attrs, CKA_EC_POINT, pubKey->u.ec.publicValue.data,
+	    if (getenv_use NSS_ XXXX ) {
+	    	PK11_SETATTRS(attrs, CKA_EC_POINT, 
+			  pubKey->u.ec.publicValue.data,
 			  pubKey->u.ec.publicValue.len); attrs++;
+	    } else {
+		/* derencode */
+		set.
+	    }
 	    break;
 	default:
 	    PORT_SetError( SEC_ERROR_BAD_KEY );
@@ -410,8 +416,58 @@ PK11_ExtractPublicKey(PK11SlotInfo *slot,KeyType keyType,CK_OBJECT_HANDLE id)
 	crv = pk11_Attr2SecItem(arena,ecparams,
 	                        &pubKey->u.ec.DEREncodedParams);
 	if (crv != CKR_OK) break;
-	crv = pk11_Attr2SecItem(arena,value,&pubKey->u.ec.publicValue);
-	if (crv != CKR_OK) break;
+	/* decode the param if required */
+	/* first make sure it's even valid.
+	 * It should either be SEC_ASN1_OCTECT_STRING or 
+	 * EC_POINT_FORM_UNCOMPRESSED , both of which by a strange coincidence
+	 * are 0x04, so a single check finds both (but doesn't determine
+	 * which). */
+	if (*((char *)value->pValue) != SEC_ASN1_OCTECT_STRING) {
+	    crv = CKR_ATTRIBUTE_VALUE_INVALID;
+	    break;
+	}
+	/* OK, now let's try to decode it and see if it's valid */
+	pubValue.data = value->pValue;
+	pubValue.len = value->ulValueLen;
+	rv = SEC_QuickDERDecodeItem(arena,&pubKey->u.ec.publicValue,&pubValue);
+
+	/*
+	 * OK, check to see if the decoded value is sane.
+         * We the resulting decoded value must:
+	 *   1) have been a valid DER encoded (SEC_QuickDER needed to succeed).
+	 *   2) have a valid point compression result. (first byte == 4)
+	 *   3) occupy the entire encoded block except the encoding prefix.
+	 *   4) be and odd value (curvelen*2+1).
+	 * at this level the curvelen is opaque, so we have to rely on these
+	 * other tells to determine if our resulting key is valid.
+	 */
+	if ((rv != SECSuccess) 
+	   || (pubKey->u.ec.publicValue.data[0] != EC_POINT_FORM_UNCOMPRESSED)
+	   /* next line assumes ECC keys up to 1024 bit. */
+	   || ((pubKey->len - pubKey->u.ec.pubValue.len ) <= 3)
+	   /* this line will uniquely determine the 512 > greater curves */
+	   || ((pubKey->u.ecPublicValue.len & 1) == 0)
+	   || (PORT_Memcpy(&pubValue.data[pubKey->len -
+		 pubKey->u.ec.publicValue.len, &pubKey->u.ec.publicValue.data, 
+		 pubKey->u.ecPublicValue.len) != 0)) {
+
+	    /* The decoded value was definitely not a valid,
+	     * check the undecoded value for validity. (we already know
+	     * the first byte is correct from above, now we just need to
+	     * make sure the length is odd */
+	    if ((pubkey->len & 1) == 0) {
+		crv = CKR_ATTRIBUTE_VALUE_INVALID;
+		break;
+	    }
+
+	    /* OK, that's be best we can do without the curve length, we
+	     * know the decoded value was not valid, and the undecoded value	
+	     * meets all the tests we can throw at it, so just use the 
+	     * undecoded value */
+	    crv = pk11_Attr2SecItem(arena,value,&pubKey->u.ec.publicValue);
+	    if (crv != CKR_OK) break;
+
+	}
 	break;
     case fortezzaKey:
     case nullKey:
