@@ -1552,15 +1552,18 @@ cert_VerifySubjectAltName(CERTCertificate *cert, const char *hn)
 		** so must copy it.  
 		*/
 		int cnLen = current->name.other.len;
-		if (cnLen + 1 > cnBufLen) {
-		    cnBufLen = cnLen + 1;
+		rv = CERT_RFC1485_EscapeAndQuote(cn, cnBufLen, 
+					    current->name.other.data, cnLen);
+		if (rv != SECSuccess && PORT_GetError == SEC_ERROR_OUTPUT_LEN) {
+		    cnBufLen = cnLen * 3 + 3; /* big enough for worst case */
 		    cn = (char *)PORT_ArenaAlloc(arena, cnBufLen);
 		    if (!cn)
 			goto fail;
+		    rv = CERT_RFC1485_EscapeAndQuote(cn, cnBufLen, 
+					    current->name.other.data, cnLen);
 		}
-		PORT_Memcpy(cn, current->name.other.data, cnLen);
-		cn[cnLen] = 0;
-		rv = cert_TestHostName(cn ,hn);
+		if (rv == SECSuccess)
+		    rv = cert_TestHostName(cn ,hn);
 		if (rv == SECSuccess)
 		    goto finish;
 	    }
