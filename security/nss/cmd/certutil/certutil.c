@@ -177,19 +177,26 @@ AddCert(PK11SlotInfo *slot, CERTCertDBHandle *handle, char *name, char *trusts,
 	    GEN_BREAK(SECFailure);
 	}
 
-	if (PK11_IsFIPS() || !PK11_IsInternal(slot)) {
-	    rv = PK11_Authenticate(slot, PR_TRUE, pwdata);
-	    if (rv != SECSuccess) {
-		SECU_PrintError(progName, "could not authenticate to token %s.",
-                                PK11_GetTokenName(slot));
-		GEN_BREAK(SECFailure);
-	    }
-	}
-
 	rv =  PK11_ImportCert(slot, cert, CK_INVALID_HANDLE, name, PR_FALSE);
 	if (rv != SECSuccess) {
-	    SECU_PrintError(progName, "could not add certificate to token or database");
-	    GEN_BREAK(SECFailure);
+	    /* sigh, PK11_Import Cert and CERT_ChangeCertTrust should have 
+	     * been coded to take a password arg. */
+	    if (PORT_GetError() == SEC_ERROR_TOKEN_NOT_LOGGED_IN) {
+		rv = PK11_Authenticate(slot, PR_TRUE, pwdata);
+		if (rv != SECSuccess) {
+                    SECU_PrintError(progName, 
+				"could not authenticate to token %s.",
+				PK11_GetTokenName(slot));
+		    GEN_BREAK(SECFailure);
+		}
+		rv = PK11_ImportCert(slot, cert, CK_INVALID_HANDLE, 
+				     name, PR_FALSE);
+	    }
+	    if (rv != SECSuccess) {
+		SECU_PrintError(progName, 
+			"could not add certificate to token or database");
+		GEN_BREAK(SECFailure);
+	    }
 	}
 
 	rv = CERT_ChangeCertTrust(handle, cert, trust);
@@ -197,8 +204,9 @@ AddCert(PK11SlotInfo *slot, CERTCertDBHandle *handle, char *name, char *trusts,
 	    if (PORT_GetError() == SEC_ERROR_TOKEN_NOT_LOGGED_IN) {
 		rv = PK11_Authenticate(slot, PR_TRUE, pwdata);
 		if (rv != SECSuccess) {
-                    SECU_PrintError(progName, "could not authenticate to token %s.",
-                                    PK11_GetTokenName(slot));
+                    SECU_PrintError(progName, 
+				"could not authenticate to token %s.",
+				PK11_GetTokenName(slot));
 		    GEN_BREAK(SECFailure);
 		}
 		rv = CERT_ChangeCertTrust(handle, cert, trust);
@@ -2575,14 +2583,6 @@ merge_fail:
     }
     /*  Modify trust attribute for cert (-M)  */
     if (certutil.commands[cmd_ModifyCertTrust].activated) {
-	if (PK11_IsFIPS() || !PK11_IsFriendly(slot)) {
-	    rv = PK11_Authenticate(slot, PR_TRUE, &pwdata);
-	    if (rv != SECSuccess) {
-		SECU_PrintError(progName, "could not authenticate to token %s.",
-                                PK11_GetTokenName(slot));
-		goto shutdown;
-	    }
-	}
 	rv = ChangeTrustAttributes(certHandle, slot, name, 
 	                           certutil.options[opt_Trust].arg, &pwdata);
 	goto shutdown;
