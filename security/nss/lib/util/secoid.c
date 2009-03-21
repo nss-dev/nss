@@ -642,13 +642,13 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
 	INVALID_CERT_EXTENSION ),
 
     OD( pkcs5PbeWithMD2AndDEScbc, SEC_OID_PKCS5_PBE_WITH_MD2_AND_DES_CBC,
-	"PKCS #5 Password Based Encryption with MD2 and DES CBC",
+	"PKCS #5 Password Based Encryption with MD2 and DES-CBC",
 	CKM_PBE_MD2_DES_CBC, INVALID_CERT_EXTENSION ),
     OD( pkcs5PbeWithMD5AndDEScbc, SEC_OID_PKCS5_PBE_WITH_MD5_AND_DES_CBC,
-	"PKCS #5 Password Based Encryption with MD5 and DES CBC",
+	"PKCS #5 Password Based Encryption with MD5 and DES-CBC",
 	CKM_PBE_MD5_DES_CBC, INVALID_CERT_EXTENSION ),
     OD( pkcs5PbeWithSha1AndDEScbc, SEC_OID_PKCS5_PBE_WITH_SHA1_AND_DES_CBC,
-	"PKCS #5 Password Based Encryption with SHA1 and DES CBC", 
+	"PKCS #5 Password Based Encryption with SHA-1 and DES-CBC", 
 	CKM_NETSCAPE_PBE_SHA1_DES_CBC, INVALID_CERT_EXTENSION ),
     OD( pkcs7, SEC_OID_PKCS7,
 	"PKCS #7", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
@@ -917,23 +917,23 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
 	CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
     OD( pkcs12PBEWithSha1And128BitRC4,
 	SEC_OID_PKCS12_PBE_WITH_SHA1_AND_128_BIT_RC4,
-	"PKCS #12 PBE With Sha1 and 128 Bit RC4", 
+	"PKCS #12 PBE With SHA-1 and 128 Bit RC4", 
 	CKM_NETSCAPE_PBE_SHA1_128_BIT_RC4, INVALID_CERT_EXTENSION ),
     OD( pkcs12PBEWithSha1And40BitRC4,
 	SEC_OID_PKCS12_PBE_WITH_SHA1_AND_40_BIT_RC4,
-	"PKCS #12 PBE With Sha1 and 40 Bit RC4", 
+	"PKCS #12 PBE With SHA-1 and 40 Bit RC4", 
 	CKM_NETSCAPE_PBE_SHA1_40_BIT_RC4, INVALID_CERT_EXTENSION ),
     OD( pkcs12PBEWithSha1AndTripleDESCBC,
 	SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC,
-	"PKCS #12 PBE With Sha1 and Triple DES CBC", 
+	"PKCS #12 PBE With SHA-1 and Triple DES-CBC", 
 	CKM_NETSCAPE_PBE_SHA1_TRIPLE_DES_CBC, INVALID_CERT_EXTENSION ),
     OD( pkcs12PBEWithSha1And128BitRC2CBC,
 	SEC_OID_PKCS12_PBE_WITH_SHA1_AND_128_BIT_RC2_CBC,
-	"PKCS #12 PBE With Sha1 and 128 Bit RC2 CBC", 
+	"PKCS #12 PBE With SHA-1 and 128 Bit RC2 CBC", 
 	CKM_NETSCAPE_PBE_SHA1_128_BIT_RC2_CBC, INVALID_CERT_EXTENSION ),
     OD( pkcs12PBEWithSha1And40BitRC2CBC,
 	SEC_OID_PKCS12_PBE_WITH_SHA1_AND_40_BIT_RC2_CBC,
-	"PKCS #12 PBE With Sha1 and 40 Bit RC2 CBC", 
+	"PKCS #12 PBE With SHA-1 and 40 Bit RC2 CBC", 
 	CKM_NETSCAPE_PBE_SHA1_40_BIT_RC2_CBC, INVALID_CERT_EXTENSION ),
     OD( pkcs12RSAEncryptionWith128BitRC4,
 	SEC_OID_PKCS12_RSA_ENCRYPTION_WITH_128_BIT_RC4,
@@ -957,11 +957,11 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
 	"ANSI X9.57 DSA Signature", CKM_DSA, INVALID_CERT_EXTENSION ),
     OD( ansix9DSASignaturewithSHA1Digest,
         SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST,
-	"ANSI X9.57 DSA Signature with SHA1 Digest", 
+	"ANSI X9.57 DSA Signature with SHA-1 Digest", 
 	CKM_DSA_SHA1, INVALID_CERT_EXTENSION ),
     OD( bogusDSASignaturewithSHA1Digest,
         SEC_OID_BOGUS_DSA_SIGNATURE_WITH_SHA1_DIGEST,
-	"FORTEZZA DSA Signature with SHA1 Digest", 
+	"FORTEZZA DSA Signature with SHA-1 Digest", 
 	CKM_DSA_SHA1, INVALID_CERT_EXTENSION ),
 
     /* verisign oids */
@@ -1060,27 +1060,27 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
     /* pkcs12 v2 oids */
     OD( pkcs12V2PBEWithSha1And128BitRC4,
         SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_128_BIT_RC4,
-	"PKCS12 V2 PBE With SHA1 And 128 Bit RC4", 
+	"PKCS #12 V2 PBE With SHA-1 And 128 Bit RC4", 
 	CKM_PBE_SHA1_RC4_128, INVALID_CERT_EXTENSION ),
     OD( pkcs12V2PBEWithSha1And40BitRC4,
         SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_40_BIT_RC4,
-	"PKCS12 V2 PBE With SHA1 And 40 Bit RC4", 
+	"PKCS #12 V2 PBE With SHA-1 And 40 Bit RC4", 
 	CKM_PBE_SHA1_RC4_40, INVALID_CERT_EXTENSION ),
     OD( pkcs12V2PBEWithSha1And3KeyTripleDEScbc,
         SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_3KEY_TRIPLE_DES_CBC,
-	"PKCS12 V2 PBE With SHA1 And 3KEY Triple DES-cbc", 
+	"PKCS #12 V2 PBE With SHA-1 And 3KEY Triple DES-CBC", 
 	CKM_PBE_SHA1_DES3_EDE_CBC, INVALID_CERT_EXTENSION ),
     OD( pkcs12V2PBEWithSha1And2KeyTripleDEScbc,
         SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_2KEY_TRIPLE_DES_CBC,
-	"PKCS12 V2 PBE With SHA1 And 2KEY Triple DES-cbc", 
+	"PKCS #12 V2 PBE With SHA-1 And 2KEY Triple DES-CBC", 
 	CKM_PBE_SHA1_DES2_EDE_CBC, INVALID_CERT_EXTENSION ),
     OD( pkcs12V2PBEWithSha1And128BitRC2cbc,
         SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_128_BIT_RC2_CBC,
-	"PKCS12 V2 PBE With SHA1 And 128 Bit RC2 CBC", 
+	"PKCS #12 V2 PBE With SHA-1 And 128 Bit RC2 CBC", 
 	CKM_PBE_SHA1_RC2_128_CBC, INVALID_CERT_EXTENSION ),
     OD( pkcs12V2PBEWithSha1And40BitRC2cbc,
         SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_40_BIT_RC2_CBC,
-	"PKCS12 V2 PBE With SHA1 And 40 Bit RC2 CBC", 
+	"PKCS #12 V2 PBE With SHA-1 And 40 Bit RC2 CBC", 
 	CKM_PBE_SHA1_RC2_40_CBC, INVALID_CERT_EXTENSION ),
     OD( pkcs12SafeContentsID, SEC_OID_PKCS12_SAFE_CONTENTS_ID,
 	"PKCS #12 Safe Contents ID", 
@@ -1149,7 +1149,7 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
         "Ephemeral-Static Diffie-Hellman", CKM_INVALID_MECHANISM /* XXX */,
         INVALID_CERT_EXTENSION ),
     OD( cms3DESwrap, SEC_OID_CMS_3DES_KEY_WRAP,
-        "CMS 3DES Key Wrap", CKM_INVALID_MECHANISM /* XXX */,
+        "CMS Triple DES Key Wrap", CKM_INVALID_MECHANISM /* XXX */,
         INVALID_CERT_EXTENSION ),
     OD( cmsRC2wrap, SEC_OID_CMS_RC2_KEY_WRAP,
         "CMS RC2 Key Wrap", CKM_INVALID_MECHANISM /* XXX */,
@@ -1208,7 +1208,7 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
 	INVALID_CERT_EXTENSION ),
     OD( ansix962SignaturewithSHA1Digest, 
 	SEC_OID_ANSIX962_ECDSA_SHA1_SIGNATURE,
-	"X9.62 ECDSA signature with SHA1", CKM_ECDSA_SHA1,
+	"X9.62 ECDSA signature with SHA-1", CKM_ECDSA_SHA1,
 	INVALID_CERT_EXTENSION ),
 
     /* Named curves */
@@ -1579,7 +1579,7 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
 	INVALID_CERT_EXTENSION ),
 
     OD( isoSHA1WithRSASignature, SEC_OID_ISO_SHA1_WITH_RSA_SIGNATURE,
-	"ISO SHA1 with RSA Signature", 
+	"ISO SHA-1 with RSA Signature", 
 	CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
 
     /* SEED algorithm OIDs */
@@ -1825,11 +1825,11 @@ handleHashAlgSupport(char * envVal)
     char * arg   = myVal;
 
     while (arg && *arg) {
-	char *   nextArg = PL_strpbrk(arg, ",");
+	char *   nextArg = PL_strpbrk(arg, ";");
 	PRUint32 notEnable;
 
 	if (nextArg) {
-	    while (*nextArg == ',') {
+	    while (*nextArg == ';') {
 		*nextArg++ = '\0';
 	    }
 	}
