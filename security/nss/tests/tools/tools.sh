@@ -77,7 +77,7 @@
 "PKCS #5 Password Based Encryption with MD5 and DES-CBC"
 
   export pkcs12v2pbeWithSha1AndDESCBC=\
-"PKCS #5 Password Based Encryption with SHA1 and DES-CBC"
+"PKCS #5 Password Based Encryption with SHA-1 and DES-CBC"
   
   export pkcs5pbeWithMD2AndDEScbc=\
 "PKCS #5 Password Based Encryption with MD2 and DES-CBC"
@@ -86,7 +86,7 @@
 "PKCS #5 Password Based Encryption with MD5 and DES-CBC"
 
   export pkcs5pbeWithSha1AndDEScbc=\
-"PKCS #5 Password Based Encryption with SHA1 and DES-CBC"
+"PKCS #5 Password Based Encryption with SHA-1 and DES-CBC"
 
 ############################## tools_init ##############################
 # local shell function to initialize this script 
