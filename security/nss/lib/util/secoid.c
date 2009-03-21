@@ -1818,6 +1818,37 @@ secoid_HashNumber(const void *key)
     return (PLHashNumber) key;
 }
 
+static void
+handleHashAlgSupport(char * envVal)
+{
+    char * myVal = PORT_Strdup(envVal);  /* Get a copy we can alter */
+    char * arg   = myVal;
+
+    while (arg && *arg) {
+	char *   nextArg = PL_strpbrk(arg, ",");
+	PRUint32 notEnable;
+
+	if (nextArg) {
+	    while (*nextArg == ',') {
+		*nextArg++ = '\0';
+	    }
+	}
+	notEnable = (*arg == '-') ? NSS_USE_ALG_IN_CERT_SIGNATURE : 0;
+	if ((*arg == '+' || *arg == '-') && *++arg) { 
+	    int i;
+
+	    for (i = 1; i < SEC_OID_TOTAL; i++) {
+	        if (oids[i].desc && !strcmp(arg, oids[i].desc)) {
+		     xOids[i].notPolicyFlags = notEnable |
+		    (xOids[i].notPolicyFlags & ~NSS_USE_ALG_IN_CERT_SIGNATURE);
+		    break;
+		}
+	    }
+	}
+	arg = nextArg;
+    }
+    PORT_Free(myVal);  /* can handle NULL argument OK */
+}
 
 SECStatus
 SECOID_Init(void)
@@ -1825,6 +1856,7 @@ SECOID_Init(void)
     PLHashEntry *entry;
     const SECOidData *oid;
     int i;
+    char * envVal;
 
     if (oidhash) {
 	return SECSuccess; /* already initialized */
@@ -1838,6 +1870,10 @@ SECOID_Init(void)
 	xOids[SEC_OID_PKCS1_MD4_WITH_RSA_ENCRYPTION ].notPolicyFlags = ~0;
 	xOids[SEC_OID_PKCS5_PBE_WITH_MD2_AND_DES_CBC].notPolicyFlags = ~0;
     }
+
+    envVal = PR_GetEnv("NSS_HASH_ALG_SUPPORT");
+    if (envVal)
+    	handleHashAlgSupport(envVal);
 
     if (secoid_InitDynOidData() != SECSuccess) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
