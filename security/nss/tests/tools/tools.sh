@@ -62,7 +62,7 @@
 "PKCS #12 V2 PBE With Sha1 and 40 Bit RC4"
 
   export pkcs12v2pbeWithSha1AndTripleDESCBC=\
-"PKCS #12 V2 PBE With Sha1 and Triple DES CBC"
+"PKCS #12 V2 PBE With Sha1 and Triple DES-CBC"
 
   export pkcs12v2pbeWithSha1And128BitRc2Cbc=\
 "PKCS #12 V2 PBE With Sha1 and 128 Bit RC2 CBC"
@@ -71,22 +71,22 @@
 "PKCS #12 V2 PBE With Sha1 and 40 Bit RC2 CBC"
 
   export pkcs12v2pbeWithMd2AndDESCBC=\
-"PKCS #5 Password Based Encryption with MD2 and DES CBC"
+"PKCS #5 Password Based Encryption with MD2 and DES-CBC"
 
   export pkcs12v2pbeWithMd5AndDESCBC=\
-"PKCS #5 Password Based Encryption with MD5 and DES CBC"
+"PKCS #5 Password Based Encryption with MD5 and DES-CBC"
 
   export pkcs12v2pbeWithSha1AndDESCBC=\
-"PKCS #5 Password Based Encryption with SHA1 and DES CBC"
+"PKCS #5 Password Based Encryption with SHA1 and DES-CBC"
   
   export pkcs5pbeWithMD2AndDEScbc=\
-"PKCS #5 Password Based Encryption with MD2 and DES CBC"
+"PKCS #5 Password Based Encryption with MD2 and DES-CBC"
 
   export pkcs5pbeWithMD5AndDEScbc=\
-"PKCS #5 Password Based Encryption with MD5 and DES CBC"
+"PKCS #5 Password Based Encryption with MD5 and DES-CBC"
 
   export pkcs5pbeWithSha1AndDEScbc=\
-"PKCS #5 Password Based Encryption with SHA1 and DES CBC"
+"PKCS #5 Password Based Encryption with SHA1 and DES-CBC"
 
 ############################## tools_init ##############################
 # local shell function to initialize this script 
@@ -247,11 +247,11 @@ export_list_import()
   # $1 key encryption cipher
   # $2 certificate encryption cipher
     
-  if [[ "${1}" != "" && "${2}" != "" ]]; then
+  if [ "${1}" != "" && "${2}" != "" ]; then
       export_with_both_key_and_cert_cipher "${1}" "${2}"
-  elif [[ "${1}" != "" && "${2}" = "" ]]; then
+  elif [ "${1}" != "" && "${2}" = "" ]; then
       export_with_key_cipher "${1}"
-  elif [[ "${1}" = "" && "${2}" != "" ]]; then
+  elif [ "${1}" = "" && "${2}" != "" ]; then
       export_with_cert_cipher "${2}"
   else
       export_with_default_ciphers
