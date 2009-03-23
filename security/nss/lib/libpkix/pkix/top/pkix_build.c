@@ -2883,7 +2883,7 @@ cleanup:
             PKIX_ERROR_CREATE(BUILD, PKIX_SECERRORUNKNOWNISSUER,
                               verifyError);
             PKIX_CHECK_FATAL(
-                pkix_VerifyNode_SetError(verifyNode, verifyError,
+                pkix_VerifyNode_SetError(state->verifyNode, verifyError,
                                          plContext),
                 PKIX_VERIFYNODESETERRORFAILED);
         } else {
