@@ -1554,7 +1554,7 @@ cert_VerifySubjectAltName(CERTCertificate *cert, const char *hn)
 		int cnLen = current->name.other.len;
 		rv = CERT_RFC1485_EscapeAndQuote(cn, cnBufLen, 
 					    current->name.other.data, cnLen);
-		if (rv != SECSuccess && PORT_GetError == SEC_ERROR_OUTPUT_LEN) {
+		if (rv != SECSuccess && PORT_GetError() == SEC_ERROR_OUTPUT_LEN) {
 		    cnBufLen = cnLen * 3 + 3; /* big enough for worst case */
 		    cn = (char *)PORT_ArenaAlloc(arena, cnBufLen);
 		    if (!cn)
