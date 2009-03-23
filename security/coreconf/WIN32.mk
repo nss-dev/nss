@@ -328,6 +328,7 @@ endif
 # 4033: 'function' must return a value
 # 4035: 'function' : no return value
 # 4045: 'identifier' : array bounds overflow
+# 4047: 'function' : 'type 1' differs in levels of indirection from 'type 2'
 # 4053: one void operand for '?:'
 # 4054: 'conversion' : from function pointer 'type1' to data pointer 'type2'
 # 4059: pascal string too big, length byte is length % 256
