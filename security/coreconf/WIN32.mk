@@ -118,7 +118,7 @@ ifdef NS_USE_GCC
 	DEFINES    += -DDEBUG -D_DEBUG -UNDEBUG -DDEBUG_$(USERNAME)
     endif
 else # !NS_USE_GCC
-    OS_CFLAGS += -W3 -nologo
+    OS_CFLAGS += -W3 -nologo -D_CRT_SECURE_NO_WARNINGS
     OS_DLLFLAGS += -nologo -DLL -SUBSYSTEM:WINDOWS
     ifndef MOZ_DEBUG_SYMBOLS
 	OS_DLLFLAGS += -PDB:NONE
@@ -172,7 +172,7 @@ endif
     endif
     # Convert certain deadly warnings to errors (see list at end of file)
     OS_CFLAGS += -we4002 -we4003 -we4004 -we4006 -we4009 -we4013 \
-     -we4015 -we4028 -we4033 -we4035 -we4045 -we4053 -we4054 -we4063 \
+     -we4015 -we4028 -we4033 -we4035 -we4045 -we4047 -we4053 -we4054 -we4063 \
      -we4064 -we4078 -we4087 -we4098 -we4390 -we4551 -we4553 -we4715
 endif # NS_USE_GCC
 
