@@ -103,12 +103,6 @@ ifdef NS_USE_GCC
 		OPTIMIZER += -O2
 	endif
 	DEFINES    += -UDEBUG -U_DEBUG -DNDEBUG
-	#
-	# Add symbolic information for a profiler
-	#
-	ifdef MOZ_PROFILE
-		OPTIMIZER += -g
-	endif
     else
 	OPTIMIZER  += -g
 	NULLSTRING :=
@@ -132,16 +126,8 @@ else # !NS_USE_GCC
 	endif
 	DEFINES    += -UDEBUG -U_DEBUG -DNDEBUG
 	DLLFLAGS   += -OUT:"$@"
-	#
-	# Add symbolic information for a profiler
-	#
-	ifdef MOZ_PROFILE
-		OPTIMIZER += -Z7
-	endif
 	ifdef MOZ_DEBUG_SYMBOLS
 		OPTIMIZER += -Zi
-	endif
-	ifneq (,$(MOZ_PROFILE)$(MOZ_DEBUG_SYMBOLS))
 		DLLFLAGS += -DEBUG -OPT:REF
 		LDFLAGS += -DEBUG -OPT:REF
 	endif
