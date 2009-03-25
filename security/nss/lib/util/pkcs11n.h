@@ -97,7 +97,12 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #define CKA_NETSCAPE_PKCS8_SALT         (CKA_NETSCAPE +  5)
 #define CKA_NETSCAPE_PASSWORD_CHECK     (CKA_NETSCAPE +  6)
 #define CKA_NETSCAPE_EXPIRES            (CKA_NETSCAPE +  7)
-#define CKA_NETSCAPE_KRL                (CKA_NETSCAPE +  7)
+#define CKA_NETSCAPE_KRL                (CKA_NETSCAPE +  8)
+
+#define CKA_NETSCAPE_PQG_COUNTER        (CKA_NETSCAPE +  20)
+#define CKA_NETSCAPE_PQG_SEED           (CKA_NETSCAPE +  21)
+#define CKA_NETSCAPE_PQG_H              (CKA_NETSCAPE +  22)
+#define CKA_NETSCAPE_PQG_SEED_BITS      (CKA_NETSCAPE +  23)
 
 /*
  * Trust attributes:
