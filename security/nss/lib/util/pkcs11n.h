@@ -151,6 +151,9 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #define CKA_NETSCAPE_DB                 0xD5A0DB00L
 #define CKA_NETSCAPE_TRUST              0x80000001L
 
+/* FAKE PKCS #11 defines */
+#define CKM_INVALID_MECHANISM 0xffffffffUL
+
 /*
  * NSS-defined crypto mechanisms
  *
