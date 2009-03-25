@@ -134,6 +134,8 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #define CKA_TRUST_IPSEC_TUNNEL          (CKA_TRUST + 13)
 #define CKA_TRUST_IPSEC_USER            (CKA_TRUST + 14)
 #define CKA_TRUST_TIME_STAMPING         (CKA_TRUST + 15)
+#define CKA_TRUST_STEP_UP_APPROVED      (CKA_TRUST + 16)
+
 #define CKA_CERT_SHA1_HASH	        (CKA_TRUST + 100)
 #define CKA_CERT_MD5_HASH		(CKA_TRUST + 101)
 
