@@ -180,6 +180,9 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  */
 #define CKR_NETSCAPE (CKM_VENDOR_DEFINED|NSSCK_VENDOR_NETSCAPE)
 
+#define CKR_NETSCAPE_CERTDB_FAILED      (CKR_NETSCAPE + 1)
+#define CKR_NETSCAPE_KEYDB_FAILED       (CKR_NETSCAPE + 2)
+
 /*
  * Trust info
  *
