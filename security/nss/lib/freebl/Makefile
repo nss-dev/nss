@@ -381,7 +381,7 @@ else
     ifdef NS_USE_GCC
 	LD = gcc
 	AS = gcc
-	ASFLAGS =
+	ASFLAGS = -x assembler-with-cpp
     endif
     ifeq ($(USE_64),1)
 	# Solaris for AMD64
