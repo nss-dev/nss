@@ -34,6 +34,10 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+#if defined(_WIN32) && defined(NSS_USE_64)
+#undef _X86_
+#endif
+
 #include "secrng.h"
 #include "secerr.h"
 
