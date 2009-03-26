@@ -54,7 +54,7 @@
 #include "mplogic.h"
 #include "secmpi.h"
 
-#define MAX_ITERATIONS 600  /* Maximum number of iterations of primegen */
+#define MAX_ITERATIONS 1000  /* Maximum number of iterations of primegen */
 #define PQG_Q_PRIMALITY_TESTS 18 /* from HAC table 4.4 */
 #define PQG_P_PRIMALITY_TESTS 5  /* from HAC table 4.4 */
 
