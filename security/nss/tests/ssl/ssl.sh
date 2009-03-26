@@ -400,10 +400,6 @@ ssl_auth()
           cat ${TMP}/$HOST.tmp.$$ 
           rm ${TMP}/$HOST.tmp.$$ 2>/dev/null
 
-          #workaround for bug #402058
-          [ $ret -ne 0 ] && ret=1
-          [ $value -ne 0 ] && value=1
-
           html_msg $ret $value "${testname}" \
                    "produced a returncode of $ret, expected is $value"
           kill_selfserv
