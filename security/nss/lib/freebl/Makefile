@@ -77,12 +77,11 @@ endif
 ifdef FREEBL_NO_DEPEND
 	DEFINES += -DFREEBL_NO_DEPEND
 endif
-# some code wants _X86_ defined for intel CPUs.
-# coreconf does this for windows, but not for Linux, FreeBSD, etc.
-ifeq (,$(filter-out x86 x86_64,$(CPU_ARCH)))
-ifneq (,$(filter-out WIN%,$(OS_TARGET)))
+# some freebl code wants _X86_ defined for Intel CPUs, both 32 and 64 bits.
+# coreconf does not do this consistently between platforms. It does for
+# Win32, but not for Win64, Solaris x64, FreeBSD, etc.
+ifeq (,$(filter-out x386 x86 x86_64,$(CPU_ARCH)))
 	DEFINES += -D_X86_
-endif
 endif
 
 ifeq ($(OS_TARGET),OSF1)
