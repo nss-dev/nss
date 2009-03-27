@@ -46,6 +46,7 @@ EXPORTS = \
 	nssilckt.h \
 	nssrwlk.h \
 	nssrwlkt.h \
+	nssutil.h \
 	pkcs11.h \
 	pkcs11f.h \
 	pkcs11p.h \
