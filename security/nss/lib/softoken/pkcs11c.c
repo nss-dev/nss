@@ -158,6 +158,8 @@ sftk_MapCryptError(int error)
 	/* EC functions set this error if NSS_ENABLE_ECC is not defined */
 	case SEC_ERROR_UNSUPPORTED_KEYALG:
 	    return CKR_MECHANISM_INVALID;
+	case SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE:
+	    return CKR_DOMAIN_PARAMS_INVALID;
 	/* key pair generation failed after max number of attempts */
 	case SEC_ERROR_NEED_RANDOM:
 	    return CKR_FUNCTION_FAILED;
