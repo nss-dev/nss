@@ -1901,11 +1901,11 @@ sftk_fips_RNG_PowerUpSelfTest( void )
    PRUint8 result[sizeof(rng_known_result)];
    PRUint8 DSAX[FIPS_DSA_SUBPRIME_LENGTH];
 
-   /*******************************************************/
-   /* Generate random bytes  with a known seed.           */
-   /*******************************************/
+   /********************************************/
+   /* Generate random bytes with a known seed. */
+   /********************************************/
    rng_status = PRNGTEST_Instantiate(entropy, sizeof entropy, 
-							NULL, 0, NULL, 0);
+				     NULL, 0, NULL, 0);
    if (rng_status != SECSuccess) {
 	return ( CKR_DEVICE_ERROR );
    }

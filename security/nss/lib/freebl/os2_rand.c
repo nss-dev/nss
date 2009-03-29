@@ -177,17 +177,16 @@ ReadFiles(const char *file)
     dwNumFiles++;
 }
 
-void 
+static void 
 ReadSingleFile(const char *filename)
 {
     unsigned char buffer[1024];
     FILE *file; 
     
     file = fopen((char *)filename, "rb");
-    if (file != NULL)
-    {
+    if (file != NULL) {
 	while (fread(buffer, 1, sizeof(buffer), file) > 0) 
-		;
+	    ;
 	fclose(file);
     }
 }

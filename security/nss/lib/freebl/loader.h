@@ -528,13 +528,13 @@ struct FREEBLVectorStr {
 				      const PRUint8 *personal_string, 
 				      unsigned int ps_len);
 
- SECStatus (* p_PRNGTEST_Reseed)(PRUint8 *entropy, 
+ SECStatus (* p_PRNGTEST_Reseed)(const PRUint8 *entropy, 
 				 unsigned int entropy_len, 
 				 const PRUint8 *additional, 
 				 unsigned int additional_len);
 
  SECStatus (* p_PRNGTEST_Generate)(PRUint8 *bytes, 
-				   unsigned int byte_Len, 
+				   unsigned int bytes_len, 
 				   const PRUint8 *additional, 
 				   unsigned int additional_len);
 

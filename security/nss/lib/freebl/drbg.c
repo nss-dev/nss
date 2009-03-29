@@ -62,18 +62,18 @@
  * for SHA-384 and SHA-512 it's 888 bits */
 #define PRNG_SEEDLEN      (440/PR_BITS_PER_BYTE)
 static const PRInt64 PRNG_MAX_ADDITIONAL_BYTES = LL_INIT(0x1, 0x0);
-						/* 3^35 bits or 3^32 bytes */
+						/* 2^35 bits or 2^32 bytes */
 #define PRNG_MAX_REQUEST_SIZE 0x10000		/* 2^19 bits or 2^16 bytes */
-#define PRNG_ADDITONAL_DATA_CACHE_SIZE (8*1024) /* must be less that 
+#define PRNG_ADDITONAL_DATA_CACHE_SIZE (8*1024) /* must be less than
 						 *  PRNG_MAX_ADDITIONAL_BYTES
 						 */
 
 
-/* PRNG_RESEED_COUNT is how many calls to the prng before we need to reseed 
+/* RESEED_COUNT is how many calls to the prng before we need to reseed 
  * under normal NIST rules, you must return an error. In the NSS case, we
  * self-reseed with RNG_SystemRNG(). Count can be a large number. For code
- * simplicity, we specify count with 2 components RESEED_BYTE (which is 
- * the same as  LOG256(RESEED_COUNT) and RESEED_VALUE (which is the same as
+ * simplicity, we specify count with 2 components: RESEED_BYTE (which is 
+ * the same as LOG256(RESEED_COUNT)) and RESEED_VALUE (which is the same as
  * RESEED_COUNT / (256 ^ RESEED_BYTE)). Another way to look at this is
  * RESEED_COUNT = RESEED_VALUE * (256 ^ RESEED_BYTE). For Hash based DRBG
  * we use the maximum count value, 2^48, or RESEED_BYTE=6 and RESEED_VALUE=1
@@ -81,19 +81,19 @@ static const PRInt64 PRNG_MAX_ADDITIONAL_BYTES = LL_INIT(0x1, 0x0);
 #define RESEED_BYTE 6
 #define RESEED_VALUE 1
 
-#define PRNG_RESET_SEED_COUNT(rng) \
+#define PRNG_RESET_RESEED_COUNT(rng) \
 	PORT_Memset((rng)->reseed_counter, 0, sizeof (rng)->reseed_counter); \
 	(rng)->reseed_counter[RESEED_BYTE] = 1;
 
 
 /*
- * The actual values of this enum is specified in SP 800-90, 10.1.1.*
+ * The actual values of this enum are specified in SP 800-90, 10.1.1.*
  * The spec does not name the types, it only uses bare values 
  */
 typedef enum {
    prngCGenerateType = 0,   	/* used when creating a new 'C' */
    prngReseedType = 1,	    	/* used in reseeding */
-   prngAdditionalDataType = 2,  /* used in mixing Additional data */
+   prngAdditionalDataType = 2,  /* used in mixing additional data */
    prngGenerateByteType = 3	/* used when mixing internal state while
 				 * generating bytes */
 } prngVTypes;
@@ -104,11 +104,11 @@ typedef enum {
 struct RNGContextStr {
     PZLock   *lock;        /* Lock to serialize access to global rng */
     /*
-     * NOTE, a number of steps in the drbg algorithm needs to hash 
-     * V_type || V. The code, therefore, depends The V array following 
-     * immediately after V_type. to avoid extra copies. To accomplish this
+     * NOTE, a number of steps in the drbg algorithm need to hash 
+     * V_type || V. The code, therefore, depends on the V array following 
+     * immediately after V_type to avoid extra copies. To accomplish this
      * in a way that compiliers can't perturb, we declare V_type and V
-     * as a V_data array and reference them by macros */
+     * as a V_Data array and reference them by macros */
     PRUint8  V_Data[PRNG_SEEDLEN+1]; /* internal state variables */
 #define  V_type  V_Data[0]
 #define  V(rng)       (((rng)->V_Data)+1)
@@ -118,15 +118,15 @@ struct RNGContextStr {
     /* If we get calls for the PRNG to return less than the length of our
      * hash, we extend the request for a full hash (since we'll be doing
      * the full hash anyway). Future requests for random numbers are fulfilled
-     * from the remainder of the bytes we generated. Requests for bytes 
-     * longer than a the hash size fulfilled directly from the HashGen function
+     * from the remainder of the bytes we generated. Requests for bytes longer
+     * than the hash size are fulfilled directly from the HashGen function
      * of the random number generator. */
     PRUint8  reseed_counter[RESEED_BYTE+1]; /* number of requests since the 
 					     * last reseed. Need only be
 					     * big enough to hold the whole
 					     * reseed count */
     PRUint8  data[SHA256_LENGTH];	/* when we request less than a block
-					 * save the rest of the rng for 
+					 * save the rest of the rng output for 
 					 * another partial block */
     PRUint8  dataAvail;            /* # bytes of output available in our cache,
 	                            * [0...SHA256_LENGTH] */
@@ -150,14 +150,14 @@ static RNGContext theGlobalRng;
 
 /*
  * Hash Derive function defined in NISP SP 800-90 Section 10.4.1.
- * This function is used in the Instantiate and Reseed function.
+ * This function is used in the Instantiate and Reseed functions.
  * 
- * NOTE: requested_bits cannot overlap with input_string_1 or input_string_2.
+ * NOTE: requested_bytes cannot overlap with input_string_1 or input_string_2.
  * input_string_1 and input_string_2 are logically concatentated. 
-*  input_string_1 must be supplied.
+ * input_string_1 must be supplied.
  * if input_string_2 is not supplied, NULL should be passed for this parameter.
  */
-static SECStatus
+static void
 prng_Hash_df(PRUint8 *requested_bytes, unsigned int no_of_bytes_to_return, 
 	const PRUint8 *input_string_1, unsigned int input_string_1_len, 
 	const PRUint8 *input_string_2, unsigned int input_string_2_len)
@@ -182,14 +182,13 @@ prng_Hash_df(PRUint8 *requested_bytes, unsigned int no_of_bytes_to_return,
 	requested_bytes += hash_return_len;
 	no_of_bytes_to_return -= hash_return_len;
     }
-    return SECSuccess;
 }
 
 
 /*
- * Hash_DRB Instantiate NIST SP 800-80 10.1.1.2
+ * Hash_DRBG Instantiate NIST SP 800-80 10.1.1.2
  *
- * NOTE: byte & len are entropy || nonce || personalization_string. In
+ * NOTE: bytes & len are entropy || nonce || personalization_string. In
  * normal operation, NSS calculates them all together in a single call.
  */
 static SECStatus
@@ -198,7 +197,7 @@ prng_instantiate(RNGContext *rng, PRUint8 *bytes, unsigned int len)
     prng_Hash_df(V(rng), VSize(rng), bytes, len, NULL, 0);
     rng->V_type = prngCGenerateType;
     prng_Hash_df(rng->C,sizeof rng->C,rng->V_Data,sizeof rng->V_Data,NULL,0);
-    PRNG_RESET_SEED_COUNT(rng)
+    PRNG_RESET_RESEED_COUNT(rng)
     return SECSuccess;
 }
     
@@ -209,8 +208,6 @@ prng_instantiate(RNGContext *rng, PRUint8 *bytes, unsigned int len)
  * section 10.1.1.3
  *
  * If entropy is NULL, it is fetched from the noise generator.
- *
- *  Update
  */
 static
 SECStatus
@@ -220,7 +217,7 @@ prng_reseed(RNGContext *rng, const PRUint8 *entropy, unsigned int entropy_len,
     PRUint8 noiseData[(sizeof rng->V_Data)+PRNG_SEEDLEN];
     PRUint8 *noise = &noiseData[0];
 
-    /* if entropy wasn't supplied, fetch it. (normal operationg case) */
+    /* if entropy wasn't supplied, fetch it. (normal operation case) */
     if (entropy == NULL) {
     	entropy_len = (unsigned int) RNG_SystemRNG(
 			&noiseData[sizeof rng->V_Data], PRNG_SEEDLEN);
@@ -240,11 +237,11 @@ prng_reseed(RNGContext *rng, const PRUint8 *entropy, unsigned int entropy_len,
     PORT_Memcpy(noise, rng->V_Data, sizeof rng->V_Data);
     prng_Hash_df(V(rng), VSize(rng), noise, (sizeof rng->V_Data) + entropy_len,
 		additional_input, additional_input_len);
-    /* clear potential CPS */
+    /* clear potential CSP */
     PORT_Memset(noise, 0, (sizeof rng->V_Data) + entropy_len); 
     rng->V_type = prngCGenerateType;
     prng_Hash_df(rng->C,sizeof rng->C,rng->V_Data,sizeof rng->V_Data,NULL,0);
-    PRNG_RESET_SEED_COUNT(rng)
+    PRNG_RESET_RESEED_COUNT(rng)
 
     if (noise != &noiseData[0]) {
 	PORT_Free(noise);
@@ -262,7 +259,7 @@ prng_reseed(RNGContext *rng, const PRUint8 *entropy, unsigned int entropy_len,
    } 
 
 /*
- * NOTE: Dest must be an array for the following to work.
+ * NOTE: dest must be an array for the following to work.
  */
 #define PRNG_ADD_BITS(dest, dest_len, add, len) \
     carry = 0; \
@@ -270,7 +267,7 @@ prng_reseed(RNGContext *rng, const PRUint8 *entropy, unsigned int entropy_len,
 	carry += dest[k1]+ add[k2]; \
 	dest[k1] = (PRUint8) carry; \
 	carry >>= 8; \
-    } \
+    }
 
 #define PRNG_ADD_BITS_AND_CARRY(dest, dest_len, add, len) \
     PRNG_ADD_BITS(dest, dest_len, add, len) \
@@ -321,7 +318,7 @@ prng_generateNewBytes(RNGContext *rng,
 		unsigned int additional_input_len)
 {
     PRUint8 H[SHA256_LENGTH]; /* both H and w since they 
-				     * aren't used concurrently */
+			       * aren't used concurrently */
     unsigned int carry;
     int k1, k2;
 
@@ -334,7 +331,7 @@ prng_generateNewBytes(RNGContext *rng,
     if (additional_input){
 	SHA256Context ctx;
 	/* NIST SP 800-90 defines two temporaries in their calculations,
-	 * w, and H. These temporaries are the same lengths, and used
+	 * w and H. These temporaries are the same lengths, and used
 	 * at different times, so we use the following macro to collapse
 	 * them to the same variable, but keeping their unique names for
 	 * easy comparison to the spec */
@@ -487,20 +484,20 @@ RNG_RandomUpdate(const void *data, size_t bytes)
      * spec. The spec says it must be less than 2^32 bytes (2^35 bits).
      * This can only happen if size_t is greater than 32 bits (i.e. on
      * most 64 bit platforms). The 90% case (perhaps 100% case), size_t
-     * is less then equal to 32 bits if the platform is not 64 bits, and
+     * is less than or equal to 32 bits if the platform is not 64 bits, and
      * greater than 32 bits if it is a 64 bit platform. The corner
      * cases are handled with explicit defines NS_PTR_GT_32 and NS_PTR_LE_32.
      *
      * In general, neither NS_PTR_GT_32 nor NS_PTR_LE_32 will need to be 
      * defined. If you trip over the next two size ASSERTS at compile time,
-     * you will need to define them for your platform..
+     * you will need to define them for your platform.
      *
-     * if 'sizeof(size_t) > 4' is triggered It means that we were expecting
+     * if 'sizeof(size_t) > 4' is triggered it means that we were expecting
      *   sizeof(size_t) to be greater than 4, but it wasn't. Setting 
      *   NS_PTR_LE_32 will correct that mistake.
      *
      * if 'sizeof(size_t) <= 4' is triggered, it means that we were expecting
-     *   sizeof(size_t) to be less than or equal 4, but it wasn't. Setting 
+     *   sizeof(size_t) to be less than or equal to 4, but it wasn't. Setting 
      *   NS_PTR_GT_32 will correct that mistake.
      */
 
@@ -514,11 +511,11 @@ RNG_RandomUpdate(const void *data, size_t bytes)
 #endif
 
     PZ_Lock(globalrng->lock);
-    /* if we're passed more than our additionalCache, simply
+    /* if we're passed more than our additionalDataCache, simply
      * call reseed with that data */
     if (bytes > sizeof (globalrng->additionalDataCache)) {
 	rv = prng_reseed(globalrng, NULL, 0, data, (unsigned int) bytes);
-    /* if we aren't going to overflow the buffer, just cache it */
+    /* if we aren't going to fill or overflow the buffer, just cache it */
     } else if (bytes < ((sizeof globalrng->additionalDataCache)
 				- globalrng->additionalAvail)) {
 	PORT_Memcpy(globalrng->additionalDataCache+globalrng->additionalAvail,
@@ -526,8 +523,8 @@ RNG_RandomUpdate(const void *data, size_t bytes)
 	globalrng->additionalAvail += (PRUint32) bytes;
 	rv = SECSuccess;
     } else {
-	/* we are going to overflow the buffer. In this case we will fill
-	 * the entropy buffer, reseed with it, start a new buffer with the
+	/* we are going to fill or overflow the buffer. In this case we will
+	 * fill the entropy buffer, reseed with it, start a new buffer with the
 	 * remainder. We know the remainder will fit in the buffer because
 	 * we already handled the case where bytes > the size of the buffer.
 	 */
@@ -657,7 +654,7 @@ RNG_RNGShutdown(void)
  * were implemented without it.  They are re-implemented below for use
  * with DSA.
  *
- * Is this coded needed now that we have the Hash_DRBG function?
+ * Is this code needed now that we have the Hash_DRBG function?
  *
  */
 #define FIPS_DSA_Q     160
@@ -741,7 +738,7 @@ DSA_GenerateGlobalRandomBytes(void *dest, size_t len, const PRUint8 *q)
 /*
  * The core of Algorithm 1 of FIPS 186-2 Change Notice 1,
  *  we no longer support FIPS 186-2. This function was exported
- *  for power-on self tests and FIPS tests. Keep this stub which fails
+ *  for power-on self tests and FIPS tests. Keep this stub, which fails,
  *  to prevent crashes, but also to signal to test code that
  *  FIPS-186 is no longer supported.
  */
@@ -749,30 +746,31 @@ SECStatus
 FIPS186Change_GenerateX(PRUint8 *XKEY, const PRUint8 *XSEEDj,
                         PRUint8 *x_j)
 {
+    PORT_SetError(PR_NOT_IMPLEMENTED_ERROR);
     return SECFailure;
 }
 
 
 
 /*
- * Test Case interface. used by fips testing and power on self test
+ * Test case interface. used by fips testing and power on self test
  */
  /* make sure the test context is separate from the global context, This
-  * allows us to test the internal random number generator without loosing
+  * allows us to test the internal random number generator without losing
   * entropy we may have previously collected. */
 RNGContext testContext;
 
 /*
- * Test vector API. USE NIST SP 800-90 general interface so one of the
- * other NIST SP 800 algorithms may used in the future.
+ * Test vector API. Use NIST SP 800-90 general interface so one of the
+ * other NIST SP 800-90 algorithms may be used in the future.
  */
 SECStatus
 PRNGTEST_Instantiate(const PRUint8 *entropy, unsigned int entropy_len, 
 		const PRUint8 *nonce, unsigned int nonce_len,
 		const PRUint8 *personal_string, unsigned int ps_len)
 {
-   int byte_len = entropy_len + nonce_len + ps_len;
-   PRUint8 *bytes = PORT_Alloc(byte_len);
+   int bytes_len = entropy_len + nonce_len + ps_len;
+   PRUint8 *bytes = PORT_Alloc(bytes_len);
 
    if (bytes == NULL) {
 	return SECFailure;
@@ -790,14 +788,14 @@ PRNGTEST_Instantiate(const PRUint8 *entropy, unsigned int entropy_len,
    } else {
 	PORT_Assert(ps_len == 0);
    }
-   prng_instantiate(&testContext, bytes, byte_len);
+   prng_instantiate(&testContext, bytes, bytes_len);
    testContext.isValid = PR_TRUE;
-   PORT_ZFree(bytes, byte_len);
+   PORT_ZFree(bytes, bytes_len);
    return SECSuccess;
 }
 
 SECStatus
-PRNGTEST_Reseed(PRUint8 *entropy, unsigned int entropy_len, 
+PRNGTEST_Reseed(const PRUint8 *entropy, unsigned int entropy_len, 
 		  const PRUint8 *additional, unsigned int additional_len)
 {
     if (!testContext.isValid) {
@@ -810,14 +808,14 @@ PRNGTEST_Reseed(PRUint8 *entropy, unsigned int entropy_len,
 }
 
 SECStatus
-PRNGTEST_Generate(PRUint8 *bytes, unsigned int byte_len, 
+PRNGTEST_Generate(PRUint8 *bytes, unsigned int bytes_len, 
 		  const PRUint8 *additional, unsigned int additional_len)
 {
     if (!testContext.isValid) {
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
 	return SECFailure;
     }
-    return prng_generateNewBytes(&testContext, bytes, byte_len,
+    return prng_generateNewBytes(&testContext, bytes, bytes_len,
 			additional, additional_len);
 
 }

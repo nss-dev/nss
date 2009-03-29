@@ -1081,8 +1081,8 @@ extern void RNG_SystemInfoForRNG(void);
  */
 
 /*
- * FIPS186Change_GenerateX is now deprecated. It will return SEC_Failure with
- * the error set to SEC_ERROR_LIBRARY_FAILURE.
+ * FIPS186Change_GenerateX is now deprecated. It will return SECFailure with
+ * the error set to PR_NOT_IMPLEMENTED_ERROR.
  */
 extern SECStatus
 FIPS186Change_GenerateX(unsigned char *XKEY,
@@ -1112,11 +1112,11 @@ PRNGTEST_Instantiate(const PRUint8 *entropy, unsigned int entropy_len,
 		const PRUint8 *personal_string, unsigned int ps_len);
 
 extern SECStatus
-PRNGTEST_Reseed(PRUint8 *entropy, unsigned int entropy_len, 
+PRNGTEST_Reseed(const PRUint8 *entropy, unsigned int entropy_len, 
 		  const PRUint8 *additional, unsigned int additional_len);
 
 extern SECStatus
-PRNGTEST_Generate(PRUint8 *bytes, unsigned int byte_Len, 
+PRNGTEST_Generate(PRUint8 *bytes, unsigned int bytes_len, 
 		  const PRUint8 *additional, unsigned int additional_len);
 
 extern SECStatus

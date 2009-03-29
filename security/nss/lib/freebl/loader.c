@@ -1669,7 +1669,7 @@ PRNGTEST_Instantiate(const PRUint8 *entropy, unsigned int entropy_len,
 }
 
 SECStatus
-PRNGTEST_Reseed(PRUint8 *entropy, unsigned int entropy_len, 
+PRNGTEST_Reseed(const PRUint8 *entropy, unsigned int entropy_len, 
 		  const PRUint8 *additional, unsigned int additional_len)
 {
     if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
@@ -1679,12 +1679,12 @@ PRNGTEST_Reseed(PRUint8 *entropy, unsigned int entropy_len,
 }
 
 SECStatus
-PRNGTEST_Generate(PRUint8 *bytes, unsigned int byte_Len, 
+PRNGTEST_Generate(PRUint8 *bytes, unsigned int bytes_len, 
 		  const PRUint8 *additional, unsigned int additional_len)
 {
     if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
 	return SECFailure;
-    return (vector->p_PRNGTEST_Generate)(bytes, byte_Len, 
+    return (vector->p_PRNGTEST_Generate)(bytes, bytes_len, 
 					 additional, additional_len);
 }
 
