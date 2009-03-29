@@ -43,7 +43,7 @@
 #include "stubs.h"
 #endif
 
-#include "prerr.h"
+#include "prerror.h"
 #include "secerr.h"
 
 #include "prtypes.h"
@@ -644,113 +644,6 @@ RNG_RNGShutdown(void)
     /* reset the callonce struct to allow a new call to RNG_RNGInit() */
     coRNGInit = pristineCallOnce;
 }
-
-/*
- * Specialized RNG for DSA
- *
- * As per Algorithm 1 of FIPS 186-2 Change Notice 1, in step 3.3 the value
- * Xj should be reduced mod q, a 160-bit prime number.  Since this parameter
- * is only meaningful in the context of DSA, the above RNG functions
- * were implemented without it.  They are re-implemented below for use
- * with DSA.
- *
- * Is this code needed now that we have the Hash_DRBG function?
- *
- */
-#define FIPS_DSA_Q     160
-#define QSIZE      (FIPS_DSA_Q / PR_BITS_PER_BYTE)
-
-/*
- * FIPS 186 requires result from random output to be reduced mod q when 
- * generating random numbers for DSA. 
- *
- * Input: w, 2*QSIZE bytes
- *        q, DSA_SUBPRIME_LEN bytes
- * Output: xj, DSA_SUBPRIME_LEN bytes
- */
-SECStatus
-FIPS186Change_ReduceModQForDSA(const PRUint8 *w,
-                               const PRUint8 *q,
-                               PRUint8 *xj)
-{
-    mp_int W, Q, Xj;
-    mp_err err;
-    SECStatus rv = SECSuccess;
-
-    /* Initialize MPI integers. */
-    MP_DIGITS(&W) = 0;
-    MP_DIGITS(&Q) = 0;
-    MP_DIGITS(&Xj) = 0;
-    CHECK_MPI_OK( mp_init(&W) );
-    CHECK_MPI_OK( mp_init(&Q) );
-    CHECK_MPI_OK( mp_init(&Xj) );
-    /*
-     * Convert input arguments into MPI integers.
-     */
-    CHECK_MPI_OK( mp_read_unsigned_octets(&W, w, 2*QSIZE) );
-    CHECK_MPI_OK( mp_read_unsigned_octets(&Q, q, DSA_SUBPRIME_LEN) );
-    /*
-     * Algorithm 1 of FIPS 186-2 Change Notice 1, Step 3.3
-     *
-     * xj = (w0 || w1) mod q
-     */
-    CHECK_MPI_OK( mp_mod(&W, &Q, &Xj) );
-    CHECK_MPI_OK( mp_to_fixlen_octets(&Xj, xj, DSA_SUBPRIME_LEN) );
-cleanup:
-    mp_clear(&W);
-    mp_clear(&Q);
-    mp_clear(&Xj);
-    if (err) {
-	MP_TO_SEC_ERROR(err);
-	rv = SECFailure;
-    }
-    return rv;
-}
-
-/*
-** Generate some random bytes, using the global random number generator
-** object.  In DSA mode, so there is a q.
-*/
-SECStatus 
-DSA_GenerateGlobalRandomBytes(void *dest, size_t len, const PRUint8 *q)
-{
-    SECStatus rv;
-    PRUint8 w[2*QSIZE];
-
-    /* is this still necessary for the Hash_DRBG prng? */
-
-    PORT_Assert(q && len == DSA_SUBPRIME_LEN);
-    if (len != DSA_SUBPRIME_LEN) {
-	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
-	return SECFailure;
-    }
-    if (*q == 0) {
-        ++q;
-    }
-    rv = prng_GenerateGlobalRandomBytes(globalrng, w, 2*QSIZE);
-    if (rv != SECSuccess) {
-	return rv;
-    }
-    FIPS186Change_ReduceModQForDSA(w, q, (PRUint8 *)dest);
-    return rv;
-}
-
-/*
- * The core of Algorithm 1 of FIPS 186-2 Change Notice 1,
- *  we no longer support FIPS 186-2. This function was exported
- *  for power-on self tests and FIPS tests. Keep this stub, which fails,
- *  to prevent crashes, but also to signal to test code that
- *  FIPS-186 is no longer supported.
- */
-SECStatus
-FIPS186Change_GenerateX(PRUint8 *XKEY, const PRUint8 *XSEEDj,
-                        PRUint8 *x_j)
-{
-    PORT_SetError(PR_NOT_IMPLEMENTED_ERROR);
-    return SECFailure;
-}
-
-
 
 /*
  * Test case interface. used by fips testing and power on self test
