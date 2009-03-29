@@ -53,7 +53,7 @@ static size_t rng_systemFromNoise(unsigned char *dest, size_t maxLen);
 #endif
 
 /*
- * Normal RNG_SystemRNG() isn't available, use the system Noise to collect
+ * Normal RNG_SystemRNG() isn't available, use the system noise to collect
  * the required amount of entropy.
  */
 static size_t 
@@ -69,8 +69,8 @@ rng_systemFromNoise(unsigned char *dest, size_t maxLen)
 	dest += nbytes;
 	maxLen -= nbytes;
 
-	/* some hw op to try to introduce more entropy into the next GetNoise
-	 * call */
+	/* some hw op to try to introduce more entropy into the next
+	 * RNG_GetNoise call */
 	rng_systemJitter();
    }
    return retBytes;

@@ -360,7 +360,8 @@ void RNG_SystemInfoForRNG(void)
     RNG_RandomUpdate(buffer, nBytes);
 }
 
-static void rng_systemJitter(void) {   
+static void rng_systemJitter(void)
+{   
     dwNumFiles = 0;
     EnumSystemFiles(ReadOneFile);
     dwFileToRead++;

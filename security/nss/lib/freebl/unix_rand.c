@@ -892,12 +892,6 @@ safe_pclose(FILE *fp)
  */
 #define DO_NETSTAT 1
 
-#if defined(BSDI)
-    static char netstat_ni_cmd[] = "netstat -nis";
-#else
-    static char netstat_ni_cmd[] = "netstat -ni";
-#endif
-
 void RNG_SystemInfoForRNG(void)
 {
     FILE *fp;
@@ -930,6 +924,11 @@ void RNG_SystemInfoForRNG(void)
     };
 #endif
 
+#if defined(BSDI)
+    static char netstat_ni_cmd[] = "netstat -nis";
+#else
+    static char netstat_ni_cmd[] = "netstat -ni";
+#endif
 
     GiveSystemInfo();
 
@@ -1145,8 +1144,6 @@ void ReadSingleFile(const char *fileName)
 	    ;
 	fclose(file);
     } 
-
-    return;
 }
 
 #define _POSIX_PTHREAD_SEMANTICS
