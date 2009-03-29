@@ -14,7 +14,13 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is the Netscape security libraries. *
+ * The Original Code is Network Security Services.
+ *
+ * The Initial Developer of the Original Code is
+ * Red Hat Inc.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
  * Contributor(s):
  *
  * Alternatively, the contents of this file may be used under the terms of
