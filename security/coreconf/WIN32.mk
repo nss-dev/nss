@@ -62,6 +62,10 @@ else
 	BSDECHO      = echo
 	RC           = rc.exe
 	MT           = mt.exe
+	# Determine compiler version
+	_MSC_VER_6   = 1200	# MSVC 6
+	_MSC_VER    := $(shell $(CC) 2>&1 | sed -ne \
+                       's/.*[^0-9.]\([0-9]\{1,\}\)\.\([0-9]\{1,\}\).*/\1\2/p' )
 endif
 
 ifdef BUILD_TREE
@@ -114,8 +118,10 @@ ifdef NS_USE_GCC
 else # !NS_USE_GCC
     OS_CFLAGS += -W3 -nologo -D_CRT_SECURE_NO_WARNINGS
     OS_DLLFLAGS += -nologo -DLL -SUBSYSTEM:WINDOWS
+    ifeq ($(_MSC_VER),$(_MSC_VER_6))
     ifndef MOZ_DEBUG_SYMBOLS
 	OS_DLLFLAGS += -PDB:NONE
+    endif
     endif
     ifdef BUILD_OPT
 	OS_CFLAGS  += -MD
@@ -149,8 +155,10 @@ else # !NS_USE_GCC
 	DEFINES    += -DDEBUG -D_DEBUG -UNDEBUG -DDEBUG_$(USERNAME)
 	DLLFLAGS   += -DEBUG -OUT:"$@"
 	LDFLAGS    += -DEBUG 
+ifeq ($(_MSC_VER),$(_MSC_VER_6))
 ifndef MOZ_DEBUG_SYMBOLS
 	LDFLAGS    += -PDB:NONE 
+endif
 endif
 	# Purify requires /FIXED:NO when linking EXEs.
 	LDFLAGS    += /FIXED:NO
