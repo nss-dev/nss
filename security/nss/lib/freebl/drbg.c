@@ -409,7 +409,6 @@ static PRStatus rng_init(void)
 	} else {
 	    PZ_DestroyLock(globalrng->lock);
 	    globalrng->lock = NULL;
-	    globalrng->isValid = PR_FALSE;
 	    globalrng = NULL;
 	    return PR_FAILURE;
 	}
@@ -441,7 +440,7 @@ prng_freeRNGContext(RNGContext *rng)
     memcpy(rng->C, inputhash, sizeof rng->C); 
     memcpy(V(rng), &inputhash[sizeof rng->C], VSize(rng)); 
 
-    globalrng = NULL;
+    memset(inputhash, 0, sizeof inputhash);
 }
 
 /*
