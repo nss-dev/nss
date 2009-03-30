@@ -127,7 +127,7 @@ else # !NS_USE_GCC
 	DEFINES    += -UDEBUG -U_DEBUG -DNDEBUG
 	DLLFLAGS   += -OUT:"$@"
 	ifdef MOZ_DEBUG_SYMBOLS
-		OPTIMIZER += -Zi
+		OPTIMIZER += -Zi -Fd$(OBJDIR)/
 		DLLFLAGS += -DEBUG -OPT:REF
 		LDFLAGS += -DEBUG -OPT:REF
 	endif
@@ -141,8 +141,7 @@ else # !NS_USE_GCC
 	else
 		OS_CFLAGS += -MD
 	endif
-	OPTIMIZER  += -Od -Z7
-	#OPTIMIZER += -Zi -Fd$(OBJDIR)/ -Od
+	OPTIMIZER += -Zi -Fd$(OBJDIR)/ -Od
 	NULLSTRING :=
 	SPACE      := $(NULLSTRING) # end of the line
 	USERNAME   := $(subst $(SPACE),_,$(USERNAME))
