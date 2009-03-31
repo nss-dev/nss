@@ -1659,7 +1659,8 @@ NSSLOWKEYPublicKey *sftk_GetPubKey(SFTKObject *object,CK_KEY_TYPE key_type,
 		SECStatus rv;
 
 		rv = SEC_QuickDERDecodeItem(arena, &publicValue, 
-			 SEC_OctetStringTemplate, &pubKey->u.ec.publicValue);
+					 SEC_ASN1_GET(SEC_OctetStringTemplate), 
+					 &pubKey->u.ec.publicValue);
 		/* nope, didn't decode correctly */
 		if ((rv != SECSuccess)
 		    || (publicValue.data[0] != EC_POINT_FORM_UNCOMPRESSED)

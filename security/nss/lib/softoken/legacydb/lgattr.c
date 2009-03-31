@@ -617,7 +617,8 @@ lg_FindECPublicKeyAttribute(NSSLOWKEYPublicKey *key, CK_ATTRIBUTE_TYPE type,
 					key->u.ec.publicValue.len);
 	} else {
 	    SECItem *pubValue = SEC_ASN1EncodeItem(NULL, NULL, 
-			&(key->u.ec.publicValue), SEC_OctetStringTemplate);
+					&(key->u.ec.publicValue), 
+					SEC_ASN1_GET(SEC_OctetStringTemplate));
 	    CK_RV crv;
 	    if (!pubValue) {
 		return CKR_HOST_MEMORY;

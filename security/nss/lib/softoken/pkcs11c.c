@@ -4022,7 +4022,8 @@ dhgn_done:
 				sftk_item_expand(&ecPriv->publicValue));
 	} else {
 	    SECItem *pubValue = SEC_ASN1EncodeItem(NULL, NULL, 
-			&ecPriv->publicValue, SEC_OctetStringTemplate);
+					&ecPriv->publicValue, 
+					SEC_ASN1_GET(SEC_OctetStringTemplate));
 	    if (!pubValue) {
 		crv = CKR_ARGUMENTS_BAD;
 		goto ecgn_done;
@@ -5899,7 +5900,8 @@ key_and_mac_derive_fail:
 	    }
 
 	    rv = SEC_QuickDERDecodeItem(arena, &newPoint, 
-			SEC_OctetStringTemplate, &ecPoint);
+					SEC_ASN1_GET(SEC_OctetStringTemplate), 
+					&ecPoint);
 	    if (rv != SECSuccess) {
 		goto ec_loser;
 	    }
