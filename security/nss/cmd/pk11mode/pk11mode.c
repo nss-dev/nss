@@ -89,6 +89,8 @@ PKM_CK_RVtoStr(CK_RV errNum) {
     return "unknown error";
 }
 
+#include "pkcs11p.h"
+
 typedef struct CK_C_INITIALIZE_ARGS_NSS {
     CK_CREATEMUTEX CreateMutex;
     CK_DESTROYMUTEX DestroyMutex;
@@ -108,6 +110,8 @@ typedef struct CK_C_INITIALIZE_ARGS_NSS {
      * be NULL in all cases */
     CK_VOID_PTR pReserved;
 } CK_C_INITIALIZE_ARGS_NSS;
+
+#include "pkcs11u.h"
 
 #define MAX_SIG_SZ 128
 #define MAX_CIPHER_SZ 128
