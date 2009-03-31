@@ -67,6 +67,8 @@
 #include "secoid.h"
 #include "sftkdb.h"
 #include "sftkpars.h"
+#include "ec.h"
+#include "secasn1.h"
 
 PRBool parentForkedAfterC_Initialize;
 
@@ -851,7 +853,6 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
     CK_BBOOL wrap = CK_TRUE;
     CK_BBOOL derive = CK_FALSE;
     CK_BBOOL verify = CK_TRUE;
-    CK_ATTRIBUTE_TYPE pubKeyAttr = CKA_VALUE;
     CK_RV crv;
 
     switch (key_type) {
@@ -865,7 +866,6 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
 	if (crv != CKR_OK) {
 	    return crv;
 	}
-	pubKeyAttr = CKA_MODULUS;
 	break;
     case CKK_DSA:
 	crv = sftk_ConstrainAttribute(object, CKA_SUBPRIME, 
@@ -918,7 +918,6 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
 	if ( !sftk_hasAttribute(object, CKA_EC_POINT)) {
 	    return CKR_TEMPLATE_INCOMPLETE;
 	}
-	pubKeyAttr = CKA_EC_POINT;
 	derive = CK_TRUE;    /* for ECDH */
 	verify = CK_TRUE;    /* for ECDSA */
 	encrypt = CK_FALSE;
@@ -1258,7 +1257,6 @@ sftk_handleKeyObject(SFTKSession *session, SFTKObject *object)
 {
     SFTKAttribute *attribute;
     CK_KEY_TYPE key_type;
-    CK_BBOOL cktrue = CK_TRUE;
     CK_BBOOL ckfalse = CK_FALSE;
     CK_RV crv;
 
@@ -1636,6 +1634,45 @@ NSSLOWKEYPublicKey *sftk_GetPubKey(SFTKObject *object,CK_KEY_TYPE key_type,
 	    
 	crv = sftk_Attribute2SSecItem(arena,&pubKey->u.ec.publicValue,
 	                              object,CKA_EC_POINT);
+	if (crv == CKR_OK) {
+	    int keyLen,curveLen;
+
+	    curveLen = (pubKey->u.ec.ecParams.fieldID.size +7)/8;
+	    keyLen = (2*curveLen)+1;
+
+	    /* special note: We can't just use the first byte to determine
+	     * between these 2 cases because both EC_POINT_FORM_UNCOMPRESSED 
+	     * and SEC_ASN1_OCTET_STRING are 0x04 */
+
+	    /* handle the non-DER encoded case (UNCOMPRESSED only) */	
+	    if (pubKey->u.ec.publicValue.data[0] == EC_POINT_FORM_UNCOMPRESSED
+		&& pubKey->u.ec.publicValue.len == keyLen) {
+		break; /* key was not DER encoded, no need to unwrap */
+	    }
+
+	    /* if we ever support compressed, handle it here */
+
+	    /* handle the encoded case */
+	    if ((pubKey->u.ec.publicValue.data[0] == SEC_ASN1_OCTET_STRING) 
+		&& pubKey->u.ec.publicValue.len > keyLen) {
+		SECItem publicValue;
+		SECStatus rv;
+
+		rv = SEC_QuickDERDecodeItem(arena, &publicValue, 
+			 SEC_OctetStringTemplate, &pubKey->u.ec.publicValue);
+		/* nope, didn't decode correctly */
+		if ((rv != SECSuccess)
+		    || (publicValue.data[0] != EC_POINT_FORM_UNCOMPRESSED)
+		    || (publicValue.len != keyLen)) {
+	   	    crv = CKR_ATTRIBUTE_VALUE_INVALID;
+		    break;
+		}
+		/* replace our previous with the decoded key */
+		pubKey->u.ec.publicValue = publicValue;
+		break;
+	    }
+	   crv = CKR_ATTRIBUTE_VALUE_INVALID;
+	}
 	break;
 #endif /* NSS_ENABLE_ECC */
     default:
