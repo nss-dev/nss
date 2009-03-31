@@ -1668,7 +1668,8 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
 		mechParams->pPublicData =  pubKey->u.ec.publicValue.data;
 	    } else {
 		pubValue = SEC_ASN1EncodeItem(NULL, NULL,
-			&pubKey->u.ec.publicValue, SEC_OctetStringTemplate);
+			&pubKey->u.ec.publicValue,
+			SEC_ASN1_GET(SEC_OctetStringTemplate));
 		if (pubValue == NULL) {
 	    	    PORT_ZFree(mechParams, sizeof(CK_ECDH1_DERIVE_PARAMS));
 		    break;
@@ -1771,7 +1772,8 @@ pk11_PubDeriveECKeyWithKDF(
 	mechParams->pPublicData =  pubKey->u.ec.publicValue.data;
     } else {
 	pubValue = SEC_ASN1EncodeItem(NULL, NULL,
-		&pubKey->u.ec.publicValue, SEC_OctetStringTemplate);
+		&pubKey->u.ec.publicValue,
+		SEC_ASN1_GET(SEC_OctetStringTemplate));
 	if (pubValue == NULL) {
     	    PORT_ZFree(mechParams, sizeof(CK_ECDH1_DERIVE_PARAMS));
 	    PK11_FreeSymKey(symKey);

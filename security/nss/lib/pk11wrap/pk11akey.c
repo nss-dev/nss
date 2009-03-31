@@ -210,7 +210,8 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
 			  pubKey->u.ec.publicValue.len); attrs++;
 	    } else {
 		pubValue = SEC_ASN1EncodeItem(NULL, NULL,
-			&pubKey->u.ec.publicValue, SEC_OctetStringTemplate);
+			&pubKey->u.ec.publicValue,
+			SEC_ASN1_GET(SEC_OctetStringTemplate));
 		if (pubValue == NULL) {
 		    if (ckaId) {
 			SECITEM_FreeItem(ckaId,PR_TRUE);
@@ -293,7 +294,7 @@ pk11_get_EC_PointLenInBytes(PRArenaPool *arena, const SECItem *ecParams)
 
    /* decode the OID tag */
    rv = SEC_QuickDERDecodeItem(arena, &oid,
-		SEC_ObjectIDTemplate, ecParams);
+		SEC_ASN1_GET(SEC_ObjectIDTemplate), ecParams);
    if (rv != SECSuccess) {
 	/* could be explict curves, allow them to work if the 
 	 * PKCS #11 module support them. If we try to parse the
@@ -444,7 +445,7 @@ pk11_get_Decoded_ECPoint(PRArenaPool *arena, const SECItem *ecParams,
 	encodedPublicValue.data = ecPoint->pValue;
 	encodedPublicValue.len = ecPoint->ulValueLen;
 	rv = SEC_QuickDERDecodeItem(arena, publicKeyValue,
-		SEC_OctetStringTemplate, &encodedPublicValue);
+		SEC_ASN1_GET(SEC_OctetStringTemplate), &encodedPublicValue);
 
 	/* it coded correctly & we know the key length (and they match)
 	 * then we are done, return the results. */
