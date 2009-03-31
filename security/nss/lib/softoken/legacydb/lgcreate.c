@@ -474,7 +474,8 @@ lg_createPublicKeyObject(SDB *sdb, CK_KEY_TYPE key_type,
 	    goto done;
 	}
 	rv= SEC_QuickDERDecodeItem(arena, &pubKey2Space, 
-				SEC_OctetStringTemplate, pubKey);
+				   SEC_ASN1_GET(SEC_OctetStringTemplate), 
+				   pubKey);
 	if (rv != SECSuccess) {
 	    /* decode didn't work, just try the pubKey */
 	    PORT_FreeArena(arena, PR_FALSE);
