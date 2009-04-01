@@ -37,3 +37,6 @@ ocspclnt/main/CERT_SetOCSPDefaultResponder/**
 #397487
 **/__rpc_getconfip/setnetconfig/**
 
+#486928
+selfserv/main/PORT_Strdup_Util/PORT_Alloc_Util/**
+
