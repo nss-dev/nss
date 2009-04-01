@@ -1615,6 +1615,62 @@ cleanup:
 }
 
 
+static PKIX_Error*
+pkix_Build_RemoveDupUntrustedCerts(
+    PKIX_List *trustedCertList,
+    PKIX_List *certsFound,
+    void *plContext)
+{
+    PKIX_UInt32 trustIndex;
+    PKIX_PL_Cert *trustCert = NULL, *cert = NULL;
+
+    PKIX_ENTER(BUILD, "pkix_Build_RemoveDupUntrustedCerts");
+    if (trustedCertList == NULL || certsFound == NULL) {
+        goto cleanup;
+    }
+    for (trustIndex = 0;trustIndex < trustedCertList->length;
+        trustIndex++) {
+        PKIX_UInt32 certIndex = 0;
+        PKIX_CHECK(
+            PKIX_List_GetItem(trustedCertList,
+                              trustIndex,
+                              (PKIX_PL_Object **)&trustCert,
+                              plContext),
+            PKIX_LISTGETITEMFAILED);
+        
+        while (certIndex < certsFound->length) {
+            PKIX_Boolean result = PKIX_FALSE;
+            PKIX_DECREF(cert);
+            PKIX_CHECK(
+                PKIX_List_GetItem(certsFound, certIndex,
+                                  (PKIX_PL_Object **)&cert,
+                                  plContext),
+                PKIX_LISTGETITEMFAILED);
+            PKIX_CHECK(
+                PKIX_PL_Object_Equals((PKIX_PL_Object *)trustCert,
+                                      (PKIX_PL_Object *)cert,
+                                      &result,
+                                      plContext),
+                PKIX_OBJECTEQUALSFAILED);
+            if (!result) {
+                certIndex += 1;
+                continue;
+            }
+            PKIX_CHECK(
+                PKIX_List_DeleteItem(certsFound, certIndex,
+                                     plContext),
+                PKIX_LISTDELETEITEMFAILED);
+        }
+        PKIX_DECREF(trustCert);
+    }
+cleanup:
+    PKIX_DECREF(cert);
+    PKIX_DECREF(trustCert);
+
+    PKIX_RETURN(BUILD);
+}
+
+
 /*
  * FUNCTION: pkix_Build_GatherCerts
  * DESCRIPTION:
@@ -1798,6 +1854,11 @@ pkix_Build_GatherCerts(
                 certSelParams, &trustedCertList,
                 plContext),
             PKIX_FAILTOSELECTCERTSFROMANCHORS);
+        PKIX_CHECK(
+            pkix_Build_RemoveDupUntrustedCerts(trustedCertList,
+                                               certsFound,
+                                               plContext),
+            PKIX_REMOVEDUPUNTRUSTEDCERTSFAILED);
 
         PKIX_CHECK(
             pkix_List_MergeLists(trustedCertList,
