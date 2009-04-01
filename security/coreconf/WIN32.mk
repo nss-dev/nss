@@ -163,10 +163,12 @@ endif
 	# Purify requires /FIXED:NO when linking EXEs.
 	LDFLAGS    += /FIXED:NO
     endif
+ifneq ($(_MSC_VER),$(_MSC_VER_6))
     # Convert certain deadly warnings to errors (see list at end of file)
     OS_CFLAGS += -we4002 -we4003 -we4004 -we4006 -we4009 -we4013 \
      -we4015 -we4028 -we4033 -we4035 -we4045 -we4047 -we4053 -we4054 -we4063 \
      -we4064 -we4078 -we4087 -we4098 -we4390 -we4551 -we4553 -we4715
+endif # !MSVC6
 endif # NS_USE_GCC
 
 ifdef USE_64
