@@ -8,6 +8,14 @@
 **/_PR_InitZones/pr_FindSymbolInProg/**
 **/_PR_UnixInit/PR_NewLock/**
 **/_PR_UnixInit/PR_NewMonitor/**
+**/_PR_InitStuff/ExpandMonitorCache/**
+**/_PR_InitStuff/PR_NewLock/**
+**/_PR_InitStuff/_PR_InitDtoa/PR_NewLock/**
+**/_PR_InitStuff/_PR_InitIO/PR_NewLock/**
+**/_PR_InitStuff/_PR_InitIO/_PR_InitFdCache/**
+**/_PR_InitStuff/_PR_InitLog/PR_NewLock/**
+**/_PR_InitStuff/_PR_InitMW/PR_NewLock/**
+**/_PR_InitStuff/_PR_InitThreads/PR_NewLock/**
 
 #367376
 **/_PR_CreateThread/pthread_create@@GLIBC_2.1/**
@@ -42,5 +50,5 @@
 vfychain/main/PL_CreateOptState/**
 
 #486928
-selfserv/main/PORT_Strdup_Util/PORT_Alloc_Util/**
+selfserv/main/PORT_Strdup_Util**
 
