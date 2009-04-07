@@ -2086,11 +2086,7 @@ sec_asn1d_concat_substrings (sec_asn1d_state *state)
 	}
 
 	if (is_bit_string) {
-#ifdef XP_WIN16		/* win16 compiler gets an internal error otherwise */
-	    alloc_len = (((long)item_len + 7) / 8);
-#else
 	    alloc_len = ((item_len + 7) >> 3);
-#endif
 	} else {
 	    /*
 	     * Add 2 for the end-of-contents octets of an indefinite-length
