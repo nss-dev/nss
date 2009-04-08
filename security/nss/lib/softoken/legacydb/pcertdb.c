@@ -761,14 +761,17 @@ DecodeDBCertEntry(certDBEntryCert *entry, SECItem *dbentry)
     entry->derCert.len = ( ( dbentry->data[lenoff] << 8 ) |
 			  dbentry->data[lenoff+1] );
     nnlen = ( ( dbentry->data[lenoff+2] << 8 ) | dbentry->data[lenoff+3] );
-    if ( ( entry->derCert.len + nnlen + headerlen )
-	!= dbentry->len) {
-	PORT_SetError(SEC_ERROR_BAD_DATABASE);
-	goto loser;
+    lenoff = dbentry->len - ( entry->derCert.len + nnlen + headerlen );
+    if ( lenoff ) {
+	if ( lenoff < 0 || (lenoff & 0xffff) != 0 ) {
+	    PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	    goto loser;
+	}
+	/* The cert size exceeded 64KB.  Reconstruct the correct length. */
+	entry->derCert.len += lenoff;
     }
     
     /* copy the dercert */
-
     entry->derCert.data = pkcs11_copyStaticData(&dbentry->data[headerlen],
 	entry->derCert.len,entry->derCertSpace,sizeof(entry->derCertSpace));
     if ( entry->derCert.data == NULL ) {
@@ -4223,7 +4226,7 @@ nsslowcert_TraverseDBEntries(NSSLOWCERTCertDBHandle *handle,
 {
     DBT data;
     DBT key;
-    SECStatus rv;
+    SECStatus rv = SECSuccess;
     int ret;
     SECItem dataitem;
     SECItem keyitem;
@@ -4231,11 +4234,12 @@ nsslowcert_TraverseDBEntries(NSSLOWCERTCertDBHandle *handle,
     unsigned char *keybuf;
     
     ret = certdb_Seq(handle->permCertDB, &key, &data, R_FIRST);
-
     if ( ret ) {
 	return(SECFailure);
     }
-    
+    /* here, ret is zero and rv is SECSuccess.  
+     * Below here, ret is a count of successful calls to the callback function.
+     */
     do {
 	buf = (unsigned char *)data.data;
 	
@@ -4250,13 +4254,15 @@ nsslowcert_TraverseDBEntries(NSSLOWCERTCertDBHandle *handle,
 	    /* type should equal keybuf[0].  */
 
 	    rv = (* callback)(&dataitem, &keyitem, type, udata);
-	    if ( rv != SECSuccess ) {
-		return(rv);
+	    if ( rv == SECSuccess ) {
+		++ret;
 	    }
 	}
     } while ( certdb_Seq(handle->permCertDB, &key, &data, R_NEXT) == 0 );
-
-    return(SECSuccess);
+    /* If any callbacks succeeded, or no calls to callbacks were made, 
+     * then report success.  Otherwise, report failure.
+     */
+    return (ret ? SECSuccess : rv);
 }
 /*
  * Decode a certificate and enter it into the temporary certificate database.
