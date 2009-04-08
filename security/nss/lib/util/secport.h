@@ -58,6 +58,7 @@
 # define XP_WIN32
 # endif
 #endif
+#endif
 
 #ifdef __BEOS__
 # ifndef XP_BEOS
