@@ -400,10 +400,6 @@ ssl_auth()
           cat ${TMP}/$HOST.tmp.$$ 
           rm ${TMP}/$HOST.tmp.$$ 2>/dev/null
 
-          #workaround for bug #402058
-          [ $ret -ne 0 ] && ret=1
-          [ $value -ne 0 ] && value=1
-
           html_msg $ret $value "${testname}" \
                    "produced a returncode of $ret, expected is $value"
           kill_selfserv
@@ -515,10 +511,10 @@ ssl_crl_ssl()
 	    3) if [ -z "$pwd" -o -z "$user" ]; then
 		rev_modvalue=0
 		else
-		rev_modvalue=1
+		rev_modvalue=254
 		fi
 		;;
-	    4) rev_modvalue=1 ;;
+	    4) rev_modvalue=254 ;;
 	esac
 	TEMP_NUM=0
 	while [ $TEMP_NUM -lt $CRL_GROUP_RANGE ]
@@ -701,10 +697,10 @@ ssl_crl_cache()
             3) if [ -z "$pwd" -o -z "$user" ]; then
                 rev_modvalue=0
                 else
-                rev_modvalue=1
+                rev_modvalue=254
                 fi
                 ;;
-            4) rev_modvalue=1 ;;
+            4) rev_modvalue=254 ;;
 	  esac
         TEMP_NUM=0
         LOADED_GRP=1
