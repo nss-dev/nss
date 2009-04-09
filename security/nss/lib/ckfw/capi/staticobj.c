@@ -68,7 +68,10 @@ static const NSSItem nss_ckcapi_items_1 [] = {
 };
 
 ckcapiInternalObject nss_ckcapi_data[] = {
-  { ckcapiRaw, { 5, nss_ckcapi_types_1, nss_ckcapi_items_1} , {NULL} },
+  { ckcapiRaw,
+    { 5, nss_ckcapi_types_1, nss_ckcapi_items_1} ,
+  },
+
 };
 
 const PRUint32 nss_ckcapi_nObjects = 1;
