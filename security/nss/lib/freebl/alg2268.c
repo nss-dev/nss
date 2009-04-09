@@ -105,7 +105,7 @@ struct RC2ContextStr {
     ((PRUint16 *)output)[2] =  R[2]; \
     ((PRUint16 *)output)[3] =  R[3];   
 
-#if defined (_X86_)
+#if defined (NSS_X86_OR_X64)
 #define LOAD(R)  LOAD_EASY(R)
 #define STORE(R) STORE_EASY(R)
 #elif !defined(IS_LITTLE_ENDIAN)
