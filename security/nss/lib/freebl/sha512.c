@@ -43,7 +43,7 @@
 #endif
 
 #include "prcpucfg.h"
-#if (defined(_X86_) && !defined(__x86_64__)) || defined(SHA_NO_LONG_LONG)
+#if defined(NSS_X86) || defined(SHA_NO_LONG_LONG)
 #define NOUNROLL512 1
 #undef HAVE_LONG_LONG
 #endif
@@ -103,7 +103,7 @@ static const PRUint32 H256[8] = {
 #pragma intrinsic(_byteswap_ulong)
 #define SHA_HTONL(x) _byteswap_ulong(x)
 #define BYTESWAP4(x)  x = SHA_HTONL(x)
-#elif defined(_MSC_VER) && defined(_X86_)
+#elif defined(_MSC_VER) && defined(NSS_X86_OR_X64)
 #ifndef FORCEINLINE
 #if (_MSC_VER >= 1200)
 #define FORCEINLINE __forceinline
@@ -125,7 +125,7 @@ swap4b(PRUint32 dwd)
 #define SHA_HTONL(x) swap4b(x)
 #define BYTESWAP4(x)  x = SHA_HTONL(x)
 
-#elif defined(__GNUC__) && defined(_X86_)
+#elif defined(__GNUC__) && defined(NSS_X86_OR_X64)
 static __inline__ PRUint32 swap4b(PRUint32 value)
 {
     __asm__("bswap %0" : "+r" (value));
