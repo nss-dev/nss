@@ -1557,7 +1557,6 @@ pkix_Build_SelectCertsFromTrustAnchors(
     PKIX_List *matchList = NULL;
     PKIX_CertSelector *certSel = NULL;
     PKIX_CertSelector_MatchCallback selectorMatchCB = NULL;
-    PKIX_Boolean certMatch = PKIX_TRUE;
 
     PKIX_ENTER(BUILD, "pkix_Build_SelectCertsFromTrustAnchors");
     
@@ -1582,9 +1581,8 @@ pkix_Build_SelectCertsFromTrustAnchors(
                    (anchor, &trustedCert, plContext),
                    PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
         pkixErrorResult =
-            (*selectorMatchCB)(certSel, trustedCert,
-                               &certMatch, plContext);
-        if (!pkixErrorResult && certMatch) {
+            (*selectorMatchCB)(certSel, trustedCert, plContext);
+        if (!pkixErrorResult) {
             if (!matchList) {
                 PKIX_CHECK(PKIX_List_Create(&matchList,
                                             plContext),
@@ -1796,6 +1794,7 @@ pkix_Build_GatherCerts(
                                 PKIX_CHECK(getCerts
                                         (certStore,
                                         state->certSel,
+                                        state->verifyNode,
                                         &nbioContext,
                                         &certsFound,
                                         plContext),
@@ -1804,6 +1803,7 @@ pkix_Build_GatherCerts(
                                 PKIX_CHECK(PKIX_CertStore_CertContinue
                                         (certStore,
                                         state->certSel,
+                                        state->verifyNode,
                                         &nbioContext,
                                         &certsFound,
                                         plContext),
