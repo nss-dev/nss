@@ -720,12 +720,7 @@ PKIX_PL_CRL_VerifyUpdateTime(
         PKIX_NULLCHECK_FOUR(crl, crl->nssSignedCrl, date, pResult);
 
         nssCrl = &(crl->nssSignedCrl->crl);
-
-        PKIX_CRL_DEBUG("\t\tCalling DER_DecodeTimeChoice on date\n");
-        status = DER_DecodeTimeChoice(&timeToCheck, &(date->nssTime));
-        if (status != SECSuccess) {
-                PKIX_ERROR(PKIX_DERDECODETIMECHOICEFAILED);
-        }
+        timeToCheck = date->nssTime;
 
         /* nextUpdate can be NULL. Checking before using it */
         nextUpdateDer = &nssCrl->nextUpdate;
