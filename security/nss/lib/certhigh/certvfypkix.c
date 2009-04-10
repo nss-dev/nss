@@ -489,6 +489,7 @@ cert_CreatePkixProcessingParams(
     PKIX_RevocationChecker *revChecker = NULL;
     PKIX_UInt32           methodFlags = 0;
     void                  *plContext = NULL;
+    CERTStatusConfig      *statusConfig = NULL;
     
     PKIX_ENTER(CERTVFYPKIX, "cert_CreatePkixProcessingParams");
     PKIX_NULLCHECK_TWO(cert, pprocParams);
@@ -601,34 +602,42 @@ cert_CreatePkixProcessingParams(
                                          0, NULL, PKIX_FALSE, plContext),
         PKIX_REVOCATIONCHECKERADDMETHODFAILED);
     
-    /* OCSP method flags */
-    methodFlags =
-        PKIX_REV_M_TEST_USING_THIS_METHOD |
-        PKIX_REV_M_ALLOW_NETWORK_FETCHING |         /* 0 */
-        PKIX_REV_M_ALLOW_IMPLICIT_DEFAULT_SOURCE |  /* 0 */
-        PKIX_REV_M_SKIP_TEST_ON_MISSING_SOURCE |    /* 0 */
-        PKIX_REV_M_IGNORE_MISSING_FRESH_INFO |      /* 0 */
-        PKIX_REV_M_CONTINUE_TESTING_ON_FRESH_INFO;
+    /* For compatibility with the old code, need to check that
+     * statusConfig is set in the db handle and status checker
+     * is defined befor allow ocsp status check on the leaf cert.*/
+    statusConfig = CERT_GetStatusConfig(CERT_GetDefaultCertDB());
+    if (statusConfig != NULL && statusConfig->statusChecker != NULL) {
 
-    /* Disabling ocsp fetching when checking the status
-     * of ocsp response signer. Here and in the next if,
-     * adjust flags for ocsp signer cert validation case. */
-    if (disableOCSPRemoteFetching) {
-        methodFlags |= PKIX_REV_M_FORBID_NETWORK_FETCHING;
-    }
-
-    if (ocsp_FetchingFailureIsVerificationFailure()
-        && !disableOCSPRemoteFetching) {
-        methodFlags |=
-            PKIX_REV_M_FAIL_ON_MISSING_FRESH_INFO;
-    }
-
-    /* add OCSP revocation method to check only the leaf certificate.*/
-    PKIX_CHECK(
-        PKIX_RevocationChecker_CreateAndAddMethod(revChecker, procParams,
+        /* Enable OCSP revocation checking for the leaf cert. */
+        /* OCSP method flags */
+        methodFlags =
+            PKIX_REV_M_TEST_USING_THIS_METHOD |
+            PKIX_REV_M_ALLOW_NETWORK_FETCHING |         /* 0 */
+            PKIX_REV_M_ALLOW_IMPLICIT_DEFAULT_SOURCE |  /* 0 */
+            PKIX_REV_M_SKIP_TEST_ON_MISSING_SOURCE |    /* 0 */
+            PKIX_REV_M_IGNORE_MISSING_FRESH_INFO |      /* 0 */
+            PKIX_REV_M_CONTINUE_TESTING_ON_FRESH_INFO;
+        
+        /* Disabling ocsp fetching when checking the status
+         * of ocsp response signer. Here and in the next if,
+         * adjust flags for ocsp signer cert validation case. */
+        if (disableOCSPRemoteFetching) {
+            methodFlags |= PKIX_REV_M_FORBID_NETWORK_FETCHING;
+        }
+        
+        if (ocsp_FetchingFailureIsVerificationFailure()
+            && !disableOCSPRemoteFetching) {
+            methodFlags |=
+                PKIX_REV_M_FAIL_ON_MISSING_FRESH_INFO;
+        }
+        
+        /* add OCSP revocation method to check only the leaf certificate.*/
+        PKIX_CHECK(
+            PKIX_RevocationChecker_CreateAndAddMethod(revChecker, procParams,
                                      PKIX_RevocationMethod_OCSP, methodFlags,
                                      1, NULL, PKIX_TRUE, plContext),
-        PKIX_REVOCATIONCHECKERADDMETHODFAILED);
+            PKIX_REVOCATIONCHECKERADDMETHODFAILED);
+    }
 
     PKIX_CHECK(
         PKIX_ProcessingParams_SetAnyPolicyInhibited(procParams, PR_FALSE,
