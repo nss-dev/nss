@@ -540,6 +540,14 @@ cert_CreatePkixProcessingParams(
                                                        certSelector, plContext),
         PKIX_PROCESSINGPARAMSSETTARGETCERTCONSTRAINTSFAILED);
 
+    /* Turn off quialification of target cert since leaf cert is
+     * already check for date validity, key usages and extended
+     * key usages. */
+    PKIX_CHECK(
+        PKIX_ProcessingParams_SetQualifyTargetCert(procParams, PKIX_FALSE,
+                                                   plContext),
+        PKIX_PROCESSINGPARAMSSETQUALIFYTARGETCERTFLAGFAILED);
+
     PKIX_CHECK(
         PKIX_PL_Pk11CertStore_Create(&certStore, plContext),
         PKIX_PK11CERTSTORECREATEFAILED);
