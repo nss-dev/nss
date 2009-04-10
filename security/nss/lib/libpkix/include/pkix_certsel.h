@@ -1792,6 +1792,66 @@ PKIX_ComCertSelParams_SetMatchAllSubjAltNames(
         PKIX_Boolean match,
         void *plContext);
 
+/*
+ * FUNCTION: PKIX_ComCertSelParams_GetLeafCertFlag
+ * DESCRIPTION:
+ *
+ * Return "leafCert" flag of the ComCertSelParams structure. If set to true,
+ * the flag indicates that a selector should filter out all cert that are not
+ * qualified to be a leaf cert according to the specified key/ekey usages.
+ *
+ * PARAMETERS:
+ *  "params"
+ *      Address of ComCertSelParams object used to determine whether all
+ *      subject alternative names must be matched. Must be non-NULL.
+ *  "pLeafFlag"
+ *      Address of returned value.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Conditionally Thread Safe
+ *      (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertSelector Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error*
+PKIX_ComCertSelParams_GetLeafCertFlag(
+        PKIX_ComCertSelParams *params,
+        PKIX_Boolean *pLeafFlag,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ComCertSelParams_SetLeafCertFlag
+ * DESCRIPTION:
+ *
+ * Sets a flag that if its value is true, indicates that the selector
+ * should only pick certs that qualifies to be leaf for this cert path
+ * validation.
+ *
+ * PARAMETERS:
+ *  "params"
+ *      Address of ComCertSelParams object whose match flag is to be set.
+ *      Must be non-NULL.
+ *  "leafFlag"
+ *      Boolean value used to set the leaf flag.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Not Thread Safe - assumes exclusive access to "params"
+ *  (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertSelector Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ComCertSelParams_SetLeafCertFlag(
+        PKIX_ComCertSelParams *params,
+        PKIX_Boolean leafFlag,
+        void *plContext);
+
 #ifdef __cplusplus
 }
 #endif
