@@ -991,6 +991,7 @@ int main(int argc, char **argv)
 			        err == SEC_ERROR_BAD_SIGNATURE) {
 			        error = EXPECTED_ERROR_SSL_SH;
 			    } else {
+			        FPRINTF(stderr, "PR_GetError: %d\n", err);
 			        error = 1;
 			    }
 			    goto done;
@@ -1034,9 +1035,11 @@ int main(int argc, char **argv)
 		    if (err != PR_WOULD_BLOCK_ERROR) {
 		        SECU_PrintError(progName, "read from socket failed");
 		        if (err == SSL_ERROR_BAD_CERT_ALERT ||
+		            err == SSL_ERROR_HANDSHAKE_FAILURE_ALERT ||
 		            err == SSL_ERROR_REVOKED_CERT_ALERT) {
 		            error = EXPECTED_ERROR_SSL_SH;
 		        } else {
+		            FPRINTF(stderr, "PR_GetError: %d\n", err);
 		            error = 1;
 		        }
 		        goto done;
