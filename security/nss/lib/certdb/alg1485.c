@@ -757,9 +757,11 @@ CERT_GetOidString(const SECItem *oid)
 	    CASE(3, 0x7f);
 	    CASE(2, 0x7f);
 	    CASE(1, 0x7f);
-	    case 0: n |= last[0]; /* most significant bit is zero. */
+	    CGET(0, 0x7f);
 		break;
 	    }
+	    if (last[0] & 0x80)
+	    	goto unsupported;
       
 	    if (!rvString) {
 		/* This is the first number.. decompose it */
@@ -785,9 +787,11 @@ CERT_GetOidString(const SECItem *oid)
 	    CGET(3, 0x7f);
 	    CGET(2, 0x7f);
 	    CGET(1, 0x7f);
-	        n |= last[0]; /* most significant bit is zero. */
+	    CGET(0, 0x7f);
 		break;
 	    }
+	    if (last[0] & 0x80)
+	    	goto unsupported;
       
 	    if (!rvString) {
 		/* This is the first number.. decompose it */
