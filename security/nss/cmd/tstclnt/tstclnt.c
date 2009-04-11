@@ -78,8 +78,6 @@
 #define MAX_WAIT_FOR_SERVER 600
 #define WAIT_INTERVAL       100
 
-#define EXPECTED_ERROR_SSL_SH 254
-
 PRIntervalTime maxInterval    = PR_INTERVAL_NO_TIMEOUT;
 
 int ssl2CipherSuites[] = {
@@ -984,16 +982,9 @@ int main(int argc, char **argv)
 		    if (cc < 0) {
 		    	PRErrorCode err = PR_GetError();
 			if (err != PR_WOULD_BLOCK_ERROR) {
-			    SECU_PrintError(progName,
+			    SECU_PrintError(progName, 
 			                    "write to SSL socket failed");
-			    if (err == SSL_ERROR_BAD_CERT_ALERT || 
-			        err == SSL_ERROR_REVOKED_CERT_ALERT ||
-			        err == SEC_ERROR_BAD_SIGNATURE) {
-			        error = EXPECTED_ERROR_SSL_SH;
-			    } else {
-			        FPRINTF(stderr, "PR_GetError: %d\n", err);
-			        error = 1;
-			    }
+			    error = 254;
 			    goto done;
 			}
 			cc = 0;
@@ -1031,18 +1022,10 @@ int main(int argc, char **argv)
 	    nb = PR_Recv(pollset[SSOCK_FD].fd, buf, sizeof buf, 0, maxInterval);
 	    FPRINTF(stderr, "%s: Read from server %d bytes\n", progName, nb);
 	    if (nb < 0) {
-		    PRErrorCode err = PR_GetError();
-		    if (err != PR_WOULD_BLOCK_ERROR) {
-		        SECU_PrintError(progName, "read from socket failed");
-		        if (err == SSL_ERROR_BAD_CERT_ALERT ||
-		            err == SSL_ERROR_HANDSHAKE_FAILURE_ALERT ||
-		            err == SSL_ERROR_REVOKED_CERT_ALERT) {
-		            error = EXPECTED_ERROR_SSL_SH;
-		        } else {
-		            FPRINTF(stderr, "PR_GetError: %d\n", err);
-		            error = 1;
-		        }
-		        goto done;
+		if (PR_GetError() != PR_WOULD_BLOCK_ERROR) {
+		    SECU_PrintError(progName, "read from socket failed");
+		    error = 1;
+		    goto done;
 	    	}
 	    } else if (nb == 0) {
 		/* EOF from socket... stop polling socket for read */
