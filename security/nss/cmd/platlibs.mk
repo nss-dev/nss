@@ -87,7 +87,7 @@ ifeq ($(OS_ARCH), WINNT)
 
 DEFINES += -DNSS_USE_STATIC_LIBS
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
-CRYPTOLIB=$(DIST)/lib/$(LIB_PREFIX)freebl.$(LIB_SUFFIX)
+CRYPTOLIB=$(SOFTOKEN_LIB_DIR)/$(LIB_PREFIX)freebl.$(LIB_SUFFIX)
 ifdef MOZILLA_SECURITY_BUILD
 	CRYPTOLIB=$(DIST)/lib/crypto.lib
 endif
@@ -143,7 +143,7 @@ EXTRA_LIBS += \
 else
 
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
-CRYPTOLIB=$(DIST)/lib/$(LIB_PREFIX)freebl.$(LIB_SUFFIX)
+CRYPTOLIB=$(SOFTOKEN_LIB_DIR)/$(LIB_PREFIX)freebl.$(LIB_SUFFIX)
 ifdef MOZILLA_SECURITY_BUILD
 	CRYPTOLIB=$(DIST)/lib/$(LIB_PREFIX)crypto.$(LIB_SUFFIX)
 endif
@@ -202,6 +202,7 @@ endif
 EXTRA_SHARED_LIBS += \
 	-L$(DIST)/lib \
 	$(SQLITE) \
+	-L$(NSSUTIL_LIB_DIR) \
 	-lnssutil3 \
 	-L$(NSPR_LIB_DIR) \
 	-lplc4 \
@@ -253,6 +254,7 @@ EXTRA_SHARED_LIBS += \
 	-lssl3 \
 	-lsmime3 \
 	-lnss3 \
+	-L$(NSSUTIL_LIB_DIR) \
 	-lnssutil3 \
 	-L$(NSPR_LIB_DIR) \
 	-lplc4 \
