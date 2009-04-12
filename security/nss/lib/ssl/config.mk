@@ -75,11 +75,6 @@ endif # NS_USE_GCC
 
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
 CRYPTOLIB=$(SOFTOKEN_LIB_DIR)/$(LIB_PREFIX)freebl.$(LIB_SUFFIX)
-CRYPTODIR=../freebl
-ifdef MOZILLA_SECURITY_BUILD
-	CRYPTOLIB=$(DIST)/lib/$(LIB_PREFIX)crypto.$(LIB_SUFFIX)
-	CRYPTODIR=../crypto
-endif
 
 EXTRA_LIBS += \
 	$(CRYPTOLIB) \
@@ -89,11 +84,6 @@ else
 
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
 CRYPTOLIB=$(SOFTOKEN_LIB_DIR)/$(LIB_PREFIX)freebl.$(LIB_SUFFIX)
-CRYPTODIR=../freebl
-ifdef MOZILLA_SECURITY_BUILD
-	CRYPTOLIB=$(DIST)/lib/$(LIB_PREFIX)crypto.$(LIB_SUFFIX)
-	CRYPTODIR=../crypto
-endif
 
 EXTRA_LIBS += \
 	$(CRYPTOLIB) \
