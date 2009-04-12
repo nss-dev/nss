@@ -168,6 +168,8 @@ struct NSSLOWCERTCertificateStr {
 #define SEC_CRL_VERSION_1		0	/* default */
 #define SEC_CRL_VERSION_2		1	/* v2 extensions */
 
+#define NSS_MAX_LEGACY_DB_KEY_SIZE (60 * 1024)
+
 struct NSSLOWCERTIssuerAndSNStr {
     SECItem derIssuer;
     SECItem serialNumber;
