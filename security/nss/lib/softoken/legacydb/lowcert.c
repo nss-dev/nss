@@ -363,6 +363,10 @@ nsslowcert_KeyFromIssuerAndSN(PRArenaPool *arena,
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	goto loser;
     }
+    if (len > NSS_MAX_LEGACY_DB_KEY_SIZE) {
+	PORT_SetError(SEC_ERROR_INPUT_LEN);
+	goto loser;
+    }
     key->data = (unsigned char*)PORT_ArenaAlloc(arena, len);
     if ( !key->data ) {
 	goto loser;
