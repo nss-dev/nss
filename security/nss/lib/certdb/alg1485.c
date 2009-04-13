@@ -1003,7 +1003,8 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava, CertStrictnessLevel strict)
 
 	if (nameLen < fair) {
 	    /* just truncate the value */
-	    maxValue = (sizeof tmpBuf) - (nameLen + 5); /* for "=...\0" */
+	    maxValue = (sizeof tmpBuf) - (nameLen + 6); /* for "=...\0",
+                                                           and possibly '"' */
 	} else if (valueLen < fair) {
 	    /* just truncate the name */
 	    maxName  = (sizeof tmpBuf) - (valueLen + 5); /* for "=...\0" */
@@ -1058,19 +1059,20 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava, CertStrictnessLevel strict)
 	rv = escapeAndQuote(bigTmpBuf, sizeof bigTmpBuf,
 			    (char *)avaValue->data, valueLen, &mode);
 
-	bigTmpBuf[valueLen--] = 0; /* hard stop here */
+	bigTmpBuf[valueLen--] = '\0'; /* hard stop here */
+	/* See if we're in the middle of a multi-byte UTF8 character */
 	while (((bigTmpBuf[valueLen] & 0xc0) == 0x80) && valueLen > 0) {
-	    bigTmpBuf[valueLen--] = 0;
+	    bigTmpBuf[valueLen--] = '\0';
 	}
-	/* add elipsis to signify truncation. */
+	/* add ellipsis to signify truncation. */
 	bigTmpBuf[++valueLen] = '.';
 	bigTmpBuf[++valueLen] = '.';
 	bigTmpBuf[++valueLen] = '.';
 	if (bigTmpBuf[0] == '"')
 	    bigTmpBuf[++valueLen] = '"';
-	bigTmpBuf[++valueLen] = 0;
-	PORT_Assert(nameLen + valueLen <= sizeof tmpBuf);
-	memcpy(encodedAVA + nameLen, bigTmpBuf, valueLen);
+	bigTmpBuf[++valueLen] = '\0';
+	PORT_Assert(nameLen + valueLen <= (sizeof tmpBuf) - 1);
+	memcpy(encodedAVA + nameLen, bigTmpBuf, valueLen+1);
     }
 
     SECITEM_FreeItem(avaValue, PR_TRUE);
