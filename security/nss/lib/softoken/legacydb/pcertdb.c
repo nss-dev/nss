@@ -708,12 +708,14 @@ EncodeDBGenericKey(const SECItem *certKey, PRArenaPool *arena, SECItem *dbkey,
     
 
     dbkey->len = certKey->len + SEC_DB_KEY_HEADER_LEN;
+    if (dbkey->len > NSS_MAX_LEGACY_DB_KEY_SIZE)
+	goto loser;
     dbkey->data = (unsigned char *)PORT_ArenaAlloc(arena, dbkey->len);
     if ( dbkey->data == NULL ) {
 	goto loser;
     }
     PORT_Memcpy(&dbkey->data[SEC_DB_KEY_HEADER_LEN],
-	      certKey->data, certKey->len);
+	       certKey->data, certKey->len);
     dbkey->data[0] = (unsigned char) entryType;
 
     return(SECSuccess);
@@ -1454,7 +1456,6 @@ EncodeDBNicknameEntry(certDBEntryNickname *entry, PRArenaPool *arena,
      */
     dbitem->len = entry->subjectName.len + DB_NICKNAME_ENTRY_HEADER_LEN +
 	SEC_DB_ENTRY_HEADER_LEN;
-    
     dbitem->data = (unsigned char *)PORT_ArenaAlloc(arena, dbitem->len);
     if ( dbitem->data == NULL) {
 	goto loser;
@@ -1462,10 +1463,8 @@ EncodeDBNicknameEntry(certDBEntryNickname *entry, PRArenaPool *arena,
     
     /* fill in database record */
     buf = &dbitem->data[SEC_DB_ENTRY_HEADER_LEN];
-    
     buf[0] = (PRUint8)( entry->subjectName.len >> 8 );
     buf[1] = (PRUint8)( entry->subjectName.len      );
-    
     PORT_Memcpy(&buf[DB_NICKNAME_ENTRY_HEADER_LEN], entry->subjectName.data,
 	      entry->subjectName.len);
 
@@ -1488,6 +1487,8 @@ EncodeDBNicknameKey(char *nickname, PRArenaPool *arena,
 
     /* now get the database key and format it */
     dbkey->len = nnlen + SEC_DB_KEY_HEADER_LEN;
+    if (dbkey->len > NSS_MAX_LEGACY_DB_KEY_SIZE)
+	goto loser;
     dbkey->data = (unsigned char *)PORT_ArenaAlloc(arena, dbkey->len);
     if ( dbkey->data == NULL ) {
 	goto loser;
@@ -1821,6 +1822,8 @@ EncodeDBSMimeKey(char *emailAddr, PRArenaPool *arena,
 
     /* now get the database key and format it */
     dbkey->len = addrlen + SEC_DB_KEY_HEADER_LEN;
+    if (dbkey->len > NSS_MAX_LEGACY_DB_KEY_SIZE)
+	goto loser;
     dbkey->data = (unsigned char *)PORT_ArenaAlloc(arena, dbkey->len);
     if ( dbkey->data == NULL ) {
 	goto loser;
