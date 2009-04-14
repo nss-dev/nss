@@ -1223,7 +1223,15 @@ cert_VerifyCertChainPkix(
     int  memLeakLoopCount = 0;
     int  objCountTable[PKIX_NUMTYPES]; 
     int  fnInvLocalCount = 0;
+    PKIX_Boolean savedUsePkixEngFlag = usePKIXValidationEngine;
 
+    if (usePKIXValidationEngine) {
+        /* current memory leak testing implementation does not allow
+         * to run simultaneous tests one the same or a different threads.
+         * Setting the variable to false, to make additional chain
+         * validations be handled by old nss. */
+        usePKIXValidationEngine = PR_FALSE;
+    }
     testStartFnStackPosition = 2;
     fnStackNameArr[0] = "cert_VerifyCertChainPkix";
     fnStackInvCountArr[0] = 0;
@@ -1337,6 +1345,7 @@ cleanup:
 
     runningLeakTest = PKIX_FALSE; 
     PR_AtomicDecrement(&parallelFnInvocationCount);
+    usePKIXValidationEngine = savedUsePkixEngFlag;
 #endif /* PKIX_OBJECT_LEAK_TEST */
 
     return rv;
@@ -2045,6 +2054,15 @@ SECStatus CERT_PKIXVerifyCert(
     int  memLeakLoopCount = 0;
     int  objCountTable[PKIX_NUMTYPES];
     int  fnInvLocalCount = 0;
+    PKIX_Boolean savedUsePkixEngFlag = usePKIXValidationEngine;
+
+    if (usePKIXValidationEngine) {
+        /* current memory leak testing implementation does not allow
+         * to run simultaneous tests one the same or a different threads.
+         * Setting the variable to false, to make additional chain
+         * validations be handled by old nss. */
+        usePKIXValidationEngine = PR_FALSE;
+    }
     testStartFnStackPosition = 1;
     fnStackNameArr[0] = "CERT_PKIXVerifyCert";
     fnStackInvCountArr[0] = 0;
@@ -2264,6 +2282,7 @@ cleanup:
 
     runningLeakTest = PKIX_FALSE; 
     PR_AtomicDecrement(&parallelFnInvocationCount);
+    usePKIXValidationEngine = savedUsePkixEngFlag;
 #endif /* PKIX_OBJECT_LEAK_TEST */
 
     return r;
