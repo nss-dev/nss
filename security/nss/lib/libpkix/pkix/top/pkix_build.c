@@ -53,14 +53,14 @@ extern PRLogModuleInfo *pkixLog;
  * checked. Those OIDs need to be removed from the unresolved critical
  * extension OIDs list manually (instead of by checker automatically).
  */
-static char *buildCheckedCritExtOIDs[] = {
+static SECOidTag buildCheckedCritExtOIDs[] = {
         PKIX_CERTKEYUSAGE_OID,
         PKIX_CERTSUBJALTNAME_OID,
         PKIX_BASICCONSTRAINTS_OID,
         PKIX_NAMECONSTRAINTS_OID,
         PKIX_EXTENDEDKEYUSAGE_OID,
         PKIX_NSCERTTYPE_OID,
-        NULL
+        PKIX_UNKNOWN_OID
 };
 
 /* --Private-ForwardBuilderState-Functions---------------------------------- */
@@ -1139,7 +1139,7 @@ pkix_Build_ValidationCheckers(
         PKIX_CHECK(PKIX_List_Create(&buildCheckedCritExtOIDsList, plContext),
                 PKIX_LISTCREATEFAILED);
 
-        for (i = 0; buildCheckedCritExtOIDs[i] != NULL; i++) {
+        for (i = 0; buildCheckedCritExtOIDs[i] != PKIX_UNKNOWN_OID; i++) {
                 PKIX_CHECK(PKIX_PL_OID_Create
                         (buildCheckedCritExtOIDs[i], &oid, plContext),
                         PKIX_OIDCREATEFAILED);

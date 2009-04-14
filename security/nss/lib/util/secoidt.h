@@ -448,6 +448,8 @@ typedef enum {
 
     SEC_OID_SEED_CBC			    = 302,
 
+    SEC_OID_X509_ANY_POLICY                 = 303,
+
     SEC_OID_TOTAL
 } SECOidTag;
 

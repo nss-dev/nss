@@ -204,7 +204,7 @@ cert_NssKeyUsagesToPkix(
     PKIX_RETURN(CERTVFYPKIX);
 }
 
-extern char* ekuOidStrings[];
+extern SECOidTag ekuOidStrings[];
 
 enum {
     ekuIndexSSLServer = 0,
@@ -1431,39 +1431,6 @@ cleanup:
     return r;
 }
 
-/* XXX
- *  There is no NSS SECItem -> PKIX OID
- *  conversion function. For now, I go via the ascii
- *  representation 
- *  this should be in PKIX_PL_*
- */
-
-PKIX_PL_OID *
-CERT_PKIXOIDFromNSSOid(SECOidTag tag, void*plContext)
-{
-    char *oidstring = NULL;
-    char *oidstring_adj = NULL;
-    PKIX_PL_OID *policyOID = NULL;
-    SECOidData *data;
-
-    data =  SECOID_FindOIDByTag(tag);
-    if (data != NULL) {
-        oidstring = CERT_GetOidString(&data->oid);
-        if (oidstring == NULL) {
-            goto cleanup;
-        }
-        oidstring_adj = oidstring;
-        if (PORT_Strncmp("OID.",oidstring_adj,4) == 0) {
-            oidstring_adj += 4;
-        }
-
-        PKIX_PL_OID_Create(oidstring_adj, &policyOID, plContext);
-    }
-cleanup:
-    if (oidstring != NULL) PR_smprintf_free(oidstring);
-
-    return policyOID;
-}
 
 struct fake_PKIX_PL_CertStruct {
         CERTCertificate *nssCert;
@@ -1496,8 +1463,8 @@ PKIX_List *cert_PKIXMakeOIDList(const SECOidTag *oids, int oidCount, void *plCon
     }
 
     for (i=0; i<oidCount; i++) {
-        policyOID = CERT_PKIXOIDFromNSSOid(oids[i],plContext);
-        if (policyOID == NULL) {
+        error = PKIX_PL_OID_Create(oids[i], &policyOID, plContext);
+        if (error) {
             goto cleanup;
         }
         error = PKIX_List_AppendItem(policyList, 
