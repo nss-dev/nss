@@ -524,7 +524,7 @@ pkix_pl_OcspResponse_Create(
 
                 hcv1 = &(httpClient->fcnTable.ftable1);
 
-                rv = (*hcv1->trySendAndReceiveFcn)(sessionRequest,
+                rv = (*hcv1->trySendAndReceiveFcn)(ocspResponse->sessionRequest,
                         (PRPollDesc **)&nbioContext,
                         &responseCode,
                         (const char **)&responseContentType,
