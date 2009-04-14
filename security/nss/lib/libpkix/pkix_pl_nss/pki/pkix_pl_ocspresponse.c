@@ -525,7 +525,7 @@ pkix_pl_OcspResponse_Create(
                 rv = (*hcv1->trySendAndReceiveFcn)(sessionRequest,
                         (PRPollDesc **)&nbioContext,
                         &responseCode,
-                        &responseContentType,
+                        (const char **)&responseContentType,
                         NULL,   /* responseHeaders */
                         (const char **)&responseData,
                         &responseDataLen);
