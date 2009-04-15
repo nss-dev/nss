@@ -267,6 +267,27 @@ struct NSSLOWHASHContextStr {
    
 };
 
+static int nsslow_GetFIPSEnabled(void) {
+#ifdef LINUX
+    FILE *f;
+    char d;
+    size_t size;
+
+    f = fopen("/proc/sys/crypto/fips_enabled", "r");
+    if (!f)
+        return 1;
+
+    size = fread(&d, 1, 1, f);
+    fclose(f);
+    if (size != 1)
+        return 0;
+    if (d != '1')
+        return 0;
+#endif
+    return 1;
+}
+
+
 static int post = 0;
 
 static NSSLOWInitContext dummyContext = { 0 };
@@ -283,7 +304,7 @@ NSSLOW_Init(void)
     nsprAvailable = (rv ==  SECSuccess ) ? PR_TRUE : PR_FALSE;
 	
 
-    if (!post) {
+    if (!post && nsslow_GetFIPSEnabled()) {
 	crv = freebl_fipsPowerUpSelfTest();
 	if (crv != CKR_OK) {
 	    return NULL;
