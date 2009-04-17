@@ -1525,7 +1525,7 @@ CERT_GetSPKIDigest(PLArenaPool *arena, const CERTCertificate *cert,
 
 
 SECStatus CERT_CheckCRL(CERTCertificate* cert, CERTCertificate* issuer,
-                        SECItem* dp, PRTime t, void* wincx);
+                        const SECItem* dp, PRTime t, void* wincx);
 
 
 /*

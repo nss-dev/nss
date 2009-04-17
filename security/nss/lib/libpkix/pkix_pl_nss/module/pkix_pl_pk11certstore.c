@@ -587,6 +587,7 @@ pkix_pl_Pk11CertStore_CheckRevByCrl(
     CRLDPCache* dpcache = NULL;
     CERTCertificate *cert, *issuer;
     CERTCrlEntry* entry = NULL;
+    dpcacheStatus ds;
 
     PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_CheckRevByCrl");
     PKIX_NULLCHECK_FOUR(store, pkixCert, pkixIssuer, date);
@@ -626,11 +627,12 @@ pkix_pl_Pk11CertStore_CheckRevByCrl(
         goto cleanup;
     }
     /* now look up the certificate SN in the DP cache's CRL */
-    rv = DPCache_Lookup(dpcache, &cert->serialNumber, &entry);
-    if (rv == SECFailure) {
+    ds = DPCache_Lookup(dpcache, &cert->serialNumber, &entry);
+    if (ds != dpcacheFoundEntry && ds!= dpcacheNoEntry && ds != dpcacheEmpty) {
         PKIX_ERROR(PKIX_CERTCHECKCRLFAILED);
     }
-    if (entry) {
+    if (dpcacheFoundEntry == ds) {
+        PORT_Assert(entry);
         /* check the time if we have one */
         if (entry->revocationDate.data && entry->revocationDate.len) {
             PRTime revocationDate = 0;
@@ -658,8 +660,10 @@ pkix_pl_Pk11CertStore_CheckRevByCrl(
             status = PKIX_RevStatus_Revoked;
             PORT_SetError(SEC_ERROR_REVOKED_CERTIFICATE);
         }
-    } else {
+    } else if (dpcacheNoEntry == ds) {
         status = PKIX_RevStatus_Success;
+    } else if (dpcacheEmpty == ds) {
+        status = PKIX_RevStatus_NoInfo;
     }
 
 cleanup:
