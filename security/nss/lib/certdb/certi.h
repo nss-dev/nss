@@ -58,6 +58,8 @@ typedef struct CRLDPCacheStr CRLDPCache;
 typedef struct CRLIssuerCacheStr CRLIssuerCache;
 typedef struct CRLCacheStr CRLCache;
 typedef struct CachedCrlStr CachedCrl;
+typedef struct NamedCRLCacheStr NamedCRLCache;
+typedef struct NamedCRLCacheEntryStr NamedCRLCacheEntry;
 
 struct OpaqueCRLFieldsStr {
     PRBool partial;
@@ -102,6 +104,17 @@ typedef enum {
     CRL_OriginToken = 0,    /* CRL came from PKCS#11 token */
     CRL_OriginExplicit = 1  /* CRL was explicitly added to the cache, from RAM */
 } CRLOrigin;
+
+typedef enum {
+    dpcacheNoEntry = 0,             /* no entry found for this SN */
+    dpcacheFoundEntry = 1,          /* entry found for this SN */
+    dpcacheCallerError = 2,         /* invalid args */
+    dpcacheInvalidCacheError = 3,   /* CRL in cache may be bad DER */
+                                    /* or unverified */
+    dpcacheEmpty = 4,               /* no CRL in cache */
+    dpcacheLookupError = 5          /* internal error */
+} dpcacheStatus;
+
 
 struct CachedCrlStr {
     CERTSignedCrl* crl;
@@ -257,13 +270,13 @@ extern CERTAVA * CERT_CreateAVAFromSECItem(PRArenaPool *arena, SECOidTag kind,
  * get a DPCache object for the given issuer subject and dp
  * Automatically creates the cache object if it doesn't exist yet.
  */
-SECStatus AcquireDPCache(CERTCertificate* issuer, SECItem* subject,
-                         SECItem* dp, int64 t, void* wincx,
+SECStatus AcquireDPCache(CERTCertificate* issuer, const SECItem* subject,
+                         const SECItem* dp, int64 t, void* wincx,
                          CRLDPCache** dpcache, PRBool* writeLocked);
 
 /* check if a particular SN is in the CRL cache and return its entry */
-SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
-                         CERTCrlEntry** returned);
+dpcacheStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
+                             CERTCrlEntry** returned);
 
 /* release a DPCache object that was previously acquired */
 void ReleaseDPCache(CRLDPCache* dpcache, PRBool writeLocked);
@@ -314,6 +327,64 @@ extern PRUint32 cert_ComputeCertType(CERTCertificate *cert);
 void cert_AddToVerifyLog(CERTVerifyLog *log,CERTCertificate *cert,
                          unsigned long errorCode, unsigned int depth,
                          void *arg);
+
+/* Insert a DER CRL into the CRL cache, and take ownership of it.
+ *
+ * This function takes ownership of the memory in crl argument completely.
+ * crl must be freeable by SECITEM_FreeItem. It will be freed immediately
+ * if it is rejected from the CRL cache, or later during cache updates when
+ * a new crl is available, or at shutdown time.
+ *
+ * canonicalizedName represents the source of the CRL (a GeneralName). This
+ * should be canonicalized by the caller, since this function will not attempt
+ * to do any name matching.
+ *
+ */
+ 
+SECStatus cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
+                                     const SECItem* canonicalizedName);
+
+struct NamedCRLCacheStr {
+    PRLock* lock;
+    PLHashTable* entries;
+};
+
+struct NamedCRLCacheEntryStr {
+    SECItem* crl;                   /* DER, kept only if CRL
+                                         * is successfully cached */
+    PRBool inCRLCache;
+    PRTime successfulInsertionTime; /* insertion time */
+    PRTime lastAttemptTime;         /* time of last call to
+                              cert_CacheCRLByGeneralName with this name */
+    PRBool badDER;      /* ASN.1 error */
+    PRBool dupe;        /* matching DER CRL already in CRL cache */
+    PRBool unsupported; /* IDP, delta, any other reason */
+};
+
+typedef enum {
+    certRevocationStatusRevoked = 0,
+    certRevocationStatusValid = 1,
+    certRevocationStatusUnknown = 2,
+} CERTRevocationStatus;
+
+/* Returns detailed status of the cert(revStatus variable). Tells if
+ * issuer cache has OriginFetchedWithTimeout crl in it. */
+SECStatus
+cert_CheckCertRevocationStatus(CERTCertificate* cert, CERTCertificate* issuer,
+                               const SECItem* dp, PRTime t, void *wincx,
+                               CERTRevocationStatus *revStatus,
+                               CERTCRLEntryReasonCode *revReason);
+
+
+SECStatus cert_AcquireNamedCRLCache();
+
+/* This must be called only while cache is acquired, and the entry is only
+ * valid until cache is released.
+ */
+SECStatus cert_FindCRLByGeneralName(const SECItem* canonicalizedName,
+                               NamedCRLCacheEntry** retEntry);
+
+SECStatus cert_ReleaseNamedCRLCache();
 
 #endif /* _CERTI_H_ */
 
