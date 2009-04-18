@@ -330,15 +330,16 @@ void cert_AddToVerifyLog(CERTVerifyLog *log,CERTCertificate *cert,
 
 /* Insert a DER CRL into the CRL cache, and take ownership of it.
  *
- * This function takes ownership of the memory in crl argument completely.
- * crl must be freeable by SECITEM_FreeItem. It will be freed immediately
- * if it is rejected from the CRL cache, or later during cache updates when
- * a new crl is available, or at shutdown time.
+ * cert_CacheCRLByGeneralName takes ownership of the memory in crl argument
+ * completely.  crl must be freeable by SECITEM_FreeItem. It will be freed
+ * immediately if it is rejected from the CRL cache, or later during cache
+ * updates when a new crl is available, or at shutdown time.
  *
- * canonicalizedName represents the source of the CRL (a GeneralName). This
- * should be canonicalized by the caller, since this function will not attempt
- * to do any name matching.
- *
+ * canonicalizedName represents the source of the CRL, a GeneralName.
+ * The format of the encoding is not restricted, but all callers of
+ * cert_CacheCRLByGeneralName and cert_FindCRLByGeneralName must use
+ * the same encoding. To facilitate X.500 name matching, a canonicalized
+ * encoding of the GeneralName should be used, if available.
  */
  
 SECStatus cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
@@ -349,9 +350,12 @@ struct NamedCRLCacheStr {
     PLHashTable* entries;
 };
 
+/* NamedCRLCacheEntryStr is filled in by cert_CacheCRLByGeneralName,
+ * and read by cert_FindCRLByGeneralName */
 struct NamedCRLCacheEntryStr {
+    SECItem* canonicalizedName;
     SECItem* crl;                   /* DER, kept only if CRL
-                                         * is successfully cached */
+                                     * is successfully cached */
     PRBool inCRLCache;
     PRTime successfulInsertionTime; /* insertion time */
     PRTime lastAttemptTime;         /* time of last call to
@@ -376,15 +380,16 @@ cert_CheckCertRevocationStatus(CERTCertificate* cert, CERTCertificate* issuer,
                                CERTCRLEntryReasonCode *revReason);
 
 
-SECStatus cert_AcquireNamedCRLCache();
+SECStatus cert_AcquireNamedCRLCache(NamedCRLCache** returned);
 
-/* This must be called only while cache is acquired, and the entry is only
- * valid until cache is released.
+/* cert_FindCRLByGeneralName must be called only while the named cache is
+ * acquired, and the entry is only valid until cache is released.
  */
-SECStatus cert_FindCRLByGeneralName(const SECItem* canonicalizedName,
-                               NamedCRLCacheEntry** retEntry);
+SECStatus cert_FindCRLByGeneralName(NamedCRLCache* ncc,
+                                    const SECItem* canonicalizedName,
+                                    NamedCRLCacheEntry** retEntry);
 
-SECStatus cert_ReleaseNamedCRLCache();
+SECStatus cert_ReleaseNamedCRLCache(NamedCRLCache* ncc);
 
 #endif /* _CERTI_H_ */
 
