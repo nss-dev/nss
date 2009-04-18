@@ -1318,6 +1318,10 @@ static SECStatus NamedCRLCacheEntry_Destroy(NamedCRLCacheEntry* entry)
         /* named CRL cache owns DER memory */
         SECITEM_ZfreeItem(entry->crl, PR_TRUE);
     }
+    if (entry->canonicalizedName)
+    {
+        SECITEM_FreeItem(entry->canonicalizedName, PR_TRUE);
+    }
     PORT_Free(entry);
     return SECSuccess;
 }
@@ -3030,24 +3034,27 @@ SECStatus CERT_UncacheCRL(CERTCertDBHandle* dbhandle, SECItem* olddercrl)
     return rv;
 }
 
-SECStatus cert_AcquireNamedCRLCache()
+SECStatus cert_AcquireNamedCRLCache(NamedCRLCache** returned)
 {
+    PORT_Assert(returned);
     if (!namedCRLCache.lock)
     {
         PORT_Assert(0);
         return SECFailure;
     }
     PR_Lock(namedCRLCache.lock);
+    *returned = &namedCRLCache;
     return SECSuccess;
 }
 
 /* This must be called only while cache is acquired, and the entry is only
  * valid until cache is released.
  */
-SECStatus cert_FindCRLByGeneralName(const SECItem* canonicalizedName,
-                               NamedCRLCacheEntry** retEntry)
+SECStatus cert_FindCRLByGeneralName(NamedCRLCache* ncc,
+                                    const SECItem* canonicalizedName,
+                                    NamedCRLCacheEntry** retEntry)
 {
-    if (!canonicalizedName || !retEntry)
+    if (!ncc || !canonicalizedName || !retEntry)
     {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
@@ -3057,9 +3064,13 @@ SECStatus cert_FindCRLByGeneralName(const SECItem* canonicalizedName,
     return SECSuccess;
 }
 
-SECStatus cert_ReleaseNamedCRLCache()
+SECStatus cert_ReleaseNamedCRLCache(NamedCRLCache* ncc)
 {
-    if (!namedCRLCache.lock)
+    if (!ncc)
+    {
+        return SECFailure;
+    }
+    if (!ncc->lock)
     {
         PORT_Assert(0);
         return SECFailure;
@@ -3086,6 +3097,13 @@ static SECStatus addCRLToCache(CERTCertDBHandle* dbhandle, SECItem* crl,
     entry = *newEntry;
     entry->crl = crl; /* named CRL cache owns DER */
     entry->lastAttemptTime = PR_Now();
+    entry->canonicalizedName = SECITEM_DupItem(canonicalizedName);
+    if (!entry->canonicalizedName)
+    {
+        rv = NamedCRLCacheEntry_Destroy(entry); /* destroys CRL too */
+        PORT_Assert(SECSuccess == rv);
+        return SECFailure;
+    }
     /* now, attempt to insert CRL into CRL cache */
     if (SECSuccess == CERT_CacheCRL(dbhandle, entry->crl))
     {
@@ -3123,6 +3141,7 @@ SECStatus cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
                                      const SECItem* canonicalizedName)
 {
     NamedCRLCacheEntry* oldEntry, * newEntry = NULL;
+    NamedCRLCache* ncc = NULL;
     SECStatus rv = SECSuccess, rv2;
 
     PORT_Assert(namedCRLCache.lock);
@@ -3135,50 +3154,75 @@ SECStatus cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
         return SECFailure;
     }
 
-    rv = cert_AcquireNamedCRLCache();
+    rv = cert_AcquireNamedCRLCache(&ncc);
     PORT_Assert(SECSuccess == rv);
     if (SECSuccess != rv)
     {
         SECITEM_ZfreeItem(crl, PR_TRUE);
         return SECFailure;
     }
-    rv = cert_FindCRLByGeneralName(canonicalizedName, &oldEntry);
+    rv = cert_FindCRLByGeneralName(ncc, canonicalizedName, &oldEntry);
     PORT_Assert(SECSuccess == rv);
     if (SECSuccess != rv)
     {
-        rv = cert_ReleaseNamedCRLCache();
+        rv = cert_ReleaseNamedCRLCache(ncc);
         SECITEM_ZfreeItem(crl, PR_TRUE);
         return SECFailure;
     }
     if (SECSuccess == addCRLToCache(dbhandle, crl, canonicalizedName,
-                                    &newEntry) ) {
-        if (NULL == PL_HashTableAdd(namedCRLCache.entries,
-                                    (void*) canonicalizedName,
-                                    (void*) newEntry))
+                                    &newEntry) )
+    {
+        if (!oldEntry)
         {
-            rv2 = NamedCRLCacheEntry_Destroy(newEntry);
-            PORT_Assert(SECSuccess == rv2);
-            rv = SECFailure;
-            PORT_Assert(0);
+            /* add new good entry to the hash table */
+            if (NULL == PL_HashTableAdd(namedCRLCache.entries,
+                                        (void*) newEntry->canonicalizedName,
+                                        (void*) newEntry))
+            {
+                PORT_Assert(0);
+                rv2 = NamedCRLCacheEntry_Destroy(newEntry);
+                PORT_Assert(SECSuccess == rv2);
+                rv = SECFailure;
+            }
         }
         else
-        if (oldEntry)
         {
-            /* new entry was added successfully, now delete old entry */
-            rv = NamedCRLCacheEntry_Destroy(oldEntry);
-            PORT_Assert(SECSuccess == rv);
+            PRBool removed;
+            /* remove the old CRL from the cache if needed */
+            if (oldEntry->inCRLCache)
+            {
+                rv = CERT_UncacheCRL(dbhandle, oldEntry->crl);
+                PORT_Assert(SECSuccess == rv);
+            }
+            removed = PL_HashTableRemove(namedCRLCache.entries,
+                                      (void*) oldEntry->canonicalizedName);
+            PORT_Assert(removed);
+            if (!removed)
+            {
+                rv = SECFailure;
+                rv2 = NamedCRLCacheEntry_Destroy(oldEntry);
+                PORT_Assert(SECSuccess == rv2);
+            }
+            if (NULL == PL_HashTableAdd(namedCRLCache.entries,
+                                      (void*) newEntry->canonicalizedName,
+                                      (void*) newEntry))
+            {
+                PORT_Assert(0);
+                rv = SECFailure;
+            }
         }
-    } else {
+    } else
+    {
         /* error adding new CRL to cache */
         if (!oldEntry)
         {
             /* no old cache entry, use the new one even though it's bad */
             if (NULL == PL_HashTableAdd(namedCRLCache.entries,
-                                        (void*) canonicalizedName,
+                                        (void*) newEntry->canonicalizedName,
                                         (void*) newEntry))
             {
-                rv = SECFailure;
                 PORT_Assert(0);
+                rv = SECFailure;
             }
         }
         else
@@ -3194,19 +3238,26 @@ SECStatus cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
             else
             {
                 /* previous cache entry was bad, just replace it */
-                if (NULL == PL_HashTableAdd(namedCRLCache.entries,
-                                            (void*) canonicalizedName,
-                                            (void*) newEntry))
+                PRBool removed = PL_HashTableRemove(namedCRLCache.entries,
+                                          (void*) oldEntry->canonicalizedName);
+                PORT_Assert(removed);
+                if (!removed)
                 {
                     rv = SECFailure;
-                    PORT_Assert(0);
+                    rv2 = NamedCRLCacheEntry_Destroy(oldEntry);
+                    PORT_Assert(SECSuccess == rv2);
                 }
-                rv2 = NamedCRLCacheEntry_Destroy(oldEntry);
-                PORT_Assert(SECSuccess == rv2);
+                if (NULL == PL_HashTableAdd(namedCRLCache.entries,
+                                          (void*) newEntry->canonicalizedName,
+                                          (void*) newEntry))
+                {
+                    PORT_Assert(0);
+                    rv = SECFailure;
+                }
             }
         }
     }
-    rv2 = cert_ReleaseNamedCRLCache();
+    rv2 = cert_ReleaseNamedCRLCache(ncc);
     PORT_Assert(SECSuccess == rv2);
 
     return rv;

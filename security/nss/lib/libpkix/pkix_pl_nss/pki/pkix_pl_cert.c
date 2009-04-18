@@ -1186,6 +1186,7 @@ pkix_pl_Cert_Destroy(
         PKIX_DECREF(cert->store);
         PKIX_DECREF(cert->authorityInfoAccess);
         PKIX_DECREF(cert->subjectInfoAccess);
+        PKIX_DECREF(cert->crldpList);
 
         if (cert->arenaNameConstraints){
                 /* This arena was allocated for SubjectAltNames */
@@ -1456,6 +1457,7 @@ pkix_pl_Cert_CreateWithNSSCert(
         cert->authorityInfoAccess = NULL;
         cert->subjectInfoAccess = NULL;
         cert->isUserTrustAnchor = PKIX_FALSE;
+        cert->crldpList = NULL;
 
         *pCert = cert;
 
@@ -3522,6 +3524,61 @@ cleanup:
                 SECITEM_FreeItem(encodedSubjInfoAccess, PR_TRUE);
         }
         PKIX_RETURN(CERT);
+}
+
+/*
+ * FUNCTION: PKIX_PL_Cert_GetCrlDp
+ * (see comments in pkix_pl_pki.h)
+ */
+PKIX_Error *
+PKIX_PL_Cert_GetCrlDp(
+    PKIX_PL_Cert *cert,
+    PKIX_List **pDpList,
+    void *plContext)
+{
+    PKIX_UInt32 dpIndex = 0;
+    pkix_pl_CrlDp *dp = NULL; 
+    CERTCrlDistributionPoints *dpoints = NULL;
+
+    PKIX_ENTER(CERT, "PKIX_PL_Cert_GetCrlDp");
+    PKIX_NULLCHECK_THREE(cert, cert->nssCert, pDpList);
+                
+    /* if we don't have a cached copy from before, we create one */
+    if (cert->crldpList == NULL) {
+        PKIX_OBJECT_LOCK(cert);
+        if (cert->crldpList != NULL) {
+            goto cleanup;
+        }
+        PKIX_CHECK(PKIX_List_Create(&cert->crldpList, plContext),
+                   PKIX_LISTCREATEFAILED);
+        dpoints = CERT_FindCRLDistributionPoints(cert->nssCert);
+        if (!dpoints || !dpoints->distPoints) {
+            goto cleanup;
+        }
+        for (;dpoints->distPoints[dpIndex];dpIndex++) {
+            PKIX_CHECK(
+                pkix_pl_CrlDp_Create(dpoints->distPoints[dpIndex],
+                                     &cert->nssCert->issuer,
+                                     &dp, plContext),
+                PKIX_CRLDPCREATEFAILED);
+            /* Create crldp list in reverse order in attempt to get
+             * to the whole crl first. */
+            PKIX_CHECK(
+                PKIX_List_InsertItem(cert->crldpList, 0,
+                                     (PKIX_PL_Object*)dp,
+                                     plContext),
+                PKIX_LISTAPPENDITEMFAILED);
+            PKIX_DECREF(dp);
+        }
+    }
+cleanup:
+    PKIX_INCREF(cert->crldpList);
+    *pDpList = cert->crldpList;
+
+    PKIX_OBJECT_UNLOCK(lockedObject);
+    PKIX_DECREF(dp);
+
+    PKIX_RETURN(CERT);
 }
 
 /*

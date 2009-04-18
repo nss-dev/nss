@@ -1721,6 +1721,36 @@ PKIX_PL_Cert_GetSubjectInfoAccess(
         void *plContext);
 
 
+
+/*
+ * FUNCTION: PKIX_PL_Cert_GetCrlDp
+ * DESCRIPTION:
+ *
+ *  Retrieves the value(s) of the CRL Distribution Point Extension and
+ *  returns it in a list at address pointed by "pDpList".
+ *
+ * PARAMETERS:
+ *  "cert"
+ *      Address of Cert whose Subject Information Access is fetched.
+ *      Must be non-NULL.
+ *  "pDpList"
+ *      Address where CRL DP will be stored and returned.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_Cert_GetCrlDp(PKIX_PL_Cert *cert,
+                      PKIX_List **pDpList,
+                      void *plContext);
+
+
 /*
  * InfoAccess 
  *
@@ -2092,6 +2122,58 @@ PKIX_PL_CRL_VerifySignature(
         PKIX_PL_CRL *crl,
         PKIX_PL_PublicKey *pubKey,
         void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_CRL_ReleaseDerCrl
+ * DESCRIPTION:
+ *
+ * Relinguish the ownership for the crl der. The operation will succeed if
+ * a crl owns the der. If the crl was created from existing crl and does not
+ * own the der, then the function will return null.
+ *
+ * PARAMETERS:
+ *  "crl"
+ *      Address of CRL whose signature is to be verified. Must be non-NULL.
+ *  "derCrl"
+ *      Pointer to a SECItem that has der crl.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CRL Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_CRL_ReleaseDerCrl(PKIX_PL_CRL *crl,
+                         SECItem **derCrl,
+                         void *plContext);
+/*
+ * FUNCTION: PKIX_PL_CRL_AdoptDerCrl
+ * DESCRIPTION:
+ *
+ * Adopt memory of the der. The secItem that contains der will be
+ * freed with destruction of parent pkix crl structure.
+ *
+ * * PARAMETERS:
+ *  "crl"
+ *      Address of CRL whose signature is to be verified. Must be non-NULL.
+ *  "derCrl"
+ *      Pointer to a SECItem that has der crl.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CRL Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_CRL_AdoptDerCrl(PKIX_PL_CRL *crl,
+                        SECItem *derCrl,
+                        void *plContext);
 
 /*
  * FUNCTION: PKIX_PL_CRLEntry_GetCRLEntryReasonCode
