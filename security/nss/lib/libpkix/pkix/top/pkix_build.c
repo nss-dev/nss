@@ -1241,10 +1241,13 @@ pkix_Build_ValidationCheckers(
                     plContext),
                    PKIX_LISTAPPENDITEMFAILED);
 
+        PKIX_DECREF(state->reversedCertChain);
         PKIX_INCREF(reversedCertChain);
         state->reversedCertChain = reversedCertChain;
+        PKIX_DECREF(state->checkedCritExtOIDs);
         PKIX_INCREF(buildCheckedCritExtOIDsList);
         state->checkedCritExtOIDs = buildCheckedCritExtOIDsList;
+        PKIX_DECREF(state->checkerChain);
         state->checkerChain = checkers;
         checkers = NULL;
         state->certCheckedIndex = 0;
@@ -2534,9 +2537,6 @@ pkix_BuildForwardDepthFirstSearch(
                             /* IO still pending, resume later */
                             goto cleanup;
                     } else {
-                            PKIX_DECREF(state->reversedCertChain);
-                            PKIX_DECREF(state->checkedCritExtOIDs);
-                            PKIX_DECREF(state->checkerChain);
                             /* checking the error for fatal status */
                             if (verifyError) {
                                 pkixTempErrorReceived = PKIX_TRUE;
@@ -3097,10 +3097,6 @@ pkix_Build_CheckInCache(
             *pNBIOContext = nbioContext;
             goto cleanup;
         }
-        PKIX_DECREF(state->reversedCertChain);
-        PKIX_DECREF(state->checkedCritExtOIDs);
-        PKIX_DECREF(state->checkerChain);
-        
         if (!PKIX_ERROR_RECEIVED) {
             /* The result from cache is still valid. But we replace an old*/
             *pBuildResult = buildResult;
