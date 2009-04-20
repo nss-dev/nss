@@ -477,6 +477,7 @@ pkix_TargetCertChecker_Check(
 
 cleanup:
 
+        PKIX_DECREF(name);
         PKIX_DECREF(nameConstraints);
         PKIX_DECREF(certSubjAltNames);
         PKIX_DECREF(certExtKeyUsageList);
