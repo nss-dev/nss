@@ -1394,6 +1394,34 @@ PKIX_PL_Cert_VerifyKeyUsage(
         void *plContext);
 
 /*
+ * FUNCTION: PKIX_PL_Cert_VerifyCertAndKeyType
+ * DESCRIPTION:
+ *
+ * Verifies cert and key types against certificate usage that is
+ * a part of plContext(pkix_pl_nsscontext) structure. Throws an error
+ * if cert or key types does not match.
+ *
+ * PARAMETERS:
+ *  "cert"
+ *      Address of Cert whose keyUsage bits are to be verified.
+ *      Must be non-NULL.
+ *  "isLeafCert"
+ *      What type of a cert has been verified.
+ *  "plContext" - Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_Cert_VerifyCertAndKeyType(
+        PKIX_PL_Cert *cert,
+        PKIX_Boolean isChainCert,
+        void *plContext);
+
+/*
  * FUNCTION: PKIX_PL_Cert_CheckValidity
  * DESCRIPTION:
  *
