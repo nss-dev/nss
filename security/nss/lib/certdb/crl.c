@@ -1918,6 +1918,7 @@ static SECStatus DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate*
     PRBool hastokenCRLs = PR_FALSE;
     PRTime now = 0;
     PRTime lastfetch = 0;
+    PRBool mustunlock = PR_FALSE;
 
     if (!cache)
     {
@@ -1987,8 +1988,8 @@ static SECStatus DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate*
          ( (now - cache->lastcheck > CRLCache_ExistenceCheck_Interval) ||
            (now < cache->lastcheck)) )
     {
-        PRBool mustunlock = PR_FALSE;
         PRTime lastcheck = cache->lastcheck;
+        mustunlock = PR_FALSE;
         /* check if all CRLs still exist */
         for (i = 0; (i < cache->ncrls) ; i++)
         {
@@ -2049,7 +2050,7 @@ static SECStatus DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate*
 
     if (cache->issuer && vfdate )
     {
-        PRBool mustunlock = PR_FALSE;
+	mustunlock = PR_FALSE;
         /* re-process all unverified CRLs */
         for (i = 0; i < cache->ncrls ; i++)
         {
@@ -2060,7 +2061,7 @@ static SECStatus DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate*
             }
             if (PR_TRUE != savcrl->sigChecked)
             {
-                if (PR_TRUE != mustunlock)
+                if (!mustunlock)
                 {
                     DPCache_LockWrite();
                     mustunlock = PR_TRUE;
@@ -2079,7 +2080,7 @@ static SECStatus DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate*
                 /* stay locked here intentionally so we do all the other
                    updates in this thread for the remaining CRLs */
             }
-            if (PR_TRUE == mustunlock)
+            if (mustunlock && !dirty)
             {
                 DPCache_UnlockWrite();
                 mustunlock = PR_FALSE;
@@ -2091,11 +2092,16 @@ static SECStatus DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate*
     {
         /* changes to the content of the CRL cache necessitate examining all
            CRLs for selection of the most appropriate one to cache */
-        DPCache_LockWrite();
+	if (!mustunlock)
+	{
+	    DPCache_LockWrite();
+	    mustunlock = PR_TRUE;
+	}
         DPCache_SelectCRL(cache);
         cache->mustchoose = PR_FALSE;
-        DPCache_UnlockWrite();
     }
+    if (mustunlock)
+	DPCache_UnlockWrite();
 
     return rv;
 }
@@ -3085,13 +3091,14 @@ static SECStatus addCRLToCache(CERTCertDBHandle* dbhandle, SECItem* crl,
                                     NamedCRLCacheEntry** newEntry)
 {
     SECStatus rv = SECSuccess;
-    NamedCRLCacheEntry* entry;
+    NamedCRLCacheEntry* entry = NULL;
 
     /* create new named entry */
     if (SECSuccess != NamedCRLCacheEntry_Create(newEntry) || !*newEntry)
     {
         /* no need to keep unused CRL around */
-        SECITEM_ZfreeItem(entry->crl, PR_TRUE);
+	if (entry && entry->crl)
+	    SECITEM_ZfreeItem(entry->crl, PR_TRUE);
         return SECFailure;
     }
     entry = *newEntry;
