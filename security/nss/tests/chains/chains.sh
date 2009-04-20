@@ -668,7 +668,7 @@ verify_cert()
     echo "vfychain ${DB_OPT} -pp -vv ${REV_OPTS} ${FETCH_OPT} ${POLICY_OPT} ${VFY_CERTS} ${TRUST_OPT}"
 
     if [ -z "${MEMLEAK_DBG}" ]; then
-        VFY_OUT=$(${BINDIR}/vfychain ${DB_OPT} -pp -vv ${REV_OPTS} ${FETCH_OPT} ${POLICY_OPT} ${VFY_CERTS} ${TRUST_OPT})
+        VFY_OUT=$(${BINDIR}/vfychain ${DB_OPT} -pp -vv ${REV_OPTS} ${FETCH_OPT} ${POLICY_OPT} ${VFY_CERTS} ${TRUST_OPT} 2>&1)
         RESULT=$?
         echo "${VFY_OUT}"
     else 
@@ -678,7 +678,11 @@ verify_cert()
     fi
 
     echo "${VFY_OUT}" | grep "ERROR -5990: I/O operation timed out" > /dev/null
-    if [ $? -eq 0 ]; then
+    E5990=$?
+    echo "${VFY_OUT}" | grep "ERROR -8030: Server returned bad HTTP response" > /dev/null
+    E8030=$?
+
+    if [ $E5990 -eq 0 -o $E8030 -eq 0 ]; then
         echo "Result of this test is not valid due to network time out."
         html_unknown "${SCENARIO}${TESTNAME}"
         return
