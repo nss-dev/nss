@@ -3097,8 +3097,7 @@ static SECStatus addCRLToCache(CERTCertDBHandle* dbhandle, SECItem* crl,
     if (SECSuccess != NamedCRLCacheEntry_Create(newEntry) || !*newEntry)
     {
         /* no need to keep unused CRL around */
-	if (entry && entry->crl)
-	    SECITEM_ZfreeItem(entry->crl, PR_TRUE);
+        SECITEM_ZfreeItem(crl, PR_TRUE);
         return SECFailure;
     }
     entry = *newEntry;
