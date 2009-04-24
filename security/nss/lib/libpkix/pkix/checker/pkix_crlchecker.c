@@ -402,9 +402,8 @@ pkix_CrlChecker_CheckExternal(
     PKIX_CHECK(
         PKIX_PL_Cert_GetCrlDp(cert, &dpList, plContext),
         PKIX_CERTGETCRLDPFAILED);
-    if (methodFlags & PKIX_REV_M_REQUIRE_INFO_ON_MISSING_SOURCE &&
+    if (!(methodFlags & PKIX_REV_M_REQUIRE_INFO_ON_MISSING_SOURCE) &&
         (!dpList || !dpList->length)) {
-        revStatus = PKIX_RevStatus_Revoked;
         goto cleanup;
     }
     PKIX_CHECK(
@@ -452,7 +451,9 @@ pkix_CrlChecker_CheckExternal(
 
 cleanup:
     /* Update return flags */
-    if (revStatus == PKIX_RevStatus_NoInfo &&
+    if (revStatus == PKIX_RevStatus_NoInfo && 
+	((dpList && dpList->length > 0) ||
+	 (methodFlags & PKIX_REV_M_REQUIRE_INFO_ON_MISSING_SOURCE)) &&
         methodFlags & PKIX_REV_M_FAIL_ON_MISSING_FRESH_INFO) {
         revStatus = PKIX_RevStatus_Revoked;
     }
