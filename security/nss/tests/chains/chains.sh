@@ -699,6 +699,37 @@ verify_cert()
     fi
 }
 
+
+check_ocsp()
+{
+    OCSP_CERT=$1
+
+    CERT_NICK=`echo ${OCSP_CERT} | cut -d: -f1`
+    CERT_ISSUER=`echo ${OCSP_CERT} | cut -d: -f2`
+
+    if [ "${CERT_ISSUER}" = "x" ]; then
+        CERT_ISSUER=
+        CERT=${CERT_NICK}.cert
+        CERT_FILE="${QADIR}/libpkix/certs/${CERT}"
+    else
+        CERT=${CERT_NICK}${CERT_ISSUER}.der
+        CERT_FILE=${CERT}
+    fi
+
+    OCSP_HOST=$(${BINDIR}/pp -t certificate -i ${CERT_FILE} | grep URI | sed "s/.*:\/\///" | sed "s/:.*//")
+
+    if [ "${OS_ARCH}" = "WINNT" ]; then
+        ping -n 1 ${OCSP_HOST}
+        return $?
+    elif [ "${OS_ARCH}" = "HP-UX" ]; then
+        ping ${OCSP_HOST} -c 1
+        return $?
+    else
+        ping -c 1 ${OCSP_HOST}
+        return $?
+    fi
+}
+
 ############################ parse_result ##############################
 # local shell function to process expected result value
 # this function was created for case that expected result depends on
@@ -868,6 +899,13 @@ parse_config()
             ;;
         "break")
             break
+            ;;
+        "check_ocsp")
+            check_ocsp ${VALUE}
+            if [ $? -ne 0 ]; then
+                echo "OCSP server not accessible, skipping OCSP tests"
+                break;
+            fi
             ;;
         "")
             if [ -n "${ENTITY}" ]; then
