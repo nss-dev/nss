@@ -57,6 +57,7 @@
 PR_STATIC_ASSERT(46 == sizeof(struct ZipCentral));
 PR_STATIC_ASSERT(30 == sizeof(struct ZipLocal));
 PR_STATIC_ASSERT(22 == sizeof(struct ZipEnd));
+PR_STATIC_ASSERT(512 == sizeof(union TarEntry));
 
 /* extracting */
 static int 
@@ -846,7 +847,6 @@ loser:
  *  .tar file into the JAR linked list.
  *
  */
-
 static int 
 jar_listtar(JAR *jar, JAR_FILE fp)
 {
