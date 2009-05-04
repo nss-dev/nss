@@ -722,7 +722,7 @@ check_ocsp()
         ping -n 1 ${OCSP_HOST}
         return $?
     elif [ "${OS_ARCH}" = "HP-UX" ]; then
-        ping ${OCSP_HOST} -c 1
+        ping ${OCSP_HOST} -n 1
         return $?
     else
         ping -c 1 ${OCSP_HOST}
