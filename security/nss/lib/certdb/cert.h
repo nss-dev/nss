@@ -1610,25 +1610,25 @@ CERT_EncodeNoticeReference(PLArenaPool *arena,
  * Returns a pointer to a static structure.
  */
 extern const CERTRevocationFlags*
-CERT_GetPKIXVerifyNistRevocationPolicy();
+CERT_GetPKIXVerifyNistRevocationPolicy(void);
 
 /*
  * Returns a pointer to a static structure.
  */
 extern const CERTRevocationFlags*
-CERT_GetClassicOCSPEnabledSoftFailurePolicy();
+CERT_GetClassicOCSPEnabledSoftFailurePolicy(void);
 
 /*
  * Returns a pointer to a static structure.
  */
 extern const CERTRevocationFlags*
-CERT_GetClassicOCSPEnabledHardFailurePolicy();
+CERT_GetClassicOCSPEnabledHardFailurePolicy(void);
 
 /*
  * Returns a pointer to a static structure.
  */
 extern const CERTRevocationFlags*
-CERT_GetClassicOCSPDisabledPolicy();
+CERT_GetClassicOCSPDisabledPolicy(void);
 
 /*
  * Verify a Cert with libpkix
@@ -1662,7 +1662,7 @@ SECStatus CERT_SetUsePKIXForValidation(PRBool enable);
 
 /* The function return PR_TRUE if cert validation should use
  * libpkix cert validation engine. */
-PRBool CERT_GetUsePKIXForValidation();
+PRBool CERT_GetUsePKIXForValidation(void);
 
 SEC_END_PROTOS
 
