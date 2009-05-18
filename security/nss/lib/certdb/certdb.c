@@ -1739,7 +1739,7 @@ cert_GetDNSPatternsFromGeneralNames(CERTGeneralName *firstName,
               return SECFailure;
             PORT_Memcpy(cn, currentInput->name.other.data, 
                             currentInput->name.other.len);
-            cn[currentInput->name.other.len + 1] = 0;
+            cn[currentInput->name.other.len] = 0;
             break;
         case certIPAddress:
             if (currentInput->name.other.len == 4) {
@@ -1751,7 +1751,7 @@ cert_GetDNSPatternsFromGeneralNames(CERTGeneralName *firstName,
               memcpy(&addr.ipv6.ip, currentInput->name.other.data, 
                                     currentInput->name.other.len);
             }
-            if (PR_NetAddrToString(&addr, ipbuf, sizeof(ipbuf) == PR_FAILURE))
+            if (PR_NetAddrToString(&addr, ipbuf, sizeof(ipbuf)) == PR_FAILURE)
               return SECFailure;
             cn = PORT_ArenaStrdup(nickNames->arena, ipbuf);
             if (!cn)
