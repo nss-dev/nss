@@ -944,8 +944,8 @@ typedef enum {
 				 * default trusted roots are used.
 				 * Specified in value.pointer.chain */
    cert_pi_useAIACertFetch = 12, /* Enables cert fetching using AIA extension.
-				 * Default is off.
-                                     * Value is in value.scalar.b */
+				 * In NSS 3.12.1 or later. Default is off.
+				 * Value is in value.scalar.b */
    cert_pi_max                  /* SPECIAL: signifies maximum allowed value,
 				 *  can increase in future releases */
 } CERTValParamInType;
