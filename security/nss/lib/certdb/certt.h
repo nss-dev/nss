@@ -940,8 +940,13 @@ typedef enum {
    cert_pi_certStores      = 10,/* Bitmask of Cert Store flags (see below)
 				 * Set in value.scalar.ui */
    cert_pi_trustAnchors    = 11,/* Specify the list of trusted roots to 
-				 * validate against. If the list in NULL all
-				 * default trusted roots are used.
+				 * validate against. 
+				 * The default set of trusted roots, these are
+				 * root CA certs from libnssckbi.so or CA
+				 * certs trusted by user, are used in any of
+				 * the following cases:
+				 *      * when the parameter is not set.
+				 *      * when the list of trust anchors is empty.
 				 * Specified in value.pointer.chain */
    cert_pi_useAIACertFetch = 12, /* Enables cert fetching using AIA extension.
 				 * In NSS 3.12.1 or later. Default is off.
