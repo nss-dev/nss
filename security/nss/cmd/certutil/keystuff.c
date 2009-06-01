@@ -47,7 +47,9 @@
 
 #if defined(XP_WIN) || defined (XP_PC)
 #include <time.h>
+#ifndef WINCE
 #include <conio.h>
+#endif
 #endif
 
 #if defined(__sun) && !defined(SVR4)
@@ -129,7 +131,7 @@ UpdateRNG(void)
     while (count < sizeof randbuf) {
 #ifdef VMS
 	c = GENERIC_GETCHAR_NOECHO();
-#elif XP_UNIX
+#elif defined(XP_UNIX) || defined(WINCE)
 	c = getc(stdin);
 #else
 	c = getch();
