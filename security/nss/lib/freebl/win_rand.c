@@ -218,7 +218,6 @@ static void
 ReadSingleFile(const char *filename)
 {
     PRFileDesc *    file;
-    int             nBytes;
     unsigned char   buffer[1024];
 
     file = PR_Open(filename, PR_RDONLY, 0);
