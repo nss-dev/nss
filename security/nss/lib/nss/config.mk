@@ -143,6 +143,20 @@ MKSHLIB += -R '$$ORIGIN'
 endif
 endif
 
+ifeq ($(OS_TARGET),Linux)
+# The -rpath '$$ORIGIN' linker option instructs this library to search for its
+# dependencies in the same directory where it resides.
+ifeq ($(BUILD_SUN_PKG), 1)
+ifeq ($(USE_64), 1)
+MKSHLIB += -Wl,-rpath,'$$ORIGIN:/opt/sun/private/lib64:/opt/sun/private/lib'
+else
+MKSHLIB += -Wl,-rpath,'$$ORIGIN:/opt/sun/private/lib'
+endif
+else
+MKSHLIB += -Wl,-rpath,'$$ORIGIN'
+endif
+endif
+
 ifeq ($(OS_ARCH), HP-UX) 
 ifneq ($(OS_TEST), ia64)
 # pa-risc
