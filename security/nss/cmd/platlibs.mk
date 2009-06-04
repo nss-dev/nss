@@ -51,6 +51,13 @@ endif
 endif
 
 ifeq ($(OS_ARCH), Linux)
+ifeq ($(BUILD_SUN_PKG), 1)
+ifeq ($(USE_64), 1)
+EXTRA_SHARED_LIBS += -Wl,-rpath,'$$ORIGIN/../lib64:/opt/sun/private/lib64:$$ORIGIN/../lib'
+else
+EXTRA_SHARED_LIBS += -Wl,-rpath,'$$ORIGIN/../lib:/opt/sun/private/lib'
+endif
+endif
 ifeq ($(USE_64), 1)
 EXTRA_SHARED_LIBS += -Wl,-rpath,'$$ORIGIN/../lib64:$$ORIGIN/../lib'
 else
