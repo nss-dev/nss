@@ -206,7 +206,7 @@ endif
 
 
 #
-# Always set CPU_TAG on Linux, OpenVMS, WINCE.
+# Always set CPU_TAG on Linux, WINCE.
 #
 CPU_TAG = _$(CPU_ARCH)
 
