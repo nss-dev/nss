@@ -878,7 +878,7 @@ endif
 
 -include $(DEPENDENCIES)
 
-ifneq (,$(filter-out OpenVMS OS2 WIN%,$(OS_TARGET)))
+ifneq (,$(filter-out OS2 WIN%,$(OS_TARGET)))
 # Can't use sed because of its 4000-char line length limit, so resort to perl
 PERL_DEPENDENCIES_PROGRAM =                                                   \
 	    open(MD, "< $(DEPENDENCIES)");                                    \
