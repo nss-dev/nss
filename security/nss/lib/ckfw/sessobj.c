@@ -706,18 +706,15 @@ nss_ckmdSessionObject_SetAttribute
     nss_ZFreeIf(n.data);
     return CKR_HOST_MEMORY;
   }
+  obj->attributes = ra;
 
-  rt = (CK_ATTRIBUTE_TYPE_PTR)nss_ZRealloc(obj->types, (obj->n + 1));
-  if( (CK_ATTRIBUTE_TYPE_PTR)NULL == rt ) {
+  rt = (CK_ATTRIBUTE_TYPE_PTR)nss_ZRealloc(obj->types, 
+                                      sizeof(CK_ATTRIBUTE_TYPE) * (obj->n + 1));
+  if (!rt) {
     nss_ZFreeIf(n.data);
-    obj->attributes = (NSSItem *)nss_ZRealloc(ra, sizeof(NSSItem) * obj->n);
-    if (!obj->attributes) {
-      return CKR_GENERAL_ERROR;
-    }
     return CKR_HOST_MEMORY;
   }
 
-  obj->attributes = ra;
   obj->types = rt;
   obj->attributes[obj->n] = n;
   obj->types[obj->n] = attribute;
