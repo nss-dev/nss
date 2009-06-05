@@ -260,7 +260,7 @@ static PRBool isMultiProcess  = PR_FALSE;
 #define MAX_SSL3_TIMEOUT      86400L  /* 24 hours */
 #define MIN_SSL3_TIMEOUT          5   /* seconds  */
 
-#if defined(AIX) || defined(LINUX) || defined(VMS) || defined(NETBSD) || defined(OPENBSD)
+#if defined(AIX) || defined(LINUX) || defined(NETBSD) || defined(OPENBSD)
 #define MAX_SID_CACHE_LOCKS 8	/* two FDs per lock */
 #elif defined(OSF1)
 #define MAX_SID_CACHE_LOCKS 16	/* one FD per lock */
