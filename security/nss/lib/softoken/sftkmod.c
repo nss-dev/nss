@@ -628,10 +628,12 @@ sftkdb_DeleteSecmodDB(SDBType dbType, const char *appName,
     } 
     fclose(fd);
     fclose(fd2);
-    /* rename dbname2 to dbname */
     if (found) {
+	/* rename dbname2 to dbname */
 	PR_Delete(dbname);
 	PR_Rename(dbname2,dbname);
+    } else {
+	PR_Delete(dbname2);
     }
     PORT_Free(dbname2);
     return SECSuccess;
