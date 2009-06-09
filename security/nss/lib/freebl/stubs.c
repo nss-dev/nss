@@ -558,8 +558,8 @@ FREEBL_InitStubs()
 	    return SECFailure;
 	}
 	rv = freebl_InitNSPR(nspr);
-	freebl_releaseLibrary(nspr);
 	if (rv != SECSuccess) {
+	    freebl_releaseLibrary(nspr);
 	    return rv;
 	}
     }
@@ -570,8 +570,8 @@ FREEBL_InitStubs()
 	    return SECFailure;
 	}
 	rv = freebl_InitNSSUtil(nssutil);
-	freebl_releaseLibrary(nssutil);
 	if (rv != SECSuccess) {
+	    freebl_releaseLibrary(nssutil);
 	    return rv;
 	}
     }
