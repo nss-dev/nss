@@ -324,7 +324,7 @@ sdb_getTempDir(sqlite3 *sqlDB)
 /*
  * Map SQL_LITE errors to PKCS #11 errors as best we can.
  */
-static int 
+static CK_RV
 sdb_mapSQLError(sdbDataType type, int sqlerr)
 {
     switch (sqlerr) {
