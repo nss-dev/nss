@@ -731,7 +731,7 @@ sdb_FindObjectsInit(SDB *sdb, const CK_ATTRIBUTE *template, CK_ULONG count,
 
 loser: 
     if (findstmt) {
-	sqlite3_reset(stmt);
+	sqlite3_reset(findstmt);
 	sqlite3_finalize(findstmt);
     }
     if (sqlDB) {
