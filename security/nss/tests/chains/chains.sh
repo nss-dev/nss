@@ -167,7 +167,8 @@ n
 6
 7
 9
-n" > ${CU_DATA}
+n
+" > ${CU_DATA}
 
     TESTNAME="Creating Root CA ${ENTITY}"
     echo "${SCRIPTNAME}: ${TESTNAME}"
@@ -204,20 +205,25 @@ create_cert_req()
 
     CA_FLAG=
     EXT_DATA=
+    OPTIONS=
+
     if [ "${TYPE}" != "EE" ]; then
         CA_FLAG="-2"
         EXT_DATA="y
 -1
-y"
+y
+"
     fi
+
+    process_crldp
 
     echo "${EXT_DATA}" > ${CU_DATA}
 
     TESTNAME="Creating ${TYPE} certifiate request ${REQ}"
     echo "${SCRIPTNAME}: ${TESTNAME}"
-    echo "certutil -s \"CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US\" ${CTYPE_OPT} -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ} < ${CU_DATA}"
+    echo "certutil -s \"CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US\" ${CTYPE_OPT} -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ} ${OPTIONS} < ${CU_DATA}"
     print_cu_data
-    ${BINDIR}/certutil -s "CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US" ${CTYPE_OPT} -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ} < ${CU_DATA} 
+    ${BINDIR}/certutil -s "CN=${ENTITY} ${TYPE}, O=${ENTITY}, C=US" ${CTYPE_OPT} -R ${CA_FLAG} -d ${ENTITY_DB} -f ${ENTITY_DB}/dbpasswd -z ${NOISE_FILE} -o ${REQ} ${OPTIONS} < ${CU_DATA} 
     html_msg $? 0 "${SCENARIO}${TESTNAME}"
 }
 
@@ -395,8 +401,49 @@ process_ocsp()
 ${NSS_AIA_OCSP}:${OCSP}
 0
 n
-n"
+n
+"
     fi
+}
+
+process_crldp()
+{
+    if [ -n "${CRLDP}" ]; then
+        OPTIONS="${OPTIONS} -4"
+
+        EXT_DATA="${EXT_DATA}1
+"
+
+        for ITEM in ${CRLDP}; do
+            CRL_PUBLIC="${HOST}-$$-${ITEM}.crl"
+
+            EXT_DATA="${EXT_DATA}7
+${NSS_AIA_HTTP}/${CRL_PUBLIC}
+"
+        done
+
+        EXT_DATA="${EXT_DATA}0
+0
+0
+n
+n
+"
+    fi
+}
+
+copy_crl()
+
+{
+    if [ -z "${NSS_AIA_PATH}" ]; then
+        return;
+    fi
+
+    CRL_LOCAL="${COPYCRL}.crl"
+    CRL_PUBLIC="${HOST}-$$-${COPYCRL}.crl"
+
+    cp ${CRL_LOCAL} ${NSS_AIA_PATH}/${CRL_PUBLIC} 2> /dev/null
+    chmod a+r ${NSS_AIA_PATH}/${CRL_PUBLIC}
+    echo ${NSS_AIA_PATH}/${CRL_PUBLIC} >> ${AIA_FILES}
 }
 
 ########################## process_extension ###########################
@@ -780,6 +827,7 @@ parse_config()
             MAPPING=
             INHIBIT=
             AIA=
+            CRLDP=
             OCSP=
             DB=
             EMAILS=
@@ -816,6 +864,9 @@ parse_config()
         "aia")
             AIA="${AIA} ${VALUE}"
             ;;
+        "crldp")
+            CRLDP="${CRLDP} ${VALUE}"
+            ;;
         "ocsp")
             OCSP="${VALUE}"
             ;;
@@ -841,6 +892,10 @@ parse_config()
             ;;
         "serial")
             SERIAL="${VALUE}"
+            ;;
+        "copycrl")
+            COPYCRL="${VALUE}"
+            copy_crl "${COPYCRL}"
             ;;
         "verify")
             VERIFY="${VALUE}"
