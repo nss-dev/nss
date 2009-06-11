@@ -230,9 +230,6 @@ endif
 
 ifeq ($(OS_TARGET),SunOS)
 
-# The -R '$ORIGIN' linker option instructs this library to search for its
-# dependencies in the same directory where it resides.
-MKSHLIB += -R '$$ORIGIN'
 ifdef NS_USE_GCC
     ifdef GCC_USE_GNU_LD
 	MKSHLIB += -Wl,-Bsymbolic,-z,now,-z,text

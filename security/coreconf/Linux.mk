@@ -110,7 +110,7 @@ LIBC_TAG		= _glibc
 
 ifeq ($(OS_RELEASE),2.0)
 	OS_REL_CFLAGS	+= -DLINUX2_0
-	MKSHLIB		= $(CC) -shared -Wl,-soname -Wl,$(@:$(OBJDIR)/%.so=%.so)
+	MKSHLIB		= $(CC) -shared -Wl,-soname -Wl,$(@:$(OBJDIR)/%.so=%.so) $(RPATH)
 	ifdef MAPFILE
 		MKSHLIB += -Wl,--version-script,$(MAPFILE)
 	endif
@@ -154,3 +154,18 @@ CPU_TAG = _$(CPU_ARCH)
 
 USE_SYSTEM_ZLIB = 1
 ZLIB_LIBS = -lz
+
+# The -rpath '$$ORIGIN' linker option instructs this library to search for its
+# dependencies in the same directory where it resides.
+ifeq ($(BUILD_SUN_PKG), 1)
+ifeq ($(USE_64), 1)
+RPATH = -Wl,-rpath,'$$ORIGIN:/opt/sun/private/lib64:/opt/sun/private/lib'
+else
+RPATH = -Wl,-rpath,'$$ORIGIN:/opt/sun/private/lib'
+endif
+else
+ifdef MOZILLA_CLIENT
+RPATH = -Wl,-rpath,'$$ORIGIN'
+endif
+endif
+
