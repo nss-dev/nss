@@ -1978,8 +1978,10 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
     int inUpdate;
     PRUint32 accessOps;
 
-    *certdb = NULL;
-    *keydb = NULL;
+    if (certdb) 
+	*certdb = NULL;
+    if (keydb) 
+	*keydb = NULL;
     *newInit = 0;
 
 #ifdef SQLITE_UNSAFE_THREADS
