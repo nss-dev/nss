@@ -1392,7 +1392,9 @@ loser:
 	PORT_Free(ntemplate);
 	PORT_Free(data);
     }
-    PORT_FreeArena(arena, PR_FALSE);
+    if (arena) {
+	PORT_FreeArena(arena, PR_FALSE);
+    }
     return crv;
 }
 
