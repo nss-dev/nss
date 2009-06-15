@@ -163,9 +163,5 @@ RPATH = -Wl,-rpath,'$$ORIGIN:/opt/sun/private/lib64:/opt/sun/private/lib'
 else
 RPATH = -Wl,-rpath,'$$ORIGIN:/opt/sun/private/lib'
 endif
-else
-ifdef MOZILLA_CLIENT
-RPATH = -Wl,-rpath,'$$ORIGIN'
-endif
 endif
 
