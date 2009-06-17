@@ -83,6 +83,8 @@ LIB_SUFFIX   = lib
 DLL_SUFFIX   = dll
 OS_DLLFLAGS  += -DLL
 
+EXTRA_EXE_LD_FLAGS += -ENTRY:mainWCRTStartup
+
 ifdef BUILD_OPT
 #   OS_CFLAGS  += -MD
     OPTIMIZER  += -O2
