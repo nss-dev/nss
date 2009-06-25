@@ -159,3 +159,4 @@ f none usr/include/mps/ssl.h 0644 root bin
 f none usr/include/mps/sslerr.h 0644 root bin
 f none usr/include/mps/sslproto.h 0644 root bin
 f none usr/include/mps/sslt.h 0644 root bin
+f none usr/include/mps/utilrename.h 0644 root bin
