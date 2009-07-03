@@ -431,6 +431,26 @@ n
     fi
 }
 
+process_ku_ns_eku()
+{
+    if [ -n "${EXT_KU}" ]; then
+        OPTIONS="${OPTIONS} --keyUsage ${EXT_KU}"
+    fi
+    if [ -n "${EXT_NS}" ]; then
+        EXT_NS_KEY=$(echo ${EXT_NS} | cut -d: -f1)
+        EXT_NS_CODE=$(echo ${EXT_NS} | cut -d: -f2)
+
+        OPTIONS="${OPTIONS} --nsCertType ${EXT_NS_KEY}"
+        DATA="${DATA}${EXT_NS_CODE}
+-1
+n
+"
+    fi
+    if [ -n "${EXT_EKU}" ]; then
+        OPTIONS="${OPTIONS} --extKeyUsage ${EXT_EKU}"
+    fi
+}
+
 copy_crl()
 
 {
@@ -460,6 +480,7 @@ process_extensions()
     process_inhibit
     process_aia
     process_ocsp
+    process_ku_ns_eku
 }
 
 ############################## sign_cert ###############################
@@ -710,16 +731,19 @@ verify_cert()
         fi
     done
 
-    TESTNAME="Verifying certificate(s) ${VFY_LIST} with flags ${REV_OPTS} ${DB_OPT} ${FETCH_OPT} ${POLICY_OPT} ${TRUST_OPT}"
+    VFY_OPTS_TNAME="${REV_OPTS} ${DB_OPT} ${FETCH_OPT} ${USAGE_OPT} ${POLICY_OPT} ${TRUST_OPT}"
+    VFY_OPTS_ALL="${DB_OPT} -pp -vv ${REV_OPTS} ${FETCH_OPT} ${USAGE_OPT} ${POLICY_OPT} ${VFY_CERTS} ${TRUST_OPT}"
+
+    TESTNAME="Verifying certificate(s) ${VFY_LIST} with flags ${VFY_OPTS_TNAME}"
     echo "${SCRIPTNAME}: ${TESTNAME}"
-    echo "vfychain ${DB_OPT} -pp -vv ${REV_OPTS} ${FETCH_OPT} ${POLICY_OPT} ${VFY_CERTS} ${TRUST_OPT}"
+    echo "vfychain ${VFY_OPTS_ALL}"
 
     if [ -z "${MEMLEAK_DBG}" ]; then
-        VFY_OUT=$(${BINDIR}/vfychain ${DB_OPT} -pp -vv ${REV_OPTS} ${FETCH_OPT} ${POLICY_OPT} ${VFY_CERTS} ${TRUST_OPT} 2>&1)
+        VFY_OUT=$(${BINDIR}/vfychain ${VFY_OPTS_ALL} 2>&1)
         RESULT=$?
         echo "${VFY_OUT}"
     else 
-        VFY_OUT=$(${RUN_COMMAND_DBG} ${BINDIR}/vfychain ${REV_OPTS} ${DB_OPT} -pp -vv ${FETCH_OPT} ${POLICY_OPT} ${VFY_CERTS} ${TRUST_OPT} 2>> ${LOGFILE})
+        VFY_OUT=$(${RUN_COMMAND_DBG} ${BINDIR}/vfychain ${VFY_OPTS_ALL} 2>> ${LOGFILE})
         RESULT=$?
         echo "${VFY_OUT}"
     fi
@@ -745,7 +769,6 @@ verify_cert()
         html_failed "${SCENARIO}${TESTNAME}"
     fi
 }
-
 
 check_ocsp()
 {
@@ -831,6 +854,9 @@ parse_config()
             OCSP=
             DB=
             EMAILS=
+            EXT_KU=
+            EXT_NS=
+            EXT_EKU=
             ;;
         "type")
             TYPE="${VALUE}"
@@ -848,6 +874,9 @@ parse_config()
             MAPPING=
             INHIBIT=
             AIA=
+            EXT_KU=
+            EXT_NS=
+            EXT_EKU=
             ;;
         "ctype") 
             CTYPE="${VALUE}"
@@ -904,6 +933,7 @@ parse_config()
             FETCH=
             EXP_RESULT=
             REV_OPTS=
+            USAGE_OPT=
             ;;
         "cert")
             VERIFY="${VERIFY} ${VALUE}"
@@ -961,6 +991,18 @@ parse_config()
                 echo "OCSP server not accessible, skipping OCSP tests"
                 break;
             fi
+            ;;
+        "ku")
+            EXT_KU="${VALUE}"
+            ;;
+        "ns")
+            EXT_NS="${VALUE}"
+            ;;
+        "eku")
+            EXT_EKU="${VALUE}"
+            ;;
+        "usage")
+            USAGE_OPT="-u ${VALUE}"
             ;;
         "")
             if [ -n "${ENTITY}" ]; then
