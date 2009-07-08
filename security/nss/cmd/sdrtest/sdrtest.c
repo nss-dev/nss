@@ -113,7 +113,7 @@ readStdin(SECItem * result)
   result->data = NULL;
   do {
     if (bufsize < wanted) {
-      unsigned char * tmpData = (unsigned char *)realloc(result->data, wanted);
+      unsigned char * tmpData = (unsigned char *)PR_Realloc(result->data, wanted);
       if (!tmpData) {
 	if (verbose) PR_fprintf(pr_stderr, "Allocation of buffer failed\n");
 	return -1;
@@ -153,7 +153,7 @@ readInputFile(const char * filename, SECItem * result)
   }
 
   result->len = info.size;
-  result->data = (unsigned char *)malloc(result->len);
+  result->data = (unsigned char *)PR_Malloc(result->len);
   if (!result->data) {
     if (verbose) PR_fprintf(pr_stderr, "Allocation of buffer failed\n");
     goto file_loser;
@@ -313,7 +313,7 @@ main (int argc, char **argv)
 	  retval = -1;
 	  goto loser;
 	}
-	free(result.data);
+	SECITEM_ZfreeItem(&result, PR_FALSE);
 	result = *ok;
       }
     }
@@ -437,7 +437,7 @@ main (int argc, char **argv)
 
 loser:
     if (text.data) SECITEM_ZfreeItem(&text, PR_FALSE);
-    if (result.data) free(result.data);
+    if (result.data) SECITEM_ZfreeItem(&result, PR_FALSE);
     if (NSS_Shutdown() != SECSuccess) {
        exit(1);
     }
