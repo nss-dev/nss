@@ -436,7 +436,7 @@ main (int argc, char **argv)
     }
 
 loser:
-    if (text.data) free(text.data);
+    if (text.data) SECITEM_ZfreeItem(&text, PR_FALSE);
     if (result.data) free(result.data);
     if (NSS_Shutdown() != SECSuccess) {
        exit(1);
