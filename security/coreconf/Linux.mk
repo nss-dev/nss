@@ -140,7 +140,12 @@ endif
 ARCH			= linux
 
 DSO_CFLAGS		= -fPIC
-DSO_LDOPTS		= -shared $(ARCHFLAG) -Wl,-z,defs
+DSO_LDOPTS		= -shared $(ARCHFLAG)
+# The linker on Red Hat Linux 7.2 and RHEL 2.1 (GNU ld version 2.11.90.0.8)
+# incorrectly reports undefined references in the libraries we link with, so
+# we don't use -z defs there.
+ZDEFS_FLAG		= -Wl,-z,defs
+DSO_LDOPTS		+= $(if $(findstring 2.11.90.0.8,$(shell ld -v)),,$(ZDEFS_FLAG))
 DSO_LDFLAGS		=
 LDFLAGS			+= $(ARCHFLAG)
 
