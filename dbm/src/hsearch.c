@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 1990, 1993, 1994
+ * Copyright (c) 1990, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
@@ -33,22 +33,74 @@
  */
 
 #if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)hash_log2.c	8.2 (Berkeley) 5/31/94";
+static char sccsid[] = "@(#)hsearch.c	8.4 (Berkeley) 7/21/94";
 #endif /* LIBC_SCCS and not lint */
 
 #include "watcomfx.h"
 
-#include <stdio.h>
 #ifndef macintosh
 #include <sys/types.h>
 #endif
+
+#include <fcntl.h>
+#include <string.h>
+
 #include "mcom_db.h"
+#include "hsearch.h"
 
-uint32 __log2(uint32 num)
+static DB *dbp = NULL;
+static ENTRY retval;
+
+extern int
+hcreate(uint nel)
 {
-	register uint32 i, limit;
+	HASHINFO info;
 
-	limit = 1;
-	for (i = 0; limit < num; limit = limit << 1, i++) {}
-	return (i);
+	info.nelem = nel;
+	info.bsize = 256;
+	info.ffactor = 8;
+	info.cachesize = 0;
+	info.hash = NULL;
+	info.lorder = 0;
+	dbp = (DB *)__hash_open(NULL, O_CREAT | O_RDWR, 0600, &info, 0);
+	return ((int)dbp);
+}
+
+extern ENTRY *
+hsearch(ENTRY item, ACTION action)
+{
+	DBT key, val;
+	int status;
+
+	if (!dbp)
+		return (NULL);
+	key.data = (uint8 *)item.key;
+	key.size = strlen(item.key) + 1;
+
+	if (action == ENTER) {
+		val.data = (uint8 *)item.data;
+		val.size = strlen(item.data) + 1;
+		status = (dbp->put)(dbp, &key, &val, R_NOOVERWRITE);
+		if (status)
+			return (NULL);
+	} else {
+		/* FIND */
+		status = (dbp->get)(dbp, &key, &val, 0);
+		if (status)
+			return (NULL);
+		else
+			item.data = (char *)val.data;
+	}
+	retval.key = item.key;
+	retval.data = item.data;
+	return (&retval);
+}
+
+extern void
+hdestroy()
+{
+	if (dbp) {
+		(void)(dbp->close)(dbp);
+		dbp = NULL;
+	}
 }

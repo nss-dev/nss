@@ -33,6 +33,8 @@
 static char sccsid[] = "@(#)db.c	8.4 (Berkeley) 2/21/94";
 #endif /* LIBC_SCCS and not lint */
 
+#include "watcomfx.h"
+
 #ifndef __DBINTERFACE_PRIVATE
 #define __DBINTERFACE_PRIVATE
 #endif
@@ -83,7 +85,7 @@ dbopen(const char *fname, int flags,int mode, DBTYPE type, const void *openinfo)
 #define	DB_FLAGS	(DB_LOCK | DB_SHMEM | DB_TXN)
 
 
-#if 0  /* most systems don't have EXLOCK and SHLOCK */
+#if 0  /* most systems dont have EXLOCK and SHLOCK */
 #define	USE_OPEN_FLAGS							\
 	(O_CREAT | O_EXCL | O_EXLOCK | O_NONBLOCK | O_RDONLY |		\
 	 O_RDWR | O_SHLOCK | O_TRUNC)

@@ -36,12 +36,14 @@
 static char sccsid[] = "@(#)hash.c	8.9 (Berkeley) 6/16/94";
 #endif /* LIBC_SCCS and not lint */
 
-#if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh)
+#include "watcomfx.h"
+
+#if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh) && !defined(XP_OS2_VACPP)
 #include <sys/param.h>
 #endif
 
 #if !defined(macintosh)
-#ifdef XP_OS2
+#ifdef XP_OS2_EMX
 #include <sys/types.h>
 #endif
 #include <sys/stat.h>
@@ -58,7 +60,7 @@ static char sccsid[] = "@(#)hash.c	8.9 (Berkeley) 6/16/94";
 #include <stdlib.h>
 #include <string.h>
 
-#if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh)
+#if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh) && !defined(XP_OS2_VACPP)
 #include <unistd.h>
 #endif
 #if defined(_WIN32) || defined(_WINDOWS) 
