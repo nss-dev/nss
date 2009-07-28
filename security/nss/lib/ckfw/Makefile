@@ -41,7 +41,7 @@ include $(CORE_DEPTH)/coreconf/config.mk
 include config.mk
 include $(CORE_DEPTH)/coreconf/rules.mk
 
-ifdef MOZILLA_CLIENT
+ifdef NOTDEF # was ifdef MOZILLA_CLIENT
 NSS_BUILD_CAPI = 1
 endif
 
