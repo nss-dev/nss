@@ -124,7 +124,11 @@ ifeq (11,$(ALLOW_OPT_CODE_SIZE)$(OPT_CODE_SIZE))
 else
 	OPTIMIZER = -O2
 endif
+ifdef MOZ_DEBUG_SYMBOLS
+	OPTIMIZER  += -gstabs+
 endif
+endif
+
 
 ifeq ($(USE_PTHREADS),1)
 OS_PTHREAD = -lpthread 
