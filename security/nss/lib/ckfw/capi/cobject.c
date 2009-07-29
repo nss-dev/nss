@@ -172,7 +172,7 @@ nss_ckcapi_DERUnwrap
       len = (len << 8) | (unsigned) *src++;
     }
   }
-  if (len + (src-start) > (unsigned int)size) {
+  if (len + ((unsigned char *)src-start) > (unsigned int)size) {
     return start;
   }
   if (next) {
