@@ -287,6 +287,8 @@ PORT_FreeArena(PLArenaPool *arena, PRBool zero)
     static const PRVersionDescription * pvd;
     static PRBool  doFreeArenaPool = PR_FALSE;
 
+    if (!pool)
+    	return;
     if (ARENAPOOL_MAGIC == pool->magic ) {
 	len  = sizeof *pool;
 	lock = pool->lock;
