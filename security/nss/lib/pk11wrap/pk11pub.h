@@ -109,6 +109,7 @@ PK11SlotList *PK11_FindSlotsByNames(const char *dllName,
         const char* slotName, const char* tokenName, PRBool presentOnly);
 PRBool PK11_IsReadOnly(PK11SlotInfo *slot);
 PRBool PK11_IsInternal(PK11SlotInfo *slot);
+PRBool PK11_IsInternalKeySlot(PK11SlotInfo *slot);
 char * PK11_GetTokenName(PK11SlotInfo *slot);
 char * PK11_GetSlotName(PK11SlotInfo *slot);
 PRBool PK11_NeedLogin(PK11SlotInfo *slot);
