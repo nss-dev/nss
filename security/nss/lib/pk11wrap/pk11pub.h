@@ -238,6 +238,15 @@ PK11SlotInfo *SECMOD_OpenUserDB(const char *moduleSpec);
 SECStatus SECMOD_CloseUserDB(PK11SlotInfo *slot);
 
 /*
+ * This is exactly the same as OpenUserDB except it can be called on any
+ * module that understands softoken style new slot entries. The resulting
+ * slot can be closed using SECMOD_CloseUserDB above. Value of moduleSpec
+ * is token specific.
+ */
+PK11SlotInfo *SECMOD_OpenNewSlot(SECMODModule *mod, const char *moduleSpec);
+
+
+/*
  * merge the permanent objects from on token to another 
  */
 SECStatus PK11_MergeTokens(PK11SlotInfo *targetSlot, PK11SlotInfo *sourceSlot,
