@@ -49,6 +49,15 @@
 #include <string.h>
 #include <stdarg.h>
 
+#if defined(XP_UNIX) && !defined(NO_FORK_CHECK)
+#include <unistd.h>
+#include <sys/wait.h>
+#else
+#ifndef NO_FORK_CHECK
+#define NO_FORK_CHECK
+#endif
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
 #define LIB_NAME "softokn3.dll"
@@ -58,8 +67,7 @@
 #include "plgetopt.h"
 #include "prenv.h"
 
-#include "pkcs11.h"
-
+#include "pk11table.h"
 
 #define NUM_ELEM(array) (sizeof(array)/sizeof(array[0]))
 
@@ -67,154 +75,17 @@
 #define NULL_PTR 0
 #endif
 
-struct tuple_str {
-    CK_RV         errNum;
-    const char * errString;
-};
-
-
-typedef struct tuple_str tuple_str;
-
-static const tuple_str errStrings[] = {
-{CKR_OK                              , "CKR_OK                              "},
-{CKR_CANCEL                          , "CKR_CANCEL                          "},
-{CKR_HOST_MEMORY                     , "CKR_HOST_MEMORY                     "},
-{CKR_SLOT_ID_INVALID                 , "CKR_SLOT_ID_INVALID                 "},
-{CKR_GENERAL_ERROR                   , "CKR_GENERAL_ERROR                   "},
-{CKR_FUNCTION_FAILED                 , "CKR_FUNCTION_FAILED                 "},
-{CKR_ARGUMENTS_BAD                   , "CKR_ARGUMENTS_BAD                   "},
-{CKR_NO_EVENT                        , "CKR_NO_EVENT                        "},
-{CKR_NEED_TO_CREATE_THREADS          , "CKR_NEED_TO_CREATE_THREADS          "},
-{CKR_CANT_LOCK                       , "CKR_CANT_LOCK                       "},
-{CKR_ATTRIBUTE_READ_ONLY             , "CKR_ATTRIBUTE_READ_ONLY             "},
-{CKR_ATTRIBUTE_SENSITIVE             , "CKR_ATTRIBUTE_SENSITIVE             "},
-{CKR_ATTRIBUTE_TYPE_INVALID          , "CKR_ATTRIBUTE_TYPE_INVALID          "},
-{CKR_ATTRIBUTE_VALUE_INVALID         , "CKR_ATTRIBUTE_VALUE_INVALID         "},
-{CKR_DATA_INVALID                    , "CKR_DATA_INVALID                    "},
-{CKR_DATA_LEN_RANGE                  , "CKR_DATA_LEN_RANGE                  "},
-{CKR_DEVICE_ERROR                    , "CKR_DEVICE_ERROR                    "},
-{CKR_DEVICE_MEMORY                   , "CKR_DEVICE_MEMORY                   "},
-{CKR_DEVICE_REMOVED                  , "CKR_DEVICE_REMOVED                  "},
-{CKR_ENCRYPTED_DATA_INVALID          , "CKR_ENCRYPTED_DATA_INVALID          "},
-{CKR_ENCRYPTED_DATA_LEN_RANGE        , "CKR_ENCRYPTED_DATA_LEN_RANGE        "},
-{CKR_FUNCTION_CANCELED               , "CKR_FUNCTION_CANCELED               "},
-{CKR_FUNCTION_NOT_PARALLEL           , "CKR_FUNCTION_NOT_PARALLEL           "},
-{CKR_FUNCTION_NOT_SUPPORTED          , "CKR_FUNCTION_NOT_SUPPORTED          "},
-{CKR_KEY_HANDLE_INVALID              , "CKR_KEY_HANDLE_INVALID              "},
-{CKR_KEY_SIZE_RANGE                  , "CKR_KEY_SIZE_RANGE                  "},
-{CKR_KEY_TYPE_INCONSISTENT           , "CKR_KEY_TYPE_INCONSISTENT           "},
-{CKR_KEY_NOT_NEEDED                  , "CKR_KEY_NOT_NEEDED                  "},
-{CKR_KEY_CHANGED                     , "CKR_KEY_CHANGED                     "},
-{CKR_KEY_NEEDED                      , "CKR_KEY_NEEDED                      "},
-{CKR_KEY_INDIGESTIBLE                , "CKR_KEY_INDIGESTIBLE                "},
-{CKR_KEY_FUNCTION_NOT_PERMITTED      , "CKR_KEY_FUNCTION_NOT_PERMITTED      "},
-{CKR_KEY_NOT_WRAPPABLE               , "CKR_KEY_NOT_WRAPPABLE               "},
-{CKR_KEY_UNEXTRACTABLE               , "CKR_KEY_UNEXTRACTABLE               "},
-{CKR_MECHANISM_INVALID               , "CKR_MECHANISM_INVALID               "},
-{CKR_MECHANISM_PARAM_INVALID         , "CKR_MECHANISM_PARAM_INVALID         "},
-{CKR_OBJECT_HANDLE_INVALID           , "CKR_OBJECT_HANDLE_INVALID           "},
-{CKR_OPERATION_ACTIVE                , "CKR_OPERATION_ACTIVE                "},
-{CKR_OPERATION_NOT_INITIALIZED       , "CKR_OPERATION_NOT_INITIALIZED       "},
-{CKR_PIN_INCORRECT                   , "CKR_PIN_INCORRECT                   "},
-{CKR_PIN_INVALID                     , "CKR_PIN_INVALID                     "},
-{CKR_PIN_LEN_RANGE                   , "CKR_PIN_LEN_RANGE                   "},
-{CKR_PIN_EXPIRED                     , "CKR_PIN_EXPIRED                     "},
-{CKR_PIN_LOCKED                      , "CKR_PIN_LOCKED                      "},
-{CKR_SESSION_CLOSED                  , "CKR_SESSION_CLOSED                  "},
-{CKR_SESSION_COUNT                   , "CKR_SESSION_COUNT                   "},
-{CKR_SESSION_HANDLE_INVALID          , "CKR_SESSION_HANDLE_INVALID          "},
-{CKR_SESSION_PARALLEL_NOT_SUPPORTED  , "CKR_SESSION_PARALLEL_NOT_SUPPORTED  "},
-{CKR_SESSION_READ_ONLY               , "CKR_SESSION_READ_ONLY               "},
-{CKR_SESSION_EXISTS                  , "CKR_SESSION_EXISTS                  "},
-{CKR_SESSION_READ_ONLY_EXISTS        , "CKR_SESSION_READ_ONLY_EXISTS        "},
-{CKR_SESSION_READ_WRITE_SO_EXISTS    , "CKR_SESSION_READ_WRITE_SO_EXISTS    "},
-{CKR_SIGNATURE_INVALID               , "CKR_SIGNATURE_INVALID               "},
-{CKR_SIGNATURE_LEN_RANGE             , "CKR_SIGNATURE_LEN_RANGE             "},
-{CKR_TEMPLATE_INCOMPLETE             , "CKR_TEMPLATE_INCOMPLETE             "},
-{CKR_TEMPLATE_INCONSISTENT           , "CKR_TEMPLATE_INCONSISTENT           "},
-{CKR_TOKEN_NOT_PRESENT               , "CKR_TOKEN_NOT_PRESENT               "},
-{CKR_TOKEN_NOT_RECOGNIZED            , "CKR_TOKEN_NOT_RECOGNIZED            "},
-{CKR_TOKEN_WRITE_PROTECTED           , "CKR_TOKEN_WRITE_PROTECTED           "},
-{CKR_UNWRAPPING_KEY_HANDLE_INVALID   , "CKR_UNWRAPPING_KEY_HANDLE_INVALID   "},
-{CKR_UNWRAPPING_KEY_SIZE_RANGE       , "CKR_UNWRAPPING_KEY_SIZE_RANGE       "},
-{CKR_UNWRAPPING_KEY_TYPE_INCONSISTENT, "CKR_UNWRAPPING_KEY_TYPE_INCONSISTENT"},
-{CKR_USER_ALREADY_LOGGED_IN          , "CKR_USER_ALREADY_LOGGED_IN          "},
-{CKR_USER_NOT_LOGGED_IN              , "CKR_USER_NOT_LOGGED_IN              "},
-{CKR_USER_PIN_NOT_INITIALIZED        , "CKR_USER_PIN_NOT_INITIALIZED        "},
-{CKR_USER_TYPE_INVALID               , "CKR_USER_TYPE_INVALID               "},
-{CKR_USER_ANOTHER_ALREADY_LOGGED_IN  , "CKR_USER_ANOTHER_ALREADY_LOGGED_IN  "},
-{CKR_USER_TOO_MANY_TYPES             , "CKR_USER_TOO_MANY_TYPES             "},
-{CKR_WRAPPED_KEY_INVALID             , "CKR_WRAPPED_KEY_INVALID             "},
-{CKR_WRAPPED_KEY_LEN_RANGE           , "CKR_WRAPPED_KEY_LEN_RANGE           "},
-{CKR_WRAPPING_KEY_HANDLE_INVALID     , "CKR_WRAPPING_KEY_HANDLE_INVALID     "},
-{CKR_WRAPPING_KEY_SIZE_RANGE         , "CKR_WRAPPING_KEY_SIZE_RANGE         "},
-{CKR_WRAPPING_KEY_TYPE_INCONSISTENT  , "CKR_WRAPPING_KEY_TYPE_INCONSISTENT  "},
-{CKR_RANDOM_SEED_NOT_SUPPORTED       , "CKR_RANDOM_SEED_NOT_SUPPORTED       "},
-{CKR_RANDOM_NO_RNG                   , "CKR_RANDOM_NO_RNG                   "},
-{CKR_DOMAIN_PARAMS_INVALID           , "CKR_DOMAIN_PARAMS_INVALID           "},
-{CKR_BUFFER_TOO_SMALL                , "CKR_BUFFER_TOO_SMALL                "},
-{CKR_SAVED_STATE_INVALID             , "CKR_SAVED_STATE_INVALID             "},
-{CKR_INFORMATION_SENSITIVE           , "CKR_INFORMATION_SENSITIVE           "},
-{CKR_STATE_UNSAVEABLE                , "CKR_STATE_UNSAVEABLE                "},
-{CKR_CRYPTOKI_NOT_INITIALIZED        , "CKR_CRYPTOKI_NOT_INITIALIZED        "},
-{CKR_CRYPTOKI_ALREADY_INITIALIZED    , "CKR_CRYPTOKI_ALREADY_INITIALIZED    "},
-{CKR_MUTEX_BAD                       , "CKR_MUTEX_BAD                       "},
-{CKR_MUTEX_NOT_LOCKED                , "CKR_MUTEX_NOT_LOCKED                "},
-{CKR_FUNCTION_REJECTED               , "CKR_FUNCTION_REJECTED               "},
-{CKR_VENDOR_DEFINED                  , "CKR_VENDOR_DEFINED                  "},
-{0xCE534351                          , "CKR_NETSCAPE_CERTDB_FAILED          "},
-{0xCE534352                          , "CKR_NETSCAPE_KEYDB_FAILED           "}
-};
-
-static const CK_ULONG numStrings = sizeof(errStrings) / sizeof(tuple_str);
-
 /* Returns constant error string for "CRV".
  * Returns "unknown error" if errNum is unknown.
  */
 const char *
 PKM_CK_RVtoStr(CK_RV errNum) {
-    CK_ULONG low  = 1;
-    CK_ULONG high = numStrings - 1;
-    CK_ULONG i;
-    CK_RV num;
-    static int initDone;
+    const char * err; 
 
-    /* make sure table is in  ascending order.
-     * binary search depends on it.
-     */
-    if (!initDone) {
-        CK_RV lastNum = CKR_OK;
-        for (i = low; i <= high; ++i) {
-            num = errStrings[i].errNum;
-            if (num <= lastNum) {
-                    fprintf(stderr,
-"sequence error in error strings at item %d\n"
-"error %d (%s)\n"
-"should come after \n"
-"error %d (%s)\n",
-                        (int) i, (int) lastNum, errStrings[i-1].errString,
-                        (int) num, errStrings[i].errString);
-            }
-            lastNum = num;
-        }
-        initDone = 1;
-    }
-
-    /* Do binary search of table. */
-    while (low + 1 < high) {
-        i = (low + high) / 2;
-        num = errStrings[i].errNum;
-        if (errNum == num)
-            return errStrings[i].errString;
-        if (errNum < num)
-            high = i;
-        else
-            low = i;
-    }
-    if (errNum == errStrings[low].errNum)
-            return errStrings[low].errString;
-    if (errNum == errStrings[high].errNum)
-            return errStrings[high].errString;
+    err = getName(errNum, ConstResult);
+    
+    if (err) return err;
+    
     return "unknown error";
 }
 
@@ -241,81 +112,6 @@ typedef struct CK_C_INITIALIZE_ARGS_NSS {
 } CK_C_INITIALIZE_ARGS_NSS;
 
 #include "pkcs11u.h"
-
-static CK_ATTRIBUTE_TYPE all_known_attribute_types[] = {
-    CKA_CLASS,
-    CKA_TOKEN,
-    CKA_PRIVATE,
-    CKA_LABEL,
-    CKA_APPLICATION,
-    CKA_VALUE,
-    CKA_CERTIFICATE_TYPE,
-    CKA_ISSUER,
-    CKA_SERIAL_NUMBER,
-    CKA_KEY_TYPE,
-    CKA_SUBJECT,
-    CKA_ID,
-    CKA_SENSITIVE,
-    CKA_ENCRYPT,
-    CKA_DECRYPT,
-    CKA_WRAP,
-    CKA_UNWRAP,
-    CKA_SIGN,
-    CKA_SIGN_RECOVER,
-    CKA_VERIFY,
-    CKA_VERIFY_RECOVER,
-    CKA_DERIVE,
-    CKA_START_DATE,
-    CKA_END_DATE,
-    CKA_MODULUS,
-    CKA_MODULUS_BITS,
-    CKA_PUBLIC_EXPONENT,
-    CKA_PRIVATE_EXPONENT,
-    CKA_PRIME_1,
-    CKA_PRIME_2,
-    CKA_EXPONENT_1,
-    CKA_EXPONENT_2,
-    CKA_COEFFICIENT,
-    CKA_PRIME,
-    CKA_SUBPRIME,
-    CKA_BASE,
-    CKA_VALUE_BITS,
-    CKA_VALUE_LEN,
-    CKA_EXTRACTABLE,
-    CKA_LOCAL,
-    CKA_NEVER_EXTRACTABLE,
-    CKA_ALWAYS_SENSITIVE,
-    CKA_MODIFIABLE,
-#ifdef CKA_NETSCAPE
-    CKA_NETSCAPE_URL,
-    CKA_NETSCAPE_EMAIL,
-    CKA_NETSCAPE_SMIME_INFO,
-    CKA_NETSCAPE_SMIME_TIMESTAMP,
-    CKA_NETSCAPE_PKCS8_SALT,
-    CKA_NETSCAPE_PASSWORD_CHECK,
-    CKA_NETSCAPE_EXPIRES,
-#endif /* CKA_NETSCAPE */
-#ifdef CKA_TRUST
-    CKA_TRUST_DIGITAL_SIGNATURE,
-    CKA_TRUST_NON_REPUDIATION,
-    CKA_TRUST_KEY_ENCIPHERMENT,
-    CKA_TRUST_DATA_ENCIPHERMENT,
-    CKA_TRUST_KEY_AGREEMENT,
-    CKA_TRUST_KEY_CERT_SIGN,
-    CKA_TRUST_CRL_SIGN,
-    CKA_TRUST_SERVER_AUTH,
-    CKA_TRUST_CLIENT_AUTH,
-    CKA_TRUST_CODE_SIGNING,
-    CKA_TRUST_EMAIL_PROTECTION,
-    CKA_TRUST_IPSEC_END_SYSTEM,
-    CKA_TRUST_IPSEC_TUNNEL,
-    CKA_TRUST_IPSEC_USER,
-    CKA_TRUST_TIME_STAMPING,
-#endif /* CKA_TRUST */
-};
-
-static int number_of_all_known_attribute_types =
-(sizeof(all_known_attribute_types)/sizeof(all_known_attribute_types[0]));
 
 #define MAX_SIG_SZ 128
 #define MAX_CIPHER_SZ 128
@@ -544,6 +340,9 @@ CK_RV PKM_RecoverFunctions(CK_FUNCTION_LIST_PTR pFunctionList,
                     CK_OBJECT_HANDLE hPubKey, CK_OBJECT_HANDLE hPrivKey,
                     CK_MECHANISM *signMech, const CK_BYTE * pData, 
                     CK_ULONG pDataLen);
+CK_RV PKM_ForkCheck(int expected, CK_FUNCTION_LIST_PTR fList,
+		    PRBool forkAssert, CK_C_INITIALIZE_ARGS_NSS *initArgs);
+
 void  PKM_Help(); 
 void  PKM_CheckPath(char *string);
 char  *PKM_FilePasswd(char *pwFile);
@@ -565,14 +364,18 @@ int main(int argc, char **argv)
     char *configDir = NULL;
     char *dbPrefix = NULL;
     char *disableUnload = NULL;
+    PRBool doForkTests = PR_TRUE;
 
     PLOptStatus os;
-    PLOptState *opt = PL_CreateOptState(argc, argv, "nvhf:d:p:");
+    PLOptState *opt = PL_CreateOptState(argc, argv, "nvhf:Fd:p:");
     while (PL_OPT_EOL != (os = PL_GetNextOpt(opt)))
     {
-        if (PL_OPT_BAD == os) continue;
+       if (PL_OPT_BAD == os) continue;
        switch (opt->option)
         {
+        case 'F':  /* disable fork tests */
+            doForkTests = PR_FALSE;
+            break;
         case 'n':  /* non fips mode */
             MODE = NONFIPSMODE;
             slotID = 1;
@@ -611,6 +414,16 @@ int main(int argc, char **argv)
     if (!dbPrefix) {
         dbPrefix = strdup("");
     }
+
+    if (doForkTests)
+    {
+        /* first, try to fork without softoken loaded to make sure
+         * everything is OK */
+        crv = PKM_ForkCheck(123, NULL, PR_FALSE, NULL);
+        if (crv != CKR_OK)
+            goto cleanup;
+    }
+
 
 #ifdef _WIN32
     hModule = LoadLibrary(LIB_NAME);
@@ -665,6 +478,16 @@ int main(int argc, char **argv)
     crv = (*pC_GetFunctionList)(&pFunctionList);
     assert(crv == CKR_OK);
 
+
+    if (doForkTests)
+    {
+        /* now, try to fork with softoken loaded, but not initialized */
+        crv = PKM_ForkCheck(CKR_CRYPTOKI_NOT_INITIALIZED, pFunctionList,
+			    PR_TRUE, NULL);
+        if (crv != CKR_OK)
+            goto cleanup;
+    }
+    
     initArgs.CreateMutex = NULL;
     initArgs.DestroyMutex = NULL;
     initArgs.LockMutex = NULL;
@@ -690,6 +513,33 @@ int main(int argc, char **argv)
                    PKM_CK_RVtoStr(crv));
         goto cleanup;
     }
+
+    if (doForkTests)
+    {
+        /* Disable core on fork for this test, since we are testing the
+         * pathological case, and if enabled, the child process would dump
+         * core in C_GetTokenInfo .
+         * We can still differentiate the correct from incorrect behavior
+         * by the PKCS#11 return code.
+         */
+        /* try to fork with softoken both loaded and initialized */
+        crv = PKM_ForkCheck(CKR_DEVICE_ERROR, pFunctionList, PR_FALSE, NULL);
+        if (crv != CKR_OK)
+            goto cleanup;
+    }
+
+    if (doForkTests)
+    {
+        /* In this next test, we fork and try to re-initialize softoken in
+         * the child. This should now work because softoken has the ability
+         * to hard reset.
+         */
+        /* try to fork with softoken both loaded and initialized */
+        crv = PKM_ForkCheck(CKR_OK, pFunctionList, PR_TRUE, &initArgs);
+        if (crv != CKR_OK)
+            goto cleanup;
+    }
+
     crv = PKM_ShowInfo(pFunctionList, slotID);
     if (crv == CKR_OK) {
         PKM_LogIt("PKM_ShowInfo succeeded\n");
@@ -868,9 +718,18 @@ int main(int argc, char **argv)
         goto cleanup;
     }
 
+    if (doForkTests)
+    {
+        /* try to fork with softoken still loaded, but de-initialized */
+        crv = PKM_ForkCheck(CKR_CRYPTOKI_NOT_INITIALIZED, pFunctionList,
+	                    PR_TRUE, NULL);
+        if (crv != CKR_OK)
+            goto cleanup;
+    }
+
     if (pSlotList) free(pSlotList);
 
-    /* demostrate how an application can be in Hybrid mode */
+    /* demonstrate how an application can be in Hybrid mode */
     /* PKM_HybridMode shows how to switch between NONFIPS */
     /* mode to FIPS mode */
 
@@ -884,9 +743,29 @@ int main(int argc, char **argv)
         goto cleanup;
     }
 
-    printf("**** Total number of TESTS ran in %s is %d. ****\n", 
-          ((MODE == FIPSMODE) ? "FIPS MODE" : "NON FIPS MODE"), (int) NUMTESTS);    
-    printf("**** ALL TESTS PASSED ****\n");
+    if (doForkTests) {
+        /* testing one more C_Initialize / C_Finalize to exercise getpid()
+         * fork check code */
+        crv = pFunctionList->C_Initialize(&initArgs);
+        if (crv == CKR_OK) {
+            PKM_LogIt("C_Initialize succeeded\n");
+        } else {
+            PKM_Error( "C_Initialize failed with 0x%08X, %-26s\n", crv, 
+                       PKM_CK_RVtoStr(crv));
+            goto cleanup;
+        }
+        crv = pFunctionList->C_Finalize(NULL);
+        if (crv == CKR_OK) {
+            PKM_LogIt("C_Finalize succeeded\n");
+        } else {
+            PKM_Error( "C_Finalize failed with 0x%08X, %-26s\n", crv, 
+                       PKM_CK_RVtoStr(crv));
+            goto cleanup;
+        }
+        /* try to C_Initialize / C_Finalize in child. This should succeed */
+        crv = PKM_ForkCheck(CKR_OK, pFunctionList, PR_TRUE, &initArgs);
+    }
+
     PKM_LogIt("unloading NSS PKCS # 11 softoken and exiting\n");
 
 cleanup:
@@ -912,6 +791,16 @@ cleanup:
         PR_UnloadLibrary(lib);
     }
 #endif
+    if (CKR_OK == crv && doForkTests && !disableUnload) {
+        /* try to fork with softoken both de-initialized and unloaded */
+        crv = PKM_ForkCheck(123, NULL, PR_TRUE, NULL);
+    }
+
+    printf("**** Total number of TESTS ran in %s is %d. ****\n", 
+          ((MODE == FIPSMODE) ? "FIPS MODE" : "NON FIPS MODE"), (int) NUMTESTS);    
+    if (CKR_OK == crv) {
+        printf("**** ALL TESTS PASSED ****\n");
+    }
 
     return crv;
 }
@@ -1722,7 +1611,7 @@ void PKM_LogIt(const char *fmt, ...) {
             printf("NON FIPS MODE: ");
         } else if (MODE == HYBRIDMODE) {
             printf("Hybrid MODE: ");
-        } else printf ("NO MODE: ");
+        } 
         vprintf(fmt, args);
         va_end(args);
     }
@@ -1801,7 +1690,7 @@ CK_RV PKM_InitPWforDB(CK_FUNCTION_LIST_PTR pFunctionList,
     }
     if (MODE == FIPSMODE) {
         crv = pFunctionList->C_InitPIN(hSession, (CK_UTF8CHAR *) weakPin, 
-                                       sizeof(weakPin));
+                                       strlen((char *)weakPin));
         if (crv == CKR_OK) {
             PKM_Error( "C_InitPIN with a weak password succeeded\n");
             return crv;
@@ -1811,7 +1700,7 @@ CK_RV PKM_InitPWforDB(CK_FUNCTION_LIST_PTR pFunctionList,
         }
     }
     crv = pFunctionList->C_InitPIN(hSession, (CK_UTF8CHAR *) testPin, 
-                                   sizeof(testPin));
+                                   strlen((char *)testPin));
     if (crv == CKR_OK) {
         PKM_LogIt("C_InitPIN succeeded\n");
     } else {
@@ -2201,7 +2090,8 @@ CK_RV PKM_Mechanism(CK_FUNCTION_LIST_PTR pFunctionList,
     CK_MECHANISM_TYPE *pMechanismList;
     CK_ULONG mechanismCount;
     CK_ULONG i;
-    
+    const char * mechName = NULL;
+
     NUMTESTS++; /* increment NUMTESTS */
 
     /* Get the mechanism list */
@@ -2229,13 +2119,21 @@ CK_RV PKM_Mechanism(CK_FUNCTION_LIST_PTR pFunctionList,
     }
     PKM_LogIt("C_GetMechanismList returned the mechanism types:\n");
     if (verbose) {
-        for (i = 0; i < mechanismCount; i++) {
-            printf("    0x%08lX", pMechanismList[i]);
-            if ((i != 0) && ((i % 4) == 0 )) printf("\n");
+        for (i = 1; i <= mechanismCount; i++) {
+            mechName = getName(pMechanismList[(i-1)], ConstMechanism);
+
+            /* output two mechanism name on each line */
+            /* currently the longest known mechansim name length is 37 */
+            if (mechName) {
+                printf("%-40s",mechName);
+            } else {
+                printf("Unknown mechanism: 0x%08lX ", pMechanismList[i]);
+            }    
+            if ((i != 0) && ((i % 2) == 0 )) printf("\n");
         }
-        printf("\n");
+        printf("\n\n");
     }
-    
+
     for ( i = 0; i < mechanismCount; i++ ) {
         CK_MECHANISM_INFO minfo;
 
@@ -2249,7 +2147,10 @@ CK_RV PKM_Mechanism(CK_FUNCTION_LIST_PTR pFunctionList,
             return crv;
         }
 
-        PKM_LogIt( "    [%lu]: CK_MECHANISM_TYPE = %lu\n", (i+1),
+        mechName = getName(pMechanismList[i], ConstMechanism);
+        if (!mechName) mechName = "Unknown mechanism";
+        PKM_LogIt( "    [%lu]: CK_MECHANISM_TYPE = %s 0x%08lX\n", (i+1),
+                   mechName,
                    pMechanismList[i]);
         PKM_LogIt( "    ulMinKeySize = %lu\n", minfo.ulMinKeySize);
         PKM_LogIt( "    ulMaxKeySize = %lu\n", minfo.ulMaxKeySize);
@@ -3161,8 +3062,6 @@ CK_RV PKM_PubKeySign(CK_FUNCTION_LIST_PTR pFunctionList,
 
 }
 
-
-
 CK_RV PKM_PublicKey(CK_FUNCTION_LIST_PTR pFunctionList, 
                     CK_SLOT_ID * pSlotList,
                     CK_ULONG slotID, CK_UTF8CHAR_PTR pwd, 
@@ -3635,7 +3534,10 @@ CK_RV PKM_FindAllObjects(CK_FUNCTION_LIST_PTR pFunctionList,
     CK_SESSION_INFO sinfo;
     CK_ATTRIBUTE_PTR pTemplate;
     CK_ULONG tnObjects = 0;
-    
+    int curMode;
+    int i;
+    int  number_of_all_known_attribute_types = totalKnownType(ConstAttribute);
+
     NUMTESTS++; /* increment NUMTESTS */
 
     crv = pFunctionList->C_OpenSession(pSlotList[slotID], CKF_SERIAL_SESSION,
@@ -3687,13 +3589,16 @@ CK_RV PKM_FindAllObjects(CK_FUNCTION_LIST_PTR pFunctionList,
     pTemplate = (CK_ATTRIBUTE_PTR)calloc(number_of_all_known_attribute_types,
                                          sizeof(CK_ATTRIBUTE));
     if ( (CK_ATTRIBUTE_PTR)NULL == pTemplate ) {
-        PKM_Error(  "[memory allocation of %lu bytes failed]\n",
+        PKM_Error(  "[pTemplate memory allocation of %lu bytes failed]\n",
                     number_of_all_known_attribute_types *
                     sizeof(CK_ATTRIBUTE));
         return crv;
     }
 
     PKM_LogIt( "    All objects:\n");
+    /* Printing table set to NOMODE */
+    curMode = MODE;
+    MODE = NOMODE; 
 
     while (1) {
         CK_OBJECT_HANDLE o = (CK_OBJECT_HANDLE)0;
@@ -3702,6 +3607,7 @@ CK_RV PKM_FindAllObjects(CK_FUNCTION_LIST_PTR pFunctionList,
         CK_ULONG nAttributes = 0;
         CK_ATTRIBUTE_PTR pT2;
         CK_ULONG l;
+        const char * attName = NULL;
 
         crv = pFunctionList->C_FindObjects(h, &o, 1, &nObjects);
         if ( CKR_OK != crv ) {
@@ -3719,10 +3625,15 @@ CK_RV PKM_FindAllObjects(CK_FUNCTION_LIST_PTR pFunctionList,
 
         PKM_LogIt( "        OBJECT HANDLE %lu:\n", o);
 
-        for ( k = 0; k < (CK_ULONG)number_of_all_known_attribute_types; k++ ) {
-            pTemplate[k].type = all_known_attribute_types[k];
-            pTemplate[k].pValue = (CK_VOID_PTR) NULL;
-            pTemplate[k].ulValueLen = 0;
+        k = 0;
+        for (i=0; i < constCount; i++) {
+            if (consts[i].type == ConstAttribute) {
+                pTemplate[k].type = consts[i].value;
+                pTemplate[k].pValue = (CK_VOID_PTR) NULL;
+                pTemplate[k].ulValueLen = 0;
+                k++;
+            }
+            assert(k <= number_of_all_known_attribute_types);
         }
 
         crv = pFunctionList->C_GetAttributeValue(h, o, pTemplate,
@@ -3746,38 +3657,44 @@ CK_RV PKM_FindAllObjects(CK_FUNCTION_LIST_PTR pFunctionList,
                 nAttributes++;
             }
         }
-
-        if ( 1 ) {
-            PKM_LogIt( "            %lu attributes:\n", nAttributes);
-            for ( k = 0; k < (CK_ULONG) number_of_all_known_attribute_types;
-                k++ ) {
-                if ( -1 != (CK_LONG)pTemplate[k].ulValueLen ) {
-                    PKM_LogIt( "                0x%08x (len = %lu)\n",
-                               pTemplate[k].type,
-                               pTemplate[k].ulValueLen);
+        
+        PKM_LogIt( "            %lu attributes:\n", nAttributes);
+        for ( k = 0; k < (CK_ULONG) number_of_all_known_attribute_types;
+             k++ ) {
+            if ( -1 != (CK_LONG)pTemplate[k].ulValueLen ) {
+                attName = getNameFromAttribute(pTemplate[k].type);
+                if (!attName) {
+                    PKM_Error("Unable to find attribute name update pk11table.c\n");
                 }
+                PKM_LogIt( "                %s 0x%08x (len = %lu)\n",
+                          attName,
+                          pTemplate[k].type,
+                          pTemplate[k].ulValueLen);
             }
-            PKM_LogIt( "\n");
         }
-
+        PKM_LogIt( "\n");
+        
         pT2 = (CK_ATTRIBUTE_PTR)calloc(nAttributes, sizeof(CK_ATTRIBUTE));
         if ( (CK_ATTRIBUTE_PTR)NULL == pT2 ) {
-            PKM_Error(  "[memory allocation of %lu bytes failed]\n",
+            PKM_Error(  "[pT2 memory allocation of %lu bytes failed]\n",
                         nAttributes * sizeof(CK_ATTRIBUTE));
             return crv;
         }
 
+        /* allocate memory for the attribute values */
         for ( l = 0, k = 0; k < (CK_ULONG) number_of_all_known_attribute_types;
             k++ ) {
             if ( -1 != (CK_LONG)pTemplate[k].ulValueLen ) {
                 pT2[l].type = pTemplate[k].type;
                 pT2[l].ulValueLen = pTemplate[k].ulValueLen;
-                pT2[l].pValue = (CK_VOID_PTR)malloc(pT2[l].ulValueLen);
-                if ( (CK_VOID_PTR)NULL == pT2[l].pValue ) {
-                    PKM_Error(  "[memory allocation of %lu bytes failed]\n",
-                                pT2[l].ulValueLen);
-                    return crv;
-                }
+                if (pT2[l].ulValueLen > 0) {
+                    pT2[l].pValue = (CK_VOID_PTR)malloc(pT2[l].ulValueLen);
+                    if ( (CK_VOID_PTR)NULL == pT2[l].pValue ) {
+                        PKM_Error(  "pValue memory allocation of %lu bytes failed]\n",
+                                  pT2[l].ulValueLen);
+                        return crv;
+                    }
+                } else pT2[l].pValue = (CK_VOID_PTR) NULL;
                 l++;
             }
         }
@@ -3799,8 +3716,11 @@ CK_RV PKM_FindAllObjects(CK_FUNCTION_LIST_PTR pFunctionList,
         }
 
         for ( l = 0; l < nAttributes; l++ ) {
-            PKM_LogIt( "            type = 0x%08x, len = %ld", pT2[l].type,
-                       (CK_LONG)pT2[l].ulValueLen);
+            attName = getNameFromAttribute(pT2[l].type);
+            if (!attName) attName = "unknown attribute";
+            PKM_LogIt( "            type = %s len = %ld",
+                       attName, (CK_LONG)pT2[l].ulValueLen);
+
             if ( -1 == (CK_LONG)pT2[l].ulValueLen ) {
                 ;
             } else {
@@ -3834,11 +3754,15 @@ CK_RV PKM_FindAllObjects(CK_FUNCTION_LIST_PTR pFunctionList,
         PKM_LogIt( "\n");
 
         for ( l = 0; l < nAttributes; l++ ) {
-            free(pT2[l].pValue);
+            if (pT2[l].pValue) {
+                free(pT2[l].pValue);
+            }
         }
         free(pT2);
     } /* while(1) */
 
+    MODE = curMode; /* reset the logging MODE */
+    
     crv = pFunctionList->C_FindObjectsFinal(h);
     if ( CKR_OK != crv ) {
         PKM_Error(  "C_FindObjectsFinal(%lu) returned 0x%08X, %-26s\n", h, crv, 
@@ -5260,7 +5184,7 @@ CK_RV PKM_Digest(CK_FUNCTION_LIST_PTR pFunctionList,
         if  ( (digest1Len == digest2Len) 
             && (memcmp(digest1, digest2, digest1Len) == 0) ) {
                 PKM_LogIt("Single and Multiple-part message digest "
-                    "operations succesful\n");
+                    "operations successful\n");
             } else {
                 PKM_Error("Single and Multiple-part message digest "
                     "operations failed\n");
@@ -5268,7 +5192,7 @@ CK_RV PKM_Digest(CK_FUNCTION_LIST_PTR pFunctionList,
     } else {
         if  (digest1Len == digest2Len) { 
             PKM_LogIt("PKM_Digest Single and Multiple-part message digest "
-                "operations succesful\n");
+                "operations successful\n");
         } else {
             PKM_Error("PKM_Digest Single and Multiple-part message digest "
                 "operations failed\n");
@@ -5315,9 +5239,11 @@ void PKM_Help()
     PRFileDesc *debug_out = PR_GetSpecialFD(PR_StandardError);
     PR_fprintf(debug_out, "pk11mode test program usage:\n");
     PR_fprintf(debug_out, "\t-f <file>   Password File : echo pw > file \n");
+    PR_fprintf(debug_out, "\t-F          Disable Unix fork tests\n");
     PR_fprintf(debug_out, "\t-n          Non Fips Mode \n");
     PR_fprintf(debug_out, "\t-d <path>   Database path location\n");
     PR_fprintf(debug_out, "\t-p <prefix> DataBase prefix\n");
+    PR_fprintf(debug_out, "\t-v          verbose\n");
     PR_fprintf(debug_out, "\t-h          this help message\n");
     exit(1);
 }
@@ -5342,3 +5268,68 @@ void PKM_CheckPath(char *string)
        *dest = 0;
 
 }
+
+CK_RV PKM_ForkCheck(int expected, CK_FUNCTION_LIST_PTR fList,
+		    PRBool forkAssert, CK_C_INITIALIZE_ARGS_NSS *initArgs)
+{
+    CK_RV crv = CKR_OK;
+#ifndef NO_FORK_CHECK
+    int rc = -1;
+    NUMTESTS++; /* increment NUMTESTS */
+    if (forkAssert) {
+	putenv("NSS_STRICT_NOFORK=1");
+    } else {
+	putenv("NSS_STRICT_NOFORK=0");
+    }
+    pid_t child = fork();
+    switch (child) {
+    case -1:
+        PKM_Error("Fork failed.\n");
+        crv = CKR_DEVICE_ERROR;
+        break;
+    case 0:
+        if (fList) {
+            if (!initArgs) {
+                /* If softoken is loaded, make a PKCS#11 call to C_GetTokenInfo
+                 * in the child. This call should always fail.
+                 * If softoken is uninitialized,
+                 * it fails with CKR_CRYPTOKI_NOT_INITIALIZED.
+                 * If it was initialized in the parent, the fork check should
+                 * kick in, and make it return CKR_DEVICE_ERROR.
+                 */
+                CK_RV child_crv = fList->C_GetTokenInfo(0, NULL);
+                exit(child_crv & 255);
+            } else {
+                /* If softoken is loaded, make a PKCS#11 call to C_Initialize
+                 * in the child. This call should always fail.
+                 * If softoken is uninitialized, this should succeed.
+                 * If it was initialized in the parent, the fork check should
+                 * kick in, and make it return CKR_DEVICE_ERROR.
+                 */
+                CK_RV child_crv = fList->C_Initialize(initArgs);
+                if (CKR_OK == child_crv) {
+                    child_crv = fList->C_Finalize(NULL);
+                }
+                exit(child_crv & 255);
+            }
+        }
+        exit(expected & 255);
+    default:
+        PKM_LogIt("Fork succeeded.\n");
+        pid_t ret = wait(&rc);
+        if (ret != child || (!WIFEXITED(rc)) ||
+            ( (expected & 255) != (WEXITSTATUS(rc) & 255)) ) {
+            int retStatus = -1;
+            if (WIFEXITED(rc)) {
+                retStatus = WEXITSTATUS(rc);
+            }
+            PKM_Error("Child misbehaved.\n");
+            printf("Child return status : %d.\n", retStatus & 255);
+            crv = CKR_DEVICE_ERROR;
+        }
+        break;
+    }
+#endif
+    return crv;
+}
+

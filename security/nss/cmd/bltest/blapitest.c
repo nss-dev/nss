@@ -667,12 +667,16 @@ typedef enum {
     bltestRC2_ECB,	  /* .			   */
     bltestRC2_CBC,	  /* .			   */
     bltestRC4,		  /* .			   */
+#ifdef NSS_SOFTOKEN_DOES_RC5
     bltestRC5_ECB,	  /* .			   */
     bltestRC5_CBC,	  /* .			   */
+#endif
     bltestAES_ECB,        /* .                     */
     bltestAES_CBC,        /* .                     */
     bltestCAMELLIA_ECB,   /* .                     */
     bltestCAMELLIA_CBC,   /* .                     */
+    bltestSEED_ECB,       /* SEED algorithm	   */
+    bltestSEED_CBC,       /* SEED algorithm	   */
     bltestRSA,		  /* Public Key Ciphers	   */
 #ifdef NSS_ENABLE_ECC
     bltestECDSA,	  /* . (Public Key Sig.)   */
@@ -696,12 +700,16 @@ static char *mode_strings[] =
     "rc2_ecb",
     "rc2_cbc",
     "rc4",
+#ifdef NSS_SOFTOKEN_DOES_RC5
     "rc5_ecb",
     "rc5_cbc",
+#endif
     "aes_ecb",
     "aes_cbc",
     "camellia_ecb",
     "camellia_cbc",
+    "seed_ecb",
+    "seed_cbc",
     "rsa",
 #ifdef NSS_ENABLE_ECC
     "ecdsa",
@@ -817,7 +825,7 @@ PRBool
 is_symmkeyCipher(bltestCipherMode mode)
 {
     /* change as needed! */
-    if (mode >= bltestDES_ECB && mode <= bltestCAMELLIA_CBC)
+    if (mode >= bltestDES_ECB && mode <= bltestSEED_CBC)
 	return PR_TRUE;
     return PR_FALSE;
 }
@@ -858,8 +866,12 @@ cipher_requires_IV(bltestCipherMode mode)
 {
     /* change as needed! */
     if (mode == bltestDES_CBC || mode == bltestDES_EDE_CBC ||
-	mode == bltestRC2_CBC || mode == bltestRC5_CBC     ||
-        mode == bltestAES_CBC || mode == bltestCAMELLIA_CBC)
+	mode == bltestRC2_CBC || 
+#ifdef NSS_SOFTOKEN_DOES_RC5
+        mode == bltestRC5_CBC     ||
+#endif
+        mode == bltestAES_CBC || mode == bltestCAMELLIA_CBC||
+	mode == bltestSEED_CBC)
 	return PR_TRUE;
     return PR_FALSE;
 }
@@ -1114,6 +1126,24 @@ camellia_Decrypt(void *cx, unsigned char *output, unsigned int *outputLen,
 }
 
 SECStatus
+seed_Encrypt(void *cx, unsigned char *output, unsigned int *outputLen,
+            unsigned int maxOutputLen, const unsigned char *input,
+            unsigned int inputLen)
+{
+    return SEED_Encrypt((SEEDContext *)cx, output, outputLen, maxOutputLen,
+                       input, inputLen);
+}
+
+SECStatus
+seed_Decrypt(void *cx, unsigned char *output, unsigned int *outputLen,
+            unsigned int maxOutputLen, const unsigned char *input,
+            unsigned int inputLen)
+{
+    return SEED_Decrypt((SEEDContext *)cx, output, outputLen, maxOutputLen,
+                       input, inputLen);
+}
+
+SECStatus
 rsa_PublicKeyOp(void *key, SECItem *output, const SECItem *input)
 {
     return RSA_PublicKeyOp((RSAPublicKey *)key, output->data, input->data);
@@ -1265,7 +1295,7 @@ bltest_rc4_init(bltestCipherInfo *cipherInfo, PRBool encrypt)
 SECStatus
 bltest_rc5_init(bltestCipherInfo *cipherInfo, PRBool encrypt)
 {
-#if NSS_SOFTOKEN_DOES_RC5
+#ifdef NSS_SOFTOKEN_DOES_RC5
     PRIntervalTime time1, time2;
     bltestRC5Params *rc5p = &cipherInfo->params.rc5;
     int minorMode;
@@ -1374,6 +1404,46 @@ bltest_camellia_init(bltestCipherInfo *cipherInfo, PRBool encrypt)
     else
 	cipherInfo->cipher.symmkeyCipher = camellia_Decrypt;
     return SECSuccess;
+}
+
+SECStatus
+bltest_seed_init(bltestCipherInfo *cipherInfo, PRBool encrypt)
+{
+    PRIntervalTime time1, time2;
+    bltestSymmKeyParams *seedp = &cipherInfo->params.sk;
+    int minorMode;
+    int i;
+
+    switch (cipherInfo->mode) {
+    case bltestSEED_ECB:	minorMode = NSS_SEED;		break;
+    case bltestSEED_CBC:	minorMode = NSS_SEED_CBC;	break;
+    default:
+	return SECFailure;
+    }
+    cipherInfo->cx = (void*)SEED_CreateContext(seedp->key.buf.data,
+					      seedp->iv.buf.data,
+					      minorMode, encrypt);
+    if (cipherInfo->cxreps > 0) {
+	SEEDContext **dummycx;
+	dummycx = PORT_Alloc(cipherInfo->cxreps * sizeof(SEEDContext *));
+	TIMESTART();
+	for (i=0; i<cipherInfo->cxreps; i++) {
+	    dummycx[i] = (void*)SEED_CreateContext(seedp->key.buf.data,
+					          seedp->iv.buf.data,
+					          minorMode, encrypt);
+	}
+	TIMEFINISH(cipherInfo->cxtime, 1.0);
+	for (i=0; i<cipherInfo->cxreps; i++) {
+	    SEED_DestroyContext(dummycx[i], PR_TRUE);
+	}
+	PORT_Free(dummycx);
+    }
+    if (encrypt)
+	cipherInfo->cipher.symmkeyCipher = seed_Encrypt;
+    else
+	cipherInfo->cipher.symmkeyCipher = seed_Decrypt;
+	
+	return SECSuccess;
 }
 
 SECStatus
@@ -1916,9 +1986,9 @@ cipherInit(bltestCipherInfo *cipherInfo, PRBool encrypt)
 			  cipherInfo->input.pBuf.len);
 	return bltest_rc4_init(cipherInfo, encrypt);
 	break;
+#ifdef NSS_SOFTOKEN_DOES_RC5
     case bltestRC5_ECB:
     case bltestRC5_CBC:
-#if NSS_SOFTOKEN_DOES_RC5
 	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
 			  cipherInfo->input.pBuf.len);
 #endif
@@ -1935,6 +2005,12 @@ cipherInit(bltestCipherInfo *cipherInfo, PRBool encrypt)
 	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
 			  cipherInfo->input.pBuf.len);
 	return bltest_camellia_init(cipherInfo, encrypt);
+	break;
+    case bltestSEED_ECB:
+    case bltestSEED_CBC:
+	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
+			  cipherInfo->input.pBuf.len);
+	return bltest_seed_init(cipherInfo, encrypt);
 	break;
     case bltestRSA:
 	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
@@ -2390,6 +2466,10 @@ cipherFinish(bltestCipherInfo *cipherInfo)
     case bltestCAMELLIA_CBC:
 	Camellia_DestroyContext((CamelliaContext *)cipherInfo->cx, PR_TRUE);
 	break;
+    case bltestSEED_ECB:
+    case bltestSEED_CBC:
+	SEED_DestroyContext((SEEDContext *)cipherInfo->cx, PR_TRUE);
+	break;
     case bltestRC2_ECB:
     case bltestRC2_CBC:
 	RC2_DestroyContext((RC2Context *)cipherInfo->cx, PR_TRUE);
@@ -2397,7 +2477,7 @@ cipherFinish(bltestCipherInfo *cipherInfo)
     case bltestRC4:
 	RC4_DestroyContext((RC4Context *)cipherInfo->cx, PR_TRUE);
 	break;
-#if NSS_SOFTOKEN_DOES_RC5
+#ifdef NSS_SOFTOKEN_DOES_RC5
     case bltestRC5_ECB:
     case bltestRC5_CBC:
 	RC5_DestroyContext((RC5Context *)cipherInfo->cx, PR_TRUE);
@@ -2540,6 +2620,8 @@ print_td:
       case bltestAES_CBC:
       case bltestCAMELLIA_ECB:
       case bltestCAMELLIA_CBC:
+      case bltestSEED_ECB:
+      case bltestSEED_CBC:
       case bltestRC2_ECB:
       case bltestRC2_CBC:
       case bltestRC4:
@@ -2548,7 +2630,7 @@ print_td:
           else
               fprintf(stdout, "%8d", 8*info->params.sk.key.buf.len);
           break;
-#if NSS_SOFTOKEN_DOES_RC5
+#ifdef NSS_SOFTOKEN_DOES_RC5
       case bltestRC5_ECB:
       case bltestRC5_CBC:
           if (info->params.sk.key.buf.len > 0)
@@ -2672,7 +2754,7 @@ get_params(PRArenaPool *arena, bltestParams *params,
 {
     char filename[256];
     char *modestr = mode_strings[mode];
-#if NSS_SOFTOKEN_DOES_RC5
+#ifdef NSS_SOFTOKEN_DOES_RC5
     FILE *file;
     char *mark, *param, *val;
     int index = 0;
@@ -2683,6 +2765,7 @@ get_params(PRArenaPool *arena, bltestParams *params,
     case bltestRC2_CBC:
     case bltestAES_CBC:
     case bltestCAMELLIA_CBC:
+    case bltestSEED_CBC: 
 	sprintf(filename, "%s/tests/%s/%s%d", testdir, modestr, "iv", j);
 	load_file_data(arena, &params->sk.iv, filename, bltestBinary);
     case bltestDES_ECB:
@@ -2691,10 +2774,11 @@ get_params(PRArenaPool *arena, bltestParams *params,
     case bltestRC4:
     case bltestAES_ECB:
     case bltestCAMELLIA_ECB:
+    case bltestSEED_ECB:
 	sprintf(filename, "%s/tests/%s/%s%d", testdir, modestr, "key", j);
 	load_file_data(arena, &params->sk.key, filename, bltestBinary);
 	break;
-#if NSS_SOFTOKEN_DOES_RC5
+#ifdef NSS_SOFTOKEN_DOES_RC5
     case bltestRC5_ECB:
     case bltestRC5_CBC:
 	sprintf(filename, "%s/tests/%s/%s%d", testdir, modestr, "iv", j);
@@ -2841,7 +2925,6 @@ blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
     finished = PR_FALSE;
     nummodes = (numModes == 0) ? NUMMODES : numModes;
     for (i=0; i < nummodes && !finished; i++) {
-	if (i == bltestRC5_ECB || i == bltestRC5_CBC) continue;
 	if (numModes > 0)
 	    mode = modes[i];
 	else
@@ -3190,6 +3273,11 @@ int main(int argc, char **argv)
     	SECU_PrintPRandOSError(progName);
 	return -1;
     }
+    rv = BL_Init();
+    if (rv != SECSuccess) {
+    	SECU_PrintPRandOSError(progName);
+	return -1;
+    }
     RNG_SystemInfoForRNG();
 
     rv = SECU_ParseCommandLine(argc, argv, progName, &bltest);
@@ -3460,9 +3548,11 @@ int main(int argc, char **argv)
             char *ivstr = NULL;
             bltestSymmKeyParams *skp;
             file = NULL;
+#ifdef NSS_SOFTOKEN_DOES_RC5
             if (cipherInfo->mode == bltestRC5_CBC)
                 skp = (bltestSymmKeyParams *)&params->rc5;
             else
+#endif
                 skp = &params->sk;
             if (bltest.options[opt_IV].activated) {
                 if (bltest.options[opt_CmdLine].activated) {
@@ -3652,3 +3742,4 @@ int main(int argc, char **argv)
 
     return SECSuccess;
 }
+

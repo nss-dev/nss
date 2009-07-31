@@ -305,6 +305,10 @@ mp_err mp_to_fixlen_octets(const mp_int *mp, unsigned char *str, mp_size len);
 
 /* Miscellaneous */
 mp_size mp_trailing_zeros(const mp_int *mp);
+void freebl_cpuid(unsigned long op, unsigned long *eax,
+                         unsigned long *ebx, unsigned long *ecx,
+                         unsigned long *edx);
+
 
 #define MP_CHECKOK(x)  if (MP_OKAY > (res = (x))) goto CLEANUP
 #define MP_CHECKERR(x) if (MP_OKAY > (res = (x))) goto CLEANUP

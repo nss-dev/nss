@@ -62,6 +62,10 @@ else
 	BSDECHO      = echo
 	RC           = rc.exe
 	MT           = mt.exe
+	# Determine compiler version
+	_MSC_VER_6   = 1200	# MSVC 6
+	_MSC_VER    := $(shell $(CC) 2>&1 | sed -ne \
+                       's/.*[^0-9.]\([0-9]\{1,\}\)\.\([0-9]\{1,\}\).*/\1\2/p' )
 endif
 
 ifdef BUILD_TREE
@@ -103,12 +107,6 @@ ifdef NS_USE_GCC
 		OPTIMIZER += -O2
 	endif
 	DEFINES    += -UDEBUG -U_DEBUG -DNDEBUG
-	#
-	# Add symbolic information for a profiler
-	#
-	ifdef MOZ_PROFILE
-		OPTIMIZER += -g
-	endif
     else
 	OPTIMIZER  += -g
 	NULLSTRING :=
@@ -118,6 +116,13 @@ ifdef NS_USE_GCC
 	DEFINES    += -DDEBUG -D_DEBUG -UNDEBUG -DDEBUG_$(USERNAME)
     endif
 else # !NS_USE_GCC
+    OS_CFLAGS += -W3 -nologo -D_CRT_SECURE_NO_WARNINGS
+    OS_DLLFLAGS += -nologo -DLL -SUBSYSTEM:WINDOWS
+    ifeq ($(_MSC_VER),$(_MSC_VER_6))
+    ifndef MOZ_DEBUG_SYMBOLS
+	OS_DLLFLAGS += -PDB:NONE
+    endif
+    endif
     ifdef BUILD_OPT
 	OS_CFLAGS  += -MD
 	ifeq (11,$(ALLOW_OPT_CODE_SIZE)$(OPT_CODE_SIZE))
@@ -127,16 +132,8 @@ else # !NS_USE_GCC
 	endif
 	DEFINES    += -UDEBUG -U_DEBUG -DNDEBUG
 	DLLFLAGS   += -OUT:"$@"
-	#
-	# Add symbolic information for a profiler
-	#
-	ifdef MOZ_PROFILE
-		OPTIMIZER += -Z7
-	endif
 	ifdef MOZ_DEBUG_SYMBOLS
-		OPTIMIZER += -Zi
-	endif
-	ifneq (,$(MOZ_PROFILE)$(MOZ_DEBUG_SYMBOLS))
+		OPTIMIZER += -Zi -Fd$(OBJDIR)/
 		DLLFLAGS += -DEBUG -OPT:REF
 		LDFLAGS += -DEBUG -OPT:REF
 	endif
@@ -150,8 +147,7 @@ else # !NS_USE_GCC
 	else
 		OS_CFLAGS += -MD
 	endif
-	OPTIMIZER  += -Od -Z7
-	#OPTIMIZER += -Zi -Fd$(OBJDIR)/ -Od
+	OPTIMIZER += -Zi -Fd$(OBJDIR)/ -Od
 	NULLSTRING :=
 	SPACE      := $(NULLSTRING) # end of the line
 	USERNAME   := $(subst $(SPACE),_,$(USERNAME))
@@ -159,18 +155,37 @@ else # !NS_USE_GCC
 	DEFINES    += -DDEBUG -D_DEBUG -UNDEBUG -DDEBUG_$(USERNAME)
 	DLLFLAGS   += -DEBUG -OUT:"$@"
 	LDFLAGS    += -DEBUG 
+ifeq ($(_MSC_VER),$(_MSC_VER_6))
 ifndef MOZ_DEBUG_SYMBOLS
 	LDFLAGS    += -PDB:NONE 
+endif
 endif
 	# Purify requires /FIXED:NO when linking EXEs.
 	LDFLAGS    += /FIXED:NO
     endif
+ifneq ($(_MSC_VER),$(_MSC_VER_6))
+    # Convert certain deadly warnings to errors (see list at end of file)
+    OS_CFLAGS += -we4002 -we4003 -we4004 -we4006 -we4009 -we4013 \
+     -we4015 -we4028 -we4033 -we4035 -we4045 -we4047 -we4053 -we4054 -we4063 \
+     -we4064 -we4078 -we4087 -we4098 -we4390 -we4551 -we4553 -we4715
+endif # !MSVC6
 endif # NS_USE_GCC
 
 ifdef USE_64
 DEFINES += -DWIN64
 else
 DEFINES += -DWIN32
+endif
+
+ifeq ($(CPU_ARCH), x386)
+ifdef USE_64
+	DEFINES += -D_AMD64_
+else
+	DEFINES += -D_X86_
+endif
+endif
+ifeq ($(CPU_ARCH), ALPHA)
+	DEFINES += -D_ALPHA_=1
 endif
 
 ifdef MAPFILE
@@ -193,8 +208,13 @@ ifdef NS_USE_GCC
 	AS	= $(CC)
 	ASFLAGS = $(INCLUDES)
 else
+ifdef USE_64
+	AS	= ml64.exe
+	ASFLAGS = -Cp -Sn -Zi $(INCLUDES)
+else
 	AS	= ml.exe
 	ASFLAGS = -Cp -Sn -Zi -coff $(INCLUDES)
+endif
 endif
 
 #
@@ -305,4 +325,31 @@ endif
 ifndef TARGETS
     TARGETS = $(LIBRARY) $(SHARED_LIBRARY) $(IMPORT_LIBRARY) $(PROGRAM)
 endif
+
+# list of MSVC warnings converted to errors above:
+# 4002: too many actual parameters for macro 'identifier'
+# 4003: not enough actual parameters for macro 'identifier'
+# 4004: incorrect construction after 'defined'
+# 4006: #undef expected an identifier
+# 4009: string too big; trailing characters truncated
+# 4015: 'identifier' : type of bit field must be integral
+# 4028: formal parameter different from declaration
+# 4033: 'function' must return a value
+# 4035: 'function' : no return value
+# 4045: 'identifier' : array bounds overflow
+# 4047: 'function' : 'type 1' differs in levels of indirection from 'type 2'
+# 4053: one void operand for '?:'
+# 4054: 'conversion' : from function pointer 'type1' to data pointer 'type2'
+# 4059: pascal string too big, length byte is length % 256
+# 4063: case 'identifier' is not a valid value for switch of enum 'identifier'
+# 4064: switch of incomplete enum 'identifier'
+# 4078: case constant 'value' too big for the type of the switch expression
+# 4087: 'function' : declared with 'void' parameter list
+# 4098: 'function' : void function returning a value
+# 4390: ';' : empty controlled statement found; is this the intent?
+# 4541: RTTI train wreck
+# 4715: not all control paths return a value
+# 4013: function undefined; assuming extern returning int
+# 4553: '==' : operator has no effect; did you intend '='?
+# 4551: function call missing argument list
 

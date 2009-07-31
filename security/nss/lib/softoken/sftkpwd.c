@@ -66,7 +66,7 @@
 #include "prsystem.h"
 #include "lgglue.h"
 #include "secerr.h"
-
+#include "softoken.h"
   
 /******************************************************************
  * 
@@ -540,14 +540,14 @@ sftkdb_switchKeys(SFTKDBHandle *keydb, SECItem *passKey)
     }
 
     /* an atomic pointer set would be nice */
-    PZ_Lock(keydb->passwordLock);
+    SKIP_AFTER_FORK(PZ_Lock(keydb->passwordLock));
     data = keydb->passwordKey.data;
     len = keydb->passwordKey.len;
     keydb->passwordKey.data = passKey->data;
     keydb->passwordKey.len = passKey->len;
     passKey->data = data;
     passKey->len = len;
-    PZ_Unlock(keydb->passwordLock);
+    SKIP_AFTER_FORK(PZ_Unlock(keydb->passwordLock));
 }
 
 /*
@@ -852,7 +852,7 @@ sftkdb_CheckPassword(SFTKDBHandle *keydb, const char *pw, PRBool *tokenRemoved)
 	sftkdb_switchKeys(keydb, &key);
 
 	/* we need to update, do it now */
-	if (keydb->update) {
+	if (((keydb->db->sdb_flags & SDB_RDONLY) == 0) && keydb->update) {
 	    /* update the peer certdb if it exists */
 	    if (keydb->peerDB) {
 		sftkdb_Update(keydb->peerDB, &key);
@@ -1281,7 +1281,7 @@ loser:
 }
 
 /*
- * loose our cached password
+ * lose our cached password
  */
 SECStatus
 sftkdb_ClearPassword(SFTKDBHandle *keydb)

@@ -198,6 +198,13 @@ freebl_RunLoaderOnce( void )
   return status;
 }
 
+SECStatus 
+BL_Init(void)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_BL_Init)();
+}
 
 RSAPrivateKey * 
 RSA_NewKey(int keySizeInBits, SECItem * publicExponent)
@@ -484,6 +491,44 @@ DES_Decrypt(DESContext *cx, unsigned char *output, unsigned int *outputLen,
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return SECFailure;
   return (vector->p_DES_Decrypt)(cx, output, outputLen, maxOutputLen, input, 
+	                         inputLen);
+}
+SEEDContext *
+SEED_CreateContext(const unsigned char *key, const unsigned char *iv,
+		  int mode, PRBool encrypt)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return (vector->p_SEED_CreateContext)(key, iv, mode, encrypt);
+}
+
+void 
+SEED_DestroyContext(SEEDContext *cx, PRBool freeit)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_SEED_DestroyContext)(cx, freeit);
+}
+
+SECStatus 
+SEED_Encrypt(SEEDContext *cx, unsigned char *output, unsigned int *outputLen, 
+	    unsigned int maxOutputLen, const unsigned char *input, 
+	    unsigned int inputLen)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_SEED_Encrypt)(cx, output, outputLen, maxOutputLen, input, 
+	                         inputLen);
+}
+
+SECStatus 
+SEED_Decrypt(SEEDContext *cx, unsigned char *output, unsigned int *outputLen, 
+	    unsigned int maxOutputLen, const unsigned char *input, 
+	    unsigned int inputLen)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_SEED_Decrypt)(cx, output, outputLen, maxOutputLen, input, 
 	                         inputLen);
 }
 
@@ -1360,6 +1405,16 @@ DES_InitContext(DESContext *cx, const unsigned char *key,
 }
 
 SECStatus 
+SEED_InitContext(SEEDContext *cx, const unsigned char *key, 
+		unsigned int keylen, const unsigned char *iv, int mode,
+		unsigned int encrypt, unsigned int xtra)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_SEED_InitContext)(cx, key, keylen, iv, mode, encrypt, xtra);
+}
+
+SECStatus 
 RC2_InitContext(RC2Context *cx, const unsigned char *key, 
 		unsigned int keylen, const unsigned char *iv, int mode,
 		unsigned int effectiveKeyLen, unsigned int xtra)
@@ -1593,3 +1648,52 @@ Camellia_Decrypt(CamelliaContext *cx, unsigned char *output,
     return (vector->p_Camellia_Decrypt)(cx, output, outputLen, maxOutputLen, 
 					input, inputLen);
 }
+
+void BL_SetForkState(PRBool forked)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+	return;
+    (vector->p_BL_SetForkState)(forked);
+}
+
+SECStatus
+PRNGTEST_Instantiate(const PRUint8 *entropy, unsigned int entropy_len, 
+		const PRUint8 *nonce, unsigned int nonce_len,
+		const PRUint8 *personal_string, unsigned int ps_len)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+	return SECFailure;
+    return (vector->p_PRNGTEST_Instantiate)(entropy, entropy_len, 
+					   nonce,  nonce_len,
+					   personal_string,  ps_len);
+}
+
+SECStatus
+PRNGTEST_Reseed(const PRUint8 *entropy, unsigned int entropy_len, 
+		  const PRUint8 *additional, unsigned int additional_len)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+	return SECFailure;
+    return (vector->p_PRNGTEST_Reseed)(entropy, entropy_len, 
+				       additional, additional_len);
+}
+
+SECStatus
+PRNGTEST_Generate(PRUint8 *bytes, unsigned int bytes_len, 
+		  const PRUint8 *additional, unsigned int additional_len)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+	return SECFailure;
+    return (vector->p_PRNGTEST_Generate)(bytes, bytes_len, 
+					 additional, additional_len);
+}
+
+SECStatus
+PRNGTEST_Uninstantiate()
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+	return SECFailure;
+    return (vector->p_PRNGTEST_Uninstantiate)();
+}
+
+

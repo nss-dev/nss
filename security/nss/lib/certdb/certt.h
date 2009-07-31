@@ -1059,7 +1059,7 @@ typedef enum {
 /*
  * Defines the behavior if we are unable to obtain fresh information.
  * INGORE means:
- *        Return "test succeded, not revoked"
+ *      Return "cert status unknown"
  * FAIL means:
  *      Return "cert revoked".
  */
@@ -1252,6 +1252,12 @@ typedef enum CertStrictnessLevels {
  */
 #define CERT_ENABLE_LDAP_FETCH          1
 #define CERT_ENABLE_HTTP_FETCH          2
+
+/* This functin pointer type may be used for any function that takes
+ * a CERTCertificate * and returns an allocated string, which must be
+ * freed by a call to PORT_Free.
+ */
+typedef char * (*CERT_StringFromCertFcn)(CERTCertificate *cert);
 
 /* XXX Lisa thinks the template declarations belong in cert.h, not here? */
 

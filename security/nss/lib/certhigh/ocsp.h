@@ -457,6 +457,24 @@ extern char *
 CERT_GetOCSPAuthorityInfoAccessLocation(CERTCertificate *cert);
 
 /*
+ * FUNCTION: CERT_RegisterAlternateOCSPAIAInfoCallBack
+ *   This function serves two purposes.  
+ *   1) It registers the address of a callback function that will be 
+ *   called for certs that have no OCSP AIA extension, to see if the 
+ *   callback wishes to supply an alternative URL for such an OCSP inquiry.
+ *   2) It outputs the previously registered function's address to the 
+ *   address supplied by the caller, unless that is NULL.
+ *   The registered callback function returns NULL, or an allocated string 
+ *   that may be subsequently freed by calling PORT_Free().
+ * RETURN:
+ *   SECSuccess or SECFailure (if the library is not yet intialized)
+ */
+extern SECStatus
+CERT_RegisterAlternateOCSPAIAInfoCallBack(
+			CERT_StringFromCertFcn   newCallback,
+			CERT_StringFromCertFcn * oldCallback);
+
+/*
  * FUNCTION: CERT_ParseURL
  *   Parse the URI of a OCSP responder into hostname, port, and path.
  * INPUTS:

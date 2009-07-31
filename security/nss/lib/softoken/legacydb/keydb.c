@@ -1051,7 +1051,7 @@ nsslowkey_CloseKeyDB(NSSLOWKEYDBHandle *handle)
 	    SECITEM_FreeItem(handle->global_salt,PR_TRUE);
 	}
 	if (handle->lock != NULL) {
-	    PZ_DestroyLock(handle->lock);
+	    SKIP_AFTER_FORK(PZ_DestroyLock(handle->lock));
 	}
 	    
 	PORT_Free(handle);
@@ -2194,11 +2194,11 @@ keydb_Close(NSSLOWKEYDBHandle *kdb)
     DB *db = kdb->db;
 
     PORT_Assert(kdbLock != NULL);
-    PZ_Lock(kdbLock);
+    SKIP_AFTER_FORK(PZ_Lock(kdbLock));
 
     (* db->close)(db);
     
-    prstat = PZ_Unlock(kdbLock);
+    SKIP_AFTER_FORK(prstat = PZ_Unlock(kdbLock));
 
     return;
 }

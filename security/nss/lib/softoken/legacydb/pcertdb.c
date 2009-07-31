@@ -223,7 +223,7 @@ nsslowcert_LockFreeList(void)
 {
     PORT_Assert(freeListLock != NULL);
     
-    PZ_Lock(freeListLock);
+    SKIP_AFTER_FORK(PZ_Lock(freeListLock));
     return;
 }
 
@@ -233,11 +233,11 @@ nsslowcert_LockFreeList(void)
 static void
 nsslowcert_UnlockFreeList(void)
 {
-    PRStatus prstat;
+    PRStatus prstat = PR_SUCCESS;
 
     PORT_Assert(freeListLock != NULL);
     
-    prstat = PZ_Unlock(freeListLock);
+    SKIP_AFTER_FORK(prstat = PZ_Unlock(freeListLock));
     
     PORT_Assert(prstat == PR_SUCCESS);
 
@@ -344,14 +344,14 @@ certdb_Seq(DB *db, DBT *key, DBT *data, unsigned int flags)
 static void
 certdb_Close(DB *db)
 {
-    PRStatus prstat;
+    PRStatus prstat = PR_SUCCESS;
 
     PORT_Assert(dbLock != NULL);
-    PZ_Lock(dbLock);
+    SKIP_AFTER_FORK(PZ_Lock(dbLock));
 
     (* db->close)(db);
     
-    prstat = PZ_Unlock(dbLock);
+    SKIP_AFTER_FORK(prstat = PZ_Unlock(dbLock));
 
     return;
 }
@@ -5269,7 +5269,7 @@ nsslowcert_DestroyFreeLists(void)
     DestroyCertEntryFreeList();
     DestroyTrustFreeList();
     DestroyCertFreeList();
-    PZ_DestroyLock(freeListLock);
+    SKIP_AFTER_FORK(PZ_DestroyLock(freeListLock));
     freeListLock = NULL;
 }
 
@@ -5277,15 +5277,15 @@ void
 nsslowcert_DestroyGlobalLocks(void)
 {
     if (dbLock) {
-	PZ_DestroyLock(dbLock);
+	SKIP_AFTER_FORK(PZ_DestroyLock(dbLock));
 	dbLock = NULL;
     }
     if (certRefCountLock) {
-	PZ_DestroyLock(certRefCountLock);
+	SKIP_AFTER_FORK(PZ_DestroyLock(certRefCountLock));
 	certRefCountLock = NULL;
     }
     if (certTrustLock) {
-	PZ_DestroyLock(certTrustLock);
+	SKIP_AFTER_FORK(PZ_DestroyLock(certTrustLock));
 	certTrustLock = NULL;
     }
 }

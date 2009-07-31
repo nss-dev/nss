@@ -249,6 +249,10 @@ extern int cert_AVAOidTagToMaxLen(SECOidTag tag);
 extern CERTAVA * CERT_CreateAVAFromRaw(PRArenaPool *pool, 
                                const SECItem * OID, const SECItem * value);
 
+/* Make an AVA from binary input specified by SECItem */
+extern CERTAVA * CERT_CreateAVAFromSECItem(PRArenaPool *arena, SECOidTag kind, 
+                                           int valueType, SECItem *value);
+
 /*
  * get a DPCache object for the given issuer subject and dp
  * Automatically creates the cache object if it doesn't exist yet.
@@ -256,6 +260,10 @@ extern CERTAVA * CERT_CreateAVAFromRaw(PRArenaPool *pool,
 SECStatus AcquireDPCache(CERTCertificate* issuer, SECItem* subject,
                          SECItem* dp, int64 t, void* wincx,
                          CRLDPCache** dpcache, PRBool* writeLocked);
+
+/* check if a particular SN is in the CRL cache and return its entry */
+SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
+                         CERTCrlEntry** returned);
 
 /* release a DPCache object that was previously acquired */
 void ReleaseDPCache(CRLDPCache* dpcache, PRBool writeLocked);

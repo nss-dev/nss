@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 #
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -84,6 +84,7 @@ dbtest_init()
          # in the output.log, otherwise we can't tell what's a real error
   RONLY_DIR=${HOSTDIR}/ronlydir
   EMPTY_DIR=${HOSTDIR}/emptydir
+  CONFLICT_DIR=${HOSTDIR}/conflictdir
 
   html_head "CERT and Key DB Tests"
 
@@ -158,7 +159,7 @@ dbtest_main()
     ${BINDIR}/dbtest -i -d $EMPTY_DIR
     ret=$?
     if [ $ret -ne 0 ]; then
-      html_failed "Dbtest logout after empty DB Init looses key $ret"
+      html_failed "Dbtest logout after empty DB Init loses key $ret"
     else
       html_passed "Dbtest logout after empty DB Init has key" 
     fi
@@ -166,7 +167,7 @@ dbtest_main()
     ${BINDIR}/dbtest -i -p pass -d $EMPTY_DIR
     ret=$?
     if [ $ret -ne 0 ]; then
-      html_failed "Dbtest password DB Init looses needlogin state $ret"
+      html_failed "Dbtest password DB Init loses needlogin state $ret"
     else
       html_passed "Dbtest password DB Init maintains needlogin state" 
     fi
@@ -238,6 +239,44 @@ dbtest_main()
 
     Echo "ls -l $RONLY_DIR"
     ls -ld $RONLY_DIR $RONLY_DIR/*
+
+    mkdir ${CONFLICT_DIR}
+    Echo "test creating a new cert with a conflicting nickname"
+    cd ${CONFLICT_DIR}
+    pwd
+    ${BINDIR}/certutil -N -d ${CONFLICT_DIR} -f ${R_PWFILE}
+    ret=$?
+    if [ $ret -ne 0 ]; then
+      html_failed "Nicknane conflict test failed, couldn't create database $ret"
+    else 
+      ${BINDIR}/certutil -A -n alice -t ,, -i ${R_ALICEDIR}/Alice.cert -d ${CONFLICT_DIR}
+      ret=$?
+      if [ $ret -ne 0 ]; then
+        html_failed "Nicknane conflict test failed, couldn't import alice cert $ret"
+      else
+        ${BINDIR}/certutil -A -n alice -t ,, -i ${R_BOBDIR}/Bob.cert -d ${CONFLICT_DIR}
+        ret=$?
+        if [ $ret -eq 0 ]; then
+          html_failed "Nicknane conflict test failed, could import conflict nickname $ret"
+        else
+          html_passed "Nicknane conflict test, could not import conflict nickname $ret"
+        fi
+      fi
+    fi
+
+    Echo "test importing an old cert to a conflicting nickname"
+    # first, import the certificate
+    ${BINDIR}/certutil -A -n bob -t ,, -i ${R_BOBDIR}/Bob.cert -d ${CONFLICT_DIR}
+    # now import with a different nickname
+    ${BINDIR}/certutil -A -n alice -t ,, -i ${R_BOBDIR}/Bob.cert -d ${CONFLICT_DIR}
+    # the old one should still be there...
+    ${BINDIR}/certutil -L -n bob -d ${CONFLICT_DIR}
+    ret=$?
+    if [ $ret -ne 0 ]; then
+      html_failed "Nicknane conflict test-setting nickname conflict incorrectly worked"
+    else
+      html_passed "Nicknane conflict test-setting nickname conflict was correctly rejected"
+    fi
 
 }
 

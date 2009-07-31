@@ -446,6 +446,8 @@ typedef enum {
 
     SEC_OID_ISO_SHA1_WITH_RSA_SIGNATURE     = 301,
 
+    SEC_OID_SEED_CBC			    = 302,
+
     SEC_OID_TOTAL
 } SECOidTag;
 
@@ -472,5 +474,19 @@ struct SECOidDataStr {
 				   that we can print the names of those
 				   extensions that we don't even support */
 };
+
+/* New Opaque extended OID table API.  
+ * These are algorithm policy Flags, used with functions
+ * NSS_SetAlgorithmPolicy & NSS_GetAlgorithmPolicy.
+ */
+#define NSS_USE_ALG_IN_CERT_SIGNATURE  0x00000001  /* CRLs and OCSP, too */
+#define NSS_USE_ALG_IN_CMS_SIGNATURE   0x00000002  /* used in S/MIME */
+#define NSS_USE_ALG_RESERVED           0xfffffffc  /* may be used in future */
+
+/* Code MUST NOT SET or CLEAR reserved bits, and must NOT depend on them
+ * being all zeros or having any other known value.  The reserved bits
+ * must be ignored.
+ */
+
 
 #endif /* _SECOIDT_H_ */

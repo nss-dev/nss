@@ -53,6 +53,8 @@ SEC_BEGIN_PROTOS
 ** buffer must be at least the size of the public key modulus.
 */
 
+extern SECStatus BL_Init(void);
+
 /*
 ** Generate and return a new RSA public and private key.
 **	Both keys are encoded in a single RSAPrivateKey structure.
@@ -515,6 +517,30 @@ extern SECStatus DES_Encrypt(DESContext *cx, unsigned char *output,
 extern SECStatus DES_Decrypt(DESContext *cx, unsigned char *output,
 			    unsigned int *outputLen, unsigned int maxOutputLen,
 			    const unsigned char *input, unsigned int inputLen);
+
+/******************************************/
+/* 
+** SEED symmetric block cypher		  
+*/
+extern SEEDContext *
+SEED_CreateContext(const unsigned char *key, const unsigned char *iv, 
+		   int mode, PRBool encrypt);
+extern SEEDContext *SEED_AllocateContext(void);
+extern SECStatus   SEED_InitContext(SEEDContext *cx, 
+				    const unsigned char *key, 
+				    unsigned int keylen, 
+				    const unsigned char *iv, 
+				    int mode, unsigned int encrypt, 
+				    unsigned int );
+extern void SEED_DestroyContext(SEEDContext *cx, PRBool freeit);
+extern SECStatus 
+SEED_Encrypt(SEEDContext *cx, unsigned char *output, 
+	     unsigned int *outputLen, unsigned int maxOutputLen, 
+	     const unsigned char *input, unsigned int inputLen);
+extern SECStatus 
+SEED_Decrypt(SEEDContext *cx, unsigned char *output, 
+	     unsigned int *outputLen, unsigned int maxOutputLen, 
+             const unsigned char *input, unsigned int inputLen);
 
 /******************************************/
 /*
@@ -1055,22 +1081,8 @@ extern void RNG_SystemInfoForRNG(void);
  */
 
 /*
- * Given the seed-key and the seed, generate the random output.
- *
- * Parameters:
- *   XKEY [input/output]: the state of the RNG (seed-key)
- *   XSEEDj [input]: optional user input (seed)
- *   x_j [output]: output of the RNG
- *
- * Return value:
- * This function usually returns SECSuccess.  The only reason
- * this function returns SECFailure is that XSEEDj equals
- * XKEY, including the intermediate XKEY value between the two
- * iterations.  (This test is actually a FIPS 140-2 requirement
- * and not required for FIPS algorithm testing, but it is too
- * hard to separate from this function.)  If this function fails,
- * XKEY is not updated, but some data may have been written to
- * x_j, which should be ignored.
+ * FIPS186Change_GenerateX is now deprecated. It will return SECFailure with
+ * the error set to PR_NOT_IMPLEMENTED_ERROR.
  */
 extern SECStatus
 FIPS186Change_GenerateX(unsigned char *XKEY,
@@ -1089,6 +1101,27 @@ extern SECStatus
 FIPS186Change_ReduceModQForDSA(const unsigned char *w,
                                const unsigned char *q,
                                unsigned char *xj);
+
+/*
+ * The following functions are for FIPS poweron self test and FIPS algorithm
+ * testing.
+ */
+extern SECStatus
+PRNGTEST_Instantiate(const PRUint8 *entropy, unsigned int entropy_len, 
+		const PRUint8 *nonce, unsigned int nonce_len,
+		const PRUint8 *personal_string, unsigned int ps_len);
+
+extern SECStatus
+PRNGTEST_Reseed(const PRUint8 *entropy, unsigned int entropy_len, 
+		  const PRUint8 *additional, unsigned int additional_len);
+
+extern SECStatus
+PRNGTEST_Generate(PRUint8 *bytes, unsigned int bytes_len, 
+		  const PRUint8 *additional, unsigned int additional_len);
+
+extern SECStatus
+PRNGTEST_Uninstantiate(void);
+
 
 /* Generate PQGParams and PQGVerify structs.
  * Length of seed and length of h both equal length of P. 
@@ -1116,7 +1149,7 @@ PQG_ParamGenSeedLen(
  *  If vfy is non-NULL, test PQGParams to make sure they were generated
  *       using the specified seed, counter, and h values.
  *
- *  Return value indicates whether Verification operation ran succesfully
+ *  Return value indicates whether Verification operation ran successfully
  *  to completion, but does not indicate if PQGParams are valid or not.
  *  If return value is SECSuccess, then *pResult has these meanings:
  *       SECSuccess: PQGParams are valid.
@@ -1168,6 +1201,8 @@ PRBool BLAPI_VerifySelf(const char *name);
 
 /*********************************************************************/
 extern const SECHashObject * HASH_GetRawHashObject(HASH_HashType hashType);
+
+extern void BL_SetForkState(PRBool forked);
 
 SEC_END_PROTOS
 

@@ -40,6 +40,10 @@
 
 /* $Id$ */
 
+#ifdef FREEBL_NO_DEPEND
+#include "stubs.h"
+#endif
+
 #include "prcpucfg.h"
 #if defined(IS_LITTLE_ENDIAN) || defined(SHA_NO_LONG_LONG)
 #define BIG_ENDIAN_WITH_64_BIT_REGISTERS 0

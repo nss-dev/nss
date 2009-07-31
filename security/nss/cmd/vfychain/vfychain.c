@@ -81,30 +81,42 @@ static void
 Usage(const char *progName)
 {
     fprintf(stderr, 
-	"Usage: %s [options] certfile [[options] certfile] ...\n"
+	"Usage: %s [options] [revocation options] certfile "
+            "[[options] certfile] ...\n"
 	"\tWhere options are:\n"
 	"\t-a\t\t Following certfile is base64 encoded\n"
 	"\t-b YYMMDDHHMMZ\t Validate date (default: now)\n"
 	"\t-d directory\t Database directory\n"
+	"\t-i number of consecutive verifications\n"
 	"\t-f \t\t Enable cert fetching from AIA URL\n"
 	"\t-o oid\t\t Set policy OID for cert validation(Format OID.1.2.3)\n"
 	"\t-p \t\t Use PKIX Library to validate certificate by calling:\n"
 	"\t\t\t   * CERT_VerifyCertificate if specified once,\n"
 	"\t\t\t   * CERT_PKIXVerifyCert if specified twice and more.\n"
 	"\t-r\t\t Following certfile is raw binary DER (default)\n"
-        "\t-s\t\t Status checking, following a configuration description.\n"
-        "\t\t\t Implemented as of today are:\n"
-        "\t\t\t   * allow-crl (default)\n"
-        "\t\t\t   * allow-crl-and-ocsp\n"
         "\t-t\t\t Following cert is explicitly trusted (overrides db trust).\n"
 	"\t-u usage \t 0=SSL client, 1=SSL server, 2=SSL StepUp, 3=SSL CA,\n"
 	"\t\t\t 4=Email signer, 5=Email recipient, 6=Object signer,\n"
 	"\t\t\t 9=ProtectedObjectSigner, 10=OCSP responder, 11=Any CA\n"
 	"\t-v\t\t Verbose mode. Prints root cert subject(double the\n"
 	"\t\t\t argument for whole root cert info)\n"
-	"\t-w password\t Database password.\n",
-	"\t-W pwfile\t Password file.\n",
-	progName);
+	"\t-w password\t Database password.\n"
+	"\t-W pwfile\t Password file.\n\n"
+        "\tRevocation options for PKIX API(invoked with -pp options) is a\n"
+        "\tcollection of the following flags:\n"
+        "\t\t[-g type [-h flags] [-m type [-s flags]] ...] ...\n"
+        "\tWhere:\n"
+        "\t-g test type\t Sets status checking test type. Possible values\n"
+        "\t\t\tare \"leaf\" or \"chain\"\n"
+        "\t-h test flags\t Sets revocation flags for the test type it\n"
+        "\t\t\tfollows. Possible flags: \"testLocalInfoFirst\" and\n"
+        "\t\t\t\"requireFreshInfo\".\n"
+        "\t-m method type\t Sets method type for the test type it follows.\n"
+        "\t\t\tPossible types are \"crl\" and \"ocsp\".\n"
+        "\t-s method flags\t Sets revocation flags for the method it follows.\n"
+        "\t\t\tPossible types are \"doNotUse\", \"forbidFetching\",\n"
+        "\t\t\t\"ignoreDefaultSrc\", \"requireInfo\" and \"failIfNoInfo\".\n",
+        progName);
     exit(1);
 }
 
@@ -229,18 +241,194 @@ getCert(const char *name, PRBool isAscii, const char * progName)
     return cert;
 }
 
-#define REVCONFIG_ALLOW_CRL "allow-crl"
-#define REVCONFIG_ALLOW_CRL_OCSP "allow-crl-and-ocsp"
+
+#define REVCONFIG_TEST_UNDEFINED      0
+#define REVCONFIG_TEST_LEAF           1
+#define REVCONFIG_TEST_CHAIN          2
+#define REVCONFIG_METHOD_CRL          1
+#define REVCONFIG_METHOD_OCSP         2
+
+#define REVCONFIG_TEST_LEAF_STR       "leaf"
+#define REVCONFIG_TEST_CHAIN_STR      "chain"
+#define REVCONFIG_METHOD_CRL_STR      "crl"
+#define REVCONFIG_METHOD_OCSP_STR     "ocsp"
+
+#define REVCONFIG_TEST_TESTLOCALINFOFIRST_STR     "testLocalInfoFirst"
+#define REVCONFIG_TEST_REQUIREFRESHINFO_STR       "requireFreshInfo"
+#define REVCONFIG_METHOD_DONOTUSEMETHOD_STR       "doNotUse"
+#define REVCONFIG_METHOD_FORBIDNETWORKFETCHIN_STR "forbidFetching"
+#define REVCONFIG_METHOD_IGNOREDEFAULTSRC_STR     "ignoreDefaultSrc"
+#define REVCONFIG_METHOD_REQUIREINFO_STR          "requireInfo"
+#define REVCONFIG_METHOD_FAILIFNOINFO_STR         "failIfNoInfo" 
+
+#define REV_METHOD_INDEX_MAX  4
+
+typedef struct RevMethodsStruct {
+    uint testType;
+    char *testTypeStr;
+    uint testFlags;
+    char *testFlagsStr;
+    uint methodType;
+    char *methodTypeStr;
+    uint methodFlags;
+    char *methodFlagsStr;
+} RevMethods;
+
+RevMethods revMethodsData[REV_METHOD_INDEX_MAX];
+
+SECStatus
+parseRevMethodsAndFlags()
+{
+    int i;
+    uint testType = 0;
+
+    for(i = 0;i < REV_METHOD_INDEX_MAX;i++) {
+        /* testType */
+        if (revMethodsData[i].testTypeStr) {
+            char *typeStr = revMethodsData[i].testTypeStr;
+
+            testType = 0;
+            if (!PORT_Strcmp(typeStr, REVCONFIG_TEST_LEAF_STR)) {
+                testType = REVCONFIG_TEST_LEAF;
+            } else if (!PORT_Strcmp(typeStr, REVCONFIG_TEST_CHAIN_STR)) {
+                testType = REVCONFIG_TEST_CHAIN;
+            }
+        }
+        if (!testType) {
+            return SECFailure;
+        }
+        revMethodsData[i].testType = testType;
+        /* testFlags */
+        if (revMethodsData[i].testFlagsStr) {
+            char *flagStr = revMethodsData[i].testFlagsStr;
+            uint testFlags = 0;
+
+            if (PORT_Strstr(flagStr, REVCONFIG_TEST_TESTLOCALINFOFIRST_STR)) {
+                testFlags |= CERT_REV_MI_TEST_ALL_LOCAL_INFORMATION_FIRST;
+            } 
+            if (PORT_Strstr(flagStr, REVCONFIG_TEST_REQUIREFRESHINFO_STR)) {
+                testFlags |= CERT_REV_MI_REQUIRE_SOME_FRESH_INFO_AVAILABLE;
+            }
+            revMethodsData[i].testFlags = testFlags;
+        }
+        /* method type */
+        if (revMethodsData[i].methodTypeStr) {
+            char *methodStr = revMethodsData[i].methodTypeStr;
+            uint methodType = 0;
+            
+            if (!PORT_Strcmp(methodStr, REVCONFIG_METHOD_CRL_STR)) {
+                methodType = REVCONFIG_METHOD_CRL;
+            } else if (!PORT_Strcmp(methodStr, REVCONFIG_METHOD_OCSP_STR)) {
+                methodType = REVCONFIG_METHOD_OCSP;
+            }
+            if (!methodType) {
+                return SECFailure;
+            }
+            revMethodsData[i].methodType = methodType;
+        }
+        if (!revMethodsData[i].methodType) {
+            revMethodsData[i].testType = REVCONFIG_TEST_UNDEFINED;
+            continue;
+        }
+        /* method flags */
+        if (revMethodsData[i].methodFlagsStr) {
+            char *flagStr = revMethodsData[i].methodFlagsStr;
+            uint methodFlags = 0;
+
+            if (!PORT_Strstr(flagStr, REVCONFIG_METHOD_DONOTUSEMETHOD_STR)) {
+                methodFlags |= CERT_REV_M_TEST_USING_THIS_METHOD;
+            } 
+            if (PORT_Strstr(flagStr,
+                            REVCONFIG_METHOD_FORBIDNETWORKFETCHIN_STR)) {
+                methodFlags |= CERT_REV_M_FORBID_NETWORK_FETCHING;
+            }
+            if (PORT_Strstr(flagStr, REVCONFIG_METHOD_IGNOREDEFAULTSRC_STR)) {
+                methodFlags |= CERT_REV_M_IGNORE_IMPLICIT_DEFAULT_SOURCE;
+            }
+            if (PORT_Strstr(flagStr, REVCONFIG_METHOD_REQUIREINFO_STR)) {
+                methodFlags |= CERT_REV_M_REQUIRE_INFO_ON_MISSING_SOURCE;
+            }
+            if (PORT_Strstr(flagStr, REVCONFIG_METHOD_FAILIFNOINFO_STR)) {
+                methodFlags |= CERT_REV_M_FAIL_ON_MISSING_FRESH_INFO;
+            }
+            revMethodsData[i].methodFlags = methodFlags;
+        } else {
+            revMethodsData[i].methodFlags |= CERT_REV_M_TEST_USING_THIS_METHOD;
+        }
+    }
+    return SECSuccess;
+}
+
+SECStatus
+configureRevocationParams(CERTRevocationFlags *flags)
+{
+   int i;
+   uint testType = REVCONFIG_TEST_UNDEFINED;
+   static CERTRevocationTests *revTests = NULL;
+   PRUint64 *revFlags;
+
+   for(i = 0;i < REV_METHOD_INDEX_MAX;i++) {
+       if (revMethodsData[i].testType == REVCONFIG_TEST_UNDEFINED) {
+           continue;
+       }
+       if (revMethodsData[i].testType != testType) {
+           testType = revMethodsData[i].testType;
+           if (testType == REVCONFIG_TEST_CHAIN) {
+               revTests = &flags->chainTests;
+           } else {
+               revTests = &flags->leafTests;
+           }
+           revTests->number_of_preferred_methods = 0;
+           revTests->preferred_methods = 0;
+           revFlags = revTests->cert_rev_flags_per_method;
+       }
+       /* Set the number of the methods independently to the max number of
+        * methods. If method flags are not set it will be ignored due to
+        * default DO_NOT_USE flag. */
+       revTests->number_of_defined_methods = cert_revocation_method_count;
+       revTests->cert_rev_method_independent_flags |=
+           revMethodsData[i].testFlags;
+       if (revMethodsData[i].methodType == REVCONFIG_METHOD_CRL) {
+           revFlags[cert_revocation_method_crl] =
+               revMethodsData[i].methodFlags;
+       } else if (revMethodsData[i].methodType == REVCONFIG_METHOD_OCSP) {
+           revFlags[cert_revocation_method_ocsp] =
+               revMethodsData[i].methodFlags;
+       }
+   }
+   return SECSuccess;
+}
+
+void
+freeRevocationMethodData()
+{
+    int i = 0;
+    for(;i < REV_METHOD_INDEX_MAX;i++) {
+        if (revMethodsData[i].testTypeStr) {
+            PORT_Free(revMethodsData[i].testTypeStr);
+        }
+        if (revMethodsData[i].testFlagsStr) {
+            PORT_Free(revMethodsData[i].testFlagsStr);
+        }
+        if (revMethodsData[i].methodTypeStr) {
+            PORT_Free(revMethodsData[i].methodTypeStr);
+        }
+        if (revMethodsData[i].methodFlagsStr) {
+            PORT_Free(revMethodsData[i].methodFlagsStr);
+        }
+    }
+}
 
 PRBool
-isAllowedRevConfig(const char *name)
+isOCSPEnabled()
 {
-    if (strcmp(REVCONFIG_ALLOW_CRL, name) == 0)
-        return PR_TRUE;
+    int i;
 
-    if (strcmp(REVCONFIG_ALLOW_CRL_OCSP, name) == 0)
-        return PR_TRUE;
-
+    for(i = 0;i < REV_METHOD_INDEX_MAX;i++) {
+        if (revMethodsData[i].methodType == REVCONFIG_METHOD_OCSP) {
+            return PR_TRUE;
+        }
+    }
     return PR_FALSE;
 }
 
@@ -266,14 +454,17 @@ main(int argc, char *argv[], char *envp[])
     int                  usage;
     CERTVerifyLog        log;
     CERTCertList        *builtChain = NULL;
-    char *               revConfig    = NULL;
     PRBool               certFetching = PR_FALSE;
+    int                  revDataIndex = 0;
+    PRBool               ocsp_fetchingFailureIsAFailure = PR_TRUE;
+    PRBool               useDefaultRevFlags = PR_TRUE;
+    int                  vfyCounts = 1;
 
     PR_Init( PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
     progName = PL_strdup(argv[0]);
 
-    optstate = PL_CreateOptState(argc, argv, "ab:d:fo:prs:tu:vw:W:");
+    optstate = PL_CreateOptState(argc, argv, "ab:c:d:efg:h:i:m:o:prs:tu:vw:W:");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch(optstate->option) {
 	case  0  : /* positional parameter */  goto breakout;
@@ -281,11 +472,46 @@ main(int argc, char *argv[], char *envp[])
 	case 'b' : secStatus = DER_AsciiToTime(&time, optstate->value);
 	           if (secStatus != SECSuccess) Usage(progName); break;
 	case 'd' : certDir  = PL_strdup(optstate->value);     break;
+	case 'e' : ocsp_fetchingFailureIsAFailure = PR_FALSE;  break;
 	case 'f' : certFetching = PR_TRUE;                    break;
+	case 'g' : 
+                   if (revMethodsData[revDataIndex].testTypeStr ||
+                       revMethodsData[revDataIndex].methodTypeStr) {
+                       revDataIndex += 1;
+                       if (revDataIndex == REV_METHOD_INDEX_MAX) {
+                           fprintf(stderr, "Invalid revocation configuration"
+                                   "specified.\n");
+                           secStatus = SECFailure;
+                           break;
+                       }
+                   }
+                   useDefaultRevFlags = PR_FALSE;
+                   revMethodsData[revDataIndex].
+                       testTypeStr = PL_strdup(optstate->value); break;
+	case 'h' : 
+                   revMethodsData[revDataIndex].
+                       testFlagsStr = PL_strdup(optstate->value);break;
+        case 'i' : vfyCounts = PORT_Atoi(optstate->value);       break;
+                   break;
+	case 'm' : 
+                   if (revMethodsData[revDataIndex].methodTypeStr) {
+                       revDataIndex += 1;
+                       if (revDataIndex == REV_METHOD_INDEX_MAX) {
+                           fprintf(stderr, "Invalid revocation configuration"
+                                   "specified.\n");
+                           secStatus = SECFailure;
+                           break;
+                       }
+                   }
+                   useDefaultRevFlags = PR_FALSE;
+                   revMethodsData[revDataIndex].
+                       methodTypeStr = PL_strdup(optstate->value); break;
 	case 'o' : oidStr = PL_strdup(optstate->value);       break;
 	case 'p' : usePkix += 1;                              break;
 	case 'r' : isAscii  = PR_FALSE;                       break;
-	case 's' : revConfig  = PL_strdup(optstate->value);   break;
+	case 's' : 
+                   revMethodsData[revDataIndex].
+                       methodFlagsStr = PL_strdup(optstate->value); break;
 	case 't' : trusted  = PR_TRUE;                        break;
 	case 'u' : usage    = PORT_Atoi(optstate->value);
 	           if (usage < 0 || usage > 62) Usage(progName);
@@ -322,7 +548,7 @@ breakout:
         }
     }
 
-    if (revConfig && !isAllowedRevConfig(revConfig)) {
+    if (!useDefaultRevFlags && parseRevMethodsAndFlags()) {
         fprintf(stderr, "Invalid revocation configuration specified.\n");
         goto punt;
     }
@@ -343,9 +569,12 @@ breakout:
 	exitErr("NSS_Init");
     }
     SECU_RegisterDynamicOids();
-    if (revConfig && strcmp(REVCONFIG_ALLOW_CRL_OCSP, revConfig) == 0) {
+    if (isOCSPEnabled()) {
         CERT_EnableOCSPChecking(CERT_GetDefaultCertDB());
         CERT_DisableOCSPDefaultResponder(CERT_GetDefaultCertDB());
+        if (!ocsp_fetchingFailureIsAFailure) {
+            CERT_SetOCSPFailureMode(ocspMode_FailureIsNotAVerificationFailure);
+        }
     }
 
     while (status == PL_OPT_OK) {
@@ -374,188 +603,175 @@ breakout:
     if (status == PL_OPT_BAD || !firstCert)
 	Usage(progName);
 
-    if (!time)
-    	time = PR_Now();
-
     /* Initialize log structure */
     log.arena = PORT_NewArena(512);
     log.head = log.tail = NULL;
     log.count = 0;
 
-    if (usePkix < 2) {
-        /* NOW, verify the cert chain. */
-        if (usePkix) {
-            /* Use old API with libpkix validation lib */
-            CERT_SetUsePKIXForValidation(PR_TRUE);
-        }
-        defaultDB = CERT_GetDefaultCertDB();
-        secStatus = CERT_VerifyCertificate(defaultDB, firstCert, 
-                                           PR_TRUE /* check sig */,
-                                           certUsage, 
-                                           time, 
-                                           &pwdata, /* wincx  */
-                                           &log, /* error log */
+    do {
+        if (usePkix < 2) {
+            /* NOW, verify the cert chain. */
+            if (usePkix) {
+                /* Use old API with libpkix validation lib */
+                CERT_SetUsePKIXForValidation(PR_TRUE);
+            }
+            if (!time)
+                time = PR_Now();
+
+            defaultDB = CERT_GetDefaultCertDB();
+            secStatus = CERT_VerifyCertificate(defaultDB, firstCert, 
+                                               PR_TRUE /* check sig */,
+                                               certUsage, 
+                                               time,
+                                               &pwdata, /* wincx  */
+                                               &log, /* error log */
                                            NULL);/* returned usages */
-    } else do {
-        static CERTValOutParam cvout[4];
-        static CERTValInParam cvin[6];
-        SECOidTag oidTag;
-        int inParamIndex = 0;
-        static CERTRevocationFlags rev;
-        static PRUint64 revFlags[2];
+        } else do {
+                static CERTValOutParam cvout[4];
+                static CERTValInParam cvin[6];
+                SECOidTag oidTag;
+                int inParamIndex = 0;
+                static PRUint64 revFlagsLeaf[2];
+                static PRUint64 revFlagsChain[2];
+                static CERTRevocationFlags rev;
+                
+                if (oidStr) {
+                    PRArenaPool *arena;
+                    SECOidData od;
+                    memset(&od, 0, sizeof od);
+                    od.offset = SEC_OID_UNKNOWN;
+                    od.desc = "User Defined Policy OID";
+                    od.mechanism = CKM_INVALID_MECHANISM;
+                    od.supportedExtension = INVALID_CERT_EXTENSION;
 
-        if (oidStr) {
-            PRArenaPool *arena;
-            SECOidData od;
-            memset(&od, 0, sizeof od);
-            od.offset = SEC_OID_UNKNOWN;
-            od.desc = "User Defined Policy OID";
-            od.mechanism = CKM_INVALID_MECHANISM;
-            od.supportedExtension = INVALID_CERT_EXTENSION;
-
-            arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-            if ( !arena ) {
-                fprintf(stderr, "out of memory");
-                goto punt;
-            }
-            
-            secStatus = SEC_StringToOID(arena, &od.oid, oidStr, 0);
-            if (secStatus != SECSuccess) {
-                PORT_FreeArena(arena, PR_FALSE);
-                fprintf(stderr, "Can not encode oid: %s(%s)\n", oidStr,
-                        SECU_Strerror(PORT_GetError()));
-                break;
-            }
-            
-            oidTag = SECOID_AddEntry(&od);
-            PORT_FreeArena(arena, PR_FALSE);
-            if (oidTag == SEC_OID_UNKNOWN) {
-                fprintf(stderr, "Can not add new oid to the dynamic "
-                        "table: %s\n", oidStr);
-                secStatus = SECFailure;
-                break;
-            }
-
-            cvin[inParamIndex].type = cert_pi_policyOID;
-            cvin[inParamIndex].value.arraySize = 1;
-            cvin[inParamIndex].value.array.oids = &oidTag;
-
-            inParamIndex++;
-        }
-
-        if (trustedCertList) {
-            cvin[inParamIndex].type = cert_pi_trustAnchors;
-            cvin[inParamIndex].value.pointer.chain = trustedCertList;
-            
-            inParamIndex++;
-        }
-
-        cvin[inParamIndex].type = cert_pi_useAIACertFetch;
-        cvin[inParamIndex].value.scalar.b = certFetching;
-        inParamIndex++;
-
-        cvin[inParamIndex].type = cert_pi_date;
-        cvin[inParamIndex].value.scalar.time = time;
-        inParamIndex++;
-
-        revFlags[cert_revocation_method_crl] = 
-            CERT_REV_M_TEST_USING_THIS_METHOD;
-        rev.leafTests.number_of_defined_methods = 
-            cert_revocation_method_crl +1;
-        rev.chainTests.number_of_defined_methods = 
-            cert_revocation_method_crl +1;
-
-        if (revConfig && strcmp(REVCONFIG_ALLOW_CRL_OCSP, revConfig) == 0) {
-            revFlags[cert_revocation_method_ocsp] = 
-                CERT_REV_M_TEST_USING_THIS_METHOD;
-            rev.leafTests.number_of_defined_methods = 
-                cert_revocation_method_ocsp +1;
-            rev.chainTests.number_of_defined_methods = 
-                cert_revocation_method_ocsp +1;
-        }
-
-        rev.leafTests.cert_rev_flags_per_method = revFlags;
-        rev.leafTests.number_of_preferred_methods = 0;
-        rev.leafTests.preferred_methods = 0;
-        rev.leafTests.cert_rev_method_independent_flags = 0;
-      
-        rev.chainTests.cert_rev_flags_per_method = revFlags;
-        rev.chainTests.number_of_preferred_methods = 0;
-        rev.chainTests.preferred_methods = 0;
-        rev.chainTests.cert_rev_method_independent_flags = 0;
-
-        cvin[inParamIndex].type = cert_pi_revocationFlags;
-        cvin[inParamIndex].value.pointer.revocation = &rev;
-	inParamIndex++;
-
-        cvin[inParamIndex].type = cert_pi_end;
-        
-        cvout[0].type = cert_po_trustAnchor;
-        cvout[0].value.pointer.cert = NULL;
-        cvout[1].type = cert_po_certList;
-        cvout[1].value.pointer.chain = NULL;
-
-        /* setting pointer to CERTVerifyLog. Initialized structure
-         * will be used CERT_PKIXVerifyCert */
-        cvout[2].type = cert_po_errorLog;
-        cvout[2].value.pointer.log = &log;
-
-        cvout[3].type = cert_po_end;
-        
-        secStatus = CERT_PKIXVerifyCert(firstCert, certUsage,
-                                        cvin, cvout, &pwdata);
-        if (secStatus != SECSuccess) {
-            break;
-        }
-        issuerCert = cvout[0].value.pointer.cert;
-        builtChain = cvout[1].value.pointer.chain;
-    } while (0);
-
-    /* Display validation results */
-    if (secStatus != SECSuccess || log.count > 0) {
-	CERTVerifyLogNode *node = NULL;
-	PRIntn err = PR_GetError();
-	fprintf(stderr, "Chain is bad, %d = %s\n", err, SECU_Strerror(err));
-
-	SECU_displayVerifyLog(stderr, &log, verbose); 
-	/* Have cert refs in the log only in case of failure.
-	 * Destroy them. */
-	for (node = log.head; node; node = node->next) {
-	    if (node->cert)
-	        CERT_DestroyCertificate(node->cert);
-	}
-    	rv = 1;
-    } else {
-    	fprintf(stderr, "Chain is good!\n");
-    	if (issuerCert) {
-    	   if (verbose > 1) {
-               rv = SEC_PrintCertificateAndTrust(issuerCert, "Root Certificate",
-                                                 NULL);
-               if (rv != SECSuccess) {
-		 SECU_PrintError(progName, "problem printing certificate");
-               }
-    	   } else if (verbose > 0) {
-    	      SECU_PrintName(stdout, &issuerCert->subject, "Root "
-                             "Certificate Subject:", 0);
-    	   }
-    	   CERT_DestroyCertificate(issuerCert);
-    	}
-         if (builtChain) {
-            CERTCertListNode *node;
-            int count = 0;
-            char buff[256];
-
-            if (verbose) { 
-                for(node = CERT_LIST_HEAD(builtChain); !CERT_LIST_END(node, builtChain);
-                    node = CERT_LIST_NEXT(node), count++ ) {
-                    sprintf(buff, "Certificate %d Subject", count + 1);
-                    SECU_PrintName(stdout, &node->cert->subject, buff, 0);
+                    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+                    if ( !arena ) {
+                        fprintf(stderr, "out of memory");
+                        goto punt;
+                    }
+                    
+                    secStatus = SEC_StringToOID(arena, &od.oid, oidStr, 0);
+                    if (secStatus != SECSuccess) {
+                        PORT_FreeArena(arena, PR_FALSE);
+                        fprintf(stderr, "Can not encode oid: %s(%s)\n", oidStr,
+                                SECU_Strerror(PORT_GetError()));
+                        break;
+                    }
+                    
+                    oidTag = SECOID_AddEntry(&od);
+                    PORT_FreeArena(arena, PR_FALSE);
+                    if (oidTag == SEC_OID_UNKNOWN) {
+                        fprintf(stderr, "Can not add new oid to the dynamic "
+                                "table: %s\n", oidStr);
+                        secStatus = SECFailure;
+                        break;
+                    }
+                    
+                    cvin[inParamIndex].type = cert_pi_policyOID;
+                    cvin[inParamIndex].value.arraySize = 1;
+                    cvin[inParamIndex].value.array.oids = &oidTag;
+                    
+                    inParamIndex++;
                 }
+                
+                if (trustedCertList) {
+                    cvin[inParamIndex].type = cert_pi_trustAnchors;
+                    cvin[inParamIndex].value.pointer.chain = trustedCertList;
+                    
+                    inParamIndex++;
+                }
+                
+                cvin[inParamIndex].type = cert_pi_useAIACertFetch;
+                cvin[inParamIndex].value.scalar.b = certFetching;
+                inParamIndex++;
+                
+                rev.leafTests.cert_rev_flags_per_method = revFlagsLeaf;
+                rev.chainTests.cert_rev_flags_per_method = revFlagsChain;
+                secStatus = configureRevocationParams(&rev);
+                if (secStatus) {
+                    fprintf(stderr, "Can not config revocation parameters ");
+                    break;
+                }
+                
+                cvin[inParamIndex].type = cert_pi_revocationFlags;
+                cvin[inParamIndex].value.pointer.revocation = &rev;
+                inParamIndex++;
+                
+                if (time) {
+                    cvin[inParamIndex].type = cert_pi_date;
+                    cvin[inParamIndex].value.scalar.time = time;
+                    inParamIndex++;
+                }
+                
+                cvin[inParamIndex].type = cert_pi_end;
+                
+                cvout[0].type = cert_po_trustAnchor;
+                cvout[0].value.pointer.cert = NULL;
+                cvout[1].type = cert_po_certList;
+                cvout[1].value.pointer.chain = NULL;
+                
+                /* setting pointer to CERTVerifyLog. Initialized structure
+                 * will be used CERT_PKIXVerifyCert */
+                cvout[2].type = cert_po_errorLog;
+                cvout[2].value.pointer.log = &log;
+                
+                cvout[3].type = cert_po_end;
+                
+                secStatus = CERT_PKIXVerifyCert(firstCert, certUsage,
+                                                cvin, cvout, &pwdata);
+                if (secStatus != SECSuccess) {
+                    break;
+                }
+                issuerCert = cvout[0].value.pointer.cert;
+                builtChain = cvout[1].value.pointer.chain;
+            } while (0);
+        
+        /* Display validation results */
+        if (secStatus != SECSuccess || log.count > 0) {
+            CERTVerifyLogNode *node = NULL;
+            PRIntn err = PR_GetError();
+            fprintf(stderr, "Chain is bad, %d = %s\n", err, SECU_Strerror(err));
+            
+            SECU_displayVerifyLog(stderr, &log, verbose); 
+            /* Have cert refs in the log only in case of failure.
+             * Destroy them. */
+            for (node = log.head; node; node = node->next) {
+                if (node->cert)
+                    CERT_DestroyCertificate(node->cert);
             }
-            CERT_DestroyCertList(builtChain);
-         }
-	rv = 0;
-    }
+            rv = 1;
+        } else {
+            fprintf(stderr, "Chain is good!\n");
+            if (issuerCert) {
+                if (verbose > 1) {
+                    rv = SEC_PrintCertificateAndTrust(issuerCert, "Root Certificate",
+                                                      NULL);
+                    if (rv != SECSuccess) {
+                        SECU_PrintError(progName, "problem printing certificate");
+                    }
+                } else if (verbose > 0) {
+                    SECU_PrintName(stdout, &issuerCert->subject, "Root "
+                                   "Certificate Subject:", 0);
+                }
+                CERT_DestroyCertificate(issuerCert);
+            }
+            if (builtChain) {
+                CERTCertListNode *node;
+                int count = 0;
+                char buff[256];
+                
+                if (verbose) { 
+                    for(node = CERT_LIST_HEAD(builtChain); !CERT_LIST_END(node, builtChain);
+                        node = CERT_LIST_NEXT(node), count++ ) {
+                        sprintf(buff, "Certificate %d Subject", count + 1);
+                        SECU_PrintName(stdout, &node->cert->subject, buff, 0);
+                    }
+                }
+                CERT_DestroyCertList(builtChain);
+            }
+            rv = 0;
+        }
+    } while (--vfyCounts > 0);
 
     /* Need to destroy CERTVerifyLog arena at the end */
     PORT_FreeArena(log.arena, PR_FALSE);
@@ -569,7 +785,7 @@ punt:
     PORT_Free(progName);
     PORT_Free(certDir);
     PORT_Free(oidStr);
-    PORT_Free(revConfig);
+    freeRevocationMethodData();
     if (pwdata.data) {
         PORT_Free(pwdata.data);
     }

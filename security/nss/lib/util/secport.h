@@ -76,10 +76,6 @@
 # endif
 #endif
 
-#if defined(__WATCOMC__) || defined(__WATCOM_CPLUSPLUS__)
-#include "watcomfx.h"
-#endif
-
 #if defined(_WIN32_WCE)
 #include <windef.h>
 #include <types.h>
@@ -154,7 +150,7 @@ SEC_END_PROTOS
 
 /* Please, keep these defines sorted alphabetically.  Thanks! */
 
-#define PORT_Atoi 	atoi
+#define PORT_Atoi(buff)	(int)strtol(buff, NULL, 10)
 
 #define PORT_Memcmp 	memcmp
 #define PORT_Memcpy 	memcpy

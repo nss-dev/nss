@@ -62,9 +62,9 @@ struct PKIX_Alloc_Error_ObjectStruct {
 };
 typedef struct PKIX_Alloc_Error_ObjectStruct PKIX_Alloc_Error_Object;
 
-static PKIX_Alloc_Error_Object pkix_Alloc_Error_Data = {
+static const PKIX_Alloc_Error_Object pkix_Alloc_Error_Data = {
     {
-        (PKIX_UInt32)PKIX_MAGIC_HEADER, /* PKIX_UInt32 magicHeader */
+        PKIX_MAGIC_HEADER, 		/* PRUint64    magicHeader */
         (PKIX_UInt32)PKIX_ERROR_TYPE,   /* PKIX_UInt32 type */
         (PKIX_UInt32)1,                 /* PKIX_UInt32 references */
         /* Warning! Cannot Ref Count with NULL lock */
@@ -83,7 +83,7 @@ static PKIX_Alloc_Error_Object pkix_Alloc_Error_Data = {
 
 PKIX_Error* PKIX_ALLOC_ERROR(void)
 {
-    return &pkix_Alloc_Error_Data.error;
+    return (PKIX_Error *)&pkix_Alloc_Error_Data.error;
 }
 
 #ifdef PKIX_OBJECT_LEAK_TEST
@@ -129,7 +129,7 @@ pkix_pl_lifecycle_ObjectLeakCheck(int *initObjCountTable)
                 className = entry->description;
                 if (!className) {
                     className = classNameBuff;
-                    sprintf(className, "Unknown(ref %d)", 
+                    PR_snprintf(className, 128, "Unknown(ref %d)", 
                             entry->objCounter);
                 }
 
@@ -233,11 +233,10 @@ PKIX_PL_Initialize(
         pkix_PolicyCheckerState_RegisterSelf(plContext);
 
         pkix_pl_CollectionCertStoreContext_RegisterSelf(plContext); /* 41-50 */
-        pkix_DefaultCRLCheckerState_RegisterSelf(plContext);
+        pkix_CrlChecker_RegisterSelf(plContext);
         pkix_ForwardBuilderState_RegisterSelf(plContext);
         pkix_SignatureCheckerState_RegisterSelf(plContext);
         pkix_NameConstraintsCheckerState_RegisterSelf(plContext);
-        pkix_DefaultRevocationChecker_RegisterSelf(plContext);
         pkix_pl_LdapRequest_RegisterSelf(plContext);
         pkix_pl_LdapResponse_RegisterSelf(plContext);
         pkix_pl_LdapDefaultClient_RegisterSelf(plContext);
@@ -253,7 +252,7 @@ PKIX_PL_Initialize(
         pkix_pl_OcspResponse_RegisterSelf(plContext);
         pkix_pl_HttpDefaultClient_RegisterSelf(plContext);
         pkix_VerifyNode_RegisterSelf(plContext);
-        pkix_pl_EkuChecker_RegisterSelf(plContext);
+        pkix_EkuChecker_RegisterSelf(plContext);
 
         if (pPlContext) {
             PKIX_CHECK(PKIX_PL_NssContext_Create

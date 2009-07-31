@@ -56,7 +56,6 @@
  * interoperability with clients that don't yet implement Camellia.
  */
 const PRUint16 SSL_ImplementedCiphers[] = {
-
     /* 256-bit */
 #ifdef NSS_ENABLE_ECC
     TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
@@ -91,6 +90,7 @@ const PRUint16 SSL_ImplementedCiphers[] = {
     TLS_ECDH_ECDSA_WITH_RC4_128_SHA,
     TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,
 #endif /* NSS_ENABLE_ECC */
+    TLS_RSA_WITH_SEED_CBC_SHA,
     TLS_RSA_WITH_CAMELLIA_128_CBC_SHA,
     SSL_RSA_WITH_RC4_128_MD5,
     SSL_RSA_WITH_RC4_128_SHA,
