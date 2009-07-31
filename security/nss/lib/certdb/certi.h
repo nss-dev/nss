@@ -368,7 +368,7 @@ struct NamedCRLCacheEntryStr {
 typedef enum {
     certRevocationStatusRevoked = 0,
     certRevocationStatusValid = 1,
-    certRevocationStatusUnknown = 2,
+    certRevocationStatusUnknown = 2
 } CERTRevocationStatus;
 
 /* Returns detailed status of the cert(revStatus variable). Tells if
