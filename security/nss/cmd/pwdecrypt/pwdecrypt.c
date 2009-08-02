@@ -116,23 +116,22 @@ long_usage (char *program_name)
  * base64 table only used to identify the end of a base64 string 
  */
 static unsigned char b64[256] = {
-/*   0: */        0,      0,      0,      0,      0,      0,      0,      0,
-/*   8: */        0,      0,      0,      0,      0,      0,      0,      0,
-/*  16: */        0,      0,      0,      0,      0,      0,      0,      0,
-/*  24: */        0,      0,      0,      0,      0,      0,      0,      0,
-/*  32: */        0,      0,      0,      0,      0,      0,      0,      0,
-/*  40: */        0,      0,      0,      1,      0,      0,      0,      1,
-/*  48: */        1,      1,      1,      1,      1,      1,      1,      1,
-/*  56: */        1,      1,      0,      0,      0,      0,      0,      0,
-/*  64: */        0,      1,      1,      1,      1,      1,      1,      1,
-/*  72: */        1,      1,      1,      1,      1,      1,      1,      1,
-/*  80: */        1,      1,      1,      1,      1,      1,      1,      1,
-/*  88: */        1,      1,      1,      0,      0,      0,      0,      0,
-/*  96: */        0,      1,      1,      1,      1,      1,      1,      1,
-/* 104: */        1,      1,      1,      1,      1,      1,      1,      1,
-/* 112: */        1,      1,      1,      1,      1,      1,      1,      1,
-/* 120: */        1,      1,      1,      0,      0,      0,      0,      0,
-/* 128: */        0,      0,      0,      0,      0,      0,      0,      0
+/*  00: */	0,	0,	0,	0,	0,	0,	0,	0,
+/*  08: */	0,	0,	0,	0,	0,	0,	0,	0,
+/*  10: */	0,	0,	0,	0,	0,	0,	0,	0,
+/*  18: */	0,	0,	0,	0,	0,	0,	0,	0,
+/*  20: */	0,	0,	0,	0,	0,	0,	0,	0,
+/*  28: */	0,	0,	0,	1,	0,	0,	0,	1,
+/*  30: */	1,	1,	1,	1,	1,	1,	1,	1,
+/*  38: */	1,	1,	0,	0,	0,	0,	0,	0,
+/*  40: */	0,	1,	1,	1,	1,	1,	1,	1,
+/*  48: */	1,	1,	1,	1,	1,	1,	1,	1,
+/*  50: */	1,	1,	1,	1,	1,	1,	1,	1,
+/*  58: */	1,	1,	1,	0,	0,	0,	0,	0,
+/*  60: */	0,	1,	1,	1,	1,	1,	1,	1,
+/*  68: */	1,	1,	1,	1,	1,	1,	1,	1,
+/*  70: */	1,	1,	1,	1,	1,	1,	1,	1,
+/*  78: */	1,	1,	1,	0,	0,	0,	0,	0,
 };
 
 enum {
@@ -140,61 +139,32 @@ enum {
    true = 1
 } bool;
 
+#define isatobchar(c) (b64[c])
+
+#define MAX_STRING 8192
+
 int
-isatobchar(int c) { return b64[c] != 0; }
+isBase64(char *inString) 
+{
+    unsigned int i;
+    unsigned char c;
 
-
-#define MAX_STRING 256
-int
-getData(FILE *inFile,char **inString) {
-    int len = 0;
-    int space = MAX_STRING;
-    int oneequal = false;
-    int c;
-    char *string = (char *) malloc(space);
-
-    string[len++]='M';
-
-    while ((c = getc(inFile)) != EOF) {
-	if (len >= space) {
-	    char *newString;
-
-	    space *= 2;
-	    newString = (char *)realloc(string,space);
-	    if (newString == NULL) {
-		ungetc(c,inFile);
-		break;
-	    }
-	    string = newString;
-	}
-	string[len++] = c;
-	if (!isatobchar(c)) {
-	   if (c == '=') {
-		if (oneequal) {
-		    break;
-		}
-		oneequal = true;
-		continue;
-	   } else {
-	       ungetc(c,inFile);
-	       len--;
-	       break;
-	   }
-	}
-	if (oneequal) {
-	   ungetc(c,inFile);
-	   len--;
-	   break;
-	}
+    if (inString[0] != 'M')
+    	return false;
+    for (i = 1; (c = inString[i]) != 0 && isatobchar(c); ++i) 
+	;
+    if (c == '=') {
+	while ((c = inString[++i]) == '=')
+	    ; /* skip trailing '=' characters */
     }
-    if (len >= space) {
-	space += 2;
-	string = (char *)realloc(string,space);
-    }
-    string[len++] = 0;
-    *inString = string;
+    if (c && c != '\n' && c != '\r')
+	return false;
+    if (i % 4)
+    	return false;
     return true;
 }
+
+char dataString[MAX_STRING + 1];
 
 int
 main (int argc, char **argv)
@@ -211,7 +181,6 @@ main (int argc, char **argv)
     FILE	*logFile = NULL;
     PLOptStatus optstatus;
     SECItem	result;
-    int		c;
     secuPWData  pwdata = { PW_NONE, NULL };
 
     result.data = 0;
@@ -270,28 +239,31 @@ main (int argc, char **argv)
     }
 
     if (input_file) {
-      inFile = fopen(input_file,"r");
-      if (inFile == NULL) {
-	perror(input_file);
-	return 1;
-      }
-      PR_Free(input_file);
+        inFile = fopen(input_file,"r");
+        if (inFile == NULL) {
+	    perror(input_file);
+	    return 1;
+        }
+        PR_Free(input_file);
     }
     if (output_file) {
-      outFile = fopen(output_file,"w+");
-      if (outFile == NULL) {
-	perror(output_file);
-	return 1;
-      }
-      PR_Free(output_file);
+        outFile = fopen(output_file,"w+");
+        if (outFile == NULL) {
+	    perror(output_file);
+	    return 1;
+        }
+        PR_Free(output_file);
     }
     if (log_file) {
-      logFile = fopen(log_file,"w+");
-      if (logFile == NULL) {
-	perror(log_file);
-	return 1;
-      }
-      PR_Free(log_file);
+	if (log_file[0] == '-')
+	    logFile = stderr;
+	else
+	    logFile = fopen(log_file,"w+");
+	if (logFile == NULL) {
+	    perror(log_file);
+	    return 1;
+	}
+        PR_Free(log_file);
     }
 
     /*
@@ -308,64 +280,59 @@ main (int argc, char **argv)
     /* Get the encrypted result, either from the input file
      * or from encrypting the plaintext value
      */
+    while (fgets(dataString, sizeof dataString, inFile)) {
+	SECItem *inText;
+	int strLen;
 
-    while ((c = getc(inFile)) != EOF) {
-	if (c == 'M') {
-	   char *dataString = NULL;
-	   SECItem *inText;
+	if (!isBase64(dataString)) {
+	    fputs(dataString, outFile);
+	    continue;
+	}
 
-	   rv = getData(inFile, &dataString);
-	   if (!rv) {
-		fputs(dataString,outFile);
-		free(dataString);
-		continue;
-	   }
-	   inText = NSSBase64_DecodeBuffer(NULL, NULL, dataString,
-							strlen(dataString));
-	   if ((inText == NULL) || (inText->len == 0)) {
-		if (logFile) {
-		    fprintf(logFile,"Base 64 decode failed on <%s>\n",
-								dataString);
-		    fprintf(logFile," Error %x: %s\n",PORT_GetError(),
-			SECU_Strerror(PORT_GetError()));
-		}
-		fputs(dataString,outFile);
-		free(dataString);
-		continue;
-	   }
-	   result.data = NULL;
-	   result.len  = 0;
-	   rv = PK11SDR_Decrypt(inText, &result, &pwdata);
-	   SECITEM_FreeItem(inText, PR_TRUE);
-	   if (rv != SECSuccess) {
-		if (logFile) {
-		    fprintf(logFile,"SDR decrypt failed on <%s>\n",
-								dataString);
-		    fprintf(logFile," Error %x: %s\n",PORT_GetError(),
-			SECU_Strerror(PORT_GetError()));
-		}
-		fputs(dataString,outFile);
-		free(dataString);
-		SECITEM_ZfreeItem(&result, PR_FALSE);
-		continue;
-	   }
-	   /* result buffer has no extra space for a NULL */
-	   fprintf(outFile, "%.*s", result.len, result.data);
-	   SECITEM_ZfreeItem(&result, PR_FALSE);
-         } else {
-	   putc(c,outFile);
-         }
+	strLen = strlen(dataString);
+	inText = NSSBase64_DecodeBuffer(NULL, NULL, dataString, strLen);
+	if ((inText == NULL) || (inText->len == 0)) {
+	    if (logFile) {
+		int err = PORT_GetError();
+		fprintf(logFile,"Base 64 decode failed on <%s>\n", dataString);
+		fprintf(logFile," Error %d: %s\n", err, SECU_Strerror(err));
+	    }
+	    fputs(dataString, outFile);
+	    if (inText)
+		SECITEM_FreeItem(inText, PR_TRUE);
+	    continue;
+	}
+
+	result.data = NULL;
+	result.len  = 0;
+	rv = PK11SDR_Decrypt(inText, &result, &pwdata);
+	SECITEM_FreeItem(inText, PR_TRUE);
+	if (rv != SECSuccess) {
+	    if (logFile) {
+		int err = PORT_GetError();
+		fprintf(logFile,"SDR decrypt failed on <%s>\n", dataString);
+		fprintf(logFile," Error %d: %s\n", err, SECU_Strerror(err));
+	    }
+	    fputs(dataString,outFile);
+	    SECITEM_ZfreeItem(&result, PR_FALSE);
+	    continue;
+	}
+	/* result buffer has no extra space for a NULL */
+	fprintf(outFile, "%.*s\n", result.len, result.data);
+	SECITEM_ZfreeItem(&result, PR_FALSE);
     }
+    if (pwdata.data)
+    	PR_Free(pwdata.data);
 
     fclose(outFile);
     fclose(inFile);
-    if (logFile) {
+    if (logFile && logFile != stderr) {
 	fclose(logFile);
     }
 
     if (NSS_Shutdown() != SECSuccess) {
 	SECU_PrintError (program_name, "NSS_Shutdown failed");
-       exit(1);
+        exit(1);
     }
 
 prdone:
