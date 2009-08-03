@@ -149,9 +149,7 @@ isBase64(char *inString)
     unsigned int i;
     unsigned char c;
 
-    if (inString[0] != 'M')
-    	return false;
-    for (i = 1; (c = inString[i]) != 0 && isatobchar(c); ++i) 
+    for (i = 0; (c = inString[i]) != 0 && isatobchar(c); ++i) 
 	;
     if (c == '=') {
 	while ((c = inString[++i]) == '=')
@@ -159,9 +157,70 @@ isBase64(char *inString)
     }
     if (c && c != '\n' && c != '\r')
 	return false;
-    if (i % 4)
+    if (i == 0 || i % 4)
     	return false;
     return true;
+}
+
+void
+doDecrypt(char * dataString, FILE *outFile, FILE *logFile, secuPWData *pwdata)
+{
+    int        strLen = strlen(dataString);
+    SECItem   *decoded = NSSBase64_DecodeBuffer(NULL, NULL, dataString, strLen);
+    SECStatus  rv;
+    int        err;
+    unsigned int i;
+    SECItem    result = { siBuffer, NULL, 0 };
+
+    if ((decoded == NULL) || (decoded->len == 0)) {
+	if (logFile) {
+	    err = PORT_GetError();
+	    fprintf(logFile,"Base 64 decode failed on <%s>\n", dataString);
+	    fprintf(logFile," Error %d: %s\n", err, SECU_Strerror(err));
+	}
+	fputs(dataString, outFile);
+	if (decoded)
+	    SECITEM_FreeItem(decoded, PR_TRUE);
+	return;
+    }
+
+    rv = PK11SDR_Decrypt(decoded, &result, pwdata);
+    SECITEM_ZfreeItem(decoded, PR_TRUE);
+    if (rv == SECSuccess) {
+	/* result buffer has no extra space for a NULL */
+	fprintf(outFile, "Decrypted: \"%.*s\"\n", result.len, result.data);
+	SECITEM_ZfreeItem(&result, PR_FALSE);
+	return;
+    }
+    /* Encryption failed. output raw input. */
+    if (logFile) {
+	err = PORT_GetError();
+	fprintf(logFile,"SDR decrypt failed on <%s>\n", dataString);
+	fprintf(logFile," Error %d: %s\n", err, SECU_Strerror(err));
+    }
+    fputs(dataString,outFile);
+}
+
+void
+doDecode(char * dataString, FILE *outFile, FILE *logFile)
+{
+    int        strLen = strlen(dataString + 1);
+    SECItem   *decoded;
+
+    decoded = NSSBase64_DecodeBuffer(NULL, NULL, dataString + 1, strLen);
+    if ((decoded == NULL) || (decoded->len == 0)) {
+	if (logFile) {
+	    int err = PORT_GetError();
+	    fprintf(logFile,"Base 64 decode failed on <%s>\n", dataString + 1);
+	    fprintf(logFile," Error %d: %s\n", err, SECU_Strerror(err));
+	}
+	fputs(dataString, outFile);
+	if (decoded)
+	    SECITEM_FreeItem(decoded, PR_TRUE);
+	return;
+    }
+    fprintf(outFile, "Decoded: \"%.*s\"\n", decoded->len, decoded->data);
+    SECITEM_ZfreeItem(decoded, PR_TRUE);
 }
 
 char dataString[MAX_STRING + 1];
@@ -180,10 +239,8 @@ main (int argc, char **argv)
     FILE	*outFile = stdout;
     FILE	*logFile = NULL;
     PLOptStatus optstatus;
-    SECItem	result;
     secuPWData  pwdata = { PW_NONE, NULL };
 
-    result.data = 0;
 
     program_name = PL_strrchr(argv[0], '/');
     program_name = program_name ? (program_name + 1) : argv[0];
@@ -281,45 +338,15 @@ main (int argc, char **argv)
      * or from encrypting the plaintext value
      */
     while (fgets(dataString, sizeof dataString, inFile)) {
-	SECItem *inText;
-	int strLen;
+	unsigned char c = dataString[0];
 
-	if (!isBase64(dataString)) {
+	if (c == 'M' && isBase64(dataString)) {
+	    doDecrypt(dataString, outFile, logFile, &pwdata);
+        } else if (c == '~' && isBase64(dataString + 1)) {
+	    doDecode(dataString, outFile, logFile);
+	} else {
 	    fputs(dataString, outFile);
-	    continue;
 	}
-
-	strLen = strlen(dataString);
-	inText = NSSBase64_DecodeBuffer(NULL, NULL, dataString, strLen);
-	if ((inText == NULL) || (inText->len == 0)) {
-	    if (logFile) {
-		int err = PORT_GetError();
-		fprintf(logFile,"Base 64 decode failed on <%s>\n", dataString);
-		fprintf(logFile," Error %d: %s\n", err, SECU_Strerror(err));
-	    }
-	    fputs(dataString, outFile);
-	    if (inText)
-		SECITEM_FreeItem(inText, PR_TRUE);
-	    continue;
-	}
-
-	result.data = NULL;
-	result.len  = 0;
-	rv = PK11SDR_Decrypt(inText, &result, &pwdata);
-	SECITEM_FreeItem(inText, PR_TRUE);
-	if (rv != SECSuccess) {
-	    if (logFile) {
-		int err = PORT_GetError();
-		fprintf(logFile,"SDR decrypt failed on <%s>\n", dataString);
-		fprintf(logFile," Error %d: %s\n", err, SECU_Strerror(err));
-	    }
-	    fputs(dataString,outFile);
-	    SECITEM_ZfreeItem(&result, PR_FALSE);
-	    continue;
-	}
-	/* result buffer has no extra space for a NULL */
-	fprintf(outFile, "%.*s\n", result.len, result.data);
-	SECITEM_ZfreeItem(&result, PR_FALSE);
     }
     if (pwdata.data)
     	PR_Free(pwdata.data);
