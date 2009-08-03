@@ -88,7 +88,7 @@ typedef enum {
     NSS_AUDIT_SELF_TEST,
     NSS_AUDIT_SET_PIN,
     NSS_AUDIT_UNWRAP_KEY,
-    NSS_AUDIT_WRAP_KEY,
+    NSS_AUDIT_WRAP_KEY
 } NSSAuditType;
 
 #endif /* _SOFTOKNT_H_ */
