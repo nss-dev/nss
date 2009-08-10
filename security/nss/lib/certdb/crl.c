@@ -1047,48 +1047,38 @@ void PreAllocator_Destroy(PreAllocator* PreAllocator)
     {
         PORT_FreeArena(PreAllocator->arena, PR_TRUE);
     }
-    if (PreAllocator->data)
-    {
-        PORT_Free(PreAllocator->data);
-    }
-    PORT_Free(PreAllocator);
 }
 
 /* constructor for PreAllocator object */
 PreAllocator* PreAllocator_Create(PRSize size)
 {
-    PreAllocator prebuffer;
-    PreAllocator* prepointer = NULL;
-    memset(&prebuffer, 0, sizeof(PreAllocator));
-    prebuffer.len = size;
-    prebuffer.arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    PORT_Assert(prebuffer.arena);
-    if (!prebuffer.arena)
+    PRArenaPool* arena = NULL;
+    PreAllocator* prebuffer = NULL;
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (!arena)
     {
-        PreAllocator_Destroy(&prebuffer);
         return NULL;
     }
-    if (prebuffer.len)
+    prebuffer = (PreAllocator*)PORT_ArenaZAlloc(arena,
+                                                sizeof(PreAllocator));
+    if (!prebuffer)
     {
-        prebuffer.data = PORT_Alloc(prebuffer.len);
-        if (!prebuffer.data)
+        PORT_FreeArena(arena, PR_TRUE);
+        return NULL;
+    }
+    prebuffer->arena = arena;
+
+    if (size)
+    {
+        prebuffer->len = size;
+        prebuffer->data = PORT_ArenaAlloc(arena, size);
+        if (!prebuffer->data)
         {
-            PreAllocator_Destroy(&prebuffer);
+            PORT_FreeArena(arena, PR_TRUE);
             return NULL;
         }
     }
-    else
-    {
-        prebuffer.data = NULL;
-    }
-    prepointer = (PreAllocator*)PORT_Alloc(sizeof(PreAllocator));
-    if (!prepointer)
-    {
-        PreAllocator_Destroy(&prebuffer);
-        return NULL;
-    }
-    *prepointer = prebuffer;
-    return prepointer;
+    return prebuffer;
 }
 
 /* global Named CRL cache object */
