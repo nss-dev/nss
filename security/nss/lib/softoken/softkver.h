@@ -57,10 +57,10 @@
  * The format of the version string should be
  *     "<major version>.<minor version>[.<patch level>][ <ECC>][ <Beta>]"
  */
-#define SOFTOKEN_VERSION  "3.12.4.5" SOFTOKEN_ECC_STRING
+#define SOFTOKEN_VERSION  "3.12.5.0" SOFTOKEN_ECC_STRING " Beta"
 #define SOFTOKEN_VMAJOR   3
 #define SOFTOKEN_VMINOR   12
-#define SOFTOKEN_VPATCH   4
-#define SOFTOKEN_BETA     PR_FALSE
+#define SOFTOKEN_VPATCH   5
+#define SOFTOKEN_BETA     PR_TRUE
 
 #endif /* _SOFTKVER_H_ */
