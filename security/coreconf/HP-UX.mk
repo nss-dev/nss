@@ -88,7 +88,7 @@ RPATH			= +b '$$ORIGIN'
 ifneq ($(OS_TEST),ia64)
 # pa-risc
 ifndef USE_64
-RPATH   =
+RPATH			=
 endif
 endif
 DSO_LDFLAGS		=
