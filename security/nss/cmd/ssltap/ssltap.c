@@ -365,6 +365,10 @@ const char * V2CipherString(int cs_int)
   case 0x000039:    cs_str = "TLS/DHE-RSA/AES256-CBC/SHA";	break;
   case 0x00003A:    cs_str = "TLS/DH-ANON/AES256-CBC/SHA";	break;
 
+  case 0x00003C:    cs_str = "TLS/RSA/AES128-CBC/SHA256";  	break;
+  case 0x00003D:    cs_str = "TLS/RSA/AES256-CBC/SHA256";  	break;
+  case 0x000040:    cs_str = "TLS/DHE-DSS/AES128-CBC/SHA256";	break;
+
   case 0x000041:    cs_str = "TLS/RSA/CAMELLIA128-CBC/SHA";	break;
   case 0x000042:    cs_str = "TLS/DH-DSS/CAMELLIA128-CBC/SHA";	break;
   case 0x000043:    cs_str = "TLS/DH-RSA/CAMELLIA128-CBC/SHA";	break;
@@ -379,6 +383,8 @@ const char * V2CipherString(int cs_int)
   case 0x000063:    cs_str = "TLS/DHE-DSS_EXPORT1024/DES56-CBC/SHA"; break;
   case 0x000065:    cs_str = "TLS/DHE-DSS_EXPORT1024/RC4-56/SHA";  break;
   case 0x000066:    cs_str = "TLS/DHE-DSS/RC4-128/SHA";		   break;
+
+  case 0x00006A:    cs_str = "TLS/DHE-DSS/AES256-CBC/SHA256";	break;
 
   case 0x000072:    cs_str = "TLS/DHE-DSS/3DESEDE-CBC/RMD160"; break;
   case 0x000073:    cs_str = "TLS/DHE-DSS/AES128-CBC/RMD160";  break;
@@ -446,6 +452,13 @@ const char * V2CipherString(int cs_int)
   case 0x00C018:    cs_str = "TLS/ECDH-anon/AES128-CBC/SHA";    break;
   case 0x00C019:    cs_str = "TLS/ECDH-anon/AES256-CBC/SHA";    break;
 
+  case 0x00C023:    cs_str = "TLS/ECDHE-ECDSA/AES128-CBC/SHA256"; break;
+  case 0x00C024:    cs_str = "TLS/ECDHE-ECDSA/AES256-CBC/SHA384"; break;
+  case 0x00C027:    cs_str = "TLS/ECDHE-RSA/AES128-CBC/SHA256"; break;
+  case 0x00C028:    cs_str = "TLS/ECDHE-RSA/AES256-CBC/SHA384"; break;
+  case 0x00C02B:    cs_str = "TLS/ECDHE-ECDSA/AES128-GCM/SHA256"; break;
+  case 0x00C02C:    cs_str = "TLS/ECDHE-ECDSA/AES256-GCM/SHA384"; break;
+
   case 0x00feff:    cs_str = "SSL3/RSA-FIPS/3DESEDE-CBC/SHA";	break;
   case 0x00fefe:    cs_str = "SSL3/RSA-FIPS/DES-CBC/SHA";	break;
   case 0x00ffe1:    cs_str = "SSL3/RSA-FIPS/DES56-CBC/SHA";     break;
@@ -472,6 +485,7 @@ const char * helloExtensionNameString(int ex_num)
   case  5: ex_name = "status_request";                 break;
   case 10: ex_name = "elliptic_curves";                break;
   case 11: ex_name = "ec_point_formats";               break;
+  case 13: ex_name = "signature_algorithms";           break;
   case 35: ex_name = "session_ticket";                 break;
   default: sprintf(buf, "%d", ex_num);  ex_name = (const char *)buf; break;
   }
