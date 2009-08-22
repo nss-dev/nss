@@ -50,6 +50,7 @@
 #include "prtypes.h"
 #include "blapi.h"
 #include "camellia.h"
+#include "sha_fast.h" /* for SHA_HTONL */
 
 
 /* key constants */
@@ -76,9 +77,8 @@
 
 /* require a little-endian CPU that allows unaligned access */
 
-# define SWAP(x) (_lrotl(x, 8) & 0x00ff00ff | _lrotr(x, 8) & 0xff00ff00)
-# define GETU32(p) SWAP(*((PRUint32 *)(p)))
-# define PUTU32(ct, st) {*((PRUint32 *)(ct)) = SWAP((st));}
+# define GETU32(p) SHA_HTONL(*((PRUint32 *)(p)))
+# define PUTU32(ct, st) {*((PRUint32 *)(ct)) = SHA_HTONL(st);}
 
 #else /* not MSVC or not x86/x64 */
 
