@@ -50,7 +50,7 @@
 #include "prtypes.h"
 #include "blapi.h"
 #include "camellia.h"
-#include "sha_fast.h" /* for SHA_HTONL */
+#include "sha_fast.h" /* for SHA_ALLOW_UNALIGNED_ACCESS and SHA_HTONL */
 
 
 /* key constants */
@@ -73,14 +73,14 @@
  */
 
 
-#if defined(_MSC_VER) && defined(NSS_X86_OR_X64)
+#if defined(SHA_ALLOW_UNALIGNED_ACCESS)
 
-/* require a little-endian CPU that allows unaligned access */
+/* require a CPU that allows unaligned access */
 
 # define GETU32(p) SHA_HTONL(*((PRUint32 *)(p)))
 # define PUTU32(ct, st) {*((PRUint32 *)(ct)) = SHA_HTONL(st);}
 
-#else /* not MSVC or not x86/x64 */
+#else /* no unaligned access */
 
 # define GETU32(pt)					\
     (((PRUint32)(pt)[0] << 24)				\
