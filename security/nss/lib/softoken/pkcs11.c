@@ -3470,7 +3470,7 @@ CK_RV NSC_CloseAllSessions (CK_SLOT_ID slotID)
 {
     SFTKSlot *slot;
 
-#ifndef NO_CHECK_FORK
+#ifndef NO_FORK_CHECK
     /* skip fork check if we are being called from C_Initialize or C_Finalize */
     if (!parentForkedAfterC_Initialize) {
         CHECK_FORK();

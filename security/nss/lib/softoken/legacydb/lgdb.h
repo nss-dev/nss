@@ -197,11 +197,11 @@ SEC_END_PROTOS
 
 #ifndef XP_UNIX
 
-#define NO_CHECK_FORK
+#define NO_FORK_CHECK
 
 #endif
 
-#ifndef NO_CHECK_FORK
+#ifndef NO_FORK_CHECK
 
 extern PRBool parentForkedAfterC_Initialize;
 #define SKIP_AFTER_FORK(x) if (!parentForkedAfterC_Initialize) x
@@ -210,7 +210,7 @@ extern PRBool parentForkedAfterC_Initialize;
 
 #define SKIP_AFTER_FORK(x) x
 
-#endif /* NO_CHECK_FORK */
+#endif /* NO_FORK_CHECK */
 
 #endif /* _LGDB_H_ */
 
