@@ -179,7 +179,10 @@ SECMOD_AddModuleToList(SECMODModule *newModule)
 SECStatus
 SECMOD_AddModuleToDBOnlyList(SECMODModule *newModule)
 {
-    if (defaultDBModule == NULL) {
+    if (defaultDBModule && SECMOD_GetDefaultModDBFlag(newModule)) {
+	SECMOD_DestroyModule(defaultDBModule);
+	defaultDBModule = SECMOD_ReferenceModule(newModule);
+    } else if (defaultDBModule == NULL) {
 	defaultDBModule = SECMOD_ReferenceModule(newModule);
     }
     return secmod_AddModuleToList(&modulesDB,newModule);
