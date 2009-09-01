@@ -979,3 +979,10 @@ SECMOD_OpenNewSlot;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.12.5 { 	# NSS 3.12.5 release
+;+    global:
+SECMOD_GetDefaultModuleDBFlag;
+SECMOD_GetSkipFirstFlag;
+;+    local:
+;+       *;
+;+};

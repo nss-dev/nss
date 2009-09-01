@@ -107,6 +107,41 @@ secmod_NewModule(void)
     
 }
 
+/* private flags. */
+/* The meaing of these flags is as follows:
+ *
+ * SECMOD_FLAG_IS_MODULE_DB - This is a module that accesses the database of
+ *   other modules to load. Module DBs are loadable modules that tells
+ *   NSS which PKCS #11 modules to load and when. These module DBs are 
+ *   chainable. That is, one module DB can load another one. NSS system init 
+ *   design takes advantage of this feature. In system NSS, a fixed system 
+ *   module DB loads the system defined libraries, then chains out to the 
+ *   traditional module DBs to load any system or user configured modules 
+ *   (like smart cards). This bit is the same as the already existing meaning 
+ *   of  isModuleDB = PR_TRUE. None of the other flags should be set if this
+ *   flag isn't on.
+ *
+ * SECMOD_FLAG_SKIP_FIRST - This flag tells NSS to skip the first 
+ *   PKCS #11 module presented by a module DB. This allows the OS to load a 
+ *   softoken from the system module, then ask the existing module DB code to 
+ *   load the other PKCS #11 modules in that module DB (skipping it's request 
+ *   to load softoken). This gives the system init finer control over the 
+ *   configuration of that softoken module.
+ *
+ * SECMOD_FLAG_DEFAULT_MODDB - This flag allows system init to mark a 
+ *   different module DB as the 'default' module DB (the one in which 
+ *   'Add module' changes will go). Without this flag NSS takes the first 
+ *   module as the default Module DB, but in system NSS, that first module 
+ *   is the system module, which is likely read only (at least to the user).
+ *   This  allows system NSS to delegate those changes to the user's module DB, 
+ *   preserving the user's ability to load new PKCS #11 modules (which only 
+ *   affect him), from existing applications like Firefox.
+ */
+#define SECMOD_FLAG_IS_MODULE_DB  0x01 /* must be set if any of the other flags
+                                        * are set */
+#define SECMOD_FLAG_SKIP_FIRST    0x02
+#define SECMOD_FLAG_DEFAULT_MODDB 0x04
+
 /*
  * for 3.4 we continue to use the old SECMODModule structure
  */
@@ -137,14 +172,32 @@ SECMOD_CreateModule(const char *library, const char *moduleName,
     if (slotParams) PORT_Free(slotParams);
     /* new field */
     mod->trustOrder  = secmod_argReadLong("trustOrder",nssc,
-						SECMOD_DEFAULT_TRUST_ORDER,NULL);
+					SECMOD_DEFAULT_TRUST_ORDER,NULL);
     /* new field */
     mod->cipherOrder = secmod_argReadLong("cipherOrder",nssc,
-						SECMOD_DEFAULT_CIPHER_ORDER,NULL);
+					SECMOD_DEFAULT_CIPHER_ORDER,NULL);
     /* new field */
     mod->isModuleDB   = secmod_argHasFlag("flags","moduleDB",nssc);
     mod->moduleDBOnly = secmod_argHasFlag("flags","moduleDBOnly",nssc);
     if (mod->moduleDBOnly) mod->isModuleDB = PR_TRUE;
+
+    /* we need more bits, but we also want to preserve binary compatibility 
+     * so we overload the isModuleDB PRBool with additional flags. 
+     * These flags are only valid if mod->isModuleDB is already set.
+     * NOTE: this depends on the fact that PRBool is at least a char on 
+     * all platforms. These flags are only valid if moduleDB is set, so 
+     * code checking if (mod->isModuleDB) will continue to work correctly. */
+    if (mod->isModuleDB) {
+	char flags = SECMOD_FLAG_IS_MODULE_DB;
+	if (secmod_argHasFlag("flags","skipFirst",nssc)) {
+	    flags |= SECMOD_FLAG_SKIP_FIRST;
+	}
+	if (secmod_argHasFlag("flags","defaultModDB",nssc)) {
+	    flags |= SECMOD_FLAG_DEFAULT_MODDB;
+	}
+	/* additional moduleDB flags could be added here in the future */
+	mod->isModuleDB = (PRBool) flags;
+    }
 
     ciphers = secmod_argGetParamValue("ciphers",nssc);
     secmod_argSetNewCipherFlags(&mod->ssl[0],ciphers);
@@ -153,6 +206,22 @@ SECMOD_CreateModule(const char *library, const char *moduleName,
     secmod_PrivateModuleCount++;
 
     return mod;
+}
+
+PRBool
+SECMOD_GetSkipFirstFlag(SECMODModule *mod)
+{
+   char flags = (char) mod->isModuleDB;
+
+   return (flags & SECMOD_FLAG_SKIP_FIRST) ? PR_TRUE : PR_FALSE;
+}
+
+PRBool
+SECMOD_GetDefaultModDBFlag(SECMODModule *mod)
+{
+   char flags = (char) mod->isModuleDB;
+
+   return (flags & SECMOD_FLAG_DEFAULT_MODDB) ? PR_TRUE : PR_FALSE;
 }
 
 static char *
@@ -333,7 +402,12 @@ SECMOD_LoadModule(char *modulespec,SECMODModule *parent, PRBool recurse)
 	if (moduleSpecList) {
 	    char **index;
 
-	    for (index = moduleSpecList; *index; index++) {
+	    index = moduleSpecList;
+	    if (*index && SECMOD_GetSkipFirstFlag(module)) {
+		index++;
+	    }
+
+	    for (; *index; index++) {
 		SECMODModule *child;
 		child = SECMOD_LoadModule(*index,module,PR_TRUE);
 		if (!child) break;
