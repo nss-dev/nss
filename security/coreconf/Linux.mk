@@ -150,7 +150,6 @@ DSO_LDOPTS		= -shared $(ARCHFLAG)
 # we don't use -z defs there.
 ZDEFS_FLAG		= -Wl,-z,defs
 DSO_LDOPTS		+= $(if $(findstring 2.11.90.0.8,$(shell ld -v)),,$(ZDEFS_FLAG))
-DSO_LDFLAGS		=
 LDFLAGS			+= $(ARCHFLAG)
 
 # INCLUDES += -I/usr/include -Y/usr/include/linux

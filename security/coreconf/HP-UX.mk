@@ -91,7 +91,6 @@ ifndef USE_64
 RPATH			=
 endif
 endif
-DSO_LDFLAGS		=
 
 # +Z generates position independent code for use in shared libraries.
 DSO_CFLAGS = +Z
