@@ -45,16 +45,17 @@
 #endif
 
 /*
- * NSS utilities's major version, minor version, patch level, and whether
- * this is a beta release.
+ * NSS utilities's major version, minor version, patch level, build number,
+ * and whether this is a beta release.
  *
  * The format of the version string should be
- *     "<major version>.<minor version>[.<patch level>][ <Beta>]"
+ *     "<major version>.<minor version>[.<patch level>[.<build number>]][ <Beta>]"
  */
 #define NSSUTIL_VERSION  "3.12.5.0 Beta"
 #define NSSUTIL_VMAJOR   3
 #define NSSUTIL_VMINOR   12
 #define NSSUTIL_VPATCH   5
+#define NSSUTIL_VBUILD   0
 #define NSSUTIL_BETA     PR_TRUE
 
 #endif /* __nssutil_h_ */
