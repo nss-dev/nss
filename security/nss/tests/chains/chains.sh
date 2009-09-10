@@ -74,8 +74,8 @@ chains_init()
     CERT_SN_CNT=$(date '+%m%d%H%M%S' | sed "s/^0*//")
     CERT_SN_FIX=$(expr ${CERT_SN_CNT} - 1000)
 
-    PK7_NONCE=$CERT_SN_CNT
-    SCEN_CNT=0
+    PK7_NONCE=${CERT_SN_CNT}
+    SCEN_CNT=${CERT_SN_CNT}
 
     AIA_FILES="${HOSTDIR}/aiafiles"
 
