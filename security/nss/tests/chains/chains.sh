@@ -624,6 +624,8 @@ create_crl()
     CRL=${ISSUER}.crl
 
     DATE=$(date -u '+%Y%m%d%H%M%SZ')
+    DATE_LAST="${DATE}"
+
     UPDATE=$(expr $(date -u '+%Y') + 1)$(date -u '+%m%d%H%M%SZ')
 
     echo "update=${DATE}" > ${CRL_DATA}
@@ -648,8 +650,13 @@ revoke_cert()
 
     set_cert_sn
 
-    sleep 1
     DATE=$(date -u '+%Y%m%d%H%M%SZ')
+    while [ "${DATE}" == "${DATE_LAST}" ]; do
+        sleep 1
+        DATE=$(date -u '+%Y%m%d%H%M%SZ')
+    done
+    DATE_LAST="${DATE}"
+
     echo "update=${DATE}" > ${CRL_DATA}
     echo "addcert ${CERT_SN} ${DATE}" >> ${CRL_DATA}
 
