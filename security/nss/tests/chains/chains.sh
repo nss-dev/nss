@@ -651,7 +651,7 @@ revoke_cert()
     set_cert_sn
 
     DATE=$(date -u '+%Y%m%d%H%M%SZ')
-    while [ "${DATE}" == "${DATE_LAST}" ]; do
+    while [ "${DATE}" = "${DATE_LAST}" ]; do
         sleep 1
         DATE=$(date -u '+%Y%m%d%H%M%SZ')
     done
