@@ -871,17 +871,6 @@ PK11_ImportCert(PK11SlotInfo *slot, CERTCertificate *cert,
 	}
     }
 
-    if (c->object.cryptoContext) {
-	/* Delete the temp instance */
-	NSSCryptoContext *cc = c->object.cryptoContext;
-	nssCertificateStore_Lock(cc->certStore, &lockTrace);
-	nssCertificateStore_RemoveCertLOCKED(cc->certStore, c);
-	nssCertificateStore_Unlock(cc->certStore, &lockTrace, &unlockTrace);
-	c->object.cryptoContext = NULL;
-	cert->istemp = PR_FALSE;
-	cert->isperm = PR_TRUE;
-    }
-
     /* set the id for the cert */
     nssItem_Create(c->object.arena, &c->id, keyID->len, keyID->data);
     if (!c->id.data) {
@@ -926,6 +915,18 @@ PK11_ImportCert(PK11SlotInfo *slot, CERTCertificate *cert,
 	}
 	goto loser;
     }
+
+    if (c->object.cryptoContext) {
+	/* Delete the temp instance */
+	NSSCryptoContext *cc = c->object.cryptoContext;
+	nssCertificateStore_Lock(cc->certStore, &lockTrace);
+	nssCertificateStore_RemoveCertLOCKED(cc->certStore, c);
+	nssCertificateStore_Unlock(cc->certStore, &lockTrace, &unlockTrace);
+	c->object.cryptoContext = NULL;
+	cert->istemp = PR_FALSE;
+	cert->isperm = PR_TRUE;
+    }
+
     /* add the new instance to the cert, force an update of the
      * CERTCertificate, and finish
      */
