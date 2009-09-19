@@ -149,6 +149,12 @@ extern SECStatus SEC_ASN1Encode(const void *src, const SEC_ASN1Template *t,
 				SEC_ASN1WriteProc output_proc,
 				void *output_arg);
 
+/*
+ * If both pool and dest are NULL, the caller should free the returned SECItem
+ * with a SECITEM_FreeItem(..., PR_TRUE) call.  If pool is NULL but dest is
+ * not NULL, the caller should free the data buffer pointed to by dest with a
+ * SECITEM_FreeItem(dest, PR_FALSE) or PORT_Free(dest->data) call.
+ */
 extern SECItem * SEC_ASN1EncodeItem(PLArenaPool *pool, SECItem *dest,
 				    const void *src, const SEC_ASN1Template *t);
 
