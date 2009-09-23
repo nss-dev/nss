@@ -140,7 +140,7 @@ SGN_Begin(SGNContext *cx)
 }
 
 SECStatus
-SGN_Update(SGNContext *cx, unsigned char *input, unsigned inputLen)
+SGN_Update(SGNContext *cx, const unsigned char *input, unsigned int inputLen)
 {
     if (cx->hashcx == NULL) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
