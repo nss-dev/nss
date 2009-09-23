@@ -114,7 +114,7 @@ extern SECStatus SGN_Begin(SGNContext *cx);
 **	"input" the input data to sign
 **	"inputLen" the length of the input data
 */
-extern SECStatus SGN_Update(SGNContext *cx, unsigned char *input,
+extern SECStatus SGN_Update(SGNContext *cx, const unsigned char *input,
 			   unsigned int inputLen);
 
 /*
