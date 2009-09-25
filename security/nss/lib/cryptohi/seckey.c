@@ -2002,7 +2002,23 @@ SECKEY_ConvertAndDecodePublicKey(char *pubkstr)
 SECItem *
 SECKEY_EncodeDERSubjectPublicKeyInfo(SECKEYPublicKey *pubk)
 {
-    return PK11_DEREncodePublicKey(pubk);
+    CERTSubjectPublicKeyInfo *spki=NULL;
+    SECItem *spkiDER=NULL;
+
+    /* get the subjectpublickeyinfo */
+    spki = SECKEY_CreateSubjectPublicKeyInfo(pubk);
+    if( spki == NULL ) {
+	goto finish;
+    }
+
+    /* DER-encode the subjectpublickeyinfo */
+    spkiDER = SEC_ASN1EncodeItem(NULL /*arena*/, NULL/*dest*/, spki,
+					CERT_SubjectPublicKeyInfoTemplate);
+
+    SECKEY_DestroySubjectPublicKeyInfo(spki);
+
+finish:
+    return spkiDER;
 }
 
 
