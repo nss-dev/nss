@@ -783,11 +783,7 @@ SECMOD_LoadModule(char *modulespec,SECMODModule *parent, PRBool recurse)
 	/* This module already exists, don't link it anywhere. This
 	 * will probably destroy this module */
 	SECMOD_DestroyModule(module);
-	/* free the reference we inheritted from secmod_LoadPKCS11Module. We
-	 * no longer need the reference (though the module is still on the
-	 * module lists and will not likely be destroyed at this point */
-	SECMOD_DestroyModule(oldModule);
-	return SECSuccess;
+	return oldModule;
     }
 
     if (recurse && module->isModuleDB) {
