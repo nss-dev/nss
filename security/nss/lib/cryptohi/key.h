@@ -35,6 +35,8 @@
  * ***** END LICENSE BLOCK ***** */
 /* $Id$ */
 
+/* This header is deprecated.  Please include keyhi.h instead. */
+
 #ifndef _KEY_H_
 #define _KEY_H_
 
