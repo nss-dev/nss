@@ -309,7 +309,7 @@ ssl2_GatherData(sslSocket *ss, sslGather *gs, int flags)
 
 	    ssl_ReleaseSpecReadLock(ss);  /******************************/
 
-	    if (PORT_Memcmp(mac, pBuf, macLen) != 0) {
+	    if (NSS_SecureMemcmp(mac, pBuf, macLen) != 0) {
 		/* MAC's didn't match... */
 		SSL_DBG(("%d: SSL[%d]: mac check failed, seq=%d",
 			 SSL_GETPID(), ss->fd, ss->sec.rcvSequence));
