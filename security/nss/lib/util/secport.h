@@ -240,6 +240,8 @@ sec_port_iso88591_utf8_conversion_function
 
 extern int NSS_PutEnv(const char * envVarName, const char * envValue);
 
+extern int NSS_SecureMemcmp(const void *a, const void *b, size_t n);
+
 SEC_END_PROTOS
 
 #endif /* _SECPORT_H_ */
