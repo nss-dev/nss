@@ -538,7 +538,7 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 {
     SECStatus rv = SECFailure;
     PKIX_UInt32 actualMinorVersion = 0;
-    PKIX_Error *pkixError = NULL;;
+    PKIX_Error *pkixError = NULL;
     PRBool isReallyInitted;
     char *configStrings = NULL;
     char *configName = NULL;
