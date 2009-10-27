@@ -188,7 +188,7 @@ run_cycle_pkix()
     export NSS_ENABLE_PKIX_VERIFY
 
     TESTS="${ALL_TESTS}"
-    TESTS_SKIP="cipher dbtests sdr crmf smime merge"
+    TESTS_SKIP="cipher dbtests sdr crmf smime merge multinit"
 
     echo "${NSS_SSL_TESTS}" | grep "_" > /dev/null
     RET=$?
@@ -306,7 +306,7 @@ run_cycles()
 cycles="standard pkix upgradedb sharedb"
 CYCLES=${NSS_CYCLES:-$cycles}
 
-tests="cipher libpkix cert dbtests tools fips sdr crmf smime ssl ocsp merge pkits chains"
+tests="cipher libpkix cert dbtests tools fips sdr crmf smime ssl ocsp merge pkits chains multinit"
 TESTS=${NSS_TESTS:-$tests}
 
 ALL_TESTS=${TESTS}

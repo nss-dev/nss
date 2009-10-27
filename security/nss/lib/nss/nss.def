@@ -981,6 +981,9 @@ SECMOD_OpenNewSlot;
 ;+};
 ;+NSS_3.12.5 { 	# NSS 3.12.5 release
 ;+    global:
+CERT_AddCertToListSorted;
+NSS_InitContext;
+NSS_ShutdownContext;
 SECMOD_GetDefaultModDBFlag;
 SECMOD_GetSkipFirstFlag;
 ;+    local:
