@@ -107,28 +107,28 @@ secmod_NewModule(void)
     
 }
 
-/* private flags. */
+/* private flags for isModuleDB (field in SECMODModule). */
 /* The meaing of these flags is as follows:
  *
- * SECMOD_FLAG_IS_MODULE_DB - This is a module that accesses the database of
- *   other modules to load. Module DBs are loadable modules that tells
- *   NSS which PKCS #11 modules to load and when. These module DBs are 
+ * SECMOD_FLAG_MODULE_DB_IS_MODULE_DB - This is a module that accesses the 
+ *   database of other modules to load. Module DBs are loadable modules that
+ *   tells NSS which PKCS #11 modules to load and when. These module DBs are 
  *   chainable. That is, one module DB can load another one. NSS system init 
  *   design takes advantage of this feature. In system NSS, a fixed system 
  *   module DB loads the system defined libraries, then chains out to the 
  *   traditional module DBs to load any system or user configured modules 
  *   (like smart cards). This bit is the same as the already existing meaning 
- *   of  isModuleDB = PR_TRUE. None of the other flags should be set if this
- *   flag isn't on.
+ *   of  isModuleDB = PR_TRUE. None of the other module db flags should be set 
+ *   if this flag isn't on.
  *
- * SECMOD_FLAG_SKIP_FIRST - This flag tells NSS to skip the first 
+ * SECMOD_FLAG_MODULE_DB_SKIP_FIRST - This flag tells NSS to skip the first 
  *   PKCS #11 module presented by a module DB. This allows the OS to load a 
  *   softoken from the system module, then ask the existing module DB code to 
  *   load the other PKCS #11 modules in that module DB (skipping it's request 
  *   to load softoken). This gives the system init finer control over the 
  *   configuration of that softoken module.
  *
- * SECMOD_FLAG_DEFAULT_MODDB - This flag allows system init to mark a 
+ * SECMOD_FLAG_MODULE_DB_DEFAULT_MODDB - This flag allows system init to mark a 
  *   different module DB as the 'default' module DB (the one in which 
  *   'Add module' changes will go). Without this flag NSS takes the first 
  *   module as the default Module DB, but in system NSS, that first module 
@@ -137,10 +137,27 @@ secmod_NewModule(void)
  *   preserving the user's ability to load new PKCS #11 modules (which only 
  *   affect him), from existing applications like Firefox.
  */
-#define SECMOD_FLAG_IS_MODULE_DB  0x01 /* must be set if any of the other flags
-                                        * are set */
-#define SECMOD_FLAG_SKIP_FIRST    0x02
-#define SECMOD_FLAG_DEFAULT_MODDB 0x04
+#define SECMOD_FLAG_MODULE_DB_IS_MODULE_DB  0x01 /* must be set if any of the 
+						  *other flags are set */
+#define SECMOD_FLAG_MODULE_DB_SKIP_FIRST    0x02
+#define SECMOD_FLAG_MODULE_DB_DEFAULT_MODDB 0x04
+
+
+/* private flags for internal (field in SECMODModule). */
+/* The meaing of these flags is as follows:
+ *
+ * SECMOD_FLAG_INTERNAL_IS_INTERNAL - This is a marks the the module is
+ *   the internal module (that is, softoken). This bit is the same as the 
+ *   already existing meaning of internal = PR_TRUE. None of the other 
+ *   internal flags should be set if this flag isn't on.
+ *
+ * SECMOD_FLAG_MODULE_INTERNAL_KEY_SLOT - This flag allows system init to mark 
+ *   a  different slot returned byt PK11_GetInternalKeySlot(). The 'primary'
+ *   slot defined by this module will be the new internal key slot.
+ */
+#define SECMOD_FLAG_INTERNAL_IS_INTERNAL       0x01 /* must be set if any of 
+						     *the other flags are set */
+#define SECMOD_FLAG_INTERNAL_KEY_SLOT          0x02
 
 /*
  * for 3.4 we continue to use the old SECMODModule structure
@@ -188,15 +205,24 @@ SECMOD_CreateModule(const char *library, const char *moduleName,
      * all platforms. These flags are only valid if moduleDB is set, so 
      * code checking if (mod->isModuleDB) will continue to work correctly. */
     if (mod->isModuleDB) {
-	char flags = SECMOD_FLAG_IS_MODULE_DB;
+	char flags = SECMOD_FLAG_MODULE_DB_IS_MODULE_DB;
 	if (secmod_argHasFlag("flags","skipFirst",nssc)) {
-	    flags |= SECMOD_FLAG_SKIP_FIRST;
+	    flags |= SECMOD_FLAG_MODULE_DB_SKIP_FIRST;
 	}
 	if (secmod_argHasFlag("flags","defaultModDB",nssc)) {
-	    flags |= SECMOD_FLAG_DEFAULT_MODDB;
+	    flags |= SECMOD_FLAG_MODULE_DB_DEFAULT_MODDB;
 	}
 	/* additional moduleDB flags could be added here in the future */
 	mod->isModuleDB = (PRBool) flags;
+    }
+
+    if (mod->internal) {
+	char flags = SECMOD_FLAG_INTERNAL_IS_INTERNAL;
+
+	if (secmod_argHasFlag("flags", "internalKeySlot", nssc)) {
+	    flags |= SECMOD_FLAG_INTERNAL_KEY_SLOT;
+	}
+	mod->internal = (PRBool) flags;
     }
 
     ciphers = secmod_argGetParamValue("ciphers",nssc);
@@ -213,7 +239,7 @@ SECMOD_GetSkipFirstFlag(SECMODModule *mod)
 {
    char flags = (char) mod->isModuleDB;
 
-   return (flags & SECMOD_FLAG_SKIP_FIRST) ? PR_TRUE : PR_FALSE;
+   return (flags & SECMOD_FLAG_MODULE_DB_SKIP_FIRST) ? PR_TRUE : PR_FALSE;
 }
 
 PRBool
@@ -221,7 +247,59 @@ SECMOD_GetDefaultModDBFlag(SECMODModule *mod)
 {
    char flags = (char) mod->isModuleDB;
 
-   return (flags & SECMOD_FLAG_DEFAULT_MODDB) ? PR_TRUE : PR_FALSE;
+   return (flags & SECMOD_FLAG_MODULE_DB_DEFAULT_MODDB) ? PR_TRUE : PR_FALSE;
+}
+
+PRBool
+secmod_IsInternalKeySlot(SECMODModule *mod)
+{
+   char flags = (char) mod->internal;
+
+   return (flags & SECMOD_FLAG_INTERNAL_KEY_SLOT) ? PR_TRUE : PR_FALSE;
+}
+
+/* forward declarations */
+static int secmod_escapeSize(const char *string, char quote);
+static char *secmod_addEscape(const char *string, char quote);
+
+/*
+ * copy desc and value into target. Target is known to be big enough to
+ * hold desc +2 +value, which is good because the result of this will be
+ * *desc"*value". We may, however, have to add some escapes for special
+ * characters imbedded into value (rare). This string potentially comes from
+ * a user, so we don't want the user overflowing the target buffer by using
+ * excessive escapes. To prevent this we count the escapes we need to add and
+ * try to expand the buffer with Realloc.
+ */
+static char *
+secmod_doDescCopy(char *target, int *targetLen, const char *desc,
+			int descLen, char *value)
+{
+    int diff, esc_len;
+
+    esc_len = secmod_escapeSize(value, '\"') - 1;
+    diff = esc_len - strlen(value);
+    if (diff > 0) {
+	/* we need to escape... expand newSpecPtr as well to make sure
+	 * we don't overflow it */
+	char *newPtr = PORT_Realloc(target, *targetLen * diff);
+	if (!newPtr) {
+	    return target; /* not enough space, just drop the whole copy */
+	}
+	*targetLen += diff;
+	target = newPtr;
+	value = secmod_addEscape(value, '\"');
+	if (value == NULL) {
+	    return target; /* couldn't escape value, just drop the copy */
+	}
+    }
+    PORT_Memcpy(target, desc, descLen);
+    target += descLen;
+    *target++='\"';
+    PORT_Memcpy(target, value, esc_len);
+    target += esc_len;
+    *target++='\"';
+    return target;
 }
 
 #define SECMOD_SPEC_COPY(new, start, end)    \
@@ -230,6 +308,9 @@ SECMOD_GetDefaultModDBFlag(SECMODModule *mod)
 	PORT_Memcpy(new, start, _cnt);       \
 	new += _cnt;                         \
   }
+#define SECMOD_TOKEN_DESCRIPTION "tokenDescription="
+#define SECMOD_SLOT_DESCRIPTION   "slotDescription="
+
 
 /*
  * Find any tokens= values in the module spec. 
@@ -241,13 +322,16 @@ SECMOD_GetDefaultModDBFlag(SECMODModule *mod)
  * spec.
  */
 char *
-secmod_ParseModuleSpecForTokens(char *moduleSpec, char ***children, 
+secmod_ParseModuleSpecForTokens(PRBool convert, PRBool isFIPS, 
+				char *moduleSpec, char ***children, 
 				CK_SLOT_ID **ids)
 {
-    char       *newSpec     = PORT_Alloc(PORT_Strlen(moduleSpec)+2);
+    int        newSpecLen   = PORT_Strlen(moduleSpec)+2;
+    char       *newSpec     = PORT_Alloc(newSpecLen);
     char       *newSpecPtr  = newSpec;
     char       *modulePrev  = moduleSpec;
     char       *target      = NULL;
+    char *tmp = NULL;
     char       **childArray = NULL;
     char       *tokenIndex;
     CK_SLOT_ID *idArray     = NULL;
@@ -265,6 +349,28 @@ secmod_ParseModuleSpecForTokens(char *moduleSpec, char ***children,
     moduleSpec = secmod_argStrip(moduleSpec);
     SECMOD_SPEC_COPY(newSpecPtr, modulePrev, moduleSpec);
 
+    /* Notes on 'convert' and 'isFIPS' flags: The base parameters for opening 
+     * a new softoken module takes the following parameters to name the 
+     * various tokens:
+     *  
+     *  cryptoTokenDescription: name of the non-fips crypto token.
+     *  cryptoSlotDescription: name of the non-fips crypto slot.
+     *  dbTokenDescription: name of the non-fips db token.
+     *  dbSlotDescription: name of the non-fips db slot.
+     *  FIPSTokenDescription: name of the fips db/crypto token.
+     *  FIPSSlotDescription: name of the fips db/crypto slot.
+     *
+     * if we are opening a new slot, we need to have the following
+     * parameters:
+     *  tokenDescription: name of the token.
+     *  slotDescription: name of the slot.
+     *
+     *
+     * The convert flag tells us to drop the unnecessary *TokenDescription 
+     * and *SlotDescription arguments and convert the appropriate pair 
+     * (either db or FIPS based on the isFIPS flag) to tokenDescription and 
+     * slotDescription).
+     */
     /*
      * walk down the list. if we find a tokens= argument, save it,
      * otherise copy the argument.
@@ -274,8 +380,52 @@ secmod_ParseModuleSpecForTokens(char *moduleSpec, char ***children,
 	modulePrev = moduleSpec;
 	SECMOD_HANDLE_STRING_ARG(moduleSpec, target, "tokens=",
 			modulePrev = moduleSpec; /* skip copying */ )
+	SECMOD_HANDLE_STRING_ARG(moduleSpec, tmp, "cryptoTokenDescription=",
+			if (convert) { modulePrev = moduleSpec; } );
+	SECMOD_HANDLE_STRING_ARG(moduleSpec, tmp, "cryptoSlotDescription=",
+			if (convert) { modulePrev = moduleSpec; } );
+	SECMOD_HANDLE_STRING_ARG(moduleSpec, tmp, "dbTokenDescription=",
+			if (convert) {
+			    modulePrev = moduleSpec; 
+			    if (!isFIPS) {
+				newSpecPtr = secmod_doDescCopy(newSpecPtr, 
+				    &newSpecLen, SECMOD_TOKEN_DESCRIPTION, 
+				    sizeof(SECMOD_TOKEN_DESCRIPTION)-1, tmp);
+			    }
+			});
+	SECMOD_HANDLE_STRING_ARG(moduleSpec, tmp, "dbSlotDescription=",
+			if (convert) {
+			    modulePrev = moduleSpec; /* skip copying */ 
+			    if (!isFIPS) {
+				newSpecPtr = secmod_doDescCopy(newSpecPtr, 
+				    &newSpecLen, SECMOD_SLOT_DESCRIPTION, 
+				    sizeof(SECMOD_SLOT_DESCRIPTION)-1, tmp);
+			    }
+			} );
+	SECMOD_HANDLE_STRING_ARG(moduleSpec, tmp, "FIPSTokenDescription=",
+			if (convert) {
+			    modulePrev = moduleSpec; /* skip copying */ 
+			    if (isFIPS) {
+				newSpecPtr = secmod_doDescCopy(newSpecPtr, 
+				    &newSpecLen, SECMOD_TOKEN_DESCRIPTION, 
+				    sizeof(SECMOD_TOKEN_DESCRIPTION)-1, tmp);
+			    }
+			} );
+	SECMOD_HANDLE_STRING_ARG(moduleSpec, tmp, "FIPSSlotDescription=",
+			if (convert) {
+			    modulePrev = moduleSpec; /* skip copying */ 
+			    if (isFIPS) {
+				newSpecPtr = secmod_doDescCopy(newSpecPtr, 
+				    &newSpecLen, SECMOD_SLOT_DESCRIPTION, 
+				    sizeof(SECMOD_SLOT_DESCRIPTION)-1, tmp);
+			    }
+			} );
 	SECMOD_HANDLE_FINAL_ARG(moduleSpec)
 	SECMOD_SPEC_COPY(newSpecPtr, modulePrev, moduleSpec);
+    }
+    if (tmp) {
+	PORT_Free(tmp);
+	tmp = NULL;
     }
     *newSpecPtr = 0;
 
@@ -339,6 +489,185 @@ secmod_ParseModuleSpecForTokens(char *moduleSpec, char ***children,
 	*ids = idArray;
     }
     return newSpec;
+}
+
+/* get the database and flags from the spec */
+static char *
+secmod_getConfigDir(char *spec, char **certPrefix, char **keyPrefix,
+			  PRBool *readOnly)
+{
+    char * config = NULL;
+
+    *certPrefix = NULL;
+    *keyPrefix = NULL;
+    *readOnly = secmod_argHasFlag("flags","readOnly",spec);
+
+    spec = secmod_argStrip(spec);
+    while (*spec) {
+	int next;
+	SECMOD_HANDLE_STRING_ARG(spec, config, "configdir=", ;)
+	SECMOD_HANDLE_STRING_ARG(spec, *certPrefix, "certPrefix=", ;)
+	SECMOD_HANDLE_STRING_ARG(spec, *keyPrefix, "keyPrefix=", ;)
+	SECMOD_HANDLE_FINAL_ARG(spec)
+    }
+    return config;
+}
+
+struct SECMODConfigListStr {
+    char *config;
+    char *certPrefix;
+    char *keyPrefix;
+    PRBool isReadOnly;
+};
+
+/*
+ * return an array of already openned databases from a spec list.
+ */
+SECMODConfigList *
+secmod_GetConfigList(PRBool isFIPS, char *spec, int *count)
+{
+    char **children;
+    CK_SLOT_ID *ids;
+    char *strippedSpec;
+    int childCount;
+    SECMODConfigList *conflist = NULL;
+    int i;
+
+    strippedSpec = secmod_ParseModuleSpecForTokens(PR_TRUE, isFIPS, 
+						spec,&children,&ids);
+    if (strippedSpec == NULL) {
+	return NULL;
+    }
+
+    for (childCount=0; children && children[childCount]; childCount++) ;
+    *count = childCount+1; /* include strippedSpec */
+    conflist = PORT_NewArray(SECMODConfigList,*count);
+    if (conflist == NULL) {
+	*count = 0;
+	goto loser;
+    }
+
+    conflist[0].config = secmod_getConfigDir(strippedSpec, 
+					    &conflist[0].certPrefix, 
+					    &conflist[0].keyPrefix,
+					    &conflist[0].isReadOnly);
+    for (i=0; i < childCount; i++) {
+	conflist[i+1].config = secmod_getConfigDir(children[i], 
+					    &conflist[i+1].certPrefix, 
+					    &conflist[i+1].keyPrefix,
+					    &conflist[i+1].isReadOnly);
+    }
+
+loser:
+    secmod_FreeChildren(children, ids);
+    PORT_Free(strippedSpec);
+    return conflist;
+}
+
+/*
+ * determine if we are trying to open an old dbm database. For this test
+ * RDB databases should return PR_FALSE.
+ */
+static PRBool
+secmod_configIsDBM(char *configDir)
+{
+    char *env;
+
+    /* explicit dbm open */
+    if (strncmp(configDir, "dbm:", 4) == 0) {
+	return PR_TRUE;
+    }
+    /* explicit open of a non-dbm database */
+    if ((strncmp(configDir, "sql:",4) == 0) 
+	|| (strncmp(configDir, "rdb:", 4) == 0)
+	|| (strncmp(configDir, "extern:", 7) == 0)) {
+	return PR_FALSE;
+    }
+    env = PR_GetEnv("NSS_DEFAULT_DB_TYPE");
+    /* implicit dbm open */
+    if ((env == NULL) || (strcmp(env,"dbm") == 0)) {
+	return PR_TRUE;
+    }
+    /* implicit non-dbm open */
+    return PR_FALSE;
+}
+
+/*
+ * match two prefixes. prefix may be NULL. NULL patches '\0'
+ */
+static PRBool
+secmod_matchPrefix(char *prefix1, char *prefix2)
+{
+    if ((prefix1 == NULL) || (*prefix1 == 0)) {
+	if ((prefix2 == NULL) || (*prefix2 == 0)) {
+	    return PR_TRUE;
+	}
+	return PR_FALSE;
+    }
+    if (strcmp(prefix1, prefix2) == 0) {
+	return PR_TRUE;
+    }
+    return PR_FALSE;
+}
+
+/*
+ * return true if we are requesting a database that is already openned.
+ */
+PRBool
+secmod_MatchConfigList(char *spec, SECMODConfigList *conflist, int count)
+{
+    char *config;
+    char *certPrefix;
+    char *keyPrefix;
+    PRBool isReadOnly;
+    PRBool ret=PR_FALSE;
+    int i;
+
+    config = secmod_getConfigDir(spec, &certPrefix, &keyPrefix, &isReadOnly);
+    if (!config) {
+	ret=PR_TRUE;
+	goto done;
+    }
+
+    /* NOTE: we dbm isn't multiple open safe. If we open the same database 
+     * twice from two different locations, then we can corrupt our database
+     * (the cache will be inconsistent). Protect against this by claiming
+     * for comparison only that we are always openning dbm databases read only.
+     */
+    if (secmod_configIsDBM(config)) {
+	isReadOnly = 1;
+    }
+    for (i=0; i < count; i++) {
+	if ((strcmp(config,conflist[i].config) == 0)  &&
+	    secmod_matchPrefix(certPrefix, conflist[i].certPrefix) &&
+	    secmod_matchPrefix(keyPrefix, conflist[i].keyPrefix) &&
+	    /* this last test -- if we just need the DB open read only,
+	     * than any open will suffice, but if we requested it read/write
+	     * and it's only open read only, we need to open it again */
+	    (isReadOnly || !conflist[i].isReadOnly)) {
+	    ret = PR_TRUE;
+	    goto done;
+	}
+    }
+
+    ret = PR_FALSE;
+done:
+    PORT_Free(config);
+    PORT_Free(certPrefix);
+    PORT_Free(keyPrefix);
+    return ret;
+}
+
+void
+secmod_FreeConfigList(SECMODConfigList *conflist, int count)
+{
+    int i;
+    for (i=0; i < count; i++) {
+	PORT_Free(conflist[i].config);
+	PORT_Free(conflist[i].certPrefix);
+	PORT_Free(conflist[i].keyPrefix);
+    }
+    PORT_Free(conflist);
 }
 
 void
@@ -515,7 +844,8 @@ secmod_MkAppendTokensList(PRArenaPool *arena, char *oldParam, char *newToken,
     SECStatus rv;
 
     /* first strip out and save the old tokenlist */
-    rawParam = secmod_ParseModuleSpecForTokens(oldParam,&oldChildren,&oldIds);
+    rawParam = secmod_ParseModuleSpecForTokens(PR_FALSE,PR_FALSE, 
+					oldParam,&oldChildren,&oldIds);
     if (!rawParam) {
 	goto loser;
     }
@@ -769,6 +1099,9 @@ SECMOD_LoadModule(char *modulespec,SECMODModule *parent, PRBool recurse)
     }
     if (parent) {
     	module->parent = SECMOD_ReferenceModule(parent);
+	if (module->internal && secmod_IsInternalKeySlot(parent)) {
+	    module->internal = parent->internal;
+	}
     }
 
     /* load it */

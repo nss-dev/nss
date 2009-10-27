@@ -132,18 +132,43 @@ PRBool pk11_getFinalizeModulesOption(void)
  * initialize.
  */
 static SECStatus
-secmod_handleReload(SECMODModule *oldModule, char *modulespec)
+secmod_handleReload(SECMODModule *oldModule, SECMODModule *newModule)
 {
     PK11SlotInfo *slot;
+    char *modulespec;
     char *newModuleSpec;
     char **children;
     CK_SLOT_ID *ids;
     SECStatus rv;
+    SECMODConfigList *conflist;
+    int count = 0;
 
     /* first look for tokens= key words from the module spec */
-    newModuleSpec = secmod_ParseModuleSpecForTokens(modulespec,&children,&ids);
+    modulespec = newModule->libraryParams;
+    newModuleSpec = secmod_ParseModuleSpecForTokens(PR_TRUE,
+				newModule->isFIPS, modulespec, &children, &ids);
     if (!newModuleSpec) {
 	return SECFailure;
+    }
+
+    /* 
+     * We are now trying to open a new slot on an already loaded module.
+     * If that slot represents a cert/key database, we don't want to open
+     * multiple copies of that same database. Unfortunately we understand
+     * the softoken flags well enough to be able to do this, so we can only get
+     * the list of already loaded databases if we are trying to open another
+     * internal module. 
+     */
+    if (oldModule->internal) {
+	conflist = secmod_GetConfigList(oldModule->isFIPS, 
+					oldModule->libraryParams, &count);
+    }
+
+
+    /* don't open multiple of the same db */
+    if (conflist && secmod_MatchConfigList(newModuleSpec, conflist, count)) { 
+	rv = SECSuccess;
+	goto loser;
     }
     slot = SECMOD_OpenNewSlot(oldModule, newModuleSpec);
     if (slot) {
@@ -152,10 +177,18 @@ secmod_handleReload(SECMODModule *oldModule, char *modulespec)
 	CK_SLOT_ID *thisID;
 	char *oldModuleSpec;
 
+	if (secmod_IsInternalKeySlot(newModule)) {
+	    pk11_SetInternalKeySlot(slot);
+	}
 	newID = slot->slotID;
 	PK11_FreeSlot(slot);
 	for (thisChild=children, thisID=ids; thisChild && *thisChild; 
 						thisChild++,thisID++) {
+	    if (conflist &&
+		       secmod_MatchConfigList(*thisChild, conflist, count)) {
+		*thisID = (CK_SLOT_ID) -1;
+		continue;
+	    }
 	    slot = SECMOD_OpenNewSlot(oldModule, *thisChild);
 	    if (slot) {
 		*thisID = slot->slotID;
@@ -177,8 +210,13 @@ secmod_handleReload(SECMODModule *oldModule, char *modulespec)
 	
 	rv = SECSuccess;
     }
+
+loser:
     secmod_FreeChildren(children, ids);
     PORT_Free(newModuleSpec);
+    if (conflist) {
+	secmod_FreeConfigList(conflist, count);
+    }
     return rv;
 }
 
@@ -224,7 +262,7 @@ secmod_ModuleInit(SECMODModule *mod, SECMODModule **reload,
 	 * reloading */
 	if (oldModule) {
 	    SECStatus rv;
-	    rv = secmod_handleReload(oldModule, mod->libraryParams);
+	    rv = secmod_handleReload(oldModule, mod);
 	    if (rv == SECSuccess) {
 		/* This module should go away soon, since we've
 		 * simply expanded the slots on the old module.

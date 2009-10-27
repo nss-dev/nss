@@ -89,12 +89,25 @@ extern unsigned long SECMOD_InternaltoPubCipherFlags(unsigned long internalFlags
 SECStatus secmod_LoadPKCS11Module(SECMODModule *, SECMODModule **oldModule);
 SECStatus SECMOD_UnloadModule(SECMODModule *);
 void SECMOD_SetInternalModule(SECMODModule *);
+PRBool secmod_IsInternalKeySlot(SECMODModule *);
+
+/* tools for checking if we are loading the same database twice */
+typedef struct SECMODConfigListStr SECMODConfigList;
+/* collect all the databases in a given spec */
+SECMODConfigList *secmod_GetConfigList(PRBool isFIPS, char *spec, int *count);
+/* see is a spec matches a database on the list */
+PRBool secmod_MatchConfigList(char *spec, 
+			      SECMODConfigList *conflist, int count);
+/* free our list of databases */
+void secmod_FreeConfigList(SECMODConfigList *conflist, int count);
 
 /* parsing parameters */
 /* returned char * must be freed by caller with PORT_Free */
 /* children and ids are null terminated arrays which must be freed with
  * secmod_FreeChildren */
-char *secmod_ParseModuleSpecForTokens(char *moduleSpec,
+char *secmod_ParseModuleSpecForTokens(PRBool convert,
+				      PRBool isFIPS,
+				      char *moduleSpec,
 				      char ***children, 
 				      CK_SLOT_ID **ids);
 void secmod_FreeChildren(char **children, CK_SLOT_ID *ids);
