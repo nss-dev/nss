@@ -636,15 +636,15 @@ do_command(const char *label, int initialized, secuCommandFlag *command,
    }
 
    /* do something */
-   if (strcasecmp(command_string, "list_slots") == 0) {
+   if (PORT_Strcasecmp(command_string, "list_slots") == 0) {
 	do_list_slots(progName, log);
-   } else if (strcasecmp(command_string, "list_certs") == 0) {
+   } else if (PORT_Strcasecmp(command_string, "list_certs") == 0) {
 	do_list_certs(progName, log);
-   } else if (strcasecmp(command_string, "add_cert") == 0) {
+   } else if (PORT_Strcasecmp(command_string, "add_cert") == 0) {
 	do_add_cert(progName, log);
-   } else if (strcasecmp(command_string, "key_slot") == 0) {
+   } else if (PORT_Strcasecmp(command_string, "key_slot") == 0) {
 	do_key_slot(progName, log);
-   } else if (strcasecmp(command_string, "none") != 0) {
+   } else if (PORT_Strcasecmp(command_string, "none") != 0) {
 	fprintf(stderr, ">> Unknown command (%s)\n", command_string);
 	appendLabel('E');
 	appendString("bc");
