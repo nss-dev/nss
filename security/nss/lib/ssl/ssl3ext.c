@@ -867,7 +867,7 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
 	    if (rv != SECSuccess)
 		goto no_ticket;
 	}
-	if (PORT_Memcmp(computed_mac, enc_session_ticket.mac,
+	if (NSS_SecureMemcmp(computed_mac, enc_session_ticket.mac,
 		computed_mac_length) != 0) {
 	    SSL_DBG(("%d: SSL[%d]: Session ticket MAC mismatch.",
 			SSL_GETPID(), ss->fd));
