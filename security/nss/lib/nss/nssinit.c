@@ -440,7 +440,7 @@ nss_InitModules(const char *configdir, const char *certPrefix,
      "name=\"%s\" parameters=\"configdir='%s' certPrefix='%s' keyPrefix='%s' "
      "secmod='%s' flags=%s updatedir='%s' updateCertPrefix='%s' "
      "updateKeyPrefix='%s' updateid='%s' updateTokenDescription='%s' %s\" "
-     "NSS=\"flags=internal,moduleDB,moduleDBOnly,critical%s%s\"",
+     "NSS=\"flags=internal,moduleDB,moduleDBOnly,critical%s\"",
 		configName ? configName : NSS_DEFAULT_MOD_NAME,
 		lconfigdir,lcertPrefix,lkeyPrefix,lsecmodName,flags,
 		lupdateDir, lupdCertPrefix, lupdKeyPrefix, lupdateID, 
