@@ -349,9 +349,9 @@ SECMOD_SetRootCerts(PK11SlotInfo *slot, SECMODModule *mod) {
     }
 }
 
-static const char* NameOfThisSharedLib =
+static const char* my_shlib_name =
     SHLIB_PREFIX"nss"SHLIB_VERSION"."SHLIB_SUFFIX;
-static const char* softoken_default_name =
+static const char* softoken_shlib_name =
     SHLIB_PREFIX"softokn"SOFTOKEN_SHLIB_VERSION"."SHLIB_SUFFIX;
 static const PRCallOnceType pristineCallOnce;
 static PRCallOnceType loadSoftokenOnce;
@@ -363,22 +363,16 @@ static PRInt32 softokenLoadCount;
 #include <stdio.h>
 #include "prsystem.h"
 
-#include "../freebl/genload.c"
-
 /* This function must be run only once. */
 /*  determine if hybrid platform, then actually load the DSO. */
 static PRStatus
 softoken_LoadDSO( void ) 
 {
   PRLibrary *  handle;
-  const char * name = softoken_default_name;
 
-  if (!name) {
-    PR_SetError(PR_LOAD_LIBRARY_ERROR, 0);
-    return PR_FAILURE;
-  }
-
-  handle = loader_LoadLibrary(name);
+  handle = PORT_LoadLibraryFromOrigin(my_shlib_name,
+                                      (PRFuncPtr) &softoken_LoadDSO,
+                                      softoken_shlib_name);
   if (handle) {
     softokenLib = handle;
     return PR_SUCCESS;
