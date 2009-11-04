@@ -200,6 +200,7 @@ Usage(const char *progName)
 "-u means enable Session Ticket extension for TLS.\n"
 "-v means verbose output\n"
 "-x means use export policy.\n"
+"-z means enable compression.\n"
 "-L seconds means log statistics every 'seconds' seconds (default=30).\n"
 "-M maxProcs tells how many processes to run in a multi-process server\n"
 "-N means do NOT use the server session cache.  Incompatible with -M.\n"
@@ -717,6 +718,7 @@ PRBool bypassPKCS11    = PR_FALSE;
 PRBool disableLocking  = PR_FALSE;
 PRBool testbypass      = PR_FALSE;
 PRBool enableSessionTickets = PR_FALSE;
+PRBool enableCompression    = PR_FALSE;
 
 static const char stopCmd[] = { "GET /stop " };
 static const char getCmd[]  = { "GET " };
@@ -1599,6 +1601,13 @@ server_main(
 	}
     }
 
+    if (enableCompression) {
+	rv = SSL_OptionSet(model_sock, SSL_ENABLE_DEFLATE, PR_TRUE);
+	if (rv != SECSuccess) {
+	    errExit("error enabling compression ");
+	}
+    }
+
     for (kea = kt_rsa; kea < kt_kea_size; kea++) {
 	if (cert[kea] != NULL) {
 	    secStatus = SSL_ConfigSecureServer(model_sock, 
@@ -1830,7 +1839,7 @@ main(int argc, char **argv)
     ** numbers, then capital letters, then lower case, alphabetical. 
     */
     optstate = PL_CreateOptState(argc, argv, 
-        "2:3BC:DEL:M:NP:RSTbc:d:e:f:g:hi:jlmn:op:qrst:uvw:xy");
+        "2:3BC:DEL:M:NP:RSTbc:d:e:f:g:hi:jlmn:op:qrst:uvw:xyz");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	++optionsFound;
 	switch(optstate->option) {
@@ -1934,6 +1943,8 @@ main(int argc, char **argv)
 	case 'x': useExportPolicy = PR_TRUE; break;
 
 	case 'y': debugCache = PR_TRUE; break;
+
+	case 'z': enableCompression = PR_TRUE; break;
 
 	default:
 	case '?':
