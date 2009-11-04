@@ -62,6 +62,9 @@
 #include "blapi.h"
 
 #include <stdio.h>
+#ifdef NSS_ENABLE_ZLIB
+#include "zlib.h"
+#endif
 
 #ifndef PK11_SETATTRS
 #define PK11_SETATTRS(x,id,v,l) (x)->type = (id); \
@@ -177,10 +180,30 @@ static ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED] = {
 
 static const /*SSL3CompressionMethod*/ uint8 compressions [] = {
     compression_null
+#ifdef NSS_ENABLE_ZLIB
+    , compression_deflate
+#endif
 };
 
 static const int compressionMethodsCount =
-		sizeof(compressions) / sizeof(compressions[0]);
+    sizeof(compressions) / sizeof(compressions[0]);
+
+/* compressionEnabled returns true iff the compression algorithm with index i
+ * is enabled for the given SSL socket. */
+static PRBool
+compressionEnabled(sslSocket *ss, int i)
+{
+    switch (i) {
+    case compression_null:
+	return PR_TRUE;  /* Always enabled */
+#ifdef NSS_ENABLE_ZLIB
+    case compression_deflate:
+	return ss->opt.enableDeflate;
+#endif
+    default:
+	return PR_FALSE;
+    }
+}
 
 static const /*SSL3ClientCertificateType */ uint8 certificate_types [] = {
     ct_RSA_sign,
@@ -190,12 +213,21 @@ static const /*SSL3ClientCertificateType */ uint8 certificate_types [] = {
 #endif /* NSS_ENABLE_ECC */
 };
 
+#ifdef NSS_ENABLE_ZLIB
+/*
+ * The DEFLATE algorithm can result in an expansion of 0.1% + 12 bytes. For a
+ * maximum TLS record payload of 2**14 bytes, that's 29 bytes.
+ */
+#define SSL3_COMPRESSION_MAX_EXPANSION 29
+#else  /* !NSS_ENABLE_ZLIB */
+#define SSL3_COMPRESSION_MAX_EXPANSION 0
+#endif
 
 /*
  * make sure there is room in the write buffer for padding and
- * other compression and cryptographic expansions
+ * other compression and cryptographic expansions.
  */
-#define SSL3_BUFFER_FUDGE     100
+#define SSL3_BUFFER_FUDGE     100 + SSL3_COMPRESSION_MAX_EXPANSION
 
 #define EXPORT_RSA_KEY_LENGTH 64	/* bytes */
 
@@ -1142,6 +1174,14 @@ ssl3_DestroyCipherSpec(ssl3CipherSpec *spec)
 	spec->encodeContext = NULL; /* paranoia */
 	spec->decodeContext = NULL;
     }
+    if (spec->destroyCompressContext && spec->compressContext) {
+	spec->destroyCompressContext(spec->compressContext, 1);
+	spec->compressContext = NULL;
+    }
+    if (spec->destroyDecompressContext && spec->decompressContext) {
+	spec->destroyDecompressContext(spec->decompressContext, 1);
+	spec->decompressContext = NULL;
+    }
     if (spec->master_secret != NULL) {
 	PK11_FreeSymKey(spec->master_secret);
 	spec->master_secret = NULL;
@@ -1152,6 +1192,8 @@ ssl3_DestroyCipherSpec(ssl3CipherSpec *spec)
     ssl3_CleanupKeyMaterial(&spec->server);
     spec->bypassCiphers = PR_FALSE;
     spec->destroy=NULL;
+    spec->destroyCompressContext = NULL;
+    spec->destroyDecompressContext = NULL;
 }
 
 /* Fill in the pending cipher spec with info from the selected ciphersuite.
@@ -1224,7 +1266,143 @@ ssl3_SetupPendingCipherSpec(sslSocket *ss)
 
     pwSpec->mac_size = pwSpec->mac_def->mac_size;
 
+    pwSpec->compression_method = ss->ssl3.hs.compression;
+    pwSpec->compressContext = NULL;
+    pwSpec->decompressContext = NULL;
+
     ssl_ReleaseSpecWriteLock(ss);  /*******************************/
+    return SECSuccess;
+}
+
+#ifdef NSS_ENABLE_ZLIB
+#define SSL3_DEFLATE_CONTEXT_SIZE sizeof(z_stream)
+
+static SECStatus
+ssl3_MapZlibError(int zlib_error)
+{
+    switch (zlib_error) {
+    case Z_OK:
+        return SECSuccess;
+    default:
+        return SECFailure;
+    }
+}
+
+static SECStatus
+ssl3_DeflateInit(void *void_context)
+{
+    z_stream* context = void_context;
+    context->zalloc = NULL;
+    context->zfree = NULL;
+    context->opaque = NULL;
+
+    return ssl3_MapZlibError(deflateInit(context, Z_DEFAULT_COMPRESSION));
+}
+
+static SECStatus
+ssl3_InflateInit(void *void_context)
+{
+    z_stream* context = void_context;
+    context->zalloc = NULL;
+    context->zfree = NULL;
+    context->opaque = NULL;
+    context->next_in = NULL;
+    context->avail_in = 0;
+
+    return ssl3_MapZlibError(inflateInit(context));
+}
+
+static SECStatus
+ssl3_DeflateCompress(void *void_context, unsigned char *out, int *out_len,
+                     int maxout, const unsigned char *in, int inlen)
+{
+    z_stream* context = void_context;
+    context->next_in = (unsigned char*) in;
+    context->avail_in = inlen;
+    context->next_out = out;
+    context->avail_out = maxout;
+    if (deflate(context, Z_SYNC_FLUSH) != Z_OK) {
+        return SECFailure;
+    }
+    if (context->avail_out == 0) {
+        /* We ran out of space! */
+        SSL_TRC(3, ("%d: SSL3[%d] Ran out of buffer while compressing",
+                    SSL_GETPID()));
+        return SECFailure;
+    }
+
+    *out_len = maxout - context->avail_out;
+    return SECSuccess;
+}
+
+static SECStatus
+ssl3_DeflateDecompress(void *void_context, unsigned char *out, int *out_len,
+                       int maxout, const unsigned char *in, int inlen)
+{
+    z_stream* context = void_context;
+    context->next_in = (unsigned char*) in;
+    context->avail_in = inlen;
+    context->next_out = out;
+    context->avail_out = maxout;
+    if (inflate(context, Z_SYNC_FLUSH) != Z_OK) {
+        return SECFailure;
+    }
+
+    *out_len = maxout - context->avail_out;
+    return SECSuccess;
+}
+
+static SECStatus
+ssl3_DestroyCompressContext(void *void_context, PRBool unused)
+{
+    deflateEnd(void_context);
+    PORT_Free(void_context);
+    return SECSuccess;
+}
+
+static SECStatus
+ssl3_DestroyDecompressContext(void *void_context, PRBool unused)
+{
+    inflateEnd(void_context);
+    PORT_Free(void_context);
+    return SECSuccess;
+}
+
+#endif /* NSS_ENABLE_ZLIB */
+
+/* Initialize the compression functions and contexts for the given
+ * CipherSpec.  */
+static SECStatus
+ssl3_InitCompressionContext(ssl3CipherSpec *pwSpec)
+{
+    /* Setup the compression functions */
+    switch (pwSpec->compression_method) {
+    case compression_null:
+	pwSpec->compress = NULL;
+	pwSpec->decompress = NULL;
+	pwSpec->compressContext = NULL;
+	pwSpec->decompressContext = NULL;
+	pwSpec->destroyCompressContext = NULL;
+	pwSpec->destroyDecompressContext = NULL;
+	break;
+#ifdef NSS_ENABLE_ZLIB
+    case compression_deflate:
+	pwSpec->compress = ssl3_DeflateCompress;
+	pwSpec->decompress = ssl3_DeflateDecompress;
+	pwSpec->compressContext = PORT_Alloc(SSL3_DEFLATE_CONTEXT_SIZE);
+	pwSpec->decompressContext = PORT_Alloc(SSL3_DEFLATE_CONTEXT_SIZE);
+	pwSpec->destroyCompressContext = ssl3_DestroyCompressContext;
+	pwSpec->destroyDecompressContext = ssl3_DestroyDecompressContext;
+	ssl3_DeflateInit(pwSpec->compressContext);
+	ssl3_InflateInit(pwSpec->decompressContext);
+	break;
+#endif /* NSS_ENABLE_ZLIB */
+    default:
+	PORT_Assert(0);
+	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	return SECFailure;
+    }
+
     return SECSuccess;
 }
 
@@ -1246,6 +1424,7 @@ const ssl3BulkCipherDef *cipher_def;
       PRBool             server_encrypts = ss->sec.isServer;
       CK_ULONG           macLength;
       SSLCipherAlgorithm calg;
+      SSL3CompressionMethod compression_method;
       SECStatus          rv;
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
@@ -1261,6 +1440,7 @@ const ssl3BulkCipherDef *cipher_def;
      */
 
     calg = cipher_def->calg;
+    compression_method = pwSpec->compression_method;
 
     serverContext = pwSpec->server.cipher_context;
     clientContext = pwSpec->client.cipher_context;
@@ -1375,6 +1555,8 @@ const ssl3BulkCipherDef *cipher_def;
 
     pwSpec->encodeContext = (ss->sec.isServer) ? serverContext : clientContext;
     pwSpec->decodeContext = (ss->sec.isServer) ? clientContext : serverContext;
+
+    ssl3_InitCompressionContext(pwSpec);
 
 success:
     return SECSuccess;
@@ -1527,6 +1709,8 @@ const ssl3BulkCipherDef *cipher_def;
 
     serverContext = NULL;
     clientContext = NULL;
+
+    ssl3_InitCompressionContext(pwSpec);
 
     return SECSuccess;
 
@@ -1840,15 +2024,22 @@ ssl3_CompressMACEncryptRecord(sslSocket *        ss,
     PRUint32  p1Len, p2Len, oddLen = 0;
     PRInt32   cipherBytes =  0;
 
-    /*
-     * null compression is easy to do
-    PORT_Memcpy(wrBuf->buf + SSL3_RECORD_HEADER_LENGTH, pIn, contentLen);
-     */
-
     ssl_GetSpecReadLock(ss);	/********************************/
 
     cwSpec = ss->ssl3.cwSpec;
     cipher_def = cwSpec->cipher_def;
+
+    if (cwSpec->compress) {
+	int outlen;
+	rv = cwSpec->compress(
+	    cwSpec->compressContext, wrBuf->buf + SSL3_RECORD_HEADER_LENGTH,
+	    &outlen, wrBuf->space - SSL3_RECORD_HEADER_LENGTH, pIn, contentLen);
+	if (rv != SECSuccess)
+	    return rv;
+	pIn = wrBuf->buf + SSL3_RECORD_HEADER_LENGTH;
+	contentLen = outlen;
+    }
+
     /*
      * Add the MAC
      */
@@ -1898,8 +2089,8 @@ ssl3_CompressMACEncryptRecord(sslSocket *        ss,
 	p2Len += oddLen;
 	PORT_Assert( (cipher_def->block_size < 2) || \
 		     (p2Len % cipher_def->block_size) == 0);
-	memcpy(wrBuf->buf + SSL3_RECORD_HEADER_LENGTH + p1Len,
-	       pIn + p1Len, oddLen);
+	memmove(wrBuf->buf + SSL3_RECORD_HEADER_LENGTH + p1Len,
+	        pIn + p1Len, oddLen);
     }
     if (p1Len > 0) {
 	rv = cwSpec->encode( cwSpec->encodeContext, 
@@ -3507,6 +3698,7 @@ ssl3_SendClientHello(sslSocket *ss)
     int              num_suites;
     int              actual_count = 0;
     PRInt32          total_exten_len = 0;
+    unsigned         numCompressionMethods;
 
     SSL_TRC(3, ("%d: SSL3[%d]: send client_hello handshake", SSL_GETPID(),
 		ss->fd));
@@ -3667,10 +3859,13 @@ ssl3_SendClientHello(sslSocket *ss)
     if (!num_suites)
     	return SECFailure;	/* count_cipher_suites has set error code. */
 
+    numCompressionMethods =
+	ss->opt.enableDeflate ? compressionMethodsCount : 1;
+
     length = sizeof(SSL3ProtocolVersion) + SSL3_RANDOM_LENGTH +
 	1 + ((sid == NULL) ? 0 : sid->u.ssl3.sessionIDLength) +
 	2 + num_suites*sizeof(ssl3CipherSuite) +
-	1 + compressionMethodsCount + total_exten_len;
+	1 + numCompressionMethods + total_exten_len;
 
     rv = ssl3_AppendHandshakeHeader(ss, client_hello, length);
     if (rv != SECSuccess) {
@@ -3733,11 +3928,11 @@ ssl3_SendClientHello(sslSocket *ss)
 	return SECFailure;
     }
 
-    rv = ssl3_AppendHandshakeNumber(ss, compressionMethodsCount, 1);
+    rv = ssl3_AppendHandshakeNumber(ss, numCompressionMethods, 1);
     if (rv != SECSuccess) {
 	return rv;	/* err set by ssl3_AppendHandshake* */
     }
-    for (i = 0; i < compressionMethodsCount; i++) {
+    for (i = 0; i < numCompressionMethods; i++) {
 	rv = ssl3_AppendHandshakeNumber(ss, compressions[i], 1);
 	if (rv != SECSuccess) {
 	    return rv;	/* err set by ssl3_AppendHandshake* */
@@ -4669,7 +4864,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
     suite_found = PR_FALSE;
     for (i = 0; i < compressionMethodsCount; i++) {
-	if (temp == compressions[i])  {
+	if (temp == compressions[i] && compressionEnabled(ss, i))  {
 	    suite_found = PR_TRUE;
 	    break;	/* success */
     	}
@@ -5845,7 +6040,8 @@ suite_found:
     /* Look for a matching compression algorithm. */
     for (i = 0; i < comps.len; i++) {
 	for (j = 0; j < compressionMethodsCount; j++) {
-	    if (comps.data[i] == compressions[j]) {
+	    if (comps.data[i] == compressions[j] &&
+		compressionEnabled(ss, j)) {
 		ss->ssl3.hs.compression = 
 					(SSL3CompressionMethod)compressions[j];
 		goto compression_found;
@@ -8180,6 +8376,8 @@ const ssl3BulkCipherDef *cipher_def;
     PRBool               padIsBad               = PR_FALSE;
     SSL3ContentType      rType;
     SSL3Opaque           hash[MAX_MAC_LENGTH];
+    sslBuffer           *plaintext;
+    sslBuffer            temp_buf;
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
 
@@ -8209,10 +8407,25 @@ const ssl3BulkCipherDef *cipher_def;
 	goto process_it;
     }
 
-    databuf->len = 0; /* filled in by decode call below. */
-    if (databuf->space < MAX_FRAGMENT_LENGTH) {
-	rv = sslBuffer_Grow(databuf, MAX_FRAGMENT_LENGTH + 2048);
+    ssl_GetSpecReadLock(ss); /******************************************/
+
+    crSpec = ss->ssl3.crSpec;
+
+    /* If we will be decompressing the buffer we need to decrypt somewhere
+     * other than into databuf */
+    if (crSpec->decompress) {
+	temp_buf.buf = NULL;
+	temp_buf.space = 0;
+	plaintext = &temp_buf;
+    } else {
+	plaintext = databuf;
+    }
+
+    plaintext->len = 0; /* filled in by decode call below. */
+    if (plaintext->space < MAX_FRAGMENT_LENGTH) {
+	rv = sslBuffer_Grow(plaintext, MAX_FRAGMENT_LENGTH + 2048);
 	if (rv != SECSuccess) {
+	    ssl_ReleaseSpecReadLock(ss);
 	    SSL_DBG(("%d: SSL3[%d]: HandleRecord, tried to get %d bytes",
 		     SSL_GETPID(), ss->fd, MAX_FRAGMENT_LENGTH + 2048));
 	    /* sslBuffer_Grow has set a memory error code. */
@@ -8223,9 +8436,6 @@ const ssl3BulkCipherDef *cipher_def;
 
     PRINT_BUF(80, (ss, "ciphertext:", cText->buf->buf, cText->buf->len));
 
-    ssl_GetSpecReadLock(ss); /******************************************/
-
-    crSpec = ss->ssl3.crSpec;
     cipher_def = crSpec->cipher_def;
     isTLS = (PRBool)(crSpec->version > SSL_LIBRARY_VERSION_3_0);
 
@@ -8235,12 +8445,13 @@ const ssl3BulkCipherDef *cipher_def;
 	PORT_SetError(SSL_ERROR_RX_RECORD_TOO_LONG);
 	return SECFailure;
     }
-    /* decrypt from cText buf to databuf. */
-    rv = crSpec->decode(
-	crSpec->decodeContext, databuf->buf, (int *)&databuf->len,
-	databuf->space, cText->buf->buf, cText->buf->len);
 
-    PRINT_BUF(80, (ss, "cleartext:", databuf->buf, databuf->len));
+    /* decrypt from cText buf to plaintext. */
+    rv = crSpec->decode(
+	crSpec->decodeContext, plaintext->buf, (int *)&plaintext->len,
+	plaintext->space, cText->buf->buf, cText->buf->len);
+
+    PRINT_BUF(80, (ss, "cleartext:", plaintext->buf, plaintext->len));
     if (rv != SECSuccess) {
 	int err = ssl_MapLowLevelError(SSL_ERROR_DECRYPTION_FAILURE);
 	ssl_ReleaseSpecReadLock(ss);
@@ -8252,22 +8463,22 @@ const ssl3BulkCipherDef *cipher_def;
 
     /* If it's a block cipher, check and strip the padding. */
     if (cipher_def->type == type_block) {
-	padding_length = *(databuf->buf + databuf->len - 1);
+	padding_length = *(plaintext->buf + plaintext->len - 1);
 	/* TLS permits padding to exceed the block size, up to 255 bytes. */
-	if (padding_length + 1 + crSpec->mac_size > databuf->len)
+	if (padding_length + 1 + crSpec->mac_size > plaintext->len)
 	    padIsBad = PR_TRUE;
 	/* if TLS, check value of first padding byte. */
 	else if (padding_length && isTLS && 
-	         padding_length != 
-	                 *(databuf->buf + databuf->len - (padding_length + 1)))
+	         padding_length != *(plaintext->buf +
+	                             plaintext->len - (padding_length + 1)))
 	    padIsBad = PR_TRUE;
 	else
-	    databuf->len -= padding_length + 1;
+	    plaintext->len -= padding_length + 1;
     }
 
     /* Remove the MAC. */
-    if (databuf->len >= crSpec->mac_size)
-	databuf->len -= crSpec->mac_size;
+    if (plaintext->len >= crSpec->mac_size)
+	plaintext->len -= crSpec->mac_size;
     else
     	padIsBad = PR_TRUE;	/* really macIsBad */
 
@@ -8275,7 +8486,7 @@ const ssl3BulkCipherDef *cipher_def;
     rType = cText->type;
     rv = ssl3_ComputeRecordMAC( crSpec, (PRBool)(!ss->sec.isServer),
 	rType, cText->version, crSpec->read_seq_num, 
-	databuf->buf, databuf->len, hash, &hashBytes);
+	plaintext->buf, plaintext->len, hash, &hashBytes);
     if (rv != SECSuccess) {
 	int err = ssl_MapLowLevelError(SSL_ERROR_MAC_COMPUTATION_FAILURE);
 	ssl_ReleaseSpecReadLock(ss);
@@ -8286,7 +8497,7 @@ const ssl3BulkCipherDef *cipher_def;
 
     /* Check the MAC */
     if (hashBytes != (unsigned)crSpec->mac_size || padIsBad || 
-	NSS_SecureMemcmp(databuf->buf + databuf->len, hash,
+	NSS_SecureMemcmp(plaintext->buf + plaintext->len, hash,
 	                 crSpec->mac_size) != 0) {
 	/* must not hold spec lock when calling SSL3_SendAlert. */
 	ssl_ReleaseSpecReadLock(ss);
@@ -8299,15 +8510,52 @@ const ssl3BulkCipherDef *cipher_def;
 	return SECFailure;
     }
 
+
+
     ssl3_BumpSequenceNumber(&crSpec->read_seq_num);
 
     ssl_ReleaseSpecReadLock(ss); /*****************************************/
 
     /*
-     * The decrypted data is now in databuf.
-     *
-     * the null decompression routine is right here
+     * The decrypted data is now in plaintext.
      */
+
+    /* possibly decompress the record. If we aren't using compression then
+     * plaintext == databuf and so the uncompressed data is already in
+     * databuf. */
+    if (crSpec->decompress) {
+	if (databuf->space < plaintext->len + SSL3_COMPRESSION_MAX_EXPANSION) {
+	    rv = sslBuffer_Grow(
+	        databuf, plaintext->len + SSL3_COMPRESSION_MAX_EXPANSION);
+	    if (rv != SECSuccess) {
+		SSL_DBG(("%d: SSL3[%d]: HandleRecord, tried to get %d bytes",
+			 SSL_GETPID(), ss->fd,
+			 plaintext->len + SSL3_COMPRESSION_MAX_EXPANSION));
+		/* sslBuffer_Grow has set a memory error code. */
+		/* Perhaps we should send an alert. (but we have no memory!) */
+		PORT_Free(plaintext->buf);
+		return SECFailure;
+	    }
+	}
+
+	rv = crSpec->decompress(crSpec->decompressContext,
+				databuf->buf,
+				(int*) &databuf->len,
+				databuf->space,
+				plaintext->buf,
+				plaintext->len);
+	if (rv != SECSuccess) {
+	    int err = ssl_MapLowLevelError(SSL_ERROR_DECOMPRESSION_FAILURE);
+	    PORT_Free(plaintext->buf);
+	    ssl_ReleaseSpecReadLock(ss);
+	    SSL3_SendAlert(ss, alert_fatal,
+			   isTLS ? decompression_failure : bad_record_mac);
+	    PORT_SetError(err);
+	    return SECFailure;
+	}
+
+	PORT_Free(plaintext->buf);
+    }
 
     /*
     ** Having completed the decompression, check the length again. 
@@ -8379,6 +8627,10 @@ ssl3_InitCipherSpec(sslSocket *ss, ssl3CipherSpec *spec)
     spec->encode                   = Null_Cipher;
     spec->decode                   = Null_Cipher;
     spec->destroy                  = NULL;
+    spec->compress                 = NULL;
+    spec->decompress               = NULL;
+    spec->destroyCompressContext   = NULL;
+    spec->destroyDecompressContext = NULL;
     spec->mac_size                 = 0;
     spec->master_secret            = NULL;
     spec->bypassCiphers            = PR_FALSE;

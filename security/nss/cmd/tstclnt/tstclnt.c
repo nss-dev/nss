@@ -212,6 +212,7 @@ static void Usage(const char *progName)
     fprintf(stderr, "%-20s Ping the server and then exit.\n", "-q");
     fprintf(stderr, "%-20s Renegotiate with session resumption.\n", "-r");
     fprintf(stderr, "%-20s Enable the session ticket extension.\n", "-u");
+    fprintf(stderr, "%-20s Enable compression.\n", "-z");
     fprintf(stderr, "%-20s Letter(s) chosen from the following list\n", 
                     "-c ciphers");
     fprintf(stderr, 
@@ -507,6 +508,7 @@ int main(int argc, char **argv)
     int                disableLocking = 0;
     int                useExportPolicy = 0;
     int                enableSessionTickets = 0;
+    int                enableCompression = 0;
     PRSocketOptionData opt;
     PRNetAddr          addr;
     PRPollDesc         pollset[2];
@@ -534,7 +536,8 @@ int main(int argc, char **argv)
        }
     }
 
-    optstate = PL_CreateOptState(argc, argv, "23BTSfc:h:p:d:m:n:oqr:suvw:xW:");
+    optstate = PL_CreateOptState(argc, argv,
+                                 "23BSTW:c:d:fh:m:n:op:qr:suvw:xz");
     while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch (optstate->option) {
 	  case '?':
@@ -546,17 +549,17 @@ int main(int argc, char **argv)
 
           case 'B': bypassPKCS11 = 1; 			break;
 
-          case 'T': disableTLS  = 1; 			break;
-
           case 'S': skipProtoHeader = PR_TRUE;                 break;
+
+          case 'T': disableTLS  = 1; 			break;
 
           case 'c': cipherString = PORT_Strdup(optstate->value); break;
 
-          case 'h': host = PORT_Strdup(optstate->value);	break;
-
-          case 'f':  clientSpeaksFirst = PR_TRUE;       break;
-
           case 'd': certDir = PORT_Strdup(optstate->value);   break;
+
+          case 'f': clientSpeaksFirst = PR_TRUE;        break;
+
+          case 'h': host = PORT_Strdup(optstate->value);	break;
 
 	  case 'm':
 	    multiplier = atoi(optstate->value);
@@ -591,6 +594,8 @@ int main(int argc, char **argv)
                 break;
 
 	  case 'x': useExportPolicy = 1; 		break;
+
+	  case 'z': enableCompression = 1;		break;
 	}
     }
 
@@ -826,6 +831,13 @@ int main(int argc, char **argv)
     rv = SSL_OptionSet(s, SSL_ENABLE_SESSION_TICKETS, enableSessionTickets);
     if (rv != SECSuccess) {
 	SECU_PrintError(progName, "error enabling Session Ticket extension");
+	return 1;
+    }
+
+    /* enable compression. */
+    rv = SSL_OptionSet(s, SSL_ENABLE_DEFLATE, enableCompression);
+    if (rv != SECSuccess) {
+	SECU_PrintError(progName, "error enabling compression");
 	return 1;
     }
 

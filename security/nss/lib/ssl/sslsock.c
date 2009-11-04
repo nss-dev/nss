@@ -180,6 +180,7 @@ static sslOptions ssl_defaults = {
     PR_FALSE,   /* bypassPKCS11       */
     PR_FALSE,   /* noLocks            */
     PR_FALSE,   /* enableSessionTickets */
+    PR_FALSE,   /* enableDeflate      */
 };
 
 sslSessionIDLookupFunc  ssl_sid_lookup;
@@ -705,6 +706,10 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	ss->opt.enableSessionTickets = on;
 	break;
 
+      case SSL_ENABLE_DEFLATE:
+	ss->opt.enableDeflate = on;
+	break;
+
       default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	rv = SECFailure;
@@ -763,6 +768,7 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
     case SSL_ENABLE_SESSION_TICKETS:
 	on = ss->opt.enableSessionTickets;
 	break;
+    case SSL_ENABLE_DEFLATE:      on = ss->opt.enableDeflate;      break;
 
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -807,6 +813,7 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
     case SSL_ENABLE_SESSION_TICKETS:
 	on = ssl_defaults.enableSessionTickets;
 	break;
+    case SSL_ENABLE_DEFLATE:      on = ssl_defaults.enableDeflate;      break;
 
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -936,6 +943,10 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 
       case SSL_ENABLE_SESSION_TICKETS:
 	ssl_defaults.enableSessionTickets = on;
+	break;
+
+      case SSL_ENABLE_DEFLATE:
+	ssl_defaults.enableDeflate = on;
 	break;
 
       default:

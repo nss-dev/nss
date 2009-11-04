@@ -334,6 +334,7 @@ typedef struct sslOptionsStr {
     unsigned int bypassPKCS11           : 1;  /* 16 */
     unsigned int noLocks                : 1;  /* 17 */
     unsigned int enableSessionTickets   : 1;  /* 18 */
+    unsigned int enableDeflate          : 1;  /* 19 */
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -448,6 +449,12 @@ typedef SECStatus (*SSLCipher)(void *               context,
 			       int                  maxout, 
 			       const unsigned char *in,
 			       int                  inlen);
+typedef SECStatus (*SSLCompressor)(void *               context,
+                                   unsigned char *      out,
+                                   int *                outlen,
+                                   int                  maxout,
+                                   const unsigned char *in,
+                                   int                  inlen);
 typedef SECStatus (*SSLDestroy)(void *context, PRBool freeit);
 
 
@@ -523,12 +530,19 @@ typedef struct {
 typedef struct {
     const ssl3BulkCipherDef *cipher_def;
     const ssl3MACDef * mac_def;
+    SSL3CompressionMethod compression_method;
     int                mac_size;
     SSLCipher          encode;
     SSLCipher          decode;
     SSLDestroy         destroy;
     void *             encodeContext;
     void *             decodeContext;
+    SSLCompressor      compress;
+    SSLCompressor      decompress;
+    SSLDestroy         destroyCompressContext;
+    void *             compressContext;
+    SSLDestroy         destroyDecompressContext;
+    void *             decompressContext;
     PRBool             bypassCiphers;	/* did double bypass (at least) */
     PK11SymKey *       master_secret;
     SSL3SequenceNumber write_seq_num;

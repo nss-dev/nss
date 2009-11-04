@@ -161,6 +161,7 @@ static PRBool bypassPKCS11    = PR_FALSE;
 static PRBool disableLocking  = PR_FALSE;
 static PRBool ignoreErrors    = PR_FALSE;
 static PRBool enableSessionTickets = PR_FALSE;
+static PRBool enableCompression    = PR_FALSE;
 
 PRIntervalTime maxInterval    = PR_INTERVAL_NO_TIMEOUT;
 
@@ -196,6 +197,7 @@ Usage(const char *progName)
         "       -U means enable throttling up threads\n"
 	"       -B bypasses the PKCS11 layer for SSL encryption and MACing\n"
 	"       -u enable TLS Session Ticket extension\n",
+	"       -z enable compression\n",
 	progName);
     exit(1);
 }
@@ -1233,6 +1235,12 @@ client_main(
 	    errExit("SSL_OptionSet SSL_ENABLE_SESSION_TICKETS");
     }
 
+    if (enableCompression) {
+	rv = SSL_OptionSet(model_sock, SSL_ENABLE_DEFLATE, PR_TRUE);
+	if (rv != SECSuccess)
+	    errExit("SSL_OptionSet SSL_ENABLE_DEFLATE");
+    }
+
     SSL_SetURL(model_sock, hostName);
 
     SSL_AuthCertificateHook(model_sock, mySSLAuthCertificate, 
@@ -1338,7 +1346,8 @@ main(int argc, char **argv)
     progName = progName ? progName + 1 : tmp;
  
 
-    optstate = PL_CreateOptState(argc, argv, "23BC:DNP:TUW:c:d:f:in:op:qst:uvw:");
+    optstate = PL_CreateOptState(argc, argv,
+                                 "23BC:DNP:TUW:c:d:f:in:op:qst:uvw:z");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch(optstate->option) {
 
@@ -1397,6 +1406,8 @@ main(int argc, char **argv)
             pwdata.source = PW_FROMFILE;
             pwdata.data = PL_strdup(optstate->value);
             break;
+
+	case 'z': enableCompression = PR_TRUE; break;
 
 	case 0:   /* positional parameter */
 	    if (hostName) {
