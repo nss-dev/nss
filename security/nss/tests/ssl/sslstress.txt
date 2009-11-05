@@ -9,6 +9,8 @@
   noECC     0      _         -c_1000_-C_c_-T               Stress SSL3 RC4 128 with MD5
   noECC     0      _         -c_1000_-C_c                  Stress TLS  RC4 128 with MD5
   noECC     0      -u        -2_-c_1000_-C_c_-u            Stress TLS  RC4 128 with MD5 (session ticket)
+  noECC     0      -z        -2_-c_1000_-C_c_-z            Stress TLS  RC4 128 with MD5 (compression)
+  noECC     0      -u_-z     -2_-c_1000_-C_c_-u_-z         Stress TLS  RC4 128 with MD5 (session ticket, compression)
 
 #
 # add client auth versions here...
@@ -17,6 +19,8 @@
   noECC     0      -r_-r     -c_100_-C_c_-T_-N_-n_TestUser Stress SSL3 RC4 128 with MD5 (no reuse, client auth)
   noECC     0      -r_-r     -c_100_-C_c_-N_-n_TestUser    Stress TLS RC4 128 with MD5 (no reuse, client auth)
   noECC     0      -r_-r_-u  -2_-c_100_-C_c_-n_TestUser_-u Stress TLS RC4 128 with MD5 (session ticket, client auth)
+  noECC     0      -r_-r_-z  -2_-c_100_-C_c_-n_TestUser_-z Stress TLS RC4 128 with MD5 (compression, client auth)
+  noECC     0   -r_-r_-u_-z  -2_-c_100_-C_c_-n_TestUser_-u_-z Stress TLS RC4 128 with MD5 (session ticket, compression, client auth)
 
 #
 # ############################ ECC ciphers ############################
