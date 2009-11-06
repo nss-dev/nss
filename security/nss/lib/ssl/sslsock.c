@@ -181,6 +181,8 @@ static sslOptions ssl_defaults = {
     PR_FALSE,   /* noLocks            */
     PR_FALSE,   /* enableSessionTickets */
     PR_FALSE,   /* enableDeflate      */
+    0,          /* enableRenegotiation (default: never) */
+    PR_FALSE,   /* requireSafeNegotiation */
 };
 
 sslSessionIDLookupFunc  ssl_sid_lookup;
@@ -710,6 +712,14 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	ss->opt.enableDeflate = on;
 	break;
 
+      case SSL_ENABLE_RENEGOTIATION:
+	ss->opt.enableRenegotiation = on;
+	break;
+
+      case SSL_REQUIRE_SAFE_NEGOTIATION:
+	ss->opt.requireSafeNegotiation = on;
+	break;
+
       default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	rv = SECFailure;
@@ -769,6 +779,10 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
 	on = ss->opt.enableSessionTickets;
 	break;
     case SSL_ENABLE_DEFLATE:      on = ss->opt.enableDeflate;      break;
+    case SSL_ENABLE_RENEGOTIATION:     
+                                  on = ss->opt.enableRenegotiation; break;
+    case SSL_REQUIRE_SAFE_NEGOTIATION: 
+                                  on = ss->opt.requireSafeNegotiation; break;
 
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -814,6 +828,11 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
 	on = ssl_defaults.enableSessionTickets;
 	break;
     case SSL_ENABLE_DEFLATE:      on = ssl_defaults.enableDeflate;      break;
+    case SSL_ENABLE_RENEGOTIATION:     
+                                  on = ssl_defaults.enableRenegotiation; break;
+    case SSL_REQUIRE_SAFE_NEGOTIATION: 
+                                  on = ssl_defaults.requireSafeNegotiation; 
+				  break;
 
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -947,6 +966,14 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 
       case SSL_ENABLE_DEFLATE:
 	ssl_defaults.enableDeflate = on;
+	break;
+
+      case SSL_ENABLE_RENEGOTIATION:
+	ssl_defaults.enableRenegotiation = on;
+	break;
+
+      case SSL_REQUIRE_SAFE_NEGOTIATION:
+	ssl_defaults.requireSafeNegotiation = on;
 	break;
 
       default:
@@ -2093,6 +2120,8 @@ loser:
 #define NSS_HAVE_GETENV 1
 #endif
 
+#define LOWER(x) (x | 0x20)  /* cheap ToLower function ignores LOCALE */
+
 /*
 ** Create a newsocket structure for a file descriptor.
 */
@@ -2139,6 +2168,32 @@ ssl_NewSocket(PRBool makeLocks)
 	    ssl_defaults.noLocks = 0;
 	    strcpy(lockStatus + LOCKSTATUS_OFFSET, "FORCED.  ");
 	    SSL_TRACE(("SSL: force_locks set to %d", ssl_force_locks));
+	}
+	ev = getenv("NSS_SSL_ENABLE_RENEGOTIATION");
+	if (ev) {
+	    if (ev[0] == '1' || LOWER(ev[0]) == 'u')
+	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_UNRESTRICTED;
+#ifdef LATER
+	    /* When SSL_RENEGOTIATE_REQUIRES_XTN is implemented, it will be 
+	     * the default.  Until then, NEVER will be the default. 
+	     */
+	    else if (ev[0] == '0' || LOWER(ev[0]) == 'n')
+	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_NEVER;
+	    else
+	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_REQUIRES_XTN;
+#else
+	    else
+	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_NEVER;
+#endif
+
+	    SSL_TRACE(("SSL: enableRenegotiation set to %d", 
+	               ssl_defaults.enableRenegotiation));
+	}
+	ev = getenv("NSS_SSL_REQUIRE_SAFE_NEGOTIATION");
+	if (ev && ev[0] == '1') {
+	    ssl_defaults.requireSafeNegotiation = PR_TRUE;
+	    SSL_TRACE(("SSL: requireSafeNegotiation set to %d", 
+	                PR_TRUE));
 	}
     }
 #endif /* NSS_HAVE_GETENV */

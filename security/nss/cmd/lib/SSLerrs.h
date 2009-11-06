@@ -390,3 +390,9 @@ ER3(SSL_ERROR_RX_UNEXPECTED_NEW_SESSION_TICKET, (SSL_ERROR_BASE + 109),
 
 ER3(SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET, (SSL_ERROR_BASE + 110),
 "SSL received a malformed New Session Ticket handshake message.")
+
+ER3(SSL_ERROR_DECOMPRESSION_FAILURE,           (SSL_ERROR_BASE + 111),
+"SSL received a compressed record that could not be decompressed.")
+
+ER3(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED,       (SSL_ERROR_BASE + 112),
+"Renegotiation is not allowed on this SSL socket.")

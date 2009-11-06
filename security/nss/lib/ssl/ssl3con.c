@@ -3990,6 +3990,14 @@ ssl3_HandleHelloRequest(sslSocket *ss)
 	PORT_SetError(SSL_ERROR_RX_UNEXPECTED_HELLO_REQUEST);
 	return SECFailure;
     }
+    if (ss->opt.enableRenegotiation == SSL_RENEGOTIATE_NEVER) {
+	ssl_GetXmitBufLock(ss);
+	rv = SSL3_SendAlert(ss, alert_warning, no_renegotiation);
+	ssl_ReleaseXmitBufLock(ss);
+	PORT_SetError(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED);
+	return SECFailure;
+    }
+
     if (sid) {
 	ss->sec.uncache(sid);
 	ssl_FreeSID(sid);
@@ -5777,6 +5785,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SECStatus           rv;
     int                 errCode  = SSL_ERROR_RX_MALFORMED_CLIENT_HELLO;
     SSL3AlertDescription desc    = illegal_parameter;
+    SSL3AlertLevel      level    = alert_fatal;
     SSL3ProtocolVersion version;
     SECItem             sidBytes = {siBuffer, NULL, 0};
     SECItem             suites   = {siBuffer, NULL, 0};
@@ -5813,6 +5822,13 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	errCode = SSL_ERROR_RX_UNEXPECTED_CLIENT_HELLO;
 	goto alert_loser;
     }
+    if (ss->ssl3.hs.ws == idle_handshake  &&
+    	ss->opt.enableRenegotiation == SSL_RENEGOTIATE_NEVER) {
+	desc    = no_renegotiation;
+	level   = alert_warning;
+	errCode = SSL_ERROR_RENEGOTIATION_NOT_ALLOWED;
+	goto alert_loser;
+    }
 
     tmp = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
     if (tmp < 0)
@@ -5820,7 +5836,8 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     ss->clientHelloVersion = version = (SSL3ProtocolVersion)tmp;
     rv = ssl3_NegotiateVersion(ss, version);
     if (rv != SECSuccess) {
-    	desc = (version > SSL_LIBRARY_VERSION_3_0) ? protocol_version : handshake_failure;
+    	desc = (version > SSL_LIBRARY_VERSION_3_0) ? protocol_version 
+	                                           : handshake_failure;
 	errCode = SSL_ERROR_NO_CYPHER_OVERLAP;
 	goto alert_loser;
     }
@@ -6248,7 +6265,7 @@ alert_loser:
 	ssl_ReleaseSpecWriteLock(ss);
 	haveSpecWriteLock = PR_FALSE;
     }
-    (void)SSL3_SendAlert(ss, alert_fatal, desc);
+    (void)SSL3_SendAlert(ss, level, desc);
     /* FALLTHRU */
 loser:
     if (haveSpecWriteLock) {
@@ -8949,6 +8966,10 @@ ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache)
 	 ss->ssl3.initialized && 
 	 (ss->ssl3.hs.ws != idle_handshake))) {
 	PORT_SetError(SSL_ERROR_HANDSHAKE_NOT_COMPLETED);
+	return SECFailure;
+    }
+    if (ss->opt.enableRenegotiation == SSL_RENEGOTIATE_NEVER) {
+	PORT_SetError(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED);
 	return SECFailure;
     }
     if (sid && flushCache) {
