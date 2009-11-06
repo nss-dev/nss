@@ -17,7 +17,7 @@
 #
 # The Initial Developer of the Original Code is
 # Netscape Communications Corporation.
-# Portions created by the Initial Developer are Copyright (C) 1994-2000
+# Portions created by the Initial Developer are Copyright (C) 1994-2009
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):
@@ -315,7 +315,7 @@ ssl_cov()
           echo "$SCRIPTNAME: skipping  $testname (ECC only)"
       elif [ "$SERVER_MODE" = "fips" -o "$CLIENT_MODE" = "fips" ] && [ "$SSL2" -eq 0 -o "$EXP" -eq 0 ] ; then
           echo "$SCRIPTNAME: skipping  $testname (non-FIPS only)"
-      elif [ "$ectype" != "#" ] ; then
+      elif [ "`echo $ectype | cut -b 1`" != "#" ] ; then
           echo "$SCRIPTNAME: running $testname ----------------------------"
           TLS_FLAG=-T
           if [ "$tls" = "TLS" ]; then
@@ -386,7 +386,7 @@ ssl_auth()
           echo "$SCRIPTNAME: skipping  $testname (non-FIPS only)"
       elif [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
           echo "$SCRIPTNAME: skipping  $testname (ECC only)"
-      elif [ "$ectype" != "#" ]; then
+      elif [ "`echo $ectype | cut -b 1`" != "#" ]; then
           cparam=`echo $cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
           start_selfserv
 
@@ -442,7 +442,7 @@ ssl_stress()
           echo "$SCRIPTNAME: skipping  $testname (non-FIPS only)"
       elif [ "${CLIENT_MODE}" = "fips" -a "${CAUTH}" -ne 0 ] ; then
           echo "$SCRIPTNAME: skipping  $testname (non-FIPS only)"
-      elif [ "$ectype" != "#" ]; then
+      elif [ "`echo $ectype | cut -b 1`" != "#" ]; then
           cparam=`echo $cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
 
 # These tests need the mixed cert 
@@ -499,7 +499,7 @@ ssl_crl_ssl()
   do
     if [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
         echo "$SCRIPTNAME: skipping $testname (ECC only)"
-    elif [ "$ectype" != "#" ]; then
+    elif [ "`echo $ectype | cut -b 1`" != "#" ]; then
 	servarg=`echo $sparam | awk '{r=split($0,a,"-r") - 1;print r;}'`
 	pwd=`echo $cparam | grep nss`
 	user=`echo $cparam | grep TestUser`
