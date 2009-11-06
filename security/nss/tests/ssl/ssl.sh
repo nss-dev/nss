@@ -767,7 +767,7 @@ ssl_crl_cache()
     kill_selfserv
     SERV_ARG="${SERV_ARG}_-r"
     rm -f ${SSLAUTH_TMP}
-    grep -- " $SERV_ARG " ${SSLAUTH} | grep -v none | grep -v bogus  > ${SSLAUTH_TMP}
+    grep -- " $SERV_ARG " ${SSLAUTH} | grep -v "^#" | grep -v none | grep -v bogus  > ${SSLAUTH_TMP}
   done
   TEMPFILES=${SSLAUTH_TMP}
   html "</TABLE><BR>"
