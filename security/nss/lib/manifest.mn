@@ -52,7 +52,7 @@ DIRS =  util freebl softoken \
 	base dev pki pki1 \
 	libpkix \
 	certdb certhigh pk11wrap cryptohi nss \
-	ssl \
+	$(ZLIB_SRCDIR) ssl \
 	pkcs12 pkcs7 smime \
 	crmf jar \
 	ckfw      \

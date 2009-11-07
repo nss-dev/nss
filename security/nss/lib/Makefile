@@ -58,6 +58,10 @@ include $(CORE_DEPTH)/coreconf/config.mk
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
 #######################################################################
 
+ifndef USE_SYSTEM_ZLIB
+ZLIB_SRCDIR = zlib  # Add the zlib directory to DIRS.
+endif
+
 ifeq ($(OS_TARGET), WINCE)
 DIRS := $(filter-out fortcrypt,$(DIRS))
 endif
