@@ -37,10 +37,6 @@
 #  define SET_BINARY_MODE(file)
 #endif
 
-#ifdef VMS
-#  define unlink delete
-#  define GZ_SUFFIX "-gz"
-#endif
 #ifdef RISCOS
 #  define unlink remove
 #  define GZ_SUFFIX "-gz"
