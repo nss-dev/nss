@@ -963,7 +963,7 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
 	/* Read compression_method. */
 	temp = ssl3_ConsumeHandshakeNumber(ss, 1, &buffer, &buffer_len);
 	if (temp < 0) goto no_ticket;
-	parsed_session_ticket->compression_method = (SSL3CompressionMethod)temp;
+	parsed_session_ticket->compression_method = (SSLCompressionMethod)temp;
 
 	/* Read cipher spec parameters. */
 	temp = ssl3_ConsumeHandshakeNumber(ss, 1, &buffer, &buffer_len);

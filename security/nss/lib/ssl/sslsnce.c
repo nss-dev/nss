@@ -143,7 +143,7 @@ struct sidCacheEntryStr {
 
 	struct {
 /*  2 */    ssl3CipherSuite  cipherSuite;
-/*  2 */    PRUint16    compression; 	/* SSL3CompressionMethod */
+/*  2 */    PRUint16    compression; 	/* SSLCompressionMethod */
 
 /*100 */    ssl3SidKeys keys;	/* keys and ivs, wrapped as needed. */
 
@@ -522,7 +522,7 @@ ConvertToSID(sidCacheEntry *from, certCacheEntry *pcce,
 
 	to->u.ssl3.sessionIDLength  = from->sessionIDLength;
 	to->u.ssl3.cipherSuite      = from->u.ssl3.cipherSuite;
-	to->u.ssl3.compression      = (SSL3CompressionMethod)from->u.ssl3.compression;
+	to->u.ssl3.compression      = (SSLCompressionMethod)from->u.ssl3.compression;
 	to->u.ssl3.keys             = from->u.ssl3.keys;
 	to->u.ssl3.masterWrapMech   = from->u.ssl3.masterWrapMech;
 	to->u.ssl3.exchKeyType      = from->u.ssl3.exchKeyType;

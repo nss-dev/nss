@@ -125,6 +125,11 @@ typedef enum {
     ssl_hmac_sha      = 4 	/* TLS HMAC version of mac_sha */
 } SSLMACAlgorithm;
 
+typedef enum {
+    ssl_compression_null = 0,
+    ssl_compression_deflate = 1  /* RFC 3749 */
+} SSLCompressionMethod;
+
 typedef struct SSLChannelInfoStr {
     PRUint32             length;
     PRUint16             protocolVersion;
@@ -142,6 +147,12 @@ typedef struct SSLChannelInfoStr {
     PRUint32             expirationTime;	/* seconds since Jan 1, 1970 */
     PRUint32             sessionIDLength;	/* up to 32 */
     PRUint8              sessionID    [32];
+
+    /* The following fields are added in NSS 3.12.5. */
+
+    /* compression method info */
+    const char *         compressionMethodName;
+    SSLCompressionMethod compressionMethod;
 } SSLChannelInfo;
 
 typedef struct SSLCipherSuiteInfoStr {
