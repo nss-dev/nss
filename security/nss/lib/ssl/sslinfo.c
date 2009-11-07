@@ -83,14 +83,15 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
 	inf.keaKeyBits       = ss->sec.keaKeyBits;
 	if (ss->version < SSL_LIBRARY_VERSION_3_0) { /* SSL2 */
 	    inf.cipherSuite       = ss->sec.cipherType | 0xff00;
+	    inf.compressionMethod = ssl_compression_null;
 	} else if (ss->ssl3.initialized) { 	/* SSL3 and TLS */
 	    ssl_GetSpecReadLock(ss);
 	    inf.cipherSuite       = ss->ssl3.hs.cipher_suite;
 	    inf.compressionMethod = ss->ssl3.crSpec->compression_method;
-	    inf.compressionMethodName =
-		ssl_GetCompressionMethodName(inf.compressionMethod);
 	    ssl_ReleaseSpecReadLock(ss);
 	}
+	inf.compressionMethodName =
+	    ssl_GetCompressionMethodName(inf.compressionMethod);
 	if (sid) {
 	    inf.creationTime   = sid->creationTime;
 	    inf.lastAccessTime = sid->lastAccessTime;
