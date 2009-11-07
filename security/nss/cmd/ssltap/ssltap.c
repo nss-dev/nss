@@ -476,8 +476,9 @@ const char * CompressionMethodString(int cm_int)
   char *cm_str;
   cm_str = NULL;
   switch (cm_int) {
-  case  0: cm_str = "null";     break;
-  case  1: cm_str = "DEFLATE";  break;
+  case  0: cm_str = "NULL";     break;
+  case  1: cm_str = "DEFLATE";  break;  /* RFC 3749 */
+  case 64: cm_str = "LZS";      break;  /* RFC 3943 */
   default: cm_str = "???";      break;
   }
 
