@@ -173,18 +173,13 @@ typedef struct {
     uint8 length;
 } SSL3SessionID;
      
-typedef enum {
-    compression_null = 0,
-    compression_deflate = 1
-} SSL3CompressionMethod;
-     
 typedef struct {
     SSL3ProtocolVersion   client_version;
     SSL3Random            random;
     SSL3SessionID         session_id;
     SECItem               cipher_suites;
     uint8                 cm_count;
-    SSL3CompressionMethod compression_methods[MAX_COMPRESSION_METHODS];
+    SSLCompressionMethod  compression_methods[MAX_COMPRESSION_METHODS];
 } SSL3ClientHello;
      
 typedef struct  {
@@ -192,7 +187,7 @@ typedef struct  {
     SSL3Random            random;
     SSL3SessionID         session_id;
     ssl3CipherSuite       cipher_suite;
-    SSL3CompressionMethod compression_method;
+    SSLCompressionMethod  compression_method;
 } SSL3ServerHello;
      
 typedef struct {

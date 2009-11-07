@@ -196,7 +196,7 @@ Usage(const char *progName)
         "       -T means disable TLS\n"
         "       -U means enable throttling up threads\n"
 	"       -B bypasses the PKCS11 layer for SSL encryption and MACing\n"
-	"       -u enable TLS Session Ticket extension\n",
+	"       -u enable TLS Session Ticket extension\n"
 	"       -z enable compression\n",
 	progName);
     exit(1);
@@ -314,9 +314,11 @@ printSecurityInfo(PRFileDesc *fd)
 	       suite.effectiveKeyBits, suite.symCipherName, 
 	       suite.macBits, suite.macAlgorithmName);
 	    FPRINTF(stderr, 
-	    "strsclnt: Server Auth: %d-bit %s, Key Exchange: %d-bit %s\n",
+	    "strsclnt: Server Auth: %d-bit %s, Key Exchange: %d-bit %s\n"
+	    "          Compression: %s\n",
 	       channel.authKeyBits, suite.authAlgorithmName,
-	       channel.keaKeyBits,  suite.keaTypeName);
+	       channel.keaKeyBits,  suite.keaTypeName,
+	       channel.compressionMethodName);
     	}
     }
 

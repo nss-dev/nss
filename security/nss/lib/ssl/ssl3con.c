@@ -178,26 +178,30 @@ static ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED] = {
 
 };
 
-static const /*SSL3CompressionMethod*/ uint8 compressions [] = {
-    compression_null
+/* This list of SSL3 compression methods is sorted in descending order of
+ * precedence (desirability).  It only includes compression methods we
+ * implement.
+ */
+static const /*SSLCompressionMethod*/ uint8 compressions [] = {
 #ifdef NSS_ENABLE_ZLIB
-    , compression_deflate
+    ssl_compression_deflate,
 #endif
+    ssl_compression_null
 };
 
 static const int compressionMethodsCount =
     sizeof(compressions) / sizeof(compressions[0]);
 
-/* compressionEnabled returns true iff the compression algorithm with index i
- * is enabled for the given SSL socket. */
+/* compressionEnabled returns true iff the compression algorithm is enabled
+ * for the given SSL socket. */
 static PRBool
-compressionEnabled(sslSocket *ss, int i)
+compressionEnabled(sslSocket *ss, SSLCompressionMethod compression)
 {
-    switch (i) {
-    case compression_null:
+    switch (compression) {
+    case ssl_compression_null:
 	return PR_TRUE;  /* Always enabled */
 #ifdef NSS_ENABLE_ZLIB
-    case compression_deflate:
+    case ssl_compression_deflate:
 	return ss->opt.enableDeflate;
 #endif
     default:
@@ -1377,7 +1381,7 @@ ssl3_InitCompressionContext(ssl3CipherSpec *pwSpec)
 {
     /* Setup the compression functions */
     switch (pwSpec->compression_method) {
-    case compression_null:
+    case ssl_compression_null:
 	pwSpec->compress = NULL;
 	pwSpec->decompress = NULL;
 	pwSpec->compressContext = NULL;
@@ -1386,7 +1390,7 @@ ssl3_InitCompressionContext(ssl3CipherSpec *pwSpec)
 	pwSpec->destroyDecompressContext = NULL;
 	break;
 #ifdef NSS_ENABLE_ZLIB
-    case compression_deflate:
+    case ssl_compression_deflate:
 	pwSpec->compress = ssl3_DeflateCompress;
 	pwSpec->decompress = ssl3_DeflateDecompress;
 	pwSpec->compressContext = PORT_Alloc(SSL3_DEFLATE_CONTEXT_SIZE);
@@ -1424,7 +1428,7 @@ const ssl3BulkCipherDef *cipher_def;
       PRBool             server_encrypts = ss->sec.isServer;
       CK_ULONG           macLength;
       SSLCipherAlgorithm calg;
-      SSL3CompressionMethod compression_method;
+      SSLCompressionMethod compression_method;
       SECStatus          rv;
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
@@ -3859,8 +3863,12 @@ ssl3_SendClientHello(sslSocket *ss)
     if (!num_suites)
     	return SECFailure;	/* count_cipher_suites has set error code. */
 
-    numCompressionMethods =
-	ss->opt.enableDeflate ? compressionMethodsCount : 1;
+    /* count compression methods */
+    numCompressionMethods = 0;
+    for (i = 0; i < compressionMethodsCount; i++) {
+	if (compressionEnabled(ss, compressions[i]))
+	    numCompressionMethods++;
+    }
 
     length = sizeof(SSL3ProtocolVersion) + SSL3_RANDOM_LENGTH +
 	1 + ((sid == NULL) ? 0 : sid->u.ssl3.sessionIDLength) +
@@ -3932,7 +3940,9 @@ ssl3_SendClientHello(sslSocket *ss)
     if (rv != SECSuccess) {
 	return rv;	/* err set by ssl3_AppendHandshake* */
     }
-    for (i = 0; i < numCompressionMethods; i++) {
+    for (i = 0; i < compressionMethodsCount; i++) {
+	if (!compressionEnabled(ss, compressions[i]))
+	    continue;
 	rv = ssl3_AppendHandshakeNumber(ss, compressions[i], 1);
 	if (rv != SECSuccess) {
 	    return rv;	/* err set by ssl3_AppendHandshake* */
@@ -4872,7 +4882,8 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
     suite_found = PR_FALSE;
     for (i = 0; i < compressionMethodsCount; i++) {
-	if (temp == compressions[i] && compressionEnabled(ss, i))  {
+	if (temp == compressions[i] &&
+	    compressionEnabled(ss, compressions[i]))  {
 	    suite_found = PR_TRUE;
 	    break;	/* success */
     	}
@@ -4882,7 +4893,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	errCode = SSL_ERROR_NO_COMPRESSION_OVERLAP;
 	goto alert_loser;
     }
-    ss->ssl3.hs.compression = (SSL3CompressionMethod)temp;
+    ss->ssl3.hs.compression = (SSLCompressionMethod)temp;
 
     /* Note that if !isTLS && length != 0, we do NOT goto alert_loser.
      * There are some old SSL 3.0 implementations that do send stuff
@@ -6058,9 +6069,9 @@ suite_found:
     for (i = 0; i < comps.len; i++) {
 	for (j = 0; j < compressionMethodsCount; j++) {
 	    if (comps.data[i] == compressions[j] &&
-		compressionEnabled(ss, j)) {
+		compressionEnabled(ss, compressions[j])) {
 		ss->ssl3.hs.compression = 
-					(SSL3CompressionMethod)compressions[j];
+					(SSLCompressionMethod)compressions[j];
 		goto compression_found;
 	    }
 	}
@@ -6399,7 +6410,7 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
 
 suite_found:
 
-    ss->ssl3.hs.compression = compression_null;
+    ss->ssl3.hs.compression = ssl_compression_null;
     ss->sec.send            = ssl3_SendApplicationData;
 
     /* we don't even search for a cache hit here.  It's just a miss. */

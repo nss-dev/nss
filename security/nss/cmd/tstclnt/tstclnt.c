@@ -149,9 +149,11 @@ void printSecurityInfo(PRFileDesc *fd)
 	       suite.effectiveKeyBits, suite.symCipherName, 
 	       suite.macBits, suite.macAlgorithmName);
 	    FPRINTF(stderr, 
-	    "tstclnt: Server Auth: %d-bit %s, Key Exchange: %d-bit %s\n",
+	    "tstclnt: Server Auth: %d-bit %s, Key Exchange: %d-bit %s\n"
+	    "         Compression: %s\n",
 	       channel.authKeyBits, suite.authAlgorithmName,
-	       channel.keaKeyBits,  suite.keaTypeName);
+	       channel.keaKeyBits,  suite.keaTypeName,
+	       channel.compressionMethodName);
     	}
     }
     cert = SSL_RevealCert(fd);
