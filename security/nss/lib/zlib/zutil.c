@@ -140,11 +140,6 @@ const char * ZEXPORT zError(err)
     return ERR_MSG(err);
 }
 
-#if defined(_WIN32_WCE)
-    /* does not exist on WCE */
-    int errno = 0;
-#endif
-
 #ifndef HAVE_MEMCPY
 
 void zmemcpy(dest, source, len)
