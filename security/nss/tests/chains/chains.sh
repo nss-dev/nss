@@ -16,7 +16,7 @@
 # The Original Code is the Network Security Services (NSS)
 #
 # The Initial Developer of the Original Code is Sun Microsystems, Inc.
-# Portions created by the Initial Developer are Copyright (C) 2008
+# Portions created by the Initial Developer are Copyright (C) 2008-2009
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):
@@ -1059,6 +1059,8 @@ chains_main()
 {
     while read LINE 
     do
+        [ `echo ${LINES} | cut -b 1` == "#" ] && continue
+
         > ${AIA_FILES}
 
         parse_config < "${QADIR}/chains/scenarios/${LINE}"
