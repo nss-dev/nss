@@ -82,16 +82,21 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
 	inf.authKeyBits      = ss->sec.authKeyBits;
 	inf.keaKeyBits       = ss->sec.keaKeyBits;
 	if (ss->version < SSL_LIBRARY_VERSION_3_0) { /* SSL2 */
-	    inf.cipherSuite       = ss->sec.cipherType | 0xff00;
-	    inf.compressionMethod = ssl_compression_null;
+	    inf.cipherSuite           = ss->sec.cipherType | 0xff00;
+	    inf.compressionMethod     = ssl_compression_null;
+	    inf.compressionMethodName = "N/A";
 	} else if (ss->ssl3.initialized) { 	/* SSL3 and TLS */
 	    ssl_GetSpecReadLock(ss);
-	    inf.cipherSuite       = ss->ssl3.hs.cipher_suite;
-	    inf.compressionMethod = ss->ssl3.crSpec->compression_method;
+	    /* XXX  The cipher suite should be in the specs and this
+	     * function should get it from crSpec rather than from the "hs".
+	     * See bug 275744 comment 69.
+	     */
+	    inf.cipherSuite           = ss->ssl3.hs.cipher_suite;
+	    inf.compressionMethod     = ss->ssl3.crSpec->compression_method;
 	    ssl_ReleaseSpecReadLock(ss);
+	    inf.compressionMethodName =
+		ssl_GetCompressionMethodName(inf.compressionMethod);
 	}
-	inf.compressionMethodName =
-	    ssl_GetCompressionMethodName(inf.compressionMethod);
 	if (sid) {
 	    inf.creationTime   = sid->creationTime;
 	    inf.lastAccessTime = sid->lastAccessTime;
