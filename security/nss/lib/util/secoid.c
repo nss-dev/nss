@@ -39,6 +39,7 @@
 #include "pkcs11t.h"
 #include "secitem.h"
 #include "secerr.h"
+#include "pratom.h"
 #include "prenv.h"
 #include "plhash.h"
 #include "nssrwlk.h"
@@ -1631,6 +1632,7 @@ static PLHashTable * dynOidHash;
 static dynXOid    ** dynOidTable;	/* not in the pool */
 static int           dynOidEntriesAllocated;
 static int           dynOidEntriesUsed;
+static PRInt32       secoidInitCount;
 
 /* Creates NSSRWLock and dynOidPool at initialization time.
 */
@@ -1857,13 +1859,18 @@ handleHashAlgSupport(char * envVal)
 SECStatus
 SECOID_Init(void)
 {
-    PLHashEntry *entry;
-    const SECOidData *oid;
     int i;
     char * envVal;
 
-    if (oidhash) {
-	return SECSuccess; /* already initialized */
+    if (PR_AtomicIncrement(&secoidInitCount) > 1) {
+        return SECSuccess;
+    }
+
+    if (oidhash || oidmechhash) {
+        /* Should never happen. First call is done from thread safe env. */
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        PORT_Assert(0);
+        return SECFailure;
     }
 
     if (!PR_GetEnv("NSS_ALLOW_WEAK_SIGNATURE_ALG")) {
@@ -1876,52 +1883,55 @@ SECOID_Init(void)
     }
 
     envVal = PR_GetEnv("NSS_HASH_ALG_SUPPORT");
-    if (envVal)
+    if (envVal) {
     	handleHashAlgSupport(envVal);
+    }
 
     if (secoid_InitDynOidData() != SECSuccess) {
-        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         PORT_Assert(0); /* this function should never fail */
-    	return SECFailure;
+        goto loser;
     }
     
     oidhash = PL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
 			PL_CompareValues, NULL, NULL);
     oidmechhash = PL_NewHashTable(0, secoid_HashNumber, PL_CompareValues,
 			PL_CompareValues, NULL, NULL);
-
-    if ( !oidhash || !oidmechhash) {
-	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    if (!oidhash || !oidmechhash) {
  	PORT_Assert(0); /*This function should never fail. */
-	return(SECFailure);
+        goto loser;
     }
 
     for ( i = 0; i < SEC_OID_TOTAL; i++ ) {
-	oid = &oids[i];
+	PLHashEntry *entry;
+	const SECOidData *oid = &oids[i];
 
 	PORT_Assert ( oid->offset == i );
 
 	entry = PL_HashTableAdd( oidhash, &oid->oid, (void *)oid );
 	if ( entry == NULL ) {
-	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             PORT_Assert(0); /*This function should never fail. */
-	    return(SECFailure);
+            goto loser;
 	}
 
 	if ( oid->mechanism != CKM_INVALID_MECHANISM ) {
 	    entry = PL_HashTableAdd( oidmechhash, 
 					(void *)oid->mechanism, (void *)oid );
 	    if ( entry == NULL ) {
-	        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
                 PORT_Assert(0); /* This function should never fail. */
-		return(SECFailure);
+                goto loser;
 	    }
 	}
     }
+    PORT_Assert(i == SEC_OID_TOTAL);
+    return SECSuccess;
 
-    PORT_Assert (i == SEC_OID_TOTAL);
-
-    return(SECSuccess);
+loser:
+    /* Initial call of SECOID_Init is from thread safe env. At this point
+     * secoidInitCount is equal to 1. SECOID_Shutdown will restore initial
+     * value of globals and set secoidInitCount to 0. */
+    SECOID_Shutdown();
+    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    return SECFailure;
 }
 
 SECOidData *
@@ -2071,6 +2081,17 @@ static PRBool parentForkedAfterC_Initialize;
 SECStatus
 SECOID_Shutdown(void)
 {
+    PRInt32 initCount = PR_AtomicDecrement(&secoidInitCount);
+    PORT_Assert(initCount >= 0);
+    if (initCount < 0) {
+        /* Should not happen.*/
+        PR_AtomicIncrement(&secoidInitCount);
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+    if (initCount > 0) {
+        return SECSuccess;
+    }
     if (oidhash) {
 	PL_HashTableDestroy(oidhash);
 	oidhash = NULL;
