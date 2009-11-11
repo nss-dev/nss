@@ -123,8 +123,6 @@ extern SECOidTag SECOID_AddEntry(const SECOidData * src);
 
 /*
  * initialize the oid data structures.
- * Caller must ensure that initial call of the function is done from
- * thread safe environment.
  */
 extern SECStatus SECOID_Init(void);
 
