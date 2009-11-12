@@ -64,6 +64,10 @@
 #include <stdio.h>
 #ifdef NSS_ENABLE_ZLIB
 #include "zlib.h"
+/* zconf.h may define compress as a macro, which interferes with our use
+ * of compress as a member of the ssl3CipherSpec structure. Undo that.
+ */
+#undef compress
 #endif
 
 #ifndef PK11_SETATTRS
