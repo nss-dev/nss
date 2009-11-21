@@ -5997,10 +5997,22 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 #endif
 
     /* If we already have a session for this client, be sure to pick the
-    ** same cipher suite we picked before.
+    ** same cipher suite and compression method we picked before.
     ** This is not a loop, despite appearances.
     */
     if (sid) do {
+	/* Check that the cached compression method is still enabled. */
+	if (!compressionEnabled(ss, sid->u.ssl3.compression))
+	    break;
+
+	/* Check that the cached compression method is in the client's list */
+	for (i = 0; i < comps.len; i++) {
+	    if (comps.data[i] == sid->u.ssl3.compression)
+		break;
+	}
+	if (i == comps.len)
+	    break;
+
 	ssl3CipherSuiteCfg *suite = ss->cipherSuites;
 	/* Find the entry for the cipher suite used in the cached session. */
 	for (j = ssl_V3_SUITES_IMPLEMENTED; j > 0; --j, ++suite) {
@@ -6030,7 +6042,10 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 		ss->ssl3.hs.cipher_suite = suite->cipher_suite;
 		ss->ssl3.hs.suite_def =
 		    ssl_LookupCipherSuiteDef(ss->ssl3.hs.cipher_suite);
-		goto suite_found;
+
+		/* Use the cached compression method. */
+		ss->ssl3.hs.compression = sid->u.ssl3.compression;
+		goto compression_found;
 	    }
 	}
     } while (0);
