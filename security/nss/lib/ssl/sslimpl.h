@@ -539,8 +539,9 @@ typedef struct {
     SSLDestroy         destroy;
     void *             encodeContext;
     void *             decodeContext;
-    SSLCompressor      compress;
-    SSLCompressor      decompress;
+    SSLCompressor      compressor;    /* Don't name these fields compress */
+    SSLCompressor      decompressor;  /* and uncompress because zconf.h   */
+                                      /* may define them as macros.       */ 
     SSLDestroy         destroyCompressContext;
     void *             compressContext;
     SSLDestroy         destroyDecompressContext;
