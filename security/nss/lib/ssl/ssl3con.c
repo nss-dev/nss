@@ -64,10 +64,6 @@
 #include <stdio.h>
 #ifdef NSS_ENABLE_ZLIB
 #include "zlib.h"
-/* zconf.h may define compress as a macro, which interferes with our use
- * of compress as a member of the ssl3CipherSpec structure. Undo that.
- */
-#undef compress
 #endif
 
 #ifndef PK11_SETATTRS
@@ -1386,8 +1382,8 @@ ssl3_InitCompressionContext(ssl3CipherSpec *pwSpec)
     /* Setup the compression functions */
     switch (pwSpec->compression_method) {
     case ssl_compression_null:
-	pwSpec->compress = NULL;
-	pwSpec->decompress = NULL;
+	pwSpec->compressor = NULL;
+	pwSpec->decompressor = NULL;
 	pwSpec->compressContext = NULL;
 	pwSpec->decompressContext = NULL;
 	pwSpec->destroyCompressContext = NULL;
@@ -1395,8 +1391,8 @@ ssl3_InitCompressionContext(ssl3CipherSpec *pwSpec)
 	break;
 #ifdef NSS_ENABLE_ZLIB
     case ssl_compression_deflate:
-	pwSpec->compress = ssl3_DeflateCompress;
-	pwSpec->decompress = ssl3_DeflateDecompress;
+	pwSpec->compressor = ssl3_DeflateCompress;
+	pwSpec->decompressor = ssl3_DeflateDecompress;
 	pwSpec->compressContext = PORT_Alloc(SSL3_DEFLATE_CONTEXT_SIZE);
 	pwSpec->decompressContext = PORT_Alloc(SSL3_DEFLATE_CONTEXT_SIZE);
 	pwSpec->destroyCompressContext = ssl3_DestroyCompressContext;
@@ -2037,9 +2033,9 @@ ssl3_CompressMACEncryptRecord(sslSocket *        ss,
     cwSpec = ss->ssl3.cwSpec;
     cipher_def = cwSpec->cipher_def;
 
-    if (cwSpec->compress) {
+    if (cwSpec->compressor) {
 	int outlen;
-	rv = cwSpec->compress(
+	rv = cwSpec->compressor(
 	    cwSpec->compressContext, wrBuf->buf + SSL3_RECORD_HEADER_LENGTH,
 	    &outlen, wrBuf->space - SSL3_RECORD_HEADER_LENGTH, pIn, contentLen);
 	if (rv != SECSuccess)
@@ -8460,7 +8456,7 @@ const ssl3BulkCipherDef *cipher_def;
 
     /* If we will be decompressing the buffer we need to decrypt somewhere
      * other than into databuf */
-    if (crSpec->decompress) {
+    if (crSpec->decompressor) {
 	temp_buf.buf = NULL;
 	temp_buf.space = 0;
 	plaintext = &temp_buf;
@@ -8570,7 +8566,7 @@ const ssl3BulkCipherDef *cipher_def;
     /* possibly decompress the record. If we aren't using compression then
      * plaintext == databuf and so the uncompressed data is already in
      * databuf. */
-    if (crSpec->decompress) {
+    if (crSpec->decompressor) {
 	if (databuf->space < plaintext->len + SSL3_COMPRESSION_MAX_EXPANSION) {
 	    rv = sslBuffer_Grow(
 	        databuf, plaintext->len + SSL3_COMPRESSION_MAX_EXPANSION);
@@ -8585,12 +8581,12 @@ const ssl3BulkCipherDef *cipher_def;
 	    }
 	}
 
-	rv = crSpec->decompress(crSpec->decompressContext,
-				databuf->buf,
-				(int*) &databuf->len,
-				databuf->space,
-				plaintext->buf,
-				plaintext->len);
+	rv = crSpec->decompressor(crSpec->decompressContext,
+				  databuf->buf,
+				  (int*) &databuf->len,
+				  databuf->space,
+				  plaintext->buf,
+				  plaintext->len);
 	if (rv != SECSuccess) {
 	    int err = ssl_MapLowLevelError(SSL_ERROR_DECOMPRESSION_FAILURE);
 	    PORT_Free(plaintext->buf);
@@ -8674,8 +8670,8 @@ ssl3_InitCipherSpec(sslSocket *ss, ssl3CipherSpec *spec)
     spec->encode                   = Null_Cipher;
     spec->decode                   = Null_Cipher;
     spec->destroy                  = NULL;
-    spec->compress                 = NULL;
-    spec->decompress               = NULL;
+    spec->compressor               = NULL;
+    spec->decompressor             = NULL;
     spec->destroyCompressContext   = NULL;
     spec->destroyDecompressContext = NULL;
     spec->mac_size                 = 0;
