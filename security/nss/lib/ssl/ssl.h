@@ -415,7 +415,7 @@ SSL_IMPORT SECStatus SSL_ShutdownServerSessionIDCache(void);
 ** Set peer information so we can correctly look up SSL session later.
 ** You only have to do this if you're tunneling through a proxy.
 */
-SSL_IMPORT SECStatus SSL_SetSockPeerID(PRFileDesc *fd, char *peerID);
+SSL_IMPORT SECStatus SSL_SetSockPeerID(PRFileDesc *fd, const char *peerID);
 
 /*
 ** Reveal the security information for the peer. 
