@@ -1295,7 +1295,7 @@ ssl3_MapZlibError(int zlib_error)
 static SECStatus
 ssl3_DeflateInit(void *void_context)
 {
-    z_stream* context = void_context;
+    z_stream *context = void_context;
     context->zalloc = NULL;
     context->zfree = NULL;
     context->opaque = NULL;
@@ -1306,7 +1306,7 @@ ssl3_DeflateInit(void *void_context)
 static SECStatus
 ssl3_InflateInit(void *void_context)
 {
-    z_stream* context = void_context;
+    z_stream *context = void_context;
     context->zalloc = NULL;
     context->zfree = NULL;
     context->opaque = NULL;
@@ -1320,7 +1320,13 @@ static SECStatus
 ssl3_DeflateCompress(void *void_context, unsigned char *out, int *out_len,
                      int maxout, const unsigned char *in, int inlen)
 {
-    z_stream* context = void_context;
+    z_stream *context = void_context;
+
+    if (!inlen) {
+        *out_len = 0;
+        return SECSuccess;
+    }
+
     context->next_in = (unsigned char*) in;
     context->avail_in = inlen;
     context->next_out = out;
@@ -1343,7 +1349,13 @@ static SECStatus
 ssl3_DeflateDecompress(void *void_context, unsigned char *out, int *out_len,
                        int maxout, const unsigned char *in, int inlen)
 {
-    z_stream* context = void_context;
+    z_stream *context = void_context;
+
+    if (!inlen) {
+        *out_len = 0;
+        return SECSuccess;
+    }
+
     context->next_in = (unsigned char*) in;
     context->avail_in = inlen;
     context->next_out = out;
