@@ -854,6 +854,10 @@ PK11_ImportCert(PK11SlotInfo *slot, CERTCertificate *cert,
     nssCertificateStoreTrace unlockTrace = {NULL, NULL, PR_FALSE, PR_FALSE};
 
     if (keyID == NULL) {
+	goto loser; /* error code should be set already */
+    }
+    if (!token) {
+    	PORT_SetError(SEC_ERROR_NO_TOKEN);
 	goto loser;
     }
 
