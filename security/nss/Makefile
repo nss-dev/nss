@@ -127,7 +127,7 @@ USEABSPATH="NO"
 endif
 endif
 ifeq ($(USEABSPATH),"YES")
-NSPR_PREFIX = "$(shell pwd)"/../../dist/$(OBJDIR_NAME)
+NSPR_PREFIX = $(shell pwd)/../../dist/$(OBJDIR_NAME)
 else
 NSPR_PREFIX = $$(topsrcdir)/../dist/$(OBJDIR_NAME)
 endif
