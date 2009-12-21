@@ -1,6 +1,4 @@
-
-<!-- saved from url=(0063)https://bug536023.bugzilla.mozilla.org/attachment.cgi?id=418538 -->
-<HTML><BODY><PRE style="word-wrap: break-word; white-space: pre-wrap;">/* ***** BEGIN LICENSE BLOCK *****
+/* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -36,8 +34,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#include &lt;stdio.h&gt;
-#include &lt;stdlib.h&gt;
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "secder.h"
 #include "secerr.h"
@@ -54,7 +52,7 @@ int main()
     badTime.type = siBuffer;
     badTime.data = "091219000000Z\0junkjunkjunkjunkjunkjunk";
     badTime.len = 38;
-    rv = DER_UTCTimeToTime(&amp;prtime, &amp;badTime);
+    rv = DER_UTCTimeToTime(&prtime, &badTime);
     if (rv == SECSuccess) {
         fprintf(stderr, "DER_UTCTimeToTime should have failed but "
                 "succeeded\n");
@@ -72,7 +70,7 @@ int main()
     badTime.type = siBuffer;
     badTime.data = "20091219000000Z\0junkjunkjunkjunkjunkjunk";
     badTime.len = 40;
-    rv = DER_GeneralizedTimeToTime(&amp;prtime, &amp;badTime);
+    rv = DER_GeneralizedTimeToTime(&prtime, &badTime);
     if (rv == SECSuccess) {
         fprintf(stderr, "DER_GeneralizedTimeToTime should have failed but "
                 "succeeded\n");
@@ -93,4 +91,3 @@ int main()
     printf("PASS\n");
     return 0;
 }
-</PRE></BODY></HTML>
