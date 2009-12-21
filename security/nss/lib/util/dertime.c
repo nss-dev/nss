@@ -138,19 +138,22 @@ DER_UTCTimeToTime(int64 *dst, const SECItem *time)
     ** Maximum valid UTCTime is yymmddhhmmss+0000 which is 17 bytes.
     ** 20 should be large enough for all valid encoded times. 
     */
-    int  len;
+    unsigned int i;
     char localBuf[20];
 
-    if (!time || !time->data || time->len < 11) {
+    if (!time || !time->data || time->len < 11 || time->len > 17) {
 	PORT_SetError(SEC_ERROR_INVALID_TIME);
 	return SECFailure;
     }
 
-    len = PR_MIN(time->len, sizeof localBuf);
-    memcpy(localBuf, time->data, len);
-    while (len < sizeof localBuf) {
-        localBuf[len++] = '\0';
+    for (i = 0; i < time->len; i++) {
+	if (time->data[i] == '\0') {
+	    PORT_SetError(SEC_ERROR_INVALID_TIME);
+	    return SECFailure;
+	}
+	localBuf[i] = time->data[i];
     }
+    localBuf[i] = '\0';
 
     return der_TimeStringToTime(dst, localBuf, UTC_STRING);
 }
@@ -222,19 +225,22 @@ DER_GeneralizedTimeToTime(int64 *dst, const SECItem *time)
     ** Maximum valid GeneralizedTime is ccyymmddhhmmss+0000 which is 19 bytes.
     ** 20 should be large enough for all valid encoded times. 
     */
-    int  len;
+    unsigned int i;
     char localBuf[20];
 
-    if (!time || !time->data || time->len < 13) {
+    if (!time || !time->data || time->len < 13 || time->len > 19) {
 	PORT_SetError(SEC_ERROR_INVALID_TIME);
 	return SECFailure;
     }
 
-    len = PR_MIN(time->len, sizeof localBuf);
-    memcpy(localBuf, time->data, len);
-    while (len < sizeof localBuf) {
-        localBuf[len++] = '\0';
+    for (i = 0; i < time->len; i++) {
+	if (time->data[i] == '\0') {
+	    PORT_SetError(SEC_ERROR_INVALID_TIME);
+	    return SECFailure;
+	}
+	localBuf[i] = time->data[i];
     }
+    localBuf[i] = '\0';
 
     return der_TimeStringToTime(dst, localBuf, GEN_STRING);
 }
