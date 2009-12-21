@@ -50,7 +50,7 @@ int main()
 
     /* A UTCTime string with an embedded null. */
     badTime.type = siBuffer;
-    badTime.data = "091219000000Z\0junkjunkjunkjunkjunkjunk";
+    badTime.data = (unsigned char *)"091219000000Z\0junkjunkjunkjunkjunkjunk";
     badTime.len = 38;
     rv = DER_UTCTimeToTime(&prtime, &badTime);
     if (rv == SECSuccess) {
@@ -68,7 +68,7 @@ int main()
 
     /* A GeneralizedTime string with an embedded null. */
     badTime.type = siBuffer;
-    badTime.data = "20091219000000Z\0junkjunkjunkjunkjunkjunk";
+    badTime.data = (unsigned char *)"20091219000000Z\0junkjunkjunkjunkjunkjunk";
     badTime.len = 40;
     rv = DER_GeneralizedTimeToTime(&prtime, &badTime);
     if (rv == SECSuccess) {
