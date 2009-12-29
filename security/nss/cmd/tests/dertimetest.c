@@ -66,10 +66,46 @@ int main()
         }
     }
 
+    /* A UTCTime string with junk after a valid date/time. */
+    badTime.type = siBuffer;
+    badTime.data = (unsigned char *)"091219000000Zjunk";
+    badTime.len = 17;
+    rv = DER_UTCTimeToTime(&prtime, &badTime);
+    if (rv == SECSuccess) {
+        fprintf(stderr, "DER_UTCTimeToTime should have failed but "
+                "succeeded\n");
+        failed = PR_TRUE;
+    } else {
+        error = PORT_GetError();
+        if (error != SEC_ERROR_INVALID_TIME) {
+            fprintf(stderr, "DER_UTCTimeToTime failed with error %d, "
+                    "expected error %d\n", error, SEC_ERROR_INVALID_TIME);
+            failed = PR_TRUE;
+        }
+    }
+
     /* A GeneralizedTime string with an embedded null. */
     badTime.type = siBuffer;
     badTime.data = (unsigned char *)"20091219000000Z\0junkjunkjunkjunkjunkjunk";
     badTime.len = 40;
+    rv = DER_GeneralizedTimeToTime(&prtime, &badTime);
+    if (rv == SECSuccess) {
+        fprintf(stderr, "DER_GeneralizedTimeToTime should have failed but "
+                "succeeded\n");
+        failed = PR_TRUE;
+    } else {
+        error = PORT_GetError();
+        if (error != SEC_ERROR_INVALID_TIME) {
+            fprintf(stderr, "DER_GeneralizedTimeToTime failed with error %d, "
+                    "expected error %d\n", error, SEC_ERROR_INVALID_TIME);
+            failed = PR_TRUE;
+        }
+    }
+
+    /* A GeneralizedTime string with junk after a valid date/time. */
+    badTime.type = siBuffer;
+    badTime.data = (unsigned char *)"20091219000000Zjunk";
+    badTime.len = 19;
     rv = DER_GeneralizedTimeToTime(&prtime, &badTime);
     if (rv == SECSuccess) {
         fprintf(stderr, "DER_GeneralizedTimeToTime should have failed but "

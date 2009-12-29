@@ -112,7 +112,8 @@ DER_TimeToUTCTime(SECItem *dst, int64 gmttime)
 }
 
 static SECStatus /* forward */
-der_TimeStringToTime(PRTime *dst, const char * string, int generalized);
+der_TimeStringToTime(PRTime *dst, const char *string, int generalized,
+                     char **endptr);
 
 #define GEN_STRING 2 /* TimeString is a GeneralizedTime */
 #define UTC_STRING 0 /* TimeString is a UTCTime         */
@@ -128,7 +129,7 @@ der_TimeStringToTime(PRTime *dst, const char * string, int generalized);
 SECStatus
 DER_AsciiToTime(int64 *dst, const char *string)
 {
-    return der_TimeStringToTime(dst, string, UTC_STRING);
+    return der_TimeStringToTime(dst, string, UTC_STRING, NULL);
 }
 
 SECStatus
@@ -140,6 +141,8 @@ DER_UTCTimeToTime(int64 *dst, const SECItem *time)
     */
     unsigned int i;
     char localBuf[20];
+    char *end = NULL;
+    SECStatus rv;
 
     if (!time || !time->data || time->len < 11 || time->len > 17) {
 	PORT_SetError(SEC_ERROR_INVALID_TIME);
@@ -155,7 +158,12 @@ DER_UTCTimeToTime(int64 *dst, const SECItem *time)
     }
     localBuf[i] = '\0';
 
-    return der_TimeStringToTime(dst, localBuf, UTC_STRING);
+    rv = der_TimeStringToTime(dst, localBuf, UTC_STRING, &end);
+    if (rv == SECSuccess && *end != '\0') {
+	PORT_SetError(SEC_ERROR_INVALID_TIME);
+	return SECFailure;
+    }
+    return rv;
 }
 
 /*
@@ -227,6 +235,8 @@ DER_GeneralizedTimeToTime(int64 *dst, const SECItem *time)
     */
     unsigned int i;
     char localBuf[20];
+    char *end = NULL;
+    SECStatus rv;
 
     if (!time || !time->data || time->len < 13 || time->len > 19) {
 	PORT_SetError(SEC_ERROR_INVALID_TIME);
@@ -242,11 +252,17 @@ DER_GeneralizedTimeToTime(int64 *dst, const SECItem *time)
     }
     localBuf[i] = '\0';
 
-    return der_TimeStringToTime(dst, localBuf, GEN_STRING);
+    rv = der_TimeStringToTime(dst, localBuf, GEN_STRING, &end);
+    if (rv == SECSuccess && *end != '\0') {
+	PORT_SetError(SEC_ERROR_INVALID_TIME);
+	return SECFailure;
+    }
+    return rv;
 }
 
 static SECStatus
-der_TimeStringToTime(PRTime *dst, const char * string, int generalized)
+der_TimeStringToTime(PRTime *dst, const char *string, int generalized,
+                     char **endptr)
 {
     PRExplodedTime genTime;
     long hourOff = 0, minOff = 0;
@@ -309,6 +325,9 @@ der_TimeStringToTime(PRTime *dst, const char * string, int generalized)
     } else if (signum != 'Z') {
 	goto loser;
     }
+
+    if (endptr)
+    	*endptr = string;
 
     /* Convert the GMT offset to seconds and save it in genTime
      * for the implode time call.
