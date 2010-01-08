@@ -292,8 +292,11 @@ loser:
 PRBool
 BLAPI_VerifySelf(const char *name)
 {
-    /* to separate shlib to verify if name is NULL */
     if (name == NULL) {
+	/*
+	 * If name is NULL, freebl is statically linked into softoken.
+	 * softoken will call BLAPI_SHVerify next to verify itself.
+	 */
 	return PR_TRUE;
     }
     return BLAPI_SHVerify(name, (PRFuncPtr) decodeInt);
