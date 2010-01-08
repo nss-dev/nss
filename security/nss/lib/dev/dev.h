@@ -47,10 +47,6 @@
 static const char DEV_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #endif /* DEBUG */
 
-#ifndef NSSCKT_H
-#include "nssckt.h"
-#endif /* NSSCKT_H */
-
 #ifndef NSSDEV_H
 #include "nssdev.h"
 #endif /* NSSDEV_H */

@@ -47,10 +47,6 @@
 static const char CKHELPER_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #endif /* DEBUG */
 
-#ifndef NSSCKT_H
-#include "nssckt.h"
-#endif /* NSSCKT_H */
-
 PR_BEGIN_EXTERN_C
 
 /* Some globals to keep from constantly redeclaring common cryptoki

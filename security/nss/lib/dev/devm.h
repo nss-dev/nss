@@ -45,10 +45,6 @@ static const char DEVM_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #include "base.h"
 #endif /* BASE_H */
 
-#ifndef NSSCKT_H
-#include "nssckt.h"
-#endif /* NSSCKT_H */
-
 #ifndef DEV_H
 #include "dev.h"
 #endif /* DEV_H */
