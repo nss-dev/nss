@@ -825,7 +825,7 @@ nsslowcert_ExtractPublicKey(NSSLOWCERTCertificate *cert)
         break;
     }
 
-    nsslowkey_DestroyPublicKey (pubk);
+    lg_nsslowkey_DestroyPublicKey (pubk);
     return NULL;
 }
 
