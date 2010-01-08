@@ -158,6 +158,9 @@ ocsp_GetVerifiedSingleResponseForCertID(CERTCertDBHandle *handle,
                                         int64             time,
                                         CERTOCSPSingleResponse **pSingleResponse);
 
+static SECStatus
+ocsp_CertRevokedAfter(ocspRevokedInfo *revokedInfo, int64 time);
+
 #ifndef DEBUG
 #define OCSP_TRACE(msg)
 #define OCSP_TRACE_TIME(msg, time)
@@ -4285,6 +4288,33 @@ ocsp_TimeIsRecent(int64 checkTime)
 static PRUint32 ocspsloptime = OCSP_SLOP;	/* seconds */
 
 /*
+ * If an old response contains the revoked certificate status, we want
+ * to return SECSuccess so the response will be used.
+ */
+static SECStatus
+ocsp_HandleOldSingleResponse(CERTOCSPSingleResponse *single, PRTime time)
+{
+    SECStatus rv;
+    ocspCertStatus *status = single->certStatus;
+    if (status->certStatusType == ocspCertStatus_revoked) {
+        rv = ocsp_CertRevokedAfter(status->certStatusInfo.revokedInfo, time);
+        if (rv != SECSuccess &&
+            PORT_GetError() == SEC_ERROR_REVOKED_CERTIFICATE) {
+            /*
+             * Return SECSuccess now.  The subsequent ocsp_CertRevokedAfter
+             * call in ocsp_CertHasGoodStatus will cause
+             * ocsp_CertHasGoodStatus to fail with
+             * SEC_ERROR_REVOKED_CERTIFICATE.
+             */
+            return SECSuccess;
+        }
+
+    }
+    PORT_SetError(SEC_ERROR_OCSP_OLD_RESPONSE);
+    return SECFailure;
+}
+
+/*
  * Check that this single response is okay.  A return of SECSuccess means:
  *   1. The signer (represented by "signerCert") is authorized to give status
  *	for the cert represented by the individual response in "single".
@@ -4365,13 +4395,10 @@ ocsp_VerifySingleResponse(CERTOCSPSingleResponse *single,
 	    return rv;
 
 	LL_ADD(tmp, tmp, nextUpdate);
-	if (LL_CMP(tmp, <, now) || LL_CMP(producedAt, >, nextUpdate)) {
-	    PORT_SetError(SEC_ERROR_OCSP_OLD_RESPONSE);
-	    return SECFailure;
-	}
+	if (LL_CMP(tmp, <, now) || LL_CMP(producedAt, >, nextUpdate))
+	    return ocsp_HandleOldSingleResponse(single, now);
     } else if (ocsp_TimeIsRecent(thisUpdate) != PR_TRUE) {
-	PORT_SetError(SEC_ERROR_OCSP_OLD_RESPONSE);
-	return SECFailure;
+	return ocsp_HandleOldSingleResponse(single, now);
     }
 
     return SECSuccess;

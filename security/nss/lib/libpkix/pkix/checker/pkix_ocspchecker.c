@@ -147,6 +147,7 @@ pkix_OcspChecker_MapResultCodeToRevStatus(SECErrorCodes resultCode)
 {
         switch (resultCode) {
             case SEC_ERROR_OCSP_FUTURE_RESPONSE:
+            case SEC_ERROR_OCSP_OLD_RESPONSE:
             case SEC_ERROR_OCSP_UNAUTHORIZED_RESPONSE:
             case SEC_ERROR_OCSP_UNKNOWN_CERT:
             case SEC_ERROR_OCSP_MALFORMED_RESPONSE:
