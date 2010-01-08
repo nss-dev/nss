@@ -25804,7 +25804,11 @@ static int unixCurrentTime(sqlite3_vfs *NotUsed, double *prNow){
   *prNow = 2440587.5 + sNow.tv_sec/86400.0 + sNow.tv_nsec/86400000000000.0;
 #else
   struct timeval sNow;
+#ifdef _SVID_GETTOD
+  gettimeofday(&sNow);
+#else
   gettimeofday(&sNow, 0);
+#endif
   *prNow = 2440587.5 + sNow.tv_sec/86400.0 + sNow.tv_usec/86400000000.0;
 #endif
 
