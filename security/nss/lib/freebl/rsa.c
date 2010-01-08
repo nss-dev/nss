@@ -972,13 +972,13 @@ void BL_Cleanup(void)
     RSA_Cleanup();
 }
 
-PRBool parentForkedAfterC_Initialize;
+PRBool bl_parentForkedAfterC_Initialize;
 
 /*
  * Set fork flag so it can be tested in SKIP_AFTER_FORK on relevant platforms.
  */
 void BL_SetForkState(PRBool forked)
 {
-    parentForkedAfterC_Initialize = forked;
+    bl_parentForkedAfterC_Initialize = forked;
 }
 

@@ -203,8 +203,8 @@ SEC_END_PROTOS
 
 #ifndef NO_FORK_CHECK
 
-extern PRBool parentForkedAfterC_Initialize;
-#define SKIP_AFTER_FORK(x) if (!parentForkedAfterC_Initialize) x
+extern PRBool lg_parentForkedAfterC_Initialize;
+#define SKIP_AFTER_FORK(x) if (!lg_parentForkedAfterC_Initialize) x
 
 #else
 

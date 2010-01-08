@@ -462,11 +462,11 @@ lg_getKeyDB(SDB *sdb)
     return lgdb_p->keyDB;
 }
 
-PRBool parentForkedAfterC_Initialize;
+PRBool lg_parentForkedAfterC_Initialize;
 
 void lg_SetForkState(PRBool forked)
 {
-    parentForkedAfterC_Initialize = forked;
+    lg_parentForkedAfterC_Initialize = forked;
 }
 
 CK_RV
