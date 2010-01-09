@@ -885,8 +885,8 @@ NSS_RegisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
 {
     int i;
 
-    if (!nssIsInitted) {
-	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    if (!NSS_IsInitialized()) {
+	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
 	return SECFailure;
     }
     if (sFunc == NULL) {
@@ -939,8 +939,8 @@ SECStatus
 NSS_UnregisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
 {
     int i;
-    if (!nssIsInitted) {
-	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    if (!NSS_IsInitialized()) {
+	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
 	return SECFailure;
     }
 
