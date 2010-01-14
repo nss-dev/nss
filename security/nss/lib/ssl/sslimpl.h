@@ -556,6 +556,9 @@ typedef struct {
     SECItem            msItem;
     unsigned char      key_block[NUM_MIXERS * MD5_LENGTH];
     unsigned char      raw_master_secret[56];
+    SECItem            srvVirtName;    /* for server: name that was negotiated
+                                        * with a client. For client - is
+                                        * always set to NULL.*/
 } ssl3CipherSpec;
 
 typedef enum {	never_cached, 
@@ -651,6 +654,7 @@ struct sslSessionIDStr {
 	     * ClientHello message.  This field is used by clients.
 	     */
 	    NewSessionTicket  sessionTicket;
+            SECItem           srvName;
 	} ssl3;
     } u;
 };
@@ -735,6 +739,13 @@ struct TLSExtensionDataStr {
     /* SessionTicket Extension related data. */
     PRBool ticketTimestampVerified;
     PRBool emptySessionTicket;
+
+    /* SNI Extension related data
+     * Names data is not coppied from the input buffer. It can not be
+     * used outside the scope where input buffer is defined and that
+     * is beyond ssl3_HandleClientHello function. */
+    SECItem *sniNameArr;
+    PRUint32 sniNameArrSize;
 };
 
 /*
@@ -1034,6 +1045,8 @@ const unsigned char *  preferredCipher;
     void                     *authCertificateArg;
     SSLGetClientAuthData      getClientAuthData;
     void                     *getClientAuthDataArg;
+    SSLSNISocketConfig        sniSocketConfig;
+    void                     *sniSocketConfigArg;
     SSLBadCertHandler         handleBadCert;
     void                     *badCertArg;
     SSLHandshakeCallback      handshakeCallback;
@@ -1481,6 +1494,23 @@ extern SECStatus ssl3_ServerHandleSessionTicketXtn(sslSocket *ss,
  */
 extern PRInt32 ssl3_SendSessionTicketXtn(sslSocket *ss, PRBool append,
 			PRUint32 maxBytes);
+
+/* ClientHello and ServerHello extension senders.
+ * The code is in ssl3ext.c.
+ */
+extern PRInt32 ssl3_SendServerNameXtn(sslSocket *ss, PRBool append,
+                     PRUint32 maxBytes);
+
+/* Assigns new cert, cert chain and keys to ss->serverCerts
+ * struct. If certChain is NULL, tries to find one. Aborts if
+ * fails to do so. If cert and keyPair are NULL - unconfigures
+ * sslSocket of kea type.*/
+extern SECStatus ssl_ConfigSecureServer(sslSocket *ss, CERTCertificate *cert,
+                                        CERTCertificateList *certChain,
+                                        ssl3KeyPair *keyPair, SSLKEAType kea);
+/* Return key type for the cert */
+extern SSLKEAType ssl_FindCertKEAType(CERTCertificate * cert);
+
 #ifdef NSS_ENABLE_ECC
 extern PRInt32 ssl3_SendSupportedCurvesXtn(sslSocket *ss,
 			PRBool append, PRUint32 maxBytes);

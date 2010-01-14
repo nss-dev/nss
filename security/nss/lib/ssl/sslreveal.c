@@ -82,7 +82,7 @@ SSL_RevealPinArg(PRFileDesc * fd)
 
 
 /* given PRFileDesc, returns a pointer to the URL associated with the socket
- * the caller should free url when done  
+ * the caller should free url when done
  */
 char * 
 SSL_RevealURL(PRFileDesc * fd)

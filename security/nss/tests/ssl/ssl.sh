@@ -379,15 +379,22 @@ ssl_auth()
   exec < ${SSLAUTH}
   while read ectype value sparam cparam testname
   do
+      [ -z "$ectype" ] && continue
       echo "${testname}" | grep "don't require client auth" > /dev/null
       CAUTH=$?
 
       if [ "${CLIENT_MODE}" = "fips" -a "${CAUTH}" -eq 0 ] ; then
           echo "$SCRIPTNAME: skipping  $testname (non-FIPS only)"
+      elif [ "$ectype" = "SNI" -a "$NORM_EXT" = "Extended Test" ] ; then
+          echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
       elif [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
           echo "$SCRIPTNAME: skipping  $testname (ECC only)"
       elif [ "`echo $ectype | cut -b 1`" != "#" ]; then
           cparam=`echo $cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
+          if [ "$ectype" = "SNI" ]; then
+              cparam=`echo $cparam | sed -e "s/Host/$HOST/g" -e "s/Dom/$DOMSUF/g" `
+              sparam=`echo $sparam | sed -e "s/Host/$HOST/g" -e "s/Dom/$DOMSUF/g" `
+          fi
           start_selfserv
 
           echo "tstclnt -p ${PORT} -h ${HOSTADDR} -f -d ${P_R_CLIENTDIR} -v ${CLIENT_OPTIONS} \\"
@@ -436,6 +443,8 @@ ssl_stress()
 
       if [ "${SSL2}" -eq 0 -a "$NORM_EXT" = "Extended Test" ] ; then
           echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
+      elif [ "$ectype" = "SNI" -a "$NORM_EXT" = "Extended Test" ] ; then
+          echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
       elif [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
           echo "$SCRIPTNAME: skipping  $testname (ECC only)"
       elif [ "${SERVER_MODE}" = "fips" -o "${CLIENT_MODE}" = "fips" ] && [ "${SSL2}" -eq 0 ] ; then
@@ -444,6 +453,10 @@ ssl_stress()
           echo "$SCRIPTNAME: skipping  $testname (non-FIPS only)"
       elif [ "`echo $ectype | cut -b 1`" != "#" ]; then
           cparam=`echo $cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
+          if [ "$ectype" = "SNI" ]; then
+              cparam=`echo $cparam | sed -e "s/Host/$HOST/g" -e "s/Dom/$DOMSUF/g" `
+              sparam=`echo $sparam | sed -e "s/Host/$HOST/g" -e "s/Dom/$DOMSUF/g" `
+          fi
 
 # These tests need the mixed cert 
 # Stress TLS ECDH-RSA AES 128 CBC with SHA (no reuse)
@@ -497,8 +510,11 @@ ssl_crl_ssl()
   exec < ${SSLAUTH}
   while read ectype value sparam cparam testname
   do
+    [ "$ectype" = "" ] && continue
     if [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
         echo "$SCRIPTNAME: skipping $testname (ECC only)"
+    elif [ "$ectype" = "SNI" ]; then
+        continue
     elif [ "`echo $ectype | cut -b 1`" != "#" ]; then
 	servarg=`echo $sparam | awk '{r=split($0,a,"-r") - 1;print r;}'`
 	pwd=`echo $cparam | grep nss`
@@ -682,8 +698,11 @@ ssl_crl_cache()
     exec < ${SSLAUTH_TMP}
     while read ectype value sparam cparam testname
       do
+      [ "$ectype" = "" ] && continue
       if [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
         echo "$SCRIPTNAME: skipping  $testname (ECC only)"
+      elif [ "$ectype" = "SNI" ]; then
+          continue
       else
         servarg=`echo $sparam | awk '{r=split($0,a,"-r") - 1;print r;}'`
         pwd=`echo $cparam | grep nss`

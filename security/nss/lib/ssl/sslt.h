@@ -189,4 +189,9 @@ typedef struct SSLCipherSuiteInfoStr {
 
 } SSLCipherSuiteInfo;
 
+typedef enum {
+    SSL_sni_host_name                    = 0,
+    SSL_sni_type_total
+} SSLSniNameType;
+
 #endif /* __sslt_h_ */

@@ -181,6 +181,10 @@ void printSecurityInfo(PRFileDesc *fd)
 void
 handshakeCallback(PRFileDesc *fd, void *client_data)
 {
+    const char *secondHandshakeName = (char *)client_data;
+    if (secondHandshakeName) {
+        SSL_SetURL(fd, secondHandshakeName);
+    }
     printSecurityInfo(fd);
     if (renegotiate > 0) {
 	renegotiate--;
@@ -191,8 +195,13 @@ handshakeCallback(PRFileDesc *fd, void *client_data)
 static void Usage(const char *progName)
 {
     fprintf(stderr, 
-"Usage:  %s -h host [-p port] [-d certdir] [-n nickname] [-23BTfosvxr] \n"
-"                   [-c ciphers] [-w passwd] [-W pwfile] [-q]\n", progName);
+"Usage:  %s -h host [-a 1st_hs_name ] [-a 2nd_hs_name ] [-p port]\n"
+                    "[-d certdir] [-n nickname] [-23BTafosvxr] [-c ciphers]\n"
+                    "[-w passwd] [-W pwfile] [-q]\n", progName);
+    fprintf(stderr, "%-20s Send different SNI name. 1st_hs_name - at first\n"
+                    "%-20s handshake, 2nd_hs_name - at second handshake.\n"
+                    "%-20s Defualt is host from the -h argument.\n", "-a name",
+                    "", "");
     fprintf(stderr, "%-20s Hostname to connect with\n", "-h host");
     fprintf(stderr, "%-20s Port number for SSL server\n", "-p port");
     fprintf(stderr, 
@@ -521,6 +530,8 @@ int main(int argc, char **argv)
     int                headerSeparatorPtrnId = 0;
     int                error = 0;
     PRUint16           portno = 443;
+    char *             hs1SniHostName = NULL;
+    char *             hs2SniHostName = NULL;
     PLOptState *optstate;
     PLOptStatus optstatus;
     PRStatus prStatus;
@@ -539,7 +550,7 @@ int main(int argc, char **argv)
     }
 
     optstate = PL_CreateOptState(argc, argv,
-                                 "23BSTW:c:d:fh:m:n:op:qr:suvw:xz");
+                                 "23BSTW:a:c:d:fh:m:n:op:qr:suvw:xz");
     while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch (optstate->option) {
 	  case '?':
@@ -554,6 +565,15 @@ int main(int argc, char **argv)
           case 'S': skipProtoHeader = PR_TRUE;                 break;
 
           case 'T': disableTLS  = 1; 			break;
+
+          case 'a': if (!hs1SniHostName) {
+                        hs1SniHostName = PORT_Strdup(optstate->value);
+                    } else if (!hs2SniHostName) {
+                        hs2SniHostName =  PORT_Strdup(optstate->value);
+                    } else {
+                        Usage(progName);
+                    }
+                    break;
 
           case 'c': cipherString = PORT_Strdup(optstate->value); break;
 
@@ -842,7 +862,7 @@ int main(int argc, char **argv)
 	SECU_PrintError(progName, "error enabling compression");
 	return 1;
     }
-
+               
     SSL_SetPKCS11PinArg(s, &pwdata);
 
     SSL_AuthCertificateHook(s, SSL_AuthCertificate, (void *)handle);
@@ -850,8 +870,12 @@ int main(int argc, char **argv)
 	SSL_BadCertHook(s, ownBadCertHandler, NULL);
     }
     SSL_GetClientAuthDataHook(s, own_GetClientAuthData, (void *)nickname);
-    SSL_HandshakeCallback(s, handshakeCallback, NULL);
-    SSL_SetURL(s, host);
+    SSL_HandshakeCallback(s, handshakeCallback, hs2SniHostName);
+    if (hs1SniHostName) {
+        SSL_SetURL(s, hs1SniHostName);
+    } else {
+        SSL_SetURL(s, host);
+    }
 
     /* Try to connect to the server */
     status = PR_Connect(s, &addr, PR_INTERVAL_NO_TIMEOUT);
@@ -1059,6 +1083,12 @@ int main(int argc, char **argv)
     }
 
   done:
+    if (hs1SniHostName) {
+        PORT_Free(hs1SniHostName);
+    }
+    if (hs2SniHostName) {
+        PORT_Free(hs2SniHostName);
+    }
     if (nickname) {
         PORT_Free(nickname);
     }

@@ -1168,7 +1168,7 @@ ssl3_CleanupKeyMaterial(ssl3KeyMaterial *mat)
 ** Caller must hold SpecWriteLock.
 */
 static void
-ssl3_DestroyCipherSpec(ssl3CipherSpec *spec)
+ssl3_DestroyCipherSpec(ssl3CipherSpec *spec, PRBool freeSrvName)
 {
     PRBool freeit = (PRBool)(!spec->bypassCiphers);
 /*  PORT_Assert( ss->opt.noLocks || ssl_HaveSpecWriteLock(ss)); Don't have ss! */
@@ -1185,6 +1185,9 @@ ssl3_DestroyCipherSpec(ssl3CipherSpec *spec)
     if (spec->destroyDecompressContext && spec->decompressContext) {
 	spec->destroyDecompressContext(spec->decompressContext, 1);
 	spec->decompressContext = NULL;
+    }
+    if (freeSrvName && spec->srvVirtName.data) {
+        SECITEM_FreeItem(&spec->srvVirtName, PR_FALSE);
     }
     if (spec->master_secret != NULL) {
 	PK11_FreeSymKey(spec->master_secret);
@@ -1444,8 +1447,8 @@ const ssl3BulkCipherDef *cipher_def;
       SSLCompressionMethod compression_method;
       SECStatus          rv;
 
-    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
-
+    PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert(ss->opt.noLocks || ssl_HaveSpecWriteLock(ss));
     PORT_Assert(ss->ssl3.prSpec == ss->ssl3.pwSpec);
 
     pwSpec        = ss->ssl3.pwSpec;
@@ -1557,6 +1560,14 @@ const ssl3BulkCipherDef *cipher_def;
 	* is decrypting, and vice versa.
 	*/
         optArg1 = !optArg1;
+        break;
+    /* kill warnings. */
+    case ssl_calg_null:
+    case ssl_calg_rc4:
+    case ssl_calg_rc2:
+    case ssl_calg_idea:
+    case ssl_calg_fortezza:
+        break;
     }
 
     rv = (*initFn)(clientContext,
@@ -1625,7 +1636,7 @@ const ssl3BulkCipherDef *cipher_def;
       SSLCipherAlgorithm calg;
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
-
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSpecWriteLock(ss));
     PORT_Assert(ss->ssl3.prSpec == ss->ssl3.pwSpec);
 
     pwSpec        = ss->ssl3.pwSpec;
@@ -2722,7 +2733,7 @@ ssl3_SendChangeCipherSpecs(sslSocket *ss)
      * (Both the read and write sides have changed) destroy it.
      */
     if (ss->ssl3.prSpec == ss->ssl3.pwSpec) {
-    	ssl3_DestroyCipherSpec(ss->ssl3.pwSpec);
+    	ssl3_DestroyCipherSpec(ss->ssl3.pwSpec, PR_FALSE/*freeSrvName*/);
     }
     ssl_ReleaseSpecWriteLock(ss); /**************************************/
 
@@ -2784,7 +2795,7 @@ ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
      * (Both the read and write sides have changed) destroy it.
      */
     if (ss->ssl3.prSpec == ss->ssl3.pwSpec) {
-    	ssl3_DestroyCipherSpec(ss->ssl3.prSpec);
+    	ssl3_DestroyCipherSpec(ss->ssl3.prSpec, PR_FALSE/*freeSrvName*/);
     }
     ssl_ReleaseSpecWriteLock(ss);   /*************************************/
     return SECSuccess;
@@ -5672,6 +5683,25 @@ ssl3_SendHelloRequest(sslSocket *ss)
     return SECSuccess;
 }
 
+/*
+ * Called from:
+ *	ssl3_HandleClientHello()
+ */
+static SECComparison
+ssl3_ServerNameCompare(const SECItem *name1, const SECItem *name2)
+{
+    if (!name1 != !name2) {
+        return SECLessThan;
+    }
+    if (!name1) {
+        return SECEqual;
+    }
+    if (name1->type != name2->type) {
+        return SECLessThan;
+    }
+    return SECITEM_CompareItem(name1, name2);
+}
+
 /* Sets memory error when returning NULL.
  * Called from:
  *	ssl3_SendClientHello()
@@ -5688,6 +5718,21 @@ ssl3_NewSessionID(sslSocket *ss, PRBool is_server)
     if (sid == NULL)
     	return sid;
 
+    if (is_server) {
+        const SECItem *  srvName;
+        SECStatus        rv = SECSuccess;
+
+        ssl_GetSpecReadLock(ss);	/********************************/
+        srvName = &ss->ssl3.prSpec->srvVirtName;
+        if (srvName->len && srvName->data) {
+            rv = SECITEM_CopyItem(NULL, &sid->u.ssl3.srvName, srvName);
+        }
+        ssl_ReleaseSpecReadLock(ss); /************************************/
+        if (rv != SECSuccess) {
+            PORT_Free(sid);
+            return NULL;
+        }
+    }
     sid->peerID		= (ss->peerID == NULL) ? NULL : PORT_Strdup(ss->peerID);
     sid->urlSvrName	= (ss->url    == NULL) ? NULL : PORT_Strdup(ss->url);
     sid->addr           = ss->sec.ci.peer;
@@ -6225,6 +6270,32 @@ compression_found:
 	ss->sec.localCert     = 
 		CERT_DupCertificate(ss->serverCerts[sid->keaType].serverCert);
 
+        /* Copy cached name in to pending spec */
+        if (sid != NULL &&
+            sid->version > SSL_LIBRARY_VERSION_3_0 &&
+            sid->u.ssl3.srvName.len && sid->u.ssl3.srvName.data) {
+            /* Set server name from sid */
+            SECItem *sidName = &sid->u.ssl3.srvName;
+            SECItem *pwsName = &ss->ssl3.pwSpec->srvVirtName;
+            if (pwsName->data) {
+                SECITEM_FreeItem(pwsName, PR_FALSE);
+            }
+            rv = SECITEM_CopyItem(NULL, pwsName, sidName);
+            if (rv != SECSuccess) {
+                errCode = PORT_GetError();
+                desc = internal_error;
+                goto alert_loser;
+            }
+        }
+
+        /* Clean up sni name array */
+        if (ssl3_ExtensionNegotiated(ss, server_name_xtn) &&
+            ss->xtnData.sniNameArr) {
+            PORT_Free(ss->xtnData.sniNameArr);
+            ss->xtnData.sniNameArr = NULL;
+            ss->xtnData.sniNameArrSize = 0;
+        }
+
 	ssl_GetXmitBufLock(ss); haveXmitBufLock = PR_TRUE;
 
 	rv = ssl3_SendServerHello(ss);
@@ -6277,6 +6348,146 @@ compression_found:
 	sid = NULL;
     }
     SSL_AtomicIncrementLong(& ssl3stats.hch_sid_cache_misses );
+
+    if (ssl3_ExtensionNegotiated(ss, server_name_xtn)) {
+        int ret = 0;
+        if (ss->sniSocketConfig) do { /* not a loop */
+            ret = SSL_SNI_SEND_ALERT;
+            /* If extension is negotiated, the len of names should > 0. */
+            if (ss->xtnData.sniNameArrSize) {
+                /* Calling client callback to reconfigure the socket. */
+                ret = (SECStatus)(*ss->sniSocketConfig)(ss->fd,
+                                         ss->xtnData.sniNameArr,
+                                      ss->xtnData.sniNameArrSize,
+                                          ss->sniSocketConfigArg);
+            }
+            if (ret <= SSL_SNI_SEND_ALERT) {
+                /* Application does not know the name or was not able to
+                 * properly reconfigure the socket. */
+                errCode = SSL_ERROR_UNRECOGNIZED_NAME_ALERT;
+                desc = unrecognized_name;
+                break;
+            } else if (ret == SSL_SNI_CURRENT_CONFIG_IS_USED) {
+                SECStatus       rv = SECSuccess;
+                SECItem *       cwsName, *pwsName;
+
+                ssl_GetSpecWriteLock(ss);  /*******************************/
+                pwsName = &ss->ssl3.pwSpec->srvVirtName;
+                cwsName = &ss->ssl3.cwSpec->srvVirtName;
+#ifndef SSL_SNI_ALLOW_NAME_CHANGE_2HS
+                /* not allow name change on the 2d HS */
+                if (ss->firstHsDone) {
+                    if (ssl3_ServerNameCompare(pwsName, cwsName)) {
+                        ssl_ReleaseSpecWriteLock(ss);  /******************/
+                        errCode = SSL_ERROR_UNRECOGNIZED_NAME_ALERT;
+                        desc = handshake_failure;
+                        ret = SSL_SNI_SEND_ALERT;
+                        break;
+                    }
+                }
+#endif
+                if (pwsName->data) {
+                    SECITEM_FreeItem(pwsName, PR_FALSE);
+                }
+                if (cwsName->data) {
+                    rv = SECITEM_CopyItem(NULL, pwsName, cwsName);
+                }
+                ssl_ReleaseSpecWriteLock(ss);  /**************************/
+                if (rv != SECSuccess) {
+                    errCode = SSL_ERROR_INTERNAL_ERROR_ALERT;
+                    desc = internal_error;
+                    ret = SSL_SNI_SEND_ALERT;
+                    break;
+                }
+            } else if (ret < ss->xtnData.sniNameArrSize) {
+                /* Application has configured new socket info. Lets check it
+                 * and save the name. */
+                SECStatus       rv;
+                SECItem *       name = &ss->xtnData.sniNameArr[ret];
+                int             configedCiphers;
+                SECItem *       pwsName;
+
+                /* get rid of the old name and save the newly picked. */
+                /* This code is protected by ssl3HandshakeLock. */
+                ssl_GetSpecWriteLock(ss);  /*******************************/
+#ifndef SSL_SNI_ALLOW_NAME_CHANGE_2HS
+                /* not allow name change on the 2d HS */
+                if (ss->firstHsDone) {
+                    SECItem *cwsName = &ss->ssl3.cwSpec->srvVirtName;
+                    if (ssl3_ServerNameCompare(name, cwsName)) {
+                        ssl_ReleaseSpecWriteLock(ss);  /******************/
+                        errCode = SSL_ERROR_UNRECOGNIZED_NAME_ALERT;
+                        desc = handshake_failure;
+                        ret = SSL_SNI_SEND_ALERT;
+                        break;
+                    }
+                }
+#endif
+                pwsName = &ss->ssl3.pwSpec->srvVirtName;
+                if (pwsName->data) {
+                    SECITEM_FreeItem(pwsName, PR_FALSE);
+                }
+                rv = SECITEM_CopyItem(NULL, pwsName, name);
+                ssl_ReleaseSpecWriteLock(ss);  /***************************/
+                if (rv != SECSuccess) {
+                    errCode = SSL_ERROR_INTERNAL_ERROR_ALERT;
+                    desc = internal_error;
+                    ret = SSL_SNI_SEND_ALERT;
+                    break;
+                }
+                configedCiphers = ssl3_config_match_init(ss);
+                if (configedCiphers <= 0) {
+                    /* no ciphers are working/supported */
+                    errCode = PORT_GetError();
+                    desc = handshake_failure;
+                    ret = SSL_SNI_SEND_ALERT;
+                    break;
+                }
+                /* Need to tell the client that application has picked
+                 * the name from the offered list and reconfigured the socket.
+                 */
+                ssl3_RegisterServerHelloExtensionSender(ss, server_name_xtn,
+                                                        ssl3_SendServerNameXtn);
+            } else {
+                /* Callback returned index outside of the boundary. */
+                PORT_Assert(ret < ss->xtnData.sniNameArrSize);
+                errCode = SSL_ERROR_INTERNAL_ERROR_ALERT;
+                desc = internal_error;
+                ret = SSL_SNI_SEND_ALERT;
+                break;
+            }
+        } while (0);
+        /* Free sniNameArr. The data that each SECItem in the array
+         * points into is the data from the input buffer "b". It will
+         * not be available outside the scope of this or it's child
+         * functions.*/
+        if (ss->xtnData.sniNameArr) {
+            PORT_Free(ss->xtnData.sniNameArr);
+            ss->xtnData.sniNameArr = NULL;
+            ss->xtnData.sniNameArrSize = 0;
+        }
+        if (ret <= SSL_SNI_SEND_ALERT) {
+            /* desc and errCode should be set. */
+            goto alert_loser;
+        }
+    }
+#ifndef SSL_SNI_ALLOW_NAME_CHANGE_2HS
+    else if (ss->firstHsDone) {
+        /* Check that we don't have the name is current spec
+         * if this extension was not negotiated on the 2d hs. */
+        PRBool passed = PR_TRUE;
+        ssl_GetSpecReadLock(ss);  /*******************************/
+        if (ss->ssl3.cwSpec->srvVirtName.data) {
+            passed = PR_FALSE;
+        }
+        ssl_ReleaseSpecReadLock(ss);  /***************************/
+        if (!passed) {
+            errCode = SSL_ERROR_UNRECOGNIZED_NAME_ALERT;
+            desc = handshake_failure;
+            goto alert_loser;
+        }
+    }
+#endif
 
     sid = ssl3_NewSessionID(ss, PR_TRUE);
     if (sid == NULL) {
@@ -9069,8 +9280,8 @@ ssl3_DestroySSL3Info(sslSocket *ss)
     PORT_Free(ss->ssl3.hs.msg_body.buf);
 
     /* free up the CipherSpecs */
-    ssl3_DestroyCipherSpec(&ss->ssl3.specs[0]);
-    ssl3_DestroyCipherSpec(&ss->ssl3.specs[1]);
+    ssl3_DestroyCipherSpec(&ss->ssl3.specs[0], PR_TRUE/*freeSrvName*/);
+    ssl3_DestroyCipherSpec(&ss->ssl3.specs[1], PR_TRUE/*freeSrvName*/);
 
     ss->ssl3.initialized = PR_FALSE;
 }

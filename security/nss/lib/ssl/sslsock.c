@@ -304,7 +304,7 @@ ssl_DupSocket(sslSocket *os)
 	    int i;
 	    sslServerCerts * oc = os->serverCerts;
 	    sslServerCerts * sc = ss->serverCerts;
-
+            
 	    for (i=kt_null; i < kt_kea_size; i++, oc++, sc++) {
 		if (oc->serverCert && oc->serverCertChain) {
 		    sc->serverCert      = CERT_DupCertificate(oc->serverCert);
@@ -333,6 +333,8 @@ ssl_DupSocket(sslSocket *os)
 	    ss->authCertificateArg    = os->authCertificateArg;
 	    ss->getClientAuthData     = os->getClientAuthData;
 	    ss->getClientAuthDataArg  = os->getClientAuthDataArg;
+            ss->sniSocketConfig       = os->sniSocketConfig;
+            ss->sniSocketConfigArg    = os->sniSocketConfigArg;
 	    ss->handleBadCert         = os->handleBadCert;
 	    ss->badCertArg            = os->badCertArg;
 	    ss->handshakeCallback     = os->handshakeCallback;
@@ -433,6 +435,11 @@ ssl_DestroySocketContents(sslSocket *ss)
     if (ss->ephemeralECDHKeyPair) {
 	ssl3_FreeKeyPair(ss->ephemeralECDHKeyPair);
 	ss->ephemeralECDHKeyPair = NULL;
+    }
+    PORT_Assert(!ss->xtnData.sniNameArr);
+    if (ss->xtnData.sniNameArr) {
+        PORT_Free(ss->xtnData.sniNameArr);
+        ss->xtnData.sniNameArr = NULL;
     }
 }
 
@@ -1245,6 +1252,114 @@ SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd)
     if (ns)
 	ns->TCPconnected = (PR_SUCCESS == ssl_DefGetpeername(ns, &addr));
     return fd;
+}
+
+PRFileDesc *
+SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
+{
+    sslSocket * sm = NULL, *ss = NULL;
+    int i;
+    sslServerCerts * mc = sm->serverCerts;
+    sslServerCerts * sc = ss->serverCerts;
+    SECStatus rv;
+
+    if (model == NULL) {
+        PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+        return NULL;
+    }
+    sm = ssl_FindSocket(model);
+    if (sm == NULL) {
+        SSL_DBG(("%d: SSL[%d]: bad model socket in ssl_ReconfigFD", 
+                 SSL_GETPID(), model));
+        return NULL;
+    }
+    ss = ssl_FindSocket(fd);
+    PORT_Assert(ss);
+    if (ss == NULL) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return NULL;
+    }
+    
+    ss->opt  = sm->opt;
+    PORT_Memcpy(ss->cipherSuites, sm->cipherSuites, sizeof sm->cipherSuites);
+
+    if (!ss->opt.useSecurity) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return NULL;
+    }
+    /* This int should be SSLKEAType, but CC on Irix complains,
+     * during the for loop.
+     */
+    for (i=kt_null; i < kt_kea_size; i++, mc++, sc++) {
+        if (mc->serverCert && mc->serverCertChain) {
+            if (sc->serverCert) {
+                CERT_DestroyCertificate(sc->serverCert);
+            }
+            sc->serverCert      = CERT_DupCertificate(mc->serverCert);
+            if (sc->serverCertChain) {
+                CERT_DestroyCertificateList(sc->serverCertChain);
+            }
+            sc->serverCertChain = CERT_DupCertList(mc->serverCertChain);
+            if (!sc->serverCertChain)
+                goto loser;
+        }
+        if (mc->serverKeyPair) {
+            if (sc->serverKeyPair) {
+                ssl3_FreeKeyPair(sc->serverKeyPair);
+            }
+            sc->serverKeyPair = ssl3_GetKeyPairRef(mc->serverKeyPair);
+            sc->serverKeyBits = mc->serverKeyBits;
+        }
+    }
+    if (sm->stepDownKeyPair) {
+        if (ss->stepDownKeyPair) {
+            ssl3_FreeKeyPair(ss->stepDownKeyPair);
+        }
+        ss->stepDownKeyPair = ssl3_GetKeyPairRef(sm->stepDownKeyPair);
+    }
+    if (sm->ephemeralECDHKeyPair) {
+        if (ss->ephemeralECDHKeyPair) {
+            ssl3_FreeKeyPair(ss->ephemeralECDHKeyPair);
+        }
+        ss->ephemeralECDHKeyPair =
+            ssl3_GetKeyPairRef(sm->ephemeralECDHKeyPair);
+    }
+    /* copy trust anchor names */
+    if (sm->ssl3.ca_list) {
+        if (ss->ssl3.ca_list) {
+            CERT_FreeDistNames(ss->ssl3.ca_list);
+        }
+        ss->ssl3.ca_list = CERT_DupDistNames(sm->ssl3.ca_list);
+        if (!ss->ssl3.ca_list) {
+            goto loser;
+        }
+    }
+    
+    if (sm->authCertificate)
+        ss->authCertificate       = sm->authCertificate;
+    if (sm->authCertificateArg)
+        ss->authCertificateArg    = sm->authCertificateArg;
+    if (sm->getClientAuthData)
+        ss->getClientAuthData     = sm->getClientAuthData;
+    if (sm->getClientAuthDataArg)
+        ss->getClientAuthDataArg  = sm->getClientAuthDataArg;
+    if (sm->sniSocketConfig)
+        ss->sniSocketConfig       = sm->sniSocketConfig;
+    if (sm->sniSocketConfigArg)
+        ss->sniSocketConfigArg    = sm->sniSocketConfigArg;
+    if (sm->handleBadCert)
+        ss->handleBadCert         = sm->handleBadCert;
+    if (sm->badCertArg)
+        ss->badCertArg            = sm->badCertArg;
+    if (sm->handshakeCallback)
+        ss->handshakeCallback     = sm->handshakeCallback;
+    if (sm->handshakeCallbackData)
+        ss->handshakeCallbackData = sm->handshakeCallbackData;
+    if (sm->pkcs11PinArg)
+        ss->pkcs11PinArg          = sm->pkcs11PinArg;
+    return fd;
+loser:
+    return NULL;
 }
 
 /************************************************************************/
@@ -2235,6 +2350,8 @@ ssl_NewSocket(PRBool makeLocks)
 	/* Provide default implementation of hooks */
 	ss->authCertificate    = SSL_AuthCertificate;
 	ss->authCertificateArg = (void *)ss->dbHandle;
+        ss->sniSocketConfig    = NULL;
+        ss->sniSocketConfigArg = NULL;
 	ss->getClientAuthData  = NULL;
 	ss->handleBadCert      = NULL;
 	ss->badCertArg         = NULL;
