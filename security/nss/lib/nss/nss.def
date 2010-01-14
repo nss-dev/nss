@@ -989,3 +989,10 @@ SECMOD_GetSkipFirstFlag;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.12.6 { 	# NSS 3.12.6 release
+;+    global:
+CERT_DistNamesFromCertList;
+CERT_DupDistNames;
+;+    local:
+;+       *;
+;+};

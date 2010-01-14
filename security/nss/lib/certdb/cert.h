@@ -1077,11 +1077,19 @@ extern CERTDistNames *CERT_GetSSLCACerts(CERTCertDBHandle *handle);
 
 extern void CERT_FreeDistNames(CERTDistNames *names);
 
+/* Duplicate distinguished name array */
+extern CERTDistNames *CERT_DupDistNames(CERTDistNames *orig);
+
 /*
 ** Generate an array of Distinguished names from an array of nicknames
 */
 extern CERTDistNames *CERT_DistNamesFromNicknames
    (CERTCertDBHandle *handle, char **nicknames, int nnames);
+
+/*
+** Generate an array of Distinguished names from a list of certs.
+*/
+extern CERTDistNames *CERT_DistNamesFromCertList(CERTCertList *list);
 
 /*
 ** Generate a certificate chain from a certificate.

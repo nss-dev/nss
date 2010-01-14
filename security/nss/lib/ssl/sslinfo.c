@@ -307,3 +307,41 @@ SSL_IsExportCipherSuite(PRUint16 cipherSuite)
     }
     return PR_FALSE;
 }
+
+SECItem*
+SSL_GetNegotiatedHostInfo(PRFileDesc *fd)
+{
+    SECItem *sniName = NULL;
+    sslSocket *ss;
+    char *name = NULL;
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+	SSL_DBG(("%d: SSL[%d]: bad socket in SSL_GetNegotiatedHostInfo",
+		 SSL_GETPID(), fd));
+	return NULL;
+    }
+
+    if (ss->sec.isServer) {
+        SECItem *crsName;
+
+        ssl_GetSpecReadLock(ss); /*********************************/
+        crsName = &ss->ssl3.crSpec->srvVirtName;
+        if (crsName->data) {
+            sniName = SECITEM_DupItem(crsName);
+        }
+        ssl_ReleaseSpecReadLock(ss); /*----------------------------*/
+        return sniName;
+    } 
+    name = SSL_RevealURL(fd);
+    if (name) {
+        sniName = PORT_ZNew(SECItem);
+        if (!sniName) {
+            PORT_Free(name);
+            return NULL;
+        }
+        sniName->data = (void*)name;
+        sniName->len  = PORT_Strlen(name);
+    }
+    return sniName;
+}
