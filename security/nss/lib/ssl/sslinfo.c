@@ -323,14 +323,16 @@ SSL_GetNegotiatedHostInfo(PRFileDesc *fd)
     }
 
     if (ss->sec.isServer) {
-        SECItem *crsName;
-
-        ssl_GetSpecReadLock(ss); /*********************************/
-        crsName = &ss->ssl3.crSpec->srvVirtName;
-        if (crsName->data) {
-            sniName = SECITEM_DupItem(crsName);
+        if (ss->version > SSL_LIBRARY_VERSION_3_0 &&
+            ss->ssl3.initialized) { /* TLS */
+            SECItem *crsName;
+            ssl_GetSpecReadLock(ss); /*********************************/
+            crsName = &ss->ssl3.crSpec->srvVirtName;
+            if (crsName->data) {
+                sniName = SECITEM_DupItem(crsName);
+            }
+            ssl_ReleaseSpecReadLock(ss); /*----------------------------*/
         }
-        ssl_ReleaseSpecReadLock(ss); /*----------------------------*/
         return sniName;
     } 
     name = SSL_RevealURL(fd);
