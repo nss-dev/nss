@@ -146,14 +146,10 @@ PKIX_RevocationStatus
 pkix_OcspChecker_MapResultCodeToRevStatus(SECErrorCodes resultCode)
 {
         switch (resultCode) {
-            case SEC_ERROR_OCSP_FUTURE_RESPONSE:
-            case SEC_ERROR_OCSP_OLD_RESPONSE:
-            case SEC_ERROR_OCSP_UNAUTHORIZED_RESPONSE:
-            case SEC_ERROR_OCSP_UNKNOWN_CERT:
-            case SEC_ERROR_OCSP_MALFORMED_RESPONSE:
-                return PKIX_RevStatus_NoInfo;
-            default:
+            case SEC_ERROR_REVOKED_CERTIFICATE:
                 return PKIX_RevStatus_Revoked;
+            default:
+                return PKIX_RevStatus_NoInfo;
         }
 }
 
