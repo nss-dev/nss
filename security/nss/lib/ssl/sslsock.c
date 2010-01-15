@@ -1261,7 +1261,6 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
     int i;
     sslServerCerts * mc = sm->serverCerts;
     sslServerCerts * sc = ss->serverCerts;
-    SECStatus rv;
 
     if (model == NULL) {
         PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
