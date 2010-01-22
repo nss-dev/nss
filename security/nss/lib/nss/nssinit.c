@@ -46,8 +46,6 @@
 #include "prmem.h"
 #include "cert.h"
 #include "key.h"
-#include "ssl.h"
-#include "sslproto.h"
 #include "secmod.h"
 #include "secoid.h"
 #include "nss.h"
