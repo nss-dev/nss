@@ -52,7 +52,6 @@
 #include "prmon.h"
 #include "nssilock.h"
 #include "secport.h"
-#include "prvrsion.h"
 #include "prenv.h"
 
 #ifdef DEBUG
@@ -329,8 +328,7 @@ PORT_FreeArena(PLArenaPool *arena, PRBool zero)
     PORTArenaPool *pool = (PORTArenaPool *)arena;
     PRLock *       lock = (PRLock *)0;
     size_t         len  = sizeof *arena;
-    extern const PRVersionDescription * libVersionPoint(void);
-    static const PRVersionDescription * pvd;
+    static PRBool  checkedEnv = PR_FALSE;
     static PRBool  doFreeArenaPool = PR_FALSE;
 
     if (!pool)
@@ -340,21 +338,10 @@ PORT_FreeArena(PLArenaPool *arena, PRBool zero)
 	lock = pool->lock;
 	PZ_Lock(lock);
     }
-    if (!pvd) {
-	/* Each of NSPR's DLLs has a function libVersionPoint().
-	** We could do a lot of extra work to be sure we're calling the
-	** one in the DLL that holds PR_FreeArenaPool, but instead we
-	** rely on the fact that ALL NSPR DLLs in the same directory
-	** must be from the same release, and we call which ever one we get. 
-	*/
+    if (!checkedEnv) {
 	/* no need for thread protection here */
-	pvd = libVersionPoint();
-	if ((pvd->vMajor > 4) || 
-	    (pvd->vMajor == 4 && pvd->vMinor > 1) ||
-	    (pvd->vMajor == 4 && pvd->vMinor == 1 && pvd->vPatch >= 1)) {
-	    const char *ev = PR_GetEnv("NSS_DISABLE_ARENA_FREE_LIST");
-	    if (!ev) doFreeArenaPool = PR_TRUE;
-	}
+	doFreeArenaPool = (PR_GetEnv("NSS_DISABLE_ARENA_FREE_LIST") != NULL);
+	checkedEnv = PR_TRUE;
     }
     if (zero) {
 	PLArena *a;
