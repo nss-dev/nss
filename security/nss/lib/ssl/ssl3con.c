@@ -4501,19 +4501,6 @@ sendRSAClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
 	goto loser;
     }
 
-#if defined(TRACE)
-    if (ssl_trace >= 100) {
-	SECStatus extractRV = PK11_ExtractKeyValue(pms);
-	if (extractRV == SECSuccess) {
-	    SECItem * keyData = PK11_GetKeyData(pms);
-	    if (keyData && keyData->data && keyData->len) {
-		ssl_PrintBuf(ss, "Pre-Master Secret", 
-			     keyData->data, keyData->len);
-	    }
-    	}
-    }
-#endif
-
     /* Get the wrapped (encrypted) pre-master secret, enc_pms */
     enc_pms.len  = SECKEY_PublicKeyStrength(svrPubKey);
     enc_pms.data = (unsigned char*)PORT_Alloc(enc_pms.len);
@@ -4527,6 +4514,48 @@ sendRSAClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
 	goto loser;
     }
+
+#if defined(TRACE)
+    if (ssl_trace >= 100 || ssl_keylog_iob) {
+	SECStatus extractRV = PK11_ExtractKeyValue(pms);
+	if (extractRV == SECSuccess) {
+	    SECItem * keyData = PK11_GetKeyData(pms);
+	    if (keyData && keyData->data && keyData->len) {
+		if (ssl_trace >= 100) {
+		    ssl_PrintBuf(ss, "Pre-Master Secret",
+				 keyData->data, keyData->len);
+		}
+		if (ssl_keylog_iob && enc_pms.len >= 8 && keyData->len == 48) {
+		    /* https://developer.mozilla.org/en/NSS_Key_Log_Format */
+
+		    /* There could be multiple, concurrent writers to the
+		     * keylog, so we have to do everything in a single call to
+		     * fwrite. */
+		    char buf[4 + 8*2 + 1 + 48*2 + 1];
+		    static const char hextable[16] = "0123456789abcdef";
+		    unsigned int i;
+
+		    strcpy(buf, "RSA ");
+
+		    for (i = 0; i < 8; i++) {
+			buf[4 + i*2] = hextable[enc_pms.data[i] >> 4];
+			buf[4 + i*2 + 1] = hextable[enc_pms.data[i] & 15];
+		    }
+		    buf[20] = ' ';
+
+		    for (i = 0; i < 48; i++) {
+			buf[21 + i*2] = hextable[keyData->data[i] >> 4];
+			buf[21 + i*2 + 1] = hextable[keyData->data[i] & 15];
+		    }
+		    buf[sizeof(buf) - 1] = '\n';
+
+		    fwrite(buf, sizeof(buf), 1, ssl_keylog_iob);
+		    fflush(ssl_keylog_iob);
+		}
+	    }
+	}
+    }
+#endif
 
     rv = ssl3_InitPendingCipherSpec(ss,  pms);
     PK11_FreeSymKey(pms); pms = NULL;
