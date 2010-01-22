@@ -113,7 +113,7 @@ DER_TimeToUTCTime(SECItem *dst, int64 gmttime)
 
 static SECStatus /* forward */
 der_TimeStringToTime(PRTime *dst, const char *string, int generalized,
-                     char **endptr);
+                     const char **endptr);
 
 #define GEN_STRING 2 /* TimeString is a GeneralizedTime */
 #define UTC_STRING 0 /* TimeString is a UTCTime         */
@@ -141,7 +141,7 @@ DER_UTCTimeToTime(int64 *dst, const SECItem *time)
     */
     unsigned int i;
     char localBuf[20];
-    char *end = NULL;
+    const char *end = NULL;
     SECStatus rv;
 
     if (!time || !time->data || time->len < 11 || time->len > 17) {
@@ -235,7 +235,7 @@ DER_GeneralizedTimeToTime(int64 *dst, const SECItem *time)
     */
     unsigned int i;
     char localBuf[20];
-    char *end = NULL;
+    const char *end = NULL;
     SECStatus rv;
 
     if (!time || !time->data || time->len < 13 || time->len > 19) {
@@ -262,7 +262,7 @@ DER_GeneralizedTimeToTime(int64 *dst, const SECItem *time)
 
 static SECStatus
 der_TimeStringToTime(PRTime *dst, const char *string, int generalized,
-                     char **endptr)
+                     const char **endptr)
 {
     PRExplodedTime genTime;
     long hourOff = 0, minOff = 0;
