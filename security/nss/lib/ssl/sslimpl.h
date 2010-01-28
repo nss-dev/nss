@@ -729,12 +729,12 @@ typedef struct SessionTicketDataStr      SessionTicketData;
 
 struct TLSExtensionDataStr {
     /* registered callbacks that send server hello extensions */
-    ssl3HelloExtensionSender serverSenders[MAX_EXTENSIONS];
+    ssl3HelloExtensionSender serverSenders[SSL_MAX_EXTENSIONS];
     /* Keep track of the extensions that are negotiated. */
     PRUint16 numAdvertised;
     PRUint16 numNegotiated;
-    PRUint16 advertised[MAX_EXTENSIONS];
-    PRUint16 negotiated[MAX_EXTENSIONS];
+    PRUint16 advertised[SSL_MAX_EXTENSIONS];
+    PRUint16 negotiated[SSL_MAX_EXTENSIONS];
 
     /* SessionTicket Extension related data. */
     PRBool ticketTimestampVerified;
