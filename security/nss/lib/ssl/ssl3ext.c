@@ -61,6 +61,7 @@ static unsigned char  session_ticket_mac_key[SHA256_LENGTH];
 static PRBool         session_ticket_keys_initialized = PR_FALSE;
 static PRCallOnceType generate_session_keys_once;
 
+/* forward static function declarations */
 static SECStatus ssl3_ParseEncryptedSessionTicket(sslSocket *ss,
     SECItem *data, EncryptedSessionTicket *enc_session_ticket);
 static SECStatus ssl3_AppendToItem(SECItem *item, const unsigned char *buf,
@@ -72,6 +73,10 @@ static SECStatus ssl3_GetSessionTicketKeysPKCS11(sslSocket *ss,
 static SECStatus ssl3_GetSessionTicketKeys(const unsigned char **aes_key,
     PRUint32 *aes_key_length, const unsigned char **mac_key,
     PRUint32 *mac_key_length);
+static PRInt32 ssl3_SendRenegotiationInfoXtn(sslSocket * ss,
+    PRBool append, PRUint32 maxBytes);
+static SECStatus ssl3_HandleRenegotiationInfoXtn(sslSocket *ss, 
+    PRUint16 ex_type, SECItem *data);
 
 /*
  * Write bytes.  Using this function means the SECItem structure
@@ -220,20 +225,24 @@ ssl3_GetSessionTicketKeys(const unsigned char **aes_key,
  * In the second generation, this table will be dynamic, and functions
  * will be registered here.
  */
+/* This table is used by the server, to handle client hello extensions. */
 static const ssl3HelloExtensionHandler clientHelloHandlers[] = {
-    { server_name_xtn, &ssl3_HandleServerNameXtn },
+    { server_name_xtn,        &ssl3_HandleServerNameXtn },
 #ifdef NSS_ENABLE_ECC
-    { elliptic_curves_xtn, &ssl3_HandleSupportedCurvesXtn },
-    { ec_point_formats_xtn, &ssl3_HandleSupportedPointFormatsXtn },
+    { elliptic_curves_xtn,    &ssl3_HandleSupportedCurvesXtn },
+    { ec_point_formats_xtn,   &ssl3_HandleSupportedPointFormatsXtn },
 #endif
-    { session_ticket_xtn, &ssl3_ServerHandleSessionTicketXtn },
+    { session_ticket_xtn,     &ssl3_ServerHandleSessionTicketXtn },
+    { renegotiation_info_xtn, &ssl3_HandleRenegotiationInfoXtn },
     { -1, NULL }
 };
 
+/* This table is used by the client, to handle server hello extensions. */
 static const ssl3HelloExtensionHandler serverHelloHandlers[] = {
-    { server_name_xtn, &ssl3_HandleServerNameXtn },
+    { server_name_xtn,        &ssl3_HandleServerNameXtn },
     /* TODO: add a handler for ec_point_formats_xtn */
-    { session_ticket_xtn, &ssl3_ClientHandleSessionTicketXtn },
+    { session_ticket_xtn,     &ssl3_ClientHandleSessionTicketXtn },
+    { renegotiation_info_xtn, &ssl3_HandleRenegotiationInfoXtn },
     { -1, NULL }
 };
 
@@ -244,15 +253,14 @@ static const ssl3HelloExtensionHandler serverHelloHandlers[] = {
  */
 static const 
 ssl3HelloExtensionSender clientHelloSenders[MAX_EXTENSIONS] = {
-    { server_name_xtn, &ssl3_SendServerNameXtn },
+    { server_name_xtn,        &ssl3_SendServerNameXtn        },
+    { renegotiation_info_xtn, &ssl3_SendRenegotiationInfoXtn },
 #ifdef NSS_ENABLE_ECC
-    { elliptic_curves_xtn, &ssl3_SendSupportedCurvesXtn },
-    { ec_point_formats_xtn, &ssl3_SendSupportedPointFormatsXtn },
-#else
-    { -1, NULL },
-    { -1, NULL },
+    { elliptic_curves_xtn,    &ssl3_SendSupportedCurvesXtn },
+    { ec_point_formats_xtn,   &ssl3_SendSupportedPointFormatsXtn },
 #endif
-    { session_ticket_xtn, ssl3_SendSessionTicketXtn }
+    { session_ticket_xtn,     &ssl3_SendSessionTicketXtn }
+    /* any extra entries will appear as { 0, NULL }    */
 };
 
 static PRBool
@@ -316,7 +324,7 @@ ssl3_SendServerNameXtn(sslSocket * ss, PRBool append,
             rv = ssl3_AppendHandshake(ss,       "\0",    1);
             if (rv != SECSuccess) return -1;
             /* HostName (length and value) */
-            rv = ssl3_AppendHandshakeVariable(ss, (unsigned char *)ss->url, len, 2);
+            rv = ssl3_AppendHandshakeVariable(ss, (PRUint8 *)ss->url, len, 2);
             if (rv != SECSuccess) return -1;
             if (!ss->sec.isServer) {
                 TLSExtensionData *xtnData = &ss->xtnData;
@@ -1362,3 +1370,82 @@ ssl3_CallHelloExtensionSenders(sslSocket *ss, PRBool append, PRUint32 maxBytes,
     }
     return total_exten_len;
 }
+
+
+/* Extension format:
+ * Extension number:   2 bytes
+ * Extension length:   2 bytes
+ * Verify Data Length: 1 byte
+ * Verify Data (TLS): 12 bytes (client) or 24 bytes (server)
+ * Verify Data (SSL): 36 bytes (client) or 72 bytes (server)
+ */
+static PRInt32 
+ssl3_SendRenegotiationInfoXtn(
+			sslSocket * ss,
+			PRBool      append,
+			PRUint32    maxBytes)
+{
+    PRInt32 len, needed;
+
+    /* In draft-ietf-tls-renegotiation-03, it is NOT RECOMMENDED to send
+     * both the SCSV and the empty RI, so when we send SCSV in 
+     * the initial handshake, we don't also send RI.
+     */
+    if (!ss || ss->ssl3.hs.sendingSCSV)
+    	return 0;
+    len = !ss->firstHsDone ? 0 : 
+	   (ss->sec.isServer ? ss->ssl3.hs.finishedBytes * 2 
+			     : ss->ssl3.hs.finishedBytes);
+    needed = 5 + len;
+    if (append && maxBytes >= needed) {
+	SECStatus rv;
+	/* extension_type */
+	rv = ssl3_AppendHandshakeNumber(ss, renegotiation_info_xtn, 2); 
+	if (rv != SECSuccess) return -1;
+	/* length of extension_data */
+	rv = ssl3_AppendHandshakeNumber(ss, len + 1, 2); 
+	if (rv != SECSuccess) return -1;
+	/* verify_Data from previous Finished message(s) */
+	rv = ssl3_AppendHandshakeVariable(ss, 
+		  ss->ssl3.hs.finishedMsgs.data, len, 1);
+	if (rv != SECSuccess) return -1;
+	if (!ss->sec.isServer) {
+	    TLSExtensionData *xtnData = &ss->xtnData;
+	    xtnData->advertised[xtnData->numAdvertised++] = 
+	                                           renegotiation_info_xtn;
+	}
+    }
+    return needed;
+}
+
+/* This function runs in both the client and server.  */
+static SECStatus
+ssl3_HandleRenegotiationInfoXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
+{
+    SECStatus rv = SECSuccess;
+    PRUint32 len = 0;
+
+    if (ss->firstHsDone) {
+	len = ss->sec.isServer ? ss->ssl3.hs.finishedBytes 
+	                       : ss->ssl3.hs.finishedBytes * 2;
+    }
+    if (data->len != 1 + len  ||
+	data->data[0] != len  || (len && 
+	NSS_SecureMemcmp(ss->ssl3.hs.finishedMsgs.data,
+	                 data->data + 1, len))) {
+	/* Can we do this here? Or, must we arrange for the caller to do it? */
+	(void)SSL3_SendAlert(ss, alert_fatal, handshake_failure);
+	PORT_SetError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
+	return SECFailure;
+    }
+    /* remember that we got this extension and it was correct. */
+    ss->peerRequestedProtection = 1;
+    ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
+    if (ss->sec.isServer) {
+	/* prepare to send back the appropriate response */
+	rv = ssl3_RegisterServerHelloExtensionSender(ss, ex_type,
+					     ssl3_SendRenegotiationInfoXtn);
+    }
+    return rv;
+}
+

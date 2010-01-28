@@ -396,3 +396,6 @@ ER3(SSL_ERROR_DECOMPRESSION_FAILURE,           (SSL_ERROR_BASE + 111),
 
 ER3(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED,       (SSL_ERROR_BASE + 112),
 "Renegotiation is not allowed on this SSL socket.")
+
+ER3(SSL_ERROR_UNSAFE_NEGOTIATION,              (SSL_ERROR_BASE + 113),
+"Peer attempted old style (potentially vulnerable) handshake.")

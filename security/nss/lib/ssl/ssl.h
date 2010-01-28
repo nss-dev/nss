@@ -117,10 +117,11 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 #define SSL_ENABLE_DEFLATE             19 /* Enable TLS compression with    */
                                           /* DEFLATE (off by default)       */
 #define SSL_ENABLE_RENEGOTIATION       20 /* Values below (default: never)  */
-#define SSL_REQUIRE_SAFE_NEGOTIATION   21 /* Peer must use renegotiation    */
-                                          /* extension in ALL handshakes.   */
+#define SSL_REQUIRE_SAFE_NEGOTIATION   21 /* Peer must send Signalling      */
+					  /* Cipher Suite Value (SCSV) or   */
+                                          /* Renegotiation  Info (RI)       */
+					  /* extension in ALL handshakes.   */
                                           /* default: off                   */
-					  /* NOT YET IMPLEMENTED in 3.12.5  */
 
 #ifdef SSL_DEPRECATED_FUNCTION 
 /* Old deprecated function names */
@@ -172,11 +173,14 @@ SSL_IMPORT SECStatus SSL_CipherPolicyGet(PRInt32 cipher, PRInt32 *policy);
 /* Never renegotiate at all.                                               */
 #define SSL_RENEGOTIATE_NEVER        ((PRBool)0)
 /* Renegotiate without restriction, whether or not the peer's client hello */
-/* bears the renegotiation info extension (like we always did in the past).*/
+/* bears the renegotiation info extension.  Vulnerable, as in the past.    */
 #define SSL_RENEGOTIATE_UNRESTRICTED ((PRBool)1)
-/*  Only renegotiate if the peer's hello bears the TLS renegotiation_info  */
-/*  extension.  Cannot renegotiate in SSL 3.0 sessions.                    */
-#define SSL_RENEGOTIATE_REQUIRES_XTN ((PRBool)2) /*  (NOT YET IMPLEMENTED) */
+/* Only renegotiate if the peer's hello bears the TLS renegotiation_info   */
+/* extension. This is safe renegotiation.                                  */
+#define SSL_RENEGOTIATE_REQUIRES_XTN ((PRBool)2) 
+/* Disallow all renegotiation in server sockets only, but allow clients    */
+/* to continue to renegotiate with vulnerable servers.                     */
+#define SSL_RENEGOTIATE_CLIENT_ONLY  ((PRBool)3)
 
 /*
 ** Reset the handshake state for fd. This will make the complete SSL

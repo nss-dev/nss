@@ -426,6 +426,8 @@ const char * V2CipherString(int cs_int)
   case 0x00009A:    cs_str = "TLS/DHE-RSA/SEED-CBC/SHA";	break;     
   case 0x00009B:    cs_str = "TLS/DH-ANON/SEED-CBC/SHA";	break;     
 
+  case 0x0000FF:    cs_str = "TLS_RENEGO_PROTECTION_REQUEST";	break;
+
   case 0x00C001:    cs_str = "TLS/ECDH-ECDSA/NULL/SHA";         break;
   case 0x00C002:    cs_str = "TLS/ECDH-ECDSA/RC4-128/SHA";      break;
   case 0x00C003:    cs_str = "TLS/ECDH-ECDSA/3DES-EDE-CBC/SHA"; break;
@@ -459,10 +461,10 @@ const char * V2CipherString(int cs_int)
   case 0x00C02B:    cs_str = "TLS/ECDHE-ECDSA/AES128-GCM/SHA256"; break;
   case 0x00C02C:    cs_str = "TLS/ECDHE-ECDSA/AES256-GCM/SHA384"; break;
 
-  case 0x00feff:    cs_str = "SSL3/RSA-FIPS/3DESEDE-CBC/SHA";	break;
-  case 0x00fefe:    cs_str = "SSL3/RSA-FIPS/DES-CBC/SHA";	break;
-  case 0x00ffe1:    cs_str = "SSL3/RSA-FIPS/DES56-CBC/SHA";     break;
-  case 0x00ffe0:    cs_str = "SSL3/RSA-FIPS/3DES192EDE-CBC/SHA";break;
+  case 0x00FEFF:    cs_str = "SSL3/RSA-FIPS/3DESEDE-CBC/SHA";	break;
+  case 0x00FEFE:    cs_str = "SSL3/RSA-FIPS/DES-CBC/SHA";	break;
+  case 0x00FFE1:    cs_str = "SSL3/RSA-FIPS/DES56-CBC/SHA";     break;
+  case 0x00FFE0:    cs_str = "SSL3/RSA-FIPS/3DES192EDE-CBC/SHA";break;
 
   /* the string literal is broken up to avoid trigraphs */
   default:          cs_str = "????" "/????????" "/?????????" "/???"; break;
@@ -501,6 +503,7 @@ const char * helloExtensionNameString(int ex_num)
   case 11: ex_name = "ec_point_formats";               break;
   case 13: ex_name = "signature_algorithms";           break;
   case 35: ex_name = "session_ticket";                 break;
+  case 0xff01: ex_name = "renegotiation_info";         break;
   default: sprintf(buf, "%d", ex_num);  ex_name = (const char *)buf; break;
   }
 
@@ -751,7 +754,11 @@ unsigned int print_hello_extension(unsigned char *  hsdata,
   return pos;
 }
 
-
+/* In the case of renegotiation, handshakes that occur in an already MAC'ed 
+ * channel, by the time of this call, the caller has already removed the MAC 
+ * from input recordLen. The only MAC'ed record that will get here with its 
+ * MAC intact (not removed) is the first Finished message on the connection.
+ */
 void print_ssl3_handshake(unsigned char *recordBuf, 
                           unsigned int   recordLen,
                           SSLRecord *    sr,
@@ -781,10 +788,10 @@ void print_ssl3_handshake(unsigned char *recordBuf,
     recordLen = s->msgBufOffset;
     recordBuf = s->msgBuf;
   }
-  while (offset + 4 + s->hMACsize <= recordLen) {
+  while (offset + 4 <= recordLen) {
     sslh.type = recordBuf[offset]; 
     sslh.length = GET_24(recordBuf+offset+1);
-    if (offset + 4 + sslh.length + s->hMACsize > recordLen)
+    if (offset + 4 + sslh.length > recordLen)
       break;
     /* finally have a complete message */
     if (sslhexparse) 
@@ -1087,10 +1094,18 @@ void print_ssl3_handshake(unsigned char *recordBuf,
       PR_fprintf(PR_STDOUT,"         }\n");
 
       if (!isNULLmac(currentcipher) && !s->hMACsize) {
-          /* To calculate the size of MAC, we subtract the number
-           * of known bytes of message from the number of remaining
-           * bytes in the record. */
+          /* To calculate the size of MAC, we subtract the number of known 
+	   * bytes of message from the number of remaining bytes in the 
+	   * record. This assumes that this is the first record on the 
+	   * connection to have a MAC, and that the sender has not put another 
+	   * message after the finished message in the handshake record. 
+	   * This is only correct for the first transition from unMACed to 
+	   * MACed. If the connection switches from one cipher suite to 
+	   * another one with a different MAC, this logic will not track that 
+	   * change correctly.
+	   */
           s->hMACsize = recordLen - (sslh.length + 4);
+	  sslh.length += s->hMACsize;  /* skip over the MAC data */
       }
       break;
 
@@ -1105,8 +1120,8 @@ void print_ssl3_handshake(unsigned char *recordBuf,
     }  /* end of switch sslh.type */
     offset += sslh.length + 4; 
   } /* while */
-  if (offset + s->hMACsize < recordLen) { /* stuff left over */
-    int newMsgLen = recordLen - (offset + s->hMACsize);
+  if (offset < recordLen) { /* stuff left over */
+    int newMsgLen = recordLen - offset;
     if (!s->msgBuf) {
       s->msgBuf = PORT_Alloc(newMsgLen);
       if (!s->msgBuf) {

@@ -351,10 +351,11 @@ typedef enum {
     elliptic_curves_xtn          = 10,
     ec_point_formats_xtn         = 11,
 #endif
-    session_ticket_xtn           = 35
+    session_ticket_xtn           = 35,
+    renegotiation_info_xtn       = 0xff01
 } ExtensionType;
 
-#define MAX_EXTENSIONS             4
+#define MAX_EXTENSIONS             5
 
 #define TLS_EX_SESS_TICKET_MAC_LENGTH       32
 
