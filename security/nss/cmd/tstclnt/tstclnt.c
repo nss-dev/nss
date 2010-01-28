@@ -122,7 +122,8 @@ int ssl3CipherSuites[] = {
 
 unsigned long __cmp_umuls;
 PRBool verbose;
-int renegotiate = 0;
+int renegotiationsToDo = 0;
+int renegotiationsDone = 0;
 
 static char *progName;
 
@@ -186,9 +187,9 @@ handshakeCallback(PRFileDesc *fd, void *client_data)
         SSL_SetURL(fd, secondHandshakeName);
     }
     printSecurityInfo(fd);
-    if (renegotiate > 0) {
-	renegotiate--;
-	SSL_ReHandshake(fd, PR_FALSE);
+    if (renegotiationsDone < renegotiationsToDo) {
+	SSL_ReHandshake(fd, (renegotiationsToDo < 2));
+	++renegotiationsDone;
     }
 }
 
@@ -196,8 +197,8 @@ static void Usage(const char *progName)
 {
     fprintf(stderr, 
 "Usage:  %s -h host [-a 1st_hs_name ] [-a 2nd_hs_name ] [-p port]\n"
-                    "[-d certdir] [-n nickname] [-23BTafosvxr] [-c ciphers]\n"
-                    "[-w passwd] [-W pwfile] [-q]\n", progName);
+                    "[-d certdir] [-n nickname] [-23BTafosvx] [-c ciphers]\n"
+                    "[-r N] [-w passwd] [-W pwfile] [-q]\n", progName);
     fprintf(stderr, "%-20s Send different SNI name. 1st_hs_name - at first\n"
                     "%-20s handshake, 2nd_hs_name - at second handshake.\n"
                     "%-20s Defualt is host from the -h argument.\n", "-a name",
@@ -221,7 +222,7 @@ static void Usage(const char *progName)
     fprintf(stderr, "%-20s Verbose progress reporting.\n", "-v");
     fprintf(stderr, "%-20s Use export policy.\n", "-x");
     fprintf(stderr, "%-20s Ping the server and then exit.\n", "-q");
-    fprintf(stderr, "%-20s Renegotiate with session resumption.\n", "-r");
+    fprintf(stderr, "%-20s Renegotiate N times (resuming session if N>1).\n", "-r N");
     fprintf(stderr, "%-20s Enable the session ticket extension.\n", "-u");
     fprintf(stderr, "%-20s Enable compression.\n", "-z");
     fprintf(stderr, "%-20s Letter(s) chosen from the following list\n", 
@@ -603,7 +604,7 @@ int main(int argc, char **argv)
 
 	  case 'v': verbose++;	 			break;
 
-	  case 'r': renegotiate = atoi(optstate->value);	break;
+	  case 'r': renegotiationsToDo = atoi(optstate->value);	break;
 
           case 'w':
                 pwdata.source = PW_PLAINTEXT;

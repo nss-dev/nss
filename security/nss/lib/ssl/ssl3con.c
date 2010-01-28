@@ -3216,6 +3216,8 @@ ssl3_AppendHandshake(sslSocket *ss, const void *void_src, PRInt32 bytes)
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) ); /* protects sendBuf. */
 
+    if (!bytes)
+    	return SECSuccess;
     if (ss->sec.ci.sendBuf.space < MAX_SEND_BUF_LENGTH && room < bytes) {
 	rv = sslBuffer_Grow(&ss->sec.ci.sendBuf, PR_MAX(MIN_SEND_BUF_LENGTH,
 		 PR_MIN(MAX_SEND_BUF_LENGTH, ss->sec.ci.sendBuf.len + bytes)));
@@ -3738,6 +3740,7 @@ ssl3_SendClientHello(sslSocket *ss)
     if (rv != SECSuccess) {
 	return rv;		/* ssl3_InitState has set the error code. */
     }
+    ss->ssl3.hs.sendingSCSV = PR_FALSE; /* Must be reset every handshake */
 
     /* We might be starting a session renegotiation in which case we should
      * clear previous state.
@@ -3862,7 +3865,18 @@ ssl3_SendClientHello(sslSocket *ss)
     if (!num_suites)
     	return SECFailure;	/* ssl3_config_match_init has set error code. */
 
-    if (ss->opt.enableTLS && ss->version > SSL_LIBRARY_VERSION_3_0) {
+    /* HACK for SCSV in SSL 3.0.  On initial handshake, prepend SCSV,
+     * only if we're willing to complete an SSL 3.0 handshake.
+     */
+    if (!ss->firstHsDone && ss->opt.enableSSL3) {
+	/* Must set this before calling Hello Extension Senders, 
+	 * to suppress sending of empty RI extension.
+	 */
+	ss->ssl3.hs.sendingSCSV = PR_TRUE;
+    }
+
+    if ((ss->opt.enableTLS && ss->version > SSL_LIBRARY_VERSION_3_0) || 
+    	(ss->firstHsDone && ss->peerRequestedProtection)) {
 	PRUint32 maxBytes = 65535; /* 2^16 - 1 */
 	PRInt32  extLen;
 
@@ -3886,6 +3900,9 @@ ssl3_SendClientHello(sslSocket *ss)
     num_suites = count_cipher_suites(ss, ss->ssl3.policy, PR_TRUE);
     if (!num_suites)
     	return SECFailure;	/* count_cipher_suites has set error code. */
+    if (ss->ssl3.hs.sendingSCSV) {
+	++num_suites;   /* make room for SCSV */
+    }
 
     /* count compression methods */
     numCompressionMethods = 0;
@@ -3933,7 +3950,15 @@ ssl3_SendClientHello(sslSocket *ss)
 	return rv;	/* err set by ssl3_AppendHandshake* */
     }
 
-
+    if (ss->ssl3.hs.sendingSCSV) {
+	/* Add the actual SCSV */
+	rv = ssl3_AppendHandshakeNumber(ss, TLS_RENEGO_PROTECTION_REQUEST,
+					sizeof(ssl3CipherSuite));
+	if (rv != SECSuccess) {
+	    return rv;	/* err set by ssl3_AppendHandshake* */
+	}
+	actual_count++;
+    }
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
 	if (config_match(suite, ss->ssl3.policy, PR_TRUE)) {
@@ -3988,8 +4013,12 @@ ssl3_SendClientHello(sslSocket *ss)
 	}
 	maxBytes -= extLen;
 	PORT_Assert(!maxBytes);
+    } 
+    if (ss->ssl3.hs.sendingSCSV) {
+	/* Since we sent the SCSV, pretend we sent empty RI extension. */
+	TLSExtensionData *xtnData = &ss->xtnData;
+	xtnData->advertised[xtnData->numAdvertised++] = renegotiation_info_xtn;
     }
-
 
     rv = ssl3_FlushHandshake(ss, 0);
     if (rv != SECSuccess) {
@@ -4963,6 +4992,15 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	if (rv != SECSuccess)
 	    goto alert_loser;
     }
+    if ((ss->opt.requireSafeNegotiation || 
+         (ss->firstHsDone && (ss->peerRequestedProtection ||
+	 ss->opt.enableRenegotiation == SSL_RENEGOTIATE_REQUIRES_XTN))) &&
+	!ssl3_ExtensionNegotiated(ss, renegotiation_info_xtn)) {
+	desc = handshake_failure;
+	errCode = ss->firstHsDone ? SSL_ERROR_RENEGOTIATION_NOT_ALLOWED
+	                          : SSL_ERROR_UNSAFE_NEGOTIATION;
+	goto alert_loser;
+    }
 
     /* Any errors after this point are not "malformed" errors. */
     desc    = handshake_failure;
@@ -5869,6 +5907,9 @@ ssl3_SendServerHelloSequence(sslSocket *ss)
     return SECSuccess;
 }
 
+/* An empty TLS Renegotiation Info (RI) extension */
+static const PRUint8 emptyRIext[5] = {0xff, 0x01, 0x00, 0x01, 0x00};
+
 /* Called from ssl3_HandleHandshakeMessage() when it has deciphered a complete
  * ssl3 Client Hello message.
  * Caller must hold Handshake and RecvBuf locks.
@@ -5921,7 +5962,8 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	goto alert_loser;
     }
     if (ss->ssl3.hs.ws == idle_handshake  &&
-    	ss->opt.enableRenegotiation == SSL_RENEGOTIATE_NEVER) {
+        (ss->opt.enableRenegotiation == SSL_RENEGOTIATE_NEVER ||
+         ss->opt.enableRenegotiation == SSL_RENEGOTIATE_CLIENT_ONLY)) {
 	desc    = no_renegotiation;
 	level   = alert_warning;
 	errCode = SSL_ERROR_RENEGOTIATION_NOT_ALLOWED;
@@ -5989,6 +6031,36 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	if (rv != SECSuccess) {
 	    goto loser;		/* malformed */
 	}
+    }
+    if (!ssl3_ExtensionNegotiated(ss, renegotiation_info_xtn)) {
+    	/* If we didn't receive an RI extension, look for the SCSV,
+	 * and if found, treat it just like an empty RI extension
+	 * by processing a local copy of an empty RI extension.
+	 */
+	for (i = 0; i + 1 < suites.len; i += 2) {
+	    PRUint16 suite_i = (suites.data[i] << 8) | suites.data[i + 1];
+	    if (suite_i == TLS_RENEGO_PROTECTION_REQUEST) {
+		SSL3Opaque * b2 = (SSL3Opaque *)emptyRIext;
+		PRUint32     L2 = sizeof emptyRIext;
+		(void)ssl3_HandleHelloExtensions(ss, &b2, &L2);
+	    	break;
+	    }
+	}
+    }
+    if (ss->ssl3.hs.ws == idle_handshake  &&  ss->firstHsDone &&
+        ss->opt.enableRenegotiation == SSL_RENEGOTIATE_REQUIRES_XTN && 
+	!ssl3_ExtensionNegotiated(ss, renegotiation_info_xtn)) {
+	desc    = no_renegotiation;
+	level   = alert_warning;
+	errCode = SSL_ERROR_RENEGOTIATION_NOT_ALLOWED;
+	goto alert_loser;
+    }
+    if ((ss->opt.requireSafeNegotiation || 
+         (ss->firstHsDone && ss->peerRequestedProtection)) &&
+	!ssl3_ExtensionNegotiated(ss, renegotiation_info_xtn)) {
+	desc = handshake_failure;
+	errCode = SSL_ERROR_UNSAFE_NEGOTIATION;
+    	goto alert_loser;
     }
 
     /* We do stateful resumes only if either of the following
@@ -6120,10 +6192,9 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    break;
 #endif
 	/* Double check that the cached cipher suite is in the client's list */
-	for (i = 0; i < suites.len; i += 2) {
-	    if ((suites.data[i]     == MSB(suite->cipher_suite)) &&
-	        (suites.data[i + 1] == LSB(suite->cipher_suite))) {
-
+	for (i = 0; i + 1 < suites.len; i += 2) {
+	    PRUint16 suite_i = (suites.data[i] << 8) | suites.data[i + 1];
+	    if (suite_i == suite->cipher_suite) {
 		ss->ssl3.hs.cipher_suite = suite->cipher_suite;
 		ss->ssl3.hs.suite_def =
 		    ssl_LookupCipherSuiteDef(ss->ssl3.hs.cipher_suite);
@@ -6154,10 +6225,9 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[j];
 	if (!config_match(suite, ss->ssl3.policy, PR_TRUE))
 	    continue;
-	for (i = 0; i < suites.len; i += 2) {
-	    if ((suites.data[i]     == MSB(suite->cipher_suite)) &&
-	        (suites.data[i + 1] == LSB(suite->cipher_suite))) {
-
+	for (i = 0; i + 1 < suites.len; i += 2) {
+	    PRUint16 suite_i = (suites.data[i] << 8) | suites.data[i + 1];
+	    if (suite_i == suite->cipher_suite) {
 		ss->ssl3.hs.cipher_suite = suite->cipher_suite;
 		ss->ssl3.hs.suite_def =
 		    ssl_LookupCipherSuiteDef(ss->ssl3.hs.cipher_suite);
@@ -6663,11 +6733,9 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[j];
 	if (!config_match(suite, ss->ssl3.policy, PR_TRUE))
 	    continue;
-	for (i = 0; i < suite_length; i += 3) {
-	    if ((suites[i]   == 0) &&
-		(suites[i+1] == MSB(suite->cipher_suite)) &&
-		(suites[i+2] == LSB(suite->cipher_suite))) {
-
+	for (i = 0; i+2 < suite_length; i += 3) {
+	    PRUint32 suite_i = (suites[i] << 16)|(suites[i+1] << 8)|suites[i+2];
+	    if (suite_i == suite->cipher_suite) {
 		ss->ssl3.hs.cipher_suite = suite->cipher_suite;
 		ss->ssl3.hs.suite_def =
 		    ssl_LookupCipherSuiteDef(ss->ssl3.hs.cipher_suite);
@@ -6679,6 +6747,26 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
     goto alert_loser;
 
 suite_found:
+
+    /* Look for the SCSV, and if found, treat it just like an empty RI 
+     * extension by processing a local copy of an empty RI extension.
+     */
+    for (i = 0; i+2 < suite_length; i += 3) {
+	PRUint32 suite_i = (suites[i] << 16) | (suites[i+1] << 8) | suites[i+2];
+	if (suite_i == TLS_RENEGO_PROTECTION_REQUEST) {
+	    SSL3Opaque * b2 = (SSL3Opaque *)emptyRIext;
+	    PRUint32     L2 = sizeof emptyRIext;
+	    (void)ssl3_HandleHelloExtensions(ss, &b2, &L2);
+	    break;
+	}
+    }
+
+    if (ss->opt.requireSafeNegotiation &&
+	!ssl3_ExtensionNegotiated(ss, renegotiation_info_xtn)) {
+	desc = handshake_failure;
+	errCode = SSL_ERROR_UNSAFE_NEGOTIATION;
+    	goto alert_loser;
+    }
 
     ss->ssl3.hs.compression = ssl_compression_null;
     ss->sec.send            = ssl3_SendApplicationData;
@@ -8071,6 +8159,11 @@ ssl3_SendFinished(sslSocket *ss, PRInt32 flags)
     }
 
     if (isTLS) {
+	if (isServer)
+	    ss->ssl3.hs.finishedMsgs.tFinished[1] = tlsFinished;
+	else
+	    ss->ssl3.hs.finishedMsgs.tFinished[0] = tlsFinished;
+	ss->ssl3.hs.finishedBytes = sizeof tlsFinished;
 	rv = ssl3_AppendHandshakeHeader(ss, finished, sizeof tlsFinished);
 	if (rv != SECSuccess) 
 	    goto fail; 		/* err set by AppendHandshake. */
@@ -8078,6 +8171,11 @@ ssl3_SendFinished(sslSocket *ss, PRInt32 flags)
 	if (rv != SECSuccess) 
 	    goto fail; 		/* err set by AppendHandshake. */
     } else {
+	if (isServer)
+	    ss->ssl3.hs.finishedMsgs.sFinished[1] = hashes;
+	else
+	    ss->ssl3.hs.finishedMsgs.sFinished[0] = hashes;
+	ss->ssl3.hs.finishedBytes = sizeof hashes;
 	rv = ssl3_AppendHandshakeHeader(ss, finished, sizeof hashes);
 	if (rv != SECSuccess) 
 	    goto fail; 		/* err set by AppendHandshake. */
@@ -8216,6 +8314,11 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 	}
 	rv = ssl3_ComputeTLSFinished(ss->ssl3.crSpec, !isServer, 
 	                             hashes, &tlsFinished);
+	if (!isServer)
+	    ss->ssl3.hs.finishedMsgs.tFinished[1] = tlsFinished;
+	else
+	    ss->ssl3.hs.finishedMsgs.tFinished[0] = tlsFinished;
+	ss->ssl3.hs.finishedBytes = sizeof tlsFinished;
 	if (rv != SECSuccess ||
 	    0 != NSS_SecureMemcmp(&tlsFinished, b, length)) {
 	    (void)SSL3_SendAlert(ss, alert_fatal, decrypt_error);
@@ -8229,6 +8332,11 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 	    return SECFailure;
 	}
 
+	if (!isServer)
+	    ss->ssl3.hs.finishedMsgs.sFinished[1] = *hashes;
+	else
+	    ss->ssl3.hs.finishedMsgs.sFinished[0] = *hashes;
+	ss->ssl3.hs.finishedBytes = sizeof *hashes;
 	if (0 != NSS_SecureMemcmp(hashes, b, length)) {
 	    (void)ssl3_HandshakeFailure(ss);
 	    PORT_SetError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
@@ -8981,6 +9089,7 @@ ssl3_InitState(sslSocket *ss)
     ss->ssl3.crSpec = ss->ssl3.cwSpec = &ss->ssl3.specs[0];
     ss->ssl3.prSpec = ss->ssl3.pwSpec = &ss->ssl3.specs[1];
     ss->ssl3.hs.rehandshake = PR_FALSE;
+    ss->ssl3.hs.sendingSCSV = PR_FALSE;
     ssl3_InitCipherSpec(ss, ss->ssl3.crSpec);
     ssl3_InitCipherSpec(ss, ss->ssl3.prSpec);
 
@@ -9248,7 +9357,9 @@ ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache)
 	PORT_SetError(SSL_ERROR_HANDSHAKE_NOT_COMPLETED);
 	return SECFailure;
     }
-    if (ss->opt.enableRenegotiation == SSL_RENEGOTIATE_NEVER) {
+    if (ss->opt.enableRenegotiation == SSL_RENEGOTIATE_NEVER ||
+       (ss->opt.enableRenegotiation == SSL_RENEGOTIATE_CLIENT_ONLY &&
+        ss->sec.isServer)) {
 	PORT_SetError(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED);
 	return SECFailure;
     }

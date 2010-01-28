@@ -181,7 +181,7 @@ static sslOptions ssl_defaults = {
     PR_FALSE,   /* noLocks            */
     PR_FALSE,   /* enableSessionTickets */
     PR_FALSE,   /* enableDeflate      */
-    0,          /* enableRenegotiation (default: never) */
+    2,          /* enableRenegotiation (default: requires extension) */
     PR_FALSE,   /* requireSafeNegotiation */
 };
 
@@ -2297,19 +2297,12 @@ ssl_NewSocket(PRBool makeLocks)
 	if (ev) {
 	    if (ev[0] == '1' || LOWER(ev[0]) == 'u')
 	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_UNRESTRICTED;
-#ifdef LATER
-	    /* When SSL_RENEGOTIATE_REQUIRES_XTN is implemented, it will be 
-	     * the default.  Until then, NEVER will be the default. 
-	     */
 	    else if (ev[0] == '0' || LOWER(ev[0]) == 'n')
 	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_NEVER;
+	    else if (ev[0] == '3' || LOWER(ev[0]) == 'c')
+	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_CLIENT_ONLY;
 	    else
 	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_REQUIRES_XTN;
-#else
-	    else
-	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_NEVER;
-#endif
-
 	    SSL_TRACE(("SSL: enableRenegotiation set to %d", 
 	               ssl_defaults.enableRenegotiation));
 	}
