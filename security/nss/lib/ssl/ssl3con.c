@@ -4017,7 +4017,8 @@ ssl3_SendClientHello(sslSocket *ss)
     if (ss->ssl3.hs.sendingSCSV) {
 	/* Since we sent the SCSV, pretend we sent empty RI extension. */
 	TLSExtensionData *xtnData = &ss->xtnData;
-	xtnData->advertised[xtnData->numAdvertised++] = renegotiation_info_xtn;
+	xtnData->advertised[xtnData->numAdvertised++] = 
+	    ssl_renegotiation_info_xtn;
     }
 
     rv = ssl3_FlushHandshake(ss, 0);
@@ -4995,7 +4996,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if ((ss->opt.requireSafeNegotiation || 
          (ss->firstHsDone && (ss->peerRequestedProtection ||
 	 ss->opt.enableRenegotiation == SSL_RENEGOTIATE_REQUIRES_XTN))) &&
-	!ssl3_ExtensionNegotiated(ss, renegotiation_info_xtn)) {
+	!ssl3_ExtensionNegotiated(ss, ssl_renegotiation_info_xtn)) {
 	desc = handshake_failure;
 	errCode = ss->firstHsDone ? SSL_ERROR_RENEGOTIATION_NOT_ALLOWED
 	                          : SSL_ERROR_UNSAFE_NEGOTIATION;
@@ -5114,7 +5115,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    sid->u.ssl3.sessionTicket.ticket.data != NULL)
 	    SSL_AtomicIncrementLong(& ssl3stats.hsh_sid_stateless_resumes );
 
-	if (ssl3_ExtensionNegotiated(ss, session_ticket_xtn))
+	if (ssl3_ExtensionNegotiated(ss, ssl_session_ticket_xtn))
 	    ss->ssl3.hs.ws = wait_new_session_ticket;
 	else
 	    ss->ssl3.hs.ws = wait_change_cipher;
@@ -5713,7 +5714,7 @@ ssl3_HandleServerHelloDone(sslSocket *ss)
 
     ssl_ReleaseXmitBufLock(ss);		/*******************************/
 
-    if (ssl3_ExtensionNegotiated(ss, session_ticket_xtn))
+    if (ssl3_ExtensionNegotiated(ss, ssl_session_ticket_xtn))
 	ss->ssl3.hs.ws = wait_new_session_ticket;
     else
 	ss->ssl3.hs.ws = wait_change_cipher;
@@ -6032,7 +6033,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    goto loser;		/* malformed */
 	}
     }
-    if (!ssl3_ExtensionNegotiated(ss, renegotiation_info_xtn)) {
+    if (!ssl3_ExtensionNegotiated(ss, ssl_renegotiation_info_xtn)) {
     	/* If we didn't receive an RI extension, look for the SCSV,
 	 * and if found, treat it just like an empty RI extension
 	 * by processing a local copy of an empty RI extension.
@@ -6049,7 +6050,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
     if (ss->ssl3.hs.ws == idle_handshake  &&  ss->firstHsDone &&
         ss->opt.enableRenegotiation == SSL_RENEGOTIATE_REQUIRES_XTN && 
-	!ssl3_ExtensionNegotiated(ss, renegotiation_info_xtn)) {
+	!ssl3_ExtensionNegotiated(ss, ssl_renegotiation_info_xtn)) {
 	desc    = no_renegotiation;
 	level   = alert_warning;
 	errCode = SSL_ERROR_RENEGOTIATION_NOT_ALLOWED;
@@ -6057,7 +6058,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
     if ((ss->opt.requireSafeNegotiation || 
          (ss->firstHsDone && ss->peerRequestedProtection)) &&
-	!ssl3_ExtensionNegotiated(ss, renegotiation_info_xtn)) {
+	!ssl3_ExtensionNegotiated(ss, ssl_renegotiation_info_xtn)) {
 	desc = handshake_failure;
 	errCode = SSL_ERROR_UNSAFE_NEGOTIATION;
     	goto alert_loser;
@@ -6068,7 +6069,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
      * session ticket extension, or (2) the client support the session
      * ticket extension, but sent an empty ticket.
      */
-    if (!ssl3_ExtensionNegotiated(ss, session_ticket_xtn) ||
+    if (!ssl3_ExtensionNegotiated(ss, ssl_session_ticket_xtn) ||
 	ss->xtnData.emptySessionTicket) {
 	if (sidBytes.len > 0 && !ss->opt.noCache) {
 	    SSL_TRC(7, ("%d: SSL3[%d]: server, lookup client session-id for 0x%08x%08x%08x%08x",
@@ -6112,9 +6113,9 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
      * but OpenSSL-0.9.8g does not accept session tickets while
      * resuming.)
      */
-    if (ssl3_ExtensionNegotiated(ss, session_ticket_xtn) && sid == NULL) {
+    if (ssl3_ExtensionNegotiated(ss, ssl_session_ticket_xtn) && sid == NULL) {
 	ssl3_RegisterServerHelloExtensionSender(ss,
-	    session_ticket_xtn, ssl3_SendSessionTicketXtn);
+	    ssl_session_ticket_xtn, ssl3_SendSessionTicketXtn);
     }
 
     if (sid != NULL) {
@@ -6388,7 +6389,7 @@ compression_found:
         }
 
         /* Clean up sni name array */
-        if (ssl3_ExtensionNegotiated(ss, server_name_xtn) &&
+        if (ssl3_ExtensionNegotiated(ss, ssl_server_name_xtn) &&
             ss->xtnData.sniNameArr) {
             PORT_Free(ss->xtnData.sniNameArr);
             ss->xtnData.sniNameArr = NULL;
@@ -6448,7 +6449,7 @@ compression_found:
     }
     SSL_AtomicIncrementLong(& ssl3stats.hch_sid_cache_misses );
 
-    if (ssl3_ExtensionNegotiated(ss, server_name_xtn)) {
+    if (ssl3_ExtensionNegotiated(ss, ssl_server_name_xtn)) {
         int ret = 0;
         if (ss->sniSocketConfig) do { /* not a loop */
             ret = SSL_SNI_SEND_ALERT;
@@ -6545,7 +6546,7 @@ compression_found:
                 /* Need to tell the client that application has picked
                  * the name from the offered list and reconfigured the socket.
                  */
-                ssl3_RegisterServerHelloExtensionSender(ss, server_name_xtn,
+                ssl3_RegisterServerHelloExtensionSender(ss, ssl_server_name_xtn,
                                                         ssl3_SendServerNameXtn);
             } else {
                 /* Callback returned index outside of the boundary. */
@@ -6762,7 +6763,7 @@ suite_found:
     }
 
     if (ss->opt.requireSafeNegotiation &&
-	!ssl3_ExtensionNegotiated(ss, renegotiation_info_xtn)) {
+	!ssl3_ExtensionNegotiated(ss, ssl_renegotiation_info_xtn)) {
 	desc = handshake_failure;
 	errCode = SSL_ERROR_UNSAFE_NEGOTIATION;
     	goto alert_loser;
@@ -8359,7 +8360,7 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 	 * ServerHello message.)
 	 */
 	if (isServer && !ss->ssl3.hs.isResuming &&
-	    ssl3_ExtensionNegotiated(ss, session_ticket_xtn)) {
+	    ssl3_ExtensionNegotiated(ss, ssl_session_ticket_xtn)) {
 	    rv = ssl3_SendNewSessionTicket(ss);
 	    if (rv != SECSuccess) {
 		goto xmit_loser;

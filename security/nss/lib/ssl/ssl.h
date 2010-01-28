@@ -603,6 +603,14 @@ SSL_IMPORT SECStatus SSL_CanBypass(CERTCertificate *cert,
 				   PRUint16 *ciphers, int nciphers,
                                    PRBool *pcanbypass, void *pwArg);
 
+/*
+** Did the handshake with the peer negotiate the given extension?
+** Output parameter valid only if function returns SECSuccess
+*/
+SSL_IMPORT SECStatus SSL_HandshakeNegotiatedExtension(PRFileDesc * socket,
+                                                      ExtensionType extId,
+                                                      PRBool *yes);
+
 SEC_END_PROTOS
 
 #endif /* __ssl_h_ */

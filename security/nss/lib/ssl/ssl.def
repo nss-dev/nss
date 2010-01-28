@@ -143,6 +143,7 @@ SSL_CanBypass;
 ;+    global:
 SSL_ConfigServerSessionIDCacheWithOpt;
 SSL_GetNegotiatedHostInfo;
+SSL_HandshakeNegotiatedExtension;
 SSL_ReconfigFD;
 SSL_SetTrustAnchors;
 SSL_SNISocketConfigHook;
