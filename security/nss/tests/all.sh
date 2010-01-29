@@ -106,7 +106,7 @@
 #                  - this list can be reduced for individual test cycles
 #
 #   NSS_SSL_TESTS  - list of ssl tests to run (see ssl.sh)
-#   NSS_SSL_RUN    - list of sss sub-tests to run (see ssl.sh)
+#   NSS_SSL_RUN    - list of ssl sub-tests to run (see ssl.sh)
 #
 # Testing schema:
 # ---------------
