@@ -150,6 +150,18 @@ ocsp_GetOCSPStatusFromNetwork(CERTCertDBHandle *handle,
                               void *pwArg,
                               PRBool *certIDWasConsumed,
                               SECStatus *rv_ocsp);
+
+static SECStatus
+ocsp_CacheEncodedOCSPResponse(CERTCertDBHandle *handle,
+			      CERTOCSPCertID *certID,
+			      CERTCertificate *cert,
+			      int64 time,
+			      void *pwArg,
+			      SECItem *encodedResponse,
+			      PRBool *certIDWasConsumed,
+			      PRBool cacheNegative,
+			      SECStatus *rv_ocsp);
+
 static SECStatus
 ocsp_GetVerifiedSingleResponseForCertID(CERTCertDBHandle *handle, 
                                         CERTOCSPResponse *response, 
@@ -4797,6 +4809,75 @@ CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
 }
 
 /*
+ * FUNCTION: CERT_CacheOCSPResponseFromSideChannel
+ *   First, this function checks the OCSP cache to see if a positive response
+ *   for the given certificate already exists. If it does, then the function
+ *   returns successfully.
+ *
+ *   If not, then it validates that the given OCSP response is a valid,
+ *   positive response for the given certificate and inserts it into the
+ *   cache.
+ *
+ *   This function is intended for use when OCSP responses are provided via a
+ *   side-channel, i.e. TLS OCSP stapling (a.k.a. the status_request extension).
+ *
+ * INPUTS:
+ *   CERTCertDBHandle *handle
+ *     certificate DB of the cert that is being checked
+ *   CERTCertificate *cert
+ *     the certificate being checked
+ *   int64 time
+ *     time for which status is to be determined
+ *   SECItem *encodedResponse
+ *     the DER encoded bytes of the OCSP response
+ * RETURN:
+ *   SECSuccess if the cert was found in the cache, or if the OCSP response was
+ *   found to be valid and inserted into the cache. SECFailure otherwise.
+ */
+SECStatus
+CERT_CacheOCSPResponseFromSideChannel(CERTCertDBHandle *handle,
+				      CERTCertificate *cert,
+				      int64 time,
+				      SECItem *encodedResponse)
+{
+    CERTOCSPCertID *certID;
+    PRBool certIDWasConsumed = PR_FALSE;
+    SECStatus rv = SECFailure;
+    SECStatus rvOcsp;
+    SECErrorCodes dummy_error_code; /* we ignore this */
+
+    certID = CERT_CreateOCSPCertID(cert, time);
+    if (!certID)
+        return SECFailure;
+    rv = ocsp_GetCachedOCSPResponseStatusIfFresh(
+        certID, time, PR_FALSE, /* ignoreGlobalOcspFailureSetting */
+        &rvOcsp, &dummy_error_code);
+    if (rv == SECSuccess && rvOcsp == SECSuccess) {
+	/* The cached value is positive. We don't want to waste time validating
+	 * this OCSP response. */
+        CERT_DestroyOCSPCertID(certID);
+        return rv;
+    }
+
+    /* Since the OCSP response came from a side channel it is attacker
+     * controlled. The attacker can have chosen any valid OCSP response,
+     * including responses from the past. In this case,
+     * ocsp_GetVerifiedSingleResponseForCertID will fail. If we recorded a
+     * negative cache entry in this case, then the attacker would have
+     * 'poisoned' our cache (denial of service), so we don't record negative
+     * results. */
+    rv = ocsp_CacheEncodedOCSPResponse(handle, certID, cert, time,
+                                       NULL /* no pwArg */, encodedResponse,
+                                       &certIDWasConsumed,
+                                       PR_FALSE /* don't cache failures */,
+                                       &rvOcsp);
+    if (!certIDWasConsumed) {
+        CERT_DestroyOCSPCertID(certID);
+    }
+    return rv == SECSuccess ? rvOcsp : rv;
+}
+
+/*
  * Status in *certIDWasConsumed will always be correct, regardless of 
  * return value.
  */
@@ -4813,11 +4894,7 @@ ocsp_GetOCSPStatusFromNetwork(CERTCertDBHandle *handle,
     PRBool locationIsDefault;
     SECItem *encodedResponse = NULL;
     CERTOCSPRequest *request = NULL;
-    CERTOCSPResponse *response = NULL;
-    CERTCertificate *signerCert = NULL;
-    CERTCertificate *issuerCert = NULL;
     SECStatus rv = SECFailure;
-    CERTOCSPSingleResponse *single = NULL;
 
     if (!certIDWasConsumed || !rv_ocsp) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -4879,6 +4956,66 @@ ocsp_GetOCSPStatusFromNetwork(CERTCertDBHandle *handle,
         goto loser;
     }
 
+    rv = ocsp_CacheEncodedOCSPResponse(handle, certID, cert, time, pwArg,
+	                               encodedResponse, certIDWasConsumed,
+	                               PR_TRUE /* cache failures */, rv_ocsp);
+
+loser:
+    if (request != NULL)
+	CERT_DestroyOCSPRequest(request);
+    if (encodedResponse != NULL)
+	SECITEM_FreeItem(encodedResponse, PR_TRUE);
+    if (location != NULL)
+	PORT_Free(location);
+
+    return rv;
+}
+
+/*
+ * FUNCTION: ocsp_CacheEncodedOCSPResponse
+ *   This function decodes an OCSP response and checks for a valid response
+ *   concerning the given certificate. If such a response is found, or if
+ *   cacheNegative is true, the results are stored in the OCSP cache.
+ *
+ * INPUTS:
+ *   CERTCertDBHandle *handle
+ *     certificate DB of the cert that is being checked
+ *   CERTOCSPCertID *certID
+ *     the cert ID corresponding to |cert|
+ *   CERTCertificate *cert
+ *     the certificate being checked
+ *   int64 time
+ *     time for which status is to be determined
+ *   void *pwArg
+ *     the opaque argument to the password prompting function.
+ *   SECItem *encodedResponse
+ *     the DER encoded bytes of the OCSP response
+ *   PRBool *certIDWasConsumed
+ *     (output) on return, this is true iff |certID| was consumed by this
+ *     function.
+ * RETURN:
+ *   SECSuccess iff a valid OCSP response was found and cached.
+ */
+static SECStatus
+ocsp_CacheEncodedOCSPResponse(CERTCertDBHandle *handle,
+			      CERTOCSPCertID *certID,
+			      CERTCertificate *cert,
+			      int64 time,
+			      void *pwArg,
+			      SECItem *encodedResponse,
+			      PRBool *certIDWasConsumed,
+			      PRBool cacheNegative,
+			      SECStatus *rv_ocsp)
+{
+    CERTOCSPResponse *response = NULL;
+    CERTCertificate *signerCert = NULL;
+    CERTCertificate *issuerCert = NULL;
+    CERTOCSPSingleResponse *single = NULL;
+    SECStatus rv = SECFailure;
+
+    *certIDWasConsumed = PR_FALSE;
+    *rv_ocsp = SECFailure;
+
     response = CERT_DecodeOCSPResponse(encodedResponse);
     if (response == NULL) {
 	goto loser;
@@ -4926,14 +5063,18 @@ ocsp_GetOCSPStatusFromNetwork(CERTCertDBHandle *handle,
     *rv_ocsp = ocsp_SingleResponseCertHasGoodStatus(single, time);
 
 loser:
-    PR_EnterMonitor(OCSP_Global.monitor);
-    if (OCSP_Global.maxCacheEntries >= 0) {
-        /* single == NULL means: remember response failure */
-        ocsp_CreateOrUpdateCacheEntry(&OCSP_Global.cache, certID, single, 
-                                      certIDWasConsumed);
-        /* ignore cache update failures */
+    if (cacheNegative || *rv_ocsp == SECSuccess) {
+	PR_EnterMonitor(OCSP_Global.monitor);
+	if (OCSP_Global.maxCacheEntries >= 0) {
+	    /* single == NULL means: remember response failure */
+	    ocsp_CreateOrUpdateCacheEntry(&OCSP_Global.cache, certID, single,
+					  certIDWasConsumed);
+	    /* ignore cache update failures */
+	}
+	PR_ExitMonitor(OCSP_Global.monitor);
     }
-    PR_ExitMonitor(OCSP_Global.monitor);
+
+    /* 'single' points within the response so there's no need to free it. */
 
     if (issuerCert != NULL)
 	CERT_DestroyCertificate(issuerCert);
@@ -4941,12 +5082,6 @@ loser:
 	CERT_DestroyCertificate(signerCert);
     if (response != NULL)
 	CERT_DestroyOCSPResponse(response);
-    if (request != NULL)
-	CERT_DestroyOCSPRequest(request);
-    if (encodedResponse != NULL)
-	SECITEM_FreeItem(encodedResponse, PR_TRUE);
-    if (location != NULL)
-	PORT_Free(location);
     return rv;
 }
 
