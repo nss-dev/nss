@@ -6055,7 +6055,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    }
 	}
     }
-    if (ss->ssl3.hs.ws == idle_handshake  &&  ss->firstHsDone &&
+    if (ss->firstHsDone &&
         ss->opt.enableRenegotiation == SSL_RENEGOTIATE_REQUIRES_XTN && 
 	!ssl3_ExtensionNegotiated(ss, ssl_renegotiation_info_xtn)) {
 	desc    = no_renegotiation;
