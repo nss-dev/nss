@@ -46,6 +46,7 @@
 #include "nssrenam.h"
 #include "nss.h"
 #include "ssl.h"
+#include "sslproto.h"
 #include "sslimpl.h"
 #include "pk11pub.h"
 #include "blapi.h"
@@ -237,8 +238,9 @@ static const ssl3HelloExtensionHandler clientHelloHandlers[] = {
     { -1, NULL }
 };
 
-/* This table is used by the client, to handle server hello extensions. */
-static const ssl3HelloExtensionHandler serverHelloHandlers[] = {
+/* These two tables are used by the client, to handle server hello
+ * extensions. */
+static const ssl3HelloExtensionHandler serverHelloHandlersTLS[] = {
     { ssl_server_name_xtn,        &ssl3_HandleServerNameXtn },
     /* TODO: add a handler for ssl_ec_point_formats_xtn */
     { ssl_session_ticket_xtn,     &ssl3_ClientHandleSessionTicketXtn },
@@ -246,21 +248,38 @@ static const ssl3HelloExtensionHandler serverHelloHandlers[] = {
     { -1, NULL }
 };
 
-/* Table of functions to format TLS hello extensions, one per extension.
- * This static table is for the formatting of client hello extensions.
+static const ssl3HelloExtensionHandler serverHelloHandlersSSL3[] = {
+    { ssl_renegotiation_info_xtn, &ssl3_HandleRenegotiationInfoXtn },
+    { -1, NULL }
+};
+
+/* Tables of functions to format TLS hello extensions, one function per
+ * extension.
+ * These static tables are for the formatting of client hello extensions.
  * The server's table of hello senders is dynamic, in the socket struct,
  * and sender functions are registered there.
  */
 static const 
-ssl3HelloExtensionSender clientHelloSenders[SSL_MAX_EXTENSIONS] = {
+ssl3HelloExtensionSender clientHelloSendersTLS[SSL_MAX_EXTENSIONS] = {
     { ssl_server_name_xtn,        &ssl3_SendServerNameXtn        },
     { ssl_renegotiation_info_xtn, &ssl3_SendRenegotiationInfoXtn },
 #ifdef NSS_ENABLE_ECC
     { ssl_elliptic_curves_xtn,    &ssl3_SendSupportedCurvesXtn },
     { ssl_ec_point_formats_xtn,   &ssl3_SendSupportedPointFormatsXtn },
+#else
+    { -1, NULL },
+    { -1, NULL },
 #endif
     { ssl_session_ticket_xtn,     &ssl3_SendSessionTicketXtn }
-    /* any extra entries will appear as { 0, NULL }    */
+};
+
+static const 
+ssl3HelloExtensionSender clientHelloSendersSSL3[SSL_MAX_EXTENSIONS] = {
+    { ssl_renegotiation_info_xtn, &ssl3_SendRenegotiationInfoXtn },
+    { -1, NULL },
+    { -1, NULL },
+    { -1, NULL },
+    { -1, NULL }
 };
 
 static PRBool
@@ -1278,8 +1297,15 @@ ssl3_ParseEncryptedSessionTicket(sslSocket *ss, SECItem *data,
 SECStatus 
 ssl3_HandleHelloExtensions(sslSocket *ss, SSL3Opaque **b, PRUint32 *length)
 {
-    const ssl3HelloExtensionHandler * handlers =
-	ss->sec.isServer ? clientHelloHandlers : serverHelloHandlers;
+    const ssl3HelloExtensionHandler * handlers;
+
+    if (ss->sec.isServer) {
+        handlers = clientHelloHandlers;
+    } else if (ss->version > SSL_LIBRARY_VERSION_3_0) {
+        handlers = serverHelloHandlersTLS;
+    } else {
+        handlers = serverHelloHandlersSSL3;
+    }
 
     while (*length) {
 	const ssl3HelloExtensionHandler * handler;
@@ -1358,8 +1384,10 @@ ssl3_CallHelloExtensionSenders(sslSocket *ss, PRBool append, PRUint32 maxBytes,
     PRInt32 total_exten_len = 0;
     int i;
 
-    if (!sender)
-    	sender = &clientHelloSenders[0];
+    if (!sender) {
+    	sender = ss->version > SSL_LIBRARY_VERSION_3_0 ?
+                 &clientHelloSendersTLS[0] : &clientHelloSendersSSL3[0];
+    }
 
     for (i = 0; i < SSL_MAX_EXTENSIONS; ++i, ++sender) {
 	if (sender->ex_sender) {
