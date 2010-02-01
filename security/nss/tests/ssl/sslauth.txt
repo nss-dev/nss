@@ -57,7 +57,7 @@
   noECC     0       -r_-r_-r     -2_-w_nss_-n_TestUser    TLS Request don't require client auth on 2nd hs (client auth)
   noECC     1       -r_-r_-r_-r  -2_-w_nss_-n_none        TLS Require client auth on 2nd hs (client does not provide auth)
   noECC     1       -r_-r_-r_-r  -2_-w_bogus_-n_TestUser  TLS Require client auth on 2nd hs (bad password)
-  noECC     0       -r_-r_-r_-r  -2_-w_nss_-n_TestUser_   TLS Require client auth on 2nd hs (client auth)
+  noECC     0       -r_-r_-r_-r  -2_-w_nss_-n_TestUser    TLS Require client auth on 2nd hs (client auth)
   noECC     0       -r_-r_-r     -2_-T_-w_nss_-n_none     SSL3 Request don't require client auth on 2nd hs (client does not provide auth)
   noECC     0       -r_-r_-r     -2_-T_-n_TestUser_-w_bogus SSL3 Request don't require client auth on 2nd hs (bad password)
   noECC     0       -r_-r_-r     -2_-T_-n_TestUser_-w_nss SSL3 Request don't require client auth on 2nd hs (client auth)
