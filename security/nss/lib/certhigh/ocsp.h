@@ -553,12 +553,12 @@ CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
 
 /*
  * FUNCTION: CERT_CacheOCSPResponseFromSideChannel
- *   First, this function checks the OCSP cache to see if a positive response
+ *   First, this function checks the OCSP cache to see if a good response
  *   for the given certificate already exists. If it does, then the function
  *   returns successfully.
  *
  *   If not, then it validates that the given OCSP response is a valid,
- *   positive response for the given certificate and inserts it into the
+ *   good response for the given certificate and inserts it into the
  *   cache.
  *
  *   This function is intended for use when OCSP responses are provided via a
