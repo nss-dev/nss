@@ -4810,12 +4810,12 @@ CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
 
 /*
  * FUNCTION: CERT_CacheOCSPResponseFromSideChannel
- *   First, this function checks the OCSP cache to see if a positive response
+ *   First, this function checks the OCSP cache to see if a good response
  *   for the given certificate already exists. If it does, then the function
  *   returns successfully.
  *
  *   If not, then it validates that the given OCSP response is a valid,
- *   positive response for the given certificate and inserts it into the
+ *   good response for the given certificate and inserts it into the
  *   cache.
  *
  *   This function is intended for use when OCSP responses are provided via a
@@ -4856,7 +4856,7 @@ CERT_CacheOCSPResponseFromSideChannel(CERTCertDBHandle *handle,
         certID, time, PR_FALSE, /* ignoreGlobalOcspFailureSetting */
         &rvOcsp, &dummy_error_code);
     if (rv == SECSuccess && rvOcsp == SECSuccess) {
-	/* The cached value is positive. We don't want to waste time validating
+	/* The cached value is good. We don't want to waste time validating
 	 * this OCSP response. */
         CERT_DestroyOCSPCertID(certID);
         return rv;
@@ -4976,8 +4976,14 @@ loser:
 /*
  * FUNCTION: ocsp_CacheEncodedOCSPResponse
  *   This function decodes an OCSP response and checks for a valid response
- *   concerning the given certificate. If such a response is found, or if
+ *   concerning the given certificate. If such a response is not found
+ *   then nothing is cached. Otherwise, if it is a good response, or if
  *   cacheNegative is true, the results are stored in the OCSP cache.
+ *
+ *   Note: a 'valid' response is one that parses successfully, is not an OCSP
+ *   exception (see RFC 2560 Section 2.3), is correctly signed and is current.
+ *   A 'good' response is a valid response that attests that the certificate
+ *   is not currently revoked (see RFC 2560 Section 2.2).
  *
  * INPUTS:
  *   CERTCertDBHandle *handle
@@ -4995,8 +5001,11 @@ loser:
  *   PRBool *certIDWasConsumed
  *     (output) on return, this is true iff |certID| was consumed by this
  *     function.
+ *   SECStatus *rv_ocsp
+ *     (output) on return, this is SECSuccess iff the response is good (see
+ *     definition of 'good' above).
  * RETURN:
- *   SECSuccess iff a valid OCSP response was found and cached.
+ *   SECSuccess iff the response is valid.
  */
 static SECStatus
 ocsp_CacheEncodedOCSPResponse(CERTCertDBHandle *handle,
