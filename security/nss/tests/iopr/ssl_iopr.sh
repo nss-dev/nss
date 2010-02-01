@@ -612,6 +612,9 @@ ssl_iopr_run() {
     ORIG_ECC_CERT=${NO_ECC_CERTS}
     NO_ECC_CERTS=1 # disable ECC for interoperability tests
 
+    NSS_SSL_ENABLE_RENEGOTIATION=u
+    export NSS_SSL_ENABLE_RENEGOTIATION
+
     num=1
     IOPR_HOST_PARAM=`echo "${IOPR_HOSTADDR_LIST} " | cut -f $num -d' '`
     while [ "$IOPR_HOST_PARAM" ]; do
