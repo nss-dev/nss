@@ -4830,6 +4830,8 @@ CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
  *     time for which status is to be determined
  *   SECItem *encodedResponse
  *     the DER encoded bytes of the OCSP response
+ *   void *pwArg
+ *     argument for password prompting, if needed
  * RETURN:
  *   SECSuccess if the cert was found in the cache, or if the OCSP response was
  *   found to be valid and inserted into the cache. SECFailure otherwise.
@@ -4838,7 +4840,8 @@ SECStatus
 CERT_CacheOCSPResponseFromSideChannel(CERTCertDBHandle *handle,
 				      CERTCertificate *cert,
 				      int64 time,
-				      SECItem *encodedResponse)
+				      SECItem *encodedResponse,
+				      void *pwArg)
 {
     CERTOCSPCertID *certID;
     PRBool certIDWasConsumed = PR_FALSE;
@@ -4866,9 +4869,8 @@ CERT_CacheOCSPResponseFromSideChannel(CERTCertDBHandle *handle,
      * negative cache entry in this case, then the attacker would have
      * 'poisoned' our cache (denial of service), so we don't record negative
      * results. */
-    rv = ocsp_CacheEncodedOCSPResponse(handle, certID, cert, time,
-                                       NULL /* no pwArg */, encodedResponse,
-                                       &certIDWasConsumed,
+    rv = ocsp_CacheEncodedOCSPResponse(handle, certID, cert, time, pwArg,
+                                       encodedResponse, &certIDWasConsumed,
                                        PR_FALSE /* don't cache failures */,
                                        &rvOcsp);
     if (!certIDWasConsumed) {
