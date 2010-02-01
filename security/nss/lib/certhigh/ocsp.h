@@ -571,8 +571,10 @@ CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
  *     the certificate being checked
  *   PRTime time
  *     time for which status is to be determined
- *   SECItem encodedResponse
+ *   SECItem *encodedResponse
  *     the DER encoded bytes of the OCSP response
+ *   void *pwArg
+ *     argument for password prompting, if needed
  * RETURN:
  *   SECSuccess if the cert was found in the cache, or if the OCSP response was
  *   found to be valid and inserted into the cache. SECFailure otherwise.
@@ -581,7 +583,8 @@ extern SECStatus
 CERT_CacheOCSPResponseFromSideChannel(CERTCertDBHandle *handle,
 				      CERTCertificate *cert,
 				      PRTime time,
-				      SECItem *encodedResponse);
+				      SECItem *encodedResponse,
+				      void *pwArg);
 
 /*
  * FUNCTION: CERT_GetOCSPStatusForCertID
