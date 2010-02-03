@@ -56,7 +56,8 @@
   noECC     0      -r_-r_-u  -2_-c_100_-C_c_-n_TestUser_-u Stress TLS RC4 128 with MD5 (session ticket, client auth)
   noECC     0      -r_-r_-z  -2_-c_100_-C_c_-n_TestUser_-z Stress TLS RC4 128 with MD5 (compression, client auth)
   noECC     0   -r_-r_-u_-z  -2_-c_100_-C_c_-n_TestUser_-u_-z Stress TLS RC4 128 with MD5 (session ticket, compression, client auth)
-  SNI       0   -r_-r_-u_-a_Host-sni.Dom -2_-3_-c_1000_-C_c_-u Stress TLS RC4 128 with MD5 (session ticket, SNI, client auth)
+  SNI       0   -r_-r_-u_-a_Host-sni.Dom -2_-3_-c_1000_-C_c_-u Stress TLS RC4 128 with MD5 (session ticket, SNI, client auth, default virt host)
+  SNI       0   -r_-r_-u_-a_Host-sni.Dom_-k_Host-sni.Dom -2_-3_-c_1000_-C_c_-u_-a_Host-sni.Dom Stress TLS RC4 128 with MD5 (session ticket, SNI, client auth, change virt host)
 
 #
 # ############################ ECC ciphers ############################

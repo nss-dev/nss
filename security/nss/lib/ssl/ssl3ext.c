@@ -579,6 +579,8 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     unsigned int         computed_mac_length;
     unsigned char        iv[AES_BLOCK_SIZE];
     SECItem              ivItem;
+    SECItem             *srvName = NULL;
+    PRUint32             srvNameLen = 0;
     CK_MECHANISM_TYPE    msWrapMech = 0; /* dummy default value,
                                           * must be >= 0 */
 
@@ -639,6 +641,11 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
 	}
 	ms_is_wrapped = PR_TRUE;
     }
+    /* Prep to send negotiated name */
+    srvName = &ss->ssl3.pwSpec->srvVirtName;
+    if (srvName->data && srvName->len) {
+        srvNameLen = 2 + srvName->len; /* len bytes + name len */
+    }
 
     ciphertext_length = 
 	sizeof(PRUint16)                     /* ticket_version */
@@ -653,6 +660,8 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
 	+ ms_item.len                        /* master_secret */
 	+ 1                                  /* client_auth_type */
 	+ cert_length                        /* cert */
+        + 1                                  /* server name type */
+        + srvNameLen                         /* name len + length field */
 	+ sizeof(ticket.ticket_lifetime_hint);
     padding_length =  AES_BLOCK_SIZE -
 	(ciphertext_length % AES_BLOCK_SIZE);
@@ -734,6 +743,22 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     rv = ssl3_AppendNumberToItem(&plaintext, now,
 	sizeof(ticket.ticket_lifetime_hint));
     if (rv != SECSuccess) goto loser;
+
+    if (srvNameLen) {
+        /* Name Type (sni_host_name) */
+        rv = ssl3_AppendNumberToItem(&plaintext, srvName->type, 1);
+        if (rv != SECSuccess) goto loser;
+        /* HostName (length and value) */
+        rv = ssl3_AppendNumberToItem(&plaintext, srvName->len, 2);
+        if (rv != SECSuccess) goto loser;
+        rv = ssl3_AppendToItem(&plaintext, srvName->data, srvName->len);
+        if (rv != SECSuccess) goto loser;
+    } else {
+        /* No Name */
+        rv = ssl3_AppendNumberToItem(&plaintext, (char)TLS_STE_NO_SERVER_NAME,
+                                     1);
+        if (rv != SECSuccess) goto loser;
+    }
 
     PORT_Assert(plaintext.len == padding_length);
     for (i = 0; i < padding_length; i++)
@@ -907,6 +932,7 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
 	unsigned int           buffer_len;
 	PRInt32                temp;
 	SECItem                cert_item;
+        PRInt8                 nameType = TLS_STE_NO_SERVER_NAME;
 
 	/* Turn off stateless session resumption if the client sends a
 	 * SessionTicket extension, even if the extension turns out to be
@@ -1159,6 +1185,20 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
 	    goto no_ticket;
 	parsed_session_ticket->timestamp = (PRUint32)temp;
 
+        /* Read server name */
+        nameType =
+                ssl3_ConsumeHandshakeNumber(ss, 1, &buffer, &buffer_len); 
+        if (nameType != TLS_STE_NO_SERVER_NAME) {
+            SECItem name_item;
+            rv = ssl3_ConsumeHandshakeVariable(ss, &name_item, 2, &buffer,
+                                               &buffer_len);
+            if (rv != SECSuccess) goto no_ticket;
+            rv = SECITEM_CopyItem(NULL, &parsed_session_ticket->srvName,
+                                  &name_item);
+            if (rv != SECSuccess) goto no_ticket;
+            parsed_session_ticket->srvName.type = nameType;
+        }
+
 	/* Done parsing.  Check that all bytes have been consumed. */
 	if (buffer_len != padding_length)
 	    goto no_ticket;
@@ -1215,6 +1255,9 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
 		    goto loser;
 		}
 	    }
+	    if (parsed_session_ticket->srvName.data != NULL) {
+                sid->u.ssl3.srvName = parsed_session_ticket->srvName;
+            }
 	    ss->statelessResume = PR_TRUE;
 	    ss->sec.ci.sid = sid;
 	}
