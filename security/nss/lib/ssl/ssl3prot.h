@@ -345,4 +345,6 @@ typedef struct {
 
 #define TLS_EX_SESS_TICKET_MAC_LENGTH       32
 
+#define TLS_STE_NO_SERVER_NAME        -1
+
 #endif /* __ssl3proto_h_ */

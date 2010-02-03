@@ -879,6 +879,7 @@ typedef struct SessionTicketStr {
     ClientIdentity        client_identity;
     SECItem               peer_cert;
     uint32                timestamp;
+    SECItem               srvName; /* negotiated server name */
 }  SessionTicket;
 
 /*

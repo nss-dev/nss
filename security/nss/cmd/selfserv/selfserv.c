@@ -191,6 +191,7 @@ Usage(const char *progName)
 "-E means disable export ciphersuites and SSL step down key gen\n"
 "-R means disable detection of rollback from TLS to SSL3\n"
 "-a configure server for SNI.\n"
+"-k expected name negotiated on server sockets"
 "-b means try binding to the port and exit\n"
 "-m means test the model-socket feature of SSL_ImportFD.\n"
 "-r flag is interepreted as follows:\n"
@@ -800,6 +801,7 @@ PRBool disableLocking  = PR_FALSE;
 PRBool testbypass      = PR_FALSE;
 PRBool enableSessionTickets = PR_FALSE;
 PRBool enableCompression    = PR_FALSE;
+PRBool failedToNegotiateName  = PR_FALSE;
 static char  *virtServerNameArray[MAX_VIRT_SERVER_NAME_ARRAY_INDEX];
 
 static const char stopCmd[] = { "GET /stop " };
@@ -1605,11 +1607,25 @@ void initLoggingLayer(void)
 }
 
 void
+handshakeCallback(PRFileDesc *fd, void *client_data)
+{
+    const char *handshakeName = (const char *)client_data;
+    if (handshakeName && !failedToNegotiateName) {
+        SECItem *hostInfo  = SSL_GetNegotiatedHostInfo(fd);
+        if (!hostInfo || PORT_Strncmp(handshakeName, (char*)hostInfo->data,
+                                      hostInfo->len)) {
+            failedToNegotiateName = PR_TRUE;
+        }
+    }
+}
+
+void
 server_main(
     PRFileDesc *        listen_sock,
     int                 requestCert, 
     SECKEYPrivateKey ** privKey,
-    CERTCertificate **  cert)
+    CERTCertificate **  cert,
+    const char *expectedHostNameVal)
 {
     PRFileDesc *model_sock	= NULL;
     int         rv;
@@ -1728,6 +1744,10 @@ server_main(
 	errExit("SSL_CipherPrefSetDefault:SSL_RSA_WITH_NULL_MD5");
     }
 
+    if (expectedHostNameVal) {
+        SSL_HandshakeCallback(model_sock, handshakeCallback,
+                              (void*)expectedHostNameVal);
+    }
 
     if (requestCert) {
 	SSL_AuthCertificateHook(model_sock, mySSLAuthCertificate, 
@@ -1916,7 +1936,8 @@ main(int argc, char **argv)
     PRUint32             i;
     secuPWData  pwdata = { PW_NONE, 0 };
     int                  virtServerNameIndex = 1;
- 
+    char                *expectedHostNameVal = NULL;
+
     tmp = strrchr(argv[0], '/');
     tmp = tmp ? tmp + 1 : argv[0];
     progName = strrchr(tmp, '\\');
@@ -1928,7 +1949,7 @@ main(int argc, char **argv)
     ** numbers, then capital letters, then lower case, alphabetical. 
     */
     optstate = PL_CreateOptState(argc, argv, 
-        "2:3BC:DEL:M:NP:RSTa:bc:d:e:f:g:hi:jlmn:op:qrst:uvw:xyz");
+        "2:3BC:DEL:M:NP:RSTa:bc:d:e:f:g:hi:jk:lmn:op:qrst:uvw:xyz");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	++optionsFound;
 	switch(optstate->option) {
@@ -2001,6 +2022,9 @@ main(int argc, char **argv)
             initLoggingLayer(); 
             loggingLayer = PR_TRUE;
             break;
+
+        case 'k': expectedHostNameVal = PORT_Strdup(optstate->value);
+                  break;
 
         case 'l': useLocalThreads = PR_TRUE; break;
 
@@ -2336,7 +2360,8 @@ main(int argc, char **argv)
     }
 
     if (rv == SECSuccess) {
-	server_main(listen_sock, requestCert, privKey, cert);
+	server_main(listen_sock, requestCert, privKey, cert,
+                    expectedHostNameVal);
     }
 
     VLOG(("selfserv: server_thread: exiting"));
@@ -2347,6 +2372,10 @@ cleanup:
     if (ssl3stats->hch_sid_ticket_parse_failures != 0) {
 	fprintf(stderr, "selfserv: Experienced ticket parse failure(s)\n");
 	exit(1);
+    }
+    if (failedToNegotiateName) {
+        fprintf(stderr, "selfserv: Failed properly negotiate server name\n");
+        exit(1);
     }
 
     {
@@ -2369,6 +2398,9 @@ cleanup:
     }
     if (nickName) {
         PORT_Free(nickName);
+    }
+    if (expectedHostNameVal) {
+        PORT_Free(expectedHostNameVal);
     }
     if (passwd) {
         PORT_Free(passwd);
