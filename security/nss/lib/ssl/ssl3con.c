@@ -3727,6 +3727,7 @@ ssl3_SendClientHello(sslSocket *ss)
     int              length;
     int              num_suites;
     int              actual_count = 0;
+    PRBool           isTLS = PR_FALSE;
     PRInt32          total_exten_len = 0;
     unsigned         numCompressionMethods;
 
@@ -3838,6 +3839,7 @@ ssl3_SendClientHello(sslSocket *ss)
         }
     }
 
+    isTLS = (ss->version > SSL_LIBRARY_VERSION_3_0);
     ssl_GetSpecWriteLock(ss);
     cwSpec = ss->ssl3.cwSpec;
     if (cwSpec->mac_def->mac == mac_null) {
@@ -3875,8 +3877,7 @@ ssl3_SendClientHello(sslSocket *ss)
 	ss->ssl3.hs.sendingSCSV = PR_TRUE;
     }
 
-    if ((ss->opt.enableTLS && ss->version > SSL_LIBRARY_VERSION_3_0) || 
-    	(ss->firstHsDone && ss->peerRequestedProtection)) {
+    if (isTLS || (ss->firstHsDone && ss->peerRequestedProtection)) {
 	PRUint32 maxBytes = 65535; /* 2^16 - 1 */
 	PRInt32  extLen;
 
@@ -3890,8 +3891,10 @@ ssl3_SendClientHello(sslSocket *ss)
 	if (total_exten_len > 0)
 	    total_exten_len += 2;
     }
+
 #if defined(NSS_ENABLE_ECC) && !defined(NSS_ECC_MORE_THAN_SUITE_B)
-    else { /* SSL3 only */
+    if (!total_exten_len || !isTLS) {
+	/* not sending the elliptic_curves and ec_point_formats extensions */
     	ssl3_DisableECCSuites(ss, NULL); /* disable all ECC suites */
     }
 #endif
