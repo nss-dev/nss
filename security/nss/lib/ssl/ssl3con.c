@@ -8961,11 +8961,33 @@ const ssl3BulkCipherDef *cipher_def;
 				  databuf->space,
 				  plaintext->buf,
 				  plaintext->len);
+
 	if (rv != SECSuccess) {
 	    int err = ssl_MapLowLevelError(SSL_ERROR_DECOMPRESSION_FAILURE);
-	    PORT_Free(plaintext->buf);
 	    SSL3_SendAlert(ss, alert_fatal,
 			   isTLS ? decompression_failure : bad_record_mac);
+
+	    /* There appears to be a bug with (at least) Apache + OpenSSL where
+	     * resumed SSLv3 connections don't actually use compression. See
+	     * comments 93-95 of
+	     * https://bugzilla.mozilla.org/show_bug.cgi?id=275744
+	     *
+	     * So, if we get a decompression error, and the record appears to
+	     * be already uncompressed, then we return a more specific error
+	     * code to hopefully save somebody some debugging time in the
+	     * future.
+	     */
+	    if (plaintext->len >= 4) {
+		unsigned int len = ((unsigned int) plaintext->buf[1] << 16) |
+		                   ((unsigned int) plaintext->buf[2] << 8) |
+		                   (unsigned int) plaintext->buf[3];
+		if (len == plaintext->len - 4) {
+		    /* This appears to be uncompressed already */
+		    err = SSL_ERROR_RX_UNEXPECTED_UNCOMPRESSED_RECORD;
+		}
+	    }
+
+	    PORT_Free(plaintext->buf);
 	    PORT_SetError(err);
 	    return SECFailure;
 	}
