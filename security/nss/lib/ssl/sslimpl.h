@@ -137,7 +137,7 @@ extern int Debug;
 #endif
 #define ssl_InMonitor(m) PZ_InMonitor(m)
 
-#define LSB(x) ((unsigned char) (x & 0xff))
+#define LSB(x) ((unsigned char) ((x) & 0xff))
 #define MSB(x) ((unsigned char) (((unsigned)(x)) >> 8))
 
 /************************************************************************/
