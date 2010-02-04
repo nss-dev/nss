@@ -608,7 +608,7 @@ SSL_IMPORT SECStatus SSL_CanBypass(CERTCertificate *cert,
 ** Output parameter valid only if function returns SECSuccess
 */
 SSL_IMPORT SECStatus SSL_HandshakeNegotiatedExtension(PRFileDesc * socket,
-                                                      ExtensionType extId,
+                                                      SSLExtensionType extId,
                                                       PRBool *yes);
 
 SEC_END_PROTOS

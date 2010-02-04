@@ -105,7 +105,7 @@ SSL_RevealURL(PRFileDesc * fd)
 
 SECStatus
 SSL_HandshakeNegotiatedExtension(PRFileDesc * socket, 
-                                 ExtensionType extId,
+                                 SSLExtensionType extId,
                                  PRBool *pYes)
 {
   /* some decisions derived from SSL_GetChannelInfo */
