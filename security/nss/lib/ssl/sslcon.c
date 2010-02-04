@@ -212,12 +212,10 @@ ssl2_ConstructCipherSpecs(sslSocket *ss)
     count += ssl3_count;
 
     /* Allocate memory to hold cipher specs */
-    if (count > 0) {
-	++count; /* add one for SCSV */
+    if (count > 0)
 	cs = (PRUint8*) PORT_Alloc(count * 3);
-    } else {
+    else
 	PORT_SetError(SSL_ERROR_SSL_DISABLED);
-    }
     if (cs == NULL)
     	return SECFailure;
 
@@ -240,12 +238,6 @@ ssl2_ConstructCipherSpecs(sslSocket *ss)
 	    cs += 3;
 	}
     }
-
-    /* add SCSV */
-    cs[0] = 0x00;
-    cs[1] = 0x00;
-    cs[2] = 0xff;
-    cs += 3;
 
     /* now have SSL3 add its suites onto the end */
     rv = ssl3_ConstructV2CipherSpecsHack(ss, cs, &final_count);
@@ -3160,7 +3152,8 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     localCipherSpecs = ss->cipherSpecs;
     localCipherSize  = ss->sizeCipherSpecs;
 
-    sendLen = SSL_HL_CLIENT_HELLO_HBYTES + localCipherSize + sidLen +
+    /* Add 3 for SCSV */
+    sendLen = SSL_HL_CLIENT_HELLO_HBYTES + localCipherSize + 3 + sidLen +
 	SSL_CHALLENGE_BYTES;
 
     /* Generate challenge bytes for server */
@@ -3185,8 +3178,9 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     
     msg[1] = MSB(ss->clientHelloVersion);
     msg[2] = LSB(ss->clientHelloVersion);
-    msg[3] = MSB(localCipherSize);
-    msg[4] = LSB(localCipherSize);
+    /* Add 3 for SCSV */
+    msg[3] = MSB(localCipherSize + 3);
+    msg[4] = LSB(localCipherSize + 3);
     msg[5] = MSB(sidLen);
     msg[6] = LSB(sidLen);
     msg[7] = MSB(SSL_CHALLENGE_BYTES);
@@ -3194,6 +3188,16 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     cp += SSL_HL_CLIENT_HELLO_HBYTES;
     PORT_Memcpy(cp, localCipherSpecs, localCipherSize);
     cp += localCipherSize;
+    /*
+     * Add SCSV.  SSL 2.0 cipher suites are listed before SSL 3.0 cipher
+     * suites in localCipherSpecs for compatibility with SSL 2.0 servers.
+     * Since SCSV looks like an SSL 3.0 cipher suite, we can't add it at
+     * the beginning.
+     */
+    cp[0] = 0x00;
+    cp[1] = 0x00;
+    cp[2] = 0xff;
+    cp += 3;
     if (sidLen) {
 	PORT_Memcpy(cp, sid->u.ssl2.sessionID, sidLen);
 	cp += sidLen;
@@ -3216,7 +3220,11 @@ ssl2_BeginClientHandshake(sslSocket *ss)
 	goto loser;
     }
 
-    /* Since we sent the SCSV, pretend we sent empty RI extension. */
+    /*
+     * Since we sent the SCSV, pretend we sent empty RI extension.  We need
+     * to record the extension has been advertised after ssl3_InitState has
+     * been called, which ssl3_StartHandshakeHash took care for us above.
+     */
     xtnData = &ss->xtnData;
     xtnData->advertised[xtnData->numAdvertised++] = ssl_renegotiation_info_xtn;
 
