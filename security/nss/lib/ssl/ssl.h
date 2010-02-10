@@ -61,8 +61,14 @@ SEC_BEGIN_PROTOS
 /* constant table enumerating all implemented SSL 2 and 3 cipher suites. */
 SSL_IMPORT const PRUint16 SSL_ImplementedCiphers[];
 
+/* the same as the above, but is a function */
+SSL_IMPORT const PRUint16 *SSL_GetImplementedCiphers(void);
+
 /* number of entries in the above table. */
 SSL_IMPORT const PRUint16 SSL_NumImplementedCiphers;
+
+/* the same as the above, but is a function */
+SSL_IMPORT PRUint16 SSL_GetNumImplementedCiphers(void);
 
 /* Macro to tell which ciphers in table are SSL2 vs SSL3/TLS. */
 #define SSL_IS_SSL2_CIPHER(which) (((which) & 0xfff0) == 0xff00)
