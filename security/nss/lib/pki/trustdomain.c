@@ -1048,7 +1048,7 @@ NSSTrustDomain_TraverseCertificates (
     certList = nssList_Create(NULL, PR_FALSE);
     if (!certList) 
     	return NULL;
-    (void *)nssTrustDomain_GetCertsFromCache(td, certList);
+    (void)nssTrustDomain_GetCertsFromCache(td, certList);
     cached = get_certs_from_list(certList);
     collection = nssCertificateCollection_Create(td, cached);
     nssCertificateArray_Destroy(cached);
