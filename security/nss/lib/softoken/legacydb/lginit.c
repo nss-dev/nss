@@ -44,6 +44,26 @@
 #include "lgdb.h"
 #include "secoid.h"
 #include "prenv.h"
+#include "softkver.h"
+
+/* Library identity and versioning */
+
+#if defined(DEBUG)
+#define _DEBUG_STRING " (debug)"
+#else
+#define _DEBUG_STRING ""
+#endif
+
+/*
+ * Version information for the 'ident' and 'what commands
+ *
+ * NOTE: the first component of the concatenated rcsid string
+ * must not end in a '$' to prevent rcs keyword substitution.
+ */
+const char __nss_dbm_rcsid[] = "$Header: NSS " SOFTOKEN_VERSION _DEBUG_STRING
+        "  " __DATE__ " " __TIME__ " $";
+const char __nss_dbm_sccsid[] = "@(#)NSS " SOFTOKEN_VERSION _DEBUG_STRING
+        "  " __DATE__ " " __TIME__;
 
 typedef struct LGPrivateStr {
     NSSLOWCERTCertDBHandle *certDB;
@@ -604,6 +624,9 @@ legacy_Open(const char *configdir, const char *certPrefix,
     CK_RV crv = CKR_OK;
     SECStatus rv;
     PRBool readOnly = (flags == SDB_RDONLY)? PR_TRUE: PR_FALSE;
+    volatile char c; /* force a reference that won't get optimized away */
+
+    c = __nss_dbm_rcsid[0] + __nss_dbm_sccsid[0];
 
     rv = SECOID_Init();
     if (SECSuccess != rv) {
