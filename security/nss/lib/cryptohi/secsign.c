@@ -277,7 +277,7 @@ SGN_End(SGNContext *cx, SECItem *result)
 ** signature. Returns zero on success, an error code on failure.
 */
 SECStatus
-SEC_SignData(SECItem *res, unsigned char *buf, int len,
+SEC_SignData(SECItem *res, const unsigned char *buf, int len,
 	     SECKEYPrivateKey *pk, SECOidTag algid)
 {
     SECStatus rv;
