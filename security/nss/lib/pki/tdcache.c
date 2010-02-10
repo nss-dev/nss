@@ -499,7 +499,7 @@ nssTrustDomain_UpdateCachedTokenCerts (
     PRUint32 count;
     certList = nssList_Create(NULL, PR_FALSE);
     if (!certList) return PR_FAILURE;
-    (void *)nssTrustDomain_GetCertsFromCache(td, certList);
+    (void)nssTrustDomain_GetCertsFromCache(td, certList);
     count = nssList_Count(certList);
     if (count > 0) {
 	cached = nss_ZNEWARRAY(NULL, NSSCertificate *, count + 1);
