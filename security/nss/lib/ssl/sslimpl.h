@@ -130,11 +130,7 @@ extern int Debug;
 #define SSL_DBG(b)
 #endif
 
-#ifdef macintosh
-#include "pprthred.h"
-#else
 #include "private/pprthred.h"	/* for PR_InMonitor() */
-#endif
 #define ssl_InMonitor(m) PZ_InMonitor(m)
 
 #define LSB(x) ((unsigned char) ((x) & 0xff))

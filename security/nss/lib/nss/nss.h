@@ -263,11 +263,7 @@ extern SECStatus NSS_InitReadWrite(const char *configdir);
         NSS_INIT_NOPK11FINALIZE | \
         NSS_INIT_RESERVED
 
-#ifdef macintosh
-#define SECMOD_DB "Security Modules"
-#else
 #define SECMOD_DB "secmod.db"
-#endif
 
 typedef struct NSSInitContextStr NSSInitContext;
 
