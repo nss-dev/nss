@@ -51,18 +51,11 @@
 #define MULTIACCESS "multiaccess:"
 
 
-/* machine dependent path stuff used by dbinit.c and pk11db.c */
-#ifdef macintosh
-#define PATH_SEPARATOR ":"
-#define SECMOD_DB "Security Modules"
-#define CERT_DB_FMT "%sCertificates%s"
-#define KEY_DB_FMT "%sKey Database%s"
-#else
+/* path stuff (was machine dependent) used by dbinit.c and pk11db.c */
 #define PATH_SEPARATOR "/"
 #define SECMOD_DB "secmod.db"
 #define CERT_DB_FMT "%scert%s.db"
 #define KEY_DB_FMT "%skey%s.db"
-#endif
 
 SEC_BEGIN_PROTOS
 
