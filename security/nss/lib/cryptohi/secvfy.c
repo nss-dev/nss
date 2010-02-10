@@ -721,8 +721,8 @@ VFY_VerifyDataDirect(const unsigned char *buf, int len,
 }
 
 SECStatus
-VFY_VerifyData(unsigned char *buf, int len, SECKEYPublicKey *key,
-	       SECItem *sig, SECOidTag algid, void *wincx)
+VFY_VerifyData(const unsigned char *buf, int len, const SECKEYPublicKey *key,
+	       const SECItem *sig, SECOidTag algid, void *wincx)
 {
     SECOidTag encAlg, hashAlg;
     SECStatus rv = sec_DecodeSigAlg(key, algid, NULL, &encAlg, &hashAlg);
