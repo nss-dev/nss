@@ -701,6 +701,10 @@ what platform and compiler you were using, as well as which test
 failed.  If a reason for failure was given, please send me that text
 as well.
 
+If you're on a system where the standard Unix build tools don't work,
+you can build the 'mpi-test' program manually, and run it by hand.
+This is tedious and obnoxious, sorry.
+
 Further manual testing can be performed by building the manual testing
 programs, whose source is found in the 'tests' subdirectory.  Each
 test is in a source file called 'mptest-X.c'.  The Makefile contains a
