@@ -120,7 +120,7 @@ BLAPI_SHVerify(const char *name, PRFuncPtr addr)
 
     PRBool result = PR_FALSE; /* if anything goes wrong,
 			       * the signature does not verify */
-    unsigned char buf[512];
+    unsigned char buf[4096];
     unsigned char hashBuf[SHA1_LENGTH];
 
     PORT_Memset(&key,0,sizeof(key));
