@@ -3955,7 +3955,7 @@ ssl3_SendClientHello(sslSocket *ss)
 
     if (ss->ssl3.hs.sendingSCSV) {
 	/* Add the actual SCSV */
-	rv = ssl3_AppendHandshakeNumber(ss, TLS_RENEGO_PROTECTION_REQUEST,
+	rv = ssl3_AppendHandshakeNumber(ss, TLS_EMPTY_RENEGOTIATION_INFO_SCSV,
 					sizeof(ssl3CipherSuite));
 	if (rv != SECSuccess) {
 	    return rv;	/* err set by ssl3_AppendHandshake* */
@@ -6050,7 +6050,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	 */
 	for (i = 0; i + 1 < suites.len; i += 2) {
 	    PRUint16 suite_i = (suites.data[i] << 8) | suites.data[i + 1];
-	    if (suite_i == TLS_RENEGO_PROTECTION_REQUEST) {
+	    if (suite_i == TLS_EMPTY_RENEGOTIATION_INFO_SCSV) {
 		SSL3Opaque * b2 = (SSL3Opaque *)emptyRIext;
 		PRUint32     L2 = sizeof emptyRIext;
 		(void)ssl3_HandleHelloExtensions(ss, &b2, &L2);
@@ -6764,7 +6764,7 @@ suite_found:
      */
     for (i = 0; i+2 < suite_length; i += 3) {
 	PRUint32 suite_i = (suites[i] << 16) | (suites[i+1] << 8) | suites[i+2];
-	if (suite_i == TLS_RENEGO_PROTECTION_REQUEST) {
+	if (suite_i == TLS_EMPTY_RENEGOTIATION_INFO_SCSV) {
 	    SSL3Opaque * b2 = (SSL3Opaque *)emptyRIext;
 	    PRUint32     L2 = sizeof emptyRIext;
 	    (void)ssl3_HandleHelloExtensions(ss, &b2, &L2);

@@ -181,11 +181,11 @@
 
 #define TLS_RSA_WITH_SEED_CBC_SHA		0x0096
 
-/* TLS "Signalling Cipher Suite Value" (SCSV). May be requested by client.
+/* TLS "Signaling Cipher Suite Value" (SCSV). May be requested by client.
  * Must NEVER be chosen by server.  SSL 3.0 server acknowledges by sending
  * back an empty Renegotiation Info (RI) server hello extension.
  */
-#define TLS_RENEGO_PROTECTION_REQUEST		0x00FF
+#define TLS_EMPTY_RENEGOTIATION_INFO_SCSV	0x00FF
 
 /* Cipher Suite Values starting with 0xC000 are defined in informational
  * RFCs.
