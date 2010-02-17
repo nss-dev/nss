@@ -181,7 +181,7 @@ static sslOptions ssl_defaults = {
     PR_FALSE,   /* noLocks            */
     PR_FALSE,   /* enableSessionTickets */
     PR_FALSE,   /* enableDeflate      */
-    2,          /* enableRenegotiation (default: requires extension) */
+    3,          /* enableRenegotiation (default: transitional) */
     PR_FALSE,   /* requireSafeNegotiation */
 };
 
@@ -2299,10 +2299,10 @@ ssl_NewSocket(PRBool makeLocks)
 	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_UNRESTRICTED;
 	    else if (ev[0] == '0' || LOWER(ev[0]) == 'n')
 	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_NEVER;
-	    else if (ev[0] == '3' || LOWER(ev[0]) == 'c')
-	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_CLIENT_ONLY;
+	    else if (ev[0] == '2' || LOWER(ev[0]) == 'r')
+		ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_REQUIRES_XTN;
 	    else
-	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_REQUIRES_XTN;
+	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_TRANSITIONAL;
 	    SSL_TRACE(("SSL: enableRenegotiation set to %d", 
 	               ssl_defaults.enableRenegotiation));
 	}

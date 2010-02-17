@@ -5973,8 +5973,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	goto alert_loser;
     }
     if (ss->ssl3.hs.ws == idle_handshake  &&
-        (ss->opt.enableRenegotiation == SSL_RENEGOTIATE_NEVER ||
-         ss->opt.enableRenegotiation == SSL_RENEGOTIATE_CLIENT_ONLY)) {
+        ss->opt.enableRenegotiation == SSL_RENEGOTIATE_NEVER) {
 	desc    = no_renegotiation;
 	level   = alert_warning;
 	errCode = SSL_ERROR_RENEGOTIATION_NOT_ALLOWED;
@@ -6059,7 +6058,8 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	}
     }
     if (ss->firstHsDone &&
-        ss->opt.enableRenegotiation == SSL_RENEGOTIATE_REQUIRES_XTN && 
+        (ss->opt.enableRenegotiation == SSL_RENEGOTIATE_REQUIRES_XTN ||
+        ss->opt.enableRenegotiation == SSL_RENEGOTIATE_TRANSITIONAL) && 
 	!ssl3_ExtensionNegotiated(ss, ssl_renegotiation_info_xtn)) {
 	desc    = no_renegotiation;
 	level   = alert_warning;
@@ -9390,9 +9390,7 @@ ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache)
 	PORT_SetError(SSL_ERROR_HANDSHAKE_NOT_COMPLETED);
 	return SECFailure;
     }
-    if (ss->opt.enableRenegotiation == SSL_RENEGOTIATE_NEVER ||
-       (ss->opt.enableRenegotiation == SSL_RENEGOTIATE_CLIENT_ONLY &&
-        ss->sec.isServer)) {
+    if (ss->opt.enableRenegotiation == SSL_RENEGOTIATE_NEVER) {
 	PORT_SetError(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED);
 	return SECFailure;
     }
