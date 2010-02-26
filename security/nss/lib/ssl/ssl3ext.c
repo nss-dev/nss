@@ -1501,8 +1501,6 @@ ssl3_HandleRenegotiationInfoXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 	data->data[0] != len  || (len && 
 	NSS_SecureMemcmp(ss->ssl3.hs.finishedMsgs.data,
 	                 data->data + 1, len))) {
-	/* Can we do this here? Or, must we arrange for the caller to do it? */
-	(void)SSL3_SendAlert(ss, alert_fatal, handshake_failure);
 	PORT_SetError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
 	return SECFailure;
     }
