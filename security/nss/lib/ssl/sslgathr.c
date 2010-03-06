@@ -303,25 +303,25 @@ ssl2_GatherData(sslSocket *ss, sslGather *gs, int flags)
 				        gs->offset - macLen);
 		(*ss->sec.hash->update)(ss->sec.hashcx, seq, 4);
 		(*ss->sec.hash->end)(ss->sec.hashcx, mac, &macLen, macLen);
+
+		PORT_Assert(macLen == ss->sec.hash->length);
+
+		ssl_ReleaseSpecReadLock(ss);  /******************************/
+
+		if (NSS_SecureMemcmp(mac, pBuf, macLen) != 0) {
+		    /* MAC's didn't match... */
+		    SSL_DBG(("%d: SSL[%d]: mac check failed, seq=%d",
+			     SSL_GETPID(), ss->fd, ss->sec.rcvSequence));
+		    PRINT_BUF(1, (ss, "computed mac:", mac, macLen));
+		    PRINT_BUF(1, (ss, "received mac:", pBuf, macLen));
+		    PORT_SetError(SSL_ERROR_BAD_MAC_READ);
+		    rv = SECFailure;
+		    goto cleanup;
+		}
+	    } else {
+		ssl_ReleaseSpecReadLock(ss);  /******************************/
 	    }
 
-	    PORT_Assert(macLen == ss->sec.hash->length);
-
-	    ssl_ReleaseSpecReadLock(ss);  /******************************/
-
-	    if (NSS_SecureMemcmp(mac, pBuf, macLen) != 0) {
-		/* MAC's didn't match... */
-		SSL_DBG(("%d: SSL[%d]: mac check failed, seq=%d",
-			 SSL_GETPID(), ss->fd, ss->sec.rcvSequence));
-		PRINT_BUF(1, (ss, "computed mac:", mac, macLen));
-		PRINT_BUF(1, (ss, "received mac:", pBuf, macLen));
-		PORT_SetError(SSL_ERROR_BAD_MAC_READ);
-		rv = SECFailure;
-		goto cleanup;
-	    }
-
-
-	    PORT_Assert(gs->recordPadding + macLen <= gs->offset);
 	    if (gs->recordPadding + macLen <= gs->offset) {
 		gs->recordOffset  = macLen;
 		gs->readOffset    = macLen;
