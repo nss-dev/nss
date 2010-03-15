@@ -288,7 +288,7 @@ ssl3_ComputeECDHKeyHash(SECItem ec_params, SECItem server_ecpoint,
     PRINT_BUF(95, (NULL, "ECDHkey hash: MD5 result", hashes->md5, MD5_LENGTH));
     PRINT_BUF(95, (NULL, "ECDHkey hash: SHA1 result", hashes->sha, SHA1_LENGTH));
 
-    if (hashBuf != buf && hashBuf != NULL)
+    if (hashBuf != buf)
     	PORT_Free(hashBuf);
     return rv;
 }
