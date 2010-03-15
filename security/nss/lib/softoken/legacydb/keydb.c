@@ -1396,7 +1396,7 @@ loser:
     if (dbkey) {
  	sec_destroy_dbkey(dbkey);
     }
-    if (global_salt && global_salt != &none) {
+    if (global_salt != &none) {
 	SECITEM_FreeItem(global_salt,PR_TRUE);
     }
     return rv;
