@@ -808,6 +808,8 @@ RSA_PrivateKeyCheck(RSAPrivateKey *key)
     mp_int p, q, n, psub1, qsub1, e, d, d_p, d_q, qInv, res;
     mp_err   err = MP_OKAY;
     SECStatus rv = SECSuccess;
+    MP_DIGITS(&p)    = 0;
+    MP_DIGITS(&q)    = 0;
     MP_DIGITS(&n)    = 0;
     MP_DIGITS(&psub1)= 0;
     MP_DIGITS(&qsub1)= 0;
@@ -817,9 +819,9 @@ RSA_PrivateKeyCheck(RSAPrivateKey *key)
     MP_DIGITS(&d_q)  = 0;
     MP_DIGITS(&qInv) = 0;
     MP_DIGITS(&res)  = 0;
-    CHECK_MPI_OK( mp_init(&n)    );
     CHECK_MPI_OK( mp_init(&p)    );
     CHECK_MPI_OK( mp_init(&q)    );
+    CHECK_MPI_OK( mp_init(&n)    );
     CHECK_MPI_OK( mp_init(&psub1));
     CHECK_MPI_OK( mp_init(&qsub1));
     CHECK_MPI_OK( mp_init(&e)    );
