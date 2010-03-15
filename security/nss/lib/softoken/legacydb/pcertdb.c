@@ -1032,9 +1032,8 @@ DeleteDBCertEntry(NSSLOWCERTCertDBHandle *handle, SECItem *certKey)
 	goto loser;
     }
 
-    if (dbkey.data) {
-	PORT_Free(dbkey.data);
-    }
+    PORT_Free(dbkey.data);
+
     return(SECSuccess);
 
 loser:
