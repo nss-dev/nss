@@ -1154,13 +1154,18 @@ PK11_PubWrapSymKey(CK_MECHANISM_TYPE type, SECKEYPublicKey *pubKey,
     CK_SESSION_HANDLE session;
     CK_RV crv;
 
+    if (symKey == NULL) {
+	PORT_SetError( SEC_ERROR_INVALID_ARGS );
+	return SECFailure;
+    }
+
     /* if this slot doesn't support the mechanism, go to a slot that does */
     newKey = pk11_ForceSlot(symKey,type,CKA_ENCRYPT);
     if (newKey != NULL) {
 	symKey = newKey;
     }
 
-    if ((symKey == NULL) || (symKey->slot == NULL)) {
+    if (symKey->slot == NULL) {
 	PORT_SetError( SEC_ERROR_NO_MODULE );
 	return SECFailure;
     }
