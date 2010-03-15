@@ -4747,7 +4747,7 @@ mp_to_unsigned_octets(const mp_int *mp, unsigned char *str, mp_size maxlen)
   ARGCHK(mp != NULL && str != NULL && !SIGN(mp), MP_BADARG);
 
   bytes = mp_unsigned_octet_size(mp);
-  ARGCHK(bytes <= maxlen, MP_BADARG);
+  ARGCHK(bytes >= 0 && bytes <= maxlen, MP_BADARG);
 
   /* Iterate over each digit... */
   for(ix = USED(mp) - 1; ix >= 0; ix--) {
@@ -4779,7 +4779,7 @@ mp_to_signed_octets(const mp_int *mp, unsigned char *str, mp_size maxlen)
   ARGCHK(mp != NULL && str != NULL && !SIGN(mp), MP_BADARG);
 
   bytes = mp_unsigned_octet_size(mp);
-  ARGCHK(bytes <= maxlen, MP_BADARG);
+  ARGCHK(bytes >= 0 && bytes <= maxlen, MP_BADARG);
 
   /* Iterate over each digit... */
   for(ix = USED(mp) - 1; ix >= 0; ix--) {
@@ -4819,7 +4819,7 @@ mp_to_fixlen_octets(const mp_int *mp, unsigned char *str, mp_size length)
   ARGCHK(mp != NULL && str != NULL && !SIGN(mp), MP_BADARG);
 
   bytes = mp_unsigned_octet_size(mp);
-  ARGCHK(bytes <= length, MP_BADARG);
+  ARGCHK(bytes >= 0 && bytes <= length, MP_BADARG);
 
   /* place any needed leading zeros */
   for (;length > bytes; --length) {
