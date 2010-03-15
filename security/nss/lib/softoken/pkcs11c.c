@@ -2899,9 +2899,8 @@ nsc_parameter_gen(CK_KEY_TYPE key_type, SFTKObject *key)
     if (crv != CKR_OK) goto loser;
 
 loser:
-    if (params) {
-	PQG_DestroyParams(params);
-    }
+    PQG_DestroyParams(params);
+
     if (vfy) {
 	PQG_DestroyVerify(vfy);
     }
