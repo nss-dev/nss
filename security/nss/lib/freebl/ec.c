@@ -248,6 +248,7 @@ ec_NewKey(ECParams *ecParams, ECPrivateKey **privKey,
 #if EC_DEBUG
     printf("ec_NewKey called\n");
 #endif
+    MP_DIGITS(&k) = 0;
 
     if (!ecParams || !privKey || !privKeyBytes || (privKeyLen < 0)) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -316,7 +317,6 @@ ec_NewKey(ECParams *ecParams, ECPrivateKey **privKey,
     }
 
     /* Compute corresponding public key */
-    MP_DIGITS(&k) = 0;
     CHECK_MPI_OK( mp_init(&k) );
     CHECK_MPI_OK( mp_read_unsigned_octets(&k, key->privateValue.data, 
 	(mp_size) len) );
