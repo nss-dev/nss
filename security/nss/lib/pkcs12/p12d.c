@@ -1681,7 +1681,11 @@ sec_pkcs12_get_nickname(sec_PKCS12SafeBag *bag)
     }
 
     src = sec_pkcs12_get_attribute_value(bag, SEC_OID_PKCS9_FRIENDLY_NAME);
-    if(!src) {
+
+    /* The return value src is 16-bit Unicode characters, in big-endian format.
+     * Check if it is NULL or empty name.
+     */
+    if(!src || !src->data || src->len < 2 || (!src->data[0] && !src->data[1])) {
 	return NULL;
     }
 
