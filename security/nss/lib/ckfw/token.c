@@ -390,9 +390,9 @@ nssCKFWToken_Destroy
   }
 
   /* free up the token objects */
-  nssCKFWHash_Iterate(fwToken->mdObjectHash, nss_ckfwtoken_object_iterator, 
-                                                                (void *)NULL);
   if (fwToken->mdObjectHash) {
+    nssCKFWHash_Iterate(fwToken->mdObjectHash, nss_ckfwtoken_object_iterator, 
+                                                                (void *)NULL);
     nssCKFWHash_Destroy(fwToken->mdObjectHash);
   }
   if (fwToken->mdMechanismHash) {
