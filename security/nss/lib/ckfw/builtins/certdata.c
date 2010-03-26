@@ -18101,7 +18101,7 @@ static const NSSItem nss_builtins_items_266 [] = {
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
-  { (void *)"AC Ra\xC3\xADz Certic\xC3\xA1mara S.A.", (PRUint32)39 },
+  { (void *)"AC Ra\xC3\xADz Certic\xC3\xA1mara S.A.", (PRUint32)27 },
   { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
   { (void *)"\060\173\061\013\060\011\006\003\125\004\006\023\002\103\117\061"
 "\107\060\105\006\003\125\004\012\014\076\123\157\143\151\145\144"
@@ -18235,7 +18235,7 @@ static const NSSItem nss_builtins_items_267 [] = {
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
-  { (void *)"AC Ra\xC3\xADz Certic\xC3\xA1mara S.A.", (PRUint32)39 },
+  { (void *)"AC Ra\xC3\xADz Certic\xC3\xA1mara S.A.", (PRUint32)27 },
   { (void *)"\313\241\305\370\260\343\136\270\271\105\022\323\371\064\242\351"
 "\006\020\323\066"
 , (PRUint32)20 },
@@ -19223,7 +19223,7 @@ static const NSSItem nss_builtins_items_284 [] = {
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
-  { (void *)"T\xc3\x9c\x42\xC4\xB0TAK UEKAE K\xC3\xB6k Sertifika Hizmet Sa\xC4\x9Flay\xc4\xb1\x63\xc4\xb1s\xc4\xb1 - S\xC3\xBCr\xC3\xBCm 3", (PRUint32)126 },
+  { (void *)"T\xc3\x9c\x42\xC4\xB0TAK UEKAE K\xC3\xB6k Sertifika Hizmet Sa\xC4\x9Flay\xc4\xb1\x63\xc4\xb1s\xc4\xb1 - S\xC3\xBCr\xC3\xBCm 3", (PRUint32)66 },
   { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
   { (void *)"\060\202\001\053\061\013\060\011\006\003\125\004\006\023\002\124"
 "\122\061\030\060\026\006\003\125\004\007\014\017\107\145\142\172"
@@ -19357,7 +19357,7 @@ static const NSSItem nss_builtins_items_285 [] = {
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
-  { (void *)"T\xc3\x9c\x42\xC4\xB0TAK UEKAE K\xC3\xB6k Sertifika Hizmet Sa\xC4\x9Flay\xc4\xb1\x63\xc4\xb1s\xc4\xb1 - S\xC3\xBCr\xC3\xBCm 3", (PRUint32)126 },
+  { (void *)"T\xc3\x9c\x42\xC4\xB0TAK UEKAE K\xC3\xB6k Sertifika Hizmet Sa\xC4\x9Flay\xc4\xb1\x63\xc4\xb1s\xc4\xb1 - S\xC3\xBCr\xC3\xBCm 3", (PRUint32)66 },
   { (void *)"\033\113\071\141\046\047\153\144\221\242\150\155\327\002\103\041"
 "\055\037\035\226"
 , (PRUint32)20 },
@@ -19599,7 +19599,7 @@ static const NSSItem nss_builtins_items_290 [] = {
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
-  { (void *)"EBG Elektronik Sertifika Hizmet Sa\xC4\x9Flay\xc4\xb1\x63\xc4\xb1s\xc4\xb1", (PRUint32)75 },
+  { (void *)"EBG Elektronik Sertifika Hizmet Sa\xC4\x9Flay\xc4\xb1\x63\xc4\xb1s\xc4\xb1", (PRUint32)48 },
   { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
   { (void *)"\060\201\200\061\070\060\066\006\003\125\004\003\014\057\105\102"
 "\107\040\105\154\145\153\164\162\157\156\151\153\040\123\145\162"
@@ -19726,7 +19726,7 @@ static const NSSItem nss_builtins_items_291 [] = {
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
-  { (void *)"EBG Elektronik Sertifika Hizmet Sa\xC4\x9Flay\xc4\xb1\x63\xc4\xb1s\xc4\xb1", (PRUint32)75 },
+  { (void *)"EBG Elektronik Sertifika Hizmet Sa\xC4\x9Flay\xc4\xb1\x63\xc4\xb1s\xc4\xb1", (PRUint32)48 },
   { (void *)"\214\226\272\353\335\053\007\007\110\356\060\062\146\240\363\230"
 "\156\174\256\130"
 , (PRUint32)20 },
