@@ -1104,8 +1104,8 @@ InitCache(cacheDesc *cache, int maxCacheEntries, int maxCertCacheEntries,
 
     cache->numCertCacheEntries = (maxCertCacheEntries > 0) ?
                                              maxCertCacheEntries : 0;
-    cache->numSrvNameCacheEntries = (maxSrvNameCacheEntries > 0) ?
-                                             maxSrvNameCacheEntries : 0;
+    cache->numSrvNameCacheEntries = (maxSrvNameCacheEntries >= 0) ?
+                                             maxSrvNameCacheEntries : DEF_NAME_CACHE_ENTRIES;
 
     /* compute size of shared memory, and offsets of all pointers */
     ptr = 0;
@@ -1168,9 +1168,6 @@ InitCache(cacheDesc *cache, int maxCacheEntries, int maxCertCacheEntries,
     ptr = SID_ROUNDUP(ptr, SID_ALIGNMENT);
 
     cache->srvNameCacheData = (srvNameCacheEntry *)ptr;
-    if (cache->numSrvNameCacheEntries < 0) {
-        cache->numSrvNameCacheEntries = DEF_NAME_CACHE_ENTRIES;
-    }
     cache->srvNameCacheSize =
         cache->numSrvNameCacheEntries * sizeof(srvNameCacheEntry);
     ptr = (ptrdiff_t)(cache->srvNameCacheData + cache->numSrvNameCacheEntries);
