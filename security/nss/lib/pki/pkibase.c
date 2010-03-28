@@ -510,6 +510,11 @@ nssCertificateArray_FindBestCertificate (
 	     * */
 	}
 	bestdc = nssCertificate_GetDecoding(bestCert);
+	if (!bestdc) {
+	    nssCertificate_Destroy(bestCert);
+	    bestCert = nssCertificate_AddRef(c);
+	    continue;
+	}
 	/* time */
 	if (bestdc->isValidAtTime(bestdc, time)) {
 	    /* The current best cert is valid at time */
@@ -1247,7 +1252,9 @@ NSSTime_SetPRTime (
 {
     NSSTime *rvTime;
     rvTime = (timeOpt) ? timeOpt : nss_ZNEW(NULL, NSSTime);
-    rvTime->prTime = prTime;
+    if (rvTime) {
+        rvTime->prTime = prTime;
+    }
     return rvTime;
 }
 
