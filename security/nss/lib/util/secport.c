@@ -344,11 +344,7 @@ PORT_FreeArena(PLArenaPool *arena, PRBool zero)
 	checkedEnv = PR_TRUE;
     }
     if (zero) {
-	PLArena *a;
-	for (a = arena->first.next; a; a = a->next) {
-	    PR_ASSERT(a->base <= a->avail && a->avail <= a->limit);
-	    memset((void *)a->base, 0, a->avail - a->base);
-	}
+	PL_ClearArenaPool(arena, 0);
     }
     if (doFreeArenaPool) {
 	PL_FreeArenaPool(arena);
