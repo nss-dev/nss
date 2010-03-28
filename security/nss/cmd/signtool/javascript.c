@@ -1834,7 +1834,7 @@ copyinto (char *from, char *to)
          == NULL) {
 	char	*errBuf = NULL;
 
-	errBuf = PR_Malloc(PR_GetErrorTextLength());
+	errBuf = PR_Malloc(PR_GetErrorTextLength() + 1);
 	PR_fprintf(errorFD, "ERROR: Unable to open \"%s\" for writing.\n", to);
 	if (PR_GetErrorText(errBuf)) {
 	    PR_fprintf(errorFD, "Cause: %s\n", errBuf);
