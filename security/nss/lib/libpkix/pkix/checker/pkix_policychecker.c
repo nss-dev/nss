@@ -872,7 +872,7 @@ pkix_PolicyChecker_MakeMutableCopy(
         PKIX_List *newList = NULL;
         PKIX_UInt32 listLen = 0;
         PKIX_UInt32 listIx = 0;
-        PKIX_PL_Object *object;
+        PKIX_PL_Object *object = NULL;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_PolicyChecker_MakeMutableCopy");
         PKIX_NULLCHECK_TWO(list, pMutableCopy);
