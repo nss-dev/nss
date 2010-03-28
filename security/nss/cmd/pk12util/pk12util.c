@@ -560,11 +560,11 @@ p12u_DoPKCS12ExportErrors()
     if ((error_value == SEC_ERROR_PKCS12_UNABLE_TO_EXPORT_KEY) ||
 	(error_value == SEC_ERROR_PKCS12_UNABLE_TO_LOCATE_OBJECT_BY_NAME) ||
 	(error_value == SEC_ERROR_PKCS12_UNABLE_TO_WRITE)) {
-	fprintf(stderr, SECU_ErrorStringRaw((int16)error_value));
+	fputs(SECU_ErrorStringRaw((int16)error_value), stderr);
     } else if(error_value == SEC_ERROR_USER_CANCELLED) {
 	;
     } else {
-	fprintf(stderr, SECU_ErrorStringRaw(SEC_ERROR_EXPORTING_CERTIFICATES));
+	fputs(SECU_ErrorStringRaw(SEC_ERROR_EXPORTING_CERTIFICATES), stderr);
     }
 }
 
