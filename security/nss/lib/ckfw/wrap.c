@@ -1777,6 +1777,9 @@ NSSCKFWC_SetOperationState
     }
   }
 
+  state.data = pOperationState;
+  state.size = ulOperationStateLen;
+
   error = nssCKFWSession_SetOperationState(fwSession, &state, eKey, aKey);
   if( CKR_OK != error ) {
     goto loser;
