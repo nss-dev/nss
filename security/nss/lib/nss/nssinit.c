@@ -580,7 +580,7 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     if (initContextPtr) {
 	*initContextPtr = PORT_ZNew(NSSInitContext);
 	if (*initContextPtr == NULL) {
-	    return SECFailure;
+	    goto loser;
 	}
 	/*
 	 * For traditional NSS_Init, we used the PK11_Configure() call to set
@@ -592,7 +592,7 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
         if (initParams) {
 	    if (initParams->length < sizeof(NSSInitParameters)) {
 		PORT_SetError(SEC_ERROR_INVALID_ARGS);
-		return SECFailure;
+		goto loser;
 	    }
 	    configStrings = nss_MkConfigString(initParams->manufactureID,
 		initParams->libraryDescription,
@@ -605,7 +605,7 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 		initParams->minPWLen);
 	    if (configStrings == NULL) {
 		PORT_SetError(SEC_ERROR_NO_MEMORY);
-		return SECFailure;
+		goto loser;
 	    }
 	    configName = initParams->libraryDescription;
 	    passwordRequired = initParams->passwordRequired;
