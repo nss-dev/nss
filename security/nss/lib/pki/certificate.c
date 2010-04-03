@@ -143,7 +143,7 @@ nssCertificate_Destroy (
 	} else {
 	    nssTrustDomain_LockCertCache(td);
 	}
-	if (PR_AtomicDecrement(&c->object.refCount) == 0) {
+	if (PR_ATOMIC_DECREMENT(&c->object.refCount) == 0) {
 	    /* --- remove cert and UNLOCK storage --- */
 	    if (cc) {
 		nssCertificateStore_RemoveCertLOCKED(cc->certStore, c);

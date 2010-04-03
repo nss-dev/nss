@@ -571,11 +571,11 @@ typedef struct tooLongStr {
 void SSL_AtomicIncrementLong(long * x)
 {
     if ((sizeof *x) == sizeof(PRInt32)) {
-        PR_AtomicIncrement((PRInt32 *)x);
+        PR_ATOMIC_INCREMENT((PRInt32 *)x);
     } else {
     	tooLong * tl = (tooLong *)x;
-	if (PR_AtomicIncrement(&tl->low) == 0)
-	    PR_AtomicIncrement(&tl->high);
+	if (PR_ATOMIC_INCREMENT(&tl->low) == 0)
+	    PR_ATOMIC_INCREMENT(&tl->high);
     }
 }
 
@@ -7565,7 +7565,7 @@ get_fake_cert(SECItem *pCertItem, int *pIndex)
     }
     *pIndex   = (NULL != strstr(testdir, "root"));
     extension = (strstr(testdir, "simple") ? "" : ".der");
-    fileNum     = PR_AtomicIncrement(&connNum) - 1;
+    fileNum     = PR_ATOMIC_INCREMENT(&connNum) - 1;
     if ((startat = PR_GetEnv("START_AT")) != NULL) {
 	fileNum += atoi(startat);
     }
@@ -9167,14 +9167,14 @@ ssl3_NewKeyPair( SECKEYPrivateKey * privKey, SECKEYPublicKey * pubKey)
 ssl3KeyPair *
 ssl3_GetKeyPairRef(ssl3KeyPair * keyPair)
 {
-    PR_AtomicIncrement(&keyPair->refCount);
+    PR_ATOMIC_INCREMENT(&keyPair->refCount);
     return keyPair;
 }
 
 void
 ssl3_FreeKeyPair(ssl3KeyPair * keyPair)
 {
-    PRInt32 newCount =  PR_AtomicDecrement(&keyPair->refCount);
+    PRInt32 newCount =  PR_ATOMIC_DECREMENT(&keyPair->refCount);
     if (!newCount) {
 	if (keyPair->privKey)
 	    SECKEY_DestroyPrivateKey(keyPair->privKey);

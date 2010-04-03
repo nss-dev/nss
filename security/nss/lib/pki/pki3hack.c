@@ -817,7 +817,7 @@ fill_CERTCertificateFields(NSSCertificate *c, CERTCertificate *cc, PRBool forced
 
 	/* Assert that it is safe to cast &cc->nsCertType to "PRInt32 *" */
 	PORT_Assert(sizeof(cc->nsCertType) == sizeof(PRInt32));
-	PR_AtomicSet((PRInt32 *)&cc->nsCertType, nsCertType);
+	PR_ATOMIC_SET((PRInt32 *)&cc->nsCertType, nsCertType);
     }
 }
 

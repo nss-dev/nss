@@ -70,7 +70,7 @@ nssSlot_Destroy (
 )
 {
     if (slot) {
-	if (PR_AtomicDecrement(&slot->base.refCount) == 0) {
+	if (PR_ATOMIC_DECREMENT(&slot->base.refCount) == 0) {
 	    PZ_DestroyLock(slot->base.lock);
 	    return nssArena_Destroy(slot->base.arena);
 	}
@@ -107,7 +107,7 @@ nssSlot_AddRef (
   NSSSlot *slot
 )
 {
-    PR_AtomicIncrement(&slot->base.refCount);
+    PR_ATOMIC_INCREMENT(&slot->base.refCount);
     return slot;
 }
 

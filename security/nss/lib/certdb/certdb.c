@@ -569,7 +569,7 @@ cert_GetCertType(CERTCertificate *cert)
 
     /* Assert that it is safe to cast &cert->nsCertType to "PRInt32 *" */
     PORT_Assert(sizeof(cert->nsCertType) == sizeof(PRInt32));
-    PR_AtomicSet((PRInt32 *)&cert->nsCertType, nsCertType);
+    PR_ATOMIC_SET((PRInt32 *)&cert->nsCertType, nsCertType);
     return SECSuccess;
 }
 
