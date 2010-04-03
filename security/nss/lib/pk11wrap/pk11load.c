@@ -406,7 +406,7 @@ secmod_LoadPKCS11Module(SECMODModule *mod, SECMODModule **oldModule) {
         PR_SUCCESS != PR_CallOnce(&loadSoftokenOnce, &softoken_LoadDSO))
         return SECFailure;
 
-    PR_AtomicIncrement(&softokenLoadCount);
+    PR_ATOMIC_INCREMENT(&softokenLoadCount);
 
     if (mod->isFIPS) {
         entry = (CK_C_GetFunctionList) 
@@ -592,7 +592,7 @@ SECMOD_UnloadModule(SECMODModule *mod) {
      * if not, we should change this to SECFailure and move it above the
      * mod->loaded = PR_FALSE; */
     if (mod->internal) {
-        if (0 == PR_AtomicDecrement(&softokenLoadCount)) {
+        if (0 == PR_ATOMIC_DECREMENT(&softokenLoadCount)) {
           if (softokenLib) {
               disableUnload = PR_GetEnv("NSS_DISABLE_UNLOAD");
               if (!disableUnload) {

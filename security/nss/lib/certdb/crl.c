@@ -842,7 +842,7 @@ CERTSignedCrl* SEC_DupCrl(CERTSignedCrl* acrl)
 {
     if (acrl)
     {
-        PR_AtomicIncrement(&acrl->referenceCount);
+        PR_ATOMIC_INCREMENT(&acrl->referenceCount);
         return acrl;
     }
     return NULL;
@@ -852,7 +852,7 @@ SECStatus
 SEC_DestroyCrl(CERTSignedCrl *crl)
 {
     if (crl) {
-	if (PR_AtomicDecrement(&crl->referenceCount) < 1) {
+	if (PR_ATOMIC_DECREMENT(&crl->referenceCount) < 1) {
 	    if (crl->slot) {
 		PK11_FreeSlot(crl->slot);
 	    }

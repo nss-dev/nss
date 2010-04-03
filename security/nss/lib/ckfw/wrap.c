@@ -206,7 +206,7 @@ NSSCKFWC_Initialize
   if (!*pFwInstance) {
     goto loser;
   }
-  PR_AtomicIncrement(&liveInstances);
+  PR_ATOMIC_INCREMENT(&liveInstances);
   return CKR_OK;
 
  loser:
@@ -259,7 +259,7 @@ NSSCKFWC_Finalize
   switch( error ) {
   PRInt32 remainingInstances;
   case CKR_OK:
-    remainingInstances = PR_AtomicDecrement(&liveInstances);
+    remainingInstances = PR_ATOMIC_DECREMENT(&liveInstances);
     if (!remainingInstances) {
 	nssArena_Shutdown();
     }

@@ -152,7 +152,7 @@ nssPKIObject_Create (
 	    goto loser;
 	}
     }
-    PR_AtomicIncrement(&object->refCount);
+    PR_ATOMIC_INCREMENT(&object->refCount);
     if (mark) {
 	nssArena_Unmark(arena, mark);
     }
@@ -173,7 +173,7 @@ nssPKIObject_Destroy (
 {
     PRUint32 i;
     PR_ASSERT(object->refCount > 0);
-    if (PR_AtomicDecrement(&object->refCount) == 0) {
+    if (PR_ATOMIC_DECREMENT(&object->refCount) == 0) {
 	for (i=0; i<object->numInstances; i++) {
 	    nssCryptokiObject_Destroy(object->instances[i]);
 	}
@@ -189,7 +189,7 @@ nssPKIObject_AddRef (
   nssPKIObject *object
 )
 {
-    PR_AtomicIncrement(&object->refCount);
+    PR_ATOMIC_INCREMENT(&object->refCount);
     return object;
 }
 

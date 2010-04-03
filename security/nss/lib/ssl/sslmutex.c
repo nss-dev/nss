@@ -211,7 +211,7 @@ sslMutex_Unlock(sslMutex *pMutex)
 	return SECFailure;
     }
     /* Do Memory Barrier here. */
-    newValue = PR_AtomicDecrement(&pMutex->u.pipeStr.nWaiters);
+    newValue = PR_ATOMIC_DECREMENT(&pMutex->u.pipeStr.nWaiters);
     if (newValue > 0) {
 	int  cc;
 	char c  = 1;
@@ -241,7 +241,7 @@ sslMutex_Lock(sslMutex *pMutex)
 	PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
 	return SECFailure;
     }
-    newValue = PR_AtomicIncrement(&pMutex->u.pipeStr.nWaiters);
+    newValue = PR_ATOMIC_INCREMENT(&pMutex->u.pipeStr.nWaiters);
     /* Do Memory Barrier here. */
     if (newValue > 1) {
 	int   cc;
