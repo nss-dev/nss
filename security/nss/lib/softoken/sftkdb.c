@@ -2375,7 +2375,7 @@ sftk_freeDB(SFTKDBHandle *handle)
     PRInt32 ref;
 
     if (!handle) return;
-    ref = PR_AtomicDecrement(&handle->ref);
+    ref = PR_ATOMIC_DECREMENT(&handle->ref);
     if (ref == 0) {
 	sftkdb_CloseDB(handle);
     }
@@ -2395,7 +2395,7 @@ sftk_getCertDB(SFTKSlot *slot)
     PZ_Lock(slot->slotLock);
     dbHandle = slot->certDB;
     if (dbHandle) {
-        PR_AtomicIncrement(&dbHandle->ref);
+        PR_ATOMIC_INCREMENT(&dbHandle->ref);
     }
     PZ_Unlock(slot->slotLock);
     return dbHandle;
@@ -2413,7 +2413,7 @@ sftk_getKeyDB(SFTKSlot *slot)
     SKIP_AFTER_FORK(PZ_Lock(slot->slotLock));
     dbHandle = slot->keyDB;
     if (dbHandle) {
-        PR_AtomicIncrement(&dbHandle->ref);
+        PR_ATOMIC_INCREMENT(&dbHandle->ref);
     }
     SKIP_AFTER_FORK(PZ_Unlock(slot->slotLock));
     return dbHandle;
@@ -2431,7 +2431,7 @@ sftk_getDBForTokenObject(SFTKSlot *slot, CK_OBJECT_HANDLE objectID)
     PZ_Lock(slot->slotLock);
     dbHandle = objectID & SFTK_KEYDB_TYPE ? slot->keyDB : slot->certDB;
     if (dbHandle) {
-        PR_AtomicIncrement(&dbHandle->ref);
+        PR_ATOMIC_INCREMENT(&dbHandle->ref);
     }
     PZ_Unlock(slot->slotLock);
     return dbHandle;
