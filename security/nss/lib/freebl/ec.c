@@ -578,12 +578,12 @@ ECDH_Derive(SECItem  *publicValue,
 	return SECFailure;
     }
 
+    MP_DIGITS(&k) = 0;
     memset(derivedSecret, 0, sizeof *derivedSecret);
     len = (ecParams->fieldID.size + 7) >> 3;  
     pointQ.len = 2*len + 1;
     if ((pointQ.data = PORT_Alloc(2*len + 1)) == NULL) goto cleanup;
 
-    MP_DIGITS(&k) = 0;
     CHECK_MPI_OK( mp_init(&k) );
     CHECK_MPI_OK( mp_read_unsigned_octets(&k, privateValue->data, 
 	                                  (mp_size) privateValue->len) );
