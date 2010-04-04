@@ -341,6 +341,7 @@ SEC_PKCS7SetContent(SEC_PKCS7ContentInfo *cinfo,
     SECItem content;
     SECOidData *contentTypeTag = NULL;
 
+    content.type = siBuffer;
     content.data = (unsigned char *)buf;
     content.len = len;
 
