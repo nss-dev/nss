@@ -4210,6 +4210,7 @@ mp_err   s_mp_div(mp_int *rem, 	/* i: dividend, o: remainder */
   if(mp_cmp_z(div) == 0)
     return MP_RANGE;
 
+  DIGITS(&t) = 0;
   /* Shortcut if divisor is power of two */
   if((ix = s_mp_ispow2(div)) >= 0) {
     MP_CHECKOK( mp_copy(rem, quot) );
@@ -4219,7 +4220,6 @@ mp_err   s_mp_div(mp_int *rem, 	/* i: dividend, o: remainder */
     return MP_OKAY;
   }
 
-  DIGITS(&t) = 0;
   MP_SIGN(rem) = ZPOS;
   MP_SIGN(div) = ZPOS;
 
