@@ -1517,7 +1517,7 @@ setRevocationMethod(PKIX_RevocationChecker *revChecker,
     PKIX_Error *error = NULL;
     int priority = 0;
     
-    if (revTest->number_of_defined_methods < certRevMethod) {
+    if (revTest->number_of_defined_methods <= certRevMethod) {
         return NULL;
     }
     if (revTest->preferred_methods) {
