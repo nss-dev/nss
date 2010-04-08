@@ -101,9 +101,9 @@ while(<>) {
       $fields[2] = "\"" . $fields[2] . "\"";
     }
 
-    my $scratch = $fields[2];
-    $size = $scratch =~ s/[^"\n]//g; # should supposedly handle multilines, too..
-    $size += 1; # null terminate
+    my $scratch = eval($fields[2]);
+
+    $size = length($scratch) + 1; # null terminate
   }
 
   if( $fields[1] =~ /OCTAL/ ) {
