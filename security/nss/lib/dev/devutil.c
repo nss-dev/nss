@@ -736,11 +736,7 @@ find_objects_in_array (
     nssArena_Destroy(arena);
     return objects;
 loser:
-    if (objects) {
-	for (--oi; oi>=0; --oi) {
-	    nssCryptokiObject_Destroy(objects[oi]);
-	}
-    }
+    nssCryptokiObjectArray_Destroy(objects);
     nssArena_Destroy(arena);
     return (nssCryptokiObject **)NULL;
 }
