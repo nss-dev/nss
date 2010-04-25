@@ -44,6 +44,7 @@
 
 #include "jar.h"
 #include "jarint.h"
+#include "portreg.h"
 
 static void 
 jar_destroy_list (ZZList *list);
@@ -449,7 +450,7 @@ int JAR_find_next (JAR_Context *ctx, JAR_Item **it)
 	    if (!*it || (*it)->type != finding)
 		continue;
 	    if (ctx->pattern && *ctx->pattern) {
-		if (PORT_Strcmp ((*it)->pathname, ctx->pattern))
+		if (PORT_RegExpSearch ((*it)->pathname, ctx->pattern))
 		    continue;
 	    }
 	    /* We have a valid match. If this is a jarTypeSign
