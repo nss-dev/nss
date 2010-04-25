@@ -602,7 +602,7 @@ rmain
           case CKR_BUFFER_TOO_SMALL:
             break;
           default:
-            PR_fprintf(PR_STDERR, "C_GetAtributeValue(%lu, %lu, {existant attribute types}, %lu) returned 0x%08x\n",
+            PR_fprintf(PR_STDERR, "C_GetAtributeValue(%lu, %lu, {existent attribute types}, %lu) returned 0x%08x\n",
                        h, o, nAttributes, ck_rv);
             return 1;
           }

@@ -550,7 +550,7 @@ ckcapi_mdCryptoOperationRSASign_UpdateFinal
   }
 
   /* OK, Microsoft likes to do things completely differently than anyone
-   * else. We need to reverse the data we recieved here */
+   * else. We need to reverse the data we received here */
   ckcapi_ReverseData(output);
   CryptDestroyHash(hHash);
   return CKR_OK;

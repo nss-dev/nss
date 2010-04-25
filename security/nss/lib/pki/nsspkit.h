@@ -82,7 +82,7 @@ typedef struct NSSCertificateStr NSSCertificate;
  *
  * The current design only weakly distinguishes between certificates
  * and user certificates: as far as the compiler goes they're 
- * interchangable; debug libraries only have one common pointer-tracker;
+ * interchangeable; debug libraries only have one common pointer-tracker;
  * etc.  However, attempts to do private-key operations on a certificate
  * for which the private key is not available will fail.
  *
