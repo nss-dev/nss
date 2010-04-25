@@ -852,7 +852,7 @@ ckmk_FetchPrivKeyAttribute
   case CKA_PUBLIC_EXPONENT:
     return &ckmk_emptyItem;
 #ifdef notdef
-  /* the following are sensitive attributes. We could implment them for 
+  /* the following are sensitive attributes. We could implement them for 
    * sensitive keys using the key export function, but it's better to
    * just support wrap through this token. That will more reliably allow us
    * to export any private key that is truly exportable.

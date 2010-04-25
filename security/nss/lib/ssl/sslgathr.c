@@ -272,7 +272,7 @@ ssl2_GatherData(sslSocket *ss, sslGather *gs, int flags)
 		goto spec_locked_done;
 	    }
 
-	    /* Decrypt the portion of data that we just recieved.
+	    /* Decrypt the portion of data that we just received.
 	    ** Decrypt it in place.
 	    */
 	    rv = (*ss->sec.dec)(ss->sec.readcx, pBuf, &nout, gs->offset,

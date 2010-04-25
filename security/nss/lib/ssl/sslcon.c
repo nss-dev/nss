@@ -1861,7 +1861,7 @@ ssl2_ChooseSessionCypher(sslSocket *ss,
     }
     preferred = ss->preferredCipher ? ss->preferredCipher : noneSuch;
     /*
-    ** Scan list of ciphers recieved from peer and look for a match in
+    ** Scan list of ciphers received from peer and look for a match in
     ** our list.  
     *  Note: Our list may contain SSL v3 ciphers.  
     *  We MUST NOT match on any of those.  

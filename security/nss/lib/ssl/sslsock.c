@@ -327,7 +327,7 @@ ssl_DupSocket(sslSocket *os)
 	    ss->ephemeralECDHKeyPair = !os->ephemeralECDHKeyPair ? NULL :
 		                  ssl3_GetKeyPairRef(os->ephemeralECDHKeyPair);
 /*
- * XXX the preceeding CERT_ and SECKEY_ functions can fail and return NULL.
+ * XXX the preceding CERT_ and SECKEY_ functions can fail and return NULL.
  * XXX We should detect this, and not just march on with NULL pointers.
  */
 	    ss->authCertificate       = os->authCertificate;

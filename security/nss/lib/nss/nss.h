@@ -245,7 +245,7 @@ extern SECStatus NSS_InitReadWrite(const char *configdir);
  *                      use both NSS and the Java SunPKCS11 provider.
  *
  * Also NOTE: This is not the recommended method for initializing NSS. 
- * The prefered method is NSS_init().
+ * The preferred method is NSS_init().
  */
 #define NSS_INIT_READONLY	0x1
 #define NSS_INIT_NOCERTDB	0x2

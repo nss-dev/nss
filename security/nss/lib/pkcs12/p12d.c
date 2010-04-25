@@ -1382,7 +1382,7 @@ sec_pkcs12_decoder_verify_mac(SEC_PKCS12DecoderContext *p12dcx)
     /* read the data back IN_BUF_LEN bytes at a time and recompute
      * the hmac.  if fewer bytes are read than are requested, it is
      * assumed that the end of file has been reached. if bytesRead
-     * is returned as -1, then an error occured reading from the 
+     * is returned as -1, then an error occurred reading from the 
      * file.
      */
     do {
@@ -1457,7 +1457,7 @@ SEC_PKCS12DecoderVerify(SEC_PKCS12DecoderContext *p12dcx)
 {
     SECStatus rv = SECSuccess;
 
-    /* make sure that no errors have occured... */
+    /* make sure that no errors have occurred... */
     if(!p12dcx) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
