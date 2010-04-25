@@ -2222,9 +2222,9 @@ pkix_BuildForwardDepthFirstSearch(
                     pkixErrorResult = NULL;
                     if (state->verifyNode != NULL) {
                         /* state->verifyNode is the object that contains a list
-                         * of verifyNodes. verifyNodes contains cert chain build
-                         * failures that occured on this level of chian building.
-                         * Here, creating new verify node
+                         * of verifyNodes. verifyNodes contains cert chain
+                         * build failures that occurred on this level of chain
+                         * building.  Here, creating new verify node
                          * to log the failure and adding it to the list. */
                         PKIX_CHECK_FATAL(pkix_VerifyNode_Create
                                          (state->prevCert,
