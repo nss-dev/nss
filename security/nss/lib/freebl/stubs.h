@@ -75,7 +75,6 @@
 #define PR_DestroyLock  PR_DestroyLock_stub
 #define PR_Free  PR_Free_stub
 #define PR_GetLibraryFilePathname  PR_GetLibraryFilePathname_stub
-#define PR_ImportPipe  PR_ImportPipe_stub
 #define PR_Lock  PR_Lock_stub
 #define PR_NewLock  PR_NewLock_stub
 #define PR_Open  PR_Open_stub
