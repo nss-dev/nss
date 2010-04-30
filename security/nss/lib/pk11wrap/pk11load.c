@@ -139,9 +139,9 @@ secmod_handleReload(SECMODModule *oldModule, SECMODModule *newModule)
     char *newModuleSpec;
     char **children;
     CK_SLOT_ID *ids;
-    SECStatus rv;
-    SECMODConfigList *conflist;
-    int count = 0;
+    SECMODConfigList *conflist = NULL;
+    SECStatus         rv       = SECFailure;
+    int               count    = 0;
 
     /* first look for tokens= key words from the module spec */
     modulespec = newModule->libraryParams;
