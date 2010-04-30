@@ -1292,6 +1292,10 @@ CERT_CheckForEvilCert(CERTCertificate *cert);
 CERTGeneralName *
 CERT_GetCertificateNames(CERTCertificate *cert, PLArenaPool *arena);
 
+CERTGeneralName *
+CERT_GetConstrainedCertificateNames(CERTCertificate *cert, PLArenaPool *arena,
+                                    PRBool includeSubjectCommonName);
+
 char *
 CERT_GetNickName(CERTCertificate   *cert, CERTCertDBHandle *handle, PLArenaPool *nicknameArena);
 

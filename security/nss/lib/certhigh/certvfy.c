@@ -603,7 +603,10 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
 	    CERTGeneralName *subjectNameList;
 	    int subjectNameListLen;
 	    int i;
-	    subjectNameList    = CERT_GetCertificateNames(subjectCert, arena);
+	    PRBool getSubjectCN = (!count && certUsage == certUsageSSLServer);
+	    subjectNameList = 
+	    	CERT_GetConstrainedCertificateNames(subjectCert, arena,
+		                                    getSubjectCN);
 	    if (!subjectNameList)
 		goto loser;
 	    subjectNameListLen = CERT_GetNamesLength(subjectNameList);
