@@ -391,5 +391,13 @@ SECStatus cert_FindCRLByGeneralName(NamedCRLCache* ncc,
 
 SECStatus cert_ReleaseNamedCRLCache(NamedCRLCache* ncc);
 
+/* This is private for now.  Maybe shoule be public. */
+CERTGeneralName *
+cert_GetSubjectAltNameList(CERTCertificate *cert, PRArenaPool *arena);
+
+/* Count DNS names and IP addresses in a list of GeneralNames */
+PRUint32
+cert_CountDNSPatterns(CERTGeneralName *firstName);
+
 #endif /* _CERTI_H_ */
 
