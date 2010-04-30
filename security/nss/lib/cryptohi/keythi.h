@@ -158,6 +158,8 @@ struct SECKEYFortezzaPublicKeyStr {
     SECKEYPQGParams keaParams;
 };
 typedef struct SECKEYFortezzaPublicKeyStr SECKEYFortezzaPublicKey;
+#define KEAprivilege KEApriviledge /* corrected spelling */
+#define DSSprivilege DSSpriviledge /* corrected spelling */
 
 struct SECKEYDiffPQGParamsStr {
     SECKEYPQGParams DiffKEAParams;

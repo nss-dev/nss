@@ -438,8 +438,8 @@ cert_VerifyFortezzaV1Cert(CERTCertDBHandle *handle, CERTCertificate *cert,
     }
 
     /* get the privilege mask */
-    if (key->u.fortezza.DSSpriviledge.len > 0) {
-	priv = key->u.fortezza.DSSpriviledge.data[0];
+    if (key->u.fortezza.DSSprivilege.len > 0) {
+	priv = key->u.fortezza.DSSprivilege.data[0];
     }
 
     /*
