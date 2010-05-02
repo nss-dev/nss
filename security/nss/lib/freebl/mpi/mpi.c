@@ -2939,6 +2939,8 @@ void     s_mp_exch(mp_int *a, mp_int *b)
    Shift mp leftward by p digits, growing if needed, and zero-filling
    the in-shifted digits at the right end.  This is a convenient
    alternative to multiplication by powers of the radix
+   The value of USED(mp) must already have been set to the value for
+   the shifted result.
  */   
 
 mp_err   s_mp_lshd(mp_int *mp, mp_size p)
