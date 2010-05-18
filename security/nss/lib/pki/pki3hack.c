@@ -109,7 +109,7 @@ STAN_InitTokenForSlotInfo(NSSTrustDomain *td, PK11SlotInfo *slot)
     }
     token = nssToken_CreateFromPK11SlotInfo(td, slot);
     PK11Slot_SetNSSToken(slot, token);
-    /* Don't add non-existent token to TD's token list */
+    /* Don't add nonexistent token to TD's token list */
     if (token) {
 	NSSRWLock_LockWrite(td->tokensLock);
 	nssList_Add(td->tokenList, token);
