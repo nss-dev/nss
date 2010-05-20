@@ -1639,8 +1639,8 @@ static SECStatus CachedCrl_Verify(CRLDPCache* cache, CachedCrl* crlobject,
     /*  Check if it is an invalid CRL
         if we got a bad CRL, we want to cache it in order to avoid
         subsequent fetches of this same identical bad CRL. We set
-        the cache to the invalid state to ensure that all certs
-        on this DP are considered revoked from now on. The cache
+        the cache to the invalid state to ensure that all certs on this
+        DP are considered to have unknown status from now on. The cache
         object will remain in this state until the bad CRL object
         is removed from the token it was fetched from. If the cause
         of the failure is that we didn't have the issuer cert to
@@ -1826,8 +1826,7 @@ dpcacheStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
     *returned = NULL;
     if (0 != cache->invalid)
     {
-        /* the cache contains a bad CRL, or there was a CRL fetching error.
-           consider all certs revoked as a security measure */
+        /* the cache contains a bad CRL, or there was a CRL fetching error. */
         PORT_SetError(SEC_ERROR_CRL_INVALID);
         return dpcacheInvalidCacheError;
     }
@@ -2794,12 +2793,9 @@ cert_CheckCertRevocationStatus(CERTCertificate* cert, CERTCertificate* issuer,
             break;
 
         case dpcacheInvalidCacheError:
-            /* t of zero may have caused the CRL cache to fail to verify
-             * a CRL. treat it as unknown */
-            if (!t)
-            {
-                status = certRevocationStatusUnknown;
-            }
+            /* treat it as unknown and let the caller decide based on
+               the policy */
+            status = certRevocationStatusUnknown;
             break;
 
         default:
