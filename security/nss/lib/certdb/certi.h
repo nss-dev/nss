@@ -178,9 +178,9 @@ struct CRLDPCacheStr {
     /* cache invalidity bitflag */
     PRUint16 invalid;       /* this state will be set if either
              CRL_CACHE_INVALID_CRLS or CRL_CACHE_LAST_FETCH_FAILED is set.
-             In those cases, all certs are considered revoked as a
-             security precaution. The invalid state can only be cleared
-             during an update if all error states are cleared */
+             In those cases, all certs are considered to have unknown status.
+             The invalid state can only be cleared during an update if all
+             error states are cleared */
     PRBool refresh;        /* manual refresh from tokens has been forced */
     PRBool mustchoose;     /* trigger reselection algorithm, for case when
                               RAM CRL objects are dropped from the cache */
