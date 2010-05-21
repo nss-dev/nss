@@ -169,6 +169,15 @@ typedef struct NSSCryptoContextStr NSSCryptoContext;
  * fgmr others
  */
 
+/*
+ * OBJECT IDENTIFIER
+ *
+ * This is the basic OID that crops up everywhere.
+ */
+
+struct NSSOIDStr;  /* unused opaque structure */
+typedef struct NSSOIDStr NSSOID;
+
 /* 
  * NSSTime
  *

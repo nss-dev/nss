@@ -55,10 +55,6 @@ static const char NSSPKI_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #include "nsspkit.h"
 #endif /* NSSPKIT_H */
 
-#ifndef NSSPKI1_H
-#include "nsspki1.h"
-#endif /* NSSPKI1_H */
-
 #ifndef BASE_H
 #include "base.h"
 #endif /* BASE_H */
