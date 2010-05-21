@@ -150,7 +150,7 @@ struct CRLDPCacheStr {
 #else
     PRLock* lock;
 #endif
-    CERTCertificate* issuer;    /* cert issuer 
+    CERTCertificate* issuer;    /* issuer cert
                                    XXX there may be multiple issuer certs,
                                        with different validity dates. Also
                                        need to deal with SKID/AKID . See
@@ -280,15 +280,6 @@ dpcacheStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
 
 /* release a DPCache object that was previously acquired */
 void ReleaseDPCache(CRLDPCache* dpcache, PRBool writeLocked);
-
-/* this function assumes the caller holds a lock on the DPCache */
-SECStatus DPCache_GetAllCRLs(CRLDPCache* dpc, PRArenaPool* arena,
-                             CERTSignedCrl*** crls, PRUint16* status);
-
-/* this function assumes the caller holds a lock on the DPCache */
-SECStatus DPCache_GetCRLEntry(CRLDPCache* cache, PRBool readlocked,
-                              CERTSignedCrl* crl, SECItem* sn,
-                              CERTCrlEntry** returned);
 
 /*
  * map Stan errors into NSS errors
