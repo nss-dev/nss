@@ -46,10 +46,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #include "pkim.h"
 #endif /* PKIM_H */
 
-#ifndef PKI1T_H
-#include "pki1t.h"
-#endif /* PKI1T_H */
-
 #include "cert.h"
 #include "pki3hack.h"
 #include "pk11pub.h"

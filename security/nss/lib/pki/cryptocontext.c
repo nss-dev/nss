@@ -50,8 +50,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #include "pkistore.h"
 #endif /* PKISTORE_H */
 
-#include "pki1t.h"
-
 extern const NSSError NSS_ERROR_NOT_FOUND;
 extern const NSSError NSS_ERROR_INVALID_ARGUMENT;
 
