@@ -450,6 +450,12 @@ typedef enum {
 
     SEC_OID_X509_ANY_POLICY                 = 303,
 
+    SEC_OID_PKCS1_RSA_OAEP_ENCRYPTION       = 304,
+    SEC_OID_PKCS1_MGF1                      = 305,
+    SEC_OID_PKCS1_PSPECIFIED                = 306,
+    SEC_OID_PKCS1_RSA_PSS_SIGNATURE         = 307,
+    SEC_OID_PKCS1_SHA224_WITH_RSA_ENCRYPTION = 308,
+
     SEC_OID_TOTAL
 } SECOidTag;
 
