@@ -257,10 +257,9 @@ static const SEC_ASN1Template NSSCMSRecipientIdentifierTemplate[] = {
     { SEC_ASN1_CHOICE,
 	  offsetof(NSSCMSRecipientIdentifier,identifierType), NULL,
 	  sizeof(NSSCMSRecipientIdentifier) },
-    { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
-      SEC_ASN1_XTRN | 0,
+    { SEC_ASN1_POINTER | SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 0,
 	  offsetof(NSSCMSRecipientIdentifier,id.subjectKeyID),
-	  SEC_ASN1_SUB(SEC_PointerToOctetStringTemplate) ,
+	  SEC_ASN1_SUB(SEC_OctetStringTemplate) ,
 	  NSSCMSRecipientID_SubjectKeyID },
     { SEC_ASN1_POINTER | SEC_ASN1_XTRN,
 	  offsetof(NSSCMSRecipientIdentifier,id.issuerAndSN),
