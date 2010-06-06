@@ -9016,7 +9016,11 @@ const ssl3BulkCipherDef *cipher_def;
     ** function, not by this function.
     */
     if (rType == content_application_data) {
-    	return SECSuccess;
+	if (ss->firstHsDone)
+	    return SECSuccess;
+	(void)SSL3_SendAlert(ss, alert_fatal, unexpected_message);
+	PORT_SetError(SSL_ERROR_RX_UNEXPECTED_APPLICATION_DATA);
+	return SECFailure;
     }
 
     /* It's a record that must be handled by ssl itself, not the application.
