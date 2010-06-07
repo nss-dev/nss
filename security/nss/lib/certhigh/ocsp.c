@@ -5189,7 +5189,7 @@ cert_ProcessOCSPResponse(CERTCertDBHandle *handle,
                          SECStatus        *cacheUpdateStatus)
 {
     SECStatus rv;
-    SECStatus rv_cache;
+    SECStatus rv_cache = SECSuccess;
     CERTOCSPSingleResponse *single = NULL;
 
     rv = ocsp_GetVerifiedSingleResponseForCertID(handle, response, certID, 
