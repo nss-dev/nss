@@ -65,6 +65,15 @@ ALL_TRASH :=    $(TARGETS) $(OBJS) $(OBJDIR) LOGS TAGS $(GARBAGE) \
   PROGRAM        =
 
 else
+
+ifdef FREEBL_NO_DEPEND
+LOWHASH_SRCS = stubs.c nsslowhash.c
+LOWHASH_EXPORTS = nsslowhash.h
+MAPFILE_SOURCE = freebl_hash.def
+else
+MAPFILE_SOURCE = freebl.def
+endif
+
 # This is a recursive child make. We build the shared lib.
 
 TARGETS      = $(SHARED_LIBRARY)
