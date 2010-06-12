@@ -1615,7 +1615,7 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
 
     OD( x509CertificatePoliciesAnyPolicy, SEC_OID_X509_ANY_POLICY,
  	"Certificate Policies AnyPolicy",
-        CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
+        CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
 
     OD( pkcs1RSAOAEPEncryption, SEC_OID_PKCS1_RSA_OAEP_ENCRYPTION,
 	"PKCS #1 RSA-OAEP Encryption", CKM_RSA_PKCS_OAEP,
