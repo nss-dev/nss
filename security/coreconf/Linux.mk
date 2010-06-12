@@ -158,6 +158,14 @@ G++INCLUDES		= -I/usr/include/g++
 #
 CPU_TAG = _$(CPU_ARCH)
 
+#
+# On Linux 2.6 or later, build libfreebl3.so with no NSPR and libnssutil3.so
+# dependencies.
+#
+ifeq (2.6,$(firstword $(sort 2.6 $(OS_RELEASE))))
+FREEBL_NO_DEPEND = 1
+endif
+
 USE_SYSTEM_ZLIB = 1
 ZLIB_LIBS = -lz
 
