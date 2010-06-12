@@ -60,7 +60,7 @@ include $(CORE_DEPTH)/coreconf/config.mk
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
 #######################################################################
 
--include config.mk
+include config.mk
 
 # default for all platforms
 # unset this on those that have multiple freebl libraries
