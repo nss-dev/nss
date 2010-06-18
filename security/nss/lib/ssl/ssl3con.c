@@ -8888,17 +8888,21 @@ const ssl3BulkCipherDef *cipher_def;
 
     /* If it's a block cipher, check and strip the padding. */
     if (cipher_def->type == type_block) {
-	padding_length = *(plaintext->buf + plaintext->len - 1);
+        PRUint8 * pPaddingLen = plaintext->buf + plaintext->len - 1;
+	padding_length = *pPaddingLen;
 	/* TLS permits padding to exceed the block size, up to 255 bytes. */
 	if (padding_length + 1 + crSpec->mac_size > plaintext->len)
 	    padIsBad = PR_TRUE;
-	/* if TLS, check value of first padding byte. */
-	else if (padding_length && isTLS && 
-	         padding_length != *(plaintext->buf +
-	                             plaintext->len - (padding_length + 1)))
-	    padIsBad = PR_TRUE;
-	else
-	    plaintext->len -= padding_length + 1;
+	else {
+            plaintext->len -= padding_length + 1;
+            /* In TLS all padding bytes must be equal to the padding length. */
+            if (isTLS) {
+                PRUint8 *p;
+                for (p = pPaddingLen - padding_length; p < pPaddingLen; ++p) {
+                    padIsBad |= *p ^ padding_length;
+                }
+            }
+        }
     }
 
     /* Remove the MAC. */
