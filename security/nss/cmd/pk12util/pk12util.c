@@ -34,6 +34,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+#ifdef _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+#endif
+
 #include "nspr.h"
 #include "secutil.h"
 #include "pk11func.h"
@@ -482,6 +487,7 @@ done:
     if (pwitem) {
 	SECITEM_ZfreeItem(pwitem, PR_TRUE);
     }
+    SECITEM_ZfreeItem(&p12file, PR_FALSE);
     return p12dcx;
 }
 
@@ -978,8 +984,12 @@ main(int argc, char **argv)
     SECOidTag certCipher;
     int keyLen = 0;
     int certKeyLen = 0;
-
     secuCommand pk12util;
+
+#ifdef _CRTDBG_MAP_ALLOC
+    _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+#endif
+
     pk12util.numCommands = 0;
     pk12util.commands = 0;
     pk12util.numOptions = sizeof(pk12util_options) / sizeof(secuCommandFlag);
@@ -1124,5 +1134,7 @@ done:
     if (NSS_Shutdown() != SECSuccess) {
 	pk12uErrno = 1;
     }
+    PR_Cleanup();
+    PL_ArenaFinish();
     return pk12uErrno;
 }
