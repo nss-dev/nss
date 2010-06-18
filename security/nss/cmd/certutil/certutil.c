@@ -991,6 +991,8 @@ Usage(char *progName)
     FPS "\t%s -V -n cert-name -u usage [-b time] [-e] \n"
 	"\t\t[-X] [-d certdir] [-P dbprefix]\n",
 	progName);
+    FPS "Usage:  %s -W [-d certdir] [-f pwfile] [-@newpwfile]\n",
+	progName);
     FPS "\t%s -S -n cert-name -s subj [-c issuer-name | -x]  -t trustargs\n"
 	"\t\t [-k key-type-or-id] [-q key-params] [-h token-name] [-g key-size]\n"
         "\t\t [-m serial-number] [-w warp-months] [-v months-valid]\n"
@@ -1310,6 +1312,15 @@ static void LongUsage(char *progName)
     FPS "%-20s force the database to open R/W\n",
 	"   -X");
     FPS "\n");
+
+    FPS "%-15s Change the key database password\n",
+	"-W");
+    FPS "%-20s cert and key database directory\n",
+	"   -d certdir");
+    FPS "%-20s Specify a file with the current password\n",
+	"   -f pwfile");
+    FPS "%-20s Specify a file with the new password in two lines\n",
+	"   -@ newpwfile");
 
     FPS "%-15s Upgrade an old database and merge it into a new one\n",
 	"--upgrade-merge");
