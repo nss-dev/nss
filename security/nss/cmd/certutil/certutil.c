@@ -351,7 +351,7 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
 	PR_fprintf(outFile, "%s\n", NS_CERTREQ_HEADER);
 	numBytes = PR_Write(outFile, obuf, total);
 	if (numBytes != total) {
-	    SECU_PrintSystemError(progName, "write error");
+	    SECU_PrintError(progName, "write error");
 	    return SECFailure;
 	}
 	PR_fprintf(outFile, "\n%s\n", NS_CERTREQ_TRAILER);
@@ -2901,7 +2901,10 @@ shutdown:
 
     if ((SECSuccess == rv) && certutil.commands[cmd_Batch].activated) {
 	FILE* batchFile = NULL;
-        char nextcommand[512];
+        char *nextcommand = NULL;
+	PRInt32 cmd_len = 0, buf_size = 0;
+	static const int increment = 512;
+
         if (!certutil.options[opt_InputFile].activated ||
             !certutil.options[opt_InputFile].arg) {
 	    PR_fprintf(PR_STDERR,
@@ -2918,24 +2921,45 @@ shutdown:
 	    return 255;
         }
         /* read and execute command-lines in a loop */
-        while ( (SECSuccess == rv ) &&
-                fgets(nextcommand, sizeof(nextcommand), batchFile)) {
-            /* we now need to split the command into argc / argv format */
-            char* commandline = PORT_Strdup(nextcommand);
+        while ( SECSuccess == rv ) {
             PRBool invalid = PR_FALSE;
             int newargc = 2;
             char* space = NULL;
             char* nextarg = NULL;
             char** newargv = NULL;
-            char* crlf = PORT_Strrchr(commandline, '\n');
+            char* crlf;
+
+	    if (cmd_len + increment > buf_size) {
+	        char * new_buf;
+		buf_size += increment;
+	        new_buf = PORT_Realloc(nextcommand, buf_size);
+		if (!new_buf) {
+		    PR_fprintf(PR_STDERR, "%s: PORT_Realloc(%ld) failed\n",
+			       progName, buf_size);
+		    break;
+		}
+		nextcommand = new_buf;
+		nextcommand[cmd_len] = '\0';
+	    }
+	    if (!fgets(nextcommand + cmd_len, buf_size - cmd_len, batchFile)) {
+		break;
+	    }
+            crlf = PORT_Strrchr(nextcommand, '\n');
             if (crlf) {
                 *crlf = '\0';
             }
+	    cmd_len = strlen(nextcommand);
+	    if (cmd_len && nextcommand[cmd_len - 1] == '\\') {
+	        nextcommand[--cmd_len] = '\0';
+		continue;
+	    }
+
+            /* we now need to split the command into argc / argv format */
 
             newargv = PORT_Alloc(sizeof(char*)*(newargc+1));
             newargv[0] = progName;
-            newargv[1] = commandline;
-            nextarg = commandline;
+            newargv[1] = nextcommand;
+            nextarg = nextcommand;
             while ((space = PORT_Strpbrk(nextarg, " \f\n\r\t\v")) ) {
                 while (isspace(*space) ) {
                     *space = '\0';
@@ -2972,8 +2996,10 @@ shutdown:
                     rv = SECFailure;
             }
             PORT_Free(newargv);
-            PORT_Free(commandline);
+	    cmd_len = 0;
+	    nextcommand[0] = '\0';
         }
+	PORT_Free(nextcommand);
         fclose(batchFile);
     }
 
