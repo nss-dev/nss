@@ -911,7 +911,8 @@ typedef enum {
    cert_pi_policyOID       = 4, /* validate certificate for policy OID.
 				 * Specified in value.array.oids. Cert must
 				 * be good for at least one OID in order
-				 * to validate. Default is no policyOID */
+				 * to validate. Default is that the user is not
+				 * concerned about certificate policy. */
    cert_pi_policyFlags     = 5, /* flags for each policy specified in policyOID.
 				 * Specified in value.scalar.ul. Policy flags
 				 * apply to all specified oids. 
