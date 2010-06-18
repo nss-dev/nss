@@ -154,6 +154,17 @@ struct SEC_PKCS12DecoderContextStr {
     SEC_PKCS12DecoderItem decitem;
 };
 
+/* forward declarations of functions that are used when decoding
+ * safeContents bags which are nested and when decoding the 
+ * authenticatedSafes.
+ */
+static SECStatus
+sec_pkcs12_decoder_begin_nested_safe_contents(sec_PKCS12SafeContentsContext 
+							*safeContentsCtx);
+static SECStatus
+sec_pkcs12_decoder_finish_nested_safe_contents(sec_PKCS12SafeContentsContext
+							*safeContentsCtx);
+
 
 /* make sure that the PFX version being decoded is a version
  * which we support.
@@ -352,21 +363,6 @@ loser:
     safeContentsCtx->currentSafeBagA1Dcx = NULL;
     return;
 }
-
-/* forward declarations of functions that are used when decoding
- * safeContents bags which are nested and when decoding the 
- * authenticatedSafes.
- */
-static SECStatus
-sec_pkcs12_decoder_begin_nested_safe_contents(sec_PKCS12SafeContentsContext 
-							*safeContentsCtx);
-static SECStatus
-sec_pkcs12_decoder_finish_nested_safe_contents(sec_PKCS12SafeContentsContext
-							*safeContentsCtx);
-static void
-sec_pkcs12_decoder_safe_bag_update(void *arg, const char *data, 
-				   unsigned long len, int depth, 
-				   SEC_ASN1EncodingPart data_kind);
 
 /* notify function for decoding safeBags.  This function is
  * used to filter safeBag types which are not supported,
