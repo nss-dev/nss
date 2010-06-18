@@ -1736,6 +1736,7 @@ cert_pkixSetParam(PKIX_ProcessingParams *procParams,
         default:
             PORT_SetError(errCode);
             r = SECFailure;
+            break;
     }
 
     if (policyOIDList != NULL)
