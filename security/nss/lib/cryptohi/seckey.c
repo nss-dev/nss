@@ -975,6 +975,12 @@ seckey_GetKeyType (SECOidTag tag) {
       case SEC_OID_PKCS1_RSA_ENCRYPTION:
 	keyType = rsaKey;
 	break;
+      case SEC_OID_PKCS1_RSA_PSS_SIGNATURE:
+	keyType = rsaPssKey;
+	break;
+      case SEC_OID_PKCS1_RSA_OAEP_ENCRYPTION:
+	keyType = rsaOaepKey;
+	break;
       case SEC_OID_ANSIX9_DSA_SIGNATURE:
 	keyType = dsaKey;
 	break;
