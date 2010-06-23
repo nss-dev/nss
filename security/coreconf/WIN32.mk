@@ -177,7 +177,7 @@ else
 DEFINES += -DWIN32
 endif
 
-ifeq ($(CPU_ARCH), x386)
+ifeq (,$(filter-out x386 x86_64,$(CPU_ARCH)))
 ifdef USE_64
 	DEFINES += -D_AMD64_
 else
