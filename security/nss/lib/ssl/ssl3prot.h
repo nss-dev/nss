@@ -108,7 +108,7 @@ typedef enum {
     close_notify            = 0,
     unexpected_message      = 10,
     bad_record_mac          = 20,
-    decryption_failed       = 21,	/* TLS only */
+    decryption_failed_RESERVED = 21,	/* do not send; see RFC 5246 */
     record_overflow         = 22,	/* TLS only */
     decompression_failure   = 30,
     handshake_failure       = 40,
