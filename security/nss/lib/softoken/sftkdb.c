@@ -802,6 +802,12 @@ sftkdb_getFindTemplate(CK_OBJECT_CLASS objectType, unsigned char *objTypeData,
 	if (attr == NULL) {
 	    return CKR_TEMPLATE_INCOMPLETE;
 	}
+	if (attr->ulValueLen == 0) {
+	    /* key is too generic to determine that it's unique, usually
+	     * happens in the key gen case */
+	    return CKR_OBJECT_HANDLE_INVALID;
+	}
+	
 	findTemplate[1] = *attr;
 	count = 2;
 	break;
@@ -843,7 +849,7 @@ sftkdb_getFindTemplate(CK_OBJECT_CLASS objectType, unsigned char *objTypeData,
 }
 
 /*
- * look to see if this object already exists and return it's object ID if
+ * look to see if this object already exists and return its object ID if
  * it does.
  */
 static CK_RV
@@ -863,6 +869,13 @@ sftkdb_lookupObject(SDB *db, CK_OBJECT_CLASS objectType,
     }
     crv = sftkdb_getFindTemplate(objectType, objTypeData,
 			findTemplate, &count, ptemplate, len);
+
+    if (crv == CKR_OBJECT_HANDLE_INVALID) {
+	/* key is too generic to determine that it's unique, usually
+	 * happens in the key gen case, tell the caller to go ahead
+	 * and just create it */
+	return CKR_OK;
+    }
     if (crv != CKR_OK) {
 	return crv;
     }
