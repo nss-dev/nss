@@ -8886,7 +8886,7 @@ const ssl3BulkCipherDef *cipher_def;
     }
 
     /* If it's a block cipher, check and strip the padding. */
-    if (cipher_def->type == type_block) {
+    if (cipher_def->type == type_block && !padIsBad) {
         PRUint8 * pPaddingLen = plaintext->buf + plaintext->len - 1;
 	padding_length = *pPaddingLen;
 	/* TLS permits padding to exceed the block size, up to 255 bytes. */
