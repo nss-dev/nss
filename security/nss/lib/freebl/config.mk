@@ -66,7 +66,7 @@ ALL_TRASH :=    $(TARGETS) $(OBJS) $(OBJDIR) LOGS TAGS $(GARBAGE) \
 
 else
 
-ifdef FREEBL_NO_DEPEND
+ifeq ($(FREEBL_NO_DEPEND),1)
 LOWHASH_SRCS = stubs.c nsslowhash.c
 LOWHASH_EXPORTS = nsslowhash.h
 MAPFILE_SOURCE = freebl_hash.def
@@ -118,7 +118,10 @@ endif # NS_USE_GCC
 
 else
 
-ifndef FREEBL_NO_DEPEND
+ifeq ($(FREEBL_NO_DEPEND),1)
+#drop pthreads as well
+OS_PTHREAD=
+else
 EXTRA_SHARED_LIBS += \
 	-L$(DIST)/lib \
 	-L$(NSSUTIL_LIB_DIR) \
@@ -126,9 +129,6 @@ EXTRA_SHARED_LIBS += \
 	-L$(NSPR_LIB_DIR) \
 	-lnspr4 \
 	$(NULL)
-else
-#drop pthreads as well
-OS_PTHREAD=
 endif
 endif
 
