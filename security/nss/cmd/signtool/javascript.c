@@ -1525,7 +1525,7 @@ extract_js(char *filename)
 		while ( entityEnd && 
 		    (entityStart = PL_strstr(entityEnd, "&{")) /*}*/ != NULL) {
 		    entityStart += 2; /* point at beginning of actual entity */
-		    entityEnd = PL_strstr(entityStart, /*{*/ "}");
+		    entityEnd = PL_strchr(entityStart, '}');
 		    if (entityEnd) {
 			/* Put this item on the entity list */
 			*entityEnd = '\0';
