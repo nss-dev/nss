@@ -820,7 +820,7 @@ ServerSessionIDLookup(const PRIPv6Addr *addr,
                     pcce = 0;
                 }
             }
-            if ((cndx = psce->u.ssl3.srvNameIndex) != -1) {
+            if (psce && ((cndx = psce->u.ssl3.srvNameIndex) != -1)) {
                 PRUint32 gotLock = LockSidCacheLock(cache->srvNameCacheLock,
                                                     now);
                 if (gotLock) {
