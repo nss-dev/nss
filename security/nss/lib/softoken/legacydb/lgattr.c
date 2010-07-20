@@ -386,10 +386,10 @@ lg_GetPublicKey(LGObjectCache *obj)
     if (privKey == NULL) {
 	return NULL;
     }
-    pubKey = nsslowkey_ConvertToPublicKey(privKey);
-    nsslowkey_DestroyPrivateKey(privKey);
+    pubKey = lg_nsslowkey_ConvertToPublicKey(privKey);
+    lg_nsslowkey_DestroyPrivateKey(privKey);
     obj->objectInfo = (void *) pubKey;
-    obj->infoFree = (LGFreeFunc) nsslowkey_DestroyPublicKey ;
+    obj->infoFree = (LGFreeFunc) lg_nsslowkey_DestroyPublicKey ;
     return pubKey;
 }
 
@@ -418,7 +418,7 @@ lg_GetPrivateKeyWithDB(LGObjectCache *obj, NSSLOWKEYDBHandle *keyHandle)
 	return NULL;
     }
     obj->objectInfo = (void *) privKey;
-    obj->infoFree = (LGFreeFunc) nsslowkey_DestroyPrivateKey ;
+    obj->infoFree = (LGFreeFunc) lg_nsslowkey_DestroyPrivateKey ;
     return privKey;
 }
 
@@ -1323,12 +1323,12 @@ lg_FindCertAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type,
 	if (pubKey == NULL) break;
 	item = lg_GetPubItem(pubKey);
 	if (item == NULL) {
-	    nsslowkey_DestroyPublicKey(pubKey);
+	    lg_nsslowkey_DestroyPublicKey(pubKey);
 	    break;
 	}
 	SHA1_HashBuf(hash,item->data,item->len);
 	/* item is imbedded in pubKey, just free the key */
-	nsslowkey_DestroyPublicKey(pubKey);
+	lg_nsslowkey_DestroyPublicKey(pubKey);
 	return lg_CopyAttribute(attribute, type, hash, SHA1_LENGTH);
     case CKA_LABEL:
 	return cert->nickname 

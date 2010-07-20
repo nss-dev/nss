@@ -294,7 +294,6 @@ mp_err   MPI_ASM_DECL s_mpv_div_2dx1d(mp_digit Nhi, mp_digit Nlo,
 typedef struct {
   mp_int       N;	/* modulus N */
   mp_digit     n0prime; /* n0' = - (n0 ** -1) mod MP_RADIX */
-  mp_size      b;	/* R == 2 ** b,  also b = # significant bits in N */
 } mp_mont_modulus;
 
 mp_err s_mp_mul_mont(const mp_int *a, const mp_int *b, mp_int *c, 

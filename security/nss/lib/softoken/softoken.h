@@ -265,7 +265,7 @@ extern PRBool sftk_fatalError;
 /*
 ** macros to check for forked child process after C_Initialize
 */
-#if defined(XP_UNIX) && !defined(NO_CHECK_FORK)
+#if defined(XP_UNIX) && !defined(NO_FORK_CHECK)
 
 #ifdef DEBUG
 
