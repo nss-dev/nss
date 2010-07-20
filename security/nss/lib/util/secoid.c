@@ -521,6 +521,7 @@ CONST_OID camellia256_KEY_WRAP[]		= { CAMELLIA_WRAP_OID, 4};
 CONST_OID sha256[]                              = { SHAXXX, 1 };
 CONST_OID sha384[]                              = { SHAXXX, 2 };
 CONST_OID sha512[]                              = { SHAXXX, 3 };
+CONST_OID sha224[]                              = { SHAXXX, 4 };
 
 CONST_OID ansix962ECPublicKey[]             = { ANSI_X962_OID, 0x02, 0x01 };
 CONST_OID ansix962SignaturewithSHA1Digest[] = { ANSI_X962_SIGNATURE_OID, 0x01 };
@@ -1636,6 +1637,8 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
     OD( pkcs1SHA224WithRSAEncryption, SEC_OID_PKCS1_SHA224_WITH_RSA_ENCRYPTION,
 	"PKCS #1 SHA-224 With RSA Encryption", CKM_SHA224_RSA_PKCS,
 	INVALID_CERT_EXTENSION ),
+
+    OD( sha224, SEC_OID_SHA224, "SHA-224", CKM_SHA224, INVALID_CERT_EXTENSION),
 };
 
 /* PRIVATE EXTENDED SECOID Table
