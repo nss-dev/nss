@@ -56,14 +56,13 @@ SEC_BEGIN_PROTOS
  * source or destination (encoding or decoding, respectively) type as
  * siUnsignedInteger.
  */
-extern void prepare_low_rsa_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
-extern void prepare_low_pqg_params_for_asn1(PQGParams *params);
-extern void prepare_low_dsa_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
-extern void prepare_low_dsa_priv_key_export_for_asn1(NSSLOWKEYPrivateKey *key);
-extern void prepare_low_dh_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
+extern void lg_prepare_low_rsa_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
+extern void lg_prepare_low_pqg_params_for_asn1(PQGParams *params);
+extern void lg_prepare_low_dsa_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
+extern void lg_prepare_low_dh_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
 #ifdef NSS_ENABLE_ECC
-extern void prepare_low_ec_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
-extern void prepare_low_ecparams_for_asn1(ECParams *params);
+extern void lg_prepare_low_ec_priv_key_for_asn1(NSSLOWKEYPrivateKey *key);
+extern void lg_prepare_low_ecparams_for_asn1(ECParams *params);
 #endif /* NSS_ENABLE_ECC */
 
 typedef char * (* NSSLOWKEYDBNameFunc)(void *arg, int dbVersion);
@@ -116,32 +115,21 @@ extern PRBool nsslowkey_KeyForIDExists(NSSLOWKEYDBHandle *handle, SECItem *id);
 **	"key" the object
 **	"freeit" if PR_TRUE then free the object as well as its sub-objects
 */
-extern void nsslowkey_DestroyPrivateKey(NSSLOWKEYPrivateKey *key);
+extern void lg_nsslowkey_DestroyPrivateKey(NSSLOWKEYPrivateKey *key);
 
 /*
 ** Destroy a public key object.
 **	"key" the object
 **	"freeit" if PR_TRUE then free the object as well as its sub-objects
 */
-extern void nsslowkey_DestroyPublicKey(NSSLOWKEYPublicKey *key);
-
-/*
-** Return the modulus length of "pubKey".
-*/
-extern unsigned int nsslowkey_PublicModulusLen(NSSLOWKEYPublicKey *pubKey);
-
-
-/*
-** Return the modulus length of "privKey".
-*/
-extern unsigned int nsslowkey_PrivateModulusLen(NSSLOWKEYPrivateKey *privKey);
+extern void lg_nsslowkey_DestroyPublicKey(NSSLOWKEYPublicKey *key);
 
 
 /*
 ** Convert a low private key "privateKey" into a public low key
 */
 extern NSSLOWKEYPublicKey 
-		*nsslowkey_ConvertToPublicKey(NSSLOWKEYPrivateKey *privateKey);
+	*lg_nsslowkey_ConvertToPublicKey(NSSLOWKEYPrivateKey *privateKey);
 
 
 SECStatus

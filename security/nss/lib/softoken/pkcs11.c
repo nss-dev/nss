@@ -2325,7 +2325,7 @@ CK_RV sftk_CloseAllSessions(SFTKSlot *slot, PRBool logout)
 		--slot->sessionCount;
 		SKIP_AFTER_FORK(PZ_Unlock(slot->slotLock));
 		if (session->info.flags & CKF_RW_SESSION) {
-		    PR_AtomicDecrement(&slot->rwSessionCount);
+		    PR_ATOMIC_DECREMENT(&slot->rwSessionCount);
 		}
 	    } else {
 		SKIP_AFTER_FORK(PZ_Unlock(lock));
@@ -3388,13 +3388,13 @@ CK_RV NSC_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags,
     ++slot->sessionCount;
     PZ_Unlock(slot->slotLock);
     if (session->info.flags & CKF_RW_SESSION) {
-	PR_AtomicIncrement(&slot->rwSessionCount);
+	PR_ATOMIC_INCREMENT(&slot->rwSessionCount);
     }
 
     do {
         PZLock *lock;
         do {
-            sessionID = (PR_AtomicIncrement(&slot->sessionIDCount) & 0xffffff)
+            sessionID = (PR_ATOMIC_INCREMENT(&slot->sessionIDCount) & 0xffffff)
                         | (slot->index << 24);
         } while (sessionID == CK_INVALID_HANDLE);
         lock = SFTK_SESSION_LOCK(slot,sessionID);
@@ -3456,7 +3456,7 @@ CK_RV NSC_CloseSession(CK_SESSION_HANDLE hSession)
 	    sftk_freeDB(handle);
 	}
 	if (session->info.flags & CKF_RW_SESSION) {
-	    PR_AtomicDecrement(&slot->rwSessionCount);
+	    PR_ATOMIC_DECREMENT(&slot->rwSessionCount);
 	}
     }
 
@@ -3470,7 +3470,7 @@ CK_RV NSC_CloseAllSessions (CK_SLOT_ID slotID)
 {
     SFTKSlot *slot;
 
-#ifndef NO_CHECK_FORK
+#ifndef NO_FORK_CHECK
     /* skip fork check if we are being called from C_Initialize or C_Finalize */
     if (!parentForkedAfterC_Initialize) {
         CHECK_FORK();

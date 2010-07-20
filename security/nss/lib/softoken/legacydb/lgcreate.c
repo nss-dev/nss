@@ -520,7 +520,7 @@ lg_createPublicKeyObject(SDB *sdb, CK_KEY_TYPE key_type,
 	crv = CKR_ATTRIBUTE_VALUE_INVALID;
 	goto done;
     }
-    nsslowkey_DestroyPrivateKey(priv);
+    lg_nsslowkey_DestroyPrivateKey(priv);
     crv = CKR_OK;
 
     *handle = lg_mkHandle(sdb, pubKey, LG_TOKEN_TYPE_PUB);
@@ -727,7 +727,7 @@ fail:
     if (label) PORT_Free(label);
     *handle = lg_mkHandle(sdb,&pubKey,LG_TOKEN_TYPE_PRIV);
     if (pubKey.data) PORT_Free(pubKey.data);
-    nsslowkey_DestroyPrivateKey(privKey);
+    lg_nsslowkey_DestroyPrivateKey(privKey);
     if (rv != SECSuccess) return crv;
 
     return CKR_OK;
@@ -929,7 +929,7 @@ lg_createSecretKeyObject(SDB *sdb, CK_KEY_TYPE key_type,
 
 loser:
     if (label) PORT_Free(label);
-    if (privKey) nsslowkey_DestroyPrivateKey(privKey);
+    if (privKey) lg_nsslowkey_DestroyPrivateKey(privKey);
     if (pubKey.data) PORT_Free(pubKey.data);
 
     return crv;

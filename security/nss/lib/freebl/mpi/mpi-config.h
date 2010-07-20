@@ -100,7 +100,7 @@
 #endif
 
 #ifndef MP_MACRO
-#define MP_MACRO      0  /* use macros for frequent calls?      */
+#define MP_MACRO      1  /* use macros for frequent calls?      */
 #endif
 
 #ifndef MP_SQUARE
