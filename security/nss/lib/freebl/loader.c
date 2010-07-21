@@ -1697,4 +1697,11 @@ PRNGTEST_Uninstantiate()
     return (vector->p_PRNGTEST_Uninstantiate)();
 }
 
-
+SECStatus 
+MGF1(HASH_HashType hashAlg, const unsigned char *mgfSeed, unsigned int mgfSeedLen,
+     unsigned char *mask, unsigned int maskLen)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+	return SECFailure;
+    return (vector->p_MGF1)(hashAlg, mgfSeed, mgfSeedLen, mask, maskLen);
+}
