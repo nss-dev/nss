@@ -257,9 +257,13 @@ static const struct FREEBLVectorStr vector =
     PRNGTEST_Instantiate,
     PRNGTEST_Reseed,
     PRNGTEST_Generate,
-    PRNGTEST_Uninstantiate
+    PRNGTEST_Uninstantiate,
 
     /* End of Version 3.011. */
+
+    MGF1
+
+    /* End of Version 3.012 */
 };
 
 const FREEBLVector * 
