@@ -844,6 +844,8 @@ sdb_GetAttributeValueNoLock(SDB *sdb, CK_OBJECT_HANDLE object_id,
 	}
 
 	sqlerr = sqlite3_prepare_v2(sqlDB, newStr, -1, &stmt, NULL);
+	sqlite3_free(newStr);
+	newStr = NULL;
 	if (sqlerr == SQLITE_ERROR) {
 	    template[i].ulValueLen = -1;
 	    error = CKR_ATTRIBUTE_TYPE_INVALID;
