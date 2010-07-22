@@ -540,10 +540,10 @@ struct FREEBLVectorStr {
 
  SECStatus (* p_PRNGTEST_Uninstantiate)(void);
    /* Version 3.011 came to here */
-   
+
  SECStatus (* p_MGF1)(HASH_HashType hashAlg,
-                      const unsigned char *mgfSeed, unsigned int mgfSeedLen,
-                      unsigned char *mask, unsigned int maskLen);
+                      unsigned char *mask, unsigned int maskLen,
+                      const unsigned char *mgfSeed, unsigned int mgfSeedLen);
   /* Version 3.012 came to here */
 };
 
