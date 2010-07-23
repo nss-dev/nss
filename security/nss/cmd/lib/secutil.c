@@ -1516,6 +1516,70 @@ const SEC_ASN1Template secuPBEV2Params[] =
 };
 
 void
+secu_PrintRSAPSSParams(FILE *out, SECItem *value, char *m, int level)
+{
+    PRArenaPool *pool = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    SECStatus rv;
+    SECKEYRSAPSSParams param;
+    SECAlgorithmID maskHashAlg;
+
+    if (m) {
+	SECU_Indent(out, level);
+	fprintf (out, "%s:\n", m);
+    }
+
+    if (!pool) {
+	SECU_Indent(out, level);
+	fprintf(out, "Out of memory\n");
+	return;
+    }
+
+    PORT_Memset(&param, 0, sizeof param);
+
+    rv = SEC_QuickDERDecodeItem(pool, &param,
+				SEC_ASN1_GET(SECKEY_RSAPSSParamsTemplate),
+				value);
+    if (rv == SECSuccess) {
+	if (!param.hashAlg) {
+	    SECU_Indent(out, level+1);
+	    fprintf(out, "Hash algorithm: default, SHA-1\n");
+	} else {
+	    SECU_PrintObjectID(out, &param.hashAlg->algorithm,
+			       "Hash algorithm", level+1);
+	}
+	if (!param.maskAlg) {
+	    SECU_Indent(out, level+1);
+	    fprintf(out, "Mask algorithm: default, MGF1\n");
+	    SECU_Indent(out, level+1);
+	    fprintf(out, "Mask hash algorithm: default, SHA-1\n");
+	} else {
+	    SECU_PrintObjectID(out, &param.maskAlg->algorithm,
+			       "Mask algorithm", level+1);
+	    rv = SEC_QuickDERDecodeItem(pool, &maskHashAlg,
+		     SEC_ASN1_GET(SECOID_AlgorithmIDTemplate),
+		     &param.maskAlg->parameters);
+	    if (rv == SECSuccess) {
+		SECU_PrintObjectID(out, &maskHashAlg.algorithm,
+				   "Mask hash algorithm", level+1);
+	    } else {
+		SECU_Indent(out, level+1);
+		fprintf(out, "Invalid mask generation algorithm parameters\n");
+	    }
+	}
+	if (!param.saltLength.data) {
+	    SECU_Indent(out, level+1);
+	    fprintf(out, "Salt length: default, %i (0x%2X)\n", 20, 20);
+	} else {
+	    SECU_PrintInteger(out, &param.saltLength, "Salt Length", level+1);
+	}
+    } else {
+	SECU_Indent(out, level+1);
+	fprintf(out, "Invalid RSA-PSS parameters\n");
+    }
+    PORT_FreeArena(pool, PR_FALSE);
+}
+
+void
 secu_PrintKDF2Params(FILE *out, SECItem *value, char *m, int level)
 {
     PRArenaPool *pool = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
@@ -1625,7 +1689,11 @@ SECU_PrintAlgorithmID(FILE *out, SECAlgorithmID *a, char *m, int level)
 	}
 	return;
     }
-	
+
+    if (algtag == SEC_OID_PKCS1_RSA_PSS_SIGNATURE) {
+	secu_PrintRSAPSSParams(out, &a->parameters, "Parameters", level+1);
+	return;
+    }
 
     if (a->parameters.len == 0
 	|| (a->parameters.len == 2

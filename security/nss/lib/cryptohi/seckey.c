@@ -78,6 +78,29 @@ const SEC_ASN1Template SECKEY_RSAPublicKeyTemplate[] = {
     { 0, }
 };
 
+/* Parameters for SEC_OID_PKCS1_RSA_PSS_SIGNATURE */
+const SEC_ASN1Template SECKEY_RSAPSSParamsTemplate[] =
+{
+    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(SECKEYRSAPSSParams) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_EXPLICIT |
+          SEC_ASN1_XTRN | SEC_ASN1_POINTER | SEC_ASN1_CONTEXT_SPECIFIC | 0,
+          offsetof(SECKEYRSAPSSParams, hashAlg),
+          SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_EXPLICIT |
+          SEC_ASN1_XTRN | SEC_ASN1_POINTER | SEC_ASN1_CONTEXT_SPECIFIC | 1,
+          offsetof(SECKEYRSAPSSParams, maskAlg),
+          SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_EXPLICIT |
+          SEC_ASN1_XTRN | SEC_ASN1_CONTEXT_SPECIFIC | 2,
+          offsetof(SECKEYRSAPSSParams, saltLength),
+          SEC_ASN1_SUB(SEC_IntegerTemplate) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_EXPLICIT |
+          SEC_ASN1_XTRN | SEC_ASN1_CONTEXT_SPECIFIC | 3,
+          offsetof(SECKEYRSAPSSParams, trailerField),
+          SEC_ASN1_SUB(SEC_IntegerTemplate) },
+    { 0 }
+};
+
 const SEC_ASN1Template SECKEY_DSAPublicKeyTemplate[] = {
     { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.dsa.publicValue), },
     { 0, }
@@ -148,6 +171,7 @@ const SEC_ASN1Template SECKEY_KEAParamsTemplate[] = {
 
 SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_DSAPublicKeyTemplate)
 SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_RSAPublicKeyTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_RSAPSSParamsTemplate)
 SEC_ASN1_CHOOSER_IMPLEMENT(CERT_SubjectPublicKeyInfoTemplate)
 
 /*
