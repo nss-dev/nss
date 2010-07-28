@@ -789,6 +789,7 @@ punt:
     if (pwdata.data) {
         PORT_Free(pwdata.data);
     }
+    PL_ArenaFinish();
     PR_Cleanup();
     return rv;
 }
