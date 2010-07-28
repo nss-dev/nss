@@ -118,7 +118,11 @@ else
 	OPTIMIZER = -O2
 endif
 ifdef MOZ_DEBUG_SYMBOLS
-	OPTIMIZER  += -gstabs+
+	ifdef MOZ_DEBUG_FLAGS
+		OPTIMIZER += $(MOZ_DEBUG_FLAGS)
+	else
+		OPTIMIZER += -gstabs+
+	endif
 endif
 endif
 
