@@ -306,8 +306,6 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
 	return SECFailure;
     }
 
-    PORT_FreeArena (arena, PR_FALSE);
-
     /* Encode request in specified format */
     if (ascii) {
 	char *obuf;
@@ -356,6 +354,7 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
 	PR_fprintf(outFile, "%s\n", NS_CERTREQ_HEADER);
 	numBytes = PR_Write(outFile, obuf, total);
 	if (numBytes != total) {
+	    PORT_FreeArena (arena, PR_FALSE);
 	    SECU_PrintError(progName, "write error");
 	    return SECFailure;
 	}
@@ -363,10 +362,12 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
     } else {
 	numBytes = PR_Write(outFile, result.data, result.len);
 	if (numBytes != (int)result.len) {
+	    PORT_FreeArena (arena, PR_FALSE);
 	    SECU_PrintSystemError(progName, "write error");
 	    return SECFailure;
 	}
     }
+    PORT_FreeArena (arena, PR_FALSE);
     return SECSuccess;
 }
 
