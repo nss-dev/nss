@@ -121,7 +121,7 @@ ifdef MOZ_DEBUG_SYMBOLS
 	ifdef MOZ_DEBUG_FLAGS
 		OPTIMIZER += $(MOZ_DEBUG_FLAGS)
 	else
-		OPTIMIZER += -gstabs+
+		OPTIMIZER += -gdwarf-2
 	endif
 endif
 endif
