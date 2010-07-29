@@ -37,10 +37,10 @@
 
 include $(CORE_DEPTH)/coreconf/UNIX.mk
 
-DEFAULT_COMPILER = cc
+DEFAULT_COMPILER = gcc
 
-CC		= cc
-CCC		= c++
+CC		= gcc
+CCC		= g++
 RANLIB		= ranlib
 
 ifndef CPU_ARCH
@@ -105,7 +105,7 @@ endif
 # definitions so that the linker can catch multiply-defined symbols.
 # Also, common symbols are not allowed with Darwin dynamic libraries.
 
-OS_CFLAGS	= $(DSO_CFLAGS) $(OS_REL_CFLAGS) -Wmost -fpascal-strings -fno-common -pipe -DDARWIN -DHAVE_STRERROR -DHAVE_BSD_FLOCK $(DARWIN_SDK_CFLAGS)
+OS_CFLAGS	= $(DSO_CFLAGS) $(OS_REL_CFLAGS) -Wall -fno-common -pipe -DDARWIN -DHAVE_STRERROR -DHAVE_BSD_FLOCK $(DARWIN_SDK_CFLAGS)
 
 ifdef BUILD_OPT
 ifeq (11,$(ALLOW_OPT_CODE_SIZE)$(OPT_CODE_SIZE))
