@@ -286,6 +286,7 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
     encoding = SEC_ASN1EncodeItem(arena, NULL, cr,
                                   SEC_ASN1_GET(CERT_CertificateRequestTemplate));
     if (encoding == NULL) {
+	PORT_FreeArena (arena, PR_FALSE);
 	SECU_PrintError(progName, "der encoding of request failed");
 	return SECFailure;
     }
@@ -293,15 +294,19 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
     /* Sign the request */
     signAlgTag = SEC_GetSignatureAlgorithmOidTag(keyType, hashAlgTag);
     if (signAlgTag == SEC_OID_UNKNOWN) {
+	PORT_FreeArena (arena, PR_FALSE);
 	SECU_PrintError(progName, "unknown Key or Hash type");
 	return SECFailure;
     }
     rv = SEC_DerSignData(arena, &result, encoding->data, encoding->len, 
 			 privk, signAlgTag);
     if (rv) {
+	PORT_FreeArena (arena, PR_FALSE);
 	SECU_PrintError(progName, "signing of data failed");
 	return SECFailure;
     }
+
+    PORT_FreeArena (arena, PR_FALSE);
 
     /* Encode request in specified format */
     if (ascii) {
@@ -2881,6 +2886,9 @@ shutdown:
     if (pubkey) {
 	SECKEY_DestroyPublicKey(pubkey);
     }
+    if (subject) {
+	CERT_DestroyName(subject);
+    }
 
     /* Open the batch command file.
      *
@@ -3017,6 +3025,7 @@ int
 main(int argc, char **argv)
 {
     int rv = certutil_main(argc, argv, PR_TRUE);
+    PL_ArenaFinish();
     PR_Cleanup();
     return rv;
 }
