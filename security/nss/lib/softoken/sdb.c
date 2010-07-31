@@ -903,9 +903,6 @@ loser:
 	    error = CKR_OBJECT_HANDLE_INVALID;
 	}
     }
-    if (newStr) {
-	sqlite3_free(newStr);
-    }
 
     if (stmt) {
 	sqlite3_reset(stmt);
