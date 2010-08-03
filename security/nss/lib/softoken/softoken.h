@@ -103,6 +103,11 @@ SECStatus RSA_HashCheckSign(SECOidTag hashOid,
 			    unsigned int sigLen, unsigned char *digest,
 			    unsigned int digestLen);
 extern
+SECStatus RSA_CheckSignPSS(CK_RSA_PKCS_PSS_PARAMS *pss_params,
+			   NSSLOWKEYPublicKey *key,
+			   const unsigned char *sign, unsigned int sign_len,
+			   const unsigned char *hash, unsigned int hash_len);
+extern
 SECStatus RSA_CheckSignRecover(NSSLOWKEYPublicKey *key, unsigned char *data,
     			    unsigned int *data_len,unsigned int max_output_len, 
 			    unsigned char *sign, unsigned int sign_len);

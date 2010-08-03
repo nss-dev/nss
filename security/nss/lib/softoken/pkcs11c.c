@@ -2400,6 +2400,14 @@ RSA_HashCheckSign(SECOidTag hashOid, NSSLOWKEYPublicKey *key,
     return rv;
 }
 
+static SECStatus
+sftk_CheckSignPSS(SFTKHashVerifyInfo *info, unsigned char *sig,
+	unsigned int sigLen, unsigned char *digest, unsigned int digestLen)
+{
+    return RSA_CheckSignPSS(info->params, info->key, sig, sigLen,
+						digest, digestLen);
+}
+
 /* NSC_VerifyInit initializes a verification operation, 
  * where the signature is an appendix to the data, 
  * and plaintext cannot be recovered from the signature (e.g. DSA) */
@@ -2472,6 +2480,29 @@ finish_rsa:
 	    context->cipherInfo = pubKey;
 	    context->destroy = sftk_Null;
 	}
+	break;
+    case CKM_RSA_PKCS_PSS:
+	if (key_type != CKK_RSA) {
+	    crv = CKR_KEY_TYPE_INCONSISTENT;
+	    break;
+	} 
+	if (pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+	    crv = CKR_MECHANISM_PARAM_INVALID;
+	    break;
+	}
+	info = PORT_New(SFTKHashVerifyInfo);
+	if (info == NULL) {
+	    crv = CKR_HOST_MEMORY;
+	    break;
+	}
+	info->params = pMechanism->pParameter;
+	info->key = sftk_GetPubKey(key,CKK_RSA,&crv);
+	if (info->key == NULL) {
+	    break;
+	}
+	context->cipherInfo = info;
+	context->destroy = (SFTKDestroy) sftk_Space;
+	context->verify = (SFTKVerify) sftk_CheckSignPSS;
 	break;
     case CKM_DSA_SHA1:
         context->multi = PR_TRUE;

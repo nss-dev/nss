@@ -58,6 +58,9 @@
 
 #define FLAT_BUFSIZE 512	/* bytes to hold flattened SHA1Context. */
 
+/* Needed for RSA-PSS functions */
+static const unsigned char eightZeros[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
 static SHA1Context *
 SHA1_CloneContext(SHA1Context *original)
 {
@@ -939,4 +942,163 @@ RSA_DecryptRaw(NSSLOWKEYPrivateKey *key,
 
 failure:
     return SECFailure;
+}
+
+/*
+ * Verify a PSS signature.
+ * Described in RFC 3447, section 9.1.2.
+ * We use mHash instead of M as input.
+ * emBits from the spec is just modulus bits - 1.
+ * We only support MGF1 as the MGF.
+ */
+static SECStatus
+emsa_pss_verify(const unsigned char *mHash,
+                const unsigned char *em, unsigned int emLen,
+                HASH_HashType hashAlg, HASH_HashType maskHashAlg,
+                unsigned int sLen)
+{
+    const SECHashObject *hash;
+    void *hash_context;
+    unsigned char *db;
+    unsigned char *H_;  /* H' from the RFC */
+    unsigned int i, dbMaskLen;
+    SECStatus rv;
+
+    hash = HASH_GetRawHashObject(hashAlg);
+    dbMaskLen = emLen - hash->length - 1;
+
+    /* Step 3 + 4 */
+    if ((emLen < (hash->length + sLen + 2)) ||
+	(em[emLen - 1] != 0xbc)) {
+	PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
+	return SECFailure;
+    }
+
+    /* Step 7 */
+    /* em[dbMaskLen] points to mgfSeed */
+    db = PORT_Alloc(dbMaskLen);
+    if (db == NULL) {
+	PORT_SetError(SEC_ERROR_NO_MEMORY);
+	return SECFailure;
+    }
+    MGF1(maskHashAlg, db, dbMaskLen, &em[dbMaskLen], hash->length);
+
+    /* Step 8 */
+    for (i = 0; i < dbMaskLen; i++) {
+	db[i] ^= em[i];
+    }
+
+    /* Step 9 */
+    db[0] &= 0x7f;
+
+    /* Step 10 */
+    for (i = 0; i < (dbMaskLen - sLen - 1); i++) {
+	if (db[i] != 0) {
+	    PORT_Free(db);
+	    PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
+	    return SECFailure;
+	}
+    }
+    if (db[dbMaskLen - sLen - 1] != 0x01) {
+	PORT_Free(db);
+	PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
+	return SECFailure;
+    }
+
+    /* Step 12 + 13 */
+    H_ = PORT_Alloc(hash->length);
+    if (H_ == NULL) {
+	PORT_SetError(SEC_ERROR_NO_MEMORY);
+	return SECFailure;
+    }
+    hash_context = (*hash->create)();
+    if (hash_context == NULL) {
+	PORT_Free(db);
+	PORT_SetError(SEC_ERROR_NO_MEMORY);
+	return SECFailure;
+    }
+    (*hash->begin)(hash_context);
+    (*hash->update)(hash_context, eightZeros, 8);
+    (*hash->update)(hash_context, mHash, hash->length);
+    (*hash->update)(hash_context, &db[dbMaskLen - sLen], sLen);
+    (*hash->end)(hash_context, H_, &i, hash->length);
+    (*hash->destroy)(hash_context, PR_TRUE);
+
+    PORT_Free(db);
+
+    /* Step 14 */
+    if ( (PORT_Memcmp(H_, &em[dbMaskLen], hash->length)) != 0) {
+	PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
+	rv = SECFailure;
+    } else {
+	rv = SECSuccess;
+    }
+
+    PORT_Free(H_);
+    return rv;
+}
+
+static HASH_HashType
+GetHashTypeFromMechanism(CK_MECHANISM_TYPE mech)
+{
+    switch(mech) {
+        case CKM_SHA_1:
+        case CKG_MGF1_SHA1:
+	    return HASH_AlgSHA1;
+        case CKM_SHA256:
+        case CKG_MGF1_SHA256:
+	    return HASH_AlgSHA256;
+        case CKM_SHA384:
+        case CKG_MGF1_SHA384:
+	    return HASH_AlgSHA384;
+        case CKM_SHA512:
+        case CKG_MGF1_SHA512:
+	    return HASH_AlgSHA512;
+        default:
+	    return HASH_AlgNULL;
+    }
+}
+
+/* MGF1 is the only supported MGF. */
+SECStatus
+RSA_CheckSignPSS(CK_RSA_PKCS_PSS_PARAMS *pss_params,
+		 NSSLOWKEYPublicKey *key,
+		 const unsigned char *sign, unsigned int sign_len,
+		 const unsigned char *hash, unsigned int hash_len)
+{
+    HASH_HashType hashAlg;
+    HASH_HashType maskHashAlg;
+    SECStatus rv;
+    unsigned int modulus_len = nsslowkey_PublicModulusLen(key);
+    unsigned char *buffer;
+
+    if (sign_len != modulus_len) {
+	PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
+	return SECFailure;
+    }
+
+    buffer = (unsigned char *)PORT_Alloc(modulus_len);
+    if (!buffer) {
+	PORT_SetError(SEC_ERROR_NO_MEMORY);
+	return SECFailure;
+    }
+
+    hashAlg = GetHashTypeFromMechanism(pss_params->hashAlg);
+    maskHashAlg = GetHashTypeFromMechanism(pss_params->mgf);
+
+    rv = RSA_PublicKeyOp(&key->u.rsa, buffer, sign);
+    if (rv != SECSuccess) {
+	PORT_Free(buffer);
+	PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
+	return SECFailure;
+    }
+
+    hashAlg = GetHashTypeFromMechanism(pss_params->hashAlg);
+    maskHashAlg = GetHashTypeFromMechanism(pss_params->mgf);
+
+    rv = emsa_pss_verify(hash, buffer, sign_len, hashAlg,
+			 maskHashAlg, pss_params->sLen);
+    PORT_Free(buffer);
+
+    return rv;
 }
