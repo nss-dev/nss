@@ -385,6 +385,7 @@ struct SFTKSlotStr {
  */
 struct SFTKHashVerifyInfoStr {
     SECOidTag   	hashOid;
+    void		*params;
     NSSLOWKEYPublicKey	*key;
 };
 

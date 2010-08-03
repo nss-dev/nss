@@ -296,6 +296,8 @@ static const struct mechanismList mechanisms[] = {
 				 CKF_GENERATE_KEY_PAIR},PR_TRUE},
      {CKM_RSA_PKCS,             {RSA_MIN_MODULUS_BITS,CK_MAX,
 				 CKF_DUZ_IT_ALL},       PR_TRUE},
+     {CKM_RSA_PKCS_PSS,         {RSA_MIN_MODULUS_BITS,CK_MAX,
+				 CKF_SN_VR},            PR_TRUE},
 #ifdef SFTK_RSA9796_SUPPORTED
      {CKM_RSA_9796,		{RSA_MIN_MODULUS_BITS,CK_MAX,
 				 CKF_DUZ_IT_ALL},       PR_TRUE},
