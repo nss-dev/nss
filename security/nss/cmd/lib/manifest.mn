@@ -60,6 +60,4 @@ CSRCS		= secutil.c \
 		pk11table.c \
 		$(NULL)
 
-REQUIRES	= dbm
-
 NO_MD_RELEASE	= 1
