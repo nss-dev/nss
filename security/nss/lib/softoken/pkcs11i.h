@@ -391,6 +391,7 @@ struct SFTKHashVerifyInfoStr {
 
 struct SFTKHashSignInfoStr {
     SECOidTag   	hashOid;
+    void		*params;
     NSSLOWKEYPrivateKey	*key;
 };
 
