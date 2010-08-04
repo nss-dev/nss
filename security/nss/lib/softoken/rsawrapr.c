@@ -1083,9 +1083,6 @@ RSA_CheckSignPSS(CK_RSA_PKCS_PSS_PARAMS *pss_params,
 	return SECFailure;
     }
 
-    hashAlg = GetHashTypeFromMechanism(pss_params->hashAlg);
-    maskHashAlg = GetHashTypeFromMechanism(pss_params->mgf);
-
     rv = RSA_PublicKeyOp(&key->u.rsa, buffer, sign);
     if (rv != SECSuccess) {
 	PORT_Free(buffer);
