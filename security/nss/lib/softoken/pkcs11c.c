@@ -1850,6 +1850,14 @@ RSA_HashSign(SECOidTag hashOid, NSSLOWKEYPrivateKey *key,
 }
 
 static SECStatus
+sftk_SignPSS(SFTKHashSignInfo *info,unsigned char *sig,unsigned int *sigLen,
+		unsigned int maxLen,unsigned char *hash, unsigned int hashLen)
+{
+    return RSA_SignPSS(info->params,info->key,sig,sigLen,maxLen,
+							hash,hashLen);
+}
+
+static SECStatus
 nsc_DSA_Verify_Stub(void *ctx, void *sigBuf, unsigned int sigLen,
                                void *dataBuf, unsigned int dataLen)
 {
@@ -2021,6 +2029,31 @@ finish_rsa:
 	}
 	context->maxLen = nsslowkey_PrivateModulusLen(privKey);
 	break;
+    case CKM_RSA_PKCS_PSS:
+	if (key_type != CKK_RSA) {
+	    crv = CKR_KEY_TYPE_INCONSISTENT;
+	    break;
+	} 
+	if (pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+	    crv = CKR_MECHANISM_PARAM_INVALID;
+	    break;
+	}
+	info = PORT_New(SFTKHashSignInfo);
+	if (info == NULL) {
+	    crv = CKR_HOST_MEMORY;
+	    break;
+	}
+	info->params = pMechanism->pParameter;
+	info->key = sftk_GetPrivKey(key,CKK_RSA,&crv);
+	if (info->key == NULL) {
+	    PORT_Free(info);
+	    break;
+	}
+	context->cipherInfo = info;
+	context->destroy = (SFTKDestroy) sftk_Space;
+	context->update = (SFTKCipher) sftk_SignPSS;
+	context->maxLen = nsslowkey_PrivateModulusLen(info->key);
+	break;	
 
     case CKM_DSA_SHA1:
         context->multi = PR_TRUE;
