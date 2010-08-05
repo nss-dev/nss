@@ -2807,6 +2807,7 @@ merge_fail:
 	    goto shutdown;
 	privkey->wincx = &pwdata;
 	PR_Close(outFile);
+	outFile = NULL;
 	inFile  = PR_Open(certreqfile, PR_RDONLY, 0);
 	if (!inFile) {
 	    PR_fprintf(PR_STDERR, "Failed to open file \"%s\" (%ld, %ld).\n",
@@ -2848,6 +2849,7 @@ merge_fail:
 	PORT_Assert(inFile != PR_STDIN);
 	PR_Close(inFile);
 	PR_Close(outFile);
+	outFile = NULL;
 	inFile = PR_Open(certfile, PR_RDONLY, 0);
 	if (!inFile) {
 	    PR_fprintf(PR_STDERR, "Failed to open file \"%s\" (%ld, %ld).\n",
@@ -2889,6 +2891,12 @@ shutdown:
     }
     if (subject) {
 	CERT_DestroyName(subject);
+    }
+    if (name) {
+	PL_strfree(name);
+    }
+    if (outFile) {
+	PR_Close(outFile);
     }
 
     /* Open the batch command file.
