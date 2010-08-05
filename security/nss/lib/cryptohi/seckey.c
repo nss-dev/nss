@@ -79,18 +79,23 @@ const SEC_ASN1Template SECKEY_RSAPublicKeyTemplate[] = {
     { 0, }
 };
 
+static const SEC_ASN1Template seckey_PointerToAlgorithmIDTemplate[] = {
+    { SEC_ASN1_POINTER | SEC_ASN1_XTRN, 0,
+      SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate) }
+};
+
 /* Parameters for SEC_OID_PKCS1_RSA_PSS_SIGNATURE */
 const SEC_ASN1Template SECKEY_RSAPSSParamsTemplate[] =
 {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(SECKEYRSAPSSParams) },
     { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_EXPLICIT |
-          SEC_ASN1_XTRN | SEC_ASN1_POINTER | SEC_ASN1_CONTEXT_SPECIFIC | 0,
+          SEC_ASN1_CONTEXT_SPECIFIC | 0,
           offsetof(SECKEYRSAPSSParams, hashAlg),
-          SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate) },
+          seckey_PointerToAlgorithmIDTemplate },
     { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_EXPLICIT |
-          SEC_ASN1_XTRN | SEC_ASN1_POINTER | SEC_ASN1_CONTEXT_SPECIFIC | 1,
+          SEC_ASN1_CONTEXT_SPECIFIC | 1,
           offsetof(SECKEYRSAPSSParams, maskAlg),
-          SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate) },
+          seckey_PointerToAlgorithmIDTemplate },
     { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_EXPLICIT |
           SEC_ASN1_XTRN | SEC_ASN1_CONTEXT_SPECIFIC | 2,
           offsetof(SECKEYRSAPSSParams, saltLength),
