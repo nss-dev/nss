@@ -97,7 +97,7 @@ extern
 SECStatus RSA_SignPSS(CK_RSA_PKCS_PSS_PARAMS *pss_params,
 		      NSSLOWKEYPrivateKey *key, 
 		      unsigned char *output, unsigned int *output_len, 
-		      unsigned int max_output_len, unsigned char *input,
+		      unsigned int max_output_len, const unsigned char *input,
 		      unsigned int input_len);
 extern
 SECStatus RSA_CheckSign(NSSLOWKEYPublicKey *key, unsigned char *sign,

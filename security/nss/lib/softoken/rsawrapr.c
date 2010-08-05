@@ -947,36 +947,37 @@ failure:
 /*
  * Encode a RSA-PSS signature.
  * Described in RFC 3447, section 9.1.1.
- * We use mhash instead of m as input.
+ * We use mHash instead of M as input.
  * We only support MGF1 as the MGF.
  */
-SECStatus
+static SECStatus
 emsa_pss_encode(unsigned char *em, unsigned int emLen,
-                const unsigned char *mhash, HASH_HashType hashAlg,
+                const unsigned char *mHash, HASH_HashType hashAlg,
                 HASH_HashType maskHashAlg, unsigned int sLen)
 {
     const SECHashObject *hash;
     void *hash_context;
     unsigned char *dbMask;
-    unsigned int padLen, i;
+    unsigned int dbMaskLen, i;
     SECStatus rv;
 
     hash = HASH_GetRawHashObject(hashAlg);
-    padLen = emLen - hash->length - 1;
+    dbMaskLen = emLen - hash->length - 1;
 
     /* Step 3 */
     if (emLen < hash->length + sLen + 2) {
-	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 	return SECFailure;
     }
 
     /* Step 4 */
-    rv = RNG_GenerateGlobalRandomBytes(&em[padLen - sLen], sLen);
+    rv = RNG_GenerateGlobalRandomBytes(&em[dbMaskLen - sLen], sLen);
     if (rv != SECSuccess) {
 	return rv;
     }
 
     /* Step 5 + 6 */
+    /* Compute H and store it at its final location &em[dbMaskLen]. */
     hash_context = (*hash->create)();
     if (hash_context == NULL) {
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
@@ -984,25 +985,25 @@ emsa_pss_encode(unsigned char *em, unsigned int emLen,
     }
     (*hash->begin)(hash_context);
     (*hash->update)(hash_context, eightZeros, 8);
-    (*hash->update)(hash_context, mhash, hash->length);
-    (*hash->update)(hash_context, &em[padLen - sLen], sLen);
-    (*hash->end)(hash_context, &em[padLen], &i, hash->length);
+    (*hash->update)(hash_context, mHash, hash->length);
+    (*hash->update)(hash_context, &em[dbMaskLen - sLen], sLen);
+    (*hash->end)(hash_context, &em[dbMaskLen], &i, hash->length);
     (*hash->destroy)(hash_context, PR_TRUE);
 
     /* Step 7 + 8 */
-    memset(em, 0, padLen - sLen - 1);
-    em[padLen - sLen - 1] = 0x01;
+    memset(em, 0, dbMaskLen - sLen - 1);
+    em[dbMaskLen - sLen - 1] = 0x01;
 
     /* Step 9 */
-    dbMask = PORT_Alloc(padLen);
+    dbMask = (unsigned char *)PORT_Alloc(dbMaskLen);
     if (dbMask == NULL) {
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
 	return SECFailure;
     }
-    MGF1(maskHashAlg, dbMask, padLen, &em[padLen], hash->length);
+    MGF1(maskHashAlg, dbMask, dbMaskLen, &em[dbMaskLen], hash->length);
 
     /* Step 10 */
-    for (i = 0; i < padLen; i++)
+    for (i = 0; i < dbMaskLen; i++)
 	em[i] ^= dbMask[i];
     PORT_Free(dbMask);
 
@@ -1046,12 +1047,12 @@ emsa_pss_verify(const unsigned char *mHash,
     }
 
     /* Step 7 */
-    /* em[dbMaskLen] points to mgfSeed */
-    db = PORT_Alloc(dbMaskLen);
+    db = (unsigned char *)PORT_Alloc(dbMaskLen);
     if (db == NULL) {
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
 	return SECFailure;
     }
+    /* &em[dbMaskLen] points to H, used as mgfSeed */
     MGF1(maskHashAlg, db, dbMaskLen, &em[dbMaskLen], hash->length);
 
     /* Step 8 */
@@ -1077,14 +1078,16 @@ emsa_pss_verify(const unsigned char *mHash,
     }
 
     /* Step 12 + 13 */
-    H_ = PORT_Alloc(hash->length);
+    H_ = (unsigned char *)PORT_Alloc(hash->length);
     if (H_ == NULL) {
+	PORT_Free(db);
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
 	return SECFailure;
     }
     hash_context = (*hash->create)();
     if (hash_context == NULL) {
 	PORT_Free(db);
+	PORT_Free(H_);
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
 	return SECFailure;
     }
@@ -1098,7 +1101,7 @@ emsa_pss_verify(const unsigned char *mHash,
     PORT_Free(db);
 
     /* Step 14 */
-    if ( (PORT_Memcmp(H_, &em[dbMaskLen], hash->length)) != 0) {
+    if (PORT_Memcmp(H_, &em[dbMaskLen], hash->length) != 0) {
 	PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
 	rv = SECFailure;
     } else {
@@ -1112,7 +1115,8 @@ emsa_pss_verify(const unsigned char *mHash,
 static HASH_HashType
 GetHashTypeFromMechanism(CK_MECHANISM_TYPE mech)
 {
-    switch(mech) {
+    /* TODO(wtc): add SHA-224. */
+    switch (mech) {
         case CKM_SHA_1:
         case CKG_MGF1_SHA1:
 	    return HASH_AlgSHA1;
@@ -1168,7 +1172,7 @@ RSA_CheckSignPSS(CK_RSA_PKCS_PSS_PARAMS *pss_params,
 	return SECFailure;
     }
 
-    rv = emsa_pss_verify(hash, buffer, sign_len, hashAlg,
+    rv = emsa_pss_verify(hash, buffer, modulus_len, hashAlg,
 			 maskHashAlg, pss_params->sLen);
     PORT_Free(buffer);
 
@@ -1180,7 +1184,7 @@ SECStatus
 RSA_SignPSS(CK_RSA_PKCS_PSS_PARAMS *pss_params, NSSLOWKEYPrivateKey *key,
 	    unsigned char *output, unsigned int *output_len,
 	    unsigned int max_output_len,
-	    unsigned char *input, unsigned int input_len)
+	    const unsigned char *input, unsigned int input_len)
 {
     SECStatus rv = SECSuccess;
     unsigned int modulus_len = nsslowkey_PrivateModulusLen(key);
@@ -1205,7 +1209,7 @@ RSA_SignPSS(CK_RSA_PKCS_PSS_PARAMS *pss_params, NSSLOWKEYPrivateKey *key,
 	return SECFailure;
     }
 
-    pss_encoded = PORT_Alloc(modulus_len);
+    pss_encoded = (unsigned char *)PORT_Alloc(modulus_len);
     if (pss_encoded == NULL) {
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
 	return SECFailure;
