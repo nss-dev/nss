@@ -948,7 +948,10 @@ failure:
  * Encode a RSA-PSS signature.
  * Described in RFC 3447, section 9.1.1.
  * We use mHash instead of M as input.
+ * emBits from the RFC is just modBits - 1, see section 8.1.1.
  * We only support MGF1 as the MGF.
+ *
+ * NOTE: this code assumes modBits is a multiple of 8.
  */
 static SECStatus
 emsa_pss_encode(unsigned char *em, unsigned int emLen,
@@ -1020,8 +1023,10 @@ emsa_pss_encode(unsigned char *em, unsigned int emLen,
  * Verify a RSA-PSS signature.
  * Described in RFC 3447, section 9.1.2.
  * We use mHash instead of M as input.
- * emBits from the spec is just modulus bits - 1.
+ * emBits from the RFC is just modBits - 1, see section 8.1.2.
  * We only support MGF1 as the MGF.
+ *
+ * NOTE: this code assumes modBits is a multiple of 8.
  */
 static SECStatus
 emsa_pss_verify(const unsigned char *mHash,
@@ -1039,9 +1044,10 @@ emsa_pss_verify(const unsigned char *mHash,
     hash = HASH_GetRawHashObject(hashAlg);
     dbMaskLen = emLen - hash->length - 1;
 
-    /* Step 3 + 4 */
+    /* Step 3 + 4 + 6 */
     if ((emLen < (hash->length + sLen + 2)) ||
-	(em[emLen - 1] != 0xbc)) {
+	(em[emLen - 1] != 0xbc) ||
+	((em[0] & 0x80) != 0)) {
 	PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
 	return SECFailure;
     }
