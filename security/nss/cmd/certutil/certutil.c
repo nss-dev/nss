@@ -2906,6 +2906,10 @@ shutdown:
     if (outFile) {
 	PR_Close(outFile);
     }
+    if (pwdata.data && pwdata.source == PW_PLAINTEXT) {
+	/* Allocated by a PL_strdup call in SECU_GetModulePassword. */
+	PL_strfree(pwdata.data);
+    }
 
     /* Open the batch command file.
      *
