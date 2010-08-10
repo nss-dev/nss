@@ -147,7 +147,7 @@ else # !NS_USE_GCC
 	# (RTL) in the debug build
 	#
 	ifdef USE_DEBUG_RTL
-		OS_CFLAGS += -MDd -DUSE_DEBUG_RTL -D_CRTDBG_MAP_ALLOC
+		OS_CFLAGS += -MDd -D_CRTDBG_MAP_ALLOC
 	else
 		OS_CFLAGS += -MD
 	endif
