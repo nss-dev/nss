@@ -1029,12 +1029,16 @@ extern SHA384Context * SHA384_Resurrect(unsigned char *space, void *arg);
 extern void SHA384_Clone(SHA384Context *dest, SHA384Context *src);
 
 /****************************************
- * implement TLS Pseudo Random Function (PRF)
+ * implement TLS 1.0, 1.1 and 1.2 Pseudo Random Function (PRF)
  */
 
 extern SECStatus
 TLS_PRF(const SECItem *secret, const char *label, SECItem *seed, 
          SECItem *result, PRBool isFIPS);
+
+extern SECStatus
+TLS_P_hash(HASH_HashType hashAlg, const SECItem *secret, const char *label,
+           SECItem *seed, SECItem *result, PRBool isFIPS);
 
 /******************************************/
 /*
