@@ -1705,3 +1705,13 @@ MGF1(HASH_HashType hashAlg, unsigned char *mask, unsigned int maskLen,
 	return SECFailure;
     return (vector->p_MGF1)(hashAlg, mask, maskLen, mgfSeed, mgfSeedLen);
 }
+
+SECStatus 
+TLS_P_hash(HASH_HashType hashAlg, const SECItem *secret, const char *label,
+           SECItem *seed, SECItem *result, PRBool isFIPS)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_TLS_P_hash)(hashAlg, secret, label, seed, result, isFIPS);
+}
+

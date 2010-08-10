@@ -261,7 +261,8 @@ static const struct FREEBLVectorStr vector =
 
     /* End of Version 3.011. */
 
-    MGF1
+    MGF1,
+    TLS_P_hash
 
     /* End of Version 3.012 */
 };
