@@ -86,7 +86,8 @@ static SECStatus ssl3_SendServerHello(       sslSocket *ss);
 static SECStatus ssl3_SendServerHelloDone(   sslSocket *ss);
 static SECStatus ssl3_SendServerKeyExchange( sslSocket *ss);
 static SECStatus ssl3_NewHandshakeHashes(    sslSocket *ss);
-static SECStatus ssl3_UpdateHandshakeHashes( sslSocket *ss, unsigned char *b, 
+static SECStatus ssl3_UpdateHandshakeHashes( sslSocket *ss,
+                                             const unsigned char *b,
                                              unsigned int l);
 
 static SECStatus Null_Cipher(void *ctx, unsigned char *output, int *outputLen,
@@ -3174,7 +3175,8 @@ loser:
 ** Caller must hold the ssl3Handshake lock.
 */
 static SECStatus
-ssl3_UpdateHandshakeHashes(sslSocket *ss, unsigned char *b, unsigned int l)
+ssl3_UpdateHandshakeHashes(sslSocket *ss, const unsigned char *b,
+			   unsigned int l)
 {
     SECStatus  rv = SECSuccess;
 
