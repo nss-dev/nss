@@ -2498,11 +2498,13 @@ CK_RV NSC_VerifyInit(CK_SESSION_HANDLE hSession,
 	context->verify = (SFTKVerify) RSA_CheckSignRaw;
 finish_rsa:
 	if (key_type != CKK_RSA) {
+	    if (info) PORT_Free(info);
 	    crv = CKR_KEY_TYPE_INCONSISTENT;
 	    break;
 	}
 	pubKey = sftk_GetPubKey(key,CKK_RSA,&crv);
 	if (pubKey == NULL) {
+	    if (info) PORT_Free(info);
 	    break;
 	}
 	if (info) {
@@ -2531,6 +2533,7 @@ finish_rsa:
 	info->params = pMechanism->pParameter;
 	info->key = sftk_GetPubKey(key,CKK_RSA,&crv);
 	if (info->key == NULL) {
+	    PORT_Free(info);
 	    break;
 	}
 	context->cipherInfo = info;
