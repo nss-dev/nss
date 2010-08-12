@@ -341,7 +341,8 @@ SEC_ASN1_CHOOSER_IMPLEMENT(CERT_SignedDataTemplate)
 
 SECStatus
 SEC_DerSignData(PRArenaPool *arena, SECItem *result, 
-	unsigned char *buf, int len, SECKEYPrivateKey *pk, SECOidTag algID)
+	const unsigned char *buf, int len, SECKEYPrivateKey *pk,
+	SECOidTag algID)
 {
     SECItem it;
     CERTSignedData sd;
@@ -376,7 +377,7 @@ SEC_DerSignData(PRArenaPool *arena, SECItem *result,
 
     /* Fill out SignedData object */
     PORT_Memset(&sd, 0, sizeof(sd));
-    sd.data.data = buf;
+    sd.data.data = (unsigned char*) buf;
     sd.data.len = len;
     sd.signature.data = it.data;
     sd.signature.len = it.len << 3;		/* convert to bit string */

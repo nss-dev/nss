@@ -448,15 +448,6 @@ loser:
 }
 
 SECStatus
-PK11_ImportPrivateKey(PK11SlotInfo *slot, SECKEYRawPrivateKey *lpk, 
-	SECItem *nickname, SECItem *publicValue, PRBool isPerm, 
-	PRBool isPrivate, unsigned int keyUsage, void *wincx) 
-{
-    return PK11_ImportAndReturnPrivateKey(slot, lpk, nickname, publicValue,
-	isPerm, isPrivate, keyUsage, NULL, wincx);
-}
-
-SECStatus
 PK11_ImportPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
 	SECKEYPrivateKeyInfo *pki, SECItem *nickname, SECItem *publicValue,
 	PRBool isPerm, PRBool isPrivate, unsigned int keyUsage,
