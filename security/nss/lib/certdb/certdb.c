@@ -2550,18 +2550,16 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
 	if ( keepCerts ) {
 	    for ( i = 0; i < fcerts; i++ ) {
                 char* canickname = NULL;
-                PRBool freeNickname = PR_FALSE;
+                PRBool isCA;
 
 		SECKEY_UpdateCertPQG(certs[i]);
                 
-                if ( CERT_IsCACert(certs[i], NULL) ) {
+                isCA = CERT_IsCACert(certs[i], NULL);
+                if ( isCA ) {
                     canickname = CERT_MakeCANickname(certs[i]);
-                    if ( canickname != NULL ) {
-                        freeNickname = PR_TRUE;
-                    }
                 }
 
-		if(CERT_IsCACert(certs[i], NULL) && (fcerts > 1)) {
+		if(isCA && (fcerts > 1)) {
 		    /* if we are importing only a single cert and specifying
 		     * a nickname, we want to use that nickname if it a CA,
 		     * otherwise if there are more than one cert, we don't
@@ -2574,9 +2572,7 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
                                                 nickname?nickname:canickname, NULL);
 		}
 
-                if (PR_TRUE == freeNickname) {
-                    PORT_Free(canickname);
-                }
+                PORT_Free(canickname);
 		/* don't care if it fails - keep going */
 	    }
 	}
