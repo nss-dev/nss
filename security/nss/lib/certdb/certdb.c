@@ -2038,80 +2038,68 @@ CERT_MakeCANickname(CERTCertificate *cert)
     char *nickname = NULL;
     int count;
     CERTCertificate *dummycert;
-    CERTCertDBHandle *handle;
     
-    handle = cert->dbhandle;
-    
-    nickname = CERT_GetNickName(cert, handle, cert->arena);
-    if (nickname == NULL) {
-	firstname = CERT_GetCommonName(&cert->subject);
-	if ( firstname == NULL ) {
-	    firstname = CERT_GetOrgUnitName(&cert->subject);
-	}
+    firstname = CERT_GetCommonName(&cert->subject);
+    if ( firstname == NULL ) {
+	firstname = CERT_GetOrgUnitName(&cert->subject);
+    }
 
-	org = CERT_GetOrgName(&cert->issuer);
+    org = CERT_GetOrgName(&cert->issuer);
+    if (org == NULL) {
+	org = CERT_GetDomainComponentName(&cert->issuer);
 	if (org == NULL) {
-	    org = CERT_GetDomainComponentName(&cert->issuer);
-	    if (org == NULL) {
-		if (firstname) {
-		    org = firstname;
-		    firstname = NULL;
-		} else {
-		    org = PORT_Strdup("Unknown CA");
-		}
-	    }
-	}
-
-	/* can only fail if PORT_Strdup fails, in which case
-	 * we're having memory problems. */
-	if (org == NULL) {
-	    goto loser;
-	}
-
-    
-	count = 1;
-	while ( 1 ) {
-
-	    if ( firstname ) {
-		if ( count == 1 ) {
-		    nickname = PR_smprintf("%s - %s", firstname, org);
-		} else {
-		    nickname = PR_smprintf("%s - %s #%d", firstname, org, count);
-		}
+	    if (firstname) {
+		org = firstname;
+		firstname = NULL;
 	    } else {
-		if ( count == 1 ) {
-		    nickname = PR_smprintf("%s", org);
-		} else {
-		    nickname = PR_smprintf("%s #%d", org, count);
-		}
+		org = PORT_Strdup("Unknown CA");
 	    }
-	    if ( nickname == NULL ) {
-		goto loser;
-	    }
-
-	    /* look up the nickname to make sure it isn't in use already */
-	    dummycert = CERT_FindCertByNickname(handle, nickname);
-
-	    if ( dummycert == NULL ) {
-		goto done;
-	    }
-	
-	    /* found a cert, destroy it and loop */
-	    CERT_DestroyCertificate(dummycert);
-
-	    /* free the nickname */
-	    PORT_Free(nickname);
-
-	    count++;
 	}
     }
-loser:
-    if ( nickname ) {
-	PORT_Free(nickname);
+
+    /* can only fail if PORT_Strdup fails, in which case
+     * we're having memory problems. */
+    if (org == NULL) {
+	goto done;
     }
 
-    nickname = NULL;
     
+    count = 1;
+    while ( 1 ) {
+
+	if ( firstname ) {
+	    if ( count == 1 ) {
+		nickname = PR_smprintf("%s - %s", firstname, org);
+	    } else {
+		nickname = PR_smprintf("%s - %s #%d", firstname, org, count);
+	    }
+	} else {
+	    if ( count == 1 ) {
+		nickname = PR_smprintf("%s", org);
+	    } else {
+		nickname = PR_smprintf("%s #%d", org, count);
+	    }
+	}
+	if ( nickname == NULL ) {
+	    goto done;
+	}
+
+	/* look up the nickname to make sure it isn't in use already */
+	dummycert = CERT_FindCertByNickname(cert->dbhandle, nickname);
+
+	if ( dummycert == NULL ) {
+	    goto done;
+	}
+	
+	/* found a cert, destroy it and loop */
+	CERT_DestroyCertificate(dummycert);
+
+	/* free the nickname */
+	PORT_Free(nickname);
+
+	count++;
+    }
+
 done:
     if ( firstname ) {
 	PORT_Free(firstname);
