@@ -1029,7 +1029,7 @@ extern SHA384Context * SHA384_Resurrect(unsigned char *space, void *arg);
 extern void SHA384_Clone(SHA384Context *dest, SHA384Context *src);
 
 /****************************************
- * implement TLS 1.0, 1.1 and 1.2 Pseudo Random Function (PRF)
+ * implement TLS 1.0 Pseudo Random Function (PRF) and TLS P_hash function
  */
 
 extern SECStatus
