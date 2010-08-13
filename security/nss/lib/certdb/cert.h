@@ -1296,9 +1296,6 @@ CERTGeneralName *
 CERT_GetConstrainedCertificateNames(CERTCertificate *cert, PLArenaPool *arena,
                                     PRBool includeSubjectCommonName);
 
-char *
-CERT_GetNickName(CERTCertificate   *cert, CERTCertDBHandle *handle, PLArenaPool *nicknameArena);
-
 /*
  * Creates or adds to a list of all certs with a give subject name, sorted by
  * validity time, newest first.  Invalid certs are considered older than
