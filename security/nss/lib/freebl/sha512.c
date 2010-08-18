@@ -1,5 +1,5 @@
 /*
- * sha512.c - implementation of SHA256, SHA384 and SHA512
+ * sha512.c - implementation of SHA224, SHA256, SHA384 and SHA512
  *
  * ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -62,6 +62,7 @@
 #define SHL(x,n) (x << n)
 #define Ch(x,y,z)  ((x & y) ^ (~x & z))
 #define Maj(x,y,z) ((x & y) ^ (x & z) ^ (y & z))
+#define SHA_MIN(a,b) (a < b ? a : b)
 
 /* Padding used with all flavors of SHA */
 static const PRUint8 pad[240] = { 
@@ -70,7 +71,7 @@ static const PRUint8 pad[240] = {
    /* compiler will fill the rest in with zeros */
 };
 
-/* ============= SHA256 implemenmtation ================================== */
+/* ============= SHA256 implementation ================================== */
 
 /* SHA-256 constants, K256. */
 static const PRUint32 K256[64] = {
@@ -520,6 +521,99 @@ SHA256_Resurrect(unsigned char *space, void *arg)
 void SHA256_Clone(SHA256Context *dest, SHA256Context *src) 
 {
     memcpy(dest, src, sizeof *dest);
+}
+
+/* ============= SHA224 implementation ================================== */
+
+/* SHA-224 initial hash values */
+static const PRUint32 H224[8] = {
+    0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939, 
+    0xffc00b31, 0x68581511, 0x64f98fa7, 0xbefa4fa4
+};
+
+SHA224Context *
+SHA224_NewContext(void)
+{
+    return SHA256_NewContext();
+}
+
+void
+SHA224_DestroyContext(SHA224Context *ctx, PRBool freeit)
+{
+    SHA256_DestroyContext(ctx, freeit);
+}
+
+void
+SHA224_Begin(SHA224Context *ctx)
+{
+    memset(ctx, 0, sizeof *ctx);
+    memcpy(H, H224, sizeof H224);
+}
+
+static void
+SHA224_Compress(SHA224Context *ctx)
+{
+    SHA256_Compress(ctx);
+}
+
+void
+SHA224_Update(SHA224Context *ctx, const unsigned char *input,
+		    unsigned int inputLen)
+{
+    SHA256_Update(ctx, input, inputLen);
+}
+
+void
+SHA224_End(SHA256Context *ctx, unsigned char *digest,
+           unsigned int *digestLen, unsigned int maxDigestLen)
+{
+    unsigned int maxLen = SHA_MIN(maxDigestLen, SHA224_LENGTH);
+    SHA256_End(ctx, digest, digestLen, maxLen);
+}
+
+SECStatus 
+SHA224_HashBuf(unsigned char *dest, const unsigned char *src,
+               uint32 src_length)
+{
+    SHA256Context ctx;
+    unsigned int outLen;
+
+    SHA224_Begin(&ctx);
+    SHA256_Update(&ctx, src, src_length);
+    SHA256_End(&ctx, dest, &outLen, SHA224_LENGTH);
+
+    return SECSuccess;
+}
+
+SECStatus
+SHA224_Hash(unsigned char *dest, const char *src)
+{
+    return SHA224_HashBuf(dest, (const unsigned char *)src, PORT_Strlen(src));
+}
+
+void SHA224_TraceState(SHA224Context *ctx) { }
+
+unsigned int
+SHA224_FlattenSize(SHA224Context *ctx)
+{
+    return SHA256_FlattenSize(ctx);
+}
+
+SECStatus
+SHA224_Flatten(SHA224Context *ctx, unsigned char *space)
+{
+    return SHA256_Flatten(ctx, space);
+}
+
+SHA224Context *
+SHA224_Resurrect(unsigned char *space, void *arg)
+{
+    return SHA256_Resurrect(space, arg);
+}
+
+void SHA224_Clone(SHA224Context *dest, SHA224Context *src) 
+{
+    SHA256_Clone(dest, src);
 }
 
 
@@ -1252,7 +1346,6 @@ void
 SHA384_End(SHA384Context *ctx, unsigned char *digest,
 		 unsigned int *digestLen, unsigned int maxDigestLen)
 {
-#define SHA_MIN(a,b) (a < b ? a : b)
     unsigned int maxLen = SHA_MIN(maxDigestLen, SHA384_LENGTH);
     SHA512_End(ctx, digest, digestLen, maxLen);
 }
@@ -1338,6 +1431,38 @@ void test256(void)
     dumpHash32(outBuf, sizeof outBuf);
 }
 
+void test224(void)
+{
+    SHA224Context ctx;
+    unsigned char a1000times[1000];
+    unsigned int outLen;
+    unsigned char outBuf[SHA224_LENGTH];
+    int i;
+
+    /* Test Vector 1 */
+    printf("SHA224, input = %s\n", abc);
+    SHA224_Hash(outBuf, abc);
+    dumpHash32(outBuf, sizeof outBuf);
+
+    /* Test Vector 2 */
+    printf("SHA224, input = %s\n", abcdbc);
+    SHA224_Hash(outBuf, abcdbc);
+    dumpHash32(outBuf, sizeof outBuf);
+
+    /* Test Vector 3 */
+
+    /* to hash one million 'a's perform 1000
+     * sha224 updates on a buffer with 1000 'a's 
+     */
+    memset(a1000times, 'a', 1000);
+    printf("SHA224, input = %s\n", "a one million times");
+    SHA224_Begin(&ctx);
+    for (i = 0; i < 1000; i++)
+        SHA224_Update(&ctx, a1000times, 1000);
+    SHA224_End(&ctx, outBuf, &outLen, SHA224_LENGTH);
+    dumpHash32(outBuf, sizeof outBuf);
+}
+
 void
 dumpHash64(const unsigned char *buf, unsigned int bufLen)
 {
@@ -1393,9 +1518,10 @@ int main (int argc, char *argv[], char *envp[])
     	i = atoi(argv[1]);
     }
     if (i < 2) {
+	test224();
 	test256();
-	test512();
 	test384();
+	test512();
     } else {
     	while (i-- > 0) {
 	    time512();

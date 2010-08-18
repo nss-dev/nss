@@ -74,6 +74,7 @@ SGN_CreateDigestInfo(SECOidTag algorithm, unsigned char *sig, unsigned len)
       case SEC_OID_MD2:
       case SEC_OID_MD5:
       case SEC_OID_SHA1:
+      case SEC_OID_SHA224:
       case SEC_OID_SHA256:
       case SEC_OID_SHA384:
       case SEC_OID_SHA512:

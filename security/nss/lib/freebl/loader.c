@@ -1697,6 +1697,8 @@ PRNGTEST_Uninstantiate()
     return (vector->p_PRNGTEST_Uninstantiate)();
 }
 
+/* ============== New for 3.012 =============================== */
+
 SECStatus
 MGF1(HASH_HashType hashAlg, unsigned char *mask, unsigned int maskLen,
      const unsigned char *mgfSeed, unsigned int mgfSeedLen)
@@ -1715,3 +1717,100 @@ TLS_P_hash(HASH_HashType hashAlg, const SECItem *secret, const char *label,
   return (vector->p_TLS_P_hash)(hashAlg, secret, label, seed, result, isFIPS);
 }
 
+SECStatus 
+SHA224_Hash(unsigned char *dest, const char *src)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_SHA224_Hash)(dest, src);
+}
+
+SECStatus
+SHA224_HashBuf(unsigned char *dest, const unsigned char *src, uint32 src_length)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_SHA224_HashBuf)(dest, src, src_length);
+}
+
+SHA224Context *
+SHA224_NewContext(void)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return (vector->p_SHA224_NewContext)();
+}
+
+void
+SHA224_DestroyContext(SHA224Context *cx, PRBool freeit)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_SHA224_DestroyContext)(cx, freeit);
+}
+
+void
+SHA224_Begin(SHA256Context *cx)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_SHA224_Begin)(cx);
+}
+
+void
+SHA224_Update(SHA224Context *cx, const unsigned char *input,
+			unsigned int inputLen)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_SHA224_Update)(cx, input, inputLen);
+}
+
+void
+SHA224_End(SHA224Context *cx, unsigned char *digest,
+		     unsigned int *digestLen, unsigned int maxDigestLen)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_SHA224_End)(cx, digest, digestLen, maxDigestLen);
+}
+
+void
+SHA224_TraceState(SHA224Context *cx)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_SHA224_TraceState)(cx);
+}
+
+unsigned int
+SHA224_FlattenSize(SHA224Context *cx)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return 0;
+  return (vector->p_SHA224_FlattenSize)(cx);
+}
+
+SECStatus
+SHA224_Flatten(SHA224Context *cx,unsigned char *space)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_SHA224_Flatten)(cx, space);
+}
+
+SHA224Context *
+SHA224_Resurrect(unsigned char *space, void *arg)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return (vector->p_SHA224_Resurrect)(space, arg);
+}
+
+void 
+SHA224_Clone(SHA224Context *dest, SHA224Context *src)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_SHA224_Clone)(dest, src);
+}

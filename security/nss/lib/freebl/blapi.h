@@ -976,6 +976,24 @@ extern void SHA1_Clone(SHA1Context *dest, SHA1Context *src);
 
 /******************************************/
 
+extern SHA224Context *SHA224_NewContext(void);
+extern void SHA224_DestroyContext(SHA224Context *cx, PRBool freeit);
+extern void SHA224_Begin(SHA224Context *cx);
+extern void SHA224_Update(SHA224Context *cx, const unsigned char *input,
+			unsigned int inputLen);
+extern void SHA224_End(SHA224Context *cx, unsigned char *digest,
+		     unsigned int *digestLen, unsigned int maxDigestLen);
+extern SECStatus SHA224_HashBuf(unsigned char *dest, const unsigned char *src,
+			      uint32 src_length);
+extern SECStatus SHA224_Hash(unsigned char *dest, const char *src);
+extern void SHA224_TraceState(SHA224Context *cx);
+extern unsigned int SHA224_FlattenSize(SHA224Context *cx);
+extern SECStatus SHA224_Flatten(SHA224Context *cx,unsigned char *space);
+extern SHA224Context * SHA224_Resurrect(unsigned char *space, void *arg);
+extern void SHA224_Clone(SHA224Context *dest, SHA224Context *src);
+
+/******************************************/
+
 extern SHA256Context *SHA256_NewContext(void);
 extern void SHA256_DestroyContext(SHA256Context *cx, PRBool freeit);
 extern void SHA256_Begin(SHA256Context *cx);

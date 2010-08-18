@@ -92,6 +92,11 @@ sha1_NewContext(void) {
 }
 
 static void *
+sha224_NewContext(void) {
+	return (void *) PK11_CreateDigestContext(SEC_OID_SHA224);
+}
+
+static void *
 sha256_NewContext(void) {
 	return (void *) PK11_CreateDigestContext(SEC_OID_SHA256);
 }
@@ -183,6 +188,17 @@ const SECHashObject SECHashObjects[] = {
 							PK11_DigestFinal,
     SHA512_BLOCK_LENGTH,
     HASH_AlgSHA512
+  },
+  { SHA224_LENGTH,
+    (void * (*)(void)) sha224_NewContext,
+    (void * (*)(void *)) PK11_CloneContext,
+    (void (*)(void *, PRBool)) PK11_DestroyContext,
+    (void (*)(void *)) PK11_DigestBegin,
+    (void (*)(void *, const unsigned char *, unsigned int)) PK11_DigestOp,
+    (void (*)(void *, unsigned char *, unsigned int *, unsigned int))
+							PK11_DigestFinal,
+    SHA224_BLOCK_LENGTH,
+    HASH_AlgSHA224
   },
 };
 
