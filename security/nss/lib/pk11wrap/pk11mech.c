@@ -373,6 +373,7 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len)
     case CKM_MD2_RSA_PKCS:
     case CKM_MD5_RSA_PKCS:
     case CKM_SHA1_RSA_PKCS:
+    case CKM_SHA224_RSA_PKCS:
     case CKM_SHA256_RSA_PKCS:
     case CKM_SHA384_RSA_PKCS:
     case CKM_SHA512_RSA_PKCS:
@@ -407,6 +408,8 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len)
     case CKM_TLS_KEY_AND_MAC_DERIVE:
     case CKM_SHA_1_HMAC:
     case CKM_SHA_1_HMAC_GENERAL:
+    case CKM_SHA224_HMAC:
+    case CKM_SHA224_HMAC_GENERAL:
     case CKM_SHA256_HMAC:
     case CKM_SHA256_HMAC_GENERAL:
     case CKM_SHA384_HMAC:

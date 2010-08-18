@@ -262,7 +262,19 @@ static const struct FREEBLVectorStr vector =
     /* End of Version 3.011. */
 
     MGF1,
-    TLS_P_hash
+    TLS_P_hash,
+    SHA224_NewContext,
+    SHA224_DestroyContext,
+    SHA224_Begin,
+    SHA224_Update,
+    SHA224_End,
+    SHA224_HashBuf,
+    SHA224_Hash,
+    SHA224_TraceState,
+    SHA224_FlattenSize,
+    SHA224_Flatten,
+    SHA224_Resurrect,
+    SHA224_Clone
 
     /* End of Version 3.012 */
 };

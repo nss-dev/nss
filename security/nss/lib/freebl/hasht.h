@@ -54,6 +54,7 @@ typedef enum {
     HASH_AlgSHA256 = 4,
     HASH_AlgSHA384 = 5,
     HASH_AlgSHA512 = 6,
+    HASH_AlgSHA224 = 7,
     HASH_AlgTOTAL
 } HASH_HashType;
 
@@ -63,6 +64,7 @@ typedef enum {
 #define MD2_LENGTH	16
 #define MD5_LENGTH	16
 #define SHA1_LENGTH	20
+#define SHA224_LENGTH 	28
 #define SHA256_LENGTH 	32
 #define SHA384_LENGTH 	48
 #define SHA512_LENGTH 	64
