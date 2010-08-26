@@ -1358,16 +1358,9 @@ SSL_DataPending(PRFileDesc *fd)
     ss = ssl_FindSocket(fd);
 
     if (ss && ss->opt.useSecurity) {
-
-	ssl_Get1stHandshakeLock(ss);
-	ssl_GetSSL3HandshakeLock(ss);
-
 	ssl_GetRecvBufLock(ss);
 	rv = ss->gs.writeOffset - ss->gs.readOffset;
 	ssl_ReleaseRecvBufLock(ss);
-
-	ssl_ReleaseSSL3HandshakeLock(ss);
-	ssl_Release1stHandshakeLock(ss);
     }
 
     return rv;
