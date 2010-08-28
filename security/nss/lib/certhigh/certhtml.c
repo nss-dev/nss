@@ -205,7 +205,7 @@ char *CERT_FormatName (CERTName *name)
     /* allocate buffer */
     buf = (char *)PORT_Alloc(len);
     if ( !buf ) {
-	return(0);
+	goto loser;
     }
 
     tmpbuf = buf;
