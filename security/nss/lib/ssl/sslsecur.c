@@ -84,7 +84,8 @@
  *
  * 3.   SECWouldBlock was returned by one of the callback functions, via
  *	one of these paths:
- * -	ssl2_HandleMessage() -> ssl2_HandleRequestCertificate() -> ss->getClientAuthData()
+ * -	ssl2_HandleMessage() -> ssl2_HandleRequestCertificate() ->
+ *	ss->getClientAuthData()
  *
  * -	ssl2_HandleServerHelloMessage() -> ss->handleBadCert()
  *
