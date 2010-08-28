@@ -433,12 +433,13 @@ ChangeTrustAttributes(CERTCertDBHandle *handle, PK11SlotInfo *slot,
 }
 
 static SECStatus
-DumpChain(CERTCertDBHandle *handle, char *name)
+DumpChain(CERTCertDBHandle *handle, char *name, PRBool ascii)
 {
     CERTCertificate *the_cert;
     CERTCertificateList *chain;
     int i, j;
-    the_cert = PK11_FindCertFromNickname(name, NULL);
+    the_cert = SECU_FindCertByNicknameOrFilename(handle, name,
+                                                 ascii, NULL);
     if (!the_cert) {
 	SECU_PrintError(progName, "Could not find: %s\n", name);
 	return SECFailure;
@@ -480,15 +481,12 @@ listCerts(CERTCertDBHandle *handle, char *name, PK11SlotInfo *slot,
         }
     }
     if (name) {
-	CERTCertificate *the_cert;
-	the_cert = CERT_FindCertByNicknameOrEmailAddr(handle, name);
-	if (!the_cert) {
-	    the_cert = PK11_FindCertFromNickname(name, NULL);
-	    if (!the_cert) {
-		SECU_PrintError(progName, "Could not find: %s\n", name);
-		return SECFailure;
-	    }
-	}
+	CERTCertificate *the_cert =
+            SECU_FindCertByNicknameOrFilename(handle, name, ascii, NULL);
+        if (!the_cert) {
+            SECU_PrintError(progName, "Could not find cert: %s\n", name);
+            return SECFailure;
+        }
 	/* Here, we have one cert with the desired nickname or email 
 	 * address.  Now, we will attempt to get a list of ALL certs 
 	 * with the same subject name as the cert we have.  That list 
@@ -608,7 +606,8 @@ DeleteCert(CERTCertDBHandle *handle, char *name)
 
 static SECStatus
 ValidateCert(CERTCertDBHandle *handle, char *name, char *date,
-	     char *certUsage, PRBool checkSig, PRBool logit, secuPWData *pwdata)
+             char *certUsage, PRBool checkSig, PRBool logit,
+             PRBool ascii, secuPWData *pwdata)
 {
     SECStatus rv;
     CERTCertificate *cert = NULL;
@@ -646,7 +645,8 @@ ValidateCert(CERTCertDBHandle *handle, char *name, char *date,
 	    return (SECFailure);
     }
     do {
-	cert = CERT_FindCertByNicknameOrEmailAddr(handle, name);
+	cert = SECU_FindCertByNicknameOrFilename(handle, name, ascii,
+                                                 NULL);
 	if (!cert) {
 	    SECU_PrintError(progName, "could not find certificate named \"%s\"",
 			    name);
@@ -998,11 +998,11 @@ Usage(char *progName)
     FPS "\t%s -L [-n cert-name] [-X] [-d certdir] [-P dbprefix] [-r] [-a]\n", progName);
     FPS "\t%s -M -n cert-name -t trustargs [-d certdir] [-P dbprefix]\n",
 	progName);
-    FPS "\t%s -O -n cert-name [-X] [-d certdir] [-P dbprefix]\n", progName);
+    FPS "\t%s -O -n cert-name [-X] [-d certdir] [-a] [-P dbprefix]\n", progName);
     FPS "\t%s -R -s subj -o cert-request-file [-d certdir] [-P dbprefix] [-p phone] [-a]\n"
 	"\t\t [-7 emailAddrs] [-k key-type-or-id] [-h token-name] [-f pwfile] [-g key-size]\n",
 	progName);
-    FPS "\t%s -V -n cert-name -u usage [-b time] [-e] \n"
+    FPS "\t%s -V -n cert-name -u usage [-b time] [-e] [-a]\n"
 	"\t\t[-X] [-d certdir] [-P dbprefix]\n",
 	progName);
     FPS "Usage:  %s -W [-d certdir] [-f pwfile] [-@newpwfile]\n",
@@ -1258,6 +1258,8 @@ static void LongUsage(char *progName)
 	"   -n cert-name");
     FPS "%-20s Cert database directory (default is ~/.netscape)\n",
 	"   -d certdir");
+    FPS "%-20s Input the certificate in ASCII (RFC1113); default is binary\n",
+	"   -a");
     FPS "%-20s Cert & Key database prefix\n",
 	"   -P dbprefix");
     FPS "%-20s force the database to open R/W\n",
@@ -1321,6 +1323,8 @@ static void LongUsage(char *progName)
     FPS "%-25s J \t Object signer\n", "");   
     FPS "%-20s Cert database directory (default is ~/.netscape)\n",
 	"   -d certdir");
+    FPS "%-20s Input the certificate in ASCII (RFC1113); default is binary\n",
+	"   -a");
     FPS "%-20s Cert & Key database prefix\n",
 	"   -P dbprefix");
     FPS "%-20s force the database to open R/W\n",
@@ -2395,6 +2399,9 @@ certutil_main(int argc, char **argv, PRBool initialize)
             rv = NSS_Initialize(SECU_ConfigDirectory(NULL), 
 			    certPrefix, certPrefix,
                             "secmod.db", readOnly ? NSS_INIT_READONLY: 0);
+            if (rv == SECFailure) {
+                rv = NSS_NoDB_Init(NULL);
+            }
 	} else {
             rv = NSS_InitWithMerge(SECU_ConfigDirectory(NULL), 
 			    certPrefix, certPrefix, "secmod.db",
@@ -2582,7 +2589,8 @@ merge_fail:
 	goto shutdown;
     }
     if (certutil.commands[cmd_DumpChain].activated) {
-	rv = DumpChain(certHandle, name);
+	rv = DumpChain(certHandle, name,
+                       certutil.options[opt_ASCIIForIO].activated);
 	goto shutdown;
     }
     /*  XXX needs work  */
@@ -2648,6 +2656,7 @@ merge_fail:
 			  certutil.options[opt_Usage].arg,
 			  certutil.options[opt_VerifySig].activated,
 			  certutil.options[opt_DetailedInfo].activated,
+			  certutil.options[opt_ASCIIForIO].activated,
 	                  &pwdata);
 	if (rv != SECSuccess && PR_GetError() == SEC_ERROR_INVALID_ARGS)
             SECU_PrintError(progName, "validation failed");
