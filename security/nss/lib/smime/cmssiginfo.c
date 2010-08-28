@@ -174,7 +174,7 @@ NSS_CMSSignerInfo_Sign(NSSCMSSignerInfo *signerinfo, SECItem *digest, SECItem *c
     SECOidTag pubkAlgTag;
     SECItem signature = { 0 };
     SECStatus rv;
-    PLArenaPool *poolp, *tmppoolp;
+    PLArenaPool *poolp, *tmppoolp = NULL;
     SECAlgorithmID *algID, freeAlgID;
     CERTSubjectPublicKeyInfo *spki;
 
@@ -298,6 +298,8 @@ loser:
 	SECITEM_FreeItem (&signature, PR_FALSE);
     if (privkey)
 	SECKEY_DestroyPrivateKey(privkey);
+    if (tmppoolp)
+	PORT_FreeArena(tmppoolp, PR_FALSE);
     return SECFailure;
 }
 
