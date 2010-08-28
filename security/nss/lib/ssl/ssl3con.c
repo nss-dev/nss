@@ -5671,14 +5671,21 @@ ssl3_RestartHandshakeAfterCertReq(sslSocket *         ss,
 
 PRBool
 ssl3_CanFalseStart(sslSocket *ss) {
-    return ss->opt.enableFalseStart &&
-	   !ss->sec.isServer &&
-	   !ss->ssl3.hs.isResuming &&
-	   ss->ssl3.cwSpec &&
-	   ss->ssl3.cwSpec->cipher_def->secret_key_size >= 10 &&
-	   (ss->ssl3.hs.kea_def->exchKeyType == ssl_kea_rsa ||
-	    ss->ssl3.hs.kea_def->exchKeyType == ssl_kea_dh  ||
-	    ss->ssl3.hs.kea_def->exchKeyType == ssl_kea_ecdh);
+    PRBool rv;
+
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+
+    ssl_GetSpecReadLock(ss);
+    rv = ss->opt.enableFalseStart &&
+	 !ss->sec.isServer &&
+	 !ss->ssl3.hs.isResuming &&
+	 ss->ssl3.cwSpec &&
+	 ss->ssl3.cwSpec->cipher_def->secret_key_size >= 10 &&
+	(ss->ssl3.hs.kea_def->exchKeyType == ssl_kea_rsa ||
+	 ss->ssl3.hs.kea_def->exchKeyType == ssl_kea_dh  ||
+	 ss->ssl3.hs.kea_def->exchKeyType == ssl_kea_ecdh);
+    ssl_ReleaseSpecReadLock(ss);
+    return rv;
 }
 
 /* Called from ssl3_HandleHandshakeMessage() when it has deciphered a complete
