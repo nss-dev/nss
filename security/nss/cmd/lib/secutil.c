@@ -4163,58 +4163,6 @@ SECU_SECItemHexStringToBinary(SECItem* srcdest)
     return SECSuccess;
 }
 
-CERTCertificate *
-SECU_GetCert(const char *name, PRBool isAscii, const char * progName)
-{
-    CERTCertificate * cert;
-    CERTCertDBHandle *defaultDB;
-    PRFileDesc*     fd;
-    SECStatus       rv;
-    SECItem         item        = {0, NULL, 0};
-
-    defaultDB = CERT_GetDefaultCertDB();
-
-    /* First, let's try to find the cert in existing DB. */
-    cert = CERT_FindCertByNicknameOrEmailAddr(defaultDB, name);
-    if (cert) {
-        return cert;
-    }
-
-    /* Don't have a cert with name "name" in the DB. Try to
-     * open a file with such name and get the cert from there.*/
-    fd = PR_Open(name, PR_RDONLY, 0777); 
-    if (!fd) {
-	PRIntn err = PR_GetError();
-    	fprintf(stderr, "open of %s failed, %d = %s\n", 
-	        name, err, SECU_Strerror(err));
-	return cert;
-    }
-
-    rv = SECU_ReadDERFromFile(&item, fd, isAscii);
-    PR_Close(fd);
-    if (rv != SECSuccess) {
-	fprintf(stderr, "%s: SECU_ReadDERFromFile failed\n", progName);
-	return cert;
-    }
-
-    if (!item.len) { /* file was empty */
-	fprintf(stderr, "cert file %s was empty.\n", name);
-	return cert;
-    }
-
-    cert = CERT_NewTempCertificate(defaultDB, &item, 
-                                   NULL     /* nickname */, 
-                                   PR_FALSE /* isPerm */, 
-				   PR_TRUE  /* copyDER */);
-    if (!cert) {
-	PRIntn err = PR_GetError();
-	fprintf(stderr, "couldn't import %s, %d = %s\n",
-	        name, err, SECU_Strerror(err));
-    }
-    PORT_Free(item.data);
-    return cert;
-}
-
 CERTCertificate*
 SECU_FindCertByNicknameOrFilename(CERTCertDBHandle *handle,
                                   char *name, PRBool ascii,
