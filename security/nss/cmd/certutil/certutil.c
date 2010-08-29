@@ -2399,9 +2399,6 @@ certutil_main(int argc, char **argv, PRBool initialize)
             rv = NSS_Initialize(SECU_ConfigDirectory(NULL), 
 			    certPrefix, certPrefix,
                             "secmod.db", readOnly ? NSS_INIT_READONLY: 0);
-            if (rv == SECFailure) {
-                rv = NSS_NoDB_Init(NULL);
-            }
 	} else {
             rv = NSS_InitWithMerge(SECU_ConfigDirectory(NULL), 
 			    certPrefix, certPrefix, "secmod.db",
