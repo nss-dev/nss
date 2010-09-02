@@ -2129,7 +2129,7 @@ loser:
 	PORT_Free(nickname);
     }
 
-    nickname = "";
+    nickname = NULL;
     
 done:
     if ( firstname ) {
