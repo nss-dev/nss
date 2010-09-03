@@ -3316,6 +3316,29 @@ SECU_PrintTrustFlags(FILE *out, CERTCertTrust *trust, char *m, int level)
     printFlags(out, trust->objectSigningFlags, level+2);
 }
 
+int SECU_PrintDERName(FILE *out, SECItem *der, const char *m, int level)
+{
+    PRArenaPool *arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    CERTName *name;
+    int rv = SEC_ERROR_NO_MEMORY;
+
+    if (!arena)
+	return rv;
+
+    name = PORT_ArenaZNew(arena, CERTName);
+    if (!name)
+	goto loser;
+
+    rv = SEC_ASN1DecodeItem(arena, name, SEC_ASN1_GET(CERT_NameTemplate), der);
+    if (rv)
+	goto loser;
+
+    SECU_PrintName(out, name, m, level);
+loser:
+    PORT_FreeArena(arena, PR_FALSE);
+    return rv;
+}
+
 int SECU_PrintSignedData(FILE *out, SECItem *der, const char *m,
 			   int level, SECU_PPFunc inner)
 {
@@ -3347,7 +3370,6 @@ int SECU_PrintSignedData(FILE *out, SECItem *der, const char *m,
 loser:
     PORT_FreeArena(arena, PR_FALSE);
     return rv;
-
 }
 
 SECStatus
