@@ -2273,6 +2273,7 @@ pk11ListCertCallback(NSSCertificate *c, void *arg)
     PRBool isCA = PR_FALSE;
     char *nickname = NULL;
     unsigned int certType;
+    SECStatus rv;
 
     if ((type == PK11CertListUnique) || (type == PK11CertListRootUnique) ||
         (type == PK11CertListCAUnique) || (type == PK11CertListUserUnique) ) {
@@ -2315,9 +2316,13 @@ pk11ListCertCallback(NSSCertificate *c, void *arg)
 
 	/* put slot certs at the end */
 	if (newCert->slot && !PK11_IsInternal(newCert->slot)) {
-	    CERT_AddCertToListTailWithData(certList,newCert,nickname);
+	    rv = CERT_AddCertToListTailWithData(certList,newCert,nickname);
 	} else {
-	    CERT_AddCertToListHeadWithData(certList,newCert,nickname);
+	    rv = CERT_AddCertToListHeadWithData(certList,newCert,nickname);
+	}
+	/* if we didn't add the cert to the list, don't leak it */
+	if (rv != SECSuccess) {
+	    CERT_DestroyCertificate(newCert);
 	}
     } else {
 	/* add multiple instances to the cert list */
@@ -2338,9 +2343,13 @@ pk11ListCertCallback(NSSCertificate *c, void *arg)
 
 	    /* put slot certs at the end */
 	    if (slot && !PK11_IsInternal(slot)) {
-		CERT_AddCertToListTailWithData(certList,newCert,nickname);
+		rv = CERT_AddCertToListTailWithData(certList,newCert,nickname);
 	    } else {
-		CERT_AddCertToListHeadWithData(certList,newCert,nickname);
+		rv = CERT_AddCertToListHeadWithData(certList,newCert,nickname);
+	    }
+	    /* if we didn't add the cert to the list, don't leak it */
+	    if (rv != SECSuccess) {
+		CERT_DestroyCertificate(newCert);
 	    }
 	}
 	nssCryptokiObjectArray_Destroy(instances);

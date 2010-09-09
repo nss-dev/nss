@@ -123,6 +123,7 @@ nssCKFWHash_Create
   rv->mutex = nssCKFWInstance_CreateMutex(fwInstance, arena, pError);
   if (!rv->mutex) {
     if( CKR_OK == *pError ) {
+      (void)nss_ZFreeIf(rv);
       *pError = CKR_GENERAL_ERROR;
     }
     return (nssCKFWHash *)NULL;

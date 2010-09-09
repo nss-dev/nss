@@ -1515,14 +1515,14 @@ nssCKFWSession_CopyObject
     CK_ATTRIBUTE_TYPE_PTR oldTypes;
     NSSCKFWObject *rv;
     
-    tmpArena = NSSArena_Create();
-    if (!tmpArena) {
-      *pError = CKR_HOST_MEMORY;
+    n = nssCKFWObject_GetAttributeCount(fwObject, pError);
+    if( (0 == n) && (CKR_OK != *pError) ) {
       return (NSSCKFWObject *)NULL;
     }
 
-    n = nssCKFWObject_GetAttributeCount(fwObject, pError);
-    if( (0 == n) && (CKR_OK != *pError) ) {
+    tmpArena = NSSArena_Create();
+    if (!tmpArena) {
+      *pError = CKR_HOST_MEMORY;
       return (NSSCKFWObject *)NULL;
     }
 
