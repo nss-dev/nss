@@ -223,6 +223,9 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
 	    }
 	    break;
 	default:
+	    if (ckaId) {
+		SECITEM_FreeItem(ckaId,PR_TRUE);
+	    }
 	    PORT_SetError( SEC_ERROR_BAD_KEY );
 	    return CK_INVALID_HANDLE;
 	}
