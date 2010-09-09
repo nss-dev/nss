@@ -458,7 +458,7 @@ PK11_ImportPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
     SECKEYRawPrivateKey *lpk = NULL;
     const SEC_ASN1Template *keyTemplate, *paramTemplate;
     void *paramDest = NULL;
-    PRArenaPool *arena;
+    PRArenaPool *arena = NULL;
 
     arena = PORT_NewArena(2048);
     if(!arena) {
@@ -531,7 +531,7 @@ PK11_ImportPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
 
 
 loser:
-    if (lpk!= NULL) {
+    if (arena != NULL) {
 	PORT_FreeArena(arena, PR_TRUE);
     }
 
