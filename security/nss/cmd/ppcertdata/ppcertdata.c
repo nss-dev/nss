@@ -68,6 +68,7 @@ main(int argc, const char ** argv)
 	int    is_cert;
 	int    is_serial;
 	int    is_name;
+	int    is_hash;
 	int    use_pp      = 0;
 	int    out = 0;
 	SECItem der = {siBuffer, NULL, 0 };
@@ -85,6 +86,7 @@ main(int argc, const char ** argv)
 	is_serial = (NULL != strstr(in, "CKA_SERIAL_NUMBER"));
 	is_name   = (NULL != strstr(in, "CKA_ISSUER")) ||
 		    (NULL != strstr(in, "CKA_SUBJECT"));
+	is_hash   = (NULL != strstr(in, "_HASH"));
 	while (fgets(line, 132, stdin) && 
 	       (bytes_read = strlen(line)) > 0 ) {
 	    in   = line       + skip_count; 
@@ -111,11 +113,18 @@ main(int argc, const char ** argv)
 				 SECU_PrintCertificate);
 	else if (is_name)
 	    SECU_PrintDERName(stdout, &der, "Name", 0);
-	else if (is_serial)
-	    SECU_PrintInteger(stdout, &der, "Serial Number", 0);
-	else
+	else if (is_serial) {
+	    if (out > 2 && binary_line[0] == 2 &&
+	        out == 2 + binary_line[1]) {
+		der.data += 2;
+		der.len  -= 2;
+		SECU_PrintInteger(stdout, &der, "DER Serial Number", 0);
+	    } else
+		SECU_PrintInteger(stdout, &der, "Raw Serial Number", 0);
+	} else if (is_hash) 
 	    SECU_PrintAsHex(stdout, &der, "Hash", 0);
-	 /* SECU_PrintBuf(stdout, "Hash", binary_line, out); */
+	else 
+	    SECU_PrintBuf(stdout, "Other", binary_line, out);
     }
     NSS_Shutdown();
     return 0;
