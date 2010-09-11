@@ -38,6 +38,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include "secutil.h"
+#include "nss.h"
 
 unsigned char  binary_line[64 * 1024];
 
@@ -56,6 +58,8 @@ main(int argc, const char ** argv)
 	return 1;
     }
 
+    NSS_NoDB_Init(NULL);
+
     while (fgets(line, 132, stdin) && (bytes_read = strlen(line)) > 0 ) {
 	int    bytes_written;
 	char * found;
@@ -66,6 +70,7 @@ main(int argc, const char ** argv)
 	int    is_name;
 	int    use_pp      = 0;
 	int    out = 0;
+	SECItem der = {siBuffer, NULL, 0 };
 
 	line[bytes_read] = 0;
 	if (bytes_read <= skip_count) 
@@ -99,32 +104,20 @@ main(int argc, const char ** argv)
 		    break;
 	    }
 	}
-	if (out) {
-	    FILE * mypipe;
-	    int    off = 0;
-
-	    mypipe = fopen("/tmp/deleteme", "wb");
-	    if (!mypipe) {
-	        fputs("Cannot create /tmp/deleteme\n", stderr);
-		break;
-	    }
-	    do {
-		bytes_written = fwrite(binary_line + off, 1, out, mypipe);
-	        if (bytes_written <= 0)
-		    break;
-	        off += bytes_written;
-		out -= bytes_written;
-	    } while (out > 0);
-	    fclose(mypipe);
-	}
+	der.data = binary_line;
+	der.len  = out;
 	if (is_cert)
-	    system("pp -t certificate -i /tmp/deleteme");
+	    SECU_PrintSignedData(stdout, &der, "Certificate", 0,
+				 SECU_PrintCertificate);
 	else if (is_name)
-	    system("pp -t name -i /tmp/deleteme 2>> /dev/null");
+	    SECU_PrintDERName(stdout, &der, "Name", 0);
 	else if (is_serial)
-	    system("pp -t serial -i /tmp/deleteme 2>> /dev/null");
+	    SECU_PrintInteger(stdout, &der, "Serial Number", 0);
 	else
-	    system("od -t x1 /tmp/deleteme 2>> /dev/null");
+	    SECU_PrintAsHex(stdout, &der, "Hash", 0);
+	 /* SECU_PrintBuf(stdout, "Hash", binary_line, out); */
     }
+    NSS_Shutdown();
     return 0;
 }
+
