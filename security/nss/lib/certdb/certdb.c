@@ -1654,8 +1654,7 @@ finish:
  *   - return value is NULL
  */
 CERTGeneralName *
-cert_GetSubjectAltNameList(CERTCertificate *cert,
-                           PRArenaPool *arena)
+cert_GetSubjectAltNameList(CERTCertificate *cert, PRArenaPool *arena)
 {
     CERTGeneralName * nameList       = NULL;
     SECStatus         rv             = SECFailure;

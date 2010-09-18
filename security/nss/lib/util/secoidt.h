@@ -461,6 +461,11 @@ typedef enum {
 
     SEC_OID_SHA224                          = 309,
 
+    SEC_OID_EV_INCORPORATION_LOCALITY       = 310,
+    SEC_OID_EV_INCORPORATION_STATE          = 311,
+    SEC_OID_EV_INCORPORATION_COUNTRY        = 312,
+    SEC_OID_BUSINESS_CATEGORY               = 313,
+
     SEC_OID_TOTAL
 } SECOidTag;
 
