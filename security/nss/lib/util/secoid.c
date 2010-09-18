@@ -178,6 +178,7 @@ const char __nss_util_sccsid[] = "@(#)NSS " NSSUTIL_VERSION _DEBUG_STRING
 /* Microsoft Object ID space */
 /* { 1.3.6.1.4.1.311 } */
 #define MICROSOFT_OID 0x2b, 0x6, 0x1, 0x4, 0x1, 0x82, 0x37
+#define EV_NAME_ATTRIBUTE 	MICROSOFT_OID, 60, 2, 1
 
 #define CERTICOM_OID            0x2b, 0x81, 0x04
 #define SECG_OID                CERTICOM_OID, 0x00
@@ -295,6 +296,7 @@ CONST_OID x520StreetAddress[]                   = { X520_ATTRIBUTE_TYPE, 9 };
 CONST_OID x520OrgName[]                         = { X520_ATTRIBUTE_TYPE, 10 };
 CONST_OID x520OrgUnitName[]                     = { X520_ATTRIBUTE_TYPE, 11 };
 CONST_OID x520Title[]                           = { X520_ATTRIBUTE_TYPE, 12 };
+CONST_OID x520BusinessCategory[]                = { X520_ATTRIBUTE_TYPE, 15 };
 CONST_OID x520PostalAddress[]                   = { X520_ATTRIBUTE_TYPE, 16 };
 CONST_OID x520PostalCode[]                      = { X520_ATTRIBUTE_TYPE, 17 };
 CONST_OID x520PostOfficeBox[]                   = { X520_ATTRIBUTE_TYPE, 18 };
@@ -602,6 +604,10 @@ CONST_OID secgECsect571k1[] = {SECG_OID, 0x26 };
 CONST_OID secgECsect571r1[] = {SECG_OID, 0x27 };
 
 CONST_OID seed_CBC[]				= { SEED_OID, 4 };
+
+CONST_OID evIncorporationLocality[]     = { EV_NAME_ATTRIBUTE, 1 };
+CONST_OID evIncorporationState[]        = { EV_NAME_ATTRIBUTE, 2 };
+CONST_OID evIncorporationCountry[]      = { EV_NAME_ATTRIBUTE, 3 };
 
 #define OI(x) { siDEROID, (unsigned char *)x, sizeof x }
 #ifndef SECOID_NO_STRINGS
@@ -1639,6 +1645,20 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
 	INVALID_CERT_EXTENSION ),
 
     OD( sha224, SEC_OID_SHA224, "SHA-224", CKM_SHA224, INVALID_CERT_EXTENSION),
+
+    OD( evIncorporationLocality, SEC_OID_EV_INCORPORATION_LOCALITY,
+        "Jurisdiction of Incorporation Locality Name",
+	CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    OD( evIncorporationState,    SEC_OID_EV_INCORPORATION_STATE,
+        "Jurisdiction of Incorporation State Name",
+	CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    OD( evIncorporationCountry,  SEC_OID_EV_INCORPORATION_COUNTRY,
+        "Jurisdiction of Incorporation Country Name",
+	CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    OD( x520BusinessCategory,    SEC_OID_BUSINESS_CATEGORY,
+        "Business Category",
+	CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+
 };
 
 /* PRIVATE EXTENDED SECOID Table
