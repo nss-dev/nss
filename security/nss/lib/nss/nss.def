@@ -1003,6 +1003,12 @@ CERT_GetConstrainedCertificateNames;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.12.9 {  # NSS 3.12.9 release
+;+    global:
+CERT_FindCertByNicknameOrEmailAddrForUsage;
+;+    local:
+;+       *;
+;+};
 ;+NSS_3.13 { 	# NSS 3.13 release
 ;+    global:
 ;;SECKEY_RSAPSSParamsTemplate DATA ;
