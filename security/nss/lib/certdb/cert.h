@@ -607,6 +607,16 @@ CERTCertificate *
 CERT_FindCertByNicknameOrEmailAddr(CERTCertDBHandle *handle, const char *name);
 
 /*
+** Find a certificate in the database by a email address or nickname
+** and require it to have the given usage.
+**      "name" is the email address or nickname to look up
+*/
+CERTCertificate *
+CERT_FindCertByNicknameOrEmailAddrForUsage(CERTCertDBHandle *handle,
+                                           const char *name, 
+                                           SECCertUsage lookingForUsage);
+
+/*
 ** Find a certificate in the database by a digest of a subject public key
 **	"spkDigest" is the digest to look up
 */
