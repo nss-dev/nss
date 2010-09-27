@@ -570,3 +570,6 @@ ER3(SEC_ERROR_LOCKED_PASSWORD,        		(SEC_ERROR_BASE + 173),
 
 ER3(SEC_ERROR_UNKNOWN_PKCS11_ERROR,        		(SEC_ERROR_BASE + 174),
 "Unknown PKCS #11 error.")
+
+ER3(SEC_ERROR_BAD_CRL_DP_URL,			(SEC_ERROR_BASE + 175),
+"Invalid or unsupported URL in CRL distribution point name.")
