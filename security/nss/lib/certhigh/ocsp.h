@@ -476,9 +476,10 @@ CERT_RegisterAlternateOCSPAIAInfoCallBack(
 
 /*
  * FUNCTION: CERT_ParseURL
- *   Parse the URI of a OCSP responder into hostname, port, and path.
+ *   Parse a URI into hostname, port, and path.  The scheme in the URI must
+ *   be "http".
  * INPUTS:
- *   const char *location
+ *   const char *url
  *     The URI to be parsed
  * OUTPUTS:
  *   char *pHostname
@@ -490,9 +491,8 @@ CERT_RegisterAlternateOCSPAIAInfoCallBack(
  *     Pointer to store the path obtained from the URI.
  *     This result should be freed (via PORT_Free) when no longer in use.
  * RETURN:
- *   Returns SECSuccess when parsing was successful. Anything else means
+ *   Returns SECSuccess when parsing was successful. Returns SECFailure when
  *   problems were encountered.
- *     
  */
 extern SECStatus
 CERT_ParseURL(const char *url, char **pHostname, PRUint16 *pPort, char **pPath);
