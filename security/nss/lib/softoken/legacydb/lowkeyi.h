@@ -95,7 +95,7 @@ extern SECStatus nsslowkey_DeleteKey(NSSLOWKEYDBHandle *handle,
 /*
 ** Store a key in the database, indexed by its public key modulus.
 **	"pk" is the private key to store
-**	"f" is a the callback function for getting the password
+**	"f" is the callback function for getting the password
 **	"arg" is the argument for the callback
 */
 extern SECStatus nsslowkey_StoreKeyByPublicKey(NSSLOWKEYDBHandle *handle, 
