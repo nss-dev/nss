@@ -1444,7 +1444,7 @@ loser:
 /*
  * public, supports pkcs5 v2
  *
- * get a the crypto mechanism directly from the pbe algorithmid.
+ * get the crypto mechanism directly from the pbe algorithmid.
  *
  * it's important to go directly from the algorithm id so that we can
  * handle both the PKCS #5 v1, PKCS #12, and PKCS #5 v2 cases.

@@ -275,7 +275,7 @@ pk11_Attr2SecItem(PRArenaPool *arena, const CK_ATTRIBUTE *attr, SECItem *item)
 /*
  * get a curve length from a set of ecParams.
  * 
- * We need this so we can reliably determine if a the ecPoint passed to us
+ * We need this so we can reliably determine if the ecPoint passed to us
  * was encoded or not. With out this, for many curves, we would incorrectly
  * identify an unencoded curve as an encoded curve 1 in 65536 times, and for
  * a few we would make that same mistake 1 in 32768 times. These are bad 

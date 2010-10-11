@@ -83,7 +83,7 @@ extern SECStatus NSS_SMIMEUtil_EnableCipher(long which, int on);
  * Initialize the local recording of the S/MIME policy.
  * This function is called to allow/disallow a particular cipher.
  *
- * XXX This is for a the current module, I think, so local, static storage
+ * XXX This is for the current module, I think, so local, static storage
  * XXX is okay.  Is that correct, or could multiple uses of the same
  * XXX library expect to operate under different policies?
  *
