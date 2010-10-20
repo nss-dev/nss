@@ -1259,11 +1259,10 @@ extern PRBool    ssl3_CanFalseStart(sslSocket *ss);
 #define SSL_UNLOCK_WRITER(ss)		if (ss->sendLock) PZ_Unlock(ss->sendLock)
 
 /* firstHandshakeLock -> recvBufLock */
-/* The assertion is commented out because it's too strict when reentering
- * firstHandshakeLock.  See bug 588698 comment 25. */
 #define ssl_Get1stHandshakeLock(ss)     \
     { if (!ss->opt.noLocks) { \
-	  /*PORT_Assert(!ssl_HaveRecvBufLock(ss));*/ \
+	  PORT_Assert(PZ_InMonitor((ss)->firstHandshakeLock) || \
+		      !ssl_HaveRecvBufLock(ss)); \
 	  PZ_EnterMonitor((ss)->firstHandshakeLock); \
       } }
 #define ssl_Release1stHandshakeLock(ss) \
