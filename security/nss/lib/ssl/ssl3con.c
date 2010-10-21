@@ -7771,6 +7771,7 @@ static SECStatus
 ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
     ssl3CertNode *   c;
+    ssl3CertNode *   lastCert 	= NULL;
     ssl3CertNode *   certs 	= NULL;
     PRArenaPool *    arena 	= NULL;
     CERTCertificate *cert;
@@ -7898,8 +7899,13 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	if (c->cert->trust)
 	    trusted = PR_TRUE;
 
-	c->next = certs;
-	certs = c;
+	c->next = NULL;
+	if (lastCert) {
+	    lastCert->next = c;
+	} else {
+	    certs = c;
+	}
+	lastCert = c;
     }
 
     if (remaining != 0)
