@@ -848,207 +848,213 @@ parse_config()
 
     while read KEY VALUE
     do
-        case "${KEY}" in
-        "entity")
-            ENTITY="${VALUE}"
-            TYPE=
-            ISSUER=
-            CTYPE=
-            POLICY=
-            MAPPING=
-            INHIBIT=
-            AIA=
-            CRLDP=
-            OCSP=
-            DB=
-            EMAILS=
-            EXT_KU=
-            EXT_NS=
-            EXT_EKU=
-            SERIAL=
-            ;;
-        "type")
-            TYPE="${VALUE}"
-            ;;
-        "issuer")
-            if [ -n "${ISSUER}" ]; then
-                if [ -z "${DB}" ]; then
-                    create_entity "${ENTITY}" "${TYPE}"
-                fi
-                sign_cert "${ENTITY}" "${ISSUER}" "${TYPE}"
-            fi
+        if [ "`echo ${KEY} | cut -b 1`" != "#" ]; then
+            # Ignore commented lines
 
-            ISSUER="${VALUE}"
-            POLICY=
-            MAPPING=
-            INHIBIT=
-            AIA=
-            EXT_KU=
-            EXT_NS=
-            EXT_EKU=
-            ;;
-        "ctype") 
-            CTYPE="${VALUE}"
-            ;;
-        "policy")
-            POLICY="${POLICY} ${VALUE}"
-            ;;
-        "mapping")
-            MAPPING="${MAPPING} ${VALUE}"
-            ;;
-        "inhibit")
-            INHIBIT="${VALUE}"
-            ;;
-        "aia")
-            AIA="${AIA} ${VALUE}"
-            ;;
-        "crldp")
-            CRLDP="${CRLDP} ${VALUE}"
-            ;;
-        "ocsp")
-            OCSP="${VALUE}"
-            ;;
-        "db")
-            DB="${VALUE}DB"
-            create_db "${DB}"
-            ;;
-        "import")
-            IMPORT="${VALUE}"
-            import_cert "${IMPORT}" "${DB}"
-            import_crl "${IMPORT}" "${DB}"
-            ;;
-        "import_key")
-            IMPORT="${VALUE}"
-            import_key "${IMPORT}" "${DB}"
-            ;;
-        "crl")
-            ISSUER="${VALUE}"
-            create_crl "${ISSUER}"
-            ;;
-        "revoke")
-            REVOKE="${VALUE}"
-            ;;
-        "serial")
-            SERIAL="${VALUE}"
-            ;;
-        "copycrl")
-            COPYCRL="${VALUE}"
-            copy_crl "${COPYCRL}"
-            ;;
-        "verify")
-            VERIFY="${VALUE}"
-            TRUST=
-            POLICY=
-            FETCH=
-            EXP_RESULT=
-            REV_OPTS=
-            USAGE_OPT=
-            ;;
-        "cert")
-            VERIFY="${VERIFY} ${VALUE}"
-            ;;
-        "testdb")
-            if [ -n "${VALUE}" ]; then
-                DB="${VALUE}DB"
-            else
+            # Remove trailing whitespaces in KEY and VALUE variables
+            KEY=$(echo ${KEY} | sed -e 's/^\([a-zA-Z0-9]*\).*$/\1/g')
+            VALUE=$(echo ${VALUE} | sed -e 's/^\([a-zA-Z0-9.:,]*\).*$/\1/g')
+
+            case "${KEY}" in
+            "entity")
+                ENTITY="${VALUE}"
+                TYPE=
+                ISSUER=
+                CTYPE=
+                POLICY=
+                MAPPING=
+                INHIBIT=
+                AIA=
+                CRLDP=
+                OCSP=
                 DB=
-            fi
-            ;;
-        "trust")
-            TRUST="${TRUST} ${VALUE}"
-            ;;
-        "fetch")
-            FETCH=1
-            ;;
-        "result")
-            EXP_RESULT="${VALUE}"
-            parse_result
-            ;;
-        "rev_type")
-            REV_OPTS="${REV_OPTS} -g ${VALUE}"
-            ;;
-        "rev_flags")
-            REV_OPTS="${REV_OPTS} -h ${VALUE}"
-            ;;
-        "rev_mtype")
-            REV_OPTS="${REV_OPTS} -m ${VALUE}"
-            ;;
-        "rev_mflags")
-            REV_OPTS="${REV_OPTS} -s ${VALUE}"
-            ;;
-        "scenario")
-            SCENARIO="${VALUE}: "
-
-            CHAINS_DIR="${HOSTDIR}/chains/${VALUE}"
-            mkdir -p ${CHAINS_DIR}
-            cd ${CHAINS_DIR}
-
-            if [ -n "${MEMLEAK_DBG}" ]; then
-                LOGNAME="libpkix-${VALUE}"
-                LOGFILE="${LOGDIR}/${LOGNAME}"
-            fi
-
-            SCEN_CNT=$(expr ${SCEN_CNT} + 1)
-            ;;
-        "sleep")
-            sleep ${VALUE}
-            ;;
-        "break")
-            break
-            ;;
-        "check_ocsp")
-            check_ocsp ${VALUE}
-            if [ $? -ne 0 ]; then
-                echo "OCSP server not accessible, skipping OCSP tests"
-                break;
-            fi
-            ;;
-        "ku")
-            EXT_KU="${VALUE}"
-            ;;
-        "ns")
-            EXT_NS="${VALUE}"
-            ;;
-        "eku")
-            EXT_EKU="${VALUE}"
-            ;;
-        "usage")
-            USAGE_OPT="-u ${VALUE}"
-            ;;
-        "")
-            if [ -n "${ENTITY}" ]; then
-                if [ -z "${DB}" ]; then
-                    create_entity "${ENTITY}" "${TYPE}"
+                EMAILS=
+                EXT_KU=
+                EXT_NS=
+                EXT_EKU=
+                SERIAL=
+                ;;
+            "type")
+                TYPE="${VALUE}"
+                ;;
+            "issuer")
+                if [ -n "${ISSUER}" ]; then
+                    if [ -z "${DB}" ]; then
+                        create_entity "${ENTITY}" "${TYPE}"
+                    fi
+                    sign_cert "${ENTITY}" "${ISSUER}" "${TYPE}"
                 fi
-                sign_cert "${ENTITY}" "${ISSUER}" "${TYPE}"
-                if [ "${TYPE}" = "Bridge" ]; then
-                    create_pkcs7 "${ENTITY}"
+
+                ISSUER="${VALUE}"
+                POLICY=
+                MAPPING=
+                INHIBIT=
+                AIA=
+                EXT_KU=
+                EXT_NS=
+                EXT_EKU=
+                ;;
+            "ctype")
+                CTYPE="${VALUE}"
+                ;;
+            "policy")
+                POLICY="${POLICY} ${VALUE}"
+                ;;
+            "mapping")
+                MAPPING="${MAPPING} ${VALUE}"
+                ;;
+            "inhibit")
+                INHIBIT="${VALUE}"
+                ;;
+            "aia")
+                AIA="${AIA} ${VALUE}"
+                ;;
+            "crldp")
+                CRLDP="${CRLDP} ${VALUE}"
+                ;;
+            "ocsp")
+                OCSP="${VALUE}"
+                ;;
+            "db")
+                DB="${VALUE}DB"
+                create_db "${DB}"
+                ;;
+            "import")
+                IMPORT="${VALUE}"
+                import_cert "${IMPORT}" "${DB}"
+                import_crl "${IMPORT}" "${DB}"
+                ;;
+            "import_key")
+                IMPORT="${VALUE}"
+                import_key "${IMPORT}" "${DB}"
+                ;;
+            "crl")
+                ISSUER="${VALUE}"
+                create_crl "${ISSUER}"
+                ;;
+            "revoke")
+                REVOKE="${VALUE}"
+                ;;
+            "serial")
+                SERIAL="${VALUE}"
+                ;;
+            "copycrl")
+                COPYCRL="${VALUE}"
+                copy_crl "${COPYCRL}"
+                ;;
+            "verify")
+                VERIFY="${VALUE}"
+                TRUST=
+                POLICY=
+                FETCH=
+                EXP_RESULT=
+                REV_OPTS=
+                USAGE_OPT=
+                ;;
+            "cert")
+                VERIFY="${VERIFY} ${VALUE}"
+                ;;
+            "testdb")
+                if [ -n "${VALUE}" ]; then
+                    DB="${VALUE}DB"
+                else
+                    DB=
                 fi
-                ENTITY=
-            fi
+                ;;
+            "trust")
+                TRUST="${TRUST} ${VALUE}"
+                ;;
+            "fetch")
+                FETCH=1
+                ;;
+            "result")
+                EXP_RESULT="${VALUE}"
+                parse_result
+                ;;
+            "rev_type")
+                REV_OPTS="${REV_OPTS} -g ${VALUE}"
+                ;;
+            "rev_flags")
+                REV_OPTS="${REV_OPTS} -h ${VALUE}"
+                ;;
+            "rev_mtype")
+                REV_OPTS="${REV_OPTS} -m ${VALUE}"
+                ;;
+            "rev_mflags")
+                REV_OPTS="${REV_OPTS} -s ${VALUE}"
+                ;;
+            "scenario")
+                SCENARIO="${VALUE}: "
 
-            if [ -n "${VERIFY}" ]; then
-                verify_cert
-                VERIFY=
-            fi
+                CHAINS_DIR="${HOSTDIR}/chains/${VALUE}"
+                mkdir -p ${CHAINS_DIR}
+                cd ${CHAINS_DIR}
 
-            if [ -n "${REVOKE}" ]; then
-                revoke_cert "${REVOKE}" "${DB}"
-                REVOKE=
-            fi
-            ;;
-        *)
-            if [ `echo ${KEY} | cut -b 1` != "#" ]; then
+                if [ -n "${MEMLEAK_DBG}" ]; then
+                    LOGNAME="libpkix-${VALUE}"
+                    LOGFILE="${LOGDIR}/${LOGNAME}"
+                fi
+
+                SCEN_CNT=$(expr ${SCEN_CNT} + 1)
+                ;;
+            "sleep")
+                sleep ${VALUE}
+                ;;
+            "break")
+                break
+                ;;
+            "check_ocsp")
+                check_ocsp ${VALUE}
+                if [ $? -ne 0 ]; then
+                    echo "OCSP server not accessible, skipping OCSP tests"
+                    break;
+                fi
+                ;;
+            "ku")
+                EXT_KU="${VALUE}"
+                ;;
+            "ns")
+                EXT_NS="${VALUE}"
+                ;;
+            "eku")
+                EXT_EKU="${VALUE}"
+                ;;
+            "usage")
+                USAGE_OPT="-u ${VALUE}"
+                ;;
+            "")
+                if [ -n "${ENTITY}" ]; then
+                    if [ -z "${DB}" ]; then
+                        create_entity "${ENTITY}" "${TYPE}"
+                    fi
+                    sign_cert "${ENTITY}" "${ISSUER}" "${TYPE}"
+                    if [ "${TYPE}" = "Bridge" ]; then
+                        create_pkcs7 "${ENTITY}"
+                    fi
+                    ENTITY=
+                fi
+
+                if [ -n "${VERIFY}" ]; then
+                    verify_cert
+                    VERIFY=
+                fi
+
+                if [ -n "${REVOKE}" ]; then
+                    revoke_cert "${REVOKE}" "${DB}"
+                    REVOKE=
+                fi
+                ;;
+            *)
                 echo "Configuration error: Unknown keyword ${KEY}"
                 exit 1
-            fi
-            ;;
-        esac
+                ;;
+            esac
+        fi
     done
 
     if [ -n "${MEMLEAK_DBG}" ]; then
         log_parse
-        html_msg $? 0 "${SCENARIO}Memory leak checking" 
+        html_msg $? 0 "${SCENARIO}Memory leak checking"
     fi
 }
 
