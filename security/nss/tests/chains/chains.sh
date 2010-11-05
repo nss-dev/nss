@@ -851,9 +851,9 @@ parse_config()
         if [ "`echo ${KEY} | cut -b 1`" != "#" ]; then
             # Ignore commented lines
 
-            # Remove trailing whitespaces in KEY and VALUE variables
-            KEY=$(echo ${KEY} | sed -e 's/^\([a-zA-Z0-9]*\).*$/\1/g')
-            VALUE=$(echo ${VALUE} | sed -e 's/^\([a-zA-Z0-9.:,]*\).*$/\1/g')
+            # Remove carriage returns in KEY and VALUE variables
+            KEY=$(echo ${KEY} | tr -d '\r')
+            VALUE=$(echo ${VALUE} | tr -d '\r')
 
             case "${KEY}" in
             "entity")
