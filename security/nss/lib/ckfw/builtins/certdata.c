@@ -998,7 +998,7 @@ static const NSSItem nss_builtins_items_0 [] = {
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)"CVS ID", (PRUint32)7 },
   { (void *)"NSS", (PRUint32)4 },
-  { (void *)"@(#) $RCSfile$ $Revision$ $Date$""; @(#) $RCSfile$ $Revision$ $Date$", (PRUint32)160 }
+  { (void *)"@(#) $RCSfile$ $Revision$ $Date$""; @(#) $RCSfile$ $Revision$ $Date$", (PRUint32)164 }
 };
 #endif /* DEBUG */
 static const NSSItem nss_builtins_items_1 [] = {
@@ -5102,8 +5102,8 @@ static const NSSItem nss_builtins_items_72 [] = {
 "\144\144\124\162\165\163\164\040\121\165\141\154\151\146\151\145"
 "\144\040\103\101\040\122\157\157\164"
 , (PRUint32)105 },
-  { (void *)"\001"
-, (PRUint32)1 },
+  { (void *)"\002\001\001"
+, (PRUint32)3 },
   { (void *)"\060\202\004\036\060\202\003\006\240\003\002\001\002\002\001\001"
 "\060\015\006\011\052\206\110\206\367\015\001\001\005\005\000\060"
 "\147\061\013\060\011\006\003\125\004\006\023\002\123\105\061\024"
