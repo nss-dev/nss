@@ -1697,7 +1697,13 @@ PRNGTEST_Uninstantiate()
     return (vector->p_PRNGTEST_Uninstantiate)();
 }
 
-/* ============== New for 3.012 =============================== */
+SECStatus
+RSA_PopulatePrivateKey(RSAPrivateKey *key)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+	return SECFailure;
+    return (vector->p_RSA_PopulatePrivateKey)(key);
+}
 
 SECStatus
 MGF1(HASH_HashType hashAlg, unsigned char *mask, unsigned int maskLen,
@@ -1814,3 +1820,4 @@ SHA224_Clone(SHA224Context *dest, SHA224Context *src)
       return;
   (vector->p_SHA224_Clone)(dest, src);
 }
+
