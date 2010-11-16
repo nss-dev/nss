@@ -98,6 +98,48 @@ extern SECStatus RSA_PrivateKeyOpDoubleChecked(RSAPrivateKey *  key,
 */
 extern SECStatus RSA_PrivateKeyCheck(RSAPrivateKey *key);
 
+/*
+** Given only minimal private key parameters, fill in the rest of the
+** parameters.
+**
+**
+** All the entries, including those supplied by the caller, will be 
+** overwritten with data alocated out of the arena.
+**
+** If no arena is supplied, one will be created.
+**
+** The following fields must be supplied in order for this function
+** to succeed:
+**   one of either publicExponent or privateExponent
+**   two more of the following 5 parameters (not counting the above).
+**      modulus (n)
+**      prime1  (p)
+**      prime2  (q)
+**      publicExponent (e)
+**      privateExponent (d)
+**
+** NOTE: if only the publicExponent, privateExponent, and one prime is given,
+** then there may be more than one RSA key that matches that combination. If
+** we find 2 possible valid keys that meet this criteria, we return an error.
+** If we return the wrong key, and the original modulus is compared to the
+** new modulus, both can be factored by calculateing gcd(n_old,n_new) to get
+** the common prime.
+**
+** NOTE: in some cases the publicExponent must be less than 2^23 for this
+** function to work correctly. (The case where we have only one of: modulus
+** prime1 and prime2).
+**
+** All parameters will be replaced in the key structure with new parameters
+** allocated out of the arena. There is no attempt to free the old structures.
+** prime1 will always be greater than prime2 (even if the caller supplies the
+** smaller prime as prime1 or the larger prime as prime2). The parameters are
+** not overwritten on failure.
+**
+** While the remaining Chinese remainder theorem parameters (dp,dp, and qinv)
+** can also be used in reconstructing the private key, they are currently
+** ignored in this implementation.
+*/
+extern SECStatus RSA_PopulatePrivateKey(RSAPrivateKey *key);
 
 /********************************************************************
 ** DSA signing algorithm

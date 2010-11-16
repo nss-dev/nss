@@ -1696,4 +1696,11 @@ PRNGTEST_Uninstantiate()
     return (vector->p_PRNGTEST_Uninstantiate)();
 }
 
+SECStatus
+RSA_PopulatePrivateKey(RSAPrivateKey *key)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+	return SECFailure;
+    return (vector->p_RSA_PopulatePrivateKey)(key);
+}
 

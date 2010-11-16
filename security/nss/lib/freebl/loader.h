@@ -44,7 +44,7 @@
 
 #include "blapi.h"
 
-#define FREEBL_VERSION 0x030B
+#define FREEBL_VERSION 0x030C
 
 struct FREEBLVectorStr {
 
@@ -540,6 +540,11 @@ struct FREEBLVectorStr {
 
  SECStatus (* p_PRNGTEST_Uninstantiate)(void);
    /* Version 3.011 came to here */
+
+
+ SECStatus (*p_RSA_PopulatePrivateKey)(RSAPrivateKey *key);
+   /* Version 3.012 came to here */
+
 };
 
 typedef struct FREEBLVectorStr FREEBLVector;
