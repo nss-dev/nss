@@ -976,6 +976,9 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
 static NSSLOWKEYPrivateKey * 
 sftk_mkPrivKey(SFTKObject *object,CK_KEY_TYPE key, CK_RV *rvp);
 
+static SECStatus
+sftk_fillRSAPrivateKey(SFTKObject *object);
+
 /*
  * check the consistancy and initialize a Private Key Object 
  */
@@ -989,35 +992,59 @@ sftk_handlePrivateKeyObject(SFTKSession *session,SFTKObject *object,CK_KEY_TYPE 
     CK_BBOOL wrap = CK_TRUE;
     CK_BBOOL derive = CK_TRUE;
     CK_BBOOL ckfalse = CK_FALSE;
+    int missing_rsa_mod_component = 0;
+    int missing_rsa_exp_component = 0;
+    int missing_rsa_crt_component = 0;
+    
     SECItem mod;
     CK_RV crv;
 
     switch (key_type) {
     case CKK_RSA:
 	if ( !sftk_hasAttribute(object, CKA_MODULUS)) {
-	    return CKR_TEMPLATE_INCOMPLETE;
+	    missing_rsa_mod_component++;
 	}
 	if ( !sftk_hasAttribute(object, CKA_PUBLIC_EXPONENT)) {
-	    return CKR_TEMPLATE_INCOMPLETE;
+	    missing_rsa_exp_component++;
 	}
 	if ( !sftk_hasAttribute(object, CKA_PRIVATE_EXPONENT)) {
-	    return CKR_TEMPLATE_INCOMPLETE;
+	    missing_rsa_exp_component++;
 	}
 	if ( !sftk_hasAttribute(object, CKA_PRIME_1)) {
-	    return CKR_TEMPLATE_INCOMPLETE;
+	    missing_rsa_mod_component++;
 	}
 	if ( !sftk_hasAttribute(object, CKA_PRIME_2)) {
-	    return CKR_TEMPLATE_INCOMPLETE;
+	    missing_rsa_mod_component++;
 	}
 	if ( !sftk_hasAttribute(object, CKA_EXPONENT_1)) {
-	    return CKR_TEMPLATE_INCOMPLETE;
+	    missing_rsa_crt_component++;
 	}
 	if ( !sftk_hasAttribute(object, CKA_EXPONENT_2)) {
-	    return CKR_TEMPLATE_INCOMPLETE;
+	    missing_rsa_crt_component++;
 	}
 	if ( !sftk_hasAttribute(object, CKA_COEFFICIENT)) {
-	    return CKR_TEMPLATE_INCOMPLETE;
+	    missing_rsa_crt_component++;
 	}
+	if (missing_rsa_mod_component || missing_rsa_exp_component || 
+					 missing_rsa_crt_component) {
+	    /* we are missing a component, see if we have enough to rebuild
+	     * the rest */
+	    int have_exp = 2- missing_rsa_exp_component;
+	    int have_component = 5- 
+		(missing_rsa_exp_component+missing_rsa_mod_component);
+	    SECStatus rv;
+
+	    if ((have_exp == 0) || (have_component < 3)) {
+		/* nope, not enough to reconstruct the private key */
+		return CKR_TEMPLATE_INCOMPLETE;
+	    }
+	    /*fill in the missing parameters */
+	    rv = sftk_fillRSAPrivateKey(object);
+	    if (rv != SECSuccess) {
+		return CKR_TEMPLATE_INCOMPLETE;
+	    }
+	}
+		
 	/* make sure Netscape DB attribute is set correctly */
 	crv = sftk_Attribute2SSecItem(NULL, &mod, object, CKA_MODULUS);
 	if (crv != CKR_OK) return crv;
@@ -1841,6 +1868,116 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
     }
     return privKey;
 }
+
+/*
+ * we have a partial rsa private key, fill in the rest
+ */
+static SECStatus
+sftk_fillRSAPrivateKey(SFTKObject *object)
+{
+    RSAPrivateKey tmpKey = { 0 };
+    SFTKAttribute *modulus = NULL;
+    SFTKAttribute *prime1 = NULL;
+    SFTKAttribute *prime2 = NULL;
+    SFTKAttribute *privateExponent = NULL;
+    SFTKAttribute *publicExponent = NULL;
+    SECStatus rv;
+    CK_RV crv;
+
+    /* first fill in the components that we have. Populate only uses
+     * the non-crt components, so only fill those in  */
+    tmpKey.arena = NULL;
+    modulus = sftk_FindAttribute(object, CKA_MODULUS);
+    if (modulus) {
+	tmpKey.modulus.data = modulus->attrib.pValue;
+	tmpKey.modulus.len  = modulus->attrib.ulValueLen;
+    } 
+    prime1 = sftk_FindAttribute(object, CKA_PRIME_1);
+    if (prime1) {
+	tmpKey.prime1.data = prime1->attrib.pValue;
+	tmpKey.prime1.len  = prime1->attrib.ulValueLen;
+    } 
+    prime2 = sftk_FindAttribute(object, CKA_PRIME_2);
+    if (prime2) {
+	tmpKey.prime2.data = prime2->attrib.pValue;
+	tmpKey.prime2.len  = prime2->attrib.ulValueLen;
+    } 
+    privateExponent = sftk_FindAttribute(object, CKA_PRIVATE_EXPONENT);
+    if (privateExponent) {
+	tmpKey.privateExponent.data = privateExponent->attrib.pValue;
+	tmpKey.privateExponent.len  = privateExponent->attrib.ulValueLen;
+    } 
+    publicExponent = sftk_FindAttribute(object, CKA_PUBLIC_EXPONENT);
+    if (publicExponent) {
+	tmpKey.publicExponent.data = publicExponent->attrib.pValue;
+	tmpKey.publicExponent.len  = publicExponent->attrib.ulValueLen;
+    } 
+
+    /*
+     * populate requires one exponent plus 2 other components to work.
+     * we expected our caller to check that first. If that didn't happen,
+     * populate will simply return an error here.
+     */
+    rv = RSA_PopulatePrivateKey(&tmpKey);
+    if (rv != SECSuccess) {
+	goto loser;
+    }
+
+    /* now that we have a fully populated key, set all our attribute values */
+    rv = SECFailure;
+    crv = sftk_forceAttribute(object,CKA_MODULUS,
+                       sftk_item_expand(&tmpKey.modulus));
+    if (crv != CKR_OK) goto loser;
+    crv = sftk_forceAttribute(object,CKA_PUBLIC_EXPONENT,
+                       sftk_item_expand(&tmpKey.publicExponent));
+    if (crv != CKR_OK) goto loser;
+    crv = sftk_forceAttribute(object,CKA_PRIVATE_EXPONENT,
+                       sftk_item_expand(&tmpKey.privateExponent));
+    if (crv != CKR_OK) goto loser;
+    crv = sftk_forceAttribute(object,CKA_PRIME_1,
+                       sftk_item_expand(&tmpKey.prime1));
+    if (crv != CKR_OK) goto loser;
+    crv = sftk_forceAttribute(object,CKA_PRIME_2,
+                       sftk_item_expand(&tmpKey.prime2));
+    if (crv != CKR_OK) goto loser;
+    crv = sftk_forceAttribute(object,CKA_EXPONENT_1,
+                       sftk_item_expand(&tmpKey.exponent1));
+    if (crv != CKR_OK) goto loser;
+    crv = sftk_forceAttribute(object,CKA_EXPONENT_2,
+                       sftk_item_expand(&tmpKey.exponent2));
+    if (crv != CKR_OK) goto loser;
+    crv = sftk_forceAttribute(object,CKA_COEFFICIENT,
+                       sftk_item_expand(&tmpKey.coefficient));
+    if (crv != CKR_OK) goto loser;
+    rv = SECSuccess;
+
+    /* we're done (one way or the other), clean up all our stuff */
+loser:
+    if (tmpKey.arena) {
+	PORT_FreeArena(tmpKey.arena,PR_TRUE);
+    }
+    if (modulus) {
+	sftk_FreeAttribute(modulus);
+    }
+    if (prime1) {
+	sftk_FreeAttribute(prime1);
+    }
+    if (prime2) {
+	sftk_FreeAttribute(prime2);
+    }
+    if (privateExponent) {
+	sftk_FreeAttribute(privateExponent);
+    }
+    if (publicExponent) {
+	sftk_FreeAttribute(publicExponent);
+    }
+    return rv;
+}
+
+
+
+
+
 
 
 /* Generate a low private key structure from an object */

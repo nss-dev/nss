@@ -257,9 +257,13 @@ static const struct FREEBLVectorStr vector =
     PRNGTEST_Instantiate,
     PRNGTEST_Reseed,
     PRNGTEST_Generate,
+
     PRNGTEST_Uninstantiate,
 
     /* End of Version 3.011. */
+
+    RSA_PopulatePrivateKey,
+    /* End of Version 3.012 */
 
     MGF1,
     TLS_P_hash,
@@ -276,7 +280,7 @@ static const struct FREEBLVectorStr vector =
     SHA224_Resurrect,
     SHA224_Clone
 
-    /* End of Version 3.012 */
+    /* End of Version 3.013 */
 };
 
 const FREEBLVector * 
