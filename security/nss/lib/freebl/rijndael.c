@@ -1027,9 +1027,14 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 #if USE_HW_AES
     if (has_intel_aes == 0) {
 	unsigned long eax, ebx, ecx, edx;
+	char *disable_hw_aes = getenv("NSS_DISABLE_HW_AES");
 
-	freebl_cpuid(1, &eax, &ebx, &ecx, &edx);
-	has_intel_aes = (ecx & (1 << 25)) != 0 ? 1 : -1;
+	if (disable_hw_aes == NULL) {
+	    freebl_cpuid(1, &eax, &ebx, &ecx, &edx);
+	    has_intel_aes = (ecx & (1 << 25)) != 0 ? 1 : -1;
+	} else {
+	    has_intel_aes = -1;
+	}
     }
     use_hw_aes = (PRBool)
 		(has_intel_aes > 0 && (keysize % 8) == 0 && blocksize == 16);
