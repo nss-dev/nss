@@ -1007,6 +1007,7 @@ CERT_GetConstrainedCertificateNames;
 ;+    global:
 CERT_FindCertByNicknameOrEmailAddrForUsage;
 SECMOD_RestartModules;
+PK11_FindCertsFromEmailAddress;
 ;+    local:
 ;+       *;
 ;+};
