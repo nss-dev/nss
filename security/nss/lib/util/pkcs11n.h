@@ -168,6 +168,12 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #define CKM_NSS_AES_KEY_WRAP      (CKM_NSS + 1)
 #define CKM_NSS_AES_KEY_WRAP_PAD  (CKM_NSS + 2)
 
+/* HKDF key derivation mechanisms. See CK_NSS_HKDFParams for documentation. */
+#define CKM_NSS_HKDF_SHA1         (CKM_NSS + 3)
+#define CKM_NSS_HKDF_SHA256       (CKM_NSS + 4)
+#define CKM_NSS_HKDF_SHA384       (CKM_NSS + 5)
+#define CKM_NSS_HKDF_SHA512       (CKM_NSS + 6)
+
 /*
  * HISTORICAL:
  * Do not attempt to use these. They are only used by NETSCAPE's internal
@@ -195,6 +201,33 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 
 #define CKR_NSS_CERTDB_FAILED      (CKR_NSS + 1)
 #define CKR_NSS_KEYDB_FAILED       (CKR_NSS + 2)
+
+/* Mandatory parameter for the CKM_NSS_HKDF_* key deriviation mechanisms.
+   See RFC 5869.
+   
+    bExtract: If set, HKDF-Extract will be applied to the input key. If
+              the optional salt is given, it is used; otherwise, the salt is
+              set to a sequence of zeros equal in length to the HMAC output.
+              If bExpand is not set, then the key template given to
+              C_DeriveKey must indicate an output key size less than or equal
+              to the output size of the HMAC.
+
+    bExpand:  If set, HKDF-Expand will be applied to the input key (if
+              bExtract is not set) or to the result of HKDF-Extract (if
+              bExtract is set). Any info given in the optional pInfo field will
+              be included in the calculation.
+
+    The size of the output key must be specified in the template passed to
+    C_DeriveKey.
+*/
+typedef struct CK_NSS_HKDFParams {
+    CK_BBOOL bExtract;
+    CK_BYTE_PTR pSalt;
+    CK_ULONG ulSaltLen;
+    CK_BBOOL bExpand;
+    CK_BYTE_PTR pInfo;
+    CK_ULONG ulInfoLen;
+} CK_NSS_HKDFParams;
 
 /*
  * Trust info
