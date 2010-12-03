@@ -407,6 +407,11 @@ static const struct mechanismList mechanisms[] = {
      {CKM_SHA512_HMAC,		{1, 128, CKF_SN_VR},		PR_TRUE},
      {CKM_SHA512_HMAC_GENERAL,	{1, 128, CKF_SN_VR},		PR_TRUE},
      {CKM_TLS_PRF_GENERAL,	{0, 512, CKF_SN_VR},		PR_FALSE},
+     /* ------------------------- HKDF Operations -------------------------- */
+     {CKM_NSS_HKDF_SHA1,        {1, 128, CKF_DERIVE},           PR_TRUE},
+     {CKM_NSS_HKDF_SHA256,      {1, 128, CKF_DERIVE},           PR_TRUE},
+     {CKM_NSS_HKDF_SHA384,      {1, 128, CKF_DERIVE},           PR_TRUE},
+     {CKM_NSS_HKDF_SHA512,      {1, 128, CKF_DERIVE},           PR_TRUE},
      /* ------------------------- CAST Operations --------------------------- */
 #ifdef NSS_SOFTOKEN_DOES_CAST
      /* Cast operations are not supported ( yet? ) */
