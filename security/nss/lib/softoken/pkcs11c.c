@@ -6144,6 +6144,7 @@ hkdf: {
             crv = CKR_FUNCTION_FAILED;
             break;
         }
+        hashLen = rawHash->length;
 
         if (pMechanism->ulParameterLen != sizeof(CK_NSS_HKDFParams) ||
             !params || (!params->bExpand && !params->bExtract) ||
@@ -6158,6 +6159,9 @@ hkdf: {
             crv = CKR_TEMPLATE_INCONSISTENT;
             break;
         }
+        crv = sftk_DeriveSensitiveCheck(sourceKey, key);
+        if (crv != CKR_OK)
+            break;
 
         /* HKDF-Extract(salt, base key value) */
         if (params->bExtract) {
