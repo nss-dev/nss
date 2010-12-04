@@ -68,6 +68,7 @@
 #define SECITEM_CopyItem  SECITEM_CopyItem_stub
 #define SECITEM_FreeItem  SECITEM_FreeItem_stub
 #define SECITEM_ZfreeItem  SECITEM_ZfreeItem_stub
+#define NSS_SecureMemcmp NSS_SecureMemcmp_stub
 
 #define PR_Assert  PR_Assert_stub
 #define PR_CallOnce  PR_CallOnce_stub
