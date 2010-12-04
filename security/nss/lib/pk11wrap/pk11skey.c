@@ -52,12 +52,6 @@
 #include "secerr.h"
 #include "hasht.h"
 
-/* forward static declarations. */
-static PK11SymKey *pk11_DeriveWithTemplate(PK11SymKey *baseKey, 
-	CK_MECHANISM_TYPE derive, SECItem *param, CK_MECHANISM_TYPE target, 
-	CK_ATTRIBUTE_TYPE operation, int keySize, CK_ATTRIBUTE *userAttr, 
-	unsigned int numAttrs, PRBool isPerm);
-
 static void
 pk11_EnterKeyMonitor(PK11SymKey *symKey) {
     if (!symKey->sessionOwner || !(symKey->slot->isThreadSafe)) 
@@ -1368,7 +1362,7 @@ PK11_Derive( PK11SymKey *baseKey, CK_MECHANISM_TYPE derive, SECItem *param,
              CK_MECHANISM_TYPE target, CK_ATTRIBUTE_TYPE operation,
 	     int keySize)
 {
-    return pk11_DeriveWithTemplate(baseKey, derive, param, target, operation, 
+    return PK11_DeriveWithTemplate(baseKey, derive, param, target, operation, 
 				   keySize, NULL, 0, PR_FALSE);
 }
 
@@ -1383,7 +1377,7 @@ PK11_DeriveWithFlags( PK11SymKey *baseKey, CK_MECHANISM_TYPE derive,
     unsigned int    templateCount;
 
     templateCount = pk11_OpFlagsToAttributes(flags, keyTemplate, &ckTrue);
-    return pk11_DeriveWithTemplate(baseKey, derive, param, target, operation, 
+    return PK11_DeriveWithTemplate(baseKey, derive, param, target, operation, 
 		  keySize, keyTemplate, templateCount, PR_FALSE);
 }
 
@@ -1403,12 +1397,12 @@ PK11_DeriveWithFlagsPerm( PK11SymKey *baseKey, CK_MECHANISM_TYPE derive,
     }
     templateCount = attrs - keyTemplate;
     templateCount += pk11_OpFlagsToAttributes(flags, attrs, &cktrue);
-    return pk11_DeriveWithTemplate(baseKey, derive, param, target, operation, 
+    return PK11_DeriveWithTemplate(baseKey, derive, param, target, operation, 
 				   keySize, keyTemplate, templateCount, isPerm);
 }
 
-static PK11SymKey *
-pk11_DeriveWithTemplate( PK11SymKey *baseKey, CK_MECHANISM_TYPE derive, 
+PK11SymKey *
+PK11_DeriveWithTemplate( PK11SymKey *baseKey, CK_MECHANISM_TYPE derive, 
 	SECItem *param, CK_MECHANISM_TYPE target, CK_ATTRIBUTE_TYPE operation, 
 	int keySize, CK_ATTRIBUTE *userAttr, unsigned int numAttrs,
 							 PRBool isPerm)

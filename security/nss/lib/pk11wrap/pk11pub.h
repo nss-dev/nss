@@ -403,6 +403,12 @@ PK11SymKey * PK11_DeriveWithFlagsPerm( PK11SymKey *baseKey,
 	CK_MECHANISM_TYPE derive, 
 	SECItem *param, CK_MECHANISM_TYPE target, CK_ATTRIBUTE_TYPE operation, 
 	int keySize, CK_FLAGS flags, PRBool isPerm);
+PK11SymKey *
+PK11_DeriveWithTemplate( PK11SymKey *baseKey, CK_MECHANISM_TYPE derive, 
+	SECItem *param, CK_MECHANISM_TYPE target, CK_ATTRIBUTE_TYPE operation, 
+	int keySize, CK_ATTRIBUTE *userAttr, unsigned int numAttrs,
+							 PRBool isPerm);
+
 
 PK11SymKey *PK11_PubDerive( SECKEYPrivateKey *privKey, 
  SECKEYPublicKey *pubKey, PRBool isSender, SECItem *randomA, SECItem *randomB,

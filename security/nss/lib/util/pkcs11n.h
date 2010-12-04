@@ -84,6 +84,10 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #define CKK_NSS (CKK_VENDOR_DEFINED|NSSCK_VENDOR_NSS)
 
 #define CKK_NSS_PKCS8              (CKK_NSS + 1)
+
+#define CKK_NSS_JPAKE_ROUND1       (CKK_NSS + 2)
+#define CKK_NSS_JPAKE_ROUND2       (CKK_NSS + 3)
+
 /*
  * NSS-defined certificate types
  *
@@ -115,6 +119,15 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #define CKA_NSS_PQG_SEED_BITS      (CKA_NSS +  23)
 #define CKA_NSS_MODULE_SPEC        (CKA_NSS +  24)
 #define CKA_NSS_OVERRIDE_EXTENSIONS (CKA_NSS +  25)
+
+#define CKA_NSS_JPAKE_SIGNERID     (CKA_NSS +  26)
+#define CKA_NSS_JPAKE_PEERID       (CKA_NSS +  27)
+#define CKA_NSS_JPAKE_GX1          (CKA_NSS +  28)
+#define CKA_NSS_JPAKE_GX2          (CKA_NSS +  29)
+#define CKA_NSS_JPAKE_GX3          (CKA_NSS +  30)
+#define CKA_NSS_JPAKE_GX4          (CKA_NSS +  31)
+#define CKA_NSS_JPAKE_X2           (CKA_NSS +  32)
+#define CKA_NSS_JPAKE_X2S          (CKA_NSS +  33)
 
 /*
  * Trust attributes:
@@ -174,6 +187,48 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #define CKM_NSS_HKDF_SHA384       (CKM_NSS + 5)
 #define CKM_NSS_HKDF_SHA512       (CKM_NSS + 6)
 
+/* J-PAKE round 1 key generation mechanisms.
+ *
+ * Required template attributes: CKA_PRIME, CKA_SUBPRIME, CKA_BASE,
+ *                               CKA_NSS_JPAKE_SIGNERID
+ * Output key type: CKK_NSS_JPAKE_ROUND1
+ * Output key class: CKO_PRIVATE_KEY
+ * Parameter type: CK_NSS_JPAKERound1Params
+ *
+ */
+#define CKM_NSS_JPAKE_ROUND1_SHA1   (CKM_NSS + 7)
+#define CKM_NSS_JPAKE_ROUND1_SHA256 (CKM_NSS + 8)
+#define CKM_NSS_JPAKE_ROUND1_SHA384 (CKM_NSS + 9)
+#define CKM_NSS_JPAKE_ROUND1_SHA512 (CKM_NSS + 10)
+
+/* J-PAKE round 2 key derivation mechanisms.
+ * 
+ * Required template attributes: CKA_NSS_JPAKE_PEERID
+ * Input key type:  CKK_NSS_JPAKE_ROUND1
+ * Output key type: CKK_NSS_JPAKE_ROUND2
+ * Output key class: CKO_PRIVATE_KEY
+ * Parameter type: CK_NSS_JPAKERound2Params
+ */
+#define CKM_NSS_JPAKE_ROUND2_SHA1   (CKM_NSS + 11)
+#define CKM_NSS_JPAKE_ROUND2_SHA256 (CKM_NSS + 12)
+#define CKM_NSS_JPAKE_ROUND2_SHA384 (CKM_NSS + 13)
+#define CKM_NSS_JPAKE_ROUND2_SHA512 (CKM_NSS + 14)
+
+/* J-PAKE final key material derivation mechanisms 
+ *
+ * Input key type:  CKK_NSS_JPAKE_ROUND2
+ * Output key type: CKK_GENERIC_SECRET
+ * Output key class: CKO_SECRET_KEY
+ * Parameter type: CK_NSS_JPAKEFinalParams
+ *
+ * You must apply a KDF (e.g. CKM_NSS_HKDF_*) to resultant keying material 
+ * to get a key with uniformly distributed bits.
+ */
+#define CKM_NSS_JPAKE_FINAL_SHA1    (CKM_NSS + 15)
+#define CKM_NSS_JPAKE_FINAL_SHA256  (CKM_NSS + 16)
+#define CKM_NSS_JPAKE_FINAL_SHA384  (CKM_NSS + 17)
+#define CKM_NSS_JPAKE_FINAL_SHA512  (CKM_NSS + 18)
+
 /*
  * HISTORICAL:
  * Do not attempt to use these. They are only used by NETSCAPE's internal
@@ -192,6 +247,32 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #define CKM_NETSCAPE_PBE_MD2_HMAC_KEY_GEN       0x8000000bUL
 
 #define CKM_TLS_PRF_GENERAL                     0x80000373UL
+
+typedef struct CK_NSS_JPAKEPublicValue {
+    CK_BYTE * pGX;
+    CK_ULONG ulGXLen;
+    CK_BYTE * pGV;
+    CK_ULONG ulGVLen;
+    CK_BYTE * pR;
+    CK_ULONG ulRLen;
+} CK_NSS_JPAKEPublicValue;
+
+typedef struct CK_NSS_JPAKERound1Params {
+    CK_NSS_JPAKEPublicValue gx1; /* out */
+    CK_NSS_JPAKEPublicValue gx2; /* out */
+} CK_NSS_JPAKERound1Params;
+
+typedef struct CK_NSS_JPAKERound2Params {
+    CK_BYTE * pSharedKey;        /* in */
+    CK_ULONG ulSharedKeyLen;     /* in */
+    CK_NSS_JPAKEPublicValue gx3; /* in */
+    CK_NSS_JPAKEPublicValue gx4; /* in */
+    CK_NSS_JPAKEPublicValue A;   /* out */
+} CK_NSS_JPAKERound2Params;
+
+typedef struct CK_NSS_JPAKEFinalParams {
+    CK_NSS_JPAKEPublicValue B; /* in */
+} CK_NSS_JPAKEFinalParams;
 
 /*
  * NSS-defined return values
