@@ -1006,8 +1006,9 @@ CERT_GetConstrainedCertificateNames;
 ;+NSS_3.12.9 {  # NSS 3.12.9 release
 ;+    global:
 CERT_FindCertByNicknameOrEmailAddrForUsage;
-SECMOD_RestartModules;
+PK11_DeriveWithTemplate;
 PK11_FindCertsFromEmailAddress;
+SECMOD_RestartModules;
 ;+    local:
 ;+       *;
 ;+};

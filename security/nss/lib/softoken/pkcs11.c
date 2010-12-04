@@ -492,6 +492,19 @@ static const struct mechanismList mechanisms[] = {
      /* ------------------ AES Key Wrap (also encrypt)  ------------------- */
      {CKM_NETSCAPE_AES_KEY_WRAP,	{16, 32, CKF_EN_DE_WR_UN},  PR_TRUE},
      {CKM_NETSCAPE_AES_KEY_WRAP_PAD,	{16, 32, CKF_EN_DE_WR_UN},  PR_TRUE},
+     /* --------------------------- J-PAKE -------------------------------- */
+     {CKM_NSS_JPAKE_ROUND1_SHA1,        {0, 0, CKF_GENERATE}, PR_TRUE},
+     {CKM_NSS_JPAKE_ROUND1_SHA256,      {0, 0, CKF_GENERATE}, PR_TRUE},
+     {CKM_NSS_JPAKE_ROUND1_SHA384,      {0, 0, CKF_GENERATE}, PR_TRUE},
+     {CKM_NSS_JPAKE_ROUND1_SHA512,      {0, 0, CKF_GENERATE}, PR_TRUE},
+     {CKM_NSS_JPAKE_ROUND2_SHA1,        {0, 0, CKF_DERIVE}, PR_TRUE},
+     {CKM_NSS_JPAKE_ROUND2_SHA256,      {0, 0, CKF_DERIVE}, PR_TRUE},
+     {CKM_NSS_JPAKE_ROUND2_SHA384,      {0, 0, CKF_DERIVE}, PR_TRUE},
+     {CKM_NSS_JPAKE_ROUND2_SHA512,      {0, 0, CKF_DERIVE}, PR_TRUE},
+     {CKM_NSS_JPAKE_FINAL_SHA1,         {0, 0, CKF_DERIVE}, PR_TRUE},
+     {CKM_NSS_JPAKE_FINAL_SHA256,       {0, 0, CKF_DERIVE}, PR_TRUE},
+     {CKM_NSS_JPAKE_FINAL_SHA384,       {0, 0, CKF_DERIVE}, PR_TRUE},
+     {CKM_NSS_JPAKE_FINAL_SHA512,       {0, 0, CKF_DERIVE}, PR_TRUE}
 };
 static const CK_ULONG mechanismCount = sizeof(mechanisms)/sizeof(mechanisms[0]);
 
@@ -990,6 +1003,7 @@ sftk_handlePrivateKeyObject(SFTKSession *session,SFTKObject *object,CK_KEY_TYPE 
     CK_BBOOL wrap = CK_TRUE;
     CK_BBOOL derive = CK_TRUE;
     CK_BBOOL ckfalse = CK_FALSE;
+    PRBool createObjectInfo = PR_TRUE;
     int missing_rsa_mod_component = 0;
     int missing_rsa_exp_component = 0;
     int missing_rsa_crt_component = 0;
@@ -1089,6 +1103,20 @@ sftk_handlePrivateKeyObject(SFTKSession *session,SFTKObject *object,CK_KEY_TYPE 
 	wrap = CK_FALSE;
 	break;
 #endif /* NSS_ENABLE_ECC */
+    case CKK_NSS_JPAKE_ROUND1:
+        if (!sftk_hasAttribute(object, CKA_PRIME ||
+            !sftk_hasAttribute(object, CKA_SUBPRIME) ||
+            !sftk_hasAttribute(object, CKA_BASE))) {
+            return CKR_TEMPLATE_INCOMPLETE;
+        }
+        /* fall through */
+    case CKK_NSS_JPAKE_ROUND2:
+        /* CKA_NSS_JPAKE_SIGNERID and CKA_NSS_JPAKE_PEERID are checked in
+           the J-PAKE code. */
+        encrypt = sign = recover = wrap = CK_FALSE;
+        derive = CK_TRUE;
+        createObjectInfo = PR_FALSE;
+        break;
     default:
 	return CKR_ATTRIBUTE_VALUE_INVALID;
     }
@@ -1131,7 +1159,7 @@ sftk_handlePrivateKeyObject(SFTKSession *session,SFTKObject *object,CK_KEY_TYPE 
 	crv = sftkdb_write(keyHandle, object, &object->handle);
 	sftk_freeDB(keyHandle);
 	return crv;
-    } else {
+    } else if (createObjectInfo) {
 	object->objectInfo = sftk_mkPrivKey(object,key_type,&crv);
 	if (object->objectInfo == NULL) return crv;
 	object->infoFree = (SFTKFree) nsslowkey_DestroyPrivateKey;
