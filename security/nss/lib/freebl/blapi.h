@@ -145,6 +145,11 @@ extern SECStatus RSA_PopulatePrivateKey(RSAPrivateKey *key);
 ** DSA signing algorithm
 */
 
+/* Generate a new random value within the interval [2, q-1].
+*/
+extern SECStatus DSA_NewRandom(PLArenaPool * arena, const SECItem * q,
+                               SECItem * random);
+
 /*
 ** Generate and return a new DSA public and private key pair,
 **	both of which are encoded into a single DSAPrivateKey struct.
@@ -234,6 +239,72 @@ extern SECStatus KEA_Derive(SECItem *prime,
  * subprime domain.
  */
 extern PRBool KEA_Verify(SECItem *Y, SECItem *prime, SECItem *subPrime);
+
+/****************************************
+ * J-PAKE key transport
+ */
+
+/* Given gx == g^x, create a Schnorr zero-knowledge proof for the value x
+ * using the specified hash algorithm and signer ID. The signature is
+ * returned in the values gv and r. testRandom must be NULL for a PRNG
+ * generated random committment to be used in the sigature. When testRandom
+ * is non-NULL, that value must contain a value in the subgroup q; that
+ * value will be used instead of a PRNG-generated committment in order to
+ * facilitate known-answer tests.
+ *
+ * If gxIn is non-NULL then it must contain a pre-computed value of g^x that
+ * will be used by the function; in this case, the gxOut parameter must be NULL.
+ * If the gxIn parameter is NULL then gxOut must be non-NULL; in this case
+ * gxOut will contain the value g^x on output.
+ *
+ * gx (if not supplied by the caller), gv, and r will be allocated in the arena.
+ * The arena is *not* optional so do not pass NULL for the arena parameter.
+ * The arena should be zeroed when it is freed.
+ */
+SECStatus
+JPAKE_Sign(PLArenaPool * arena, const PQGParams * pqg, HASH_HashType hashType,
+           const SECItem * signerID, const SECItem * x,
+           const SECItem * testRandom, const SECItem * gxIn, SECItem * gxOut,
+           SECItem * gv, SECItem * r);
+
+/* Given gx == g^x, verify the Schnorr zero-knowledge proof (gv, r) for the
+ * value x using the specified hash algorithm and signer ID.
+ *
+ * The arena is *not* optional so do not pass NULL for the arena parameter. 
+ */
+SECStatus
+JPAKE_Verify(PRArenaPool * arena, const PQGParams * pqg,
+             HASH_HashType hashType, const SECItem * signerID,
+             const SECItem * peerID, const SECItem * gx,
+             const SECItem * gv, const SECItem * r);
+
+/* Call before round 2 with x2, s, and x2s all non-NULL. This will calculate
+ * base = g^(x1+x3+x4) (mod p) and x2s = x2*s (mod q). The values to send in 
+ * round 2 (A and the proof of knowledge of x2s) can then be calculated with
+ * JPAKE_Sign using pqg->base = base and x = x2s.
+ *
+ * Call after round 2 with x2, s, and x2s all NULL, and passing (gx1, gx2, gx3)
+ * instead of (gx1, gx3, gx4). This will calculate base = g^(x1+x2+x3). Then call
+ * JPAKE_Verify with pqg->base = base and then JPAKE_Final.
+ *
+ * base and x2s will be allocated in the arena. The arena is *not* optional so
+ * do not pass NULL for the arena parameter. The arena should be zeroed when it
+ * is freed.
+*/
+SECStatus
+JPAKE_Round2(PLArenaPool * arena, const SECItem * p, const SECItem  *q,
+             const SECItem * gx1, const SECItem * gx3, const SECItem * gx4,
+             SECItem * base, const SECItem * x2, const SECItem * s, SECItem * x2s);
+
+/* K = (B/g^(x2*x4*s))^x2 (mod p)
+ *
+ * K will be allocated in the arena. The arena is *not* optional so do not pass
+ * NULL for the arena parameter. The arena should be zeroed when it is freed.
+ */
+SECStatus
+JPAKE_Final(PLArenaPool * arena, const SECItem * p, const SECItem  *q,
+            const SECItem * x2, const SECItem * gx4, const SECItem * x2s,
+            const SECItem * B, SECItem * K);
 
 /******************************************************
 ** Elliptic Curve algorithms

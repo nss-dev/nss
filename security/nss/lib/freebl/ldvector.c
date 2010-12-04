@@ -261,7 +261,14 @@ static const struct FREEBLVectorStr vector =
 
     /* End of Version 3.011. */
 
-    RSA_PopulatePrivateKey
+    RSA_PopulatePrivateKey,
+
+    DSA_NewRandom,
+
+    JPAKE_Sign,
+    JPAKE_Verify,
+    JPAKE_Round2,
+    JPAKE_Final,
 
     /* End of Version 3.012. */
 };
