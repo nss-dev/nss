@@ -1,4 +1,4 @@
-#
+# 
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
 #
@@ -34,66 +34,26 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
+CORE_DEPTH = ../../..
 
-DEPTH	= ../..
-# MODULE	= seccmd
+MODULE = nss
 
-REQUIRES = nss nspr libdbm
+#REQUIRES = seccmd dbm softoken
+REQUIRES = seccmd dbm
 
-DIRS = lib  \
- addbuiltin \
- atob  \
- bltest \
- btoa  \
- certcgi \
- certutil  \
- checkcert  \
- chktest  \
- crlutil  \
- crmftest \
- dbtest \
- derdump  \
- digest  \
- fipstest  \
- makepqg  \
- multinit \
- ocspclnt  \
- oidcalc  \
- p7content  \
- p7env  \
- p7sign  \
- p7verify  \
- pk12util \
- pk11mode \
- pp  \
- rsaperf \
- sdrtest \
- selfserv  \
- signtool \
- signver \
- shlibsign \
- smimetools  \
- ssltap  \
- strsclnt \
- symkeyutil \
- tests \
- tstclnt  \
- vfychain \
- vfyserv \
- modutil \
- $(NULL)
+#INCLUDES += -I$(CORE_DEPTH)/nss/lib/softoken
 
-TEMPORARILY_DONT_BUILD = \
- $(NULL)
+PROGRAM = chktest
 
-# rsaperf  \
-#
-#       needs to look at what needs to happen to make jar build in
-# the binary release environment.
-#
-# perror requires lib/strerror.c which requires the client code installed 
-# to build (requires allxpstr.h)
-#
-DONT_BULD = jar \
- perror \
-$(NULL)
+ USE_STATIC_LIBS = 1
+
+EXPORTS = \
+	$(NULL)
+
+PRIVATE_EXPORTS = \
+	$(NULL)
+
+CSRCS = \
+	chktest.c \
+	$(NULL)
+

@@ -1,3 +1,4 @@
+#! gmake
 #
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -35,65 +36,44 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH	= ../..
-# MODULE	= seccmd
+#######################################################################
+# (1) Include initial platform-independent assignments (MANDATORY).   #
+#######################################################################
 
-REQUIRES = nss nspr libdbm
+include manifest.mn
 
-DIRS = lib  \
- addbuiltin \
- atob  \
- bltest \
- btoa  \
- certcgi \
- certutil  \
- checkcert  \
- chktest  \
- crlutil  \
- crmftest \
- dbtest \
- derdump  \
- digest  \
- fipstest  \
- makepqg  \
- multinit \
- ocspclnt  \
- oidcalc  \
- p7content  \
- p7env  \
- p7sign  \
- p7verify  \
- pk12util \
- pk11mode \
- pp  \
- rsaperf \
- sdrtest \
- selfserv  \
- signtool \
- signver \
- shlibsign \
- smimetools  \
- ssltap  \
- strsclnt \
- symkeyutil \
- tests \
- tstclnt  \
- vfychain \
- vfyserv \
- modutil \
- $(NULL)
+#######################################################################
+# (2) Include "global" configuration information. (OPTIONAL)          #
+#######################################################################
 
-TEMPORARILY_DONT_BUILD = \
- $(NULL)
+include $(CORE_DEPTH)/coreconf/config.mk
 
-# rsaperf  \
-#
-#       needs to look at what needs to happen to make jar build in
-# the binary release environment.
-#
-# perror requires lib/strerror.c which requires the client code installed 
-# to build (requires allxpstr.h)
-#
-DONT_BULD = jar \
- perror \
-$(NULL)
+#######################################################################
+# (3) Include "component" configuration information. (OPTIONAL)       #
+#######################################################################
+
+
+
+#######################################################################
+# (4) Include "local" platform-dependent assignments (OPTIONAL).      #
+#######################################################################
+
+include ../platlibs.mk
+
+#######################################################################
+# (5) Execute "global" rules. (OPTIONAL)                              #
+#######################################################################
+
+include $(CORE_DEPTH)/coreconf/rules.mk
+
+#######################################################################
+# (6) Execute "component" rules. (OPTIONAL)                           #
+#######################################################################
+
+
+
+#######################################################################
+# (7) Execute "local" rules. (OPTIONAL).                              #
+#######################################################################
+
+include ../platrules.mk

@@ -1336,6 +1336,11 @@ extern void BL_Unload(void);
 PRBool BLAPI_SHVerify(const char *name, PRFuncPtr addr);
 
 /**************************************************************************
+ *  Verify a given filename's signature                               *
+ **************************************************************************/
+PRBool BLAPI_SHVerifyFile(const char *shName);
+
+/**************************************************************************
  *  Verify Are Own Shared library signature                               *
  **************************************************************************/
 PRBool BLAPI_VerifySelf(const char *name);

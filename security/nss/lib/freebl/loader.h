@@ -596,6 +596,7 @@ struct FREEBLVectorStr {
  SECStatus (* p_SHA224_Flatten)(SHA224Context *cx,unsigned char *space);
  SHA224Context * (* p_SHA224_Resurrect)(unsigned char *space, void *arg);
  void (* p_SHA224_Clone)(SHA224Context *dest, SHA224Context *src);
+ PRBool (*p_BLAPI_SHVerifyFile)(const char *name);
   /* Version 3.013 came to here */
 
 };

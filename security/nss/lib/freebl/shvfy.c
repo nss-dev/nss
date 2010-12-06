@@ -307,8 +307,26 @@ readItem(PRFileDesc *fd, SECItem *item)
 PRBool
 BLAPI_SHVerify(const char *name, PRFuncPtr addr)
 {
+    PRBool result = PR_FALSE; /* if anything goes wrong,
+			       * the signature does not verify */
     /* find our shared library name */
     char *shName = PR_GetLibraryFilePathname(name, addr);
+    if (!shName) {
+	goto loser;
+    }
+    result = BLAPI_SHVerifyFile(shName);
+
+loser:
+    if (shName != NULL) {
+	PR_Free(shName);
+    }
+
+    return result;
+}
+
+PRBool
+BLAPI_SHVerifyFile(const char *shName)
+{
     char *checkName = NULL;
     PRFileDesc *checkFD = NULL;
     PRFileDesc *shFD = NULL;
@@ -468,9 +486,6 @@ BLAPI_SHVerify(const char *name, PRFuncPtr addr)
 
 
 loser:
-    if (shName != NULL) {
-	PR_Free(shName);
-    }
     if (checkName != NULL) {
 	PORT_Free(checkName);
     }
