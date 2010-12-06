@@ -286,7 +286,8 @@ static const struct FREEBLVectorStr vector =
     SHA224_FlattenSize,
     SHA224_Flatten,
     SHA224_Resurrect,
-    SHA224_Clone
+    SHA224_Clone,
+    BLAPI_SHVerifyFile
 
     /* End of Version 3.013 */
 };

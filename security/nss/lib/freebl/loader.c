@@ -1874,3 +1874,10 @@ SHA224_Clone(SHA224Context *dest, SHA224Context *src)
   (vector->p_SHA224_Clone)(dest, src);
 }
 
+PRBool
+BLAPI_SHVerifyFile(const char *name)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return PR_FALSE;
+  return vector->p_BLAPI_SHVerifyFile(name);
+}
