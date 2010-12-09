@@ -334,6 +334,19 @@ PK11SymKey *PK11_TokenKeyGenWithFlags(PK11SlotInfo *slot,
 				CK_MECHANISM_TYPE type, SECItem *param,
 				int keySize, SECItem *keyid, CK_FLAGS opFlags,
 				PK11AttrFlags attrFlags, void *wincx);
+/* Generates a key using the exact template supplied by the caller. The other
+ * PK11_[Token]KeyGen mechanisms should be used instead of this one whenever
+ * they work because they include/exclude the CKA_VALUE_LEN template value
+ * based on the mechanism type as required by many tokens.
+ * 
+ * keyGenType should be PK11_GetKeyGenWithSize(type, <key size>) or it should
+ * be equal to type if PK11_GetKeyGenWithSize cannot be used (e.g. because
+ * pk11wrap does not know about the mechanisms).
+ */
+PK11SymKey *PK11_KeyGenWithTemplate(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
+                                    CK_MECHANISM_TYPE keyGenType,
+                                    SECItem *param, CK_ATTRIBUTE * attrs,
+                                    unsigned int attrsCount, void *wincx);
 PK11SymKey * PK11_ListFixedKeysInSlot(PK11SlotInfo *slot, char *nickname,
 								void *wincx);
 PK11SymKey *PK11_GetNextSymKey(PK11SymKey *symKey);
