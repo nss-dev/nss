@@ -560,9 +560,11 @@ lg_init(SDB **pSdb, int flags, NSSLOWCERTCertDBHandle *certdbPtr,
 	goto loser;
     }
 
+    sdb->private = lgdb_p;
+    sdb->version = 0;
     sdb->sdb_type = SDB_LEGACY;
     sdb->sdb_flags = flags;
-    sdb->private = lgdb_p;
+    sdb->app_private = NULL;
     sdb->sdb_FindObjectsInit = lg_FindObjectsInit;
     sdb->sdb_FindObjects = lg_FindObjects;
     sdb->sdb_FindObjectsFinal = lg_FindObjectsFinal;
