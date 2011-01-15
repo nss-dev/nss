@@ -122,7 +122,7 @@ getLibName(void)
     long cpu = sysconf(_SC_CPU_VERSION);
     return (cpu == CPU_PA_RISC2_0) 
 		? "libfreebl_32fpu_3.sl"
-	        : "libfreebl_32int32_3.sl" ;
+	        : "libfreebl_32int_3.sl" ;
 }
 #else
 /* default case, for platforms/ABIs that have only one freebl shared lib. */
