@@ -2507,6 +2507,7 @@ listCertsCallback(CERTCertificate* cert, void*arg)
     nssCryptokiObject *instance, **ci;
     nssCryptokiObject **instances;
     NSSCertificate *c = STAN_GetNSSCertificate(cert);
+    SECStatus rv;
 
     if (c == NULL) {
         return SECFailure;
@@ -2529,11 +2530,15 @@ listCertsCallback(CERTCertificate* cert, void*arg)
 	return SECFailure;
     }
     nickname = STAN_GetCERTCertificateNameForInstance(cdata->list->arena,
-	c, instance);
+						      c, instance);
     nssCryptokiObjectArray_Destroy(instances);
 
-    return CERT_AddCertToListTailWithData(cdata->list, 
-				CERT_DupCertificate(cert),nickname);
+    CERT_DupCertificate(cert);
+    rv = CERT_AddCertToListTailWithData(cdata->list, cert, nickname);
+    if (rv != SECSuccess) {
+	CERT_DestroyCertificate(cert);
+    }
+    return rv;
 }
 
 CERTCertList *
