@@ -1383,7 +1383,7 @@ pk11_GenIV(CK_MECHANISM_TYPE type, SECItem *iv) {
 
 
 /*
- * create a new paramter block from the passed in MECHANISM and the
+ * create a new parameter block from the passed in MECHANISM and the
  * key. Use Netscape's S/MIME Rules for the New param block.
  */
 SECItem *
