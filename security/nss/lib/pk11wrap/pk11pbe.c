@@ -1348,7 +1348,7 @@ PK11_PBEKeyGen(PK11SlotInfo *slot, SECAlgorithmID *algid, SECItem *pwitem,
 {
     CK_MECHANISM_TYPE type;
     SECItem *param = NULL;
-    PK11SymKey *symKey;
+    PK11SymKey *symKey = NULL;
     SECOidTag	pbeAlg;
     CK_KEY_TYPE keyType = -1;
     int keyLen = 0;
@@ -1377,14 +1377,15 @@ PK11_PBEKeyGen(PK11SlotInfo *slot, SECAlgorithmID *algid, SECItem *pwitem,
     } else {
 	param = PK11_ParamFromAlgid(algid);
     }
+
     if(param == NULL) {
-	return NULL;
+	goto loser;
     }
 
     type = PK11_AlgtagToMechanism(pbeAlg);	
     if (type == CKM_INVALID_MECHANISM) {
 	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
-	return NULL;
+	goto loser;
     }
     if(faulty3DES && (type == CKM_NETSCAPE_PBE_SHA1_TRIPLE_DES_CBC)) {
 	type = CKM_NETSCAPE_PBE_SHA1_FAULTY_3DES_CBC;
@@ -1392,7 +1393,10 @@ PK11_PBEKeyGen(PK11SlotInfo *slot, SECAlgorithmID *algid, SECItem *pwitem,
     symKey = pk11_RawPBEKeyGenWithKeyType(slot, type, param, keyType, keyLen, 
 					pwitem, wincx);
 
-    SECITEM_ZfreeItem(param, PR_TRUE);
+loser:
+    if (param) {
+	SECITEM_ZfreeItem(param, PR_TRUE);
+    }
     return symKey;
 }
 
