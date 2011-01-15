@@ -2172,7 +2172,9 @@ ssl_PushIOLayer(sslSocket *ns, PRFileDesc *stack, PRDescIdentity id)
     PRStatus    status;
 
     if (!ssl_inited) {
-	PR_CallOnce(&initIoLayerOnce, &ssl_InitIOLayer);
+	status = PR_CallOnce(&initIoLayerOnce, &ssl_InitIOLayer);
+	if (status != PR_SUCCESS)
+	    goto loser;
     }
 
     if (ns == NULL)
