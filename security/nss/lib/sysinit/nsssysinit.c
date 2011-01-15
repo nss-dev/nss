@@ -372,9 +372,9 @@ overlapstrcpy(char *target, char *src)
 
 /* determine what options the user was trying to open this database with */
 /* filename is the directory pointed to by configdir= */
-/* stripped is the rest of the paramters with configdir= stripped out */
+/* stripped is the rest of the parameters with configdir= stripped out */
 static SECStatus
-parse_paramters(char *parameters, char **filename, char **stripped)
+parse_parameters(char *parameters, char **filename, char **stripped)
 {
     char *sourcePrev;
     char *sourceCurr;
@@ -423,7 +423,7 @@ NSS_ReturnModuleSpecData(unsigned long function, char *parameters, void *args)
     char **retString = NULL;
     SECStatus rv;
 
-    rv = parse_paramters(parameters, &filename, &stripped);
+    rv = parse_parameters(parameters, &filename, &stripped);
     if (rv != SECSuccess) {
 	/* use defaults */
 	filename = getSystemDB();

@@ -490,7 +490,7 @@ done:
  *    - If the cert does not have PQG parameters, obtain them from the issuer.
  *    - A valid cert chain cannot have a DSA or Fortezza cert without
  *      pqg parameters that has a parent that is not a DSA or Fortezza cert.
- *    - pqg paramters are stored in two different formats: the standard
+ *    - pqg parameters are stored in two different formats: the standard
  *      DER encoded format and the fortezza-only wrapped format.  The params
  *      should be copied from issuer to subject cert without modifying the
  *      formats.  The public key extraction code will deal with the different
@@ -1217,7 +1217,7 @@ CERT_ExtractPublicKey(CERTCertificate *cert)
 
 /*
  * Get the public key for the fortezza KMID. NOTE this requires the
- * PQG paramters to be set. We probably should have a fortezza call that 
+ * PQG parameters to be set. We probably should have a fortezza call that 
  * just extracts the kmid for us directly so this function can work
  * without having the whole cert chain
  */

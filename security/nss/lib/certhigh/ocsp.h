@@ -588,7 +588,7 @@ CERT_CacheOCSPResponseFromSideChannel(CERTCertDBHandle *handle,
 
 /*
  * FUNCTION: CERT_GetOCSPStatusForCertID
- *  Returns the OCSP status contained in the passed in paramter response
+ *  Returns the OCSP status contained in the passed in parameter response
  *  that corresponds to the certID passed in.
  * INPUTS:
  *  CERTCertDBHandle *handle

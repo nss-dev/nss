@@ -1442,14 +1442,14 @@ loser:
 }
 
 /*
- * public, supports pkcs5 v2
+ * Public, supports pkcs5 v2
  *
- * get the crypto mechanism directly from the pbe algorithmid.
+ * Get the crypto mechanism directly from the pbe algorithmid.
  *
- * it's important to go directly from the algorithm id so that we can
+ * It's important to go directly from the algorithm id so that we can
  * handle both the PKCS #5 v1, PKCS #12, and PKCS #5 v2 cases.
  *
- * This function returns both the mechanism an the paramter for the mechanism.
+ * This function returns both the mechanism and the parameter for the mechanism.
  * The caller is responsible for freeing the parameter.
  */
 CK_MECHANISM_TYPE

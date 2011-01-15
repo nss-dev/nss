@@ -468,7 +468,7 @@ pk11_get_Decoded_ECPoint(PRArenaPool *arena, const SECItem *ecParams,
 	 * form that's correct, with a preference for the encoded form if we
 	 * can't determine for sure. We do this by checking the key we got
 	 * back from SEC_QuickDERDecodeItem for defects. If no defects are
-	 * found, we assume the encoded paramter was was passed to us.
+	 * found, we assume the encoded parameter was was passed to us.
 	 * our defect tests include:
 	 *   1) it didn't decode.
 	 *   2) The decode key had an invalid length (must be odd).

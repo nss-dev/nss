@@ -3907,7 +3907,7 @@ kpg_done:
 	sftk_DeleteAttributeType(privateKey,CKA_BASE);
 	key_type = CKK_DSA;
 
-	/* extract the necessary paramters and copy them to the private key */
+	/* extract the necessary parameters and copy them to the private key */
 	crv=sftk_Attribute2SSecItem(NULL,&pqgParam.prime,publicKey,CKA_PRIME);
 	if (crv != CKR_OK) break;
 	crv=sftk_Attribute2SSecItem(NULL,&pqgParam.subPrime,publicKey,
