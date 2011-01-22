@@ -4839,14 +4839,8 @@ ssl3_SendCertificateVerify(sslSocket *ss)
 	sid->u.ssl3.clAuthValid      = PR_TRUE;
 	PK11_FreeSlot(slot);
     }
-    /* If we're doing RSA key exchange, we're all done with the private key
-     * here.  Diffie-Hellman key exchanges need the client's
-     * private key for the key exchange.
-     */
-    if (ss->ssl3.hs.kea_def->exchKeyType == kt_rsa) {
-	SECKEY_DestroyPrivateKey(ss->ssl3.clientPrivateKey);
-	ss->ssl3.clientPrivateKey = NULL;
-    }
+    SECKEY_DestroyPrivateKey(ss->ssl3.clientPrivateKey);
+    ss->ssl3.clientPrivateKey = NULL;
     if (rv != SECSuccess) {
 	goto done;	/* err code was set by ssl3_SignHashes */
     }
@@ -4899,6 +4893,20 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         errCode = SSL_ERROR_RX_UNEXPECTED_SERVER_HELLO;
 	desc    = unexpected_message;
 	goto alert_loser;
+    }
+
+    /* clean up anything left from previous handshake. */
+    if (ss->ssl3.clientCertChain != NULL) {
+       CERT_DestroyCertificateList(ss->ssl3.clientCertChain);
+       ss->ssl3.clientCertChain = NULL;
+    }
+    if (ss->ssl3.clientCertificate != NULL) {
+       CERT_DestroyCertificate(ss->ssl3.clientCertificate);
+       ss->ssl3.clientCertificate = NULL;
+    }
+    if (ss->ssl3.clientPrivateKey != NULL) {
+       SECKEY_DestroyPrivateKey(ss->ssl3.clientPrivateKey);
+       ss->ssl3.clientPrivateKey = NULL;
     }
 
     temp = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
@@ -5456,19 +5464,9 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	goto alert_loser;
     }
 
-    /* clean up anything left from previous handshake. */
-    if (ss->ssl3.clientCertChain != NULL) {
-       CERT_DestroyCertificateList(ss->ssl3.clientCertChain);
-       ss->ssl3.clientCertChain = NULL;
-    }
-    if (ss->ssl3.clientCertificate != NULL) {
-       CERT_DestroyCertificate(ss->ssl3.clientCertificate);
-       ss->ssl3.clientCertificate = NULL;
-    }
-    if (ss->ssl3.clientPrivateKey != NULL) {
-       SECKEY_DestroyPrivateKey(ss->ssl3.clientPrivateKey);
-       ss->ssl3.clientPrivateKey = NULL;
-    }
+    PORT_Assert(ss->ssl3.clientCertChain == NULL);
+    PORT_Assert(ss->ssl3.clientCertificate == NULL);
+    PORT_Assert(ss->ssl3.clientPrivateKey == NULL);
 
     isTLS = (PRBool)(ss->ssl3.prSpec->version > SSL_LIBRARY_VERSION_3_0);
     rv = ssl3_ConsumeHandshakeVariable(ss, &cert_types, 1, &b, &length);
