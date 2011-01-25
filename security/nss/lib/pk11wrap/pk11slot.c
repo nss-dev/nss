@@ -1349,7 +1349,7 @@ pk11_isRootSlot(PK11SlotInfo *slot)
  * times as tokens are removed and re-inserted.
  */
 void
-PK11_InitSlot(SECMODModule *mod,CK_SLOT_ID slotID,PK11SlotInfo *slot)
+PK11_InitSlot(SECMODModule *mod, CK_SLOT_ID slotID, PK11SlotInfo *slot)
 {
     SECStatus rv;
     char *tmp;
@@ -1726,11 +1726,31 @@ PK11_NeedUserInit(PK11SlotInfo *slot)
 }
 
 static PK11SlotInfo *pk11InternalKeySlot = NULL;
+
+/*
+ * Set a new default internal keyslot. If one has already been set, clear it.
+ * passing NULL falls back the NSS normally selected default internal key
+ * slot
+ */
 void
 pk11_SetInternalKeySlot(PK11SlotInfo *slot)
 {
    if (pk11InternalKeySlot) {
 	PK11_FreeSlot(pk11InternalKeySlot);
+   }
+   pk11InternalKeySlot = slot ? PK11_ReferenceSlot(slot) : NULL;
+}
+
+/*
+ * Set a new default internal keyslot if the normal key slot has not already
+ * been overrided. Subsequent calls to this function will be ignored unless
+ * pk11_SetInternalKeySlot is used to clear the current default.
+ */
+void
+pk11_FirstInternalKeySlot(PK11SlotInfo *slot)
+{
+   if (pk11InternalKeySlot) {
+	return;
    }
    pk11InternalKeySlot = slot ? PK11_ReferenceSlot(slot) : NULL;
 }
