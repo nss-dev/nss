@@ -1743,7 +1743,7 @@ pk11_SetInternalKeySlot(PK11SlotInfo *slot)
 
 /*
  * Set a new default internal keyslot if the normal key slot has not already
- * been overrided. Subsequent calls to this function will be ignored unless
+ * been overridden. Subsequent calls to this function will be ignored unless
  * pk11_SetInternalKeySlot is used to clear the current default.
  */
 void
