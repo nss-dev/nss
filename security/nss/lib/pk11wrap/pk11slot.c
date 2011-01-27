@@ -1729,8 +1729,8 @@ static PK11SlotInfo *pk11InternalKeySlot = NULL;
 
 /*
  * Set a new default internal keyslot. If one has already been set, clear it.
- * passing NULL falls back the NSS normally selected default internal key
- * slot
+ * Passing NULL falls back to the NSS normally selected default internal key
+ * slot.
  */
 void
 pk11_SetInternalKeySlot(PK11SlotInfo *slot)
@@ -1747,7 +1747,7 @@ pk11_SetInternalKeySlot(PK11SlotInfo *slot)
  * pk11_SetInternalKeySlot is used to clear the current default.
  */
 void
-pk11_FirstInternalKeySlot(PK11SlotInfo *slot)
+pk11_SetInternalKeySlotIfFirst(PK11SlotInfo *slot)
 {
    if (pk11InternalKeySlot) {
 	return;
