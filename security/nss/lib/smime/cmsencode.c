@@ -159,19 +159,7 @@ nss_cms_encoder_notify(void *arg, PRBool before, void *dest, int depth)
      * Watch for the content field, at which point we want to instruct
      * the ASN.1 encoder to start taking bytes from the buffer.
      */
-    switch (p7ecx->type) {
-    default:
-    case SEC_OID_UNKNOWN:
-	/* we're still in the root message */
-	if (after && dest == &(rootcinfo->contentType)) {
-	    /* got the content type OID now - so find out the type tag */
-	    p7ecx->type = NSS_CMSContentInfo_GetContentTypeTag(rootcinfo);
-	    /* set up a pointer to our current content */
-	    p7ecx->content = rootcinfo->content;
-	}
-	break;
-
-    case SEC_OID_PKCS7_DATA:
+    if (NSS_CMSType_IsData(p7ecx->type)) {
 	if (before && dest == &(rootcinfo->rawContent)) {
 	    /* just set up encoder to grab from user - no encryption or digesting */
 	    if ((item = rootcinfo->content.data) != NULL)
@@ -180,13 +168,7 @@ nss_cms_encoder_notify(void *arg, PRBool before, void *dest, int depth)
 		SEC_ASN1EncoderSetTakeFromBuf(p7ecx->ecx);
 	    SEC_ASN1EncoderClearNotifyProc(p7ecx->ecx);	/* no need to get notified anymore */
 	}
-	break;
-
-    case SEC_OID_PKCS7_SIGNED_DATA:
-    case SEC_OID_PKCS7_ENVELOPED_DATA:
-    case SEC_OID_PKCS7_DIGESTED_DATA:
-    case SEC_OID_PKCS7_ENCRYPTED_DATA:
-
+    } else if (NSS_CMSType_IsWrapper(p7ecx->type)) {
 	/* when we know what the content is, we encode happily until we reach the inner content */
 	cinfo = NSS_CMSContent_GetContentInfo(p7ecx->content.pointer, p7ecx->type);
 	childtype = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
@@ -199,7 +181,7 @@ nss_cms_encoder_notify(void *arg, PRBool before, void *dest, int depth)
 		p7ecx->error = PORT_GetError();
 	}
 	if (before && dest == &(cinfo->rawContent)) {
-	    if (childtype == SEC_OID_PKCS7_DATA && (item = cinfo->content.data) != NULL)
+	    if (NSS_CMSType_IsData(childtype) && (item = cinfo->content.data) != NULL)
 		/* we have data - feed it in */
 		(void)nss_cms_encoder_work_data(p7ecx, NULL, item->data, item->len, PR_TRUE, PR_TRUE);
 	    else
@@ -211,7 +193,14 @@ nss_cms_encoder_notify(void *arg, PRBool before, void *dest, int depth)
 		p7ecx->error = PORT_GetError();
 	    SEC_ASN1EncoderClearNotifyProc(p7ecx->ecx);	/* no need to get notified anymore */
 	}
-	break;
+    } else {
+	/* we're still in the root message */
+	if (after && dest == &(rootcinfo->contentType)) {
+	    /* got the content type OID now - so find out the type tag */
+	    p7ecx->type = NSS_CMSContentInfo_GetContentTypeTag(rootcinfo);
+	    /* set up a pointer to our current content */
+	    p7ecx->content = rootcinfo->content;
+	}
     }
 }
 
@@ -247,7 +236,11 @@ nss_cms_before_data(NSSCMSEncoderContext *p7ecx)
 	rv = NSS_CMSEncryptedData_Encode_BeforeData(p7ecx->content.encryptedData);
 	break;
     default:
-	rv = SECFailure;
+        if (NSS_CMSType_IsWrapper(p7ecx->type)) {
+	    rv = NSS_CMSGenericWrapperData_Encode_BeforeData(p7ecx->type, p7ecx->content.genericData);
+	} else {
+	    rv = SECFailure;
+	}
     }
     if (rv != SECSuccess)
 	return SECFailure;
@@ -258,14 +251,7 @@ nss_cms_before_data(NSSCMSEncoderContext *p7ecx)
     cinfo = NSS_CMSContent_GetContentInfo(p7ecx->content.pointer, p7ecx->type);
     childtype = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
 
-    switch (childtype) {
-    case SEC_OID_PKCS7_SIGNED_DATA:
-    case SEC_OID_PKCS7_ENVELOPED_DATA:
-    case SEC_OID_PKCS7_ENCRYPTED_DATA:
-    case SEC_OID_PKCS7_DIGESTED_DATA:
-#if 0
-    case SEC_OID_PKCS7_DATA:		/* XXX here also??? maybe yes! */
-#endif
+    if (NSS_CMSType_IsWrapper(childtype)) {
 	/* in these cases, we need to set up a child encoder! */
 	/* create new encoder context */
 	childp7ecx = PORT_ZAlloc(sizeof(NSSCMSEncoderContext));
@@ -303,11 +289,8 @@ nss_cms_before_data(NSSCMSEncoderContext *p7ecx)
 	case SEC_OID_PKCS7_ENCRYPTED_DATA:
 	    rv = NSS_CMSEncryptedData_Encode_BeforeStart(cinfo->content.encryptedData);
 	    break;
-	case SEC_OID_PKCS7_DATA:
-	    rv = SECSuccess;
-	    break;
 	default:
-	    PORT_Assert(0);
+	    rv = NSS_CMSGenericWrapperData_Encode_BeforeStart(childp7ecx->type, cinfo->content.genericData);
 	    break;
 	}
 	if (rv != SECSuccess)
@@ -327,7 +310,8 @@ nss_cms_before_data(NSSCMSEncoderContext *p7ecx)
 	 * Indicate that we are streaming.  We will be streaming until we
 	 * get past the contents bytes.
 	 */
-	SEC_ASN1EncoderSetStreaming(childp7ecx->ecx);
+        if (!cinfo->private || !cinfo->private->dontStream)
+	    SEC_ASN1EncoderSetStreaming(childp7ecx->ecx);
 
 	/*
 	 * The notify function will watch for the contents field.
@@ -346,15 +330,11 @@ nss_cms_before_data(NSSCMSEncoderContext *p7ecx)
 	    goto loser;
 
 	p7ecx->childp7ecx = childp7ecx;
-	break;
-
-    case SEC_OID_PKCS7_DATA:
+    } else if (NSS_CMSType_IsData(childtype)) {
 	p7ecx->childp7ecx = NULL;
-	break;
-    default:
+    } else {
 	/* we do not know this type */
 	p7ecx->error = SEC_ERROR_BAD_DER;
-	break;
     }
 
     return SECSuccess;
@@ -387,11 +367,12 @@ nss_cms_after_data(NSSCMSEncoderContext *p7ecx)
     case SEC_OID_PKCS7_ENCRYPTED_DATA:
 	rv = NSS_CMSEncryptedData_Encode_AfterData(p7ecx->content.encryptedData);
 	break;
-    case SEC_OID_PKCS7_DATA:
-	/* do nothing */
-	break;
     default:
-	rv = SECFailure;
+        if (NSS_CMSType_IsWrapper(p7ecx->type)) {
+	    rv = NSS_CMSGenericWrapperData_Encode_AfterData(p7ecx->type, p7ecx->content.genericData);
+	} else {
+	    rv = SECFailure;
+	}
 	break;
     }
     return rv;
@@ -432,23 +413,23 @@ nss_cms_encoder_work_data(NSSCMSEncoderContext *p7ecx, SECItem *dest,
     }
 
     /* Update the running digest. */
-    if (len && cinfo->digcx != NULL)
-	NSS_CMSDigestContext_Update(cinfo->digcx, data, len);
+    if (len && cinfo->private && cinfo->private->digcx != NULL)
+	NSS_CMSDigestContext_Update(cinfo->private->digcx, data, len);
 
     /* Encrypt this chunk. */
-    if (cinfo->ciphcx != NULL) {
+    if (cinfo->private && cinfo->private->ciphcx != NULL) {
 	unsigned int inlen;	/* length of data being encrypted */
 	unsigned int outlen;	/* length of encrypted data */
 	unsigned int buflen;	/* length available for encrypted data */
 
 	inlen = len;
-	buflen = NSS_CMSCipherContext_EncryptLength(cinfo->ciphcx, inlen, final);
+	buflen = NSS_CMSCipherContext_EncryptLength(cinfo->private->ciphcx, inlen, final);
 	if (buflen == 0) {
 	    /*
 	     * No output is expected, but the input data may be buffered
 	     * so we still have to call Encrypt.
 	     */
-	    rv = NSS_CMSCipherContext_Encrypt(cinfo->ciphcx, NULL, NULL, 0,
+	    rv = NSS_CMSCipherContext_Encrypt(cinfo->private->ciphcx, NULL, NULL, 0,
 				   data, inlen, final);
 	    if (final) {
 		len = 0;
@@ -465,7 +446,7 @@ nss_cms_encoder_work_data(NSSCMSEncoderContext *p7ecx, SECItem *dest,
 	if (buf == NULL) {
 	    rv = SECFailure;
 	} else {
-	    rv = NSS_CMSCipherContext_Encrypt(cinfo->ciphcx, buf, &outlen, buflen,
+	    rv = NSS_CMSCipherContext_Encrypt(cinfo->private->ciphcx, buf, &outlen, buflen,
 				   data, inlen, final);
 	    data = buf;
 	    len = outlen;
@@ -486,7 +467,7 @@ nss_cms_encoder_work_data(NSSCMSEncoderContext *p7ecx, SECItem *dest,
 
 done:
 
-    if (cinfo->ciphcx != NULL) {
+    if (cinfo->private && cinfo->private->ciphcx != NULL) {
 	if (dest != NULL) {
 	    dest->data = buf;
 	    dest->len = len;
@@ -532,6 +513,7 @@ NSS_CMSEncoder_Start(NSSCMSMessage *cmsg,
     NSSCMSEncoderContext *p7ecx;
     SECStatus rv;
     NSSCMSContentInfo *cinfo;
+    SECOidTag tag;
 
     NSS_CMSMessage_SetEncodingParams(cmsg, pwfn, pwfn_arg, decrypt_key_cb, decrypt_key_cb_arg,
 					detached_digestalgs, detached_digests);
@@ -551,7 +533,8 @@ NSS_CMSEncoder_Start(NSSCMSMessage *cmsg,
 
     cinfo = NSS_CMSMessage_GetContentInfo(cmsg);
 
-    switch (NSS_CMSContentInfo_GetContentTypeTag(cinfo)) {
+    tag = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
+    switch (tag) {
     case SEC_OID_PKCS7_SIGNED_DATA:
 	rv = NSS_CMSSignedData_Encode_BeforeStart(cinfo->content.signedData);
 	break;
@@ -565,7 +548,12 @@ NSS_CMSEncoder_Start(NSSCMSMessage *cmsg,
 	rv = NSS_CMSEncryptedData_Encode_BeforeStart(cinfo->content.encryptedData);
 	break;
     default:
-	rv = SECFailure;
+        if (NSS_CMSType_IsWrapper(tag)) {
+	    rv = NSS_CMSGenericWrapperData_Encode_AfterData(tag, 
+						p7ecx->content.genericData);
+	} else {
+	    rv = SECFailure;
+	}
 	break;
     }
     if (rv != SECSuccess) {
@@ -587,7 +575,8 @@ NSS_CMSEncoder_Start(NSSCMSMessage *cmsg,
      * Indicate that we are streaming.  We will be streaming until we
      * get past the contents bytes.
      */
-    SEC_ASN1EncoderSetStreaming(p7ecx->ecx);
+    if (!cinfo->private || !cinfo->private->dontStream)
+	SEC_ASN1EncoderSetStreaming(p7ecx->ecx);
 
     /*
      * The notify function will watch for the contents field.
@@ -640,7 +629,7 @@ NSS_CMSEncoder_Update(NSSCMSEncoderContext *p7ecx, const char *data, unsigned lo
 	}
 
 	childtype = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
-	if (childtype != SEC_OID_PKCS7_DATA)
+	if (!NSS_CMSType_IsData(childtype))
 	    return SECFailure;
 	/* and we must not have preset data */
 	if (cinfo->content.data != NULL)
@@ -746,7 +735,7 @@ NSS_CMSEncoder_Finish(NSSCMSEncoderContext *p7ecx)
 	goto loser;
     }
     childtype = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
-    if (childtype == SEC_OID_PKCS7_DATA && cinfo->content.data == NULL) {
+    if (NSS_CMSType_IsData(childtype) && cinfo->content.data == NULL) {
 	SEC_ASN1EncoderClearTakeFromBuf(p7ecx->ecx);
 	/* now that TakeFromBuf is off, this will kick this encoder to finish encoding */
 	rv = SEC_ASN1EncoderUpdate(p7ecx->ecx, NULL, 0);
