@@ -1000,6 +1000,15 @@ seckey_GetKeyType (SECOidTag tag) {
       case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
 	keyType = ecKey;
 	break;
+      /* accommodate applications that hand us a signature type when they 
+	* should be handing us a cipher type */
+      case SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION:
+      case SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION:
+      case SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION:
+      case SEC_OID_PKCS1_SHA384_WITH_RSA_ENCRYPTION:
+      case SEC_OID_PKCS1_SHA512_WITH_RSA_ENCRYPTION:
+	keyType = rsaKey;
+	break;
       default:
 	keyType = nullKey;
     }
