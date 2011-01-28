@@ -547,18 +547,22 @@ nss_cms_choose_content_template(void *src_or_dest, PRBool encoding)
 {
     const SEC_ASN1Template *theTemplate;
     NSSCMSContentInfo *cinfo;
+    SECOidTag type;
 
     PORT_Assert (src_or_dest != NULL);
     if (src_or_dest == NULL)
 	return NULL;
 
     cinfo = (NSSCMSContentInfo *)src_or_dest;
-    switch (NSS_CMSContentInfo_GetContentTypeTag(cinfo)) {
-    default:
-	theTemplate = SEC_ASN1_GET(SEC_PointerToAnyTemplate);
-	break;
-    case SEC_OID_PKCS7_DATA:
+    type = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
+    if (NSS_CMSType_IsData(type)) {
 	theTemplate = SEC_ASN1_GET(SEC_PointerToOctetStringTemplate);
+    } else switch (type) {
+    default:
+	theTemplate = NSS_CMSType_GetTemplate(type);
+	if (theTemplate == NULL) {
+	    theTemplate = SEC_ASN1_GET(SEC_PointerToAnyTemplate);
+	}
 	break;
     case SEC_OID_PKCS7_SIGNED_DATA:
 	theTemplate = NSS_PointerToCMSSignedDataTemplate;

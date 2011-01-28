@@ -243,8 +243,7 @@ NSS_CMSUtil_GetTemplateByTypeTag(SECOidTag type)
 	template = NSSCMSDigestedDataTemplate;
 	break;
     default:
-    case SEC_OID_PKCS7_DATA:
-	template = NULL;
+	template = NSS_CMSType_GetTemplate(type);
 	break;
     }
     return template;
@@ -269,8 +268,7 @@ NSS_CMSUtil_GetSizeByTypeTag(SECOidTag type)
 	size = sizeof(NSSCMSDigestedData);
 	break;
     default:
-    case SEC_OID_PKCS7_DATA:
-	size = 0;
+	size = NSS_CMSType_GetContentSize(type);
 	break;
     }
     return size;
@@ -300,6 +298,9 @@ NSS_CMSContent_GetContentInfo(void *msg, SECOidTag type)
 	break;
     default:
 	cinfo = NULL;
+	if (NSS_CMSType_IsWrapper(type)) {
+	    cinfo = &(c.genericData->contentInfo);
+	}
     }
     return cinfo;
 }
