@@ -3087,6 +3087,8 @@ CERT_SetStatusConfig(CERTCertDBHandle *handle, CERTStatusConfig *statusConfig)
 
 static PLHashTable *gSubjKeyIDHash = NULL;
 static PRLock      *gSubjKeyIDLock = NULL;
+static PLHashTable *gSubjKeyIDSlotCheckHash = NULL;
+static PRLock      *gSubjKeyIDSlotCheckLock = NULL;
 
 static void *cert_AllocTable(void *pool, PRSize size)
 {
@@ -3117,6 +3119,31 @@ static PLHashAllocOps cert_AllocOps = {
 };
 
 SECStatus
+cert_CreateSubjectKeyIDSlotCheckHash(void)
+{
+    /*
+     * This hash is used to remember the series of a slot
+     * when we last checked for user certs
+     */
+    gSubjKeyIDSlotCheckHash = PL_NewHashTable(0, SECITEM_Hash,
+                                             SECITEM_HashCompare,
+                                             SECITEM_HashCompare,
+                                             &cert_AllocOps, NULL);
+    if (!gSubjKeyIDSlotCheckHash) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        return SECFailure;
+    }
+    gSubjKeyIDSlotCheckLock = PR_NewLock();
+    if (!gSubjKeyIDSlotCheckLock) {
+        PL_HashTableDestroy(gSubjKeyIDSlotCheckHash);
+        gSubjKeyIDSlotCheckHash = NULL;
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        return SECFailure;
+    }
+    return SECSuccess;
+}
+
+SECStatus
 cert_CreateSubjectKeyIDHashTable(void)
 {
     gSubjKeyIDHash = PL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
@@ -3133,8 +3160,12 @@ cert_CreateSubjectKeyIDHashTable(void)
         PORT_SetError(SEC_ERROR_NO_MEMORY);
         return SECFailure;
     }
+    /* initialize the companion hash (for remembering slot series) */
+    if (cert_CreateSubjectKeyIDSlotCheckHash() != SECSuccess) {
+	cert_DestroySubjectKeyIDHashTable();
+	return SECFailure;
+    }
     return SECSuccess;
-
 }
 
 SECStatus
@@ -3193,6 +3224,88 @@ cert_RemoveSubjectKeyIDMapping(SECItem *subjKeyID)
 }
 
 SECStatus
+cert_UpdateSubjectKeyIDSlotCheck(SECItem *slotid, int series)
+{
+    SECItem *oldSeries, *newSlotid, *newSeries;
+    SECStatus rv = SECFailure;
+    PRArenaPool *arena;
+
+    if (!gSubjKeyIDSlotCheckLock) {
+	return rv;
+    }
+
+    newSlotid = SECITEM_DupItem(slotid);
+    newSeries = SECITEM_AllocItem(NULL, NULL, 0);
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (!newSlotid || !newSeries || !arena) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        goto loser;
+    }
+    rv = DER_SetUInteger(arena, newSeries, (PRUint32)series);
+    if (rv != SECSuccess) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        goto loser;
+    }
+
+    PR_Lock(gSubjKeyIDSlotCheckLock);
+    oldSeries = (SECItem *)PL_HashTableLookup(gSubjKeyIDSlotCheckHash, slotid);
+    if (oldSeries) {
+	/* 
+	 * make sure we don't leak the key of an existing entry
+	 * (similar to cert_AddSubjectKeyIDMapping, see comment there)
+	 */
+        PL_HashTableRemove(gSubjKeyIDSlotCheckHash, slotid);
+    }
+    rv = (PL_HashTableAdd(gSubjKeyIDSlotCheckHash, newSlotid, newSeries)) ?
+         SECSuccess : SECFailure;
+    PR_Unlock(gSubjKeyIDSlotCheckLock);
+    if (rv == SECSuccess) {
+	return rv;
+    }
+
+loser:
+    if (newSlotid) {
+        SECITEM_FreeItem(newSlotid, PR_TRUE);
+    }
+    if (newSeries) {
+        SECITEM_FreeItem(newSeries, PR_TRUE);
+    }
+    if (arena) {
+	PORT_FreeArena(arena, PR_TRUE);
+    }
+    return rv;
+}
+
+int
+cert_SubjectKeyIDSlotCheckSeries(SECItem *slotid)
+{
+    SECItem *series = NULL;
+
+    if (!gSubjKeyIDSlotCheckLock) {
+	return 0;
+    }
+
+    PR_Lock(gSubjKeyIDSlotCheckLock);
+    series = (SECItem *)PL_HashTableLookup(gSubjKeyIDSlotCheckHash, slotid);
+    PR_Unlock(gSubjKeyIDSlotCheckLock);
+    return series ? (int)DER_GetUInteger(series) : 0;
+}
+
+SECStatus
+cert_DestroySubjectKeyIDSlotCheckHash(void)
+{
+    if (gSubjKeyIDSlotCheckHash) {
+        PR_Lock(gSubjKeyIDSlotCheckLock);
+        PL_HashTableDestroy(gSubjKeyIDSlotCheckHash);
+        gSubjKeyIDSlotCheckHash = NULL;
+        PR_Unlock(gSubjKeyIDSlotCheckLock);
+        PR_DestroyLock(gSubjKeyIDSlotCheckLock);
+        gSubjKeyIDSlotCheckLock = NULL;
+    }
+    return SECSuccess;
+}
+
+SECStatus
 cert_DestroySubjectKeyIDHashTable(void)
 {
     if (gSubjKeyIDHash) {
@@ -3203,6 +3316,7 @@ cert_DestroySubjectKeyIDHashTable(void)
         PR_DestroyLock(gSubjKeyIDLock);
         gSubjKeyIDLock = NULL;
     }
+    cert_DestroySubjectKeyIDSlotCheckHash();
     return SECSuccess;
 }
 
