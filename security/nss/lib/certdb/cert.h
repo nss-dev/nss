@@ -522,12 +522,6 @@ SECStatus CERT_CacheCRL(CERTCertDBHandle* dbhandle, SECItem* newcrl);
 SECStatus CERT_UncacheCRL(CERTCertDBHandle* dbhandle, SECItem* oldcrl);
 
 /*
-** Decode a certificate and put it into the temporary certificate database
-*/
-extern CERTCertificate *
-CERT_DecodeCertificate (SECItem *derCert, char *nickname,PRBool copyDER);
-
-/*
 ** Find a certificate in the database
 **	"key" is the database key to look for
 */
