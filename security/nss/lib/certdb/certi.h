@@ -235,13 +235,20 @@ SECStatus ShutdownCRLCache(void);
 extern char * cert_GetCertificateEmailAddresses(CERTCertificate *cert);
 
 /*
- * These functions are used to map subjectKeyID extension values to certs.
+ * These functions are used to map subjectKeyID extension values to certs
+ * and to keep track of the checks for user certificates in each slot
  */
 SECStatus
 cert_CreateSubjectKeyIDHashTable(void);
 
 SECStatus
 cert_AddSubjectKeyIDMapping(SECItem *subjKeyID, CERTCertificate *cert);
+
+SECStatus
+cert_UpdateSubjectKeyIDSlotCheck(SECItem *slotid, int series);
+
+int
+cert_SubjectKeyIDSlotCheckSeries(SECItem *slotid);
 
 /*
  * Call this function to remove an entry from the mapping table.
