@@ -20,7 +20,8 @@
  * Portions created by Red Hat, Inc, are Copyright (C) 2005
  *
  * Contributor(s):
- *   Bob Relyea (rrelyea@redhat.com)
+ *   Bob Relyea <rrelyea@redhat.com>
+ *   Muzaffar Mahkamov <mmahkamov@eisst.com>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -386,7 +387,6 @@ nss_ckcapi_WideToUTF8
   LPCWSTR wide 
 )
 {
-  DWORD len;
   DWORD size;
   char *buf;
 
@@ -394,14 +394,12 @@ nss_ckcapi_WideToUTF8
     return (char *)NULL;
   }
 
-  len = nss_ckcapi_WideSize(wide);
-
-  size = WideCharToMultiByte(CP_UTF8, 0, wide, len, NULL, 0, NULL, 0);
+  size = WideCharToMultiByte(CP_UTF8, 0, wide, -1, NULL, 0, NULL, 0);
   if (size == 0) {
     return (char *)NULL;
   }
   buf = nss_ZNEWARRAY(NULL, char, size);
-  size = WideCharToMultiByte(CP_UTF8, 0, wide, len, buf, size, NULL, 0);
+  size = WideCharToMultiByte(CP_UTF8, 0, wide, -1, buf, size, NULL, 0);
   if (size == 0) {
     nss_ZFreeIf(buf);
     return (char *)NULL;
@@ -1420,7 +1418,6 @@ ckcapi_mdObject_Destroy
       goto loser;
     }
     rc = CertDeleteCertificateFromStore(certContext);
-    CertFreeCertificateContext(certContext);
   } else {
     char *provName = NULL;
     char *containerName = NULL;
@@ -2299,7 +2296,7 @@ nss_ckcapi_CreateObject
 )
 {
   CK_OBJECT_CLASS objClass;
-  ckcapiInternalObject *io;
+  ckcapiInternalObject *io = NULL;
   CK_BBOOL isToken;
 
   /*
