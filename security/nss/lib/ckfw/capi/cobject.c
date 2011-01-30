@@ -361,7 +361,8 @@ nss_ckcapi_GetStringAttribute
 }
 
 /*
- * Return the size in bytes of a wide string
+ * Return the size in bytes of a wide string, including the terminating null
+ * character
  */
 int
 nss_ckcapi_WideSize
@@ -375,7 +376,7 @@ nss_ckcapi_WideSize
     return 0;
   }
   size = wcslen(wide)+1;
-  return size*2;
+  return size*sizeof(WCHAR);
 }
 
 /*
@@ -416,20 +417,20 @@ nss_ckcapi_WideDup
   LPCWSTR wide
 )
 {
-  DWORD len = nss_ckcapi_WideSize(wide);
+  DWORD len;
   LPWSTR buf;
 
   if ((LPWSTR)NULL == wide) {
     return (LPWSTR)NULL;
   }
 
-  len = nss_ckcapi_WideSize(wide);
+  len = wcslen(wide)+1;
 
-  buf = (LPWSTR) nss_ZNEWARRAY(NULL, char, len);
+  buf = nss_ZNEWARRAY(NULL, WCHAR, len);
   if ((LPWSTR) NULL == buf) {
     return buf;
   }
-  nsslibc_memcpy(buf, wide, len);
+  nsslibc_memcpy(buf, wide, len*sizeof(WCHAR));
   return buf;
 }
 
@@ -443,21 +444,18 @@ nss_ckcapi_UTF8ToWide
 )
 {
   DWORD size;
-  DWORD len = strlen(buf)+1;
   LPWSTR wide;
 
   if ((char *)NULL == buf) {
     return (LPWSTR) NULL;
   }
     
-  len = strlen(buf)+1;
-
-  size = MultiByteToWideChar(CP_UTF8, 0, buf, len, NULL, 0);
+  size = MultiByteToWideChar(CP_UTF8, 0, buf, -1, NULL, 0);
   if (size == 0) {
     return (LPWSTR) NULL;
   }
   wide = nss_ZNEWARRAY(NULL, WCHAR, size);
-  size = MultiByteToWideChar(CP_UTF8, 0, buf, len, wide, size);
+  size = MultiByteToWideChar(CP_UTF8, 0, buf, -1, wide, size);
   if (size == 0) {
     nss_ZFreeIf(wide);
     return (LPWSTR) NULL;
