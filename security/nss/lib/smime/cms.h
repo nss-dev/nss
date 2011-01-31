@@ -1172,13 +1172,13 @@ NSS_CMSDEREncode(NSSCMSMessage *cmsg, SECItem *input, SECItem *derOut,
  */
 SECStatus NSS_CMSType_RegisterContentType(SECOidTag type,
                           SEC_ASN1Template *template, size_t size,
-                          NSSCMSGenericWrapperDataDestroy *destroy,
-                          NSSCMSGenericWrapperDataCallback * decode_before,
-                          NSSCMSGenericWrapperDataCallback * decode_after,
-                          NSSCMSGenericWrapperDataCallback * decode_end,
-                          NSSCMSGenericWrapperDataCallback * encode_start,
-                          NSSCMSGenericWrapperDataCallback * encode_before,
-                          NSSCMSGenericWrapperDataCallback * encode_after,
+                          NSSCMSGenericWrapperDataDestroy  destroy,
+                          NSSCMSGenericWrapperDataCallback decode_before,
+                          NSSCMSGenericWrapperDataCallback decode_after,
+                          NSSCMSGenericWrapperDataCallback decode_end,
+                          NSSCMSGenericWrapperDataCallback encode_start,
+                          NSSCMSGenericWrapperDataCallback encode_before,
+                          NSSCMSGenericWrapperDataCallback encode_after,
                           PRBool isData);
 
 /************************************************************************/

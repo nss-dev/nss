@@ -117,6 +117,14 @@ typedef SECStatus (*NSSCMSGenericWrapperDataCallback)
 typedef   void    (*NSSCMSGenericWrapperDataDestroy) 
 						(NSSCMSGenericWrapperData *);
 
+extern const SEC_ASN1Template NSSCMSGenericWrapperDataTemplate[];
+extern const SEC_ASN1Template NSS_PointerToCMSGenericWrapperDataTemplate[];
+
+SEC_ASN1_CHOOSER_DECLARE(NSS_PointerToCMSGenericWrapperDataTemplate)
+SEC_ASN1_CHOOSER_DECLARE(NSSCMSGenericWrapperDataTemplate)
+
+
+
 /*
  * Type of function passed to NSSCMSDecode or NSSCMSDecoderStart.
  * If specified, this is where the content bytes (only) will be "sent"

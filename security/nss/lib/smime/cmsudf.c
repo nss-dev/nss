@@ -55,13 +55,13 @@ struct nsscmstypeInfoStr {
     SEC_ASN1Template *template;
     size_t size;
     PRBool isData;
-    NSSCMSGenericWrapperDataDestroy  * destroy;
-    NSSCMSGenericWrapperDataCallback * decode_before;
-    NSSCMSGenericWrapperDataCallback * decode_after;
-    NSSCMSGenericWrapperDataCallback * decode_end;
-    NSSCMSGenericWrapperDataCallback * encode_start;
-    NSSCMSGenericWrapperDataCallback * encode_before;
-    NSSCMSGenericWrapperDataCallback * encode_after;
+    NSSCMSGenericWrapperDataDestroy  destroy;
+    NSSCMSGenericWrapperDataCallback decode_before;
+    NSSCMSGenericWrapperDataCallback decode_after;
+    NSSCMSGenericWrapperDataCallback decode_end;
+    NSSCMSGenericWrapperDataCallback encode_start;
+    NSSCMSGenericWrapperDataCallback encode_before;
+    NSSCMSGenericWrapperDataCallback encode_after;
 };
 
 /* make sure the global tables are only initialized once */
@@ -200,7 +200,7 @@ nss_cmstype_add(SECOidTag type, nsscmstypeInfo *typeinfo)
 	PR_Unlock(nsscmstypeHashLock);
 	return SECFailure;
     }
-    entry = PL_HashTableAdd(nsscmstypeHash, typeinfo, (void *)type);
+    entry = PL_HashTableAdd(nsscmstypeHash, (void *)type, typeinfo);
     PR_Unlock(nsscmstypeHashLock);
     return entry ? SECSuccess : SECFailure;
 }
@@ -239,7 +239,7 @@ NSS_CMSType_IsData(SECOidTag type)
 	return PR_TRUE;
     default:
 	typeInfo = nss_cmstype_lookup(type);
-	if (typeInfo && !typeInfo->isData) {
+	if (typeInfo && typeInfo->isData) {
 	    return PR_TRUE;
 	}
     }
@@ -254,7 +254,7 @@ NSS_CMSType_GetTemplate(SECOidTag type)
     if (typeInfo && typeInfo->template) {
 	return typeInfo->template;
     }
-    return NULL;
+    return SEC_ASN1_GET(SEC_PointerToOctetStringTemplate);
 }
 
 size_t
@@ -265,7 +265,7 @@ NSS_CMSType_GetContentSize(SECOidTag type)
     if (typeInfo) {
 	return typeInfo->size;
     }
-    return 0;
+    return sizeof(SECItem *);
 
 }
 
@@ -320,8 +320,8 @@ NSS_CMSGenericWrapperData_Decode_AfterData(SECOidTag type,
 
     typeInfo = nss_cmstype_lookup(type);
     if (typeInfo) {
-	if  (typeInfo->decode_before) {
-	    return (*typeInfo->decode_before)(gd);
+	if  (typeInfo->decode_after) {
+	    return (*typeInfo->decode_after)(gd);
 	}
 	/* decoder ops optional for data tags */
 	if (typeInfo->isData) {
@@ -436,13 +436,13 @@ NSS_CMSGenericWrapperData_Encode_AfterData(SECOidTag type,
 SECStatus
 NSS_CMSType_RegisterContentType(SECOidTag type, 
 			SEC_ASN1Template *template, size_t size, 
-			NSSCMSGenericWrapperDataDestroy *destroy,
-			NSSCMSGenericWrapperDataCallback * decode_before,
-			NSSCMSGenericWrapperDataCallback * decode_after,
-			NSSCMSGenericWrapperDataCallback * decode_end,
-			NSSCMSGenericWrapperDataCallback * encode_start,
-			NSSCMSGenericWrapperDataCallback * encode_before,
-			NSSCMSGenericWrapperDataCallback * encode_after,
+			NSSCMSGenericWrapperDataDestroy destroy,
+			NSSCMSGenericWrapperDataCallback decode_before,
+			NSSCMSGenericWrapperDataCallback decode_after,
+			NSSCMSGenericWrapperDataCallback decode_end,
+			NSSCMSGenericWrapperDataCallback encode_start,
+			NSSCMSGenericWrapperDataCallback encode_before,
+			NSSCMSGenericWrapperDataCallback encode_after,
 			PRBool isData)
 {
     PRStatus rc;
