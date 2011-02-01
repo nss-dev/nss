@@ -125,21 +125,31 @@ NSS_CMSContentInfo_GetChildContentInfo(NSSCMSContentInfo *cinfo)
     SECOidTag tag = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
     switch (tag) {
     case SEC_OID_PKCS7_SIGNED_DATA:
-	ccinfo = &(cinfo->content.signedData->contentInfo);
+	if (cinfo->content.signedData != NULL) {
+	    ccinfo = &(cinfo->content.signedData->contentInfo);
+	}
 	break;
     case SEC_OID_PKCS7_ENVELOPED_DATA:
-	ccinfo = &(cinfo->content.envelopedData->contentInfo);
+	if (cinfo->content.envelopedData != NULL) {
+	    ccinfo = &(cinfo->content.envelopedData->contentInfo);
+	}
 	break;
     case SEC_OID_PKCS7_DIGESTED_DATA:
-	ccinfo = &(cinfo->content.digestedData->contentInfo);
+	if (cinfo->content.digestedData != NULL) {
+	    ccinfo = &(cinfo->content.digestedData->contentInfo);
+	}
 	break;
     case SEC_OID_PKCS7_ENCRYPTED_DATA:
-	ccinfo = &(cinfo->content.encryptedData->contentInfo);
+	if (cinfo->content.encryptedData != NULL) {
+	    ccinfo = &(cinfo->content.encryptedData->contentInfo);
+	}
 	break;
     case SEC_OID_PKCS7_DATA:
     default:
 	if (NSS_CMSType_IsWrapper(tag)) {
-	   ccinfo = &(cinfo->content.genericData->contentInfo);
+	    if (cinfo->content.genericData != NULL) {
+	       ccinfo = &(cinfo->content.genericData->contentInfo);
+	    }
 	}
 	break;
     }
@@ -254,8 +264,16 @@ NSS_CMSContentInfo_GetContent(NSSCMSContentInfo *cinfo)
     SECOidTag tag = (cinfo && cinfo->contentTypeTag) 
 	                ? cinfo->contentTypeTag->offset 
 	                : SEC_OID_UNKNOWN;
-    return NSS_CMSType_IsWrapper(tag)||NSS_CMSType_IsData(tag) ? 
-			cinfo->content.pointer : NULL;
+    switch (tag) {
+    case SEC_OID_PKCS7_DATA:
+    case SEC_OID_PKCS7_SIGNED_DATA:
+    case SEC_OID_PKCS7_ENVELOPED_DATA:
+    case SEC_OID_PKCS7_DIGESTED_DATA:
+    case SEC_OID_PKCS7_ENCRYPTED_DATA:
+	return cinfo->content.pointer;
+    default:
+	return NSS_CMSType_IsWrapper(tag) ? cinfo->content.pointer : (NSS_CMSType_IsData(tag) ? cinfo->rawContent : NULL);
+    }
 }
 
 /* 
