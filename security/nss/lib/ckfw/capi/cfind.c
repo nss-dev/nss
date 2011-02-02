@@ -136,7 +136,7 @@ ckcapi_attrmatch
   if( a->ulValueLen != b->size ) {
     /* match a decoded serial number */
     if ((a->type == CKA_SERIAL_NUMBER) && (a->ulValueLen < b->size)) {
-	int len;
+	unsigned int len;
 	unsigned char *data;
 
 	data = nss_ckcapi_DERUnwrap(b->data, b->size, &len, NULL);

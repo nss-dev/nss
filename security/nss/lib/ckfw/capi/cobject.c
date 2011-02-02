@@ -138,13 +138,13 @@ static const NSSItem ckcapi_emptyItem = {
 /*
  * unwrap a single DER value
  */
-char *
+unsigned char *
 nss_ckcapi_DERUnwrap
 (
-  char *src, 
-  int size, 
-  int *outSize, 
-  char **next
+  unsigned char *src, 
+  unsigned int size, 
+  unsigned int *outSize, 
+  unsigned char **next
 )
 {
   unsigned char *start = src;
@@ -160,11 +160,11 @@ nss_ckcapi_DERUnwrap
   if (size < 2) {
     return start;
   }
-  src ++ ; /* skip the tag -- should check it against an expected value! */
+  src++; /* skip the tag -- should check it against an expected value! */
   len = (unsigned) *src++;
   if (len & 0x80) {
-    int count = len & 0x7f;
-    len =0;
+    unsigned int count = len & 0x7f;
+    len = 0;
 
     if (count+2 > size) {
       return start;
@@ -173,7 +173,7 @@ nss_ckcapi_DERUnwrap
       len = (len << 8) | (unsigned) *src++;
     }
   }
-  if (len + ((unsigned char *)src-start) > (unsigned int)size) {
+  if (len + (src-start) > size) {
     return start;
   }
   if (next) {
@@ -568,10 +568,12 @@ ckcapi_CertPopulateModulusExponent
 {
   ckcapiKeyParams *kp = &io->u.cert.key;
   PCCERT_CONTEXT certContext = io->u.cert.certContext;
-  char *pkData = certContext->pCertInfo->SubjectPublicKeyInfo.PublicKey.pbData;
-  CK_ULONG size= certContext->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData;
-  CK_ULONG newSize;
-  char *ptr, *newptr;
+  unsigned char *pkData =
+      certContext->pCertInfo->SubjectPublicKeyInfo.PublicKey.pbData;
+  unsigned int size=
+      certContext->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData;
+  unsigned int newSize;
+  unsigned char *ptr, *newptr;
 
   /* find the start of the modulus -- this will not give good results if
    * the key isn't an rsa key! */

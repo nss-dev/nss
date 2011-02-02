@@ -248,13 +248,13 @@ ckcapi_ReverseData
 /*
  * unwrap a single DER value
  */
-char *
+unsigned char *
 nss_ckcapi_DERUnwrap
 (
-  char *src, 
-  int size, 
-  int *outSize, 
-  char **next
+  unsigned char *src, 
+  unsigned int size, 
+  unsigned int *outSize, 
+  unsigned char **next
 );
 
 /*
