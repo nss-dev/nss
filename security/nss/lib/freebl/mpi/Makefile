@@ -170,6 +170,8 @@ mpv_sparcv8.s: vis_64.il mpv_sparc.c
 montmulfv8.o montmulfv9.o mpv_sparcv8.o mpv_sparcv9.o : %.o : %.s 
 	$(CC) -o $@ $(SOLARIS_ASM_FLAGS) -c $<
 
+mpi_arm.o: mpi_arm.c $(LIBHDRS)
+
 # This rule is used to build the .s sources, which are then hand optimized.
 #montmulfv8.s montmulfv9.s : montmulf%.s : montmulf%.il montmulf.c montmulf.h 
 #	$(CC) -o $@ $(SOLARIS_ASM_FLAGS) -S montmulf$*.il montmulf.c

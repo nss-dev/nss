@@ -218,6 +218,12 @@ ifeq ($(CPU_ARCH),x86)
     # The floating point ECC code doesn't work on Linux x86 (bug 311432).
     #ECL_USE_FP = 1
 endif
+ifeq ($(CPU_ARCH),arm)
+    DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE 
+    DEFINES += -DMP_USE_UINT_DIGIT
+    DEFINES += -DSHA_NO_LONG_LONG # avoid 64-bit arithmetic in SHA512
+    MPI_SRCS += mpi_arm.c
+endif
 endif # Linux
 
 ifeq ($(OS_TARGET),AIX)
