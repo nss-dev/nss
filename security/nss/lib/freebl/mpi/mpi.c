@@ -47,6 +47,13 @@
 #include <c_asm.h>
 #endif
 
+#if defined(__arm__) && \
+    ((defined(__thumb__) && !defined(__thumb2__)) || defined(__ARM_ARCH_3__))
+/* 16-bit thumb or ARM v3 doesn't work inlined assember version */
+#undef MP_ASSEMBLY_MULTIPLY
+#undef MP_ASSEMBLY_SQUARE
+#endif
+
 #if MP_LOGTAB
 /*
   A table of the logs of 2 for various bases (the 0 and 1 entries of
