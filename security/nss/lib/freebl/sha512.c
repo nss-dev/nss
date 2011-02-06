@@ -136,6 +136,26 @@ static __inline__ PRUint32 swap4b(PRUint32 value)
 #define SHA_HTONL(x) swap4b(x)
 #define BYTESWAP4(x)  x = SHA_HTONL(x)
 
+#elif defined(__GNUC__) && (defined(__thumb2__) || \
+      (!defined(__thumb__) && \
+      (defined(__ARM_ARCH_6__) || \
+       defined(__ARM_ARCH_6J__) || \
+       defined(__ARM_ARCH_6K__) || \
+       defined(__ARM_ARCH_6Z__) || \
+       defined(__ARM_ARCH_6ZK__) || \
+       defined(__ARM_ARCH_6T2__) || \
+       defined(__ARM_ARCH_7__) || \
+       defined(__ARM_ARCH_7A__) || \
+       defined(__ARM_ARCH_7R__))))
+static __inline__ PRUint32 swap4b(PRUint32 value)
+{
+    PRUint32 ret;
+    __asm__("rev %0, %1" : "=r" (ret) : "r"(value));
+    return ret;
+}
+#define SHA_HTONL(x) swap4b(x)
+#define BYTESWAP4(x)  x = SHA_HTONL(x)
+
 #else /* neither windows nor Linux PC */
 #define SWAP4MASK  0x00FF00FF
 #define SHA_HTONL(x) (t1 = (x), t1 = (t1 << 16) | (t1 >> 16), \
