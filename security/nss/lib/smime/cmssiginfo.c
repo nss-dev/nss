@@ -166,7 +166,8 @@ NSS_CMSSignerInfo_Destroy(NSSCMSSignerInfo *si)
  *
  */
 SECStatus
-NSS_CMSSignerInfo_Sign(NSSCMSSignerInfo *signerinfo, SECItem *digest, SECItem *contentType)
+NSS_CMSSignerInfo_Sign(NSSCMSSignerInfo *signerinfo, SECItem *digest, 
+                       SECItem *contentType)
 {
     CERTCertificate *cert;
     SECKEYPrivateKey *privkey = NULL;
@@ -186,7 +187,8 @@ NSS_CMSSignerInfo_Sign(NSSCMSSignerInfo *signerinfo, SECItem *digest, SECItem *c
     case NSSCMSSignerID_IssuerSN:
         cert = signerinfo->cert;
 
-        if ((privkey = PK11_FindKeyByAnyCert(cert, signerinfo->cmsg->pwfn_arg)) == NULL)
+        privkey = PK11_FindKeyByAnyCert(cert, signerinfo->cmsg->pwfn_arg);
+        if (privkey == NULL)
 	    goto loser;
         algID = &cert->subjectPublicKeyInfo.algorithm;
         break;
@@ -272,6 +274,7 @@ NSS_CMSSignerInfo_Sign(NSSCMSSignerInfo *signerinfo, SECItem *digest, SECItem *c
 	rv = SEC_SignData(&signature, encoded_attrs.data, encoded_attrs.len, 
 	                  privkey, signAlgTag);
 	PORT_FreeArena(tmppoolp, PR_FALSE); /* awkward memory management :-( */
+	tmppoolp = 0;
     } else {
 	rv = SGN_Digest(privkey, digestalgtag, &signature, digest);
     }
