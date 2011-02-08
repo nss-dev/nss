@@ -3228,24 +3228,18 @@ cert_UpdateSubjectKeyIDSlotCheck(SECItem *slotid, int series)
 {
     SECItem *oldSeries, *newSlotid, *newSeries;
     SECStatus rv = SECFailure;
-    PRArenaPool *arena;
 
     if (!gSubjKeyIDSlotCheckLock) {
 	return rv;
     }
 
     newSlotid = SECITEM_DupItem(slotid);
-    newSeries = SECITEM_AllocItem(NULL, NULL, 0);
-    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if (!newSlotid || !newSeries || !arena) {
+    newSeries = SECITEM_AllocItem(NULL, NULL, sizeof(int));
+    if (!newSlotid || !newSeries ) {
         PORT_SetError(SEC_ERROR_NO_MEMORY);
         goto loser;
     }
-    rv = DER_SetUInteger(arena, newSeries, (PRUint32)series);
-    if (rv != SECSuccess) {
-        PORT_SetError(SEC_ERROR_NO_MEMORY);
-        goto loser;
-    }
+    PORT_Memcpy(newSeries->data, &series, sizeof(int));
 
     PR_Lock(gSubjKeyIDSlotCheckLock);
     oldSeries = (SECItem *)PL_HashTableLookup(gSubjKeyIDSlotCheckHash, slotid);
@@ -3270,25 +3264,36 @@ loser:
     if (newSeries) {
         SECITEM_FreeItem(newSeries, PR_TRUE);
     }
-    if (arena) {
-	PORT_FreeArena(arena, PR_TRUE);
-    }
     return rv;
 }
 
 int
 cert_SubjectKeyIDSlotCheckSeries(SECItem *slotid)
 {
-    SECItem *series = NULL;
+    SECItem *seriesItem = NULL;
+    int series;
 
     if (!gSubjKeyIDSlotCheckLock) {
-	return 0;
+	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
+	return -1;
     }
 
     PR_Lock(gSubjKeyIDSlotCheckLock);
-    series = (SECItem *)PL_HashTableLookup(gSubjKeyIDSlotCheckHash, slotid);
+    seriesItem = (SECItem *)PL_HashTableLookup(gSubjKeyIDSlotCheckHash, slotid);
     PR_Unlock(gSubjKeyIDSlotCheckLock);
-    return series ? (int)DER_GetUInteger(series) : 0;
+     /* getting a null series just means we haven't registered one yet, 
+      * just return 0 */
+    if (seriesItem == NULL) {
+	return 0;
+    }
+    /* if we got a series back, assert if it's not the proper length. */
+    PORT_Assert(seriesItem->len == sizeof(int));
+    if (seriesItem->len != sizeof(int)) {
+	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	return -1;
+    }
+    PORT_Memcpy(&series, seriesItem->data, sizeof(int));
+    return series;
 }
 
 SECStatus
