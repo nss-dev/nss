@@ -1755,6 +1755,18 @@ pk11_SetInternalKeySlotIfFirst(PK11SlotInfo *slot)
    pk11InternalKeySlot = slot ? PK11_ReferenceSlot(slot) : NULL;
 }
 
+/*
+ * Swap out a default internal keyslot.  Caller owns the Slot Reference
+ */
+PK11SlotInfo *
+pk11_SwapInternalKeySlot(PK11SlotInfo *slot)
+{
+   PK11SlotInfo *swap = pk11InternalKeySlot;
+
+   pk11InternalKeySlot = slot ? PK11_ReferenceSlot(slot) : NULL;
+   return swap;
+}
+
 
 /* get the internal key slot. FIPS has only one slot for both key slots and
  * default slots */
