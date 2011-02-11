@@ -332,7 +332,7 @@ nss_cms_before_data(NSSCMSEncoderContext *p7ecx)
 	 * Indicate that we are streaming.  We will be streaming until we
 	 * get past the contents bytes.
 	 */
-        if (!cinfo->private || !cinfo->private->dontStream)
+        if (!cinfo->privateInfo || !cinfo->privateInfo->dontStream)
 	    SEC_ASN1EncoderSetStreaming(childp7ecx->ecx);
 
 	/*
@@ -430,23 +430,23 @@ nss_cms_encoder_work_data(NSSCMSEncoderContext *p7ecx, SECItem *dest,
     }
 
     /* Update the running digest. */
-    if (len && cinfo->private && cinfo->private->digcx != NULL)
-	NSS_CMSDigestContext_Update(cinfo->private->digcx, data, len);
+    if (len && cinfo->privateInfo && cinfo->privateInfo->digcx != NULL)
+	NSS_CMSDigestContext_Update(cinfo->privateInfo->digcx, data, len);
 
     /* Encrypt this chunk. */
-    if (cinfo->private && cinfo->private->ciphcx != NULL) {
+    if (cinfo->privateInfo && cinfo->privateInfo->ciphcx != NULL) {
 	unsigned int inlen;	/* length of data being encrypted */
 	unsigned int outlen;	/* length of encrypted data */
 	unsigned int buflen;	/* length available for encrypted data */
 
 	inlen = len;
-	buflen = NSS_CMSCipherContext_EncryptLength(cinfo->private->ciphcx, inlen, final);
+	buflen = NSS_CMSCipherContext_EncryptLength(cinfo->privateInfo->ciphcx, inlen, final);
 	if (buflen == 0) {
 	    /*
 	     * No output is expected, but the input data may be buffered
 	     * so we still have to call Encrypt.
 	     */
-	    rv = NSS_CMSCipherContext_Encrypt(cinfo->private->ciphcx, NULL, NULL, 0,
+	    rv = NSS_CMSCipherContext_Encrypt(cinfo->privateInfo->ciphcx, NULL, NULL, 0,
 				   data, inlen, final);
 	    if (final) {
 		len = 0;
@@ -463,7 +463,7 @@ nss_cms_encoder_work_data(NSSCMSEncoderContext *p7ecx, SECItem *dest,
 	if (buf == NULL) {
 	    rv = SECFailure;
 	} else {
-	    rv = NSS_CMSCipherContext_Encrypt(cinfo->private->ciphcx, buf, &outlen, buflen,
+	    rv = NSS_CMSCipherContext_Encrypt(cinfo->privateInfo->ciphcx, buf, &outlen, buflen,
 				   data, inlen, final);
 	    data = buf;
 	    len = outlen;
@@ -484,7 +484,7 @@ nss_cms_encoder_work_data(NSSCMSEncoderContext *p7ecx, SECItem *dest,
 
 done:
 
-    if (cinfo->private && cinfo->private->ciphcx != NULL) {
+    if (cinfo->privateInfo && cinfo->privateInfo->ciphcx != NULL) {
 	if (dest != NULL) {
 	    dest->data = buf;
 	    dest->len = len;
@@ -592,7 +592,7 @@ NSS_CMSEncoder_Start(NSSCMSMessage *cmsg,
      * Indicate that we are streaming.  We will be streaming until we
      * get past the contents bytes.
      */
-    if (!cinfo->private || !cinfo->private->dontStream)
+    if (!cinfo->privateInfo || !cinfo->privateInfo->dontStream)
 	SEC_ASN1EncoderSetStreaming(p7ecx->ecx);
 
     /*

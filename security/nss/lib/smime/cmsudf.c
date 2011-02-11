@@ -435,7 +435,7 @@ NSS_CMSGenericWrapperData_Encode_AfterData(SECOidTag type,
 
 SECStatus
 NSS_CMSType_RegisterContentType(SECOidTag type, 
-			SEC_ASN1Template *template, size_t size, 
+			SEC_ASN1Template *asn1Template, size_t size, 
 			NSSCMSGenericWrapperDataDestroy destroy,
 			NSSCMSGenericWrapperDataCallback decode_before,
 			NSSCMSGenericWrapperDataCallback decode_after,
@@ -462,10 +462,10 @@ NSS_CMSType_RegisterContentType(SECOidTag type,
 	return SECSuccess;
     }
     typeInfo = PORT_ArenaNew(nsscmstypeArena, nsscmstypeInfo);
-    typeInfo->type =type;
+    typeInfo->type = type;
     typeInfo->size = size;
     typeInfo->isData = isData;
-    typeInfo->template = template;
+    typeInfo->template = asn1Template;
     typeInfo->destroy = destroy;
     typeInfo->decode_before = decode_before;
     typeInfo->decode_after = decode_after;
