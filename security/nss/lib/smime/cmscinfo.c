@@ -56,27 +56,27 @@
 SECStatus
 NSS_CMSContentInfo_Private_Init(NSSCMSContentInfo *cinfo)
 {
-    if (cinfo->private) {
+    if (cinfo->privateInfo) {
 	return SECSuccess;
     }
-    cinfo->private = PORT_ZNew(NSSCMSContentInfoPrivate);
-    return (cinfo->private) ? SECSuccess: SECFailure;
+    cinfo->privateInfo = PORT_ZNew(NSSCMSContentInfoPrivate);
+    return (cinfo->privateInfo) ? SECSuccess : SECFailure;
 }
 
 
 static void
-nss_cmsContentInfo_private_destroy(NSSCMSContentInfoPrivate *private)
+nss_cmsContentInfo_private_destroy(NSSCMSContentInfoPrivate *privateInfo)
 {
-    if (private->digcx) {
+    if (privateInfo->digcx) {
 	/* must destroy digest objects */
-	NSS_CMSDigestContext_Cancel(private->digcx);
-	private->digcx = NULL;
+	NSS_CMSDigestContext_Cancel(privateInfo->digcx);
+	privateInfo->digcx = NULL;
     }
-    if (private->ciphcx) {
-	NSS_CMSCipherContext_Destroy(private->ciphcx);
-	private->ciphcx = NULL;
+    if (privateInfo->ciphcx) {
+	NSS_CMSCipherContext_Destroy(privateInfo->ciphcx);
+	privateInfo->ciphcx = NULL;
     }
-    PORT_Free(private);
+    PORT_Free(privateInfo);
 }
 
 /*
@@ -106,9 +106,9 @@ NSS_CMSContentInfo_Destroy(NSSCMSContentInfo *cinfo)
 	/* XXX Anything else that needs to be "manually" freed/destroyed? */
 	break;
     }
-    if (cinfo->private) {
-	nss_cmsContentInfo_private_destroy(cinfo->private);
-	cinfo->private = NULL;
+    if (cinfo->privateInfo) {
+	nss_cmsContentInfo_private_destroy(cinfo->privateInfo);
+	cinfo->privateInfo = NULL;
     }
     if (cinfo->bulkkey) {
 	PK11_FreeSymKey(cinfo->bulkkey);
@@ -153,7 +153,7 @@ NSS_CMSContentInfo_GetChildContentInfo(NSSCMSContentInfo *cinfo)
 	}
 	break;
     }
-    if (ccinfo && !ccinfo->private) {
+    if (ccinfo && !ccinfo->privateInfo) {
 	NSS_CMSContentInfo_Private_Init(ccinfo);
     }
     return ccinfo;
@@ -169,7 +169,7 @@ NSS_CMSContentInfo_SetDontStream(NSSCMSContentInfo *cinfo, PRBool dontStream)
 	/* default is streaming, failure to get ccinfo will not effect this */
 	return dontStream ? SECFailure :  SECSuccess ;
    }
-   cinfo->private->dontStream = dontStream;
+   cinfo->privateInfo->dontStream = dontStream;
    return SECSuccess;
 }
 

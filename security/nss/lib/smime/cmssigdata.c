@@ -228,11 +228,11 @@ NSS_CMSSignedData_Encode_BeforeData(NSSCMSSignedData *sigd)
     }
     /* set up the digests */
     if (sigd->digests && sigd->digests[0]) {
-	sigd->contentInfo.private->digcx = NULL; /* don't attempt to make new ones. */
+	sigd->contentInfo.privateInfo->digcx = NULL; /* don't attempt to make new ones. */
     } else if (sigd->digestAlgorithms != NULL) {
-	sigd->contentInfo.private->digcx = 
+	sigd->contentInfo.privateInfo->digcx =
 	        NSS_CMSDigestContext_StartMultiple(sigd->digestAlgorithms);
-	if (sigd->contentInfo.private->digcx == NULL)
+	if (sigd->contentInfo.privateInfo->digcx == NULL)
 	    return SECFailure;
     }
     return SECSuccess;
@@ -272,11 +272,11 @@ NSS_CMSSignedData_Encode_AfterData(NSSCMSSignedData *sigd)
     cinfo = &(sigd->contentInfo);
 
     /* did we have digest calculation going on? */
-    if (cinfo->private && cinfo->private->digcx) {
-	rv = NSS_CMSDigestContext_FinishMultiple(cinfo->private->digcx, poolp, 
+    if (cinfo->privateInfo && cinfo->privateInfo->digcx) {
+	rv = NSS_CMSDigestContext_FinishMultiple(cinfo->privateInfo->digcx, poolp,
 	                                         &(sigd->digests));
 	/* error has been set by NSS_CMSDigestContext_FinishMultiple */
-	cinfo->private->digcx = NULL;
+	cinfo->privateInfo->digcx = NULL;
 	if (rv != SECSuccess)
 	    goto loser;		
     }
@@ -409,8 +409,8 @@ NSS_CMSSignedData_Decode_BeforeData(NSSCMSSignedData *sigd)
     /* set up the digests */
     if (sigd->digestAlgorithms != NULL && sigd->digests == NULL) {
 	/* if digests are already there, do nothing */
-	sigd->contentInfo.private->digcx = NSS_CMSDigestContext_StartMultiple(sigd->digestAlgorithms);
-	if (sigd->contentInfo.private->digcx == NULL)
+	sigd->contentInfo.privateInfo->digcx = NSS_CMSDigestContext_StartMultiple(sigd->digestAlgorithms);
+	if (sigd->contentInfo.privateInfo->digcx == NULL)
 	    return SECFailure;
     }
     return SECSuccess;
@@ -431,11 +431,11 @@ NSS_CMSSignedData_Decode_AfterData(NSSCMSSignedData *sigd)
     }
 
     /* did we have digest calculation going on? */
-    if (sigd->contentInfo.private && sigd->contentInfo.private->digcx) {
-	rv = NSS_CMSDigestContext_FinishMultiple(sigd->contentInfo.private->digcx, 
+    if (sigd->contentInfo.privateInfo && sigd->contentInfo.privateInfo->digcx) {
+	rv = NSS_CMSDigestContext_FinishMultiple(sigd->contentInfo.privateInfo->digcx,
 				       sigd->cmsg->poolp, &(sigd->digests));
 	/* error set by NSS_CMSDigestContext_FinishMultiple */
-	sigd->contentInfo.private->digcx = NULL;
+	sigd->contentInfo.privateInfo->digcx = NULL;
     }
     return rv;
 }
