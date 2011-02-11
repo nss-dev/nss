@@ -143,8 +143,8 @@ NSS_CMSDigestedData_Encode_BeforeData(NSSCMSDigestedData *digd)
     /* set up the digests */
     if (digd->digestAlg.algorithm.len != 0 && digd->digest.len == 0) {
 	/* if digest is already there, do nothing */
-	digd->contentInfo.private->digcx = NSS_CMSDigestContext_StartSingle(&(digd->digestAlg));
-	if (digd->contentInfo.private->digcx == NULL)
+	digd->contentInfo.privateInfo->digcx = NSS_CMSDigestContext_StartSingle(&(digd->digestAlg));
+	if (digd->contentInfo.privateInfo->digcx == NULL)
 	    return SECFailure;
     }
     return SECSuccess;
@@ -162,12 +162,12 @@ NSS_CMSDigestedData_Encode_AfterData(NSSCMSDigestedData *digd)
 {
     SECStatus rv = SECSuccess;
     /* did we have digest calculation going on? */
-    if (digd->contentInfo.private && digd->contentInfo.private->digcx) {
-	rv = NSS_CMSDigestContext_FinishSingle(digd->contentInfo.private->digcx,
+    if (digd->contentInfo.privateInfo && digd->contentInfo.privateInfo->digcx) {
+	rv = NSS_CMSDigestContext_FinishSingle(digd->contentInfo.privateInfo->digcx,
 				               digd->cmsg->poolp, 
 					       &(digd->digest));
 	/* error has been set by NSS_CMSDigestContext_FinishSingle */
-	digd->contentInfo.private->digcx = NULL;
+	digd->contentInfo.privateInfo->digcx = NULL;
     }
 
     return rv;
@@ -194,8 +194,8 @@ NSS_CMSDigestedData_Decode_BeforeData(NSSCMSDigestedData *digd)
 	return SECFailure;
     }
 
-    digd->contentInfo.private->digcx = NSS_CMSDigestContext_StartSingle(&(digd->digestAlg));
-    if (digd->contentInfo.private->digcx == NULL)
+    digd->contentInfo.privateInfo->digcx = NSS_CMSDigestContext_StartSingle(&(digd->digestAlg));
+    if (digd->contentInfo.privateInfo->digcx == NULL)
 	return SECFailure;
 
     return SECSuccess;
@@ -213,12 +213,12 @@ NSS_CMSDigestedData_Decode_AfterData(NSSCMSDigestedData *digd)
 {
     SECStatus rv = SECSuccess;
     /* did we have digest calculation going on? */
-    if (digd->contentInfo.private && digd->contentInfo.private->digcx) {
-	rv = NSS_CMSDigestContext_FinishSingle(digd->contentInfo.private->digcx,
+    if (digd->contentInfo.privateInfo && digd->contentInfo.privateInfo->digcx) {
+	rv = NSS_CMSDigestContext_FinishSingle(digd->contentInfo.privateInfo->digcx,
 				               digd->cmsg->poolp, 
 					       &(digd->cdigest));
 	/* error has been set by NSS_CMSDigestContext_FinishSingle */
-	digd->contentInfo.private->digcx = NULL;
+	digd->contentInfo.privateInfo->digcx = NULL;
     }
 
     return rv;

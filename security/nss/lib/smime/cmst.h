@@ -182,7 +182,7 @@ struct NSSCMSContentInfoStr {
 							 * (only used by creation code) */
     SECOidTag			contentEncAlgTag;	/* oid tag of encryption algorithm
 							 * (only used by creation code) */
-    NSSCMSContentInfoPrivate	*private;		/* place for NSS private info */
+    NSSCMSContentInfoPrivate	*privateInfo;		/* place for NSS private info */
     void		*reserved;			/* keep binary compatibility */
 };
 

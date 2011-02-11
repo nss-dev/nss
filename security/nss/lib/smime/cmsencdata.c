@@ -200,9 +200,9 @@ NSS_CMSEncryptedData_Encode_BeforeData(NSSCMSEncryptedData *encd)
     /* this may modify algid (with IVs generated in a token).
      * it is therefore essential that algid is a pointer to the "real" contentEncAlg,
      * not just to a copy */
-    cinfo->private->ciphcx = NSS_CMSCipherContext_StartEncrypt(encd->cmsg->poolp, bulkkey, algid);
+    cinfo->privateInfo->ciphcx = NSS_CMSCipherContext_StartEncrypt(encd->cmsg->poolp, bulkkey, algid);
     PK11_FreeSymKey(bulkkey);
-    if (cinfo->private->ciphcx == NULL)
+    if (cinfo->privateInfo->ciphcx == NULL)
 	return SECFailure;
 
     return SECSuccess;
@@ -214,9 +214,9 @@ NSS_CMSEncryptedData_Encode_BeforeData(NSSCMSEncryptedData *encd)
 SECStatus
 NSS_CMSEncryptedData_Encode_AfterData(NSSCMSEncryptedData *encd)
 {
-    if (encd->contentInfo.private && encd->contentInfo.private->ciphcx) {
-	NSS_CMSCipherContext_Destroy(encd->contentInfo.private->ciphcx);
-	encd->contentInfo.private->ciphcx = NULL;
+    if (encd->contentInfo.privateInfo && encd->contentInfo.privateInfo->ciphcx) {
+	NSS_CMSCipherContext_Destroy(encd->contentInfo.privateInfo->ciphcx);
+	encd->contentInfo.privateInfo->ciphcx = NULL;
     }
 
     /* nothing to do after data */
@@ -255,8 +255,8 @@ NSS_CMSEncryptedData_Decode_BeforeData(NSSCMSEncryptedData *encd)
     }
     rv = SECFailure;
 
-    cinfo->private->ciphcx = NSS_CMSCipherContext_StartDecrypt(bulkkey, bulkalg);
-    if (cinfo->private->ciphcx == NULL)
+    cinfo->privateInfo->ciphcx = NSS_CMSCipherContext_StartDecrypt(bulkkey, bulkalg);
+    if (cinfo->privateInfo->ciphcx == NULL)
 	goto loser;		/* error has been set by NSS_CMSCipherContext_StartDecrypt */
 
 
@@ -275,9 +275,9 @@ loser:
 SECStatus
 NSS_CMSEncryptedData_Decode_AfterData(NSSCMSEncryptedData *encd)
 {
-    if (encd->contentInfo.private && encd->contentInfo.private->ciphcx) {
-	NSS_CMSCipherContext_Destroy(encd->contentInfo.private->ciphcx);
-	encd->contentInfo.private->ciphcx = NULL;
+    if (encd->contentInfo.privateInfo && encd->contentInfo.privateInfo->ciphcx) {
+	NSS_CMSCipherContext_Destroy(encd->contentInfo.privateInfo->ciphcx);
+	encd->contentInfo.privateInfo->ciphcx = NULL;
     }
 
     return SECSuccess;

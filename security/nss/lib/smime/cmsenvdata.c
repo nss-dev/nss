@@ -289,9 +289,9 @@ NSS_CMSEnvelopedData_Encode_BeforeData(NSSCMSEnvelopedData *envd)
     /* this may modify algid (with IVs generated in a token).
      * it is essential that algid is a pointer to the contentEncAlg data, not a
      * pointer to a copy! */
-    cinfo->private->ciphcx = NSS_CMSCipherContext_StartEncrypt(envd->cmsg->poolp, bulkkey, algid);
+    cinfo->privateInfo->ciphcx = NSS_CMSCipherContext_StartEncrypt(envd->cmsg->poolp, bulkkey, algid);
     PK11_FreeSymKey(bulkkey);
-    if (cinfo->private->ciphcx == NULL)
+    if (cinfo->privateInfo->ciphcx == NULL)
 	return SECFailure;
 
     return SECSuccess;
@@ -303,9 +303,9 @@ NSS_CMSEnvelopedData_Encode_BeforeData(NSSCMSEnvelopedData *envd)
 SECStatus
 NSS_CMSEnvelopedData_Encode_AfterData(NSSCMSEnvelopedData *envd)
 {
-    if (envd->contentInfo.private && envd->contentInfo.private->ciphcx) {
-	NSS_CMSCipherContext_Destroy(envd->contentInfo.private->ciphcx);
-	envd->contentInfo.private->ciphcx = NULL;
+    if (envd->contentInfo.privateInfo && envd->contentInfo.privateInfo->ciphcx) {
+	NSS_CMSCipherContext_Destroy(envd->contentInfo.privateInfo->ciphcx);
+	envd->contentInfo.privateInfo->ciphcx = NULL;
     }
 
     /* nothing else to do after data */
@@ -390,8 +390,8 @@ NSS_CMSEnvelopedData_Decode_BeforeData(NSSCMSEnvelopedData *envd)
 	goto loser;
     }
     rv = SECFailure;
-    cinfo->private->ciphcx = NSS_CMSCipherContext_StartDecrypt(bulkkey, bulkalg);
-    if (cinfo->private->ciphcx == NULL)
+    cinfo->privateInfo->ciphcx = NSS_CMSCipherContext_StartDecrypt(bulkkey, bulkalg);
+    if (cinfo->privateInfo->ciphcx == NULL)
 	goto loser;		/* error has been set by NSS_CMSCipherContext_StartDecrypt */
 
 
@@ -411,9 +411,9 @@ loser:
 SECStatus
 NSS_CMSEnvelopedData_Decode_AfterData(NSSCMSEnvelopedData *envd)
 {
-    if (envd && envd->contentInfo.private && envd->contentInfo.private->ciphcx) {
-	NSS_CMSCipherContext_Destroy(envd->contentInfo.private->ciphcx);
-	envd->contentInfo.private->ciphcx = NULL;
+    if (envd && envd->contentInfo.privateInfo && envd->contentInfo.privateInfo->ciphcx) {
+	NSS_CMSCipherContext_Destroy(envd->contentInfo.privateInfo->ciphcx);
+	envd->contentInfo.privateInfo->ciphcx = NULL;
     }
 
     return SECSuccess;

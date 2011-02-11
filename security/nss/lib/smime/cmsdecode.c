@@ -455,7 +455,7 @@ nss_cms_decoder_work_data(NSSCMSDecoderContext *p7dcx,
 	goto loser;
     }
 
-    if (cinfo->private && cinfo->private->ciphcx != NULL) {
+    if (cinfo->privateInfo && cinfo->privateInfo->ciphcx != NULL) {
 	/*
 	 * we are decrypting.
 	 * 
@@ -469,7 +469,7 @@ nss_cms_decoder_work_data(NSSCMSDecoderContext *p7dcx,
 	unsigned int buflen;		/* length available for decrypted data */
 
 	/* find out about the length of decrypted data */
-	buflen = NSS_CMSCipherContext_DecryptLength(cinfo->private->ciphcx, len, final);
+	buflen = NSS_CMSCipherContext_DecryptLength(cinfo->privateInfo->ciphcx, len, final);
 
 	/*
 	 * it might happen that we did not provide enough data for a full
@@ -500,7 +500,7 @@ nss_cms_decoder_work_data(NSSCMSDecoderContext *p7dcx,
 	 * any output (see above), but we still need to call NSS_CMSCipherContext_Decrypt to
 	 * keep track of incoming data
 	 */
-	rv = NSS_CMSCipherContext_Decrypt(cinfo->private->ciphcx, buf, &outlen, buflen,
+	rv = NSS_CMSCipherContext_Decrypt(cinfo->privateInfo->ciphcx, buf, &outlen, buflen,
 			       data, len, final);
 	if (rv != SECSuccess) {
 	    p7dcx->error = PORT_GetError();
@@ -520,8 +520,8 @@ nss_cms_decoder_work_data(NSSCMSDecoderContext *p7dcx,
     /*
      * Update the running digests with plaintext bytes (if we need to).
      */
-    if (cinfo->private && cinfo->private->digcx)
-	NSS_CMSDigestContext_Update(cinfo->private->digcx, data, len);
+    if (cinfo->privateInfo && cinfo->privateInfo->digcx)
+	NSS_CMSDigestContext_Update(cinfo->privateInfo->digcx, data, len);
 
     /* at this point, we have the plain decoded & decrypted data 
     ** which is either more encoded DER (which we need to hand to the child 
