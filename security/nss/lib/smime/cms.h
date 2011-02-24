@@ -1171,7 +1171,7 @@ NSS_CMSDEREncode(NSSCMSMessage *cmsg, SECItem *input, SECItem *derOut,
  *  against that data structure.
  */
 SECStatus NSS_CMSType_RegisterContentType(SECOidTag type,
-                          SEC_ASN1Template *template, size_t size,
+                          SEC_ASN1Template *asn1Template, size_t size,
                           NSSCMSGenericWrapperDataDestroy  destroy,
                           NSSCMSGenericWrapperDataCallback decode_before,
                           NSSCMSGenericWrapperDataCallback decode_after,
