@@ -2364,19 +2364,24 @@ SECKEY_ImportDERPublicKey(SECItem *derKey, CK_KEY_TYPE type)
     SECKEYPublicKey *pubk = NULL;
     SECStatus rv = SECFailure;
     SECItem newDerKey;
+    PRArenaPool *arena = NULL;
 
     if (!derKey) {
         return NULL;
     } 
 
-    pubk = PORT_ZNew(SECKEYPublicKey);
-    if(pubk == NULL) {
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (arena == NULL) {
+	PORT_SetError(SEC_ERROR_NO_MEMORY);
         goto finish;
     }
-    pubk->arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if (NULL == pubk->arena) {
+
+    pubk = PORT_ArenaZNew(arena, SECKEYPublicKey);
+    if (pubk == NULL) {
         goto finish;
     }
+    pubk->arena = arena;
+
     rv = SECITEM_CopyItem(pubk->arena, &newDerKey, derKey);
     if (SECSuccess != rv) {
         goto finish;
@@ -2407,11 +2412,10 @@ SECKEY_ImportDERPublicKey(SECItem *derKey, CK_KEY_TYPE type)
     }
 
 finish:
-    if( rv != SECSuccess && pubk != NULL) {
-        if (pubk->arena) {
-            PORT_FreeArena(pubk->arena, PR_TRUE);
+    if (rv != SECSuccess) {
+        if (arena != NULL) {
+            PORT_FreeArena(arena, PR_TRUE);
         }
-        PORT_Free(pubk);
         pubk = NULL;
     }
     return pubk;
