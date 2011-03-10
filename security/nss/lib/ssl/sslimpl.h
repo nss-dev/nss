@@ -1532,7 +1532,7 @@ extern PRInt32 ssl3_SendServerNameXtn(sslSocket *ss, PRBool append,
  * fails to do so. If cert and keyPair are NULL - unconfigures
  * sslSocket of kea type.*/
 extern SECStatus ssl_ConfigSecureServer(sslSocket *ss, CERTCertificate *cert,
-                                        CERTCertificateList *certChain,
+                                        const CERTCertificateList *certChain,
                                         ssl3KeyPair *keyPair, SSLKEAType kea);
 /* Return key type for the cert */
 extern SSLKEAType ssl_FindCertKEAType(CERTCertificate * cert);
