@@ -291,6 +291,9 @@ nss_cms_before_data(NSSCMSDecoderContext *p7dcx)
     if (childp7dcx->content.pointer == NULL)
 	goto loser;
 
+    /* give the parent a copy of the pointer so that it doesn't get lost */
+    cinfo->content.pointer = childp7dcx->content.pointer;
+
     /* start the child decoder */
     childp7dcx->dcx = SEC_ASN1DecoderStart(poolp, childp7dcx->content.pointer, 
                                            template);
