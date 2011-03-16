@@ -1112,7 +1112,7 @@ extern CERTCertificateList *
 CERT_CertListFromCert(CERTCertificate *cert);
 
 extern CERTCertificateList *
-CERT_DupCertList(CERTCertificateList * oldList);
+CERT_DupCertList(const CERTCertificateList * oldList);
 
 extern void CERT_DestroyCertificateList(CERTCertificateList *list);
 
