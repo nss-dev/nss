@@ -115,6 +115,10 @@
 #define AES_KEY_WRAP_BLOCK_SIZE  8  /* bytes */
 #define AES_BLOCK_SIZE          16  /* bytes */
 
+#define AES_128_KEY_LENGTH      16  /* bytes */
+#define AES_192_KEY_LENGTH      24  /* bytes */
+#define AES_256_KEY_LENGTH      32  /* bytes */
+
 #define CAMELLIA_BLOCK_SIZE          16  /* bytes */
 
 #define SEED_BLOCK_SIZE 16              /* bytes */

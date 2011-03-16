@@ -56,7 +56,7 @@ static unsigned char  key_name[SESS_TICKET_KEY_NAME_LEN];
 static PK11SymKey    *session_ticket_enc_key_pkcs11 = NULL;
 static PK11SymKey    *session_ticket_mac_key_pkcs11 = NULL;
 
-static unsigned char  session_ticket_enc_key[32];
+static unsigned char  session_ticket_enc_key[AES_256_KEY_LENGTH];
 static unsigned char  session_ticket_mac_key[SHA256_LENGTH];
 
 static PRBool         session_ticket_keys_initialized = PR_FALSE;
