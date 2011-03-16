@@ -1271,8 +1271,8 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
 {
     sslSocket * sm = NULL, *ss = NULL;
     int i;
-    sslServerCerts * mc = sm->serverCerts;
-    sslServerCerts * sc = ss->serverCerts;
+    sslServerCerts * mc = NULL;
+    sslServerCerts * sc = NULL;
 
     if (model == NULL) {
         PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
@@ -1301,7 +1301,9 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
     /* This int should be SSLKEAType, but CC on Irix complains,
      * during the for loop.
      */
-    for (i=kt_null; i < kt_kea_size; i++, mc++, sc++) {
+    for (i=kt_null; i < kt_kea_size; i++) {
+        mc = &(sm->serverCerts[i]);
+        sc = &(ss->serverCerts[i]);
         if (mc->serverCert && mc->serverCertChain) {
             if (sc->serverCert) {
                 CERT_DestroyCertificate(sc->serverCert);
