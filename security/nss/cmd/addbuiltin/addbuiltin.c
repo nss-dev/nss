@@ -77,6 +77,8 @@ char *getTrustString(unsigned int trust)
 		return "CKT_NETSCAPE_TRUSTED_DELEGATOR";
 	} else if (trust & CERTDB_VALID_CA) {
 		return "CKT_NETSCAPE_VALID_DELEGATOR";
+	} else if (trust & CERTDB_VALID_PEER) {
+		return "CKT_NETSCAPE_VALID";
 	} else {
 		return "CKT_NETSCAPE_TRUST_UNKNOWN";
 	}
