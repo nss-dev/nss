@@ -1266,14 +1266,17 @@ no_ticket:
 			SSL_GETPID(), ss->fd));
 	ssl3stats = SSL_GetStatistics();
 	SSL_AtomicIncrementLong(& ssl3stats->hch_sid_ticket_parse_failures );
-	if (sid) {
-	    ssl_FreeSID(sid);
-	    sid = NULL;
-	}
     }
     rv = SECSuccess;
 
 loser:
+	/* ss->sec.ci.sid == sid if it did NOT come here via goto statement
+	 * in that case do not free sid
+	 */
+	if (sid && (ss->sec.ci.sid != sid)) {
+	    ssl_FreeSID(sid);
+	    sid = NULL;
+	}
     if (decrypted_state != NULL) {
 	SECITEM_FreeItem(decrypted_state, PR_TRUE);
 	decrypted_state = NULL;
