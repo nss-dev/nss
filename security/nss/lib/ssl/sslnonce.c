@@ -222,6 +222,9 @@ ssl_DestroySID(sslSessionID *sid)
     if (sid->u.ssl3.sessionTicket.ticket.data) {
 	SECITEM_FreeItem(&sid->u.ssl3.sessionTicket.ticket, PR_FALSE);
     }
+    if (sid->u.ssl3.srvName.data) {
+	SECITEM_FreeItem(&sid->u.ssl3.srvName, PR_FALSE);
+    }
     
     PORT_ZFree(sid, sizeof(sslSessionID));
 }
