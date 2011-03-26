@@ -107,6 +107,9 @@ NSS_EXTERN CERTCertTrust *
 nssTrust_GetCERTCertTrustForCert(NSSCertificate *c, CERTCertificate *cc);
 
 NSS_EXTERN PRStatus
+STAN_DeleteCertTrustMatchingSlot(NSSCertificate *c);
+
+NSS_EXTERN PRStatus
 STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust);
 
 NSS_EXTERN PRStatus
