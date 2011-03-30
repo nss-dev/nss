@@ -627,21 +627,8 @@ pkix_pl_InfoAccess_ParseTokens(
 
                     *filterP = p;
 
-                    while (len) {
-                            if (**startPos == '%' &&
-                                strncmp(*startPos, "%20", 3) == 0) {
-                            /* replace %20 by blank */
-                                *p = ' ';
-                                *startPos += 3;
-                                len -= 3;
-                            } else {
-                                *p = **startPos;
-                                (*startPos)++;
-                                len--;
-                            }
-                            p++;
-                    }
-
+                    PORT_Memcpy(p, *startPos, len);
+                    p += len;
                     *p = '\0';
                     filterP++;
                     numFilters--;
@@ -664,6 +651,44 @@ pkix_pl_InfoAccess_ParseTokens(
 cleanup:
 
         PKIX_RETURN(INFOACCESS);
+}
+
+static int
+pkix_pl_HexDigitToInt(
+        int ch)
+{
+        if (isdigit(ch)) {
+                ch = ch - '0';
+        } else if (isupper(ch)) {
+                ch = ch - 'A' + 10;
+        } else {
+                ch = ch - 'a' + 10;
+        }
+        return ch;
+}
+
+/*
+ * Convert the "%" hex hex escape sequences in the URL 'location' in place.
+ */
+static void
+pkix_pl_UnescapeURL(
+        char *location)
+{
+        const char *src;
+        char *dst;
+
+        for (src = dst = location; *src != '\0'; src++, dst++) {
+                if (*src == '%' && isxdigit((unsigned char)*(src+1)) &&
+                    isxdigit((unsigned char)*(src+2))) {
+                        *dst = pkix_pl_HexDigitToInt((unsigned char)*(src+1));
+                        *dst *= 16;
+                        *dst += pkix_pl_HexDigitToInt((unsigned char)*(src+2));
+                        src += 2;
+                } else {
+                        *dst = *src;
+                }
+        }
+        *dst = *src;  /* the terminating null */
 }
 
 /*
@@ -742,11 +767,7 @@ pkix_pl_InfoAccess_ParseLocation(
                 plContext),
                 PKIX_STRINGGETENCODEDFAILED);
 
-#if 0
-        /* For testing inside the firewall... */
-        locationAscii = "ldap://nss.red.iplanet.com:1389/cn=Good%20CA,o="
-                "Test%20Certificates,c=US?caCertificate;binary";
-#endif
+        pkix_pl_UnescapeURL(locationAscii);
 
         /* Skip "ldap:" */
         endPos = locationAscii;
