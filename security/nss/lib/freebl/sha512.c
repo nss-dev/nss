@@ -156,7 +156,7 @@ static __inline__ PRUint32 swap4b(PRUint32 value)
 #define SHA_HTONL(x) swap4b(x)
 #define BYTESWAP4(x)  x = SHA_HTONL(x)
 
-#else /* neither windows nor Linux PC */
+#else
 #define SWAP4MASK  0x00FF00FF
 #define SHA_HTONL(x) (t1 = (x), t1 = (t1 << 16) | (t1 >> 16), \
                       ((t1 & SWAP4MASK) << 8) | ((t1 >> 8) & SWAP4MASK))
