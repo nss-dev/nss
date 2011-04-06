@@ -54,9 +54,11 @@ ifdef USE_64
 CC              += -arch x86_64
 else
 OS_REL_CFLAGS	= -Di386
+CC              += -arch i386
 endif
 else
 OS_REL_CFLAGS	= -Dppc
+CC              += -arch ppc
 endif
 
 ifneq (,$(MACOS_SDK_DIR))
