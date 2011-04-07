@@ -206,7 +206,6 @@ mp_err mp_copy(const mp_int *from, mp_int *to)
   if(from == to)
     return MP_OKAY;
 
-  ++mp_copies;
   { /* copy */
     mp_digit   *tmp;
 
@@ -2864,6 +2863,7 @@ void s_mp_copy(const mp_digit *sp, mp_digit *dp, mp_size count)
 #else
   memcpy(dp, sp, count * sizeof(mp_digit));
 #endif
+  ++mp_copies;
 
 } /* end s_mp_copy() */
 #endif
