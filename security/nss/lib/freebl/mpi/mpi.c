@@ -2862,7 +2862,6 @@ void s_mp_setz(mp_digit *dp, mp_size count)
 /* Copy 'count' digits from sp to dp                                      */
 void s_mp_copy(const mp_digit *sp, mp_digit *dp, mp_size count)
 {
-  ++mp_copies;
 #if MP_MEMCPY == 0
   int  ix;
 
@@ -2871,6 +2870,7 @@ void s_mp_copy(const mp_digit *sp, mp_digit *dp, mp_size count)
 #else
   memcpy(dp, sp, count * sizeof(mp_digit));
 #endif
+  ++mp_copies;
 
 } /* end s_mp_copy() */
 #endif
