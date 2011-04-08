@@ -573,10 +573,8 @@ pkix_pl_InfoAccess_ParseTokens(
         char terminator,
         void *plContext)
 {
-        PKIX_UInt32 len = 0;
         PKIX_UInt32 numFilters = 0;
         char *endPos = NULL;
-        char *p = NULL;
         char **filterP = NULL;
 
         PKIX_ENTER(INFOACCESS, "pkix_pl_InfoAccess_ParseTokens");
@@ -597,8 +595,8 @@ pkix_pl_InfoAccess_ParseTokens(
                 PKIX_ERROR(PKIX_LOCATIONSTRINGNOTPROPERLYTERMINATED);
         }
 
-        /* Last one doesn't have a "," as separator, although we allow it */
-        if (*(endPos-1) != ',') {
+        /* Last component doesn't need a separator, although we allow it */
+        if (endPos > *startPos && *(endPos-1) != separator) {
                 numFilters++;
         }
 
@@ -619,23 +617,23 @@ pkix_pl_InfoAccess_ParseTokens(
 
         while (numFilters) {
             if (*endPos == separator || *endPos == terminator) {
-                    len = endPos - *startPos;
-                    p = PORT_ArenaZAlloc(arena, len+1);
+                    PKIX_UInt32 len = endPos - *startPos;
+                    char *p = PORT_ArenaZAlloc(arena, len+1);
                     if (p == NULL) {
                         PKIX_ERROR(PKIX_PORTARENAALLOCFAILED);
                     }
 
-                    *filterP = p;
-
                     PORT_Memcpy(p, *startPos, len);
-                    p += len;
-                    *p = '\0';
+                    p[len] = '\0';
+
+                    *filterP = p;
                     filterP++;
                     numFilters--;
 
                     separator = terminator;
 
                     if (endPos == '\0') {
+                        *startPos = endPos;
                         break;
                     } else {
                         endPos++;
