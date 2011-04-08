@@ -373,12 +373,13 @@ SSL_IMPORT SECStatus SSL_ConfigSecureServer(
 				SECKEYPrivateKey *key, SSLKEAType kea);
 
 /*
-** Allows SSL socket configuration with caller certificate chain.
+** Allows SSL socket configuration with caller-supplied certificate chain.
+** If certChainOpt is NULL, tries to find one.
 */
 SSL_IMPORT SECStatus
-SSL_ConfigSecureServerWithChainOpt(PRFileDesc *fd, CERTCertificate *cert,
-                                   SECKEYPrivateKey *key, SSLKEAType kea,
-                                   const CERTCertificateList *certChainOpt);
+SSL_ConfigSecureServerWithCertChain(PRFileDesc *fd, CERTCertificate *cert,
+                                    const CERTCertificateList *certChainOpt,
+                                    SECKEYPrivateKey *key, SSLKEAType kea);
 
 /*
 ** Configure a secure server's session-id cache. Define the maximum number
