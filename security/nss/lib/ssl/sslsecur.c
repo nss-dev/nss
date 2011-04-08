@@ -753,13 +753,13 @@ SSL_ConfigSecureServer(PRFileDesc *fd, CERTCertificate *cert,
 		       SECKEYPrivateKey *key, SSL3KEAType kea)
 {
 
-    return SSL_ConfigSecureServerWithChainOpt(fd, cert, key, kea, NULL);
+    return SSL_ConfigSecureServerWithCertChain(fd, cert, NULL, key, kea);
 }
 
 SECStatus
-SSL_ConfigSecureServerWithChainOpt(PRFileDesc *fd, CERTCertificate *cert,
-                                   SECKEYPrivateKey *key, SSL3KEAType kea,
-                                   const CERTCertificateList *certChainOpt)
+SSL_ConfigSecureServerWithCertChain(PRFileDesc *fd, CERTCertificate *cert,
+                                    const CERTCertificateList *certChainOpt,
+                                    SECKEYPrivateKey *key, SSL3KEAType kea)
 {
     sslSocket *ss;
     SECKEYPublicKey *pubKey = NULL;
