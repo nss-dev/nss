@@ -1012,7 +1012,7 @@ int main(int argc, char **argv)
     }
 
     /* open the target signature file */
-    fd = PR_OpenFile(output_file,PR_WRONLY|PR_CREATE_FILE|PR_TRUNCATE,0666);
+    fd = PR_Open(output_file,PR_WRONLY|PR_CREATE_FILE|PR_TRUNCATE,0666);
     if (fd == NULL ) {
         lperror(output_file);
         goto cleanup;
