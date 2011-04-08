@@ -373,7 +373,8 @@ SSL_IMPORT SECStatus SSL_ConfigSecureServer(
 				SECKEYPrivateKey *key, SSLKEAType kea);
 
 /*
-** Allows SSL socket configuration with caller certificate chain.
+** Allows SSL socket configuration with caller-supplied certificate chain.
+** If certChainOpt is NULL, tries to find one.
 */
 SSL_IMPORT SECStatus
 SSL_ConfigSecureServerWithCertChain(PRFileDesc *fd, CERTCertificate *cert,
