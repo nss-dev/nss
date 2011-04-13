@@ -2158,7 +2158,7 @@ cert_ComputeTrustOverrides(CERTCertificate *cert, unsigned int cType)
 		  trust->emailFlags |
 		  trust->objectSigningFlags)) {
 
-	if (trust->sslFlags & (CERTDB_VALID_PEER|CERTDB_TRUSTED)) 
+	if (trust->sslFlags & (CERTDB_TERMINAL_RECORD|CERTDB_TRUSTED)) 
 	    cType |= NS_CERT_TYPE_SSL_SERVER|NS_CERT_TYPE_SSL_CLIENT;
 	if (trust->sslFlags & (CERTDB_VALID_CA|CERTDB_TRUSTED_CA)) 
 	    cType |= NS_CERT_TYPE_SSL_CA;
@@ -2167,7 +2167,7 @@ cert_ComputeTrustOverrides(CERTCertificate *cert, unsigned int cType)
 	    cType &= ~(NS_CERT_TYPE_SSL_SERVER|NS_CERT_TYPE_SSL_CLIENT|
 	               NS_CERT_TYPE_SSL_CA);
 #endif
-	if (trust->emailFlags & (CERTDB_VALID_PEER|CERTDB_TRUSTED)) 
+	if (trust->emailFlags & (CERTDB_TERMINAL_RECORD|CERTDB_TRUSTED)) 
 	    cType |= NS_CERT_TYPE_EMAIL;
 	if (trust->emailFlags & (CERTDB_VALID_CA|CERTDB_TRUSTED_CA)) 
 	    cType |= NS_CERT_TYPE_EMAIL_CA;
@@ -2175,7 +2175,7 @@ cert_ComputeTrustOverrides(CERTCertificate *cert, unsigned int cType)
 	if (trust->emailFlags & CERTDB_NOT_TRUSTED) 
 	    cType &= ~(NS_CERT_TYPE_EMAIL|NS_CERT_TYPE_EMAIL_CA);
 #endif
-	if (trust->objectSigningFlags & (CERTDB_VALID_PEER|CERTDB_TRUSTED)) 
+	if (trust->objectSigningFlags & (CERTDB_TERMINAL_RECORD|CERTDB_TRUSTED)) 
 	    cType |= NS_CERT_TYPE_OBJECT_SIGNING;
 	if (trust->objectSigningFlags & (CERTDB_VALID_CA|CERTDB_TRUSTED_CA)) 
 	    cType |= NS_CERT_TYPE_OBJECT_SIGNING_CA;
@@ -2426,11 +2426,11 @@ CERT_DecodeTrustString(CERTCertTrust *trust, const char *trusts)
     for (i=0; i < PORT_Strlen(trusts); i++) {
 	switch (trusts[i]) {
 	  case 'p':
-	      *pflags = *pflags | CERTDB_VALID_PEER;
+	      *pflags = *pflags | CERTDB_TERMINAL_RECORD;
 	      break;
 
 	  case 'P':
-	      *pflags = *pflags | CERTDB_TRUSTED | CERTDB_VALID_PEER;
+	      *pflags = *pflags | CERTDB_TRUSTED | CERTDB_TERMINAL_RECORD;
 	      break;
 
 	  case 'w':
@@ -2482,7 +2482,7 @@ EncodeFlags(char *trusts, unsigned int flags)
 	if (!(flags & CERTDB_TRUSTED_CA) &&
 	    !(flags & CERTDB_TRUSTED_CLIENT_CA))
 	    PORT_Strcat(trusts, "c");
-    if (flags & CERTDB_VALID_PEER)
+    if (flags & CERTDB_TERMINAL_RECORD)
 	if (!(flags & CERTDB_TRUSTED))
 	    PORT_Strcat(trusts, "p");
     if (flags & CERTDB_TRUSTED_CA)

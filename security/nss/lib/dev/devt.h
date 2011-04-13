@@ -143,7 +143,7 @@ typedef enum {
     nssTrustLevel_NotTrusted = 1,
     nssTrustLevel_Trusted = 2,
     nssTrustLevel_TrustedDelegator = 3,
-    nssTrustLevel_Valid = 4,
+    nssTrustLevel_MustVerify = 4,
     nssTrustLevel_ValidDelegator = 5
 } nssTrustLevel;
 

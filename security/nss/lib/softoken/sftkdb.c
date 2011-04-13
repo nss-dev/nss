@@ -1914,17 +1914,15 @@ sftkdb_reconcileTrustEntry(PRArenaPool *arena, CK_ATTRIBUTE *target,
      * trust attribute should be, and neither agree exactly. 
      * At this point, we prefer 'hard' attributes over 'soft' ones. 
      * 'hard' ones are CKT_NSS_TRUSTED, CKT_NSS_TRUSTED_DELEGATOR, and
-     * CKT_NSS_UNTRUTED. Soft ones are ones which don't change the
-     * actual trust of the cert (CKT_MUST_VERIFY, CKT_NSS_VALID,
+     * CKT_NSS_NOT_TRUTED. Soft ones are ones which don't change the
+     * actual trust of the cert (CKT_MUST_VERIFY_TRUST, 
      * CKT_NSS_VALID_DELEGATOR).
      */
-    if ((sourceTrust == CKT_NSS_MUST_VERIFY) 
-	|| (sourceTrust == CKT_NSS_VALID)
+    if ((sourceTrust == CKT_NSS_MUST_VERIFY_TRUST) 
 	|| (sourceTrust == CKT_NSS_VALID_DELEGATOR)) {
 	return SFTKDB_DROP_ATTRIBUTE;
     }
-    if ((targetTrust == CKT_NSS_MUST_VERIFY) 
-	|| (targetTrust == CKT_NSS_VALID)
+    if ((targetTrust == CKT_NSS_MUST_VERIFY_TRUST) 
 	|| (targetTrust == CKT_NSS_VALID_DELEGATOR)) {
 	/* again, overwriting the target in this case is OK */
 	return SFTKDB_MODIFY_OBJECT;
