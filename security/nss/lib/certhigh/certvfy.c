@@ -1215,7 +1215,8 @@ CERT_VerifyCertificate(CERTCertDBHandle *handle, CERTCertificate *cert,
                 flags = cert->trust->sslFlags;
 
                 /* is the cert directly trusted or not trusted ? */
-                if ( flags & CERTDB_VALID_PEER ) {/*the trust record is valid*/
+                if ( flags & CERTDB_TERMINAL_RECORD ) { /* the trust record is
+							 * authoritative*/
                     if ( flags & CERTDB_TRUSTED ) {	/* trust this cert */
                         VALID_USAGE();
                     } else { /* don't trust this cert */
@@ -1237,8 +1238,8 @@ CERT_VerifyCertificate(CERTCertDBHandle *handle, CERTCertificate *cert,
                 flags = cert->trust->emailFlags;
 
                 /* is the cert directly trusted or not trusted ? */
-                if ( ( flags & ( CERTDB_VALID_PEER | CERTDB_TRUSTED ) ) ==
-                    ( CERTDB_VALID_PEER | CERTDB_TRUSTED ) ) {
+                if ( ( flags & ( CERTDB_TERMINAL_RECORD | CERTDB_TRUSTED ) ) ==
+                    ( CERTDB_TERMINAL_RECORD | CERTDB_TRUSTED ) ) {
                     VALID_USAGE();
                 }
                 break;
@@ -1246,7 +1247,8 @@ CERT_VerifyCertificate(CERTCertDBHandle *handle, CERTCertificate *cert,
                 flags = cert->trust->objectSigningFlags;
 
                 /* is the cert directly trusted or not trusted ? */
-                if ( flags & CERTDB_VALID_PEER ) {/*the trust record is valid*/
+                if ( flags & CERTDB_TERMINAL_RECORD ) { /* the trust record is
+							 * authoritative */
                     if ( flags & CERTDB_TRUSTED ) {	/* trust this cert */
                         VALID_USAGE();
                     } else { /* don't trust this cert */
@@ -1419,7 +1421,8 @@ CERT_VerifyCert(CERTCertDBHandle *handle, CERTCertificate *cert,
 	    flags = cert->trust->sslFlags;
 	    
 	    /* is the cert directly trusted or not trusted ? */
-	    if ( flags & CERTDB_VALID_PEER ) {/*the trust record is valid*/
+	    if ( flags & CERTDB_TERMINAL_RECORD) { /* the trust record is 
+						    * authoritative */
 		if ( flags & CERTDB_TRUSTED ) {	/* trust this cert */
 		    goto winner;
 		} else { /* don't trust this cert */
@@ -1438,8 +1441,8 @@ CERT_VerifyCert(CERTCertDBHandle *handle, CERTCertificate *cert,
 	    flags = cert->trust->emailFlags;
 	    
 	    /* is the cert directly trusted or not trusted ? */
-	    if ( ( flags & ( CERTDB_VALID_PEER | CERTDB_TRUSTED ) ) ==
-		( CERTDB_VALID_PEER | CERTDB_TRUSTED ) ) {
+	    if ( ( flags & ( CERTDB_TERMINAL_RECORD | CERTDB_TRUSTED ) ) ==
+		( CERTDB_TERMINAL_RECORD | CERTDB_TRUSTED ) ) {
 		goto winner;
 	    }
 	    break;
@@ -1447,7 +1450,8 @@ CERT_VerifyCert(CERTCertDBHandle *handle, CERTCertificate *cert,
 	    flags = cert->trust->objectSigningFlags;
 
 	    /* is the cert directly trusted or not trusted ? */
-	    if ( flags & CERTDB_VALID_PEER ) {/*the trust record is valid*/
+	    if ( flags & CERTDB_TERMINAL_RECORD ) { /* the trust record is 
+						     * authoritative */
 		if ( flags & CERTDB_TRUSTED ) {	/* trust this cert */
 		    goto winner;
 		} else { /* don't trust this cert */

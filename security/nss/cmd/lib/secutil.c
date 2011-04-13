@@ -2452,7 +2452,7 @@ printflags(char *trusts, unsigned int flags)
 	if (!(flags & CERTDB_TRUSTED_CA) &&
 	    !(flags & CERTDB_TRUSTED_CLIENT_CA))
 	    PORT_Strcat(trusts, "c");
-    if (flags & CERTDB_VALID_PEER)
+    if (flags & CERTDB_TERMINAL_RECORD)
 	if (!(flags & CERTDB_TRUSTED))
 	    PORT_Strcat(trusts, "p");
     if (flags & CERTDB_TRUSTED_CA)
@@ -3277,7 +3277,7 @@ SECU_PrintPKCS7ContentInfo(FILE *out, SECItem *der, char *m, int level)
 void
 printFlags(FILE *out, unsigned int flags, int level)
 {
-    if ( flags & CERTDB_VALID_PEER ) {
+    if ( flags & CERTDB_TERMINAL_RECORD ) {
 	SECU_Indent(out, level); fprintf(out, "Valid Peer\n");
     }
     if ( flags & CERTDB_TRUSTED ) {
