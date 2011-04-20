@@ -2234,7 +2234,7 @@ SECKEY_DestroyPrivateKeyInfo(SECKEYPrivateKeyInfo *pvk,
 	    SECITEM_ZfreeItem(&pvk->version, PR_FALSE);
 	    SECITEM_ZfreeItem(&pvk->privateKey, PR_FALSE);
 	    SECOID_DestroyAlgorithmID(&pvk->algorithm, PR_FALSE);
-	    PORT_Memset((char *)pvk, 0, sizeof(pvk));
+	    PORT_Memset((char *)pvk, 0, sizeof(*pvk));
 	    if(freeit == PR_TRUE) {
 		PORT_Free(pvk);
 	    }
@@ -2264,7 +2264,7 @@ SECKEY_DestroyEncryptedPrivateKeyInfo(SECKEYEncryptedPrivateKeyInfo *epki,
 	} else {
 	    SECITEM_ZfreeItem(&epki->encryptedData, PR_FALSE);
 	    SECOID_DestroyAlgorithmID(&epki->algorithm, PR_FALSE);
-	    PORT_Memset((char *)epki, 0, sizeof(epki));
+	    PORT_Memset((char *)epki, 0, sizeof(*epki));
 	    if(freeit == PR_TRUE) {
 		PORT_Free(epki);
 	    }
