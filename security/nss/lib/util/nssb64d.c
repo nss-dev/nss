@@ -563,8 +563,10 @@ PL_Base64DecodeBuffer (const char *src, PRUint32 srclen, unsigned char *dest,
     PRStatus status;
 
     PR_ASSERT(srclen > 0);
-    if (srclen == 0)
-	return dest;
+    if (srclen == 0) {
+	PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
+	return NULL;
+    }
 
     /*
      * How much space could we possibly need for decoding this input?
@@ -747,17 +749,21 @@ SECItem *
 NSSBase64_DecodeBuffer (PRArenaPool *arenaOpt, SECItem *outItemOpt,
 			const char *inStr, unsigned int inLen)
 {
-    SECItem *out_item = outItemOpt;
-    PRUint32 max_out_len = PL_Base64MaxDecodedLength (inLen);
+    SECItem *out_item = NULL;
+    PRUint32 max_out_len = 0;
     PRUint32 out_len;
     void *mark = NULL;
     unsigned char *dummy;
 
-    PORT_Assert(outItemOpt == NULL || outItemOpt->data == NULL);
+    if ((outItemOpt != NULL && outItemOpt->data != NULL) || inLen == 0) {
+	PORT_SetError (SEC_ERROR_INVALID_ARGS);
+	return NULL;
+    }
 
     if (arenaOpt != NULL)
 	mark = PORT_ArenaMark (arenaOpt);
 
+    max_out_len = PL_Base64MaxDecodedLength (inLen);
     out_item = SECITEM_AllocItem (arenaOpt, outItemOpt, max_out_len);
     if (out_item == NULL) {
 	if (arenaOpt != NULL)
