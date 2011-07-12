@@ -3278,7 +3278,7 @@ void
 printFlags(FILE *out, unsigned int flags, int level)
 {
     if ( flags & CERTDB_TERMINAL_RECORD ) {
-	SECU_Indent(out, level); fprintf(out, "Valid Peer\n");
+	SECU_Indent(out, level); fprintf(out, "Terminal Record\n");
     }
     if ( flags & CERTDB_TRUSTED ) {
 	SECU_Indent(out, level); fprintf(out, "Trusted\n");
