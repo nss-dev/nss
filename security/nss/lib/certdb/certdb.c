@@ -2550,7 +2550,17 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
 	                                            NULL,
 	                                            PR_FALSE,
 	                                            PR_TRUE);
-	    if (certs[fcerts]) fcerts++;
+	    if (certs[fcerts]) {
+		SECItem subjKeyID = {siBuffer, NULL, 0};
+		if (CERT_FindSubjectKeyIDExtension(certs[fcerts],
+		                                   &subjKeyID) == SECSuccess) {
+		    if (subjKeyID.data) {
+			cert_AddSubjectKeyIDMapping(&subjKeyID, certs[fcerts]);
+		    }
+		    SECITEM_FreeItem(&subjKeyID, PR_FALSE);
+		}
+		fcerts++;
+	    }
 	}
 
 	if ( keepCerts ) {
