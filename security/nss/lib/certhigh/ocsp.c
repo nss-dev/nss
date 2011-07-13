@@ -612,10 +612,14 @@ ocsp_CheckCacheSize(OCSPCacheData *cache)
 {
     OCSP_TRACE(("OCSP ocsp_CheckCacheSize\n"));
     PR_EnterMonitor(OCSP_Global.monitor);
-    if (OCSP_Global.maxCacheEntries <= 0) /* disabled or unlimited */
-        return;
-    while (cache->numberOfEntries > OCSP_Global.maxCacheEntries) {
-        ocsp_RemoveCacheItem(cache, cache->LRUitem);
+    if (OCSP_Global.maxCacheEntries > 0) {
+        /* Cache is not disabled. Number of cache entries is limited.
+         * The monitor ensures that maxCacheEntries remains positive.
+         */
+        while (cache->numberOfEntries > 
+                     (PRUint32)OCSP_Global.maxCacheEntries) {
+            ocsp_RemoveCacheItem(cache, cache->LRUitem);
+        }
     }
     PR_ExitMonitor(OCSP_Global.monitor);
 }
