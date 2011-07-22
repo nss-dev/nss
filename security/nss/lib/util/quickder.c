@@ -102,7 +102,7 @@ static unsigned char* definite_length_decoder(const unsigned char *buf,
 
 static SECStatus GetItem(SECItem* src, SECItem* dest, PRBool includeTag)
 {
-    if ( (!src) || (!dest) || (!src->data) )
+    if ( (!src) || (!dest) || (!src->data && src->len) )
     {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
