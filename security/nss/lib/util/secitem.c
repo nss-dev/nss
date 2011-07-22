@@ -251,6 +251,10 @@ SECITEM_CopyItem(PRArenaPool *arena, SECItem *to, const SECItem *from)
 	PORT_Memcpy(to->data, from->data, from->len);
 	to->len = from->len;
     } else {
+	/*
+	 * If from->data is NULL but from->len is nonzero, this function
+	 * will succeed.  Is this right?
+	 */
 	to->data = 0;
 	to->len = 0;
     }
