@@ -538,12 +538,12 @@ breakout:
     if (usePkix < 2) {
         if (oidStr) {
             fprintf(stderr, "Policy oid(-o) can be used only with"
-                    " CERT_PKIXVerifyChain(-pp) function.\n");
+                    " CERT_PKIXVerifyCert(-pp) function.\n");
             Usage(progName);
         }
         if (trusted) {
             fprintf(stderr, "Cert trust flag can be used only with"
-                    " CERT_PKIXVerifyChain(-pp) function.\n");
+                    " CERT_PKIXVerifyCert(-pp) function.\n");
             Usage(progName);
         }
     }
@@ -586,7 +586,7 @@ breakout:
 	case  0  : /* positional parameter */
             if (usePkix < 2 && trusted) {
                 fprintf(stderr, "Cert trust flag can be used only with"
-                        " CERT_PKIXVerifyChain(-pp) function.\n");
+                        " CERT_PKIXVerifyCert(-pp) function.\n");
                 Usage(progName);
             }
 	    cert = getCert(optstate->value, isAscii, progName);
