@@ -83,8 +83,7 @@ SGN_NewContext(SECOidTag alg, SECKEYPrivateKey *key)
 
     /* verify our key type */
     if (key->keyType != keyType &&
-	!((key->keyType == dsaKey) && (keyType == fortezzaKey)) &&
-	!((key->keyType == fortezzaKey) && (keyType == dsaKey)) ) {
+	!((key->keyType == dsaKey) && (keyType == fortezzaKey)) ) {
 	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
 	return 0;
     }

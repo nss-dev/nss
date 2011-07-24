@@ -67,17 +67,11 @@ extern SECStatus SECKEY_CopySubjectPublicKeyInfo(PLArenaPool *arena,
 
 /*
 ** Update the PQG parameters for a cert's public key.
-** Only done for DSA and Fortezza certs
+** Only done for DSA certs
 */
 extern SECStatus
 SECKEY_UpdateCertPQG(CERTCertificate * subjectCert);
 
-
-/* Compare the KEA parameters of two public keys.  
- * Only used by fortezza.      */
-
-extern SECStatus
-SECKEY_KEAParamCompare(CERTCertificate *cert1,CERTCertificate *cert2);
 
 /*
 ** Return the strength of the public key in bytes

@@ -60,9 +60,9 @@ typedef enum {
     nullKey = 0, 
     rsaKey = 1, 
     dsaKey = 2, 
-    fortezzaKey = 3,
+    fortezzaKey = 3, /* deprecated */
     dhKey = 4, 
-    keaKey = 5,
+    keaKey = 5, /* deprecated */
     ecKey = 6,
     rsaPssKey = 7,
     rsaOaepKey = 8
