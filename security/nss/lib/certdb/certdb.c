@@ -481,57 +481,6 @@ GetKeyUsage(CERTCertificate *cert)
 }
 
 
-/*
- * determine if a fortezza V1 Cert is a CA or not.
- */
-static PRBool
-fortezzaIsCA( CERTCertificate *cert) {
-    PRBool isCA = PR_FALSE;
-    CERTSubjectPublicKeyInfo *spki = &cert->subjectPublicKeyInfo;
-    int tag;
-
-    tag = SECOID_GetAlgorithmTag(&spki->algorithm);
-    if ((tag == SEC_OID_MISSI_KEA_DSS_OLD) ||
-       (tag == SEC_OID_MISSI_KEA_DSS) ||
-       (tag == SEC_OID_MISSI_DSS_OLD) ||
-       (tag == SEC_OID_MISSI_DSS) ) {
-	SECItem rawkey;
-	unsigned char *rawptr;
-	unsigned char *end;
-	int len;
-
-	rawkey = spki->subjectPublicKey;
-	DER_ConvertBitString(&rawkey);
-	rawptr = rawkey.data;
-	end = rawkey.data + rawkey.len;
-
-	/* version */	
-	rawptr += sizeof(((SECKEYPublicKey*)0)->u.fortezza.KMID)+2;
-
-	/* clearance (the string up to the first byte with the hi-bit on */
-	while ((rawptr < end) && (*rawptr++ & 0x80));
-	if (rawptr >= end) { return PR_FALSE; }
-
-	/* KEAPrivilege (the string up to the first byte with the hi-bit on */
-	while ((rawptr < end) && (*rawptr++ & 0x80));
-	if (rawptr >= end) { return PR_FALSE; }
-
-	/* skip the key */
-	len = (*rawptr << 8) | rawptr[1];
-	rawptr += 2 + len;
-
-	/* shared key */
-	if (rawptr >= end) { return PR_FALSE; }
-	/* DSS Version is next */
-	rawptr += 2;
-
-	/* DSSPrivilege (the string up to the first byte with the hi-bit on */
-	if (*rawptr & 0x30) isCA = PR_TRUE;
-	
-   }
-   return isCA;
-}
-
 static SECStatus
 findOIDinOIDSeqByTagNum(CERTOidSequence *seq, SECOidTag tagnum)
 {
@@ -703,12 +652,6 @@ cert_ComputeCertType(CERTCertificate *cert)
 	/* allow any ssl or email (no ca or object signing. */
 	nsCertType |= NS_CERT_TYPE_SSL_CLIENT | NS_CERT_TYPE_SSL_SERVER |
 	              NS_CERT_TYPE_EMAIL;
-
-	/* if the cert is a fortezza CA cert, then allow SSL CA and EMAIL CA */
-	if (fortezzaIsCA(cert)) {
-		nsCertType |= NS_CERT_TYPE_SSL_CA;
-		nsCertType |= NS_CERT_TYPE_EMAIL_CA;
-	}
     }
 
     if (encodedExtKeyUsage.data != NULL) {
@@ -728,7 +671,6 @@ cert_GetKeyID(CERTCertificate *cert)
 {
     SECItem tmpitem;
     SECStatus rv;
-    SECKEYPublicKey *key;
     
     cert->subjectKeyID.len = 0;
 
@@ -745,26 +687,6 @@ cert_GetKeyID(CERTCertificate *cert)
 	PORT_Free(tmpitem.data);
     }
     
-    /* if the cert doesn't have a key identifier extension and the cert is
-     * a V1 fortezza certificate, use the cert's 8 byte KMID as the
-     * key identifier.  */
-    key = CERT_KMIDPublicKey(cert);
-
-    if (key != NULL) {
-	
-	if (key->keyType == fortezzaKey) {
-
-	    cert->subjectKeyID.data = (unsigned char *)PORT_ArenaAlloc(cert->arena, 8);
-	    if ( cert->subjectKeyID.data != NULL ) {
-		PORT_Memcpy(cert->subjectKeyID.data, key->u.fortezza.KMID, 8);
-		cert->subjectKeyID.len = 8;
-		cert->keyIDGenerated = PR_FALSE;
-	    }
-	}
-		
-	SECKEY_DestroyPublicKey(key);
-    }
-
     /* if the cert doesn't have a key identifier extension, then generate one*/
     if ( cert->subjectKeyID.len == 0 ) {
 	/*
@@ -1342,8 +1264,6 @@ CERT_CheckKeyUsage(CERTCertificate *cert, unsigned int requiredUsage)
 	case dsaKey:
 	    requiredUsage |= KU_DIGITAL_SIGNATURE;
 	    break;
-	case fortezzaKey:
-	case keaKey:
 	case dhKey:
 	    requiredUsage |= KU_KEY_AGREEMENT;
 	    break;
@@ -2212,10 +2132,9 @@ CERT_IsCACert(CERTCertificate *cert, unsigned int *rettype)
 	} 
     }
 
-    /* finally check if it's an X.509 v1 root or FORTEZZA V1 CA */
+    /* finally check if it's an X.509 v1 root CA */
     if (!ret && 
-        ((cert->isRoot && cert_Version(cert) < SEC_CERTIFICATE_VERSION_3) ||
-    	 fortezzaIsCA(cert) )) {
+        (cert->isRoot && cert_Version(cert) < SEC_CERTIFICATE_VERSION_3)) {
 	ret = PR_TRUE;
 	cType |= (NS_CERT_TYPE_SSL_CA | NS_CERT_TYPE_EMAIL_CA);
     }

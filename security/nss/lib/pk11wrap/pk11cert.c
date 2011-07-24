@@ -2275,11 +2275,8 @@ PK11_ImportCertForKeyToSlot(PK11SlotInfo *slot, CERTCertificate *cert,
 PRBool
 KEAPQGCompare(CERTCertificate *server,CERTCertificate *cert) {
 
-    if ( SECKEY_KEAParamCompare(server,cert) == SECEqual ) {
-        return PR_TRUE;
-    } else {
-	return PR_FALSE;
-    }
+    /* not implemented */
+    return PR_FALSE;
 }
 
 PRBool

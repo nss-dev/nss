@@ -298,13 +298,6 @@ CERT_GetCertificateRequestExtensions(CERTCertificateRequest *req,
 extern SECKEYPublicKey *CERT_ExtractPublicKey(CERTCertificate *cert);
 
 /*
- * used to get a public key with Key Material ID. Only used for fortezza V1
- * certificates.
- */
-extern SECKEYPublicKey *CERT_KMIDPublicKey(CERTCertificate *cert);
-
-
-/*
 ** Retrieve the Key Type associated with the cert we're dealing with
 */
 
@@ -450,12 +443,12 @@ extern SECStatus CERT_AddOKDomainName(CERTCertificate *cert, const char *hostnam
 extern CERTCertificate *
 CERT_DecodeDERCertificate (SECItem *derSignedCert, PRBool copyDER, char *nickname);
 /*
-** Decode a DER encoded CRL/KRL into an CERTSignedCrl structure
-**	"derSignedCrl" is the DER encoded signed crl/krl.
-**	"type" is this a CRL or KRL.
+** Decode a DER encoded CRL into a CERTSignedCrl structure
+**	"derSignedCrl" is the DER encoded signed CRL.
+**	"type" must be SEC_CRL_TYPE.
 */
 #define SEC_CRL_TYPE	1
-#define SEC_KRL_TYPE	0
+#define SEC_KRL_TYPE	0 /* deprecated */
 
 extern CERTSignedCrl *
 CERT_DecodeDERCrl (PLArenaPool *arena, SECItem *derSignedCrl,int type);
