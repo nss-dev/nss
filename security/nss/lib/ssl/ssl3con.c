@@ -929,8 +929,7 @@ ssl3_VerifySignedHashes(SSL3Hashes *hash, CERTCertificate *cert,
 
     key = CERT_ExtractPublicKey(cert);
     if (key == NULL) {
-	/* CERT_ExtractPublicKey doesn't set error code */
-	PORT_SetError(SSL_ERROR_EXTRACT_PUBLIC_KEY_FAILURE);
+	ssl_MapLowLevelError(SSL_ERROR_EXTRACT_PUBLIC_KEY_FAILURE);
     	return SECFailure;
     }
 
@@ -4743,7 +4742,7 @@ ssl3_SendClientKeyExchange(sslSocket *ss)
     if (ss->sec.peerKey == NULL) {
 	serverKey = CERT_ExtractPublicKey(ss->sec.peerCert);
 	if (serverKey == NULL) {
-	    PORT_SetError(SSL_ERROR_EXTRACT_PUBLIC_KEY_FAILURE);
+	    ssl_MapLowLevelError(SSL_ERROR_EXTRACT_PUBLIC_KEY_FAILURE);
 	    return SECFailure;
 	}
     } else {
