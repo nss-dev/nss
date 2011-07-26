@@ -206,6 +206,7 @@ char lockStatus[] = "Locks are ENABLED.  ";
 /* forward declarations. */
 static sslSocket *ssl_NewSocket(PRBool makeLocks);
 static SECStatus  ssl_MakeLocks(sslSocket *ss);
+static void       ssl_SetDefaultsFromEnvironment(void);
 static PRStatus   ssl_PushIOLayer(sslSocket *ns, PRFileDesc *stack, 
                                   PRDescIdentity id);
 
@@ -821,6 +822,8 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
 	return SECFailure;
     }
 
+    ssl_SetDefaultsFromEnvironment();
+
     switch (which) {
     case SSL_SOCKS:               on = PR_FALSE;                        break;
     case SSL_SECURITY:            on = ssl_defaults.useSecurity;        break;
@@ -868,6 +871,8 @@ SSL_EnableDefault(int which, PRBool on)
 SECStatus
 SSL_OptionSetDefault(PRInt32 which, PRBool on)
 {
+    ssl_SetDefaultsFromEnvironment();
+
     switch (which) {
       case SSL_SOCKS:
 	ssl_defaults.useSocks = PR_FALSE;
@@ -2252,13 +2257,9 @@ loser:
 
 #define LOWER(x) (x | 0x20)  /* cheap ToLower function ignores LOCALE */
 
-/*
-** Create a newsocket structure for a file descriptor.
-*/
-static sslSocket *
-ssl_NewSocket(PRBool makeLocks)
+static void
+ssl_SetDefaultsFromEnvironment(void)
 {
-    sslSocket *ss;
 #if defined( NSS_HAVE_GETENV )
     static int firsttime = 1;
 
@@ -2329,6 +2330,18 @@ ssl_NewSocket(PRBool makeLocks)
 	}
     }
 #endif /* NSS_HAVE_GETENV */
+}
+
+/*
+** Create a newsocket structure for a file descriptor.
+*/
+static sslSocket *
+ssl_NewSocket(PRBool makeLocks)
+{
+    sslSocket *ss;
+
+    ssl_SetDefaultsFromEnvironment();
+
     if (ssl_force_locks)
 	makeLocks = PR_TRUE;
 
