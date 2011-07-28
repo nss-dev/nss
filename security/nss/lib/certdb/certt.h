@@ -585,6 +585,11 @@ struct CERTIssuerAndSNStr {
 					 KU_ENCIPHER_ONLY)
 
 /* This value will not occur in certs.  It is used internally for the case
+ * when either digital signature or non-repudiation is the correct value.
+ */
+#define KU_DIGITAL_SIGNATURE_OR_NON_REPUDIATION (0x2000)
+
+/* This value will not occur in certs.  It is used internally for the case
  * when the key type is not know ahead of time and either key agreement or
  * key encipherment are the correct value based on key type
  */

@@ -1187,6 +1187,10 @@ CERT_KeyUsageAndTypeForCertUsage(SECCertUsage usage,
     } else {
 	switch ( usage ) {
 	  case certUsageSSLClient:
+	    /* 
+	     * Only accept KU_DIGITAL_SIGNATURE.
+	     * KU_NON_REPUDIATION cannot be used for SSL client auth.
+	     */
 	    requiredKeyUsage = KU_DIGITAL_SIGNATURE;
 	    requiredCertType = NS_CERT_TYPE_SSL_CLIENT;
 	    break;
@@ -1204,7 +1208,7 @@ CERT_KeyUsageAndTypeForCertUsage(SECCertUsage usage,
 	    requiredCertType = NS_CERT_TYPE_SSL_CA;
 	    break;
 	  case certUsageEmailSigner:
-	    requiredKeyUsage = KU_DIGITAL_SIGNATURE;
+	    requiredKeyUsage = KU_DIGITAL_SIGNATURE_OR_NON_REPUDIATION;
 	    requiredCertType = NS_CERT_TYPE_EMAIL;
 	    break;
 	  case certUsageEmailRecipient:
@@ -1212,11 +1216,11 @@ CERT_KeyUsageAndTypeForCertUsage(SECCertUsage usage,
 	    requiredCertType = NS_CERT_TYPE_EMAIL;
 	    break;
 	  case certUsageObjectSigner:
-	    requiredKeyUsage = KU_DIGITAL_SIGNATURE;
+	    requiredKeyUsage = KU_DIGITAL_SIGNATURE_OR_NON_REPUDIATION;
 	    requiredCertType = NS_CERT_TYPE_OBJECT_SIGNING;
 	    break;
 	  case certUsageStatusResponder:
-	    requiredKeyUsage = KU_DIGITAL_SIGNATURE;
+	    requiredKeyUsage = KU_DIGITAL_SIGNATURE_OR_NON_REPUDIATION;
 	    requiredCertType = EXT_KEY_USAGE_STATUS_RESPONDER;
 	    break;
 	  default:
@@ -1243,8 +1247,6 @@ loser:
 SECStatus
 CERT_CheckKeyUsage(CERTCertificate *cert, unsigned int requiredUsage)
 {
-    unsigned int certKeyUsage;
-
     if (!cert) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
@@ -1277,10 +1279,16 @@ CERT_CheckKeyUsage(CERTCertificate *cert, unsigned int requiredUsage)
 	}
     }
 
-    certKeyUsage = cert->keyUsage;
-    if (certKeyUsage & KU_NON_REPUDIATION)
-        certKeyUsage |= KU_DIGITAL_SIGNATURE;
-    if ( (certKeyUsage & requiredUsage) == requiredUsage ) 
+    /* Allow either digital signature or non-repudiation */
+    if ( requiredUsage & KU_DIGITAL_SIGNATURE_OR_NON_REPUDIATION ) {
+	/* turn off the special bit */
+	requiredUsage &= (~KU_DIGITAL_SIGNATURE_OR_NON_REPUDIATION);
+
+        if (!(cert->keyUsage & (KU_DIGITAL_SIGNATURE | KU_NON_REPUDIATION)))
+             goto loser;
+     }
+    
+    if ( (cert->keyUsage & requiredUsage) == requiredUsage ) 
     	return SECSuccess;
 
 loser:
