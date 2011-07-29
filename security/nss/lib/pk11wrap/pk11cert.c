@@ -2161,7 +2161,7 @@ PK11_FindCertFromDERCert(PK11SlotInfo *slot, CERTCertificate *cert,
 }
 
 CERTCertificate *
-PK11_FindCertFromDERCertItem(PK11SlotInfo *slot, SECItem *inDerCert,
+PK11_FindCertFromDERCertItem(PK11SlotInfo *slot, const SECItem *inDerCert,
 								 void *wincx)
 
 {
