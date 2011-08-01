@@ -150,6 +150,23 @@ extern CERTCertificate *NSS_SMIMEUtil_GetCertFromEncryptionKeyPreference(CERTCer
 extern SECStatus
 NSS_SMIMEUtil_FindBulkAlgForRecipients(CERTCertificate **rcerts, SECOidTag *bulkalgtag, int *keysize);
 
+/*
+ * Return a boolean that indicates whether the underlying library
+ * will perform as the caller expects.
+ *
+ * The only argument is a string, which should be the version
+ * identifier of the NSS library. That string will be compared
+ * against a string that represents the actual build version of
+ * the S/MIME library.  It also invokes the version checking functions
+ * of the dependent libraries such as NSPR.
+ */
+extern PRBool NSSSMIME_VersionCheck(const char *importedVersion);
+
+/*
+ * Returns a const string of the S/MIME library version.
+ */
+extern const char *NSSSMIME_GetVersion(void);
+
 /************************************************************************/
 SEC_END_PROTOS
 

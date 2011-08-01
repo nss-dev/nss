@@ -157,13 +157,18 @@ SEC_BEGIN_PROTOS
  * Return a boolean that indicates whether the underlying library
  * will perform as the caller expects.
  *
- * The only argument is a string, which should be the verson
+ * The only argument is a string, which should be the version
  * identifier of the NSS library. That string will be compared
  * against a string that represents the actual build version of
  * the NSS library.  It also invokes the version checking functions
  * of the dependent libraries such as NSPR.
  */
 extern PRBool NSS_VersionCheck(const char *importedVersion);
+
+/*
+ * Returns a const string of the NSS library version.
+ */
+extern const char *NSS_GetVersion(void);
 
 /*
  * Open the Cert, Key, and Security Module databases, read only.
