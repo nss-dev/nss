@@ -58,4 +58,13 @@
 #define NSSUTIL_VBUILD   0
 #define NSSUTIL_BETA     PR_TRUE
 
+SEC_BEGIN_PROTOS
+
+/*
+ * Returns a const string of the UTIL library version.
+ */
+extern const char *NSSUTIL_GetVersion(void);
+
+SEC_END_PROTOS
+
 #endif /* __nssutil_h_ */

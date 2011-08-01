@@ -2197,4 +2197,8 @@ void UTIL_SetForkState(PRBool forked)
     parentForkedAfterC_Initialize = forked;
 }
 
-
+const char *
+NSSUTIL_GetVersion(void)
+{
+    return NSSUTIL_VERSION;
+}

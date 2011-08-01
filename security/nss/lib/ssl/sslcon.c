@@ -3852,3 +3852,9 @@ NSSSSL_VersionCheck(const char *importedVersion)
     c = __nss_ssl_rcsid[0] + __nss_ssl_sccsid[0]; 
     return NSS_VersionCheck(importedVersion);
 }
+
+const char *
+NSSSSL_GetVersion(void)
+{
+    return NSS_VERSION;
+}

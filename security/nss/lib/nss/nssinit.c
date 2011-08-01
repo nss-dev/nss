@@ -1204,3 +1204,9 @@ NSS_VersionCheck(const char *importedVersion)
     }
     return PR_TRUE;
 }
+
+const char *
+NSS_GetVersion(void)
+{
+    return NSS_VERSION;
+}

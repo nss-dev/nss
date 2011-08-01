@@ -793,3 +793,8 @@ NSSSMIME_VersionCheck(const char *importedVersion)
     return NSS_VersionCheck(importedVersion);
 }
 
+const char *
+NSSSMIME_GetVersion(void)
+{
+    return NSS_VERSION;
+}

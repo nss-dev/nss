@@ -639,6 +639,23 @@ SSL_IMPORT SECStatus SSL_HandshakeNegotiatedExtension(PRFileDesc * socket,
                                                       SSLExtensionType extId,
                                                       PRBool *yes);
 
+/*
+ * Return a boolean that indicates whether the underlying library
+ * will perform as the caller expects.
+ *
+ * The only argument is a string, which should be the version
+ * identifier of the NSS library. That string will be compared
+ * against a string that represents the actual build version of
+ * the SSL library.  It also invokes the version checking functions
+ * of the dependent libraries such as NSPR.
+ */
+extern PRBool NSSSSL_VersionCheck(const char *importedVersion);
+
+/*
+ * Returns a const string of the SSL library version.
+ */
+extern const char *NSSSSL_GetVersion(void);
+
 SEC_END_PROTOS
 
 #endif /* __ssl_h_ */

@@ -1024,6 +1024,7 @@ CERT_DestroyCERTRevocationFlags;
 ;+    global:
 ;;SECKEY_RSAPSSParamsTemplate DATA ;
 NSS_Get_SECKEY_RSAPSSParamsTemplate;
+NSS_GetVersion;
 ;+    local:
 ;+       *;
 ;+};
