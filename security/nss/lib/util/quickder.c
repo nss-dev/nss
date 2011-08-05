@@ -136,13 +136,13 @@ static SECStatus MatchComponentType(const SEC_ASN1Template* templateEntry,
     unsigned long kind = 0;
     unsigned char tag = 0;
 
-    if ( (!item) || (!templateEntry) || (!match) )
+    if ( (!item) || (!item->data && item->len) || (!templateEntry) || (!match) )
     {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
 
-    if (!item->len || !item->data)
+    if (!item->len)
     {
         *match = PR_FALSE;
         return SECSuccess;
