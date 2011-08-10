@@ -1434,7 +1434,7 @@ pkix_pl_HttpDefaultClient_TrySendAndReceive(
                         
                 } else if (client->send_http_method == HTTP_GET_METHOD) {
                         client->GETBuf = PR_smprintf
-                            ("GET %s HTTP/1.0\r\nHost: %s%s\r\n\r\n"
+                            ("GET %s HTTP/1.0\r\nHost: %s%s\r\n\r\n",
                             client->path,
                             client->host,
                             portstr);
