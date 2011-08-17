@@ -44,9 +44,6 @@ MODULE		= nss
 DEFINES		= -DNSPR20
 
 PRIVATE_EXPORTS	= secutil.h \
-		  NSPRerrs.h \
-		  SECerrs.h \
-		  SSLerrs.h \
 		  pk11table.h \
 		  $(NULL)
 

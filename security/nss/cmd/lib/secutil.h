@@ -446,12 +446,6 @@ SECU_GetOptionArg(const secuCommand *cmd, int optionNum);
  *
  */
 
-/* Return informative error string */
-char *SECU_ErrorString(int16 err);
-
-/* Return informative error string. Does not call XP_GetString */
-char *SECU_ErrorStringRaw(int16 err);
-
 void printflags(char *trusts, unsigned int flags);
 
 #if !defined(XP_UNIX) && !defined(XP_OS2)

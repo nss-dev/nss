@@ -36,6 +36,7 @@
 
 #include "install.h"
 #include "install-ds.h"
+#include <prerror.h>
 #include <prlock.h>
 #include <prio.h>
 #include <prmem.h>
@@ -61,7 +62,7 @@ extern /*"C"*/
 short Pk11Install_UserVerifyJar(JAR *jar, PRFileDesc *out,
 	PRBool query);
 extern /*"C"*/
-const char* mySECU_ErrorString(int16);
+const char* mySECU_ErrorString(PRErrorCode errnum);
 extern 
 int Pk11Install_yyparse();
 

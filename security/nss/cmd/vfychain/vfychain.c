@@ -129,11 +129,8 @@ Usage(const char *progName)
 void
 errWarn(char *function)
 {
-    PRErrorCode  errorNumber = PR_GetError();
-    const char * errorString = SECU_Strerror(errorNumber);
-
-    fprintf(stderr, "Error in function %s: %d\n - %s\n",
-		    function, errorNumber, errorString);
+    fprintf(stderr, "Error in function %s: %s\n",
+		    function, SECU_Strerror(PR_GetError()));
 }
 
 void
@@ -210,7 +207,7 @@ getCert(const char *name, PRBool isAscii, const char * progName)
      * open a file with such name and get the cert from there.*/
     fd = PR_Open(name, PR_RDONLY, 0777); 
     if (!fd) {
-	PRIntn err = PR_GetError();
+	PRErrorCode err = PR_GetError();
     	fprintf(stderr, "open of %s failed, %d = %s\n", 
 	        name, err, SECU_Strerror(err));
 	return cert;
@@ -233,7 +230,7 @@ getCert(const char *name, PRBool isAscii, const char * progName)
                                    PR_FALSE /* isPerm */, 
 				   PR_TRUE  /* copyDER */);
     if (!cert) {
-	PRIntn err = PR_GetError();
+	PRErrorCode err = PR_GetError();
 	fprintf(stderr, "couldn't import %s, %d = %s\n",
 	        name, err, SECU_Strerror(err));
     }

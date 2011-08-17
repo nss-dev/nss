@@ -83,15 +83,9 @@ static char consoleName[] =  {
 #endif
 };
 
+#include "nssutil.h"
+#include "ssl.h"
 
-char *
-SECU_GetString(int16 error_number)
-{
-
-    static char errString[80];
-    sprintf(errString, "Unknown error string (%d)", error_number);
-    return errString;
-}
 
 void 
 SECU_PrintErrMsg(FILE *out, int level, char *progName, char *msg, ...)
@@ -3599,123 +3593,6 @@ SECU_GetOptionArg(const secuCommand *cmd, int optionNum)
 		return PL_strdup(cmd->options[optionNum].arg);
 	else
 		return NULL;
-}
-
-static char SECUErrorBuf[64];
-
-char *
-SECU_ErrorStringRaw(int16 err)
-{
-    if (err == 0)
-	SECUErrorBuf[0] = '\0';
-    else if (err == SEC_ERROR_BAD_DATA)
-	sprintf(SECUErrorBuf, "Bad data");
-    else if (err == SEC_ERROR_BAD_DATABASE)
-	sprintf(SECUErrorBuf, "Problem with database");
-    else if (err == SEC_ERROR_BAD_DER)
-	sprintf(SECUErrorBuf, "Problem with DER");
-    else if (err == SEC_ERROR_BAD_KEY)
-	sprintf(SECUErrorBuf, "Problem with key");
-    else if (err == SEC_ERROR_BAD_PASSWORD)
-	sprintf(SECUErrorBuf, "Incorrect password");
-    else if (err == SEC_ERROR_BAD_SIGNATURE)
-	sprintf(SECUErrorBuf, "Bad signature");
-    else if (err == SEC_ERROR_EXPIRED_CERTIFICATE)
-	sprintf(SECUErrorBuf, "Expired certificate");
-    else if (err == SEC_ERROR_EXTENSION_VALUE_INVALID)
-	sprintf(SECUErrorBuf, "Invalid extension value");
-    else if (err == SEC_ERROR_INPUT_LEN)
-	sprintf(SECUErrorBuf, "Problem with input length");
-    else if (err == SEC_ERROR_INVALID_ALGORITHM)
-	sprintf(SECUErrorBuf, "Invalid algorithm");
-    else if (err == SEC_ERROR_INVALID_ARGS)
-	sprintf(SECUErrorBuf, "Invalid arguments");
-    else if (err == SEC_ERROR_INVALID_AVA)
-	sprintf(SECUErrorBuf, "Invalid AVA");
-    else if (err == SEC_ERROR_INVALID_TIME)
-	sprintf(SECUErrorBuf, "Invalid time");
-    else if (err == SEC_ERROR_IO)
-	sprintf(SECUErrorBuf, "Security I/O error");
-    else if (err == SEC_ERROR_LIBRARY_FAILURE)
-	sprintf(SECUErrorBuf, "Library failure");
-    else if (err == SEC_ERROR_NO_MEMORY)
-	sprintf(SECUErrorBuf, "Out of memory");
-    else if (err == SEC_ERROR_OLD_CRL)
-	sprintf(SECUErrorBuf, "CRL is older than the current one");
-    else if (err == SEC_ERROR_OUTPUT_LEN)
-	sprintf(SECUErrorBuf, "Problem with output length");
-    else if (err == SEC_ERROR_UNKNOWN_ISSUER)
-	sprintf(SECUErrorBuf, "Unknown issuer");
-    else if (err == SEC_ERROR_UNTRUSTED_CERT)
-	sprintf(SECUErrorBuf, "Untrusted certificate");
-    else if (err == SEC_ERROR_UNTRUSTED_ISSUER)
-	sprintf(SECUErrorBuf, "Untrusted issuer");
-    else if (err == SSL_ERROR_BAD_CERTIFICATE)
-	sprintf(SECUErrorBuf, "Bad certificate");
-    else if (err == SSL_ERROR_BAD_CLIENT)
-	sprintf(SECUErrorBuf, "Bad client");
-    else if (err == SSL_ERROR_BAD_SERVER)
-	sprintf(SECUErrorBuf, "Bad server");
-    else if (err == SSL_ERROR_EXPORT_ONLY_SERVER)
-	sprintf(SECUErrorBuf, "Export only server");
-    else if (err == SSL_ERROR_NO_CERTIFICATE)
-	sprintf(SECUErrorBuf, "No certificate");
-    else if (err == SSL_ERROR_NO_CYPHER_OVERLAP)
-	sprintf(SECUErrorBuf, "No cypher overlap");
-    else if (err == SSL_ERROR_UNSUPPORTED_CERTIFICATE_TYPE)
-	sprintf(SECUErrorBuf, "Unsupported certificate type");
-    else if (err == SSL_ERROR_UNSUPPORTED_VERSION)
-	sprintf(SECUErrorBuf, "Unsupported version");
-    else if (err == SSL_ERROR_US_ONLY_SERVER)
-	sprintf(SECUErrorBuf, "U.S. only server");
-    else if (err == PR_IO_ERROR)
-	sprintf(SECUErrorBuf, "I/O error");
-
-    else if (err == SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE)
-        sprintf (SECUErrorBuf, "Expired Issuer Certificate");
-    else if (err == SEC_ERROR_REVOKED_CERTIFICATE)
-        sprintf (SECUErrorBuf, "Revoked certificate");
-    else if (err == SEC_ERROR_NO_KEY)
-        sprintf (SECUErrorBuf, "No private key in database for this cert");
-    else if (err == SEC_ERROR_CERT_NOT_VALID)
-        sprintf (SECUErrorBuf, "Certificate is not valid");
-    else if (err == SEC_ERROR_EXTENSION_NOT_FOUND)
-        sprintf (SECUErrorBuf, "Certificate extension was not found");
-    else if (err == SEC_ERROR_EXTENSION_VALUE_INVALID)
-        sprintf (SECUErrorBuf, "Certificate extension value invalid");
-    else if (err == SEC_ERROR_CA_CERT_INVALID)
-        sprintf (SECUErrorBuf, "Issuer certificate is invalid");
-    else if (err == SEC_ERROR_CERT_USAGES_INVALID)
-        sprintf (SECUErrorBuf, "Certificate usages is invalid");
-    else if (err == SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION)
-        sprintf (SECUErrorBuf, "Certificate has unknown critical extension");
-    else if (err == SEC_ERROR_PKCS7_BAD_SIGNATURE)
-        sprintf (SECUErrorBuf, "Bad PKCS7 signature");
-    else if (err == SEC_ERROR_INADEQUATE_KEY_USAGE)
-        sprintf (SECUErrorBuf, "Certificate not approved for this operation");
-    else if (err == SEC_ERROR_INADEQUATE_CERT_TYPE)
-        sprintf (SECUErrorBuf, "Certificate not approved for this operation");
-
-    return SECUErrorBuf;
-}
-
-char *
-SECU_ErrorString(int16 err)
-{
-    char *error_string;
-
-    *SECUErrorBuf = 0;
-    SECU_ErrorStringRaw (err);
-
-    if (*SECUErrorBuf == 0) { 
-	error_string = SECU_GetString(err);
-	if (error_string == NULL || *error_string == '\0') 
-	    sprintf(SECUErrorBuf, "No error string found for %d.",  err);
-	else
-	    return error_string;
-    }
-
-    return SECUErrorBuf;
 }
 
 
