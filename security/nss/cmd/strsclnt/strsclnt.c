@@ -280,7 +280,7 @@ mySSLAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
 static SECStatus
 myBadCertHandler( void *arg, PRFileDesc *fd)
 {
-    int err = PR_GetError();
+    PRErrorCode err = PR_GetError();
     if (!MakeCertOK)
 	fprintf(stderr, 
 	    "strsclnt: -- SSL: Server Certificate Invalid, err %d.\n%s\n", 

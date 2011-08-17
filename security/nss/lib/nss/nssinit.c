@@ -41,9 +41,11 @@
 #include <ctype.h>
 #include <string.h>
 #include "seccomon.h"
+#include "prerror.h"
 #include "prinit.h"
 #include "prprf.h"
 #include "prmem.h"
+#include "prtypes.h"
 #include "cert.h"
 #include "key.h"
 #include "secmod.h"
@@ -51,7 +53,9 @@
 #include "nss.h"
 #include "pk11func.h"
 #include "secerr.h"
+#include "errstrs.h"
 #include "nssbase.h"
+#include "nssutil.h"
 #include "pkixt.h"
 #include "pkix.h"
 #include "pkix_tools.h"
@@ -377,6 +381,7 @@ nss_InitModules(const char *configdir, const char *certPrefix,
 		PRBool isContextInit)
 {
     SECStatus rv = SECFailure;
+    PRStatus status = PR_SUCCESS;
     char *moduleSpec = NULL;
     char *flags = NULL;
     char *lconfigdir = NULL;
@@ -388,6 +393,12 @@ nss_InitModules(const char *configdir, const char *certPrefix,
     char *lupdKeyPrefix = NULL;
     char *lupdateID = NULL;
     char *lupdateName = NULL;
+
+    status = NSS_InitializePRErrorTable();
+    if (status != PR_SUCCESS) {
+	PORT_SetError(status);
+	return SECFailure;
+    }
 
     flags = nss_makeFlags(readOnly,noCertDB,noModDB,forceOpen,
 					pwRequired, optimizeSpace);

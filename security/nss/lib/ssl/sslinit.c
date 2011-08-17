@@ -1,4 +1,7 @@
-/* ***** BEGIN LICENSE BLOCK *****
+/*
+ * NSS utility functions
+ *
+ * ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -14,7 +17,7 @@
  * The Original Code is the Netscape security libraries.
  *
  * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
+ * Red Hat Inc.
  * Portions created by the Initial Developer are Copyright (C) 1994-2000
  * the Initial Developer. All Rights Reserved.
  *
@@ -33,13 +36,25 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
-#include "prtypes.h"
-#include "nssutil.h"
+/* $Id$ */
 
-/* Returns a UTF-8 encoded constant error string for "errNum".
- * Returns NULL if errNum is unknown.
- */
-const char *
-SECU_Strerror(PRErrorCode errNum) {
-    return NSS_Strerror(errNum);
+#include "prtypes.h"
+#include "prinit.h"
+#include "seccomon.h"
+#include "secerr.h"
+#include "ssl.h"
+#include "sslerrstrs.h"
+
+static int ssl_inited = 0;
+
+SECStatus
+ssl_Init(void)
+{
+    if (!ssl_inited) {
+	if (ssl_InitializePRErrorTable() == PR_FAILURE) {
+	   return (SEC_ERROR_NO_MEMORY);
+	}
+	ssl_inited = 1;
+    }
+    return SECSuccess;
 }

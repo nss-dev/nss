@@ -14,8 +14,8 @@
  * The Original Code is the Netscape security libraries.
  *
  * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1994-2000
+ * Red Hat, Inc
+ * Portions created by the Initial Developer are Copyright (C) 2009
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -33,13 +33,34 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
-#include "prtypes.h"
+#include "prerror.h"
+#include "sslerr.h"
+#include "prinit.h"
 #include "nssutil.h"
+#include "ssl.h"
+#include "sslerrstrs.h"
 
-/* Returns a UTF-8 encoded constant error string for "errNum".
- * Returns NULL if errNum is unknown.
- */
-const char *
-SECU_Strerror(PRErrorCode errNum) {
-    return NSS_Strerror(errNum);
+#define ER3(name, value, str) {#name, str},
+
+static const struct PRErrorMessage ssltext[] = {
+#include "SSLerrs.h"
+    {0,0}
+};
+
+static const struct PRErrorTable ssl_et = {
+    ssltext, "sslerr", SSL_ERROR_BASE,
+        (sizeof ssltext)/(sizeof ssltext[0])
+};
+
+static PRStatus
+ssl_InitializePRErrorTableOnce(void) {
+    return PR_ErrorInstallTable(&ssl_et);
+}
+
+static PRCallOnceType once;
+
+PRStatus
+ssl_InitializePRErrorTable(void)
+{
+    return PR_CallOnce(&once, ssl_InitializePRErrorTableOnce);
 }
