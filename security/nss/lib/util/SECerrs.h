@@ -558,3 +558,7 @@ ER3(SEC_ERROR_PKCS11_DEVICE_ERROR,      		(SEC_ERROR_BASE + 169),
 
 ER3(SEC_ERROR_BAD_INFO_ACCESS_METHOD,      		(SEC_ERROR_BASE + 170),
 "Unknown information access method in certificate extension.")
+
+ER3(SEC_ERROR_CRL_IMPORT_FAILED,        		(SEC_ERROR_BASE + 171),
+"Error attempting to import a CRL.")
+
