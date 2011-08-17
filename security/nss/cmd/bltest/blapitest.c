@@ -50,7 +50,7 @@
 #include "plgetopt.h"
 #include "softoken.h"
 #include "nspr.h"
-#include "nss.h"
+#include "nssutil.h"
 #include "secoid.h"
 
 #ifdef NSS_ENABLE_ECC
@@ -78,7 +78,7 @@ char *testdir = NULL;
     if (rv) { \
 	PRErrorCode prerror = PR_GetError(); \
 	PR_fprintf(PR_STDERR, "%s: ERR %d (%s) at line %d.\n", progName, \
-                   prerror, SECU_Strerror(prerror), ln); \
+                   prerror, NSS_Strerror(prerror), ln); \
 	exit(-1); \
     }
 
