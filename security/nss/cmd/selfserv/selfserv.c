@@ -1491,18 +1491,14 @@ getBoundListenSocket(unsigned short port)
     PRStatus	       prStatus;
     PRNetAddr          addr;
     PRSocketOptionData opt;
-    PRUint16           socketDomain = PR_AF_INET;
 
-    if (PR_SetNetAddr(PR_IpAddrAny, PR_AF_INET6, port, &addr) != PR_SUCCESS) {
-	errExit("PR_SetNetAddr");
-    }
+    addr.inet.family = PR_AF_INET;
+    addr.inet.ip     = PR_INADDR_ANY;
+    addr.inet.port   = PR_htons(port);
 
-    if (PR_GetEnv("NSS_USE_SDP")) {
-        socketDomain = PR_AF_INET_SDP;
-    }
-    listen_sock = PR_OpenTCPSocket(PR_AF_INET6);
+    listen_sock = PR_NewTCPSocket();
     if (listen_sock == NULL) {
-        errExit("PR_OpenTCPSocket error");
+	errExit("PR_NewTCPSocket");
     }
 
     opt.option = PR_SockOpt_Nonblocking;
