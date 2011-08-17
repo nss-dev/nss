@@ -555,3 +555,6 @@ ER3(SEC_ERROR_PKCS11_FUNCTION_FAILED,      		(SEC_ERROR_BASE + 168),
 
 ER3(SEC_ERROR_PKCS11_DEVICE_ERROR,      		(SEC_ERROR_BASE + 169),
 "A PKCS #11 module returned CKR_DEVICE_ERROR, indicating that a problem has occurred with the token or slot.")
+
+ER3(SEC_ERROR_BAD_INFO_ACCESS_METHOD,      		(SEC_ERROR_BASE + 170),
+"Unknown information access method in certificate extension.")
