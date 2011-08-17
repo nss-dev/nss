@@ -399,3 +399,6 @@ ER3(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED,       (SSL_ERROR_BASE + 112),
 
 ER3(SSL_ERROR_UNSAFE_NEGOTIATION,              (SSL_ERROR_BASE + 113),
 "Peer attempted old style (potentially vulnerable) handshake.")
+
+ER3(SSL_ERROR_RX_UNEXPECTED_UNCOMPRESSED_RECORD, (SSL_ERROR_BASE + 114),
+"SSL received an unexpected uncompressed record.")
