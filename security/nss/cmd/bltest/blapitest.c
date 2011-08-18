@@ -78,7 +78,7 @@ char *testdir = NULL;
     if (rv) { \
 	PRErrorCode prerror = PR_GetError(); \
 	PR_fprintf(PR_STDERR, "%s: ERR %d (%s) at line %d.\n", progName, \
-                   prerror, NSS_Strerror(prerror), ln); \
+	prerror, NSS_Strerror(prerror,formatSimple), ln); \
 	exit(-1); \
     }
 

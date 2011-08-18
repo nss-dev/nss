@@ -41,6 +41,7 @@
 #include "prtypes.h"
 #include "prlog.h"
 #include "plstr.h"
+#include "nssutil.h"
 #include <string.h>
 
 #define ER3(name, value, str) {#name, str},
@@ -72,9 +73,9 @@ NSS_InitializePRErrorTable(void)
  * Returns NULL if either initialization of the error tables
  * or formatting fails due to insufficient memory. 
  *
- * This is the simplet common function that the others call.
- * It is thread safe and format the stringized error constant.
- * 
+ * This is the simpler common function that the others call.
+ * It is thread safe and does not preappend anything to the
+ * mapped error string.
  */
 static char *
 nss_Strerror(PRErrorCode errNum)
@@ -98,19 +99,32 @@ static char ebuf[EBUFF_SIZE];
 
 /* Returns a UTF-8 encoded constant error string for "errNum".
  * Returns NULL if either initialization of the error tables
- * or formatting fails due to insufficient memory. 
+ * or formatting fails due to insufficient memory.
+ *
+ * The format argument indicates whether extra error information
+ * is desired. This is useful when localizations are not yet
+ * available and the mapping would return nothing for a locale. 
+ *
+ * Specify formatSimple to get just the error string as mapped.
+ * Specify formatIncludeErrorCode to format the error code 
+ * numeric value plus a bracketed stringized error name
+ * preappended to the mapped error string. 
+ * 
+ * Additional formatting options may be added in teh future
  *
  * This string must not be modified by the application, but may be modified by
  * a subsequent call to NSS_Perror() or NSS_Strerror().
  */
 char *
-NSS_Strerror(PRErrorCode errNum)
+NSS_Strerror(PRErrorCode errNum, ReportFormatType format)
 {
     PRUint32 count;
     char *errname = (char *) PR_ErrorToName(errNum);
     char *errstr = nss_Strerror(errNum);
 
     if (!errstr) return NULL;
+
+    if (format == formatSimple) return errstr;
 
     count = PR_snprintf(ebuf, EBUFF_SIZE, "[%d %s] %s",
 	errNum, errname, errstr);
@@ -126,9 +140,9 @@ NSS_Strerror(PRErrorCode errNum)
  * returned should be freed with PR_smprintf_free.
  */
 char *
-NSS_StrerrorTS(PRErrorCode errNum)
+NSS_StrerrorTS(PRErrorCode errNum, ReportFormatType format)
 {
-    char *errstr = NSS_Strerror(errNum);
+    char *errstr = NSS_Strerror(errNum, format);
 
     return PR_smprintf("[%d %s] %s",
 	errNum, PR_ErrorToName(errNum), errstr ? errstr : "");
@@ -147,7 +161,7 @@ NSS_StrerrorTS(PRErrorCode errNum)
  * NSS_Perror is partially modeled after the posix function perror.
  */
 void
-NSS_Perror(const char *s)
+NSS_Perror(const char *s, ReportFormatType format)
 {
     PRErrorCode err;
     char *errString;
@@ -157,7 +171,7 @@ NSS_Perror(const char *s)
     }
 
     err = PORT_GetError();
-    errString = NSS_Strerror(err);
+    errString = NSS_Strerror(err, format);
 
     fprintf(stderr, "%s: ", s);
 

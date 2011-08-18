@@ -419,7 +419,7 @@ Pk11Install_DoInstall(char *jarFile, const char *installDir,
 			error(PK11_INSTALL_JAR_ERROR, jarFile, JAR_get_error(status));
 		} else {
 			error(PK11_INSTALL_JAR_ERROR, jarFile,
-			  mySECU_ErrorString((int16) PORT_GetError()) );
+			  mySECU_ErrorString(PORT_GetError()));
 		}
 		ret=PK11_INSTALL_JAR_ERROR;
 		goto loser;
@@ -471,7 +471,7 @@ Pk11Install_DoInstall(char *jarFile, const char *installDir,
 			error(PK11_INSTALL_JAR_EXTRACT, installer, JAR_get_error(status));
 		} else {
 			error(PK11_INSTALL_JAR_EXTRACT, installer,
-			  mySECU_ErrorString((int16) PORT_GetError()) );
+			  mySECU_ErrorString(PORT_GetError()));
 		}
 		ret = PK11_INSTALL_JAR_EXTRACT;
 		goto loser;
@@ -693,7 +693,7 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
                   JAR_get_error(status));
 			} else {
 				error(PK11_INSTALL_JAR_EXTRACT, file->jarPath,
-				  mySECU_ErrorString((int16) PORT_GetError()) );
+				  mySECU_ErrorString(PORT_GetError()));
 			}
 			ret=PK11_INSTALL_JAR_EXTRACT;
 			goto loser;
