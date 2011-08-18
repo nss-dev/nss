@@ -59,6 +59,12 @@
 #define NSSUTIL_VBUILD   0
 #define NSSUTIL_BETA     PR_TRUE
 
+typedef enum {
+    formatSimple = 0,
+    formatIncludeErrorCode
+} ReportFormatType;
+    
+
 SEC_BEGIN_PROTOS
 
 /*
@@ -73,11 +79,22 @@ NSS_InitializePRErrorTable(void);
  * Returns NULL if either initialization of the error tables
  * or formatting fails due to insufficient memory.
  *
+ * The format argument indicates whether extra error information
+ * is desired. This is useful when localizations are not yet
+ * available and the mapping would return nothing for a locale. 
+ *
+ * Specify formatSimple to get just the error string as mapped.
+ * Specify formatIncludeErrorCode to format the error code 
+ * numeric value plus a bracketed stringized error name
+ * preappended to the mapped error string. 
+ * 
+ * Additional formatting options may be added in teh future
+ *
  * This string must not be modified by the application, but may be modified by
  * a subsequent call to NSS_Perror() or NSS_Strerror().
  */
 extern char *
-NSS_Strerror(PRErrorCode errNum);
+NSS_Strerror(PRErrorCode errNum, ReportFormatType format);
 
 /* NSS_StrerrorTS is a thread safe version of NSS_Strerror.
  * It formats output into a buffer allocated at run time.
@@ -85,7 +102,7 @@ NSS_Strerror(PRErrorCode errNum);
  * returned should be freed with PR_smprintf_free.
  */
 extern char *
-NSS_StrerrorTS(PRErrorCode errNum);
+NSS_StrerrorTS(PRErrorCode errNum, ReportFormatType format);
 
 /* Prints an error message on the standard error output, describing the last
  * error encountered during a call to an NSS library function.
@@ -98,7 +115,7 @@ NSS_StrerrorTS(PRErrorCode errNum);
  *  followed by a newline.
  */
 extern void
-NSS_Perror(const char *s);
+NSS_Perror(const char *s, ReportFormatType format);
 
 SEC_END_PROTOS
 
