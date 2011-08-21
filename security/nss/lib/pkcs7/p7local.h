@@ -167,12 +167,6 @@ extern SECStatus sec_PKCS7Encrypt (sec_PKCS7CipherObject *obj,
 				   unsigned int input_len,
 				   PRBool final);
 
-/* return the correct kea template based on the template selector. skipjack
- * does not have the extra IV.
- */
-const SEC_ASN1Template * 
-sec_pkcs7_get_kea_template(SECKEATemplateSelector whichTemplate);
-
 /************************************************************************/
 SEC_END_PROTOS
 

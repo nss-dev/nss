@@ -215,11 +215,6 @@ NSS_CMSSignerInfo_Sign(NSSCMSSignerInfo *signerinfo, SECItem *digest,
       SECOID_DestroyAlgorithmID(&freeAlgID, PR_FALSE);
     }
 
-    /* Fortezza MISSI have weird signature formats.  
-     * Map them to standard DSA formats 
-     */
-    pubkAlgTag = PK11_FortezzaMapSig(pubkAlgTag);
-
     if (signerinfo->authAttr != NULL) {
 	SECOidTag signAlgTag;
 	SECItem encoded_attrs;
@@ -784,8 +779,7 @@ NSS_CMSSignerInfo_AddSMIMECaps(NSSCMSSignerInfo *signerinfo)
 	goto loser;
 
     /* create new signing time attribute */
-    if (NSS_SMIMEUtil_CreateSMIMECapabilities(poolp, smimecaps,
-			    PK11_FortezzaHasKEA(signerinfo->cert)) != SECSuccess)
+    if (NSS_SMIMEUtil_CreateSMIMECapabilities(poolp, smimecaps) != SECSuccess)
 	goto loser;
 
     if ((attr = NSS_CMSAttribute_Create(poolp, SEC_OID_PKCS9_SMIME_CAPABILITIES, smimecaps, PR_TRUE)) == NULL)
