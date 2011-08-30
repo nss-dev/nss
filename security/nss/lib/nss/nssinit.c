@@ -1154,6 +1154,7 @@ NSS_Shutdown(void)
     }
     rv = nss_Shutdown();
     PZ_Unlock(nssInitLock);
+    return rv;
 }
 
 /*
