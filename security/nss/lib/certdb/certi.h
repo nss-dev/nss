@@ -397,5 +397,19 @@ cert_GetSubjectAltNameList(CERTCertificate *cert, PRArenaPool *arena);
 PRUint32
 cert_CountDNSPatterns(CERTGeneralName *firstName);
 
+/*
+ * returns the trust status of the leaf certificate based on usage.
+ * If the leaf is explicitly untrusted, this function will fail and 
+ * failedFlags will be set to the trust bit value that lead to the failure.
+ * If the leaf is trusted, isTrusted is set to true and the function returns 
+ * SECSuccess. This function does not check if the cert is fit for a 
+ * particular usage.
+ */
+SECStatus
+cert_CheckLeafTrust(CERTCertificate *cert,
+                    SECCertUsage usage, 
+                    unsigned int *failedFlags,
+                    PRBool *isTrusted);
+
 #endif /* _CERTI_H_ */
 
