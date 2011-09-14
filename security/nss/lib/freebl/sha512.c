@@ -571,12 +571,6 @@ SHA224_Begin(SHA224Context *ctx)
     memcpy(H, H224, sizeof H224);
 }
 
-static void
-SHA224_Compress(SHA224Context *ctx)
-{
-    SHA256_Compress(ctx);
-}
-
 void
 SHA224_Update(SHA224Context *ctx, const unsigned char *input,
 		    unsigned int inputLen)
