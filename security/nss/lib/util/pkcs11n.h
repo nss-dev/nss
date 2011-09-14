@@ -343,7 +343,7 @@ typedef CK_ULONG          CK_TRUST;
 
 /*
  * old definitions. They still exist, but the plain meaning of the
- * labels have never been accurate to was was really implemented.
+ * labels have never been accurate to what was really implemented.
  * The new labels correctly reflect what the values effectively mean.
  */
 #if __GNUC__ > 3
