@@ -40,11 +40,9 @@
 
 #include "secitem.h"
 #include "blapi.h"
-#include "nss.h"
 #include "secerr.h"
 #include "secder.h"
 #include "secdig.h"
-#include "keythi.h"
 #include "ec.h"
 #include "hasht.h"
 #include "lowkeyi.h"
@@ -4235,7 +4233,7 @@ loser:
         PQG_DestroyVerify(vfy);
         vfy = NULL;
     }
-    if (dsaKey) {
+    if (dsakey) {
         PORT_FreeArena(dsakey->params.arena, PR_TRUE);
         dsakey = NULL;
     }
@@ -4940,7 +4938,7 @@ loser:
 int main(int argc, char **argv)
 {
     if (argc < 2) exit (-1);
-    NSS_NoDB_Init(NULL);
+
     /*************/
     /*   TDEA    */
     /*************/
