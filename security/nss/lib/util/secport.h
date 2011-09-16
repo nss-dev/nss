@@ -149,6 +149,17 @@ SEC_END_PROTOS
 
 #define PORT_Atoi(buff)	(int)strtol(buff, NULL, 10)
 
+/* Returns a UTF-8 encoded constant error string for "errNum".
+ * Returns NULL if initialization of the error tables fails
+ * due to insufficient memory.
+ *
+ * This string must not be modified by the application, but may be
+ * modified by a subsequent call to PORT_ErrorToString.
+ */
+#define PORT_ErrorToString(err) PR_ErrorToString(err, PR_LANGUAGE_I_DEFAULT)
+
+#define PORT_ErrorToName PR_ErrorToName
+
 #define PORT_Memcmp 	memcmp
 #define PORT_Memcpy 	memcpy
 #ifndef SUNOS4
