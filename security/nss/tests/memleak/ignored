@@ -86,5 +86,5 @@ selfserv/main/PORT_Strdup_Util**
 **/FREEBL_InitStubs/dlopen@@GLIBC_2.1/**
 
 #679524
-**/nss_init/PR_CallOnce/nss_doLockInit/**
+**/nss_Init/PR_CallOnce/nss_doLockInit/**
 
