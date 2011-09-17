@@ -40,7 +40,7 @@
 
 #include "secitem.h"
 #include "blapi.h"
-#include "nss.h"
+#include "nssutil.h"
 #include "secerr.h"
 #include "secder.h"
 #include "secdig.h"
