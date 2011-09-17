@@ -1972,10 +1972,10 @@ static CurveNameTagPair nameTagPair[] =
   { "sect131r2", SEC_OID_SECG_EC_SECT131R2},
 };
 
-static SECKEYECParams * 
+static SECItem * 
 getECParams(const char *curve)
 {
-    SECKEYECParams *ecparams;
+    SECItem *ecparams;
     SECOidData *oidData = NULL;
     SECOidTag curveOidTag = SEC_OID_UNKNOWN; /* default */
     int i, numCurves;
@@ -2046,7 +2046,7 @@ ecdsa_keypair_test(char *reqfn)
 	if (buf[0] == '[') {
 	    const char *src;
 	    char *dst;
-	    SECKEYECParams *encodedparams;
+	    SECItem *encodedparams;
 
 	    src = &buf[1];
 	    dst = &curve[4];
@@ -2152,7 +2152,7 @@ ecdsa_pkv_test(char *reqfn)
 	if (buf[0] == '[') {
 	    const char *src;
 	    char *dst;
-	    SECKEYECParams *encodedparams;
+	    SECItem *encodedparams;
 
 	    src = &buf[1];
 	    dst = &curve[4];
@@ -2273,7 +2273,7 @@ ecdsa_siggen_test(char *reqfn)
 	if (buf[0] == '[') {
 	    const char *src;
 	    char *dst;
-	    SECKEYECParams *encodedparams;
+	    SECItem *encodedparams;
 
 	    src = &buf[1];
 	    dst = &curve[4];
@@ -2416,7 +2416,7 @@ ecdsa_sigver_test(char *reqfn)
 	if (buf[0] == '[') {
 	    const char *src;
 	    char *dst;
-	    SECKEYECParams *encodedparams;
+	    SECItem *encodedparams;
 	    ECParams *ecparams;
 
 	    src = &buf[1];
