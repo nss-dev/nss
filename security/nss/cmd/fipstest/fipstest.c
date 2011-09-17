@@ -47,6 +47,12 @@
 #include "ec.h"
 #include "hasht.h"
 #include "lowkeyi.h"
+
+/* FIXME Typedef copied from the higher level keythi.h.
+ * It should be moved to an approriate lower level header.
+ */
+typedef SECItem SECKEYECParams;
+
 #include "softoken.h"
 
 #if 0
