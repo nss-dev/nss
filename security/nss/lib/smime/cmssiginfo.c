@@ -530,7 +530,28 @@ NSS_CMSSignerInfo_GetVerificationStatus(NSSCMSSignerInfo *signerinfo)
 SECOidData *
 NSS_CMSSignerInfo_GetDigestAlg(NSSCMSSignerInfo *signerinfo)
 {
-    return SECOID_FindOID (&(signerinfo->digestAlg.algorithm));
+    SECOidData *algdata;
+    SECOidTag   algtag;
+
+    algdata = SECOID_FindOID (&(signerinfo->digestAlg.algorithm));
+    if (algdata == NULL) {
+	return algdata;
+    }
+    /* Windows may have given us a signer algorithm oid instead of a digest 
+     * algorithm oid. This call will map to a signer oid to a digest one, 
+     * otherwise it leaves the oid alone and let the chips fall as they may
+     * if it's not a digest oid.
+     */
+    algtag = NSS_CMSUtil_MapSignAlgs(algdata->offset);
+    if (algtag != algdata->offset) {
+	/* if the tags don't match, then we must have received a signer 
+	 * algorithID. Now we need to get the oid data for the digest
+	 * oid, which the rest of the code is expecting */
+	algdata = SECOID_FindOIDByTag(algtag);
+    }
+
+    return algdata;
+
 }
 
 SECOidTag
@@ -543,7 +564,7 @@ NSS_CMSSignerInfo_GetDigestAlgTag(NSSCMSSignerInfo *signerinfo)
         return SEC_OID_UNKNOWN;
     }
 
-    algdata = SECOID_FindOID (&(signerinfo->digestAlg.algorithm));
+    algdata = NSS_CMSSignerInfo_GetDigestAlg(signerinfo);
     if (algdata != NULL)
 	return algdata->offset;
     else
