@@ -348,6 +348,12 @@ NSS_CMSAttributeArray_SetAttr(PLArenaPool *poolp, NSSCMSAttribute ***attrs, SECO
 extern SECStatus
 NSS_CMSSignedData_AddTempCertificate(NSSCMSSignedData *sigd, CERTCertificate *cert);
 
+/*
+ * local function to handle compatibility issues
+ * by mapping a signature algorithm back to a digest.
+ */
+SECOidTag NSS_CMSUtil_MapSignAlgs(SECOidTag signAlg);
+
 
 /************************************************************************/
 
