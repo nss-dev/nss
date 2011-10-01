@@ -185,6 +185,7 @@ static sslOptions ssl_defaults = {
     2,          /* enableRenegotiation (default: requires extension) */
     PR_FALSE,   /* requireSafeNegotiation */
     PR_FALSE,   /* enableFalseStart   */
+    PR_TRUE     /* cbcRandomIV        */
 };
 
 sslSessionIDLookupFunc  ssl_sid_lookup;
@@ -735,6 +736,10 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	ss->opt.enableFalseStart = on;
 	break;
 
+      case SSL_CBC_RANDOM_IV:
+	ss->opt.cbcRandomIV = on;
+	break;
+
       default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	rv = SECFailure;
@@ -799,6 +804,7 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
     case SSL_REQUIRE_SAFE_NEGOTIATION: 
                                   on = ss->opt.requireSafeNegotiation; break;
     case SSL_ENABLE_FALSE_START:  on = ss->opt.enableFalseStart;   break;
+    case SSL_CBC_RANDOM_IV:       on = ss->opt.cbcRandomIV;        break;
 
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -852,6 +858,7 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
                                   on = ssl_defaults.requireSafeNegotiation; 
 				  break;
     case SSL_ENABLE_FALSE_START:  on = ssl_defaults.enableFalseStart;   break;
+    case SSL_CBC_RANDOM_IV:       on = ssl_defaults.cbcRandomIV;        break;
 
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -1005,6 +1012,10 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 
       case SSL_ENABLE_FALSE_START:
 	ssl_defaults.enableFalseStart = on;
+	break;
+
+      case SSL_CBC_RANDOM_IV:
+	ssl_defaults.cbcRandomIV = on;
 	break;
 
       default:
@@ -2347,6 +2358,11 @@ ssl_SetDefaultsFromEnvironment(void)
 	    ssl_defaults.requireSafeNegotiation = PR_TRUE;
 	    SSL_TRACE(("SSL: requireSafeNegotiation set to %d", 
 	                PR_TRUE));
+	}
+	ev = getenv("NSS_SSL_CBC_RANDOM_IV");
+	if (ev && ev[0] == '0') {
+	    ssl_defaults.cbcRandomIV = PR_FALSE;
+	    SSL_TRACE(("SSL: cbcRandomIV set to 0"));
 	}
     }
 #endif /* NSS_HAVE_GETENV */

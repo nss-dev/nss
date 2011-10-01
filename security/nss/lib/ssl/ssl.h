@@ -140,6 +140,34 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 /* bits. The advantage of False Start is that it saves a round trip for     */
 /* client-speaks-first protocols when performing a full handshake.          */
 
+/* For SSL 3.0 and TLS 1.0, by default we prevent chosen plaintext attacks
+ * on SSL CBC mode cipher suites (see RFC 4346 Section F.3) by splitting
+ * non-empty application_data records into two records; the first record has
+ * only the first byte of plaintext, and the second has the rest.
+ *
+ * This only prevents the attack in the sending direction; the connection may
+ * still be vulnerable to such attacks if the peer does not implement a similar
+ * countermeasure.
+ *
+ * This protection mechanism is on by default; the default can be overridden by
+ * setting NSS_SSL_CBC_RANDOM_IV=0 in the environment prior to execution,
+ * and/or by the application setting the option SSL_CBC_RANDOM_IV to PR_FALSE.
+ *
+ * The per-record IV in TLS 1.1 and later adds one block of overhead per
+ * record, whereas this hack will add at least two blocks of overhead per
+ * record, so TLS 1.1+ will always be more efficient.
+ *
+ * Other implementations (e.g. some versions of OpenSSL, in some
+ * configurations) prevent the same attack by prepending an empty
+ * application_data record to every application_data record they send; we do
+ * not do that because some implementations cannot handle empty
+ * application_data records. Also, we only split application_data records and
+ * not other types of records, because some implementations will not accept
+ * fragmented records of some other types (e.g. some versions of NSS do not
+ * accept fragmented alerts).
+ */
+#define SSL_CBC_RANDOM_IV 23
+
 #ifdef SSL_DEPRECATED_FUNCTION 
 /* Old deprecated function names */
 SSL_IMPORT SECStatus SSL_Enable(PRFileDesc *fd, int option, PRBool on);
