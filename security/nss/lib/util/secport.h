@@ -149,7 +149,7 @@ SEC_END_PROTOS
 
 #define PORT_Atoi(buff)	(int)strtol(buff, NULL, 10)
 
-/* Returns a UTF-8 encoded constant error string for "errNum".
+/* Returns a UTF-8 encoded constant error string for err.
  * Returns NULL if initialization of the error tables fails
  * due to insufficient memory.
  *
