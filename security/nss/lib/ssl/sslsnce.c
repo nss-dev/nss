@@ -1030,8 +1030,9 @@ CloseCache(cacheDesc *cache)
 	if (cache->sharedCache) {
 	    sidCacheLock *pLock = cache->sidCacheLocks;
 	    for (; locks_initialized > 0; --locks_initialized, ++pLock ) {
-		/* If everInherited is true, this shared cache was (and may 			** still be) in use by multiple processes.  We do not wish to 
-		** destroy the mutexes while they are still in use, but we do 
+		/* If everInherited is true, this shared cache was (and may
+		** still be) in use by multiple processes.  We do not wish to
+		** destroy the mutexes while they are still in use, but we do
 		** want to free mutex resources associated with this process.
 		*/
 		sslMutex_Destroy(&pLock->mutex,

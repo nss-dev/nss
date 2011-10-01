@@ -426,6 +426,7 @@ sslMutex_Destroy(sslMutex *pMutex, PRBool processLocal)
 
     /*  multi-process mode */    
 #ifdef WINNT
+    /* on NT, get rid of the PRLock used for fibers within a process */
     retvalue = sslMutex_2LevelDestroy(pMutex);
 #endif
     
@@ -568,7 +569,7 @@ sslMutex_Destroy(sslMutex *pMutex, PRBool processLocal)
         return single_process_sslMutex_Destroy(pMutex);
     }
 
-    /* are semaphores global resources. See SEM_DESTROY(3) man page */
+    /* semaphores are global resources. See SEM_DESTROY(3) man page */
     if (processLocal) {
 	return SECSuccess;
     }
