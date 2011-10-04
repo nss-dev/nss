@@ -153,8 +153,7 @@ SEC_END_PROTOS
  * Returns NULL if initialization of the error tables fails
  * due to insufficient memory.
  *
- * This string must not be modified by the application, but may be
- * modified by a subsequent call to PORT_ErrorToString.
+ * This string must not be modified by the application.
  */
 #define PORT_ErrorToString(err) PR_ErrorToString(err, PR_LANGUAGE_I_DEFAULT)
 
