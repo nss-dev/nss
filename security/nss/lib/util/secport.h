@@ -155,7 +155,7 @@ SEC_END_PROTOS
  *
  * This string must not be modified by the application.
  */
-#define PORT_ErrorToString(err) PR_ErrorToString(err, PR_LANGUAGE_I_DEFAULT)
+#define PORT_ErrorToString(err) PR_ErrorToString((err), PR_LANGUAGE_I_DEFAULT)
 
 #define PORT_ErrorToName PR_ErrorToName
 
