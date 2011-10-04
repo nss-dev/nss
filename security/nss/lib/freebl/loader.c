@@ -1758,15 +1758,6 @@ JPAKE_Final(PLArenaPool * arena, const SECItem * p, const SECItem  *q,
     return (vector->p_JPAKE_Final)(arena, p, q, x2, gx4, x2s, B, K);
 }
 
-SECStatus
-MGF1(HASH_HashType hashAlg, unsigned char *mask, unsigned int maskLen,
-     const unsigned char *mgfSeed, unsigned int mgfSeedLen)
-{
-    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
-	return SECFailure;
-    return (vector->p_MGF1)(hashAlg, mask, maskLen, mgfSeed, mgfSeedLen);
-}
-
 SECStatus 
 TLS_P_hash(HASH_HashType hashAlg, const SECItem *secret, const char *label,
            SECItem *seed, SECItem *result, PRBool isFIPS)
