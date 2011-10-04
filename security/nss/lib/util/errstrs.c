@@ -63,9 +63,10 @@ nss_InitializePRErrorTableOnce(void) {
 
 static PRCallOnceType once;
 
-PRStatus
+SECStatus
 NSS_InitializePRErrorTable(void)
 {
-    return PR_CallOnce(&once, nss_InitializePRErrorTableOnce);
+    return (PR_SUCCESS == PR_CallOnce(&once, nss_InitializePRErrorTableOnce))
+		? SECSuccess : SECFailure;
 }
 

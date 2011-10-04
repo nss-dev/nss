@@ -41,7 +41,6 @@
 #define __nssutil_h_
 
 #ifndef RC_INVOKED
-#include "prerror.h"
 #include "seccomon.h"
 #endif
 
@@ -66,7 +65,7 @@ SEC_BEGIN_PROTOS
  */
 extern const char *NSSUTIL_GetVersion(void);
 
-extern PRStatus
+extern SECStatus
 NSS_InitializePRErrorTable(void);
 
 SEC_END_PROTOS
