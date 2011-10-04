@@ -53,7 +53,6 @@
 #include "nss.h"
 #include "pk11func.h"
 #include "secerr.h"
-#include "errstrs.h"
 #include "nssbase.h"
 #include "nssutil.h"
 #include "pkixt.h"
