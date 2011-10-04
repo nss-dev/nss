@@ -1257,13 +1257,6 @@ PRNGTEST_Generate(PRUint8 *bytes, unsigned int bytes_len,
 extern SECStatus
 PRNGTEST_Uninstantiate(void);
 
-/*
- * Mask generation function MGF1
- */
-extern SECStatus
-MGF1(HASH_HashType hashAlg, unsigned char *mask, unsigned int maskLen,
-     const unsigned char *mgfSeed, unsigned int mgfSeedLen);
-
 /* Generate PQGParams and PQGVerify structs.
  * Length of seed and length of h both equal length of P. 
  * All lengths are specified by "j", according to the table above.
