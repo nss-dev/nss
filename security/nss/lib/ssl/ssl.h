@@ -100,7 +100,7 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
                                		  /* (off by default) */
 #define SSL_HANDSHAKE_AS_SERVER		6 /* force connect to hs as server */
                                		  /* (off by default) */
-#define SSL_ENABLE_SSL2			7 /* enable ssl v2 (on by default) */
+#define SSL_ENABLE_SSL2			7 /* enable ssl v2 (off by default) */
 #define SSL_ENABLE_SSL3		        8 /* enable ssl v3 (on by default) */
 #define SSL_NO_CACHE		        9 /* don't use the session cache */
                     		          /* (off by default) */
@@ -109,7 +109,7 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 #define SSL_ENABLE_FDX                 11 /* permit simultaneous read/write */
                                           /* (off by default) */
 #define SSL_V2_COMPATIBLE_HELLO        12 /* send v3 client hello in v2 fmt */
-                                          /* (on by default) */
+                                          /* (off by default) */
 #define SSL_ENABLE_TLS		       13 /* enable TLS (on by default) */
 #define SSL_ROLLBACK_DETECTION         14 /* for compatibility, default: on */
 #define SSL_NO_STEP_DOWN               15 /* Disable export cipher suites   */
