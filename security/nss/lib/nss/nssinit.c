@@ -761,6 +761,11 @@ loser:
 	   PR_smprintf_free(configStrings);
 	}
     }
+    PZ_Lock(nssInitLock);
+    nssIsInInit--;
+    /* We failed to init, allow one to move forward */
+    PZ_NotifyCondVar(nssInitCondition);
+    PZ_Unlock(nssInitLock);
     return SECFailure;
 }
 
