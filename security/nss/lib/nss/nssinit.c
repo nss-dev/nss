@@ -540,13 +540,13 @@ nss_doLockInit(void)
 {
     nssInitLock = PZ_NewLock(nssILockOther);
     if (nssInitLock == NULL) {
-	return (PRStatus) SECFailure;
+	return PR_FAILURE;
     }
     nssInitCondition = PZ_NewCondVar(nssInitLock);
     if (nssInitCondition == NULL) {
-	return (PRStatus) SECFailure;
+	return PR_FAILURE;
     }
-    return (PRStatus) SECSuccess;
+    return PR_SUCCESS;
 }
 
 
@@ -577,10 +577,10 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 	return SECSuccess;
     }
   
-    /* make sure our locks are initialized one and only one time */ 
-    rv = PR_CallOnce(&nssInitOnce, nss_doLockInit);
-    if (rv != SECSuccess) {
-	return rv;
+    /* make sure our lock and condition variable are initialized one and only
+     * one time */ 
+    if (PR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
+	return SECFailure;
     }
 
     /*
@@ -597,7 +597,6 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 	/* once we've completed basic initialization, we can allow more than 
 	 * one process initialize NSS at a time. */
     }
-    /* get the current value */
     nssIsInInit++;
     PZ_Unlock(nssInitLock);
 
