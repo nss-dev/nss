@@ -83,7 +83,6 @@
 #include "ssl.h"
 #include "sslimpl.h"
 #include "sslproto.h"
-#include "sslutil.h"
 #include "pk11func.h"
 #include "base64.h"
 #include "keyhi.h"

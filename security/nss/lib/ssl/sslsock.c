@@ -47,7 +47,6 @@
 #include "ssl.h"
 #include "sslimpl.h"
 #include "sslproto.h"
-#include "sslutil.h"
 #include "nspr.h"
 #include "private/pprio.h"
 #include "blapi.h"
