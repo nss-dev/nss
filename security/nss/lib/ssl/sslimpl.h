@@ -1151,6 +1151,10 @@ extern sslSessionIDUncacheFunc ssl_sid_uncache;
 
 SEC_BEGIN_PROTOS
 
+/* Internal initialization and installation of the SSL error tables */
+extern SECStatus ssl_Init(void);
+extern SECStatus ssl_InitializePRErrorTable(void);
+
 /* Implementation of ops for default (non socks, non secure) case */
 extern int ssl_DefConnect(sslSocket *ss, const PRNetAddr *addr);
 extern PRFileDesc *ssl_DefAccept(sslSocket *ss, PRNetAddr *addr);
