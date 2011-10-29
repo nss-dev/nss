@@ -81,6 +81,7 @@ static SECStatus ssl3_InitState(             sslSocket *ss);
 static SECStatus ssl3_SendCertificate(       sslSocket *ss);
 static SECStatus ssl3_SendEmptyCertificate(  sslSocket *ss);
 static SECStatus ssl3_SendCertificateRequest(sslSocket *ss);
+static SECStatus ssl3_SendNextProto(         sslSocket *ss);
 static SECStatus ssl3_SendFinished(          sslSocket *ss, PRInt32 flags);
 static SECStatus ssl3_SendServerHello(       sslSocket *ss);
 static SECStatus ssl3_SendServerHelloDone(   sslSocket *ss);
@@ -5788,6 +5789,14 @@ ssl3_HandleServerHelloDone(sslSocket *ss)
     if (rv != SECSuccess) {
 	goto loser;	/* err code was set. */
     }
+
+    if (!ss->firstHsDone) {
+	rv = ssl3_SendNextProto(ss);
+	if (rv != SECSuccess) {
+	    goto loser;	/* err code was set. */
+	}
+    }
+
     rv = ssl3_SendFinished(ss, 0);
     if (rv != SECSuccess) {
 	goto loser;	/* err code was set. */
@@ -8221,6 +8230,40 @@ ssl3_ComputeTLSFinished(ssl3CipherSpec *spec,
 }
 
 /* called from ssl3_HandleServerHelloDone
+ */
+static SECStatus
+ssl3_SendNextProto(sslSocket *ss)
+{
+    SECStatus rv;
+    int padding_len;
+    static const unsigned char padding[32] = {0};
+
+    if (ss->ssl3.nextProto.len == 0)
+	return SECSuccess;
+
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
+
+    padding_len = 32 - ((ss->ssl3.nextProto.len + 2) % 32);
+
+    rv = ssl3_AppendHandshakeHeader(ss, next_proto, ss->ssl3.nextProto.len +
+						    2 + padding_len);
+    if (rv != SECSuccess) {
+	return rv;	/* error code set by AppendHandshakeHeader */
+    }
+    rv = ssl3_AppendHandshakeVariable(ss, ss->ssl3.nextProto.data,
+				      ss->ssl3.nextProto.len, 1);
+    if (rv != SECSuccess) {
+	return rv;	/* error code set by AppendHandshake */
+    }
+    rv = ssl3_AppendHandshakeVariable(ss, padding, padding_len, 1);
+    if (rv != SECSuccess) {
+	return rv;	/* error code set by AppendHandshake */
+    }
+    return rv;
+}
+
+/* called from ssl3_HandleServerHelloDone
  *             ssl3_HandleClientHello
  *             ssl3_HandleFinished
  */
@@ -8473,6 +8516,14 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 	if (doStepUp || ss->writerThread == PR_GetCurrentThread()) {
 	    flags = ssl_SEND_FLAG_FORCE_INTO_BUFFER;
 	}
+
+	if (!isServer && !ss->firstHsDone) {
+	    rv = ssl3_SendNextProto(ss);
+	    if (rv != SECSuccess) {
+		goto xmit_loser; /* err code was set. */
+	    }
+	}
+
 	rv = ssl3_SendFinished(ss, flags);
 	if (rv != SECSuccess) {
 	    goto xmit_loser;	/* err is set. */
@@ -9540,6 +9591,8 @@ ssl3_DestroySSL3Info(sslSocket *ss)
     ssl3_DestroyCipherSpec(&ss->ssl3.specs[1], PR_TRUE/*freeSrvName*/);
 
     ss->ssl3.initialized = PR_FALSE;
+
+    SECITEM_FreeItem(&ss->ssl3.nextProto, PR_FALSE);
 }
 
 /* End of ssl3con.c */
