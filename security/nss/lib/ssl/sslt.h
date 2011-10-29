@@ -203,9 +203,10 @@ typedef enum {
     ssl_ec_point_formats_xtn         = 11,
 #endif
     ssl_session_ticket_xtn           = 35,
+    ssl_next_proto_neg_xtn           = 13172,
     ssl_renegotiation_info_xtn       = 0xff01	/* experimental number */
 } SSLExtensionType;
 
-#define SSL_MAX_EXTENSIONS             5
+#define SSL_MAX_EXTENSIONS             6
 
 #endif /* __sslt_h_ */
