@@ -273,7 +273,7 @@ JPAKE_Sign(PLArenaPool * arena, const PQGParams * pqg, HASH_HashType hashType,
  * The arena is *not* optional so do not pass NULL for the arena parameter. 
  */
 SECStatus
-JPAKE_Verify(PRArenaPool * arena, const PQGParams * pqg,
+JPAKE_Verify(PLArenaPool * arena, const PQGParams * pqg,
              HASH_HashType hashType, const SECItem * signerID,
              const SECItem * peerID, const SECItem * gx,
              const SECItem * gv, const SECItem * r);
