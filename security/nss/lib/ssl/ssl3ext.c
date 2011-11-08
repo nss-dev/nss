@@ -590,7 +590,6 @@ ssl3_ClientHandleNextProtoNegoXtn(sslSocket *ss, PRUint16 ex_type,
 {
     SECStatus rv;
     unsigned char resultBuffer[255];
-    unsigned char * newData;
     SECItem result = { siBuffer, resultBuffer, 0 };
 
     if (ss->firstHsDone) {
