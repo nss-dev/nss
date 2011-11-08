@@ -82,6 +82,12 @@ ifeq ($(FREEBL_NO_DEPEND),1)
 else
 	MAPFILE_SOURCE = freebl.def
 endif
+ifdef FREEBL_USE_PRELINK
+	DEFINES += -DFREEBL_USE_PRELINK
+endif
+ifdef FREEBL_PRELINK_COMMAND
+	DEFINES +=-DFREEBL_PRELINK_COMMAND=\"$(FREEBL_PRELINK_COMMAND)\"
+endif
 # NSS_X86 means the target is a 32-bits x86 CPU architecture
 # NSS_X64 means the target is a 64-bits x64 CPU architecture
 # NSS_X86_OR_X64 means the target is either x86 or x64

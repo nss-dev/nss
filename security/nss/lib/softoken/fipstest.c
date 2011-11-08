@@ -1963,6 +1963,15 @@ sftk_fips_RNG_PowerUpSelfTest( void )
 			0x25,0x2b,0x1d,0x13,0xef,0xa6,0x87,0x96,
 			0xa3,0x7d,0x5b,0x80,0xc2,0x38,0x76,0x61,
 			0xc7,0x80,0x5d,0x0f,0x05,0x76,0x85 };
+   static const PRUint8 rng_no_reseed_result[] = {
+			0xc4,0x40,0x41,0x8c,0xbf,0x2f,0x70,0x23,
+			0x88,0xf2,0x7b,0x30,0xc3,0xca,0x1e,0xf3,
+			0xef,0x53,0x81,0x5d,0x30,0xed,0x4c,0xf1,
+			0xff,0x89,0xa5,0xee,0x92,0xf8,0xc0,0x0f,
+			0x88,0x53,0xdf,0xb6,0x76,0xf0,0xaa,0xd3,
+			0x2e,0x1d,0x64,0x37,0x3e,0xe8,0x4a,0x02,
+			0xff,0x0a,0x7f,0xe5,0xe9,0x2b,0x6d };
+
    static const PRUint8 Q[] = {
 			0x85,0x89,0x9c,0x77,0xa3,0x79,0xff,0x1a,
 			0x86,0x6f,0x2f,0x3e,0x2e,0xf9,0x8c,0x9c,
@@ -1984,6 +1993,23 @@ sftk_fips_RNG_PowerUpSelfTest( void )
    PR_STATIC_ASSERT(sizeof(rng_known_result) >= sizeof(rng_reseed_result));
    PRUint8 result[sizeof(rng_known_result)];
    PRUint8 DSAX[FIPS_DSA_SUBPRIME_LENGTH];
+
+   /********************************************/
+   /*   First test instantiate error path.     */
+   /*   In this case we supply enough entropy, */
+   /*   but not enough seed. This will trigger */
+   /*   the code that checks for a entropy     */
+   /*   source failure.                        */
+   /********************************************/
+   rng_status = PRNGTEST_Instantiate(entropy, 256/PR_BITS_PER_BYTE, 
+				     NULL, 0, NULL, 0);
+   if (rng_status == SECSuccess) {
+	return (CKR_DEVICE_ERROR);
+   }
+   if (PORT_GetError() != SEC_ERROR_NEED_RANDOM) {
+	return (CKR_DEVICE_ERROR);
+   }
+   /* we failed with the proper error code, we can continue */
 
    /********************************************/
    /* Generate random bytes with a known seed. */
@@ -2013,8 +2039,45 @@ sftk_fips_RNG_PowerUpSelfTest( void )
 	PRNGTEST_Uninstantiate();
 	return ( CKR_DEVICE_ERROR );
    }
+   /* This magic forces the reseed count to it's max count, so we can see if
+    * PRNGTEST_Generate will actually when it reaches it's count */
+   rng_status = PRNGTEST_Reseed(NULL, 0, NULL, 0);
+   if (rng_status != SECSuccess) {
+	PRNGTEST_Uninstantiate();
+	return ( CKR_DEVICE_ERROR );
+   }
+   /* This generate should now reseed */
+   rng_status = PRNGTEST_Generate(result, sizeof rng_reseed_result, NULL, 0);
+   if ( ( rng_status != SECSuccess)  ||
+	/* NOTE we fail if the result is equal to the no_reseed_result. 
+         * no_reseed_result is the value we would have gotten if we didn't
+	 * do an automatic reseed in PRNGTEST_Generate */
+        ( PORT_Memcmp( result, rng_no_reseed_result,
+                       sizeof rng_no_reseed_result ) == 0 ) ) {
+	PRNGTEST_Uninstantiate();
+	return ( CKR_DEVICE_ERROR );
+   }
+   /* make sure reseed fails when we don't supply enough entropy */
+   rng_status = PRNGTEST_Reseed(reseed_entropy, 4, NULL, 0);
+   if (rng_status == SECSuccess) {
+	PRNGTEST_Uninstantiate();
+	return ( CKR_DEVICE_ERROR );
+   }
+   if (PORT_GetError() != SEC_ERROR_NEED_RANDOM) {
+	PRNGTEST_Uninstantiate();
+	return (CKR_DEVICE_ERROR);
+   }
    rng_status = PRNGTEST_Uninstantiate();
    if (rng_status != SECSuccess) {
+	return ( CKR_DEVICE_ERROR );
+   }
+   /* make sure uninstantiate fails if the contest is not initiated (also tests
+    * if the context was cleared in the previous Uninstantiate) */
+   rng_status = PRNGTEST_Uninstantiate();
+   if (rng_status == SECSuccess) {
+	return ( CKR_DEVICE_ERROR );
+   }
+   if (PORT_GetError() != SEC_ERROR_LIBRARY_FAILURE) {
 	return ( CKR_DEVICE_ERROR );
    }
   

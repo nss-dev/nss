@@ -80,6 +80,8 @@
 #define PR_Lock  PR_Lock_stub
 #define PR_NewLock  PR_NewLock_stub
 #define PR_Open  PR_Open_stub
+#define PR_ImportFile  PR_ImportFile_stub
+#define PR_ImportPipe  PR_ImportPipe_stub
 #define PR_Read  PR_Read_stub
 #define PR_Seek  PR_Seek_stub
 #define PR_Sleep  PR_Sleep_stub

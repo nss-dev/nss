@@ -275,7 +275,7 @@ static int nsslow_GetFIPSEnabled(void) {
 
     f = fopen("/proc/sys/crypto/fips_enabled", "r");
     if (!f)
-        return 1;
+        return 0;
 
     size = fread(&d, 1, 1, f);
     fclose(f);
