@@ -3346,7 +3346,7 @@ void sha_test(char *reqfn)
     unsigned int MDlen;   /* the length of the Message Digest in Bytes  */
     unsigned int msgLen;  /* the length of the input Message in Bytes */
     unsigned char *msg = NULL; /* holds the message to digest.*/
-    size_t bufSize = 25608; /*MAX buffer size */
+    size_t bufSize = 110000; /*MAX buffer size */
     char *buf = NULL;      /* holds one line from the input REQUEST file.*/
     unsigned char seed[HASH_LENGTH_MAX];   /* max size of seed 64 bytes */
     unsigned char MD[HASH_LENGTH_MAX];     /* message digest */
@@ -3519,10 +3519,10 @@ hmac_calc(unsigned char *hmac_computed,
 void hmac_test(char *reqfn) 
 {
     unsigned int i, j;
-    size_t bufSize =      400;    /* MAX buffer size */
+    size_t bufSize =      500;    /* MAX buffer size */
     char *buf = NULL;  /* holds one line from the input REQUEST file.*/
     unsigned int keyLen;          /* Key Length */  
-    unsigned char key[200];       /* key MAX size = 184 */
+    unsigned char key[300];       /* key MAX size = 224 */
     unsigned int msgLen = 128;    /* the length of the input  */
                                   /*  Message is always 128 Bytes */
     unsigned char *msg = NULL;    /* holds the message to digest.*/
@@ -3662,7 +3662,7 @@ void hmac_test(char *reqfn)
                          msg, msgLen, hash_alg) != SECSuccess) {
                goto loser;
            }
-           fputs("MAC = ", resp);
+           fputs("Mac = ", resp);
            to_hex_str(buf, HMAC, TLen);
            fputs(buf, resp);
            fputc('\n', resp);
@@ -4251,7 +4251,7 @@ loser:
 void
 dsa_sigver_test(char *reqfn)
 {
-    char buf[263];       /* holds one line from the input REQUEST file
+    char buf[300];       /* holds one line from the input REQUEST file
                          * or to the output RESPONSE file.
                          * max for Msg = ....
                          */
@@ -4430,6 +4430,202 @@ dsa_sigver_test(char *reqfn)
             } else {
                 fprintf(dsaresp, "Result = F\n");
             }
+            continue;
+        }
+    }
+loser:
+    fclose(dsareq);
+    if (pubkey.params.prime.data) { /* P */
+        SECITEM_ZfreeItem(&pubkey.params.prime, PR_FALSE);
+    }
+    if (pubkey.params.subPrime.data) { /* Q */
+        SECITEM_ZfreeItem(&pubkey.params.subPrime, PR_FALSE);
+    }
+    if (pubkey.params.base.data) {    /* G */
+        SECITEM_ZfreeItem(&pubkey.params.base, PR_FALSE);
+    }
+    if (pubkey.publicValue.data) {    /* Y */
+        SECITEM_ZfreeItem(&pubkey.publicValue, PR_FALSE);
+    }
+}
+
+ /*
+ * Perform the DSA Key Verification Test.
+ *
+ * reqfn is the pathname of the REQUEST file.
+ *
+ * The output RESPONSE file is written to stdout.
+ */
+void
+dsa_keyver_test(char *reqfn)
+{
+    char buf[300];       /* holds one line from the input REQUEST file
+                         * or to the output RESPONSE file.
+                         * max for Msg = ....
+                         */
+    FILE *dsareq;     /* input stream from the REQUEST file */
+    FILE *dsaresp;    /* output stream to the RESPONSE file */
+    int modulus;  
+    unsigned int i, j;
+    SECItem digest, signature;
+    DSAPublicKey pubkey;
+    DSAPrivateKey privkey;
+    unsigned int pgySize;        /* size for p, g, and y */
+    unsigned char digest_data[20] = { 0x00, 0x01, 0x02, 0x03, 0x04,
+				 0x05, 0x06, 0x07, 0x08, 0x09,
+				 0xfa, 0xfb, 0xfc, 0xfd, 0xfe,
+				 0xff, 0xf9, 0xf8, 0xf7, 0xf6 };
+    /* SHA-1 hash (160 bits) */
+    unsigned char sig[DSA_SIGNATURE_LEN];
+
+    dsareq = fopen(reqfn, "r");
+    dsaresp = stdout;
+    memset(&pubkey, 0, sizeof(pubkey));
+    memset(&privkey, 0, sizeof(privkey));
+
+
+    while (fgets(buf, sizeof buf, dsareq) != NULL) {
+        /* a comment or blank line */
+        if (buf[0] == '#' || buf[0] == '\n') {
+            fputs(buf, dsaresp);
+            continue;
+        }
+
+        /* [Mod = x] */
+        if (buf[0] == '[') {
+
+            if (sscanf(buf, "[mod = %d]", &modulus) != 1) {
+                goto loser;
+            }
+
+            if (pubkey.params.prime.data) { /* P */
+                SECITEM_ZfreeItem(&pubkey.params.prime, PR_FALSE);
+            }
+            if (pubkey.params.subPrime.data) { /* Q */
+                SECITEM_ZfreeItem(&pubkey.params.subPrime, PR_FALSE);
+            }
+            if (pubkey.params.base.data) {    /* G */
+                SECITEM_ZfreeItem(&pubkey.params.base, PR_FALSE);
+            }
+            if (pubkey.publicValue.data) {    /* Y */
+                SECITEM_ZfreeItem(&pubkey.publicValue, PR_FALSE);
+            }
+            if (privkey.privateValue.data) {    /* X */
+                SECITEM_ZfreeItem(&privkey.privateValue, PR_FALSE);
+            }
+	    memset(&privkey.params, 0, sizeof(privkey.params));
+	    
+            fputs(buf, dsaresp);
+
+            /* calculate the size of p, g, and y then allocate items */
+            pgySize = modulus/8;
+            SECITEM_AllocItem(NULL, &pubkey.params.prime, pgySize);
+            SECITEM_AllocItem(NULL, &pubkey.params.base, pgySize);
+            SECITEM_AllocItem(NULL, &pubkey.publicValue, pgySize);
+            pubkey.params.prime.len = pubkey.params.base.len = pgySize;
+            pubkey.publicValue.len = pgySize;
+
+            /* q always 20 bytes */
+            SECITEM_AllocItem(NULL, &pubkey.params.subPrime, 20);
+            SECITEM_AllocItem(NULL, &privkey.privateValue, 20);
+            pubkey.params.subPrime.len = 20;
+            privkey.privateValue.len = 20;
+
+            continue;
+        }
+        /* P = ... */
+        if (buf[0] == 'P') {
+            i = 1;
+            while (isspace(buf[i]) || buf[i] == '=') {
+                i++;
+            }
+            memset(pubkey.params.prime.data, 0, pubkey.params.prime.len);
+            for (j=0; j< pubkey.params.prime.len; i+=2,j++) {
+                hex_to_byteval(&buf[i], &pubkey.params.prime.data[j]);
+            }
+
+            fputs(buf, dsaresp);
+            continue;
+        }
+
+        /* Q = ... */
+        if (buf[0] == 'Q') {
+            i = 1;
+            while (isspace(buf[i]) || buf[i] == '=') {
+                i++;
+            }
+            memset(pubkey.params.subPrime.data, 0, pubkey.params.subPrime.len);
+            for (j=0; j< pubkey.params.subPrime.len; i+=2,j++) {
+                hex_to_byteval(&buf[i], &pubkey.params.subPrime.data[j]);
+            }
+
+            fputs(buf, dsaresp);
+            continue;
+        }
+
+        /* G = ... */
+        if (buf[0] == 'G') {
+            i = 1;
+            while (isspace(buf[i]) || buf[i] == '=') {
+                i++;
+            }
+            memset(pubkey.params.base.data, 0, pubkey.params.base.len);
+            for (j=0; j< pubkey.params.base.len; i+=2,j++) {
+                hex_to_byteval(&buf[i], &pubkey.params.base.data[j]);
+            }
+
+            fputs(buf, dsaresp);
+            continue;
+        }
+
+        /* X = ... */
+        if (buf[0] == 'X') {
+            i = 1;
+            while (isspace(buf[i]) || buf[i] == '=') {
+                i++;
+            }
+            memset(privkey.privateValue.data, 0, privkey.privateValue.len);
+            for (j=0; j< privkey.privateValue.len; i+=2,j++) {
+                hex_to_byteval(&buf[i], &privkey.privateValue.data[j]);
+            }
+
+            fputs(buf, dsaresp);
+            continue;
+        }
+
+        /* Y = ... */
+        if (buf[0] == 'Y') {
+            i = 1;
+            while (isspace(buf[i]) || buf[i] == '=') {
+                i++;
+            }
+            memset(pubkey.publicValue.data, 0, pubkey.publicValue.len);
+            for (j=0; j< pubkey.publicValue.len; i+=2,j++) {
+                hex_to_byteval(&buf[i], &pubkey.publicValue.data[j]);
+            }
+            fputs(buf, dsaresp);
+
+	    privkey.publicValue = pubkey.publicValue;
+	    privkey.params = pubkey.params;
+
+            digest.type = siBuffer;
+            digest.data = digest_data;
+            digest.len = sizeof digest_data;
+            signature.type = siBuffer;
+            signature.data = sig;
+            signature.len = sizeof sig;
+
+            if (DSA_SignDigest(&privkey, &signature, &digest) != SECSuccess) {
+                fprintf(dsaresp, "ERROR: Unable to generate DSA signature");
+                fprintf(dsaresp, "Result = F\n");
+                goto loser;
+            }
+            if (DSA_VerifyDigest(&pubkey, &signature, &digest) == SECSuccess) {
+                fprintf(dsaresp, "Result = P\n");
+            } else {
+                fprintf(dsaresp, "Result = F\n");
+            }
+
             continue;
         }
     }
@@ -5027,7 +5223,10 @@ int main(int argc, char **argv)
         } else if (strcmp(argv[2], "sigver") == 0) {
             /* Signature Verification Test */
             dsa_sigver_test(argv[3]);
-        }
+        } else if (strcmp(argv[2], "keyver") == 0) {
+	    dsa_keyver_test(argv[3]);
+	}
+
 #ifdef NSS_ENABLE_ECC
     /*************/
     /*   ECDSA   */

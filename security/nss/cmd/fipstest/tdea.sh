@@ -8,6 +8,12 @@
 # directory where the REQUEST (.req) files reside.  The script generates the
 # RESPONSE (.rsp) files in the same directory.
 
+BASEDIR=${1-.}
+TESTDIR=${BASEDIR}/TDES
+COMMAND=${2-run}
+REQDIR=${BASEDIR}/req
+RSPDIR=${BASEDIR}/resp
+
 #CBC_Known_Answer_tests
 #Initial Permutation KAT  
 #Permutation Operation KAT 
@@ -23,11 +29,11 @@ TCBCvartext.req
 "
 
 #CBC Monte Carlo KATs
-cbc_monte_requests="
-TCBCMonte1.req
-TCBCMonte2.req
-TCBCMonte3.req
-"
+cbc_monte_requests=""
+#TCBCMonte1.req
+#TCBCMonte2.req
+#TCBCMonte3.req
+#"
 #Multi-block Message KATs
 cbc_mmt_requests="
 TCBCMMT1.req
@@ -43,11 +49,11 @@ TECBvarkey.req
 TECBvartext.req   
 "
 
-ecb_monte_requests="
-TECBMonte1.req
-TECBMonte2.req
-TECBMonte3.req
-"
+ecb_monte_requests=""
+#TECBMonte1.req
+#TECBMonte2.req
+#TECBMonte3.req
+#"
 
 ecb_mmt_requests="
 TECBMMT1.req
@@ -55,33 +61,42 @@ TECBMMT2.req
 TECBMMT3.req
 "
 
-for request in $ecb_mmt_requests; do
+
+if [ ${COMMAND} = "verify" ]; then
+    for request in $cbc_kat_requests $cbc_monte_requests $cbc_mmt_requests $ecb_kat_requests $ecb_monte_requests $ecb_mmt_requests
+    do
+	sh ./validate1.sh ${TESTDIR} $request "-e /^NumKeys/d"
+    done
+    exit 0
+fi
+
+for request in $cbc_kat_requests; do
     response=`echo $request | sed -e "s/req/rsp/"`
     echo $request $response
-    fipstest tdea mmt ecb $request > $response
-done
-for request in $ecb_kat_requests; do
-    response=`echo $request | sed -e "s/req/rsp/"`
-    echo $request $response
-    fipstest tdea kat ecb $request > $response
-done
-for request in $ecb_monte_requests; do
-    response=`echo $request | sed -e "s/req/rsp/"`
-    echo $request $response
-    fipstest tdea mct ecb $request > $response
+    fipstest tdea kat cbc ${REQDIR}/$request > ${RSPDIR}/$response
 done
 for request in $cbc_mmt_requests; do
     response=`echo $request | sed -e "s/req/rsp/"`
     echo $request $response
-    fipstest tdea mmt cbc $request > $response
-done
-for request in $cbc_kat_requests; do
-    response=`echo $request | sed -e "s/req/rsp/"`
-    echo $request $response
-    fipstest tdea kat cbc $request > $response
+    fipstest tdea mmt cbc ${REQDIR}/$request > ${RSPDIR}/$response
 done
 for request in $cbc_monte_requests; do
     response=`echo $request | sed -e "s/req/rsp/"`
     echo $request $response
-    fipstest tdea mct cbc $request > $response
+    fipstest tdea mct cbc ${REQDIR}/$request > ${RSPDIR}/$response
+done
+for request in $ecb_kat_requests; do
+    response=`echo $request | sed -e "s/req/rsp/"`
+    echo $request $response
+    fipstest tdea kat ecb ${REQDIR}/$request > ${RSPDIR}/$response
+done
+for request in $ecb_mmt_requests; do
+    response=`echo $request | sed -e "s/req/rsp/"`
+    echo $request $response
+    fipstest tdea mmt ecb ${REQDIR}/$request > ${RSPDIR}/$response
+done
+for request in $ecb_monte_requests; do
+    response=`echo $request | sed -e "s/req/rsp/"`
+    echo $request $response
+    fipstest tdea mct ecb ${REQDIR}/$request > ${RSPDIR}/$response
 done

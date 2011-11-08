@@ -7,23 +7,25 @@
 # shared libraries/DLLs are on the search path.  Then run this script in the
 # directory where the REQUEST (.req) files reside.  The script generates the
 # RESPONSE (.rsp) files in the same directory.
+REQDIR=./ECDSA/req
+RSPDIR=./ECDSA/resp
 
 request=KeyPair.req
 response=`echo $request | sed -e "s/req/rsp/"`
 echo $request $response
-fipstest ecdsa keypair $request > $response
+fipstest ecdsa keypair ${REQDIR}/$request > ${RSPDIR}/$response
 
 request=PKV.req
 response=`echo $request | sed -e "s/req/rsp/"`
 echo $request $response
-fipstest ecdsa pkv $request > $response
+fipstest ecdsa pkv ${REQDIR}/$request > ${RSPDIR}/$response
 
 request=SigGen.req
 response=`echo $request | sed -e "s/req/rsp/"`
 echo $request $response
-fipstest ecdsa siggen $request > $response
+fipstest ecdsa siggen ${REQDIR}/$request > ${RSPDIR}/$response
 
 request=SigVer.req
 response=`echo $request | sed -e "s/req/rsp/"`
 echo $request $response
-fipstest ecdsa sigver $request > $response
+fipstest ecdsa sigver ${REQDIR}/$request > ${RSPDIR}/$response

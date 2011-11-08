@@ -7,6 +7,11 @@
 # shared libraries/DLLs are on the search path.  Then run this script in the
 # directory where the REQUEST (.req) files reside.  The script generates the
 # RESPONSE (.rsp) files in the same directory.
+BASEDIR=${1-.}
+TESTDIR=${BASEDIR}/SHA
+COMMAND=${2-run}
+REQDIR=${BASEDIR}/req
+RSPDIR=${BASEDIR}/resp
                                
 sha_ShortMsg_requests="
 SHA1ShortMsg.req
@@ -28,19 +33,27 @@ SHA256Monte.req
 SHA384Monte.req
 SHA512Monte.req
 "
+
+if [ ${COMMAND} = "verify" ]; then
+    for request in $sha_ShortMsg_requests $sha_LongMsg_requests $sha_Monte_requests; do
+	sh ./validate1.sh ${TESTDIR} $request
+    done
+    exit 0
+fi
+
 for request in $sha_ShortMsg_requests; do
     response=`echo $request | sed -e "s/req/rsp/"`
     echo $request $response
-    fipstest sha $request > $response
+    fipstest sha ${REQDIR}/$request > ${RSPDIR}/$response
 done
 for request in $sha_LongMsg_requests; do
     response=`echo $request | sed -e "s/req/rsp/"`
     echo $request $response
-    fipstest sha $request > $response
+    fipstest sha ${REQDIR}/$request > ${RSPDIR}/$response
 done
 for request in $sha_Monte_requests; do
     response=`echo $request | sed -e "s/req/rsp/"`
     echo $request $response
-    fipstest sha $request > $response
+    fipstest sha ${REQDIR}/$request > ${RSPDIR}/$response
 done
 
