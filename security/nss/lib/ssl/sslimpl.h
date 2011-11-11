@@ -775,8 +775,6 @@ const ssl3CipherSuiteDef *suite_def;
     unsigned long         msg_len;
     SECItem               ca_list;     /* used only by client */
     PRBool                isResuming;  /* are we resuming a session */
-    PRBool                rehandshake; /* immediately start another handshake 
-                                        * when this one finishes */
     PRBool                usedStepDownKey;  /* we did a server key exchange. */
     PRBool                sendingSCSV; /* instead of empty RI */
     sslBuffer             msgState;    /* current state for handshake messages*/
@@ -1150,7 +1148,6 @@ extern FILE *                  ssl_keylog_iob;
 extern CERTDistNames *         ssl3_server_ca_list;
 extern PRUint32                ssl_sid_timeout;
 extern PRUint32                ssl3_sid_timeout;
-extern PRBool                  ssl3_global_policy_some_restricted;
 
 extern const char * const      ssl_cipherName[];
 extern const char * const      ssl3_cipherName[];
