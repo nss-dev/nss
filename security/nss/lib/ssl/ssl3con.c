@@ -238,9 +238,6 @@ static const /*SSL3ClientCertificateType */ uint8 certificate_types [] = {
 #define EXPORT_RSA_KEY_LENGTH 64	/* bytes */
 
 
-/* This is a hack to make sure we don't do double handshakes for US policy */
-PRBool ssl3_global_policy_some_restricted = PR_FALSE;
-
 /* This global item is used only in servers.  It is is initialized by
 ** SSL_ConfigSecureServer(), and is used in ssl3_SendCertificateRequest().
 */
@@ -3760,7 +3757,6 @@ done:
  **************************************************************************/
 
 /* Called from ssl3_HandleHelloRequest(),
- *             ssl3_HandleFinished() (for step-up)
  *             ssl3_RedoHandshake()
  *             ssl2_BeginClientHandshake (when resuming ssl3 session)
  */
@@ -7820,7 +7816,6 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     ssl3CertNode *   lastCert 	= NULL;
     ssl3CertNode *   certs 	= NULL;
     PRArenaPool *    arena 	= NULL;
-    CERTCertificate *cert;
     PRInt32          remaining  = 0;
     PRInt32          size;
     SECStatus        rv;
@@ -7986,23 +7981,11 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	/* cert is good */
     }
 
-    /* start SSL Step Up, if appropriate */
-    cert = ss->sec.peerCert;
-    if (!isServer &&
-    	ssl3_global_policy_some_restricted &&
-        ss->ssl3.policy == SSL_ALLOWED &&
-	anyRestrictedEnabled(ss) &&
-	SECSuccess == CERT_VerifyCertNow(cert->dbhandle, cert,
-	                                 PR_FALSE, /* checkSig */
-				         certUsageSSLServerWithStepUp,
-/*XXX*/				         ss->authCertificateArg) ) {
-	ss->ssl3.policy         = SSL_RESTRICTED;
-	ss->ssl3.hs.rehandshake = PR_TRUE;
-    }
-
     ss->sec.ci.sid->peerCert = CERT_DupCertificate(ss->sec.peerCert);
 
     if (!ss->sec.isServer) {
+        CERTCertificate *cert = ss->sec.peerCert;
+
 	/* set the server authentication and key exchange types and sizes
 	** from the value in the cert.  If the key exchange key is different,
 	** it will get fixed when we handle the server key exchange message.
@@ -8142,8 +8125,7 @@ loser:
 int
 ssl3_RestartHandshakeAfterServerCert(sslSocket *ss)
 {
-    CERTCertificate * cert;
-    int               rv	= SECSuccess;
+    int rv = SECSuccess;
 
     if (MSB(ss->version) != MSB(SSL_LIBRARY_VERSION_3_0)) {
 	SET_ERROR_CODE
@@ -8152,21 +8134,6 @@ ssl3_RestartHandshakeAfterServerCert(sslSocket *ss)
     if (!ss->ssl3.initialized) {
 	SET_ERROR_CODE
     	return SECFailure;
-    }
-
-    cert = ss->sec.peerCert;
-
-    /* Permit step up if user decided to accept the cert */
-    if (!ss->sec.isServer &&
-    	ssl3_global_policy_some_restricted &&
-        ss->ssl3.policy == SSL_ALLOWED &&
-	anyRestrictedEnabled(ss) &&
-	(SECSuccess == CERT_VerifyCertNow(cert->dbhandle, cert,
-	                                  PR_FALSE, /* checksig */
-				          certUsageSSLServerWithStepUp,
-/*XXX*/				          ss->authCertificateArg) )) {
-	ss->ssl3.policy         = SSL_RESTRICTED;
-	ss->ssl3.hs.rehandshake = PR_TRUE;
     }
 
     if (ss->handshake != NULL) {
@@ -8425,7 +8392,6 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
     SECStatus         rv           = SECSuccess;
     PRBool            isServer     = ss->sec.isServer;
     PRBool            isTLS;
-    PRBool            doStepUp;
     SSL3KEAType       effectiveExchKeyType;
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
@@ -8481,8 +8447,6 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 	}
     }
 
-    doStepUp = (PRBool)(!isServer && ss->ssl3.hs.rehandshake);
-
     ssl_GetXmitBufLock(ss);	/*************************************/
 
     if ((isServer && !ss->ssl3.hs.isResuming) ||
@@ -8508,12 +8472,11 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 	    goto xmit_loser;	/* err is set. */
 	}
 	/* If this thread is in SSL_SecureSend (trying to write some data) 
-	** or if it is going to step up, 
 	** then set the ssl_SEND_FLAG_FORCE_INTO_BUFFER flag, so that the 
 	** last two handshake messages (change cipher spec and finished) 
 	** will be sent in the same send/write call as the application data.
 	*/
-	if (doStepUp || ss->writerThread == PR_GetCurrentThread()) {
+	if (ss->writerThread == PR_GetCurrentThread()) {
 	    flags = ssl_SEND_FLAG_FORCE_INTO_BUFFER;
 	}
 
@@ -8530,18 +8493,11 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 	}
     }
 
-    /* Optimization: don't cache this connection if we're going to step up. */
-    if (doStepUp) {
-	ssl_FreeSID(sid);
-	ss->sec.ci.sid     = sid = NULL;
-	ss->ssl3.hs.rehandshake = PR_FALSE;
-	rv = ssl3_SendClientHello(ss);
 xmit_loser:
-	ssl_ReleaseXmitBufLock(ss);
-	return rv;	/* err code is set if appropriate. */
-    }
-
     ssl_ReleaseXmitBufLock(ss);	/*************************************/
+    if (rv != SECSuccess) {
+        return rv;
+    }
 
     /* The first handshake is now completed. */
     ss->handshake           = NULL;
@@ -9257,7 +9213,6 @@ ssl3_InitState(sslSocket *ss)
     ssl_GetSpecWriteLock(ss);
     ss->ssl3.crSpec = ss->ssl3.cwSpec = &ss->ssl3.specs[0];
     ss->ssl3.prSpec = ss->ssl3.pwSpec = &ss->ssl3.specs[1];
-    ss->ssl3.hs.rehandshake = PR_FALSE;
     ss->ssl3.hs.sendingSCSV = PR_FALSE;
     ssl3_InitCipherSpec(ss, ss->ssl3.crSpec);
     ssl3_InitCipherSpec(ss, ss->ssl3.prSpec);
@@ -9365,10 +9320,6 @@ ssl3_SetPolicy(ssl3CipherSuite which, int policy)
 	return SECFailure; /* err code was set by ssl_LookupCipherSuiteCfg */
     }
     suite->policy = policy;
-
-    if (policy == SSL_RESTRICTED) {
-	ssl3_global_policy_some_restricted = PR_TRUE;
-    }
 
     return SECSuccess;
 }
