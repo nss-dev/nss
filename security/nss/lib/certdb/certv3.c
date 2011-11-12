@@ -57,7 +57,7 @@ CERT_FindCertExtensionByOID(CERTCertificate *cert, SECItem *oid,
     
 
 SECStatus
-CERT_FindCertExtension(CERTCertificate *cert, int tag, SECItem *value)
+CERT_FindCertExtension(const CERTCertificate *cert, int tag, SECItem *value)
 {
     return (cert_FindExtension (cert->extensions, tag, value));
 }

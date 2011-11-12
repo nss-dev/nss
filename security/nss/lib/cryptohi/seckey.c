@@ -469,8 +469,10 @@ SECKEY_UpdateCertPQG(CERTCertificate * subjectCert)
  * the normal standard format.  Store the decoded parameters in
  * a V3 certificate data structure.  */ 
 
-SECStatus
-SECKEY_DSADecodePQG(PRArenaPool *arena, SECKEYPublicKey *pubk, SECItem *params) {
+static SECStatus
+seckey_DSADecodePQG(PRArenaPool *arena, SECKEYPublicKey *pubk,
+                    const SECItem *params)
+{
     SECStatus rv;
     SECItem newparams;
 
@@ -570,7 +572,7 @@ CERT_GetCertKeyType (CERTSubjectPublicKeyInfo *spki)
 }
 
 static SECKEYPublicKey *
-seckey_ExtractPublicKey(CERTSubjectPublicKeyInfo *spki)
+seckey_ExtractPublicKey(const CERTSubjectPublicKeyInfo *spki)
 {
     SECKEYPublicKey *pubk;
     SECItem os, newOs, newParms;
@@ -619,7 +621,7 @@ seckey_ExtractPublicKey(CERTSubjectPublicKeyInfo *spki)
 	rv = SEC_QuickDERDecodeItem(arena, pubk, SECKEY_DSAPublicKeyTemplate, &newOs);
 	if (rv != SECSuccess) break;
 
-        rv = SECKEY_DSADecodePQG(arena, pubk,
+        rv = seckey_DSADecodePQG(arena, pubk,
                                  &spki->algorithm.parameters); 
 
 	if (rv == SECSuccess) return pubk;
@@ -669,7 +671,7 @@ seckey_ExtractPublicKey(CERTSubjectPublicKeyInfo *spki)
 
 /* required for JSS */
 SECKEYPublicKey *
-SECKEY_ExtractPublicKey(CERTSubjectPublicKeyInfo *spki)
+SECKEY_ExtractPublicKey(const CERTSubjectPublicKeyInfo *spki)
 {
     return seckey_ExtractPublicKey(spki);
 }

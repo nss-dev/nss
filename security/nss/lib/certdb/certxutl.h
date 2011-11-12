@@ -66,11 +66,12 @@ cert_StartExtensions (void *owner, PLArenaPool *arena,
                       void (*setExts)(void *object, CERTCertExtension **exts));
 
 extern SECStatus
-cert_FindExtension (CERTCertExtension **extensions, int tag, SECItem *value);
+cert_FindExtension (CERTCertExtension const * const *extensions, int tag,
+                    SECItem *value);
 
 extern SECStatus
-cert_FindExtensionByOID (CERTCertExtension **extensions,
-			 SECItem *oid, SECItem *value);
+cert_FindExtensionByOID (CERTCertExtension const * const *extensions,
+			 const SECItem *oid, SECItem *value);
 
 extern SECStatus
 cert_GetExtenCriticality (CERTCertExtension **extensions,

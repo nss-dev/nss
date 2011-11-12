@@ -205,17 +205,20 @@ SECU_ReadDERFromFile(SECItem *der, PRFileDesc *inFile, PRBool ascii);
 extern void SECU_Indent(FILE *out, int level);
 
 /* Print integer value and hex */
-extern void SECU_PrintInteger(FILE *out, SECItem *i, char *m, int level);
+extern void SECU_PrintInteger(FILE *out, const SECItem *i, const char *m,
+                              int level);
 
 /* Print ObjectIdentifier symbolically */
-extern SECOidTag SECU_PrintObjectID(FILE *out, SECItem *oid, char *m, int level);
+extern SECOidTag SECU_PrintObjectID(FILE *out, const SECItem *oid,
+                                    const char *m, int level);
 
 /* Print AlgorithmIdentifier symbolically */
-extern void SECU_PrintAlgorithmID(FILE *out, SECAlgorithmID *a, char *m,
-				  int level);
+extern void SECU_PrintAlgorithmID(FILE *out, const SECAlgorithmID *a,
+                                  const char *m, int level);
 
 /* Print SECItem as hex */
-extern void SECU_PrintAsHex(FILE *out, SECItem *i, const char *m, int level);
+extern void SECU_PrintAsHex(FILE *out, const SECItem *i, const char *m, 
+                            int level);
 
 /* dump a buffer in hex and ASCII */
 extern void SECU_PrintBuf(FILE *out, const char *msg, const void *vp, int len);
@@ -225,22 +228,24 @@ extern void SECU_PrintBuf(FILE *out, const char *msg, const void *vp, int len);
  * do indent formatting based on "level" and add a newline afterward;
  * otherwise just print the formatted time string only.
  */
-extern void SECU_PrintUTCTime(FILE *out, SECItem *t, char *m, int level);
+extern void SECU_PrintUTCTime(FILE *out, const SECItem *t,
+                              const char *m, int level);
 
 /*
  * Format and print the Generalized Time "t".  If the tag message "m"
  * is not NULL, * do indent formatting based on "level" and add a newline
  * afterward; otherwise just print the formatted time string only.
  */
-extern void SECU_PrintGeneralizedTime(FILE *out, SECItem *t, char *m,
-				      int level);
+extern void SECU_PrintGeneralizedTime(FILE *out, const SECItem *t,
+                                      const char *m, int level);
 
 /*
  * Format and print the UTC or Generalized Time "t".  If the tag message
  * "m" is not NULL, do indent formatting based on "level" and add a newline
  * afterward; otherwise just print the formatted time string only.
  */
-extern void SECU_PrintTimeChoice(FILE *out, SECItem *t, char *m, int level);
+extern void SECU_PrintTimeChoice(FILE *out, const SECItem *t, 
+                                 const char *m, int level);
 
 /* callback for listing certs through pkcs11 */
 extern SECStatus SECU_PrintCertNickname(CERTCertListNode* cert, void *data);
@@ -254,68 +259,76 @@ SECU_PrintCertificateNames(CERTCertDBHandle *handle, PRFileDesc* out,
 int SECU_CheckCertNameExists(CERTCertDBHandle *handle, char *nickname);
 
 /* Dump contents of cert req */
-extern int SECU_PrintCertificateRequest(FILE *out, SECItem *der, char *m,
-	int level);
+extern int SECU_PrintCertificateRequest(FILE *out, const SECItem *der, 
+                                        const char *m, int level);
 
 /* Dump contents of certificate */
-extern int SECU_PrintCertificate(FILE *out, SECItem *der, char *m, int level);
+extern int SECU_PrintCertificate(FILE *out, const SECItem *der, 
+                                 const char *m, int level);
 
 /* Dump contents of a DER certificate name (issuer or subject) */
-extern int SECU_PrintDERName(FILE *out, SECItem *der, const char *m, int level);
+extern int SECU_PrintDERName(FILE *out, const SECItem *der, const char *m,
+                             int level);
 
 /* print trust flags on a cert */
-extern void SECU_PrintTrustFlags(FILE *out, CERTCertTrust *trust, char *m, 
-                                 int level);
+extern void SECU_PrintTrustFlags(FILE *out, const CERTCertTrust *trust, 
+                                 const char *m, int level);
 
 /* Dump contents of an RSA public key */
-extern int SECU_PrintRSAPublicKey(FILE *out, SECItem *der, char *m, int level);
+extern int SECU_PrintRSAPublicKey(FILE *out, const SECItem *der, 
+                                  const char *m, int level);
 
-extern int SECU_PrintSubjectPublicKeyInfo(FILE *out, SECItem *der, char *m, 
-                                          int level);
+extern int SECU_PrintSubjectPublicKeyInfo(FILE *out, const SECItem *der, 
+                                          const char *m,  int level);
 
 #ifdef HAVE_EPV_TEMPLATE
 /* Dump contents of private key */
-extern int SECU_PrintPrivateKey(FILE *out, SECItem *der, char *m, int level);
+extern int SECU_PrintPrivateKey(FILE *out, const SECItem *der,
+                                const char *m, int level);
 #endif
 
 /* Print the MD5 and SHA1 fingerprints of a cert */
-extern int SECU_PrintFingerprints(FILE *out, SECItem *derCert, char *m,
-                                  int level);
+extern int SECU_PrintFingerprints(FILE *out, const SECItem *derCert,
+                                  const char *m, int level);
 
 /* Pretty-print any PKCS7 thing */
-extern int SECU_PrintPKCS7ContentInfo(FILE *out, SECItem *der, char *m, 
-				      int level);
+extern int SECU_PrintPKCS7ContentInfo(FILE *out, const SECItem *der,
+                                      const char *m, int level);
 
 /* Init PKCS11 stuff */
 extern SECStatus SECU_PKCS11Init(PRBool readOnly);
 
 /* Dump contents of signed data */
-extern int SECU_PrintSignedData(FILE *out, SECItem *der, const char *m, 
+extern int SECU_PrintSignedData(FILE *out, const SECItem *der, const char *m, 
                                 int level, SECU_PPFunc inner);
 
 /* Print cert data and its trust flags */
-extern SECStatus SEC_PrintCertificateAndTrust(CERTCertificate *cert,
+extern SECStatus SEC_PrintCertificateAndTrust(const CERTCertificate *cert,
                                               const char *label,
-                                              CERTCertTrust *trust);
+                                              const CERTCertTrust *trust);
 
-extern int SECU_PrintCrl(FILE *out, SECItem *der, char *m, int level);
+extern int SECU_PrintCrl(FILE *out, const SECItem *der, const char *m,
+                         int level);
 
 extern void
-SECU_PrintCRLInfo(FILE *out, CERTCrl *crl, char *m, int level);
+SECU_PrintCRLInfo(FILE *out, const CERTCrl *crl, const char *m, int level);
 
-extern void SECU_PrintString(FILE *out, SECItem *si, char *m, int level);
-extern void SECU_PrintAny(FILE *out, SECItem *i, char *m, int level);
+extern void SECU_PrintString(FILE *out, const SECItem *si,
+                             const char *m, int level);
+extern void SECU_PrintAny(FILE *out, const SECItem *i, const char *m, int level);
 
-extern void SECU_PrintPolicy(FILE *out, SECItem *value, char *msg, int level);
-extern void SECU_PrintPrivKeyUsagePeriodExtension(FILE *out, SECItem *value,
-                                 char *msg, int level);
+extern void SECU_PrintPolicy(FILE *out, const SECItem *value,
+                             const char *msg, int level);
+extern void SECU_PrintPrivKeyUsagePeriodExtension(FILE *out, const SECItem *value,
+                                 const char *msg, int level);
 
-extern void SECU_PrintExtensions(FILE *out, CERTCertExtension **extensions,
-				 char *msg, int level);
+extern void SECU_PrintExtensions(FILE *out,
+                                 CERTCertExtension const * const *extensions,
+				 const char *msg, int level);
 
-extern void SECU_PrintName(FILE *out, CERTName *name, const char *msg,
+extern void SECU_PrintName(FILE *out, const CERTName *name, const char *msg,
                            int level);
-extern void SECU_PrintRDN(FILE *out, CERTRDN *rdn, const char *msg, int level);
+extern void SECU_PrintRDN(FILE *out, const CERTRDN *rdn, const char *msg, int level);
 
 #ifdef SECU_GetPassword
 /* Convert a High public Key to a Low public Key */

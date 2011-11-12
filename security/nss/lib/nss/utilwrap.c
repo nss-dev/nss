@@ -330,7 +330,7 @@ SECStatus SECOID_CopyAlgorithmID(PRArenaPool *arena, SECAlgorithmID *dest,
     return SECOID_CopyAlgorithmID_Util(arena, dest, src);
 }
 
-SECOidTag SECOID_GetAlgorithmTag(SECAlgorithmID *aid)
+SECOidTag SECOID_GetAlgorithmTag(const SECAlgorithmID *aid)
 {
     return SECOID_GetAlgorithmTag_Util(aid);
 }
@@ -434,7 +434,7 @@ SECStatus DER_Lengths(SECItem *item, int *header_len_p,
     return DER_Lengths_Util(item, header_len_p, contents_len_p);
 }
 
-long DER_GetInteger(SECItem *src)
+long DER_GetInteger(const SECItem *src)
 {
     return DER_GetInteger_Util(src);
 }
