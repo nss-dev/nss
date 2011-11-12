@@ -535,7 +535,7 @@ get_best_temp_or_perm(NSSCertificate *ct, NSSCertificate *cp)
 }
 
 CERTCertificate *
-CERT_FindCertByName(CERTCertDBHandle *handle, SECItem *name)
+CERT_FindCertByName(CERTCertDBHandle *handle, const SECItem *name)
 {
     NSSCertificate *cp, *ct, *c;
     NSSDER subject;
@@ -631,7 +631,7 @@ CERT_FindCertByDERCert(CERTCertDBHandle *handle, SECItem *derCert)
 
 static CERTCertificate *
 common_FindCertByNicknameOrEmailAddrForUsage(CERTCertDBHandle *handle, 
-                                             char *name,
+                                             const char *name,
                                              PRBool anyUsage,
                                              SECCertUsage lookingForUsage)
 {

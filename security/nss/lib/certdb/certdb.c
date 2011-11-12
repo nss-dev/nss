@@ -1825,7 +1825,7 @@ CERT_VerifyCertName(CERTCertificate *cert, const char *hn)
 }
 
 PRBool
-CERT_CompareCerts(CERTCertificate *c1, CERTCertificate *c2)
+CERT_CompareCerts(const CERTCertificate *c1, const CERTCertificate *c2)
 {
     SECComparison comp;
     

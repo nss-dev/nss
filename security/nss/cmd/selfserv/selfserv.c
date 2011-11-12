@@ -455,7 +455,7 @@ mySSLSNISocketConfig(PRFileDesc *fd, const SECItem *sniNameArr,
     PRInt32        i = 0;
     const SECItem *current = sniNameArr;
     const char    **nameArr = (const char**)arg;
-    const secuPWData *pwdata;
+    secuPWData *pwdata;
     CERTCertificate *    cert = NULL;
     SECKEYPrivateKey *   privKey = NULL;
 

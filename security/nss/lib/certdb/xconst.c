@@ -131,7 +131,8 @@ CERT_EncodePrivateKeyUsagePeriod(PRArenaPool *arena,
 }
 
 CERTPrivKeyUsagePeriod *
-CERT_DecodePrivKeyUsagePeriodExtension(PLArenaPool *arena, SECItem *extnValue)
+CERT_DecodePrivKeyUsagePeriodExtension(PLArenaPool *arena,
+                                       const SECItem *extnValue)
 {
     SECStatus rv;
     CERTPrivKeyUsagePeriod *pPeriod;
@@ -202,7 +203,8 @@ CERT_EncodeAltNameExtension(PRArenaPool *arena,  CERTGeneralName  *value, SECIte
 }
 
 CERTGeneralName *
-CERT_DecodeAltNameExtension(PRArenaPool *reqArena, SECItem *EncodedAltName)
+CERT_DecodeAltNameExtension(PRArenaPool *reqArena,
+                            const SECItem *EncodedAltName)
 {
     SECStatus                  rv = SECSuccess;
     CERTAltNameEncodedContext  encodedContext;
@@ -250,7 +252,7 @@ CERT_EncodeNameConstraintsExtension(PRArenaPool          *arena,
 
 CERTNameConstraints *
 CERT_DecodeNameConstraintsExtension(PRArenaPool          *arena,
-				    SECItem              *encodedConstraints)
+				    const SECItem        *encodedConstraints)
 {
     return cert_DecodeNameConstraints(arena, encodedConstraints);
 }
@@ -258,7 +260,7 @@ CERT_DecodeNameConstraintsExtension(PRArenaPool          *arena,
 
 CERTAuthInfoAccess **
 CERT_DecodeAuthInfoAccessExtension(PRArenaPool *reqArena,
-				   SECItem     *encodedExtension)
+				   const SECItem *encodedExtension)
 {
     CERTAuthInfoAccess **info = NULL;
     SECStatus rv;

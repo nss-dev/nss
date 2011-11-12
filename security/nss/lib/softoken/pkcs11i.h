@@ -636,7 +636,7 @@ extern void sftk_nullAttribute(SFTKObject *object,CK_ATTRIBUTE_TYPE type);
 extern CK_RV sftk_GetULongAttribute(SFTKObject *object, CK_ATTRIBUTE_TYPE type,
                                                          CK_ULONG *longData);
 extern CK_RV sftk_forceAttribute(SFTKObject *object, CK_ATTRIBUTE_TYPE type,
-				 void *value, unsigned int len);
+				 const void *value, unsigned int len);
 extern CK_RV sftk_defaultAttribute(SFTKObject *object, CK_ATTRIBUTE_TYPE type,
 				   void *value, unsigned int len);
 extern unsigned int sftk_MapTrust(CK_TRUST trust, PRBool clientAuth);
