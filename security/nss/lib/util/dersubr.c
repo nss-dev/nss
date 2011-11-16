@@ -208,7 +208,7 @@ DER_SetUInteger(PRArenaPool *arena, SECItem *it, PRUint32 ui)
 ** If an underflow/overflow occurs, sets error code and returns min/max.
 */
 long
-DER_GetInteger(const SECItem *it)
+DER_GetInteger(SECItem *it)
 {
     long ival = 0;
     unsigned len = it->len;
@@ -240,7 +240,7 @@ DER_GetInteger(const SECItem *it)
 ** If an underflow/overflow occurs, sets error code and returns min/max.
 */
 unsigned long
-DER_GetUInteger(const SECItem *it)
+DER_GetUInteger(SECItem *it)
 {
     unsigned long ival = 0;
     unsigned len = it->len;

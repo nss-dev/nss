@@ -106,7 +106,7 @@ SEC_PKCS7DecoderFinish(SEC_PKCS7DecoderContext *p7dcx);
 void SEC_PKCS7DecoderAbort(SEC_PKCS7DecoderContext *p7dcx, int error);
 
 extern SEC_PKCS7ContentInfo *
-SEC_PKCS7DecodeItem(const SECItem *p7item,
+SEC_PKCS7DecodeItem(SECItem *p7item,
 		    SEC_PKCS7DecoderContentCallback cb, void *cb_arg,
 		    SECKEYGetPasswordKey pwfn, void *pwfn_arg,
 		    SEC_PKCS7GetDecryptKeyCallback decrypt_key_cb, 

@@ -596,6 +596,17 @@ cert_ComputeCertType(CERTCertificate *cert)
 		nsCertType |= NS_CERT_TYPE_SSL_SERVER;
 	    }
 	}
+	/* Treat certs with step-up OID as also having SSL server type. */
+	if (findOIDinOIDSeqByTagNum(extKeyUsage, 
+				    SEC_OID_NS_KEY_USAGE_GOVT_APPROVED) ==
+	    SECSuccess){
+	    if (basicConstraintPresent == PR_TRUE &&
+		(basicConstraint.isCA)) {
+		nsCertType |= NS_CERT_TYPE_SSL_CA;
+	    } else {
+		nsCertType |= NS_CERT_TYPE_SSL_SERVER;
+	    }
+	}
 	if (findOIDinOIDSeqByTagNum(extKeyUsage,
 				    SEC_OID_EXT_KEY_USAGE_CLIENT_AUTH) ==
 	    SECSuccess){
@@ -1825,7 +1836,7 @@ CERT_VerifyCertName(CERTCertificate *cert, const char *hn)
 }
 
 PRBool
-CERT_CompareCerts(const CERTCertificate *c1, const CERTCertificate *c2)
+CERT_CompareCerts(CERTCertificate *c1, CERTCertificate *c2)
 {
     SECComparison comp;
     

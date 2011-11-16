@@ -52,11 +52,11 @@
 			 * require knowledge of data structures of callers */
 #endif
 
-static const CERTCertExtension *
-GetExtension (CERTCertExtension const * const *extensions, const SECItem *oid)
+static CERTCertExtension *
+GetExtension (CERTCertExtension **extensions, SECItem *oid)
 {
-    CERTCertExtension const * const *exts;
-    const CERTCertExtension *ext = NULL;
+    CERTCertExtension **exts;
+    CERTCertExtension *ext = NULL;
     SECComparison comp;
 
     exts = extensions;
@@ -76,10 +76,9 @@ GetExtension (CERTCertExtension const * const *extensions, const SECItem *oid)
 }
 
 SECStatus
-cert_FindExtensionByOID (CERTCertExtension const * const *extensions, const SECItem *oid,
-                         SECItem *value)
+cert_FindExtensionByOID (CERTCertExtension **extensions, SECItem *oid, SECItem *value)
 {
-    const CERTCertExtension *ext;
+    CERTCertExtension *ext;
     SECStatus rv = SECSuccess;
     
     ext = GetExtension (extensions, oid);
@@ -96,7 +95,7 @@ cert_FindExtensionByOID (CERTCertExtension const * const *extensions, const SECI
 SECStatus
 CERT_GetExtenCriticality (CERTCertExtension **extensions, int tag, PRBool *isCritical)
 {
-    const CERTCertExtension *ext;
+    CERTCertExtension *ext;
     SECOidData *oid;
 
     if (!isCritical)
@@ -123,8 +122,7 @@ CERT_GetExtenCriticality (CERTCertExtension **extensions, int tag, PRBool *isCri
 }
 
 SECStatus
-cert_FindExtension(CERTCertExtension const * const *extensions, int tag,
-                   SECItem *value)
+cert_FindExtension(CERTCertExtension **extensions, int tag, SECItem *value)
 {
     SECOidData *oid;
     

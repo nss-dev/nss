@@ -74,14 +74,14 @@ extern CERTName *CERT_AsciiToName(char *string);
 ** This version produces a string for maximum human readability,
 ** not for strict RFC compliance.
 */
-extern char *CERT_NameToAscii(const CERTName *name);
+extern char *CERT_NameToAscii(CERTName *name);
 
 /*
 ** Convert an CERTName into its RFC1485 encoded equivalent.
 ** Returns a string that must be freed with PORT_Free().
 ** Caller chooses encoding rules.
 */
-extern char *CERT_NameToAsciiInvertible(const CERTName *name, 
+extern char *CERT_NameToAsciiInvertible(CERTName *name, 
                                         CertStrictnessLevel strict);
 
 extern CERTAVA *CERT_CopyAVA(PLArenaPool *arena, CERTAVA *src);
@@ -525,7 +525,7 @@ extern CERTCertificate *CERT_FindCertByKey(CERTCertDBHandle *handle, SECItem *ke
 **	"name" is the distinguished name to look up
 */
 extern CERTCertificate *
-CERT_FindCertByName (CERTCertDBHandle *handle, const SECItem *name);
+CERT_FindCertByName (CERTCertDBHandle *handle, SECItem *name);
 
 /*
 ** Find a certificate in the database by name
@@ -920,7 +920,7 @@ extern SECStatus CERT_EncodeCRLDistributionPoints
 **	encodedValue - value to decoded
 */
 extern SECStatus CERT_DecodeBasicConstraintValue
-   (CERTBasicConstraints *value, const SECItem *encodedValue);
+   (CERTBasicConstraints *value, SECItem *encodedValue);
 
 /* Decodes a DER encoded authorityKeyIdentifier extension value into a
 ** readable format.
@@ -929,7 +929,7 @@ extern SECStatus CERT_DecodeBasicConstraintValue
 **	Returns a CERTAuthKeyID structure which contains the decoded value
 */
 extern CERTAuthKeyID *CERT_DecodeAuthKeyID 
-			(PLArenaPool *arena, const SECItem *encodedValue);
+			(PLArenaPool *arena, SECItem *encodedValue);
 
 
 /* Decodes a DER encoded crlDistributionPoints extension value into a 
@@ -940,7 +940,7 @@ extern CERTAuthKeyID *CERT_DecodeAuthKeyID
 **          decoded value
 */
 extern CERTCrlDistributionPoints * CERT_DecodeCRLDistributionPoints
-   (PLArenaPool *arena, const SECItem *der);
+   (PLArenaPool *arena, SECItem *der);
 
 /* Extract certain name type from a generalName */
 extern void *CERT_GetGeneralNameByType
@@ -948,7 +948,7 @@ extern void *CERT_GetGeneralNameByType
 
 
 extern CERTOidSequence *
-CERT_DecodeOidSequence(const SECItem *seqItem);
+CERT_DecodeOidSequence(SECItem *seqItem);
 
 
 
@@ -960,7 +960,7 @@ CERT_DecodeOidSequence(const SECItem *seqItem);
  ***************************************************************************/
 
 extern SECStatus CERT_FindCertExtension
-   (const CERTCertificate *cert, int tag, SECItem *value);
+   (CERTCertificate *cert, int tag, SECItem *value);
 
 extern SECStatus CERT_FindNSCertTypeExtension
    (CERTCertificate *cert, SECItem *value);
@@ -1061,11 +1061,10 @@ extern SECStatus CERT_FindCRLEntryReasonExten (CERTCrlEntry *crlEntry,
 
 extern void CERT_FreeNicknames(CERTCertNicknames *nicknames);
 
-extern PRBool CERT_CompareCerts(const CERTCertificate *c1,
-                                const CERTCertificate *c2);
+extern PRBool CERT_CompareCerts(CERTCertificate *c1, CERTCertificate *c2);
 
 extern PRBool CERT_CompareCertsForRedirection(CERTCertificate *c1,
-	                                      CERTCertificate *c2);
+							 CERTCertificate *c2);
 
 /*
 ** Generate an array of the Distinguished Names that the given cert database
@@ -1186,30 +1185,28 @@ CERT_DestroyPolicyMappingsExtension(CERTCertificatePolicyMappings *mappings);
 
 SECStatus
 CERT_DecodePolicyConstraintsExtension(
-    CERTCertificatePolicyConstraints *decodedValue, const SECItem *encodedValue);
+    CERTCertificatePolicyConstraints *decodedValue, SECItem *encodedValue);
 
 SECStatus CERT_DecodeInhibitAnyExtension
-    (CERTCertificateInhibitAny *decodedValue, const SECItem *extnValue);
+    (CERTCertificateInhibitAny *decodedValue, SECItem *extnValue);
 
 CERTUserNotice *
-CERT_DecodeUserNotice(const SECItem *noticeItem);
+CERT_DecodeUserNotice(SECItem *noticeItem);
 
 extern CERTGeneralName *
-CERT_DecodeAltNameExtension(PLArenaPool *reqArena, 
-                            const SECItem *EncodedAltName);
+CERT_DecodeAltNameExtension(PLArenaPool *reqArena, SECItem *EncodedAltName);
 
 extern CERTNameConstraints *
 CERT_DecodeNameConstraintsExtension(PLArenaPool *arena, 
-                                    const SECItem *encodedConstraints);
+                                    SECItem *encodedConstraints);
 
 /* returns addr of a NULL termainated array of pointers to CERTAuthInfoAccess */
 extern CERTAuthInfoAccess **
 CERT_DecodeAuthInfoAccessExtension(PLArenaPool *reqArena,
-				   const SECItem *encodedExtension);
+				   SECItem     *encodedExtension);
 
 extern CERTPrivKeyUsagePeriod *
-CERT_DecodePrivKeyUsagePeriodExtension(PLArenaPool *arena, 
-                                       const SECItem *extnValue);
+CERT_DecodePrivKeyUsagePeriodExtension(PLArenaPool *arena, SECItem *extnValue);
 
 extern CERTGeneralName *
 CERT_GetNextGeneralName(CERTGeneralName *current);
