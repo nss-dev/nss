@@ -718,7 +718,7 @@ loser:
 
 CERTNameConstraints *
 cert_DecodeNameConstraints(PRArenaPool   *reqArena,
-			   const SECItem *encodedConstraints)
+			   SECItem       *encodedConstraints)
 {
     CERTNameConstraints   *constraints;
     SECStatus             rv;

@@ -162,6 +162,7 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #define CKA_CERT_MD5_HASH		(CKA_TRUST + 101)
 
 /* NSS trust stuff */
+/* XXX fgmr new ones here-- step-up, etc. */
 
 /* HISTORICAL: define used to pass in the database key for DSA private keys */
 #define CKA_NETSCAPE_DB                 0xD5A0DB00L

@@ -171,7 +171,7 @@ SECKEY_ConvertAndDecodeSubjectPublicKeyInfo(char *spkistr);
  * (used by JSS).
  */
 extern SECKEYPublicKey *
-SECKEY_ExtractPublicKey(const CERTSubjectPublicKeyInfo *);
+SECKEY_ExtractPublicKey(CERTSubjectPublicKeyInfo *);
 
 /*
 ** Destroy a private key object.

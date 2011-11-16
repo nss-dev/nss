@@ -171,8 +171,7 @@ CERT_EncodeCRLDistributionPoints (PLArenaPool *arena,
 }
 
 CERTCrlDistributionPoints *
-CERT_DecodeCRLDistributionPoints (PLArenaPool *arena, 
-                                  const SECItem *encodedValue)
+CERT_DecodeCRLDistributionPoints (PLArenaPool *arena, SECItem *encodedValue)
 {
    CERTCrlDistributionPoints *value = NULL;    
    CRLDistributionPoint **pointList, *point;    

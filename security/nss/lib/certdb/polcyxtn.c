@@ -313,7 +313,7 @@ CERT_DestroyPolicyMappingsExtension(CERTCertificatePolicyMappings *mappings)
 SECStatus
 CERT_DecodePolicyConstraintsExtension
                              (CERTCertificatePolicyConstraints *decodedValue,
-                              const SECItem *encodedValue)
+                              SECItem *encodedValue)
 {
     CERTCertificatePolicyConstraints decodeContext;
     PRArenaPool *arena = NULL;
@@ -369,7 +369,7 @@ CERT_DecodePolicyConstraintsExtension
 }
 
 SECStatus CERT_DecodeInhibitAnyExtension
-        (CERTCertificateInhibitAny *decodedValue, const SECItem *encodedValue)
+        (CERTCertificateInhibitAny *decodedValue, SECItem *encodedValue)
 {
     CERTCertificateInhibitAny decodeContext;
     PRArenaPool *arena = NULL;
@@ -402,7 +402,7 @@ SECStatus CERT_DecodeInhibitAnyExtension
 }
 
 CERTUserNotice *
-CERT_DecodeUserNotice(const SECItem *noticeItem)
+CERT_DecodeUserNotice(SECItem *noticeItem)
 {
     PRArenaPool *arena = NULL;
     SECStatus rv;
@@ -636,7 +636,7 @@ const SEC_ASN1Template CERT_OidSeqTemplate[] = {
 };
 
 CERTOidSequence *
-CERT_DecodeOidSequence(const SECItem *seqItem)
+CERT_DecodeOidSequence(SECItem *seqItem)
 {
     PRArenaPool *arena = NULL;
     SECStatus rv;

@@ -41,7 +41,7 @@
 #include "secerr.h"
 
 SECOidTag
-SECOID_GetAlgorithmTag(const SECAlgorithmID *id)
+SECOID_GetAlgorithmTag(SECAlgorithmID *id)
 {
     if (id == NULL || id->algorithm.data == NULL)
 	return SEC_OID_UNKNOWN;

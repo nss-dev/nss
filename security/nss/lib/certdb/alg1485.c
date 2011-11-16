@@ -1096,7 +1096,7 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava, CertStrictnessLevel strict)
 #undef vt
 
 char *
-CERT_NameToAsciiInvertible(const CERTName *name, CertStrictnessLevel strict)
+CERT_NameToAsciiInvertible(CERTName *name, CertStrictnessLevel strict)
 {
     CERTRDN** rdns;
     CERTRDN** lastRdn;
@@ -1151,7 +1151,7 @@ loser:
 }
 
 char *
-CERT_NameToAscii(const CERTName *name)
+CERT_NameToAscii(CERTName *name)
 {
     return CERT_NameToAsciiInvertible(name, CERT_N2A_READABLE);
 }
