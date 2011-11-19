@@ -173,7 +173,7 @@ ssl_Do1stHandshake(sslSocket *ss)
  * retry on a connection on the next read/write.
  */
 static SECStatus
-AlwaysBlock(sslSocket *ss)
+ssl3_AlwaysBlock(sslSocket *ss)
 {
     PORT_SetError(PR_WOULD_BLOCK_ERROR);	/* perhaps redundant. */
     return SECWouldBlock;
@@ -183,10 +183,10 @@ AlwaysBlock(sslSocket *ss)
  * set the initial handshake state machine to block
  */
 void
-ssl_SetAlwaysBlock(sslSocket *ss)
+ssl3_SetAlwaysBlock(sslSocket *ss)
 {
     if (!ss->firstHsDone) {
-	ss->handshake = AlwaysBlock;
+	ss->handshake = ssl3_AlwaysBlock;
 	ss->nextHandshake = 0;
     }
 }
@@ -1500,7 +1500,8 @@ SSL_RestartHandshakeAfterCertReq(sslSocket *         ss,
     if (ss->version >= SSL_LIBRARY_VERSION_3_0) {
 	ret = ssl3_RestartHandshakeAfterCertReq(ss, cert, key, certChain);
     } else {
-    	ret = ssl2_RestartHandshakeAfterCertReq(ss, cert, key);
+    	PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_SSL2);
+    	ret = SECFailure;
     }
 
     ssl_Release1stHandshakeLock(ss);  /************************************/
@@ -1527,7 +1528,8 @@ SSL_RestartHandshakeAfterServerCert(sslSocket *ss)
     if (ss->version >= SSL_LIBRARY_VERSION_3_0) {
 	rv = ssl3_RestartHandshakeAfterServerCert(ss);
     } else {
-	rv = ssl2_RestartHandshakeAfterServerCert(ss);
+    	PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_SSL2);
+    	rv = SECFailure;
     }
 
     ssl_Release1stHandshakeLock(ss);
