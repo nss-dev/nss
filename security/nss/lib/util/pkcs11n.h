@@ -345,7 +345,7 @@ typedef CK_ULONG          CK_TRUST;
  * labels have never been accurate to what was really implemented.
  * The new labels correctly reflect what the values effectively mean.
  */
-#if __GNUC__ > 3
+#if defined(__GNUC__) && (__GNUC__ > 3)
 /* make GCC warn when we use these #defines */
 /*
  *  This is really painful because GCC doesn't allow us to mark random
@@ -361,7 +361,7 @@ typedef CK_ULONG          CK_TRUST;
  *  cast the resulting value to the deprecated type in the #define, thus
  *  producting the warning when the #define is used.
  */
-#if (__GNUC__  == 4) && (__GNUC_MINOR < 5)
+#if (__GNUC__  == 4) && (__GNUC_MINOR__ < 5)
 /* The mac doesn't like the friendlier deprecate messages. I'm assuming this
  * is a gcc version issue rather than mac or ppc specific */
 typedef CK_TRUST __CKT_NSS_UNTRUSTED __attribute__((deprecated));
