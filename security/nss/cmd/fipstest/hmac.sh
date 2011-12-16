@@ -11,8 +11,8 @@
 BASEDIR=${1-.}
 TESTDIR=${BASEDIR}/HMAC
 COMMAND=${2-run}
-REQDIR=${BASEDIR}/req
-RSPDIR=${BASEDIR}/resp
+REQDIR=${TESTDIR}/req
+RSPDIR=${TESTDIR}/resp
                                
 hmac_requests="
 HMAC.req

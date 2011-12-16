@@ -10,8 +10,8 @@
 BASEDIR=${1-.}
 TESTDIR=${BASEDIR}/DRBG800-90
 COMMAND=${2-run}
-REQDIR=${BASEDIR}/req
-RSPDIR=${BASEDIR}/resp
+REQDIR=${TESTDIR}/req
+RSPDIR=${TESTDIR}/resp
 
 drbg_requests="
 Hash_DRBG.req

@@ -11,8 +11,8 @@
 BASEDIR=${1-.}
 TESTDIR=${BASEDIR}/TDES
 COMMAND=${2-run}
-REQDIR=${BASEDIR}/req
-RSPDIR=${BASEDIR}/resp
+REQDIR=${TESTDIR}/req
+RSPDIR=${TESTDIR}/resp
 
 #CBC_Known_Answer_tests
 #Initial Permutation KAT  

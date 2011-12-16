@@ -11,8 +11,8 @@
 BASEDIR=${1-.}
 TESTDIR=${BASEDIR}/AES
 COMMAND=${2-run}
-REQDIR=${BASEDIR}/req
-RSPDIR=${BASEDIR}/resp
+REQDIR=${TESTDIR}/req
+RSPDIR=${TESTDIR}/resp
 
 cbc_kat_requests="
 CBCGFSbox128.req
@@ -83,12 +83,12 @@ done
 for request in $cbc_mct_requests; do
     response=`echo $request | sed -e "s/req/rsp/"`
     echo $request $response
-    fipstest aes mmt cbc ${REQDIR}/$request > ${RSPDIR}/$response
+    fipstest aes mct cbc ${REQDIR}/$request > ${RSPDIR}/$response
 done
 for request in $cbc_mmt_requests; do
     response=`echo $request | sed -e "s/req/rsp/"`
     echo $request $response
-    fipstest aes mct cbc ${REQDIR}/$request > ${RSPDIR}/$response
+    fipstest aes mmt cbc ${REQDIR}/$request > ${RSPDIR}/$response
 done
 for request in $ecb_kat_requests; do
     response=`echo $request | sed -e "s/req/rsp/"`
@@ -98,10 +98,10 @@ done
 for request in $ecb_mct_requests; do
     response=`echo $request | sed -e "s/req/rsp/"`
     echo $request $response
-    fipstest aes mmt ecb ${REQDIR}/$request > ${RSPDIR}/$response
+    fipstest aes mct ecb ${REQDIR}/$request > ${RSPDIR}/$response
 done
 for request in $ecb_mmt_requests; do
     response=`echo $request | sed -e "s/req/rsp/"`
     echo $request $response
-    fipstest aes mct ecb ${REQDIR}/$request > ${RSPDIR}/$response
+    fipstest aes mmt ecb ${REQDIR}/$request > ${RSPDIR}/$response
 done

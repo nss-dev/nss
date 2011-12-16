@@ -10,8 +10,8 @@
 BASEDIR=${1-.}
 TESTDIR=${BASEDIR}/SHA
 COMMAND=${2-run}
-REQDIR=${BASEDIR}/req
-RSPDIR=${BASEDIR}/resp
+REQDIR=${TESTDIR}/req
+RSPDIR=${TESTDIR}/resp
                                
 sha_ShortMsg_requests="
 SHA1ShortMsg.req
