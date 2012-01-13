@@ -367,6 +367,10 @@ nssCKFWInstance_Create
     }
   }
 
+  if (fwInstance && fwInstance->mutex) {
+    nssCKFWMutex_Destroy(fwInstance->mutex);
+  }
+
   if (arena) {
     (void)NSSArena_Destroy(arena);
   }
