@@ -5741,21 +5741,21 @@ ssl3_SendClientSecondRound(sslSocket *ss)
      * second round for a renegotiation before the server's certificate was
      * authenticated, then the application data sent/received after this point
      * would be using cipher spec that hadn't been authenticated. By waiting
-     * until the server's certificate has been authenticated during 
+     * until the server's certificate has been authenticated during
      * renegotiations, we ensure that renegotiations have the same property
      * as initial handshakes; i.e. we have fully authenticated the handshake
      * before using the cipher specs agreed upon for that handshake for
      * application data.
      */
     if (ss->ssl3.hs.restartTarget) {
-        PR_NOT_REACHED("unexpected ss->ssl3.hs.restartTarget");
-        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-        return SECFailure;
+	PR_NOT_REACHED("unexpected ss->ssl3.hs.restartTarget");
+	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	return SECFailure;
     }
     if (ss->ssl3.hs.authCertificatePending &&
-        (sendClientCert || ss->ssl3.sendEmptyCert || ss->firstHsDone)) {
-        ss->ssl3.hs.restartTarget = ssl3_SendClientSecondRound;
-        return SECWouldBlock;
+	(sendClientCert || ss->ssl3.sendEmptyCert || ss->firstHsDone)) {
+	ss->ssl3.hs.restartTarget = ssl3_SendClientSecondRound;
+	return SECWouldBlock;
     }
 
     ssl_GetXmitBufLock(ss);		/*******************************/
@@ -7982,11 +7982,11 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 		goto loser;
 	    }
 
-            ss->ssl3.hs.authCertificatePending = PR_TRUE;
-            rv = SECSuccess;
+	    ss->ssl3.hs.authCertificatePending = PR_TRUE;
+	    rv = SECSuccess;
 	}
-        
-        if (rv != SECSuccess) {
+
+	if (rv != SECSuccess) {
 	    goto bad_cert;
 	}
     }
@@ -8138,24 +8138,24 @@ ssl3_RestartHandshakeAfterAuthCertificate(sslSocket *ss)
     ssl_GetSSL3HandshakeLock(ss);
 
     if (!ss->ssl3.hs.authCertificatePending) {
-        PORT_SetError(PR_INVALID_STATE_ERROR);
-        rv = SECFailure;
+	PORT_SetError(PR_INVALID_STATE_ERROR);
+	rv = SECFailure;
     } else {
-        ss->ssl3.hs.authCertificatePending = PR_FALSE;
-        if (ss->ssl3.hs.restartTarget != NULL) {
-            sslRestartTarget target = ss->ssl3.hs.restartTarget;
-            ss->ssl3.hs.restartTarget = NULL;
-            rv = target(ss);
+	ss->ssl3.hs.authCertificatePending = PR_FALSE;
+	if (ss->ssl3.hs.restartTarget != NULL) {
+	    sslRestartTarget target = ss->ssl3.hs.restartTarget;
+	    ss->ssl3.hs.restartTarget = NULL;
+	    rv = target(ss);
 	    /* Even if we blocked here, we have accomplished enough to claim
-	      * success. Any remaining work will be taken care of by subsequent
-              * calls to SSL_ForceHandshake/PR_Send/PR_Read/etc. 
-	      */
-            if (rv == SECWouldBlock) {
-                rv = SECSuccess;
-            }
-        } else {
-            rv = SECSuccess;
-        }
+	     * success. Any remaining work will be taken care of by subsequent
+	     * calls to SSL_ForceHandshake/PR_Send/PR_Read/etc.
+	     */
+	    if (rv == SECWouldBlock) {
+		rv = SECSuccess;
+	    }
+	} else {
+	    rv = SECSuccess;
+	}
     }
 
     ssl_ReleaseSSL3HandshakeLock(ss);
@@ -8566,16 +8566,16 @@ xmit_loser:
     }
 
     if (ss->ssl3.hs.authCertificatePending) {
-      if (ss->ssl3.hs.restartTarget) {
-          PR_NOT_REACHED("ssl3_HandleFinished: unexpected restartTarget");
-          PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-          return SECFailure;
-      }
+	if (ss->ssl3.hs.restartTarget) {
+	    PR_NOT_REACHED("ssl3_HandleFinished: unexpected restartTarget");
+	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	    return SECFailure;
+	}
 
-      ss->ssl3.hs.restartTarget = ssl3_FinishHandshake;
-      return SECWouldBlock;
+	ss->ssl3.hs.restartTarget = ssl3_FinishHandshake;
+	return SECWouldBlock;
     }
-    
+
     rv = ssl3_FinishHandshake(ss);
     return rv;
 }
@@ -8584,7 +8584,7 @@ SECStatus
 ssl3_FinishHandshake(sslSocket * ss)
 {
     SECStatus rv;
-    
+
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
     PORT_Assert( ss->ssl3.hs.restartTarget == NULL );
