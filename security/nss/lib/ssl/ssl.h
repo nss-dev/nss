@@ -348,7 +348,7 @@ SSL_IMPORT CERTCertificate *SSL_PeerCertificate(PRFileDesc *fd);
 ** If the authenticate certificate hook returns SECFailure, then the bad cert
 ** hook will be called. The bad cert handler is NEVER called if the
 ** authenticate certificate hook returns SECWouldBlock.
-** 
+**
 ** See the documentation for SSL_RestartHandshakeAfterAuthCertificate for more
 ** information about the asynchronous behavior that occurs when the
 ** authenticate certificate hook returns SECWouldBlock.
@@ -788,7 +788,7 @@ extern const char *NSSSSL_GetVersion(void);
  * However, libssl may send and receive handshake messages while waiting for
  * the application to call SSL_RestartHandshakeAfterAuthCertificate, and it may
  * call other callbacks (e.g, the client auth data hook) before
- * SSL_RestartHandshakeAfterAuthCertificate has been called. 
+ * SSL_RestartHandshakeAfterAuthCertificate has been called.
  *
  * An application that uses this asynchronous mechanism will usually have lower
  * handshake latency if it has to do public key operations on the certificate
