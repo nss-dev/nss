@@ -797,7 +797,7 @@ const ssl3CipherSuiteDef *suite_def;
      * One of NULL, ssl3_SendClientSecondRound, or ssl3_FinishHandshake. */
     sslRestartTarget      restartTarget;
     /* Shared state between ssl3_HandleFinished and ssl3_FinishHandshake */
-    PRBool                cacheSID; 
+    PRBool                cacheSID;
 } SSL3HandshakeState;
 
 
