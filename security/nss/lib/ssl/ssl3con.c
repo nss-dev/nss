@@ -8017,6 +8017,13 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
 	    ss->ssl3.hs.authCertificatePending = PR_TRUE;
 	    rv = SECSuccess;
+
+	    /* XXX: Async cert validation and False Start don't work together
+	     * safely yet; if we leave False Start enabled, we may end up false
+	     * starting (sending application data) before we
+	     * SSL_AuthCertificateComplete has been called.
+	     */
+	    ss->opt.enableFalseStart = PR_FALSE;
 	}
 
 	if (rv != SECSuccess) {
