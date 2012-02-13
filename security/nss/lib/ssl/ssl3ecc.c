@@ -317,7 +317,7 @@ ssl3_SendECDHClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     }
     /* XXX SHOULD CALL ssl3_CreateECDHEphemeralKeys here, instead! */
     privKey = SECKEY_CreateECPrivateKey(&svrPubKey->u.ec.DEREncodedParams, 
-	                                &pubKey, NULL);
+	                                &pubKey, ss->pkcs11PinArg);
     if (!privKey || !pubKey) {
 	    ssl_MapLowLevelError(SEC_ERROR_KEYGEN_FAIL);
 	    rv = SECFailure;
