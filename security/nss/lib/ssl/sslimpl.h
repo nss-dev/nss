@@ -1359,7 +1359,7 @@ extern void ssl_FreeSocket(struct sslSocketStr *ssl);
 extern SECStatus SSL3_SendAlert(sslSocket *ss, SSL3AlertLevel level,
 				SSL3AlertDescription desc);
 
-extern SECStatus ssl3_AuthCertificateComplete(sslSocket *ss, PRErrorCode status);
+extern SECStatus ssl3_AuthCertificateComplete(sslSocket *ss, PRErrorCode error);
 
 /*
  * for dealing with SSL 3.0 clients sending SSL 2.0 format hellos
