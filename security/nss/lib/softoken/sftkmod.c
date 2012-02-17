@@ -54,6 +54,7 @@
 #include "prprf.h" 
 #include "prsystem.h"
 #include "lgglue.h"
+#include "secerr.h"
 #include "secmodt.h"
 #if defined (_WIN32)
 #include <io.h>
