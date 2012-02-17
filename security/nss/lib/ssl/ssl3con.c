@@ -4363,6 +4363,12 @@ getWrappingKey( sslSocket *       ss,
     SECStatus                rv;
     SECItem                  wrappedKey;
     SSLWrappedSymWrappingKey wswk;
+#ifdef NSS_ENABLE_ECC
+    PK11SymKey *      Ks = NULL;
+    SECKEYPublicKey   *pubWrapKey = NULL;
+    SECKEYPrivateKey  *privWrapKey = NULL;
+    ECCWrappedKeyInfo *ecWrapped;
+#endif /* NSS_ENABLE_ECC */
 
     svrPrivKey  = ss->serverCerts[exchKeyType].SERVERKEY;
     PORT_Assert(svrPrivKey != NULL);
@@ -4439,13 +4445,6 @@ getWrappingKey( sslSocket *       ss,
 
     /* wrap symmetric wrapping key in server's public key. */
     switch (exchKeyType) {
-#ifdef NSS_ENABLE_ECC
-    PK11SymKey *      Ks = NULL;
-    SECKEYPublicKey   *pubWrapKey = NULL;
-    SECKEYPrivateKey  *privWrapKey = NULL;
-    ECCWrappedKeyInfo *ecWrapped;
-#endif /* NSS_ENABLE_ECC */
-
     case kt_rsa:
 	asymWrapMechanism = CKM_RSA_PKCS;
 	rv = PK11_PubWrapSymKey(asymWrapMechanism, svrPubKey,
