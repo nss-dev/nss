@@ -768,6 +768,22 @@ fill_CERTCertificateFields(NSSCertificate *c, CERTCertificate *cc, PRBool forced
     if (context) {
 	/* trust */
 	nssTrust = nssCryptoContext_FindTrustForCertificate(context, c);
+	if (!nssTrust) {
+	    /* chicken and egg issue:
+	     *
+	     * c->issuer and c->serial are empty at this point, but
+	     * nssTrustDomain_FindTrustForCertificate use them to look up
+	     * up the trust object, so we point them to cc->derIssuer and
+	     * cc->serialNumber.
+	     *
+	     * Our caller will fill these in with proper arena copies when we
+	     * return. */
+	    c->issuer.data = cc->derIssuer.data;
+	    c->issuer.size = cc->derIssuer.len;
+	    c->serial.data = cc->serialNumber.data;
+	    c->serial.size = cc->serialNumber.len;
+	    nssTrust = nssTrustDomain_FindTrustForCertificate(context->td, c);
+	}
 	if (nssTrust) {
             trust = cert_trust_from_stan_trust(nssTrust, cc->arena);
             if (trust) {
