@@ -296,7 +296,7 @@ SECStatus
 SEC_RegisterDefaultHttpClient(const SEC_HttpClientFcn *fcnTable)
 {
     if (!OCSP_Global.monitor) {
-      PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+      PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
       return SECFailure;
     }
     
@@ -315,7 +315,7 @@ CERT_RegisterAlternateOCSPAIAInfoCallBack(
     CERT_StringFromCertFcn old;
 
     if (!OCSP_Global.monitor) {
-      PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+      PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
       return SECFailure;
     }
 
@@ -991,7 +991,7 @@ const SEC_HttpClientFcn *SEC_GetRegisteredHttpClient()
     const SEC_HttpClientFcn *retval;
 
     if (!OCSP_Global.monitor) {
-      PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+      PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
       return NULL;
     }
 
