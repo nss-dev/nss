@@ -1,3 +1,4 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /*
  * SSL3 Protocol
  *
@@ -1432,7 +1433,7 @@ static SECStatus
 ssl3_InitPendingContextsBypass(sslSocket *ss)
 {
       ssl3CipherSpec  *  pwSpec;
-const ssl3BulkCipherDef *cipher_def;
+      const ssl3BulkCipherDef *cipher_def;
       void *             serverContext = NULL;
       void *             clientContext = NULL;
       BLapiInitContextFunc initFn = (BLapiInitContextFunc)NULL;
@@ -1621,7 +1622,7 @@ static SECStatus
 ssl3_InitPendingContextsPKCS11(sslSocket *ss)
 {
       ssl3CipherSpec  *  pwSpec;
-const ssl3BulkCipherDef *cipher_def;
+      const ssl3BulkCipherDef *cipher_def;
       PK11Context *      serverContext = NULL;
       PK11Context *      clientContext = NULL;
       SECItem *          param;
@@ -7049,7 +7050,7 @@ ssl3_SendServerHello(sslSocket *ss)
 static SECStatus
 ssl3_SendServerKeyExchange(sslSocket *ss)
 {
-const ssl3KEADef *     kea_def     = ss->ssl3.hs.kea_def;
+    const ssl3KEADef * kea_def     = ss->ssl3.hs.kea_def;
     SECStatus          rv          = SECFailure;
     int                length;
     PRBool             isTLS;
@@ -7148,7 +7149,7 @@ ssl3_SendCertificateRequest(sslSocket *ss)
 {
     SECItem *      name;
     CERTDistNames *ca_list;
-const uint8 *      certTypes;
+    const uint8 *  certTypes;
     SECItem *      names	= NULL;
     SECStatus      rv;
     int            length;
@@ -7492,7 +7493,7 @@ ssl3_HandleClientKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
     SECKEYPrivateKey *serverKey         = NULL;
     SECStatus         rv;
-const ssl3KEADef *    kea_def;
+    const ssl3KEADef *kea_def;
     ssl3KeyPair     *serverKeyPair      = NULL;
 #ifdef NSS_ENABLE_ECC
     SECKEYPublicKey *serverPubKey       = NULL;
@@ -8945,7 +8946,7 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 SECStatus
 ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
 {
-const ssl3BulkCipherDef *cipher_def;
+    const ssl3BulkCipherDef *cipher_def;
     ssl3CipherSpec *     crSpec;
     SECStatus            rv;
     unsigned int         hashBytes		= MAX_MAC_LENGTH + 1;
