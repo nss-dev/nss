@@ -300,13 +300,11 @@ sec_DecodeSigAlg(const SECKEYPublicKey *key, SECOidTag sigAlg,
 	    return SECFailure;
 	}
 	rv = SEC_QuickDERDecodeItem(arena, &oid, hashParameterTemplate, param);
-	if (rv == SECSuccess) {
-            *hashalg = SECOID_FindOIDTag(&oid);
-        }
-        PORT_FreeArena(arena, PR_FALSE);
-        if (rv != SECSuccess) {
+	if (rv != SECSuccess) {
+	    PORT_FreeArena(arena, PR_FALSE);
 	    return rv;
 	}
+	*hashalg = SECOID_FindOIDTag(&oid);
 	/* only accept hash algorithms */
 	if (HASH_GetHashTypeByOidTag(*hashalg) == HASH_AlgNULL) {
 	    /* error set by HASH_GetHashTypeByOidTag */
