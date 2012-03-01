@@ -987,10 +987,7 @@ int main(int argc, char **argv)
 	    break;
 	    
 	  case 't': {
-	    char *type;
-	    
-	    type = strdup(optstate->value);
-	    crlType = atoi (type);
+	    crlType = atoi(optstate->value);
 	    if (crlType != SEC_CRL_TYPE && crlType != SEC_KRL_TYPE) {
 		PR_fprintf(PR_STDERR, "%s: invalid crl type\n", progName);
 		PL_DestroyOptState(optstate);
