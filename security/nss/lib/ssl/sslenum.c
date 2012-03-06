@@ -55,6 +55,9 @@
  * Camellia without having to disable AES and RC4, which are needed for
  * interoperability with clients that don't yet implement Camellia.
  *
+ * The ordering of cipher suites in this table must match the ordering in
+ * the cipherSuites table in ssl3con.c.
+ *
  * If new ECC cipher suites are added, also update the ssl3CipherSuite arrays
  * in ssl3ecc.c.
  */
@@ -95,8 +98,8 @@ const PRUint16 SSL_ImplementedCiphers[] = {
 #endif /* NSS_ENABLE_ECC */
     TLS_RSA_WITH_SEED_CBC_SHA,
     TLS_RSA_WITH_CAMELLIA_128_CBC_SHA,
-    SSL_RSA_WITH_RC4_128_MD5,
     SSL_RSA_WITH_RC4_128_SHA,
+    SSL_RSA_WITH_RC4_128_MD5,
     TLS_RSA_WITH_AES_128_CBC_SHA,
 
     /* 112-bit 3DES */
