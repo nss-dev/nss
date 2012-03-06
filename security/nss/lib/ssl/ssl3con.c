@@ -8613,8 +8613,6 @@ xmit_loser:
 SECStatus
 ssl3_FinishHandshake(sslSocket * ss)
 {
-    SECStatus rv;
-
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
     PORT_Assert( ss->ssl3.hs.restartTarget == NULL );
@@ -8623,9 +8621,9 @@ ssl3_FinishHandshake(sslSocket * ss)
     ss->handshake           = NULL;
     ss->firstHsDone         = PR_TRUE;
 
-    if (ss->sec.ci.sid->cached == never_cached &&
-	!ss->opt.noCache && ss->sec.cache && ss->ssl3.hs.cacheSID) {
+    if (ss->ssl3.hs.cacheSID) {
 	(*ss->sec.cache)(ss->sec.ci.sid);
+	ss->ssl3.hs.cacheSID = PR_FALSE;
     }
 
     ss->ssl3.hs.ws = idle_handshake;
