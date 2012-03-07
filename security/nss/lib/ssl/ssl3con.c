@@ -8207,20 +8207,39 @@ ssl3_ComputeTLSFinished(ssl3CipherSpec *spec,
     label = isServer ? "server finished" : "client finished";
     len   = 15;
 
+    rv = ssl3_TLSPRFWithMasterSecret(spec, label, len, hashes->md5,
+	sizeof *hashes, tlsFinished->verify_data,
+	sizeof tlsFinished->verify_data);
+
+    return rv;
+}
+
+/* The calling function must acquire and release the appropriate
+ * lock (e.g., ssl_GetSpecReadLock / ssl_ReleaseSpecReadLock for
+ * ss->ssl3.crSpec).
+ */
+SECStatus
+ssl3_TLSPRFWithMasterSecret(ssl3CipherSpec *spec, const char *label,
+    unsigned int labelLen, const unsigned char *val, unsigned int valLen,
+    unsigned char *out, unsigned int outLen)
+{
+    SECStatus rv = SECSuccess;
+
     if (spec->master_secret && !spec->bypassCiphers) {
 	SECItem      param       = {siBuffer, NULL, 0};
 	PK11Context *prf_context =
 	    PK11_CreateContextBySymKey(CKM_TLS_PRF_GENERAL, CKA_SIGN, 
 				       spec->master_secret, &param);
+	unsigned int retLen;
+
 	if (!prf_context)
 	    return SECFailure;
 
 	rv  = PK11_DigestBegin(prf_context);
-	rv |= PK11_DigestOp(prf_context, (const unsigned char *) label, len);
-	rv |= PK11_DigestOp(prf_context, hashes->md5, sizeof *hashes);
-	rv |= PK11_DigestFinal(prf_context, tlsFinished->verify_data, 
-			       &len, sizeof tlsFinished->verify_data);
-	PORT_Assert(rv != SECSuccess || len == sizeof *tlsFinished);
+	rv |= PK11_DigestOp(prf_context, (unsigned char *) label, labelLen);
+	rv |= PK11_DigestOp(prf_context, val, valLen);
+	rv |= PK11_DigestFinal(prf_context, out, &retLen, outLen);
+	PORT_Assert(rv != SECSuccess || retLen == outLen);
 
 	PK11_DestroyContext(prf_context, PR_TRUE);
     } else {
@@ -8229,13 +8248,12 @@ ssl3_ComputeTLSFinished(ssl3CipherSpec *spec,
 	SECItem outData = { siBuffer, };
 	PRBool isFIPS   = PR_FALSE;
 
-	inData.data  = (unsigned char *)hashes->md5;
-	inData.len   = sizeof hashes[0];
-	outData.data = tlsFinished->verify_data;
-	outData.len  = sizeof tlsFinished->verify_data;
+	inData.data  = (unsigned char *) val;
+	inData.len   = valLen;
+	outData.data = out;
+	outData.len  = outLen;
 	rv = TLS_PRF(&spec->msItem, label, &inData, &outData, isFIPS);
-	PORT_Assert(rv != SECSuccess || \
-		    outData.len == sizeof tlsFinished->verify_data);
+	PORT_Assert(rv != SECSuccess || outData.len == outLen);
     }
     return rv;
 }
