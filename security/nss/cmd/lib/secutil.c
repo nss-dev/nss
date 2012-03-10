@@ -1033,7 +1033,7 @@ secu_PrintRawStringQuotesOptional(FILE *out, SECItem *si, const char *m,
 static void
 secu_PrintRawString(FILE *out, SECItem *si, const char *m, int level)
 {
-    return secu_PrintRawStringQuotesOptional(out, si, m, level, PR_TRUE);
+    secu_PrintRawStringQuotesOptional(out, si, m, level, PR_TRUE);
 }
 
 void
