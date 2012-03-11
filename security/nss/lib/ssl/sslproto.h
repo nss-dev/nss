@@ -47,7 +47,10 @@
 /* All versions less than 3_0 are treated as SSL version 2 */
 #define SSL_LIBRARY_VERSION_2			0x0002
 #define SSL_LIBRARY_VERSION_3_0			0x0300
-#define SSL_LIBRARY_VERSION_3_1_TLS		0x0301
+#define SSL_LIBRARY_VERSION_TLS_1_0		0x0301
+
+/* deprecated old name */
+#define SSL_LIBRARY_VERSION_3_1_TLS SSL_LIBRARY_VERSION_TLS_1_0 
 
 /* Header lengths of some of the messages */
 #define SSL_HL_ERROR_HBYTES			3

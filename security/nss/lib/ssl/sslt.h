@@ -189,6 +189,11 @@ typedef struct SSLCipherSuiteInfoStr {
 
 } SSLCipherSuiteInfo;
 
+typedef struct SSLVersionRangeStr {
+    PRUint16 min;
+    PRUint16 max;
+} SSLVersionRange;
+
 typedef enum {
     SSL_sni_host_name                    = 0,
     SSL_sni_type_total
