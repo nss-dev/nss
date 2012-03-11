@@ -176,6 +176,8 @@ SSL_AuthCertificateComplete;
 ;+NSS_3.13.4 {      # NSS 3.13.4 release
 ;+    global:
 SSL_ExportKeyingMaterial;
+SSL_VersionRangeGet;
+SSL_VersionRangeSet;
 ;+    local:
 ;+*;
 ;+};

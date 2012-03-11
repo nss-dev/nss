@@ -101,7 +101,12 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 #define SSL_HANDSHAKE_AS_SERVER		6 /* force connect to hs as server */
                                		  /* (off by default) */
 #define SSL_ENABLE_SSL2			7 /* enable ssl v2 (off by default) */
+
+/* OBSOLETE: See "SSL Version Range API" below for the replacement and a
+ * description of the non-obvious semantics of using SSL_ENABLE_SSL3.
+ */
 #define SSL_ENABLE_SSL3		        8 /* enable ssl v3 (on by default) */
+
 #define SSL_NO_CACHE		        9 /* don't use the session cache */
                     		          /* (off by default) */
 #define SSL_REQUIRE_CERTIFICATE        10 /* (SSL_REQUIRE_FIRST_HANDSHAKE */
@@ -110,7 +115,12 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
                                           /* (off by default) */
 #define SSL_V2_COMPATIBLE_HELLO        12 /* send v3 client hello in v2 fmt */
                                           /* (off by default) */
+
+/* OBSOLETE: See "SSL Version Range API" below for the replacement and a
+ * description of the non-obvious semantics of using SSL_ENABLE_TLS.
+ */
 #define SSL_ENABLE_TLS		       13 /* enable TLS (on by default) */
+
 #define SSL_ROLLBACK_DETECTION         14 /* for compatibility, default: on */
 #define SSL_NO_STEP_DOWN               15 /* Disable export cipher suites   */
                                           /* if step-down keys are needed.  */
@@ -257,6 +267,64 @@ SSL_IMPORT SECStatus SSL_CipherPrefSetDefault(PRInt32 cipher, PRBool enabled);
 SSL_IMPORT SECStatus SSL_CipherPrefGetDefault(PRInt32 cipher, PRBool *enabled);
 SSL_IMPORT SECStatus SSL_CipherPolicySet(PRInt32 cipher, PRInt32 policy);
 SSL_IMPORT SECStatus SSL_CipherPolicyGet(PRInt32 cipher, PRInt32 *policy);
+
+/* SSL Version Range API
+**
+** This API should be used to control SSL 3.0 & TLS support instead of the
+** older SSL_Option* API; however, the SSL_Option* API MUST still be used to
+** control SSL 2.0 support. In this version of libssl, SSL 3.0 and TLS 1.0 are
+** enabled by default. Future versions may change which versions of the
+** protocol are enabled by default.
+**
+** Using the new version range API in conjunction with the older
+** SSL_OptionSet-based API for controlling the enabled protocol versions may
+** cause unexpected results. Going forward, we guarantee only the following:
+**
+** SSL_OptionSet(SSL_ENABLE_TLS, PR_FALSE) will disable *ALL* versions of TLS,
+** including TLS 1.0 and later.
+**
+** SSL_OptionSet(SSL_ENABLE_TLS, PR_TRUE) will enable TLS 1.0, and may also
+** enable some later versions of TLS. For example, if TLS 1.2 is enabled at the
+** time the call is made, then after SSL_OptionSet(SSL_ENABLE_TLS, PR_TRUE),
+** TLS 1.0, TLS 1.1, and TLS 1.2 will be enabled, and the call will have no
+** effect on whether SSL 3.0 is enabled. If no later versions of TLS are
+** enabled at the time SSL_OptionSet(SSL_ENABLE_TLS, PR_TRUE) is called, then
+** no later versions of TLS will be enabled by the call.
+**
+** SSL_OptionSet(SSL_ENABLE_SSL3, PR_FALSE) will disable SSL 3.0, and will not
+** change the set of TLS versions that are enabled.
+**
+** SSL_OptionSet(SSL_ENABLE_SSL3, PR_TRUE) will enable SSL 3.0, and may also
+** enable some versions of TLS if TLS 1.1 or later is enabled at the time of
+** the call, the same way SSL_OptionSet(SSL_ENABLE_TLS, PR_TRUE) works.
+**/
+
+/* Returns PR_TRUE if the given version range is valid and
+** fully supported; otherwise, returns PR_FALSE.
+*/
+SSL_IMPORT PRBool SSL_VersionRangeIsValid(const SSLVersionRange *range);
+
+/* Returns the range of supported SSL3/TLS versions in |*range|.
+**/
+SSL_IMPORT SECStatus SSL_VersionRangeGetSupported(SSLVersionRange *range);
+
+/* Returns the current enabled-by-default SSL3/TLS versions in |*range|.
+**/
+SSL_IMPORT SECStatus SSL_VersionRangeGetDefault(SSLVersionRange *range);
+
+/* Sets the current range of SSL3/TLS versions enabled by default.
+**/
+SSL_IMPORT SECStatus SSL_VersionRangeSetDefault(const SSLVersionRange *range);
+
+/* Returns the range of enabled SSL3/TLS versions for |fd| in |*range|.
+**/
+SSL_IMPORT SECStatus SSL_VersionRangeGet(PRFileDesc *fd, SSLVersionRange *range);
+
+/* Sets the range of enabled SSL3/TLS versions for |fd|.
+**/
+SSL_IMPORT SECStatus SSL_VersionRangeSet(PRFileDesc *fd,
+					 const SSLVersionRange *range);
+
 
 /* Values for "policy" argument to SSL_PolicySet */
 /* Values returned by SSL_CipherPolicyGet. */

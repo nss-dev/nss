@@ -638,7 +638,7 @@ ssl3_config_match_init(sslSocket *ss)
     	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return 0;
     }
-    if (!ss->opt.enableSSL3 && !ss->opt.enableTLS) {
+    if (SSL3_ALL_VERSIONS_DISABLED(&ss->vrange)) {
     	return 0;
     }
     isServer = (PRBool)(ss->sec.isServer != 0);
@@ -742,7 +742,7 @@ count_cipher_suites(sslSocket *ss, int policy, PRBool enabled)
 {
     int i, count = 0;
 
-    if (!ss->opt.enableSSL3 && !ss->opt.enableTLS) {
+    if (SSL3_ALL_VERSIONS_DISABLED(&ss->vrange)) {
     	return 0;
     }
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
@@ -753,24 +753,6 @@ count_cipher_suites(sslSocket *ss, int policy, PRBool enabled)
 	PORT_SetError(SSL_ERROR_SSL_DISABLED);
     }
     return count;
-}
-
-static PRBool
-anyRestrictedEnabled(sslSocket *ss)
-{
-    int i;
-
-    if (!ss->opt.enableSSL3 && !ss->opt.enableTLS) {
-    	return PR_FALSE;
-    }
-    for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
-	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
-	if (suite->policy == SSL_RESTRICTED &&
-	    suite->enabled &&
-	    suite->isPresent)
-	    return PR_TRUE;
-    }
-    return PR_FALSE;
 }
 
 /*
@@ -791,33 +773,28 @@ Null_Cipher(void *ctx, unsigned char *output, int *outputLen, int maxOutputLen,
  * SSL3 Utility functions
  */
 
+/* If allowLargerPeerVersion is true, peerVersion is the peer's max version
+ * and is allowed to be larger than our max version.
+ */
 SECStatus
-ssl3_NegotiateVersion(sslSocket *ss, SSL3ProtocolVersion peerVersion)
+ssl3_NegotiateVersion(sslSocket *ss, SSL3ProtocolVersion peerVersion,
+		      PRBool allowLargerPeerVersion)
 {
-    SSL3ProtocolVersion version;
-    SSL3ProtocolVersion maxVersion;
-
-    if (ss->opt.enableTLS) {
-	maxVersion = SSL_LIBRARY_VERSION_3_1_TLS;
-    } else if (ss->opt.enableSSL3) {
-	maxVersion = SSL_LIBRARY_VERSION_3_0;
-    } else {
-    	/* what are we doing here? */
-	PORT_Assert(ss->opt.enableSSL3 || ss->opt.enableTLS);
+    if (SSL3_ALL_VERSIONS_DISABLED(&ss->vrange)) {
 	PORT_SetError(SSL_ERROR_SSL_DISABLED);
 	return SECFailure;
     }
 
-    ss->version = version = PR_MIN(maxVersion, peerVersion);
-
-    if ((version == SSL_LIBRARY_VERSION_3_1_TLS && ss->opt.enableTLS) ||
-    	(version == SSL_LIBRARY_VERSION_3_0     && ss->opt.enableSSL3)) {
-	return SECSuccess;
+    if (peerVersion < ss->vrange.min ||
+	(peerVersion > ss->vrange.max && !allowLargerPeerVersion)) {
+	PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
+	return SECFailure;
     }
 
-    PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
-    return SECFailure;
+    ss->version = PR_MIN(peerVersion, ss->vrange.max);
+    PORT_Assert(ssl3_VersionIsSupported(ss->version));
 
+    return SECSuccess;
 }
 
 static SECStatus
@@ -3880,6 +3857,11 @@ ssl3_SendClientHello(sslSocket *ss)
 	    sidOK = PR_FALSE;
 	}
 
+	if (sidOK && ssl3_NegotiateVersion(ss, sid->version,
+					   PR_FALSE) != SECSuccess) {
+	    sidOK = PR_FALSE;
+	}
+
 	if (!sidOK) {
 	    SSL_AtomicIncrementLong(& ssl3stats.sch_sid_cache_not_ok );
 	    (*ss->sec.uncache)(sid);
@@ -3896,10 +3878,6 @@ ssl3_SendClientHello(sslSocket *ss)
 	    sid->u.ssl3.sessionTicket.ticket.data)
 	    SSL_AtomicIncrementLong(& ssl3stats.sch_sid_stateless_resumes );
 
-	rv = ssl3_NegotiateVersion(ss, sid->version);
-	if (rv != SECSuccess)
-	    return rv;	/* error code was set */
-
 	PRINT_BUF(4, (ss, "client, found session-id:", sid->u.ssl3.sessionID,
 		      sid->u.ssl3.sessionIDLength));
 
@@ -3907,7 +3885,8 @@ ssl3_SendClientHello(sslSocket *ss)
     } else {
 	SSL_AtomicIncrementLong(& ssl3stats.sch_sid_cache_misses );
 
-	rv = ssl3_NegotiateVersion(ss, SSL_LIBRARY_VERSION_3_1_TLS);
+	rv = ssl3_NegotiateVersion(ss, SSL_LIBRARY_VERSION_MAX_SUPPORTED,
+				   PR_TRUE);
 	if (rv != SECSuccess)
 	    return rv;	/* error code was set */
 
@@ -3934,8 +3913,8 @@ ssl3_SendClientHello(sslSocket *ss)
     ss->sec.send = ssl3_SendApplicationData;
 
     /* shouldn't get here if SSL3 is disabled, but ... */
-    PORT_Assert(ss->opt.enableSSL3 || ss->opt.enableTLS);
-    if (!ss->opt.enableSSL3 && !ss->opt.enableTLS) {
+    if (SSL3_ALL_VERSIONS_DISABLED(&ss->vrange)) {
+	PR_NOT_REACHED("No versions of SSL 3.0 or later are enabled");
 	PORT_SetError(SSL_ERROR_SSL_DISABLED);
     	return SECFailure;
     }
@@ -3948,7 +3927,7 @@ ssl3_SendClientHello(sslSocket *ss)
     /* HACK for SCSV in SSL 3.0.  On initial handshake, prepend SCSV,
      * only if we're willing to complete an SSL 3.0 handshake.
      */
-    if (!ss->firstHsDone && ss->opt.enableSSL3) {
+    if (!ss->firstHsDone && ss->vrange.min == SSL_LIBRARY_VERSION_3_0) {
 	/* Must set this before calling Hello Extension Senders, 
 	 * to suppress sending of empty RI extension.
 	 */
@@ -4985,16 +4964,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
     version = (SSL3ProtocolVersion)temp;
 
-    /* this is appropriate since the negotiation is complete, and we only
-    ** know SSL 3.x.
-    */
-    if (MSB(version) != MSB(SSL_LIBRARY_VERSION_3_0)) {
-    	desc = (version > SSL_LIBRARY_VERSION_3_0) ? protocol_version 
-						   : handshake_failure;
-	goto alert_loser;
-    }
-
-    rv = ssl3_NegotiateVersion(ss, version);
+    rv = ssl3_NegotiateVersion(ss, version, PR_FALSE);
     if (rv != SECSuccess) {
     	desc = (version > SSL_LIBRARY_VERSION_3_0) ? protocol_version 
 						   : handshake_failure;
@@ -6107,7 +6077,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (tmp < 0)
 	goto loser;		/* malformed, alert already sent */
     ss->clientHelloVersion = version = (SSL3ProtocolVersion)tmp;
-    rv = ssl3_NegotiateVersion(ss, version);
+    rv = ssl3_NegotiateVersion(ss, version, PR_TRUE);
     if (rv != SECSuccess) {
     	desc = (version > SSL_LIBRARY_VERSION_3_0) ? protocol_version 
 	                                           : handshake_failure;
@@ -6814,7 +6784,7 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
     rand_length  = (buffer[7] << 8) | buffer[8];
     ss->clientHelloVersion = version;
 
-    rv = ssl3_NegotiateVersion(ss, version);
+    rv = ssl3_NegotiateVersion(ss, version, PR_TRUE);
     if (rv != SECSuccess) {
 	/* send back which ever alert client will understand. */
     	desc = (version > SSL_LIBRARY_VERSION_3_0) ? protocol_version : handshake_failure;
@@ -9270,9 +9240,7 @@ ssl3_InitCipherSpec(sslSocket *ss, ssl3CipherSpec *spec)
     spec->read_seq_num.high        = 0;
     spec->read_seq_num.low         = 0;
 
-    spec->version                  = ss->opt.enableTLS
-                                          ? SSL_LIBRARY_VERSION_3_1_TLS
-                                          : SSL_LIBRARY_VERSION_3_0;
+    spec->version                  = ss->vrange.max;
 }
 
 /* Called from:	ssl3_SendRecord
@@ -9517,7 +9485,7 @@ ssl3_ConstructV2CipherSpecsHack(sslSocket *ss, unsigned char *cs, int *size)
 	PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
 	return SECFailure;
     }
-    if (!ss->opt.enableSSL3 && !ss->opt.enableTLS) {
+    if (SSL3_ALL_VERSIONS_DISABLED(&ss->vrange)) {
     	*size = 0;
 	return SECSuccess;
     }
