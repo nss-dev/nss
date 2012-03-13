@@ -490,6 +490,7 @@ typedef enum {
 
 typedef enum { type_stream, type_block } CipherType;
 
+/* XXX Why is MAX_IV_LENGTH so big? */
 #define MAX_IV_LENGTH 64
 
 /*
@@ -1350,7 +1351,7 @@ extern PRBool    ssl3_CanFalseStart(sslSocket *ss);
  * runtime to determine which versions are supported by the version of libssl
  * in use.
  */
-#define SSL_LIBRARY_VERSION_MAX_SUPPORTED SSL_LIBRARY_VERSION_TLS_1_0
+#define SSL_LIBRARY_VERSION_MAX_SUPPORTED SSL_LIBRARY_VERSION_TLS_1_1
 
 /* Rename this macro SSL_ALL_VERSIONS_DISABLED when SSL 2.0 is removed. */
 #define SSL3_ALL_VERSIONS_DISABLED(vrange) \

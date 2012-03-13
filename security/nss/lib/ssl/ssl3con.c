@@ -2024,21 +2024,51 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *   cwSpec,
 {
     const ssl3BulkCipherDef * cipher_def;
     SECStatus                 rv;
-    PRUint32                  macLen      = 0;
+    PRUint32                  macLen = 0;
     PRUint32                  fragLen;
     PRUint32  p1Len, p2Len, oddLen = 0;
-    PRInt32   cipherBytes =  0;
+    int                       ivLen = 0;
+    int                       cipherBytes = 0;
 
     cipher_def = cwSpec->cipher_def;
+
+    if (cipher_def->type == type_block &&
+	cwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_1) {
+	/* Prepend the per-record explicit IV using technique 2b from
+	 * RFC 4346 section 6.2.3.2: The IV is a cryptographically
+	 * strong random number XORed with the CBC residue from the previous
+	 * record.
+	 */
+	ivLen = cipher_def->iv_size;
+	if (ivLen > wrBuf->space - SSL3_RECORD_HEADER_LENGTH) {
+	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	    return SECFailure;
+	}
+	rv = PK11_GenerateRandom(wrBuf->buf + SSL3_RECORD_HEADER_LENGTH, ivLen);
+	if (rv != SECSuccess) {
+	    return rv;
+	}
+	rv = cwSpec->encode( cwSpec->encodeContext, 
+	    wrBuf->buf + SSL3_RECORD_HEADER_LENGTH,
+	    &cipherBytes,                       /* output and actual outLen */
+	    ivLen,                              /* max outlen */
+	    wrBuf->buf + SSL3_RECORD_HEADER_LENGTH,
+	    ivLen);                             /* input and inputLen*/
+	if (rv != SECSuccess || cipherBytes != ivLen) {
+	    PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
+	    return SECFailure;
+	}
+    }
 
     if (cwSpec->compressor) {
 	int outlen;
 	rv = cwSpec->compressor(
-	    cwSpec->compressContext, wrBuf->buf + SSL3_RECORD_HEADER_LENGTH,
-	    &outlen, wrBuf->space - SSL3_RECORD_HEADER_LENGTH, pIn, contentLen);
+	    cwSpec->compressContext,
+	    wrBuf->buf + SSL3_RECORD_HEADER_LENGTH + ivLen, &outlen,
+	    wrBuf->space - SSL3_RECORD_HEADER_LENGTH - ivLen, pIn, contentLen);
 	if (rv != SECSuccess)
 	    return rv;
-	pIn = wrBuf->buf + SSL3_RECORD_HEADER_LENGTH;
+	pIn = wrBuf->buf + SSL3_RECORD_HEADER_LENGTH + ivLen;
 	contentLen = outlen;
     }
 
@@ -2047,7 +2077,7 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *   cwSpec,
      */
     rv = ssl3_ComputeRecordMAC( cwSpec, isServer,
 	type, cwSpec->version, cwSpec->write_seq_num, pIn, contentLen,
-	wrBuf->buf + contentLen + SSL3_RECORD_HEADER_LENGTH, &macLen);
+	wrBuf->buf + SSL3_RECORD_HEADER_LENGTH + ivLen + contentLen, &macLen);
     if (rv != SECSuccess) {
 	ssl_MapLowLevelError(SSL_ERROR_MAC_COMPUTATION_FAILURE);
 	return SECFailure;
@@ -2074,7 +2104,7 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *   cwSpec,
 	PORT_Assert((fragLen % cipher_def->block_size) == 0);
 
 	/* Pad according to TLS rules (also acceptable to SSL3). */
-	pBuf = &wrBuf->buf[fragLen + SSL3_RECORD_HEADER_LENGTH - 1];
+	pBuf = &wrBuf->buf[SSL3_RECORD_HEADER_LENGTH + ivLen + fragLen - 1];
 	for (i = padding_length + 1; i > 0; --i) {
 	    *pBuf-- = padding_length;
 	}
@@ -2091,31 +2121,33 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *   cwSpec,
 	p2Len += oddLen;
 	PORT_Assert( (cipher_def->block_size < 2) || \
 		     (p2Len % cipher_def->block_size) == 0);
-	memmove(wrBuf->buf + SSL3_RECORD_HEADER_LENGTH + p1Len,
+	memmove(wrBuf->buf + SSL3_RECORD_HEADER_LENGTH + ivLen + p1Len,
 	        pIn + p1Len, oddLen);
     }
     if (p1Len > 0) {
+	int cipherBytesPart1 = -1;
 	rv = cwSpec->encode( cwSpec->encodeContext, 
-	    wrBuf->buf + SSL3_RECORD_HEADER_LENGTH, /* output */
-	    &cipherBytes,                           /* actual outlen */
+	    wrBuf->buf + SSL3_RECORD_HEADER_LENGTH + ivLen, /* output */
+	    &cipherBytesPart1,                      /* actual outlen */
 	    p1Len,                                  /* max outlen */
 	    pIn, p1Len);                      /* input, and inputlen */
-	PORT_Assert(rv == SECSuccess && cipherBytes == p1Len);
-	if (rv != SECSuccess || cipherBytes != p1Len) {
+	PORT_Assert(rv == SECSuccess && cipherBytesPart1 == (int) p1Len);
+	if (rv != SECSuccess || cipherBytesPart1 != (int) p1Len) {
 	    PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
 	    return SECFailure;
 	}
+	cipherBytes += cipherBytesPart1;
     }
     if (p2Len > 0) {
-	PRInt32 cipherBytesPart2 = -1;
+	int cipherBytesPart2 = -1;
 	rv = cwSpec->encode( cwSpec->encodeContext, 
-	    wrBuf->buf + SSL3_RECORD_HEADER_LENGTH + p1Len,
+	    wrBuf->buf + SSL3_RECORD_HEADER_LENGTH + ivLen + p1Len,
 	    &cipherBytesPart2,          /* output and actual outLen */
 	    p2Len,                             /* max outlen */
-	    wrBuf->buf + SSL3_RECORD_HEADER_LENGTH + p1Len,
+	    wrBuf->buf + SSL3_RECORD_HEADER_LENGTH + ivLen + p1Len,
 	    p2Len);                            /* input and inputLen*/
-	PORT_Assert(rv == SECSuccess && cipherBytesPart2 == p2Len);
-	if (rv != SECSuccess || cipherBytesPart2 != p2Len) {
+	PORT_Assert(rv == SECSuccess && cipherBytesPart2 == (int) p2Len);
+	if (rv != SECSuccess || cipherBytesPart2 != (int) p2Len) {
 	    PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
 	    return SECFailure;
 	}
@@ -2199,7 +2231,7 @@ ssl3_SendRecord(   sslSocket *        ss,
 	ssl_GetSpecReadLock(ss);    /********************************/
 
 	if (nIn > 1 && ss->opt.cbcRandomIV &&
-	    ss->ssl3.cwSpec->version <= SSL_LIBRARY_VERSION_3_1_TLS &&
+	    ss->ssl3.cwSpec->version < SSL_LIBRARY_VERSION_TLS_1_1 &&
 	    type == content_application_data &&
 	    ss->ssl3.cwSpec->cipher_def->type == type_block /* CBC mode */) {
 	    /* We will split the first byte of the record into its own record,
@@ -2211,6 +2243,10 @@ ssl3_SendRecord(   sslSocket *        ss,
 	}
 
 	spaceNeeded = contentLen + (numRecords * SSL3_BUFFER_FUDGE);
+	if (ss->ssl3.cwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_1 &&
+	    ss->ssl3.cwSpec->cipher_def->type == type_block) {
+	    spaceNeeded += ss->ssl3.cwSpec->cipher_def->iv_size;
+	}
 	if (spaceNeeded > wrBuf->space) {
 	    rv = sslBuffer_Grow(wrBuf, spaceNeeded);
 	    if (rv != SECSuccess) {
@@ -8935,14 +8971,15 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     const ssl3BulkCipherDef *cipher_def;
     ssl3CipherSpec *     crSpec;
     SECStatus            rv;
-    unsigned int         hashBytes		= MAX_MAC_LENGTH + 1;
+    unsigned int         hashBytes = MAX_MAC_LENGTH + 1;
     unsigned int         padding_length;
     PRBool               isTLS;
-    PRBool               padIsBad               = PR_FALSE;
+    PRBool               padIsBad = PR_FALSE;
     SSL3ContentType      rType;
     SSL3Opaque           hash[MAX_MAC_LENGTH];
     sslBuffer           *plaintext;
     sslBuffer            temp_buf;
+    unsigned int         ivLen = 0;
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
 
@@ -8975,6 +9012,42 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     ssl_GetSpecReadLock(ss); /******************************************/
 
     crSpec = ss->ssl3.crSpec;
+    cipher_def = crSpec->cipher_def;
+
+    if (cipher_def->type == type_block &&
+	crSpec->version >= SSL_LIBRARY_VERSION_TLS_1_1) {
+	/* Consume the per-record explicit IV. RFC 4346 Section 6.2.3.2 states
+	 * "The receiver decrypts the entire GenericBlockCipher structure and
+	 * then discards the first cipher block corresponding to the IV
+	 * component." Instead, we decrypt the first cipher block and then
+	 * discard it before decrypting the rest.
+	 */
+	SSL3Opaque iv[MAX_IV_LENGTH];
+	int decoded;
+
+	ivLen = cipher_def->iv_size;
+	if (ivLen < 8 || ivLen > sizeof(iv) || ivLen > cText->buf->len) {
+	    SSL_DBG(("%d: SSL3[%d]: HandleRecord, IV length check failed",
+		     SSL_GETPID(), ss->fd));
+	    /* must not hold spec lock when calling SSL3_SendAlert. */
+	    ssl_ReleaseSpecReadLock(ss);
+	    ssl3_DecodeError(ss);
+	    return SECFailure;
+	}
+
+	PRINT_BUF(80, (ss, "IV (ciphertext):", cText->buf->buf, ivLen));
+
+	rv = crSpec->decode(crSpec->decodeContext, iv, &decoded,
+			    sizeof(iv), cText->buf->buf, ivLen);
+
+	PRINT_BUF(80, (ss, "IV (cleartext):", iv, ivLen));
+	if (rv != SECSuccess) {
+	    /* All decryption failures must be treated like a bad record
+	     * MAC; see RFC 5246 (TLS 1.2). 
+	     */
+	    padIsBad = PR_TRUE;
+	}
+    }
 
     /* If we will be decompressing the buffer we need to decrypt somewhere
      * other than into databuf */
@@ -8999,12 +9072,12 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
 	}
     }
 
-    PRINT_BUF(80, (ss, "ciphertext:", cText->buf->buf, cText->buf->len));
+    PRINT_BUF(80, (ss, "ciphertext:", cText->buf->buf + ivLen,
+				      cText->buf->len - ivLen));
 
-    cipher_def = crSpec->cipher_def;
     isTLS = (PRBool)(crSpec->version > SSL_LIBRARY_VERSION_3_0);
 
-    if (isTLS && cText->buf->len > (MAX_FRAGMENT_LENGTH + 2048)) {
+    if (isTLS && cText->buf->len - ivLen > (MAX_FRAGMENT_LENGTH + 2048)) {
 	ssl_ReleaseSpecReadLock(ss);
 	SSL3_SendAlert(ss, alert_fatal, record_overflow);
 	PORT_SetError(SSL_ERROR_RX_RECORD_TOO_LONG);
@@ -9014,7 +9087,7 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     /* decrypt from cText buf to plaintext. */
     rv = crSpec->decode(
 	crSpec->decodeContext, plaintext->buf, (int *)&plaintext->len,
-	plaintext->space, cText->buf->buf, cText->buf->len);
+	plaintext->space, cText->buf->buf + ivLen, cText->buf->len - ivLen);
 
     PRINT_BUF(80, (ss, "cleartext:", plaintext->buf, plaintext->len));
     if (rv != SECSuccess) {
