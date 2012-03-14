@@ -398,10 +398,8 @@ SSL_ExportKeyingMaterial(PRFileDesc *fd,
     if (hasContext) {
 	val[i++] = contextLen >> 8;
 	val[i++] = contextLen;
-	if (contextLen > 0) {
-	    PORT_Memcpy(val + i, context, contextLen);
-	    i += contextLen;
-	}
+	PORT_Memcpy(val + i, context, contextLen);
+	i += contextLen;
     }
     PORT_Assert(i == valLen);
 
