@@ -490,8 +490,8 @@ typedef enum {
 
 typedef enum { type_stream, type_block } CipherType;
 
-/* XXX Why is MAX_IV_LENGTH so big? */
-#define MAX_IV_LENGTH 64
+/* This value matches the size of IVs in ssl3SidKeys. */
+#define MAX_IV_LENGTH 24
 
 /*
  * Do not depend upon 64 bit arithmetic in the underlying machine. 
