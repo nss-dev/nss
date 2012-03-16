@@ -1611,63 +1611,72 @@ loser:
 }
 
 PRBool
-ssl3_VersionIsSupported(SSL3ProtocolVersion version)
+ssl3_VersionIsSupported(SSLProtocolVariant protocolVariant,
+			SSL3ProtocolVersion version)
 {
-    return version >= SSL_LIBRARY_VERSION_3_0 &&
+    return protocolVariant == ssl_variant_stream &&
+	   version >= SSL_LIBRARY_VERSION_3_0 &&
 	   version <= SSL_LIBRARY_VERSION_MAX_SUPPORTED;
 }
 
-PRBool
-SSL_VersionRangeIsValid(const SSLVersionRange *range)
+/* Returns PR_TRUE if the given version range is valid and
+** fully supported; otherwise, returns PR_FALSE.
+*/
+static PRBool
+ssl3_VersionRangeIsValid(SSLProtocolVariant protocolVariant,
+			 const SSLVersionRange *vrange)
 {
-    return range &&
-	   range->min <= range->max &&
-	   ssl3_VersionIsSupported(range->min) &&
-	   ssl3_VersionIsSupported(range->max);
+    return vrange &&
+	   vrange->min <= vrange->max &&
+	   ssl3_VersionIsSupported(protocolVariant, vrange->min) &&
+	   ssl3_VersionIsSupported(protocolVariant, vrange->max);
 }
 
 SECStatus
-SSL_VersionRangeGetSupported(SSLVersionRange *range)
+SSL_VersionRangeGetSupported(SSLProtocolVariant protocolVariant,
+			     SSLVersionRange *vrange)
 {
-    if (!range) {
+    if (protocolVariant != ssl_variant_stream || !vrange) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
 
-    range->min = SSL_LIBRARY_VERSION_3_0;
-    range->max = SSL_LIBRARY_VERSION_MAX_SUPPORTED;
+    vrange->min = SSL_LIBRARY_VERSION_3_0;
+    vrange->max = SSL_LIBRARY_VERSION_MAX_SUPPORTED;
 
     return SECSuccess;
 }
 
 SECStatus
-SSL_VersionRangeGetDefault(SSLVersionRange *range)
+SSL_VersionRangeGetDefault(SSLProtocolVariant protocolVariant,
+			   SSLVersionRange *vrange)
 {
-    if (!range) {
+    if (protocolVariant != ssl_variant_stream || !vrange) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
 
-    *range = versions_defaults;
+    *vrange = versions_defaults;
 
     return SECSuccess;
 }
 
 SECStatus
-SSL_VersionRangeSetDefault(const SSLVersionRange *range)
+SSL_VersionRangeSetDefault(SSLProtocolVariant protocolVariant,
+			   const SSLVersionRange *vrange)
 {
-    if (!SSL_VersionRangeIsValid(range)) {
+    if (!ssl3_VersionRangeIsValid(protocolVariant, vrange)) {
 	PORT_SetError(SSL_ERROR_INVALID_VERSION_RANGE);
 	return SECFailure;
     }
 
-    versions_defaults = *range;
+    versions_defaults = *vrange;
 
     return SECSuccess;
 }
 
 SECStatus
-SSL_VersionRangeGet(PRFileDesc *fd, SSLVersionRange *range)
+SSL_VersionRangeGet(PRFileDesc *fd, SSLVersionRange *vrange)
 {
     sslSocket *ss = ssl_FindSocket(fd);
 
@@ -1677,7 +1686,7 @@ SSL_VersionRangeGet(PRFileDesc *fd, SSLVersionRange *range)
 	return SECFailure;
     }
 
-    if (!range) {
+    if (!vrange) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
@@ -1685,7 +1694,7 @@ SSL_VersionRangeGet(PRFileDesc *fd, SSLVersionRange *range)
     ssl_Get1stHandshakeLock(ss);
     ssl_GetSSL3HandshakeLock(ss);
 
-    *range = ss->vrange;
+    *vrange = ss->vrange;
 
     ssl_ReleaseSSL3HandshakeLock(ss);
     ssl_Release1stHandshakeLock(ss);
@@ -1694,7 +1703,7 @@ SSL_VersionRangeGet(PRFileDesc *fd, SSLVersionRange *range)
 }
 
 SECStatus
-SSL_VersionRangeSet(PRFileDesc *fd, const SSLVersionRange *range)
+SSL_VersionRangeSet(PRFileDesc *fd, const SSLVersionRange *vrange)
 {
     sslSocket *ss = ssl_FindSocket(fd);
 
@@ -1704,7 +1713,7 @@ SSL_VersionRangeSet(PRFileDesc *fd, const SSLVersionRange *range)
 	return SECFailure;
     }
 
-    if (!SSL_VersionRangeIsValid(range)) {
+    if (!ssl3_VersionRangeIsValid(ssl_variant_stream, vrange)) {
 	PORT_SetError(SSL_ERROR_INVALID_VERSION_RANGE);
 	return SECFailure;
     }
@@ -1712,7 +1721,7 @@ SSL_VersionRangeSet(PRFileDesc *fd, const SSLVersionRange *range)
     ssl_Get1stHandshakeLock(ss);
     ssl_GetSSL3HandshakeLock(ss);
 
-    ss->vrange = *range;
+    ss->vrange = *vrange;
 
     ssl_ReleaseSSL3HandshakeLock(ss);
     ssl_Release1stHandshakeLock(ss);

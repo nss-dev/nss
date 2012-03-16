@@ -276,6 +276,11 @@ SSL_IMPORT SECStatus SSL_CipherPolicyGet(PRInt32 cipher, PRInt32 *policy);
 ** enabled by default. Future versions may change which versions of the
 ** protocol are enabled by default.
 **
+** The SSLProtocolVariant enum indicates whether the protocol is of type
+** stream or datagram. This must be provided to the functions that do not
+** take an fd. Functions which take an fd will get the variant from the fd,
+** which is typed.
+**
 ** Using the new version range API in conjunction with the older
 ** SSL_OptionSet-based API for controlling the enabled protocol versions may
 ** cause unexpected results. Going forward, we guarantee only the following:
@@ -297,33 +302,33 @@ SSL_IMPORT SECStatus SSL_CipherPolicyGet(PRInt32 cipher, PRInt32 *policy);
 ** SSL_OptionSet(SSL_ENABLE_SSL3, PR_TRUE) will enable SSL 3.0, and may also
 ** enable some versions of TLS if TLS 1.1 or later is enabled at the time of
 ** the call, the same way SSL_OptionSet(SSL_ENABLE_TLS, PR_TRUE) works.
-**/
-
-/* Returns PR_TRUE if the given version range is valid and
-** fully supported; otherwise, returns PR_FALSE.
 */
-SSL_IMPORT PRBool SSL_VersionRangeIsValid(const SSLVersionRange *range);
 
-/* Returns the range of supported SSL3/TLS versions in |*range|.
-**/
-SSL_IMPORT SECStatus SSL_VersionRangeGetSupported(SSLVersionRange *range);
+/* Returns, in |*vrange|, the range of SSL3/TLS versions supported for the
+** given protocol variant by the version of libssl linked-to at runtime.
+*/
+SSL_IMPORT SECStatus SSL_VersionRangeGetSupported(
+    SSLProtocolVariant protocolVariant, SSLVersionRange *vrange);
 
-/* Returns the current enabled-by-default SSL3/TLS versions in |*range|.
-**/
-SSL_IMPORT SECStatus SSL_VersionRangeGetDefault(SSLVersionRange *range);
+/* Returns, in |*vrange|, the range of SSL3/TLS versions enabled by default
+** for the given protocol variant.
+*/
+SSL_IMPORT SECStatus SSL_VersionRangeGetDefault(
+    SSLProtocolVariant protocolVariant, SSLVersionRange *vrange);
 
-/* Sets the current range of SSL3/TLS versions enabled by default.
-**/
-SSL_IMPORT SECStatus SSL_VersionRangeSetDefault(const SSLVersionRange *range);
+/* Sets the range of enabled-by-default SSL3/TLS versions for the given
+** protocol variant to |*vrange|.
+*/
+SSL_IMPORT SECStatus SSL_VersionRangeSetDefault(
+    SSLProtocolVariant protocolVariant, const SSLVersionRange *vrange);
 
-/* Returns the range of enabled SSL3/TLS versions for |fd| in |*range|.
-**/
-SSL_IMPORT SECStatus SSL_VersionRangeGet(PRFileDesc *fd, SSLVersionRange *range);
+/* Returns, in |*vrange|, the range of enabled SSL3/TLS versions for |fd|. */
+SSL_IMPORT SECStatus SSL_VersionRangeGet(PRFileDesc *fd,
+					 SSLVersionRange *vrange);
 
-/* Sets the range of enabled SSL3/TLS versions for |fd|.
-**/
+/* Sets the range of enabled SSL3/TLS versions for |fd| to |*vrange|. */
 SSL_IMPORT SECStatus SSL_VersionRangeSet(PRFileDesc *fd,
-					 const SSLVersionRange *range);
+					 const SSLVersionRange *vrange);
 
 
 /* Values for "policy" argument to SSL_PolicySet */
