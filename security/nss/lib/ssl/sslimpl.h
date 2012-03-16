@@ -1357,7 +1357,8 @@ extern PRBool    ssl3_CanFalseStart(sslSocket *ss);
 #define SSL3_ALL_VERSIONS_DISABLED(vrange) \
     ((vrange)->min == SSL_LIBRARY_VERSION_NONE)
 
-extern PRBool ssl3_VersionIsSupported(SSL3ProtocolVersion version);
+extern PRBool ssl3_VersionIsSupported(SSLProtocolVariant protocolVariant,
+				      SSL3ProtocolVersion version);
 
 extern SECStatus ssl3_KeyAndMacDeriveBypass(ssl3CipherSpec * pwSpec,
 		    const unsigned char * cr, const unsigned char * sr,
