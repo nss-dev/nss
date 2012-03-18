@@ -324,8 +324,8 @@ typedef struct sslOptionsStr {
     unsigned int handshakeAsClient	: 1;  /*  6 */
     unsigned int handshakeAsServer	: 1;  /*  7 */
     unsigned int enableSSL2		: 1;  /*  8 */
-    unsigned int unused9		: 1;  /*  9 */
-    unsigned int unused10		: 1;  /* 10 */
+    unsigned int unusedBit9		: 1;  /*  9 */
+    unsigned int unusedBit10		: 1;  /* 10 */
     unsigned int noCache		: 1;  /* 11 */
     unsigned int fdx			: 1;  /* 12 */
     unsigned int v2CompatibleHello	: 1;  /* 13 */

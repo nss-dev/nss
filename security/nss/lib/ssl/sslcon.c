@@ -3111,7 +3111,7 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     PORT_Assert(sid != NULL);
 
     if ((sid->version >= SSL_LIBRARY_VERSION_3_0 || !ss->opt.v2CompatibleHello) &&
-        !SSL3_ALL_VERSIONS_DISABLED(&ss->vrange)) {
+	!SSL3_ALL_VERSIONS_DISABLED(&ss->vrange)) {
 	ss->gs.state      = GS_INIT;
 	ss->handshake     = ssl_GatherRecord1stHandshake;
 

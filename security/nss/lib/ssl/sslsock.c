@@ -171,8 +171,8 @@ static sslOptions ssl_defaults = {
     PR_FALSE,	/* handshakeAsClient  */
     PR_FALSE,	/* handshakeAsServer  */
     PR_FALSE,	/* enableSSL2         */ /* now defaults to off in NSS 3.13 */
-    PR_FALSE,	/* unused9            */
-    PR_FALSE, 	/* unused10           */
+    PR_FALSE,	/* unusedBit9         */
+    PR_FALSE, 	/* unusedBit10        */
     PR_FALSE,	/* noCache            */
     PR_FALSE,	/* fdx                */
     PR_FALSE,	/* v2CompatibleHello  */ /* now defaults to off in NSS 3.13 */
@@ -623,7 +623,7 @@ ssl_EnableSSL3(SSLVersionRange *vrange, PRBool on)
 	vrange->min = SSL_LIBRARY_VERSION_3_0;
    } else {
 	/* Disable SSL 3.0, leaving TLS unaffected. */
-	if (vrange->max != SSL_LIBRARY_VERSION_3_0) {
+	if (vrange->max > SSL_LIBRARY_VERSION_3_0) {
 	    vrange->min = PR_MAX(vrange->min, SSL_LIBRARY_VERSION_TLS_1_0);
 	} else {
 	    /* Only SSL 3.0 was enabled, so now no versions are. */
