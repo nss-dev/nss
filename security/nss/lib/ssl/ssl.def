@@ -177,7 +177,10 @@ SSL_AuthCertificateComplete;
 ;+    global:
 SSL_ExportKeyingMaterial;
 SSL_VersionRangeGet;
+SSL_VersionRangeGetDefault;
+SSL_VersionRangeGetSupported;
 SSL_VersionRangeSet;
+SSL_VersionRangeSetDefault;
 ;+    local:
 ;+*;
 ;+};
