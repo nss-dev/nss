@@ -212,8 +212,13 @@ extern SECStatus DH_NewKey(DHParams *           params,
 ** the prime.   If successful, derivedSecret->data is set 
 ** to the address of the newly allocated buffer containing the derived 
 ** secret, and derivedSecret->len is the size of the secret produced.
-** The size of the secret produced will never be larger than the length
-** of the prime, and it may be smaller than maxOutBytes.
+** The size of the secret produced will depend on the value of outBytes.
+** If out bytes is 0, the key length will be all the significant bytes of
+** the derived secret (leading zeros are dropped). This length could be less
+** than the length of the prime. If outBytes is nonzero, the length of the
+** produced key will be outBytes long. If the key is truncated, the most
+** significant bytes are truncated. It it is expanded, zero bytes are added
+** at the beginning.
 ** It is the caller's responsibility to free the allocated buffer 
 ** containing the derived secret.
 */
@@ -221,7 +226,7 @@ extern SECStatus DH_Derive(SECItem *    publicValue,
 		           SECItem *    prime, 
 			   SECItem *    privateValue, 
 			   SECItem *    derivedSecret,
-			   unsigned int maxOutBytes);
+			   unsigned int outBytes);
 
 /* 
 ** KEA_CalcKey returns octet string with the private key for a dual
