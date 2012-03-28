@@ -213,11 +213,11 @@ extern SECStatus DH_NewKey(DHParams *           params,
 ** to the address of the newly allocated buffer containing the derived 
 ** secret, and derivedSecret->len is the size of the secret produced.
 ** The size of the secret produced will depend on the value of outBytes.
-** If out bytes is 0, the key length will be all the significant bytes of
+** If outBytes is 0, the key length will be all the significant bytes of
 ** the derived secret (leading zeros are dropped). This length could be less
 ** than the length of the prime. If outBytes is nonzero, the length of the
 ** produced key will be outBytes long. If the key is truncated, the most
-** significant bytes are truncated. It it is expanded, zero bytes are added
+** significant bytes are truncated. If it is expanded, zero bytes are added
 ** at the beginning.
 ** It is the caller's responsibility to free the allocated buffer 
 ** containing the derived secret.
