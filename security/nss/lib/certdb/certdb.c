@@ -596,6 +596,20 @@ cert_ComputeCertType(CERTCertificate *cert)
 		nsCertType |= NS_CERT_TYPE_SSL_SERVER;
 	    }
 	}
+	/*
+	 * Treat certs with step-up OID as also having SSL server type.
+ 	 * COMODO needs this behaviour until June 2020.  See Bug 737802.
+	 */
+	if (findOIDinOIDSeqByTagNum(extKeyUsage, 
+				    SEC_OID_NS_KEY_USAGE_GOVT_APPROVED) ==
+	    SECSuccess){
+	    if (basicConstraintPresent == PR_TRUE &&
+		(basicConstraint.isCA)) {
+		nsCertType |= NS_CERT_TYPE_SSL_CA;
+	    } else {
+		nsCertType |= NS_CERT_TYPE_SSL_SERVER;
+	    }
+	}
 	if (findOIDinOIDSeqByTagNum(extKeyUsage,
 				    SEC_OID_EXT_KEY_USAGE_CLIENT_AUTH) ==
 	    SECSuccess){
