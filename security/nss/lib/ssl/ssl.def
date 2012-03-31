@@ -173,7 +173,7 @@ SSL_AuthCertificateComplete;
 ;+    local:
 ;+       *;
 ;+};
-;+NSS_3.13.4 {      # NSS 3.13.4 release
+;+NSS_3.13.5 {      # NSS 3.13.5 release
 ;+    global:
 SSL_ExportKeyingMaterial;
 SSL_VersionRangeGet;
