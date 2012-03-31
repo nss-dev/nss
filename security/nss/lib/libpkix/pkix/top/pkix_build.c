@@ -3332,7 +3332,6 @@ pkix_Build_InitiateBuildChain(
                                     PKIX_LISTGETITEMFAILED);
                             }
                             PKIX_DECREF(firstHintCert);
-                            firstHintCert = NULL;
                     }
 
             }
@@ -3470,7 +3469,6 @@ pkix_Build_InitiateBuildChain(
                     }
     
                     PKIX_DECREF(certStore);
-                    certStore = NULL;
                 }
             }
     
