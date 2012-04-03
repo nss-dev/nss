@@ -2955,6 +2955,7 @@ cert_InitLocks(void)
         PORT_Assert(certTrustLock != NULL);
         if (!certTrustLock) {
             PZ_DestroyLock(certRefCountLock);
+            certRefCountLock = NULL;
             return SECFailure;
         }
     }    
