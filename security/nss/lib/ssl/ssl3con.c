@@ -336,7 +336,6 @@ static const ssl3CipherSuiteDef cipher_suite_defs[] =
                                     cipher_3des,   mac_sha, kea_dhe_rsa},
 #if 0
     {SSL_DH_ANON_EXPORT_RC4_40_MD5, cipher_rc4_40, mac_md5, kea_dh_anon_export},
-    {SSL_DH_ANON_EXPORT_RC4_40_MD5, cipher_rc4,    mac_md5, kea_dh_anon_export},
     {SSL_DH_ANON_EXPORT_WITH_DES40_CBC_SHA,
                                     cipher_des40,  mac_sha, kea_dh_anon_export},
     {SSL_DH_ANON_DES_CBC_SHA,       cipher_des,    mac_sha, kea_dh_anon},
@@ -576,6 +575,31 @@ void SSL_AtomicIncrementLong(long * x)
     	tooLong * tl = (tooLong *)x;
 	if (PR_ATOMIC_INCREMENT(&tl->low) == 0)
 	    PR_ATOMIC_INCREMENT(&tl->high);
+    }
+}
+
+static PRBool
+ssl3_CipherSuiteAllowedForVersion(ssl3CipherSuite cipherSuite,
+				  SSL3ProtocolVersion version)
+{
+    switch (cipherSuite) {
+    /* See RFC 4346 A.5. Export cipher suites must not be used in TLS 1.1 or
+     * later. This set of cipher suites is similar to, but different from, the
+     * set of cipher suites considered exportable by SSL_IsExportCipherSuite.
+     */
+    case SSL_RSA_EXPORT_WITH_RC4_40_MD5:
+    case SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5:
+    /*   SSL_RSA_EXPORT_WITH_DES40_CBC_SHA:      never implemented
+     *   SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA:   never implemented
+     *   SSL_DH_RSA_EXPORT_WITH_DES40_CBC_SHA:   never implemented
+     *   SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA:  never implemented
+     *   SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA:  never implemented
+     *   SSL_DH_ANON_EXPORT_WITH_RC4_40_MD5:     never implemented
+     *   SSL_DH_ANON_EXPORT_WITH_DES40_CBC_SHA:  never implemented
+     */
+	return version <= SSL_LIBRARY_VERSION_TLS_1_0;
+    default:
+	return PR_TRUE;
     }
 }
 
@@ -5038,8 +5062,17 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     ssl3_config_match_init(ss);
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
-	if ((temp == suite->cipher_suite) &&
-	    (config_match(suite, ss->ssl3.policy, PR_TRUE))) {
+	if (temp == suite->cipher_suite) {
+	    if (!config_match(suite, ss->ssl3.policy, PR_TRUE)) {
+		break;	/* failure */
+	    }
+	    if (!ssl3_CipherSuiteAllowedForVersion(suite->cipher_suite,
+						   ss->version)) {
+		desc    = handshake_failure;
+		errCode = SSL_ERROR_CIPHER_DISALLOWED_FOR_VERSION;
+		goto alert_loser;
+	    }
+	
 	    suite_found = PR_TRUE;
 	    break;	/* success */
 	}
@@ -6363,13 +6396,26 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 #endif
 
     /* Select a cipher suite.
+    **
     ** NOTE: This suite selection algorithm should be the same as the one in
-    ** ssl3_HandleV2ClientHello().  
+    ** ssl3_HandleV2ClientHello().
+    **
+    ** If TLS 1.0 is enabled, we could handle the case where the client
+    ** offered TLS 1.1 but offered only export cipher suites by choosing TLS
+    ** 1.0 and selecting one of those export cipher suites. However, a secure
+    ** TLS 1.1 client should not have export cipher suites enabled at all,
+    ** and a TLS 1.1 client should definitely not be offering *only* export
+    ** cipher suites. Therefore, we refuse to negotiate export cipher suites
+    ** with any client that indicates support for TLS 1.1 or higher when we
+    ** (the server) have TLS 1.1 support enabled.
     */
     for (j = 0; j < ssl_V3_SUITES_IMPLEMENTED; j++) {
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[j];
-	if (!config_match(suite, ss->ssl3.policy, PR_TRUE))
+	if (!config_match(suite, ss->ssl3.policy, PR_TRUE) ||
+	    !ssl3_CipherSuiteAllowedForVersion(suite->cipher_suite,
+					       ss->version)) {
 	    continue;
+	}
 	for (i = 0; i + 1 < suites.len; i += 2) {
 	    PRUint16 suite_i = (suites.data[i] << 8) | suites.data[i + 1];
 	    if (suite_i == suite->cipher_suite) {
@@ -6414,7 +6460,8 @@ compression_found:
 	SECItem         wrappedMS;  	/* wrapped key */
 
 	if (sid->version != ss->version  ||
-	    sid->u.ssl3.cipherSuite != ss->ssl3.hs.cipher_suite) {
+	    sid->u.ssl3.cipherSuite != ss->ssl3.hs.cipher_suite ||
+	    sid->u.ssl3.compression != ss->ssl3.hs.compression) {
 	    break;	/* not an error */
 	}
 
@@ -6871,13 +6918,19 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
     }
 
     /* Select a cipher suite.
+    **
     ** NOTE: This suite selection algorithm should be the same as the one in
-    ** ssl3_HandleClientHello().  
+    ** ssl3_HandleClientHello().
+    **
+    ** See the comments about export cipher suites in ssl3_HandleClientHello().
     */
     for (j = 0; j < ssl_V3_SUITES_IMPLEMENTED; j++) {
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[j];
-	if (!config_match(suite, ss->ssl3.policy, PR_TRUE))
+	if (!config_match(suite, ss->ssl3.policy, PR_TRUE) ||
+	    !ssl3_CipherSuiteAllowedForVersion(suite->cipher_suite,
+					       ss->version)) {
 	    continue;
+	}
 	for (i = 0; i+2 < suite_length; i += 3) {
 	    PRUint32 suite_i = (suites[i] << 16)|(suites[i+1] << 8)|suites[i+2];
 	    if (suite_i == suite->cipher_suite) {

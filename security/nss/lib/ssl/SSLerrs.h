@@ -420,3 +420,6 @@ ER3(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_CLIENTS, (SSL_ERROR_BASE + 119),
 
 ER3(SSL_ERROR_INVALID_VERSION_RANGE,           (SSL_ERROR_BASE + 120),
 "SSL version range is not valid.")
+
+ER3(SSL_ERROR_CIPHER_DISALLOWED_FOR_VERSION,   (SSL_ERROR_BASE + 121),
+"SSL peer selected a cipher suite disallowed for the selected protocol version.")
