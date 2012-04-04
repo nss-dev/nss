@@ -423,3 +423,9 @@ ER3(SSL_ERROR_INVALID_VERSION_RANGE,           (SSL_ERROR_BASE + 120),
 
 ER3(SSL_ERROR_CIPHER_DISALLOWED_FOR_VERSION,   (SSL_ERROR_BASE + 121),
 "SSL peer selected a cipher suite disallowed for the selected protocol version.")
+
+ER3(SSL_ERROR_RX_MALFORMED_HELLO_VERIFY_REQUEST, (SSL_ERROR_BASE + 122),
+"SSL received a malformed Hello Verify Request handshake message.")
+
+ER3(SSL_ERROR_RX_UNEXPECTED_HELLO_VERIFY_REQUEST, (SSL_ERROR_BASE + 123),
+"SSL received an unexpected Hello Verify Request handshake message.")
