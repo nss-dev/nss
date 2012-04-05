@@ -175,6 +175,7 @@ SSL_AuthCertificateComplete;
 ;+};
 ;+NSS_3.13.5 {      # NSS 3.13.5 release
 ;+    global:
+DTLS_GetTimeout;
 DTLS_ImportFD;
 SSL_ExportKeyingMaterial;
 SSL_VersionRangeGet;
