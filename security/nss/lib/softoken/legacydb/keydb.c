@@ -1790,6 +1790,35 @@ seckey_decrypt_private_key(SECItem*epki,
 		rv = SEC_QuickDERDecodeItem(permarena, pk,
 					lg_nsslowkey_RSAPrivateKeyTemplate,
 					&newPrivateKey);
+		if (rv == SECSuccess) {
+		    break;
+		}
+		/* Try decoding with the alternative template, but only allow
+		 * a zero-length modulus for a secret key object.
+		 * See bug 715073.
+		 */
+		rv = SEC_QuickDERDecodeItem(permarena, pk,
+					lg_nsslowkey_RSAPrivateKeyTemplate2,
+					&newPrivateKey);
+		/* A publicExponent of 0 is the defining property of a secret
+		 * key disguised as an RSA key. When decoding with the
+		 * alternative template, only accept a secret key with an
+		 * improperly encoded modulus and a publicExponent of 0.
+		 */
+		if (rv == SECSuccess) {
+		    if (pk->u.rsa.modulus.len == 2 &&
+			pk->u.rsa.modulus.data[0] == SEC_ASN1_INTEGER &&
+			pk->u.rsa.modulus.data[1] == 0 &&
+			pk->u.rsa.publicExponent.len == 1 &&
+			pk->u.rsa.publicExponent.data[0] == 0) {
+			/* Fix the zero-length integer by setting it to 0. */
+			pk->u.rsa.modulus.data = pk->u.rsa.publicExponent.data;
+			pk->u.rsa.modulus.len = pk->u.rsa.publicExponent.len;
+		    } else {
+			PORT_SetError(SEC_ERROR_BAD_DER);
+			rv = SECFailure;
+		    }
+		}
 		break;
 	      case SEC_OID_ANSIX9_DSA_SIGNATURE:
 		pk->keyType = NSSLOWKEYDSAKey;
