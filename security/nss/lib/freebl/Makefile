@@ -172,14 +172,20 @@ else
 endif
 else
     # -DMP_NO_MP_WORD
+    DEFINES += -DMP_CHAR_STORE_SLOW -DMP_IS_LITTLE_ENDIAN
+ifdef NS_USE_GCC
+# Ideally, we should use amd64 assembly code, but it's not yet mingw-w64
+# compatible.
+else
+# MSVC
     ifdef BUILD_OPT
 	OPTIMIZER += -Ox  # maximum optimization for freebl
     endif
     ASFILES  = arcfour-amd64-masm.asm mpi_amd64_masm.asm mp_comba_amd64_masm.asm
     DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
     DEFINES += -DNSS_USE_COMBA
-    DEFINES += -DMP_CHAR_STORE_SLOW -DMP_IS_LITTLE_ENDIAN
     MPI_SRCS += mpi_amd64.c
+endif
 endif
 endif
 
