@@ -750,6 +750,10 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     PZ_NotifyAllCondVar(nssInitCondition);
     PZ_Unlock(nssInitLock);
 
+    if (initContextPtr && configStrings) {
+	PR_smprintf_free(configStrings);
+    }
+
     return SECSuccess;
 
 loser:
