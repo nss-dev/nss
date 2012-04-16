@@ -965,10 +965,13 @@ parse_config()
             break
             ;;
         "check_ocsp")
+            TESTNAME="Test that OCSP server is reachable"
             check_ocsp ${VALUE}
             if [ $? -ne 0 ]; then
-                echo "OCSP server not accessible, skipping OCSP tests"
+                html_failed "$TESTNAME"
                 break;
+            else
+                html_passed "$TESTNAME"
             fi
             ;;
         "ku")
