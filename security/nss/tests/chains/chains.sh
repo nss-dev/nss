@@ -765,19 +765,19 @@ check_ocsp()
     OCSP_HOST=$(${BINDIR}/pp -t certificate -i ${CERT_FILE} | grep URI | sed "s/.*:\/\///" | sed "s/:.*//")
 
     if [ "${OS_ARCH}" = "WINNT" ]; then
-        ping -n 1 -w 10 ${OCSP_HOST}
+        ping -n 1 -w 60 ${OCSP_HOST}
         return $?
     elif [ "${OS_ARCH}" = "HP-UX" ]; then
-        ping ${OCSP_HOST} -n 1 -m 10
+        ping ${OCSP_HOST} -n 1 -m 60
         return $?
     elif [ "${OS_ARCH}" = "Darwin" ]; then
-        ping -c 1 -t 10 ${OCSP_HOST}
+        ping -c 1 -t 60 ${OCSP_HOST}
         return $?
     elif [ "${OS_ARCH}" = "SunOS" ]; then
-        ping ${OCSP_HOST} 10
+        ping ${OCSP_HOST} 60
         return $?
     else
-        ping -c 1 -W 10 ${OCSP_HOST}
+        ping -c 1 -W 60 ${OCSP_HOST}
         return $?
     fi
 }
