@@ -765,19 +765,13 @@ check_ocsp()
     OCSP_HOST=$(${BINDIR}/pp -t certificate -i ${CERT_FILE} | grep URI | sed "s/.*:\/\///" | sed "s/:.*//")
 
     if [ "${OS_ARCH}" = "WINNT" ]; then
-        ping -n 1 -w 60 ${OCSP_HOST}
+        ping -n 1 ${OCSP_HOST}
         return $?
     elif [ "${OS_ARCH}" = "HP-UX" ]; then
-        ping ${OCSP_HOST} -n 1 -m 60
-        return $?
-    elif [ "${OS_ARCH}" = "Darwin" ]; then
-        ping -c 1 -t 60 ${OCSP_HOST}
-        return $?
-    elif [ "${OS_ARCH}" = "SunOS" ]; then
-        ping ${OCSP_HOST} 60
+        ping ${OCSP_HOST} -n 1
         return $?
     else
-        ping -c 1 -W 60 ${OCSP_HOST}
+        ping -c 1 ${OCSP_HOST}
         return $?
     fi
 }
@@ -971,13 +965,10 @@ parse_config()
             break
             ;;
         "check_ocsp")
-            TESTNAME="Test that OCSP server is reachable"
             check_ocsp ${VALUE}
             if [ $? -ne 0 ]; then
-                html_failed "$TESTNAME"
+                echo "OCSP server not accessible, skipping OCSP tests"
                 break;
-            else
-                html_passed "$TESTNAME"
             fi
             ;;
         "ku")
