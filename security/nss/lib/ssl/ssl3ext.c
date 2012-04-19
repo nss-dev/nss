@@ -721,13 +721,17 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     rv = PK11_GenerateRandom(iv, sizeof(iv));
     if (rv != SECSuccess) goto loser;
 
+#ifndef NO_PKCS11_BYPASS
     if (ss->opt.bypassPKCS11) {
 	rv = ssl3_GetSessionTicketKeys(&aes_key, &aes_key_length,
 	    &mac_key, &mac_key_length);
     } else {
+#endif
 	rv = ssl3_GetSessionTicketKeysPKCS11(ss, &aes_key_pkcs11,
 	    &mac_key_pkcs11);
+#ifndef NO_PKCS11_BYPASS
     }
+#endif
     if (rv != SECSuccess) goto loser;
 
     if (ss->ssl3.pwSpec->msItem.len && ss->ssl3.pwSpec->msItem.data) {
