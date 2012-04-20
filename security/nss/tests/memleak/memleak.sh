@@ -119,11 +119,6 @@ memleak_init()
 			exit 0
 		fi
 
-		if [ "${BIT_NAME}" = "64" ] ; then
-			echo "${SCRIPTNAME}: OS not supported for memory leak checking."
-			exit 0
-		fi
-		
 		FREEBL_DEFAULT="libfreebl_3"
 		FREEBL_LIST="${FREEBL_DEFAULT}"
 				
