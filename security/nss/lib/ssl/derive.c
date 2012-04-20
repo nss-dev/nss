@@ -587,12 +587,7 @@ SECStatus
 SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
 	      PRUint32 protocolmask, PRUint16 *ciphersuites, int nsuites,
               PRBool *pcanbypass, void *pwArg)
-{
-#ifdef NO_PKCS11_BYPASS
-    *pcanbypass = PR_FALSE;
-    return SECSuccess;
-#else
-    SECStatus	      rv;
+{   SECStatus	      rv;
     int		      i;
     PRUint16	      suite;
     PK11SymKey *      pms = NULL;
@@ -882,6 +877,5 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
 
 
     return rv;
-#endif /* NO_PKCS11_BYPASS */
 }
 

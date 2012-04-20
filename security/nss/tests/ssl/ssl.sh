@@ -958,11 +958,7 @@ ssl_run_tests()
                 SERVER_OPTIONS=
                 ;;
             "bypass")
-                if [ -n "${NSS_NO_PKCS11_BYPASS}" ]; then
-                	echo "${SCRIPTNAME}: bypass not supported."
-                else
-                	SERVER_OPTIONS="-B -s"
-				fi
+                SERVER_OPTIONS="-B -s"
                 ;;
             "fips")
                 SERVER_OPTIONS=
@@ -979,11 +975,7 @@ ssl_run_tests()
                 CLIENT_OPTIONS=
                 ;;
             "bypass")
-                if [ -n "${NSS_NO_PKCS11_BYPASS}" ]; then
-                	echo "${SCRIPTNAME}: bypass not supported."
-                else
-                	CLIENT_OPTIONS="-B -s"
-                fi
+                CLIENT_OPTIONS="-B -s"
                 ;;
             "fips")
                 SERVER_OPTIONS=

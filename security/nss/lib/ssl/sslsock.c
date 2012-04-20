@@ -687,15 +687,11 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	    rv = SECFailure;
 	} else {
             if (PR_FALSE != on) {
-#ifdef NO_PKCS11_BYPASS
-                rv = SECFailure;
-#else
                 if (PR_SUCCESS == SSL_BypassSetup() ) {
                     ss->opt.bypassPKCS11   = on;
                 } else {
                     rv = SECFailure;
                 }
-#endif
             } else {
                 ss->opt.bypassPKCS11   = PR_FALSE;
             }
@@ -975,15 +971,11 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 
       case SSL_BYPASS_PKCS11:
         if (PR_FALSE != on) {
-#ifndef NO_PKCS11_BYPASS
-            return SECFailure;
-#else
             if (PR_SUCCESS == SSL_BypassSetup()) {
                 ssl_defaults.bypassPKCS11   = on;
             } else {
                 return SECFailure;
             }
-#endif
         } else {
             ssl_defaults.bypassPKCS11   = PR_FALSE;
         }
