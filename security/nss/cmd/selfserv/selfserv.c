@@ -158,7 +158,7 @@ Usage(const char *progName)
 "-E means disable export ciphersuites and SSL step down key gen\n"
 "-R means disable detection of rollback from TLS to SSL3\n"
 "-a configure server for SNI.\n"
-"-k expected name negotiated on server sockets"
+"-k expected name negotiated on server sockets\n"
 "-b means try binding to the port and exit\n"
 "-m means test the model-socket feature of SSL_ImportFD.\n"
 "-r flag is interepreted as follows:\n"
