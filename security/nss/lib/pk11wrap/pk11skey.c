@@ -1677,7 +1677,7 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
 	    keyType = PK11_GetKeyType(target,keySize);
 	    key_size = keySize;
 	    if (key_size == 0) {
-		if (pk11_GetPredefinedKeyLength(keyType)) {
+		if ((key_size = pk11_GetPredefinedKeyLength(keyType))) {
 		    templateCount --;
 		} else {
 		    /* sigh, some tokens can't figure this out and require
@@ -1762,7 +1762,9 @@ pk11_PubDeriveECKeyWithKDF(
 	PORT_SetError(SEC_ERROR_BAD_KEY);
 	return NULL;
     }
-    if ((kdf < CKD_NULL) || (kdf > CKD_SHA1_KDF)) {
+    if ((kdf != CKD_NULL) && (kdf != CKD_SHA1_KDF) &&
+	(kdf != CKD_SHA224_KDF) && (kdf != CKD_SHA256_KDF) &&
+	(kdf != CKD_SHA384_KDF) && (kdf != CKD_SHA512_KDF)) {
 	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
 	return NULL;
     }
@@ -1785,17 +1787,40 @@ pk11_PubDeriveECKeyWithKDF(
     keyType = PK11_GetKeyType(target,keySize);
     key_size = keySize;
     if (key_size == 0) {
-	if (pk11_GetPredefinedKeyLength(keyType)) {
+	if ((key_size = pk11_GetPredefinedKeyLength(keyType))) {
 	    templateCount --;
 	} else {
 	    /* sigh, some tokens can't figure this out and require
 	     * CKA_VALUE_LEN to be set */
 	    switch (kdf) {
 	    case CKD_NULL:
-		key_size = (pubKey->u.ec.publicValue.len-1)/2;
+		if (pubKey->u.ec.publicValue.data[0] == 0x04) {
+		    /* key encoded in uncompressed form */
+		    key_size = (pubKey->u.ec.publicValue.len-1)/2;
+		} else if ((pubKey->u.ec.publicValue.data[0] == 0x02) ||
+			   (pubKey->u.ec.publicValue.data[0] == 0x03)) {
+		    /* key encoded in compressed form */
+		    key_size = pubKey->u.ec.publicValue.len-1;
+		} else {
+		    /* key encoding not recognized */
+		    PK11_FreeSymKey(symKey);
+		    return NULL;
+		}
 		break;
 	    case CKD_SHA1_KDF:
 		key_size = SHA1_LENGTH;
+		break;
+	    case CKD_SHA224_KDF:
+		key_size = SHA224_LENGTH;
+		break;
+	    case CKD_SHA256_KDF:
+		key_size = SHA256_LENGTH;
+		break;
+	    case CKD_SHA384_KDF:
+		key_size = SHA384_LENGTH;
+		break;
+	    case CKD_SHA512_KDF:
+		key_size = SHA512_LENGTH;
 		break;
 	    default:
 		PORT_Assert(!"Invalid CKD");
