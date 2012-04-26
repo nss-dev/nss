@@ -1269,6 +1269,10 @@ typedef CK_ULONG CK_EC_KDF_TYPE;
 /* The following EC Key Derivation Functions are defined */
 #define CKD_NULL                 0x00000001
 #define CKD_SHA1_KDF             0x00000002
+#define CKD_SHA224_KDF           0x00000005
+#define CKD_SHA256_KDF           0x00000006
+#define CKD_SHA384_KDF           0x00000007
+#define CKD_SHA512_KDF           0x00000008
 
 /* CK_ECDH1_DERIVE_PARAMS is new for v2.11.
  * CK_ECDH1_DERIVE_PARAMS provides the parameters to the

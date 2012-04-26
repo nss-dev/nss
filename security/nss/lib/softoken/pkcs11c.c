@@ -5065,6 +5065,113 @@ sftk_MapKeySize(CK_KEY_TYPE keyType)
     return 0;
 }
 
+/* Inputs:
+ *  key_len: Length of derived key to be generated.
+ *  SharedSecret: a shared secret that is the output of a key agreement primitive.
+ *  SharedInfo: (Optional) some data shared by the entities computing the secret key.
+ *  SharedInfoLen: the length in octets of SharedInfo
+ *  Hash: The hash function to be used in the KDF
+ *  HashLen: the length in octets of the output of Hash
+ * Output:
+ *  key: Pointer to a buffer containing derived key, if return value is SECSuccess.
+ */
+static CK_RV sftk_compute_ANSI_X9_63_kdf(CK_BYTE **key, CK_ULONG key_len, SECItem *SharedSecret,
+		CK_BYTE_PTR SharedInfo, CK_ULONG SharedInfoLen,
+		SECStatus Hash(unsigned char *, const unsigned char *, uint32),
+		CK_ULONG HashLen)
+{
+    unsigned char *buffer = NULL, *output_buffer = NULL;
+    uint32 buffer_len, max_counter, i;
+    SECStatus rv;
+
+    /* Check that key_len isn't too long.  The maximum key length could be
+     * greatly increased if the code below did not limit the 4-byte counter
+     * to a maximum value of 255. */
+    if (key_len > 254 * HashLen)
+	return SEC_ERROR_INVALID_ARGS;
+
+    if (SharedInfo == NULL)
+	SharedInfoLen = 0;
+
+    buffer_len = SharedSecret->len + 4 + SharedInfoLen;
+    buffer = (CK_BYTE *)PORT_Alloc(buffer_len);
+    if (buffer == NULL) {
+	rv = SEC_ERROR_NO_MEMORY;
+	goto loser;
+    }
+
+    max_counter = key_len/HashLen;
+    if (key_len > max_counter * HashLen)
+	max_counter++;
+
+    output_buffer = (CK_BYTE *)PORT_Alloc(max_counter * HashLen);
+    if (output_buffer == NULL) {
+	rv = SEC_ERROR_NO_MEMORY;
+	goto loser;
+    }
+
+    /* Populate buffer with SharedSecret || Counter || [SharedInfo]
+     * where Counter is 0x00000001 */
+    PORT_Memcpy(buffer, SharedSecret->data, SharedSecret->len);
+    buffer[SharedSecret->len] = 0;
+    buffer[SharedSecret->len + 1] = 0;
+    buffer[SharedSecret->len + 2] = 0;
+    buffer[SharedSecret->len + 3] = 1;
+    if (SharedInfo) {
+	PORT_Memcpy(&buffer[SharedSecret->len + 4], SharedInfo, SharedInfoLen);
+    }
+
+    for(i=0; i < max_counter; i++) {
+	rv = Hash(&output_buffer[i * HashLen], buffer, buffer_len);
+	if (rv != SECSuccess)
+	    goto loser;
+
+	/* Increment counter (assumes max_counter < 255) */
+	buffer[SharedSecret->len + 3]++;
+    }
+
+    PORT_ZFree(buffer, buffer_len);
+    if (key_len < max_counter * HashLen) {
+	PORT_Memset(output_buffer + key_len, 0, max_counter * HashLen - key_len);
+    }
+    *key = output_buffer;
+
+    return SECSuccess;
+
+    loser:
+	if (buffer) {
+	    PORT_ZFree(buffer, buffer_len);
+	}
+	if (output_buffer) {
+	    PORT_ZFree(output_buffer, max_counter * HashLen);
+	}
+	return rv;
+}
+
+static CK_RV sftk_ANSI_X9_63_kdf(CK_BYTE **key, CK_ULONG key_len,
+		SECItem *SharedSecret,
+		CK_BYTE_PTR SharedInfo, CK_ULONG SharedInfoLen,
+		CK_EC_KDF_TYPE kdf)
+{
+    if (kdf == CKD_SHA1_KDF)
+	return sftk_compute_ANSI_X9_63_kdf(key, key_len, SharedSecret, SharedInfo,
+		   		 SharedInfoLen, SHA1_HashBuf, SHA1_LENGTH);
+    else if (kdf == CKD_SHA224_KDF)
+	return sftk_compute_ANSI_X9_63_kdf(key, key_len, SharedSecret, SharedInfo,
+		   		 SharedInfoLen, SHA224_HashBuf, SHA224_LENGTH);
+    else if (kdf == CKD_SHA256_KDF)
+	return sftk_compute_ANSI_X9_63_kdf(key, key_len, SharedSecret, SharedInfo,
+		   		 SharedInfoLen, SHA256_HashBuf, SHA256_LENGTH);
+    else if (kdf == CKD_SHA384_KDF)
+	return sftk_compute_ANSI_X9_63_kdf(key, key_len, SharedSecret, SharedInfo,
+		   		 SharedInfoLen, SHA384_HashBuf, SHA384_LENGTH);
+    else if (kdf == CKD_SHA512_KDF)
+	return sftk_compute_ANSI_X9_63_kdf(key, key_len, SharedSecret, SharedInfo,
+		   		 SharedInfoLen, SHA512_HashBuf, SHA512_LENGTH);
+    else
+	return SEC_ERROR_INVALID_ALGORITHM;
+}
+
 /*
  * SSL Key generation given pre master secret
  */
@@ -5967,7 +6074,6 @@ key_and_mac_derive_fail:
 	SECItem  ecScalar, ecPoint;
 	SECItem  tmp;
 	PRBool   withCofactor = PR_FALSE;
-	unsigned char secret_hash[20];
 	unsigned char *secret;
 	unsigned char *keyData = NULL;
 	int secretlen, curveLen, pubKeyLen;
@@ -6053,28 +6159,30 @@ key_and_mac_derive_fail:
 	    break;
 	}
 
-	/*
-	 * tmp is the raw data created by ECDH_Derive,
-	 * secret and secretlen are the values we will eventually pass as our
-	 * generated key.
-	 */
-	secret = tmp.data;
-	secretlen = tmp.len;
 
 	/*
 	 * apply the kdf function.
 	 */
-	if (mechParams->kdf == CKD_SHA1_KDF) {
-	    /* Compute SHA1 hash */
-	    PORT_Memset(secret_hash, 0, 20);
-	    rv = SHA1_HashBuf(secret_hash, tmp.data, tmp.len);
+	if (mechParams->kdf == CKD_NULL) {
+	    /*
+	     * tmp is the raw data created by ECDH_Derive,
+	     * secret and secretlen are the values we will
+	     * eventually pass as our generated key.
+	     */
+	    secret = tmp.data;
+	    secretlen = tmp.len;
+	} else {
+	    secretlen = keySize;
+	    rv = sftk_ANSI_X9_63_kdf(&secret, keySize,
+			&tmp, mechParams->pSharedData,
+			mechParams->ulSharedDataLen, mechParams->kdf);
+	    PORT_ZFree(tmp.data, tmp.len);
 	    if (rv != SECSuccess) {
-		PORT_ZFree(tmp.data, tmp.len);
 		crv = CKR_HOST_MEMORY;
 		break;
-	    } 
-	    secret = secret_hash;
-	    secretlen = 20;
+	    }
+	    tmp.data = secret;
+	    tmp.len = secretlen;
 	}
 
 	/*
@@ -6105,8 +6213,6 @@ key_and_mac_derive_fail:
 	if (keyData) {
 	    PORT_ZFree(keyData, keySize);
 	}
-	PORT_Memset(secret_hash, 0, 20);
-	    
 	break;
 
 ec_loser:
