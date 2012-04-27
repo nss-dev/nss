@@ -5472,6 +5472,30 @@ loser:
     return SECFailure;
 }
 
+/* ssl3_BigIntGreaterThanOne returns true iff |mpint|, taken as an unsigned,
+ * big-endian integer is > 1 */
+static PRBool
+ssl3_BigIntGreaterThanOne(const SECItem* mpint) {
+    unsigned char firstNonZeroByte = 0;
+    unsigned int i;
+
+    for (i = 0; i < mpint->len; i++) {
+	if (mpint->data[i]) {
+	    firstNonZeroByte = mpint->data[i];
+	    break;
+	}
+    }
+
+    if (firstNonZeroByte == 0)
+	return PR_FALSE;
+    if (firstNonZeroByte > 1)
+	return PR_TRUE;
+
+    /* firstNonZeroByte == 1, therefore mpint > 1 iff the first non-zero byte
+     * is followed by another byte. */
+    return (i < mpint->len - 1);
+}
+
 /* Called from ssl3_HandleHandshakeMessage() when it has deciphered a complete
  * ssl3 ServerKeyExchange message.
  * Caller must hold Handshake and RecvBuf locks.
@@ -5603,15 +5627,13 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     	if (rv != SECSuccess) {
 	    goto loser;		/* malformed. */
 	}
-	if (dh_g.len == 0 || dh_g.len > dh_p.len + 1 ||
-	   (dh_g.len == 1 && dh_g.data[0] == 0))
+	if (dh_g.len > dh_p.len || !ssl3_BigIntGreaterThanOne(&dh_g))
 	    goto alert_loser;
     	rv = ssl3_ConsumeHandshakeVariable(ss, &dh_Ys, 2, &b, &length);
     	if (rv != SECSuccess) {
 	    goto loser;		/* malformed. */
 	}
-	if (dh_Ys.len == 0 || dh_Ys.len > dh_p.len + 1 ||
-	   (dh_Ys.len == 1 && dh_Ys.data[0] == 0))
+	if (dh_Ys.len > dh_p.len || !ssl3_BigIntGreaterThanOne(&dh_Ys))
 	    goto alert_loser;
     	rv = ssl3_ConsumeHandshakeVariable(ss, &signature, 2, &b, &length);
     	if (rv != SECSuccess) {
