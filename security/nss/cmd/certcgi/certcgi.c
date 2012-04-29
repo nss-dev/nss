@@ -65,7 +65,7 @@ static void
 error_out(char  *error_string)
 {
     printf("Content-type: text/plain\n\n");
-    printf(error_string);
+    printf("%s", error_string);
     fflush(stderr);
     fflush(stdout);
     exit(1);
