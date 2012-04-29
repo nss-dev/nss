@@ -1397,7 +1397,7 @@ string_to_ipaddress(char *string)
 		}
 	    }
 	}
-	if (value >= 0 || value < 256) {
+	if (value >= 0 && value < 256) {
 	    *(ipaddress->data + j) = value;
 	} else {
 	    error_out("ERROR: Improperly formated IP Address");
