@@ -73,7 +73,7 @@ Usage(char *progName)
 	    "-t type");
     fprintf(stderr, "%-20s ", "");
     for (htype = HASH_AlgNULL + 1; htype < HASH_AlgTOTAL; htype++) {
-	fprintf(stderr, HashTypeToOID(htype)->desc);
+	fprintf(stderr, "%s", HashTypeToOID(htype)->desc);
 	if (htype == (HASH_AlgTOTAL - 2))
 	    fprintf(stderr, " or ");
 	else if (htype != (HASH_AlgTOTAL - 1))

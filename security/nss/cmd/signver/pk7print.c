@@ -47,7 +47,7 @@ sv_PrintAsHex(FILE *out, SECItem *data, char *m)
 {
     unsigned i;
 
-    if (m) fprintf(out, m);
+    if (m) fprintf(out, "%s", m);
     
     for (i = 0; i < data->len; i++) {
         if (i < data->len - 1) {
@@ -104,10 +104,10 @@ sv_PrintValidity(FILE *out, CERTValidity *v, char *m)
 {
     int rv;
 
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     rv = sv_PrintTime(out, &v->notBefore, "notBefore=");
     if (rv) return rv;
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintTime(out, &v->notAfter, "notAfter=");
     return rv;
 }
@@ -149,7 +149,7 @@ sv_PrintAttribute(FILE *out, SEC_PKCS7Attribute *attr, char *m)
     int i;
     char om[100];
 
-    fprintf(out, m);
+    fprintf(out, "%s", m);
 
     /*
      * XXX Make this smarter; look at the type field and then decode
@@ -246,16 +246,16 @@ sv_PrintSignerInfo(FILE *out, SEC_PKCS7SignerInfo *info, char *m)
     SEC_PKCS7Attribute *attr;
     int iv;
     
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintInteger(out, &(info->version), "version=");
 
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintName(out, &(info->issuerAndSN->issuer), "issuerName=");
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintInteger(out, &(info->issuerAndSN->serialNumber), 
                         "serialNumber=");
   
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintAlgorithmID(out, &(info->digestAlg), "digestAlgorithm=");
     
     if (info->authAttr != NULL) {
@@ -272,9 +272,9 @@ sv_PrintSignerInfo(FILE *out, SEC_PKCS7SignerInfo *info, char *m)
     }
     
     /* Parse and display signature */
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintAlgorithmID(out, &(info->digestEncAlg), "digestEncryptionAlgorithm=");
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintAsHex(out, &(info->encDigest), "encryptedDigest=");
     
     if (info->unAuthAttr != NULL) {
@@ -294,22 +294,22 @@ sv_PrintSignerInfo(FILE *out, SEC_PKCS7SignerInfo *info, char *m)
 void
 sv_PrintRSAPublicKey(FILE *out, SECKEYPublicKey *pk, char *m)
 {
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintInteger(out, &pk->u.rsa.modulus, "modulus=");
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintInteger(out, &pk->u.rsa.publicExponent, "exponent=");
 }
 
 void
 sv_PrintDSAPublicKey(FILE *out, SECKEYPublicKey *pk, char *m)
 {
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintInteger(out, &pk->u.dsa.params.prime, "prime=");
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintInteger(out, &pk->u.dsa.params.subPrime, "subprime=");
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintInteger(out, &pk->u.dsa.params.base, "base=");
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintInteger(out, &pk->u.dsa.publicValue, "publicValue=");
 }
 
@@ -400,7 +400,7 @@ sv_PrintExtensions(FILE *out, CERTCertExtension **extensions, char *msg)
 
             oidTag = SECOID_FindOIDTag (&((*extensions)->id));
 
-            fprintf(out, msg);
+            fprintf(out, "%s", msg);
             tmpitem = &((*extensions)->value);
             if (oidTag == SEC_OID_X509_INVALID_DATE) 
                 sv_PrintInvalidDateExten (out, tmpitem,"invalidExt");
@@ -426,13 +426,13 @@ sv_PrintCRLInfo(FILE *out, CERTCrl *crl, char *m)
     int iv;
     char om[100];
     
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintAlgorithmID(out, &(crl->signatureAlg), "signatureAlgorithm=");
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintName(out, &(crl->name), "name=");
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintTime(out, &(crl->lastUpdate), "lastUpdate=");
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintTime(out, &(crl->nextUpdate), "nextUpdate=");
     
     if (crl->entries != NULL) {
@@ -531,10 +531,10 @@ sv_PrintSignedData(FILE *out, SECItem *der, char *m, SECU_PPFunc inner)
     }
 
     m[PORT_Strlen(m) - 5] = 0;
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintAlgorithmID(out, &sd->signatureAlgorithm, "signatureAlgorithm=");
     DER_ConvertBitString(&sd->signature);
-    fprintf(out, m);
+    fprintf(out, "%s", m);
     sv_PrintAsHex(out, &sd->signature, "signature=");
 
     PORT_FreeArena(arena, PR_FALSE);
@@ -600,11 +600,11 @@ sv_PrintPKCS7Signed(FILE *out, SEC_PKCS7SignedData *src)
         iv = 0;
         while ((aCrl = src->crls[iv]) != NULL) {
             sprintf(om, "signedRevocationList[%d].", iv);
-            fprintf(out, om);
+            fprintf(out, "%s", om);
             sv_PrintAlgorithmID(out, &aCrl->signatureWrap.signatureAlgorithm, 
                                 "signatureAlgorithm=");
             DER_ConvertBitString(&aCrl->signatureWrap.signature);
-            fprintf(out, om);
+            fprintf(out, "%s", om);
             sv_PrintAsHex(out, &aCrl->signatureWrap.signature, "signature=");
             sprintf(om, "certificateRevocationList[%d].", iv);
             sv_PrintCRLInfo(out, &aCrl->crl, om);
