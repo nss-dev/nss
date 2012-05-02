@@ -11,11 +11,13 @@ MODULE		= nss
 
 DEFINES		= -DNSPR20
 
-PRIVATE_EXPORTS	= secutil.h \
+PRIVATE_EXPORTS	= basicutil.h \
+		  secutil.h \
 		  pk11table.h \
 		  $(NULL)
 
-CSRCS		= secutil.c \
+CSRCS	= basicutil.c \
+		secutil.c \
 		secpwd.c    \
 		derprint.c \
 		moreoids.c \

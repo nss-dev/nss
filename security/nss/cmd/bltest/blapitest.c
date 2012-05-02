@@ -13,7 +13,7 @@
 #include "prsystem.h"
 #include "plstr.h"
 #include "nssb64.h"
-#include "secutil.h"
+#include "basicutil.h"
 #include "plgetopt.h"
 #include "softoken.h"
 #include "nspr.h"
