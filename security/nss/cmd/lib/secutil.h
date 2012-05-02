@@ -15,6 +15,10 @@
 #include "secder.h"
 #include <stdio.h>
 
+#include "basicutil.h"
+#include "sslerr.h"
+
+
 #define SEC_CT_PRIVATE_KEY		"private-key"
 #define SEC_CT_PUBLIC_KEY		"public-key"
 #define SEC_CT_CERTIFICATE		"certificate"
@@ -34,12 +38,6 @@
 
 #define SECU_Strerror PORT_ErrorToString
 
-#ifdef SECUTIL_NEW
-typedef int (*SECU_PPFunc)(PRFileDesc *out, SECItem *item, 
-                           char *msg, int level);
-#else
-typedef int (*SECU_PPFunc)(FILE *out, SECItem *item, char *msg, int level);
-#endif
 
 typedef struct {
     enum {
@@ -139,12 +137,6 @@ SECU_GetClientAuthData(void *arg, PRFileDesc *fd,
 extern PRBool SECU_GetWrapEnabled();
 extern void SECU_EnableWrap(PRBool enable);
 
-/* print out an error message */
-extern void SECU_PrintError(char *progName, char *msg, ...);
-
-/* print out a system error message */
-extern void SECU_PrintSystemError(char *progName, char *msg, ...);
-
 /* revalidate the cert and print information about cert verification
  * failure at time == now */
 extern void
@@ -164,16 +156,9 @@ extern void
 SECU_displayVerifyLog(FILE *outfile, CERTVerifyLog *log,
                       PRBool verbose);
 
-/* Read the contents of a file into a SECItem */
-extern SECStatus SECU_FileToItem(SECItem *dst, PRFileDesc *src);
-extern SECStatus SECU_TextFileToItem(SECItem *dst, PRFileDesc *src);
-
 /* Read in a DER from a file, may be ascii  */
 extern SECStatus 
 SECU_ReadDERFromFile(SECItem *der, PRFileDesc *inFile, PRBool ascii);
-
-/* Indent based on "level" */
-extern void SECU_Indent(FILE *out, int level);
 
 /* Print integer value and hex */
 extern void SECU_PrintInteger(FILE *out, SECItem *i, char *m, int level);
@@ -184,12 +169,6 @@ extern SECOidTag SECU_PrintObjectID(FILE *out, SECItem *oid, char *m, int level)
 /* Print AlgorithmIdentifier symbolically */
 extern void SECU_PrintAlgorithmID(FILE *out, SECAlgorithmID *a, char *m,
 				  int level);
-
-/* Print SECItem as hex */
-extern void SECU_PrintAsHex(FILE *out, SECItem *i, const char *m, int level);
-
-/* dump a buffer in hex and ASCII */
-extern void SECU_PrintBuf(FILE *out, const char *msg, const void *vp, int len);
 
 /*
  * Format and print the UTC Time "t".  If the tag message "m" is not NULL,
@@ -237,9 +216,6 @@ extern int SECU_PrintDERName(FILE *out, SECItem *der, const char *m, int level);
 /* print trust flags on a cert */
 extern void SECU_PrintTrustFlags(FILE *out, CERTCertTrust *trust, char *m, 
                                  int level);
-
-/* Dump contents of an RSA public key */
-extern int SECU_PrintRSAPublicKey(FILE *out, SECItem *der, char *m, int level);
 
 extern int SECU_PrintSubjectPublicKeyInfo(FILE *out, SECItem *der, char *m, 
                                           int level);
@@ -381,38 +357,6 @@ SECU_SECItemToHex(const SECItem * item, char * dst);
  * successful */
 SECStatus
 SECU_SECItemHexStringToBinary(SECItem* srcdest);
-
-/*
- *
- *  Utilities for parsing security tools command lines 
- *
- */
-
-/*  A single command flag  */
-typedef struct {
-    char flag;
-    PRBool needsArg;
-    char *arg;
-    PRBool activated;
-    char *longform;
-} secuCommandFlag;
-
-/*  A full array of command/option flags  */
-typedef struct
-{
-    int numCommands;
-    int numOptions;
-
-    secuCommandFlag *commands;
-    secuCommandFlag *options;
-} secuCommand;
-
-/*  fill the "arg" and "activated" fields for each flag  */
-SECStatus 
-SECU_ParseCommandLine(int argc, char **argv, char *progName,
-		      const secuCommand *cmd);
-char *
-SECU_GetOptionArg(const secuCommand *cmd, int optionNum);
 
 /*
  *
