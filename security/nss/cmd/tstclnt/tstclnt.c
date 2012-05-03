@@ -164,10 +164,11 @@ static void Usage(const char *progName)
     fprintf(stderr, 
 "Usage:  %s -h host [-a 1st_hs_name ] [-a 2nd_hs_name ] [-p port]\n"
                     "[-d certdir] [-n nickname] [-23BTafosvx] [-c ciphers]\n"
-                    "[-r N] [-w passwd] [-W pwfile] [-q]\n", progName);
+                    "[-r N] [-w passwd] [-W pwfile] [-q [-t seconds]]\n", 
+            progName);
     fprintf(stderr, "%-20s Send different SNI name. 1st_hs_name - at first\n"
                     "%-20s handshake, 2nd_hs_name - at second handshake.\n"
-                    "%-20s Defualt is host from the -h argument.\n", "-a name",
+                    "%-20s Default is host from the -h argument.\n", "-a name",
                     "", "");
     fprintf(stderr, "%-20s Hostname to connect with\n", "-h host");
     fprintf(stderr, "%-20s Port number for SSL server\n", "-p port");
@@ -190,6 +191,7 @@ static void Usage(const char *progName)
     fprintf(stderr, "%-20s Verbose progress reporting.\n", "-v");
     fprintf(stderr, "%-20s Use export policy.\n", "-x");
     fprintf(stderr, "%-20s Ping the server and then exit.\n", "-q");
+    fprintf(stderr, "%-20s Timeout for server ping (default: no timeout).\n", "-t seconds");
     fprintf(stderr, "%-20s Renegotiate N times (resuming session if N>1).\n", "-r N");
     fprintf(stderr, "%-20s Enable the session ticket extension.\n", "-u");
     fprintf(stderr, "%-20s Enable compression.\n", "-z");
@@ -556,6 +558,7 @@ int main(int argc, char **argv)
     PRNetAddr          addr;
     PRPollDesc         pollset[2];
     PRBool             pingServerFirst = PR_FALSE;
+    int                pingTimeoutSeconds = -1;
     PRBool             clientSpeaksFirst = PR_FALSE;
     PRBool             wrStarted = PR_FALSE;
     PRBool             skipProtoHeader = PR_FALSE;
@@ -587,7 +590,7 @@ int main(int argc, char **argv)
     }
 
     optstate = PL_CreateOptState(argc, argv,
-                                 "23BOSTW:a:c:d:fgh:m:n:op:qr:suvw:xz");
+                                 "23BOSTW:a:c:d:fgh:m:n:op:qr:st:uvw:xz");
     while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch (optstate->option) {
 	  case '?':
@@ -639,6 +642,8 @@ int main(int argc, char **argv)
 	  case 'q': pingServerFirst = PR_TRUE;          break;
 
 	  case 's': disableLocking = 1;                 break;
+          
+          case 't': pingTimeoutSeconds = atoi(optstate->value); break;
 
 	  case 'u': enableSessionTickets = PR_TRUE;	break;
 
@@ -674,33 +679,6 @@ int main(int argc, char **argv)
 
     PK11_SetPasswordFunc(SECU_GetModulePassword);
 
-    /* open the cert DB, the key DB, and the secmod DB. */
-    if (!certDir) {
-	certDir = SECU_DefaultSSLDir();	/* Look in $SSL_DIR */
-	certDir = SECU_ConfigDirectory(certDir);
-    } else {
-	char *certDirTmp = certDir;
-	certDir = SECU_ConfigDirectory(certDirTmp);
-	PORT_Free(certDirTmp);
-    }
-    rv = NSS_Init(certDir);
-    if (rv != SECSuccess) {
-	SECU_PrintError(progName, "unable to open cert database");
-	return 1;
-    }
-
-    /* set the policy bits true for all the cipher suites. */
-    if (useExportPolicy)
-	NSS_SetExportPolicy();
-    else
-	NSS_SetDomesticPolicy();
-
-    /* all the SSL2 and SSL3 cipher suites are enabled by default. */
-    if (cipherString) {
-	/* disable all the ciphers, then enable the ones we want. */
-	disableAllSSLCiphers();
-    }
-
     status = PR_StringToNetAddr(host, &addr);
     if (status == PR_SUCCESS) {
     	addr.inet.port = PR_htons(portno);
@@ -732,7 +710,13 @@ int main(int argc, char **argv)
     if (pingServerFirst) {
 	int iter = 0;
 	PRErrorCode err;
+        int max_attempts = MAX_WAIT_FOR_SERVER;
+        if (pingTimeoutSeconds >= 0) {
+          /* If caller requested a timeout, let's try just twice. */
+          max_attempts = 2;
+        }
 	do {
+            PRIntervalTime timeoutInterval = PR_INTERVAL_NO_TIMEOUT;
 	    s = PR_OpenTCPSocket(addr.raw.family);
 	    if (s == NULL) {
 		SECU_PrintError(progName, "Failed to create a TCP socket");
@@ -746,13 +730,13 @@ int main(int argc, char **argv)
 		                "Failed to set blocking socket option");
 		return 1;
 	    }
-	    prStatus = PR_Connect(s, &addr, PR_INTERVAL_NO_TIMEOUT);
+            if (pingTimeoutSeconds >= 0) {
+              timeoutInterval = PR_SecondsToInterval(pingTimeoutSeconds);
+            }
+	    prStatus = PR_Connect(s, &addr, timeoutInterval);
 	    if (prStatus == PR_SUCCESS) {
     		PR_Shutdown(s, PR_SHUTDOWN_BOTH);
     		PR_Close(s);
-               if (NSS_Shutdown() != SECSuccess) {
-                   exit(1);
-               }
     		PR_Cleanup();
 		return 0;
 	    }
@@ -764,10 +748,37 @@ int main(int argc, char **argv)
 	    }
 	    PR_Close(s);
 	    PR_Sleep(PR_MillisecondsToInterval(WAIT_INTERVAL));
-	} while (++iter < MAX_WAIT_FOR_SERVER);
+	} while (++iter < max_attempts);
 	SECU_PrintError(progName, 
                      "Client timed out while waiting for connection to server");
 	return 1;
+    }
+
+    /* open the cert DB, the key DB, and the secmod DB. */
+    if (!certDir) {
+        certDir = SECU_DefaultSSLDir(); /* Look in $SSL_DIR */
+        certDir = SECU_ConfigDirectory(certDir);
+    } else {
+        char *certDirTmp = certDir;
+        certDir = SECU_ConfigDirectory(certDirTmp);
+        PORT_Free(certDirTmp);
+    }
+    rv = NSS_Init(certDir);
+    if (rv != SECSuccess) {
+        SECU_PrintError(progName, "unable to open cert database");
+        return 1;
+    }
+
+    /* set the policy bits true for all the cipher suites. */
+    if (useExportPolicy)
+        NSS_SetExportPolicy();
+    else
+        NSS_SetDomesticPolicy();
+
+    /* all the SSL2 and SSL3 cipher suites are enabled by default. */
+    if (cipherString) {
+        /* disable all the ciphers, then enable the ones we want. */
+        disableAllSSLCiphers();
     }
 
     /* Create socket */
