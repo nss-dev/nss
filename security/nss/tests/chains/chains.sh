@@ -762,18 +762,13 @@ check_ocsp()
         CERT_FILE=${CERT}
     fi
 
+    # sample line:
+    #   URI: "http://ocsp.server:2601"
     OCSP_HOST=$(${BINDIR}/pp -t certificate -i ${CERT_FILE} | grep URI | sed "s/.*:\/\///" | sed "s/:.*//")
+    OCSP_PORT=$(${BINDIR}/pp -t certificate -i ${CERT_FILE} | grep URI | sed "s/.*:.*:\([0-9]*\)\"/\1/")
 
-    if [ "${OS_ARCH}" = "WINNT" ]; then
-        ping -n 1 ${OCSP_HOST}
-        return $?
-    elif [ "${OS_ARCH}" = "HP-UX" ]; then
-        ping ${OCSP_HOST} -n 1
-        return $?
-    else
-        ping -c 1 ${OCSP_HOST}
-        return $?
-    fi
+    tstclnt -h ${OCSP_HOST} -p ${OCSP_PORT} -q -t 20
+    return $?
 }
 
 ############################ parse_result ##############################
@@ -965,10 +960,13 @@ parse_config()
             break
             ;;
         "check_ocsp")
+            TESTNAME="Test that OCSP server is reachable"
             check_ocsp ${VALUE}
             if [ $? -ne 0 ]; then
-                echo "OCSP server not accessible, skipping OCSP tests"
+                html_failed "$TESTNAME"
                 break;
+            else
+                html_passed "$TESTNAME"
             fi
             ;;
         "ku")
