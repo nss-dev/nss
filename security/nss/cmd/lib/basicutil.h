@@ -12,8 +12,6 @@
 #include "key.h"
 #include "prerror.h"
 #include "base64.h"
-#include "key.h"
-#include "secpkcs7.h"
 #include "secasn1.h"
 #include "secder.h"
 #include <stdio.h>
@@ -64,14 +62,6 @@ extern void SECU_PrintDSAPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int 
 extern int SECU_PrintPrivateKey(FILE *out, SECItem *der, char *m, int level);
 #endif
 
-/* Print the MD5 and SHA1 fingerprints of a cert */
-extern int SECU_PrintFingerprints(FILE *out, SECItem *derCert, char *m,
-                                  int level);
-
-/* Pretty-print any PKCS7 thing */
-extern int SECU_PrintPKCS7ContentInfo(FILE *out, SECItem *der, char *m, 
-				      int level);
-
 /* Init PKCS11 stuff */
 extern SECStatus SECU_PKCS11Init(PRBool readOnly);
 
@@ -79,50 +69,10 @@ extern SECStatus SECU_PKCS11Init(PRBool readOnly);
 extern int SECU_PrintSignedData(FILE *out, SECItem *der, const char *m, 
                                 int level, SECU_PPFunc inner);
 
-/* Print cert data and its trust flags */
-extern SECStatus SEC_PrintCertificateAndTrust(CERTCertificate *cert,
-                                              const char *label,
-                                              CERTCertTrust *trust);
-
-extern int SECU_PrintCrl(FILE *out, SECItem *der, char *m, int level);
-
-extern void
-SECU_PrintCRLInfo(FILE *out, CERTCrl *crl, char *m, int level);
-
 extern void SECU_PrintString(FILE *out, SECItem *si, char *m, int level);
 extern void SECU_PrintAny(FILE *out, SECItem *i, char *m, int level);
 
-extern void SECU_PrintPolicy(FILE *out, SECItem *value, char *msg, int level);
-extern void SECU_PrintPrivKeyUsagePeriodExtension(FILE *out, SECItem *value,
-                                 char *msg, int level);
-
-extern void SECU_PrintExtensions(FILE *out, CERTCertExtension **extensions,
-				 char *msg, int level);
-
-extern void SECU_PrintNameQuotesOptional(FILE *out, CERTName *name, 
-					 const char *msg, int level, 
-					 PRBool quotes);
-extern void SECU_PrintName(FILE *out, CERTName *name, const char *msg,
-                           int level);
-extern void SECU_PrintRDN(FILE *out, CERTRDN *rdn, const char *msg, int level);
-
-#ifdef SECU_GetPassword
-/* Convert a High public Key to a Low public Key */
-extern SECKEYLowPublicKey *SECU_ConvHighToLow(SECKEYPublicKey *pubHighKey);
-#endif
-
-extern char *SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg);
-
-extern SECStatus DER_PrettyPrint(FILE *out, SECItem *it, PRBool raw);
-
-extern char *SECU_SECModDBName(void);
-
 extern void SECU_PrintPRandOSError(char *progName);
-
-extern SECStatus SECU_RegisterDynamicOids(void);
-
-/* Identifies hash algorithm tag by its string representation. */
-extern SECOidTag SECU_StringToSignatureAlgTag(const char *alg);
 
 /* Caller ensures that dst is at least item->len*2+1 bytes long */
 void
@@ -177,12 +127,6 @@ void printflags(char *trusts, unsigned int flags);
 extern int ffs(unsigned int i);
 #endif
 
-/* Finds certificate by searching it in the DB or by examinig file
- * in the local directory. */
-CERTCertificate*
-SECU_FindCertByNicknameOrFilename(CERTCertDBHandle *handle,
-                                  char *name, PRBool ascii,
-                                  void *pwarg);
 #include "secerr.h"
 
 extern const char *hex;

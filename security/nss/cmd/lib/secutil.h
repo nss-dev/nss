@@ -278,8 +278,6 @@ extern SECStatus DER_PrettyPrint(FILE *out, SECItem *it, PRBool raw);
 
 extern char *SECU_SECModDBName(void);
 
-extern void SECU_PrintPRandOSError(char *progName);
-
 extern SECStatus SECU_RegisterDynamicOids(void);
 
 /* Identifies hash algorithm tag by its string representation. */
