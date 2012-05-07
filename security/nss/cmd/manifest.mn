@@ -33,6 +33,7 @@ DIRS = lib  \
  p7verify  \
  pk12util \
  pk11mode \
+ pk1sign  \
  pp  \
  rsaperf \
  sdrtest \
