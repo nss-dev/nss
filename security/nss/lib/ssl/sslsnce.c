@@ -116,17 +116,17 @@ struct sidCacheEntryStr {
 /*  2 */    ssl3CipherSuite  cipherSuite;
 /*  2 */    PRUint16    compression; 	/* SSLCompressionMethod */
 
-/*100 */    ssl3SidKeys keys;	/* keys and ivs, wrapped as needed. */
+/* 52 */    ssl3SidKeys keys;	/* keys, wrapped as needed. */
 
 /*  4 */    PRUint32    masterWrapMech; 
 /*  4 */    SSL3KEAType exchKeyType;
 /*  4 */    PRInt32     certIndex;
 /*  4 */    PRInt32     srvNameIndex;
 /* 32 */    PRUint8     srvNameHash[SHA256_LENGTH]; /* SHA256 name hash */
-/*152 */} ssl3;
+/*104 */} ssl3;
 /* force sizeof(sidCacheEntry) to be a multiple of cache line size */
         struct {
-/*152 */    PRUint8     filler[120]; /* 72+152==224, a multiple of 16 */
+/*120 */    PRUint8     filler[120]; /* 72+120==192, a multiple of 16 */
 	} forceSize;
     } u;
 };
@@ -1296,7 +1296,7 @@ ssl_ConfigServerSessionIDCacheInstanceWithOpt(cacheDesc *cache,
 {
     SECStatus rv;
 
-    PORT_Assert(sizeof(sidCacheEntry) == 224);
+    PORT_Assert(sizeof(sidCacheEntry) == 192);
     PORT_Assert(sizeof(certCacheEntry) == 4096);
     PORT_Assert(sizeof(srvNameCacheEntry) == 1072);
 

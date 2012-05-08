@@ -470,7 +470,6 @@ typedef enum {
 
 typedef enum { type_stream, type_block } CipherType;
 
-/* This value matches the size of IVs in ssl3SidKeys. */
 #define MAX_IV_LENGTH 24
 
 /*
@@ -492,13 +491,11 @@ typedef void (*DTLSTimerCb)(sslSocket *);
 #define MAX_CIPHER_CONTEXT_LLONGS (MAX_CIPHER_CONTEXT_BYTES / 8)
 
 typedef struct {
-    SSL3Opaque        client_write_iv         [24];
-    SSL3Opaque        server_write_iv         [24];
-    SSL3Opaque        wrapped_master_secret   [48];
+    SSL3Opaque        wrapped_master_secret[48];
     PRUint16          wrapped_master_secret_len;
     PRUint8           msIsWrapped;
     PRUint8           resumable;
-} ssl3SidKeys; /* 100 bytes */
+} ssl3SidKeys; /* 52 bytes */
 
 typedef struct {
     PK11SymKey  *write_key;
@@ -905,7 +902,6 @@ struct ssl3KeyPairStr {
 
 typedef struct SSLWrappedSymWrappingKeyStr {
     SSL3Opaque        wrappedSymmetricWrappingkey[512];
-    SSL3Opaque        wrapIV[24];
     CK_MECHANISM_TYPE symWrapMechanism;  
 		    /* unwrapped symmetric wrapping key uses this mechanism */
     CK_MECHANISM_TYPE asymWrapMechanism; 
@@ -914,7 +910,6 @@ typedef struct SSLWrappedSymWrappingKeyStr {
     SSL3KEAType       exchKeyType;   /* type of keys used to wrap SymWrapKey*/
     PRInt32           symWrapMechIndex;
     PRUint16          wrappedSymKeyLen;
-    PRUint16          wrapIVLen;
 } SSLWrappedSymWrappingKey;
 
 typedef struct SessionTicketStr {
