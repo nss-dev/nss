@@ -42,7 +42,7 @@ SEC_ASN1Template CERTSignatureDataTemplate[] =
           0, NULL, sizeof(CERTSignedData) },
     { SEC_ASN1_INLINE,
           offsetof(CERTSignedData,signatureAlgorithm),
-          SECOID_AlgorithmIDTemplate },
+          SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate) },
     { SEC_ASN1_BIT_STRING,
           offsetof(CERTSignedData,signature), },
     { 0, }
@@ -72,14 +72,17 @@ static int
 ExportPublicKey(FILE *outFile, CERTCertificate *cert)
 {
     char *data;
+    SECKEYPublicKey *publicKey;
+    SECItem *item;
+
     if (!cert)
         return -1;
     
-    SECKEYPublicKey *publicKey = CERT_ExtractPublicKey(cert);
+    publicKey = CERT_ExtractPublicKey(cert);
     if (!publicKey)
         return -1;
 
-    SECItem *item = SECKEY_EncodeDERSubjectPublicKeyInfo(publicKey);
+    item = SECKEY_EncodeDERSubjectPublicKeyInfo(publicKey);
     SECKEY_DestroyPublicKey(publicKey);
     if (!item)
         return -1;
@@ -103,6 +106,11 @@ SignFile(FILE *outFile, PRFileDesc *inFile, CERTCertificate *cert)
     SECItem data2sign;
     SECStatus rv;
     char *data;
+    SECKEYPrivateKey *privKey;
+    SECOidTag algID;
+    PRArenaPool *arena;
+    CERTSignedData sd;
+    SECItem *result;
 
     if (outFile == NULL || inFile == NULL || cert == NULL)
         return -1;
@@ -111,18 +119,15 @@ SignFile(FILE *outFile, PRFileDesc *inFile, CERTCertificate *cert)
     if (SECU_ReadDERFromFile(&data2sign, inFile, PR_FALSE) != SECSuccess)
         return -1;
 
-    SECKEYPrivateKey *privKey = NULL;    
+    privKey = NULL;    
     privKey = PK11_FindKeyByAnyCert(cert, NULL);
 
-    SECOidTag algID;
     algID = SEC_GetSignatureAlgorithmOidTag(privKey->keyType, SEC_OID_SHA1);
     if (algID == SEC_OID_UNKNOWN)
         return -1;
     
-    PRArenaPool *arena;
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     
-    CERTSignedData sd;
     PORT_Memset(&sd, 0, sizeof(CERTSignedData));
     
     rv = SEC_SignData(&(sd.signature), data2sign.data, data2sign.len, privKey, algID);
@@ -138,7 +143,7 @@ SignFile(FILE *outFile, PRFileDesc *inFile, CERTCertificate *cert)
         return -1;
     }
 
-    SECItem *result = SEC_ASN1EncodeItem(arena, NULL, &sd, CERTSignatureDataTemplate);
+    result = SEC_ASN1EncodeItem(arena, NULL, &sd, CERTSignatureDataTemplate);
     SECITEM_FreeItem(&(sd.signature), PR_FALSE);
     
     if (!result) {
