@@ -296,7 +296,7 @@ hex_from_2char(unsigned char *c2, unsigned char *byteval)
 }
 
 SECStatus
-char2_from_hex(unsigned char byteval, unsigned char *c2)
+char2_from_hex(unsigned char byteval, char *c2)
 {
     int i;
     unsigned char offset;
@@ -868,7 +868,7 @@ setupIO(PRArenaPool *arena, bltestIO *input, PRFileDesc *file,
 	in = &fileData;
     } else if (str) {
 	/* grabbing data from command line */
-	fileData.data = str;
+	fileData.data = (unsigned char *)str;
 	fileData.len = PL_strlen(str);
 	in = &fileData;
     } else if (file) {
@@ -1340,7 +1340,6 @@ bltest_camellia_init(bltestCipherInfo *cipherInfo, PRBool encrypt)
     int minorMode;
     int i;
     int keylen   = camelliap->key.buf.len;
-    int blocklen = CAMELLIA_BLOCK_SIZE; 
     PRIntervalTime time1, time2;
     
     switch (cipherInfo->mode) {
@@ -2344,8 +2343,9 @@ cipherDoOp(bltestCipherInfo *cipherInfo)
 {
     PRIntervalTime time1, time2;
     SECStatus rv = SECSuccess;
-    int i, len;
-    int maxLen = cipherInfo->output.pBuf.len;
+    int i;
+    unsigned int len;
+    unsigned int maxLen = cipherInfo->output.pBuf.len;
     unsigned char *dummyOut;
     if (cipherInfo->mode == bltestDSA)
 	return dsaOp(cipherInfo);
@@ -2355,14 +2355,26 @@ cipherDoOp(bltestCipherInfo *cipherInfo)
 #endif
     dummyOut = PORT_Alloc(maxLen);
     if (is_symmkeyCipher(cipherInfo->mode)) {
+        const unsigned char *input = cipherInfo->input.pBuf.data;
+        unsigned int inputLen = PR_MIN(cipherInfo->input.pBuf.len, 16);
+        unsigned char *output = cipherInfo->output.pBuf.data;
+        unsigned int outputLen = maxLen;
         TIMESTART();
         rv = (*cipherInfo->cipher.symmkeyCipher)(cipherInfo->cx,
-                                                 cipherInfo->output.pBuf.data,
-                                                 &len, maxLen,
-                                                 cipherInfo->input.pBuf.data,
-                                                 cipherInfo->input.pBuf.len);
-        TIMEFINISH(cipherInfo->optime, 1.0);
+                                                 output, &len, outputLen,
+                                                 input, inputLen);
         CHECKERROR(rv, __LINE__);
+        if (cipherInfo->input.pBuf.len > inputLen) {
+            input += inputLen;
+            inputLen = cipherInfo->input.pBuf.len - inputLen;
+            output += len;
+            outputLen -= len;
+            rv = (*cipherInfo->cipher.symmkeyCipher)(cipherInfo->cx,
+                                                     output, &len, outputLen,
+                                                     input, inputLen);
+            CHECKERROR(rv, __LINE__);
+        }
+        TIMEFINISH(cipherInfo->optime, 1.0);
         cipherInfo->repetitions = 0;
         if (cipherInfo->repetitionsToPerfom != 0) {
             TIMESTART();
@@ -2377,16 +2389,14 @@ cipherDoOp(bltestCipherInfo *cipherInfo)
             }
         } else {
             int opsBetweenChecks = 0;
-            bltestIO *input = &cipherInfo->input;
             TIMEMARK(cipherInfo->seconds);
             while (! (TIMETOFINISH())) {
                 int j = 0;
                 for (;j < opsBetweenChecks;j++) {
-                    (*cipherInfo->cipher.symmkeyCipher)(cipherInfo->cx,
-                                                        dummyOut,
-                                                        &len, maxLen,
-                                                        input->pBuf.data,
-                                                        input->pBuf.len);
+                    (*cipherInfo->cipher.symmkeyCipher)(
+                        cipherInfo->cx, dummyOut, &len, maxLen,
+                        cipherInfo->input.pBuf.data,
+                        cipherInfo->input.pBuf.len);
                 }
                 cipherInfo->repetitions += j;
             }
