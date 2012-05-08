@@ -9,7 +9,6 @@
 #include "secoid.h"
 #include "secoidt.h"
 #include "secport.h"
-#include "key.h"
 #include "prerror.h"
 #include "base64.h"
 #include "secasn1.h"
@@ -50,12 +49,6 @@ extern void SECU_PrintAsHex(FILE *out, SECItem *i, const char *m, int level);
 
 /* dump a buffer in hex and ASCII */
 extern void SECU_PrintBuf(FILE *out, const char *msg, const void *vp, int len);
-
-/* Dump contents of an RSA public key */
-extern void SECU_PrintRSAPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level);
-
-/* Dump contents of a DSA public key */
-extern void SECU_PrintDSAPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level);
 
 #ifdef HAVE_EPV_TEMPLATE
 /* Dump contents of private key */
