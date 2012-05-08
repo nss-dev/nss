@@ -26,7 +26,7 @@
 /*
  * This array helps parsing between names, mechanisms, and flags.
  * to make the config files understand more entries, add them
- * to this table. (NOTE: we need function to export this table and its size)
+ * to this table.
  */
 PK11DefaultArrayEntry PK11_DefaultArray[] = {
 	{ "RSA", SECMOD_RSA_FLAG, CKM_RSA_PKCS },

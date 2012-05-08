@@ -2747,7 +2747,7 @@ ssl3_SendAlertForCertError(sslSocket * ss, PRErrorCode errCode)
 
 
 /*
- * Send handshake_Failure alert.  Set generic error number.
+ * Send decode_error alert.  Set generic error number.
  */
 SECStatus
 ssl3_DecodeError(sslSocket *ss)
