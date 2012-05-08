@@ -7482,11 +7482,6 @@ ssl3_SendCertificateRequest(sslSocket *ss)
 	nnames = ca_list->nnames;
     }
 
-    if (!nnames) {
-	PORT_SetError(SSL_ERROR_NO_TRUSTED_SSL_CLIENT_CA);
-	return SECFailure;
-    }
-
     for (i = 0, name = names; i < nnames; i++, name++) {
 	calen += 2 + name->len;
     }
