@@ -510,10 +510,10 @@ static CurveNameTagPair nameTagPair[] =
   { "sect131r2", SEC_OID_SECG_EC_SECT131R2},
 };
 
-static SECKEYECParams * 
+static SECItem * 
 getECParams(const char *curve)
 {
-    SECKEYECParams *ecparams;
+    SECItem *ecparams;
     SECOidData *oidData = NULL;
     SECOidTag curveOidTag = SEC_OID_UNKNOWN; /* default */
     int i, numCurves;
