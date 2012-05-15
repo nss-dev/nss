@@ -185,7 +185,6 @@ PKIX_PL_HashTable_Add(
         PKIX_PL_Object *value,
         void *plContext)
 {
-        PKIX_Error *htAddError = NULL; 
         PKIX_PL_Mutex  *lockedMutex = NULL;
         PKIX_PL_Object *deletedKey = NULL;
         PKIX_PL_Object *deletedValue = NULL;
@@ -236,19 +235,17 @@ PKIX_PL_HashTable_Add(
                 PKIX_DECREF(deletedValue);
         }
 
-        htAddError = pkix_pl_PrimHashTable_Add
+        PKIX_CHECK(pkix_pl_PrimHashTable_Add
                 (ht->primHash,
                 (void *)key,
                 (void *)value,
                 hashCode,
                 keyComp,
-                plContext);
-        if (!htAddError) {
-            PKIX_INCREF(key);
-            PKIX_INCREF(value);
-        } else {
-            PKIX_DECREF(htAddError);
-        }
+                plContext),
+                PKIX_PRIMHASHTABLEADDFAILED);
+
+        PKIX_INCREF(key);
+        PKIX_INCREF(value);
         PKIX_MUTEX_UNLOCK(ht->tableLock);
 
         /*
