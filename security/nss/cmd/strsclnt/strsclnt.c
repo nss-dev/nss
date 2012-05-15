@@ -136,6 +136,8 @@ PRIntervalTime maxInterval    = PR_INTERVAL_NO_TIMEOUT;
 
 char * progName;
 
+secuPWData pwdata = { PW_NONE, 0 };
+
 int	stopping;
 int	verbose;
 SECItem	bigBuf;
@@ -1224,6 +1226,8 @@ client_main(
 	    errExit("SSL_OptionSet SSL_ENABLE_FALSE_START");
     }
 
+    SSL_SetPKCS11PinArg(model_sock, &pwdata);
+
     SSL_SetURL(model_sock, hostName);
 
     SSL_AuthCertificateHook(model_sock, mySSLAuthCertificate, 
@@ -1321,7 +1325,6 @@ main(int argc, char **argv)
     PLOptState *         optstate;
     PLOptStatus          status;
     cert_and_key         Cert_And_Key;
-    secuPWData           pwdata  = { PW_NONE, 0 };
     char *               sniHostName = NULL;
 
     /* Call the NSPR initialization routines */
