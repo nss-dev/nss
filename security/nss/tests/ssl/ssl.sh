@@ -856,7 +856,7 @@ ssl_set_fips()
     if [ ${CLTSRV} = "server" ]; then
         DBDIRS="${SERVERDIR} ${EXT_SERVERDIR}"
     else
-        DBDIRS="${CLIETNDIR} ${EXT_CLIENTDIR}"
+        DBDIRS="${CLIENTDIR} ${EXT_CLIENTDIR}"
     fi
     
     if [ "${ONOFF}" = "on" ]; then
