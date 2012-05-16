@@ -1921,6 +1921,7 @@ SECKEY_CacheStaticFlags(SECKEYPrivateKey* key)
     if (key && key->pkcs11Slot && key->pkcs11ID) {
         key->staticflags |= SECKEY_Attributes_Cached;
         SECKEY_CacheAttribute(key, CKA_PRIVATE);
+        SECKEY_CacheAttribute(key, CKA_ALWAYS_AUTHENTICATE);
         rv = SECSuccess;
     }
     return rv;

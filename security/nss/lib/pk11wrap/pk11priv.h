@@ -59,7 +59,8 @@ void PK11_CleanKeyList(PK11SlotInfo *slot);
 /************************************************************
  *  Slot Password Management
  ************************************************************/
-SECStatus PK11_DoPassword(PK11SlotInfo *slot, PRBool loadCerts, void *wincx);
+SECStatus PK11_DoPassword(PK11SlotInfo *slot, PRBool loadCerts, void *wincx,
+				PRBool contextSpecific);
 SECStatus PK11_VerifyPW(PK11SlotInfo *slot,char *pw);
 void PK11_HandlePasswordCheck(PK11SlotInfo *slot,void *wincx);
 void PK11_SetVerifyPasswordFunc(PK11VerifyPasswordFunc func);

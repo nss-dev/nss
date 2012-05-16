@@ -46,7 +46,7 @@ static struct PK11GlobalStruct {
  * succeed if the user is already logged in.
  */
 SECStatus
-pk11_CheckPassword(PK11SlotInfo *slot,char *pw)
+pk11_CheckPassword(PK11SlotInfo *slot,char *pw,PRBool contextSpecific)
 {
     int len = 0;
     CK_RV crv;
@@ -67,7 +67,8 @@ pk11_CheckPassword(PK11SlotInfo *slot,char *pw)
 
     do {
 	PK11_EnterSlotMonitor(slot);
-	crv = PK11_GETTAB(slot)->C_Login(slot->session,CKU_USER,
+	crv = PK11_GETTAB(slot)->C_Login(slot->session,
+		contextSpecific ? CKU_CONTEXT_SPECIFIC : CKU_USER,
 						(unsigned char *)pw,len);
 	slot->lastLoginCheck = 0;
 	mustRetry = PR_FALSE;
@@ -75,6 +76,7 @@ pk11_CheckPassword(PK11SlotInfo *slot,char *pw)
 	switch (crv) {
 	/* if we're already logged in, we're good to go */
 	case CKR_OK:
+		/* TODO If it was for CKU_CONTEXT_SPECIFIC should we do this */
 	    slot->authTransact = PK11_Global.transaction;
 	    /* Fall through */
 	case CKR_USER_ALREADY_LOGGED_IN:
@@ -240,7 +242,7 @@ PK11_HandlePasswordCheck(PK11SlotInfo *slot,void *wincx)
 	    NeedAuth = PR_TRUE;
 	}
     }
-    if (NeedAuth) PK11_DoPassword(slot,PR_TRUE,wincx);
+    if (NeedAuth) PK11_DoPassword(slot,PR_TRUE,wincx,PR_FALSE);
 }
 
 void
@@ -299,7 +301,7 @@ pk11_LoginStillRequired(PK11SlotInfo *slot, void *wincx)
 SECStatus
 PK11_Authenticate(PK11SlotInfo *slot, PRBool loadCerts, void *wincx) {
     if (pk11_LoginStillRequired(slot,wincx)) {
-	return PK11_DoPassword(slot,loadCerts,wincx);
+	return PK11_DoPassword(slot,loadCerts,wincx,PR_FALSE);
     }
     return SECSuccess;
 }
@@ -530,7 +532,8 @@ PK11_SetIsLoggedInFunc(PK11IsLoggedInFunc func)
  * of the PKCS 11 module.
  */
 SECStatus
-PK11_DoPassword(PK11SlotInfo *slot, PRBool loadCerts, void *wincx)
+PK11_DoPassword(PK11SlotInfo *slot, PRBool loadCerts, void *wincx,
+			PRBool contextSpecific)
 {
     SECStatus rv = SECFailure;
     char * password;
@@ -599,7 +602,7 @@ PK11_DoPassword(PK11SlotInfo *slot, PRBool loadCerts, void *wincx)
 		break;
 	    }
 	}
-	rv = pk11_CheckPassword(slot,password);
+	rv = pk11_CheckPassword(slot,password,contextSpecific);
 	PORT_Memset(password, 0, PORT_Strlen(password));
 	PORT_Free(password);
 	if (rv != SECWouldBlock) break;
