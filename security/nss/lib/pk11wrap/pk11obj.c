@@ -730,6 +730,12 @@ PK11_Sign(SECKEYPrivateKey *key, SECItem *sig, SECItem *hash)
 	PORT_SetError( PK11_MapError(crv) );
 	return SECFailure;
     }
+	/* PKCS11 2.20 says if CKA_ALWAYS_AUTHENTICATE then 
+	 * do C_Login with CKU_CONTEXT_SPECIFIC 
+	 * between C_SignInit and C_Sign */
+	if (SECKEY_HAS_ATTRIBUTE_SET(key,CKA_ALWAYS_AUTHENTICATE)) {
+		PK11_DoPassword(slot, PR_FALSE, key->wincx, PR_TRUE);
+	}
     len = sig->len;
     crv = PK11_GETTAB(slot)->C_Sign(session,hash->data,
 					hash->len, sig->data, &len);
@@ -782,6 +788,13 @@ pk11_PrivDecryptRaw(SECKEYPrivateKey *key, unsigned char *data,
 	PORT_SetError( PK11_MapError(crv) );
 	return SECFailure;
     }
+	/* PKCS11 2.20 says if CKA_ALWAYS_AUTHENTICATE then 
+	 * do C_Login with CKU_CONTEXT_SPECIFIC 
+	 * between C_DecryptInit and C_Decrypt */
+	/* But see note above about servers */
+	if (SECKEY_HAS_ATTRIBUTE_SET(key,CKA_ALWAYS_AUTHENTICATE)) {
+		PK11_DoPassword(slot, PR_FALSE, key->wincx, PR_TRUE);
+	}
     crv = PK11_GETTAB(slot)->C_Decrypt(session,enc, encLen, data, &out);
     if (!owner || !(slot->isThreadSafe)) PK11_ExitSlotMonitor(slot);
     pk11_CloseSession(slot,session,owner);
