@@ -1772,20 +1772,29 @@ CK_OBJECT_HANDLE
 PK11_FindObjectForCert(CERTCertificate *cert, void *wincx, PK11SlotInfo **pSlot)
 {
     CK_OBJECT_HANDLE certHandle;
-    CK_ATTRIBUTE searchTemplate	= { CKA_VALUE, NULL, 0 };
-    
-    PK11_SETATTRS(&searchTemplate, CKA_VALUE, cert->derCert.data,
-		  cert->derCert.len);
+    CK_OBJECT_CLASS certClass = CKO_CERTIFICATE;
+    CK_ATTRIBUTE *attr;
+    CK_ATTRIBUTE searchTemplate[]= {
+	{ CKA_CLASS, NULL, 0 },
+	{ CKA_VALUE, NULL, 0 },
+    };
+    int templateSize = sizeof(searchTemplate)/sizeof(searchTemplate[0]);
+
+    attr = searchTemplate;
+    PK11_SETATTRS(attr, CKA_CLASS, &certClass, sizeof(certClass)); attr++;
+    PK11_SETATTRS(attr, CKA_VALUE, cert->derCert.data, cert->derCert.len);
 
     if (cert->slot) {
-	certHandle = pk11_getcerthandle(cert->slot,cert,&searchTemplate,1);
+	certHandle = pk11_getcerthandle(cert->slot, cert, searchTemplate,
+	                                templateSize);
 	if (certHandle != CK_INVALID_HANDLE) {
 	    *pSlot = PK11_ReferenceSlot(cert->slot);
 	    return certHandle;
 	}
     }
 
-    certHandle = pk11_FindCertObjectByTemplate(pSlot,&searchTemplate,1,wincx);
+    certHandle = pk11_FindCertObjectByTemplate(pSlot, searchTemplate,
+                                               templateSize, wincx);
     if (certHandle != CK_INVALID_HANDLE) {
 	if (cert->slot == NULL) {
 	    cert->slot = PK11_ReferenceSlot(*pSlot);
@@ -2506,6 +2515,7 @@ SECItem *
 PK11_GetLowLevelKeyIDForCert(PK11SlotInfo *slot,
 					CERTCertificate *cert, void *wincx)
 {
+    CK_OBJECT_CLASS certClass = CKO_CERTIFICATE;
     CK_ATTRIBUTE theTemplate[] = {
 	{ CKA_VALUE, NULL, 0 },
 	{ CKA_CLASS, NULL, 0 }
@@ -2521,6 +2531,7 @@ PK11_GetLowLevelKeyIDForCert(PK11SlotInfo *slot,
     if (slot) {
 	PK11_SETATTRS(attrs, CKA_VALUE, cert->derCert.data, 
 						cert->derCert.len); attrs++;
+	PK11_SETATTRS(attrs, CKA_CLASS, &certClass, sizeof(certClass));
  
 	rv = pk11_AuthenticateUnfriendly(slot, PR_TRUE, wincx);
 	if (rv != SECSuccess) {
