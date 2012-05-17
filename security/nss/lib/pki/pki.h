@@ -83,6 +83,7 @@ nssCertificate_GetSubject
   NSSCertificate *c
 );
 
+/* Returns a copy, Caller must free using nss_ZFreeIf */
 NSS_EXTERN NSSUTF8 *
 nssCertificate_GetNickname
 (
