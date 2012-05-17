@@ -361,10 +361,14 @@ smime_choose_cipher(CERTCertificate *scert, CERTCertificate **rcerts)
     int *cipher_votes;
     int weak_mapi;
     int strong_mapi;
+    int aes128_mapi;
+    int aes256_mapi;
     int rcount, mapi, max, i;
 
     chosen_cipher = SMIME_RC2_CBC_40;		/* the default, LCD */
     weak_mapi = smime_mapi_by_cipher(chosen_cipher);
+    aes128_mapi = smime_mapi_by_cipher(SMIME_AES_CBC_128);
+    aes256_mapi = smime_mapi_by_cipher(SMIME_AES_CBC_256);
 
     poolp = PORT_NewArena (1024);		/* XXX what is right value? */
     if (poolp == NULL)
@@ -414,9 +418,13 @@ smime_choose_cipher(CERTCertificate *scert, CERTCertificate **rcerts)
 	    }
 	} else {
 	    /* no profile found - so we can only assume that the user can do
-	     * the mandatory algorithms which is RC2-40 (weak crypto) and 3DES (strong crypto) */
+	     * the mandatory algorithms which are RC2-40 (weak crypto) and
+	     * 3DES (strong crypto), unless the user has an elliptic curve
+	     * key.  For elliptic curve keys, RFC 5753 mandates support
+	     * for AES 128 CBC. */
 	    SECKEYPublicKey *key;
 	    unsigned int pklen_bits;
+	    KeyType key_type;
 
 	    /*
 	     * if recipient's public key length is > 512, vote for a strong cipher
@@ -432,20 +440,41 @@ smime_choose_cipher(CERTCertificate *scert, CERTCertificate **rcerts)
 	    key = CERT_ExtractPublicKey(rcerts[rcount]);
 	    pklen_bits = 0;
 	    if (key != NULL) {
-		pklen_bits = SECKEY_PublicKeyStrength (key) * 8;
+		pklen_bits = SECKEY_PublicKeyStrengthInBits (key);
+		key_type = SECKEY_GetPublicKeyType(key);
 		SECKEY_DestroyPublicKey (key);
 	    }
 
-	    if (pklen_bits > 512) {
-		/* cast votes for the strong algorithm */
+	    if (key_type == ecKey) {
+		/* While RFC 5753 mandates support for AES-128 CBC, should use
+		 * AES 256 if user's key provides more than 128 bits of
+		 * security strength so that symmetric key is not weak link. */
+
+		/* RC2-40 is not compatible with elliptic curve keys. */
+		chosen_cipher = SMIME_DES_EDE3_168;
+		if (pklen_bits > 256) {
+		    cipher_abilities[aes256_mapi]++;
+		    cipher_votes[aes256_mapi] += pref;
+		    pref--;
+		}
+		cipher_abilities[aes128_mapi]++;
+		cipher_votes[aes128_mapi] += pref;
+		pref--;
 		cipher_abilities[strong_mapi]++;
 		cipher_votes[strong_mapi] += pref;
 		pref--;
-	    } 
+	    } else {
+		if (pklen_bits > 512) {
+		    /* cast votes for the strong algorithm */
+		    cipher_abilities[strong_mapi]++;
+		    cipher_votes[strong_mapi] += pref;
+		    pref--;
+		}
 
-	    /* always cast (possibly less) votes for the weak algorithm */
-	    cipher_abilities[weak_mapi]++;
-	    cipher_votes[weak_mapi] += pref;
+		/* always cast (possibly less) votes for the weak algorithm */
+		cipher_abilities[weak_mapi]++;
+		cipher_votes[weak_mapi] += pref;
+	    } 
 	}
 	if (profile != NULL)
 	    SECITEM_FreeItem(profile, PR_TRUE);
