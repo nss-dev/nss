@@ -739,6 +739,7 @@ add_cert_to_cache (
 	log_cert_ref("attempted to add cert already in cache", cert);
 #endif
 	PZ_Unlock(td->cache->lock);
+        nss_ZFreeIf(certNickname);
 	/* collision - somebody else already added the cert
 	 * to the cache before this thread got around to it.
 	 */
@@ -807,8 +808,11 @@ add_cert_to_cache (
     }
     rvCert = cert;
     PZ_Unlock(td->cache->lock);
+    nss_ZFreeIf(certNickname);
     return rvCert;
 loser:
+    nss_ZFreeIf(certNickname);
+    certNickname = NULL;
     /* Remove any handles that have been created */
     subjectList = NULL;
     if (added >= 1) {
