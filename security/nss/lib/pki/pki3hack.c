@@ -1168,6 +1168,8 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
 	                                             &c->serial,
 						     email,
 	                                             PR_TRUE);
+            nss_ZFreeIf(nickname);
+            nickname = NULL;
 	    if (!newInstance) {
 		nssrv = PR_FAILURE;
 		goto done;
@@ -1200,6 +1202,8 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
 	                                             &c->serial,
 						     email,
 	                                             PR_TRUE);
+            nss_ZFreeIf(nickname);
+            nickname = NULL;
 	    if (!newInstance) {
 		nssrv = PR_FAILURE;
 		goto done;

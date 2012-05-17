@@ -364,8 +364,8 @@ nssPKIObject_GetNicknameForToken (
 	if ((!tokenOpt && object->instances[i]->label) ||
 	    (object->instances[i]->token == tokenOpt)) 
 	{
-            /* XXX should be copy? safe as long as caller has reference */
-	    nickname = object->instances[i]->label; 
+            /* Must copy, see bug 745548 */
+	    nickname = nssUTF8_Duplicate(object->instances[i]->label, NULL);
 	    break;
 	}
     }

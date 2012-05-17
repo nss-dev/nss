@@ -458,6 +458,7 @@ static void match_nickname(const void *k, void *v, void *a)
     {
 	nt->subjectList = subjectList;
     }
+    nss_ZFreeIf(nickname);
 }
 
 /*
