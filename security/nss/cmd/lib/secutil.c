@@ -53,8 +53,6 @@ static char consoleName[] =  {
 #include "nssutil.h"
 #include "ssl.h"
 
-static PRBool wrapEnabled = PR_TRUE;
-
 
 static void
 secu_ClearPassword(char *p)
@@ -597,7 +595,7 @@ secu_PrintRawStringQuotesOptional(FILE *out, SECItem *si, const char *m,
 
     for (i = 0; i < si->len; i++) {
 	unsigned char val = si->data[i];
-	if (wrapEnabled && column > 76) {
+	if (SECU_GetWrapEnabled() && column > 76) {
 	    SECU_Newline(out);
 	    SECU_Indent(out, level); column = level*INDENT_MULT;
 	}
@@ -608,7 +606,7 @@ secu_PrintRawStringQuotesOptional(FILE *out, SECItem *si, const char *m,
     if (quotes) {
 	fprintf(out, "\""); column++;
     }
-    if (wrapEnabled &&
+    if (SECU_GetWrapEnabled() &&
         (column != level*INDENT_MULT || column > 76)) {
 	SECU_Newline(out);
     }
@@ -2352,7 +2350,7 @@ SECU_PrintFingerprints(FILE *out, SECItem *derCert, char *m, int level)
     fpItem.len = MD5_LENGTH;
     fpStr = CERT_Hexify(&fpItem, 1);
     SECU_Indent(out, level);  fprintf(out, "%s (MD5):", m);
-    if (wrapEnabled) {
+    if (SECU_GetWrapEnabled()) {
 	fprintf(out, "\n");
 	SECU_Indent(out, level+1);
     }
@@ -2372,7 +2370,7 @@ SECU_PrintFingerprints(FILE *out, SECItem *derCert, char *m, int level)
     fpItem.len = SHA1_LENGTH;
     fpStr = CERT_Hexify(&fpItem, 1);
     SECU_Indent(out, level);  fprintf(out, "%s (SHA1):", m);
-    if (wrapEnabled) {
+    if (SECU_GetWrapEnabled()) {
 	fprintf(out, "\n");
 	SECU_Indent(out, level+1);
     }
@@ -2381,7 +2379,7 @@ SECU_PrintFingerprints(FILE *out, SECItem *derCert, char *m, int level)
     }
     fprintf(out, "%s\n", fpStr);
     PORT_Free(fpStr);
-    if (wrapEnabled)
+    if (SECU_GetWrapEnabled())
 	fprintf(out, "\n");
 
     if (err) 
