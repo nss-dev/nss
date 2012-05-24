@@ -42,7 +42,6 @@ CSRCS = \
 	sslver.c \
 	authcert.c \
 	cmpcert.c \
-	nsskea.c \
 	sslinfo.c \
 	ssl3ecc.c \
 	$(NULL)
