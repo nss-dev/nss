@@ -1640,8 +1640,6 @@ extern PRInt32 ssl3_SendServerNameXtn(sslSocket *ss, PRBool append,
 extern SECStatus ssl_ConfigSecureServer(sslSocket *ss, CERTCertificate *cert,
                                         const CERTCertificateList *certChain,
                                         ssl3KeyPair *keyPair, SSLKEAType kea);
-/* Return key type for the cert */
-extern SSLKEAType ssl_FindCertKEAType(CERTCertificate * cert);
 
 #ifdef NSS_ENABLE_ECC
 extern PRInt32 ssl3_SendSupportedCurvesXtn(sslSocket *ss,
