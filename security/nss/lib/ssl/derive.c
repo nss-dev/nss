@@ -10,7 +10,9 @@
 #include "certt.h"	/* prereq to sslimpl.h */
 #include "keythi.h"	/* prereq to sslimpl.h */
 #include "sslimpl.h"
+#ifndef NO_PKCS11_BYPASS
 #include "blapi.h"
+#endif
 
 #include "keyhi.h"
 #include "pk11func.h"
@@ -21,6 +23,7 @@
 #include "sslproto.h"
 #include "sslerr.h"
 
+#ifndef NO_PKCS11_BYPASS
 /* make this a macro! */
 #ifdef NOT_A_MACRO
 static void
@@ -538,6 +541,7 @@ ssl_canExtractMS(PK11SymKey *pms, PRBool isTLS, PRBool isDH, PRBool *pcbp)
     return(rv);
 
 }
+#endif  /* !NO_PKCS11_BYPASS */
 
 /* Check the key exchange algorithm for each cipher in the list to see if
  * a master secret key can be extracted. If the KEA will use keys from the 
@@ -557,7 +561,16 @@ SECStatus
 SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
 	      PRUint32 protocolmask, PRUint16 *ciphersuites, int nsuites,
               PRBool *pcanbypass, void *pwArg)
-{   SECStatus	      rv;
+{
+#ifdef NO_PKCS11_BYPASS
+    if (!pcanbypass) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+    *pcanbypass = PR_FALSE;
+    return SECSuccess;
+#else
+    SECStatus	      rv;
     int		      i;
     PRUint16	      suite;
     PK11SymKey *      pms = NULL;
@@ -847,5 +860,6 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
 
 
     return rv;
+#endif /* NO_PKCS11_BYPASS */
 }
 
