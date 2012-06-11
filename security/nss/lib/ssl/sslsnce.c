@@ -54,7 +54,12 @@
 #include "pk11func.h"
 #include "base64.h"
 #include "keyhi.h"
+#ifdef NO_PKCS11_BYPASS
+#include "blapit.h"
+#include "sechash.h"
+#else
 #include "blapi.h"
+#endif
 
 #include <stdio.h>
 
@@ -416,8 +421,12 @@ CacheSrvName(cacheDesc * cache, SECItem *name, sidCacheEntry *sce)
     snce.type = name->type;
     snce.nameLen = name->len;
     PORT_Memcpy(snce.name, name->data, snce.nameLen);
+#ifdef NO_PKCS11_BYPASS
+    HASH_HashBuf(HASH_AlgSHA256, snce.nameHash, name->data, name->len);
+#else
     SHA256_HashBuf(snce.nameHash, (unsigned char*)name->data,
                    name->len);
+#endif
     /* get index of the next name */
     ndx = Get32BitNameHash(name);
     /* get lock on cert cache */

@@ -27,7 +27,9 @@
 
 #include "pk11func.h"
 #include "secmod.h"
+#ifndef NO_PKCS11_BYPASS
 #include "blapi.h"
+#endif
 
 #include <stdio.h>
 #ifdef NSS_ENABLE_ZLIB
@@ -966,8 +968,10 @@ ssl3_ComputeCommonKeyHash(PRUint8 * hashBuf, unsigned int bufLen,
     SECStatus     rv 		= SECSuccess;
 
     if (bypassPKCS11) {
+#ifndef NO_PKCS11_BYPASS
 	MD5_HashBuf (hashes->md5, hashBuf, bufLen);
 	SHA1_HashBuf(hashes->sha, hashBuf, bufLen);
+#endif
     } else {
 	rv = PK11_HashBuf(SEC_OID_MD5, hashes->md5, hashBuf, bufLen);
 	if (rv != SECSuccess) {
@@ -1389,6 +1393,7 @@ ssl3_InitCompressionContext(ssl3CipherSpec *pwSpec)
     return SECSuccess;
 }
 
+#ifndef NO_PKCS11_BYPASS
 /* Initialize encryption and MAC contexts for pending spec.
  * Master Secret already is derived in spec->msItem
  * Caller holds Spec write lock.
@@ -1555,6 +1560,7 @@ success:
 bail_out:
     return SECFailure;
 }
+#endif
 
 /* This function should probably be moved to pk11wrap and be named 
  * PK11_ParamFromIVAndEffectiveKeyBits
@@ -1755,6 +1761,7 @@ ssl3_InitPendingCipherSpec(sslSocket *ss, PK11SymKey *pms)
 	}
     }
     if (ss->opt.bypassPKCS11 && pwSpec->msItem.len && pwSpec->msItem.data) {
+#ifndef NO_PKCS11_BYPASS
 	/* Double Bypass succeeded in extracting the master_secret */
 	const ssl3KEADef * kea_def = ss->ssl3.hs.kea_def;
 	PRBool             isTLS   = (PRBool)(kea_def->tls_keygen ||
@@ -1768,6 +1775,7 @@ ssl3_InitPendingCipherSpec(sslSocket *ss, PK11SymKey *pms)
 	if (rv == SECSuccess) {
 	    rv = ssl3_InitPendingContextsBypass(ss);
 	}
+#endif
     } else if (pwSpec->master_secret) {
 	rv = ssl3_DeriveConnectionKeysPKCS11(ss);
 	if (rv == SECSuccess) {
@@ -1914,6 +1922,7 @@ ssl3_ComputeRecordMAC(
 	rv |= PK11_DigestOp(mac_context, input, inputLength);
 	rv |= PK11_DigestFinal(mac_context, outbuf, outLength, spec->mac_size);
     } else {
+#ifndef NO_PKCS11_BYPASS
 	/* bypass version */
 	const SECHashObject *hashObj = NULL;
 	unsigned int       pad_bytes = 0;
@@ -1996,6 +2005,7 @@ ssl3_ComputeRecordMAC(
 	    }
 #undef cx
 	}
+#endif
     }
 
     PORT_Assert(rv != SECSuccess || *outLength == (unsigned)spec->mac_size);
@@ -3117,6 +3127,7 @@ ssl3_DeriveMasterSecret(sslSocket *ss, PK11SymKey *pms)
 	ssl_MapLowLevelError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
 	return rv;
     }
+#ifndef NO_PKCS11_BYPASS
     if (ss->opt.bypassPKCS11) {
 	SECItem * keydata;
 	/* In hope of doing a "double bypass", 
@@ -3152,6 +3163,7 @@ ssl3_DeriveMasterSecret(sslSocket *ss, PK11SymKey *pms)
 	    return SECFailure;
 	}
     }
+#endif
     return SECSuccess;
 }
 
@@ -3300,9 +3312,11 @@ ssl3_RestartHandshakeHashes(sslSocket *ss)
     SECStatus rv = SECSuccess;
 
     if (ss->opt.bypassPKCS11) {
+#ifndef NO_PKCS11_BYPASS
 	ss->ssl3.hs.messages.len = 0;
 	MD5_Begin((MD5Context *)ss->ssl3.hs.md5_cx);
 	SHA1_Begin((SHA1Context *)ss->ssl3.hs.sha_cx);
+#endif
     } else {
 	rv = PK11_DigestBegin(ss->ssl3.hs.md5);
 	if (rv != SECSuccess) {
@@ -3331,9 +3345,11 @@ ssl3_NewHandshakeHashes(sslSocket *ss)
      */
     SSL_TRC(30,("%d: SSL3[%d]: start handshake hashes", SSL_GETPID(), ss->fd));
     if (ss->opt.bypassPKCS11) {
+#ifndef NO_PKCS11_BYPASS
 	PORT_Assert(!ss->ssl3.hs.messages.buf && !ss->ssl3.hs.messages.space);
 	ss->ssl3.hs.messages.buf = NULL;
 	ss->ssl3.hs.messages.space = 0;
+#endif
     } else {
 	ss->ssl3.hs.md5 = md5 = PK11_CreateDigestContext(SEC_OID_MD5);
 	ss->ssl3.hs.sha = sha = PK11_CreateDigestContext(SEC_OID_SHA1);
@@ -3382,6 +3398,7 @@ ssl3_UpdateHandshakeHashes(sslSocket *ss, const unsigned char *b,
 
     PRINT_BUF(90, (NULL, "MD5 & SHA handshake hash input:", b, l));
 
+#ifndef NO_PKCS11_BYPASS
     if (ss->opt.bypassPKCS11) {
 	MD5_Update((MD5Context *)ss->ssl3.hs.md5_cx, b, l);
 	SHA1_Update((SHA1Context *)ss->ssl3.hs.sha_cx, b, l);
@@ -3390,6 +3407,7 @@ ssl3_UpdateHandshakeHashes(sslSocket *ss, const unsigned char *b,
 #endif
 	return rv;
     }
+#endif
     rv = PK11_DigestOp(ss->ssl3.hs.md5, b, l);
     if (rv != SECSuccess) {
 	ssl_MapLowLevelError(SSL_ERROR_MD5_DIGEST_FAILURE);
@@ -3684,6 +3702,7 @@ ssl3_ComputeHandshakeHashes(sslSocket *     ss,
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     if (ss->opt.bypassPKCS11) {
+#ifndef NO_PKCS11_BYPASS
 	/* compute them without PKCS11 */
 	PRUint64      md5_cx[MAX_MAC_CONTEXT_LLONGS];
 	PRUint64      sha_cx[MAX_MAC_CONTEXT_LLONGS];
@@ -3765,6 +3784,7 @@ ssl3_ComputeHandshakeHashes(sslSocket *     ss,
 	rv = SECSuccess;
 #undef md5cx
 #undef shacx
+#endif
     } else {
 	/* compute hases with PKCS11 */
 	PK11Context * md5;
@@ -5351,12 +5371,14 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    PK11SymKey *  wrapKey;     /* wrapping key */
 	    CK_FLAGS      keyFlags      = 0;
 
+#ifndef NO_PKCS11_BYPASS
 	    if (ss->opt.bypassPKCS11) {
 		/* we cannot restart a non-bypass session in a 
 		** bypass socket.
 		*/
 		break;  
 	    }
+#endif
 	    /* unwrap master secret with PKCS11 */
 	    slot = SECMOD_LookupSlot(sid->u.ssl3.masterModuleID,
 				     sid->u.ssl3.masterSlotID);
@@ -5391,6 +5413,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    if (pwSpec->master_secret == NULL) {
 		break;	/* errorCode set just after call to UnwrapSymKey. */
 	    }
+#ifndef NO_PKCS11_BYPASS
 	} else if (ss->opt.bypassPKCS11) {
 	    /* MS is not wrapped */
 	    wrappedMS.data = sid->u.ssl3.keys.wrapped_master_secret;
@@ -5398,6 +5421,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    memcpy(pwSpec->raw_master_secret, wrappedMS.data, wrappedMS.len);
 	    pwSpec->msItem.data = pwSpec->raw_master_secret;
 	    pwSpec->msItem.len  = wrappedMS.len;
+#endif
 	} else {
 	    /* We CAN restart a bypass session in a non-bypass socket. */
 	    /* need to import the raw master secret to session object */
@@ -6709,12 +6733,14 @@ compression_found:
 	if (sid->u.ssl3.keys.msIsWrapped) {
 	    PK11SymKey *    wrapKey; 	/* wrapping key */
 	    CK_FLAGS        keyFlags      = 0;
+#ifndef NO_PKCS11_BYPASS
 	    if (ss->opt.bypassPKCS11) {
 		/* we cannot restart a non-bypass session in a 
 		** bypass socket.
 		*/
 		break;  
 	    }
+#endif
 
 	    wrapKey = getWrappingKey(ss, NULL, sid->u.ssl3.exchKeyType,
 				     sid->u.ssl3.masterWrapMech, 
@@ -6740,12 +6766,14 @@ compression_found:
 	    if (pwSpec->master_secret == NULL) {
 		break;	/* not an error */
 	    }
+#ifndef NO_PKCS11_BYPASS
 	} else if (ss->opt.bypassPKCS11) {
 	    wrappedMS.data = sid->u.ssl3.keys.wrapped_master_secret;
 	    wrappedMS.len  = sid->u.ssl3.keys.wrapped_master_secret_len;
 	    memcpy(pwSpec->raw_master_secret, wrappedMS.data, wrappedMS.len);
 	    pwSpec->msItem.data = pwSpec->raw_master_secret;
 	    pwSpec->msItem.len  = wrappedMS.len;
+#endif
 	} else {
 	    /* We CAN restart a bypass session in a non-bypass socket. */
 	    /* need to import the raw master secret to session object */
@@ -7690,10 +7718,12 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 				SECKEYPrivateKey *serverKey)
 {
     PK11SymKey *      pms;
+#ifndef NO_PKCS11_BYPASS
     unsigned char *   cr     = (unsigned char *)&ss->ssl3.hs.client_random;
     unsigned char *   sr     = (unsigned char *)&ss->ssl3.hs.server_random;
     ssl3CipherSpec *  pwSpec = ss->ssl3.pwSpec;
     unsigned int      outLen = 0;
+#endif
     PRBool            isTLS  = PR_FALSE;
     SECStatus         rv;
     SECItem           enc_pms;
@@ -7724,6 +7754,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
     }
 
     if (ss->opt.bypassPKCS11) {
+#ifndef NO_PKCS11_BYPASS
 	/* TRIPLE BYPASS, get PMS directly from RSA decryption.
 	 * Use PK11_PrivDecryptPKCS1 to decrypt the PMS to a buffer, 
 	 * then, check for version rollback attack, then 
@@ -7759,8 +7790,11 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 	    PK11_GenerateRandom(pwSpec->msItem.data, pwSpec->msItem.len);
 	}
 	rv = ssl3_InitPendingCipherSpec(ss,  NULL);
+#endif
     } else {
+#ifndef NO_PKCS11_BYPASS
 double_bypass:
+#endif
 	/*
 	 * unwrap pms out of the incoming buffer
 	 * Note: CKM_SSL3_MASTER_KEY_DERIVE is NOT the mechanism used to do 
@@ -8562,6 +8596,11 @@ ssl3_TLSPRFWithMasterSecret(ssl3CipherSpec *spec, const char *label,
 	PK11_DestroyContext(prf_context, PR_TRUE);
     } else {
 	/* bypass PKCS11 */
+#ifdef NO_PKCS11_BYPASS
+	PORT_Assert(spec->master_secret);
+	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	rv = SECFailure;
+#else
 	SECItem inData  = { siBuffer, };
 	SECItem outData = { siBuffer, };
 	PRBool isFIPS   = PR_FALSE;
@@ -8572,6 +8611,7 @@ ssl3_TLSPRFWithMasterSecret(ssl3CipherSpec *spec, const char *label,
 	outData.len  = outLen;
 	rv = TLS_PRF(&spec->msItem, label, &inData, &outData, isFIPS);
 	PORT_Assert(rv != SECSuccess || outData.len == outLen);
+#endif
     }
     return rv;
 }
@@ -10148,10 +10188,12 @@ ssl3_DestroySSL3Info(sslSocket *ss)
     }
 
     /* clean up handshake */
+#ifndef NO_PKCS11_BYPASS
     if (ss->opt.bypassPKCS11) {
 	SHA1_DestroyContext((SHA1Context *)ss->ssl3.hs.sha_cx, PR_FALSE);
 	MD5_DestroyContext((MD5Context *)ss->ssl3.hs.md5_cx, PR_FALSE);
     } 
+#endif
     if (ss->ssl3.hs.md5) {
 	PK11_DestroyContext(ss->ssl3.hs.md5,PR_TRUE);
     }

@@ -15,7 +15,9 @@
 #include "sslproto.h"
 #include "nspr.h"
 #include "private/pprio.h"
+#ifndef NO_PKCS11_BYPASS
 #include "blapi.h"
+#endif
 #include "nss.h"
 
 #define SET_ERROR_CODE   /* reminder */
@@ -533,6 +535,7 @@ SSL_Enable(PRFileDesc *fd, int which, PRBool on)
     return SSL_OptionSet(fd, which, on);
 }
 
+#ifndef NO_PKCS11_BYPASS
 static const PRCallOnceType pristineCallOnce;
 static PRCallOnceType setupBypassOnce;
 
@@ -550,10 +553,16 @@ static PRStatus SSL_BypassRegisterShutdown(void)
     PORT_Assert(SECSuccess == rv);
     return SECSuccess == rv ? PR_SUCCESS : PR_FAILURE;
 }
+#endif
 
 static PRStatus SSL_BypassSetup(void)
 {
+#ifdef NO_PKCS11_BYPASS
+    /* Guarantee binary compatibility */
+    return PR_SUCCESS;
+#else
     return PR_CallOnce(&setupBypassOnce, &SSL_BypassRegisterShutdown);
+#endif
 }
 
 /* Implements the semantics for SSL_OptionSet(SSL_ENABLE_TLS, on) described in
@@ -772,7 +781,11 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	} else {
             if (PR_FALSE != on) {
                 if (PR_SUCCESS == SSL_BypassSetup() ) {
+#ifdef NO_PKCS11_BYPASS
+                    ss->opt.bypassPKCS11   = PR_FALSE;
+#else
                     ss->opt.bypassPKCS11   = on;
+#endif
                 } else {
                     rv = SECFailure;
                 }
@@ -1064,7 +1077,11 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
       case SSL_BYPASS_PKCS11:
         if (PR_FALSE != on) {
             if (PR_SUCCESS == SSL_BypassSetup()) {
+#ifdef NO_PKCS11_BYPASS
+                ssl_defaults.bypassPKCS11   = PR_FALSE;
+#else
                 ssl_defaults.bypassPKCS11   = on;
+#endif
             } else {
                 return SECFailure;
             }
@@ -2792,12 +2809,14 @@ ssl_SetDefaultsFromEnvironment(void)
 	    }
 	    SSL_TRACE(("SSL: logging pre-master secrets to %s", ev));
 	}
+#ifndef NO_PKCS11_BYPASS
 	ev = getenv("SSLBYPASS");
 	if (ev && ev[0]) {
 	    ssl_defaults.bypassPKCS11 = (ev[0] == '1');
 	    SSL_TRACE(("SSL: bypass default set to %d", \
 		      ssl_defaults.bypassPKCS11));
 	}
+#endif /* NO_PKCS11_BYPASS */
 	ev = getenv("SSLFORCELOCKS");
 	if (ev && ev[0] == '1') {
 	    ssl_force_locks = PR_TRUE;
