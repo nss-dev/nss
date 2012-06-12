@@ -850,6 +850,7 @@ PQG_ParamGenSeedLen( unsigned int j, unsigned int seedBytes,
   return (vector->p_PQG_ParamGenSeedLen)(j, seedBytes, pParams, pVfy);
 }
 
+
 SECStatus   
 PQG_VerifyParams(const PQGParams *params, const PQGVerify *vfy, 
 		 SECStatus *result)
@@ -1838,4 +1839,14 @@ BLAPI_SHVerifyFile(const char *name)
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return PR_FALSE;
   return vector->p_BLAPI_SHVerifyFile(name);
+}
+
+/* === new for DSA-2 === */
+SECStatus
+PQG_ParamGenV2( unsigned int L, unsigned int N, unsigned int seedBytes, 
+               PQGParams **pParams, PQGVerify **pVfy)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_PQG_ParamGenV2)(L, N, seedBytes, pParams, pVfy); 
 }

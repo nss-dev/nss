@@ -1232,6 +1232,8 @@ PRNGTEST_Uninstantiate(void);
 /* Generate PQGParams and PQGVerify structs.
  * Length of seed and length of h both equal length of P. 
  * All lengths are specified by "j", according to the table above.
+ *
+ * The verify parameters will conform to FIPS186-1.
  */
 extern SECStatus
 PQG_ParamGen(unsigned int j, 	   /* input : determines length of P. */
@@ -1242,10 +1244,38 @@ PQG_ParamGen(unsigned int j, 	   /* input : determines length of P. */
  * Length of P specified by j.  Length of h will match length of P.
  * Length of SEED in bytes specified in seedBytes.
  * seedBbytes must be in the range [20..255] or an error will result.
+ *
+ * The verify parameters will conform to FIPS186-1.
  */
 extern SECStatus
 PQG_ParamGenSeedLen(
              unsigned int j, 	     /* input : determines length of P. */
+	     unsigned int seedBytes, /* input : length of seed in bytes.*/
+             PQGParams **pParams,    /* output: P Q and G returned here */
+	     PQGVerify **pVfy);      /* output: counter and seed. */
+
+/* Generate PQGParams and PQGVerify structs.
+ * Length of P specified by L in bits.  
+ * Length of Q specified by N in bits.  
+ * Length of SEED in bytes specified in seedBytes.
+ * seedBbytes must be in the range [N..L*2] or an error will result.
+ *
+ * Not that J uses the above table, L is the length exact. L and N must
+ * match the table below or an error will result:
+ *
+ *  L            N
+ * 1024         160
+ * 2048         224
+ * 2048         256
+ * 3072         256
+ *
+ * The verify parameters will conform to FIPS186-3 using the smallest 
+ * permissible hash for the key strength.
+ */
+extern SECStatus
+PQG_ParamGenV2(
+             unsigned int L, 	     /* input : determines length of P. */
+             unsigned int N, 	     /* input : determines length of Q. */
 	     unsigned int seedBytes, /* input : length of seed in bytes.*/
              PQGParams **pParams,    /* output: P Q and G returned here */
 	     PQGVerify **pVfy);      /* output: counter and seed. */
@@ -1261,20 +1291,9 @@ PQG_ParamGenSeedLen(
  *       SECSuccess: PQGParams are valid.
  *       SECFailure: PQGParams are invalid.
  *
- * Verify the following 12 facts about PQG counter SEED g and h
- * 1.  Q is 160 bits long.
- * 2.  P is one of the 9 valid lengths.
- * 3.  G < P
- * 4.  P % Q == 1
- * 5.  Q is prime
- * 6.  P is prime
- * Steps 7-12 are done only if the optional PQGVerify is supplied.
- * 7.  counter < 4096
- * 8.  g >= 160 and g < 2048   (g is length of seed in bits)
- * 9.  Q generated from SEED matches Q in PQGParams.
- * 10. P generated from (L, counter, g, SEED, Q) matches P in PQGParams.
- * 11. 1 < h < P-1
- * 12. G generated from h matches G in PQGParams.
+ * Verify the PQG againts the counter, SEED and h.
+ * These tests are specified in FIPS 186-3 Appendix A.1.1.1, A.1.1.3, and A.2.2
+ * PQG_VerifyParams will automatically choose the appropriate test.
  */
 
 extern SECStatus   PQG_VerifyParams(const PQGParams *params, 
