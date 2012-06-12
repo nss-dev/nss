@@ -290,6 +290,8 @@ static const struct mechanismList mechanisms[] = {
 				 CKF_GENERATE_KEY_PAIR}, PR_TRUE},
      {CKM_DSA,			{DSA_MIN_P_BITS, DSA_MAX_P_BITS, 
 				 CKF_SN_VR},              PR_TRUE},
+     {CKM_DSA_PARAMETER_GEN,	{DSA_MIN_P_BITS, DSA_MAX_P_BITS, 
+				 CKF_GENERATE},           PR_TRUE},
      {CKM_DSA_SHA1,		{DSA_MIN_P_BITS, DSA_MAX_P_BITS,
 				 CKF_SN_VR},              PR_TRUE},
      /* -------------------- Diffie Hellman Operations --------------------- */
@@ -860,7 +862,7 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
 	break;
     case CKK_DSA:
 	crv = sftk_ConstrainAttribute(object, CKA_SUBPRIME, 
-						DSA_Q_BITS, DSA_Q_BITS, 0);
+					DSA_MIN_Q_BITS, DSA_MAX_Q_BITS, 0);
 	if (crv != CKR_OK) {
 	    return crv;
 	}
@@ -869,11 +871,11 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
 	if (crv != CKR_OK) {
 	    return crv;
 	}
-	crv = sftk_ConstrainAttribute(object, CKA_BASE, 1, DSA_MAX_P_BITS, 0);
+	crv = sftk_ConstrainAttribute(object, CKA_BASE, 2, DSA_MAX_P_BITS, 0);
 	if (crv != CKR_OK) {
 	    return crv;
 	}
-	crv = sftk_ConstrainAttribute(object, CKA_VALUE, 1, DSA_MAX_P_BITS, 0);
+	crv = sftk_ConstrainAttribute(object, CKA_VALUE, 2, DSA_MAX_P_BITS, 0);
 	if (crv != CKR_OK) {
 	    return crv;
 	}
@@ -887,11 +889,11 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
 	if (crv != CKR_OK) {
 	    return crv;
 	}
-	crv = sftk_ConstrainAttribute(object, CKA_BASE, 1, DH_MAX_P_BITS, 0);
+	crv = sftk_ConstrainAttribute(object, CKA_BASE, 2, DH_MAX_P_BITS, 0);
 	if (crv != CKR_OK) {
 	    return crv;
 	}
-	crv = sftk_ConstrainAttribute(object, CKA_VALUE, 1, DH_MAX_P_BITS, 0);
+	crv = sftk_ConstrainAttribute(object, CKA_VALUE, 2, DH_MAX_P_BITS, 0);
 	if (crv != CKR_OK) {
 	    return crv;
 	}
@@ -1349,6 +1351,23 @@ sftk_handleDSAParameterObject(SFTKSession *session, SFTKObject *object)
     PQGParams params;
     PQGVerify vfy, *verify = NULL;
     SECStatus result,rv;
+    /* This bool keeps track of whether or not we need verify parameters.
+     * If a P, Q and G or supplied, we dont' need verify parameters, as we
+     * have PQ and G. 
+     *   - If G is not supplied, the presumption is that we want to
+     * verify P and Q only.
+     *   - If counter is supplied, it is presumed we want to verify PQ because
+     * the counter is only used in verification.
+     *   - If H is supplied, is is presumed we want to verify G because H is
+     * only used to verify G.
+     *   - Any verification step must have the SEED (counter or H could be 
+     * missing depending on exactly what we want to verify). If SEED is supplied,
+     * the code just goes ahead and runs verify (other errors are parameter
+     * errors are detected by the PQG_VerifyParams function). If SEED is not
+     * supplied, but we determined that we are trying to verify (because needVfy
+     * is set, go ahead and return CKR_TEMPLATE_INCOMPLETE.
+     */
+    PRBool needVfy = PR_FALSE;      
 
     primeAttr = sftk_FindAttribute(object,CKA_PRIME);
     if (primeAttr == NULL) goto loser;
@@ -1361,26 +1380,43 @@ sftk_handleDSAParameterObject(SFTKSession *session, SFTKObject *object)
     params.subPrime.len = subPrimeAttr->attrib.ulValueLen;
 
     baseAttr = sftk_FindAttribute(object,CKA_BASE);
-    if (baseAttr == NULL) goto loser;
-    params.base.data = baseAttr->attrib.pValue;
-    params.base.len = baseAttr->attrib.ulValueLen;
+    if (baseAttr != NULL) {
+	params.base.data = baseAttr->attrib.pValue;
+	params.base.len = baseAttr->attrib.ulValueLen;
+    } else {
+	params.base.data = NULL;
+	params.base.len = 0;
+	needVfy = PR_TRUE; /* presumably only including PQ so we can verify
+			    * them. */
+    }
 
     attribute = sftk_FindAttribute(object, CKA_NETSCAPE_PQG_COUNTER);
     if (attribute != NULL) {
 	vfy.counter = *(CK_ULONG *) attribute->attrib.pValue;
 	sftk_FreeAttribute(attribute);
+	needVfy = PR_TRUE; /* included a count so we can verify PQ */
+    } else {
+	vfy.counter = -1;
+    }
 
-	seedAttr = sftk_FindAttribute(object, CKA_NETSCAPE_PQG_SEED);
-	if (seedAttr == NULL) goto loser;
+    hAttr = sftk_FindAttribute(object, CKA_NETSCAPE_PQG_H);
+    if (hAttr != NULL) {
+	vfy.h.data = hAttr->attrib.pValue;
+	vfy.h.len = hAttr->attrib.ulValueLen;
+	needVfy = PR_TRUE; /* included H so we can verify G */
+    } else {
+	vfy.h.data = NULL;
+	vfy.h.len = 0;
+    }
+    seedAttr = sftk_FindAttribute(object, CKA_NETSCAPE_PQG_SEED);
+    if (seedAttr != NULL) {
 	vfy.seed.data = seedAttr->attrib.pValue;
 	vfy.seed.len = seedAttr->attrib.ulValueLen;
 
-	hAttr = sftk_FindAttribute(object, CKA_NETSCAPE_PQG_H);
-	if (hAttr == NULL) goto loser;
-	vfy.h.data = hAttr->attrib.pValue;
-	vfy.h.len = hAttr->attrib.ulValueLen;
-
 	verify = &vfy;
+    } else if (needVfy) {
+	goto loser; /* Verify always needs seed, if we need verify and not seed
+		     * then fail */
     }
 
     crv = CKR_FUNCTION_FAILED;

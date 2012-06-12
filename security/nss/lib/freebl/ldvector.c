@@ -253,9 +253,13 @@ static const struct FREEBLVectorStr vector =
     SHA224_Flatten,
     SHA224_Resurrect,
     SHA224_Clone,
-    BLAPI_SHVerifyFile
+    BLAPI_SHVerifyFile,
 
     /* End of Version 3.013 */
+
+    PQG_ParamGenV2
+
+    /* End of Version 3.014 */
 };
 
 const FREEBLVector * 

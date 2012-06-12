@@ -11,7 +11,7 @@
 
 #include "blapi.h"
 
-#define FREEBL_VERSION 0x030D
+#define FREEBL_VERSION 0x030E
 
 struct FREEBLVectorStr {
 
@@ -562,6 +562,12 @@ struct FREEBLVectorStr {
  PRBool (*p_BLAPI_SHVerifyFile)(const char *name);
 
   /* Version 3.013 came to here */
+
+ SECStatus (* p_PQG_ParamGenV2)( unsigned int L, unsigned int N,
+                                unsigned int seedBytes, 
+                                PQGParams **pParams, PQGVerify **pVfy); 
+
+  /* Version 3.014 came to here */
 
 };
 

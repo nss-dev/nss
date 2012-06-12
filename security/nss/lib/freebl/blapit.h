@@ -43,8 +43,32 @@
 #define NSS_SEED		0
 #define NSS_SEED_CBC		1
 
-#define DSA_SIGNATURE_LEN 	40	/* Bytes */
-#define DSA_SUBPRIME_LEN	20	/* Bytes */
+#define DSA1_SUBPRIME_LEN	20			/* Bytes */
+#define DSA1_SIGNATURE_LEN 	(DSA1_SUBPRIME_LEN*2)	/* Bytes */
+#define DSA_MAX_SUBPRIME_LEN	32			/* Bytes */
+#define DSA_MAX_SIGNATURE_LEN 	(DSA_MAX_SUBPRIME_LEN*2)/* Bytes */
+
+/*
+ * Mark the old defines as deprecated. This will warn code that expected
+ * DSA1 only that they need to change if the are to support DSA2.
+ */
+#if defined(__GNUC__) && (__GNUC__ > 3)
+/* make GCC warn when we use these #defines */
+typedef int __BLAPI_DEPRECATED __attribute__((deprecated));
+#define DSA_SUBPRIME_LEN ((__BLAPI_DEPRECATED)DSA1_SUBPRIME_LEN)
+#define DSA_SIGNATURE_LEN ((__BLAPI_DEPRECATED)DSA1_SIGNATURE_LEN)
+#define DSA_Q_BITS ((__BLAPI_DEPRECATED)(DSA1_SUBPRIME_LEN*8))
+#else
+#ifdef _WIN32
+/* This magic gets the windows compiler to give us a deprecation
+ * warning */
+#pragma deprecated(DSA_SUBPRIME_LEN, DSA_SIGNATURE_LEN, DSA_QBITS)
+#endif
+#define DSA_SUBPRIME_LEN  DSA1_SUBPRIME_LEN
+#define DSA_SIGNATURE_LEN DSA1_SIGNATURE_LEN
+#define DSA_Q_BITS 	  (DSA1_SUBPRIME_LEN*8)
+#endif
+
 
 /* XXX We shouldn't have to hard code this limit. For
  * now, this is the quickest way to support ECDSA signature
@@ -111,7 +135,7 @@
 #define DH_MAX_P_BITS         3072
 
 /*
- * The FIPS 186 algorithm for generating primes P and Q allows only 9
+ * The FIPS 186-1 algorithm for generating primes P and Q allows only 9
  * distinct values for the length of P, and only one value for the
  * length of Q.
  * The algorithm uses a variable j to indicate which of the 9 lengths
@@ -130,12 +154,31 @@
  *	7	 960		160
  *	8	1024		160
  *
- * The FIPS-186 compliant PQG generator takes j as an input parameter.
+ * The FIPS-186-1 compliant PQG generator takes j as an input parameter.
+ *
+ * FIPS 186-3 algorithm specifies 4 distinct P and Q sizes:
+ *
+ *     bits in P       bits in Q
+ *     _________       _________
+ *      1024           160
+ *      2048           224
+ *      2048           256
+ *      3072           256
+ *
+ * The FIPS-186-3 complaiant PQG generator (PQG V2) takes arbitrary p and q
+ * lengths as input and returns an error if they aren't in this list.
  */
 
-#define DSA_Q_BITS       160
-#define DSA_MAX_P_BITS	1024
+#define DSA1_Q_BITS      160
+#define DSA_MAX_P_BITS	3072
 #define DSA_MIN_P_BITS	 512
+#define DSA_MAX_Q_BITS   256
+#define DSA_MIN_Q_BITS   160
+
+#if DSA_MAX_Q_BITS != DSA_MAX_SUBPRIME_LEN*8
+#error "Inconsistent declaration of DSA SUBPRIME/Q parameters in blapit.h"
+#endif
+
 
 /*
  * function takes desired number of bits in P,

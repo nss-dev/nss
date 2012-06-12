@@ -2057,7 +2057,7 @@ finish_rsa:
 	context->update     = (SFTKCipher) nsc_DSA_Sign_Stub;
 	context->destroy    = (privKey == key->objectInfo) ?
 		(SFTKDestroy) sftk_Null:(SFTKDestroy)sftk_FreePrivKey;
-	context->maxLen     = DSA_SIGNATURE_LEN;
+	context->maxLen     = DSA_MAX_SIGNATURE_LEN;
 
 	break;
 
@@ -2905,14 +2905,36 @@ nsc_pbe_key_gen(NSSPKCS5PBEParameter *pkcs5_pbe, CK_MECHANISM_PTR pMechanism,
 
     return CKR_OK;
 }
+
+/* 
+ * this is coded for "full" support. These selections will be limitted to
+ * the official subset by freebl.
+ */
+static unsigned int
+sftk_GetSubPrimeFromPrime(unsigned int primeBits)
+{
+   if (primeBits <= 1024) {
+	return 160;
+   } else if (primeBits <= 2048) {
+	return 224;
+   } else if (primeBits <= 3072) {
+	return 256;
+   } else if (primeBits <= 7680) {
+	return 384;
+   } else {
+	return 512;
+   }
+}
+
 static CK_RV
 nsc_parameter_gen(CK_KEY_TYPE key_type, SFTKObject *key)
 {
     SFTKAttribute *attribute;
     CK_ULONG counter;
     unsigned int seedBits = 0;
+    unsigned int subprimeBits = 0;
     unsigned int primeBits;
-    unsigned int j;
+    unsigned int j = 8; /* default to 1024 bits */
     CK_RV crv = CKR_OK;
     PQGParams *params = NULL;
     PQGVerify *vfy = NULL;
@@ -2924,9 +2946,11 @@ nsc_parameter_gen(CK_KEY_TYPE key_type, SFTKObject *key)
     }
     primeBits = (unsigned int) *(CK_ULONG *)attribute->attrib.pValue;
     sftk_FreeAttribute(attribute);
-    j = PQG_PBITS_TO_INDEX(primeBits);
-    if (j == (unsigned int)-1) {
-	return CKR_ATTRIBUTE_VALUE_INVALID;
+    if (primeBits < 1024) {
+	j = PQG_PBITS_TO_INDEX(primeBits);
+	if (j == (unsigned int)-1) {
+	    return CKR_ATTRIBUTE_VALUE_INVALID;
+	}
     }
 
     attribute = sftk_FindAttribute(key, CKA_NETSCAPE_PQG_SEED_BITS);
@@ -2935,14 +2959,34 @@ nsc_parameter_gen(CK_KEY_TYPE key_type, SFTKObject *key)
 	sftk_FreeAttribute(attribute);
     }
 
+    attribute = sftk_FindAttribute(key, CKA_SUBPRIME_BITS);
+    if (attribute != NULL) {
+	subprimeBits = (unsigned int) *(CK_ULONG *)attribute->attrib.pValue;
+	sftk_FreeAttribute(attribute);
+    }
+
     sftk_DeleteAttributeType(key,CKA_PRIME_BITS);
+    sftk_DeleteAttributeType(key,CKA_SUBPRIME_BITS);
     sftk_DeleteAttributeType(key,CKA_NETSCAPE_PQG_SEED_BITS);
 
-    if (seedBits == 0) {
-	rv = PQG_ParamGen(j, &params, &vfy);
+    /* use the old PQG interface if we have old input data */
+    if ((primeBits < 1024) || ((primeBits == 1024) && (subprimeBits == 0))) {
+	if (seedBits == 0) {
+	    rv = PQG_ParamGen(j, &params, &vfy);
+	} else {
+	    rv = PQG_ParamGenSeedLen(j,seedBits/8, &params, &vfy);
+	}
     } else {
-	rv = PQG_ParamGenSeedLen(j,seedBits/8, &params, &vfy);
+	if (subprimeBits == 0) {
+	    subprimeBits = sftk_GetSubPrimeFromPrime(primeBits);
+        }
+	if (seedBits == 0) {
+	    seedBits = primeBits;
+	}
+	rv = PQG_ParamGenV2(primeBits, subprimeBits, seedBits/8, &params, &vfy);
     }
+	
+
 
     if (rv != SECSuccess) {
 	if (PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
@@ -3459,6 +3503,7 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession,
     CK_MECHANISM mech = {0, NULL, 0};
 
     CK_ULONG modulusLen;
+    CK_ULONG subPrimeLen;
     PRBool isEncryptable = PR_FALSE;
     PRBool canSignVerify = PR_FALSE;
     PRBool isDerivable = PR_FALSE;
@@ -3472,10 +3517,12 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession,
     unsigned char *text_compared;
     CK_ULONG bytes_encrypted;
     CK_ULONG bytes_compared;
+    CK_ULONG pairwise_digest_length = PAIRWISE_DIGEST_LENGTH;
 
     /* Variables used for Signature/Verification functions. */
-    /* always uses SHA-1 digest */
-    unsigned char *known_digest = (unsigned char *)"Mozilla Rules World!";
+    /* Must be at least 256 bits for DSA2 digest */
+    unsigned char *known_digest = (unsigned char *)
+				"Mozilla Rules the World through NSS!";
     unsigned char *signature;
     CK_ULONG signature_length;
 
@@ -3490,6 +3537,19 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession,
 	modulusLen = attribute->attrib.ulValueLen;
 	if (*(unsigned char *)attribute->attrib.pValue == 0) {
 	    modulusLen--;
+	}
+	sftk_FreeAttribute(attribute);
+    } else if (keyType == CKK_DSA) {
+	SFTKAttribute *attribute;
+
+	/* Get subprime length of private key. */
+	attribute = sftk_FindAttribute(privateKey, CKA_SUBPRIME);
+	if (attribute == NULL) {
+	    return CKR_DEVICE_ERROR;
+	}
+	subPrimeLen = attribute->attrib.ulValueLen;
+	if (subPrimeLen > 1 && *(unsigned char *)attribute->attrib.pValue == 0) {
+	    subPrimeLen--;
 	}
 	sftk_FreeAttribute(attribute);
     }
@@ -3617,7 +3677,8 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession,
 	    mech.mechanism = CKM_RSA_PKCS;
 	    break;
 	case CKK_DSA:
-	    signature_length = DSA_SIGNATURE_LEN;
+	    signature_length = DSA_MAX_SIGNATURE_LEN;
+	    pairwise_digest_length = subPrimeLen;
 	    mech.mechanism = CKM_DSA;
 	    break;
 #ifdef NSS_ENABLE_ECC
@@ -3645,7 +3706,7 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession,
 
 	crv = NSC_Sign(hSession,
 		       known_digest,
-		       PAIRWISE_DIGEST_LENGTH,
+		       pairwise_digest_length,
 		       signature,
 		       &signature_length);
 	if (crv != CKR_OK) {
@@ -3662,7 +3723,7 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession,
 
 	crv = NSC_Verify(hSession,
 			 known_digest,
-			 PAIRWISE_DIGEST_LENGTH,
+			 pairwise_digest_length,
 			 signature,
 			 signature_length);
 
@@ -3945,9 +4006,12 @@ kpg_done:
 	    break;
 	}
 
+	/*
+	 * these are checked by DSA_NewKey
+	 */
         bitSize = sftk_GetLengthInBits(pqgParam.subPrime.data, 
 							pqgParam.subPrime.len);
-        if (bitSize != DSA_Q_BITS)  {
+        if ((bitSize < DSA_MIN_Q_BITS) || (bitSize > DSA_MAX_Q_BITS))  {
 	    crv = CKR_TEMPLATE_INCOMPLETE;
 	    PORT_Free(pqgParam.prime.data);
 	    PORT_Free(pqgParam.subPrime.data);
@@ -3963,7 +4027,7 @@ kpg_done:
 	    break;
 	}
         bitSize = sftk_GetLengthInBits(pqgParam.base.data,pqgParam.base.len);
-        if ((bitSize <  1) || (bitSize > DSA_MAX_P_BITS)) {
+        if ((bitSize <  2) || (bitSize > DSA_MAX_P_BITS)) {
 	    crv = CKR_TEMPLATE_INCOMPLETE;
 	    PORT_Free(pqgParam.prime.data);
 	    PORT_Free(pqgParam.subPrime.data);
