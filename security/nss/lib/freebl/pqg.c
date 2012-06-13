@@ -463,6 +463,8 @@ makePrimefromPrimesShawneTaylor(
     unsigned char x[DSA_MAX_P_BITS/8+HASH_LENGTH_MAX];
     mp_err err = MP_OKAY;
     int i;
+    int iterations;
+    int old_counter;
 
     MP_DIGITS(&c) = 0;
     MP_DIGITS(&c0_2) = 0;
@@ -477,8 +479,6 @@ makePrimefromPrimesShawneTaylor(
     CHECK_MPI_OK( mp_init(&z) );
     CHECK_MPI_OK( mp_init(&two_length_minus_1) );
 
-    int iterations;
-    int old_counter;
 
     /*
     ** There is a slight mapping of variable names depending on which
