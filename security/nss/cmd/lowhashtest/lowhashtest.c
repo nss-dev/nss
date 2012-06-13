@@ -390,8 +390,8 @@ Usage(char *progName)
 {
     fprintf(stderr, "Usage: %s [algorithm]\n",
 	    progName);
-    fprintf(stderr, "where algorithm must be one of \n",
-	    "{MD5 | SHA1 | SHA224 | SHA256 | SHA384 | SHA512}");
+    fprintf(stderr, "algorithm must be one of %s\n",
+	    "{ MD5 | SHA1 | SHA224 | SHA256 | SHA384 | SHA512 }");
     fprintf(stderr, "default is to test all\n");
     exit(-1);
 }
