@@ -273,7 +273,7 @@ run_cycles()
 cycles="standard pkix upgradedb sharedb"
 CYCLES=${NSS_CYCLES:-$cycles}
 
-tests="cipher libpkix cert dbtests tools fips sdr crmf smime ssl ocsp merge pkits chains"
+tests="cipher lowhash libpkix cert dbtests tools fips sdr crmf smime ssl ocsp merge pkits chains"
 TESTS=${NSS_TESTS:-$tests}
 
 ALL_TESTS=${TESTS}
