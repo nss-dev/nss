@@ -719,7 +719,7 @@ typedef struct
 {
     bltestIO   key;
     bltestIO   pqgdata;
-    unsigned int j;
+    unsigned int keysize;
     bltestIO   keyseed;
     bltestIO   sigseed;
     bltestIO   sig; /* if doing verify, have additional input */
@@ -1459,12 +1459,21 @@ bltest_rsa_init(bltestCipherInfo *cipherInfo, PRBool encrypt)
     return SECSuccess;
 }
 
+blapi_pqg_param_gen(unsigned int keysize, PQGParams **pqg, PQGVerify **vfy)
+{
+    if (keysize < 1024) {
+	int j = PQG_PBITS_TO_INDEX(keysize);
+	return PQG_ParamGen(j, pqg, vfy);
+    }
+    return PQG_ParamGenV2(keysize, 0, 0, pqg, vfy);
+}
+
 SECStatus
 bltest_pqg_init(bltestDSAParams *dsap)
 {
     SECStatus rv, res;
     PQGVerify *vfy = NULL;
-    rv = PQG_ParamGen(dsap->j, &dsap->pqg, &vfy);
+    rv = blapi_pqg_param_gen(dsap->keysize, &dsap->pqg, &vfy);
     CHECKERROR(rv, __LINE__);
     rv = PQG_VerifyParams(dsap->pqg, vfy, &res);
     CHECKERROR(res, __LINE__);
@@ -1492,7 +1501,7 @@ bltest_dsa_init(bltestCipherInfo *cipherInfo, PRBool encrypt)
 	TIMESTART();
 	for (i=0; i<cipherInfo->cxreps; i++) {
 	    dummypqg = NULL;
-	    PQG_ParamGen(dsap->j, &dummypqg, &ignore);
+	    blapi_pqg_param_gen(dsap->keysize, &dummypqg, &ignore);
 	    DSA_NewKey(dummypqg, &dummyKey[i]);
 	}
 	TIMEFINISH(cipherInfo->cxtime, cipherInfo->cxreps);
@@ -1922,7 +1931,7 @@ pubkeyInitKey(bltestCipherInfo *cipherInfo, PRFileDesc *file,
     case bltestDSA:
 	dsap = &cipherInfo->params.dsa;
 	if (keysize > 0) {
-	    dsap->j = PQG_PBITS_TO_INDEX(8*keysize);
+	    dsap->keysize = keysize*8;
 	    if (!dsap->pqg)
 		bltest_pqg_init(dsap);
 	    rv = DSA_NewKey(dsap->pqg, &dsap->dsakey);
@@ -1931,7 +1940,7 @@ pubkeyInitKey(bltestCipherInfo *cipherInfo, PRFileDesc *file,
 	} else {
 	    setupIO(cipherInfo->arena, &cipherInfo->params.key, file, NULL, 0);
 	    dsap->dsakey = dsakey_from_filedata(&cipherInfo->params.key.buf);
-	    dsap->j = PQG_PBITS_TO_INDEX(8*dsap->dsakey->params.prime.len);
+	    dsap->keysize = dsap->dsakey->params.prime.len*8;
 	}
 	break;
 #ifdef NSS_ENABLE_ECC
@@ -2028,7 +2037,7 @@ cipherInit(bltestCipherInfo *cipherInfo, PRBool encrypt)
 	break;
     case bltestDSA:
 	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  DSA_SIGNATURE_LEN);
+			  DSA_MAX_SIGNATURE_LEN);
 	return bltest_dsa_init(cipherInfo, encrypt);
 	break;
 #ifdef NSS_ENABLE_ECC
@@ -2683,7 +2692,7 @@ print_td:
           if (td)
               fprintf(stdout, "%8s", "pqg_mod");
           else
-              fprintf(stdout, "%8d", PQG_INDEX_TO_PBITS(info->params.dsa.j));
+              fprintf(stdout, "%8d", info->params.dsa.keysize);
           break;
 #ifdef NSS_ENABLE_ECC
       case bltestECDSA:
