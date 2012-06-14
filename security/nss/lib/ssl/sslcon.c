@@ -2860,7 +2860,7 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
 			SSL_GETPID(), ss->fd));
 	    (*ss->sec.uncache)(sid);
 	    ssl_FreeSID(sid);
-	    ss->sec.ci.sid = sid = (sslSessionID*) PORT_ZAlloc(sizeof(sslSessionID));
+	    ss->sec.ci.sid = sid = PORT_ZNew(sslSessionID);
 	    if (!sid) {
 		goto loser;
 	    }
@@ -3063,7 +3063,7 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     } 
     if (!sid) {
 	sidLen = 0;
-	sid = (sslSessionID*) PORT_ZAlloc(sizeof(sslSessionID));
+	sid = PORT_ZNew(sslSessionID);
 	if (!sid) {
 	    goto loser;
 	}
@@ -3489,7 +3489,7 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
 	    goto loser;
 	}
 	hit = 0;
-	sid = (sslSessionID*) PORT_ZAlloc(sizeof(sslSessionID));
+	sid = PORT_ZNew(sslSessionID);
 	if (!sid) {
 	    goto loser;
 	}
