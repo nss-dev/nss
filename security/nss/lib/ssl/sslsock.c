@@ -256,7 +256,7 @@ ssl_FindSocket(PRFileDesc *fd)
     return ss;
 }
 
-sslSocket *
+static sslSocket *
 ssl_DupSocket(sslSocket *os)
 {
     sslSocket *ss;

@@ -1289,8 +1289,6 @@ extern SECStatus   ssl_CopySecurityInfo(sslSocket *ss, sslSocket *os);
 extern void        ssl_ResetSecurityInfo(sslSecurityInfo *sec, PRBool doMemset);
 extern void        ssl_DestroySecurityInfo(sslSecurityInfo *sec);
 
-extern sslSocket * ssl_DupSocket(sslSocket *old);
-
 extern void        ssl_PrintBuf(sslSocket *ss, const char *msg, const void *cp, int len);
 extern void        ssl_DumpMsg(sslSocket *ss, unsigned char *bp, unsigned len);
 
