@@ -352,7 +352,11 @@ const char * V2CipherString(int cs_int)
   case 0x000065:    cs_str = "TLS/DHE-DSS_EXPORT1024/RC4-56/SHA";  break;
   case 0x000066:    cs_str = "TLS/DHE-DSS/RC4-128/SHA";		   break;
 
+  case 0x000067:    cs_str = "TLS/DHE-RSA/AES128-CBC/SHA256";   break;
+  case 0x000068:    cs_str = "TLS/DH-DSS/AES256-CBC/SHA256";    break;
+  case 0x000069:    cs_str = "TLS/DH-RSA/AES256-CBC/SHA256";    break;
   case 0x00006A:    cs_str = "TLS/DHE-DSS/AES256-CBC/SHA256";	break;
+  case 0x00006B:    cs_str = "TLS/DHE-RSA/AES256-CBC/SHA256";	break;
 
   case 0x000072:    cs_str = "TLS/DHE-DSS/3DESEDE-CBC/RMD160"; break;
   case 0x000073:    cs_str = "TLS/DHE-DSS/AES128-CBC/RMD160";  break;
@@ -424,8 +428,12 @@ const char * V2CipherString(int cs_int)
 
   case 0x00C023:    cs_str = "TLS/ECDHE-ECDSA/AES128-CBC/SHA256"; break;
   case 0x00C024:    cs_str = "TLS/ECDHE-ECDSA/AES256-CBC/SHA384"; break;
+  case 0x00C025:    cs_str = "TLS/ECDH-ECDSA/AES128-CBC/SHA256"; break;
+  case 0x00C026:    cs_str = "TLS/ECDH-ECDSA/AES256-CBC/SHA384"; break;
   case 0x00C027:    cs_str = "TLS/ECDHE-RSA/AES128-CBC/SHA256"; break;
   case 0x00C028:    cs_str = "TLS/ECDHE-RSA/AES256-CBC/SHA384"; break;
+  case 0x00C029:    cs_str = "TLS/ECDH-RSA/AES128-CBC/SHA256"; break;
+  case 0x00C02A:    cs_str = "TLS/ECDH-RSA/AES256-CBC/SHA384"; break;
   case 0x00C02B:    cs_str = "TLS/ECDHE-ECDSA/AES128-GCM/SHA256"; break;
   case 0x00C02C:    cs_str = "TLS/ECDHE-ECDSA/AES256-GCM/SHA384"; break;
 
