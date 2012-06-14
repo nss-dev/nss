@@ -23,7 +23,7 @@ DIRS = lib  \
  derdump  \
  digest  \
  fipstest  \
- lowhashtest  \
+ $(LOWHASHTEST_SRCDIR)  \
  makepqg  \
  multinit \
  ocspclnt  \

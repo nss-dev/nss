@@ -14,6 +14,10 @@ ifdef BUILD_LIBPKIX_TESTS
 DIRS += libpkix
 endif
 
+ifeq ($(FREEBL_LOWHASH),1)
+LOWHASHTEST_SRCDIR = lowhashtest  # Add the lowhashtest directory to DIRS.
+endif
+
 INCLUDES += \
 	-I$(DIST)/../public/security \
 	-I./include \
