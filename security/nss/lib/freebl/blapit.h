@@ -129,10 +129,10 @@ typedef int __BLAPI_DEPRECATED __attribute__((deprecated));
  * module. They may be arbitrarily adjusted to any value freebl supports.
  */
 #define RSA_MIN_MODULUS_BITS   128
-#define RSA_MAX_MODULUS_BITS  8192
+#define RSA_MAX_MODULUS_BITS 16384
 #define RSA_MAX_EXPONENT_BITS   64
 #define DH_MIN_P_BITS	       128
-#define DH_MAX_P_BITS         3072
+#define DH_MAX_P_BITS        16384
 
 /*
  * The FIPS 186-1 algorithm for generating primes P and Q allows only 9
