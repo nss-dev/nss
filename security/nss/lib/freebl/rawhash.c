@@ -156,10 +156,9 @@ HASH_ResultLen(HASH_HashType type)
     return hash_obj->length;
 }
 
-
 SECStatus
-HASH_HashBuf(HASH_HashType type, unsigned char *dest, unsigned char *src,
-				 PRUint32 src_len)
+HASH_HashBuf(HASH_HashType type, unsigned char *dest,
+	     const unsigned char *src, PRUint32 src_len)
 {
     const SECHashObject *hash_obj = HASH_GetRawHashObject(type);
     void *hashcx = NULL;
