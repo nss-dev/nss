@@ -52,20 +52,25 @@ lowhash_init()
 ########################################################################
 lowhash_test()
 {
-  TESTS="MD5 SHA1 SHA224 SHA256 SHA384 SHA512"
-  OLD_MODE=`echo ${NSS_FIPS}`
-  for mode in 0 1; do
-    echo "lowhashtest with fips mode=${mode}"
-    export NSS_FIPS=${mode}
-    for TEST in ${TESTS}
-    do
+  if [ ! -f ${BINDIR}/lowhashtest -a  \
+       ! -f ${BINDIR}/lowhashtest.exe ]; then
+    echo "freebl lowhash not supported in this plaform."
+  else
+    TESTS="MD5 SHA1 SHA224 SHA256 SHA384 SHA512"
+    OLD_MODE=`echo ${NSS_FIPS}`
+    for fips_mode in 0 1; do
+      echo "lowhashtest with fips mode=${mode}"
+      export NSS_FIPS=${fips_mode}
+      for TEST in ${TESTS}
+      do
         echo "lowhashtest ${TEST}"
         ${BINDIR}/lowhashtest ${TEST} 2>&1
         RESULT=$?
         html_msg ${RESULT} 0 "lowhashtest with fips mode=${mode} for ${TEST}"
+      done
     done
-  done
-  export NSS_FIPS=${OLD_MODE}
+    export NSS_FIPS=${OLD_MODE}
+  fi
 }
 
 ############################## lowhash_cleanup ############################
