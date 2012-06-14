@@ -534,7 +534,7 @@ ConvertToSID(sidCacheEntry *    from,
     sslSessionID *to;
     uint16 version = from->version;
 
-    to = (sslSessionID*) PORT_ZAlloc(sizeof(sslSessionID));
+    to = PORT_ZNew(sslSessionID);
     if (!to) {
 	return 0;
     }
