@@ -72,13 +72,15 @@ typedef enum {
  * Structure to hold hash computation info and routines
  */
 struct SECHashObjectStr {
-    unsigned int length;
+    unsigned int length;  /* hash output length (in bytes) */
     void * (*create)(void);
     void * (*clone)(void *);
     void (*destroy)(void *, PRBool);
     void (*begin)(void *);
     void (*update)(void *, const unsigned char *, unsigned int);
     void (*end)(void *, unsigned char *, unsigned int *, unsigned int);
+    unsigned int blocklength;  /* hash input block size (in bytes) */
+    HASH_HashType type;
 };
 
 struct HASHContextStr {
