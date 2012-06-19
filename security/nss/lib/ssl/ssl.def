@@ -143,7 +143,7 @@ SSL_AuthCertificateComplete;
 ;+};
 ;+NSS_3.14 {      # NSS 3.14 release
 ;+    global:
-DTLS_GetTimeout;
+DTLS_GetHandshakeTimeout;
 DTLS_ImportFD;
 SSL_ExportKeyingMaterial;
 SSL_VersionRangeGet;
