@@ -6,8 +6,8 @@
 #include "secitem.h"
 #include "prerr.h"
 
-#ifndef DSA_SUBPRIME_LEN
-#define DSA_SUBPRIME_LEN 20	/* bytes */
+#ifndef DSA1_SUBPRIME_LEN
+#define DSA1_SUBPRIME_LEN 20	/* bytes */
 #endif
 
 typedef struct {
@@ -155,7 +155,7 @@ common_EncodeDerSig(SECItem *dest, SECItem *src)
 /* src is a DER-encoded ECDSA or DSA signature.
 ** Returns a newly-allocated SECItem structure, pointing at a newly allocated
 ** buffer containing the "raw" signature, which is len bytes of r,
-** followed by len bytes of s. For DSA, len is always DSA_SUBPRIME_LEN.
+** followed by len bytes of s. For DSA, len is the length of q.
 ** For ECDSA, len depends on the key size used to create the signature.
 */
 static SECItem *
@@ -213,14 +213,14 @@ loser:
     goto done;
 }
 
-/* src is a "raw" DSA signature, 20 bytes of r followed by 20 bytes of s.
+/* src is a "raw" DSA1 signature, 20 bytes of r followed by 20 bytes of s.
 ** dest is the signature DER encoded. ?
 */
 SECStatus
 DSAU_EncodeDerSig(SECItem *dest, SECItem *src)
 {
-    PORT_Assert(src->len == 2 * DSA_SUBPRIME_LEN);
-    if (src->len != 2 * DSA_SUBPRIME_LEN) {
+    PORT_Assert(src->len == 2 * DSA1_SUBPRIME_LEN);
+    if (src->len != 2 * DSA1_SUBPRIME_LEN) {
     	PORT_SetError( PR_INVALID_ARGUMENT_ERROR );
 	return SECFailure;
     }
@@ -246,13 +246,13 @@ DSAU_EncodeDerSigWithLen(SECItem *dest, SECItem *src, unsigned int len)
 
 /* src is a DER-encoded DSA signature.
 ** Returns a newly-allocated SECItem structure, pointing at a newly allocated
-** buffer containing the "raw" DSA signature, which is 20 bytes of r,
+** buffer containing the "raw" DSA1 signature, which is 20 bytes of r,
 ** followed by 20 bytes of s.
 */
 SECItem *
 DSAU_DecodeDerSig(const SECItem *item)
 {
-    return common_DecodeDerSig(item, DSA_SUBPRIME_LEN);
+    return common_DecodeDerSig(item, DSA1_SUBPRIME_LEN);
 }
 
 /* src is a DER-encoded ECDSA signature.

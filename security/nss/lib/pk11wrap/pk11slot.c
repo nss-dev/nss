@@ -1962,11 +1962,12 @@ PK11_GetPrivateKeyTokens(CK_MECHANISM_TYPE type,PRBool needRW,void *wincx)
  * The size array is presumed to match one for one with the mechanism type 
  * array, which allows you to specify the required key size for each
  * mechanism in the list. Whether key size is in bits or bytes is mechanism
- * dependent. Typically
+ * dependent. Typically asymetric keys are in bits and symetric keys are in 
+ * bytes.
  */
 PK11SlotInfo *
 PK11_GetBestSlotMultipleWithKeySize(CK_MECHANISM_TYPE *type, 
-                              unsigned long *size, int mech_count, void *wincx)
+                    unsigned long *size, unsigned int mech_count, void *wincx)
 {
     PK11SlotList *list = NULL;
     PK11SlotListElement *le ;
@@ -2053,7 +2054,8 @@ PK11_GetBestSlotMultipleWithKeySize(CK_MECHANISM_TYPE *type,
 }
 
 PK11SlotInfo *
-PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, int mech_count, void *wincx)
+PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, 
+			 unsigned int mech_count, void *wincx)
 {
     return PK11_GetBestSlotMultipleWithKeySize(type, NULL, mech_count, wincx);
 }

@@ -325,11 +325,19 @@ seckey_UpdateCertPQGChain(CERTCertificate * subjectCert, int count)
     if (oid != NULL) {  
         tag = oid->offset;
              
-        /* Check if cert has a DSA public key. If not, return
-         * success since no PQG params need to be updated.  */
+        /* Check if cert has a DSA or EC public key. If not, return
+         * success since no PQG params need to be updated.
+	 *
+	 * Question: do we really need to do this for EC keys. They don't have
+	 * PQG parameters, but they do have parameters. The question is does
+	 * the child cert inherit thost parameters for EC from the parent, or
+	 * do we always include those parameters in each cert.
+	 */
 
 	if ( (tag != SEC_OID_ANSIX9_DSA_SIGNATURE) &&
              (tag != SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
+             (tag != SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA224_DIGEST) &&
+             (tag != SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA256_DIGEST) &&
              (tag != SEC_OID_BOGUS_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
              (tag != SEC_OID_SDN702_DSA_SIGNATURE) &&
              (tag != SEC_OID_ANSIX962_EC_PUBLIC_KEY) ) {
@@ -372,6 +380,8 @@ seckey_UpdateCertPQGChain(CERTCertificate * subjectCert, int count)
 
 	if ( (tag != SEC_OID_ANSIX9_DSA_SIGNATURE) &&
              (tag != SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
+             (tag != SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA224_DIGEST) &&
+             (tag != SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA256_DIGEST) &&
              (tag != SEC_OID_BOGUS_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
              (tag != SEC_OID_SDN702_DSA_SIGNATURE) &&
              (tag != SEC_OID_ANSIX962_EC_PUBLIC_KEY) ) {            
@@ -1000,7 +1010,7 @@ SECKEY_SignatureLen(const SECKEYPublicKey *pubk)
     	b0 = pubk->u.rsa.modulus.data[0];
     	return b0 ? pubk->u.rsa.modulus.len : pubk->u.rsa.modulus.len - 1;
     case dsaKey:
-    	return DSA_SIGNATURE_LEN;
+	return pubk->u.dsa.params.subPrime.len * 2;
     case ecKey:
 	/* Get the base point order length in bits and adjust */
 	size =	SECKEY_ECParamsToBasePointOrderLen(
