@@ -1082,7 +1082,7 @@ secmod_HandleWaitForSlotEvent(SECMODModule *mod,  unsigned long flags,
 	}
 	SECMOD_ReleaseReadLock(moduleLock);
 	/* if everything was perm modules, don't lock up forever */
-	if (!removableSlotsFound) {
+	if ((mod->slotCount !=0) && !removableSlotsFound) {
 	    error =SEC_ERROR_NO_SLOT_SELECTED;
 	    PZ_Lock(mod->refLock);
 	    break;
@@ -1250,6 +1250,9 @@ SECMOD_HasRemovableSlots(SECMODModule *mod)
 	}
 	ret = PR_TRUE;
 	break;
+    }
+    if (mod->slotCount == 0 ) {
+	ret = PR_TRUE;
     }
     SECMOD_ReleaseReadLock(moduleLock);
     return ret;
