@@ -148,9 +148,9 @@ PRBool PK11_DoesMechanism(PK11SlotInfo *slot, CK_MECHANISM_TYPE type);
 PK11SlotList * PK11_GetAllTokens(CK_MECHANISM_TYPE type,PRBool needRW,
 					PRBool loadCerts, void *wincx);
 PK11SlotInfo *PK11_GetBestSlotMultipleWithKeySize(CK_MECHANISM_TYPE *type, 
-			  unsigned long *keySize, int count, void *wincx);
-PK11SlotInfo *PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, int count,
-							void *wincx);
+			 unsigned long *keySize, unsigned int count, void *wincx);
+PK11SlotInfo *PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, 
+					unsigned int count, void *wincx);
 PK11SlotInfo *PK11_GetBestSlot(CK_MECHANISM_TYPE type, void *wincx);
 PK11SlotInfo *PK11_GetBestSlotWithKeySize(CK_MECHANISM_TYPE type, 
 					unsigned long keySize, void *wincx);

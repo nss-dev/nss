@@ -27,7 +27,7 @@ SEC_BEGIN_PROTOS
 ** DER encode/decode (EC)DSA signatures
 */
 
-/* ANSI X9.57 defines DSA signatures as DER encoded data.  Our DSA code (and
+/* ANSI X9.57 defines DSA signatures as DER encoded data.  Our DSA1 code (and
  * most of the rest of the world) just generates 40 bytes of raw data.  These
  * functions convert between formats.
  */
@@ -35,9 +35,9 @@ extern SECStatus DSAU_EncodeDerSig(SECItem *dest, SECItem *src);
 extern SECItem *DSAU_DecodeDerSig(const SECItem *item);
 
 /*
- * Unlike DSA, raw ECDSA signatures do not have a fixed length.
+ * Unlike DSA1, raw DSA2 and ECDSA signatures do not have a fixed length.
  * Rather they contain two integers r and s whose length depends
- * on the size of the EC key used for signing.
+ * on the size of q or the EC key used for signing.
  *
  * We can reuse the DSAU_EncodeDerSig interface to DER encode
  * raw ECDSA signature keeping in mind that the length of r 

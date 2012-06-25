@@ -31,6 +31,7 @@ const char __nss_util_sccsid[] = "@(#)NSS " NSSUTIL_VERSION _DEBUG_STRING
         "  " __DATE__ " " __TIME__;
 
 /* MISSI Mosaic Object ID space */
+/* USGov algorithm OID space: { 2 16 840 1 101 } */
 #define USGOV                   0x60, 0x86, 0x48, 0x01, 0x65
 #define MISSI	                USGOV, 0x02, 0x01, 0x01
 #define MISSI_OLD_KEA_DSS	MISSI, 0x0c
@@ -43,6 +44,7 @@ const char __nss_util_sccsid[] = "@(#)NSS " NSSUTIL_VERSION _DEBUG_STRING
 #define NISTALGS    USGOV, 3, 4
 #define AES         NISTALGS, 1
 #define SHAXXX      NISTALGS, 2
+#define DSA2        NISTALGS, 3
 
 /**
  ** The Netscape OID space is allocated by Terry Hayes.  If you need
@@ -80,10 +82,6 @@ const char __nss_util_sccsid[] = "@(#)NSS " NSSUTIL_VERSION _DEBUG_STRING
 #define PKCS7			PKCS, 0x07
 #define PKCS9			PKCS, 0x09
 #define PKCS12			PKCS, 0x0c
-
-/* Fortezza algorithm OID space: { 2 16 840 1 101 2 1 1 } */
-/* ### mwelch -- Is this just for algorithms, or all of Fortezza? */
-#define FORTEZZA_ALG 0x60, 0x86, 0x48, 0x01, 0x65, 0x02, 0x01, 0x01
 
 /* Other OID name spaces */
 #define ALGORITHM		0x2b, 0x0e, 0x03, 0x02
@@ -414,6 +412,8 @@ CONST_OID pkcs12KeyUsageAttr[]          	= { 2, 5, 29, 15 };
 
 CONST_OID ansix9DSASignature[]               	= { ANSI_X9_ALGORITHM, 0x01 };
 CONST_OID ansix9DSASignaturewithSHA1Digest[] 	= { ANSI_X9_ALGORITHM, 0x03 };
+CONST_OID nistDSASignaturewithSHA224Digest[]	= { DSA2, 0x01 };
+CONST_OID nistDSASignaturewithSHA256Digest[]	= { DSA2, 0x02 };
 
 /* verisign OIDs */
 CONST_OID verisignUserNotices[]     		= { VERISIGN, 1, 7, 1, 1 };
@@ -453,7 +453,7 @@ CONST_OID pkixOCSPResponderExtendedKeyUsage[] 	= { PKIX_KEY_USAGE, 9 };
 CONST_OID netscapeSMimeKEA[] 			= { NETSCAPE_ALGS, 0x01 };
 
 /* Fortezza algorithm OIDs */
-CONST_OID skipjackCBC[] 			= { FORTEZZA_ALG, 0x04 };
+CONST_OID skipjackCBC[] 			= { MISSI, 0x04 };
 CONST_OID dhPublicKey[] 			= { ANSI_X942_ALGORITHM, 0x1 };
 
 CONST_OID aes128_ECB[] 				= { AES, 1 };
@@ -1626,6 +1626,14 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
         "Business Category",
 	CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
 
+    OD( nistDSASignaturewithSHA224Digest,
+	SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA224_DIGEST,
+	"DSA with SHA-224 Signature",
+	CKM_INVALID_MECHANISM /* not yet defined */, INVALID_CERT_EXTENSION),
+    OD( nistDSASignaturewithSHA256Digest,
+	SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA256_DIGEST,
+	"DSA with SHA-256 Signature",
+	CKM_INVALID_MECHANISM /* not yet defined */, INVALID_CERT_EXTENSION)
 };
 
 /* PRIVATE EXTENDED SECOID Table

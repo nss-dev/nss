@@ -103,7 +103,7 @@ struct VFYContextStr {
 	/* the digest in the decrypted RSA signature */
 	unsigned char rsadigest[HASH_LENGTH_MAX];
 	/* the full DSA signature... 40 bytes */
-	unsigned char dsasig[DSA_SIGNATURE_LEN];
+	unsigned char dsasig[DSA_MAX_SIGNATURE_LEN];
 	/* the full ECDSA signature */
 	unsigned char ecdsasig[2 * MAX_ECKEY_LEN];
     } u;
@@ -210,10 +210,12 @@ sec_DecodeSigAlg(const SECKEYPublicKey *key, SECOidTag sigAlg,
 
       case SEC_OID_ANSIX962_ECDSA_SHA224_SIGNATURE:
       case SEC_OID_PKCS1_SHA224_WITH_RSA_ENCRYPTION:
+      case SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA224_DIGEST:
 	*hashalg = SEC_OID_SHA224;
 	break;
       case SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE:
       case SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION:
+      case SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA256_DIGEST:
 	*hashalg = SEC_OID_SHA256;
 	break;
       case SEC_OID_ANSIX962_ECDSA_SHA384_SIGNATURE:
@@ -307,6 +309,8 @@ sec_DecodeSigAlg(const SECKEYPublicKey *key, SECOidTag sigAlg,
       /* what about normal DSA? */
       case SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST:
       case SEC_OID_BOGUS_DSA_SIGNATURE_WITH_SHA1_DIGEST:
+      case SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA224_DIGEST:
+      case SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA256_DIGEST:
 	*encalg = SEC_OID_ANSIX9_DSA_SIGNATURE;
 	break;
       case SEC_OID_MISSI_DSS:
