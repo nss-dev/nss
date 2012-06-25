@@ -519,8 +519,8 @@ int
 PK11_SignatureLen(SECKEYPrivateKey *key)
 {
     int val;
-    CK_ATTRIBUTE theTemplate = { CKA_EC_PARAMS, NULL, 0 };
-    SECItem params = {siBuffer, NULL, 0};
+    SECItem attributeItem = {siBuffer, NULL, 0};
+    SECStatus rv;
     int length; 
 
     switch (key->keyType) {
@@ -532,24 +532,33 @@ PK11_SignatureLen(SECKEYPrivateKey *key)
 	return (unsigned long) val;
 	
     case fortezzaKey:
-    case dsaKey:
 	return 40;
+
+    case dsaKey:
+        rv = PK11_ReadAttribute(key->pkcs11Slot, key->pkcs11ID, CKA_SUBPRIME, 
+				NULL, &attributeItem);
+        if (rv == SECSuccess) {
+	    length = attributeItem.len;
+	    if ((length > 0) && attributeItem.data[0] == 0) {
+		length--;
+	    }
+	    PORT_Free(attributeItem.data);
+	    return length*2;
+	}
+	return pk11_backupGetSignLength(key);
+
     case ecKey:
-	if (PK11_GetAttributes(NULL, key->pkcs11Slot, key->pkcs11ID,
-			       &theTemplate, 1) == CKR_OK) {
-	    if (theTemplate.pValue != NULL) {
-	        params.len = theTemplate.ulValueLen;
-		params.data = (unsigned char *) theTemplate.pValue;
-	        length = SECKEY_ECParamsToBasePointOrderLen(&params);
-	        PORT_Free(theTemplate.pValue);
-		if (length == 0) {
-		    return pk11_backupGetSignLength(key);
-		}
+        rv = PK11_ReadAttribute(key->pkcs11Slot, key->pkcs11ID, CKA_EC_PARAMS, 
+				NULL, &attributeItem);
+	if (rv == SECSuccess) {
+	    length = SECKEY_ECParamsToBasePointOrderLen(&attributeItem);
+	    PORT_Free(attributeItem.data);
+	    if (length != 0) {
 		length = ((length + 7)/8) * 2;
 		return length;
 	    }
 	}
-	break;
+	return pk11_backupGetSignLength(key);
     default:
 	break;
     }
@@ -662,7 +671,22 @@ PK11_Verify(SECKEYPublicKey *key, SECItem *sig, SECItem *hash, void *wincx)
     mech.mechanism = PK11_MapSignKeyType(key->keyType);
 
     if (slot == NULL) {
-	slot = PK11_GetBestSlot(mech.mechanism,wincx);
+	if ((mech.mechanism == CKM_DSA) && 
+				/* 129 is 1024 bits translated to bytes and
+				 * padded with an optional '0' to maintain a
+				 * positive sign */
+				(key->u.dsa.params.prime.len > 129)) {
+	    /* we need to get a slot that not only can do DSA, but can do DSA2
+	     * key lengths */
+	    unsigned int length = key->u.dsa.params.prime.len;
+	    if (length > 0 && key->u.dsa.params.prime.data[0] == 0) {
+		length --;
+	    }
+	    slot = PK11_GetBestSlotWithKeySize(mech.mechanism, 
+						length*BITS_PER_BYTE, wincx);
+	} else {
+	    slot = PK11_GetBestSlot(mech.mechanism,wincx);
+	}
        
 	if (slot == NULL) {
 	    PORT_SetError( SEC_ERROR_NO_MODULE );

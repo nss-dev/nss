@@ -1957,12 +1957,16 @@ PK11_GetPrivateKeyTokens(CK_MECHANISM_TYPE type,PRBool needRW,void *wincx)
 
 
 /*
- * find the best slot which supports the given
- * Mechanism. In normal cases this should grab the first slot on the list
- * with no fuss.
+ * Find the best slot which supports the given set of mechanisms and key sizes.
+ * In normal cases this should grab the first slot on the list with no fuss.
+ * The size array is presumed to match one for one with the mechanism type 
+ * array, which allows you to specify the required key size for each
+ * mechanism in the list. Whether key size is in bits or bytes is mechanism
+ * dependent. Typically
  */
 PK11SlotInfo *
-PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, int mech_count, void *wincx)
+PK11_GetBestSlotMultipleWithKeySize(CK_MECHANISM_TYPE *type, 
+                              unsigned long *size, int mech_count, void *wincx)
 {
     PK11SlotList *list = NULL;
     PK11SlotListElement *le ;
@@ -2013,6 +2017,20 @@ PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, int mech_count, void *wincx)
 		    doExit = PR_TRUE;
 		    break;
 		}
+		if (size && size[i]) {
+		    CK_MECHANISM_INFO mechanism_info;
+    		    CK_RV crv = PK11_GETTAB(le->slot)->C_GetMechanismInfo(
+				slot->slotID, type[i], &mechanism_info);
+		    if (crv != CKR_OK 
+			|| (mechanism_info.ulMinKeySize > size[i])
+			|| (mechanism_info.ulMaxKeySize < size[i]) ) {
+			/* Token can do mechanism, but not at the key size we
+			 * want */
+			doExit = PR_TRUE;
+			break;
+		    }
+		}
+		    
 	    }
 	    if (doExit) continue;
 	      
@@ -2034,11 +2052,24 @@ PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, int mech_count, void *wincx)
     return NULL;
 }
 
+PK11SlotInfo *
+PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, int mech_count, void *wincx)
+{
+    return PK11_GetBestSlotMultipleWithKeySize(type, NULL, mech_count, wincx);
+}
+
 /* original get best slot now calls the multiple version with only one type */
 PK11SlotInfo *
 PK11_GetBestSlot(CK_MECHANISM_TYPE type, void *wincx)
 {
-    return PK11_GetBestSlotMultiple(&type, 1, wincx);
+    return PK11_GetBestSlotMultipleWithKeySize(&type, NULL, 1, wincx);
+}
+
+PK11SlotInfo *
+PK11_GetBestSlotWithKeySize(CK_MECHANISM_TYPE type, unsigned long keySize, 
+			void *wincx)
+{
+    return PK11_GetBestSlotMultipleWithKeySize(&type, &keySize, 1, wincx);
 }
 
 int

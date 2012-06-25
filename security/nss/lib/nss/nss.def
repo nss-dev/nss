@@ -1000,11 +1000,14 @@ PK11_ImportEncryptedPrivateKeyInfoAndReturnKey;
 ;+    local:
 ;+       *;
 ;+};
-;+NSS_3.14 {    # NSS 3.14 release
+;+NSS_3.14 { 	# NSS 3.14 release
 ;+    global:
 CERT_CheckOCSPStatus;
 CERT_DecodeOCSPRequest;
 CERT_GetEncodedOCSPResponse;
+PK11_GetBestSlotWithKeySize;
+PK11_GetBestSlotMultipleWithKeySize;
+PK11_PQG_ParamGenV2;
 ;+    local:
 ;+       *;
 ;+};

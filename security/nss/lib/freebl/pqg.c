@@ -28,7 +28,7 @@
 typedef enum {
     FIPS186_1_TYPE,		/* Probablistic */
     FIPS186_3_TYPE,		/* Probablistic */
-    FIPS186_3_ST_TYPE		/* Shawne-Taylor provable */
+    FIPS186_3_ST_TYPE		/* Shawe-Taylor provable */
 } pqgGenType;
 
 /*
@@ -437,7 +437,7 @@ cleanup:
 */
 #define MAX_ST_SEED_BITS HASH_LENGTH_MAX*BITS_PER_BYTE
 SECStatus
-makePrimefromPrimesShawneTaylor(
+makePrimefromPrimesShaweTaylor(
       HASH_HashType hashtype,	/* selected Hashing algorithm */
       unsigned int  length,     /* input. Length of prime in bits. */
       mp_int    *   c0,         /* seed prime */
@@ -671,7 +671,7 @@ cleanup:
 **  This generates a provable prime from a seed
 */
 SECStatus
-makePrimefromSeedShawneTaylor(
+makePrimefromSeedShaweTaylor(
       HASH_HashType hashtype,	/* selected Hashing algorithm */
       unsigned int  length,     /* input.  Length of prime in bits. */
 const SECItem   *   input_seed,       /* input.  */
@@ -712,14 +712,14 @@ const SECItem   *   input_seed,       /* input.  */
 	/* Step 14 (status, c0, prime_seed, prime_gen_counter) =
 	** (ST_Random_Prime((ceil(length/2)+1, input_seed)
 	*/
-	rv = makePrimefromSeedShawneTaylor(hashtype, (length+1)/2+1,
+	rv = makePrimefromSeedShaweTaylor(hashtype, (length+1)/2+1,
 			input_seed, &c0, prime_seed, prime_gen_counter);
 	/* Step 15 if FAILURE is returned, return (FAILURE, 0, 0, 0). */
 	if (rv != SECSuccess) {
 	    goto cleanup;
 	}
 	/* Steps 16-34 */
-	rv = makePrimefromPrimesShawneTaylor(hashtype,length, &c0, &one,
+	rv = makePrimefromPrimesShaweTaylor(hashtype,length, &c0, &one,
 		prime, prime_seed, prime_gen_counter);
 	goto cleanup; /* we're done, one way or the other */
     }
@@ -881,7 +881,7 @@ const SECItem   *   seed,       /* input.  */
 	}
     }
     /*
-     * OK finally try FIPS186_3 Shawne-Taylor 
+     * OK finally try FIPS186_3 Shawe-Taylor 
      */
     firstseed = *seed;
     firstseed.len = seed->len/3;
@@ -889,7 +889,7 @@ const SECItem   *   seed,       /* input.  */
 					hashtype=getNextHash(hashtype)) {
 	int count;
 
-	rv = makePrimefromSeedShawneTaylor(hashtype, N, &firstseed, Q_, 
+	rv = makePrimefromSeedShaweTaylor(hashtype, N, &firstseed, Q_, 
 		&qseed, &count);
 	if (rv != SECSuccess) {
 	    continue;
@@ -1613,10 +1613,10 @@ PQG_VerifyParams(const PQGParams *params,
 	/* Step 3 (status, c0, prime_seed, prime_gen_counter) =
 	** (ST_Random_Prime((ceil(length/2)+1, input_seed)
 	*/
-	CHECK_SEC_OK( makePrimefromSeedShawneTaylor(hashtype, (L+1)/2+1,
+	CHECK_SEC_OK( makePrimefromSeedShaweTaylor(hashtype, (L+1)/2+1,
 			&qseed, &p0, &pseed_, &pgen_counter) );
 	/* Steps 4-22 FIPS 186-3 appendix A.1.2.1.2 */
-	CHECK_SEC_OK( makePrimefromPrimesShawneTaylor(hashtype, L, 
+	CHECK_SEC_OK( makePrimefromPrimesShaweTaylor(hashtype, L, 
 		&p0, &Q_, &P_, &pseed_, &pgen_counter) );
 	CHECKPARAM( mp_cmp(&P, &P_) == 0 );
 	/* make sure pseed wasn't tampered with (since it is part of 
