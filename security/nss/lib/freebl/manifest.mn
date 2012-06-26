@@ -50,8 +50,6 @@ EXPORTS = \
 	blapit.h \
 	shsign.h \
 	ecl-exp.h \
-	hasht.h \
-	sechash.h \
 	$(LOWHASH_EXPORTS) \
 	$(NULL)
 

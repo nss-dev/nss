@@ -17,16 +17,15 @@
  *
  *  
  */
-#include "sftkdb.h"
-#include "sftkpars.h"
 #include "prprf.h" 
 #include "prsystem.h"
 #include "lgglue.h"
-#include "secerr.h"
-#include "secmodt.h"
+/*#include "secmodt.h" */
 #if defined (_WIN32)
 #include <io.h>
 #endif
+#include "utilpars.h" 
+#include "secerr.h"
 
 /****************************************************************
  *
@@ -47,36 +46,6 @@
  * name="My other PKCS#11 module"
  */
 
-static char *
-sftkdb_quote(const char *string, char quote)
-{
-    char *newString = 0;
-    int escapes = 0, size = 0;
-    const char *src;
-    char *dest;
-
-    size=2;
-    for (src=string; *src ; src++) {
-	if ((*src == quote) || (*src == '\\')) escapes++;
-	size++;
-    }
-
-    dest = newString = PORT_ZAlloc(escapes+size+1); 
-    if (newString == NULL) {
-	return NULL;
-    }
-
-    *dest++=quote;
-    for (src=string; *src; src++,dest++) {
-	if ((*src == '\\') || (*src == quote)) {
-	    *dest++ = '\\';
-	}
-	*dest = *src;
-    }
-    *dest=quote;
-
-    return newString;
-}
 
 /*
  * Smart string cat functions. Automatically manage the memory.
@@ -85,7 +54,7 @@ sftkdb_quote(const char *string, char quote)
  * so the the concanenated string fits.
  */
 static char *
-sftkdb_DupnCat(char *baseString, const char *str, int str_len)
+nssutil_DupnCat(char *baseString, const char *str, int str_len)
 {
     int len = (baseString ? PORT_Strlen(baseString) : 0) + 1;
     char *newString;
@@ -100,18 +69,18 @@ sftkdb_DupnCat(char *baseString, const char *str, int str_len)
     return PORT_Strncat(newString,str, str_len);
 }
 
-/* Same as sftkdb_DupnCat except it concatenates the full string, not a
+/* Same as nssutil_DupnCat except it concatenates the full string, not a
  * partial one */
 static char *
-sftkdb_DupCat(char *baseString, const char *str)
+nssutil_DupCat(char *baseString, const char *str)
 {
-    return sftkdb_DupnCat(baseString, str, PORT_Strlen(str));
+    return nssutil_DupnCat(baseString, str, PORT_Strlen(str));
 }
 
 /* function to free up all the memory associated with a null terminated
  * array of module specs */
 static SECStatus
-sftkdb_releaseSpecList(char **moduleSpecList)
+nssutil_releaseSpecList(char **moduleSpecList)
 {
     if (moduleSpecList) {
 	char **index;
@@ -125,7 +94,7 @@ sftkdb_releaseSpecList(char **moduleSpecList)
 
 #define SECMOD_STEP 10
 static SECStatus
-sftkdb_growList(char ***pModuleList, int *useCount, int last)
+nssutil_growList(char ***pModuleList, int *useCount, int last)
 {
     char **newModuleList;
 
@@ -141,28 +110,29 @@ sftkdb_growList(char ***pModuleList, int *useCount, int last)
 }
 
 static 
-char *sftk_getOldSecmodName(const char *dbname,const char *filename)
+char *_NSSUTIL_GetOldSecmodName(const char *dbname,const char *filename)
 {
     char *file = NULL;
     char *dirPath = PORT_Strdup(dbname);
     char *sep;
 
-    sep = PORT_Strrchr(dirPath,*PATH_SEPARATOR);
-#ifdef _WIN32
+    sep = PORT_Strrchr(dirPath,*NSSUTIL_PATH_SEPARATOR);
+#ifdef WINDOWS
     if (!sep) {
-	/* pkcs11i.h defines PATH_SEPARATOR as "/" for all platforms. */
 	sep = PORT_Strrchr(dirPath,'\\');
     }
 #endif
     if (sep) {
-	*sep = 0;
-	file = PR_smprintf("%s"PATH_SEPARATOR"%s", dirPath, filename);
-    } else {
-	file = PR_smprintf("%s", filename);
+	*(sep)=0;
     }
+    file= PR_smprintf("%s"NSSUTIL_PATH_SEPARATOR"%s", dirPath, filename);
     PORT_Free(dirPath);
     return file;
 }
+
+static SECStatus nssutil_AddSecmodDB(NSSDBType dbType, const char *appName, 
+		   const char *filename, const char *dbname, 
+		   char *module, PRBool rw);
 
 #ifdef XP_UNIX
 #include <unistd.h>
@@ -191,15 +161,12 @@ lfopen(const char *name, const char *mode, int flags)
 #endif
 
 #define MAX_LINE_LENGTH 2048
-#define SFTK_DEFAULT_INTERNAL_INIT1 "library= name=\"NSS Internal PKCS #11 Module\" parameters="
-#define SFTK_DEFAULT_INTERNAL_INIT2 " NSS=\"Flags=internal,critical trustOrder=75 cipherOrder=100 slotParams=(1={"
-#define SFTK_DEFAULT_INTERNAL_INIT3 " askpw=any timeout=30})\""
 
 /*
  * Read all the existing modules in out of the file.
  */
-char **
-sftkdb_ReadSecmodDB(SDBType dbType, const char *appName, 
+static char **
+nssutil_ReadSecmodDB(NSSDBType dbType, const char *appName, 
 		    const char *filename, const char *dbname, 
 		    char *params, PRBool rw)
 {
@@ -214,17 +181,13 @@ sftkdb_ReadSecmodDB(SDBType dbType, const char *appName,
     char *paramsValue=NULL;
     PRBool failed = PR_TRUE;
 
-    if ((dbname != NULL) &&
-		((dbType == SDB_LEGACY) || (dbType == SDB_MULTIACCESS))) {
-	return sftkdbCall_ReadSecmodDB(appName, filename, dbname, params, rw);
+    if (dbname == NULL) {
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	return SECFailure;
     }
 
     moduleList = (char **) PORT_ZAlloc(useCount*sizeof(char **));
     if (moduleList == NULL) return NULL;
-
-    if (dbname == NULL) {
-	goto return_default;
-    }
 
     /* do we really want to use streams here */
     fd = fopen(dbname, "r");
@@ -262,18 +225,18 @@ sftkdb_ReadSecmodDB(SDBType dbType, const char *appName,
 	    /* there is no value, write out the stanza as is */
 	    if (value == NULL || value[1] == 0) {
 		if (moduleString) {
-		    moduleString = sftkdb_DupnCat(moduleString," ", 1);
+		    moduleString = nssutil_DupnCat(moduleString," ", 1);
 		    if (moduleString == NULL) goto loser;
 		}
-	        moduleString = sftkdb_DupCat(moduleString, line);
+	        moduleString = nssutil_DupCat(moduleString, line);
 		if (moduleString == NULL) goto loser;
 	    /* value is already quoted, just write it out */
 	    } else if (value[1] == '"') {
 		if (moduleString) {
-		    moduleString = sftkdb_DupnCat(moduleString," ", 1);
+		    moduleString = nssutil_DupnCat(moduleString," ", 1);
 		    if (moduleString == NULL) goto loser;
 		}
-	        moduleString = sftkdb_DupCat(moduleString, line);
+	        moduleString = nssutil_DupCat(moduleString, line);
 		if (moduleString == NULL) goto loser;
 		/* we have an override parameter section, remember that
 		 * we found this (see following comment about why this
@@ -304,21 +267,21 @@ sftkdb_ReadSecmodDB(SDBType dbType, const char *appName,
 		if (paramsValue) {
 			continue;
 		}
-		paramsValue = sftkdb_quote(&value[1], '"');
+		paramsValue = NSSUTIL_Quote(&value[1], '"');
 		if (paramsValue == NULL) goto loser;
 		continue;
 	    } else {
 	    /* may need to quote */
 	        char *newLine;
 		if (moduleString) {
-		    moduleString = sftkdb_DupnCat(moduleString," ", 1);
+		    moduleString = nssutil_DupnCat(moduleString," ", 1);
 		    if (moduleString == NULL) goto loser;
 		}
-		moduleString = sftkdb_DupnCat(moduleString,line,value-line+1);
+		moduleString = nssutil_DupnCat(moduleString,line,value-line+1);
 		if (moduleString == NULL)  goto loser;
-	        newLine = sftkdb_quote(&value[1],'"');
+	        newLine = NSSUTIL_Quote(&value[1],'"');
 		if (newLine == NULL) goto loser;
-		moduleString = sftkdb_DupCat(moduleString,newLine);
+		moduleString = nssutil_DupCat(moduleString,newLine);
 	        PORT_Free(newLine);
 		if (moduleString == NULL) goto loser;
 	    }
@@ -333,7 +296,7 @@ sftkdb_ReadSecmodDB(SDBType dbType, const char *appName,
 		    if (paramsValue) {
 			PORT_Free(paramsValue);
 		    }
-		    paramsValue = sftkdb_quote(params, '"');
+		    paramsValue = NSSUTIL_Quote(params, '"');
 		}
 	    }
 	    continue;
@@ -349,9 +312,9 @@ sftkdb_ReadSecmodDB(SDBType dbType, const char *appName,
 	if (paramsValue) {
 	    /* we had an override */
 	    if (!skipParams) {
-		moduleString = sftkdb_DupnCat(moduleString," parameters=", 12);
+		moduleString = nssutil_DupnCat(moduleString," parameters=", 12);
 		if (moduleString == NULL) goto loser;
-		moduleString = sftkdb_DupCat(moduleString, paramsValue);
+		moduleString = nssutil_DupCat(moduleString, paramsValue);
 		if (moduleString == NULL) goto loser;
 	    }
 	    PORT_Free(paramsValue);
@@ -360,7 +323,7 @@ sftkdb_ReadSecmodDB(SDBType dbType, const char *appName,
 
 	if ((moduleCount+1) >= useCount) {
 	    SECStatus rv;
-	    rv = sftkdb_growList(&moduleList, &useCount,  moduleCount+1);
+	    rv = nssutil_growList(&moduleList, &useCount,  moduleCount+1);
 	    if (rv != SECSuccess) {
 		goto loser;
 	    }
@@ -382,16 +345,10 @@ sftkdb_ReadSecmodDB(SDBType dbType, const char *appName,
 	moduleString = NULL;
     }
 done:
-    /* If we couldn't open a pkcs11 database, look for the old one.
-     * This is necessary to maintain the semantics of the transition from
-     * old to new DB's. If there is an old DB and not new DB, we will
-     * automatically use the old DB. If the DB was opened read/write, we
-     * create a new db and upgrade it from the old one. */
+    /* if we couldn't open a pkcs11 database, look for the old one */
     if (fd == NULL) {
-	char *olddbname = sftk_getOldSecmodName(dbname,filename);
+	char *olddbname = _NSSUTIL_GetOldSecmodName(dbname,filename);
 	PRStatus status;
-	char **oldModuleList;
-	int i;
 
 	/* couldn't get the old name */
 	if (!olddbname) {
@@ -400,65 +357,34 @@ done:
 
 	/* old one doesn't exist */
 	status = PR_Access(olddbname, PR_ACCESS_EXISTS);
-	if (status != PR_SUCCESS) {
-	    goto bail;
+	if (status == PR_SUCCESS) {
+	    PR_smprintf_free(olddbname);
+	    PORT_SetError(SEC_ERROR_LEGACY_DATABASE);
+	    return NULL;
 	}
 
-	oldModuleList = sftkdbCall_ReadSecmodDB(appName, filename, 
-					olddbname, params, rw);
-	/* old one had no modules */
-	if (!oldModuleList) {
-	    goto bail;
-	}
-
-	/* count the modules */
-	for (i=0; oldModuleList[i]; i++) { }
-
-	/* grow the moduleList if necessary */
-	if (i >= useCount) {
-	    SECStatus rv;
-	    rv = sftkdb_growList(&moduleList,&useCount,moduleCount+1);
-	    if (rv != SECSuccess) {
-		goto loser;
-	    }
-	}
-	
-	/* write each module out, and copy it */
-	for (i=0; oldModuleList[i]; i++) {
-	    if (rw) {
-		sftkdb_AddSecmodDB(dbType,appName,filename,dbname,
-				oldModuleList[i],rw);
-	    }
-	    if (moduleList[i]) {
-		PORT_Free(moduleList[i]);
-	    }
-	    moduleList[i] = PORT_Strdup(oldModuleList[i]);
-	}
-
-	/* done with the old module list */
-	sftkdbCall_ReleaseSecmodDBData(appName, filename, olddbname, 
-				  oldModuleList, rw);
 bail:
 	if (olddbname) {
 	    PR_smprintf_free(olddbname);
 	}
     }
-
-return_default:
 	
     if (!moduleList[0]) {
 	char * newParams;
-	moduleString = PORT_Strdup(SFTK_DEFAULT_INTERNAL_INIT1);
-	newParams = sftkdb_quote(params,'"');
+	moduleString = PORT_Strdup(NSSUTIL_DEFAULT_INTERNAL_INIT1);
+	newParams = NSSUTIL_Quote(params,'"');
 	if (newParams == NULL) goto loser;
-	moduleString = sftkdb_DupCat(moduleString, newParams);
+	moduleString = nssutil_DupCat(moduleString, newParams);
 	PORT_Free(newParams);
 	if (moduleString == NULL) goto loser;
-	moduleString = sftkdb_DupCat(moduleString, SFTK_DEFAULT_INTERNAL_INIT2);
+	moduleString = nssutil_DupCat(moduleString, 
+					NSSUTIL_DEFAULT_INTERNAL_INIT2);
 	if (moduleString == NULL) goto loser;
-	moduleString = sftkdb_DupCat(moduleString, SECMOD_SLOT_FLAGS);
+	moduleString = nssutil_DupCat(moduleString,
+					NSSUTIL_DEFAULT_SFTKN_FLAGS);
 	if (moduleString == NULL) goto loser;
-	moduleString = sftkdb_DupCat(moduleString, SFTK_DEFAULT_INTERNAL_INIT3);
+	moduleString = nssutil_DupCat(moduleString, 
+					NSSUTIL_DEFAULT_INTERNAL_INIT3);
 	if (moduleString == NULL) goto loser;
 	moduleList[0] = moduleString;
 	moduleString = NULL;
@@ -480,7 +406,7 @@ loser:
     }
     if (failed || (moduleList[0] == NULL)) {
 	/* This is wrong! FIXME */
-	sftkdb_releaseSpecList(moduleList);
+	nssutil_releaseSpecList(moduleList);
 	moduleList = NULL;
 	failed = PR_TRUE;
     }
@@ -488,23 +414,18 @@ loser:
 	fclose(fd);
     } else if (!failed && rw) {
 	/* update our internal module */
-	sftkdb_AddSecmodDB(dbType,appName,filename,dbname,moduleList[0],rw);
+	nssutil_AddSecmodDB(dbType,appName,filename,dbname,moduleList[0],rw);
     }
     return moduleList;
 }
 
-SECStatus
-sftkdb_ReleaseSecmodDBData(SDBType dbType, const char *appName, 
+static SECStatus
+nssutil_ReleaseSecmodDBData(NSSDBType dbType, const char *appName, 
 			const char *filename, const char *dbname, 
 			char **moduleSpecList, PRBool rw)
 {
-    if ((dbname != NULL) &&
-		((dbType == SDB_LEGACY) || (dbType == SDB_MULTIACCESS))) {
-	return sftkdbCall_ReleaseSecmodDBData(appName, filename, dbname, 
-					  moduleSpecList, rw);
-    }
     if (moduleSpecList) {
-	sftkdb_releaseSpecList(moduleSpecList);
+	nssutil_releaseSpecList(moduleSpecList);
     }
     return SECSuccess;
 }
@@ -513,8 +434,8 @@ sftkdb_ReleaseSecmodDBData(SDBType dbType, const char *appName,
 /*
  * Delete a module from the Data Base
  */
-SECStatus
-sftkdb_DeleteSecmodDB(SDBType dbType, const char *appName, 
+static SECStatus
+nssutil_DeleteSecmodDB(NSSDBType dbType, const char *appName, 
 		      const char *filename, const char *dbname, 
 		      char *args, PRBool rw)
 {
@@ -535,16 +456,12 @@ sftkdb_DeleteSecmodDB(SDBType dbType, const char *appName,
 	return SECFailure;
     }
 
-    if ((dbType == SDB_LEGACY) || (dbType == SDB_MULTIACCESS)) {
-	return sftkdbCall_DeleteSecmodDB(appName, filename, dbname, args, rw);
-    }
-
     if (!rw) {
 	PORT_SetError(SEC_ERROR_READ_ONLY);
 	return SECFailure;
     }
 
-    dbname2 = strdup(dbname);
+    dbname2 = PORT_Strdup(dbname);
     if (dbname2 == NULL) goto loser;
     dbname2[strlen(dbname)-1]++;
 
@@ -558,11 +475,11 @@ sftkdb_DeleteSecmodDB(SDBType dbType, const char *appName,
 #endif
     if (fd2 == NULL) goto loser;
 
-    name = sftk_argGetParamValue("name",args);
+    name = NSSUTIL_ArgGetParamValue("name",args);
     if (name) {
 	name_len = PORT_Strlen(name);
     }
-    lib = sftk_argGetParamValue("library",args);
+    lib = NSSUTIL_ArgGetParamValue("library",args);
     if (lib) {
 	lib_len = PORT_Strlen(lib);
     }
@@ -599,7 +516,7 @@ sftkdb_DeleteSecmodDB(SDBType dbType, const char *appName,
 		continue;
 	    }
 	    /* not our match, continue to collect data in this block */
-	    block = sftkdb_DupCat(block,line);
+	    block = nssutil_DupCat(block,line);
 	    continue;
 	}
 	/* we've collected a block of data that wasn't the module we were
@@ -650,8 +567,8 @@ loser:
 /*
  * Add a module to the Data base 
  */
-SECStatus
-sftkdb_AddSecmodDB(SDBType dbType, const char *appName, 
+static SECStatus
+nssutil_AddSecmodDB(NSSDBType dbType, const char *appName, 
 		   const char *filename, const char *dbname, 
 		   char *module, PRBool rw)
 {
@@ -664,10 +581,6 @@ sftkdb_AddSecmodDB(SDBType dbType, const char *appName,
 	return SECFailure;
     }
 
-    if ((dbType == SDB_LEGACY) || (dbType == SDB_MULTIACCESS)) {
-	return sftkdbCall_AddSecmodDB(appName, filename, dbname, module, rw);
-    }
-
     /* can't write to a read only module */
     if (!rw) {
 	PORT_SetError(SEC_ERROR_READ_ONLY);
@@ -675,7 +588,8 @@ sftkdb_AddSecmodDB(SDBType dbType, const char *appName,
     }
 
     /* remove the previous version if it exists */
-    (void) sftkdb_DeleteSecmodDB(dbType, appName, filename, dbname, module, rw);
+    (void) nssutil_DeleteSecmodDB(dbType, appName, filename, 
+				  dbname, module, rw);
 
 #ifdef WINCE
     fd = fopen(dbname, "a+");
@@ -685,7 +599,7 @@ sftkdb_AddSecmodDB(SDBType dbType, const char *appName,
     if (fd == NULL) {
 	return SECFailure;
     }
-    module = sftk_argStrip(module);
+    module = NSSUTIL_ArgStrip(module);
     while (*module) {
 	int count;
 	char *keyEnd = PORT_Strchr(module,'=');
@@ -695,20 +609,20 @@ sftkdb_AddSecmodDB(SDBType dbType, const char *appName,
 	   libFound=PR_TRUE;
 	}
 	if (keyEnd == NULL) {
-	    block = sftkdb_DupCat(block, module);
+	    block = nssutil_DupCat(block, module);
 	    break;
 	}
-	block = sftkdb_DupnCat(block, module, keyEnd-module+1);
+	block = nssutil_DupnCat(block, module, keyEnd-module+1);
 	if (block == NULL) { goto loser; }
-	value = sftk_argFetchValue(&keyEnd[1], &count);
+	value = NSSUTIL_ArgFetchValue(&keyEnd[1], &count);
 	if (value) {
-	    block = sftkdb_DupCat(block, sftk_argStrip(value));
+	    block = nssutil_DupCat(block, NSSUTIL_ArgStrip(value));
 	    PORT_Free(value);
 	}
 	if (block == NULL) { goto loser; }
-	block = sftkdb_DupnCat(block, "\n", 1);
+	block = nssutil_DupnCat(block, "\n", 1);
 	module = keyEnd + 1 + count;
-	module = sftk_argStrip(module);
+	module = NSSUTIL_ArgStrip(module);
     }
     if (block) {
 	if (!libFound) {
@@ -729,3 +643,47 @@ loser:
 }
   
 
+char **
+NSSUTIL_DoModuleDBFunction(unsigned long function,char *parameters, void *args)
+{
+    char *secmod = NULL;
+    char *appName = NULL;
+    char *filename = NULL;
+    NSSDBType dbType = NSS_DB_TYPE_NONE;
+    PRBool rw;
+    static char *success="Success";
+    char **rvstr = NULL;
+
+
+    secmod = _NSSUTIL_GetSecmodName(parameters, &dbType, &appName,
+				    &filename, &rw);
+    if ((dbType == NSS_DB_TYPE_LEGACY) || 
+	 (dbType == NSS_DB_TYPE_MULTIACCESS)) {
+	/* we can't handle the old database, only softoken can */
+	PORT_SetError(SEC_ERROR_LEGACY_DATABASE);
+	return NULL;
+    }
+
+    switch (function) {
+    case SECMOD_MODULE_DB_FUNCTION_FIND:
+        rvstr = nssutil_ReadSecmodDB(dbType,appName,filename,
+				     secmod,(char *)parameters,rw);
+        break;
+    case SECMOD_MODULE_DB_FUNCTION_ADD:
+        rvstr = (nssutil_AddSecmodDB(dbType,appName,filename,
+		secmod,(char *)args,rw) == SECSuccess) ? &success: NULL;
+        break;
+    case SECMOD_MODULE_DB_FUNCTION_DEL:
+        rvstr = (nssutil_DeleteSecmodDB(dbType,appName,filename,
+		secmod,(char *)args,rw) == SECSuccess) ? &success: NULL;
+        break;
+    case SECMOD_MODULE_DB_FUNCTION_RELEASE:
+        rvstr = (nssutil_ReleaseSecmodDBData(dbType, appName,filename,
+		secmod, (char **)args,rw) == SECSuccess) ? &success: NULL;
+        break;
+    }
+    if (secmod) PR_smprintf_free(secmod);
+    if (appName) PORT_Free(appName);
+    if (filename) PORT_Free(filename);
+    return rvstr;
+}

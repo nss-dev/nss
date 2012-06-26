@@ -9,6 +9,7 @@
 #include "secoid.h"
 #include "secasn1.h"
 #include "pkcs11t.h"
+#include "utilmodt.h"
 
 SEC_BEGIN_PROTOS
 
@@ -29,7 +30,7 @@ typedef struct SECMODModuleStr SECMODModule;
 typedef struct SECMODModuleListStr SECMODModuleList;
 typedef NSSRWLock SECMODListLock;
 typedef struct PK11SlotInfoStr PK11SlotInfo; /* defined in secmodti.h */
-typedef struct PK11PreSlotInfoStr PK11PreSlotInfo; /* defined in secmodti.h */
+typedef struct NSSUTILPreSlotInfoStr PK11PreSlotInfo; /* defined in secmodti.h */
 typedef struct PK11SymKeyStr PK11SymKey; /* defined in secmodti.h */
 typedef struct PK11ContextStr PK11Context; /* defined in secmodti.h */
 typedef struct PK11SlotListStr PK11SlotList;
@@ -136,34 +137,6 @@ struct PK11DefaultArrayEntryStr {
     unsigned long mechanism; /* this is a long so we don't include the 
 			      * whole pkcs 11 world to use this header */
 };
-
-
-#define SECMOD_RSA_FLAG 	0x00000001L
-#define SECMOD_DSA_FLAG 	0x00000002L
-#define SECMOD_RC2_FLAG 	0x00000004L
-#define SECMOD_RC4_FLAG 	0x00000008L
-#define SECMOD_DES_FLAG 	0x00000010L
-#define SECMOD_DH_FLAG	 	0x00000020L
-#define SECMOD_FORTEZZA_FLAG	0x00000040L
-#define SECMOD_RC5_FLAG		0x00000080L
-#define SECMOD_SHA1_FLAG	0x00000100L
-#define SECMOD_MD5_FLAG		0x00000200L
-#define SECMOD_MD2_FLAG		0x00000400L
-#define SECMOD_SSL_FLAG		0x00000800L
-#define SECMOD_TLS_FLAG		0x00001000L
-#define SECMOD_AES_FLAG 	0x00002000L
-#define SECMOD_SHA256_FLAG	0x00004000L
-#define SECMOD_SHA512_FLAG	0x00008000L	/* also for SHA384 */
-#define SECMOD_CAMELLIA_FLAG 	0x00010000L /* = PUBLIC_MECH_CAMELLIA_FLAG */
-#define SECMOD_SEED_FLAG	0x00020000L
-/* reserved bit for future, do not use */
-#define SECMOD_RESERVED_FLAG    0X08000000L
-#define SECMOD_FRIENDLY_FLAG	0x10000000L
-#define SECMOD_RANDOM_FLAG	0x80000000L
-
-/* need to make SECMOD and PK11 prefixes consistant. */
-#define PK11_OWN_PW_DEFAULTS 0x20000000L
-#define PK11_DISABLE_FLAG    0x40000000L
 
 /*
  * PK11AttrFlags

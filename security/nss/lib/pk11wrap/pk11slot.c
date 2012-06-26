@@ -17,6 +17,7 @@
 #include "dev.h" 
 #include "dev3hack.h" 
 #include "pkim.h"
+#include "utilpars.h"
 
 
 /*************************************************************

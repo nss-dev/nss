@@ -23,10 +23,9 @@
 #include "pkcs11i.h"
 #include "sdb.h"
 #include "prprf.h" 
-#include "secmodt.h"
 #include "pratom.h"
 #include "lgglue.h"
-#include "sftkpars.h"
+#include "utilpars.h"
 #include "secerr.h"
 #include "softoken.h"
 
@@ -2575,7 +2574,7 @@ sftk_DBInit(const char *configdir, const char *certPrefix,
                 SFTKDBHandle **certDB, SFTKDBHandle **keyDB)
 {
     const char *confdir;
-    SDBType dbType;
+    NSSDBType dbType = NSS_DB_TYPE_NONE;
     char *appName = NULL;
     SDB *keySDB, *certSDB;
     CK_RV crv = CKR_OK;
@@ -2593,22 +2592,22 @@ sftk_DBInit(const char *configdir, const char *certPrefix,
     if (noKeyDB && noCertDB) {
 	return CKR_OK;
     }
-    confdir = sftk_EvaluateConfigDir(configdir, &dbType, &appName);
+    confdir = _NSSUTIL_EvaluateConfigDir(configdir, &dbType, &appName);
 
     /*
      * now initialize the appropriate database
      */
     switch (dbType) {
-    case SDB_LEGACY:
+    case NSS_DB_TYPE_LEGACY:
 	crv = sftkdbCall_open(confdir, certPrefix, keyPrefix, 8, 3, flags,
 		 isFIPS, noCertDB? NULL : &certSDB, noKeyDB ? NULL: &keySDB);
 	break;
-    case SDB_MULTIACCESS:
+    case NSS_DB_TYPE_MULTIACCESS:
 	crv = sftkdbCall_open(configdir, certPrefix, keyPrefix, 8, 3, flags,
 		isFIPS, noCertDB? NULL : &certSDB, noKeyDB ? NULL: &keySDB);
 	break;
-    case SDB_SQL:
-    case SDB_EXTERN: /* SHOULD open a loadable db */
+    case NSS_DB_TYPE_SQL:
+    case NSS_DB_TYPE_EXTERN: /* SHOULD open a loadable db */
 	crv = s_open(confdir, certPrefix, keyPrefix, 9, 4, flags, 
 		noCertDB? NULL : &certSDB, noKeyDB ? NULL : &keySDB, &newInit);
 

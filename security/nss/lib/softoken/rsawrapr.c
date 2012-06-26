@@ -9,7 +9,6 @@
 
 #include "blapi.h"
 #include "softoken.h"
-#include "sechash.h"
 
 #include "lowkeyi.h"
 #include "secerr.h"

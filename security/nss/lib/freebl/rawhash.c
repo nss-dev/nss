@@ -7,7 +7,7 @@
 #endif
 
 #include "nspr.h"
-#include "sechash.h"
+#include "hasht.h"
 #include "blapi.h"	/* below the line */
 #include "secerr.h"
 

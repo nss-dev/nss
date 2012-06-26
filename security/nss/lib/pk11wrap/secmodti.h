@@ -11,7 +11,6 @@
 #include "prmon.h"
 #include "prtypes.h"
 #include "nssilckt.h"
-#include "pk11init.h"
 #include "secmodt.h"
 #include "pkcs11t.h"
 

@@ -20,21 +20,6 @@ CK_RV sftkdb_SetAttributeValue(SFTKDBHandle *handle, SFTKObject *object,
 CK_RV sftkdb_DestroyObject(SFTKDBHandle *handle, CK_OBJECT_HANDLE object_id);
 CK_RV sftkdb_closeDB(SFTKDBHandle *handle);
 
-
-/* secmod.db functions */
-char ** sftkdb_ReadSecmodDB(SDBType dbType, const char *appName, 
-			    const char *filename, const char *dbname, 
-			    char *params, PRBool rw);
-SECStatus sftkdb_ReleaseSecmodDBData(SDBType dbType, const char *appName, 
-				     const char *filename, const char *dbname, 
-				     char **moduleSpecList, PRBool rw);
-SECStatus sftkdb_DeleteSecmodDB(SDBType dbType, const char *appName, 
-				const char *filename, const char *dbname, 
-				char *args, PRBool rw);
-SECStatus sftkdb_AddSecmodDB(SDBType dbType, const char *appName, 
-			     const char *filename, const char *dbname, 
-			     char *module, PRBool rw);
-
 /* keydb functions */
 
 SECStatus sftkdb_PWIsInitialized(SFTKDBHandle *keydb);

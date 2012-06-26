@@ -24,7 +24,6 @@
 #include "pkcs11.h"
 #include "pkcs11i.h"
 #include "lowkeyi.h"
-#include "sechash.h"
 #include "secder.h"
 #include "secdig.h"
 #include "lowpbe.h"	/* We do PBE below */

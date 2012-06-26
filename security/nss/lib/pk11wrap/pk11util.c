@@ -14,6 +14,7 @@
 #include "secerr.h"
 #include "dev.h"
 #include "pkcs11ni.h"
+#include "utilpars.h"
 
 /* these are for displaying error messages */
 
@@ -1371,7 +1372,7 @@ SECMOD_OpenNewSlot(SECMODModule *mod, const char *moduleSpec)
     }
 
     /* we've found the slot, now build the moduleSpec */
-    escSpec = secmod_DoubleEscape(moduleSpec, '>', ']');
+    escSpec = NSSUTIL_DoubleEscape(moduleSpec, '>', ']');
     if (escSpec == NULL) {
 	PK11_FreeSlot(slot);
 	return NULL;

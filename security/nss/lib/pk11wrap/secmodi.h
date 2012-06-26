@@ -84,8 +84,6 @@ void secmod_FreeChildren(char **children, CK_SLOT_ID *ids);
 char *secmod_MkAppendTokensList(PRArenaPool *arena, char *origModuleSpec, 
 				char *newModuleSpec, CK_SLOT_ID newID,
 				char **children, CK_SLOT_ID *ids);
-char *secmod_DoubleEscape(const char *string, char quote1, char quote2);
-
 
 
 void SECMOD_SlotDestroyModule(SECMODModule *module, PRBool fromSlot);

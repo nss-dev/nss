@@ -285,7 +285,7 @@ release_list(char **arg)
 }
 
 
-#include "pk11pars.h"
+#include "utilpars.h"
 
 #define TARGET_SPEC_COPY(new, start, end)    \
   if (end > start) {                         \
@@ -330,15 +330,15 @@ parse_parameters(char *parameters, char **filename, char **stripped)
     newStripped = PORT_Alloc(PORT_Strlen(parameters)+2);
     targetCurr = newStripped;
     sourcePrev = parameters;
-    sourceCurr = secmod_argStrip(parameters);
+    sourceCurr = NSSUTIL_ArgStrip(parameters);
     TARGET_SPEC_COPY(targetCurr, sourcePrev, sourceCurr);
 
     while (*sourceCurr) {
 	int next;
 	sourcePrev = sourceCurr;
-	SECMOD_HANDLE_STRING_ARG(sourceCurr, *filename, "configdir=",
+	NSSUTIL_HANDLE_STRING_ARG(sourceCurr, *filename, "configdir=",
 		sourcePrev = sourceCurr; )
-	SECMOD_HANDLE_FINAL_ARG(sourceCurr);
+	NSSUTIL_HANDLE_FINAL_ARG(sourceCurr);
 	TARGET_SPEC_COPY(targetCurr, sourcePrev, sourceCurr);
     }
     *targetCurr = 0;
