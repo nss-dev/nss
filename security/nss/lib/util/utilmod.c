@@ -183,7 +183,7 @@ nssutil_ReadSecmodDB(NSSDBType dbType, const char *appName,
 
     if (dbname == NULL) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
-	return SECFailure;
+	return NULL;
     }
 
     moduleList = (char **) PORT_ZAlloc(useCount*sizeof(char **));
