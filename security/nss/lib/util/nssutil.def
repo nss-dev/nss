@@ -229,3 +229,35 @@ NSS_InitializePRErrorTable;
 ;+    local:
 ;+       *;
 ;+};
+;+NSSUTIL_3.14 {         # NSS Utilities 3.14 release
+;+    global:
+;+# private exports for softoken
+_NSSUTIL_GetSecmodName;
+_NSSUTIL_EvaluateConfigDir;
+;+# public exports
+NSSUTIL_ArgDecodeNumber;
+NSSUTIL_ArgFetchValue;
+NSSUTIL_ArgGetParamValue;
+NSSUTIL_ArgGetLabel;
+NSSUTIL_ArgHasFlag;
+NSSUTIL_ArgIsBlank;
+NSSUTIL_ArgParseCipherFlags;
+NSSUTIL_ArgParseModuleSpec;
+NSSUTIL_ArgParseSlotFlags;
+NSSUTIL_ArgParseSlotInfo;
+NSSUTIL_ArgReadLong;
+NSSUTIL_ArgSkipParameter;
+NSSUTIL_ArgStrip;
+NSSUTIL_DoModuleDBFunction;
+NSSUTIL_DoubleEscape;
+NSSUTIL_DoubleEscapeSize;
+NSSUTIL_Escape;
+NSSUTIL_EscapeSize;
+NSSUTIL_MkModuleSpec;
+NSSUTIL_MkNSSString;
+NSSUTIL_MkSlotString;
+NSSUTIL_Quote;
+NSSUTIL_QuoteSize;
+;+    local:
+;+       *;
+;+};

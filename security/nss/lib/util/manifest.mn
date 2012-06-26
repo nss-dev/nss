@@ -7,6 +7,7 @@ CORE_DEPTH = ../../..
 EXPORTS = \
 	base64.h \
 	ciferfam.h \
+	hasht.h \
 	nssb64.h \
 	nssb64t.h \
 	nsslocks.h \
@@ -34,7 +35,10 @@ EXPORTS = \
 	secoidt.h \
 	secport.h \
 	secerr.h \
+	utilmodt.h \
 	utilrename.h \
+	utilpars.h \
+	utilparst.h \
 	$(NULL)
 
 PRIVATE_EXPORTS = \
@@ -66,6 +70,8 @@ CSRCS = \
 	secport.c \
 	templates.c \
 	utf8.c \
+	utilmod.c \
+	utilpars.c \
 	$(NULL)
 
 MODULE = nss

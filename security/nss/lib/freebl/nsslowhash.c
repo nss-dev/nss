@@ -10,7 +10,8 @@
 #include "secerr.h"
 #include "pkcs11t.h"
 #include "blapi.h"
-#include "sechash.h"
+#include "hasht.h"
+#include "plhash.h"
 #include "nsslowhash.h"
 
 /* FIPS preprocessor directives for message digests             */

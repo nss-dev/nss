@@ -32,9 +32,11 @@
 #include "softkver.h"
 #include "secoid.h"
 #include "sftkdb.h"
-#include "sftkpars.h"
+#include "utilpars.h" 
 #include "ec.h"
 #include "secasn1.h"
+#include "secerr.h"
+#include "lgglue.h"
 
 PRBool parentForkedAfterC_Initialize;
 
@@ -2626,16 +2628,6 @@ SFTK_DestroySlotData(SFTKSlot *slot)
     return CKR_OK;
 }
 
-#ifndef NO_FORK_CHECK
-
-static CK_RV ForkCheck(void)
-{
-    CHECK_FORK();
-    return CKR_OK;
-}
-
-#endif
-
 /*
  * handle the SECMOD.db
  */
@@ -2645,35 +2637,89 @@ NSC_ModuleDBFunc(unsigned long function,char *parameters, void *args)
     char *secmod = NULL;
     char *appName = NULL;
     char *filename = NULL;
-#ifdef NSS_DISABLE_DBM
-    SDBType dbType = SDB_SQL;
-#else
-    SDBType dbType = SDB_LEGACY;
-#endif
+    NSSDBType dbType = NSS_DB_TYPE_NONE;
     PRBool rw;
     static char *success="Success";
     char **rvstr = NULL;
 
-#ifndef NO_FORK_CHECK
-    if (CKR_OK != ForkCheck()) return NULL;
-#endif
+    rvstr = NSSUTIL_DoModuleDBFunction(function, parameters, args);
+    if (rvstr != NULL) {
+	return rvstr;
+    }
 
-    secmod = sftk_getSecmodName(parameters, &dbType, &appName,&filename, &rw);
+    if (PORT_GetError() != SEC_ERROR_LEGACY_DATABASE) {
+	return NULL;
+    }
+
+   /* The legacy database uses the old dbm, which is only linked with the 
+    * legacy DB handler, which is only callable from softoken */
+
+    secmod = _NSSUTIL_GetSecmodName(parameters, &dbType, &appName,
+				    &filename, &rw);
 
     switch (function) {
     case SECMOD_MODULE_DB_FUNCTION_FIND:
-	rvstr = sftkdb_ReadSecmodDB(dbType,appName,filename,secmod,(char *)parameters,rw);
+	if (secmod == NULL) {
+	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	    return SECFailure;
+	}
+	if (rw && (dbType != NSS_DB_TYPE_LEGACY) && 
+	    (dbType != NSS_DB_TYPE_MULTIACCESS)) {
+	    /* if we get here, we are trying to update the local database */
+	    /* force data from the legacy DB */
+	    char *oldSecmod = NULL;
+	    char *oldAppName = NULL;
+	    char *oldFilename = NULL;
+	    char *end;
+	    PRBool oldrw;
+	    char **strings = NULL;
+	    int i;
+
+	    dbType = NSS_DB_TYPE_LEGACY;
+	    oldSecmod = _NSSUTIL_GetSecmodName(parameters,&dbType, &oldAppName,
+					    &oldFilename, &oldrw);
+	    strings = sftkdbCall_ReadSecmodDB(appName, oldFilename, oldSecmod,
+					(char *)parameters, args);
+	    if (strings) {
+		/* write out the strings */
+		for (i=0; strings[i]; i++) {
+		    NSSUTIL_DoModuleDBFunction(SECMOD_MODULE_DB_FUNCTION_ADD,
+				parameters, strings[i]);
+		}
+		sftkdbCall_ReleaseSecmodDBData(oldAppName,oldFilename,oldSecmod,
+			(char **)strings,oldrw);
+	    } else {
+		/* write out a dummy record */
+		NSSUTIL_DoModuleDBFunction(SECMOD_MODULE_DB_FUNCTION_ADD,
+				parameters, " ");
+	    }
+	    if (oldSecmod) { PR_smprintf_free(oldSecmod); }
+	    if (oldAppName) { PORT_Free(oldAppName); }
+	    if (oldFilename) { PORT_Free(oldFilename); }
+	    rvstr = NSSUTIL_DoModuleDBFunction(function, parameters, args);
+	    break;
+	}
+	rvstr = sftkdbCall_ReadSecmodDB(appName,filename,secmod,
+					(char *)parameters,rw);
 	break;
     case SECMOD_MODULE_DB_FUNCTION_ADD:
-	rvstr = (sftkdb_AddSecmodDB(dbType,appName,filename,secmod,(char *)args,rw) 
-				== SECSuccess) ? &success: NULL;
+	if (secmod == NULL) {
+	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	    return SECFailure;
+	}
+	rvstr = (sftkdbCall_AddSecmodDB(appName,filename,secmod,
+			(char *)args,rw) == SECSuccess) ? &success: NULL;
 	break;
     case SECMOD_MODULE_DB_FUNCTION_DEL:
-	rvstr = (sftkdb_DeleteSecmodDB(dbType,appName,filename,secmod,(char *)args,rw)
-				 == SECSuccess) ? &success: NULL;
+	if (secmod == NULL) {
+	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	    return SECFailure;
+	}
+	rvstr = (sftkdbCall_DeleteSecmodDB(appName,filename,secmod,
+			(char *)args,rw) == SECSuccess) ? &success: NULL;
 	break;
     case SECMOD_MODULE_DB_FUNCTION_RELEASE:
-	rvstr = (sftkdb_ReleaseSecmodDBData(dbType, appName,filename,secmod,
+	rvstr = (sftkdbCall_ReleaseSecmodDBData(appName,filename,secmod,
 			(char **)args,rw) == SECSuccess) ? &success: NULL;
 	break;
     }

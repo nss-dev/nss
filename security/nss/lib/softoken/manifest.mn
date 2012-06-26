@@ -18,21 +18,18 @@ INCLUDES += -I$(SQLITE_INCLUDE_DIR)
 endif
 
 EXPORTS = \
-	secmodt.h \
 	$(NULL)
 
 PRIVATE_EXPORTS = \
 	lgglue.h  \
 	lowkeyi.h \
 	lowkeyti.h \
-	pk11pars.h \
 	pkcs11ni.h \
 	softoken.h \
 	softoknt.h \
 	softkver.h \
 	sdb.h \
 	sftkdbt.h \
-	pk11init.h \
 	$(NULL)
 
 CSRCS = \
@@ -50,7 +47,6 @@ CSRCS = \
 	rsawrapr.c  \
 	sdb.c  \
 	sftkdb.c  \
-	sftkmod.c  \
 	sftkpars.c  \
 	sftkpwd.c  \
 	softkver.c  \

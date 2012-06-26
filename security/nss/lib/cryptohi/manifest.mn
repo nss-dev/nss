@@ -15,6 +15,7 @@ EXPORTS = \
 	keyhi.h   \
 	keyt.h    \
 	keythi.h  \
+	sechash.h \
 	$(NULL)
 
 PRIVATE_EXPORTS = \

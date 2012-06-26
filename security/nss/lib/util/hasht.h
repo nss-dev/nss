@@ -58,15 +58,4 @@ struct HASHContextStr {
     void *hash_context;
 };
 
-/* This symbol is NOT exported from the NSS DLL.  Code that needs a 
- * pointer to one of the SECHashObjects should call HASH_GetHashObject()
- * instead. See "sechash.h".
- */
-extern const SECHashObject SECHashObjects[];
-
-/* Only those functions below the PKCS #11 line should use SECRawHashObjects.
- * This symbol is not exported from the NSS DLL.
- */
-extern const SECHashObject SECRawHashObjects[];
-
 #endif /* _HASHT_H_ */

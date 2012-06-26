@@ -6,6 +6,7 @@ CORE_DEPTH = ../../..
 
 EXPORTS = \
 	secmod.h \
+	secmodt.h \
 	secpkcs5.h \
 	pk11func.h \
 	pk11pub.h \
