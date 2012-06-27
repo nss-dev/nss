@@ -661,7 +661,8 @@ NSSUTIL_DoModuleDBFunction(unsigned long function,char *parameters, void *args)
 	 (dbType == NSS_DB_TYPE_MULTIACCESS)) {
 	/* we can't handle the old database, only softoken can */
 	PORT_SetError(SEC_ERROR_LEGACY_DATABASE);
-	return NULL;
+	rvstr =  NULL;
+	goto done;
     }
 
     switch (function) {
@@ -682,6 +683,7 @@ NSSUTIL_DoModuleDBFunction(unsigned long function,char *parameters, void *args)
 		secmod, (char **)args,rw) == SECSuccess) ? &success: NULL;
         break;
     }
+done:
     if (secmod) PR_smprintf_free(secmod);
     if (appName) PORT_Free(appName);
     if (filename) PORT_Free(filename);
