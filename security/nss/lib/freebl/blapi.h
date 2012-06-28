@@ -1229,6 +1229,9 @@ PRNGTEST_Generate(PRUint8 *bytes, unsigned int bytes_len,
 extern SECStatus
 PRNGTEST_Uninstantiate(void);
 
+extern SECStatus
+PRNGTEST_RunHealthTests(void);
+
 /* Generate PQGParams and PQGVerify structs.
  * Length of seed and length of h both equal length of P. 
  * All lengths are specified by "j", according to the table above.

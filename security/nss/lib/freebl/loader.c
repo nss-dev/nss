@@ -1850,3 +1850,11 @@ PQG_ParamGenV2( unsigned int L, unsigned int N, unsigned int seedBytes,
       return SECFailure;
   return (vector->p_PQG_ParamGenV2)(L, N, seedBytes, pParams, pVfy); 
 }
+
+PRBool
+PRNGTEST_RunHealthTests(void)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return PR_FALSE;
+  return vector->p_PRNGTEST_RunHealthTests();
+}
