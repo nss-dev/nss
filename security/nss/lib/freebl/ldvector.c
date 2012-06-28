@@ -257,7 +257,8 @@ static const struct FREEBLVectorStr vector =
 
     /* End of Version 3.013 */
 
-    PQG_ParamGenV2
+    PQG_ParamGenV2,
+    PRNGTEST_RunHealthTests
 
     /* End of Version 3.014 */
 };

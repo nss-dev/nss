@@ -566,9 +566,9 @@ struct FREEBLVectorStr {
  SECStatus (* p_PQG_ParamGenV2)( unsigned int L, unsigned int N,
                                 unsigned int seedBytes, 
                                 PQGParams **pParams, PQGVerify **pVfy); 
+ SECStatus (*p_PRNGTEST_RunHealthTests)(void);
 
   /* Version 3.014 came to here */
-
 };
 
 typedef struct FREEBLVectorStr FREEBLVector;
