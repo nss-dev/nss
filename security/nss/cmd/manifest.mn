@@ -22,6 +22,7 @@ DIRS = lib  \
  dbtest \
  derdump  \
  digest  \
+ httpserv  \
  fipstest  \
  $(LOWHASHTEST_SRCDIR)  \
  makepqg  \
