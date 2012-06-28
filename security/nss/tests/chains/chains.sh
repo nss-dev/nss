@@ -18,6 +18,134 @@
 #   NOTE .... unexpected behavior
 ########################################################################
 
+########################### is_httpserv_alive ##########################
+# local shell function to exit with a fatal error if selfserver is not
+# running
+########################################################################
+is_httpserv_alive()
+{
+  if [ ! -f "${HTTPPID}" ]; then
+      echo "$SCRIPTNAME: Error - httpserv PID file ${HTTPPID} doesn't exist"
+      sleep 5
+      if [ ! -f "${HTTPPID}" ]; then
+          Exit 9 "Fatal - httpserv pid file ${HTTPPID} does not exist"
+      fi
+  fi
+  
+  if [ "${OS_ARCH}" = "WINNT" ] && \
+     [ "$OS_NAME" = "CYGWIN_NT" -o "$OS_NAME" = "MINGW32_NT" ]; then
+      PID=${SHELL_HTTPPID}
+  else
+      PID=`cat ${HTTPPID}`
+  fi
+
+  echo "kill -0 ${PID} >/dev/null 2>/dev/null" 
+  kill -0 ${PID} >/dev/null 2>/dev/null || Exit 10 "Fatal - httpserv process not detectable"
+
+  echo "httpserv with PID ${PID} found at `date`"
+}
+
+########################### wait_for_httpserv ##########################
+# local shell function to wait until httpserver is running and initialized
+########################################################################
+wait_for_httpserv()
+{
+  echo "trying to connect to httpserv at `date`"
+  echo "tstclnt -p ${NSS_AIA_PORT} -h ${HOSTADDR} -q -v"
+  ${BINDIR}/tstclnt -p ${NSS_AIA_PORT} -h ${HOSTADDR} -q -v
+  if [ $? -ne 0 ]; then
+      sleep 5
+      echo "retrying to connect to httpserv at `date`"
+      echo "tstclnt -p ${NSS_AIA_PORT} -h ${HOSTADDR} -q -v"
+      ${BINDIR}/tstclnt -p ${NSS_AIA_PORT} -h ${HOSTADDR} -q -v
+      if [ $? -ne 0 ]; then
+          html_failed "Waiting for Server"
+      fi
+  fi
+  is_httpserv_alive
+}
+
+########################### kill_httpserv ##############################
+# local shell function to kill the httpserver after the tests are done
+########################################################################
+kill_httpserv()
+{
+  if [ "${OS_ARCH}" = "WINNT" ] && \
+     [ "$OS_NAME" = "CYGWIN_NT" -o "$OS_NAME" = "MINGW32_NT" ]; then
+      PID=${SHELL_HTTPPID}
+  else
+      PID=`cat ${HTTPPID}`
+  fi
+
+  echo "trying to kill httpserv with PID ${PID} at `date`"
+
+  if [ "${OS_ARCH}" = "WINNT" -o "${OS_ARCH}" = "WIN95" -o "${OS_ARCH}" = "OS2" ]; then
+      echo "${KILL} ${PID}"
+      ${KILL} ${PID}
+  else
+      echo "${KILL} -USR1 ${PID}"
+      ${KILL} -USR1 ${PID}
+  fi
+  wait ${PID}
+
+  # On Linux httpserv needs up to 30 seconds to fully die and free
+  # the port.  Wait until the port is free. (Bug 129701)
+  if [ "${OS_ARCH}" = "Linux" ]; then
+      echo "httpserv -b -p ${NSS_AIA_PORT} 2>/dev/null;"
+      until ${BINDIR}/httpserv -b -p ${NSS_AIA_PORT} 2>/dev/null; do
+          echo "RETRY: httpserv -b -p ${NSS_AIA_PORT} 2>/dev/null;"
+          sleep 1
+      done
+  fi
+
+  echo "httpserv with PID ${PID} killed at `date`"
+
+  rm ${HTTPPID}
+  html_detect_core "kill_httpserv core detection step"
+}
+
+########################### start_httpserv #############################
+# local shell function to start the httpserver with the parameters required 
+# for this test and log information (parameters, start time)
+# also: wait until the server is up and running
+########################################################################
+start_httpserv()
+{
+  if [ -n "$testname" ] ; then
+      echo "$SCRIPTNAME: $testname ----"
+  fi
+  echo "httpserv starting at `date`"
+  echo "httpserv -D -p ${NSS_AIA_PORT} ${SERVER_OPTIONS} \\"
+  echo "         -i ${HTTPPID} $verbose &"
+  ${PROFTOOL} ${BINDIR}/httpserv -D -p ${NSS_AIA_PORT} ${SERVER_OPTIONS} \
+                 -i ${HTTPPID} $verbose &
+  RET=$?
+
+  # The PID $! returned by the MKS or Cygwin shell is not the PID of
+  # the real background process, but rather the PID of a helper
+  # process (sh.exe).  MKS's kill command has a bug: invoking kill
+  # on the helper process does not terminate the real background
+  # process.  Our workaround has been to have httpserv save its PID
+  # in the ${HTTPPID} file and "kill" that PID instead.  But this
+  # doesn't work under Cygwin; its kill command doesn't recognize
+  # the PID of the real background process, but it does work on the
+  # PID of the helper process.  So we save the value of $! in the
+  # SHELL_HTTPPID variable, and use it instead of the ${HTTPPID}
+  # file under Cygwin.  (In fact, this should work in any shell
+  # other than the MKS shell.)
+  SHELL_HTTPPID=$!
+  wait_for_httpserv
+
+  if [ "${OS_ARCH}" = "WINNT" ] && \
+     [ "$OS_NAME" = "CYGWIN_NT" -o "$OS_NAME" = "MINGW32_NT" ]; then
+      PID=${SHELL_HTTPPID}
+  else
+      PID=`cat ${HTTPPID}`
+  fi
+
+  echo "httpserv with PID ${PID} started at `date`"
+}
+
 ############################# chains_init ##############################
 # local shell function to initialize this script
 ########################################################################
@@ -50,6 +178,18 @@ chains_init()
     CU_DATA=${HOSTDIR}/cu_data
     CRL_DATA=${HOSTDIR}/crl_data
 
+    NSS_AIA_PORT=${NSS_AIA_PORT-8641}
+    NSS_AIA_HTTP=${NSS_AIA_HTTP:-"http://${HOSTADDR}:${NSS_AIA_PORT}"}
+    NSS_AIA_PATH=${NSS_AIA_PATH:-$HOSTDIR/aiahttp}
+
+    if [ -n "${NSS_AIA_PATH}" ]; then
+        HTTPPID=${NSS_AIA_PATH}/http_pid.$$
+        mkdir -p "${NSS_AIA_PATH}"
+        pushd "${NSS_AIA_PATH}"
+        start_httpserv
+        popd
+    fi
+
     html_head "Certificate Chains Tests"
 }
 
@@ -59,6 +199,10 @@ chains_init()
 ########################################################################
 chains_cleanup()
 {
+    if [ -n "${NSS_AIA_PATH}" ]; then
+        kill_httpserv
+    fi
+
     html "</TABLE><BR>"
     cd ${QADIR}
     . common/cleanup.sh
@@ -528,7 +672,6 @@ import_key()
     ${BINDIR}/pk12util -d ${DB} -i ${KEY_FILE} -k ${DB}/dbpasswd -W nssnss
     html_msg $? 0 "${SCENARIO}${TESTNAME}"
 }
-
 
 ############################# import_cert ##############################
 # local shell function to import certificate into database
