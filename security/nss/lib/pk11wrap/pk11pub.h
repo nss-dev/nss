@@ -147,13 +147,14 @@ PRBool PK11_IsPresent(PK11SlotInfo *slot);
 PRBool PK11_DoesMechanism(PK11SlotInfo *slot, CK_MECHANISM_TYPE type);
 PK11SlotList * PK11_GetAllTokens(CK_MECHANISM_TYPE type,PRBool needRW,
 					PRBool loadCerts, void *wincx);
-PK11SlotInfo *PK11_GetBestSlotMultipleWithKeySize(CK_MECHANISM_TYPE *type, 
-			 unsigned long *keySize, unsigned int count, void *wincx);
+PK11SlotInfo *PK11_GetBestSlotMultipleWithAttributes(CK_MECHANISM_TYPE *type, 
+		CK_FLAGS *mechFlag, unsigned int *keySize, 
+		unsigned int count, void *wincx);
 PK11SlotInfo *PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, 
 					unsigned int count, void *wincx);
 PK11SlotInfo *PK11_GetBestSlot(CK_MECHANISM_TYPE type, void *wincx);
-PK11SlotInfo *PK11_GetBestSlotWithKeySize(CK_MECHANISM_TYPE type, 
-					unsigned long keySize, void *wincx);
+PK11SlotInfo *PK11_GetBestSlotWithAttributes(CK_MECHANISM_TYPE type, 
+		CK_FLAGS mechFlag, unsigned int keySize, void *wincx);
 CK_MECHANISM_TYPE PK11_GetBestWrapMechanism(PK11SlotInfo *slot);
 int PK11_GetBestKeyLength(PK11SlotInfo *slot, CK_MECHANISM_TYPE type);
 

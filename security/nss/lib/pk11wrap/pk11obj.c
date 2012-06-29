@@ -614,7 +614,8 @@ PK11_VerifyRecover(SECKEYPublicKey *key,
     mech.mechanism = PK11_MapSignKeyType(key->keyType);
 
     if (slot == NULL) {
-	slot = PK11_GetBestSlot(mech.mechanism,wincx);
+	slot = PK11_GetBestSlotWithAttributes(mech.mechanism,
+				CKF_VERIFY_RECOVER,0,wincx);
 	if (slot == NULL) {
 	    	PORT_SetError( SEC_ERROR_NO_MODULE );
 		return SECFailure;
@@ -671,6 +672,7 @@ PK11_Verify(SECKEYPublicKey *key, SECItem *sig, SECItem *hash, void *wincx)
     mech.mechanism = PK11_MapSignKeyType(key->keyType);
 
     if (slot == NULL) {
+	unsigned int length =  0;
 	if ((mech.mechanism == CKM_DSA) && 
 				/* 129 is 1024 bits translated to bytes and
 				 * padded with an optional '0' to maintain a
@@ -678,16 +680,13 @@ PK11_Verify(SECKEYPublicKey *key, SECItem *sig, SECItem *hash, void *wincx)
 				(key->u.dsa.params.prime.len > 129)) {
 	    /* we need to get a slot that not only can do DSA, but can do DSA2
 	     * key lengths */
-	    unsigned int length = key->u.dsa.params.prime.len;
-	    if (length > 0 && key->u.dsa.params.prime.data[0] == 0) {
+	    length = key->u.dsa.params.prime.len;
+	    if (key->u.dsa.params.prime.data[0] == 0) {
 		length --;
 	    }
-	    slot = PK11_GetBestSlotWithKeySize(mech.mechanism, 
-						length*BITS_PER_BYTE, wincx);
-	} else {
-	    slot = PK11_GetBestSlot(mech.mechanism,wincx);
 	}
-       
+	slot = PK11_GetBestSlotWithAttributes(mech.mechanism,
+						CKF_VERIFY,length,wincx);
 	if (slot == NULL) {
 	    PORT_SetError( SEC_ERROR_NO_MODULE );
 	    return SECFailure;
@@ -866,7 +865,7 @@ pk11_PubEncryptRaw(SECKEYPublicKey *key, unsigned char *enc,
     }
     out = SECKEY_PublicKeyStrength(key);
 
-    slot = PK11_GetBestSlot(mech->mechanism, wincx);
+    slot = PK11_GetBestSlotWithAttributes(mech->mechanism,CKF_ENCRYPT,0,wincx);
     if (slot == NULL) {
 	PORT_SetError( SEC_ERROR_NO_MODULE );
 	return SECFailure;
