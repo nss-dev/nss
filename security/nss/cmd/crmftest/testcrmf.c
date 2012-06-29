@@ -995,7 +995,8 @@ DoKeyRecovery( SECKEYPrivateKey *privKey)
     caPubKey = CERT_ExtractPublicKey(caCert);
     pubKey   = SECKEY_ConvertToPublicKey(privKey);
     max_bytes_encrypted = PK11_GetPrivateModulusLen(privKey);
-    slot = PK11_GetBestSlot(mapWrapKeyType(privKey->keyType), NULL);
+    slot = PK11_GetBestSlotWithAttributes(mapWrapKeyType(privKey->keyType), 
+		CKF_ENCRYPT, 0, NULL);
     id   = PK11_ImportPublicKey(slot, pubKey, PR_FALSE);
 
     switch(privKey->keyType) {
