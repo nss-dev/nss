@@ -2011,7 +2011,7 @@ pk11_filterSlot(PK11SlotInfo *slot, CK_MECHANISM_TYPE mechanism,
  */
 PK11SlotInfo *
 PK11_GetBestSlotMultipleWithAttributes(CK_MECHANISM_TYPE *type, 
-		CK_FLAGS *mechanismInfoFlags, unsigned long *keySize, 
+		CK_FLAGS *mechanismInfoFlags, unsigned int *keySize, 
 		unsigned int mech_count, void *wincx)
 {
     PK11SlotList *list = NULL;
@@ -2111,7 +2111,7 @@ PK11_GetBestSlot(CK_MECHANISM_TYPE type, void *wincx)
 
 PK11SlotInfo *
 PK11_GetBestSlotWithAttributes(CK_MECHANISM_TYPE type, CK_FLAGS mechanismFlags,
-		unsigned long keySize, void *wincx)
+		unsigned int keySize, void *wincx)
 {
     return PK11_GetBestSlotMultipleWithAttributes(&type, &mechanismFlags,
 						 &keySize, 1, wincx);
