@@ -1005,8 +1005,8 @@ PK11_ImportEncryptedPrivateKeyInfoAndReturnKey;
 CERT_CheckOCSPStatus;
 CERT_DecodeOCSPRequest;
 CERT_GetEncodedOCSPResponse;
-PK11_GetBestSlotWithKeySize;
-PK11_GetBestSlotMultipleWithKeySize;
+PK11_GetBestSlotWithAttributes;
+PK11_GetBestSlotMultipleWithAttributes;
 PK11_PQG_ParamGenV2;
 ;+    local:
 ;+       *;

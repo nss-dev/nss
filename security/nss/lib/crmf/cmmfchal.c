@@ -71,7 +71,7 @@ cmmf_create_witness_and_challenge(PRArenaPool     *poolp,
         rv = SECFailure;
         goto loser;
     }
-    slot =PK11_GetBestSlot(CKM_RSA_PKCS, passwdArg);
+    slot =PK11_GetBestSlotWithAttributes(CKM_RSA_PKCS, CKF_WRAP, 0, passwdArg);
     if (slot == NULL) {
         rv = SECFailure;
         goto loser;

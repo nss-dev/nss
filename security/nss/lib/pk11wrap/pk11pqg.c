@@ -100,14 +100,16 @@ PK11_PQG_ParamGenV2(unsigned int L, unsigned int N,
     if (primeBits > 1024) {
 	CK_MECHANISM_INFO mechanism_info;
 
+	if (!slot->isThreadSafe) PK11_EnterSlotMonitor(slot);
 	crv = PK11_GETTAB(slot)->C_GetMechanismInfo(slot->slotID,
 			CKM_DSA_PARAMETER_GEN, &mechanism_info);
+	if (!slot->isThreadSafe) PK11_ExitSlotMonitor(slot);
 	/* a bug in the old softoken left CKM_DSA_PARAMETER_GEN off of the
 	 * mechanism List. If we get a failure asking for this value, we know
 	 * it can't handle DSA2 */
 	if ((crv != CKR_OK) || (mechanism_info.ulMaxKeySize < primeBits)) {
 	    PK11_FreeSlot(slot);
-	    slot = PK11_GetBestSlotWithKeySize(CKM_DSA_PARAMETER_GEN, 
+	    slot = PK11_GetBestSlotWithAttributes(CKM_DSA_PARAMETER_GEN, 0,
 						primeBits, NULL);
 	    if (slot == NULL) {
 		PORT_SetError(SEC_ERROR_NO_TOKEN); /* can happen */
