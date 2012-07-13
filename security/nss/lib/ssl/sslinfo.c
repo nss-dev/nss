@@ -343,7 +343,7 @@ SSL_ExportKeyingMaterial(PRFileDesc *fd,
     }
 
     if (ss->version < SSL_LIBRARY_VERSION_3_1_TLS) {
-	PORT_SetError(SSL_ERROR_UNSUPPORTED_VERSION);
+	PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_VERSION);
 	return SECFailure;
     }
 

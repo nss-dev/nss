@@ -285,7 +285,7 @@ ER3(SSL_ERROR_NO_COMPRESSION_OVERLAP        , (SSL_ERROR_BASE + 85),
 "Cannot communicate securely with peer: no common compression algorithm(s).")
 
 ER3(SSL_ERROR_HANDSHAKE_NOT_COMPLETED       , (SSL_ERROR_BASE + 86),
-"Cannot initiate another SSL handshake until current handshake is complete.")
+"Cannot perform the operation until the handshake is complete.")
 
 ER3(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE      , (SSL_ERROR_BASE + 87),
 "Received incorrect handshakes hash values from peer.")
@@ -397,3 +397,6 @@ ER3(SSL_ERROR_RX_MALFORMED_HELLO_VERIFY_REQUEST, (SSL_ERROR_BASE + 122),
 
 ER3(SSL_ERROR_RX_UNEXPECTED_HELLO_VERIFY_REQUEST, (SSL_ERROR_BASE + 123),
 "SSL received an unexpected Hello Verify Request handshake message.")
+
+ER3(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_VERSION, (SSL_ERROR_BASE + 124),
+"SSL feature not supported for the protocol version.")
