@@ -6098,6 +6098,90 @@ key_and_mac_derive_fail:
 	crv = sftk_forceAttribute(key,CKA_VALUE,key_block,keySize);
 	break;
 
+     case CKM_SHA224_KEY_DERIVATION:
+	if (keySize == 0) keySize = SHA224_LENGTH;
+	if (keySize > SHA224_LENGTH) {
+	    crv = CKR_TEMPLATE_INCONSISTENT;
+	    break;
+	}
+	/* now allocate the hash contexts */
+	sha = SHA224_NewContext();
+	if (sha == NULL) { 
+	    crv = CKR_HOST_MEMORY;
+	    break;
+	}
+	SHA224_Begin(sha);
+	SHA224_Update(sha,(const unsigned char*)att->attrib.pValue,
+		    att->attrib.ulValueLen);
+	SHA224_End(sha,key_block,&outLen,SHA224_LENGTH);
+	SHA224_DestroyContext(sha, PR_TRUE);
+
+	crv = sftk_forceAttribute(key,CKA_VALUE,key_block,keySize);
+	break;
+
+     case CKM_SHA256_KEY_DERIVATION:
+	if (keySize == 0) keySize = SHA256_LENGTH;
+	if (keySize > SHA256_LENGTH) {
+	    crv = CKR_TEMPLATE_INCONSISTENT;
+	    break;
+	}
+	/* now allocate the hash contexts */
+	sha = SHA256_NewContext();
+	if (sha == NULL) { 
+	    crv = CKR_HOST_MEMORY;
+	    break;
+	}
+	SHA256_Begin(sha);
+	SHA256_Update(sha,(const unsigned char*)att->attrib.pValue,
+		    att->attrib.ulValueLen);
+	SHA256_End(sha,key_block,&outLen,SHA256_LENGTH);
+	SHA256_DestroyContext(sha, PR_TRUE);
+
+	crv = sftk_forceAttribute(key,CKA_VALUE,key_block,keySize);
+	break;
+
+     case CKM_SHA384_KEY_DERIVATION:
+	if (keySize == 0) keySize = SHA384_LENGTH;
+	if (keySize > SHA384_LENGTH) {
+	    crv = CKR_TEMPLATE_INCONSISTENT;
+	    break;
+	}
+	/* now allocate the hash contexts */
+	sha = SHA384_NewContext();
+	if (sha == NULL) { 
+	    crv = CKR_HOST_MEMORY;
+	    break;
+	}
+	SHA384_Begin(sha);
+	SHA384_Update(sha,(const unsigned char*)att->attrib.pValue,
+		    att->attrib.ulValueLen);
+	SHA384_End(sha,key_block,&outLen,SHA384_LENGTH);
+	SHA384_DestroyContext(sha, PR_TRUE);
+
+	crv = sftk_forceAttribute(key,CKA_VALUE,key_block,keySize);
+	break;
+
+     case CKM_SHA512_KEY_DERIVATION:
+	if (keySize == 0) keySize = SHA512_LENGTH;
+	if (keySize > SHA512_LENGTH) {
+	    crv = CKR_TEMPLATE_INCONSISTENT;
+	    break;
+	}
+	/* now allocate the hash contexts */
+	sha = SHA512_NewContext();
+	if (sha == NULL) { 
+	    crv = CKR_HOST_MEMORY;
+	    break;
+	}
+	SHA512_Begin(sha);
+	SHA512_Update(sha,(const unsigned char*)att->attrib.pValue,
+		    att->attrib.ulValueLen);
+	SHA512_End(sha,key_block,&outLen,SHA512_LENGTH);
+	SHA512_DestroyContext(sha, PR_TRUE);
+
+	crv = sftk_forceAttribute(key,CKA_VALUE,key_block,keySize);
+	break;
+
     case CKM_DH_PKCS_DERIVE:
       {
 	SECItem  derived,  dhPublic;
