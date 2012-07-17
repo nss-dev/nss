@@ -5268,6 +5268,10 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
     SFTKAttribute * att2 = NULL;
     unsigned char * buf;
     SHA1Context *   sha;
+    SHA224Context * sha224;
+    SHA256Context * sha256;
+    SHA384Context * sha384;
+    SHA512Context * sha512;
     MD5Context *    md5;
     MD2Context *    md2;
     CK_ULONG        macSize;
@@ -6105,16 +6109,16 @@ key_and_mac_derive_fail:
 	    break;
 	}
 	/* now allocate the hash contexts */
-	sha = SHA224_NewContext();
-	if (sha == NULL) { 
+	sha224 = SHA224_NewContext();
+	if (sha224 == NULL) { 
 	    crv = CKR_HOST_MEMORY;
 	    break;
 	}
-	SHA224_Begin(sha);
-	SHA224_Update(sha,(const unsigned char*)att->attrib.pValue,
+	SHA224_Begin(sha224);
+	SHA224_Update(sha224,(const unsigned char*)att->attrib.pValue,
 		    att->attrib.ulValueLen);
-	SHA224_End(sha,key_block,&outLen,SHA224_LENGTH);
-	SHA224_DestroyContext(sha, PR_TRUE);
+	SHA224_End(sha224,key_block,&outLen,SHA224_LENGTH);
+	SHA224_DestroyContext(sha224, PR_TRUE);
 
 	crv = sftk_forceAttribute(key,CKA_VALUE,key_block,keySize);
 	break;
@@ -6126,16 +6130,16 @@ key_and_mac_derive_fail:
 	    break;
 	}
 	/* now allocate the hash contexts */
-	sha = SHA256_NewContext();
-	if (sha == NULL) { 
+	sha256 = SHA256_NewContext();
+	if (sha256 == NULL) { 
 	    crv = CKR_HOST_MEMORY;
 	    break;
 	}
-	SHA256_Begin(sha);
-	SHA256_Update(sha,(const unsigned char*)att->attrib.pValue,
+	SHA256_Begin(sha256);
+	SHA256_Update(sha256,(const unsigned char*)att->attrib.pValue,
 		    att->attrib.ulValueLen);
-	SHA256_End(sha,key_block,&outLen,SHA256_LENGTH);
-	SHA256_DestroyContext(sha, PR_TRUE);
+	SHA256_End(sha256,key_block,&outLen,SHA256_LENGTH);
+	SHA256_DestroyContext(sha256, PR_TRUE);
 
 	crv = sftk_forceAttribute(key,CKA_VALUE,key_block,keySize);
 	break;
@@ -6147,16 +6151,16 @@ key_and_mac_derive_fail:
 	    break;
 	}
 	/* now allocate the hash contexts */
-	sha = SHA384_NewContext();
-	if (sha == NULL) { 
+	sha384 = SHA384_NewContext();
+	if (sha384 == NULL) { 
 	    crv = CKR_HOST_MEMORY;
 	    break;
 	}
-	SHA384_Begin(sha);
-	SHA384_Update(sha,(const unsigned char*)att->attrib.pValue,
+	SHA384_Begin(sha384);
+	SHA384_Update(sha384,(const unsigned char*)att->attrib.pValue,
 		    att->attrib.ulValueLen);
-	SHA384_End(sha,key_block,&outLen,SHA384_LENGTH);
-	SHA384_DestroyContext(sha, PR_TRUE);
+	SHA384_End(sha384,key_block,&outLen,SHA384_LENGTH);
+	SHA384_DestroyContext(sha384, PR_TRUE);
 
 	crv = sftk_forceAttribute(key,CKA_VALUE,key_block,keySize);
 	break;
@@ -6168,16 +6172,16 @@ key_and_mac_derive_fail:
 	    break;
 	}
 	/* now allocate the hash contexts */
-	sha = SHA512_NewContext();
-	if (sha == NULL) { 
+	sha512 = SHA512_NewContext();
+	if (sha512 == NULL) { 
 	    crv = CKR_HOST_MEMORY;
 	    break;
 	}
-	SHA512_Begin(sha);
-	SHA512_Update(sha,(const unsigned char*)att->attrib.pValue,
+	SHA512_Begin(sha512);
+	SHA512_Update(sha512,(const unsigned char*)att->attrib.pValue,
 		    att->attrib.ulValueLen);
-	SHA512_End(sha,key_block,&outLen,SHA512_LENGTH);
-	SHA512_DestroyContext(sha, PR_TRUE);
+	SHA512_End(sha512,key_block,&outLen,SHA512_LENGTH);
+	SHA512_DestroyContext(sha512, PR_TRUE);
 
 	crv = sftk_forceAttribute(key,CKA_VALUE,key_block,keySize);
 	break;
