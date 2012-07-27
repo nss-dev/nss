@@ -156,8 +156,9 @@ SHA256_NewContext(void)
 void 
 SHA256_DestroyContext(SHA256Context *ctx, PRBool freeit)
 {
+    memset(ctx, 0, sizeof *ctx);
     if (freeit) {
-        PORT_ZFree(ctx, sizeof *ctx);
+        PORT_Free(ctx);
     }
 }
 
@@ -471,6 +472,7 @@ SHA256_HashBuf(unsigned char *dest, const unsigned char *src,
     SHA256_Begin(&ctx);
     SHA256_Update(&ctx, src, src_length);
     SHA256_End(&ctx, dest, &outLen, SHA256_LENGTH);
+    memset(&ctx, 0, sizeof ctx);
 
     return SECSuccess;
 }
@@ -564,6 +566,7 @@ SHA224_HashBuf(unsigned char *dest, const unsigned char *src,
     SHA224_Begin(&ctx);
     SHA256_Update(&ctx, src, src_length);
     SHA256_End(&ctx, dest, &outLen, SHA224_LENGTH);
+    memset(&ctx, 0, sizeof ctx);
 
     return SECSuccess;
 }
@@ -787,8 +790,9 @@ SHA512_NewContext(void)
 void 
 SHA512_DestroyContext(SHA512Context *ctx, PRBool freeit)
 {
+    memset(ctx, 0, sizeof *ctx);
     if (freeit) {
-        PORT_ZFree(ctx, sizeof *ctx);
+        PORT_Free(ctx);
     }
 }
 
@@ -1234,6 +1238,7 @@ SHA512_HashBuf(unsigned char *dest, const unsigned char *src,
     SHA512_Begin(&ctx);
     SHA512_Update(&ctx, src, src_length);
     SHA512_End(&ctx, dest, &outLen, SHA512_LENGTH);
+    memset(&ctx, 0, sizeof ctx);
 
     return SECSuccess;
 }
@@ -1341,6 +1346,7 @@ SHA384_HashBuf(unsigned char *dest, const unsigned char *src,
     SHA384_Begin(&ctx);
     SHA512_Update(&ctx, src, src_length);
     SHA512_End(&ctx, dest, &outLen, SHA384_LENGTH);
+    memset(&ctx, 0, sizeof ctx);
 
     return SECSuccess;
 }
