@@ -396,6 +396,7 @@ SHA1_HashBuf(unsigned char *dest, const unsigned char *src, uint32 src_length)
     SHA1_Begin(&ctx);
     SHA1_Update(&ctx, src, src_length);
     SHA1_End(&ctx, dest, &outLen, SHA1_LENGTH);
+    memset(&ctx, 0, sizeof ctx);
     return SECSuccess;
 }
 
