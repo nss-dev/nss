@@ -705,12 +705,13 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     rv = PK11_GenerateRandom(iv, sizeof(iv));
     if (rv != SECSuccess) goto loser;
 
-    if (ss->opt.bypassPKCS11) {
 #ifndef NO_PKCS11_BYPASS
+    if (ss->opt.bypassPKCS11) {
 	rv = ssl3_GetSessionTicketKeys(&aes_key, &aes_key_length,
 	    &mac_key, &mac_key_length);
+    } else 
 #endif
-    } else {
+    {
 	rv = ssl3_GetSessionTicketKeysPKCS11(ss, &aes_key_pkcs11,
 	    &mac_key_pkcs11);
     }
@@ -877,8 +878,8 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     }
 
     /* Generate encrypted portion of ticket. */
-    if (ss->opt.bypassPKCS11) {
 #ifndef NO_PKCS11_BYPASS
+    if (ss->opt.bypassPKCS11) {
 	aes_ctx = (AESContext *)aes_ctx_buf;
 	rv = AES_InitContext(aes_ctx, aes_key, aes_key_length, iv, 
 	    NSS_AES_CBC, 1, AES_BLOCK_SIZE);
@@ -888,8 +889,9 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
 	    ciphertext.len, plaintext_item.data,
 	    plaintext_item.len);
 	if (rv != SECSuccess) goto loser;
+    } else 
 #endif
-    } else {
+    {
 	aes_ctx_pkcs11 = PK11_CreateContextBySymKey(cipherMech,
 	    CKA_ENCRYPT, aes_key_pkcs11, &ivItem);
 	if (!aes_ctx_pkcs11) 
@@ -908,8 +910,8 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     length_buf[1] = (ciphertext.len     ) & 0xff;
 
     /* Compute MAC. */
-    if (ss->opt.bypassPKCS11) {
 #ifndef NO_PKCS11_BYPASS
+    if (ss->opt.bypassPKCS11) {
 	hmac_ctx = (HMACContext *)hmac_ctx_buf;
 	hashObj = HASH_GetRawHashObject(HASH_AlgSHA256);
 	if (HMAC_Init(hmac_ctx, hashObj, mac_key,
@@ -923,8 +925,9 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
 	HMAC_Update(hmac_ctx, ciphertext.data, ciphertext.len);
 	HMAC_Finish(hmac_ctx, computed_mac, &computed_mac_length,
 	    sizeof(computed_mac));
+    } else 
 #endif
-    } else {
+    {
 	SECItem macParam;
 	macParam.data = NULL;
 	macParam.len = 0;
@@ -1067,12 +1070,13 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
 	    return SECFailure;
 
 	/* Get session ticket keys. */
-	if (ss->opt.bypassPKCS11) {
 #ifndef NO_PKCS11_BYPASS
+	if (ss->opt.bypassPKCS11) {
 	    rv = ssl3_GetSessionTicketKeys(&aes_key, &aes_key_length,
 		&mac_key, &mac_key_length);
+	} else 
 #endif
-	} else {
+    {
 	    rv = ssl3_GetSessionTicketKeysPKCS11(ss, &aes_key_pkcs11,
 		&mac_key_pkcs11);
 	}
@@ -1095,8 +1099,8 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
 	/* Verify the MAC on the ticket.  MAC verification may also
 	 * fail if the MAC key has been recently refreshed.
 	 */
-	if (ss->opt.bypassPKCS11) {
 #ifndef NO_PKCS11_BYPASS
+	if (ss->opt.bypassPKCS11) {
 	    hmac_ctx = (HMACContext *)hmac_ctx_buf;
 	    hashObj = HASH_GetRawHashObject(HASH_AlgSHA256);
 	    if (HMAC_Init(hmac_ctx, hashObj, mac_key,
@@ -1108,8 +1112,9 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
 	    if (HMAC_Finish(hmac_ctx, computed_mac, &computed_mac_length,
 		    sizeof(computed_mac)) != SECSuccess)
 		goto no_ticket;
+	} else 
 #endif
-	} else {
+    {
 	    SECItem macParam;
 	    macParam.data = NULL;
 	    macParam.len = 0;
@@ -1153,8 +1158,8 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
 	decrypted_state = SECITEM_AllocItem(NULL, NULL,
 	    enc_session_ticket.encrypted_state.len);
 
-	if (ss->opt.bypassPKCS11) {
 #ifndef NO_PKCS11_BYPASS
+	if (ss->opt.bypassPKCS11) {
 	    aes_ctx = (AESContext *)aes_ctx_buf;
 	    rv = AES_InitContext(aes_ctx, aes_key,
 		sizeof(session_ticket_enc_key), enc_session_ticket.iv,
@@ -1171,8 +1176,9 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
 		enc_session_ticket.encrypted_state.len);
 	    if (rv != SECSuccess)
 		goto no_ticket;
+	} else 
 #endif
-	} else {
+    {
 	    SECItem ivItem;
 	    ivItem.data = enc_session_ticket.iv;
 	    ivItem.len = AES_BLOCK_SIZE;
