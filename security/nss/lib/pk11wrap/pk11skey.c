@@ -813,25 +813,50 @@ pk11_CopyToSlot(PK11SlotInfo *slot,CK_MECHANISM_TYPE type,
 }
 
 /*
- * Make sure the slot we are in the correct slot for the operation
+ * Make sure the slot we are in is the correct slot for the operation
+ * by verifying that it supports all of the specified mechanism types.
+ */
+PK11SymKey *
+pk11_ForceSlotMultiple(PK11SymKey *symKey, CK_MECHANISM_TYPE *type,
+			int mechCount, CK_ATTRIBUTE_TYPE operation)
+{
+    PK11SlotInfo *slot = symKey->slot;
+    PK11SymKey *newKey = NULL;
+    PRBool needToCopy = PR_FALSE;
+    int i;
+
+    if (slot == NULL) {
+	needToCopy = PR_TRUE;
+    } else {
+	i = 0;
+	while ((i < mechCount) && (needToCopy == PR_FALSE)) {
+	    if (!PK11_DoesMechanism(slot,type[i])) {
+		needToCopy = PR_TRUE;
+	    }
+	    i++;
+	}
+    }
+
+    if (needToCopy == PR_TRUE) {
+	slot = PK11_GetBestSlotMultiple(type,mechCount,symKey->cx);
+	if (slot == NULL) {
+	    PORT_SetError( SEC_ERROR_NO_MODULE );
+	    return NULL;
+	}
+	newKey = pk11_CopyToSlot(slot, type[0], operation, symKey);
+	PK11_FreeSlot(slot);
+    }
+    return newKey;
+}
+
+/*
+ * Make sure the slot we are in is the correct slot for the operation
  */
 PK11SymKey *
 pk11_ForceSlot(PK11SymKey *symKey,CK_MECHANISM_TYPE type,
 						CK_ATTRIBUTE_TYPE operation)
 {
-    PK11SlotInfo *slot = symKey->slot;
-    PK11SymKey *newKey = NULL;
-
-    if ((slot== NULL) || !PK11_DoesMechanism(slot,type)) {
-	slot = PK11_GetBestSlot(type,symKey->cx);
-	if (slot == NULL) {
-	    PORT_SetError( SEC_ERROR_NO_MODULE );
-	    return NULL;
-	}
-	newKey = pk11_CopyToSlot(slot, type, operation, symKey);
-	PK11_FreeSlot(slot);
-    }
-    return newKey;
+    return pk11_ForceSlotMultiple(symKey, &type, 1, operation);
 }
 
 PK11SymKey *
@@ -1529,6 +1554,239 @@ PK11_DeriveWithTemplate( PK11SymKey *baseKey, CK_MECHANISM_TYPE derive,
     return symKey;
 }
 
+/* Create a new key by concatenating base and data
+ */
+static PK11SymKey *pk11_ConcatenateBaseAndData(PK11SymKey *base,
+	CK_BYTE *data, CK_ULONG dataLen, CK_MECHANISM_TYPE target,
+	CK_ATTRIBUTE_TYPE operation)
+{
+    CK_KEY_DERIVATION_STRING_DATA mechParams;
+    SECItem param;
+
+    if (base == NULL) {
+	PORT_SetError( SEC_ERROR_INVALID_ARGS );
+	return NULL;
+    }
+
+    mechParams.pData = data;
+    mechParams.ulLen = dataLen;
+    param.data = (unsigned char *)&mechParams;
+    param.len = sizeof(CK_KEY_DERIVATION_STRING_DATA);
+
+    return PK11_Derive(base, CKM_CONCATENATE_BASE_AND_DATA,
+				&param, target, operation, 0);
+}
+
+/* Create a new key by concatenating base and key
+ */
+static PK11SymKey *pk11_ConcatenateBaseAndKey(PK11SymKey *base,
+			PK11SymKey *key, CK_MECHANISM_TYPE target,
+			CK_ATTRIBUTE_TYPE operation, CK_ULONG keySize)
+{
+    SECItem param;
+
+    if ((base == NULL) || (key == NULL)) {
+	PORT_SetError( SEC_ERROR_INVALID_ARGS );
+	return NULL;
+    }
+
+    param.data = (unsigned char *)&(key->objectID);
+    param.len = sizeof(CK_OBJECT_HANDLE);
+
+    return PK11_Derive(base, CKM_CONCATENATE_BASE_AND_KEY,
+				&param, target, operation, keySize);
+}
+
+/* Create a new key whose value is the hash of tobehashed.
+ * type is the mechanism for the derived key.
+ */
+static PK11SymKey *pk11_HashKeyDerivation(PK11SymKey *toBeHashed,
+	CK_MECHANISM_TYPE hashMechanism, CK_MECHANISM_TYPE target,
+	CK_ATTRIBUTE_TYPE operation, CK_ULONG keySize)
+{
+    return PK11_Derive(toBeHashed, hashMechanism, NULL, target, operation, keySize);
+}
+
+/* This function implements the ANSI X9.63 key derivation function
+ */
+static PK11SymKey *pk11_ANSIX963Derive(PK11SymKey *sharedSecret,
+		CK_EC_KDF_TYPE kdf, SECItem *sharedData,
+		CK_MECHANISM_TYPE target, CK_ATTRIBUTE_TYPE operation,
+		CK_ULONG keySize)
+{
+    CK_KEY_TYPE keyType;
+    CK_MECHANISM_TYPE hashMechanism, mechanismArray[4];
+    CK_ULONG derivedKeySize, HashLen, counter, maxCounter, bufferLen;
+    CK_ULONG SharedInfoLen;
+    CK_BYTE *buffer = NULL;
+    PK11SymKey *toBeHashed, *hashOutput;
+    PK11SymKey *newSharedSecret = NULL;
+    PK11SymKey *oldIntermediateResult, *intermediateResult = NULL;
+
+    if (sharedSecret == NULL) {
+	PORT_SetError( SEC_ERROR_INVALID_ARGS );
+	return NULL;
+    }
+
+    switch (kdf) {
+    case CKD_SHA1_KDF:
+	HashLen = SHA1_LENGTH;
+	hashMechanism = CKM_SHA1_KEY_DERIVATION;
+	break;
+    case CKD_SHA224_KDF:
+	HashLen = SHA224_LENGTH;
+	hashMechanism = CKM_SHA224_KEY_DERIVATION;
+	break;
+    case CKD_SHA256_KDF:
+	HashLen = SHA256_LENGTH;
+	hashMechanism = CKM_SHA256_KEY_DERIVATION;
+	break;
+    case CKD_SHA384_KDF:
+	HashLen = SHA384_LENGTH;
+	hashMechanism = CKM_SHA384_KEY_DERIVATION;
+	break;
+    case CKD_SHA512_KDF:
+	HashLen = SHA512_LENGTH;
+	hashMechanism = CKM_SHA512_KEY_DERIVATION;
+	break;
+    default:
+	PORT_SetError( SEC_ERROR_INVALID_ARGS );
+	return NULL;
+    }
+
+    derivedKeySize = keySize;
+    if (derivedKeySize == 0) {
+	keyType = PK11_GetKeyType(target,keySize);
+	derivedKeySize = pk11_GetPredefinedKeyLength(keyType);
+	if (derivedKeySize == 0) {
+	    derivedKeySize = HashLen;
+	}
+    }
+
+    /* Check that key_len isn't too long.  The maximum key length could be
+     * greatly increased if the code below did not limit the 4-byte counter
+     * to a maximum value of 255. */
+    if (derivedKeySize > 254 * HashLen) {
+	PORT_SetError( SEC_ERROR_INVALID_ARGS );
+	return NULL;
+    }
+
+    maxCounter = derivedKeySize / HashLen;
+    if (derivedKeySize > maxCounter * HashLen)
+	maxCounter++;
+
+    if ((sharedData == NULL) || (sharedData->data == NULL))
+	SharedInfoLen = 0;
+    else
+	SharedInfoLen = sharedData->len;
+
+    bufferLen = SharedInfoLen + 4;
+    
+    /* Populate buffer with Counter || sharedData
+     * where Counter is 0x00000001. */
+    buffer = (unsigned char *)PORT_Alloc(bufferLen);
+    if (buffer == NULL) {
+	PORT_SetError(SEC_ERROR_NO_MEMORY);
+	return NULL;
+    }
+
+    buffer[0] = 0;
+    buffer[1] = 0;
+    buffer[2] = 0;
+    buffer[3] = 1;
+    if (SharedInfoLen > 0) {
+	PORT_Memcpy(&buffer[4], sharedData->data, SharedInfoLen);
+    }
+
+    /* Look for a slot that supports the mechanisms needed
+     * to implement the ANSI X9.63 KDF as well as the
+     * target mechanism.
+     */
+    mechanismArray[0] = CKM_CONCATENATE_BASE_AND_DATA;
+    mechanismArray[1] = hashMechanism;
+    mechanismArray[2] = CKM_CONCATENATE_BASE_AND_KEY;
+    mechanismArray[3] = target;
+
+    newSharedSecret = pk11_ForceSlotMultiple(sharedSecret,
+					 mechanismArray, 4, operation);
+    if (newSharedSecret != NULL) {
+	sharedSecret = newSharedSecret;
+    }
+
+    for(counter=1; counter <= maxCounter; counter++) {
+	/* Concatenate shared_secret and buffer */
+	toBeHashed = pk11_ConcatenateBaseAndData(sharedSecret, buffer,
+					bufferLen, hashMechanism, operation);
+	if (toBeHashed == NULL) {
+	    goto loser;
+	}
+
+	/* Hash value */
+	if (maxCounter == 1) {
+	    /* In this case the length of the key to be derived is
+	     * less than or equal to the length of the hash output.
+	     * So, the output of the hash operation will be the
+	     * dervied key. */
+	    hashOutput = pk11_HashKeyDerivation(toBeHashed, hashMechanism,
+						target, operation, keySize);
+	} else {
+	    /* In this case, the output of the hash operation will be
+	     * concatenated with other data to create the derived key. */
+	    hashOutput = pk11_HashKeyDerivation(toBeHashed, hashMechanism,
+				CKM_CONCATENATE_BASE_AND_KEY, operation, 0);
+	}
+	PK11_FreeSymKey(toBeHashed);
+	if (hashOutput == NULL) {
+	    goto loser;
+	}
+
+	/* Append result to intermediate result, if necessary */
+	oldIntermediateResult = intermediateResult;
+
+	if (oldIntermediateResult == NULL) {
+	    intermediateResult = hashOutput;
+	} else {
+	    if (counter == maxCounter) {
+		/* This is the final concatenation, and so the output
+		 * will be the derived key. */
+		intermediateResult =
+		    pk11_ConcatenateBaseAndKey(oldIntermediateResult,
+				hashOutput, target, operation, keySize);
+	    } else {
+		/* The output of this concatenation will be concatenated
+		 * with other data to create the derived key. */
+		intermediateResult =
+		    pk11_ConcatenateBaseAndKey(oldIntermediateResult,
+				hashOutput, CKM_CONCATENATE_BASE_AND_KEY,
+				operation, 0);
+	    }
+
+	    PK11_FreeSymKey(hashOutput);
+	    PK11_FreeSymKey(oldIntermediateResult);
+	    if (intermediateResult == NULL) {
+		goto loser;
+	    }
+	}
+
+	/* Increment counter (assumes maxCounter < 255) */
+	buffer[3]++;
+    }
+
+    PORT_ZFree(buffer, bufferLen);
+    if (newSharedSecret != NULL)
+	PK11_FreeSymKey(newSharedSecret);
+    return intermediateResult;
+
+loser:
+    if (buffer != NULL)
+	PORT_ZFree(buffer, bufferLen);
+    if (newSharedSecret != NULL)
+	PK11_FreeSymKey(newSharedSecret);
+    if (intermediateResult != NULL)
+	PK11_FreeSymKey(intermediateResult);
+    return NULL;
+}
+
 /*
  * This Generates a wrapping key based on a privateKey, publicKey, and two
  * random numbers. For Mail usage RandomB should be NULL. In the Sender's
@@ -1737,6 +1995,23 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
    return NULL;
 }
 
+/* Returns the size of the public key, or 0 if there
+ * is an error. */
+static CK_ULONG
+pk11_ECPubKeySize(SECItem *publicValue)
+{
+    if (publicValue->data[0] == 0x04) {
+	/* key encoded in uncompressed form */
+	return((publicValue->len - 1)/2);
+    } else if ( (publicValue->data[0] == 0x02) ||
+		(publicValue->data[0] == 0x03)) {
+	/* key encoded in compressed form */
+	return(publicValue->len - 1);
+    }
+    /* key encoding not recognized */
+    return(0);
+}
+
 static PK11SymKey *
 pk11_PubDeriveECKeyWithKDF(
 		    SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
@@ -1747,6 +2022,7 @@ pk11_PubDeriveECKeyWithKDF(
 {
     PK11SlotInfo           *slot            = privKey->pkcs11Slot;
     PK11SymKey             *symKey;
+    PK11SymKey             *SharedSecret;
     CK_MECHANISM            mechanism;
     CK_RV                   crv;
     CK_BBOOL                cktrue          = CK_TRUE;
@@ -1794,15 +2070,8 @@ pk11_PubDeriveECKeyWithKDF(
 	     * CKA_VALUE_LEN to be set */
 	    switch (kdf) {
 	    case CKD_NULL:
-		if (pubKey->u.ec.publicValue.data[0] == 0x04) {
-		    /* key encoded in uncompressed form */
-		    key_size = (pubKey->u.ec.publicValue.len-1)/2;
-		} else if ((pubKey->u.ec.publicValue.data[0] == 0x02) ||
-			   (pubKey->u.ec.publicValue.data[0] == 0x03)) {
-		    /* key encoded in compressed form */
-		    key_size = pubKey->u.ec.publicValue.len-1;
-		} else {
-		    /* key encoding not recognized */
+		key_size = pk11_ECPubKeySize(&pubKey->u.ec.publicValue);
+		if (key_size == 0) {
 		    PK11_FreeSymKey(symKey);
 		    return NULL;
 		}
@@ -1857,7 +2126,7 @@ pk11_PubDeriveECKeyWithKDF(
     pk11_ExitKeyMonitor(symKey);
 
     /* old PKCS #11 spec was ambiguous on what needed to be passed,
-     * try this again with and encoded public key */
+     * try this again with an encoded public key */
     if (crv != CKR_OK) {
 	SECItem *pubValue = SEC_ASN1EncodeItem(NULL, NULL,
 		&pubKey->u.ec.publicValue,
@@ -1874,6 +2143,60 @@ pk11_PubDeriveECKeyWithKDF(
 	    templateCount, &symKey->objectID);
 	pk11_ExitKeyMonitor(symKey);
 
+	if ((crv != CKR_OK) && (kdf != CKD_NULL)) {
+	    /* Some PKCS #11 libraries cannot perform the key derivation
+	     * function. So, try calling C_DeriveKey with CKD_NULL and then
+	     * performing the KDF separately.
+	     */
+	    CK_ULONG derivedKeySize = key_size;
+
+	    keyType = CKK_GENERIC_SECRET;
+	    key_size = pk11_ECPubKeySize(&pubKey->u.ec.publicValue);
+	    if (key_size == 0) {
+		SECITEM_FreeItem(pubValue,PR_TRUE);
+		goto loser;
+	    }
+	    SharedSecret = symKey;
+	    SharedSecret->size = key_size;
+
+	    mechParams->kdf             = CKD_NULL;
+	    mechParams->ulSharedDataLen = 0;
+	    mechParams->pSharedData     = NULL;
+	    mechParams->ulPublicDataLen = pubKey->u.ec.publicValue.len;
+	    mechParams->pPublicData     = pubKey->u.ec.publicValue.data;
+
+	    pk11_EnterKeyMonitor(SharedSecret);
+	    crv = PK11_GETTAB(slot)->C_DeriveKey(SharedSecret->session,
+			    &mechanism, privKey->pkcs11ID, keyTemplate,
+			    templateCount, &SharedSecret->objectID);
+	    pk11_ExitKeyMonitor(SharedSecret);
+
+	    if (crv != CKR_OK) {
+		/* old PKCS #11 spec was ambiguous on what needed to be passed,
+		 * try this one final time with an encoded public key */
+		mechParams->ulPublicDataLen =  pubValue->len;
+		mechParams->pPublicData     =  pubValue->data;
+
+		pk11_EnterKeyMonitor(SharedSecret);
+		crv = PK11_GETTAB(slot)->C_DeriveKey(SharedSecret->session,
+				&mechanism, privKey->pkcs11ID, keyTemplate,
+				templateCount, &SharedSecret->objectID);
+		pk11_ExitKeyMonitor(SharedSecret);
+	    }
+
+	    /* Perform KDF. */
+	    if (crv == CKR_OK) {
+		    symKey = pk11_ANSIX963Derive(SharedSecret, kdf,
+					sharedData, target, operation,
+					derivedKeySize);
+		    PK11_FreeSymKey(SharedSecret);
+		    if (symKey == NULL) {
+			SECITEM_FreeItem(pubValue,PR_TRUE);
+			PORT_ZFree(mechParams, sizeof(CK_ECDH1_DERIVE_PARAMS));
+			return NULL;
+		    }
+	    }
+	}
 	SECITEM_FreeItem(pubValue,PR_TRUE);
     }
 
