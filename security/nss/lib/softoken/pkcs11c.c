@@ -6332,9 +6332,9 @@ hkdf: {
         const SECHashObject * rawHash;
         unsigned hashLen;
         CK_BYTE buf[HASH_LENGTH_MAX];
-        /* const */ CK_BYTE * prk;  /* psuedo-random key */
+        CK_BYTE * prk;  /* psuedo-random key */
         CK_ULONG prkLen;
-        const CK_BYTE * okm;        /* output keying material */
+        CK_BYTE * okm;  /* output keying material */
 
         rawHash = HASH_GetRawHashObject(hashType);
         if (rawHash == NULL || rawHash->length > sizeof buf) {
