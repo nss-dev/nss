@@ -15,6 +15,7 @@ CSRCS = \
 	encodeinttest.c \
 	nonspr10.c \
 	remtest.c \
+	secmodtest.c \
 	$(NULL)
 
 # The MODULE is always implicitly required.

@@ -1393,7 +1393,17 @@ SECMOD_OpenNewSlot(SECMODModule *mod, const char *moduleSpec)
 	return NULL;
     }
 
-    return SECMOD_FindSlotByID(mod, slotID);
+    slot = SECMOD_FindSlotByID(mod, slotID);
+    if (slot) {
+	/* if we are in the delay period for the "isPresent" call, reset
+	 * the delay since we know things have probably changed... */
+	if (slot->nssToken && slot->nssToken->slot) {
+	    nssSlot_ResetDelay(slot->nssToken->slot);
+	}
+	/* force the slot info structures to properly reset */
+	(void)PK11_IsPresent(slot);
+    }
+    return slot;
 }
 
 /*
