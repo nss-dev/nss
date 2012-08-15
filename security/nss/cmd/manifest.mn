@@ -38,6 +38,7 @@ DIRS = lib  \
  pk1sign  \
  pkix-errcodes \
  pp  \
+ pwdecrypt \
  rsaperf \
  sdrtest \
  selfserv  \
