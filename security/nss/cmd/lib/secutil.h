@@ -23,6 +23,7 @@
 #define SEC_CT_PUBLIC_KEY		"public-key"
 #define SEC_CT_CERTIFICATE		"certificate"
 #define SEC_CT_CERTIFICATE_REQUEST	"certificate-request"
+#define SEC_CT_CERTIFICATE_ID           "certificate-identity"
 #define SEC_CT_PKCS7			"pkcs7"
 #define SEC_CT_CRL			"crl"
 #define SEC_CT_NAME			"name"
@@ -210,6 +211,9 @@ extern int SECU_PrintCertificateRequest(FILE *out, SECItem *der, char *m,
 /* Dump contents of certificate */
 extern int SECU_PrintCertificate(FILE *out, SECItem *der, char *m, int level);
 
+extern int SECU_PrintDumpDerIssuerAndSerial(FILE *out, SECItem *der, char *m,
+                                 int level);
+
 /* Dump contents of a DER certificate name (issuer or subject) */
 extern int SECU_PrintDERName(FILE *out, SECItem *der, const char *m, int level);
 
@@ -245,6 +249,10 @@ extern SECStatus SECU_PKCS11Init(PRBool readOnly);
 /* Dump contents of signed data */
 extern int SECU_PrintSignedData(FILE *out, SECItem *der, const char *m, 
                                 int level, SECU_PPFunc inner);
+
+/* Dump contents of signed data, excluding the signature */
+extern int SECU_PrintSignedContent(FILE *out, SECItem *der, char *m, int level,
+                                   SECU_PPFunc inner);
 
 /* Print cert data and its trust flags */
 extern SECStatus SEC_PrintCertificateAndTrust(CERTCertificate *cert,

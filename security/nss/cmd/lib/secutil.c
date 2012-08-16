@@ -1439,6 +1439,62 @@ loser:
     }
 }
 
+int
+SECU_PrintDumpDerIssuerAndSerial(FILE *out, SECItem *der, char *m,
+                                 int level)
+{
+    PRArenaPool *arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    CERTCertificate *c;
+    int rv = SEC_ERROR_NO_MEMORY;
+    char *derIssuerB64;
+    char *derSerialB64;
+    
+    if (!arena)
+        return rv;
+
+    /* Decode certificate */
+    c = PORT_ArenaZNew(arena, CERTCertificate);
+    if (!c)
+        goto loser;
+    c->arena = arena;
+    rv = SEC_ASN1DecodeItem(arena, c, 
+                            SEC_ASN1_GET(CERT_CertificateTemplate), der);
+    if (rv) {
+        SECU_PrintErrMsg(out, 0, "Error", "Parsing extension");
+        goto loser;
+    }
+
+    SECU_PrintName(out, &c->subject, "Subject", 0);
+    fprintf(out, "\n");
+    SECU_PrintName(out, &c->issuer, "Issuer", 0);
+    fprintf(out, "\n");
+    SECU_PrintInteger(out, &c->serialNumber, "Serial Number", 0);
+    
+    derIssuerB64 = BTOA_ConvertItemToAscii(&c->derIssuer);
+    derSerialB64 = BTOA_ConvertItemToAscii(&c->serialNumber);
+    fprintf(out, "Issuer DER Base64:\n%s\n", derIssuerB64);
+    fprintf(out, "Serial DER Base64:\n%s\n", derSerialB64);
+    PORT_Free(derIssuerB64);
+    PORT_Free(derSerialB64);
+    
+    fprintf(out, "Serial DER as C source: \n{ %d, \"", c->serialNumber.len);
+
+    {
+      int i;
+      for (i=0; i < c->serialNumber.len; ++i) {
+        unsigned char *chardata = (unsigned char*)(c->serialNumber.data);
+        unsigned char c = *(chardata + i);
+        
+        fprintf(out, "\\x%02x", c);
+      }
+      fprintf(out, "\" }\n");
+    }
+
+loser:
+    PORT_FreeArena(arena, PR_FALSE);
+    return rv;
+}
+
 static SECStatus
 secu_PrintX509InvalidDate(FILE *out, SECItem *value, char *msg, int level)
 {
@@ -2946,8 +3002,15 @@ loser:
     return rv;
 }
 
-int SECU_PrintSignedData(FILE *out, SECItem *der, const char *m,
-			   int level, SECU_PPFunc inner)
+typedef enum  {
+    noSignature = 0,
+    withSignature = 1
+} SignatureOptionType;
+
+static int
+secu_PrintSignedDataSigOpt(FILE *out, SECItem *der, const char *m,
+			   int level, SECU_PPFunc inner,
+                           SignatureOptionType withSignature)
 {
     PRArenaPool *arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     CERTSignedData *sd;
@@ -2966,17 +3029,37 @@ int SECU_PrintSignedData(FILE *out, SECItem *der, const char *m,
     if (rv)
 	goto loser;
 
-    SECU_Indent(out, level); fprintf(out, "%s:\n", m);
+    if (m) {
+        SECU_Indent(out, level); fprintf(out, "%s:\n", m);
+    } else {
+        level -= 1;
+    }
     rv = (*inner)(out, &sd->data, "Data", level+1);
 
-    SECU_PrintAlgorithmID(out, &sd->signatureAlgorithm, "Signature Algorithm",
-			  level+1);
-    DER_ConvertBitString(&sd->signature);
-    SECU_PrintAsHex(out, &sd->signature, "Signature", level+1);
+    if (withSignature) {
+        SECU_PrintAlgorithmID(out, &sd->signatureAlgorithm, "Signature Algorithm",
+                              level+1);
+        DER_ConvertBitString(&sd->signature);
+        SECU_PrintAsHex(out, &sd->signature, "Signature", level+1);
+    }
     SECU_PrintFingerprints(out, der, "Fingerprint", level+1);
 loser:
     PORT_FreeArena(arena, PR_FALSE);
     return rv;
+}
+
+int SECU_PrintSignedData(FILE *out, SECItem *der, const char *m,
+                           int level, SECU_PPFunc inner)
+{
+    return secu_PrintSignedDataSigOpt(out, der, m, level, inner, 
+                                      withSignature);
+}
+
+int SECU_PrintSignedContent(FILE *out, SECItem *der, char *m,
+                            int level, SECU_PPFunc inner)
+{
+    return secu_PrintSignedDataSigOpt(out, der, m, level, inner, 
+                                      noSignature);
 }
 
 SECStatus
