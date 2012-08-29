@@ -14,7 +14,7 @@ ifdef BUILD_LIBPKIX_TESTS
 DIRS += libpkix
 endif
 
-LOWHASHTEST_SRCDIR = ""
+LOWHASHTEST_SRCDIR=
 ifeq ($(FREEBL_LOWHASH),1)
 LOWHASHTEST_SRCDIR = lowhashtest  # Add the lowhashtest directory to DIRS.
 endif
