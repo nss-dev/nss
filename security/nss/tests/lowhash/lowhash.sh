@@ -53,7 +53,7 @@ lowhash_init()
 lowhash_test()
 {
   if [ ! -f ${BINDIR}/lowhashtest -a  \
-       ! -f ${BINDIR}/lowhashtest.exe ]; then
+       ! -f ${BINDIR}/lowhashtest${PROG_SUFFIX} ]; then
     echo "freebl lowhash not supported in this plaform."
   else
     TESTS="MD5 SHA1 SHA224 SHA256 SHA384 SHA512"
