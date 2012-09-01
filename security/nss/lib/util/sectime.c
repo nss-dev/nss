@@ -2,13 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "prlong.h"
 #include "prtime.h"
 #include "secder.h"
 #include "secitem.h"
 #include "secerr.h"
-
-static const PRTime January1st2050  = LL_INIT(0x0008f81e, 0x1b098000);
 
 static char *DecodeUTCTime2FormattedAscii (SECItem *utcTimeDER, char *format);
 static char *DecodeGeneralizedTime2FormattedAscii (SECItem *generalizedTimeDER, char *format);
@@ -154,9 +151,11 @@ SECStatus DER_DecodeTimeChoice(PRTime* output, const SECItem* input)
 
 SECStatus DER_EncodeTimeChoice(PRArenaPool* arena, SECItem* output, PRTime input)
 {
-    if (LL_CMP(input, >, January1st2050)) {
-        return DER_TimeToGeneralizedTimeArena(arena, output, input);
-    } else {
-        return DER_TimeToUTCTimeArena(arena, output, input);
+    SECStatus rv;
+
+    rv = DER_TimeToUTCTimeArena(arena, output, input);
+    if (rv == SECSuccess || PORT_GetError() != SEC_ERROR_INVALID_ARGS) {
+        return rv;
     }
+    return DER_TimeToGeneralizedTimeArena(arena, output, input);
 }
