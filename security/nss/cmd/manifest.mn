@@ -25,6 +25,7 @@ DIRS = lib  \
  httpserv  \
  fipstest  \
  $(LOWHASHTEST_SRCDIR)  \
+ listsuites \
  makepqg  \
  multinit \
  ocspclnt  \
