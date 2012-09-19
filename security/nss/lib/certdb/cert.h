@@ -97,7 +97,7 @@ extern SECStatus CERT_AddAVA(PLArenaPool *arena, CERTRDN *rdn, CERTAVA *ava);
 /*
 ** Compare two RDN's, returning the difference between them.
 */
-extern SECComparison CERT_CompareRDN(CERTRDN *a, CERTRDN *b);
+extern SECComparison CERT_CompareRDN(const CERTRDN *a, const CERTRDN *b);
 
 /*
 ** Create an X.500 style name using a NULL terminated list of RDN's.
@@ -129,7 +129,7 @@ extern SECStatus CERT_AddRDN(CERTName *name, CERTRDN *rdn);
 /*
 ** Compare two names, returning the difference between them.
 */
-extern SECComparison CERT_CompareName(CERTName *a, CERTName *b);
+extern SECComparison CERT_CompareName(const CERTName *a, const CERTName *b);
 
 /*
 ** Convert a CERTName into something readable

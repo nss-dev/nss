@@ -537,7 +537,7 @@ CERT_CompareAVA(const CERTAVA *a, const CERTAVA *b)
 }
 
 SECComparison
-CERT_CompareRDN(CERTRDN *a, CERTRDN *b)
+CERT_CompareRDN(const CERTRDN *a, const CERTRDN *b)
 {
     CERTAVA **aavas, *aava;
     CERTAVA **bavas, *bava;
@@ -573,7 +573,7 @@ CERT_CompareRDN(CERTRDN *a, CERTRDN *b)
 }
 
 SECComparison
-CERT_CompareName(CERTName *a, CERTName *b)
+CERT_CompareName(const CERTName *a, const CERTName *b)
 {
     CERTRDN **ardns, *ardn;
     CERTRDN **brdns, *brdn;
