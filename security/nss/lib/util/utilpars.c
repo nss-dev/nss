@@ -325,7 +325,7 @@ nssutil_escapeQuotesSize(const char *string, char quote, PRBool addquotes)
 	if ((*src == quote) || (*src == '\\')) escapes++;
 	size++;
     }
-    return size;
+    return size+escapes+1;
 
 }
 
