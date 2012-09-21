@@ -863,8 +863,7 @@ SSL_IMPORT SECStatus DTLS_GetHandshakeTimeout(PRFileDesc *socket,
  * The only argument is a string, which should be the version
  * identifier of the NSS library. That string will be compared
  * against a string that represents the actual build version of
- * the SSL library.  It also invokes the version checking functions
- * of the dependent libraries such as NSPR.
+ * the SSL library.
  */
 extern PRBool NSSSSL_VersionCheck(const char *importedVersion);
 

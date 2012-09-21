@@ -125,8 +125,7 @@ NSS_SMIMEUtil_FindBulkAlgForRecipients(CERTCertificate **rcerts, SECOidTag *bulk
  * The only argument is a string, which should be the version
  * identifier of the NSS library. That string will be compared
  * against a string that represents the actual build version of
- * the S/MIME library.  It also invokes the version checking functions
- * of the dependent libraries such as NSPR.
+ * the S/MIME library.
  */
 extern PRBool NSSSMIME_VersionCheck(const char *importedVersion);
 
