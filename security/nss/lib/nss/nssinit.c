@@ -1267,10 +1267,6 @@ NSS_VersionCheck(const char *importedVersion)
         vpatch == NSS_VPATCH && vbuild > NSS_VBUILD) {
         return PR_FALSE;
     }
-    /* Check dependent libraries */
-    if (PR_VersionCheck(PR_VERSION) == PR_FALSE) {
-        return PR_FALSE;
-    }
     return PR_TRUE;
 }
 
