@@ -1725,8 +1725,8 @@ ssl3_HandleUseSRTPXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
 {
     SECStatus rv;
     SECItem ciphers = {siBuffer, NULL, 0};
-    PRInt16 i;
-    PRInt16 j;
+    PRUint16 i;
+    unsigned int j;
     PRUint16 cipher = 0;
     PRBool found = PR_FALSE;
     SECItem litem;
