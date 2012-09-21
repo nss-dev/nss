@@ -1547,7 +1547,7 @@ SECStatus SSL_SetSRTPCiphers(PRFileDesc *fd,
 			     unsigned int numCiphers)
 {
     sslSocket *ss;
-    int i;
+    unsigned int i;
 
     ss = ssl_FindSocket(fd);
     if (!ss || !IS_DTLS(ss)) {
