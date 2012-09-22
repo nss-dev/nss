@@ -1,5 +1,5 @@
 /*
- *  mpi_x86.c - MSVC inline assembly implementation of s_mpv_ functions.
+ *  mpi_x86_asm.c - MSVC inline assembly implementation of s_mpv_ functions.
  * 
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
