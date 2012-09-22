@@ -317,11 +317,11 @@ cleanup:
 ** step 11.2 of FIPS 186-3 Appendix A.1.1.2 .
 */
 static SECStatus
-addToSeedThenHash( HASH_HashType   hashtype,
-                 const SECItem * seed,
-                 unsigned long   addend,
-                 int             seedlen, /* g in 186-1 */
-                 unsigned char * hashOutBuf)
+addToSeedThenHash(HASH_HashType   hashtype,
+                  const SECItem * seed,
+                  unsigned long   addend,
+                  int             seedlen, /* g in 186-1 */
+                  unsigned char * hashOutBuf)
 {
     SECItem str = { 0, 0, 0 };
     SECStatus rv;

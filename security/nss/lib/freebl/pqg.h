@@ -22,4 +22,4 @@ SECStatus PQG_Check(const PQGParams *params);
 /* Return the prefered hash algorithm for the given PQGParameters. */
 HASH_HashType PQG_GetHashType(const PQGParams *params);
 
-#endif
+#endif /* _PQG_H_ */
