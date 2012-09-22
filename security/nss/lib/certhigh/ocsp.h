@@ -121,11 +121,11 @@ CERT_DisableOCSPChecking(CERTCertDBHandle *handle);
  * INPUTS:
  *   CERTCertDBHandle *handle
  *     Cert database on which OCSP checking should use the default responder.
- *   char *url
+ *   const char *url
  *     The location of the default responder (e.g. "http://foo.com:80/ocsp")
  *     Note that the location will not be tested until the first attempt
  *     to send a request there.
- *   char *name
+ *   const char *name
  *     The nickname of the cert to trust (expected) to sign the OCSP responses.
  *     If the corresponding cert cannot be found, SECFailure is returned.
  * RETURN:
@@ -331,7 +331,7 @@ CERT_DestroyOCSPResponse(CERTOCSPResponse *response);
  *     must be handled by the caller (and thus by having multiple calls
  *     to this routine), who knows about where the request(s) are being
  *     sent and whether there are any trusted responders in place.
- *   char *location
+ *   const char *location
  *     The location of the OCSP responder (a URL).
  *   PRTime time
  *     Indicates the time for which the certificate status is to be 
@@ -450,12 +450,12 @@ CERT_RegisterAlternateOCSPAIAInfoCallBack(
  *   const char *url
  *     The URI to be parsed
  * OUTPUTS:
- *   char *pHostname
+ *   char **pHostname
  *     Pointer to store the hostname obtained from the URI.
  *     This result should be freed (via PORT_Free) when no longer in use.
  *   PRUint16 *pPort
  *     Pointer to store the port number obtained from the URI.
- *   char *pPath
+ *   char **pPath
  *     Pointer to store the path obtained from the URI.
  *     This result should be freed (via PORT_Free) when no longer in use.
  * RETURN:
