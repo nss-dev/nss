@@ -301,7 +301,7 @@ BLAPI_SHVerifyFile(const char *shName)
     PRFileDesc *checkFD = NULL;
     PRFileDesc *shFD = NULL;
     void  *hashcx = NULL;
-    SECHashObject *hashObj = NULL;
+    const SECHashObject *hashObj = NULL;
     SECItem signature = { 0, NULL, 0 };
     SECItem hash;
     int bytesRead, offset;
