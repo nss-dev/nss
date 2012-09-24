@@ -451,11 +451,6 @@ ssl_DestroySocketContents(sslSocket *ss)
 void
 ssl_FreeSocket(sslSocket *ss)
 {
-#ifdef DEBUG
-    sslSocket *fs;
-    sslSocket  lSock;
-#endif
-
 /* Get every lock you can imagine!
 ** Caller already holds these:
 **  SSL_LOCK_READER(ss);
@@ -467,31 +462,25 @@ ssl_FreeSocket(sslSocket *ss)
     ssl_GetXmitBufLock(ss);
     ssl_GetSpecWriteLock(ss);
 
-#ifdef DEBUG
-    fs = &lSock;
-    *fs = *ss;				/* Copy the old socket structure, */
-    PORT_Memset(ss, 0x1f, sizeof *ss);  /* then blast the old struct ASAP. */
-#else
-#define fs ss
-#endif
-
-    ssl_DestroySocketContents(fs);
+    ssl_DestroySocketContents(ss);
 
     /* Release all the locks acquired above.  */
-    SSL_UNLOCK_READER(fs);
-    SSL_UNLOCK_WRITER(fs);
-    ssl_Release1stHandshakeLock(fs);
-    ssl_ReleaseRecvBufLock(fs);
-    ssl_ReleaseSSL3HandshakeLock(fs);
-    ssl_ReleaseXmitBufLock(fs);
-    ssl_ReleaseSpecWriteLock(fs);
+    SSL_UNLOCK_READER(ss);
+    SSL_UNLOCK_WRITER(ss);
+    ssl_Release1stHandshakeLock(ss);
+    ssl_ReleaseRecvBufLock(ss);
+    ssl_ReleaseSSL3HandshakeLock(ss);
+    ssl_ReleaseXmitBufLock(ss);
+    ssl_ReleaseSpecWriteLock(ss);
 
-    ssl_DestroyLocks(fs);
+    ssl_DestroyLocks(ss);
 
-    PORT_Free(ss);	/* free the caller's copy, not ours. */
+#ifdef DEBUG
+    PORT_Memset(ss, 0x1f, sizeof *ss);
+#endif
+    PORT_Free(ss);
     return;
 }
-#undef fs
 
 /************************************************************************/
 SECStatus 
