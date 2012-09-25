@@ -39,15 +39,12 @@ Usage(void)
     fprintf(stderr, "Usage:  %s\n", progName);
     fprintf(stderr, 
 "-a   Output DER-encoded PQG params, BTOA encoded.\n"
-"     -l prime-length       Length of prime in bits (1024 is default)\n"
-"     -o file               Output to this file (default is stdout)\n"
 "-b   Output DER-encoded PQG params in binary\n"
-"     -l prime-length       Length of prime in bits (1024 is default)\n"
-"     -o file               Output to this file (default is stdout)\n"
 "-r   Output P, Q and G in ASCII hexadecimal. \n"
-"     -l prime-length       Length of prime in bits (1024 is default)\n"
-"     -o file               Output to this file (default is stdout)\n"   
-"-g bits       Generate SEED this many bits long.\n"
+"  -l prime-length       Length of prime in bits (1024 is default)\n"
+"  -n subprime-length    Length of subprime in bits\n"
+"  -o file               Output to this file (default is stdout)\n"
+"  -g bits               Generate SEED this many bits long.\n"
 );
     exit(-1);
 
@@ -178,8 +175,10 @@ main(int argc, char **argv)
     PQGParams     * pqgParams 		= NULL;
     PQGVerify     * pqgVerify           = NULL;
     int             keySizeInBits	= 1024;
-    int             j;
+    int             j                   = 8;
     int             g                   = 0;
+    int             gMax                = 0;
+    int             qSizeInBits         = 0;
     SECStatus       rv 			= 0;
     SECStatus       passed 		= 0;
     PRBool          output_ascii	= PR_FALSE;
@@ -195,12 +194,16 @@ main(int argc, char **argv)
     progName = progName ? progName+1 : argv[0];
 
     /* Parse command line arguments */
-    optstate = PL_CreateOptState(argc, argv, "?abg:l:o:r" );
+    optstate = PL_CreateOptState(argc, argv, "?abg:l:n:o:r" );
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch (optstate->option) {
 
 	  case 'l':
 	    keySizeInBits = atoi(optstate->value);
+	    break;
+
+	  case 'n':
+	    qSizeInBits = atoi(optstate->value);
 	    break;
 
 	  case 'a':
@@ -229,6 +232,7 @@ main(int argc, char **argv)
 	    g = atoi(optstate->value);
 	    break;
 
+
 	  default:
 	  case '?':
 	    Usage();
@@ -249,17 +253,33 @@ main(int argc, char **argv)
 	Usage();
     }
 
-    j = PQG_PBITS_TO_INDEX(keySizeInBits);
-    if (j < 0) {
-	fprintf(stderr, "%s: Illegal prime length, \n"
-			"\tacceptable values are between 512 and 1024,\n"
-			"\tand divisible by 64\n", progName);
-	return 2;
-    }
-    if (g != 0 && (g < 160 || g >= 2048 || g % 8 != 0)) {
+    gMax = 2*keySizeInBits;
+    if (keySizeInBits < 1024) {
+	j = PQG_PBITS_TO_INDEX(keySizeInBits);
+	if (j < 0) {
+	    fprintf(stderr, "%s: Illegal prime length, \n"
+			    "\tacceptable values are between 512 and 1024,\n"
+			    "\tand divisible by 64, or 2048 or 3072\n",
+			    progName);
+	    return 2;
+	}
+	gMax =2048;
+	if ((qSizeInBits != 0) && (qSizeInBits != 160)) {
+	    fprintf(stderr, "%s: Illegal subprime length, \n"
+			    "\tonly 160 is acceptible for primes <= 1024\n",
+			    progName);
+	    return 2;
+	}
+	/* this forces keysizes less than 1024 into the DSA1 generation
+	 * code. Whether 1024 uses DSA2 or not is triggered by qSizeInBits
+	 * being non-zero. All larger keysizes will use DSA2.
+	 */
+	qSizeInBits = 0; 
+    } 
+    if (g != 0 && (g < 160 || g >= gMax || g % 8 != 0)) {
 	fprintf(stderr, "%s: Illegal g bits, \n"
-			"\tacceptable values are between 160 and 2040,\n"
-			"\tand divisible by 8\n", progName);
+			"\tacceptable values are between 160 and %d,\n"
+			"\tand divisible by 8\n", progName, gMax);
 	return 3;
     }
 
@@ -285,11 +305,15 @@ main(int argc, char **argv)
 
     NSS_NoDB_Init(NULL);
 
-    if (g) 
+    if (keySizeInBits > 1024 || qSizeInBits != 0) {
+	rv = PK11_PQG_ParamGenV2((unsigned)keySizeInBits, 
+	   (unsigned) qSizeInBits, (unsigned)(g/8), &pqgParams, &pqgVerify);
+    } else if (g) {
 	rv = PK11_PQG_ParamGenSeedLen((unsigned)j, (unsigned)(g/8), 
 	                         &pqgParams, &pqgVerify);
-    else 
+    } else  {
 	rv = PK11_PQG_ParamGen((unsigned)j, &pqgParams, &pqgVerify);
+    }
     /* below here, must go to loser */
 
     if (rv != SECSuccess || pqgParams == NULL || pqgVerify == NULL) {
