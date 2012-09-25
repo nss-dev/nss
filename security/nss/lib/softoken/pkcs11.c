@@ -2674,7 +2674,6 @@ NSC_ModuleDBFunc(unsigned long function,char *parameters, void *args)
 	    char *oldSecmod = NULL;
 	    char *oldAppName = NULL;
 	    char *oldFilename = NULL;
-	    char *end;
 	    PRBool oldrw;
 	    char **strings = NULL;
 	    int i;
