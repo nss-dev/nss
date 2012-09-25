@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /* 
- *  The following code handles the storage of PKCS 11 modules used by the
+ * The following code handles the storage of PKCS 11 modules used by the
  * NSS. This file is written to abstract away how the modules are
- * stored so we can deside that later.
+ * stored so we can decide that later.
  */
 #include "secport.h"
 #include "prprf.h" 
@@ -359,7 +359,7 @@ nssutil_escapeQuotes(const char *string, char quote, PRBool addquotes)
 int
 NSSUTIL_EscapeSize(const char *string, char quote)
 {
-     return nssutil_escapeQuotesSize(string, quote, PR_TRUE);
+     return nssutil_escapeQuotesSize(string, quote, PR_FALSE);
 }
 
 char *
