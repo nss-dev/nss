@@ -2,37 +2,35 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /* 
- *  The following code handles the storage of PKCS 11 modules used by the
+ * The following code handles the storage of PKCS 11 modules used by the
  * NSS. For the rest of NSS, only one kind of database handle exists:
  *
  *     SFTKDBHandle
  *
- * There is one SFTKDBHandle for the each key database and one for each cert 
+ * There is one SFTKDBHandle for each key database and one for each cert 
  * database. These databases are opened as associated pairs, one pair per
  * slot. SFTKDBHandles are reference counted objects.
  *
  * Each SFTKDBHandle points to a low level database handle (SDB). This handle
  * represents the underlying physical database. These objects are not 
- * reference counted, an are 'owned' by their respective SFTKDBHandles.
- *
- *  
+ * reference counted, and are 'owned' by their respective SFTKDBHandles.
  */
+
 #include "prprf.h" 
 #include "prsystem.h"
 #include "lgglue.h"
-/*#include "secmodt.h" */
+#include "utilpars.h" 
+#include "secerr.h"
 #if defined (_WIN32)
 #include <io.h>
 #endif
-#include "utilpars.h" 
-#include "secerr.h"
 
 /****************************************************************
  *
  * Secmod database.
  *
  * The new secmod database is simply a text file with each of the module
- * entries. in the following form:
+ * entries in the following form:
  *
  * #
  * # This is a comment The next line is the library to load

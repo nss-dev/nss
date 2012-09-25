@@ -1,6 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef _UTILPARS_H_
+#define _UTILPARS_H_ 1
+
 #include "utilparst.h"
 
 /* handle a module db request */
@@ -42,11 +46,10 @@ char * NSSUTIL_MkNSSString(char **slotStrings, int slotCount, PRBool internal,
           PRBool isCritical, unsigned long trustOrder,
           unsigned long cipherOrder, unsigned long ssl0, unsigned long ssl1);
 
-
-
-
 /*
  * private functions for softoken.
  */
 char * _NSSUTIL_GetSecmodName(char *param, NSSDBType *dbType, char **appName, char **filename,PRBool *rw);
 const char *_NSSUTIL_EvaluateConfigDir(const char *configdir, NSSDBType *dbType, char **app);
+
+#endif /* _UTILPARS_H_ */
