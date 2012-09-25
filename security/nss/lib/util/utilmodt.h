@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #ifndef _UTILMODT_H_
 #define _UTILMODT_H_ 1
 
@@ -37,4 +38,5 @@
 /* need to make SECMOD and PK11 prefixes consistent. */
 #define SECMOD_OWN_PW_DEFAULTS PK11_OWN_PW_DEFAULTS
 #define SECMOD_DISABLE_FLAG    PK11_DISABLE_FLAG
-#endif
+
+#endif /* _UTILMODT_H_ */
