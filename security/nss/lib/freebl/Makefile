@@ -173,6 +173,15 @@ ifeq ($(USE_N32),1)
 endif
 endif
 
+ifeq ($(OS_TARGET),Darwin)
+ifeq ($(CPU_ARCH),x86)
+    ASFILES  = mpi_sse2.s
+    DEFINES += -DMP_USE_UINT_DIGIT
+    DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE
+    DEFINES += -DMP_ASSEMBLY_DIV_2DX1D
+endif
+endif # Darwin
+
 ifeq ($(OS_TARGET),Linux)
 ifeq ($(CPU_ARCH),x86_64)
     ASFILES  = arcfour-amd64-gas.s mpi_amd64_gas.s
