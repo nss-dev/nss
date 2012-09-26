@@ -29,13 +29,13 @@ if [ ! -x mpi-test ] ; then
 fi
 
 # Get the list of available test suites...
-tests=`mpi-test list | awk '{print $1}'`
+tests=`./mpi-test list | awk '{print $1}'`
 errs=0
 
 # Run each test suite and check the result code of mpi-test
 for test in $tests ; do
   $ECHO "$test ... \c"
-  if mpi-test $test ; then
+  if ./mpi-test $test ; then
     $ECHO "passed"
   else
     $ECHO "FAILED"
