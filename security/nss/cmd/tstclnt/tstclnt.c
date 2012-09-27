@@ -9,6 +9,7 @@
 */
 
 #include "secutil.h"
+#include "basicutil.h"
 
 #if defined(XP_UNIX)
 #include <unistd.h>
@@ -159,13 +160,18 @@ handshakeCallback(PRFileDesc *fd, void *client_data)
     }
 }
 
-static void Usage(const char *progName)
+static void PrintUsageHeader(const char *progName)
 {
     fprintf(stderr, 
 "Usage:  %s -h host [-a 1st_hs_name ] [-a 2nd_hs_name ] [-p port]\n"
-                    "[-d certdir] [-n nickname] [-23BTafosvx] [-c ciphers]\n"
+                    "[-d certdir] [-n nickname] [-Bafosvx] [-c ciphers] [-Y]\n"
+                    "[-V [min-version]:[max-version]]\n"
                     "[-r N] [-w passwd] [-W pwfile] [-q [-t seconds]]\n", 
             progName);
+}
+
+static void PrintParameterUsage(void)
+{
     fprintf(stderr, "%-20s Send different SNI name. 1st_hs_name - at first\n"
                     "%-20s handshake, 2nd_hs_name - at second handshake.\n"
                     "%-20s Default is host from the -h argument.\n", "-a name",
@@ -179,9 +185,12 @@ static void Usage(const char *progName)
                     "-n nickname");
     fprintf(stderr, 
             "%-20s Bypass PKCS11 layer for SSL encryption and MACing.\n", "-B");
-    fprintf(stderr, "%-20s Disable SSL v2.\n", "-2");
-    fprintf(stderr, "%-20s Disable SSL v3.\n", "-3");
-    fprintf(stderr, "%-20s Disable TLS (SSL v3.1).\n", "-T");
+    fprintf(stderr, 
+            "%-20s Restricts the set of enabled SSL/TLS protocols versions.\n"
+            "%-20s All versions are enabled by default.\n"
+            "%-20s Possible values for min/max: ssl2 ssl3 tls1.0 tls1.1\n"
+            "%-20s Example: \"-V ssl3:\" enables SSL 3 and newer.\n",
+            "-V [min]:[max]", "", "", "");
     fprintf(stderr, "%-20s Prints only payload data. Skips HTTP header.\n", "-S");
     fprintf(stderr, "%-20s Client speaks first. \n", "-f");
     fprintf(stderr, "%-20s Use synchronous certificate validation "
@@ -196,6 +205,20 @@ static void Usage(const char *progName)
     fprintf(stderr, "%-20s Enable the session ticket extension.\n", "-u");
     fprintf(stderr, "%-20s Enable compression.\n", "-z");
     fprintf(stderr, "%-20s Enable false start.\n", "-g");
+    fprintf(stderr, "%-20s Restrict ciphers\n", "-c ciphers");
+    fprintf(stderr, "%-20s Print cipher values allowed for parameter -c and exit\n", "-Y");
+}
+
+static void Usage(const char *progName)
+{
+    PrintUsageHeader(progName);
+    PrintParameterUsage();
+    exit(1);
+}
+
+static void PrintCipherUsage(const char *progName)
+{
+    PrintUsageHeader(progName);
     fprintf(stderr, "%-20s Letter(s) chosen from the following list\n", 
                     "-c ciphers");
     fprintf(stderr, 
@@ -545,9 +568,8 @@ int main(int argc, char **argv)
     PRInt32            filesReady;
     int                npds;
     int                override = 0;
-    int                disableSSL2 = 0;
-    int                disableSSL3 = 0;
-    int                disableTLS  = 0;
+    SSLVersionRange    enabledVersions;
+    PRBool             enableSSL2 = PR_TRUE;
     int                bypassPKCS11 = 0;
     int                disableLocking = 0;
     int                useExportPolicy = 0;
@@ -589,16 +611,14 @@ int main(int argc, char **argv)
        }
     }
 
+    SSL_VersionRangeGetSupported(ssl_variant_stream, &enabledVersions);
+
     optstate = PL_CreateOptState(argc, argv,
-                                 "23BOSTW:a:c:d:fgh:m:n:op:qr:st:uvw:xz");
+                                 "BOSV:W:Ya:c:d:fgh:m:n:op:qr:st:uvw:xz");
     while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch (optstate->option) {
 	  case '?':
 	  default : Usage(progName); 			break;
-
-          case '2': disableSSL2 = 1; 			break;
-
-          case '3': disableSSL3 = 1; 			break;
 
           case 'B': bypassPKCS11 = 1; 			break;
 
@@ -606,7 +626,14 @@ int main(int argc, char **argv)
 
           case 'S': skipProtoHeader = PR_TRUE;                 break;
 
-          case 'T': disableTLS  = 1; 			break;
+          case 'V': if (SECU_ParseSSLVersionRangeString(optstate->value,
+                            enabledVersions, enableSSL2,
+                            &enabledVersions, &enableSSL2) != SECSuccess) {
+                        Usage(progName);
+                    }
+                    break;
+
+          case 'Y': PrintCipherUsage(progName); exit(0); break;
 
           case 'a': if (!hs1SniHostName) {
                         hs1SniHostName = PORT_Strdup(optstate->value);
@@ -856,28 +883,22 @@ int main(int argc, char **argv)
 	PORT_Free(cstringSaved);
     }
 
-    rv = SSL_OptionSet(s, SSL_ENABLE_SSL2, !disableSSL2);
+    rv = SSL_VersionRangeSet(s, &enabledVersions);
     if (rv != SECSuccess) {
-	SECU_PrintError(progName, "error enabling SSLv2 ");
-	return 1;
+        SECU_PrintError(progName, "error setting SSL/TLS version range ");
+        return 1;
     }
 
-    rv = SSL_OptionSet(s, SSL_ENABLE_SSL3, !disableSSL3);
+    rv = SSL_OptionSet(s, SSL_ENABLE_SSL2, enableSSL2);
     if (rv != SECSuccess) {
-	SECU_PrintError(progName, "error enabling SSLv3 ");
-	return 1;
+       SECU_PrintError(progName, "error enabling SSLv2 ");
+       return 1;
     }
 
-    rv = SSL_OptionSet(s, SSL_ENABLE_TLS, !disableTLS);
+    rv = SSL_OptionSet(s, SSL_V2_COMPATIBLE_HELLO, enableSSL2);
     if (rv != SECSuccess) {
-	SECU_PrintError(progName, "error enabling TLS ");
-	return 1;
-    }
-
-    rv = SSL_OptionSet(s, SSL_V2_COMPATIBLE_HELLO, !disableSSL2);
-    if (rv != SECSuccess) {
-	SECU_PrintError(progName, "error enabling SSLv2 compatible hellos ");
-	return 1;
+        SECU_PrintError(progName, "error enabling SSLv2 compatible hellos ");
+        return 1;
     }
 
     /* enable PKCS11 bypass */

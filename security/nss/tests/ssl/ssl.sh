@@ -266,6 +266,9 @@ ssl_cov()
 
   mixed=0
   start_selfserv # Launch the server
+
+  VMIN="ssl2"
+  VMAX="tls1.0"
                
   exec < ${SSLCOV}
   while read ectype tls param testname
@@ -278,11 +281,13 @@ ssl_cov()
       if [ "${SSL2}" -eq 0 ] ; then
           # We cannot use asynchronous cert verification with SSL2
           SSL2_FLAGS=-O
+          VMIN="ssl2"
       else
           # Do not enable SSL2 for non-SSL2-specific tests. SSL2 is disabled by
           # default in libssl but it is enabled by default in tstclnt; we want
           # to test the libssl default whenever possible.
-          SSL2_FLAGS=-2
+          SSL2_FLAGS=
+          VMIN="ssl3"
       fi
       
       if [ "$NORM_EXT" = "Extended Test" -a "${SSL2}" -eq 0 ] ; then
@@ -293,9 +298,9 @@ ssl_cov()
           echo "$SCRIPTNAME: skipping  $testname (non-FIPS only)"
       elif [ "`echo $ectype | cut -b 1`" != "#" ] ; then
           echo "$SCRIPTNAME: running $testname ----------------------------"
-          TLS_FLAG=-T
+          VMAX="ssl3"
           if [ "$tls" = "TLS" ]; then
-              TLS_FLAG=""
+              VMAX="tls1.0"
           fi
 
 # These five tests need an EC cert signed with RSA
@@ -326,11 +331,11 @@ ssl_cov()
             fi
           fi
 
-          echo "tstclnt -p ${PORT} -h ${HOSTADDR} -c ${param} ${TLS_FLAG} ${SSL2_FLAGS} ${CLIENT_OPTIONS} \\"
+          echo "tstclnt -p ${PORT} -h ${HOSTADDR} -c ${param} -V ${VMIN}:${VMAX} ${SSL2_FLAGS} ${CLIENT_OPTIONS} \\"
           echo "        -f -d ${P_R_CLIENTDIR} -v -w nss < ${REQUEST_FILE}"
 
           rm ${TMP}/$HOST.tmp.$$ 2>/dev/null
-          ${PROFTOOL} ${BINDIR}/tstclnt -p ${PORT} -h ${HOSTADDR} -c ${param} ${TLS_FLAG} ${SSL2_FLAGS} ${CLIENT_OPTIONS} -f \
+          ${PROFTOOL} ${BINDIR}/tstclnt -p ${PORT} -h ${HOSTADDR} -c ${param} -V ${VMIN}:${VMAX} ${SSL2_FLAGS} ${CLIENT_OPTIONS} -f \
                   -d ${P_R_CLIENTDIR} -v -w nss < ${REQUEST_FILE} \
                   >${TMP}/$HOST.tmp.$$  2>&1
           ret=$?
@@ -617,13 +622,13 @@ load_group_crl() {
         echo "================= Reloading ${eccomment}CRL for group $grpBegin - $grpEnd ============="
 
         echo "tstclnt -p ${PORT} -h ${HOSTADDR} -f -d ${R_CLIENTDIR} -v \\"
-        echo "          -2 -w nss -n TestUser${UNREVOKED_CERT_GRP_1}${ecsuffix}"
+        echo "          -V ssl3: -w nss -n TestUser${UNREVOKED_CERT_GRP_1}${ecsuffix}"
         echo "Request:"
         echo "GET crl://${SERVERDIR}/root.crl_${grpBegin}-${grpEnd}${ecsuffix}"
         echo ""
         echo "RELOAD time $i"
         ${PROFTOOL} ${BINDIR}/tstclnt -p ${PORT} -h ${HOSTADDR} -f  \
-            -d ${R_CLIENTDIR} -v -2 -w nss -n TestUser${UNREVOKED_CERT_GRP_1}${ecsuffix} \
+            -d ${R_CLIENTDIR} -v -V ssl3: -w nss -n TestUser${UNREVOKED_CERT_GRP_1}${ecsuffix} \
 	    >${OUTFILE_TMP}  2>&1 <<_EOF_REQUEST_
 GET crl://${SERVERDIR}/root.crl_${grpBegin}-${grpEnd}${ecsuffix}
 

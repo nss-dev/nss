@@ -136,22 +136,29 @@ static PRLogModuleInfo *lm;
 #define VLOG(arg) PR_LOG(lm,PR_LOG_DEBUG,arg)
 
 static void
-Usage(const char *progName)
+PrintUsageHeader(const char *progName)
 {
     fprintf(stderr, 
-
-"Usage: %s -n rsa_nickname -p port [-3BDENRSTbjlmrsuvx] [-w password]\n"
-"         [-t threads] [-i pid_file] [-c ciphers] [-d dbdir] [-g numblocks]\n"
+"Usage: %s -n rsa_nickname -p port [-BDENRbjlmrsuvx] [-w password]\n"
+"         [-t threads] [-i pid_file] [-c ciphers] [-Y] [-d dbdir] [-g numblocks]\n"
 "         [-f password_file] [-L [seconds]] [-M maxProcs] [-P dbprefix]\n"
-"         [-a sni_name]\n"
+"         [-V [min-version]:[max-version]] [-a sni_name]\n"
 #ifdef NSS_ENABLE_ECC
 "         [-C SSLCacheEntries] [-e ec_nickname]\n"
 #else
 "         [-C SSLCacheEntries]\n"
 #endif /* NSS_ENABLE_ECC */
-"-S means disable SSL v2\n"
-"-3 means disable SSL v3\n"
-"-T means disable TLS\n"
+        ,progName);
+}
+
+static void
+PrintParameterUsage()
+{
+    fputs(
+"-V [min]:[max] restricts the set of enabled SSL/TLS protocol versions.\n"
+"   All versions are enabled by default.\n"
+"   Possible values for min/max: ssl2 ssl3 tls1.0 tls1.1\n"
+"   Example: \"-V ssl3:\" enables SSL 3 and newer.\n"
 "-B bypasses the PKCS11 layer for SSL encryption and MACing\n"
 "-q checks for bypassability\n"
 "-D means disable Nagle delays in TCP\n"
@@ -182,6 +189,23 @@ Usage(const char *progName)
 "-j means measure TCP throughput (for use with -g option)\n"
 "-C SSLCacheEntries sets the maximum number of entries in the SSL\n" 
 "    session cache\n"
+"-c Restrict ciphers\n"
+"-Y prints cipher values allowed for parameter -c and exits\n"
+    , stderr);
+}
+
+static void
+Usage(const char *progName)
+{
+    PrintUsageHeader(progName);
+    PrintParameterUsage();
+}
+
+static void
+PrintCipherUsage(const char *progName)
+{
+    PrintUsageHeader(progName);
+    fputs(
 "-c ciphers   Letter(s) chosen from the following list\n"
 "A    SSL2 RC4 128 WITH MD5\n"
 "B    SSL2 RC4 128 EXPORT40 WITH MD5\n"
@@ -206,7 +230,7 @@ Usage(const char *progName)
 "z    SSL3 RSA WITH NULL SHA\n"
 "\n"
 ":WXYZ  Use cipher with hex code { 0xWX , 0xYZ } in TLS\n"
-	,progName);
+    , stderr);
 }
 
 static const char *
@@ -756,9 +780,8 @@ logger(void *arg)
 **************************************************************************/
 
 PRBool useModelSocket  = PR_FALSE;
-PRBool disableSSL2     = PR_FALSE;
-PRBool disableSSL3     = PR_FALSE;
-PRBool disableTLS      = PR_FALSE;
+static SSLVersionRange enabledVersions;
+PRBool enableSSL2      = PR_TRUE;
 PRBool disableRollBack = PR_FALSE;
 PRBool NoReuse         = PR_FALSE;
 PRBool hasSidCache     = PR_FALSE;
@@ -1618,27 +1641,22 @@ server_main(
     }
 
     /* do SSL configuration. */
-    rv = SSL_OptionSet(model_sock, SSL_SECURITY,
-        !(disableSSL2 && disableSSL3 && disableTLS));
+    rv = SSL_OptionSet(model_sock, SSL_SECURITY, 
+                       enableSSL2 || enabledVersions.min != 0);
     if (rv < 0) {
 	errExit("SSL_OptionSet SSL_SECURITY");
     }
 
-    rv = SSL_OptionSet(model_sock, SSL_ENABLE_SSL3, !disableSSL3);
+    rv = SSL_VersionRangeSet(model_sock, &enabledVersions);
     if (rv != SECSuccess) {
-	errExit("error enabling SSLv3 ");
+	errExit("error setting SSL/TLS version range ");
     }
 
-    rv = SSL_OptionSet(model_sock, SSL_ENABLE_TLS, !disableTLS);
+    rv = SSL_OptionSet(model_sock, SSL_ENABLE_SSL2, enableSSL2);
     if (rv != SECSuccess) {
-	errExit("error enabling TLS ");
+       errExit("error enabling SSLv2 ");
     }
 
-    rv = SSL_OptionSet(model_sock, SSL_ENABLE_SSL2, !disableSSL2);
-    if (rv != SECSuccess) {
-	errExit("error enabling SSLv2 ");
-    }
-    
     rv = SSL_OptionSet(model_sock, SSL_ROLLBACK_DETECTION, !disableRollBack);
     if (rv != SECSuccess) {
 	errExit("error enabling RollBack detection ");
@@ -1914,18 +1932,17 @@ main(int argc, char **argv)
     progName = progName ? progName + 1 : tmp;
 
     PR_Init( PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    SSL_VersionRangeGetSupported(ssl_variant_stream, &enabledVersions);
 
     /* please keep this list of options in ASCII collating sequence.
     ** numbers, then capital letters, then lower case, alphabetical. 
     */
     optstate = PL_CreateOptState(argc, argv, 
-        "2:3BC:DEL:M:NP:RSTa:bc:d:e:f:g:hi:jk:lmn:op:qrst:uvw:xyz");
+        "2:BC:DEL:M:NP:RV:Ya:bc:d:e:f:g:hi:jk:lmn:op:qrst:uvw:xyz");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	++optionsFound;
 	switch(optstate->option) {
 	case '2': fileName = optstate->value; break;
-
-	case '3': disableSSL3 = PR_TRUE; break;
 
 	case 'B': bypassPKCS11 = PR_TRUE; break;
 
@@ -1953,11 +1970,16 @@ main(int argc, char **argv)
 	case 'N': NoReuse = PR_TRUE; break;
 
 	case 'R': disableRollBack = PR_TRUE; break;
+
+        case 'V': if (SECU_ParseSSLVersionRangeString(optstate->value,
+                          enabledVersions, enableSSL2,
+                          &enabledVersions, &enableSSL2) != SECSuccess) {
+                      Usage(progName);
+                  }
+                  break;
+
+        case 'Y': PrintCipherUsage(progName); exit(0); break;
         
-        case 'S': disableSSL2 = PR_TRUE; break;
-
-	case 'T': disableTLS = PR_TRUE; break;
-
 	case 'a': if (virtServerNameIndex >= MAX_VIRT_SERVER_NAME_ARRAY_INDEX) {
                       Usage(progName);
                   }
@@ -2258,8 +2280,20 @@ main(int argc, char **argv)
 				    && enabled)
 		savecipher(*cipherSuites);		    
 	}
-	protos = (disableTLS ? 0 : SSL_CBP_TLS1_0) +
-		 (disableSSL3 ? 0 : SSL_CBP_SSL3);
+        protos = 0;
+        if (enabledVersions.min <= SSL_LIBRARY_VERSION_3_0 &&
+            enabledVersions.max >= SSL_LIBRARY_VERSION_3_0) {
+            protos |= SSL_CBP_SSL3;
+        }
+        if (enabledVersions.min <= SSL_LIBRARY_VERSION_TLS_1_0 &&
+            enabledVersions.max >= SSL_LIBRARY_VERSION_TLS_1_0) {
+            protos |= SSL_CBP_TLS1_0;
+        }
+        /* TLS 1.1 has the same SSL Bypass mode requirements as TLS 1.0 */
+        if (enabledVersions.min <= SSL_LIBRARY_VERSION_TLS_1_1 &&
+            enabledVersions.max >= SSL_LIBRARY_VERSION_TLS_1_1) {
+            protos |= SSL_CBP_TLS1_0;
+        }
     }
 
     if (nickName) {
