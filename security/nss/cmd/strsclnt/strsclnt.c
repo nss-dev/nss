@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "secutil.h"
+#include "basicutil.h"
 
 #if defined(XP_UNIX)
 #include <unistd.h>
@@ -122,9 +123,8 @@ static PRInt32 numUsed;
 static SSL3Statistics * ssl3stats;
 
 static int failed_already = 0;
-static PRBool disableSSL2     = PR_FALSE;
-static PRBool disableSSL3     = PR_FALSE;
-static PRBool disableTLS      = PR_FALSE;
+static SSLVersionRange enabledVersions;
+static PRBool enableSSL2      = PR_TRUE;
 static PRBool bypassPKCS11    = PR_FALSE;
 static PRBool disableLocking  = PR_FALSE;
 static PRBool ignoreErrors    = PR_FALSE;
@@ -150,9 +150,9 @@ Usage(const char *progName)
 {
     fprintf(stderr, 
     	"Usage: %s [-n nickname] [-p port] [-d dbdir] [-c connections]\n"
- 	"          [-23BDNTovqs] [-f filename] [-N | -P percentage]\n"
+ 	"          [-BDNovqs] [-f filename] [-N | -P percentage]\n"
 	"          [-w dbpasswd] [-C cipher(s)] [-t threads] [-W pwfile]\n"
-        "          [-a sniHostName] hostname\n"
+        "          [-V [min-version]:[max-version]] [-a sniHostName] hostname\n"
 	" where -v means verbose\n"
         "       -o flag is interpreted as follows:\n"
         "          1 -o   means override the result of server certificate validation.\n"
@@ -162,9 +162,10 @@ Usage(const char *progName)
 	"       -s means disable SSL socket locking\n"
 	"       -N means no session reuse\n"
 	"       -P means do a specified percentage of full handshakes (0-100)\n"
-        "       -2 means disable SSL2\n"
-        "       -3 means disable SSL3\n"
-        "       -T means disable TLS\n"
+        "       -V [min]:[max] restricts the set of enabled SSL/TLS protocols versions.\n"
+        "          All versions are enabled by default.\n"
+        "          Possible values for min/max: ssl2 ssl3 tls1.0 tls1.1\n"
+        "          Example: \"-V ssl3:\" enables SSL 3 and newer.\n"
         "       -U means enable throttling up threads\n"
 	"       -B bypasses the PKCS11 layer for SSL encryption and MACing\n"
 	"       -u enable TLS Session Ticket extension\n"
@@ -1155,29 +1156,24 @@ client_main(
     /* do SSL configuration. */
 
     rv = SSL_OptionSet(model_sock, SSL_SECURITY,
-        !(disableSSL2 && disableSSL3 && disableTLS));
+                       enableSSL2 || enabledVersions.min != 0);
     if (rv < 0) {
 	errExit("SSL_OptionSet SSL_SECURITY");
     }
 
-    rv = SSL_OptionSet(model_sock, SSL_ENABLE_SSL2, !disableSSL2);
+    rv = SSL_VersionRangeSet(model_sock, &enabledVersions);
     if (rv != SECSuccess) {
-	errExit("error enabling SSLv2 ");
+        errExit("error setting SSL/TLS version range ");
     }
 
-    rv = SSL_OptionSet(model_sock, SSL_V2_COMPATIBLE_HELLO, !disableSSL2);
+    rv = SSL_OptionSet(model_sock, SSL_ENABLE_SSL2, enableSSL2);
     if (rv != SECSuccess) {
-	errExit("error enabling SSLv2 compatible hellos ");
+       errExit("error enabling SSLv2 ");
     }
 
-    rv = SSL_OptionSet(model_sock, SSL_ENABLE_SSL3, !disableSSL3);
+    rv = SSL_OptionSet(model_sock, SSL_V2_COMPATIBLE_HELLO, enableSSL2);
     if (rv != SECSuccess) {
-	errExit("error enabling SSLv3 ");
-    }
-
-    rv = SSL_OptionSet(model_sock, SSL_ENABLE_TLS, !disableTLS);
-    if (rv != SECSuccess) {
-	errExit("error enabling TLS ");
+        errExit("error enabling SSLv2 compatible hellos ");
     }
 
     if (bigBuf.data) { /* doing FDX */
@@ -1329,6 +1325,7 @@ main(int argc, char **argv)
 
     /* Call the NSPR initialization routines */
     PR_Init( PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    SSL_VersionRangeGetSupported(ssl_variant_stream, &enabledVersions);
 
     tmp      = strrchr(argv[0], '/');
     tmp      = tmp ? tmp + 1 : argv[0];
@@ -1337,14 +1334,9 @@ main(int argc, char **argv)
  
 
     optstate = PL_CreateOptState(argc, argv,
-                                 "23BC:DNP:TUW:a:c:d:f:gin:op:qst:uvw:z");
+                                 "BC:DNP:UV:W:a:c:d:f:gin:op:qst:uvw:z");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch(optstate->option) {
-
-	case '2': disableSSL2 = PR_TRUE; break;
-
-	case '3': disableSSL3 = PR_TRUE; break;
-
 	case 'B': bypassPKCS11 = PR_TRUE; break;
 
 	case 'C': cipherString = optstate->value; break;
@@ -1355,9 +1347,14 @@ main(int argc, char **argv)
         
 	case 'P': fullhs = PORT_Atoi(optstate->value); break;
 
-	case 'T': disableTLS = PR_TRUE; break;
-            
 	case 'U': ThrottleUp = PR_TRUE; break;
+        
+        case 'V': if (SECU_ParseSSLVersionRangeString(optstate->value,
+                          enabledVersions, enableSSL2,
+                          &enabledVersions, &enableSSL2) != SECSuccess) {
+                      Usage(progName);
+                  }
+                  break;
 
 	case 'a': sniHostName = PL_strdup(optstate->value); break;
 
