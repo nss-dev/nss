@@ -268,10 +268,10 @@ ssl_cov()
   start_selfserv # Launch the server
 
   VMIN="ssl2"
-  VMAX="tls1.0"
+  VMAX="tls1.1"
                
   exec < ${SSLCOV}
-  while read ectype tls param testname
+  while read ectype testmax param testname
   do
       echo "${testname}" | grep "EXPORT" > /dev/null 
       EXP=$?
@@ -299,8 +299,11 @@ ssl_cov()
       elif [ "`echo $ectype | cut -b 1`" != "#" ] ; then
           echo "$SCRIPTNAME: running $testname ----------------------------"
           VMAX="ssl3"
-          if [ "$tls" = "TLS" ]; then
+          if [ "$testmax" = "TLS" ]; then
               VMAX="tls1.0"
+          fi
+          if [ "$testmax" = "TLS11" ]; then
+              VMAX="tls1.1"
           fi
 
 # These five tests need an EC cert signed with RSA
