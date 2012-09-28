@@ -69,8 +69,6 @@ static SECStatus Null_Cipher(void *ctx, unsigned char *output, int *outputLen,
 #define MAX_SEND_BUF_LENGTH 32000 /* watch for 16-bit integer overflow */
 #define MIN_SEND_BUF_LENGTH  4000
 
-#define MAX_CIPHER_SUITES 20
-
 /* This list of SSL3 cipher suites is sorted in descending order of
  * precedence (desirability).  It only includes cipher suites we implement.
  * This table is modified by SSL3_SetPolicy(). The ordering of cipher suites
@@ -5404,8 +5402,10 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
     suite_found = PR_FALSE;
     for (i = 0; i < compressionMethodsCount; i++) {
-	if (temp == compressions[i] &&
-	    compressionEnabled(ss, compressions[i]))  {
+	if (temp == compressions[i]) {
+	    if (!compressionEnabled(ss, compressions[i])) {
+		break;	/* failure */
+	    }
 	    suite_found = PR_TRUE;
 	    break;	/* success */
     	}
@@ -6806,9 +6806,10 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 suite_found:
     /* Look for a matching compression algorithm. */
     for (i = 0; i < comps.len; i++) {
+	if (!compressionEnabled(ss, comps.data[i]))
+	    continue;
 	for (j = 0; j < compressionMethodsCount; j++) {
-	    if (comps.data[i] == compressions[j] &&
-		compressionEnabled(ss, compressions[j])) {
+	    if (comps.data[i] == compressions[j]) {
 		ss->ssl3.hs.compression = 
 					(SSLCompressionMethod)compressions[j];
 		goto compression_found;
