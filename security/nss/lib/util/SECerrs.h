@@ -547,3 +547,7 @@ ER3(SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED,	(SEC_ERROR_BASE + 176),
 
 ER3(SEC_ERROR_LEGACY_DATABASE,			(SEC_ERROR_BASE + 177),
 "The certificate/key database is in an old, unsupported format.")
+
+ER3(SEC_ERROR_APPLICATION_CALLBACK_ERROR,        (SEC_ERROR_BASE + 178),
+"The certificate was rejected by extra checks in the application.")
+

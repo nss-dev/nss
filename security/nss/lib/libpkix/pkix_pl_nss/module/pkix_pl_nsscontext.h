@@ -26,6 +26,7 @@ struct PKIX_PL_NssContextStruct {
         PKIX_UInt32 maxResponseLength;
         PRTime crlReloadDelay;
         PRTime badDerCrlReloadDelay;
+        CERTChainVerifyCallback chainVerifyCallback;
 };
 
 PKIX_Error *

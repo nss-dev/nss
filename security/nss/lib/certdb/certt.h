@@ -855,6 +855,40 @@ typedef struct {
     SECItem inhibitMappingSkipCerts;
 } CERTCertificatePolicyConstraints;
 
+/*
+ * These types are for the validate chain callback param.
+ *
+ * CERTChainVerifyCallback is an application-supplied callback that can be used
+ * to augment libpkix's certificate chain validation with additional
+ * application-specific checks. It may be called multiple times if there are
+ * multiple potentially-valid paths for the certificate being validated. This
+ * callback is called before revocation checking is done on the certificates in
+ * the given chain.
+ *
+ * - isValidChainArg contains the application-provided opaque argument
+ * - currentChain is the currently validated chain. It is ordered with the leaf
+ *   certificate at the head and the trust anchor at the tail.
+ *
+ * The callback should set *chainOK = PR_TRUE and return SECSuccess if the
+ * certificate chain is acceptable. It should set *chainOK = PR_FALSE and
+ * return SECSuccess if the chain is unacceptable, to indicate that the given
+ * chain is bad and path building should continue. It should return SECFailure
+ * to indicate an fatal error that will cause path validation to fail
+ * immediately.
+ */
+typedef SECStatus (*CERTChainVerifyCallbackFunc)
+                                             (void *isChainValidArg,
+                                              const CERTCertList *currentChain,
+                                              PRBool *chainOK);
+
+/*
+ * Note: If extending this structure, it will be necessary to change the
+ * associated CERTValParamInType
+ */
+typedef struct {
+    CERTChainVerifyCallbackFunc isChainValid;
+    void *isChainValidArg;
+} CERTChainVerifyCallback;
 
 /*
  * these types are for the CERT_PKIX* Verification functions
@@ -925,6 +959,10 @@ typedef enum {
    cert_pi_useAIACertFetch = 12, /* Enables cert fetching using AIA extension.
 				 * In NSS 3.12.1 or later. Default is off.
 				 * Value is in value.scalar.b */
+   cert_pi_chainVerifyCallback = 13,
+                                /* The callback container for doing extra
+                                 * validation on the currently calculated chain.
+                                 * Value is in value.pointer.chainVerifyCallback */
    cert_pi_max                  /* SPECIAL: signifies maximum allowed value,
 				 *  can increase in future releases */
 } CERTValParamInType;
@@ -1166,6 +1204,7 @@ typedef struct CERTValParamInValueStr {
         const CERTCertificate* cert;
         const CERTCertList *chain;
         const CERTRevocationFlags *revocation;
+        const CERTChainVerifyCallback *chainVerifyCallback;
     } pointer;
     union {
         const PRInt32  *pi;

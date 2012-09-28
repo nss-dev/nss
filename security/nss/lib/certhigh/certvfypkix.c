@@ -1522,6 +1522,7 @@ cert_pkixSetParam(PKIX_ProcessingParams *procParams,
     PKIX_TrustAnchor *trustAnchor = NULL;
     PKIX_PL_Date *revDate = NULL;
     PKIX_RevocationChecker *revChecker = NULL;
+    PKIX_PL_NssContext *nssContext = (PKIX_PL_NssContext *)plContext;
 
     /* XXX we need a way to map generic PKIX error to generic NSS errors */
 
@@ -1695,7 +1696,21 @@ cert_pkixSetParam(PKIX_ProcessingParams *procParams,
                                      (PRBool)(param->value.scalar.b != 0),
                                                                plContext);
             break;
-            
+
+        case cert_pi_chainVerifyCallback:
+        {
+            const CERTChainVerifyCallback *chainVerifyCallback =
+                param->value.pointer.chainVerifyCallback;
+            if (!chainVerifyCallback || !chainVerifyCallback->isChainValid) {
+                PORT_SetError(errCode);
+                r = SECFailure;
+                break;
+            }
+
+            nssContext->chainVerifyCallback = *chainVerifyCallback;
+        }
+        break;
+
         default:
             PORT_SetError(errCode);
             r = SECFailure;
