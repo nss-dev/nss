@@ -254,7 +254,7 @@ dtls_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 
             /* At this point we are advancing our state machine, so
              * we can free our last flight of messages */
-            dtls_FreeHandshakeMessages(ss->ssl3.hs.lastMessageFlight);
+            dtls_FreeHandshakeMessages(&ss->ssl3.hs.lastMessageFlight);
 	    ss->ssl3.hs.recvdHighWater = -1;
 	    dtls_CancelTimer(ss);
 
@@ -421,7 +421,7 @@ dtls_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 
 		    /* At this point we are advancing our state machine, so
 		     * we can free our last flight of messages */
-		    dtls_FreeHandshakeMessages(ss->ssl3.hs.lastMessageFlight);
+		    dtls_FreeHandshakeMessages(&ss->ssl3.hs.lastMessageFlight);
 		    dtls_CancelTimer(ss);
 
 		    /* If there have been no retries this time, reset the
@@ -465,7 +465,7 @@ SECStatus dtls_QueueMessage(sslSocket *ss, SSL3ContentType type,
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
 	rv = SECFailure;
     } else {
-	PR_APPEND_LINK(&msg->link, ss->ssl3.hs.lastMessageFlight);
+	PR_APPEND_LINK(&msg->link, &ss->ssl3.hs.lastMessageFlight);
     }
 
     return rv;
@@ -591,8 +591,8 @@ dtls_TransmitMessageFlight(sslSocket *ss)
      * stuffed something in ss->pendingBuf
      */
     PORT_Assert(!ss->pendingBuf.len);
-    for (msg_p = PR_LIST_HEAD(ss->ssl3.hs.lastMessageFlight);
-	 msg_p != ss->ssl3.hs.lastMessageFlight;
+    for (msg_p = PR_LIST_HEAD(&ss->ssl3.hs.lastMessageFlight);
+	 msg_p != &ss->ssl3.hs.lastMessageFlight;
 	 msg_p = PR_NEXT_LINK(msg_p)) {
         DTLSQueuedMessage *msg = (DTLSQueuedMessage *)msg_p;
 

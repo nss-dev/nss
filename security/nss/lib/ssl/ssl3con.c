@@ -9939,13 +9939,8 @@ ssl3_InitState(sslSocket *ss)
 	ss->ssl3.hs.recvMessageSeq = 0;
 	ss->ssl3.hs.rtTimeoutMs = INITIAL_DTLS_TIMEOUT_MS;
 	ss->ssl3.hs.rtRetries = 0;
-
-	/* Have to allocate this because ssl_FreeSocket relocates
-	 * this structure in DEBUG mode */
-	if (!(ss->ssl3.hs.lastMessageFlight = PORT_New(PRCList)))
-	    return SECFailure;
 	ss->ssl3.hs.recvdHighWater = -1;
-	PR_INIT_CLIST(ss->ssl3.hs.lastMessageFlight);
+	PR_INIT_CLIST(&ss->ssl3.hs.lastMessageFlight);
 	dtls_SetMTU(ss, 0); /* Set the MTU to the highest plateau */
     }
 
@@ -10275,10 +10270,7 @@ ssl3_DestroySSL3Info(sslSocket *ss)
 
     /* Destroy the DTLS data */
     if (IS_DTLS(ss)) {
-	if (ss->ssl3.hs.lastMessageFlight) {
-	    dtls_FreeHandshakeMessages(ss->ssl3.hs.lastMessageFlight);
-	    PORT_Free(ss->ssl3.hs.lastMessageFlight);
-	}
+	dtls_FreeHandshakeMessages(&ss->ssl3.hs.lastMessageFlight);
 	if (ss->ssl3.hs.recvdFragments.buf) {
 	    PORT_Free(ss->ssl3.hs.recvdFragments.buf);
 	}
