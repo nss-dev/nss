@@ -34,6 +34,9 @@
 /* AES operation modes */
 #define NSS_AES                 0
 #define NSS_AES_CBC             1
+#define NSS_AES_CTS             2
+#define NSS_AES_CTR             3
+#define NSS_AES_GCM             4
 
 /* Camellia operation modes */
 #define NSS_CAMELLIA                 0

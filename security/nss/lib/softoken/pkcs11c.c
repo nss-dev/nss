@@ -436,6 +436,25 @@ sftk_InitGeneric(SFTKSession *session,SFTKSessionContext **contextPtr,
     return CKR_OK;
 }
 
+static int
+sftk_aes_mode(CK_MECHANISM_TYPE mechanism)
+{
+    switch (mechanism) {
+    case CKM_AES_CBC_PAD:
+    case CKM_AES_CBC:
+	return NSS_AES_CBC;
+    case CKM_AES_ECB:
+	return NSS_AES;
+    case CKM_AES_CTS:
+	return NSS_AES_CTS;
+    case CKM_AES_CTR:
+	return NSS_AES_CTR;
+    case CKM_AES_GCM:
+	return NSS_AES_GCM;
+    }
+    return -1;
+}
+
 /** NSC_CryptInit initializes an encryption/Decryption operation.
  *
  * Always called by NSC_EncryptInit, NSC_DecryptInit, NSC_WrapKey,NSC_UnwrapKey.
@@ -750,6 +769,9 @@ finish_des:
     case CKM_AES_ECB:
     case CKM_AES_CBC:
 	context->blockSize = 16;
+    case CKM_AES_CTS:
+    case CKM_AES_CTR:
+    case CKM_AES_GCM:
 	if (key_type != CKK_AES) {
 	    crv = CKR_KEY_TYPE_INCONSISTENT;
 	    break;
@@ -762,7 +784,7 @@ finish_des:
 	context->cipherInfo = AES_CreateContext(
 	    (unsigned char*)att->attrib.pValue,
 	    (unsigned char*)pMechanism->pParameter,
-	    pMechanism->mechanism == CKM_AES_ECB ? NSS_AES : NSS_AES_CBC,
+	    sftk_aes_mode(pMechanism->mechanism),
 	    isEncrypt, att->attrib.ulValueLen, 16);
 	sftk_FreeAttribute(att);
 	if (context->cipherInfo == NULL) {
