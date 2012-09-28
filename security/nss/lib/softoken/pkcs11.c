@@ -347,6 +347,9 @@ static const struct mechanismList mechanisms[] = {
      {CKM_AES_MAC,		{16, 32, CKF_SN_VR},		PR_TRUE},
      {CKM_AES_MAC_GENERAL,	{16, 32, CKF_SN_VR},		PR_TRUE},
      {CKM_AES_CBC_PAD,		{16, 32, CKF_EN_DE_WR_UN},	PR_TRUE},
+     {CKM_AES_CTS,		{16, 32, CKF_EN_DE},		PR_TRUE},
+     {CKM_AES_CTR,		{16, 32, CKF_EN_DE},		PR_TRUE},
+     {CKM_AES_GCM,		{16, 32, CKF_EN_DE},		PR_TRUE},
      /* ------------------------- Camellia Operations --------------------- */
      {CKM_CAMELLIA_KEY_GEN,	{16, 32, CKF_GENERATE},         PR_TRUE},
      {CKM_CAMELLIA_ECB,  	{16, 32, CKF_EN_DE_WR_UN},      PR_TRUE},
@@ -611,8 +614,8 @@ sftk_hasNullPassword(SFTKSlot *slot, SFTKDBHandle *keydb)
  * value and len
  */
 CK_RV
-sftk_defaultAttribute(SFTKObject *object,CK_ATTRIBUTE_TYPE type,void *value,
-							unsigned int len)
+sftk_defaultAttribute(SFTKObject *object,CK_ATTRIBUTE_TYPE type,
+					const void *value, unsigned int len)
 {
     if ( !sftk_hasAttribute(object, type)) {
 	return sftk_AddAttributeType(object,type,value,len);

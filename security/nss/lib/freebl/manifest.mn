@@ -99,6 +99,9 @@ CSRCS = \
 	desblapi.c \
 	des.c \
 	drbg.c \
+	cts.c \
+	ctr.c \
+	gcm.c \
 	rijndael.c \
 	aeskeywrap.c \
 	camellia.c \

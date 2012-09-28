@@ -10,6 +10,15 @@
 
 #include "blapit.h"
 
+/* max block size of supported block ciphers */
+#define MAX_BLOCK_SIZE 16
+
+typedef SECStatus (*freeblCipherFunc)(void *cx, unsigned char *output,
+                          unsigned int *outputLen, unsigned int maxOutputLen,
+                          const unsigned char *input, unsigned int inputLen,
+			  unsigned int blocksize);
+typedef void (*freeblDestroyFunc)(void *cx, PRBool freeit);
+
 SEC_BEGIN_PROTOS
 
 #if defined(XP_UNIX) && !defined(NO_FORK_CHECK)

@@ -11,8 +11,14 @@ extern const mp_digit mp_gf2m_sqr_tb[16];
 
 #if defined(MP_USE_UINT_DIGIT)
 #define MP_DIGIT_BITS 32
+/* enable fast divide and mod operations on MP_DIGIT_BITS */
+#define MP_DIGIT_BITS_LOG_2 5
+#define MP_DIGIT_BITS_MASK 0x1f
 #else
 #define MP_DIGIT_BITS 64
+/* enable fast divide and mod operations on MP_DIGIT_BITS */
+#define MP_DIGIT_BITS_LOG_2 6
+#define MP_DIGIT_BITS_MASK 0x3f
 #endif
 
 /* Platform-specific macros for fast binary polynomial squaring. */
