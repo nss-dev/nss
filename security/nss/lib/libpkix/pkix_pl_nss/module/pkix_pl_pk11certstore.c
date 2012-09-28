@@ -245,12 +245,8 @@ pkix_pl_Pk11CertStore_CertQuery(
                         PKIX_PL_NSSCALLRV
                                 (CERTSTORE,
                                 nssCert,
-                                CERT_NewTempCertificate,
-                                        (dbHandle,
-                                        &(node->cert->derCert),
-                                        NULL, /* nickname */
-                                        PR_FALSE,
-                                        PR_TRUE)); /* copyDER */
+                                CERT_DupCertificate,
+                                        (node->cert));
 
                         if (!nssCert) {
                                 continue; /* just skip bad certs */
