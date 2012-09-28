@@ -816,11 +816,8 @@ const ssl3CipherSuiteDef *suite_def;
     /* This group of values is used for DTLS */
     PRUint16              sendMessageSeq;  /* The sending message sequence
 					    * number */
-    PRCList *             lastMessageFlight; /* The last message flight we sent.
-					      * This is a pointer because
-					      *	ssl_FreeSocket relocates the
-					      *	structure in DEBUG mode, which
-					      * messes up the list macros */
+    PRCList               lastMessageFlight; /* The last message flight we
+					      * sent */
     PRUint16              maxMessageSent;    /* The largest message we sent */
     PRUint16              recvMessageSeq;  /* The receiving message sequence
 					    * number */
