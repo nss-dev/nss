@@ -367,6 +367,10 @@ run_strsclnt()
 {
 	for cipher in ${cipher_list}; do
 		ATTR="${STRSCLNT_ATTR} -C ${cipher}"
+		if [ "${cipher}" = "f" -o "${cipher}" = "g" ] ; then
+			# TLS 1.1 disallows export cipher suites.
+			ATTR="${ATTR} -V :tls1.0"
+		fi
 		echo "${SCRIPTNAME}: -------- Trying cipher ${cipher}:"
 		echo "strsclnt ${ATTR}"
 		${BINDIR}/strsclnt ${ATTR}
@@ -400,6 +404,10 @@ run_strsclnt_dbg()
 {
 	for cipher in ${cipher_list}; do
 		ATTR="${STRSCLNT_ATTR} -C ${cipher}"
+		if [ "${cipher}" = "f" -o "${cipher}" = "g" ] ; then
+			# TLS 1.1 disallows export cipher suites.
+			ATTR="${ATTR} -V :tls1.0"
+		fi
 		${RUN_COMMAND_DBG} ${BINDIR}/strsclnt ${CLIENT_OPTION} ${ATTR}
 		ret=$?
 		if [ $ret -ne 0 ]; then
