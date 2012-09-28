@@ -54,6 +54,8 @@ PKIX_PL_NssContext_Create(
         context->crlReloadDelay = PKIX_DEFAULT_CRL_RELOAD_DELAY_SECONDS;
         context->badDerCrlReloadDelay =
                              PKIX_DEFAULT_BAD_CRL_RELOAD_DELAY_SECONDS;
+        context->chainVerifyCallback.isChainValid = NULL;
+        context->chainVerifyCallback.isChainValidArg = NULL;
         *pNssContext = context;
 
 cleanup:
