@@ -34,7 +34,7 @@ SEC_BEGIN_PROTOS
 /*
 ** Convert an ascii RFC1485 encoded name into its CERTName equivalent.
 */
-extern CERTName *CERT_AsciiToName(char *string);
+extern CERTName *CERT_AsciiToName(const char *string);
 
 /*
 ** Convert an CERTName into its RFC1485 encoded equivalent.
