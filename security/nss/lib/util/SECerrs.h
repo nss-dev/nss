@@ -544,3 +544,6 @@ ER3(SEC_ERROR_BAD_CRL_DP_URL,			(SEC_ERROR_BASE + 175),
 
 ER3(SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED,	(SEC_ERROR_BASE + 176),
 "The certificate was signed using a signature algorithm that is disabled because it is not secure.")
+
+ER3(SEC_ERROR_LEGACY_DATABASE,			(SEC_ERROR_BASE + 177),
+"The certificate/key database is in an old, unsupported format.")
