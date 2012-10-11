@@ -1565,7 +1565,7 @@ PQG_ParamGenV2(unsigned int L, unsigned int N, unsigned int seedBytes,
 	N = pqg_get_default_N(L);
     }
     if (seedBytes == 0) {
-	/* seedBytes == L for probable primes, N for Shawe-Taylor Primes */
+	/* seedBytes == L/8 for probable primes, N/8 for Shawe-Taylor Primes */
 	seedBytes = N/8;
     }
     if (pqg_validate_dsa2(L,N) != SECSuccess) {
