@@ -1272,6 +1272,10 @@ PQG_ParamGenSeedLen(
  * 2048         256
  * 3072         256
  *
+ * If N or seedBytes are set to zero, then PQG_ParamGenSeedLen will
+ * pick a default value (typically the smallest secure value for these
+ * variables).
+ *
  * The verify parameters will conform to FIPS186-3 using the smallest 
  * permissible hash for the key strength.
  */
