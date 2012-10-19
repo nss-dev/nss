@@ -365,10 +365,14 @@ else
 # Windows
 ifeq (,$(filter-out _WIN%,$(NS_USE_GCC)_$(OS_TARGET)))
 NEED_ABSOLUTE_PATH := 1
+ifdef .PYMAKE
+PWD := $(CURDIR)
+else
 PWD := $(shell pwd)
 ifeq (,$(findstring ;,$(PATH)))
 ifndef USE_MSYS
 PWD := $(subst \,/,$(shell cygpath -w $(PWD)))
+endif
 endif
 endif
 
@@ -478,15 +482,7 @@ endif
 
 ifdef DIRS
 $(DIRS)::
-	@if test -d $@; then				\
-		set $(EXIT_ON_ERROR);			\
-		echo "cd $@; $(MAKE)";			\
-		cd $@; $(MAKE);				\
-		set +e;					\
-	else						\
-		echo "Skipping non-directory $@...";	\
-	fi;						\
-	$(CLICK_STOPWATCH)
+	$(call SUBMAKE,$@)
 endif
 
 ################################################################################
@@ -896,7 +892,7 @@ $(MKDEPENDENCIES)::
 $(NOMD_CFLAGS) $(YOPT) $(CSRCS) $(CPPSRCS) $(ASFILES)
 
 $(MKDEPEND):: $(MKDEPEND_DIR)/*.c $(MKDEPEND_DIR)/*.h
-	cd $(MKDEPEND_DIR); $(MAKE)
+	$(MAKE) -C $(MKDEPEND_DIR)
 
 ifdef OBJS
 depend:: $(MKDEPEND) $(MKDEPENDENCIES)
