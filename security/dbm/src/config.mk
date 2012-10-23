@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-DEFINES += -DMEMMOVE -D__DBINTERFACE_PRIVATE $(SECURITY_FLAG)
+DEFINES += -DMEMMOVE -D__DBINTERFACE_PRIVATE -DNO_NSPR_10_SUPPORT
 
 INCLUDES += -I$(CORE_DEPTH)/../dbm/include
 
