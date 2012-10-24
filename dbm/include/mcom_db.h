@@ -44,10 +44,6 @@
 #include <sys/types.h>
 #endif
 #include "prtypes.h"
-typedef PRUint8 uint8;
-typedef PRUint16 uint16;
-typedef PRInt32 int32;
-typedef PRUint32 uint32;
 
 #include <limits.h>
 
