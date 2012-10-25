@@ -480,11 +480,6 @@ endif
 %: %.sh
 	rm -f $@; cp $< $@; chmod +x $@
 
-ifdef DIRS
-$(DIRS)::
-	$(call SUBMAKE,$@)
-endif
-
 ################################################################################
 # Bunch of things that extend the 'export' rule (in order):
 ################################################################################
@@ -954,5 +949,5 @@ $(filter $(OBJDIR)/%$(OBJ_SUFFIX),$(OBJS)): $(OBJDIR)/%$(OBJ_SUFFIX): $(DUMMY_DE
 # Fake targets.  Always run these rules, even if a file/directory with that
 # name already exists.
 #
-.PHONY: all all_platforms alltags boot clean clobber clobber_all export install libs program realclean release $(OBJDIR) $(DIRS)
+.PHONY: all all_platforms alltags boot clean clobber clobber_all export install libs program realclean release $(OBJDIR)
 
