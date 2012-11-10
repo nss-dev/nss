@@ -5577,7 +5577,6 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    ss->sec.peerCert = CERT_DupCertificate(sid->peerCert);
 	}
 
-
 	/* NULL value for PMS signifies re-use of the old MS */
 	rv = ssl3_InitPendingCipherSpec(ss,  NULL);
 	if (rv != SECSuccess) {
