@@ -535,6 +535,12 @@ ssl3_ServerHandleNextProtoNegoXtn(sslSocket * ss, PRUint16 ex_type, SECItem *dat
 	return SECFailure;
     }
 
+    ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
+
+    /* TODO: server side NPN support would require calling
+     * ssl3_RegisterServerHelloExtensionSender here in order to echo the
+     * extension back to the client. */
+
     return SECSuccess;
 }
 
@@ -602,6 +608,8 @@ ssl3_ClientHandleNextProtoNegoXtn(sslSocket *ss, PRUint16 ex_type,
 	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 	return SECFailure;
     }
+
+    ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
 
     SECITEM_FreeItem(&ss->ssl3.nextProto, PR_FALSE);
     return SECITEM_CopyItem(NULL, &ss->ssl3.nextProto, &result);
