@@ -1838,9 +1838,9 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
             if (!tempDir) {
                 tempDir = tempnam(NULL, NULL);
                 if (tempDir) {
-                    mustFreeTempDir = PR_TRUE;
                     char dirsep = PR_GetDirectorySeparator();
                     char *end = PORT_Strrchr(tempDir, dirsep);
+                    mustFreeTempDir = PR_TRUE;
                     if (end) {
                         /* We shorten the temp filename string to contain
                          * only the directory name.
