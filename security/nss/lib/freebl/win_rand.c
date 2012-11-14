@@ -8,7 +8,6 @@
 #ifdef XP_WIN
 #include <windows.h>
 #include <shlobj.h>     /* for CSIDL constants */
-
 #include <time.h>
 #include <io.h>
 #include <sys/types.h>
@@ -41,6 +40,7 @@ size_t RNG_GetNoise(void *buf, size_t maxbuf)
     DWORD   dwHigh, dwLow, dwVal;
     int     n = 0;
     int     nBytes;
+    time_t  sTime;
 
     if (maxbuf <= 0)
         return 0;
@@ -75,14 +75,11 @@ size_t RNG_GetNoise(void *buf, size_t maxbuf)
     if (maxbuf <= 0)
         return n;
 
-    {
-    time_t  sTime;
     // get the time in seconds since midnight Jan 1, 1970
     time(&sTime);
     nBytes = sizeof(sTime) > maxbuf ? maxbuf : sizeof(sTime);
     memcpy(((char *)buf) + n, &sTime, nBytes);
     n += nBytes;
-    }
 
     return n;
 }
@@ -268,6 +265,7 @@ void RNG_SystemInfoForRNG(void)
     sMem.dwLength = sizeof(sMem);
     GlobalMemoryStatus(&sMem);                // assorted memory stats
     RNG_RandomUpdate(&sMem, sizeof(sMem));
+
     dwVal = GetLogicalDrives();
     RNG_RandomUpdate(&dwVal, sizeof(dwVal));  // bitfields in bits 0-25
 
