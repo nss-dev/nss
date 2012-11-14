@@ -35,7 +35,6 @@
 #ifndef _DB_H_
 #define	_DB_H_
 
-
 #ifndef macintosh
 #include <sys/types.h>
 #endif

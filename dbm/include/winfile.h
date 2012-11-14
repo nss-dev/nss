@@ -32,7 +32,6 @@ typedef struct DIR_Struct {
  typedef          long uid_t;
  typedef          long gid_t;
  typedef          long off_t;
-
  typedef unsigned long nlink_t;
 #endif 
 
