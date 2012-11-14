@@ -29,7 +29,7 @@ endif
 export:: private_export
 
 # can't do this in manifest.mn because OS_TARGET isn't defined there.
-ifeq (,$(filter-out WINNT WIN95,$(OS_TARGET))) # list omits WINCE
+ifeq (,$(filter-out WINNT WIN95,$(OS_TARGET)))
 ifdef NSS_BUILD_CAPI
 DIRS += capi
 endif

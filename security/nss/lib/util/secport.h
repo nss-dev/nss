@@ -41,20 +41,11 @@
 # endif
 #endif
 
-#if defined(_WIN32_WCE)
-#include <windef.h>
-#include <types.h>
-#else
 #include <sys/types.h>
-#endif
 
 #include <ctype.h>
 #include <string.h>
-#if defined(_WIN32_WCE)
-#include <stdlib.h>	/* WinCE puts some stddef symbols here. */
-#else
 #include <stddef.h>
-#endif
 #include <stdlib.h>
 #include "prtypes.h"
 #include "prlog.h"	/* for PR_ASSERT */

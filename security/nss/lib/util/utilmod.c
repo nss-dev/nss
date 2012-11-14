@@ -137,7 +137,6 @@ static SECStatus nssutil_AddSecmodDB(NSSDBType dbType, const char *appName,
 #endif
 #include <fcntl.h>
 
-#ifndef WINCE
 /* same as fopen, except it doesn't use umask, but explicit */
 FILE *
 lfopen(const char *name, const char *mode, int flags)
@@ -156,7 +155,6 @@ lfopen(const char *name, const char *mode, int flags)
     /* file inherits fd */
     return file;
 }
-#endif
 
 #define MAX_LINE_LENGTH 2048
 
@@ -466,11 +464,7 @@ nssutil_DeleteSecmodDB(NSSDBType dbType, const char *appName,
     /* do we really want to use streams here */
     fd = fopen(dbname, "r");
     if (fd == NULL) goto loser;
-#ifdef WINCE
-    fd2 = fopen(dbname2, "w+");
-#else
     fd2 = lfopen(dbname2, "w+", O_CREAT|O_RDWR|O_TRUNC);
-#endif
     if (fd2 == NULL) goto loser;
 
     name = NSSUTIL_ArgGetParamValue("name",args);
@@ -589,11 +583,7 @@ nssutil_AddSecmodDB(NSSDBType dbType, const char *appName,
     (void) nssutil_DeleteSecmodDB(dbType, appName, filename, 
 				  dbname, module, rw);
 
-#ifdef WINCE
-    fd = fopen(dbname, "a+");
-#else
     fd = lfopen(dbname, "a+", O_CREAT|O_RDWR|O_APPEND);
-#endif
     if (fd == NULL) {
 	return SECFailure;
     }
