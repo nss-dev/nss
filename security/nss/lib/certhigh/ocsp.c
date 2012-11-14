@@ -151,8 +151,8 @@ ocsp_CertRevokedAfter(ocspRevokedInfo *revokedInfo, int64 time);
 #define OCSP_TRACE_CERT(cert) dumpCertificate(cert)
 #define OCSP_TRACE_CERTID(certid) dumpCertID(certid)
 
-#if (defined(XP_UNIX) || defined(XP_WIN32) || defined(XP_BEOS) \
-     || defined(XP_MACOSX)) && !defined(_WIN32_WCE)
+#if defined(XP_UNIX) || defined(XP_WIN32) || defined(XP_BEOS) \
+     || defined(XP_MACOSX)
 #define NSS_HAVE_GETENV 1
 #endif
 

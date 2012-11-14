@@ -29,11 +29,7 @@
 #undef ULLONG_MAX
 #endif
 
-#if defined( _WIN32_WCE)
-/* #include <sys/types.h> What do we need here ?? */
-#else
 #include <sys/types.h>
-#endif
 
 #define  MP_NEG    1
 #define  MP_ZPOS   0
