@@ -5980,14 +5980,14 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     desc = no_certificate;
     ss->ssl3.hs.ws = wait_hello_done;
 
-    if (ss->getClientAuthData == NULL) {
-	rv = SECFailure; /* force it to send a no_certificate alert */
-    } else {
+    if (ss->getClientAuthData != NULL) {
 	/* XXX Should pass cert_types in this call!! */
 	rv = (SECStatus)(*ss->getClientAuthData)(ss->getClientAuthDataArg,
 						 ss->fd, &ca_list,
 						 &ss->ssl3.clientCertificate,
 						 &ss->ssl3.clientPrivateKey);
+    } else {
+	rv = SECFailure; /* force it to send a no_certificate alert */
     }
     switch (rv) {
     case SECWouldBlock:	/* getClientAuthData has put up a dialog box. */
