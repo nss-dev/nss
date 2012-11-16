@@ -1918,7 +1918,7 @@ loser:
 }
 
 #define SECKEY_CacheAttribute(key, attribute) \
-    if (CK_TRUE == PK11_HasAttributeSet(key->pkcs11Slot, key->pkcs11ID, attribute)) { \
+    if (CK_TRUE == PK11_HasAttributeSet(key->pkcs11Slot, key->pkcs11ID, attribute, PR_FALSE)) { \
         key->staticflags |= SECKEY_##attribute; \
     } else { \
         key->staticflags &= (~SECKEY_##attribute); \
