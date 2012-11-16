@@ -28,7 +28,7 @@ SEC_BEGIN_PROTOS
 PK11SlotList * PK11_NewSlotList(void);
 PK11SlotList * PK11_GetPrivateKeyTokens(CK_MECHANISM_TYPE type,
 						PRBool needRW,void *wincx);
-SECStatus PK11_AddSlotToList(PK11SlotList *list,PK11SlotInfo *slot);
+SECStatus PK11_AddSlotToList(PK11SlotList *list,PK11SlotInfo *slot, PRBool sorted);
 SECStatus PK11_DeleteSlotFromList(PK11SlotList *list,PK11SlotListElement *le);
 PK11SlotListElement *PK11_FindSlotElement(PK11SlotList *list,
 							PK11SlotInfo *slot);
