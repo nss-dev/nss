@@ -24,7 +24,6 @@ typedef struct CERTOCSPResponseStr CERTOCSPResponse;
  * but until I know for certain I am leaving the rest of these here, too.
  */
 typedef struct CERTOCSPCertIDStr CERTOCSPCertID;
-typedef struct CERTOCSPCertStatusStr CERTOCSPCertStatus;
 typedef struct CERTOCSPSingleResponseStr CERTOCSPSingleResponse;
 
 /*
