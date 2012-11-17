@@ -339,7 +339,7 @@ nssutil_escapeQuotes(const char *string, char quote, PRBool addquotes)
 
     size = nssutil_escapeQuotesSize(string, quote, addquotes);
 
-    dest = newString = PORT_ZAlloc(size+2); 
+    dest = newString = PORT_ZAlloc(size); 
     if (newString == NULL) {
 	return NULL;
     }
