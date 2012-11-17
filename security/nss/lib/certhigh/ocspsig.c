@@ -51,6 +51,8 @@ ocsp_CreateCertStatus(PLArenaPool *arena,
                       ocspCertStatusType status,
                       PRTime revocationTime)
 {
+    ocspCertStatus *cs;
+
     if (!arena) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return NULL;
@@ -66,7 +68,7 @@ ocsp_CreateCertStatus(PLArenaPool *arena,
             return NULL;
     }
     
-    ocspCertStatus *cs = PORT_ArenaZNew(arena, ocspCertStatus);
+    cs = PORT_ArenaZNew(arena, ocspCertStatus);
     if (!cs)
         return NULL;
     cs->certStatusType = status;
