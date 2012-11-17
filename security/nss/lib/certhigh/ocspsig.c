@@ -45,6 +45,8 @@ extern const SEC_ASN1Template ocsp_PointerToResponseBytesTemplate[];
 
 SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
 SEC_ASN1_MKSUB(SEC_NullTemplate)
+SEC_ASN1_MKSUB(SEC_PointerToEnumeratedTemplate)
+SEC_ASN1_MKSUB(SEC_SequenceOfAnyTemplate)
 
 ocspCertStatus*
 ocsp_CreateCertStatus(PLArenaPool *arena,
