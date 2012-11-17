@@ -1064,6 +1064,7 @@ _NSSUTIL_GetSecmodName(char *param, NSSDBType *dbType, char **appName,
     char *value = NULL;
     char *save_params = param;
     const char *lconfigdir;
+    PRBool noModDB = PR_FALSE;
     param = NSSUTIL_ArgStrip(param);
 	
 
@@ -1088,7 +1089,10 @@ _NSSUTIL_GetSecmodName(char *param, NSSDBType *dbType, char **appName,
 
    if (NSSUTIL_ArgHasFlag("flags","noModDB",save_params)) {
 	/* there isn't a module db, don't load the legacy support */
+	noModDB = PR_TRUE;
 	*dbType = NSS_DB_TYPE_SQL;
+	PORT_Free(*filename);
+	*filename = NULL;
         *rw = PR_FALSE;
    }
 
@@ -1098,7 +1102,9 @@ _NSSUTIL_GetSecmodName(char *param, NSSDBType *dbType, char **appName,
 	secmodName="pkcs11.txt";
    }
 
-   if (lconfigdir) {
+   if (noModDB) {
+	value = NULL;
+   } else if (lconfigdir && lconfigdir[0] != '\0') {
 	value = PR_smprintf("%s" NSSUTIL_PATH_SEPARATOR "%s",
 			lconfigdir,secmodName);
    } else {

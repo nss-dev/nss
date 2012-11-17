@@ -115,15 +115,19 @@ char *_NSSUTIL_GetOldSecmodName(const char *dbname,const char *filename)
     char *sep;
 
     sep = PORT_Strrchr(dirPath,*NSSUTIL_PATH_SEPARATOR);
-#ifdef WINDOWS
+#ifdef _WIN32
     if (!sep) {
+	/* utilparst.h defines NSSUTIL_PATH_SEPARATOR as "/" for all
+	 * platforms. */
 	sep = PORT_Strrchr(dirPath,'\\');
     }
 #endif
     if (sep) {
-	*(sep)=0;
+	*sep = 0;
+	file = PR_smprintf("%s"NSSUTIL_PATH_SEPARATOR"%s", dirPath, filename);
+    } else {
+	file = PR_smprintf("%s", filename);
     }
-    file= PR_smprintf("%s"NSSUTIL_PATH_SEPARATOR"%s", dirPath, filename);
     PORT_Free(dirPath);
     return file;
 }
@@ -177,13 +181,12 @@ nssutil_ReadSecmodDB(NSSDBType dbType, const char *appName,
     char *paramsValue=NULL;
     PRBool failed = PR_TRUE;
 
-    if (dbname == NULL) {
-	PORT_SetError(SEC_ERROR_INVALID_ARGS);
-	return NULL;
-    }
-
     moduleList = (char **) PORT_ZAlloc(useCount*sizeof(char **));
     if (moduleList == NULL) return NULL;
+
+    if (dbname == NULL) {
+	goto return_default;
+    }
 
     /* do we really want to use streams here */
     fd = fopen(dbname, "r");
@@ -351,7 +354,7 @@ done:
 	    goto bail;
 	}
 
-	/* old one doesn't exist */
+	/* old one exists */
 	status = PR_Access(olddbname, PR_ACCESS_EXISTS);
 	if (status == PR_SUCCESS) {
 	    PR_smprintf_free(olddbname);
@@ -364,6 +367,8 @@ bail:
 	    PR_smprintf_free(olddbname);
 	}
     }
+
+return_default:
 	
     if (!moduleList[0]) {
 	char * newParams;
