@@ -43,14 +43,14 @@ encode(PRArenaPool *arena, CERTOCSPCertID *cid,
     PRTime now = PR_Now();
     PRTime nextUpdate;
     CERTOCSPSingleResponse **responses;
+    CERTOCSPSingleResponse *sr;
 
     if (!arena)
         return NULL;
 
     nextUpdate = now + 10 * PR_USEC_PER_SEC; /* in the future */
     
-    CERTOCSPSingleResponse *sr =
-        OCSP_CreateSingleResponseGood(arena, cid, now, &nextUpdate);
+    sr = OCSP_CreateSingleResponseGood(arena, cid, now, &nextUpdate);
 
     /* meaning of value 2: one entry + one end marker */
     responses = PORT_ArenaNewArray(arena, CERTOCSPSingleResponse*, 2);
@@ -74,15 +74,15 @@ encodeRevoked(PRArenaPool *arena, CERTOCSPCertID *cid,
     PRTime now = PR_Now();
     PRTime revocationTime;
     CERTOCSPSingleResponse **responses;
+    CERTOCSPSingleResponse *sr;
 
     if (!arena)
         return NULL;
 
     revocationTime = now - 10 * PR_USEC_PER_SEC; /* in the past */
 
-    CERTOCSPSingleResponse *sr =
-        OCSP_CreateSingleResponseRevoked(arena, cid, now, NULL,
-                                         revocationTime);
+    sr = OCSP_CreateSingleResponseRevoked(arena, cid, now, NULL,
+                                          revocationTime);
 
     /* meaning of value 2: one entry + one end marker */
     responses = PORT_ArenaNewArray(arena, CERTOCSPSingleResponse*, 2);
