@@ -1161,7 +1161,7 @@ const SEC_ASN1Template ocsp_CertIDTemplate[] = {
  *	responseStatus		OCSPResponseStatus,
  *	responseBytes		[0] EXPLICIT ResponseBytes OPTIONAL }
  */
-static const SEC_ASN1Template ocsp_OCSPResponseTemplate[] = {
+const SEC_ASN1Template ocsp_OCSPResponseTemplate[] = {
     { SEC_ASN1_SEQUENCE, 
 	0, NULL, sizeof(CERTOCSPResponse) },
     { SEC_ASN1_ENUMERATED, 
@@ -1178,7 +1178,7 @@ static const SEC_ASN1Template ocsp_OCSPResponseTemplate[] = {
  *	responseType		OBJECT IDENTIFIER,
  *	response		OCTET STRING }
  */
-static const SEC_ASN1Template ocsp_ResponseBytesTemplate[] = {
+const SEC_ASN1Template ocsp_ResponseBytesTemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	0, NULL, sizeof(ocspResponseBytes) },
     { SEC_ASN1_OBJECT_ID,
@@ -1275,12 +1275,12 @@ const SEC_ASN1Template ocsp_ResponseDataTemplate[] = {
  * can all be simplified down into a single template.  Anyway, for
  * now we list each choice as its own template:
  */
-static const SEC_ASN1Template ocsp_ResponderIDByNameTemplate[] = {
+const SEC_ASN1Template ocsp_ResponderIDByNameTemplate[] = {
     { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 1,
 	offsetof(ocspResponderID, responderIDValue.name),
 	CERT_NameTemplate }
 };
-static const SEC_ASN1Template ocsp_ResponderIDByKeyTemplate[] = {
+const SEC_ASN1Template ocsp_ResponderIDByKeyTemplate[] = {
     { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
         SEC_ASN1_XTRN | 2,
 	offsetof(ocspResponderID, responderIDValue.keyHash),
