@@ -211,12 +211,12 @@ OCSP_CreateSingleResponseGood(PLArenaPool *arena,
                               CERTOCSPCertID *id,
                               PRTime thisUpdate, PRTime *nextUpdate)
 {
+    ocspCertStatus * cs;
     if (!arena) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return NULL;
     }
-    ocspCertStatus * cs =
-        ocsp_CreateCertStatus(arena, ocspCertStatus_good, 0);
+    cs = ocsp_CreateCertStatus(arena, ocspCertStatus_good, 0);
     if (!cs)
         return NULL;
     return ocsp_CreateSingleResponse(arena, id, cs, thisUpdate, nextUpdate);
@@ -227,12 +227,12 @@ OCSP_CreateSingleResponseUnknown(PLArenaPool *arena,
                                  CERTOCSPCertID *id,
                                  PRTime thisUpdate, PRTime *nextUpdate)
 {
+    ocspCertStatus * cs;
     if (!arena) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return NULL;
     }
-    ocspCertStatus * cs =
-        ocsp_CreateCertStatus(arena, ocspCertStatus_unknown, 0);
+    cs = ocsp_CreateCertStatus(arena, ocspCertStatus_unknown, 0);
     if (!cs)
         return NULL;
     return ocsp_CreateSingleResponse(arena, id, cs, thisUpdate, nextUpdate);
@@ -244,12 +244,12 @@ OCSP_CreateSingleResponseRevoked(PLArenaPool *arena,
                                  PRTime thisUpdate, PRTime *nextUpdate,
                                  PRTime revocationTime)
 {
+    ocspCertStatus * cs;
     if (!arena) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return NULL;
     }
-    ocspCertStatus * cs =
-        ocsp_CreateCertStatus(arena, ocspCertStatus_revoked, revocationTime);
+    cs = ocsp_CreateCertStatus(arena, ocspCertStatus_revoked, revocationTime);
     if (!cs)
         return NULL;
     return ocsp_CreateSingleResponse(arena, id, cs, thisUpdate, nextUpdate);
