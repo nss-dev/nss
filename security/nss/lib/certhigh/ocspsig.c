@@ -33,20 +33,7 @@
 
 extern const SEC_ASN1Template ocsp_ResponderIDByNameTemplate[];
 extern const SEC_ASN1Template ocsp_ResponderIDByKeyTemplate[];
-
-extern const SEC_ASN1Template ocsp_RevokedInfoTemplate[];
-
-extern const SEC_ASN1Template ocsp_SingleResponseTemplate[];
-extern const SEC_ASN1Template ocsp_ResponseDataTemplate[];
-
 extern const SEC_ASN1Template ocsp_OCSPResponseTemplate[];
-extern const SEC_ASN1Template ocsp_ResponseBytesTemplate[];
-extern const SEC_ASN1Template ocsp_PointerToResponseBytesTemplate[];
-
-SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
-SEC_ASN1_MKSUB(SEC_NullTemplate)
-SEC_ASN1_MKSUB(SEC_PointerToEnumeratedTemplate)
-SEC_ASN1_MKSUB(SEC_SequenceOfAnyTemplate)
 
 ocspCertStatus*
 ocsp_CreateCertStatus(PLArenaPool *arena,
@@ -117,13 +104,21 @@ void dump_item_to_file(SECItem *item, const char *filename)
 }
 #endif
 
+const SEC_ASN1Template mySEC_EnumeratedTemplate[] = {
+    { SEC_ASN1_ENUMERATED, 0, NULL, sizeof(SECItem) }
+};
+
+const SEC_ASN1Template mySEC_PointerToEnumeratedTemplate[] = {
+    { SEC_ASN1_POINTER, 0, mySEC_EnumeratedTemplate }
+};
+
 const SEC_ASN1Template ocsp_EncodeRevokedInfoTemplate[] = {
     { SEC_ASN1_GENERALIZED_TIME,
         offsetof(ocspRevokedInfo, revocationTime) },
     { SEC_ASN1_OPTIONAL | SEC_ASN1_EXPLICIT |
       SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC| 0,
         offsetof(ocspRevokedInfo, revocationReason),
-        SEC_ASN1_SUB(SEC_PointerToEnumeratedTemplate) },
+        mySEC_PointerToEnumeratedTemplate },
     { 0 }
 };
 
@@ -132,35 +127,155 @@ const SEC_ASN1Template ocsp_PointerToEncodeRevokedInfoTemplate[] = {
       ocsp_EncodeRevokedInfoTemplate }
 };
 
+const SEC_ASN1Template mySEC_NullTemplate[] = {
+    { SEC_ASN1_NULL, 0, NULL, sizeof(SECItem) }
+};
+
 const SEC_ASN1Template ocsp_CertStatusTemplate[] = {
     { SEC_ASN1_CHOICE, offsetof(ocspCertStatus, certStatusType),
         0, sizeof(ocspCertStatus) },
     { SEC_ASN1_CONTEXT_SPECIFIC | 0,
-        0, SEC_ASN1_SUB(SEC_NullTemplate), ocspCertStatus_good },
+        0, mySEC_NullTemplate, ocspCertStatus_good },
     { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED |
       SEC_ASN1_CONTEXT_SPECIFIC | 1,
         offsetof(ocspCertStatus, certStatusInfo.revokedInfo),
         ocsp_PointerToEncodeRevokedInfoTemplate, ocspCertStatus_revoked },
     { SEC_ASN1_CONTEXT_SPECIFIC | 2,
-        0, SEC_ASN1_SUB(SEC_NullTemplate), ocspCertStatus_unknown },
+        0, mySEC_NullTemplate, ocspCertStatus_unknown },
     { 0 }
 };
+
+const SEC_ASN1Template mySECOID_AlgorithmIDTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+          0, NULL, sizeof(SECAlgorithmID) },
+    { SEC_ASN1_OBJECT_ID,
+          offsetof(SECAlgorithmID,algorithm), },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_ANY,
+          offsetof(SECAlgorithmID,parameters), },
+    { 0, }
+};
+
+const SEC_ASN1Template mySEC_AnyTemplate[] = {
+    { SEC_ASN1_ANY | SEC_ASN1_MAY_STREAM, 0, NULL, sizeof(SECItem) }
+};
+
+const SEC_ASN1Template mySEC_SequenceOfAnyTemplate[] = {
+    { SEC_ASN1_SEQUENCE_OF, 0, mySEC_AnyTemplate }
+};
+
+const SEC_ASN1Template mySEC_PointerToSequenceOfAnyTemplate[] = {
+    { SEC_ASN1_POINTER, 0, mySEC_SequenceOfAnyTemplate }
+};
+
+const SEC_ASN1Template mySEC_IntegerTemplate[] = {
+    { SEC_ASN1_INTEGER, 0, NULL, sizeof(SECItem) }
+};
+
+const SEC_ASN1Template mySEC_PointerToIntegerTemplate[] = {
+    { SEC_ASN1_POINTER, 0, mySEC_IntegerTemplate }
+};
+
+const SEC_ASN1Template mySEC_GeneralizedTimeTemplate[] = {
+    { SEC_ASN1_GENERALIZED_TIME | SEC_ASN1_MAY_STREAM, 0, NULL, sizeof(SECItem)}
+};
+
+const SEC_ASN1Template mySEC_PointerToGeneralizedTimeTemplate[] = {
+    { SEC_ASN1_POINTER, 0, mySEC_GeneralizedTimeTemplate }
+};
+
+const SEC_ASN1Template ocsp_myCertIDTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+        0, NULL, sizeof(CERTOCSPCertID) },
+    { SEC_ASN1_INLINE,
+        offsetof(CERTOCSPCertID, hashAlgorithm),
+        mySECOID_AlgorithmIDTemplate },
+    { SEC_ASN1_OCTET_STRING,
+        offsetof(CERTOCSPCertID, issuerNameHash) },
+    { SEC_ASN1_OCTET_STRING,
+        offsetof(CERTOCSPCertID, issuerKeyHash) },
+    { SEC_ASN1_INTEGER,
+        offsetof(CERTOCSPCertID, serialNumber) },
+    { 0 }
+};
+
+const SEC_ASN1Template myCERT_CertExtensionTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+          0, NULL, sizeof(CERTCertExtension) },
+    { SEC_ASN1_OBJECT_ID,
+          offsetof(CERTCertExtension,id) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_BOOLEAN,             /* XXX DER_DEFAULT */
+          offsetof(CERTCertExtension,critical) },
+    { SEC_ASN1_OCTET_STRING,
+          offsetof(CERTCertExtension,value) },
+    { 0, }
+};
+
+const SEC_ASN1Template myCERT_SequenceOfCertExtensionTemplate[] = {
+    { SEC_ASN1_SEQUENCE_OF, 0, myCERT_CertExtensionTemplate }
+};
+
+const SEC_ASN1Template myCERT_PointerToSequenceOfCertExtensionTemplate[] = {
+    { SEC_ASN1_POINTER, 0, myCERT_SequenceOfCertExtensionTemplate }
+};
+
+const SEC_ASN1Template ocsp_mySingleResponseTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+        0, NULL, sizeof(CERTOCSPSingleResponse) },
+    { SEC_ASN1_POINTER,
+        offsetof(CERTOCSPSingleResponse, certID),
+        ocsp_myCertIDTemplate },
+    { SEC_ASN1_ANY,
+        offsetof(CERTOCSPSingleResponse, derCertStatus) },
+    { SEC_ASN1_GENERALIZED_TIME,
+        offsetof(CERTOCSPSingleResponse, thisUpdate) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_EXPLICIT |
+      SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
+        offsetof(CERTOCSPSingleResponse, nextUpdate),
+        mySEC_PointerToGeneralizedTimeTemplate },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_EXPLICIT |
+      SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 1,
+        offsetof(CERTOCSPSingleResponse, singleExtensions),
+        myCERT_PointerToSequenceOfCertExtensionTemplate },
+    { 0 }
+};
+
+const SEC_ASN1Template ocsp_myResponseDataTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+        0, NULL, sizeof(ocspResponseData) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_EXPLICIT |           /* XXX DER_DEFAULT */
+      SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
+        offsetof(ocspResponseData, version),
+        mySEC_PointerToIntegerTemplate },
+    { SEC_ASN1_ANY,
+        offsetof(ocspResponseData, derResponderID) },
+    { SEC_ASN1_GENERALIZED_TIME,
+        offsetof(ocspResponseData, producedAt) },
+    { SEC_ASN1_SEQUENCE_OF,
+        offsetof(ocspResponseData, responses),
+        ocsp_mySingleResponseTemplate },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_EXPLICIT |
+      SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 1,
+        offsetof(ocspResponseData, responseExtensions),
+        myCERT_PointerToSequenceOfCertExtensionTemplate },
+    { 0 }
+};
+
 
 const SEC_ASN1Template ocsp_EncodeBasicOCSPResponseTemplate[] = {
     { SEC_ASN1_SEQUENCE,
         0, NULL, sizeof(ocspBasicOCSPResponse) },
     { SEC_ASN1_POINTER,
         offsetof(ocspBasicOCSPResponse, tbsResponseData),
-        ocsp_ResponseDataTemplate },
-    { SEC_ASN1_INLINE | SEC_ASN1_XTRN,
+        ocsp_myResponseDataTemplate },
+    { SEC_ASN1_INLINE,
         offsetof(ocspBasicOCSPResponse, responseSignature.signatureAlgorithm),
-        SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate) },
+        mySECOID_AlgorithmIDTemplate },
     { SEC_ASN1_BIT_STRING,
         offsetof(ocspBasicOCSPResponse, responseSignature.signature) },
     { SEC_ASN1_OPTIONAL | SEC_ASN1_EXPLICIT |
-      SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 0,
+      SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
         offsetof(ocspBasicOCSPResponse, responseSignature.derCerts),
-        SEC_ASN1_SUB(SEC_SequenceOfAnyTemplate) },
+        mySEC_PointerToSequenceOfAnyTemplate },
     { 0 }
 };
 
@@ -329,7 +444,7 @@ OCSP_CreateSuccessResponseEncodedBasicV1(PLArenaPool *arena,
     br->tbsResponseData = rd;
     
     if (!SEC_ASN1EncodeItem(tmpArena, &br->tbsResponseDataDER, br->tbsResponseData,
-            ocsp_ResponseDataTemplate))
+            ocsp_myResponseDataTemplate))
         goto done;
 
     br->responseSignature.derCerts = PORT_ArenaNewArray(tmpArena, SECItem*, 1);
@@ -351,15 +466,15 @@ OCSP_CreateSuccessResponseEncodedBasicV1(PLArenaPool *arena,
             != SECSuccess)
         goto done;
 
+#ifdef DEBUG_kaie
+    dump_item_to_file(&br->responseSignature.signature, "/tmp/sig");
+#endif
+
     /* convert len-in-bytes to len-in-bits */
     br->responseSignature.signature.len = br->responseSignature.signature.len << 3;
 
     /* br->responseSignature.signature wasn't allocated from arena,
      * we must free it when done. */
-
-#ifdef DEBUG_kaie
-    dump_item_to_file(&br->responseSignature.signature, "/tmp/sig");
-#endif
 
     if (SECOID_SetAlgorithmID(tmpArena, &br->responseSignature.signatureAlgorithm, algID, 0)
             != SECSuccess)
@@ -413,7 +528,7 @@ static const SEC_ASN1Template ocsp_OCSPFailureResponseTemplate[] = {
     { SEC_ASN1_ENUMERATED,
         offsetof(CERTOCSPResponse, responseStatus) },
     { 0, 0,
-        SEC_ASN1_SUB(SEC_NullTemplate) },
+        mySEC_NullTemplate },
     { 0 }
 };
 
