@@ -13,7 +13,6 @@
 #include "secerr.h"
 #include "secdig.h"
 #include "prtime.h"
-#include "ec.h"
 #include "keyi.h"
 
 SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
