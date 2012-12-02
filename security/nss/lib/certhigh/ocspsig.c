@@ -544,3 +544,4 @@ OCSP_CreateFailureResponse(PLArenaPool *arena, PRErrorCode reason)
 
     return result;
 }
+
