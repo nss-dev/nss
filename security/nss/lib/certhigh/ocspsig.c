@@ -92,27 +92,15 @@ ocsp_CreateCertStatus(PLArenaPool *arena,
     return cs;
 }
 
-#ifdef DEBUG_kaie
-void dump_item_to_file(SECItem *item, const char *filename)
-{
-    FILE *fp = fopen(filename, "wb");
-    if (fp) {
-        fwrite(item->data, item->len, 1, fp);
-        fclose(fp);
-        fprintf(stderr, "wrote item with %d bytes\n", item->len);
-    }
-}
-#endif
-
-const SEC_ASN1Template mySEC_EnumeratedTemplate[] = {
+static const SEC_ASN1Template mySEC_EnumeratedTemplate[] = {
     { SEC_ASN1_ENUMERATED, 0, NULL, sizeof(SECItem) }
 };
 
-const SEC_ASN1Template mySEC_PointerToEnumeratedTemplate[] = {
+static const SEC_ASN1Template mySEC_PointerToEnumeratedTemplate[] = {
     { SEC_ASN1_POINTER, 0, mySEC_EnumeratedTemplate }
 };
 
-const SEC_ASN1Template ocsp_EncodeRevokedInfoTemplate[] = {
+static const SEC_ASN1Template ocsp_EncodeRevokedInfoTemplate[] = {
     { SEC_ASN1_GENERALIZED_TIME,
         offsetof(ocspRevokedInfo, revocationTime) },
     { SEC_ASN1_OPTIONAL | SEC_ASN1_EXPLICIT |
@@ -122,16 +110,16 @@ const SEC_ASN1Template ocsp_EncodeRevokedInfoTemplate[] = {
     { 0 }
 };
 
-const SEC_ASN1Template ocsp_PointerToEncodeRevokedInfoTemplate[] = {
+static const SEC_ASN1Template ocsp_PointerToEncodeRevokedInfoTemplate[] = {
     { SEC_ASN1_POINTER, 0,
       ocsp_EncodeRevokedInfoTemplate }
 };
 
-const SEC_ASN1Template mySEC_NullTemplate[] = {
+static const SEC_ASN1Template mySEC_NullTemplate[] = {
     { SEC_ASN1_NULL, 0, NULL, sizeof(SECItem) }
 };
 
-const SEC_ASN1Template ocsp_CertStatusTemplate[] = {
+static const SEC_ASN1Template ocsp_CertStatusTemplate[] = {
     { SEC_ASN1_CHOICE, offsetof(ocspCertStatus, certStatusType),
         0, sizeof(ocspCertStatus) },
     { SEC_ASN1_CONTEXT_SPECIFIC | 0,
@@ -145,7 +133,7 @@ const SEC_ASN1Template ocsp_CertStatusTemplate[] = {
     { 0 }
 };
 
-const SEC_ASN1Template mySECOID_AlgorithmIDTemplate[] = {
+static const SEC_ASN1Template mySECOID_AlgorithmIDTemplate[] = {
     { SEC_ASN1_SEQUENCE,
           0, NULL, sizeof(SECAlgorithmID) },
     { SEC_ASN1_OBJECT_ID,
@@ -155,35 +143,35 @@ const SEC_ASN1Template mySECOID_AlgorithmIDTemplate[] = {
     { 0, }
 };
 
-const SEC_ASN1Template mySEC_AnyTemplate[] = {
+static const SEC_ASN1Template mySEC_AnyTemplate[] = {
     { SEC_ASN1_ANY | SEC_ASN1_MAY_STREAM, 0, NULL, sizeof(SECItem) }
 };
 
-const SEC_ASN1Template mySEC_SequenceOfAnyTemplate[] = {
+static const SEC_ASN1Template mySEC_SequenceOfAnyTemplate[] = {
     { SEC_ASN1_SEQUENCE_OF, 0, mySEC_AnyTemplate }
 };
 
-const SEC_ASN1Template mySEC_PointerToSequenceOfAnyTemplate[] = {
+static const SEC_ASN1Template mySEC_PointerToSequenceOfAnyTemplate[] = {
     { SEC_ASN1_POINTER, 0, mySEC_SequenceOfAnyTemplate }
 };
 
-const SEC_ASN1Template mySEC_IntegerTemplate[] = {
+static const SEC_ASN1Template mySEC_IntegerTemplate[] = {
     { SEC_ASN1_INTEGER, 0, NULL, sizeof(SECItem) }
 };
 
-const SEC_ASN1Template mySEC_PointerToIntegerTemplate[] = {
+static const SEC_ASN1Template mySEC_PointerToIntegerTemplate[] = {
     { SEC_ASN1_POINTER, 0, mySEC_IntegerTemplate }
 };
 
-const SEC_ASN1Template mySEC_GeneralizedTimeTemplate[] = {
+static const SEC_ASN1Template mySEC_GeneralizedTimeTemplate[] = {
     { SEC_ASN1_GENERALIZED_TIME | SEC_ASN1_MAY_STREAM, 0, NULL, sizeof(SECItem)}
 };
 
-const SEC_ASN1Template mySEC_PointerToGeneralizedTimeTemplate[] = {
+static const SEC_ASN1Template mySEC_PointerToGeneralizedTimeTemplate[] = {
     { SEC_ASN1_POINTER, 0, mySEC_GeneralizedTimeTemplate }
 };
 
-const SEC_ASN1Template ocsp_myCertIDTemplate[] = {
+static const SEC_ASN1Template ocsp_myCertIDTemplate[] = {
     { SEC_ASN1_SEQUENCE,
         0, NULL, sizeof(CERTOCSPCertID) },
     { SEC_ASN1_INLINE,
@@ -198,7 +186,7 @@ const SEC_ASN1Template ocsp_myCertIDTemplate[] = {
     { 0 }
 };
 
-const SEC_ASN1Template myCERT_CertExtensionTemplate[] = {
+static const SEC_ASN1Template myCERT_CertExtensionTemplate[] = {
     { SEC_ASN1_SEQUENCE,
           0, NULL, sizeof(CERTCertExtension) },
     { SEC_ASN1_OBJECT_ID,
@@ -210,15 +198,15 @@ const SEC_ASN1Template myCERT_CertExtensionTemplate[] = {
     { 0, }
 };
 
-const SEC_ASN1Template myCERT_SequenceOfCertExtensionTemplate[] = {
+static const SEC_ASN1Template myCERT_SequenceOfCertExtensionTemplate[] = {
     { SEC_ASN1_SEQUENCE_OF, 0, myCERT_CertExtensionTemplate }
 };
 
-const SEC_ASN1Template myCERT_PointerToSequenceOfCertExtensionTemplate[] = {
+static const SEC_ASN1Template myCERT_PointerToSequenceOfCertExtensionTemplate[] = {
     { SEC_ASN1_POINTER, 0, myCERT_SequenceOfCertExtensionTemplate }
 };
 
-const SEC_ASN1Template ocsp_mySingleResponseTemplate[] = {
+static const SEC_ASN1Template ocsp_mySingleResponseTemplate[] = {
     { SEC_ASN1_SEQUENCE,
         0, NULL, sizeof(CERTOCSPSingleResponse) },
     { SEC_ASN1_POINTER,
@@ -239,7 +227,7 @@ const SEC_ASN1Template ocsp_mySingleResponseTemplate[] = {
     { 0 }
 };
 
-const SEC_ASN1Template ocsp_myResponseDataTemplate[] = {
+static const SEC_ASN1Template ocsp_myResponseDataTemplate[] = {
     { SEC_ASN1_SEQUENCE,
         0, NULL, sizeof(ocspResponseData) },
     { SEC_ASN1_OPTIONAL | SEC_ASN1_EXPLICIT |           /* XXX DER_DEFAULT */
@@ -261,7 +249,7 @@ const SEC_ASN1Template ocsp_myResponseDataTemplate[] = {
 };
 
 
-const SEC_ASN1Template ocsp_EncodeBasicOCSPResponseTemplate[] = {
+static const SEC_ASN1Template ocsp_EncodeBasicOCSPResponseTemplate[] = {
     { SEC_ASN1_SEQUENCE,
         0, NULL, sizeof(ocspBasicOCSPResponse) },
     { SEC_ASN1_POINTER,
@@ -279,7 +267,7 @@ const SEC_ASN1Template ocsp_EncodeBasicOCSPResponseTemplate[] = {
     { 0 }
 };
 
-CERTOCSPSingleResponse*
+static CERTOCSPSingleResponse*
 ocsp_CreateSingleResponse(PLArenaPool *arena,
                           CERTOCSPCertID *id, ocspCertStatus *status,
                           PRTime thisUpdate, PRTime *nextUpdate)
@@ -466,10 +454,6 @@ OCSP_CreateSuccessResponseEncodedBasicV1(PLArenaPool *arena,
             != SECSuccess)
         goto done;
 
-#ifdef DEBUG_kaie
-    dump_item_to_file(&br->responseSignature.signature, "/tmp/sig");
-#endif
-
     /* convert len-in-bytes to len-in-bits */
     br->responseSignature.signature.len = br->responseSignature.signature.len << 3;
 
@@ -483,10 +467,6 @@ OCSP_CreateSuccessResponseEncodedBasicV1(PLArenaPool *arena,
     if (!SEC_ASN1EncodeItem(tmpArena, &rb->response, br,
                             ocsp_EncodeBasicOCSPResponseTemplate))
         goto done;
-
-#ifdef DEBUG_kaie
-    dump_item_to_file(&rb->response, "/tmp/basic");
-#endif
 
     rb->responseTypeTag = SEC_OID_PKIX_OCSP_BASIC_RESPONSE;
 
@@ -506,11 +486,6 @@ OCSP_CreateSuccessResponseEncodedBasicV1(PLArenaPool *arena,
         goto done;
 
     result = SEC_ASN1EncodeItem(arena, NULL, response, ocsp_OCSPResponseTemplate);
-
-#ifdef DEBUG_kaie
-    if (result)
-        dump_item_to_file(result, "/tmp/item");
-#endif
 
 done:
     if (privKey)
