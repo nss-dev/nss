@@ -291,7 +291,7 @@ extern SECStatus cert_GetCertType(CERTCertificate *cert);
 extern PRUint32 cert_ComputeCertType(CERTCertificate *cert);
 
 void cert_AddToVerifyLog(CERTVerifyLog *log,CERTCertificate *cert,
-                         unsigned long errorCode, unsigned int depth,
+                         long errorCode, unsigned int depth,
                          void *arg);
 
 /* Insert a DER CRL into the CRL cache, and take ownership of it.
