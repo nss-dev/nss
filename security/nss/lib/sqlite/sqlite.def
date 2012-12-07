@@ -119,6 +119,7 @@ sqlite3_set_auxdata;
 sqlite3_sleep;
 sqlite3_snprintf;
 sqlite3_step;
+;;sqlite3_temp_directory DATA ;
 sqlite3_thread_cleanup;
 sqlite3_total_changes;
 sqlite3_trace;
