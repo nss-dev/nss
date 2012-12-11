@@ -140,6 +140,7 @@ sqlite3_value_text16le;
 sqlite3_value_type;
 sqlite3_version;
 sqlite3_vmprintf;
+sqlite3_wal_checkpoint;
 ;+    local:
 ;+       *;
 ;+};
