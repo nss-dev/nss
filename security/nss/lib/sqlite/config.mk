@@ -34,4 +34,12 @@ ifeq ($(OS_TARGET),Darwin)
 # to the linker.)  Apple builds the system libsqlite3.dylib with these
 # version numbers, so we use the same to be compatible.
 DARWIN_DYLIB_VERSIONS = -compatibility_version 9 -current_version 9.6
+
+# Required for Mac OSX 10.4 PowerPC, see bug 820374
+DARWIN_VER_MAJOR := $(shell uname -r | cut -f1 -d.)
+DARWIN_LT_9 := $(shell [ $(DARWIN_VER_MAJOR) -lt 9 ] && echo true)
+ifeq ($(DARWIN_LT_9),true)
+OS_CFLAGS += -DSQLITE_WITHOUT_ZONEMALLOC
+endif
+
 endif
