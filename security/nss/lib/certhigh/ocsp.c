@@ -2226,7 +2226,7 @@ CERT_DestroyOCSPRequest(CERTOCSPRequest *request)
  * given type, return the associated template for that choice.
  */
 static const SEC_ASN1Template *
-ocsp_ResponderIDTemplateByType(ocspResponderIDType responderIDType)
+ocsp_ResponderIDTemplateByType(CERTOCSPResponderIDType responderIDType)
 {
     const SEC_ASN1Template *responderIDTemplate;
 
@@ -2371,10 +2371,10 @@ loser:
  * Helper function for decoding a responderID -- turn the actual DER tag
  * into our local translation.
  */
-static ocspResponderIDType
+static CERTOCSPResponderIDType
 ocsp_ResponderIDTypeByTag(int derTag)
 {
-    ocspResponderIDType responderIDType;
+    CERTOCSPResponderIDType responderIDType;
 
     switch (derTag) {
 	case 1:
@@ -2401,7 +2401,7 @@ ocsp_DecodeBasicOCSPResponse(PRArenaPool *arena, SECItem *src)
     ocspBasicOCSPResponse *basicResponse;
     ocspResponseData *responseData;
     ocspResponderID *responderID;
-    ocspResponderIDType responderIDType;
+    CERTOCSPResponderIDType responderIDType;
     const SEC_ASN1Template *responderIDTemplate;
     int derTag;
     SECStatus rv;
