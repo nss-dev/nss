@@ -42,7 +42,12 @@ lowhash_init()
   fi
   LOWHASHDIR=../lowhash
   mkdir -p ${LOWHASHDIR}
-  html_head "Lowhash Tests"
+  if [ -f /proc/sys/crypto/fips_enabled ]; then
+    FVAL=`cat /proc/sys/crypto/fips_enabled`
+    html_head "Lowhash Tests - /proc/sys/crypto/fips_enabled is ${FVAL}"
+  else
+    html_head "Lowhash Tests"
+  fi
   cd ${LOWHASHDIR}
 }
 
