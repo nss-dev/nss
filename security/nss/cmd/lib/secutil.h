@@ -136,7 +136,7 @@ SECU_GetClientAuthData(void *arg, PRFileDesc *fd,
 		       struct CERTCertificateStr **pRetCert,
 		       struct SECKEYPrivateKeyStr **pRetKey);
 
-extern PRBool SECU_GetWrapEnabled();
+extern PRBool SECU_GetWrapEnabled(void);
 extern void SECU_EnableWrap(PRBool enable);
 
 /* revalidate the cert and print information about cert verification
