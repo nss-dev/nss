@@ -280,4 +280,24 @@ typedef enum {
     ocspMode_FailureIsNotAVerificationFailure = 1
 } SEC_OcspFailureMode;
 
+/*
+ * A ResponderID identifies the responder -- or more correctly, the
+ * signer of the response.  The ASN.1 definition of a ResponderID is:
+ *
+ * ResponderID	::=	CHOICE {
+ *	byName			[1] EXPLICIT Name,
+ *	byKey			[2] EXPLICIT KeyHash }
+ *
+ * Because it is CHOICE, the type of identification used and the
+ * identification itself are actually encoded together.  To represent
+ * this same information internally, we explicitly define a type and
+ * save it, along with the value, into a data structure.
+ */
+
+typedef enum {
+    ocspResponderID_other = -1,		/* unknown kind of responderID */
+    ocspResponderID_byName = 1,
+    ocspResponderID_byKey = 2
+} CERTOCSPResponderIDType;
+
 #endif /* _OCSPT_H_ */
