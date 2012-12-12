@@ -137,7 +137,6 @@ doDecrypt(char * dataString, FILE *outFile, FILE *logFile, secuPWData *pwdata)
     SECItem   *decoded = NSSBase64_DecodeBuffer(NULL, NULL, dataString, strLen);
     SECStatus  rv;
     int        err;
-    unsigned int i;
     SECItem    result = { siBuffer, NULL, 0 };
 
     if ((decoded == NULL) || (decoded->len == 0)) {

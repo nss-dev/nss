@@ -4954,7 +4954,7 @@ DestroyCertificate(NSSLOWCERTCertificate *cert, PRBool lockdb)
 	refCount = --cert->referenceCount;
         nsslowcert_UnlockCertRefCount(cert);
 
-	if ( ( refCount == 0 ) ) {
+	if ( refCount == 0 ) {
 	    certDBEntryCert *entry  = cert->dbEntry;
 
 	    if ( entry ) {

@@ -407,7 +407,6 @@ sec_pkcs7_decoder_get_recipient_key (SEC_PKCS7DecoderContext *p7dcx,
     PK11SymKey *bulkkey = NULL;
     SECOidTag keyalgtag, bulkalgtag, encalgtag;
     PK11SlotInfo *slot = NULL;
-    int bulkLength = 0;
 
     if (recipientinfos == NULL || recipientinfos[0] == NULL) {
 	p7dcx->error = SEC_ERROR_NOT_A_RECIPIENT;
