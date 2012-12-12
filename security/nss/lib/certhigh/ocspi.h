@@ -135,6 +135,6 @@ ocsp_GetResponderLocation(CERTCertDBHandle *handle,
  *   revoked cert status.
  */
 PRBool
-ocsp_FetchingFailureIsVerificationFailure();
+ocsp_FetchingFailureIsVerificationFailure(void);
 
 #endif /* _OCSPI_H_ */
