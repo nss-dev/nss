@@ -470,7 +470,7 @@ RNG_RNGInit(void)
     /* Allow only one call to initialize the context */
     PR_CallOnce(&coRNGInit, rng_init);
     /* Make sure there is a context */
-    return (globalrng != NULL) ? PR_SUCCESS : PR_FAILURE;
+    return (globalrng != NULL) ? SECSuccess : SECFailure;
 }
 
 /*
