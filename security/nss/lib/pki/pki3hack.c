@@ -1092,7 +1092,7 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
     nssPKIObject *pkiob;
 
     if (c == NULL) {
-        return SECFailure;
+        return PR_FAILURE;
     }
     oldTrust = nssTrust_GetCERTCertTrustForCert(c, cc);
     if (oldTrust) {
