@@ -453,13 +453,13 @@ const SEC_ASN1Template NSSCMSGenericWrapperDataTemplate[] = {
 	  NSSCMSEncapsulatedContentInfoTemplate },
 };
 
-SEC_ASN1_CHOOSER_IMPLEMENT(NSSCMSGenericWrapperDataTemplate);
+SEC_ASN1_CHOOSER_IMPLEMENT(NSSCMSGenericWrapperDataTemplate)
 
 const SEC_ASN1Template NSS_PointerToCMSGenericWrapperDataTemplate[] = {
     { SEC_ASN1_POINTER, 0, NSSCMSGenericWrapperDataTemplate }
 };
 
-SEC_ASN1_CHOOSER_IMPLEMENT(NSS_PointerToCMSGenericWrapperDataTemplate);
+SEC_ASN1_CHOOSER_IMPLEMENT(NSS_PointerToCMSGenericWrapperDataTemplate)
 
 /* -----------------------------------------------------------------------------
  *
