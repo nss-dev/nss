@@ -260,7 +260,7 @@ PQG_GetHashType(const PQGParams *params)
 
     if (params == NULL) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
-	return SECFailure;
+	return HASH_AlgNULL;
     }
 
     L = PQG_GetLength(&params->prime)*BITS_PER_BYTE;

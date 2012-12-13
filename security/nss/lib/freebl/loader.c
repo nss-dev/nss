@@ -1851,10 +1851,10 @@ PQG_ParamGenV2( unsigned int L, unsigned int N, unsigned int seedBytes,
   return (vector->p_PQG_ParamGenV2)(L, N, seedBytes, pParams, pVfy); 
 }
 
-PRBool
+SECStatus
 PRNGTEST_RunHealthTests(void)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
-      return PR_FALSE;
+      return SECFailure;
   return vector->p_PRNGTEST_RunHealthTests();
 }
