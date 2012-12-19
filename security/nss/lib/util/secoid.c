@@ -456,7 +456,7 @@ CONST_OID pkixExtendedKeyUsageCodeSign[]      	= { PKIX_KEY_USAGE, 3 };
 CONST_OID pkixExtendedKeyUsageEMailProtect[]  	= { PKIX_KEY_USAGE, 4 };
 CONST_OID pkixExtendedKeyUsageTimeStamp[]     	= { PKIX_KEY_USAGE, 8 };
 CONST_OID pkixOCSPResponderExtendedKeyUsage[] 	= { PKIX_KEY_USAGE, 9 };
-CONST_OID msExtendedKeyUsageCodeSigning[]       = { MS_CRYPTO_EKU, 1 };
+CONST_OID msExtendedKeyUsageTrustListSigning[]	= { MS_CRYPTO_EKU, 1 };
 
 /* OIDs for Netscape defined algorithms */
 CONST_OID netscapeSMimeKEA[] 			= { NETSCAPE_ALGS, 0x01 };
@@ -1643,7 +1643,7 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
 	SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA256_DIGEST,
 	"DSA with SHA-256 Signature",
 	CKM_INVALID_MECHANISM /* not yet defined */, INVALID_CERT_EXTENSION),
-    OD( msExtendedKeyUsageCodeSigning, 
+    OD( msExtendedKeyUsageTrustListSigning, 
         SEC_OID_MS_EXT_KEY_USAGE_CTL_SIGNING,
         "Microsoft Trust List Signing",
 	CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION )
