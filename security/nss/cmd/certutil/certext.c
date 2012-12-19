@@ -483,7 +483,7 @@ extKeyUsageKeyWordArray[] = { "serverAuth",
                               "timeStamp",
                               "ocspResponder",
                               "stepUp",
-                              "msCodeSigning",
+                              "msTrustListSigning",
                               NULL};
 
 static SECStatus 
@@ -512,6 +512,7 @@ AddExtKeyUsage (void *extHandle, const char *userSuppliedValue)
                     "\t\t4 - Timestamp\n"
                     "\t\t5 - OCSP Responder\n"
                     "\t\t6 - Step-up\n"
+                    "\t\t7 - Microsoft Trust List Signing\n"
                     "\t\tOther to finish\n",
                     buffer, sizeof(buffer)) == SECFailure) {
                 GEN_BREAK(SECFailure);
