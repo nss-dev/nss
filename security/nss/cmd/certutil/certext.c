@@ -483,6 +483,7 @@ extKeyUsageKeyWordArray[] = { "serverAuth",
                               "timeStamp",
                               "ocspResponder",
                               "stepUp",
+                              "msCodeSigning",
                               NULL};
 
 static SECStatus 
@@ -553,6 +554,9 @@ AddExtKeyUsage (void *extHandle, const char *userSuppliedValue)
             break;
         case 6:
             rv = AddOidToSequence(os, SEC_OID_NS_KEY_USAGE_GOVT_APPROVED);
+            break;
+        case 7:
+            rv = AddOidToSequence(os, SEC_OID_MS_EXT_KEY_USAGE_CTL_SIGNING);
             break;
         default:
             goto endloop;
