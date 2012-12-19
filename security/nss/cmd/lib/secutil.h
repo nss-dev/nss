@@ -293,6 +293,9 @@ extern SECStatus DER_PrettyPrint(FILE *out, SECItem *it, PRBool raw);
 
 extern char *SECU_SECModDBName(void);
 
+/* Fetch and register an oid if it hasn't been done already */
+extern void SECU_cert_fetchOID(SECOidTag *data, const SECOidData *src);
+
 extern SECStatus SECU_RegisterDynamicOids(void);
 
 /* Identifies hash algorithm tag by its string representation. */

@@ -1145,6 +1145,7 @@ static void luC(enum usage_level ul, const char *command)
               "%-20s \"emailProtection\", \"timeStamp\",\"ocspResponder\",\n"
               "%-20s \"stepUp\", \"critical\"\n",
         "   -6 | --extKeyUsage keyword,keyword,...", "", "", "", "");
+              "%-20s \"stepUp\", \"msCodeSign\", \"critical\"\n",
     FPS "%-20s Create an email subject alt name extension\n",
         "   -7 emailAddrs");
     FPS "%-20s Create an dns subject alt name extension\n",

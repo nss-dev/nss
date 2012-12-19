@@ -436,6 +436,12 @@ typedef enum {
     SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA224_DIGEST     = 314,
     SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA256_DIGEST     = 315,
 
+    /* Microsoft Trust List Signing
+     * szOID_KP_CTL_USAGE_SIGNING 
+     * where KP stands for Key Purpose
+     */
+    SEC_OID_MS_EXT_KEY_USAGE_CTL_SIGNING    = 316,
+
     SEC_OID_TOTAL
 } SECOidTag;
 
