@@ -8342,7 +8342,6 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     PRInt32          size;
     SECStatus        rv;
     PRBool           isServer	= (PRBool)(!!ss->sec.isServer);
-    PRBool           trusted 	= PR_FALSE;
     PRBool           isTLS;
     SSL3AlertDescription desc;
     int              errCode    = SSL_ERROR_RX_MALFORMED_CERTIFICATE;
@@ -8458,9 +8457,6 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	if (c->cert == NULL) {
 	    goto ambiguous_err;
 	}
-
-	if (c->cert->trust)
-	    trusted = PR_TRUE;
 
 	c->next = NULL;
 	if (lastCert) {
