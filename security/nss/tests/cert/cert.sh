@@ -1485,7 +1485,9 @@ cert_all_CA
 cert_extended_ssl 
 cert_ssl 
 cert_smime_client        
-cert_fips
+if [ -z "$NSS_TEST_DISABLE_FIPS" ]; then
+    cert_fips
+fi
 cert_eccurves
 cert_extensions
 cert_test_password
