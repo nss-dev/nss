@@ -183,7 +183,7 @@ typedef struct sec_ASN1Template_struct {
 typedef const SEC_ASN1Template * SEC_ASN1TemplateChooser(void *arg, PRBool enc);
 typedef SEC_ASN1TemplateChooser * SEC_ASN1TemplateChooserPtr;
 
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(ANDROID)
 #define SEC_ASN1_GET(x)        NSS_Get_##x(NULL, PR_FALSE)
 #define SEC_ASN1_SUB(x)        &p_NSS_Get_##x
 #define SEC_ASN1_XTRN          SEC_ASN1_DYNAMIC
