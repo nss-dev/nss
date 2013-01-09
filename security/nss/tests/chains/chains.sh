@@ -186,7 +186,10 @@ chains_init()
     if [ -n "${NSS_AIA_PATH}" ]; then
         HTTPPID=${NSS_AIA_PATH}/http_pid.$$
         mkdir -p "${NSS_AIA_PATH}"
-        (cd "${NSS_AIA_PATH}" ; start_httpserv )
+        SAVEPWD=`pwd`
+        cd "${NSS_AIA_PATH}"
+        start_httpserv
+        cd "${SAVEPWD}"
     fi
 
     html_head "Certificate Chains Tests"
