@@ -188,6 +188,9 @@ chains_init()
         mkdir -p "${NSS_AIA_PATH}"
         SAVEPWD=`pwd`
         cd "${NSS_AIA_PATH}"
+        # Start_httpserv sets environment variables, which are required for
+        # correct cleanup. (Running it in a subshell doesn't work, the
+        # value of $SHELL_HTTPPID wouldn't arrive in this scope.)
         start_httpserv
         cd "${SAVEPWD}"
     fi
