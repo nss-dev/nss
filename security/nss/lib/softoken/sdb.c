@@ -24,12 +24,13 @@
 #include <sqlite3.h>
 #include "prthread.h"
 #include "prio.h"
-#include "stdio.h"
+#include <stdio.h>
 #include "secport.h"
 #include "prmon.h"
 #include "prenv.h"
+#include "prprf.h"
 #include "prsystem.h" /* for PR_GetDirectorySeparator() */
-#include "sys/stat.h"
+#include <sys/stat.h>
 #if defined(_WIN32)
 #include <io.h>
 #include <windows.h>
@@ -291,11 +292,13 @@ sdb_mapSQLError(sdbDataType type, int sqlerr)
  */
 static char *sdb_BuildFileName(const char * directory, 
 			const char *prefix, const char *type, 
-			int version, int flags)
+			int version)
 {
     char *dbname = NULL;
     /* build the full dbname */
-    dbname = sqlite3_mprintf("%s/%s%s%d.db",directory, prefix, type, version);
+    dbname = sqlite3_mprintf("%s%c%s%s%d.db", directory,
+			     (int)(unsigned char)PR_GetDirectorySeparator(),
+			     prefix, type, version);
     return dbname;
 }
 
@@ -311,28 +314,63 @@ sdb_measureAccess(const char *directory)
     PRIntervalTime time;
     PRIntervalTime delta;
     PRIntervalTime duration = PR_MillisecondsToInterval(33);
+    const char *doesntExistName = "_dOeSnotExist_.db";
+    char *temp, *tempStartOfFilename;
+    size_t maxTempLen, maxFileNameLen, directoryLength;
 
     /* no directory, just return one */
     if (directory == NULL) {
 	return 1;
     }
 
+    /* our calculation assumes time is a 4 bytes == 32 bit integer */
+    PORT_Assert(sizeof(time) == 4);
+
+    directoryLength = strlen(directory);
+
+    maxTempLen = directoryLength + strlen(doesntExistName)
+		 + 1 /* potential additional separator char */
+		 + 11 /* max chars for 32 bit int plus potential sign */
+		 + 1; /* zero terminator */
+
+    temp = PORT_Alloc(maxTempLen);
+    if (!temp) {
+        return 1;
+    }
+
+    /* We'll copy directory into temp just once, then ensure it ends
+     * with the directory separator, then remember the position after
+     * the separator, and calculate the number of remaining bytes. */
+
+    strcpy(temp, directory);
+    if (directory[directoryLength - 1] != PR_GetDirectorySeparator()) {
+	temp[directoryLength++] = PR_GetDirectorySeparator();
+    }
+    tempStartOfFilename = temp + directoryLength;
+    maxFileNameLen = maxTempLen - directoryLength;
+
     /* measure number of Access operations that can be done in 33 milliseconds
      * (1/30'th of a second), or 10000 operations, which ever comes first.
      */
     time =  PR_IntervalNow();
     for (i=0; i < 10000u; i++) { 
-	char *temp;
 	PRIntervalTime next;
 
-        temp  = sdb_BuildFileName(directory,"","._dOeSnotExist_", time+i, 0);
+	/* We'll use the variable part first in the filename string, just in
+	 * case it's longer than assumed, so if anything gets cut off, it
+	 * will be cut off from the constant part.
+	 * This code assumes the directory name at the beginning of
+	 * temp remains unchanged during our loop. */
+        PR_snprintf(tempStartOfFilename, maxFileNameLen,
+		    ".%lu%s", (PRUint32)(time+i), doesntExistName);
 	PR_Access(temp,PR_ACCESS_EXISTS);
-        sqlite3_free(temp);
 	next = PR_IntervalNow();
 	delta = next - time;
 	if (delta >= duration)
 	    break;
     }
+
+    PORT_Free(temp);
 
     /* always return 1 or greater */
     return i ? i : 1u;
@@ -1901,9 +1939,9 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
 	SDB **certdb, SDB **keydb, int *newInit)
 {
     char *cert = sdb_BuildFileName(directory, certPrefix,
-				   "cert", cert_version, flags);
+				   "cert", cert_version);
     char *key = sdb_BuildFileName(directory, keyPrefix,
-				   "key", key_version, flags);
+				   "key", key_version);
     CK_RV error = CKR_OK;
     int inUpdate;
     PRUint32 accessOps;
