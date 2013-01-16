@@ -196,7 +196,7 @@ sdb_done(int err, int *count)
  */
 #if defined(_WIN32)
 static char *
-sdb_getTempDir(void)
+sdb_getFallbackTempDir(void)
 {
     /* sqlite uses sqlite3_temp_directory if it is not NULL. We don't have
      * access to sqlite3_temp_directory because it is not exported from
@@ -220,7 +220,7 @@ sdb_getTempDir(void)
 }
 #elif defined(XP_UNIX)
 static char *
-sdb_getTempDir(void)
+sdb_getFallbackTempDir(void)
 {
     const char *azDirs[] = {
         NULL,
@@ -251,8 +251,51 @@ sdb_getTempDir(void)
     return PORT_Strdup(zDir);
 }
 #else
-#error "sdb_getTempDir not implemented"
+#error "sdb_getFallbackTempDir not implemented"
 #endif
+
+static char *
+sdb_getTempDir(sqlite3 *sqlDB)
+{
+    int sqlrv;
+    char *result = NULL;
+    char *tempName = NULL;
+    char *foundSeparator = NULL;
+
+    /* Obtain temporary filename in sqlite's directory for temporary tables */
+    sqlrv = sqlite3_file_control(sqlDB, 0, SQLITE_FCNTL_TEMPFILENAME,
+				 (void*)&tempName);
+    if (sqlrv == SQLITE_NOTFOUND) {
+	/* SQLITE_FCNTL_TEMPFILENAME not implemented because we are using
+	 * an older SQLite. */
+	return sdb_getFallbackTempDir();
+    }
+    if (sqlrv != SQLITE_OK) {
+	return NULL;
+    }
+
+    /* We'll extract the temporary directory from tempName */
+    foundSeparator = PORT_Strrchr(tempName, PR_GetDirectorySeparator());
+    if (foundSeparator) {
+	/* We shorten the temp filename string to contain only
+	  * the directory name (including the trailing separator).
+	  * We know the byte after the foundSeparator position is
+	  * safe to use, in the shortest scenario it contains the
+	  * end-of-string byte.
+	  * By keeping the separator at the found position, it will
+	  * even work if tempDir consists of the separator, only.
+	  * (In this case the toplevel directory will be used for
+	  * access speed testing). */
+	++foundSeparator;
+	*foundSeparator = 0;
+
+	/* Now we copy the directory name for our caller */
+	result = PORT_Strdup(tempName);
+    }
+
+    sqlite3_free(tempName);
+    return result;
+}
 
 /*
  * Map SQL_LITE errors to PKCS #11 errors as best we can.
@@ -1830,7 +1873,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
 	 * is to check for the existance of a local file compared to the same
 	 * check in the temp directory. If the temp directory is faster, cache
 	 * the database there. */
-	tempDir = sdb_getTempDir();
+	tempDir = sdb_getTempDir(sqlDB);
 	if (tempDir) {
 	    tempOps = sdb_measureAccess(tempDir);
 	    PORT_Free(tempDir);
