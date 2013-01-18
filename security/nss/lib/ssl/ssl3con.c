@@ -8384,8 +8384,10 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
 
     if (!remaining) {
-	if (!(isTLS && isServer))
+	if (!(isTLS && isServer)) {
+	    desc = bad_certificate;
 	    goto alert_loser;
+	}
     	/* This is TLS's version of a no_certificate alert. */
     	/* I'm a server. I've requested a client cert. He hasn't got one. */
 	rv = ssl3_HandleNoCertificate(ss);
