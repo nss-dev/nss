@@ -333,8 +333,11 @@ const char * V2CipherString(int cs_int)
   case 0x000039:    cs_str = "TLS/DHE-RSA/AES256-CBC/SHA";	break;
   case 0x00003A:    cs_str = "TLS/DH-ANON/AES256-CBC/SHA";	break;
 
+  case 0x00003B:    cs_str = "TLS/RSA/NULL/SHA256";		break;
   case 0x00003C:    cs_str = "TLS/RSA/AES128-CBC/SHA256";  	break;
   case 0x00003D:    cs_str = "TLS/RSA/AES256-CBC/SHA256";  	break;
+  case 0x00003E:    cs_str = "TLS/DH-DSS/AES128-CBC/SHA256";  	break;
+  case 0x00003F:    cs_str = "TLS/DH-RSA/AES128-CBC/SHA256";  	break;
   case 0x000040:    cs_str = "TLS/DHE-DSS/AES128-CBC/SHA256";	break;
 
   case 0x000041:    cs_str = "TLS/RSA/CAMELLIA128-CBC/SHA";	break;
