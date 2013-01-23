@@ -189,6 +189,7 @@ struct CERTOCSPCertIDStr {
  * }
  */
 typedef enum {
+    ocspResponse_min = 0,
     ocspResponse_successful = 0,
     ocspResponse_malformedRequest = 1,
     ocspResponse_internalError = 2,
@@ -196,7 +197,10 @@ typedef enum {
     ocspResponse_unused = 4,
     ocspResponse_sigRequired = 5,
     ocspResponse_unauthorized = 6,
-    ocspResponse_other			/* unknown/unrecognized value */
+    ocspResponse_max = 6 /* Please update max when adding values.
+                          * Remember to also update arrays, e.g.
+                          * "responseStatusNames" in ocspclnt.c
+                          * and potentially other places. */
 } ocspResponseStatus;
 
 /*
