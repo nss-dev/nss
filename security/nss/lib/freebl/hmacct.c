@@ -212,6 +212,8 @@ static SECStatus mac(
 	unsigned char isBlockA = constantTimeEQ8(i, indexA);
 	unsigned char isBlockB = constantTimeEQ8(i, indexB);
 	for (j = 0; j < mdBlockSize; j++) {
+	    unsigned char isPastC = isBlockA & constantTimeGE(j, c);
+	    unsigned char isPastCPlus1 = isBlockA & constantTimeGE(j, c+1);
 	    unsigned char b = 0;
 	    if (k < headerLen) {
 		b = header[k];
@@ -220,8 +222,6 @@ static SECStatus mac(
 	    }
 	    k++;
 
-	    unsigned char isPastC = isBlockA & constantTimeGE(j, c);
-	    unsigned char isPastCPlus1 = isBlockA & constantTimeGE(j, c+1);
 	    /* If this is the block containing the end of the
 	     * application data, and we are at the offset for the
 	     * 0x80 value, then overwrite b with 0x80. */
