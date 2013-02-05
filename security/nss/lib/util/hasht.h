@@ -51,6 +51,7 @@ struct SECHashObjectStr {
     void (*end)(void *, unsigned char *, unsigned int *, unsigned int);
     unsigned int blocklength;  /* hash input block size (in bytes) */
     HASH_HashType type;
+    void (*end_raw)(void *, unsigned char *, unsigned int *, unsigned int);
 };
 
 struct HASHContextStr {

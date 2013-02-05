@@ -1529,17 +1529,23 @@ DOSUB(SHA256)
 DOSUB(SHA384)
 DOSUB(SHA512)
 
-/*
- * HMAC General copies only a portion of the result. This update routine likes
- * the final HMAC output with the signature.
- */
-static SECStatus
-sftk_HMACCopy(CK_ULONG *copyLen,unsigned char *sig,unsigned int *sigLen,
-		unsigned int maxLen,unsigned char *hash, unsigned int hashLen)
-{
-    if (maxLen < *copyLen) return SECFailure;
-    PORT_Memcpy(sig,hash,*copyLen);
-    *sigLen = *copyLen;
+SECStatus sftk_SignCopy(
+	CK_ULONG *copyLen,
+	void *out, unsigned int *outLength,
+	unsigned int maxLength,
+	const unsigned char *hashResult,
+	unsigned int hashResultLength) {
+    unsigned int toCopy = *copyLen;
+    if (toCopy > maxLength) {
+	toCopy = maxLength;
+    }
+    if (toCopy > hashResultLength) {
+	toCopy = hashResultLength;
+    }
+    memcpy(out, hashResult, toCopy);
+    if (outLength) {
+	*outLength = toCopy;
+    }
     return SECSuccess;
 }
 
@@ -1595,7 +1601,7 @@ sftk_doHMACInit(SFTKSessionContext *context,HASH_HashType hash,
     *intpointer = mac_size;
     context->cipherInfo = (void *) intpointer;
     context->destroy = (SFTKDestroy) sftk_Space;
-    context->update = (SFTKCipher) sftk_HMACCopy;
+    context->update = (SFTKCipher) sftk_SignCopy;
     context->verify = (SFTKVerify) sftk_HMACCmp;
     context->maxLen = hashObj->length;
     HMAC_Begin(HMACcontext);
@@ -2241,6 +2247,65 @@ finish_rsa:
     case CKM_TLS_PRF_GENERAL:
 	crv = sftk_TLSPRFInit(context, key, key_type);
 	break;
+
+    case CKM_NSS_HMAC_CONSTANT_TIME: {
+	sftk_MACConstantTimeCtx *ctx = sftk_HMACConstantTime_New(pMechanism,key);
+	int *intpointer;
+
+	if (ctx == NULL) {
+	    crv = CKR_ARGUMENTS_BAD;
+	    break;
+	}
+	intpointer = PORT_Alloc(sizeof(int));
+	if (intpointer == NULL) {
+	    crv = CKR_HOST_MEMORY;
+	    break;
+	}
+	*intpointer = ctx->hash->length;
+
+	context->cipherInfo    = intpointer;
+	context->hashInfo      = (void *) ctx;
+	context->currentMech   = pMechanism->mechanism;
+	context->hashUpdate    = sftk_HMACConstantTime_Update;
+	context->hashdestroy   = sftk_MACConstantTime_DestroyContext;
+	context->end           = sftk_MACConstantTime_EndHash;
+	context->update        = sftk_SignCopy;
+	context->destroy       = sftk_Space;
+	context->maxLen        = 64;
+	context->multi         = PR_TRUE;
+	if (ctx == NULL)
+	    crv = CKR_ARGUMENTS_BAD;
+	break;
+    }
+
+    case CKM_NSS_SSLV3_MAC_CONSTANT_TIME: {
+	sftk_MACConstantTimeCtx *ctx = sftk_SSLv3MACConstantTime_New(pMechanism,key);
+	int *intpointer;
+
+	if (ctx == NULL) {
+	    crv = CKR_ARGUMENTS_BAD;
+	    break;
+	}
+	intpointer = PORT_Alloc(sizeof(int));
+	if (intpointer == NULL) {
+	    crv = CKR_HOST_MEMORY;
+	    break;
+	}
+	*intpointer = ctx->hash->length;
+
+	context->cipherInfo    = intpointer;
+	context->hashInfo      = (void *) ctx;
+	context->currentMech   = pMechanism->mechanism;
+	context->hashUpdate    = sftk_SSLv3MACConstantTime_Update;
+	context->hashdestroy   = sftk_MACConstantTime_DestroyContext;
+	context->end           = sftk_MACConstantTime_EndHash;
+	context->update        = sftk_SignCopy;
+	context->destroy       = sftk_Space;
+	context->maxLen        = 64;
+	context->multi         = PR_TRUE;
+	break;
+    }
+
     default:
 	crv = CKR_MECHANISM_INVALID;
 	break;

@@ -708,6 +708,28 @@ CK_RV jpake_Final(HASH_HashType hashType,
                   const CK_NSS_JPAKEFinalParams * params,
                   SFTKObject * sourceKey, SFTKObject * key);
 
+/* Constant time MAC functions (hmacct.c) */
+
+struct sftk_MACConstantTimeCtxStr {
+    const SECHashObject *hash;
+    unsigned char mac[64];
+    unsigned char secret[64];
+    unsigned int headerLength;
+    unsigned int secretLength;
+    unsigned int totalLength;
+    unsigned char header[75];
+};
+typedef struct sftk_MACConstantTimeCtxStr sftk_MACConstantTimeCtx;
+sftk_MACConstantTimeCtx* sftk_HMACConstantTime_New(
+	CK_MECHANISM_PTR mech, SFTKObject *key);
+sftk_MACConstantTimeCtx* sftk_SSLv3MACConstantTime_New(
+	CK_MECHANISM_PTR mech, SFTKObject *key);
+void sftk_HMACConstantTime_Update(void *pctx, void *data, unsigned int len);
+void sftk_SSLv3MACConstantTime_Update(void *pctx, void *data, unsigned int len);
+void sftk_MACConstantTime_EndHash(
+	void *pctx, void *out, unsigned int *outLength, unsigned int maxLength);
+void sftk_MACConstantTime_DestroyContext(void *pctx, PRBool);
+
 /****************************************
  * implement TLS Pseudo Random Function (PRF)
  */

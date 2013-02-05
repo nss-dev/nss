@@ -12,6 +12,7 @@ extern int FREEBL_InitStubs(void);
 
 #include "loader.h"
 #include "alghmac.h"
+#include "hmacct.h"
 
 
 static const struct FREEBLVectorStr vector = 
@@ -258,9 +259,14 @@ static const struct FREEBLVectorStr vector =
     /* End of Version 3.013 */
 
     PQG_ParamGenV2,
-    PRNGTEST_RunHealthTests
+    PRNGTEST_RunHealthTests,
 
     /* End of Version 3.014 */
+
+    HMAC_ConstantTime,
+    SSLv3_MAC_ConstantTime
+
+    /* End of Version 3.015 */
 };
 
 const FREEBLVector * 

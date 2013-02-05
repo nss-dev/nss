@@ -195,6 +195,9 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #define CKM_NSS_JPAKE_FINAL_SHA384  (CKM_NSS + 17)
 #define CKM_NSS_JPAKE_FINAL_SHA512  (CKM_NSS + 18)
 
+#define CKM_NSS_HMAC_CONSTANT_TIME       (CKM_NSS + 19)
+#define CKM_NSS_SSLV3_MAC_CONSTANT_TIME  (CKM_NSS + 20)
+
 /*
  * HISTORICAL:
  * Do not attempt to use these. They are only used by NETSCAPE's internal
@@ -239,6 +242,13 @@ typedef struct CK_NSS_JPAKERound2Params {
 typedef struct CK_NSS_JPAKEFinalParams {
     CK_NSS_JPAKEPublicValue B; /* in */
 } CK_NSS_JPAKEFinalParams;
+
+typedef struct CK_NSS_MACConstantTimeParams {
+    CK_MECHANISM_TYPE hashAlg;  /* in */
+    CK_ULONG ulBodyTotalLength; /* in */
+    CK_BYTE * pHeader;          /* in */
+    CK_ULONG ulHeaderLength;    /* in */
+} CK_NSS_MACConstantTimeParams;
 
 /*
  * NSS-defined return values
