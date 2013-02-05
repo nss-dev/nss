@@ -178,12 +178,16 @@ SHA1_End(SHA1Context *ctx, unsigned char *hashout,
   if (pDigestLen) {
     *pDigestLen = SHA1_LENGTH;
   }
+#undef tmp
 }
 
 void
 SHA1_EndRaw(SHA1Context *ctx, unsigned char *hashout,
             unsigned int *pDigestLen, unsigned int maxDigestLen)
 {
+#if defined(SHA_NEED_TMP_VARIABLE)
+  register PRUint32 tmp;
+#endif
   PRUint32 tmpbuf[5];
   PORT_Assert (maxDigestLen >= SHA1_LENGTH);
 
@@ -193,7 +197,6 @@ SHA1_EndRaw(SHA1Context *ctx, unsigned char *hashout,
 }
 
 #undef B
-#undef tmp
 /*
  *  SHA: Compression function, unrolled.
  *
