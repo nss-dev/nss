@@ -14,7 +14,7 @@
 #include "softoknt.h"
 #include "secoidt.h"
 
-#include "pkcs11t.h"     /* CK_RV Required for sftk_fipsPowerUpSelfTest(). */
+#include "pkcs11t.h"
 
 SEC_BEGIN_PROTOS
 
@@ -93,6 +93,20 @@ extern
 SECStatus RSA_DecryptBlock(NSSLOWKEYPrivateKey *key, unsigned char *output,
 			   unsigned int *outputLen, unsigned int maxOutputLen,
 			   unsigned char *input, unsigned int inputLen);
+
+extern
+SECStatus RSA_EncryptOAEP(CK_RSA_PKCS_OAEP_PARAMS *oaepParams,
+                          NSSLOWKEYPublicKey *key,
+                          unsigned char *output, unsigned int *outputLen,
+                          unsigned int maxOutputLen,
+                          const unsigned char *input, unsigned int inputLen);
+
+extern
+SECStatus RSA_DecryptOAEP(CK_RSA_PKCS_OAEP_PARAMS *oaepParams,
+                          NSSLOWKEYPrivateKey *key,
+                          unsigned char *output, unsigned int *outputLen,
+                          unsigned int maxOutputLen,
+                          const unsigned char *input, unsigned int inputLen);
 
 /*
  * added to make pkcs #11 happy

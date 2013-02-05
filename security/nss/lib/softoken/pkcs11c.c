@@ -457,6 +457,24 @@ sftk_aes_mode(CK_MECHANISM_TYPE mechanism)
     return -1;
 }
 
+static SECStatus
+sftk_EncryptOAEP(SFTKOAEPEncryptInfo *info, unsigned char *output,
+                 unsigned int *outputLen, unsigned int maxLen,
+                 unsigned char *input, unsigned int inputLen)
+{
+    return RSA_EncryptOAEP(info->params, info->key, output, outputLen,
+                           maxLen, input, inputLen);
+}
+
+static SECStatus
+sftk_DecryptOAEP(SFTKOAEPDecryptInfo *info, unsigned char *output,
+                 unsigned int *outputLen, unsigned int maxLen,
+                 unsigned char *input, unsigned int inputLen)
+{
+    return RSA_DecryptOAEP(info->params, info->key, output, outputLen,
+                           maxLen, input, inputLen);
+}
+
 /** NSC_CryptInit initializes an encryption/Decryption operation.
  *
  * Always called by NSC_EncryptInit, NSC_DecryptInit, NSC_WrapKey,NSC_UnwrapKey.
@@ -513,6 +531,7 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 	if (isEncrypt) {
 	    NSSLOWKEYPublicKey *pubKey = sftk_GetPubKey(key,CKK_RSA,&crv);
 	    if (pubKey == NULL) {
+	        crv = CKR_KEY_HANDLE_INVALID;
 		break;
 	    }
 	    context->maxLen = nsslowkey_PublicModulusLen(pubKey);
@@ -523,6 +542,7 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 	} else {
 	    NSSLOWKEYPrivateKey *privKey = sftk_GetPrivKey(key,CKK_RSA,&crv);
 	    if (privKey == NULL) {
+	        crv = CKR_KEY_HANDLE_INVALID;
 		break;
 	    }
 	    context->maxLen = nsslowkey_PrivateModulusLen(privKey);
@@ -533,6 +553,55 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 	}
 	context->destroy = sftk_Null;
 	break;
+/* XXX: Disabled until unit tests land.
+    case CKM_RSA_PKCS_OAEP:
+	if (key_type != CKK_RSA) {
+	    crv = CKR_KEY_TYPE_INCONSISTENT;
+	    break;
+	}
+	context->multi = PR_FALSE;
+	context->rsa = PR_TRUE;
+	if (pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_OAEP_PARAMS)) {
+	    crv = CKR_MECHANISM_PARAM_INVALID;
+	    break;
+	}
+	/\* XXX: Need Parameter validation here *\/
+	if (isEncrypt) {
+	    SFTKOAEPEncryptInfo *info = PORT_New(SFTKOAEPEncryptInfo);
+	    if (info == NULL) {
+	        crv = CKR_HOST_MEMORY;
+	        break;
+	    }
+	    info->params = pMechanism->pParameter;
+	    info->key = sftk_GetPubKey(key, CKK_RSA, &crv);
+	    if (info->key == NULL) {
+	        PORT_Free(info);
+	        crv = CKR_KEY_HANDLE_INVALID;
+	        break;
+	    }
+	    context->update = (SFTKCipher) sftk_EncryptOAEP;
+	    context->maxLen = nsslowkey_PublicModulusLen(info->key);
+	    context->cipherInfo = info;
+	} else {
+	    SFTKOAEPDecryptInfo *info = PORT_New(SFTKOAEPDecryptInfo);
+	    if (info == NULL) {
+	        crv = CKR_HOST_MEMORY;
+	        break;
+	    }
+	    info->params = pMechanism->pParameter;
+	    info->key = sftk_GetPrivKey(key, CKK_RSA, &crv);
+	    if (info->key == NULL) {
+	        PORT_Free(info);
+	        crv = CKR_KEY_HANDLE_INVALID;
+	        break;
+	    }
+	    context->update = (SFTKCipher) sftk_DecryptOAEP;
+	    context->maxLen = nsslowkey_PrivateModulusLen(info->key);
+	    context->cipherInfo = info;
+	}
+	context->destroy = (SFTKDestroy) sftk_Space;
+	break;
+*/
     case CKM_RC2_CBC_PAD:
 	context->doPad = PR_TRUE;
 	/* fall thru */
