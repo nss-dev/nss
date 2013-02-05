@@ -20,9 +20,6 @@ typedef enum {
     RSA_BlockPrivate0 = 0,	/* unused, really */
     RSA_BlockPrivate = 1,	/* pad for a private-key operation */
     RSA_BlockPublic = 2,	/* pad for a public-key operation */
-    RSA_BlockOAEP = 3,		/* use OAEP padding */
-				/* XXX is this only for a public-key
-				   operation? If so, add "Public" */
     RSA_BlockRaw = 4,		/* simply justify the block appropriately */
     RSA_BlockTotal
 } RSA_BlockType;

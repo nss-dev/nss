@@ -101,6 +101,8 @@ typedef struct SFTKSessionContextStr SFTKSessionContext;
 typedef struct SFTKSearchResultsStr SFTKSearchResults;
 typedef struct SFTKHashVerifyInfoStr SFTKHashVerifyInfo;
 typedef struct SFTKHashSignInfoStr SFTKHashSignInfo;
+typedef struct SFTKOAEPEncryptInfoStr SFTKOAEPEncryptInfo;
+typedef struct SFTKOAEPDecryptInfoStr SFTKOAEPDecryptInfo;
 typedef struct SFTKSSLMACInfoStr SFTKSSLMACInfo;
 typedef struct SFTKItemTemplateStr SFTKItemTemplate;
 
@@ -370,6 +372,19 @@ struct SFTKHashSignInfoStr {
     SECOidTag   	hashOid;
     void		*params;
     NSSLOWKEYPrivateKey	*key;
+};
+
+/**
+ * Contexts for RSA-OAEP
+ */
+struct SFTKOAEPEncryptInfoStr {
+    CK_RSA_PKCS_OAEP_PARAMS *params;
+    NSSLOWKEYPublicKey *key;
+};
+
+struct SFTKOAEPDecryptInfoStr {
+    CK_RSA_PKCS_OAEP_PARAMS *params;
+    NSSLOWKEYPrivateKey *key;
 };
 
 /* context for the Final SSLMAC message */
