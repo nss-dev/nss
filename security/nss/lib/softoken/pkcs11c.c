@@ -1594,12 +1594,12 @@ sftk_doHMACInit(SFTKSessionContext *context,HASH_HashType hash,
     context->end = (SFTKEnd) HMAC_Finish;
 
     context->hashdestroy = (SFTKDestroy) HMAC_Destroy;
-    intpointer = (CK_ULONG *) PORT_Alloc(sizeof(CK_ULONG));
+    intpointer = PORT_New(CK_ULONG);
     if (intpointer == NULL) {
 	return CKR_HOST_MEMORY;
     }
     *intpointer = mac_size;
-    context->cipherInfo = (void *) intpointer;
+    context->cipherInfo = intpointer;
     context->destroy = (SFTKDestroy) sftk_Space;
     context->update = (SFTKCipher) sftk_SignCopy;
     context->verify = (SFTKVerify) sftk_HMACCmp;
@@ -2250,13 +2250,13 @@ finish_rsa:
 
     case CKM_NSS_HMAC_CONSTANT_TIME: {
 	sftk_MACConstantTimeCtx *ctx = sftk_HMACConstantTime_New(pMechanism,key);
-	int *intpointer;
+	CK_ULONG *intpointer;
 
 	if (ctx == NULL) {
 	    crv = CKR_ARGUMENTS_BAD;
 	    break;
 	}
-	intpointer = PORT_Alloc(sizeof(int));
+	intpointer = PORT_New(CK_ULONG);
 	if (intpointer == NULL) {
 	    crv = CKR_HOST_MEMORY;
 	    break;
@@ -2264,7 +2264,7 @@ finish_rsa:
 	*intpointer = ctx->hash->length;
 
 	context->cipherInfo    = intpointer;
-	context->hashInfo      = (void *) ctx;
+	context->hashInfo      = ctx;
 	context->currentMech   = pMechanism->mechanism;
 	context->hashUpdate    = sftk_HMACConstantTime_Update;
 	context->hashdestroy   = sftk_MACConstantTime_DestroyContext;
@@ -2280,13 +2280,13 @@ finish_rsa:
 
     case CKM_NSS_SSLV3_MAC_CONSTANT_TIME: {
 	sftk_MACConstantTimeCtx *ctx = sftk_SSLv3MACConstantTime_New(pMechanism,key);
-	int *intpointer;
+	CK_ULONG *intpointer;
 
 	if (ctx == NULL) {
 	    crv = CKR_ARGUMENTS_BAD;
 	    break;
 	}
-	intpointer = PORT_Alloc(sizeof(int));
+	intpointer = PORT_New(CK_ULONG);
 	if (intpointer == NULL) {
 	    crv = CKR_HOST_MEMORY;
 	    break;
@@ -2294,7 +2294,7 @@ finish_rsa:
 	*intpointer = ctx->hash->length;
 
 	context->cipherInfo    = intpointer;
-	context->hashInfo      = (void *) ctx;
+	context->hashInfo      = ctx;
 	context->currentMech   = pMechanism->mechanism;
 	context->hashUpdate    = sftk_SSLv3MACConstantTime_Update;
 	context->hashdestroy   = sftk_MACConstantTime_DestroyContext;
