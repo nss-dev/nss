@@ -2063,12 +2063,6 @@ ssl3_ComputeRecordMACConstantTime(
 	goto fallback;
     }
 
-    if (spec->cipher_def->cipher == cipher_rc2_40) {
-	/* This function doesn't work for SSL3_RSA_EXPORT_WITH_RC2_CBC_40_MD5.
-	 * We fallback on the non-constant time version. */
-	goto fallback;
-    }
-
     if (spec->mac_def->mac == mac_null) {
 	*outLen = 0;
 	return SECSuccess;

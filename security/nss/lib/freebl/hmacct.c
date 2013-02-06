@@ -172,8 +172,16 @@ static SECStatus mac(
     if (mdLengthSize == 16) {
 	j = 8;
     }
-    for (i = 0; i < 4; i++) {
-	lengthBytes[4+i+j] = bits >> (8*(7-i));
+    if (hashObj->type == HASH_AlgMD5) {
+	/* MD5 appends a little-endian length. */
+	for (i = 0; i < 4; i++) {
+	    lengthBytes[i+j] = bits >> (8*i);
+	}
+    } else {
+	/* All other TLS hash functions use a big-endian length. */
+	for (i = 0; i < 4; i++) {
+	    lengthBytes[4+i+j] = bits >> (8*(7-i));
+	}
     }
 
     if (k > 0) {
