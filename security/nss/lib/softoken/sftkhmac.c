@@ -106,7 +106,7 @@ sftk_MACConstantTimeCtx* sftk_SSLv3MACConstantTime_New(CK_MECHANISM_PTR mech,
 	return NULL;
     }
 
-    if (params->hashAlg == CKM_MD5) {
+    if (params->hashAlg == CKM_SSL3_MD5_MAC) {
 	padLength = 48;
     }
 
