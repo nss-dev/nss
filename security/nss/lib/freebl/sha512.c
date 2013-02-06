@@ -468,8 +468,11 @@ SHA256_EndRaw(SHA256Context *ctx, unsigned char *digest,
 {
     PRUint32 h[8];
     unsigned int len;
+#ifdef SWAP4MASK
+    PRUint32 t1;
+#endif
 
-    memcpy(&h, ctx->h, sizeof(h));
+    memcpy(h, ctx->h, sizeof(h));
 
 #if defined(IS_LITTLE_ENDIAN)
     BYTESWAP4(h[0]);
@@ -1266,6 +1269,11 @@ void
 SHA512_EndRaw(SHA512Context *ctx, unsigned char *digest,
               unsigned int *digestLen, unsigned int maxDigestLen)
 {
+#if defined(HAVE_LONG_LONG)
+    PRUint64 t1;
+#else
+    PRUint32 t1;
+#endif
     PRUint64 h[8];
     unsigned int len;
 
