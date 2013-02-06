@@ -180,7 +180,7 @@ static SECStatus mac(
     } else {
 	/* All other TLS hash functions use a big-endian length. */
 	for (i = 0; i < 4; i++) {
-	    lengthBytes[4+i+j] = bits >> (8*(7-i));
+	    lengthBytes[4+i+j] = bits >> (8*(3-i));
 	}
     }
 
