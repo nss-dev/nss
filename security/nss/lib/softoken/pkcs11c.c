@@ -1529,12 +1529,14 @@ DOSUB(SHA256)
 DOSUB(SHA384)
 DOSUB(SHA512)
 
-SECStatus sftk_SignCopy(
+static SECStatus
+sftk_SignCopy(
 	CK_ULONG *copyLen,
 	void *out, unsigned int *outLength,
 	unsigned int maxLength,
 	const unsigned char *hashResult,
-	unsigned int hashResultLength) {
+	unsigned int hashResultLength)
+{
     unsigned int toCopy = *copyLen;
     if (toCopy > maxLength) {
 	toCopy = maxLength;
@@ -2249,7 +2251,8 @@ finish_rsa:
 	break;
 
     case CKM_NSS_HMAC_CONSTANT_TIME: {
-	sftk_MACConstantTimeCtx *ctx = sftk_HMACConstantTime_New(pMechanism,key);
+	sftk_MACConstantTimeCtx *ctx =
+	    sftk_HMACConstantTime_New(pMechanism,key);
 	CK_ULONG *intpointer;
 
 	if (ctx == NULL) {
@@ -2278,8 +2281,9 @@ finish_rsa:
 	break;
     }
 
-    case CKM_NSS_SSLV3_MAC_CONSTANT_TIME: {
-	sftk_MACConstantTimeCtx *ctx = sftk_SSLv3MACConstantTime_New(pMechanism,key);
+    case CKM_NSS_SSL3_MAC_CONSTANT_TIME: {
+	sftk_MACConstantTimeCtx *ctx =
+	    sftk_SSLv3MACConstantTime_New(pMechanism,key);
 	CK_ULONG *intpointer;
 
 	if (ctx == NULL) {

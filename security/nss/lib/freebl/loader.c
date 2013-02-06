@@ -1859,7 +1859,8 @@ PRNGTEST_RunHealthTests(void)
   return vector->p_PRNGTEST_RunHealthTests();
 }
 
-SECStatus SSLv3_MAC_ConstantTime(
+SECStatus
+SSLv3_MAC_ConstantTime(
     unsigned char *result,
     unsigned int *resultLen,
     unsigned int maxResultLen,
@@ -1870,7 +1871,8 @@ SECStatus SSLv3_MAC_ConstantTime(
     unsigned int headerLen,
     const unsigned char *body,
     unsigned int bodyLen,
-    unsigned int bodyTotalLen) {
+    unsigned int bodyTotalLen)
+{
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return SECFailure;
   return (vector->p_SSLv3_MAC_ConstantTime)(
@@ -1881,7 +1883,8 @@ SECStatus SSLv3_MAC_ConstantTime(
       body, bodyLen, bodyTotalLen);
 }
 
-SECStatus HMAC_ConstantTime(
+SECStatus
+HMAC_ConstantTime(
     unsigned char *result,
     unsigned int *resultLen,
     unsigned int maxResultLen,
@@ -1892,7 +1895,8 @@ SECStatus HMAC_ConstantTime(
     unsigned int headerLen,
     const unsigned char *body,
     unsigned int bodyLen,
-    unsigned int bodyTotalLen) {
+    unsigned int bodyTotalLen)
+{
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return SECFailure;
   return (vector->p_HMAC_ConstantTime)(

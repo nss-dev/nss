@@ -30,19 +30,23 @@
 
 /* constantTimeGE returns 0xff if a>=b and 0x00 otherwise, where a, b <
  * MAX_UINT/2. */
-static unsigned char constantTimeGE(unsigned int a, unsigned int b) {
+static unsigned char
+constantTimeGE(unsigned int a, unsigned int b)
+{
     a -= b;
     return DUPLICATE_MSB_TO_ALL(~a);
 }
 
 /* constantTimeEQ8 returns 0xff if a==b and 0x00 otherwise. */
-static unsigned char constantTimeEQ8(unsigned char a, unsigned char b) {
+static unsigned char
+constantTimeEQ8(unsigned char a, unsigned char b)
+{
     unsigned int c = a ^ b;
     c--;
     return DUPLICATE_MSB_TO_ALL_8(c);
 }
 
-/* mac performs a constant time SSLv3/TLS MAC of |dataLen| bytes of |data|,
+/* MAC performs a constant time SSLv3/TLS MAC of |dataLen| bytes of |data|,
  * where |dataLen| includes both the authenticated bytes and the MAC tag from
  * the sender. |dataLen| must be >= the length of the MAC tag.
  *
@@ -57,8 +61,8 @@ static unsigned char constantTimeEQ8(unsigned char a, unsigned char b) {
  * |header| contains either the 13-byte TLS header (containing the sequence
  * number, record type etc), or it contains the SSLv3 header with the SSLv3
  * padding bytes etc. */
-static SECStatus mac(
-    unsigned char *mdOut,
+static SECStatus
+MAC(unsigned char *mdOut,
     unsigned int *mdOutLen,
     unsigned int mdOutMax,
     const SECHashObject *hashObj,
@@ -69,8 +73,8 @@ static SECStatus mac(
     const unsigned char *data,
     unsigned int dataLen,
     unsigned int dataTotalLen,
-    unsigned char isSSLv3) {
-
+    unsigned char isSSLv3)
+{
     void *mdState = hashObj->create();
     const unsigned int mdSize = hashObj->length;
     const unsigned int mdBlockSize = hashObj->blocklength;
@@ -196,7 +200,8 @@ static SECStatus mac(
 	    memcpy(firstBlock + overhang, data, mdBlockSize-overhang);
 	    hashObj->update(mdState, firstBlock, mdBlockSize);
 	    for (i = 1; i < k/mdBlockSize - 1; i++) {
-		hashObj->update(mdState, data + mdBlockSize*i - overhang, mdBlockSize);
+		hashObj->update(mdState, data + mdBlockSize*i - overhang,
+				mdBlockSize);
 	    }
 	} else {
 	    /* k is a multiple of mdBlockSize. */
@@ -204,7 +209,8 @@ static SECStatus mac(
 	    memcpy(firstBlock+13, data, mdBlockSize-13);
 	    hashObj->update(mdState, firstBlock, mdBlockSize);
 	    for (i = 1; i < k/mdBlockSize; i++) {
-		hashObj->update(mdState, data + mdBlockSize*i - 13, mdBlockSize);
+		hashObj->update(mdState, data + mdBlockSize*i - 13,
+				mdBlockSize);
 	    }
 	}
     }
@@ -247,7 +253,8 @@ static SECStatus mac(
 	    /* The final bytes of one of the blocks contains the length. */
 	    if (j >= mdBlockSize - mdLengthSize) {
 		/* If this is indexB, write a length byte. */
-		b = (b&~isBlockB) | (isBlockB&lengthBytes[j-(mdBlockSize-mdLengthSize)]);
+		b = (b&~isBlockB) |
+		    (isBlockB&lengthBytes[j-(mdBlockSize-mdLengthSize)]);
 	    }
 	    block[j] = b;
 	}
@@ -285,7 +292,8 @@ static SECStatus mac(
     return SECSuccess;
 }
 
-SECStatus HMAC_ConstantTime(
+SECStatus
+HMAC_ConstantTime(
     unsigned char *result,
     unsigned int *resultLen,
     unsigned int maxResultLen,
@@ -296,15 +304,17 @@ SECStatus HMAC_ConstantTime(
     unsigned int headerLen,
     const unsigned char *body,
     unsigned int bodyLen,
-    unsigned int bodyTotalLen) {
+    unsigned int bodyTotalLen)
+{
     if (hashObj->end_raw == NULL)
 	return SECFailure;
-    return mac(result, resultLen, maxResultLen, hashObj, secret, secretLen,
+    return MAC(result, resultLen, maxResultLen, hashObj, secret, secretLen,
 	       header, headerLen, body, bodyLen, bodyTotalLen,
 	       0 /* not SSLv3 */);
 }
 
-SECStatus SSLv3_MAC_ConstantTime(
+SECStatus
+SSLv3_MAC_ConstantTime(
     unsigned char *result,
     unsigned int *resultLen,
     unsigned int maxResultLen,
@@ -315,10 +325,11 @@ SECStatus SSLv3_MAC_ConstantTime(
     unsigned int headerLen,
     const unsigned char *body,
     unsigned int bodyLen,
-    unsigned int bodyTotalLen) {
+    unsigned int bodyTotalLen)
+{
     if (hashObj->end_raw == NULL)
 	return SECFailure;
-    return mac(result, resultLen, maxResultLen, hashObj, secret, secretLen,
+    return MAC(result, resultLen, maxResultLen, hashObj, secret, secretLen,
 	       header, headerLen, body, bodyLen, bodyTotalLen,
 	       1 /* SSLv3 */);
 }

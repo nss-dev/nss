@@ -2046,8 +2046,7 @@ ssl3_ComputeRecordMACConstantTime(
     unsigned int *     outLen)
 {
     CK_MECHANISM_TYPE            macType;
-    CK_NSS_MACConstantTimeParams params;
-    PK11Context *                mac_context;
+    CK_NSS_MAC_CONSTANT_TIME_PARAMS params;
     SECItem                      param, inputItem, outputItem;
     SECStatus                    rv;
     unsigned char                header[13];
@@ -2081,10 +2080,10 @@ ssl3_ComputeRecordMACConstantTime(
     macType = CKM_NSS_HMAC_CONSTANT_TIME;
     recordLength = inputLen - spec->mac_size;
     if (spec->version <= SSL_LIBRARY_VERSION_3_0) {
-	macType = CKM_NSS_SSLV3_MAC_CONSTANT_TIME;
+	macType = CKM_NSS_SSL3_MAC_CONSTANT_TIME;
 	header[9] = recordLength >> 8;
 	header[10] = recordLength;
-	params.ulHeaderLength = 11;
+	params.ulHeaderLen = 11;
     } else {
 	if (isDTLS) {
 	    SSL3ProtocolVersion dtls_version;
@@ -2098,11 +2097,11 @@ ssl3_ComputeRecordMACConstantTime(
 	}
 	header[11] = recordLength >> 8;
 	header[12] = recordLength;
-	params.ulHeaderLength = 13;
+	params.ulHeaderLen = 13;
     }
 
     params.hashAlg = spec->mac_def->mmech;
-    params.ulBodyTotalLength = originalLen;
+    params.ulBodyTotalLen = originalLen;
     params.pHeader = header;
 
     param.data = (unsigned char*) &params;
@@ -9663,36 +9662,41 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 #define DUPLICATE_MSB_TO_ALL(x) ( (unsigned)( (int)(x) >> (sizeof(int)*8-1) ) )
 #define DUPLICATE_MSB_TO_ALL_8(x) ((unsigned char)(DUPLICATE_MSB_TO_ALL(x)))
 
-/* SECStatusToMask returns, in constant time, a mask value of all ones if rv ==
- * SECSuccess.  Otherwise it returns zero. */
-static unsigned SECStatusToMask(SECStatus rv)
+/* SECStatusToMask returns, in constant time, a mask value of all ones if
+ * rv == SECSuccess.  Otherwise it returns zero. */
+static unsigned int
+SECStatusToMask(SECStatus rv)
 {
     unsigned int good;
-    /* rv ^ SECSuccess is zero iff rv == SECSuccess. Subtracting one results in
-     * the MSB being set to one iff it was zero before. */
+    /* rv ^ SECSuccess is zero iff rv == SECSuccess. Subtracting one results
+     * in the MSB being set to one iff it was zero before. */
     good = rv ^ SECSuccess;
     good--;
     return DUPLICATE_MSB_TO_ALL(good);
 }
 
 /* ssl_ConstantTimeGE returns 0xff if a>=b and 0x00 otherwise. */
-static unsigned char ssl_ConstantTimeGE(unsigned a, unsigned b)
+static unsigned char
+ssl_ConstantTimeGE(unsigned int a, unsigned int b)
 {
     a -= b;
     return DUPLICATE_MSB_TO_ALL(~a);
 }
 
 /* ssl_ConstantTimeEQ8 returns 0xff if a==b and 0x00 otherwise. */
-static unsigned char ssl_ConstantTimeEQ8(unsigned char a, unsigned char b)
+static unsigned char
+ssl_ConstantTimeEQ8(unsigned char a, unsigned char b)
 {
-    unsigned c = a ^ b;
+    unsigned int c = a ^ b;
     c--;
     return DUPLICATE_MSB_TO_ALL_8(c);
 }
 
-static SECStatus ssl_RemoveSSLv3CBCPadding(sslBuffer *plaintext,
-					   unsigned blockSize,
-					   unsigned macSize) {
+static SECStatus
+ssl_RemoveSSLv3CBCPadding(sslBuffer *plaintext,
+			  unsigned int blockSize,
+			  unsigned int macSize)
+{
     unsigned int paddingLength, good, t;
     const unsigned int overhead = 1 /* padding length byte */ + macSize;
 
@@ -9715,9 +9719,9 @@ static SECStatus ssl_RemoveSSLv3CBCPadding(sslBuffer *plaintext,
     return (good & SECSuccess) | (~good & SECFailure);
 }
 
-
-static SECStatus ssl_RemoveTLSCBCPadding(sslBuffer *plaintext,
-					 unsigned macSize) {
+static SECStatus
+ssl_RemoveTLSCBCPadding(sslBuffer *plaintext, unsigned int macSize)
+{
     unsigned int paddingLength, good, t, toCheck, i;
     const unsigned int overhead = 1 /* padding length byte */ + macSize;
 
@@ -9777,12 +9781,15 @@ static SECStatus ssl_RemoveTLSCBCPadding(sslBuffer *plaintext,
  *   macSize <= MAX_MAC_LENGTH
  *   plaintext->len >= macSize
  */
-static void ssl_CBCExtractMAC(sslBuffer *plaintext,
-			      unsigned int originalLength,
-			      SSL3Opaque* out,
-			      unsigned int macSize) {
+static void
+ssl_CBCExtractMAC(sslBuffer *plaintext,
+		  unsigned int originalLength,
+		  SSL3Opaque* out,
+		  unsigned int macSize)
+{
     unsigned char rotatedMac[MAX_MAC_LENGTH];
-    /* macEnd is the index of |plaintext->buf| just after the end of the MAC. */
+    /* macEnd is the index of |plaintext->buf| just after the end of the
+     * MAC. */
     unsigned macEnd = plaintext->len;
     unsigned macStart = macEnd - macSize;
     /* scanStart contains the number of bytes that we can ignore because
@@ -9816,11 +9823,12 @@ static void ssl_CBCExtractMAC(sslBuffer *plaintext,
 	}
     }
 
-    /* Now rotate the MAC. If we knew that the MAC fit into a CPU cache line we
-     * could line-align |rotatedMac| and rotate in place. */
+    /* Now rotate the MAC. If we knew that the MAC fit into a CPU cache line
+     * we could line-align |rotatedMac| and rotate in place. */
     memset(out, 0, macSize);
     for (i = 0; i < macSize; i++) {
-	unsigned char offset = (divSpoiler + macSize - rotateOffset + i) % macSize;
+	unsigned char offset =
+	    (divSpoiler + macSize - rotateOffset + i) % macSize;
 	for (j = 0; j < macSize; j++) {
 	    out[j] |= rotatedMac[i] & ssl_ConstantTimeEQ8(j, offset);
 	}
