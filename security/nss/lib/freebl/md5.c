@@ -538,10 +538,10 @@ void
 MD5_EndRaw(MD5Context *cx, unsigned char *digest,
            unsigned int *digestLen, unsigned int maxDigestLen)
 {
-	PRUint32      cv[4];
 #ifndef IS_LITTLE_ENDIAN
 	PRUint32 tmp;
 #endif
+	PRUint32 cv[4];
 
 	if (maxDigestLen < MD5_HASH_LEN) {
 		PORT_SetError(SEC_ERROR_INVALID_ARGS);
