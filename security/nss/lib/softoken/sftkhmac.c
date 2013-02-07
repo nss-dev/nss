@@ -9,27 +9,25 @@
 #include "softoken.h"
 #include "hmacct.h"
 
-/* mechanismToHash converts a PKCS#11 hash mechanism into a freebl hash
+/* MACMechanismToHash converts a PKCS#11 MAC mechanism into a freebl hash
  * type. */
 static HASH_HashType
-mechanismToHash(CK_MECHANISM_TYPE mech)
+MACMechanismToHash(CK_MECHANISM_TYPE mech)
 {
     switch (mech) {
-	case CKM_MD5:
 	case CKM_MD5_HMAC:
 	case CKM_SSL3_MD5_MAC:
 	    return HASH_AlgMD5;
-	case CKM_SHA_1:
 	case CKM_SHA_1_HMAC:
 	case CKM_SSL3_SHA1_MAC:
 	    return HASH_AlgSHA1;
-	case CKM_SHA224:
+	case CKM_SHA224_HMAC:
 	    return HASH_AlgSHA224;
-	case CKM_SHA256:
+	case CKM_SHA256_HMAC:
 	    return HASH_AlgSHA256;
-	case CKM_SHA384:
+	case CKM_SHA384_HMAC:
 	    return HASH_AlgSHA384;
-	case CKM_SHA512:
+	case CKM_SHA512_HMAC:
 	    return HASH_AlgSHA512;
     }
     return HASH_AlgNULL;
@@ -50,7 +48,7 @@ SetupMAC(CK_MECHANISM_PTR mech, SFTKObject *key)
 	return NULL;
     }
 
-    alg = mechanismToHash(params->hashAlg);
+    alg = MACMechanismToHash(params->macAlg);
     if (alg == HASH_AlgNULL) {
 	return NULL;
     }
@@ -106,13 +104,18 @@ sftk_SSLv3MACConstantTime_New(CK_MECHANISM_PTR mech, SFTKObject *key)
     CK_NSS_MAC_CONSTANT_TIME_PARAMS *params =
 	(CK_NSS_MAC_CONSTANT_TIME_PARAMS *) mech->pParameter;
     unsigned int padLength = 40, j;
+    sftk_MACConstantTimeCtx *ctx;
 
-    sftk_MACConstantTimeCtx *ctx = SetupMAC(mech, key);
+    if (params->macAlg != CKM_SSL3_MD5_MAC &&
+	params->macAlg != CKM_SSL3_SHA1_MAC) {
+	return NULL;
+    }
+    ctx = SetupMAC(mech, key);
     if (!ctx) {
 	return NULL;
     }
 
-    if (params->hashAlg == CKM_SSL3_MD5_MAC) {
+    if (params->macAlg == CKM_SSL3_MD5_MAC) {
 	padLength = 48;
     }
 
