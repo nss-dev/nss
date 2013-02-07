@@ -2276,8 +2276,6 @@ finish_rsa:
 	context->destroy       = sftk_Space;
 	context->maxLen        = 64;
 	context->multi         = PR_TRUE;
-	if (ctx == NULL)
-	    crv = CKR_ARGUMENTS_BAD;
 	break;
     }
 
