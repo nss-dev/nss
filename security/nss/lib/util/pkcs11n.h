@@ -243,8 +243,15 @@ typedef struct CK_NSS_JPAKEFinalParams {
     CK_NSS_JPAKEPublicValue B; /* in */
 } CK_NSS_JPAKEFinalParams;
 
+/* NOTE: the softoken's implementation of CKM_NSS_HMAC_CONSTANT_TIME and
+ * CKM_NSS_SSL3_MAC_CONSTANT_TIME requires that the sum of ulBodyTotalLen
+ * and ulHeaderLen be much smaller than 2^32 / 8 bytes because it uses an
+ * unsigned int variable to represent the length in bits. This should not
+ * be a problem because the SSL/TLS protocol limits the size of an SSL
+ * record to something considerably less than 2^32 bytes.
+ */
 typedef struct CK_NSS_MAC_CONSTANT_TIME_PARAMS {
-    CK_MECHANISM_TYPE hashAlg;  /* in */
+    CK_MECHANISM_TYPE macAlg;   /* in */
     CK_ULONG ulBodyTotalLen;    /* in */
     CK_BYTE * pHeader;          /* in */
     CK_ULONG ulHeaderLen;       /* in */

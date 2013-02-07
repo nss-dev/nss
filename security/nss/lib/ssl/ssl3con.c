@@ -2100,7 +2100,7 @@ ssl3_ComputeRecordMACConstantTime(
 	params.ulHeaderLen = 13;
     }
 
-    params.hashAlg = spec->mac_def->mmech;
+    params.macAlg = spec->mac_def->mmech;
     params.ulBodyTotalLen = originalLen;
     params.pHeader = header;
 
