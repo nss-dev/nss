@@ -51,8 +51,8 @@ constantTimeEQ8(unsigned char a, unsigned char b)
  * the sender. |dataLen| must be >= the length of the MAC tag.
  *
  * |dataTotalLen| is >= |dataLen| and also accounts for any padding bytes
- * that may follow the sender's MAC. (Only a single block of padding my follow
- * in SSLv3, or up to 255 bytes in TLS.)
+ * that may follow the sender's MAC. (Only a single block of padding may
+ * follow in SSLv3, or up to 255 bytes in TLS.)
  *
  * Since the results of decryption are secret information (otherwise a
  * padding-oracle is created), this function is constant-time with respect to
