@@ -8,6 +8,7 @@
 #include "sslimpl.h"
 #include "sslproto.h"
 #include "pk11func.h"
+#include "ocsp.h"
 
 /* NEED LOCKS IN HERE.  */
 CERTCertificate *
@@ -214,6 +215,7 @@ SSL_AuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
     sslSocket *        ss;
     SECCertUsage       certUsage;
     const char *             hostname    = NULL;
+    PRTime             now = PR_Now();
     
     ss = ssl_FindSocket(fd);
     PORT_Assert(ss != NULL);
@@ -223,11 +225,20 @@ SSL_AuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
 
     handle = (CERTCertDBHandle *)arg;
 
+    if (ss->sec.ci.sid->peerCertStatus.len) {
+        unsigned int i;
+        CERT_CacheOCSPResponseFromSideChannel(handle,
+                                              ss->sec.peerCert,
+                                              now,
+                                              &ss->sec.ci.sid->peerCertStatus,
+                                              arg);
+    }
+
     /* this may seem backwards, but isn't. */
     certUsage = isServer ? certUsageSSLClient : certUsageSSLServer;
 
-    rv = CERT_VerifyCertNow(handle, ss->sec.peerCert, checkSig, certUsage,
-			    ss->pkcs11PinArg);
+    rv = CERT_VerifyCert(handle, ss->sec.peerCert, checkSig, certUsage,
+			 now, ss->pkcs11PinArg, NULL);
 
     if ( rv != SECSuccess || isServer )
 	return rv;
