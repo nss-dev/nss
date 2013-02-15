@@ -47,6 +47,70 @@ ocsp_init()
   cd ${CLIENTDIR}
 }
 
+ocsp_stapling()
+{
+  TESTNAME="startssl valid, supports OCSP stapling"
+  echo "$SCRIPTNAME: $TESTNAME"
+  echo "tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5143 -d ."
+  ${BINDIR}/tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5143 -d .
+  html_msg $? 0 "$TESTNAME"
+
+  TESTNAME="startssl revoked, supports OCSP stapling"
+  echo "$SCRIPTNAME: $TESTNAME"
+  echo "tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5144 -d ."
+  ${BINDIR}/tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5144 -d .
+  html_msg $? 3 "$TESTNAME"
+
+  TESTNAME="comodo trial test expired revoked, supports OCSP stapling"
+  echo "$SCRIPTNAME: $TESTNAME"
+  echo "tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5145 -d ."
+  ${BINDIR}/tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5145 -d .
+  html_msg $? 1 "$TESTNAME"
+
+  TESTNAME="thawte (expired) valid, supports OCSP stapling"
+  echo "$SCRIPTNAME: $TESTNAME"
+  echo "tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5146 -d ."
+  ${BINDIR}/tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5146 -d .
+  html_msg $? 1 "$TESTNAME"
+
+  TESTNAME="thawte (expired) revoked, supports OCSP stapling"
+  echo "$SCRIPTNAME: $TESTNAME"
+  echo "tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5147 -d ."
+  ${BINDIR}/tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5147 -d .
+  html_msg $? 1 "$TESTNAME"
+
+  TESTNAME="digicert valid, supports OCSP stapling"
+  echo "$SCRIPTNAME: $TESTNAME"
+  echo "tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5148 -d ."
+  ${BINDIR}/tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5148 -d .
+  html_msg $? 0 "$TESTNAME"
+
+  TESTNAME="digicert revoked, supports OCSP stapling"
+  echo "$SCRIPTNAME: $TESTNAME"
+  echo "tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5149 -d ."
+  ${BINDIR}/tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5149 -d .
+  html_msg $? 3 "$TESTNAME"
+
+  TESTNAME="live valid, supports OCSP stapling"
+  echo "$SCRIPTNAME: $TESTNAME"
+  echo "tstclnt -V tls1.0: -T -v -F -M 1 -O -h login.live.com -p 443 -d ."
+  ${BINDIR}/tstclnt -V tls1.0: -T -v -F -M 1 -O -h login.live.com -p 443 -d .
+  html_msg $? 0 "$TESTNAME"
+
+  TESTNAME="startssl valid, don't support OCSP stapling"
+  echo "$SCRIPTNAME: $TESTNAME"
+  echo "tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 443 -d ."
+  ${BINDIR}/tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 443 -d .
+  html_msg $? 2 "$TESTNAME"
+
+  TESTNAME="cacert untrusted, don't support OCSP stapling"
+  echo "$SCRIPTNAME: $TESTNAME"
+  echo "tstclnt -V tls1.0: -T -v -F -M 1 -O -h www.cacert.org -p 443 -d ."
+  ${BINDIR}/tstclnt -V tls1.0: -T -v -F -M 1 -O -h www.cacert.org -p 443 -d .
+  html_msg $? 1 "$TESTNAME"
+}
+
 ################## main #################################################
 ocsp_init
 ocsp_iopr_run
+ocsp_stapling
