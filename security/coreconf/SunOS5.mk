@@ -23,9 +23,9 @@ ifeq ($(USE_64), 1)
 else
   ifneq ($(OS_TEST),i86pc)
     ifdef NS_USE_GCC
-      ARCHFLAG=-mcpu=v8
+      ARCHFLAG=-mcpu=v9
     else
-      ARCHFLAG=-xarch=v8
+      ARCHFLAG=-xarch=v8plus
     endif
   endif
 endif
