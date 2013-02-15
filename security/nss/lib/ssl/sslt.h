@@ -175,6 +175,7 @@ typedef enum {
 /* Update SSL_MAX_EXTENSIONS whenever a new extension type is added. */
 typedef enum {
     ssl_server_name_xtn              = 0,
+    ssl_cert_status_xtn              = 5,
 #ifdef NSS_ENABLE_ECC
     ssl_elliptic_curves_xtn          = 10,
     ssl_ec_point_formats_xtn         = 11,
@@ -185,6 +186,6 @@ typedef enum {
     ssl_renegotiation_info_xtn       = 0xff01	/* experimental number */
 } SSLExtensionType;
 
-#define SSL_MAX_EXTENSIONS             7
+#define SSL_MAX_EXTENSIONS             8
 
 #endif /* __sslt_h_ */

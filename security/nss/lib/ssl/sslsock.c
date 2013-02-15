@@ -153,7 +153,8 @@ static sslOptions ssl_defaults = {
     2,          /* enableRenegotiation (default: requires extension) */
     PR_FALSE,   /* requireSafeNegotiation */
     PR_FALSE,   /* enableFalseStart   */
-    PR_TRUE     /* cbcRandomIV        */
+    PR_TRUE,    /* cbcRandomIV        */
+    PR_FALSE    /* enableOCSPStapling */
 };
 
 /*
@@ -827,6 +828,10 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	ss->opt.cbcRandomIV = on;
 	break;
 
+      case SSL_ENABLE_OCSP_STAPLING:
+       ss->opt.enableOCSPStapling = on;
+       break;
+
       default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	rv = SECFailure;
@@ -896,6 +901,7 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
                                   on = ss->opt.requireSafeNegotiation; break;
     case SSL_ENABLE_FALSE_START:  on = ss->opt.enableFalseStart;   break;
     case SSL_CBC_RANDOM_IV:       on = ss->opt.cbcRandomIV;        break;
+    case SSL_ENABLE_OCSP_STAPLING: on = ss->opt.enableOCSPStapling; break;
 
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -954,6 +960,9 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
 				  break;
     case SSL_ENABLE_FALSE_START:  on = ssl_defaults.enableFalseStart;   break;
     case SSL_CBC_RANDOM_IV:       on = ssl_defaults.cbcRandomIV;        break;
+    case SSL_ENABLE_OCSP_STAPLING:
+       on = ssl_defaults.enableOCSPStapling;
+       break;
 
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -1116,6 +1125,10 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
       case SSL_CBC_RANDOM_IV:
 	ssl_defaults.cbcRandomIV = on;
 	break;
+
+      case SSL_ENABLE_OCSP_STAPLING:
+       ssl_defaults.enableOCSPStapling = on;
+       break;
 
       default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -1851,6 +1864,25 @@ SSL_VersionRangeSet(PRFileDesc *fd, const SSLVersionRange *vrange)
     ssl_Release1stHandshakeLock(ss);
 
     return SECSuccess;
+}
+
+const SECItem *
+SSL_PeerStapledOCSPResponse(PRFileDesc *fd)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+
+    if (!ss) {
+       SSL_DBG(("%d: SSL[%d]: bad socket in SSL_GetStapledOCSPResponse",
+                SSL_GETPID(), fd));
+       return NULL;
+    }
+
+    if (!ss->sec.ci.sid) {
+       PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
+       return NULL;
+    }
+    
+    return &ss->sec.ci.sid->peerCertStatus;
 }
 
 /************************************************************************/

@@ -316,6 +316,7 @@ typedef struct sslOptionsStr {
     unsigned int requireSafeNegotiation : 1;  /* 22 */
     unsigned int enableFalseStart       : 1;  /* 23 */
     unsigned int cbcRandomIV            : 1;  /* 24 */
+    unsigned int enableOCSPStapling     : 1;  /* 25 */
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -575,6 +576,7 @@ struct sslSessionIDStr {
     sslSessionID *        next;   /* chain used for client sockets, only */
 
     CERTCertificate *     peerCert;
+    SECItem               peerCertStatus; /* client only */
     const char *          peerID;     /* client only */
     const char *          urlSvrName; /* client only */
     CERTCertificate *     localCert;
@@ -717,6 +719,7 @@ typedef enum {
     wait_change_cipher, 
     wait_finished,
     wait_server_hello, 
+    wait_certificate_status,
     wait_server_cert, 
     wait_server_key,
     wait_cert_request, 
