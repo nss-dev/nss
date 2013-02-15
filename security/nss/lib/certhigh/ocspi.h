@@ -19,6 +19,10 @@ ocsp_GetResponseData(CERTOCSPResponse *response, SECItem **tbsResponseDataDER);
 ocspSignature *
 ocsp_GetResponseSignature(CERTOCSPResponse *response);
 
+SECItem *
+ocsp_DigestValue(PRArenaPool *arena, SECOidTag digestAlg,
+                 SECItem *fill, const SECItem *src);
+
 PRBool
 ocsp_CertIsOCSPDefaultResponder(CERTCertDBHandle *handle, CERTCertificate *cert);
 

@@ -1178,6 +1178,7 @@ const unsigned char *  preferredCipher;
     /* Configuration state for server sockets */
     /* server cert and key for each KEA type */
     sslServerCerts        serverCerts[kt_kea_size];
+    SECItemArray *        certStatusArray;
 
     ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED];
     ssl3KeyPair *         ephemeralECDHKeyPair; /* for ECDHE-* handshake */

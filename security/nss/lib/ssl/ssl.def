@@ -159,6 +159,7 @@ SSL_SetSRTPCiphers;
 ;+NSS_3.14.2 {      # NSS 3.14.2 release
 ;+    global:
 SSL_PeerStapledOCSPResponses;
+SSL_SetStapledOCSPResponses;
 ;+    local:
 ;+*;
 ;+};

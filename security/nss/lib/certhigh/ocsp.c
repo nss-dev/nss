@@ -1572,7 +1572,7 @@ CERT_DestroyOCSPCertID(CERTOCSPCertID* certID)
  * results in a NULL being returned (and an appropriate error set).
  */
 
-static SECItem *
+SECItem *
 ocsp_DigestValue(PRArenaPool *arena, SECOidTag digestAlg, 
                  SECItem *fill, const SECItem *src)
 {

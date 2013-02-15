@@ -327,6 +327,8 @@ ssl_DupSocket(sslSocket *os)
 		                  ssl3_GetKeyPairRef(os->stepDownKeyPair);
 	    ss->ephemeralECDHKeyPair = !os->ephemeralECDHKeyPair ? NULL :
 		                  ssl3_GetKeyPairRef(os->ephemeralECDHKeyPair);
+	    ss->certStatusArray = !os->certStatusArray ? NULL :
+				  SECITEM_DupArray(NULL, os->certStatusArray);
 /*
  * XXX the preceding CERT_ and SECKEY_ functions can fail and return NULL.
  * XXX We should detect this, and not just march on with NULL pointers.
@@ -437,6 +439,10 @@ ssl_DestroySocketContents(sslSocket *ss)
     if (ss->ephemeralECDHKeyPair) {
 	ssl3_FreeKeyPair(ss->ephemeralECDHKeyPair);
 	ss->ephemeralECDHKeyPair = NULL;
+    }
+    if (ss->certStatusArray) {
+	SECITEM_FreeArray(ss->certStatusArray, PR_TRUE);
+	ss->certStatusArray = NULL;
     }
     SECITEM_FreeItem(&ss->opt.nextProtoNego, PR_FALSE);
     PORT_Assert(!ss->xtnData.sniNameArr);
@@ -1688,6 +1694,13 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
         ss->ephemeralECDHKeyPair =
             ssl3_GetKeyPairRef(sm->ephemeralECDHKeyPair);
     }
+    if (sm->certStatusArray) {
+	if (ss->certStatusArray) {
+	    SECITEM_FreeArray(ss->certStatusArray, PR_TRUE);
+	    ss->certStatusArray = NULL;
+	}
+	ss->certStatusArray = SECITEM_DupArray(NULL, sm->certStatusArray);
+    }
     /* copy trust anchor names */
     if (sm->ssl3.ca_list) {
         if (ss->ssl3.ca_list) {
@@ -1872,7 +1885,7 @@ SSL_PeerStapledOCSPResponses(PRFileDesc *fd)
     sslSocket *ss = ssl_FindSocket(fd);
 
     if (!ss) {
-       SSL_DBG(("%d: SSL[%d]: bad socket in SSL_GetStapledOCSPResponse",
+       SSL_DBG(("%d: SSL[%d]: bad socket in SSL_PeerStapledOCSPResponses",
                 SSL_GETPID(), fd));
        return NULL;
     }
@@ -2223,13 +2236,41 @@ ssl_GetSockName(PRFileDesc *fd, PRNetAddr *name)
 }
 
 SECStatus
+SSL_SetStapledOCSPResponses(PRFileDesc *fd, SECItemArray *responses,
+			    PRBool takeOwnership)
+{
+    sslSocket *ss;
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+	SSL_DBG(("%d: SSL[%d]: bad socket in SSL_SetStapledOCSPResponses",
+		 SSL_GETPID(), fd));
+	return SECFailure;
+    }
+
+    if (ss->certStatusArray) {
+        SECITEM_FreeArray(ss->certStatusArray, PR_TRUE);
+        ss->certStatusArray = NULL;
+    }
+    if (responses) {
+	if (takeOwnership) {
+	    ss->certStatusArray = responses;
+	}
+	else {
+	    ss->certStatusArray = SECITEM_DupArray(NULL, responses);
+	}
+    }
+    return (ss->certStatusArray || !responses) ? SECSuccess : SECFailure;
+}
+
+SECStatus
 SSL_SetSockPeerID(PRFileDesc *fd, const char *peerID)
 {
     sslSocket *ss;
 
     ss = ssl_FindSocket(fd);
     if (!ss) {
-	SSL_DBG(("%d: SSL[%d]: bad socket in SSL_SetCacheIndex",
+	SSL_DBG(("%d: SSL[%d]: bad socket in SSL_SetSockPeerID",
 		 SSL_GETPID(), fd));
 	return SECFailure;
     }
@@ -2922,6 +2963,7 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
 	}
 	ss->stepDownKeyPair    = NULL;
 	ss->dbHandle           = CERT_GetDefaultCertDB();
+	ss->certStatusArray    = NULL;
 
 	/* Provide default implementation of hooks */
 	ss->authCertificate    = SSL_AuthCertificate;

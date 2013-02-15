@@ -416,6 +416,17 @@ SSL_IMPORT CERTCertificate *SSL_PeerCertificate(PRFileDesc *fd);
  */
 SSL_IMPORT const SECItemArray * SSL_PeerStapledOCSPResponses(PRFileDesc *fd);
 
+/* SSL_SetStapledOCSPResponses stores an array of one or multiple OCSP responses
+ * in the fd's data, which may be sent as part of a server side cert_status
+ * handshake message.
+ * If takeOwnership is false, the function will duplicate the responses.
+ * If takeOwnership is true, the ownership of responses is transfered into the
+ * SSL library, and the caller must stop using it.
+ */
+SSL_IMPORT SECStatus
+SSL_SetStapledOCSPResponses(PRFileDesc *fd, SECItemArray *responses,
+			    PRBool takeOwnership);
+
 /*
 ** Authenticate certificate hook. Called when a certificate comes in
 ** (because of SSL_REQUIRE_CERTIFICATE in SSL_Enable) to authenticate the
