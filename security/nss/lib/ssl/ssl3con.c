@@ -8473,12 +8473,26 @@ ssl3_HandleCertificateStatus(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
        goto format_loser;
     }
 
-    if (SECITEM_AllocItem(NULL, &ss->sec.ci.sid->peerCertStatus, length) == NULL) {
+#define MAX_CERTSTATUS_LEN 0x1ffff   /* 128k - 1 */
+    if (length > MAX_CERTSTATUS_LEN)
+       goto format_loser;
+#undef MAX_CERTSTATUS_LEN
+
+    /* Array size 1, because we currently implement single-stapling only*/
+    SECITEM_AllocArray(NULL, &ss->sec.ci.sid->peerCertStatus, 1);
+    if (!ss->sec.ci.sid->peerCertStatus.items)
+       return SECFailure;
+
+    ss->sec.ci.sid->peerCertStatus.items[0].data = PORT_Alloc(length);
+
+    if (!ss->sec.ci.sid->peerCertStatus.items[0].data) {
+        SECITEM_FreeArray(&ss->sec.ci.sid->peerCertStatus, PR_FALSE);
         return SECFailure;
     }
-    ss->sec.ci.sid->peerCertStatus.type = siBuffer;
-    PORT_Memcpy(ss->sec.ci.sid->peerCertStatus.data, b, length);
 
+    PORT_Memcpy(ss->sec.ci.sid->peerCertStatus.items[0].data, b, length);
+    ss->sec.ci.sid->peerCertStatus.items[0].len = length;
+    ss->sec.ci.sid->peerCertStatus.items[0].type = siBuffer;
     return SECSuccess;
 
 format_loser:

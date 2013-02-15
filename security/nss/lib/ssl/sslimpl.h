@@ -576,7 +576,7 @@ struct sslSessionIDStr {
     sslSessionID *        next;   /* chain used for client sockets, only */
 
     CERTCertificate *     peerCert;
-    SECItem               peerCertStatus; /* client only */
+    SECItemArray          peerCertStatus; /* client only */
     const char *          peerID;     /* client only */
     const char *          urlSvrName; /* client only */
     CERTCertificate *     localCert;
