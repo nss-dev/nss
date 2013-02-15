@@ -75,6 +75,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         IOPR_OCSP_CLIENTDIR=${HOSTDIR}/client_ocsp_iopr
 
         CERT_EXTENSIONS_DIR=${HOSTDIR}/cert_extensions
+        STAPLINGDIR=${HOSTDIR}/stapling
 
         PWFILE=${HOSTDIR}/tests.pw
         NOISE_FILE=${HOSTDIR}/tests_noise
@@ -537,6 +538,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     R_EXT_SERVERDIR=../ext_server
     R_EXT_CLIENTDIR=../ext_client
     R_CERT_EXT=../cert_extensions
+    R_STAPLINGDIR=../stapling
 
     #
     # profiles are either paths or domains depending on the setting of

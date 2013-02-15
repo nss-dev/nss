@@ -861,6 +861,8 @@ int main(int argc, char **argv)
                     serverCertAuth.testFreshStatusFromSideChannel = PR_TRUE;
                     break;
 
+	  case 'I': /* reserved for OCSP multi-stapling */ break;
+
           case 'O': serverCertAuth.shouldPause = PR_FALSE; break;
 
           case 'M': switch (atoi(optstate->value)) {
