@@ -327,9 +327,12 @@ mySSLAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
     CERTCertificate *    peerCert;
 
     peerCert = SSL_PeerCertificate(fd);
-
-    PRINTF("selfserv: Subject: %s\nselfserv: Issuer : %s\n",
-           peerCert->subjectName, peerCert->issuerName);
+    
+    if (peerCert) {
+        PRINTF("selfserv: Subject: %s\nselfserv: Issuer : %s\n",
+               peerCert->subjectName, peerCert->issuerName);
+        CERT_DestroyCertificate(peerCert);
+    }
 
     rv = SSL_AuthCertificate(arg, fd, checkSig, isServer);
 
@@ -340,7 +343,6 @@ mySSLAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
 	FPRINTF(stderr, "selfserv: -- SSL3: Certificate Invalid, err %d.\n%s\n", 
                 err, SECU_Strerror(err));
     }
-    CERT_DestroyCertificate(peerCert);
     FLUSH;
     return rv;  
 }
