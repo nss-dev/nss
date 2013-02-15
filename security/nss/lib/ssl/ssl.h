@@ -398,12 +398,12 @@ SSL_IMPORT SECStatus SSL_SecurityStatus(PRFileDesc *fd, int *on, char **cipher,
 */
 SSL_IMPORT CERTCertificate *SSL_PeerCertificate(PRFileDesc *fd);
 
-/* SSL_PeerStapledOCSPResponse returns the OCSP response that was provided by
- * the TLS server. The return value is a pointer to an internal SECItem that
- * contains the returned OCSP response; it is only valid until the callback
- * function that calls SSL_PeerStapledOCSPResponse returns.
+/* SSL_PeerStapledOCSPResponses returns the OCSP responses that were provided
+ * by the TLS server. The return value is a pointer to an internal SECItemArray
+ * that contains the returned OCSP responses; it is only valid until the
+ * callback function that calls SSL_PeerStapledOCSPResponses returns.
  *
- * If no OCSP response was given by the server then the result will be empty.
+ * If no OCSP responses were given by the server then the result will be empty.
  * If there was an error, then the result will be NULL.
  *
  * You must set the SSL_ENABLE_OCSP_STAPLING option to enable OCSP stapling.
@@ -414,7 +414,7 @@ SSL_IMPORT CERTCertificate *SSL_PeerCertificate(PRFileDesc *fd);
  * authenticate certificate hook, SSL_AuthCertificate, does not implement
  * any OCSP stapling funtionality, but this may change in future versions.
  */
-SSL_IMPORT const SECItem * SSL_PeerStapledOCSPResponse(PRFileDesc *fd);
+SSL_IMPORT const SECItemArray * SSL_PeerStapledOCSPResponses(PRFileDesc *fd);
 
 /*
 ** Authenticate certificate hook. Called when a certificate comes in

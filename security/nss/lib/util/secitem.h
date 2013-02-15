@@ -90,6 +90,11 @@ PLHashNumber PR_CALLBACK SECITEM_Hash ( const void *key);
 
 PRIntn PR_CALLBACK SECITEM_HashCompare ( const void *k1, const void *k2);
 
+extern SECItemArray *SECITEM_AllocArray(PLArenaPool *arena,
+                                        SECItemArray *array,
+                                        unsigned int len);
+extern void SECITEM_FreeArray(SECItemArray *array, PRBool freeit);
+extern void SECITEM_ZfreeArray(SECItemArray *array, PRBool freeit);
 
 SEC_END_PROTOS
 

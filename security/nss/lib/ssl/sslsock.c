@@ -1866,8 +1866,8 @@ SSL_VersionRangeSet(PRFileDesc *fd, const SSLVersionRange *vrange)
     return SECSuccess;
 }
 
-const SECItem *
-SSL_PeerStapledOCSPResponse(PRFileDesc *fd)
+const SECItemArray *
+SSL_PeerStapledOCSPResponses(PRFileDesc *fd)
 {
     sslSocket *ss = ssl_FindSocket(fd);
 

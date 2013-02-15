@@ -56,6 +56,13 @@ struct SECItemStr {
     unsigned int len;
 };
 
+typedef struct SECItemArrayStr SECItemArray;
+
+struct SECItemArrayStr {
+    SECItem *items;
+    unsigned int len;
+};
+
 /*
 ** A status code. Status's are used by procedures that return status
 ** values. Again the motivation is so that a compiler can generate

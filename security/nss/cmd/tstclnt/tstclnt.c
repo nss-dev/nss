@@ -107,7 +107,7 @@ secuPWData  pwdata          = { PW_NONE, 0 };
 void printSecurityInfo(PRFileDesc *fd)
 {
     CERTCertificate * cert;
-    const SECItem *cs;
+    const SECItemArray *csa;
     SSL3Statistics * ssl3stats = SSL_GetStatistics();
     SECStatus result;
     SSLChannelInfo    channel;
@@ -154,9 +154,10 @@ void printSecurityInfo(PRFileDesc *fd)
     	ssl3stats->hsh_sid_cache_hits, ssl3stats->hsh_sid_cache_misses,
 	ssl3stats->hsh_sid_cache_not_ok, ssl3stats->hsh_sid_stateless_resumes);
 
-    cs = SSL_PeerStapledOCSPResponse(fd);
-    if (cs) {
-        fprintf(stderr, "Received Cert Status item (OCSP stapled data)\n");
+    csa = SSL_PeerStapledOCSPResponses(fd);
+    if (csa) {
+        fprintf(stderr, "Received %d Cert Status items (OCSP stapled data)\n",
+                csa->len);
     }
 }
 
@@ -503,7 +504,8 @@ ownAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
 
     if (!serverCertAuth->shouldPause) {
         CERTCertificate *cert;
-        const SECItem *cs;
+        int i;
+        const SECItemArray *csa;
 
         if (!serverCertAuth->testFreshStatusFromSideChannel) {
             return SSL_AuthCertificate(serverCertAuth->dbHandle, 
@@ -520,14 +522,16 @@ ownAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
             exit(254);
         }
 
-        cs = SSL_PeerStapledOCSPResponse(fd);
-        if (cs) {
-            CERT_CacheOCSPResponseFromSideChannel(
-                serverCertAuth->dbHandle,
-                cert,
-                PR_Now(),
-                cs,
-                arg);
+        csa = SSL_PeerStapledOCSPResponses(fd);
+        if (csa) {
+            for (i = 0; i < csa->len; ++i) {
+                CERT_CacheOCSPResponseFromSideChannel(
+                    serverCertAuth->dbHandle,
+                    cert,
+                    PR_Now(),
+                    &csa->items[i],
+                    arg);
+            }
         }
     
         verifyFromSideChannel(cert, serverCertAuth);
