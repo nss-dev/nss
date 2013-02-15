@@ -119,7 +119,7 @@ RC4_InitContext(RC4Context *cx, const unsigned char *key, unsigned int len,
 	        const unsigned char * unused1, int unused2, 
 		unsigned int unused3, unsigned int unused4)
 {
-	int i;
+	unsigned int i;
 	PRUint8 j, tmp;
 	PRUint8 K[256];
 	PRUint8 *L;
@@ -127,7 +127,7 @@ RC4_InitContext(RC4Context *cx, const unsigned char *key, unsigned int len,
 	/* verify the key length. */
 	PORT_Assert(len > 0 && len < ARCFOUR_STATE_SIZE);
 	if (len == 0 || len >= ARCFOUR_STATE_SIZE) {
-		PORT_SetError(SEC_ERROR_INVALID_ARGS);
+		PORT_SetError(SEC_ERROR_BAD_KEY);
 		return SECFailure;
 	}
 	if (cx == NULL) {
@@ -215,7 +215,7 @@ rc4_no_opt(RC4Context *cx, unsigned char *output,
 	unsigned int index;
 	PORT_Assert(maxOutputLen >= inputLen);
 	if (maxOutputLen < inputLen) {
-		PORT_SetError(SEC_ERROR_INVALID_ARGS);
+		PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 		return SECFailure;
 	}
 	for (index=0; index < inputLen; index++) {
@@ -248,7 +248,7 @@ rc4_unrolled(RC4Context *cx, unsigned char *output,
 	int index;
 	PORT_Assert(maxOutputLen >= inputLen);
 	if (maxOutputLen < inputLen) {
-		PORT_SetError(SEC_ERROR_INVALID_ARGS);
+		PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 		return SECFailure;
 	}
 	for (index = inputLen / 8; index-- > 0; input += 8, output += 8) {
@@ -394,7 +394,7 @@ rc4_wordconv(RC4Context *cx, unsigned char *output,
 
 	PORT_Assert(maxOutputLen >= inputLen);
 	if (maxOutputLen < inputLen) {
-		PORT_SetError(SEC_ERROR_INVALID_ARGS);
+		PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 		return SECFailure;
 	}
 	if (inputLen < 2*WORDSIZE) {
@@ -566,7 +566,7 @@ RC4_Encrypt(RC4Context *cx, unsigned char *output,
 {
 	PORT_Assert(maxOutputLen >= inputLen);
 	if (maxOutputLen < inputLen) {
-		PORT_SetError(SEC_ERROR_INVALID_ARGS);
+		PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 		return SECFailure;
 	}
 #if defined(NSS_BEVAND_ARCFOUR)
@@ -588,7 +588,7 @@ SECStatus RC4_Decrypt(RC4Context *cx, unsigned char *output,
 {
 	PORT_Assert(maxOutputLen >= inputLen);
 	if (maxOutputLen < inputLen) {
-		PORT_SetError(SEC_ERROR_INVALID_ARGS);
+		PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 		return SECFailure;
 	}
 	/* decrypt and encrypt are same operation. */
