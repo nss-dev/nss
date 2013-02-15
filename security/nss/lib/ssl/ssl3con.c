@@ -49,6 +49,7 @@ static SECStatus ssl3_DeriveConnectionKeysPKCS11(sslSocket *ss);
 static SECStatus ssl3_HandshakeFailure(      sslSocket *ss);
 static SECStatus ssl3_InitState(             sslSocket *ss);
 static SECStatus ssl3_SendCertificate(       sslSocket *ss);
+static SECStatus ssl3_SendCertificateStatus( sslSocket *ss);
 static SECStatus ssl3_SendEmptyCertificate(  sslSocket *ss);
 static SECStatus ssl3_SendCertificateRequest(sslSocket *ss);
 static SECStatus ssl3_SendNextProto(         sslSocket *ss);
@@ -6491,6 +6492,10 @@ ssl3_SendServerHelloSequence(sslSocket *ss)
     if (rv != SECSuccess) {
 	return rv;	/* error code is set. */
     }
+    rv = ssl3_SendCertificateStatus(ss);
+    if (rv != SECSuccess) {
+	return rv;	/* error code is set. */
+    }
     /* We have to do this after the call to ssl3_SendServerHello,
      * because kea_def is set up by ssl3_SendServerHello().
      */
@@ -8429,6 +8434,52 @@ ssl3_SendCertificate(sslSocket *ss)
             }
         }
     }
+
+    return SECSuccess;
+}
+
+/*
+ * Used by server only.
+ * single-stapling, send only a single cert status
+ */
+static SECStatus
+ssl3_SendCertificateStatus(sslSocket *ss)
+{
+    SECStatus            rv;
+    CERTCertificateList *certChain;
+    int                  len 		= 0;
+    int                  i;
+    SSL3KEAType          certIndex;
+
+    SSL_TRC(3, ("%d: SSL3[%d]: send certificate status handshake",
+		SSL_GETPID(), ss->fd));
+
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
+
+    if (!ssl3_ExtensionNegotiated(ss, ssl_cert_status_xtn))
+	return SECSuccess;
+
+    if (!ss->certStatusArray)
+	return SECSuccess;
+
+    /* Use the array's first item only (single stapling) */
+    len = 1 + ss->certStatusArray->items[0].len + 3;
+
+    rv = ssl3_AppendHandshakeHeader(ss, certificate_status, len);
+    if (rv != SECSuccess) {
+	return rv; 		/* err set by AppendHandshake. */
+    }
+    rv = ssl3_AppendHandshakeNumber(ss, 1 /*ocsp*/, 1);
+    if (rv != SECSuccess)
+	return rv; 		/* err set by AppendHandshake. */
+
+    rv = ssl3_AppendHandshakeVariable(ss,
+				      ss->certStatusArray->items[0].data,
+				      ss->certStatusArray->items[0].len,
+				      3);
+    if (rv != SECSuccess)
+	return rv; 		/* err set by AppendHandshake. */
 
     return SECSuccess;
 }
