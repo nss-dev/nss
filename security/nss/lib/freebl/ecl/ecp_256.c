@@ -6,12 +6,11 @@
 #include "mpi.h"
 #include "mplogic.h"
 #include "mpi-priv.h"
-#include <stdlib.h>
 
 /* Fast modular reduction for p256 = 2^256 - 2^224 + 2^192+ 2^96 - 1.  a can be r. 
  * Uses algorithm 2.29 from Hankerson, Menezes, Vanstone. Guide to 
  * Elliptic Curve Cryptography. */
-mp_err
+static mp_err
 ec_GFp_nistp256_mod(const mp_int *a, mp_int *r, const GFMethod *meth)
 {
 	mp_err res = MP_OKAY;
@@ -203,24 +202,7 @@ ec_GFp_nistp256_mod(const mp_int *a, mp_int *r, const GFMethod *meth)
 				  && (r0 == MP_DIGIT_MAX)))))) {
 			MP_CHECKOK(mp_sub(r, &meth->irr, r));
 		}
-#ifdef notdef
-			
 
-		/* smooth the negatives */
-		while (MP_SIGN(r) != MP_ZPOS) {
-			MP_CHECKOK(mp_add(r, &meth->irr, r));
-		}
-		while (MP_USED(r) > 8) {
-			MP_CHECKOK(mp_sub(r, &meth->irr, r));
-		}
-
-		/* final reduction if necessary */
-		if (MP_DIGIT(r,7) >= MP_DIGIT(&meth->irr,7)) {
-		    if (mp_cmp(r,&meth->irr) != MP_LT) {
-			MP_CHECKOK(mp_sub(r, &meth->irr, r));
-		    }
-		}
-#endif
 		s_mp_clamp(r);
 #else
 		switch (a_used) {
@@ -355,7 +337,7 @@ ec_GFp_nistp256_mod(const mp_int *a, mp_int *r, const GFMethod *meth)
 /* Compute the square of polynomial a, reduce modulo p256. Store the
  * result in r.  r could be a.  Uses optimized modular reduction for p256. 
  */
-mp_err
+static mp_err
 ec_GFp_nistp256_sqr(const mp_int *a, mp_int *r, const GFMethod *meth)
 {
 	mp_err res = MP_OKAY;
@@ -369,7 +351,7 @@ ec_GFp_nistp256_sqr(const mp_int *a, mp_int *r, const GFMethod *meth)
 /* Compute the product of two polynomials a and b, reduce modulo p256.
  * Store the result in r.  r could be a or b; a could be b.  Uses
  * optimized modular reduction for p256. */
-mp_err
+static mp_err
 ec_GFp_nistp256_mul(const mp_int *a, const mp_int *b, mp_int *r,
 					const GFMethod *meth)
 {
