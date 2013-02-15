@@ -97,13 +97,13 @@ ocsp_stapling()
   ${BINDIR}/tstclnt -V tls1.0: -T -v -F -M 1 -O -h login.live.com -p 443 -d .
   html_msg $? 0 "$TESTNAME"
 
-  TESTNAME="startssl valid, don't support OCSP stapling"
+  TESTNAME="startssl valid, doesn't support OCSP stapling"
   echo "$SCRIPTNAME: $TESTNAME"
   echo "tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 443 -d ."
   ${BINDIR}/tstclnt -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 443 -d .
   html_msg $? 2 "$TESTNAME"
 
-  TESTNAME="cacert untrusted, don't support OCSP stapling"
+  TESTNAME="cacert untrusted, doesn't support OCSP stapling"
   echo "$SCRIPTNAME: $TESTNAME"
   echo "tstclnt -V tls1.0: -T -v -F -M 1 -O -h www.cacert.org -p 443 -d ."
   ${BINDIR}/tstclnt -V tls1.0: -T -v -F -M 1 -O -h www.cacert.org -p 443 -d .
