@@ -184,6 +184,8 @@ ssl_DestroySID(sslSessionID *sid)
     if ( sid->peerCert ) {
 	CERT_DestroyCertificate(sid->peerCert);
     }
+    SECITEM_FreeItem(&sid->peerCertStatus, PR_FALSE);
+
     if ( sid->localCert ) {
 	CERT_DestroyCertificate(sid->localCert);
     }

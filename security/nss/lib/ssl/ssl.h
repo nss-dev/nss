@@ -158,6 +158,7 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  * accept fragmented alerts).
  */
 #define SSL_CBC_RANDOM_IV 23
+#define SSL_ENABLE_OCSP_STAPLING       24 /* Request OCSP stapling (client) */
 
 #ifdef SSL_DEPRECATED_FUNCTION 
 /* Old deprecated function names */
@@ -397,6 +398,24 @@ SSL_IMPORT SECStatus SSL_SecurityStatus(PRFileDesc *fd, int *on, char **cipher,
 */
 SSL_IMPORT CERTCertificate *SSL_PeerCertificate(PRFileDesc *fd);
 
+/* SSL_PeerStapledOCSPResponse returns the OCSP response that was provided by
+ * the TLS server. The return value is a pointer to an internal SECItem that
+ * contains the returned OCSP response; it is only valid until the callback
+ * function that calls SSL_PeerStapledOCSPResponse returns.
+ *
+ * If no OCSP response was given by the server then the result will be empty.
+ * If there was an error, then the result will be NULL.
+ *
+ * You must set the SSL_ENABLE_OCSP_STAPLING option to enable OCSP stapling.
+ * to be provided by a server.
+ *
+ * libssl does not do any validation of the OCSP response itself; the
+ * authenticate certificate hook is responsible for doing so. The default
+ * authenticate certificate hook, SSL_AuthCertificate, does not implement
+ * any OCSP stapling funtionality, but this may change in future versions.
+ */
+SSL_IMPORT const SECItem * SSL_PeerStapledOCSPResponse(PRFileDesc *fd);
+
 /*
 ** Authenticate certificate hook. Called when a certificate comes in
 ** (because of SSL_REQUIRE_CERTIFICATE in SSL_Enable) to authenticate the
@@ -417,6 +436,16 @@ SSL_IMPORT CERTCertificate *SSL_PeerCertificate(PRFileDesc *fd);
 ** See the documentation for SSL_AuthCertificateComplete for more information
 ** about the asynchronous behavior that occurs when the authenticate
 ** certificate hook returns SECWouldBlock.
+**
+** RFC 6066 says that clients should send the bad_certificate_status_response
+** alert when they encounter an error processing the stapled OCSP response.
+** libssl does not provide a way for the authenticate certificate hook to
+** indicate that an OCSP error (SEC_ERROR_OCSP_*) that it returns is an error
+** in the stapled OCSP response or an error in some other OCSP response.
+** Further, NSS does not provide a convenient way to control or determine
+** which OCSP response(s) were used to validate a certificate chain.
+** Consequently, the current version of libssl does not ever send the
+** bad_certificate_status_response alert. This may change in future releases.
 */
 typedef SECStatus (PR_CALLBACK *SSLAuthCertificate)(void *arg, PRFileDesc *fd, 
                                                     PRBool checkSig,
