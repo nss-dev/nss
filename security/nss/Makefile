@@ -122,6 +122,12 @@ else
 	$(MAKE) -C $(CORE_DEPTH)/dbm export libs
 endif
 
+build_docs:
+	$(MAKE) -C $(CORE_DEPTH)/nss/doc
+
+clean_docs:
+	$(MAKE) -C $(CORE_DEPTH)/nss/doc clean
+
 clobber_dbm:
 	$(MAKE) -C $(CORE_DEPTH)/dbm clobber
 
