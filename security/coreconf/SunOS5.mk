@@ -67,6 +67,15 @@ RANLIB      = echo
 CPU_ARCH    = sparc
 OS_DEFINES += -DSVR4 -DSYSV -D__svr4 -D__svr4__ -DSOLARIS -D_REENTRANT
 
+ifeq ($(OS_TEST),i86pc)
+ifeq ($(USE_64),1)
+    CPU_ARCH		= x86_64
+else
+    CPU_ARCH		= x86
+    OS_DEFINES		+= -Di386
+endif
+endif
+
 # Purify doesn't like -MDupdate
 NOMD_OS_CFLAGS += $(DSO_CFLAGS) $(OS_DEFINES) $(SOL_CFLAGS)
 
@@ -89,9 +98,6 @@ endif
 endif
 PROCESS_MAP_FILE = grep -v ';-' $< | \
          sed -e 's,;+,,' -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,;,' > $@
-
-
-
 
 # ld options:
 # -G: produce a shared object
@@ -135,3 +141,4 @@ else
 RPATH = -R '$$ORIGIN'
 endif
 
+OS_LIBS += -lthread -lnsl -lsocket -lposix4 -ldl -lc
