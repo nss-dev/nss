@@ -93,7 +93,7 @@ memleak_init()
 				FREEBL_LIST="${FREEBL_DEFAULT} libfreebl_64int_3"
 			else
 				FREEBL_DEFAULT="libfreebl_32fpu_3"
-				FREEBL_LIST="${FREEBL_DEFAULT} libfreebl_32int_3 libfreebl_32int64_3"
+				FREEBL_LIST="${FREEBL_DEFAULT} libfreebl_32int64_3"
 			fi
 		else
 			if [ "${BIT_NAME}" = "64" ] ; then
