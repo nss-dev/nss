@@ -36,7 +36,11 @@ TARGET_OSES = FreeBSD BSD_OS NetBSD OpenUNIX OS2 QNX Darwin BeOS OpenBSD \
 ifeq (,$(filter-out $(TARGET_OSES),$(OS_TARGET)))
 include $(CORE_DEPTH)/coreconf/$(OS_TARGET).mk
 else
+ifeq ($(OS_TARGET),SunOS)
+include $(CORE_DEPTH)/coreconf/SunOS5.mk
+else
 include $(CORE_DEPTH)/coreconf/$(OS_TARGET)$(OS_RELEASE).mk
+endif
 endif
 
 #######################################################################
