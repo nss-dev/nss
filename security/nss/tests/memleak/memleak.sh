@@ -366,11 +366,19 @@ run_selfserv_dbg()
 run_strsclnt()
 {
 	for cipher in ${cipher_list}; do
-		ATTR="${STRSCLNT_ATTR} -C ${cipher}"
-		if [ "${cipher}" = "f" -o "${cipher}" = "g" ] ; then
+		VMIN="ssl3"
+		VMAX=
+		case "${cipher}" in
+		A|B|C|D|E|F)
+			# Enable SSL 2 only for SSL 2 cipher suites.
+			VMIN="ssl2"
+			;;
+		f|g)
 			# TLS 1.1 disallows export cipher suites.
-			ATTR="${ATTR} -V :tls1.0"
-		fi
+			VMAX="tls1.0"
+			;;
+		esac
+		ATTR="${STRSCLNT_ATTR} -C ${cipher} -V ${VMIN}:${VMAX}"
 		echo "${SCRIPTNAME}: -------- Trying cipher ${cipher}:"
 		echo "strsclnt ${ATTR}"
 		${BINDIR}/strsclnt ${ATTR}
@@ -403,11 +411,19 @@ run_strsclnt()
 run_strsclnt_dbg()
 {
 	for cipher in ${cipher_list}; do
-		ATTR="${STRSCLNT_ATTR} -C ${cipher}"
-		if [ "${cipher}" = "f" -o "${cipher}" = "g" ] ; then
+		VMIN="ssl3"
+		VMAX=
+		case "${cipher}" in
+		A|B|C|D|E|F)
+			# Enable SSL 2 only for SSL 2 cipher suites.
+			VMIN="ssl2"
+			;;
+		f|g)
 			# TLS 1.1 disallows export cipher suites.
-			ATTR="${ATTR} -V :tls1.0"
-		fi
+			VMAX="tls1.0"
+			;;
+		esac
+		ATTR="${STRSCLNT_ATTR} -C ${cipher} -V ${VMIN}:${VMAX}"
 		${RUN_COMMAND_DBG} ${BINDIR}/strsclnt ${CLIENT_OPTION} ${ATTR}
 		ret=$?
 		if [ $ret -ne 0 ]; then
