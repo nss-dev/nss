@@ -10,10 +10,6 @@
 
 include manifest.mn
 
-ifdef NSS_DISABLE_DBM
-DIRS =
-endif
-
 #######################################################################
 # (2) Include "global" configuration information. (OPTIONAL)          #
 #######################################################################
