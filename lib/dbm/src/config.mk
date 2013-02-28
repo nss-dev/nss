@@ -6,8 +6,6 @@
 
 DEFINES += -DMEMMOVE -D__DBINTERFACE_PRIVATE $(SECURITY_FLAG)
 
-INCLUDES += -I$(CORE_DEPTH)/../dbm/include
-
 #
 #  Currently, override TARGETS variable so that only static libraries
 #  are specifed as dependencies within rules.mk.

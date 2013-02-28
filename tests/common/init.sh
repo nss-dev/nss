@@ -241,7 +241,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
 #directory name init
     SCRIPTNAME=init.sh
 
-    mozilla_root=`(cd ../../../..; pwd)`
+    mozilla_root=`(cd ../../..; pwd)`
     MOZILLA_ROOT=${MOZILLA_ROOT-$mozilla_root}
 
     qadir=`(cd ..; pwd)`

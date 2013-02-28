@@ -20,7 +20,7 @@ include $(CORE_DEPTH)/coreconf/config.mk
 # (3) Include "component" configuration information. (OPTIONAL)       #
 #######################################################################
 
-include $(CORE_DEPTH)/dbm/config/config.mk
+include $(CORE_DEPTH)/lib/dbm/config/config.mk
 
 #######################################################################
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
