@@ -252,7 +252,6 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     export COMMON
 
     DIST=${DIST-${MOZILLA_ROOT}/dist}
-    SECURITY_ROOT=${SECURITY_ROOT-${MOZILLA_ROOT}/security/nss}
     TESTDIR=${TESTDIR-${MOZILLA_ROOT}/tests_results/security}
 
     # Allow for override options from a config file
@@ -295,14 +294,14 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
 
     # Same problem with MSYS/Mingw, except we need to start over with pwd -W
     if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "MINGW32_NT" ]; then
-		mingw_mozilla_root=`(cd ../../../..; pwd -W)`
+		mingw_mozilla_root=`(cd ../../..; pwd -W)`
 		MINGW_MOZILLA_ROOT=${MINGW_MOZILLA_ROOT-$mingw_mozilla_root}
 		TESTDIR=${MINGW_TESTDIR-${MINGW_MOZILLA_ROOT}/tests_results/security}
     fi
 
     # Same problem with MSYS/Mingw, except we need to start over with pwd -W
     if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "MINGW32_NT" ]; then
-		mingw_mozilla_root=`(cd ../../../..; pwd -W)`
+		mingw_mozilla_root=`(cd ../../..; pwd -W)`
 		MINGW_MOZILLA_ROOT=${MINGW_MOZILLA_ROOT-$mingw_mozilla_root}
 		TESTDIR=${MINGW_TESTDIR-${MINGW_MOZILLA_ROOT}/tests_results/security}
     fi
@@ -577,7 +576,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     export PATH LD_LIBRARY_PATH SHLIB_PATH LIBPATH DYLD_LIBRARY_PATH
     export DOMSUF HOSTADDR
     export KILL PS
-    export MOZILLA_ROOT SECURITY_ROOT DIST TESTDIR OBJDIR QADIR
+    export MOZILLA_ROOT DIST TESTDIR OBJDIR QADIR
     export LOGFILE SCRIPTNAME
 
 #used for the distributed stress test, the server generates certificates 
