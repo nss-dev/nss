@@ -116,10 +116,10 @@ clobber_nspr: $(NSPR_CONFIG_STATUS)
 	$(MAKE) -C $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME) clobber
 
 build_docs:
-	$(MAKE) -C $(CORE_DEPTH)/nss/doc
+	$(MAKE) -C $(CORE_DEPTH)/doc
 
 clean_docs:
-	$(MAKE) -C $(CORE_DEPTH)/nss/doc clean
+	$(MAKE) -C $(CORE_DEPTH)/doc clean
 
 moz_import::
 ifeq (,$(filter-out WIN%,$(OS_TARGET)))
