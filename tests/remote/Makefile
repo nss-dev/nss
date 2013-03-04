@@ -95,7 +95,7 @@ ifeq ($(CROSS_COMPILE),1)
 	echo 'echo "signing"'                               >> $(RTSH)
 # work around a bug in Android ash that has a corrupted work directory after login
 	echo 'cd $${HOME}/nsstest'                          >> $(RTSH)
-	echo 'cd nss/cmd/shlibsign'                >> $(RTSH)
+	echo 'cd nss/cmd/shlibsign'                         >> $(RTSH)
 	echo '$(TEST_SHELL) ./sign.sh $${DIST}/$${OBJDIR}/ $${DIST}/$${OBJDIR}/bin $${OS_TARGET} $${NSPR_LIB_DIR} $${NSPR_LIB_DIR}$${DLL_PREFIX}freebl3.$${DLL_SUFFIX}'  >> $(RTSH)
 	echo '$(TEST_SHELL) ./sign.sh $${DIST}/$${OBJDIR}/ $${DIST}/$${OBJDIR}/bin $${OS_TARGET} $${NSPR_LIB_DIR} $${NSPR_LIB_DIR}$${DLL_PREFIX}softokn3.$${DLL_SUFFIX}' >> $(RTSH)
 	echo '$(TEST_SHELL) ./sign.sh $${DIST}/$${OBJDIR}/ $${DIST}/$${OBJDIR}/bin $${OS_TARGET} $${NSPR_LIB_DIR} $${NSPR_LIB_DIR}$${DLL_PREFIX}nssdbm3.$${DLL_SUFFIX}'  >> $(RTSH)
@@ -104,16 +104,16 @@ ifneq ($(OS_TARGET),Android)
 	echo 'export -n DIST'                          >> $(RTSH)
 	echo 'export -n NSPR_LIB_DIR'                  >> $(RTSH)
 endif
-	echo 'cd ../../../'                         >> $(RTSH)
+	echo 'cd ../../../'                            >> $(RTSH)
 endif
 	echo 'rm -rf tests_results'                    >> $(RTSH)
 	echo 'echo "running tests"'                    >> $(RTSH)
-	echo 'cd nss/tests'                   >> $(RTSH)
+	echo 'cd nss/tests'                            >> $(RTSH)
 	# We require progress indication on stdout while running the tests (to avoid timeouts).
 	set -o pipefail
-	echo '$(TEST_SHELL) ./all.sh | tee ../../logfile 2>&1 |grep ": #"'       >> $(RTSH)
+	echo '$(TEST_SHELL) ./all.sh | tee ../../logfile 2>&1 |grep ": #"'          >> $(RTSH)
 	RETVAL=$?
-	echo 'cd ../../'                            >> $(RTSH)
+	echo 'cd ../../'                               >> $(RTSH)
 	# dump test summary from end of logfile
 	echo 'echo "=========="; tail -100 logfile'    >> $(RTSH)
 	echo 'tar czf tests_results.tgz tests_results'                              >> $(RTSH)
