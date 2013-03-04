@@ -2974,6 +2974,7 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
 	ss->handleBadCert      = NULL;
 	ss->badCertArg         = NULL;
 	ss->pkcs11PinArg       = NULL;
+	ss->ephemeralECDHKeyPair = NULL;
 
 	ssl_ChooseOps(ss);
 	ssl2_InitSocketPolicy(ss);
