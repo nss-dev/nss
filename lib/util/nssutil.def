@@ -261,7 +261,7 @@ NSSUTIL_QuoteSize;
 ;+    local:
 ;+       *;
 ;+};
-;+NSSUTIL_3.14.4 {         # NSS Utilities 3.14.4 release
+;+NSSUTIL_3.15 {         # NSS Utilities 3.15 release
 ;+    global:
 SECITEM_AllocArray;
 SECITEM_DupArray;
