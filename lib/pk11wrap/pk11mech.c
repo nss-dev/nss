@@ -370,8 +370,11 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len)
     case CKM_SSL3_SHA1_MAC:
     case CKM_SSL3_MD5_MAC:
     case CKM_TLS_MASTER_KEY_DERIVE:
+    case CKM_NSS_TLS_MASTER_KEY_DERIVE_SHA256:
     case CKM_TLS_MASTER_KEY_DERIVE_DH:
+    case CKM_NSS_TLS_MASTER_KEY_DERIVE_DH_SHA256:
     case CKM_TLS_KEY_AND_MAC_DERIVE:
+    case CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256:
     case CKM_SHA_1_HMAC:
     case CKM_SHA_1_HMAC_GENERAL:
     case CKM_SHA224_HMAC:
@@ -387,6 +390,7 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len)
     case CKM_MD5_HMAC:
     case CKM_MD5_HMAC_GENERAL:
     case CKM_TLS_PRF_GENERAL:
+    case CKM_NSS_TLS_PRF_GENERAL_SHA256:
 	return CKK_GENERIC_SECRET;
     default:
 	return pk11_lookup(type)->keyType;
@@ -560,6 +564,7 @@ PK11_GetKeyGenWithSize(CK_MECHANISM_TYPE type, int size)
     case CKM_SSL3_MD5_MAC:
     case CKM_TLS_MASTER_KEY_DERIVE:
     case CKM_TLS_KEY_AND_MAC_DERIVE:
+    case CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256:
 	return CKM_SSL3_PRE_MASTER_KEY_GEN;
     case CKM_SHA_1_HMAC:
     case CKM_SHA_1_HMAC_GENERAL:
@@ -576,6 +581,7 @@ PK11_GetKeyGenWithSize(CK_MECHANISM_TYPE type, int size)
     case CKM_MD5_HMAC:
     case CKM_MD5_HMAC_GENERAL:
     case CKM_TLS_PRF_GENERAL:
+    case CKM_NSS_TLS_PRF_GENERAL_SHA256:
     case CKM_GENERIC_SECRET_KEY_GEN:
 	return CKM_GENERIC_SECRET_KEY_GEN;
     case CKM_PBE_MD2_DES_CBC:

@@ -880,6 +880,7 @@ PK11_GetSlotList(CK_MECHANISM_TYPE type)
 	return &pk11_sslSlotList;
     case CKM_TLS_MASTER_KEY_DERIVE:
     case CKM_TLS_KEY_AND_MAC_DERIVE:
+    case CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256:
 	return &pk11_tlsSlotList;
     case CKM_IDEA_CBC:
     case CKM_IDEA_ECB:
