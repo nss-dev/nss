@@ -212,6 +212,12 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #define CKM_NSS_HMAC_CONSTANT_TIME      (CKM_NSS + 19)
 #define CKM_NSS_SSL3_MAC_CONSTANT_TIME  (CKM_NSS + 20)
 
+/* TLS 1.2 mechanisms */
+#define CKM_NSS_TLS_PRF_GENERAL_SHA256          (CKM_NSS + 21)
+#define CKM_NSS_TLS_MASTER_KEY_DERIVE_SHA256    (CKM_NSS + 22)
+#define CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256   (CKM_NSS + 23)
+#define CKM_NSS_TLS_MASTER_KEY_DERIVE_DH_SHA256 (CKM_NSS + 24)
+
 /*
  * HISTORICAL:
  * Do not attempt to use these. They are only used by NETSCAPE's internal
