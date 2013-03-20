@@ -9,11 +9,9 @@
 #include <ctype.h>
 #include <string.h>
 #include "seccomon.h"
-#include "prerror.h"
 #include "prinit.h"
 #include "prprf.h"
 #include "prmem.h"
-#include "prtypes.h"
 #include "cert.h"
 #include "key.h"
 #include "secmod.h"
