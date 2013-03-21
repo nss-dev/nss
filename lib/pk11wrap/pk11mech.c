@@ -221,6 +221,10 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len)
 	return CKK_CAMELLIA;
     case CKM_AES_ECB:
     case CKM_AES_CBC:
+    case CKM_AES_CCM:
+    case CKM_AES_CTR:
+    case CKM_AES_CTS:
+    case CKM_AES_GCM:
     case CKM_AES_MAC:
     case CKM_AES_MAC_GENERAL:
     case CKM_AES_CBC_PAD:
