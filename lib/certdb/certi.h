@@ -250,7 +250,7 @@ SECStatus AcquireDPCache(CERTCertificate* issuer, const SECItem* subject,
                          CRLDPCache** dpcache, PRBool* writeLocked);
 
 /* check if a particular SN is in the CRL cache and return its entry */
-dpcacheStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
+dpcacheStatus DPCache_Lookup(CRLDPCache* cache, const SECItem* sn,
                              CERTCrlEntry** returned);
 
 /* release a DPCache object that was previously acquired */
@@ -359,7 +359,7 @@ SECStatus cert_ReleaseNamedCRLCache(NamedCRLCache* ncc);
 
 /* This is private for now.  Maybe shoule be public. */
 CERTGeneralName *
-cert_GetSubjectAltNameList(CERTCertificate *cert, PRArenaPool *arena);
+cert_GetSubjectAltNameList(const CERTCertificate *cert, PRArenaPool *arena);
 
 /* Count DNS names and IP addresses in a list of GeneralNames */
 PRUint32

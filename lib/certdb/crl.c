@@ -1695,7 +1695,7 @@ static SECStatus DPCache_FetchFromTokens(CRLDPCache* cache, PRTime vfdate,
     return rv;
 }
 
-static SECStatus CachedCrl_GetEntry(CachedCrl* crl, SECItem* sn,
+static SECStatus CachedCrl_GetEntry(CachedCrl* crl, const SECItem* sn,
                                     CERTCrlEntry** returned)
 {
     CERTCrlEntry* acrlEntry;
@@ -1722,7 +1722,7 @@ static SECStatus CachedCrl_GetEntry(CachedCrl* crl, SECItem* sn,
 }
 
 /* check if a particular SN is in the CRL cache and return its entry */
-dpcacheStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
+dpcacheStatus DPCache_Lookup(CRLDPCache* cache, const SECItem* sn,
                          CERTCrlEntry** returned)
 {
     SECStatus rv;
