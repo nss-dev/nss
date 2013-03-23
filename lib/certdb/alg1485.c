@@ -1219,7 +1219,7 @@ CERT_GetNameElement(PRArenaPool *arena, CERTName *name, int wantedTag)
  * This is particularly appropriate for Common Name.  See RFC 2818.
  */
 static char *
-CERT_GetLastNameElement(PRArenaPool *arena, CERTName *name, int wantedTag)
+CERT_GetLastNameElement(PRArenaPool *arena, const CERTName *name, int wantedTag)
 {
     CERTRDN** rdns    = name->rdns;
     CERTRDN*  rdn;
@@ -1500,7 +1500,7 @@ CERT_GetCertEmailAddress(CERTName *name)
 
 /* The return value must be freed with PORT_Free. */
 char *
-CERT_GetCommonName(CERTName *name)
+CERT_GetCommonName(const CERTName *name)
 {
     return(CERT_GetLastNameElement(NULL, name, SEC_OID_AVA_COMMON_NAME));
 }
