@@ -1221,7 +1221,7 @@ AES_Encrypt(AESContext *cx, unsigned char *output,
 {
     int blocksize;
     /* Check args */
-    if (cx == NULL || output == NULL || input == NULL) {
+    if (cx == NULL || output == NULL || (input == NULL && inputLen != 0)) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
@@ -1252,7 +1252,7 @@ AES_Decrypt(AESContext *cx, unsigned char *output,
 {
     int blocksize;
     /* Check args */
-    if (cx == NULL || output == NULL || input == NULL) {
+    if (cx == NULL || output == NULL || (input == NULL && inputLen != 0)) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }

@@ -230,7 +230,7 @@ gcm_getX(gcmHashContext *ghash, unsigned char *T, unsigned int blocksize)
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
 	return SECFailure;
     }
-    gcm_reverse(T, X, blocksize);
+    gcm_reverse(T, tmp_buf, blocksize);
     return SECSuccess;
 }
 
@@ -575,10 +575,10 @@ gcmHash_Reset(gcmHashContext *ghash, const unsigned char *AAD,
 	if (rv != SECSuccess) {
 	    return SECFailure;
 	}
-	rv = gcmHash_Sync(ghash, blocksize);
-	if (rv != SECSuccess) {
-	    return SECFailure;
-	}
+    }
+    rv = gcmHash_Sync(ghash, blocksize);
+    if (rv != SECSuccess) {
+	return SECFailure;
     }
     return SECSuccess;
 }
