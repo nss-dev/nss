@@ -685,6 +685,8 @@ PK11_Verify(SECKEYPublicKey *key, const SECItem *sig, const SECItem *hash,
 	    if (key->u.dsa.params.prime.data[0] == 0) {
 		length --;
 	    }
+	    /* convert keysize to bits for slot lookup */
+	    length *= 8;
 	}
 	slot = PK11_GetBestSlotWithAttributes(mech.mechanism,
 						CKF_VERIFY,length,wincx);
