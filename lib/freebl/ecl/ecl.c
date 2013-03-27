@@ -263,6 +263,7 @@ ecgroup_fromNameAndHex(const ECCurveName name,
 								&order, params->cofactor);
 			if (group == NULL) { res = MP_UNDEF; goto CLEANUP; }
 			MP_CHECKOK(ec_group_set_gfp256(group, name));
+			MP_CHECKOK(ec_group_set_gfp256_32(group, name));
 			break;
 		case ECCurve_SECG_PRIME_521R1:
 			group =
