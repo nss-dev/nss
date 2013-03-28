@@ -266,7 +266,7 @@ CK_MECHANISM_TYPE PK11_GetPadMechanism(CK_MECHANISM_TYPE);
 CK_MECHANISM_TYPE PK11_MapSignKeyType(KeyType keyType);
 
 /**********************************************************************
- *                   Symetric, Public, and Private Keys 
+ *                   Symmetric, Public, and Private Keys 
  **********************************************************************/
 void PK11_FreeSymKey(PK11SymKey *key);
 PK11SymKey *PK11_ReferenceSymKey(PK11SymKey *symKey);
@@ -507,6 +507,17 @@ SECKEYPrivateKey * PK11_FindKeyByAnyCert(CERTCertificate *cert, void *wincx);
 SECKEYPrivateKey * PK11_FindKeyByKeyID(PK11SlotInfo *slot, SECItem *keyID,
 				       void *wincx);
 int PK11_GetPrivateModulusLen(SECKEYPrivateKey *key); 
+
+SECStatus PK11_Decrypt(PK11SymKey *symkey,
+		       CK_MECHANISM_TYPE mechanism, SECItem *param,
+		       unsigned char *out, unsigned int *outLen,
+		       unsigned int maxLen,
+		       const unsigned char *enc, unsigned int encLen);
+SECStatus PK11_Encrypt(PK11SymKey *symKey,
+		       CK_MECHANISM_TYPE mechanism, SECItem *param,
+		       unsigned char *out, unsigned int *outLen,
+		       unsigned int maxLen,
+		       const unsigned char *data, unsigned int dataLen);
 
 /* note: despite the name, this function takes a private key. */
 SECStatus PK11_PubDecryptRaw(SECKEYPrivateKey *key, unsigned char *data,
