@@ -1263,9 +1263,9 @@ static void scalar_mult(felem nx, felem ny, felem nz,
 #endif
 
 #ifdef MP_USE_UINT_DIGIT
-#define BYTESWAP_MP_DIGIT_TO_LE(x) BYTESWAP32(BYTESWAP32(x))
+#define BYTESWAP_MP_DIGIT_TO_LE(x) BYTESWAP32(x)
 #else
-#define BYTESWAP_MP_DIGIT_TO_LE(x) BYTESWAP64(BYTESWAP64(x))
+#define BYTESWAP_MP_DIGIT_TO_LE(x) BYTESWAP64(x)
 #endif
 #endif /* IS_BIG_ENDIAN */
 
