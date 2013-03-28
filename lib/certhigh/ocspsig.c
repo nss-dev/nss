@@ -419,7 +419,7 @@ CERT_CreateEncodedOCSPSuccessResponse(
 
     if (!responderCert) {
 	/* use invalid signature for testing purposes */
-	char dummyChar = 'd';
+	unsigned char dummyChar = 'd';
 	SECItem dummy;
 
 	dummy.len = 1;
