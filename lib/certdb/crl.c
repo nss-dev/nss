@@ -2631,7 +2631,7 @@ cert_CheckCertRevocationStatus(CERTCertificate* cert, CERTCertificate* issuer,
         *revReason = reason;
     }
 
-    if (t && SECSuccess != CERT_CheckCertValidTimes(issuer, t, PR_FALSE))
+    if (t && secCertTimeValid != CERT_CheckCertValidTimes(issuer, t, PR_FALSE))
     {
         /* we won't be able to check the CRL's signature if the issuer cert
            is expired as of the time we are verifying. This may cause a valid
