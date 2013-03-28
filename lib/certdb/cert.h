@@ -758,7 +758,7 @@ extern SECItem *CERT_DecodeAVAValue(const SECItem *derAVAValue);
 
 extern char *CERT_GetCertificateEmailAddress(CERTCertificate *cert);
 
-extern char *CERT_GetCertEmailAddress(CERTName *name);
+extern char *CERT_GetCertEmailAddress(const CERTName *name);
 
 extern const char * CERT_GetFirstEmailAddress(CERTCertificate * cert);
 
@@ -768,19 +768,19 @@ extern const char * CERT_GetNextEmailAddress(CERTCertificate * cert,
 /* The return value must be freed with PORT_Free. */
 extern char *CERT_GetCommonName(const CERTName *name);
 
-extern char *CERT_GetCountryName(CERTName *name);
+extern char *CERT_GetCountryName(const CERTName *name);
 
-extern char *CERT_GetLocalityName(CERTName *name);
+extern char *CERT_GetLocalityName(const CERTName *name);
 
-extern char *CERT_GetStateName(CERTName *name);
+extern char *CERT_GetStateName(const CERTName *name);
 
-extern char *CERT_GetOrgName(CERTName *name);
+extern char *CERT_GetOrgName(const CERTName *name);
 
-extern char *CERT_GetOrgUnitName(CERTName *name);
+extern char *CERT_GetOrgUnitName(const CERTName *name);
 
-extern char *CERT_GetDomainComponentName(CERTName *name);
+extern char *CERT_GetDomainComponentName(const CERTName *name);
 
-extern char *CERT_GetCertUid(CERTName *name);
+extern char *CERT_GetCertUid(const CERTName *name);
 
 /* manipulate the trust parameters of a certificate */
 
