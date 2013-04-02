@@ -36,6 +36,7 @@ DIRS = lib  \
  p7sign  \
  p7verify  \
  pk12util \
+ pk11gcmtest \
  pk11mode \
  pk1sign  \
  pkix-errcodes \

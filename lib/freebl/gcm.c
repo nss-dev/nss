@@ -577,10 +577,10 @@ gcmHash_Reset(gcmHashContext *ghash, const unsigned char *AAD,
 	if (rv != SECSuccess) {
 	    return SECFailure;
 	}
-    }
-    rv = gcmHash_Sync(ghash, blocksize);
-    if (rv != SECSuccess) {
-	return SECFailure;
+	rv = gcmHash_Sync(ghash, blocksize);
+	if (rv != SECSuccess) {
+	    return SECFailure;
+	}
     }
     return SECSuccess;
 }
