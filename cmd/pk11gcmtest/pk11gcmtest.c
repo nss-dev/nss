@@ -39,7 +39,7 @@ aes_encrypt_buf(
     const unsigned char *iv, unsigned int ivsize,
     unsigned char *output, unsigned int *outputlen, unsigned int maxoutputlen,
     const unsigned char *input, unsigned int inputlen,
-    const unsigned char *aad, unsigned int aadlen, unsigned int tagsize) 
+    const unsigned char *aad, unsigned int aadlen, unsigned int tagsize)
 {
     SECStatus rv = SECFailure;
     SECItem key_item;
@@ -135,7 +135,7 @@ aes_decrypt_buf(
     param.type = siBuffer;
     param.data = (unsigned char *) &gcm_params;
     param.len = sizeof(gcm_params);
- 
+
     if (PK11_Decrypt(symKey, CKM_AES_GCM, &param,
 		     output, outputlen, maxoutputlen,
 		     concatenated, inputlen + tagsize) != SECSuccess) {
