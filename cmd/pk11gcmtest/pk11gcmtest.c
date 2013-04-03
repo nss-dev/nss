@@ -157,7 +157,7 @@ loser:
  * respfn is the pathname of the RESPONSE file.
  */
 static void
-aes_gcm_kat(char *respfn)
+aes_gcm_kat(const char *respfn)
 {
     char buf[512];      /* holds one line from the input REQUEST file.
                          * needs to be large enough to hold the longest
@@ -195,10 +195,14 @@ aes_gcm_kat(char *respfn)
     } else if (strstr(respfn, "Decrypt") != NULL) {
 	is_encrypt = PR_FALSE;
     } else {
-	fprintf(stderr, "input file name must contain Encrypt or Decrypt\n");
+	fprintf(stderr, "Input file name must contain Encrypt or Decrypt\n");
 	exit(1);
     }
     aesresp = fopen(respfn, "r");
+    if (aesresp == NULL) {
+	fprintf(stderr, "Cannot open input file %s\n", respfn);
+	exit(1);
+    }
     while (fgets(buf, sizeof buf, aesresp) != NULL) {
 	/* a comment or blank line */
 	if (buf[0] == '#' || buf[0] == '\n') {
@@ -433,7 +437,7 @@ loser:
 
 int main(int argc, char **argv)
 {
-    if (argc < 2) exit (-1);
+    if (argc < 2) exit(1);
 
     NSS_NoDB_Init(NULL);
 
