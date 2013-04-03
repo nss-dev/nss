@@ -236,7 +236,7 @@ void PK11_DestroyMergeLog(PK11MergeLog *log);
 /*********************************************************************
  *       Mechanism Mapping functions
  *********************************************************************/
-CK_MECHANISM_TYPE PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len);
+CK_KEY_TYPE PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len);
 CK_MECHANISM_TYPE PK11_GetKeyGen(CK_MECHANISM_TYPE type);
 int PK11_GetBlockSize(CK_MECHANISM_TYPE type,SECItem *params);
 int PK11_GetIVLength(CK_MECHANISM_TYPE type);
