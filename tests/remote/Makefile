@@ -122,7 +122,7 @@ endif
 	echo 'echo exit status: $${RETVAL}'                                         >> $(RTSH)
 	echo 'exit $${RETVAL}'                                                      >> $(RTSH)
 	rm -f $(TESTPACKAGE)
-	(cd $(DIST)/../.. ; tar czhf dist/$(TESTPACKAGE) runtests.sh dist/$(OBJDIR_NAME) dist/public nss/tests nss/cmd/bltest/tests nss/cmd/shlibsign; echo "created "`pwd`"/dist/$(TESTPACKAGE)" )
+	(cd $(DIST)/../.. ; tar czhf dist/$(TESTPACKAGE) runtests.sh dist/$(OBJDIR_NAME) dist/public nss/tests nss/cmd/bltest/tests nss/cmd/pk11gcmtest/tests nss/cmd/shlibsign; echo "created "`pwd`"/dist/$(TESTPACKAGE)" )
 
 android_run_tests:
 	ssh -p $(ANDROID_PORT) -o CheckHostIP=no $(ANDROID_ADDR)  'pwd; cd; pwd; cd nsstest; export PATH=$$HOME/bin:$$PATH ; $(TEST_SHELL) runtests.sh'
