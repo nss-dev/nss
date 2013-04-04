@@ -55,13 +55,6 @@ SGN_NewContext(SECOidTag alg, SECKEYPrivateKey *key)
 	return 0;
     }
 
-#ifndef NSS_ECC_MORE_THAN_SUITE_B
-    if (key->keyType == ecKey) {
-	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
-	return 0;
-    }
-#endif
-
     cx = (SGNContext*) PORT_ZAlloc(sizeof(SGNContext));
     if (cx) {
 	cx->hashalg = hashalg;
