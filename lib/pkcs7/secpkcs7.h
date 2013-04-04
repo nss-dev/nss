@@ -134,6 +134,24 @@ extern PRBool SEC_PKCS7VerifyDetachedSignature(SEC_PKCS7ContentInfo *cinfo,
 					       PRBool keepcerts);
 
 /*
+ * SEC_PKCS7VerifyDetachedSignatureAtTime
+ *      Look at a PKCS7 contentInfo and check if the signature matches
+ *      a passed-in digest (calculated, supposedly, from detached contents).
+ *      The verification checks that the signing cert is valid and trusted
+ *      for the purpose specified by "certusage" at time "atTime".
+ *
+ *	In addition, if "keepcerts" is true, add any new certificates found
+ *	into our local database.
+ */
+extern PRBool
+SEC_PKCS7VerifyDetachedSignatureAtTime(SEC_PKCS7ContentInfo *cinfo,
+				       SECCertUsage certusage,
+				       const SECItem *detached_digest,
+				       HASH_HashType digest_type,
+				       PRBool keepcerts,
+				       PRTime atTime);
+
+/*
  * SEC_PKCS7GetSignerCommonName, SEC_PKCS7GetSignerEmailAddress
  *      The passed-in contentInfo is espected to be Signed, and these
  *      functions return the specified portion of the full signer name.
