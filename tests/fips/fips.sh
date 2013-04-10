@@ -223,22 +223,9 @@ fips_140()
   # is needed to copy files one by one. 
   echo "mkdir ${MANGLEDIR}"
   mkdir ${MANGLEDIR}
-  # When building nss without softoken use the system installed softoken library located
-  # in SOFTOKEN_LIB_DIR. This variable will have been set by the nss package mainainer.
-  # Fedora, for example, installs it in /usr/lib${ARCH} but other platforms may place
-  # the libraries in a different location. 
   for lib in `ls ${LIBDIR}`; do
-    # Only softoken is used in the mangling test
-    if [ ${lib} = ${DLL_PREFIX}softokn3.so ]; then
-      if [ ${NSS_BUILD_WITHOUT_SOFTOKEN} = "1" ]; then
-        # use the system installed softoken library
-        echo "cp ${SOFTOKEN_LIB_DIR}/${lib} ${MANGLEDIR}"
-        cp ${SOFTOKEN_LIB_DIR}/${lib} ${MANGLEDIR}
-      else
-        echo "cp ${LIBDIR}/${lib} ${MANGLEDIR}"
-        cp ${LIBDIR}/${lib} ${MANGLEDIR}
-      fi
-    fi
+    echo "cp ${LIBDIR}/${lib} ${MANGLEDIR}"
+    cp ${LIBDIR}/${lib} ${MANGLEDIR}
   done
     
   echo "$SCRIPTNAME: Detect mangled softoken--------------------------"

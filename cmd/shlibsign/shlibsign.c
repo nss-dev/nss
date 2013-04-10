@@ -49,7 +49,6 @@
 #include "pkcs11t.h"
 
 /* freebl headers */
-#include "blapit.h"
 #include "shsign.h"
 
 #define NUM_ELEM(array) (sizeof(array)/sizeof(array[0]))
@@ -64,7 +63,7 @@ usage (const char *program_name)
     PR_fprintf (debug_out,
                 "type %s -H for more detail information.\n", program_name);
     PR_fprintf (debug_out,
-                "Usage: %s [-v] [-V] [-k keysize] [-o outfile] [-d dbdir] [-f pwfile]\n"
+                "Usage: %s [-v] [-V] [-o outfile] [-d dbdir] [-f pwfile]\n"
                 "          [-F] [-p pwd] -[P dbprefix ] "
                 "-i shared_library_name\n",
                 program_name);
@@ -85,7 +84,6 @@ long_usage(const char *program_name)
     PR_fprintf(debug_out, "\t-p <pwd>     password\n");
     PR_fprintf(debug_out, "\t-v           verbose output\n");
     PR_fprintf(debug_out, "\t-V           perform Verify operations\n");
-    PR_fprintf(debug_out, "\t-k <key_size>  key size in bits, default 2048\n");
     PR_fprintf(debug_out, "\t-?           short help message\n");
     PR_fprintf(debug_out, "\t-h           short help message\n");
     PR_fprintf(debug_out, "\t-H           this help message\n");
@@ -727,15 +725,12 @@ int main(int argc, char **argv)
     CK_ULONG slotIndex = 0; 
     CK_MECHANISM digestmech;
     CK_ULONG digestLen = 0;
-    CK_BYTE digest[HASH_LENGTH_MAX];
-    CK_BYTE sign[DSA_MAX_SIGNATURE_LEN];
+    CK_BYTE digest[32]; /* SHA256_LENGTH */
+    CK_BYTE sign[64];   /* DSA SIGNATURE LENGTH */
     CK_ULONG signLen = 0 ;
     CK_MECHANISM signMech = {
         CKM_DSA, NULL, 0
     };
-
-    int expectedDigestLen;
-    int expectedSignatureLen;
 
     /*** DSA Key ***/
 
@@ -918,18 +913,10 @@ int main(int argc, char **argv)
 	    goto cleanup;
 	}
 
-	if (keySize == 0) {
-	    if (mechInfo.ulMaxKeySize >=2048) {
-		keySize = 2048;
-	    } else {
-		keySize = 1024;
-	    }
-	}
-	if (keySize > mechInfo.ulMaxKeySize) {
-	    PR_fprintf(PR_STDERR, 
-		"Requested key size of %d bits exceeds the mechanism's maximum key size of %d bits\n",
-		keySize, mechInfo.ulMaxKeySize);
-	    goto cleanup;
+	if ((keySize == 0) && mechInfo.ulMaxKeySize >=2048 ) {
+	    keySize = 2048;
+	} else {
+	    keySize = 1024;
 	}
     }
 
@@ -947,10 +934,6 @@ int main(int argc, char **argv)
 	digestmech.mechanism = CKM_SHA_1;
 	digestmech.pParameter = NULL;
 	digestmech.ulParameterLen = 0;
-
-	expectedDigestLen = SHA1_LENGTH;
-	expectedSignatureLen = sizeof(subprime)*2;   /* length of q*2 */;
-
     } else if (keySize == 2048) {
 	dsaPubKeyTemplate[0].type       = CKA_PRIME;
 	dsaPubKeyTemplate[0].pValue     = (CK_VOID_PTR) &prime2;
@@ -964,13 +947,9 @@ int main(int argc, char **argv)
 	digestmech.mechanism = CKM_SHA256;
 	digestmech.pParameter = NULL;
 	digestmech.ulParameterLen = 0;
-
-	expectedDigestLen = SHA256_LENGTH;
-	expectedSignatureLen = sizeof(subprime2)*2; /* length of q*2 */
-
     } else {
 	/* future - generate pqg */
-        PR_fprintf(PR_STDERR, "Only keysizes 1024 and 2048 are supported\n");
+        PR_fprintf(PR_STDERR, "Only keysizes 1024 and 2048 are supported");
 	goto cleanup;
     }
     dsaPubKeyTemplate[3].type = CKA_TOKEN;
@@ -1125,9 +1104,9 @@ int main(int argc, char **argv)
         goto cleanup;
     }
 
-    if (digestLen != expectedDigestLen) {
+    if (digestLen != sizeof(digest)) {
         PR_fprintf(PR_STDERR, "digestLen has incorrect length %lu "
-                "it should be %lu \n",digestLen, expectedDigestLen);
+                "it should be %lu \n",digestLen, sizeof(digest));
         goto cleanup;
     }
 
@@ -1148,9 +1127,9 @@ int main(int argc, char **argv)
         goto cleanup;
     }
 
-    if (signLen != expectedSignatureLen) {
+    if (signLen != sizeof(sign)) {
         PR_fprintf(PR_STDERR, "signLen has incorrect length %lu "
-                    "it should be %lu \n", signLen, expectedSignatureLen);
+                    "it should be %lu \n", signLen, sizeof(sign));
         goto cleanup;
     }
 
