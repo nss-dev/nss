@@ -4,8 +4,6 @@
 
 /*
  * Support routines for SECItem data structure.
- *
- * $Id$
  */
 
 #include "seccomon.h"

@@ -8,8 +8,6 @@
  * This file abstracts out libc functionality that libsec depends on
  * 
  * NOTE - These are not public interfaces
- *
- * $Id$
  */
 
 #include "seccomon.h"

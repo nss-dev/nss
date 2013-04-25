@@ -5,8 +5,6 @@
 /*
  * Support for DEcoding ASN.1 data based on BER/DER (Basic/Distinguished
  * Encoding Rules).
- *
- * $Id$
  */
 
 /* #define DEBUG_ASN1D_STATES 1 */
