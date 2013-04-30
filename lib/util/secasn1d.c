@@ -2772,6 +2772,7 @@ SEC_ASN1DecoderUpdate (SEC_ASN1DecoderContext *cx,
 	if (cx->their_pool != NULL) {
 	    PORT_Assert (cx->their_mark != NULL);
 	    PORT_ArenaRelease (cx->their_pool, cx->their_mark);
+	    cx->their_mark = NULL;
 	}
 #endif
 	return SECFailure;
