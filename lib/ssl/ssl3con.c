@@ -8456,7 +8456,7 @@ ssl3_SendCertificateStatus(sslSocket *ss)
     if (!ssl3_ExtensionNegotiated(ss, ssl_cert_status_xtn))
 	return SECSuccess;
 
-    if (!ss->certStatusArray)
+    if (!ss->certStatusArray || !ss->certStatusArray->len)
 	return SECSuccess;
 
     /* Use the array's first item only (single stapling) */

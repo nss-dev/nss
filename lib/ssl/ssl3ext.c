@@ -682,7 +682,7 @@ ssl3_ServerSendStatusRequestXtn(
     PRInt32 extension_length;
     SECStatus rv;
 
-    if (!ss->certStatusArray)
+    if (!ss->certStatusArray || !ss->certStatusArray->len)
 	return 0;
 
     extension_length = 2 + 2;
