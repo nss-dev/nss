@@ -45,9 +45,9 @@ endif
 
 
 # sign any and all shared libraries that contain the word freebl
-ifeq ($(NSS_BUILD_WITHOUT_SOFTOKEN),1))
-CHECKLIBS=
-CHECKLOC=
+ifeq ($(NSS_BUILD_WITHOUT_SOFTOKEN),1)
+CHECKLIBS =
+CHECKLOC =
 else
 CHECKLIBS = $(DIST)/lib/$(DLL_PREFIX)softokn3.$(DLL_SUFFIX)
 CHECKLIBS += $(wildcard $(DIST)/lib/$(DLL_PREFIX)freebl*3.$(DLL_SUFFIX))
