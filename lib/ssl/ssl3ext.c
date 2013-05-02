@@ -61,14 +61,14 @@ static PRInt32 ssl3_SendUseSRTPXtn(sslSocket *ss, PRBool append,
 static SECStatus ssl3_HandleUseSRTPXtn(sslSocket * ss, PRUint16 ex_type,
     SECItem *data);
 static SECStatus ssl3_ServerSendStatusRequestXtn(sslSocket * ss,
-    PRBool      append, PRUint32    maxBytes);
+    PRBool append, PRUint32 maxBytes);
 static SECStatus ssl3_ServerHandleStatusRequestXtn(sslSocket *ss,
     PRUint16 ex_type, SECItem *data);
 static SECStatus ssl3_ClientHandleStatusRequestXtn(sslSocket *ss,
-                                                  PRUint16 ex_type,
-                                                  SECItem *data);
+                                                   PRUint16 ex_type,
+                                                   SECItem *data);
 static PRInt32 ssl3_ClientSendStatusRequestXtn(sslSocket * ss, PRBool append,
-                                              PRUint32 maxBytes);
+                                               PRUint32 maxBytes);
 
 /*
  * Write bytes.  Using this function means the SECItem structure

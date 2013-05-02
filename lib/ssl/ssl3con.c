@@ -8525,7 +8525,7 @@ ssl3_HandleCertificateStatus(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
        goto format_loser;
 #undef MAX_CERTSTATUS_LEN
 
-    /* Array size 1, because we currently implement single-stapling only*/
+    /* Array size 1, because we currently implement single-stapling only */
     SECITEM_AllocArray(NULL, &ss->sec.ci.sid->peerCertStatus, 1);
     if (!ss->sec.ci.sid->peerCertStatus.items)
        return SECFailure;
