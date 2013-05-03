@@ -96,18 +96,18 @@ static SECStatus
 ssl3_AppendNumberToItem(SECItem *item, PRUint32 num, PRInt32 lenSize)
 {
     SECStatus rv;
-    uint8     b[4];
-    uint8 *   p = b;
+    PRUint8   b[4];
+    PRUint8 * p = b;
 
     switch (lenSize) {
     case 4:
-	*p++ = (uint8) (num >> 24);
+	*p++ = (PRUint8) (num >> 24);
     case 3:
-	*p++ = (uint8) (num >> 16);
+	*p++ = (PRUint8) (num >> 16);
     case 2:
-	*p++ = (uint8) (num >> 8);
+	*p++ = (PRUint8) (num >> 8);
     case 1:
-	*p = (uint8) num;
+	*p = (PRUint8) num;
     }
     rv = ssl3_AppendToItem(item, &b[0], lenSize);
     return rv;
@@ -775,7 +775,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     PRUint32             padding_length;
     PRUint32             message_length;
     PRUint32             cert_length;
-    uint8                length_buf[4];
+    PRUint8              length_buf[4];
     PRUint32             now;
     PK11SymKey          *aes_key_pkcs11;
     PK11SymKey          *mac_key_pkcs11;
