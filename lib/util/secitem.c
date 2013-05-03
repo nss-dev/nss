@@ -12,7 +12,7 @@
 #include "secport.h"
 
 SECItem *
-SECITEM_AllocItem(PRArenaPool *arena, SECItem *item, unsigned int len)
+SECITEM_AllocItem(PLArenaPool *arena, SECItem *item, unsigned int len)
 {
     SECItem *result = NULL;
     void *mark = NULL;
@@ -76,7 +76,7 @@ loser:
 }
 
 SECStatus
-SECITEM_ReallocItem(PRArenaPool *arena, SECItem *item, unsigned int oldlen,
+SECITEM_ReallocItem(PLArenaPool *arena, SECItem *item, unsigned int oldlen,
 		    unsigned int newlen)
 {
     PORT_Assert(item != NULL);
@@ -164,7 +164,7 @@ SECITEM_DupItem(const SECItem *from)
 }
 
 SECItem *
-SECITEM_ArenaDupItem(PRArenaPool *arena, const SECItem *from)
+SECITEM_ArenaDupItem(PLArenaPool *arena, const SECItem *from)
 {
     SECItem *to;
     
@@ -201,7 +201,7 @@ SECITEM_ArenaDupItem(PRArenaPool *arena, const SECItem *from)
 }
 
 SECStatus
-SECITEM_CopyItem(PRArenaPool *arena, SECItem *to, const SECItem *from)
+SECITEM_CopyItem(PLArenaPool *arena, SECItem *to, const SECItem *from)
 {
     to->type = from->type;
     if (from->data && from->len) {
