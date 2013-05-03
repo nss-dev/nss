@@ -2981,7 +2981,7 @@ loser:
  * errors appropriate to the problem will be set.
  */
 static PRFileDesc *
-ocsp_SendEncodedRequest(const char *location, SECItem *encodedRequest)
+ocsp_SendEncodedRequest(const char *location, const SECItem *encodedRequest)
 {
     char *hostname = NULL;
     char *path = NULL;
@@ -3341,7 +3341,7 @@ static SECItem *
 fetchOcspHttpClientV1(PRArenaPool *arena, 
                       const SEC_HttpClientFcnV1 *hcv1, 
                       const char *location, 
-                      SECItem *encodedRequest)
+                      const SECItem *encodedRequest)
 {
     char *hostname = NULL;
     char *path = NULL;
@@ -3515,9 +3515,7 @@ ocsp_GetEncodedOCSPResponseFromRequest(PRArenaPool *arena,
 {
     SECItem *encodedRequest = NULL;
     SECItem *encodedResponse = NULL;
-    PRFileDesc *sock = NULL;
     SECStatus rv;
-    const SEC_HttpClientFcn *registeredHttpClient = NULL;
 
     rv = CERT_AddOCSPAcceptableResponses(request,
 					 SEC_OID_PKIX_OCSP_BASIC_RESPONSE);
@@ -3528,26 +3526,7 @@ ocsp_GetEncodedOCSPResponseFromRequest(PRArenaPool *arena,
     if (encodedRequest == NULL)
 	goto loser;
 
-    registeredHttpClient = SEC_GetRegisteredHttpClient();
-
-    if (registeredHttpClient
-            &&
-            registeredHttpClient->version == 1) {
-        encodedResponse = fetchOcspHttpClientV1(
-                              arena,
-                              &registeredHttpClient->fcnTable.ftable1,
-                              location,
-                              encodedRequest);
-    }
-    else {
-      /* use internal http client */
-    
-      sock = ocsp_SendEncodedRequest(location, encodedRequest);
-      if (sock == NULL)
-	  goto loser;
-
-      encodedResponse = ocsp_GetEncodedResponse(arena, sock);
-    }
+    encodedResponse = CERT_PostOCSPRequest(arena, location, encodedRequest);
 
     if (encodedResponse != NULL && pRequest != NULL) {
 	*pRequest = request;
@@ -3559,8 +3538,33 @@ loser:
 	CERT_DestroyOCSPRequest(request);
     if (encodedRequest != NULL)
 	SECITEM_FreeItem(encodedRequest, PR_TRUE);
-    if (sock != NULL)
-	PR_Close(sock);
+
+    return encodedResponse;
+}
+
+SECItem *
+CERT_PostOCSPRequest(PLArenaPool *arena,  const char *location, 
+                     const SECItem *encodedRequest)
+{
+    const SEC_HttpClientFcn *registeredHttpClient;
+    SECItem *encodedResponse = NULL;
+
+    registeredHttpClient = SEC_GetRegisteredHttpClient();
+
+    if (registeredHttpClient && registeredHttpClient->version == 1) {
+        encodedResponse = fetchOcspHttpClientV1(
+                              arena,
+                              &registeredHttpClient->fcnTable.ftable1,
+                              location,
+                              encodedRequest);
+    } else {
+        /* use internal http client */
+        PRFileDesc *sock = ocsp_SendEncodedRequest(location, encodedRequest);
+        if (sock) {
+            encodedResponse = ocsp_GetEncodedResponse(arena, sock);
+            PR_Close(sock);
+        }
+    }
 
     return encodedResponse;
 }
@@ -4485,7 +4489,7 @@ ocsp_VerifySingleResponse(CERTOCSPSingleResponse *single,
  *     This result should be freed (via PORT_Free) when no longer in use.
  */
 char *
-CERT_GetOCSPAuthorityInfoAccessLocation(CERTCertificate *cert)
+CERT_GetOCSPAuthorityInfoAccessLocation(const CERTCertificate *cert)
 {
     CERTGeneralName *locname = NULL;
     SECItem *location = NULL;
