@@ -200,7 +200,7 @@ ssl3_GetSessionTicketKeys(const unsigned char **aes_key,
     PRUint32 *mac_key_length)
 {
     if (PR_CallOnce(&generate_session_keys_once,
-	    ssl3_GenerateSessionTicketKeys) != SECSuccess)
+	    ssl3_GenerateSessionTicketKeys) != PR_SUCCESS)
 	return SECFailure;
 
     if (!session_ticket_keys_initialized)
@@ -1741,7 +1741,6 @@ ssl3_ServerHandleStatusRequestXtn(sslSocket *ss, PRUint16 ex_type,
 				  SECItem *data)
 {
     SECStatus rv = SECSuccess;
-    PRUint32 len = 0;
 
     /* remember that we got this extension. */
     ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
