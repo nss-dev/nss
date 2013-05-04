@@ -1758,7 +1758,7 @@ SEC_PKCS7VerifySignature(SEC_PKCS7ContentInfo *cinfo,
 			 PRBool keepcerts)
 {
     return sec_pkcs7_verify_signature (cinfo, certusage,
-				       NULL, HASH_AlgNULL, keepcerts, 0);
+				       NULL, HASH_AlgNULL, keepcerts, NULL);
 }
 
 /*
@@ -1867,7 +1867,7 @@ sec_pkcs7_get_signer_cert_info(SEC_PKCS7ContentInfo *cinfo, int selector)
 	 * some valid usage to pass in.
 	 */
 	(void) sec_pkcs7_verify_signature (cinfo, certUsageEmailSigner,
-					   NULL, HASH_AlgNULL, PR_FALSE, 0);
+					   NULL, HASH_AlgNULL, PR_FALSE, NULL);
 	signercert = signerinfos[0]->cert;
 	if (signercert == NULL)
 	    return NULL;
