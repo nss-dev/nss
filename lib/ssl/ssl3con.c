@@ -9556,9 +9556,8 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
          * authenticate the cert before we handle any more handshake messages.
          */
         rv = ssl3_AuthCertificate(ss); /* sets ss->ssl3.hs.ws */
-
+        PORT_Assert(rv != SECWouldBlock);
         if (rv != SECSuccess || ss->ssl3.hs.msg_type == certificate_status) {
-            PORT_Assert(rv == SECFailure); /* Not SECWouldBlock */
             return rv;
         }
     }
