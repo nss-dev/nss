@@ -281,14 +281,17 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
     do {
+	PRBool handleRecordNow;
+
+	ssl_GetSSL3HandshakeLock(ss);
+
 	/* Without this, we may end up wrongly reporting
 	 * SSL_ERROR_RX_UNEXPECTED_* errors if we receive any records from the
 	 * peer while we are waiting to be restarted.
 	 */
-	ssl_GetSSL3HandshakeLock(ss);
 	rv = ss->ssl3.hs.restartTarget == NULL ? SECSuccess : SECFailure;
-	ssl_ReleaseSSL3HandshakeLock(ss);
 	if (rv != SECSuccess) {
+	    ssl_ReleaseSSL3HandshakeLock(ss);
 	    PORT_SetError(PR_WOULD_BLOCK_ERROR);
 	    return (int) SECFailure;
 	}
@@ -304,7 +307,11 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 	    }
 	}
 
-	if (ss->ssl3.hs.msgState.buf != NULL) {
+	handleRecordNow = ss->ssl3.hs.msgState.buf != NULL;
+
+	ssl_ReleaseSSL3HandshakeLock(ss);
+
+	if (handleRecordNow) {
 	    /* ssl3_HandleHandshake previously returned SECWouldBlock and the
 	     * as-yet-unprocessed plaintext of that previous handshake record.
 	     * We need to process it now before we overwrite it with the next
