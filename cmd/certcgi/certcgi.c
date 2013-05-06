@@ -1439,14 +1439,14 @@ string_to_binary(char  *string)
 		high_digit = *string - '0';
 	    } else {
 		*string = toupper(*string);
-		high_digit = *string - 'A';
+		high_digit = *string - 'A' + 10;
 	    }
 	    string++;
 	    if (*string >= '0' && *string <= '9') {
 		low_digit = *string - '0';
 	    } else {
 		*string = toupper(*string);
-		low_digit = *string = 'A';
+		low_digit = *string - 'A' + 10;
 	    }
 	    (rv->len)++;
 	} else {
