@@ -9670,7 +9670,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	rv = SECFailure;
     }
 
-    if (IS_DTLS(ss) && (rv == SECSuccess)) {
+    if (IS_DTLS(ss) && (rv != SECFailure)) {
 	/* Increment the expected sequence number */
 	ss->ssl3.hs.recvMessageSeq++;
     }
