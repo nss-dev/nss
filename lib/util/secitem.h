@@ -109,7 +109,8 @@ PRIntn PR_CALLBACK SECITEM_HashCompare ( const void *k1, const void *k2);
 extern SECItemArray *SECITEM_AllocArray(PLArenaPool *arena,
                                         SECItemArray *array,
                                         unsigned int len);
-extern SECItemArray *SECITEM_DupArray(PLArenaPool *arena, const SECItemArray *from);
+extern SECItemArray *SECITEM_DupArray(PLArenaPool *arena,
+                                      const SECItemArray *from);
 extern void SECITEM_FreeArray(SECItemArray *array, PRBool freeit);
 extern void SECITEM_ZfreeArray(SECItemArray *array, PRBool freeit);
 

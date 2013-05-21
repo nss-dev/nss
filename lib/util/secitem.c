@@ -423,7 +423,7 @@ secitem_FreeArray(SECItemArray *array, PRBool zero_items, PRBool freeit)
     if (!array || !array->len || !array->items)
         return;
 
-    for (i=0; i<array->len; ++i) {
+    for (i = 0; i < array->len; ++i) {
         SECItem *item = &array->items[i];
 
         if (item->data) {
@@ -458,14 +458,18 @@ SECITEM_DupArray(PLArenaPool *arena, const SECItemArray *from)
     SECItemArray *result;
     unsigned int i;
 
-    if (!from || !from->items || !from->len)
+    /* Require a "from" array.
+     * Reject an inconsistent "from" array with NULL data and nonzero length.
+     * However, allow a "from" array of zero length.
+     */
+    if (!from || (!from->items && from->len))
         return NULL;
 
     result = SECITEM_AllocArray(arena, NULL, from->len);
     if (!result)
         return NULL;
 
-    for (i=0; i<from->len; ++i) {
+    for (i = 0; i < from->len; ++i) {
         SECStatus rv = SECITEM_CopyItem(arena,
                                         &result->items[i], &from->items[i]);
         if (rv != SECSuccess) {
