@@ -8467,10 +8467,9 @@ ssl3_SendCertificateStatus(sslSocket *ss)
     } else {
 	certIndex = ss->ssl3.hs.kea_def->exchKeyType;
     }
-    if (ss->certStatusArray[certIndex] && ss->certStatusArray[certIndex]->len) {
-	statusToSend = ss->certStatusArray[certIndex];
-    }
-    if (!statusToSend)
+
+    statusToSend = ss->certStatusArray[certIndex];
+    if (!statusToSend || !statusToSend->len)
 	return SECSuccess;
 
     /* Use the array's first item only (single stapling) */
