@@ -131,13 +131,17 @@ SECITEM_ReallocItemV2(PLArenaPool *arena, SECItem *item, unsigned int newlen)
     }
 
     if (!newlen) {
-	SECITEM_FreeItem(item, PR_FALSE);
+	if (!arena) {
+	    PORT_Free(item->data);
+	}
+	item->data = NULL;
+	item->len = 0;
 	return SECSuccess;
     }
     
-    if (!item->len) {
+    if (!item->data) {
 	/* allocate fresh block of memory */
-	PORT_Assert(!item->data);
+	PORT_Assert(!item->len);
 	if (arena) {
 	    newdata = PORT_ArenaAlloc(arena, newlen);
 	} else {
@@ -154,9 +158,8 @@ SECITEM_ReallocItemV2(PLArenaPool *arena, SECItem *item, unsigned int newlen)
 		 */
 		item->len = newlen;
 		return SECSuccess;
-	    } else {
-		newdata = PORT_ArenaGrow(arena, item->data, item->len, newlen);
 	    }
+	    newdata = PORT_ArenaGrow(arena, item->data, item->len, newlen);
 	} else {
 	    newdata = PORT_Realloc(item->data, newlen);
 	}
