@@ -55,8 +55,7 @@ extern SECStatus SECITEM_ReallocItem( /* deprecated function */
 /*
 ** Reallocate the data for the specified "item".  If "arena" is not NULL,
 ** then reallocate from there, otherwise reallocate from the heap.
-** If the item already has at least the request new size,
-** then the item is kept unchanged and SECSuccess is returned.
+** If item->data is NULL, the data is allocated (not reallocated).
 ** In any case, "item" is expected to be a valid SECItem pointer;
 ** SECFailure is returned if it is not, and the item will remain unchanged.
 ** If the allocation succeeds, the item is updated and SECSuccess is returned.
