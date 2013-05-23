@@ -1986,7 +1986,7 @@ flagArray attrFlagsArray[] =
     {NAME_SIZE(sensitive), PK11_ATTR_SENSITIVE},
     {NAME_SIZE(insensitive), PK11_ATTR_INSENSITIVE},
     {NAME_SIZE(extractable), PK11_ATTR_EXTRACTABLE},
-    {NAME_SIZE(unextractable), PK11_ATTR_EXTRACTABLE}
+    {NAME_SIZE(unextractable), PK11_ATTR_UNEXTRACTABLE}
 
 };
 
@@ -1998,8 +1998,6 @@ GetFlags(char *flagsString, flagArray *flagArray, int count)
 {
    CK_ULONG flagsValue = strtol(flagsString, NULL, 0);
    int i;
-
-fprintf(stderr, "parsing flags <%s>\n", flagsString);
 
    if ((flagsValue != 0) || (*flagsString == 0)) {
 	return flagsValue;
