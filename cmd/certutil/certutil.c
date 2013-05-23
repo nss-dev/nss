@@ -1202,16 +1202,18 @@ static void luG(enum usage_level ul, const char *command)
         "   -d keydir");
     FPS "%-20s Cert & Key database prefix\n",
         "   -P dbprefix");
-    FPS "%-20s PKCS #11 key Attributes\n",
-        "   --keyAttrFlags attrflags.");
+    FPS "%-20s\n"
+        "%-20s PKCS #11 key Attributes.\n",
+        "   --keyAttrFlags attrflags", "");
     FPS "%-20s Comma separated list of key attribute attribute flags,\n", "");
     FPS "%-20s selected from the following list of choices:\n", "");
     FPS "%-20s {token | session} {public | private} {sensitive | insensitive}\n", "");
     FPS "%-20s {modifiable | unmodifiable} {extractable | unextractable}\n", "");
-    FPS "%-20s PKCS #11 key Operation Flags\n",
-        "   --keyOpFlagsOn opflags.");
-    FPS "%-20s PKCS #11 key Operation Flags\n",
-        "   --keyOpFlagsOff opflags.");
+    FPS "%-20s\n",
+        "   --keyOpFlagsOn opflags");
+    FPS "%-20s\n"
+        "%-20s PKCS #11 key Operation Flags.\n",
+        "   --keyOpFlagsOff opflags", "");
     FPS "%-20s Comma separated list of one or more of the following:\n", "");
     FPS "%-20s encrypt, decrypt, sign, sign_recover, verify,\n", "");
     FPS "%-20s verify_recover, wrap, unwrap, derive\n", "");
@@ -1447,7 +1449,7 @@ static void luR(enum usage_level ul, const char *command)
     FPS "%-20s \n",
         "   See -S for available extension options");
     FPS "%-20s \n",
-        "   See -G for available key flag  options");
+        "   See -G for available key flag options");
     FPS "\n");
 }
 
@@ -1631,7 +1633,7 @@ static void luS(enum usage_level ul, const char *command)
     FPS "%-20s Create a subject key ID extension\n",
         "   --extSKID ");
     FPS "%-20s \n",
-        "   See -G for available key flag  options");
+        "   See -G for available key flag options");
     FPS "%-20s Create a name constraints extension\n",
         "   --extNC ");
     FPS "\n");
