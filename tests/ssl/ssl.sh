@@ -305,6 +305,9 @@ ssl_cov()
           if [ "$testmax" = "TLS11" ]; then
               VMAX="tls1.1"
           fi
+          if [ "$testmax" = "TLS12" ]; then
+              VMAX="tls1.2"
+          fi
 
 # These five tests need an EC cert signed with RSA
 # This requires a different certificate loaded in selfserv
