@@ -185,10 +185,25 @@ compressionEnabled(sslSocket *ss, SSLCompressionMethod compression)
 
 static const /*SSL3ClientCertificateType */ PRUint8 certificate_types [] = {
     ct_RSA_sign,
-    ct_DSS_sign,
 #ifdef NSS_ENABLE_ECC
     ct_ECDSA_sign,
 #endif /* NSS_ENABLE_ECC */
+    ct_DSS_sign,
+};
+
+/* This block is our supported_signature_algorithms value, in wire format.
+ * See https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */
+static const PRUint8 supported_signature_algorithms[] = {
+    tls_hash_sha256, tls_sig_rsa,
+    tls_hash_sha384, tls_sig_rsa,
+    tls_hash_sha1,   tls_sig_rsa,
+#ifdef NSS_ENABLE_ECC
+    tls_hash_sha256, tls_sig_ecdsa,
+    tls_hash_sha384, tls_sig_ecdsa,
+    tls_hash_sha1,   tls_sig_ecdsa,
+#endif
+    tls_hash_sha256, tls_sig_dsa,
+    tls_hash_sha1,   tls_sig_dsa,
 };
 
 #define EXPORT_RSA_KEY_LENGTH 64	/* bytes */
@@ -3910,6 +3925,23 @@ ssl3_AppendSignatureAndHashAlgorithm(
     return ssl3_AppendHandshake(ss, serialized, sizeof(serialized));
 }
 
+/* Appends our supported_signature_algorithms value to the current handshake
+ * message. */
+SECStatus
+ssl3_AppendSupportedSignatureAlgorithms(sslSocket *ss)
+{
+    return ssl3_AppendHandshakeVariable(ss, supported_signature_algorithms,
+					sizeof(supported_signature_algorithms),
+					2);
+}
+
+/* Returns the size in bytes of our supported_signature_algorithms value. */
+unsigned int
+ssl3_SizeOfSupportedSignatureAlgorithms(void)
+{
+    return sizeof(supported_signature_algorithms);
+}
+
 /**************************************************************************
  * Consume Handshake functions.
  *
@@ -6438,12 +6470,14 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     dnameNode *          node;
     PRInt32              remaining;
     PRBool               isTLS       = PR_FALSE;
+    PRBool               isTLS12     = PR_FALSE;
     int                  i;
     int                  errCode     = SSL_ERROR_RX_MALFORMED_CERT_REQUEST;
     int                  nnames      = 0;
     SECStatus            rv;
     SSL3AlertDescription desc        = illegal_parameter;
     SECItem              cert_types  = {siBuffer, NULL, 0};
+    SECItem              algorithms  = {siBuffer, NULL, 0};
     CERTDistNames        ca_list;
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle certificate_request handshake",
@@ -6463,9 +6497,22 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     PORT_Assert(ss->ssl3.clientPrivateKey == NULL);
 
     isTLS = (PRBool)(ss->ssl3.prSpec->version > SSL_LIBRARY_VERSION_3_0);
+    isTLS12 = (PRBool)(ss->ssl3.prSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2);
     rv = ssl3_ConsumeHandshakeVariable(ss, &cert_types, 1, &b, &length);
     if (rv != SECSuccess)
     	goto loser;		/* malformed, alert has been sent */
+
+    if (isTLS12) {
+	rv = ssl3_ConsumeHandshakeVariable(ss, &algorithms, 2, &b, &length);
+	if (rv != SECSuccess)
+	    goto loser;		/* malformed, alert has been sent */
+	/* An empty or odd-length value is invalid.
+	 *    SignatureAndHashAlgorithm
+	 *      supported_signature_algorithms<2..2^16-2>;
+	 */
+	if (algorithms.len == 0 || (algorithms.len & 1) != 0)
+	    goto alert_loser;
+    }
 
     arena = ca_list.arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if (arena == NULL)
@@ -6528,7 +6575,7 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     ss->ssl3.hs.ws = wait_hello_done;
 
     if (ss->getClientAuthData != NULL) {
-	/* XXX Should pass cert_types in this call!! */
+	/* XXX Should pass cert_types and algorithms in this call!! */
 	rv = (SECStatus)(*ss->getClientAuthData)(ss->getClientAuthDataArg,
 						 ss->fd, &ca_list,
 						 &ss->ssl3.clientCertificate,
@@ -8272,6 +8319,7 @@ loser:
 static SECStatus
 ssl3_SendCertificateRequest(sslSocket *ss)
 {
+    PRBool         isTLS12;
     SECItem *      name;
     CERTDistNames *ca_list;
     const PRUint8 *certTypes;
@@ -8288,6 +8336,8 @@ ssl3_SendCertificateRequest(sslSocket *ss)
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
+
+    isTLS12 = (PRBool)(ss->ssl3.pwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2);
 
     /* ssl3.ca_list is initialized to NULL, and never changed. */
     ca_list = ss->ssl3.ca_list;
@@ -8308,6 +8358,9 @@ ssl3_SendCertificateRequest(sslSocket *ss)
     certTypesLength = sizeof certificate_types;
 
     length = 1 + certTypesLength + 2 + calen;
+    if (isTLS12) {
+	length += 2 + ssl3_SizeOfSupportedSignatureAlgorithms();
+    }
 
     rv = ssl3_AppendHandshakeHeader(ss, certificate_request, length);
     if (rv != SECSuccess) {
@@ -8316,6 +8369,12 @@ ssl3_SendCertificateRequest(sslSocket *ss)
     rv = ssl3_AppendHandshakeVariable(ss, certTypes, certTypesLength, 1);
     if (rv != SECSuccess) {
 	return rv; 		/* err set by AppendHandshake. */
+    }
+    if (isTLS12) {
+	rv = ssl3_AppendSupportedSignatureAlgorithms(ss);
+	if (rv != SECSuccess) {
+	    return rv; 		/* err set by AppendHandshake. */
+	}
     }
     rv = ssl3_AppendHandshakeNumber(ss, calen, 2);
     if (rv != SECSuccess) {
