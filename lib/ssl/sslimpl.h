@@ -60,6 +60,7 @@ typedef SSLSignType     SSL3SignType;
 #define mac_sha 	ssl_mac_sha
 #define hmac_md5	ssl_hmac_md5
 #define hmac_sha	ssl_hmac_sha
+#define hmac_sha256	ssl_hmac_sha256
 
 #define SET_ERROR_CODE		/* reminder */
 #define SEND_ALERT		/* reminder */
@@ -279,9 +280,9 @@ typedef struct {
 } ssl3CipherSuiteCfg;
 
 #ifdef NSS_ENABLE_ECC
-#define ssl_V3_SUITES_IMPLEMENTED 50
+#define ssl_V3_SUITES_IMPLEMENTED 57
 #else
-#define ssl_V3_SUITES_IMPLEMENTED 30
+#define ssl_V3_SUITES_IMPLEMENTED 35
 #endif /* NSS_ENABLE_ECC */
 
 #define MAX_DTLS_SRTP_CIPHER_SUITES 4
