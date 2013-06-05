@@ -1318,7 +1318,7 @@ void print_ssl3_handshake(unsigned char *recordBuf,
       }
       break;
 
-    case 22: /*certificate_status*/
+    case 22: /* certificate_status */
       {
         SECItem data;
         PRFileDesc *ofd;
