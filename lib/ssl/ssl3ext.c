@@ -2081,6 +2081,21 @@ ssl3_ServerHandleSigAlgsXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
 static PRInt32
 ssl3_ClientSendSigAlgsXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
 {
+    static const unsigned char signatureAlgorithms[] = {
+	/* This block is the contents of our signature_algorithms extension, in
+	 * wire format. See
+	 * https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */
+	tls_hash_sha256, tls_sig_rsa,
+	tls_hash_sha384, tls_sig_rsa,
+	tls_hash_sha1,   tls_sig_rsa,
+#ifdef NSS_ENABLE_ECC
+	tls_hash_sha256, tls_sig_ecdsa,
+	tls_hash_sha384, tls_sig_ecdsa,
+	tls_hash_sha1,   tls_sig_ecdsa,
+#endif
+	tls_hash_sha256, tls_sig_dsa,
+	tls_hash_sha1,   tls_sig_dsa,
+    };
     PRInt32 extension_length;
 
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_2) {
@@ -2091,7 +2106,7 @@ ssl3_ClientSendSigAlgsXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
 	2 /* extension type */ +
 	2 /* extension length */ +
 	2 /* supported_signature_algorithms length */ +
-	ssl3_SizeOfSupportedSignatureAlgorithms();
+	sizeof(signatureAlgorithms);
 
     if (append && maxBytes >= extension_length) {
 	SECStatus rv;
@@ -2101,7 +2116,8 @@ ssl3_ClientSendSigAlgsXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
 	rv = ssl3_AppendHandshakeNumber(ss, extension_length - 4, 2);
 	if (rv != SECSuccess)
 	    goto loser;
-	rv = ssl3_AppendSupportedSignatureAlgorithms(ss);
+	rv = ssl3_AppendHandshakeVariable(ss, signatureAlgorithms,
+					  sizeof(signatureAlgorithms), 2);
 	if (rv != SECSuccess)
 	    goto loser;
 	ss->xtnData.advertised[ss->xtnData.numAdvertised++] =

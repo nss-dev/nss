@@ -198,19 +198,18 @@ static const /*SSL3ClientCertificateType */ PRUint8 certificate_types [] = {
     ct_DSS_sign,
 };
 
-/* This block is our supported_signature_algorithms value, in wire format.
- * See https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */
+/* This block is the contents of the supported_signature_algorithms field of
+ * our TLS 1.2 CertificateRequest message, in wire format. See
+ * https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1
+ *
+ * This block contains only sha256 entries because we only support TLS 1.2
+ * CertificateVerify messages that use the handshake hash. */
 static const PRUint8 supported_signature_algorithms[] = {
     tls_hash_sha256, tls_sig_rsa,
-    tls_hash_sha384, tls_sig_rsa,
-    tls_hash_sha1,   tls_sig_rsa,
 #ifdef NSS_ENABLE_ECC
     tls_hash_sha256, tls_sig_ecdsa,
-    tls_hash_sha384, tls_sig_ecdsa,
-    tls_hash_sha1,   tls_sig_ecdsa,
 #endif
     tls_hash_sha256, tls_sig_dsa,
-    tls_hash_sha1,   tls_sig_dsa,
 };
 
 #define EXPORT_RSA_KEY_LENGTH 64	/* bytes */
@@ -3958,23 +3957,6 @@ ssl3_AppendSignatureAndHashAlgorithm(
     serialized[1] = sigAndHash->sigAlg;
 
     return ssl3_AppendHandshake(ss, serialized, sizeof(serialized));
-}
-
-/* Appends our supported_signature_algorithms value to the current handshake
- * message. */
-SECStatus
-ssl3_AppendSupportedSignatureAlgorithms(sslSocket *ss)
-{
-    return ssl3_AppendHandshakeVariable(ss, supported_signature_algorithms,
-					sizeof(supported_signature_algorithms),
-					2);
-}
-
-/* Returns the size in bytes of our supported_signature_algorithms value. */
-unsigned int
-ssl3_SizeOfSupportedSignatureAlgorithms(void)
-{
-    return sizeof(supported_signature_algorithms);
 }
 
 /**************************************************************************
@@ -8358,6 +8340,7 @@ ssl3_SendCertificateRequest(sslSocket *ss)
     SECItem *      name;
     CERTDistNames *ca_list;
     const PRUint8 *certTypes;
+    const PRUint8 *sigAlgs;
     SECItem *      names	= NULL;
     SECStatus      rv;
     int            length;
@@ -8365,6 +8348,7 @@ ssl3_SendCertificateRequest(sslSocket *ss)
     int            calen	= 0;
     int            nnames	= 0;
     int            certTypesLength;
+    int            sigAlgsLength;
 
     SSL_TRC(3, ("%d: SSL3[%d]: send certificate_request handshake",
 		SSL_GETPID(), ss->fd));
@@ -8391,10 +8375,12 @@ ssl3_SendCertificateRequest(sslSocket *ss)
 
     certTypes       = certificate_types;
     certTypesLength = sizeof certificate_types;
+    sigAlgs         = supported_signature_algorithms;
+    sigAlgsLength   = sizeof supported_signature_algorithms;
 
     length = 1 + certTypesLength + 2 + calen;
     if (isTLS12) {
-	length += 2 + ssl3_SizeOfSupportedSignatureAlgorithms();
+	length += 2 + sigAlgsLength;
     }
 
     rv = ssl3_AppendHandshakeHeader(ss, certificate_request, length);
@@ -8406,7 +8392,7 @@ ssl3_SendCertificateRequest(sslSocket *ss)
 	return rv; 		/* err set by AppendHandshake. */
     }
     if (isTLS12) {
-	rv = ssl3_AppendSupportedSignatureAlgorithms(ss);
+	rv = ssl3_AppendHandshakeVariable(ss, sigAlgs, sigAlgsLength, 2);
 	if (rv != SECSuccess) {
 	    return rv; 		/* err set by AppendHandshake. */
 	}
