@@ -142,7 +142,7 @@ typedef enum { SSLAppOpRead = 0,
 
 /* Mask of the 25 named curves we support. */
 #define SSL3_ALL_SUPPORTED_CURVES_MASK 0x3fffffe
-/* only 3 curves, suite B*/
+/* Mask of only 3 curves, suite B */
 #define SSL3_SUITE_B_SUPPORTED_CURVES_MASK 0x3800000
 
 #ifndef BPB
@@ -1499,7 +1499,7 @@ extern void      ssl3_FilterECCipherSuitesByServerCerts(sslSocket *ss);
 extern PRBool    ssl3_IsECCEnabled(sslSocket *ss);
 extern SECStatus ssl3_DisableECCSuites(sslSocket * ss, 
                                        const ssl3CipherSuite * suite);
-extern PRInt32   ssl3_GetSupportedECCCurveMask(sslSocket *ss);
+extern PRUint32  ssl3_GetSupportedECCurveMask(sslSocket *ss);
 
 
 /* Macro for finding a curve equivalent in strength to RSA key's */
