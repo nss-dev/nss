@@ -148,7 +148,7 @@ main(int argc, char **argv)
     PRFileDesc *inFile;
     char *keyName = NULL;
     CERTCertDBHandle *certHandle;
-    CERTCertificate *cert;
+    CERTCertificate *cert = NULL;
     PRBool encapsulated = PR_FALSE;
     PLOptState *optstate;
     PLOptStatus status;
