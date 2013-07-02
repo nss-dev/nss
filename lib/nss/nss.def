@@ -1034,6 +1034,7 @@ PK11_Decrypt;
 PK11_Encrypt;
 CERT_PostOCSPRequest;
 CERT_AddCertToListHead;
+PK11_CipherFinal;
 ;+    local:
 ;+       *;
 ;+};
