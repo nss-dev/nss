@@ -2947,6 +2947,7 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
 	ss->opt.useSocks       = PR_FALSE;
 	ss->opt.noLocks        = !makeLocks;
 	ss->vrange             = *VERSIONS_DEFAULTS(protocolVariant);
+	ss->protocolVariant    = protocolVariant;
 
 	ss->peerID             = NULL;
 	ss->rTimeout	       = PR_INTERVAL_NO_TIMEOUT;
@@ -3000,7 +3001,6 @@ loser:
 	    PORT_Free(ss);
 	    ss = NULL;
 	}
-	ss->protocolVariant = protocolVariant;
     }
     return ss;
 }
