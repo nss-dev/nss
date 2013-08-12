@@ -233,7 +233,6 @@ SSL_IMPORT SECStatus SSL_GetNextProto(PRFileDesc *fd,
 ** is enabled, otherwise it is disabled. 
 ** The "cipher" values are defined in sslproto.h (the SSL_EN_* values).
 ** EnableCipher records user preferences.
-** SetPolicy sets the policy according to the policy module.
 */
 #ifdef SSL_DEPRECATED_FUNCTION 
 /* Old deprecated function names */
@@ -246,7 +245,11 @@ SSL_IMPORT SECStatus SSL_CipherPrefSet(PRFileDesc *fd, PRInt32 cipher, PRBool en
 SSL_IMPORT SECStatus SSL_CipherPrefGet(PRFileDesc *fd, PRInt32 cipher, PRBool *enabled);
 SSL_IMPORT SECStatus SSL_CipherPrefSetDefault(PRInt32 cipher, PRBool enabled);
 SSL_IMPORT SECStatus SSL_CipherPrefGetDefault(PRInt32 cipher, PRBool *enabled);
+
+/* Policy functions are deprecated and no longer have any effect. They exist in
+ * order to maintain ABI compatibility. */
 SSL_IMPORT SECStatus SSL_CipherPolicySet(PRInt32 cipher, PRInt32 policy);
+/* SSL_CipherPolicyGet sets *policy to SSL_ALLOWED and returns SECSuccess. */
 SSL_IMPORT SECStatus SSL_CipherPolicyGet(PRInt32 cipher, PRInt32 *policy);
 
 /* SSL Version Range API
@@ -320,7 +323,7 @@ SSL_IMPORT SECStatus SSL_VersionRangeSet(PRFileDesc *fd,
 					 const SSLVersionRange *vrange);
 
 
-/* Values for "policy" argument to SSL_PolicySet */
+/* Values for "policy" argument to SSL_CipherPolicySet */
 /* Values returned by SSL_CipherPolicyGet. */
 #define SSL_NOT_ALLOWED		 0	      /* or invalid or unimplemented */
 #define SSL_ALLOWED		 1
@@ -791,26 +794,12 @@ SSL_IMPORT SECStatus NSS_CmpCertChainWCANames(CERTCertificate *cert,
  */
 SSL_IMPORT SSLKEAType NSS_FindCertKEAType(CERTCertificate * cert);
 
-/* Set cipher policies to a predefined Domestic (U.S.A.) policy.
- * This essentially enables all supported ciphers.
- */
+/*
+** The NSS_Set*Policy functions have no effect and exist in order to maintain
+** ABI compatibility. All supported ciphers are now allowed.
+*/
 SSL_IMPORT SECStatus NSS_SetDomesticPolicy(void);
-
-/* Set cipher policies to a predefined Policy that is exportable from the USA
- *   according to present U.S. policies as we understand them.
- * See documentation for the list.
- * Note that your particular application program may be able to obtain
- *   an export license with more or fewer capabilities than those allowed
- *   by this function.  In that case, you should use SSL_SetPolicy()
- *   to explicitly allow those ciphers you may legally export.
- */
 SSL_IMPORT SECStatus NSS_SetExportPolicy(void);
-
-/* Set cipher policies to a predefined Policy that is exportable from the USA
- *   according to present U.S. policies as we understand them, and that the 
- *   nation of France will permit to be imported into their country.
- * See documentation for the list.
- */
 SSL_IMPORT SECStatus NSS_SetFrancePolicy(void);
 
 SSL_IMPORT SSL3Statistics * SSL_GetStatistics(void);

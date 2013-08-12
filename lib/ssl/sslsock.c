@@ -21,88 +21,6 @@
 
 #define SET_ERROR_CODE   /* reminder */
 
-struct cipherPolicyStr {
-	int		cipher;
-	unsigned char 	export;	/* policy value for export policy */
-	unsigned char 	france;	/* policy value for france policy */
-};
-
-typedef struct cipherPolicyStr cipherPolicy;
-
-/* This table contains two preconfigured policies: Export and France.
-** It is used only by the functions NSS_SetDomesticPolicy, 
-** NSS_SetExportPolicy, and NSS_SetFrancePolicy.
-** Order of entries is not important.
-*/
-static cipherPolicy ssl_ciphers[] = {	   /*   Export           France   */
- {  SSL_EN_RC4_128_WITH_MD5,		    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  SSL_EN_RC4_128_EXPORT40_WITH_MD5,	    SSL_ALLOWED,     SSL_ALLOWED },
- {  SSL_EN_RC2_128_CBC_WITH_MD5,	    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  SSL_EN_RC2_128_CBC_EXPORT40_WITH_MD5,   SSL_ALLOWED,     SSL_ALLOWED },
- {  SSL_EN_DES_64_CBC_WITH_MD5,		    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  SSL_EN_DES_192_EDE3_CBC_WITH_MD5,	    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  SSL_RSA_WITH_RC4_128_MD5,		    SSL_RESTRICTED,  SSL_NOT_ALLOWED },
- {  SSL_RSA_WITH_RC4_128_SHA,		    SSL_RESTRICTED,  SSL_NOT_ALLOWED },
- {  SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA,	    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  SSL_RSA_WITH_3DES_EDE_CBC_SHA,	    SSL_RESTRICTED,  SSL_NOT_ALLOWED },
- {  SSL_RSA_FIPS_WITH_DES_CBC_SHA,	    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  SSL_RSA_WITH_DES_CBC_SHA,		    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  SSL_RSA_EXPORT_WITH_RC4_40_MD5,	    SSL_ALLOWED,     SSL_ALLOWED },
- {  SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5,	    SSL_ALLOWED,     SSL_ALLOWED },
- {  SSL_DHE_RSA_WITH_DES_CBC_SHA,           SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  SSL_DHE_DSS_WITH_DES_CBC_SHA,           SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,      SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,      SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_DHE_DSS_WITH_RC4_128_SHA,           SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  SSL_RSA_WITH_NULL_MD5,		    SSL_ALLOWED,     SSL_ALLOWED },
- {  SSL_RSA_WITH_NULL_SHA,		    SSL_ALLOWED,     SSL_ALLOWED },
- {  TLS_RSA_WITH_NULL_SHA256,		    SSL_ALLOWED,     SSL_ALLOWED },
- {  TLS_DHE_DSS_WITH_AES_128_CBC_SHA, 	    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_DHE_RSA_WITH_AES_128_CBC_SHA,       SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_RSA_WITH_AES_128_CBC_SHA,     	    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_RSA_WITH_AES_128_CBC_SHA256,        SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_DHE_DSS_WITH_AES_256_CBC_SHA, 	    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_DHE_RSA_WITH_AES_256_CBC_SHA,       SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_RSA_WITH_AES_256_CBC_SHA,     	    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_RSA_WITH_AES_256_CBC_SHA256,        SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA,  SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA,  SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_RSA_WITH_CAMELLIA_128_CBC_SHA, 	    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA,  SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA,  SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_RSA_WITH_CAMELLIA_256_CBC_SHA, 	    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_RSA_WITH_SEED_CBC_SHA,		    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA,    SSL_ALLOWED,     SSL_NOT_ALLOWED },
- {  TLS_RSA_EXPORT1024_WITH_RC4_56_SHA,     SSL_ALLOWED,     SSL_NOT_ALLOWED },
-#ifdef NSS_ENABLE_ECC
- {  TLS_ECDH_ECDSA_WITH_NULL_SHA,           SSL_ALLOWED,     SSL_ALLOWED },
- {  TLS_ECDH_ECDSA_WITH_RC4_128_SHA,        SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,   SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA,    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDHE_ECDSA_WITH_NULL_SHA,          SSL_ALLOWED,     SSL_ALLOWED },
- {  TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,       SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,  SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,   SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,   SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDH_RSA_WITH_NULL_SHA,             SSL_ALLOWED,     SSL_ALLOWED },
- {  TLS_ECDH_RSA_WITH_RC4_128_SHA,          SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,     SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,      SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,      SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDHE_RSA_WITH_NULL_SHA,            SSL_ALLOWED,     SSL_ALLOWED },
- {  TLS_ECDHE_RSA_WITH_RC4_128_SHA,         SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,     SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,  SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,     SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
-#endif /* NSS_ENABLE_ECC */
- {  0,					    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED }
-};
-
 static const sslSocketOps ssl_default_ops = {	/* No SSL. */
     ssl_DefConnect,
     NULL,
@@ -284,9 +202,7 @@ ssl_DupSocket(sslSocket *os)
 	ss->cTimeout = os->cTimeout;
 	ss->dbHandle = os->dbHandle;
 
-	/* copy ssl2&3 policy & prefs, even if it's not selected (yet) */
-	ss->allowedByPolicy	= os->allowedByPolicy;
-	ss->maybeAllowedByPolicy= os->maybeAllowedByPolicy;
+	/* copy ssl2&3 prefs, even if it's not selected (yet) */
 	ss->chosenPreference 	= os->chosenPreference;
 	PORT_Memcpy(ss->cipherSuites, os->cipherSuites, sizeof os->cipherSuites);
 	PORT_Memcpy(ss->ssl3.dtlsSRTPCiphers, os->ssl3.dtlsSRTPCiphers,
@@ -1163,62 +1079,23 @@ ssl_IsRemovedCipherSuite(PRInt32 suite)
     }
 }
 
-/* Part of the public NSS API.
- * Since this is a global (not per-socket) setting, we cannot use the
- * HandshakeLock to protect this.  Probably want a global lock.
- */
 SECStatus
 SSL_SetPolicy(long which, int policy)
 {
-    if ((which & 0xfffe) == SSL_RSA_OLDFIPS_WITH_3DES_EDE_CBC_SHA) {
-    	/* one of the two old FIPS ciphers */
-	if (which == SSL_RSA_OLDFIPS_WITH_3DES_EDE_CBC_SHA) 
-	    which = SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA;
-	else if (which == SSL_RSA_OLDFIPS_WITH_DES_CBC_SHA)
-	    which = SSL_RSA_FIPS_WITH_DES_CBC_SHA;
-    }
-    if (ssl_IsRemovedCipherSuite(which))
-    	return SECSuccess;
-    return SSL_CipherPolicySet(which, policy);
+    return SECSuccess;
 }
 
 SECStatus
 SSL_CipherPolicySet(PRInt32 which, PRInt32 policy)
 {
-    SECStatus rv = ssl_Init();
-
-    if (rv != SECSuccess) {
-	return rv;
-    }
-
-    if (ssl_IsRemovedCipherSuite(which)) {
-    	rv = SECSuccess;
-    } else if (SSL_IS_SSL2_CIPHER(which)) {
-	rv = ssl2_SetPolicy(which, policy);
-    } else {
-	rv = ssl3_SetPolicy((ssl3CipherSuite)which, policy);
-    }
-    return rv;
+    return SECSuccess;
 }
 
 SECStatus
 SSL_CipherPolicyGet(PRInt32 which, PRInt32 *oPolicy)
 {
-    SECStatus rv;
-
-    if (!oPolicy) {
-	PORT_SetError(SEC_ERROR_INVALID_ARGS);
-	return SECFailure;
-    }
-    if (ssl_IsRemovedCipherSuite(which)) {
-	*oPolicy = SSL_NOT_ALLOWED;
-    	rv = SECSuccess;
-    } else if (SSL_IS_SSL2_CIPHER(which)) {
-	rv = ssl2_GetPolicy(which, oPolicy);
-    } else {
-	rv = ssl3_GetPolicy((ssl3CipherSuite)which, oPolicy);
-    }
-    return rv;
+    *oPolicy = SSL_ALLOWED;
+    return SECSuccess;
 }
 
 /* Part of the public NSS API.
@@ -1337,27 +1214,19 @@ SSL_CipherPrefGet(PRFileDesc *fd, PRInt32 which, PRBool *enabled)
 SECStatus
 NSS_SetDomesticPolicy(void)
 {
-    SECStatus      status = SECSuccess;
-    cipherPolicy * policy;
-
-    for (policy = ssl_ciphers; policy->cipher != 0; ++policy) {
-	status = SSL_SetPolicy(policy->cipher, SSL_ALLOWED);
-	if (status != SECSuccess)
-	    break;
-    }
-    return status;
+    return SECSuccess;
 }
 
 SECStatus
 NSS_SetExportPolicy(void)
 {
-    return NSS_SetDomesticPolicy();
+    return SECSuccess;
 }
 
 SECStatus
 NSS_SetFrancePolicy(void)
 {
-    return NSS_SetDomesticPolicy();
+    return SECSuccess;
 }
 
 
@@ -2981,8 +2850,8 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
 	ss->ephemeralECDHKeyPair = NULL;
 
 	ssl_ChooseOps(ss);
-	ssl2_InitSocketPolicy(ss);
-	ssl3_InitSocketPolicy(ss);
+	ssl2_InitSocketCipherSuites(ss);
+	ssl3_InitSocketCipherSuites(ss);
 	PR_INIT_CLIST(&ss->ssl3.hs.lastMessageFlight);
 
 	if (makeLocks) {
