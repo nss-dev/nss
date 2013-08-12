@@ -263,17 +263,15 @@ struct sslBufferStr {
 };
 
 /*
-** SSL3 cipher suite policy and preference struct.
+** SSL3 cipher suite preference struct.
 */
 typedef struct {
 #if !defined(_WIN32)
     unsigned int    cipher_suite : 16;
-    unsigned int    policy       :  8;
     unsigned int    enabled      :  1;
     unsigned int    isPresent    :  1;
 #else
     ssl3CipherSuite cipher_suite;
-    PRUint8         policy;
     unsigned char   enabled   : 1;
     unsigned char   isPresent : 1;
 #endif
@@ -616,7 +614,6 @@ struct sslSessionIDStr {
 
 	    ssl3CipherSuite       cipherSuite;
 	    SSLCompressionMethod  compression;
-	    int                   policy;
 	    ssl3SidKeys           keys;
 	    CK_MECHANISM_TYPE     masterWrapMech;
 				  /* mechanism used to wrap master secret */
@@ -896,10 +893,6 @@ struct ssl3StateStr {
     CERTCertificateList *clientCertChain;    /* used by client */
     PRBool               sendEmptyCert;      /* used by client */
 
-    int                  policy;
-			/* This says what cipher suites we can do, and should 
-			 * be either SSL_ALLOWED or SSL_RESTRICTED 
-			 */
     PLArenaPool *        peerCertArena;
 			    /* These are used to keep track of the peer CA */
     void *               peerCertChain;     
@@ -1195,8 +1188,6 @@ const unsigned char *  preferredCipher;
 
     PRUint16	shutdownHow; 	/* See ssl_SHUTDOWN defines below. */
 
-    PRUint16	allowedByPolicy;          /* copy of global policy bits. */
-    PRUint16	maybeAllowedByPolicy;     /* copy of global policy bits. */
     PRUint16	chosenPreference;         /* SSL2 cipher preferences. */
 
     sslHandshakingType handshaking;
@@ -1588,13 +1579,8 @@ extern SECStatus ssl3_CipherPrefGet(sslSocket *ss, ssl3CipherSuite which, PRBool
 extern SECStatus ssl2_CipherPrefSet(sslSocket *ss, PRInt32 which, PRBool enabled);
 extern SECStatus ssl2_CipherPrefGet(sslSocket *ss, PRInt32 which, PRBool *enabled);
 
-extern SECStatus ssl3_SetPolicy(ssl3CipherSuite which, PRInt32 policy);
-extern SECStatus ssl3_GetPolicy(ssl3CipherSuite which, PRInt32 *policy);
-extern SECStatus ssl2_SetPolicy(PRInt32 which, PRInt32 policy);
-extern SECStatus ssl2_GetPolicy(PRInt32 which, PRInt32 *policy);
-
-extern void      ssl2_InitSocketPolicy(sslSocket *ss);
-extern void      ssl3_InitSocketPolicy(sslSocket *ss);
+extern void      ssl2_InitSocketCipherSuites(sslSocket *ss);
+extern void      ssl3_InitSocketCipherSuites(sslSocket *ss);
 
 extern SECStatus ssl3_ConstructV2CipherSpecsHack(sslSocket *ss,
 						 unsigned char *cs, int *size);
@@ -1730,9 +1716,9 @@ extern SECStatus ssl3_ValidateNextProtoNego(const unsigned char* data,
 extern PRFileDesc *ssl_NewPRSocket(sslSocket *ss, PRFileDesc *fd);
 extern void ssl_FreePRSocket(PRFileDesc *fd);
 
-/* Internal config function so SSL2 can initialize the present state of 
- * various ciphers */
-extern int ssl3_config_match_init(sslSocket *);
+/* Internal config function so SSL3 can test the present state of various
+ * ciphers */
+extern int ssl3_cipher_suite_available_init(sslSocket *);
 
 
 /* Create a new ref counted key pair object from two keys. */
