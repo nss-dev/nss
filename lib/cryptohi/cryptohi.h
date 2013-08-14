@@ -112,7 +112,7 @@ extern SECStatus SEC_SignData(SECItem *result,
 **  The given signature/hash algorithm.
 **	"result" the final signature data (memory is allocated)
 **	"digest" the digest to sign
-**	"pk" the private key to encrypt with
+**	"privKey" the private key to encrypt with
 **	"algtag" The algorithm tag to encode (need for RSA only)
 */
 extern SECStatus SGN_Digest(SECKEYPrivateKey *privKey,
