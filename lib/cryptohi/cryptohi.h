@@ -63,7 +63,7 @@ extern SGNContext *SGN_NewContext(SECOidTag alg, SECKEYPrivateKey *privKey);
 
 /*
 ** Destroy a signature-context object
-**	"key" the object
+**	"cx" the object
 **	"freeit" if PR_TRUE then free the object as well as its sub-objects
 */
 extern void SGN_DestroyContext(SGNContext *cx, PRBool freeit);
