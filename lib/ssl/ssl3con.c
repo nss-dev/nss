@@ -85,91 +85,91 @@ static SECStatus ssl3_AESGCMBypass(ssl3KeyMaterial *keys, PRBool doDecrypt,
  * in this table must match the ordering in SSL_ImplementedCiphers (sslenum.c)
  */
 static ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED] = {
-   /*      cipher_suite                     enabled   is_present */
+   /*      cipher_suite                     policy       enabled   isPresent */
 #ifdef NSS_ENABLE_ECC
- { TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, PR_FALSE, PR_FALSE},
- { TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,   PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,   SSL_ALLOWED, PR_FALSE, PR_FALSE},
 #endif /* NSS_ENABLE_ECC */
- { TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,     PR_TRUE,  PR_FALSE},
- { TLS_RSA_WITH_AES_128_GCM_SHA256,         PR_TRUE,  PR_FALSE},
+ { TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,     SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+ { TLS_RSA_WITH_AES_128_GCM_SHA256,         SSL_ALLOWED, PR_TRUE,  PR_FALSE},
 
 #ifdef NSS_ENABLE_ECC
- { TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,    PR_FALSE, PR_FALSE},
- { TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,      PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,    SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,      SSL_ALLOWED, PR_FALSE, PR_FALSE},
 #endif /* NSS_ENABLE_ECC */
- { TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA,   PR_FALSE, PR_FALSE},
- { TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA,   PR_FALSE, PR_FALSE},
- { TLS_DHE_RSA_WITH_AES_256_CBC_SHA,        PR_TRUE,  PR_FALSE},
- { TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,     PR_TRUE,  PR_FALSE},
- { TLS_DHE_DSS_WITH_AES_256_CBC_SHA,        PR_TRUE,  PR_FALSE},
+ { TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA,   SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA,   SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_DHE_RSA_WITH_AES_256_CBC_SHA,        SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+ { TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,     SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+ { TLS_DHE_DSS_WITH_AES_256_CBC_SHA,        SSL_ALLOWED, PR_TRUE,  PR_FALSE},
 #ifdef NSS_ENABLE_ECC
- { TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,       PR_FALSE, PR_FALSE},
- { TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA,     PR_FALSE, PR_FALSE},
+ { TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,       SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA,     SSL_ALLOWED, PR_FALSE, PR_FALSE},
 #endif /* NSS_ENABLE_ECC */
- { TLS_RSA_WITH_CAMELLIA_256_CBC_SHA,       PR_FALSE, PR_FALSE},
- { TLS_RSA_WITH_AES_256_CBC_SHA,            PR_TRUE,  PR_FALSE},
- { TLS_RSA_WITH_AES_256_CBC_SHA256,         PR_TRUE,  PR_FALSE},
+ { TLS_RSA_WITH_CAMELLIA_256_CBC_SHA,       SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_RSA_WITH_AES_256_CBC_SHA,            SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+ { TLS_RSA_WITH_AES_256_CBC_SHA256,         SSL_ALLOWED, PR_TRUE,  PR_FALSE},
 
 #ifdef NSS_ENABLE_ECC
- { TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,        PR_FALSE, PR_FALSE},
- { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,    PR_FALSE, PR_FALSE},
- { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256, PR_FALSE, PR_FALSE},
- { TLS_ECDHE_RSA_WITH_RC4_128_SHA,          PR_FALSE, PR_FALSE},
- { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,      PR_FALSE, PR_FALSE},
- { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,   PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,        SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,    SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256, SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_RSA_WITH_RC4_128_SHA,          SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,      SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,   SSL_ALLOWED, PR_FALSE, PR_FALSE},
 #endif /* NSS_ENABLE_ECC */
- { TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA,   PR_FALSE, PR_FALSE},
- { TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA,   PR_FALSE, PR_FALSE},
- { TLS_DHE_DSS_WITH_RC4_128_SHA,            PR_FALSE, PR_FALSE},
- { TLS_DHE_RSA_WITH_AES_128_CBC_SHA,        PR_TRUE,  PR_FALSE},
- { TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,     PR_TRUE,  PR_FALSE},
- { TLS_DHE_DSS_WITH_AES_128_CBC_SHA,        PR_TRUE,  PR_FALSE},
+ { TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA,   SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA,   SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_DHE_DSS_WITH_RC4_128_SHA,            SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_DHE_RSA_WITH_AES_128_CBC_SHA,        SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+ { TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,     SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+ { TLS_DHE_DSS_WITH_AES_128_CBC_SHA,        SSL_ALLOWED, PR_TRUE,  PR_FALSE},
 #ifdef NSS_ENABLE_ECC
- { TLS_ECDH_RSA_WITH_RC4_128_SHA,           PR_FALSE, PR_FALSE},
- { TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,       PR_FALSE, PR_FALSE},
- { TLS_ECDH_ECDSA_WITH_RC4_128_SHA,         PR_FALSE, PR_FALSE},
- { TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,     PR_FALSE, PR_FALSE},
+ { TLS_ECDH_RSA_WITH_RC4_128_SHA,           SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,       SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDH_ECDSA_WITH_RC4_128_SHA,         SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,     SSL_ALLOWED, PR_FALSE, PR_FALSE},
 #endif /* NSS_ENABLE_ECC */
- { TLS_RSA_WITH_SEED_CBC_SHA,               PR_FALSE, PR_FALSE},
- { TLS_RSA_WITH_CAMELLIA_128_CBC_SHA,       PR_FALSE, PR_FALSE},
- { SSL_RSA_WITH_RC4_128_SHA,                PR_TRUE,  PR_FALSE},
- { SSL_RSA_WITH_RC4_128_MD5,                PR_TRUE,  PR_FALSE},
- { TLS_RSA_WITH_AES_128_CBC_SHA,            PR_TRUE,  PR_FALSE},
- { TLS_RSA_WITH_AES_128_CBC_SHA256,         PR_TRUE,  PR_FALSE},
-
-#ifdef NSS_ENABLE_ECC
- { TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,   PR_FALSE, PR_FALSE},
- { TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,     PR_FALSE, PR_FALSE},
-#endif /* NSS_ENABLE_ECC */
- { SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,       PR_TRUE,  PR_FALSE},
- { SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,       PR_TRUE,  PR_FALSE},
-#ifdef NSS_ENABLE_ECC
- { TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,      PR_FALSE, PR_FALSE},
- { TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,    PR_FALSE, PR_FALSE},
-#endif /* NSS_ENABLE_ECC */
- { SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA,      PR_FALSE, PR_FALSE},
- { SSL_RSA_WITH_3DES_EDE_CBC_SHA,           PR_TRUE,  PR_FALSE},
-
-
- { SSL_DHE_RSA_WITH_DES_CBC_SHA,            PR_FALSE, PR_FALSE},
- { SSL_DHE_DSS_WITH_DES_CBC_SHA,            PR_FALSE, PR_FALSE},
- { SSL_RSA_FIPS_WITH_DES_CBC_SHA,           PR_FALSE, PR_FALSE},
- { SSL_RSA_WITH_DES_CBC_SHA,                PR_FALSE, PR_FALSE},
- { TLS_RSA_EXPORT1024_WITH_RC4_56_SHA,      PR_FALSE, PR_FALSE},
- { TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA,     PR_FALSE, PR_FALSE},
-
- { SSL_RSA_EXPORT_WITH_RC4_40_MD5,          PR_FALSE, PR_FALSE},
- { SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5,      PR_FALSE, PR_FALSE},
+ { TLS_RSA_WITH_SEED_CBC_SHA,               SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_RSA_WITH_CAMELLIA_128_CBC_SHA,       SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { SSL_RSA_WITH_RC4_128_SHA,                SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+ { SSL_RSA_WITH_RC4_128_MD5,                SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+ { TLS_RSA_WITH_AES_128_CBC_SHA,            SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+ { TLS_RSA_WITH_AES_128_CBC_SHA256,         SSL_ALLOWED, PR_TRUE,  PR_FALSE},
 
 #ifdef NSS_ENABLE_ECC
- { TLS_ECDHE_ECDSA_WITH_NULL_SHA,           PR_FALSE, PR_FALSE},
- { TLS_ECDHE_RSA_WITH_NULL_SHA,             PR_FALSE, PR_FALSE},
- { TLS_ECDH_RSA_WITH_NULL_SHA,              PR_FALSE, PR_FALSE},
- { TLS_ECDH_ECDSA_WITH_NULL_SHA,            PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,   SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,     SSL_ALLOWED, PR_FALSE, PR_FALSE},
 #endif /* NSS_ENABLE_ECC */
- { SSL_RSA_WITH_NULL_SHA,                   PR_FALSE, PR_FALSE},
- { TLS_RSA_WITH_NULL_SHA256,                PR_FALSE, PR_FALSE},
- { SSL_RSA_WITH_NULL_MD5,                   PR_FALSE, PR_FALSE},
+ { SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,       SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+ { SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,       SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+#ifdef NSS_ENABLE_ECC
+ { TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,      SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,    SSL_ALLOWED, PR_FALSE, PR_FALSE},
+#endif /* NSS_ENABLE_ECC */
+ { SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA,      SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { SSL_RSA_WITH_3DES_EDE_CBC_SHA,           SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+
+
+ { SSL_DHE_RSA_WITH_DES_CBC_SHA,            SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { SSL_DHE_DSS_WITH_DES_CBC_SHA,            SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { SSL_RSA_FIPS_WITH_DES_CBC_SHA,           SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { SSL_RSA_WITH_DES_CBC_SHA,                SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_RSA_EXPORT1024_WITH_RC4_56_SHA,      SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA,     SSL_ALLOWED, PR_FALSE, PR_FALSE},
+
+ { SSL_RSA_EXPORT_WITH_RC4_40_MD5,          SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5,      SSL_ALLOWED, PR_FALSE, PR_FALSE},
+
+#ifdef NSS_ENABLE_ECC
+ { TLS_ECDHE_ECDSA_WITH_NULL_SHA,           SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDHE_RSA_WITH_NULL_SHA,             SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDH_RSA_WITH_NULL_SHA,              SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_ECDH_ECDSA_WITH_NULL_SHA,            SSL_ALLOWED, PR_FALSE, PR_FALSE},
+#endif /* NSS_ENABLE_ECC */
+ { SSL_RSA_WITH_NULL_SHA,                   SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { TLS_RSA_WITH_NULL_SHA256,                SSL_ALLOWED, PR_FALSE, PR_FALSE},
+ { SSL_RSA_WITH_NULL_MD5,                   SSL_ALLOWED, PR_FALSE, PR_FALSE},
 };
 
 /* This list of SSL3 compression methods is sorted in descending order of
@@ -664,13 +664,13 @@ ssl_LookupCipherSuiteCfg(ssl3CipherSuite suite, ssl3CipherSuiteCfg *suites)
 }
 
 
-/* Initialize the suite->isPresent value for cipher_suite_available.
+/* Initialize the suite->isPresent value for config_match
  * Returns count of enabled ciphers supported by extant tokens,
- * regardless of user preference.
+ * regardless of policy or user preference.
  * If this returns zero, the user cannot do SSL v3.
  */
 int
-ssl3_cipher_suite_available_init(sslSocket *ss)
+ssl3_config_match_init(sslSocket *ss)
 {
     ssl3CipherSuiteCfg *      suite;
     const ssl3CipherSuiteDef *cipher_def;
@@ -766,17 +766,29 @@ ssl3_cipher_suite_available_init(sslSocket *ss)
 }
 
 
-/* return PR_TRUE if the given cipher suite is enabled and present. */
+/* return PR_TRUE if suite matches policy and enabled state */
+/* It would be a REALLY BAD THING (tm) if we ever permitted the use
+** of a cipher that was NOT_ALLOWED.  So, if this is ever called with
+** policy == SSL_NOT_ALLOWED, report no match.
+*/
+/* adjust suite enabled to the availability of a token that can do the
+ * cipher suite. */
 static PRBool
-cipher_suite_available(ssl3CipherSuiteCfg *suite)
+config_match(ssl3CipherSuiteCfg *suite, int policy, PRBool enabled)
 {
-    return (PRBool)(suite->enabled && suite->isPresent);
+    PORT_Assert(policy != SSL_NOT_ALLOWED && enabled != PR_FALSE);
+    if (policy == SSL_NOT_ALLOWED || !enabled)
+    	return PR_FALSE;
+    return (PRBool)(suite->enabled &&
+                    suite->isPresent &&
+	            suite->policy != SSL_NOT_ALLOWED &&
+		    suite->policy <= policy);
 }
 
-/* return number of cipher suites that are enabled and present.
- * called from ssl3_SendClientHello and ssl3_ConstructV2CipherSpecsHack */
+/* return number of cipher suites that match policy and enabled state */
+/* called from ssl3_SendClientHello and ssl3_ConstructV2CipherSpecsHack */
 static int
-count_cipher_suites(sslSocket *ss)
+count_cipher_suites(sslSocket *ss, int policy, PRBool enabled)
 {
     int i, count = 0;
 
@@ -784,7 +796,7 @@ count_cipher_suites(sslSocket *ss)
 	return 0;
     }
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
-	if (cipher_suite_available(&ss->cipherSuites[i]))
+	if (config_match(&ss->cipherSuites[i], policy, enabled))
 	    count++;
     }
     if (count <= 0) {
@@ -4944,6 +4956,8 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 
 	PRINT_BUF(4, (ss, "client, found session-id:", sid->u.ssl3.sessionID,
 		      sid->u.ssl3.sessionIDLength));
+
+	ss->ssl3.policy = sid->u.ssl3.policy;
     } else {
 	SSL_AtomicIncrementLong(& ssl3stats.sch_sid_cache_misses );
 
@@ -4993,11 +5007,10 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     	return SECFailure;
     }
 
-    /* how many suites does our PKCS11 support? */
-    num_suites = ssl3_cipher_suite_available_init(ss);
+    /* how many suites does our PKCS11 support (regardless of policy)? */
+    num_suites = ssl3_config_match_init(ss);
     if (!num_suites)
-	return SECFailure;	/* ssl3_cipher_suite_available_init has set
-				 * error code. */
+    	return SECFailure;	/* ssl3_config_match_init has set error code. */
 
     /* HACK for SCSV in SSL 3.0.  On initial handshake, prepend SCSV,
      * only if we're willing to complete an SSL 3.0 handshake.
@@ -5035,8 +5048,8 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	ssl3_DisableNonDTLSSuites(ss);
     }
 
-    /* how many suites are permitted by user preference? */
-    num_suites = count_cipher_suites(ss);
+    /* how many suites are permitted by policy and user preference? */
+    num_suites = count_cipher_suites(ss, ss->ssl3.policy, PR_TRUE);
     if (!num_suites)
     	return SECFailure;	/* count_cipher_suites has set error code. */
     if (ss->ssl3.hs.sendingSCSV) {
@@ -5126,7 +5139,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     }
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
-	if (cipher_suite_available(suite)) {
+	if (config_match(suite, ss->ssl3.policy, PR_TRUE)) {
 	    actual_count++;
 	    if (actual_count > num_suites) {
 		/* set error card removal/insertion error */
@@ -6157,11 +6170,11 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (temp < 0) {
     	goto loser; 	/* alert has been sent */
     }
-    ssl3_cipher_suite_available_init(ss);
+    ssl3_config_match_init(ss);
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
 	if (temp == suite->cipher_suite) {
-	    if (!cipher_suite_available(suite)) {
+	    if (!config_match(suite, ss->ssl3.policy, PR_TRUE)) {
 		break;	/* failure */
 	    }
 	    if (!ssl3_CipherSuiteAllowedForVersion(suite->cipher_suite,
@@ -7163,6 +7176,7 @@ ssl3_NewSessionID(sslSocket *ss, PRBool is_server)
     sid->version        = ss->version;
 
     sid->u.ssl3.keys.resumable = PR_TRUE;
+    sid->u.ssl3.policy         = SSL_ALLOWED;
     sid->u.ssl3.clientWriteKey = NULL;
     sid->u.ssl3.serverWriteKey = NULL;
 
@@ -7543,8 +7557,8 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
 
 #ifdef PARANOID
-    /* Look for an available cipher suite. */
-    j = ssl3_cipher_suite_available_init(ss);
+    /* Look for a matching cipher suite. */
+    j = ssl3_config_match_init(ss);
     if (j <= 0) {		/* no ciphers are working/supported by PK11 */
     	errCode = PORT_GetError();	/* error code is already set. */
 	goto alert_loser;
@@ -7580,11 +7594,12 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	if (j <= 0)
 	    break;
 #ifdef PARANOID
-	/* Double check that the cached cipher suite is still enabled and
-	 * implemented.  Might have been disabled.
+	/* Double check that the cached cipher suite is still enabled,
+	 * implemented, and allowed by policy.  Might have been disabled.
+	 * The product policy won't change during the process lifetime.  
 	 * Implemented ("isPresent") shouldn't change for servers.
 	 */
-	if (!cipher_suite_available(suite))
+	if (!config_match(suite, ss->ssl3.policy, PR_TRUE))
 	    break;
 #else
 	if (!suite->enabled)
@@ -7608,8 +7623,8 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     /* START A NEW SESSION */
 
 #ifndef PARANOID
-    /* Look for an available cipher suite. */
-    j = ssl3_cipher_suite_available_init(ss);
+    /* Look for a matching cipher suite. */
+    j = ssl3_config_match_init(ss);
     if (j <= 0) {		/* no ciphers are working/supported by PK11 */
     	errCode = PORT_GetError();	/* error code is already set. */
 	goto alert_loser;
@@ -7632,7 +7647,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     */
     for (j = 0; j < ssl_V3_SUITES_IMPLEMENTED; j++) {
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[j];
-	if (!cipher_suite_available(suite) ||
+	if (!config_match(suite, ss->ssl3.policy, PR_TRUE) ||
 	    !ssl3_CipherSuiteAllowedForVersion(suite->cipher_suite,
 					       ss->version)) {
 	    continue;
@@ -7954,7 +7969,7 @@ compression_found:
                     ret = SSL_SNI_SEND_ALERT;
                     break;
                 }
-                configedCiphers = ssl3_cipher_suite_available_init(ss);
+                configedCiphers = ssl3_config_match_init(ss);
                 if (configedCiphers <= 0) {
                     /* no ciphers are working/supported */
                     errCode = PORT_GetError();
@@ -8151,7 +8166,7 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
     /* Disable any ECC cipher suites for which we have no cert. */
     ssl3_FilterECCipherSuitesByServerCerts(ss);
 #endif
-    i = ssl3_cipher_suite_available_init(ss);
+    i = ssl3_config_match_init(ss);
     if (i <= 0) {
     	errCode = PORT_GetError();	/* error code is already set. */
 	goto alert_loser;
@@ -8166,7 +8181,7 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
     */
     for (j = 0; j < ssl_V3_SUITES_IMPLEMENTED; j++) {
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[j];
-	if (!cipher_suite_available(suite) ||
+	if (!config_match(suite, ss->ssl3.policy, PR_TRUE) ||
 	    !ssl3_CipherSuiteAllowedForVersion(suite->cipher_suite,
 					       ss->version)) {
 	    continue;
@@ -10253,6 +10268,7 @@ xmit_loser:
 	/* fill in the sid */
 	sid->u.ssl3.cipherSuite = ss->ssl3.hs.cipher_suite;
 	sid->u.ssl3.compression = ss->ssl3.hs.compression;
+	sid->u.ssl3.policy      = ss->ssl3.policy;
 #ifdef NSS_ENABLE_ECC
 	sid->u.ssl3.negotiatedECCurves = ss->ssl3.hs.negotiatedECCurves;
 #endif
@@ -11349,6 +11365,8 @@ ssl3_InitState(sslSocket *ss)
     if (ss->ssl3.initialized)
     	return SECSuccess;	/* Function should be idempotent */
 
+    ss->ssl3.policy = SSL_ALLOWED;
+
     ssl_GetSpecWriteLock(ss);
     ss->ssl3.crSpec = ss->ssl3.cwSpec = &ss->ssl3.specs[0];
     ss->ssl3.prSpec = ss->ssl3.pwSpec = &ss->ssl3.specs[1];
@@ -11458,6 +11476,40 @@ ssl3_CreateRSAStepDownKeys(sslSocket *ss)
 }
 
 
+/* record the export policy for this cipher suite */
+SECStatus
+ssl3_SetPolicy(ssl3CipherSuite which, int policy)
+{
+    ssl3CipherSuiteCfg *suite;
+
+    suite = ssl_LookupCipherSuiteCfg(which, cipherSuites);
+    if (suite == NULL) {
+	return SECFailure; /* err code was set by ssl_LookupCipherSuiteCfg */
+    }
+    suite->policy = policy;
+
+    return SECSuccess;
+}
+
+SECStatus
+ssl3_GetPolicy(ssl3CipherSuite which, PRInt32 *oPolicy)
+{
+    ssl3CipherSuiteCfg *suite;
+    PRInt32             policy;
+    SECStatus           rv;
+
+    suite = ssl_LookupCipherSuiteCfg(which, cipherSuites);
+    if (suite) {
+    	policy = suite->policy;
+	rv     = SECSuccess;
+    } else {
+    	policy = SSL_NOT_ALLOWED;
+	rv     = SECFailure;	/* err code was set by Lookup. */
+    }
+    *oPolicy = policy;
+    return rv;
+}
+
 /* record the user preference for this suite */
 SECStatus
 ssl3_CipherPrefSetDefault(ssl3CipherSuite which, PRBool enabled)
@@ -11524,15 +11576,15 @@ ssl3_CipherPrefGet(sslSocket *ss, ssl3CipherSuite which, PRBool *enabled)
     return rv;
 }
 
-/* copy global default ciphersuite preferences into socket. */
+/* copy global default policy into socket. */
 void
-ssl3_InitSocketCipherSuites(sslSocket *ss)
+ssl3_InitSocketPolicy(sslSocket *ss)
 {
     PORT_Memcpy(ss->cipherSuites, cipherSuites, sizeof cipherSuites);
 }
 
-/* ssl3_cipher_suite_available_init must have already been called by the caller
- * of this function.
+/* ssl3_config_match_init must have already been called by
+ * the caller of this function.
  */
 SECStatus
 ssl3_ConstructV2CipherSpecsHack(sslSocket *ss, unsigned char *cs, int *size)
@@ -11549,15 +11601,14 @@ ssl3_ConstructV2CipherSpecsHack(sslSocket *ss, unsigned char *cs, int *size)
 	return SECSuccess;
     }
     if (cs == NULL) {
-	*size = count_cipher_suites(ss);
+	*size = count_cipher_suites(ss, SSL_ALLOWED, PR_TRUE);
 	return SECSuccess;
     }
 
-    /* ssl3_cipher_suite_available_init was called by the caller of this
-     * function. */
+    /* ssl3_config_match_init was called by the caller of this function. */
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
-	if (cipher_suite_available(suite)) {
+	if (config_match(suite, SSL_ALLOWED, PR_TRUE)) {
 	    if (cs != NULL) {
 		*cs++ = 0x00;
 		*cs++ = (suite->cipher_suite >> 8) & 0xFF;

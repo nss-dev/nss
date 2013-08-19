@@ -202,7 +202,9 @@ ssl_DupSocket(sslSocket *os)
 	ss->cTimeout = os->cTimeout;
 	ss->dbHandle = os->dbHandle;
 
-	/* copy ssl2&3 prefs, even if it's not selected (yet) */
+	/* copy ssl2&3 policy & prefs, even if it's not selected (yet) */
+	ss->allowedByPolicy	= os->allowedByPolicy;
+	ss->maybeAllowedByPolicy= os->maybeAllowedByPolicy;
 	ss->chosenPreference 	= os->chosenPreference;
 	PORT_Memcpy(ss->cipherSuites, os->cipherSuites, sizeof os->cipherSuites);
 	PORT_Memcpy(ss->ssl3.dtlsSRTPCiphers, os->ssl3.dtlsSRTPCiphers,
@@ -1079,23 +1081,62 @@ ssl_IsRemovedCipherSuite(PRInt32 suite)
     }
 }
 
+/* Part of the public NSS API.
+ * Since this is a global (not per-socket) setting, we cannot use the
+ * HandshakeLock to protect this.  Probably want a global lock.
+ */
 SECStatus
 SSL_SetPolicy(long which, int policy)
 {
-    return SECSuccess;
+    if ((which & 0xfffe) == SSL_RSA_OLDFIPS_WITH_3DES_EDE_CBC_SHA) {
+    	/* one of the two old FIPS ciphers */
+	if (which == SSL_RSA_OLDFIPS_WITH_3DES_EDE_CBC_SHA) 
+	    which = SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA;
+	else if (which == SSL_RSA_OLDFIPS_WITH_DES_CBC_SHA)
+	    which = SSL_RSA_FIPS_WITH_DES_CBC_SHA;
+    }
+    if (ssl_IsRemovedCipherSuite(which))
+    	return SECSuccess;
+    return SSL_CipherPolicySet(which, policy);
 }
 
 SECStatus
 SSL_CipherPolicySet(PRInt32 which, PRInt32 policy)
 {
-    return SECSuccess;
+    SECStatus rv = ssl_Init();
+
+    if (rv != SECSuccess) {
+	return rv;
+    }
+
+    if (ssl_IsRemovedCipherSuite(which)) {
+    	rv = SECSuccess;
+    } else if (SSL_IS_SSL2_CIPHER(which)) {
+	rv = ssl2_SetPolicy(which, policy);
+    } else {
+	rv = ssl3_SetPolicy((ssl3CipherSuite)which, policy);
+    }
+    return rv;
 }
 
 SECStatus
 SSL_CipherPolicyGet(PRInt32 which, PRInt32 *oPolicy)
 {
-    *oPolicy = SSL_ALLOWED;
-    return SECSuccess;
+    SECStatus rv;
+
+    if (!oPolicy) {
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	return SECFailure;
+    }
+    if (ssl_IsRemovedCipherSuite(which)) {
+	*oPolicy = SSL_NOT_ALLOWED;
+    	rv = SECSuccess;
+    } else if (SSL_IS_SSL2_CIPHER(which)) {
+	rv = ssl2_GetPolicy(which, oPolicy);
+    } else {
+	rv = ssl3_GetPolicy((ssl3CipherSuite)which, oPolicy);
+    }
+    return rv;
 }
 
 /* Part of the public NSS API.
@@ -1214,19 +1255,27 @@ SSL_CipherPrefGet(PRFileDesc *fd, PRInt32 which, PRBool *enabled)
 SECStatus
 NSS_SetDomesticPolicy(void)
 {
-    return SECSuccess;
+    SECStatus      status = SECSuccess;
+    const PRUint16 *cipher;
+
+    for (cipher = SSL_ImplementedCiphers; *cipher != 0; ++cipher) {
+	status = SSL_SetPolicy(*cipher, SSL_ALLOWED);
+	if (status != SECSuccess)
+	    break;
+    }
+    return status;
 }
 
 SECStatus
 NSS_SetExportPolicy(void)
 {
-    return SECSuccess;
+    return NSS_SetDomesticPolicy();
 }
 
 SECStatus
 NSS_SetFrancePolicy(void)
 {
-    return SECSuccess;
+    return NSS_SetDomesticPolicy();
 }
 
 
@@ -2850,8 +2899,8 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
 	ss->ephemeralECDHKeyPair = NULL;
 
 	ssl_ChooseOps(ss);
-	ssl2_InitSocketCipherSuites(ss);
-	ssl3_InitSocketCipherSuites(ss);
+	ssl2_InitSocketPolicy(ss);
+	ssl3_InitSocketPolicy(ss);
 	PR_INIT_CLIST(&ss->ssl3.hs.lastMessageFlight);
 
 	if (makeLocks) {

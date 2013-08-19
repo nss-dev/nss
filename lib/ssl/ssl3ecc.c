@@ -1006,7 +1006,7 @@ ssl3_FilterECCipherSuitesByServerCerts(sslSocket * ss)
 }
 
 /* Ask: is ANY ECC cipher suite enabled on this socket? */
-/* Order(N^2).  Yuk. */
+/* Order(N^2).  Yuk.  Also, this ignores export policy. */
 PRBool
 ssl3_IsECCEnabled(sslSocket * ss)
 {
