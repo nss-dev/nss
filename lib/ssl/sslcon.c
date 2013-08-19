@@ -20,6 +20,8 @@
 #include "prinit.h"
 #include "prtime.h" 	/* for PR_Now() */
 
+static PRBool policyWasSet;
+
 /* This ordered list is indexed by (SSL_CK_xx * 3)   */
 /* Second and third bytes are MSB and LSB of master key length. */
 static const PRUint8 allCipherSuites[] = {
@@ -112,12 +114,14 @@ const char * const ssl_cipherName[] = {
 };
 
 
-/* bit-mask, showing which SSLv2 suites are allowed.
+/* bit-masks, showing which SSLv2 suites are allowed.
  * lsb corresponds to first cipher suite in allCipherSuites[].
  */
+static PRUint16	allowedByPolicy;          /* all off by default */
+static PRUint16	maybeAllowedByPolicy;     /* all off by default */
 static PRUint16	chosenPreference = 0xff;  /* all on  by default */
 
-/* bit values for the above bit mask */
+/* bit values for the above two bit masks */
 #define SSL_CB_RC4_128_WITH_MD5              (1 << SSL_CK_RC4_128_WITH_MD5)
 #define SSL_CB_RC4_128_EXPORT40_WITH_MD5     (1 << SSL_CK_RC4_128_EXPORT40_WITH_MD5)
 #define SSL_CB_RC2_128_CBC_WITH_MD5          (1 << SSL_CK_RC2_128_CBC_WITH_MD5)
@@ -152,19 +156,19 @@ ssl2_ConstructCipherSpecs(sslSocket *ss)
     count = 0;
     PORT_Assert(ss != 0);
     allowed = !ss->opt.enableSSL2 ? 0 :
-	(ss->chosenPreference & SSL_CB_IMPLEMENTED);
+    	(ss->allowedByPolicy & ss->chosenPreference & SSL_CB_IMPLEMENTED);
     while (allowed) {
     	if (allowed & 1) 
 	    ++count;
 	allowed >>= 1;
     }
 
-    /* Call ssl3_cipher_suite_available_init() once here, 
+    /* Call ssl3_config_match_init() once here, 
      * instead of inside ssl3_ConstructV2CipherSpecsHack(),
      * because the latter gets called twice below, 
      * and then again in ssl2_BeginClientHandshake().
      */
-    ssl3_cipher_suite_available_init(ss);
+    ssl3_config_match_init(ss);
 
     /* ask SSL3 how many cipher suites it has. */
     rv = ssl3_ConstructV2CipherSpecsHack(ss, NULL, &ssl3_count);
@@ -188,7 +192,7 @@ ssl2_ConstructCipherSpecs(sslSocket *ss)
 
     /* fill in cipher specs for SSL2 cipher suites */
     allowed = !ss->opt.enableSSL2 ? 0 :
-	(ss->chosenPreference & SSL_CB_IMPLEMENTED);
+    	(ss->allowedByPolicy & ss->chosenPreference & SSL_CB_IMPLEMENTED);
     for (i = 0; i < ssl2_NUM_SUITES_IMPLEMENTED * 3; i += 3) {
 	const PRUint8 * hs = implementedCipherSuites + i;
 	int             ok = allowed & (1U << hs[0]);
@@ -220,6 +224,7 @@ ssl2_ConstructCipherSpecs(sslSocket *ss)
 static SECStatus
 ssl2_CheckConfigSanity(sslSocket *ss)
 {
+    unsigned int      allowed;
     int               ssl3CipherCount = 0;
     SECStatus         rv;
 
@@ -229,11 +234,11 @@ ssl2_CheckConfigSanity(sslSocket *ss)
     if (!ss->cipherSpecs)
     	goto disabled;
 
-    if (!ss->chosenPreference)
+    allowed = ss->allowedByPolicy & ss->chosenPreference;
+    if (! allowed)
 	ss->opt.enableSSL2 = PR_FALSE; /* not really enabled if no ciphers */
 
-    /* ssl3_cipher_suite_available_init was called in
-     * ssl2_ConstructCipherSpecs(). */
+    /* ssl3_config_match_init was called in ssl2_ConstructCipherSpecs(). */
     /* Ask how many ssl3 CipherSuites were enabled. */
     rv = ssl3_ConstructV2CipherSpecsHack(ss, NULL, &ssl3CipherCount);
     if (rv != SECSuccess || ssl3CipherCount <= 0) {
@@ -249,6 +254,67 @@ disabled:
 	PORT_SetError(SSL_ERROR_SSL_DISABLED);
 	return SECFailure;
     }
+    return SECSuccess;
+}
+
+/* 
+ * Since this is a global (not per-socket) setting, we cannot use the
+ * HandshakeLock to protect this.  Probably want a global lock.
+ */
+SECStatus
+ssl2_SetPolicy(PRInt32 which, PRInt32 policy)
+{
+    PRUint32  bitMask;
+    SECStatus rv       = SECSuccess;
+
+    which &= 0x000f;
+    bitMask = 1 << which;
+
+    if (!(bitMask & SSL_CB_IMPLEMENTED)) {
+    	PORT_SetError(SSL_ERROR_UNKNOWN_CIPHER_SUITE);
+    	return SECFailure;
+    }
+
+    if (policy == SSL_ALLOWED) {
+	allowedByPolicy 	|= bitMask;
+	maybeAllowedByPolicy 	|= bitMask;
+    } else if (policy == SSL_RESTRICTED) {
+    	allowedByPolicy 	&= ~bitMask;
+	maybeAllowedByPolicy 	|= bitMask;
+    } else {
+    	allowedByPolicy 	&= ~bitMask;
+    	maybeAllowedByPolicy 	&= ~bitMask;
+    }
+    allowedByPolicy 		&= SSL_CB_IMPLEMENTED;
+    maybeAllowedByPolicy 	&= SSL_CB_IMPLEMENTED;
+
+    policyWasSet = PR_TRUE;
+    return rv;
+}
+
+SECStatus
+ssl2_GetPolicy(PRInt32 which, PRInt32 *oPolicy)
+{
+    PRUint32     bitMask;
+    PRInt32      policy;
+
+    which &= 0x000f;
+    bitMask = 1 << which;
+
+    /* Caller assures oPolicy is not null. */
+    if (!(bitMask & SSL_CB_IMPLEMENTED)) {
+    	PORT_SetError(SSL_ERROR_UNKNOWN_CIPHER_SUITE);
+	*oPolicy = SSL_NOT_ALLOWED;
+    	return SECFailure;
+    }
+
+    if (maybeAllowedByPolicy & bitMask) {
+    	policy = (allowedByPolicy & bitMask) ? SSL_ALLOWED : SSL_RESTRICTED;
+    } else {
+	policy = SSL_NOT_ALLOWED;
+    }
+
+    *oPolicy = policy;
     return SECSuccess;
 }
 
@@ -343,10 +409,12 @@ ssl2_CipherPrefGet(sslSocket *ss, PRInt32 which, PRBool *enabled)
 }
 
 
-/* copy global default cipher suite preferences into socket. */
+/* copy global default policy into socket. */
 void      
-ssl2_InitSocketCipherSuites(sslSocket *ss)
+ssl2_InitSocketPolicy(sslSocket *ss)
 {
+    ss->allowedByPolicy		= allowedByPolicy;
+    ss->maybeAllowedByPolicy	= maybeAllowedByPolicy;
     ss->chosenPreference 	= chosenPreference;
 }
 
@@ -1487,7 +1555,7 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
     unsigned int      dkLen;    /* decrypted key length in bytes */
     int               modulusLen;
     SECStatus         rv;
-    PRUint16          allowed;  /* cipher kinds enabled */
+    PRUint16          allowed;  /* cipher kinds enabled and allowed by policy */
     PRUint8           mkbuf[SSL_MAX_MASTER_KEY_BYTES];
 
     PORT_Assert( ss->opt.noLocks || ssl_Have1stHandshakeLock(ss) );
@@ -1515,7 +1583,7 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
 	goto loser;
     }
 
-    allowed = ss->chosenPreference & SSL_CB_IMPLEMENTED;
+    allowed = ss->allowedByPolicy & ss->chosenPreference & SSL_CB_IMPLEMENTED;
     if (!(allowed & (1 << cipher))) {
     	/* client chose a kind we don't allow! */
 	SSL_DBG(("%d: SSL[%d]: disallowed cipher=%d",
@@ -1745,7 +1813,8 @@ ssl2_ChooseSessionCypher(sslSocket *ss,
     }
 
     if (!ss->preferredCipher) {
-	unsigned int allowed = ss->chosenPreference & SSL_CB_IMPLEMENTED;
+    	unsigned int allowed = ss->allowedByPolicy & ss->chosenPreference &
+	                       SSL_CB_IMPLEMENTED;
 	if (allowed) {
 	    preferred = implementedCipherSuites;
 	    for (i = ssl2_NUM_SUITES_IMPLEMENTED; i > 0; --i) {
