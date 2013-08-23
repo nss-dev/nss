@@ -235,6 +235,8 @@ static void PrintParameterUsage(void)
     fprintf(stderr, "%-20s Test -F allows 0=any (default), 1=only OCSP, 2=only CRL\n", "-M");
     fprintf(stderr, "%-20s Restrict ciphers\n", "-c ciphers");
     fprintf(stderr, "%-20s Print cipher values allowed for parameter -c and exit\n", "-Y");
+    fprintf(stderr, "%-20s Enforce using an IPv4 destination address\n", "-4");
+    fprintf(stderr, "%-20s Enforce using an IPv6 destination address\n", "-6");
 }
 
 static void Usage(const char *progName)
@@ -806,6 +808,8 @@ int main(int argc, char **argv)
     PRSocketOptionData opt;
     PRNetAddr          addr;
     PRPollDesc         pollset[2];
+    PRBool             allowIPv4 = PR_TRUE;
+    PRBool             allowIPv6 = PR_TRUE;
     PRBool             pingServerFirst = PR_FALSE;
     int                pingTimeoutSeconds = -1;
     PRBool             clientSpeaksFirst = PR_FALSE;
@@ -846,11 +850,14 @@ int main(int argc, char **argv)
     SSL_VersionRangeGetSupported(ssl_variant_stream, &enabledVersions);
 
     optstate = PL_CreateOptState(argc, argv,
-                                 "BFM:OSTV:W:Ya:c:d:fgh:m:n:op:qr:st:uvw:xz");
+                                 "46BFM:OSTV:W:Ya:c:d:fgh:m:n:op:qr:st:uvw:xz");
     while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch (optstate->option) {
 	  case '?':
 	  default : Usage(progName); 			break;
+
+          case '4': allowIPv6 = PR_FALSE; if (!allowIPv4) Usage(progName); break;
+          case '6': allowIPv4 = PR_FALSE; if (!allowIPv6) Usage(progName); break;
 
           case 'B': bypassPKCS11 = 1; 			break;
 
@@ -988,9 +995,13 @@ int main(int argc, char **argv)
 	}
 	do {
 	    enumPtr = PR_EnumerateAddrInfo(enumPtr, addrInfo, portno, &addr);
-	} while (enumPtr != NULL &&
-		 addr.raw.family != PR_AF_INET &&
-		 addr.raw.family != PR_AF_INET6);
+	    if (enumPtr) {
+		if (addr.raw.family == PR_AF_INET && allowIPv4)
+		    break;
+		if (addr.raw.family == PR_AF_INET6 && allowIPv6)
+		    break;
+	    }
+	} while (enumPtr);
 	PR_FreeAddrInfo(addrInfo);
 	if (enumPtr == NULL) {
 	    SECU_PrintError(progName, "error looking up host address");
