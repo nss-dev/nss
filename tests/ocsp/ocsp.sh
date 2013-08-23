@@ -51,6 +51,9 @@ ocsp_init()
 
 ocsp_stapling()
 {
+  # Parameter -4 is used as a temporary workaround for lack of IPv6 connectivity
+  # on some build bot slaves.
+
   TESTNAME="startssl valid, supports OCSP stapling"
   echo "$SCRIPTNAME: $TESTNAME"
   echo "tstclnt -4 -V tls1.0: -T -v -F -M 1 -O -h kuix.de -p 5143 -d . < ${REQF}"

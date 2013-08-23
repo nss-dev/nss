@@ -237,6 +237,7 @@ static void PrintParameterUsage(void)
     fprintf(stderr, "%-20s Print cipher values allowed for parameter -c and exit\n", "-Y");
     fprintf(stderr, "%-20s Enforce using an IPv4 destination address\n", "-4");
     fprintf(stderr, "%-20s Enforce using an IPv6 destination address\n", "-6");
+    fprintf(stderr, "%-20s (Options -4 and -6 cannot be combined.)\n", "");
 }
 
 static void Usage(const char *progName)
@@ -993,15 +994,15 @@ int main(int argc, char **argv)
 	    SECU_PrintError(progName, "error looking up host");
 	    return 1;
 	}
-	do {
+	for (;;) {
 	    enumPtr = PR_EnumerateAddrInfo(enumPtr, addrInfo, portno, &addr);
-	    if (enumPtr) {
-		if (addr.raw.family == PR_AF_INET && allowIPv4)
-		    break;
-		if (addr.raw.family == PR_AF_INET6 && allowIPv6)
-		    break;
-	    }
-	} while (enumPtr);
+	    if (enumPtr == NULL)
+		break;
+	    if (addr.raw.family == PR_AF_INET && allowIPv4)
+		break;
+	    if (addr.raw.family == PR_AF_INET6 && allowIPv6)
+		break;
+	}
 	PR_FreeAddrInfo(addrInfo);
 	if (enumPtr == NULL) {
 	    SECU_PrintError(progName, "error looking up host address");
