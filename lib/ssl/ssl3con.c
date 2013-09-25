@@ -5394,7 +5394,6 @@ SSL3_ShutdownServerCache(void)
     }
 
     PZ_Unlock(symWrapKeysLock);
-    ssl_FreeSessionCacheLocks();
     return SECSuccess;
 }
 
@@ -5446,7 +5445,7 @@ getWrappingKey( sslSocket *       ss,
 
     pSymWrapKey = &symWrapKeys[symWrapMechIndex].symWrapKey[exchKeyType];
 
-    ssl_InitSessionCacheLocks(PR_TRUE);
+    ssl_InitSessionCacheLocks();
 
     PZ_Lock(symWrapKeysLock);
 
