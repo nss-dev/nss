@@ -28,6 +28,46 @@ SSL_PeerCertificate(PRFileDesc *fd)
 }
 
 /* NEED LOCKS IN HERE.  */
+CERTCertList *
+SSL_PeerCertificateChain(PRFileDesc *fd)
+{
+    sslSocket *ss;
+    CERTCertList *chain = NULL;
+    CERTCertificate *cert;
+    ssl3CertNode *cur;
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+	SSL_DBG(("%d: SSL[%d]: bad socket in PeerCertificateChain",
+		 SSL_GETPID(), fd));
+	return NULL;
+    }
+    if (!ss->opt.useSecurity || !ss->sec.peerCert) {
+	PORT_SetError(SSL_ERROR_NO_CERTIFICATE);
+	return NULL;
+    }
+    chain = CERT_NewCertList();
+    if (!chain) {
+	return NULL;
+    }
+    cert = CERT_DupCertificate(ss->sec.peerCert);
+    if (CERT_AddCertToListTail(chain, cert) != SECSuccess) {
+	goto loser;
+    }
+    for (cur = ss->ssl3.peerCertChain; cur; cur = cur->next) {
+	cert = CERT_DupCertificate(cur->cert);
+	if (CERT_AddCertToListTail(chain, cert) != SECSuccess) {
+	    goto loser;
+	}
+    }
+    return chain;
+
+loser:
+    CERT_DestroyCertList(chain);
+    return NULL;
+}
+
+/* NEED LOCKS IN HERE.  */
 CERTCertificate *
 SSL_LocalCertificate(PRFileDesc *fd)
 {

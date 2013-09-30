@@ -397,6 +397,15 @@ SSL_IMPORT SECStatus SSL_SecurityStatus(PRFileDesc *fd, int *on, char **cipher,
 */
 SSL_IMPORT CERTCertificate *SSL_PeerCertificate(PRFileDesc *fd);
 
+/*
+** Return the certificates presented by the SSL peer. If the SSL peer
+** did not present certificates, return NULL with the
+** SSL_ERROR_NO_CERTIFICATE error. On failure, return NULL with an error
+** code other than SSL_ERROR_NO_CERTIFICATE.
+**	"fd" the socket "file" descriptor
+*/
+SSL_IMPORT CERTCertList *SSL_PeerCertificateChain(PRFileDesc *fd);
+
 /* SSL_PeerStapledOCSPResponses returns the OCSP responses that were provided
  * by the TLS server. The return value is a pointer to an internal SECItemArray
  * that contains the returned OCSP responses; it is only valid until the
