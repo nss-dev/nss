@@ -2707,11 +2707,13 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *   cwSpec,
  *    Forces the use of the provided epoch
  * ssl_SEND_FLAG_CAP_RECORD_VERSION
  *    Caps the record layer version number of TLS ClientHello to { 3, 1 }
- *    (TLS 1.0). Some TLS 1.0 servers (which seem to use F5 BIG-IP) ignore 
+ *    (TLS 1.0). Some TLS 1.0 servers (which seem to use F5 BIG-IP) ignore
  *    ClientHello.client_version and use the record layer version number
  *    (TLSPlaintext.version) instead when negotiating protocol versions. In
  *    addition, if the record layer version number of ClientHello is { 3, 2 }
- *    (TLS 1.1) or higher, these servers reset the TCP connections. Set this
+ *    (TLS 1.1) or higher, these servers reset the TCP connections. Lastly,
+ *    some F5 BIG-IP servers hang if a record containing a ClientHello has a
+ *    version greater than { 3, 1 } and a length greater than 255. Set this
  *    flag to work around such servers.
  */
 PRInt32
@@ -5156,7 +5158,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     }
 
     flags = 0;
-    if (!ss->firstHsDone && !requestingResume && !IS_DTLS(ss)) {
+    if (!ss->firstHsDone && !IS_DTLS(ss)) {
 	flags |= ssl_SEND_FLAG_CAP_RECORD_VERSION;
     }
     rv = ssl3_FlushHandshake(ss, flags);
