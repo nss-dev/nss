@@ -119,11 +119,6 @@ ocsp_GetOCSPStatusFromNetwork(CERTCertDBHandle *handle,
                               PRBool *certIDWasConsumed,
                               SECStatus *rv_ocsp);
 
-static void
-ocsp_CacheSingleResponse(CERTOCSPCertID *certID,
-			 CERTOCSPSingleResponse *single,
-			 PRBool *certIDWasConsumed);
-
 static SECStatus
 ocsp_GetDecodedVerifiedSingleResponseForID(CERTCertDBHandle *handle,
 					   CERTOCSPCertID *certID,
@@ -133,14 +128,6 @@ ocsp_GetDecodedVerifiedSingleResponseForID(CERTCertDBHandle *handle,
 					   const SECItem *encodedResponse,
 					   CERTOCSPResponse **pDecodedResponse,
 					   CERTOCSPSingleResponse **pSingle);
-
-static SECStatus
-ocsp_GetVerifiedSingleResponseForCertID(CERTCertDBHandle *handle, 
-                                        CERTOCSPResponse *response, 
-                                        CERTOCSPCertID   *certID,
-                                        CERTCertificate  *signerCert,
-                                        PRTime            time,
-                                        CERTOCSPSingleResponse **pSingleResponse);
 
 static SECStatus
 ocsp_CertRevokedAfter(ocspRevokedInfo *revokedInfo, PRTime time);
@@ -4882,7 +4869,7 @@ ocsp_CertRevokedAfter(ocspRevokedInfo *revokedInfo, PRTime time)
  * See if the cert represented in the single response had a good status
  * at the specified time.
  */
-static SECStatus
+SECStatus
 ocsp_CertHasGoodStatus(ocspCertStatus *status, PRTime time)
 {
     SECStatus rv;
@@ -5454,7 +5441,7 @@ loser:
  *     (output) on return, this is true iff |certID| was consumed by this
  *     function.
  */
-static void
+void
 ocsp_CacheSingleResponse(CERTOCSPCertID *certID,
 			 CERTOCSPSingleResponse *single,
 			 PRBool *certIDWasConsumed)
@@ -5470,7 +5457,7 @@ ocsp_CacheSingleResponse(CERTOCSPCertID *certID,
     }
 }
 
-static SECStatus
+SECStatus
 ocsp_GetVerifiedSingleResponseForCertID(CERTCertDBHandle *handle, 
                                         CERTOCSPResponse *response, 
                                         CERTOCSPCertID   *certID,
