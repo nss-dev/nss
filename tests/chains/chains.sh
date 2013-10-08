@@ -971,8 +971,8 @@ check_ocsp()
 
     # sample line:
     #   URI: "http://ocsp.server:2601"
-    OCSP_HOST=$(${BINDIR}/pp -t certificate -i ${CERT_FILE} | grep URI | sed "s/.*:\/\///" | sed "s/:.*//")
-    OCSP_PORT=$(${BINDIR}/pp -t certificate -i ${CERT_FILE} | grep URI | sed "s/^.*:.*:\/\/.*:\([0-9]*\).*$/\1/")
+    OCSP_HOST=$(${BINDIR}/pp -w -t certificate -i ${CERT_FILE} | grep URI | sed "s/.*:\/\///" | sed "s/:.*//")
+    OCSP_PORT=$(${BINDIR}/pp -w -t certificate -i ${CERT_FILE} | grep URI | sed "s/^.*:.*:\/\/.*:\([0-9]*\).*$/\1/")
 
     echo "tstclnt -h ${OCSP_HOST} -p ${OCSP_PORT} -q -t 20"
     tstclnt -h ${OCSP_HOST} -p ${OCSP_PORT} -q -t 20
