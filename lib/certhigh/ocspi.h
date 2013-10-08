@@ -139,4 +139,7 @@ ocsp_GetResponderLocation(CERTCertDBHandle *handle,
 PRBool
 ocsp_FetchingFailureIsVerificationFailure(void);
 
+size_t
+ocsp_UrlEncodeBase64Buf(const char *base64Buf, char *outputBuf);
+
 #endif /* _OCSPI_H_ */
