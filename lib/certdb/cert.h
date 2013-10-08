@@ -1502,6 +1502,12 @@ extern SECItem *
 CERT_GetSPKIDigest(PLArenaPool *arena, const CERTCertificate *cert,
                    SECOidTag digestAlg, SECItem *fill);
 
+/*
+ * Digest the cert's subject name using the specified algorithm.
+ */
+extern SECItem *
+CERT_GetSubjectNameDigest(PLArenaPool *arena, const CERTCertificate *cert,
+                          SECOidTag digestAlg, SECItem *fill);
 
 SECStatus CERT_CheckCRL(CERTCertificate* cert, CERTCertificate* issuer,
                         const SECItem* dp, PRTime t, void* wincx);
