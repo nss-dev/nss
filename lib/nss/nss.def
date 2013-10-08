@@ -1037,7 +1037,7 @@ CERT_AddCertToListHead;
 ;+    local:
 ;+       *;
 ;+};
-;+NSS_3.15.2 { 	# NSS 3.15.3 release
+;+NSS_3.15.3 { 	# NSS 3.15.3 release
 ;+    global:
 CERT_DestroyCrl;
 CERT_GetEncodedOCSPResponseByMechanism;
