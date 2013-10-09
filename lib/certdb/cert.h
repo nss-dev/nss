@@ -1218,6 +1218,7 @@ CERT_MatchUserCert(CERTCertDBHandle *handle,
 CERTCertList *
 CERT_NewCertList(void);
 
+/* free the cert list and all the certs in the list */
 void
 CERT_DestroyCertList(CERTCertList *certs);
 
@@ -1225,16 +1226,26 @@ CERT_DestroyCertList(CERTCertList *certs);
 void
 CERT_RemoveCertListNode(CERTCertListNode *node);
 
+/* equivalent to CERT_AddCertToListTailWithData(certs, cert, NULL) */
 SECStatus
 CERT_AddCertToListTail(CERTCertList *certs, CERTCertificate *cert);
 
+/* equivalent to CERT_AddCertToListHeadWithData(certs, cert, NULL) */
 SECStatus
 CERT_AddCertToListHead(CERTCertList *certs, CERTCertificate *cert);
 
+/*
+ * The new cert list node takes ownership of "cert". "cert" is freed
+ * when the list node is removed.
+ */
 SECStatus
 CERT_AddCertToListTailWithData(CERTCertList *certs, CERTCertificate *cert,
 							 void *appData);
 
+/*
+ * The new cert list node takes ownership of "cert". "cert" is freed
+ * when the list node is removed.
+ */
 SECStatus
 CERT_AddCertToListHeadWithData(CERTCertList *certs, CERTCertificate *cert,
 							 void *appData);
