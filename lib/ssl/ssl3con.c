@@ -9847,7 +9847,8 @@ ssl3_TLSPRFWithMasterSecret(ssl3CipherSpec *spec, const char *label,
     return rv;
 }
 
-/* called from ssl3_HandleServerHelloDone
+/* called from ssl3_SendClientSecondRound
+ *             ssl3_HandleFinished
  */
 static SECStatus
 ssl3_SendNextProto(sslSocket *ss)
@@ -9940,7 +9941,7 @@ ssl3_RecordKeyLog(sslSocket *ss)
     return;
 }
 
-/* called from ssl3_HandleServerHelloDone
+/* called from ssl3_SendClientSecondRound
  *             ssl3_HandleClientHello
  *             ssl3_HandleFinished
  */
