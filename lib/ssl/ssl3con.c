@@ -1007,7 +1007,7 @@ ssl3_VerifySignedHashes(SSL3Hashes *hash, CERTCertificate *cert,
 	}
 	/* Allow DER encoded DSA signatures in SSL 3.0 */
 	if (isTLS || buf->len != SECKEY_SignatureLen(key)) {
-	    signature = DSAU_DecodeDerSig(buf);
+	    signature = DSAU_DecodeDerSigToLen(buf, SECKEY_SignatureLen(key));
 	    if (!signature) {
 	    	PORT_SetError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
 		return SECFailure;
