@@ -3211,9 +3211,8 @@ SECU_displayVerifyLog(FILE *outfile, CERTVerifyLog *log,
 		    }
 		}
 	    }
-	    fprintf(outfile, "  ERROR %s (%ld): %s\n",
-		    PORT_ErrorToName(node->error), node->error,
-		    SECU_Strerror(node->error));
+	    fprintf(outfile, "  ERROR %ld: %s\n", node->error,
+			    SECU_Strerror(node->error));
 	    errstr = NULL;
 	    switch (node->error) {
 	    case SEC_ERROR_INADEQUATE_KEY_USAGE:
