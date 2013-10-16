@@ -3684,6 +3684,7 @@ cert_GetOCSPResponse(PLArenaPool *arena, const char *location,
     unsigned char b64ReqBuf[max_get_request_size+1];
     size_t slashLengthIfNeeded = 0;
     size_t getURLLength;
+    SECItem *item;
 
     if (!location || !*location) {
 	return NULL;
@@ -3728,7 +3729,11 @@ cert_GetOCSPResponse(PLArenaPool *arena, const char *location,
     }
     ocsp_UrlEncodeBase64Buf(b64ReqBuf, walkOutput);
 
-    return cert_FetchOCSPResponse(arena, fullGetPath, NULL);
+    item = cert_FetchOCSPResponse(arena, fullGetPath, NULL);
+    if (!arena) {
+	PORT_Free(fullGetPath);
+    }
+    return item;
 }
 
 SECItem *
