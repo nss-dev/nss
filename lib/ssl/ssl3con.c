@@ -6828,14 +6828,10 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 					ss->ssl3.clientCertificate,
 					certUsageSSLClient, PR_FALSE);
 	if (ss->ssl3.clientCertChain == NULL) {
-	    if (ss->ssl3.clientCertificate != NULL) {
-		CERT_DestroyCertificate(ss->ssl3.clientCertificate);
-		ss->ssl3.clientCertificate = NULL;
-	    }
-	    if (ss->ssl3.clientPrivateKey != NULL) {
-		SECKEY_DestroyPrivateKey(ss->ssl3.clientPrivateKey);
-		ss->ssl3.clientPrivateKey = NULL;
-	    }
+	    CERT_DestroyCertificate(ss->ssl3.clientCertificate);
+	    ss->ssl3.clientCertificate = NULL;
+	    SECKEY_DestroyPrivateKey(ss->ssl3.clientPrivateKey);
+	    ss->ssl3.clientPrivateKey = NULL;
 	    goto send_no_certificate;
 	}
 	break;	/* not an error */
