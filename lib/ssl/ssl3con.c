@@ -3850,6 +3850,28 @@ ssl3_InitHandshakeHashes(sslSocket *ss)
 		ssl_MapLowLevelError(SSL_ERROR_DIGEST_FAILURE);
 		return SECFailure;
 	    }
+
+	    /* Create a backup SHA-1 hash for a potential client auth
+	     * signature.
+	     *
+	     * In TLS 1.2, ssl3_ComputeHandshakeHashes always uses the
+	     * handshake hash function (SHA-256). If the server or the client
+	     * does not support SHA-256 as a signature hash, we can either
+	     * maintain a backup SHA-1 handshake hash or buffer all handshake
+	     * messages.
+	     */
+	    if (!ss->sec.isServer) {
+		ss->ssl3.hs.backupHash = PK11_CreateDigestContext(SEC_OID_SHA1);
+		if (ss->ssl3.hs.backupHash == NULL) {
+		    ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+		    return SECFailure;
+		}
+
+		if (PK11_DigestBegin(ss->ssl3.hs.backupHash) != SECSuccess) {
+		    ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+		    return SECFailure;
+		}
+	    }
 	} else {
 	    /* Both ss->ssl3.hs.md5 and ss->ssl3.hs.sha should be NULL or
 	     * created successfully. */
@@ -3959,6 +3981,13 @@ ssl3_UpdateHandshakeHashes(sslSocket *ss, const unsigned char *b,
 	if (rv != SECSuccess) {
 	    ssl_MapLowLevelError(SSL_ERROR_DIGEST_FAILURE);
 	    return rv;
+	}
+	if (ss->ssl3.hs.backupHash) {
+	    rv = PK11_DigestOp(ss->ssl3.hs.backupHash, b, l);
+	    if (rv != SECSuccess) {
+		ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+		return rv;
+	    }
 	}
     } else {
 	rv = PK11_DigestOp(ss->ssl3.hs.md5, b, l);
@@ -4705,6 +4734,31 @@ tls12_loser:
 	    }
 	}
     }
+    return rv;
+}
+
+static SECStatus
+ssl3_ComputeBackupHandshakeHashes(sslSocket * ss,
+				  SSL3Hashes * hashes) /* output goes here. */
+{
+    SECStatus rv = SECSuccess;
+
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( !ss->sec.isServer );
+    PORT_Assert( ss->ssl3.hs.hashType == handshake_hash_single );
+
+    rv = PK11_DigestFinal(ss->ssl3.hs.backupHash, hashes->u.raw, &hashes->len,
+			  sizeof(hashes->u.raw));
+    if (rv != SECSuccess) {
+	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+	rv = SECFailure;
+	goto loser;
+    }
+    hashes->hashAlg = SEC_OID_SHA1;
+
+loser:
+    PK11_DestroyContext(ss->ssl3.hs.backupHash, PR_TRUE);
+    ss->ssl3.hs.backupHash = NULL;
     return rv;
 }
 
@@ -5957,7 +6011,13 @@ ssl3_SendCertificateVerify(sslSocket *ss)
 		SSL_GETPID(), ss->fd));
 
     ssl_GetSpecReadLock(ss);
-    rv = ssl3_ComputeHandshakeHashes(ss, ss->ssl3.pwSpec, &hashes, 0);
+    if (ss->ssl3.hs.hashType == handshake_hash_single &&
+	ss->ssl3.hs.backupHash) {
+	rv = ssl3_ComputeBackupHandshakeHashes(ss, &hashes);
+	PORT_Assert(!ss->ssl3.hs.backupHash);
+    } else {
+	rv = ssl3_ComputeHandshakeHashes(ss, ss->ssl3.pwSpec, &hashes, 0);
+    }
     ssl_ReleaseSpecReadLock(ss);
     if (rv != SECSuccess) {
 	goto done;	/* err code was set by ssl3_ComputeHandshakeHashes */
@@ -6000,11 +6060,6 @@ ssl3_SendCertificateVerify(sslSocket *ss)
 	if (rv != SECSuccess) {
 	    goto done;
 	}
-	/* We always sign using the handshake hash function. It's possible that
-	 * a server could support SHA-256 as the handshake hash but not as a
-	 * signature hash. In that case we wouldn't be able to do client
-	 * certificates with it. The alternative is to buffer all handshake
-	 * messages. */
 	sigAndHash.hashAlg = hashes.hashAlg;
 
 	rv = ssl3_AppendSignatureAndHashAlgorithm(ss, &sigAndHash);
@@ -6671,6 +6726,70 @@ no_memory:	/* no-memory error has already been set. */
 }
 
 
+/*
+ * Returns true if the client authentication key is an RSA or DSA key that
+ * may be able to sign only SHA-1 hashes.
+ */
+static PRBool
+ssl3_ClientKeyPrefersSHA1(sslSocket *ss)
+{
+    SECKEYPublicKey *pubk;
+    PRBool preferSha1 = PR_FALSE;
+
+    /* If the key is a 1024-bit RSA or DSA key, assume conservatively that
+     * it may be unable to sign SHA-256 hashes. This is the case for older
+     * Estonian ID cards that have 1024-bit RSA keys. In FIPS 186-2 and
+     * older, DSA key size is at most 1024 bits and the hash function must
+     * be SHA-1.
+     */
+    pubk = CERT_ExtractPublicKey(ss->ssl3.clientCertificate);
+    if (pubk == NULL) {
+	return PR_FALSE;
+    }
+    if (pubk->keyType == rsaKey || pubk->keyType == dsaKey) {
+	preferSha1 = SECKEY_PublicKeyStrength(pubk) <= 128;
+    }
+    SECKEY_DestroyPublicKey(pubk);
+    return preferSha1;
+}
+
+/* Destroys the backup handshake hash context if we don't need it. */
+static void
+ssl3_DestroyBackupHandshakeHashIfNotNeeded(sslSocket *ss,
+					   const SECItem *algorithms)
+{
+    PRBool needBackupHash = PR_FALSE;
+    unsigned int i;
+
+#ifndef NO_PKCS11_BYPASS
+    /* Backup handshake hash is not supported in PKCS #11 bypass mode. */
+    if (ss->opt.bypassPKCS11) {
+	PORT_Assert(!ss->ssl3.hs.backupHash);
+	return;
+    }
+#endif
+    PORT_Assert(ss->ssl3.hs.backupHash);
+    /* XXX It would be better to first figure out if the server accepts
+     * SHA-1 and then call ssl3_ClientKeyPrefersSHA1, because
+     * ssl3_ClientKeyPrefersSHA1 is the more expensive operation.
+     */
+    if (ssl3_ClientKeyPrefersSHA1(ss)) {
+	/* Use SHA-1 if the server supports it. */
+	for (i = 0; i < algorithms->len; i += 2) {
+	    if (algorithms->data[i] == tls_hash_sha1 &&
+		(algorithms->data[i+1] == tls_sig_rsa ||
+		 algorithms->data[i+1] == tls_sig_dsa)) {
+		needBackupHash = PR_TRUE;
+		break;
+	    }
+	}
+    }
+    if (!needBackupHash) {
+	PK11_DestroyContext(ss->ssl3.hs.backupHash, PR_TRUE);
+	ss->ssl3.hs.backupHash = NULL;
+    }
+}
+
 typedef struct dnameNode {
     struct dnameNode *next;
     SECItem           name;
@@ -6834,6 +6953,9 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    ss->ssl3.clientPrivateKey = NULL;
 	    goto send_no_certificate;
 	}
+	if (ss->ssl3.hs.hashType == handshake_hash_single) {
+	    ssl3_DestroyBackupHandshakeHashIfNotNeeded(ss, &algorithms);
+	}
 	break;	/* not an error */
 
     case SECFailure:
@@ -6946,6 +7068,14 @@ ssl3_SendClientSecondRound(sslSocket *ss)
     sendClientCert = !ss->ssl3.sendEmptyCert &&
 		     ss->ssl3.clientCertChain  != NULL &&
 		     ss->ssl3.clientPrivateKey != NULL;
+
+    if (!sendClientCert &&
+	ss->ssl3.hs.hashType == handshake_hash_single &&
+	ss->ssl3.hs.backupHash) {
+	/* Don't need the backup handshake hash. */
+	PK11_DestroyContext(ss->ssl3.hs.backupHash, PR_TRUE);
+	ss->ssl3.hs.backupHash = NULL;
+    }
 
     /* We must wait for the server's certificate to be authenticated before
      * sending the client certificate in order to disclosing the client
