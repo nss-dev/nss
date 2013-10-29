@@ -5169,8 +5169,9 @@ CERT_CacheOCSPResponseFromSideChannel(CERTCertDBHandle *handle,
 						    encodedResponse,
 						    &decodedResponse,
 						    &singleResponse);
-    /* Cache any valid singleResponse, regardless of status. */
-    if (rv == SECSuccess && singleResponse) {
+    if (rv == SECSuccess) {
+	rvOcsp = ocsp_SingleResponseCertHasGoodStatus(singleResponse, time);
+	/* Cache any valid singleResponse, regardless of status. */
 	ocsp_CacheSingleResponse(certID, singleResponse, &certIDWasConsumed);
     }
     if (decodedResponse) {
