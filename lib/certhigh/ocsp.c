@@ -4114,8 +4114,9 @@ CERT_VerifyOCSPResponseSignature(CERTOCSPResponse *response,
     signerCert = ocsp_GetSignerCertificate(handle, tbsData,
                                            signature, issuer);
     if (signerCert == NULL) {
+	int err = PORT_GetError();
 	rv = SECFailure;
-	if (PORT_GetError() == SEC_ERROR_UNKNOWN_CERT) {
+	if (err == 0 || err == SEC_ERROR_UNKNOWN_CERT) {
 	    /* Make the error a little more specific. */
 	    PORT_SetError(SEC_ERROR_OCSP_INVALID_SIGNING_CERT);
 	}
