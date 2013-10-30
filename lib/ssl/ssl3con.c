@@ -5025,9 +5025,9 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     	return SECFailure;	/* ssl3_config_match_init has set error code. */
 
     /* HACK for SCSV in SSL 3.0.  On initial handshake, prepend SCSV,
-     * only if we're willing to complete an SSL 3.0 handshake.
+     * only if TLS is disabled.
      */
-    if (!ss->firstHsDone && ss->vrange.min == SSL_LIBRARY_VERSION_3_0) {
+    if (!ss->firstHsDone && !isTLS) {
 	/* Must set this before calling Hello Extension Senders, 
 	 * to suppress sending of empty RI extension.
 	 */
