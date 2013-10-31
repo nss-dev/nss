@@ -1043,6 +1043,7 @@ CERT_DestroyCrl;
 CERT_GetEncodedOCSPResponseByMechanism;
 CERT_GetSPKIDigest;
 CERT_GetSubjectNameDigest;
+CERT_ForcePostMethodForOCSP;
 ;+    local:
 ;+       *;
 ;+};

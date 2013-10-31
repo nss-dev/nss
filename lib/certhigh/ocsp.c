@@ -87,6 +87,7 @@ static struct OCSPGlobalStruct {
     OCSPCacheData cache;
     SEC_OcspFailureMode ocspFailureMode;
     CERT_StringFromCertFcn alternateOCSPAIAFcn;
+    PRBool forcePost;
 } OCSP_Global = { NULL, 
                   NULL, 
                   DEFAULT_OCSP_CACHE_SIZE, 
@@ -95,7 +96,8 @@ static struct OCSPGlobalStruct {
                   DEFAULT_OSCP_TIMEOUT_SECONDS,
                   {NULL, 0, NULL, NULL},
                   ocspMode_FailureIsVerificationFailure,
-                  NULL
+                  NULL,
+                  PR_FALSE
                 };
 
 
@@ -5207,7 +5209,7 @@ ocsp_GetOCSPStatusFromNetwork(CERTCertDBHandle *handle,
 
     CERTOCSPResponse *decodedResponse = NULL;
     CERTOCSPSingleResponse *singleResponse = NULL;
-    enum { stageGET, stagePOST } currentStage = stageGET;
+    enum { stageGET, stagePOST } currentStage;
     PRBool retry = PR_FALSE;
 
     if (!certIDWasConsumed || !rv_ocsp) {
@@ -5216,6 +5218,18 @@ ocsp_GetOCSPStatusFromNetwork(CERTCertDBHandle *handle,
     }
     *certIDWasConsumed = PR_FALSE;
     *rv_ocsp = SECFailure;
+
+    if (!OCSP_Global.monitor) {
+        PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
+        return SECFailure;
+    }
+    PR_EnterMonitor(OCSP_Global.monitor);
+    if (OCSP_Global.forcePost) {
+        currentStage = stagePOST;
+    } else {
+        currentStage = stageGET;
+    }
+    PR_ExitMonitor(OCSP_Global.monitor);
 
     /*
      * The first thing we need to do is find the location of the responder.
@@ -6059,6 +6073,20 @@ CERT_DisableOCSPDefaultResponder(CERTCertDBHandle *handle)
     return SECSuccess;
 }
 
+SECStatus
+CERT_ForcePostMethodForOCSP(PRBool forcePost)
+{
+    if (!OCSP_Global.monitor) {
+        PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
+        return SECFailure;
+    }
+
+    PR_EnterMonitor(OCSP_Global.monitor);
+    OCSP_Global.forcePost = forcePost;
+    PR_ExitMonitor(OCSP_Global.monitor);
+
+    return SECSuccess;
+}
 
 SECStatus
 CERT_GetOCSPResponseStatus(CERTOCSPResponse *response)
