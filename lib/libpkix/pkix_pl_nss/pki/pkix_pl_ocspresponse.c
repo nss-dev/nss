@@ -854,10 +854,12 @@ pkix_pl_OcspResponse_VerifySignature(
                                           signature, issuerCert);
             
             if (response->signerCert == NULL) {
-                PORT_SetError(SEC_ERROR_UNKNOWN_SIGNER);
+                if (PORT_GetError() == SEC_ERROR_UNKNOWN_CERT) {
+                    /* Make the error a little more specific. */
+                    PORT_SetError(SEC_ERROR_OCSP_INVALID_SIGNING_CERT);
+                }
                 goto cleanup;
-            }
-            
+            }            
             PKIX_CHECK( 
                 PKIX_PL_Cert_CreateFromCERTCertificate(response->signerCert,
                                                        &(response->pkixSignerCert),
