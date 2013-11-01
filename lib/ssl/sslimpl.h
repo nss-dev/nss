@@ -841,6 +841,14 @@ const ssl3CipherSuiteDef *suite_def;
     PRBool                sendingSCSV; /* instead of empty RI */
     sslBuffer             msgState;    /* current state for handshake messages*/
                                        /* protected by recvBufLock */
+
+    /* The session ticket received in a NewSessionTicket message is temporarily
+     * stored in newSessionTicket until the handshake is finished; then it is
+     * moved to the sid.
+     */
+    PRBool                receivedNewSessionTicket;
+    NewSessionTicket      newSessionTicket;
+
     PRUint16              finishedBytes; /* size of single finished below */
     union {
 	TLSFinished       tFinished[2]; /* client, then server */
@@ -1746,8 +1754,9 @@ extern SECStatus ssl3_HandleHelloExtensions(sslSocket *ss,
 
 /* Hello Extension related routines. */
 extern PRBool ssl3_ExtensionNegotiated(sslSocket *ss, PRUint16 ex_type);
-extern SECStatus ssl3_SetSIDSessionTicket(sslSessionID *sid,
-			NewSessionTicket *session_ticket);
+extern void ssl3_SetSIDSessionTicket(sslSessionID *sid,
+			/*in/out*/ NewSessionTicket *session_ticket,
+			PRBool isTicketRenewal);
 extern SECStatus ssl3_SendNewSessionTicket(sslSocket *ss);
 extern PRBool ssl_GetSessionTicketKeys(unsigned char *keyName,
 			unsigned char *encKey, unsigned char *macKey);

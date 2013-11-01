@@ -470,35 +470,38 @@ ssl_Time(void)
     return myTime;
 }
 
-SECStatus
-ssl3_SetSIDSessionTicket(sslSessionID *sid, NewSessionTicket *session_ticket)
+void
+ssl3_SetSIDSessionTicket(sslSessionID *sid,
+                         /*in/out*/ NewSessionTicket *newSessionTicket,
+                         PRBool isTicketRenewal)
 {
-    SECStatus rv;
+    PORT_Assert(sid);
+    PORT_Assert(newSessionTicket);
 
-    /* We need to lock the cache, as this sid might already be in the cache. */
-    LOCK_CACHE;
+    if (isTicketRenewal) {
+	/* We need to lock the cache, as this sid is already in the cache.
+	 * We avoid locking/unlocking during a full handshake since it is
+	 * unnecessary and we want to avoid blocking other connections by
+         * acquiring and holding the lock.
+	 */
+	LOCK_CACHE;
 
-    /* A server might have sent us an empty ticket, which has the
-     * effect of clearing the previously known ticket.
-     */
-    if (sid->u.ssl3.sessionTicket.ticket.data)
-	SECITEM_FreeItem(&sid->u.ssl3.sessionTicket.ticket, PR_FALSE);
-    if (session_ticket->ticket.len > 0) {
-	rv = SECITEM_CopyItem(NULL, &sid->u.ssl3.sessionTicket.ticket,
-	    &session_ticket->ticket);
-	if (rv != SECSuccess) {
-	    UNLOCK_CACHE;
-	    return rv;
+	/* A server might have sent us an empty ticket, which has the
+	 * effect of clearing the previously known ticket.
+	 */
+	if (sid->u.ssl3.sessionTicket.ticket.data) {
+	    SECITEM_FreeItem(&sid->u.ssl3.sessionTicket.ticket, PR_FALSE);
 	}
-    } else {
-	sid->u.ssl3.sessionTicket.ticket.data = NULL;
-	sid->u.ssl3.sessionTicket.ticket.len = 0;
     }
-    sid->u.ssl3.sessionTicket.received_timestamp =
-	session_ticket->received_timestamp;
-    sid->u.ssl3.sessionTicket.ticket_lifetime_hint =
-	session_ticket->ticket_lifetime_hint;
 
-    UNLOCK_CACHE;
-    return SECSuccess;
+    PORT_Assert(!sid->u.ssl3.sessionTicket.ticket.data);
+
+    /* Do a shallow copy, moving the ticket data. */
+    sid->u.ssl3.sessionTicket = *newSessionTicket;
+    newSessionTicket->ticket.data = NULL;
+    newSessionTicket->ticket.len = 0;
+
+    if (isTicketRenewal) {
+	UNLOCK_CACHE;
+    }
 }
