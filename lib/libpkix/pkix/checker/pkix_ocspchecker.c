@@ -236,7 +236,7 @@ pkix_OcspChecker_CheckExternal(
         PKIX_PL_Date *validity = NULL;
         PKIX_RevocationStatus revStatus = PKIX_RevStatus_NoInfo;
         void *nbioContext = NULL;
-        enum { stageGET, stagePOST } currentStage = stageGET;
+        enum { stageGET, stagePOST } currentStage;
         PRBool retry = PR_FALSE;
 
         PKIX_ENTER(OCSPCHECKER, "pkix_OcspChecker_CheckExternal");
@@ -266,9 +266,13 @@ pkix_OcspChecker_CheckExternal(
             goto cleanup;
         }
 
-        /* Try HTTP GET.
-         * Unless it's a valid response with good status: fall back to POST.
-         */
+        if (methodFlags & CERT_REV_M_FORCE_POST_METHOD_FOR_OCSP) {
+            /* Do not try HTTP GET, only HTTP POST */
+            currentStage = stagePOST;
+        } else {
+            /* Try HTTP GET first, falling back to POST */
+            currentStage = stageGET;
+        }
 
         do {
                 const char *mechanism;
