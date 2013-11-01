@@ -4850,6 +4850,9 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     ss->ssl3.hs.sendingSCSV = PR_FALSE; /* Must be reset every handshake */
     PORT_Assert(IS_DTLS(ss) || !resending);
 
+    SECITEM_FreeItem(&ss->ssl3.hs.newSessionTicket.ticket, PR_FALSE);
+    ss->ssl3.hs.receivedNewSessionTicket = PR_FALSE;
+
     /* We might be starting a session renegotiation in which case we should
      * clear previous state.
      */
@@ -9314,8 +9317,8 @@ ssl3_SendEmptyCertificate(sslSocket *ss)
 SECStatus
 ssl3_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
-    SECStatus         rv;
-    NewSessionTicket  session_ticket;
+    SECStatus rv;
+    SECItem ticketData;
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle session_ticket handshake",
 		SSL_GETPID(), ss->fd));
@@ -9323,35 +9326,41 @@ ssl3_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
+    PORT_Assert(!ss->ssl3.hs.newSessionTicket.ticket.data);
+    PORT_Assert(!ss->ssl3.hs.receivedNewSessionTicket);
+
     if (ss->ssl3.hs.ws != wait_new_session_ticket) {
 	SSL3_SendAlert(ss, alert_fatal, unexpected_message);
 	PORT_SetError(SSL_ERROR_RX_UNEXPECTED_NEW_SESSION_TICKET);
 	return SECFailure;
     }
 
-    session_ticket.received_timestamp = ssl_Time();
+    /* RFC5077 Section 3.3: "The client MUST NOT treat the ticket as valid
+     * until it has verified the server's Finished message." See the comment in
+     * ssl3_FinishHandshake for more details.
+     */
+    ss->ssl3.hs.newSessionTicket.received_timestamp = ssl_Time();
     if (length < 4) {
 	(void)SSL3_SendAlert(ss, alert_fatal, decode_error);
 	PORT_SetError(SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET);
 	return SECFailure;
     }
-    session_ticket.ticket_lifetime_hint =
+    ss->ssl3.hs.newSessionTicket.ticket_lifetime_hint =
 	(PRUint32)ssl3_ConsumeHandshakeNumber(ss, 4, &b, &length);
 
-    rv = ssl3_ConsumeHandshakeVariable(ss, &session_ticket.ticket, 2,
-	&b, &length);
+    rv = ssl3_ConsumeHandshakeVariable(ss, &ticketData, 2, &b, &length);
     if (length != 0 || rv != SECSuccess) {
 	(void)SSL3_SendAlert(ss, alert_fatal, decode_error);
 	PORT_SetError(SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET);
 	return SECFailure;  /* malformed */
     }
-
-    rv = ssl3_SetSIDSessionTicket(ss->sec.ci.sid, &session_ticket);
+    rv = SECITEM_CopyItem(NULL, &ss->ssl3.hs.newSessionTicket.ticket,
+			  &ticketData);
     if (rv != SECSuccess) {
-	(void)SSL3_SendAlert(ss, alert_fatal, handshake_failure);
-	PORT_SetError(SSL_ERROR_INTERNAL_ERROR_ALERT);
-	return SECFailure;
+	return rv;
     }
+    ss->ssl3.hs.receivedNewSessionTicket = PR_TRUE;
+
     ss->ssl3.hs.ws = wait_change_cipher;
     return SECSuccess;
 }
@@ -10439,6 +10448,11 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 	 */
 	if (isServer && !ss->ssl3.hs.isResuming &&
 	    ssl3_ExtensionNegotiated(ss, ssl_session_ticket_xtn)) {
+	    /* RFC 5077 Section 3.3: "In the case of a full handshake, the
+	     * server MUST verify the client's Finished message before sending
+	     * the ticket." Presumably, this also means that the client's
+	     * certificate, if any, must be verified beforehand too.
+	     */
 	    rv = ssl3_SendNewSessionTicket(ss);
 	    if (rv != SECSuccess) {
 		goto xmit_loser;
@@ -10557,6 +10571,24 @@ ssl3_FinishHandshake(sslSocket * ss)
 
     /* The first handshake is now completed. */
     ss->handshake           = NULL;
+
+    /* RFC 5077 Section 3.3: "The client MUST NOT treat the ticket as valid
+     * until it has verified the server's Finished message." When the server
+     * sends a NewSessionTicket in a resumption handshake, we must wait until
+     * the handshake is finished (we have verified the server's Finished
+     * AND the server's certificate) before we update the ticket in the sid.
+     *
+     * This must be done before we call (*ss->sec.cache)(ss->sec.ci.sid)
+     * because CacheSID requires the session ticket to already be set.
+     */
+    if (ss->ssl3.hs.receivedNewSessionTicket) {
+	PORT_Assert(!ss->sec.isServer);
+	ssl3_SetSIDSessionTicket(ss->sec.ci.sid, &ss->ssl3.hs.newSessionTicket,
+				 ss->ssl3.hs.isResuming);
+	/* The sid took over the ticket data */
+	PORT_Assert(!ss->ssl3.hs.newSessionTicket.ticket.data);
+        ss->ssl3.hs.receivedNewSessionTicket = PR_FALSE;
+    }
 
     if (ss->ssl3.hs.cacheSID) {
 	(*ss->sec.cache)(ss->sec.ci.sid);
@@ -11629,6 +11661,10 @@ ssl3_InitState(sslSocket *ss)
     ss->ssl3.hs.messages.buf = NULL;
     ss->ssl3.hs.messages.space = 0;
 
+    ss->ssl3.hs.receivedNewSessionTicket = PR_FALSE;
+    PORT_Memset(&ss->ssl3.hs.newSessionTicket, 0,
+		sizeof(ss->ssl3.hs.newSessionTicket));
+
     ss->ssl3.initialized = PR_TRUE;
     return SECSuccess;
 }
@@ -11951,6 +11987,8 @@ ssl3_DestroySSL3Info(sslSocket *ss)
 
     /* free the SSL3Buffer (msg_body) */
     PORT_Free(ss->ssl3.hs.msg_body.buf);
+
+    SECITEM_FreeItem(&ss->ssl3.hs.newSessionTicket.ticket, PR_FALSE);
 
     /* free up the CipherSpecs */
     ssl3_DestroyCipherSpec(&ss->ssl3.specs[0], PR_TRUE/*freeSrvName*/);
