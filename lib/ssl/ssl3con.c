@@ -4832,7 +4832,6 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     int              num_suites;
     int              actual_count = 0;
     PRBool           isTLS = PR_FALSE;
-    PRBool           requestingResume = PR_FALSE;
     PRInt32          total_exten_len = 0;
     unsigned         numCompressionMethods;
     PRInt32          flags;
@@ -4974,13 +4973,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     }
 
     if (sid) {
-	requestingResume = PR_TRUE;
 	SSL_AtomicIncrementLong(& ssl3stats.sch_sid_cache_hits );
-
-	/* Are we attempting a stateless session resume? */
-	if (sid->version > SSL_LIBRARY_VERSION_3_0 &&
-	    sid->u.ssl3.sessionTicket.ticket.data)
-	    SSL_AtomicIncrementLong(& ssl3stats.sch_sid_stateless_resumes );
 
 	PRINT_BUF(4, (ss, "client, found session-id:", sid->u.ssl3.sessionID,
 		      sid->u.ssl3.sessionIDLength));
@@ -5050,12 +5043,24 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	ss->ssl3.hs.sendingSCSV = PR_TRUE;
     }
 
+    /* When we attempt session resumption (only), we must lock the sid to
+     * prevent races with other resumption connections that receive a
+     * NewSessionTicket that will cause the ticket in the sid to be replaced.
+     * Once we've copied the session ticket into our ClientHello message, it
+     * is OK for the ticket to change, so we just need to make sure we hold
+     * the lock across the calls to ssl3_CallHelloExtensionSenders.
+     */
+    if (sid->u.ssl3.lock) {
+        PR_RWLock_Rlock(sid->u.ssl3.lock);
+    }
+
     if (isTLS || (ss->firstHsDone && ss->peerRequestedProtection)) {
 	PRUint32 maxBytes = 65535; /* 2^16 - 1 */
 	PRInt32  extLen;
 
 	extLen = ssl3_CallHelloExtensionSenders(ss, PR_FALSE, maxBytes, NULL);
 	if (extLen < 0) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return SECFailure;
 	}
 	maxBytes        -= extLen;
@@ -5078,8 +5083,10 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 
     /* how many suites are permitted by policy and user preference? */
     num_suites = count_cipher_suites(ss, ss->ssl3.policy, PR_TRUE);
-    if (!num_suites)
+    if (!num_suites) {
+    	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
     	return SECFailure;	/* count_cipher_suites has set error code. */
+    }
     if (ss->ssl3.hs.sendingSCSV) {
 	++num_suites;   /* make room for SCSV */
     }
@@ -5101,6 +5108,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 
     rv = ssl3_AppendHandshakeHeader(ss, client_hello, length);
     if (rv != SECSuccess) {
+	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	return rv;	/* err set by ssl3_AppendHandshake* */
     }
 
@@ -5119,18 +5127,21 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	rv = ssl3_AppendHandshakeNumber(ss, ss->clientHelloVersion, 2);
     }
     if (rv != SECSuccess) {
+	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	return rv;	/* err set by ssl3_AppendHandshake* */
     }
 
     if (!resending) { /* Don't re-generate if we are in DTLS re-sending mode */
 	rv = ssl3_GetNewRandom(&ss->ssl3.hs.client_random);
 	if (rv != SECSuccess) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return rv;	/* err set by GetNewRandom. */
 	}
     }
     rv = ssl3_AppendHandshake(ss, &ss->ssl3.hs.client_random,
                               SSL3_RANDOM_LENGTH);
     if (rv != SECSuccess) {
+	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	return rv;	/* err set by ssl3_AppendHandshake* */
     }
 
@@ -5140,6 +5151,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     else
 	rv = ssl3_AppendHandshakeVariable(ss, NULL, 0, 1);
     if (rv != SECSuccess) {
+	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	return rv;	/* err set by ssl3_AppendHandshake* */
     }
 
@@ -5147,12 +5159,14 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	rv = ssl3_AppendHandshakeVariable(
 	    ss, ss->ssl3.hs.cookie, ss->ssl3.hs.cookieLen, 1);
 	if (rv != SECSuccess) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return rv;	/* err set by ssl3_AppendHandshake* */
 	}
     }
 
     rv = ssl3_AppendHandshakeNumber(ss, num_suites*sizeof(ssl3CipherSuite), 2);
     if (rv != SECSuccess) {
+	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	return rv;	/* err set by ssl3_AppendHandshake* */
     }
 
@@ -5161,6 +5175,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	rv = ssl3_AppendHandshakeNumber(ss, TLS_EMPTY_RENEGOTIATION_INFO_SCSV,
 					sizeof(ssl3CipherSuite));
 	if (rv != SECSuccess) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return rv;	/* err set by ssl3_AppendHandshake* */
 	}
 	actual_count++;
@@ -5170,6 +5185,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	if (config_match(suite, ss->ssl3.policy, PR_TRUE, &ss->vrange)) {
 	    actual_count++;
 	    if (actual_count > num_suites) {
+		if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 		/* set error card removal/insertion error */
 		PORT_SetError(SSL_ERROR_TOKEN_INSERTION_REMOVAL);
 		return SECFailure;
@@ -5177,6 +5193,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	    rv = ssl3_AppendHandshakeNumber(ss, suite->cipher_suite,
 					    sizeof(ssl3CipherSuite));
 	    if (rv != SECSuccess) {
+		if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 		return rv;	/* err set by ssl3_AppendHandshake* */
 	    }
 	}
@@ -5187,12 +5204,14 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
      * the server.. */
     if (actual_count != num_suites) {
 	/* Card removal/insertion error */
+	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	PORT_SetError(SSL_ERROR_TOKEN_INSERTION_REMOVAL);
 	return SECFailure;
     }
 
     rv = ssl3_AppendHandshakeNumber(ss, numCompressionMethods, 1);
     if (rv != SECSuccess) {
+	if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	return rv;	/* err set by ssl3_AppendHandshake* */
     }
     for (i = 0; i < compressionMethodsCount; i++) {
@@ -5200,6 +5219,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	    continue;
 	rv = ssl3_AppendHandshakeNumber(ss, compressions[i], 1);
 	if (rv != SECSuccess) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return rv;	/* err set by ssl3_AppendHandshake* */
 	}
     }
@@ -5210,16 +5230,27 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 
 	rv = ssl3_AppendHandshakeNumber(ss, maxBytes, 2);
 	if (rv != SECSuccess) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return rv;	/* err set by AppendHandshake. */
 	}
 
 	extLen = ssl3_CallHelloExtensionSenders(ss, PR_TRUE, maxBytes, NULL);
 	if (extLen < 0) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return SECFailure;
 	}
 	maxBytes -= extLen;
 	PORT_Assert(!maxBytes);
     } 
+
+    if (sid->u.ssl3.lock) {
+        PR_RWLock_Unlock(sid->u.ssl3.lock);
+    }
+
+    if (ss->xtnData.sentSessionTicketInClientHello) {
+        SSL_AtomicIncrementLong(&ssl3stats.sch_sid_stateless_resumes);
+    }
+
     if (ss->ssl3.hs.sendingSCSV) {
 	/* Since we sent the SCSV, pretend we sent empty RI extension. */
 	TLSExtensionData *xtnData = &ss->xtnData;
@@ -6400,8 +6431,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	SSL_AtomicIncrementLong(& ssl3stats.hsh_sid_cache_hits );
 
 	/* If we sent a session ticket, then this is a stateless resume. */
-	if (sid->version > SSL_LIBRARY_VERSION_3_0 &&
-	    sid->u.ssl3.sessionTicket.ticket.data != NULL)
+	if (ss->xtnData.sentSessionTicketInClientHello)
 	    SSL_AtomicIncrementLong(& ssl3stats.hsh_sid_stateless_resumes );
 
 	if (ssl3_ExtensionNegotiated(ss, ssl_session_ticket_xtn))
@@ -10579,18 +10609,20 @@ ssl3_FinishHandshake(sslSocket * ss)
      * AND the server's certificate) before we update the ticket in the sid.
      *
      * This must be done before we call (*ss->sec.cache)(ss->sec.ci.sid)
-     * because CacheSID requires the session ticket to already be set.
+     * because CacheSID requires the session ticket to already be set, and also
+     * because of the lazy lock creation scheme used by CacheSID and
+     * ssl3_SetSIDSessionTicket.
      */
     if (ss->ssl3.hs.receivedNewSessionTicket) {
 	PORT_Assert(!ss->sec.isServer);
-	ssl3_SetSIDSessionTicket(ss->sec.ci.sid, &ss->ssl3.hs.newSessionTicket,
-				 ss->ssl3.hs.isResuming);
+	ssl3_SetSIDSessionTicket(ss->sec.ci.sid, &ss->ssl3.hs.newSessionTicket);
 	/* The sid took over the ticket data */
 	PORT_Assert(!ss->ssl3.hs.newSessionTicket.ticket.data);
         ss->ssl3.hs.receivedNewSessionTicket = PR_FALSE;
     }
 
     if (ss->ssl3.hs.cacheSID) {
+	PORT_Assert(ss->sec.ci.sid->cached == never_cached);
 	(*ss->sec.cache)(ss->sec.ci.sid);
 	ss->ssl3.hs.cacheSID = PR_FALSE;
     }
