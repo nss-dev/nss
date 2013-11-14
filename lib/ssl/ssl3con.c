@@ -865,16 +865,10 @@ ssl3_NegotiateVersion(sslSocket *ss, SSL3ProtocolVersion peerVersion,
 static SECStatus
 ssl3_GetNewRandom(SSL3Random *random)
 {
-    PRUint32 gmt = ssl_Time();
     SECStatus rv;
 
-    random->rand[0] = (unsigned char)(gmt >> 24);
-    random->rand[1] = (unsigned char)(gmt >> 16);
-    random->rand[2] = (unsigned char)(gmt >>  8);
-    random->rand[3] = (unsigned char)(gmt);
-
     /* first 4 bytes are reserverd for time */
-    rv = PK11_GenerateRandom(&random->rand[4], SSL3_RANDOM_LENGTH - 4);
+    rv = PK11_GenerateRandom(random->rand, SSL3_RANDOM_LENGTH);
     if (rv != SECSuccess) {
 	ssl_MapLowLevelError(SSL_ERROR_GENERATE_RANDOM_FAILURE);
     }
