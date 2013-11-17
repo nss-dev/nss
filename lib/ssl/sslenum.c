@@ -28,10 +28,10 @@
  *      strong cipher internationally, and is often hardware-accelerated.
  *      Camellia also has wide international support across standards
  *      organizations. SEED is only recommended by the Korean government. 3DES
- *      and RC4 are now considered deprecated or forbidden by many standards
- *      organizations.
+ *      only provides 112 bits of security. RC4 is now deprecated or forbidden
+ *      by many standards organizations.
  *    * Within symmetric algorithm sections, order by message authentication
- *      algorithm: GCM-SHA256, then HMAC-SHA1, then HMAC-SHA256, then HMAC-MD5.
+ *      algorithm: GCM, then HMAC-SHA1, then HMAC-SHA256, then HMAC-MD5.
  *    * Within message authentication algorithm sections, order by asymmetric
  *      signature algorithm: ECDSA, then RSA, then DSS.
  */
