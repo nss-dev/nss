@@ -49,7 +49,6 @@ trusted implementation.  bltest will generate a key and store it in
 RSA-OAEP/RSA-PSS:
 RSA-OAEP and RSA-PSS have a number of additional parameters to feed in.
 - "seedN": The seed or salt to use when encrypting/signing
-- "labelN": The label used (as a base64 string)
 - "hashN" / "maskhashN" - The base digest algorithm and the digest algorithm
    to use with MGF1, respectively. This should be an ASCII string specifying
    one of the hash algorithms recognized by bltest (eg: "sha1", "sha256")
