@@ -1237,7 +1237,6 @@ int
 ssl_SecureSend(sslSocket *ss, const unsigned char *buf, int len, int flags)
 {
     int rv = 0;
-    PRBool falseStart = PR_FALSE;
 
     SSL_TRC(2, ("%d: SSL[%d]: SecureSend: sending %d bytes",
 		SSL_GETPID(), ss->fd, len));
@@ -1272,6 +1271,7 @@ ssl_SecureSend(sslSocket *ss, const unsigned char *buf, int len, int flags)
     	ss->writerThread = PR_GetCurrentThread();
     /* If any of these is non-zero, the initial handshake is not done. */
     if (!ss->firstHsDone) {
+	PRBool falseStart = PR_FALSE;
 	ssl_Get1stHandshakeLock(ss);
 	if (ss->opt.enableFalseStart &&
 	    ss->version >= SSL_LIBRARY_VERSION_3_0) {
