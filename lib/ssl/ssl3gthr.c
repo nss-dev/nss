@@ -370,19 +370,18 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 
 	    cText.buf     = &ss->gs.inbuf;
 	    rv = ssl3_HandleRecord(ss, &cText, &ss->gs.buf);
-
-	    if (rv == (int) SECSuccess && ss->gs.buf.len > 0) {
-		/* We have application data to return to the application. This
-		 * prioritizes returning application data to the application over
-		 * completing any renegotiation handshake we may be doing.
-		 */
-		PORT_Assert(ss->firstHsDone);
-		PORT_Assert(cText.type == content_application_data);
-		break;
-	    }
 	}
 	if (rv < 0) {
 	    return ss->recvdCloseNotify ? 0 : rv;
+	}
+	if (ss->gs.buf.len > 0) {
+	    /* We have application data to return to the application. This
+	     * prioritizes returning application data to the application over
+	     * completing any renegotiation handshake we may be doing.
+	     */
+	    PORT_Assert(ss->firstHsDone);
+	    PORT_Assert(cText.type == content_application_data);
+	    break;
 	}
 
 	PORT_Assert(keepGoing);
