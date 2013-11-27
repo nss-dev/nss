@@ -277,7 +277,7 @@ SSL_ReHandshake(PRFileDesc *fd, PRBool flushCache)
 
     /* SSL v2 protocol does not support subsequent handshakes. */
     if (ss->version < SSL_LIBRARY_VERSION_3_0) {
-	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_SSL2);
 	rv = SECFailure;
     } else {
 	ssl_GetSSL3HandshakeLock(ss);
