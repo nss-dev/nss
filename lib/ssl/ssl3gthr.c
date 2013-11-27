@@ -325,6 +325,12 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 	    rv = ssl3_HandleRecord(ss, NULL, &ss->gs.buf);
 	} else {
 	    /* bring in the next sslv3 record. */
+	    if (ss->recvdCloseNotify) {
+		/* RFC 5246 Section 7.2.1:
+		 *   Any data received after a closure alert is ignored.
+		 */
+		return 0;
+	    }
 	    if (!IS_DTLS(ss)) {
 		rv = ssl3_GatherData(ss, &ss->gs, flags);
 	    } else {
