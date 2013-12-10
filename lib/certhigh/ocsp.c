@@ -3683,7 +3683,7 @@ cert_GetOCSPResponse(PLArenaPool *arena, const char *location,
     size_t pathLength;
     PRInt32 urlEncodedBufLength;
     size_t base64size;
-    unsigned char b64ReqBuf[max_get_request_size+1];
+    char b64ReqBuf[max_get_request_size+1];
     size_t slashLengthIfNeeded = 0;
     size_t getURLLength;
     SECItem *item;
@@ -3705,7 +3705,8 @@ cert_GetOCSPResponse(PLArenaPool *arena, const char *location,
 	return NULL;
     }
     memset(b64ReqBuf, 0, sizeof(b64ReqBuf));
-    PL_Base64Encode(encodedRequest->data, encodedRequest->len, b64ReqBuf);
+    PL_Base64Encode((const char*)encodedRequest->data, encodedRequest->len,
+		    b64ReqBuf);
 
     urlEncodedBufLength = ocsp_UrlEncodeBase64Buf(b64ReqBuf, NULL);
     getURLLength = pathLength + urlEncodedBufLength + slashLengthIfNeeded;
