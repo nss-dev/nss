@@ -32,9 +32,8 @@
 #include "nssb64.h"
 #include "sechash.h"
 #include "cert.h"
-#include "certt.h"
+#include "certdb.h"
 #include "ocsp.h"
-#include "ocspt.h"
 #include "ocspti.h"
 #include "ocspi.h"
 
@@ -1365,7 +1364,7 @@ main(int argc, char **argv)
 		if (revoInfo->id)
 		    CERT_DestroyOCSPCertID(revoInfo->id);
 		if (revoInfo->crl)
-		    CERT_DestroyCrl(revoInfo->crl);
+		    SEC_DestroyCrl(revoInfo->crl);
 		
 		caRevoIter = PR_NEXT_LINK(caRevoIter);
 	    } while (caRevoIter != &caRevoInfos->link);
