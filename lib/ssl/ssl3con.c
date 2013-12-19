@@ -1611,7 +1611,7 @@ ssl3_InitPendingContextsBypass(sslSocket *ss)
 
     calg = cipher_def->calg;
 
-    if (calg == calg_aes_gcm) {
+    if (calg == ssl_calg_aes_gcm) {
 	pwSpec->encode = NULL;
 	pwSpec->decode = NULL;
 	pwSpec->destroy = NULL;
@@ -1727,6 +1727,7 @@ ssl3_InitPendingContextsBypass(sslSocket *ss)
     case ssl_calg_rc2:
     case ssl_calg_idea:
     case ssl_calg_fortezza:
+    case ssl_calg_aes_gcm:
         break;
     }
 
