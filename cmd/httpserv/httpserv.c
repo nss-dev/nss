@@ -1070,19 +1070,19 @@ ocsp_CreateSelfCAID(PLArenaPool *arena, CERTCertificate *cert, PRTime time)
         goto loser;
     }
 
-    if (CERT_GetSPKIDigest(arena, cert, SEC_OID_SHA1,
-				   &(certID->issuerKeyHash)) == NULL) {
+    if (CERT_GetSubjectPublicKeyDigest(arena, cert, SEC_OID_SHA1,
+				       &certID->issuerKeyHash) == NULL) {
 	goto loser;
     }
     certID->issuerSHA1KeyHash.data = certID->issuerKeyHash.data;
     certID->issuerSHA1KeyHash.len = certID->issuerKeyHash.len;
     /* cache the other two hash algorithms as well */
-    if (CERT_GetSPKIDigest(arena, cert, SEC_OID_MD5,
-				   &(certID->issuerMD5KeyHash)) == NULL) {
+    if (CERT_GetSubjectPublicKeyDigest(arena, cert, SEC_OID_MD5,
+				       &certID->issuerMD5KeyHash) == NULL) {
 	goto loser;
     }
-    if (CERT_GetSPKIDigest(arena, cert, SEC_OID_MD2,
-				   &(certID->issuerMD2KeyHash)) == NULL) {
+    if (CERT_GetSubjectPublicKeyDigest(arena, cert, SEC_OID_MD2,
+				       &certID->issuerMD2KeyHash) == NULL) {
 	goto loser;
     }
 
