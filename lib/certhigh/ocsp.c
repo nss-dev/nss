@@ -5209,8 +5209,12 @@ CERT_CacheOCSPResponseFromSideChannel(CERTCertDBHandle *handle,
     certID = CERT_CreateOCSPCertID(cert, time);
     if (!certID)
         return SECFailure;
+
+    /* We pass PR_TRUE for ignoreGlobalOcspFailureSetting so that a cached
+     * error entry is not interpreted as being a 'Good' entry here.
+     */
     rv = ocsp_GetCachedOCSPResponseStatus(
-        certID, time, PR_FALSE, /* ignoreGlobalOcspFailureSetting */
+        certID, time, PR_TRUE, /* ignoreGlobalOcspFailureSetting */
         &rvOcsp, &dummy_error_code, &freshness);
     if (rv == SECSuccess && rvOcsp == SECSuccess && freshness == ocspFresh) {
         /* The cached value is good. We don't want to waste time validating
