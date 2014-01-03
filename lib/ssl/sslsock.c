@@ -152,7 +152,7 @@ ssl_GetPrivate(PRFileDesc *fd)
     }
 
     ss = (sslSocket *)fd->secret;
-    ss->fd = fd;
+    PORT_Assert(ss->fd == fd);
     return ss;
 }
 
@@ -177,7 +177,7 @@ ssl_FindSocket(PRFileDesc *fd)
     }
 
     ss = (sslSocket *)layer->secret;
-    ss->fd = layer;
+    PORT_Assert(ss->fd == layer);
     return ss;
 }
 
@@ -1316,10 +1316,13 @@ ssl_ImportFD(PRFileDesc *model, PRFileDesc *fd, SSLProtocolVariant variant)
 	SET_ERROR_CODE
 	return NULL;
     }
-    ns = ssl_FindSocket(fd);
-    PORT_Assert(ns);
-    if (ns)
-	ns->TCPconnected = (PR_SUCCESS == ssl_DefGetpeername(ns, &addr));
+#if defined(DEBUG) || defined(FORCE_PR_ASSERT)
+    {
+	sslSocket * ss = ssl_FindSocket(fd);
+	PORT_Assert(ss == ns);
+    }
+#endif
+    ns->TCPconnected = (PR_SUCCESS == ssl_DefGetpeername(ns, &addr));
     return fd;
 }
 
