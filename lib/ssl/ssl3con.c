@@ -5265,6 +5265,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 
 	extLen = ssl3_AppendPaddingExtension(ss, paddingExtensionLen, maxBytes);
 	if (extLen < 0) {
+	    if (sid->u.ssl3.lock) { PR_RWLock_Unlock(sid->u.ssl3.lock); }
 	    return SECFailure;
 	}
 	maxBytes -= extLen;
