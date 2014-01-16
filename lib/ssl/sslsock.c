@@ -2397,6 +2397,7 @@ static PRInt32 PR_CALLBACK
 ssl_WriteV(PRFileDesc *fd, const PRIOVec *iov, PRInt32 vectors, 
            PRIntervalTime timeout)
 {
+    PRInt32            i;
     PRInt32            bufLen;
     PRInt32            left;
     PRInt32            rv;
@@ -2407,9 +2408,19 @@ ssl_WriteV(PRFileDesc *fd, const PRIOVec *iov, PRInt32 vectors,
     PRIOVec            myIov	 = { 0, 0 };
     char               buf[MAX_FRAGMENT_LENGTH];
 
+    if (vectors < 0) {
+    	PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
+	return -1;
+    }
     if (vectors > PR_MAX_IOVECTOR_SIZE) {
     	PORT_SetError(PR_BUFFER_OVERFLOW_ERROR);
 	return -1;
+    }
+    for (i = 0; i < vectors; i++) {
+	if (iov[i].iov_len < 0) {
+	    PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
+	    return -1;
+	}
     }
     blocking = ssl_FdIsBlocking(fd);
 
