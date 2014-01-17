@@ -154,6 +154,11 @@ ssl_GetPrivate(PRFileDesc *fd)
     }
 
     ss = (sslSocket *)fd->secret;
+    /* Set ss->fd lazily. We can't rely on the value of ss->fd set by
+     * ssl_PushIOLayer because another PR_PushIOLayer call will switch the
+     * contents of the PRFileDesc pointed by ss->fd and the new layer.
+     * See bug 807250.
+     */
     ss->fd = fd;
     return ss;
 }
@@ -179,6 +184,11 @@ ssl_FindSocket(PRFileDesc *fd)
     }
 
     ss = (sslSocket *)layer->secret;
+    /* Set ss->fd lazily. We can't rely on the value of ss->fd set by
+     * ssl_PushIOLayer because another PR_PushIOLayer call will switch the
+     * contents of the PRFileDesc pointed by ss->fd and the new layer.
+     * See bug 807250.
+     */
     ss->fd = layer;
     return ss;
 }
