@@ -2017,7 +2017,7 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
         char *env;
         env = PR_GetEnv("NSS_SDB_USE_CACHE");
         /* If the environment variable is set to yes or no, sdb_init() will
-         * ignore the value of accessOps, and we can skip the measuring. */
+         * ignore the value of accessOps, and we can skip the measuring.*/
         if (!env || ((PORT_Strcasecmp(env, "no") != 0) &&
                      (PORT_Strcasecmp(env, "yes") != 0))){
            accessOps = sdb_measureAccess(directory);
