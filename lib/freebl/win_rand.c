@@ -367,32 +367,24 @@ void RNG_FileForRNG(const char *filename)
 
 
 /*
- * Windows XP and Windows Server 2003 and later have RtlGenRandom,
- * which must be looked up by the name SystemFunction036.
+ * The RtlGenRandom function is declared in <ntsecapi.h>, but the
+ * declaration is missing a calling convention specifier. So we
+ * declare it manually here.
  */
-typedef BOOLEAN
-(APIENTRY *RtlGenRandomFn)(
+#define RtlGenRandom SystemFunction036
+BOOLEAN WINAPI RtlGenRandom(
     PVOID RandomBuffer,
     ULONG RandomBufferLength);
 
 size_t RNG_SystemRNG(void *dest, size_t maxLen)
 {
-    HMODULE hModule;
-    RtlGenRandomFn pRtlGenRandom;
     size_t bytes = 0;
 
     usedWindowsPRNG = PR_FALSE;
-    hModule = LoadLibrary("advapi32.dll");
-    if (hModule == NULL) {
-	return bytes;
-    }
-    pRtlGenRandom = (RtlGenRandomFn)
-	GetProcAddress(hModule, "SystemFunction036");
-    if (pRtlGenRandom && pRtlGenRandom(dest, maxLen)) {
+    if (RtlGenRandom(dest, maxLen)) {
 	bytes = maxLen;
 	usedWindowsPRNG = PR_TRUE;
     }
-    FreeLibrary(hModule);
     return bytes;
 }
 #endif  /* is XP_WIN */
