@@ -29,14 +29,10 @@ typedef enum {
         BUILD_GATHERPENDING,
         BUILD_CERTVALIDATING,
         BUILD_ABANDONNODE,
-        BUILD_CRLPREP,
-        BUILD_CRL1,
         BUILD_DATEPREP,
         BUILD_CHECKTRUSTED,
         BUILD_CHECKTRUSTED2,
         BUILD_ADDTOCHAIN,
-        BUILD_CRL2PREP,
-        BUILD_CRL2,
         BUILD_VALCHAIN,
         BUILD_VALCHAIN2,
         BUILD_EXTENDCHAIN,
@@ -87,7 +83,6 @@ struct PKIX_ForwardBuilderStateStruct{
         PKIX_UInt32 numFanout;
         PKIX_UInt32 numDepth;
         PKIX_UInt32 reasonCode;
-        PKIX_Boolean revCheckDelayed;
         PKIX_Boolean canBeCached;
         PKIX_Boolean useOnlyLocal;
         PKIX_Boolean revChecking;
