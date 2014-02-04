@@ -1269,6 +1269,9 @@ PKIX_PL_Cert_AreCertPoliciesCritical(
  *      Must be non-NULL.
  *  "nameConstraints"
  *      Address of CertNameConstraints that need to be satisfied.
+ *  "treatCommonNameAsDNSName"
+ *      PKIX_TRUE if the subject common name should be considered a dNSName
+ *      when evaluating name constraints.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -1282,6 +1285,7 @@ PKIX_Error *
 PKIX_PL_Cert_CheckNameConstraints(
         PKIX_PL_Cert *cert,
         PKIX_PL_CertNameConstraints *nameConstraints,
+        PKIX_Boolean treatCommonNameAsDNSName,
         void *plContext);
 
 /*
