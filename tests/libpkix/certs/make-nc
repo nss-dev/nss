@@ -340,6 +340,90 @@ y
 n
 CERTSCRIPT
 
+certutil -S -z noise -g 1024 -d . -n ncca -s "CN=NSS Name Constrained Root CA,O=BOGUS NSS,L=Mountain View,ST=CA,C=US" -t C,C,C -x -m 2 -w -1 -v 118 -1 -2 -5 --extNC <<CERTSCRIPT
+5
+6
+9
+n
+y
+
+n
+3
+.example
+1
+n
+n
+5
+6
+7
+9
+n
+CERTSCRIPT
+
+certutil -S -z noise -g 1024 -d . -n ica6 -s "CN=NSS Intermediate CA6,O=OtherOrg,ST=CA,C=US" -t ,, -c ncca -m 63 -w -2 -v 120 -1 -2 -5 <<CERTSCRIPT
+5
+6
+9
+n
+y
+
+n
+5
+6
+7
+9
+n
+CERTSCRIPT
+
+certutil -S -z noise -g 1024 -d . -n server15 -s "CN=testfoo.invalid,O=BOGUS NSS,L=Mountain View,ST=California,C=US" -t ,, -c ica6 -m 64 -v 115 -1 -2 -5 -8 testfoo.invalid <<CERTSCRIPT
+0
+2
+3
+4
+9
+n
+n
+
+y
+0
+1
+9
+n
+CERTSCRIPT
+
+certutil -S -z noise -g 1024 -d . -n server16 -s "CN=another_test3.invalid,O=BOGUS NSS,L=Mountain View,ST=California,C=US" -t ,, -c ica6 -m 65 -v 115 -1 -2 -5 <<CERTSCRIPT
+0
+2
+3
+4
+9
+n
+n
+
+y
+0
+1
+9
+n
+CERTSCRIPT
+
+certutil -S -z noise -g 1024 -d . -n server17 -s "CN=test4.example,O=BOGUS NSS,L=Mountain View,ST=California,C=US" -t ,, -c ica6 -m 66 -v 115 -1 -2 -5 -8 test4.example <<CERTSCRIPT
+0
+2
+3
+4
+9
+n
+n
+
+y
+0
+1
+9
+n
+CERTSCRIPT
+
+
 certutil -d . -L -n ca -r > NameConstraints.ca.cert
 certutil -d . -L -n ica -r > NameConstraints.intermediate.cert
 certutil -d . -L -n server1 -r > NameConstraints.server1.cert
@@ -361,5 +445,10 @@ certutil -d . -L -n server12 -r > NameConstraints.server12.cert
 certutil -d . -L -n ica5 -r > NameConstraints.intermediate5.cert
 certutil -d . -L -n server13 -r > NameConstraints.server13.cert
 certutil -d . -L -n server14 -r > NameConstraints.server14.cert
+certutil -d . -L -n ncca -r > NameConstraints.ncca.cert
+certutil -d . -L -n ica6 -r > NameConstraints.intermediate6.cert
+certutil -d . -L -n server15 -r > NameConstraints.server15.cert
+certutil -d . -L -n server16 -r > NameConstraints.server16.cert
+certutil -d . -L -n server17 -r > NameConstraints.server17.cert
 
 echo "Created multiple files in subdirectory tmp: NameConstraints.ca.cert NameConstraints.intermediate.cert NameConstraints.server1.cert NameConstraints.server2.cert NameConstraints.server3.cert NameConstraints.intermediate2.cert NameConstraints.server4.cert NameConstraints.server5.cert NameConstraints.server6.cert"
