@@ -273,7 +273,6 @@ SEC_PKCS7VerifyDetachedSignatureAtTime;
 ;+    local:
 ;+       *;
 ;+};
-NSS_CMSSignerInfo_Verify;
 ;+NSS_3.16 {    # NSS 3.16 release
 ;+    global:
 NSS_CMSSignerInfo_Verify;
