@@ -1386,18 +1386,22 @@ cert_TestHostName(char * cn, const char * hn)
 	char *firstcndot  = PORT_Strchr(cn, '.');
 	char *secondcndot = firstcndot ? PORT_Strchr(firstcndot+1, '.') : NULL;
 	char *firsthndot  = PORT_Strchr(hn, '.');
+	/* RFC 6125 IDN matching */
+	int firstace      = PORT_Strncasecmp('xn--', cn, 4);
 
 	/* For a cn pattern to be considered valid, the wildcard character...
 	 * - may occur only in a DNS name with at least 3 components, and
 	 * - may occur only as last character in the first component, and
-	 * - may be preceded by additional characters
+	 * - may be preceded by additional characters, and
+	 * - must not be preceded by an IDN ACE prefix (xn--)
 	 */
 	if (wildcard && secondcndot && secondcndot[1] && firsthndot 
 	    && firstcndot  - wildcard  == 1
 	    && secondcndot - firstcndot > 1
 	    && PORT_Strrchr(cn, '*') == wildcard
 	    && !PORT_Strncasecmp(cn, hn, wildcard - cn)
-	    && !PORT_Strcasecmp(firstcndot, firsthndot)) {
+	    && !PORT_Strcasecmp(firstcndot, firsthndot)
+	    && firstace != 0) {
 	    /* valid wildcard pattern match */
 	    return SECSuccess;
 	}
