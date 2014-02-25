@@ -1381,27 +1381,26 @@ cert_TestHostName(char * cn, const char * hn)
 	    return rv;
 	}
     } else {
-	/* New approach conforms to RFC 2818. */
+	/* New approach conforms to RFC 6125. */
 	char *wildcard    = PORT_Strchr(cn, '*');
 	char *firstcndot  = PORT_Strchr(cn, '.');
 	char *secondcndot = firstcndot ? PORT_Strchr(firstcndot+1, '.') : NULL;
 	char *firsthndot  = PORT_Strchr(hn, '.');
-	/* RFC 6125 IDN matching */
-	int firstace      = PORT_Strncasecmp('xn--', cn, 4);
 
 	/* For a cn pattern to be considered valid, the wildcard character...
 	 * - may occur only in a DNS name with at least 3 components, and
 	 * - may occur only as last character in the first component, and
 	 * - may be preceded by additional characters, and
-	 * - must not be preceded by an IDN ACE prefix (xn--)
+	 * - must not be preceded by an IDNA ACE prefix (xn--)
 	 */
 	if (wildcard && secondcndot && secondcndot[1] && firsthndot 
-	    && firstcndot  - wildcard  == 1
-	    && secondcndot - firstcndot > 1
-	    && PORT_Strrchr(cn, '*') == wildcard
+	    && firstcndot  - wildcard  == 1 /* no chars between * and . */
+	    && secondcndot - firstcndot > 1 /* not .. */
+	    && PORT_Strrchr(cn, '*') == wildcard /* only one wildcard in cn */
 	    && !PORT_Strncasecmp(cn, hn, wildcard - cn)
 	    && !PORT_Strcasecmp(firstcndot, firsthndot)
-	    && firstace != 0) {
+	       /* If hn starts with xn--, then cn must start with wildcard */
+	    && (PORT_Strncasecmp(hn, "xn--", 4) || wildcard == cn)) {
 	    /* valid wildcard pattern match */
 	    return SECSuccess;
 	}
