@@ -969,7 +969,7 @@ AESContext * AES_AllocateContext(void)
 }
 
 
-#ifdef USE_HW_AES
+#ifdef INTEL_GCM
 /*
  * Adapted from the example code in "How to detect New Instruction support in
  * the 4th generation Intel Core processor family" by Max Locktyukhin.
