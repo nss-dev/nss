@@ -198,7 +198,7 @@ KeyType SECKEY_GetPublicKeyType(const SECKEYPublicKey *pubKey);
 
 /*
  * Creates a PublicKey from its DER encoding.
- * Currently only supports RSA and DSA keys.
+ * Currently only supports RSA, DSA, and DH keys.
  */
 SECKEYPublicKey*
 SECKEY_ImportDERPublicKey(const SECItem *derKey, CK_KEY_TYPE type);
