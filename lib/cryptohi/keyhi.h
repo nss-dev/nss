@@ -93,16 +93,6 @@ extern CERTSubjectPublicKeyInfo *
 SECKEY_CreateSubjectPublicKeyInfo(SECKEYPublicKey *k);
 
 /*
-** Decode a DER encoded public key into an SECKEYPublicKey structure.
-*/
-extern SECKEYPublicKey *SECKEY_DecodeDERPublicKey(const SECItem *pubkder);
-
-/*
-** Convert a base64 ascii encoded DER public key to our internal format.
-*/
-extern SECKEYPublicKey *SECKEY_ConvertAndDecodePublicKey(const char *pubkstr);
-
-/*
 ** Convert a base64 ascii encoded DER public key and challenge to spki,
 ** and verify the signature and challenge data are correct
 */
