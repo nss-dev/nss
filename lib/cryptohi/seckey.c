@@ -1695,7 +1695,7 @@ SECKEY_ImportDERPublicKey(const SECItem *derKey, CK_KEY_TYPE type)
 finish:
     if (rv != SECSuccess) {
         if (arena != NULL) {
-            PORT_FreeArena(arena, PR_TRUE);
+            PORT_FreeArena(arena, PR_FALSE);
         }
         pubk = NULL;
     }
