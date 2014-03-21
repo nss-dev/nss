@@ -1373,7 +1373,6 @@ SECKEY_DecodeDERPublicKey(const SECItem *pubkder)
         }
 	if (rv == SECSuccess)
 	    return pubk;
-	SECKEY_DestroyPublicKey (pubk);
     } else {
 	PORT_SetError (SEC_ERROR_NO_MEMORY);
     }
