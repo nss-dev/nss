@@ -24,6 +24,16 @@
 
 #if defined (_WIN32)
 #include <io.h>
+#endif
+#ifdef XP_UNIX
+#include <unistd.h>
+#endif
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#if defined (_WIN32)
 #define os_open _open
 #define os_fdopen _fdopen
 #define os_fdstat _fdstat
@@ -156,13 +166,6 @@ static SECStatus nssutil_AddSecmodDBEntry(const char *appName,
                                           const char *filename,
                                           const char *dbname,
                                           char *module, PRBool rw);
-
-#ifdef XP_UNIX
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#endif
-#include <fcntl.h>
 
 enum lfopen_mode { lfopen_truncate, lfopen_append };
 
