@@ -36,7 +36,6 @@
 #if defined (_WIN32)
 #define os_open _open
 #define os_fdopen _fdopen
-#define os_fdstat _fdstat
 #define os_stat _stat
 #define os_truncate_open_flags _O_CREAT|_O_RDWR|_O_TRUNC
 #define os_append_open_flags _O_CREAT|_O_RDWR|_O_APPEND
@@ -46,7 +45,6 @@
 #else
 #define os_open open
 #define os_fdopen fdopen
-#define os_fdstat fdstat
 #define os_stat stat
 #define os_truncate_open_flags O_CREAT|O_RDWR|O_TRUNC
 #define os_append_open_flags O_CREAT|O_RDWR|O_APPEND
@@ -500,16 +498,16 @@ nssutil_DeleteSecmodDBEntry(const char *appName,
     if (dbname2 == NULL) goto loser;
     dbname2[strlen(dbname)-1]++;
 
-    /* do we really want to use streams here */
-    fd = fopen(dbname, "r");
-    if (fd == NULL) goto loser;
-
     /* get the permissions of the existing file, or use the default */
-    if (!fstat(fd, &stat_existing)) {
+    if (!os_stat(dbname, &stat_existing)) {
 	file_mode = stat_existing.st_mode;
     } else {
 	file_mode = os_open_permissions_default;
     }
+
+    /* do we really want to use streams here */
+    fd = fopen(dbname, "r");
+    if (fd == NULL) goto loser;
 
     fd2 = lfopen(dbname2, lfopen_truncate, file_mode);
 
@@ -633,7 +631,7 @@ nssutil_AddSecmodDBEntry(const char *appName,
     (void) nssutil_DeleteSecmodDBEntry(appName, filename, dbname, module, rw);
 
     /* get the permissions of the existing file, or use the default */
-    if (!stat(dbname, &stat_existing)) {
+    if (!os_stat(dbname, &stat_existing)) {
 	file_mode = stat_existing.st_mode;
     } else {
 	file_mode = os_open_permissions_default;
