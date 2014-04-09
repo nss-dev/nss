@@ -1180,11 +1180,12 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	break;
     case NSS_AES_CTR:
 	cx->worker_cx = CTR_CreateContext(cx, cx->worker, iv, blocksize);
-	cx->worker = (freeblCipherFunc) CTR_Update;
 #if defined(USE_HW_AES) && defined(_MSC_VER)
 	if (use_hw_aes)
 	    cx->worker = (freeblCipherFunc) CTR_Update_HW_AES;
+	else
 #endif
+	    cx->worker = (freeblCipherFunc) CTR_Update;
 	cx->destroy = (freeblDestroyFunc) CTR_DestroyContext;
 	cx->isBlock = PR_FALSE;
 	break;
