@@ -672,6 +672,8 @@ loop8:
         movdqu  xmm8, [5*16 + input]
         pxor    xmm6, xmm8
         movdqu  xmm8, [6*16 + input]
+        pxor    xmm7, xmm8
+        movdqu  xmm8, [7*16 + input]
 
         movdqu  [0*16 + output], xmm0
         movdqu  [1*16 + output], xmm1
