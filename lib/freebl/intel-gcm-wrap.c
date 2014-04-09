@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /* Copyright(c) 2013, Intel Corp. */
 
-/* Wrapper funcions for Intel optimized implementation of AES-GCM */
+/* Wrapper functions for Intel optimized implementation of AES-GCM */
 
 #ifdef USE_HW_AES
 
@@ -24,12 +24,8 @@
 #include "intel-gcm.h"
 #include "rijndael.h"
 
-#if defined(__INTEL_COMPILER)
-#include <ia32intrin.h> 
-#elif defined(__GNUC__) || defined(__SUNPRO_C)
 #include <emmintrin.h>
 #include <tmmintrin.h>
-#endif
 
 
 struct intel_AES_GCMContextStr{
