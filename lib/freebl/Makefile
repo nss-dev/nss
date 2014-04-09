@@ -135,6 +135,9 @@ else
     ifdef BUILD_OPT
 	OPTIMIZER += -Ox  # maximum optimization for freebl
     endif
+    DEFINES += -DUSE_HW_AES -DINTEL_GCM
+    ASFILES += intel-aes-x86-masm.asm intel-gcm-x86-masm.asm
+    EXTRA_SRCS += intel-gcm-wrap.c
 endif
 else
     # -DMP_NO_MP_WORD
@@ -150,6 +153,9 @@ else
     ASFILES  = arcfour-amd64-masm.asm mpi_amd64_masm.asm mp_comba_amd64_masm.asm
     DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
     DEFINES += -DNSS_USE_COMBA
+    DEFINES += -DUSE_HW_AES -DINTEL_GCM
+    ASFILES += intel-aes-x64-masm.asm intel-gcm-x64-masm.asm
+    EXTRA_SRCS += intel-gcm-wrap.c
     MPI_SRCS += mpi_amd64.c
 endif
 endif
