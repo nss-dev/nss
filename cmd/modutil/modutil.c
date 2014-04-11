@@ -832,6 +832,10 @@ main(int argc, char *argv[])
 		goto loser;
 	}
 
+	if ((LoadMechanismList()) != SUCCESS) {
+		goto loser;
+	}
+
 	/* Execute the command */
 	switch(command) {
 	case ADD_COMMAND:
