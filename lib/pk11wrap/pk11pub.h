@@ -773,7 +773,7 @@ PK11_GetPBECryptoMechanism(SECAlgorithmID *algid,
 /**********************************************************************
  * Functions to manage secmod flags
  **********************************************************************/
-const PK11DefaultArrayEntry *PK11_GetDefaultArray(int *size);
+PK11DefaultArrayEntry *PK11_GetDefaultArray(int *size);
 SECStatus PK11_UpdateSlotAttribute(PK11SlotInfo *slot,
 				   const PK11DefaultArrayEntry *entry,
 				   PRBool add);
