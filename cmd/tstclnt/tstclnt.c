@@ -1048,8 +1048,7 @@ int main(int argc, char **argv)
 	    }
 	    err = PR_GetError();
 	    if ((err != PR_CONNECT_REFUSED_ERROR) && 
-	        (err != PR_CONNECT_RESET_ERROR) &&
-	        (err != PR_ADDRESS_IN_USE_ERROR)) {
+	        (err != PR_CONNECT_RESET_ERROR)) {
 		SECU_PrintError(progName, "TCP Connection failed");
 		return 1;
 	    }
@@ -1088,7 +1087,6 @@ int main(int argc, char **argv)
         disableAllSSLCiphers();
     }
 
-retry:
     /* Create socket */
     s = PR_OpenTCPSocket(addr.raw.family);
     if (s == NULL) {
@@ -1259,7 +1257,7 @@ retry:
 			progName);
 		filesReady = PR_Poll(pollset, 1, PR_INTERVAL_NO_TIMEOUT);
 		if (filesReady < 0) {
-		    SECU_PrintError(progName, "unable to poll");
+		    SECU_PrintError(progName, "unable to connect (poll)");
 		    return 1;
 		}
 		FPRINTF(stderr,
@@ -1273,12 +1271,8 @@ retry:
 		if (status == PR_SUCCESS) {
 		    break;
 		}
-		if (PR_GetError() == PR_ADDRESS_IN_USE_ERROR) {
-		    PR_Close(s);
-		    goto retry;
-		}
 		if (PR_GetError() != PR_IN_PROGRESS_ERROR) {
-		    SECU_PrintError(progName, "unable to connect");
+		    SECU_PrintError(progName, "unable to connect (poll)");
 		    return 1;
 		}
 		SECU_PrintError(progName, "poll");
