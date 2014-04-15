@@ -775,8 +775,7 @@ retry:
             PR_SetError(err, oserr); /* restore error code */
         }
         if ((err == PR_CONNECT_REFUSED_ERROR) || 
-	    (err == PR_CONNECT_RESET_ERROR)   ||
-	    (err == PR_ADDRESS_IN_USE_ERROR)     ) {
+	    (err == PR_CONNECT_RESET_ERROR)      ) {
 	    int connections = numConnected;
 
 	    PR_Close(tcp_sock);
@@ -1538,9 +1537,6 @@ main(int argc, char **argv)
 	if (!exitVal)
 	    exitVal = (ssl3stats->hsh_sid_cache_not_ok != 0) ||
 		      (certsTested > 1);
-        if (!exitVal)
-            exitVal = (ssl3stats->hsh_sid_cache_hits != 0 &&
-                       ssl3stats->hsh_sid_cache_hits != connections - 1);
     } else {
 	printf("strsclnt: NoReuse - %d server certificates tested.\n",
                certsTested);
