@@ -275,12 +275,6 @@ AddModule(char *moduleName, char *libFile, char *cipherString,
     unsigned long ciphers;
     unsigned long mechanisms;
     SECStatus status;
-    Error rv;
-
-    rv = LoadMechanismList();
-    if (rv != SUCCESS) {
-	return rv;
-    }
 
     mechanisms =
 	getFlagsFromString(mechanismString, mechanismStrings,
@@ -528,11 +522,6 @@ ListModule(char *moduleName)
 
     if(!moduleName) {
 	return SUCCESS;
-    }
-
-    rv = LoadMechanismList();
-    if (rv != SUCCESS) {
-	return rv;
     }
 
     module = SECMOD_FindModule(moduleName);
@@ -853,18 +842,11 @@ SetDefaultModule(char *moduleName, char *slotName, char *mechanisms)
     SECMODModule *module = NULL;
     PK11SlotInfo *slot;
     int s, i;
-    unsigned long mechFlags;
-    PRBool found = PR_FALSE;
-    Error errcode;
-
-    errcode = LoadMechanismList();
-    if (errcode != SUCCESS) {
-	return errcode;
-    }
-    errcode = UNSPECIFIED_ERR;
-
-    mechFlags = getFlagsFromString(mechanisms, mechanismStrings,
+    unsigned long mechFlags = getFlagsFromString(mechanisms, mechanismStrings,
 	numMechanismStrings);
+    PRBool found = PR_FALSE;
+    Error errcode = UNSPECIFIED_ERR;
+
     mechFlags =  SECMOD_PubMechFlagstoInternal(mechFlags);
 
     module = SECMOD_FindModule(moduleName);
@@ -930,17 +912,11 @@ UnsetDefaultModule(char *moduleName, char *slotName, char *mechanisms)
     SECMODModule * module = NULL;
     PK11SlotInfo *slot;
     int s, i;
-    unsigned long mechFlags;
+    unsigned long mechFlags = getFlagsFromString(mechanisms,
+	mechanismStrings, numMechanismStrings);
     PRBool found = PR_FALSE;
     Error rv;
 
-    rv  = LoadMechanismList();
-    if (rv != SUCCESS) {
-	return rv;
-    }
-
-    mechFlags = getFlagsFromString(mechanisms, mechanismStrings,
-	numMechanismStrings);
     mechFlags =  SECMOD_PubMechFlagstoInternal(mechFlags);
 
     module = SECMOD_FindModule(moduleName);
