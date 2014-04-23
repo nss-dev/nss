@@ -140,7 +140,7 @@ LoadMechanismList(void)
         }
     }
     if (mechanismStrings != NULL) {
-	PR_Free(mechanismStrings);
+	return SUCCESS;
     }
 
     /* build the mechanismStrings array */
