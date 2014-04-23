@@ -139,6 +139,7 @@ PRBool SECMOD_GetDefaultModDBFlag(SECMODModule *mod);
 /* Functions used to convert between internal & public representation
  * of Mechanism Flags and Cipher Enable Flags */
 extern unsigned long SECMOD_PubMechFlagstoInternal(unsigned long publicFlags);
+extern unsigned long SECMOD_InternaltoPubMechFlags(unsigned long internalFlags);
 extern unsigned long SECMOD_PubCipherFlagstoInternal(unsigned long publicFlags);
 
 PRBool SECMOD_HasRemovableSlots(SECMODModule *mod);
