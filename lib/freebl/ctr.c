@@ -82,7 +82,7 @@ CTR_DestroyContext(CTRContext *ctr, PRBool freeit)
  */
 static void
 ctr_GetNextCtr(unsigned char *counter, unsigned int counterBits,
-		unsigned int blocksize)
+	       unsigned int blocksize)
 {
     unsigned char *counterPtr = counter + blocksize - 1;
     unsigned char mask, count;
@@ -106,7 +106,7 @@ ctr_GetNextCtr(unsigned char *counter, unsigned int counterBits,
 
 static void
 ctr_xor(unsigned char *target, const unsigned char *x,
-	 const unsigned char *y, unsigned int count)
+	const unsigned char *y, unsigned int count)
 {
     unsigned int i;
     for (i=0; i < count; i++) {
@@ -116,9 +116,9 @@ ctr_xor(unsigned char *target, const unsigned char *x,
 
 SECStatus
 CTR_Update(CTRContext *ctr, unsigned char *outbuf,
-		unsigned int *outlen, unsigned int maxout,
-		const unsigned char *inbuf, unsigned int inlen,
-		unsigned int blocksize)
+	   unsigned int *outlen, unsigned int maxout,
+	   const unsigned char *inbuf, unsigned int inlen,
+	   unsigned int blocksize)
 {
     unsigned int tmp;
     SECStatus rv;
@@ -131,7 +131,7 @@ CTR_Update(CTRContext *ctr, unsigned char *outbuf,
     *outlen = 0;
     if (ctr->bufPtr != blocksize) {
 	unsigned int needed = PR_MIN(blocksize-ctr->bufPtr, inlen);
-	ctr_xor(outbuf, inbuf, ctr->buffer+ctr->bufPtr, needed);
+	ctr_xor(outbuf, inbuf, ctr->buffer + ctr->bufPtr, needed);
 	ctr->bufPtr += needed;
 	outbuf += needed;
 	inbuf += needed;
@@ -142,7 +142,7 @@ CTR_Update(CTRContext *ctr, unsigned char *outbuf,
 	}
 	PORT_Assert(ctr->bufPtr == blocksize);
     }
-	
+
     while (inlen >= blocksize) {
 	rv = (*ctr->cipher)(ctr->context, ctr->buffer, &tmp, blocksize,
 			ctr->counter, blocksize, blocksize);
@@ -174,10 +174,11 @@ CTR_Update(CTRContext *ctr, unsigned char *outbuf,
 #if defined(USE_HW_AES) && defined(_MSC_VER)
 SECStatus
 CTR_Update_HW_AES(CTRContext *ctr, unsigned char *outbuf,
-		unsigned int *outlen, unsigned int maxout,
-		const unsigned char *inbuf, unsigned int inlen,
-		unsigned int blocksize)
+		  unsigned int *outlen, unsigned int maxout,
+		  const unsigned char *inbuf, unsigned int inlen,
+		  unsigned int blocksize)
 {
+    unsigned int fullblocks;
     unsigned int tmp;
     SECStatus rv;
 
@@ -189,7 +190,7 @@ CTR_Update_HW_AES(CTRContext *ctr, unsigned char *outbuf,
     *outlen = 0;
     if (ctr->bufPtr != blocksize) {
 	unsigned int needed = PR_MIN(blocksize-ctr->bufPtr, inlen);
-	ctr_xor(outbuf, inbuf, ctr->buffer+ctr->bufPtr, needed);
+	ctr_xor(outbuf, inbuf, ctr->buffer + ctr->bufPtr, needed);
 	ctr->bufPtr += needed;
 	outbuf += needed;
 	inbuf += needed;
@@ -203,10 +204,13 @@ CTR_Update_HW_AES(CTRContext *ctr, unsigned char *outbuf,
 
     intel_aes_ctr_worker(((AESContext*)(ctr->context))->Nr)(
 	ctr, outbuf, outlen, maxout, inbuf, inlen, blocksize);
-    *outlen += inlen & (-16);
-    outbuf += inlen & (-16);
-    inbuf += inlen & (-16);
-    inlen &= 16 - 1;
+    /* XXX intel_aes_ctr_worker should set *outlen. */
+    PORT_Assert(*outlen == 0);
+    fullblocks = (inlen/blocksize)*blocksize;
+    *outlen += fullblocks;
+    outbuf += fullblocks;
+    inbuf += fullblocks;
+    inlen -= fullblocks;
 
     if (inlen == 0) {
 	return SECSuccess;
