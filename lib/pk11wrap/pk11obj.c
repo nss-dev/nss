@@ -954,11 +954,12 @@ pk11_PrivDecryptRaw(SECKEYPrivateKey *key,
      * do C_Login with CKU_CONTEXT_SPECIFIC 
      * between C_DecryptInit and C_Decrypt
      * ... But see note above about servers */
-     if (SECKEY_HAS_ATTRIBUTE_SET_LOCK(key, CKA_ALWAYS_AUTHENTICATE, haslock)) {
+    if (SECKEY_HAS_ATTRIBUTE_SET_LOCK(key, CKA_ALWAYS_AUTHENTICATE, haslock)) {
 	PK11_DoPassword(slot, session, PR_FALSE, key->wincx, haslock, PR_TRUE);
     }
 
-    crv = PK11_GETTAB(slot)->C_Decrypt(session,enc, encLen, data, &out);
+    crv = PK11_GETTAB(slot)->C_Decrypt(session, (unsigned char *)enc, encLen,
+				       data, &out);
     if (haslock) PK11_ExitSlotMonitor(slot);
     pk11_CloseSession(slot,session,owner);
     *outLen = out;
@@ -1025,7 +1026,8 @@ pk11_PubEncryptRaw(SECKEYPublicKey *key,
 	PORT_SetError( PK11_MapError(crv) );
 	return SECFailure;
     }
-    crv = PK11_GETTAB(slot)->C_Encrypt(session,data,dataLen,out,&len);
+    crv = PK11_GETTAB(slot)->C_Encrypt(session,(unsigned char *)data,dataLen,
+				       out,&len);
     if (!owner || !(slot->isThreadSafe)) PK11_ExitSlotMonitor(slot);
     pk11_CloseSession(slot,session,owner);
     PK11_FreeSlot(slot);
