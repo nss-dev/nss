@@ -6,6 +6,7 @@
 #include "secitem.h"
 #include "secport.h"
 #include "secerr.h"
+#include "secoid.h"
 
 /* if to->data is not NULL, and to->len is large enough to hold the result,
  * then the resultant OID will be copyed into to->data, and to->len will be
@@ -111,4 +112,34 @@ bad_data:
 	rv = SECITEM_CopyItem(pool, to, &result_item);
     }
     return rv;
+}
+
+SECStatus
+SEC_NumberOrNameStringToOIDTag(PLArenaPool *arena, SECOidTag *to, const char *from)
+{
+    SECStatus rv;
+    SECOidTag tag;
+    SECOidData *coid;
+
+    /* try dotted form first */
+    rv = SEC_StringToOID(arena, to, from, strlen(from));
+    if (rv == SECSuccess) {
+        return rv;
+    }
+
+    /* Check to see if it matches a name in our oid table.
+     * SECOID_FindOIDByTag returns NULL if tag is out of bounds.
+     */
+    tag = SEC_OID_UNKNOWN;
+    coid = SECOID_FindOIDByTag_Util(tag);
+    for ( ; coid; coid = SECOID_FindOIDByTag(++tag)) {
+        if (PORT_Strcasecmp(from, coid->desc) == 0) {
+            break;
+        }
+    }
+    if (coid == NULL) {
+        /* none found */
+        return SECFailure;
+    }
+    return SECITEM_CopyItem(arena, to, &coid->oid);
 }

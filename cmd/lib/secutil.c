@@ -52,6 +52,19 @@ static char consoleName[] =  {
 #include "ssl.h"
 #include "sslproto.h"
 
+static PRBool utf8DisplayEnabled = PR_FALSE;
+
+void
+SECU_EnableUtf8Display(PRBool enable)
+{
+    utf8DisplayEnabled = enable;
+}
+
+PRBool
+SECU_GetUtf8DisplayEnabled(void)
+{
+    return utf8DisplayEnabled;
+}
 
 static void
 secu_ClearPassword(char *p)
@@ -609,12 +622,22 @@ secu_PrintRawStringQuotesOptional(FILE *out, SECItem *si, const char *m,
 
     for (i = 0; i < si->len; i++) {
 	unsigned char val = si->data[i];
+	unsigned char c;
 	if (SECU_GetWrapEnabled() && column > 76) {
 	    SECU_Newline(out);
 	    SECU_Indent(out, level); column = level*INDENT_MULT;
 	}
 
-	fprintf(out,"%c", printable[val]); column++;
+	if (utf8DisplayEnabled) {
+	    if (val < 32)
+		c = '.';
+	    else
+		c = val;
+	} else {
+	    c = printable[val];
+	}
+	fprintf(out,"%c", c);
+	column++;
     }
 
     if (quotes) {
