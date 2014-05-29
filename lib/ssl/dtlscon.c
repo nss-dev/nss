@@ -51,16 +51,21 @@ static const ssl3CipherSuite nonDTLSSuites[] = {
  *
  * TLS             DTLS
  * 1.1 (0302)      1.0 (feff)
+ * 1.2 (0303)      1.2 (fefd)
  */
 SSL3ProtocolVersion
 dtls_TLSVersionToDTLSVersion(SSL3ProtocolVersion tlsv)
 {
-    /* Anything other than TLS 1.1 is an error, so return
-     * the invalid version ffff. */
-    if (tlsv != SSL_LIBRARY_VERSION_TLS_1_1)
-        return 0xffff;
+    if (tlsv == SSL_LIBRARY_VERSION_TLS_1_1) {
+        return SSL_LIBRARY_VERSION_DTLS_1_0_WIRE;
+    }
+    if (tlsv == SSL_LIBRARY_VERSION_TLS_1_2) {
+        return SSL_LIBRARY_VERSION_DTLS_1_2_WIRE;
+    }
 
-    return SSL_LIBRARY_VERSION_DTLS_1_0_WIRE;
+    /* Anything other than TLS 1.1 or 1.2 is an error, so return
+     * the invalid version 0xffff. */
+    return 0xffff;
 }
 
 /* Map known DTLS versions to known TLS versions.
@@ -74,11 +79,15 @@ dtls_DTLSVersionToTLSVersion(SSL3ProtocolVersion dtlsv)
         return 0;
     }
 
-    if (dtlsv == SSL_LIBRARY_VERSION_DTLS_1_0_WIRE)
+    if (dtlsv == SSL_LIBRARY_VERSION_DTLS_1_0_WIRE) {
         return SSL_LIBRARY_VERSION_TLS_1_1;
+    }
+    if (dtlsv == SSL_LIBRARY_VERSION_DTLS_1_2_WIRE) {
+        return SSL_LIBRARY_VERSION_TLS_1_2;
+    }
 
     /* Return a fictional higher version than we know of */
-    return SSL_LIBRARY_VERSION_TLS_1_1 + 1;
+    return SSL_LIBRARY_VERSION_TLS_1_2 + 1;
 }
 
 /* On this socket, Disable non-DTLS cipher suites in the argument's list */
@@ -976,8 +985,8 @@ dtls_HandleHelloVerifyRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         goto loser;     /* alert has been sent */
     }
 
-    if (temp != SSL_LIBRARY_VERSION_DTLS_1_0_WIRE) {
-        /* Note: this will need adjustment for DTLS 1.2 per Section 4.2.1 */
+    if (temp != SSL_LIBRARY_VERSION_DTLS_1_0_WIRE &&
+        temp != SSL_LIBRARY_VERSION_DTLS_1_2_WIRE) {
         goto alert_loser;
     }
 
