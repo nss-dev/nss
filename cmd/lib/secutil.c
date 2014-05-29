@@ -2464,19 +2464,19 @@ loser:
 int
 SECU_PrintFingerprints(FILE *out, SECItem *derCert, char *m, int level)
 {
-    unsigned char fingerprint[20];
+    unsigned char fingerprint[SHA256_LENGTH];
     char *fpStr = NULL;
     int err     = PORT_GetError();
     SECStatus rv;
     SECItem fpItem;
 
-    /* print MD5 fingerprint */
+    /* Print SHA-256 fingerprint */
     memset(fingerprint, 0, sizeof fingerprint);
-    rv = PK11_HashBuf(SEC_OID_MD5,fingerprint, derCert->data, derCert->len);
+    rv = PK11_HashBuf(SEC_OID_SHA256, fingerprint, derCert->data, derCert->len);
     fpItem.data = fingerprint;
-    fpItem.len = MD5_LENGTH;
+    fpItem.len = SHA256_LENGTH;
     fpStr = CERT_Hexify(&fpItem, 1);
-    SECU_Indent(out, level);  fprintf(out, "%s (MD5):", m);
+    SECU_Indent(out, level);  fprintf(out, "%s (SHA-256):", m);
     if (SECU_GetWrapEnabled()) {
 	fprintf(out, "\n");
 	SECU_Indent(out, level+1);
