@@ -3040,11 +3040,11 @@ merge_fail:
 	if (certutil.options[opt_DumpExtensionValue].activated) {
 	    const char *oid_str;
 	    SECItem oid_item;
+            SECStatus srv;
 	    oid_item.data = NULL;
 	    oid_item.len = 0;
 	    oid_str = certutil.options[opt_DumpExtensionValue].arg;
-	    SECStatus srv = GetOidFromString(NULL, &oid_item,
-					     oid_str, strlen(oid_str));
+	    srv = GetOidFromString(NULL, &oid_item, oid_str, strlen(oid_str));
 	    if (srv != SECSuccess) {
          	SECU_PrintError(progName, "malformed extension OID %s",
 				oid_str);
