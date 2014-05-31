@@ -3167,9 +3167,6 @@ CK_RV NSC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo)
 
     if (slot == NULL) return CKR_SLOT_ID_INVALID;
 
-    pInfo->firmwareVersion.major = 0;
-    pInfo->firmwareVersion.minor = 0;
-
     PORT_Memcpy(pInfo->manufacturerID,manufacturerID,
 		sizeof(pInfo->manufacturerID));
     PORT_Memcpy(pInfo->slotDescription,slot->slotDescription,
@@ -3196,6 +3193,8 @@ CK_RV NSC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo)
     /* pInfo->hardwareVersion.major = NSSLOWKEY_DB_FILE_VERSION; */
     pInfo->hardwareVersion.major = SOFTOKEN_VMAJOR;
     pInfo->hardwareVersion.minor = SOFTOKEN_VMINOR;
+    pInfo->firmwareVersion.major = SOFTOKEN_VPATCH;
+    pInfo->firmwareVersion.minor = SOFTOKEN_VBUILD;
     return CKR_OK;
 }
 
