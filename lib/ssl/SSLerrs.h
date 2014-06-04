@@ -417,4 +417,4 @@ ER3(SSL_ERROR_NEXT_PROTOCOL_NO_CALLBACK, (SSL_ERROR_BASE + 129),
 "The next protocol negotiation extension was enabled, but the callback was cleared prior to being needed.")
 
 ER3(SSL_ERROR_NEXT_PROTOCOL_NO_PROTOCOL, (SSL_ERROR_BASE + 130),
-"The next protocol callback picked a default protocol for ALPN.")
+"The server supports no protocols that the client advertises in the ALPN extension.")
