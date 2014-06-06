@@ -1611,9 +1611,9 @@ getNameExtensionsBuiltIn(CERTCertificate  *cert,
                                  "\x73\x67\x64\x6E\x2E\x70\x6D\x2E\x67\x6F\x75"
                                  "\x76\x2E\x66\x72";
 
-  const SECItem anssi_subject = {0, (char *) rawANSSISubject,
+  const SECItem anssi_subject = {0, (unsigned char *) rawANSSISubject,
                                  sizeof(rawANSSISubject)-1};
-  const SECItem permitFranceGovNC = {0, (char *) constraintFranceGov,
+  const SECItem permitFranceGovNC = {0, (unsigned char *) constraintFranceGov,
                                      sizeof(constraintFranceGov)-1};
 
   if (SECITEM_ItemsAreEqual(&cert->derSubject, &anssi_subject)) {
