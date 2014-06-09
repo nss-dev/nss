@@ -1353,31 +1353,6 @@ RSA_PrivateKeyOpDoubleChecked(RSAPrivateKey *key,
     return rsa_PrivateKeyOp(key, output, input, PR_TRUE);
 }
 
-static SECStatus
-swap_in_key_value(PLArenaPool *arena, mp_int *mpval, SECItem *buffer)
-{
-    int len;
-    mp_err err = MP_OKAY;
-    memset(buffer->data, 0, buffer->len);
-    len = mp_unsigned_octet_size(mpval);
-    if (len <= 0) return SECFailure;
-    if ((unsigned int)len <= buffer->len) {
-	/* The new value is no longer than the old buffer, so use it */
-	err = mp_to_unsigned_octets(mpval, buffer->data, len);
-	if (err >= 0) err = MP_OKAY;
-	buffer->len = len;
-    } else if (arena) {
-	/* The new value is longer, but working within an arena */
-	(void)SECITEM_AllocItem(arena, buffer, len);
-	err = mp_to_unsigned_octets(mpval, buffer->data, len);
-	if (err >= 0) err = MP_OKAY;
-    } else {
-	/* The new value is longer, no arena, can't handle this key */
-	return SECFailure;
-    }
-    return (err == MP_OKAY) ? SECSuccess : SECFailure;
-}
-
 SECStatus
 RSA_PrivateKeyCheck(RSAPrivateKey *key)
 {
