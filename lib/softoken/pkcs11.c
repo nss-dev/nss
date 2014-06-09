@@ -2054,12 +2054,12 @@ sftk_verifyRSAPrivateKey(SFTKObject *object, PRBool fillIfNeeded)
                                  sftk_item_expand(&tmpKey.exponent1));
         if (crv != CKR_OK) goto loser;
     }
-    if (!exponent1 || exponent1->attrib.pValue != tmpKey.exponent1.data) {
+    if (!exponent2 || exponent2->attrib.pValue != tmpKey.exponent2.data) {
         crv = sftk_forceAttribute(object, CKA_EXPONENT_2,
                                   sftk_item_expand(&tmpKey.exponent2));
         if (crv != CKR_OK) goto loser;
     }
-    if (!exponent1 || exponent1->attrib.pValue != tmpKey.exponent1.data) {
+    if (!coefficient || coefficient->attrib.pValue != tmpKey.coefficient.data) {
         crv = sftk_forceAttribute(object, CKA_COEFFICIENT,
                                   sftk_item_expand(&tmpKey.coefficient));
         if (crv != CKR_OK) goto loser;
@@ -2085,6 +2085,15 @@ loser:
     }
     if (publicExponent) {
 	sftk_FreeAttribute(publicExponent);
+    }
+    if (exponent1) {
+	sftk_FreeAttribute(exponent1);
+    }
+    if (exponent2) {
+	sftk_FreeAttribute(exponent2);
+    }
+    if (coefficient) {
+	sftk_FreeAttribute(coefficient);
     }
     return rv;
 }
