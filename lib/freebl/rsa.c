@@ -1400,11 +1400,10 @@ RSA_PrivateKeyCheck(const RSAPrivateKey *key)
     SECITEM_TO_MPINT(key->exponent1,       &d_p);
     SECITEM_TO_MPINT(key->exponent2,       &d_q);
     SECITEM_TO_MPINT(key->coefficient,     &qInv);
-    /* The qInv check depends on p > q. */
+    /* p > q */
     if (mp_cmp(&p, &q) <= 0) {
-	/* mind the p's and q's (and d_p's and d_q's) */
-	mp_exch(&p, &q);
-	mp_exch(&d_p,&d_q);
+	rv = SECFailure;
+	goto cleanup;
     }
 #define VERIFY_MPI_EQUAL(m1, m2) \
     if (mp_cmp(m1, m2) != 0) {   \
