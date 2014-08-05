@@ -9379,6 +9379,10 @@ skip:
 	}
 	rv = ssl3_HandleECDHClientKeyExchange(ss, b, length, 
 					      serverPubKey, serverKey);
+	if (ss->ephemeralECDHKeyPair) {
+	    ssl3_FreeKeyPair(ss->ephemeralECDHKeyPair);
+	    ss->ephemeralECDHKeyPair = NULL;
+	}
 	if (rv != SECSuccess) {
 	    return SECFailure;	/* error code set */
 	}
