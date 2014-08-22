@@ -1536,7 +1536,11 @@ extern PRInt32   ssl3_SendRecord(sslSocket *ss, DTLSEpoch epoch,
  * runtime to determine which versions are supported by the version of libssl
  * in use.
  */
+#ifdef NSS_ENABLE_TLS_1_3
+#define SSL_LIBRARY_VERSION_MAX_SUPPORTED SSL_LIBRARY_VERSION_TLS_1_3
+#else
 #define SSL_LIBRARY_VERSION_MAX_SUPPORTED SSL_LIBRARY_VERSION_TLS_1_2
+#endif
 
 /* Rename this macro SSL_ALL_VERSIONS_DISABLED when SSL 2.0 is removed. */
 #define SSL3_ALL_VERSIONS_DISABLED(vrange) \
