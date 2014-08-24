@@ -215,7 +215,10 @@ compressionEnabled(sslSocket *ss, SSLCompressionMethod compression)
 	return PR_TRUE;  /* Always enabled */
 #ifdef NSS_ENABLE_ZLIB
     case ssl_compression_deflate:
-	return ss->opt.enableDeflate;
+        if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+            return ss->opt.enableDeflate;
+        }
+        return PR_FALSE;
 #endif
     default:
 	return PR_FALSE;
@@ -637,14 +640,16 @@ ssl3_CipherSuiteAllowedForVersionRange(
     case TLS_DHE_RSA_WITH_AES_256_CBC_SHA256:
     case TLS_RSA_WITH_AES_256_CBC_SHA256:
     case TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256:
-    case TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
     case TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256:
-    case TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
     case TLS_DHE_RSA_WITH_AES_128_CBC_SHA256:
-    case TLS_DHE_RSA_WITH_AES_128_GCM_SHA256:
     case TLS_RSA_WITH_AES_128_CBC_SHA256:
     case TLS_RSA_WITH_AES_128_GCM_SHA256:
     case TLS_RSA_WITH_NULL_SHA256:
+        return vrange->max == SSL_LIBRARY_VERSION_TLS_1_2;
+
+    case TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
+    case TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
+    case TLS_DHE_RSA_WITH_AES_128_GCM_SHA256:
 	return vrange->max >= SSL_LIBRARY_VERSION_TLS_1_2;
 
     /* RFC 4492: ECC cipher suites need TLS extensions to negotiate curves and
@@ -669,10 +674,11 @@ ssl3_CipherSuiteAllowedForVersionRange(
     case TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA:
     case TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:
     case TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:
-	return vrange->max >= SSL_LIBRARY_VERSION_TLS_1_0;
+        return vrange->max >= SSL_LIBRARY_VERSION_TLS_1_0 &&
+               vrange->min < SSL_LIBRARY_VERSION_TLS_1_3;
 
     default:
-	return PR_TRUE;
+        return vrange->min < SSL_LIBRARY_VERSION_TLS_1_3;
     }
 }
 
@@ -7751,6 +7757,12 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	goto loser;		/* malformed */
     }
 
+    /* TLS 1.3 requires that compression be empty */
+    if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
+        if (comps.len != 1 || comps.data[0] != ssl_compression_null) {
+            goto loser;
+        }
+    }
     desc = handshake_failure;
 
     /* Handle TLS hello extensions for SSL3 & TLS. We do not know if
