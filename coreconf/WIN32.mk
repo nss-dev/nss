@@ -30,9 +30,16 @@ else
 	BSDECHO      = echo
 	RC           = rc.exe
 	MT           = mt.exe
+	# Check for clang-cl
+	CLANG_CL    := $(shell expr `$(CC) -? 2>&1 | grep -w clang | wc -l` \> 0)
 	# Determine compiler version
-	CC_VERSION  := $(shell $(CC) 2>&1 | sed -ne \
+	ifeq ($(CLANG_CL),1)
+	    # clang-cl pretends to be MSVC 2012.
+	    CC_VERSION  := 17.00.00.00
+	else
+	    CC_VERSION  := $(shell $(CC) 2>&1 | sed -ne \
 		's|.* \([0-9]\+\.[0-9]\+\.[0-9]\+\(\.[0-9]\+\)\?\).*|\1|p')
+	endif
 	# Change the dots to spaces.
 	_CC_VERSION_WORDS := $(subst ., ,$(CC_VERSION))
 	_CC_VMAJOR  := $(word 1,$(_CC_VERSION_WORDS))
