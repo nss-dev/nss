@@ -210,12 +210,18 @@ endif
 ifeq (,$(filter-out x386 x86_64,$(CPU_ARCH)))
 ifdef USE_64
 	DEFINES += -D_AMD64_
+	# Use subsystem 5.02 to allow running on Windows XP.
+	ifeq ($(_MSC_VER_GE_11),1)
+		LDFLAGS += -SUBSYSTEM:CONSOLE,5.02
+	endif
 else
 	DEFINES += -D_X86_
 	# VS2012 defaults to -arch:SSE2. Use -arch:IA32 to avoid requiring
 	# SSE2.
+	# Use subsystem 5.01 to allow running on Windows XP.
 	ifeq ($(_MSC_VER_GE_11),1)
 		OS_CFLAGS += -arch:IA32
+		LDFLAGS += -SUBSYSTEM:CONSOLE,5.01
 	endif
 endif
 endif
