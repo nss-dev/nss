@@ -42,7 +42,7 @@ ifndef INTERNAL_TOOLS
 	CROSS_COMPILE = 1
 endif
 endif
-ifeq (,$(filter-out ppc64 ppc64le,$(OS_TEST)))
+ifeq ($(OS_TEST),ppc64)
 	CPU_ARCH	= ppc
 ifeq ($(USE_64),1)
 	ARCHFLAG	= -m64
