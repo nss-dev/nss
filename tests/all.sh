@@ -35,7 +35,6 @@
 #   dbupgrade.sh - upgrade databases to new shareable version (used
 #                  only in upgrade test cycle)
 #   memleak.sh   - memory leak testing (optional)
-#   ssl_gtests.sh- Gtest based unit tests for ssl (optional)
 #
 # NSS testing is now devided to 4 cycles:
 # ---------------------------------------
