@@ -861,6 +861,48 @@ sftk_handleCrlObject(SFTKSession *session,SFTKObject *object)
 }
 
 /*
+ * Check whether an EC public key object represents a valid point
+ */
+static SECStatus
+sftk_verifyECPublicKey(SFTKObject *object)
+{
+    SECStatus rv = SECFailure;
+    SECItem derParams = { 0 };
+    ECParams* ecParams = NULL;
+    SECItem publicValue = { 0 };
+    SFTKAttribute* params = NULL;
+    SFTKAttribute* point = NULL;
+
+    params = sftk_FindAttribute(object, CKA_EC_PARAMS);
+    point  = sftk_FindAttribute(object, CKA_EC_POINT);
+    if (!params || !point)
+        goto loser;
+
+    derParams.data = params->attrib.pValue;
+    derParams.len  = params->attrib.ulValueLen;
+    publicValue.data = point->attrib.pValue;
+    publicValue.len  = point->attrib.ulValueLen;
+
+    rv = EC_DecodeParams(&derParams, &ecParams);
+    if (rv == SECSuccess) {
+        rv = EC_ValidatePublicKey(ecParams, &publicValue);
+    }
+
+loser:
+    if (params) {
+        sftk_FreeAttribute(params);
+    }
+    if (point) {
+        sftk_FreeAttribute(point);
+    }
+    if (ecParams) {
+        PORT_FreeArena(ecParams->arena, PR_TRUE);
+    }
+    return rv;
+}
+
+
+/*
  * check the consistancy and initialize a Public Key Object 
  */
 static CK_RV
@@ -936,6 +978,9 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
 	}
 	if ( !sftk_hasAttribute(object, CKA_EC_POINT)) {
 	    return CKR_TEMPLATE_INCOMPLETE;
+	}
+	if ( sftk_verifyECPublicKey(object) != SECSuccess ) {
+	    return CKR_TEMPLATE_INCONSISTENT;
 	}
 	derive = CK_TRUE;    /* for ECDH */
 	verify = CK_TRUE;    /* for ECDSA */
