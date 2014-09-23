@@ -600,8 +600,8 @@ VFY_EndWithSignature(VFYContext *cx, SECItem *sig)
         digest.data = final;
         digest.len = part;
 	if (sig) {
-	    PORT_Assert(cx->hashAlg != SEC_OID_UNKNOWN);
 	    SECOidTag hashid;
+	    PORT_Assert(cx->hashAlg != SEC_OID_UNKNOWN);
 	    rv = recoverPKCS1DigestInfo(cx->hashAlg, &hashid,
 					&cx->pkcs1RSADigestInfo,
 					&cx->pkcs1RSADigestInfoLen,
