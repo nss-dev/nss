@@ -2153,7 +2153,6 @@ PK11_FindCertFromDERCertItem(PK11SlotInfo *slot, const SECItem *inDerCert,
 {
     NSSDER derCert;
     NSSToken *tok;
-    NSSTrustDomain *td = STAN_GetDefaultTrustDomain();
     nssCryptokiObject *co = NULL;
     SECStatus rv;
 
