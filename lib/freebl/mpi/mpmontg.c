@@ -911,7 +911,6 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
 
   MP_CHECKOK( mp_init_size(&accum1, 3 * nLen + 2) );
   MP_CHECKOK( mp_init_size(&accum2, 3 * nLen + 2) );
-  MP_CHECKOK( mp_init_size(&tmp, 3 * nLen + 2) );
 
   /* build the first WEAVE_WORD powers inline */
   /* if WEAVE_WORD_SIZE is not 4, this code will have to change */
@@ -992,6 +991,11 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
   /* set accumulator to montgomery residue of 1 */
   pa1 = &accum1;
   pa2 = &accum2;
+
+  /* tmp is not used if window_bits == 1. */
+  if (window_bits != 1) {
+    MP_CHECKOK( mp_init_size(&tmp, 3 * nLen + 2) );
+  }
 
   for (expOff = bits_in_exponent - window_bits*2; expOff >= 0; expOff -= window_bits) {
     mp_size smallExp;
