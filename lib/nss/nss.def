@@ -622,6 +622,7 @@ PK11_ListFixedKeysInSlot;
 PK11_ListPrivKeysInSlot;
 PK11_ListPublicKeysInSlot;
 PK11_ProtectedAuthenticationPath;
+PK11_SetCertificateNickname;
 PK11_SetPrivateKeyNickname;
 PK11_SetPublicKeyNickname;
 PK11_SetSymKeyNickname;
@@ -1059,12 +1060,6 @@ CERT_AddExtensionByOID;
 CERT_GetGeneralNameTypeFromString;
 PK11_PubEncrypt;
 PK11_PrivDecrypt;
-;+    local:
-;+       *;
-;+};
-;+NSS_3.18 { 	# NSS 3.18 release
-;+    global:
-PK11_SetCertificateNickname;
 ;+    local:
 ;+       *;
 ;+};
