@@ -1010,9 +1010,9 @@ PrintSyntax(char *progName)
 	progName);
     FPS "\t\t [-P targetDBPrefix] [--source-prefix sourceDBPrefix]\n");
     FPS "\t\t [-f targetPWfile] [-@ sourcePWFile]\n");
-    FPS "\t%s -L [-n cert-name] [--email email-address] [-X] [-r] [-a]\n",
+    FPS "\t%s -L [-n cert-name] [-h token-name] [--email email-address]\n",
 	progName);
-    FPS "\t\t [--dump-ext-val OID] [-d certdir] [-P dbprefix]\n");
+    FPS "\t\t [-X] [-r] [-a] [--dump-ext-val OID] [-d certdir] [-P dbprefix]\n");
     FPS "\t%s -M -n cert-name -t trustargs [-d certdir] [-P dbprefix]\n",
 	progName);
     FPS "\t%s -O -n cert-name [-X] [-d certdir] [-a] [-P dbprefix]\n", progName);
@@ -1336,6 +1336,8 @@ static void luL(enum usage_level ul, const char *command)
         "-L");
     if (ul == usage_selected && !is_my_command)
         return;
+    FPS "%-20s Name of token to search (\"all\" for all tokens)\n",
+        "   -h token-name ");
     FPS "%-20s Pretty print named cert (list all if unspecified)\n",
         "   -n cert-name");
     FPS "%-20s \n"
