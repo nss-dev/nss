@@ -1390,6 +1390,8 @@ static void luN(enum usage_level ul, const char *command)
         "   -d certdir");
     FPS "%-20s Cert & Key database prefix\n",
         "   -P dbprefix");
+    FPS "%-20s Specify the password file\n",
+        "   -f password-file");
     FPS "%-20s use empty password when creating a new database\n",
         "   --empty-password");
     FPS "\n");
