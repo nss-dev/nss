@@ -121,6 +121,12 @@ build_docs:
 clean_docs:
 	$(MAKE) -C $(CORE_DEPTH)/doc clean
 
+build_samples:
+	$(MAKE) -C $(CORE_DEPTH)/samples
+
+clean_samples:
+	$(MAKE) -C $(CORE_DEPTH)/samples clean
+
 nss_RelEng_bld: import all
 
 package:
