@@ -12,13 +12,13 @@
 # the second argument is th targer, either all or clean, defalt is all
 export SAMPLES="sample1 sample2 sample3 sample4 sample5 sample6"
 export ROOT_DIR=`pwd`/../..
-export DIST_DIR=$ROOT_DIR/dist
-export BIN_DIR=$DIST_DIR/bin
-export LIB_DIR=$DIST_DIR/lib
-export PATH=$PATH:$BIN_DIR
-export LD_LIBRARY_PATH=LIB_DIR
+export DIST_DIR=${ROOT_DIR}/dist
+export BIN_DIR=${DIST_DIR}/bin
+export LIB_DIR=${DIST_DIR}/lib
+export PATH=${PATH}:${BIN_DIR}
+export LD_LIBRARY_PATH=${LIB_DIR}
 export DONT_USE_PKG_CONFIG=1
-export TARGET=[ "$2" -eq "clean" ] && "clean" || "all"
+export TARGET=[ "$2" = "clean" ] && "clean" || "all"
 if [ -z "$1" ]; then
   for d in $SAMPLES
     do
