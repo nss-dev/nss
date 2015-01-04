@@ -807,8 +807,8 @@ cleanup:
  * Sign Cert
  */
 static SECItem *
-SignCert(CERTCertDBHandle *handle, CERTCertificate *cert, PRBool selfsign,
-         SECOidTag hashAlgTag,
+SignCert(CERTCertDBHandle *handle, CERTCertificate *cert, 
+         PRBool selfsign, SECOidTag hashAlgTag,
          SECKEYPrivateKey *privKey, char *issuerNickName, void *pwarg)
 {
     SECItem der;
@@ -941,8 +941,9 @@ cleanup:
  * Add a certificate to the nss database
  */
 SECStatus
-AddCert(PK11SlotInfo *slot, CERTCertDBHandle *handle, const char *name, char *trusts,
-        char *inFileName, PRBool ascii, PRBool emailcert, void *pwdata)
+AddCert(PK11SlotInfo *slot, CERTCertDBHandle *handle,
+        const char *name, char *trusts, char *inFileName,
+        PRBool ascii, PRBool emailcert, void *pwdata)
 {
     SECItem         certDER;
     SECStatus       rv;

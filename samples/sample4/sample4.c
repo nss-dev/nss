@@ -703,9 +703,9 @@ cleanup:
  */
 SECStatus
 GetParametersFromHeader(const char *cipherFileName, SECItem *keyLabelItem,
-            SECItem *ivItem, SECItem *wrappedEncKeyItem, SECItem *wrappedMacKeyItem)
+        SECItem *ivItem, SECItem *wrappedEncKeyItem, SECItem *wrappedMacKeyItem)
 {
-    SECStatus      rv;
+    SECStatus rv;
 
     /* open intermediate file, read in header, get IV, Key label,
      * wrapped AES key and wrapped MAC key from it
@@ -1411,8 +1411,8 @@ main(int argc, char **argv)
             }
         }
         rv = EncryptFile(slot, dbdir,
-                          inFileName, headerFileName, encryptedFileName,
-                          noiseFileName, &pwdata, ascii, keyLabel);
+                         inFileName, headerFileName, encryptedFileName,
+                         noiseFileName, &pwdata, ascii, keyLabel);
         if (rv != SECSuccess) {
             PR_fprintf(PR_STDERR, "EncryptFile : Failed\n");
             return SECFailure;

@@ -1,10 +1,17 @@
-# In some platforms we can't count on pkg-config, on those case
-# invoke make with
-# export LD_LIBARY_PATH=path_to_nss_shared_libraries; make DONT_USE_PKG_CONFIG=1 all
+# In some platforms we can't count on pkg-config, due to nss and nspr not being
+# installed in the system, on those cases invoke make with
+# export LD_LIBARY_PATH=$PATH_TO_NSS_SHARED_LIBS \
+# export PATH=$PATH:${LD_LIBARY_PATH}/../bin \
+# make DONT_USE_PKG_CONFIG=1 all
+
 ifdef DONT_USE_PKG_CONFIG
 # Change this to where you have the nspr/nss headers
 INCLUDES = -I/usr/include/nspr4 -I/usr/include/nss3
-LIBS = -lnspr4 -lc -lnss3 -lnssutil3 -lsmime3 -lplc4
+# For example:
+#NSPR_INC_DIR = /home/emaldona/work4nss/upstream/checkout-samples-branch/dist/Linux3.17_x86_64_glibc_PTH_64_DBG.OBJ/include
+#NSS_INC_DIR = home/emaldona/work4nss/upstream/checkout-samples-branch/dist/includes/nss
+#INCLUDES = -I${NSPR_INC_DIR} -I${NSS_INC_DIR}
+LIBS = -lnspr4 -lc -lnss3 -lnssutil3 -lsmime3 -lplc4 -L${LD_LIBRARY_PATH}
 else
 INCLUDES = `pkg-config --cflags nss`
 LIBS = `pkg-config --libs nss`

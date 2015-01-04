@@ -100,7 +100,7 @@ InitSlotPassword(PK11SlotInfo *slot, PRBool retry, void *arg)
  */
 SECStatus
 ChangePW(PK11SlotInfo *slot, char *oldPass, char *newPass,
-                      char *oldPwFile, char *newPwFile)
+         char *oldPwFile, char *newPwFile)
 {
     SECStatus rv;
     secuPWData pwdata;

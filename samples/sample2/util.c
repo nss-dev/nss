@@ -65,7 +65,7 @@ PRBool CheckPassword(char *cp)
  * GetPassword
  */
 char* GetPassword(FILE *input, FILE *output, char *prompt,
-                                PRBool (*ok)(char *))
+                  PRBool (*ok)(char *))
 {
     char phrase[200] = {'\0'};
     int infd         = fileno(input);
