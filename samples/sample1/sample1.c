@@ -142,7 +142,6 @@ DigestFile(PRFileDesc *outFile, PRFileDesc *inFile, SECOidTag hashOIDTag)
     unsigned char ibuf[4096];
     unsigned char digest[64];
     unsigned int  len;
-    unsigned int  degestLen;
     HASH_HashType hashType;
     HASHContext   *hashContext = NULL;
 

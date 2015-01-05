@@ -6,14 +6,8 @@
 
 ifdef DONT_USE_PKG_CONFIG
 # Change this to where you have the nspr/nss headers
-INCLUDES = \
-	-I/usr/include/nspr4 -I/usr/include/nss3 \
-	-I$(NSPR_INC_DIR) -I$(NSS_INC_DIR)
-# For example:
-#NSPR_INC_DIR = /home/emaldona/work4nss/upstream/checkout-samples-branch/dist/Linux3.17_x86_64_glibc_PTH_64_DBG.OBJ/include
-#NSS_INC_DIR = home/emaldona/work4nss/upstream/checkout-samples-branch/dist/includes/nss
-#INCLUDES = -I${NSPR_INC_DIR} -I${NSS_INC_DIR}
-LIBS = -lnspr4 -lc -lnss3 -lnssutil3 -lsmime3 -lplc4 -L${LD_LIBRARY_PATH}
+INCLUDES = -I$(NSPR_INC_DIR) -I$(NSS_INC_DIR)
+LIBS =  -L${LD_LIBRARY_PATH} -lnspr4 -lc -lnss3 -lnssutil3 -lsmime3 -lplc4
 else
 INCLUDES = `pkg-config --cflags nss`
 LIBS = `pkg-config --libs nss`

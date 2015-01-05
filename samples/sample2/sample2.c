@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* NSPR Headers */
+#include <nspr.h>
 #include <prthread.h>
 #include <plgetopt.h>
 #include <prprf.h>
@@ -102,7 +103,7 @@ SECStatus
 ChangePW(PK11SlotInfo *slot, char *oldPass, char *newPass,
          char *oldPwFile, char *newPwFile)
 {
-    SECStatus rv;
+    SECStatus  rv;
     secuPWData pwdata;
     secuPWData newpwdata;
     char      *oldpw = NULL;
@@ -133,6 +134,10 @@ ChangePW(PK11SlotInfo *slot, char *oldPass, char *newPass,
     if (PK11_NeedUserInit(slot)) {
         newpw = InitSlotPassword(slot, PR_FALSE, &pwdata);
         rv = PK11_InitPin(slot, (char*)NULL, newpw);
+        if (rv == SECSuccess) {
+            PR_fprintf(PR_STDERR, "PK11_InitPin failed.\n");
+            return SECFailure;
+        }
     } 
     else {
         for (;;) {
