@@ -7,8 +7,12 @@
 #include "ssl.h"
 #include "sslerr.h"
 #include "sslproto.h"
-
 #include <memory>
+
+extern "C" {
+// This is not something that should make you happy.
+#include "libssl_internals.h"
+}
 
 #include "tls_parser.h"
 #include "tls_filter.h"
@@ -16,6 +20,46 @@
 #include "gtest_utils.h"
 
 namespace nss_test {
+
+uint8_t kBogusClientKeyExchange[] = {
+  0x01, 0x00,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+};
+
+// When we see the ClientKeyExchange from |client|, increment the
+// ClientHelloVersion on |server|.
+class TlsInspectorClientHelloVersionChanger : public TlsHandshakeFilter {
+ public:
+  TlsInspectorClientHelloVersionChanger(TlsAgent* server) : server_(server) {}
+
+  virtual bool FilterHandshake(uint16_t version, uint8_t handshake_type,
+                               const DataBuffer& input, DataBuffer* output) {
+    if (handshake_type == kTlsHandshakeClientKeyExchange) {
+      EXPECT_EQ(
+          SECSuccess,
+          SSLInt_IncrementClientHandshakeVersion(server_->ssl_fd()));
+    }
+    return false;
+  }
+
+ private:
+  TlsAgent* server_;
+};
 
 class TlsServerKeyExchangeEcdhe {
  public:
@@ -317,6 +361,53 @@ TEST_P(TlsConnectStream, ConnectAndServerRenegotiate) {
   CheckConnected();
 }
 
+TEST_P(TlsConnectStream, ConnectStaticRSA) {
+  DisableDheCiphers();
+  Connect();
+  client_->CheckKEAType(ssl_kea_rsa);
+}
+
+// Test that a totally bogus EPMS is handled correctly.
+// This test is stream so we can catch the bad_record_mac alert.
+TEST_P(TlsConnectStream, ConnectStaticRSABogusCKE) {
+  DisableDheCiphers();
+  TlsInspectorReplaceHandshakeMessage* i1 =
+      new TlsInspectorReplaceHandshakeMessage(kTlsHandshakeClientKeyExchange,
+                                              DataBuffer(
+                                                  kBogusClientKeyExchange,
+                                                  sizeof(kBogusClientKeyExchange)));
+  client_->SetPacketFilter(i1);
+  auto alert_recorder = new TlsAlertRecorder();
+  server_->SetPacketFilter(alert_recorder);
+  ConnectExpectFail();
+  EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
+  EXPECT_EQ(kTlsAlertBadRecordMac, alert_recorder->description());
+}
+
+// Test that a PMS with a bogus version number is handled correctly.
+// This test is stream so we can catch the bad_record_mac alert.
+TEST_P(TlsConnectStream, ConnectStaticRSABogusPMSVersionDetect) {
+  DisableDheCiphers();
+  client_->SetPacketFilter(new TlsInspectorClientHelloVersionChanger(
+      server_));
+  auto alert_recorder = new TlsAlertRecorder();
+  server_->SetPacketFilter(alert_recorder);
+  ConnectExpectFail();
+  EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
+  EXPECT_EQ(kTlsAlertBadRecordMac, alert_recorder->description());
+}
+
+// Test that a PMS with a bogus version number is ignored when
+// rollback detection is disabled. This is a positive control for
+// ConnectStaticRSABogusPMSVersionDetect.
+TEST_P(TlsConnectGeneric, ConnectStaticRSABogusPMSVersionIgnore) {
+  DisableDheCiphers();
+  client_->SetPacketFilter(new TlsInspectorClientHelloVersionChanger(
+      server_));
+  server_->DisableRollbackDetection();
+  Connect();
+}
+
 TEST_P(TlsConnectStream, ConnectEcdhe) {
   EnableSomeEcdheCiphers();
   Connect();
@@ -427,6 +518,126 @@ TEST_P(TlsConnectStream, ShortRead) {
   // The second tranche should now immediately be available.
   client_->ReadBytes();
   ASSERT_EQ(1200U, client_->received_bytes());
+}
+
+TEST_P(TlsConnectGeneric, ConnectExtendedMasterSecret) {
+  EnableExtendedMasterSecret();
+  Connect();
+  ResetRsa();
+  ExpectResumption(RESUME_SESSIONID);
+  EnableExtendedMasterSecret();
+  Connect();
+}
+
+
+TEST_P(TlsConnectGeneric, ConnectExtendedMasterSecretStaticRSA) {
+  DisableDheCiphers();
+  EnableExtendedMasterSecret();
+  Connect();
+}
+
+// This test is stream so we can catch the bad_record_mac alert.
+TEST_P(TlsConnectStream, ConnectExtendedMasterSecretStaticRSABogusCKE) {
+  DisableDheCiphers();
+  EnableExtendedMasterSecret();
+  TlsInspectorReplaceHandshakeMessage* inspect =
+      new TlsInspectorReplaceHandshakeMessage(kTlsHandshakeClientKeyExchange,
+                                              DataBuffer(
+                                                  kBogusClientKeyExchange,
+                                                  sizeof(kBogusClientKeyExchange)));
+  client_->SetPacketFilter(inspect);
+  auto alert_recorder = new TlsAlertRecorder();
+  server_->SetPacketFilter(alert_recorder);
+  ConnectExpectFail();
+  EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
+  EXPECT_EQ(kTlsAlertBadRecordMac, alert_recorder->description());
+}
+
+// This test is stream so we can catch the bad_record_mac alert.
+TEST_P(TlsConnectStream, ConnectExtendedMasterSecretStaticRSABogusPMSVersionDetect) {
+  DisableDheCiphers();
+  EnableExtendedMasterSecret();
+  client_->SetPacketFilter(new TlsInspectorClientHelloVersionChanger(
+      server_));
+  auto alert_recorder = new TlsAlertRecorder();
+  server_->SetPacketFilter(alert_recorder);
+  ConnectExpectFail();
+  EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
+  EXPECT_EQ(kTlsAlertBadRecordMac, alert_recorder->description());
+}
+
+TEST_P(TlsConnectStream, ConnectExtendedMasterSecretStaticRSABogusPMSVersionIgnore) {
+  DisableDheCiphers();
+  EnableExtendedMasterSecret();
+  client_->SetPacketFilter(new TlsInspectorClientHelloVersionChanger(
+      server_));
+  server_->DisableRollbackDetection();
+  Connect();
+}
+
+TEST_P(TlsConnectGeneric, ConnectExtendedMasterSecretECDHE) {
+  EnableExtendedMasterSecret();
+  EnableSomeEcdheCiphers();
+  Connect();
+
+  ResetRsa();
+  EnableExtendedMasterSecret();
+  EnableSomeEcdheCiphers();
+  ExpectResumption(RESUME_SESSIONID);
+  Connect();
+}
+
+TEST_P(TlsConnectGeneric, ConnectExtendedMasterSecretTicket) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  EnableExtendedMasterSecret();
+  Connect();
+
+  ResetRsa();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+
+  EnableExtendedMasterSecret();
+  ExpectResumption(RESUME_TICKET);
+  Connect();
+}
+
+TEST_P(TlsConnectGeneric,
+       ConnectExtendedMasterSecretClientOnly) {
+  client_->EnableExtendedMasterSecret();
+  ExpectExtendedMasterSecret(false);
+  Connect();
+}
+
+TEST_P(TlsConnectGeneric,
+       ConnectExtendedMasterSecretServerOnly) {
+  server_->EnableExtendedMasterSecret();
+  ExpectExtendedMasterSecret(false);
+  Connect();
+}
+
+TEST_P(TlsConnectGeneric,
+       ConnectExtendedMasterSecretResumeWithout) {
+  EnableExtendedMasterSecret();
+  Connect();
+
+  ResetRsa();
+  server_->EnableExtendedMasterSecret();
+  auto alert_recorder = new TlsAlertRecorder();
+  server_->SetPacketFilter(alert_recorder);
+  ConnectExpectFail();
+  EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
+  EXPECT_EQ(kTlsAlertHandshakeFailure, alert_recorder->description());
+}
+
+TEST_P(TlsConnectGeneric,
+       ConnectNormalResumeWithExtendedMasterSecret) {
+  ConfigureSessionCache(RESUME_SESSIONID, RESUME_SESSIONID);
+  ExpectExtendedMasterSecret(false);
+  Connect();
+
+  ResetRsa();
+  EnableExtendedMasterSecret();
+  ExpectResumption(RESUME_NONE);
+  Connect();
 }
 
 INSTANTIATE_TEST_CASE_P(VariantsStream10, TlsConnectGeneric,

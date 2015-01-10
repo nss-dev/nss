@@ -43,6 +43,9 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 #######################################################################
 
 MKPROG = $(CCC)
+CXXFLAGS += -std=c++0x
+CFLAGS += -I$(CORE_DEPTH)/lib/ssl
+
 include ../../cmd/platrules.mk
 
 ifeq (WINNT,$(OS_ARCH))
@@ -55,6 +58,4 @@ ifeq (WINNT,$(OS_ARCH))
 
     # Linking to winsock to get htonl
     OS_LIBS += Ws2_32.lib
-else
-    CFLAGS += -std=c++0x
 endif
