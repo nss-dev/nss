@@ -120,14 +120,14 @@ struct sidCacheEntryStr {
 /*  2 */    ssl3CipherSuite  cipherSuite;
 /*  2 */    PRUint16    compression; 	/* SSLCompressionMethod */
 
-/* 52 */    ssl3SidKeys keys;	/* keys, wrapped as needed. */
+/* 54 */    ssl3SidKeys keys;	/* keys, wrapped as needed. */
 
 /*  4 */    PRUint32    masterWrapMech; 
 /*  4 */    SSL3KEAType exchKeyType;
 /*  4 */    PRInt32     certIndex;
 /*  4 */    PRInt32     srvNameIndex;
 /* 32 */    PRUint8     srvNameHash[SHA256_LENGTH]; /* SHA256 name hash */
-/*104 */} ssl3;
+/*108 */} ssl3;
 /* force sizeof(sidCacheEntry) to be a multiple of cache line size */
         struct {
 /*120 */    PRUint8     filler[120]; /* 72+120==192, a multiple of 16 */
@@ -507,7 +507,6 @@ ConvertFromSID(sidCacheEntry *to, sslSessionID *from)
 	to->sessionIDLength         = from->u.ssl3.sessionIDLength;
 	to->u.ssl3.certIndex        = -1;
 	to->u.ssl3.srvNameIndex     = -1;
-
 	PORT_Memcpy(to->sessionID, from->u.ssl3.sessionID,
 		    to->sessionIDLength);
 
@@ -637,7 +636,7 @@ ConvertToSID(sidCacheEntry *    from,
     to->authKeyBits	= from->authKeyBits;
     to->keaType		= from->keaType;
     to->keaKeyBits	= from->keaKeyBits;
-    
+
     return to;
 
   loser:

@@ -62,15 +62,16 @@ class TlsConnectTestBase : public ::testing::Test {
   void ExpectResumption(SessionResumptionMode expected);
   void EnableSomeEcdheCiphers();
   void DisableDheCiphers();
+  void EnableExtendedMasterSecret();
   void ConfigureSessionCache(SessionResumptionMode client,
                              SessionResumptionMode server);
   void EnableAlpn();
   void EnableSrtp();
   void CheckSrtp() const;
   void SendReceive();
+  void ExpectExtendedMasterSecret(bool expected);
 
  protected:
-
   Mode mode_;
   TlsAgent* client_;
   TlsAgent* server_;
@@ -81,6 +82,9 @@ class TlsConnectTestBase : public ::testing::Test {
  private:
   void Reset(const std::string& server_name, SSLKEAType kea);
   void CheckResumption(SessionResumptionMode expected);
+  void CheckExtendedMasterSecret();
+
+  bool expect_extended_master_secret_;
 };
 
 // A TLS-only test base.

@@ -6,6 +6,11 @@ CORE_DEPTH = ../..
 DEPTH      = ../..
 MODULE = nss
 
+# These sources have access to libssl internals
+CSRCS = \
+      libssl_internals.c \
+      $(NULL)
+
 CPPSRCS = \
       ssl_loopback_unittest.cc \
       ssl_extension_unittest.cc \

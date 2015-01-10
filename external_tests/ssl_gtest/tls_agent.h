@@ -91,6 +91,9 @@ class TlsAgent : public PollTarget {
   void SendData(size_t bytes, size_t blocksize = 1024);
   void ReadBytes();
   void ResetSentBytes(); // Hack to test drops.
+  void EnableExtendedMasterSecret();
+  void CheckExtendedMasterSecret(bool expected);
+  void DisableRollbackDetection();
 
   State state() const { return state_; }
 

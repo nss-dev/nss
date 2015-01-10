@@ -408,6 +408,31 @@ void TlsAgent::Connected() {
   SetState(STATE_CONNECTED);
 }
 
+void TlsAgent::EnableExtendedMasterSecret() {
+  ASSERT_TRUE(EnsureTlsSetup());
+
+  SECStatus rv = SSL_OptionSet(ssl_fd_,
+                               SSL_ENABLE_EXTENDED_MASTER_SECRET,
+                               PR_TRUE);
+
+  ASSERT_EQ(SECSuccess, rv);
+}
+
+void TlsAgent::CheckExtendedMasterSecret(bool expected) {
+  ASSERT_EQ(expected, info_.extendedMasterSecretUsed)
+      << "unexpected extended master secret state for " << name_;
+}
+
+void TlsAgent::DisableRollbackDetection() {
+  ASSERT_TRUE(EnsureTlsSetup());
+
+  SECStatus rv = SSL_OptionSet(ssl_fd_,
+                               SSL_ROLLBACK_DETECTION,
+                               PR_FALSE);
+
+  ASSERT_EQ(SECSuccess, rv);
+}
+
 void TlsAgent::Handshake() {
   SECStatus rv = SSL_ForceHandshake(ssl_fd_);
   if (rv == SECSuccess) {

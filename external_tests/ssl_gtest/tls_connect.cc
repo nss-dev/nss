@@ -59,7 +59,8 @@ TlsConnectTestBase::TlsConnectTestBase(Mode mode, uint16_t version)
         server_(new TlsAgent("server", TlsAgent::SERVER, mode_, ssl_kea_rsa)),
         version_(version),
         expected_resumption_mode_(RESUME_NONE),
-        session_ids_() {
+        session_ids_(),
+        expect_extended_master_secret_(false) {
   std::cerr << "Version: " << mode_ << " " << VersionString(version_) << std::endl;
 }
 
@@ -139,6 +140,12 @@ void TlsConnectTestBase::Handshake() {
                    5000);
 }
 
+void TlsConnectTestBase::EnableExtendedMasterSecret() {
+  client_->EnableExtendedMasterSecret();
+  server_->EnableExtendedMasterSecret();
+  ExpectExtendedMasterSecret(true);
+}
+
 void TlsConnectTestBase::Connect() {
   server_->StartConnect();
   client_->StartConnect();
@@ -176,6 +183,8 @@ void TlsConnectTestBase::CheckConnected() {
   session_ids_.push_back(sid_c1);
 
   CheckResumption(expected_resumption_mode_);
+  // Check whether the extended master secret extension was negotiated.
+  CheckExtendedMasterSecret();
 }
 
 void TlsConnectTestBase::ConnectExpectFail() {
@@ -256,6 +265,15 @@ void TlsConnectTestBase::SendReceive() {
         server_->received_bytes() == 50U, 2000);
   ASSERT_EQ(50U, client_->received_bytes());
   ASSERT_EQ(50U, server_->received_bytes());
+}
+
+void TlsConnectTestBase::ExpectExtendedMasterSecret(bool expected) {
+    expect_extended_master_secret_ = expected;
+}
+
+void TlsConnectTestBase::CheckExtendedMasterSecret() {
+  client_->CheckExtendedMasterSecret(expect_extended_master_secret_);
+  server_->CheckExtendedMasterSecret(expect_extended_master_secret_);
 }
 
 TlsConnectGeneric::TlsConnectGeneric()
