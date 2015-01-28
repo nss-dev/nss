@@ -101,9 +101,6 @@ static p12uContext *
 p12u_InitContext(PRBool fileImport, char *filename)
 {
     p12uContext *p12cxt;
-    PRBool fileExist;
-
-    fileExist = fileImport;
 
     p12cxt = PORT_ZNew(p12uContext);
     if(!p12cxt) {
