@@ -1402,8 +1402,9 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
     SSL3Statistics *ssl3stats;
 
     /* Ignore the SessionTicket extension if processing is disabled. */
-    if (!ss->opt.enableSessionTickets)
+    if (!ss->opt.enableSessionTickets) {
         return SECSuccess;
+    }
 
     /* Keep track of negotiated extensions. */
     ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
@@ -1461,8 +1462,9 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
         extension_data.len = data->len;
 
         if (ssl3_ParseEncryptedSessionTicket(ss, data, &enc_session_ticket)
-            != SECSuccess)
-            return SECFailure;
+            != SECSuccess) {
+            return SECSuccess; /* Pretend it isn't there */
+        }
 
         /* Get session ticket keys. */
 #ifndef NO_PKCS11_BYPASS
