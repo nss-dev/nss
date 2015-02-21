@@ -116,3 +116,11 @@ PROCESS_MAP_FILE = grep -v ';+' $< | grep -v ';-' | \
 
 USE_SYSTEM_ZLIB = 1
 ZLIB_LIBS	= -lz
+
+# The system sqlite library in the latest version of Mac OS X often becomes
+# newer than the sqlite library in NSS. This may result in certain Mac OS X
+# system libraries having unresolved sqlite symbols during the shlibsign step
+# of the NSS build when we set DYLD_LIBRARY_PATH to the NSS lib directory and
+# the NSS libsqlite3.dylib is used instead of the system one. So just use the
+# system sqlite library on Mac.
+NSS_USE_SYSTEM_SQLITE = 1
