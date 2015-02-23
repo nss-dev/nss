@@ -1425,7 +1425,6 @@ cert_VerifySubjectAltName(const CERTCertificate *cert, const char *hn)
     CERTGeneralName * current;
     char *            cn;
     int               cnBufLen;
-    unsigned int      hnLen;
     int               DNSextCount    = 0;
     int               IPextCount     = 0;
     PRBool            isIPaddr       = PR_FALSE;
@@ -1435,7 +1434,6 @@ cert_VerifySubjectAltName(const CERTCertificate *cert, const char *hn)
     char              cnbuf[128];
 
     subAltName.data = NULL;
-    hnLen    = strlen(hn);
     cn       = cnbuf;
     cnBufLen = sizeof cnbuf;
 
