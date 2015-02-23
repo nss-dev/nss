@@ -122,5 +122,16 @@ ZLIB_LIBS	= -lz
 # system libraries having unresolved sqlite symbols during the shlibsign step
 # of the NSS build when we set DYLD_LIBRARY_PATH to the NSS lib directory and
 # the NSS libsqlite3.dylib is used instead of the system one. So just use the
-# system sqlite library on Mac.
-NSS_USE_SYSTEM_SQLITE = 1
+# system sqlite library on Mac, if it's sufficiently new.
+
+SYS_SQLITE3_VERSION_FULL := $(shell sqlite3 -version | awk '{print $$1}')
+SYS_SQLITE3_VERSION_MAJOR := $(shell echo $(SYS_SQLITE3_VERSION_FULL) | awk -F. '{ print $$1 }')
+SYS_SQLITE3_VERSION_MINOR := $(shell echo $(SYS_SQLITE3_VERSION_FULL) | awk -F. '{ print $$2 }')
+
+ifeq (3,$(SYS_SQLITE3_VERSION_MAJOR))
+    ifeq (,$(filter-out 0 1 2 3 4,$(SYS_SQLITE3_VERSION_MINOR)))
+        # sqlite <= 3.4.x is too old, it doesn't provide sqlite3_file_control
+    else
+        NSS_USE_SYSTEM_SQLITE = 1
+    endif
+endif
