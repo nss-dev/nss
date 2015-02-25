@@ -2316,7 +2316,7 @@ CERT_DecodeTrustString(CERTCertTrust *trust, const char *trusts)
 {
     unsigned int i;
     unsigned int *pflags;
-    
+
     if (!trust) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
@@ -2330,7 +2330,7 @@ CERT_DecodeTrustString(CERTCertTrust *trust, const char *trusts)
     }
 
     pflags = &trust->sslFlags;
-    
+
     for (i=0; i < PORT_Strlen(trusts); i++) {
 	switch (trusts[i]) {
 	  case 'p':
@@ -2376,6 +2376,7 @@ CERT_DecodeTrustString(CERTCertTrust *trust, const char *trusts)
 	      }
 	      break;
 	  default:
+              PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	      return SECFailure;
 	}
     }
