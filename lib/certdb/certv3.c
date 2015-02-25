@@ -43,38 +43,23 @@ CERT_StartCertExtensions(CERTCertificate *cert)
     return (cert_StartExtensions ((void *)cert, cert->arena, SetExts));
 }
 
-/* find the given extension in the certificate of the Issuer of 'cert' */
-SECStatus
-CERT_FindIssuerCertExtension(CERTCertificate *cert, int tag, SECItem *value)
-{
-    CERTCertificate *issuercert;
-    SECStatus rv;
-
-    issuercert = CERT_FindCertByName(cert->dbhandle, &cert->derIssuer);
-    if ( issuercert ) {
-	rv = cert_FindExtension(issuercert->extensions, tag, value);
-	CERT_DestroyCertificate(issuercert);
-    } else {
-	rv = SECFailure;
-    }
-    
-    return(rv);
-}
-
-/* find a URL extension in the cert or its CA
+/* find a URL extension in the cert
  */
 char *
-CERT_FindCertURLExtension(CERTCertificate *cert, int tag, int catag)
+CERT_FindCertURLExtension(CERTCertificate *cert, SECOidTag tag)
 {
     SECStatus rv;
     SECItem urlitem = {siBuffer,0};
     SECItem urlstringitem = {siBuffer,0};
     PLArenaPool *arena = NULL;
-    char *urlstring;
+    char *urlstring = NULL;
     char *str;
     int len;
     
-    urlstring = NULL;
+    if (!cert) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return NULL;
+    }
 
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if ( ! arena ) {
@@ -82,14 +67,7 @@ CERT_FindCertURLExtension(CERTCertificate *cert, int tag, int catag)
     }
     
     rv = cert_FindExtension(cert->extensions, tag, &urlitem);
-    if ( rv == SECSuccess ) {
-    } else if ( catag ) {
-	/* if the cert doesn't have the extensions, see if the issuer does */
-	rv = CERT_FindIssuerCertExtension(cert, catag, &urlitem);
-	if ( rv != SECSuccess ) {
-	    goto loser;
-	}	    
-    } else {
+    if ( rv != SECSuccess ) {
 	goto loser;
     }
 

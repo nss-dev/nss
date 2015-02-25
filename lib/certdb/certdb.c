@@ -1051,6 +1051,11 @@ SEC_CheckCrlTimes(CERTCrl *crl, PRTime t) {
     PRTime notBefore, notAfter, llPendingSlop, tmp1;
     SECStatus rv;
 
+    if (!crl) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return(secCertTimeUndetermined);
+    }
+
     rv = SEC_GetCrlTimes(crl, &notBefore, &notAfter);
     
     if (rv) {
@@ -1063,6 +1068,7 @@ SEC_CheckCrlTimes(CERTCrl *crl, PRTime t) {
     LL_MUL(llPendingSlop, llPendingSlop, tmp1);
     LL_SUB(notBefore, notBefore, llPendingSlop);
     if ( LL_CMP( t, <, notBefore ) ) {
+	PORT_SetError(SEC_ERROR_CRL_EXPIRED);
 	return(secCertTimeNotValidYet);
     }
 
@@ -1074,6 +1080,7 @@ SEC_CheckCrlTimes(CERTCrl *crl, PRTime t) {
     }
 
     if ( LL_CMP( t, >, notAfter) ) {
+	PORT_SetError(SEC_ERROR_CRL_EXPIRED);
 	return(secCertTimeExpired);
     }
 
