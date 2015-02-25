@@ -7,6 +7,7 @@
 #ifndef gtest_utils_h__
 #define gtest_utils_h__
 
+#define GTEST_HAS_RTTI 0
 #include "gtest/gtest.h"
 #include "test_io.h"
 
