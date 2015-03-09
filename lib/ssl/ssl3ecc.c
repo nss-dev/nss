@@ -1185,8 +1185,7 @@ ssl3_HandleSupportedPointFormatsXtn(sslSocket *ss, PRUint16 ex_type,
 
     if (data->len < 2 || data->len > 255 || !data->data ||
         data->len != (unsigned int)data->data[0] + 1) {
-        /* malformed */
-        goto loser;
+        return ssl3_DecodeError(ss);
     }
     for (i = data->len; --i > 0; ) {
         if (data->data[i] == 0) {
@@ -1197,10 +1196,10 @@ ssl3_HandleSupportedPointFormatsXtn(sslSocket *ss, PRUint16 ex_type,
             return rv;
         }
     }
-loser:
+
     /* evil client doesn't support uncompressed */
     ssl3_DisableECCSuites(ss, ecSuites);
-    return SECFailure;
+    return SECSuccess;
 }
 
 
