@@ -44,7 +44,7 @@ TEST_P(TlsConnectGeneric, SetupOnly) {}
 
 TEST_P(TlsConnectGeneric, Connect) {
   Connect();
-  client_->CheckVersion(SSL_LIBRARY_VERSION_TLS_1_2);
+  client_->CheckVersion(std::get<1>(GetParam()));
 }
 
 TEST_P(TlsConnectGeneric, ConnectResumed) {
@@ -144,6 +144,49 @@ TEST_P(TlsConnectGeneric, ConnectClientNoneServerBoth) {
   ConfigureSessionCache(RESUME_NONE, RESUME_BOTH);
   Connect();
   CheckResumption(RESUME_NONE);
+}
+
+TEST_P(TlsConnectGeneric, ConnectTLS_1_1_Only) {
+  EnsureTlsSetup();
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_1);
+
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_1);
+
+  Connect();
+
+  client_->CheckVersion(SSL_LIBRARY_VERSION_TLS_1_1);
+}
+
+TEST_P(TlsConnectGeneric, ConnectTLS_1_2_Only) {
+  EnsureTlsSetup();
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
+                           SSL_LIBRARY_VERSION_TLS_1_2);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
+                           SSL_LIBRARY_VERSION_TLS_1_2);
+  Connect();
+  client_->CheckVersion(SSL_LIBRARY_VERSION_TLS_1_2);
+}
+
+TEST_P(TlsConnectGeneric, ResumeWithHigherVersion) {
+  EnsureTlsSetup();
+  ConfigureSessionCache(RESUME_SESSIONID, RESUME_SESSIONID);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_1);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_1);
+  Connect();
+
+  Reset();
+  EnsureTlsSetup();
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_2);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_2);
+  Connect();
+  CheckResumption(RESUME_NONE);
+  client_->CheckVersion(SSL_LIBRARY_VERSION_TLS_1_2);
 }
 
 TEST_P(TlsConnectGeneric, ConnectAlpn) {

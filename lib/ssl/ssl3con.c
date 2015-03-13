@@ -4987,23 +4987,17 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 	    sidOK = PR_FALSE;
 	}
 
-	/* TLS 1.0 (RFC 2246) Appendix E says:
-	 *   Whenever a client already knows the highest protocol known to
-	 *   a server (for example, when resuming a session), it should
-	 *   initiate the connection in that native protocol.
-	 * So we pass sid->version to ssl3_NegotiateVersion() here, except
-	 * when renegotiating.
-	 *
-	 * Windows SChannel compares the client_version inside the RSA
-	 * EncryptedPreMasterSecret of a renegotiation with the
-	 * client_version of the initial ClientHello rather than the
-	 * ClientHello in the renegotiation. To work around this bug, we
-	 * continue to use the client_version used in the initial
-	 * ClientHello when renegotiating.
-	 */
 	if (sidOK) {
+            /* Set ss->version based on the session cache */
 	    if (ss->firstHsDone) {
 		/*
+	         * Windows SChannel compares the client_version inside the RSA
+	         * EncryptedPreMasterSecret of a renegotiation with the
+	         * client_version of the initial ClientHello rather than the
+	         * ClientHello in the renegotiation. To work around this bug, we
+	         * continue to use the client_version used in the initial
+	         * ClientHello when renegotiating.
+	         *
 		 * The client_version of the initial ClientHello is still
 		 * available in ss->clientHelloVersion. Ensure that
 		 * sid->version is bounded within
@@ -5017,10 +5011,22 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 		    sidOK = PR_FALSE;
 		}
 	    } else {
-		if (ssl3_NegotiateVersion(ss, sid->version,
-					  PR_FALSE) != SECSuccess) {
+                /*
+                 * Check sid->version is OK first.
+                 * Previously, we would cap the version based on sid->version,
+                 * but that prevents negotiation of a higher version if the
+                 * previous session was reduced (e.g., with version fallback)
+                 */
+		if (sid->version < ss->vrange.min || 
+                    sid->version > ss->vrange.max) {
 		    sidOK = PR_FALSE;
-		}
+		} else {
+	            rv = ssl3_NegotiateVersion(ss, SSL_LIBRARY_VERSION_MAX_SUPPORTED,
+                                               PR_TRUE);
+	            if (rv != SECSuccess) {
+                        return rv;	/* error code was set */
+                    }
+	        }
 	    }
 	}
 
