@@ -7,6 +7,8 @@
 #ifndef tls_connect_h_
 #define tls_connect_h_
 
+#include <tuple>
+
 #include "sslt.h"
 
 #include "tls_agent.h"
@@ -46,11 +48,12 @@ class TlsConnectTestBase : public ::testing::Test {
   void EnableAlpn();
   void EnableSrtp();
   void CheckSrtp();
-
  protected:
+
   Mode mode_;
   TlsAgent* client_;
   TlsAgent* server_;
+  uint16_t version_;
   std::vector<std::vector<uint8_t>> session_ids_;
 };
 
@@ -72,6 +75,23 @@ class TlsConnectGeneric : public TlsConnectTestBase,
                           public ::testing::WithParamInterface<std::string> {
  public:
   TlsConnectGeneric();
+};
+
+// A generic test class that is a single version of TLS.   This is configured
+// in ssl_loopback_unittest.cc.  All uses of this should use TEST_P().
+class TlsConnectGenericSingleVersion : public TlsConnectTestBase,
+                                       public ::testing::WithParamInterface<
+std::tuple<std::string,uint16_t>> {
+public:
+ TlsConnectGenericSingleVersion() : TlsConnectTestBase(
+     std::get<0>(GetParam()) == "TLS" ? STREAM : DGRAM) {
+   uint16_t version = std::get<1>(GetParam());
+
+   std::cerr << "Version : " << version << std::endl;
+   client_->SetVersionRange(version, version);
+   server_->SetVersionRange(version, version);
+   version_ = version;
+ }
 };
 
 } // namespace nss_test
