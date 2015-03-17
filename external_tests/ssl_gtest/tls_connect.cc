@@ -17,7 +17,9 @@ namespace nss_test {
 TlsConnectTestBase::TlsConnectTestBase(Mode mode)
       : mode_(mode),
         client_(new TlsAgent("client", TlsAgent::CLIENT, mode_)),
-        server_(new TlsAgent("server", TlsAgent::SERVER, mode_)) {}
+        server_(new TlsAgent("server", TlsAgent::SERVER, mode_)),
+        version_(0),
+        session_ids_() {}
 
 TlsConnectTestBase::~TlsConnectTestBase() {
   delete client_;
@@ -58,6 +60,11 @@ void TlsConnectTestBase::Reset() {
   client_ = new TlsAgent("client", TlsAgent::CLIENT, mode_);
   server_ = new TlsAgent("server", TlsAgent::SERVER, mode_);
 
+  if (version_) {
+    client_->SetVersionRange(version_, version_);
+    server_->SetVersionRange(version_, version_);
+  }
+
   Init();
 }
 
@@ -72,13 +79,20 @@ void TlsConnectTestBase::Handshake() {
   client_->Handshake();
   server_->Handshake();
 
-  ASSERT_TRUE_WAIT(client_->state() != TlsAgent::CONNECTING &&
-                   server_->state() != TlsAgent::CONNECTING,
+  ASSERT_TRUE_WAIT((client_->state() != TlsAgent::CONNECTING) &&
+                   (server_->state() != TlsAgent::CONNECTING),
                    5000);
+
 }
 
 void TlsConnectTestBase::Connect() {
   Handshake();
+
+  // Check the version is as expected
+  ASSERT_EQ(client_->version(), server_->version());
+  ASSERT_EQ(std::min(client_->max_version(),
+                     server_->max_version()),
+            client_->version());
 
   ASSERT_EQ(TlsAgent::CONNECTED, client_->state());
   ASSERT_EQ(TlsAgent::CONNECTED, server_->state());
@@ -90,7 +104,8 @@ void TlsConnectTestBase::Connect() {
   ASSERT_TRUE(ret);
   ASSERT_EQ(cipher_suite1, cipher_suite2);
 
-  std::cerr << "Connected with cipher suite " << client_->cipher_suite_name()
+  std::cerr << "Connected with version " << client_->version()
+            << " cipher suite " << client_->cipher_suite_name()
             << std::endl;
 
   // Check and store session ids.
