@@ -8,18 +8,56 @@
 
 #include <iostream>
 
+#include "sslproto.h"
 #include "gtest_utils.h"
 
 extern std::string g_working_dir_path;
 
 namespace nss_test {
 
-TlsConnectTestBase::TlsConnectTestBase(Mode mode)
+static const std::string kTlsModesStreamArr[] = {"TLS"};
+::testing::internal::ParamGenerator<std::string>
+  TlsConnectTestBase::kTlsModesStream = ::testing::ValuesIn(kTlsModesStreamArr);
+static const std::string kTlsModesAllArr[] = {"TLS", "DTLS"};
+::testing::internal::ParamGenerator<std::string>
+  TlsConnectTestBase::kTlsModesAll = ::testing::ValuesIn(kTlsModesAllArr);
+static const uint16_t kTlsV10Arr[] = {SSL_LIBRARY_VERSION_TLS_1_0};
+::testing::internal::ParamGenerator<uint16_t>
+  TlsConnectTestBase::kTlsV10 = ::testing::ValuesIn(kTlsV10Arr);
+static const uint16_t kTlsV11V12Arr[] = {SSL_LIBRARY_VERSION_TLS_1_1,
+                                         SSL_LIBRARY_VERSION_TLS_1_2};
+::testing::internal::ParamGenerator<uint16_t>
+  TlsConnectTestBase::kTlsV11V12 = ::testing::ValuesIn(kTlsV11V12Arr);
+// TODO: add TLS 1.3
+static const uint16_t kTlsV12PlusArr[] = {SSL_LIBRARY_VERSION_TLS_1_2};
+::testing::internal::ParamGenerator<uint16_t>
+  TlsConnectTestBase::kTlsV12Plus = ::testing::ValuesIn(kTlsV12PlusArr);
+
+static std::string VersionString(uint16_t version) {
+  switch(version) {
+  case 0:
+    return "(no version)";
+  case SSL_LIBRARY_VERSION_TLS_1_0:
+    return "1.0";
+  case SSL_LIBRARY_VERSION_TLS_1_1:
+    return "1.1";
+  case SSL_LIBRARY_VERSION_TLS_1_2:
+    return "1.2";
+  default:
+    std::cerr << "Invalid version: " << version << std::endl;
+    EXPECT_TRUE(false);
+    return "";
+  }
+}
+
+TlsConnectTestBase::TlsConnectTestBase(Mode mode, uint16_t version)
       : mode_(mode),
         client_(new TlsAgent("client", TlsAgent::CLIENT, mode_)),
         server_(new TlsAgent("server", TlsAgent::SERVER, mode_)),
-        version_(0),
-        session_ids_() {}
+        version_(version),
+        session_ids_() {
+  std::cerr << "Version: " << mode_ << " " << VersionString(version_) << std::endl;
+}
 
 TlsConnectTestBase::~TlsConnectTestBase() {
   delete client_;
@@ -51,6 +89,11 @@ void TlsConnectTestBase::Init() {
 
   client_->SetPeer(server_);
   server_->SetPeer(client_);
+
+  if (version_) {
+    client_->SetVersionRange(version_, version_);
+    server_->SetVersionRange(version_, version_);
+  }
 }
 
 void TlsConnectTestBase::Reset() {
@@ -59,11 +102,6 @@ void TlsConnectTestBase::Reset() {
 
   client_ = new TlsAgent("client", TlsAgent::CLIENT, mode_);
   server_ = new TlsAgent("server", TlsAgent::SERVER, mode_);
-
-  if (version_) {
-    client_->SetVersionRange(version_, version_);
-    server_->SetVersionRange(version_, version_);
-  }
 
   Init();
 }
@@ -110,9 +148,9 @@ void TlsConnectTestBase::Connect() {
 
   // Check and store session ids.
   std::vector<uint8_t> sid_c1 = client_->session_id();
-  ASSERT_EQ(32, sid_c1.size());
+  ASSERT_EQ(32U, sid_c1.size());
   std::vector<uint8_t> sid_s1 = server_->session_id();
-  ASSERT_EQ(32, sid_s1.size());
+  ASSERT_EQ(32U, sid_s1.size());
   ASSERT_EQ(sid_c1, sid_s1);
   session_ids_.push_back(sid_c1);
 }
@@ -151,7 +189,7 @@ void TlsConnectTestBase::CheckResumption(SessionResumptionMode expected) {
 
   if (resume_ct) {
     // Check that the last two session ids match.
-    ASSERT_GE(2, session_ids_.size());
+    ASSERT_GE(2U, session_ids_.size());
     ASSERT_EQ(session_ids_[session_ids_.size()-1],
               session_ids_[session_ids_.size()-2]);
   }
@@ -178,8 +216,7 @@ void TlsConnectTestBase::CheckSrtp() {
 }
 
 TlsConnectGeneric::TlsConnectGeneric()
-    : TlsConnectTestBase((GetParam() == "TLS") ? STREAM : DGRAM) {
-  std::cerr << "Variant: " << GetParam() << std::endl;
-}
+  : TlsConnectTestBase(TlsConnectTestBase::ToMode(std::get<0>(GetParam())),
+                       std::get<1>(GetParam())) {}
 
 } // namespace nss_test

@@ -163,6 +163,7 @@ void TlsAgent::CheckSrtp() {
   ASSERT_EQ(SRTP_AES128_CM_HMAC_SHA1_80, actual);
 }
 
+
 void TlsAgent::Handshake() {
   SECStatus rv = SSL_ForceHandshake(ssl_fd_);
   if (rv == SECSuccess) {

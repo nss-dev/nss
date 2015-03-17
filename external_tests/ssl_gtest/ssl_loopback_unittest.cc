@@ -44,13 +44,7 @@ TEST_P(TlsConnectGeneric, SetupOnly) {}
 
 TEST_P(TlsConnectGeneric, Connect) {
   Connect();
-
-  // Check that we negotiated the expected version.
-  if (mode_ == STREAM) {
-    client_->CheckVersion(SSL_LIBRARY_VERSION_TLS_1_0);
-  } else {
-    client_->CheckVersion(SSL_LIBRARY_VERSION_TLS_1_1);
-  }
+  client_->CheckVersion(SSL_LIBRARY_VERSION_TLS_1_2);
 }
 
 TEST_P(TlsConnectGeneric, ConnectResumed) {
@@ -159,19 +153,19 @@ TEST_P(TlsConnectGeneric, ConnectAlpn) {
   server_->CheckAlpn(SSL_NEXT_PROTO_NEGOTIATED, "a");
 }
 
-TEST_F(DtlsConnectTest, ConnectSrtp) {
+TEST_P(TlsConnectDatagram, ConnectSrtp) {
   EnableSrtp();
   Connect();
   CheckSrtp();
 }
 
-TEST_F(TlsConnectTest, ConnectECDHE) {
+TEST_P(TlsConnectStream, ConnectECDHE) {
   EnableSomeECDHECiphers();
   Connect();
   client_->CheckKEAType(ssl_kea_ecdh);
 }
 
-TEST_F(TlsConnectTest, ConnectECDHETwiceReuseKey) {
+TEST_P(TlsConnectStream, ConnectECDHETwiceReuseKey) {
   EnableSomeECDHECiphers();
   TlsInspectorRecordHandshakeMessage* i1 =
       new TlsInspectorRecordHandshakeMessage(kTlsHandshakeServerKeyExchange);
@@ -200,7 +194,7 @@ TEST_F(TlsConnectTest, ConnectECDHETwiceReuseKey) {
                       dhe1.public_key_.len()));
 }
 
-TEST_F(TlsConnectTest, ConnectECDHETwiceNewKey) {
+TEST_P(TlsConnectStream, ConnectECDHETwiceNewKey) {
   EnableSomeECDHECiphers();
   SECStatus rv =
       SSL_OptionSet(server_->ssl_fd(), SSL_REUSE_SERVER_ECDHE_KEY, PR_FALSE);
@@ -234,24 +228,17 @@ TEST_F(TlsConnectTest, ConnectECDHETwiceNewKey) {
                         dhe1.public_key_.len())));
 }
 
-TEST_P(TlsConnectGenericSingleVersion, Connect) {
-  Connect();
-}
-
-static const std::string kTls[] = {"TLS"};
-static const std::string kTlsDtls[] = {"TLS", "DTLS"};
-static const uint16_t kTlsV10[] = {SSL_LIBRARY_VERSION_TLS_1_0};
-static const uint16_t kTlsV11V12[] = {SSL_LIBRARY_VERSION_TLS_1_1,
-                                      SSL_LIBRARY_VERSION_TLS_1_2};
-INSTANTIATE_TEST_CASE_P(Variants, TlsConnectGeneric,
-                        ::testing::ValuesIn(kTlsDtls));
-INSTANTIATE_TEST_CASE_P(VersionsStream, TlsConnectGenericSingleVersion,
+INSTANTIATE_TEST_CASE_P(VariantsStream10, TlsConnectGeneric,
                         ::testing::Combine(
-                             ::testing::ValuesIn(kTls),
-                             ::testing::ValuesIn(kTlsV10)));
-INSTANTIATE_TEST_CASE_P(VersionsByVariants, TlsConnectGenericSingleVersion,
+                          TlsConnectTestBase::kTlsModesStream,
+                          TlsConnectTestBase::kTlsV10));
+INSTANTIATE_TEST_CASE_P(VariantsAll, TlsConnectGeneric,
                         ::testing::Combine(
-                             ::testing::ValuesIn(kTlsDtls),
-                             ::testing::ValuesIn(kTlsV11V12)));
+                          TlsConnectTestBase::kTlsModesAll,
+                          TlsConnectTestBase::kTlsV11V12));
+INSTANTIATE_TEST_CASE_P(VersionsDatagram, TlsConnectDatagram,
+                        TlsConnectTestBase::kTlsV11V12);
+INSTANTIATE_TEST_CASE_P(VersionsDatagram, TlsConnectStream,
+                        TlsConnectTestBase::kTlsV11V12);
 
 }  // namespace nspr_test
