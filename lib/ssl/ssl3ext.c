@@ -603,15 +603,9 @@ ssl3_ValidateNextProtoNego(const unsigned char* data, unsigned int length)
          * store protocol identifiers in null-terminated strings.
          */
         if (newOffset > length || data[offset] == 0) {
-            PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
             return SECFailure;
         }
         offset = newOffset;
-    }
-
-    if (offset > length) {
-        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
-        return SECFailure;
     }
 
     return SECSuccess;
@@ -626,34 +620,41 @@ ssl3_SelectAppProtocol(sslSocket *ss, PRUint16 ex_type, SECItem *data)
     SECItem result = { siBuffer, resultBuffer, 0 };
 
     rv = ssl3_ValidateNextProtoNego(data->data, data->len);
-    if (rv != SECSuccess)
+    if (rv != SECSuccess) {
+        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
+        (void)SSL3_SendAlert(ss, alert_fatal, decode_error);
         return rv;
+    }
 
     PORT_Assert(ss->nextProtoCallback);
     rv = ss->nextProtoCallback(ss->nextProtoArg, ss->fd, data->data, data->len,
-                               result.data, &result.len, sizeof resultBuffer);
-    if (rv != SECSuccess)
-        return rv;
-    /* If the callback wrote more than allowed to |result| it has corrupted our
-     * stack. */
-    if (result.len > sizeof resultBuffer) {
-        PORT_SetError(SEC_ERROR_OUTPUT_LEN);
+                               result.data, &result.len, sizeof(resultBuffer));
+    if (rv != SECSuccess) {
+        /* Expect callback to call PORT_SetError() */
+        (void)SSL3_SendAlert(ss, alert_fatal, internal_error);
         return SECFailure;
     }
 
+    /* If the callback wrote more than allowed to |result| it has corrupted our
+     * stack. */
+    if (result.len > sizeof(resultBuffer)) {
+        PORT_SetError(SEC_ERROR_OUTPUT_LEN);
+        /* TODO: crash */
+        return SECFailure;
+    }
+
+    SECITEM_FreeItem(&ss->ssl3.nextProto, PR_FALSE);
+
     if (ex_type == ssl_app_layer_protocol_xtn &&
         ss->ssl3.nextProtoState != SSL_NEXT_PROTO_NEGOTIATED) {
-        /* The callback might say OK, but then it's picked a default.
-         * That's OK for NPN, but not ALPN. */
-        SECITEM_FreeItem(&ss->ssl3.nextProto, PR_FALSE);
+        /* The callback might say OK, but then it picks a default value - one
+         * that was not listed.  That's OK for NPN, but not ALPN. */
         PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_NO_PROTOCOL);
         (void)SSL3_SendAlert(ss, alert_fatal, no_application_protocol);
         return SECFailure;
     }
 
     ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
-
-    SECITEM_FreeItem(&ss->ssl3.nextProto, PR_FALSE);
     return SECITEM_CopyItem(NULL, &ss->ssl3.nextProto, &result);
 }
 
@@ -669,17 +670,16 @@ ssl3_ServerHandleAppProtoXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
     if (ss->firstHsDone || data->len == 0) {
         /* Clients MUST send a non-empty ALPN extension. */
         PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
+        (void)SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
         return SECFailure;
     }
 
-    /* unlike NPN, ALPN has extra redundant length information so that
-     * the extension is the same in both ClientHello and ServerHello */
+    /* Unlike NPN, ALPN has extra redundant length information so that
+     * the extension is the same in both ClientHello and ServerHello. */
     count = ssl3_ConsumeHandshakeNumber(ss, 2, &data->data, &data->len);
-    if (count < 0) {
-        return SECFailure; /* fatal alert was sent */
-    }
     if (count != data->len) {
-        return ssl3_DecodeError(ss);
+        (void)ssl3_DecodeError(ss);
+        return SECFailure;
     }
 
     if (!ss->nextProtoCallback) {
@@ -694,8 +694,13 @@ ssl3_ServerHandleAppProtoXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 
     /* prepare to send back a response, if we negotiated */
     if (ss->ssl3.nextProtoState == SSL_NEXT_PROTO_NEGOTIATED) {
-        return ssl3_RegisterServerHelloExtensionSender(
+        rv = ssl3_RegisterServerHelloExtensionSender(
             ss, ex_type, ssl3_ServerSendAppProtoXtn);
+        if (rv != SECSuccess) {
+            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+            (void)SSL3_SendAlert(ss, alert_fatal, internal_error);
+            return rv;
+        }
     }
     return SECSuccess;
 }
@@ -713,7 +718,8 @@ ssl3_ClientHandleNextProtoNegoXtn(sslSocket *ss, PRUint16 ex_type,
          * we've negotiated NPN then we're required to send the NPN handshake
          * message. Thus, these two extensions cannot both be negotiated on the
          * same connection. */
-        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        PORT_SetError(SSL_ERROR_BAD_SERVER);
+        (void)SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
         return SECFailure;
     }
 
@@ -722,7 +728,9 @@ ssl3_ClientHandleNextProtoNegoXtn(sslSocket *ss, PRUint16 ex_type,
      * that an application erroneously cleared the callback between the time
      * we sent the ClientHello and now. */
     if (!ss->nextProtoCallback) {
+        PORT_Assert(0);
         PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_NO_CALLBACK);
+        (void)SSL3_SendAlert(ss, alert_fatal, internal_error);
         return SECFailure;
     }
 
@@ -732,8 +740,8 @@ ssl3_ClientHandleNextProtoNegoXtn(sslSocket *ss, PRUint16 ex_type,
 static SECStatus
 ssl3_ClientHandleAppProtoXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 {
-    const unsigned char* d = data->data;
-    PRUint16 name_list_len;
+    SECStatus rv;
+    PRInt32 list_len;
     SECItem protocol_name;
 
     if (ssl3_ExtensionNegotiated(ss, ssl_next_proto_nego_xtn)) {
@@ -743,22 +751,30 @@ ssl3_ClientHandleAppProtoXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 
     /* The extension data from the server has the following format:
      *   uint16 name_list_len;
-     *   uint8 len;
+     *   uint8 len;  // where len >= 1
      *   uint8 protocol_name[len]; */
     if (data->len < 4 || data->len > 2 + 1 + 255) {
         PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
+        (void)SSL3_SendAlert(ss, alert_fatal, decode_error);
         return SECFailure;
     }
 
-    name_list_len = ((PRUint16) d[0]) << 8 |
-                    ((PRUint16) d[1]);
-    if (name_list_len != data->len - 2 || d[2] != data->len - 3) {
+    list_len = ssl3_ConsumeHandshakeNumber(ss, 2, &data->data, &data->len);
+    /* The list has to be the entire extension. */
+    if (list_len != data->len) {
         PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
+        (void)SSL3_SendAlert(ss, alert_fatal, decode_error);
         return SECFailure;
     }
 
-    protocol_name.data = data->data + 3;
-    protocol_name.len = data->len - 3;
+    rv = ssl3_ConsumeHandshakeVariable(ss, &protocol_name, 1,
+                                       &data->data, &data->len);
+    /* The list must have exactly one value. */
+    if (rv != SECSuccess || data->len != 0) {
+        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
+        (void)SSL3_SendAlert(ss, alert_fatal, decode_error);
+        return SECFailure;
+    }
 
     SECITEM_FreeItem(&ss->ssl3.nextProto, PR_FALSE);
     ss->ssl3.nextProtoState = SSL_NEXT_PROTO_SELECTED;
