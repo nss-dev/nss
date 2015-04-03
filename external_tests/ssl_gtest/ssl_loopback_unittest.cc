@@ -267,7 +267,9 @@ INSTANTIATE_TEST_CASE_P(VariantsAll, TlsConnectGeneric,
                           TlsConnectTestBase::kTlsV11V12));
 INSTANTIATE_TEST_CASE_P(VersionsDatagram, TlsConnectDatagram,
                         TlsConnectTestBase::kTlsV11V12);
-INSTANTIATE_TEST_CASE_P(VersionsDatagram, TlsConnectStream,
+INSTANTIATE_TEST_CASE_P(VersionsStream10, TlsConnectStream,
+                        TlsConnectTestBase::kTlsV10);
+INSTANTIATE_TEST_CASE_P(VersionsStream, TlsConnectStream,
                         TlsConnectTestBase::kTlsV11V12);
 
 }  // namespace nspr_test

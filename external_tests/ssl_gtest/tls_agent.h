@@ -86,6 +86,10 @@ class TlsAgent : public PollTarget {
   void CheckAuthType(SSLAuthType type) const;
 
   void Handshake();
+  // Marks the internal state as CONNECTING in anticipation of renegotiation.
+  void PrepareRenegotiate();
+  // Prepares for renegotiation, then actually triggers it.
+  void StartRenegotiate();
   void EnableSomeEcdheCiphers();
   void DisableDheCiphers();
   bool EnsureTlsSetup();

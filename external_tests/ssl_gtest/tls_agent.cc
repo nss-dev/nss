@@ -265,6 +265,19 @@ void TlsAgent::Handshake() {
   }
 }
 
+void TlsAgent::PrepareRenegotiate() {
+  ASSERT_EQ(CONNECTED, state_);
+
+  SetState(CONNECTING);
+}
+
+void TlsAgent::StartRenegotiate() {
+  PrepareRenegotiate();
+
+  SECStatus rv = SSL_ReHandshake(ssl_fd_, PR_TRUE);
+  EXPECT_EQ(SECSuccess, rv);
+}
+
 void TlsAgent::ConfigureSessionCache(SessionResumptionMode mode) {
   EXPECT_TRUE(EnsureTlsSetup());
 
