@@ -51,6 +51,8 @@ class TlsConnectTestBase : public ::testing::Test {
   void Handshake();
   // Connect and check that it works.
   void Connect();
+  // Check that the connection was successfully established.
+  void CheckConnected();
   // Connect and expect it to fail.
   void ConnectExpectFail();
 

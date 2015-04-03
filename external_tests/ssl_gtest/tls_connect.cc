@@ -121,20 +121,22 @@ void TlsConnectTestBase::EnsureTlsSetup() {
 }
 
 void TlsConnectTestBase::Handshake() {
-  server_->StartConnect();
-  client_->StartConnect();
   client_->Handshake();
   server_->Handshake();
 
   ASSERT_TRUE_WAIT((client_->state() != TlsAgent::CONNECTING) &&
                    (server_->state() != TlsAgent::CONNECTING),
                    5000);
-
 }
 
 void TlsConnectTestBase::Connect() {
+  server_->StartConnect();
+  client_->StartConnect();
   Handshake();
+  CheckConnected();
+}
 
+void TlsConnectTestBase::CheckConnected() {
   // Check the version is as expected
   EXPECT_EQ(client_->version(), server_->version());
   EXPECT_EQ(std::min(client_->max_version(),
@@ -165,6 +167,8 @@ void TlsConnectTestBase::Connect() {
 }
 
 void TlsConnectTestBase::ConnectExpectFail() {
+  server_->StartConnect();
+  client_->StartConnect();
   Handshake();
 
   ASSERT_EQ(TlsAgent::ERROR, client_->state());
