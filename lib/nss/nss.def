@@ -1075,6 +1075,7 @@ SEC_GetCrlTimes;
 CERT_GetImposedNameConstraints;
 NSS_OptionGet;
 NSS_OptionSet;
+SECMOD_CreateModuleEx;
 ;+    local:
 ;+       *;
 ;+};
