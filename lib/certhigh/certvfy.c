@@ -34,6 +34,62 @@ CERT_CertTimesValid(CERTCertificate *c)
     return (valid == secCertTimeValid) ? SECSuccess : SECFailure;
 }
 
+static SECOidTag
+params2ecTag(const SECKEYECParams *params)
+{
+    SECItem oid = { siBuffer, NULL, 0};
+    SECOidData *oidData = NULL;
+
+    /* 
+     * params->data needs to contain the ASN encoding of an object ID (OID)
+     * representing a named curve. Here, we strip away everything
+     * before the actual OID and use the OID to look up a named curve.
+     */
+    if (params->data[0] != SEC_ASN1_OBJECT_ID) return 0;
+    oid.len = params->len - 2;
+    oid.data = params->data + 2;
+    if ((oidData = SECOID_FindOID(&oid)) == NULL) return 0;
+
+    return oidData->offset;
+}
+
+SECStatus CheckECDSACurves(const SECAlgorithmID *sigAlgorithm, const SECKEYPublicKey *key)
+{
+    SECOidTag sigAlg;
+    SECOidTag curve;
+    PRUint32 policyFlags = 0;
+
+    sigAlg = SECOID_GetAlgorithmTag(sigAlgorithm);
+
+    switch(sigAlg) {
+    case SEC_OID_ANSIX962_ECDSA_SHA1_SIGNATURE:
+    case SEC_OID_ANSIX962_ECDSA_SHA224_SIGNATURE:
+    case SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE:
+    case SEC_OID_ANSIX962_ECDSA_SHA384_SIGNATURE:
+    case SEC_OID_ANSIX962_ECDSA_SHA512_SIGNATURE:
+        if (key->keyType != ecKey) {
+            PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+            return SECFailure;
+        }
+
+        curve = params2ecTag(&key->u.ec.DEREncodedParams);
+        if (curve != 0) {
+            if (NSS_GetAlgorithmPolicy(curve, &policyFlags) == SECFailure ||
+                !(policyFlags & NSS_USE_ALG_IN_CERT_SIGNATURE)) {
+                PORT_SetError(SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED);
+                return SECFailure;
+             } else {
+                 return SECSuccess;
+             }
+        } else {
+            PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
+            return SECFailure;
+        }
+    default:
+        return SECSuccess;
+    }
+}
+
 /*
  * verify the signature of a signed data object with the given DER publickey
  */
@@ -50,7 +106,6 @@ CERT_VerifySignedDataWithPublicKey(const CERTSignedData *sd,
 	PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
 	return SECFailure;
     }
-
     /* check the signature */
     sig = sd->signature;
     /* convert sig->len from bit counts to byte count. */
@@ -60,12 +115,18 @@ CERT_VerifySignedDataWithPublicKey(const CERTSignedData *sd,
 			&sig, &sd->signatureAlgorithm, &hashAlg, wincx);
     if (rv == SECSuccess) {
         /* Are we honoring signatures for this algorithm?  */
-	PRUint32 policyFlags = 0;
-	rv = NSS_GetAlgorithmPolicy(hashAlg, &policyFlags);
-	if (rv == SECSuccess && 
-	    !(policyFlags & NSS_USE_ALG_IN_CERT_SIGNATURE)) {
-	    PORT_SetError(SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED);
-	    rv = SECFailure;
+        PRUint32 policyFlags = 0;
+        rv = CheckECDSACurves(&sd->signatureAlgorithm, pubKey);
+        if (rv != SECSuccess) {
+            PORT_SetError(SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED);
+            return SECFailure;
+        }
+
+        rv = NSS_GetAlgorithmPolicy(hashAlg, &policyFlags);
+        if (rv == SECSuccess && 
+            !(policyFlags & NSS_USE_ALG_IN_CERT_SIGNATURE)) {
+            PORT_SetError(SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED);
+            return SECFailure;
 	}
     }
     return rv;
