@@ -24,6 +24,7 @@
 #include "prerror.h"
 #include "pratom.h"
 #include "prthread.h"
+#include "nss.h"
 
 #include "pk11func.h"
 #include "secmod.h"
@@ -6750,12 +6751,20 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	SECItem          dh_p      = {siBuffer, NULL, 0};
 	SECItem          dh_g      = {siBuffer, NULL, 0};
 	SECItem          dh_Ys     = {siBuffer, NULL, 0};
+        PRInt32          minDH;
+
+        rv = NSS_OptionGet(NSS_DH_MIN_KEY_SIZE, &minDH);
+    	if (rv != SECSuccess) {
+            minDH = 512/8;
+        } else {
+            minDH /= 8;
+	}
 
     	rv = ssl3_ConsumeHandshakeVariable(ss, &dh_p, 2, &b, &length);
     	if (rv != SECSuccess) {
 	    goto loser;		/* malformed. */
 	}
-	if (dh_p.len < 512/8) {
+        if (dh_p.len < minDH) {
 	    errCode = SSL_ERROR_WEAK_SERVER_EPHEMERAL_DH_KEY;
 	    goto alert_loser;
 	}
