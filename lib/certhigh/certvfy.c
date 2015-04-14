@@ -23,6 +23,7 @@
 #include "pkim.h"
 #include "pki3hack.h"
 #include "base.h"
+#include "keyhi.h"
 
 /*
  * Check the validity times of a certificate
@@ -34,30 +35,13 @@ CERT_CertTimesValid(CERTCertificate *c)
     return (valid == secCertTimeValid) ? SECSuccess : SECFailure;
 }
 
-static SECOidTag
-params2ecTag(const SECKEYECParams *params)
+SECStatus checkKeyParams(const SECAlgorithmID *sigAlgorithm, const SECKEYPublicKey *key)
 {
-    SECItem oid = { siBuffer, NULL, 0};
-    SECOidData *oidData = NULL;
-
-    /* 
-     * params->data needs to contain the ASN encoding of an object ID (OID)
-     * representing a named curve. Here, we strip away everything
-     * before the actual OID and use the OID to look up a named curve.
-     */
-    if (params->data[0] != SEC_ASN1_OBJECT_ID) return 0;
-    oid.len = params->len - 2;
-    oid.data = params->data + 2;
-    if ((oidData = SECOID_FindOID(&oid)) == NULL) return 0;
-
-    return oidData->offset;
-}
-
-SECStatus CheckECDSACurves(const SECAlgorithmID *sigAlgorithm, const SECKEYPublicKey *key)
-{
+    SECStatus rv;
     SECOidTag sigAlg;
     SECOidTag curve;
     PRUint32 policyFlags = 0;
+    PRInt32 minLen, len;
 
     sigAlg = SECOID_GetAlgorithmTag(sigAlgorithm);
 
@@ -72,7 +56,7 @@ SECStatus CheckECDSACurves(const SECAlgorithmID *sigAlgorithm, const SECKEYPubli
             return SECFailure;
         }
 
-        curve = params2ecTag(&key->u.ec.DEREncodedParams);
+        curve = SECKEY_GetECCOid(&key->u.ec.DEREncodedParams);
         if (curve != 0) {
             if (NSS_GetAlgorithmPolicy(curve, &policyFlags) == SECFailure ||
                 !(policyFlags & NSS_USE_ALG_IN_CERT_SIGNATURE)) {
@@ -85,6 +69,55 @@ SECStatus CheckECDSACurves(const SECAlgorithmID *sigAlgorithm, const SECKEYPubli
             PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
             return SECFailure;
         }
+            return SECSuccess;
+	case SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION:
+	case SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION:
+	case SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION:
+	case SEC_OID_PKCS1_SHA384_WITH_RSA_ENCRYPTION:
+	case SEC_OID_PKCS1_SHA512_WITH_RSA_ENCRYPTION:
+	case SEC_OID_PKCS1_RSA_PSS_SIGNATURE:
+	case SEC_OID_ISO_SHA_WITH_RSA_SIGNATURE:
+	case SEC_OID_ISO_SHA1_WITH_RSA_SIGNATURE:
+	    if (key->keyType != rsaKey && key->keyType != rsaPssKey) {
+		PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+		return SECFailure;
+	    }
+
+            len = 8 * key->u.rsa.modulus.len;
+
+            rv = NSS_OptionGet(NSS_RSA_MIN_KEY_SIZE, &minLen);
+            if (rv != SECSuccess) {
+                return SECFailure;
+	    }
+
+            if (len < minLen) {
+                return SECFailure;
+	    }
+
+            return SECSuccess;
+	case SEC_OID_ANSIX9_DSA_SIGNATURE:
+	case SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST:
+	case SEC_OID_BOGUS_DSA_SIGNATURE_WITH_SHA1_DIGEST:
+	case SEC_OID_SDN702_DSA_SIGNATURE:
+	case SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA224_DIGEST:
+	case SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA256_DIGEST:
+	    if (key->keyType != dsaKey) {
+		PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+		return SECFailure;
+	    }
+
+            len = 8 * key->u.dsa.params.prime.len;
+
+            rv = NSS_OptionGet(NSS_DSA_MIN_KEY_SIZE, &minLen);
+            if (rv != SECSuccess) {
+                return SECFailure;
+	    }
+
+            if (len < minLen) {
+                return SECFailure;
+	    }
+
+            return SECSuccess;
     default:
         return SECSuccess;
     }
@@ -116,7 +149,7 @@ CERT_VerifySignedDataWithPublicKey(const CERTSignedData *sd,
     if (rv == SECSuccess) {
         /* Are we honoring signatures for this algorithm?  */
         PRUint32 policyFlags = 0;
-        rv = CheckECDSACurves(&sd->signatureAlgorithm, pubKey);
+        rv = checkKeyParams(&sd->signatureAlgorithm, pubKey);
         if (rv != SECSuccess) {
             PORT_SetError(SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED);
             return SECFailure;
