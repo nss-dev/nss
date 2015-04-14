@@ -7,6 +7,7 @@
  */
 
 #include <ctype.h>
+#include <assert.h>
 #include "pkcs11.h"
 #include "seccomon.h"
 #include "secmod.h"
@@ -14,6 +15,7 @@
 #include "secmodti.h"
 #include "pki3hack.h"
 #include "secerr.h"
+#include "nss.h"
    
 #include "utilpars.h" 
 
@@ -137,6 +139,310 @@ SECMOD_CreateModule(const char *library, const char *moduleName,
     return SECMOD_CreateModuleEx(library, moduleName, parameters, nss, NULL);
 }
 
+/* NSS config options format:
+ *
+ * The specified ciphersuites will be enabled, but an application
+ * may enable more:
+ * config=curve1:curve2:hash1:hash2:rsa-1024...
+ *
+ * Only the specified hashes and curves will be enabled:
+ * config=sha1:sha256:secp256r1:secp384r1
+ *
+ * Only the specified hashes and curves will be enabled, and
+ *  RSA keys of 2048 or more will be accepted, and DH key exchange
+ *  with 1024-bit primes or more:
+ * config=sha1:sha256:secp256r1:secp384r1:min-rsa=2048:min-dh=1024
+ *
+ * A policy that enables the AES ciphersuites and the SECP256/384 curves:
+ * config=aes128-cbc:aes128-gcm:TLS1.0:TLS1.2:TLS1.1:HMAC-SHA1:SHA1:SHA256:SHA384:RSA:ECDHE-RSA:SECP256R1:SECP384R1
+ *
+ */
+
+typedef struct {
+    const char *name;
+    SECOidTag oid;
+    PRUint32 val;
+} oidValDef;
+
+typedef struct {
+    const char *name;
+    unsigned name_size;
+    PRInt32 option;
+} optionFreeDef;
+
+#define STR(x) x,(sizeof(x)-1)
+static const oidValDef algOptList[] = {
+    /* Curves */
+    {"PRIME192V1", SEC_OID_ANSIX962_EC_PRIME192V1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"PRIME192V2", SEC_OID_ANSIX962_EC_PRIME192V2,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"PRIME192V3", SEC_OID_ANSIX962_EC_PRIME192V3,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"PRIME239V1", SEC_OID_ANSIX962_EC_PRIME239V1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"PRIME239V2", SEC_OID_ANSIX962_EC_PRIME239V2,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"PRIME239V3", SEC_OID_ANSIX962_EC_PRIME239V3,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"PRIME256V1", SEC_OID_ANSIX962_EC_PRIME256V1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECP112R1", SEC_OID_SECG_EC_SECP112R1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECP112R2", SEC_OID_SECG_EC_SECP112R2,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECP128R1", SEC_OID_SECG_EC_SECP128R1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECP128R2", SEC_OID_SECG_EC_SECP128R2,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECP160K1", SEC_OID_SECG_EC_SECP160K1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECP160R1", SEC_OID_SECG_EC_SECP160R1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECP160R2", SEC_OID_SECG_EC_SECP160R2,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECP192K1", SEC_OID_SECG_EC_SECP192K1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECP192R1", SEC_OID_ANSIX962_EC_PRIME192V1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECP224K1", SEC_OID_SECG_EC_SECP224K1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECP256K1", SEC_OID_SECG_EC_SECP256K1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECP256R1", SEC_OID_ANSIX962_EC_PRIME256V1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECP384R1", SEC_OID_SECG_EC_SECP384R1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECP521R1", SEC_OID_SECG_EC_SECP521R1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    /* ANSI X9.62 named elliptic curves (characteristic two field) */
+    {"C2PNB163V1", SEC_OID_ANSIX962_EC_C2PNB163V1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2PNB163V2", SEC_OID_ANSIX962_EC_C2PNB163V2,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2PNB163V3", SEC_OID_ANSIX962_EC_C2PNB163V3,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2PNB176V1", SEC_OID_ANSIX962_EC_C2PNB176V1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2TNB191V1", SEC_OID_ANSIX962_EC_C2TNB191V1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2TNB191V2", SEC_OID_ANSIX962_EC_C2TNB191V2,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2TNB191V3", SEC_OID_ANSIX962_EC_C2TNB191V3,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2ONB191V4", SEC_OID_ANSIX962_EC_C2ONB191V4,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2ONB191V5", SEC_OID_ANSIX962_EC_C2ONB191V5,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2PNB208W1", SEC_OID_ANSIX962_EC_C2PNB208W1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2TNB239V1", SEC_OID_ANSIX962_EC_C2TNB239V1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2TNB239V2", SEC_OID_ANSIX962_EC_C2TNB239V2,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2TNB239V3", SEC_OID_ANSIX962_EC_C2TNB239V3,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2ONB239V4", SEC_OID_ANSIX962_EC_C2ONB239V4,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2ONB239V5", SEC_OID_ANSIX962_EC_C2ONB239V5,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2PNB272W1", SEC_OID_ANSIX962_EC_C2PNB272W1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2PNB304W1", SEC_OID_ANSIX962_EC_C2PNB304W1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2TNB359V1", SEC_OID_ANSIX962_EC_C2TNB359V1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2PNB368W1", SEC_OID_ANSIX962_EC_C2PNB368W1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"C2TNB431R1", SEC_OID_ANSIX962_EC_C2TNB431R1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    /* SECG named elliptic curves (characteristic two field) */
+    {"SECT113R1", SEC_OID_SECG_EC_SECT113R1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT131R1", SEC_OID_SECG_EC_SECT113R2,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT131R1", SEC_OID_SECG_EC_SECT131R1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT131R2", SEC_OID_SECG_EC_SECT131R2,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT163K1", SEC_OID_SECG_EC_SECT163K1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT163R1", SEC_OID_SECG_EC_SECT163R1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT163R2", SEC_OID_SECG_EC_SECT163R2,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT193R1", SEC_OID_SECG_EC_SECT193R1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT193R2", SEC_OID_SECG_EC_SECT193R2,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT233K1", SEC_OID_SECG_EC_SECT233K1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT233R1", SEC_OID_SECG_EC_SECT233R1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT239K1", SEC_OID_SECG_EC_SECT239K1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT283K1", SEC_OID_SECG_EC_SECT283K1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT283R1", SEC_OID_SECG_EC_SECT283R1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT409K1", SEC_OID_SECG_EC_SECT409K1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT409R1", SEC_OID_SECG_EC_SECT409R1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT571K1", SEC_OID_SECG_EC_SECT571K1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SECT571R1", SEC_OID_SECG_EC_SECT571R1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+
+    /* Hashes */
+    {"MD2", SEC_OID_MD2,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"MD4", SEC_OID_MD4,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"MD5", SEC_OID_MD5,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SHA1", SEC_OID_SHA1,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SHA224", SEC_OID_SHA224,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SHA256", SEC_OID_SHA256,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SHA384", SEC_OID_SHA384,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+    {"SHA512", SEC_OID_SHA512,
+     NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_CERT_SIGNATURE},
+
+    /* MACs */
+    {"HMAC-SHA1", SEC_OID_HMAC_SHA1, NSS_USE_ALG_IN_SSL},
+    {"HMAC-SHA224", SEC_OID_HMAC_SHA224, NSS_USE_ALG_IN_SSL},
+    {"HMAC-SHA256", SEC_OID_HMAC_SHA256, NSS_USE_ALG_IN_SSL},
+    {"HMAC-SHA384", SEC_OID_HMAC_SHA384, NSS_USE_ALG_IN_SSL},
+    {"HMAC-SHA512", SEC_OID_HMAC_SHA512, NSS_USE_ALG_IN_SSL},
+    {"HMAC-MD5", SEC_OID_HMAC_MD5, NSS_USE_ALG_IN_SSL},
+
+    /* Ciphers */
+    {"AES128-CBC", SEC_OID_AES_128_CBC, NSS_USE_ALG_IN_SSL},
+    {"AES192-CBC", SEC_OID_AES_192_CBC, NSS_USE_ALG_IN_SSL},
+    {"AES256-CBC", SEC_OID_AES_256_CBC, NSS_USE_ALG_IN_SSL},
+    {"AES128-GCM", SEC_OID_AES_128_GCM, NSS_USE_ALG_IN_SSL},
+    {"AES192-GCM", SEC_OID_AES_192_GCM, NSS_USE_ALG_IN_SSL},
+    {"AES256-GCM", SEC_OID_AES_256_GCM, NSS_USE_ALG_IN_SSL},
+    {"CAMELLIA128-CBC", SEC_OID_CAMELLIA_128_CBC, NSS_USE_ALG_IN_SSL},
+    {"CAMELLIA192-CBC", SEC_OID_CAMELLIA_192_CBC, NSS_USE_ALG_IN_SSL},
+    {"CAMELLIA256-CBC", SEC_OID_CAMELLIA_256_CBC, NSS_USE_ALG_IN_SSL},
+    {"SEED-CBC", SEC_OID_SEED_CBC, NSS_USE_ALG_IN_SSL},
+    {"DES-EDE3-CBC", SEC_OID_DES_EDE3_CBC, NSS_USE_ALG_IN_SSL},
+    {"DES-40-CBC", SEC_OID_DES_40_CBC, NSS_USE_ALG_IN_SSL},
+    {"DES-CBC", SEC_OID_DES_CBC, NSS_USE_ALG_IN_SSL},
+    {"NULL-CIPHER", SEC_OID_NULL_CIPHER, NSS_USE_ALG_IN_SSL},
+    {"RC2", SEC_OID_RC2_CBC, NSS_USE_ALG_IN_SSL},
+    {"RC4", SEC_OID_RC4, NSS_USE_ALG_IN_SSL},
+    {"IDEA", SEC_OID_IDEA_CBC, NSS_USE_ALG_IN_SSL},
+
+    /* Key exchange */
+    {"RSA", SEC_OID_TLS_RSA, NSS_USE_ALG_IN_SSL_KX},
+    {"RSA-EXPORT", SEC_OID_TLS_RSA_EXPORT, NSS_USE_ALG_IN_SSL_KX},
+    {"DHE-RSA", SEC_OID_TLS_DHE_RSA, NSS_USE_ALG_IN_SSL_KX},
+    {"DHE-DSS", SEC_OID_TLS_DHE_DSS, NSS_USE_ALG_IN_SSL_KX},
+    {"DH-RSA", SEC_OID_TLS_DH_RSA, NSS_USE_ALG_IN_SSL_KX},
+    {"DH-DSS", SEC_OID_TLS_DH_DSS, NSS_USE_ALG_IN_SSL_KX},
+    {"ECDHE-ECDSA", SEC_OID_TLS_ECDHE_ECDSA, NSS_USE_ALG_IN_SSL_KX},
+    {"ECDHE-RSA", SEC_OID_TLS_ECDHE_RSA, NSS_USE_ALG_IN_SSL_KX},
+    {"ECDH-ECDSA", SEC_OID_TLS_ECDH_ECDSA, NSS_USE_ALG_IN_SSL_KX},
+    {"ECDH-RSA", SEC_OID_TLS_ECDH_RSA, NSS_USE_ALG_IN_SSL_KX},
+
+    /* Versions */
+    {"SSL2.0", SEC_OID_SSL_V2_0, NSS_USE_ALG_IN_SSL_KX},
+    {"SSL3.0", SEC_OID_SSL_V3_0, NSS_USE_ALG_IN_SSL_KX},
+    {"TLS1.0", SEC_OID_TLS_V1_0, NSS_USE_ALG_IN_SSL_KX},
+    {"TLS1.1", SEC_OID_TLS_V1_1, NSS_USE_ALG_IN_SSL_KX},
+    {"TLS1.2", SEC_OID_TLS_V1_2, NSS_USE_ALG_IN_SSL_KX},
+    {"DTLS1.0", SEC_OID_DTLS_V1_0, NSS_USE_ALG_IN_SSL_KX},
+    {"DTLS1.2", SEC_OID_DTLS_V1_2, NSS_USE_ALG_IN_SSL_KX},
+};
+
+static const optionFreeDef freeOptList[] = {
+
+    /* Restrictions for RSA keys */
+    {STR("MIN-RSA"), NSS_RSA_MIN_KEY_SIZE},
+    {STR("MIN-DH"),  NSS_DH_MIN_KEY_SIZE},
+    {STR("MIN-DSA"), NSS_DSA_MIN_KEY_SIZE},
+};
+
+static SECStatus applyCryptoPolicy(char *policy)
+{
+    char *s, *sp, *p;
+    unsigned i;
+    SECStatus rv;
+    unsigned unknown;
+
+    if (policy == NULL || policy[0] == 0) {
+        return SECSuccess;      /* do nothing */
+    }
+
+    p = policy;
+
+    /* disable all options by default */
+    for (i = 0; i < PR_ARRAY_SIZE(algOptList); i++) {
+        NSS_SetAlgorithmPolicy(algOptList[i].oid, 0, algOptList[i].val);
+    }
+
+    NSS_SetAlgorithmPolicy(SEC_OID_APPLY_SSL_POLICY, NSS_USE_POLICY_IN_SSL, 0);
+
+    do {
+        s = strtok_r(p, ":", &sp);
+        p = NULL;
+
+        if (s != NULL) {
+            unknown = 1;
+
+            for (i = 0; i < PR_ARRAY_SIZE(algOptList); i++) {
+                if (strcasecmp(algOptList[i].name, s) == 0) {
+                    rv = NSS_SetAlgorithmPolicy(algOptList[i].oid,
+                                                algOptList[i].val, 0);
+                    if (rv != SECSuccess) {
+                        /* could not enable option */
+                        rv = SECFailure;
+                        goto cleanup;
+                    }
+                    unknown = 0;
+                    break;
+                }
+            }
+
+            if (unknown != 0) {
+                for (i = 0; i < PR_ARRAY_SIZE(freeOptList); i++) {
+	            if (strncasecmp(freeOptList[i].name, s, freeOptList[i].name_size) == 0 &&
+	            	s[freeOptList[i].name_size] == '=') {
+	            	PRInt32 val = atoi(&s[freeOptList[i].name_size+1]);
+	            	assert(val != 0);
+
+                        rv = NSS_OptionSet(freeOptList[i].option, val);
+	                if (rv != SECSuccess) {
+                            /* could not enable option */
+                            rv = SECFailure;
+                            goto cleanup;
+                        }
+                        unknown = 0;
+                        break;
+	            }
+                }
+            }
+
+            if (unknown != 0) {
+                fprintf(stderr, "error in term '%s'\n", s);
+                rv = SECFailure;
+                goto cleanup;
+            }
+        }
+    } while (s != NULL);
+
+  cleanup:
+    /*NSS cannot recover*/
+    rv = SECSuccess;
+    return rv;
+}
+
 /*
  * for 3.4 we continue to use the old SECMODModule structure
  */
@@ -145,10 +451,25 @@ SECMOD_CreateModuleEx(const char *library, const char *moduleName,
 				const char *parameters, const char *nss,
 				const char *config)
 {
-    SECMODModule *mod = secmod_NewModule();
+    SECMODModule *mod;
+    SECStatus rv;
     char *slotParams,*ciphers;
     /* pk11pars.h still does not have const char * interfaces */
     char *nssc = (char *)nss;
+    char *configc = NULL;
+
+    if (config) {
+        configc = PORT_Strdup(config); /* no const */
+    }
+    rv = applyCryptoPolicy(configc);
+    if (configc) PORT_Free(configc);
+
+    /* do not load the module if policy parsing fails */
+    if (rv != SECSuccess) {
+        return NULL;
+    }
+
+    mod = secmod_NewModule();
     if (mod == NULL) return NULL;
 
     mod->commonName = PORT_ArenaStrdup(mod->arena,moduleName ? moduleName : "");
@@ -159,9 +480,7 @@ SECMOD_CreateModuleEx(const char *library, const char *moduleName,
     if (parameters) {
 	mod->libraryParams = PORT_ArenaStrdup(mod->arena,parameters);
     }
-    if (config) {
-	/* XXX: Apply configuration */
-    }
+
     mod->internal   = NSSUTIL_ArgHasFlag("flags","internal",nssc);
     mod->isFIPS     = NSSUTIL_ArgHasFlag("flags","FIPS",nssc);
     mod->isCritical = NSSUTIL_ArgHasFlag("flags","critical",nssc);

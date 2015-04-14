@@ -169,6 +169,11 @@ const char __nss_util_sccsid[] = "@(#)NSS " NSSUTIL_VERSION _DEBUG_STRING
 #define CAMELLIA_ENCRYPT_OID MITSUBISHI_ALG,1
 #define CAMELLIA_WRAP_OID    MITSUBISHI_ALG,3
 
+/* For IDEA: 1.3.6.1.4.1.188.7.1.1
+ */
+#define ASCOM_OID 0x2b,0x6,0x1,0x4,0x1,0xbc
+#define ASCOM_IDEA_ALG ASCOM_OID,0x7,0x1,0x1
+
 /* for SEED : iso(1) member-body(2) korea(410)
  *    kisa(200004) algorithm(1)
  */
@@ -465,6 +470,10 @@ CONST_OID netscapeSMimeKEA[] 			= { NETSCAPE_ALGS, 0x01 };
 CONST_OID skipjackCBC[] 			= { MISSI, 0x04 };
 CONST_OID dhPublicKey[] 			= { ANSI_X942_ALGORITHM, 0x1 };
 
+CONST_OID idea_CBC[] 				= { ASCOM_IDEA_ALG, 2 };
+CONST_OID aes128_GCM[] 				= { AES, 0x6 };
+CONST_OID aes192_GCM[] 				= { AES, 0x1a };
+CONST_OID aes256_GCM[] 				= { AES, 0x23 };
 CONST_OID aes128_ECB[] 				= { AES, 1 };
 CONST_OID aes128_CBC[] 				= { AES, 2 };
 #ifdef DEFINE_ALL_AES_CIPHERS
@@ -588,8 +597,10 @@ CONST_OID evIncorporationCountry[]      = { EV_NAME_ATTRIBUTE, 3 };
 #define OI(x) { siDEROID, (unsigned char *)x, sizeof x }
 #ifndef SECOID_NO_STRINGS
 #define OD(oid,tag,desc,mech,ext) { OI(oid), tag, desc, mech, ext }
+#define ODE(tag,desc,mech,ext) { { siDEROID, NULL, 0 }, tag, desc, mech, ext }
 #else
 #define OD(oid,tag,desc,mech,ext) { OI(oid), tag, 0, mech, ext }
+#define ODE(tag,desc,mech,ext) { { siDEROID, NULL, 0 }, tag, 0, mech, ext }
 #endif
 
 #if defined(NSS_ALLOW_UNSUPPORTED_CRITICAL)
@@ -1648,7 +1659,71 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
         "Microsoft Trust List Signing",
 	CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
     OD( x520Name, SEC_OID_AVA_NAME,
-    	"X520 Name",    CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION )
+    	"X520 Name",    CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+
+
+    OD( aes128_GCM, SEC_OID_AES_128_GCM,
+	"AES-128-GCM", CKM_AES_GCM, INVALID_CERT_EXTENSION ),
+    OD( aes192_GCM, SEC_OID_AES_192_GCM,
+	"AES-192-GCM", CKM_AES_GCM, INVALID_CERT_EXTENSION ),
+    OD( aes256_GCM, SEC_OID_AES_256_GCM,
+	"AES-256-GCM", CKM_AES_GCM, INVALID_CERT_EXTENSION ),
+    OD( idea_CBC, SEC_OID_IDEA_CBC,
+	"IDEA_CBC", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+
+    ODE( SEC_OID_RC2_40_CBC,
+	"RC2-40-CBC", CKM_RC2_CBC, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_DES_40_CBC,
+	"DES-40-CBC", CKM_RC2_CBC, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_RC4_40,
+	"RC4-40", CKM_RC4, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_RC4_56,
+	"RC4-56", CKM_RC4, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_NULL_CIPHER,
+	"NULL cipher", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_HMAC_MD5,
+	"HMAC-MD5", CKM_MD5_HMAC, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_RSA,
+	"TLS RSA key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_DHE_RSA,
+	"TLS DHE-RSA key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_DHE_DSS,
+	"TLS DHE-DSS key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_DH_RSA,
+	"TLS DH-RSA key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_DH_DSS,
+	"TLS DH-DSS key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_DH_ANON,
+	"TLS DH-ANON key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_ECDHE_ECDSA,
+	"TLS ECDHE-ECDSA key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_ECDHE_RSA,
+	"TLS ECDHE-RSA key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_ECDH_ECDSA,
+	"TLS ECDH-ECDSA key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_ECDH_RSA,
+	"TLS ECDH-RSA key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_ECDH_ANON,
+	"TLS ECDH-ANON key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_RSA_EXPORT,
+	"TLS RSA-EXPORT key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_SSL_V2_0,
+	"SSL 2.0 protocol", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_SSL_V3_0,
+	"SSL 3.0 protocol", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_V1_0,
+	"TLS 1.0 protocol", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_V1_1,
+	"TLS 1.1 protocol", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_TLS_V1_2,
+	"TLS 1.2 protocol", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_DTLS_V1_0,
+	"DTLS 1.0 protocol", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_DTLS_V1_2,
+	"DTLS 1.2 protocol", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    ODE( SEC_OID_APPLY_SSL_POLICY,
+	"Apply SSL policy (pseudo-OID)", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+
 };
 
 /* PRIVATE EXTENDED SECOID Table
@@ -1881,6 +1956,7 @@ secoid_HashNumber(const void *key)
     return (PLHashNumber) key;
 }
 
+#define DEF_FLAGS (NSS_USE_ALG_IN_CERT_SIGNATURE|NSS_USE_ALG_IN_SSL_KX|NSS_USE_ALG_IN_SSL_KX)
 static void
 handleHashAlgSupport(char * envVal)
 {
@@ -1896,14 +1972,14 @@ handleHashAlgSupport(char * envVal)
 		*nextArg++ = '\0';
 	    }
 	}
-	notEnable = (*arg == '-') ? (NSS_USE_ALG_IN_CERT_SIGNATURE|NSS_USE_ALG_IN_SSL_KX) : 0;
+	notEnable = (*arg == '-') ? (DEF_FLAGS) : 0;
 	if ((*arg == '+' || *arg == '-') && *++arg) { 
 	    int i;
 
 	    for (i = 1; i < SEC_OID_TOTAL; i++) {
 	        if (oids[i].desc && strstr(arg, oids[i].desc)) {
 		     xOids[i].notPolicyFlags = notEnable |
-		    (xOids[i].notPolicyFlags & ~(NSS_USE_ALG_IN_CERT_SIGNATURE|NSS_USE_ALG_IN_SSL_KX));
+		    (xOids[i].notPolicyFlags & ~(DEF_FLAGS));
 		}
 	    }
 	}
