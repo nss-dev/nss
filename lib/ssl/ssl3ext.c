@@ -2369,32 +2369,55 @@ ssl3_ServerHandleSigAlgsXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
 static PRInt32
 ssl3_ClientSendSigAlgsXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
 {
-    static const unsigned char signatureAlgorithms[] = {
-        /* This block is the contents of our signature_algorithms extension, in
-         * wire format. See
-         * https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */
-        tls_hash_sha256, tls_sig_rsa,
-        tls_hash_sha384, tls_sig_rsa,
-        tls_hash_sha1,   tls_sig_rsa,
-#ifndef NSS_DISABLE_ECC
-        tls_hash_sha256, tls_sig_ecdsa,
-        tls_hash_sha384, tls_sig_ecdsa,
-        tls_hash_sha1,   tls_sig_ecdsa,
-#endif
-        tls_hash_sha256, tls_sig_dsa,
-        tls_hash_sha1,   tls_sig_dsa,
-    };
+    unsigned char signatureAlgorithms[32];
     PRInt32 extension_length;
+    PRUint32 policy;
+    unsigned pos = 0;
 
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_2) {
         return 0;
+    }
+
+    if (NSS_GetAlgorithmPolicy(SEC_OID_SHA256, &policy) == SECSuccess &&
+    	(policy & NSS_USE_ALG_IN_SSL_KX)) {
+    	signatureAlgorithms[pos++] = tls_hash_sha256;
+    	signatureAlgorithms[pos++] = tls_sig_rsa;
+
+#ifndef NSS_DISABLE_ECC
+    	signatureAlgorithms[pos++] = tls_hash_sha256;
+    	signatureAlgorithms[pos++] = tls_sig_ecdsa;
+#endif
+    }
+
+    if (NSS_GetAlgorithmPolicy(SEC_OID_SHA384, &policy) == SECSuccess &&
+    	(policy & NSS_USE_ALG_IN_SSL_KX)) {
+    	signatureAlgorithms[pos++] = tls_hash_sha384;
+    	signatureAlgorithms[pos++] = tls_sig_rsa;
+
+#ifndef NSS_DISABLE_ECC
+    	signatureAlgorithms[pos++] = tls_hash_sha384;
+    	signatureAlgorithms[pos++] = tls_sig_ecdsa;
+#endif
+    }
+
+    if (NSS_GetAlgorithmPolicy(SEC_OID_SHA1, &policy) == SECSuccess &&
+    	(policy & NSS_USE_ALG_IN_SSL_KX)) {
+    	signatureAlgorithms[pos++] = tls_hash_sha1;
+    	signatureAlgorithms[pos++] = tls_sig_rsa;
+
+#ifndef NSS_DISABLE_ECC
+    	signatureAlgorithms[pos++] = tls_hash_sha1;
+    	signatureAlgorithms[pos++] = tls_sig_ecdsa;
+#endif
+    	signatureAlgorithms[pos++] = tls_hash_sha1;
+    	signatureAlgorithms[pos++] = tls_sig_dsa;
     }
 
     extension_length =
         2 /* extension type */ +
         2 /* extension length */ +
         2 /* supported_signature_algorithms length */ +
-        sizeof(signatureAlgorithms);
+        pos;
 
     if (append && maxBytes >= extension_length) {
         SECStatus rv;
@@ -2405,7 +2428,7 @@ ssl3_ClientSendSigAlgsXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
         if (rv != SECSuccess)
             goto loser;
         rv = ssl3_AppendHandshakeVariable(ss, signatureAlgorithms,
-                                          sizeof(signatureAlgorithms), 2);
+                                          pos, 2);
         if (rv != SECSuccess)
             goto loser;
         ss->xtnData.advertised[ss->xtnData.numAdvertised++] =

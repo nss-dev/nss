@@ -8756,6 +8756,7 @@ ssl3_PickSignatureHashAlgorithm(sslSocket *ss,
 				SSL3SignatureAndHashAlgorithm* out)
 {
     TLSSignatureAlgorithm sigAlg;
+    PRUint32 policy;
     unsigned int i, j;
     /* hashPreference expresses our preferences for hash algorithms, most
      * preferable first. */
@@ -8814,6 +8815,13 @@ ssl3_PickSignatureHashAlgorithm(sslSocket *ss,
 	for (j = 0; j < ss->ssl3.hs.numClientSigAndHash; j++) {
 	    const SSL3SignatureAndHashAlgorithm* sh =
 		&ss->ssl3.hs.clientSigAndHash[j];
+
+	    if (NSS_GetAlgorithmPolicy(sh->hashAlg, &policy) != SECSuccess ||
+	    	!(policy & NSS_USE_ALG_IN_SSL_KX)) {
+	    	/* We ignore hashes we don't support */
+	    	continue;
+	    }
+
 	    if (sh->sigAlg == sigAlg && sh->hashAlg == hashPreference[i]) {
 		out->hashAlg = sh->hashAlg;
 		return SECSuccess;
