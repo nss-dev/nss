@@ -8879,6 +8879,10 @@ ssl3_SendServerKeyExchange(sslSocket *ss)
 	         2 + sdPub->u.rsa.publicExponent.len +
 	         2 + signed_hash.len;
 
+	if (ss->ssl3.pwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2) {
+	    length += 2;
+	}
+
 	rv = ssl3_AppendHandshakeHeader(ss, server_key_exchange, length);
 	if (rv != SECSuccess) {
 	    goto loser; 	/* err set by AppendHandshake. */
