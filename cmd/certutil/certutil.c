@@ -323,6 +323,7 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
 	    }
 	    PR_smprintf_free(header);
 	}
+	PORT_Free(obuf);
     } else {
 	(void) SECITEM_CopyItem(NULL, result, &signedReq);
     }
