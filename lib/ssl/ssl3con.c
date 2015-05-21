@@ -10050,8 +10050,8 @@ ssl3_AuthCertificate(sslSocket *ss)
             KeyType pubKeyType = SECKEY_GetPublicKeyType(pubKey);
             /* Too small: not good enough. Send a fatal alert. */
             /* TODO: Use 1023 for RSA because a higher RSA_MIN_MODULUS_BITS
-             * breaks export cipher suites; when those are removed, increase
-             * RSA_MIN_MODULUS_BITS and use that here. */
+             * breaks export cipher suites, not 1024 to be conservative; when
+             * export removed, increase RSA_MIN_MODULUS_BITS and use that. */
             /* We aren't checking EC here on the understanding that we only
              * support curves we like, a decision that might need revisiting. */
             if (((pubKeyType == rsaKey || pubKeyType == rsaPssKey ||

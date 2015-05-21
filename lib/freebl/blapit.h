@@ -141,6 +141,9 @@ typedef int __BLAPI_DEPRECATED __attribute__((deprecated));
 #define RSA_MIN_MODULUS_BITS   512
 #define RSA_MAX_MODULUS_BITS 16384
 #define RSA_MAX_EXPONENT_BITS   64
+/* 1023 to avoid cases where p = 2q+1 for a 512-bit q turns out to be
+ * only 1023 bits and similar.  We don't have good data on whether this
+ * happens because NSS used to count bit lengths incorrectly. */
 #define DH_MIN_P_BITS	      1023
 #define DH_MAX_P_BITS        16384
 
