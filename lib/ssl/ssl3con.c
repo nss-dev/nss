@@ -4149,6 +4149,12 @@ ssl3_AppendHandshakeNumber(sslSocket *ss, PRInt32 num, PRInt32 lenSize)
     PRUint8   b[4];
     PRUint8 * p = b;
 
+    PORT_Assert(lenSize <= 4 && lenSize > 0);
+    if (lenSize < 4 && num >= (1L << (lenSize * 8))) {
+        PORT_SetError(SSL_ERROR_TX_RECORD_TOO_LONG);
+        return SECFailure;
+    }
+
     switch (lenSize) {
       case 4:
 	*p++ = (num >> 24) & 0xff;
