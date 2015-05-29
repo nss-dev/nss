@@ -2420,7 +2420,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
     PRFileDesc *outFile         = PR_STDOUT;
     SECItem     certReqDER      = { siBuffer, NULL, 0 };
     SECItem     certDER         = { siBuffer, NULL, 0 };
-    char *      slotname        = "internal";
+    const char *slotname        = "internal";
     char *      certPrefix      = "";
     char *      sourceDir       = "";
     char *      srcCertPrefix   = "";
@@ -2534,7 +2534,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
 	if (PL_strcmp(certutil.options[opt_TokenName].arg, "all") == 0)
 	    slotname = NULL;
 	else
-	    slotname = PL_strdup(certutil.options[opt_TokenName].arg);
+	    slotname = certutil.options[opt_TokenName].arg;
     }
 
     /*  -Z hash type  */
