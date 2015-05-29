@@ -2421,9 +2421,9 @@ certutil_main(int argc, char **argv, PRBool initialize)
     SECItem     certReqDER      = { siBuffer, NULL, 0 };
     SECItem     certDER         = { siBuffer, NULL, 0 };
     const char *slotname        = "internal";
-    char *      certPrefix      = "";
+    const char *certPrefix      = "";
     char *      sourceDir       = "";
-    char *      srcCertPrefix   = "";
+    const char *srcCertPrefix   = "";
     char *      upgradeID        = "";
     char *      upgradeTokenName     = "";
     KeyType     keytype         = rsaKey;
@@ -2594,7 +2594,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
     /*  -P certdb name prefix */
     if (certutil.options[opt_DBPrefix].activated) {
         if (certutil.options[opt_DBPrefix].arg) {
-            certPrefix = strdup(certutil.options[opt_DBPrefix].arg);
+            certPrefix = certutil.options[opt_DBPrefix].arg;
         } else {
             Usage(progName);
         }
@@ -2603,7 +2603,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
     /*  --source-prefix certdb name prefix */
     if (certutil.options[opt_SourcePrefix].activated) {
         if (certutil.options[opt_SourcePrefix].arg) {
-            srcCertPrefix = strdup(certutil.options[opt_SourcePrefix].arg);
+            srcCertPrefix = certutil.options[opt_SourcePrefix].arg;
         } else {
             Usage(progName);
         }
