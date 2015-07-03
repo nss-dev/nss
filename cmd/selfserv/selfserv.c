@@ -2271,7 +2271,7 @@ main(int argc, char **argv)
         case 'Y': PrintCipherUsage(progName); exit(0); break;
         
 	case 'a': if (virtServerNameIndex >= MAX_VIRT_SERVER_NAME_ARRAY_INDEX) {
-                      Usage(progName);
+                      Usage(progName); break;
                   }
                   virtServerNameArray[virtServerNameIndex++] =
                       PORT_Strdup(optstate->value); break;
