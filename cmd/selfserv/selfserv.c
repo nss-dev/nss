@@ -1923,14 +1923,23 @@ server_main(
 
     if (configureDHE > -1) {
 	rv = SSL_OptionSet(model_sock, SSL_ENABLE_SERVER_DHE, (configureDHE > 0));
+        if (rv != SECSuccess) {
+            errExit("error configuring server side DHE support");
+        }
     }
 
     if (configureReuseECDHE > -1) {
 	rv = SSL_OptionSet(model_sock, SSL_REUSE_SERVER_ECDHE_KEY, (configureReuseECDHE > 0));
+        if (rv != SECSuccess) {
+            errExit("error configuring server side reuse of ECDHE key");
+        }
     }
 
     if (configureWeakDHE > -1) {
 	rv = SSL_EnableWeakDHEPrimeGroup(model_sock, (configureWeakDHE > 0));
+        if (rv != SECSuccess) {
+            errExit("error configuring weak DHE prime group");
+        }
     }
 
     for (kea = kt_rsa; kea < kt_kea_size; kea++) {
