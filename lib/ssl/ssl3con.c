@@ -292,8 +292,8 @@ static const ssl3KEADef kea_defs[] =
     /* kea            exchKeyType signKeyType is_limited limit tls_keygen ephemeral */
     {kea_null,           kt_null, sign_null,  PR_FALSE,   0, PR_FALSE, PR_FALSE},
     {kea_rsa,            kt_rsa,  sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE},
-    {kea_rsa_export,     kt_rsa,  sign_rsa,   PR_TRUE,  512, PR_FALSE, PR_TRUE},
-    {kea_rsa_export_1024,kt_rsa,  sign_rsa,   PR_TRUE, 1024, PR_FALSE, PR_TRUE},
+    {kea_rsa_export,     kt_rsa,  sign_rsa,   PR_TRUE,  512, PR_FALSE, PR_FALSE},
+    {kea_rsa_export_1024,kt_rsa,  sign_rsa,   PR_TRUE, 1024, PR_FALSE, PR_FALSE},
     {kea_dh_dss,         kt_dh,   sign_dsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE},
     {kea_dh_dss_export,  kt_dh,   sign_dsa,   PR_TRUE,  512, PR_FALSE, PR_FALSE},
     {kea_dh_rsa,         kt_dh,   sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE},
@@ -6113,9 +6113,9 @@ ssl3_SendClientKeyExchange(sslSocket *ss)
     isTLS = (PRBool)(ss->ssl3.pwSpec->version > SSL_LIBRARY_VERSION_3_0);
     /* enforce limits on kea key sizes. */
     if (ss->ssl3.hs.kea_def->is_limited) {
-	int keyLen = SECKEY_PublicKeyStrength(serverKey);	/* bytes */
+        unsigned int keyLen = SECKEY_PublicKeyStrengthInBits(serverKey);
 
-	if (keyLen * BPB > ss->ssl3.hs.kea_def->key_size_limit) {
+        if (keyLen > ss->ssl3.hs.kea_def->key_size_limit) {
 	    if (isTLS)
 		(void)SSL3_SendAlert(ss, alert_fatal, export_restriction);
 	    else
@@ -10342,7 +10342,13 @@ ssl3_AuthCertificate(sslSocket *ss)
 	    pubKey = NULL;
     	}
 
-        if (ss->ssl3.hs.kea_def->ephemeral) {
+        /* Ephemeral suites require ServerKeyExchange. Export cipher suites
+         * with RSA key exchange also require ServerKeyExchange if the
+         * authentication key exceeds the key size limit. */
+        if (ss->ssl3.hs.kea_def->ephemeral ||
+            (ss->ssl3.hs.kea_def->is_limited &&
+             ss->ssl3.hs.kea_def->exchKeyType == ssl_kea_rsa &&
+             ss->sec.authKeyBits > ss->ssl3.hs.kea_def->key_size_limit)) {
             ss->ssl3.hs.ws = wait_server_key; /* require server_key_exchange */
         } else {
             ss->ssl3.hs.ws = wait_cert_request; /* disallow server_key_exchange */

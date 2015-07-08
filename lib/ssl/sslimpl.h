@@ -742,8 +742,8 @@ typedef struct {
     PRBool                   is_limited;
     int                      key_size_limit;
     PRBool                   tls_keygen;
-    /* True if the key exchange for the suite can be ephemeral.  Or to be more
-     * precise: true if the ServerKeyExchange message is required. */
+    /* True if the key exchange for the suite is ephemeral.  Or to be more
+     * precise: true if the ServerKeyExchange message is always required. */
     PRBool                   ephemeral;
 } ssl3KEADef;
 
