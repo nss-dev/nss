@@ -55,37 +55,42 @@ TEST_P(TlsConnectGeneric, ConnectEcdsa) {
   client_->CheckAuthType(ssl_auth_ecdsa);
 }
 
+TEST_P(TlsConnectGeneric, ConnectFalseStart) {
+  client_->EnableFalseStart();
+  Connect();
+}
+
 TEST_P(TlsConnectGeneric, ConnectResumed) {
   ConfigureSessionCache(RESUME_SESSIONID, RESUME_SESSIONID);
   Connect();
 
   ResetRsa();
+  ExpectResumption(RESUME_SESSIONID);
   Connect();
-  CheckResumption(RESUME_SESSIONID);
 }
 
 TEST_P(TlsConnectGeneric, ConnectClientCacheDisabled) {
   ConfigureSessionCache(RESUME_NONE, RESUME_SESSIONID);
   Connect();
   ResetRsa();
+  ExpectResumption(RESUME_NONE);
   Connect();
-  CheckResumption(RESUME_NONE);
 }
 
 TEST_P(TlsConnectGeneric, ConnectServerCacheDisabled) {
   ConfigureSessionCache(RESUME_SESSIONID, RESUME_NONE);
   Connect();
   ResetRsa();
+  ExpectResumption(RESUME_NONE);
   Connect();
-  CheckResumption(RESUME_NONE);
 }
 
 TEST_P(TlsConnectGeneric, ConnectSessionCacheDisabled) {
   ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
   Connect();
   ResetRsa();
+  ExpectResumption(RESUME_NONE);
   Connect();
-  CheckResumption(RESUME_NONE);
 }
 
 TEST_P(TlsConnectGeneric, ConnectResumeSupportBoth) {
@@ -95,8 +100,8 @@ TEST_P(TlsConnectGeneric, ConnectResumeSupportBoth) {
 
   ResetRsa();
   ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  ExpectResumption(RESUME_TICKET);
   Connect();
-  CheckResumption(RESUME_TICKET);
 }
 
 TEST_P(TlsConnectGeneric, ConnectResumeClientTicketServerBoth) {
@@ -107,8 +112,8 @@ TEST_P(TlsConnectGeneric, ConnectResumeClientTicketServerBoth) {
 
   ResetRsa();
   ConfigureSessionCache(RESUME_TICKET, RESUME_BOTH);
+  ExpectResumption(RESUME_NONE);
   Connect();
-  CheckResumption(RESUME_NONE);
 }
 
 TEST_P(TlsConnectGeneric, ConnectResumeClientBothTicketServerTicket) {
@@ -118,8 +123,8 @@ TEST_P(TlsConnectGeneric, ConnectResumeClientBothTicketServerTicket) {
 
   ResetRsa();
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  ExpectResumption(RESUME_TICKET);
   Connect();
-  CheckResumption(RESUME_TICKET);
 }
 
 TEST_P(TlsConnectGeneric, ConnectClientServerTicketOnly) {
@@ -130,8 +135,8 @@ TEST_P(TlsConnectGeneric, ConnectClientServerTicketOnly) {
 
   ResetRsa();
   ConfigureSessionCache(RESUME_TICKET, RESUME_TICKET);
+  ExpectResumption(RESUME_NONE);
   Connect();
-  CheckResumption(RESUME_NONE);
 }
 
 TEST_P(TlsConnectGeneric, ConnectClientBothServerNone) {
@@ -140,8 +145,8 @@ TEST_P(TlsConnectGeneric, ConnectClientBothServerNone) {
 
   ResetRsa();
   ConfigureSessionCache(RESUME_BOTH, RESUME_NONE);
+  ExpectResumption(RESUME_NONE);
   Connect();
-  CheckResumption(RESUME_NONE);
 }
 
 TEST_P(TlsConnectGeneric, ConnectClientNoneServerBoth) {
@@ -150,8 +155,8 @@ TEST_P(TlsConnectGeneric, ConnectClientNoneServerBoth) {
 
   ResetRsa();
   ConfigureSessionCache(RESUME_NONE, RESUME_BOTH);
+  ExpectResumption(RESUME_NONE);
   Connect();
-  CheckResumption(RESUME_NONE);
 }
 
 TEST_P(TlsConnectGeneric, ResumeWithHigherVersion) {
@@ -171,8 +176,8 @@ TEST_P(TlsConnectGeneric, ResumeWithHigherVersion) {
                            SSL_LIBRARY_VERSION_TLS_1_2);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
                            SSL_LIBRARY_VERSION_TLS_1_2);
+  ExpectResumption(RESUME_NONE);
   Connect();
-  CheckResumption(RESUME_NONE);
 }
 
 TEST_P(TlsConnectGeneric, ConnectAlpn) {
@@ -186,6 +191,22 @@ TEST_P(TlsConnectDatagram, ConnectSrtp) {
   EnableSrtp();
   Connect();
   CheckSrtp();
+}
+
+TEST_P(TlsConnectStream, ConnectAndClientRenegotiate) {
+  Connect();
+  server_->PrepareForRenegotiate();
+  client_->StartRenegotiate();
+  Handshake();
+  CheckConnected();
+}
+
+TEST_P(TlsConnectStream, ConnectAndServerRenegotiate) {
+  Connect();
+  client_->PrepareForRenegotiate();
+  server_->StartRenegotiate();
+  Handshake();
+  CheckConnected();
 }
 
 TEST_P(TlsConnectStream, ConnectEcdhe) {

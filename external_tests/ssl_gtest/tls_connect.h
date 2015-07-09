@@ -57,11 +57,12 @@ class TlsConnectTestBase : public ::testing::Test {
   void ConnectExpectFail();
 
   void SetExpectedVersion(uint16_t version);
+  // Expect resumption of a particular type.
+  void ExpectResumption(SessionResumptionMode expected);
   void EnableSomeEcdheCiphers();
   void DisableDheCiphers();
   void ConfigureSessionCache(SessionResumptionMode client,
                              SessionResumptionMode server);
-  void CheckResumption(SessionResumptionMode expected);
   void EnableAlpn();
   void EnableSrtp();
   void CheckSrtp() const;
@@ -72,10 +73,12 @@ class TlsConnectTestBase : public ::testing::Test {
   TlsAgent* client_;
   TlsAgent* server_;
   uint16_t version_;
+  SessionResumptionMode expected_resumption_mode_;
   std::vector<std::vector<uint8_t>> session_ids_;
 
  private:
   void Reset(const std::string& server_name, SSLKEAType kea);
+  void CheckResumption(SessionResumptionMode expected);
 };
 
 // A TLS-only test base.

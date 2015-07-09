@@ -55,6 +55,7 @@ TlsConnectTestBase::TlsConnectTestBase(Mode mode, uint16_t version)
         client_(new TlsAgent("client", TlsAgent::CLIENT, mode_, ssl_kea_rsa)),
         server_(new TlsAgent("server", TlsAgent::SERVER, mode_, ssl_kea_rsa)),
         version_(version),
+        expected_resumption_mode_(RESUME_NONE),
         session_ids_() {
   std::cerr << "Version: " << mode_ << " " << VersionString(version_) << std::endl;
 }
@@ -115,6 +116,14 @@ void TlsConnectTestBase::ResetEcdsa() {
   EnableSomeEcdheCiphers();
 }
 
+void TlsConnectTestBase::ExpectResumption(SessionResumptionMode expected) {
+  expected_resumption_mode_ = expected;
+  if (expected != RESUME_NONE) {
+    client_->ExpectResumption();
+    server_->ExpectResumption();
+  }
+}
+
 void TlsConnectTestBase::EnsureTlsSetup() {
   EXPECT_TRUE(client_->EnsureTlsSetup());
   EXPECT_TRUE(server_->EnsureTlsSetup());
@@ -164,6 +173,8 @@ void TlsConnectTestBase::CheckConnected() {
   EXPECT_EQ(32U, sid_s1.size());
   EXPECT_EQ(sid_c1, sid_s1);
   session_ids_.push_back(sid_c1);
+
+  CheckResumption(expected_resumption_mode_);
 }
 
 void TlsConnectTestBase::ConnectExpectFail() {

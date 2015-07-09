@@ -19,6 +19,42 @@ namespace nss_test {
 
 const char* TlsAgent::states[] = {"INIT", "CONNECTING", "CONNECTED", "ERROR"};
 
+TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode, SSLKEAType kea)
+  : name_(name),
+    mode_(mode),
+    kea_(kea),
+    pr_fd_(nullptr),
+    adapter_(nullptr),
+    ssl_fd_(nullptr),
+    role_(role),
+    state_(INIT),
+    falsestart_enabled_(false),
+    expected_version_(0),
+    expected_cipher_suite_(0),
+    expect_resumption_(false),
+    can_falsestart_hook_called_(false),
+    sni_hook_called_(false),
+    auth_certificate_hook_called_(false),
+    handshake_callback_called_(false),
+    error_code_(0) {
+  memset(&info_, 0, sizeof(info_));
+  memset(&csinfo_, 0, sizeof(csinfo_));
+  SECStatus rv = SSL_VersionRangeGetDefault(mode_ == STREAM ?
+                                            ssl_variant_stream : ssl_variant_datagram,
+                                            &vrange_);
+  EXPECT_EQ(SECSuccess, rv);
+}
+
+TlsAgent::~TlsAgent() {
+  if (pr_fd_) {
+    PR_Close(pr_fd_);
+  }
+
+  if (ssl_fd_) {
+    PR_Close(ssl_fd_);
+  }
+}
+
 bool TlsAgent::EnsureTlsSetup() {
   // Don't set up twice
   if (ssl_fd_) return true;
@@ -53,10 +89,6 @@ bool TlsAgent::EnsureTlsSetup() {
     EXPECT_EQ(SECSuccess, rv);  // don't abort, just fail
   } else {
     SECStatus rv = SSL_SetURL(ssl_fd_, "server");
-    EXPECT_EQ(SECSuccess, rv);
-    if (rv != SECSuccess) return false;
-
-    rv = SSL_SetCanFalseStartCallback(ssl_fd_, CanFalseStartCallback, this);
     EXPECT_EQ(SECSuccess, rv);
     if (rv != SECSuccess) return false;
   }
@@ -157,6 +189,20 @@ void TlsAgent::CheckAuthType(SSLAuthType type) const {
   EXPECT_EQ(type, csinfo_.authAlgorithm);
 }
 
+void TlsAgent::EnableFalseStart() {
+  EXPECT_TRUE(EnsureTlsSetup());
+
+  falsestart_enabled_ = true;
+  EXPECT_EQ(SECSuccess,
+            SSL_SetCanFalseStartCallback(ssl_fd_, CanFalseStartCallback, this));
+  EXPECT_EQ(SECSuccess,
+            SSL_OptionSet(ssl_fd_, SSL_ENABLE_FALSE_START, PR_TRUE));
+}
+
+void TlsAgent::ExpectResumption() {
+  expect_resumption_ = true;
+}
+
 void TlsAgent::EnableAlpn(const uint8_t* val, size_t len) {
   EXPECT_TRUE(EnsureTlsSetup());
 
@@ -205,23 +251,45 @@ void TlsAgent::CheckPreliminaryInfo() {
   EXPECT_TRUE(info.valuesSet & ssl_preinfo_version);
   EXPECT_TRUE(info.valuesSet & ssl_preinfo_cipher_suite);
 
-  // A version of 0 is invalid and indicates no expectation.
-  if (expected_version_) {
-    EXPECT_EQ(expected_version_, info.protocolVersion);
-  } else {
+  // A version of 0 is invalid and indicates no expectation.  This value is
+  // initialized to 0 so that tests that don't explicitly set an expected
+  // version can negotiate a version.
+  if (!expected_version_) {
     expected_version_ = info.protocolVersion;
   }
-  // As above; 0 is the null cipher suite.
-  if (expected_cipher_suite_) {
-    EXPECT_EQ(expected_cipher_suite_, info.cipherSuite);
-  } else {
+  EXPECT_EQ(expected_version_, info.protocolVersion);
+
+  // As with the version; 0 is the null cipher suite (and also invalid).
+  if (!expected_cipher_suite_) {
     expected_cipher_suite_ = info.cipherSuite;
+  }
+  EXPECT_EQ(expected_cipher_suite_, info.cipherSuite);
+}
+
+// Check that all the expected callbacks have been called.
+void TlsAgent::CheckCallbacks() const {
+  // If false start happens, the handshake is reported as being complete at the
+  // point that false start happens.
+  if (expect_resumption_ || !falsestart_enabled_) {
+    EXPECT_TRUE(handshake_callback_called_);
+  }
+
+  // These callbacks shouldn't fire if we are resuming.
+  if (role_ == SERVER) {
+    EXPECT_EQ(!expect_resumption_, sni_hook_called_);
+  } else {
+    EXPECT_EQ(!expect_resumption_, auth_certificate_hook_called_);
+    // Note that this isn't unconditionally called, even with false start on.
+    // But the callback is only skipped if a cipher that is ridiculously weak
+    // (80 bits) is chosen.  Don't test that: plan to remove bad ciphers.
+    EXPECT_EQ(falsestart_enabled_ && !expect_resumption_,
+              can_falsestart_hook_called_);
   }
 }
 
 void TlsAgent::Connected() {
   LOG("Handshake success");
-  ASSERT_TRUE(handshake_callback_called_);
+  CheckCallbacks();
 
   SECStatus rv = SSL_GetChannelInfo(ssl_fd_, &info_, sizeof(info_));
   EXPECT_EQ(SECSuccess, rv);
@@ -265,14 +333,14 @@ void TlsAgent::Handshake() {
   }
 }
 
-void TlsAgent::PrepareRenegotiate() {
-  ASSERT_EQ(CONNECTED, state_);
+void TlsAgent::PrepareForRenegotiate() {
+  EXPECT_EQ(CONNECTED, state_);
 
   SetState(CONNECTING);
 }
 
 void TlsAgent::StartRenegotiate() {
-  PrepareRenegotiate();
+  PrepareForRenegotiate();
 
   SECStatus rv = SSL_ReHandshake(ssl_fd_, PR_TRUE);
   EXPECT_EQ(SECSuccess, rv);
