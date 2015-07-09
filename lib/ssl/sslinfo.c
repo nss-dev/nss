@@ -85,6 +85,42 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
     return SECSuccess;
 }
 
+SECStatus
+SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
+                              SSLPreliminaryChannelInfo *info,
+                              PRUintn len)
+{
+    sslSocket *ss;
+    SSLPreliminaryChannelInfo inf;
+
+    if (!info || len < sizeof inf.length) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_GetPreliminaryChannelInfo",
+                 SSL_GETPID(), fd));
+        return SECFailure;
+    }
+
+    if (ss->version < SSL_LIBRARY_VERSION_3_0) {
+        PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_VERSION);
+        return SECFailure;
+    }
+
+    memset(&inf, 0, sizeof(inf));
+    inf.length = PR_MIN(sizeof(inf), len);
+
+    inf.valuesSet = ss->ssl3.hs.preliminaryInfo;
+    inf.protocolVersion = ss->version;
+    inf.cipherSuite = ss->ssl3.hs.cipher_suite;
+
+    memcpy(info, &inf, inf.length);
+    return SECSuccess;
+}
+
 
 #define CS(x) x, #x
 #define CK(x) x | 0xff00, #x

@@ -917,6 +917,8 @@ const ssl3CipherSuiteDef *suite_def;
     PRBool                cacheSID;
 
     PRBool                canFalseStart;   /* Can/did we False Start */
+    /* Which preliminaryinfo values have been set. */
+    PRUint32              preliminaryInfo;
 
     /* clientSigAndHash contains the contents of the signature_algorithms
      * extension (if any) from the client. This is only valid for TLS 1.2

@@ -138,6 +138,9 @@ ssl_FinishHandshake(sslSocket *ss)
     ss->gs.readOffset  = 0;
 
     if (ss->handshakeCallback) {
+      PORT_Assert(ss->version < SSL_LIBRARY_VERSION_3_0 ||
+                  (ss->ssl3.hs.preliminaryInfo & ssl_preinfo_all) ==
+                  ssl_preinfo_all);
 	(ss->handshakeCallback)(ss->fd, ss->handshakeCallbackData);
     }
 }
