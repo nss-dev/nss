@@ -171,6 +171,11 @@ void TlsConnectTestBase::ConnectExpectFail() {
   ASSERT_EQ(TlsAgent::ERROR, server_->state());
 }
 
+void TlsConnectTestBase::SetExpectedVersion(uint16_t version) {
+  client_->SetExpectedVersion(version);
+  server_->SetExpectedVersion(version);
+}
+
 void TlsConnectTestBase::EnableSomeEcdheCiphers() {
   client_->EnableSomeEcdheCiphers();
   server_->EnableSomeEcdheCiphers();
@@ -223,7 +228,7 @@ void TlsConnectTestBase::EnableSrtp() {
   server_->EnableSrtp();
 }
 
-void TlsConnectTestBase::CheckSrtp() {
+void TlsConnectTestBase::CheckSrtp() const {
   client_->CheckSrtp();
   server_->CheckSrtp();
 }
