@@ -49,11 +49,14 @@ bool TlsAgent::EnsureTlsSetup() {
     SECKEY_DestroyPrivateKey(priv);
     CERT_DestroyCertificate(cert);
 
-    rv = SSL_SNISocketConfigHook(ssl_fd_, SniHook,
-                                 reinterpret_cast<void*>(this));
+    rv = SSL_SNISocketConfigHook(ssl_fd_, SniHook, this);
     EXPECT_EQ(SECSuccess, rv);  // don't abort, just fail
   } else {
     SECStatus rv = SSL_SetURL(ssl_fd_, "server");
+    EXPECT_EQ(SECSuccess, rv);
+    if (rv != SECSuccess) return false;
+
+    rv = SSL_SetCanFalseStartCallback(ssl_fd_, CanFalseStartCallback, this);
     EXPECT_EQ(SECSuccess, rv);
     if (rv != SECSuccess) return false;
   }
@@ -62,8 +65,11 @@ bool TlsAgent::EnsureTlsSetup() {
   EXPECT_EQ(SECSuccess, rv);
   if (rv != SECSuccess) return false;
 
-  rv = SSL_AuthCertificateHook(ssl_fd_, AuthCertificateHook,
-                               reinterpret_cast<void*>(this));
+  rv = SSL_AuthCertificateHook(ssl_fd_, AuthCertificateHook, this);
+  EXPECT_EQ(SECSuccess, rv);
+  if (rv != SECSuccess) return false;
+
+  rv = SSL_HandshakeCallback(ssl_fd_, HandshakeCallback, this);
   EXPECT_EQ(SECSuccess, rv);
   if (rv != SECSuccess) return false;
 
@@ -137,6 +143,10 @@ void TlsAgent::SetVersionRange(uint16_t minver, uint16_t maxver) {
    }
 }
 
+void TlsAgent::SetExpectedVersion(uint16_t version) {
+  expected_version_ = version;
+}
+
 void TlsAgent::CheckKEAType(SSLKEAType type) const {
   EXPECT_EQ(CONNECTED, state_);
   EXPECT_EQ(type, csinfo_.keaType);
@@ -147,11 +157,6 @@ void TlsAgent::CheckAuthType(SSLAuthType type) const {
   EXPECT_EQ(type, csinfo_.authAlgorithm);
 }
 
-void TlsAgent::CheckVersion(uint16_t version) const {
-  EXPECT_EQ(CONNECTED, state_);
-  EXPECT_EQ(version, info_.protocolVersion);
-}
-
 void TlsAgent::EnableAlpn(const uint8_t* val, size_t len) {
   EXPECT_TRUE(EnsureTlsSetup());
 
@@ -160,7 +165,7 @@ void TlsAgent::EnableAlpn(const uint8_t* val, size_t len) {
 }
 
 void TlsAgent::CheckAlpn(SSLNextProtoState expected_state,
-                         const std::string& expected) {
+                         const std::string& expected) const {
   SSLNextProtoState state;
   char chosen[10];
   unsigned int chosen_len;
@@ -182,7 +187,7 @@ void TlsAgent::EnableSrtp() {
 
 }
 
-void TlsAgent::CheckSrtp() {
+void TlsAgent::CheckSrtp() const {
   uint16_t actual;
   EXPECT_EQ(SECSuccess, SSL_GetSRTPCipher(ssl_fd_, &actual));
   EXPECT_EQ(SRTP_AES128_CM_HMAC_SHA1_80, actual);
@@ -193,17 +198,50 @@ void TlsAgent::CheckErrorCode(int32_t expected) const {
   EXPECT_EQ(expected, error_code_);
 }
 
+void TlsAgent::CheckPreliminaryInfo() {
+  SSLPreliminaryChannelInfo info;
+  EXPECT_EQ(SECSuccess,
+            SSL_GetPreliminaryChannelInfo(ssl_fd_, &info, sizeof(info)));
+  EXPECT_TRUE(info.valuesSet & ssl_preinfo_version);
+  EXPECT_TRUE(info.valuesSet & ssl_preinfo_cipher_suite);
+
+  // A version of 0 is invalid and indicates no expectation.
+  if (expected_version_) {
+    EXPECT_EQ(expected_version_, info.protocolVersion);
+  } else {
+    expected_version_ = info.protocolVersion;
+  }
+  // As above; 0 is the null cipher suite.
+  if (expected_cipher_suite_) {
+    EXPECT_EQ(expected_cipher_suite_, info.cipherSuite);
+  } else {
+    expected_cipher_suite_ = info.cipherSuite;
+  }
+}
+
+void TlsAgent::Connected() {
+  LOG("Handshake success");
+  ASSERT_TRUE(handshake_callback_called_);
+
+  SECStatus rv = SSL_GetChannelInfo(ssl_fd_, &info_, sizeof(info_));
+  EXPECT_EQ(SECSuccess, rv);
+
+  // Preliminary values are exposed through callbacks during the handshake.
+  // If either expected values were set or the callbacks were called, check
+  // that the final values are correct.
+  EXPECT_EQ(expected_version_, info_.protocolVersion);
+  EXPECT_EQ(expected_cipher_suite_, info_.cipherSuite);
+
+  rv = SSL_GetCipherSuiteInfo(info_.cipherSuite, &csinfo_, sizeof(csinfo_));
+  EXPECT_EQ(SECSuccess, rv);
+
+  SetState(CONNECTED);
+}
+
 void TlsAgent::Handshake() {
   SECStatus rv = SSL_ForceHandshake(ssl_fd_);
   if (rv == SECSuccess) {
-    LOG("Handshake success");
-    SECStatus rv = SSL_GetChannelInfo(ssl_fd_, &info_, sizeof(info_));
-    EXPECT_EQ(SECSuccess, rv);
-
-    rv = SSL_GetCipherSuiteInfo(info_.cipherSuite, &csinfo_, sizeof(csinfo_));
-    EXPECT_EQ(SECSuccess, rv);
-
-    SetState(CONNECTED);
+    Connected();
     return;
   }
 

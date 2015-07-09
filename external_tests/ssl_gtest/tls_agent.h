@@ -42,13 +42,16 @@ class TlsAgent : public PollTarget {
         ssl_fd_(nullptr),
         role_(role),
         state_(INIT),
+        expected_version_(0),
+        expected_cipher_suite_(0),
+        handshake_callback_called_(false),
         error_code_(0) {
-      memset(&info_, 0, sizeof(info_));
-      memset(&csinfo_, 0, sizeof(csinfo_));
-      SECStatus rv = SSL_VersionRangeGetDefault(mode_ == STREAM ?
-                                                ssl_variant_stream : ssl_variant_datagram,
-                                                &vrange_);
-      EXPECT_EQ(SECSuccess, rv);
+    memset(&info_, 0, sizeof(info_));
+    memset(&csinfo_, 0, sizeof(csinfo_));
+    SECStatus rv = SSL_VersionRangeGetDefault(mode_ == STREAM ?
+                                              ssl_variant_stream : ssl_variant_datagram,
+                                              &vrange_);
+    EXPECT_EQ(SECSuccess, rv);
   }
 
   ~TlsAgent() {
@@ -81,7 +84,6 @@ class TlsAgent : public PollTarget {
   void StartConnect();
   void CheckKEAType(SSLKEAType type) const;
   void CheckAuthType(SSLAuthType type) const;
-  void CheckVersion(uint16_t version) const;
 
   void Handshake();
   void EnableSomeEcdheCiphers();
@@ -92,11 +94,13 @@ class TlsAgent : public PollTarget {
   void SetSessionTicketsEnabled(bool en);
   void SetSessionCacheEnabled(bool en);
   void SetVersionRange(uint16_t minver, uint16_t maxver);
+  void CheckPreliminaryInfo();
+  void SetExpectedVersion(uint16_t version);
   void EnableAlpn(const uint8_t* val, size_t len);
   void CheckAlpn(SSLNextProtoState expected_state,
-                 const std::string& expected);
+                 const std::string& expected) const;
   void EnableSrtp();
-  void CheckSrtp();
+  void CheckSrtp() const;
   void CheckErrorCode(int32_t expected) const;
 
   State state() const { return state_; }
@@ -109,18 +113,8 @@ class TlsAgent : public PollTarget {
 
   uint16_t min_version() const { return vrange_.min; }
   uint16_t max_version() const { return vrange_.max; }
-
-  bool version(uint16_t* version) const {
-    if (state_ != CONNECTED) return false;
-
-    *version = info_.protocolVersion;
-
-    return true;
-  }
-
   uint16_t version() const {
     EXPECT_EQ(CONNECTED, state_);
-
     return info_.protocolVersion;
   }
 
@@ -156,6 +150,7 @@ class TlsAgent : public PollTarget {
   // Dummy auth certificate hook.
   static SECStatus AuthCertificateHook(void* arg, PRFileDesc* fd,
                                        PRBool checksig, PRBool isServer) {
+    reinterpret_cast<TlsAgent*>(arg)->CheckPreliminaryInfo();
     return SECSuccess;
   }
 
@@ -172,8 +167,24 @@ class TlsAgent : public PollTarget {
   static PRInt32 SniHook(PRFileDesc *fd, const SECItem *srvNameArr,
                          PRUint32 srvNameArrSize,
                          void *arg) {
+    reinterpret_cast<TlsAgent*>(arg)->CheckPreliminaryInfo();
     return SSL_SNI_CURRENT_CONFIG_IS_USED;
   }
+
+  static SECStatus CanFalseStartCallback(PRFileDesc *fd, void *arg,
+                                         PRBool *canFalseStart) {
+    reinterpret_cast<TlsAgent*>(arg)->CheckPreliminaryInfo();
+    *canFalseStart = true;
+    return SECSuccess;
+  }
+
+  static void HandshakeCallback(PRFileDesc *fd, void *arg) {
+    TlsAgent* agent = reinterpret_cast<TlsAgent*>(arg);
+    agent->CheckPreliminaryInfo();
+    agent->handshake_callback_called_ = true;
+  }
+
+  void Connected();
 
   const std::string name_;
   Mode mode_;
@@ -183,6 +194,9 @@ class TlsAgent : public PollTarget {
   PRFileDesc* ssl_fd_;
   Role role_;
   State state_;
+  uint16_t expected_version_;
+  uint16_t expected_cipher_suite_;
+  bool handshake_callback_called_;
   SSLChannelInfo info_;
   SSLCipherSuiteInfo csinfo_;
   SSLVersionRange vrange_;

@@ -43,9 +43,16 @@ class TlsServerKeyExchangeEcdhe {
 TEST_P(TlsConnectGeneric, SetupOnly) {}
 
 TEST_P(TlsConnectGeneric, Connect) {
+  SetExpectedVersion(std::get<1>(GetParam()));
   Connect();
-  client_->CheckVersion(std::get<1>(GetParam()));
   client_->CheckAuthType(ssl_auth_rsa);
+}
+
+TEST_P(TlsConnectGeneric, ConnectEcdsa) {
+  SetExpectedVersion(std::get<1>(GetParam()));
+  ResetEcdsa();
+  Connect();
+  client_->CheckAuthType(ssl_auth_ecdsa);
 }
 
 TEST_P(TlsConnectGeneric, ConnectResumed) {
@@ -149,6 +156,7 @@ TEST_P(TlsConnectGeneric, ConnectClientNoneServerBoth) {
 
 TEST_P(TlsConnectGeneric, ResumeWithHigherVersion) {
   EnsureTlsSetup();
+  SetExpectedVersion(SSL_LIBRARY_VERSION_TLS_1_1);
   ConfigureSessionCache(RESUME_SESSIONID, RESUME_SESSIONID);
   client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
                            SSL_LIBRARY_VERSION_TLS_1_1);
@@ -158,13 +166,13 @@ TEST_P(TlsConnectGeneric, ResumeWithHigherVersion) {
 
   ResetRsa();
   EnsureTlsSetup();
+  SetExpectedVersion(SSL_LIBRARY_VERSION_TLS_1_2);
   client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
                            SSL_LIBRARY_VERSION_TLS_1_2);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
                            SSL_LIBRARY_VERSION_TLS_1_2);
   Connect();
   CheckResumption(RESUME_NONE);
-  client_->CheckVersion(SSL_LIBRARY_VERSION_TLS_1_2);
 }
 
 TEST_P(TlsConnectGeneric, ConnectAlpn) {
@@ -172,13 +180,6 @@ TEST_P(TlsConnectGeneric, ConnectAlpn) {
   Connect();
   client_->CheckAlpn(SSL_NEXT_PROTO_SELECTED, "a");
   server_->CheckAlpn(SSL_NEXT_PROTO_NEGOTIATED, "a");
-}
-
-TEST_P(TlsConnectGeneric, ConnectEcdsa) {
-  ResetEcdsa();
-  Connect();
-  client_->CheckVersion(std::get<1>(GetParam()));
-  client_->CheckAuthType(ssl_auth_ecdsa);
 }
 
 TEST_P(TlsConnectDatagram, ConnectSrtp) {
