@@ -124,6 +124,23 @@ typedef struct SSLChannelInfoStr {
     SSLCompressionMethod compressionMethod;
 } SSLChannelInfo;
 
+/* Preliminary channel info */
+#define ssl_preinfo_version (1U << 0)
+#define ssl_preinfo_cipher_suite (1U << 1)
+#define ssl_preinfo_all (ssl_preinfo_version|ssl_preinfo_cipher_suite)
+
+typedef struct SSLPreliminaryChannelInfoStr {
+    /* This is set to the length of the struct. */
+    PRUint32 length;
+    /* A bitfield over SSLPreliminaryValueSet that describes which
+     * preliminary values are set (see ssl_preinfo_*). */
+    PRUint32 valuesSet;
+    /* Protocol version: test (valuesSet & ssl_preinfo_version) */
+    PRUint16 protocolVersion;
+    /* Cipher suite: test (valuesSet & ssl_preinfo_cipher_suite) */
+    PRUint16 cipherSuite;
+} SSLPreliminaryChannelInfo;
+
 typedef struct SSLCipherSuiteInfoStr {
     PRUint16             length;
     PRUint16             cipherSuite;

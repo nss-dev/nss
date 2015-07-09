@@ -631,6 +631,11 @@ ssl3_SelectAppProtocol(sslSocket *ss, PRUint16 ex_type, SECItem *data)
     }
 
     PORT_Assert(ss->nextProtoCallback);
+    /* For ALPN, the cipher suite isn't selected yet.  Note that extensions
+     * sometimes affect what cipher suite is selected, e.g., for ECC. */
+    PORT_Assert((ss->ssl3.hs.preliminaryInfo &
+                 ssl_preinfo_all & ~ssl_preinfo_cipher_suite) ==
+                (ssl_preinfo_all & ~ssl_preinfo_cipher_suite));
     rv = ss->nextProtoCallback(ss->nextProtoArg, ss->fd, data->data, data->len,
                                result.data, &result.len, sizeof(resultBuffer));
     if (rv != SECSuccess) {
