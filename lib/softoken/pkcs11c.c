@@ -2517,10 +2517,52 @@ finish_rsa:
 					*(CK_ULONG *)pMechanism->pParameter);
 	break;
     case CKM_TLS_PRF_GENERAL:
-	crv = sftk_TLSPRFInit(context, key, key_type, HASH_AlgNULL);
+	crv = sftk_TLSPRFInit(context, key, key_type, HASH_AlgNULL, 0);
 	break;
+    case CKM_TLS_MAC: {
+	CK_TLS_MAC_PARAMS *tls12_mac_params;
+	HASH_HashType tlsPrfHash;
+	const char *label;
+
+	if (pMechanism->ulParameterLen != sizeof(CK_TLS_MAC_PARAMS)) {
+	    crv = CKR_MECHANISM_PARAM_INVALID;
+	    break;
+	}
+	tls12_mac_params = (CK_TLS_MAC_PARAMS *)pMechanism->pParameter;
+	if (tls12_mac_params->prfMechanism == CKM_TLS_PRF) {
+	    /* The TLS 1.0 and 1.1 PRF */
+	    tlsPrfHash = HASH_AlgNULL;
+	    if (tls12_mac_params->ulMacLength != 12) {
+		crv = CKR_MECHANISM_PARAM_INVALID;
+		break;
+	    }
+	} else {
+	    /* The hash function for the TLS 1.2 PRF */
+	    tlsPrfHash =
+		GetHashTypeFromMechanism(tls12_mac_params->prfMechanism);
+	    if (tlsPrfHash == HASH_AlgNULL ||
+		tls12_mac_params->ulMacLength < 12) {
+		crv = CKR_MECHANISM_PARAM_INVALID;
+		break;
+	    }
+	}
+	if (tls12_mac_params->ulServerOrClient == 1) {
+	    label = "server finished";
+	} else if (tls12_mac_params->ulServerOrClient == 2) {
+	    label = "client finished";
+	} else {
+	    crv = CKR_MECHANISM_PARAM_INVALID;
+	    break;
+	}
+	crv = sftk_TLSPRFInit(context, key, key_type, tlsPrfHash,
+			      tls12_mac_params->ulMacLength);
+	if (crv == CKR_OK) {
+	    context->hashUpdate(context->hashInfo, label, 15);
+	}
+	break;
+    }
     case CKM_NSS_TLS_PRF_GENERAL_SHA256:
-	crv = sftk_TLSPRFInit(context, key, key_type, HASH_AlgSHA256);
+	crv = sftk_TLSPRFInit(context, key, key_type, HASH_AlgSHA256, 0);
 	break;
 
     case CKM_NSS_HMAC_CONSTANT_TIME: {
@@ -3114,10 +3156,10 @@ finish_rsa:
 					*(CK_ULONG *)pMechanism->pParameter);
 	break;
     case CKM_TLS_PRF_GENERAL:
-	crv = sftk_TLSPRFInit(context, key, key_type, HASH_AlgNULL);
+	crv = sftk_TLSPRFInit(context, key, key_type, HASH_AlgNULL, 0);
 	break;
     case CKM_NSS_TLS_PRF_GENERAL_SHA256:
-	crv = sftk_TLSPRFInit(context, key, key_type, HASH_AlgSHA256);
+	crv = sftk_TLSPRFInit(context, key, key_type, HASH_AlgSHA256, 0);
 	break;
 
     default:
@@ -5822,9 +5864,10 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
     CK_KEY_TYPE     keyType	= CKK_GENERIC_SECRET;
     CK_OBJECT_CLASS classType	= CKO_SECRET_KEY;
     CK_KEY_DERIVATION_STRING_DATA *stringPtr;
+    CK_MECHANISM_TYPE mechanism = pMechanism->mechanism;
     PRBool          isTLS = PR_FALSE;
-    PRBool          isSHA256 = PR_FALSE;
     PRBool          isDH = PR_FALSE;
+    HASH_HashType   tlsPrfHash = HASH_AlgNULL;
     SECStatus       rv;
     int             i;
     unsigned int    outLen;
@@ -5871,7 +5914,7 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 	keySize = sftk_MapKeySize(keyType);
     }
 
-    switch (pMechanism->mechanism) {
+    switch (mechanism) {
       case CKM_NSS_JPAKE_ROUND2_SHA1:   /* fall through */
       case CKM_NSS_JPAKE_ROUND2_SHA256: /* fall through */
       case CKM_NSS_JPAKE_ROUND2_SHA384: /* fall through */
@@ -5919,18 +5962,16 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
         }
     }
 
-    switch (pMechanism->mechanism) {
+    switch (mechanism) {
     /*
      * generate the master secret 
      */
+    case CKM_TLS12_MASTER_KEY_DERIVE:
+    case CKM_TLS12_MASTER_KEY_DERIVE_DH:
     case CKM_NSS_TLS_MASTER_KEY_DERIVE_SHA256:
     case CKM_NSS_TLS_MASTER_KEY_DERIVE_DH_SHA256:
-	isSHA256 = PR_TRUE;
-	/* fall thru */
     case CKM_TLS_MASTER_KEY_DERIVE:
     case CKM_TLS_MASTER_KEY_DERIVE_DH:
-	isTLS = PR_TRUE;
-	/* fall thru */
     case CKM_SSL3_MASTER_KEY_DERIVE:
     case CKM_SSL3_MASTER_KEY_DERIVE_DH:
       {
@@ -5938,10 +5979,30 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 	SSL3RSAPreMasterSecret *          rsa_pms;
 	unsigned char                     crsrdata[SSL3_RANDOM_LENGTH * 2];
 
-        if ((pMechanism->mechanism == CKM_SSL3_MASTER_KEY_DERIVE_DH) ||
-            (pMechanism->mechanism == CKM_TLS_MASTER_KEY_DERIVE_DH) ||
-            (pMechanism->mechanism == CKM_NSS_TLS_MASTER_KEY_DERIVE_DH_SHA256))
-		isDH = PR_TRUE;
+	if ((mechanism == CKM_TLS12_MASTER_KEY_DERIVE) ||
+	    (mechanism == CKM_TLS12_MASTER_KEY_DERIVE_DH)) {
+	    CK_TLS12_MASTER_KEY_DERIVE_PARAMS *tls12_master =
+		(CK_TLS12_MASTER_KEY_DERIVE_PARAMS *) pMechanism->pParameter;
+	    tlsPrfHash = GetHashTypeFromMechanism(tls12_master->prfHashMechanism);
+	    if (tlsPrfHash == HASH_AlgNULL) {
+		crv = CKR_MECHANISM_PARAM_INVALID;
+		break;
+	    }
+	} else if ((mechanism == CKM_NSS_TLS_MASTER_KEY_DERIVE_SHA256) ||
+		   (mechanism == CKM_NSS_TLS_MASTER_KEY_DERIVE_DH_SHA256)) {
+	    tlsPrfHash = HASH_AlgSHA256;
+	}
+
+	if ((mechanism != CKM_SSL3_MASTER_KEY_DERIVE) &&
+	    (mechanism != CKM_SSL3_MASTER_KEY_DERIVE_DH)) {
+	    isTLS = PR_TRUE;
+	}
+	if ((mechanism == CKM_SSL3_MASTER_KEY_DERIVE_DH) ||
+	    (mechanism == CKM_TLS_MASTER_KEY_DERIVE_DH) ||
+	    (mechanism == CKM_NSS_TLS_MASTER_KEY_DERIVE_DH_SHA256) ||
+	    (mechanism == CKM_TLS12_MASTER_KEY_DERIVE_DH)) {
+	    isDH = PR_TRUE;
+	}
 
 	/* first do the consistancy checks */
 	if (!isDH && (att->attrib.ulValueLen != SSL3_PMS_LENGTH)) {
@@ -6008,8 +6069,8 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
  	    pms.data    = (unsigned char*)att->attrib.pValue;
 	    pms.len     =                 att->attrib.ulValueLen;
 
-	    if (isSHA256) {
-		status = TLS_P_hash(HASH_AlgSHA256, &pms, "master secret",
+	    if (tlsPrfHash != HASH_AlgNULL) {
+		status = TLS_P_hash(tlsPrfHash, &pms, "master secret",
 				    &crsr, &master, isFIPS);
 	    } else {
 		status = TLS_PRF(&pms, "master secret", &crsr, &master, isFIPS);
@@ -6072,12 +6133,9 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 	break;
       }
 
+    case CKM_TLS12_KEY_AND_MAC_DERIVE:
     case CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256:
-	isSHA256 = PR_TRUE;
-	/* fall thru */
     case CKM_TLS_KEY_AND_MAC_DERIVE:
-	isTLS = PR_TRUE;
-	/* fall thru */
     case CKM_SSL3_KEY_AND_MAC_DERIVE:
       {
 	CK_SSL3_KEY_MAT_PARAMS *ssl3_keys;
@@ -6086,6 +6144,22 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 	unsigned int            block_needed;
 	unsigned char           srcrdata[SSL3_RANDOM_LENGTH * 2];
 	unsigned char           crsrdata[SSL3_RANDOM_LENGTH * 2];
+
+	if (mechanism == CKM_TLS12_KEY_AND_MAC_DERIVE) {
+	    CK_TLS12_KEY_MAT_PARAMS *tls12_keys =
+		(CK_TLS12_KEY_MAT_PARAMS *) pMechanism->pParameter;
+	    tlsPrfHash = GetHashTypeFromMechanism(tls12_keys->prfHashMechanism);
+	    if (tlsPrfHash == HASH_AlgNULL) {
+		crv = CKR_MECHANISM_PARAM_INVALID;
+		break;
+	    }
+	} else if (mechanism == CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256) {
+	    tlsPrfHash = HASH_AlgSHA256;
+	}
+
+	if (mechanism != CKM_SSL3_KEY_AND_MAC_DERIVE) {
+	    isTLS = PR_TRUE;
+	}
 
 	crv = sftk_DeriveSensitiveCheck(sourceKey,key);
 	if (crv != CKR_OK) break;
@@ -6166,8 +6240,8 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 	    master.data = (unsigned char*)att->attrib.pValue;
 	    master.len  =                 att->attrib.ulValueLen;
 
-	    if (isSHA256) {
-		status = TLS_P_hash(HASH_AlgSHA256, &master, "key expansion",
+	    if (tlsPrfHash != HASH_AlgNULL) {
+		status = TLS_P_hash(tlsPrfHash, &master, "key expansion",
 				    &srcr, &keyblk, isFIPS);
 	    } else {
 		status = TLS_PRF(&master, "key expansion", &srcr, &keyblk,
@@ -6783,7 +6857,7 @@ key_and_mac_derive_fail:
 	    ecPoint = newPoint;
 	}
 
-	if (pMechanism->mechanism == CKM_ECDH1_COFACTOR_DERIVE) {
+	if (mechanism == CKM_ECDH1_COFACTOR_DERIVE) {
 	    withCofactor = PR_TRUE;
 	} else {
 	    /* When not using cofactor derivation, one should

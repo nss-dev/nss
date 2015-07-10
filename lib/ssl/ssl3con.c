@@ -3610,15 +3610,17 @@ ssl3_DeriveMasterSecret(sslSocket *ss, PK11SymKey *pms)
     SECItem           params;
     CK_FLAGS          keyFlags;
     CK_VERSION        pms_version;
-    CK_SSL3_MASTER_KEY_DERIVE_PARAMS master_params;
+    /* master_params may be used as a CK_SSL3_MASTER_KEY_DERIVE_PARAMS */
+    CK_TLS12_MASTER_KEY_DERIVE_PARAMS master_params;
+    unsigned int      master_params_len;
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert( ss->opt.noLocks || ssl_HaveSpecWriteLock(ss));
     PORT_Assert(ss->ssl3.prSpec == ss->ssl3.pwSpec);
     if (isTLS12) {
-	if(isDH) master_derive = CKM_NSS_TLS_MASTER_KEY_DERIVE_DH_SHA256;
-	else master_derive = CKM_NSS_TLS_MASTER_KEY_DERIVE_SHA256;
-	key_derive    = CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256;
+	if(isDH) master_derive = CKM_TLS12_MASTER_KEY_DERIVE_DH;
+	else master_derive = CKM_TLS12_MASTER_KEY_DERIVE;
+	key_derive    = CKM_TLS12_KEY_AND_MAC_DERIVE;
 	keyFlags      = CKF_SIGN | CKF_VERIFY;
     } else if (isTLS) {
 	if(isDH) master_derive = CKM_TLS_MASTER_KEY_DERIVE_DH;
@@ -3642,9 +3644,15 @@ ssl3_DeriveMasterSecret(sslSocket *ss, PK11SymKey *pms)
 	master_params.RandomInfo.ulClientRandomLen = SSL3_RANDOM_LENGTH;
 	master_params.RandomInfo.pServerRandom     = sr;
 	master_params.RandomInfo.ulServerRandomLen = SSL3_RANDOM_LENGTH;
+	if (isTLS12) {
+	    master_params.prfHashMechanism = CKM_SHA256;
+	    master_params_len = sizeof(CK_TLS12_MASTER_KEY_DERIVE_PARAMS);
+	} else {
+	    master_params_len = sizeof(CK_SSL3_MASTER_KEY_DERIVE_PARAMS);
+	}
 
 	params.data = (unsigned char *) &master_params;
-	params.len  = sizeof master_params;
+	params.len  = master_params_len;
     }
 
     if (pms != NULL) {
@@ -3774,7 +3782,9 @@ ssl3_DeriveConnectionKeysPKCS11(sslSocket *ss)
     PK11SymKey *           symKey = NULL;
     void *                 pwArg  = ss->pkcs11PinArg;
     int                    keySize;
-    CK_SSL3_KEY_MAT_PARAMS key_material_params;
+    CK_TLS12_KEY_MAT_PARAMS key_material_params; /* may be used as a
+						  * CK_SSL3_KEY_MAT_PARAMS */
+    unsigned int           key_material_params_len;
     CK_SSL3_KEY_MAT_OUT    returnedKeys;
     CK_MECHANISM_TYPE      key_derive;
     CK_MECHANISM_TYPE      bulk_mechanism;
@@ -3828,16 +3838,20 @@ ssl3_DeriveConnectionKeysPKCS11(sslSocket *ss)
     PORT_Assert(     alg2Mech[calg].calg == calg);
     bulk_mechanism = alg2Mech[calg].cmech;
 
-    params.data    = (unsigned char *)&key_material_params;
-    params.len     = sizeof(key_material_params);
-
     if (isTLS12) {
-	key_derive    = CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256;
+	key_derive    = CKM_TLS12_KEY_AND_MAC_DERIVE;
+	key_material_params.prfHashMechanism = CKM_SHA256;
+	key_material_params_len = sizeof(CK_TLS12_KEY_MAT_PARAMS);
     } else if (isTLS) {
 	key_derive    = CKM_TLS_KEY_AND_MAC_DERIVE;
+	key_material_params_len = sizeof(CK_SSL3_KEY_MAT_PARAMS);
     } else {
 	key_derive    = CKM_SSL3_KEY_AND_MAC_DERIVE;
+	key_material_params_len = sizeof(CK_SSL3_KEY_MAT_PARAMS);
     }
+
+    params.data = (unsigned char *)&key_material_params;
+    params.len  = key_material_params_len;
 
     /* CKM_SSL3_KEY_AND_MAC_DERIVE is defined to set ENCRYPT, DECRYPT, and
      * DERIVE by DEFAULT */
@@ -10485,16 +10499,42 @@ ssl3_ComputeTLSFinished(ssl3CipherSpec *spec,
                 const   SSL3Hashes   *  hashes,
                         TLSFinished  *  tlsFinished)
 {
-    const char * label;
-    unsigned int len;
-    SECStatus    rv;
+    SECStatus rv;
+    CK_TLS_MAC_PARAMS tls_mac_params;
+    SECItem param = {siBuffer, NULL, 0};
+    PK11Context *prf_context;
+    unsigned int retLen;
 
-    label = isServer ? "server finished" : "client finished";
-    len   = 15;
+    if (!spec->master_secret || spec->bypassCiphers) {
+	const char *label = isServer ? "server finished" : "client finished";
+	unsigned int len = 15;
 
-    rv = ssl3_TLSPRFWithMasterSecret(spec, label, len, hashes->u.raw,
-	hashes->len, tlsFinished->verify_data,
-	sizeof tlsFinished->verify_data);
+	return ssl3_TLSPRFWithMasterSecret(spec, label, len, hashes->u.raw,
+	    hashes->len, tlsFinished->verify_data,
+	    sizeof tlsFinished->verify_data);
+    }
+
+    if (spec->version < SSL_LIBRARY_VERSION_TLS_1_2) {
+	tls_mac_params.prfMechanism = CKM_TLS_PRF;
+    } else {
+	tls_mac_params.prfMechanism = CKM_SHA256;
+    }
+    tls_mac_params.ulMacLength = 12;
+    tls_mac_params.ulServerOrClient = isServer ? 1 : 2;
+    param.data = (unsigned char *)&tls_mac_params;
+    param.len = sizeof(tls_mac_params);
+    prf_context = PK11_CreateContextBySymKey(CKM_TLS_MAC, CKA_SIGN,
+					     spec->master_secret, &param);
+    if (!prf_context)
+	return SECFailure;
+
+    rv  = PK11_DigestBegin(prf_context);
+    rv |= PK11_DigestOp(prf_context, hashes->u.raw, hashes->len);
+    rv |= PK11_DigestFinal(prf_context, tlsFinished->verify_data, &retLen,
+			   sizeof tlsFinished->verify_data);
+    PORT_Assert(rv != SECSuccess || retLen == sizeof tlsFinished->verify_data);
+
+    PK11_DestroyContext(prf_context, PR_TRUE);
 
     return rv;
 }
