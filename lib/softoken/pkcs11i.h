@@ -738,7 +738,8 @@ extern CK_RV
 sftk_TLSPRFInit(SFTKSessionContext *context, 
 		  SFTKObject *        key, 
 		  CK_KEY_TYPE         key_type,
-		  HASH_HashType       hash_alg);
+		  HASH_HashType       hash_alg,
+		  unsigned int        out_len);
 
 SEC_END_PROTOS
 

@@ -297,7 +297,7 @@ ssl3_SendECDHClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
                                         pubKey->u.ec.publicValue.len));
 
     if (isTLS12) {
-        target = CKM_NSS_TLS_MASTER_KEY_DERIVE_DH_SHA256;
+        target = CKM_TLS12_MASTER_KEY_DERIVE_DH;
     } else if (isTLS) {
         target = CKM_TLS_MASTER_KEY_DERIVE_DH;
     } else {
@@ -388,7 +388,7 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
     isTLS12 = (PRBool)(ss->ssl3.prSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2);
 
     if (isTLS12) {
-        target = CKM_NSS_TLS_MASTER_KEY_DERIVE_DH_SHA256;
+        target = CKM_TLS12_MASTER_KEY_DERIVE_DH;
     } else if (isTLS) {
         target = CKM_TLS_MASTER_KEY_DERIVE_DH;
     } else {

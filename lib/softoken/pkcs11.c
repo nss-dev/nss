@@ -393,6 +393,7 @@ static const struct mechanismList mechanisms[] = {
      {CKM_SHA512_HMAC,		{1, 128, CKF_SN_VR},		PR_TRUE},
      {CKM_SHA512_HMAC_GENERAL,	{1, 128, CKF_SN_VR},		PR_TRUE},
      {CKM_TLS_PRF_GENERAL,	{0, 512, CKF_SN_VR},		PR_FALSE},
+     {CKM_TLS_MAC,		{0, 512, CKF_SN_VR},		PR_FALSE},
      {CKM_NSS_TLS_PRF_GENERAL_SHA256,
 				{0, 512, CKF_SN_VR},		PR_FALSE},
      /* ------------------------- HKDF Operations -------------------------- */
@@ -462,12 +463,15 @@ static const struct mechanismList mechanisms[] = {
      {CKM_SHA384_KEY_DERIVATION,	{ 0, 48, CKF_DERIVE},   PR_FALSE}, 
      {CKM_SHA512_KEY_DERIVATION,	{ 0, 64, CKF_DERIVE},   PR_FALSE}, 
      {CKM_TLS_MASTER_KEY_DERIVE,	{48, 48, CKF_DERIVE},   PR_FALSE}, 
+     {CKM_TLS12_MASTER_KEY_DERIVE,	{48, 48, CKF_DERIVE},   PR_FALSE}, 
      {CKM_NSS_TLS_MASTER_KEY_DERIVE_SHA256,
 					{48, 48, CKF_DERIVE},	PR_FALSE},
      {CKM_TLS_MASTER_KEY_DERIVE_DH,	{8, 128, CKF_DERIVE},   PR_FALSE}, 
+     {CKM_TLS12_MASTER_KEY_DERIVE_DH,	{8, 128, CKF_DERIVE},   PR_FALSE}, 
      {CKM_NSS_TLS_MASTER_KEY_DERIVE_DH_SHA256,
 					{8, 128, CKF_DERIVE},	PR_FALSE},
      {CKM_TLS_KEY_AND_MAC_DERIVE,	{48, 48, CKF_DERIVE},   PR_FALSE}, 
+     {CKM_TLS12_KEY_AND_MAC_DERIVE,	{48, 48, CKF_DERIVE},   PR_FALSE}, 
      {CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256,
 					{48, 48, CKF_DERIVE},	PR_FALSE},
      /* ---------------------- PBE Key Derivations  ------------------------ */
