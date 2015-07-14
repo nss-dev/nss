@@ -6623,13 +6623,14 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     ss->ssl3.hs.isResuming = PR_FALSE;
     if (ss->ssl3.hs.kea_def->signKeyType != sign_null) {
         /* All current cipher suites other than those with sign_null (i.e.,
-         * DH_anon_* suites) require a certificate, so use that signal. */
+         * (EC)DH_anon_* suites) require a certificate, so use that signal. */
         ss->ssl3.hs.ws = wait_server_cert;
-    } else if (ss->ssl3.hs.kea_def->ephemeral) {
-        /* Only ephemeral cipher suites use ServerKeyExchange. */
-        ss->ssl3.hs.ws = wait_server_key;
     } else {
-        ss->ssl3.hs.ws = wait_cert_request;
+        /* All the remaining cipher suites must be (EC)DH_anon_* and so
+         * must be ephemeral. Note, if we ever add PSK this might
+         * change. */
+        PORT_Assert(ss->ssl3.hs.kea_def->ephemeral);
+        ss->ssl3.hs.ws = wait_server_key;
     }
     return SECSuccess;
 
