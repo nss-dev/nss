@@ -15,33 +15,41 @@
 #include "tls_filter.h"
 #include "tls_connect.h"
 
-#define BUF_SIZE 100
 
 namespace nss_test {
 
-
 TEST(FuzzTest, Fuzz) {
 	FILE *fp;
-	uint8_t buf[BUF_SIZE] = {0};
+	uint8_t *buf;
 	DataBuffer* data;
-
+	long length;
+	const char *test_case_name = getenv("FUZZ_TEST_CASE");
 	TlsAgent* client_ = new TlsAgent("client", TlsAgent::CLIENT, STREAM, ssl_kea_rsa);
 	PRFileDesc* fd = DummyPrSocket::CreateFD("client", STREAM);
 	DummyPrSocket* ds = DummyPrSocket::GetAdapter(fd);
 	
-	client_->adapter()->SetPeer(ds);
 
-	fp = fopen("/dev/urandom", "rb");
-	fread(buf, 1, BUF_SIZE, fp);
+	client_->Init();
+	client_->adapter()->SetPeer(ds);
+	client_->StartConnect();
+
+	fp = fopen(test_case_name, "rb");
+	fseek(fp , 0, SEEK_END);
+	length = ftell(fp) + 1;
+	buf = (uint8_t *)malloc(length);
+	fseek(fp , 0, SEEK_SET);
+	fread(buf, 1, sizeof(buf), fp);
 	fclose(fp);
-	data = new DataBuffer();
-	data->Assign(buf, BUF_SIZE);
+	data = new DataBuffer(buf, length);
+	free(buf);
 
 	client_->adapter()->PacketReceived(*data);
+	client_->Handshake();
 
 	delete data;
+	delete ds;
 	delete fd;
 	delete client_;
 }
 
-}  // namespace nspr_test
+}
