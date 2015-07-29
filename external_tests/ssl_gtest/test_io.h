@@ -102,6 +102,7 @@ class Poller {
 
   void Wait(Event event, DummyPrSocket* adapter, PollTarget* target,
             PollCallback cb);
+  void Cancel(Event event, DummyPrSocket* adapter);
   void SetTimer(uint32_t timer_ms, PollTarget* target, PollCallback cb,
                 Timer** handle);
   bool Poll();

@@ -657,6 +657,16 @@ DoRecv(sslSocket *ss, unsigned char *out, int len, int flags)
 		     SSL_GETPID(), ss->fd, available));
     }
 
+    if (IS_DTLS(ss) && (len < available)) {
+        /* DTLS does not allow you to do partial reads */
+        SSL_TRC(30, ("%d: SSL[%d]: DTLS short read. len=%d available=%d",
+                     SSL_GETPID(), ss->fd, len, available));
+        ss->gs.readOffset += available;
+        PORT_SetError(SSL_ERROR_RX_SHORT_DTLS_READ);
+        rv = SECFailure;
+        goto done;
+    }
+
     /* Dole out clear data to reader */
     amount = PR_MIN(len, available);
     PORT_Memcpy(out, ss->gs.buf.buf + ss->gs.readOffset, amount);

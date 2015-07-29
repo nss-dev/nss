@@ -72,6 +72,7 @@ class TlsAgent : public PollTarget {
   void SetVersionRange(uint16_t minver, uint16_t maxver);
   void CheckPreliminaryInfo();
   void SetExpectedVersion(uint16_t version);
+  void SetExpectedReadError(bool err);
   void EnableFalseStart();
   void ExpectResumption();
   void EnableAlpn(const uint8_t* val, size_t len);
@@ -80,6 +81,9 @@ class TlsAgent : public PollTarget {
   void EnableSrtp();
   void CheckSrtp() const;
   void CheckErrorCode(int32_t expected) const;
+  void SendData(size_t bytes, size_t blocksize = 1024);
+  void ReadBytes();
+  void ResetSentBytes(); // Hack to test drops.
 
   State state() const { return state_; }
 
@@ -114,6 +118,9 @@ class TlsAgent : public PollTarget {
                                 info_.sessionID + info_.sessionIDLength);
   }
 
+  size_t received_bytes() const { return recv_ctr_; }
+  int32_t error_code() const { return error_code_; }
+
  private:
   const static char* states[];
 
@@ -139,9 +146,19 @@ class TlsAgent : public PollTarget {
     agent->ReadableCallback_int();
   }
 
+
   void ReadableCallback_int() {
     LOG("Readable");
-    Handshake();
+    switch (state_) {
+      case CONNECTING:
+        Handshake();
+        break;
+      case CONNECTED:
+        ReadBytes();
+        break;
+      default:
+        break;
+    }
   }
 
   static PRInt32 SniHook(PRFileDesc *fd, const SECItem *srvNameArr,
@@ -192,6 +209,9 @@ class TlsAgent : public PollTarget {
   SSLCipherSuiteInfo csinfo_;
   SSLVersionRange vrange_;
   int32_t error_code_;
+  size_t send_ctr_;
+  size_t recv_ctr_;
+  bool expected_read_error_;
 };
 
 }  // namespace nss_test

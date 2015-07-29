@@ -200,6 +200,8 @@ SSL_ERROR_INAPPROPRIATE_FALLBACK_ALERT  = (SSL_ERROR_BASE + 131),
 
 SSL_ERROR_WEAK_SERVER_CERT_KEY          = (SSL_ERROR_BASE + 132),
 
+SSL_ERROR_RX_SHORT_DTLS_READ            = (SSL_ERROR_BASE + 133),
+
 SSL_ERROR_END_OF_LIST   /* let the c compiler determine the value of this. */
 } SSLErrorCodes;
 #endif /* NO_SECURITY_ERROR_ENUM */

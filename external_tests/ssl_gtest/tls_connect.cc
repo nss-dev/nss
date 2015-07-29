@@ -61,8 +61,6 @@ TlsConnectTestBase::TlsConnectTestBase(Mode mode, uint16_t version)
 }
 
 TlsConnectTestBase::~TlsConnectTestBase() {
-  delete client_;
-  delete server_;
 }
 
 void TlsConnectTestBase::SetUp() {
@@ -77,8 +75,8 @@ void TlsConnectTestBase::SetUp() {
 }
 
 void TlsConnectTestBase::TearDown() {
-  client_ = nullptr;
-  server_ = nullptr;
+  delete client_;
+  delete server_;
 
   SSL_ClearSessionCache();
   SSL_ShutdownServerSessionIDCache();
@@ -246,6 +244,16 @@ void TlsConnectTestBase::EnableSrtp() {
 void TlsConnectTestBase::CheckSrtp() const {
   client_->CheckSrtp();
   server_->CheckSrtp();
+}
+
+void TlsConnectTestBase::SendReceive() {
+  client_->SendData(50);
+  server_->SendData(50);
+  WAIT_(
+      client_->received_bytes() == 50 &&
+      server_->received_bytes() == 50, 2000);
+  ASSERT_EQ(50, client_->received_bytes());
+  ASSERT_EQ(50, server_->received_bytes());
 }
 
 TlsConnectGeneric::TlsConnectGeneric()
