@@ -5,6 +5,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ssl.h"
+#include "sslerr.h"
 #include "sslproto.h"
 
 #include <memory>
@@ -12,6 +13,7 @@
 #include "tls_parser.h"
 #include "tls_filter.h"
 #include "tls_connect.h"
+#include "gtest_utils.h"
 
 namespace nss_test {
 
@@ -276,6 +278,50 @@ TEST_P(TlsConnectStream, ConnectEcdheTwiceNewKey) {
   EXPECT_FALSE((dhe1.public_key_.len() == dhe2.public_key_.len()) &&
                (!memcmp(dhe1.public_key_.data(), dhe2.public_key_.data(),
                         dhe1.public_key_.len())));
+}
+
+TEST_P(TlsConnectGeneric, ConnectSendReceive) {
+  Connect();
+  SendReceive();
+}
+
+// The next two tests takes advantage of the fact that we
+// automatically read the first 1024 bytes, so if
+// we provide 1200 bytes, they overrun the read buffer
+// provided by the calling test.
+
+// DTLS should return an error.
+TEST_P(TlsConnectDatagram, ShortRead) {
+  Connect();
+  client_->SetExpectedReadError(true);
+  server_->SendData(1200, 1200);
+  WAIT_(client_->error_code() == SSL_ERROR_RX_SHORT_DTLS_READ,
+        2000);
+  // Don't call CheckErrorCode() because it requires us to being
+  // in state ERROR.
+  ASSERT_EQ(SSL_ERROR_RX_SHORT_DTLS_READ, client_->error_code());
+
+  // Now send and receive another packet.
+  client_->SetExpectedReadError(false);
+  server_->ResetSentBytes(); // Reset the counter.
+  SendReceive();
+}
+
+// TLS should get the write in two chunks.
+TEST_P(TlsConnectStream, ShortRead) {
+  // This test behaves oddly with TLS 1.0 because of 1/n+1 splitting,
+  // so skip in that case.
+  if (version_ < SSL_LIBRARY_VERSION_TLS_1_1)
+    return;
+
+  Connect();
+  server_->SendData(1200, 1200);
+  // Read the first tranche.
+  WAIT_(client_->received_bytes() == 1024, 2000);
+  ASSERT_EQ(1024, client_->received_bytes());
+  // The second tranche should now immediately be available.
+  client_->ReadBytes();
+  ASSERT_EQ(1200, client_->received_bytes());
 }
 
 INSTANTIATE_TEST_CASE_P(VariantsStream10, TlsConnectGeneric,

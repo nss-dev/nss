@@ -36,7 +36,11 @@ TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode, SSLKEAType kea
     sni_hook_called_(false),
     auth_certificate_hook_called_(false),
     handshake_callback_called_(false),
-    error_code_(0) {
+    error_code_(0),
+    send_ctr_(0),
+    recv_ctr_(0),
+    expected_read_error_(false) {
+
   memset(&info_, 0, sizeof(info_));
   memset(&csinfo_, 0, sizeof(csinfo_));
   SECStatus rv = SSL_VersionRangeGetDefault(mode_ == STREAM ?
@@ -46,6 +50,10 @@ TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode, SSLKEAType kea
 }
 
 TlsAgent::~TlsAgent() {
+  if (adapter_) {
+    Poller::Instance()->Cancel(READABLE_EVENT, adapter_);
+  }
+
   if (pr_fd_) {
     PR_Close(pr_fd_);
   }
@@ -135,7 +143,7 @@ void TlsAgent::EnableSomeEcdheCiphers() {
 void TlsAgent::DisableDheCiphers() {
   EXPECT_TRUE(EnsureTlsSetup());
 
-  for (size_t i=0; i < SSL_NumImplementedCiphers; ++i) {
+  for (size_t i = 0; i < SSL_NumImplementedCiphers; ++i) {
     SSLCipherSuiteInfo csinfo;
 
     SECStatus rv = SSL_GetCipherSuiteInfo(SSL_ImplementedCiphers[i],
@@ -177,6 +185,10 @@ void TlsAgent::SetVersionRange(uint16_t minver, uint16_t maxver) {
 
 void TlsAgent::SetExpectedVersion(uint16_t version) {
   expected_version_ = version;
+}
+
+void TlsAgent::SetExpectedReadError(bool err) {
+  expected_read_error_ = err;
 }
 
 void TlsAgent::CheckKEAType(SSLKEAType type) const {
@@ -310,6 +322,10 @@ void TlsAgent::Handshake() {
   SECStatus rv = SSL_ForceHandshake(ssl_fd_);
   if (rv == SECSuccess) {
     Connected();
+
+    Poller::Instance()->Wait(READABLE_EVENT, adapter_, this,
+                             &TlsAgent::ReadableCallback);
+
     return;
   }
 
@@ -344,6 +360,56 @@ void TlsAgent::StartRenegotiate() {
 
   SECStatus rv = SSL_ReHandshake(ssl_fd_, PR_TRUE);
   EXPECT_EQ(SECSuccess, rv);
+}
+
+void TlsAgent::SendData(size_t bytes, size_t blocksize) {
+  uint8_t block[4096];
+
+  ASSERT_LT(blocksize, sizeof(block));
+
+  while(bytes) {
+    size_t tosend = std::min(blocksize, bytes);
+
+    for(size_t i = 0; i < tosend; ++i) {
+      block[i] = 0xff & send_ctr_;
+      ++send_ctr_;
+    }
+
+    LOG("Writing " << tosend << " bytes");
+    int32_t rv = PR_Write(ssl_fd_, block, tosend);
+    ASSERT_EQ(tosend, rv);
+
+    bytes -= tosend;
+  }
+}
+
+void TlsAgent::ReadBytes() {
+  uint8_t block[1024];
+
+  LOG("Reading application data from socket");
+
+  int32_t rv = PR_Read(ssl_fd_, block, sizeof(block));
+
+  int32_t err = PR_GetError();
+  if (err != PR_WOULD_BLOCK_ERROR) {
+    if (expected_read_error_) {
+      error_code_ = err;
+    } else {
+      ASSERT_LE(0, rv);
+      LOG("Read " << rv << " bytes");
+      for (size_t i = 0; i < rv; ++i) {
+        ASSERT_EQ(recv_ctr_ & 0xff, block[i]);
+        recv_ctr_++;
+      }
+    }
+  }
+
+  Poller::Instance()->Wait(READABLE_EVENT, adapter_, this,
+                           &TlsAgent::ReadableCallback);
+}
+
+void TlsAgent::ResetSentBytes() {
+  send_ctr_ = 0;
 }
 
 void TlsAgent::ConfigureSessionCache(SessionResumptionMode mode) {

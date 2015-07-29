@@ -66,6 +66,7 @@ class TlsConnectTestBase : public ::testing::Test {
   void EnableAlpn();
   void EnableSrtp();
   void CheckSrtp() const;
+  void SendReceive();
 
  protected:
 
