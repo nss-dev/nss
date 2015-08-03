@@ -103,10 +103,7 @@ endif
 DLL_SUFFIX   = dll
 
 ifdef NS_USE_GCC
-    # The -mnop-fun-dllimport flag allows us to avoid a drawback of
-    # the dllimport attribute that a pointer to a function marked as
-    # dllimport cannot be used as as a constant address.
-    OS_CFLAGS += -mwindows -mms-bitfields -mnop-fun-dllimport
+    OS_CFLAGS += -mwindows -mms-bitfields
     _GEN_IMPORT_LIB=-Wl,--out-implib,$(IMPORT_LIBRARY)
     DLLFLAGS  += -mwindows -o $@ -shared -Wl,--export-all-symbols $(if $(IMPORT_LIBRARY),$(_GEN_IMPORT_LIB))
     ifdef BUILD_OPT
