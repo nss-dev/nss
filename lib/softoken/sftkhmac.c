@@ -143,7 +143,7 @@ loser:
 }
 
 void
-sftk_HMACConstantTime_Update(void *pctx, void *data, unsigned int len)
+sftk_HMACConstantTime_Update(void *pctx, const void *data, unsigned int len)
 {
     sftk_MACConstantTimeCtx *ctx = (sftk_MACConstantTimeCtx *) pctx;
     SECStatus rv = HMAC_ConstantTime(
@@ -157,7 +157,7 @@ sftk_HMACConstantTime_Update(void *pctx, void *data, unsigned int len)
 }
 
 void
-sftk_SSLv3MACConstantTime_Update(void *pctx, void *data, unsigned int len)
+sftk_SSLv3MACConstantTime_Update(void *pctx, const void *data, unsigned int len)
 {
     sftk_MACConstantTimeCtx *ctx = (sftk_MACConstantTimeCtx *) pctx;
     SECStatus rv = SSLv3_MAC_ConstantTime(
