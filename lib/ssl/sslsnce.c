@@ -1228,6 +1228,10 @@ InitCache(cacheDesc *cache, int maxCacheEntries, int maxCertCacheEntries,
     /* Fix pointers in our private copy of cache descriptor to point to 
     ** spaces in shared memory 
     */
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+#endif
     ptr = (ptrdiff_t)cache->cacheMem;
     *(ptrdiff_t *)(&cache->sidCacheLocks) += ptr;
     *(ptrdiff_t *)(&cache->keyCacheLock ) += ptr;
@@ -1242,6 +1246,9 @@ InitCache(cacheDesc *cache, int maxCacheEntries, int maxCertCacheEntries,
     *(ptrdiff_t *)(&cache->ticketMacKey ) += ptr;
     *(ptrdiff_t *)(&cache->ticketKeysValid) += ptr;
     *(ptrdiff_t *)(&cache->srvNameCacheData) += ptr;
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
     /* initialize the locks */
     init_time = ssl_Time();

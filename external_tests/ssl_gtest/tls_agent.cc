@@ -27,7 +27,7 @@ TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode, SSLKEAType kea
     adapter_(nullptr),
     ssl_fd_(nullptr),
     role_(role),
-    state_(INIT),
+    state_(STATE_INIT),
     falsestart_enabled_(false),
     expected_version_(0),
     expected_cipher_suite_(0),
@@ -122,7 +122,7 @@ void TlsAgent::StartConnect() {
   SECStatus rv;
   rv = SSL_ResetHandshake(ssl_fd_, role_ == SERVER ? PR_TRUE : PR_FALSE);
   EXPECT_EQ(SECSuccess, rv);
-  SetState(CONNECTING);
+  SetState(STATE_CONNECTING);
 }
 
 void TlsAgent::EnableSomeEcdheCiphers() {
@@ -192,12 +192,12 @@ void TlsAgent::SetExpectedReadError(bool err) {
 }
 
 void TlsAgent::CheckKEAType(SSLKEAType type) const {
-  EXPECT_EQ(CONNECTED, state_);
+  EXPECT_EQ(STATE_CONNECTED, state_);
   EXPECT_EQ(type, csinfo_.keaType);
 }
 
 void TlsAgent::CheckAuthType(SSLAuthType type) const {
-  EXPECT_EQ(CONNECTED, state_);
+  EXPECT_EQ(STATE_CONNECTED, state_);
   EXPECT_EQ(type, csinfo_.authAlgorithm);
 }
 
@@ -252,7 +252,7 @@ void TlsAgent::CheckSrtp() const {
 }
 
 void TlsAgent::CheckErrorCode(int32_t expected) const {
-  EXPECT_EQ(ERROR, state_);
+  EXPECT_EQ(STATE_ERROR, state_);
   EXPECT_EQ(expected, error_code_);
 }
 
@@ -315,7 +315,7 @@ void TlsAgent::Connected() {
   rv = SSL_GetCipherSuiteInfo(info_.cipherSuite, &csinfo_, sizeof(csinfo_));
   EXPECT_EQ(SECSuccess, rv);
 
-  SetState(CONNECTED);
+  SetState(STATE_CONNECTED);
 }
 
 void TlsAgent::Handshake() {
@@ -344,15 +344,15 @@ void TlsAgent::Handshake() {
     default:
       LOG("Handshake failed with error " << err);
       error_code_ = err;
-      SetState(ERROR);
+      SetState(STATE_ERROR);
       return;
   }
 }
 
 void TlsAgent::PrepareForRenegotiate() {
-  EXPECT_EQ(CONNECTED, state_);
+  EXPECT_EQ(STATE_CONNECTED, state_);
 
-  SetState(CONNECTING);
+  SetState(STATE_CONNECTING);
 }
 
 void TlsAgent::StartRenegotiate() {
@@ -377,7 +377,7 @@ void TlsAgent::SendData(size_t bytes, size_t blocksize) {
 
     LOG("Writing " << tosend << " bytes");
     int32_t rv = PR_Write(ssl_fd_, block, tosend);
-    ASSERT_EQ(tosend, rv);
+    ASSERT_EQ(tosend, static_cast<size_t>(rv));
 
     bytes -= tosend;
   }
@@ -396,8 +396,9 @@ void TlsAgent::ReadBytes() {
       error_code_ = err;
     } else {
       ASSERT_LE(0, rv);
-      LOG("Read " << rv << " bytes");
-      for (size_t i = 0; i < rv; ++i) {
+      size_t count = static_cast<size_t>(rv);
+      LOG("Read " << count << " bytes");
+      for (size_t i = 0; i < count; ++i) {
         ASSERT_EQ(recv_ctr_ & 0xff, block[i]);
         recv_ctr_++;
       }

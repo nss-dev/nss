@@ -1746,7 +1746,7 @@ NSSLOWKEYPublicKey *sftk_GetPubKey(SFTKObject *object,CK_KEY_TYPE key_type,
 	crv = sftk_Attribute2SSecItem(arena,&pubKey->u.ec.publicValue,
 	                              object,CKA_EC_POINT);
 	if (crv == CKR_OK) {
-	    int keyLen,curveLen;
+	    unsigned int keyLen,curveLen;
 
 	    curveLen = (pubKey->u.ec.ecParams.fieldID.size +7)/8;
 	    keyLen = (2*curveLen)+1;
@@ -2221,7 +2221,7 @@ CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR *pFunctionList)
 static PLHashNumber
 sftk_HashNumber(const void *key)
 {
-    return (PLHashNumber) key;
+    return (PLHashNumber)((char *)key - (char *)NULL);
 }
 
 /*
@@ -3144,11 +3144,11 @@ extern const char __nss_softokn_version[];
 /* NSC_GetInfo returns general information about Cryptoki. */
 CK_RV  NSC_GetInfo(CK_INFO_PTR pInfo)
 {
-    volatile char c; /* force a reference that won't get optimized away */
+#define NSS_VERSION_VARIABLE __nss_softokn_version
+#include "verref.h"
 
     CHECK_FORK();
     
-    c = __nss_softokn_version[0];
     pInfo->cryptokiVersion.major = 2;
     pInfo->cryptokiVersion.minor = 20;
     PORT_Memcpy(pInfo->manufacturerID,manufacturerID,32);
@@ -4005,7 +4005,7 @@ static CK_RV sftk_CreateNewSlot(SFTKSlot *slot, CK_OBJECT_CLASS class,
     PRBool isValidFIPSUserSlot = PR_FALSE;
     PRBool isValidSlot = PR_FALSE;
     PRBool isFIPS = PR_FALSE;
-    unsigned long moduleIndex;
+    unsigned long moduleIndex = NSC_NON_FIPS_MODULE;
     SFTKAttribute *attribute;
     sftk_parameters paramStrings;
     char *paramString;
@@ -4514,7 +4514,7 @@ sftk_emailhack(SFTKSlot *slot, SFTKDBHandle *handle,
 {
     PRBool isCert = PR_FALSE;
     int emailIndex = -1;
-    int i;
+    unsigned int i;
     SFTKSearchResults smime_search;
     CK_ATTRIBUTE smime_template[2];
     CK_OBJECT_CLASS smime_class = CKO_NETSCAPE_SMIME;

@@ -740,7 +740,7 @@ typedef struct {
      * is_limited identifies a suite as having a limit on the key size.
      * key_size_limit provides the corresponding limit. */
     PRBool                   is_limited;
-    int                      key_size_limit;
+    unsigned int key_size_limit;
     PRBool                   tls_keygen;
     /* True if the key exchange for the suite is ephemeral.  Or to be more
      * precise: true if the ServerKeyExchange message is always required. */
@@ -1006,7 +1006,7 @@ struct ssl3StateStr {
     PRBool               dheWeakGroupEnabled; /* used by server */
 };
 
-#define DTLS_MAX_MTU  1500      /* Ethernet MTU but without subtracting the
+#define DTLS_MAX_MTU  1500U     /* Ethernet MTU but without subtracting the
 				 * headers, so slightly larger than expected */
 #define IS_DTLS(ss) (ss->protocolVariant == ssl_variant_datagram)
 
