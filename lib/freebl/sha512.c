@@ -928,9 +928,13 @@ SHA512_Compress(SHA512Context *ctx)
 #if defined(IS_LITTLE_ENDIAN)
   {
 #if defined(HAVE_LONG_LONG)
+#if defined(SHA_MASK16)
     PRUint64 t1;
+#endif
 #else
+#if defined(SHA4MASK)
     PRUint32 t1;
+#endif
 #endif
     BYTESWAP8(W[0]);
     BYTESWAP8(W[1]);
@@ -1223,10 +1227,14 @@ SHA512_End(SHA512Context *ctx, unsigned char *digest,
 {
 #if defined(HAVE_LONG_LONG)
     unsigned int inBuf  = (unsigned int)ctx->sizeLo & 0x7f;
+#if defined(SHA_MASK16)
     PRUint64 t1;
+#endif
 #else
     unsigned int inBuf  = (unsigned int)ctx->sizeLo.lo & 0x7f;
+#if defined(SHA4MASK)
     PRUint32 t1;
+#endif
 #endif
     unsigned int padLen = (inBuf < 112) ? (112 - inBuf) : (112 + 128 - inBuf);
     PRUint64 lo;
@@ -1269,9 +1277,13 @@ SHA512_EndRaw(SHA512Context *ctx, unsigned char *digest,
               unsigned int *digestLen, unsigned int maxDigestLen)
 {
 #if defined(HAVE_LONG_LONG)
+#if defined(SHA_MASK16)
     PRUint64 t1;
+#endif
 #else
+#if defined(SHA4MASK)
     PRUint32 t1;
+#endif
 #endif
     PRUint64 h[8];
     unsigned int len;

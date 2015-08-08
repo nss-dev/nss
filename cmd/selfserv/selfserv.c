@@ -502,8 +502,8 @@ mySSLSNISocketConfig(PRFileDesc *fd, const SECItem *sniNameArr,
 
     pwdata = SSL_RevealPinArg(fd);
 
-    for (;current && i < sniNameArrSize;i++) {
-        int j = 0;
+    for (;current && (PRUint32)i < sniNameArrSize;i++) {
+        unsigned int j = 0;
         for (;j < MAX_VIRT_SERVER_NAME_ARRAY_INDEX && nameArr[j];j++) {
             if (!PORT_Strncmp(nameArr[j],
                               (const char *)current[i].data,
@@ -1129,7 +1129,7 @@ makeSignedOCSPResponse(PLArenaPool *arena, ocspStaplingModeType osm,
     SECItemArray *result = NULL;
     SECItem *ocspResponse = NULL;
     CERTOCSPSingleResponse **singleResponses;
-    CERTOCSPSingleResponse *sr;
+    CERTOCSPSingleResponse *sr = NULL;
     CERTOCSPCertID *cid = NULL;
     CERTCertificate *ca;
     PRTime now = PR_Now();
@@ -1145,7 +1145,7 @@ makeSignedOCSPResponse(PLArenaPool *arena, ocspStaplingModeType osm,
     if (!cid)
 	errExit("cannot created cid");
 
-    nextUpdate = now + 60*60*24 * PR_USEC_PER_SEC; /* plus 1 day */
+    nextUpdate = now + (PRTime)60*60*24 * PR_USEC_PER_SEC; /* plus 1 day */
 
     switch (osm) {
 	case osm_good:
@@ -1160,7 +1160,7 @@ makeSignedOCSPResponse(PLArenaPool *arena, ocspStaplingModeType osm,
 	case osm_revoked:
 	    sr = CERT_CreateOCSPSingleResponseRevoked(arena, cid, now,
 		&nextUpdate,
-		now - 60*60*24 * PR_USEC_PER_SEC, /* minus 1 day */
+		now - (PRTime)60*60*24 * PR_USEC_PER_SEC, /* minus 1 day */
 		NULL);
 	    break;
 	default:

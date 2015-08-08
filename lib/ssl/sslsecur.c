@@ -1196,10 +1196,7 @@ ssl_SecureShutdown(sslSocket *ss, int nsprHow)
 int
 ssl_SecureRecv(sslSocket *ss, unsigned char *buf, int len, int flags)
 {
-    sslSecurityInfo *sec;
     int              rv   = 0;
-
-    sec = &ss->sec;
 
     if (ss->shutdownHow & ssl_SHUTDOWN_RCV) {
 	PORT_SetError(PR_SOCKET_SHUTDOWN_ERROR);
