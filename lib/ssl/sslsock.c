@@ -1422,7 +1422,7 @@ static PQGParams *gWeakParamsPQG;
 static ssl3DHParams *gWeakDHParams;
 
 static PRStatus
-ssl3_CreateWeakDHParams(void)
+ssl3_CreateWeakDHParams()
 {
     PQGVerify *vfy;
     SECStatus rv, passed;

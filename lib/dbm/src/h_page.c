@@ -720,6 +720,23 @@ __get_page(HTAB *hashp,
 		PAGE_INIT(p);
 	} else {
 
+#ifdef DEBUG
+		if(BYTE_ORDER == LITTLE_ENDIAN)
+		  {
+			int is_little_endian;
+			is_little_endian = BYTE_ORDER;
+		  }
+		else if(BYTE_ORDER == BIG_ENDIAN)
+		  {
+			int is_big_endian;
+			is_big_endian = BYTE_ORDER;
+		  }
+		else
+		  {
+			assert(0);
+		  }
+#endif
+
 		if (hashp->LORDER != BYTE_ORDER) {
 			register int i, max;
 

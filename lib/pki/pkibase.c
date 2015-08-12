@@ -903,6 +903,7 @@ nssPKIObjectCollection_Traverse (
   nssPKIObjectCallback *callback
 )
 {
+    PRStatus status;
     PRCList *link = PR_NEXT_LINK(&collection->head);
     pkiObjectCollectionNode *node;
     while (link != &collection->head) {
@@ -919,19 +920,19 @@ nssPKIObjectCollection_Traverse (
 	}
 	switch (collection->objectType) {
 	case pkiObjectType_Certificate: 
-	    (void)(*callback->func.cert)((NSSCertificate *)node->object, 
+	    status = (*callback->func.cert)((NSSCertificate *)node->object, 
 	                                    callback->arg);
 	    break;
 	case pkiObjectType_CRL: 
-	    (void)(*callback->func.crl)((NSSCRL *)node->object, 
+	    status = (*callback->func.crl)((NSSCRL *)node->object, 
 	                                   callback->arg);
 	    break;
 	case pkiObjectType_PrivateKey: 
-	    (void)(*callback->func.pvkey)((NSSPrivateKey *)node->object, 
+	    status = (*callback->func.pvkey)((NSSPrivateKey *)node->object, 
 	                                     callback->arg);
 	    break;
 	case pkiObjectType_PublicKey: 
-	    (void)(*callback->func.pbkey)((NSSPublicKey *)node->object, 
+	    status = (*callback->func.pbkey)((NSSPublicKey *)node->object, 
 	                                     callback->arg);
 	    break;
 	}
@@ -1056,6 +1057,7 @@ nssCertificateCollection_Create (
   NSSCertificate **certsOpt
 )
 {
+    PRStatus status;
     nssPKIObjectCollection *collection;
     collection = nssPKIObjectCollection_Create(td, NULL, nssPKIMonitor);
     collection->objectType = pkiObjectType_Certificate;
@@ -1066,7 +1068,7 @@ nssCertificateCollection_Create (
     if (certsOpt) {
 	for (; *certsOpt; certsOpt++) {
 	    nssPKIObject *object = (nssPKIObject *)(*certsOpt);
-	    (void)nssPKIObjectCollection_AddObject(collection, object);
+	    status = nssPKIObjectCollection_AddObject(collection, object);
 	}
     }
     return collection;
@@ -1162,6 +1164,7 @@ nssCRLCollection_Create (
   NSSCRL **crlsOpt
 )
 {
+    PRStatus status;
     nssPKIObjectCollection *collection;
     collection = nssPKIObjectCollection_Create(td, NULL, nssPKILock);
     collection->objectType = pkiObjectType_CRL;
@@ -1172,7 +1175,7 @@ nssCRLCollection_Create (
     if (crlsOpt) {
 	for (; *crlsOpt; crlsOpt++) {
 	    nssPKIObject *object = (nssPKIObject *)(*crlsOpt);
-	    (void)nssPKIObjectCollection_AddObject(collection, object);
+	    status = nssPKIObjectCollection_AddObject(collection, object);
 	}
     }
     return collection;

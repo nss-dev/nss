@@ -205,7 +205,7 @@ DH_Derive(SECItem *publicValue,
 {
     mp_int p, Xa, Yb, ZZ, psub1;
     mp_err err = MP_OKAY;
-    unsigned int len = 0;
+    int len = 0;
     unsigned int nb;
     unsigned char *secret = NULL;
     if (!publicValue || !prime || !privateValue || !derivedSecret) {

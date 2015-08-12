@@ -12,11 +12,6 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
-#if defined(WIN32) || defined(WIN64)
-#include <winsock2.h>
-#else
-#include <arpa/inet.h>
-#endif
 
 namespace nss_test {
 

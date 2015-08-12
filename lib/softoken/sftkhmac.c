@@ -146,26 +146,28 @@ void
 sftk_HMACConstantTime_Update(void *pctx, const void *data, unsigned int len)
 {
     sftk_MACConstantTimeCtx *ctx = (sftk_MACConstantTimeCtx *) pctx;
-    PORT_AssertSuccess(HMAC_ConstantTime(
+    SECStatus rv = HMAC_ConstantTime(
 	ctx->mac, NULL, sizeof(ctx->mac),
 	ctx->hash,
 	ctx->secret, ctx->secretLength,
 	ctx->header, ctx->headerLength,
 	data, len,
-	ctx->totalLength));
+	ctx->totalLength);
+    PORT_Assert(rv == SECSuccess);
 }
 
 void
 sftk_SSLv3MACConstantTime_Update(void *pctx, const void *data, unsigned int len)
 {
     sftk_MACConstantTimeCtx *ctx = (sftk_MACConstantTimeCtx *) pctx;
-    PORT_AssertSuccess(SSLv3_MAC_ConstantTime(
+    SECStatus rv = SSLv3_MAC_ConstantTime(
 	ctx->mac, NULL, sizeof(ctx->mac),
 	ctx->hash,
 	ctx->secret, ctx->secretLength,
 	ctx->header, ctx->headerLength,
 	data, len,
-	ctx->totalLength));
+	ctx->totalLength);
+    PORT_Assert(rv == SECSuccess);
 }
 
 void
