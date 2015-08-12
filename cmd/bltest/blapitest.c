@@ -56,7 +56,8 @@ char *testdir = NULL;
 #define TIMEMARK(seconds) \
     time1 = PR_SecondsToInterval(seconds); \
     { \
-        PRInt64 tmp; \
+        PRInt64 tmp, L100; \
+        LL_I2L(L100, 100); \
         if (time2 == 0) { \
             time2 = 1; \
         } \
@@ -312,6 +313,7 @@ serialize_key(SECItem *it, int ni, PRFileDesc *file)
 {
     unsigned char len[4];
     int i;
+    SECStatus status;
     NSSBase64Encoder *cx;
     cx = NSSBase64Encoder_Create(output_ascii, file);
     for (i=0; i<ni; i++, it++) {
@@ -319,11 +321,11 @@ serialize_key(SECItem *it, int ni, PRFileDesc *file)
 	len[1] = (it->len >> 16) & 0xff;
 	len[2] = (it->len >>  8) & 0xff;
 	len[3] = (it->len	 & 0xff);
-	NSSBase64Encoder_Update(cx, len, 4);
-	NSSBase64Encoder_Update(cx, it->data, it->len);
+	status = NSSBase64Encoder_Update(cx, len, 4);
+	status = NSSBase64Encoder_Update(cx, it->data, it->len);
     }
-    NSSBase64Encoder_Destroy(cx, PR_FALSE);
-    PR_Write(file, "\r\n", 2);
+    status = NSSBase64Encoder_Destroy(cx, PR_FALSE);
+    status = PR_Write(file, "\r\n", 2);
 }
 
 void
@@ -1434,7 +1436,7 @@ bltest_aes_init(bltestCipherInfo *cipherInfo, PRBool encrypt)
     int minorMode;
     int i;
     int keylen   = aesp->key.buf.len;
-    unsigned int blocklen = AES_BLOCK_SIZE;
+    int blocklen = AES_BLOCK_SIZE; 
     PRIntervalTime time1, time2;
     unsigned char *params;
     int len;
@@ -2567,6 +2569,8 @@ printPR_smpString(const char *sformat, char *reportStr,
         fprintf(stdout, sformat, reportStr);
         PR_smprintf_free(reportStr);
     } else {
+        int prnRes;
+        LL_L2I(prnRes, rNum);
         fprintf(stdout, nformat, rNum);
     }
 }
@@ -3000,7 +3004,7 @@ blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
     bltestIO pt, ct;
     bltestCipherMode mode;
     bltestParams *params;
-    unsigned int i, j, nummodes, numtests;
+    int i, j, nummodes, numtests;
     char *modestr;
     char filename[256];
     PLArenaPool *arena;
@@ -3453,12 +3457,13 @@ static secuCommandFlag bltest_options[] =
 
 int main(int argc, char **argv)
 {
+    char *infileName, *outfileName, *keyfileName, *ivfileName;
     SECStatus rv = SECFailure;
 
-    double              totalTime = 0.0;
+    double              totalTime;
     PRIntervalTime      time1, time2;
     PRFileDesc          *outfile = NULL;
-    bltestCipherInfo    *cipherInfoListHead, *cipherInfo = NULL;
+    bltestCipherInfo    *cipherInfoListHead, *cipherInfo;
     bltestIOMode        ioMode;
     int                 bufsize, exponent, curThrdNum;
 #ifndef NSS_DISABLE_ECC
@@ -3506,6 +3511,8 @@ int main(int argc, char **argv)
 
     cipherInfo = PORT_ZNew(bltestCipherInfo);
     cipherInfoListHead = cipherInfo;
+    /* set some defaults */
+    infileName = outfileName = keyfileName = ivfileName = NULL;
 
     /* Check the number of commands entered on the command line. */
     commandsEntered = 0;
@@ -3705,10 +3712,8 @@ int main(int argc, char **argv)
         fprintf(stderr, "%s: You must specify a signature file with -f.\n",
                 progName);
 
-print_usage:
-        if (cipherInfo) {
-            PORT_Free(cipherInfo);
-        }
+      print_usage:
+        PORT_Free(cipherInfo);
         Usage();
     }
 

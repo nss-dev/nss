@@ -283,10 +283,12 @@ SSL_DisableDefaultExportCipherSuites(void)
 {
     const SSLCipherSuiteInfo * pInfo = suiteInfo;
     unsigned int i;
+    SECStatus rv;
 
     for (i = 0; i < NUM_SUITEINFOS; ++i, ++pInfo) {
     	if (pInfo->isExportable) {
-	    PORT_AssertSuccess(SSL_CipherPrefSetDefault(pInfo->cipherSuite, PR_FALSE));
+	    rv = SSL_CipherPrefSetDefault(pInfo->cipherSuite, PR_FALSE);
+	    PORT_Assert(rv == SECSuccess);
 	}
     }
     return SECSuccess;
@@ -302,10 +304,12 @@ SSL_DisableExportCipherSuites(PRFileDesc * fd)
 {
     const SSLCipherSuiteInfo * pInfo = suiteInfo;
     unsigned int i;
+    SECStatus rv;
 
     for (i = 0; i < NUM_SUITEINFOS; ++i, ++pInfo) {
     	if (pInfo->isExportable) {
-	    PORT_AssertSuccess(SSL_CipherPrefSet(fd, pInfo->cipherSuite, PR_FALSE));
+	    rv = SSL_CipherPrefSet(fd, pInfo->cipherSuite, PR_FALSE);
+	    PORT_Assert(rv == SECSuccess);
 	}
     }
     return SECSuccess;

@@ -420,6 +420,7 @@ sign_cert(CERTCertificate *cert, SECKEYPrivateKey *privk)
     SECItem der2;
     SECItem * result2;
 
+    void	*dummy;
     SECOidTag alg = SEC_OID_UNKNOWN;
 
     alg = SEC_GetSignatureAlgorithmOidTag(privk->keyType, SEC_OID_UNKNOWN);
@@ -439,7 +440,7 @@ sign_cert(CERTCertificate *cert, SECKEYPrivateKey *privk)
     der2.len = 0;
     der2.data = NULL;
 
-    (void)SEC_ASN1EncodeItem
+    dummy = SEC_ASN1EncodeItem
         (cert->arena, &der2, cert, SEC_ASN1_GET(CERT_CertificateTemplate));
 
     if (rv != SECSuccess) {

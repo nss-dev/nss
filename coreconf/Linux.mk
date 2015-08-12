@@ -125,30 +125,13 @@ ifdef MOZ_DEBUG_SYMBOLS
 endif
 endif
 
-ifndef COMPILER_TAG
-COMPILER_TAG = _$(shell $(CC) -? 2>&1 >/dev/null | sed -e 's/:.*//;1q')
-CCC_COMPILER_TAG = _$(shell $(CCC) -? 2>&1 >/dev/null | sed -e 's/:.*//;1q')
-endif
 
 ifeq ($(USE_PTHREADS),1)
 OS_PTHREAD = -lpthread 
 endif
 
-OS_CFLAGS		= $(DSO_CFLAGS) $(OS_REL_CFLAGS) $(ARCHFLAG) -Wall -Werror -Wno-switch -pipe -ffunction-sections -fdata-sections -DLINUX -Dlinux -DHAVE_STRERROR
+OS_CFLAGS		= $(DSO_CFLAGS) $(OS_REL_CFLAGS) $(ARCHFLAG) -Wall -Werror-implicit-function-declaration -Wno-switch -pipe -ffunction-sections -fdata-sections -DLINUX -Dlinux -DHAVE_STRERROR
 OS_LIBS			= $(OS_PTHREAD) -ldl -lc
-
-ifeq ($(COMPILER_TAG),_clang)
-# -Qunused-arguments : clang objects to arguments that it doesn't understand
-#    and fixing this would require rearchitecture
-# -Wno-parentheses-equality : because clang warns about macro expansions
-OS_CFLAGS += -Qunused-arguments -Wno-parentheses-equality
-ifdef BUILD_OPT
-# clang is unable to handle glib's expansion of strcmp and similar for optimized
-# builds, so ignore the resulting errors.
-# See https://llvm.org/bugs/show_bug.cgi?id=20144
-OS_CFLAGS += -Wno-array-bounds -Wno-unevaluated-expression
-endif
-endif
 
 ifdef USE_PTHREADS
 	DEFINES		+= -D_REENTRANT

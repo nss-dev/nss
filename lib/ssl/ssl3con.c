@@ -2558,7 +2558,7 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *   cwSpec,
     PRUint32                  fragLen;
     PRUint32  p1Len, p2Len, oddLen = 0;
     PRUint16                  headerLen;
-    unsigned int ivLen = 0;
+    int                       ivLen = 0;
     int                       cipherBytes = 0;
     unsigned char             pseudoHeader[13];
     unsigned int              pseudoHeaderLen;
@@ -3120,8 +3120,7 @@ ssl3_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags)
 {
     static const PRInt32 allowedFlags = ssl_SEND_FLAG_FORCE_INTO_BUFFER |
                                         ssl_SEND_FLAG_CAP_RECORD_VERSION;
-    PRInt32 count = -1;
-    SECStatus rv = SECSuccess;
+    PRInt32 rv = SECSuccess;
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss) );
@@ -3135,19 +3134,18 @@ ssl3_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags)
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	rv = SECFailure;
     } else {
-	count = ssl3_SendRecord(ss, 0, content_handshake, ss->sec.ci.sendBuf.buf,
+	rv = ssl3_SendRecord(ss, 0, content_handshake, ss->sec.ci.sendBuf.buf,
 			     ss->sec.ci.sendBuf.len, flags);
     }
-    if (count < 0) {
+    if (rv < 0) { 
     	int err = PORT_GetError();
 	PORT_Assert(err != PR_WOULD_BLOCK_ERROR);
 	if (err == PR_WOULD_BLOCK_ERROR) {
 	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
 	}
-        rv = SECFailure;
-    } else if ((unsigned int)count < ss->sec.ci.sendBuf.len) {
+    } else if (rv < ss->sec.ci.sendBuf.len) {
     	/* short write should never happen */
-	PORT_Assert((unsigned int)count >= ss->sec.ci.sendBuf.len);
+	PORT_Assert(rv >= ss->sec.ci.sendBuf.len);
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
 	rv = SECFailure;
     } else {
@@ -7611,7 +7609,7 @@ ssl3_SendServerHelloSequence(sslSocket *ss)
 
     if (kea_def->is_limited && kea_def->exchKeyType == kt_rsa) {
 	/* see if we can legally use the key in the cert. */
-	unsigned int keyLen;  /* bytes */
+	int keyLen;  /* bytes */
 
 	keyLen = PK11_GetPrivateModulusLen(
 			    ss->serverCerts[kea_def->exchKeyType].SERVERKEY);
@@ -8364,7 +8362,7 @@ compression_found:
                     ret = SSL_SNI_SEND_ALERT;
                     break;
                 }
-            } else if ((unsigned int)ret < ss->xtnData.sniNameArrSize) {
+            } else if (ret < ss->xtnData.sniNameArrSize) {
                 /* Application has configured new socket info. Lets check it
                  * and save the name. */
                 SECStatus       rv;
@@ -8415,7 +8413,7 @@ compression_found:
                                                         ssl3_SendServerNameXtn);
             } else {
                 /* Callback returned index outside of the boundary. */
-                PORT_Assert((unsigned int)ret < ss->xtnData.sniNameArrSize);
+                PORT_Assert(ret < ss->xtnData.sniNameArrSize);
                 errCode = SSL_ERROR_INTERNAL_ERROR_ALERT;
                 desc = internal_error;
                 ret = SSL_SNI_SEND_ALERT;
@@ -11646,7 +11644,7 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     SSL3Opaque          *givenHash;
     sslBuffer           *plaintext;
     sslBuffer            temp_buf;
-    PRUint64             dtls_seq_num = 0;
+    PRUint64             dtls_seq_num;
     unsigned int         ivLen = 0;
     unsigned int         originalLen = 0;
     unsigned int         good;
