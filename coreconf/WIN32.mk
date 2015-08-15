@@ -214,10 +214,12 @@ ifdef USE_64
 else
 	DEFINES += -D_X86_
 	# VS2012 defaults to -arch:SSE2. Use -arch:IA32 to avoid requiring
-	# SSE2.
+	# SSE2. Clang-cl gets confused by -arch:IA32, so SSE2 is allowed.
 	# Use subsystem 5.01 to allow running on Windows XP.
 	ifeq ($(_MSC_VER_GE_11),1)
-		OS_CFLAGS += -arch:IA32
+		ifneq ($(CLANG_CL),1)
+			OS_CFLAGS += -arch:IA32
+		endif
 		LDFLAGS += -SUBSYSTEM:CONSOLE,5.01
 	endif
 endif
