@@ -318,10 +318,10 @@ TEST_P(TlsConnectStream, ShortRead) {
   server_->SendData(1200, 1200);
   // Read the first tranche.
   WAIT_(client_->received_bytes() == 1024, 2000);
-  ASSERT_EQ(1024, client_->received_bytes());
+  ASSERT_EQ(1024U, client_->received_bytes());
   // The second tranche should now immediately be available.
   client_->ReadBytes();
-  ASSERT_EQ(1200, client_->received_bytes());
+  ASSERT_EQ(1200U, client_->received_bytes());
 }
 
 INSTANTIATE_TEST_CASE_P(VariantsStream10, TlsConnectGeneric,

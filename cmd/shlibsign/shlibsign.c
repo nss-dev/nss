@@ -707,7 +707,7 @@ int main(int argc, char **argv)
     int bytesWritten;
     unsigned char file_buf[512];
     int count=0;
-    int keySize = 0;
+    unsigned int keySize = 0;
     int i;
     PRBool verify = PR_FALSE;
     static PRBool FIPSMODE = PR_FALSE;

@@ -73,6 +73,7 @@ static void sftk_Null(void *data, PRBool freeit)
     } \
     printf("\n") 
 #else
+#undef EC_DEBUG
 #define SEC_PRINT(a, b, c, d) 
 #endif
 #endif /* NSS_DISABLE_ECC */
@@ -4081,7 +4082,7 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession,
     CK_MECHANISM mech = {0, NULL, 0};
 
     CK_ULONG modulusLen;
-    CK_ULONG subPrimeLen;
+    CK_ULONG subPrimeLen = 0;
     PRBool isEncryptable = PR_FALSE;
     PRBool canSignVerify = PR_FALSE;
     PRBool isDerivable = PR_FALSE;
@@ -4379,7 +4380,6 @@ CK_RV NSC_GenerateKeyPair (CK_SESSION_HANDLE hSession,
     DSAPrivateKey *	dsaPriv;
 
     /* Diffie Hellman */
-    int 		private_value_bits = 0;
     DHPrivateKey *	dhPriv;
 
 #ifndef NSS_DISABLE_ECC
@@ -4431,7 +4431,6 @@ CK_RV NSC_GenerateKeyPair (CK_SESSION_HANDLE hSession,
      */
     for (i=0; i < (int) ulPrivateKeyAttributeCount; i++) {
 	if (pPrivateKeyTemplate[i].type == CKA_VALUE_BITS) {
-	    private_value_bits = *(CK_ULONG *)pPrivateKeyTemplate[i].pValue;
 	    continue;
 	}
 
@@ -4901,7 +4900,9 @@ static SECItem *sftk_PackagePrivateKey(SFTKObject *key, CK_RV *crvp)
     SECStatus rv = SECSuccess;
     SECItem *encodedKey = NULL;
 #ifndef NSS_DISABLE_ECC
+#ifdef EC_DEBUG
     SECItem *fordebug;
+#endif
     int savelen;
 #endif
 
@@ -4974,9 +4975,11 @@ static SECItem *sftk_PackagePrivateKey(SFTKObject *key, CK_RV *crvp)
 	    lk->u.ec.ecParams.curveOID.len = savelen;
 	    lk->u.ec.publicValue.len >>= 3;
 
+#ifdef EC_DEBUG
 	    fordebug = &pki->privateKey;
 	    SEC_PRINT("sftk_PackagePrivateKey()", "PrivateKey", lk->keyType,
 		      fordebug);
+#endif
 
 	    param = SECITEM_DupItem(&lk->u.ec.ecParams.DEREncoding);
 
@@ -5015,7 +5018,7 @@ static SECItem *sftk_PackagePrivateKey(SFTKObject *key, CK_RV *crvp)
 				    nsslowkey_PrivateKeyInfoTemplate);
     *crvp = encodedKey ? CKR_OK : CKR_DEVICE_ERROR;
 
-#ifndef NSS_DISABLE_ECC
+#ifdef EC_DEBUG
     fordebug = encodedKey;
     SEC_PRINT("sftk_PackagePrivateKey()", "PrivateKeyInfo", lk->keyType,
 	      fordebug);
@@ -6805,7 +6808,7 @@ key_and_mac_derive_fail:
 	PRBool   withCofactor = PR_FALSE;
 	unsigned char *secret;
 	unsigned char *keyData = NULL;
-	int secretlen, curveLen, pubKeyLen;
+	unsigned int secretlen, curveLen, pubKeyLen;
 	CK_ECDH1_DERIVE_PARAMS *mechParams;
 	NSSLOWKEYPrivateKey *privKey;
 	PLArenaPool *arena = NULL;

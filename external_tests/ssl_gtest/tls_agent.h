@@ -31,7 +31,7 @@ enum SessionResumptionMode {
 class TlsAgent : public PollTarget {
  public:
   enum Role { CLIENT, SERVER };
-  enum State { INIT, CONNECTING, CONNECTED, ERROR };
+  enum State { STATE_INIT, STATE_CONNECTING, STATE_CONNECTED, STATE_ERROR };
 
   TlsAgent(const std::string& name, Role role, Mode mode, SSLKEAType kea);
   virtual ~TlsAgent();
@@ -96,19 +96,19 @@ class TlsAgent : public PollTarget {
   uint16_t min_version() const { return vrange_.min; }
   uint16_t max_version() const { return vrange_.max; }
   uint16_t version() const {
-    EXPECT_EQ(CONNECTED, state_);
+    EXPECT_EQ(STATE_CONNECTED, state_);
     return info_.protocolVersion;
   }
 
   bool cipher_suite(int16_t* cipher_suite) const {
-    if (state_ != CONNECTED) return false;
+    if (state_ != STATE_CONNECTED) return false;
 
     *cipher_suite = info_.cipherSuite;
     return true;
   }
 
   std::string cipher_suite_name() const {
-    if (state_ != CONNECTED) return "UNKNOWN";
+    if (state_ != STATE_CONNECTED) return "UNKNOWN";
 
     return csinfo_.cipherSuiteName;
   }
@@ -150,10 +150,10 @@ class TlsAgent : public PollTarget {
   void ReadableCallback_int() {
     LOG("Readable");
     switch (state_) {
-      case CONNECTING:
+      case STATE_CONNECTING:
         Handshake();
         break;
-      case CONNECTED:
+      case STATE_CONNECTED:
         ReadBytes();
         break;
       default:
