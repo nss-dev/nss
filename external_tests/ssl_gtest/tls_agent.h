@@ -66,6 +66,11 @@ class TlsAgent : public PollTarget {
   void DisableDheCiphers();
   bool EnsureTlsSetup();
 
+  void SetupClientAuth();
+  void RequestClientAuth(bool requireAuth);
+  bool GetClientAuthCredentials(CERTCertificate** cert,
+                                SECKEYPrivateKey** priv) const;
+
   void ConfigureSessionCache(SessionResumptionMode mode);
   void SetSessionTicketsEnabled(bool en);
   void SetSessionCacheEnabled(bool en);
@@ -75,6 +80,8 @@ class TlsAgent : public PollTarget {
   void SetExpectedReadError(bool err);
   void EnableFalseStart();
   void ExpectResumption();
+  void SetSignatureAlgorithms(const SSLSignatureAndHashAlg* algorithms,
+                              size_t count);
   void EnableAlpn(const uint8_t* val, size_t len);
   void CheckAlpn(SSLNextProtoState expected_state,
                  const std::string& expected) const;
@@ -141,6 +148,20 @@ class TlsAgent : public PollTarget {
     return SECSuccess;
   }
 
+  // Client auth certificate hook.
+  static SECStatus ClientAuthenticated(void* arg, PRFileDesc* fd,
+                                       PRBool checksig, PRBool isServer) {
+    TlsAgent* agent = reinterpret_cast<TlsAgent*>(arg);
+    EXPECT_TRUE(agent->expect_client_auth_);
+    EXPECT_TRUE(isServer);
+    return SECSuccess;
+  }
+
+  static SECStatus GetClientAuthDataHook(void* self, PRFileDesc* fd,
+                                         CERTDistNames* caNames,
+                                         CERTCertificate** cert,
+                                         SECKEYPrivateKey** privKey);
+
   static void ReadableCallback(PollTarget* self, Event event) {
     TlsAgent* agent = static_cast<TlsAgent*>(self);
     agent->ReadableCallback_int();
@@ -201,6 +222,7 @@ class TlsAgent : public PollTarget {
   uint16_t expected_version_;
   uint16_t expected_cipher_suite_;
   bool expect_resumption_;
+  bool expect_client_auth_;
   bool can_falsestart_hook_called_;
   bool sni_hook_called_;
   bool auth_certificate_hook_called_;

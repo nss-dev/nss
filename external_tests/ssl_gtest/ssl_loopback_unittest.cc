@@ -182,6 +182,112 @@ TEST_P(TlsConnectGeneric, ResumeWithHigherVersion) {
   Connect();
 }
 
+TEST_P(TlsConnectGeneric, ClientAuth) {
+  client_->SetupClientAuth();
+  server_->RequestClientAuth(true);
+  Connect();
+  server_->CheckAuthType(ssl_auth_rsa);
+}
+
+TEST_P(TlsConnectGeneric, ClientAuthEcdsa) {
+  ResetEcdsa();
+  client_->SetupClientAuth();
+  server_->RequestClientAuth(true);
+  Connect();
+  server_->CheckAuthType(ssl_auth_ecdsa);
+}
+
+static const SSLSignatureAndHashAlg SignatureEcdsaSha384[] = {
+  {ssl_hash_sha384, ssl_sign_ecdsa}
+};
+static const SSLSignatureAndHashAlg SignatureEcdsaSha256[] = {
+  {ssl_hash_sha256, ssl_sign_ecdsa}
+};
+static const SSLSignatureAndHashAlg SignatureRsaSha384[] = {
+  {ssl_hash_sha384, ssl_sign_rsa}
+};
+static const SSLSignatureAndHashAlg SignatureRsaSha256[] = {
+  {ssl_hash_sha256, ssl_sign_rsa}
+};
+
+// When signature algorithms match up, this should connect successfully; even
+// for TLS 1.1 and 1.0, where they should be ignored.
+TEST_P(TlsConnectGeneric, SignatureAlgorithmServerAuth) {
+  client_->SetSignatureAlgorithms(SignatureEcdsaSha384,
+                                  PR_ARRAY_SIZE(SignatureEcdsaSha384));
+  server_->SetSignatureAlgorithms(SignatureEcdsaSha384,
+                                  PR_ARRAY_SIZE(SignatureEcdsaSha384));
+  ResetEcdsa();
+  Connect();
+}
+
+// Here the client picks a single option, which should work in all versions.
+// Defaults on the server include the first option.
+TEST_P(TlsConnectGeneric, SignatureAlgorithmClientOnly) {
+  const SSLSignatureAndHashAlg clientAlgorithms[] = {
+    {ssl_hash_sha384, ssl_sign_ecdsa},
+    {ssl_hash_sha384, ssl_sign_rsa}, // supported but unusable
+    {ssl_hash_md5, ssl_sign_ecdsa} // unsupported and ignored
+  };
+  client_->SetSignatureAlgorithms(clientAlgorithms,
+                                  PR_ARRAY_SIZE(clientAlgorithms));
+  ResetEcdsa();
+  Connect();
+}
+
+// Here the server picks a single option, which should work in all versions.
+// Defaults on the client include the provided option.
+TEST_P(TlsConnectGeneric, SignatureAlgorithmServerOnly) {
+  server_->SetSignatureAlgorithms(SignatureEcdsaSha384,
+                                  PR_ARRAY_SIZE(SignatureEcdsaSha384));
+  ResetEcdsa();
+  Connect();
+}
+
+// There is no need for overlap on signatures; since we don't actually use the
+// signatures for static RSA, this should still connect successfully.
+// This should also work in TLS 1.0 and 1.1 where the algorithms aren't used.
+TEST_P(TlsConnectGeneric, SignatureAlgorithmNoOverlapStaticRsa) {
+  client_->SetSignatureAlgorithms(SignatureRsaSha384,
+                                  PR_ARRAY_SIZE(SignatureRsaSha384));
+  server_->SetSignatureAlgorithms(SignatureRsaSha256,
+                                  PR_ARRAY_SIZE(SignatureRsaSha256));
+  DisableDheCiphers();
+  Connect();
+  client_->CheckKEAType(ssl_kea_rsa);
+  client_->CheckAuthType(ssl_auth_rsa);
+}
+
+// Signature algorithms governs both verification and generation of signatures.
+// With ECDSA, we need to at least have a common signature algorithm configured.
+TEST_P(TlsConnectTls12, SignatureAlgorithmNoOverlapEcdsa) {
+  ResetEcdsa();
+  client_->SetSignatureAlgorithms(SignatureEcdsaSha384,
+                                  PR_ARRAY_SIZE(SignatureEcdsaSha384));
+  server_->SetSignatureAlgorithms(SignatureEcdsaSha256,
+                                  PR_ARRAY_SIZE(SignatureEcdsaSha256));
+  ConnectExpectFail();
+}
+
+// Pre 1.2, a mismatch on signature algorithms shouldn't affect anything.
+TEST_P(TlsConnectPre12, SignatureAlgorithmNoOverlapEcdsa) {
+  ResetEcdsa();
+  client_->SetSignatureAlgorithms(SignatureEcdsaSha384,
+                                  PR_ARRAY_SIZE(SignatureEcdsaSha384));
+  server_->SetSignatureAlgorithms(SignatureEcdsaSha256,
+                                  PR_ARRAY_SIZE(SignatureEcdsaSha256));
+  Connect();
+}
+
+// The server requests client auth but doesn't offer a SHA-256 option.
+// This fails because NSS only uses SHA-256 for handshake transcript hashes.
+TEST_P(TlsConnectTls12, RequestClientAuthWithoutSha256) {
+  server_->SetSignatureAlgorithms(SignatureRsaSha384,
+                                  PR_ARRAY_SIZE(SignatureRsaSha384));
+  server_->RequestClientAuth(false);
+  ConnectExpectFail();
+}
+
 TEST_P(TlsConnectGeneric, ConnectAlpn) {
   EnableAlpn();
   Connect();
@@ -295,8 +401,7 @@ TEST_P(TlsConnectDatagram, ShortRead) {
   Connect();
   client_->SetExpectedReadError(true);
   server_->SendData(1200, 1200);
-  WAIT_(client_->error_code() == SSL_ERROR_RX_SHORT_DTLS_READ,
-        2000);
+  WAIT_(client_->error_code() == SSL_ERROR_RX_SHORT_DTLS_READ, 2000);
   // Don't call CheckErrorCode() because it requires us to being
   // in state ERROR.
   ASSERT_EQ(SSL_ERROR_RX_SHORT_DTLS_READ, client_->error_code());
@@ -334,6 +439,16 @@ INSTANTIATE_TEST_CASE_P(VariantsAll, TlsConnectGeneric,
                           TlsConnectTestBase::kTlsV11V12));
 INSTANTIATE_TEST_CASE_P(VersionsDatagram, TlsConnectDatagram,
                         TlsConnectTestBase::kTlsV11V12);
+INSTANTIATE_TEST_CASE_P(Variants12, TlsConnectTls12,
+                        TlsConnectTestBase::kTlsModesAll);
+INSTANTIATE_TEST_CASE_P(Pre12Stream, TlsConnectPre12,
+                        ::testing::Combine(
+                          TlsConnectTestBase::kTlsModesStream,
+                          TlsConnectTestBase::kTlsV10));
+INSTANTIATE_TEST_CASE_P(Pre12All, TlsConnectPre12,
+                        ::testing::Combine(
+                          TlsConnectTestBase::kTlsModesAll,
+                          TlsConnectTestBase::kTlsV11));
 INSTANTIATE_TEST_CASE_P(VersionsStream10, TlsConnectStream,
                         TlsConnectTestBase::kTlsV10);
 INSTANTIATE_TEST_CASE_P(VersionsStream, TlsConnectStream,

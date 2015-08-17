@@ -2316,7 +2316,7 @@ ssl3_ServerHandleSigAlgsXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
     SECStatus rv;
     SECItem algorithms;
     const unsigned char *b;
-    unsigned int numAlgorithms, i, j;
+    unsigned int numAlgorithms, i;
 
     /* Ignore this extension if we aren't doing TLS 1.2 or greater. */
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_2) {
@@ -2343,7 +2343,7 @@ ssl3_ServerHandleSigAlgsXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
     }
 
     ss->ssl3.hs.clientSigAndHash =
-            PORT_NewArray(SSL3SignatureAndHashAlgorithm, numAlgorithms);
+            PORT_NewArray(SSLSignatureAndHashAlg, numAlgorithms);
     if (!ss->ssl3.hs.clientSigAndHash) {
         (void)SSL3_SendAlert(ss, alert_fatal, internal_error);
         PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -2352,21 +2352,15 @@ ssl3_ServerHandleSigAlgsXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
     ss->ssl3.hs.numClientSigAndHash = 0;
 
     b = algorithms.data;
-    for (i = j = 0; i < numAlgorithms; i++) {
-        unsigned char tls_hash = *(b++);
-        unsigned char tls_sig = *(b++);
-        SECOidTag hash = ssl3_TLSHashAlgorithmToOID(tls_hash);
-
-        if (hash == SEC_OID_UNKNOWN) {
-            /* We ignore formats that we don't understand. */
-            continue;
+    ss->ssl3.hs.numClientSigAndHash = 0;
+    for (i = 0; i < numAlgorithms; i++) {
+        SSLSignatureAndHashAlg *sigAndHash =
+            &ss->ssl3.hs.clientSigAndHash[ss->ssl3.hs.numClientSigAndHash];
+        sigAndHash->hashAlg = (SSLHashType)*(b++);
+        sigAndHash->sigAlg = (SSLSignType)*(b++);
+        if (ssl3_IsSupportedSignatureAlgorithm(sigAndHash)) {
+            ++ss->ssl3.hs.numClientSigAndHash;
         }
-        /* tls_sig support will be checked later in
-         * ssl3_PickSignatureHashAlgorithm. */
-        ss->ssl3.hs.clientSigAndHash[j].hashAlg = hash;
-        ss->ssl3.hs.clientSigAndHash[j].sigAlg = tls_sig;
-        ++j;
-        ++ss->ssl3.hs.numClientSigAndHash;
     }
 
     if (!ss->ssl3.hs.numClientSigAndHash) {
@@ -2384,26 +2378,11 @@ ssl3_ServerHandleSigAlgsXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
 /* ssl3_ClientSendSigAlgsXtn sends the signature_algorithm extension for TLS
  * 1.2 ClientHellos. */
 static PRInt32
-ssl3_ClientSendSigAlgsXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
+ssl3_ClientSendSigAlgsXtn(sslSocket *ss, PRBool append, PRUint32 maxBytes)
 {
-    static const unsigned char signatureAlgorithms[] = {
-        /* This block is the contents of our signature_algorithms extension, in
-         * wire format. See
-         * https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */
-        tls_hash_sha256, tls_sig_rsa,
-        tls_hash_sha384, tls_sig_rsa,
-        tls_hash_sha512, tls_sig_rsa,
-        tls_hash_sha1,   tls_sig_rsa,
-#ifndef NSS_DISABLE_ECC
-        tls_hash_sha256, tls_sig_ecdsa,
-        tls_hash_sha384, tls_sig_ecdsa,
-        tls_hash_sha512, tls_sig_ecdsa,
-        tls_hash_sha1,   tls_sig_ecdsa,
-#endif
-        tls_hash_sha256, tls_sig_dsa,
-        tls_hash_sha1,   tls_sig_dsa,
-    };
     PRInt32 extension_length;
+    unsigned int i;
+    PRUint8 buf[MAX_SIGNATURE_ALGORITHMS * 2];
 
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_2) {
         return 0;
@@ -2413,32 +2392,38 @@ ssl3_ClientSendSigAlgsXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
         2 /* extension type */ +
         2 /* extension length */ +
         2 /* supported_signature_algorithms length */ +
-        sizeof(signatureAlgorithms);
+        ss->ssl3.signatureAlgorithmCount * 2;
 
-    if (maxBytes < (PRUint32)extension_length) {
+    if (maxBytes < extension_length) {
         PORT_Assert(0);
         return 0;
     }
+
     if (append) {
         SECStatus rv;
         rv = ssl3_AppendHandshakeNumber(ss, ssl_signature_algorithms_xtn, 2);
-        if (rv != SECSuccess)
-            goto loser;
+        if (rv != SECSuccess) {
+            return -1;
+        }
         rv = ssl3_AppendHandshakeNumber(ss, extension_length - 4, 2);
-        if (rv != SECSuccess)
-            goto loser;
-        rv = ssl3_AppendHandshakeVariable(ss, signatureAlgorithms,
-                                          sizeof(signatureAlgorithms), 2);
-        if (rv != SECSuccess)
-            goto loser;
+        if (rv != SECSuccess) {
+            return -1;
+        }
+
+        for (i = 0; i < ss->ssl3.signatureAlgorithmCount; ++i) {
+            buf[i * 2] = ss->ssl3.signatureAlgorithms[i].hashAlg;
+            buf[i * 2 + 1] = ss->ssl3.signatureAlgorithms[i].sigAlg;
+        }
+        rv = ssl3_AppendHandshakeVariable(ss, buf, extension_length - 6, 2);
+        if (rv != SECSuccess) {
+            return -1;
+        }
+
         ss->xtnData.advertised[ss->xtnData.numAdvertised++] =
                 ssl_signature_algorithms_xtn;
     }
 
     return extension_length;
-
-loser:
-    return -1;
 }
 
 unsigned int

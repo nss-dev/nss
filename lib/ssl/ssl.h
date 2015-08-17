@@ -297,6 +297,46 @@ SSL_IMPORT SECStatus SSL_CipherPrefGetDefault(PRInt32 cipher, PRBool *enabled);
 SSL_IMPORT SECStatus SSL_CipherPolicySet(PRInt32 cipher, PRInt32 policy);
 SSL_IMPORT SECStatus SSL_CipherPolicyGet(PRInt32 cipher, PRInt32 *policy);
 
+/*
+** Control for TLS signature algorithms for TLS 1.2 only.
+**
+** This governs what signature algorithms are sent by a client in the
+** signature_algorithms extension.  A client will not accept a signature from a
+** server unless it uses an enabled algorithm.
+**
+** This also governs what the server sends in the supported_signature_algorithms
+** field of a CertificateRequest.  It also changes what the server uses to sign
+** ServerKeyExchange: a server uses the first entry from this list that is
+** compatible with the client's advertised signature_algorithms extension and
+** the selected server certificate.
+**
+** Omitting SHA-256 from this list might be foolish.  Support is mandatory in
+** TLS 1.2 and there might be interoperability issues.  For a server, NSS only
+** supports SHA-256 for verifying a TLS 1.2 CertificateVerify.  This list needs
+** to include SHA-256 if client authentication is requested or required, or
+** creating a CertificateRequest will fail.
+*/
+SSL_IMPORT SECStatus SSL_SignaturePrefSet(
+    PRFileDesc *fd, const SSLSignatureAndHashAlg *algorithms,
+    unsigned int count);
+
+/*
+** Get the currently configured signature algorithms.
+**
+** The algorithms are written to |algorithms| but not if there are more than
+** |maxCount| values configured.  The number of algorithms that are in use are
+** written to |count|.  This fails if |maxCount| is insufficiently large.
+*/
+SSL_IMPORT SECStatus SSL_SignaturePrefGet(
+    PRFileDesc *fd, SSLSignatureAndHashAlg *algorithms, unsigned int *count,
+    unsigned int maxCount);
+
+/*
+** Returns the maximum number of signature algorithms that are supported and
+** can be set or retrieved using SSL_SignaturePrefSet or SSL_SignaturePrefGet.
+*/
+SSL_IMPORT unsigned int SSL_SignatureMaxCount();
+
 /* SSL_DHEGroupPrefSet is used to configure the set of allowed/enabled DHE group
 ** parameters that can be used by NSS for the given server socket.
 ** The first item in the array is used as the default group, if no other

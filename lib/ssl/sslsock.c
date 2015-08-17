@@ -226,6 +226,10 @@ ssl_DupSocket(sslSocket *os)
         PORT_Memcpy(ss->ssl3.dtlsSRTPCiphers, os->ssl3.dtlsSRTPCiphers,
                     sizeof(PRUint16) * os->ssl3.dtlsSRTPCipherCount);
         ss->ssl3.dtlsSRTPCipherCount = os->ssl3.dtlsSRTPCipherCount;
+        PORT_Memcpy(ss->ssl3.signatureAlgorithms, os->ssl3.signatureAlgorithms,
+                    sizeof(ss->ssl3.signatureAlgorithms[0]) *
+                    os->ssl3.signatureAlgorithmCount);
+        ss->ssl3.signatureAlgorithmCount = os->ssl3.signatureAlgorithmCount;
 
         ss->ssl3.dheWeakGroupEnabled = os->ssl3.dheWeakGroupEnabled;
         ss->ssl3.numDHEGroups = os->ssl3.numDHEGroups;
@@ -1869,6 +1873,10 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
     PORT_Memcpy(ss->ssl3.dtlsSRTPCiphers, sm->ssl3.dtlsSRTPCiphers,
                 sizeof(PRUint16) * sm->ssl3.dtlsSRTPCipherCount);
     ss->ssl3.dtlsSRTPCipherCount = sm->ssl3.dtlsSRTPCipherCount;
+    PORT_Memcpy(ss->ssl3.signatureAlgorithms, sm->ssl3.signatureAlgorithms,
+                sizeof(ss->ssl3.signatureAlgorithms[0]) *
+                sm->ssl3.signatureAlgorithmCount);
+    ss->ssl3.signatureAlgorithmCount = sm->ssl3.signatureAlgorithmCount;
 
     if (!ss->opt.useSecurity) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);

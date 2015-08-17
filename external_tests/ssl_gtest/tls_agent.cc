@@ -116,6 +116,56 @@ bool TlsAgent::EnsureTlsSetup() {
   return true;
 }
 
+void TlsAgent::SetupClientAuth() {
+  EXPECT_TRUE(EnsureTlsSetup());
+  ASSERT_EQ(CLIENT, role_);
+
+  EXPECT_EQ(SECSuccess,
+            SSL_GetClientAuthDataHook(ssl_fd_, GetClientAuthDataHook,
+                                      reinterpret_cast<void*>(this)));
+}
+
+bool TlsAgent::GetClientAuthCredentials(CERTCertificate **cert,
+                                        SECKEYPrivateKey **priv) const {
+  *cert = PK11_FindCertFromNickname(name_.c_str(), nullptr);
+  EXPECT_NE(nullptr, *cert);
+  if (!*cert) return false;
+
+  *priv = PK11_FindKeyByAnyCert(*cert, nullptr);
+  EXPECT_NE(nullptr, *priv);
+  if (!*priv) return false; // Leak cert.
+
+  return true;
+}
+
+SECStatus TlsAgent::GetClientAuthDataHook(void* self, PRFileDesc* fd,
+                                          CERTDistNames* caNames,
+                                          CERTCertificate** cert,
+                                          SECKEYPrivateKey** privKey) {
+  TlsAgent* agent = reinterpret_cast<TlsAgent*>(self);
+  if (agent->GetClientAuthCredentials(cert, privKey)) {
+    return SECSuccess;
+  }
+  return SECFailure;
+}
+
+
+void TlsAgent::RequestClientAuth(bool requireAuth) {
+  EXPECT_TRUE(EnsureTlsSetup());
+  ASSERT_EQ(SERVER, role_);
+
+  EXPECT_EQ(SECSuccess,
+            SSL_OptionSet(ssl_fd_, SSL_REQUEST_CERTIFICATE, PR_TRUE));
+  EXPECT_EQ(SECSuccess,
+            SSL_OptionSet(ssl_fd_, SSL_REQUIRE_CERTIFICATE,
+                          requireAuth ? PR_TRUE : PR_FALSE));
+
+  EXPECT_EQ(SECSuccess,
+            SSL_AuthCertificateHook(ssl_fd_, &TlsAgent::ClientAuthenticated,
+                                    this));
+  expect_client_auth_ = true;
+}
+
 void TlsAgent::StartConnect() {
   EXPECT_TRUE(EnsureTlsSetup());
 
@@ -191,6 +241,47 @@ void TlsAgent::SetExpectedReadError(bool err) {
   expected_read_error_ = err;
 }
 
+void TlsAgent::SetSignatureAlgorithms(const SSLSignatureAndHashAlg* algorithms,
+                                      size_t count) {
+  EXPECT_TRUE(EnsureTlsSetup());
+  EXPECT_LE(count, SSL_SignatureMaxCount());
+  EXPECT_EQ(SECSuccess, SSL_SignaturePrefSet(ssl_fd_, algorithms,
+                                             static_cast<unsigned int>(count)));
+  EXPECT_EQ(SECFailure, SSL_SignaturePrefSet(ssl_fd_, algorithms, 0))
+      << "setting no algorithms should fail and do nothing";
+
+  unsigned int configuredCount;
+  SSLSignatureAndHashAlg configuredAlgorithms[count];
+  EXPECT_EQ(SECFailure,
+            SSL_SignaturePrefGet(ssl_fd_, nullptr, &configuredCount, 1))
+      << "get algorithms, algorithms is nullptr";
+  EXPECT_EQ(SECFailure,
+            SSL_SignaturePrefGet(ssl_fd_, configuredAlgorithms,
+                                 &configuredCount, 0))
+      << "get algorithms, too little space";
+  EXPECT_EQ(SECFailure,
+            SSL_SignaturePrefGet(ssl_fd_, configuredAlgorithms, nullptr,
+                                 PR_ARRAY_SIZE(configuredAlgorithms)))
+      << "get algorithms, algCountOut is nullptr";
+
+  EXPECT_EQ(SECSuccess,
+            SSL_SignaturePrefGet(ssl_fd_, configuredAlgorithms,
+                                 &configuredCount,
+                                 PR_ARRAY_SIZE(configuredAlgorithms)));
+  // SignaturePrefSet drops unsupported algorithms silently, so the number that
+  // are configured might be fewer.
+  EXPECT_LE(configuredCount, count);
+  unsigned int i = 0;
+  for (unsigned int j = 0; j < count && i < configuredCount; ++j) {
+    if (i < configuredCount &&
+        algorithms[j].hashAlg == configuredAlgorithms[i].hashAlg &&
+        algorithms[j].sigAlg == configuredAlgorithms[i].sigAlg) {
+      ++i;
+    }
+  }
+  EXPECT_EQ(i, configuredCount) << "algorithms in use were all set";
+}
+
 void TlsAgent::CheckKEAType(SSLKEAType type) const {
   EXPECT_EQ(STATE_CONNECTED, state_);
   EXPECT_EQ(type, csinfo_.keaType);
@@ -242,7 +333,6 @@ void TlsAgent::EnableSrtp() {
   };
   EXPECT_EQ(SECSuccess, SSL_SetSRTPCiphers(ssl_fd_, ciphers,
                                            PR_ARRAY_SIZE(ciphers)));
-
 }
 
 void TlsAgent::CheckSrtp() const {
@@ -342,7 +432,11 @@ void TlsAgent::Handshake() {
       // TODO(ekr@rtfm.com): needs special case for DTLS
     case SSL_ERROR_RX_MALFORMED_HANDSHAKE:
     default:
-      LOG("Handshake failed with error " << err);
+      if (IS_SSL_ERROR(err)) {
+        LOG("Handshake failed with SSL error " << err - SSL_ERROR_BASE);
+      } else {
+        LOG("Handshake failed with error " << err);
+      }
       error_code_ = err;
       SetState(STATE_ERROR);
       return;

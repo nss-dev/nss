@@ -208,7 +208,7 @@ params2ecName(SECKEYECParams * params)
 
 /* Caller must set hiLevel error code. */
 static SECStatus
-ssl3_ComputeECDHKeyHash(SECOidTag hashAlg,
+ssl3_ComputeECDHKeyHash(SSLHashType hashAlg,
                         SECItem ec_params, SECItem server_ecpoint,
                         SSL3Random *client_rand, SSL3Random *server_rand,
                         SSL3Hashes *hashes, PRBool bypassPKCS11)
@@ -609,9 +609,9 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SECItem          ec_params = {siBuffer, NULL, 0};
     SECItem          ec_point  = {siBuffer, NULL, 0};
     unsigned char    paramBuf[3]; /* only for curve_type == named_curve */
-    SSL3SignatureAndHashAlgorithm sigAndHash;
+    SSLSignatureAndHashAlg sigAndHash;
 
-    sigAndHash.hashAlg = SEC_OID_UNKNOWN;
+    sigAndHash.hashAlg = ssl_hash_none;
 
     isTLS = (PRBool)(ss->ssl3.prSpec->version > SSL_LIBRARY_VERSION_3_0);
     isTLS12 = (PRBool)(ss->ssl3.prSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2);
@@ -653,7 +653,7 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
             goto loser;         /* malformed or unsupported. */
         }
         rv = ssl3_CheckSignatureAndHashAlgorithmConsistency(
-                &sigAndHash, ss->sec.peerCert);
+            ss, &sigAndHash, ss->sec.peerCert);
         if (rv != SECSuccess) {
             goto loser;
         }
@@ -750,7 +750,7 @@ no_memory:      /* no-memory error has already been set. */
 SECStatus
 ssl3_SendECDHServerKeyExchange(
     sslSocket *ss,
-    const SSL3SignatureAndHashAlgorithm *sigAndHash)
+    const SSLSignatureAndHashAlg *sigAndHash)
 {
     const ssl3KEADef * kea_def     = ss->ssl3.hs.kea_def;
     SECStatus          rv          = SECFailure;
