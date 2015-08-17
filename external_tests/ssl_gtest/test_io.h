@@ -50,8 +50,9 @@ class DummyPrSocket {
   static DummyPrSocket* GetAdapter(PRFileDesc* fd);
 
   void SetPeer(DummyPrSocket* peer) { peer_ = peer; }
-
   void SetPacketFilter(PacketFilter* filter) { filter_ = filter; }
+  // Drops peer, packet filter and any outstanding packets.
+  void Reset();
 
   void PacketReceived(const DataBuffer& data);
   int32_t Read(void* data, int32_t len);

@@ -1,3 +1,4 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /*
  * This file contains prototypes for the public SSL functions.
  *
@@ -55,12 +56,34 @@ typedef enum {
 #define kt_ecdh   	ssl_kea_ecdh
 #define kt_kea_size	ssl_kea_size
 
+
+/* Values of this enum match the SignatureAlgorithm enum from
+ * https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */
 typedef enum {
-    ssl_sign_null   = 0, 
+    ssl_sign_null   = 0, /* "anonymous" in TLS */
     ssl_sign_rsa    = 1,
     ssl_sign_dsa    = 2,
     ssl_sign_ecdsa  = 3
 } SSLSignType;
+
+/* Values of this enum match the HashAlgorithm enum from
+ * https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */
+typedef enum {
+    /* ssl_hash_none is used internally to mean the pre-1.2 combination of MD5
+     * and SHA1. The other values are only used in TLS 1.2. */
+    ssl_hash_none = 0,
+    ssl_hash_md5 = 1,
+    ssl_hash_sha1 = 2,
+    ssl_hash_sha224 = 3,
+    ssl_hash_sha256 = 4,
+    ssl_hash_sha384 = 5,
+    ssl_hash_sha512 = 6
+} SSLHashType;
+
+typedef struct SSLSignatureAndHashAlgStr {
+    SSLHashType hashAlg;
+    SSLSignType sigAlg;
+} SSLSignatureAndHashAlg;
 
 typedef enum {
     ssl_auth_null   = 0, 

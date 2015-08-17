@@ -24,6 +24,9 @@ static const std::string kTlsModesAllArr[] = {"TLS", "DTLS"};
 static const uint16_t kTlsV10Arr[] = {SSL_LIBRARY_VERSION_TLS_1_0};
 ::testing::internal::ParamGenerator<uint16_t>
   TlsConnectTestBase::kTlsV10 = ::testing::ValuesIn(kTlsV10Arr);
+static const uint16_t kTlsV11Arr[] = {SSL_LIBRARY_VERSION_TLS_1_1};
+::testing::internal::ParamGenerator<uint16_t>
+  TlsConnectTestBase::kTlsV11 = ::testing::ValuesIn(kTlsV11Arr);
 static const uint16_t kTlsV11V12Arr[] = {SSL_LIBRARY_VERSION_TLS_1_1,
                                          SSL_LIBRARY_VERSION_TLS_1_2};
 ::testing::internal::ParamGenerator<uint16_t>
@@ -249,9 +252,8 @@ void TlsConnectTestBase::CheckSrtp() const {
 void TlsConnectTestBase::SendReceive() {
   client_->SendData(50);
   server_->SendData(50);
-  WAIT_(
-      client_->received_bytes() == 50 &&
-      server_->received_bytes() == 50, 2000);
+  WAIT_(client_->received_bytes() == 50U &&
+        server_->received_bytes() == 50U, 2000);
   ASSERT_EQ(50U, client_->received_bytes());
   ASSERT_EQ(50U, server_->received_bytes());
 }
@@ -259,5 +261,13 @@ void TlsConnectTestBase::SendReceive() {
 TlsConnectGeneric::TlsConnectGeneric()
   : TlsConnectTestBase(TlsConnectTestBase::ToMode(std::get<0>(GetParam())),
                        std::get<1>(GetParam())) {}
+
+TlsConnectPre12::TlsConnectPre12()
+  : TlsConnectTestBase(TlsConnectTestBase::ToMode(std::get<0>(GetParam())),
+                       std::get<1>(GetParam())) {}
+
+TlsConnectTls12::TlsConnectTls12()
+  : TlsConnectTestBase(TlsConnectTestBase::ToMode(GetParam()),
+                       SSL_LIBRARY_VERSION_TLS_1_2) {}
 
 } // namespace nss_test

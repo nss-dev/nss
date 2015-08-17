@@ -125,8 +125,9 @@ static PRStatus DummyListen(PRFileDesc *f, int32_t depth) {
 }
 
 static PRStatus DummyShutdown(PRFileDesc *f, int32_t how) {
-  UNIMPLEMENTED();
-  return PR_FAILURE;
+  DummyPrSocket *io = reinterpret_cast<DummyPrSocket *>(f->secret);
+  io->Reset();
+  return PR_SUCCESS;
 }
 
 // This function does not support peek.
@@ -250,7 +251,12 @@ static int32_t DummyReserved(PRFileDesc *f) {
 }
 
 DummyPrSocket::~DummyPrSocket() {
+  Reset();
+}
+
+void DummyPrSocket::Reset() {
   delete filter_;
+  peer_ = nullptr;
   while (!input_.empty())
   {
     Packet* front = input_.front();

@@ -24,6 +24,7 @@ class TlsConnectTestBase : public ::testing::Test {
   static ::testing::internal::ParamGenerator<std::string> kTlsModesStream;
   static ::testing::internal::ParamGenerator<std::string> kTlsModesAll;
   static ::testing::internal::ParamGenerator<uint16_t> kTlsV10;
+  static ::testing::internal::ParamGenerator<uint16_t> kTlsV11;
   static ::testing::internal::ParamGenerator<uint16_t> kTlsV11V12;
   static ::testing::internal::ParamGenerator<uint16_t> kTlsV12Plus;
 
@@ -104,6 +105,22 @@ class TlsConnectGeneric
     public ::testing::WithParamInterface<std::tuple<std::string, uint16_t>> {
  public:
   TlsConnectGeneric();
+};
+
+// A Pre TLS 1.2 generic test.
+class TlsConnectPre12
+  : public TlsConnectTestBase,
+    public ::testing::WithParamInterface<std::tuple<std::string, uint16_t>> {
+ public:
+  TlsConnectPre12();
+};
+
+// A TLS 1.2 only generic test.
+class TlsConnectTls12
+  : public TlsConnectTestBase,
+    public ::testing::WithParamInterface<std::string> {
+ public:
+  TlsConnectTls12();
 };
 
 } // namespace nss_test
