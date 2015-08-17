@@ -311,7 +311,7 @@ ssl3HelloExtensionSender clientHelloSendersSSL3[SSL_MAX_EXTENSIONS] = {
 static PRBool
 arrayContainsExtension(const PRUint16 *array, PRUint32 len, PRUint16 ex_type)
 {
-    int i;
+    unsigned int i;
     for (i = 0; i < len; i++) {
         if (ex_type == array[i])
             return PR_TRUE;
@@ -451,7 +451,7 @@ ssl3_HandleServerNameXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
         return SECFailure;
     }
     for (i = 0;i < listCount;i++) {
-        int j;
+        unsigned int j;
         PRInt32  type;
         SECStatus rv;
         PRBool nametypePresent = PR_FALSE;
@@ -539,7 +539,11 @@ ssl3_SendSessionTicketXtn(
         }
     }
 
-    if (append && maxBytes >= extension_length) {
+    if (maxBytes < (PRUint32)extension_length) {
+        PORT_Assert(0);
+        return 0;
+    }
+    if (append) {
         SECStatus rv;
         /* extension_type */
         rv = ssl3_AppendHandshakeNumber(ss, ssl_session_ticket_xtn, 2);
@@ -562,9 +566,6 @@ ssl3_SendSessionTicketXtn(
             xtnData->advertised[xtnData->numAdvertised++] =
                 ssl_session_ticket_xtn;
         }
-    } else if (maxBytes < extension_length) {
-        PORT_Assert(0);
-        return 0;
     }
     return extension_length;
 
@@ -804,7 +805,10 @@ ssl3_ClientSendNextProtoNegoXtn(sslSocket * ss, PRBool append,
 
     extension_length = 4;
 
-    if (append && maxBytes >= extension_length) {
+    if (maxBytes < (PRUint32)extension_length) {
+        return 0;
+    }
+    if (append) {
         SECStatus rv;
         rv = ssl3_AppendHandshakeNumber(ss, ssl_next_proto_nego_xtn, 2);
         if (rv != SECSuccess)
@@ -814,8 +818,6 @@ ssl3_ClientSendNextProtoNegoXtn(sslSocket * ss, PRBool append,
             goto loser;
         ss->xtnData.advertised[ss->xtnData.numAdvertised++] =
                 ssl_next_proto_nego_xtn;
-    } else if (maxBytes < extension_length) {
-        return 0;
     }
 
     return extension_length;
@@ -839,7 +841,10 @@ ssl3_ClientSendAppProtoXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
                        2 /* protocol name list length */ +
                        ss->opt.nextProtoNego.len;
 
-    if (append && maxBytes >= extension_length) {
+    if (maxBytes < (PRUint32)extension_length) {
+        return 0;
+    }
+    if (append) {
         /* NPN requires that the client's fallback protocol is first in the
          * list. However, ALPN sends protocols in preference order. So we
          * allocate a buffer and move the first protocol to the end of the
@@ -879,8 +884,6 @@ ssl3_ClientSendAppProtoXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
         }
         ss->xtnData.advertised[ss->xtnData.numAdvertised++] =
                 ssl_app_layer_protocol_xtn;
-    } else if (maxBytes < extension_length) {
-        return 0;
     }
 
     return extension_length;
@@ -908,7 +911,10 @@ ssl3_ServerSendAppProtoXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
                        2 /* protocol name list */ + 1 /* name length */ +
                        ss->ssl3.nextProto.len;
 
-    if (append && maxBytes >= extension_length) {
+    if (maxBytes < (PRUint32)extension_length) {
+        return 0;
+    }
+    if (append) {
         SECStatus rv;
         rv = ssl3_AppendHandshakeNumber(ss, ssl_app_layer_protocol_xtn, 2);
         if (rv != SECSuccess) {
@@ -927,8 +933,6 @@ ssl3_ServerSendAppProtoXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
         if (rv != SECSuccess) {
             return -1;
         }
-    } else if (maxBytes < extension_length) {
-        return 0;
     }
 
     return extension_length;
@@ -975,7 +979,10 @@ ssl3_ServerSendStatusRequestXtn(
         return 0;
 
     extension_length = 2 + 2;
-    if (append && maxBytes >= extension_length) {
+    if (maxBytes < (PRUint32)extension_length) {
+        return 0;
+    }
+    if (append) {
         /* extension_type */
         rv = ssl3_AppendHandshakeNumber(ss, ssl_cert_status_xtn, 2);
         if (rv != SECSuccess)
@@ -1008,7 +1015,11 @@ ssl3_ClientSendStatusRequestXtn(sslSocket * ss, PRBool append,
      */
     extension_length = 9;
 
-    if (append && maxBytes >= extension_length) {
+    if (maxBytes < (PRUint32)extension_length) {
+       PORT_Assert(0);
+       return 0;
+    }
+    if (append) {
        SECStatus rv;
        TLSExtensionData *xtnData;
 
@@ -1036,9 +1047,6 @@ ssl3_ClientSendStatusRequestXtn(sslSocket * ss, PRBool append,
 
        xtnData = &ss->xtnData;
        xtnData->advertised[xtnData->numAdvertised++] = ssl_cert_status_xtn;
-    } else if (maxBytes < extension_length) {
-       PORT_Assert(0);
-       return 0;
     }
     return extension_length;
 }
@@ -1050,7 +1058,7 @@ ssl3_ClientSendStatusRequestXtn(sslSocket * ss, PRBool append,
 SECStatus
 ssl3_SendNewSessionTicket(sslSocket *ss)
 {
-    int                  i;
+    PRUint32 i;
     SECStatus            rv;
     NewSessionTicket     ticket;
     SECItem              plaintext;
@@ -1426,7 +1434,7 @@ ssl3_ServerHandleSessionTicketXtn(sslSocket *ss, PRUint16 ex_type,
     if (data->len == 0) {
         ss->xtnData.emptySessionTicket = PR_TRUE;
     } else {
-        int                    i;
+        PRUint32 i;
         SECItem                extension_data;
         EncryptedSessionTicket enc_session_ticket;
         unsigned char          computed_mac[TLS_EX_SESS_TICKET_MAC_LENGTH];
@@ -2016,7 +2024,10 @@ ssl3_SendRenegotiationInfoXtn(
            (ss->sec.isServer ? ss->ssl3.hs.finishedBytes * 2
                              : ss->ssl3.hs.finishedBytes);
     needed = 5 + len;
-    if (append && maxBytes >= needed) {
+    if (maxBytes < (PRUint32)needed) {
+        return 0;
+    }
+    if (append) {
         SECStatus rv;
         /* extension_type */
         rv = ssl3_AppendHandshakeNumber(ss, ssl_renegotiation_info_xtn, 2);
@@ -2404,7 +2415,11 @@ ssl3_ClientSendSigAlgsXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
         2 /* supported_signature_algorithms length */ +
         sizeof(signatureAlgorithms);
 
-    if (append && maxBytes >= extension_length) {
+    if (maxBytes < (PRUint32)extension_length) {
+        PORT_Assert(0);
+        return 0;
+    }
+    if (append) {
         SECStatus rv;
         rv = ssl3_AppendHandshakeNumber(ss, ssl_signature_algorithms_xtn, 2);
         if (rv != SECSuccess)
@@ -2418,9 +2433,6 @@ ssl3_ClientSendSigAlgsXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
             goto loser;
         ss->xtnData.advertised[ss->xtnData.numAdvertised++] =
                 ssl_signature_algorithms_xtn;
-    } else if (maxBytes < extension_length) {
-        PORT_Assert(0);
-        return 0;
     }
 
     return extension_length;
@@ -2494,7 +2506,11 @@ ssl3_ClientSendDraftVersionXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
     }
 
     extension_length = 6;  /* Type + length + number */
-    if (append && maxBytes >= extension_length) {
+    if (maxBytes < (PRUint32)extension_length) {
+        PORT_Assert(0);
+        return 0;
+    }
+    if (append) {
         SECStatus rv;
         rv = ssl3_AppendHandshakeNumber(ss, ssl_tls13_draft_version_xtn, 2);
         if (rv != SECSuccess)
@@ -2507,9 +2523,6 @@ ssl3_ClientSendDraftVersionXtn(sslSocket * ss, PRBool append, PRUint32 maxBytes)
             goto loser;
         ss->xtnData.advertised[ss->xtnData.numAdvertised++] =
                 ssl_tls13_draft_version_xtn;
-    } else if (maxBytes < extension_length) {
-        PORT_Assert(0);
-        return 0;
     }
 
     return extension_length;

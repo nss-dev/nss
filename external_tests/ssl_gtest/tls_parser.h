@@ -10,7 +10,11 @@
 #include <memory>
 #include <cstdint>
 #include <cstring>
+#if defined(WIN32) || defined(WIN64)
+#include <winsock2.h>
+#else
 #include <arpa/inet.h>
+#endif
 #include "databuffer.h"
 
 namespace nss_test {

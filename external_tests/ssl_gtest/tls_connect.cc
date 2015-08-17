@@ -131,8 +131,8 @@ void TlsConnectTestBase::Handshake() {
   client_->Handshake();
   server_->Handshake();
 
-  ASSERT_TRUE_WAIT((client_->state() != TlsAgent::CONNECTING) &&
-                   (server_->state() != TlsAgent::CONNECTING),
+  ASSERT_TRUE_WAIT((client_->state() != TlsAgent::STATE_CONNECTING) &&
+                   (server_->state() != TlsAgent::STATE_CONNECTING),
                    5000);
 }
 
@@ -150,8 +150,8 @@ void TlsConnectTestBase::CheckConnected() {
                      server_->max_version()),
             client_->version());
 
-  EXPECT_EQ(TlsAgent::CONNECTED, client_->state());
-  EXPECT_EQ(TlsAgent::CONNECTED, server_->state());
+  EXPECT_EQ(TlsAgent::STATE_CONNECTED, client_->state());
+  EXPECT_EQ(TlsAgent::STATE_CONNECTED, server_->state());
 
   int16_t cipher_suite1, cipher_suite2;
   bool ret = client_->cipher_suite(&cipher_suite1);
@@ -180,8 +180,8 @@ void TlsConnectTestBase::ConnectExpectFail() {
   client_->StartConnect();
   Handshake();
 
-  ASSERT_EQ(TlsAgent::ERROR, client_->state());
-  ASSERT_EQ(TlsAgent::ERROR, server_->state());
+  ASSERT_EQ(TlsAgent::STATE_ERROR, client_->state());
+  ASSERT_EQ(TlsAgent::STATE_ERROR, server_->state());
 }
 
 void TlsConnectTestBase::SetExpectedVersion(uint16_t version) {
@@ -252,8 +252,8 @@ void TlsConnectTestBase::SendReceive() {
   WAIT_(
       client_->received_bytes() == 50 &&
       server_->received_bytes() == 50, 2000);
-  ASSERT_EQ(50, client_->received_bytes());
-  ASSERT_EQ(50, server_->received_bytes());
+  ASSERT_EQ(50U, client_->received_bytes());
+  ASSERT_EQ(50U, server_->received_bytes());
 }
 
 TlsConnectGeneric::TlsConnectGeneric()

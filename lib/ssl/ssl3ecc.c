@@ -967,9 +967,7 @@ ssl3_DisableECCSuites(sslSocket * ss, const ssl3CipherSuite * suite)
     if (!suite)
         suite = ecSuites;
     for (; *suite; ++suite) {
-        SECStatus rv      = ssl3_CipherPrefSet(ss, *suite, PR_FALSE);
-
-        PORT_Assert(rv == SECSuccess); /* else is coding error */
+        PORT_CheckSuccess(ssl3_CipherPrefSet(ss, *suite, PR_FALSE));
     }
     return SECSuccess;
 }
@@ -1128,7 +1126,10 @@ ssl3_SendSupportedCurvesXtn(
         ecList = tlsECList;
     }
 
-    if (append && maxBytes >= ecListSize) {
+    if (maxBytes < (PRUint32)ecListSize) {
+        return 0;
+    }
+    if (append) {
         SECStatus rv = ssl3_AppendHandshake(ss, ecList, ecListSize);
         if (rv != SECSuccess)
             return -1;
