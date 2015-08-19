@@ -155,7 +155,9 @@ endif
 # Check for the existence of gcc 4.8
 ifndef NSS_HAS_GCC48
 define GCC48_TEST =
+#include <stdio.h>\n
 int main() {\n
+fprintf(stderr, \"Found gcc %d.%d\\\n\", __GNUC__, __GNUC_MINOR__);\n
 #if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 8)\n
   return 1;\n
 #else\n
@@ -165,7 +167,7 @@ int main() {\n
 endef
 TEST_GCC48 := /tmp/test_gcc48_$(shell echo $$$$)
 NSS_HAS_GCC48 := (,$(shell echo -e "$(GCC48_TEST)" > $(TEST_GCC48).c && \
-  $(CC) -o $(TEST_GCC48) $(TEST_GCC48).c && \
+  $(CC) $(C_FLAGS) -o $(TEST_GCC48) $(TEST_GCC48).c && \
   $(TEST_GCC48) && echo true || echo false; \
   rm -f $(TEST_GCC48) $(TEST_GCC48).c))
 export NSS_HAS_GCC48
