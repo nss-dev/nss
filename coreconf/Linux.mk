@@ -166,17 +166,18 @@ fprintf(stderr, \"Found gcc %d.%d\\\n\", __GNUC__, __GNUC_MINOR__);\n
 }\n
 endef
 TEST_GCC48 := /tmp/test_gcc48_$(shell echo $$$$)
-NSS_HAS_GCC48 := (,$(shell echo -e "$(GCC48_TEST)" > $(TEST_GCC48).c && \
+NSS_HAS_GCC48 := $(shell echo -e "$(GCC48_TEST)" > $(TEST_GCC48).c && \
   $(CC) $(C_FLAGS) -o $(TEST_GCC48) $(TEST_GCC48).c && \
   $(TEST_GCC48) && echo true || echo false; \
-  rm -f $(TEST_GCC48) $(TEST_GCC48).c))
+  rm -f $(TEST_GCC48) $(TEST_GCC48).c)
 export NSS_HAS_GCC48
 endif
 
-ifeq (true,$(NSS_HAS_GCC48))
+ifneq (true,$(NSS_HAS_GCC48))
 # Old versions of gcc (< 4.8) don't support #pragma diagnostic in functions.
 # Here, we disable use of that #pragma and the warnings it suppresses.
 OS_CFLAGS += -DNSS_NO_GCC48 -Wno-unused-variable
+$(warning Unable to find gcc >= 4.8)
 endif
 
 ifdef USE_PTHREADS
