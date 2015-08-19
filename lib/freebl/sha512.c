@@ -67,6 +67,7 @@ static const PRUint32 H256[8] = {
     0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
 };
 
+#if defined(IS_LITTLE_ENDIAN)
 #if (_MSC_VER >= 1300)
 #include <stdlib.h>
 #pragma intrinsic(_byteswap_ulong)
@@ -129,6 +130,7 @@ static __inline__ PRUint32 swap4b(PRUint32 value)
                       ((t1 & SWAP4MASK) << 8) | ((t1 >> 8) & SWAP4MASK))
 #define BYTESWAP4(x)  x = SHA_HTONL(x)
 #endif
+#endif /* defined(IS_LITTLE_ENDIAN) */
 
 #if defined(_MSC_VER)
 #pragma intrinsic (_lrotr, _lrotl) 
@@ -663,6 +665,7 @@ void SHA224_Clone(SHA224Context *dest, SHA224Context *src)
 #define ULLC(hi,lo) 0x ## hi ## lo ## ULL
 #endif
 
+#if defined(IS_LITTLE_ENDIAN)
 #if defined(_MSC_VER)
 #pragma intrinsic(_byteswap_uint64)
 #define SHA_HTONLL(x) _byteswap_uint64(x)
@@ -702,6 +705,7 @@ static PRUint64 swap8b(PRUint64 x)
 #define BYTESWAP8(x)  do { PRUint32 tmp; BYTESWAP4(x.lo); BYTESWAP4(x.hi); \
    tmp = x.lo; x.lo = x.hi; x.hi = tmp; } while (0)
 #endif
+#endif /* defined(IS_LITTLE_ENDIAN) */
 
 /* SHA-384 and SHA-512 constants, K512. */
 static const PRUint64 K512[80] = {
