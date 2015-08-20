@@ -1027,7 +1027,7 @@ CloseCache(cacheDesc *cache)
     memset(cache, 0, sizeof *cache);
 }
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(NSS_NO_GCC48)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif
@@ -1270,7 +1270,7 @@ loser:
     CloseCache(cache);
     return SECFailure;
 }
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(NSS_NO_GCC48)
 #pragma GCC diagnostic pop
 #endif
 
