@@ -2602,7 +2602,7 @@ CK_RV sftk_CloseAllSessions(SFTKSlot *slot, PRBool logout)
 		--slot->sessionCount;
 		SKIP_AFTER_FORK(PZ_Unlock(slot->slotLock));
 		if (session->info.flags & CKF_RW_SESSION) {
-		    PR_ATOMIC_DECREMENT(&slot->rwSessionCount);
+		    (void)PR_ATOMIC_DECREMENT(&slot->rwSessionCount);
 		}
 	    } else {
 		SKIP_AFTER_FORK(PZ_Unlock(lock));
@@ -3719,7 +3719,7 @@ CK_RV NSC_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags,
     ++slot->sessionCount;
     PZ_Unlock(slot->slotLock);
     if (session->info.flags & CKF_RW_SESSION) {
-	PR_ATOMIC_INCREMENT(&slot->rwSessionCount);
+	(void)PR_ATOMIC_INCREMENT(&slot->rwSessionCount);
     }
 
     do {
@@ -3787,7 +3787,7 @@ CK_RV NSC_CloseSession(CK_SESSION_HANDLE hSession)
 	    sftk_freeDB(handle);
 	}
 	if (session->info.flags & CKF_RW_SESSION) {
-	    PR_ATOMIC_DECREMENT(&slot->rwSessionCount);
+	    (void)PR_ATOMIC_DECREMENT(&slot->rwSessionCount);
 	}
     }
 
