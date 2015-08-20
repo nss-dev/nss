@@ -163,7 +163,7 @@ endif
 ifneq (true,$(NSS_HAS_GCC48))
 # Old versions of gcc (< 4.8) don't support #pragma diagnostic in functions.
 # Here, we disable use of that #pragma and the warnings it suppresses.
-OS_CFLAGS += -DNSS_NO_GCC48 -Wno-unused-variable
+OS_CFLAGS += -DNSS_NO_GCC48 -Wno-unused-variable -Wno-strict-aliasing
 $(warning Unable to find gcc >= 4.8)
 endif
 
