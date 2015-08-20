@@ -3840,7 +3840,7 @@ CK_RV NSC_GenerateKey(CK_SESSION_HANDLE hSession,
      * produce them any more.  The affected algorithm was 3DES.
      */
     PRBool faultyPBE3DES = PR_FALSE;
-    HASH_HashType hashType;
+    HASH_HashType hashType = HASH_AlgNULL;
 
     CHECK_FORK();
 
@@ -4081,7 +4081,7 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession,
      */
     CK_MECHANISM mech = {0, NULL, 0};
 
-    CK_ULONG modulusLen;
+    CK_ULONG modulusLen = 0;
     CK_ULONG subPrimeLen = 0;
     PRBool isEncryptable = PR_FALSE;
     PRBool canSignVerify = PR_FALSE;

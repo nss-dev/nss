@@ -72,7 +72,6 @@ static const PRUint32 H256[8] = {
 #include <stdlib.h>
 #pragma intrinsic(_byteswap_ulong)
 #define SHA_HTONL(x) _byteswap_ulong(x)
-#define BYTESWAP4(x)  x = SHA_HTONL(x)
 #elif defined(_MSC_VER) && defined(NSS_X86_OR_X64)
 #ifndef FORCEINLINE
 #if (_MSC_VER >= 1200)
@@ -93,7 +92,6 @@ swap4b(PRUint32 dwd)
 }
 
 #define SHA_HTONL(x) swap4b(x)
-#define BYTESWAP4(x)  x = SHA_HTONL(x)
 
 #elif defined(__GNUC__) && defined(NSS_X86_OR_X64)
 static __inline__ PRUint32 swap4b(PRUint32 value)
@@ -102,7 +100,6 @@ static __inline__ PRUint32 swap4b(PRUint32 value)
     return (value);
 }
 #define SHA_HTONL(x) swap4b(x)
-#define BYTESWAP4(x)  x = SHA_HTONL(x)
 
 #elif defined(__GNUC__) && (defined(__thumb2__) || \
       (!defined(__thumb__) && \
@@ -122,18 +119,17 @@ static __inline__ PRUint32 swap4b(PRUint32 value)
     return ret;
 }
 #define SHA_HTONL(x) swap4b(x)
-#define BYTESWAP4(x)  x = SHA_HTONL(x)
 
 #else
 #define SWAP4MASK  0x00FF00FF
 static PRUint32 swap4b(PRUint32 value)
 {
-    PRUint32 t1 = (x << 16) | (x >> 16);
+    PRUint32 t1 = (value << 16) | (value >> 16);
     return ((t1 & SWAP4MASK) << 8) | ((t1 >> 8) & SWAP4MASK);
 }
 #define SHA_HTONL(x) swap4b
-#define BYTESWAP4(x)  x = SHA_HTONL(x)
 #endif
+#define BYTESWAP4(x) x = SHA_HTONL(x)
 #endif /* defined(IS_LITTLE_ENDIAN) */
 
 #if defined(_MSC_VER)
