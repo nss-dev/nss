@@ -65,7 +65,7 @@ static const char inheritableSockName[] = { "SELFSERV_LISTEN_SOCKET" };
 #define MAX_BULK_TEST     1048576 /* 1 MB */
 static PRBool testBulk;
 static PRUint32 testBulkSize       = DEFAULT_BULK_TEST;
-static PRUint32 testBulkTotal;
+static PRInt32 testBulkTotal;
 static char* testBulkBuf;
 static PRDescIdentity log_layer_id = PR_INVALID_IO_LAYER;
 static PRFileDesc *loggingFD;
@@ -74,10 +74,10 @@ static PRIOMethods loggingMethods;
 static PRBool logStats;
 static PRBool loggingLayer;
 static int logPeriod = 30;
-static PRUint32 loggerOps;
-static PRUint32 loggerBytes;
-static PRUint32 loggerBytesTCP;
-static PRUint32 bulkSentChunks;
+static PRInt32 loggerOps;
+static PRInt32 loggerBytes;
+static PRInt32 loggerBytesTCP;
+static PRInt32 bulkSentChunks;
 static enum ocspStaplingModeEnum {
     osm_disabled,  /* server doesn't support stapling */
     osm_good,      /* supply a signed good status */
@@ -751,8 +751,8 @@ logger(void *arg)
     PRIntervalTime period;
     PRIntervalTime previousTime;
     PRIntervalTime latestTime;
-    PRUint32 previousOps;
-    PRUint32 ops;
+    PRInt32 previousOps;
+    PRInt32 ops;
     PRIntervalTime logPeriodTicks = PR_TicksPerSecond();
     PRFloat64 secondsPerTick = 1.0 / (PRFloat64)logPeriodTicks;
     int iterations = 0;
@@ -771,7 +771,7 @@ logger(void *arg)
          */
         PR_Sleep(logPeriodTicks);
         secondsElapsed++;
-        totalPeriodBytes +=  PR_ATOMIC_SET(&loggerBytes, 0);
+        totalPeriodBytes += PR_ATOMIC_SET(&loggerBytes, 0);
         totalPeriodBytesTCP += PR_ATOMIC_SET(&loggerBytesTCP, 0);
         if (secondsElapsed != logPeriod) {
             continue;
