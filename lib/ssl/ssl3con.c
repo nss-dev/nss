@@ -9232,7 +9232,7 @@ ssl3_SendCertificateRequest(sslSocket *ss)
     int            nnames	= 0;
     int            certTypesLength;
     PRUint8        sigAlgs[MAX_SIGNATURE_ALGORITHMS * 2];
-    unsigned int   sigAlgsLength;
+    unsigned int   sigAlgsLength = 0;
 
     SSL_TRC(3, ("%d: SSL3[%d]: send certificate_request handshake",
 		SSL_GETPID(), ss->fd));
