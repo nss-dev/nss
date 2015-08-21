@@ -81,7 +81,7 @@ endif
 # definitions so that the linker can catch multiply-defined symbols.
 # Also, common symbols are not allowed with Darwin dynamic libraries.
 
-OS_CFLAGS	= $(DSO_CFLAGS) $(OS_REL_CFLAGS) -Wall -Werror -fno-common -pipe -DDARWIN -DHAVE_STRERROR -DHAVE_BSD_FLOCK $(DARWIN_SDK_CFLAGS)
+OS_CFLAGS	= $(DSO_CFLAGS) $(OS_REL_CFLAGS) -Wall -fno-common -pipe -DDARWIN -DHAVE_STRERROR -DHAVE_BSD_FLOCK $(DARWIN_SDK_CFLAGS)
 
 ifeq (clang,$(shell $(CC) -? 2>&1 >/dev/null | sed -e 's/:.*//;1q'))
 NSS_HAS_GCC48 = true
@@ -94,11 +94,13 @@ NSS_HAS_GCC48 := $(shell \
   echo true || echo false)
 export NSS_HAS_GCC48
 endif
-ifneq (true,$(NSS_HAS_GCC48))
+ifeq (true,$(NSS_HAS_GCC48))
+OS_CFLAGS += -Werror
+else
 # Old versions of gcc (< 4.8) don't support #pragma diagnostic in functions.
-# Here, we disable use of that #pragma and the warnings it suppresses.
+# Use this to disable use of that #pragma and the warnings it suppresses.
 OS_CFLAGS += -DNSS_NO_GCC48 -Wno-unused-variable -Wno-strict-aliasing
-$(warning Unable to find gcc >= 4.8)
+$(warning Unable to find gcc >= 4.8 disabling -Werror)
 endif
 
 ifdef BUILD_OPT
