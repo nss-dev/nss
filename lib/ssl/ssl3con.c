@@ -9502,12 +9502,12 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
     unsigned char *   sr     = (unsigned char *)&ss->ssl3.hs.server_random;
     ssl3CipherSpec *  pwSpec = ss->ssl3.pwSpec;
     unsigned int      outLen = 0;
-#endif
     PRBool            isTLS  = PR_FALSE;
+    SECItem           pmsItem = {siBuffer, NULL, 0};
+    unsigned char     rsaPmsBuf[SSL3_RSA_PMS_LENGTH];
+#endif
     SECStatus         rv;
     SECItem           enc_pms;
-    unsigned char     rsaPmsBuf[SSL3_RSA_PMS_LENGTH];
-    SECItem           pmsItem = {siBuffer, NULL, 0};
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
@@ -9515,8 +9515,10 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 
     enc_pms.data = b;
     enc_pms.len  = length;
+#ifndef NO_PKCS11_BYPASS
     pmsItem.data = rsaPmsBuf;
     pmsItem.len  = sizeof rsaPmsBuf;
+#endif
 
     if (ss->ssl3.prSpec->version > SSL_LIBRARY_VERSION_3_0) { /* isTLS */
 	PRInt32 kLen;
@@ -9528,9 +9530,13 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 	if ((unsigned)kLen < enc_pms.len) {
 	    enc_pms.len = kLen;
 	}
+#ifndef NO_PKCS11_BYPASS
 	isTLS = PR_TRUE;
+#endif
     } else {
+#ifndef NO_PKCS11_BYPASS
 	isTLS = (PRBool)(ss->ssl3.hs.kea_def->tls_keygen != 0);
+#endif
     }
 
 #ifndef NO_PKCS11_BYPASS
