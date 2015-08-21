@@ -134,7 +134,7 @@ ifeq ($(USE_PTHREADS),1)
 OS_PTHREAD = -lpthread 
 endif
 
-OS_CFLAGS		= $(DSO_CFLAGS) $(OS_REL_CFLAGS) $(ARCHFLAG) -Wall -Werror -pipe -ffunction-sections -fdata-sections -DLINUX -Dlinux -DHAVE_STRERROR
+OS_CFLAGS		= $(DSO_CFLAGS) $(OS_REL_CFLAGS) $(ARCHFLAG) -Wall -pipe -ffunction-sections -fdata-sections -DLINUX -Dlinux -DHAVE_STRERROR
 OS_LIBS			= $(OS_PTHREAD) -ldl -lc
 
 ifeq ($(COMPILER_TAG),_clang)
@@ -160,11 +160,13 @@ NSS_HAS_GCC48 := $(shell \
   echo true || echo false)
 export NSS_HAS_GCC48
 endif
-ifneq (true,$(NSS_HAS_GCC48))
+ifeq (true,$(NSS_HAS_GCC48))
+OS_CFLAGS += -Werror
+else
 # Old versions of gcc (< 4.8) don't support #pragma diagnostic in functions.
-# Here, we disable use of that #pragma and the warnings it suppresses.
-OS_CFLAGS += -DNSS_NO_GCC48 -Wno-unused-variable -Wno-strict-aliasing
-$(warning Unable to find gcc >= 4.8)
+# Use this to disable use of that #pragma and the warnings it suppresses.
+OS_CFLAGS += -DNSS_NO_GCC48
+$(warning Unable to find gcc >= 4.8 disabling -Werror)
 endif
 
 ifdef USE_PTHREADS
