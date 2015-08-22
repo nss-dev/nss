@@ -362,7 +362,6 @@ pkix_pl_LdapDefaultClient_VerifyBindResponse(
         decode.data = (void *)(client->rcvBuf);
         decode.len = bufLen;
 
-        msg.protocolOp.op.bindResponseMsg.resultCode.data = OTHER;
         PKIX_CHECK(pkix_pl_LdapDefaultClient_DecodeBindResponse
                 (client->arena, &decode, &msg, &rv, plContext),
                 PKIX_LDAPDEFAULTCLIENTDECODEBINDRESPONSEFAILED);
