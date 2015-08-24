@@ -24,6 +24,7 @@ TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode, SSLKEAType kea
   : name_(name),
     mode_(mode),
     kea_(kea),
+    server_key_bits_(0),
     pr_fd_(nullptr),
     adapter_(nullptr),
     ssl_fd_(nullptr),
@@ -84,6 +85,12 @@ bool TlsAgent::EnsureTlsSetup() {
     CERTCertificate* cert = PK11_FindCertFromNickname(name_.c_str(), nullptr);
     EXPECT_NE(nullptr, cert);
     if (!cert) return false;
+
+    SECKEYPublicKey* pub = CERT_ExtractPublicKey(cert);
+    EXPECT_NE(nullptr, pub);
+    if (!pub) return false;  // Leak cert.
+    server_key_bits_ = SECKEY_PublicKeyStrengthInBits(pub);
+    SECKEY_DestroyPublicKey(pub);
 
     SECKEYPrivateKey* priv = PK11_FindKeyByAnyCert(cert, nullptr);
     EXPECT_NE(nullptr, priv);
@@ -221,8 +228,17 @@ void TlsAgent::SetVersionRange(uint16_t minver, uint16_t maxver) {
    }
 }
 
+void TlsAgent::GetVersionRange(uint16_t* minver, uint16_t* maxver) {
+  *minver = vrange_.min;
+  *maxver = vrange_.max;
+}
+
 void TlsAgent::SetExpectedVersion(uint16_t version) {
   expected_version_ = version;
+}
+
+void TlsAgent::SetServerKeyBits(uint16_t bits) {
+  server_key_bits_ = bits;
 }
 
 void TlsAgent::SetExpectedReadError(bool err) {
@@ -273,6 +289,20 @@ void TlsAgent::SetSignatureAlgorithms(const SSLSignatureAndHashAlg* algorithms,
 void TlsAgent::CheckKEAType(SSLKEAType type) const {
   EXPECT_EQ(STATE_CONNECTED, state_);
   EXPECT_EQ(type, csinfo_.keaType);
+  /* Check the length */
+  switch (type) {
+      case ssl_kea_ecdh:
+          EXPECT_EQ(256, info_.keaKeyBits);
+          break;
+      case ssl_kea_dh:
+          EXPECT_EQ(2048, info_.keaKeyBits);
+          break;
+      case ssl_kea_rsa:
+          EXPECT_EQ(server_key_bits_, info_.keaKeyBits);
+          break;
+      default:
+          break;
+  }
 }
 
 void TlsAgent::CheckAuthType(SSLAuthType type) const {
@@ -407,6 +437,9 @@ void TlsAgent::EnableExtendedMasterSecret() {
 }
 
 void TlsAgent::CheckExtendedMasterSecret(bool expected) {
+  if (version() >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    expected = PR_TRUE;
+  }
   ASSERT_EQ(expected, info_.extendedMasterSecretUsed != PR_FALSE)
       << "unexpected extended master secret state for " << name_;
 }
@@ -421,6 +454,13 @@ void TlsAgent::DisableRollbackDetection() {
   ASSERT_EQ(SECSuccess, rv);
 }
 
+void TlsAgent::EnableCompression() {
+  ASSERT_TRUE(EnsureTlsSetup());
+
+  SECStatus rv = SSL_OptionSet(ssl_fd_, SSL_ENABLE_DEFLATE, PR_TRUE);
+  ASSERT_EQ(SECSuccess, rv);
+}
+
 void TlsAgent::Handshake() {
   SECStatus rv = SSL_ForceHandshake(ssl_fd_);
   if (rv == SECSuccess) {
@@ -428,7 +468,6 @@ void TlsAgent::Handshake() {
 
     Poller::Instance()->Wait(READABLE_EVENT, adapter_, this,
                              &TlsAgent::ReadableCallback);
-
     return;
   }
 

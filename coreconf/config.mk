@@ -193,3 +193,11 @@ DEFINES += -DSSL_DISABLE_DEPRECATED_CIPHER_SUITE_NAMES
 # exported symbols, which causes problem when NSS is built as part of Mozilla.
 # So we add a NSS_ENABLE_SSL_ZLIB variable to allow Mozilla to turn this off.
 NSS_ENABLE_SSL_ZLIB = 1
+
+# Allow build-time configuration of TLS 1.3 (Experimental)
+ifdef NSS_ENABLE_TLS_1_3
+ifdef NSS_DISABLE_ECC
+$(error Setting NSS_ENABLE_TLS_1_3 and NSS_DISABLE_ECC isn't a good idea.)
+endif
+DEFINES += -DNSS_ENABLE_TLS_1_3
+endif
