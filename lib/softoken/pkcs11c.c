@@ -6136,6 +6136,103 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 	break;
       }
 
+    /* Extended master key derivation [draft-ietf-tls-session-hash] */
+    case CKM_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE:
+    case CKM_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE_DH:
+      {
+        CK_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE_PARAMS *ems_params;
+        SSL3RSAPreMasterSecret *rsa_pms;
+        SECStatus status;
+        SECItem pms    = { siBuffer, NULL, 0 };
+        SECItem seed   = { siBuffer, NULL, 0 };
+        SECItem master = { siBuffer, NULL, 0 };
+
+        ems_params = (CK_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE_PARAMS*) pMechanism->pParameter;
+
+        /* First do the consistency checks */
+        att2 = sftk_FindAttribute(sourceKey,CKA_KEY_TYPE);
+        if ((att2 == NULL) ||
+            (*(CK_KEY_TYPE *)att2->attrib.pValue != CKK_GENERIC_SECRET)) {
+            if (att2) sftk_FreeAttribute(att2);
+            crv = CKR_KEY_FUNCTION_NOT_PERMITTED;
+            break;
+        }
+        sftk_FreeAttribute(att2);
+        if (keyType != CKK_GENERIC_SECRET) {
+            crv = CKR_KEY_FUNCTION_NOT_PERMITTED;
+            break;
+        }
+        if ((keySize != 0) && (keySize != SSL3_MASTER_SECRET_LENGTH)) {
+            crv = CKR_KEY_FUNCTION_NOT_PERMITTED;
+            break;
+        }
+        if ((mechanism == CKM_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE) &&
+            (att->attrib.ulValueLen != SSL3_PMS_LENGTH)) {
+            crv = CKR_KEY_TYPE_INCONSISTENT;
+            break;
+        }
+
+        /* Do the key derivation */
+        pms.data    = (unsigned char*) att->attrib.pValue;
+        pms.len     =                  att->attrib.ulValueLen;
+        seed.data   = ems_params->pSessionHash;
+        seed.len    = ems_params->ulSessionHashLen;
+        master.data = key_block;
+        master.len  = SSL3_MASTER_SECRET_LENGTH;
+        if (ems_params-> prfHashMechanism == CKM_TLS_PRF) {
+            /*
+             * In this case, the session hash is the concatenation of SHA-1
+             * and MD5, so it should be 36 bytes long.
+             */
+            if (seed.len != MD5_LENGTH + SHA1_LENGTH) {
+                crv = CKR_TEMPLATE_INCONSISTENT;
+                break;
+            }
+
+            status = TLS_PRF(&pms, "extended master secret",
+                             &seed, &master, isFIPS);
+        } else {
+            tlsPrfHash = GetHashTypeFromMechanism(ems_params->prfHashMechanism);
+            if (tlsPrfHash == HASH_AlgNULL) {
+                crv = CKR_MECHANISM_PARAM_INVALID;
+                break;
+            }
+
+            const SECHashObject *hashObj = HASH_GetRawHashObject(tlsPrfHash);
+            if (seed.len != hashObj->length) {
+                crv = CKR_TEMPLATE_INCONSISTENT;
+                break;
+            }
+
+            status = TLS_P_hash(tlsPrfHash, &pms, "extended master secret",
+                                &seed, &master, isFIPS);
+        }
+
+        /* Reflect the version if required, and the input looks like a PMS */
+        if (ems_params->pVersion) {
+            if (att->attrib.ulValueLen != SSL3_PMS_LENGTH) {
+                crv = CKR_KEY_TYPE_INCONSISTENT;
+                break;
+            }
+
+            SFTKSessionObject *sessKey = sftk_narrowToSessionObject(key);
+            rsa_pms = (SSL3RSAPreMasterSecret *) att->attrib.pValue;
+            /* don't leak more key material then necessary for SSL to work */
+            if ((sessKey == NULL) || sessKey->wasDerived) {
+                ems_params->pVersion->major = 0xff;
+                ems_params->pVersion->minor = 0xff;
+            } else {
+                ems_params->pVersion->major = rsa_pms->client_version[0];
+                ems_params->pVersion->minor = rsa_pms->client_version[1];
+            }
+        }
+
+        /* Store the results */
+        crv = sftk_forceAttribute(key, CKA_VALUE, key_block,
+                                  SSL3_MASTER_SECRET_LENGTH);
+        break;
+      }
+
     case CKM_TLS12_KEY_AND_MAC_DERIVE:
     case CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256:
     case CKM_TLS_KEY_AND_MAC_DERIVE:
