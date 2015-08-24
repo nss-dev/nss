@@ -474,6 +474,10 @@ static const struct mechanismList mechanisms[] = {
      {CKM_TLS12_KEY_AND_MAC_DERIVE,	{48, 48, CKF_DERIVE},   PR_FALSE}, 
      {CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256,
 					{48, 48, CKF_DERIVE},	PR_FALSE},
+     {CKM_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE,
+                                        {48,128, CKF_DERIVE},   PR_FALSE},
+     {CKM_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE_DH,
+                                        {48,128, CKF_DERIVE},   PR_FALSE},
      /* ---------------------- PBE Key Derivations  ------------------------ */
      {CKM_PBE_MD2_DES_CBC,		{8, 8, CKF_DERIVE},   PR_TRUE},
      {CKM_PBE_MD5_DES_CBC,		{8, 8, CKF_DERIVE},   PR_TRUE},
