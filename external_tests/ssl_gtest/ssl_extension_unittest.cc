@@ -331,6 +331,15 @@ class TlsExtensionTest12Plus
                            SSL_LIBRARY_VERSION_TLS_1_2) {}
 };
 
+class TlsExtensionTest13
+  : public TlsExtensionTestBase,
+    public ::testing::WithParamInterface<std::string> {
+ public:
+  TlsExtensionTest13()
+    : TlsExtensionTestBase(TlsConnectTestBase::ToMode(GetParam()),
+                           SSL_LIBRARY_VERSION_TLS_1_3) {}
+};
+
 class TlsExtensionTestGeneric
   : public TlsExtensionTestBase,
     public ::testing::WithParamInterface<std::tuple<std::string, uint16_t>> {
@@ -713,6 +722,13 @@ TEST_P(TlsExtensionTestGeneric, SignedCertificateTimestampsInactiveBoth) {
 }
 
 
+// Temporary test to verify that we choke on an empty ClientKeyShare.
+// This test will fail when we implement HelloRetryRequest.
+TEST_P(TlsExtensionTest13, EmptyClientKeyShare) {
+  ClientHelloErrorTest(new TlsExtensionTruncator(ssl_tls13_key_share_xtn, 2),
+                       kTlsAlertHandshakeFailure);
+}
+
 INSTANTIATE_TEST_CASE_P(ExtensionTls10, TlsExtensionTestGeneric,
                         ::testing::Combine(
                           TlsConnectTestBase::kTlsModesStream,
@@ -723,6 +739,10 @@ INSTANTIATE_TEST_CASE_P(ExtensionVariants, TlsExtensionTestGeneric,
                           TlsConnectTestBase::kTlsV11V12));
 INSTANTIATE_TEST_CASE_P(ExtensionTls12Plus, TlsExtensionTest12Plus,
                         TlsConnectTestBase::kTlsModesAll);
+#ifdef NSS_ENABLE_TLS_1_3
+INSTANTIATE_TEST_CASE_P(ExtensionTls13, TlsExtensionTest13,
+                        TlsConnectTestBase::kTlsModesStream);
+#endif
 INSTANTIATE_TEST_CASE_P(ExtensionDgram, TlsExtensionTestDtls,
                         TlsConnectTestBase::kTlsV11V12);
 

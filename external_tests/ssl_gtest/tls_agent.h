@@ -85,8 +85,10 @@ class TlsAgent : public PollTarget {
   void SetSessionTicketsEnabled(bool en);
   void SetSessionCacheEnabled(bool en);
   void SetVersionRange(uint16_t minver, uint16_t maxver);
+  void GetVersionRange(uint16_t* minver, uint16_t* maxver);
   void CheckPreliminaryInfo();
   void SetExpectedVersion(uint16_t version);
+  void SetServerKeyBits(uint16_t bits);
   void SetExpectedReadError(bool err);
   void EnableFalseStart();
   void ExpectResumption();
@@ -104,6 +106,7 @@ class TlsAgent : public PollTarget {
   void EnableExtendedMasterSecret();
   void CheckExtendedMasterSecret(bool expected);
   void DisableRollbackDetection();
+  void EnableCompression();
 
   Role role() const { return role_; }
 
@@ -118,6 +121,10 @@ class TlsAgent : public PollTarget {
   PRFileDesc* ssl_fd() { return ssl_fd_; }
   DummyPrSocket* adapter() { return adapter_; }
 
+  bool is_compressed() const {
+    return info_.compressionMethod != ssl_compression_null;
+  }
+  uint16_t server_key_bits() const { return server_key_bits_; }
   uint16_t min_version() const { return vrange_.min; }
   uint16_t max_version() const { return vrange_.max; }
   uint16_t version() const {
@@ -249,6 +256,7 @@ class TlsAgent : public PollTarget {
   const std::string name_;
   Mode mode_;
   SSLKEAType kea_;
+  uint16_t server_key_bits_;
   PRFileDesc* pr_fd_;
   DummyPrSocket* adapter_;
   PRFileDesc* ssl_fd_;
