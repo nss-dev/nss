@@ -4214,7 +4214,7 @@ mp_err   s_mp_div(mp_int *rem, 	/* i: dividend, o: remainder */
     MP_ALLOC(&part)  = MP_ALLOC(rem)  - unusedRem;
     MP_USED(&part)   = MP_USED(div);
 
-    /* We have now truncated the part of the remainder to the same length as 
+    /* We have now truncated the part of the remainder to the same length as
      * the divisor. If part is smaller than div, extend part by one digit. */
     if (s_mp_cmp(&part, div) < 0) {
       -- unusedRem;
