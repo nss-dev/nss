@@ -6192,13 +6192,15 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
             status = TLS_PRF(&pms, "extended master secret",
                              &seed, &master, isFIPS);
         } else {
+            const SECHashObject *hashObj;
+
             tlsPrfHash = GetHashTypeFromMechanism(ems_params->prfHashMechanism);
             if (tlsPrfHash == HASH_AlgNULL) {
                 crv = CKR_MECHANISM_PARAM_INVALID;
                 break;
             }
 
-            const SECHashObject *hashObj = HASH_GetRawHashObject(tlsPrfHash);
+            hashObj = HASH_GetRawHashObject(tlsPrfHash);
             if (seed.len != hashObj->length) {
                 crv = CKR_TEMPLATE_INCONSISTENT;
                 break;
