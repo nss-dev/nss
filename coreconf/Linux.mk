@@ -154,7 +154,7 @@ endif
 
 ifndef NSS_HAS_GCC48
 NSS_HAS_GCC48 := $(shell \
-  [ `$(CC) -dumpversion | cut -f 1 -d . -` -gt 4 -a \
+  [ `$(CC) -dumpversion | cut -f 1 -d . -` -eq 4 -a \
     `$(CC) -dumpversion | cut -f 2 -d . -` -ge 8 -o \
     `$(CC) -dumpversion | cut -f 1 -d . -` -ge 5 ] && \
   echo true || echo false)
