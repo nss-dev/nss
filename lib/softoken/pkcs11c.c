@@ -6207,6 +6207,10 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
             status = TLS_P_hash(tlsPrfHash, &pms, "extended master secret",
                                 &seed, &master, isFIPS);
         }
+        if (status != SECSuccess) {
+            crv = CKR_FUNCTION_FAILED;
+            break;
+        }
 
         /* Reflect the version if required, and the input looks like a PMS */
         if (ems_params->pVersion) {
