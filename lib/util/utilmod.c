@@ -75,14 +75,15 @@
 
 /*
  * Smart string cat functions. Automatically manage the memory.
- * The first parameter is the source string. If it's null, we 
+ * The first parameter is the destination string. If it's null, we 
  * allocate memory for it. If it's not, we reallocate memory
  * so the the concanenated string fits.
  */
 static char *
 nssutil_DupnCat(char *baseString, const char *str, int str_len)
 {
-    int len = (baseString ? PORT_Strlen(baseString) : 0) + 1;
+    int baseStringLen = baseString ? PORT_Strlen(baseString) : 0;
+    int len = baseStringLen + 1;
     char *newString;
 
     len += str_len;
@@ -91,8 +92,9 @@ nssutil_DupnCat(char *baseString, const char *str, int str_len)
 	PORT_Free(baseString);
 	return NULL;
     }
-    if (baseString == NULL) *newString = 0;
-    return PORT_Strncat(newString,str, str_len);
+    PORT_Memcpy(&newString[baseStringLen], str, str_len);
+    newString[len - 1] = 0;
+    return newString;
 }
 
 /* Same as nssutil_DupnCat except it concatenates the full string, not a
