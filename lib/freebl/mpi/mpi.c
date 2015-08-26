@@ -4190,14 +4190,13 @@ mp_err   s_mp_div(mp_int *rem, 	/* i: dividend, o: remainder */
 
   MP_SIGN(rem) = ZPOS;
   MP_SIGN(div) = ZPOS;
+  MP_SIGN(&part) = ZPOS;
 
   /* A working temporary for division     */
   MP_CHECKOK( mp_init_size(&t, MP_ALLOC(rem)));
 
   /* Normalize to optimize guessing       */
   MP_CHECKOK( s_mp_norm(rem, div, &d) );
-
-  part = *rem;
 
   /* Perform the division itself...woo!   */
   MP_USED(quot) = MP_ALLOC(quot);
