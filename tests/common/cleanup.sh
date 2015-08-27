@@ -46,8 +46,7 @@ if [ -z "${CLEANUP}" -o "${CLEANUP}" = "${SCRIPTNAME}" ]; then
     html "END_OF_TEST<BR>"
     html "</BODY></HTML>" 
     rm -f ${TEMPFILES} 2>/dev/null
-    if [ ${FAILED_CNT} -gt 0 ]; then
+    if [ ${FAILED_CNT} -gt 0 ] || [ ${CORE_CNT} -gt 0 ]; then
         exit 1
     fi
-
 fi
