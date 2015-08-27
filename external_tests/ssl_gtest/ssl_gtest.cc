@@ -16,7 +16,6 @@ int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   g_working_dir_path = ".";
 
-  unsetenv("NSS_STRICT_SHUTDOWN");
   char* workdir = getenv("NSS_GTEST_WORKDIR");
   if (workdir)
     g_working_dir_path = workdir;
