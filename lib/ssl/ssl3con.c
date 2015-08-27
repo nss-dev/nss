@@ -9781,7 +9781,13 @@ double_bypass:
 
         /* Generate the bogus PMS (R) */
         slot = PK11_GetSlotFromPrivateKey(serverKey);
+        if (!slot) {
+            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+            return SECFailure;
+        }
+
         if (!PK11_DoesMechanism(slot, CKM_SSL3_MASTER_KEY_DERIVE)) {
+            PK11_FreeSlot(slot);
             slot = PK11_GetBestSlot(CKM_SSL3_MASTER_KEY_DERIVE, NULL);
             if (!slot) {
                 PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
