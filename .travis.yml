@@ -6,6 +6,8 @@ before_install:
 script:
     - make nss_build_all
     - cd tests; NSS_TESTS=ssl_gtests NSS_CYCLES=standard ./all.sh 
+    - cd tests; ./all.sh
+
 env:
  global:
   - USE_64=1
