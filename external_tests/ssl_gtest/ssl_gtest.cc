@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 
   // Temporarily disable asserts for PKCS#11 slot leakage until
   // Bug 1168425 is fixed.
-  unsetenv("NSS_STRICT_SHUTDOWN");
+  //unsetenv("NSS_STRICT_SHUTDOWN");
   char* workdir = getenv("NSS_GTEST_WORKDIR");
   if (workdir)
     g_working_dir_path = workdir;
