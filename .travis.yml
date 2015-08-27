@@ -1,0 +1,7 @@
+language: C
+
+before_install:
+    - (cd ..; hg clone https://hg.mozilla.org/projects/nspr)
+
+script: make nss_build_all
+ 
