@@ -1,3 +1,7 @@
+os:
+  - linux
+  - osx
+
 language: C
 
 before_install:
