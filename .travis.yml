@@ -5,3 +5,9 @@ before_install:
 
 script: make nss_build_all
  
+
+env:
+ global:
+  - USE_64=1
+  - NSS_ENABLE_TLS_1_3=1
+  - NSS_BUILD_GTESTS=1
