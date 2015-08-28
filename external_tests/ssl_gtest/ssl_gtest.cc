@@ -16,6 +16,8 @@ int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   g_working_dir_path = ".";
 
+  exit(1);
+
   // Temporarily disable asserts for PKCS#11 slot leakage until
   // Bug 1168425 is fixed.
   unsetenv("NSS_STRICT_SHUTDOWN");
