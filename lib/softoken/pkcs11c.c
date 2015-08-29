@@ -6007,7 +6007,7 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 	    isDH = PR_TRUE;
 	}
 
-	/* first do the consistancy checks */
+	/* first do the consistency checks */
 	if (!isDH && (att->attrib.ulValueLen != SSL3_PMS_LENGTH)) {
 	    crv = CKR_KEY_TYPE_INCONSISTENT;
 	    break;
@@ -6147,9 +6147,15 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
         SECItem seed   = { siBuffer, NULL, 0 };
         SECItem master = { siBuffer, NULL, 0 };
 
-        ems_params = (CK_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE_PARAMS*) pMechanism->pParameter;
+        ems_params = (CK_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE_PARAMS*)
+            pMechanism->pParameter;
 
         /* First do the consistency checks */
+        if ((mechanism == CKM_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE) &&
+            (att->attrib.ulValueLen != SSL3_PMS_LENGTH)) {
+            crv = CKR_KEY_TYPE_INCONSISTENT;
+            break;
+        }
         att2 = sftk_FindAttribute(sourceKey,CKA_KEY_TYPE);
         if ((att2 == NULL) ||
             (*(CK_KEY_TYPE *)att2->attrib.pValue != CKK_GENERIC_SECRET)) {
@@ -6164,11 +6170,6 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
         }
         if ((keySize != 0) && (keySize != SSL3_MASTER_SECRET_LENGTH)) {
             crv = CKR_KEY_FUNCTION_NOT_PERMITTED;
-            break;
-        }
-        if ((mechanism == CKM_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE) &&
-            (att->attrib.ulValueLen != SSL3_PMS_LENGTH)) {
-            crv = CKR_KEY_TYPE_INCONSISTENT;
             break;
         }
 
@@ -6214,16 +6215,11 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
             break;
         }
 
-        /* Reflect the version if required, and the input looks like a PMS */
+        /* Reflect the version if required */
         if (ems_params->pVersion) {
-            if (att->attrib.ulValueLen != SSL3_PMS_LENGTH) {
-                crv = CKR_KEY_TYPE_INCONSISTENT;
-                break;
-            }
-
             SFTKSessionObject *sessKey = sftk_narrowToSessionObject(key);
             rsa_pms = (SSL3RSAPreMasterSecret *) att->attrib.pValue;
-            /* don't leak more key material then necessary for SSL to work */
+            /* don't leak more key material than necessary for SSL to work */
             if ((sessKey == NULL) || sessKey->wasDerived) {
                 ems_params->pVersion->major = 0xff;
                 ems_params->pVersion->minor = 0xff;
