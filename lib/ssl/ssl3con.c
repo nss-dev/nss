@@ -4717,13 +4717,14 @@ ssl3_ComputeHandshakeHashes(sslSocket *     ss,
 	SHA1_Clone(shacx, (SHA1Context *)ss->ssl3.hs.sha_cx);
 
 	if (!isTLS) {
+	    /* compute hashes for SSL3. */
+	    unsigned char s[4];
+
             if (!spec->msItem.data) {
                 PORT_SetError(SSL_ERROR_RX_UNEXPECTED_HANDSHAKE);
                 return SECFailure;
             }
 
-	    /* compute hashes for SSL3. */
-	    unsigned char s[4];
 
 	    s[0] = (unsigned char)(sender >> 24);
 	    s[1] = (unsigned char)(sender >> 16);
@@ -4853,13 +4854,14 @@ tls12_loser:
 	sha = ss->ssl3.hs.sha;
 
 	if (!isTLS) {
+	    /* compute hashes for SSL3. */
+	    unsigned char s[4];
+
             if (!spec->master_secret) {
                 PORT_SetError(SSL_ERROR_RX_UNEXPECTED_HANDSHAKE);
                 return SECFailure;
             }
 
-	    /* compute hashes for SSL3. */
-	    unsigned char s[4];
 
 	    s[0] = (unsigned char)(sender >> 24);
 	    s[1] = (unsigned char)(sender >> 16);
