@@ -46,11 +46,22 @@ ifeq ($(FREEBL_NO_DEPEND),1)
 endif
 
 ifeq ($(FREEBL_LOWHASH),1)
+	DEFINES += -DFREEBL_LOWHASH
 	LOWHASH_SRCS = nsslowhash.c
 	LOWHASH_EXPORTS = nsslowhash.h
-	MAPFILE_SOURCE = freebl_hash.def
+	MAPFILE_SOURCE = freebl_hash_vector.def
+	NEED_STUB_BUILD = 1
 else
 	MAPFILE_SOURCE = freebl.def
+endif
+
+ifdef USE_STUB_BUILD
+	CSRCS           = lowhash_vector.c
+	SIMPLE_OBJS     = $(CSRCS:.c=$(OBJ_SUFFIX))
+	OBJS            = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(SIMPLE_OBJS))
+	ALL_TRASH :=    $(TARGETS) $(OBJS) $(OBJDIR) LOGS TAGS $(GARBAGE) \
+                $(NOSUCHFILE) so_locations
+	MAPFILE_SOURCE = freebl_hash.def
 endif
 
 # FREEBL_USE_PRELINK
@@ -87,6 +98,10 @@ ifdef LINUX
 	DEFINES += -D__GNU_SOURCE=1
 endif
 endif
+ifdef NSS_NO_INIT_SUPPORT
+    DEFINES += -DNSS_NO_INIT_SUPPORT
+endif
+
 ifdef FREEBL_PRELINK_COMMAND
 	DEFINES +=-DFREEBL_PRELINK_COMMAND=\"$(FREEBL_PRELINK_COMMAND)\"
 endif
@@ -223,6 +238,11 @@ ifeq ($(CPU_ARCH),arm)
     DEFINES += -DSHA_NO_LONG_LONG # avoid 64-bit arithmetic in SHA512
     MPI_SRCS += mpi_arm.c
 endif
+ifeq ($(CPU_ARCH),ppc)
+ifdef USE_64
+    DEFINES += -DNSS_NO_INIT_SUPPORT
+endif # USE_64
+endif # ppc
 endif # Linux
 
 ifeq ($(OS_TARGET),AIX)
@@ -566,6 +586,17 @@ release_md libs:: $(SINGLE_SHLIB_DIR)
  OBJDIR=$(SINGLE_SHLIB_DIR) $@
 ######################## common stuff #########################
 
+endif
+
+ifdef NEED_STUB_BUILD
+SINGLE_SHLIB_DIR = $(OBJDIR)/$(OS_TARGET)_SINGLE_SHLIB
+ALL_TRASH += $(SINGLE_SHLIB_DIR) 
+$(SINGLE_SHLIB_DIR):
+	-mkdir $(SINGLE_SHLIB_DIR)
+
+release_md libs:: $(SINGLE_SHLIB_DIR)
+	$(MAKE) FREEBL_CHILD_BUILD=1 USE_STUB_BUILD=1 \
+ OBJDIR=$(SINGLE_SHLIB_DIR) $@
 endif
 
 # multiple shared libraries

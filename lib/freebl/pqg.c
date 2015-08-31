@@ -701,6 +701,7 @@ cleanup:
     mp_clear(&a);
     mp_clear(&z);
     mp_clear(&two_length_minus_1);
+    PORT_Memset(x, 0, sizeof(x));
     if (err) {
 	MP_TO_SEC_ERROR(err);
 	rv = SECFailure;
@@ -856,6 +857,7 @@ cleanup:
     mp_clear(&c);
     mp_clear(&c0);
     mp_clear(&one);
+    PORT_Memset(x, 0, sizeof(x));
     if (err) {
 	MP_TO_SEC_ERROR(err);
 	rv = SECFailure;
@@ -1256,6 +1258,42 @@ pqg_ParamGen(unsigned int L, unsigned int N, pqgGenType type,
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
+
+    /* Initialize bignums */
+    MP_DIGITS(&P) = 0;
+    MP_DIGITS(&Q) = 0;
+    MP_DIGITS(&G) = 0;
+    MP_DIGITS(&H) = 0;
+    MP_DIGITS(&l) = 0;
+    MP_DIGITS(&p0) = 0;
+    CHECK_MPI_OK( mp_init(&P) );
+    CHECK_MPI_OK( mp_init(&Q) );
+    CHECK_MPI_OK( mp_init(&G) );
+    CHECK_MPI_OK( mp_init(&H) );
+    CHECK_MPI_OK( mp_init(&l) );
+    CHECK_MPI_OK( mp_init(&p0) );
+
+    /* parameters have been passed in, only generate G */
+    if (*pParams != NULL) {
+	/* we only support G index generation if generating separate from PQ */
+	if ((*pVfy != NULL) || (type == FIPS186_1_TYPE) || 
+	    ((*pVfy)->h.len != 1) || ((*pVfy)->h.data == NULL) || 
+	    ((*pVfy)->seed.data == NULL) || ((*pVfy)->seed.len == 0)) {
+	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	    return SECFailure;
+	}
+	params = *pParams;
+	verify = *pVfy;
+
+	/* fill in P Q,  */
+	SECITEM_TO_MPINT((*pParams)->prime,    &P);
+	SECITEM_TO_MPINT((*pParams)->subPrime, &Q);
+    	hashtype = getFirstHash(L,N);
+	CHECK_SEC_OK(makeGfromIndex(hashtype, &P, &Q, &(*pVfy)->seed, 
+						(*pVfy)->h.data[0], &G) );
+	MPINT_TO_SECITEM(&G, &(*pParams)->base,     (*pParams)->arena);
+	goto cleanup;
+    }
     /* Initialize an arena for the params. */
     arena = PORT_NewArena(NSS_FREEBL_DEFAULT_CHUNKSIZE);
     if (!arena) {
@@ -1513,8 +1551,12 @@ cleanup:
 	rv = SECFailure;
     }
     if (rv) {
-	PORT_FreeArena(params->arena, PR_TRUE);
-	PORT_FreeArena(verify->arena, PR_TRUE);
+	if (params) {
+	    PORT_FreeArena(params->arena, PR_TRUE);
+	}
+	if (verify) {
+	    PORT_FreeArena(verify->arena, PR_TRUE);
+	}
     }
     if (hit.data) {
         SECITEM_FreeItem(&hit, PR_FALSE);
