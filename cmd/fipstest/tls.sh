@@ -12,13 +12,13 @@
 # directory where the REQUEST (.req) files reside.  The script generates the
 # RESPONSE (.rsp) files in the same directory.
 BASEDIR=${1-.}
-TESTDIR=${BASEDIR}/DRBG800-90A
+TESTDIR=${BASEDIR}/KDF135
 COMMAND=${2-run}
 REQDIR=${TESTDIR}/req
 RSPDIR=${TESTDIR}/resp
 
 drbg_requests="
-Hash_DRBG.req
+tls.req
 "
 
 if [ ${COMMAND} = "verify" ]; then
@@ -30,5 +30,5 @@ fi
 for request in $drbg_requests; do
     response=`echo $request | sed -e "s/req/rsp/"`
     echo $request $response
-    fipstest drbg ${REQDIR}/$request > ${RSPDIR}/$response
+    fipstest tls ${REQDIR}/$request > ${RSPDIR}/$response
 done

@@ -376,7 +376,7 @@ cleanup:
 	rv = SECFailure;
     }
     if (rv != SECSuccess && privKeyBytes) {
-	PORT_Free(privKeyBytes);
+	PORT_ZFree(privKeyBytes,2*len);
 	privKeyBytes = NULL;
     }
     return privKeyBytes;
@@ -1075,7 +1075,7 @@ cleanup:
     mp_clear(&v);
     mp_clear(&n);
 
-    if (pointC.data) SECITEM_FreeItem(&pointC, PR_FALSE);
+    if (pointC.data) SECITEM_ZfreeItem(&pointC, PR_FALSE);
     if (err) {
 	MP_TO_SEC_ERROR(err);
 	rv = SECFailure;
