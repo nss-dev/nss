@@ -1,12 +1,11 @@
 checkout:
     post:
-        - (cd ..; hg clone https://hg.mozilla.org/projects/nspr)
+        - cd ..; hg clone https://hg.mozilla.org/projects/nspr
 
 test:
     override:
         - make nss_build_all
         - cd tests; NSS_TESTS=ssl_gtests NSS_CYCLES=standard ./all.sh
-#        - cd tests; ./all.sh
 
 machine:
     environment:
