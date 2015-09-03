@@ -12,10 +12,7 @@ machine:
         { USE_64: 1,
           NSS_ENABLE_TLS_1_3: 1,
           NSS_BUILD_GTESTS: 1,
-          HOST: 'nss-tests',
-          DOMSUF: 'example.com'
         }
     hosts:
-        nss-tests.example.com: 127.0.0.1
 
 
