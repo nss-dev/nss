@@ -201,6 +201,7 @@ endif
 endif
 
 ifeq ($(OS_TARGET),Darwin)
+    DEFINES += -DNSS_NO_INIT_SUPPORT
 ifeq ($(CPU_ARCH),x86)
     ASFILES  = mpi_sse2.s
     DEFINES += -DMP_USE_UINT_DIGIT
@@ -445,6 +446,7 @@ ifeq ($(CPU_ARCH),sparc)
 
 else
     # Solaris for non-sparc family CPUs
+    DEFINES += -DNSS_NO_INIT_SUPPORT
     ifdef NS_USE_GCC
 	LD = gcc
 	AS = gcc
