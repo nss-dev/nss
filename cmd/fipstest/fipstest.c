@@ -5672,8 +5672,8 @@ tls(char *reqfn)
     unsigned char clientHello_random[SSL3_RANDOM_LENGTH];
     unsigned char server_random[SSL3_RANDOM_LENGTH];
     unsigned char client_random[SSL3_RANDOM_LENGTH];
-    FILE *tlsreq;       /* input stream from the REQUEST file */
-    FILE *tlsresp;      /* output stream to the RESPONSE file */
+    FILE *tlsreq = NULL; /* input stream from the REQUEST file */
+    FILE *tlsresp;       /* output stream to the RESPONSE file */
     unsigned int i, j;
     CK_SLOT_ID slotList[10];
     CK_SLOT_ID slotID;
@@ -5949,7 +5949,7 @@ loser:
     if (pms) free(pms);
     if (master_secret) free(master_secret);
     if (key_block) free(key_block);
-    fclose(tlsreq);
+    if (tlsreq) fclose(tlsreq);
 }
 
 int main(int argc, char **argv)
