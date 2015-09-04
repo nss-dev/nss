@@ -27,11 +27,6 @@
  */
 
 #ifndef NSS_NO_INIT_SUPPORT
-/* The pragma */
-#if defined(USE_INIT_PRAGMA)
-#pragma init(bl_startup_tests)
-#endif
-
 
 /* GCC Attribute */
 #if defined(__GNUC__)

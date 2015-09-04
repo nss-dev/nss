@@ -17,11 +17,6 @@
  * platforms have a link line way of invoking this function.
  */
 #ifndef NSS_NO_INIT_SUPPORT
-/* The pragma */
-#if defined(USE_INIT_PRAGMA)
-#pragma init(lg_startup_tests)
-#endif
-
 
 /* GCC Attribute */
 #ifdef __GNUC__
