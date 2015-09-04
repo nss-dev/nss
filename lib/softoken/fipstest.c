@@ -18,14 +18,14 @@
  * or the GCC attribute. Some platforms suppor a pre-defined name, and some
  * platforms have a link line way of invoking this function.
  */
-
+#ifndef NSS_NO_INIT_SUPPORT
 /* The pragma */
 #if defined(USE_INIT_PRAGMA)
 #pragma init(sftk_startup_tests)
 #endif
 
 /* GCC Attribute */
-#if defined(__GNUC__) && !defined(NSS_NO_INIT_SUPPORT)
+#if defined(__GNUC__) 
 #define INIT_FUNCTION __attribute__((constructor))
 #else
 #define INIT_FUNCTION
@@ -67,6 +67,7 @@ BOOL WINAPI DllMain(
     return TRUE;  // Successful DLL_PROCESS_ATTACH.
 }
 #endif
+#endif /* !NSS_NO_INIT_SUPPORT */
 
 
 
