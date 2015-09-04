@@ -1288,6 +1288,7 @@ AES_Encrypt(AESContext *cx, unsigned char *output,
 	return SECFailure;
     }
     *outputLen = inputLen;
+    { /* PR_STATIC_ASSERTS need at the start of a block */
 #if  UINT_MAX > MP_32BIT_MAX
     /*
      * we can guarentee that GSM won't overlfow if we limit the input to
@@ -1304,6 +1305,7 @@ AES_Encrypt(AESContext *cx, unsigned char *output,
     /* if we can't pass in a 32_bit number, then no such check needed */
     PR_STATIC_ASSERT(sizeof(unsigned int) <= 4);
 #endif
+    }
 
     return (*cx->worker)(cx->worker_cx, output, outputLen, maxOutputLen,	
                              input, inputLen, blocksize);
