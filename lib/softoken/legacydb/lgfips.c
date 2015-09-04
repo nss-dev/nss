@@ -16,7 +16,7 @@
  * or the GCC attribute. Some platforms suppor a pre-defined name, and some
  * platforms have a link line way of invoking this function.
  */
-
+#ifndef NSS_NO_INIT_SUPPORT
 /* The pragma */
 #if defined(USE_INIT_PRAGMA)
 #pragma init(lg_startup_tests)
@@ -66,6 +66,7 @@ BOOL WINAPI DllMain(
     return TRUE;  // Successful DLL_PROCESS_ATTACH.
 }
 #endif
+#endif /* !NSS_NO_INIT_SUPPORT */
 
 static PRBool lg_self_tests_ran = PR_FALSE;
 static PRBool lg_self_tests_success = PR_FALSE;
@@ -101,13 +102,12 @@ lg_startup_tests(void)
 
 PRBool
 lg_FIPSEntryOK() {
-#ifdef NO_INIT_SUPPORT
+#ifdef NSS_NO_INIT_SUPPORT
    /* this should only be set on platforms that can't handle one of the INIT
     * schemes.  This code allows those platforms to continue to function, 
-    * though they don't meet the strict NIST requirements. If NO_INIT_SUPPORT
-    * is not set, and init support has not been properly enabled, softken
-    * will always fail because of the test below */
-    */
+    * though they don't meet the strict NIST requirements. 
+    * If NSS_NO_INIT_SUPPORT is not set, and init support has not been 
+    * properly enabled, softken will always fail because of the test below */
     if (!lg_self_tests_ran) {
 	lg_startup_tests();
     }

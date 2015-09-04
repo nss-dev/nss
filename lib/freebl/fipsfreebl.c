@@ -26,6 +26,7 @@
  * platforms have a link line way of invoking this function.
  */
 
+#ifndef NSS_NO_INIT_SUPPORT
 /* The pragma */
 #if defined(USE_INIT_PRAGMA)
 #pragma init(bl_startup_tests)
@@ -33,7 +34,7 @@
 
 
 /* GCC Attribute */
-#if defined(__GNUC__) && !defined(NSS_NO_INIT_SUPPORT)
+#if defined(__GNUC__)
 #define INIT_FUNCTION __attribute__((constructor))
 #else
 #define INIT_FUNCTION
@@ -76,6 +77,7 @@ BOOL WINAPI DllMain(
     return TRUE;  // Successful DLL_PROCESS_ATTACH.
 }
 #endif
+#endif /* !NSS_NO_INIT_SUPPORT */
 
 /* insert other platform dependent init entry points here, or modify
  * the linker line */
