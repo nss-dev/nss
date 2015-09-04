@@ -101,6 +101,10 @@ endif
 ifdef NSS_NO_INIT_SUPPORT
     DEFINES += -DNSS_NO_INIT_SUPPORT
 endif
+ifneq ($(OS_TARGET),Linux)
+    # force no init support for everything but Linux
+    DEFINES += -DNSS_NO_INIT_SUPPORT
+endif
 
 ifdef FREEBL_PRELINK_COMMAND
 	DEFINES +=-DFREEBL_PRELINK_COMMAND=\"$(FREEBL_PRELINK_COMMAND)\"
@@ -201,7 +205,6 @@ endif
 endif
 
 ifeq ($(OS_TARGET),Darwin)
-    DEFINES += -DNSS_NO_INIT_SUPPORT
 ifeq ($(CPU_ARCH),x86)
     ASFILES  = mpi_sse2.s
     DEFINES += -DMP_USE_UINT_DIGIT
@@ -446,7 +449,6 @@ ifeq ($(CPU_ARCH),sparc)
 
 else
     # Solaris for non-sparc family CPUs
-    DEFINES += -DNSS_NO_INIT_SUPPORT
     ifdef NS_USE_GCC
 	LD = gcc
 	AS = gcc

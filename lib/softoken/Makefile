@@ -29,6 +29,9 @@ ifdef USE_64
     DEFINES += -DNSS_NO_INIT_SUPPORT
 endif # USE_64
 endif # ppc
+else # !Linux
+    # turn off no init support everywhere for now
+    DEFINES += -DNSS_NO_INIT_SUPPORT
 endif # Linux
 
 
