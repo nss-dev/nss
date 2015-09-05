@@ -2452,12 +2452,7 @@ SFTK_SlotReInit(SFTKSlot *slot, char *configdir, char *updatedir,
 	if ((slot->minimumPinLen == 0) && (params->pwRequired)) {
 	    slot->minimumPinLen = 1;
 	}
-	/* Make sure the pin len is set to the Minimum allowed value for fips
-  	 * when in FIPS mode. NOTE: we don't set it if the database has not
-  	 * been initialized yet so that we can init into level1 mode if needed
-  	 */
-	if ((sftkdb_HasPasswordSet(slot->keyDB) == SECSuccess) && 
-		(moduleIndex == NSC_FIPS_MODULE) &&
+	if ((moduleIndex == NSC_FIPS_MODULE) &&
 		(slot->minimumPinLen < FIPS_MIN_PIN)) {
 	    slot->minimumPinLen = FIPS_MIN_PIN;
 	}
@@ -3588,14 +3583,6 @@ CK_RV NSC_InitPIN(CK_SESSION_HANDLE hSession,
     /* Now update our local copy of the pin */
     if (rv == SECSuccess) {
 	if (ulPinLen == 0) slot->needLogin = PR_FALSE;
-	/* database has been initialized, now force min password in FIPS
-  	 * mode. NOTE: if we are in level1, we may not have a password, but
-  	 * forcing it now will prevent an insufficient password from being set.
-  	 */
-	if ((sftk_GetModuleIndex(slot->slotID) == NSC_FIPS_MODULE) &&
-		(slot->minimumPinLen < FIPS_MIN_PIN)) {
-	    slot->minimumPinLen = FIPS_MIN_PIN;
-	}
 	return CKR_OK;
     }
     crv = CKR_PIN_INCORRECT;

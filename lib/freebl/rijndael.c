@@ -1164,7 +1164,6 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	AES_DestroyContext(cx, PR_FALSE);
 	return rv;
     }
-    cx->mode = mode;
 
     /* finally, set up any mode specific contexts */
     switch (mode) {
@@ -1288,23 +1287,6 @@ AES_Encrypt(AESContext *cx, unsigned char *output,
 	return SECFailure;
     }
     *outputLen = inputLen;
-#if  UINT_MAX > MP_32BIT_MAX
-    /*
-     * we can guarentee that GSM won't overlfow if we limit the input to
-     * 2^36 bytes. For simplicity, we are limiting it to 2^32 for now.
-     *
-     * We do it here to cover both hardware and software GCM operations.
-     */
-    PR_STATIC_ASSERT(sizeof(unsigned int) > 4);
-    if ((cx->mode == NSS_AES_GCM) && (inputLen > MP_32_BIT_MAX)) {
-	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
-	return SECFailure;
-    }
-#else
-    /* if we can't pass in a 32_bit number, then no such check needed */
-    PR_STATIC_ASSERT(sizeof(unsigned int) <= 4);
-#endif
-
     return (*cx->worker)(cx->worker_cx, output, outputLen, maxOutputLen,	
                              input, inputLen, blocksize);
 }
