@@ -17,10 +17,10 @@
 #include "cts.h"
 #include "ctr.h"
 #include "gcm.h"
-#include "mpi.h"
 
 #ifdef USE_HW_AES
 #include "intel-aes.h"
+#include "mpi.h"
 
 static int has_intel_aes = 0;
 static PRBool use_hw_aes = PR_FALSE;
