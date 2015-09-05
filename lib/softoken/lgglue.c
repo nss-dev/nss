@@ -338,7 +338,7 @@ sftkdbCall_ReadSecmodDB(const char *appName, const char *filename,
 {
     SECStatus rv;
 
-    rv = sftkdbLoad_Legacy();
+    rv = sftkdbLoad_Legacy(PR_FALSE);
     if (rv != SECSuccess) {
 	return NULL;
     }
@@ -356,7 +356,7 @@ sftkdbCall_ReleaseSecmodDBData(const char *appName,
 {
     SECStatus rv;
 
-    rv = sftkdbLoad_Legacy();
+    rv = sftkdbLoad_Legacy(PR_FALSE);
     if (rv != SECSuccess) {
 	return rv;
     }
@@ -375,7 +375,7 @@ sftkdbCall_DeleteSecmodDB(const char *appName,
 {
     SECStatus rv;
 
-    rv = sftkdbLoad_Legacy();
+    rv = sftkdbLoad_Legacy(PR_FALSE);
     if (rv != SECSuccess) {
 	return rv;
     }
@@ -393,7 +393,7 @@ sftkdbCall_AddSecmodDB(const char *appName,
 {
     SECStatus rv;
 
-    rv = sftkdbLoad_Legacy();
+    rv = sftkdbLoad_Legacy(PR_FALSE);
     if (rv != SECSuccess) {
 	return rv;
     }
