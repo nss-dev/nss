@@ -22,18 +22,20 @@ TEST(FuzzTest, Fuzz) {
 	FILE *fp;
 	uint8_t *buf;
 	DataBuffer* data;
-	long length;
+	unsigned long length;
 	const char *test_case_name = getenv("FUZZ_TEST_CASE");
+	ASSERT_NE(nullptr, test_case_name);
+
 	TlsAgent* client_ = new TlsAgent("client", TlsAgent::CLIENT, STREAM, ssl_kea_rsa);
 	PRFileDesc* fd = DummyPrSocket::CreateFD("client", STREAM);
 	DummyPrSocket* ds = DummyPrSocket::GetAdapter(fd);
-	
 
 	client_->Init();
 	client_->adapter()->SetPeer(ds);
 	client_->StartConnect();
 
 	fp = fopen(test_case_name, "rb");
+	ASSERT_NE(nullptr, fp);
 	fseek(fp , 0, SEEK_END);
 	length = ftell(fp) + 1;
 	buf = (uint8_t *)malloc(length);
