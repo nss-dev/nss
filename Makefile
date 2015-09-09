@@ -31,6 +31,9 @@ include $(CORE_DEPTH)/coreconf/config.mk
 #######################################################################
 # (5) Execute "global" rules. (OPTIONAL)                              #
 #######################################################################
+ifdef USE_ASAN
+NSPR_COMPILERS += CFLAGS='-fsanitize=address -fno-omit-frame-pointer' LDFLAGS='-fsanitize=address'
+endif
 
 include $(CORE_DEPTH)/coreconf/rules.mk
 
@@ -78,6 +81,9 @@ NSPR_CONFIGURE_OPTS += --enable-static-rtl
 endif
 ifdef NS_USE_GCC
 NSPR_COMPILERS = CC=gcc CXX=g++
+endif
+ifdef USE_ASAN
+NSPR_COMPILERS += CFLAGS='-fsanitize=address -fno-omit-frame-pointer' LDFLAGS='-fsanitize=address'
 endif
 
 #
