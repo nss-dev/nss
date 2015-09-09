@@ -12,8 +12,7 @@ checkout:
         - make nss_build_all
 
         # Build with Clang/ASan
-        - make ZDEFS_FLAG= CC='clang-3.4 -fsanitize=address -fno-omit-frame-pointer' CCC='clang++-3.4 -fsanitize=address -fno-omit-frame-pointer' nss_build_all
-
+        - make ZDEFS_FLAG= USER_CFLAGS='-fsanitize=address -fno-omit-frame-pointer' USER_CFLAGS='-fsanitize=address -fno-omit-frame-pointer' USER_LDFLAGS='-fsanitize=address' CC=clang-3.4 CCC=clang++-3.4 nss_build_all
 
 test:
     override:
