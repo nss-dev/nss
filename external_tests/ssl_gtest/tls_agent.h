@@ -102,6 +102,7 @@ class TlsAgent : public PollTarget {
   const char* state_str(State state) const { return states[state]; }
 
   PRFileDesc* ssl_fd() { return ssl_fd_; }
+  DummyPrSocket* adapter() { return adapter_; }
 
   uint16_t min_version() const { return vrange_.min; }
   uint16_t max_version() const { return vrange_.max; }
@@ -237,6 +238,57 @@ class TlsAgent : public PollTarget {
   size_t send_ctr_;
   size_t recv_ctr_;
   bool expected_read_error_;
+};
+
+class TlsAgentTestBase : public ::testing::Test {
+ public:
+  static ::testing::internal::ParamGenerator<std::string> kTlsRolesAll;
+
+  TlsAgentTestBase(TlsAgent::Role role,
+                   Mode mode) : agent_(nullptr),
+                                       fd_(nullptr),
+                                       role_(role),
+                                       mode_(mode),
+                                       kea_(ssl_kea_rsa) {}
+  ~TlsAgentTestBase() {
+    delete agent_;
+    if (fd_) {
+      PR_Close(fd_);
+    }
+  }
+
+  static inline TlsAgent::Role ToRole(const std::string& str) {
+    return str == "CLIENT" ? TlsAgent::CLIENT : TlsAgent::SERVER;
+  }
+
+  static inline Mode ToMode(const std::string& str) {
+    return str == "TLS" ? STREAM : DGRAM;
+  }
+
+  void Init();
+
+ protected:
+  void EnsureInit();
+  void ProcessMessage(const DataBuffer& buffer,
+                      TlsAgent::State expected_state,
+                      int32_t error_code = 0);
+
+
+  TlsAgent* agent_;
+  PRFileDesc* fd_;
+  TlsAgent::Role role_;
+  Mode mode_;
+  SSLKEAType kea_;
+};
+
+class TlsAgentTest :
+      public TlsAgentTestBase,
+      public ::testing::WithParamInterface
+      <std::tuple<std::string,std::string>> {
+ public:
+  TlsAgentTest() :
+      TlsAgentTestBase(ToRole(std::get<0>(GetParam())),
+                       ToMode(std::get<1>(GetParam()))) {}
 };
 
 }  // namespace nss_test
