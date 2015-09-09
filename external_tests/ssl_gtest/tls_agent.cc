@@ -17,6 +17,7 @@
 
 namespace nss_test {
 
+
 const char* TlsAgent::states[] = {"INIT", "CONNECTING", "CONNECTED", "ERROR"};
 
 TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode, SSLKEAType kea)
@@ -548,5 +549,39 @@ void TlsAgent::ConfigureSessionCache(SessionResumptionMode mode) {
   EXPECT_EQ(SECSuccess, rv);
 }
 
+static const std::string kTlsRolesAllArr[] = {"CLIENT", "SERVER"};
+::testing::internal::ParamGenerator<std::string>
+  TlsAgentTestBase::kTlsRolesAll = ::testing::ValuesIn(kTlsRolesAllArr);
+
+void TlsAgentTestBase::Init() {
+  agent_ = new TlsAgent(
+      role_ == TlsAgent::CLIENT ? "client" : "server",
+      role_, mode_, kea_);
+  agent_->Init();
+  fd_ = DummyPrSocket::CreateFD("dummy", mode_);
+  agent_->adapter()->SetPeer(
+      DummyPrSocket::GetAdapter(fd_));
+  agent_->StartConnect();
+}
+
+void TlsAgentTestBase::EnsureInit() {
+  if (!agent_) {
+    Init();
+  }
+}
+
+void TlsAgentTestBase::ProcessMessage(const DataBuffer& buffer,
+                                      TlsAgent::State expected_state,
+                                      int32_t error_code) {
+  EnsureInit();
+  agent_->adapter()->PacketReceived(buffer);
+  agent_->Handshake();
+
+  ASSERT_EQ(expected_state, agent_->state());
+
+  if (expected_state == TlsAgent::STATE_ERROR) {
+    ASSERT_EQ(error_code, agent_->error_code());
+  }
+}
 
 } // namespace nss_test

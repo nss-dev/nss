@@ -4687,6 +4687,11 @@ ssl3_ComputeHandshakeHashes(sslSocket *     ss,
     SSL3Opaque    sha_inner[MAX_MAC_LENGTH];
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    if (ss->ssl3.hs.hashType == handshake_hash_unknown) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+
     hashes->hashAlg = ssl_hash_none;
 
 #ifndef NO_PKCS11_BYPASS
@@ -9511,6 +9516,13 @@ ssl3_HandleCertificateVerify(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 	goto alert_loser;
     }
 
+    if (!hashes) {
+        PORT_Assert(0);
+	desc    = internal_error;
+	errCode = SEC_ERROR_LIBRARY_FAILURE;
+	goto alert_loser;
+    }
+
     if (isTLS12) {
 	rv = ssl3_ConsumeSignatureAndHashAlgorithm(ss, &b, &length,
 						   &sigAndHash);
@@ -11171,6 +11183,13 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 	return SECFailure;
     }
 
+    if (!hashes) {
+        PORT_Assert(0);
+	SSL3_SendAlert(ss, alert_fatal, internal_error);
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+
     isTLS = (PRBool)(ss->ssl3.crSpec->version > SSL_LIBRARY_VERSION_3_0);
     if (isTLS) {
 	TLSFinished tlsFinished;
@@ -11396,6 +11415,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SECStatus         rv 	= SECSuccess;
     SSL3HandshakeType type 	= ss->ssl3.hs.msg_type;
     SSL3Hashes        hashes;	/* computed hashes are put here. */
+    SSL3Hashes       *hashesPtr = NULL;  /* Set when hashes are computed */
     PRUint8           hdr[4];
     PRUint8           dtlsData[8];
 
@@ -11406,7 +11426,8 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
      * current message.
      */
     ssl_GetSpecReadLock(ss);	/************************************/
-    if((type == finished) || (type == certificate_verify)) {
+    if(((type == finished) && (ss->ssl3.hs.ws == wait_finished)) ||
+       ((type == certificate_verify) && (ss->ssl3.hs.ws == wait_cert_verify))) {
 	SSL3Sender      sender = (SSL3Sender)0;
 	ssl3CipherSpec *rSpec  = ss->ssl3.prSpec;
 
@@ -11415,6 +11436,9 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    rSpec  = ss->ssl3.crSpec;
 	}
 	rv = ssl3_ComputeHandshakeHashes(ss, rSpec, &hashes, sender);
+        if (rv == SECSuccess) {
+            hashesPtr = &hashes;
+        }
     }
     ssl_ReleaseSpecReadLock(ss); /************************************/
     if (rv != SECSuccess) {
@@ -11565,7 +11589,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    PORT_SetError(SSL_ERROR_RX_UNEXPECTED_CERT_VERIFY);
 	    return SECFailure;
 	}
-	rv = ssl3_HandleCertificateVerify(ss, b, length, &hashes);
+	rv = ssl3_HandleCertificateVerify(ss, b, length, hashesPtr);
 	break;
     case client_key_exchange:
 	if (!ss->sec.isServer) {
@@ -11584,7 +11608,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	rv = ssl3_HandleNewSessionTicket(ss, b, length);
 	break;
     case finished:
-        rv = ssl3_HandleFinished(ss, b, length, &hashes);
+        rv = ssl3_HandleFinished(ss, b, length, hashesPtr);
 	break;
     default:
 	(void)SSL3_SendAlert(ss, alert_fatal, unexpected_message);
