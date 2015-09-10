@@ -16,11 +16,18 @@ ifeq ($(USE_PTHREADS),1)
 	IMPL_STRATEGY = _PTH
 endif
 
-CC			= gcc
-CCC			= g++
-RANLIB			= ranlib
+ifeq ($(USE_ASAN),1)
+	# use clang with sanitizers for better support
+	CC			= clang
+	CCC			= clang++
+	DEFAULT_COMPILER = clang
+else
+	CC			= gcc
+	CCC			= g++
+	DEFAULT_COMPILER = gcc
+endif
 
-DEFAULT_COMPILER = gcc
+RANLIB			= ranlib
 
 ifeq ($(OS_TARGET),Android)
 ifndef ANDROID_NDK

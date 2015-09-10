@@ -79,13 +79,15 @@ endif
 ifdef USE_STATIC_RTL
 NSPR_CONFIGURE_OPTS += --enable-static-rtl
 endif
+ifdef USE_ASAN
+NSPR_COMPILERS = CC=clang CXX=clang++
+NSPR_COMPILERS += CFLAGS='-fsanitize=address -fno-omit-frame-pointer'
+NSPR_COMPILERS += LDFLAGS='-fsanitize=address'
+else
 ifdef NS_USE_GCC
 NSPR_COMPILERS = CC=gcc CXX=g++
 endif
-ifdef USE_ASAN
-NSPR_COMPILERS += CFLAGS='-fsanitize=address -fno-omit-frame-pointer' LDFLAGS='-fsanitize=address'
 endif
-
 #
 # Some pwd commands on Windows (for example, the pwd
 # command in Cygwin) return a pathname that begins
