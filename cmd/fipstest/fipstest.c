@@ -1015,9 +1015,9 @@ aes_gcm(char *reqfn, int encrypt)
     unsigned char ciphertext[11*16];    /* 1 to 10 blocks + tag */
     unsigned int ciphertextlen;
     unsigned char aad[11*16];            /* 1 to 10 blocks + tag */
-    unsigned int aadlen;
+    unsigned int aadlen = 0;
     unsigned int tagbits;
-    unsigned int taglen;
+    unsigned int taglen = 0;
     unsigned int ivlen;
     CK_GCM_PARAMS params;
     SECStatus rv;
@@ -3393,7 +3393,7 @@ rng_vst(char *reqfn)
     unsigned int i, j;
     unsigned char Q[DSA1_SUBPRIME_LEN];
     PRBool hasQ = PR_FALSE;
-    unsigned int b;  /* 160 <= b <= 512, b is a multiple of 8 */
+    unsigned int b = 0;  /* 160 <= b <= 512, b is a multiple of 8 */
     unsigned char XKey[512/8];
     unsigned char XSeed[512/8];
     unsigned char GENX[DSA1_SIGNATURE_LEN];
@@ -3516,7 +3516,7 @@ rng_mct(char *reqfn)
     unsigned int i, j;
     unsigned char Q[DSA1_SUBPRIME_LEN];
     PRBool hasQ = PR_FALSE;
-    unsigned int b;  /* 160 <= b <= 512, b is a multiple of 8 */
+    unsigned int b = 0;  /* 160 <= b <= 512, b is a multiple of 8 */
     unsigned char XKey[512/8];
     unsigned char XSeed[512/8];
     unsigned char GENX[2*SHA1_LENGTH];
@@ -3893,7 +3893,7 @@ void hmac_test(char *reqfn)
     unsigned char HMAC[HASH_LENGTH_MAX];  /* computed HMAC */
     unsigned char expectedHMAC[HASH_LENGTH_MAX]; /* for .fax files that have */ 
                                                  /* supplied known answer */
-    HASH_HashType hash_alg;       /* HMAC type */
+    HASH_HashType hash_alg = HASH_AlgNULL;       /* HMAC type */
     
 
     FILE *req = NULL;  /* input stream from the REQUEST file */
@@ -5133,8 +5133,8 @@ rsa_keypair_test(char *reqfn)
     int count;
     int i;
     int keySize;   /* key size in bits*/
-    int len;       /* key size in bytes */
-    int len2;      /* key size in bytes/2 (prime size) */
+    int len = 0;       /* key size in bytes */
+    int len2 = 0;      /* key size in bytes/2 (prime size) */
     SECItem e;
     unsigned char default_e[] = { 0x1, 0x0, 0x1 };
 
