@@ -4,7 +4,7 @@ checkout:
 
 test:
     override:
-        - make nss_build_all
+        - USE_ASAN=1 make nss_build_all
         - cd tests; NSS_TESTS=ssl_gtests NSS_CYCLES=standard ./all.sh
 
 machine:
