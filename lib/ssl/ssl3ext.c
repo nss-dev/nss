@@ -1077,7 +1077,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     SSL3KEAType          effectiveExchKeyType = ssl_kea_null;
     PRUint32             padding_length;
     PRUint32             message_length;
-    PRUint32             cert_length;
+    PRUint32             cert_length = 0;
     PRUint8              length_buf[4];
     PRUint32             now;
     PK11SymKey          *aes_key_pkcs11;
@@ -1113,8 +1113,9 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     ticket.ticket_lifetime_hint = TLS_EX_SESS_TICKET_LIFETIME_HINT;
-    cert_length = (ss->opt.requestCertificate && ss->sec.ci.sid->peerCert) ?
-        3 + ss->sec.ci.sid->peerCert->derCert.len : 0;
+    if (ss->opt.requestCertificate && ss->sec.ci.sid->peerCert) {
+        cert_length = 3 + ss->sec.ci.sid->peerCert->derCert.len;
+    }
 
     /* Get IV and encryption keys */
     ivItem.data = iv;
@@ -2010,8 +2011,11 @@ ssl3_CallHelloExtensionSenders(sslSocket *ss, PRBool append, PRUint32 maxBytes,
     int i;
 
     if (!sender) {
-        sender = ss->version > SSL_LIBRARY_VERSION_3_0 ?
-                 &clientHelloSendersTLS[0] : &clientHelloSendersSSL3[0];
+        if (ss->version > SSL_LIBRARY_VERSION_3_0) {
+            sender = &clientHelloSendersTLS[0];
+        } else {
+            sender = &clientHelloSendersSSL3[0];
+        }
     }
 
     for (i = 0; i < SSL_MAX_EXTENSIONS; ++i, ++sender) {
@@ -2040,7 +2044,8 @@ ssl3_SendRenegotiationInfoXtn(
                         PRBool      append,
                         PRUint32    maxBytes)
 {
-    PRInt32 len, needed;
+    PRInt32 len = 0;
+    PRInt32 needed;
 
     /* In draft-ietf-tls-renegotiation-03, it is NOT RECOMMENDED to send
      * both the SCSV and the empty RI, so when we send SCSV in
@@ -2048,9 +2053,10 @@ ssl3_SendRenegotiationInfoXtn(
      */
     if (!ss || ss->ssl3.hs.sendingSCSV)
         return 0;
-    len = !ss->firstHsDone ? 0 :
-           (ss->sec.isServer ? ss->ssl3.hs.finishedBytes * 2
-                             : ss->ssl3.hs.finishedBytes);
+    if (ss->firstHsDone) {
+        len = ss->sec.isServer ? ss->ssl3.hs.finishedBytes * 2
+                               : ss->ssl3.hs.finishedBytes;
+    }
     needed = 5 + len;
     if (maxBytes < (PRUint32)needed) {
         return 0;

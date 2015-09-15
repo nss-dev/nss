@@ -497,9 +497,9 @@ typedef PRUint16 DTLSEpoch;
 
 typedef void (*DTLSTimerCb)(sslSocket *);
 
-#define MAX_MAC_CONTEXT_BYTES 400  /* 400 is large enough for MD5, SHA-1, and
-                                    * SHA-256. For SHA-384 support, increase
-                                    * it to 712. */
+/* 400 is large enough for MD5, SHA-1, and SHA-256.
+ * For SHA-384 support, increase it to 712. */
+#define MAX_MAC_CONTEXT_BYTES 400
 #define MAX_MAC_CONTEXT_LLONGS (MAX_MAC_CONTEXT_BYTES / 8)
 
 #define MAX_CIPHER_CONTEXT_BYTES 2080
@@ -1011,8 +1011,9 @@ struct ssl3StateStr {
     unsigned int signatureAlgorithmCount;
 };
 
-#define DTLS_MAX_MTU  1500U     /* Ethernet MTU but without subtracting the
-				 * headers, so slightly larger than expected */
+/* Ethernet MTU but without subtracting the headers,
+ * so slightly larger than expected */
+#define DTLS_MAX_MTU  1500U
 #define IS_DTLS(ss) (ss->protocolVariant == ssl_variant_datagram)
 
 typedef struct {
@@ -1648,11 +1649,13 @@ extern PRUint32  ssl3_GetSupportedECCurveMask(sslSocket *ss);
 
 
 /* Macro for finding a curve equivalent in strength to RSA key's */
+/* clang-format off */
 #define SSL_RSASTRENGTH_TO_ECSTRENGTH(s) \
         ((s <= 1024) ? 160 \
 	  : ((s <= 2048) ? 224 \
 	    : ((s <= 3072) ? 256 \
 	      : ((s <= 7168) ? 384 : 521 ) ) ) )
+/* clang-format on */
 
 /* Types and names of elliptic curves used in TLS */
 typedef enum { ec_type_explicitPrime      = 1,
