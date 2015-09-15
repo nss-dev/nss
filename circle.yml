@@ -10,7 +10,7 @@ checkout:
 test:
     override:
         - USE_ASAN=1 make CC=clang-3.4 CCC=clang++-3.4 nss_build_all
-        - cd tests; NSS_TESTS=ssl_gtests NSS_CYCLES=standard ./all.sh
+        - cd tests; OBJDIR=Linux3.13_x86_64_clang_glibc_PTH_64_DBG.OBJ NSS_TESTS=ssl_gtests NSS_CYCLES=standard ./all.sh
 
 machine:
     environment:
