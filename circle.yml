@@ -4,7 +4,7 @@ checkout:
 
 test:
     override:
-        - USE_ASAN=1 make CC=clang-3.4 CCC=clang++-3.4 NSPR_COMPILERS="'CC=clang-3.4 CCC=clang++-3.4 CFLAGS='-fsanitize=address -fno-omit-frame-pointer' LDFLAGS='-fsanitize=address'" nss_build_all
+        - USE_ASAN=1 make CC=clang-3.4 CCC=clang++-3.4 LDFLAGS='-fsanitize=address'" nss_build_all
         - cd tests; NSS_TESTS=ssl_gtests NSS_CYCLES=standard ./all.sh
 
 machine:

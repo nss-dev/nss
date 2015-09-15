@@ -80,7 +80,7 @@ ifdef USE_STATIC_RTL
 NSPR_CONFIGURE_OPTS += --enable-static-rtl
 endif
 ifdef USE_ASAN
-NSPR_COMPILERS = CC=clang CXX=clang++
+NSPR_COMPILERS = CC=clang-3.4 CXX=clang++-3.4
 NSPR_COMPILERS += CFLAGS='-fsanitize=address -fno-omit-frame-pointer'
 NSPR_COMPILERS += LDFLAGS='-fsanitize=address'
 else
