@@ -4730,7 +4730,6 @@ ssl3_ComputeHandshakeHashes(sslSocket *     ss,
                 return SECFailure;
             }
 
-
 	    s[0] = (unsigned char)(sender >> 24);
 	    s[1] = (unsigned char)(sender >> 16);
 	    s[2] = (unsigned char)(sender >> 8);
@@ -4866,7 +4865,6 @@ tls12_loser:
                 PORT_SetError(SSL_ERROR_RX_UNEXPECTED_HANDSHAKE);
                 return SECFailure;
             }
-
 
 	    s[0] = (unsigned char)(sender >> 24);
 	    s[1] = (unsigned char)(sender >> 16);
