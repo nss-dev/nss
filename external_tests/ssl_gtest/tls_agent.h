@@ -62,8 +62,7 @@ class TlsAgent : public PollTarget {
   void PrepareForRenegotiate();
   // Prepares for renegotiation, then actually triggers it.
   void StartRenegotiate();
-  void EnableSomeEcdheCiphers();
-  void DisableDheCiphers();
+  void DisableCiphersByKeyExchange(SSLKEAType kea);
   bool EnsureTlsSetup();
 
   void SetupClientAuth();

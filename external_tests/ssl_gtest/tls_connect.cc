@@ -115,7 +115,6 @@ void TlsConnectTestBase::ResetRsa() {
 
 void TlsConnectTestBase::ResetEcdsa() {
   Reset("ecdsa", ssl_kea_ecdh);
-  EnableSomeEcdheCiphers();
 }
 
 void TlsConnectTestBase::ExpectResumption(SessionResumptionMode expected) {
@@ -201,14 +200,19 @@ void TlsConnectTestBase::SetExpectedVersion(uint16_t version) {
   server_->SetExpectedVersion(version);
 }
 
-void TlsConnectTestBase::EnableSomeEcdheCiphers() {
-  client_->EnableSomeEcdheCiphers();
-  server_->EnableSomeEcdheCiphers();
+void TlsConnectTestBase::DisableDheCiphers() {
+  client_->DisableCiphersByKeyExchange(ssl_kea_dh);
+  server_->DisableCiphersByKeyExchange(ssl_kea_dh);
 }
 
-void TlsConnectTestBase::DisableDheCiphers() {
-  client_->DisableDheCiphers();
-  server_->DisableDheCiphers();
+void TlsConnectTestBase::DisableEcdheCiphers() {
+  client_->DisableCiphersByKeyExchange(ssl_kea_ecdh);
+  server_->DisableCiphersByKeyExchange(ssl_kea_ecdh);
+}
+
+void TlsConnectTestBase::DisableDheAndEcdheCiphers() {
+  DisableDheCiphers();
+  DisableEcdheCiphers();
 }
 
 void TlsConnectTestBase::ConfigureSessionCache(SessionResumptionMode client,

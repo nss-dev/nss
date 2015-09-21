@@ -60,8 +60,9 @@ class TlsConnectTestBase : public ::testing::Test {
   void SetExpectedVersion(uint16_t version);
   // Expect resumption of a particular type.
   void ExpectResumption(SessionResumptionMode expected);
-  void EnableSomeEcdheCiphers();
+  void DisableDheAndEcdheCiphers();
   void DisableDheCiphers();
+  void DisableEcdheCiphers();
   void EnableExtendedMasterSecret();
   void ConfigureSessionCache(SessionResumptionMode client,
                              SessionResumptionMode server);
