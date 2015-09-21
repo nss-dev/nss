@@ -9164,7 +9164,6 @@ ssl3_PickSignatureHashAlgorithm(sslSocket *ss,
                                 SSLSignatureAndHashAlg* out)
 {
     SSLSignType sigAlg;
-    PRUint32 policy;
     unsigned int i, j;
 
     switch (ss->ssl3.hs.kea_def->kea) {
@@ -9219,13 +9218,6 @@ ssl3_PickSignatureHashAlgorithm(sslSocket *ss,
         if (serverPref->sigAlg != sigAlg) {
             continue;
         }
-
-       if (NSS_GetAlgorithmPolicy(serverPref->hashAlg, &policy) == SECSuccess &&
-	   !(policy & NSS_USE_ALG_IN_SSL_KX)) {
-	    /* We ignore hashes we don't support */
-    	    continue;
-        }
-
         for (j = 0; j < ss->ssl3.hs.numClientSigAndHash; j++) {
             const SSLSignatureAndHashAlg *clientPref =
                 &ss->ssl3.hs.clientSigAndHash[j];
@@ -12662,7 +12654,6 @@ SSL_SignaturePrefSet(PRFileDesc *fd, const SSLSignatureAndHashAlg *algorithms,
 {
     sslSocket *ss;
     unsigned int i;
-    PRUint32 policy;
 
     ss = ssl_FindSocket(fd);
     if (!ss) {
@@ -12685,14 +12676,6 @@ SSL_SignaturePrefSet(PRFileDesc *fd, const SSLSignatureAndHashAlg *algorithms,
                      algorithms[i].hashAlg));
             continue;
         }
-
-        if (NSS_GetAlgorithmPolicy(SEC_OID_SHA384, &policy) == SECSuccess &&
-	    (policy & NSS_USE_ALG_IN_SSL_KX)) {
-            SSL_DBG(("%d: SSL[%d]: disabled signature algorithm set %d/%d",
-                     SSL_GETPID(), fd, algorithms[i].sigAlg,
-                     algorithms[i].hashAlg));
-            continue;
-	}
 
         ss->ssl3.signatureAlgorithms[ss->ssl3.signatureAlgorithmCount++] =
                 algorithms[i];
@@ -12742,28 +12725,10 @@ SSL_SignatureMaxCount() {
 void
 ssl3_InitSocketPolicy(sslSocket *ss)
 {
-    PRUint32 policy;
-    unsigned pos = 0;
-    unsigned int defaultSize = PR_ARRAY_SIZE(defaultSignatureAlgorithms);
-    int i;
-
     PORT_Memcpy(ss->cipherSuites, cipherSuites, sizeof cipherSuites);
-
-    /* Only send the algorithms that are allowed by policy */
-    for (i=0; i < defaultSize; i++) {
-	SECOidTag hashOid = ssl3_TLSHashAlgorithmToOID(
-				defaultSignatureAlgorithms[i].hashAlg);
-	/* This sets the default signature algorithms. 
-	 * If NSS_GetAlgorithmPolicy fails, add the algorithms anyway, 
-	 * to keep compatibility with previous NSS versions */
-	if (NSS_GetAlgorithmPolicy(hashOid, &policy) != SECSuccess ||
-			(policy & NSS_USE_ALG_IN_SSL_KX)) {
-	    ss->ssl3.signatureAlgorithms[pos] = defaultSignatureAlgorithms[i];
-	    pos++;
-	}
-	/* future check the signAlg by policy as well */
-    }
-    ss->ssl3.signatureAlgorithmCount = pos;
+    PORT_Memcpy(ss->ssl3.signatureAlgorithms, defaultSignatureAlgorithms,
+                sizeof(defaultSignatureAlgorithms));
+    ss->ssl3.signatureAlgorithmCount = PR_ARRAY_SIZE(defaultSignatureAlgorithms);
 }
 
 /* ssl3_config_match_init must have already been called by
