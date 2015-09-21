@@ -176,22 +176,7 @@ void TlsAgent::StartConnect() {
   SetState(STATE_CONNECTING);
 }
 
-void TlsAgent::EnableSomeEcdheCiphers() {
-  EXPECT_TRUE(EnsureTlsSetup());
-
-  const uint32_t EcdheCiphers[] = {TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-                                   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-                                   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-                                   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA};
-
-  for (size_t i = 0; i < PR_ARRAY_SIZE(EcdheCiphers); ++i) {
-    SECStatus rv = SSL_CipherPrefSet(ssl_fd_, EcdheCiphers[i], PR_TRUE);
-    EXPECT_EQ(SECSuccess, rv);
-  }
-}
-
-
-void TlsAgent::DisableDheCiphers() {
+void TlsAgent::DisableCiphersByKeyExchange(SSLKEAType kea) {
   EXPECT_TRUE(EnsureTlsSetup());
 
   for (size_t i = 0; i < SSL_NumImplementedCiphers; ++i) {
@@ -201,7 +186,7 @@ void TlsAgent::DisableDheCiphers() {
                                           &csinfo, sizeof(csinfo));
     ASSERT_EQ(SECSuccess, rv);
 
-    if (csinfo.keaType == ssl_kea_dh) {
+    if (csinfo.keaType == kea) {
       rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], PR_FALSE);
       EXPECT_EQ(SECSuccess, rv);
     }

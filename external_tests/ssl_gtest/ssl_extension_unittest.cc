@@ -514,7 +514,6 @@ TEST_P(TlsExtensionTest12Plus, DISABLED_SignatureAlgorithmsSigUnsupported) {
 }
 
 TEST_P(TlsExtensionTestGeneric, SupportedCurvesShort) {
-  EnableSomeEcdheCiphers();
   const uint8_t val[] = { 0x00, 0x01, 0x00 };
   DataBuffer extension(val, sizeof(val));
   ClientHelloErrorTest(new TlsExtensionReplacer(ssl_elliptic_curves_xtn,
@@ -522,7 +521,6 @@ TEST_P(TlsExtensionTestGeneric, SupportedCurvesShort) {
 }
 
 TEST_P(TlsExtensionTestGeneric, SupportedCurvesBadLength) {
-  EnableSomeEcdheCiphers();
   const uint8_t val[] = { 0x09, 0x99, 0x00, 0x00 };
   DataBuffer extension(val, sizeof(val));
   ClientHelloErrorTest(new TlsExtensionReplacer(ssl_elliptic_curves_xtn,
@@ -530,7 +528,6 @@ TEST_P(TlsExtensionTestGeneric, SupportedCurvesBadLength) {
 }
 
 TEST_P(TlsExtensionTestGeneric, SupportedCurvesTrailingData) {
-  EnableSomeEcdheCiphers();
   const uint8_t val[] = { 0x00, 0x02, 0x00, 0x00, 0x00 };
   DataBuffer extension(val, sizeof(val));
   ClientHelloErrorTest(new TlsExtensionReplacer(ssl_elliptic_curves_xtn,
@@ -538,7 +535,6 @@ TEST_P(TlsExtensionTestGeneric, SupportedCurvesTrailingData) {
 }
 
 TEST_P(TlsExtensionTestGeneric, SupportedPointsEmpty) {
-  EnableSomeEcdheCiphers();
   const uint8_t val[] = { 0x00 };
   DataBuffer extension(val, sizeof(val));
   ClientHelloErrorTest(new TlsExtensionReplacer(ssl_ec_point_formats_xtn,
@@ -546,7 +542,6 @@ TEST_P(TlsExtensionTestGeneric, SupportedPointsEmpty) {
 }
 
 TEST_P(TlsExtensionTestGeneric, SupportedPointsBadLength) {
-  EnableSomeEcdheCiphers();
   const uint8_t val[] = { 0x99, 0x00, 0x00 };
   DataBuffer extension(val, sizeof(val));
   ClientHelloErrorTest(new TlsExtensionReplacer(ssl_ec_point_formats_xtn,
@@ -554,7 +549,6 @@ TEST_P(TlsExtensionTestGeneric, SupportedPointsBadLength) {
 }
 
 TEST_P(TlsExtensionTestGeneric, SupportedPointsTrailingData) {
-  EnableSomeEcdheCiphers();
   const uint8_t val[] = { 0x01, 0x00, 0x00 };
   DataBuffer extension(val, sizeof(val));
   ClientHelloErrorTest(new TlsExtensionReplacer(ssl_ec_point_formats_xtn,
@@ -592,7 +586,7 @@ TEST_P(TlsExtensionTest12Plus, SignatureAlgorithmConfiguration) {
     new TlsExtensionCapture(ssl_signature_algorithms_xtn);
   client_->SetSignatureAlgorithms(algorithms, PR_ARRAY_SIZE(algorithms));
   client_->SetPacketFilter(capture);
-  DisableDheCiphers();
+  DisableDheAndEcdheCiphers();
   Connect();
 
   const DataBuffer& ext = capture->extension();

@@ -296,7 +296,7 @@ TEST_P(TlsConnectGeneric, SignatureAlgorithmNoOverlapStaticRsa) {
                                   PR_ARRAY_SIZE(SignatureRsaSha384));
   server_->SetSignatureAlgorithms(SignatureRsaSha256,
                                   PR_ARRAY_SIZE(SignatureRsaSha256));
-  DisableDheCiphers();
+  DisableDheAndEcdheCiphers();
   Connect();
   client_->CheckKEAType(ssl_kea_rsa);
   client_->CheckAuthType(ssl_auth_rsa);
@@ -362,15 +362,21 @@ TEST_P(TlsConnectStream, ConnectAndServerRenegotiate) {
 }
 
 TEST_P(TlsConnectStream, ConnectStaticRSA) {
-  DisableDheCiphers();
+  DisableDheAndEcdheCiphers();
   Connect();
   client_->CheckKEAType(ssl_kea_rsa);
+}
+
+TEST_P(TlsConnectStream, ConnectDhe) {
+  DisableEcdheCiphers();
+  Connect();
+  client_->CheckKEAType(ssl_kea_dh);
 }
 
 // Test that a totally bogus EPMS is handled correctly.
 // This test is stream so we can catch the bad_record_mac alert.
 TEST_P(TlsConnectStream, ConnectStaticRSABogusCKE) {
-  DisableDheCiphers();
+  DisableDheAndEcdheCiphers();
   TlsInspectorReplaceHandshakeMessage* i1 =
       new TlsInspectorReplaceHandshakeMessage(kTlsHandshakeClientKeyExchange,
                                               DataBuffer(
@@ -387,7 +393,7 @@ TEST_P(TlsConnectStream, ConnectStaticRSABogusCKE) {
 // Test that a PMS with a bogus version number is handled correctly.
 // This test is stream so we can catch the bad_record_mac alert.
 TEST_P(TlsConnectStream, ConnectStaticRSABogusPMSVersionDetect) {
-  DisableDheCiphers();
+  DisableDheAndEcdheCiphers();
   client_->SetPacketFilter(new TlsInspectorClientHelloVersionChanger(
       server_));
   auto alert_recorder = new TlsAlertRecorder();
@@ -401,7 +407,7 @@ TEST_P(TlsConnectStream, ConnectStaticRSABogusPMSVersionDetect) {
 // rollback detection is disabled. This is a positive control for
 // ConnectStaticRSABogusPMSVersionDetect.
 TEST_P(TlsConnectGeneric, ConnectStaticRSABogusPMSVersionIgnore) {
-  DisableDheCiphers();
+  DisableDheAndEcdheCiphers();
   client_->SetPacketFilter(new TlsInspectorClientHelloVersionChanger(
       server_));
   server_->DisableRollbackDetection();
@@ -409,13 +415,11 @@ TEST_P(TlsConnectGeneric, ConnectStaticRSABogusPMSVersionIgnore) {
 }
 
 TEST_P(TlsConnectStream, ConnectEcdhe) {
-  EnableSomeEcdheCiphers();
   Connect();
   client_->CheckKEAType(ssl_kea_ecdh);
 }
 
 TEST_P(TlsConnectStream, ConnectEcdheTwiceReuseKey) {
-  EnableSomeEcdheCiphers();
   TlsInspectorRecordHandshakeMessage* i1 =
       new TlsInspectorRecordHandshakeMessage(kTlsHandshakeServerKeyExchange);
   server_->SetPacketFilter(i1);
@@ -429,7 +433,6 @@ TEST_P(TlsConnectStream, ConnectEcdheTwiceReuseKey) {
   TlsInspectorRecordHandshakeMessage* i2 =
       new TlsInspectorRecordHandshakeMessage(kTlsHandshakeServerKeyExchange);
   server_->SetPacketFilter(i2);
-  EnableSomeEcdheCiphers();
   ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
   Connect();
   client_->CheckKEAType(ssl_kea_ecdh);
@@ -444,7 +447,7 @@ TEST_P(TlsConnectStream, ConnectEcdheTwiceReuseKey) {
 }
 
 TEST_P(TlsConnectStream, ConnectEcdheTwiceNewKey) {
-  EnableSomeEcdheCiphers();
+  server_->EnsureTlsSetup();
   SECStatus rv =
       SSL_OptionSet(server_->ssl_fd(), SSL_REUSE_SERVER_ECDHE_KEY, PR_FALSE);
   EXPECT_EQ(SECSuccess, rv);
@@ -458,7 +461,7 @@ TEST_P(TlsConnectStream, ConnectEcdheTwiceNewKey) {
 
   // Restart
   ResetRsa();
-  EnableSomeEcdheCiphers();
+  server_->EnsureTlsSetup();
   rv = SSL_OptionSet(server_->ssl_fd(), SSL_REUSE_SERVER_ECDHE_KEY, PR_FALSE);
   EXPECT_EQ(SECSuccess, rv);
   TlsInspectorRecordHandshakeMessage* i2 =
@@ -531,14 +534,14 @@ TEST_P(TlsConnectGeneric, ConnectExtendedMasterSecret) {
 
 
 TEST_P(TlsConnectGeneric, ConnectExtendedMasterSecretStaticRSA) {
-  DisableDheCiphers();
+  DisableDheAndEcdheCiphers();
   EnableExtendedMasterSecret();
   Connect();
 }
 
 // This test is stream so we can catch the bad_record_mac alert.
 TEST_P(TlsConnectStream, ConnectExtendedMasterSecretStaticRSABogusCKE) {
-  DisableDheCiphers();
+  DisableDheAndEcdheCiphers();
   EnableExtendedMasterSecret();
   TlsInspectorReplaceHandshakeMessage* inspect =
       new TlsInspectorReplaceHandshakeMessage(kTlsHandshakeClientKeyExchange,
@@ -555,7 +558,7 @@ TEST_P(TlsConnectStream, ConnectExtendedMasterSecretStaticRSABogusCKE) {
 
 // This test is stream so we can catch the bad_record_mac alert.
 TEST_P(TlsConnectStream, ConnectExtendedMasterSecretStaticRSABogusPMSVersionDetect) {
-  DisableDheCiphers();
+  DisableDheAndEcdheCiphers();
   EnableExtendedMasterSecret();
   client_->SetPacketFilter(new TlsInspectorClientHelloVersionChanger(
       server_));
@@ -567,7 +570,7 @@ TEST_P(TlsConnectStream, ConnectExtendedMasterSecretStaticRSABogusPMSVersionDete
 }
 
 TEST_P(TlsConnectStream, ConnectExtendedMasterSecretStaticRSABogusPMSVersionIgnore) {
-  DisableDheCiphers();
+  DisableDheAndEcdheCiphers();
   EnableExtendedMasterSecret();
   client_->SetPacketFilter(new TlsInspectorClientHelloVersionChanger(
       server_));
@@ -577,12 +580,10 @@ TEST_P(TlsConnectStream, ConnectExtendedMasterSecretStaticRSABogusPMSVersionIgno
 
 TEST_P(TlsConnectGeneric, ConnectExtendedMasterSecretECDHE) {
   EnableExtendedMasterSecret();
-  EnableSomeEcdheCiphers();
   Connect();
 
   ResetRsa();
   EnableExtendedMasterSecret();
-  EnableSomeEcdheCiphers();
   ExpectResumption(RESUME_SESSIONID);
   Connect();
 }
