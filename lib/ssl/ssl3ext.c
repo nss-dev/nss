@@ -452,9 +452,6 @@ ssl3_HandleServerNameXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
         }
         listCount += 1;
     }
-    if (!listCount) {
-        return SECFailure;  /* nothing we can act on */
-    }
     names = PORT_ZNewArray(SECItem, listCount);
     if (!names) {
         return SECFailure;
