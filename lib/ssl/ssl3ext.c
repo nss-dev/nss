@@ -467,14 +467,12 @@ ssl3_SendServerNameXtn(sslSocket *ss, PRBool append,
     return 4;
 }
 
-/* handle an incoming SNI extension, by ignoring it. */
+/* Handle an incoming SNI extension. */
 SECStatus
 ssl3_HandleServerNameXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 {
     SECItem *names = NULL;
-    PRUint32 listCount = 0, namesPos = 0, i;
     TLSExtensionData *xtnData = &ss->xtnData;
-    SECItem ldata;
     PRInt32 listLenBytes = 0;
 
     if (!ss->sec.isServer) {
@@ -486,79 +484,94 @@ ssl3_HandleServerNameXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
     if (!ss->sniSocketConfig) {
         return SECSuccess;
     }
+
     /* length of server_name_list */
     listLenBytes = ssl3_ConsumeHandshakeNumber(ss, 2, &data->data, &data->len);
     if (listLenBytes < 0) {
-        return SECFailure;
+        goto loser; /* alert already sent */
     }
     if (listLenBytes == 0 || listLenBytes != data->len) {
-        (void)ssl3_DecodeError(ss);
-        return SECFailure;
+        goto alert_loser;
     }
-    ldata = *data;
-    /* Calculate the size of the array.*/
-    while (listLenBytes > 0) {
-        SECItem litem;
+
+    /* Read ServerNameList. */
+    while (data->len > 0) {
+        SECItem tmp;
         SECStatus rv;
         PRInt32 type;
-        /* Skip Name Type (sni_host_name); checks are on the second pass */
-        type = ssl3_ConsumeHandshakeNumber(ss, 1, &ldata.data, &ldata.len);
-        if (type < 0) { /* i.e., SECFailure cast to PRint32 */
-            return SECFailure;
-        }
-        rv = ssl3_ConsumeHandshakeVariable(ss, &litem, 2, &ldata.data, &ldata.len);
-        if (rv != SECSuccess) {
-            return rv;
-        }
-        /* Adjust total length for consumed item, item len and type.*/
-        listLenBytes -= litem.len + 3;
-        if (listLenBytes > 0 && !ldata.len) {
-            (void)ssl3_DecodeError(ss);
-            return SECFailure;
-        }
-        listCount += 1;
-    }
-    names = PORT_ZNewArray(SECItem, listCount);
-    if (!names) {
-        return SECFailure;
-    }
-    for (i = 0; i < listCount; i++) {
-        unsigned int j;
-        PRInt32 type;
-        SECStatus rv;
-        PRBool nametypePresent = PR_FALSE;
-        /* Name Type (sni_host_name) */
+
+        /* Read Name Type. */
         type = ssl3_ConsumeHandshakeNumber(ss, 1, &data->data, &data->len);
-        /* Check if we have such type in the list */
-        for (j = 0; j < listCount && names[j].data; j++) {
-            /* TODO bug 998524: .type is not assigned a value */
-            if (names[j].type == type) {
-                nametypePresent = PR_TRUE;
-                break;
+        if (type < 0) { /* i.e., SECFailure cast to PRint32 */
+            /* alert sent in ConsumeHandshakeNumber */
+            goto loser;
+        }
+
+        /* Read ServerName (length and value). */
+        rv = ssl3_ConsumeHandshakeVariable(ss, &tmp, 2, &data->data, &data->len);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+
+        /* Record the value for host_name(0). */
+        if (type == sni_nametype_hostname) {
+            /* Fail if we encounter a second host_name entry. */
+            if (names) {
+                goto alert_loser;
+            }
+
+            /* Create an array for the only supported NameType. */
+            names = PORT_ZNewArray(SECItem, 1);
+            if (!names) {
+                goto loser;
+            }
+
+            /* Copy ServerName into the array. */
+            if (SECITEM_CopyItem(NULL, &names[0], &tmp) != SECSuccess) {
+                goto loser;
             }
         }
-        /* HostName (length and value) */
-        rv = ssl3_ConsumeHandshakeVariable(ss, &names[namesPos], 2,
-                                           &data->data, &data->len);
-        if (rv != SECSuccess) {
-            PORT_Assert(0);
-            PORT_Free(names);
-            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-            return rv;
-        }
-        if (nametypePresent == PR_FALSE) {
-            namesPos += 1;
-        }
-    }
-    /* Free old and set the new data. */
-    if (xtnData->sniNameArr) {
-        PORT_Free(ss->xtnData.sniNameArr);
-    }
-    xtnData->sniNameArr = names;
-    xtnData->sniNameArrSize = namesPos;
-    xtnData->negotiated[xtnData->numNegotiated++] = ssl_server_name_xtn;
 
+        /* Even if we don't support NameTypes other than host_name at the
+         * moment, we continue parsing the whole list to check its validity.
+         * We do not check for duplicate entries with NameType != host_name(0).
+         */
+    }
+    if (names) {
+        /* Free old and set the new data. */
+        ssl3_FreeSniNameArray(xtnData);
+        xtnData->sniNameArr = names;
+        xtnData->sniNameArrSize = 1;
+        xtnData->negotiated[xtnData->numNegotiated++] = ssl_server_name_xtn;
+    }
     return SECSuccess;
+
+alert_loser:
+    (void)ssl3_DecodeError(ss);
+loser:
+    if (names) {
+        PORT_Free(names);
+    }
+    return SECFailure;
+}
+
+/* Frees a given xtnData->sniNameArr and its elements. */
+void
+ssl3_FreeSniNameArray(TLSExtensionData* xtnData)
+{
+    PRUint32 i;
+
+    if (!xtnData->sniNameArr) {
+        return;
+    }
+
+    for (i = 0; i < xtnData->sniNameArrSize; i++) {
+        SECITEM_FreeItem(&xtnData->sniNameArr[i], PR_FALSE);
+    }
+
+    PORT_Free(xtnData->sniNameArr);
+    xtnData->sniNameArr = NULL;
+    xtnData->sniNameArrSize = 0;
 }
 
 /* Called by both clients and servers.

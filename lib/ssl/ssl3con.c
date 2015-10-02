@@ -8513,16 +8513,7 @@ ssl3_ServerCallSNICallback(sslSocket *ss)
                 break;
             }
         } while (0);
-    /* Free sniNameArr. The data that each SECItem in the array
-     * points into is the data from the input buffer "b". It will
-     * not be available outside the scope of this function or
-     * the callers (*HandleClientHelloPart2) and the callers
-     must not use it after this point. */
-    if (ss->xtnData.sniNameArr) {
-        PORT_Free(ss->xtnData.sniNameArr);
-        ss->xtnData.sniNameArr = NULL;
-        ss->xtnData.sniNameArrSize = 0;
-    }
+    ssl3_FreeSniNameArray(&ss->xtnData);
     if (ret <= SSL_SNI_SEND_ALERT) {
         /* desc and errCode should be set. */
         goto alert_loser;
@@ -9256,12 +9247,7 @@ compression_found:
             }
 
             /* Clean up sni name array */
-            if (ssl3_ExtensionNegotiated(ss, ssl_server_name_xtn) &&
-                ss->xtnData.sniNameArr) {
-                PORT_Free(ss->xtnData.sniNameArr);
-                ss->xtnData.sniNameArr = NULL;
-                ss->xtnData.sniNameArrSize = 0;
-            }
+            ssl3_FreeSniNameArray(&ss->xtnData);
 
             ssl_GetXmitBufLock(ss);
             haveXmitBufLock = PR_TRUE;

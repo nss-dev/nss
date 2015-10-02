@@ -404,10 +404,7 @@ ssl_DestroySocketContents(sslSocket *ss)
         ss->dheKeyPair = NULL;
     }
     SECITEM_FreeItem(&ss->opt.nextProtoNego, PR_FALSE);
-    if (ss->xtnData.sniNameArr) {
-        PORT_Free(ss->xtnData.sniNameArr);
-        ss->xtnData.sniNameArr = NULL;
-    }
+    ssl3_FreeSniNameArray(&ss->xtnData);
 }
 
 /*
