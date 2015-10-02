@@ -834,6 +834,10 @@ struct TLSExtensionDataStr {
     SECItem signedCertTimestamps;
 };
 
+typedef enum {
+    sni_nametype_hostname
+} SNINameType;
+
 typedef SECStatus (*sslRestartTarget)(sslSocket *);
 
 /*
@@ -1756,6 +1760,7 @@ extern SECStatus ssl3_VerifySignedHashes(SSL3Hashes *hash,
 extern SECStatus ssl3_CacheWrappedMasterSecret(
     sslSocket *ss, sslSessionID *sid,
     ssl3CipherSpec *spec, SSLAuthType authType);
+extern void ssl3_FreeSniNameArray(TLSExtensionData* xtnData);
 
 /* Functions that handle ClientHello and ServerHello extensions. */
 extern SECStatus ssl3_HandleServerNameXtn(sslSocket *ss,
