@@ -1086,6 +1086,7 @@ SECKEY_BigIntegerBitLength;
 ;+    global:
 NSS_OptionGet;
 NSS_OptionSet;
+SECMOD_CreateModuleEx;
 ;+    local:
 ;+       *;
 ;+};
