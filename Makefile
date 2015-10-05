@@ -31,6 +31,9 @@ include $(CORE_DEPTH)/coreconf/config.mk
 #######################################################################
 # (5) Execute "global" rules. (OPTIONAL)                              #
 #######################################################################
+ifdef USE_ASAN
+NSPR_COMPILERS += CFLAGS='-fsanitize=address -fno-omit-frame-pointer' LDFLAGS='-fsanitize=address'
+endif
 
 include $(CORE_DEPTH)/coreconf/rules.mk
 
@@ -76,10 +79,15 @@ endif
 ifdef USE_STATIC_RTL
 NSPR_CONFIGURE_OPTS += --enable-static-rtl
 endif
+ifdef USE_ASAN
+NSPR_COMPILERS = CC=clang-3.4 CXX=clang++-3.4
+NSPR_COMPILERS += CFLAGS='-fsanitize=address -fno-omit-frame-pointer'
+NSPR_COMPILERS += LDFLAGS='-fsanitize=address'
+else
 ifdef NS_USE_GCC
 NSPR_COMPILERS = CC=gcc CXX=g++
 endif
-
+endif
 #
 # Some pwd commands on Windows (for example, the pwd
 # command in Cygwin) return a pathname that begins

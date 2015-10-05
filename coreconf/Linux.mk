@@ -16,11 +16,18 @@ ifeq ($(USE_PTHREADS),1)
 	IMPL_STRATEGY = _PTH
 endif
 
-CC			= gcc
-CCC			= g++
-RANLIB			= ranlib
+ifeq ($(USE_ASAN),1)
+	# use clang with sanitizers for better support
+	CC			= clang
+	CCC			= clang++
+	DEFAULT_COMPILER = clang
+else
+	CC			= gcc
+	CCC			= g++
+	DEFAULT_COMPILER = gcc
+endif
 
-DEFAULT_COMPILER = gcc
+RANLIB			= ranlib
 
 ifeq ($(OS_TARGET),Android)
 ifndef ANDROID_NDK
@@ -135,6 +142,11 @@ OS_PTHREAD = -lpthread
 endif
 
 OS_CFLAGS		= $(DSO_CFLAGS) $(OS_REL_CFLAGS) $(ARCHFLAG) -Wall -pipe -ffunction-sections -fdata-sections -DLINUX -Dlinux -DHAVE_STRERROR
+ifdef USE_ASAN
+OS_CFLAGS 		+= -fsanitize=address -fno-omit-frame-pointer
+LDFLAGS			+= -fsanitize=address
+endif
+
 OS_LIBS			= $(OS_PTHREAD) -ldl -lc
 
 ifeq ($(COMPILER_TAG),_clang)
@@ -180,7 +192,10 @@ DSO_LDOPTS		= -shared $(ARCHFLAG) -Wl,--gc-sections
 # The linker on Red Hat Linux 7.2 and RHEL 2.1 (GNU ld version 2.11.90.0.8)
 # incorrectly reports undefined references in the libraries we link with, so
 # we don't use -z defs there.
+ifndef USE_ASAN
 ZDEFS_FLAG		= -Wl,-z,defs
+endif
+
 DSO_LDOPTS		+= $(if $(findstring 2.11.90.0.8,$(shell ld -v)),,$(ZDEFS_FLAG))
 LDFLAGS			+= $(ARCHFLAG)
 

@@ -46,6 +46,8 @@ class TlsAgent : public PollTarget {
     return true;
   }
 
+  DummyPrSocket* adapter() const { return adapter_; }
+
   void SetPeer(TlsAgent* peer) { adapter_->SetPeer(peer->adapter_); }
 
   void SetPacketFilter(PacketFilter* filter) {
