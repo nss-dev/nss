@@ -422,12 +422,12 @@ ssl3_HandleServerNameXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
     }
     /* length of server_name_list */
     listLenBytes = ssl3_ConsumeHandshakeNumber(ss, 2, &data->data, &data->len);
-    if (listLenBytes < 0 || listLenBytes != data->len) {
-        (void)ssl3_DecodeError(ss);
+    if (listLenBytes < 0) {
         return SECFailure;
     }
-    if (listLenBytes == 0) {
-        return SECSuccess; /* ignore an empty extension */
+    if (listLenBytes == 0 || listLenBytes != data->len) {
+        (void)ssl3_DecodeError(ss);
+        return SECFailure;
     }
     ldata = *data;
     /* Calculate the size of the array.*/
