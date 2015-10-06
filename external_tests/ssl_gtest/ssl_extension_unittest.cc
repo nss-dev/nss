@@ -372,6 +372,13 @@ TEST_P(TlsExtensionTestGeneric, BadSni) {
   ClientHelloErrorTest(new TlsExtensionReplacer(ssl_server_name_xtn, extension));
 }
 
+TEST_P(TlsExtensionTestGeneric, EmptySni) {
+  DataBuffer extension;
+  extension.Allocate(2);
+  extension.Write(0, static_cast<uint32_t>(0), 2);
+  ClientHelloErrorTest(new TlsExtensionReplacer(ssl_server_name_xtn, extension));
+}
+
 TEST_P(TlsExtensionTestGeneric, EmptyAlpnExtension) {
   EnableAlpn();
   DataBuffer extension;
