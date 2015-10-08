@@ -137,8 +137,7 @@ ifeq ($(USE_PTHREADS),1)
 OS_PTHREAD = -lpthread 
 endif
 
-OS_CFLAGS		= $(DSO_CFLAGS) $(OS_REL_CFLAGS) $(ARCHFLAG) -pipe -ffunction-sections -fdata-sections -DLINUX -Dlinux -DHAVE_STRERROR
-OS_CFLAGS += -Wall -Wempty-body -Wpointer-to-int-cast -Wsign-compare -Wtype-limits
+OS_CFLAGS		= $(DSO_CFLAGS) $(OS_REL_CFLAGS) $(ARCHFLAG) -Wall -pipe -ffunction-sections -fdata-sections -DLINUX -Dlinux -DHAVE_STRERROR
 OS_LIBS			= $(OS_PTHREAD) -ldl -lc
 
 ifeq ($(COMPILER_TAG),_clang)
@@ -150,7 +149,7 @@ ifdef BUILD_OPT
 # clang is unable to handle glib's expansion of strcmp and similar for optimized
 # builds, so ignore the resulting errors.
 # See https://llvm.org/bugs/show_bug.cgi?id=20144
-OS_CFLAGS += -Wno-error=array-bounds -Wno-error=unevaluated-expression
+OS_CFLAGS += -Wno-array-bounds -Wno-unevaluated-expression
 endif
 # Clang reports its version as an older gcc, but it's OK
 NSS_HAS_GCC48 = true
@@ -165,7 +164,7 @@ NSS_HAS_GCC48 := $(shell \
 export NSS_HAS_GCC48
 endif
 ifeq (true,$(NSS_HAS_GCC48))
-OS_CFLAGS += -Werror -Wno-error=sign-compare
+OS_CFLAGS += -Werror
 else
 # Old versions of gcc (< 4.8) don't support #pragma diagnostic in functions.
 # Use this to disable use of that #pragma and the warnings it suppresses.
