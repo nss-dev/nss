@@ -40,7 +40,7 @@
 #define MIN_KEY_BITS		512
 /* MAX_KEY_BITS should agree with MAX_RSA_MODULUS in freebl */
 #define MAX_KEY_BITS		8192
-#define DEFAULT_KEY_BITS	1024
+#define DEFAULT_KEY_BITS	2048
 
 #define GEN_BREAK(e) rv=e; break;
 
@@ -180,7 +180,7 @@ AddCert(PK11SlotInfo *slot, CERTCertDBHandle *handle, char *name, char *trusts,
 
 static SECStatus
 CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
-        SECOidTag hashAlgTag, CERTName *subject, char *phone, int ascii, 
+        SECOidTag hashAlgTag, CERTName *subject, const char *phone, int ascii,
 	const char *emailAddrs, const char *dnsNames,
         certutilExtnList extnList, const char *extGeneric,
         /*out*/ SECItem *result)
@@ -270,7 +270,7 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
 	}
 
 	if (!phone)
-	    phone = strdup("(not specified)");
+	    phone = "(not specified)";
 
 	email = CERT_GetCertEmailAddress(subject);
 	if (!email)
@@ -323,6 +323,7 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
 	    }
 	    PR_smprintf_free(header);
 	}
+	PORT_Free(obuf);
     } else {
 	(void) SECITEM_CopyItem(NULL, result, &signedReq);
     }
@@ -604,6 +605,27 @@ DeleteCert(CERTCertDBHandle *handle, char *name)
     CERT_DestroyCertificate(cert);
     if (rv) {
 	SECU_PrintError(progName, "unable to delete certificate");
+    }
+    return rv;
+}
+
+static SECStatus 
+RenameCert(CERTCertDBHandle *handle, char *name, char *newName)
+{
+    SECStatus rv;
+    CERTCertificate *cert;
+
+    cert = CERT_FindCertByNicknameOrEmailAddr(handle, name);
+    if (!cert) {
+	SECU_PrintError(progName, "could not find certificate named \"%s\"",
+			name);
+	return SECFailure;
+    }
+
+    rv = __PK11_SetCertificateNickname(cert, newName);
+    CERT_DestroyCertificate(cert);
+    if (rv) {
+	SECU_PrintError(progName, "unable to rename certificate");
     }
     return rv;
 }
@@ -971,19 +993,21 @@ PrintSyntax(char *progName)
     FPS "Usage:  %s -N [-d certdir] [-P dbprefix] [-f pwfile] [--empty-password]\n", progName);
     FPS "Usage:  %s -T [-d certdir] [-P dbprefix] [-h token-name]\n"
 	"\t\t [-f pwfile] [-0 SSO-password]\n", progName);
-    FPS "\t%s -A -n cert-name -t trustargs [-d certdir] [-P dbprefix] [-a] [-i input]\n", 
+    FPS "\t%s -A -n cert-name -t trustargs [-d certdir] [-P dbprefix] [-a] [-i input]\n",
     	progName);
     FPS "\t%s -B -i batch-file\n", progName);
     FPS "\t%s -C [-c issuer-name | -x] -i cert-request-file -o cert-file\n"
 	"\t\t [-m serial-number] [-w warp-months] [-v months-valid]\n"
-        "\t\t [-f pwfile] [-d certdir] [-P dbprefix]\n"
+        "\t\t [-f pwfile] [-d certdir] [-P dbprefix] [-Z hashAlg]\n"
         "\t\t [-1 | --keyUsage [keyUsageKeyword,..]] [-2] [-3] [-4]\n"
         "\t\t [-5 | --nsCertType [nsCertTypeKeyword,...]]\n"
         "\t\t [-6 | --extKeyUsage [extKeyUsageKeyword,...]] [-7 emailAddrs]\n"
         "\t\t [-8 dns-names] [-a]\n",
 	progName);
     FPS "\t%s -D -n cert-name [-d certdir] [-P dbprefix]\n", progName);
-    FPS "\t%s -E -n cert-name -t trustargs [-d certdir] [-P dbprefix] [-a] [-i input]\n", 
+    FPS "\t%s --rename -n cert-name --new-n new-cert-name\n"
+        "\t\t [-d certdir] [-P dbprefix]\n", progName);
+    FPS "\t%s -E -n cert-name -t trustargs [-d certdir] [-P dbprefix] [-a] [-i input]\n",
 	progName);
     FPS "\t%s -F -n nickname [-d certdir] [-P dbprefix]\n", 
 	progName);
@@ -1017,7 +1041,8 @@ PrintSyntax(char *progName)
 	progName);
     FPS "\t%s -O -n cert-name [-X] [-d certdir] [-a] [-P dbprefix]\n", progName);
     FPS "\t%s -R -s subj -o cert-request-file [-d certdir] [-P dbprefix] [-p phone] [-a]\n"
-	"\t\t [-7 emailAddrs] [-k key-type-or-id] [-h token-name] [-f pwfile] [-g key-size]\n",
+        "\t\t [-7 emailAddrs] [-k key-type-or-id] [-h token-name] [-f pwfile]\n"
+        "\t\t [-g key-size] [-Z hashAlg]\n",
 	progName);
     FPS "\t%s -V -n cert-name -u usage [-b time] [-e] [-a]\n"
 	"\t\t[-X] [-d certdir] [-P dbprefix]\n",
@@ -1027,7 +1052,7 @@ PrintSyntax(char *progName)
     FPS "\t%s -S -n cert-name -s subj [-c issuer-name | -x]  -t trustargs\n"
 	"\t\t [-k key-type-or-id] [-q key-params] [-h token-name] [-g key-size]\n"
         "\t\t [-m serial-number] [-w warp-months] [-v months-valid]\n"
-	"\t\t [-f pwfile] [-d certdir] [-P dbprefix]\n"
+        "\t\t [-f pwfile] [-d certdir] [-P dbprefix] [-Z hashAlg]\n"
         "\t\t [-p phone] [-1] [-2] [-3] [-4] [-5] [-6] [-7 emailAddrs]\n"
         "\t\t [-8 DNS-names]\n"
         "\t\t [--extAIA] [--extSIA] [--extCP] [--extPM] [--extPC] [--extIA]\n"
@@ -1137,6 +1162,11 @@ static void luC(enum usage_level ul, const char *command)
         "   -d certdir");
     FPS "%-20s Cert & Key database prefix\n",
         "   -P dbprefix");
+    FPS "%-20s \n"
+              "%-20s Specify the hash algorithm to use. Possible keywords:\n"
+              "%-20s \"MD2\", \"MD4\", \"MD5\", \"SHA1\", \"SHA224\",\n"
+              "%-20s \"SHA256\", \"SHA384\", \"SHA512\"\n",
+        "   -Z hashAlg", "", "", "");
     FPS "%-20s \n"
               "%-20s Create key usage extension. Possible keywords:\n"
               "%-20s \"digitalSignature\", \"nonRepudiation\", \"keyEncipherment\",\n"
@@ -1477,6 +1507,11 @@ static void luR(enum usage_level ul, const char *command)
         "   -P dbprefix");
     FPS "%-20s Specify the contact phone number (\"123-456-7890\")\n",
         "   -p phone");
+    FPS "%-20s \n"
+              "%-20s Specify the hash algorithm to use. Possible keywords:\n"
+              "%-20s \"MD2\", \"MD4\", \"MD5\", \"SHA1\", \"SHA224\",\n"
+              "%-20s \"SHA256\", \"SHA384\", \"SHA512\"\n",
+        "   -Z hashAlg", "", "", "");
     FPS "%-20s Output the cert request in ASCII (RFC1113); default is binary\n",
         "   -a");
     FPS "%-20s \n",
@@ -1535,6 +1570,25 @@ static void luW(enum usage_level ul, const char *command)
         "   -f pwfile");
     FPS "%-20s Specify a file with the new password in two lines\n",
         "   -@ newpwfile");
+    FPS "\n");
+}
+
+static void luRename(enum usage_level ul, const char *command)
+{
+    int is_my_command = (command && 0 == strcmp(command, "rename"));
+    if (ul == usage_all || !command || is_my_command)
+    FPS "%-15s Change the database nickname of a certificate\n",
+        "--rename");
+    if (ul == usage_selected && !is_my_command)
+        return;
+    FPS "%-20s The old nickname of the cert to rename\n",
+        "   -n cert-name");
+    FPS "%-20s The new nickname of the cert to rename\n",
+        "   --new-n new-name");
+    FPS "%-20s Cert database directory (default is ~/.netscape)\n",
+        "   -d certdir");
+    FPS "%-20s Cert & Key database prefix\n",
+        "   -P dbprefix");
     FPS "\n");
 }
 
@@ -1638,6 +1692,11 @@ static void luS(enum usage_level ul, const char *command)
         "   -P dbprefix");
     FPS "%-20s Specify the contact phone number (\"123-456-7890\")\n",
         "   -p phone");
+    FPS "%-20s \n"
+              "%-20s Specify the hash algorithm to use. Possible keywords:\n"
+              "%-20s \"MD2\", \"MD4\", \"MD5\", \"SHA1\", \"SHA224\",\n"
+              "%-20s \"SHA256\", \"SHA384\", \"SHA512\"\n",
+        "   -Z hashAlg", "", "", "");
     FPS "%-20s Create key usage extension\n",
         "   -1 ");
     FPS "%-20s Create basic constraint extension\n",
@@ -1695,6 +1754,7 @@ static void LongUsage(char *progName, enum usage_level ul, const char *command)
     luC(ul, command);
     luG(ul, command);
     luD(ul, command);
+    luRename(ul, command);
     luF(ul, command);
     luU(ul, command);
     luK(ul, command);
@@ -2194,6 +2254,7 @@ enum {
     cmd_Batch,
     cmd_Merge,
     cmd_UpgradeMerge, /* test only */
+    cmd_Rename,
     max_cmd
 };
 
@@ -2262,6 +2323,7 @@ enum certutilOpts {
     opt_AddSubjectAltNameExt,
     opt_DumpExtensionValue,
     opt_GenericExtensions,
+    opt_NewNickname,
     opt_Help
 };
 
@@ -2292,7 +2354,9 @@ secuCommandFlag commands_init[] =
 	{ /* cmd_Batch               */  'B', PR_FALSE, 0, PR_FALSE },
 	{ /* cmd_Merge               */   0,  PR_FALSE, 0, PR_FALSE, "merge" },
 	{ /* cmd_UpgradeMerge        */   0,  PR_FALSE, 0, PR_FALSE, 
-                                                   "upgrade-merge" }
+                                                   "upgrade-merge" },
+	{ /* cmd_Rename              */   0,  PR_FALSE, 0, PR_FALSE, 
+                                                   "rename" }
 };
 #define NUM_COMMANDS ((sizeof commands_init) / (sizeof commands_init[0]))
  
@@ -2378,6 +2442,8 @@ secuCommandFlag options_init[] =
                                                    "dump-ext-val"},
 	{ /* opt_GenericExtensions   */  0,   PR_TRUE, 0, PR_FALSE, 
                                                    "extGeneric"},
+	{ /* opt_NewNickname         */  0,   PR_TRUE, 0, PR_FALSE, 
+                                                   "new-n"},
 };
 #define NUM_OPTIONS ((sizeof options_init)  / (sizeof options_init[0]))
 
@@ -2403,14 +2469,15 @@ certutil_main(int argc, char **argv, PRBool initialize)
     PRFileDesc *outFile         = PR_STDOUT;
     SECItem     certReqDER      = { siBuffer, NULL, 0 };
     SECItem     certDER         = { siBuffer, NULL, 0 };
-    char *      slotname        = "internal";
-    char *      certPrefix      = "";
+    const char *slotname        = "internal";
+    const char *certPrefix      = "";
     char *      sourceDir       = "";
-    char *      srcCertPrefix   = "";
+    const char *srcCertPrefix   = "";
     char *      upgradeID        = "";
     char *      upgradeTokenName     = "";
     KeyType     keytype         = rsaKey;
     char *      name            = NULL;
+    char *      newName         = NULL;
     char *      email            = NULL;
     char *      keysource       = NULL;
     SECOidTag   hashAlgTag      = SEC_OID_UNKNOWN;
@@ -2517,7 +2584,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
 	if (PL_strcmp(certutil.options[opt_TokenName].arg, "all") == 0)
 	    slotname = NULL;
 	else
-	    slotname = PL_strdup(certutil.options[opt_TokenName].arg);
+	    slotname = certutil.options[opt_TokenName].arg;
     }
 
     /*  -Z hash type  */
@@ -2577,7 +2644,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
     /*  -P certdb name prefix */
     if (certutil.options[opt_DBPrefix].activated) {
         if (certutil.options[opt_DBPrefix].arg) {
-            certPrefix = strdup(certutil.options[opt_DBPrefix].arg);
+            certPrefix = certutil.options[opt_DBPrefix].arg;
         } else {
             Usage(progName);
         }
@@ -2586,7 +2653,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
     /*  --source-prefix certdb name prefix */
     if (certutil.options[opt_SourcePrefix].activated) {
         if (certutil.options[opt_SourcePrefix].arg) {
-            srcCertPrefix = strdup(certutil.options[opt_SourcePrefix].arg);
+            srcCertPrefix = certutil.options[opt_SourcePrefix].arg;
         } else {
             Usage(progName);
         }
@@ -2769,6 +2836,19 @@ certutil_main(int argc, char **argv, PRBool initialize)
 	return 255;
     }
 
+    /* Rename needs an old and a new nickname */
+    if (certutil.commands[cmd_Rename].activated &&
+        !(certutil.options[opt_Nickname].activated &&
+          certutil.options[opt_NewNickname].activated)) {
+
+	PR_fprintf(PR_STDERR, 
+	           "%s --rename: specify an old nickname (-n) and\n"
+                   "   a new nickname (--new-n).\n",
+	           progName);
+	return 255;
+    }
+
+
     /* Upgrade/Merge needs a source database and a upgrade id. */
     if (certutil.commands[cmd_UpgradeMerge].activated &&
         !(certutil.options[opt_SourceDir].activated &&
@@ -2850,6 +2930,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
     }
 
     name = SECU_GetOptionArg(&certutil, opt_Nickname);
+    newName = SECU_GetOptionArg(&certutil, opt_NewNickname);
     email = SECU_GetOptionArg(&certutil, opt_Emailaddress);
 
     PK11_SetPasswordFunc(SECU_GetModulePassword);
@@ -3086,6 +3167,11 @@ merge_fail:
     /*  Delete cert (-D)  */
     if (certutil.commands[cmd_DeleteCert].activated) {
 	rv = DeleteCert(certHandle, name);
+	goto shutdown;
+    }
+    /*  Rename cert (--rename)  */
+    if (certutil.commands[cmd_Rename].activated) {
+	rv = RenameCert(certHandle, name, newName);
 	goto shutdown;
     }
     /*  Delete key (-F)  */

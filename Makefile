@@ -56,7 +56,11 @@ NSPR_CONFIGURE = $(CORE_DEPTH)/../nspr/configure
 #
 
 ifeq ($(OS_TARGET),Android)
-NSPR_CONFIGURE_OPTS += --with-android-ndk=$(ANDROID_NDK) --target=arm-linux-androideabi --with-android-version=$(OS_TARGET_RELEASE)
+NSPR_CONFIGURE_OPTS += --with-android-ndk=$(ANDROID_NDK) \
+                       --target=$(ANDROID_PREFIX) \
+                       --with-android-version=$(OS_TARGET_RELEASE) \
+                       --with-android-toolchain=$(ANDROID_TOOLCHAIN) \
+                       --with-android-platform=$(ANDROID_SYSROOT)
 endif
 ifdef BUILD_OPT
 NSPR_CONFIGURE_OPTS += --disable-debug --enable-optimize

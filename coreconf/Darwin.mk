@@ -83,6 +83,26 @@ endif
 
 OS_CFLAGS	= $(DSO_CFLAGS) $(OS_REL_CFLAGS) -Wall -fno-common -pipe -DDARWIN -DHAVE_STRERROR -DHAVE_BSD_FLOCK $(DARWIN_SDK_CFLAGS)
 
+ifeq (clang,$(shell $(CC) -? 2>&1 >/dev/null | sed -e 's/:.*//;1q'))
+NSS_HAS_GCC48 = true
+endif
+ifndef NSS_HAS_GCC48
+NSS_HAS_GCC48 := $(shell \
+  [ `$(CC) -dumpversion | cut -f 1 -d . -` -eq 4 -a \
+    `$(CC) -dumpversion | cut -f 2 -d . -` -ge 8 -o \
+    `$(CC) -dumpversion | cut -f 1 -d . -` -ge 5 ] && \
+  echo true || echo false)
+export NSS_HAS_GCC48
+endif
+ifeq (true,$(NSS_HAS_GCC48))
+OS_CFLAGS += -Werror
+else
+# Old versions of gcc (< 4.8) don't support #pragma diagnostic in functions.
+# Use this to disable use of that #pragma and the warnings it suppresses.
+OS_CFLAGS += -DNSS_NO_GCC48 -Wno-unused-variable -Wno-strict-aliasing
+$(warning Unable to find gcc >= 4.8 disabling -Werror)
+endif
+
 ifdef BUILD_OPT
 ifeq (11,$(ALLOW_OPT_CODE_SIZE)$(OPT_CODE_SIZE))
 	OPTIMIZER       = -Oz
@@ -116,3 +136,22 @@ PROCESS_MAP_FILE = grep -v ';+' $< | grep -v ';-' | \
 
 USE_SYSTEM_ZLIB = 1
 ZLIB_LIBS	= -lz
+
+# The system sqlite library in the latest version of Mac OS X often becomes
+# newer than the sqlite library in NSS. This may result in certain Mac OS X
+# system libraries having unresolved sqlite symbols during the shlibsign step
+# of the NSS build when we set DYLD_LIBRARY_PATH to the NSS lib directory and
+# the NSS libsqlite3.dylib is used instead of the system one. So just use the
+# system sqlite library on Mac, if it's sufficiently new.
+
+SYS_SQLITE3_VERSION_FULL := $(shell /usr/bin/sqlite3 -version | awk '{print $$1}')
+SYS_SQLITE3_VERSION_MAJOR := $(shell echo $(SYS_SQLITE3_VERSION_FULL) | awk -F. '{ print $$1 }')
+SYS_SQLITE3_VERSION_MINOR := $(shell echo $(SYS_SQLITE3_VERSION_FULL) | awk -F. '{ print $$2 }')
+
+ifeq (3,$(SYS_SQLITE3_VERSION_MAJOR))
+    ifeq (,$(filter-out 0 1 2 3 4,$(SYS_SQLITE3_VERSION_MINOR)))
+        # sqlite <= 3.4.x is too old, it doesn't provide sqlite3_file_control
+    else
+        NSS_USE_SYSTEM_SQLITE = 1
+    endif
+endif

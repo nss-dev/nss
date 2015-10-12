@@ -2,26 +2,36 @@
 #include "nss.h"
 #include "ssl.h"
 
+#include <cstdlib>
+
 #include "test_io.h"
 
 #define GTEST_HAS_RTTI 0
 #include "gtest/gtest.h"
 
+std::string g_working_dir_path;
+
 int main(int argc, char **argv) {
   // Start the tests
   ::testing::InitGoogleTest(&argc, argv);
-  std::string path = ".";
+  g_working_dir_path = ".";
+
+  // Temporarily disable asserts for PKCS#11 slot leakage until
+  // Bug 1168425 is fixed.
+  unsetenv("NSS_STRICT_SHUTDOWN");
+  char* workdir = getenv("NSS_GTEST_WORKDIR");
+  if (workdir)
+    g_working_dir_path = workdir;
 
   for (int i = 0; i < argc; i++) {
     if (!strcmp(argv[i], "-d")) {
-      path = argv[i + 1];
+      g_working_dir_path = argv[i + 1];
       ++i;
     }
   }
 
-  NSS_Initialize(path.c_str(), "", "", SECMOD_DB, NSS_INIT_READONLY);
+  NSS_Initialize(g_working_dir_path.c_str(), "", "", SECMOD_DB, NSS_INIT_READONLY);
   NSS_SetDomesticPolicy();
-
   int rv = RUN_ALL_TESTS();
 
   NSS_Shutdown();
