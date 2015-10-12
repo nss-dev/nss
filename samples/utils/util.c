@@ -99,7 +99,7 @@ GetDigit(char c)
 int
 HexToBuf(unsigned char *inString, SECItem *outbuf, PRBool isHexData)
 {
-    int len = strlen(inString);
+    int len = strlen((const char *)inString);
     int outLen = len+1/2;
     int trueLen = 0;
     int digit1, digit2;

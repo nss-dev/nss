@@ -12,11 +12,18 @@
 #include <plstr.h>
 
 /* NSS headers */
+#include <cryptohi.h>
 #include <keyhi.h>
 #include <pk11priv.h>
 #include <secport.h>
 #include <cert.h>
 #include <base64.h>
+#include <secerr.h>
+#include <secport.h>
+#include <secoid.h>
+#include <secmodt.h>
+#include <secoidt.h>
+#include <sechash.h>
 
 /* our samples utilities */
 #include "util.h"

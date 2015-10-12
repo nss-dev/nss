@@ -12,6 +12,7 @@
 #include <secoid.h>
 #include <secmodt.h>
 #include <sechash.h>
+#include <nss.h>
 
 typedef struct {
     const char *hashName;
