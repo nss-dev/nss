@@ -12,6 +12,6 @@ RELEASE = nss
 
 DIRS = coreconf lib cmd
 
-ifdef NSS_BUILD_GTESTS
+ifneq (0,$(NSS_BUILD_GTESTS))
 DIRS += external_tests
 endif
