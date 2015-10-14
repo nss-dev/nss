@@ -18,7 +18,6 @@
 #include "secasn1.h" 
 #include "secoid.h" 
 #include "secerr.h"
-#include "sslerr.h"
 #include "sechash.h"
 
 #include "secpkcs5.h"  

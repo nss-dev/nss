@@ -6,7 +6,6 @@
 #include "secport.h"
 #include "seccomon.h"
 #include "secoid.h"
-#include "sslerr.h"
 #include "genname.h"
 #include "keyhi.h"
 #include "cert.h"
