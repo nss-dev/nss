@@ -4476,6 +4476,7 @@ ssl3_ConsumeHandshakeVariable(sslSocket *ss, SECItem *i, PRInt32 bytes,
     PORT_Assert(bytes <= 3);
     i->len  = 0;
     i->data = NULL;
+    i->type = siBuffer;
     count = ssl3_ConsumeHandshakeNumber(ss, bytes, b, length);
     if (count < 0) { 		/* Can't test for SECSuccess here. */
     	return SECFailure;
