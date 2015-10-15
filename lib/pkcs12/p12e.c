@@ -1554,8 +1554,8 @@ sec_pkcs12_encoder_start_context(SEC_PKCS12ExportContext *p12exp)
 	/* init password pased integrity mode */
 	if(p12exp->integrityEnabled) {
 	    SECItem  pwd = {siBuffer,NULL, 0};
-	    salt = sec_pkcs12_generate_salt();
 	    PK11SymKey *symKey;
+	    salt = sec_pkcs12_generate_salt();
 	    CK_MECHANISM_TYPE integrityMechType;
 	    CK_MECHANISM_TYPE hmacMechType;
 
