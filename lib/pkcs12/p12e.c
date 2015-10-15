@@ -1555,9 +1555,9 @@ sec_pkcs12_encoder_start_context(SEC_PKCS12ExportContext *p12exp)
 	if(p12exp->integrityEnabled) {
 	    SECItem  pwd = {siBuffer,NULL, 0};
 	    PK11SymKey *symKey;
-	    salt = sec_pkcs12_generate_salt();
 	    CK_MECHANISM_TYPE integrityMechType;
 	    CK_MECHANISM_TYPE hmacMechType;
+	    salt = sec_pkcs12_generate_salt();
 
 	    /* zero out macData and set values */
 	    PORT_Memset(&p12enc->mac, 0, sizeof(sec_PKCS12MacData));
