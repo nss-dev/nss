@@ -1790,6 +1790,7 @@ sec_asn1d_next_substring (sec_asn1d_state *state)
 	    done = PR_TRUE;
     } else {
 	PRBool preallocatedString;
+	sec_asn1d_state *temp_state;
 	PORT_Assert (state->indefinite);
 
 	item = (SECItem *)(child->dest);
@@ -1863,7 +1864,7 @@ sec_asn1d_next_substring (sec_asn1d_state *state)
 	 * and #5 all have the same behaviour of adding a new substring.
 	 */
 	preallocatedString = PR_FALSE;
-	sec_asn1d_state *temp_state = state;
+	temp_state = state;
 	while (temp_state && item == temp_state->dest && temp_state->indefinite) {
 	    sec_asn1d_state *parent = sec_asn1d_get_enclosing_construct(temp_state);
 	    if (!parent || parent->underlying_kind != temp_state->underlying_kind) {
