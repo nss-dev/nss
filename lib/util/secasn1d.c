@@ -985,6 +985,7 @@ sec_asn1d_prepare_for_contents (sec_asn1d_state *state)
     SECItem *item;
     PLArenaPool *poolp;
     unsigned long alloc_len;
+    sec_asn1d_state *parent;
 
 #ifdef DEBUG_ASN1D_STATES
     {
@@ -1020,7 +1021,7 @@ sec_asn1d_prepare_for_contents (sec_asn1d_state *state)
 
     /* Determine the maximum length available for this element by finding the
      * first definite length ancestor, if any. */
-    sec_asn1d_state *parent = sec_asn1d_get_enclosing_construct(state);
+    parent = sec_asn1d_get_enclosing_construct(state);
     while (parent && parent->indefinite) {
         parent = sec_asn1d_get_enclosing_construct(parent);
     }
