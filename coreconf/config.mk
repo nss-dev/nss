@@ -188,3 +188,7 @@ DEFINES += -DNO_NSPR_10_SUPPORT
 
 # Hide old, deprecated, TLS cipher suite names when building NSS
 DEFINES += -DSSL_DISABLE_DEPRECATED_CIPHER_SUITE_NAMES
+
+ifdef NSS_DISABLE_GTESTS
+DIRS := $(filter-out external_tests,$(DIRS))
+endif
