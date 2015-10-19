@@ -10,4 +10,8 @@ IMPORTS =	nspr20/v4.8 \
 
 RELEASE = nss
 
-DIRS = coreconf lib cmd external_tests
+DIRS = coreconf lib cmd
+
+ifndef NSS_DISABLE_GTESTS
+DIRS += external_tests
+endif
