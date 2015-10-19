@@ -127,7 +127,7 @@ static PRUint32 swap4b(PRUint32 value)
     PRUint32 t1 = (value << 16) | (value >> 16);
     return ((t1 & SWAP4MASK) << 8) | ((t1 >> 8) & SWAP4MASK);
 }
-#define SHA_HTONL(x) swap4b
+#define SHA_HTONL(x) swap4b(x)
 #endif
 #define BYTESWAP4(x) x = SHA_HTONL(x)
 #endif /* defined(IS_LITTLE_ENDIAN) */
