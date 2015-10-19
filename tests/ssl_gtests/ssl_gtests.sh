@@ -105,8 +105,6 @@ ssl_gtest_start()
     return
   fi
 
-  # Temporarily disable asserts for PKCS#11 slot leakage (Bug 1168425)
-  unset NSS_STRICT_SHUTDOWN
   SSLGTESTREPORT="${SSLGTESTDIR}/report.xml"
   ${BINDIR}/ssl_gtest -d "${SSLGTESTDIR}" --gtest_output=xml:"${SSLGTESTREPORT}"
   html_msg $? 0 "ssl_gtest run successfully"
@@ -122,14 +120,6 @@ ssl_gtest_start()
   done
 }
 
-ssl_gtest_cleanup()
-{
-  cd ${QADIR}
-  . common/cleanup.sh
-}
-
 ################## main #################################################
-cd "$(dirname "$0")"
 ssl_gtest_init
 ssl_gtest_start
-ssl_gtest_cleanup

@@ -236,24 +236,24 @@ void TlsAgent::SetSignatureAlgorithms(const SSLSignatureAndHashAlg* algorithms,
   EXPECT_EQ(SECFailure, SSL_SignaturePrefSet(ssl_fd_, algorithms, 0))
       << "setting no algorithms should fail and do nothing";
 
-  std::vector<SSLSignatureAndHashAlg> configuredAlgorithms(count);
   unsigned int configuredCount;
+  SSLSignatureAndHashAlg configuredAlgorithms[count];
   EXPECT_EQ(SECFailure,
             SSL_SignaturePrefGet(ssl_fd_, nullptr, &configuredCount, 1))
       << "get algorithms, algorithms is nullptr";
   EXPECT_EQ(SECFailure,
-            SSL_SignaturePrefGet(ssl_fd_, &configuredAlgorithms[0],
+            SSL_SignaturePrefGet(ssl_fd_, configuredAlgorithms,
                                  &configuredCount, 0))
       << "get algorithms, too little space";
   EXPECT_EQ(SECFailure,
-            SSL_SignaturePrefGet(ssl_fd_, &configuredAlgorithms[0],
-                                 nullptr, configuredAlgorithms.size()))
+            SSL_SignaturePrefGet(ssl_fd_, configuredAlgorithms, nullptr,
+                                 PR_ARRAY_SIZE(configuredAlgorithms)))
       << "get algorithms, algCountOut is nullptr";
 
   EXPECT_EQ(SECSuccess,
-            SSL_SignaturePrefGet(ssl_fd_, &configuredAlgorithms[0],
+            SSL_SignaturePrefGet(ssl_fd_, configuredAlgorithms,
                                  &configuredCount,
-                                 configuredAlgorithms.size()));
+                                 PR_ARRAY_SIZE(configuredAlgorithms)));
   // SignaturePrefSet drops unsupported algorithms silently, so the number that
   // are configured might be fewer.
   EXPECT_LE(configuredCount, count);
@@ -405,7 +405,7 @@ void TlsAgent::EnableExtendedMasterSecret() {
 }
 
 void TlsAgent::CheckExtendedMasterSecret(bool expected) {
-  ASSERT_EQ(expected, static_cast<bool>(info_.extendedMasterSecretUsed))
+  ASSERT_EQ(expected, info_.extendedMasterSecretUsed)
       << "unexpected extended master secret state for " << name_;
 }
 
