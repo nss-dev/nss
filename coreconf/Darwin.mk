@@ -83,24 +83,41 @@ endif
 
 OS_CFLAGS	= $(DSO_CFLAGS) $(OS_REL_CFLAGS) -Wall -fno-common -pipe -DDARWIN -DHAVE_STRERROR -DHAVE_BSD_FLOCK $(DARWIN_SDK_CFLAGS)
 
-ifeq (clang,$(shell $(CC) -? 2>&1 >/dev/null | sed -e 's/:.*//;1q'))
-NSS_HAS_GCC48 = true
+# This tests to see if enabling the warning is possible before
+# setting an option to disable it.
+disable_warning=$(shell $(CC) -x c -E -Werror -W$(1) /dev/null >/dev/null 2>&1 && echo -Wno-$(1)) 
+
+COMPILER_NAME = $(shell $(CC) -? 2>&1 >/dev/null | sed -e 's/:.*//;1q')
+ifeq ($(COMPILER_NAME),clang)
+  # -Qunused-arguments : clang objects to arguments that it doesn't understand
+  #    and fixing this would require rearchitecture
+  OS_CFLAGS += -Qunused-arguments
+  # -Wno-parentheses-equality : because clang warns about macro expansions
+  OS_CFLAGS += $(call disable_warning,parentheses-equality)
 endif
-ifndef NSS_HAS_GCC48
-NSS_HAS_GCC48 := $(shell \
-  [ `$(CC) -dumpversion | cut -f 1 -d . -` -eq 4 -a \
-    `$(CC) -dumpversion | cut -f 2 -d . -` -ge 8 -o \
-    `$(CC) -dumpversion | cut -f 1 -d . -` -ge 5 ] && \
-  echo true || echo false)
-export NSS_HAS_GCC48
+
+ifndef NSS_ENABLE_WERROR
+  ifeq ($(COMPILER_NAME),clang)
+    NSS_ENABLE_WERROR = 1
+  else
+    NSS_ENABLE_WERROR := $(shell \
+    [ `$(CC) -dumpversion | cut -f 1 -d . -` -eq 4 -a \
+      `$(CC) -dumpversion | cut -f 2 -d . -` -ge 8 -o \
+      `$(CC) -dumpversion | cut -f 1 -d . -` -ge 5 ] && \
+      echo 1 || echo 0)
+    ifneq ($(NSS_ENABLE_WERROR),1)
+      $(warning Unable to find gcc >= 4.8 disabling -Werror)
+    endif
+  endif
+  export NSS_ENABLE_WERROR
 endif
-ifeq (true,$(NSS_HAS_GCC48))
-OS_CFLAGS += -Werror
+
+ifeq ($(NSS_ENABLE_WERROR),1)
+  OS_CFLAGS += -Werror
 else
-# Old versions of gcc (< 4.8) don't support #pragma diagnostic in functions.
-# Use this to disable use of that #pragma and the warnings it suppresses.
-OS_CFLAGS += -DNSS_NO_GCC48 -Wno-unused-variable -Wno-strict-aliasing
-$(warning Unable to find gcc >= 4.8 disabling -Werror)
+  # Old versions of gcc (< 4.8) don't support #pragma diagnostic in functions.
+  # Use this to disable use of that #pragma and the warnings it suppresses.
+  OS_CFLAGS += -DNSS_NO_GCC48
 endif
 
 ifdef BUILD_OPT
