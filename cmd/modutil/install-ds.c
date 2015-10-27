@@ -631,12 +631,15 @@ Pk11Install_PlatformName_GetVerString(Pk11Install_PlatformName* _this)
 void
 Pk11Install_PlatformName_Print(Pk11Install_PlatformName* _this, int pad)
 {
+	char *str = NULL;
 	PAD(pad); printf("OS: %s\n", _this->OS ? _this->OS : "<NULL>");
 	PAD(pad); printf("Digits: ");
 	if(_this->numDigits == 0) {
 		printf("None\n");
 	} else {
-		printf("%s\n", Pk11Install_PlatformName_GetVerString(_this));
+		str = Pk11Install_PlatformName_GetVerString(_this);
+		printf("%s\n", str);
+		PR_Free(str);
 	}
 	PAD(pad); printf("arch: %s\n", _this->arch ? _this->arch : "<NULL>");
 }
