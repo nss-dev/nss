@@ -420,6 +420,9 @@ SECU_DefaultSSLDir(void)
     if (!dir)
 	return NULL;
 
+    if (strlen(dir) >= PR_ARRAY_SIZE(sslDir)) {
+	return NULL;
+    }
     sprintf(sslDir, "%s", dir);
 
     if (sslDir[strlen(sslDir)-1] == '/')
