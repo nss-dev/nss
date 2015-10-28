@@ -123,9 +123,15 @@ ifdef NS_USE_GCC
 	DEFINES    += -DDEBUG -D_DEBUG -UNDEBUG -DDEBUG_$(USERNAME)
     endif
 else # !NS_USE_GCC
-    OS_CFLAGS += -W3 -WX -nologo -D_CRT_SECURE_NO_WARNINGS \
+    OS_CFLAGS += -W3 -nologo -D_CRT_SECURE_NO_WARNINGS \
 		 -D_CRT_NONSTDC_NO_WARNINGS
     OS_DLLFLAGS += -nologo -DLL -SUBSYSTEM:WINDOWS
+    ifndef NSS_ENABLE_WERROR
+        NSS_ENABLE_WERROR = 1
+    endif
+    ifeq ($(NSS_ENABLE_WERROR),1)
+        OS_CFLAGS += -WX
+    endif
     ifeq ($(_MSC_VER),$(_MSC_VER_6))
     ifndef MOZ_DEBUG_SYMBOLS
 	OS_DLLFLAGS += -PDB:NONE
