@@ -193,8 +193,7 @@ Pk11Install_File_Generate(Pk11Install_File* _this,
 					goto loser;
 				}
 				_this->relativePath = PR_Strdup(subval->string);
-				Pk11Install_ListIter_delete(subiter);
-				subiter = NULL;
+				Pk11Install_ListIter_delete(&subiter);
 
 				/* Absolute directory */
 			} else if( !PORT_Strcasecmp(subpair->key, ABSOLUTE_DIR_STRING)) {
@@ -206,8 +205,7 @@ Pk11Install_File_Generate(Pk11Install_File* _this,
 					goto loser;
 				}
 				_this->absolutePath = PR_Strdup(subval->string);
-				Pk11Install_ListIter_delete(subiter);
-				subiter = NULL;
+				Pk11Install_ListIter_delete(&subiter);
 
 			/* file permissions */
 			} else if( !PORT_Strcasecmp(subpair->key,
@@ -227,8 +225,7 @@ Pk11Install_File_Generate(Pk11Install_File* _this,
 					goto loser;
 				}
 				gotPerms = PR_TRUE;
-				Pk11Install_ListIter_delete(subiter);
-				subiter = NULL;
+				Pk11Install_ListIter_delete(&subiter);
 			}
 		} else {
 			if(!PORT_Strcasecmp(val->string, EXECUTABLE_STRING)) {
@@ -260,12 +257,10 @@ Pk11Install_File_Generate(Pk11Install_File* _this,
 
 loser:
 	if(iter) {
-		Pk11Install_ListIter_delete(iter);
-		PR_Free(iter);
+		Pk11Install_ListIter_delete(&iter);
 	}
 	if(subiter) {
-		Pk11Install_ListIter_delete(subiter);
-		PR_Free(subiter);
+		Pk11Install_ListIter_delete(&subiter);
 	}
 	return errStr;
 }
@@ -770,9 +765,7 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
 					goto loser;
 				}
 				_this->moduleFile = PR_Strdup(subval->string);
-				Pk11Install_ListIter_delete(subiter);
-				PR_Free(subiter);
-				subiter = NULL;
+				Pk11Install_ListIter_delete(&subiter);
 				gotModuleFile = PR_TRUE;
 			} else if(!PORT_Strcasecmp(subpair->key, MODULE_NAME_STRING)){
 				if(gotModuleName) {
@@ -788,9 +781,7 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
 					goto loser;
 				}
 				_this->moduleName = PR_Strdup(subval->string);
-				Pk11Install_ListIter_delete(subiter);
-				PR_Free(subiter);
-				subiter = NULL;
+				Pk11Install_ListIter_delete(&subiter);
 				gotModuleName = PR_TRUE;
 			} else if(!PORT_Strcasecmp(subpair->key, MECH_FLAGS_STRING)) {
 				endptr=NULL;
@@ -813,9 +804,7 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
                                     Pk11Install_PlatformName_GetString(&_this->name));
 					goto loser;
 				}
-				Pk11Install_ListIter_delete(subiter);
-				PR_Free(subiter);
-				subiter=NULL;
+				Pk11Install_ListIter_delete(&subiter);
 				gotMech = PR_TRUE;
 			} else if(!PORT_Strcasecmp(subpair->key,CIPHER_FLAGS_STRING)) {
 				endptr=NULL;
@@ -838,9 +827,7 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
                                     Pk11Install_PlatformName_GetString(&_this->name));
 					goto loser;
 				}
-				Pk11Install_ListIter_delete(subiter);
-				PR_Free(subiter);
-				subiter=NULL;
+				Pk11Install_ListIter_delete(&subiter);
 				gotCipher = PR_TRUE;
 			} else if(!PORT_Strcasecmp(subpair->key, FILES_STRING)) {
 				if(gotFiles) {
@@ -1089,9 +1076,7 @@ Pk11Install_Info_Generate(Pk11Install_Info* _this,
 						}
 					}
 				}
-				Pk11Install_ListIter_delete(subiter);
-				PR_Free(subiter);
-				subiter = NULL;
+				Pk11Install_ListIter_delete(&subiter);
 			} else if(!PORT_Strcasecmp(pair->key, PLATFORMS_STRING)) {
 				subiter = Pk11Install_ListIter_new(pair->list);
 				_this->numPlatforms = pair->list->numPairs;
@@ -1109,9 +1094,7 @@ Pk11Install_Info_Generate(Pk11Install_Info* _this,
 						}
 					}
 				}
-				Pk11Install_ListIter_delete(subiter);
-				PR_Free(subiter);
-				subiter = NULL;
+				Pk11Install_ListIter_delete(&subiter);
 			}
 		}
 	}
@@ -1192,14 +1175,10 @@ Pk11Install_Info_Generate(Pk11Install_Info* _this,
 
 loser:
 	if(iter) {
-		Pk11Install_ListIter_delete(iter);
-		PR_Free(iter);
-		iter = NULL;
+		Pk11Install_ListIter_delete(&iter);
 	}
 	if(subiter) {
-		Pk11Install_ListIter_delete(subiter);
-		PR_Free(subiter);
-		subiter = NULL;
+		Pk11Install_ListIter_delete(&subiter);
 	}
 	return errStr;
 }
@@ -1348,10 +1327,12 @@ Pk11Install_ListIter_new(const Pk11Install_ValueList *_list)
 
 /****************************************************************************/
 void
-Pk11Install_ListIter_delete(Pk11Install_ListIter* _this)
+Pk11Install_ListIter_delete(Pk11Install_ListIter** _this)
 {
-	_this->list=NULL;
-	_this->current=NULL;
+	(*_this)->list=NULL;
+	(*_this)->current=NULL;
+	PR_Free(*_this);
+	*_this=NULL;
 }
 
 /****************************************************************************/
