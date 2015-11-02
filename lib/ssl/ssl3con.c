@@ -4865,7 +4865,8 @@ tls12_loser:
 
             if (!spec->master_secret) {
                 PORT_SetError(SSL_ERROR_RX_UNEXPECTED_HANDSHAKE);
-                return SECFailure;
+                rv = SECFailure;
+                goto loser;
             }
 
 	    s[0] = (unsigned char)(sender >> 24);
