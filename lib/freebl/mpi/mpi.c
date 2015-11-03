@@ -1336,7 +1336,7 @@ mp_err mp_sqrt(const mp_int *a, mp_int *b)
   }
 
   /* Copy result to output parameter */
-  mp_sub_d(&x, 1, &x);
+  MP_CHECKOK(mp_sub_d(&x, 1, &x));
   s_mp_exch(&x, b);
 
  CLEANUP:
