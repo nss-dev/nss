@@ -207,7 +207,7 @@ const SEC_ASN1Template hashParameterTemplate[] =
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(SECItem) },
     { SEC_ASN1_OBJECT_ID, 0 },
     { SEC_ASN1_SKIP_REST },
-    { 0, }
+    { 0 }
 };
 
 /*

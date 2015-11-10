@@ -2096,10 +2096,10 @@ static DERTemplate SECAlgorithmIDTemplate[] = {
     { DER_SEQUENCE,
 	  0, NULL, sizeof(SECAlgorithmID) },
     { DER_OBJECT_ID,
-	  offsetof(SECAlgorithmID,algorithm), },
+	  offsetof(SECAlgorithmID,algorithm) },
     { DER_OPTIONAL | DER_ANY,
-	  offsetof(SECAlgorithmID,parameters), },
-    { 0, }
+	  offsetof(SECAlgorithmID,parameters) },
+    { 0 }
 };
 
 /*
@@ -2111,10 +2111,10 @@ static DERTemplate SGNDigestInfoTemplate[] = {
 	  0, NULL, sizeof(SGNDigestInfo) },
     { DER_INLINE,
 	  offsetof(SGNDigestInfo,digestAlgorithm),
-	  SECAlgorithmIDTemplate, },
+	  SECAlgorithmIDTemplate },
     { DER_OCTET_STRING,
-	  offsetof(SGNDigestInfo,digest), },
-    { 0, }
+	  offsetof(SGNDigestInfo,digest) },
+    { 0 }
 };
 
 /*

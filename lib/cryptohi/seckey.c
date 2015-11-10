@@ -25,8 +25,8 @@ const SEC_ASN1Template CERT_SubjectPublicKeyInfoTemplate[] = {
 	  offsetof(CERTSubjectPublicKeyInfo,algorithm),
 	  SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate) },
     { SEC_ASN1_BIT_STRING,
-	  offsetof(CERTSubjectPublicKeyInfo,subjectPublicKey), },
-    { 0, }
+	  offsetof(CERTSubjectPublicKeyInfo,subjectPublicKey) },
+    { 0 }
 };
 
 const SEC_ASN1Template CERT_PublicKeyAndChallengeTemplate[] =
@@ -39,9 +39,9 @@ const SEC_ASN1Template CERT_PublicKeyAndChallengeTemplate[] =
 
 const SEC_ASN1Template SECKEY_RSAPublicKeyTemplate[] = {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(SECKEYPublicKey) },
-    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.rsa.modulus), },
-    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.rsa.publicExponent), },
-    { 0, }
+    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.rsa.modulus) },
+    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.rsa.publicExponent) },
+    { 0 }
 };
 
 static const SEC_ASN1Template seckey_PointerToAlgorithmIDTemplate[] = {
@@ -73,8 +73,8 @@ const SEC_ASN1Template SECKEY_RSAPSSParamsTemplate[] =
 };
 
 const SEC_ASN1Template SECKEY_DSAPublicKeyTemplate[] = {
-    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.dsa.publicValue), },
-    { 0, }
+    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.dsa.publicValue) },
+    { 0 }
 };
 
 const SEC_ASN1Template SECKEY_PQGParamsTemplate[] = {
@@ -82,21 +82,21 @@ const SEC_ASN1Template SECKEY_PQGParamsTemplate[] = {
     { SEC_ASN1_INTEGER, offsetof(SECKEYPQGParams,prime) },
     { SEC_ASN1_INTEGER, offsetof(SECKEYPQGParams,subPrime) },
     { SEC_ASN1_INTEGER, offsetof(SECKEYPQGParams,base) },
-    { 0, }
+    { 0 }
 };
 
 const SEC_ASN1Template SECKEY_DHPublicKeyTemplate[] = {
-    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.dh.publicValue), },
-    { 0, }
+    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.dh.publicValue) },
+    { 0 }
 };
 
 const SEC_ASN1Template SECKEY_DHParamKeyTemplate[] = {
     { SEC_ASN1_SEQUENCE,  0, NULL, sizeof(SECKEYPublicKey) },
-    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.dh.prime), },
-    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.dh.base), },
+    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.dh.prime) },
+    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.dh.base) },
     /* XXX chrisk: this needs to be expanded for decoding of j and validationParms (RFC2459 7.3.2) */
     { SEC_ASN1_SKIP_REST },
-    { 0, }
+    { 0 }
 };
 
 SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_DSAPublicKeyTemplate)

@@ -126,10 +126,10 @@ static const SEC_ASN1Template mySECOID_AlgorithmIDTemplate[] = {
     { SEC_ASN1_SEQUENCE,
           0, NULL, sizeof(SECAlgorithmID) },
     { SEC_ASN1_OBJECT_ID,
-          offsetof(SECAlgorithmID,algorithm), },
+          offsetof(SECAlgorithmID,algorithm) },
     { SEC_ASN1_OPTIONAL | SEC_ASN1_ANY,
-          offsetof(SECAlgorithmID,parameters), },
-    { 0, }
+          offsetof(SECAlgorithmID,parameters) },
+    { 0 }
 };
 
 static const SEC_ASN1Template mySEC_AnyTemplate[] = {
@@ -184,7 +184,7 @@ static const SEC_ASN1Template myCERT_CertExtensionTemplate[] = {
           offsetof(CERTCertExtension,critical) },
     { SEC_ASN1_OCTET_STRING,
           offsetof(CERTCertExtension,value) },
-    { 0, }
+    { 0 }
 };
 
 static const SEC_ASN1Template myCERT_SequenceOfCertExtensionTemplate[] = {

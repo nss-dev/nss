@@ -32,7 +32,7 @@ static const SEC_ASN1Template CERTBasicConstraintsTemplate[] = {
 	  offsetof(EncodedContext,isCA)},
     { SEC_ASN1_OPTIONAL | SEC_ASN1_INTEGER,
 	  offsetof(EncodedContext,pathLenConstraint) },
-    { 0, }
+    { 0 }
 };
 
 static unsigned char hexTrue = 0xff;

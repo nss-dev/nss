@@ -51,7 +51,7 @@ const SEC_ASN1Template CERT_CertExtensionTemplate[] = {
 	  offsetof(CERTCertExtension,critical) },
     { SEC_ASN1_OCTET_STRING,
 	  offsetof(CERTCertExtension,value) },
-    { 0, }
+    { 0 }
 };
 
 const SEC_ASN1Template CERT_SequenceOfCertExtensionTemplate[] = {
