@@ -15,10 +15,10 @@ static const SEC_ASN1Template cert_AVATemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	  0, NULL, sizeof(CERTAVA) },
     { SEC_ASN1_OBJECT_ID,
-	  offsetof(CERTAVA,type), },
+	  offsetof(CERTAVA,type) },
     { SEC_ASN1_ANY,
-	  offsetof(CERTAVA,value), },
-    { 0, }
+	  offsetof(CERTAVA,value) },
+    { 0 }
 };
 
 const SEC_ASN1Template CERT_RDNTemplate[] = {

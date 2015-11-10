@@ -113,10 +113,10 @@ static DERTemplate SECAlgorithmIDTemplate[] = {
     { DER_SEQUENCE,
 	  0, NULL, sizeof(SECAlgorithmID) },
     { DER_OBJECT_ID,
-	  offsetof(SECAlgorithmID,algorithm), },
+	  offsetof(SECAlgorithmID,algorithm) },
     { DER_OPTIONAL | DER_ANY,
-	  offsetof(SECAlgorithmID,parameters), },
-    { 0, }
+	  offsetof(SECAlgorithmID,parameters) },
+    { 0 }
 };
 
 /*
@@ -128,10 +128,10 @@ static DERTemplate SGNDigestInfoTemplate[] = {
 	  0, NULL, sizeof(SGNDigestInfo) },
     { DER_INLINE,
 	  offsetof(SGNDigestInfo,digestAlgorithm),
-	  SECAlgorithmIDTemplate, },
+	  SECAlgorithmIDTemplate },
     { DER_OCTET_STRING,
-	  offsetof(SGNDigestInfo,digest), },
-    { 0, }
+	  offsetof(SGNDigestInfo,digest) },
+    { 0 }
 };
 
 SECStatus
@@ -269,13 +269,13 @@ DERTemplate CERTSignedDataTemplate[] =
     { DER_SEQUENCE,
 	  0, NULL, sizeof(CERTSignedData) },
     { DER_ANY,
-	  offsetof(CERTSignedData,data), },
+	  offsetof(CERTSignedData,data) },
     { DER_INLINE,
 	  offsetof(CERTSignedData,signatureAlgorithm),
-	  SECAlgorithmIDTemplate, },
+	  SECAlgorithmIDTemplate },
     { DER_BIT_STRING,
-	  offsetof(CERTSignedData,signature), },
-    { 0, }
+	  offsetof(CERTSignedData,signature) },
+    { 0 }
 };
 
 SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
@@ -285,13 +285,13 @@ const SEC_ASN1Template CERT_SignedDataTemplate[] =
     { SEC_ASN1_SEQUENCE,
 	  0, NULL, sizeof(CERTSignedData) },
     { SEC_ASN1_ANY,
-	  offsetof(CERTSignedData,data), },
+	  offsetof(CERTSignedData,data) },
     { SEC_ASN1_INLINE | SEC_ASN1_XTRN,
 	  offsetof(CERTSignedData,signatureAlgorithm),
-	  SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate), },
+	  SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate) },
     { SEC_ASN1_BIT_STRING,
-	  offsetof(CERTSignedData,signature), },
-    { 0, }
+	  offsetof(CERTSignedData,signature) },
+    { 0 }
 };
 
 SEC_ASN1_CHOOSER_IMPLEMENT(CERT_SignedDataTemplate)

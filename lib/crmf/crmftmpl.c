@@ -38,7 +38,7 @@ static const SEC_ASN1Template CRMFCertExtensionTemplate[] = {
 	  offsetof(CRMFCertExtension,critical) },
     { SEC_ASN1_OCTET_STRING,
 	  offsetof(CRMFCertExtension,value) },
-    { 0, }
+    { 0 }
 };
 
 static const SEC_ASN1Template CRMFSequenceOfCertExtensionTemplate[] = {

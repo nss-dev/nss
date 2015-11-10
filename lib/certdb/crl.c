@@ -30,10 +30,10 @@ const SEC_ASN1Template SEC_CERTExtensionTemplate[] = {
     { SEC_ASN1_OBJECT_ID,
 	  offsetof(CERTCertExtension,id) },
     { SEC_ASN1_OPTIONAL | SEC_ASN1_BOOLEAN,		/* XXX DER_DEFAULT */
-	  offsetof(CERTCertExtension,critical), },
+	  offsetof(CERTCertExtension,critical) },
     { SEC_ASN1_OCTET_STRING,
 	  offsetof(CERTCertExtension,value) },
-    { 0, }
+    { 0 }
 };
 
 static const SEC_ASN1Template SEC_CERTExtensionsTemplate[] = {

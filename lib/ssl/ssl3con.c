@@ -10925,8 +10925,8 @@ ssl3_TLSPRFWithMasterSecret(ssl3CipherSpec *spec, const char *label,
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
 	rv = SECFailure;
 #else
-	SECItem inData  = { siBuffer, };
-	SECItem outData = { siBuffer, };
+	SECItem inData  = { siBuffer };
+	SECItem outData = { siBuffer };
 	PRBool isFIPS   = PR_FALSE;
 
 	inData.data  = (unsigned char *) val;

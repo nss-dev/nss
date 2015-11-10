@@ -32,7 +32,7 @@ static const SEC_ASN1Template CERTNameConstraintTemplate[] = {
     { SEC_ASN1_OPTIONAL | SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 1, 
           offsetof(CERTNameConstraint, max),
           SEC_ASN1_SUB(SEC_IntegerTemplate) },
-    { 0, }
+    { 0 }
 };
 
 const SEC_ASN1Template CERT_NameConstraintSubtreeSubTemplate[] = {
@@ -47,7 +47,7 @@ static const SEC_ASN1Template CERTNameConstraintsTemplate[] = {
     { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 1, 
           offsetof(CERTNameConstraints, DERExcluded), 
 	  CERT_NameConstraintSubtreeSubTemplate},
-    { 0, }
+    { 0 }
 };
 
 
@@ -58,7 +58,7 @@ static const SEC_ASN1Template CERTOthNameTemplate[] = {
     { SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_CONSTRUCTED | SEC_ASN1_EXPLICIT |
           SEC_ASN1_XTRN | 0, offsetof(OtherName, name),
           SEC_ASN1_SUB(SEC_AnyTemplate) },
-    { 0, } 
+    { 0 } 
 };
 
 static const SEC_ASN1Template CERTOtherNameTemplate[] = {

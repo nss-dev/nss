@@ -41,7 +41,7 @@ static const SEC_ASN1Template CERTPrivateKeyUsagePeriodTemplate[] = {
     { SEC_ASN1_OPTIONAL | SEC_ASN1_CONTEXT_SPECIFIC  | SEC_ASN1_XTRN | 1,
 	  offsetof(CERTPrivKeyUsagePeriod, notAfter), 
 	  SEC_ASN1_SUB(SEC_GeneralizedTimeTemplate)},
-    { 0, } 
+    { 0 } 
 };
 
 
@@ -57,7 +57,7 @@ const SEC_ASN1Template CERTAuthInfoAccessItemTemplate[] = {
       offsetof(CERTAuthInfoAccess, method) },
     { SEC_ASN1_ANY,
       offsetof(CERTAuthInfoAccess, derLocation) },
-    { 0, }
+    { 0 }
 };
 
 const SEC_ASN1Template CERTAuthInfoAccessTemplate[] = {
