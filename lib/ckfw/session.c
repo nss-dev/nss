@@ -916,8 +916,8 @@ NSS_IMPLEMENT CK_RV
 nssCKFWSession_SetPIN
 (
   NSSCKFWSession *fwSession,
-  NSSItem *newPin,
-  NSSItem *oldPin
+  NSSItem *oldPin,
+  NSSItem *newPin
 )
 {
   CK_RV error = CKR_OK;
@@ -953,7 +953,7 @@ nssCKFWSession_SetPIN
 
   error = fwSession->mdSession->SetPIN(fwSession->mdSession, fwSession,
     fwSession->mdToken, fwSession->fwToken, fwSession->mdInstance,
-    fwSession->fwInstance, newPin, oldPin);
+    fwSession->fwInstance, oldPin, newPin);
 
   return error;
 }
