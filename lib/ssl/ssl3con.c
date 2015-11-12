@@ -9232,8 +9232,8 @@ ssl3_PickSignatureHashAlgorithm(sslSocket *ss,
             continue;
         }
         hashOID = ssl3_TLSHashAlgorithmToOID(serverPref->hashAlg);
-	if ((NSS_GetAlgorithmPolicy(hashOID, &policy) != SECSuccess)
-	    || !(policy & NSS_USE_ALG_IN_SSL_KX)) {
+	if ((NSS_GetAlgorithmPolicy(hashOID, &policy) == SECSuccess)
+	    && !(policy & NSS_USE_ALG_IN_SSL_KX)) {
 	    /* we ignore hashes we don't support */
 	    continue;
 	}
