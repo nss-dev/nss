@@ -28,16 +28,17 @@ struct ScopedMaybeDelete {
   void operator()(T* ptr) { if (ptr) { ScopedDelete del; del(ptr); } }
 };
 
-template<class T>
-using ScopedUniquePtr = std::unique_ptr<T, ScopedMaybeDelete<T>>;
+#define SCOPED(x) typedef std::unique_ptr<x, ScopedMaybeDelete<x> > Scoped ## x
 
-using ScopedPK11SlotInfo = ScopedUniquePtr<PK11SlotInfo>;
-using ScopedSECItem = ScopedUniquePtr<SECItem>;
-using ScopedPK11SymKey = ScopedUniquePtr<PK11SymKey>;
-using ScopedSECKEYPublicKey = ScopedUniquePtr<SECKEYPublicKey>;
-using ScopedSECKEYPrivateKey = ScopedUniquePtr<SECKEYPrivateKey>;
-using ScopedSECAlgorithmID = ScopedUniquePtr<SECAlgorithmID>;
-using ScopedCERTSubjectPublicKeyInfo = ScopedUniquePtr<CERTSubjectPublicKeyInfo>;
+SCOPED(PK11SlotInfo);
+SCOPED(SECItem);
+SCOPED(PK11SymKey);
+SCOPED(SECKEYPublicKey);
+SCOPED(SECKEYPrivateKey);
+SCOPED(SECAlgorithmID);
+SCOPED(CERTSubjectPublicKeyInfo);
+
+#undef SCOPED
 
 }  // namespace nss_test
 
