@@ -8,6 +8,7 @@ MODULE = nss
 
 CPPSRCS = \
       pk11_pbkdf2_unittest.cc \
+      pk11_prf_unittest.cc \
       pk11_rsapss_unittest.cc \
       pk11_gtest.cc \
       $(NULL)
