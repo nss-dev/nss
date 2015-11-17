@@ -7152,7 +7152,7 @@ ssl3_DestroyBackupHandshakeHashIfNotNeeded(sslSocket *ss,
 {
     SECStatus rv;
     SSLSignType sigAlg;
-    PRBool preferSha1;
+    PRBool preferSha1 = PR_FALSE;
     PRBool supportsSha1 = PR_FALSE;
     PRBool supportsSha256 = PR_FALSE;
     PRBool needBackupHash = PR_FALSE;
