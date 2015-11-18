@@ -140,7 +140,7 @@ class TlsPrfTest : public ::testing::Test {
     CK_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE_PARAMS master_params = {
       hash_mech,
       toUcharPtr(kPrfSeed),
-      seed_len,
+      static_cast<CK_ULONG>(seed_len),
       version
     };
     params_.data = reinterpret_cast<unsigned char*>(&master_params);
