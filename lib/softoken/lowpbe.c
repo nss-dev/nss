@@ -731,7 +731,7 @@ finish_des:
  */
 NSSPKCS5PBEParameter *
 nsspkcs5_NewParam(SECOidTag alg, HASH_HashType hashType, SECItem *salt,
-                  int iterator)
+                  int iterationCount)
 {
     PLArenaPool *arena = NULL;
     NSSPKCS5PBEParameter *pbe_param = NULL;
@@ -756,7 +756,7 @@ nsspkcs5_NewParam(SECOidTag alg, HASH_HashType hashType, SECItem *salt,
 	goto loser;
     }
 
-    pbe_param->iter = iterator;
+    pbe_param->iter = iterationCount;
     if (salt) {
 	rv = SECITEM_CopyItem(arena,&pbe_param->salt,salt);
     }
