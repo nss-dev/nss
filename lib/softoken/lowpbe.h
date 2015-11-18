@@ -78,7 +78,7 @@ nsspkcs5_AlgidToParam(SECAlgorithmID *algid);
  */
 NSSPKCS5PBEParameter *
 nsspkcs5_NewParam(SECOidTag alg, HASH_HashType hashType, SECItem *salt,
-                  int iterator);
+                  int iterationCount);
 
 
 /* Encrypt/Decrypt data using password based encryption.  
