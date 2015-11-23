@@ -26,6 +26,11 @@ include $(CORE_DEPTH)/coreconf/config.mk
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
 #######################################################################
 
+# Note for downstream package maintainers: if building with
+# NSS_BUILD_UTIL_ONLY or NSS_BUILD_SOFTOKEN_ONLY set up
+# export NSS_DISABLE_GTESTS=1 via the spec files or other
+# mechanism controling the build
+
 ifdef NSS_DISABLE_GTESTS
 DIRS := $(filter-out external_tests,$(DIRS))
 endif

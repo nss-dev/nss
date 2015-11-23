@@ -6,8 +6,22 @@
 DEPTH	= ..
 # MODULE	= seccmd
 
+ifdef NSS_BUILD_UTIL_ONLY
+REQUIRES = nspr
+
+DIRS = \
+ $(NULL)
+else
 REQUIRES = nss nspr libdbm
 
+ifdef NSS_BUILD_SOFTOKEN_ONLY
+DIRS = lib  \
+ $(BLTEST_SRCDIR) \
+ $(FIPSTEST_SRCDIR)  \
+ $(LOWHASHTEST_SRCDIR)  \
+ $(SHLIBSIGN_SRCDIR) \
+ $(NULL)
+else
 DIRS = lib  \
  addbuiltin \
  atob  \
@@ -58,6 +72,8 @@ DIRS = lib  \
  vfyserv \
  modutil \
  $(NULL)
+endif
+endif
 
 TEMPORARILY_DONT_BUILD = \
  $(NULL)

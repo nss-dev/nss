@@ -16,7 +16,27 @@ DEPTH      = ..
 #  smime
 #  ckfw (builtins module)
 #  crmf jar (not dll's)
-DIRS = \
+ifdef NSS_BUILD_UTIL_ONLY
+  DIRS = \
+	$(UTIL_SRCDIR) \
+	$(NULL)
+else
+  ifdef NSS_BUILD_SOFTOKEN_ONLY
+    # Building softoken (and freebl) only requires that the paths
+    # to the locations where the util headers and libraries were
+    # previously installed by a prior util-only build, likely in
+    # in a system location that varies with the distribution. This
+    # cannot be addressed here and requires that downstream package
+    # mantainers add suitable modifications.
+    DIRS = \
+	$(UTIL_SRCDIR) \
+	$(FREEBL_SRCDIR) \
+	$(SQLITE_SRCDIR) \
+	$(DBM_SRCDIR) \
+	$(SOFTOKEN_SRCDIR) \
+	$(NULL)
+  else
+    DIRS = \
 	$(UTIL_SRCDIR) \
 	$(FREEBL_SRCDIR) \
 	$(SQLITE_SRCDIR) \
@@ -30,6 +50,8 @@ DIRS = \
 	crmf jar \
 	ckfw $(SYSINIT_SRCDIR) \
 	$(NULL)
+  endif
+endif
 
 #  fortcrypt  is no longer built
 
