@@ -29,7 +29,6 @@ DIRS = lib  \
  btoa  \
  certcgi \
  certutil  \
- checkcert  \
  chktest  \
  crlutil  \
  crmftest \
