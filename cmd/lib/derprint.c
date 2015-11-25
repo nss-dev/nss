@@ -232,6 +232,10 @@ prettyPrintObjectID(FILE *out, const unsigned char *data,
     if (rv < 0)
 	return rv;
 
+    if (len == 0) {
+	PORT_SetError(SEC_ERROR_BAD_DER);
+	return -1;
+    }
     val = data[0];
     i   = val % 40;
     val = val / 40;
