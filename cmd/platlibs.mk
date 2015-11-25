@@ -51,6 +51,9 @@ EXTRA_SHARED_LIBS += \
 	$(NULL)
 endif
 
+ifeq ($(NSS_BUILD_SOFTOKEN_ONLY), 1)
+PKIXLIB =
+else
 PKIXLIB = \
 	$(DIST)/lib/$(LIB_PREFIX)pkixtop.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pkixutil.$(LIB_SUFFIX) \
@@ -64,10 +67,23 @@ PKIXLIB = \
 	$(DIST)/lib/$(LIB_PREFIX)pkixtop.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pkixresults.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pkixcertsel.$(LIB_SUFFIX)
+endif
 
 # can't do this in manifest.mn because OS_ARCH isn't defined there.
 ifeq ($(OS_ARCH), WINNT)
 
+ifeq ($(NSS_BUILD_SOFTOKEN_ONLY),1)
+EXTRA_LIBS += \
+	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
+	$(SOFTOKENLIB) \
+	$(CRYPTOLIB) \
+	$(SQLITE_LIB_DIR)/$(LIB_PREFIX)$(SQLITE_LIB_NAME).$(LIB_SUFFIX) \
+	$(NSSUTIL_LIB_DIR)/$(LIB_PREFIX)nssutil3.$(LIB_SUFFIX) \
+	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plc4.$(LIB_SUFFIX) \
+	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plds4.$(LIB_SUFFIX) \
+	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)nspr4.$(LIB_SUFFIX) \
+	$(NULL)
+else
 EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)smime.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
@@ -93,6 +109,7 @@ EXTRA_LIBS += \
 	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plds4.$(LIB_SUFFIX) \
 	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)nspr4.$(LIB_SUFFIX) \
 	$(NULL)
+endif
 
 # $(PROGRAM) has NO explicit dependencies on $(OS_LIBS)
 #OS_LIBS += \
@@ -100,7 +117,13 @@ EXTRA_LIBS += \
 	winmm.lib \
 	$(NULL)
 else
-
+ifeq ($(NSS_BUILD_SOFTOKEN_ONLY),1)
+EXTRA_LIBS += \
+	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
+	$(SOFTOKENLIB) \
+	$(CRYPTOLIB) \
+	$(NULL)
+else
 EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)smime.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
@@ -127,6 +150,7 @@ EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
 	$(NULL)
+endif
 
 ifeq ($(OS_ARCH), AIX) 
 EXTRA_SHARED_LIBS += -brtl 
@@ -151,6 +175,15 @@ else # USE_STATIC_LIBS
 ifeq ($(OS_ARCH), WINNT)
 
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
+ifneq ($(NSS_BUILD_SOFTOKEN_ONLY), 1)
+EXTRA_LIBS += \
+	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
+	$(NSSUTIL_LIB_DIR)/$(IMPORT_LIB_PREFIX)nssutil3$(IMPORT_LIB_SUFFIX) \
+	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plc4$(IMPORT_LIB_SUFFIX) \
+	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plds4$(IMPORT_LIB_SUFFIX) \
+	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)nspr4$(IMPORT_LIB_SUFFIX) \
+	$(NULL)
+else
 EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
 	$(NSSUTIL_LIB_DIR)/$(IMPORT_LIB_PREFIX)nssutil3$(IMPORT_LIB_SUFFIX) \
@@ -161,6 +194,7 @@ EXTRA_LIBS += \
 	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plds4$(IMPORT_LIB_SUFFIX) \
 	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)nspr4$(IMPORT_LIB_SUFFIX) \
 	$(NULL)
+endif
 
 # $(PROGRAM) has NO explicit dependencies on $(OS_LIBS)
 #OS_LIBS += \
