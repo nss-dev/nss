@@ -51,7 +51,9 @@ EXTRA_SHARED_LIBS += \
 	$(NULL)
 endif
 
-ifneq ($(NSS_BUILD_SOFTOKEN_ONLY), 1)
+ifeq ($(NSS_BUILD_SOFTOKEN_ONLY), 1)
+PKIXLIB =
+else
 PKIXLIB = \
 	$(DIST)/lib/$(LIB_PREFIX)pkixtop.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pkixutil.$(LIB_SUFFIX) \
@@ -70,37 +72,44 @@ endif
 # can't do this in manifest.mn because OS_ARCH isn't defined there.
 ifeq ($(OS_ARCH), WINNT)
 
+ifeq ($(NSS_BUILD_SOFTOKEN_ONLY),1)
 EXTRA_LIBS += \
-ifneq ($(NSS_BUILD_SOFTOKEN_ONLY), 1)
-	$(DIST)/lib/$(LIB_PREFIX)smime.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
-endif
 	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
-ifneq ($(NSS_BUILD_SOFTOKEN_ONLY), 1)
-	$(DIST)/lib/$(LIB_PREFIX)pkcs12.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)pkcs7.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)cryptohi.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)certdb.$(LIB_SUFFIX) \
-endif
 	$(SOFTOKENLIB) \
 	$(CRYPTOLIB) \
-ifneq ($(NSS_BUILD_SOFTOKEN_ONLY), 1)
-	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nssdev.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
-	$(PKIXLIB) \
-	$(DBMLIB) \
-endif
 	$(SQLITE_LIB_DIR)/$(LIB_PREFIX)$(SQLITE_LIB_NAME).$(LIB_SUFFIX) \
 	$(NSSUTIL_LIB_DIR)/$(LIB_PREFIX)nssutil3.$(LIB_SUFFIX) \
 	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plc4.$(LIB_SUFFIX) \
 	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plds4.$(LIB_SUFFIX) \
 	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)nspr4.$(LIB_SUFFIX) \
 	$(NULL)
+else
+EXTRA_LIBS += \
+	$(DIST)/lib/$(LIB_PREFIX)smime.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)pkcs12.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)pkcs7.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)cryptohi.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)certdb.$(LIB_SUFFIX) \
+	$(SOFTOKENLIB) \
+	$(CRYPTOLIB) \
+	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)nssdev.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
+	$(PKIXLIB) \
+	$(DBMLIB) \
+	$(SQLITE_LIB_DIR)/$(LIB_PREFIX)$(SQLITE_LIB_NAME).$(LIB_SUFFIX) \
+	$(NSSUTIL_LIB_DIR)/$(LIB_PREFIX)nssutil3.$(LIB_SUFFIX) \
+	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plc4.$(LIB_SUFFIX) \
+	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plds4.$(LIB_SUFFIX) \
+	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)nspr4.$(LIB_SUFFIX) \
+	$(NULL)
+endif
 
 # $(PROGRAM) has NO explicit dependencies on $(OS_LIBS)
 #OS_LIBS += \
@@ -108,16 +117,19 @@ endif
 	winmm.lib \
 	$(NULL)
 else
-
+ifeq ($(NSS_BUILD_SOFTOKEN_ONLY),1)
 EXTRA_LIBS += \
-ifneq ($(NSS_BUILD_SOFTOKEN_ONLY),1)
+	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
+	$(SOFTOKENLIB) \
+	$(CRYPTOLIB) \
+	$(NULL)
+else
+EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)smime.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
-endif
 	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
-ifneq ($(NSS_BUILD_SOFTOKEN_ONLY),1)
 	$(DIST)/lib/$(LIB_PREFIX)pkcs12.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pkcs7.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
@@ -126,23 +138,19 @@ ifneq ($(NSS_BUILD_SOFTOKEN_ONLY),1)
 	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
-endif
 	$(SOFTOKENLIB) \
-ifneq ($(NSS_BUILD_SOFTOKEN_ONLY),1)
 	$(DIST)/lib/$(LIB_PREFIX)certdb.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nssdev.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
-endif
 	$(CRYPTOLIB) \
-ifneq ($(NSS_BUILD_SOFTOKEN_ONLY),1)
 	$(DBMLIB) \
 	$(PKIXLIB) \
 	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
-endif
 	$(NULL)
+endif
 
 ifeq ($(OS_ARCH), AIX) 
 EXTRA_SHARED_LIBS += -brtl 
@@ -167,18 +175,26 @@ else # USE_STATIC_LIBS
 ifeq ($(OS_ARCH), WINNT)
 
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
+ifeq ($(NSS_BUILD_SOFTOKEN_ONLY), 1)
 EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
 	$(NSSUTIL_LIB_DIR)/$(IMPORT_LIB_PREFIX)nssutil3$(IMPORT_LIB_SUFFIX) \
-ifneq ($(NSS_BUILD_SOFTOKEN_ONLY), 1)
-	$(DIST)/lib/$(IMPORT_LIB_PREFIX)smime3$(IMPORT_LIB_SUFFIX) \
-	$(DIST)/lib/$(IMPORT_LIB_PREFIX)ssl3$(IMPORT_LIB_SUFFIX) \
-	$(DIST)/lib/$(IMPORT_LIB_PREFIX)nss3$(IMPORT_LIB_SUFFIX) \
-endif
 	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plc4$(IMPORT_LIB_SUFFIX) \
 	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plds4$(IMPORT_LIB_SUFFIX) \
 	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)nspr4$(IMPORT_LIB_SUFFIX) \
 	$(NULL)
+else
+EXTRA_LIBS += \
+	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
+	$(NSSUTIL_LIB_DIR)/$(IMPORT_LIB_PREFIX)nssutil3$(IMPORT_LIB_SUFFIX) \
+	$(DIST)/lib/$(IMPORT_LIB_PREFIX)smime3$(IMPORT_LIB_SUFFIX) \
+	$(DIST)/lib/$(IMPORT_LIB_PREFIX)ssl3$(IMPORT_LIB_SUFFIX) \
+	$(DIST)/lib/$(IMPORT_LIB_PREFIX)nss3$(IMPORT_LIB_SUFFIX) \
+	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plc4$(IMPORT_LIB_SUFFIX) \
+	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plds4$(IMPORT_LIB_SUFFIX) \
+	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)nspr4$(IMPORT_LIB_SUFFIX) \
+	$(NULL)
+endif
 
 # $(PROGRAM) has NO explicit dependencies on $(OS_LIBS)
 #OS_LIBS += \
@@ -200,11 +216,9 @@ endif
 # $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
 EXTRA_SHARED_LIBS += \
 	-L$(DIST)/lib \
-ifneq ($(NSS_BUILD_SOFTOKEN_ONLY), 1)
 	-lssl3 \
 	-lsmime3 \
 	-lnss3 \
-endif
 	-L$(NSSUTIL_LIB_DIR) \
 	-lnssutil3 \
 	-L$(NSPR_LIB_DIR) \
