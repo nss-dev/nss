@@ -6543,7 +6543,8 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     ss->ssl3.hs.preliminaryInfo |= ssl_preinfo_cipher_suite;
     PORT_Assert(ss->ssl3.hs.suite_def);
     if (!ss->ssl3.hs.suite_def) {
-    	PORT_SetError(errCode = SEC_ERROR_LIBRARY_FAILURE);
+	errCode = SEC_ERROR_LIBRARY_FAILURE;
+	PORT_SetError(errCode);
 	goto loser;	/* we don't send alerts for our screw-ups. */
     }
 
@@ -6804,7 +6805,7 @@ alert_loser:
     (void)SSL3_SendAlert(ss, alert_fatal, desc);
 
 loser:
-    errCode = ssl_MapLowLevelError(errCode);
+    ssl_MapLowLevelError(errCode);
     return SECFailure;
 }
 
@@ -9000,7 +9001,7 @@ ssl3_SendServerHello(sslSocket *ss)
     	extensions_len -= 2;
 	rv = ssl3_AppendHandshakeNumber(ss, extensions_len, 2);
 	if (rv != SECSuccess) 
-	    return rv;	/* err set by ssl3_SetupPendingCipherSpec */
+	    return rv;	/* err set by ssl3_AppendHandshakeNumber */
 	sent_len = ssl3_CallHelloExtensionSenders(ss, PR_TRUE, extensions_len,
 					   &ss->xtnData.serverSenders[0]);
         PORT_Assert(sent_len == extensions_len);
@@ -10393,8 +10394,6 @@ ssl3_CleanupPeerCerts(sslSocket *ss)
 /* Called from ssl3_HandleHandshakeMessage() when it has deciphered a complete
  * ssl3 CertificateStatus message.
  * Caller must hold Handshake and RecvBuf locks.
- * This is always called before ssl3_HandleCertificate, even if the Certificate
- * message is sent first.
  */
 static SECStatus
 ssl3_HandleCertificateStatus(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
