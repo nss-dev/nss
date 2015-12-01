@@ -1580,32 +1580,36 @@ done:
 
 /* Agence Nationale de la Securite des Systemes d'Information (ANSSI) */
 
-#define ANSSI_SUBJECT_DN \
-    "\x30\x81\x85"                                                     \
-    "\x31\x0B\x30\x09\x06\x03\x55\x04\x06\x13\x02" "FR"       /* C */  \
-    "\x31\x0F\x30\x0D\x06\x03\x55\x04\x08\x13\x06" "France"   /* ST */ \
-    "\x31\x0E\x30\x0C\x06\x03\x55\x04\x07\x13\x05" "Paris"    /* L */  \
-    "\x31\x10\x30\x0E\x06\x03\x55\x04\x0A\x13\x07" "PM/SGDN"  /* O */  \
-    "\x31\x0E\x30\x0C\x06\x03\x55\x04\x0B\x13\x05" "DCSSI"    /* OU */ \
-    "\x31\x0E\x30\x0C\x06\x03\x55\x04\x03\x13\x05" "IGC/A"    /* CN */ \
-    "\x31\x23\x30\x21\x06\x09\x2A\x86\x48\x86\xF7\x0D\x01\x09\x01"     \
-    "\x16\x14" "igca@sgdn.pm.gouv.fr" /* emailAddress */ \
+/* clang-format off */
 
-#define ANSSI_NAME_CONSTRAINTS \
-    "\x30\x5D\xA0\x5B"       \
-    "\x30\x05\x82\x03" ".fr" \
-    "\x30\x05\x82\x03" ".gp" \
-    "\x30\x05\x82\x03" ".gf" \
-    "\x30\x05\x82\x03" ".mq" \
-    "\x30\x05\x82\x03" ".re" \
-    "\x30\x05\x82\x03" ".yt" \
-    "\x30\x05\x82\x03" ".pm" \
-    "\x30\x05\x82\x03" ".bl" \
-    "\x30\x05\x82\x03" ".mf" \
-    "\x30\x05\x82\x03" ".wf" \
-    "\x30\x05\x82\x03" ".pf" \
-    "\x30\x05\x82\x03" ".nc" \
-    "\x30\x05\x82\x03" ".tf" \
+#define ANSSI_SUBJECT_DN                                                       \
+    "\x30\x81\x85"                                                             \
+    "\x31\x0B\x30\x09\x06\x03\x55\x04\x06\x13\x02" "FR"       /* C */          \
+    "\x31\x0F\x30\x0D\x06\x03\x55\x04\x08\x13\x06" "France"   /* ST */         \
+    "\x31\x0E\x30\x0C\x06\x03\x55\x04\x07\x13\x05" "Paris"    /* L */          \
+    "\x31\x10\x30\x0E\x06\x03\x55\x04\x0A\x13\x07" "PM/SGDN"  /* O */          \
+    "\x31\x0E\x30\x0C\x06\x03\x55\x04\x0B\x13\x05" "DCSSI"    /* OU */         \
+    "\x31\x0E\x30\x0C\x06\x03\x55\x04\x03\x13\x05" "IGC/A"    /* CN */         \
+    "\x31\x23\x30\x21\x06\x09\x2A\x86\x48\x86\xF7\x0D\x01\x09\x01"             \
+    "\x16\x14" "igca@sgdn.pm.gouv.fr" /* emailAddress */                       \
+
+#define ANSSI_NAME_CONSTRAINTS                                                 \
+    "\x30\x5D\xA0\x5B"                                                         \
+    "\x30\x05\x82\x03" ".fr"                                                   \
+    "\x30\x05\x82\x03" ".gp"                                                   \
+    "\x30\x05\x82\x03" ".gf"                                                   \
+    "\x30\x05\x82\x03" ".mq"                                                   \
+    "\x30\x05\x82\x03" ".re"                                                   \
+    "\x30\x05\x82\x03" ".yt"                                                   \
+    "\x30\x05\x82\x03" ".pm"                                                   \
+    "\x30\x05\x82\x03" ".bl"                                                   \
+    "\x30\x05\x82\x03" ".mf"                                                   \
+    "\x30\x05\x82\x03" ".wf"                                                   \
+    "\x30\x05\x82\x03" ".pf"                                                   \
+    "\x30\x05\x82\x03" ".nc"                                                   \
+    "\x30\x05\x82\x03" ".tf"                                                   \
+
+/* clang-format on */
 
 static const SECItem builtInNameConstraints[][2] = {
     NAME_CONSTRAINTS_ENTRY(ANSSI)
