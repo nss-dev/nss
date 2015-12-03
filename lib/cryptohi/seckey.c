@@ -998,10 +998,10 @@ SECKEY_PublicKeyStrengthInBits(const SECKEYPublicKey *pubk)
         bitSize = SECKEY_BigIntegerBitLength(&pubk->u.rsa.modulus);
         break;
     case dsaKey:
-        bitSize = SECKEY_BigIntegerBitLength(&pubk->u.dsa.publicValue);
+        bitSize = SECKEY_BigIntegerBitLength(&pubk->u.dsa.params.prime);
         break;
     case dhKey:
-        bitSize = SECKEY_BigIntegerBitLength(&pubk->u.dh.publicValue);
+        bitSize = SECKEY_BigIntegerBitLength(&pubk->u.dh.prime);
         break;
     case ecKey:
         bitSize = SECKEY_ECParamsToKeySize(&pubk->u.ec.DEREncodedParams);
