@@ -250,6 +250,7 @@ static void PrintParameterUsage(void)
     fprintf(stderr, "%-20s Enforce using an IPv4 destination address\n", "-4");
     fprintf(stderr, "%-20s Enforce using an IPv6 destination address\n", "-6");
     fprintf(stderr, "%-20s (Options -4 and -6 cannot be combined.)\n", "");
+    fprintf(stderr, "%-20s Enable the extended master secret extension [RFC7627]\n", "-G");
 }
 
 static void Usage(const char *progName)
