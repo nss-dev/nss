@@ -16,32 +16,26 @@ DEPTH      = ..
 #  smime
 #  ckfw (builtins module)
 #  crmf jar (not dll's)
-ifdef NSS_BUILD_UTIL_ONLY
-  DIRS = \
+DIRS = \
 	$(UTIL_SRCDIR) \
 	$(NULL)
-else
-  ifdef NSS_BUILD_SOFTOKEN_ONLY
-    # Building softoken (and freebl) only requires that the paths
-    # to the locations where the util headers and libraries were
-    # previously installed by a prior util-only build, likely in
-    # in a system location that varies with the distribution. This
-    # cannot be addressed here and requires that downstream package
-    # mantainers add suitable modifications.
-    DIRS = \
-	$(UTIL_SRCDIR) \
+ifndef NSS_BUILD_UTIL_ONLY
+  # Building softoken (and freebl) only requires that the paths
+  # to the locations where the util headers and libraries were
+  # previously installed by a prior util-only build, likely in
+  # in a system location that varies with the distribution. This
+  # cannot be addressed here and requires that downstream package
+  # mantainers add suitable modifications. Building fill nss will
+  # not have that problem everything is available.
+  DIRS += \
 	$(FREEBL_SRCDIR) \
 	$(SQLITE_SRCDIR) \
 	$(DBM_SRCDIR) \
 	$(SOFTOKEN_SRCDIR) \
 	$(NULL)
-  else
-    DIRS = \
-	$(UTIL_SRCDIR) \
-	$(FREEBL_SRCDIR) \
-	$(SQLITE_SRCDIR) \
-	$(DBM_SRCDIR) \
-	$(SOFTOKEN_SRCDIR) \
+  ifndef NSS_BUILD_SOFTOKEN_ONLY
+    # default, add the rest of nss
+    DIRS += \
 	base dev pki \
 	libpkix \
 	certdb certhigh pk11wrap cryptohi nss \

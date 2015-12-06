@@ -51,7 +51,7 @@ EXTRA_SHARED_LIBS += \
 	$(NULL)
 endif
 
-ifndef NSS_BUILD_SOFTOKEN_ONLY)
+ifndef NSS_BUILD_SOFTOKEN_ONLY
 PKIXLIB = \
 	$(DIST)/lib/$(LIB_PREFIX)pkixtop.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pkixutil.$(LIB_SUFFIX) \
@@ -102,19 +102,20 @@ EXTRA_LIBS += \
 	winmm.lib \
 	$(NULL)
 else
-ifdef NSS_BUILD_SOFTOKEN_ONLY
+EXTRA_LIBS += \
+	$(NULL)
+ifndef NSS_BUILD_UTIL_ONLY
 EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
 	$(SOFTOKENLIB) \
 	$(CRYPTOLIB) \
 	$(NULL)
-else
+ifndef NSS_BUILD_SOFTOKEN_ONLY
 EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)smime.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pkcs12.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pkcs7.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
@@ -123,18 +124,17 @@ EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
-	$(SOFTOKENLIB) \
 	$(DIST)/lib/$(LIB_PREFIX)certdb.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nssdev.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
-	$(CRYPTOLIB) \
 	$(DBMLIB) \
 	$(PKIXLIB) \
 	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
 	$(NULL)
+endif
 endif
 
 ifeq ($(OS_ARCH), AIX) 
@@ -189,7 +189,6 @@ endif
 
 # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
 # $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
-ifdef NSS_BUILD_SOFTOKEN_ONLY
 EXTRA_SHARED_LIBS += \
 	-L$(DIST)/lib \
 	-L$(NSSUTIL_LIB_DIR) \
@@ -199,18 +198,11 @@ EXTRA_SHARED_LIBS += \
 	-lplds4 \
 	-lnspr4 \
 	$(NULL)
-else
+ifndef NSS_BUILD_SOFTOKEN_ONLY
 EXTRA_SHARED_LIBS += \
-	-L$(DIST)/lib \
 	-lssl3 \
 	-lsmime3 \
 	-lnss3 \
-	-L$(NSSUTIL_LIB_DIR) \
-	-lnssutil3 \
-	-L$(NSPR_LIB_DIR) \
-	-lplc4 \
-	-lplds4 \
-	-lnspr4 \
 	$(NULL)
 endif
 endif

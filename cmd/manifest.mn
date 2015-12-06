@@ -6,26 +6,24 @@
 DEPTH	= ..
 # MODULE	= seccmd
 
-ifdef NSS_BUILD_UTIL_ONLY
 REQUIRES = nspr
 
 DIRS = \
  $(NULL)
-else
+ifndef NSS_BUILD_UTIL_ONLY
 REQUIRES = nss nspr libdbm
 
-ifdef NSS_BUILD_SOFTOKEN_ONLY
-DIRS = lib  \
+DIRS += \
+ lib  \
  $(BLTEST_SRCDIR) \
  $(FIPSTEST_SRCDIR)  \
  $(LOWHASHTEST_SRCDIR)  \
  $(SHLIBSIGN_SRCDIR) \
  $(NULL)
-else
-DIRS = lib  \
+ifndef NSS_BUILD_SOFTOKEN_ONLY
+DIRS +=  \
  addbuiltin \
  atob  \
- $(BLTEST_SRCDIR) \
  btoa  \
  certcgi \
  certutil  \
@@ -36,8 +34,6 @@ DIRS = lib  \
  derdump  \
  digest  \
  httpserv  \
- $(FIPSTEST_SRCDIR)  \
- $(LOWHASHTEST_SRCDIR)  \
  listsuites \
  makepqg  \
  multinit \
@@ -60,7 +56,6 @@ DIRS = lib  \
  selfserv  \
  signtool \
  signver \
- $(SHLIBSIGN_SRCDIR) \
  smimetools  \
  ssltap  \
  strsclnt \
