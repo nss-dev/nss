@@ -674,7 +674,8 @@ static char *
 nssutil_mkSlotFlags(unsigned long defaultFlags)
 {
     char *flags=NULL;
-    int i,j;
+    unsigned int i;
+    int j;
 
     for (i=0; i < sizeof(defaultFlags)*8; i++) {
 	if (defaultFlags & (1UL <<i)) {
@@ -927,7 +928,7 @@ static char *
 nssutil_mkCipherFlags(unsigned long ssl0, unsigned long ssl1)
 {
     char *cipher = NULL;
-    int i;
+    unsigned int i;
 
     for (i=0; i < sizeof(ssl0)*8; i++) {
 	if (ssl0 & (1UL <<i)) {
