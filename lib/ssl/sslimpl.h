@@ -338,6 +338,7 @@ typedef struct sslOptionsStr {
     unsigned int enableFallbackSCSV     : 1;  /* 29 */
     unsigned int enableServerDhe        : 1;  /* 30 */
     unsigned int enableExtendedMS       : 1;  /* 31 */
+    unsigned int enableSignedCertTimestamps : 1;  /* 32 */
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -701,6 +702,11 @@ struct sslSessionIDStr {
 
 	    SECItem           srvName;
 
+	    /* Signed certificate timestamps received in a TLS extension.
+	    ** (used only in client).
+	    */
+	    SECItem	      signedCertTimestamps;
+
 	    /* This lock is lazily initialized by CacheSID when a sid is first
 	     * cached. Before then, there is no need to lock anything because
 	     * the sid isn't being shared by anything.
@@ -815,6 +821,18 @@ struct TLSExtensionDataStr {
      * is beyond ssl3_HandleClientHello function. */
     SECItem *sniNameArr;
     PRUint32 sniNameArrSize;
+
+    /* Signed Certificate Timestamps extracted from the TLS extension.
+     * (client only).
+     * This container holds a temporary pointer to the extension data,
+     * until a session structure (the sec.ci.sid of an sslSocket) is setup
+     * that can hold a permanent copy of the data
+     * (in sec.ci.sid.u.ssl3.signedCertTimestamps).
+     * The data pointed to by this structure is neither explicitly allocated
+     * nor copied: the pointer points to the handshake message buffer and is
+     * only valid in the scope of ssl3_HandleServerHello.
+     */
+    SECItem signedCertTimestamps;
 };
 
 typedef SECStatus (*sslRestartTarget)(sslSocket *);

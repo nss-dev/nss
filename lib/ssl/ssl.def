@@ -181,6 +181,7 @@ SSL_EnableWeakDHEPrimeGroup;
 ;+NSS_3.21 {    # NSS 3.21 release
 ;+    global:
 SSL_GetPreliminaryChannelInfo;
+SSL_PeerSignedCertTimestamps;
 SSL_SignaturePrefSet;
 SSL_SignaturePrefGet;
 SSL_SignatureMaxCount;

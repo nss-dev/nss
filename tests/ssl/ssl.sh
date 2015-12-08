@@ -58,7 +58,7 @@ ssl_init()
 
   PORT=${PORT-8443}
   NSS_SSL_TESTS=${NSS_SSL_TESTS:-normal_normal}
-  nss_ssl_run="stapling cov auth stress"
+  nss_ssl_run="stapling signed_cert_timestamps cov auth stress"
   NSS_SSL_RUN=${NSS_SSL_RUN:-$nss_ssl_run}
 
   # Test case files
@@ -533,6 +533,43 @@ ssl_stapling()
   html "</TABLE><BR>"
 }
 
+############################ ssl_signed_cert_timestamps #################
+# local shell function to perform SSL Signed Certificate Timestamp tests
+#########################################################################
+ssl_signed_cert_timestamps()
+{
+  html_head "SSL Signed Certificate Timestamps $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE $ECC_STRING"
+
+    testname="ssl_signed_cert_timestamps"
+    value=0
+
+    if [ "$SERVER_MODE" = "fips" -o "$CLIENT_MODE" = "fips" ] ; then
+          echo "$SCRIPTNAME: skipping  $testname (non-FIPS only)"
+        return 0
+    fi
+
+    echo "${testname}"
+
+    start_selfserv
+
+    # Since we don't have server-side support, this test only covers advertising the
+    # extension in the client hello.
+    echo "tstclnt -p ${PORT} -h ${HOSTADDR} -f -d ${P_R_CLIENTDIR} -v ${CLIENT_OPTIONS} \\"
+    echo "        -U -V tls1.0: < ${REQUEST_FILE}"
+    rm ${TMP}/$HOST.tmp.$$ 2>/dev/null
+    ${PROFTOOL} ${BINDIR}/tstclnt -p ${PORT} -h ${HOSTADDR} -f ${CLIENT_OPTIONS} \
+            -d ${P_R_CLIENTDIR} -v -U -V tls1.0: < ${REQUEST_FILE} \
+            >${TMP}/$HOST.tmp.$$  2>&1
+    ret=$?
+    cat ${TMP}/$HOST.tmp.$$
+    rm ${TMP}/$HOST.tmp.$$ 2>/dev/null
+
+    html_msg $ret $value "${testname}" \
+            "produced a returncode of $ret, expected is $value"
+    kill_selfserv
+  html "</TABLE><BR>"
+}
+
 
 ############################## ssl_stress ##############################
 # local shell function to perform SSL stress test
@@ -932,6 +969,9 @@ ssl_run()
         case "${SSL_RUN}" in
         "stapling")
             ssl_stapling
+            ;;
+        "signed_cert_timestamps")
+            ssl_signed_cert_timestamps
             ;;
         "cov")
             ssl_cov

@@ -85,7 +85,8 @@ static sslOptions ssl_defaults = {
     PR_TRUE,    /* reuseServerECDHEKey */
     PR_FALSE,   /* enableFallbackSCSV */
     PR_TRUE,    /* enableServerDhe */
-    PR_FALSE    /* enableExtendedMS    */
+    PR_FALSE,   /* enableExtendedMS    */
+    PR_FALSE,   /* enableSignedCertTimestamps */
 };
 
 /*
@@ -830,6 +831,10 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
         ss->opt.enableExtendedMS = on;
         break;
 
+      case SSL_ENABLE_SIGNED_CERT_TIMESTAMPS:
+        ss->opt.enableSignedCertTimestamps = on;
+        break;
+
       default:
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         rv = SECFailure;
@@ -908,6 +913,9 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
     case SSL_ENABLE_SERVER_DHE:   on = ss->opt.enableServerDhe; break;
     case SSL_ENABLE_EXTENDED_MASTER_SECRET:
                                   on = ss->opt.enableExtendedMS; break;
+    case SSL_ENABLE_SIGNED_CERT_TIMESTAMPS:
+        on = ss->opt.enableSignedCertTimestamps;
+        break;
 
     default:
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -982,6 +990,9 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
        break;
     case SSL_ENABLE_EXTENDED_MASTER_SECRET:
        on = ssl_defaults.enableExtendedMS;
+       break;
+    case SSL_ENABLE_SIGNED_CERT_TIMESTAMPS:
+       on = ssl_defaults.enableSignedCertTimestamps;
        break;
 
     default:
@@ -1172,6 +1183,10 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 
       case SSL_ENABLE_EXTENDED_MASTER_SECRET:
         ssl_defaults.enableExtendedMS = on;
+        break;
+
+      case SSL_ENABLE_SIGNED_CERT_TIMESTAMPS:
+        ssl_defaults.enableSignedCertTimestamps = on;
         break;
 
       default:
@@ -2011,6 +2026,29 @@ ssl3_VersionRangeIsValid(SSLProtocolVariant protocolVariant,
            vrange->min <= vrange->max &&
            ssl3_VersionIsSupported(protocolVariant, vrange->min) &&
            ssl3_VersionIsSupported(protocolVariant, vrange->max);
+}
+
+const SECItem *
+SSL_PeerSignedCertTimestamps(PRFileDesc *fd)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+
+    if (!ss) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_PeerSignedCertTimestamps",
+            SSL_GETPID(), fd));
+        return NULL;
+    }
+
+    if (!ss->sec.ci.sid) {
+        PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
+        return NULL;
+    }
+
+    if (ss->sec.ci.sid->version < SSL_LIBRARY_VERSION_3_0) {
+        PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_SSL2);
+        return NULL;
+    }
+    return &ss->sec.ci.sid->u.ssl3.signedCertTimestamps;
 }
 
 SECStatus
