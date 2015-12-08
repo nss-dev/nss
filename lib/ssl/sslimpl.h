@@ -1333,6 +1333,11 @@ const unsigned char *  preferredCipher;
     sslServerCerts        serverCerts[kt_kea_size];
     /* each cert needs its own status */
     SECItemArray *        certStatusArray[kt_kea_size];
+    /* Serialized signed certificate timestamps to be sent to the client
+    ** in a TLS extension (server only). Each certificate needs its own
+    ** timestamps item.
+    */
+    SECItem               signedCertTimestamps[kt_kea_size];
 
     ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED];
     ssl3KeyPair *         ephemeralECDHKeyPair; /* for ECDHE-* handshake */
