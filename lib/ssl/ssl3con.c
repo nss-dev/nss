@@ -6787,6 +6787,17 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     sid->u.ssl3.keys.extendedMasterSecretUsed =
             ssl3_ExtensionNegotiated(ss, ssl_extended_master_secret_xtn);
 
+    /* Copy Signed Certificate Timestamps, if any. */
+    if (ss->xtnData.signedCertTimestamps.data) {
+        rv = SECITEM_CopyItem(NULL, &sid->u.ssl3.signedCertTimestamps,
+                              &ss->xtnData.signedCertTimestamps);
+        if (rv != SECSuccess)
+            goto loser;
+        /* Clean up the temporary pointer to the handshake buffer. */
+        ss->xtnData.signedCertTimestamps.data = NULL;
+        ss->xtnData.signedCertTimestamps.len = 0;
+    }
+
     ss->ssl3.hs.isResuming = PR_FALSE;
     if (ss->ssl3.hs.kea_def->signKeyType != sign_null) {
         /* All current cipher suites other than those with sign_null (i.e.,
@@ -6805,6 +6816,9 @@ alert_loser:
     (void)SSL3_SendAlert(ss, alert_fatal, desc);
 
 loser:
+    /* Clean up the temporary pointer to the handshake buffer. */
+    ss->xtnData.signedCertTimestamps.data = NULL;
+    ss->xtnData.signedCertTimestamps.len = 0;
     ssl_MapLowLevelError(errCode);
     return SECFailure;
 }
