@@ -401,6 +401,9 @@ ssl_DestroySocketContents(sslSocket *ss)
             SECITEM_FreeArray(ss->certStatusArray[i], PR_TRUE);
             ss->certStatusArray[i] = NULL;
         }
+        if (ss->signedCertTimestamps[i].data) {
+            SECITEM_FreeItem(&ss->signedCertTimestamps[i], PR_FALSE);
+        }
     }
     if (ss->stepDownKeyPair) {
         ssl3_FreeKeyPair(ss->stepDownKeyPair);
@@ -1937,6 +1940,16 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
                 if (!ss->certStatusArray[i])
                     goto loser;
             }
+            if (sm->signedCertTimestamps[i].data) {
+                if (ss->signedCertTimestamps[i].data) {
+                    SECITEM_FreeItem(&ss->signedCertTimestamps[i], PR_FALSE);
+                }
+                if (SECSuccess != SECITEM_CopyItem(NULL,
+                        &ss->signedCertTimestamps[i],
+                        &sm->signedCertTimestamps[i])) {
+                    goto loser;
+                }
+            }
         }
         if (mc->serverKeyPair) {
             if (sc->serverKeyPair) {
@@ -2540,6 +2553,35 @@ SSL_SetStapledOCSPResponses(PRFileDesc *fd, const SECItemArray *responses,
         ss->certStatusArray[kea] = SECITEM_DupArray(NULL, responses);
     }
     return (ss->certStatusArray[kea] || !responses) ? SECSuccess : SECFailure;
+}
+
+SECStatus
+SSL_SetSignedCertTimestamps(PRFileDesc *fd, const SECItem *scts, SSLKEAType kea)
+{
+    sslSocket *ss;
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_SetSignedCertTimestamps",
+                 SSL_GETPID(), fd));
+        return SECFailure;
+    }
+
+    if (kea <= 0 || kea >= kt_kea_size) {
+        SSL_DBG(("%d: SSL[%d]: invalid key in SSL_SetSignedCertTimestamps",
+                 SSL_GETPID(), fd));
+        return SECFailure;
+    }
+
+    if (ss->signedCertTimestamps[kea].data) {
+        SECITEM_FreeItem(&ss->signedCertTimestamps[kea], PR_FALSE);
+    }
+
+    if (!scts) {
+        return SECSuccess;
+    }
+
+    return SECITEM_CopyItem(NULL, &ss->signedCertTimestamps[kea], scts);
 }
 
 SECStatus

@@ -6547,7 +6547,8 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	PORT_SetError(errCode);
 	goto loser;	/* we don't send alerts for our screw-ups. */
     }
-
+    ss->ssl3.hs.kea_def = &kea_defs[ss->ssl3.hs.suite_def->key_exchange_alg];
+    
     /* find selected compression method in our list. */
     temp = ssl3_ConsumeHandshakeNumber(ss, 1, &b, &length);
     if (temp < 0) {
@@ -8219,6 +8220,8 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 		ss->ssl3.hs.cipher_suite = suite->cipher_suite;
 		ss->ssl3.hs.suite_def =
 		    ssl_LookupCipherSuiteDef(ss->ssl3.hs.cipher_suite);
+                ss->ssl3.hs.kea_def =
+                    &kea_defs[ss->ssl3.hs.suite_def->key_exchange_alg];
                 ss->ssl3.hs.preliminaryInfo |= ssl_preinfo_cipher_suite;
 
 		/* Use the cached compression method. */
@@ -8265,6 +8268,8 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 		ss->ssl3.hs.cipher_suite = suite->cipher_suite;
 		ss->ssl3.hs.suite_def =
 		    ssl_LookupCipherSuiteDef(ss->ssl3.hs.cipher_suite);
+                ss->ssl3.hs.kea_def =
+                    &kea_defs[ss->ssl3.hs.suite_def->key_exchange_alg];
                 ss->ssl3.hs.preliminaryInfo |= ssl_preinfo_cipher_suite;
 		goto suite_found;
 	    }
@@ -8842,6 +8847,8 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
 		ss->ssl3.hs.cipher_suite = suite->cipher_suite;
 		ss->ssl3.hs.suite_def =
 		    ssl_LookupCipherSuiteDef(ss->ssl3.hs.cipher_suite);
+                ss->ssl3.hs.kea_def =
+                    &kea_defs[ss->ssl3.hs.suite_def->key_exchange_alg];
                 ss->ssl3.hs.preliminaryInfo |= ssl_preinfo_cipher_suite;
 		goto suite_found;
 	    }

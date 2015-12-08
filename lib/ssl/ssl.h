@@ -590,6 +590,18 @@ SSL_SetStapledOCSPResponses(PRFileDesc *fd, const SECItemArray *responses,
 			    SSLKEAType kea);
 
 /*
+ * SSL_SetSignedCertTimestamps stores serialized signed_certificate_timestamp
+ * extension data in the fd. The signed_certificate_timestamp data is sent
+ * during the handshake (if requested by the client). Parameter |scts|
+ * is for the server certificate of the key exchange type |kea|.
+ * The function will duplicate the provided data item. To clear previously
+ * set data for a given key exchange type |kea|, pass NULL to |scts|.
+ */
+SSL_IMPORT SECStatus
+SSL_SetSignedCertTimestamps(PRFileDesc *fd, const SECItem *scts,
+                            SSLKEAType kea);
+
+/*
 ** Authenticate certificate hook. Called when a certificate comes in
 ** (because of SSL_REQUIRE_CERTIFICATE in SSL_Enable) to authenticate the
 ** certificate.
