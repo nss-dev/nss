@@ -1944,9 +1944,9 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
                 if (ss->signedCertTimestamps[i].data) {
                     SECITEM_FreeItem(&ss->signedCertTimestamps[i], PR_FALSE);
                 }
-                if (SECSuccess != SECITEM_CopyItem(NULL,
+                if (SECITEM_CopyItem(NULL,
                         &ss->signedCertTimestamps[i],
-                        &sm->signedCertTimestamps[i])) {
+                        &sm->signedCertTimestamps[i]) != SECSuccess) {
                     goto loser;
                 }
             }
@@ -2540,7 +2540,7 @@ SSL_SetStapledOCSPResponses(PRFileDesc *fd, const SECItemArray *responses,
     }
 
     if ( kea <= 0 || kea >= kt_kea_size) {
-        SSL_DBG(("%d: SSL[%d]: invalid key in SSL_SetStapledOCSPResponses",
+        SSL_DBG(("%d: SSL[%d]: invalid key type in SSL_SetStapledOCSPResponses",
                  SSL_GETPID(), fd));
         return SECFailure;
     }
@@ -2568,7 +2568,7 @@ SSL_SetSignedCertTimestamps(PRFileDesc *fd, const SECItem *scts, SSLKEAType kea)
     }
 
     if (kea <= 0 || kea >= kt_kea_size) {
-        SSL_DBG(("%d: SSL[%d]: invalid key in SSL_SetSignedCertTimestamps",
+        SSL_DBG(("%d: SSL[%d]: invalid key type in SSL_SetSignedCertTimestamps",
                  SSL_GETPID(), fd));
         return SECFailure;
     }
