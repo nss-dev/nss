@@ -9,7 +9,7 @@ of './ssl.sh stress' looks like this:
 
 ********************* Stress Test  ****************************
 ********************* Stress SSL2 RC4 128 with MD5 ****************************
-selfserv -p 8443 -d
+selfserv_9513 -p 8443 -d
 /local/llennox/NSS-PSM/mozilla/tests_results/security/conrail.20/server -n
 conrail.cs.columbia.edu -w nss   -i /tmp/tests_pid.5505  & strsclnt -p 8443 -d . -w nss -c 1000 -C A  conrail.cs.columbia.edu 
 strsclnt: -- SSL: Server Certificate Validated.
@@ -17,7 +17,7 @@ strsclnt: PR_NewTCPSocket returned error -5974:
 Insufficient system resources.
 Terminated 
 ********************* Stress SSL3 RC4 128 with MD5 ****************************
-selfserv -p 8443 -d
+selfserv_9513 -p 8443 -d
 /local/llennox/NSS-PSM/mozilla/tests_results/security/conrail.20/server -n
 conrail.cs.columbia.edu -w nss   -i /tmp/tests_pid.5505  & strsclnt -p 8443 -d . -w nss -c 1000 -C c  conrail.cs.columbia.edu 
 strsclnt: -- SSL: Server Certificate Validated.

@@ -77,7 +77,7 @@ i=0
 while [ $i -lt $1 ]
 do
     kill_by_name nssqa
-    kill_by_name selfserv
+    kill_by_name selfserv_9727
     kill_by_name strsclnt
     kill_by_name all.sh
     kill_by_name sdr.sh

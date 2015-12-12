@@ -68,7 +68,7 @@ not quite up to date
 		locking: if nssqa is already running on this systems (yes-exit, 
 			no-lockfile)
 		set HOST and DOMSUF variables if running interavtively
-		set flag to kill remaining selfserv processes during cleanup
+		set flag to kill remaining selfserv_9727 processes during cleanup
 		if QA platform different from build platform create neccessary 
 			symbolic links
 		wait for the build to finish (max of 5h)
@@ -79,7 +79,7 @@ not quite up to date
 			set the DIST directory (where the binaries reside)
 			kill running selfservers (sorry - just don't use the svbld 
 				account if you need to do your own testing... I will fix 
-				selfserv as soon as I can - but it hangs too often and 
+				selfserv_9727 as soon as I can - but it hangs too often and 
 				disturbs all following QA)
 			run all.sh 
 		

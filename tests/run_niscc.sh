@@ -198,7 +198,7 @@ create_environment()
     # Directory where to write all the output data (around 650MiB for each run)
     export TEST_OUTPUT=${TEST_OUTPUT:-"$HOME/out"}
 
-    # How many threads to use in selfserv and strsclnt (max. 10)
+    # How many threads to use in selfserv_9513 and strsclnt (max. 10)
     export THREADS=${THREADS:-10}
 
     # If true, do not build tthe tested version of NSS
@@ -576,7 +576,7 @@ ssl_simple_client_auth()
     unset NISCC_TEST
     export LD_LIBRARY_PATH="$TESTLIB"
     LD_PRELOAD=${FAKETIMELIB} NO_FAKE_STAT=1 FAKETIME="@2004-03-29 14:14:14" \
-    "${TESTTOOLS}/selfserv" $VERBOSE -p $PORT -d "$SERVER" -n server_crt -rr -t $THREADS -w test > "$TEST_OUTPUT/nisccLog01" 2>&1 &
+    "${TESTTOOLS}/selfserv_9513" $VERBOSE -p $PORT -d "$SERVER" -n server_crt -rr -t $THREADS -w test > "$TEST_OUTPUT/nisccLog01" 2>&1 &
 
     export NISCC_TEST="$TEST/simple_client"
     export LD_LIBRARY_PATH="$HACKLIB"
@@ -589,7 +589,7 @@ ssl_simple_client_auth()
     done
 
     unset NISCC_TEST
-    echo "starting tstclnt to shutdown simple client selfserv process"
+    echo "starting tstclnt to shutdown simple client selfserv_9513 process"
     for i in `seq 5`; do
         LD_PRELOAD=${FAKETIMELIB} NO_FAKE_STAT=1 FAKETIME="@2004-03-29 14:14:14" \
         "${HACKBIN}/tstclnt" -h $HOST -p $PORT -d "$CLIENT" -n client_crt -o -f -w test < "$CLIENT/stop.txt" >> "$TEST_OUTPUT/nisccLog02" 2>&1
@@ -619,7 +619,7 @@ ssl_simple_server_auth()
     export LD_LIBRARY_PATH="$HACKLIB"
     export NISCC_TEST="$TEST/simple_server"
     LD_PRELOAD=${FAKETIMELIB} NO_FAKE_STAT=1 FAKETIME="@2004-03-29 14:14:14" \
-    "${HACKBIN}/selfserv" $VERBOSE -p $PORT -d "$SERVER" -n server_crt -t $THREADS -w test > "$TEST_OUTPUT/nisccLog03" 2>&1 &
+    "${HACKBIN}/selfserv_9513" $VERBOSE -p $PORT -d "$SERVER" -n server_crt -t $THREADS -w test > "$TEST_OUTPUT/nisccLog03" 2>&1 &
 
     unset NISCC_TEST
     export LD_LIBRARY_PATH="$TESTLIB"
@@ -628,7 +628,7 @@ ssl_simple_server_auth()
         "${TESTTOOLS}/strsclnt" $VERBOSE -d "$CLIENT" -p $PORT -t $THREADS -c $THREADS -o -N $HOST >> "$TEST_OUTPUT/nisccLog04" 2>&1
     done
 
-    echo "starting tstclnt to shutdown simple server selfserv process"
+    echo "starting tstclnt to shutdown simple server selfserv_9513 process"
     for i in `seq 5`; do
         LD_PRELOAD=${FAKETIMELIB} NO_FAKE_STAT=1 FAKETIME="@2004-03-29 14:14:14" \
         "${TESTTOOLS}/tstclnt" -h $HOST -p $PORT -d "$CLIENT" -n client_crt -o -f -w test < "$CLIENT/stop.txt" >> "$TEST_OUTPUT/nisccLog04" 2>&1
@@ -658,7 +658,7 @@ ssl_simple_rootca()
     export LD_LIBRARY_PATH="$HACKLIB"
     export NISCC_TEST="$TEST/simple_rootca"
     LD_PRELOAD=${FAKETIMELIB} NO_FAKE_STAT=1 FAKETIME="@2004-03-29 14:14:14" \
-    "${HACKBIN}/selfserv" $VERBOSE -p $PORT -d "$SERVER" -n server_crt -t $THREADS -w test > "$TEST_OUTPUT/nisccLog05" 2>&1 &
+    "${HACKBIN}/selfserv_9513" $VERBOSE -p $PORT -d "$SERVER" -n server_crt -t $THREADS -w test > "$TEST_OUTPUT/nisccLog05" 2>&1 &
 
     unset NISCC_TEST
     export LD_LIBRARY_PATH="$TESTLIB"
@@ -667,7 +667,7 @@ ssl_simple_rootca()
         "${TESTTOOLS}/strsclnt" $VERBOSE -d "$CLIENT" -p $PORT -t $THREADS -c $THREADS -o -N $HOST >> "$TEST_OUTPUT/nisccLog06" 2>&1
     done
 
-    echo "starting tstclnt to shutdown simple rootca selfserv process"
+    echo "starting tstclnt to shutdown simple rootca selfserv_9513 process"
     for i in `seq 5`; do
         LD_PRELOAD=${FAKETIMELIB} NO_FAKE_STAT=1 FAKETIME="@2004-03-29 14:14:14" \
         "${TESTTOOLS}/tstclnt" -h $HOST -p $PORT -d "$CLIENT" -n client_crt -o -f -w test < "$CLIENT/stop.txt" >> "$TEST_OUTPUT/nisccLog06" 2>&1
@@ -697,7 +697,7 @@ ssl_resigned_client_auth()
     unset NISCC_TEST
     export LD_LIBRARY_PATH="$TESTLIB"
     LD_PRELOAD=${FAKETIMELIB} NO_FAKE_STAT=1 FAKETIME="@2004-03-29 14:14:14" \
-    "${TESTTOOLS}/selfserv" $VERBOSE -p $PORT -d "$SERVER" -n server_crt -rr -t $THREADS -w test > "$TEST_OUTPUT/nisccLog07" 2>&1 &
+    "${TESTTOOLS}/selfserv_9513" $VERBOSE -p $PORT -d "$SERVER" -n server_crt -rr -t $THREADS -w test > "$TEST_OUTPUT/nisccLog07" 2>&1 &
 
     export NISCC_TEST="$TEST/resigned_client"
     export LD_LIBRARY_PATH="$HACKLIB"
@@ -710,7 +710,7 @@ ssl_resigned_client_auth()
     done
 
     unset NISCC_TEST
-    echo "starting tstclnt to shutdown resigned client selfserv process"
+    echo "starting tstclnt to shutdown resigned client selfserv_9513 process"
     for i in `seq 5`; do
         LD_PRELOAD=${FAKETIMELIB} NO_FAKE_STAT=1 FAKETIME="@2004-03-29 14:14:14" \
         "${HACKBIN}/tstclnt" -h $HOST -p $PORT -d "$CLIENT" -n client_crt -o -f -w test < "$CLIENT/stop.txt" >> "$TEST_OUTPUT/nisccLog08" 2>&1
@@ -740,7 +740,7 @@ ssl_resigned_server_auth()
     export LD_LIBRARY_PATH="$HACKLIB"
     export NISCC_TEST="$TEST/resigned_server"
     LD_PRELOAD=${FAKETIMELIB} NO_FAKE_STAT=1 FAKETIME="@2004-03-29 14:14:14" \
-    "${HACKBIN}/selfserv" $VERBOSE -p $PORT -d "$SERVER" -n server_crt -t $THREADS -w test > "$TEST_OUTPUT/nisccLog09" 2>&1 &
+    "${HACKBIN}/selfserv_9513" $VERBOSE -p $PORT -d "$SERVER" -n server_crt -t $THREADS -w test > "$TEST_OUTPUT/nisccLog09" 2>&1 &
 
     unset NISCC_TEST
     export LD_LIBRARY_PATH="$TESTLIB"
@@ -749,7 +749,7 @@ ssl_resigned_server_auth()
         "${TESTTOOLS}/strsclnt" $VERBOSE -d "$CLIENT" -p $PORT -t $THREADS -c $THREADS -o -N $HOST >> "$TEST_OUTPUT/nisccLog10" 2>&1
     done
 
-    echo "starting tstclnt to shutdown resigned server selfserv process"
+    echo "starting tstclnt to shutdown resigned server selfserv_9513 process"
     for i in `seq 5`; do
         LD_PRELOAD=${FAKETIMELIB} NO_FAKE_STAT=1 FAKETIME="@2004-03-29 14:14:14" \
         "${TESTTOOLS}/tstclnt" -h $HOST -p $PORT -d "$CLIENT" -n client_crt -o -f -w test < "$CLIENT/stop.txt" >> "$TEST_OUTPUT/nisccLog10" 2>&1
@@ -779,7 +779,7 @@ ssl_resigned_rootca()
     export LD_LIBRARY_PATH="$HACKLIB"
     export NISCC_TEST="$TEST/resigned_rootca"
     LD_PRELOAD=${FAKETIMELIB} NO_FAKE_STAT=1 FAKETIME="@2004-03-29 14:14:14" \
-    "${HACKBIN}/selfserv" $VERBOSE -p $PORT -d "$SERVER" -n server_crt -t $THREADS -w test > "$TEST_OUTPUT/nisccLog11" 2>&1 &
+    "${HACKBIN}/selfserv_9513" $VERBOSE -p $PORT -d "$SERVER" -n server_crt -t $THREADS -w test > "$TEST_OUTPUT/nisccLog11" 2>&1 &
 
     unset NISCC_TEST
     export LD_LIBRARY_PATH="$TESTLIB"
@@ -788,7 +788,7 @@ ssl_resigned_rootca()
         "${TESTTOOLS}/strsclnt" $VERBOSE -d "$CLIENT" -p $PORT -t $THREADS -c $THREADS -o -N $HOST >> "$TEST_OUTPUT/nisccLog12" 2>&1
     done
 
-    echo "starting tstclnt to shutdown resigned rootca selfserv process"
+    echo "starting tstclnt to shutdown resigned rootca selfserv_9513 process"
     for i in `seq 5`; do
         LD_PRELOAD=${FAKETIMELIB} NO_FAKE_STAT=1 FAKETIME="@2004-03-29 14:14:14" \
         "${TESTTOOLS}/tstclnt" -h $HOST -p $PORT -d "$CLIENT" -n client_crt -o -f -w test < "$CLIENT/stop.txt" >> "$TEST_OUTPUT/nisccLog12" 2>&1

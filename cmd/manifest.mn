@@ -6,12 +6,24 @@
 DEPTH	= ..
 # MODULE	= seccmd
 
+REQUIRES = nspr
+
+DIRS = \
+ $(NULL)
+ifndef NSS_BUILD_UTIL_ONLY
 REQUIRES = nss nspr libdbm
 
-DIRS = lib  \
+DIRS += \
+ lib  \
+ $(BLTEST_SRCDIR) \
+ $(FIPSTEST_SRCDIR)  \
+ $(LOWHASHTEST_SRCDIR)  \
+ $(SHLIBSIGN_SRCDIR) \
+ $(NULL)
+ifndef NSS_BUILD_SOFTOKEN_ONLY
+DIRS +=  \
  addbuiltin \
  atob  \
- $(BLTEST_SRCDIR) \
  btoa  \
  certcgi \
  certutil  \
@@ -22,8 +34,6 @@ DIRS = lib  \
  derdump  \
  digest  \
  httpserv  \
- $(FIPSTEST_SRCDIR)  \
- $(LOWHASHTEST_SRCDIR)  \
  listsuites \
  makepqg  \
  multinit \
@@ -46,7 +56,6 @@ DIRS = lib  \
  selfserv  \
  signtool \
  signver \
- $(SHLIBSIGN_SRCDIR) \
  smimetools  \
  ssltap  \
  strsclnt \
@@ -57,6 +66,8 @@ DIRS = lib  \
  vfyserv \
  modutil \
  $(NULL)
+endif
+endif
 
 TEMPORARILY_DONT_BUILD = \
  $(NULL)
