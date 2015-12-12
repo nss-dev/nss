@@ -6,22 +6,27 @@
 DEPTH	= ..
 # MODULE	= seccmd
 
+SOFTOKEN_SRCDIRS=
+NSS_SRCDIRS=
+
+ifdef NSS_BUILD_UTIL_ONLY
 REQUIRES = nspr
-
-DIRS = \
- $(NULL)
-ifndef NSS_BUILD_UTIL_ONLY
+else
 REQUIRES = nss nspr libdbm
+endif
 
-DIRS += \
+ifndef NSS_BUILD_UTIL_ONLY
+SOFTOKEN_SRCDIRS = \
  lib  \
  $(BLTEST_SRCDIR) \
  $(FIPSTEST_SRCDIR)  \
  $(LOWHASHTEST_SRCDIR)  \
  $(SHLIBSIGN_SRCDIR) \
  $(NULL)
+endif
+
 ifndef NSS_BUILD_SOFTOKEN_ONLY
-DIRS +=  \
+NSS_SRCDIRS = \
  addbuiltin \
  atob  \
  btoa  \
@@ -67,7 +72,10 @@ DIRS +=  \
  modutil \
  $(NULL)
 endif
-endif
+
+DIRS += \
+ $(SOFTOKEN_SRCDIRS) \
+ $(NSS_SRCDIRS)
 
 TEMPORARILY_DONT_BUILD = \
  $(NULL)
