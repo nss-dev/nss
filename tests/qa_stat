@@ -773,7 +773,7 @@ set -x
            sed -e 's/.results.html:<TR><TD>/ /' -e 's/<[^>]*>/ /g'
       grep 'cache hits; .* cache misses, .* cache not reusable' \
         $BCT_LOG |
-        grep -v selfserv_9513 |
+        grep -v selfserv |
         grep -v '0 cache hits; 1 cache misses, 0 cache not reusable' |
         grep -v '0 cache hits; 0 cache misses, 0 cache not reusable' |
         grep -v ' cache hits; 1 cache misses, 0 cache not reusable'

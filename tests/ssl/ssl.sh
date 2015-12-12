@@ -105,10 +105,10 @@ ssl_init()
 is_selfserv_alive()
 {
   if [ ! -f "${SERVERPID}" ]; then
-      echo "$SCRIPTNAME: Error - selfserv_9727 PID file ${SERVERPID} doesn't exist"
+      echo "$SCRIPTNAME: Error - selfserv PID file ${SERVERPID} doesn't exist"
       sleep 5
       if [ ! -f "${SERVERPID}" ]; then
-          Exit 9 "Fatal - selfserv_9727 pid file ${SERVERPID} does not exist"
+          Exit 9 "Fatal - selfserv pid file ${SERVERPID} does not exist"
       fi
   fi
   
@@ -120,9 +120,9 @@ is_selfserv_alive()
   fi
 
   echo "kill -0 ${PID} >/dev/null 2>/dev/null" 
-  kill -0 ${PID} >/dev/null 2>/dev/null || Exit 10 "Fatal - selfserv_9727 process not detectable"
+  kill -0 ${PID} >/dev/null 2>/dev/null || Exit 10 "Fatal - selfserv process not detectable"
 
-  echo "selfserv_9727 with PID ${PID} found at `date`"
+  echo "selfserv with PID ${PID} found at `date`"
 }
 
 ########################### wait_for_selfserv ##########################
@@ -130,14 +130,14 @@ is_selfserv_alive()
 ########################################################################
 wait_for_selfserv()
 {
-  echo "trying to connect to selfserv_9727 at `date`"
+  echo "trying to connect to selfserv at `date`"
   echo "tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \\"
   echo "        -d ${P_R_CLIENTDIR} -v < ${REQUEST_FILE}"
   ${BINDIR}/tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \
           -d ${P_R_CLIENTDIR} -v < ${REQUEST_FILE}
   if [ $? -ne 0 ]; then
       sleep 5
-      echo "retrying to connect to selfserv_9727 at `date`"
+      echo "retrying to connect to selfserv at `date`"
       echo "tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \\"
       echo "        -d ${P_R_CLIENTDIR} -v < ${REQUEST_FILE}"
       ${BINDIR}/tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \
@@ -161,7 +161,7 @@ kill_selfserv()
       PID=`cat ${SERVERPID}`
   fi
 
-  echo "trying to kill selfserv_9727 with PID ${PID} at `date`"
+  echo "trying to kill selfserv with PID ${PID} at `date`"
 
   if [ "${OS_ARCH}" = "WINNT" -o "${OS_ARCH}" = "WIN95" -o "${OS_ARCH}" = "OS2" ]; then
       echo "${KILL} ${PID}"
@@ -175,17 +175,17 @@ kill_selfserv()
       cat ${SERVEROUTFILE}
   fi
 
-  # On Linux selfserv_9727 needs up to 30 seconds to fully die and free
+  # On Linux selfserv needs up to 30 seconds to fully die and free
   # the port.  Wait until the port is free. (Bug 129701)
   if [ "${OS_ARCH}" = "Linux" ]; then
-      echo "selfserv_9727 -b -p ${PORT} 2>/dev/null;"
-      until ${BINDIR}/selfserv_9727 -b -p ${PORT} 2>/dev/null; do
-          echo "RETRY: selfserv_9727 -b -p ${PORT} 2>/dev/null;"
+      echo "selfserv -b -p ${PORT} 2>/dev/null;"
+      until ${BINDIR}/selfserv -b -p ${PORT} 2>/dev/null; do
+          echo "RETRY: selfserv -b -p ${PORT} 2>/dev/null;"
           sleep 1
       done
   fi
 
-  echo "selfserv_9727 with PID ${PID} killed at `date`"
+  echo "selfserv with PID ${PID} killed at `date`"
 
   rm ${SERVERPID}
   html_detect_core "kill_selfserv core detection step"
@@ -211,17 +211,17 @@ start_selfserv()
   if [ "$1" = "mixed" ]; then
       ECC_OPTIONS="-e ${HOSTADDR}-ecmixed"
   fi
-  echo "selfserv_9727 starting at `date`"
-  echo "selfserv_9727 -D -p ${PORT} -d ${P_R_SERVERDIR} -n ${HOSTADDR} ${SERVER_OPTIONS} \\"
+  echo "selfserv starting at `date`"
+  echo "selfserv -D -p ${PORT} -d ${P_R_SERVERDIR} -n ${HOSTADDR} ${SERVER_OPTIONS} \\"
   echo "         ${ECC_OPTIONS} -S ${HOSTADDR}-dsa -w nss ${sparam} -i ${R_SERVERPID}\\"
   echo "         $verbose -H 1 &"
   if [ ${fileout} -eq 1 ]; then
-      ${PROFTOOL} ${BINDIR}/selfserv_9727 -D -p ${PORT} -d ${P_R_SERVERDIR} -n ${HOSTADDR} ${SERVER_OPTIONS} \
+      ${PROFTOOL} ${BINDIR}/selfserv -D -p ${PORT} -d ${P_R_SERVERDIR} -n ${HOSTADDR} ${SERVER_OPTIONS} \
                ${ECC_OPTIONS} -S ${HOSTADDR}-dsa -w nss ${sparam} -i ${R_SERVERPID} $verbose -H 1 \
                > ${SERVEROUTFILE} 2>&1 &
       RET=$?
   else
-      ${PROFTOOL} ${BINDIR}/selfserv_9727 -D -p ${PORT} -d ${P_R_SERVERDIR} -n ${HOSTADDR} ${SERVER_OPTIONS} \
+      ${PROFTOOL} ${BINDIR}/selfserv -D -p ${PORT} -d ${P_R_SERVERDIR} -n ${HOSTADDR} ${SERVER_OPTIONS} \
                ${ECC_OPTIONS} -S ${HOSTADDR}-dsa -w nss ${sparam} -i ${R_SERVERPID} $verbose -H 1 &
       RET=$?
   fi
@@ -230,7 +230,7 @@ start_selfserv()
   # the real background process, but rather the PID of a helper
   # process (sh.exe).  MKS's kill command has a bug: invoking kill
   # on the helper process does not terminate the real background
-  # process.  Our workaround has been to have selfserv_9727 save its PID
+  # process.  Our workaround has been to have selfserv save its PID
   # in the ${SERVERPID} file and "kill" that PID instead.  But this
   # doesn't work under Cygwin; its kill command doesn't recognize
   # the PID of the real background process, but it does work on the
@@ -248,7 +248,7 @@ start_selfserv()
       PID=`cat ${SERVERPID}`
   fi
 
-  echo "selfserv_9727 with PID ${PID} started at `date`"
+  echo "selfserv with PID ${PID} started at `date`"
 }
 
 ############################## ssl_cov #################################
@@ -311,9 +311,9 @@ ssl_cov()
           fi
 
 # These five tests need an EC cert signed with RSA
-# This requires a different certificate loaded in selfserv_9727
+# This requires a different certificate loaded in selfserv
 # due to a (current) NSS limitation of only loaded one cert
-# per type so the default selfserv_9727 setup will not work.
+# per type so the default selfserv setup will not work.
 #:C00B TLS ECDH RSA WITH NULL SHA
 #:C00C TLS ECDH RSA WITH RC4 128 SHA
 #:C00D TLS ECDH RSA WITH 3DES EDE CBC SHA
@@ -514,7 +514,7 @@ ssl_stapling()
   # 2: missing, old or invalid revocation data
   # 3: have fresh and valid revocation data, status revoked
 
-  # selfserv_9727 modes
+  # selfserv modes
   # good, revoked, unkown: Include locally signed response. Requires: -A
   # failure: Include OCSP failure status, such as "try later" (unsigned)
   # badsig: use a good status but with an invalid signature
@@ -619,8 +619,8 @@ ssl_stress()
           fi
 
           if [ "`uname -n`" = "sjsu" ] ; then
-              echo "debugging disapering selfserv_9727... ps -ef | grep selfserv_9727"
-              ps -ef | grep selfserv_9727
+              echo "debugging disapering selfserv... ps -ef | grep selfserv"
+              ps -ef | grep selfserv
           fi
 
           echo "strsclnt -q -p ${PORT} -d ${P_R_CLIENTDIR} ${CLIENT_OPTIONS} -w nss $cparam \\"
@@ -634,8 +634,8 @@ ssl_stress()
                    "${testname}" \
                    "produced a returncode of $ret, expected is $value. "
           if [ "`uname -n`" = "sjsu" ] ; then
-              echo "debugging disapering selfserv_9727... ps -ef | grep selfserv_9727"
-              ps -ef | grep selfserv_9727
+              echo "debugging disapering selfserv... ps -ef | grep selfserv"
+              ps -ef | grep selfserv
           fi
           kill_selfserv
       fi
@@ -814,7 +814,7 @@ _EOF_REQUEST_
             return 1
         fi
     else
-        echo "=== Updating DB for group $grpBegin - $grpEnd and restarting selfserv_9727 ====="
+        echo "=== Updating DB for group $grpBegin - $grpEnd and restarting selfserv ====="
 
         kill_selfserv
         CU_ACTION="Importing ${eccomment}CRL for groups $grpBegin - $grpEnd"
@@ -917,7 +917,7 @@ ssl_crl_cache()
                 html_msg $ret $modvalue \
                     "${testname}(cert ${USER_NICKNAME} - $testAddMsg)" \
                     "produced a returncode of $ret, expected is $modvalue. " \
-                    "selfserv_9727 is not alive!"
+                    "selfserv is not alive!"
             else
                 html_msg $ret $modvalue \
                     "${testname}(cert ${USER_NICKNAME} - $testAddMsg)" \
@@ -932,7 +932,7 @@ ssl_crl_cache()
                   "produced a returncode of $ret, expected is 0"
           fi
         done
-        # Restart selfserv_9727 to roll back to two initial group 1 crls
+        # Restart selfserv to roll back to two initial group 1 crls
         # TestCA CRL and TestCA-ec CRL 
         kill_selfserv
         start_selfserv

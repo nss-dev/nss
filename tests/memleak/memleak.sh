@@ -327,15 +327,15 @@ run_command_valgrind()
 }
 
 ############################# run_selfserv #############################
-# local shell function to start selfserv_9513
+# local shell function to start selfserv
 ########################################################################
 run_selfserv()
 {
 	echo "PATH=${PATH}"
 	echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
-	echo "${SCRIPTNAME}: -------- Running selfserv_9513:"
-	echo "selfserv_9513 ${SELFSERV_ATTR}"
-	${BINDIR}/selfserv_9513 ${SELFSERV_ATTR}
+	echo "${SCRIPTNAME}: -------- Running selfserv:"
+	echo "selfserv ${SELFSERV_ATTR}"
+	${BINDIR}/selfserv ${SELFSERV_ATTR}
 	ret=$?
 	if [ $ret -ne 0 ]; then
 		html_failed "${LOGNAME}: Selfserv"
@@ -345,13 +345,13 @@ run_selfserv()
 }
 
 ########################### run_selfserv_dbg ###########################
-# local shell function to start selfserv_9513 under debug tool
+# local shell function to start selfserv under debug tool
 ########################################################################
 run_selfserv_dbg()
 {
 	echo "PATH=${PATH}"
 	echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
-	${RUN_COMMAND_DBG} ${BINDIR}/selfserv_9513 ${SERVER_OPTION} ${SELFSERV_ATTR}
+	${RUN_COMMAND_DBG} ${BINDIR}/selfserv ${SERVER_OPTION} ${SELFSERV_ATTR}
 	ret=$?
 	if [ $ret -ne 0 ]; then
 		html_failed "${LOGNAME}: Selfserv"
@@ -362,7 +362,7 @@ run_selfserv_dbg()
 
 ############################# run_strsclnt #############################
 # local shell function to run strsclnt for all ciphers and send stop
-# command to selfserv_9513 over tstclnt
+# command to selfserv over tstclnt
 ########################################################################
 run_strsclnt()
 {
@@ -407,7 +407,7 @@ run_strsclnt()
 
 ########################### run_strsclnt_dbg ###########################
 # local shell function to run strsclnt under debug tool for all ciphers 
-# and send stop command to selfserv_9513 over tstclnt
+# and send stop command to selfserv over tstclnt
 ########################################################################
 run_strsclnt_dbg()
 {
@@ -506,7 +506,7 @@ stat_print()
 }
 
 ########################## run_ciphers_server ##########################
-# local shell function to test server part of code (selfserv_9513)
+# local shell function to test server part of code (selfserv)
 ########################################################################
 run_ciphers_server()
 {

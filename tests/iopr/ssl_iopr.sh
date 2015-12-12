@@ -270,10 +270,10 @@ ssl_iopr_crl_ext_server()
 # Params:
 #      $1 - remote web server host
 #      $2 - open port to connect to invoke CGI script
-#      $3 - host where selfserv_9727 is running(name of the host nss tests
+#      $3 - host where selfserv is running(name of the host nss tests
 #           are running)
-#      $4 - port where selfserv_9727 is running
-#      $5 - selfserv_9727 nss db location
+#      $4 - port where selfserv is running
+#      $5 - selfserv nss db location
 # No return value
 #  
 ssl_iopr_cov_ext_client()
@@ -293,7 +293,7 @@ ssl_iopr_cov_ext_client()
       return $ret
   fi
 
-  # P_R_SERVERDIR switch require for selfserv_9727 to work.
+  # P_R_SERVERDIR switch require for selfserv to work.
   # Will be restored after test
   OR_P_R_SERVERDIR=$P_R_SERVERDIR
   P_R_SERVERDIR=$serDbDir
@@ -374,10 +374,10 @@ ssl_iopr_cov_ext_client()
 # Params:
 #      $1 - remote web server host
 #      $2 - open port to connect to invoke CGI script
-#      $3 - host where selfserv_9727 is running(name of the host nss tests
+#      $3 - host where selfserv is running(name of the host nss tests
 #           are running)
-#      $4 - port where selfserv_9727 is running
-#      $5 - selfserv_9727 nss db location
+#      $4 - port where selfserv is running
+#      $5 - selfserv nss db location
 # No return value
 #  
 ssl_iopr_auth_ext_client()
@@ -470,10 +470,10 @@ ssl_iopr_auth_ext_client()
 # Params:
 #      $1 - remote web server host
 #      $2 - open port to connect to invoke CGI script
-#      $3 - host where selfserv_9727 is running(name of the host nss tests
+#      $3 - host where selfserv is running(name of the host nss tests
 #           are running)
-#      $4 - port where selfserv_9727 is running
-#      $5 - selfserv_9727 nss db location
+#      $4 - port where selfserv is running
+#      $5 - selfserv nss db location
 # No return value
 #  
 ssl_iopr_crl_ext_client()
@@ -549,7 +549,7 @@ ssl_iopr_crl_ext_client()
           fi
           
           html_msg $ret $modvalue "${testname} (cert ${testUser} - $testAddMsg)" \
-		"produced a returncode of $ret, expected is $modvalue(selfserv_9727 args: $sparam)"
+		"produced a returncode of $ret, expected is $modvalue(selfserv args: $sparam)"
           rm -f $TEST_OUT $TEST_IN 2>&1 > /dev/null
       done
       kill_selfserv
@@ -622,10 +622,10 @@ ssl_iopr_run() {
         done
         
         
-        # Testing selfserv_9727 with client located at the webserver.
+        # Testing selfserv with client located at the webserver.
         echo "Testing ssl interoperability.
                 Client: remote($IOPR_HOSTADDR:$PORT)
-                Server: local(selfserv_9727)"
+                Server: local(selfserv)"
         ssl_iopr_cov_ext_client ${IOPR_HOSTADDR} ${IOPR_OPEN_PORT} \
             ${HOSTADDR} ${PORT} ${R_IOPR_SSL_SERVERDIR}_${IOPR_HOSTADDR}
         ssl_iopr_auth_ext_client ${IOPR_HOSTADDR} ${IOPR_OPEN_PORT} \

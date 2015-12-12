@@ -141,7 +141,7 @@ export KILLERPIDS
 TMPFILES="$TMPFILES $KILLPIDS"
 
 KILL_SELFSERV=OFF   # if sourcing script sets this to on cleanup will also 
-                    # kill the running selfserv_9727 processes
+                    # kill the running selfserv processes
 
                     # Set the masterbuilds 
 if [ -z "$UX_MASTERBUILD" ]
@@ -1300,7 +1300,7 @@ Exit()
     O_ALWAYS_YES=ON # set to non-interactive - don't ask anymore questions here
     if [ $KILL_SELFSERV = "ON" ]
     then
-        kill_by_name selfserv_9727
+        kill_by_name selfserv
     fi
     if [ $O_MAIL_LINK = "ON" -a $O_FILE = "ON" ]
     then
