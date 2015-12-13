@@ -8,11 +8,17 @@ DEPTH	= ..
 
 SOFTOKEN_SRCDIRS=
 NSS_SRCDIRS=
+LIB_SRCDIR=
 
 ifdef NSS_BUILD_UTIL_ONLY
 REQUIRES = nspr
+LIB_SRCDIR = \
+ $(NULL)
 else
 REQUIRES = nss nspr libdbm
+LIB_SRCDIR = \
+ $(LIB_SRCDIR) \
+ $(NULL)
 endif
 
 ifndef NSS_BUILD_UTIL_ONLY
@@ -26,6 +32,7 @@ SOFTOKEN_SRCDIRS = \
 endif
 
 ifndef NSS_BUILD_SOFTOKEN_ONLY
+ifndef NSS_BUILD_UTIL_ONLY
 NSS_SRCDIRS = \
  addbuiltin \
  atob  \
@@ -71,6 +78,10 @@ NSS_SRCDIRS = \
  vfyserv \
  modutil \
  $(NULL)
+else
+NSS_SRCDIRS = \
+ $(NULL)
+endif
 endif
 
 DIRS += \
