@@ -241,16 +241,13 @@ ifeq ($(OS_ARCH), AIX)
 EXTRA_SHARED_LIBS += -brtl 
 endif
 
-ifndef NSS_BUILD_SOFTOKEN_ONLY
-SSL_SMIME_NSS_LIBS_LINK_OPTS = -lssl3 -lsmime3 -lnss3
-else
-SSL_SMIME_NSS_LIBS_LINK_OPTS = $(NULL)
-endif
 # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
 # $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
 EXTRA_SHARED_LIBS += \
 	-L$(DIST)/lib \
-	$(SSL_SMIME_NSS_LIBS_LINK_OPTS) \
+	-lssl3 \
+	-lsmime3 \
+	-lnss3 \
 	-L$(NSSUTIL_LIB_DIR) \
 	-lnssutil3 \
 	-L$(NSPR_LIB_DIR) \
