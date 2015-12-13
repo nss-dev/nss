@@ -17,13 +17,13 @@ LIB_SRCDIR = \
 else
 REQUIRES = nss nspr libdbm
 LIB_SRCDIR = \
- $(LIB_SRCDIR) \
+ lib \
  $(NULL)
 endif
 
 ifndef NSS_BUILD_UTIL_ONLY
 SOFTOKEN_SRCDIRS = \
- lib  \
+ $(LIB_SRCDIR)  \
  $(BLTEST_SRCDIR) \
  $(FIPSTEST_SRCDIR)  \
  $(LOWHASHTEST_SRCDIR)  \
