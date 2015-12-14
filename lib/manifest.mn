@@ -51,8 +51,8 @@ endif
 
 DIRS = \
 	$(UTIL_SRCDIR) \
-	$(SOFTOKEN_SRCDIRS)
-	$(NSS_SRCDIRS)
+	$(SOFTOKEN_SRCDIRS) \
+	$(NSS_SRCDIRS) \
 	$(NULL)
 
 #  fortcrypt  is no longer built
