@@ -6,6 +6,7 @@ CORE_DEPTH = ../..
 
 PRIVATE_EXPORTS = \
 	nssrenam.h \
+	nssoptions.h \
 	$(NULL)
 
 EXPORTS = \

@@ -13,6 +13,7 @@
 #include "secoidt.h"
 #include "secoid.h"
 #include "nss.h"
+#include "nssoptions.h"
 
 struct nssOps {
     PRInt32 rsaMinKeySize;
@@ -21,15 +22,15 @@ struct nssOps {
 };
 
 static struct nssOps nss_ops = {
-    512,
-    512,
-    512
+    SSL_RSA_MIN_MODULUS_BITS,
+    SSL_DH_MIN_P_BITS,
+    SSL_DSA_MIN_P_BITS
 };
 
 SECStatus
 NSS_OptionSet(PRInt32 which, PRInt32 value)
 {
-    SECStatus rv = SECSuccess;
+SECStatus rv = SECSuccess;
 
     switch (which) {
       case NSS_RSA_MIN_KEY_SIZE:
@@ -51,7 +52,7 @@ NSS_OptionSet(PRInt32 which, PRInt32 value)
 SECStatus
 NSS_OptionGet(PRInt32 which, PRInt32 *value)
 {
-    SECStatus rv = SECSuccess;
+SECStatus rv = SECSuccess;
 
     switch (which) {
       case NSS_RSA_MIN_KEY_SIZE:

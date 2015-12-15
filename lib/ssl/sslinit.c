@@ -11,7 +11,6 @@
 #include "secerr.h"
 #include "ssl.h"
 #include "sslimpl.h"
-#include "sslproto.h"
 
 static int ssl_inited = 0;
 
@@ -27,8 +26,8 @@ ssl_Init(void)
 #ifdef DEBUG
         ssl3_CheckCipherSuiteOrderConsistency();
 #endif
+
 	ssl_inited = 1;
-	SSL_applyNSSPolicy();
     }
     return SECSuccess;
 }

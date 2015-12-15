@@ -18,6 +18,7 @@
 #include "blapi.h"
 #endif
 #include "nss.h"
+#include "pk11pqg.h"
 
 #define SET_ERROR_CODE   /* reminder */
 
@@ -82,14 +83,17 @@ static sslOptions ssl_defaults = {
     PR_TRUE,    /* enableNPN          */
     PR_FALSE,   /* enableALPN         */
     PR_TRUE,    /* reuseServerECDHEKey */
-    PR_FALSE    /* enableFallbackSCSV */
+    PR_FALSE,   /* enableFallbackSCSV */
+    PR_TRUE,    /* enableServerDhe */
+    PR_FALSE,   /* enableExtendedMS    */
+    PR_FALSE,   /* enableSignedCertTimestamps */
 };
 
 /*
  * default range of enabled SSL/TLS protocols
  */
 static SSLVersionRange versions_defaults_stream = {
-    SSL_LIBRARY_VERSION_3_0,
+    SSL_LIBRARY_VERSION_TLS_1_0,
     SSL_LIBRARY_VERSION_TLS_1_2
 };
 
@@ -224,6 +228,24 @@ ssl_DupSocket(sslSocket *os)
         PORT_Memcpy(ss->ssl3.dtlsSRTPCiphers, os->ssl3.dtlsSRTPCiphers,
                     sizeof(PRUint16) * os->ssl3.dtlsSRTPCipherCount);
         ss->ssl3.dtlsSRTPCipherCount = os->ssl3.dtlsSRTPCipherCount;
+        PORT_Memcpy(ss->ssl3.signatureAlgorithms, os->ssl3.signatureAlgorithms,
+                    sizeof(ss->ssl3.signatureAlgorithms[0]) *
+                    os->ssl3.signatureAlgorithmCount);
+        ss->ssl3.signatureAlgorithmCount = os->ssl3.signatureAlgorithmCount;
+
+        ss->ssl3.dheWeakGroupEnabled = os->ssl3.dheWeakGroupEnabled;
+        ss->ssl3.numDHEGroups = os->ssl3.numDHEGroups;
+        if (os->ssl3.dheGroups) {
+            ss->ssl3.dheGroups = PORT_NewArray(SSLDHEGroupType,
+                                               os->ssl3.numDHEGroups);
+            if (!ss->ssl3.dheGroups) {
+                goto loser;
+            }
+            PORT_Memcpy(ss->ssl3.dheGroups, os->ssl3.dheGroups,
+                        sizeof(SSLDHEGroupType) * os->ssl3.numDHEGroups);
+        } else {
+            ss->ssl3.dheGroups = NULL;
+        }
 
         if (os->cipherSpecs) {
             ss->cipherSpecs  = (unsigned char*)PORT_Alloc(os->sizeCipherSpecs);
@@ -267,6 +289,10 @@ ssl_DupSocket(sslSocket *os)
                                   ssl3_GetKeyPairRef(os->stepDownKeyPair);
             ss->ephemeralECDHKeyPair = !os->ephemeralECDHKeyPair ? NULL :
                                   ssl3_GetKeyPairRef(os->ephemeralECDHKeyPair);
+            ss->dheKeyPair = !os->dheKeyPair ? NULL :
+                             ssl3_GetKeyPairRef(os->dheKeyPair);
+            ss->dheParams = os->dheParams;
+
 /*
  * XXX the preceding CERT_ and SECKEY_ functions can fail and return NULL.
  * XXX We should detect this, and not just march on with NULL pointers.
@@ -375,6 +401,9 @@ ssl_DestroySocketContents(sslSocket *ss)
             SECITEM_FreeArray(ss->certStatusArray[i], PR_TRUE);
             ss->certStatusArray[i] = NULL;
         }
+        if (ss->signedCertTimestamps[i].data) {
+            SECITEM_FreeItem(&ss->signedCertTimestamps[i], PR_FALSE);
+        }
     }
     if (ss->stepDownKeyPair) {
         ssl3_FreeKeyPair(ss->stepDownKeyPair);
@@ -384,8 +413,11 @@ ssl_DestroySocketContents(sslSocket *ss)
         ssl3_FreeKeyPair(ss->ephemeralECDHKeyPair);
         ss->ephemeralECDHKeyPair = NULL;
     }
+    if (ss->dheKeyPair) {
+        ssl3_FreeKeyPair(ss->dheKeyPair);
+        ss->dheKeyPair = NULL;
+    }
     SECITEM_FreeItem(&ss->opt.nextProtoNego, PR_FALSE);
-    PORT_Assert(!ss->xtnData.sniNameArr);
     if (ss->xtnData.sniNameArr) {
         PORT_Free(ss->xtnData.sniNameArr);
         ss->xtnData.sniNameArr = NULL;
@@ -794,6 +826,18 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
         ss->opt.enableFallbackSCSV = on;
         break;
 
+      case SSL_ENABLE_SERVER_DHE:
+        ss->opt.enableServerDhe = on;
+        break;
+
+      case SSL_ENABLE_EXTENDED_MASTER_SECRET:
+        ss->opt.enableExtendedMS = on;
+        break;
+
+      case SSL_ENABLE_SIGNED_CERT_TIMESTAMPS:
+        ss->opt.enableSignedCertTimestamps = on;
+        break;
+
       default:
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         rv = SECFailure;
@@ -869,6 +913,12 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
     case SSL_REUSE_SERVER_ECDHE_KEY:
                                   on = ss->opt.reuseServerECDHEKey; break;
     case SSL_ENABLE_FALLBACK_SCSV: on = ss->opt.enableFallbackSCSV; break;
+    case SSL_ENABLE_SERVER_DHE:   on = ss->opt.enableServerDhe; break;
+    case SSL_ENABLE_EXTENDED_MASTER_SECRET:
+                                  on = ss->opt.enableExtendedMS; break;
+    case SSL_ENABLE_SIGNED_CERT_TIMESTAMPS:
+        on = ss->opt.enableSignedCertTimestamps;
+        break;
 
     default:
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -937,6 +987,15 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
        break;
     case SSL_ENABLE_FALLBACK_SCSV:
        on = ssl_defaults.enableFallbackSCSV;
+       break;
+    case SSL_ENABLE_SERVER_DHE:
+       on = ssl_defaults.enableServerDhe;
+       break;
+    case SSL_ENABLE_EXTENDED_MASTER_SECRET:
+       on = ssl_defaults.enableExtendedMS;
+       break;
+    case SSL_ENABLE_SIGNED_CERT_TIMESTAMPS:
+       on = ssl_defaults.enableSignedCertTimestamps;
        break;
 
     default:
@@ -1119,6 +1178,18 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 
       case SSL_ENABLE_FALLBACK_SCSV:
         ssl_defaults.enableFallbackSCSV = on;
+        break;
+
+      case SSL_ENABLE_SERVER_DHE:
+        ssl_defaults.enableServerDhe = on;
+        break;
+
+      case SSL_ENABLE_EXTENDED_MASTER_SECRET:
+        ssl_defaults.enableExtendedMS = on;
+        break;
+
+      case SSL_ENABLE_SIGNED_CERT_TIMESTAMPS:
+        ssl_defaults.enableSignedCertTimestamps = on;
         break;
 
       default:
@@ -1339,7 +1410,204 @@ NSS_SetFrancePolicy(void)
     return NSS_SetDomesticPolicy();
 }
 
+SECStatus
+SSL_DHEGroupPrefSet(PRFileDesc *fd,
+                    SSLDHEGroupType *groups,
+                    PRUint16 num_groups)
+{
+    sslSocket *ss;
 
+    if ((num_groups && !groups) || (!num_groups && groups)) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_DHEGroupPrefSet", SSL_GETPID(), fd));
+        return SECFailure;
+    }
+
+    if (ss->ssl3.dheGroups) {
+        PORT_Free(ss->ssl3.dheGroups);
+        ss->ssl3.dheGroups = NULL;
+        ss->ssl3.numDHEGroups = 0;
+    }
+
+    if (groups) {
+        ss->ssl3.dheGroups = PORT_NewArray(SSLDHEGroupType, num_groups);
+        if (!ss->ssl3.dheGroups) {
+            PORT_SetError(SEC_ERROR_NO_MEMORY);
+            return SECFailure;
+        }
+        PORT_Memcpy(ss->ssl3.dheGroups, groups,
+                    sizeof(SSLDHEGroupType) * num_groups);
+    }
+    return SECSuccess;
+}
+
+
+PRCallOnceType gWeakDHParamsRegisterOnce;
+int gWeakDHParamsRegisterError;
+
+PRCallOnceType gWeakDHParamsOnce;
+int gWeakDHParamsError;
+/* As our code allocates type PQGParams, we'll keep it around,
+ * even though we only make use of it's parameters through gWeakDHParam. */
+static PQGParams *gWeakParamsPQG;
+static ssl3DHParams *gWeakDHParams;
+
+static PRStatus
+ssl3_CreateWeakDHParams(void)
+{
+    PQGVerify *vfy;
+    SECStatus rv, passed;
+
+    PORT_Assert(!gWeakDHParams && !gWeakParamsPQG);
+
+    rv = PK11_PQG_ParamGenV2(1024, 160, 64 /*maximum seed that will work*/,
+                             &gWeakParamsPQG, &vfy);
+    if (rv != SECSuccess) {
+        gWeakDHParamsError = PORT_GetError();
+        return PR_FAILURE;
+    }
+
+    rv = PK11_PQG_VerifyParams(gWeakParamsPQG, vfy, &passed);
+    if (rv != SECSuccess || passed != SECSuccess) {
+        SSL_DBG(("%d: PK11_PQG_VerifyParams failed in ssl3_CreateWeakDHParams",
+                SSL_GETPID()));
+        gWeakDHParamsError = PORT_GetError();
+        return PR_FAILURE;
+    }
+
+    gWeakDHParams = PORT_ArenaNew(gWeakParamsPQG->arena, ssl3DHParams);
+    if (!gWeakDHParams) {
+        gWeakDHParamsError = PORT_GetError();
+        return PR_FAILURE;
+    }
+
+    gWeakDHParams->prime.data = gWeakParamsPQG->prime.data;
+    gWeakDHParams->prime.len = gWeakParamsPQG->prime.len;
+    gWeakDHParams->base.data = gWeakParamsPQG->base.data;
+    gWeakDHParams->base.len = gWeakParamsPQG->base.len;
+
+    PK11_PQG_DestroyVerify(vfy);
+    return PR_SUCCESS;
+}
+
+static SECStatus
+ssl3_WeakDHParamsShutdown(void *appData, void *nssData)
+{
+    if (gWeakParamsPQG) {
+        PK11_PQG_DestroyParams(gWeakParamsPQG);
+        gWeakParamsPQG = NULL;
+        gWeakDHParams = NULL;
+    }
+    return SECSuccess;
+}
+
+static PRStatus
+ssl3_WeakDHParamsRegisterShutdown(void)
+{
+    SECStatus rv;
+    rv = NSS_RegisterShutdown(ssl3_WeakDHParamsShutdown, NULL);
+    if (rv != SECSuccess) {
+        gWeakDHParamsRegisterError = PORT_GetError();
+    }
+    return (PRStatus)rv;
+}
+
+/* global init strategy inspired by ssl3_CreateECDHEphemeralKeys */
+SECStatus
+SSL_EnableWeakDHEPrimeGroup(PRFileDesc *fd, PRBool enabled)
+{
+    sslSocket *ss;
+    PRStatus status;
+
+    if (enabled) {
+        status = PR_CallOnce(&gWeakDHParamsRegisterOnce,
+                             ssl3_WeakDHParamsRegisterShutdown);
+        if (status != PR_SUCCESS) {
+            PORT_SetError(gWeakDHParamsRegisterError);
+            return SECFailure;
+        }
+
+        status = PR_CallOnce(&gWeakDHParamsOnce, ssl3_CreateWeakDHParams);
+        if (status != PR_SUCCESS) {
+            PORT_SetError(gWeakDHParamsError);
+            return SECFailure;
+        }
+    }
+
+    if (!fd)
+        return SECSuccess;
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_DHEGroupPrefSet", SSL_GETPID(), fd));
+        return SECFailure;
+    }
+
+    ss->ssl3.dheWeakGroupEnabled = enabled;
+    return SECSuccess;
+}
+
+#include "dhe-param.c"
+
+static const SSLDHEGroupType ssl_default_dhe_groups[] = {
+    ssl_ff_dhe_2048_group
+};
+
+/* Keep this array synchronized with the index definitions in SSLDHEGroupType */
+static const ssl3DHParams *all_ssl3DHParams[] = {
+    NULL, /* ssl_dhe_group_none */
+    &ff_dhe_2048,
+    &ff_dhe_3072,
+    &ff_dhe_4096,
+    &ff_dhe_6144,
+    &ff_dhe_8192,
+};
+
+static SSLDHEGroupType
+selectDHEGroup(sslSocket *ss, const SSLDHEGroupType *groups, PRUint16 num_groups)
+{
+    if (!groups || !num_groups)
+        return ssl_dhe_group_none;
+
+    /* We don't have automatic group parameter selection yet
+     * (potentially) based on socket parameters, e.g. key sizes.
+     * For now, we return the first available group from the allowed list. */
+    return groups[0];
+}
+
+/* Ensure DH parameters have been selected */
+SECStatus
+ssl3_SelectDHParams(sslSocket *ss)
+{
+    SSLDHEGroupType selectedGroup = ssl_dhe_group_none;
+
+    if (ss->ssl3.dheWeakGroupEnabled) {
+        ss->dheParams = gWeakDHParams;
+    } else {
+        if (ss->ssl3.dheGroups) {
+            selectedGroup = selectDHEGroup(ss, ss->ssl3.dheGroups,
+                               ss->ssl3.numDHEGroups);
+        } else {
+            size_t number_of_default_groups = PR_ARRAY_SIZE(ssl_default_dhe_groups);
+            selectedGroup = selectDHEGroup(ss, ssl_default_dhe_groups,
+                               number_of_default_groups);
+        }
+
+        if (selectedGroup == ssl_dhe_group_none ||
+            selectedGroup >= ssl_dhe_group_max) {
+            return SECFailure;
+        }
+
+        ss->dheParams = all_ssl3DHParams[selectedGroup];
+    }
+
+    return SECSuccess;
+}
 
 /* LOCKS ??? XXX */
 static PRFileDesc *
@@ -1637,6 +1905,10 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
     PORT_Memcpy(ss->ssl3.dtlsSRTPCiphers, sm->ssl3.dtlsSRTPCiphers,
                 sizeof(PRUint16) * sm->ssl3.dtlsSRTPCipherCount);
     ss->ssl3.dtlsSRTPCipherCount = sm->ssl3.dtlsSRTPCipherCount;
+    PORT_Memcpy(ss->ssl3.signatureAlgorithms, sm->ssl3.signatureAlgorithms,
+                sizeof(ss->ssl3.signatureAlgorithms[0]) *
+                sm->ssl3.signatureAlgorithmCount);
+    ss->ssl3.signatureAlgorithmCount = sm->ssl3.signatureAlgorithmCount;
 
     if (!ss->opt.useSecurity) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -1667,6 +1939,16 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
                 ss->certStatusArray[i] = SECITEM_DupArray(NULL, sm->certStatusArray[i]);
                 if (!ss->certStatusArray[i])
                     goto loser;
+            }
+            if (sm->signedCertTimestamps[i].data) {
+                if (ss->signedCertTimestamps[i].data) {
+                    SECITEM_FreeItem(&ss->signedCertTimestamps[i], PR_FALSE);
+                }
+                if (SECITEM_CopyItem(NULL,
+                        &ss->signedCertTimestamps[i],
+                        &sm->signedCertTimestamps[i]) != SECSuccess) {
+                    goto loser;
+                }
             }
         }
         if (mc->serverKeyPair) {
@@ -1757,6 +2039,29 @@ ssl3_VersionRangeIsValid(SSLProtocolVariant protocolVariant,
            vrange->min <= vrange->max &&
            ssl3_VersionIsSupported(protocolVariant, vrange->min) &&
            ssl3_VersionIsSupported(protocolVariant, vrange->max);
+}
+
+const SECItem *
+SSL_PeerSignedCertTimestamps(PRFileDesc *fd)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+
+    if (!ss) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_PeerSignedCertTimestamps",
+            SSL_GETPID(), fd));
+        return NULL;
+    }
+
+    if (!ss->sec.ci.sid) {
+        PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
+        return NULL;
+    }
+
+    if (ss->sec.ci.sid->version < SSL_LIBRARY_VERSION_3_0) {
+        PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_SSL2);
+        return NULL;
+    }
+    return &ss->sec.ci.sid->u.ssl3.signedCertTimestamps;
 }
 
 SECStatus
@@ -2235,7 +2540,7 @@ SSL_SetStapledOCSPResponses(PRFileDesc *fd, const SECItemArray *responses,
     }
 
     if ( kea <= 0 || kea >= kt_kea_size) {
-        SSL_DBG(("%d: SSL[%d]: invalid key in SSL_SetStapledOCSPResponses",
+        SSL_DBG(("%d: SSL[%d]: invalid key type in SSL_SetStapledOCSPResponses",
                  SSL_GETPID(), fd));
         return SECFailure;
     }
@@ -2248,6 +2553,35 @@ SSL_SetStapledOCSPResponses(PRFileDesc *fd, const SECItemArray *responses,
         ss->certStatusArray[kea] = SECITEM_DupArray(NULL, responses);
     }
     return (ss->certStatusArray[kea] || !responses) ? SECSuccess : SECFailure;
+}
+
+SECStatus
+SSL_SetSignedCertTimestamps(PRFileDesc *fd, const SECItem *scts, SSLKEAType kea)
+{
+    sslSocket *ss;
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_SetSignedCertTimestamps",
+                 SSL_GETPID(), fd));
+        return SECFailure;
+    }
+
+    if (kea <= 0 || kea >= kt_kea_size) {
+        SSL_DBG(("%d: SSL[%d]: invalid key type in SSL_SetSignedCertTimestamps",
+                 SSL_GETPID(), fd));
+        return SECFailure;
+    }
+
+    if (ss->signedCertTimestamps[kea].data) {
+        SECITEM_FreeItem(&ss->signedCertTimestamps[kea], PR_FALSE);
+    }
+
+    if (!scts) {
+        return SECSuccess;
+    }
+
+    return SECITEM_CopyItem(NULL, &ss->signedCertTimestamps[kea], scts);
 }
 
 SECStatus
@@ -2966,6 +3300,10 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
             ss->certStatusArray[i] = NULL;
         }
         ss->stepDownKeyPair    = NULL;
+
+        ss->dheParams = NULL;
+        ss->dheKeyPair = NULL;
+
         ss->dbHandle           = CERT_GetDefaultCertDB();
 
         /* Provide default implementation of hooks */
