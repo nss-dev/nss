@@ -270,55 +270,55 @@ static SSL3Statistics ssl3stats;
 /* indexed by SSL3BulkCipher */
 static const ssl3BulkCipherDef bulk_cipher_defs[] = {
     /*                                       |--------- Lengths --------| */
-    /* cipher             calg               k  s  type         i  b  t  n */
-    /*                                       e  e               v  l  a  o */
-    /*                                       y  c               |  o  g  n */
-    /*                                       |  r               |  c  |  c */
-    /*                                       |  e               |  k  |  e */
-    /*                                       |  t               |  |  |  | */
-    {cipher_null,         calg_null,         0, 0, type_stream, 0, 0, 0, 0},
-    {cipher_rc4,          calg_rc4,         16,16, type_stream, 0, 0, 0, 0},
-    {cipher_rc4_40,       calg_rc4,         16, 5, type_stream, 0, 0, 0, 0},
-    {cipher_rc4_56,       calg_rc4,         16, 7, type_stream, 0, 0, 0, 0},
-    {cipher_rc2,          calg_rc2,         16,16, type_block,  8, 8, 0, 0},
-    {cipher_rc2_40,       calg_rc2,         16, 5, type_block,  8, 8, 0, 0},
-    {cipher_des,          calg_des,          8, 8, type_block,  8, 8, 0, 0},
-    {cipher_3des,         calg_3des,        24,24, type_block,  8, 8, 0, 0},
-    {cipher_des40,        calg_des,          8, 5, type_block,  8, 8, 0, 0},
-    {cipher_idea,         calg_idea,        16,16, type_block,  8, 8, 0, 0},
-    {cipher_aes_128,      calg_aes,         16,16, type_block, 16,16, 0, 0},
-    {cipher_aes_256,      calg_aes,         32,32, type_block, 16,16, 0, 0},
-    {cipher_camellia_128, calg_camellia,    16,16, type_block, 16,16, 0, 0},
-    {cipher_camellia_256, calg_camellia,    32,32, type_block, 16,16, 0, 0},
-    {cipher_seed,         calg_seed,        16,16, type_block, 16,16, 0, 0},
-    {cipher_aes_128_gcm,  calg_aes_gcm,     16,16, type_aead,   4, 0,16, 8},
-    {cipher_missing,      calg_null,         0, 0, type_stream, 0, 0, 0, 0},
+    /* cipher             calg               k  s  type         i  b  t  n o */
+    /*                                       e  e               v  l  a  o i */
+    /*                                       y  c               |  o  g  n d */
+    /*                                       |  r               |  c  |  c | */
+    /*                                       |  e               |  k  |  e | */
+    /*                                       |  t               |  |  |  | | */
+    {cipher_null,         calg_null,         0, 0, type_stream, 0, 0, 0, 0, SEC_OID_NULL_CIPHER},
+    {cipher_rc4,          calg_rc4,         16,16, type_stream, 0, 0, 0, 0, SEC_OID_RC4},
+    {cipher_rc4_40,       calg_rc4,         16, 5, type_stream, 0, 0, 0, 0, SEC_OID_RC4_40},
+    {cipher_rc4_56,       calg_rc4,         16, 7, type_stream, 0, 0, 0, 0, SEC_OID_RC4_56},
+    {cipher_rc2,          calg_rc2,         16,16, type_block,  8, 8, 0, 0, SEC_OID_RC2_CBC},
+    {cipher_rc2_40,       calg_rc2,         16, 5, type_block,  8, 8, 0, 0, SEC_OID_RC2_40_CBC},
+    {cipher_des,          calg_des,          8, 8, type_block,  8, 8, 0, 0, SEC_OID_DES_CBC},
+    {cipher_3des,         calg_3des,        24,24, type_block,  8, 8, 0, 0, SEC_OID_DES_EDE3_CBC},
+    {cipher_des40,        calg_des,          8, 5, type_block,  8, 8, 0, 0, SEC_OID_DES_40_CBC},
+    {cipher_idea,         calg_idea,        16,16, type_block,  8, 8, 0, 0, SEC_OID_IDEA_CBC},
+    {cipher_aes_128,      calg_aes,         16,16, type_block, 16,16, 0, 0, SEC_OID_AES_128_CBC},
+    {cipher_aes_256,      calg_aes,         32,32, type_block, 16,16, 0, 0, SEC_OID_AES_256_CBC},
+    {cipher_camellia_128, calg_camellia,    16,16, type_block, 16,16, 0, 0, SEC_OID_CAMELLIA_128_CBC},
+    {cipher_camellia_256, calg_camellia,    32,32, type_block, 16,16, 0, 0, SEC_OID_CAMELLIA_256_CBC},
+    {cipher_seed,         calg_seed,        16,16, type_block, 16,16, 0, 0, SEC_OID_SEED_CBC},
+    {cipher_aes_128_gcm,  calg_aes_gcm,     16,16, type_aead,   4, 0,16, 8, SEC_OID_AES_128_GCM},
+    {cipher_missing,      calg_null,         0, 0, type_stream, 0, 0, 0, 0, 0},
 };
 
 static const ssl3KEADef kea_defs[] =
 { /* indexed by SSL3KeyExchangeAlgorithm */
-    /* kea            exchKeyType signKeyType is_limited limit tls_keygen ephemeral */
-    {kea_null,           kt_null, sign_null,  PR_FALSE,   0, PR_FALSE, PR_FALSE},
-    {kea_rsa,            kt_rsa,  sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE},
-    {kea_rsa_export,     kt_rsa,  sign_rsa,   PR_TRUE,  512, PR_FALSE, PR_FALSE},
-    {kea_rsa_export_1024,kt_rsa,  sign_rsa,   PR_TRUE, 1024, PR_FALSE, PR_FALSE},
-    {kea_dh_dss,         kt_dh,   sign_dsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE},
-    {kea_dh_dss_export,  kt_dh,   sign_dsa,   PR_TRUE,  512, PR_FALSE, PR_FALSE},
-    {kea_dh_rsa,         kt_dh,   sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE},
-    {kea_dh_rsa_export,  kt_dh,   sign_rsa,   PR_TRUE,  512, PR_FALSE, PR_FALSE},
-    {kea_dhe_dss,        kt_dh,   sign_dsa,   PR_FALSE,   0, PR_FALSE, PR_TRUE},
-    {kea_dhe_dss_export, kt_dh,   sign_dsa,   PR_TRUE,  512, PR_FALSE, PR_TRUE},
-    {kea_dhe_rsa,        kt_dh,   sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_TRUE},
-    {kea_dhe_rsa_export, kt_dh,   sign_rsa,   PR_TRUE,  512, PR_FALSE, PR_TRUE},
-    {kea_dh_anon,        kt_dh,   sign_null,  PR_FALSE,   0, PR_FALSE, PR_TRUE},
-    {kea_dh_anon_export, kt_dh,   sign_null,  PR_TRUE,  512, PR_FALSE, PR_TRUE},
-    {kea_rsa_fips,       kt_rsa,  sign_rsa,   PR_FALSE,   0, PR_TRUE,  PR_FALSE},
+    /* kea            exchKeyType signKeyType is_limited limit tls_keygen ephemeral  oid */
+    {kea_null,           kt_null, sign_null,  PR_FALSE,   0, PR_FALSE, PR_FALSE, 0},
+    {kea_rsa,            kt_rsa,  sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_RSA},
+    {kea_rsa_export,     kt_rsa,  sign_rsa,   PR_TRUE,  512, PR_FALSE, PR_FALSE, SEC_OID_TLS_RSA_EXPORT},
+    {kea_rsa_export_1024,kt_rsa,  sign_rsa,   PR_TRUE, 1024, PR_FALSE, PR_FALSE, SEC_OID_TLS_RSA_EXPORT},
+    {kea_dh_dss,         kt_dh,   sign_dsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_DH_DSS},
+    {kea_dh_dss_export,  kt_dh,   sign_dsa,   PR_TRUE,  512, PR_FALSE, PR_FALSE, SEC_OID_TLS_DH_DSS_EXPORT},
+    {kea_dh_rsa,         kt_dh,   sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_DH_RSA},
+    {kea_dh_rsa_export,  kt_dh,   sign_rsa,   PR_TRUE,  512, PR_FALSE, PR_FALSE, SEC_OID_TLS_DH_RSA_EXPORT},
+    {kea_dhe_dss,        kt_dh,   sign_dsa,   PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DHE_DSS},
+    {kea_dhe_dss_export, kt_dh,   sign_dsa,   PR_TRUE,  512, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DHE_DSS_EXPORT},
+    {kea_dhe_rsa,        kt_dh,   sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DHE_RSA},
+    {kea_dhe_rsa_export, kt_dh,   sign_rsa,   PR_TRUE,  512, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DHE_RSA_EXPORT},
+    {kea_dh_anon,        kt_dh,   sign_null,  PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DH_ANON},
+    {kea_dh_anon_export, kt_dh,   sign_null,  PR_TRUE,  512, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DH_ANON_EXPORT},
+    {kea_rsa_fips,       kt_rsa,  sign_rsa,   PR_FALSE,   0, PR_TRUE,  PR_FALSE, SEC_OID_TLS_RSA},
 #ifndef NSS_DISABLE_ECC
-    {kea_ecdh_ecdsa,     kt_ecdh, sign_ecdsa, PR_FALSE,   0, PR_FALSE, PR_FALSE},
-    {kea_ecdhe_ecdsa,    kt_ecdh, sign_ecdsa, PR_FALSE,   0, PR_FALSE, PR_TRUE},
-    {kea_ecdh_rsa,       kt_ecdh, sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE},
-    {kea_ecdhe_rsa,      kt_ecdh, sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_TRUE},
-    {kea_ecdh_anon,      kt_ecdh, sign_null,  PR_FALSE,   0, PR_FALSE, PR_TRUE},
+    {kea_ecdh_ecdsa,     kt_ecdh, sign_ecdsa, PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_ECDH_ECDSA},
+    {kea_ecdhe_ecdsa,    kt_ecdh, sign_ecdsa, PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_ECDHE_ECDSA},
+    {kea_ecdh_rsa,       kt_ecdh, sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_ECDH_RSA},
+    {kea_ecdhe_rsa,      kt_ecdh, sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_ECDHE_RSA},
+    {kea_ecdh_anon,      kt_ecdh, sign_null,  PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_ECDH_ANON},
 #endif /* NSS_DISABLE_ECC */
 };
 
@@ -500,13 +500,13 @@ static const SSLCipher2Mech alg2Mech[] = {
 static const ssl3MACDef mac_defs[] = { /* indexed by SSL3MACAlgorithm */
     /* pad_size is only used for SSL 3.0 MAC. See RFC 6101 Sec. 5.2.3.1. */
     /* mac      mmech       pad_size  mac_size                       */
-    { mac_null, mmech_invalid,    0,  0          },
-    { mac_md5,  mmech_md5,       48,  MD5_LENGTH },
-    { mac_sha,  mmech_sha,       40,  SHA1_LENGTH},
-    {hmac_md5,  mmech_md5_hmac,   0,  MD5_LENGTH },
-    {hmac_sha,  mmech_sha_hmac,   0,  SHA1_LENGTH},
-    {hmac_sha256, mmech_sha256_hmac, 0, SHA256_LENGTH},
-    { mac_aead, mmech_invalid,    0,  0          },
+    { mac_null, mmech_invalid,    0,  0         ,  0},
+    { mac_md5,  mmech_md5,       48,  MD5_LENGTH,  SEC_OID_HMAC_MD5 },
+    { mac_sha,  mmech_sha,       40,  SHA1_LENGTH, SEC_OID_HMAC_SHA1},
+    {hmac_md5,  mmech_md5_hmac,   0,  MD5_LENGTH,  SEC_OID_HMAC_MD5},
+    {hmac_sha,  mmech_sha_hmac,   0,  SHA1_LENGTH, SEC_OID_HMAC_SHA1},
+    {hmac_sha256, mmech_sha256_hmac, 0, SHA256_LENGTH, SEC_OID_HMAC_SHA256},
+    { mac_aead, mmech_invalid,    0,  0, 0 },
 };
 
 /* indexed by SSL3BulkCipher */
@@ -12949,6 +12949,57 @@ ssl3_DestroySSL3Info(sslSocket *ss)
     ss->ssl3.initialized = PR_FALSE;
 
     SECITEM_FreeItem(&ss->ssl3.nextProto, PR_FALSE);
+}
+
+#define MAP_NULL(x)  (((x)!=0)?(x):SEC_OID_NULL_CIPHER)
+
+SECStatus ssl3_ApplyNSSPolicy(void)
+ {
+    unsigned i;
+    SECStatus rv;
+    PRUint32 policy = 0;
+
+    rv = NSS_GetAlgorithmPolicy(SEC_OID_APPLY_SSL_POLICY, &policy);
+    if (rv != SECSuccess || !(policy & NSS_USE_POLICY_IN_SSL)) {
+        return SECSuccess;      /* do nothing */
+    }
+
+    /* disable every ciphersuite */
+    for (i = 1; i < PR_ARRAY_SIZE(cipher_suite_defs); ++i) {
+        const ssl3CipherSuiteDef *suite = &cipher_suite_defs[i];
+	SECOidTag policyOid;
+
+	policyOid=MAP_NULL(kea_defs[suite->key_exchange_alg].oid);
+        rv = NSS_GetAlgorithmPolicy(policyOid, &policy);
+        if (rv == SECSuccess && !(policy & NSS_USE_ALG_IN_SSL_KX)) {
+                ssl_CipherPrefSetDefault(suite->cipher_suite, PR_FALSE);
+	        ssl_CipherPolicySet(suite->cipher_suite, SSL_NOT_ALLOWED);
+        	continue;
+	}
+
+	policyOid=MAP_NULL(bulk_cipher_defs[suite->bulk_cipher_alg].oid);
+        rv = NSS_GetAlgorithmPolicy(policyOid, &policy);
+        if (rv == SECSuccess && !(policy & NSS_USE_ALG_IN_SSL)) {
+                ssl_CipherPrefSetDefault(suite->cipher_suite, PR_FALSE);
+	        ssl_CipherPolicySet(suite->cipher_suite, SSL_NOT_ALLOWED);
+         	continue;
+	}
+
+	if (bulk_cipher_defs[suite->bulk_cipher_alg].type != type_aead) {
+	        policyOid=MAP_NULL(mac_defs[suite->mac_alg].oid);
+	        rv = NSS_GetAlgorithmPolicy(policyOid, &policy);
+	        if (rv == SECSuccess && !(policy & NSS_USE_ALG_IN_SSL)) {
+                        ssl_CipherPrefSetDefault(suite->cipher_suite, PR_FALSE);
+		        ssl_CipherPolicySet(suite->cipher_suite,
+                                            SSL_NOT_ALLOWED);
+	        	continue;
+		}
+	}
+    }
+
+    rv = ssl3_ConstrainRangeByPolicy();
+
+    return rv;
 }
 
 /* End of ssl3con.c */

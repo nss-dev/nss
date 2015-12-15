@@ -112,7 +112,10 @@ run_tests()
 {
     for TEST in ${TESTS}
     do
-        echo "${TESTS_SKIP}" | grep "${TEST}" > /dev/null
+        # NOTE: the spaces are important. If you don't include
+        # the spaces, then turning off ssl_gtests will also turn off ssl
+        # tests.
+        echo " ${TESTS_SKIP} " | grep " ${TEST} " > /dev/null
         if [ $? -eq 0 ]; then
             continue
         fi
@@ -280,7 +283,7 @@ TESTS=${NSS_TESTS:-$tests}
 
 ALL_TESTS=${TESTS}
 
-nss_ssl_tests="crl bypass_normal normal_bypass fips_normal normal_fips iopr"
+nss_ssl_tests="crl bypass_normal normal_bypass fips_normal normal_fips iopr policy"
 NSS_SSL_TESTS="${NSS_SSL_TESTS:-$nss_ssl_tests}"
 
 nss_ssl_run="cov auth stapling stress"
