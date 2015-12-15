@@ -27,7 +27,7 @@ ifndef NSS_BUILD_UTIL_ONLY
 	# cannot be addressed here and requires that downstream package
 	# mantainers add suitable modifications. Building fill nss will
 	# not have that problem everything is available.
-	DIRS += \
+DIRS += \
 	$(FREEBL_SRCDIR) \
 	$(SQLITE_SRCDIR) \
 	$(DBM_SRCDIR) \
@@ -35,7 +35,7 @@ ifndef NSS_BUILD_UTIL_ONLY
 	$(NULL)
 ifndef NSS_BUILD_SOFTOKEN_ONLY
 	# default, add the rest of nss
-	DIRS += \
+DIRS += \
 	base dev pki \
 	libpkix \
 	certdb certhigh pk11wrap cryptohi nss \
