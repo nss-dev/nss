@@ -105,6 +105,12 @@ static SSLVersionRange versions_defaults_datagram = {
 #define VERSIONS_DEFAULTS(variant) \
     (variant == ssl_variant_stream ? &versions_defaults_stream : \
                                      &versions_defaults_datagram)
+#define VERSIONS_POLICY_MIN(variant) \
+    (variant == ssl_variant_stream ? NSS_TLS_VERSION_MIN_POLICY : \
+                                     NSS_DTLS_VERSION_MIN_POLICY)
+#define VERSIONS_POLICY_MAX(variant) \
+    (variant == ssl_variant_stream ? NSS_TLS_VERSION_MAX_POLICY : \
+                                     NSS_DTLS_VERSION_MAX_POLICY)
 
 sslSessionIDLookupFunc  ssl_sid_lookup;
 sslSessionIDCacheFunc   ssl_sid_cache;
@@ -533,12 +539,22 @@ static PRStatus SSL_BypassSetup(void)
 #endif
 }
 
+static PRBool ssl_VersionIsSupportedByPolicy(
+        SSLProtocolVariant protocolVariant, SSL3ProtocolVersion version);
+
 /* Implements the semantics for SSL_OptionSet(SSL_ENABLE_TLS, on) described in
  * ssl.h in the section "SSL version range setting API".
  */
 static void
 ssl_EnableTLS(SSLVersionRange *vrange, PRBool on)
 {
+   if (on) {
+        /* don't turn it on if tls1.0 disallowed by by policy */
+        if (!ssl_VersionIsSupportedByPolicy(ssl_variant_stream,
+                                            SSL_LIBRARY_VERSION_TLS_1_0)) {
+            return;
+        }
+   }
     if (SSL3_ALL_VERSIONS_DISABLED(vrange)) {
         if (on) {
             vrange->min = SSL_LIBRARY_VERSION_TLS_1_0;
@@ -569,6 +585,13 @@ ssl_EnableTLS(SSLVersionRange *vrange, PRBool on)
 static void
 ssl_EnableSSL3(SSLVersionRange *vrange, PRBool on)
 {
+   if (on) {
+        /* don't turn it on if ssl3 disallowed by by policy */
+        if (!ssl_VersionIsSupportedByPolicy(ssl_variant_stream,
+                                            SSL_LIBRARY_VERSION_3_0)) {
+            return;
+        }
+   }
    if (SSL3_ALL_VERSIONS_DISABLED(vrange)) {
         if (on) {
             vrange->min = SSL_LIBRARY_VERSION_3_0;
@@ -693,6 +716,13 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
                 rv = SECFailure; /* not allowed */
             }
             break;
+        }
+        if (on) {
+            /* don't turn it on if ssl2 disallowed by by policy */
+            if (!ssl_VersionIsSupportedByPolicy(ssl_variant_stream,
+                                            SSL_LIBRARY_VERSION_2)) {
+                 break;
+            }
         }
         ss->opt.enableSSL2       = on;
         if (on) {
@@ -1071,6 +1101,13 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
         break;
 
       case SSL_ENABLE_SSL2:
+        if (on) {
+            /* don't turn it on if ssl2 disallowed by by policy */
+            if (!ssl_VersionIsSupportedByPolicy(ssl_variant_stream,
+                                            SSL_LIBRARY_VERSION_2)) {
+                 break;
+            }
+        }
         ssl_defaults.enableSSL2 = on;
         if (on) {
             ssl_defaults.v2CompatibleHello = on;
@@ -1233,13 +1270,9 @@ SSL_SetPolicy(long which, int policy)
 }
 
 SECStatus
-SSL_CipherPolicySet(PRInt32 which, PRInt32 policy)
+ssl_CipherPolicySet(PRInt32 which, PRInt32 policy)
 {
-    SECStatus rv = ssl_Init();
-
-    if (rv != SECSuccess) {
-        return rv;
-    }
+    SECStatus rv = SECSuccess;
 
     if (ssl_IsRemovedCipherSuite(which)) {
         rv = SECSuccess;
@@ -1249,6 +1282,16 @@ SSL_CipherPolicySet(PRInt32 which, PRInt32 policy)
         rv = ssl3_SetPolicy((ssl3CipherSuite)which, policy);
     }
     return rv;
+}
+SECStatus
+SSL_CipherPolicySet(PRInt32 which, PRInt32 policy)
+{
+    SECStatus rv = ssl_Init();
+
+    if (rv != SECSuccess) {
+        return rv;
+    }
+    return ssl_CipherPolicySet(which, policy);
 }
 
 SECStatus
@@ -1292,13 +1335,9 @@ SSL_EnableCipher(long which, PRBool enabled)
 }
 
 SECStatus
-SSL_CipherPrefSetDefault(PRInt32 which, PRBool enabled)
+ssl_CipherPrefSetDefault(PRInt32 which, PRBool enabled)
 {
-    SECStatus rv = ssl_Init();
-
-    if (rv != SECSuccess) {
-        return rv;
-    }
+    SECStatus rv = SECSuccess;
 
     if (ssl_IsRemovedCipherSuite(which))
         return SECSuccess;
@@ -1312,6 +1351,17 @@ SSL_CipherPrefSetDefault(PRInt32 which, PRBool enabled)
         rv = ssl3_CipherPrefSetDefault((ssl3CipherSuite)which, enabled);
     }
     return rv;
+}
+
+SECStatus
+SSL_CipherPrefSetDefault(PRInt32 which, PRBool enabled)
+{
+    SECStatus rv = ssl_Init();
+
+    if (rv != SECSuccess) {
+        return rv;
+    }
+    return ssl_CipherPrefSetDefault(which, enabled);
 }
 
 SECStatus
@@ -1389,6 +1439,14 @@ NSS_SetDomesticPolicy(void)
 {
     SECStatus      status = SECSuccess;
     const PRUint16 *cipher;
+    SECStatus rv;
+    PRUint32 policy;
+
+    /* If we've already defined some policy oids, skip changing them */
+    rv = NSS_GetAlgorithmPolicy(SEC_OID_APPLY_SSL_POLICY, &policy);
+    if ((rv == SECSuccess) && (policy & NSS_USE_POLICY_IN_SSL)) {
+        return ssl_Init(); /* make sure the policies have bee loaded */
+    }
 
     for (cipher = SSL_ImplementedCiphers; *cipher != 0; ++cipher) {
         status = SSL_SetPolicy(*cipher, SSL_ALLOWED);
@@ -2010,10 +2068,106 @@ loser:
     return NULL;
 }
 
+/*
+ * Get the user supplied range
+ */
+static SECStatus
+ssl3_GetRangePolicy(SSLProtocolVariant protocolVariant, SSLVersionRange *prange)
+{
+    SECStatus rv;
+    PRUint32 policy;
+    PRInt32 option;
+
+    /* only use policy constraints if we've set the apply ssl policy bit */
+    rv = NSS_GetAlgorithmPolicy(SEC_OID_APPLY_SSL_POLICY, &policy);
+    if ((rv != SECSuccess) || !(policy & NSS_USE_POLICY_IN_SSL)) {
+        return SECFailure;
+    }
+    rv=NSS_OptionGet(VERSIONS_POLICY_MIN(protocolVariant),&option);
+    if (rv != SECSuccess) {
+        return rv;
+    }
+    prange->min = (PRUint16) option;
+    rv=NSS_OptionGet(VERSIONS_POLICY_MAX(protocolVariant),&option);
+    if (rv != SECSuccess) {
+        return rv;
+    }
+    prange->max = (PRUint16) option;
+    if (prange->max < prange->min) {
+        return SECFailure; /* don't accept an invalid policy */
+    }
+    return SECSuccess;
+}
+
+/*
+ * Constrain a single protocol variant's range based on the user policy
+ */
+static SECStatus
+ssl3_ConstrainVariantRangeByPolicy(SSLProtocolVariant protocolVariant)
+{
+    SSLVersionRange vrange;
+    SSLVersionRange pvrange;
+    SECStatus rv;
+
+    vrange = *VERSIONS_DEFAULTS(protocolVariant);
+    rv = ssl3_GetRangePolicy(protocolVariant, &pvrange);
+    if (rv != SECSuccess) {
+       return SECSuccess; /* we don't have any policy */
+    }
+    vrange.min = PR_MAX(vrange.min, pvrange.min);
+    vrange.max = PR_MIN(vrange.max, pvrange.max);
+    if (vrange.max >= vrange.min) {
+        *VERSIONS_DEFAULTS(protocolVariant) = vrange;
+    } else {
+         /* there was no overlap, turn off range altogether */
+         pvrange.min = pvrange.max = SSL_LIBRARY_VERSION_NONE;
+         *VERSIONS_DEFAULTS(protocolVariant) = pvrange;
+    }
+    return SECSuccess;
+}
+
+static PRBool
+ssl_VersionIsSupportedByPolicy(SSLProtocolVariant protocolVariant,
+                               SSL3ProtocolVersion version)
+{
+    SSLVersionRange pvrange;
+    SECStatus rv;
+
+    rv = ssl3_GetRangePolicy(protocolVariant, &pvrange);
+    if (rv == SECSuccess) {
+        if ((version > pvrange.max) || (version < pvrange.min)) {
+            return PR_FALSE; /* disallowed by policy */
+        }
+    }
+    return PR_TRUE;
+}
+
+/*
+ *  This is called at SSL init time to constrain the existing range based
+ *  on user supplied policy.
+ */
+SECStatus
+ssl3_ConstrainRangeByPolicy(void)
+{
+    SECStatus rv;
+    rv = ssl3_ConstrainVariantRangeByPolicy(ssl_variant_stream);
+    if (rv != SECSuccess) {
+        return rv;
+    }
+    rv = ssl3_ConstrainVariantRangeByPolicy(ssl_variant_datagram);
+    if (rv != SECSuccess) {
+        return rv;
+    }
+    return SECSuccess;
+}
+
 PRBool
 ssl3_VersionIsSupported(SSLProtocolVariant protocolVariant,
                         SSL3ProtocolVersion version)
 {
+    if (!ssl_VersionIsSupportedByPolicy(protocolVariant, version)) {
+        return PR_FALSE;
+    }
     switch (protocolVariant) {
     case ssl_variant_stream:
         return (version >= SSL_LIBRARY_VERSION_3_0 &&
