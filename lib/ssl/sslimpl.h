@@ -751,6 +751,8 @@ typedef struct {
     /* True if the key exchange for the suite is ephemeral.  Or to be more
      * precise: true if the ServerKeyExchange message is always required. */
     PRBool                   ephemeral;
+    /* An OID describing the key exchange */
+    SECOidTag                oid;
 } ssl3KEADef;
 
 /*
@@ -766,6 +768,7 @@ struct ssl3BulkCipherDefStr {
     int             block_size;
     int             tag_size;  /* authentication tag size for AEAD ciphers. */
     int             explicit_nonce_size;               /* for AEAD ciphers. */
+    SECOidTag       oid;
 };
 
 /*
@@ -776,6 +779,7 @@ struct ssl3MACDefStr {
     CK_MECHANISM_TYPE mmech;
     int              pad_size;
     int              mac_size;
+    SECOidTag        oid;
 };
 
 typedef enum {
@@ -1484,6 +1488,13 @@ extern SECStatus ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled);
 
 extern void      ssl_FinishHandshake(sslSocket *ss);
 
+extern SECStatus ssl_CipherPolicySet(PRInt32 which, PRInt32 policy);
+
+extern SECStatus ssl_CipherPrefSetDefault(PRInt32 which, PRBool enabled);
+
+extern SECStatus ssl3_ConstrainRangeByPolicy(void);
+
+
 /* Returns PR_TRUE if we are still waiting for the server to respond to our
  * client second round. Once we've received any part of the server's second
  * round then we don't bother trying to false start since it is almost always
@@ -1971,6 +1982,8 @@ extern void SSL_AtomicIncrementLong(long * x);
 SECStatus SSL_DisableDefaultExportCipherSuites(void);
 SECStatus SSL_DisableExportCipherSuites(PRFileDesc * fd);
 PRBool    SSL_IsExportCipherSuite(PRUint16 cipherSuite);
+
+SECStatus ssl3_ApplyNSSPolicy(void);
 
 extern SECStatus
 ssl3_TLSPRFWithMasterSecret(ssl3CipherSpec *spec,

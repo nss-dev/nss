@@ -165,7 +165,7 @@ char *_NSSUTIL_GetOldSecmodName(const char *dbname,const char *filename)
 static SECStatus nssutil_AddSecmodDBEntry(const char *appName,
                                           const char *filename,
                                           const char *dbname,
-                                          char *module, PRBool rw);
+                                          const char *module, PRBool rw);
 
 enum lfopen_mode { lfopen_truncate, lfopen_append };
 
@@ -469,7 +469,7 @@ static SECStatus
 nssutil_DeleteSecmodDBEntry(const char *appName,
                             const char *filename,
                             const char *dbname,
-                            char *args,
+                            const char *args,
                             PRBool rw)
 {
     /* SHDB_FIXME implement */
@@ -610,7 +610,7 @@ loser:
 static SECStatus
 nssutil_AddSecmodDBEntry(const char *appName,
                         const char *filename, const char *dbname,
-                         char *module, PRBool rw)
+                        const char *module, PRBool rw)
 {
     os_stat_type stat_existing;
     os_open_permissions_type file_mode;
