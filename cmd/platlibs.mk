@@ -67,37 +67,39 @@ PKIXLIB = \
 	$(DIST)/lib/$(LIB_PREFIX)pkixcertsel.$(LIB_SUFFIX)
 endif
 
-NSS_LIBS=
+NSS_LIBS_1=
 SECTOOL_LIB=
+NSS_LIBS_2=
+NSS_LIBS_3=
+NSS_LIBS_4=
 
 ifneq ($(NSS_BUILD_SOFTOKEN_ONLY),1)
 SECTOOL_LIB = \
 	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
 	$(NULL)
 else
-ifneq ($(NSS_BUILD_UTIL_ONLY),1)
 SECTOOL_LIB = \
-	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
 	$(NULL)
-else
-SECTOOL_LIB = $(NULL)
-endif
-NSS_LIBS = $(NULL)
 endif
 
 ifneq ($(NSS_BUILD_SOFTOKEN_ONLY),1)
 ifeq ($(OS_ARCH), WINNT)
 # breakdown for windows
-NSS_LIBS = \
+NSS_LIBS_1 = \
 	$(DIST)/lib/$(LIB_PREFIX)smime.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
+	$(NULL)
+NSS_LIBS_2 = \
 	$(DIST)/lib/$(LIB_PREFIX)pkcs12.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pkcs7.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)cryptohi.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)certdb.$(LIB_SUFFIX) \
+	$(NULL)
+NSS_LIBS_3 = \
 	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nssdev.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
@@ -106,6 +108,8 @@ NSS_LIBS = \
 	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
 	$(PKIXLIB) \
 	$(DBMLIB) \
+	$(NULL)
+NSS_LIBS_4 = \
 	$(SQLITE_LIB_DIR)/$(LIB_PREFIX)$(SQLITE_LIB_NAME).$(LIB_SUFFIX) \
 	$(NSSUTIL_LIB_DIR)/$(LIB_PREFIX)nssutil3.$(LIB_SUFFIX) \
 	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plc4.$(LIB_SUFFIX) \
@@ -114,22 +118,29 @@ NSS_LIBS = \
 	$(NULL)
 else
 # breakdown for others
-SECTOOL_LIB = \
-	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
-	$(NULL)
-NSS_LIBS = \
+NSS_LIBS_1 = \
 	$(DIST)/lib/$(LIB_PREFIX)smime.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
+	$(NULL)
+SECTOOL_LIB = \
+	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
+	$(NULL)
+NSS_LIBS_2 = \
 	$(DIST)/lib/$(LIB_PREFIX)pkcs12.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pkcs7.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)cryptohi.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
+	$(NULL)
+NSS_LIBS_3 = \
 	$(DIST)/lib/$(LIB_PREFIX)certdb.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nssdev.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
+	$(NULL)
+NSS_LIBS_4 = \
 	$(DBMLIB) \
 	$(PKIXLIB) \
 	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
@@ -143,10 +154,12 @@ endif
 ifeq ($(OS_ARCH), WINNT)
 
 EXTRA_LIBS += \
+	$(NSS_LIBS_1) \
 	$(SECTOOL_LIB) \
+	$(NSS_LIBS_2) \
 	$(SOFTOKENLIB) \
 	$(CRYPTOLIB) \
-	$(NSS_LIBS) \
+	$(NSS_LIBS_3) \
 	$(NULL)
 
 # $(PROGRAM) has NO explicit dependencies on $(OS_LIBS)
@@ -157,10 +170,13 @@ EXTRA_LIBS += \
 else
 
 EXTRA_LIBS += \
+	$(NSS_LIBS_1) \
 	$(SECTOOL_LIB) \
+	$(NSS_LIBS_2) \
 	$(SOFTOKENLIB) \
+	$(NSS_LIBS_3) \
 	$(CRYPTOLIB) \
-	$(NSS_LIBS) \
+	$(NSS_LIBS_4) \
 	$(NULL)
 
 ifeq ($(OS_ARCH), AIX) 
