@@ -73,7 +73,7 @@ NSS_LIBS_2=
 NSS_LIBS_3=
 NSS_LIBS_4=
 
-ifneq ($(NSS_BUILD_SOFTOKEN_ONLY),1)
+ifneq ($(NSS_BUILD_UTIL_ONLY),1)
 SECTOOL_LIB = \
 	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
 	$(NULL)
