@@ -160,6 +160,7 @@ EXTRA_LIBS += \
 	$(SOFTOKENLIB) \
 	$(CRYPTOLIB) \
 	$(NSS_LIBS_3) \
+	$(NSS_LIBS_4) \
 	$(NULL)
 
 # $(PROGRAM) has NO explicit dependencies on $(OS_LIBS)
