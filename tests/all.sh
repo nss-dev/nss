@@ -313,9 +313,16 @@ else
 fi
 
 if [ ! -f ${DIST}/${OBJDIR}/bin/${LAST_FILE_BUILT}${PROG_SUFFIX} ]; then
+  if [ "${NSS_BUILD_UTIL_ONLY}" = "1" ]; then
+    # Currently no tests are run or built when building util only.
+    # This may change in the future, atob and bota are
+    # possible candidates.
+    echo "No tests were built"
+  else
     echo "Build Incomplete. Aborting test." >> ${LOGFILE}
     html_head "Testing Initialization"
     Exit "Checking for build"
+  fi
 fi
 
 # NOTE:
