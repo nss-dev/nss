@@ -12,8 +12,6 @@ LIB_SRCDIR=
 
 ifdef NSS_BUILD_UTIL_ONLY
 REQUIRES = nspr
-LIB_SRCDIR = \
- $(NULL)
 else
 REQUIRES = nss nspr libdbm
 LIB_SRCDIR = \
@@ -78,13 +76,10 @@ NSS_SRCDIRS = \
  vfyserv \
  modutil \
  $(NULL)
-else
-NSS_SRCDIRS = \
- $(NULL)
 endif
 endif
 
-DIRS += \
+DIRS = \
  $(SOFTOKEN_SRCDIRS) \
  $(NSS_SRCDIRS)
 
