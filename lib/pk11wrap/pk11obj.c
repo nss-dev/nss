@@ -25,6 +25,8 @@ SECItem *
 PK11_BlockData(SECItem *data,unsigned long size) {
     SECItem *newData;
 
+    if (size == 0u) return NULL;
+
     newData = (SECItem *)PORT_Alloc(sizeof(SECItem));
     if (newData == NULL) return NULL;
 
