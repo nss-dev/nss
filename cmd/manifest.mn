@@ -8,20 +8,20 @@ DEPTH	= ..
 
 SOFTOKEN_SRCDIRS=
 NSS_SRCDIRS=
-LIB_SRCDIR=
+LIB_SRCDIRS=
 
 ifdef NSS_BUILD_UTIL_ONLY
 REQUIRES = nspr
 else
 REQUIRES = nss nspr libdbm
-LIB_SRCDIR = \
+LIB_SRCDIRS = \
  lib \
  $(NULL)
 endif
 
 ifndef NSS_BUILD_UTIL_ONLY
 SOFTOKEN_SRCDIRS = \
- $(LIB_SRCDIR)  \
+ lib \
  $(BLTEST_SRCDIR) \
  $(FIPSTEST_SRCDIR)  \
  $(LOWHASHTEST_SRCDIR)  \
@@ -80,6 +80,7 @@ endif
 endif
 
 DIRS = \
+ $(LIB_SRCDIRS) \
  $(SOFTOKEN_SRCDIRS) \
  $(NSS_SRCDIRS)
 
