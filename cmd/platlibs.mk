@@ -103,9 +103,6 @@ NSS_LIBS_3 = \
 	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nssdev.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nssdev.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
 	$(PKIXLIB) \
 	$(DBMLIB) \
 	$(NULL)
