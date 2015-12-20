@@ -1,17 +1,33 @@
 checkout:
+    pre:
+        - sudo apt-add-repository -y 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.4 main'
+        - wget -q -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
+        - sudo apt-get update
+        - sudo apt-get install clang-3.4 
+
     post:
         - cd ..; hg clone https://hg.mozilla.org/projects/nspr
 
+        # Build with GCC
+        - make nss_build_all
+
+        # Build with Clang/ASan
+        - make ZDEFS_FLAG= USER_CFLAGS='-fsanitize=address -fno-omit-frame-pointer' USER_CFLAGS='-fsanitize=address -fno-omit-frame-pointer' USER_LDFLAGS='-fsanitize=address' CC=clang-3.4 CCC=clang++-3.4 nss_build_all
+
 test:
     override:
-        - make nss_build_all
+        # Test with GCC
         - cd tests; NSS_TESTS=ssl_gtests NSS_CYCLES=standard ./all.sh
+
+        # Test with Clang/ASan. OBJDIR is hacky but necessary
+        - cd tests; OBJDIR=Linux3.13_x86_64_clang_glibc_PTH_64_DBG.OBJ NSS_TESTS=ssl_gtests NSS_CYCLES=standard ./all.sh
 
 machine:
     environment:
         { USE_64: 1,
           NSS_ENABLE_TLS_1_3: 1,
           NSS_BUILD_GTESTS: 1,
+          HOST: 'nss-tests'
         }
     hosts:
 

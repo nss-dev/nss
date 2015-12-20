@@ -188,3 +188,8 @@ DEFINES += -DNO_NSPR_10_SUPPORT
 
 # Hide old, deprecated, TLS cipher suite names when building NSS
 DEFINES += -DSSL_DISABLE_DEPRECATED_CIPHER_SUITE_NAMES
+
+# Add any user-provided flags
+CFLAGS += $(USER_CFLAGS)
+CXXFLAGS += $(USER_CXXFLAGS)
+LDFLAGS += $(USER_LDFLAGS)
