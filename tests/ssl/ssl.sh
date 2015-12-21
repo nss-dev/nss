@@ -810,7 +810,7 @@ NSS=Flags=internal,critical trustOrder=75 cipherOrder=100 slotParams=(1={slotFla
 ++EOF++
           echo "config=${policy}" >> ${P_R_CLIENTDIR}/pkcs11.txt
           echo "" >> ${P_R_CLIENTDIR}/pkcs11.txt
-          echo "library=${DIST}/${OBJDIR}/lib/libnssckbi.so"" >> ${P_R_CLIENTDIR}/pkcs11.txt >> ${P_R_CLIENTDIR}/pkcs11.txt
+          echo "library=${DIST}/${OBJDIR}/lib/libnssckbi.so" >> ${P_R_CLIENTDIR}/pkcs11.txt >> ${P_R_CLIENTDIR}/pkcs11.txt
           cat  >> ${P_R_CLIENTDIR}/pkcs11.txt << ++EOF++
 name=RootCerts
 NSS=trustOrder=100
