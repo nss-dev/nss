@@ -3,7 +3,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# This sets warning flags for unix-like operating systems.
+# This sets WARNING_CFLAGS for unix-like operating systems.
 
 ifndef CC_NAME
   CC_NAME := $(shell $(CC) -? 2>&1 >/dev/null | sed -e 's/:.*//;1q')
