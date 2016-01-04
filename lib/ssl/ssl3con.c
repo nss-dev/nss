@@ -298,27 +298,27 @@ static const ssl3BulkCipherDef bulk_cipher_defs[] = {
 static const ssl3KEADef kea_defs[] =
 { /* indexed by SSL3KeyExchangeAlgorithm */
     /* kea            exchKeyType signKeyType is_limited limit tls_keygen ephemeral  oid */
-    {kea_null,           kt_null, sign_null,  PR_FALSE,   0, PR_FALSE, PR_FALSE, 0},
-    {kea_rsa,            kt_rsa,  sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_RSA},
-    {kea_rsa_export,     kt_rsa,  sign_rsa,   PR_TRUE,  512, PR_FALSE, PR_FALSE, SEC_OID_TLS_RSA_EXPORT},
-    {kea_rsa_export_1024,kt_rsa,  sign_rsa,   PR_TRUE, 1024, PR_FALSE, PR_FALSE, SEC_OID_TLS_RSA_EXPORT},
-    {kea_dh_dss,         kt_dh,   sign_dsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_DH_DSS},
-    {kea_dh_dss_export,  kt_dh,   sign_dsa,   PR_TRUE,  512, PR_FALSE, PR_FALSE, SEC_OID_TLS_DH_DSS_EXPORT},
-    {kea_dh_rsa,         kt_dh,   sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_DH_RSA},
-    {kea_dh_rsa_export,  kt_dh,   sign_rsa,   PR_TRUE,  512, PR_FALSE, PR_FALSE, SEC_OID_TLS_DH_RSA_EXPORT},
-    {kea_dhe_dss,        kt_dh,   sign_dsa,   PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DHE_DSS},
-    {kea_dhe_dss_export, kt_dh,   sign_dsa,   PR_TRUE,  512, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DHE_DSS_EXPORT},
-    {kea_dhe_rsa,        kt_dh,   sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DHE_RSA},
-    {kea_dhe_rsa_export, kt_dh,   sign_rsa,   PR_TRUE,  512, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DHE_RSA_EXPORT},
-    {kea_dh_anon,        kt_dh,   sign_null,  PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DH_ANON},
-    {kea_dh_anon_export, kt_dh,   sign_null,  PR_TRUE,  512, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DH_ANON_EXPORT},
-    {kea_rsa_fips,       kt_rsa,  sign_rsa,   PR_FALSE,   0, PR_TRUE,  PR_FALSE, SEC_OID_TLS_RSA},
+    {kea_null,           kt_null, ssl_sign_null,  PR_FALSE,   0, PR_FALSE, PR_FALSE, 0},
+    {kea_rsa,            kt_rsa,  ssl_sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_RSA},
+    {kea_rsa_export,     kt_rsa,  ssl_sign_rsa,   PR_TRUE,  512, PR_FALSE, PR_FALSE, SEC_OID_TLS_RSA_EXPORT},
+    {kea_rsa_export_1024,kt_rsa,  ssl_sign_rsa,   PR_TRUE, 1024, PR_FALSE, PR_FALSE, SEC_OID_TLS_RSA_EXPORT},
+    {kea_dh_dss,         kt_dh,   ssl_sign_dsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_DH_DSS},
+    {kea_dh_dss_export,  kt_dh,   ssl_sign_dsa,   PR_TRUE,  512, PR_FALSE, PR_FALSE, SEC_OID_TLS_DH_DSS_EXPORT},
+    {kea_dh_rsa,         kt_dh,   ssl_sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_DH_RSA},
+    {kea_dh_rsa_export,  kt_dh,   ssl_sign_rsa,   PR_TRUE,  512, PR_FALSE, PR_FALSE, SEC_OID_TLS_DH_RSA_EXPORT},
+    {kea_dhe_dss,        kt_dh,   ssl_sign_dsa,   PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DHE_DSS},
+    {kea_dhe_dss_export, kt_dh,   ssl_sign_dsa,   PR_TRUE,  512, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DHE_DSS_EXPORT},
+    {kea_dhe_rsa,        kt_dh,   ssl_sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DHE_RSA},
+    {kea_dhe_rsa_export, kt_dh,   ssl_sign_rsa,   PR_TRUE,  512, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DHE_RSA_EXPORT},
+    {kea_dh_anon,        kt_dh,   ssl_sign_null,  PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DH_ANON},
+    {kea_dh_anon_export, kt_dh,   ssl_sign_null,  PR_TRUE,  512, PR_FALSE, PR_TRUE,  SEC_OID_TLS_DH_ANON_EXPORT},
+    {kea_rsa_fips,       kt_rsa,  ssl_sign_rsa,   PR_FALSE,   0, PR_TRUE,  PR_FALSE, SEC_OID_TLS_RSA},
 #ifndef NSS_DISABLE_ECC
-    {kea_ecdh_ecdsa,     kt_ecdh, sign_ecdsa, PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_ECDH_ECDSA},
-    {kea_ecdhe_ecdsa,    kt_ecdh, sign_ecdsa, PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_ECDHE_ECDSA},
-    {kea_ecdh_rsa,       kt_ecdh, sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_ECDH_RSA},
-    {kea_ecdhe_rsa,      kt_ecdh, sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_ECDHE_RSA},
-    {kea_ecdh_anon,      kt_ecdh, sign_null,  PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_ECDH_ANON},
+    {kea_ecdh_ecdsa,     kt_ecdh, ssl_sign_ecdsa, PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_ECDH_ECDSA},
+    {kea_ecdhe_ecdsa,    kt_ecdh, ssl_sign_ecdsa, PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_ECDHE_ECDSA},
+    {kea_ecdh_rsa,       kt_ecdh, ssl_sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_FALSE, SEC_OID_TLS_ECDH_RSA},
+    {kea_ecdhe_rsa,      kt_ecdh, ssl_sign_rsa,   PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_ECDHE_RSA},
+    {kea_ecdh_anon,      kt_ecdh, ssl_sign_null,  PR_FALSE,   0, PR_FALSE, PR_TRUE,  SEC_OID_TLS_ECDH_ANON},
 #endif /* NSS_DISABLE_ECC */
 };
 
@@ -6800,8 +6800,8 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
 
     ss->ssl3.hs.isResuming = PR_FALSE;
-    if (ss->ssl3.hs.kea_def->signKeyType != sign_null) {
-        /* All current cipher suites other than those with sign_null (i.e.,
+    if (ss->ssl3.hs.kea_def->signKeyType != ssl_sign_null) {
+        /* All current cipher suites other than those with ssl_sign_null (i.e.,
          * (EC)DH_anon_* suites) require a certificate, so use that signal. */
         ss->ssl3.hs.ws = wait_server_cert;
     } else {
@@ -9197,38 +9197,10 @@ static SECStatus
 ssl3_PickSignatureHashAlgorithm(sslSocket *ss,
                                 SSLSignatureAndHashAlg* out)
 {
-    SSLSignType sigAlg;
     PRUint32 policy;
     unsigned int i, j;
 
-    switch (ss->ssl3.hs.kea_def->kea) {
-    case kea_rsa:
-    case kea_rsa_export:
-    case kea_rsa_export_1024:
-    case kea_dh_rsa:
-    case kea_dh_rsa_export:
-    case kea_dhe_rsa:
-    case kea_dhe_rsa_export:
-    case kea_rsa_fips:
-    case kea_ecdh_rsa:
-    case kea_ecdhe_rsa:
-        sigAlg = ssl_sign_rsa;
-        break;
-    case kea_dh_dss:
-    case kea_dh_dss_export:
-    case kea_dhe_dss:
-    case kea_dhe_dss_export:
-        sigAlg = ssl_sign_dsa;
-        break;
-    case kea_ecdh_ecdsa:
-    case kea_ecdhe_ecdsa:
-        sigAlg = ssl_sign_ecdsa;
-        break;
-    default:
-        PORT_SetError(SEC_ERROR_UNSUPPORTED_KEYALG);
-        return SECFailure;
-    }
-    out->sigAlg = sigAlg;
+    out->sigAlg = ss->ssl3.hs.kea_def->signKeyType;
 
     if (ss->version <= SSL_LIBRARY_VERSION_TLS_1_1) {
         /* SEC_OID_UNKNOWN means the MD5/SHA1 combo hash used in TLS 1.1 and
@@ -9251,7 +9223,7 @@ ssl3_PickSignatureHashAlgorithm(sslSocket *ss,
         const SSLSignatureAndHashAlg *serverPref =
                 &ss->ssl3.signatureAlgorithms[i];
 	SECOidTag hashOID;
-        if (serverPref->sigAlg != sigAlg) {
+        if (serverPref->sigAlg != out->sigAlg) {
             continue;
         }
         hashOID = ssl3_TLSHashAlgorithmToOID(serverPref->hashAlg);
@@ -9264,7 +9236,7 @@ ssl3_PickSignatureHashAlgorithm(sslSocket *ss,
             const SSLSignatureAndHashAlg *clientPref =
                 &ss->ssl3.hs.clientSigAndHash[j];
             if (clientPref->hashAlg == serverPref->hashAlg &&
-                clientPref->sigAlg == sigAlg) {
+                clientPref->sigAlg == out->sigAlg) {
                 out->hashAlg = serverPref->hashAlg;
                 return SECSuccess;
             }

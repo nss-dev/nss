@@ -38,12 +38,6 @@
 */
 typedef SSLKEAType      SSL3KEAType;
 typedef SSLMACAlgorithm SSL3MACAlgorithm;
-typedef SSLSignType     SSL3SignType;
-
-#define sign_null	ssl_sign_null
-#define sign_rsa	ssl_sign_rsa
-#define sign_dsa	ssl_sign_dsa
-#define sign_ecdsa	ssl_sign_ecdsa
 
 #define calg_null	ssl_calg_null
 #define calg_rc4	ssl_calg_rc4
@@ -741,7 +735,7 @@ typedef struct ssl3CipherSuiteDefStr {
 typedef struct {
     SSL3KeyExchangeAlgorithm kea;
     SSL3KEAType              exchKeyType;
-    SSL3SignType             signKeyType;
+    SSLSignType signKeyType;
     /* For export cipher suites:
      * is_limited identifies a suite as having a limit on the key size.
      * key_size_limit provides the corresponding limit. */
