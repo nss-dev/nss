@@ -5,7 +5,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 include ../../cmd/platlibs.mk
-include ../../cmd/platrules.mk
 
 MKPROG = $(CCC)
 MKSHLIB	= $(CCC) $(DSO_LDOPTS) $(DARWIN_SDK_SHLIBFLAGS)
