@@ -467,7 +467,7 @@ CONST_OID dhPublicKey[] 			= { ANSI_X942_ALGORITHM, 0x1 };
 CONST_OID idea_CBC[] 				= { ASCOM_IDEA_ALG, 2 };
 CONST_OID aes128_GCM[] 				= { AES, 0x6 };
 CONST_OID aes192_GCM[] 				= { AES, 0x1a };
-CONST_OID aes256_GCM[] 				= { AES, 0x23 };
+CONST_OID aes256_GCM[] 				= { AES, 0x2e };
 CONST_OID aes128_ECB[] 				= { AES, 1 };
 CONST_OID aes128_CBC[] 				= { AES, 2 };
 #ifdef DEFINE_ALL_AES_CIPHERS
