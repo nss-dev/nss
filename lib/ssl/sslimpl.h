@@ -1517,16 +1517,11 @@ extern SECStatus ssl_CipherPrefSetDefault(PRInt32 which, PRBool enabled);
 extern SECStatus ssl3_ConstrainRangeByPolicy(void);
 
 
-/* Returns PR_TRUE if we are still waiting for the server to respond to our
- * client second round. Once we've received any part of the server's second
- * round then we don't bother trying to false start since it is almost always
- * the case that the NewSessionTicket, ChangeCipherSoec, and Finished messages
- * were sent in the same packet and we want to process them all at the same
- * time. If we were to try to false start in the middle of the server's second
- * round, then we would increase the number of I/O operations
- * (SSL_ForceHandshake/PR_Recv/PR_Send/etc.) needed to finish the handshake.
+/* Returns PR_TRUE if we are still waiting for the server to complete its
+ * response to our client second round. Once we've received the Finished from
+ * the server then there is no need to check false start.
  */
-extern PRBool    ssl3_WaitingForStartOfServerSecondRound(sslSocket *ss);
+extern PRBool    ssl3_WaitingForServerSecondRound(sslSocket *ss);
 
 extern SECStatus
 ssl3_CompressMACEncryptRecord(ssl3CipherSpec *   cwSpec,

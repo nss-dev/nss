@@ -7603,7 +7603,7 @@ ssl3_CheckFalseStart(sslSocket *ss)
 }
 
 PRBool
-ssl3_WaitingForStartOfServerSecondRound(sslSocket *ss)
+ssl3_WaitingForServerSecondRound(sslSocket *ss)
 {
     PRBool result;
 
@@ -7611,10 +7611,9 @@ ssl3_WaitingForStartOfServerSecondRound(sslSocket *ss)
 
     switch (ss->ssl3.hs.ws) {
     case wait_new_session_ticket:
-        result = PR_TRUE;
-        break;
     case wait_change_cipher:
-        result = !ssl3_ExtensionNegotiated(ss, ssl_session_ticket_xtn);
+    case wait_finished:
+        result = PR_TRUE;
         break;
     default:
         result = PR_FALSE;
@@ -7810,7 +7809,7 @@ ssl3_SendClientSecondRound(sslSocket *ss)
     else
 	ss->ssl3.hs.ws = wait_change_cipher;
 
-    PORT_Assert(ssl3_WaitingForStartOfServerSecondRound(ss));
+    PORT_Assert(ssl3_WaitingForServerSecondRound(ss));
 
     return SECSuccess;
 
@@ -11146,10 +11145,10 @@ ssl3_AuthCertificateComplete(sslSocket *ss, PRErrorCode error)
 	if (ss->opt.enableFalseStart &&
 	    !ss->firstHsDone &&
 	    !ss->ssl3.hs.isResuming &&
-	    ssl3_WaitingForStartOfServerSecondRound(ss)) {
+	    ssl3_WaitingForServerSecondRound(ss)) {
 	    /* ssl3_SendClientSecondRound deferred the false start check because
 	     * certificate authentication was pending, so we do it now if we still
-	     * haven't received any of the server's second round yet.
+	     * haven't received all of the server's second round yet.
 	     */
 	    rv = ssl3_CheckFalseStart(ss);
 	} else {
