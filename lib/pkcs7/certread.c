@@ -292,7 +292,7 @@ CERT_DecodeCertPackage(char *certbuf,
     if ( ( *cp  & 0x1f ) == SEC_ASN1_SEQUENCE ) {
 	SECItem certitem;
 	SECItem *pcertitem = &certitem;
-	int seqLen, seqLenLen;
+	PRUint64 seqLen, seqLenLen;
 
 	cp++;
 	
@@ -331,8 +331,8 @@ CERT_DecodeCertPackage(char *certbuf,
 
 	/* check entire length if definite length */
 	if ( seqLen || seqLenLen ) {
-	    if ( certlen != ( seqLen + seqLenLen + 2 ) ) {
-		if (certlen > ( seqLen + seqLenLen + 2 ))
+	    if ( certlen != ( seqLen + seqLenLen + 2L ) ) {
+		if (certlen > ( seqLen + seqLenLen + 2L ))
 		    PORT_SetError(SEC_ERROR_EXTRA_INPUT);
 		else 
 		    PORT_SetError(SEC_ERROR_INPUT_LEN);
