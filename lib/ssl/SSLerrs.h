@@ -464,4 +464,3 @@ ER3(SSL_ERROR_KEY_EXCHANGE_FAILURE, (SSL_ERROR_BASE + 144),
 
 ER3(SSL_ERROR_EXTENSION_DISALLOWED_FOR_VERSION, (SSL_ERROR_BASE + 145),
 "SSL received an extension that is not permitted for this version.")
-

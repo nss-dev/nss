@@ -527,6 +527,12 @@ const char * const ssl3_cipherName[] = {
     "missing"
 };
 
+const PRUint8 tls13_downgrade_random[] = {0x44, 0x4F, 0x57, 0x4E,
+                                          0x47, 0x52, 0x44, 0x01};
+const PRUint8 tls12_downgrade_random[] = {0x44, 0x4F, 0x57, 0x4E,
+                                          0x47, 0x52, 0x44, 0x00};
+
+
 #ifndef NSS_DISABLE_ECC
 /* The ECCWrappedKeyInfo structure defines how various pieces of 
  * information are laid out within wrappedSymmetricWrappingkey 
@@ -948,7 +954,6 @@ ssl3_GetNewRandom(SSL3Random *random)
 {
     SECStatus rv;
 
-    /* first 4 bytes are reserverd for time */
     rv = PK11_GenerateRandom(random->rand, SSL3_RANDOM_LENGTH);
     if (rv != SECSuccess) {
 	ssl_MapLowLevelError(SSL_ERROR_GENERATE_RANDOM_FAILURE);
@@ -6488,6 +6493,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     PRBool        isTLS		= PR_FALSE;
     SSL3AlertDescription desc   = illegal_parameter;
     SSL3ProtocolVersion version;
+    SSL3ProtocolVersion downgradeCheckVersion;
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle server_hello handshake",
     	SSL_GETPID(), ss->fd));
@@ -6559,6 +6565,32 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	ss, &ss->ssl3.hs.server_random, SSL3_RANDOM_LENGTH, &b, &length);
     if (rv != SECSuccess) {
     	goto loser;  /* alert has been sent */
+    }
+
+    /* Check the ServerHello.random per
+     * [draft-ietf-tls-tls13-11 Section 6.3.1.1].
+     *
+     * TLS 1.3 clients receiving a TLS 1.2 or below ServerHello MUST check
+     * that the top eight octets are not equal to either of these values.
+     * TLS 1.2 clients SHOULD also perform this check if the ServerHello
+     * indicates TLS 1.1 or below.  If a match is found the client MUST
+     * abort the handshake with a fatal "illegal_parameter" alert.
+     */
+    downgradeCheckVersion = ss->ssl3.downgradeCheckVersion ?
+            ss->ssl3.downgradeCheckVersion : ss->vrange.max;
+
+    if (downgradeCheckVersion >= SSL_LIBRARY_VERSION_TLS_1_2 &&
+        downgradeCheckVersion > ss->version) {
+        if (!PORT_Memcmp(ss->ssl3.hs.server_random.rand,
+                         tls13_downgrade_random,
+                         sizeof(tls13_downgrade_random)) ||
+            !PORT_Memcmp(ss->ssl3.hs.server_random.rand,
+                         tls12_downgrade_random,
+                         sizeof(tls12_downgrade_random))) {
+                desc = illegal_parameter;
+                errCode = SSL_ERROR_RX_MALFORMED_SERVER_HELLO;
+                goto alert_loser;
+            }
     }
 
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
@@ -8110,6 +8142,42 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (rv != SECSuccess) {
         errCode = SSL_ERROR_GENERATE_RANDOM_FAILURE;
         goto loser;
+    }
+
+    /*
+     * [draft-ietf-tls-tls13-11 Section 6.3.1.1].
+     * TLS 1.3 server implementations which respond to a ClientHello with a
+     * client_version indicating TLS 1.2 or below MUST set the first eight
+     * bytes of their Random value to the bytes:
+     *
+     * 44 4F 57 4E 47 52 44 01
+     *
+     * TLS 1.2 server implementations which respond to a ClientHello with a
+     * client_version indicating TLS 1.1 or below SHOULD set the first eight
+     * bytes of their Random value to the bytes:
+     *
+     * 44 4F 57 4E 47 52 44 00
+     *
+     * TODO(ekr@rtfm.com): Note this change was not added in the SSLv2
+     * compat processing code since that will most likely be removed before
+     * we ship the final version of TLS 1.3.
+     */
+    if (ss->vrange.max > ss->version) {
+        switch (ss->vrange.max) {
+            case SSL_LIBRARY_VERSION_TLS_1_3:
+                PORT_Memcpy(ss->ssl3.hs.server_random.rand,
+                            tls13_downgrade_random,
+                            sizeof(tls13_downgrade_random));
+                break;
+            case SSL_LIBRARY_VERSION_TLS_1_2:
+                PORT_Memcpy(ss->ssl3.hs.server_random.rand,
+                            tls12_downgrade_random,
+                            sizeof(tls12_downgrade_random));
+                break;
+            default:
+                /* Do not change random. */
+                break;
+        }
     }
 
     /* grab the client random data. */

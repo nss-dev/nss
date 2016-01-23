@@ -61,6 +61,25 @@ class TlsInspectorClientHelloVersionChanger : public TlsHandshakeFilter {
   TlsAgent* server_;
 };
 
+// Set the version number in the ClientHello.
+class TlsInspectorClientHelloVersionSetter : public TlsHandshakeFilter {
+ public:
+  TlsInspectorClientHelloVersionSetter(uint16_t version) : version_(version) {}
+
+  virtual bool FilterHandshake(uint16_t version, uint8_t handshake_type,
+                               const DataBuffer& input, DataBuffer* output) {
+    if (handshake_type == kTlsHandshakeClientHello) {
+      *output = input;
+      output->Write(0, version_, 2);
+      return true;
+    }
+    return false;
+  }
+
+ private:
+  uint16_t version_;
+};
+
 class TlsServerKeyExchangeEcdhe {
  public:
   bool Parse(const DataBuffer& buffer) {
@@ -729,6 +748,69 @@ TEST_P(TlsConnectStream, ServerNegotiateTls12) {
   Connect();
 }
 
+// Test the ServerRandom version hack from
+// [draft-ietf-tls-tls13-11 Section 6.3.1.1].
+// The first three tests test for active tampering. The next
+// two validate that we can also detect fallback using the
+// SSL_SetDowngradeCheckVersion() API.
+TEST_F(TlsConnectTest, TestDowngradeDetectionToTls11) {
+  client_->SetPacketFilter(new TlsInspectorClientHelloVersionSetter
+                           (SSL_LIBRARY_VERSION_TLS_1_1));
+  ConnectExpectFail();
+  ASSERT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
+}
+
+#ifdef NSS_ENABLE_TLS_1_3
+TEST_F(TlsConnectTest, TestDowngradeDetectionToTls12) {
+  EnsureTlsSetup();
+  client_->SetPacketFilter(new TlsInspectorClientHelloVersionSetter
+                           (SSL_LIBRARY_VERSION_TLS_1_2));
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  ConnectExpectFail();
+  ASSERT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
+}
+#endif
+
+// TLS 1.1 clients do not check the random values, so we should
+// instead get a handshake failure alert from the server.
+TEST_F(TlsConnectTest, TestDowngradeDetectionToTls10) {
+  client_->SetPacketFilter(new TlsInspectorClientHelloVersionSetter
+                          (SSL_LIBRARY_VERSION_TLS_1_0));
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
+                           SSL_LIBRARY_VERSION_TLS_1_1);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
+                           SSL_LIBRARY_VERSION_TLS_1_2);
+  ConnectExpectFail();
+  ASSERT_EQ(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE, server_->error_code());
+  ASSERT_EQ(SSL_ERROR_DECRYPT_ERROR_ALERT, client_->error_code());
+}
+
+TEST_F(TlsConnectTest, TestFallbackFromTls12) {
+  EnsureTlsSetup();
+  client_->SetDowngradeCheckVersion(SSL_LIBRARY_VERSION_TLS_1_2);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_1);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_2);
+  ConnectExpectFail();
+  ASSERT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
+}
+
+#ifdef NSS_ENABLE_TLS_1_3
+TEST_F(TlsConnectTest, TestFallbackFromTls13) {
+  EnsureTlsSetup();
+  client_->SetDowngradeCheckVersion(SSL_LIBRARY_VERSION_TLS_1_3);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
+                           SSL_LIBRARY_VERSION_TLS_1_2);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  ConnectExpectFail();
+  ASSERT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
+}
+#endif
 
 INSTANTIATE_TEST_CASE_P(VariantsStream10, TlsConnectGeneric,
                         ::testing::Combine(

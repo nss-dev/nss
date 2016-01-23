@@ -91,6 +91,12 @@ class TlsConnectTestBase : public ::testing::Test {
   bool expect_extended_master_secret_;
 };
 
+// A non-parametrized TLS test base.
+class TlsConnectTest : public TlsConnectTestBase {
+ public:
+ TlsConnectTest() : TlsConnectTestBase(STREAM, 0) {}
+};
+
 // A TLS-only test base.
 class TlsConnectStream : public TlsConnectTestBase,
                          public ::testing::WithParamInterface<uint16_t> {
