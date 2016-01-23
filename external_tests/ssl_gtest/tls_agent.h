@@ -107,6 +107,7 @@ class TlsAgent : public PollTarget {
   void CheckExtendedMasterSecret(bool expected);
   void DisableRollbackDetection();
   void EnableCompression();
+  void SetDowngradeCheckVersion(uint16_t version);
 
   Role role() const { return role_; }
 

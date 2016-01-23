@@ -461,6 +461,13 @@ void TlsAgent::EnableCompression() {
   ASSERT_EQ(SECSuccess, rv);
 }
 
+void TlsAgent::SetDowngradeCheckVersion(uint16_t version) {
+  ASSERT_TRUE(EnsureTlsSetup());
+
+  SECStatus rv = SSL_SetDowngradeCheckVersion(ssl_fd_, version);
+  ASSERT_EQ(SECSuccess, rv);
+}
+
 void TlsAgent::Handshake() {
   SECStatus rv = SSL_ForceHandshake(ssl_fd_);
   if (rv == SECSuccess) {

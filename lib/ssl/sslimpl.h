@@ -1048,6 +1048,11 @@ struct ssl3StateStr {
      * This is our preference order. */
     SSLSignatureAndHashAlg signatureAlgorithms[MAX_SIGNATURE_ALGORITHMS];
     unsigned int signatureAlgorithmCount;
+
+    /* The version to check if we fell back from our highest version
+     * of TLS. Default is 0 in which case we check against the maximum
+     * configured version for this socket. Used only on the client. */
+    SSL3ProtocolVersion  downgradeCheckVersion;
 };
 
 /* Ethernet MTU but without subtracting the headers,
