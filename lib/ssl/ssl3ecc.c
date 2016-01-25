@@ -206,7 +206,7 @@ params2ecName(SECKEYECParams * params)
     oid.len = params->len - 2;
     oid.data = params->data + 2;
     if ((oidData = SECOID_FindOID(&oid)) == NULL) return ec_noName;
-    if ( (NSS_GetAlgorithmPolicy(ecName2OIDTag[oidData->offset], &policyFlags) 
+    if ((NSS_GetAlgorithmPolicy(oidData->offset, &policyFlags)
 		== SECSuccess) && !(policyFlags & NSS_USE_ALG_IN_SSL_KX)) {
 	return ec_noName;
     }
