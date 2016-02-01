@@ -34,7 +34,7 @@
 #endif
 
 #include <stdio.h>
-#ifdef NSS_ENABLE_ZLIB
+#ifdef NSS_ENABLE_SSL_ZLIB
 #include "zlib.h"
 #endif
 
@@ -221,7 +221,7 @@ void ssl3_CheckCipherSuiteOrderConsistency()
  * implement.
  */
 static const /*SSLCompressionMethod*/ PRUint8 compressions [] = {
-#ifdef NSS_ENABLE_ZLIB
+#ifdef NSS_ENABLE_SSL_ZLIB
     ssl_compression_deflate,
 #endif
     ssl_compression_null
@@ -238,7 +238,7 @@ compressionEnabled(sslSocket *ss, SSLCompressionMethod compression)
     switch (compression) {
     case ssl_compression_null:
 	return PR_TRUE;  /* Always enabled */
-#ifdef NSS_ENABLE_ZLIB
+#ifdef NSS_ENABLE_SSL_ZLIB
     case ssl_compression_deflate:
         if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
             return ss->opt.enableDeflate;
@@ -1491,7 +1491,7 @@ ssl3_SetupPendingCipherSpec(sslSocket *ss)
     return SECSuccess;
 }
 
-#ifdef NSS_ENABLE_ZLIB
+#ifdef NSS_ENABLE_SSL_ZLIB
 #define SSL3_DEFLATE_CONTEXT_SIZE sizeof(z_stream)
 
 static SECStatus
@@ -1598,7 +1598,7 @@ ssl3_DestroyDecompressContext(void *void_context, PRBool unused)
     return SECSuccess;
 }
 
-#endif /* NSS_ENABLE_ZLIB */
+#endif /* NSS_ENABLE_SSL_ZLIB */
 
 /* Initialize the compression functions and contexts for the given
  * CipherSpec.  */
@@ -1615,7 +1615,7 @@ ssl3_InitCompressionContext(ssl3CipherSpec *pwSpec)
 	pwSpec->destroyCompressContext = NULL;
 	pwSpec->destroyDecompressContext = NULL;
 	break;
-#ifdef NSS_ENABLE_ZLIB
+#ifdef NSS_ENABLE_SSL_ZLIB
     case ssl_compression_deflate:
 	pwSpec->compressor = ssl3_DeflateCompress;
 	pwSpec->decompressor = ssl3_DeflateDecompress;
@@ -1626,7 +1626,7 @@ ssl3_InitCompressionContext(ssl3CipherSpec *pwSpec)
 	ssl3_DeflateInit(pwSpec->compressContext);
 	ssl3_InflateInit(pwSpec->decompressContext);
 	break;
-#endif /* NSS_ENABLE_ZLIB */
+#endif /* NSS_ENABLE_SSL_ZLIB */
     default:
 	PORT_Assert(0);
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
