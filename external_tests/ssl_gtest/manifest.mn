@@ -30,3 +30,5 @@ REQUIRES = nspr nss libdbm gtest
 
 PROGRAM = ssl_gtest
 EXTRA_LIBS = $(DIST)/lib/$(LIB_PREFIX)gtest.$(LIB_SUFFIX)
+
+USE_STATIC_LIBS = 1
