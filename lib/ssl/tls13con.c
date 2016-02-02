@@ -1824,9 +1824,9 @@ tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message)
 {
     unsigned int i;
 
-    PORT_Assert(message == client_hello |
-                message == server_hello ||
-                message == encrypted_extensions);
+    PORT_Assert((message == client_hello ||
+                 message == server_hello ||
+                 message == encrypted_extensions));
 
     for (i = 0; i < PR_ARRAY_SIZE(KnownExtensions); i++) {
         if (KnownExtensions[i].ex_value == extension) {
