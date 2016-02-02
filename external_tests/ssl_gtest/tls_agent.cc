@@ -292,10 +292,10 @@ void TlsAgent::CheckKEAType(SSLKEAType type) const {
   /* Check the length */
   switch (type) {
       case ssl_kea_ecdh:
-          EXPECT_EQ(256, info_.keaKeyBits);
+          EXPECT_EQ(256U, info_.keaKeyBits);
           break;
       case ssl_kea_dh:
-          EXPECT_EQ(2048, info_.keaKeyBits);
+          EXPECT_EQ(2048U, info_.keaKeyBits);
           break;
       case ssl_kea_rsa:
           EXPECT_EQ(server_key_bits_, info_.keaKeyBits);
