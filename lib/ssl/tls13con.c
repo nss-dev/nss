@@ -112,6 +112,7 @@ tls13_FatalError(sslSocket *ss, PRErrorCode prError, SSL3AlertDescription desc)
     PORT_SetError(prError);
 }
 
+#ifdef TRACE
 #define STATE_CASE(a) case a: return #a
 static char *
 tls13_HandshakeState(SSL3WaitState st)
@@ -133,6 +134,7 @@ tls13_HandshakeState(SSL3WaitState st)
     PORT_Assert(0);
     return "unknown";
 }
+#endif
 
 #define TLS13_WAIT_STATE_MASK 0x80
 
@@ -148,15 +150,16 @@ void
 tls13_SetHsState(sslSocket *ss, SSL3WaitState ws,
                  const char *func, const char *file, int line)
 {
-    /* Compute the new state name here because this asserts
-     * validity as a side effect, whether we are logging or not. */
-    const char *new_state_name = tls13_HandshakeState(ws);
+#ifdef TRACE
+    const char *new_state_name =
+            tls13_HandshakeState(ws);
 
     SSL_TRC(3, ("%d: TLS13[%d]: state change from %s->%s in %s (%s:%d)",
                 SSL_GETPID(), ss->fd,
                 tls13_HandshakeState(TLS13_BASE_WAIT_STATE(ss->ssl3.hs.ws)),
                 new_state_name,
                 func, file, line));
+#endif
 
     ss->ssl3.hs.ws = TLS13_WAIT_STATE(ws);
 }
@@ -949,7 +952,12 @@ tls13_DeriveTrafficKeys(sslSocket *ss, ssl3CipherSpec *pwSpec,
 
 #define FORMAT_LABEL(phase_, purpose_) do { \
         PRUint32 n = PR_snprintf(label, sizeof(label), "%s, %s", phase_, purpose_); \
-        PORT_Assert((n+1) < sizeof(label)); /* Check for getting close */ \
+        /* Check for getting close. */                                  \
+        if ((n+1) >= sizeof(label)) {                                   \
+                PORT_Assert(0);                                         \
+                PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);               \
+                goto loser;                                             \
+        }                                                               \
     } while(0)
 #define EXPAND_TRAFFIC_KEY(purpose_, target_)                           \
     do {                                                                \
