@@ -72,6 +72,7 @@ class TlsConnectTestBase : public ::testing::Test {
   void EnableSrtp();
   void CheckSrtp() const;
   void SendReceive();
+  void Receive(size_t amount);
   void ExpectExtendedMasterSecret(bool expected);
 
  protected:

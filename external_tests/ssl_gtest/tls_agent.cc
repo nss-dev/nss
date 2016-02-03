@@ -11,6 +11,7 @@
 #include "sslerr.h"
 #include "sslproto.h"
 #include "keyhi.h"
+#include "databuffer.h"
 
 #define GTEST_HAS_RTTI 0
 #include "gtest/gtest.h"
@@ -501,9 +502,11 @@ void TlsAgent::Handshake() {
     case SSL_ERROR_RX_MALFORMED_HANDSHAKE:
     default:
       if (IS_SSL_ERROR(err)) {
-        LOG("Handshake failed with SSL error " << err - SSL_ERROR_BASE);
+        LOG("Handshake failed with SSL error " << (err - SSL_ERROR_BASE)
+            << ": " << PORT_ErrorToString(err));
       } else {
-        LOG("Handshake failed with error " << err);
+        LOG("Handshake failed with error " << err
+            << ": " << PORT_ErrorToString(err));
       }
       error_code_ = err;
       SetState(STATE_ERROR);
@@ -522,6 +525,11 @@ void TlsAgent::StartRenegotiate() {
 
   SECStatus rv = SSL_ReHandshake(ssl_fd_, PR_TRUE);
   EXPECT_EQ(SECSuccess, rv);
+}
+
+void TlsAgent::SendDirect(const DataBuffer& buf) {
+  LOG("Send Direct " << buf);
+  adapter_->peer()->PacketReceived(buf);
 }
 
 void TlsAgent::SendData(size_t bytes, size_t blocksize) {
@@ -548,27 +556,28 @@ void TlsAgent::SendData(size_t bytes, size_t blocksize) {
 void TlsAgent::ReadBytes() {
   uint8_t block[1024];
 
-  LOG("Reading application data from socket");
-
   int32_t rv = PR_Read(ssl_fd_, block, sizeof(block));
+  LOG("ReadBytes " << rv);
 
-  int32_t err = PR_GetError();
-  if (err != PR_WOULD_BLOCK_ERROR) {
-    if (expected_read_error_) {
+  if (rv >= 0) {
+    size_t count = static_cast<size_t>(rv);
+    for (size_t i = 0; i < count; ++i) {
+      ASSERT_EQ(recv_ctr_ & 0xff, block[i]);
+      recv_ctr_++;
+    }
+  } else {
+    int32_t err = PR_GetError();
+    LOG("Read error " << err << ": " << PORT_ErrorToString(err));
+    if (err != PR_WOULD_BLOCK_ERROR && expected_read_error_) {
       error_code_ = err;
-    } else {
-      ASSERT_LE(0, rv);
-      size_t count = static_cast<size_t>(rv);
-      LOG("Read " << count << " bytes");
-      for (size_t i = 0; i < count; ++i) {
-        ASSERT_EQ(recv_ctr_ & 0xff, block[i]);
-        recv_ctr_++;
-      }
     }
   }
 
-  Poller::Instance()->Wait(READABLE_EVENT, adapter_, this,
-                           &TlsAgent::ReadableCallback);
+  // If closed, then don't bother waiting around.
+  if (rv) {
+    Poller::Instance()->Wait(READABLE_EVENT, adapter_, this,
+                             &TlsAgent::ReadableCallback);
+  }
 }
 
 void TlsAgent::ResetSentBytes() {
