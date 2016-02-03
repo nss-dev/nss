@@ -57,8 +57,7 @@ class TlsConnectTestBase : public ::testing::Test {
   void CheckConnected();
   // Connect and expect it to fail.
   void ConnectExpectFail();
-  void CheckKEAType(SSLKEAType type) const;
-  void CheckAuthType(SSLAuthType type) const;
+  void CheckKeys(SSLKEAType keyType, SSLAuthType authType) const;
 
   void SetExpectedVersion(uint16_t version);
   // Expect resumption of a particular type.

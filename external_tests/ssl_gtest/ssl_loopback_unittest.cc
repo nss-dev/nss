@@ -110,14 +110,14 @@ TEST_P(TlsConnectGeneric, SetupOnly) {}
 TEST_P(TlsConnectGeneric, Connect) {
   SetExpectedVersion(std::get<1>(GetParam()));
   Connect();
-  CheckAuthType(ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
 }
 
 TEST_P(TlsConnectGeneric, ConnectEcdsa) {
   SetExpectedVersion(std::get<1>(GetParam()));
   ResetEcdsa();
   Connect();
-  CheckAuthType(ssl_auth_ecdsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa);
 }
 
 TEST_P(TlsConnectGeneric, ConnectFalseStart) {
@@ -249,7 +249,7 @@ TEST_P(TlsConnectGeneric, ClientAuth) {
   client_->SetupClientAuth();
   server_->RequestClientAuth(true);
   Connect();
-  server_->CheckAuthType(ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
 }
 
 // Temporary copy for TLS 1.3 because 1.3 is stream only.
@@ -257,7 +257,7 @@ TEST_P(TlsConnectStream, ClientAuth) {
   client_->SetupClientAuth();
   server_->RequestClientAuth(true);
   Connect();
-  server_->CheckAuthType(ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
 }
 
 // In TLS 1.3, the client sends its cert rejection on the
@@ -273,7 +273,7 @@ TEST_P(TlsConnectStream, DISABLED_ClientAuthRequiredRejected) {
 TEST_P(TlsConnectStream, ClientAuthRequestedRejected) {
   server_->RequestClientAuth(false);
   Connect();
-  server_->CheckAuthType(ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
 }
 
 
@@ -282,7 +282,7 @@ TEST_P(TlsConnectGeneric, ClientAuthEcdsa) {
   client_->SetupClientAuth();
   server_->RequestClientAuth(true);
   Connect();
-  server_->CheckAuthType(ssl_auth_ecdsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa);
 }
 
 static const SSLSignatureAndHashAlg SignatureEcdsaSha384[] = {
@@ -342,15 +342,13 @@ TEST_P(TlsConnectGeneric, SignatureAlgorithmNoOverlapStaticRsa) {
                                   PR_ARRAY_SIZE(SignatureRsaSha256));
   DisableDheAndEcdheCiphers();
   Connect();
-  client_->CheckKEAType(ssl_kea_rsa);
-  CheckAuthType(ssl_auth_rsa);
+  CheckKeys(ssl_kea_rsa, ssl_auth_rsa);
 }
 
 TEST_P(TlsConnectStreamPre13, ConnectStaticRSA) {
-  DisableDheCiphers();
+  DisableDheAndEcdheCiphers();
   Connect();
-  client_->CheckKEAType(ssl_kea_rsa);
-  CheckAuthType(ssl_auth_rsa);
+  CheckKeys(ssl_kea_rsa, ssl_auth_rsa);
 }
 
 // Signature algorithms governs both verification and generation of signatures.
@@ -425,7 +423,7 @@ TEST_P(TlsConnectStreamPre13, ConnectAndServerRenegotiate) {
 TEST_P(TlsConnectStreamPre13, ConnectDhe) {
   DisableEcdheCiphers();
   Connect();
-  client_->CheckKEAType(ssl_kea_dh);
+  CheckKeys(ssl_kea_dh, ssl_auth_rsa);
 }
 
 // Test that a totally bogus EPMS is handled correctly.
@@ -471,15 +469,15 @@ TEST_P(TlsConnectGeneric, ConnectStaticRSABogusPMSVersionIgnore) {
 
 TEST_P(TlsConnectStream, ConnectEcdhe) {
   Connect();
-  CheckKEAType(ssl_kea_ecdh);
-  }
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+}
 
 TEST_P(TlsConnectStreamPre13, ConnectEcdheTwiceReuseKey) {
   TlsInspectorRecordHandshakeMessage* i1 =
       new TlsInspectorRecordHandshakeMessage(kTlsHandshakeServerKeyExchange);
   server_->SetPacketFilter(i1);
   Connect();
-  CheckKEAType(ssl_kea_ecdh);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
   TlsServerKeyExchangeEcdhe dhe1;
   EXPECT_TRUE(dhe1.Parse(i1->buffer()));
 
@@ -490,7 +488,7 @@ TEST_P(TlsConnectStreamPre13, ConnectEcdheTwiceReuseKey) {
   server_->SetPacketFilter(i2);
   ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
   Connect();
-  CheckKEAType(ssl_kea_ecdh);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
 
   TlsServerKeyExchangeEcdhe dhe2;
   EXPECT_TRUE(dhe2.Parse(i2->buffer()));
@@ -510,7 +508,7 @@ TEST_P(TlsConnectStreamPre13, ConnectEcdheTwiceNewKey) {
       new TlsInspectorRecordHandshakeMessage(kTlsHandshakeServerKeyExchange);
   server_->SetPacketFilter(i1);
   Connect();
-  CheckKEAType(ssl_kea_ecdh);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
   TlsServerKeyExchangeEcdhe dhe1;
   EXPECT_TRUE(dhe1.Parse(i1->buffer()));
 
@@ -524,7 +522,7 @@ TEST_P(TlsConnectStreamPre13, ConnectEcdheTwiceNewKey) {
   server_->SetPacketFilter(i2);
   ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
   Connect();
-  CheckKEAType(ssl_kea_ecdh);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
 
   TlsServerKeyExchangeEcdhe dhe2;
   EXPECT_TRUE(dhe2.Parse(i2->buffer()));
@@ -835,6 +833,10 @@ INSTANTIATE_TEST_CASE_P(Pre12All, TlsConnectPre12,
 INSTANTIATE_TEST_CASE_P(VersionsStream10, TlsConnectStream,
                         TlsConnectTestBase::kTlsV10);
 INSTANTIATE_TEST_CASE_P(VersionsStream, TlsConnectStream,
+                        TlsConnectTestBase::kTlsV11V12);
+INSTANTIATE_TEST_CASE_P(VersionsStream10Pre13, TlsConnectStreamPre13,
+                        TlsConnectTestBase::kTlsV10);
+INSTANTIATE_TEST_CASE_P(VersionsStreamPre13, TlsConnectStreamPre13,
                         TlsConnectTestBase::kTlsV11V12);
 #ifdef NSS_ENABLE_TLS_1_3
 INSTANTIATE_TEST_CASE_P(VersionsStream13, TlsConnectStream,

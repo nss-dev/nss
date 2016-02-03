@@ -195,14 +195,12 @@ void TlsConnectTestBase::CheckConnected() {
   CheckResumption(expected_resumption_mode_);
 }
 
-void TlsConnectTestBase::CheckKEAType(SSLKEAType type) const {
-  client_->CheckKEAType(type);
-  server_->CheckKEAType(type);
-}
-
-void TlsConnectTestBase::CheckAuthType(SSLAuthType type) const {
-  client_->CheckAuthType(type);
-  server_->CheckAuthType(type);
+void TlsConnectTestBase::CheckKeys(SSLKEAType keaType,
+                                   SSLAuthType authType) const {
+  client_->CheckKEAType(keaType);
+  server_->CheckKEAType(keaType);
+  client_->CheckAuthType(authType);
+  server_->CheckAuthType(authType);
 }
 
 void TlsConnectTestBase::ConnectExpectFail() {
