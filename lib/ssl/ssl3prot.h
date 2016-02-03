@@ -259,37 +259,12 @@ typedef enum {
 
 } SSL3ClientCertificateType;
 
-typedef SECItem *SSL3DistinquishedName;
-
 typedef struct {
     SSL3Opaque client_version[2];
     SSL3Opaque random[46];
 } SSL3RSAPreMasterSecret;
 
-typedef SECItem SSL3EncryptedPreMasterSecret;
-
-
 typedef SSL3Opaque SSL3MasterSecret[48];
-
-typedef enum { implicit, explicit } SSL3PublicValueEncoding;
-
-typedef struct {
-    union {
-        SSL3Opaque implicit;
-        SECItem    explicit;
-    } dh_public;
-} SSL3ClientDiffieHellmanPublic;
-
-typedef struct {
-    union {
-        SSL3EncryptedPreMasterSecret  rsa;
-        SSL3ClientDiffieHellmanPublic diffie_helman;
-    } exchange_keys;
-} SSL3ClientKeyExchange;
-
-typedef SSL3Hashes SSL3PreSignedCertificateVerify;
-
-typedef SECItem SSL3CertificateVerify;
 
 typedef enum {
     sender_client = 0x434c4e54,
