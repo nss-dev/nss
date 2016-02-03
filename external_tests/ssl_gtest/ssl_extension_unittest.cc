@@ -120,7 +120,7 @@ class TlsExtensionFilter : public TlsHandshakeFilter {
 
       const DataBuffer* source = &extension;
       if (action == CHANGE) {
-        EXPECT_GT(0x10000, filtered.len());
+        EXPECT_GT(0x10000U, filtered.len());
         changed = true;
         std::cerr << "extension old: " << extension << std::endl;
         std::cerr << "extension new: " << filtered << std::endl;
@@ -136,7 +136,7 @@ class TlsExtensionFilter : public TlsHandshakeFilter {
 
     if (changed) {
       size_t newlen = output->len() - length_offset - 2;
-      EXPECT_GT(0x10000, newlen);
+      EXPECT_GT(0x10000U, newlen);
       if (newlen >= 0x10000) {
         return KEEP; // bad: size increased too much
       }
