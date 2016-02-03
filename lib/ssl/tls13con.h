@@ -20,6 +20,10 @@ SECStatus tls13_UnprotectRecord(
 unsigned char *
 tls13_EncodeUintX(PRUint32 value, unsigned int bytes, unsigned char *to);
 
+#if defined(WIN32)
+#define __func__ __FUNCTION__
+#endif
+
 void tls13_SetHsState(sslSocket *ss, SSL3WaitState ws,
                       const char *func, const char *file, int line);
 #define TLS13_SET_HS_STATE(ss, ws) \
