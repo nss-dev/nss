@@ -86,6 +86,11 @@ dtls_DTLSVersionToTLSVersion(SSL3ProtocolVersion dtlsv)
     if (dtlsv == SSL_LIBRARY_VERSION_DTLS_1_0_WIRE) {
         return SSL_LIBRARY_VERSION_TLS_1_1;
     }
+    /* Handle the skipped version of DTLS 1.1 by returning
+     * an error. */
+    if (dtlsv == ((~0x0101) & 0xffff)) {
+        return 0;
+    }
     if (dtlsv == SSL_LIBRARY_VERSION_DTLS_1_2_WIRE) {
         return SSL_LIBRARY_VERSION_TLS_1_2;
     }
@@ -94,7 +99,7 @@ dtls_DTLSVersionToTLSVersion(SSL3ProtocolVersion dtlsv)
     }
 
     /* Return a fictional higher version than we know of */
-    return SSL_LIBRARY_VERSION_TLS_1_2 + 1;
+    return SSL_LIBRARY_VERSION_MAX_SUPPORTED + 1;
 }
 
 /* On this socket, Disable non-DTLS cipher suites in the argument's list */
