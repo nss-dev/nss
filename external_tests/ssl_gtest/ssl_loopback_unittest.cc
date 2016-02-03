@@ -8,6 +8,7 @@
 #include "sslerr.h"
 #include "sslproto.h"
 #include <memory>
+#include <functional>
 
 extern "C" {
 // This is not something that should make you happy.
@@ -47,14 +48,15 @@ class TlsInspectorClientHelloVersionChanger : public TlsHandshakeFilter {
  public:
   TlsInspectorClientHelloVersionChanger(TlsAgent* server) : server_(server) {}
 
-  virtual bool FilterHandshake(uint16_t version, uint8_t handshake_type,
-                               const DataBuffer& input, DataBuffer* output) {
-    if (handshake_type == kTlsHandshakeClientKeyExchange) {
+  virtual PacketFilter::Action FilterHandshake(
+      const HandshakeHeader& header,
+      const DataBuffer& input, DataBuffer* output) {
+    if (header.handshake_type() == kTlsHandshakeClientKeyExchange) {
       EXPECT_EQ(
           SECSuccess,
           SSLInt_IncrementClientHandshakeVersion(server_->ssl_fd()));
     }
-    return false;
+    return KEEP;
   }
 
  private:
@@ -66,14 +68,15 @@ class TlsInspectorClientHelloVersionSetter : public TlsHandshakeFilter {
  public:
   TlsInspectorClientHelloVersionSetter(uint16_t version) : version_(version) {}
 
-  virtual bool FilterHandshake(uint16_t version, uint8_t handshake_type,
-                               const DataBuffer& input, DataBuffer* output) {
-    if (handshake_type == kTlsHandshakeClientHello) {
+  virtual PacketFilter::Action FilterHandshake(
+      const HandshakeHeader& header,
+      const DataBuffer& input, DataBuffer* output) {
+    if (header.handshake_type() == kTlsHandshakeClientHello) {
       *output = input;
       output->Write(0, version_, 2);
-      return true;
+      return CHANGE;
     }
-    return false;
+    return KEEP;
   }
 
  private:
@@ -123,6 +126,7 @@ TEST_P(TlsConnectGeneric, ConnectEcdsa) {
 TEST_P(TlsConnectGeneric, ConnectFalseStart) {
   client_->EnableFalseStart();
   Connect();
+  SendReceive();
 }
 
 TEST_P(TlsConnectGeneric, ConnectResumed) {
@@ -809,6 +813,115 @@ TEST_F(TlsConnectTest, TestFallbackFromTls13) {
   ASSERT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
 }
 #endif
+
+class BeforeFinished : public TlsRecordFilter {
+ private:
+  enum HandshakeState {
+    BEFORE_CCS,
+    AFTER_CCS,
+    DONE
+  };
+  typedef std::function<void(void)> VoidFunction;
+
+ public:
+  BeforeFinished(TlsAgent* client, TlsAgent* server,
+                 VoidFunction before_ccs, VoidFunction before_finished)
+      : client_(client),
+        server_(server),
+        before_ccs_(before_ccs),
+        before_finished_(before_finished),
+        state_(BEFORE_CCS) {}
+
+ protected:
+  virtual PacketFilter::Action FilterRecord(
+      const RecordHeader& header, const DataBuffer& body, DataBuffer* out) {
+    switch (state_) {
+      case BEFORE_CCS:
+        // Awaken when we see the CCS.
+        if (header.content_type() == kTlsChangeCipherSpecType) {
+          before_ccs_();
+
+          // Write the CCS out as a separate write, so that we can make
+          // progress. Ordinarily, libssl sends the CCS and Finished together,
+          // but that means that they both get processed together.
+          DataBuffer ccs;
+          header.Write(&ccs, 0, body);
+          server_->SendDirect(ccs);
+          ForceRead();
+          state_ = AFTER_CCS;
+          // Request that the original record be dropped by the filter.
+          return DROP;
+        }
+        break;
+
+      case AFTER_CCS:
+        EXPECT_EQ(kTlsHandshakeType, header.content_type());
+        // This could check that data contains a Finished message, but it's
+        // encrypted, so that's too much extra work.
+
+        before_finished_();
+        state_ = DONE;
+        break;
+
+      case DONE:
+        break;
+    }
+    return KEEP;
+  }
+
+ private:
+  void ForceRead() {
+    // Read from the socket to get libssl to process the handshake messages that
+    // were sent from the server up until now.
+    uint8_t block[10];
+    int32_t rv = PR_Read(client_->ssl_fd(), block, sizeof(block));
+    // Expect a blocking error here, since the handshake shouldn't have completed.
+    EXPECT_GT(0, rv);
+    EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PR_GetError());
+  }
+
+  TlsAgent* client_;
+  TlsAgent* server_;
+  VoidFunction before_ccs_;
+  VoidFunction before_finished_;
+  HandshakeState state_;
+};
+
+// TODO Pre13
+TEST_P(TlsConnectGeneric, ClientWriteBetweenCCSAndFinishedWithFalseStart) {
+  client_->EnableFalseStart();
+  server_->SetPacketFilter(new BeforeFinished(client_, server_, [this]() {
+        EXPECT_TRUE(client_->can_falsestart_hook_called());
+      }, [this]() {
+        // Write something, which used to fail: bug 1235366.
+        client_->SendData(10);
+      }));
+
+  Connect();
+  server_->SendData(10);
+  Receive(10);
+}
+
+TEST_P(TlsConnectGeneric, AuthCompleteBeforeFinishedWithFalseStart) {
+  client_->EnableFalseStart();
+  client_->SetAuthCertificateCallback(
+      [](TlsAgent&, PRBool, PRBool) -> SECStatus {
+        return SECWouldBlock;
+      });
+  server_->SetPacketFilter(new BeforeFinished(client_, server_, []() {
+        // Do nothing before CCS
+      }, [this]() {
+        EXPECT_FALSE(client_->can_falsestart_hook_called());
+        // AuthComplete before Finished still enables false start.
+        EXPECT_EQ(SECSuccess, SSL_AuthCertificateComplete(client_->ssl_fd(), 0));
+        EXPECT_TRUE(client_->can_falsestart_hook_called());
+        client_->SendData(10);
+      }));
+
+  Connect();
+  server_->SendData(10);
+  Receive(10);
+}
 
 INSTANTIATE_TEST_CASE_P(VariantsStream10, TlsConnectGeneric,
                         ::testing::Combine(

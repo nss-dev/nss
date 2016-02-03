@@ -32,7 +32,7 @@ enum SessionResumptionMode {
 class TlsAgent;
 
 typedef
-  std::function<void(TlsAgent& agent, PRBool checksig, PRBool isServer)>
+  std::function<SECStatus(TlsAgent& agent, PRBool checksig, PRBool isServer)>
   AuthCertificateCallbackFunction;
 
 typedef
@@ -100,7 +100,10 @@ class TlsAgent : public PollTarget {
   void EnableSrtp();
   void CheckSrtp() const;
   void CheckErrorCode(int32_t expected) const;
+  // Send data on the socket, encrypting it.
   void SendData(size_t bytes, size_t blocksize = 1024);
+  // Send data directly to the underlying socket, skipping the TLS layer.
+  void SendDirect(const DataBuffer& buf);
   void ReadBytes();
   void ResetSentBytes(); // Hack to test drops.
   void EnableExtendedMasterSecret();
@@ -154,6 +157,8 @@ class TlsAgent : public PollTarget {
   size_t received_bytes() const { return recv_ctr_; }
   int32_t error_code() const { return error_code_; }
 
+  bool can_falsestart_hook_called() const { return can_falsestart_hook_called_; }
+
   void SetHandshakeCallback(HandshakeCallbackFunction handshake_callback) {
     handshake_callback_ = handshake_callback;
   }
@@ -181,7 +186,7 @@ class TlsAgent : public PollTarget {
     agent->CheckPreliminaryInfo();
     agent->auth_certificate_hook_called_ = true;
     if (agent->auth_certificate_callback_) {
-      agent->auth_certificate_callback_(*agent, checksig, isServer);
+      return agent->auth_certificate_callback_(*agent, checksig, isServer);
     }
     return SECSuccess;
   }
@@ -237,6 +242,7 @@ class TlsAgent : public PollTarget {
     TlsAgent* agent = reinterpret_cast<TlsAgent*>(arg);
     agent->CheckPreliminaryInfo();
     EXPECT_TRUE(agent->falsestart_enabled_);
+    EXPECT_FALSE(agent->can_falsestart_hook_called_);
     agent->can_falsestart_hook_called_ = true;
     *canFalseStart = true;
     return SECSuccess;

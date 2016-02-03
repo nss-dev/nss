@@ -281,11 +281,16 @@ void TlsConnectTestBase::CheckSrtp() const {
 void TlsConnectTestBase::SendReceive() {
   client_->SendData(50);
   server_->SendData(50);
-  WAIT_(client_->received_bytes() == 50U &&
-        server_->received_bytes() == 50U, 2000);
-  ASSERT_EQ(50U, client_->received_bytes());
-  ASSERT_EQ(50U, server_->received_bytes());
+  Receive(50);
 }
+
+void TlsConnectTestBase::Receive(size_t amount) {
+  WAIT_(client_->received_bytes() == amount &&
+        server_->received_bytes() == amount, 2000);
+  ASSERT_EQ(amount, client_->received_bytes());
+  ASSERT_EQ(amount, server_->received_bytes());
+}
+
 
 void TlsConnectTestBase::ExpectExtendedMasterSecret(bool expected) {
   expect_extended_master_secret_ = expected;
