@@ -289,7 +289,7 @@ void TlsAgent::SetSignatureAlgorithms(const SSLSignatureAndHashAlg* algorithms,
 void TlsAgent::CheckKEAType(SSLKEAType type) const {
   EXPECT_EQ(STATE_CONNECTED, state_);
   EXPECT_EQ(type, csinfo_.keaType);
-  /* Check the length */
+
   switch (type) {
       case ssl_kea_ecdh:
           EXPECT_EQ(256U, info_.keaKeyBits);
@@ -308,6 +308,15 @@ void TlsAgent::CheckKEAType(SSLKEAType type) const {
 void TlsAgent::CheckAuthType(SSLAuthType type) const {
   EXPECT_EQ(STATE_CONNECTED, state_);
   EXPECT_EQ(type, csinfo_.authAlgorithm);
+  EXPECT_EQ(server_key_bits_, info_.authKeyBits);
+  switch (type) {
+      case ssl_auth_ecdsa:
+          // extra check for P-256
+          EXPECT_EQ(256U, info_.authKeyBits);
+          break;
+      default:
+          break;
+  }
 }
 
 void TlsAgent::EnableFalseStart() {
