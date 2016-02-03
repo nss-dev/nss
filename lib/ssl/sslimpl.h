@@ -2031,8 +2031,8 @@ SECStatus ssl3_ComputeHandshakeHashes(sslSocket *ss,
                                       SSL3Hashes *hashes,
                                       PRUint32 sender);
 void ssl3_BumpSequenceNumber(SSL3SequenceNumber *num);
-SECStatus tls13_ServerSendKeyShareXtn(sslSocket * ss, PRBool append,
-                                      PRUint32 maxBytes);
+PRInt32 tls13_ServerSendKeyShareXtn(sslSocket * ss, PRBool append,
+                                    PRUint32 maxBytes);
 #ifndef NSS_DISABLE_ECC
 SECStatus ssl3_CreateECDHEphemeralKeyPair(ECName ec_curve,
                                           ssl3KeyPair** keyPair);

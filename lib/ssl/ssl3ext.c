@@ -108,8 +108,8 @@ static PRInt32 ssl3_SendExtendedMasterSecretXtn(sslSocket *ss, PRBool append,
 static SECStatus ssl3_HandleExtendedMasterSecretXtn(sslSocket *ss,
                                                     PRUint16 ex_type,
                                                     SECItem *data);
-static SECStatus tls13_ClientSendKeyShareXtn(sslSocket *ss, PRBool append,
-                                             PRUint32 maxBytes);
+static PRInt32 tls13_ClientSendKeyShareXtn(sslSocket *ss, PRBool append,
+                                           PRUint32 maxBytes);
 static SECStatus tls13_ClientHandleKeyShareXtn(sslSocket *ss,
                                                PRUint16 ex_type,
                                                SECItem *data);
@@ -2926,7 +2926,7 @@ tls13_EncodeKeyShareEntry(sslSocket *ss, ssl3KeyPair *pair)
     return SECSuccess;
 }
 
-static SECStatus
+static PRInt32
 tls13_ClientSendKeyShareXtn(sslSocket * ss, PRBool append,
                             PRUint32 maxBytes)
 {
@@ -3088,7 +3088,7 @@ loser:
     return SECFailure;
 }
 
-SECStatus
+PRInt32
 tls13_ServerSendKeyShareXtn(sslSocket *ss, PRBool append,
                             PRUint32 maxBytes)
 {
