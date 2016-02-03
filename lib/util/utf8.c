@@ -1576,7 +1576,7 @@ test_multichars
     exit(1);
   }
 
-  len = 0;
+  len = 1;
   for( i = 0; i < sizeof(ucs4)/sizeof(ucs4[0]); i++ ) {
     ucs4s[i] = ucs4[i].c;
     len += strlen(ucs4[i].utf8);
@@ -1584,7 +1584,7 @@ test_multichars
 
   ucs4_utf8 = (char *)malloc(len);
 
-  len = 0;
+  len = 1;
   for( i = 0; i < sizeof(ucs2)/sizeof(ucs2[0]); i++ ) {
     ucs2s[i] = ucs2[i].c;
     len += strlen(ucs2[i].utf8);
