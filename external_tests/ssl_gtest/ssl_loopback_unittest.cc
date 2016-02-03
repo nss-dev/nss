@@ -762,6 +762,17 @@ TEST_F(TlsConnectTest, TestDowngradeDetectionToTls11) {
   ASSERT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
 }
 
+/* Attempt to negotiate the bogus DTLS 1.1 version. */
+TEST_F(DtlsConnectTest, TestDtlsVersion11) {
+  client_->SetPacketFilter(new TlsInspectorClientHelloVersionSetter(
+      ((~0x0101) & 0xffff)));
+  ConnectExpectFail();
+  // It's kind of surprising that SSL_ERROR_NO_CYPHER_OVERLAP is
+  // what is returned here, but this is deliberate in ssl3_HandleAlert().
+  EXPECT_EQ(SSL_ERROR_NO_CYPHER_OVERLAP, client_->error_code());
+  EXPECT_EQ(SSL_ERROR_UNSUPPORTED_VERSION, server_->error_code());
+}
+
 #ifdef NSS_ENABLE_TLS_1_3
 TEST_F(TlsConnectTest, TestDowngradeDetectionToTls12) {
   EnsureTlsSetup();

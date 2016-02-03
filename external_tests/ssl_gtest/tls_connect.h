@@ -97,6 +97,12 @@ class TlsConnectTest : public TlsConnectTestBase {
  TlsConnectTest() : TlsConnectTestBase(STREAM, 0) {}
 };
 
+// A non-parametrized DTLS-only test base.
+class DtlsConnectTest : public TlsConnectTestBase {
+ public:
+  DtlsConnectTest() : TlsConnectTestBase(DGRAM, 0) {}
+};
+
 // A TLS-only test base.
 class TlsConnectStream : public TlsConnectTestBase,
                          public ::testing::WithParamInterface<uint16_t> {
