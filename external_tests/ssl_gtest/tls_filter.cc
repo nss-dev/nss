@@ -34,7 +34,7 @@ PacketFilter::Action TlsRecordFilter::Filter(const DataBuffer& input, DataBuffer
 
     const DataBuffer* source = &record;
     if (action == CHANGE) {
-      EXPECT_GT(0x10000, filtered.len());
+      EXPECT_GT(0x10000U, filtered.len());
       changed = true;
       std::cerr << "record old: " << record << std::endl;
       std::cerr << "record new: " << filtered << std::endl;
@@ -124,7 +124,7 @@ PacketFilter::Action TlsHandshakeFilter::FilterRecord(
 
     const DataBuffer* source = &handshake;
     if (action == CHANGE) {
-      EXPECT_GT(0x1000000, filtered.len());
+      EXPECT_GT(0x1000000U, filtered.len());
       changed = true;
       std::cerr << "handshake old: " << handshake << std::endl;
       std::cerr << "handshake new: " << filtered << std::endl;
