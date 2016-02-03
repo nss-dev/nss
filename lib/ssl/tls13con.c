@@ -91,6 +91,10 @@ const char kServerFinishedLabel[] = "server finished";
 
 const SSL3ProtocolVersion kRecordVersion = 0x0301U;
 
+#if defined(WIN32)
+#define __func__ __FUNCTION__
+#endif
+
 #define FATAL_ERROR(ss, prError, desc) do { \
     SSL_TRC(3, ("%d: TLS13[%d]: fatal error %d in %s (%s:%d)", \
                 SSL_GETPID(), ss->fd, prError, __func__, __FILE__, __LINE__)); \
