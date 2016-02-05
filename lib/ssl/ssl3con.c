@@ -9000,6 +9000,14 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
     rand_length  = (buffer[7] << 8) | buffer[8];
     ss->clientHelloVersion = version;
 
+    if (version >= SSL_LIBRARY_VERSION_TLS_1_3) {
+        /* [draft-ietf-tls-tls-11; C.3] forbids sending a TLS 1.3
+         * ClientHello using the backwards-compatible format. */
+        desc = illegal_parameter;
+        errCode = SSL_ERROR_RX_MALFORMED_CLIENT_HELLO;
+        goto loser;
+    }
+
     rv = ssl3_NegotiateVersion(ss, version, PR_TRUE);
     if (rv != SECSuccess) {
 	/* send back which ever alert client will understand. */
