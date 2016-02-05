@@ -322,7 +322,7 @@ sec_port_ucs2_utf8_conversion_function
       if( (inBuf[i+H_0] == 0x00) && ((inBuf[i+H_1] & 0x80) == 0x00) ) len += 1;
       else if( inBuf[i+H_0] < 0x08 ) len += 2;
       else if( ((inBuf[i+0+H_0] & 0xDC) == 0xD8) ) {
-        if( ((inBuf[i+2+H_0] & 0xDC) == 0xDC) && ((inBufLen - i) > 2) ) {
+        if( ((inBufLen - i) > 2) && ((inBuf[i+2+H_0] & 0xDC) == 0xDC) ) {
           i += 2;
           len += 4;
         } else {
@@ -359,7 +359,7 @@ sec_port_ucs2_utf8_conversion_function
       } else if( (inBuf[i+H_0] & 0xDC) == 0xD8 ) {
         int abcde, BCDE;
 
-        PORT_Assert(((inBuf[i+2+H_0] & 0xDC) == 0xDC) && ((inBufLen - i) > 2));
+        PORT_Assert(((inBufLen - i) > 2) && ((inBuf[i+2+H_0] & 0xDC) == 0xDC) );
 
         /* D800-DBFF DC00-DFFF -> 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx */
         /* 110110BC DEfghijk 110111lm nopqrstu ->
@@ -1153,6 +1153,16 @@ char *utf8_bad[] = {
   "\xED\xA0\x80\xE0\xBF\xBF",
 };
 
+/* illegal UTF-16 sequences, 0-terminated */
+uint16_t utf16_bad[][3] = {
+  /* leading surrogate not followed by trailing surrogate */
+  { 0xD800, 0, 0 },
+  { 0xD800, 0x41, 0 },
+  { 0xD800, 0xfe, 0 },
+  { 0xD800, 0x3bb, 0 },
+  { 0xD800, 0xD800, 0 },
+};
+
 static void
 dump_utf8
 (
@@ -1448,6 +1458,38 @@ test_utf8_bad_chars
   }
 
   return rv;
+}
+
+static PRBool
+test_utf16_bad_chars(void)
+{
+  PRBool rv = PR_TRUE;
+  int i;
+
+  for( i = 0; i < sizeof(utf16_bad)/sizeof(utf16_bad[0]); ++i ) {
+    PRBool result;
+    unsigned char destbuf[18];
+    unsigned int j, len, destlen;
+    uint16_t *buf;
+
+    for( len = 0; utf16_bad[i][len] != 0; ++len )
+      /* nothing */;
+
+    buf = malloc(sizeof(uint16_t) * len);
+    for( j = 0; j < len; ++j )
+      buf[j] = htons(utf16_bad[i][j]);
+
+    result = sec_port_ucs2_utf8_conversion_function(PR_FALSE,
+        (unsigned char *)buf, sizeof(uint16_t) * len, destbuf, sizeof(destbuf),
+        &destlen);
+    if( result ) {
+      fprintf(stdout, "Failed to detect bad UTF-16 string conversion for "
+          "{0x%x,0x%x} (UTF-8 len = %u)\n", utf16_bad[i][0], utf16_bad[i][1],
+          destlen);
+      rv = PR_FALSE;
+    }
+    free(buf);
+  }
 }
 
 static PRBool
@@ -1805,6 +1847,7 @@ main
       test_ucs2_chars() &&
       test_utf16_chars() &&
       test_utf8_bad_chars() &&
+      test_utf16_bad_chars() &&
       test_iso88591_chars() &&
       test_zeroes() &&
       test_multichars() &&
