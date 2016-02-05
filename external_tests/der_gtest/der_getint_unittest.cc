@@ -9,7 +9,6 @@
 #include "secutil.h"
 #include <memory>
 #include <climits>
-#include <netinet/in.h>
 
 #include "gtest/gtest.h"
 #include "scoped_ptrs.h"
