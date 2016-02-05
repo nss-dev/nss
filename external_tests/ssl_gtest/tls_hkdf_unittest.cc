@@ -121,15 +121,15 @@ class TlsHkdfTest : public ::testing::Test {
                        const uint8_t *session_hash, size_t session_hash_len,
                        const char *label, size_t label_len,
                        const DataBuffer& expected) {
-    uint8_t output[expected.len()];
+    std::vector<uint8_t> output(expected.len());
 
     SECStatus rv = tls13_HkdfExpandLabelRaw(prk->get(), base_hash,
                                             session_hash, session_hash_len,
                                             label, label_len,
-                                            output, sizeof(output));
+                                            &output[0], output.size());
     ASSERT_EQ(SECSuccess, rv);
-    DumpData("Output", output, sizeof(output));
-    EXPECT_EQ(0, memcmp(expected.data(), output,
+    DumpData("Output", &output[0], output.size());
+    EXPECT_EQ(0, memcmp(expected.data(), &output[0],
                         expected.len()));
   }
 
