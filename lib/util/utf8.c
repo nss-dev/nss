@@ -319,7 +319,7 @@ sec_port_ucs2_utf8_conversion_function
     }
 
     for( i = 0; i < inBufLen; i += 2 ) {
-      if( (inBuf[i+H_0] == 0x00) && ((inBuf[i+H_0] & 0x80) == 0x00) ) len += 1;
+      if( (inBuf[i+H_0] == 0x00) && ((inBuf[i+H_1] & 0x80) == 0x00) ) len += 1;
       else if( inBuf[i+H_0] < 0x08 ) len += 2;
       else if( ((inBuf[i+0+H_0] & 0xDC) == 0xD8) ) {
         if( ((inBuf[i+2+H_0] & 0xDC) == 0xDC) && ((inBufLen - i) > 2) ) {
@@ -1220,6 +1220,18 @@ test_ucs4_chars
       rv = PR_FALSE;
       continue;
     }
+
+    len = strlen(e->utf8) - 1;
+    result = sec_port_ucs4_utf8_conversion_function(PR_FALSE,
+      (unsigned char *)&e->c, sizeof(e->c), utf8 + sizeof(utf8) - len, len,
+      &len);
+
+    if( result || len != strlen(e->utf8) ) {
+      fprintf(stdout, "Length computation error converting UCS-4 0x%08.8x"
+        " to UTF-8\n", e->c);
+      rv = PR_FALSE;
+      continue;
+    }
   }
 
   return rv;
@@ -1274,6 +1286,18 @@ test_ucs2_chars
     if( (sizeof(back) != len) || (e->c != back) ) {
       dump_utf8("Wrong conversion of UTF-8", utf8, "to UCS-2:");
       fprintf(stdout, "expected 0x%08.8x, received 0x%08.8x\n", e->c, back);
+      rv = PR_FALSE;
+      continue;
+    }
+
+    len = strlen(e->utf8) - 1;
+    result = sec_port_ucs2_utf8_conversion_function(PR_FALSE,
+      (unsigned char *)&e->c, sizeof(e->c), utf8 + sizeof(utf8) - len, len,
+      &len);
+
+    if( result || len != strlen(e->utf8) ) {
+      fprintf(stdout, "Length computation error converting UCS-2 0x%04.4x"
+        " to UTF-8\n", e->c);
       rv = PR_FALSE;
       continue;
     }
