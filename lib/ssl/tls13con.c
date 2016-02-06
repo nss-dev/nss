@@ -103,6 +103,7 @@ const SSL3ProtocolVersion kRecordVersion = 0x0301U;
                 SSL_GETPID(), ss->fd, __func__, __FILE__, __LINE__)); \
     PORT_SetError(SEC_ERROR_LIBRARY_FAILURE); \
     PORT_Assert(0); \
+    return SECFailure; \
 } while(0)
 
 void
