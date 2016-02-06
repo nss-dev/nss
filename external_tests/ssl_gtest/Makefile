@@ -29,7 +29,7 @@ include ../common/gtest.mk
 
 CFLAGS += -I$(CORE_DEPTH)/lib/ssl
 
-ifdef NSS_ENABLE_SSL_ZLIB
+ifdef NSS_SSL_ENABLE_ZLIB
 include $(CORE_DEPTH)/coreconf/zlib.mk
 endif
 

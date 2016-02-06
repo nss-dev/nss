@@ -1538,13 +1538,13 @@ extern PRInt32   ssl3_SendRecord(sslSocket *ss, DTLSEpoch epoch,
                                  const SSL3Opaque* pIn, PRInt32 nIn,
                                  PRInt32 flags);
 
-#ifdef NSS_ENABLE_SSL_ZLIB
+#ifdef NSS_SSL_ENABLE_ZLIB
 /*
  * The DEFLATE algorithm can result in an expansion of 0.1% + 12 bytes. For a
  * maximum TLS record payload of 2**14 bytes, that's 29 bytes.
  */
 #define SSL3_COMPRESSION_MAX_EXPANSION 29
-#else  /* !NSS_ENABLE_SSL_ZLIB */
+#else  /* !NSS_SSL_ENABLE_ZLIB */
 #define SSL3_COMPRESSION_MAX_EXPANSION 0
 #endif
 

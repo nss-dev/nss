@@ -67,8 +67,8 @@ endif
 
 endif
 
-ifdef NSS_ENABLE_SSL_ZLIB
-DEFINES += -DNSS_ENABLE_SSL_ZLIB
+ifdef NSS_SSL_ENABLE_ZLIB
+DEFINES += -DNSS_SSL_ENABLE_ZLIB
 include $(CORE_DEPTH)/coreconf/zlib.mk
 endif
 
