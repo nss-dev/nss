@@ -191,8 +191,8 @@ DEFINES += -DSSL_DISABLE_DEPRECATED_CIPHER_SUITE_NAMES
 
 # Mozilla's mozilla/modules/zlib/src/zconf.h adds the MOZ_Z_ prefix to zlib
 # exported symbols, which causes problem when NSS is built as part of Mozilla.
-# So we add a NSS_ENABLE_SSL_ZLIB variable to allow Mozilla to turn this off.
-NSS_ENABLE_SSL_ZLIB = 1
+# So we add a NSS_SSL_ENABLE_ZLIB variable to allow Mozilla to turn this off.
+NSS_SSL_ENABLE_ZLIB = 1
 
 # Allow build-time configuration of TLS 1.3 (Experimental)
 ifdef NSS_ENABLE_TLS_1_3
