@@ -161,62 +161,77 @@ TEST_P(TlsConnectGenericPre13, ConnectResumed) {
   Connect();
 }
 
-TEST_P(TlsConnectGenericPre13, ConnectClientCacheDisabled) {
+TEST_P(TlsConnectGeneric, ConnectClientCacheDisabled) {
   ConfigureSessionCache(RESUME_NONE, RESUME_SESSIONID);
   Connect();
+  SendReceive();
+
   ResetRsa();
   ExpectResumption(RESUME_NONE);
   Connect();
+  SendReceive();
 }
 
-TEST_P(TlsConnectGenericPre13, ConnectServerCacheDisabled) {
+TEST_P(TlsConnectGeneric, ConnectServerCacheDisabled) {
   ConfigureSessionCache(RESUME_SESSIONID, RESUME_NONE);
   Connect();
+  SendReceive();
+
   ResetRsa();
   ExpectResumption(RESUME_NONE);
   Connect();
+  SendReceive();
 }
 
-TEST_P(TlsConnectGenericPre13, ConnectSessionCacheDisabled) {
+TEST_P(TlsConnectGeneric, ConnectSessionCacheDisabled) {
   ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
   Connect();
+  SendReceive();
+
   ResetRsa();
   ExpectResumption(RESUME_NONE);
   Connect();
+  SendReceive();
 }
 
-TEST_P(TlsConnectGenericPre13, ConnectResumeSupportBoth) {
+TEST_P(TlsConnectGeneric, ConnectResumeSupportBoth) {
   // This prefers tickets.
   ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
   Connect();
+  SendReceive();
 
   ResetRsa();
   ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
   ExpectResumption(RESUME_TICKET);
   Connect();
+  SendReceive();
 }
 
-TEST_P(TlsConnectGenericPre13, ConnectResumeClientTicketServerBoth) {
+TEST_P(TlsConnectGeneric, ConnectResumeClientTicketServerBoth) {
   // This causes no resumption because the client needs the
   // session cache to resume even with tickets.
   ConfigureSessionCache(RESUME_TICKET, RESUME_BOTH);
   Connect();
+  SendReceive();
 
   ResetRsa();
   ConfigureSessionCache(RESUME_TICKET, RESUME_BOTH);
   ExpectResumption(RESUME_NONE);
   Connect();
+  SendReceive();
 }
 
-TEST_P(TlsConnectGenericPre13, ConnectResumeClientBothTicketServerTicket) {
+TEST_P(TlsConnectGeneric, ConnectResumeClientBothTicketServerTicket) {
   // This causes a ticket resumption.
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   Connect();
+  SendReceive();
 
   ResetRsa();
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   ExpectResumption(RESUME_TICKET);
   Connect();
+  SendReceive();
 }
 
 TEST_P(TlsConnectGenericPre13, ConnectResumeClientServerTicketOnly) {
@@ -224,31 +239,37 @@ TEST_P(TlsConnectGenericPre13, ConnectResumeClientServerTicketOnly) {
   // session cache to resume even with tickets.
   ConfigureSessionCache(RESUME_TICKET, RESUME_TICKET);
   Connect();
+  SendReceive();
 
   ResetRsa();
   ConfigureSessionCache(RESUME_TICKET, RESUME_TICKET);
   ExpectResumption(RESUME_NONE);
   Connect();
+  SendReceive();
 }
 
 TEST_P(TlsConnectGenericPre13, ConnectResumeClientBothServerNone) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_NONE);
   Connect();
+  SendReceive();
 
   ResetRsa();
   ConfigureSessionCache(RESUME_BOTH, RESUME_NONE);
   ExpectResumption(RESUME_NONE);
   Connect();
+  SendReceive();
 }
 
 TEST_P(TlsConnectGenericPre13, ConnectResumeClientNoneServerBoth) {
   ConfigureSessionCache(RESUME_NONE, RESUME_BOTH);
   Connect();
+  SendReceive();
 
   ResetRsa();
   ConfigureSessionCache(RESUME_NONE, RESUME_BOTH);
   ExpectResumption(RESUME_NONE);
   Connect();
+  SendReceive();
 }
 
 TEST_P(TlsConnectGenericPre13, ConnectResumeWithHigherVersion) {
@@ -270,6 +291,20 @@ TEST_P(TlsConnectGenericPre13, ConnectResumeWithHigherVersion) {
                            SSL_LIBRARY_VERSION_TLS_1_2);
   ExpectResumption(RESUME_NONE);
   Connect();
+}
+
+TEST_P(TlsConnectGeneric, ConnectResumeClientBothTicketServerTicketForget) {
+  // This causes a ticket resumption.
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  Connect();
+  SendReceive();
+
+  ResetRsa();
+  ClearServerCache();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  ExpectResumption(RESUME_NONE);
+  Connect();
+  SendReceive();
 }
 
 TEST_P(TlsConnectGeneric, ClientAuth) {
@@ -902,6 +937,54 @@ TEST_F(TlsConnectTest, TestFallbackFromTls13) {
   ConnectExpectFail();
   ASSERT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
 }
+
+// Test that two TLS resumptions work and produce the same ticket.
+// This will change after bug 1257047 is fixed.
+TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  Connect();
+  SendReceive(); // Need to read so that we absorb the session ticket.
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+
+  ResetRsa();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  TlsExtensionCapture *c1 =
+      new TlsExtensionCapture(kTlsExtensionPreSharedKey);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  ExpectResumption(RESUME_TICKET);
+  Connect();
+  SendReceive();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+  DataBuffer psk1(c1->extension());
+  ASSERT_GE(psk1.len(), 0UL);
+
+  ResetRsa();
+  ClearStats();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  TlsExtensionCapture *c2 =
+      new TlsExtensionCapture(kTlsExtensionPreSharedKey);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  ExpectResumption(RESUME_TICKET);
+  Connect();
+  SendReceive();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+  DataBuffer psk2(c2->extension());
+  ASSERT_GE(psk2.len(), 0UL);
+
+  // TODO(ekr@rtfm.com): This will change when we fix bug 1257047.
+  ASSERT_EQ(psk1, psk2);
+}
+
 #endif
 
 class BeforeFinished : public TlsRecordFilter {

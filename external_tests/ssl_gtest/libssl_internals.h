@@ -23,7 +23,7 @@ SECStatus SSLInt_UpdateSSLv2ClientRandom(PRFileDesc *fd,
                                          uint8_t *msg, size_t msg_len);
 
 PRBool SSLInt_ExtensionNegotiated(PRFileDesc *fd, PRUint16 ext);
-
+void SSLInt_ClearSessionTicketKey();
 #endif
 
 

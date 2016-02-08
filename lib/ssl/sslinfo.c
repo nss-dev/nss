@@ -56,7 +56,14 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
              * function should get it from cwSpec rather than from the "hs".
              * See bug 275744 comment 69 and bug 766137.
              */
-            inf.cipherSuite = ss->ssl3.hs.cipher_suite;
+            /* For TLS 1.3, we return the cipher suite of the original
+             * connection if there was one rather than the PSK cipher
+             * suite. This matches the original interface for resumption
+             * and is safe because we only enable the corresponding PSK
+             * cipher suite.
+             */
+            inf.cipherSuite = ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 ?
+                    ss->ssl3.hs.origCipherSuite : ss->ssl3.hs.cipher_suite;
             inf.compressionMethod = ss->ssl3.cwSpec->compression_method;
             ssl_ReleaseSpecReadLock(ss);
             inf.compressionMethodName =
@@ -114,7 +121,14 @@ SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
 
     inf.valuesSet = ss->ssl3.hs.preliminaryInfo;
     inf.protocolVersion = ss->version;
-    inf.cipherSuite = ss->ssl3.hs.cipher_suite;
+    /* For TLS 1.3, we return the cipher suite of the original
+     * connection if there was one rather than the PSK cipher
+     * suite. This matches the original interface for resumption
+     * and is safe because we only enable the corresponding PSK
+     * cipher suite.
+     */
+    inf.cipherSuite = ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 ?
+            ss->ssl3.hs.origCipherSuite : ss->ssl3.hs.cipher_suite;
 
     memcpy(info, &inf, inf.length);
     return SECSuccess;
@@ -127,12 +141,14 @@ SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
 #define S_RSA "RSA", ssl_auth_rsa
 #define S_KEA "KEA", ssl_auth_kea
 #define S_ECDSA "ECDSA", ssl_auth_ecdsa
+#define S_PSK   "PSK", ssl_auth_psk
 
 #define K_DHE "DHE", kt_dh
 #define K_RSA "RSA", kt_rsa
 #define K_KEA "KEA", kt_kea
 #define K_ECDH "ECDH", kt_ecdh
 #define K_ECDHE "ECDHE", kt_ecdh
+#define K_ECDHE_PSK "ECDHE-PSK", kt_ecdh
 
 #define C_SEED "SEED", calg_seed
 #define C_CAMELLIA "CAMELLIA", calg_camellia
@@ -215,6 +231,7 @@ static const SSLCipherSuiteInfo suiteInfo[] = {
     /* ECC cipher suites */
     {0,CS(TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256), S_RSA, K_ECDHE, C_AESGCM, B_128, M_AEAD_128, 1, 0, 0 },
     {0,CS(TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256), S_ECDSA, K_ECDHE, C_AESGCM, B_128, M_AEAD_128, 1, 0, 0 },
+    {0,CS(TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256), S_PSK,   K_ECDHE_PSK, C_AESGCM, B_128, M_AEAD_128, 1, 0, 0 },
 
     {0,CS(TLS_ECDH_ECDSA_WITH_NULL_SHA),          S_ECDSA, K_ECDH, C_NULL, B_0, M_SHA, 0, 0, 0 },
     {0,CS(TLS_ECDH_ECDSA_WITH_RC4_128_SHA),       S_ECDSA, K_ECDH, C_RC4, B_128, M_SHA, 0, 0, 0 },

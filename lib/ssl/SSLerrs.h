@@ -466,3 +466,7 @@ ER3(SSL_ERROR_EXTENSION_DISALLOWED_FOR_VERSION, (SSL_ERROR_BASE + 145),
 
 ER3(SSL_ERROR_RX_MALFORMED_ENCRYPTED_EXTENSIONS, (SSL_ERROR_BASE + 146),
     "SSL received a malformed Encrypted Extensions handshake message.")
+
+ER3(SSL_ERROR_RX_MALFORMED_PRE_SHARED_KEY, (SSL_ERROR_BASE + 147),
+    "SSL received an invalid PreSharedKey extension.")
+

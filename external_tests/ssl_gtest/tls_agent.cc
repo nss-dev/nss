@@ -418,10 +418,11 @@ void TlsAgent::CheckCallbacks() const {
     EXPECT_TRUE(handshake_callback_called_);
   }
 
-  // These callbacks shouldn't fire if we are resuming.
+  // These callbacks shouldn't fire if we are resuming, except on TLS 1.3.
   if (role_ == SERVER) {
     PRBool have_sni = SSLInt_ExtensionNegotiated(ssl_fd_, ssl_server_name_xtn);
-    EXPECT_EQ(!expect_resumption_ && have_sni, sni_hook_called_);
+    EXPECT_EQ(((!expect_resumption_ && have_sni) ||
+               expected_version_ >= SSL_LIBRARY_VERSION_TLS_1_3), sni_hook_called_);
   } else {
     EXPECT_EQ(!expect_resumption_, auth_certificate_hook_called_);
     // Note that this isn't unconditionally called, even with false start on.
