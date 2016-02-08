@@ -41,6 +41,12 @@ CK_MECHANISM_TYPE tls13_GetHkdfMechanism(sslSocket *ss);
 void tls13_FatalError(sslSocket *ss, PRErrorCode prError,
                       SSL3AlertDescription desc);
 SECStatus tls13_SetupClientHello(sslSocket *ss);
+PRBool tls13_AllowPskCipher(const sslSocket *ss,
+                            const ssl3CipherSuiteDef *cipher_def);
+SECStatus tls13_HandleClientHelloPart2(sslSocket *ss,
+                                       const SECItem *suites,
+                                       sslSessionID *sid);
+SECStatus tls13_HandleServerHelloPart2(sslSocket *ss);
 SECStatus tls13_HandlePostHelloHandshakeMessage(sslSocket *ss, SSL3Opaque *b,
                                                 PRUint32 length,
                                                 SSL3Hashes *hashesPtr);

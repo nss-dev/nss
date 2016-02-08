@@ -82,7 +82,7 @@ tls13_HkdfExtract(PK11SymKey *ikm1, PK11SymKey *ikm2, SSLHashType baseHash,
                       CKA_DERIVE, kTlsHkdfInfo[baseHash].hashSize);
     if (!prk)
         return SECFailure;
-    PRINT_KEY(60, (NULL, "HKDF Extract", prk));
+    PRINT_KEY(50, (NULL, "HKDF Extract", prk));
     *prkp = prk;
 
     return SECSuccess;
@@ -171,13 +171,13 @@ tls13_HkdfExpandLabel(PK11SymKey *prk, SSLHashType baseHash,
         char labelStr[100];
         PORT_Memcpy(labelStr, label, labelLen);
         labelStr[labelLen] = 0;
-        SSL_TRC(60, ("HKDF Expand: label=[TLS 1.3, ] + '%s',requested length=%d",
+        SSL_TRC(50, ("HKDF Expand: label=[TLS 1.3, ] + '%s',requested length=%d",
                      labelStr, keySize));
     }
-    PRINT_KEY(60, (NULL, "PRK", prk));
-    PRINT_BUF(60, (NULL, "Hash", handshakeHash, handshakeHashLen));
-    PRINT_BUF(60, (NULL, "Info", info, infoLen));
-    PRINT_KEY(60, (NULL, "Derived key", derived));
+    PRINT_KEY(50, (NULL, "PRK", prk));
+    PRINT_BUF(50, (NULL, "Hash", handshakeHash, handshakeHashLen));
+    PRINT_BUF(50, (NULL, "Info", info, infoLen));
+    PRINT_KEY(50, (NULL, "Derived key", derived));
 #endif
 
     return SECSuccess;

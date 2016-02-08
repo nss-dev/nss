@@ -238,7 +238,8 @@ class TlsAgent : public PollTarget {
     TlsAgent* agent = reinterpret_cast<TlsAgent*>(arg);
     agent->CheckPreliminaryInfo();
     agent->sni_hook_called_ = true;
-    return SSL_SNI_CURRENT_CONFIG_IS_USED;
+    EXPECT_EQ(1UL, srvNameArrSize);
+    return 0; // First configuration.
   }
 
   static SECStatus CanFalseStartCallback(PRFileDesc *fd, void *arg,

@@ -276,7 +276,7 @@ typedef struct {
 } ssl3CipherSuiteCfg;
 
 #ifndef NSS_DISABLE_ECC
-#define ssl_V3_SUITES_IMPLEMENTED 67
+#define ssl_V3_SUITES_IMPLEMENTED 68
 #else
 #define ssl_V3_SUITES_IMPLEMENTED 41
 #endif /* NSS_DISABLE_ECC */
@@ -949,6 +949,8 @@ typedef struct SSL3HandshakeStateStr {
                                         * to Certificate */
     PRUint8 certReqContextLen;         /* Length of the context
                                         * cannot be greater than 255. */
+    ssl3CipherSuite origCipherSuite;   /* The cipher suite from the original
+                                        * connection if we are resuming. */
 } SSL3HandshakeState;
 
 /*
@@ -1813,6 +1815,7 @@ extern PRBool ssl_GetSessionTicketKeysPKCS11(SECKEYPrivateKey *svrPrivKey,
                                              SECKEYPublicKey *svrPubKey, void *pwArg,
                                              unsigned char *keyName, PK11SymKey **aesKey,
                                              PK11SymKey **macKey);
+extern SECStatus ssl3_SessionTicketShutdown(void *appData, void *nssData);
 
 /* Tell clients to consider tickets valid for this long. */
 #define TLS_EX_SESS_TICKET_LIFETIME_HINT (2 * 24 * 60 * 60) /* 2 days */
@@ -1905,6 +1908,8 @@ extern SECStatus dtls_MaybeRetransmitHandshake(sslSocket *ss,
                                                const SSL3Ciphertext *cText);
 
 CK_MECHANISM_TYPE ssl3_Alg2Mech(SSLCipherAlgorithm calg);
+SECStatus ssl3_NegotiateCipherSuite(sslSocket *ss, const SECItem *suites);
+SECStatus ssl3_ServerCallSNICallback(sslSocket *ss);
 SECStatus ssl3_SetupPendingCipherSpec(sslSocket *ss);
 SECStatus ssl3_FlushHandshake(sslSocket *ss, PRInt32 flags);
 SECStatus ssl3_SendCertificate(sslSocket *ss);
@@ -1942,6 +1947,19 @@ PK11SymKey *tls13_ComputeECDHSharedKey(sslSocket *ss,
                                        SECKEYPrivateKey *myPrivKey,
                                        SECKEYPublicKey *peerKey);
 #endif
+SECStatus ssl3_FlushHandshake(sslSocket *ss, PRInt32 flags);
+PK11SymKey *ssl3_GetWrappingKey(sslSocket *ss,
+                                PK11SlotInfo *masterSecretSlot,
+                                SSL3KEAType exchKeyType,
+                                CK_MECHANISM_TYPE masterWrapMech,
+                                void *pwArg);
+PRInt32 tls13_ServerSendPreSharedKeyXtn(sslSocket * ss,
+                                        PRBool      append,
+                                        PRUint32    maxBytes);
+PRBool ssl3_ClientExtensionAdvertised(sslSocket *ss, PRUint16 ex_type);
+SECStatus ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid,
+                               SSL3KEAType effectiveExchKeyType);
+const ssl3CipherSuiteDef *ssl_LookupCipherSuiteDef(ssl3CipherSuite suite);
 
 /* Pull in TLS 1.3 functions */
 #include "tls13con.h"

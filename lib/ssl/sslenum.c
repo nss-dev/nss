@@ -34,6 +34,8 @@
  *      algorithm: GCM, then HMAC-SHA1, then HMAC-SHA256, then HMAC-MD5.
  *    * Within message authentication algorithm sections, order by asymmetric
  *      signature algorithm: ECDSA, then RSA, then DSS.
+ *    * As a special case, the PSK ciphers, which are only enabled when
+ *      TLS 1.3 PSK-resumption is in use, come first.
  *
  * Exception: Because some servers ignore the high-order byte of the cipher
  * suite ID, we must be careful about adding cipher suites with IDs larger
@@ -47,6 +49,10 @@
  * the third one.
  */
 const PRUint16 SSL_ImplementedCiphers[] = {
+    /* ECDHE-PSK from [draft-mattsson-tls-ecdhe-psk-aead]. */
+    TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256,
+
+
 #ifndef NSS_DISABLE_ECC
     TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
     TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,

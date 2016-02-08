@@ -46,6 +46,10 @@ class TlsConnectTestBase : public ::testing::Test {
 
   // Initialize client and server.
   void Init();
+  // Clear the statistics.
+  void ClearStats();
+  // Clear the server session cache.
+  void ClearServerCache();
   // Re-initialize client and server with the default RSA cert.
   void ResetRsa();
   // Re-initialize client and server with an ECDSA cert on the server

@@ -223,6 +223,9 @@
 #define TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 0xCCA9
 #define TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256     0xCCAA
 
+/* Experimental PSK support for [draft-mattsson-tls-ecdhe-psk-aead] */
+#define TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256   0xD001
+
 /* Netscape "experimental" cipher suites. */
 #define SSL_RSA_OLDFIPS_WITH_3DES_EDE_CBC_SHA   0xffe0
 #define SSL_RSA_OLDFIPS_WITH_DES_CBC_SHA        0xffe1

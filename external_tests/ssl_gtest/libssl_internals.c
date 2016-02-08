@@ -7,6 +7,7 @@
 /* This file contains functions for frobbing the internals of libssl */
 #include "libssl_internals.h"
 
+#include "nss.h"
 #include "seccomon.h"
 #include "ssl.h"
 #include "sslimpl.h"
@@ -83,4 +84,11 @@ SSLInt_ExtensionNegotiated(PRFileDesc *fd, PRUint16 ext)
 {
     sslSocket *ss = ssl_FindSocket(fd);
     return (PRBool)(ss && ssl3_ExtensionNegotiated(ss, ext));
+}
+
+void
+SSLInt_ClearSessionTicketKey()
+{
+  ssl3_SessionTicketShutdown(NULL, NULL);
+  NSS_UnregisterShutdown(ssl3_SessionTicketShutdown, NULL);
 }
