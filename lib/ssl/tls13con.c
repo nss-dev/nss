@@ -1209,7 +1209,9 @@ tls13_ComputeSecrets1(sslSocket *ss)
 
 loser:
     PK11_FreeSymKey(ss->ssl3.hs.xSS);
+    ss->ssl3.hs.xSS = NULL;
     PK11_FreeSymKey(ss->ssl3.hs.xES);
+    ss->ssl3.hs.xES = NULL;
 
     if (mSS) {
         PK11_FreeSymKey(mSS);
