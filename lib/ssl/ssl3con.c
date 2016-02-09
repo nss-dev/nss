@@ -94,8 +94,6 @@ static ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED] = {
 #ifndef NSS_DISABLE_ECC
  { TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE},
  { TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,   SSL_ALLOWED, PR_TRUE, PR_FALSE},
- { TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE},
- { TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,   SSL_ALLOWED, PR_TRUE, PR_FALSE},
    /* TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA is out of order to work around
     * bug 946147.
     */
@@ -112,7 +110,6 @@ static ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED] = {
 #endif /* NSS_DISABLE_ECC */
 
  { TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,     SSL_ALLOWED, PR_TRUE,  PR_FALSE},
- { TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,SSL_ALLOWED,PR_TRUE,  PR_FALSE},
  { TLS_DHE_DSS_WITH_AES_128_GCM_SHA256,     SSL_ALLOWED, PR_FALSE, PR_FALSE},
  { TLS_DHE_RSA_WITH_AES_128_CBC_SHA,        SSL_ALLOWED, PR_TRUE,  PR_FALSE},
  { TLS_DHE_DSS_WITH_AES_128_CBC_SHA,        SSL_ALLOWED, PR_TRUE,  PR_FALSE},
@@ -292,7 +289,6 @@ static const ssl3BulkCipherDef bulk_cipher_defs[] = {
     {cipher_camellia_256, calg_camellia,    32,32, type_block, 16,16, 0, 0, SEC_OID_CAMELLIA_256_CBC},
     {cipher_seed,         calg_seed,        16,16, type_block, 16,16, 0, 0, SEC_OID_SEED_CBC},
     {cipher_aes_128_gcm,  calg_aes_gcm,     16,16, type_aead,   4, 0,16, 8, SEC_OID_AES_128_GCM},
-    {cipher_chacha20,     calg_chacha20,    32,32, type_aead,  12, 0,16, 0, SEC_OID_CHACHA20_POLY1305},
     {cipher_missing,      calg_null,         0, 0, type_stream, 0, 0, 0, 0, 0},
 };
 
@@ -424,10 +420,6 @@ static const ssl3CipherSuiteDef cipher_suite_defs[] =
     {TLS_DHE_DSS_WITH_AES_128_CBC_SHA256, cipher_aes_128, hmac_sha256, kea_dhe_dss},
     {TLS_DHE_DSS_WITH_AES_256_CBC_SHA256, cipher_aes_256, hmac_sha256, kea_dhe_dss},
 
-    {TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256, cipher_chacha20, mac_aead, kea_dhe_rsa},
-    {TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256, cipher_chacha20, mac_aead, kea_ecdhe_rsa},
-    {TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, cipher_chacha20, mac_aead, kea_ecdhe_ecdsa},
-
 #ifndef NSS_DISABLE_ECC
     {TLS_ECDH_ECDSA_WITH_NULL_SHA,        cipher_null, mac_sha, kea_ecdh_ecdsa},
     {TLS_ECDH_ECDSA_WITH_RC4_128_SHA,      cipher_rc4, mac_sha, kea_ecdh_ecdsa},
@@ -492,7 +484,6 @@ static const SSLCipher2Mech alg2Mech[] = {
     { calg_camellia , CKM_CAMELLIA_CBC			},
     { calg_seed     , CKM_SEED_CBC			},
     { calg_aes_gcm  , CKM_AES_GCM			},
-    { calg_chacha20 , CKM_NSS_CHACHA20_POLY1305         },
 /*  { calg_init     , (CK_MECHANISM_TYPE)0x7fffffffL    }  */
 };
 
@@ -1804,7 +1795,6 @@ ssl3_InitPendingContextsBypass(sslSocket *ss)
     case ssl_calg_idea:
     case ssl_calg_fortezza:
     case ssl_calg_aes_gcm:
-    case ssl_calg_chacha20:
         break;
     }
 
@@ -1925,9 +1915,8 @@ ssl3_AESGCM(ssl3KeyMaterial *keys,
     unsigned int       uOutLen;
     CK_GCM_PARAMS      gcmParams;
 
-    const int tagSize = bulk_cipher_defs[cipher_aes_128_gcm].tag_size;
-    const int explicitNonceLen =
-        bulk_cipher_defs[cipher_aes_128_gcm].explicit_nonce_size;
+    static const int   tagSize = 16;
+    static const int   explicitNonceLen = 8;
 
     /* See https://tools.ietf.org/html/rfc5288#section-3 for details of how the
      * nonce is formed. */
@@ -1989,9 +1978,8 @@ ssl3_AESGCMBypass(ssl3KeyMaterial *keys,
     AESContext        *cx;
     CK_GCM_PARAMS      gcmParams;
 
-    const int tagSize = bulk_cipher_defs[cipher_aes_128_gcm].tag_size;
-    const int explicitNonceLen =
-        bulk_cipher_defs[cipher_aes_128_gcm].explicit_nonce_size;
+    static const int   tagSize = 16;
+    static const int   explicitNonceLen = 8;
 
     /* See https://tools.ietf.org/html/rfc5288#section-3 for details of how the
      * nonce is formed. */
@@ -2045,55 +2033,6 @@ ssl3_AESGCMBypass(ssl3KeyMaterial *keys,
 }
 #endif
 
-static SECStatus
-ssl3_ChaCha20Poly1305(ssl3KeyMaterial *keys, PRBool doDecrypt,
-                      unsigned char *out, int *outlen, int maxout,
-                      const unsigned char *in, int inlen,
-                      const unsigned char *additionalData,
-                      int additionalDataLen)
-{
-    size_t i;
-    SECItem param;
-    SECStatus rv = SECFailure;
-    unsigned int uOutLen;
-    unsigned char nonce[12];
-    CK_NSS_AEAD_PARAMS aeadParams;
-
-    const int tagSize = bulk_cipher_defs[cipher_chacha20].tag_size;
-
-    /* See
-     * https://tools.ietf.org/html/draft-ietf-tls-chacha20-poly1305-04#section-2
-     * for details of how the nonce is formed. */
-    PORT_Memcpy(nonce, keys->write_iv, 12);
-
-    /* XOR the last 8 bytes of the IV with the sequence number. */
-    PORT_Assert(additionalDataLen >= 8);
-    for (i = 0; i < 8; ++i) {
-        nonce[4 + i] ^= additionalData[i];
-    }
-
-    param.type = siBuffer;
-    param.len = sizeof(aeadParams);
-    param.data = (unsigned char *)&aeadParams;
-    memset(&aeadParams, 0, sizeof(aeadParams));
-    aeadParams.pNonce = nonce;
-    aeadParams.ulNonceLen = sizeof(nonce);
-    aeadParams.pAAD = (unsigned char *)additionalData;
-    aeadParams.ulAADLen = additionalDataLen;
-    aeadParams.ulTagLen = tagSize;
-
-    if (doDecrypt) {
-        rv = PK11_Decrypt(keys->write_key, CKM_NSS_CHACHA20_POLY1305, &param,
-                          out, &uOutLen, maxout, in, inlen);
-    } else {
-        rv = PK11_Encrypt(keys->write_key, CKM_NSS_CHACHA20_POLY1305, &param,
-                          out, &uOutLen, maxout, in, inlen);
-    }
-    *outlen = (int)uOutLen;
-
-    return rv;
-}
-
 /* Initialize encryption and MAC contexts for pending spec.
  * Master Secret already is derived.
  * Caller holds Spec write lock.
@@ -2127,23 +2066,13 @@ ssl3_InitPendingContextsPKCS11(sslSocket *ss)
     pwSpec->client.write_mac_context = NULL;
     pwSpec->server.write_mac_context = NULL;
 
-    if (cipher_def->type == type_aead) {
+    if (calg == calg_aes_gcm) {
 	pwSpec->encode = NULL;
 	pwSpec->decode = NULL;
 	pwSpec->destroy = NULL;
 	pwSpec->encodeContext = NULL;
 	pwSpec->decodeContext = NULL;
-        switch (calg) {
-        case calg_aes_gcm:
-            pwSpec->aead = ssl3_AESGCM;
-            break;
-        case calg_chacha20:
-            pwSpec->aead = ssl3_ChaCha20Poly1305;
-            break;
-        default:
-            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-            return SECFailure;
-        }
+	pwSpec->aead = ssl3_AESGCM;
 	return SECSuccess;
     }
 

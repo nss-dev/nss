@@ -50,7 +50,6 @@ typedef SSLMACAlgorithm SSL3MACAlgorithm;
 #define calg_camellia	ssl_calg_camellia
 #define calg_seed	ssl_calg_seed
 #define calg_aes_gcm    ssl_calg_aes_gcm
-#define calg_chacha20   ssl_calg_chacha20
 
 #define mac_null	ssl_mac_null
 #define mac_md5 	ssl_mac_md5
@@ -286,9 +285,9 @@ typedef struct {
 } ssl3CipherSuiteCfg;
 
 #ifndef NSS_DISABLE_ECC
-#define ssl_V3_SUITES_IMPLEMENTED 67
+#define ssl_V3_SUITES_IMPLEMENTED 64
 #else
-#define ssl_V3_SUITES_IMPLEMENTED 41
+#define ssl_V3_SUITES_IMPLEMENTED 40
 #endif /* NSS_DISABLE_ECC */
 
 #define MAX_DTLS_SRTP_CIPHER_SUITES 4
@@ -473,7 +472,6 @@ typedef enum {
     cipher_camellia_256,
     cipher_seed,
     cipher_aes_128_gcm,
-    cipher_chacha20,
     cipher_missing              /* reserved for no such supported cipher */
     /* This enum must match ssl3_cipherName[] in ssl3con.c.  */
 } SSL3BulkCipher;
