@@ -1999,7 +1999,9 @@ PK11_CopyTokenPrivKeyToSessionPrivKey(PK11SlotInfo *destSlot,
 	    return newKey;
     }
     destSlot = privKey->pkcs11Slot;
-    PK11_Authenticate(destSlot, PR_TRUE, privKey->wincx);
+    if (PK11_Authenticate(destSlot, PR_TRUE, privKey->wincx) != SECSuccess) {
+	return NULL;
+    }
     PK11_EnterSlotMonitor(destSlot);
     crv = PK11_GETTAB(destSlot)->C_CopyObject(	destSlot->session, 
 						privKey->pkcs11ID,
@@ -2029,7 +2031,9 @@ PK11_ConvertSessionPrivKeyToTokenPrivKey(SECKEYPrivateKey *privk, void* wincx)
 
     PK11_SETATTRS(attrs, CKA_TOKEN, &cktrue, sizeof(cktrue)); attrs++;
 
-    PK11_Authenticate(slot, PR_TRUE, wincx);
+    if (PK11_Authenticate(slot, PR_TRUE, wincx) != SECSuccess) {
+    	return NULL;
+    }
     rwsession = PK11_GetRWSession(slot);
     if (rwsession == CK_INVALID_SESSION) {
     	PORT_SetError(SEC_ERROR_BAD_DATA);
