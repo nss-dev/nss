@@ -142,6 +142,7 @@ ChaCha20Poly1305_Open(const ChaCha20Poly1305Context *ctx, unsigned char *output,
 {
     unsigned char block[64];
     unsigned char tag[16];
+    unsigned int ciphertextLen;
 
     if (nonceLen != 12) {
         PORT_SetError(SEC_ERROR_INPUT_LEN);
@@ -151,7 +152,7 @@ ChaCha20Poly1305_Open(const ChaCha20Poly1305Context *ctx, unsigned char *output,
         PORT_SetError(SEC_ERROR_INPUT_LEN);
         return SECFailure;
     }
-    unsigned int ciphertextLen = inputLen - ctx->tagLen;
+    ciphertextLen = inputLen - ctx->tagLen;
     *outputLen = ciphertextLen;
     if (maxOutputLen < *outputLen) {
         PORT_SetError(SEC_ERROR_OUTPUT_LEN);
