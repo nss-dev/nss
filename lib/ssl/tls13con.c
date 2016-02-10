@@ -2010,6 +2010,13 @@ tls13_UnprotectRecord(sslSocket* ss, SSL3Ciphertext *cText, sslBuffer *plaintext
         return SECFailure;
     }
 
+    /* Verify that the content type is right, even though we overwrite it. */
+    if (cText->type != content_application_data) {
+        /* Do we need a better error here? */
+        PORT_SetError(SSL_ERROR_BAD_MAC_READ);
+        return SECFailure;
+    }
+
     /* Check the version number in the record */
     if (cText->version != kRecordVersion) {
         /* Do we need a better error here? */
