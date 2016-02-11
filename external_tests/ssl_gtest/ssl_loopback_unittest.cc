@@ -982,6 +982,8 @@ INSTANTIATE_TEST_CASE_P(VersionsDatagram, TlsConnectDatagram,
                         TlsConnectTestBase::kTlsV11V12);
 INSTANTIATE_TEST_CASE_P(Variants12, TlsConnectTls12,
                         TlsConnectTestBase::kTlsModesAll);
+INSTANTIATE_TEST_CASE_P(Variants12, TlsChaCha20Poly1305Test,
+                        TlsConnectTestBase::kTlsModesAll);
 INSTANTIATE_TEST_CASE_P(Pre12Stream, TlsConnectPre12,
                         ::testing::Combine(
                           TlsConnectTestBase::kTlsModesStream,
