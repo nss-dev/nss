@@ -495,17 +495,19 @@ else ifeq (1,$(CC_IS_GCC))
     endif
 endif
 
-ifeq ($(CPU_ARCH),x86_64)
-    ifdef HAVE_INT128_SUPPORT
-        EXTRA_SRCS += poly1305-donna-x64-sse2-incremental-source.c
+ifndef NSS_DISABLE_CHACHAPOLY
+    ifeq ($(CPU_ARCH),x86_64)
+        ifdef HAVE_INT128_SUPPORT
+            EXTRA_SRCS += poly1305-donna-x64-sse2-incremental-source.c
+        else
+            EXTRA_SRCS += poly1305.c
+        endif
+        EXTRA_SRCS += chacha20_vec.c
     else
         EXTRA_SRCS += poly1305.c
-    endif
-    EXTRA_SRCS += chacha20_vec.c
-else
-    EXTRA_SRCS += poly1305.c
-    EXTRA_SRCS += chacha20.c
-endif # x86_64
+        EXTRA_SRCS += chacha20.c
+    endif # x86_64
+endif # NSS_DISABLE_CHACHAPOLY
 
 #######################################################################
 # (5) Execute "global" rules. (OPTIONAL)                              #
