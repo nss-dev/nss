@@ -12,12 +12,16 @@
 #include "seccomon.h"
 #include "secerr.h"
 #include "blapit.h"
+
+#ifndef NSS_DISABLE_CHACHAPOLY
 #include "poly1305.h"
 #include "chacha20.h"
 #include "chacha20poly1305.h"
+#endif
 
 /* Poly1305Do writes the Poly1305 authenticator of the given additional data
  * and ciphertext to |out|. */
+#ifndef NSS_DISABLE_CHACHAPOLY
 static void
 Poly1305Do(unsigned char *out, const unsigned char *ad, unsigned int adLen,
            const unsigned char *ciphertext, unsigned int ciphertextLen,
@@ -52,12 +56,16 @@ Poly1305Do(unsigned char *out, const unsigned char *ad, unsigned int adLen,
     Poly1305Update(&state, lengthBytes, sizeof(lengthBytes));
     Poly1305Finish(&state, out);
 }
+#endif
 
 SECStatus
 ChaCha20Poly1305_InitContext(ChaCha20Poly1305Context *ctx,
                              const unsigned char *key, unsigned int keyLen,
                              unsigned int tagLen)
 {
+#ifdef NSS_DISABLE_CHACHAPOLY
+    return SECFailure;
+#else
     if (keyLen != 32) {
         PORT_SetError(SEC_ERROR_BAD_KEY);
         return SECFailure;
@@ -71,12 +79,16 @@ ChaCha20Poly1305_InitContext(ChaCha20Poly1305Context *ctx,
     ctx->tagLen = tagLen;
 
     return SECSuccess;
+#endif
 }
 
 ChaCha20Poly1305Context *
 ChaCha20Poly1305_CreateContext(const unsigned char *key, unsigned int keyLen,
                                unsigned int tagLen)
 {
+#ifdef NSS_DISABLE_CHACHAPOLY
+    return NULL;
+#else
     ChaCha20Poly1305Context *ctx;
 
     ctx = PORT_New(ChaCha20Poly1305Context);
@@ -90,15 +102,18 @@ ChaCha20Poly1305_CreateContext(const unsigned char *key, unsigned int keyLen,
     }
 
     return ctx;
+#endif
 }
 
 void
 ChaCha20Poly1305_DestroyContext(ChaCha20Poly1305Context *ctx, PRBool freeit)
 {
+#ifndef NSS_DISABLE_CHACHAPOLY
     PORT_Memset(ctx, 0, sizeof(*ctx));
     if (freeit) {
         PORT_Free(ctx);
     }
+#endif
 }
 
 SECStatus
@@ -108,6 +123,9 @@ ChaCha20Poly1305_Seal(const ChaCha20Poly1305Context *ctx, unsigned char *output,
                       const unsigned char *nonce, unsigned int nonceLen,
                       const unsigned char *ad, unsigned int adLen)
 {
+#ifdef NSS_DISABLE_CHACHAPOLY
+    return SECFailure;
+#else
     unsigned char block[64];
     unsigned char tag[16];
 
@@ -131,6 +149,7 @@ ChaCha20Poly1305_Seal(const ChaCha20Poly1305Context *ctx, unsigned char *output,
     PORT_Memcpy(output + inputLen, tag, ctx->tagLen);
 
     return SECSuccess;
+#endif
 }
 
 SECStatus
@@ -140,6 +159,9 @@ ChaCha20Poly1305_Open(const ChaCha20Poly1305Context *ctx, unsigned char *output,
                       const unsigned char *nonce, unsigned int nonceLen,
                       const unsigned char *ad, unsigned int adLen)
 {
+#ifdef NSS_DISABLE_CHACHAPOLY
+    return SECFailure;
+#else
     unsigned char block[64];
     unsigned char tag[16];
     unsigned int ciphertextLen;
@@ -172,4 +194,5 @@ ChaCha20Poly1305_Open(const ChaCha20Poly1305Context *ctx, unsigned char *output,
     ChaCha20XOR(output, input, ciphertextLen, ctx->key, nonce, 1);
 
     return SECSuccess;
+#endif
 }
