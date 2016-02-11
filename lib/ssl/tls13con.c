@@ -1566,13 +1566,15 @@ tls13_SendFinished(sslSocket *ss)
         goto alert_loser;
     }
 
-    if (!ss->sec.isServer) {
+    if (ss->sec.isServer) {
         rv = tls13_InitCipherSpec(ss, TrafficKeyApplicationData,
-                                  InstallCipherSpecBoth);
-        if (rv != SECSuccess) {
-            errCode = PR_GetError();
-            goto alert_loser;
-        }
+                                  InstallCipherSpecWrite);
+    } else {
+        rv = tls13_InstallCipherSpec(ss, InstallCipherSpecWrite);
+    }
+    if (rv != SECSuccess) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
     }
 
     /* TODO(ekr@rtfm.com): Record key log */
@@ -1632,8 +1634,7 @@ tls13_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
      */
     /* TODO(ekr@rtfm.com): Send NewSession Ticket if server. */
     if (ss->sec.isServer) {
-        rv = tls13_InitCipherSpec(ss, TrafficKeyApplicationData,
-                                  InstallCipherSpecBoth);
+        rv = tls13_InstallCipherSpec(ss, InstallCipherSpecRead);
         if (rv != SECSuccess) {
             FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
             return SECFailure;
@@ -1647,6 +1648,13 @@ tls13_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
             PORT_Assert(0);
             return SECFailure;
         }
+        rv = tls13_InitCipherSpec(ss, TrafficKeyApplicationData,
+                                  InstallCipherSpecRead);
+        if (rv != SECSuccess) {
+            FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
+            return SECFailure;
+        }
+
         rv = tls13_SendClientSecondRound(ss);
         if (rv != SECSuccess)
             return SECFailure;  /* Error code and alerts handled below */
