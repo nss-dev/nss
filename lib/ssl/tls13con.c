@@ -1764,7 +1764,6 @@ typedef enum {
     ExtensionClientOnly,
     ExtensionSendClear,
     ExtensionSendEncrypted,
-    ExtensionUnknown,
 } Tls13ExtensionStatus;
 
 static const struct {
@@ -1841,9 +1840,13 @@ tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message)
                 (message == encrypted_extensions));
 
     for (i = 0; i < PR_ARRAY_SIZE(KnownExtensions); i++) {
-        if (KnownExtensions[i].ex_value == extension) {
+        if (KnownExtensions[i].ex_value == extension)
             break;
-        }
+    }
+    if (i == PR_ARRAY_SIZE(KnownExtensions)) {
+        /* We have never heard of this extension which is OK on
+         * the server but not the client. */
+        return message == client_hello;
     }
 
     switch(KnownExtensions[i].status) {
@@ -1857,8 +1860,6 @@ tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message)
         case ExtensionSendEncrypted:
             return message == client_hello ||
                     message == encrypted_extensions;
-        case ExtensionUnknown:
-            return PR_TRUE;
     }
 
     PORT_Assert(0);
