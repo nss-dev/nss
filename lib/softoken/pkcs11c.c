@@ -973,7 +973,6 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 	    break;
 	}
 	t = (pMechanism->mechanism == CKM_CDMF_ECB) ? NSS_DES : NSS_DES_CBC;
-	if (crv != CKR_OK) break;
 	goto finish_des;
     case CKM_DES_ECB:
 	if (key_type != CKK_DES) {
@@ -4181,14 +4180,15 @@ jpake1:
      */
     crv = sftk_handleObject(key,session);
     sftk_FreeSession(session);
-    if (sftk_isTrue(key,CKA_SENSITIVE)) {
-	sftk_forceAttribute(key,CKA_ALWAYS_SENSITIVE,&cktrue,sizeof(CK_BBOOL));
+    if (crv == CKR_OK && sftk_isTrue(key,CKA_SENSITIVE)) {
+	crv = sftk_forceAttribute(key,CKA_ALWAYS_SENSITIVE,&cktrue,sizeof(CK_BBOOL));
     }
-    if (!sftk_isTrue(key,CKA_EXTRACTABLE)) {
-	sftk_forceAttribute(key,CKA_NEVER_EXTRACTABLE,&cktrue,sizeof(CK_BBOOL));
+    if (crv == CKR_OK && !sftk_isTrue(key,CKA_EXTRACTABLE)) {
+	crv = sftk_forceAttribute(key,CKA_NEVER_EXTRACTABLE,&cktrue,sizeof(CK_BBOOL));
     }
-
-    *phKey = key->handle;
+    if (crv == CKR_OK) {
+	*phKey = key->handle;
+    }
     sftk_FreeObject(key);
     return crv;
 }
@@ -4987,41 +4987,46 @@ ecgn_done:
 	return crv;
     }
     if (sftk_isTrue(privateKey,CKA_SENSITIVE)) {
-	sftk_forceAttribute(privateKey,CKA_ALWAYS_SENSITIVE,
+	crv = sftk_forceAttribute(privateKey,CKA_ALWAYS_SENSITIVE,
 						&cktrue,sizeof(CK_BBOOL));
     }
-    if (sftk_isTrue(publicKey,CKA_SENSITIVE)) {
-	sftk_forceAttribute(publicKey,CKA_ALWAYS_SENSITIVE,
+    if (crv == CKR_OK && sftk_isTrue(publicKey,CKA_SENSITIVE)) {
+	crv = sftk_forceAttribute(publicKey,CKA_ALWAYS_SENSITIVE,
 						&cktrue,sizeof(CK_BBOOL));
     }
-    if (!sftk_isTrue(privateKey,CKA_EXTRACTABLE)) {
-	sftk_forceAttribute(privateKey,CKA_NEVER_EXTRACTABLE,
+    if (crv == CKR_OK && !sftk_isTrue(privateKey,CKA_EXTRACTABLE)) {
+	crv = sftk_forceAttribute(privateKey,CKA_NEVER_EXTRACTABLE,
 						&cktrue,sizeof(CK_BBOOL));
     }
-    if (!sftk_isTrue(publicKey,CKA_EXTRACTABLE)) {
-	sftk_forceAttribute(publicKey,CKA_NEVER_EXTRACTABLE,
+    if (crv == CKR_OK && !sftk_isTrue(publicKey,CKA_EXTRACTABLE)) {
+	crv = sftk_forceAttribute(publicKey,CKA_NEVER_EXTRACTABLE,
 						&cktrue,sizeof(CK_BBOOL));
     }
 
-    /* Perform FIPS 140-2 pairwise consistency check. */
-    crv = sftk_PairwiseConsistencyCheck(hSession,
-					publicKey, privateKey, key_type);
+    if (crv == CKR_OK) {
+	/* Perform FIPS 140-2 pairwise consistency check. */
+	crv = sftk_PairwiseConsistencyCheck(hSession,
+					    publicKey, privateKey, key_type);
+	if (crv != CKR_OK) {
+	    if (sftk_audit_enabled) {
+		char msg[128];
+		PR_snprintf(msg,sizeof msg,
+			    "C_GenerateKeyPair(hSession=0x%08lX, "
+			    "pMechanism->mechanism=0x%08lX)=0x%08lX "
+			    "self-test: pair-wise consistency test failed",
+			    (PRUint32)hSession,(PRUint32)pMechanism->mechanism,
+			    (PRUint32)crv);
+		sftk_LogAuditMessage(NSS_AUDIT_ERROR, NSS_AUDIT_SELF_TEST, msg);
+	    }
+	    return crv;
+	}
+    }
+
     if (crv != CKR_OK) {
 	NSC_DestroyObject(hSession,publicKey->handle);
 	sftk_FreeObject(publicKey);
 	NSC_DestroyObject(hSession,privateKey->handle);
 	sftk_FreeObject(privateKey);
-	if (sftk_audit_enabled) {
-	    char msg[128];
-	    PR_snprintf(msg,sizeof msg,
-			"C_GenerateKeyPair(hSession=0x%08lX, "
-			"pMechanism->mechanism=0x%08lX)=0x%08lX "
-			"self-test: pair-wise consistency test failed",
-			(PRUint32)hSession,(PRUint32)pMechanism->mechanism,
-			(PRUint32)crv);
-	    sftk_LogAuditMessage(NSS_AUDIT_ERROR, NSS_AUDIT_SELF_TEST, msg);
-	}
-	return crv;
     }
 
     *phPrivateKey = privateKey->handle;
