@@ -13,6 +13,11 @@
 #include "keyhi.h"
 #include "databuffer.h"
 
+extern "C" {
+// This is not something that should make you happy.
+#include "libssl_internals.h"
+}
+
 #define GTEST_HAS_RTTI 0
 #include "gtest/gtest.h"
 
@@ -291,9 +296,12 @@ void TlsAgent::CheckKEAType(SSLKEAType type) const {
   EXPECT_EQ(STATE_CONNECTED, state_);
   EXPECT_EQ(type, csinfo_.keaType);
 
+  PRUint32 ecKEAKeyBits = SSLInt_DetermineKEABits(server_key_bits_,
+                                                  csinfo_.authAlgorithm);
+
   switch (type) {
       case ssl_kea_ecdh:
-          EXPECT_EQ(256U, info_.keaKeyBits);
+          EXPECT_EQ(ecKEAKeyBits, info_.keaKeyBits);
           break;
       case ssl_kea_dh:
           EXPECT_EQ(2048U, info_.keaKeyBits);
