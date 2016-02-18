@@ -1595,6 +1595,7 @@ sec_asn1d_parse_leaf (sec_asn1d_state *state,
 
     item = (SECItem *)(state->dest);
     if (item != NULL && item->data != NULL) {
+	unsigned long offset;
 	/* Strip leading zeroes when target is unsigned integer */
 	if (state->underlying_kind == SEC_ASN1_INTEGER && /* INTEGER   */
 	    item->len == 0 &&                             /* MSB       */
@@ -1605,7 +1606,7 @@ sec_asn1d_parse_leaf (sec_asn1d_state *state,
 		len--;
 	    }
 	}
-        unsigned long offset = item->len;
+        offset = item->len;
         if (state->underlying_kind == SEC_ASN1_BIT_STRING) {
             // The previous bit string must have no unused bits.
             if (item->len & 0x7) {
