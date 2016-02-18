@@ -10,6 +10,8 @@
 #ifndef __sslproto_h_
 #define __sslproto_h_
 
+/* clang-format off */
+
 /* All versions less than 3_0 are treated as SSL version 2 */
 #define SSL_LIBRARY_VERSION_2                   0x0002
 #define SSL_LIBRARY_VERSION_3_0                 0x0300
@@ -278,5 +280,7 @@
 #define SRTP_AES128_CM_HMAC_SHA1_32             0x0002
 #define SRTP_NULL_HMAC_SHA1_80                  0x0005
 #define SRTP_NULL_HMAC_SHA1_32                  0x0006
+
+/* clang-format on */
 
 #endif /* __sslproto_h_ */
