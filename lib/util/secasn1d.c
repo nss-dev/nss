@@ -1618,13 +1618,14 @@ sec_asn1d_parse_leaf (sec_asn1d_state *state,
             offset = item->len >> 3;
         }
         if (state->underlying_kind == SEC_ASN1_BIT_STRING) {
+            unsigned long len_in_bits;
             // Protect against overflow during the bytes-to-bits conversion.
             if (len >= (ULONG_MAX >> 3) + 1) {
                 PORT_SetError (SEC_ERROR_BAD_DER);
                 state->top->status = decodeError;
                 return 0;
             }
-            unsigned long len_in_bits = (len << 3) - state->bit_string_unused_bits;
+            len_in_bits = (len << 3) - state->bit_string_unused_bits;
             // Protect against overflow when computing the total length in bits.
             if (UINT_MAX - item->len < len_in_bits) {
                 PORT_SetError (SEC_ERROR_BAD_DER);
