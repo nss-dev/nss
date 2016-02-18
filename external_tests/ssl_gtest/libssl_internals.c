@@ -26,7 +26,7 @@ SSLInt_IncrementClientHandshakeVersion(PRFileDesc *fd)
 }
 
 PRUint32
-SSLInt_DetermineKEABits(uint16_t serverKeyBits, SSLAuthType authAlgorithm) {
+SSLInt_DetermineKEABits(PRUint16 serverKeyBits, SSLAuthType authAlgorithm) {
     // For ECDSA authentication we expect a curve for key exchange with the
     // same strength as the one used for the certificate's signature.
     if (authAlgorithm == ssl_auth_ecdsa) {

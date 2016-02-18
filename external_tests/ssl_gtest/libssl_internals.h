@@ -13,7 +13,7 @@
 
 SECStatus SSLInt_IncrementClientHandshakeVersion(PRFileDesc *fd);
 
-PRUint32 SSLInt_DetermineKEABits(uint16_t serverKeyBits,
+PRUint32 SSLInt_DetermineKEABits(PRUint16 serverKeyBits,
                                  SSLAuthType authAlgorithm);
 
 #endif
