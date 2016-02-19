@@ -123,6 +123,9 @@ typedef enum {
 } SSLCompressionMethod;
 
 typedef struct SSLChannelInfoStr {
+    /* |length| is obsolete. On return, SSL_GetChannelInfo sets |length| to the
+     * smaller of the |len| argument and the length of the struct. The caller
+     * may ignore |length|. */
     PRUint32 length;
     PRUint16 protocolVersion;
     PRUint16 cipherSuite;
@@ -159,7 +162,9 @@ typedef struct SSLChannelInfoStr {
 #define ssl_preinfo_all (ssl_preinfo_version | ssl_preinfo_cipher_suite)
 
 typedef struct SSLPreliminaryChannelInfoStr {
-    /* This is set to the length of the struct. */
+    /* |length| is obsolete. On return, SSL_GetPreliminaryChannelInfo sets
+     * |length| to the smaller of the |len| argument and the length of the
+     * struct. The caller may ignore |length|. */
     PRUint32 length;
     /* A bitfield over SSLPreliminaryValueSet that describes which
      * preliminary values are set (see ssl_preinfo_*). */
@@ -171,6 +176,9 @@ typedef struct SSLPreliminaryChannelInfoStr {
 } SSLPreliminaryChannelInfo;
 
 typedef struct SSLCipherSuiteInfoStr {
+    /* |length| is obsolete. On return, SSL_GetCipherSuitelInfo sets |length|
+     * to the smaller of the |len| argument and the length of the struct. The
+     * caller may ignore |length|. */
     PRUint16 length;
     PRUint16 cipherSuite;
 

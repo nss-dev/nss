@@ -1029,7 +1029,9 @@ SSL_IMPORT SECStatus NSS_SetFrancePolicy(void);
 SSL_IMPORT SSL3Statistics *SSL_GetStatistics(void);
 
 /* Report more information than SSL_SecurityStatus.
- * Caller supplies the info struct.  This function fills it in.
+ * Caller supplies the info struct.  This function fills it in.  Caller should
+ * pass sizeof(SSLChannelInfo) as the |len| argument.
+ *
  * The information here will be zeroed prior to details being confirmed.  The
  * details are confirmed either when a Finished message is received, or - for a
  * client - when the second flight of messages have been sent.  This function
@@ -1039,8 +1041,9 @@ SSL_IMPORT SSL3Statistics *SSL_GetStatistics(void);
 SSL_IMPORT SECStatus SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info,
                                         PRUintn len);
 /* Get preliminary information about a channel.
- * This function can be called prior to handshake details being confirmed (see
- * SSL_GetChannelInfo above for what that means).  Thus, information provided by
+ * Caller supplies the info struct.  This function fills it in.  Caller should
+ * pass sizeof(SSLPreliminaryChannelInfo) as the |len| argument.
+ *
  * this function is available to SSLAuthCertificate, SSLGetClientAuthData,
  * SSLSNISocketConfig, and other callbacks that might be called during the
  * processing of the first flight of client of server handshake messages.
@@ -1050,6 +1053,10 @@ SSL_IMPORT SECStatus
 SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
                               SSLPreliminaryChannelInfo *info,
                               PRUintn len);
+/* Get information about cipher suite with id of |cipherSuite|.
+ * Caller supplies the info struct.  This function fills it in.  Caller should
+ * pass sizeof(SSLCipherSuiteInfo) as the |len| argument.
+ */
 SSL_IMPORT SECStatus SSL_GetCipherSuiteInfo(PRUint16 cipherSuite,
                                             SSLCipherSuiteInfo *info, PRUintn len);
 

@@ -27,7 +27,10 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
     SSLChannelInfo inf;
     sslSessionID *sid;
 
-    if (!info || len < sizeof inf.length) {
+    /* Check if we can properly return the length of data written and that
+     * we're not asked to return more information than we know how to provide.
+     */
+    if (!info || len < sizeof inf.length || len > sizeof inf) { 
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
@@ -101,7 +104,10 @@ SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
     sslSocket *ss;
     SSLPreliminaryChannelInfo inf;
 
-    if (!info || len < sizeof inf.length) {
+    /* Check if we can properly return the length of data written and that
+     * we're not asked to return more information than we know how to provide.
+     */
+    if (!info || len < sizeof inf.length || len > sizeof inf) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
@@ -272,11 +278,15 @@ SSL_GetCipherSuiteInfo(PRUint16 cipherSuite,
 {
     unsigned int i;
 
-    len = PR_MIN(len, sizeof suiteInfo[0]);
-    if (!info || len < sizeof suiteInfo[0].length) {
+    /* Check if we can properly return the length of data written and that
+     * we're not asked to return more information than we know how to provide.
+     */
+    if (!info || len < sizeof suiteInfo[0].length ||
+        len > sizeof suiteInfo[0]) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
+    len = PR_MIN(len, sizeof suiteInfo[0]);
     for (i = 0; i < NUM_SUITEINFOS; i++) {
         if (suiteInfo[i].cipherSuite == cipherSuite) {
             memcpy(info, &suiteInfo[i], len);
