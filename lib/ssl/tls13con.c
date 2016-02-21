@@ -1324,6 +1324,7 @@ static SECStatus
 tls13_HandleEncryptedExtensions(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
     SECStatus rv;
+    PRInt32 innerLength;
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
@@ -1334,6 +1335,16 @@ tls13_HandleEncryptedExtensions(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     rv = TLS13_CHECK_HS_STATE(ss, SSL_ERROR_RX_UNEXPECTED_ENCRYPTED_EXTENSIONS,
                               wait_encrypted_extensions);
     if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    innerLength = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
+    if (innerLength < 0) {
+        return SECFailure; /* Alert already sent. */
+    }
+    if (innerLength != length) {
+        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_ENCRYPTED_EXTENSIONS,
+                    illegal_parameter);
         return SECFailure;
     }
 
@@ -1363,14 +1374,20 @@ tls13_SendEncryptedExtensions(sslSocket *ss)
     extensions_len = ssl3_CallHelloExtensionSenders(
         ss, PR_FALSE, maxBytes, &ss->xtnData.encryptedExtensionsSenders[0]);
 
-    rv = ssl3_AppendHandshakeHeader(ss, encrypted_extensions, extensions_len);
+    rv = ssl3_AppendHandshakeHeader(ss, encrypted_extensions,
+                                    extensions_len + 2);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
         return SECFailure;
     }
-
+    rv = ssl3_AppendHandshakeNumber(ss, extensions_len, 2);
+    if (rv != SECSuccess) {
+        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
+        return SECFailure;
+    }
     sent_len = ssl3_CallHelloExtensionSenders(
-        ss, PR_TRUE, extensions_len, &ss->xtnData.encryptedExtensionsSenders[0]);
+        ss, PR_TRUE, extensions_len,
+        &ss->xtnData.encryptedExtensionsSenders[0]);
     PORT_Assert(sent_len == extensions_len);
     if (sent_len != extensions_len) {
         PORT_Assert(sent_len == 0);
