@@ -2925,9 +2925,10 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
     else {
         SSL3ProtocolVersion version = cwSpec->version;
 
-        if (capRecordVersion) {
+        if (capRecordVersion || version >= SSL_LIBRARY_VERSION_TLS_1_3) {
             version = PR_MIN(SSL_LIBRARY_VERSION_TLS_1_0, version);
         }
+
         wrBuf->buf[1] = MSB(version);
         wrBuf->buf[2] = LSB(version);
         wrBuf->buf[3] = MSB(cipherBytes);
