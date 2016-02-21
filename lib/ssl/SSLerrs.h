@@ -452,7 +452,7 @@ ER3(SSL_ERROR_RX_MALFORMED_DHE_KEY_SHARE, (SSL_ERROR_BASE + 141),
     "SSL received a malformed DHE key share handshake extension.")
 
 ER3(SSL_ERROR_RX_UNEXPECTED_ENCRYPTED_EXTENSIONS, (SSL_ERROR_BASE + 142),
-    "SSL received a malformed Encrypted Extensions handshake message.")
+    "SSL received an unexpected Encrypted Extensions handshake message.")
 
 ER3(SSL_ERROR_MISSING_EXTENSION_ALERT, (SSL_ERROR_BASE + 143),
     "SSL received a missing_extenson alert.")
@@ -462,3 +462,6 @@ ER3(SSL_ERROR_KEY_EXCHANGE_FAILURE, (SSL_ERROR_BASE + 144),
 
 ER3(SSL_ERROR_EXTENSION_DISALLOWED_FOR_VERSION, (SSL_ERROR_BASE + 145),
     "SSL received an extension that is not permitted for this version.")
+
+ER3(SSL_ERROR_RX_MALFORMED_ENCRYPTED_EXTENSIONS, (SSL_ERROR_BASE + 146),
+    "SSL received a malformed Encrypted Extensions handshake message.")
