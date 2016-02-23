@@ -1231,7 +1231,7 @@ void
 tls13_DestroyKeyShareEntry(TLS13KeyShareEntry *offer)
 {
     SECITEM_ZfreeItem(&offer->key_exchange, PR_FALSE);
-    PORT_ZFree(offer, sizeof(offer));
+    PORT_ZFree(offer, sizeof(*offer));
 }
 
 void
