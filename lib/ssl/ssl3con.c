@@ -5554,8 +5554,12 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 
     if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
         rv = tls13_SetupClientHello(ss);
-        if (rv != SECSuccess)
+        if (rv != SECSuccess) {
+            if (sid) {
+                ssl_FreeSID(sid);
+            }
             return rv;
+        }
     }
 
     isTLS = (ss->version > SSL_LIBRARY_VERSION_3_0);
