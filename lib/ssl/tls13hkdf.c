@@ -185,6 +185,10 @@ tls13_HkdfExpandLabelRaw(PK11SymKey *prk, SSLHashType baseHash,
                                label, labelLen,
                                kTlsHkdfInfo[baseHash].pkcs11Mech, outputLen,
                                &derived);
+    if (rv != SECSuccess || !derived) {
+        goto abort;
+    }
+
     rv = PK11_ExtractKeyValue(derived);
     if (rv != SECSuccess) {
         goto abort;
