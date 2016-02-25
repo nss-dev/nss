@@ -34,9 +34,11 @@ typedef enum {
 
 static SECStatus tls13_InitializeHandshakeEncryption(sslSocket *ss);
 static SECStatus tls13_InstallCipherSpec(
-    sslSocket *ss, InstallCipherSpecDirection direction);
+    sslSocket *ss, InstallCipherSpecDirection direction,
+    dtlsOldKeyAction keyAction);
 static SECStatus tls13_InitCipherSpec(
-    sslSocket *ss, TrafficKeyType type, InstallCipherSpecDirection install);
+    sslSocket *ss, TrafficKeyType type, InstallCipherSpecDirection install,
+    dtlsOldKeyAction keyAction);
 static SECStatus tls13_AESGCM(
     ssl3KeyMaterial *keys,
     PRBool doDecrypt,
@@ -90,7 +92,8 @@ const char kHkdfPurposeServerWriteIv[] = "server write iv";
 const char kClientFinishedLabel[] = "client finished";
 const char kServerFinishedLabel[] = "server finished";
 
-const SSL3ProtocolVersion kRecordVersion = 0x0301U;
+const SSL3ProtocolVersion kTlsRecordVersion = SSL_LIBRARY_VERSION_TLS_1_0;
+const SSL3ProtocolVersion kDtlsRecordVersion = SSL_LIBRARY_VERSION_TLS_1_1;
 
 #define FATAL_ERROR(ss, prError, desc)                                             \
     do {                                                                           \
@@ -585,8 +588,11 @@ tls13_InitializeHandshakeEncryption(sslSocket *ss)
         return SECFailure;
     }
 
+    /* Here we destroy the old cipher spec immediately; in DTLS, we have to
+     * avoid running the holddown timer at this point. Retransmission of old
+     * packets will use the static nullCipherSpec spec. */
     rv = tls13_InitCipherSpec(ss, TrafficKeyHandshake,
-                              InstallCipherSpecBoth);
+                              InstallCipherSpecBoth, dtls_oldkey_release);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SSL_ERROR_INIT_CIPHER_SUITE_FAILURE, internal_error);
         return SECFailure;
@@ -801,22 +807,21 @@ tls13_HandleCertificateStatus(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
  * what happens at various stages of cipher spec setup. Legacy from ssl3con.c.
  */
 int
-tls13_InstallCipherSpec(sslSocket *ss, InstallCipherSpecDirection direction)
+tls13_InstallCipherSpec(sslSocket *ss, InstallCipherSpecDirection direction,
+                        dtlsOldKeyAction oldKeyAction)
 {
     SSL_TRC(3, ("%d: TLS13[%d]: Installing new cipher specs direction = %s",
                 SSL_GETPID(), ss->fd,
                 direction == InstallCipherSpecRead ? "read" : "write"));
 
-    PORT_Assert(!IS_DTLS(ss)); /* TODO(ekr@rtfm.com): Update for DTLS */
-    /* TODO(ekr@rtfm.com): Holddown timer for DTLS. */
     ssl_GetSpecWriteLock(ss); /**************************************/
 
     /* Flush out any old stuff in the handshake buffers */
     switch (direction) {
         case InstallCipherSpecWrite: {
             ssl3CipherSpec *pwSpec;
-            pwSpec = ss->ssl3.pwSpec;
 
+            pwSpec = ss->ssl3.pwSpec;
             ss->ssl3.pwSpec = ss->ssl3.cwSpec;
             ss->ssl3.cwSpec = pwSpec;
             break;
@@ -839,7 +844,19 @@ tls13_InstallCipherSpec(sslSocket *ss, InstallCipherSpecDirection direction)
      * (Both the read and write sides have changed) destroy it.
      */
     if (ss->ssl3.prSpec == ss->ssl3.pwSpec) {
-        ssl3_DestroyCipherSpec(ss->ssl3.prSpec, PR_FALSE /*freeSrvName*/);
+        /* For the cutover to handshake encryption, we want to destroy the old
+         * cipher spec immediately after switching in both DTLS and TLS.  In
+         * DTLS, retransmission of the ClientHello will use the static
+         * nullCipherSpec rather than the per-connection one. */
+        if (oldKeyAction == dtls_oldkey_holddown && IS_DTLS(ss)) {
+            /* In DTLS, we retain the old spec after the final cutover at the
+             * client so that it is able to retransmit (and re-encrypt)
+             * handshake packets if it sees retransmissions from the server. */
+            PORT_Assert(!ss->sec.isServer);
+            dtls_StartHolddownTimer(ss);
+        } else {
+            ssl3_DestroyCipherSpec(ss->ssl3.prSpec, PR_FALSE /*freeSrvName*/);
+        }
     }
     ssl_ReleaseSpecWriteLock(ss); /**************************************/
 
@@ -1033,7 +1050,9 @@ loser:
 /* Set up a cipher spec with keys. If install is nonzero, then also install
  * it as the current cipher spec for each value in the mask. */
 SECStatus
-tls13_InitCipherSpec(sslSocket *ss, TrafficKeyType type, InstallCipherSpecDirection install)
+tls13_InitCipherSpec(sslSocket *ss, TrafficKeyType type,
+                     InstallCipherSpecDirection install,
+                     dtlsOldKeyAction keyAction)
 {
     ssl3CipherSpec *pwSpec;
     ssl3CipherSpec *cwSpec;
@@ -1095,14 +1114,16 @@ tls13_InitCipherSpec(sslSocket *ss, TrafficKeyType type, InstallCipherSpecDirect
     }
     if (install == InstallCipherSpecWrite ||
         install == InstallCipherSpecBoth) {
-        rv = tls13_InstallCipherSpec(ss, InstallCipherSpecWrite);
+        rv = tls13_InstallCipherSpec(ss, InstallCipherSpecWrite,
+                                     keyAction);
         if (rv != SECSuccess) {
             goto loser;
         }
     }
     if (install == InstallCipherSpecRead ||
         install == InstallCipherSpecBoth) {
-        rv = tls13_InstallCipherSpec(ss, InstallCipherSpecRead);
+        rv = tls13_InstallCipherSpec(ss, InstallCipherSpecRead,
+                                     keyAction);
         if (rv != SECSuccess) {
             goto loser;
         }
@@ -1574,7 +1595,9 @@ tls13_SendFinished(sslSocket *ss)
         goto alert_loser;
     }
 
-    rv = ssl3_FlushHandshake(ss, 0);
+    rv = ssl3_FlushHandshake(ss,
+                             (IS_DTLS(ss) && !ss->sec.isServer) ?
+                             ssl_SEND_FLAG_NO_RETRANSMIT : 0);
     if (rv != SECSuccess) {
         errCode = PR_GetError();
         goto alert_loser;
@@ -1582,9 +1605,13 @@ tls13_SendFinished(sslSocket *ss)
 
     if (ss->sec.isServer) {
         rv = tls13_InitCipherSpec(ss, TrafficKeyApplicationData,
-                                  InstallCipherSpecWrite);
+                                  InstallCipherSpecWrite, dtls_oldkey_release);
     } else {
-        rv = tls13_InstallCipherSpec(ss, InstallCipherSpecWrite);
+        /* As a client, we need to retain the old cipher spec for a while in
+         * case our final flight of messages gets lost and the server asks for
+         * another copy.  Passing true here causes a holddown timer to run. */
+        rv = tls13_InstallCipherSpec(ss, InstallCipherSpecWrite,
+                                     dtls_oldkey_holddown);
     }
     if (rv != SECSuccess) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -1648,7 +1675,12 @@ tls13_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
      */
     /* TODO(ekr@rtfm.com): Send NewSession Ticket if server. */
     if (ss->sec.isServer) {
-        rv = tls13_InstallCipherSpec(ss, InstallCipherSpecRead);
+        /* Once we've receive the client's Finished, there is no need for
+         * retransmission; the retransmission timer was stopped when we received
+         * the client's Finished message.  Installing the new cipher spec causes
+         * the old cipher spec to be destroyed. */
+        rv = tls13_InstallCipherSpec(ss, InstallCipherSpecRead,
+                                     dtls_oldkey_release);
         if (rv != SECSuccess) {
             FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
             return SECFailure;
@@ -1663,7 +1695,7 @@ tls13_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
             return SECFailure;
         }
         rv = tls13_InitCipherSpec(ss, TrafficKeyApplicationData,
-                                  InstallCipherSpecRead);
+                                  InstallCipherSpecRead, dtls_oldkey_release);
         if (rv != SECSuccess) {
             FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
             return SECFailure;
@@ -1895,12 +1927,12 @@ tls13_FormatAdditionalData(unsigned char *aad, unsigned int length,
 
 SECStatus
 tls13_ProtectRecord(sslSocket *ss,
+                    ssl3CipherSpec *cwSpec,
                     SSL3ContentType type,
                     const SSL3Opaque *pIn,
                     PRUint32 contentLen,
                     sslBuffer *wrBuf)
 {
-    ssl3CipherSpec *cwSpec = ss->ssl3.cwSpec;
     const ssl3BulkCipherDef *cipher_def = cwSpec->cipher_def;
     SECStatus rv;
     PRUint16 headerLen;
@@ -1959,13 +1991,14 @@ tls13_ProtectRecord(sslSocket *ss,
     wrBuf->buf[0] = type;
 
     if (IS_DTLS(ss)) {
-        (void)tls13_EncodeUintX(2, dtls_TLSVersionToDTLSVersion(kRecordVersion),
-                                &wrBuf->buf[1]);
+        (void)tls13_EncodeUintX(
+            dtls_TLSVersionToDTLSVersion(kDtlsRecordVersion), 2,
+            &wrBuf->buf[1]);
         (void)tls13_EncodeUintX(cwSpec->write_seq_num.high, 4, &wrBuf->buf[3]);
         (void)tls13_EncodeUintX(cwSpec->write_seq_num.low, 4, &wrBuf->buf[7]);
         (void)tls13_EncodeUintX(cipherBytes, 2, &wrBuf->buf[11]);
     } else {
-        (void)tls13_EncodeUintX(kRecordVersion, 2, &wrBuf->buf[1]);
+        (void)tls13_EncodeUintX(kTlsRecordVersion, 2, &wrBuf->buf[1]);
         (void)tls13_EncodeUintX(cipherBytes, 2, &wrBuf->buf[3]);
     }
     ssl3_BumpSequenceNumber(&cwSpec->write_seq_num);
@@ -2011,7 +2044,8 @@ tls13_UnprotectRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *plaintext
     }
 
     /* Check the version number in the record */
-    if (cText->version != kRecordVersion) {
+    if ((IS_DTLS(ss) && cText->version != kDtlsRecordVersion) ||
+        (!IS_DTLS(ss) && cText->version != kTlsRecordVersion)) {
         /* Do we need a better error here? */
         PORT_SetError(SSL_ERROR_BAD_MAC_READ);
         return SECFailure;

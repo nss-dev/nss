@@ -146,13 +146,13 @@ TEST_P(TlsConnectGeneric, ConnectEcdsa) {
   CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa);
 }
 
-TEST_P(TlsConnectGeneric, ConnectFalseStart) {
+TEST_P(TlsConnectGenericPre13, ConnectFalseStart) {
   client_->EnableFalseStart();
   Connect();
   SendReceive();
 }
 
-TEST_P(TlsConnectGeneric, ConnectResumed) {
+TEST_P(TlsConnectGenericPre13, ConnectResumed) {
   ConfigureSessionCache(RESUME_SESSIONID, RESUME_SESSIONID);
   Connect();
 
@@ -161,7 +161,7 @@ TEST_P(TlsConnectGeneric, ConnectResumed) {
   Connect();
 }
 
-TEST_P(TlsConnectGeneric, ConnectClientCacheDisabled) {
+TEST_P(TlsConnectGenericPre13, ConnectClientCacheDisabled) {
   ConfigureSessionCache(RESUME_NONE, RESUME_SESSIONID);
   Connect();
   ResetRsa();
@@ -169,7 +169,7 @@ TEST_P(TlsConnectGeneric, ConnectClientCacheDisabled) {
   Connect();
 }
 
-TEST_P(TlsConnectGeneric, ConnectServerCacheDisabled) {
+TEST_P(TlsConnectGenericPre13, ConnectServerCacheDisabled) {
   ConfigureSessionCache(RESUME_SESSIONID, RESUME_NONE);
   Connect();
   ResetRsa();
@@ -177,7 +177,7 @@ TEST_P(TlsConnectGeneric, ConnectServerCacheDisabled) {
   Connect();
 }
 
-TEST_P(TlsConnectGeneric, ConnectSessionCacheDisabled) {
+TEST_P(TlsConnectGenericPre13, ConnectSessionCacheDisabled) {
   ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
   Connect();
   ResetRsa();
@@ -185,7 +185,7 @@ TEST_P(TlsConnectGeneric, ConnectSessionCacheDisabled) {
   Connect();
 }
 
-TEST_P(TlsConnectGeneric, ConnectResumeSupportBoth) {
+TEST_P(TlsConnectGenericPre13, ConnectResumeSupportBoth) {
   // This prefers tickets.
   ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
   Connect();
@@ -196,7 +196,7 @@ TEST_P(TlsConnectGeneric, ConnectResumeSupportBoth) {
   Connect();
 }
 
-TEST_P(TlsConnectGeneric, ConnectResumeClientTicketServerBoth) {
+TEST_P(TlsConnectGenericPre13, ConnectResumeClientTicketServerBoth) {
   // This causes no resumption because the client needs the
   // session cache to resume even with tickets.
   ConfigureSessionCache(RESUME_TICKET, RESUME_BOTH);
@@ -208,7 +208,7 @@ TEST_P(TlsConnectGeneric, ConnectResumeClientTicketServerBoth) {
   Connect();
 }
 
-TEST_P(TlsConnectGeneric, ConnectResumeClientBothTicketServerTicket) {
+TEST_P(TlsConnectGenericPre13, ConnectResumeClientBothTicketServerTicket) {
   // This causes a ticket resumption.
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   Connect();
@@ -219,7 +219,7 @@ TEST_P(TlsConnectGeneric, ConnectResumeClientBothTicketServerTicket) {
   Connect();
 }
 
-TEST_P(TlsConnectGeneric, ConnectClientServerTicketOnly) {
+TEST_P(TlsConnectGenericPre13, ConnectResumeClientServerTicketOnly) {
   // This causes no resumption because the client needs the
   // session cache to resume even with tickets.
   ConfigureSessionCache(RESUME_TICKET, RESUME_TICKET);
@@ -231,7 +231,7 @@ TEST_P(TlsConnectGeneric, ConnectClientServerTicketOnly) {
   Connect();
 }
 
-TEST_P(TlsConnectGeneric, ConnectClientBothServerNone) {
+TEST_P(TlsConnectGenericPre13, ConnectResumeClientBothServerNone) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_NONE);
   Connect();
 
@@ -241,7 +241,7 @@ TEST_P(TlsConnectGeneric, ConnectClientBothServerNone) {
   Connect();
 }
 
-TEST_P(TlsConnectGeneric, ConnectClientNoneServerBoth) {
+TEST_P(TlsConnectGenericPre13, ConnectResumeClientNoneServerBoth) {
   ConfigureSessionCache(RESUME_NONE, RESUME_BOTH);
   Connect();
 
@@ -251,7 +251,7 @@ TEST_P(TlsConnectGeneric, ConnectClientNoneServerBoth) {
   Connect();
 }
 
-TEST_P(TlsConnectGeneric, ResumeWithHigherVersion) {
+TEST_P(TlsConnectGenericPre13, ConnectResumeWithHigherVersion) {
   EnsureTlsSetup();
   SetExpectedVersion(SSL_LIBRARY_VERSION_TLS_1_1);
   ConfigureSessionCache(RESUME_SESSIONID, RESUME_SESSIONID);
@@ -279,14 +279,6 @@ TEST_P(TlsConnectGeneric, ClientAuth) {
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
 }
 
-// Temporary copy for TLS 1.3 because 1.3 is stream only.
-TEST_P(TlsConnectStream, ClientAuth) {
-  client_->SetupClientAuth();
-  server_->RequestClientAuth(true);
-  Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
-}
-
 // In TLS 1.3, the client sends its cert rejection on the
 // second flight, and since it has already received the
 // server's Finished, it transitions to complete and
@@ -297,7 +289,7 @@ TEST_P(TlsConnectStream, DISABLED_ClientAuthRequiredRejected) {
   ConnectExpectFail();
 }
 
-TEST_P(TlsConnectStream, ClientAuthRequestedRejected) {
+TEST_P(TlsConnectGeneric, ClientAuthRequestedRejected) {
   server_->RequestClientAuth(false);
   Connect();
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
@@ -362,7 +354,7 @@ TEST_P(TlsConnectGeneric, SignatureAlgorithmServerOnly) {
 // There is no need for overlap on signatures; since we don't actually use the
 // signatures for static RSA, this should still connect successfully.
 // This should also work in TLS 1.0 and 1.1 where the algorithms aren't used.
-TEST_P(TlsConnectGeneric, SignatureAlgorithmNoOverlapStaticRsa) {
+TEST_P(TlsConnectGenericPre13, SignatureAlgorithmNoOverlapStaticRsa) {
   client_->SetSignatureAlgorithms(SignatureRsaSha384,
                                   PR_ARRAY_SIZE(SignatureRsaSha384));
   server_->SetSignatureAlgorithms(SignatureRsaSha256,
@@ -372,7 +364,7 @@ TEST_P(TlsConnectGeneric, SignatureAlgorithmNoOverlapStaticRsa) {
   CheckKeys(ssl_kea_rsa, ssl_auth_rsa);
 }
 
-TEST_P(TlsConnectStreamPre13, ConnectStaticRSA) {
+TEST_P(TlsConnectGenericPre13, ConnectStaticRSA) {
   DisableDheAndEcdheCiphers();
   Connect();
   CheckKeys(ssl_kea_rsa, ssl_auth_rsa);
@@ -415,18 +407,71 @@ TEST_P(TlsConnectGeneric, ConnectAlpn) {
   server_->CheckAlpn(SSL_NEXT_PROTO_NEGOTIATED, "a");
 }
 
-// Temporary copy to test Alpn with TLS 1.3.
-TEST_P(TlsConnectStream, ConnectAlpn) {
-  EnableAlpn();
-  Connect();
-  client_->CheckAlpn(SSL_NEXT_PROTO_SELECTED, "a");
-  server_->CheckAlpn(SSL_NEXT_PROTO_NEGOTIATED, "a");
-}
-
 TEST_P(TlsConnectDatagram, ConnectSrtp) {
   EnableSrtp();
   Connect();
   CheckSrtp();
+  SendReceive();
+}
+
+// This class selectively drops complete writes.  This relies on the fact that
+// writes in libssl are on record boundaries.
+class SelectiveDropFilter : public PacketFilter, public PollTarget {
+ public:
+  SelectiveDropFilter(uint32_t pattern)
+      : pattern_(pattern),
+        counter_(0) {}
+
+ protected:
+  virtual Action Filter(const DataBuffer& input, DataBuffer* output) override {
+    if (counter_ >= 32) {
+      return KEEP;
+    }
+    return ((1 << counter_++) & pattern_) ? DROP : KEEP;
+  }
+
+ private:
+  const uint32_t pattern_;
+  uint8_t counter_;
+};
+
+TEST_P(TlsConnectDatagram, DropClientFirstFlightOnce) {
+  client_->SetPacketFilter(new SelectiveDropFilter(0x1));
+  Connect();
+  SendReceive();
+}
+
+TEST_P(TlsConnectDatagram, DropServerFirstFlightOnce) {
+  server_->SetPacketFilter(new SelectiveDropFilter(0x1));
+  Connect();
+  SendReceive();
+}
+
+// This drops the first transmission from both the client and server of all
+// flights that they send.  Note: In DTLS 1.3, the shorter handshake means that
+// this will also drop some application data, so we can't call SendReceive().
+TEST_P(TlsConnectDatagram, DropAllFirstTransmissions) {
+  client_->SetPacketFilter(new SelectiveDropFilter(0x15));
+  server_->SetPacketFilter(new SelectiveDropFilter(0x5));
+  Connect();
+}
+
+// This drops the server's first flight three times.
+TEST_P(TlsConnectDatagram, DropServerFirstFlightThrice) {
+  server_->SetPacketFilter(new SelectiveDropFilter(0x7));
+  Connect();
+}
+
+// This drops the client's second flight three times.
+TEST_P(TlsConnectDatagram, DropClientSecondFlightThrice) {
+  client_->SetPacketFilter(new SelectiveDropFilter(0xe));
+  Connect();
+}
+
+// This drops the server's second flight three times.
+TEST_P(TlsConnectDatagram, DropServerSecondFlightThrice) {
+  server_->SetPacketFilter(new SelectiveDropFilter(0xe));
+  Connect();
 }
 
 // 1.3 is disabled in the next few tests because we don't
@@ -447,7 +492,8 @@ TEST_P(TlsConnectStreamPre13, ConnectAndServerRenegotiate) {
   CheckConnected();
 }
 
-TEST_P(TlsConnectStreamPre13, ConnectDhe) {
+// TODO implement DHE for 1.3
+TEST_P(TlsConnectGenericPre13, ConnectDhe) {
   DisableEcdheCiphers();
   Connect();
   CheckKeys(ssl_kea_dh, ssl_auth_rsa);
@@ -486,7 +532,7 @@ TEST_P(TlsConnectStreamPre13, ConnectStaticRSABogusPMSVersionDetect) {
 // Test that a PMS with a bogus version number is ignored when
 // rollback detection is disabled. This is a positive control for
 // ConnectStaticRSABogusPMSVersionDetect.
-TEST_P(TlsConnectGeneric, ConnectStaticRSABogusPMSVersionIgnore) {
+TEST_P(TlsConnectGenericPre13, ConnectStaticRSABogusPMSVersionIgnore) {
   DisableDheAndEcdheCiphers();
   client_->SetPacketFilter(new TlsInspectorClientHelloVersionChanger(
       server_));
@@ -494,12 +540,13 @@ TEST_P(TlsConnectGeneric, ConnectStaticRSABogusPMSVersionIgnore) {
   Connect();
 }
 
-TEST_P(TlsConnectStream, ConnectEcdhe) {
+TEST_P(TlsConnectGeneric, ConnectEcdhe) {
   Connect();
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
 }
 
-TEST_P(TlsConnectStreamPre13, ConnectEcdheTwiceReuseKey) {
+// Prior to TLS 1.3, we were not fully ephemeral; though 1.3 fixes that
+TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceReuseKey) {
   TlsInspectorRecordHandshakeMessage* i1 =
       new TlsInspectorRecordHandshakeMessage(kTlsHandshakeServerKeyExchange);
   server_->SetPacketFilter(i1);
@@ -526,7 +573,8 @@ TEST_P(TlsConnectStreamPre13, ConnectEcdheTwiceReuseKey) {
                       dhe1.public_key_.len()));
 }
 
-TEST_P(TlsConnectStreamPre13, ConnectEcdheTwiceNewKey) {
+// This test parses the ServerKeyExchange, which isn't in 1.3
+TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceNewKey) {
   server_->EnsureTlsSetup();
   SECStatus rv =
       SSL_OptionSet(server_->ssl_fd(), SSL_REUSE_SERVER_ECDHE_KEY, PR_FALSE);
@@ -616,7 +664,7 @@ TEST_P(TlsConnectStream, ShortRead) {
   ASSERT_EQ(1200U, client_->received_bytes());
 }
 
-TEST_P(TlsConnectGeneric, ConnectExtendedMasterSecret) {
+TEST_P(TlsConnectGenericPre13, ConnectExtendedMasterSecret) {
   EnableExtendedMasterSecret();
   Connect();
   ResetRsa();
@@ -625,8 +673,7 @@ TEST_P(TlsConnectGeneric, ConnectExtendedMasterSecret) {
   Connect();
 }
 
-
-TEST_P(TlsConnectGeneric, ConnectExtendedMasterSecretStaticRSA) {
+TEST_P(TlsConnectGenericPre13, ConnectExtendedMasterSecretStaticRSA) {
   DisableDheAndEcdheCiphers();
   EnableExtendedMasterSecret();
   Connect();
@@ -671,7 +718,7 @@ TEST_P(TlsConnectStreamPre13, ConnectExtendedMasterSecretStaticRSABogusPMSVersio
   Connect();
 }
 
-TEST_P(TlsConnectGeneric, ConnectExtendedMasterSecretECDHE) {
+TEST_P(TlsConnectGenericPre13, ConnectExtendedMasterSecretECDHE) {
   EnableExtendedMasterSecret();
   Connect();
 
@@ -746,11 +793,6 @@ TEST_P(TlsConnectGeneric, ConnectWithCompressionMaybe)
 }
 
 
-TEST_P(TlsConnectStream, ConnectSendReceive) {
-  Connect();
-  SendReceive();
-}
-
 TEST_P(TlsConnectStream, ServerNegotiateTls10) {
   uint16_t minver, maxver;
   client_->GetVersionRange(&minver, &maxver);
@@ -761,7 +803,7 @@ TEST_P(TlsConnectStream, ServerNegotiateTls10) {
   Connect();
 }
 
-TEST_P(TlsConnectStream, ServerNegotiateTls11) {
+TEST_P(TlsConnectGeneric, ServerNegotiateTls11) {
   if (version_ < SSL_LIBRARY_VERSION_TLS_1_1)
     return;
 
@@ -774,7 +816,7 @@ TEST_P(TlsConnectStream, ServerNegotiateTls11) {
   Connect();
 }
 
-TEST_P(TlsConnectStream, ServerNegotiateTls12) {
+TEST_P(TlsConnectGeneric, ServerNegotiateTls12) {
   if (version_ < SSL_LIBRARY_VERSION_TLS_1_2)
     return;
 
@@ -935,8 +977,7 @@ class BeforeFinished : public TlsRecordFilter {
   HandshakeState state_;
 };
 
-// TODO Pre13
-TEST_P(TlsConnectGeneric, ClientWriteBetweenCCSAndFinishedWithFalseStart) {
+TEST_P(TlsConnectGenericPre13, ClientWriteBetweenCCSAndFinishedWithFalseStart) {
   client_->EnableFalseStart();
   server_->SetPacketFilter(new BeforeFinished(client_, server_, [this]() {
         EXPECT_TRUE(client_->can_falsestart_hook_called());
@@ -950,7 +991,7 @@ TEST_P(TlsConnectGeneric, ClientWriteBetweenCCSAndFinishedWithFalseStart) {
   Receive(10);
 }
 
-TEST_P(TlsConnectGeneric, AuthCompleteBeforeFinishedWithFalseStart) {
+TEST_P(TlsConnectGenericPre13, AuthCompleteBeforeFinishedWithFalseStart) {
   client_->EnableFalseStart();
   client_->SetAuthCertificateCallback(
       [](TlsAgent&, PRBool, PRBool) -> SECStatus {
@@ -971,38 +1012,43 @@ TEST_P(TlsConnectGeneric, AuthCompleteBeforeFinishedWithFalseStart) {
   Receive(10);
 }
 
-INSTANTIATE_TEST_CASE_P(VariantsStream10, TlsConnectGeneric,
+INSTANTIATE_TEST_CASE_P(GenericStream, TlsConnectGeneric,
                         ::testing::Combine(
                           TlsConnectTestBase::kTlsModesStream,
-                          TlsConnectTestBase::kTlsV10));
-INSTANTIATE_TEST_CASE_P(VariantsAll, TlsConnectGeneric,
+                          TlsConnectTestBase::kTlsVAll));
+INSTANTIATE_TEST_CASE_P(GenericDatagram, TlsConnectGeneric,
                         ::testing::Combine(
-                          TlsConnectTestBase::kTlsModesAll,
-                          TlsConnectTestBase::kTlsV11V12));
-INSTANTIATE_TEST_CASE_P(VersionsDatagram, TlsConnectDatagram,
-                        TlsConnectTestBase::kTlsV11V12);
-INSTANTIATE_TEST_CASE_P(Variants12, TlsConnectTls12,
+                          TlsConnectTestBase::kTlsModesDatagram,
+                          TlsConnectTestBase::kTlsV11Plus));
+
+INSTANTIATE_TEST_CASE_P(StreamOnly, TlsConnectStream,
+                        TlsConnectTestBase::kTlsVAll);
+INSTANTIATE_TEST_CASE_P(DatagramOnly, TlsConnectDatagram,
+                        TlsConnectTestBase::kTlsV11Plus);
+
+INSTANTIATE_TEST_CASE_P(ChaCha20, TlsChaCha20Poly1305Test,
                         TlsConnectTestBase::kTlsModesAll);
-INSTANTIATE_TEST_CASE_P(Variants12, TlsChaCha20Poly1305Test,
-                        TlsConnectTestBase::kTlsModesAll);
+
 INSTANTIATE_TEST_CASE_P(Pre12Stream, TlsConnectPre12,
                         ::testing::Combine(
                           TlsConnectTestBase::kTlsModesStream,
-                          TlsConnectTestBase::kTlsV10));
-INSTANTIATE_TEST_CASE_P(Pre12All, TlsConnectPre12,
+                          TlsConnectTestBase::kTlsV10V11));
+INSTANTIATE_TEST_CASE_P(Pre12Datagram, TlsConnectPre12,
                         ::testing::Combine(
-                          TlsConnectTestBase::kTlsModesAll,
+                          TlsConnectTestBase::kTlsModesDatagram,
                           TlsConnectTestBase::kTlsV11));
-INSTANTIATE_TEST_CASE_P(VersionsStream10, TlsConnectStream,
-                        TlsConnectTestBase::kTlsV10);
-INSTANTIATE_TEST_CASE_P(VersionsStream, TlsConnectStream,
-                        TlsConnectTestBase::kTlsV11V12);
-INSTANTIATE_TEST_CASE_P(VersionsStream10Pre13, TlsConnectStreamPre13,
-                        TlsConnectTestBase::kTlsV10);
-INSTANTIATE_TEST_CASE_P(VersionsStreamPre13, TlsConnectStreamPre13,
-                        TlsConnectTestBase::kTlsV11V12);
-#ifdef NSS_ENABLE_TLS_1_3
-INSTANTIATE_TEST_CASE_P(VersionsStream13, TlsConnectStream,
-                        TlsConnectTestBase::kTlsV13);
-#endif
+
+INSTANTIATE_TEST_CASE_P(Version12Only, TlsConnectTls12,
+                        TlsConnectTestBase::kTlsModesAll);
+
+INSTANTIATE_TEST_CASE_P(Pre13Stream, TlsConnectGenericPre13,
+                        ::testing::Combine(
+                          TlsConnectTestBase::kTlsModesStream,
+                          TlsConnectTestBase::kTlsV10To12));
+INSTANTIATE_TEST_CASE_P(Pre13Datagram, TlsConnectGenericPre13,
+                        ::testing::Combine(
+                             TlsConnectTestBase::kTlsModesDatagram,
+                             TlsConnectTestBase::kTlsV11V12));
+INSTANTIATE_TEST_CASE_P(Pre13StreamOnly, TlsConnectStreamPre13,
+                        TlsConnectTestBase::kTlsV10To12);
 }  // namespace nspr_test
