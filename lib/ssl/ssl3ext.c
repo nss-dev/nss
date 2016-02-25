@@ -319,6 +319,7 @@ static const ssl3HelloExtensionHandler serverHelloHandlersSSL3[] = {
 static const ssl3HelloExtensionSender clientHelloSendersTLS[SSL_MAX_EXTENSIONS] =
     {
       { ssl_server_name_xtn, &ssl3_SendServerNameXtn },
+      { ssl_extended_master_secret_xtn, &ssl3_SendExtendedMasterSecretXtn },
       { ssl_renegotiation_info_xtn, &ssl3_SendRenegotiationInfoXtn },
 #ifndef NSS_DISABLE_ECC
       { ssl_elliptic_curves_xtn, &ssl3_SendSupportedCurvesXtn },
@@ -331,7 +332,6 @@ static const ssl3HelloExtensionSender clientHelloSendersTLS[SSL_MAX_EXTENSIONS] 
       { ssl_cert_status_xtn, &ssl3_ClientSendStatusRequestXtn },
       { ssl_signature_algorithms_xtn, &ssl3_ClientSendSigAlgsXtn },
       { ssl_tls13_draft_version_xtn, &ssl3_ClientSendDraftVersionXtn },
-      { ssl_extended_master_secret_xtn, &ssl3_SendExtendedMasterSecretXtn },
       { ssl_signed_cert_timestamp_xtn, &ssl3_ClientSendSignedCertTimestampXtn },
       { ssl_tls13_key_share_xtn, &tls13_ClientSendKeyShareXtn },
       /* any extra entries will appear as { 0, NULL }    */
