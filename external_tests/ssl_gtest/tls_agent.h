@@ -112,6 +112,8 @@ class TlsAgent : public PollTarget {
   void EnableCompression();
   void SetDowngradeCheckVersion(uint16_t version);
 
+  const std::string& name() const { return name_; }
+
   Role role() const { return role_; }
 
   State state() const { return state_; }
@@ -210,9 +212,11 @@ class TlsAgent : public PollTarget {
 
   static void ReadableCallback(PollTarget* self, Event event) {
     TlsAgent* agent = static_cast<TlsAgent*>(self);
+    if (event == TIMER_EVENT) {
+      agent->timer_handle_ = nullptr;
+    }
     agent->ReadableCallback_int();
   }
-
 
   void ReadableCallback_int() {
     LOG("Readable");
@@ -269,6 +273,7 @@ class TlsAgent : public PollTarget {
   PRFileDesc* ssl_fd_;
   Role role_;
   State state_;
+  Poller::Timer *timer_handle_;
   bool falsestart_enabled_;
   uint16_t expected_version_;
   uint16_t expected_cipher_suite_;

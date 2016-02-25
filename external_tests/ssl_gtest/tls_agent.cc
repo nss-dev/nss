@@ -36,6 +36,7 @@ TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode, SSLKEAType kea
     ssl_fd_(nullptr),
     role_(role),
     state_(STATE_INIT),
+    timer_handle_(nullptr),
     falsestart_enabled_(false),
     expected_version_(0),
     expected_cipher_suite_(0),
@@ -62,6 +63,9 @@ TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode, SSLKEAType kea
 TlsAgent::~TlsAgent() {
   if (adapter_) {
     Poller::Instance()->Cancel(READABLE_EVENT, adapter_);
+  }
+  if (timer_handle_) {
+    timer_handle_->Cancel();
   }
 
   if (pr_fd_) {
@@ -491,6 +495,7 @@ void TlsAgent::SetDowngradeCheckVersion(uint16_t version) {
 }
 
 void TlsAgent::Handshake() {
+  LOG("Handshake");
   SECStatus rv = SSL_ForceHandshake(ssl_fd_);
   if (rv == SECSuccess) {
     Connected();
@@ -504,13 +509,23 @@ void TlsAgent::Handshake() {
   switch (err) {
     case PR_WOULD_BLOCK_ERROR:
       LOG("Would have blocked");
-      // TODO(ekr@rtfm.com): set DTLS timeouts
+      if (mode_ == DGRAM) {
+        if (timer_handle_) {
+          timer_handle_->Cancel();
+        }
+
+        PRIntervalTime timeout;
+        rv = DTLS_GetHandshakeTimeout(ssl_fd_, &timeout);
+        if (rv == SECSuccess) {
+          Poller::Instance()->SetTimer(timeout, this,
+                                       &TlsAgent::ReadableCallback,
+                                       &timer_handle_);
+        }
+      }
       Poller::Instance()->Wait(READABLE_EVENT, adapter_, this,
                                &TlsAgent::ReadableCallback);
       return;
-      break;
 
-      // TODO(ekr@rtfm.com): needs special case for DTLS
     case SSL_ERROR_RX_MALFORMED_HANDSHAKE:
     default:
       if (IS_SSL_ERROR(err)) {

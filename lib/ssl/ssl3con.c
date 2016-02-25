@@ -2938,7 +2938,7 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
  */
 PRInt32
 ssl3_SendRecord(sslSocket *ss,
-                DTLSEpoch epoch, /* DTLS only */
+                ssl3CipherSpec *cwSpec, /* non-NULL for DTLS retransmits */
                 SSL3ContentType type,
                 const SSL3Opaque *pIn, /* input buffer */
                 PRInt32 nIn,           /* bytes of input */
@@ -3053,6 +3053,9 @@ ssl3_SendRecord(sslSocket *ss,
             }
         } else {
             if (!IS_DTLS(ss)) {
+                /* cwSpec can only be set for retransmissions of DTLS handshake
+                 * messages. */
+                PORT_Assert(!cwSpec);
                 if (ss->ssl3.cwSpec->version < SSL_LIBRARY_VERSION_TLS_1_3) {
                     rv = ssl3_CompressMACEncryptRecord(ss->ssl3.cwSpec,
                                                        ss->sec.isServer,
@@ -3061,14 +3064,13 @@ ssl3_SendRecord(sslSocket *ss,
                                                        type, pIn,
                                                        contentLen, wrBuf);
                 } else {
-                    rv = tls13_ProtectRecord(ss, type, pIn,
+                    rv = tls13_ProtectRecord(ss, ss->ssl3.cwSpec, type, pIn,
                                              contentLen, wrBuf);
                 }
             } else {
                 /* TLS <= 1.2 and TLS 1.3 cases are both handled in
                  * dtls_CompressMACEncryptRecord. */
-                rv = dtls_CompressMACEncryptRecord(ss, epoch,
-                                                   !!(flags & ssl_SEND_FLAG_USE_EPOCH),
+                rv = dtls_CompressMACEncryptRecord(ss, cwSpec,
                                                    type, pIn,
                                                    contentLen, wrBuf);
             }
@@ -3164,8 +3166,7 @@ ssl3_SendApplicationData(sslSocket *ss, const unsigned char *in,
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
     /* These flags for internal use only */
-    PORT_Assert(!(flags & (ssl_SEND_FLAG_USE_EPOCH |
-                           ssl_SEND_FLAG_NO_RETRANSMIT)));
+    PORT_Assert(!(flags & ssl_SEND_FLAG_NO_RETRANSMIT));
     if (len < 0 || !in) {
         PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
         return SECFailure;
@@ -3207,7 +3208,7 @@ ssl3_SendApplicationData(sslSocket *ss, const unsigned char *in,
          * Note that the 0 epoch is OK because flags will never require
          * its use, as guaranteed by the PORT_Assert above.
          */
-        sent = ssl3_SendRecord(ss, 0, content_application_data,
+        sent = ssl3_SendRecord(ss, NULL, content_application_data,
                                in + totalSent, toSend, flags);
         if (sent < 0) {
             if (totalSent > 0 && PR_GetError() == PR_WOULD_BLOCK_ERROR) {
@@ -3292,7 +3293,8 @@ ssl3_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags)
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         rv = SECFailure;
     } else {
-        count = ssl3_SendRecord(ss, 0, content_handshake, ss->sec.ci.sendBuf.buf,
+        count = ssl3_SendRecord(ss, NULL, content_handshake,
+                                ss->sec.ci.sendBuf.buf,
                                 ss->sec.ci.sendBuf.len, flags);
     }
     if (count < 0) {
@@ -3412,8 +3414,9 @@ SSL3_SendAlert(sslSocket *ss, SSL3AlertLevel level, SSL3AlertDescription desc)
     rv = ssl3_FlushHandshake(ss, ssl_SEND_FLAG_FORCE_INTO_BUFFER);
     if (rv == SECSuccess) {
         PRInt32 sent;
-        sent = ssl3_SendRecord(ss, 0, content_alert, bytes, 2,
-                               desc == no_certificate ? ssl_SEND_FLAG_FORCE_INTO_BUFFER : 0);
+        sent = ssl3_SendRecord(ss, NULL, content_alert, bytes, 2,
+                               (desc == no_certificate) ?
+                               ssl_SEND_FLAG_FORCE_INTO_BUFFER : 0);
         rv = (sent >= 0) ? SECSuccess : (SECStatus)sent;
     }
     if (level == alert_fatal) {
@@ -3692,7 +3695,7 @@ ssl3_SendChangeCipherSpecs(sslSocket *ss)
         return rv; /* error code set by ssl3_FlushHandshake */
     }
     if (!IS_DTLS(ss)) {
-        sent = ssl3_SendRecord(ss, 0, content_change_cipher_spec, &change, 1,
+        sent = ssl3_SendRecord(ss, NULL, content_change_cipher_spec, &change, 1,
                                ssl_SEND_FLAG_FORCE_INTO_BUFFER);
         if (sent < 0) {
             return (SECStatus)sent; /* error code set by ssl3_SendRecord */
@@ -3724,13 +3727,12 @@ ssl3_SendChangeCipherSpecs(sslSocket *ss)
         } else {
             /* With DTLS, we need to set a holddown timer in case the final
              * message got lost */
-            ss->ssl3.hs.rtTimeoutMs = DTLS_FINISHED_TIMER_MS;
-            dtls_StartTimer(ss, dtls_FinishedTimerCb);
+            rv = dtls_StartHolddownTimer(ss);
         }
     }
     ssl_ReleaseSpecWriteLock(ss); /**************************************/
 
-    return SECSuccess;
+    return rv;
 }
 
 /* Called from ssl3_HandleRecord.
@@ -12869,10 +12871,10 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
 
     if (IS_DTLS(ss)) {
         if (!dtls_IsRelevant(ss, crSpec, cText, &dtls_seq_num)) {
-            ssl_ReleaseSpecReadLock(ss);
-            /* Silently drop the packet */
+            ssl_ReleaseSpecReadLock(ss); /*****************************/
             databuf->len = 0; /* Needed to ensure data not left around */
-            return SECSuccess;
+            /* Drop the packet, but first see if retransmission is needed. */
+            return dtls_MaybeRetransmitHandshake(ss, cText);
         }
     }
 
@@ -12890,7 +12892,7 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     if (plaintext->space < MAX_FRAGMENT_LENGTH) {
         rv = sslBuffer_Grow(plaintext, MAX_FRAGMENT_LENGTH + 2048);
         if (rv != SECSuccess) {
-            ssl_ReleaseSpecReadLock(ss);
+            ssl_ReleaseSpecReadLock(ss); /*************************/
             SSL_DBG(("%d: SSL3[%d]: HandleRecord, tried to get %d bytes",
                      SSL_GETPID(), ss->fd, MAX_FRAGMENT_LENGTH + 2048));
             /* sslBuffer_Grow has set a memory error code. */
@@ -12911,7 +12913,7 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     }
 
     if (rv != SECSuccess) {
-        ssl_ReleaseSpecReadLock(ss);
+        ssl_ReleaseSpecReadLock(ss); /***************************/
 
         SSL_DBG(("%d: SSL3[%d]: decryption failed", SSL_GETPID(), ss->fd));
 
@@ -13071,8 +13073,8 @@ process_it:
 
 /* Called from ssl3_InitState, immediately below. */
 /* Caller must hold the SpecWriteLock. */
-static void
-ssl3_InitCipherSpec(sslSocket *ss, ssl3CipherSpec *spec)
+void
+ssl3_InitCipherSpec(ssl3CipherSpec *spec)
 {
     spec->cipher_def = &bulk_cipher_defs[cipher_null];
     PORT_Assert(spec->cipher_def->cipher == cipher_null);
@@ -13108,8 +13110,6 @@ ssl3_InitCipherSpec(sslSocket *ss, ssl3CipherSpec *spec)
 
     spec->epoch = 0;
     dtls_InitRecvdRecords(&spec->recvdRecords);
-
-    spec->version = ss->vrange.max;
 }
 
 /* Called from: ssl3_SendRecord
@@ -13135,9 +13135,10 @@ ssl3_InitState(sslSocket *ss)
     ssl_GetSpecWriteLock(ss);
     ss->ssl3.crSpec = ss->ssl3.cwSpec = &ss->ssl3.specs[0];
     ss->ssl3.prSpec = ss->ssl3.pwSpec = &ss->ssl3.specs[1];
+    ssl3_InitCipherSpec(ss->ssl3.crSpec);
+    ssl3_InitCipherSpec(ss->ssl3.prSpec);
+    ss->ssl3.crSpec->version = ss->ssl3.prSpec->version = ss->vrange.max;
     ss->ssl3.hs.sendingSCSV = PR_FALSE;
-    ssl3_InitCipherSpec(ss, ss->ssl3.crSpec);
-    ssl3_InitCipherSpec(ss, ss->ssl3.prSpec);
     ss->ssl3.hs.preliminaryInfo = 0;
 
     ss->ssl3.hs.ws = (ss->sec.isServer) ? wait_client_hello : wait_server_hello;
@@ -13151,7 +13152,7 @@ ssl3_InitState(sslSocket *ss)
     if (IS_DTLS(ss)) {
         ss->ssl3.hs.sendMessageSeq = 0;
         ss->ssl3.hs.recvMessageSeq = 0;
-        ss->ssl3.hs.rtTimeoutMs = INITIAL_DTLS_TIMEOUT_MS;
+        ss->ssl3.hs.rtTimeoutMs = DTLS_RETRANSMIT_INITIAL_MS;
         ss->ssl3.hs.rtRetries = 0;
         ss->ssl3.hs.recvdHighWater = -1;
         PR_INIT_CLIST(&ss->ssl3.hs.lastMessageFlight);

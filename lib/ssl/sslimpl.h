@@ -157,9 +157,12 @@ typedef enum { SSLAppOpRead = 0,
 
 #define EXPORT_RSA_KEY_LENGTH 64 /* bytes */
 
-#define INITIAL_DTLS_TIMEOUT_MS 1000  /* Default value from RFC 4347 = 1s*/
-#define MAX_DTLS_TIMEOUT_MS 60000     /* 1 minute */
-#define DTLS_FINISHED_TIMER_MS 120000 /* Time to wait in FINISHED state */
+/* The default value from RFC 4347 is 1s, which is too slow. */
+#define DTLS_RETRANSMIT_INITIAL_MS 50
+/* The maximum time to wait between retransmissions. */
+#define DTLS_RETRANSMIT_MAX_MS 10000
+ /* Time to wait in FINISHED state for retransmissions. */
+#define DTLS_RETRANSMIT_FINISHED_MS 30000
 
 typedef struct sslBufferStr sslBuffer;
 typedef struct sslConnectInfoStr sslConnectInfo;
@@ -261,7 +264,6 @@ struct sslSocketOpsStr {
 /* Flags interpreted by ssl send functions. */
 #define ssl_SEND_FLAG_FORCE_INTO_BUFFER 0x40000000
 #define ssl_SEND_FLAG_NO_BUFFER 0x20000000
-#define ssl_SEND_FLAG_USE_EPOCH 0x10000000     /* DTLS only */
 #define ssl_SEND_FLAG_NO_RETRANSMIT 0x08000000 /* DTLS only */
 #define ssl_SEND_FLAG_CAP_RECORD_VERSION \
     0x04000000 /* TLS only */
@@ -502,6 +504,11 @@ typedef struct {
 typedef PRUint16 DTLSEpoch;
 
 typedef void (*DTLSTimerCb)(sslSocket *);
+
+typedef enum {
+    dtls_oldkey_release,
+    dtls_oldkey_holddown
+} dtlsOldKeyAction;
 
 /* 400 is large enough for MD5, SHA-1, and SHA-256.
  * For SHA-384 support, increase it to 712. */
@@ -855,7 +862,7 @@ typedef SECStatus (*sslRestartTarget)(sslSocket *);
 */
 typedef struct DTLSQueuedMessageStr {
     PRCList link;         /* The linked list link */
-    DTLSEpoch epoch;      /* The epoch to use */
+    ssl3CipherSpec *cwSpec; /* The cipher spec to use, null for none */
     SSL3ContentType type; /* The message type */
     unsigned char *data;  /* The data */
     PRUint16 len;         /* The data length */
@@ -1498,6 +1505,7 @@ extern SECStatus sslBuffer_Append(sslBuffer *b, const void *data,
 extern void ssl2_UseClearSendFunc(sslSocket *ss);
 extern void ssl_ChooseSessionIDProcs(sslSecurityInfo *sec);
 
+extern void ssl3_InitCipherSpec(ssl3CipherSpec *spec);
 extern sslSessionID *ssl3_NewSessionID(sslSocket *ss, PRBool is_server);
 extern sslSessionID *ssl_LookupSID(const PRIPv6Addr *addr, PRUint16 port,
                                    const char *peerID, const char *urlSvrName);
@@ -1538,7 +1546,7 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
                               PRUint32 contentLen,
                               sslBuffer *wrBuf);
 
-extern PRInt32 ssl3_SendRecord(sslSocket *ss, DTLSEpoch epoch,
+extern PRInt32 ssl3_SendRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
                                SSL3ContentType type,
                                const SSL3Opaque *pIn, PRInt32 nIn,
                                PRInt32 flags);
@@ -1816,6 +1824,7 @@ extern SECStatus ssl2_GetPolicy(PRInt32 which, PRInt32 *policy);
 
 extern void ssl2_InitSocketPolicy(sslSocket *ss);
 extern void ssl3_InitSocketPolicy(sslSocket *ss);
+extern void ssl3_InitCipherSpec(ssl3CipherSpec *spec);
 
 extern SECStatus ssl3_ConstructV2CipherSpecsHack(sslSocket *ss,
                                                  unsigned char *cs, int *size);
@@ -2014,19 +2023,15 @@ extern SECStatus dtls_QueueMessage(sslSocket *ss, SSL3ContentType type,
                                    const SSL3Opaque *pIn, PRInt32 nIn);
 extern SECStatus dtls_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags);
 extern SECStatus dtls_CompressMACEncryptRecord(sslSocket *ss,
-                                               DTLSEpoch epoch,
-                                               PRBool use_epoch,
+                                               ssl3CipherSpec *cwSpec,
                                                SSL3ContentType type,
                                                const SSL3Opaque *pIn,
                                                PRUint32 contentLen,
                                                sslBuffer *wrBuf);
 SECStatus ssl3_DisableNonDTLSSuites(sslSocket *ss);
-extern SECStatus dtls_StartTimer(sslSocket *ss, DTLSTimerCb cb);
-extern SECStatus dtls_RestartTimer(sslSocket *ss, PRBool backoff,
-                                   DTLSTimerCb cb);
+extern SECStatus dtls_StartHolddownTimer(sslSocket *ss);
 extern void dtls_CheckTimer(sslSocket *ss);
 extern void dtls_CancelTimer(sslSocket *ss);
-extern void dtls_FinishedTimerCb(sslSocket *ss);
 extern void dtls_SetMTU(sslSocket *ss, PRUint16 advertised);
 extern void dtls_InitRecvdRecords(DTLSRecvdRecords *records);
 extern int dtls_RecordGetRecvd(const DTLSRecvdRecords *records, PRUint64 seq);
@@ -2038,6 +2043,8 @@ extern SSL3ProtocolVersion
 dtls_DTLSVersionToTLSVersion(SSL3ProtocolVersion dtlsv);
 extern PRBool dtls_IsRelevant(sslSocket *ss, const ssl3CipherSpec *crSpec,
                               const SSL3Ciphertext *cText, PRUint64 *seqNum);
+extern SECStatus dtls_MaybeRetransmitHandshake(sslSocket *ss,
+                                               const SSL3Ciphertext *cText);
 
 CK_MECHANISM_TYPE ssl3_Alg2Mech(SSLCipherAlgorithm calg);
 SECStatus ssl3_SetupPendingCipherSpec(sslSocket *ss);

@@ -54,6 +54,7 @@ void tls13_DestroyKeyShareEntry(TLS13KeyShareEntry *entry);
 void tls13_DestroyKeyShares(PRCList *list);
 PRBool tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message);
 SECStatus tls13_ProtectRecord(sslSocket *ss,
+                              ssl3CipherSpec *cwSpec,
                               SSL3ContentType type,
                               const SSL3Opaque *pIn,
                               PRUint32 contentLen,
