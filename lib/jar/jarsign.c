@@ -51,11 +51,14 @@ JAR_calculate_digest(void *data, long length)
 
     md5 = PK11_CreateDigestContext(SEC_OID_MD5);
     if (md5 == NULL) {
+	PORT_ZFree(dig, sizeof(JAR_Digest));
 	return NULL;
     }
     sha1 = PK11_CreateDigestContext(SEC_OID_SHA1);
     if (sha1 == NULL) {
 	PK11_DestroyContext(md5, PR_TRUE);
+	/* added due to bug Bug 1250214 - prevent the 2nd memory leak */
+	PORT_ZFree(dig, sizeof(JAR_Digest));
 	return NULL;
     }
 
