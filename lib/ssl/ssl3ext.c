@@ -315,6 +315,10 @@ static const ssl3HelloExtensionHandler serverHelloHandlersSSL3[] = {
  * These static tables are for the formatting of client hello extensions.
  * The server's table of hello senders is dynamic, in the socket struct,
  * and sender functions are registered there.
+ * NB: the order of these extensions can have an impact on compatibility. Some
+ * servers (e.g. Tomcat) will terminate the connection if the last extension in
+ * the client hello is empty (for example, the extended master secret
+ * extension, if it were listed last). See bug 1243641.
  */
 static const ssl3HelloExtensionSender clientHelloSendersTLS[SSL_MAX_EXTENSIONS] =
     {
