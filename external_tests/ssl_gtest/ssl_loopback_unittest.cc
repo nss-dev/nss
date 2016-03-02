@@ -734,13 +734,14 @@ TEST_P(TlsConnectGenericPre13,
   Connect();
 }
 
-TEST_P(TlsConnectStream, ConnectWithCompressionMaybe)
+TEST_P(TlsConnectGeneric, ConnectWithCompressionMaybe)
 {
   EnsureTlsSetup();
   client_->EnableCompression();
   server_->EnableCompression();
   Connect();
-  EXPECT_EQ(client_->version() < SSL_LIBRARY_VERSION_TLS_1_3, client_->is_compressed());
+  EXPECT_EQ(client_->version() < SSL_LIBRARY_VERSION_TLS_1_3 &&
+            mode_ != DGRAM, client_->is_compressed());
   SendReceive();
 }
 
