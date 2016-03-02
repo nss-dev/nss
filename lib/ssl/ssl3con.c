@@ -245,7 +245,7 @@ compressionEnabled(sslSocket *ss, SSLCompressionMethod compression)
             return PR_TRUE; /* Always enabled */
 #ifdef NSS_SSL_ENABLE_ZLIB
         case ssl_compression_deflate:
-            if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+            if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3 && !IS_DTLS(ss)) {
                 return ss->opt.enableDeflate;
             }
             return PR_FALSE;
