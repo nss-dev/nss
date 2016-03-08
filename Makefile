@@ -92,7 +92,7 @@ NSPR_CONFIGURE_OPTS += --enable-debug-symbols
 endif
 NSPR_CONFIGURE_ENV += CFLAGS='$(SANITIZER_CFLAGS)' \
                       CXXFLAGS='$(SANITIZER_CFLAGS)' \
-                      LDFLAGS='$(SANITIZER_LFLAGS)'
+                      LDFLAGS='$(SANITIZER_LDFLAGS)'
 endif
 
 #
