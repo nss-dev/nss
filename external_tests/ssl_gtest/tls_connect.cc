@@ -63,13 +63,13 @@ static const uint16_t kTlsV12PlusArr[] = {
 };
 ::testing::internal::ParamGenerator<uint16_t>
   TlsConnectTestBase::kTlsV12Plus = ::testing::ValuesIn(kTlsV12PlusArr);
-static const uint16_t kTlsV13Arr[] = {
 #ifdef NSS_ENABLE_TLS_1_3
+static const uint16_t kTlsV13Arr[] = {
   SSL_LIBRARY_VERSION_TLS_1_3
-#endif
 };
 ::testing::internal::ParamGenerator<uint16_t>
   TlsConnectTestBase::kTlsV13 = ::testing::ValuesIn(kTlsV13Arr);
+#endif
 static const uint16_t kTlsVAllArr[] = {
 #ifdef NSS_ENABLE_TLS_1_3
   SSL_LIBRARY_VERSION_TLS_1_3,
