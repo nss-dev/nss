@@ -65,7 +65,7 @@ ifndef WARNING_CFLAGS
         ifeq ($(CC_NAME),clang)
           # Clang reports its version as an older gcc, but it's OK
           NSS_ENABLE_WERROR = 1
-        else
+        else ifeq ($(CC_NAME),gcc)
           ifneq (,$(filter 4.8 4.9,$(word 1,$(GCC_VERSION)).$(word 2,$(GCC_VERSION))))
             NSS_ENABLE_WERROR = 1
           endif
