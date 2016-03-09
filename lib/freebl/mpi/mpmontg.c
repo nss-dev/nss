@@ -498,15 +498,15 @@ mp_err mp_set_safe_modexp(int value)
 #define WEAVE_WORD_SIZE 4
 
 /*
- * mpi_to_weave takes an array of bignums, a matrix in which each bignum 
- * occupies all the columns of a row, and transposes it into a matrix in 
+ * mpi_to_weave takes an array of bignums, a matrix in which each bignum
+ * occupies all the columns of a row, and transposes it into a matrix in
  * which each bignum occupies a column of every row.  The first row of the
  * input matrix becomes the first column of the output matrix.  The n'th
  * row of input becomes the n'th column of output.  The input data is said
  * to be "interleaved" or "woven" into the output matrix.
  *
  * The array of bignums is left in this woven form.  Each time a single
- * bignum value is needed, it is recreated by fetching the n'th column, 
+ * bignum value is needed, it is recreated by fetching the n'th column,
  * forming a single row which is the new bignum.
  *
  * The purpose of this interleaving is make it impossible to determine which
@@ -516,46 +516,37 @@ mp_err mp_set_safe_modexp(int value)
  * The weaving function does not transpose the entire input matrix in one call.
  * It transposes 4 rows of mp_ints into their respective columns of output.
  *
- * There are two different implementations of the weaving and unweaving code
- * in this file.  One uses byte loads and stores.  The second uses loads and
- * stores of mp_weave_word size values.  The weaved forms of these two 
- * implementations differ.  Consequently, each one has its own explanation.
- *
- * Here is the explanation for the byte-at-a-time implementation.
- *
- * This implementation treats each mp_int bignum as an array of bytes, 
- * rather than as an array of mp_digits.  It stores those bytes as a 
- * column of bytes in the output matrix.  It doesn't care if the machine
- * uses big-endian or little-endian byte ordering within mp_digits.
- * The first byte of the mp_digit array becomes the first byte in the output
- * column, regardless of whether that byte is the MSB or LSB of the mp_digit.
+ * This implementation treats each mp_int bignum as an array of mp_digits,
+ * It stores those bytes as a column of mp_digits in the output matrix.  It
+ * doesn't care if the machine uses big-endian or little-endian byte ordering
+ * within mp_digits.
  *
  * "bignums" is an array of mp_ints.
  * It points to four rows, four mp_ints, a subset of a larger array of mp_ints.
  *
- * "weaved" is the weaved output matrix. 
+ * "weaved" is the weaved output matrix.
  * The first byte of bignums[0] is stored in weaved[0].
- * 
- * "nBignums" is the total number of bignums in the array of which "bignums" 
- * is a part.  
  *
- * "nDigits" is the size in mp_digits of each mp_int in the "bignums" array. 
- * mp_ints that use less than nDigits digits are logically padded with zeros 
+ * "nBignums" is the total number of bignums in the array of which "bignums"
+ * is a part.
+ *
+ * "nDigits" is the size in mp_digits of each mp_int in the "bignums" array.
+ * mp_ints that use less than nDigits digits are logically padded with zeros
  * while being stored in the weaved array.
  */
-mp_err mpi_to_weave(const mp_int  *bignums, 
-                    unsigned char *weaved, 
-		    mp_size nDigits,  /* in each mp_int of input */
-		    mp_size nBignums) /* in the entire source array */
+mp_err mpi_to_weave(const mp_int  *bignums,
+                    mp_digit *weaved,
+                    mp_size nDigits,  /* in each mp_int of input */
+                    mp_size nBignums) /* in the entire source array */
 {
   mp_size i;
-  unsigned char * endDest = weaved + (nDigits * nBignums * sizeof(mp_digit));
+  mp_digit *endDest = weaved + (nDigits * nBignums);
 
   for (i=0; i < WEAVE_WORD_SIZE; i++) {
     mp_size used = MP_USED(&bignums[i]);
-    unsigned char *pSrc   = (unsigned char *)MP_DIGITS(&bignums[i]);
-    unsigned char *endSrc = pSrc + (used * sizeof(mp_digit));
-    unsigned char *pDest  = weaved + i;
+    mp_digit *pSrc   = MP_DIGITS(&bignums[i]);
+    mp_digit *endSrc = pSrc + used;
+    mp_digit *pDest  = weaved + i;
 
     ARGCHK(MP_SIGN(&bignums[i]) == MP_ZPOS, MP_BADARG);
     ARGCHK(used <= nDigits, MP_BADARG);
@@ -573,25 +564,42 @@ mp_err mpi_to_weave(const mp_int  *bignums,
   return MP_OKAY;
 }
 
+/*
+ * These functions return 0xffffffff if the output is true, and 0 otherwise.
+ */
+#define CONST_TIME_MSB(x) (0L - ((x) >> (8*sizeof(x) - 1)))
+#define CONST_TIME_EQ_Z(x) CONST_TIME_MSB(~(x) & ((x)-1))
+#define CONST_TIME_EQ(a, b) CONST_TIME_EQ_Z(a ^ b)
+
 /* Reverse the operation above for one mp_int.
  * Reconstruct one mp_int from its column in the weaved array.
- * "pSrc" points to the offset into the weave array of the bignum we 
- * are going to reconstruct.
+ * Every read accesses every element of the weaved array, in order to
+ * avoid timing attacks based on patterns of memory accesses.
  */
-mp_err weave_to_mpi(mp_int *a,                /* output, result */
-                    const unsigned char *pSrc, /* input, byte matrix */
-		    mp_size nDigits,          /* per mp_int output */
-		    mp_size nBignums)         /* bignums in weaved matrix */
+mp_err weave_to_mpi(mp_int *a,                   /* out, result */
+                    const mp_digit *weaved, /* in, byte matrix */
+                    mp_size index,               /* which column to read */
+                    mp_size nDigits,             /* number of mp_digits in each bignum */
+                    mp_size nBignums)            /* width of the matrix */
 {
-  unsigned char *pDest   = (unsigned char *)MP_DIGITS(a);
-  unsigned char *endDest = pDest + (nDigits * sizeof(mp_digit));
+  /* these are indices, but need to be the same size as mp_digit
+   * because of the CONST_TIME operations */
+  mp_digit i, j;
+  mp_digit d;
+  mp_digit *pDest = MP_DIGITS(a);
 
   MP_SIGN(a) = MP_ZPOS;
   MP_USED(a) = nDigits;
 
-  for (; pDest < endDest; pSrc += nBignums, pDest++) {
-    *pDest = *pSrc;
+  /* Fetch the proper column in constant time, indexing over the whole array */
+  for (i=0; i<nDigits; ++i) {
+    d = 0;
+    for (j=0; j<nBignums; ++j) {
+      d |= weaved[i*nBignums + j] & CONST_TIME_EQ(j, index);
+    }
+    pDest[i] = d;
   }
+
   s_mp_clamp(a);
   return MP_OKAY;
 }
@@ -610,7 +618,7 @@ mp_err weave_to_mpi(mp_int *a,                /* output, result */
 #endif
 
 #define MUL(x,a,b) \
-  MP_CHECKOK( weave_to_mpi(&tmp, powers + (x), nLen, num_powers) ); \
+  MP_CHECKOK( weave_to_mpi(&tmp, powers, (x), nLen, num_powers) ); \
   MUL_NOWEAVE(&tmp,a,b)
 
 #define SWAPPA ptmp = pa1; pa1 = pa2; pa2 = ptmp
@@ -634,8 +642,8 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
   int     expOff;
   mp_int  accum1, accum2, accum[WEAVE_WORD_SIZE];
   mp_int  tmp;
-  unsigned char *powersArray = NULL;
-  unsigned char *powers = NULL;
+  mp_digit *powersArray = NULL;
+  mp_digit *powers = NULL;
 
   MP_DIGITS(&accum1) = 0;
   MP_DIGITS(&accum2) = 0;
@@ -666,13 +674,13 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
     MP_CHECKOK( mp_copy(montBase, &accum[1]) );
     SQR(montBase, &accum[2]);
     MUL_NOWEAVE(montBase, &accum[2], &accum[3]);
-    powersArray = (unsigned char *)malloc(num_powers*(nLen*sizeof(mp_digit)+1));
+    powersArray = (mp_digit *)malloc(num_powers*(nLen*sizeof(mp_digit)+1));
     if (!powersArray) {
       res = MP_MEM;
       goto CLEANUP;
     }
     /* powers[i] = base ** (i); */ \
-    powers = (unsigned char *)MP_ALIGN(powersArray,num_powers); \
+    powers = (mp_digit *)MP_ALIGN(powersArray,num_powers); \
     MP_CHECKOK( mpi_to_weave(accum, powers, nLen, num_powers) );
     if (first_window < 4) {
       MP_CHECKOK( mp_copy(&accum[first_window], &accum1) );
@@ -719,7 +727,7 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
        * value is overwritten, so we need to fetch it from the stored
        * weave array */
       if (i > 2* WEAVE_WORD_SIZE) {
-        MP_CHECKOK(weave_to_mpi(&accum2, powers+i/2, nLen, num_powers));
+        MP_CHECKOK(weave_to_mpi(&accum2, powers, i/2, nLen, num_powers));
         SQR(&accum2, &accum[acc_index]);
       } else {
 	int half_power_index = (i/2) & (WEAVE_WORD_SIZE-1);
