@@ -1054,26 +1054,16 @@ ReadFileOK(char *dir, char *file)
  *
  * return 1 if it's time to reset the fileToRead (no more files to read).
  */
-int ReadOneFile(int fileToRead)
+static int
+ReadOneFile(int fileToRead)
 {
     char *dir = "/etc";
     DIR *fd = opendir(dir);
     int resetCount = 0;
-#ifdef SOLARIS
-     /* grumble, Solaris does not define struct dirent to be the full length */
-    typedef union {
-	unsigned char space[sizeof(struct dirent) + MAXNAMELEN];
-	struct dirent dir;
-    } dirent_hack;
-    dirent_hack entry, firstEntry;
-
-#define entry_dir entry.dir
-#else
-    struct dirent entry, firstEntry;
-#define entry_dir entry
-#endif
-
-    int i, error = -1;
+    struct dirent *entry;
+    char firstName[NAME_MAX + 1];
+    const char *name = NULL;
+    int i;
 
     if (fd == NULL) {
 	dir = PR_GetEnvSecure("HOME");
@@ -1085,33 +1075,34 @@ int ReadOneFile(int fileToRead)
 	return 1;
     }
 
+    firstName[0] = '\0';
     for (i=0; i <= fileToRead; i++) {
-	struct dirent *result = NULL;
 	do {
-	    error = readdir_r(fd, &entry_dir, &result);
-	} while (error == 0 && result != NULL  &&
-					!ReadFileOK(dir,&result->d_name[0]));
-	if (error != 0 || result == NULL)  {
+            /* readdir() isn't guaranteed to be thread safe on every platform;
+             * this code assumes the same directory isn't read concurrently.
+             * This usage is confirmed safe on Linux, see bug 1254334. */
+	    entry = readdir(fd);
+	} while (entry != NULL && !ReadFileOK(dir, &entry->d_name[0]));
+	if (entry == NULL)  {
 	    resetCount = 1; /* read to the end, start again at the beginning */
-	    if (i != 0) {
+	    if (firstName[0]) {
 		/* ran out of entries in the directory, use the first one */
-	 	entry = firstEntry;
-	 	error = 0;
-	 	break;
+	 	name = firstName;
 	    }
-	    /* if i== 0, there were no readable entries in the directory */
 	    break;
 	}
-	if (i==0) {
-	    /* save the first entry in case we run out of entries */
-	    firstEntry = entry;
+        name = entry->d_name;
+	if (i == 0) {
+	    /* copy the name of the first in case we run out of entries */
+            PORT_Assert(PORT_Strlen(name) <= NAME_MAX);
+            PORT_Strncpy(firstName, name, NAME_MAX);
+            firstName[NAME_MAX] = '\0';
 	}
     }
 
-    if (error == 0) {
+    if (name) {
 	char filename[PATH_MAX];
-	int count = snprintf(filename, sizeof filename, 
-				"%s/%s",dir, &entry_dir.d_name[0]);
+	int count = snprintf(filename, sizeof(filename), "%s/%s",dir, name);
 	if (count >= 1) {
 	    ReadSingleFile(filename);
 	}
