@@ -1044,6 +1044,8 @@ SSL_IMPORT SECStatus SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info,
  * Caller supplies the info struct.  This function fills it in.  Caller should
  * pass sizeof(SSLPreliminaryChannelInfo) as the |len| argument.
  *
+ * This function can be called prior to handshake details being confirmed (see
+ * SSL_GetChannelInfo above for what that means).  Thus, information provided by
  * this function is available to SSLAuthCertificate, SSLGetClientAuthData,
  * SSLSNISocketConfig, and other callbacks that might be called during the
  * processing of the first flight of client of server handshake messages.
