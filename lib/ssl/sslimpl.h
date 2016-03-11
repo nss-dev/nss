@@ -86,13 +86,9 @@ extern int Debug;
 #define PRINT_BUF(a, b)   \
     if (ssl_trace >= (a)) \
     ssl_PrintBuf b
-#define DUMP_MSG(a, b)    \
-    if (ssl_trace >= (a)) \
-    ssl_DumpMsg b
 #else
 #define SSL_TRC(a, b)
 #define PRINT_BUF(a, b)
-#define DUMP_MSG(a, b)
 #endif
 
 #ifdef DEBUG
@@ -118,22 +114,11 @@ typedef enum { SSLAppOpRead = 0,
                SSLAppOpHeader
 } SSLAppOperation;
 
-#define SSL_MIN_MASTER_KEY_BYTES 5
-#define SSL_MAX_MASTER_KEY_BYTES 64
-
-#define SSL2_SESSIONID_BYTES 16
 #define SSL3_SESSIONID_BYTES 32
 
 #define SSL_MIN_CHALLENGE_BYTES 16
 #define SSL_MAX_CHALLENGE_BYTES 32
 #define SSL_CHALLENGE_BYTES 16
-
-#define SSL_CONNECTIONID_BYTES 16
-
-#define SSL_MIN_CYPHER_ARG_BYTES 0
-#define SSL_MAX_CYPHER_ARG_BYTES 32
-
-#define SSL_MAX_MAC_BYTES 16
 
 #define SSL3_RSA_PMS_LENGTH 48
 #define SSL3_MASTER_SECRET_LENGTH 48
@@ -185,14 +170,6 @@ struct ssl3CertNodeStr {
 };
 
 typedef SECStatus (*sslHandshakeFunc)(sslSocket *ss);
-
-/* This type points to the low layer send func,
-** e.g. ssl2_SendStream or ssl3_SendPlainText.
-** These functions return the same values as PR_Send,
-** i.e.  >= 0 means number of bytes sent, < 0 means error.
-*/
-typedef PRInt32 (*sslSendFunc)(sslSocket *ss, const unsigned char *buf,
-                               PRInt32 n, PRInt32 flags);
 
 typedef void (*sslSessionIDCacheFunc)(sslSessionID *sid);
 typedef void (*sslSessionIDUncacheFunc)(sslSessionID *sid);
@@ -320,12 +297,12 @@ typedef struct sslOptionsStr {
     unsigned int requireCertificate         : 2;  /*  4-5 */
     unsigned int handshakeAsClient          : 1;  /*  6 */
     unsigned int handshakeAsServer          : 1;  /*  7 */
-    unsigned int enableSSL2                 : 1;  /*  8 */
+    unsigned int unusedBit8                 : 1;  /*  8 */
     unsigned int unusedBit9                 : 1;  /*  9 */
     unsigned int unusedBit10                : 1;  /* 10 */
     unsigned int noCache                    : 1;  /* 11 */
     unsigned int fdx                        : 1;  /* 12 */
-    unsigned int v2CompatibleHello          : 1;  /* 13 */
+    unsigned int unusedBit13                : 1;  /* 13 */
     unsigned int detectRollBack             : 1;  /* 14 */
     unsigned int noStepDown                 : 1;  /* 15 */
     unsigned int bypassPKCS11               : 1;  /* 16 */
@@ -382,45 +359,24 @@ typedef struct sslServerCertsStr {
 ** Everything in here is protected by the recvBufLock.
 */
 struct sslGatherStr {
-    int state; /* see GS_ values below. */ /* ssl 2 & 3 */
+    int state; /* see GS_ values below. */
 
     /* "buf" holds received plaintext SSL records, after decrypt and MAC check.
-     * SSL2: recv'd ciphertext records are put here, then decrypted in place.
-     * SSL3: recv'd ciphertext records are put in inbuf (see below), then
-     *       decrypted into buf.
+     * recv'd ciphertext records are put in inbuf (see below), then decrypted
+     * into buf.
      */
-    sslBuffer buf; /*recvBufLock*/ /* ssl 2 & 3 */
+    sslBuffer buf; /*recvBufLock*/
 
-    /* number of bytes previously read into hdr or buf(ssl2) or inbuf (ssl3).
+    /* number of bytes previously read into hdr or inbuf.
     ** (offset - writeOffset) is the number of ciphertext bytes read in but
     **     not yet deciphered.
     */
-    unsigned int offset; /* ssl 2 & 3 */
+    unsigned int offset;
 
     /* number of bytes to read in next call to ssl_DefRecv (recv) */
-    unsigned int remainder; /* ssl 2 & 3 */
+    unsigned int remainder;
 
-    /* Number of ciphertext bytes to read in after 2-byte SSL record header. */
-    unsigned int count; /* ssl2 only */
-
-    /* size of the final plaintext record.
-    ** == count - (recordPadding + MAC size)
-    */
-    unsigned int recordLen; /* ssl2 only */
-
-    /* number of bytes of padding to be removed after decrypting. */
-    /* This value is taken from the record's hdr[2], which means a too large
-     * value could crash us.
-     */
-    unsigned int recordPadding; /* ssl2 only */
-
-    /* plaintext DATA begins this many bytes into "buf".  */
-    unsigned int recordOffset; /* ssl2 only */
-
-    int encrypted; /* SSL2 session is now encrypted.  ssl2 only */
-
-    /* These next two values are used by SSL2 and SSL3.
-    ** DoRecv uses them to extract application data.
+    /* DoRecv uses the next two values to extract application data.
     ** The difference between writeOffset and readOffset is the amount of
     ** data available to the application.   Note that the actual offset of
     ** the data in "buf" is recordOffset (above), not readOffset.
@@ -435,16 +391,15 @@ struct sslGatherStr {
     unsigned int writeOffset;
 
     /* Buffer for ssl3 to read (encrypted) data from the socket */
-    sslBuffer inbuf; /*recvBufLock*/ /* ssl3 only */
+    sslBuffer inbuf; /*recvBufLock*/
 
     /* The ssl[23]_GatherData functions read data into this buffer, rather
     ** than into buf or inbuf, while in the GS_HEADER state.
     ** The portion of the SSL record header put here always comes off the wire
     ** as plaintext, never ciphertext.
-    ** For SSL2, the plaintext portion is two bytes long.  For SSl3 it is 5.
-    ** For DTLS it is 13.
+    ** For SSL3/TLS, the plaintext portion is 5 bytes long. For DTLS it is 13.
     */
-    unsigned char hdr[13]; /* ssl 2 & 3 or dtls */
+    unsigned char hdr[13];
 
     /* Buffer for DTLS data read off the wire as a single datagram */
     sslBuffer dtlsPacket;
@@ -654,17 +609,6 @@ struct sslSessionIDStr {
     PRUint32 keaKeyBits;
 
     union {
-        struct {
-            /* the V2 code depends upon the size of sessionID.  */
-            unsigned char sessionID[SSL2_SESSIONID_BYTES];
-
-            /* Stuff used to recreate key and read/write cipher objects */
-            SECItem masterKey; /* never wrapped */
-            int cipherType;
-            SECItem cipherArg;
-            int keyBits;
-            int secretKeyBits;
-        } ssl2;
         struct {
             /* values that are copied into the server's on-disk SID cache. */
             PRUint8 sessionIDLength;
@@ -1143,68 +1087,34 @@ typedef struct SessionTicketStr {
 ** This is "ci", as in "ss->sec.ci".
 **
 ** Protection:  All the variables in here are protected by
-** firstHandshakeLock AND (in ssl3) ssl3HandshakeLock
+** firstHandshakeLock AND ssl3HandshakeLock
 */
 struct sslConnectInfoStr {
     /* outgoing handshakes appended to this. */
-    sslBuffer sendBuf; /*xmitBufLock*/ /* ssl 2 & 3 */
+    sslBuffer sendBuf; /*xmitBufLock*/
 
-    PRIPv6Addr peer;     /* ssl 2 & 3 */
-    unsigned short port; /* ssl 2 & 3 */
+    PRIPv6Addr peer;
+    unsigned short port;
 
-    sslSessionID *sid; /* ssl 2 & 3 */
-
-    /* see CIS_HAVE defines below for the bit values in *elements. */
-    char elements;         /* ssl2 only */
-    char requiredElements; /* ssl2 only */
-    char sentElements;     /* ssl2 only */
-
-    char sentFinished; /* ssl2 only */
-
-    /* Length of server challenge.  Used by client when saving challenge */
-    int serverChallengeLen; /* ssl2 only */
-    /* type of authentication requested by server */
-    unsigned char authType; /* ssl2 only */
-
-    /* Challenge sent by client to server in client-hello message */
-    /* SSL3 gets a copy of this.  See ssl3_StartHandshakeHash().  */
-    unsigned char clientChallenge[SSL_MAX_CHALLENGE_BYTES]; /* ssl 2 & 3 */
-
-    /* Connection-id sent by server to client in server-hello message */
-    unsigned char connectionID[SSL_CONNECTIONID_BYTES]; /* ssl2 only */
-
-    /* Challenge sent by server to client in request-certificate message */
-    unsigned char serverChallenge[SSL_MAX_CHALLENGE_BYTES]; /* ssl2 only */
-
-    /* Information kept to handle a request-certificate message */
-    unsigned char readKey[SSL_MAX_MASTER_KEY_BYTES];  /* ssl2 only */
-    unsigned char writeKey[SSL_MAX_MASTER_KEY_BYTES]; /* ssl2 only */
-    unsigned keySize;                                 /* ssl2 only */
+    sslSessionID *sid;
 };
-
-/* bit values for ci->elements, ci->requiredElements, sentElements. */
-#define CIS_HAVE_MASTER_KEY 0x01
-#define CIS_HAVE_CERTIFICATE 0x02
-#define CIS_HAVE_FINISHED 0x04
-#define CIS_HAVE_VERIFY 0x08
 
 /* Note: The entire content of this struct and whatever it points to gets
  * blown away by SSL_ResetHandshake().  This is "sec" as in "ss->sec".
  *
  * Unless otherwise specified below, the contents of this struct are
- * protected by firstHandshakeLock AND (in ssl3) ssl3HandshakeLock.
+ * protected by firstHandshakeLock AND ssl3HandshakeLock.
  */
 struct sslSecurityInfoStr {
-    sslSendFunc send; /*xmitBufLock*/   /* ssl 2 & 3 */
-    int isServer; /* Spec Lock?*/       /* ssl 2 & 3 */
-    sslBuffer writeBuf; /*xmitBufLock*/ /* ssl 2 & 3 */
+    int isServer;       /* Spec Lock?*/
+    sslBuffer writeBuf; /*xmitBufLock*/
 
-    int cipherType;             /* ssl 2 & 3 */
-    int keyBits;                /* ssl 2 & 3 */
-    int secretKeyBits;          /* ssl 2 & 3 */
-    CERTCertificate *localCert; /* ssl 2 & 3 */
-    CERTCertificate *peerCert;  /* ssl 2 & 3 */
-    SECKEYPublicKey *peerKey;   /* ssl3 only */
+    int cipherType;
+    int keyBits;
+    int secretKeyBits;
+    CERTCertificate *localCert;
+    CERTCertificate *peerCert;
+    SECKEYPublicKey *peerKey;
 
     SSLSignType authAlgorithm;
     PRUint32 authKeyBits;
@@ -1216,37 +1126,11 @@ struct sslSecurityInfoStr {
     ** Different implementations exist for clients/servers
     ** The lookup proc is only used for servers.  Baloney!
     */
-    sslSessionIDCacheFunc cache;     /* ssl 2 & 3 */
-    sslSessionIDUncacheFunc uncache; /* ssl 2 & 3 */
-
-    /*
-    ** everything below here is for ssl2 only.
-    ** This stuff is equivalent to SSL3's "spec", and is protected by the
-    ** same "Spec Lock" as used for SSL3's specs.
-    */
-    PRUint32 sendSequence; /*xmitBufLock*/ /* ssl2 only */
-    PRUint32 rcvSequence; /*recvBufLock*/  /* ssl2 only */
-
-    /* Hash information; used for one-way-hash functions (MD2, MD5, etc.) */
-    const SECHashObject *hash; /* Spec Lock */ /* ssl2 only */
-    void *hashcx; /* Spec Lock */              /* ssl2 only */
-
-    SECItem sendSecret; /* Spec Lock */ /* ssl2 only */
-    SECItem rcvSecret; /* Spec Lock */  /* ssl2 only */
-
-    /* Session cypher contexts; one for each direction */
-    void *readcx; /* Spec Lock */                    /* ssl2 only */
-    void *writecx; /* Spec Lock */                   /* ssl2 only */
-    SSLCipher enc; /* Spec Lock */                   /* ssl2 only */
-    SSLCipher dec; /* Spec Lock */                   /* ssl2 only */
-    void (*destroy)(void *, PRBool); /* Spec Lock */ /* ssl2 only */
-
-    /* Blocking information for the session cypher */
-    int blockShift; /* Spec Lock */ /* ssl2 only */
-    int blockSize; /* Spec Lock */  /* ssl2 only */
+    sslSessionIDCacheFunc cache;
+    sslSessionIDUncacheFunc uncache;
 
     /* These are used during a connection handshake */
-    sslConnectInfo ci; /* ssl 2 & 3 */
+    sslConnectInfo ci;
 };
 
 /*
@@ -1286,19 +1170,13 @@ struct sslSocketStr {
 
     sslSecurityInfo sec; /* not a pointer any more */
 
-    /* protected by firstHandshakeLock AND (in ssl3) ssl3HandshakeLock. */
-    const char *url; /* ssl 2 & 3 */
+    /* protected by firstHandshakeLock AND ssl3HandshakeLock. */
+    const char *url;
 
     sslHandshakeFunc handshake;         /*firstHandshakeLock*/
-    sslHandshakeFunc nextHandshake;     /*firstHandshakeLock*/
-    sslHandshakeFunc securityHandshake; /*firstHandshakeLock*/
 
     /* the following variable is only used with socks or other proxies. */
     char *peerID; /* String uniquely identifies target server. */
-
-    unsigned char *cipherSpecs;
-    unsigned int sizeCipherSpecs;
-    const unsigned char *preferredCipher;
 
     ssl3KeyPair *stepDownKeyPair; /* RSA step down keys */
 
@@ -1357,10 +1235,6 @@ struct sslSocketStr {
 
     PRUint16 shutdownHow; /* See ssl_SHUTDOWN defines below. */
 
-    PRUint16 allowedByPolicy;      /* copy of global policy bits. */
-    PRUint16 maybeAllowedByPolicy; /* copy of global policy bits. */
-    PRUint16 chosenPreference;     /* SSL2 cipher preferences. */
-
     sslHandshakingType handshaking;
 
     /* Gather object used for gathering data */
@@ -1409,7 +1283,6 @@ extern CERTDistNames *ssl3_server_ca_list;
 extern PRUint32 ssl_sid_timeout;
 extern PRUint32 ssl3_sid_timeout;
 
-extern const char *const ssl_cipherName[];
 extern const char *const ssl3_cipherName[];
 
 extern sslSessionIDLookupFunc ssl_sid_lookup;
@@ -1474,14 +1347,9 @@ extern PRFileDesc *ssl_FindTop(sslSocket *ss);
 
 /* Gather funcs. */
 extern sslGather *ssl_NewGather(void);
-extern SECStatus ssl_InitGather(sslGather *gs);
-extern void ssl_DestroyGather(sslGather *gs);
-extern int ssl2_GatherData(sslSocket *ss, sslGather *gs, int flags);
-extern int ssl2_GatherRecord(sslSocket *ss, int flags);
+extern SECStatus ssl3_InitGather(sslGather *gs);
+extern void ssl3_DestroyGather(sslGather *gs);
 extern SECStatus ssl_GatherRecord1stHandshake(sslSocket *ss);
-
-extern SECStatus ssl2_HandleClientHelloMessage(sslSocket *ss);
-extern SECStatus ssl2_HandleServerHelloMessage(sslSocket *ss);
 
 extern SECStatus ssl_CreateSecurityInfo(sslSocket *ss);
 extern SECStatus ssl_CopySecurityInfo(sslSocket *ss, sslSocket *os);
@@ -1489,20 +1357,18 @@ extern void ssl_ResetSecurityInfo(sslSecurityInfo *sec, PRBool doMemset);
 extern void ssl_DestroySecurityInfo(sslSecurityInfo *sec);
 
 extern void ssl_PrintBuf(sslSocket *ss, const char *msg, const void *cp, int len);
-extern void ssl_DumpMsg(sslSocket *ss, unsigned char *bp, unsigned len);
 
 extern int ssl_SendSavedWriteData(sslSocket *ss);
 extern SECStatus ssl_SaveWriteData(sslSocket *ss,
                                    const void *p, unsigned int l);
-extern SECStatus ssl2_BeginClientHandshake(sslSocket *ss);
-extern SECStatus ssl2_BeginServerHandshake(sslSocket *ss);
+extern SECStatus ssl_BeginClientHandshake(sslSocket *ss);
+extern SECStatus ssl_BeginServerHandshake(sslSocket *ss);
 extern int ssl_Do1stHandshake(sslSocket *ss);
 
 extern SECStatus sslBuffer_Grow(sslBuffer *b, unsigned int newLen);
 extern SECStatus sslBuffer_Append(sslBuffer *b, const void *data,
                                   unsigned int len);
 
-extern void ssl2_UseClearSendFunc(sslSocket *ss);
 extern void ssl_ChooseSessionIDProcs(sslSecurityInfo *sec);
 
 extern void ssl3_InitCipherSpec(ssl3CipherSpec *spec);
@@ -1686,8 +1552,7 @@ extern PRInt32 ssl3_SendRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
 #define SSL_LIBRARY_VERSION_MAX_SUPPORTED SSL_LIBRARY_VERSION_TLS_1_2
 #endif
 
-/* Rename this macro SSL_ALL_VERSIONS_DISABLED when SSL 2.0 is removed. */
-#define SSL3_ALL_VERSIONS_DISABLED(vrange) \
+#define SSL_ALL_VERSIONS_DISABLED(vrange) \
     ((vrange)->min == SSL_LIBRARY_VERSION_NONE)
 
 extern PRBool ssl3_VersionIsSupported(SSLProtocolVariant protocolVariant,
@@ -1702,7 +1567,6 @@ extern SECStatus ssl3_MasterSecretDeriveBypass(ssl3CipherSpec *pwSpec,
 
 /* These functions are called from secnav, even though they're "private". */
 
-extern int ssl2_SendErrorMessage(struct sslSocketStr *ss, int error);
 extern int SSL_RestartHandshakeAfterCertReq(struct sslSocketStr *ss,
                                             CERTCertificate *cert,
                                             SECKEYPrivateKey *key,
@@ -1720,12 +1584,7 @@ extern SECStatus ssl3_AuthCertificateComplete(sslSocket *ss, PRErrorCode error);
  */
 extern SECStatus ssl3_HandleV2ClientHello(
     sslSocket *ss, unsigned char *buffer, int length);
-extern SECStatus ssl3_StartHandshakeHash(
-    sslSocket *ss, unsigned char *buf, int length);
 
-/*
- * SSL3 specific routines
- */
 SECStatus ssl3_SendClientHello(sslSocket *ss, PRBool resending);
 
 /*
@@ -1809,25 +1668,15 @@ ECName ssl3_GetCurveNameForServerSocket(sslSocket *ss);
 
 extern SECStatus ssl3_CipherPrefSetDefault(ssl3CipherSuite which, PRBool on);
 extern SECStatus ssl3_CipherPrefGetDefault(ssl3CipherSuite which, PRBool *on);
-extern SECStatus ssl2_CipherPrefSetDefault(PRInt32 which, PRBool enabled);
-extern SECStatus ssl2_CipherPrefGetDefault(PRInt32 which, PRBool *enabled);
 
 extern SECStatus ssl3_CipherPrefSet(sslSocket *ss, ssl3CipherSuite which, PRBool on);
 extern SECStatus ssl3_CipherPrefGet(sslSocket *ss, ssl3CipherSuite which, PRBool *on);
-extern SECStatus ssl2_CipherPrefSet(sslSocket *ss, PRInt32 which, PRBool enabled);
-extern SECStatus ssl2_CipherPrefGet(sslSocket *ss, PRInt32 which, PRBool *enabled);
 
 extern SECStatus ssl3_SetPolicy(ssl3CipherSuite which, PRInt32 policy);
 extern SECStatus ssl3_GetPolicy(ssl3CipherSuite which, PRInt32 *policy);
-extern SECStatus ssl2_SetPolicy(PRInt32 which, PRInt32 policy);
-extern SECStatus ssl2_GetPolicy(PRInt32 which, PRInt32 *policy);
 
-extern void ssl2_InitSocketPolicy(sslSocket *ss);
 extern void ssl3_InitSocketPolicy(sslSocket *ss);
 extern void ssl3_InitCipherSpec(ssl3CipherSpec *spec);
-
-extern SECStatus ssl3_ConstructV2CipherSpecsHack(sslSocket *ss,
-                                                 unsigned char *cs, int *size);
 
 extern SECStatus ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache);
 extern SECStatus ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b,

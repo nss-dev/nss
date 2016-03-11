@@ -25,7 +25,7 @@
 
 SEC_BEGIN_PROTOS
 
-/* constant table enumerating all implemented SSL 2 and 3 cipher suites. */
+/* constant table enumerating all implemented cipher suites. */
 SSL_IMPORT const PRUint16 SSL_ImplementedCiphers[];
 
 /* the same as the above, but is a function */

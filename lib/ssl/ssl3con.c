@@ -210,10 +210,7 @@ ssl3_CheckCipherSuiteOrderConsistency()
 {
     unsigned int i;
 
-    /* Note that SSL_ImplementedCiphers has more elements than cipherSuites
-     * because it SSL_ImplementedCiphers includes SSL 2.0 cipher suites.
-     */
-    PORT_Assert(SSL_NumImplementedCiphers >= PR_ARRAY_SIZE(cipherSuites));
+    PORT_Assert(SSL_NumImplementedCiphers == PR_ARRAY_SIZE(cipherSuites));
 
     for (i = 0; i < PR_ARRAY_SIZE(cipherSuites); ++i) {
         PORT_Assert(SSL_ImplementedCiphers[i] == cipherSuites[i].cipher_suite);
@@ -816,7 +813,7 @@ ssl3_config_match_init(sslSocket *ss)
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return 0;
     }
-    if (SSL3_ALL_VERSIONS_DISABLED(&ss->vrange)) {
+    if (SSL_ALL_VERSIONS_DISABLED(&ss->vrange)) {
         return 0;
     }
     isServer = (PRBool)(ss->sec.isServer != 0);
@@ -924,13 +921,13 @@ config_match(ssl3CipherSuiteCfg *suite, int policy, PRBool enabled,
 
 /* return number of cipher suites that match policy, enabled state and are
  * applicable for the configured protocol version range. */
-/* called from ssl3_SendClientHello and ssl3_ConstructV2CipherSpecsHack */
+/* called from ssl3_SendClientHello */
 static int
 count_cipher_suites(sslSocket *ss, int policy, PRBool enabled)
 {
     int i, count = 0;
 
-    if (SSL3_ALL_VERSIONS_DISABLED(&ss->vrange)) {
+    if (SSL_ALL_VERSIONS_DISABLED(&ss->vrange)) {
         return 0;
     }
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
@@ -977,7 +974,7 @@ SECStatus
 ssl3_NegotiateVersion(sslSocket *ss, SSL3ProtocolVersion peerVersion,
                       PRBool allowLargerPeerVersion)
 {
-    if (SSL3_ALL_VERSIONS_DISABLED(&ss->vrange)) {
+    if (SSL_ALL_VERSIONS_DISABLED(&ss->vrange)) {
         PORT_SetError(SSL_ERROR_SSL_DISABLED);
         return SECFailure;
     }
@@ -2495,7 +2492,7 @@ ssl3_ComputeRecordMAC(
             return SECFailure;
         }
 
-        if (spec->version <= SSL_LIBRARY_VERSION_3_0) {
+        if (spec->version == SSL_LIBRARY_VERSION_3_0) {
             unsigned int tempLen;
             unsigned char temp[MAX_MAC_LENGTH];
 
@@ -2610,7 +2607,7 @@ ssl3_ComputeRecordMACConstantTime(
     }
 
     macType = CKM_NSS_HMAC_CONSTANT_TIME;
-    if (spec->version <= SSL_LIBRARY_VERSION_3_0) {
+    if (spec->version == SSL_LIBRARY_VERSION_3_0) {
         macType = CKM_NSS_SSL3_MAC_CONSTANT_TIME;
     }
 
@@ -4377,7 +4374,6 @@ ssl3_RestartHandshakeHashes(sslSocket *ss)
  */
 /* Called from  ssl3_InitHandshakeHashes()
 **      ssl3_AppendHandshake()
-**      ssl3_StartHandshakeHash()
 **      ssl3_HandleV2ClientHello()
 **      ssl3_HandleHandshakeMessage()
 ** Caller must hold the ssl3Handshake lock.
@@ -5231,42 +5227,6 @@ loser:
     return rv;
 }
 
-/*
- * SSL 2 based implementations pass in the initial outbound buffer
- * so that the handshake hash can contain the included information.
- *
- * Called from ssl2_BeginClientHandshake() in sslcon.c
- */
-SECStatus
-ssl3_StartHandshakeHash(sslSocket *ss, unsigned char *buf, int length)
-{
-    SECStatus rv;
-
-    ssl_GetSSL3HandshakeLock(ss); /**************************************/
-
-    rv = ssl3_InitState(ss);
-    if (rv != SECSuccess) {
-        goto done; /* ssl3_InitState has set the error code. */
-    }
-    rv = ssl3_RestartHandshakeHashes(ss);
-    if (rv != SECSuccess) {
-        goto done;
-    }
-
-    PORT_Memset(&ss->ssl3.hs.client_random, 0, SSL3_RANDOM_LENGTH);
-    PORT_Memcpy(
-        &ss->ssl3.hs.client_random.rand[SSL3_RANDOM_LENGTH - SSL_CHALLENGE_BYTES],
-        &ss->sec.ci.clientChallenge,
-        SSL_CHALLENGE_BYTES);
-
-    rv = ssl3_UpdateHandshakeHashes(ss, buf, length);
-    /* if it failed, ssl3_UpdateHandshakeHashes has set the error code. */
-
-done:
-    ssl_ReleaseSSL3HandshakeLock(ss); /**************************************/
-    return rv;
-}
-
 /**************************************************************************
  * end of Handshake Hash functions.
  * Begin Send and Handle functions for handshakes.
@@ -5274,7 +5234,7 @@ done:
 
 /* Called from ssl3_HandleHelloRequest(),
  *             ssl3_RedoHandshake()
- *             ssl2_BeginClientHandshake (when resuming ssl3 session)
+ *             ssl_BeginClientHandshake (when resuming ssl3 session)
  *             dtls_HandleHelloVerifyRequest(with resending=PR_TRUE)
  */
 SECStatus
@@ -5327,7 +5287,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
      * work around a Windows SChannel bug. Ensure that it is still enabled.
      */
     if (ss->firstHsDone) {
-        if (SSL3_ALL_VERSIONS_DISABLED(&ss->vrange)) {
+        if (SSL_ALL_VERSIONS_DISABLED(&ss->vrange)) {
             PORT_SetError(SSL_ERROR_SSL_DISABLED);
             return SECFailure;
         }
@@ -5341,7 +5301,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
 
     /* We ignore ss->sec.ci.sid here, and use ssl_Lookup because Lookup
      * handles expired entries and other details.
-     * XXX If we've been called from ssl2_BeginClientHandshake, then
+     * XXX If we've been called from ssl_BeginClientHandshake, then
      * this lookup is duplicative and wasteful.
      */
     sid = (ss->opt.noCache) ? NULL
@@ -5497,10 +5457,8 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     }
     ss->sec.ci.sid = sid;
 
-    ss->sec.send = ssl3_SendApplicationData;
-
     /* shouldn't get here if SSL3 is disabled, but ... */
-    if (SSL3_ALL_VERSIONS_DISABLED(&ss->vrange)) {
+    if (SSL_ALL_VERSIONS_DISABLED(&ss->vrange)) {
         PR_NOT_REACHED("No versions of SSL 3.0 or later are enabled");
         PORT_SetError(SSL_ERROR_SSL_DISABLED);
         return SECFailure;
@@ -8328,20 +8286,6 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         return rv; /* error code is set. */
     }
 
-    /* Clearing the handshake pointers so that ssl_Do1stHandshake won't
-     * call ssl2_HandleMessage.
-     *
-     * The issue here is that TLS ordinarily starts out in
-     * ssl2_HandleV3HandshakeRecord() because of the backward-compatibility
-     * code paths. That function zeroes these next pointers. But with DTLS,
-     * we don't even try to do the v2 ClientHello so we skip that function
-     * and need to reset these values here.
-     */
-    if (IS_DTLS(ss)) {
-        ss->nextHandshake = 0;
-        ss->securityHandshake = 0;
-    }
-
     /* We might be starting session renegotiation in which case we should
      * clear previous state.
      */
@@ -8766,8 +8710,6 @@ suite_found:
 compression_found:
     suites.data = NULL;
     comps.data = NULL;
-
-    ss->sec.send = ssl3_SendApplicationData;
 
     /* If there are any failures while processing the old sid,
      * we don't consider them to be errors.  Instead, We just behave
@@ -9205,7 +9147,6 @@ loser:
 /*
  * ssl3_HandleV2ClientHello is used when a V2 formatted hello comes
  * in asking to use the V3 handshake.
- * Called from ssl2_HandleClientHelloMessage() in sslcon.c
  */
 SECStatus
 ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
@@ -9368,7 +9309,6 @@ suite_found:
     }
 
     ss->ssl3.hs.compression = ssl_compression_null;
-    ss->sec.send = ssl3_SendApplicationData;
 
     /* we don't even search for a cache hit here.  It's just a miss. */
     SSL_AtomicIncrementLong(&ssl3stats.hch_sid_cache_misses);
@@ -9395,13 +9335,6 @@ suite_found:
         goto loser;
     }
 
-    /* XXX_1    The call stack to here is:
-     * ssl_Do1stHandshake -> ssl2_HandleClientHelloMessage -> here.
-     * ssl2_HandleClientHelloMessage returns whatever we return here.
-     * ssl_Do1stHandshake will continue looping if it gets back either
-     *      SECSuccess or SECWouldBlock.
-     * SECSuccess is preferable here.  See XXX_1 in sslgathr.c.
-     */
     ssl_ReleaseSSL3HandshakeLock(ss);
     return SECSuccess;
 
@@ -13113,7 +13046,6 @@ ssl3_InitCipherSpec(ssl3CipherSpec *spec)
 }
 
 /* Called from: ssl3_SendRecord
-**      ssl3_StartHandshakeHash() <- ssl2_BeginClientHandshake()
 **      ssl3_SendClientHello()
 **      ssl3_HandleV2ClientHello()
 **      ssl3_HandleRecord()
@@ -13436,44 +13368,6 @@ ssl3_InitSocketPolicy(sslSocket *ss)
     ss->ssl3.signatureAlgorithmCount = PR_ARRAY_SIZE(defaultSignatureAlgorithms);
 }
 
-/* ssl3_config_match_init must have already been called by
- * the caller of this function.
- */
-SECStatus
-ssl3_ConstructV2CipherSpecsHack(sslSocket *ss, unsigned char *cs, int *size)
-{
-    int i, count = 0;
-
-    PORT_Assert(ss != 0);
-    if (!ss) {
-        PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
-        return SECFailure;
-    }
-    if (SSL3_ALL_VERSIONS_DISABLED(&ss->vrange)) {
-        *size = 0;
-        return SECSuccess;
-    }
-    if (cs == NULL) {
-        *size = count_cipher_suites(ss, SSL_ALLOWED, PR_TRUE);
-        return SECSuccess;
-    }
-
-    /* ssl3_config_match_init was called by the caller of this function. */
-    for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
-        ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
-        if (config_match(suite, SSL_ALLOWED, PR_TRUE, &ss->vrange, ss)) {
-            if (cs != NULL) {
-                *cs++ = 0x00;
-                *cs++ = (suite->cipher_suite >> 8) & 0xFF;
-                *cs++ = suite->cipher_suite & 0xFF;
-            }
-            count++;
-        }
-    }
-    *size = count;
-    return SECSuccess;
-}
-
 /*
 ** If ssl3 socket has completed the first handshake, and is in idle state,
 ** then start a new handshake.
@@ -13491,9 +13385,7 @@ ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache)
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     if (!ss->firstHsDone ||
-        ((ss->version >= SSL_LIBRARY_VERSION_3_0) &&
-         ss->ssl3.initialized &&
-         (ss->ssl3.hs.ws != idle_handshake))) {
+        (ss->ssl3.initialized && (ss->ssl3.hs.ws != idle_handshake))) {
         PORT_SetError(SSL_ERROR_HANDSHAKE_NOT_COMPLETED);
         return SECFailure;
     }

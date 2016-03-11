@@ -135,14 +135,6 @@ const PRUint16 SSL_ImplementedCiphers[] = {
     TLS_RSA_WITH_NULL_SHA256,
     TLS_RSA_WITH_NULL_MD5,
 
-    /* SSL2 cipher suites. */
-    SSL_EN_RC4_128_WITH_MD5,
-    SSL_EN_RC2_128_CBC_WITH_MD5,
-    SSL_EN_DES_192_EDE3_CBC_WITH_MD5, /* actually 112, not 192 */
-    SSL_EN_DES_64_CBC_WITH_MD5,
-    SSL_EN_RC4_128_EXPORT40_WITH_MD5,
-    SSL_EN_RC2_128_CBC_EXPORT40_WITH_MD5,
-
     0
 
 };
