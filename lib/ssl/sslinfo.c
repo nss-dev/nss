@@ -63,6 +63,8 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
                 ssl_GetCompressionMethodName(inf.compressionMethod);
         }
         if (sid) {
+            unsigned int sidLen;
+
             inf.creationTime = sid->creationTime;
             inf.lastAccessTime = sid->lastAccessTime;
             inf.expirationTime = sid->expirationTime;
@@ -72,7 +74,7 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
                     ? PR_TRUE
                     : PR_FALSE;
 
-            unsigned int sidLen = sid->u.ssl3.sessionIDLength;
+            sidLen = sid->u.ssl3.sessionIDLength;
             sidLen = PR_MIN(sidLen, sizeof inf.sessionID);
             inf.sessionIDLength = sidLen;
             memcpy(inf.sessionID, sid->u.ssl3.sessionID, sidLen);
