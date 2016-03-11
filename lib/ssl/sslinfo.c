@@ -50,11 +50,7 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
         inf.protocolVersion = ss->version;
         inf.authKeyBits = ss->sec.authKeyBits;
         inf.keaKeyBits = ss->sec.keaKeyBits;
-        if (ss->version < SSL_LIBRARY_VERSION_3_0) { /* SSL2 */
-            inf.cipherSuite = ss->sec.cipherType | 0xff00;
-            inf.compressionMethod = ssl_compression_null;
-            inf.compressionMethodName = "N/A";
-        } else if (ss->ssl3.initialized) { /* SSL3 and TLS */
+        if (ss->ssl3.initialized) {
             ssl_GetSpecReadLock(ss);
             /* XXX  The cipher suite should be in the specs and this
              * function should get it from cwSpec rather than from the "hs".
@@ -76,16 +72,10 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
                     ? PR_TRUE
                     : PR_FALSE;
 
-            if (ss->version < SSL_LIBRARY_VERSION_3_0) { /* SSL2 */
-                inf.sessionIDLength = SSL2_SESSIONID_BYTES;
-                memcpy(inf.sessionID, sid->u.ssl2.sessionID,
-                       SSL2_SESSIONID_BYTES);
-            } else {
-                unsigned int sidLen = sid->u.ssl3.sessionIDLength;
-                sidLen = PR_MIN(sidLen, sizeof inf.sessionID);
-                inf.sessionIDLength = sidLen;
-                memcpy(inf.sessionID, sid->u.ssl3.sessionID, sidLen);
-            }
+            unsigned int sidLen = sid->u.ssl3.sessionIDLength;
+            sidLen = PR_MIN(sidLen, sizeof inf.sessionID);
+            inf.sessionIDLength = sidLen;
+            memcpy(inf.sessionID, sid->u.ssl3.sessionID, sidLen);
         }
     }
 
@@ -114,11 +104,6 @@ SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
     if (!ss) {
         SSL_DBG(("%d: SSL[%d]: bad socket in SSL_GetPreliminaryChannelInfo",
                  SSL_GETPID(), fd));
-        return SECFailure;
-    }
-
-    if (ss->version < SSL_LIBRARY_VERSION_3_0) {
-        PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_VERSION);
         return SECFailure;
     }
 
@@ -224,7 +209,7 @@ static const SSLCipherSuiteInfo suiteInfo[] = {
     {0,CS(TLS_RSA_WITH_NULL_SHA),                 S_RSA, K_RSA, C_NULL,B_0,   M_SHA, 0, 1, 0 },
     {0,CS(TLS_RSA_WITH_NULL_MD5),                 S_RSA, K_RSA, C_NULL,B_0,   M_MD5, 0, 1, 0 },
 
-    #ifndef NSS_DISABLE_ECC
+#ifndef NSS_DISABLE_ECC
     /* ECC cipher suites */
     {0,CS(TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256), S_RSA, K_ECDHE, C_AESGCM, B_128, M_AEAD_128, 1, 0, 0 },
     {0,CS(TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256), S_ECDSA, K_ECDHE, C_AESGCM, B_128, M_AEAD_128, 1, 0, 0 },
@@ -256,15 +241,7 @@ static const SSLCipherSuiteInfo suiteInfo[] = {
     {0,CS(TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256), S_RSA, K_ECDHE, C_AES, B_128, M_SHA256, 1, 0, 0 },
     {0,CS(TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA),    S_RSA, K_ECDHE, C_AES, B_256, M_SHA, 1, 0, 0 },
     {0,CS(TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256), S_RSA, K_ECDHE, C_CHACHA20, B_256, M_AEAD_128, 0, 0, 0 },
-    #endif /* NSS_DISABLE_ECC */
-
-    /* SSL 2 table */
-    {0,CK(SSL_CK_RC4_128_WITH_MD5),               S_RSA, K_RSA, C_RC4, B_128, M_MD5, 0, 0, 0 },
-    {0,CK(SSL_CK_RC2_128_CBC_WITH_MD5),           S_RSA, K_RSA, C_RC2, B_128, M_MD5, 0, 0, 0 },
-    {0,CK(SSL_CK_DES_192_EDE3_CBC_WITH_MD5),      S_RSA, K_RSA, C_3DES,B_3DES,M_MD5, 0, 0, 0 },
-    {0,CK(SSL_CK_DES_64_CBC_WITH_MD5),            S_RSA, K_RSA, C_DES, B_DES, M_MD5, 0, 0, 0 },
-    {0,CK(SSL_CK_RC4_128_EXPORT40_WITH_MD5),      S_RSA, K_RSA, C_RC4, B_40,  M_MD5, 0, 1, 0 },
-    {0,CK(SSL_CK_RC2_128_CBC_EXPORT40_WITH_MD5),  S_RSA, K_RSA, C_RC2, B_40,  M_MD5, 0, 1, 0 }
+#endif /* NSS_DISABLE_ECC */
 };
 /* clang-format on */
 
