@@ -741,6 +741,7 @@ ServerSessionIDCache(sslSessionID *sid)
 
     if (sid->cached == never_cached || sid->cached == invalid_cache) {
         PRUint32 set;
+        SECItem *name;
 
         PORT_Assert(sid->creationTime != 0);
         if (!sid->creationTime)
@@ -760,7 +761,7 @@ ServerSessionIDCache(sslSessionID *sid)
 
         ConvertFromSID(&sce, sid);
 
-        SECItem *name = &sid->u.ssl3.srvName;
+        name = &sid->u.ssl3.srvName;
         if (name->len && name->data) {
             now = CacheSrvName(cache, name, &sce);
         }
