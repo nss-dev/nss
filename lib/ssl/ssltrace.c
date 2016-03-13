@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include <stdarg.h>
 #include "cert.h"
+#include "pk11func.h"
 #include "ssl.h"
 #include "sslimpl.h"
 #include "sslproto.h"
@@ -84,5 +85,24 @@ ssl_Trace(const char *format, ...)
         fputs(buf, ssl_trace_iob);
         fputs("\n", ssl_trace_iob);
     }
+}
+
+void
+ssl_PrintKey(sslSocket *ss, const char *msg, PK11SymKey* key)
+{
+    SECStatus rv;
+    SECItem *rawkey;
+
+    rv = PK11_ExtractKeyValue(key);
+    if (rv != SECSuccess) {
+        ssl_Trace("Could not extract key for %s", msg);
+        return;
+    }
+    rawkey = PK11_GetKeyData(key);
+    if (!rawkey) {
+        ssl_Trace("Could not extract key for %s", msg);
+        return;
+    }
+    ssl_PrintBuf(ss, msg, rawkey->data, rawkey->len);
 }
 #endif

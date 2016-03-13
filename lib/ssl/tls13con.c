@@ -904,6 +904,8 @@ tls13_AddContextToHashes(sslSocket *ss, SSL3Hashes *hashes /* IN/OUT */,
     PORT_Assert(SECFailure);
     PORT_Assert(!SECSuccess);
 
+    PRINT_BUF(90, (ss, "TLS 1.3 hash without context", hashes->u.raw, hashes->len));
+    PRINT_BUF(90, (ss, "Context string", context_string, strlen(context_string)));
     rv |= PK11_DigestBegin(ctx);
     rv |= PK11_DigestOp(ctx, context_padding, sizeof(context_padding));
     rv |= PK11_DigestOp(ctx, (unsigned char *)context_string,
