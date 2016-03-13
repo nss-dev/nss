@@ -1580,6 +1580,12 @@ int main(int argc, char **argv)
 		            "%s: about to call PR_Poll on writable socket !\n", 
 			    progName);
 		    cc = PR_Poll(pollset, 1, PR_INTERVAL_NO_TIMEOUT);
+                    if (cc < 0) {
+                        SECU_PrintError(progName, 
+                                        "PR_Poll failed");
+                        error = 1;
+                        goto done;
+                    }
 		    FPRINTF(stderr,
 		            "%s: PR_Poll returned with writable socket !\n", 
 			    progName);

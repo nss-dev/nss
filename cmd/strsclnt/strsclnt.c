@@ -327,7 +327,7 @@ printSecurityInfo(PRFileDesc *fd)
 
 #define MAX_THREADS 128
 
-typedef int startFn(void *a, void *b, int c);
+typedef SECStatus startFn(void *a, void *b, int c);
 
 
 static PRInt32     numConnected;
@@ -547,7 +547,7 @@ lockedVars_AddToCount(lockedVars * lv, int addend)
     return rv;
 }
 
-int
+SECStatus
 do_writes(
     void *       a,
     void *       b,
@@ -708,7 +708,7 @@ myHandshakeCallback(PRFileDesc *socket, void *arg)
 /* one copy of this function is launched in a separate thread for each
 ** connection to be made.
 */
-int
+SECStatus
 do_connects(
     void *	a,
     void *	b,
@@ -720,7 +720,7 @@ do_connects(
     PRFileDesc *        tcp_sock	= 0;
     PRStatus	        prStatus;
     PRUint32            sleepInterval	= 50; /* milliseconds */
-    int                 rv 		= SECSuccess;
+    SECStatus           rv 		= SECSuccess;
     PRSocketOptionData  opt;
 
 retry:
@@ -784,7 +784,6 @@ retry:
 	    goto retry;
 	}
 	errWarn("PR_Connect");
-	rv = SECFailure;
 	goto done;
     } else {
         if (ThrottleUp) {
@@ -855,7 +854,7 @@ done:
     } else if (tcp_sock) {
 	PR_Close(tcp_sock);
     }
-    return SECSuccess;
+    return rv;
 }
 
 
@@ -1239,7 +1238,7 @@ client_main(
 
     if (!NoReuse) {
         remaining_connections = 1;
-	rv = launch_thread(do_connects, &addr, model_sock, 0);
+	launch_thread(do_connects, &addr, model_sock, 0);
 	/* wait for the first connection to terminate, then launch the rest. */
 	reap_threads();
         remaining_connections = total_connections - 1 ;
@@ -1248,7 +1247,7 @@ client_main(
         active_threads  = PR_MIN(active_threads, remaining_connections);
 	/* Start up the threads */
 	for (i=0;i<active_threads;i++) {
-	    rv = launch_thread(do_connects, &addr, model_sock, i);
+	    launch_thread(do_connects, &addr, model_sock, i);
 	}
 	reap_threads();
     }
