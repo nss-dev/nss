@@ -86,9 +86,13 @@ extern int Debug;
 #define PRINT_BUF(a, b)   \
     if (ssl_trace >= (a)) \
     ssl_PrintBuf b
+#define PRINT_KEY(a, b) \
+    if (ssl_trace >= (a)) \
+    ssl_PrintKey b
 #else
 #define SSL_TRC(a, b)
 #define PRINT_BUF(a, b)
+#define PRINT_KEY(a, b)
 #endif
 
 #ifdef DEBUG
@@ -1357,6 +1361,7 @@ extern void ssl_ResetSecurityInfo(sslSecurityInfo *sec, PRBool doMemset);
 extern void ssl_DestroySecurityInfo(sslSecurityInfo *sec);
 
 extern void ssl_PrintBuf(sslSocket *ss, const char *msg, const void *cp, int len);
+extern void ssl_PrintKey(sslSocket *ss, const char *msg, PK11SymKey* key);
 
 extern int ssl_SendSavedWriteData(sslSocket *ss);
 extern SECStatus ssl_SaveWriteData(sslSocket *ss,
