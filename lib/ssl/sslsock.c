@@ -2936,7 +2936,7 @@ ssl_WriteV(PRFileDesc *fd, const PRIOVec *iov, PRInt32 vectors,
     const PRInt32 first_len = sslFirstBufSize;
     const PRInt32 limit = sslCopyLimit;
     PRBool blocking;
-    PRIOVec myIov = { 0, 0 };
+    PRIOVec myIov;
     char buf[MAX_FRAGMENT_LENGTH];
 
     if (vectors < 0) {

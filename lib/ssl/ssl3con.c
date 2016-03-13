@@ -3274,19 +3274,19 @@ ssl3_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags)
     static const PRInt32 allowedFlags = ssl_SEND_FLAG_FORCE_INTO_BUFFER |
                                         ssl_SEND_FLAG_CAP_RECORD_VERSION;
     PRInt32 count = -1;
-    SECStatus rv = SECSuccess;
+    SECStatus rv;
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
 
     if (!ss->sec.ci.sendBuf.buf || !ss->sec.ci.sendBuf.len)
-        return rv;
+        return SECSuccess;
 
     /* only these flags are allowed */
     PORT_Assert(!(flags & ~allowedFlags));
     if ((flags & ~allowedFlags) != 0) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        rv = SECFailure;
+        return SECFailure;
     } else {
         count = ssl3_SendRecord(ss, NULL, content_handshake,
                                 ss->sec.ci.sendBuf.buf,
@@ -7653,8 +7653,6 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (length != 0)
         goto alert_loser; /* malformed */
 
-    desc = no_certificate;
-
     ss->ssl3.hs.ws = wait_hello_done;
 
     rv = ssl3_CompleteHandleCertificateRequest(ss, &algorithms, &ca_list);
@@ -8419,7 +8417,6 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
             goto loser;
         }
     }
-    desc = handshake_failure;
 
     /* Handle TLS hello extensions for SSL3 & TLS. We do not know if
      * we are restarting a previous session until extensions have been
@@ -8638,6 +8635,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     /* Look for a matching cipher suite. */
     j = ssl3_config_match_init(ss);
     if (j <= 0) {                  /* no ciphers are working/supported by PK11 */
+        desc = internal_error;
         errCode = PORT_GetError(); /* error code is already set. */
         goto alert_loser;
     }
@@ -8914,7 +8912,6 @@ compression_found:
 
             if (haveXmitBufLock) {
                 ssl_ReleaseXmitBufLock(ss);
-                haveXmitBufLock = PR_FALSE;
             }
 
             return SECSuccess;
@@ -9115,7 +9112,6 @@ compression_found:
 
     if (haveXmitBufLock) {
         ssl_ReleaseXmitBufLock(ss);
-        haveXmitBufLock = PR_FALSE;
     }
 
     return SECSuccess;
@@ -9130,12 +9126,10 @@ alert_loser:
 loser:
     if (haveSpecWriteLock) {
         ssl_ReleaseSpecWriteLock(ss);
-        haveSpecWriteLock = PR_FALSE;
     }
 
     if (haveXmitBufLock) {
         ssl_ReleaseXmitBufLock(ss);
-        haveXmitBufLock = PR_FALSE;
     }
 
     PORT_SetError(errCode);
@@ -9532,7 +9526,6 @@ ssl3_SendDHServerKeyExchange(sslSocket *ss)
     privKey = SECKEY_CreateDHPrivateKey(&dhParam, &pubKey, NULL);
     if (!privKey || !pubKey) {
         ssl_MapLowLevelError(SEC_ERROR_KEYGEN_FAIL);
-        rv = SECFailure;
         goto loser;
     }
 
@@ -11173,13 +11166,11 @@ ssl3_AuthCertificate(sslSocket *ss)
         if (rv == SECWouldBlock) {
             if (ss->sec.isServer) {
                 errCode = SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_SERVERS;
-                rv = SECFailure;
                 goto loser;
             }
             /* TODO(ekr@rtfm.com): Reenable for TLS 1.3 */
             if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
                 errCode = SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_VERSION;
-                rv = SECFailure;
                 goto loser;
             }
 
@@ -11293,11 +11284,10 @@ ssl3_AuthCertificate(sslSocket *ss)
     PORT_Assert(rv == SECSuccess);
     if (rv != SECSuccess) {
         errCode = SEC_ERROR_LIBRARY_FAILURE;
-        rv = SECFailure;
         goto loser;
     }
 
-    return rv;
+    return SECSuccess;
 
 loser:
     (void)ssl_MapLowLevelError(errCode);
@@ -11981,6 +11971,7 @@ ssl3_FinishHandshake(sslSocket *ss)
 
     if (ss->ssl3.hs.cacheSID) {
         PORT_Assert(ss->sec.ci.sid->cached == never_cached);
+        PORT_Assert(ss->sec.cache);
         (*ss->sec.cache)(ss->sec.ci.sid);
         ss->ssl3.hs.cacheSID = PR_FALSE;
     }

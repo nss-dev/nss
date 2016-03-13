@@ -184,6 +184,8 @@ SSL_ResetHandshake(PRFileDesc *s, PRBool asServer)
     ssl_GetRecvBufLock(ss);
     status = ssl3_InitGather(&ss->gs);
     ssl_ReleaseRecvBufLock(ss);
+    if (status != SECSuccess)
+        goto loser;
 
     ssl_GetSSL3HandshakeLock(ss);
     ss->ssl3.hs.canFalseStart = PR_FALSE;
@@ -203,6 +205,7 @@ SSL_ResetHandshake(PRFileDesc *s, PRBool asServer)
     if (!ss->TCPconnected)
         ss->TCPconnected = (PR_SUCCESS == ssl_DefGetpeername(ss, &addr));
 
+loser:
     SSL_UNLOCK_WRITER(ss);
     SSL_UNLOCK_READER(ss);
 
