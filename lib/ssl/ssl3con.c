@@ -2296,6 +2296,7 @@ fail:
  *
  * We do not support PKCS#11 bypass for ChaCha20/Poly1305.
  */
+#ifndef NO_PKCS11_BYPASS
 static PRBool
 ssl3_CanBypassCipher(SSLCipherAlgorithm calg)
 {
@@ -2306,6 +2307,7 @@ ssl3_CanBypassCipher(SSLCipherAlgorithm calg)
             return PR_TRUE;
     }
 }
+#endif
 
 /* Complete the initialization of all keys, ciphers, MACs and their contexts
  * for the pending Cipher Spec.
