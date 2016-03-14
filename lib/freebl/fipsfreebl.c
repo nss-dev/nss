@@ -1648,7 +1648,9 @@ static PRBool self_tests_freebl_ran = PR_FALSE;
 static PRBool self_tests_ran = PR_FALSE;
 static PRBool self_tests_freebl_success = PR_FALSE;
 static PRBool self_tests_success = PR_FALSE;
+#if defined(DEBUG)
 static PRBool fips_mode_available = PR_FALSE;
+#endif
 
 /*
  * accessors for freebl
