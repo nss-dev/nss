@@ -1123,7 +1123,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     PRUint8 length_buf[4];
     PRUint32 now;
     PK11SymKey *aes_key_pkcs11 = NULL;
-    PK11SymKey *mac_key_pkcs11 = NULL;;
+    PK11SymKey *mac_key_pkcs11 = NULL;
 #ifndef NO_PKCS11_BYPASS
     const unsigned char *aes_key = NULL;
     const unsigned char *mac_key = NULL;
