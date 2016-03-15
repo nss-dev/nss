@@ -1302,14 +1302,14 @@ AES_Encrypt(AESContext *cx, unsigned char *output,
      *
      * We do it here to cover both hardware and software GCM operations.
      */
-    PR_STATIC_ASSERT(sizeof(unsigned int) > 4);
+    {PR_STATIC_ASSERT(sizeof(unsigned int) > 4);}
     if ((cx->mode == NSS_AES_GCM) && (inputLen > MP_32BIT_MAX)) {
 	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 	return SECFailure;
     }
 #else
     /* if we can't pass in a 32_bit number, then no such check needed */
-    PR_STATIC_ASSERT(sizeof(unsigned int) <= 4);
+    {PR_STATIC_ASSERT(sizeof(unsigned int) <= 4);}
 #endif
 
     return (*cx->worker)(cx->worker_cx, output, outputLen, maxOutputLen,	
