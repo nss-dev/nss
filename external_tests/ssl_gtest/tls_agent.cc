@@ -420,7 +420,7 @@ void TlsAgent::CheckCallbacks() const {
 
   // These callbacks shouldn't fire if we are resuming.
   if (role_ == SERVER) {
-    bool have_sni = SSLInt_ExtensionNegotiated(ssl_fd_, ssl_server_name_xtn);
+    PRBool have_sni = SSLInt_ExtensionNegotiated(ssl_fd_, ssl_server_name_xtn);
     EXPECT_EQ(!expect_resumption_ && have_sni, sni_hook_called_);
   } else {
     EXPECT_EQ(!expect_resumption_, auth_certificate_hook_called_);
