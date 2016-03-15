@@ -658,7 +658,7 @@ jar_listzip(JAR *jar, JAR_FILE fp)
 {
     ZZLink *ent;
     JAR_Item *it;
-    JAR_Physical *phy;
+    JAR_Physical *phy = NULL;
     struct ZipLocal *Local = PORT_ZNew(struct ZipLocal);
     struct ZipCentral *Central = PORT_ZNew(struct ZipCentral);
     struct ZipEnd *End = PORT_ZNew(struct ZipEnd);
@@ -802,6 +802,8 @@ jar_listzip(JAR *jar, JAR_FILE fp)
 loser:
     if (Local)
         PORT_Free(Local);
+    if (phy && it == NULL)
+        PORT_Free(phy);
     if (Central)
         PORT_Free(Central);
     if (End)
