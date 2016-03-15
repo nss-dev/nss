@@ -875,7 +875,6 @@ typedef struct SSL3HandshakeStateStr {
     /* message for message type and header length */
     SSL3HandshakeType msg_type;
     unsigned long msg_len;
-    SECItem ca_list;        /* used only by client */
     PRBool isResuming;      /* are we resuming a session */
     PRBool usedStepDownKey; /* we did a server key exchange. */
     PRBool sendingSCSV;     /* instead of empty RI */
