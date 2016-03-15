@@ -7,6 +7,8 @@
 #ifndef libssl_internals_h_
 #define libssl_internals_h_
 
+#include <stdint.h>
+
 #include "prio.h"
 #include "seccomon.h"
 #include "sslt.h"
