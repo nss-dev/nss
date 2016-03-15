@@ -1300,7 +1300,7 @@ AES_Encrypt(AESContext *cx, unsigned char *output,
      * We do it here to cover both hardware and software GCM operations.
      */
     PR_STATIC_ASSERT(sizeof(unsigned int) > 4);
-    if ((cx->mode == NSS_AES_GCM) && (inputLen > MP_32_BIT_MAX)) {
+    if ((cx->mode == NSS_AES_GCM) && (inputLen > MP_32BIT_MAX)) {
 	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 	return SECFailure;
     }
