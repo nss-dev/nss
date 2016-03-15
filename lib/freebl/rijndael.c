@@ -21,8 +21,11 @@
 
 #ifdef USE_HW_AES
 #include "intel-aes.h"
+#endif
+
 #include "mpi.h"
 
+#ifdef USE_HW_AES
 static int has_intel_aes = 0;
 static PRBool use_hw_aes = PR_FALSE;
 
