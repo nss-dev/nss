@@ -52,16 +52,12 @@ static PK11SymKey *ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
 static SECStatus ssl3_DeriveMasterSecret(sslSocket *ss, PK11SymKey *pms);
 static SECStatus ssl3_DeriveConnectionKeysPKCS11(sslSocket *ss);
 static SECStatus ssl3_HandshakeFailure(sslSocket *ss);
-static SECStatus ssl3_InitState(sslSocket *ss);
 
 static SECStatus ssl3_SendCertificateRequest(sslSocket *ss);
 static SECStatus ssl3_SendNextProto(sslSocket *ss);
 static SECStatus ssl3_SendFinished(sslSocket *ss, PRInt32 flags);
 static SECStatus ssl3_SendServerHelloDone(sslSocket *ss);
 static SECStatus ssl3_SendServerKeyExchange(sslSocket *ss);
-static SECStatus ssl3_UpdateHandshakeHashes(sslSocket *ss,
-                                            const unsigned char *b,
-                                            unsigned int l);
 static SECStatus ssl3_HandlePostHelloHandshakeMessage(sslSocket *ss,
                                                       SSL3Opaque *b,
                                                       PRUint32 length,
@@ -4347,7 +4343,7 @@ ssl3_InitHandshakeHashes(sslSocket *ss)
     return SECSuccess;
 }
 
-static SECStatus
+SECStatus
 ssl3_RestartHandshakeHashes(sslSocket *ss)
 {
     SECStatus rv = SECSuccess;
@@ -4380,7 +4376,7 @@ ssl3_RestartHandshakeHashes(sslSocket *ss)
 **      ssl3_HandleHandshakeMessage()
 ** Caller must hold the ssl3Handshake lock.
 */
-static SECStatus
+SECStatus
 ssl3_UpdateHandshakeHashes(sslSocket *ss, const unsigned char *b,
                            unsigned int l)
 {
@@ -9151,7 +9147,8 @@ loser:
  * in asking to use the V3 handshake.
  */
 SECStatus
-ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
+ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length,
+                         PRUint8 padding)
 {
     sslSessionID *sid = NULL;
     unsigned char *suites;
@@ -9165,6 +9162,7 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
     int rand_length;
     int errCode = SSL_ERROR_RX_MALFORMED_CLIENT_HELLO;
     SSL3AlertDescription desc = handshake_failure;
+    unsigned int total = SSL_HL_CLIENT_HELLO_HBYTES;
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle v2 client_hello", SSL_GETPID(), ss->fd));
 
@@ -9173,6 +9171,11 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
     ssl_GetSSL3HandshakeLock(ss);
 
     PORT_Memset(&ss->xtnData, 0, sizeof(TLSExtensionData));
+
+    version = (buffer[1] << 8) | buffer[2];
+    if (version < SSL_LIBRARY_VERSION_3_0) {
+        goto loser;
+    }
 
     rv = ssl3_InitState(ss);
     if (rv != SECSuccess) {
@@ -9188,13 +9191,13 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
     if (ss->ssl3.hs.ws != wait_client_hello) {
         desc = unexpected_message;
         errCode = SSL_ERROR_RX_UNEXPECTED_CLIENT_HELLO;
-        goto loser; /* alert_loser */
+        goto alert_loser;
     }
 
-    version = (buffer[1] << 8) | buffer[2];
-    suite_length = (buffer[3] << 8) | buffer[4];
-    sid_length = (buffer[5] << 8) | buffer[6];
-    rand_length = (buffer[7] << 8) | buffer[8];
+    total += suite_length = (buffer[3] << 8) | buffer[4];
+    total += sid_length = (buffer[5] << 8) | buffer[6];
+    total += rand_length = (buffer[7] << 8) | buffer[8];
+    total += padding;
     ss->clientHelloVersion = version;
 
     if (version >= SSL_LIBRARY_VERSION_TLS_1_3) {
@@ -9202,7 +9205,7 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
          * ClientHello using the backwards-compatible format. */
         desc = illegal_parameter;
         errCode = SSL_ERROR_RX_MALFORMED_CLIENT_HELLO;
-        goto loser;
+        goto alert_loser;
     }
 
     rv = ssl3_NegotiateVersion(ss, version, PR_TRUE);
@@ -9223,13 +9226,12 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
     }
 
     /* if we get a non-zero SID, just ignore it. */
-    if (length !=
-        SSL_HL_CLIENT_HELLO_HBYTES + suite_length + sid_length + rand_length) {
+    if (length != total) {
         SSL_DBG(("%d: SSL3[%d]: bad v2 client hello message, len=%d should=%d",
-                 SSL_GETPID(), ss->fd, length,
-                 SSL_HL_CLIENT_HELLO_HBYTES + suite_length + sid_length +
-                     rand_length));
-        goto loser; /* malformed */ /* alert_loser */
+                 SSL_GETPID(), ss->fd, length, total));
+        desc = illegal_parameter;
+        errCode = SSL_ERROR_RX_MALFORMED_CLIENT_HELLO;
+        goto alert_loser;
     }
 
     suites = buffer + SSL_HL_CLIENT_HELLO_HBYTES;
@@ -9237,7 +9239,9 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
 
     if (rand_length < SSL_MIN_CHALLENGE_BYTES ||
         rand_length > SSL_MAX_CHALLENGE_BYTES) {
-        goto loser; /* malformed */ /* alert_loser */
+        desc = illegal_parameter;
+        errCode = SSL_ERROR_RX_MALFORMED_CLIENT_HELLO;
+        goto alert_loser;
     }
 
     PORT_Assert(SSL_MAX_CHALLENGE_BYTES == SSL3_RANDOM_LENGTH);
@@ -9289,6 +9293,19 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
     goto alert_loser;
 
 suite_found:
+
+    /* If the ClientHello version is less than our maximum version, check for a
+     * TLS_FALLBACK_SCSV and reject the connection if found. */
+    if (ss->vrange.max > ss->clientHelloVersion) {
+        for (i = 0; i + 2 < suite_length; i += 3) {
+            PRUint16 suite_i = (suites[i + 1] << 8) | suites[i + 2];
+            if (suite_i == TLS_FALLBACK_SCSV) {
+                desc = inappropriate_fallback;
+                errCode = SSL_ERROR_INAPPROPRIATE_FALLBACK_ALERT;
+                goto alert_loser;
+            }
+        }
+    }
 
     /* Look for the SCSV, and if found, treat it just like an empty RI
      * extension by processing a local copy of an empty RI extension.
@@ -12992,8 +13009,8 @@ process_it:
         default:
             SSL_DBG(("%d: SSL3[%d]: bogus content type=%d",
                      SSL_GETPID(), ss->fd, cText->type));
-            /* XXX Send an alert ???  */
             PORT_SetError(SSL_ERROR_RX_UNKNOWN_RECORD_TYPE);
+            ssl3_DecodeError(ss);
             rv = SECFailure;
             break;
     }
@@ -13056,7 +13073,7 @@ ssl3_InitCipherSpec(ssl3CipherSpec *spec)
 **
 **
 */
-static SECStatus
+SECStatus
 ssl3_InitState(sslSocket *ss)
 {
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));

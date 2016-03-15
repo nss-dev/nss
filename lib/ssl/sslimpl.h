@@ -122,7 +122,6 @@ typedef enum { SSLAppOpRead = 0,
 
 #define SSL_MIN_CHALLENGE_BYTES 16
 #define SSL_MAX_CHALLENGE_BYTES 32
-#define SSL_CHALLENGE_BYTES 16
 
 #define SSL3_RSA_PMS_LENGTH 48
 #define SSL3_MASTER_SECRET_LENGTH 48
@@ -1401,6 +1400,12 @@ extern SECStatus ssl_CipherPrefSetDefault(PRInt32 which, PRBool enabled);
 
 extern SECStatus ssl3_ConstrainRangeByPolicy(void);
 
+extern SECStatus ssl3_InitState(sslSocket *ss);
+extern SECStatus ssl3_RestartHandshakeHashes(sslSocket *ss);
+extern SECStatus ssl3_UpdateHandshakeHashes(sslSocket *ss,
+                                            const unsigned char *b,
+                                            unsigned int l);
+
 /* Returns PR_TRUE if we are still waiting for the server to complete its
  * response to our client second round. Once we've received the Finished from
  * the server then there is no need to check false start.
@@ -1588,7 +1593,7 @@ extern SECStatus ssl3_AuthCertificateComplete(sslSocket *ss, PRErrorCode error);
  * for dealing with SSL 3.0 clients sending SSL 2.0 format hellos
  */
 extern SECStatus ssl3_HandleV2ClientHello(
-    sslSocket *ss, unsigned char *buffer, int length);
+    sslSocket *ss, unsigned char *buffer, int length, PRUint8 padding);
 
 SECStatus ssl3_SendClientHello(sslSocket *ss, PRBool resending);
 
