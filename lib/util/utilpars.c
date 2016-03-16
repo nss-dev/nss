@@ -1048,8 +1048,8 @@ _NSSUTIL_EvaluateConfigDir(const char *configdir,
 			   NSSDBType *pdbType, char **appName)
 {
     NSSDBType dbType;
-    *appName = NULL;
     PRBool checkEnvDefaultDB = PR_FALSE;
+    *appName = NULL;
 /* force the default */
 #ifdef NSS_DISABLE_DBM
     dbType = NSS_DB_TYPE_SQL;
