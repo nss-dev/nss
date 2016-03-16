@@ -103,12 +103,6 @@ freebl_LoadDSO( void )
 }
 
 static PRCallOnceType loadFreeBLOnce;
-/* remove when NSPR pratom.h is updated. s390 has atomic intrinsics,
- * but nspr doesn't know it. */
-#if defined(__s390__) || defined(__s390x__)
-#undef PR_ATOMIC_SET
-#define PR_ATOMIC_SET(val, newval) __sync_lock_test_and_set(val, newval)
-#endif
 
 static PRStatus
 freebl_RunLoaderOnce( void )
@@ -118,12 +112,7 @@ freebl_RunLoaderOnce( void )
   if (loadFreeBLOnce.initialized) {
 	return loadFreeBLOnce.status;
   }
-  /* PR_ATOMIC_SET macro is implemented with compiler intrinsics, if we don't
-   * have the intrinsic, it will be set to an NSPR PR_Atomic function, which
-   * will show up as missing at build time. If we get that missing function,
-   * Then we'll need to implement a PR_AtomicSet() function for that platform
-   */
-  if (PR_ATOMIC_SET(&loadFreeBLOnce.inProgress,1) == 0) {
+  if (__sync_lock_test_and_set(&loadFreeBLOnce.inProgress,1) == 0) {
 	loadFreeBLOnce.status = freebl_LoadDSO();
 	loadFreeBLOnce.initialized = 1;
   } else {
