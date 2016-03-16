@@ -161,11 +161,11 @@ class SSLv2ClientHelloTestF : public TlsConnectTestBase
 {
   public:
     SSLv2ClientHelloTestF()
-      : TlsConnectTestBase(STREAM, 0)
+      : TlsConnectTestBase(STREAM, 0), filter_(nullptr)
     { }
 
     SSLv2ClientHelloTestF(Mode mode, uint16_t version)
-      : TlsConnectTestBase(mode, version)
+      : TlsConnectTestBase(mode, version), filter_(nullptr)
     { }
 
     void
