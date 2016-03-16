@@ -1276,7 +1276,7 @@ pqg_ParamGen(unsigned int L, unsigned int N, pqgGenType type,
     /* parameters have been passed in, only generate G */
     if (*pParams != NULL) {
 	/* we only support G index generation if generating separate from PQ */
-	if ((*pVfy != NULL) || (type == FIPS186_1_TYPE) || 
+	if ((*pVfy == NULL) || (type == FIPS186_1_TYPE) || 
 	    ((*pVfy)->h.len != 1) || ((*pVfy)->h.data == NULL) || 
 	    ((*pVfy)->seed.data == NULL) || ((*pVfy)->seed.len == 0)) {
 	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
