@@ -381,7 +381,9 @@ blapi_SHVerifyFile(const char *shName, PRBool self)
 
     /* seek past any future header extensions */
     offset = decodeInt(&buf[4]);
-    PR_Seek(checkFD, offset, PR_SEEK_SET);
+    if (PR_Seek(checkFD, offset, PR_SEEK_SET) < 0) {
+	goto loser;
+    }
 
     /* read the key */
     rv = readItem(checkFD,&key.params.prime);
