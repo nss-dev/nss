@@ -21,7 +21,7 @@ namespace nss_test {
 static const std::string kTlsModesStreamArr[] = {"TLS"};
 ::testing::internal::ParamGenerator<std::string>
   TlsConnectTestBase::kTlsModesStream = ::testing::ValuesIn(kTlsModesStreamArr);
-static const std::string kTlsModesDatagramArr[] = {"TLS", "DTLS"};
+static const std::string kTlsModesDatagramArr[] = {"DTLS"};
 ::testing::internal::ParamGenerator<std::string>
 TlsConnectTestBase::kTlsModesDatagram =
       ::testing::ValuesIn(kTlsModesDatagramArr);

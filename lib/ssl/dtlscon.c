@@ -140,6 +140,9 @@ dtls_AllocQueuedMessage(ssl3CipherSpec *cwSpec, SSL3ContentType type,
     msg->len = len;
     msg->cwSpec = cwSpec;
     msg->type = type;
+    /* Safe if we are < 1.3, since the refct is
+     * already very high. */
+    tls13_CipherSpecAddRef(cwSpec);
 
     return msg;
 }
@@ -149,12 +152,15 @@ dtls_AllocQueuedMessage(ssl3CipherSpec *cwSpec, SSL3ContentType type,
  *
  * Called from dtls_FreeHandshakeMessages()
  */
-static void
+void
 dtls_FreeHandshakeMessage(DTLSQueuedMessage *msg)
 {
     if (!msg)
         return;
 
+    /* Safe if we are < 1.3, since the refct is
+     * already very high. */
+    tls13_CipherSpecRelease(msg->cwSpec);
     PORT_ZFree(msg->data, msg->len);
     PORT_Free(msg);
 }
@@ -478,18 +484,6 @@ dtls_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
     return rv;
 }
 
-static PRCallOnceType setupNullCipherSpecOnce;
-static ssl3CipherSpec nullCipherSpec;
-
-static PRStatus dtls_InitNullCipherSpec(void)
-{
-    ssl3_InitCipherSpec(&nullCipherSpec);
-    /* Set the version of the cipher spec to be TLS 1.1, this causes encrypted
-     * records to include a cleartext version field set to DTLS 1.0. */
-    nullCipherSpec.version = SSL_LIBRARY_VERSION_TLS_1_1;
-    return PR_SUCCESS;
-}
-
 /* Enqueue a message (either handshake or CCS)
  *
  * Called from:
@@ -508,18 +502,6 @@ dtls_QueueMessage(sslSocket *ss, SSL3ContentType type,
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
 
     spec = ss->ssl3.cwSpec;
-    /* TLS 1.3 has three cipher specs in play during the handshake.  Since the
-     * first of these is the null cipher, rather than expand the number of
-     * cipher specs that can be used, use a generic, static null cipher spec. */
-    if (ss->version == SSL_LIBRARY_VERSION_TLS_1_3 &&
-        spec->cipher_def->cipher == cipher_null) {
-        if (PR_SUCCESS != PR_CallOnce(&setupNullCipherSpecOnce,
-                                      &dtls_InitNullCipherSpec)) {
-            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-            return SECFailure;
-        }
-        spec = &nullCipherSpec;
-    }
     msg = dtls_AllocQueuedMessage(spec, type, pIn, nIn);
 
     if (!msg) {
@@ -921,8 +903,11 @@ dtls_CancelTimer(sslSocket *ss)
 void
 dtls_CheckTimer(sslSocket *ss)
 {
-    if (!ss->ssl3.hs.rtTimerCb)
+    ssl_GetSSL3HandshakeLock(ss);
+    if (!ss->ssl3.hs.rtTimerCb) {
+        ssl_ReleaseSSL3HandshakeLock(ss);
         return;
+    }
 
     if ((PR_IntervalNow() - ss->ssl3.hs.rtTimerStarted) >
         PR_MillisecondsToInterval(ss->ssl3.hs.rtTimeoutMs)) {
@@ -935,6 +920,7 @@ dtls_CheckTimer(sslSocket *ss)
         /* Now call the CB */
         cb(ss);
     }
+    ssl_ReleaseSSL3HandshakeLock(ss);
 }
 
 /* The callback to fire when the holddown timer for the Finished
@@ -945,7 +931,10 @@ dtls_CheckTimer(sslSocket *ss)
 static void
 dtls_FinishedTimerCb(sslSocket *ss)
 {
-    ssl3_DestroyCipherSpec(ss->ssl3.pwSpec, PR_FALSE);
+    dtls_FreeHandshakeMessages(&ss->ssl3.hs.lastMessageFlight);
+    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+        ssl3_DestroyCipherSpec(ss->ssl3.pwSpec, PR_FALSE);
+    }
 }
 
 /* Cancel the Finished hold-down timer and destroy the
@@ -959,6 +948,7 @@ dtls_FinishedTimerCb(sslSocket *ss)
 void
 dtls_RehandshakeCleanup(sslSocket *ss)
 {
+    PORT_Assert(ss->version < SSL_LIBRARY_VERSION_TLS_1_3);
     dtls_CancelTimer(ss);
     ssl3_DestroyCipherSpec(ss->ssl3.pwSpec, PR_FALSE);
     ss->ssl3.hs.sendMessageSeq = 0;

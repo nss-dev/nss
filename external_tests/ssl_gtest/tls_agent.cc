@@ -451,6 +451,10 @@ void TlsAgent::Connected() {
   EXPECT_EQ(SECSuccess, rv);
   EXPECT_EQ(sizeof(csinfo_), csinfo_.length);
 
+  if (expected_version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    PRInt32 cipherSuites = SSLInt_CountTls13CipherSpecs(ssl_fd_);
+    EXPECT_EQ(((mode_ == DGRAM) && (role_ == CLIENT)) ? 2 : 1, cipherSuites);
+  }
   SetState(STATE_CONNECTED);
 }
 

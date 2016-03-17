@@ -58,6 +58,9 @@ SECStatus tls13_AddContextToHashes(sslSocket *ss,
                                    SSLHashType algorithm, PRBool sending);
 void tls13_DestroyKeyShareEntry(TLS13KeyShareEntry *entry);
 void tls13_DestroyKeyShares(PRCList *list);
+void tls13_CipherSpecAddRef(ssl3CipherSpec *spec);
+void tls13_CipherSpecRelease(ssl3CipherSpec *spec);
+void tls13_DestroyCipherSpecs(PRCList *list);
 PRBool tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message);
 SECStatus tls13_ProtectRecord(sslSocket *ss,
                               ssl3CipherSpec *cwSpec,

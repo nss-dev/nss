@@ -497,6 +497,12 @@ TEST_P(TlsConnectDatagram, DropServerFirstFlightThrice) {
   Connect();
 }
 
+// This drops the client's second flight once
+TEST_P(TlsConnectDatagram, DropClientSecondFlightOnce) {
+  client_->SetPacketFilter(new SelectiveDropFilter(0x2));
+  Connect();
+}
+
 // This drops the client's second flight three times.
 TEST_P(TlsConnectDatagram, DropClientSecondFlightThrice) {
   client_->SetPacketFilter(new SelectiveDropFilter(0xe));
@@ -983,6 +989,17 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
 
   // TODO(ekr@rtfm.com): This will change when we fix bug 1257047.
   ASSERT_EQ(psk1, psk2);
+}
+
+TEST_P(TlsConnectDatagram, TestDtlsHolddownExpiry) {
+  Connect();
+  std::cerr << "Expiring holddown timer\n";
+  SSLInt_ForceTimerExpiry(client_->ssl_fd());
+  SSLInt_ForceTimerExpiry(server_->ssl_fd());
+  SendReceive();
+  if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    EXPECT_EQ(1, SSLInt_CountTls13CipherSpecs(client_->ssl_fd()));
+  }
 }
 
 #endif
