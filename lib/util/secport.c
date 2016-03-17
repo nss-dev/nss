@@ -19,6 +19,7 @@
 #include "nssilock.h"
 #include "secport.h"
 #include "prenv.h"
+#include "prinit.h"
 
 #ifdef DEBUG
 #define THREADMARK
@@ -46,6 +47,8 @@ typedef struct threadmark_mark_str {
 
 /* The value of this magic must change each time PORTArenaPool changes. */
 #define ARENAPOOL_MAGIC 0xB8AC9BDF 
+
+#define CHEAP_ARENAPOOL_MAGIC 0x3F16BB09
 
 typedef struct PORTArenaPool_str {
   PLArenaPool arena;
@@ -234,6 +237,13 @@ PORT_NewArena(unsigned long chunksize)
     return(&pool->arena);
 }
 
+void
+PORT_InitCheapArena(PORTCheapArenaPool* pool, unsigned long chunksize)
+{
+    pool->magic = CHEAP_ARENAPOOL_MAGIC;
+    PL_InitArenaPool(&pool->arena, "security", chunksize, sizeof(double));
+}
+
 void *
 PORT_ArenaAlloc(PLArenaPool *arena, size_t size)
 {
@@ -292,6 +302,16 @@ PORT_ArenaZAlloc(PLArenaPool *arena, size_t size)
     return(p);
 }
 
+static PRCallOnceType setupUseFreeListOnce;
+static PRBool useFreeList;
+
+static PRStatus
+SetupUseFreeList(void)
+{
+    useFreeList = (PR_GetEnvSecure("NSS_DISABLE_ARENA_FREE_LIST") == NULL);
+    return PR_SUCCESS;
+}
+
 /*
  * If zero is true, zeroize the arena memory before freeing it.
  */
@@ -301,8 +321,6 @@ PORT_FreeArena(PLArenaPool *arena, PRBool zero)
     PORTArenaPool *pool = (PORTArenaPool *)arena;
     PRLock *       lock = (PRLock *)0;
     size_t         len  = sizeof *arena;
-    static PRBool  checkedEnv = PR_FALSE;
-    static PRBool  doFreeArenaPool = PR_FALSE;
 
     if (!pool)
     	return;
@@ -311,15 +329,11 @@ PORT_FreeArena(PLArenaPool *arena, PRBool zero)
 	lock = pool->lock;
 	PZ_Lock(lock);
     }
-    if (!checkedEnv) {
-	/* no need for thread protection here */
-	doFreeArenaPool = (PR_GetEnvSecure("NSS_DISABLE_ARENA_FREE_LIST") == NULL);
-	checkedEnv = PR_TRUE;
-    }
     if (zero) {
 	PL_ClearArenaPool(arena, 0);
     }
-    if (doFreeArenaPool) {
+    PR_CallOnce(&setupUseFreeListOnce, &SetupUseFreeList);
+    if (useFreeList) {
 	PL_FreeArenaPool(arena);
     } else {
 	PL_FinishArenaPool(arena);
@@ -328,6 +342,17 @@ PORT_FreeArena(PLArenaPool *arena, PRBool zero)
     if (lock) {
 	PZ_Unlock(lock);
 	PZ_DestroyLock(lock);
+    }
+}
+
+void
+PORT_DestroyCheapArena(PORTCheapArenaPool* pool)
+{
+    PR_CallOnce(&setupUseFreeListOnce, &SetupUseFreeList);
+    if (useFreeList) {
+	PL_FreeArenaPool(&pool->arena);
+    } else {
+	PL_FinishArenaPool(&pool->arena);
     }
 }
 
