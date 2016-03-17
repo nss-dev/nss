@@ -58,9 +58,6 @@ typedef struct PORTArenaPool_str {
 } PORTArenaPool;
 
 
-/* count of allocation failures. */
-unsigned long port_allocFailures;
-
 /* locations for registering Unicode conversion functions.  
  * XXX is this the appropriate location?  or should they be
  *     moved to client/server specific locations?
@@ -86,7 +83,6 @@ PORT_Alloc(size_t bytes)
 	rv = PR_Malloc(bytes ? bytes : 1);
     }
     if (!rv) {
-	++port_allocFailures;
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
     }
     return rv;
@@ -101,7 +97,6 @@ PORT_Realloc(void *oldptr, size_t bytes)
 	rv = PR_Realloc(oldptr, bytes);
     }
     if (!rv) {
-	++port_allocFailures;
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
     }
     return rv;
@@ -117,7 +112,6 @@ PORT_ZAlloc(size_t bytes)
 	rv = PR_Calloc(1, bytes ? bytes : 1);
     }
     if (!rv) {
-	++port_allocFailures;
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
     }
     return rv;
@@ -233,7 +227,6 @@ PORT_NewArena(unsigned long chunksize)
     pool->magic = ARENAPOOL_MAGIC;
     pool->lock = PZ_NewLock(nssILockArena);
     if (!pool->lock) {
-	++port_allocFailures;
 	PORT_Free(pool);
 	return NULL;
     }
@@ -276,7 +269,6 @@ PORT_ArenaAlloc(PLArenaPool *arena, size_t size)
     }
 
     if (!p) {
-	++port_allocFailures;
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
     }
 
