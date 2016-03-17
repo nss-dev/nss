@@ -569,7 +569,7 @@ mp_err mpi_to_weave(const mp_int  *bignums,
  */
 #define CONST_TIME_MSB(x) (0L - ((x) >> (8*sizeof(x) - 1)))
 #define CONST_TIME_EQ_Z(x) CONST_TIME_MSB(~(x) & ((x)-1))
-#define CONST_TIME_EQ(a, b) CONST_TIME_EQ_Z(a ^ b)
+#define CONST_TIME_EQ(a, b) CONST_TIME_EQ_Z((a) ^ (b))
 
 /* Reverse the operation above for one mp_int.
  * Reconstruct one mp_int from its column in the weaved array.
