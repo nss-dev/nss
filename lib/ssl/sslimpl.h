@@ -463,11 +463,6 @@ typedef PRUint16 DTLSEpoch;
 
 typedef void (*DTLSTimerCb)(sslSocket *);
 
-typedef enum {
-    dtls_oldkey_release,
-    dtls_oldkey_holddown
-} dtlsOldKeyAction;
-
 /* 400 is large enough for MD5, SHA-1, and SHA-256.
  * For SHA-384 support, increase it to 712. */
 #define MAX_MAC_CONTEXT_BYTES 400
@@ -539,6 +534,7 @@ typedef struct DTLSRecvdRecordsStr {
 ** (direct and indirect) is protected by the reader/writer lock ss->specLock.
 */
 typedef struct {
+    PRCList link;
     const ssl3BulkCipherDef *cipher_def;
     const ssl3MACDef *mac_def;
     SSLCompressionMethod compression_method;
@@ -571,6 +567,8 @@ typedef struct {
                           * always set to NULL.*/
     DTLSEpoch epoch;
     DTLSRecvdRecords recvdRecords;
+
+    PRUint8 refCt;
 } ssl3CipherSpec;
 
 typedef enum { never_cached,
@@ -951,6 +949,8 @@ typedef struct SSL3HandshakeStateStr {
                                         * cannot be greater than 255. */
     ssl3CipherSuite origCipherSuite;   /* The cipher suite from the original
                                         * connection if we are resuming. */
+    PRCList cipherSpecs;               /* The cipher specs in the sequence they
+                                        * will be applied. */
 } SSL3HandshakeState;
 
 /*
@@ -1872,8 +1872,7 @@ extern SECStatus ssl_InitSessionCacheLocks(PRBool lazyInit);
 extern SECStatus ssl_FreeSessionCacheLocks(void);
 
 /**************** DTLS-specific functions **************/
-extern void dtls_FreeQueuedMessage(DTLSQueuedMessage *msg);
-extern void dtls_FreeQueuedMessages(PRCList *lst);
+extern void dtls_FreeHandshakeMessage(DTLSQueuedMessage *msg);
 extern void dtls_FreeHandshakeMessages(PRCList *lst);
 
 extern SECStatus dtls_HandleHandshake(sslSocket *ss, sslBuffer *origBuf);

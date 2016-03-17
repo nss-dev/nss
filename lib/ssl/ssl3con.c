@@ -13191,6 +13191,10 @@ ssl3_InitCipherSpec(ssl3CipherSpec *spec)
     spec->read_seq_num.low = 0;
 
     spec->epoch = 0;
+    spec->refCt = 128; /* Arbitrarily high number to prevent
+                        * non-TLS 1.3 cipherSpecs from being
+                        * GCed. This will be overwritten with
+                        * a valid refCt for TLS 1.3. */
     dtls_InitRecvdRecords(&spec->recvdRecords);
 }
 
@@ -13247,6 +13251,7 @@ ssl3_InitState(sslSocket *ss)
     ss->ssl3.hs.clientFinishedSecret = NULL;
     ss->ssl3.hs.serverFinishedSecret = NULL;
     ss->ssl3.hs.certReqContextLen = 0;
+    PR_INIT_CLIST(&ss->ssl3.hs.cipherSpecs);
 
     PORT_Assert(!ss->ssl3.hs.messages.buf && !ss->ssl3.hs.messages.space);
     ss->ssl3.hs.messages.buf = NULL;

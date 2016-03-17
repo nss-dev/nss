@@ -92,3 +92,38 @@ SSLInt_ClearSessionTicketKey()
   ssl3_SessionTicketShutdown(NULL, NULL);
   NSS_UnregisterShutdown(ssl3_SessionTicketShutdown, NULL);
 }
+
+PRInt32 SSLInt_CountTls13CipherSpecs(PRFileDesc *fd)
+{
+  PRCList *cur_p;
+  PRInt32 ct = 0;
+
+  sslSocket *ss = ssl_FindSocket(fd);
+  if (!ss) {
+    return -1;
+  }
+
+  for (cur_p = PR_NEXT_LINK(&ss->ssl3.hs.cipherSpecs);
+       cur_p != &ss->ssl3.hs.cipherSpecs;
+       cur_p = PR_NEXT_LINK(cur_p)) {
+    ++ct;
+  }
+  return ct;
+}
+
+/* Force a timer expiry by backdating when the timer was started.
+ * We could set the remaining time to 0 but then backoff would not
+ * work properly if we decide to test it. */
+void SSLInt_ForceTimerExpiry(PRFileDesc *fd)
+{
+  sslSocket *ss = ssl_FindSocket(fd);
+  if (!ss) {
+    return;
+  }
+
+  if (!ss->ssl3.hs.rtTimerCb)
+    return;
+
+  ss->ssl3.hs.rtTimerStarted = PR_IntervalNow() -
+      PR_MillisecondsToInterval(ss->ssl3.hs.rtTimeoutMs + 1);
+}
