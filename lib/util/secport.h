@@ -61,14 +61,10 @@ SEC_BEGIN_PROTOS
 
 extern void *PORT_Alloc(size_t len);
 extern void *PORT_Realloc(void *old, size_t len);
-extern void *PORT_AllocBlock(size_t len);
-extern void *PORT_ReallocBlock(void *old, size_t len);
-extern void PORT_FreeBlock(void *ptr);
 extern void *PORT_ZAlloc(size_t len);
 extern void PORT_Free(void *ptr);
 extern void PORT_ZFree(void *ptr, size_t len);
 extern char *PORT_Strdup(const char *s);
-extern time_t PORT_Time(void);
 extern void PORT_SetError(int value);
 extern int PORT_GetError(void);
 
