@@ -1086,10 +1086,7 @@ PK11_KeyGenWithTemplate(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
 
     /* Get session and perform locking */
     if (isToken) {
-        if (PK11_Authenticate(symKey->slot,PR_TRUE,wincx) != SECSuccess) {
-            PK11_FreeSymKey(symKey);
-            return NULL;
-        }
+        PK11_Authenticate(symKey->slot,PR_TRUE,wincx);
         /* Should always be original slot */
         session = PK11_GetRWSession(symKey->slot);  
         symKey->owner = PR_FALSE;
@@ -1144,9 +1141,7 @@ PK11_ConvertSessionSymKeyToTokenSymKey(PK11SymKey *symk, void *wincx)
 
     PK11_SETATTRS(attrs, CKA_TOKEN, &cktrue, sizeof(cktrue)); attrs++;
 
-    if (PK11_Authenticate(slot, PR_TRUE, wincx) != SECSuccess) {
-	return NULL;
-    }
+    PK11_Authenticate(slot, PR_TRUE, wincx);
     rwsession = PK11_GetRWSession(slot);
     if (rwsession == CK_INVALID_SESSION) {
 	PORT_SetError(SEC_ERROR_BAD_DATA);
