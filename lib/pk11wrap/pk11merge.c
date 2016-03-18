@@ -1122,20 +1122,14 @@ pk11_mergeTrust(PK11SlotInfo *targetSlot, PK11SlotInfo *sourceSlot,
 	    targetTemplate.type = sourceTemplate.type = trustAttrs[i];
 	    targetTemplate.pValue = sourceTemplate.pValue = NULL;
 	    targetTemplate.ulValueLen = sourceTemplate.ulValueLen = 0;
-	    if (PK11_GetAttributes(arena, sourceSlot, id, &sourceTemplate, 1)
-	        != CKR_OK) {
-		rv = SECFailure;
-		error = PORT_GetError();
-	    }
-	    if (PK11_GetAttributes(arena, targetSlot, targetTrustID,
-	                           &targetTemplate, 1) != CKR_OK) {
-		rv = SECFailure;
-		error = PORT_GetError();
-	    }
+	    PK11_GetAttributes(arena, sourceSlot, id, &sourceTemplate, 1);
+	    PK11_GetAttributes(arena, targetSlot, targetTrustID, 
+							&targetTemplate, 1);
 	    if (pk11_mergeTrustEntry(&targetTemplate, &sourceTemplate)) {
 		/* source wins, write out the source attribute to the target */
-		if (pk11_setAttributes(targetSlot, targetTrustID,
-			&sourceTemplate, 1) != SECSuccess) {
+		SECStatus lrv = pk11_setAttributes(targetSlot, targetTrustID, 
+				   &sourceTemplate, 1);
+		if (lrv != SECSuccess) {
 		    rv = SECFailure;
 		    error = PORT_GetError();
 		}
@@ -1148,11 +1142,7 @@ pk11_mergeTrust(PK11SlotInfo *targetSlot, PK11SlotInfo *sourceSlot,
 	sourceTemplate.ulValueLen = 0;
 
 	/* if the source has steup set, then set it in the target */
-	if (PK11_GetAttributes(arena, sourceSlot, id, &sourceTemplate, 1)
-	    != CKR_OK) {
-	    rv = SECFailure;
-	    error = PORT_GetError();
-    }
+	PK11_GetAttributes(arena, sourceSlot, id, &sourceTemplate, 1);
 	if ((sourceTemplate.ulValueLen == sizeof(CK_BBOOL)) && 
 		(sourceTemplate.pValue) &&
 		(*(CK_BBOOL *)sourceTemplate.pValue == CK_TRUE)) {
