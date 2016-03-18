@@ -332,7 +332,7 @@ PORT_FreeArena(PLArenaPool *arena, PRBool zero)
     if (zero) {
 	PL_ClearArenaPool(arena, 0);
     }
-    PR_CallOnce(&setupUseFreeListOnce, &SetupUseFreeList);
+    (void)PR_CallOnce(&setupUseFreeListOnce, &SetupUseFreeList);
     if (useFreeList) {
 	PL_FreeArenaPool(arena);
     } else {
@@ -348,7 +348,7 @@ PORT_FreeArena(PLArenaPool *arena, PRBool zero)
 void
 PORT_DestroyCheapArena(PORTCheapArenaPool* pool)
 {
-    PR_CallOnce(&setupUseFreeListOnce, &SetupUseFreeList);
+    (void)PR_CallOnce(&setupUseFreeListOnce, &SetupUseFreeList);
     if (useFreeList) {
 	PL_FreeArenaPool(&pool->arena);
     } else {
