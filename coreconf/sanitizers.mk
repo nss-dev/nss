@@ -4,9 +4,9 @@
 ifeq ($(USE_ASAN), 1)
 SANITIZER_FLAGS_COMMON = -fsanitize=address $(EXTRA_SANITIZER_FLAGS)
 SANITIZER_CFLAGS = $(SANITIZER_FLAGS_COMMON)
-SANITIZER_LFLAGS = $(SANITIZER_FLAGS_COMMON)
+SANITIZER_LDFLAGS = $(SANITIZER_FLAGS_COMMON)
 OS_CFLAGS += $(SANITIZER_CFLAGS)
-LDFLAGS += $(SANITIZER_LFLAGS)
+LDFLAGS += $(SANITIZER_LDFLAGS)
 
 # ASan needs frame pointers to save stack traces for allocation/free sites.
 # (Warning: some platforms, like ARM Linux in Thumb mode, don't have useful
