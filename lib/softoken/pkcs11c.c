@@ -5079,7 +5079,6 @@ ecgn_done:
 			    (PRUint32)crv);
 		sftk_LogAuditMessage(NSS_AUDIT_ERROR, NSS_AUDIT_SELF_TEST, msg);
 	    }
-	    return crv;
 	}
     }
 
@@ -5088,6 +5087,7 @@ ecgn_done:
 	sftk_FreeObject(publicKey);
 	NSC_DestroyObject(hSession,privateKey->handle);
 	sftk_FreeObject(privateKey);
+	return crv;
     }
 
     *phPrivateKey = privateKey->handle;
