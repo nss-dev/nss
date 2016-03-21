@@ -163,6 +163,7 @@ SignFile(FILE *outFile, PRFileDesc *inFile, CERTCertificate *cert)
     
     SECKEY_DestroyPrivateKey(privKey);
     PORT_FreeArena(arena, PR_FALSE);
+    PORT_Free(data);
     
     return 0;
 }
