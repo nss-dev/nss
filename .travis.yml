@@ -1,3 +1,30 @@
+os:
+  - linux
+  - osx
+
+sudo: required
+dist: trusty
+
+compiler:
+  - gcc
+  - clang
+
+addons:
+  apt:
+    sources:
+    # add PPAs with more up-to-date toolchains
+    - ubuntu-toolchain-r-test
+    - llvm-toolchain-precise-3.7
+    packages:
+    # install toolchains
+    - gcc-5
+    - g++-5
+    - clang-3.7
+
+before install:
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then export CC="gcc-5"; export CXX="g++-5"; fi
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew update; brew install llvm37; fi;
+
 install: cd ..; hg clone https://hg.mozilla.org/projects/nspr
 
 script:
