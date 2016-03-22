@@ -30,3 +30,7 @@ install: cd ..; hg clone https://hg.mozilla.org/projects/nspr
 script:
   - cd nss; USE_64=1 NSS_ENABLE_TLS_1_3=1 make nss_build_all
   - cd tests; USE_64=1 NSS_ENABLE_TLS_1_3=1 NSS_TESTS="ssl_gtests pk11_gtests der_gtests util_gtests" NSS_CYCLES=standard ./all.sh
+  - USE_64=1 NSS_ENABLE_TLS_1_3=1 HOST=localhost DOMSUF=localdomain NSS_CYCLES=standard ./all.sh
+  - cd nss; USE_64=1 NSS_ENABLE_TLS_1_3=1 make nss_build_all
+  - cd tests; USE_64=1 NSS_ENABLE_TLS_1_3=1 NSS_TESTS="ssl_gtests pk11_gtests der_gtests util_gtests" NSS_CYCLES=standard ./all.sh
+  - USE_64=1 NSS_ENABLE_TLS_1_3=1 HOST=localhost DOMSUF=localdomain NSS_CYCLES=standard ./all.sh
