@@ -1679,7 +1679,7 @@ int    mp_cmp(const mp_int *a, const mp_int *b)
   Compares |a| <=> |b|, and returns an appropriate comparison result
  */
 
-int    mp_cmp_mag(mp_int *a, mp_int *b)
+int    mp_cmp_mag(const mp_int *a, const mp_int *b)
 {
   ARGCHK(a != NULL && b != NULL, MP_EQ);
 
