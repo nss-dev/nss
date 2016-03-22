@@ -5150,7 +5150,7 @@ rsa_keypair_test(char *reqfn)
     FILE *rsaresp;    /* output stream to the RESPONSE file */
     int count;
     int i;
-    int keySize;   /* key size in bits*/
+    int keySize = 1;   /* key size in bits*/
     int len = 0;       /* key size in bytes */
     int len2 = 0;      /* key size in bytes/2 (prime size) */
     SECItem e;
