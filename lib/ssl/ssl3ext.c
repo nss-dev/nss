@@ -341,11 +341,15 @@ static const ssl3HelloExtensionSender clientHelloSendersTLS[SSL_MAX_EXTENSIONS] 
       { ssl_app_layer_protocol_xtn, &ssl3_ClientSendAppProtoXtn },
       { ssl_use_srtp_xtn, &ssl3_ClientSendUseSRTPXtn },
       { ssl_cert_status_xtn, &ssl3_ClientSendStatusRequestXtn },
-      { ssl_signature_algorithms_xtn, &ssl3_ClientSendSigAlgsXtn },
       { ssl_tls13_draft_version_xtn, &ssl3_ClientSendDraftVersionXtn },
       { ssl_signed_cert_timestamp_xtn, &ssl3_ClientSendSignedCertTimestampXtn },
       { ssl_tls13_key_share_xtn, &tls13_ClientSendKeyShareXtn },
-      { ssl_tls13_pre_shared_key_xtn, &tls13_ClientSendPreSharedKeyXtn }
+      { ssl_tls13_pre_shared_key_xtn, &tls13_ClientSendPreSharedKeyXtn },
+      /* Some servers (e.g. WebSphere Application Server 7.0 and Tomcat) will
+       * time out or terminate the connection if the last extension in the
+       * client hello is empty. They are not intolerant of TLS 1.2, so list
+       * signature_algorithms at the end. See bug 1243641. */
+      { ssl_signature_algorithms_xtn, &ssl3_ClientSendSigAlgsXtn }
       /* any extra entries will appear as { 0, NULL }    */
     };
 
@@ -2679,9 +2683,12 @@ ssl3_CalculatePaddingExtensionLength(unsigned int clientHelloLength)
     }
 
     extensionLength = 512 - recordLength;
-    /* Extensions take at least four bytes to encode. */
-    if (extensionLength < 4) {
-        extensionLength = 4;
+    /* Extensions take at least four bytes to encode. Always include at least
+     * one byte of data if including the extension. Some servers (e.g.
+     * WebSphere Application Server 7.0 and Tomcat) will time out or terminate
+     * the connection if the last extension in the client hello is empty. */
+    if (extensionLength < 4 + 1) {
+        extensionLength = 4 + 1;
     }
 
     return extensionLength;
