@@ -5,15 +5,6 @@
 
 # This sets WARNING_CFLAGS for gcc-like compilers.
 
-ifndef CC_IS_CLANG
-  CC_IS_CLANG := $(and $(findstring clang, $(shell $(CC) --version 2>&1)), 1)
-  # Clang claims GCC 4.2.1 compatibility, see GCC_VERSION
-  CC_IS_GCC = 1
-  # Export CC_IS_CLANG and CC_IS_GCC to save a shell invocation when recursing.
-  export CC_IS_CLANG
-  export CC_IS_GCC
-endif
-
 ifndef CC_IS_GCC
   CC_IS_GCC := $(shell $(CC) -x c -E -Wall -Werror /dev/null >/dev/null 2>&1 && echo 1)
   # Export CC_IS_GCC to save a shell invocation when recursing.
@@ -47,7 +38,7 @@ ifndef WARNING_CFLAGS
     disable_warning = $(shell $(CC) -x c -E -Werror -W$(1) /dev/null >/dev/null 2>&1 && echo -Wno-$(1))
 
     WARNING_CFLAGS = -Wall
-    ifdef CC_IS_CLANG
+    ifeq ($(CC_NAME),clang)
       # -Qunused-arguments : clang objects to arguments that it doesn't understand
       #    and fixing this would require rearchitecture
       WARNING_CFLAGS += -Qunused-arguments
@@ -71,7 +62,7 @@ ifndef WARNING_CFLAGS
         NSS_ENABLE_WERROR = 0
         $(warning OS_TARGET is Android, disabling -Werror)
       else
-        ifdef CC_IS_CLANG
+        ifeq ($(CC_NAME),clang)
           # Clang reports its version as an older gcc, but it's OK
           NSS_ENABLE_WERROR = 1
         else

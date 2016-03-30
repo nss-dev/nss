@@ -504,7 +504,7 @@ endif
 
 # poly1305-donna-x64-sse2-incremental-source.c requires __int128 support
 # in GCC 4.6.0.
-ifdef CC_IS_CLANG
+ifeq ($(CC_NAME),clang)
     HAVE_INT128_SUPPORT = 1
 else ifeq (1,$(CC_IS_GCC))
     ifneq (,$(filter 4.6 4.7 4.8 4.9,$(word 1,$(GCC_VERSION)).$(word 2,$(GCC_VERSION))))
@@ -728,8 +728,8 @@ $(OBJDIR)/$(PROG_PREFIX)intel-gcm-wrap$(OBJ_SUFFIX): CFLAGS += -mssse3
 # symbolic names to registers, for example,
 #     .set  Htbl, %rdi
 # So we can't use Clang's integrated assembler with intel-gcm.s.
-ifdef CC_IS_CLANG
-$(OBJDIR)/$(PROG_PREFIX)intel-gcm$(OBJ_SUFFIX): CFLAGS += -no-integrated-as
+ifneq (,$(findstring clang,$(shell $(AS) --version)))
+$(OBJDIR)/$(PROG_PREFIX)intel-gcm$(OBJ_SUFFIX): ASFLAGS += -no-integrated-as
 endif
 endif
 
