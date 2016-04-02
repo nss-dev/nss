@@ -2659,12 +2659,18 @@ tls13_UnprotectRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *plaintext
     /* We can perform this test in variable time because the record's total
      * length and the ciphersuite are both public knowledge. */
     if (cText->buf->len < cipher_def->tag_size) {
+        SSL_TRC(3,
+                ("%d: TLS13[%d]: record too short to contain valid AEAD data",
+                 SSL_GETPID(), ss->fd));
         PORT_SetError(SSL_ERROR_RX_RECORD_TOO_LONG);
         return SECFailure;
     }
 
     /* Verify that the content type is right, even though we overwrite it. */
     if (cText->type != content_application_data) {
+        SSL_TRC(3,
+                ("%d: TLS13[%d]: record has invalid exterior content type=%d",
+                 SSL_GETPID(), ss->fd, cText->type));
         /* Do we need a better error here? */
         PORT_SetError(SSL_ERROR_BAD_MAC_READ);
         return SECFailure;
