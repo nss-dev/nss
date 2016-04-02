@@ -106,7 +106,9 @@ bool TlsAgent::EnsureTlsSetup() {
     EXPECT_NE(nullptr, priv);
     if (!priv) return false;  // Leak cert.
 
-    SECStatus rv = SSL_ConfigSecureServer(ssl_fd_, cert, priv, kea_);
+    SECStatus rv = SSL_ConfigSecureServer(ssl_fd_, nullptr, nullptr, kt_null);
+    EXPECT_EQ(SECFailure, rv);
+    rv = SSL_ConfigSecureServer(ssl_fd_, cert, priv, kea_);
     EXPECT_EQ(SECSuccess, rv);
     if (rv != SECSuccess) return false;  // Leak cert and key.
 
@@ -213,6 +215,23 @@ void TlsAgent::DisableCiphersByKeyExchange(SSLKEAType kea) {
   }
 }
 
+void TlsAgent::EnableCiphersByAuthType(SSLAuthType authType) {
+  EXPECT_TRUE(EnsureTlsSetup());
+
+  for (size_t i = 0; i < SSL_NumImplementedCiphers; ++i) {
+    SSLCipherSuiteInfo csinfo;
+
+    SECStatus rv = SSL_GetCipherSuiteInfo(SSL_ImplementedCiphers[i],
+                                          &csinfo, sizeof(csinfo));
+    ASSERT_EQ(SECSuccess, rv);
+
+    bool enable = csinfo.authType == authType;
+    rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], enable);
+    EXPECT_EQ(SECSuccess, rv);
+  }
+}
+
+
 void TlsAgent::SetSessionTicketsEnabled(bool en) {
   EXPECT_TRUE(EnsureTlsSetup());
 
@@ -302,7 +321,7 @@ void TlsAgent::CheckKEAType(SSLKEAType type) const {
   EXPECT_EQ(type, csinfo_.keaType);
 
   PRUint32 ecKEAKeyBits = SSLInt_DetermineKEABits(server_key_bits_,
-                                                  csinfo_.authAlgorithm);
+                                                  csinfo_.authType);
 
   switch (type) {
       case ssl_kea_ecdh:
@@ -321,14 +340,33 @@ void TlsAgent::CheckKEAType(SSLKEAType type) const {
 
 void TlsAgent::CheckAuthType(SSLAuthType type) const {
   EXPECT_EQ(STATE_CONNECTED, state_);
-  EXPECT_EQ(type, csinfo_.authAlgorithm);
+  EXPECT_EQ(type, csinfo_.authType);
   EXPECT_EQ(server_key_bits_, info_.authKeyBits);
+
+  // Do some extra checks based on type.
   switch (type) {
       case ssl_auth_ecdsa:
           // extra check for P-256
           EXPECT_EQ(256U, info_.authKeyBits);
           break;
+    default:
+      break;
+  }
+
+  // Check authAlgorithm, which is the old value for authType.  This is a second switch
+  // statement because default label is different.
+  switch (type) {
+      case ssl_auth_rsa_sign:
+          EXPECT_EQ(ssl_auth_rsa_decrypt, csinfo_.authAlgorithm)
+                  << "authAlgorithm for RSA is always decrypt";
+          break;
+      case ssl_auth_ecdh:
+          EXPECT_TRUE(csinfo_.authAlgorithm != ssl_auth_ecdh)
+                  << "ECDH suites were originally wonky";
+          break;
       default:
+          EXPECT_EQ(type, csinfo_.authAlgorithm)
+                  << "authAlgorithm is (usually) the same as authType";
           break;
   }
 }
