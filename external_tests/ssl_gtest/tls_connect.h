@@ -66,7 +66,8 @@ class TlsConnectTestBase : public ::testing::Test {
   void CheckConnected();
   // Connect and expect it to fail.
   void ConnectExpectFail();
-  void CheckKeys(SSLKEAType keyType, SSLAuthType authType) const;
+  void ConnectWithCipherSuite(uint16_t cipher_suite);
+  void CheckKeys(SSLKEAType akeyType, SSLAuthType authType) const;
 
   void SetExpectedVersion(uint16_t version);
   // Expect resumption of a particular type.
@@ -74,6 +75,7 @@ class TlsConnectTestBase : public ::testing::Test {
   void DisableDheAndEcdheCiphers();
   void DisableDheCiphers();
   void DisableEcdheCiphers();
+  void EnableSomeEcdhCiphers();
   void EnableExtendedMasterSecret();
   void ConfigureSessionCache(SessionResumptionMode client,
                              SessionResumptionMode server);

@@ -40,15 +40,6 @@
     (x)->ulValueLen = (l);
 #endif
 
-#define SSL_GET_SERVER_PUBLIC_KEY(sock, type)                                          \
-    (ss->serverCerts[type].serverKeyPair ? ss->serverCerts[type].serverKeyPair->pubKey \
-                                         : NULL)
-
-#define SSL_IS_CURVE_NEGOTIATED(curvemsk, curveName) \
-    ((curveName > ec_noName) &&                      \
-     (curveName < ec_pastLastName) &&                \
-     ((1UL << curveName) & curvemsk) != 0)
-
 static SECStatus ssl3_CreateECDHEphemeralKeys(sslSocket *ss, ECName ec_curve);
 
 #define supportedCurve(x) (((x) > ec_noName) && ((x) < ec_pastLastName))
@@ -584,38 +575,39 @@ ssl3_GetCurveWithECKeyStrength(PRUint32 curvemsk, int requiredECCbits)
 ECName
 ssl3_GetCurveNameForServerSocket(sslSocket *ss)
 {
-    SECKEYPublicKey *svrPublicKey = NULL;
     ECName ec_curve = ec_noName;
     int signatureKeyStrength = 521;
     int requiredECCbits = ss->sec.secretKeyBits * 2;
 
-    if (ss->ssl3.hs.kea_def->kea == kea_ecdhe_ecdsa) {
-        svrPublicKey = SSL_GET_SERVER_PUBLIC_KEY(ss, kt_ecdh);
-        if (svrPublicKey)
-            ec_curve = ssl3_PubKey2ECName(svrPublicKey);
-        if (!SSL_IS_CURVE_NEGOTIATED(ss->ssl3.hs.negotiatedECCurves, ec_curve)) {
-            PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
+    PORT_Assert(ss->sec.serverCert);
+    if (!ss->sec.serverCert ||
+        !ss->sec.serverCert->serverKeyPair ||
+        !ss->sec.serverCert->serverKeyPair->pubKey) {
+        PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
+        return ec_noName;
+    }
+
+    if (ss->sec.serverCert->certType.authType == ssl_auth_ecdsa ||
+        ss->sec.serverCert->certType.authType == ssl_auth_ecdh) {
+        ec_curve = ss->sec.serverCert->certType.u.namedCurve;
+        /* We won't select a certificate unless the named curve has been
+         * negotiated (or supported_curves was absent), double check that. */
+        PORT_Assert(SSL_IS_CURVE_NEGOTIATED(ss->ssl3.hs.negotiatedECCurves,
+                                            ec_curve));
+        if (!SSL_IS_CURVE_NEGOTIATED(ss->ssl3.hs.negotiatedECCurves,
+                                     ec_curve)) {
             return ec_noName;
         }
         signatureKeyStrength = curve2bits[ec_curve];
     } else {
         /* RSA is our signing cert */
-        int serverKeyStrengthInBits;
+        unsigned int serverKeyStrengthInBits;
+        const sslServerCert *cert = ss->sec.serverCert;
+        PORT_Assert(cert->certType.authType == ssl_auth_rsa_sign ||
+                    cert->certType.authType == ssl_auth_rsa_decrypt);
 
-        svrPublicKey = SSL_GET_SERVER_PUBLIC_KEY(ss, kt_rsa);
-        if (!svrPublicKey) {
-            PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
-            return ec_noName;
-        }
-
-        /* currently strength in bytes */
-        serverKeyStrengthInBits = svrPublicKey->u.rsa.modulus.len;
-        if (svrPublicKey->u.rsa.modulus.data[0] == 0) {
-            serverKeyStrengthInBits--;
-        }
-        /* convert to strength in bits */
-        serverKeyStrengthInBits *= BPB;
-
+        serverKeyStrengthInBits
+                = SECKEY_PublicKeyStrengthInBits(cert->serverKeyPair->pubKey);
         signatureKeyStrength =
             SSL_RSASTRENGTH_TO_ECSTRENGTH(serverKeyStrengthInBits);
     }
@@ -904,7 +896,6 @@ ssl3_SendECDHServerKeyExchange(
     sslSocket *ss,
     const SSLSignatureAndHashAlg *sigAndHash)
 {
-    const ssl3KEADef *kea_def = ss->ssl3.hs.kea_def;
     SECStatus rv = SECFailure;
     int length;
     PRBool isTLS, isTLS12;
@@ -915,7 +906,7 @@ ssl3_SendECDHServerKeyExchange(
     SECItem ec_params = { siBuffer, NULL, 0 };
     unsigned char paramBuf[3];
     ECName curve;
-    SSL3KEAType certIndex;
+    ssl3KeyPair *keyPair;
 
     /* Generate ephemeral ECDH key pair and send the public key */
     curve = ssl3_GetCurveNameForServerSocket(ss);
@@ -965,17 +956,8 @@ ssl3_SendECDHServerKeyExchange(
     isTLS = (PRBool)(ss->ssl3.pwSpec->version > SSL_LIBRARY_VERSION_3_0);
     isTLS12 = (PRBool)(ss->ssl3.pwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2);
 
-    /* XXX SSLKEAType isn't really a good choice for
-     * indexing certificates but that's all we have
-     * for now.
-     */
-    if (kea_def->kea == kea_ecdhe_rsa)
-        certIndex = kt_rsa;
-    else /* kea_def->kea == kea_ecdhe_ecdsa */
-        certIndex = kt_ecdh;
-
-    rv = ssl3_SignHashes(&hashes, ss->serverCerts[certIndex].SERVERKEY,
-                         &signed_hash, isTLS);
+    keyPair = ss->sec.serverCert->serverKeyPair;
+    rv = ssl3_SignHashes(&hashes, keyPair->privKey, &signed_hash, isTLS);
     if (rv != SECSuccess) {
         goto loser; /* ssl3_SignHashes has set err. */
     }
@@ -1130,23 +1112,28 @@ ssl3_DisableECCSuites(sslSocket *ss, const ssl3CipherSuite *suite)
 
 /* Look at the server certs configured on this socket, and disable any
  * ECC cipher suites that are not supported by those certs.
+ *
+ * libssl generally supports multiple ECDH certificates.  However,
+ * this function will only filter based on the first of those certificates.
  */
 void
 ssl3_FilterECCipherSuitesByServerCerts(sslSocket *ss)
 {
-    CERTCertificate *svrCert;
+    sslServerCert *ecdhCert;
 
-    svrCert = ss->serverCerts[kt_rsa].serverCert;
-    if (!svrCert) {
+    if (!ssl_FindServerCertByAuthType(ss, ssl_auth_rsa_sign)) {
         ssl3_DisableECCSuites(ss, ecdhe_rsa_suites);
     }
 
-    svrCert = ss->serverCerts[kt_ecdh].serverCert;
-    if (!svrCert) {
-        ssl3_DisableECCSuites(ss, ecdh_suites);
+    if (!ssl_FindServerCertByAuthType(ss, ssl_auth_ecdsa)) {
         ssl3_DisableECCSuites(ss, ecdhe_ecdsa_suites);
+    }
+
+    ecdhCert = ssl_FindServerCertByAuthType(ss, ssl_auth_ecdh);
+    if (!ecdhCert || !ecdhCert->serverCert) {
+        ssl3_DisableECCSuites(ss, ecdh_suites);
     } else {
-        SECOidTag sigTag = SECOID_GetAlgorithmTag(&svrCert->signature);
+        SECOidTag sigTag = SECOID_GetAlgorithmTag(&ecdhCert->serverCert->signature);
 
         switch (sigTag) {
             case SEC_OID_PKCS1_RSA_ENCRYPTION:
@@ -1403,24 +1390,6 @@ ssl3_HandleSupportedPointFormatsXtn(sslSocket *ss, PRUint16 ex_type,
     return SECSuccess;
 }
 
-#define SSL3_GET_SERVER_PUBLICKEY(sock, type)                                          \
-    (ss->serverCerts[type].serverKeyPair ? ss->serverCerts[type].serverKeyPair->pubKey \
-                                         : NULL)
-
-/* Extract the TLS curve name for the public key in our EC server cert. */
-ECName
-ssl3_GetSvrCertCurveName(sslSocket *ss)
-{
-    SECKEYPublicKey *srvPublicKey;
-    ECName ec_curve = ec_noName;
-
-    srvPublicKey = SSL3_GET_SERVER_PUBLICKEY(ss, kt_ecdh);
-    if (srvPublicKey) {
-        ec_curve = ssl3_PubKey2ECName(srvPublicKey);
-    }
-    return ec_curve;
-}
-
 /* Ensure that the curve in our server cert is one of the ones supported
  * by the remote client, and disable all ECC cipher suites if not.
  */
@@ -1430,7 +1399,9 @@ ssl3_HandleSupportedCurvesXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
     PRInt32 list_len;
     PRUint32 peerCurves = 0;
     PRUint32 mutualCurves = 0;
-    PRUint16 svrCertCurveName;
+    PRCList *cursor;
+    PRBool foundECDH = PR_FALSE;
+    PRBool foundECDSA = PR_FALSE;
 
     if (!data->data || data->len < 4) {
         (void)ssl3_DecodeError(ss);
@@ -1462,19 +1433,31 @@ ssl3_HandleSupportedCurvesXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
         return SECSuccess;
     }
 
-    /* if our ECC cert doesn't use one of these supported curves,
+    /* if we don't have a cert with one of these curves,
      * disable ECC cipher suites that require an ECC cert.
      */
-    svrCertCurveName = ssl3_GetSvrCertCurveName(ss);
-    if (svrCertCurveName != ec_noName &&
-        (mutualCurves & (1U << svrCertCurveName)) != 0) {
-        return SECSuccess;
+    for (cursor = PR_NEXT_LINK(&ss->serverCerts);
+         cursor != &ss->serverCerts;
+         cursor = PR_NEXT_LINK(cursor)) {
+        sslServerCert *cert = (sslServerCert*)cursor;
+        if (cert->certType.authType == ssl_auth_ecdh
+            && (mutualCurves & (1U << cert->certType.u.namedCurve))) {
+            foundECDH = PR_TRUE;
+        }
+        if (cert->certType.authType == ssl_auth_ecdsa
+            && (mutualCurves & (1U << cert->certType.u.namedCurve))) {
+            foundECDSA = PR_TRUE;
+        }
     }
     /* Our EC cert doesn't contain a mutually supported curve.
-     * Disable all ECC cipher suites that require an EC cert
+     * Disable the affected cipher suites.
      */
-    ssl3_DisableECCSuites(ss, ecdh_ecdsa_suites);
-    ssl3_DisableECCSuites(ss, ecdhe_ecdsa_suites);
+    if (!foundECDH) {
+        ssl3_DisableECCSuites(ss, ecdh_suites);
+    }
+    if (!foundECDSA) {
+        ssl3_DisableECCSuites(ss, ecdhe_ecdsa_suites);
+    }
     return SECSuccess;
 }
 

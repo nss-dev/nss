@@ -108,35 +108,14 @@ class TlsServerKeyExchangeEcdhe {
   DataBuffer public_key_;
 };
 
-class TlsChaCha20Poly1305Test : public TlsConnectTls12 {
- public:
-  void ConnectSendReceive(PRUint32 cipher_suite)
-  {
-    // Disable all ciphers.
-    client_->DisableCiphersByKeyExchange(ssl_kea_rsa);
-    client_->DisableCiphersByKeyExchange(ssl_kea_dh);
-    client_->DisableCiphersByKeyExchange(ssl_kea_ecdh);
-
-    // Re-enable ChaCha20/Poly1305.
-    SECStatus rv = SSL_CipherPrefSet(client_->ssl_fd(), cipher_suite, PR_TRUE);
-    EXPECT_EQ(SECSuccess, rv);
-
-    Connect();
-    SendReceive();
-
-    // Check that we used the right cipher suite.
-    int16_t actual, expected = static_cast<int16_t>(cipher_suite);
-    EXPECT_TRUE(client_->cipher_suite(&actual) && actual == expected);
-    EXPECT_TRUE(server_->cipher_suite(&actual) && actual == expected);
-  }
-};
+class TlsChaCha20Poly1305Test : public TlsConnectTls12 {};
 
 TEST_P(TlsConnectGeneric, SetupOnly) {}
 
 TEST_P(TlsConnectGeneric, Connect) {
   SetExpectedVersion(std::get<1>(GetParam()));
   Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
 }
 
 TEST_P(TlsConnectGeneric, ConnectEcdsa) {
@@ -144,6 +123,22 @@ TEST_P(TlsConnectGeneric, ConnectEcdsa) {
   ResetEcdsa();
   Connect();
   CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa);
+}
+
+TEST_P(TlsConnectGenericPre13, ConnectEcdh) {
+  SetExpectedVersion(std::get<1>(GetParam()));
+  // ECDH_ cipher suites can use an ECDSA cert (NSS doesn't care that we
+  // shouldn't, which this shamelessly exploits).
+  ResetEcdsa();
+  DisableDheAndEcdheCiphers();
+  EnableSomeEcdhCiphers();
+
+  Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_ecdh);
+}
+
+TEST_P(TlsConnectStreamPre13, ConnectRC4) {
+  ConnectWithCipherSuite(TLS_RSA_WITH_RC4_128_SHA);
 }
 
 TEST_P(TlsConnectGenericPre13, ConnectFalseStart) {
@@ -311,7 +306,7 @@ TEST_P(TlsConnectGeneric, ClientAuth) {
   client_->SetupClientAuth();
   server_->RequestClientAuth(true);
   Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
 }
 
 // In TLS 1.3, the client sends its cert rejection on the
@@ -327,7 +322,7 @@ TEST_P(TlsConnectStream, DISABLED_ClientAuthRequiredRejected) {
 TEST_P(TlsConnectGeneric, ClientAuthRequestedRejected) {
   server_->RequestClientAuth(false);
   Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
 }
 
 
@@ -396,13 +391,13 @@ TEST_P(TlsConnectGenericPre13, SignatureAlgorithmNoOverlapStaticRsa) {
                                   PR_ARRAY_SIZE(SignatureRsaSha256));
   DisableDheAndEcdheCiphers();
   Connect();
-  CheckKeys(ssl_kea_rsa, ssl_auth_rsa);
+  CheckKeys(ssl_kea_rsa, ssl_auth_rsa_decrypt);
 }
 
 TEST_P(TlsConnectGenericPre13, ConnectStaticRSA) {
   DisableDheAndEcdheCiphers();
   Connect();
-  CheckKeys(ssl_kea_rsa, ssl_auth_rsa);
+  CheckKeys(ssl_kea_rsa, ssl_auth_rsa_decrypt);
 }
 
 // Signature algorithms governs both verification and generation of signatures.
@@ -537,7 +532,7 @@ TEST_P(TlsConnectStreamPre13, ConnectAndServerRenegotiate) {
 TEST_P(TlsConnectGenericPre13, ConnectDhe) {
   DisableEcdheCiphers();
   Connect();
-  CheckKeys(ssl_kea_dh, ssl_auth_rsa);
+  CheckKeys(ssl_kea_dh, ssl_auth_rsa_sign);
 }
 
 // Test that a totally bogus EPMS is handled correctly.
@@ -583,7 +578,7 @@ TEST_P(TlsConnectGenericPre13, ConnectStaticRSABogusPMSVersionIgnore) {
 
 TEST_P(TlsConnectGeneric, ConnectEcdhe) {
   Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
 }
 
 // Prior to TLS 1.3, we were not fully ephemeral; though 1.3 fixes that
@@ -592,7 +587,7 @@ TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceReuseKey) {
       new TlsInspectorRecordHandshakeMessage(kTlsHandshakeServerKeyExchange);
   server_->SetPacketFilter(i1);
   Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
   TlsServerKeyExchangeEcdhe dhe1;
   EXPECT_TRUE(dhe1.Parse(i1->buffer()));
 
@@ -603,7 +598,7 @@ TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceReuseKey) {
   server_->SetPacketFilter(i2);
   ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
   Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
 
   TlsServerKeyExchangeEcdhe dhe2;
   EXPECT_TRUE(dhe2.Parse(i2->buffer()));
@@ -624,7 +619,7 @@ TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceNewKey) {
       new TlsInspectorRecordHandshakeMessage(kTlsHandshakeServerKeyExchange);
   server_->SetPacketFilter(i1);
   Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
   TlsServerKeyExchangeEcdhe dhe1;
   EXPECT_TRUE(dhe1.Parse(i1->buffer()));
 
@@ -638,7 +633,7 @@ TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceNewKey) {
   server_->SetPacketFilter(i2);
   ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
   Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
 
   TlsServerKeyExchangeEcdhe dhe2;
   EXPECT_TRUE(dhe2.Parse(i2->buffer()));
@@ -655,16 +650,16 @@ TEST_P(TlsConnectGeneric, ConnectSendReceive) {
 }
 
 TEST_P(TlsChaCha20Poly1305Test, SendReceiveChaCha20Poly1305DheRsa) {
-  ConnectSendReceive(TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256);
+  ConnectWithCipherSuite(TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256);
 }
 
 TEST_P(TlsChaCha20Poly1305Test, SendReceiveChaCha20Poly1305EcdheRsa) {
-  ConnectSendReceive(TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256);
+  ConnectWithCipherSuite(TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256);
 }
 
 TEST_P(TlsChaCha20Poly1305Test, SendReceiveChaCha20Poly1305EcdheEcdsa) {
   ResetEcdsa();
-  ConnectSendReceive(TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256);
+  ConnectWithCipherSuite(TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256);
 }
 
 // The next two tests takes advantage of the fact that we
