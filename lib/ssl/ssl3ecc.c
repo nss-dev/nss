@@ -424,6 +424,7 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
     SECKEYPublicKey clntPubKey;
     CK_MECHANISM_TYPE target;
     PRBool isTLS, isTLS12;
+    int errCode = SSL_ERROR_RX_MALFORMED_CLIENT_KEY_EXCH;
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
@@ -437,8 +438,15 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
     rv = ssl3_ConsumeHandshakeVariable(ss, &clntPubKey.u.ec.publicValue,
                                        1, &b, &length);
     if (rv != SECSuccess) {
-        SEND_ALERT
-        return SECFailure; /* XXX Who sets the error code?? */
+        PORT_SetError(errCode);
+        return SECFailure;
+    }
+
+    // we have to catch the case when the client's public key has length 0
+    if (!clntPubKey.u.ec.publicValue.len) {
+        (void)SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
+        PORT_SetError(errCode);
+        return SECFailure;
     }
 
     isTLS = (PRBool)(ss->ssl3.prSpec->version > SSL_LIBRARY_VERSION_3_0);
@@ -459,15 +467,16 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 
     if (pms == NULL) {
         /* last gasp.  */
-        ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
+        errCode = ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
+        PORT_SetError(errCode);
         return SECFailure;
     }
 
     rv = ssl3_InitPendingCipherSpec(ss, pms);
     PK11_FreeSymKey(pms);
     if (rv != SECSuccess) {
-        SEND_ALERT
-        return SECFailure; /* error code set by ssl3_InitPendingCipherSpec */
+        /* error code set by ssl3_InitPendingCipherSpec */
+        return SECFailure;
     }
     return SECSuccess;
 }
@@ -786,7 +795,14 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (rv != SECSuccess) {
         goto loser; /* malformed. */
     }
-    /* Fail if the ec point uses compressed representation */
+
+    /* Fail if the provided point has length 0. */
+    if (!ec_point.len) {
+        /* desc and errCode are initialized already */
+        goto alert_loser;
+    }
+
+    /* Fail if the ec point uses compressed representation. */
     if (ec_point.data[0] != EC_POINT_FORM_UNCOMPRESSED) {
         errCode = SEC_ERROR_UNSUPPORTED_EC_POINT_FORM;
         desc = handshake_failure;
