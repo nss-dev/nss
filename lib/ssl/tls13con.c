@@ -586,6 +586,8 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
         }
     }
 
+<<<<<<< dest
+=======
     if (!ss->statelessResume) {
         rv = ssl3_SelectServerCert(ss);
         if (rv != SECSuccess) {
@@ -593,6 +595,13 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
         }
     }
 
+    rv = ssl3_SetupPendingCipherSpec(ss);
+    if (rv != SECSuccess) {
+        FATAL_ERROR(ss, PORT_GetError(), internal_error);
+        goto loser;
+    }
+
+>>>>>>> source
     /* If this is TLS 1.3 we are expecting a ClientKeyShare
      * extension. Missing/absent extension cause failure
      * below. */
