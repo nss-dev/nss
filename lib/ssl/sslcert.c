@@ -247,20 +247,15 @@ ssl_ConfigCert(sslSocket *ss, CERTCertificate *cert,
                ssl3KeyPair *keyPair, const SSLExtraServerCertData *data)
 {
     sslServerCert *oldsc;
+    sslServerCert *sc;
     sslServerCertType certType;
     SECStatus rv;
-    sslServerCert *sc = NULL;
     int error_code = SEC_ERROR_NO_MEMORY;
 
     PORT_Assert(cert);
     PORT_Assert(keyPair);
     PORT_Assert(data);
     PORT_Assert(data->authType != ssl_auth_null);
-
-    if (!cert || !keyPair || !data || data->authType == ssl_auth_null) {
-        error_code = SEC_ERROR_INVALID_ARGS;
-        goto loser;
-    }
 
     /* Determine which slot this falls into.  A value for SSLAuthType is already
      * set in |*data|, we just need to work out any extra information. */
@@ -462,7 +457,6 @@ SSL_ConfigServerCert(PRFileDesc *fd, CERTCertificate *cert,
     sslSocket *ss;
     SECKEYPublicKey *pubKey;
     ssl3KeyPair *keyPair;
-    SECStatus rv;
 
     ss = ssl_FindSocket(fd);
     if (!ss) {
@@ -491,9 +485,7 @@ SSL_ConfigServerCert(PRFileDesc *fd, CERTCertificate *cert,
         return SECFailure;
     }
 
-    rv = ssl_ConfigCertByUsage(ss, cert, keyPair, data);
-    ssl3_FreeKeyPair(keyPair);
-    return rv;
+    return ssl_ConfigCertByUsage(ss, cert, keyPair, data);
 }
 
 /*******************************************************************/
@@ -608,7 +600,6 @@ ssl_AddCertAndKeyByAuthType(sslSocket *ss, SSLAuthType authType,
     }
     rv = ssl_PopulateKeyPair(sc, keyPair);
     if (rv != SECSuccess) {
-        ssl_FreeServerCert(sc);
         return SECFailure;
     }
     /* Now that we have a key pair, update the details of the slot. Many of the
@@ -641,7 +632,7 @@ ssl_AddCertsByKEA(sslSocket *ss, CERTCertificate *cert,
 {
     SECKEYPublicKey *pubKey;
     ssl3KeyPair *keyPair;
-    SECStatus rv = SECFailure;
+    SECStatus rv;
 
     pubKey = CERT_ExtractPublicKey(cert);
     if (!pubKey) {
@@ -662,14 +653,12 @@ ssl_AddCertsByKEA(sslSocket *ss, CERTCertificate *cert,
             if (rv != SECSuccess) {
                 return SECFailure;
             }
-            rv = ssl_AddCertAndKeyByAuthType(ss, ssl_auth_rsa_sign,
-                                             cert, certChainOpt, keyPair);
-            break;
+            return ssl_AddCertAndKeyByAuthType(ss, ssl_auth_rsa_sign,
+                                               cert, certChainOpt, keyPair);
 
         case ssl_kea_dh:
-            rv = ssl_AddCertAndKeyByAuthType(ss, ssl_auth_dsa,
-                                             cert, certChainOpt, keyPair);
-            break;
+            return ssl_AddCertAndKeyByAuthType(ss, ssl_auth_dsa,
+                                               cert, certChainOpt, keyPair);
 
 #ifndef NSS_DISABLE_ECC
         case ssl_kea_ecdh:
@@ -678,18 +667,14 @@ ssl_AddCertsByKEA(sslSocket *ss, CERTCertificate *cert,
             if (rv != SECSuccess) {
                 return SECFailure;
             }
-            rv = ssl_AddCertAndKeyByAuthType(ss, ssl_auth_ecdh,
-                                             cert, certChainOpt, keyPair);
-            break;
+            return ssl_AddCertAndKeyByAuthType(ss, ssl_auth_ecdh,
+                                               cert, certChainOpt, keyPair);
 #endif
 
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
-            break;
+            return SECFailure;
     }
-
-    ssl3_FreeKeyPair(keyPair);
-    return rv;
 }
 
 /* Public deprecated function */
