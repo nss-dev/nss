@@ -74,7 +74,6 @@ class TlsAgent : public PollTarget {
   // Prepares for renegotiation, then actually triggers it.
   void StartRenegotiate();
   void DisableCiphersByKeyExchange(SSLKEAType kea);
-  void EnableCiphersByAuthType(SSLAuthType authType);
   bool EnsureTlsSetup();
 
   void SetupClientAuth();
@@ -139,7 +138,7 @@ class TlsAgent : public PollTarget {
     return info_.protocolVersion;
   }
 
-  bool cipher_suite(uint16_t* cipher_suite) const {
+  bool cipher_suite(int16_t* cipher_suite) const {
     if (state_ != STATE_CONNECTED) return false;
 
     *cipher_suite = info_.cipherSuite;

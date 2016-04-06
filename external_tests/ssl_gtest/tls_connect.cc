@@ -219,29 +219,6 @@ void TlsConnectTestBase::Connect() {
   CheckConnected();
 }
 
-void TlsConnectTestBase::ConnectWithCipherSuite(uint16_t cipher_suite)
-{
-  // Disable all ciphers.
-  client_->DisableCiphersByKeyExchange(ssl_kea_rsa);
-  client_->DisableCiphersByKeyExchange(ssl_kea_dh);
-  client_->DisableCiphersByKeyExchange(ssl_kea_ecdh);
-
-  // Re-enable this specific cipher suite
-  SECStatus rv = SSL_CipherPrefSet(client_->ssl_fd(), cipher_suite, PR_TRUE);
-  EXPECT_EQ(SECSuccess, rv);
-
-  Connect();
-  SendReceive();
-
-  // Check that we used the right cipher suite.
-  uint16_t actual;
-  EXPECT_TRUE(client_->cipher_suite(&actual));
-  EXPECT_EQ(cipher_suite, actual);
-  EXPECT_TRUE(server_->cipher_suite(&actual));
-  EXPECT_EQ(cipher_suite, actual);
-}
-
-
 void TlsConnectTestBase::CheckConnected() {
   // Check the version is as expected
   EXPECT_EQ(client_->version(), server_->version());
@@ -252,7 +229,7 @@ void TlsConnectTestBase::CheckConnected() {
   EXPECT_EQ(TlsAgent::STATE_CONNECTED, client_->state());
   EXPECT_EQ(TlsAgent::STATE_CONNECTED, server_->state());
 
-  uint16_t cipher_suite1, cipher_suite2;
+  int16_t cipher_suite1, cipher_suite2;
   bool ret = client_->cipher_suite(&cipher_suite1);
   EXPECT_TRUE(ret);
   ret = server_->cipher_suite(&cipher_suite2);
@@ -312,11 +289,6 @@ void TlsConnectTestBase::DisableEcdheCiphers() {
 void TlsConnectTestBase::DisableDheAndEcdheCiphers() {
   DisableDheCiphers();
   DisableEcdheCiphers();
-}
-
-void TlsConnectTestBase::EnableSomeEcdhCiphers() {
-  client_->EnableCiphersByAuthType(ssl_auth_ecdh);
-  server_->EnableCiphersByAuthType(ssl_auth_ecdh);
 }
 
 void TlsConnectTestBase::ConfigureSessionCache(SessionResumptionMode client,
