@@ -24,7 +24,7 @@
 
 
 /* GCC Attribute */
-#if defined(__GNUC__) && !defined(NSS_NO_INIT_SUPPORT)
+#ifdef __GNUC__
 #define INIT_FUNCTION __attribute__((constructor))
 #else
 #define INIT_FUNCTION
@@ -33,7 +33,7 @@
 static void INIT_FUNCTION lg_startup_tests(void);
 
 /* Windows pre-defined entry */
-#if defined(XP_WIN) && !defined(NSS_NO_INIT_SUPPORT)
+#ifdef XP_WIN
 #include <windows.h>
 
 BOOL WINAPI DllMain(

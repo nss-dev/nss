@@ -43,7 +43,7 @@ static void INIT_FUNCTION bl_startup_tests(void);
 
 
 /* Windows pre-defined entry */
-#if defined(XP_WIN) && !defined(NSS_NO_INIT_SUPPORT)
+#ifdef XP_WIN
 #include <windows.h>
 
 BOOL WINAPI DllMain(
