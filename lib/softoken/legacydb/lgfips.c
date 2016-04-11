@@ -24,7 +24,7 @@
 
 
 /* GCC Attribute */
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(NSS_NO_INIT_SUPPORT)
 #define INIT_FUNCTION __attribute__((constructor))
 #else
 #define INIT_FUNCTION
@@ -33,7 +33,7 @@
 static void INIT_FUNCTION lg_startup_tests(void);
 
 /* Windows pre-defined entry */
-#ifdef XP_WIN
+#if defined(XP_WIN) && !defined(NSS_NO_INIT_SUPPORT)
 #include <windows.h>
 
 BOOL WINAPI DllMain(
@@ -100,13 +100,12 @@ lg_startup_tests(void)
 
 PRBool
 lg_FIPSEntryOK() {
-#ifdef NO_INIT_SUPPORT
+#ifdef NSS_NO_INIT_SUPPORT
    /* this should only be set on platforms that can't handle one of the INIT
     * schemes.  This code allows those platforms to continue to function, 
     * though they don't meet the strict NIST requirements. If NO_INIT_SUPPORT
     * is not set, and init support has not been properly enabled, softken
     * will always fail because of the test below */
-    */
     if (!lg_self_tests_ran) {
 	lg_startup_tests();
     }
