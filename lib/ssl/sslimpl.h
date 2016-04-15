@@ -1928,8 +1928,7 @@ SECStatus ssl3_SendEmptyCertificate(sslSocket *ss);
 SECStatus ssl3_SendCertificateStatus(sslSocket *ss);
 SECStatus ssl3_CompleteHandleCertificateStatus(sslSocket *ss, SSL3Opaque *b,
                                                PRUint32 length);
-CK_MECHANISM_TYPE ssl3_GetPrfHashMechanism(sslSocket *ss);
-SECStatus ssl3_EncodeCertificateRequestSigAlgs(sslSocket *ss, PRUint8 allowedHashAlg, PRUint8 *buf,
+SECStatus ssl3_EncodeCertificateRequestSigAlgs(sslSocket *ss, PRUint8 *buf,
                                                unsigned maxLen, PRUint32 *len);
 void ssl3_GetCertificateRequestCAs(sslSocket *ss, int *calenp, SECItem **namesp,
                                    int *nnamesp);

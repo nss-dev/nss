@@ -726,7 +726,6 @@ tls13_SendCertificateRequest(sslSocket *ss)
     PRUint8 sigAlgs[MAX_SIGNATURE_ALGORITHMS * 2];
     unsigned int sigAlgsLength = 0;
     int length;
-    PRUint8 allowedHashAlg;
 
     SSL_TRC(3, ("%d: TLS13[%d]: begin send certificate_request",
                 SSL_GETPID(), ss->fd));
@@ -735,28 +734,7 @@ tls13_SendCertificateRequest(sslSocket *ss)
     ss->ssl3.hs.certReqContext[0] = 0;
     ss->ssl3.hs.certReqContextLen = 1;
 
-    /* TODO: separate patch, a function perhaps? move it to ssl3con.c */
-    {
-        SECOidData *hashOid;
-
-        hashOid = SECOID_FindOIDByMechanism(ssl3_GetPrfHashMechanism(ss));
-        if (hashOid == NULL) {
-            return SECFailure; /* err set by AppendHandshake. */
-        }
-
-        if (hashOid->offset == SEC_OID_SHA256) {
-            allowedHashAlg = ssl_hash_sha256;
-        } else if (hashOid->offset == SEC_OID_SHA384) {
-            allowedHashAlg = ssl_hash_sha384;
-        } else {
-            PORT_Assert(hashOid->offset == SEC_OID_SHA256 ||
-                        hashOid->offset == SEC_OID_SHA384);
-            return SECFailure; /* err set by AppendHandshake. */
-        }
-    }
-
-    rv = ssl3_EncodeCertificateRequestSigAlgs(ss, allowedHashAlg,
-                                              sigAlgs, sizeof(sigAlgs),
+    rv = ssl3_EncodeCertificateRequestSigAlgs(ss, sigAlgs, sizeof(sigAlgs),
                                               &sigAlgsLength);
     if (rv != SECSuccess) {
         return rv;
