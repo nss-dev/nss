@@ -496,7 +496,7 @@ static const ssl3CipherSuiteDef cipher_suite_defs[] =
     {TLS_ECDH_anon_WITH_AES_128_CBC_SHA,  cipher_aes_128, mac_sha, kea_ecdh_anon, 0},
     {TLS_ECDH_anon_WITH_AES_256_CBC_SHA,  cipher_aes_256, mac_sha, kea_ecdh_anon, 0},
 #endif
-    {TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256, cipher_aes_128_gcm, mac_aead, kea_ecdhe_psk},
+    {TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256, cipher_aes_128_gcm, mac_aead, kea_ecdhe_psk, prf_256},
 #endif /* NSS_DISABLE_ECC */
 };
 /* clang-format on */
