@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "secerr.h"
 #include "ssl.h"
 #include "sslerr.h"
 #include "sslproto.h"
@@ -1110,6 +1111,64 @@ TEST_P(TlsConnectGenericPre13, AuthCompleteBeforeFinishedWithFalseStart) {
   Connect();
   server_->SendData(10);
   Receive(10);
+}
+
+// Replace the point in the client key exchange message with an empty one
+class ECCClientKEXFilter : public TlsHandshakeFilter {
+public:
+  ECCClientKEXFilter() {}
+
+protected:
+  virtual PacketFilter::Action FilterHandshake(const HandshakeHeader &header,
+                                               const DataBuffer &input,
+                                               DataBuffer *output) {
+    if (header.handshake_type() != kTlsHandshakeClientKeyExchange) {
+      return KEEP;
+    }
+
+    // Replace the client key exchange message with an empty point
+    output->Allocate(1);
+    output->Write(0, 0U, 1); // set point length 0
+    return CHANGE;
+  }
+};
+
+// Replace the point in the server key exchange message with an empty one
+class ECCServerKEXFilter : public TlsHandshakeFilter {
+public:
+  ECCServerKEXFilter() {}
+
+protected:
+  virtual PacketFilter::Action FilterHandshake(const HandshakeHeader &header,
+                                               const DataBuffer &input,
+                                               DataBuffer *output) {
+    if (header.handshake_type() != kTlsHandshakeServerKeyExchange) {
+      return KEEP;
+    }
+
+    // Replace the server key exchange message with an empty point
+    output->Allocate(4);
+    output->Write(0, 3U, 1); // named curve
+    uint32_t curve;
+    EXPECT_TRUE(input.Read(1, 2, &curve)); // get curve id
+    output->Write(1, curve, 2); // write curve id
+    output->Write(3, 0U, 1); // point length 0
+    return CHANGE;
+  }
+};
+
+TEST_P(TlsConnectGenericPre13, ConnectECDHEmptyServerPoint) {
+  // add packet filter
+  server_->SetPacketFilter(new ECCServerKEXFilter());
+  ConnectExpectFail();
+  client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_SERVER_KEY_EXCH);
+}
+
+TEST_P(TlsConnectGenericPre13, ConnectECDHEmptyClientPoint) {
+  // add packet filter
+  client_->SetPacketFilter(new ECCClientKEXFilter());
+  ConnectExpectFail();
+  server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_KEY_EXCH);
 }
 
 INSTANTIATE_TEST_CASE_P(GenericStream, TlsConnectGeneric,
