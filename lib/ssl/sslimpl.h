@@ -450,8 +450,8 @@ typedef enum {
 /* The TLS PRF definition */
 typedef enum {
     prf_null = 0, /* use default prf */
-    prf_256 = CKM_SHA256,
-    prf_384 = CKM_SHA384
+    prf_sha256 = CKM_SHA256,
+    prf_sha384 = CKM_SHA384
 } SSL3PRF;
 
 typedef enum { type_stream,
@@ -1928,6 +1928,8 @@ SECStatus ssl3_SendEmptyCertificate(sslSocket *ss);
 SECStatus ssl3_SendCertificateStatus(sslSocket *ss);
 SECStatus ssl3_CompleteHandleCertificateStatus(sslSocket *ss, SSL3Opaque *b,
                                                PRUint32 length);
+CK_MECHANISM_TYPE ssl3_GetPrfHashMechanism(sslSocket *ss);
+PRUint8 ssl3_GetSuiteHashAlg(sslSocket *ss);
 SECStatus ssl3_EncodeCertificateRequestSigAlgs(sslSocket *ss, PRUint8 *buf,
                                                unsigned maxLen, PRUint32 *len);
 void ssl3_GetCertificateRequestCAs(sslSocket *ss, int *calenp, SECItem **namesp,

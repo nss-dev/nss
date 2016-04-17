@@ -726,6 +726,7 @@ tls13_SendCertificateRequest(sslSocket *ss)
     PRUint8 sigAlgs[MAX_SIGNATURE_ALGORITHMS * 2];
     unsigned int sigAlgsLength = 0;
     int length;
+    PRUint8 suiteHashAlg;
 
     SSL_TRC(3, ("%d: TLS13[%d]: begin send certificate_request",
                 SSL_GETPID(), ss->fd));
@@ -733,6 +734,9 @@ tls13_SendCertificateRequest(sslSocket *ss)
     /* Fixed context value. */
     ss->ssl3.hs.certReqContext[0] = 0;
     ss->ssl3.hs.certReqContextLen = 1;
+
+    suiteHashAlg = ssl3_GetSuiteHashAlg(ss);
+    if (suiteHashAlg == -1) return SECFailure; /* err set by AppendHandshake. */
 
     rv = ssl3_EncodeCertificateRequestSigAlgs(ss, sigAlgs, sizeof(sigAlgs),
                                               &sigAlgsLength);
