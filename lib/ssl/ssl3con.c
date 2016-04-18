@@ -8714,6 +8714,22 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         }
     }
 
+    /* TODO: For TLS 1.3 final, downgrade when the extension IS present. */
+    if (ss->version == SSL_LIBRARY_VERSION_TLS_1_3 &&
+        !ssl3_ExtensionNegotiated(ss, ssl_tls13_draft_version_xtn)) {
+        SSL_TRC(30, ("%d: SSL3[%d]: Unsupported version of TLS 1.3 "
+                     "advertised, expected %d",
+                     SSL_GETPID(), ss->fd, TLS_1_3_DRAFT_VERSION));
+        ss->version = SSL_LIBRARY_VERSION_TLS_1_2;
+        /* Maybe TLS 1.2 is disabled... */
+        if (ss->version < ss->vrange.min) {
+            desc = protocol_version;
+            level = alert_fatal;
+            errCode = SSL_ERROR_UNSUPPORTED_VERSION;
+            goto alert_loser;
+        }
+    }
+
     if (!ssl3_ExtensionNegotiated(ss, ssl_renegotiation_info_xtn)) {
         /* If we didn't receive an RI extension, look for the SCSV,
          * and if found, treat it just like an empty RI extension
