@@ -126,7 +126,7 @@ class TlsChaCha20Poly1305Test : public TlsConnectTls12 {
     SendReceive();
 
     // Check that we used the right cipher suite.
-    int16_t actual, expected = static_cast<int16_t>(cipher_suite);
+    uint16_t actual, expected = static_cast<int16_t>(cipher_suite);
     EXPECT_TRUE(client_->cipher_suite(&actual) && actual == expected);
     EXPECT_TRUE(server_->cipher_suite(&actual) && actual == expected);
   }
