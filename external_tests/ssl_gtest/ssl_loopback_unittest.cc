@@ -956,6 +956,8 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   Connect();
   SendReceive(); // Need to read so that we absorb the session ticket.
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+  uint16_t original_suite;
+  EXPECT_TRUE(client_->cipher_suite(&original_suite));
 
   ResetRsa();
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
@@ -971,6 +973,7 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
   DataBuffer psk1(c1->extension());
   ASSERT_GE(psk1.len(), 0UL);
+  ASSERT_TRUE(!!client_->peer_cert());
 
   ResetRsa();
   ClearStats();
@@ -987,6 +990,15 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
   DataBuffer psk2(c2->extension());
   ASSERT_GE(psk2.len(), 0UL);
+  ASSERT_TRUE(!!client_->peer_cert());
+
+  // Check that the cipher suite is reported the same on both sides, though in
+  // TLS 1.3 resumption actually negotiates a different cipher suite.
+  uint16_t resumed_suite;
+  EXPECT_TRUE(server_->cipher_suite(&resumed_suite));
+  EXPECT_EQ(original_suite, resumed_suite);
+  EXPECT_TRUE(client_->cipher_suite(&resumed_suite));
+  EXPECT_EQ(original_suite, resumed_suite);
 
   // TODO(ekr@rtfm.com): This will change when we fix bug 1257047.
   ASSERT_EQ(psk1, psk2);
