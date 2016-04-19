@@ -120,6 +120,10 @@ class TlsAgent : public PollTarget {
 
   SSLKEAType kea() const { return kea_; }
 
+  const CERTCertificate* peer_cert() const {
+    return SSL_PeerCertificate(ssl_fd_);
+  }
+
   const char* state_str() const { return state_str(state()); }
 
   const char* state_str(State state) const { return states[state]; }

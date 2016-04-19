@@ -873,7 +873,7 @@ typedef struct SSL3HandshakeStateStr {
     /* message for message type and header length */
     SSL3HandshakeType msg_type;
     unsigned long msg_len;
-    PRBool isResuming;      /* are we resuming a session */
+    PRBool isResuming; /* we are resuming (not used in TLS 1.3) */
     PRBool usedStepDownKey; /* we did a server key exchange. */
     PRBool sendingSCSV;     /* instead of empty RI */
     sslBuffer msgState;     /* current state for handshake messages*/
