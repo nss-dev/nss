@@ -46,6 +46,12 @@ static SECStatus tls13_AESGCM(
     unsigned char *out, int *outlen, int maxout,
     const unsigned char *in, int inlen,
     const unsigned char *additionalData, int additionalDataLen);
+static SECStatus tls13_ChaCha20Poly1305(
+    ssl3KeyMaterial *keys,
+    PRBool doDecrypt,
+    unsigned char *out, int *outlen, int maxout,
+    const unsigned char *in, int inlen,
+    const unsigned char *additionalData, int additionalDataLen);
 static SECStatus tls13_SendEncryptedExtensions(sslSocket *ss);
 static SECStatus tls13_HandleEncryptedExtensions(sslSocket *ss, SSL3Opaque *b,
                                                  PRUint32 length);
@@ -1526,6 +1532,9 @@ tls13_InitCipherSpec(sslSocket *ss, TrafficKeyType type,
         case calg_aes_gcm:
             spec->aead = tls13_AESGCM;
             break;
+        case calg_chacha20:
+            spec->aead = tls13_ChaCha20Poly1305;
+            break;
         default:
             PORT_Assert(0);
             goto loser;
@@ -1797,12 +1806,75 @@ tls13_DestroyCipherSpecs(PRCList *list)
     }
 }
 
+/* draft-ietf-tls-tls13 Section 5.2.2 specifies the following
+ * nonce algorithm:
+ *
+ * The length of the per-record nonce (iv_length) is set to max(8 bytes,
+ * N_MIN) for the AEAD algorithm (see [RFC5116] Section 4).  An AEAD
+ * algorithm where N_MAX is less than 8 bytes MUST NOT be used with TLS.
+ * The per-record nonce for the AEAD construction is formed as follows:
+ *
+ * 1.  The 64-bit record sequence number is padded to the left with
+ *     zeroes to iv_length.
+ *
+ * 2.  The padded sequence number is XORed with the static
+ *     client_write_iv or server_write_iv, depending on the role.
+ *
+ * The resulting quantity (of length iv_length) is used as the per-
+ * record nonce.
+ *
+ * Existing suites have the same nonce size: N_MIN = N_MAX = 12 bytes
+ *
+ * See RFC 5288 and https://tools.ietf.org/html/draft-ietf-tls-chacha20-poly1305-04#section-2
+ */
+static void
+tls13_WriteNonce(ssl3KeyMaterial *keys,
+                 const unsigned char *seqNumBuf, unsigned int seqNumLen,
+                 unsigned char *nonce, unsigned int nonceLen)
+{
+    size_t i;
+
+    PORT_Assert(nonceLen == 12);
+    memcpy(nonce, keys->write_iv, 12);
+
+    /* XOR the last 8 bytes of the IV with the sequence number. */
+    PORT_Assert(seqNumLen == 8);
+    for (i = 0; i < 8; ++i) {
+        nonce[4 + i] ^= seqNumBuf[i];
+    }
+}
+
 /* Implement the SSLAEADCipher interface defined in sslimpl.h.
  *
- * That interface mixes the AD and the sequence number, but in
- * TLS 1.3 there is no additional data so this value is just the
- * encoded sequence number and we call it |seqNumBuf|.
+ * That interface takes the additional data (see below) and reinterprets that as
+ * a sequence number. In TLS 1.3 there is no additional data so this value is
+ * just the encoded sequence number.
  */
+static SECStatus
+tls13_AEAD(ssl3KeyMaterial *keys, PRBool doDecrypt,
+           unsigned char *out, int *outlen, int maxout,
+           const unsigned char *in, int inlen,
+           CK_MECHANISM_TYPE mechanism,
+           unsigned char *aeadParams, unsigned int aeadParamLength)
+{
+    SECStatus rv;
+    unsigned int uOutLen = 0;
+    SECItem param = {
+        siBuffer, aeadParams, aeadParamLength
+    };
+
+    if (doDecrypt) {
+        rv = PK11_Decrypt(keys->write_key, mechanism, &param,
+                          out, &uOutLen, maxout, in, inlen);
+    } else {
+        rv = PK11_Encrypt(keys->write_key, mechanism, &param,
+                          out, &uOutLen, maxout, in, inlen);
+    }
+    *outlen = (int)uOutLen;
+
+    return rv;
+}
+
 static SECStatus
 tls13_AESGCM(ssl3KeyMaterial *keys,
              PRBool doDecrypt,
@@ -1811,63 +1883,48 @@ tls13_AESGCM(ssl3KeyMaterial *keys,
              int maxout,
              const unsigned char *in,
              int inlen,
-             const unsigned char *seqNumBuf,
-             int seqNumLen)
+             const unsigned char *additionalData,
+             int additionalDataLen)
 {
-    SECItem param;
-    SECStatus rv = SECFailure;
-    unsigned char nonce[12];
-    size_t i;
-    unsigned int uOutLen;
     CK_GCM_PARAMS gcmParams;
-    static const int tagSize = 16;
+    unsigned char nonce[12];
 
-    PORT_Assert(seqNumLen == 8);
-
-    /* draft-ietf-tls-tls13 Section 5.2.2 specifies the following
-     * nonce algorithm:
-     *
-     * The length of the per-record nonce (iv_length) is set to max(8 bytes,
-     * N_MIN) for the AEAD algorithm (see [RFC5116] Section 4).  An AEAD
-     * algorithm where N_MAX is less than 8 bytes MUST NOT be used with TLS.
-     * The per-record nonce for the AEAD construction is formed as follows:
-     *
-     * 1.  The 64-bit record sequence number is padded to the left with
-     *     zeroes to iv_length.
-     *
-     * 2.  The padded sequence number is XORed with the static
-     *     client_write_iv or server_write_iv, depending on the role.
-     *
-     * The resulting quantity (of length iv_length) is used as the per-
-     * record nonce.
-     *
-     * Per RFC 5288: N_MIN = N_MAX = 12 bytes.
-     *
-     */
-    memcpy(nonce, keys->write_iv, sizeof(nonce));
-    for (i = 0; i < 8; ++i) {
-        nonce[4 + i] ^= seqNumBuf[i];
-    }
-
-    param.type = siBuffer;
-    param.data = (unsigned char *)&gcmParams;
-    param.len = sizeof(gcmParams);
+    memset(&gcmParams, 0, sizeof(gcmParams));
     gcmParams.pIv = nonce;
     gcmParams.ulIvLen = sizeof(nonce);
     gcmParams.pAAD = NULL;
     gcmParams.ulAADLen = 0;
-    gcmParams.ulTagBits = tagSize * 8;
+    gcmParams.ulTagBits = 128; /* GCM measures tag length in bits. */
 
-    if (doDecrypt) {
-        rv = PK11_Decrypt(keys->write_key, CKM_AES_GCM, &param, out, &uOutLen,
-                          maxout, in, inlen);
-    } else {
-        rv = PK11_Encrypt(keys->write_key, CKM_AES_GCM, &param, out, &uOutLen,
-                          maxout, in, inlen);
-    }
-    *outlen = (int)uOutLen;
+    tls13_WriteNonce(keys, additionalData, additionalDataLen,
+                     nonce, sizeof(nonce));
+    return tls13_AEAD(keys, doDecrypt, out, outlen, maxout, in, inlen,
+                      CKM_AES_GCM,
+                      (unsigned char *)&gcmParams, sizeof(gcmParams));
+}
 
-    return rv;
+static SECStatus
+tls13_ChaCha20Poly1305(ssl3KeyMaterial *keys, PRBool doDecrypt,
+                       unsigned char *out, int *outlen, int maxout,
+                       const unsigned char *in, int inlen,
+                       const unsigned char *additionalData,
+                       int additionalDataLen)
+{
+    CK_NSS_AEAD_PARAMS aeadParams;
+    unsigned char nonce[12];
+
+    memset(&aeadParams, 0, sizeof(aeadParams));
+    aeadParams.pNonce = nonce;
+    aeadParams.ulNonceLen = sizeof(nonce);
+    aeadParams.pAAD = NULL; /* No AAD in TLS 1.3. */
+    aeadParams.ulAADLen = 0;
+    aeadParams.ulTagLen = 16; /* The Poly1305 tag is 16 octets. */
+
+    tls13_WriteNonce(keys, additionalData, additionalDataLen,
+                     nonce, sizeof(nonce));
+    return tls13_AEAD(keys, doDecrypt, out, outlen, maxout, in, inlen,
+                      CKM_NSS_CHACHA20_POLY1305,
+                      (unsigned char *)&aeadParams, sizeof(aeadParams));
 }
 
 static SECStatus
