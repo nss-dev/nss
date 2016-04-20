@@ -357,8 +357,11 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
     /* If we are the server, we compute the wrapping key, but if we
      * are the client, it's coordinates are stored with the ticket. */
     if (ss->sec.isServer) {
-        wrapKey = ssl3_GetWrappingKey(ss, NULL,
-                                      sid->u.ssl3.exchKeyType,
+        const sslServerCert *serverCert;
+
+        serverCert = ssl_FindServerCert(ss, &sid->certType);
+        PORT_Assert(serverCert);
+        wrapKey = ssl3_GetWrappingKey(ss, NULL, serverCert,
                                       sid->u.ssl3.masterWrapMech,
                                       ss->pkcs11PinArg);
     } else {
@@ -408,10 +411,10 @@ tls13_RestoreCipherInfo(sslSocket *ss, sslSessionID *sid)
      * TODO(ekr@rtfm.com): Make a version with the "true" values.
      * Bug 1256137.
      */
-    ss->sec.authAlgorithm = sid->authAlgorithm;
-    ss->sec.authKeyBits   = sid->authKeyBits;
-    ss->sec.keaType       = sid->keaType;
-    ss->sec.keaKeyBits    = sid->keaKeyBits;
+    ss->sec.authType = sid->authType;
+    ss->sec.authKeyBits = sid->authKeyBits;
+    ss->sec.keaType = sid->keaType;
+    ss->sec.keaKeyBits = sid->keaKeyBits;
     ss->ssl3.hs.origCipherSuite = sid->u.ssl3.cipherSuite;
 }
 
@@ -457,6 +460,28 @@ tls13_AllowPskCipher(const sslSocket *ss, const ssl3CipherSuiteDef *cipher_def)
     return PR_TRUE;
 }
 
+/* Check whether resumption-PSK is allowed. */
+static PRBool
+tls13_CanResume(sslSocket *ss, const sslSessionID *sid)
+{
+    const sslServerCert* sc;
+
+    if (sid->version != ss->version) {
+        return PR_FALSE;
+    }
+
+    /* Server sids don't remember the server cert we previously sent, but they
+     * do remember the type of certificate we originally used, so we can locate
+     * it again, provided that the current ssl socket has had its server certs
+     * configured the same as the previous one. */
+    sc = ssl_FindServerCert(ss, &sid->certType);
+    if (!sc || !sc->serverCert) {
+        return PR_FALSE;
+    }
+
+    return PR_TRUE;
+}
+
 /* Called from ssl3_HandleClientHello after we have parsed the
  * ClientHello and are sure that we are going to do TLS 1.3
  * or fail. */
@@ -474,25 +499,14 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
         FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
         return SECFailure;
     }
-    /* Sanity check whether resumption-PSK is allowed. */
-    if (sid != NULL) {
-        PRBool resumeOK = PR_FALSE;
-
-        do {
-            if (sid->version != ss->version) {
-                break;
-            }
-            resumeOK = PR_TRUE;
-        } while(0);
-
-        if (!resumeOK) {
-            SSL_AtomicIncrementLong(& ssl3stats->hch_sid_cache_not_ok);
-            if (ss->sec.uncache)
-                ss->sec.uncache(sid);
-            ssl_FreeSID(sid);
-            sid = NULL;
-            ss->statelessResume = PR_FALSE;
-        }
+    if (sid != NULL && !tls13_CanResume(ss, sid)) {
+        /* Destroy SID if it is present an unusable. */
+        SSL_AtomicIncrementLong(&ssl3stats->hch_sid_cache_not_ok);
+        if (ss->sec.uncache)
+            ss->sec.uncache(sid);
+        ssl_FreeSID(sid);
+        sid = NULL;
+        ss->statelessResume = PR_FALSE;
     }
 
 #ifndef PARANOID
@@ -510,8 +524,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
         goto loser;
     }
 
-    /* TODO(ekr@rtfm.com): Update this when we have pure PSK. */
-    if (ss->ssl3.hs.suite_def->key_exchange_alg != kea_ecdhe_psk) {
+    if (ss->ssl3.hs.kea_def->authKeyType != ssl_auth_psk) {
         /* TODO(ekr@rtfm.com): Free resumeSID. */
         ss->statelessResume = PR_FALSE;
     }
@@ -525,19 +538,14 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
             goto loser;
         }
 
-        SSL_AtomicIncrementLong(& ssl3stats->hch_sid_cache_hits);
-        SSL_AtomicIncrementLong(& ssl3stats->hch_sid_stateless_resumes);
+        SSL_AtomicIncrementLong(&ssl3stats->hch_sid_cache_hits);
+        SSL_AtomicIncrementLong(&ssl3stats->hch_sid_stateless_resumes);
 
         tls13_RestoreCipherInfo(ss, sid);
 
-        /* server sids don't remember the server cert we previously sent,
-        ** but they do remember the kea type we originally used, so we
-        ** can locate it again, provided that the current ssl socket
-        ** has had its server certs configured the same as the previous one.
-        */
-        ss->sec.localCert     =
-                CERT_DupCertificate(ss->serverCerts[sid->keaType].serverCert);
-
+        ss->sec.serverCert = ssl_FindServerCert(ss, &sid->certType);
+        PORT_Assert(ss->sec.serverCert);
+        ss->sec.localCert = CERT_DupCertificate(ss->sec.serverCert->serverCert);
         if (sid->peerCert != NULL) {
             ss->sec.peerCert = CERT_DupCertificate(sid->peerCert);
         }
@@ -576,6 +584,13 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
             SECEqual) {
             FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CLIENT_HELLO,
                         handshake_failure);
+            goto loser;
+        }
+    }
+
+    if (!ss->statelessResume) {
+        rv = ssl3_SelectServerCert(ss);
+        if (rv != SECSuccess) {
             goto loser;
         }
     }
@@ -633,6 +648,7 @@ tls13_HandleClientKeyShare(sslSocket *ss)
     switch (ss->ssl3.hs.kea_def->exchKeyType) {
 #ifndef NSS_DISABLE_ECC
         case ssl_kea_ecdh:
+        case ssl_kea_ecdh_psk:
             expectedGroup = ssl3_GetCurveNameForServerSocket(ss);
             if (!expectedGroup) {
                 FATAL_ERROR(ss, SSL_ERROR_NO_CYPHER_OVERLAP,
@@ -858,7 +874,7 @@ tls13_InitializeHandshakeEncryption(sslSocket *ss)
     SECStatus rv;
 
     PORT_Assert(!!ss->ssl3.hs.xSS ==
-                (ss->ssl3.hs.kea_def->signKeyType == ssl_sign_psk));
+                (ss->ssl3.hs.kea_def->authKeyType == ssl_auth_psk));
     if (!ss->ssl3.hs.xSS) {
         ss->ssl3.hs.xSS = PK11_ReferenceSymKey(ss->ssl3.hs.xES);
         if (!ss->ssl3.hs.xSS) {
@@ -885,7 +901,7 @@ SECStatus
 tls13_SendServerHelloSequence(sslSocket *ss)
 {
     SECStatus rv;
-    SSL3KEAType certIndex;
+    SECKEYPrivateKey *svrPrivKey;
 
     SSL_TRC(3, ("%d: TLS13[%d]: begin send server_hello sequence",
                 SSL_GETPID(), ss->fd));
@@ -914,7 +930,7 @@ tls13_SendServerHelloSequence(sslSocket *ss)
             return SECFailure; /* error code is set. */
         }
     }
-    if (ss->ssl3.hs.kea_def->signKeyType != ssl_sign_psk) {
+    if (ss->ssl3.hs.kea_def->authKeyType != ssl_auth_psk) {
         rv = ssl3_SendCertificate(ss);
         if (rv != SECSuccess) {
             return SECFailure; /* error code is set. */
@@ -924,22 +940,13 @@ tls13_SendServerHelloSequence(sslSocket *ss)
             return SECFailure; /* error code is set. */
         }
 
-        /* This was copied from: ssl3_SendCertificate.
-         * TODO(ekr@rtfm.com): Verify that this selection logic is correct.
-         * Bug 1237514.
-         */
-        if ((ss->ssl3.hs.kea_def->kea == kea_ecdhe_rsa) ||
-            (ss->ssl3.hs.kea_def->kea == kea_dhe_rsa)) {
-            certIndex = kt_rsa;
-        } else {
-            certIndex = ss->ssl3.hs.kea_def->exchKeyType;
-        }
-        rv = ssl3_SendCertificateVerify(ss,
-                                        ss->serverCerts[certIndex].SERVERKEY);
+        svrPrivKey = ss->sec.serverCert->serverKeyPair->privKey;
+        rv = ssl3_SendCertificateVerify(ss, svrPrivKey);
         if (rv != SECSuccess) {
             return rv; /* err code is set. */
         }
     }
+
     /* Compute the rest of the secrets except for the resumption
      * and exporter secret. */
     rv = tls13_ComputeSecrets1(ss);
@@ -984,7 +991,7 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
     if (isPSK) {
         PRBool cacheOK = PR_FALSE;
         do {
-            if (ss->ssl3.hs.kea_def->signKeyType != ssl_sign_psk) {
+            if (ss->ssl3.hs.kea_def->authKeyType != ssl_auth_psk) {
                 FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_SERVER_HELLO,
                             illegal_parameter);
                 break;
@@ -1013,7 +1020,7 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
         SSL_AtomicIncrementLong(&ssl3stats->hsh_sid_stateless_resumes);
     } else {
         /* No PSK negotiated.*/
-        if (ss->ssl3.hs.kea_def->signKeyType == ssl_sign_psk) {
+        if (ss->ssl3.hs.kea_def->authKeyType == ssl_auth_psk) {
             FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_SERVER_HELLO,
                             illegal_parameter);
             return SECFailure;
@@ -1089,6 +1096,7 @@ tls13_HandleServerKeyShare(sslSocket *ss)
     switch (ss->ssl3.hs.kea_def->exchKeyType) {
 #ifndef NSS_DISABLE_ECC
         case ssl_kea_ecdh:
+        case ssl_kea_ecdh_psk:
             expectedGroup = ssl3_PubKey2ECName(ss->ephemeralECDHKeyPair->pubKey);
             break;
 #endif /* NSS_DISABLE_ECC */
@@ -1904,7 +1912,7 @@ tls13_HandleEncryptedExtensions(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     PORT_Assert(!ss->sec.isServer);
 
-    if (ss->ssl3.hs.kea_def->signKeyType == ssl_sign_psk) {
+    if (ss->ssl3.hs.kea_def->authKeyType == ssl_auth_psk) {
         /* Compute the rest of the secrets except for the resumption
          * and exporter secret. */
         rv = tls13_ComputeSecrets1(ss);
@@ -2229,7 +2237,7 @@ tls13_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
         }
         ssl_GetXmitBufLock(ss);
         if (ss->opt.enableSessionTickets &&
-            ss->ssl3.hs.kea_def->signKeyType != ssl_sign_psk) {
+            ss->ssl3.hs.kea_def->authKeyType != ssl_auth_psk) {
             /* TODO(ekr@rtfm.com): Add support for new tickets in PSK. */
             rv = ssl3_SendNewSessionTicket(ss);
             if (rv != SECSuccess) {
@@ -2400,8 +2408,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
      * server side supports it. Bug 1257047.
      */
     if (!ss->opt.noCache && ss->sec.cache &&
-        ss->ssl3.hs.kea_def->signKeyType != ssl_sign_psk) {
-        SSL3KEAType effectiveExchKeyType;
+        ss->ssl3.hs.kea_def->authKeyType != ssl_auth_psk) {
 
         /* Uncache so that we replace. */
         (*ss->sec.uncache)(ss->sec.ci.sid);
@@ -2418,14 +2425,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         ssl3_SetSIDSessionTicket(ss->sec.ci.sid, &ticket);
         PORT_Assert(!ticket.ticket.data);
 
-        if (ss->ssl3.hs.kea_def->kea == kea_ecdhe_rsa ||
-            ss->ssl3.hs.kea_def->kea == kea_dhe_rsa) {
-            effectiveExchKeyType = kt_rsa;
-        } else {
-            effectiveExchKeyType = ss->ssl3.hs.kea_def->exchKeyType;
-        }
-
-        rv = ssl3_FillInCachedSID(ss, ss->sec.ci.sid, effectiveExchKeyType);
+        rv = ssl3_FillInCachedSID(ss, ss->sec.ci.sid);
         if (rv != SECSuccess)
             return SECFailure;
 
