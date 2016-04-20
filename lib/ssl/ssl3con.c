@@ -6291,8 +6291,8 @@ ssl_UnwrapSymWrappingKey(
             break;
 
         default:
-            /* Assert? */
-            SET_ERROR_CODE
+            PORT_Assert(0);
+            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             goto loser;
     }
 loser:
@@ -6911,9 +6911,8 @@ ssl3_SendClientKeyExchange(sslSocket *ss)
             break;
 
         default:
-            /* got an unknown or unsupported Key Exchange Algorithm.  */
-            SEND_ALERT
-            PORT_SetError(SEC_ERROR_UNSUPPORTED_KEYALG);
+            PORT_Assert(0);
+            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             break;
     }
 
@@ -10718,7 +10717,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
     }
 
     if (rv != SECSuccess) {
-        SEND_ALERT
+        (void)SSL3_SendAlert(ss, alert_fatal, handshake_failure);
         return SECFailure; /* error code set by ssl3_InitPendingCipherSpec */
     }
 
@@ -10861,7 +10860,9 @@ ssl3_HandleClientKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
          * functions above.  However, not all error paths result in an alert, so
          * this ensures that the server knows about the error.  Note that if an
          * alert was already sent, SSL3_SendAlert() is a noop. */
+        PRErrorCode errCode = PORT_GetError();
         (void)SSL3_SendAlert(ss, alert_fatal, handshake_failure);
+        PORT_SetError(errCode);
     }
     return rv;
 }

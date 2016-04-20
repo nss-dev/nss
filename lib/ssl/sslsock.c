@@ -21,8 +21,6 @@
 #include "nss.h"
 #include "pk11pqg.h"
 
-#define SET_ERROR_CODE /* reminder */
-
 static const sslSocketOps ssl_default_ops = { /* No SSL. */
                                               ssl_DefConnect,
                                               NULL,
@@ -1887,7 +1885,7 @@ ssl_ImportFD(PRFileDesc *model, PRFileDesc *fd, SSLProtocolVariant variant)
     rv = ssl_PushIOLayer(ns, fd, PR_TOP_IO_LAYER);
     if (rv != PR_SUCCESS) {
         ssl_FreeSocket(ns);
-        SET_ERROR_CODE
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return NULL;
     }
 #if defined(DEBUG) || defined(FORCE_PR_ASSERT)
