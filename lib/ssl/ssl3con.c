@@ -831,7 +831,7 @@ static PRBool
 ssl3_HasCert(sslSocket *ss, SSLAuthType authType)
 {
     PRCList *cursor;
-    if (authType == ssl_auth_null) {
+    if (authType == ssl_auth_null || authType == ssl_auth_psk) {
         return PR_TRUE;
     }
     for (cursor = PR_NEXT_LINK(&ss->serverCerts);
@@ -962,9 +962,9 @@ config_match(ssl3CipherSuiteCfg *suite, int policy, PRBool enabled,
         return PR_FALSE;
 
     /* We only allow PSK for TLS 1.3 and only if there is resumption. */
-    if (kea_defs[cipher_def->key_exchange_alg].authKeyType ==
-        ssl_auth_psk) {
-        return tls13_AllowPskCipher(ss, cipher_def);
+    if (kea_defs[cipher_def->key_exchange_alg].authKeyType == ssl_auth_psk &&
+        !tls13_AllowPskCipher(ss, cipher_def)) {
+        return PR_FALSE;
     }
 
     return (PRBool)(suite->isPresent &&
@@ -991,6 +991,24 @@ count_cipher_suites(sslSocket *ss, int policy, PRBool enabled)
         PORT_SetError(SSL_ERROR_SSL_DISABLED);
     }
     return count;
+}
+
+PRBool
+tls13_PskSuiteEnabled(sslSocket *ss)
+{
+    int i;
+    const ssl3CipherSuiteDef *cipher_def;
+
+    for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; ++i) {
+        ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
+
+        cipher_def = ssl_LookupCipherSuiteDef(suite->cipher_suite);
+        if (authType == kea_defs[cipher_def->key_exchange_alg].authKeyType &&
+            config_match(suite, ss->ssl3.policy, PR_TRUE, &ss->vrange, ss)) {
+            return PR_TRUE;
+        }
+    }
+    return PR_FALSE;
 }
 
 /*

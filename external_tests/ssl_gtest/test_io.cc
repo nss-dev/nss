@@ -47,7 +47,9 @@ class Packet : public DataBuffer {
 
 // Implementation of NSPR methods
 static PRStatus DummyClose(PRFileDesc *f) {
+  DummyPrSocket *io = reinterpret_cast<DummyPrSocket *>(f->secret);
   f->secret = nullptr;
+  delete io;
   return PR_SUCCESS;
 }
 
@@ -256,7 +258,10 @@ DummyPrSocket::~DummyPrSocket() {
 
 void DummyPrSocket::Reset() {
   delete filter_;
-  peer_ = nullptr;
+  if (peer_) {
+    peer_->SetPeer(nullptr);
+    peer_ = nullptr;
+  }
   while (!input_.empty())
   {
     Packet* front = input_.front();
