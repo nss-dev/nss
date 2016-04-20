@@ -3340,6 +3340,10 @@ tls13_ClientSendPreSharedKeyXtn(sslSocket *ss,
         return 0;
     }
 
+    if (!tls13_PskSuiteEnabled(ss)) {
+        return 0;
+    }
+
     /* The caller must be holding sid->u.ssl3.lock for reading. We cannot
      * just acquire and release the lock within this function because the
      * caller will call this function twice, and we need the inputs to be

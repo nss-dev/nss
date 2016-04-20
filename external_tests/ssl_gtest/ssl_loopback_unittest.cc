@@ -992,6 +992,7 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   TlsExtensionCapture *c1 =
       new TlsExtensionCapture(kTlsExtensionPreSharedKey);
+  client_->SetPacketFilter(c1);
   client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
                            SSL_LIBRARY_VERSION_TLS_1_3);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
@@ -1000,8 +1001,9 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   Connect();
   SendReceive();
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
-  DataBuffer psk1(c1->extension());
-  ASSERT_GE(psk1.len(), 0UL);
+  // The filter will go away when we reset, so save the captured extension.
+  DataBuffer initialTicket(c1->extension());
+  ASSERT_LT(0U, initialTicket.len());
 
   ScopedCERTCertificate cert1(SSL_PeerCertificate(client_->ssl_fd()));
   ASSERT_TRUE(!!cert1.get());
@@ -1011,6 +1013,7 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   TlsExtensionCapture *c2 =
       new TlsExtensionCapture(kTlsExtensionPreSharedKey);
+  client_->SetPacketFilter(c2);
   client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
                            SSL_LIBRARY_VERSION_TLS_1_3);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
@@ -1019,8 +1022,7 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   Connect();
   SendReceive();
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
-  DataBuffer psk2(c2->extension());
-  ASSERT_GE(psk2.len(), 0UL);
+  ASSERT_LT(0U, c2->extension().len());
 
   ScopedCERTCertificate cert2(SSL_PeerCertificate(client_->ssl_fd()));
   ASSERT_TRUE(!!cert2.get());
@@ -1034,7 +1036,70 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   EXPECT_EQ(original_suite, resumed_suite);
 
   // TODO(ekr@rtfm.com): This will change when we fix bug 1257047.
-  ASSERT_EQ(psk1, psk2);
+  ASSERT_EQ(initialTicket, c2->extension());
+}
+
+TEST_F(TlsConnectTest, DisableClientPSKAndFailToResume) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  Connect();
+  SendReceive(); // Need to read so that we absorb the session ticket.
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  TlsExtensionCapture *capture =
+      new TlsExtensionCapture(kTlsExtensionPreSharedKey);
+  client_->SetPacketFilter(capture);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  EXPECT_EQ(SECSuccess,
+            SSL_CipherPrefSet(client_->ssl_fd(),
+                              TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256,
+                              PR_FALSE));
+  ExpectResumption(RESUME_NONE);
+  Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+  EXPECT_EQ(0U, capture->extension().len());
+}
+
+TEST_F(TlsConnectTest, DisableServerPSKAndFailToResume) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  Connect();
+  SendReceive(); // Need to read so that we absorb the session ticket.
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  TlsExtensionCapture *clientCapture =
+      new TlsExtensionCapture(kTlsExtensionPreSharedKey);
+  client_->SetPacketFilter(clientCapture);
+  TlsExtensionCapture *serverCapture =
+      new TlsExtensionCapture(kTlsExtensionPreSharedKey);
+  server_->SetPacketFilter(serverCapture);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  EXPECT_EQ(SECSuccess,
+            SSL_CipherPrefSet(server_->ssl_fd(),
+                              TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256,
+                              PR_FALSE));
+  ExpectResumption(RESUME_NONE);
+  Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+  // The client should have the extension, but the server should not.
+  EXPECT_LT(0U, clientCapture->extension().len());
+  EXPECT_EQ(0U, serverCapture->extension().len());
 }
 
 TEST_P(TlsConnectDatagram, TestDtlsHolddownExpiry) {

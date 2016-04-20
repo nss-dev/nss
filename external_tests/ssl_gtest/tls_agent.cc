@@ -73,6 +73,7 @@ TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode)
 TlsAgent::~TlsAgent() {
   if (adapter_) {
     Poller::Instance()->Cancel(READABLE_EVENT, adapter_);
+    // The adapter is closed when the FD closes.
   }
   if (timer_handle_) {
     timer_handle_->Cancel();
