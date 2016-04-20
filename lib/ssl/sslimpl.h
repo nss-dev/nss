@@ -60,11 +60,6 @@ typedef SSLMACAlgorithm SSL3MACAlgorithm;
 #define hmac_sha384 ssl_hmac_sha384
 #define mac_aead ssl_mac_aead
 
-#define SET_ERROR_CODE    /* reminder */
-#define SEND_ALERT        /* reminder */
-#define TEST_FOR_FAILURE  /* reminder */
-#define DEAL_WITH_FAILURE /* reminder */
-
 #if defined(DEBUG) || defined(TRACE)
 #ifdef __cplusplus
 #define Debug 1

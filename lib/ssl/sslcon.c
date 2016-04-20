@@ -20,9 +20,6 @@
 #include "prinit.h"
 #include "prtime.h" /* for PR_Now() */
 
-#define SET_ERROR_CODE   /* reminder */
-#define TEST_FOR_FAILURE /* reminder */
-
 /*
 ** Put a string tag in the library so that we can examine an executable
 ** and see what kind of security it supports.
