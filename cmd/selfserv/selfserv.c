@@ -516,8 +516,8 @@ mySSLSNISocketConfig(PRFileDesc *fd, const SECItem *sniNameArr,
                 if (privKey == NULL) {
                     goto loser; /* Send alert */
                 }
-                if (SSL_ConfigSecureServer(fd, cert, privKey,
-                                           kt_rsa) != SECSuccess) {
+                if (SSL_ConfigServerCert(fd, cert, privKey, NULL, 0)
+                    != SECSuccess) {
                     goto loser; /* Send alert */
                 }
                 SECKEY_DestroyPrivateKey(privKey);
@@ -1956,6 +1956,8 @@ server_main(
         }
     }
 
+    /* This uses the legacy certificate API.  See mySSLSNISocketConfig() for the
+     * new, prefered API. */
     for (kea = kt_rsa; kea < kt_kea_size; kea++) {
         if (cert[kea] != NULL) {
             secStatus = SSL_ConfigSecureServer(model_sock,

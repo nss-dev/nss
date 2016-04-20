@@ -39,6 +39,11 @@ typedef
   std::function<void(TlsAgent& agent)>
   HandshakeCallbackFunction;
 
+typedef
+  std::function<int32_t(TlsAgent& agent, const SECItem *srvNameArr,
+                     PRUint32 srvNameArrSize)>
+  SniCallbackFunction;
+
 class TlsAgent : public PollTarget {
  public:
   enum Role { CLIENT, SERVER };
@@ -74,6 +79,9 @@ class TlsAgent : public PollTarget {
   // Prepares for renegotiation, then actually triggers it.
   void StartRenegotiate();
   void DisableCiphersByKeyExchange(SSLKEAType kea);
+  void EnableCiphersByAuthType(SSLAuthType authType);
+  void EnableSingleCipher(uint16_t cipher);
+  bool ConfigServerCert(const std::string& name, bool updateKeyBits = false);
   bool EnsureTlsSetup();
 
   void SetupClientAuth();
@@ -174,6 +182,10 @@ class TlsAgent : public PollTarget {
     auth_certificate_callback_ = auth_certificate_callback;
   }
 
+  void SetSniCallback(SniCallbackFunction sni_callback) {
+    sni_callback_ = sni_callback;
+  }
+
  private:
   const static char* states[];
 
@@ -204,7 +216,7 @@ class TlsAgent : public PollTarget {
     EXPECT_TRUE(agent->expect_client_auth_);
     EXPECT_TRUE(isServer);
     if (agent->auth_certificate_callback_) {
-      agent->auth_certificate_callback_(*agent, checksig, isServer);
+      return agent->auth_certificate_callback_(*agent, checksig, isServer);
     }
     return SECSuccess;
   }
@@ -243,6 +255,9 @@ class TlsAgent : public PollTarget {
     agent->CheckPreliminaryInfo();
     agent->sni_hook_called_ = true;
     EXPECT_EQ(1UL, srvNameArrSize);
+    if (agent->sni_callback_) {
+      return agent->sni_callback_(*agent, srvNameArr, srvNameArrSize);
+    }
     return 0; // First configuration.
   }
 
@@ -297,6 +312,7 @@ class TlsAgent : public PollTarget {
   bool expected_read_error_;
   HandshakeCallbackFunction handshake_callback_;
   AuthCertificateCallbackFunction auth_certificate_callback_;
+  SniCallbackFunction sni_callback_;
 };
 
 class TlsAgentTestBase : public ::testing::Test {

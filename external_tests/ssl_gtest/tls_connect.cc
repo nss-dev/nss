@@ -219,6 +219,23 @@ void TlsConnectTestBase::Connect() {
   CheckConnected();
 }
 
+void TlsConnectTestBase::ConnectWithCipherSuite(uint16_t cipher_suite)
+{
+  EnsureTlsSetup();
+  client_->EnableSingleCipher(cipher_suite);
+
+  Connect();
+  SendReceive();
+
+  // Check that we used the right cipher suite.
+  uint16_t actual;
+  EXPECT_TRUE(client_->cipher_suite(&actual));
+  EXPECT_EQ(cipher_suite, actual);
+  EXPECT_TRUE(server_->cipher_suite(&actual));
+  EXPECT_EQ(cipher_suite, actual);
+}
+
+
 void TlsConnectTestBase::CheckConnected() {
   // Check the version is as expected
   EXPECT_EQ(client_->version(), server_->version());
@@ -289,6 +306,13 @@ void TlsConnectTestBase::DisableEcdheCiphers() {
 void TlsConnectTestBase::DisableDheAndEcdheCiphers() {
   DisableDheCiphers();
   DisableEcdheCiphers();
+}
+
+void TlsConnectTestBase::EnableSomeEcdhCiphers() {
+  client_->EnableCiphersByAuthType(ssl_auth_ecdh_rsa);
+  client_->EnableCiphersByAuthType(ssl_auth_ecdh_ecdsa);
+  server_->EnableCiphersByAuthType(ssl_auth_ecdh_rsa);
+  server_->EnableCiphersByAuthType(ssl_auth_ecdh_ecdsa);
 }
 
 void TlsConnectTestBase::ConfigureSessionCache(SessionResumptionMode client,
