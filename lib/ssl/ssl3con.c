@@ -6350,6 +6350,7 @@ sendRSAClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
         goto loser;
     }
 
+#ifndef DISABLE_SSLKEYLOGFILE
     if (ssl_keylog_iob) {
         SECStatus extractRV = PK11_ExtractKeyValue(pms);
         if (extractRV == SECSuccess) {
@@ -6381,6 +6382,7 @@ sendRSAClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
             }
         }
     }
+#endif
 
     rv = ssl3_AppendHandshakeHeader(ss, client_key_exchange,
                                     isTLS ? enc_pms.len + 2
@@ -11674,6 +11676,7 @@ ssl3_SendNextProto(sslSocket *ss)
 static void
 ssl3_RecordKeyLog(sslSocket *ss)
 {
+#ifndef DISABLE_SSLKEYLOGFILE
     SECStatus rv;
     SECItem *keyData;
     char buf[14 /* "CLIENT_RANDOM " */ +
@@ -11724,6 +11727,7 @@ ssl3_RecordKeyLog(sslSocket *ss)
         return;
     fflush(ssl_keylog_iob);
     return;
+#endif
 }
 
 /* called from ssl3_SendClientSecondRound
