@@ -377,7 +377,7 @@ ssl_ConfigCertByUsage(sslSocket *ss, CERTCertificate *cert,
 {
     SECStatus rv = SECFailure;
     SSLExtraServerCertData arg = {
-        ssl_auth_null, ssl_sign_null, NULL, NULL, NULL
+        ssl_auth_null, NULL, NULL, NULL
     };
     SECOidTag tag;
 
