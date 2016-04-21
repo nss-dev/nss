@@ -12,6 +12,8 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
 #include "secrng.h"
 #include "secerr.h"
 #include "prerror.h"
@@ -1094,9 +1096,9 @@ ReadOneFile(int fileToRead)
         name = entry->d_name;
 	if (i == 0) {
 	    /* copy the name of the first in case we run out of entries */
-            PORT_Assert(PORT_Strlen(name) <= NAME_MAX);
-            PORT_Strncpy(firstName, name, NAME_MAX);
-            firstName[NAME_MAX] = '\0';
+            PORT_Assert(PORT_Strlen(name) < sizeof(firstName));
+            PORT_Strncpy(firstName, name, sizeof(firstName) - 1);
+            firstName[sizeof(firstName) - 1] = '\0';
 	}
     }
 
