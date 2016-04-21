@@ -1063,7 +1063,11 @@ ReadOneFile(int fileToRead)
     DIR *fd = opendir(dir);
     int resetCount = 0;
     struct dirent *entry;
+#if defined(__sun)
+    char firstName[256];
+#else
     char firstName[NAME_MAX + 1];
+#endif
     const char *name = NULL;
     int i;
 
