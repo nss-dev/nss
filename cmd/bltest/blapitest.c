@@ -985,9 +985,7 @@ setupIO(PLArenaPool *arena, bltestIO *input, PRFileDesc *file,
             break;
         case bltestHexSpaceDelim:
             SECITEM_AllocItem(arena, &input->buf, in->len / 5);
-            for (i = 0, j = 0; i <
-                               in->len;
-                 i += 5, j++) {
+            for (i = 0, j = 0; i < in->len; i += 5, j++) {
                 tok = &in->data[i];
                 if (tok[0] != '0' || tok[1] != 'x' || tok[4] != ' ')
                     /* bad hex token */
@@ -1000,9 +998,7 @@ setupIO(PLArenaPool *arena, bltestIO *input, PRFileDesc *file,
             break;
         case bltestHexStream:
             SECITEM_AllocItem(arena, &input->buf, in->len / 2);
-            for (i = 0, j = 0; i <
-                               in->len;
-                 i += 2, j++) {
+            for (i = 0, j = 0; i < in->len; i += 2, j++) {
                 tok = &in->data[i];
                 rv = hex_from_2char(tok, input->buf.data + j);
                 if (rv)
@@ -3586,55 +3582,55 @@ enum {
 
 static secuCommandFlag bltest_commands[] =
     {
-      { /* cmd_Decrypt  */ 'D', PR_FALSE, 0, PR_FALSE },
-      { /* cmd_Encrypt  */ 'E', PR_FALSE, 0, PR_FALSE },
+      { /* cmd_Decrypt */ 'D', PR_FALSE, 0, PR_FALSE },
+      { /* cmd_Encrypt */ 'E', PR_FALSE, 0, PR_FALSE },
       { /* cmd_FIPS */ 'F', PR_FALSE, 0, PR_FALSE },
       { /* cmd_Hash */ 'H', PR_FALSE, 0, PR_FALSE },
-      { /* cmd_Nonce      */ 'N', PR_FALSE, 0, PR_FALSE },
+      { /* cmd_Nonce */ 'N', PR_FALSE, 0, PR_FALSE },
       { /* cmd_Dump */ 'P', PR_FALSE, 0, PR_FALSE },
-      { /* cmd_RSAPopulate*/ 'R', PR_FALSE, 0, PR_FALSE },
+      { /* cmd_RSAPopulate */ 'R', PR_FALSE, 0, PR_FALSE },
       { /* cmd_Sign */ 'S', PR_FALSE, 0, PR_FALSE },
       { /* cmd_SelfTest */ 'T', PR_FALSE, 0, PR_FALSE },
-      { /* cmd_Verify   */ 'V', PR_FALSE, 0, PR_FALSE }
+      { /* cmd_Verify */ 'V', PR_FALSE, 0, PR_FALSE }
     };
 
 static secuCommandFlag bltest_options[] =
     {
-      { /* opt_B64    */ 'a', PR_FALSE, 0, PR_FALSE },
-      { /* opt_BufSize    */ 'b', PR_TRUE, 0, PR_FALSE },
-      { /* opt_Restart    */ 'c', PR_FALSE, 0, PR_FALSE },
-      { /* opt_SelfTestDir  */ 'd', PR_TRUE, 0, PR_FALSE },
-      { /* opt_Exponent   */ 'e', PR_TRUE, 0, PR_FALSE },
-      { /* opt_SigFile      */ 'f', PR_TRUE, 0, PR_FALSE },
-      { /* opt_KeySize    */ 'g', PR_TRUE, 0, PR_FALSE },
-      { /* opt_Hex    */ 'h', PR_FALSE, 0, PR_FALSE },
-      { /* opt_Input      */ 'i', PR_TRUE, 0, PR_FALSE },
-      { /* opt_PQGFile    */ 'j', PR_TRUE, 0, PR_FALSE },
-      { /* opt_Key    */ 'k', PR_TRUE, 0, PR_FALSE },
-      { /* opt_HexWSpc    */ 'l', PR_FALSE, 0, PR_FALSE },
-      { /* opt_Mode   */ 'm', PR_TRUE, 0, PR_FALSE },
+      { /* opt_B64 */ 'a', PR_FALSE, 0, PR_FALSE },
+      { /* opt_BufSize */ 'b', PR_TRUE, 0, PR_FALSE },
+      { /* opt_Restart */ 'c', PR_FALSE, 0, PR_FALSE },
+      { /* opt_SelfTestDir */ 'd', PR_TRUE, 0, PR_FALSE },
+      { /* opt_Exponent */ 'e', PR_TRUE, 0, PR_FALSE },
+      { /* opt_SigFile */ 'f', PR_TRUE, 0, PR_FALSE },
+      { /* opt_KeySize */ 'g', PR_TRUE, 0, PR_FALSE },
+      { /* opt_Hex */ 'h', PR_FALSE, 0, PR_FALSE },
+      { /* opt_Input */ 'i', PR_TRUE, 0, PR_FALSE },
+      { /* opt_PQGFile */ 'j', PR_TRUE, 0, PR_FALSE },
+      { /* opt_Key */ 'k', PR_TRUE, 0, PR_FALSE },
+      { /* opt_HexWSpc */ 'l', PR_FALSE, 0, PR_FALSE },
+      { /* opt_Mode */ 'm', PR_TRUE, 0, PR_FALSE },
 #ifndef NSS_DISABLE_ECC
-      { /* opt_CurveName      */ 'n', PR_TRUE, 0, PR_FALSE },
+      { /* opt_CurveName */ 'n', PR_TRUE, 0, PR_FALSE },
 #endif
-      { /* opt_Output     */ 'o', PR_TRUE, 0, PR_FALSE },
-      { /* opt_Repetitions  */ 'p', PR_TRUE, 0, PR_FALSE },
-      { /* opt_ZeroBuf    */ 'q', PR_FALSE, 0, PR_FALSE },
-      { /* opt_Rounds     */ 'r', PR_TRUE, 0, PR_FALSE },
-      { /* opt_Seed   */ 's', PR_TRUE, 0, PR_FALSE },
-      { /* opt_SigSeedFile  */ 't', PR_TRUE, 0, PR_FALSE },
-      { /* opt_CXReps       */ 'u', PR_TRUE, 0, PR_FALSE },
-      { /* opt_IV         */ 'v', PR_TRUE, 0, PR_FALSE },
-      { /* opt_WordSize   */ 'w', PR_TRUE, 0, PR_FALSE },
-      { /* opt_UseSeed    */ 'x', PR_FALSE, 0, PR_FALSE },
-      { /* opt_UseSigSeed     */ 'y', PR_FALSE, 0, PR_FALSE },
-      { /* opt_SeedFile   */ 'z', PR_FALSE, 0, PR_FALSE },
-      { /* opt_AAD    */ 0, PR_TRUE, 0, PR_FALSE, "aad" },
-      { /* opt_InputOffset  */ '1', PR_TRUE, 0, PR_FALSE },
+      { /* opt_Output */ 'o', PR_TRUE, 0, PR_FALSE },
+      { /* opt_Repetitions */ 'p', PR_TRUE, 0, PR_FALSE },
+      { /* opt_ZeroBuf */ 'q', PR_FALSE, 0, PR_FALSE },
+      { /* opt_Rounds */ 'r', PR_TRUE, 0, PR_FALSE },
+      { /* opt_Seed */ 's', PR_TRUE, 0, PR_FALSE },
+      { /* opt_SigSeedFile */ 't', PR_TRUE, 0, PR_FALSE },
+      { /* opt_CXReps */ 'u', PR_TRUE, 0, PR_FALSE },
+      { /* opt_IV */ 'v', PR_TRUE, 0, PR_FALSE },
+      { /* opt_WordSize */ 'w', PR_TRUE, 0, PR_FALSE },
+      { /* opt_UseSeed */ 'x', PR_FALSE, 0, PR_FALSE },
+      { /* opt_UseSigSeed */ 'y', PR_FALSE, 0, PR_FALSE },
+      { /* opt_SeedFile */ 'z', PR_FALSE, 0, PR_FALSE },
+      { /* opt_AAD */ 0, PR_TRUE, 0, PR_FALSE, "aad" },
+      { /* opt_InputOffset */ '1', PR_TRUE, 0, PR_FALSE },
       { /* opt_OutputOffset */ '2', PR_TRUE, 0, PR_FALSE },
-      { /* opt_MonteCarlo   */ '3', PR_FALSE, 0, PR_FALSE },
-      { /* opt_ThreadNum    */ '4', PR_TRUE, 0, PR_FALSE },
+      { /* opt_MonteCarlo */ '3', PR_FALSE, 0, PR_FALSE },
+      { /* opt_ThreadNum */ '4', PR_TRUE, 0, PR_FALSE },
       { /* opt_SecondsToRun */ '5', PR_TRUE, 0, PR_FALSE },
-      { /* opt_CmdLine    */ '-', PR_FALSE, 0, PR_FALSE }
+      { /* opt_CmdLine */ '-', PR_FALSE, 0, PR_FALSE }
     };
 
 int
