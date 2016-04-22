@@ -127,7 +127,11 @@ int ssl_lock_readers = 1; /* default true. */
 char ssl_debug;
 char ssl_trace;
 FILE *ssl_trace_iob;
+
+#ifdef NSS_ALLOW_SSLKEYLOGFILE
 FILE *ssl_keylog_iob;
+#endif
+
 char lockStatus[] = "Locks are ENABLED.  ";
 #define LOCKSTATUS_OFFSET 10 /* offset of ENABLED */
 
@@ -3292,6 +3296,7 @@ ssl_SetDefaultsFromEnvironment(void)
             SSL_TRACE(("SSL: debugging set to %d", ssl_debug));
         }
 #endif /* DEBUG */
+#ifdef NSS_ALLOW_SSLKEYLOGFILE
         ev = PR_GetEnvSecure("SSLKEYLOGFILE");
         if (ev && ev[0]) {
             ssl_keylog_iob = fopen(ev, "a");
@@ -3305,6 +3310,7 @@ ssl_SetDefaultsFromEnvironment(void)
                 SSL_TRACE(("SSL: logging SSL/TLS secrets to %s", ev));
             }
         }
+#endif
 #ifndef NO_PKCS11_BYPASS
         ev = PR_GetEnvSecure("SSLBYPASS");
         if (ev && ev[0]) {
