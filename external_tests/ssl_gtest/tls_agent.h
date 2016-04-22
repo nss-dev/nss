@@ -49,7 +49,15 @@ class TlsAgent : public PollTarget {
   enum Role { CLIENT, SERVER };
   enum State { STATE_INIT, STATE_CONNECTING, STATE_CONNECTED, STATE_ERROR };
 
-  TlsAgent(const std::string& name, Role role, Mode mode, SSLKEAType kea);
+  static const std::string kClient; // the client key is sign only
+  static const std::string kServerRsa; // both sign and encrypt
+  static const std::string kServerRsaSign;
+  static const std::string kServerRsaDecrypt;
+  static const std::string kServerEcdsa;
+  static const std::string kServerEcdhEcdsa;
+  static const std::string kServerEcdhRsa; // not supported yet
+
+  TlsAgent(const std::string& name, Role role, Mode mode);
   virtual ~TlsAgent();
 
   bool Init() {
@@ -125,8 +133,6 @@ class TlsAgent : public PollTarget {
   Role role() const { return role_; }
 
   State state() const { return state_; }
-
-  SSLKEAType kea() const { return kea_; }
 
   const CERTCertificate* peer_cert() const {
     return SSL_PeerCertificate(ssl_fd_);
@@ -286,7 +292,6 @@ class TlsAgent : public PollTarget {
 
   const std::string name_;
   Mode mode_;
-  SSLKEAType kea_;
   uint16_t server_key_bits_;
   PRFileDesc* pr_fd_;
   DummyPrSocket* adapter_;
@@ -321,10 +326,9 @@ class TlsAgentTestBase : public ::testing::Test {
 
   TlsAgentTestBase(TlsAgent::Role role,
                    Mode mode) : agent_(nullptr),
-                                       fd_(nullptr),
-                                       role_(role),
-                                       mode_(mode),
-                                       kea_(ssl_kea_rsa) {}
+                                fd_(nullptr),
+                                role_(role),
+                                mode_(mode) {}
   ~TlsAgentTestBase() {
     delete agent_;
     if (fd_) {

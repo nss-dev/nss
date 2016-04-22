@@ -140,7 +140,8 @@ SECStatus
 ssl_OneTimeCertSetup(sslSocket *ss, const sslServerCert *sc)
 {
     /* Generate a step-down RSA key. */
-    if (sc->certType.authType == ssl_auth_rsa_sign && sc->serverKeyBits > 512 &&
+    if (sc->certType.authType == ssl_auth_rsa_decrypt &&
+        sc->serverKeyBits > 512 &&
         !ss->opt.noStepDown && !ss->stepDownKeyPair) {
         if (ssl3_CreateRSAStepDownKeys(ss) != SECSuccess) {
             return SECFailure;
