@@ -27,10 +27,17 @@ namespace nss_test {
 
 const char* TlsAgent::states[] = {"INIT", "CONNECTING", "CONNECTED", "ERROR"};
 
-TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode, SSLKEAType kea)
+const std::string TlsAgent::kClient = "client"; // both sign and encrypt
+const std::string TlsAgent::kServerRsa = "rsa"; // both sign and encrypt
+const std::string TlsAgent::kServerRsaSign = "rsa_sign";
+const std::string TlsAgent::kServerRsaDecrypt = "rsa_decrypt";
+const std::string TlsAgent::kServerEcdsa = "ecdsa";
+const std::string TlsAgent::kServerEcdhRsa = "ecdh_rsa"; // not supported yet
+const std::string TlsAgent::kServerEcdhEcdsa = "ecdh_ecdsa";
+
+TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode)
   : name_(name),
     mode_(mode),
-    kea_(kea),
     server_key_bits_(0),
     pr_fd_(nullptr),
     adapter_(nullptr),
@@ -694,8 +701,8 @@ static const std::string kTlsRolesAllArr[] = {"CLIENT", "SERVER"};
 
 void TlsAgentTestBase::Init() {
   agent_ = new TlsAgent(
-      role_ == TlsAgent::CLIENT ? "client" : "server",
-      role_, mode_, kea_);
+      role_ == TlsAgent::CLIENT ? TlsAgent::kClient : TlsAgent::kServerRsa,
+      role_, mode_);
   agent_->Init();
   fd_ = DummyPrSocket::CreateFD("dummy", mode_);
   agent_->adapter()->SetPeer(

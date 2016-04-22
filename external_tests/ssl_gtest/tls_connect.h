@@ -50,13 +50,12 @@ class TlsConnectTestBase : public ::testing::Test {
   void ClearStats();
   // Clear the server session cache.
   void ClearServerCache();
-  // Re-initialize client and server with the default RSA cert.
-  void ResetRsa();
-  // Re-initialize client and server with an ECDSA cert on the server
-  // and some ECDHE suites.
-  void ResetEcdsa();
   // Make sure TLS is configured for a connection.
   void EnsureTlsSetup();
+  // Reset
+  void Reset();
+  // Reset, and update the server name
+  void Reset(const std::string& server_name);
 
   // Run the handshake.
   void Handshake();
@@ -95,7 +94,6 @@ class TlsConnectTestBase : public ::testing::Test {
   std::vector<std::vector<uint8_t>> session_ids_;
 
  private:
-  void Reset(const std::string& server_name, SSLKEAType kea);
   void CheckResumption(SessionResumptionMode expected);
   void CheckExtendedMasterSecret();
 

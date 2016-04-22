@@ -555,7 +555,7 @@ TEST_P(TlsExtensionTestPre13, SignedCertificateTimestampsHandshake) {
   server_->StartConnect();
   ASSERT_EQ(SECSuccess,
     SSL_SetSignedCertTimestamps(server_->ssl_fd(),
-      &si_timestamps, server_->kea()));
+      &si_timestamps, ssl_kea_rsa));
 
   client_->StartConnect();
   ASSERT_EQ(SECSuccess,
@@ -577,7 +577,7 @@ TEST_P(TlsExtensionTestPre13, SignedCertificateTimestampsInactiveClient) {
   server_->StartConnect();
   ASSERT_EQ(SECSuccess,
     SSL_SetSignedCertTimestamps(server_->ssl_fd(),
-      &si_timestamps, server_->kea()));
+      &si_timestamps, ssl_kea_rsa));
 
   client_->StartConnect();
 
