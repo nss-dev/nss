@@ -153,6 +153,7 @@ SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
 #define A_ECDSA ssl_auth_ecdsa
 #define A_ECDH_R ssl_auth_ecdh_rsa
 #define A_ECDH_E ssl_auth_ecdh_ecdsa
+#define A_PSK ssl_auth_psk
 /* Report ssl_auth_null for export suites that can't decide between
  * ssl_auth_rsa_sign and ssl_auth_rsa_decrypt. */
 #define A_EXP ssl_auth_null
@@ -255,7 +256,7 @@ static const SSLCipherSuiteInfo suiteInfo[] = {
     /* ECC cipher suites */
     { 0, CS(ECDHE_RSA_WITH_AES_128_GCM_SHA256), S_RSA, K_ECDHE, C_AESGCM, B_128, M_AEAD_128, F_FIPS_STD, A_RSAS },
     { 0, CS(ECDHE_ECDSA_WITH_AES_128_GCM_SHA256), S_ECDSA, K_ECDHE, C_AESGCM, B_128, M_AEAD_128, F_FIPS_STD, A_ECDSA },
-    { 0, CS(ECDHE_PSK_WITH_AES_128_GCM_SHA256), S_PSK, K_ECDHE_PSK, C_AESGCM, B_128, M_AEAD_128, 1, 0, 0 },
+    { 0, CS(ECDHE_PSK_WITH_AES_128_GCM_SHA256), S_PSK, K_ECDHE_PSK, C_AESGCM, B_128, M_AEAD_128, F_FIPS_STD, A_PSK },
 
     { 0, CS(ECDH_ECDSA_WITH_NULL_SHA), S_ECDSA, K_ECDH, C_NULL, B_0, M_SHA, F_NFIPS_STD, A_ECDH_E },
     { 0, CS(ECDH_ECDSA_WITH_RC4_128_SHA), S_ECDSA, K_ECDH, C_RC4, B_128, M_SHA, F_NFIPS_STD, A_ECDH_E },

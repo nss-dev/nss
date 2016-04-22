@@ -1003,7 +1003,7 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
                            SSL_LIBRARY_VERSION_TLS_1_3);
   Connect();
   SendReceive(); // Need to read so that we absorb the session ticket.
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
   uint16_t original_suite;
   EXPECT_TRUE(client_->cipher_suite(&original_suite));
 
@@ -1018,7 +1018,7 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   ExpectResumption(RESUME_TICKET);
   Connect();
   SendReceive();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
   DataBuffer psk1(c1->extension());
   ASSERT_GE(psk1.len(), 0UL);
   ASSERT_TRUE(!!client_->peer_cert());
@@ -1035,7 +1035,7 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   ExpectResumption(RESUME_TICKET);
   Connect();
   SendReceive();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
   DataBuffer psk2(c2->extension());
   ASSERT_GE(psk2.len(), 0UL);
   ASSERT_TRUE(!!client_->peer_cert());
