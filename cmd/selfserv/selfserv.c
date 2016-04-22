@@ -412,6 +412,11 @@ printSecurityInfo(PRFileDesc *fd)
         result = SSL_GetCipherSuiteInfo(channel.cipherSuite,
                                         &suite, sizeof suite);
         if (result == SECSuccess) {
+            const char *EMSUsed = "?";
+            if (SSL_CHANNEL_INFO_FIELD_EXISTS(channel, extendedMasterSecretUsed)) {
+                EMSUsed = SSL_CHANNEL_INFO_FIELD_GET(channel, extendedMasterSecretUsed) ?
+                    "Yes": "No";
+            }
             FPRINTF(stderr,
                     "selfserv: SSL version %d.%d using %d-bit %s with %d-bit %s MAC\n",
                     channel.protocolVersion >> 8, channel.protocolVersion & 0xff,
@@ -423,7 +428,7 @@ printSecurityInfo(PRFileDesc *fd)
                     channel.authKeyBits, suite.authAlgorithmName,
                     channel.keaKeyBits, suite.keaTypeName,
                     channel.compressionMethodName,
-                    channel.extendedMasterSecretUsed ? "Yes" : "No");
+                    EMSUsed);
         }
     }
     if (verbose) {
