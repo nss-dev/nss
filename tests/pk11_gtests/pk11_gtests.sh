@@ -54,8 +54,6 @@ pk11_gtest_start()
     return
   fi
 
-  # Temporarily disable asserts for PKCS#11 slot leakage (Bug 1168425)
-  unset NSS_STRICT_SHUTDOWN
   PK11GTESTREPORT="${PK11GTESTDIR}/report.xml"
   ${BINDIR}/pk11_gtest -d "${PK11GTESTDIR}" --gtest_output=xml:"${PK11GTESTREPORT}"
   html_msg $? 0 "pk11_gtest run successfully"
