@@ -8879,6 +8879,12 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         ss->sec.ci.sid = NULL;
     }
 
+    /* Free a potentially leftover session ID from a previous handshake. */
+    if (ss->sec.ci.sid) {
+        ssl_FreeSID(ss->sec.ci.sid);
+        ss->sec.ci.sid = NULL;
+    }
+
     /* We only send a session ticket extension if the client supports
      * the extension and we are unable to do either a stateful or
      * stateless resume.
