@@ -110,8 +110,6 @@ class TlsServerKeyExchangeEcdhe {
   DataBuffer public_key_;
 };
 
-class TlsChaCha20Poly1305Test : public TlsConnectTls12 {};
-
 TEST_P(TlsConnectGeneric, SetupOnly) {}
 
 TEST_P(TlsConnectGeneric, Connect) {
@@ -144,10 +142,6 @@ TEST_P(TlsConnectGenericPre13, ConnectEcdhWithoutDisablingSuites) {
 
   Connect();
   CheckKeys(ssl_kea_ecdh, ssl_auth_ecdh_ecdsa);
-}
-
-TEST_P(TlsConnectStreamPre13, ConnectRC4) {
-  ConnectWithCipherSuite(TLS_RSA_WITH_RC4_128_SHA);
 }
 
 TEST_P(TlsConnectGenericPre13, ConnectFalseStart) {
@@ -703,19 +697,6 @@ TEST_P(TlsConnectGeneric, ConnectSendReceive) {
   SendReceive();
 }
 
-TEST_P(TlsChaCha20Poly1305Test, SendReceiveChaCha20Poly1305DheRsa) {
-  ConnectWithCipherSuite(TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256);
-}
-
-TEST_P(TlsChaCha20Poly1305Test, SendReceiveChaCha20Poly1305EcdheRsa) {
-  ConnectWithCipherSuite(TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256);
-}
-
-TEST_P(TlsChaCha20Poly1305Test, SendReceiveChaCha20Poly1305EcdheEcdsa) {
-  Reset(TlsAgent::kServerEcdsa);
-  ConnectWithCipherSuite(TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256);
-}
-
 // The next two tests takes advantage of the fact that we
 // automatically read the first 1024 bytes, so if
 // we provide 1200 bytes, they overrun the read buffer
@@ -1245,9 +1226,6 @@ INSTANTIATE_TEST_CASE_P(StreamOnly, TlsConnectStream,
 INSTANTIATE_TEST_CASE_P(DatagramOnly, TlsConnectDatagram,
                         TlsConnectTestBase::kTlsV11Plus);
 
-INSTANTIATE_TEST_CASE_P(ChaCha20, TlsChaCha20Poly1305Test,
-                        TlsConnectTestBase::kTlsModesAll);
-
 INSTANTIATE_TEST_CASE_P(Pre12Stream, TlsConnectPre12,
                         ::testing::Combine(
                           TlsConnectTestBase::kTlsModesStream,
@@ -1263,11 +1241,11 @@ INSTANTIATE_TEST_CASE_P(Version12Only, TlsConnectTls12,
 INSTANTIATE_TEST_CASE_P(Pre13Stream, TlsConnectGenericPre13,
                         ::testing::Combine(
                           TlsConnectTestBase::kTlsModesStream,
-                          TlsConnectTestBase::kTlsV10To12));
+                          TlsConnectTestBase::kTlsV10ToV12));
 INSTANTIATE_TEST_CASE_P(Pre13Datagram, TlsConnectGenericPre13,
                         ::testing::Combine(
                              TlsConnectTestBase::kTlsModesDatagram,
                              TlsConnectTestBase::kTlsV11V12));
 INSTANTIATE_TEST_CASE_P(Pre13StreamOnly, TlsConnectStreamPre13,
-                        TlsConnectTestBase::kTlsV10To12);
+                        TlsConnectTestBase::kTlsV10ToV12);
 }  // namespace nspr_test

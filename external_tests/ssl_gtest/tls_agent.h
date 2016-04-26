@@ -55,7 +55,8 @@ class TlsAgent : public PollTarget {
   static const std::string kServerRsaDecrypt;
   static const std::string kServerEcdsa;
   static const std::string kServerEcdhEcdsa;
-  static const std::string kServerEcdhRsa; // not supported yet
+  // TODO: static const std::string kServerEcdhRsa;
+  static const std::string kServerDsa;
 
   TlsAgent(const std::string& name, Role role, Mode mode);
   virtual ~TlsAgent();

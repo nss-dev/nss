@@ -26,9 +26,10 @@ class TlsConnectTestBase : public ::testing::Test {
   static ::testing::internal::ParamGenerator<std::string> kTlsModesAll;
   static ::testing::internal::ParamGenerator<uint16_t> kTlsV10;
   static ::testing::internal::ParamGenerator<uint16_t> kTlsV11;
+  static ::testing::internal::ParamGenerator<uint16_t> kTlsV12;
   static ::testing::internal::ParamGenerator<uint16_t> kTlsV10V11;
   static ::testing::internal::ParamGenerator<uint16_t> kTlsV11V12;
-  static ::testing::internal::ParamGenerator<uint16_t> kTlsV10To12;
+  static ::testing::internal::ParamGenerator<uint16_t> kTlsV10ToV12;
   static ::testing::internal::ParamGenerator<uint16_t> kTlsV13;
   static ::testing::internal::ParamGenerator<uint16_t> kTlsV11Plus;
   static ::testing::internal::ParamGenerator<uint16_t> kTlsV12Plus;

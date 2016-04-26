@@ -32,8 +32,9 @@ const std::string TlsAgent::kServerRsa = "rsa"; // both sign and encrypt
 const std::string TlsAgent::kServerRsaSign = "rsa_sign";
 const std::string TlsAgent::kServerRsaDecrypt = "rsa_decrypt";
 const std::string TlsAgent::kServerEcdsa = "ecdsa";
-const std::string TlsAgent::kServerEcdhRsa = "ecdh_rsa"; // not supported yet
+// TODO: const std::string TlsAgent::kServerEcdhRsa = "ecdh_rsa";
 const std::string TlsAgent::kServerEcdhEcdsa = "ecdh_ecdsa";
+const std::string TlsAgent::kServerDsa = "dsa";
 
 TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode)
   : name_(name),
