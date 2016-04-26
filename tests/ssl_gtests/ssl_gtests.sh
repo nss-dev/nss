@@ -41,6 +41,7 @@ make_cert() {
   name=$1
   type=$2
   case $type in
+    dsa) type_args='-g 1024' ;;
     rsa) type_args='-g 1024' ;;
     ec) type_args='-q nistp256' ;;
   esac
@@ -72,6 +73,7 @@ ssl_gtest_certs() {
   make_cert ecdsa ec sign
   make_cert ecdh_ecdsa ec kex
   # TODO ecdh_rsa
+  make_cert dsa dsa sign
 }
 
 ############################## ssl_gtest_init ##########################
