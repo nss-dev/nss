@@ -2986,11 +2986,6 @@ void     s_mp_rshd(mp_int *mp, mp_size p)
   while (p-- > 0)
     *dst++ = 0;
 
-#if 0
-  /* Strip off any leading zeroes    */
-  s_mp_clamp(mp);
-#endif
-
 } /* end s_mp_rshd() */
 
 /* }}} */
