@@ -428,13 +428,8 @@ tls13_AllowPskCipher(const sslSocket *ss, const ssl3CipherSuiteDef *cipher_def)
         sslSessionID *sid = ss->sec.ci.sid;
         const ssl3CipherSuiteDef *cached_cipher_def;
 
-        /* This is zero when called from ssl3_ConstructV2CipherSpecsHack.
-         * TODO(ekr@rtfm.com): remove when SSLv2 is removed. Bug 1228555.
-         */
-        if (!sid)
-            return PR_FALSE;
-
         /* Verify that this was cached. */
+        PORT_Assert(sid);
         if (sid->cached == never_cached)
             return PR_FALSE;
 
