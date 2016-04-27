@@ -199,9 +199,7 @@ mp_err mp_copy(const mp_int *from, mp_int *to)
       s_mp_copy(DIGITS(from), tmp, USED(from));
 
       if(DIGITS(to) != NULL) {
-#if MP_CRYPTO
 	s_mp_setz(DIGITS(to), ALLOC(to));
-#endif
 	s_mp_free(DIGITS(to));
       }
 
@@ -261,9 +259,7 @@ void   mp_clear(mp_int *mp)
     return;
 
   if(DIGITS(mp) != NULL) {
-#if MP_CRYPTO
     s_mp_setz(DIGITS(mp), ALLOC(mp));
-#endif
     s_mp_free(DIGITS(mp));
     DIGITS(mp) = NULL;
   }
@@ -2740,9 +2736,7 @@ mp_err   s_mp_grow(mp_int *mp, mp_size min)
 
     s_mp_copy(DIGITS(mp), tmp, USED(mp));
 
-#if MP_CRYPTO
     s_mp_setz(DIGITS(mp), ALLOC(mp));
-#endif
     s_mp_free(DIGITS(mp));
     DIGITS(mp) = tmp;
     ALLOC(mp) = min;
