@@ -40,10 +40,6 @@
 #define MP_MEMCPY     1  /* use memcpy() to copy buffers?       */
 #endif
 
-#ifndef MP_CRYPTO
-#define MP_CRYPTO     1  /* erase memory on free?               */
-#endif
-
 #ifndef MP_ARGCHK
 /*
   0 = no parameter checks
