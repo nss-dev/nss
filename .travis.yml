@@ -31,8 +31,9 @@ matrix:
     - os: linux
       compiler: gcc
       env: BUILD_OPT=1
-  allow_failures:
     - os: linux
+      env: CLANG_FORMAT=1
+  allow_failures:
     - env: CLANG_FORMAT=1
 
 before install:
