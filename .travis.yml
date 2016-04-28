@@ -30,8 +30,9 @@ before install:
 install: cd ..; hg clone https://hg.mozilla.org/projects/nspr
 
 script:
-  - cd nss; automation/travis/subdir-clang-format.sh lib/ssl; automation/travis/subdir-clang-format-diff.sh lib/ssl
-  - cd nss; USE_64=1 NSS_ENABLE_TLS_1_3=1 make nss_build_all
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; cd nss; automation/travis/subdir-clang-format.sh lib/ssl; automation/travis/subdir-clang-format-diff.sh lib/ssl; fi
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; cd nss; fi
+  - USE_64=1 NSS_ENABLE_TLS_1_3=1 make nss_build_all
   - cd tests; USE_64=1 NSS_ENABLE_TLS_1_3=1 NSS_TESTS="ssl_gtests pk11_gtests der_gtests util_gtests" NSS_CYCLES=standard ./all.sh
 #  - cd ../; BUILD_OPT=1 USE_64=1 NSS_ENABLE_TLS_1_3=1 make nss_build_all
 #  - cd tests; BUILD_OPT=1 USE_64=1 NSS_ENABLE_TLS_1_3=1 NSS_TESTS="ssl_gtests pk11_gtests der_gtests util_gtests" NSS_CYCLES=standard ./all.sh
