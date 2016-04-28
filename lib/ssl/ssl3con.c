@@ -3904,23 +3904,21 @@ ssl3_GetPrfHashMechanism(sslSocket *ss)
     return prf_alg;
 }
 
-PRUint8
+SSLHashType
 ssl3_GetSuiteHashAlg(sslSocket *ss)
 {
-    SECOidData *hashOid = 
-        SECOID_FindOIDByMechanism(ssl3_GetPrfHashMechanism(ss));
-    if (hashOid == NULL) {
-            return -1; /* err set by AppendHandshake. */
+    switch (ss->ssl3.hs.suite_def->prf_alg) {
+        case prf_sha384:
+            return ssl_hash_sha384;
+        case prf_sha256:
+            return ssl_hash_sha256;
+        default:
+            return (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3)
+                ? ssl_hash_none
+                : ssl_hash_sha256;
+            return ssl_hash_sha256;
     }
-
-    if (hashOid->offset == SEC_OID_SHA256) {
-        return ssl_hash_sha256;
-    } else if (hashOid->offset == SEC_OID_SHA384) {
-        return ssl_hash_sha384;
-    } 
-    PORT_Assert(hashOid->offset == SEC_OID_SHA256 ||
-                hashOid->offset == SEC_OID_SHA384);
-    return -1; /* err set by AppendHandshake. */
+    return 0; /* it will never get here */
 }
 
 /* This method completes the derivation of the MS from the PMS.
@@ -4366,21 +4364,17 @@ ssl3_InitHandshakeHashes(sslSocket *ss)
         PORT_Assert(!ss->ssl3.hs.sha_obj && !ss->ssl3.hs.sha_clone);
         if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_2) {
             /* we support ciphersuites where the PRF hash isn't SHA-256 */
-            HASH_HashType ht;
-            CK_MECHANISM_TYPE hm;
-            SECOidTag ot;
-            SECOidData *hashOid;
-
-            hm = ssl3_GetPrfHashMechanism(ss);
-            hashOid = SECOID_FindOIDByMechanism(hm);
+            const SECOidData *hashOid =
+                SECOID_FindOIDByMechanism(ssl3_GetPrfHashMechanism(ss));
 
             if (hashOid == NULL) {
+                PORT_Assert(hashOid == NULL);
                 ssl_MapLowLevelError(SSL_ERROR_DIGEST_FAILURE);
                 return SECFailure;
             }
-            ot = hashOid->offset;
-            ht = HASH_GetHashTypeByOidTag(ot);
-            ss->ssl3.hs.sha_obj = HASH_GetRawHashObject(ht);
+
+            ss->ssl3.hs.sha_obj = HASH_GetRawHashObject(
+                HASH_GetHashTypeByOidTag(hashOid->offset));
             if (!ss->ssl3.hs.sha_obj) {
                 ssl_MapLowLevelError(SSL_ERROR_DIGEST_FAILURE);
                 return SECFailure;
@@ -4408,7 +4402,6 @@ ssl3_InitHandshakeHashes(sslSocket *ss)
             const SECOidData *hash_oid =
                 SECOID_FindOIDByMechanism(ssl3_GetPrfHashMechanism(ss));
 
-            PORT_Assert(ss->ssl3.hs.suite_def);
             /* Get the PKCS #11 mechanism for the Hash from the cipher suite (prf_alg)
              * Convert that to the OidTag. We can then use that OidTag to create our
              * PK11Context */
@@ -4864,7 +4857,7 @@ ssl3_ConsumeHandshakeVariable(sslSocket *ss, SECItem *i, PRInt32 bytes,
  *
  * Note for reviewers: The above species
  * { ssl_hash_sha224, SEC_OID_SHA224 } as one of the entries
- * in which I haven't included as not recommended for TLS 1.3
+ * in which isn't included as not recommended for TLS 1.3
  * https://tools.ietf.org/html/draft-ietf-tls-tls13-08 which
  * we plan to support. We still need to work this out, see
  * also Bug 1179338.
@@ -4894,23 +4887,6 @@ ssl3_TLSHashAlgorithmToOID(SSLHashType hashFunc)
         }
     }
     return SEC_OID_UNKNOWN;
-}
-
-/* ssl3_OIDToTLSHashAlgorithm converts an OID to a TLS hash algorithm
- * identifier. If the hash is not recognised, zero is returned.
- *
- * See https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */
-static int
-ssl3_OIDToTLSHashAlgorithm(SECOidTag oid)
-{
-    unsigned int i;
-
-    for (i = 0; i < PR_ARRAY_SIZE(tlsHashOIDMap); i++) {
-        if (oid == tlsHashOIDMap[i].oid) {
-            return tlsHashOIDMap[i].tlsHash;
-        }
-    }
-    return 0;
 }
 
 /* ssl3_TLSSignatureAlgorithmForKeyType returns the TLS 1.2 signature algorithm
@@ -5231,15 +5207,7 @@ ssl3_ComputeHandshakeHashes(sslSocket *ss,
             rv = SECFailure;
             goto tls12_loser;
         }
-        hashes->hashAlg = ssl3_OIDToTLSHashAlgorithm(hashOid->offset);
-        PORT_Assert(hashes->hashAlg == ssl_hash_sha256 ||
-                    hashes->hashAlg == ssl_hash_sha384);
-        if (hashes->hashAlg != ssl_hash_sha256 &&
-            hashes->hashAlg != ssl_hash_sha384) {
-            ssl_MapLowLevelError(SSL_ERROR_DIGEST_FAILURE);
-            rv = SECFailure;
-            goto tls12_loser;
-        }
+
         rv = SECSuccess;
 
     tls12_loser:
@@ -7710,16 +7678,6 @@ ssl3_DestroyBackupHandshakeHashIfNotNeeded(sslSocket *ss,
     PRBool supportsHandshakeHash = PR_FALSE;
     PRBool needBackupHash = PR_FALSE;
     unsigned int i;
-    SECOidData *hashOid =
-        SECOID_FindOIDByMechanism(ssl3_GetPrfHashMechanism(ss));
-
-    SSLHashType suitePRFHash;
-    PRBool suitePRFIs256Or384 = PR_FALSE;
-
-    if (hashOid == NULL) {
-        rv = SECFailure;
-        goto done;
-    }
 
 #ifndef NO_PKCS11_BYPASS
     /* Backup handshake hash is not supported in PKCS #11 bypass mode. */
@@ -7736,12 +7694,14 @@ ssl3_DestroyBackupHandshakeHashIfNotNeeded(sslSocket *ss,
         goto done;
     }
 
-    if (hashOid->offset == SEC_OID_SHA256) {
-        suitePRFHash = ssl_hash_sha256;
-        suitePRFIs256Or384 = PR_TRUE;
-    } else if (hashOid->offset == SEC_OID_SHA384) {
-        suitePRFHash = ssl_hash_sha384;
-        suitePRFIs256Or384 = PR_TRUE;
+    switch (ss->ssl3.hs.suite_def->prf_alg) {
+        case prf_sha384:
+        case prf_sha256:
+            supportsHandshakeHash = PR_TRUE;
+            break;
+        default:
+            supportsHandshakeHash = PR_FALSE;
+            break;
     }
 
     /* Determine the server's hash support for that signature algorithm. */
@@ -7749,9 +7709,6 @@ ssl3_DestroyBackupHandshakeHashIfNotNeeded(sslSocket *ss,
         if (algorithms->data[i + 1] == sigAlg) {
             if (algorithms->data[i] == ssl_hash_sha1) {
                 supportsSha1 = PR_TRUE;
-            } else if (suitePRFIs256Or384 &&
-                       algorithms->data[i] == suitePRFHash) {
-                supportsHandshakeHash = PR_TRUE;
             }
         }
     }
