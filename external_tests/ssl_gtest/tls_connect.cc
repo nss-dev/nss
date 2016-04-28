@@ -229,7 +229,7 @@ void TlsConnectTestBase::CheckConnected() {
   EXPECT_EQ(TlsAgent::STATE_CONNECTED, client_->state());
   EXPECT_EQ(TlsAgent::STATE_CONNECTED, server_->state());
 
-  int16_t cipher_suite1, cipher_suite2;
+  uint16_t cipher_suite1, cipher_suite2;
   bool ret = client_->cipher_suite(&cipher_suite1);
   EXPECT_TRUE(ret);
   ret = server_->cipher_suite(&cipher_suite2);
