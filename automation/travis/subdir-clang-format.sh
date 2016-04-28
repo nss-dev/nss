@@ -11,5 +11,5 @@ for file in `(find $1 -type f -name "*.c" && find $1 -type f -name "*.h")`;
 do
   echo $file
   mv "$file" "$file$ORIG"
-  clang-format "$file$ORIG" > "$file"
+  clang-format-3.8 "$file$ORIG" > "$file"
 done
