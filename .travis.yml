@@ -40,7 +40,7 @@ script:
       cd nss;
       automation/travis/subdir-clang-format.sh lib/ssl;
       automation/travis/subdir-clang-format-diff.sh lib/ssl;
-      exit 0;
+      exit $?;
     fi
   - cd nss
   - USE_64=1 NSS_ENABLE_TLS_1_3=1 make nss_build_all
