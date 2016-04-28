@@ -435,9 +435,7 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
                  * retransmit */
                 if (rv == SECFailure &&
                     (PORT_GetError() == PR_WOULD_BLOCK_ERROR)) {
-                    ssl_GetSSL3HandshakeLock(ss);
                     dtls_CheckTimer(ss);
-                    ssl_ReleaseSSL3HandshakeLock(ss);
                     /* Restore the error in case something succeeded */
                     PORT_SetError(PR_WOULD_BLOCK_ERROR);
                 }
@@ -527,6 +525,10 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
         ssl_ReleaseSSL3HandshakeLock(ss);
     } while (keepGoing);
 
+    /* Service the DTLS timer so that the holddown timer eventually fires. */
+    if (IS_DTLS(ss)) {
+        dtls_CheckTimer(ss);
+    }
     ss->gs.readOffset = 0;
     ss->gs.writeOffset = ss->gs.buf.len;
     return 1;

@@ -29,11 +29,14 @@ PRUint32
 SSLInt_DetermineKEABits(PRUint16 serverKeyBits, SSLAuthType authAlgorithm) {
     // For ECDSA authentication we expect a curve for key exchange with the
     // same strength as the one used for the certificate's signature.
-    if (authAlgorithm == ssl_auth_ecdsa) {
+    if (authAlgorithm == ssl_auth_ecdsa ||
+        authAlgorithm == ssl_auth_ecdh_rsa ||
+        authAlgorithm == ssl_auth_ecdh_ecdsa) {
         return serverKeyBits;
     }
 
-    PORT_Assert(authAlgorithm == ssl_auth_rsa);
+    PORT_Assert(authAlgorithm == ssl_auth_rsa_decrypt ||
+                authAlgorithm == ssl_auth_rsa_sign);
     PRUint32 minKeaBits;
 #ifdef NSS_ECC_MORE_THAN_SUITE_B
     // P-192 is the smallest curve we want to use.
@@ -91,4 +94,39 @@ SSLInt_ClearSessionTicketKey()
 {
   ssl3_SessionTicketShutdown(NULL, NULL);
   NSS_UnregisterShutdown(ssl3_SessionTicketShutdown, NULL);
+}
+
+PRInt32 SSLInt_CountTls13CipherSpecs(PRFileDesc *fd)
+{
+  PRCList *cur_p;
+  PRInt32 ct = 0;
+
+  sslSocket *ss = ssl_FindSocket(fd);
+  if (!ss) {
+    return -1;
+  }
+
+  for (cur_p = PR_NEXT_LINK(&ss->ssl3.hs.cipherSpecs);
+       cur_p != &ss->ssl3.hs.cipherSpecs;
+       cur_p = PR_NEXT_LINK(cur_p)) {
+    ++ct;
+  }
+  return ct;
+}
+
+/* Force a timer expiry by backdating when the timer was started.
+ * We could set the remaining time to 0 but then backoff would not
+ * work properly if we decide to test it. */
+void SSLInt_ForceTimerExpiry(PRFileDesc *fd)
+{
+  sslSocket *ss = ssl_FindSocket(fd);
+  if (!ss) {
+    return;
+  }
+
+  if (!ss->ssl3.hs.rtTimerCb)
+    return;
+
+  ss->ssl3.hs.rtTimerStarted = PR_IntervalNow() -
+      PR_MillisecondsToInterval(ss->ssl3.hs.rtTimeoutMs + 1);
 }
