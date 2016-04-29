@@ -54,6 +54,8 @@ der_gtest_start()
     return
   fi
 
+  # Temporarily disable asserts for PKCS#11 slot leakage (Bug 1168425)
+  unset NSS_STRICT_SHUTDOWN
   DERGTESTREPORT="${DERGTESTDIR}/report.xml"
   ${BINDIR}/der_gtest -d "${DERGTESTDIR}" --gtest_output=xml:"${DERGTESTREPORT}"
   html_msg $? 0 "der_gtest run successfully"
