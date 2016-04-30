@@ -2776,8 +2776,9 @@ mp_err   s_mp_pad(mp_int *mp, mp_size min)
 
 /* {{{ s_mp_setz(dp, count) */
 
+#if MP_MACRO == 0
 /* Set 'count' digits pointed to by dp to be zeroes                       */
-__inline__ void s_mp_setz(mp_digit *dp, mp_size count)
+void s_mp_setz(mp_digit *dp, mp_size count)
 {
 #if MP_MEMSET == 0
   int  ix;
@@ -2789,13 +2790,15 @@ __inline__ void s_mp_setz(mp_digit *dp, mp_size count)
 #endif
 
 } /* end s_mp_setz() */
+#endif
 
 /* }}} */
 
 /* {{{ s_mp_copy(sp, dp, count) */
 
+#if MP_MACRO == 0
 /* Copy 'count' digits from sp to dp                                      */
-__inline__ void s_mp_copy(const mp_digit *sp, mp_digit *dp, mp_size count)
+void s_mp_copy(const mp_digit *sp, mp_digit *dp, mp_size count)
 {
 #if MP_MEMCPY == 0
   int  ix;
@@ -2808,44 +2811,51 @@ __inline__ void s_mp_copy(const mp_digit *sp, mp_digit *dp, mp_size count)
   ++mp_copies;
 
 } /* end s_mp_copy() */
+#endif
 
 /* }}} */
 
 /* {{{ s_mp_alloc(nb, ni) */
 
+#if MP_MACRO == 0
 /* Allocate ni records of nb bytes each, and return a pointer to that     */
-__inline__ void *s_mp_alloc(size_t nb, size_t ni)
+void    *s_mp_alloc(size_t nb, size_t ni)
 {
   ++mp_allocs;
   return calloc(nb, ni);
 
 } /* end s_mp_alloc() */
+#endif
 
 /* }}} */
 
 /* {{{ s_mp_free(ptr) */
 
+#if MP_MACRO == 0
 /* Free the memory pointed to by ptr                                      */
-__inline__ void s_mp_free(void *ptr)
+void     s_mp_free(void *ptr)
 {
   if(ptr) {
     ++mp_frees;
     free(ptr);
   }
 } /* end s_mp_free() */
+#endif
 
 /* }}} */
 
 /* {{{ s_mp_clamp(mp) */
 
+#if MP_MACRO == 0
 /* Remove leading zeroes from the given value                             */
-inline void s_mp_clamp(mp_int *mp)
+void     s_mp_clamp(mp_int *mp)
 {
   mp_size used = MP_USED(mp);
   while (used > 1 && DIGIT(mp, used - 1) == 0)
     --used;
   MP_USED(mp) = used;
 } /* end s_mp_clamp() */
+#endif
 
 /* }}} */
 
