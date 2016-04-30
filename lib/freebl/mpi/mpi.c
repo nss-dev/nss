@@ -2777,7 +2777,7 @@ mp_err   s_mp_pad(mp_int *mp, mp_size min)
 /* {{{ s_mp_setz(dp, count) */
 
 /* Set 'count' digits pointed to by dp to be zeroes                       */
-inline void s_mp_setz(mp_digit *dp, mp_size count)
+__inline__ void s_mp_setz(mp_digit *dp, mp_size count)
 {
 #if MP_MEMSET == 0
   int  ix;
@@ -2795,7 +2795,7 @@ inline void s_mp_setz(mp_digit *dp, mp_size count)
 /* {{{ s_mp_copy(sp, dp, count) */
 
 /* Copy 'count' digits from sp to dp                                      */
-inline void s_mp_copy(const mp_digit *sp, mp_digit *dp, mp_size count)
+__inline__ void s_mp_copy(const mp_digit *sp, mp_digit *dp, mp_size count)
 {
 #if MP_MEMCPY == 0
   int  ix;
@@ -2814,7 +2814,7 @@ inline void s_mp_copy(const mp_digit *sp, mp_digit *dp, mp_size count)
 /* {{{ s_mp_alloc(nb, ni) */
 
 /* Allocate ni records of nb bytes each, and return a pointer to that     */
-inline void *s_mp_alloc(size_t nb, size_t ni)
+__inline__ void *s_mp_alloc(size_t nb, size_t ni)
 {
   ++mp_allocs;
   return calloc(nb, ni);
@@ -2826,7 +2826,7 @@ inline void *s_mp_alloc(size_t nb, size_t ni)
 /* {{{ s_mp_free(ptr) */
 
 /* Free the memory pointed to by ptr                                      */
-inline void s_mp_free(void *ptr)
+__inline__ void s_mp_free(void *ptr)
 {
   if(ptr) {
     ++mp_frees;
