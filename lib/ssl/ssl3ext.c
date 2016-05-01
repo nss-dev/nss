@@ -190,9 +190,20 @@ ssl3_GenerateSessionTicketKeysPKCS11(void *data)
 {
     SECStatus rv;
     sslSocket *ss = (sslSocket *)data;
-    SECKEYPrivateKey *svrPrivKey = ss->serverCerts[kt_rsa].SERVERKEY;
-    SECKEYPublicKey *svrPubKey = ss->serverCerts[kt_rsa].serverKeyPair->pubKey;
+    sslServerCertType certType;
+    const sslServerCert *sc;
+    SECKEYPrivateKey *svrPrivKey;
+    SECKEYPublicKey *svrPubKey;
 
+    certType.authType = ssl_auth_rsa_decrypt;
+    sc = ssl_FindServerCert(ss, &certType);
+    if (!sc || !sc->serverKeyPair) {
+        SSL_DBG(("%d: SSL[%d]: No ssl_auth_rsa_decrypt cert and key pair",
+                 SSL_GETPID(), ss->fd));
+        goto loser;
+    }
+    svrPrivKey = sc->serverKeyPair->privKey;
+    svrPubKey = sc->serverKeyPair->pubKey;
     if (svrPrivKey == NULL || svrPubKey == NULL) {
         SSL_DBG(("%d: SSL[%d]: Pub or priv key(s) is NULL.",
                  SSL_GETPID(), ss->fd));
@@ -326,6 +337,10 @@ static const ssl3HelloExtensionHandler serverHelloHandlersSSL3[] = {
  * These static tables are for the formatting of client hello extensions.
  * The server's table of hello senders is dynamic, in the socket struct,
  * and sender functions are registered there.
+ * NB: the order of these extensions can have an impact on compatibility. Some
+ * servers (e.g. Tomcat) will terminate the connection if the last extension in
+ * the client hello is empty (for example, the extended master secret
+ * extension, if it were listed last). See bug 1243641.
  */
 static const ssl3HelloExtensionSender clientHelloSendersTLS[SSL_MAX_EXTENSIONS] =
     {
@@ -341,11 +356,15 @@ static const ssl3HelloExtensionSender clientHelloSendersTLS[SSL_MAX_EXTENSIONS] 
       { ssl_app_layer_protocol_xtn, &ssl3_ClientSendAppProtoXtn },
       { ssl_use_srtp_xtn, &ssl3_ClientSendUseSRTPXtn },
       { ssl_cert_status_xtn, &ssl3_ClientSendStatusRequestXtn },
-      { ssl_signature_algorithms_xtn, &ssl3_ClientSendSigAlgsXtn },
       { ssl_tls13_draft_version_xtn, &ssl3_ClientSendDraftVersionXtn },
       { ssl_signed_cert_timestamp_xtn, &ssl3_ClientSendSignedCertTimestampXtn },
       { ssl_tls13_key_share_xtn, &tls13_ClientSendKeyShareXtn },
-      { ssl_tls13_pre_shared_key_xtn, &tls13_ClientSendPreSharedKeyXtn }
+      { ssl_tls13_pre_shared_key_xtn, &tls13_ClientSendPreSharedKeyXtn },
+      /* Some servers (e.g. WebSphere Application Server 7.0 and Tomcat) will
+       * time out or terminate the connection if the last extension in the
+       * client hello is empty. They are not intolerant of TLS 1.2, so list
+       * signature_algorithms at the end. See bug 1243641. */
+      { ssl_signature_algorithms_xtn, &ssl3_ClientSendSigAlgsXtn }
       /* any extra entries will appear as { 0, NULL }    */
     };
 
@@ -448,14 +467,12 @@ ssl3_SendServerNameXtn(sslSocket *ss, PRBool append,
     return 4;
 }
 
-/* handle an incoming SNI extension, by ignoring it. */
+/* Handle an incoming SNI extension. */
 SECStatus
 ssl3_HandleServerNameXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 {
     SECItem *names = NULL;
-    PRUint32 listCount = 0, namesPos = 0, i;
     TLSExtensionData *xtnData = &ss->xtnData;
-    SECItem ldata;
     PRInt32 listLenBytes = 0;
 
     if (!ss->sec.isServer) {
@@ -467,79 +484,94 @@ ssl3_HandleServerNameXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
     if (!ss->sniSocketConfig) {
         return SECSuccess;
     }
+
     /* length of server_name_list */
     listLenBytes = ssl3_ConsumeHandshakeNumber(ss, 2, &data->data, &data->len);
     if (listLenBytes < 0) {
-        return SECFailure;
+        goto loser; /* alert already sent */
     }
     if (listLenBytes == 0 || listLenBytes != data->len) {
-        (void)ssl3_DecodeError(ss);
-        return SECFailure;
+        goto alert_loser;
     }
-    ldata = *data;
-    /* Calculate the size of the array.*/
-    while (listLenBytes > 0) {
-        SECItem litem;
+
+    /* Read ServerNameList. */
+    while (data->len > 0) {
+        SECItem tmp;
         SECStatus rv;
         PRInt32 type;
-        /* Skip Name Type (sni_host_name); checks are on the second pass */
-        type = ssl3_ConsumeHandshakeNumber(ss, 1, &ldata.data, &ldata.len);
-        if (type < 0) { /* i.e., SECFailure cast to PRint32 */
-            return SECFailure;
-        }
-        rv = ssl3_ConsumeHandshakeVariable(ss, &litem, 2, &ldata.data, &ldata.len);
-        if (rv != SECSuccess) {
-            return rv;
-        }
-        /* Adjust total length for consumed item, item len and type.*/
-        listLenBytes -= litem.len + 3;
-        if (listLenBytes > 0 && !ldata.len) {
-            (void)ssl3_DecodeError(ss);
-            return SECFailure;
-        }
-        listCount += 1;
-    }
-    names = PORT_ZNewArray(SECItem, listCount);
-    if (!names) {
-        return SECFailure;
-    }
-    for (i = 0; i < listCount; i++) {
-        unsigned int j;
-        PRInt32 type;
-        SECStatus rv;
-        PRBool nametypePresent = PR_FALSE;
-        /* Name Type (sni_host_name) */
+
+        /* Read Name Type. */
         type = ssl3_ConsumeHandshakeNumber(ss, 1, &data->data, &data->len);
-        /* Check if we have such type in the list */
-        for (j = 0; j < listCount && names[j].data; j++) {
-            /* TODO bug 998524: .type is not assigned a value */
-            if (names[j].type == type) {
-                nametypePresent = PR_TRUE;
-                break;
+        if (type < 0) { /* i.e., SECFailure cast to PRint32 */
+            /* alert sent in ConsumeHandshakeNumber */
+            goto loser;
+        }
+
+        /* Read ServerName (length and value). */
+        rv = ssl3_ConsumeHandshakeVariable(ss, &tmp, 2, &data->data, &data->len);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+
+        /* Record the value for host_name(0). */
+        if (type == sni_nametype_hostname) {
+            /* Fail if we encounter a second host_name entry. */
+            if (names) {
+                goto alert_loser;
+            }
+
+            /* Create an array for the only supported NameType. */
+            names = PORT_ZNewArray(SECItem, 1);
+            if (!names) {
+                goto loser;
+            }
+
+            /* Copy ServerName into the array. */
+            if (SECITEM_CopyItem(NULL, &names[0], &tmp) != SECSuccess) {
+                goto loser;
             }
         }
-        /* HostName (length and value) */
-        rv = ssl3_ConsumeHandshakeVariable(ss, &names[namesPos], 2,
-                                           &data->data, &data->len);
-        if (rv != SECSuccess) {
-            PORT_Assert(0);
-            PORT_Free(names);
-            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-            return rv;
-        }
-        if (nametypePresent == PR_FALSE) {
-            namesPos += 1;
-        }
-    }
-    /* Free old and set the new data. */
-    if (xtnData->sniNameArr) {
-        PORT_Free(ss->xtnData.sniNameArr);
-    }
-    xtnData->sniNameArr = names;
-    xtnData->sniNameArrSize = namesPos;
-    xtnData->negotiated[xtnData->numNegotiated++] = ssl_server_name_xtn;
 
+        /* Even if we don't support NameTypes other than host_name at the
+         * moment, we continue parsing the whole list to check its validity.
+         * We do not check for duplicate entries with NameType != host_name(0).
+         */
+    }
+    if (names) {
+        /* Free old and set the new data. */
+        ssl3_FreeSniNameArray(xtnData);
+        xtnData->sniNameArr = names;
+        xtnData->sniNameArrSize = 1;
+        xtnData->negotiated[xtnData->numNegotiated++] = ssl_server_name_xtn;
+    }
     return SECSuccess;
+
+alert_loser:
+    (void)ssl3_DecodeError(ss);
+loser:
+    if (names) {
+        PORT_Free(names);
+    }
+    return SECFailure;
+}
+
+/* Frees a given xtnData->sniNameArr and its elements. */
+void
+ssl3_FreeSniNameArray(TLSExtensionData* xtnData)
+{
+    PRUint32 i;
+
+    if (!xtnData->sniNameArr) {
+        return;
+    }
+
+    for (i = 0; i < xtnData->sniNameArrSize; i++) {
+        SECITEM_FreeItem(&xtnData->sniNameArr[i], PR_FALSE);
+    }
+
+    PORT_Free(xtnData->sniNameArr);
+    xtnData->sniNameArr = NULL;
+    xtnData->sniNameArrSize = 0;
 }
 
 /* Called by both clients and servers.
@@ -1021,22 +1053,11 @@ ssl3_ServerSendStatusRequestXtn(
     PRUint32 maxBytes)
 {
     PRInt32 extension_length;
-    SSLKEAType effectiveExchKeyType;
+    const sslServerCert *serverCert = ss->sec.serverCert;
     SECStatus rv;
 
-    /* ssl3_SendCertificateStatus (which sents the certificate status data)
-     * uses the exact same logic to select the server certificate
-     * and determine if we have the status for that certificate. */
-
-    if (ss->ssl3.hs.kea_def->kea == kea_ecdhe_rsa ||
-        ss->ssl3.hs.kea_def->kea == kea_dhe_rsa) {
-        effectiveExchKeyType = ssl_kea_rsa;
-    } else {
-        effectiveExchKeyType = ss->ssl3.hs.kea_def->exchKeyType;
-    }
-
-    if (!ss->certStatusArray[effectiveExchKeyType] ||
-        !ss->certStatusArray[effectiveExchKeyType]->len) {
+    if (!serverCert->certStatusArray ||
+        !serverCert->certStatusArray->len) {
         return 0;
     }
 
@@ -1131,7 +1152,6 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     PRBool ms_is_wrapped;
     unsigned char wrapped_ms[SSL3_MASTER_SECRET_LENGTH];
     SECItem ms_item = { 0, NULL, 0 };
-    SSL3KEAType effectiveExchKeyType = ssl_kea_null;
     PRUint32 padding_length;
     PRUint32 message_length;
     PRUint32 cert_length = 0;
@@ -1206,15 +1226,8 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
         sslSessionID sid;
         PORT_Memset(&sid, 0, sizeof(sslSessionID));
 
-        if (ss->ssl3.hs.kea_def->kea == kea_ecdhe_rsa ||
-            ss->ssl3.hs.kea_def->kea == kea_dhe_rsa) {
-            effectiveExchKeyType = kt_rsa;
-        } else {
-            effectiveExchKeyType = ss->ssl3.hs.kea_def->exchKeyType;
-        }
-
         rv = ssl3_CacheWrappedMasterSecret(ss, &sid, spec,
-                                           effectiveExchKeyType);
+                                           ss->ssl3.hs.kea_def->authKeyType);
         if (rv == SECSuccess) {
             if (sid.u.ssl3.keys.wrapped_master_secret_len > sizeof(wrapped_ms))
                 goto loser;
@@ -1241,8 +1254,8 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
         + sizeof(ssl3CipherSuite)     /* ciphersuite */
         + 1                           /* compression */
         + 10                          /* cipher spec parameters */
+        + 1                           /* certType arguments */
         + 1                           /* SessionTicket.ms_is_wrapped */
-        + 1                           /* effectiveExchKeyType */
         + 4                           /* msWrapMech */
         + 2                           /* master_secret.length */
         + ms_item.len                 /* master_secret */
@@ -1295,7 +1308,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
         goto loser;
 
     /* cipher spec parameters */
-    rv = ssl3_AppendNumberToItem(&plaintext, ss->sec.authAlgorithm, 1);
+    rv = ssl3_AppendNumberToItem(&plaintext, ss->sec.authType, 1);
     if (rv != SECSuccess)
         goto loser;
     rv = ssl3_AppendNumberToItem(&plaintext, ss->sec.authKeyBits, 4);
@@ -1308,11 +1321,27 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     if (rv != SECSuccess)
         goto loser;
 
+    /* certificate slot */
+    PORT_Assert(ss->sec.serverCert->certType.authType == ss->sec.authType);
+    switch (ss->sec.authType) {
+#ifndef NSS_DISABLE_ECC
+        case ssl_auth_ecdsa:
+        case ssl_auth_ecdh_rsa:
+        case ssl_auth_ecdh_ecdsa:
+            /* Too many curves and we will need two bytes here. */
+            PORT_Assert(ec_pastLastName < 256);
+            rv = ssl3_AppendNumberToItem(&plaintext,
+                                         ss->sec.serverCert->certType.u.namedCurve, 1);
+            break;
+#endif
+        default:
+            rv = ssl3_AppendNumberToItem(&plaintext, 0, 1);
+            break;
+    }
+    if (rv != SECSuccess) goto loser;
+
     /* master_secret */
     rv = ssl3_AppendNumberToItem(&plaintext, ms_is_wrapped, 1);
-    if (rv != SECSuccess)
-        goto loser;
-    rv = ssl3_AppendNumberToItem(&plaintext, effectiveExchKeyType, 1);
     if (rv != SECSuccess)
         goto loser;
     rv = ssl3_AppendNumberToItem(&plaintext, msWrapMech, 4);
@@ -1405,6 +1434,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     } else
 #endif
     {
+        PORT_Assert(aes_key_pkcs11);
         aes_ctx_pkcs11 = PK11_CreateContextBySymKey(cipherMech,
                                                     CKA_ENCRYPT, aes_key_pkcs11, &ivItem);
         if (!aes_ctx_pkcs11)
@@ -1426,6 +1456,8 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
 /* Compute MAC. */
 #ifndef NO_PKCS11_BYPASS
     if (ss->opt.bypassPKCS11) {
+        PORT_Assert(mac_key);
+
         hmac_ctx = (HMACContext *)hmac_ctx_buf;
         hashObj = HASH_GetRawHashObject(HASH_AlgSHA256);
         if (HMAC_Init(hmac_ctx, hashObj, mac_key,
@@ -1443,6 +1475,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
 #endif
     {
         SECItem macParam;
+        PORT_Assert(mac_key_pkcs11);
         macParam.data = NULL;
         macParam.len = 0;
         hmac_ctx_pkcs11 = PK11_CreateContextBySymKey(macMech,
@@ -1783,7 +1816,7 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
     temp = ssl3_ConsumeHandshakeNumber(ss, 1, &buffer, &buffer_len);
     if (temp < 0)
         goto no_ticket;
-    parsed_session_ticket->authAlgorithm = (SSLSignType)temp;
+    parsed_session_ticket->authType = (SSLAuthType)temp;
     temp = ssl3_ConsumeHandshakeNumber(ss, 4, &buffer, &buffer_len);
     if (temp < 0)
         goto no_ticket;
@@ -1797,16 +1830,28 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
         goto no_ticket;
     parsed_session_ticket->keaKeyBits = (PRUint32)temp;
 
+    /* Read certificate slot */
+    parsed_session_ticket->certType.authType = parsed_session_ticket->authType;
+    temp = ssl3_ConsumeHandshakeNumber(ss, 1, &buffer, &buffer_len);
+    if (temp < 0)
+        goto no_ticket;
+    switch (parsed_session_ticket->authType) {
+#ifndef NSS_DISABLE_ECC
+        case ssl_auth_ecdsa:
+        case ssl_auth_ecdh_rsa:
+        case ssl_auth_ecdh_ecdsa:
+            parsed_session_ticket->certType.u.namedCurve = (ECName)temp;
+            break;
+#endif
+        default:
+            break;
+    }
+
     /* Read wrapped master_secret. */
     temp = ssl3_ConsumeHandshakeNumber(ss, 1, &buffer, &buffer_len);
     if (temp < 0)
         goto no_ticket;
     parsed_session_ticket->ms_is_wrapped = (PRBool)temp;
-
-    temp = ssl3_ConsumeHandshakeNumber(ss, 1, &buffer, &buffer_len);
-    if (temp < 0)
-        goto no_ticket;
-    parsed_session_ticket->exchKeyType = (SSL3KEAType)temp;
 
     temp = ssl3_ConsumeHandshakeNumber(ss, 4, &buffer, &buffer_len);
     if (temp < 0)
@@ -1903,15 +1948,18 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
         sid->version = parsed_session_ticket->ssl_version;
         sid->u.ssl3.cipherSuite = parsed_session_ticket->cipher_suite;
         sid->u.ssl3.compression = parsed_session_ticket->compression_method;
-        sid->authAlgorithm = parsed_session_ticket->authAlgorithm;
+        sid->authType = parsed_session_ticket->authType;
         sid->authKeyBits = parsed_session_ticket->authKeyBits;
         sid->keaType = parsed_session_ticket->keaType;
         sid->keaKeyBits = parsed_session_ticket->keaKeyBits;
-       if (SECITEM_CopyItem(NULL, &sid->u.ssl3.locked.sessionTicket.ticket,
-                            &extension_data) != SECSuccess)
-           goto no_ticket;
+        memcpy(&sid->certType, &parsed_session_ticket->certType,
+               sizeof(sslServerCertType));
 
-       /* Copy master secret. */
+        if (SECITEM_CopyItem(NULL, &sid->u.ssl3.locked.sessionTicket.ticket,
+                             &extension_data) != SECSuccess)
+            goto no_ticket;
+
+        /* Copy master secret. */
 #ifndef NO_PKCS11_BYPASS
         if (ss->opt.bypassPKCS11 &&
             parsed_session_ticket->ms_is_wrapped)
@@ -1925,7 +1973,6 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
                     parsed_session_ticket->ms_length);
         sid->u.ssl3.keys.wrapped_master_secret_len =
                 parsed_session_ticket->ms_length;
-        sid->u.ssl3.exchKeyType = parsed_session_ticket->exchKeyType;
         sid->u.ssl3.masterWrapMech = parsed_session_ticket->msWrapMech;
         sid->u.ssl3.keys.msIsWrapped =
                 parsed_session_ticket->ms_is_wrapped;
@@ -2679,9 +2726,12 @@ ssl3_CalculatePaddingExtensionLength(unsigned int clientHelloLength)
     }
 
     extensionLength = 512 - recordLength;
-    /* Extensions take at least four bytes to encode. */
-    if (extensionLength < 4) {
-        extensionLength = 4;
+    /* Extensions take at least four bytes to encode. Always include at least
+     * one byte of data if including the extension. Some servers (e.g.
+     * WebSphere Application Server 7.0 and Tomcat) will time out or terminate
+     * the connection if the last extension in the client hello is empty. */
+    if (extensionLength < 4 + 1) {
+        extensionLength = 4 + 1;
     }
 
     return extensionLength;
@@ -2782,19 +2832,14 @@ ssl3_ServerHandleDraftVersionXtn(sslSocket *ss, PRUint16 ex_type,
         return SECFailure;
     }
 
-    /*  Keep track of negotiated extensions. */
-    ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
-
-    if (draft_version != TLS_1_3_DRAFT_VERSION) {
-        /*
-         * Incompatible/broken TLS 1.3 implementation. Fall back to TLS 1.2.
-         * TODO(ekr@rtfm.com): It's not entirely clear it's safe to roll back
-         * here. Need to double-check.
-         */
+    if (draft_version == TLS_1_3_DRAFT_VERSION) {
+        /* Mark this as negotiated only if the version matches.  The code in
+         * ssl3_HandleClientHello will then reduce the version if needed. */
+        ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
+    } else {
         SSL_TRC(30, ("%d: SSL3[%d]: Incompatible version of TLS 1.3 (%d), "
                      "expected %d",
                      SSL_GETPID(), ss->fd, draft_version, TLS_1_3_DRAFT_VERSION));
-        ss->version = SSL_LIBRARY_VERSION_TLS_1_2;
     }
 
     return SECSuccess;
@@ -2954,17 +2999,7 @@ ssl3_ServerSendSignedCertTimestampXtn(sslSocket *ss,
                                       PRUint32 maxBytes)
 {
     PRInt32 extension_length;
-    SSLKEAType effectiveExchKeyType;
-    const SECItem *scts;
-
-    if (ss->ssl3.hs.kea_def->kea == kea_ecdhe_rsa ||
-        ss->ssl3.hs.kea_def->kea == kea_dhe_rsa) {
-        effectiveExchKeyType = ssl_kea_rsa;
-    } else {
-        effectiveExchKeyType = ss->ssl3.hs.kea_def->exchKeyType;
-    }
-
-    scts = &ss->signedCertTimestamps[effectiveExchKeyType];
+    const SECItem *scts = &ss->sec.serverCert->signedCertTimestamps;
 
     if (!scts->len) {
         /* No timestamps to send */
@@ -3233,6 +3268,7 @@ tls13_ServerSendKeyShareXtn(sslSocket *ss, PRBool append,
     switch (ss->ssl3.hs.kea_def->exchKeyType) {
 #ifndef NSS_DISABLE_ECC
         case ssl_kea_ecdh:
+        case ssl_kea_ecdh_psk:
             PORT_Assert(ss->ephemeralECDHKeyPair);
             break;
 #endif

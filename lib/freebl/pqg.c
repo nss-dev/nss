@@ -43,7 +43,8 @@ typedef enum {
  * implement Lucas and adjust these two functions.  See FIPS 186-3 Appendix C
  * and F for more information.
  */
-int prime_testcount_p(int L, int N)
+static int
+prime_testcount_p(int L, int N)
 {
     switch (L) {
     case 1024:
@@ -61,7 +62,8 @@ int prime_testcount_p(int L, int N)
 /* The q numbers are different if you run M-R followd by Lucas. I created
  * a separate function so if someone wanted to add the Lucas check, they
  * could do so fairly easily */
-int prime_testcount_q(int L, int N)
+static int
+prime_testcount_q(int L, int N)
 {
     return prime_testcount_p(L,N);
 }
@@ -486,7 +488,7 @@ cleanup:
 **                steps 16 through 34 of FIPS 186-2 C.6
 */
 #define MAX_ST_SEED_BITS (HASH_LENGTH_MAX*PR_BITS_PER_BYTE)
-SECStatus
+static SECStatus
 makePrimefromPrimesShaweTaylor(
       HASH_HashType hashtype,	/* selected Hashing algorithm */
       unsigned int  length,     /* input. Length of prime in bits. */
@@ -721,7 +723,7 @@ cleanup:
 **
 **  This generates a provable prime from a seed
 */
-SECStatus
+static SECStatus
 makePrimefromSeedShaweTaylor(
       HASH_HashType hashtype,	/* selected Hashing algorithm */
       unsigned int  length,     /* input.  Length of prime in bits. */
