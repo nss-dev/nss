@@ -6084,7 +6084,7 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
     int             i;
     unsigned int    outLen;
     unsigned char   sha_out[SHA1_LENGTH];
-    unsigned char   key_block[NUM_MIXERS * MD5_LENGTH];
+    unsigned char   key_block[NUM_MIXERS * SFTK_MAX_MAC_LENGTH];
     unsigned char   key_block2[MD5_LENGTH];
     PRBool          isFIPS;		
     HASH_HashType   hashType;
@@ -6530,6 +6530,13 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 	}
 	block_needed = 2 * (macSize + effKeySize + 
 	                    ((!ssl3_keys->bIsExport) * IVSize));
+#ifdef DEBUG
+    if (block_needed > sizeof key_block) {
+        PR_fprintf(PR_STDERR,
+                   "ERROR: block_need=%d but key_block=%d\n ",
+                   block_needed, key_block);
+    }
+#endif
 	PORT_Assert(block_needed <= sizeof key_block);
 	if (block_needed > sizeof key_block)
 	    block_needed = sizeof key_block;

@@ -143,7 +143,7 @@ const PRUint16 SSL_ImplementedCiphers[] = {
     TLS_RSA_EXPORT_WITH_RC4_40_MD5,
     TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5,
 
-    /* ciphersuites with no encryption */
+/* ciphersuites with no encryption */
 #ifndef NSS_DISABLE_ECC
     TLS_ECDHE_ECDSA_WITH_NULL_SHA,
     TLS_ECDHE_RSA_WITH_NULL_SHA,
