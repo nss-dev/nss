@@ -3902,7 +3902,7 @@ ssl3_GetPrfHashMechanism(sslSocket *ss)
         case ssl_hash_sha256:
         case ssl_hash_none:
             /* ssl_hash_none is for pre-1.2 suites, which use SHA-256. */
-             return CKM_SHA256;
+            return CKM_SHA256;
         default:
             PORT_Assert(0);
     }
