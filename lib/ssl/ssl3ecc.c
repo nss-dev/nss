@@ -596,10 +596,9 @@ ssl3_GetCurveNameForServerSocket(sslSocket *ss)
     }
 
     if (cert->certType.authType == ssl_auth_rsa_sign) {
-        certKeySize
-                = SECKEY_PublicKeyStrengthInBits(cert->serverKeyPair->pubKey);
+        certKeySize = SECKEY_PublicKeyStrengthInBits(cert->serverKeyPair->pubKey);
         certKeySize =
-                SSL_RSASTRENGTH_TO_ECSTRENGTH(certKeySize);
+            SSL_RSASTRENGTH_TO_ECSTRENGTH(certKeySize);
     } else if (cert->certType.authType == ssl_auth_ecdsa ||
                cert->certType.authType == ssl_auth_ecdh_rsa ||
                cert->certType.authType == ssl_auth_ecdh_ecdsa) {
@@ -1113,8 +1112,9 @@ ssl3_DisableECCSuites(sslSocket *ss, const ssl3CipherSuite *suite)
 }
 
 static PRBool
-ssl_HasCertOfAuthType(sslSocket *ss, SSLAuthType authType) {
-    const sslServerCert* sc;
+ssl_HasCertOfAuthType(sslSocket *ss, SSLAuthType authType)
+{
+    const sslServerCert *sc;
 
     sc = ssl_FindServerCertByAuthType(ss, authType);
     return sc && sc->serverCert;
@@ -1423,17 +1423,17 @@ ssl3_HandleSupportedCurvesXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
     for (cursor = PR_NEXT_LINK(&ss->serverCerts);
          cursor != &ss->serverCerts;
          cursor = PR_NEXT_LINK(cursor)) {
-        sslServerCert *cert = (sslServerCert*)cursor;
-        if (cert->certType.authType == ssl_auth_ecdh_rsa
-            && (mutualCurves & (1U << cert->certType.u.namedCurve))) {
+        sslServerCert *cert = (sslServerCert *)cursor;
+        if (cert->certType.authType == ssl_auth_ecdh_rsa &&
+            (mutualCurves & (1U << cert->certType.u.namedCurve))) {
             foundECDH_RSA = PR_TRUE;
         }
-        if (cert->certType.authType == ssl_auth_ecdh_ecdsa
-            && (mutualCurves & (1U << cert->certType.u.namedCurve))) {
+        if (cert->certType.authType == ssl_auth_ecdh_ecdsa &&
+            (mutualCurves & (1U << cert->certType.u.namedCurve))) {
             foundECDH_ECDSA = PR_TRUE;
         }
-        if (cert->certType.authType == ssl_auth_ecdsa
-            && (mutualCurves & (1U << cert->certType.u.namedCurve))) {
+        if (cert->certType.authType == ssl_auth_ecdsa &&
+            (mutualCurves & (1U << cert->certType.u.namedCurve))) {
             foundECDSA = PR_TRUE;
         }
     }

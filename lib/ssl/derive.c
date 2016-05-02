@@ -169,7 +169,7 @@ ssl3_KeyAndMacDeriveBypass(
         }
         block_bytes = keyblk.len;
     } else {
-       /* key_block =
+        /* key_block =
         *     MD5(master_secret + SHA('A' + master_secret +
         *                      ServerHello.random + ClientHello.random)) +
         *     MD5(master_secret + SHA('BB' + master_secret +
