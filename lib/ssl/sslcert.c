@@ -339,7 +339,8 @@ loser:
 }
 
 static SSLAuthType
-ssl_GetEcdhAuthType(CERTCertificate *cert) {
+ssl_GetEcdhAuthType(CERTCertificate *cert)
+{
     SECOidTag sigTag = SECOID_GetAlgorithmTag(&cert->signature);
     switch (sigTag) {
         case SEC_OID_PKCS1_RSA_ENCRYPTION:

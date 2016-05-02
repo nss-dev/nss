@@ -105,17 +105,17 @@ struct sidCacheEntryStr {
     /* 72  - common header total */
 
     union {
-struct {
-    /*  2 */ ssl3CipherSuite cipherSuite;
-    /*  2 */ PRUint16 compression; /* SSLCompressionMethod */
+        struct {
+            /*  2 */ ssl3CipherSuite cipherSuite;
+            /*  2 */ PRUint16 compression; /* SSLCompressionMethod */
 
-    /* 54 */ ssl3SidKeys keys; /* keys, wrapped as needed. */
+            /* 54 */ ssl3SidKeys keys; /* keys, wrapped as needed. */
 
-    /*  4 */ PRUint32 masterWrapMech;
-    /*  4 */ PRInt32 certIndex;
-    /*  4 */ PRInt32 srvNameIndex;
-    /* 32 */ PRUint8 srvNameHash[SHA256_LENGTH]; /* SHA256 name hash */
-    /*  2 */ PRUint16 certTypeArgs;
+            /*  4 */ PRUint32 masterWrapMech;
+            /*  4 */ PRInt32 certIndex;
+            /*  4 */ PRInt32 srvNameIndex;
+            /* 32 */ PRUint8 srvNameHash[SHA256_LENGTH]; /* SHA256 name hash */
+            /*  2 */ PRUint16 certTypeArgs;
 /*104 */} ssl3;
 
 /* force sizeof(sidCacheEntry) to be a multiple of cache line size */
@@ -451,7 +451,7 @@ ConvertFromSID(sidCacheEntry *to, sslSessionID *from)
     PORT_Memcpy(to->sessionID, from->u.ssl3.sessionID,
                 to->sessionIDLength);
     to->u.ssl3.certTypeArgs = 0U;
-    switch(from->authType) {
+    switch (from->authType) {
 #ifndef NSS_DISABLE_ECC
         case ssl_auth_ecdsa:
         case ssl_auth_ecdh_rsa:
@@ -462,7 +462,6 @@ ConvertFromSID(sidCacheEntry *to, sslSessionID *from)
         default:
             break;
     }
-
 
     SSL_TRC(8, ("%d: SSL3: ConvertSID: time=%d addr=0x%08x%08x%08x%08x "
                 "cipherSuite=%d",
@@ -1040,7 +1039,7 @@ InitCache(cacheDesc *cache, int maxCacheEntries, int maxCertCacheEntries,
     }
 
     if (shared) {
-    /* Create file names */
+/* Create file names */
 #if defined(XP_UNIX) || defined(XP_BEOS)
         /* there's some confusion here about whether PR_OpenAnonFileMap wants
         ** a directory name or a file name for its first argument.
@@ -1667,8 +1666,8 @@ ssl_GetWrappingKey(PRInt32 symWrapMechIndex,
 {
     PRBool rv;
 
-    PORT_Assert( (unsigned)authType < ssl_auth_size);
-    PORT_Assert( (unsigned)symWrapMechIndex < SSL_NUM_WRAP_MECHS);
+    PORT_Assert((unsigned)authType < ssl_auth_size);
+    PORT_Assert((unsigned)symWrapMechIndex < SSL_NUM_WRAP_MECHS);
     if ((unsigned)authType < ssl_auth_size &&
         (unsigned)symWrapMechIndex < SSL_NUM_WRAP_MECHS) {
         rv = getSvrWrappingKey(symWrapMechIndex, authType, wswk,

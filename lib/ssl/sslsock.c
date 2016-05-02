@@ -104,15 +104,12 @@ static SSLVersionRange versions_defaults_datagram = {
     SSL_LIBRARY_VERSION_TLS_1_2
 };
 
-#define VERSIONS_DEFAULTS(variant)                               \
-    (variant == ssl_variant_stream ? &versions_defaults_stream : \
-                                   &versions_defaults_datagram)
-#define VERSIONS_POLICY_MIN(variant)                              \
-    (variant == ssl_variant_stream ? NSS_TLS_VERSION_MIN_POLICY : \
-                                   NSS_DTLS_VERSION_MIN_POLICY)
-#define VERSIONS_POLICY_MAX(variant)                              \
-    (variant == ssl_variant_stream ? NSS_TLS_VERSION_MAX_POLICY : \
-                                   NSS_DTLS_VERSION_MAX_POLICY)
+#define VERSIONS_DEFAULTS(variant) \
+    (variant == ssl_variant_stream ? &versions_defaults_stream : &versions_defaults_datagram)
+#define VERSIONS_POLICY_MIN(variant) \
+    (variant == ssl_variant_stream ? NSS_TLS_VERSION_MIN_POLICY : NSS_DTLS_VERSION_MIN_POLICY)
+#define VERSIONS_POLICY_MAX(variant) \
+    (variant == ssl_variant_stream ? NSS_TLS_VERSION_MAX_POLICY : NSS_DTLS_VERSION_MAX_POLICY)
 
 sslSessionIDLookupFunc ssl_sid_lookup;
 sslSessionIDCacheFunc ssl_sid_cache;
@@ -263,7 +260,7 @@ ssl_DupSocket(sslSocket *os)
             for (cursor = PR_NEXT_LINK(&os->serverCerts);
                  cursor != &os->serverCerts;
                  cursor = PR_NEXT_LINK(cursor)) {
-                sslServerCert *oc = (sslServerCert*)cursor;
+                sslServerCert *oc = (sslServerCert *)cursor;
                 sc = ssl_NewServerCert(&oc->certType);
 
                 if (oc->serverCert && oc->serverCertChain) {
@@ -275,13 +272,11 @@ ssl_DupSocket(sslSocket *os)
                     sc->serverCert = NULL;
                     sc->serverCertChain = NULL;
                 }
-                sc->serverKeyPair = oc->serverKeyPair ?
-                        ssl3_GetKeyPairRef(oc->serverKeyPair) : NULL;
+                sc->serverKeyPair = oc->serverKeyPair ? ssl3_GetKeyPairRef(oc->serverKeyPair) : NULL;
                 if (oc->serverKeyPair && !sc->serverKeyPair)
                     goto loser;
                 sc->serverKeyBits = oc->serverKeyBits;
-                sc->certStatusArray = !oc->certStatusArray ? NULL :
-                        SECITEM_DupArray(NULL, oc->certStatusArray);
+                sc->certStatusArray = !oc->certStatusArray ? NULL : SECITEM_DupArray(NULL, oc->certStatusArray);
                 if (SECITEM_CopyItem(NULL, &sc->signedCertTimestamps,
                                      &oc->signedCertTimestamps) != SECSuccess)
                     goto loser;
@@ -289,12 +284,9 @@ ssl_DupSocket(sslSocket *os)
             }
             sc = NULL;
 
-            ss->stepDownKeyPair = !os->stepDownKeyPair ? NULL :
-                                  ssl3_GetKeyPairRef(os->stepDownKeyPair);
-            ss->ephemeralECDHKeyPair = !os->ephemeralECDHKeyPair ? NULL :
-                                  ssl3_GetKeyPairRef(os->ephemeralECDHKeyPair);
-            ss->dheKeyPair = !os->dheKeyPair ? NULL :
-                             ssl3_GetKeyPairRef(os->dheKeyPair);
+            ss->stepDownKeyPair = !os->stepDownKeyPair ? NULL : ssl3_GetKeyPairRef(os->stepDownKeyPair);
+            ss->ephemeralECDHKeyPair = !os->ephemeralECDHKeyPair ? NULL : ssl3_GetKeyPairRef(os->ephemeralECDHKeyPair);
+            ss->dheKeyPair = !os->dheKeyPair ? NULL : ssl3_GetKeyPairRef(os->dheKeyPair);
             ss->dheParams = os->dheParams;
 
             /*
@@ -1941,11 +1933,11 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
     for (cursor = PR_NEXT_LINK(&sm->serverCerts);
          cursor != &sm->serverCerts;
          cursor = PR_NEXT_LINK(cursor)) {
-        sslServerCert *mc = (sslServerCert*)cursor;
+        sslServerCert *mc = (sslServerCert *)cursor;
 
         sc = ssl_NewServerCert(&mc->certType);
         if (mc->serverCert && mc->serverCertChain) {
-            sc->serverCert      = CERT_DupCertificate(mc->serverCert);
+            sc->serverCert = CERT_DupCertificate(mc->serverCert);
             sc->serverCertChain = CERT_DupCertList(mc->serverCertChain);
             if (!sc->serverCertChain)
                 goto loser;
