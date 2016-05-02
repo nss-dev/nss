@@ -2620,7 +2620,7 @@ ssl3_ServerHandleSigAlgsXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
     }
 
     if (ss->ssl3.hs.clientSigAndHash) {
-      PORT_Free(ss->ssl3.hs.clientSigAndHash);
+        PORT_Free(ss->ssl3.hs.clientSigAndHash);
     }
     ss->ssl3.hs.clientSigAndHash =
         PORT_NewArray(SSLSignatureAndHashAlg, numAlgorithms);
