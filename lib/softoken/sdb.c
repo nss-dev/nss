@@ -1738,7 +1738,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
      * NO NSPR call for chmod? :(
      */
     if (create && chmod(dbname, 0600) != 0) {
-        error = CKR_DEVICE_ERROR;
+        error = sdb_mapSQLError(type, SQLITE_CANTOPEN);
         goto loser;
     }
 
