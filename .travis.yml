@@ -56,10 +56,21 @@ env:
     - NSS_ENABLE_TLS_1_3=1
 
 install:
-  - hg clone https://hg.mozilla.org/projects/nspr ../nspr
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; brew install llvm38; fi
+
+before_script:
+  - hg clone https://hg.mozilla.org/projects/nspr ../nspr
 
 script:
   - if [ -n "$CLANG_FORMAT" ]; then automation/travis/validate-formatting.sh lib/ssl; exit $?; fi
   - make nss_build_all
   - cd tests; NSS_TESTS="ssl_gtests pk11_gtests der_gtests util_gtests" NSS_CYCLES=standard ./all.sh
+
+notifications:
+  irc:
+    channels:
+      - "irc.mozilla.org#nssbot"
+          - "ircs://irc.mozilla.org:6697/#nssbot"
+    nick: travisci
+    on_success: change
+    on_failure: always
