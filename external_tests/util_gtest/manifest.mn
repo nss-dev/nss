@@ -7,7 +7,7 @@ DEPTH      = ../..
 MODULE = nss
 
 CPPSRCS = \
-	util_gtest.cc \
+	../common/gtests.cc \
 	util_utf8_unittest.cc \
 	$(NULL)
 
