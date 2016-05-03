@@ -62,8 +62,7 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
              * and is safe because we only enable the corresponding PSK
              * cipher suite.
              */
-            inf.cipherSuite = ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 ?
-                    ss->ssl3.hs.origCipherSuite : ss->ssl3.hs.cipher_suite;
+            inf.cipherSuite = ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 ? ss->ssl3.hs.origCipherSuite : ss->ssl3.hs.cipher_suite;
             inf.compressionMethod = ss->ssl3.cwSpec->compression_method;
             ssl_ReleaseSpecReadLock(ss);
             inf.compressionMethodName =
@@ -127,8 +126,7 @@ SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
      * and is safe because we only enable the corresponding PSK
      * cipher suite.
      */
-    inf.cipherSuite = ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 ?
-            ss->ssl3.hs.origCipherSuite : ss->ssl3.hs.cipher_suite;
+    inf.cipherSuite = ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 ? ss->ssl3.hs.origCipherSuite : ss->ssl3.hs.cipher_suite;
 
     memcpy(info, &inf, inf.length);
     return SECSuccess;
@@ -144,7 +142,7 @@ SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
 /* ECDH suites incorrectly report S_RSA or S_ECDSA */
 #define S_RSA "RSA", ssl_auth_rsa_decrypt
 #define S_ECDSA "ECDSA", ssl_auth_ecdsa
-#define S_PSK   "PSK", ssl_auth_psk
+#define S_PSK "PSK", ssl_auth_psk
 
 /* real authentication algorithm */
 #define A_DSA ssl_auth_dsa
@@ -201,7 +199,7 @@ SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
 #define F_FIPS_NSTD 1, 0, 1, 0
 #define F_NFIPS_STD 0, 0, 0, 0
 #define F_NFIPS_NSTD 0, 0, 1, 0 /* i.e., trash */
-#define F_EXPORT 0, 1, 0, 0 /* i.e., trash */
+#define F_EXPORT 0, 1, 0, 0     /* i.e., trash */
 
 static const SSLCipherSuiteInfo suiteInfo[] = {
     /* <------ Cipher suite --------------------> <auth> <KEA>  <bulk cipher> <MAC> <FIPS> */

@@ -357,8 +357,7 @@ dtls_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
                  * in a waiting state. */
                 rv = dtls_RetransmitDetected(ss);
                 break;
-            }
-            else if (message_seq > ss->ssl3.hs.recvMessageSeq) {
+            } else if (message_seq > ss->ssl3.hs.recvMessageSeq) {
                 /* Case 2
                  *
                  * Ignore this message. This means we don't handle out of
