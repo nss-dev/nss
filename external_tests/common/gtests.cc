@@ -8,7 +8,6 @@
 #include "gtest/gtest.h"
 
 int main(int argc, char **argv) {
-  // Start the tests
   ::testing::InitGoogleTest(&argc, argv);
 
   NSS_NoDB_Init(nullptr);
