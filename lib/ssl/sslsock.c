@@ -3399,6 +3399,7 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
         ssl3_InitSocketPolicy(ss);
         PR_INIT_CLIST(&ss->ssl3.hs.lastMessageFlight);
         PR_INIT_CLIST(&ss->ssl3.hs.remoteKeyShares);
+        PR_INIT_CLIST(&ss->ssl3.hs.cipherSpecs);
 
         if (makeLocks) {
             status = ssl_MakeLocks(ss);

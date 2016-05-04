@@ -345,7 +345,6 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
     PK11SymKey *SS = NULL;
     SECItem wrappedMS = { siBuffer, NULL, 0 };
     SECStatus rv;
-    PK11SlotInfo *slot = NULL;
     SSL_TRC(3, ("%d: TLS13[%d]: recovering static secret (%s)",
                 SSL_GETPID(), ss->fd,
                 ss->sec.isServer ? "server" : "client"));
@@ -365,8 +364,8 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
                                       sid->u.ssl3.masterWrapMech,
                                       ss->pkcs11PinArg);
     } else {
-        slot = SECMOD_LookupSlot(sid->u.ssl3.masterModuleID,
-                                 sid->u.ssl3.masterSlotID);
+        PK11SlotInfo *slot = SECMOD_LookupSlot(sid->u.ssl3.masterModuleID,
+                                               sid->u.ssl3.masterSlotID);
         if (!slot)
             return SECFailure;
 
@@ -375,6 +374,7 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
                                   sid->u.ssl3.masterWrapMech,
                                   sid->u.ssl3.masterWrapSeries,
                                   ss->pkcs11PinArg);
+        PK11_FreeSlot(slot);
     }
     if (!wrapKey) {
         return SECFailure;
