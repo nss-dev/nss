@@ -316,7 +316,7 @@ typedef struct {
 #ifndef NSS_DISABLE_ECC
 #define ssl_V3_SUITES_IMPLEMENTED 68
 #else
-#define ssl_V3_SUITES_IMPLEMENTED 41
+#define ssl_V3_SUITES_IMPLEMENTED 39
 #endif /* NSS_DISABLE_ECC */
 
 #define MAX_DTLS_SRTP_CIPHER_SUITES 4
