@@ -1002,7 +1002,9 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
   DataBuffer psk1(c1->extension());
   ASSERT_GE(psk1.len(), 0UL);
-  ASSERT_TRUE(!!client_->peer_cert());
+
+  ScopedCERTCertificate cert1(SSL_PeerCertificate(client_->ssl_fd()));
+  ASSERT_TRUE(!!cert1.get());
 
   Reset();
   ClearStats();
@@ -1019,7 +1021,9 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
   DataBuffer psk2(c2->extension());
   ASSERT_GE(psk2.len(), 0UL);
-  ASSERT_TRUE(!!client_->peer_cert());
+
+  ScopedCERTCertificate cert2(SSL_PeerCertificate(client_->ssl_fd()));
+  ASSERT_TRUE(!!cert2.get());
 
   // Check that the cipher suite is reported the same on both sides, though in
   // TLS 1.3 resumption actually negotiates a different cipher suite.

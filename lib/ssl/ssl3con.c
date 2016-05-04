@@ -13710,6 +13710,9 @@ ssl3_DestroySSL3Info(sslSocket *ss)
     /* Destroy TLS 1.3 handshake shares */
     tls13_DestroyKeyShares(&ss->ssl3.hs.remoteKeyShares);
 
+    /* Destroy TLS 1.3 cipher specs */
+    tls13_DestroyCipherSpecs(&ss->ssl3.hs.cipherSpecs);
+
     /* Destroy TLS 1.3 keys */
     if (ss->ssl3.hs.xSS)
         PK11_FreeSymKey(ss->ssl3.hs.xSS);
