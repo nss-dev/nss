@@ -19,6 +19,10 @@
 #undef MP_ASSEMBLY_SQUARE
 #endif
 
+#if defined(_MSC_VER) && _MSC_VER < 1900
+#define inline __inline
+#endif
+
 #if MP_LOGTAB
 /*
   A table of the logs of 2 for various bases (the 0 and 1 entries of
@@ -2776,9 +2780,8 @@ mp_err   s_mp_pad(mp_int *mp, mp_size min)
 
 /* {{{ s_mp_setz(dp, count) */
 
-#if MP_MACRO == 0
 /* Set 'count' digits pointed to by dp to be zeroes                       */
-void s_mp_setz(mp_digit *dp, mp_size count)
+inline void s_mp_setz(mp_digit *dp, mp_size count)
 {
 #if MP_MEMSET == 0
   int  ix;
@@ -2790,15 +2793,13 @@ void s_mp_setz(mp_digit *dp, mp_size count)
 #endif
 
 } /* end s_mp_setz() */
-#endif
 
 /* }}} */
 
 /* {{{ s_mp_copy(sp, dp, count) */
 
-#if MP_MACRO == 0
 /* Copy 'count' digits from sp to dp                                      */
-void s_mp_copy(const mp_digit *sp, mp_digit *dp, mp_size count)
+inline void s_mp_copy(const mp_digit *sp, mp_digit *dp, mp_size count)
 {
 #if MP_MEMCPY == 0
   int  ix;
@@ -2811,51 +2812,44 @@ void s_mp_copy(const mp_digit *sp, mp_digit *dp, mp_size count)
   ++mp_copies;
 
 } /* end s_mp_copy() */
-#endif
 
 /* }}} */
 
 /* {{{ s_mp_alloc(nb, ni) */
 
-#if MP_MACRO == 0
 /* Allocate ni records of nb bytes each, and return a pointer to that     */
-void    *s_mp_alloc(size_t nb, size_t ni)
+inline void *s_mp_alloc(size_t nb, size_t ni)
 {
   ++mp_allocs;
   return calloc(nb, ni);
 
 } /* end s_mp_alloc() */
-#endif
 
 /* }}} */
 
 /* {{{ s_mp_free(ptr) */
 
-#if MP_MACRO == 0
 /* Free the memory pointed to by ptr                                      */
-void     s_mp_free(void *ptr)
+inline void s_mp_free(void *ptr)
 {
   if(ptr) {
     ++mp_frees;
     free(ptr);
   }
 } /* end s_mp_free() */
-#endif
 
 /* }}} */
 
 /* {{{ s_mp_clamp(mp) */
 
-#if MP_MACRO == 0
 /* Remove leading zeroes from the given value                             */
-void     s_mp_clamp(mp_int *mp)
+inline void s_mp_clamp(mp_int *mp)
 {
   mp_size used = MP_USED(mp);
   while (used > 1 && DIGIT(mp, used - 1) == 0)
     --used;
   MP_USED(mp) = used;
 } /* end s_mp_clamp() */
-#endif
 
 /* }}} */
 
