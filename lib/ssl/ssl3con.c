@@ -1003,7 +1003,7 @@ tls13_PskSuiteEnabled(sslSocket *ss)
         ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
 
         cipher_def = ssl_LookupCipherSuiteDef(suite->cipher_suite);
-        if (authType == kea_defs[cipher_def->key_exchange_alg].authKeyType &&
+        if (ssl_auth_psk == kea_defs[cipher_def->key_exchange_alg].authKeyType &&
             config_match(suite, ss->ssl3.policy, PR_TRUE, &ss->vrange, ss)) {
             return PR_TRUE;
         }
