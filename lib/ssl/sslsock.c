@@ -63,14 +63,8 @@ static sslOptions ssl_defaults = {
     2,                     /* requireCertificate */
     PR_FALSE,              /* handshakeAsClient  */
     PR_FALSE,              /* handshakeAsServer  */
-    PR_FALSE,
-    /* enableSSL2         */ /* now defaults to off in NSS 3.13 */
-    PR_FALSE,                /* unusedBit9         */
-    PR_FALSE,                /* unusedBit10        */
     PR_FALSE,                /* noCache            */
     PR_FALSE,                /* fdx                */
-    PR_FALSE,
-    /* v2CompatibleHello  */ /* now defaults to off in NSS 3.13 */
     PR_TRUE,                 /* detectRollBack     */
     PR_FALSE,                /* noStepDown         */
     PR_FALSE,                /* bypassPKCS11       */
