@@ -51,6 +51,7 @@ typedef struct sslServerCertStr {
 } sslServerCert;
 
 extern sslServerCert *ssl_NewServerCert(const sslServerCertType *slot);
+extern sslServerCert *ssl_CopyServerCert(const sslServerCert *oc);
 extern sslServerCert *ssl_FindServerCert(const sslSocket *ss,
                                          const sslServerCertType *slot);
 extern sslServerCert *ssl_FindServerCertByAuthType(const sslSocket *ss,

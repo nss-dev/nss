@@ -56,6 +56,54 @@ ssl_NewServerCert(const sslServerCertType *certType)
     return sc;
 }
 
+sslServerCert *
+ssl_CopyServerCert(const sslServerCert *oc)
+{
+    sslServerCert *sc;
+
+    sc = ssl_NewServerCert(&oc->certType);
+    if (!sc) {
+        return NULL;
+    }
+
+    if (oc->serverCert && oc->serverCertChain) {
+        sc->serverCert = CERT_DupCertificate(oc->serverCert);
+        if (!sc->serverCert)
+            goto loser;
+        sc->serverCertChain = CERT_DupCertList(oc->serverCertChain);
+        if (!sc->serverCertChain)
+            goto loser;
+    } else {
+        sc->serverCert = NULL;
+        sc->serverCertChain = NULL;
+    }
+
+    if (oc->serverKeyPair) {
+        sc->serverKeyPair = ssl3_GetKeyPairRef(oc->serverKeyPair);
+        if (!sc->serverKeyPair)
+            goto loser;
+    } else {
+        sc->serverKeyPair = NULL;
+    }
+    sc->serverKeyBits = oc->serverKeyBits;
+
+    if (oc->certStatusArray) {
+        sc->certStatusArray = SECITEM_DupArray(NULL, oc->certStatusArray);
+        if (!sc->certStatusArray)
+            goto loser;
+    } else {
+        sc->certStatusArray = NULL;
+    }
+
+    if (SECITEM_CopyItem(NULL, &sc->signedCertTimestamps,
+                         &oc->signedCertTimestamps) != SECSuccess)
+        goto loser;
+    return sc;
+loser:
+    ssl_FreeServerCert(sc);
+    return NULL;
+}
+
 void
 ssl_FreeServerCert(sslServerCert *sc)
 {
