@@ -106,7 +106,7 @@ class TlsExtensionInjector : public TlsHandshakeFilter {
       offset = parser.consumed();
     } else if (header.handshake_type() == kTlsHandshakeServerHello) {
       TlsParser parser(input);
-      if (!TlsExtensionFilter::FindServerHelloExtensions(&parser, header.version())) {
+      if (!TlsExtensionFilter::FindServerHelloExtensions(&parser)) {
         return KEEP;
       }
       offset = parser.consumed();
