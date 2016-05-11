@@ -673,8 +673,8 @@ TEST_F(TlsExtensionTest13Stream, DropServerKeyShare) {
   ConnectExpectFail();
   EXPECT_EQ(SSL_ERROR_MISSING_KEY_SHARE, client_->error_code());
   // We are trying to decrypt but we can't. Kind of a screwy error
-  // from the TLS 1.3 stack (should probably be too short).
-  EXPECT_EQ(SSL_ERROR_RX_RECORD_TOO_LONG, server_->error_code());
+  // from the TLS 1.3 stack.
+  EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, server_->error_code());
 }
 #endif
 

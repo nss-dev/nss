@@ -2709,7 +2709,7 @@ tls13_UnprotectRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *plaintext
         SSL_TRC(3,
                 ("%d: TLS13[%d]: record too short to contain valid AEAD data",
                  SSL_GETPID(), ss->fd));
-        PORT_SetError(SSL_ERROR_RX_RECORD_TOO_LONG);
+        PORT_SetError(SSL_ERROR_BAD_MAC_READ);
         return SECFailure;
     }
 
