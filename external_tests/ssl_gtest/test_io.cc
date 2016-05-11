@@ -27,7 +27,7 @@ static PRDescIdentity test_fd_identity = PR_INVALID_IO_LAYER;
   PR_ASSERT(PR_FALSE);                           \
   PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0)
 
-#define LOG(a) std::cerr << name_ << ": " << a << std::endl;
+#define LOG(a) std::cerr << name_ << ": " << a << std::endl
 
 class Packet : public DataBuffer {
  public:
