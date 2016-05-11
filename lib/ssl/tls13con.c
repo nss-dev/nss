@@ -1084,7 +1084,6 @@ tls13_HandleServerKeyShare(sslSocket *ss)
 {
     SECStatus rv;
     ECName expectedGroup;
-    PRCList *cur_p;
     TLS13KeyShareEntry *entry;
 
     SSL_TRC(3, ("%d: TLS13[%d]: handle server_key_share handshake",
@@ -1105,14 +1104,13 @@ tls13_HandleServerKeyShare(sslSocket *ss)
     }
 
     /* This list should have one entry. */
-    cur_p = PR_NEXT_LINK(&ss->ssl3.hs.remoteKeyShares);
-    if (!cur_p) {
+    if (PR_CLIST_IS_EMPTY(&ss->ssl3.hs.remoteKeyShares)) {
         FATAL_ERROR(ss, SSL_ERROR_MISSING_KEY_SHARE, missing_extension);
         return SECFailure;
     }
-    PORT_Assert(PR_NEXT_LINK(cur_p) == &ss->ssl3.hs.remoteKeyShares);
+    entry = (TLS13KeyShareEntry *)PR_NEXT_LINK(&ss->ssl3.hs.remoteKeyShares);
+    PORT_Assert(PR_NEXT_LINK(&entry->link) == &ss->ssl3.hs.remoteKeyShares);
 
-    entry = (TLS13KeyShareEntry *)cur_p;
     if (entry->group != expectedGroup) {
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_KEY_SHARE, illegal_parameter);
         return SECFailure;

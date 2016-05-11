@@ -212,6 +212,14 @@ class TlsExtensionTest13
                            SSL_LIBRARY_VERSION_TLS_1_3) {}
 };
 
+class TlsExtensionTest13Stream
+    : public TlsExtensionTestBase {
+ public:
+  TlsExtensionTest13Stream()
+    : TlsExtensionTestBase(STREAM,
+                           SSL_LIBRARY_VERSION_TLS_1_3) {}
+};
+
 class TlsExtensionTestGeneric
   : public TlsExtensionTestBase,
     public ::testing::WithParamInterface<std::tuple<std::string, uint16_t>> {
@@ -654,6 +662,21 @@ TEST_P(TlsExtensionTest13, ModifyDraftVersionAndFail) {
   EXPECT_EQ(SSL_ERROR_PROTOCOL_VERSION_ALERT, client_->error_code());
   EXPECT_EQ(SSL_ERROR_UNSUPPORTED_VERSION, server_->error_code());
 }
+
+#ifdef NSS_ENABLE_TLS_1_3
+// This test only works with TLS because the MAC error causes a
+// timeout on the server.
+TEST_F(TlsExtensionTest13Stream, DropServerKeyShare) {
+  EnsureTlsSetup();
+  server_->SetPacketFilter(
+      new TlsExtensionDropper(ssl_tls13_key_share_xtn));
+  ConnectExpectFail();
+  EXPECT_EQ(SSL_ERROR_MISSING_KEY_SHARE, client_->error_code());
+  // We are trying to decrypt but we can't. Kind of a screwy error
+  // from the TLS 1.3 stack (should probably be too short).
+  EXPECT_EQ(SSL_ERROR_RX_RECORD_TOO_LONG, server_->error_code());
+}
+#endif
 
 INSTANTIATE_TEST_CASE_P(ExtensionStream, TlsExtensionTestGeneric,
                         ::testing::Combine(
