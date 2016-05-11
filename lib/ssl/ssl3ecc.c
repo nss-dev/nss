@@ -1176,8 +1176,6 @@ ssl3_IsECCEnabled(sslSocket *ss)
     return PR_FALSE;
 }
 
-#define BE(n) 0, n
-
 /* Prefabricated TLS client hello extension, Elliptic Curves List,
  * offers only 3 curves, the Suite B curves, 23-25
  */
@@ -1196,13 +1194,6 @@ static const PRUint8 tlsECList[] = {
     25
 };
 /* clang-format on */
-
-static const PRUint8 ecPtFmt[6] = {
-    BE(11), /* Extension type */
-    BE(2),  /* octets that follow */
-    1,      /* octets that follow */
-    0       /* uncompressed type only */
-};
 
 /* This function already presumes we can do ECC, ssl3_IsECCEnabled must be
  * called before this function. It looks to see if we have a token which
@@ -1333,7 +1324,19 @@ ssl3_SendSupportedPointFormatsXtn(
     PRBool append,
     PRUint32 maxBytes)
 {
-    if (!ss || !ssl3_IsECCEnabled(ss))
+    static const PRUint8 ecPtFmt[6] = {
+        0, 11, /* Extension type */
+        0, 2,  /* octets that follow */
+        1,     /* octets that follow */
+        0      /* uncompressed type only */
+    };
+
+    /* No point in doing this unless we have a socket that supports ECC.  Also,
+     * no point if we aren't going to do TLS 1.3 only (client) or we have
+     * already picked TLS 1.3.  TLS 1.3 doesn't use point formats. */
+    if (!ss || !ssl3_IsECCEnabled(ss) ||
+        (ss->sec.isServer && ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) ||
+        (!ss->sec.isServer && ss->vrange.min >= SSL_LIBRARY_VERSION_TLS_1_3))
         return 0;
     if (append && maxBytes >= (sizeof ecPtFmt)) {
         SECStatus rv = ssl3_AppendHandshake(ss, ecPtFmt, (sizeof ecPtFmt));
@@ -1345,7 +1348,7 @@ ssl3_SendSupportedPointFormatsXtn(
                 ssl_ec_point_formats_xtn;
         }
     }
-    return (sizeof ecPtFmt);
+    return sizeof(ecPtFmt);
 }
 
 /* Just make sure that the remote client supports uncompressed points,
