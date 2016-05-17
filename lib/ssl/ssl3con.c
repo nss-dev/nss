@@ -6673,7 +6673,6 @@ ssl3_SendCertificateVerify(sslSocket *ss, SECKEYPrivateKey *privKey)
     ssl_GetSpecReadLock(ss);
     if (ss->ssl3.hs.hashType == handshake_hash_single &&
         ss->ssl3.hs.backupHash) {
-        PORT_Assert(!ss->ssl3.hs.backupHash);
         PORT_Assert(!isTLS13);
         /* TODO(ekr@rtfm.com): The backup hash here contains a SHA-1 hash
          * but in TLS 1.3, we always sign H(Context, Hash(handshake))
@@ -6690,6 +6689,7 @@ ssl3_SendCertificateVerify(sslSocket *ss, SECKEYPrivateKey *privKey)
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         } else {
             rv = ssl3_ComputeBackupHandshakeHashes(ss, &hashes);
+            PORT_Assert(!ss->ssl3.hs.backupHash);
         }
     } else {
         ssl3CipherSpec *spec;
