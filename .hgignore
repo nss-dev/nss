@@ -3,4 +3,3 @@ syntax: glob
 *OPT.OBJ/*
 *DBG.OBJ/*
 *DBG.OBJD/*
-*.o
