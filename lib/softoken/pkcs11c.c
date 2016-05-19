@@ -6084,7 +6084,7 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
     int             i;
     unsigned int    outLen;
     unsigned char   sha_out[SHA1_LENGTH];
-    unsigned char   key_block[NUM_MIXERS * SFTK_MAX_MAC_LENGTH];
+    unsigned char   key_block[NUM_MIXERS * MD5_LENGTH];
     unsigned char   key_block2[MD5_LENGTH];
     PRBool          isFIPS;		
     HASH_HashType   hashType;
