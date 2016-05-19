@@ -48,6 +48,7 @@ TEST_P(TlsAgentTest, EarlyCertificateVerify) {
                  SSL_ERROR_RX_UNEXPECTED_CERT_VERIFY);
 }
 
+#ifdef NSS_ENABLE_TLS_1_3
 TEST_P(TlsAgentTestClient, CannedServerHello) {
   DataBuffer buffer;
   EnsureInit();
@@ -172,11 +173,14 @@ TEST_F(TlsAgentDgramTestClient, EncryptedExtensionsInClearTwoPieces) {
   ProcessMessage(buffer2, TlsAgent::STATE_ERROR,
                  SSL_ERROR_RX_UNEXPECTED_HANDSHAKE);
 }
+#endif
 
 INSTANTIATE_TEST_CASE_P(AgentTests, TlsAgentTest,
                         ::testing::Combine(
                              TlsAgentTestBase::kTlsRolesAll,
                              TlsConnectTestBase::kTlsModesStream));
+#ifdef NSS_ENABLE_TLS_1_3
 INSTANTIATE_TEST_CASE_P(ClientTests, TlsAgentTestClient,
                         TlsConnectTestBase::kTlsModesAll);
+#endif
 } // namespace nss_test
