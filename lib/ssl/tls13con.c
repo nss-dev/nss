@@ -1571,19 +1571,17 @@ tls13_InitCipherSpec(sslSocket *ss, TrafficKeyType type,
             break;
     }
 
-    /* Generic behaviors -- common to all crypto methods */
+    /* We use the epoch for cipher suite identification, so increment
+     * it in both TLS and DTLS. */
+    if (cwSpec->epoch == PR_UINT16_MAX) {
+        goto loser;
+    }
+    spec->epoch = cwSpec->epoch + 1;
+
     if (!IS_DTLS(ss)) {
         spec->read_seq_num.high = spec->write_seq_num.high = 0;
     } else {
-        if (cwSpec->epoch == PR_UINT16_MAX) {
-            /* The problem here is that we have rehandshaked too many
-             * times (you are not allowed to wrap the epoch). The
-             * spec says you should be discarding the connection
-             * and start over, so not much we can do here. */
-            goto loser;
-        }
         /* The sequence number has the high 16 bits as the epoch. */
-        spec->epoch = cwSpec->epoch + 1;
         spec->read_seq_num.high = spec->write_seq_num.high =
             spec->epoch << 16;
 
