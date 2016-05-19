@@ -12283,7 +12283,8 @@ ssl3_FinishHandshake(sslSocket *ss)
  * Caller must hold Handshake and RecvBuf locks.
  */
 SECStatus
-ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
+                            PRBool endOfRecord)
 {
     SECStatus rv = SECSuccess;
     SSL3HandshakeType type = ss->ssl3.hs.msg_type;
@@ -12292,6 +12293,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     PRUint8 hdr[4];
     PRUint8 dtlsData[8];
     PRBool computeHashes = PR_FALSE;
+    PRUint16 epoch;
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
@@ -12403,6 +12405,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         }
     }
 
+    epoch = ss->ssl3.crSpec->epoch;
     switch (ss->ssl3.hs.msg_type) {
         case client_hello:
             if (!ss->sec.isServer) {
@@ -12428,6 +12431,14 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
                                                            hashesPtr);
             }
             break;
+    }
+    if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 &&
+        (epoch != ss->ssl3.crSpec->epoch) && !endOfRecord) {
+        /* If we changed read cipher states, there must not be any
+         * data in the input queue. */
+        (void)SSL3_SendAlert(ss, alert_fatal, unexpected_message);
+        PORT_SetError(SSL_ERROR_RX_UNEXPECTED_HANDSHAKE);
+        return SECFailure;
     }
 
     if (IS_DTLS(ss) && (rv != SECFailure)) {
@@ -12595,7 +12606,8 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
          */
         if (ss->ssl3.hs.msg_body.len == 0 && buf->len >= ss->ssl3.hs.msg_len) {
             /* handle it from input buffer */
-            rv = ssl3_HandleHandshakeMessage(ss, buf->buf, ss->ssl3.hs.msg_len);
+            rv = ssl3_HandleHandshakeMessage(ss, buf->buf, ss->ssl3.hs.msg_len,
+                                             buf->len == ss->ssl3.hs.msg_len);
             if (rv == SECFailure) {
                 /* This test wants to fall through on either
                  * SECSuccess or SECWouldBlock.
@@ -12635,7 +12647,8 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
             /* if we have a whole message, do it */
             if (ss->ssl3.hs.msg_body.len == ss->ssl3.hs.msg_len) {
                 rv = ssl3_HandleHandshakeMessage(
-                    ss, ss->ssl3.hs.msg_body.buf, ss->ssl3.hs.msg_len);
+                    ss, ss->ssl3.hs.msg_body.buf, ss->ssl3.hs.msg_len,
+                    buf->len == 0);
                 if (rv == SECFailure) {
                     /* This test wants to fall through on either
                      * SECSuccess or SECWouldBlock.

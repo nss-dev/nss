@@ -1696,7 +1696,8 @@ extern void ssl3_InitCipherSpec(ssl3CipherSpec *spec);
 
 extern SECStatus ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache);
 extern SECStatus ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b,
-                                             PRUint32 length);
+                                             PRUint32 length,
+                                             PRBool endOfRecord);
 
 extern void ssl3_DestroySSL3Info(sslSocket *ss);
 
