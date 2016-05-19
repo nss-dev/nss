@@ -3902,7 +3902,7 @@ ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
     return SECSuccess;
 }
 
-inline static CK_MECHANISM_TYPE
+static CK_MECHANISM_TYPE
 ssl3_GetTls12PrfHashMechanism(sslSocket *ss)
 {
     switch (ss->ssl3.hs.suite_def->prf_hash) {
@@ -3918,7 +3918,7 @@ ssl3_GetTls12PrfHashMechanism(sslSocket *ss)
     return CKM_SHA256;
 }
 
-inline static SSLHashType
+static SSLHashType
 ssl3_GetSuitePrfHash(sslSocket *ss) {
     /* ssl_hash_none is for pre-1.2 suites, which use SHA-256. */
     if (ss->ssl3.hs.suite_def->prf_hash == ssl_hash_none) {
