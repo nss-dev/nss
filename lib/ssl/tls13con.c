@@ -237,21 +237,52 @@ tls13_CheckHsState(sslSocket *ss, int err, const char *error_name,
 SSLHashType
 tls13_GetHash(sslSocket *ss)
 {
-    /* TODO(ekr@rtfm.com): This needs to actually be looked up. */
+    /* All TLS 1.3 cipher suites must have an explict PRF hash. */
+    PORT_Assert(ss->ssl3.hs.suite_def->prf_hash != ssl_hash_none);
+    return ss->ssl3.hs.suite_def->prf_hash;
+}
+
+unsigned int
+tls13_GetHashSize(sslSocket *ss)
+{
+    switch (tls13_GetHash(ss)) {
+        case ssl_hash_sha256:
+            return 32;
+        case ssl_hash_sha384:
+            return 48;
+        default:
+            PORT_Assert(0);
+            return ssl_hash_sha256;
+    }
     return ssl_hash_sha256;
 }
 
 CK_MECHANISM_TYPE
 tls13_GetHkdfMechanism(sslSocket *ss)
 {
-    /* TODO(ekr@rtfm.com): This needs to actually be looked up. */
+    switch (tls13_GetHash(ss)) {
+        case ssl_hash_sha256:
+            return CKM_NSS_HKDF_SHA256;
+        case ssl_hash_sha384:
+            return CKM_NSS_HKDF_SHA384;
+        default:
+            /*PORT_Assert(0);*/
+            return CKM_NSS_HKDF_SHA256;
+    }
     return CKM_NSS_HKDF_SHA256;
 }
 
 static CK_MECHANISM_TYPE
 tls13_GetHmacMechanism(sslSocket *ss)
 {
-    /* TODO(ekr@rtfm.com): This needs to actually be looked up. */
+    switch (tls13_GetHash(ss)) {
+        case ssl_hash_sha256:
+            return CKM_SHA256_HMAC;
+        case ssl_hash_sha384:
+            return CKM_SHA384_HMAC;
+        default:
+            PORT_Assert(0);
+    }
     return CKM_SHA256_HMAC;
 }
 
@@ -350,7 +381,9 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
     PK11SymKey *wrapKey; /* wrapping key */
     PK11SymKey *SS = NULL;
     SECItem wrappedMS = { siBuffer, NULL, 0 };
+    SSLHashType hashType;
     SECStatus rv;
+
     SSL_TRC(3, ("%d: TLS13[%d]: recovering static secret (%s)",
                 SSL_GETPID(), ss->fd,
                 ss->sec.isServer ? "server" : "client"));
@@ -390,11 +423,12 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
     wrappedMS.len = sid->u.ssl3.keys.wrapped_master_secret_len;
 
     /* unwrap the "master secret" which becomes SS. */
-    PORT_Assert(tls13_GetHash(ss) == ssl_hash_sha256);
+    hashType = tls13_GetHash(ss);
+    PORT_Assert(hashType == ssl_hash_sha256 || hashType == ssl_hash_sha384);
     SS = PK11_UnwrapSymKeyWithFlags(wrapKey, sid->u.ssl3.masterWrapMech,
                                     NULL, &wrappedMS,
                                     CKM_SSL3_MASTER_KEY_DERIVE,
-                                    CKA_DERIVE, 32,
+                                    CKA_DERIVE, hashType,
                                     CKF_SIGN | CKF_VERIFY);
     PK11_FreeSymKey(wrapKey);
     if (!SS) {
@@ -451,9 +485,12 @@ tls13_AllowPskCipher(const sslSocket *ss, const ssl3CipherSuiteDef *cipher_def)
         if (cached_cipher_def->bulk_cipher_alg !=
             cipher_def->bulk_cipher_alg)
             return PR_FALSE;
+
+        /* PSK cipher must have the same PSK hash as was negotiated before. */
+        if (cipher_def->prf_hash != cached_cipher_def->prf_hash) {
+            return PR_FALSE;
+        }
     }
-    /* TODO(ekr@rtfm.com): Check the KDF code whenever we have
-     * adjustable KDFs. */
     SSL_TRC(3, ("%d: TLS 1.3[%d]: Enabling cipher suite suite 0x%04x",
                 SSL_GETPID(), ss->fd,
                 cipher_def->cipher_suite));
@@ -1336,13 +1373,8 @@ tls13_AddContextToHashes(sslSocket *ss, SSL3Hashes *hashes /* IN/OUT */,
                                                               : server_cert_verify_string;
     unsigned int hashlength;
 
-    /* Double check that we are doing SHA-256 for the handshake hash.*/
-    PORT_Assert(hashes->hashAlg == ssl_hash_sha256);
-    if (hashes->hashAlg != ssl_hash_sha256) {
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        goto loser;
-    }
-    PORT_Assert(hashes->len == 32);
+    /* Double check that we are doing the same hash.*/
+    PORT_Assert(hashes->len == tls13_GetHashSize(ss));
 
     ctx = PK11_CreateDigestContext(ssl3_TLSHashAlgorithmToOID(algorithm));
     if (!ctx) {
@@ -1597,14 +1629,11 @@ tls13_ComputeHandshakeHashes(sslSocket *ss,
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     /* TODO(ekr@rtfm.com): This first clause is futureproofing for
      * 0-RTT. */
-    if (ss->ssl3.hs.hashType == handshake_hash_unknown) {
-        PORT_Assert(0);
-    } else {
-        ctx = PK11_CloneContext(ss->ssl3.hs.sha);
-        if (!ctx) {
-            ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
-            return SECFailure;
-        }
+    PORT_Assert(ss->ssl3.hs.hashType != handshake_hash_unknown);
+    ctx = PK11_CloneContext(ss->ssl3.hs.sha);
+    if (!ctx) {
+        ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+        return SECFailure;
     }
 
     rv = PK11_DigestFinal(ctx, hashes->u.raw, &hashes->len,
@@ -1619,8 +1648,8 @@ tls13_ComputeHandshakeHashes(sslSocket *ss,
 
     /* If we ever support ciphersuites where the PRF hash isn't SHA-256
      * then this will need to be updated. */
-    PORT_Assert(hashes->len == 32);
-    hashes->hashAlg = ssl_hash_sha256;
+    PORT_Assert(hashes->len == tls13_GetHashSize(ss));
+    hashes->hashAlg = tls13_GetHash(ss);
 
     PK11_DestroyContext(ctx, PR_TRUE);
     return SECSuccess;
