@@ -2069,6 +2069,9 @@ sftk_InitCBCMac(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 
     switch (pMechanism->mechanism) {
     case CKM_RC2_MAC_GENERAL:
+	if (!pMechanism->pParameter) {
+	    return CKR_MECHANISM_PARAM_INVALID;
+	}
 	mac_bytes = 
 	    ((CK_RC2_MAC_GENERAL_PARAMS *)pMechanism->pParameter)->ulMacLength;
 	/* fall through */
