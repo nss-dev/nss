@@ -68,6 +68,7 @@ ssl3_KeyAndMacDeriveBypass(
     const unsigned char *cr,
     const unsigned char *sr,
     PRBool isTLS,
+    HASH_HashType tls12HashType,
     PRBool isExport)
 {
     const ssl3BulkCipherDef *cipher_def = pwSpec->cipher_def;
@@ -158,7 +159,7 @@ ssl3_KeyAndMacDeriveBypass(
         keyblk.len = block_needed;
 
         if (isTLS12) {
-            status = TLS_P_hash(HASH_AlgSHA256, &pwSpec->msItem,
+            status = TLS_P_hash(tls12HashType, &pwSpec->msItem,
                                 "key expansion", &srcr, &keyblk, isFIPS);
         } else {
             status = TLS_PRF(&pwSpec->msItem, "key expansion", &srcr, &keyblk,
@@ -435,6 +436,7 @@ ssl3_MasterSecretDeriveBypass(
     const unsigned char *sr,
     const SECItem *pms,
     PRBool isTLS,
+    HASH_HashType tls12HashType,
     PRBool isRSA)
 {
     unsigned char *key_block = pwSpec->key_block;
@@ -477,7 +479,7 @@ ssl3_MasterSecretDeriveBypass(
         master.len = SSL3_MASTER_SECRET_LENGTH;
 
         if (isTLS12) {
-            rv = TLS_P_hash(HASH_AlgSHA256, pms, "master secret", &crsr,
+            rv = TLS_P_hash(tls12HashType, pms, "master secret", &crsr,
                             &master, isFIPS);
         } else {
             rv = TLS_PRF(pms, "master secret", &crsr, &master, isFIPS);
