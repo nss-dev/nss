@@ -83,6 +83,9 @@ static SECOidTag ecCurve_oid_map[] = {
     SEC_OID_SECG_EC_SECT193R1,
     SEC_OID_SECG_EC_SECT193R2,
     SEC_OID_SECG_EC_SECT239K1,
+    SEC_OID_UNKNOWN, /* ECCurve_WTLS_1 */
+    SEC_OID_UNKNOWN, /* ECCurve_WTLS_8 */
+    SEC_OID_UNKNOWN, /* ECCurve_WTLS_9 */
     SEC_OID_UNKNOWN /* ECCurve_pastLastCurve */
 };
 
@@ -206,6 +209,12 @@ M_TimeOperation(void (*threadFunc)(void *),
             } else {
                 rv = (*opfunc)(param1, param2, param3);
             }
+            if (rv != SECSuccess) {
+                PORT_Free(threadIDs);
+                PORT_Free(threadData);
+                SECU_PrintError("Error:", op);
+                return rv;
+            }
         }
         total = iters;
     } else {
@@ -228,9 +237,6 @@ M_TimeOperation(void (*threadFunc)(void *),
             /* check the status */
             total += threadData[i].count;
         }
-
-        PORT_Free(threadIDs);
-        PORT_Free(threadData);
     }
 
     totalTime = PR_Now() - startTime;
@@ -243,6 +249,9 @@ M_TimeOperation(void (*threadFunc)(void *),
             *rate = ((double)total) / dUserTime;
         }
     }
+    PORT_Free(threadIDs);
+    PORT_Free(threadData);
+
     return SECSuccess;
 }
 
@@ -392,12 +401,13 @@ PKCS11_Sign(CK_SESSION_HANDLE session, CK_OBJECT_HANDLE *hKey,
         printf("Sign Failed CK_RV=0x%x\n", (int)crv);
         return SECFailure;
     }
-    crv = NSC_Sign(session, digest->data, digest->len, sig->data,
-                   (CK_ULONG_PTR)&sig->len);
+    CK_ULONG sigLen = sig->len;
+    crv = NSC_Sign(session, digest->data, digest->len, sig->data, &sigLen);
     if (crv != CKR_OK) {
         printf("Sign Failed CK_RV=0x%x\n", (int)crv);
         return SECFailure;
     }
+    sig->len = (CK_ULONG)sigLen;
     return SECSuccess;
 }
 
@@ -609,13 +619,13 @@ ectest_curve_freebl(ECCurveName curve, int iterations, int numThreads)
     ecPub.ecParams = ecParams;
     ecPub.publicValue = ecPriv->publicValue;
 
-    M_TimeOperation(genericThread, (op_func)ECDH_DeriveWrap, "ECDH_Derive",
-                    ecPriv, &ecPub, NULL, iterations, numThreads, 0, 0, 0, &deriveRate);
+    rv = M_TimeOperation(genericThread, (op_func)ECDH_DeriveWrap, "ECDH_Derive",
+                         ecPriv, &ecPub, NULL, iterations, numThreads, 0, 0, 0, &deriveRate);
     if (rv != SECSuccess) {
         goto cleanup;
     }
-    M_TimeOperation(genericThread, (op_func)ECDSA_SignDigest, "ECDSA_Sign",
-                    ecPriv, &sig, &digest, iterations, numThreads, 0, 0, 1, &signRate);
+    rv = M_TimeOperation(genericThread, (op_func)ECDSA_SignDigest, "ECDSA_Sign",
+                         ecPriv, &sig, &digest, iterations, numThreads, 0, 0, 1, &signRate);
     if (rv != SECSuccess)
         goto cleanup;
     printf("        ECDHE max rate = %.2f\n", (deriveRate + signRate) / 4.0);
@@ -623,8 +633,8 @@ ectest_curve_freebl(ECCurveName curve, int iterations, int numThreads)
     if (rv != SECSuccess) {
         goto cleanup;
     }
-    M_TimeOperation(genericThread, (op_func)ECDSA_VerifyDigest, "ECDSA_Verify",
-                    &ecPub, &sig, &digest, iterations, numThreads, 0, 0, 0, NULL);
+    rv = M_TimeOperation(genericThread, (op_func)ECDSA_VerifyDigest, "ECDSA_Verify",
+                         &ecPub, &sig, &digest, iterations, numThreads, 0, 0, 0, NULL);
     if (rv != SECSuccess) {
         goto cleanup;
     }
