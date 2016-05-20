@@ -2490,9 +2490,8 @@ ssl3_InitPendingCipherSpec(sslSocket *ss, PK11SymKey *pms)
         const ssl3KEADef *kea_def = ss->ssl3.hs.kea_def;
         PRBool isTLS = (PRBool)(kea_def->tls_keygen ||
                                 (pwSpec->version > SSL_LIBRARY_VERSION_3_0));
-        pwSpec->bypassCiphers = PR_TRUE;
         HASH_HashType hashType = ssl3_GetTls12HashType(ss);
-
+        pwSpec->bypassCiphers = PR_TRUE;
         rv = ssl3_KeyAndMacDeriveBypass(pwSpec,
                                         (const unsigned char *)&ss->ssl3.hs.client_random,
                                         (const unsigned char *)&ss->ssl3.hs.server_random,
