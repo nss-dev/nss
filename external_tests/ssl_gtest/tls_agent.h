@@ -378,7 +378,6 @@ class TlsAgentTestBase : public ::testing::Test {
   PRFileDesc* fd_;
   TlsAgent::Role role_;
   Mode mode_;
-  SSLKEAType kea_;
 };
 
 class TlsAgentTest :

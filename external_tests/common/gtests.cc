@@ -14,7 +14,9 @@ int main(int argc, char **argv) {
   NSS_SetDomesticPolicy();
   int rv = RUN_ALL_TESTS();
 
-  NSS_Shutdown();
+  if (NSS_Shutdown() != SECSuccess) {
+    return 1;
+  }
 
   return rv;
 }

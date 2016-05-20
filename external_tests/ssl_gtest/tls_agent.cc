@@ -51,6 +51,7 @@ TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode)
     expected_version_(0),
     expected_cipher_suite_(0),
     expect_resumption_(false),
+    expect_client_auth_(false),
     can_falsestart_hook_called_(false),
     sni_hook_called_(false),
     auth_certificate_hook_called_(false),
