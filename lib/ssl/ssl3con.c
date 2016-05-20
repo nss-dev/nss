@@ -29,9 +29,7 @@
 
 #include "pk11func.h"
 #include "secmod.h"
-#ifndef NO_PKCS11_BYPASS
 #include "blapi.h"
-#endif
 
 #include <stdio.h>
 #ifdef NSS_SSL_ENABLE_ZLIB
@@ -2407,6 +2405,46 @@ ssl3_CanBypassCipher(SSLCipherAlgorithm calg)
 }
 #endif
 
+HASH_HashType
+ssl3_GetTls12HashType(sslSocket *ss)
+{
+    if (ss->ssl3.pwSpec->version < SSL_LIBRARY_VERSION_TLS_1_2) {
+        return HASH_AlgNULL;
+    }
+
+    switch (ss->ssl3.hs.suite_def->prf_hash) {
+        case ssl_hash_sha384:
+            return HASH_AlgSHA384;
+        case ssl_hash_sha256:
+        case ssl_hash_none:
+            /* ssl_hash_none is for pre-1.2 suites, which use SHA-256. */
+            return HASH_AlgSHA256;
+        default:
+            PORT_Assert(0);
+    }
+    return HASH_AlgSHA256;
+}
+
+#ifndef NO_PKCS11_BYPASS
+typedef void (*hash_clone_func)(void *, void *);
+
+static hash_clone_func
+ssl3_GetTls12BypassHashCloneFunc(sslSocket *ss)
+{
+    switch (ss->ssl3.hs.suite_def->prf_hash) {
+        case ssl_hash_sha384:
+            return (hash_clone_func)SHA384_Clone;
+        case ssl_hash_sha256:
+        case ssl_hash_none:
+            /* ssl_hash_none is for pre-1.2 suites, which use SHA-256. */
+            return (hash_clone_func)SHA256_Clone;
+        default:
+            PORT_Assert(0);
+    }
+    return (hash_clone_func)SHA256_Clone;
+}
+#endif
+
 /* Complete the initialization of all keys, ciphers, MACs and their contexts
  * for the pending Cipher Spec.
  * Called from: ssl3_SendClientKeyExchange  (for Full handshake)
@@ -2453,10 +2491,13 @@ ssl3_InitPendingCipherSpec(sslSocket *ss, PK11SymKey *pms)
         PRBool isTLS = (PRBool)(kea_def->tls_keygen ||
                                 (pwSpec->version > SSL_LIBRARY_VERSION_3_0));
         pwSpec->bypassCiphers = PR_TRUE;
+        HASH_HashType hashType = ssl3_GetTls12HashType(ss);
+
         rv = ssl3_KeyAndMacDeriveBypass(pwSpec,
                                         (const unsigned char *)&ss->ssl3.hs.client_random,
                                         (const unsigned char *)&ss->ssl3.hs.server_random,
                                         isTLS,
+                                        hashType,
                                         (PRBool)(kea_def->is_limited));
         if (rv == SECSuccess) {
             rv = ssl3_InitPendingContextsBypass(ss);
@@ -3902,7 +3943,7 @@ ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
     return SECSuccess;
 }
 
-inline static CK_MECHANISM_TYPE
+static CK_MECHANISM_TYPE
 ssl3_GetTls12PrfHashMechanism(sslSocket *ss)
 {
     switch (ss->ssl3.hs.suite_def->prf_hash) {
@@ -3918,8 +3959,9 @@ ssl3_GetTls12PrfHashMechanism(sslSocket *ss)
     return CKM_SHA256;
 }
 
-inline static SSLHashType
-ssl3_GetSuitePrfHash(sslSocket *ss) {
+static SSLHashType
+ssl3_GetSuitePrfHash(sslSocket *ss)
+{
     /* ssl_hash_none is for pre-1.2 suites, which use SHA-256. */
     if (ss->ssl3.hs.suite_def->prf_hash == ssl_hash_none) {
         return ssl_hash_sha256;
@@ -4386,7 +4428,7 @@ ssl3_InitHandshakeHashes(sslSocket *ss)
                 ssl_MapLowLevelError(SSL_ERROR_DIGEST_FAILURE);
                 return SECFailure;
             }
-            ss->ssl3.hs.sha_clone = (void (*)(void *, void *))SHA256_Clone;
+            ss->ssl3.hs.sha_clone = ssl3_GetTls12BypassHashCloneFunc(ss);
             ss->ssl3.hs.hashType = handshake_hash_single;
             ss->ssl3.hs.sha_obj->begin(ss->ssl3.hs.sha_cx);
         } else {
@@ -10539,7 +10581,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
         }
         /* have PMS, build MS without PKCS11 */
         rv = ssl3_MasterSecretDeriveBypass(pwSpec, cr, sr, &pmsItem, isTLS,
-                                           PR_TRUE);
+                                           ssl3_GetTls12HashType(ss), PR_TRUE);
         if (rv != SECSuccess) {
             pwSpec->msItem.data = pwSpec->raw_master_secret;
             pwSpec->msItem.len = SSL3_MASTER_SECRET_LENGTH;
@@ -11678,10 +11720,10 @@ ssl3_ComputeTLSFinished(sslSocket *ss, ssl3CipherSpec *spec,
     if (!spec->master_secret || spec->bypassCiphers) {
         const char *label = isServer ? "server finished" : "client finished";
         unsigned int len = 15;
-
+        HASH_HashType hashType = ssl3_GetTls12HashType(ss);
         return ssl3_TLSPRFWithMasterSecret(spec, label, len, hashes->u.raw,
                                            hashes->len, tlsFinished->verify_data,
-                                           sizeof tlsFinished->verify_data);
+                                           sizeof tlsFinished->verify_data, hashType);
     }
 
     if (spec->version < SSL_LIBRARY_VERSION_TLS_1_2) {
@@ -11716,7 +11758,7 @@ ssl3_ComputeTLSFinished(sslSocket *ss, ssl3CipherSpec *spec,
 SECStatus
 ssl3_TLSPRFWithMasterSecret(ssl3CipherSpec *spec, const char *label,
                             unsigned int labelLen, const unsigned char *val, unsigned int valLen,
-                            unsigned char *out, unsigned int outLen)
+                            unsigned char *out, unsigned int outLen, HASH_HashType tls12HashType)
 {
     SECStatus rv = SECSuccess;
 
@@ -11757,7 +11799,7 @@ ssl3_TLSPRFWithMasterSecret(ssl3CipherSpec *spec, const char *label,
         outData.data = out;
         outData.len = outLen;
         if (spec->version >= SSL_LIBRARY_VERSION_TLS_1_2) {
-            rv = TLS_P_hash(HASH_AlgSHA256, &spec->msItem, label, &inData,
+            rv = TLS_P_hash(tls12HashType, &spec->msItem, label, &inData,
                             &outData, isFIPS);
         } else {
             rv = TLS_PRF(&spec->msItem, label, &inData, &outData, isFIPS);

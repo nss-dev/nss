@@ -284,7 +284,7 @@ static const SSLCipherSuiteInfo suiteInfo[] = {
     { 0, CS(ECDHE_RSA_WITH_AES_128_CBC_SHA256), S_RSA, K_ECDHE, C_AES, B_128, M_SHA256, F_FIPS_STD, A_RSAS },
     { 0, CS(ECDHE_RSA_WITH_AES_256_CBC_SHA), S_RSA, K_ECDHE, C_AES, B_256, M_SHA, F_FIPS_STD, A_RSAS },
     { 0, CS(ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256), S_RSA, K_ECDHE, C_CHACHA20, B_256, M_AEAD_128, F_NFIPS_STD, A_RSAS },
-    { 0, CS(ECDHE_RSA_WITH_AES_256_CBC_SHA384),  S_RSA, K_ECDHE, C_AES, B_256, M_SHA384, F_FIPS_STD, A_RSAS },
+    { 0, CS(ECDHE_RSA_WITH_AES_256_CBC_SHA384), S_RSA, K_ECDHE, C_AES, B_256, M_SHA384, F_FIPS_STD, A_RSAS },
     { 0, CS(ECDHE_ECDSA_WITH_AES_256_CBC_SHA384), S_ECDSA, K_ECDHE, C_AES, B_256, M_SHA384, F_FIPS_STD, A_ECDSA },
     { 0, CS(ECDHE_ECDSA_WITH_AES_256_GCM_SHA384), S_ECDSA, K_ECDHE, C_AESGCM, B_256, M_AEAD_128, F_FIPS_STD, A_ECDSA },
     { 0, CS(ECDHE_RSA_WITH_AES_256_GCM_SHA384), S_RSA, K_ECDHE, C_AESGCM, B_256, M_AEAD_128, F_FIPS_STD, A_RSAS },
@@ -292,7 +292,7 @@ static const SSLCipherSuiteInfo suiteInfo[] = {
 
     { 0, CS(DHE_DSS_WITH_AES_256_GCM_SHA384), S_DSA, K_DHE, C_AESGCM, B_256, M_AEAD_128, F_FIPS_STD, A_DSA },
     { 0, CS(DHE_RSA_WITH_AES_256_GCM_SHA384), S_RSA, K_DHE, C_AESGCM, B_256, M_AEAD_128, F_FIPS_STD, A_RSAS },
-    { 0, CS(RSA_WITH_AES_256_GCM_SHA384),     S_RSA, K_RSA, C_AESGCM, B_256, M_AEAD_128, F_FIPS_STD, A_RSAD }
+    { 0, CS(RSA_WITH_AES_256_GCM_SHA384), S_RSA, K_RSA, C_AESGCM, B_256, M_AEAD_128, F_FIPS_STD, A_RSAD }
 };
 
 #define NUM_SUITEINFOS ((sizeof suiteInfo) / (sizeof suiteInfo[0]))
@@ -468,8 +468,9 @@ SSL_ExportKeyingMaterial(PRFileDesc *fd,
         PORT_SetError(SSL_ERROR_HANDSHAKE_NOT_COMPLETED);
         rv = SECFailure;
     } else {
+        HASH_HashType ht = ssl3_GetTls12HashType(ss);
         rv = ssl3_TLSPRFWithMasterSecret(ss->ssl3.cwSpec, label, labelLen, val,
-                                         valLen, out, outLen);
+                                         valLen, out, outLen, ht);
     }
     ssl_ReleaseSpecReadLock(ss);
 

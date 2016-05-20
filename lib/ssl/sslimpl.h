@@ -495,7 +495,7 @@ typedef void (*DTLSTimerCb)(sslSocket *);
 
 /* 400 is large enough for MD5, SHA-1, and SHA-256.
  * For SHA-384 support, increase it to 712. */
-#define MAX_MAC_CONTEXT_BYTES 400
+#define MAX_MAC_CONTEXT_BYTES 712
 #define MAX_MAC_CONTEXT_LLONGS (MAX_MAC_CONTEXT_BYTES / 8)
 
 #define MAX_CIPHER_CONTEXT_BYTES 2080
@@ -590,7 +590,7 @@ typedef struct {
     ssl3KeyMaterial client;
     ssl3KeyMaterial server;
     SECItem msItem;
-    unsigned char key_block[NUM_MIXERS * MD5_LENGTH];
+    unsigned char key_block[NUM_MIXERS * HASH_LENGTH_MAX];
     unsigned char raw_master_secret[56];
     SECItem srvVirtName; /* for server: name that was negotiated
                           * with a client. For client - is
@@ -1606,10 +1606,11 @@ extern PRBool ssl3_VersionIsSupported(SSLProtocolVariant protocolVariant,
 
 extern SECStatus ssl3_KeyAndMacDeriveBypass(ssl3CipherSpec *pwSpec,
                                             const unsigned char *cr, const unsigned char *sr,
-                                            PRBool isTLS, PRBool isExport);
+                                            PRBool isTLS, HASH_HashType tls12HashType, PRBool isExport);
 extern SECStatus ssl3_MasterSecretDeriveBypass(ssl3CipherSpec *pwSpec,
                                                const unsigned char *cr, const unsigned char *sr,
-                                               const SECItem *pms, PRBool isTLS, PRBool isRSA);
+                                               const SECItem *pms, PRBool isTLS,
+                                               HASH_HashType tls12HashType, PRBool isRSA);
 
 /* These functions are called from secnav, even though they're "private". */
 
@@ -1979,11 +1980,15 @@ PRBool SSL_IsExportCipherSuite(PRUint16 cipherSuite);
 
 SECStatus ssl3_ApplyNSSPolicy(void);
 
+extern HASH_HashType
+ssl3_GetTls12HashType(sslSocket *ss);
+
 extern SECStatus
 ssl3_TLSPRFWithMasterSecret(ssl3CipherSpec *spec,
                             const char *label, unsigned int labelLen,
                             const unsigned char *val, unsigned int valLen,
-                            unsigned char *out, unsigned int outLen);
+                            unsigned char *out, unsigned int outLen,
+                            HASH_HashType tls12HashType);
 extern SECOidTag
 ssl3_TLSHashAlgorithmToOID(SSLHashType hashFunc);
 
