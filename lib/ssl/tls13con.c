@@ -2323,12 +2323,6 @@ tls13_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
         ssl_ReleaseXmitBufLock(ss);
 
     } else {
-        if (ss->ssl3.hs.authCertificatePending) {
-            /* TODO(ekr@rtfm.com): Handle pending auth */
-            FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-            PORT_Assert(0);
-            return SECFailure;
-        }
         rv = tls13_InitCipherSpec(ss, TrafficKeyApplicationData,
                                   InstallCipherSpecRead);
         if (rv != SECSuccess) {
@@ -2387,8 +2381,7 @@ tls13_SendClientSecondRound(sslSocket *ss)
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
     }
-    if (ss->ssl3.hs.authCertificatePending && (sendClientCert ||
-                                               ss->ssl3.sendEmptyCert)) {
+    if (ss->ssl3.hs.authCertificatePending) {
         SSL_TRC(3, ("%d: TLS13[%p]: deferring ssl3_SendClientSecondRound because"
                     " certificate authentication is still pending.",
                     SSL_GETPID(), ss->fd));
