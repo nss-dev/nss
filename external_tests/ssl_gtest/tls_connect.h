@@ -9,6 +9,7 @@
 
 #include <tuple>
 
+#include "sslproto.h"
 #include "sslt.h"
 
 #include "tls_agent.h"
@@ -156,6 +157,16 @@ class TlsConnectTls12
  public:
   TlsConnectTls12();
 };
+
+#ifdef NSS_ENABLE_TLS_1_3
+// A TLS 1.3 only generic test.
+class TlsConnectDatagram13
+  : public TlsConnectTestBase {
+ public:
+  TlsConnectDatagram13()
+      : TlsConnectTestBase(DGRAM, SSL_LIBRARY_VERSION_TLS_1_3) {}
+};
+#endif
 
 // A variant that is used only with Pre13.
 class TlsConnectGenericPre13 : public TlsConnectGeneric {
