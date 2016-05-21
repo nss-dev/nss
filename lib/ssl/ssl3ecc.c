@@ -31,8 +31,6 @@
 
 #include <stdio.h>
 
-#ifndef NSS_DISABLE_ECC
-
 #ifndef PK11_SETATTRS
 #define PK11_SETATTRS(x, id, v, l) \
     (x)->type = (id);              \
@@ -1459,5 +1457,3 @@ ssl3_HandleSupportedCurvesXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
     }
     return SECSuccess;
 }
-
-#endif /* NSS_DISABLE_ECC */

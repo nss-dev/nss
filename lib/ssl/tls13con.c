@@ -684,7 +684,6 @@ tls13_HandleClientKeyShare(sslSocket *ss)
 
     /* Figure out what group we expect */
     switch (ss->ssl3.hs.kea_def->exchKeyType) {
-#ifndef NSS_DISABLE_ECC
         case ssl_kea_ecdh:
         case ssl_kea_ecdh_psk:
             expectedGroup = ssl3_GetCurveNameForServerSocket(ss);
@@ -694,7 +693,6 @@ tls13_HandleClientKeyShare(sslSocket *ss)
                 return SECFailure;
             }
             break;
-#endif
         default:
             /* Got an unknown or unsupported Key Exchange Algorithm.
              * Can't happen. */
@@ -1129,12 +1127,10 @@ tls13_HandleServerKeyShare(sslSocket *ss)
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     switch (ss->ssl3.hs.kea_def->exchKeyType) {
-#ifndef NSS_DISABLE_ECC
         case ssl_kea_ecdh:
         case ssl_kea_ecdh_psk:
             expectedGroup = ssl3_PubKey2ECName(ss->ephemeralECDHKeyPair->pubKey);
             break;
-#endif /* NSS_DISABLE_ECC */
         default:
             FATAL_ERROR(ss, SEC_ERROR_UNSUPPORTED_KEYALG, handshake_failure);
             return SECFailure;

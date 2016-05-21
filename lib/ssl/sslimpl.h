@@ -152,7 +152,6 @@ typedef enum { SSLAppOpRead = 0,
 /* Time to wait in FINISHED state for retransmissions. */
 #define DTLS_RETRANSMIT_FINISHED_MS 30000
 
-#ifndef NSS_DISABLE_ECC
 /* Types and names of elliptic curves used in TLS */
 typedef enum {
     ec_type_explicitPrime = 1,
@@ -189,7 +188,6 @@ typedef enum {
     ec_secp521r1 = 25,
     ec_pastLastName
 } ECName;
-#endif /* ndef NSS_DISABLE_ECC */
 
 typedef struct sslBufferStr sslBuffer;
 typedef struct sslConnectInfoStr sslConnectInfo;
@@ -314,11 +312,7 @@ typedef struct {
 #endif
 } ssl3CipherSuiteCfg;
 
-#ifndef NSS_DISABLE_ECC
 #define ssl_V3_SUITES_IMPLEMENTED 75
-#else
-#define ssl_V3_SUITES_IMPLEMENTED 42
-#endif /* NSS_DISABLE_ECC */
 
 #define MAX_DTLS_SRTP_CIPHER_SUITES 4
 
@@ -654,9 +648,7 @@ struct sslSessionIDStr {
             ssl3SidKeys keys;
             CK_MECHANISM_TYPE masterWrapMech;
 /* mechanism used to wrap master secret */
-#ifndef NSS_DISABLE_ECC
             PRUint32 negotiatedECCurves;
-#endif /* NSS_DISABLE_ECC */
 
             /* The following values are NOT restored from the server's on-disk
              * session cache, but are restored from the client's cache.
@@ -933,9 +925,7 @@ typedef struct SSL3HandshakeStateStr {
         SSL3Finished sFinished[2];
         SSL3Opaque data[72];
     } finishedMsgs;
-#ifndef NSS_DISABLE_ECC
     PRUint32 negotiatedECCurves; /* bit mask */
-#endif                           /* NSS_DISABLE_ECC */
 
     PRBool authCertificatePending;
     /* Which function should SSL_RestartHandshake* call if we're blocked?
@@ -1652,7 +1642,6 @@ extern SECStatus ssl3_CreateRSAStepDownKeys(sslSocket *ss);
 
 extern SECStatus ssl3_SelectDHParams(sslSocket *ss);
 
-#ifndef NSS_DISABLE_ECC
 extern void ssl3_FilterECCipherSuitesByServerCerts(sslSocket *ss);
 extern PRBool ssl3_IsECCEnabled(sslSocket *ss);
 extern SECStatus ssl3_DisableECCSuites(sslSocket *ss,
@@ -1681,8 +1670,6 @@ ECName ssl3_PubKey2ECName(SECKEYPublicKey *pubKey);
 ECName ssl3_GetCurveWithECKeyStrength(PRUint32 curvemsk, int requiredECCbits);
 ECName ssl3_GetCurveNameForServerSocket(sslSocket *ss);
 
-#endif /* NSS_DISABLE_ECC */
-
 extern SECStatus ssl3_CipherPrefSetDefault(ssl3CipherSuite which, PRBool on);
 extern SECStatus ssl3_CipherPrefGetDefault(ssl3CipherSuite which, PRBool *on);
 
@@ -1708,7 +1695,6 @@ extern SECStatus ssl3_NegotiateVersion(sslSocket *ss,
 
 extern SECStatus ssl_GetPeerInfo(sslSocket *ss);
 
-#ifndef NSS_DISABLE_ECC
 /* ECDH functions */
 extern SECStatus ssl3_SendECDHClientKeyExchange(sslSocket *ss,
                                                 SECKEYPublicKey *svrPubKey);
@@ -1725,7 +1711,6 @@ SECKEYPublicKey *tls13_ImportECDHKeyShare(
 ECName tls13_GroupForECDHEKeyShare(ssl3KeyPair *pair);
 unsigned int tls13_SizeOfECDHEKeyShareKEX(ssl3KeyPair *pair);
 SECStatus tls13_EncodeECDHEKeyShareKEX(sslSocket *ss, ssl3KeyPair *pair);
-#endif
 
 extern SECStatus ssl3_ComputeCommonKeyHash(SSLHashType hashAlg,
                                            PRUint8 *hashBuf,
@@ -1792,12 +1777,10 @@ extern PRInt32 ssl3_SendSessionTicketXtn(sslSocket *ss, PRBool append,
 extern PRInt32 ssl3_SendServerNameXtn(sslSocket *ss, PRBool append,
                                       PRUint32 maxBytes);
 
-#ifndef NSS_DISABLE_ECC
 extern PRInt32 ssl3_SendSupportedCurvesXtn(sslSocket *ss,
                                            PRBool append, PRUint32 maxBytes);
 extern PRInt32 ssl3_SendSupportedPointFormatsXtn(sslSocket *ss,
                                                  PRBool append, PRUint32 maxBytes);
-#endif
 
 /* call the registered extension handlers. */
 extern SECStatus ssl3_HandleHelloExtensions(sslSocket *ss,
@@ -1938,13 +1921,11 @@ SECStatus ssl3_ComputeHandshakeHashes(sslSocket *ss,
 void ssl3_BumpSequenceNumber(SSL3SequenceNumber *num);
 PRInt32 tls13_ServerSendKeyShareXtn(sslSocket *ss, PRBool append,
                                     PRUint32 maxBytes);
-#ifndef NSS_DISABLE_ECC
 SECStatus ssl3_CreateECDHEphemeralKeyPair(ECName ec_curve,
                                           ssl3KeyPair **keyPair);
 PK11SymKey *tls13_ComputeECDHSharedKey(sslSocket *ss,
                                        SECKEYPrivateKey *myPrivKey,
                                        SECKEYPublicKey *peerKey);
-#endif
 SECStatus ssl3_FlushHandshake(sslSocket *ss, PRInt32 flags);
 PK11SymKey *ssl3_GetWrappingKey(sslSocket *ss,
                                 PK11SlotInfo *masterSecretSlot,

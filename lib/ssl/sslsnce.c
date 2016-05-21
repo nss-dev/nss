@@ -452,13 +452,11 @@ ConvertFromSID(sidCacheEntry *to, sslSessionID *from)
                 to->sessionIDLength);
     to->u.ssl3.certTypeArgs = 0U;
     switch (from->authType) {
-#ifndef NSS_DISABLE_ECC
         case ssl_auth_ecdsa:
         case ssl_auth_ecdh_rsa:
         case ssl_auth_ecdh_ecdsa:
             to->u.ssl3.certTypeArgs = (PRUint16)from->certType.u.namedCurve;
             break;
-#endif
         default:
             break;
     }
@@ -538,14 +536,12 @@ ConvertToSID(sidCacheEntry *from,
     }
     to->certType.authType = from->authType;
     switch (from->authType) {
-#ifndef NSS_DISABLE_ECC
         case ssl_auth_ecdsa:
         case ssl_auth_ecdh_rsa:
         case ssl_auth_ecdh_ecdsa:
             to->certType.u.namedCurve =
                 (ECName)from->u.ssl3.certTypeArgs;
             break;
-#endif
         default:
             break;
     }
