@@ -95,7 +95,6 @@ ssl_FindServerCert(const sslSocket *ss,
             continue;
         }
         switch (cert->certType.authType) {
-#ifndef NSS_DISABLE_ECC
             case ssl_auth_ecdsa:
             case ssl_auth_ecdh_rsa:
             case ssl_auth_ecdh_ecdsa:
@@ -106,7 +105,6 @@ ssl_FindServerCert(const sslSocket *ss,
                     continue;
                 }
                 break;
-#endif
             default:
                 break;
         }
@@ -121,7 +119,6 @@ ssl_FindServerCertByAuthType(const sslSocket *ss, SSLAuthType authType)
     sslServerCertType certType;
     certType.authType = authType;
     switch (authType) {
-#ifndef NSS_DISABLE_ECC
         /* Setting the named curve to ec_noName ensures that all EC certificates
          * are matched when searching for this slot. */
         case ssl_auth_ecdsa:
@@ -129,7 +126,6 @@ ssl_FindServerCertByAuthType(const sslSocket *ss, SSLAuthType authType)
         case ssl_auth_ecdh_ecdsa:
             certType.u.namedCurve = ec_noName;
             break;
-#endif
         default:
             break;
     }
@@ -173,7 +169,6 @@ ssl_PopulateCertType(sslServerCertType *certType, SSLAuthType authType,
                      CERTCertificate *cert, ssl3KeyPair *keyPair)
 {
     certType->authType = authType;
-#ifndef NSS_DISABLE_ECC
     switch (authType) {
         case ssl_auth_ecdsa:
         case ssl_auth_ecdh_rsa:
@@ -183,7 +178,6 @@ ssl_PopulateCertType(sslServerCertType *certType, SSLAuthType authType,
         default:
             break;
     }
-#endif
 }
 
 static SECStatus
@@ -422,7 +416,6 @@ ssl_ConfigCertByUsage(sslSocket *ss, CERTCertificate *cert,
             }
             break;
 
-#ifndef NSS_DISABLE_ECC
         case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
             if (cert->keyUsage & KU_KEY_ENCIPHERMENT) {
                 if ((cert->keyUsage & KU_DIGITAL_SIGNATURE) &&
@@ -440,7 +433,6 @@ ssl_ConfigCertByUsage(sslSocket *ss, CERTCertificate *cert,
                 arg.authType = ssl_auth_ecdsa;
             }
             break;
-#endif /* NSS_DISABLE_ECC */
 
         default:
             break;
@@ -592,9 +584,7 @@ ssl_CertSuitableForAuthType(CERTCertificate *cert, SSLAuthType authType)
         case ssl_auth_ecdsa:
         case ssl_auth_ecdh_rsa:
         case ssl_auth_ecdh_ecdsa:
-#ifndef NSS_DISABLE_ECC
             return tag == SEC_OID_ANSIX962_EC_PUBLIC_KEY;
-#endif
         case ssl_auth_null:
         case ssl_auth_kea:
         case ssl_auth_rsa_pss: /* not supported with deprecated APIs */
@@ -615,7 +605,6 @@ ssl_FindOrMakeCertType(sslSocket *ss, SSLAuthType authType)
 
     certType.authType = authType;
     switch (authType) {
-#ifndef NSS_DISABLE_ECC
         case ssl_auth_ecdsa:
         case ssl_auth_ecdh_rsa:
         case ssl_auth_ecdh_ecdsa:
@@ -623,7 +612,6 @@ ssl_FindOrMakeCertType(sslSocket *ss, SSLAuthType authType)
              * are matched when searching for this slot. */
             certType.u.namedCurve = ec_noName;
             break;
-#endif
         default:
             break;
     }
@@ -731,7 +719,6 @@ ssl_AddCertsByKEA(sslSocket *ss, CERTCertificate *cert,
                                              cert, certChainOpt, keyPair);
             break;
 
-#ifndef NSS_DISABLE_ECC
         case ssl_kea_ecdh:
             rv = ssl_AddCertAndKeyByAuthType(ss, ssl_auth_ecdsa,
                                              cert, certChainOpt, keyPair);
@@ -741,7 +728,6 @@ ssl_AddCertsByKEA(sslSocket *ss, CERTCertificate *cert,
             rv = ssl_AddCertAndKeyByAuthType(ss, ssl_GetEcdhAuthType(cert),
                                              cert, certChainOpt, keyPair);
             break;
-#endif
 
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -782,13 +768,11 @@ SSL_ConfigSecureServerWithCertChain(PRFileDesc *fd, CERTCertificate *cert,
                 ssl_RemoveCertAndKeyByAuthType(ss, ssl_auth_dsa);
                 break;
 
-#ifndef NSS_DISABLE_ECC
             case ssl_kea_ecdh:
                 ssl_RemoveCertAndKeyByAuthType(ss, ssl_auth_ecdsa);
                 ssl_RemoveCertAndKeyByAuthType(ss, ssl_auth_ecdh_rsa);
                 ssl_RemoveCertAndKeyByAuthType(ss, ssl_auth_ecdh_ecdsa);
                 break;
-#endif
 
             default:
                 PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -847,7 +831,6 @@ SSL_SetStapledOCSPResponses(PRFileDesc *fd, const SECItemArray *responses,
         case ssl_kea_dh:
             return ssl_SetOCSPResponsesInSlot(ss, ssl_auth_dsa, responses);
 
-#ifndef NSS_DISABLE_ECC
         case ssl_kea_ecdh:
             rv = ssl_SetOCSPResponsesInSlot(ss, ssl_auth_ecdsa, responses);
             if (rv != SECSuccess) {
@@ -858,7 +841,6 @@ SSL_SetStapledOCSPResponses(PRFileDesc *fd, const SECItemArray *responses,
                 return SECFailure;
             }
             return ssl_SetOCSPResponsesInSlot(ss, ssl_auth_ecdh_ecdsa, responses);
-#endif
 
         default:
             SSL_DBG(("%d: SSL[%d]: invalid cert type in SSL_SetStapledOCSPResponses",
@@ -915,7 +897,6 @@ SSL_SetSignedCertTimestamps(PRFileDesc *fd, const SECItem *scts,
         case ssl_kea_dh:
             return ssl_SetSignedTimestampsInSlot(ss, ssl_auth_dsa, scts);
 
-#ifndef NSS_DISABLE_ECC
         case ssl_kea_ecdh:
             rv = ssl_SetSignedTimestampsInSlot(ss, ssl_auth_ecdsa, scts);
             if (rv != SECSuccess) {
@@ -926,7 +907,6 @@ SSL_SetSignedCertTimestamps(PRFileDesc *fd, const SECItem *scts,
                 return SECFailure;
             }
             return ssl_SetSignedTimestampsInSlot(ss, ssl_auth_ecdh_ecdsa, scts);
-#endif
 
         default:
             SSL_DBG(("%d: SSL[%d]: invalid cert type in SSL_SetSignedCertTimestamps",
@@ -953,10 +933,8 @@ NSS_FindCertKEAType(CERTCertificate *cert)
         case SEC_OID_ANSIX9_DSA_SIGNATURE: /* hah, signature, not a key? */
         case SEC_OID_X942_DIFFIE_HELMAN_KEY:
             return ssl_kea_dh;
-#ifndef NSS_DISABLE_ECC
         case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
             return ssl_kea_ecdh;
-#endif /* NSS_DISABLE_ECC */
         default:
             return ssl_kea_null;
     }

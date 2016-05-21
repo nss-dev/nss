@@ -289,10 +289,8 @@ ssl3_GetSessionTicketKeys(const unsigned char **aes_key,
 /* This table is used by the server, to handle client hello extensions. */
 static const ssl3HelloExtensionHandler clientHelloHandlers[] = {
     { ssl_server_name_xtn, &ssl3_HandleServerNameXtn },
-#ifndef NSS_DISABLE_ECC
     { ssl_elliptic_curves_xtn, &ssl3_HandleSupportedCurvesXtn },
     { ssl_ec_point_formats_xtn, &ssl3_HandleSupportedPointFormatsXtn },
-#endif
     { ssl_session_ticket_xtn, &ssl3_ServerHandleSessionTicketXtn },
     { ssl_renegotiation_info_xtn, &ssl3_HandleRenegotiationInfoXtn },
     { ssl_next_proto_nego_xtn, &ssl3_ServerHandleNextProtoNegoXtn },
@@ -346,10 +344,8 @@ static const ssl3HelloExtensionSender clientHelloSendersTLS[SSL_MAX_EXTENSIONS] 
       { ssl_server_name_xtn, &ssl3_SendServerNameXtn },
       { ssl_extended_master_secret_xtn, &ssl3_SendExtendedMasterSecretXtn },
       { ssl_renegotiation_info_xtn, &ssl3_SendRenegotiationInfoXtn },
-#ifndef NSS_DISABLE_ECC
       { ssl_elliptic_curves_xtn, &ssl3_SendSupportedCurvesXtn },
       { ssl_ec_point_formats_xtn, &ssl3_SendSupportedPointFormatsXtn },
-#endif
       { ssl_session_ticket_xtn, &ssl3_SendSessionTicketXtn },
       { ssl_next_proto_nego_xtn, &ssl3_ClientSendNextProtoNegoXtn },
       { ssl_app_layer_protocol_xtn, &ssl3_ClientSendAppProtoXtn },
@@ -1321,7 +1317,6 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     /* certificate slot */
     PORT_Assert(ss->sec.serverCert->certType.authType == ss->sec.authType);
     switch (ss->sec.authType) {
-#ifndef NSS_DISABLE_ECC
         case ssl_auth_ecdsa:
         case ssl_auth_ecdh_rsa:
         case ssl_auth_ecdh_ecdsa:
@@ -1330,7 +1325,6 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
             rv = ssl3_AppendNumberToItem(&plaintext,
                                          ss->sec.serverCert->certType.u.namedCurve, 1);
             break;
-#endif
         default:
             rv = ssl3_AppendNumberToItem(&plaintext, 0, 1);
             break;
@@ -1834,13 +1828,11 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
     if (temp < 0)
         goto no_ticket;
     switch (parsed_session_ticket->authType) {
-#ifndef NSS_DISABLE_ECC
         case ssl_auth_ecdsa:
         case ssl_auth_ecdh_rsa:
         case ssl_auth_ecdh_ecdsa:
             parsed_session_ticket->certType.u.namedCurve = (ECName)temp;
             break;
-#endif
         default:
             break;
     }
@@ -3267,12 +3259,10 @@ tls13_ServerSendKeyShareXtn(sslSocket *ss, PRBool append,
     SECStatus rv;
 
     switch (ss->ssl3.hs.kea_def->exchKeyType) {
-#ifndef NSS_DISABLE_ECC
         case ssl_kea_ecdh:
         case ssl_kea_ecdh_psk:
             PORT_Assert(ss->ephemeralECDHKeyPair);
             break;
-#endif
         default:
             /* got an unknown or unsupported Key Exchange Algorithm.
              * Can't happen because tls13_HandleClientKeyShare

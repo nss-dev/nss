@@ -56,7 +56,6 @@
  * the third one.
  */
 const PRUint16 SSL_ImplementedCiphers[] = {
-#ifndef NSS_DISABLE_ECC
     /* ECDHE-PSK from [draft-mattsson-tls-ecdhe-psk-aead]. */
     TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256,
 
@@ -81,7 +80,6 @@ const PRUint16 SSL_ImplementedCiphers[] = {
     TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
     TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
     TLS_ECDHE_RSA_WITH_RC4_128_SHA,
-#endif /* NSS_DISABLE_ECC */
 
     TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,
     TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
@@ -104,7 +102,6 @@ const PRUint16 SSL_ImplementedCiphers[] = {
     TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
     TLS_DHE_DSS_WITH_RC4_128_SHA,
 
-#ifndef NSS_DISABLE_ECC
     TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,
     TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,
     TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA,
@@ -113,7 +110,6 @@ const PRUint16 SSL_ImplementedCiphers[] = {
     TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,
     TLS_ECDH_ECDSA_WITH_RC4_128_SHA,
     TLS_ECDH_RSA_WITH_RC4_128_SHA,
-#endif /* NSS_DISABLE_ECC */
 
     TLS_RSA_WITH_AES_128_GCM_SHA256,
     TLS_RSA_WITH_AES_256_GCM_SHA384,
@@ -144,18 +140,15 @@ const PRUint16 SSL_ImplementedCiphers[] = {
     TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5,
 
 /* ciphersuites with no encryption */
-#ifndef NSS_DISABLE_ECC
     TLS_ECDHE_ECDSA_WITH_NULL_SHA,
     TLS_ECDHE_RSA_WITH_NULL_SHA,
     TLS_ECDH_RSA_WITH_NULL_SHA,
     TLS_ECDH_ECDSA_WITH_NULL_SHA,
-#endif /* NSS_DISABLE_ECC */
     TLS_RSA_WITH_NULL_SHA,
     TLS_RSA_WITH_NULL_SHA256,
     TLS_RSA_WITH_NULL_MD5,
 
     0
-
 };
 
 const PRUint16 SSL_NumImplementedCiphers =
