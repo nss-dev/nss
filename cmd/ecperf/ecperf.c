@@ -407,7 +407,7 @@ PKCS11_Sign(CK_SESSION_HANDLE session, CK_OBJECT_HANDLE *hKey,
         printf("Sign Failed CK_RV=0x%x\n", (int)crv);
         return SECFailure;
     }
-    sig->len = (CK_ULONG)sigLen;
+    sig->len = (unsigned int)sigLen;
     return SECSuccess;
 }
 
