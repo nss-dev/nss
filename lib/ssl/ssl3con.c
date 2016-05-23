@@ -5723,8 +5723,9 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
      * (inclusive). Initial, ClientHello records with such lengths trigger bugs
      * in F5 devices.
      *
-     * This is not done for DTLS nor for renegotiation. */
-    if (!IS_DTLS(ss) && isTLS && !ss->firstHsDone) {
+     * This is not done for DTLS, for renegotiation, or when there are no
+     * extensions. */
+    if (!IS_DTLS(ss) && isTLS && !ss->firstHsDone && total_exten_len) {
         paddingExtensionLen = ssl3_CalculatePaddingExtensionLength(length);
         total_exten_len += paddingExtensionLen;
         length += paddingExtensionLen;
