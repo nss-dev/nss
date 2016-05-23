@@ -2706,6 +2706,8 @@ ssl3_ClientSendSigAlgsXtn(sslSocket *ss, PRBool append, PRUint32 maxBytes)
     return extension_length;
 }
 
+/* Takes the size of the ClientHello, less the record header, and determines how
+ * much padding is required. */
 unsigned int
 ssl3_CalculatePaddingExtensionLength(unsigned int clientHelloLength)
 {
@@ -2738,14 +2740,14 @@ ssl3_AppendPaddingExtension(sslSocket *ss, unsigned int extensionLen,
                             PRUint32 maxBytes)
 {
     unsigned int paddingLen = extensionLen - 4;
-    static unsigned char padding[256];
+    static unsigned char padding[252];
 
     if (extensionLen == 0) {
         return 0;
     }
 
-    if (extensionLen < 4 ||
-        extensionLen > maxBytes ||
+    if (extensionLen > maxBytes ||
+        !paddingLen ||
         paddingLen > sizeof(padding)) {
         PORT_Assert(0);
         return -1;
@@ -2753,9 +2755,7 @@ ssl3_AppendPaddingExtension(sslSocket *ss, unsigned int extensionLen,
 
     if (SECSuccess != ssl3_AppendHandshakeNumber(ss, ssl_padding_xtn, 2))
         return -1;
-    if (SECSuccess != ssl3_AppendHandshakeNumber(ss, paddingLen, 2))
-        return -1;
-    if (SECSuccess != ssl3_AppendHandshake(ss, padding, paddingLen))
+    if (SECSuccess != ssl3_AppendHandshakeVariable(ss, padding, paddingLen, 2))
         return -1;
 
     return extensionLen;
