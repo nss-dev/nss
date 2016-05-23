@@ -391,6 +391,7 @@ PKCS11_Sign(CK_SESSION_HANDLE session, CK_OBJECT_HANDLE *hKey,
 {
     CK_RV crv;
     CK_MECHANISM mech;
+    CK_ULONG sigLen = sig->len;
 
     mech.mechanism = CKM_ECDSA;
     mech.pParameter = NULL;
@@ -401,7 +402,6 @@ PKCS11_Sign(CK_SESSION_HANDLE session, CK_OBJECT_HANDLE *hKey,
         printf("Sign Failed CK_RV=0x%x\n", (int)crv);
         return SECFailure;
     }
-    CK_ULONG sigLen = sig->len;
     crv = NSC_Sign(session, digest->data, digest->len, sig->data, &sigLen);
     if (crv != CKR_OK) {
         printf("Sign Failed CK_RV=0x%x\n", (int)crv);
