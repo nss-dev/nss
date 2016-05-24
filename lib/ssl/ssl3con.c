@@ -10745,9 +10745,8 @@ ssl3_HandleClientKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
                 ss->sec.keaKeyBits =
                     SECKEY_PublicKeyStrengthInBits(serverKeyPair->pubKey);
             }
-        }
-        else if (kea_def->exchKeyType == ssl_kea_ecdh &&
-                 ss->ephemeralECDHKeyPair) {
+        } else if (kea_def->exchKeyType == ssl_kea_ecdh &&
+                   ss->ephemeralECDHKeyPair) {
             serverKeyPair = ss->ephemeralECDHKeyPair;
             if (serverKeyPair->pubKey) {
                 ss->sec.keaKeyBits =
