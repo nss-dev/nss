@@ -28,11 +28,20 @@ function build_task(id, def) {
     task: task = {
       payload: {
         image: process.env.TC_DOCKER_IMAGE,
-        maxRunTime: 3600
+        maxRunTime: 3600,
+        features: {
+          taskclusterProxy: true
+        }
       },
       metadata: {
         owner: process.env.TC_OWNER,
         source: process.env.TC_SOURCE
+      },
+      extra: {
+        treeherder: {
+          revision: process.env.TC_REVISION,
+          revision_hash: process.env.TC_REVISION_HASH
+        }
       }
     }
   }];
@@ -65,6 +74,7 @@ function build_task(id, def) {
   task.metadata.description = def.description;
   task.payload.command = def.command;
   task.payload.env = def.env || {};
+  task.extra.treeherder = merge.recursive(true, task.extra.treeherder, def.treeherder || {});
 
   // Forward some GitHub env variables.
   task.payload.env.NSS_HEAD_REPOSITORY = process.env.NSS_HEAD_REPOSITORY;

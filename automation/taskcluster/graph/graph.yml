@@ -190,12 +190,22 @@ graph:
     extends: builder
     env:
       USE_ASAN: 1
+    treeherder:
+      symbol: B
+      machine:
+        platform: linux32
+      collection:
+        debug: true
 
   build-32-opt-gcc5:
     name: "Linux 32 (gcc5, opt)"
     extends: builder
     env:
       BUILD_OPT: 1
+    treeherder:
+      symbol: B
+      machine:
+        platform: linux32
 
   build-64-debug-asan-gcc5:
     name: "Linux 64 (gcc5, debug, ASan)"
@@ -203,6 +213,12 @@ graph:
     env:
       USE_ASAN: 1
       USE_64: 1
+    treeherder:
+      symbol: B
+      machine:
+        platform: linux64
+      collection:
+        debug: true
 
   build-64-opt-gcc5:
     name: "Linux 64 (gcc5, opt)"
@@ -210,40 +226,44 @@ graph:
     env:
       BUILD_OPT: 1
       USE_64: 1
+    treeherder:
+      symbol: B
+      machine:
+        platform: linux64
 
-  build-32-debug-asan-gcc6:
-    name: "Linux 32 (gcc6, debug, ASan)"
-    extends: builder
-    env:
-      USE_ASAN: 1
-      CCC: g++-6
-      CC: gcc-6
+# build-32-debug-asan-gcc6:
+#   name: "Linux 32 (gcc6, debug, ASan)"
+#   extends: builder
+#   env:
+#     USE_ASAN: 1
+#     CCC: g++-6
+#     CC: gcc-6
 
-  build-32-opt-gcc6:
-    name: "Linux 32 (gcc6, opt)"
-    extends: builder
-    env:
-      BUILD_OPT: 1
-      CCC: g++-6
-      CC: gcc-6
+# build-32-opt-gcc6:
+#   name: "Linux 32 (gcc6, opt)"
+#   extends: builder
+#   env:
+#     BUILD_OPT: 1
+#     CCC: g++-6
+#     CC: gcc-6
 
-  build-64-debug-asan-gcc6:
-    name: "Linux 64 (gcc6, debug, ASan)"
-    extends: builder
-    env:
-      USE_ASAN: 1
-      USE_64: 1
-      CCC: g++-6
-      CC: gcc-6
+# build-64-debug-asan-gcc6:
+#   name: "Linux 64 (gcc6, debug, ASan)"
+#   extends: builder
+#   env:
+#     USE_ASAN: 1
+#     USE_64: 1
+#     CCC: g++-6
+#     CC: gcc-6
 
-  build-64-opt-gcc6:
-    name: "Linux 64 (gcc6, opt)"
-    extends: builder
-    env:
-      BUILD_OPT: 1
-      USE_64: 1
-      CCC: g++-6
-      CC: gcc-6
+# build-64-opt-gcc6:
+#   name: "Linux 64 (gcc6, opt)"
+#   extends: builder
+#   env:
+#     BUILD_OPT: 1
+#     USE_64: 1
+#     CCC: g++-6
+#     CC: gcc-6
 
   clang-format:
     name: "NSS | clang-format-3.8"
@@ -252,3 +272,7 @@ graph:
       - "/bin/bash"
       - "-c"
       - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_clang_format.sh nss/lib/ssl"
+    treeherder:
+      symbol: cf
+      machine:
+        platform: clang-format
