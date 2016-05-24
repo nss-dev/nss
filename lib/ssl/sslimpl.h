@@ -647,7 +647,7 @@ struct sslSessionIDStr {
             int policy;
             ssl3SidKeys keys;
             CK_MECHANISM_TYPE masterWrapMech;
-/* mechanism used to wrap master secret */
+            /* mechanism used to wrap master secret */
             PRUint32 negotiatedECCurves;
 
             /* The following values are NOT restored from the server's on-disk
