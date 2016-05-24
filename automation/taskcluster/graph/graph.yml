@@ -1,0 +1,254 @@
+templates:
+  builder:
+    name: "NSS"
+    description: "Build NSS & NSPR"
+    artifact: "dist.tar.bz2"
+    command:
+      - "/bin/bash"
+      - "-c"
+      - "bin/checkout.sh && nss/automation/taskcluster/scripts/build.sh"
+    env:
+      NSS_ENABLE_TLS_1_3: 1
+#   subtasks:
+#     - cert
+#     - chains
+#     - cipher
+#     - crmf
+#     - dbtests
+#     - ec
+#     - fips
+#     - gtests
+#     - libpkix
+#     - lowhash
+#     - merge
+#     - ocsp
+#     - pkits
+#     - sdr
+#     - smime
+#     - ssl
+#     - tools
+
+  test_runner:
+    command:
+      - "/bin/bash"
+      - "-c"
+      - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+
+  cert:
+    name: "cert tests"
+    description: "Run NSS cert tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "cert"
+
+  chains:
+    name: "chains tests"
+    description: "Run NSS chains tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "chains"
+
+  cipher:
+    name: "cipher tests"
+    description: "Run NSS cipher tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "cipher"
+
+  crmf:
+    name: "crmf tests"
+    description: "Run NSS crmf tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "crmf"
+
+  dbtests:
+    name: "dbtests"
+    description: "Run NSS dbtests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "dbtests"
+
+  ec:
+    name: "EC tests"
+    description: "Run NSS EC tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "ec"
+
+  fips:
+    name: "FIPS tests"
+    description: "Run NSS FIPS tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "fips"
+
+  gtests:
+    name: "Gtests"
+    description: "Run NSS Gtests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "ssl_gtests gtests"
+
+  libpkix:
+    name: "libpkix tests"
+    description: "Run NSS libpkix tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "libpkix"
+
+  lowhash:
+    name: "lowhash tests"
+    description: "Run NSS lowhash tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "lowhash"
+
+  merge:
+    name: "merge tests"
+    description: "Run NSS merge tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "merge"
+
+  ocsp:
+    name: "ocsp tests"
+    description: "Run NSS ocsp tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "ocsp"
+
+  pkits:
+    name: "pkits tests"
+    description: "Run NSS pkits tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "pkits"
+
+  sdr:
+    name: "sdr tests"
+    description: "Run NSS sdr tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "sdr"
+
+  smime:
+    name: "smime tests"
+    description: "Run NSS smime tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "smime"
+
+  ssl: # Update this when TLS v1.3 doesn't fail these anymore.
+    name: "ssl tests"
+    description: "Run NSS ssl tests"
+    artifact: "dist.tar.bz2"
+    command:
+      - "/bin/bash"
+      - "-c"
+      - "bin/checkout.sh && nss/automation/taskcluster/scripts/build.sh"
+    env:
+      NSS_ENABLE_TLS_1_3: "" # Remove this.
+      NSS_TESTS: "ssl"
+    subtasks:
+      - ssl1
+      - ssl2
+      - ssl3
+      - ssl4
+
+  ssl1:
+    name: "cycle=standard"
+    extends: test_runner
+    env:
+      NSS_CYCLES: "standard"
+  ssl2:
+    name: "cycle=pkix"
+    extends: test_runner
+    env:
+      NSS_CYCLES: "pkix"
+  ssl3:
+    name: "cycle=upgradedb"
+    extends: test_runner
+    env:
+      NSS_CYCLES: "upgradedb"
+  ssl4:
+    name: "cycle=sharedb"
+    extends: test_runner
+    env:
+      NSS_CYCLES: "sharedb"
+
+  tools:
+    name: "tools tests"
+    description: "Run NSS tools tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "tools"
+
+graph:
+  build-32-debug-asan-gcc5:
+    name: "Linux 32 (gcc5, debug, ASan)"
+    extends: builder
+    env:
+      USE_ASAN: 1
+
+  build-32-opt-gcc5:
+    name: "Linux 32 (gcc5, opt)"
+    extends: builder
+    env:
+      BUILD_OPT: 1
+
+  build-64-debug-asan-gcc5:
+    name: "Linux 64 (gcc5, debug, ASan)"
+    extends: builder
+    env:
+      USE_ASAN: 1
+      USE_64: 1
+
+  build-64-opt-gcc5:
+    name: "Linux 64 (gcc5, opt)"
+    extends: builder
+    env:
+      BUILD_OPT: 1
+      USE_64: 1
+
+  build-32-debug-asan-gcc6:
+    name: "Linux 32 (gcc6, debug, ASan)"
+    extends: builder
+    env:
+      USE_ASAN: 1
+      CCC: g++-6
+      CC: gcc-6
+
+  build-32-opt-gcc6:
+    name: "Linux 32 (gcc6, opt)"
+    extends: builder
+    env:
+      BUILD_OPT: 1
+      CCC: g++-6
+      CC: gcc-6
+
+  build-64-debug-asan-gcc6:
+    name: "Linux 64 (gcc6, debug, ASan)"
+    extends: builder
+    env:
+      USE_ASAN: 1
+      USE_64: 1
+      CCC: g++-6
+      CC: gcc-6
+
+  build-64-opt-gcc6:
+    name: "Linux 64 (gcc6, opt)"
+    extends: builder
+    env:
+      BUILD_OPT: 1
+      USE_64: 1
+      CCC: g++-6
+      CC: gcc-6
+
+  clang-format:
+    name: "NSS | clang-format-3.8"
+    description: "Validate source code formatting"
+    command:
+      - "/bin/bash"
+      - "-c"
+      - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_clang_format.sh nss/lib/ssl"
