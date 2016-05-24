@@ -1,0 +1,58 @@
+---
+metadata:
+  name: "NSS Continuous Integration"
+  description: "Build NSS and run tests in various configurations"
+  owner: "mozilla-taskcluster-maintenance@mozilla.com"
+  source: "{{{source}}}"
+
+tasks:
+  - provisionerId: "aws-provisioner-v1"
+    workerType: "gecko-decision"
+
+    scopes:
+      - "queue:route:tc-treeherder-stage.nss.{{revision}}"
+      - "queue:route:tc-treeherder.nss.{{revision}}"
+      - "scheduler:extend-task-graph:*"
+
+    routes:
+      - "tc-treeherder-stage.nss.{{revision}}"
+      - "tc-treeherder.nss.{{revision}}"
+
+    metadata:
+      name: "NSS Decision Task"
+      description: "Extends the task graph with everything we need"
+      owner: "mozilla-taskcluster-maintenance@mozilla.com"
+      source: "{{{source}}}"
+    tags:
+      createdForUser: {{owner}}
+
+    payload:
+      maxRunTime: 1800
+      image: "ttaubert/nss-ci:0.0.12"
+      command:
+        - bash
+        - -cx
+        - >
+          bin/checkout.sh &&
+          nss/automation/taskcluster/scripts/extend_task_graph.sh
+      env:
+        TC_DOCKER_IMAGE: "ttaubert/nss-ci:0.0.12"
+        TC_PROVISIONER_ID: "aws-provisioner-v1"
+        TC_WORKER_TYPE: "hg-worker"
+        NSS_HEAD_REPOSITORY: '{{{url}}}'
+        NSS_HEAD_REVISION: '{{revision}}'
+
+      graphs:
+        - /home/worker/artifacts/graph.json
+
+      artifacts:
+        public:
+          type: "directory"
+          path: "/home/worker/artifacts"
+          expires: "{{#from_now}}1 hour{{/from_now}}"
+
+    extra:
+      treeherder:
+        symbol: D
+        revision: '{{revision}}'
+        revision_hash: '{{revision_hash}}'
