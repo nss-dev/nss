@@ -101,19 +101,6 @@ const SEC_ASN1Template lg_nsslowkey_DHPrivateKeyTemplate[] = {
 
 #ifndef NSS_DISABLE_ECC
 
-/* XXX This is just a placeholder for later when we support
- * generic curves and need full-blown support for parsing EC
- * parameters. For now, we only support named curves in which
- * EC params are simply encoded as an object ID and we don't
- * use lg_nsslowkey_ECParamsTemplate.
- */
-const SEC_ASN1Template lg_nsslowkey_ECParamsTemplate[] = {
-    { SEC_ASN1_CHOICE, offsetof(ECParams,type), NULL, sizeof(ECParams) },
-    { SEC_ASN1_OBJECT_ID, offsetof(ECParams,curveOID), NULL, ec_params_named },
-    { 0 }
-};
-
-
 /* NOTE: The SECG specification allows the private key structure
  * to contain curve parameters but recommends that they be stored
  * in the PrivateKeyAlgorithmIdentifier field of the PrivateKeyInfo
