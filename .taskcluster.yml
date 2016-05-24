@@ -28,7 +28,7 @@ tasks:
 
     payload:
       maxRunTime: 1800
-      image: "ttaubert/nss-ci:0.0.12"
+      image: "ttaubert/nss-ci:0.0.13"
       command:
         - bash
         - -cx
@@ -36,7 +36,7 @@ tasks:
           bin/checkout.sh &&
           nss/automation/taskcluster/scripts/extend_task_graph.sh
       env:
-        TC_DOCKER_IMAGE: "ttaubert/nss-ci:0.0.12"
+        TC_DOCKER_IMAGE: "ttaubert/nss-ci:0.0.13"
         TC_PROVISIONER_ID: "aws-provisioner-v1"
         TC_WORKER_TYPE: "hg-worker"
         NSS_HEAD_REPOSITORY: '{{{url}}}'
