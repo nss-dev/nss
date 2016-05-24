@@ -26,6 +26,17 @@ function build_task(id, def) {
   var task, retvals = [{
     taskId: taskid(id),
     task: task = {
+      scopes: [
+        "queue:route:tc-treeherder-stage.nss." + process.env.TC_REVISION,
+        "queue:route:tc-treeherder.nss." + process.env.TC_REVISION,
+        "scheduler:extend-task-graph:*"
+      ]
+
+      routes: [
+        "tc-treeherder-stage.nss." + process.env.TC_REVISION_HASH,
+        "tc-treeherder.nss." + process.env.TC_REVISION_HASH
+      ],
+
       payload: {
         image: process.env.TC_DOCKER_IMAGE,
         maxRunTime: 3600,
@@ -33,10 +44,12 @@ function build_task(id, def) {
           taskclusterProxy: true
         }
       },
+
       metadata: {
         owner: process.env.TC_OWNER,
         source: process.env.TC_SOURCE
       },
+
       extra: {
         treeherder: {
           revision: process.env.TC_REVISION,
