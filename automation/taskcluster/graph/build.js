@@ -30,7 +30,7 @@ function build_task(id, def) {
         "queue:route:tc-treeherder-stage.nss." + process.env.TC_REVISION,
         "queue:route:tc-treeherder.nss." + process.env.TC_REVISION,
         "scheduler:extend-task-graph:*"
-      ]
+      ],
 
       routes: [
         "tc-treeherder-stage.nss." + process.env.TC_REVISION_HASH,
