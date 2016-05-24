@@ -67,6 +67,8 @@ tasks:
         image: "ttaubert/nss-ci:0.0.13"
 
         env:
+          TC_OWNER: {{owner}}
+          TC_SOURCE: {{{source}}}
           TC_DOCKER_IMAGE: "ttaubert/nss-ci:0.0.13"
           TC_PROVISIONER_ID: "aws-provisioner-v1"
           TC_WORKER_TYPE: "hg-worker"

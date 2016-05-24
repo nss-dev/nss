@@ -31,8 +31,8 @@ function build_task(id, def) {
         maxRunTime: 3600
       },
       metadata: {
-        owner: process.env.GITHUB_HEAD_USER_EMAIL,
-        source: process.env.GITHUB_HEAD_REPO_URL
+        owner: process.env.TC_OWNER,
+        source: process.env.TC_SOURCE
       }
     }
   }];
@@ -41,7 +41,7 @@ function build_task(id, def) {
   task.created = from_now(0);
   task.deadline = from_now(24);
   task.provisionerId = process.env.TC_PROVISIONER_ID || "aws-provisioner-v1";
-  task.workerType = process.env.TC_WORKER_TYPE || "github-worker";
+  task.workerType = process.env.TC_WORKER_TYPE || "hg-worker";
   task.schedulerId = "task-graph-scheduler";
 
   // Clone definition.
