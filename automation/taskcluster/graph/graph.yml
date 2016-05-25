@@ -185,49 +185,55 @@ templates:
       NSS_TESTS: "tools"
 
 graph:
-  build-32-debug-asan-gcc5:
-    name: "Linux 32 (gcc5, debug, ASan)"
+  build-32-debug-asan:
+    name: "Linux 32 (debug, ASan)"
     extends: builder
     env:
       USE_ASAN: 1
     treeherder:
       symbol: B
+      build:
+        platform: linux32
       machine:
         platform: linux32
-      collection:
-        debug: true
+    build_type: dbg
 
-  build-32-opt-gcc5:
-    name: "Linux 32 (gcc5, opt)"
+  build-32-opt:
+    name: "Linux 32 (opt)"
     extends: builder
     env:
       BUILD_OPT: 1
     treeherder:
       symbol: B
+      build:
+        platform: linux32
       machine:
         platform: linux32
 
-  build-64-debug-asan-gcc5:
-    name: "Linux 64 (gcc5, debug, ASan)"
+  build-64-debug-asan:
+    name: "Linux 64 (debug, ASan)"
     extends: builder
     env:
       USE_ASAN: 1
       USE_64: 1
     treeherder:
       symbol: B
+      build:
+        platform: linux64
       machine:
         platform: linux64
-      collection:
-        debug: true
+    build_type: dbg
 
-  build-64-opt-gcc5:
-    name: "Linux 64 (gcc5, opt)"
+  build-64-opt:
+    name: "Linux 64 (opt)"
     extends: builder
     env:
       BUILD_OPT: 1
       USE_64: 1
     treeherder:
       symbol: B
+      build:
+        platform: linux64
       machine:
         platform: linux64
 
@@ -266,7 +272,7 @@ graph:
 #     CC: gcc-6
 
   clang-format:
-    name: "NSS | clang-format-3.8"
+    name: "clang-format-3.8"
     description: "Validate source code formatting"
     command:
       - "/bin/bash"
@@ -274,5 +280,7 @@ graph:
       - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_clang_format.sh nss/lib/ssl"
     treeherder:
       symbol: cf
+      build:
+        platform: clang-format
       machine:
         platform: clang-format
