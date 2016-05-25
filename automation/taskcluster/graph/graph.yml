@@ -9,24 +9,26 @@ templates:
       - "bin/checkout.sh && nss/automation/taskcluster/scripts/build.sh"
     env:
       NSS_ENABLE_TLS_1_3: 1
+    treeherder:
+      symbol: B
     subtasks:
 #     - cert
 #     - chains
 #     - cipher
 #     - crmf
 #     - dbtests
-#     - ec
-#     - fips
+      - ec
+      - fips
       - gtests
 #     - libpkix
 #     - lowhash
 #     - merge
-#     - ocsp
+      - ocsp
 #     - pkits
 #     - sdr
 #     - smime
 #     - ssl
-#     - tools
+      - tools
 
   test_runner:
     command:
@@ -75,6 +77,8 @@ templates:
     extends: test_runner
     env:
       NSS_TESTS: "ec"
+    treeherder:
+      symbol: EC
 
   fips:
     name: "FIPS tests"
@@ -82,6 +86,8 @@ templates:
     extends: test_runner
     env:
       NSS_TESTS: "fips"
+    treeherder:
+      symbol: F
 
   gtests:
     name: "GTests"
@@ -119,6 +125,8 @@ templates:
     extends: test_runner
     env:
       NSS_TESTS: "ocsp"
+    treeherder:
+      symbol: O
 
   pkits:
     name: "pkits tests"
@@ -185,13 +193,14 @@ templates:
     extends: test_runner
     env:
       NSS_TESTS: "tools"
+    treeherder:
+      symbol: T
 
 graph:
   build-32-debug:
     name: "Linux 32 (debug)"
     extends: builder
     treeherder:
-      symbol: B
       build:
         platform: linux32
       collection:
@@ -203,7 +212,6 @@ graph:
     env:
       BUILD_OPT: 1
     treeherder:
-      symbol: B
       build:
         platform: linux32
       collection:
@@ -215,7 +223,6 @@ graph:
     env:
       USE_64: 1
     treeherder:
-      symbol: B
       build:
         platform: linux64
       collection:
@@ -228,7 +235,6 @@ graph:
       USE_ASAN: 1
       USE_64: 1
     treeherder:
-      symbol: B
       build:
         platform: linux64
       collection:
@@ -241,7 +247,6 @@ graph:
       BUILD_OPT: 1
       USE_64: 1
     treeherder:
-      symbol: B
       build:
         platform: linux64
       collection:
@@ -291,6 +296,4 @@ graph:
     treeherder:
       symbol: cf
       build:
-        platform: clang-format
-      machine:
         platform: clang-format
