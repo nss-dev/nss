@@ -27,7 +27,7 @@ templates:
 #     - pkits
 #     - sdr
 #     - smime
-#     - ssl
+      - ssl
       - tools
 
   test_runner:
@@ -73,7 +73,7 @@ templates:
 
   ec:
     name: "EC tests"
-    description: "Run NSS EC tests"
+    description: "EC tests"
     extends: test_runner
     env:
       NSS_TESTS: "ec"
@@ -82,21 +82,21 @@ templates:
 
   fips:
     name: "FIPS tests"
-    description: "Run NSS FIPS tests"
+    description: "FIPS tests"
     extends: test_runner
     env:
       NSS_TESTS: "fips"
     treeherder:
-      symbol: F
+      symbol: FIPS
 
   gtests:
     name: "GTests"
-    description: "Run NSS GTests"
+    description: "GTests"
     extends: test_runner
     env:
       NSS_TESTS: "ssl_gtests gtests"
     treeherder:
-      symbol: G
+      symbol: GTest
 
   libpkix:
     name: "libpkix tests"
@@ -121,12 +121,12 @@ templates:
 
   ocsp:
     name: "ocsp tests"
-    description: "Run NSS ocsp tests"
+    description: "OCSP tests"
     extends: test_runner
     env:
       NSS_TESTS: "ocsp"
     treeherder:
-      symbol: O
+      symbol: OCSP
 
   pkits:
     name: "pkits tests"
@@ -151,7 +151,7 @@ templates:
 
   ssl: # Update this when TLS v1.3 doesn't fail these anymore.
     name: "ssl tests"
-    description: "Run NSS ssl tests"
+    description: "SSL tests"
     artifact: "dist.tar.bz2"
     command:
       - "/bin/bash"
@@ -160,6 +160,9 @@ templates:
     env:
       NSS_ENABLE_TLS_1_3: "" # Remove this.
       NSS_TESTS: "ssl"
+    treeherder:
+      groupSymbol: SSL
+      groupName: SSL tests
     subtasks:
       - ssl1
       - ssl2
@@ -171,30 +174,38 @@ templates:
     extends: test_runner
     env:
       NSS_CYCLES: "standard"
+    treeherder:
+      symbol: "std"
   ssl2:
     name: "cycle=pkix"
     extends: test_runner
     env:
       NSS_CYCLES: "pkix"
+    treeherder:
+      symbol: "pkix"
   ssl3:
     name: "cycle=upgradedb"
     extends: test_runner
     env:
       NSS_CYCLES: "upgradedb"
+    treeherder:
+      symbol: "udb"
   ssl4:
     name: "cycle=sharedb"
     extends: test_runner
     env:
       NSS_CYCLES: "sharedb"
+    treeherder:
+      symbol: "sdb"
 
   tools:
     name: "tools tests"
-    description: "Run NSS tools tests"
+    description: "Tools tests"
     extends: test_runner
     env:
       NSS_TESTS: "tools"
     treeherder:
-      symbol: T
+      symbol: Tools
 
 graph:
   build-32-debug:
