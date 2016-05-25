@@ -40,9 +40,6 @@ function build_task(id, def) {
       payload: {
         image: process.env.TC_DOCKER_IMAGE,
         maxRunTime: 3600
-        /*features: {
-          taskclusterProxy: true
-        }*/
       },
 
       metadata: {
@@ -102,7 +99,7 @@ function build_task(id, def) {
 
   // Create subtasks.
   if ("subtasks" in def) {
-    def.subtasks.forEach(function (sid) {
+    Object.keys(def.subtasks).forEach(function (sid) {
       if (!(sid in doc.templates)) {
         throw new Error("Can't find template '" + sid + "'");
       }

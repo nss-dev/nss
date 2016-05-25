@@ -1,4 +1,6 @@
 templates:
+  ## Base Definitions #########################################################
+
   builder:
     name: "NSS"
     description: "Build NSS & NSPR"
@@ -12,29 +14,41 @@ templates:
     treeherder:
       symbol: B
     subtasks:
-      - cert
-      - chains
-      - cipher
-      - crmf
-      - dbtests
-      - ec
-      - fips
-      - gtests
-      - libpkix
-      - lowhash
-      - merge
-      - ocsp
-      - pkits
-      - sdr
-      - smime
-      - ssl
-      - tools
+      cert: true
+      chains: true
+      cipher: true
+      crmf: true
+      dbtests: true
+      ec: true
+      fips: true
+      gtests: true
+      libpkix: true
+      lowhash: true
+      merge: true
+      ocsp: true
+      pkits: true
+      sdr: true
+      smime: true
+      ssl: true
+      tools: true
 
   test_runner:
     command:
       - "/bin/bash"
       - "-c"
       - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+
+  memleak:
+    name: "memleak tests"
+    description: "MemLeak tests"
+    extends: test_runner
+    env:
+      NSS_TESTS: "memleak"
+    treeherder:
+      groupSymbol: ML
+      groupName: MemLeak tests
+
+  ## Test Definitions #########################################################
 
   cert:
     name: "cert tests"
@@ -43,7 +57,7 @@ templates:
     env:
       NSS_TESTS: "cert"
     treeherder:
-      symbol: Cert
+      symbol: Ce
 
   chains:
     name: "chains tests"
@@ -52,7 +66,7 @@ templates:
     env:
       NSS_TESTS: "chains"
     treeherder:
-      symbol: Chains
+      symbol: Ch
 
   cipher:
     name: "cipher tests"
@@ -61,7 +75,7 @@ templates:
     env:
       NSS_TESTS: "cipher"
     treeherder:
-      symbol: Cipher
+      symbol: Ci
 
   crmf:
     name: "crmf tests"
@@ -79,7 +93,7 @@ templates:
     env:
       NSS_TESTS: "dbtests"
     treeherder:
-      symbol: DBTests
+      symbol: DB
 
   ec:
     name: "EC tests"
@@ -124,7 +138,39 @@ templates:
     env:
       NSS_TESTS: "lowhash"
     treeherder:
-      symbol: Lowhash
+      symbol: Lh
+
+  memleak_srv:
+    name: "memleak tests (ssl_server)"
+    extends: memleak
+    env:
+      NSS_MEMLEAK_TESTS: "ssl_server"
+    treeherder:
+      symbol: srv
+
+  memleak_clnt:
+    name: "memleak tests (ssl_client)"
+    extends: memleak
+    env:
+      NSS_MEMLEAK_TESTS: "ssl_client"
+    treeherder:
+      symbol: clnt
+
+  memleak_chains:
+    name: "memleak tests (chains)"
+    extends: memleak
+    env:
+      NSS_MEMLEAK_TESTS: "chains"
+    treeherder:
+      symbol: ch
+
+  memleak_ocsp:
+    name: "memleak tests (ocsp)"
+    extends: memleak
+    env:
+      NSS_MEMLEAK_TESTS: "ocsp"
+    treeherder:
+      symbol: ocsp
 
   merge:
     name: "merge tests"
@@ -186,34 +232,34 @@ templates:
       groupSymbol: SSL
       groupName: SSL tests
     subtasks:
-      - ssl1
-      - ssl2
-      - ssl3
-      - ssl4
+      ssl_std: true
+      ssl_pkix: true
+      ssl_udb: true
+      ssl_sdb: true
 
-  ssl1:
-    name: "cycle=standard"
+  ssl_std:
+    name: "SSL tests (cycle=standard)"
     extends: test_runner
     env:
       NSS_CYCLES: "standard"
     treeherder:
       symbol: "std"
-  ssl2:
-    name: "cycle=pkix"
+  ssl_pkix:
+    name: "SSL tests (cycle=pkix)"
     extends: test_runner
     env:
       NSS_CYCLES: "pkix"
     treeherder:
       symbol: "pkix"
-  ssl3:
-    name: "cycle=upgradedb"
+  ssl_udb:
+    name: "SSL tests (cycle=upgradedb)"
     extends: test_runner
     env:
       NSS_CYCLES: "upgradedb"
     treeherder:
       symbol: "udb"
-  ssl4:
-    name: "cycle=sharedb"
+  ssl_sdb:
+    name: "SSL tests (cycle=sharedb)"
     extends: test_runner
     env:
       NSS_CYCLES: "sharedb"
@@ -260,6 +306,11 @@ graph:
         platform: linux64
       collection:
         debug: true
+    subtasks:
+      memleak_srv: true
+      memleak_clnt: true
+      memleak_chains: true
+      memleak_ocsp: true
 
   build-64-asan:
     name: "Linux 64 (ASan)"
@@ -329,4 +380,4 @@ graph:
     treeherder:
       symbol: clang-format
       build:
-        platform: tools
+        platform: nss-tools
