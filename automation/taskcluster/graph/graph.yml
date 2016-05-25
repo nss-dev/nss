@@ -14,21 +14,35 @@ templates:
     treeherder:
       symbol: B
 
-  builder_gcc4:
+  builder_no_tests:
     extends: builder
+    treeherder:
+      groupSymbol: Compilers
+      groupName: Various compilers
+
+  builder_gcc4:
+    extends: builder_no_tests
     env:
-      GCC_VERSION: gcc-4.6
-      GXX_VERSION: g++-4.6
+      GCC_VERSION: gcc-4.8
+      GXX_VERSION: g++-4.8
     treeherder:
       symbol: gcc4
 
   builder_gcc6:
-    extends: builder
+    extends: builder_no_tests
     env:
       GCC_VERSION: gcc-6
       GXX_VERSION: g++-6
     treeherder:
       symbol: gcc6
+
+  builder_clang:
+    extends: builder_no_tests
+    env:
+      GCC_VERSION: clang-3.8
+      GXX_VERSION: clang++-3.8
+    treeherder:
+      symbol: clang
 
   builder_with_tests:
     extends: builder
@@ -62,7 +76,7 @@ templates:
     env:
       NSS_TESTS: "memleak"
     treeherder:
-      groupSymbol: ML
+      groupSymbol: MemLeak
       groupName: MemLeak tests
 
   ## Test Definitions #########################################################
@@ -419,6 +433,51 @@ graph:
   build-64-opt-gcc6:
     name: "Linux 64 (opt, gcc6)"
     extends: builder_gcc6
+    env:
+      BUILD_OPT: 1
+      USE_64: 1
+    treeherder:
+      build:
+        platform: linux64
+      collection:
+        opt: true
+
+  ## Clang 3.8 ################################################################
+
+  build-32-debug-clang:
+    name: "Linux 32 (debug, clang)"
+    extends: builder_clang
+    treeherder:
+      build:
+        platform: linux32
+      collection:
+        debug: true
+
+  build-32-opt-clang:
+    name: "Linux 32 (opt, clang)"
+    extends: builder_clang
+    env:
+      BUILD_OPT: 1
+    treeherder:
+      build:
+        platform: linux32
+      collection:
+        opt: true
+
+  build-64-debug-clang:
+    name: "Linux 64 (debug, clang)"
+    extends: builder_clang
+    env:
+      USE_64: 1
+    treeherder:
+      build:
+        platform: linux64
+      collection:
+        debug: true
+
+  build-64-opt-clang:
+    name: "Linux 64 (opt, clang)"
+    extends: builder_clang
     env:
       BUILD_OPT: 1
       USE_64: 1
