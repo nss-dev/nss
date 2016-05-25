@@ -76,10 +76,6 @@ function build_task(id, def) {
 
     var template = doc.templates[base];
     def = merge.recursive(true, template, def);
-
-    if ("name" in template) {
-       def.name = template.name + " | " + def.name;
-    }
   }
 
   // Fill in attributes.
@@ -88,6 +84,7 @@ function build_task(id, def) {
   task.payload.command = def.command;
   task.payload.env = def.env || {};
   task.extra.treeherder = merge.recursive(true, task.extra.treeherder, def.treeherder || {});
+  task.extra.build_type = def.build_type || "opt";
 
   // Forward some GitHub env variables.
   task.payload.env.NSS_HEAD_REPOSITORY = process.env.NSS_HEAD_REPOSITORY;
@@ -99,7 +96,7 @@ function build_task(id, def) {
       "public": {
         "type": "directory",
         "path": "/home/worker/artifacts",
-        "expires": from_now(1)
+        "expires": from_now(24)
       }
     };
   }
@@ -115,7 +112,6 @@ function build_task(id, def) {
 
       // TODO
       subtasks.forEach(function (subtask) {
-        subtask.task.metadata.name = task.metadata.name + " | " + subtask.task.metadata.name;
         subtask.task.payload.env = merge.recursive(true, task.payload.env, subtask.task.payload.env);
 
         // TODO
