@@ -9,7 +9,7 @@ templates:
       - "bin/checkout.sh && nss/automation/taskcluster/scripts/build.sh"
     env:
       NSS_ENABLE_TLS_1_3: 1
-#   subtasks:
+    subtasks:
 #     - cert
 #     - chains
 #     - cipher
@@ -17,7 +17,7 @@ templates:
 #     - dbtests
 #     - ec
 #     - fips
-#     - gtests
+      - gtests
 #     - libpkix
 #     - lowhash
 #     - merge
@@ -84,11 +84,13 @@ templates:
       NSS_TESTS: "fips"
 
   gtests:
-    name: "Gtests"
-    description: "Run NSS Gtests"
+    name: "GTests"
+    description: "Run NSS GTests"
     extends: test_runner
     env:
       NSS_TESTS: "ssl_gtests gtests"
+    treeherder:
+      symbol: G
 
   libpkix:
     name: "libpkix tests"

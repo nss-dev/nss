@@ -112,6 +112,7 @@ function build_task(id, def) {
       // TODO
       subtasks.forEach(function (subtask) {
         subtask.task.payload.env = merge.recursive(true, task.payload.env, subtask.task.payload.env);
+        subtask.task.extra.treeherder = merge.recursive(true, task.extra.treeherder, subtask.task.extra.treeherder);
 
         // TODO
         if (!subtask.task.metadata.description) {
