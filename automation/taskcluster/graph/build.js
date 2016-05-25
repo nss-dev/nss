@@ -39,10 +39,10 @@ function build_task(id, def) {
 
       payload: {
         image: process.env.TC_DOCKER_IMAGE,
-        maxRunTime: 3600,
-        features: {
+        maxRunTime: 3600
+        /*features: {
           taskclusterProxy: true
-        }
+        }*/
       },
 
       metadata: {
