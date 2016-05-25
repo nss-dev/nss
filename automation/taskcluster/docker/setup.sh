@@ -27,18 +27,33 @@ apt_packages+=('clang-format-3.8')
 curl http://llvm.org/apt/llvm-snapshot.gpg.key | apt-key add -
 echo "deb http://llvm.org/apt/xenial/ llvm-toolchain-xenial-3.8 main" > /etc/apt/sources.list.d/docker.list
 
+# Install the first round of packages.
+apt-get -y update
+apt-get install -y --no-install-recommends ${apt_packages[@]}
+
 # gcc 6
+apt_packages=()
 apt_packages+=('g++-6')
+apt_packages+=('g++-4.6')
 apt_packages+=('g++-6-multilib')
+apt_packages+=('g++-4.6-multilib')
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 60C317803A41BA51845E371A1E9377A2BA9EF27F
 echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu xenial main" > /etc/apt/sources.list.d/toolchain.list
 
-# Install all other packages.
+# Install the second round of packages.
 apt-get -y update
 apt-get install -y --no-install-recommends ${apt_packages[@]}
 
 # 32-bit builds
 ln -s /usr/include/x86_64-linux-gnu/zconf.h /usr/include
+
+# Compiler options.
+update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.6 10
+update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.6 10
+update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 20
+update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 20
+update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 30
+update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 30
 
 locale-gen en_US.UTF-8
 dpkg-reconfigure locales
