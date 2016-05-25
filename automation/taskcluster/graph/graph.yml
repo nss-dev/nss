@@ -9,8 +9,29 @@ templates:
       - "bin/checkout.sh && nss/automation/taskcluster/scripts/build.sh"
     env:
       NSS_ENABLE_TLS_1_3: 1
+      GCC_VERSION: gcc-5
+      GXX_VERSION: g++-5
     treeherder:
       symbol: B
+
+  builder_gcc4:
+    extends: builder
+    env:
+      GCC_VERSION: gcc-4.6
+      GXX_VERSION: g++-4.6
+    treeherder:
+      symbol: gcc4
+
+  builder_gcc6:
+    extends: builder
+    env:
+      GCC_VERSION: gcc-6
+      GXX_VERSION: g++-6
+    treeherder:
+      symbol: gcc6
+
+  builder_with_tests:
+    extends: builder
     subtasks:
       cert: true
       chains: true
@@ -254,10 +275,12 @@ templates:
     treeherder:
       symbol: Tools
 
+## Task Graph #################################################################
+
 graph:
   build-32-debug:
     name: "Linux 32 (debug)"
-    extends: builder
+    extends: builder_with_tests
     treeherder:
       build:
         platform: linux32
@@ -266,7 +289,7 @@ graph:
 
   build-32-opt:
     name: "Linux 32 (opt)"
-    extends: builder
+    extends: builder_with_tests
     env:
       BUILD_OPT: 1
     treeherder:
@@ -277,7 +300,7 @@ graph:
 
   build-64-debug:
     name: "Linux 64 (debug)"
-    extends: builder
+    extends: builder_with_tests
     env:
       USE_64: 1
     treeherder:
@@ -293,7 +316,7 @@ graph:
 
   build-64-asan:
     name: "Linux 64 (ASan)"
-    extends: builder
+    extends: builder_with_tests
     env:
       USE_ASAN: 1
       USE_64: 1
@@ -305,7 +328,7 @@ graph:
 
   build-64-opt:
     name: "Linux 64 (opt)"
-    extends: builder
+    extends: builder_with_tests
     env:
       BUILD_OPT: 1
       USE_64: 1
@@ -315,39 +338,97 @@ graph:
       collection:
         opt: true
 
-# build-32-debug-asan-gcc6:
-#   name: "Linux 32 (gcc6, debug, ASan)"
-#   extends: builder
-#   env:
-#     USE_ASAN: 1
-#     CCC: g++-6
-#     CC: gcc-6
+  ## GCC 4 ####################################################################
 
-# build-32-opt-gcc6:
-#   name: "Linux 32 (gcc6, opt)"
-#   extends: builder
-#   env:
-#     BUILD_OPT: 1
-#     CCC: g++-6
-#     CC: gcc-6
+  build-32-debug-gcc4:
+    name: "Linux 32 (debug, gcc4)"
+    extends: builder_gcc4
+    treeherder:
+      build:
+        platform: linux32
+      collection:
+        debug: true
 
-# build-64-debug-asan-gcc6:
-#   name: "Linux 64 (gcc6, debug, ASan)"
-#   extends: builder
-#   env:
-#     USE_ASAN: 1
-#     USE_64: 1
-#     CCC: g++-6
-#     CC: gcc-6
+  build-32-opt-gcc4:
+    name: "Linux 32 (opt, gcc4)"
+    extends: builder_gcc4
+    env:
+      BUILD_OPT: 1
+    treeherder:
+      build:
+        platform: linux32
+      collection:
+        opt: true
 
-# build-64-opt-gcc6:
-#   name: "Linux 64 (gcc6, opt)"
-#   extends: builder
-#   env:
-#     BUILD_OPT: 1
-#     USE_64: 1
-#     CCC: g++-6
-#     CC: gcc-6
+  build-64-debug-gcc4:
+    name: "Linux 64 (debug, gcc4)"
+    extends: builder_gcc4
+    env:
+      USE_64: 1
+    treeherder:
+      build:
+        platform: linux64
+      collection:
+        debug: true
+
+  build-64-opt-gcc4:
+    name: "Linux 64 (opt, gcc4)"
+    extends: builder_gcc4
+    env:
+      BUILD_OPT: 1
+      USE_64: 1
+    treeherder:
+      build:
+        platform: linux64
+      collection:
+        opt: true
+
+  ## GCC 6 ####################################################################
+
+  build-32-debug-gcc6:
+    name: "Linux 32 (debug, gcc6)"
+    extends: builder_gcc6
+    treeherder:
+      build:
+        platform: linux32
+      collection:
+        debug: true
+
+  build-32-opt-gcc6:
+    name: "Linux 32 (opt, gcc6)"
+    extends: builder_gcc6
+    env:
+      BUILD_OPT: 1
+    treeherder:
+      build:
+        platform: linux32
+      collection:
+        opt: true
+
+  build-64-debug-gcc6:
+    name: "Linux 64 (debug, gcc6)"
+    extends: builder_gcc6
+    env:
+      USE_64: 1
+    treeherder:
+      build:
+        platform: linux64
+      collection:
+        debug: true
+
+  build-64-opt-gcc6:
+    name: "Linux 64 (opt, gcc6)"
+    extends: builder_gcc6
+    env:
+      BUILD_OPT: 1
+      USE_64: 1
+    treeherder:
+      build:
+        platform: linux64
+      collection:
+        opt: true
+
+  ## Tools ####################################################################
 
   clang-format:
     name: "clang-format-3.8"
