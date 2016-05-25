@@ -12,21 +12,21 @@ templates:
     treeherder:
       symbol: B
     subtasks:
-#     - cert
-#     - chains
-#     - cipher
-#     - crmf
-#     - dbtests
+      - cert
+      - chains
+      - cipher
+      - crmf
+      - dbtests
       - ec
       - fips
       - gtests
-#     - libpkix
-#     - lowhash
-#     - merge
+      - libpkix
+      - lowhash
+      - merge
       - ocsp
-#     - pkits
-#     - sdr
-#     - smime
+      - pkits
+      - sdr
+      - smime
       - ssl
       - tools
 
@@ -38,38 +38,48 @@ templates:
 
   cert:
     name: "cert tests"
-    description: "Run NSS cert tests"
+    description: "Cert tests"
     extends: test_runner
     env:
       NSS_TESTS: "cert"
+    treeherder:
+      symbol: Cert
 
   chains:
     name: "chains tests"
-    description: "Run NSS chains tests"
+    description: "Chains tests"
     extends: test_runner
     env:
       NSS_TESTS: "chains"
+    treeherder:
+      symbol: Chains
 
   cipher:
     name: "cipher tests"
-    description: "Run NSS cipher tests"
+    description: "Cipher tests"
     extends: test_runner
     env:
       NSS_TESTS: "cipher"
+    treeherder:
+      symbol: Cipher
 
   crmf:
     name: "crmf tests"
-    description: "Run NSS crmf tests"
+    description: "CRMF tests"
     extends: test_runner
     env:
       NSS_TESTS: "crmf"
+    treeherder:
+      symbol: CRMF
 
   dbtests:
     name: "dbtests"
-    description: "Run NSS dbtests"
+    description: "DBTests"
     extends: test_runner
     env:
       NSS_TESTS: "dbtests"
+    treeherder:
+      symbol: DBTests
 
   ec:
     name: "EC tests"
@@ -100,24 +110,30 @@ templates:
 
   libpkix:
     name: "libpkix tests"
-    description: "Run NSS libpkix tests"
+    description: "libpkix tests"
     extends: test_runner
     env:
       NSS_TESTS: "libpkix"
+    treeherder:
+      symbol: PKIX
 
   lowhash:
     name: "lowhash tests"
-    description: "Run NSS lowhash tests"
+    description: "lowhash tests"
     extends: test_runner
     env:
       NSS_TESTS: "lowhash"
+    treeherder:
+      symbol: Lowhash
 
   merge:
     name: "merge tests"
-    description: "Run NSS merge tests"
+    description: "Merge tests"
     extends: test_runner
     env:
       NSS_TESTS: "merge"
+    treeherder:
+      symbol: Merge
 
   ocsp:
     name: "ocsp tests"
@@ -130,24 +146,30 @@ templates:
 
   pkits:
     name: "pkits tests"
-    description: "Run NSS pkits tests"
+    description: "NIST PKITS tests"
     extends: test_runner
     env:
       NSS_TESTS: "pkits"
+    treeherder:
+      symbol: PKITS
 
   sdr:
     name: "sdr tests"
-    description: "Run NSS sdr tests"
+    description: "SDR tests"
     extends: test_runner
     env:
       NSS_TESTS: "sdr"
+    treeherder:
+      symbol: SDR
 
   smime:
     name: "smime tests"
-    description: "Run NSS smime tests"
+    description: "S/MIME tests"
     extends: test_runner
     env:
       NSS_TESTS: "smime"
+    treeherder:
+      symbol: SMIME
 
   ssl: # Update this when TLS v1.3 doesn't fail these anymore.
     name: "ssl tests"
@@ -305,6 +327,6 @@ graph:
       - "-c"
       - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_clang_format.sh nss/lib/ssl"
     treeherder:
-      symbol: cf
+      symbol: clang-format
       build:
-        platform: clang-format
+        platform: tools
