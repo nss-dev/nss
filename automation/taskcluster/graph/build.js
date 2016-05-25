@@ -77,7 +77,7 @@ function build_task(id, def) {
 
   // Fill in attributes.
   task.metadata.name = def.name;
-  task.metadata.description = def.description;
+  task.metadata.description = def.name;
   task.payload.command = def.command;
   task.payload.env = def.env || {};
   task.extra.treeherder = merge.recursive(true, task.extra.treeherder, def.treeherder || {});

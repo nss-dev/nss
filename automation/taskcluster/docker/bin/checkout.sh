@@ -7,5 +7,9 @@ if [ $(id -u) = 0 ]; then
     exec su worker $0
 fi
 
+# Default values for testing.
+REVISION=${NSS_HEAD_REVISION:-default}
+REPOSITORY=${NSS_HEAD_REPOSITORY:-https://hg.mozilla.org/projects/nss}
+
 # Clone NSS.
-hg clone -r $NSS_HEAD_REVISION $NSS_HEAD_REPOSITORY nss
+hg clone -r $REVISION $REPOSITORY nss
