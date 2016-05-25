@@ -64,14 +64,14 @@ tasks:
         - "tc-treeherder.nss.{{revision_hash}}"
 
       payload:
-        image: "ttaubert/nss-ci:0.0.13"
+        image: "ttaubert/nss-ci:0.0.14"
 
         env:
           TC_OWNER: {{owner}}
           TC_SOURCE: {{{source}}}
           TC_REVISION: '{{revision}}'
           TC_REVISION_HASH: '{{revision_hash}}'
-          TC_DOCKER_IMAGE: "ttaubert/nss-ci:0.0.13"
+          TC_DOCKER_IMAGE: "ttaubert/nss-ci:0.0.14"
           TC_PROVISIONER_ID: "aws-provisioner-v1"
           TC_WORKER_TYPE: "hg-worker"
           NSS_HEAD_REPOSITORY: '{{{url}}}'

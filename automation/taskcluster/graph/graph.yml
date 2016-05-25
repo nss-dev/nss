@@ -2,8 +2,6 @@ templates:
   ## Base Definitions #########################################################
 
   builder:
-    name: "NSS"
-    description: "Build NSS & NSPR"
     artifact: "dist.tar.bz2"
     command:
       - "/bin/bash"
@@ -39,8 +37,6 @@ templates:
       - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
 
   memleak:
-    name: "memleak tests"
-    description: "MemLeak tests"
     extends: test_runner
     env:
       NSS_TESTS: "memleak"
@@ -51,35 +47,31 @@ templates:
   ## Test Definitions #########################################################
 
   cert:
-    name: "cert tests"
-    description: "Cert tests"
+    name: "Cert tests"
     extends: test_runner
     env:
       NSS_TESTS: "cert"
     treeherder:
-      symbol: Ce
+      symbol: Cert
 
   chains:
-    name: "chains tests"
-    description: "Chains tests"
+    name: "Chains tests"
     extends: test_runner
     env:
       NSS_TESTS: "chains"
     treeherder:
-      symbol: Ch
+      symbol: Chains
 
   cipher:
-    name: "cipher tests"
-    description: "Cipher tests"
+    name: "Cipher tests"
     extends: test_runner
     env:
       NSS_TESTS: "cipher"
     treeherder:
-      symbol: Ci
+      symbol: Cipher
 
   crmf:
-    name: "crmf tests"
-    description: "CRMF tests"
+    name: "CRMF tests"
     extends: test_runner
     env:
       NSS_TESTS: "crmf"
@@ -87,8 +79,7 @@ templates:
       symbol: CRMF
 
   dbtests:
-    name: "dbtests"
-    description: "DBTests"
+    name: "DB tests"
     extends: test_runner
     env:
       NSS_TESTS: "dbtests"
@@ -97,7 +88,6 @@ templates:
 
   ec:
     name: "EC tests"
-    description: "EC tests"
     extends: test_runner
     env:
       NSS_TESTS: "ec"
@@ -106,7 +96,6 @@ templates:
 
   fips:
     name: "FIPS tests"
-    description: "FIPS tests"
     extends: test_runner
     env:
       NSS_TESTS: "fips"
@@ -115,7 +104,6 @@ templates:
 
   gtests:
     name: "GTests"
-    description: "GTests"
     extends: test_runner
     env:
       NSS_TESTS: "ssl_gtests gtests"
@@ -124,7 +112,6 @@ templates:
 
   libpkix:
     name: "libpkix tests"
-    description: "libpkix tests"
     extends: test_runner
     env:
       NSS_TESTS: "libpkix"
@@ -133,39 +120,38 @@ templates:
 
   lowhash:
     name: "lowhash tests"
-    description: "lowhash tests"
     extends: test_runner
     env:
       NSS_TESTS: "lowhash"
     treeherder:
-      symbol: Lh
+      symbol: Lowhash
 
-  memleak_srv:
-    name: "memleak tests (ssl_server)"
+  memleak_server:
+    name: "MemLeak tests (ssl_server)"
     extends: memleak
     env:
       NSS_MEMLEAK_TESTS: "ssl_server"
     treeherder:
-      symbol: srv
+      symbol: server
 
-  memleak_clnt:
-    name: "memleak tests (ssl_client)"
+  memleak_client:
+    name: "MemLeak tests (ssl_client)"
     extends: memleak
     env:
       NSS_MEMLEAK_TESTS: "ssl_client"
     treeherder:
-      symbol: clnt
+      symbol: client
 
   memleak_chains:
-    name: "memleak tests (chains)"
+    name: "MemLeak tests (chains)"
     extends: memleak
     env:
       NSS_MEMLEAK_TESTS: "chains"
     treeherder:
-      symbol: ch
+      symbol: chains
 
   memleak_ocsp:
-    name: "memleak tests (ocsp)"
+    name: "MemLeak tests (ocsp)"
     extends: memleak
     env:
       NSS_MEMLEAK_TESTS: "ocsp"
@@ -173,8 +159,7 @@ templates:
       symbol: ocsp
 
   merge:
-    name: "merge tests"
-    description: "Merge tests"
+    name: "Merge tests"
     extends: test_runner
     env:
       NSS_TESTS: "merge"
@@ -182,8 +167,7 @@ templates:
       symbol: Merge
 
   ocsp:
-    name: "ocsp tests"
-    description: "OCSP tests"
+    name: "OCSP tests"
     extends: test_runner
     env:
       NSS_TESTS: "ocsp"
@@ -191,8 +175,7 @@ templates:
       symbol: OCSP
 
   pkits:
-    name: "pkits tests"
-    description: "NIST PKITS tests"
+    name: "NIST PKITS tests"
     extends: test_runner
     env:
       NSS_TESTS: "pkits"
@@ -200,8 +183,7 @@ templates:
       symbol: PKITS
 
   sdr:
-    name: "sdr tests"
-    description: "SDR tests"
+    name: "SDR tests"
     extends: test_runner
     env:
       NSS_TESTS: "sdr"
@@ -209,8 +191,7 @@ templates:
       symbol: SDR
 
   smime:
-    name: "smime tests"
-    description: "S/MIME tests"
+    name: "S/MIME tests"
     extends: test_runner
     env:
       NSS_TESTS: "smime"
@@ -218,8 +199,7 @@ templates:
       symbol: SMIME
 
   ssl: # Update this when TLS v1.3 doesn't fail these anymore.
-    name: "ssl tests"
-    description: "SSL tests"
+    name: "SSL tests"
     artifact: "dist.tar.bz2"
     command:
       - "/bin/bash"
@@ -232,43 +212,42 @@ templates:
       groupSymbol: SSL
       groupName: SSL tests
     subtasks:
-      ssl_std: true
+      ssl_standard: true
       ssl_pkix: true
-      ssl_udb: true
-      ssl_sdb: true
+      ssl_upgradedb: true
+      ssl_sharedb: true
 
-  ssl_std:
-    name: "SSL tests (cycle=standard)"
+  ssl_standard:
+    name: "SSL tests (standard)"
     extends: test_runner
     env:
       NSS_CYCLES: "standard"
     treeherder:
-      symbol: "std"
+      symbol: "standard"
   ssl_pkix:
-    name: "SSL tests (cycle=pkix)"
+    name: "SSL tests (pkix)"
     extends: test_runner
     env:
       NSS_CYCLES: "pkix"
     treeherder:
       symbol: "pkix"
-  ssl_udb:
-    name: "SSL tests (cycle=upgradedb)"
+  ssl_upgradedb:
+    name: "SSL tests (upgradedb)"
     extends: test_runner
     env:
       NSS_CYCLES: "upgradedb"
     treeherder:
-      symbol: "udb"
-  ssl_sdb:
-    name: "SSL tests (cycle=sharedb)"
+      symbol: "upgradedb"
+  ssl_sharedb:
+    name: "SSL tests (sharedb)"
     extends: test_runner
     env:
       NSS_CYCLES: "sharedb"
     treeherder:
-      symbol: "sdb"
+      symbol: "sharedb"
 
   tools:
-    name: "tools tests"
-    description: "Tools tests"
+    name: "Tools tests"
     extends: test_runner
     env:
       NSS_TESTS: "tools"
@@ -307,8 +286,8 @@ graph:
       collection:
         debug: true
     subtasks:
-      memleak_srv: true
-      memleak_clnt: true
+      memleak_server: true
+      memleak_client: true
       memleak_chains: true
       memleak_ocsp: true
 
@@ -372,7 +351,6 @@ graph:
 
   clang-format:
     name: "clang-format-3.8"
-    description: "Validate source code formatting"
     command:
       - "/bin/bash"
       - "-c"
