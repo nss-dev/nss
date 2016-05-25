@@ -103,3 +103,5 @@ tasks:
           symbol: D
           revision: '{{revision}}'
           revision_hash: '{{revision_hash}}'
+          build:
+            platform: nss-decision

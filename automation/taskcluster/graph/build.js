@@ -84,7 +84,6 @@ function build_task(id, def) {
   task.payload.command = def.command;
   task.payload.env = def.env || {};
   task.extra.treeherder = merge.recursive(true, task.extra.treeherder, def.treeherder || {});
-  task.extra.build_type = def.build_type || "opt";
 
   // Forward some GitHub env variables.
   task.payload.env.NSS_HEAD_REPOSITORY = process.env.NSS_HEAD_REPOSITORY;

@@ -185,18 +185,15 @@ templates:
       NSS_TESTS: "tools"
 
 graph:
-  build-32-debug-asan:
-    name: "Linux 32 (debug, ASan)"
+  build-32-debug:
+    name: "Linux 32 (debug)"
     extends: builder
-    env:
-      USE_ASAN: 1
     treeherder:
       symbol: B
       build:
         platform: linux32
-      machine:
-        platform: linux32
-    build_type: dbg
+      collection:
+        debug: true
 
   build-32-opt:
     name: "Linux 32 (opt)"
@@ -207,11 +204,23 @@ graph:
       symbol: B
       build:
         platform: linux32
-      machine:
-        platform: linux32
+      collection:
+        opt: true
 
-  build-64-debug-asan:
-    name: "Linux 64 (debug, ASan)"
+  build-64-debug:
+    name: "Linux 64 (debug)"
+    extends: builder
+    env:
+      USE_64: 1
+    treeherder:
+      symbol: B
+      build:
+        platform: linux64
+      collection:
+        debug: true
+
+  build-64-asan:
+    name: "Linux 64 (ASan)"
     extends: builder
     env:
       USE_ASAN: 1
@@ -220,9 +229,8 @@ graph:
       symbol: B
       build:
         platform: linux64
-      machine:
-        platform: linux64
-    build_type: dbg
+      collection:
+        asan: true
 
   build-64-opt:
     name: "Linux 64 (opt)"
@@ -234,8 +242,8 @@ graph:
       symbol: B
       build:
         platform: linux64
-      machine:
-        platform: linux64
+      collection:
+        opt: true
 
 # build-32-debug-asan-gcc6:
 #   name: "Linux 32 (gcc6, debug, ASan)"
