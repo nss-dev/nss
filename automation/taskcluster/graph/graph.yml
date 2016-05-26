@@ -17,8 +17,8 @@ templates:
   builder_no_tests:
     extends: builder
     treeherder:
-      groupSymbol: Compilers
-      groupName: Various compilers
+      groupSymbol: Builds
+      groupName: Various builds
 
   builder_gcc4:
     extends: builder_no_tests
@@ -43,6 +43,13 @@ templates:
       GXX_VERSION: clang++-3.8
     treeherder:
       symbol: clang
+
+  builder_no_pkcs11_bypass:
+    extends: builder_no_tests
+    env:
+      NO_PKCS11_BYPASS: 1
+    treeherder:
+      symbol: noPkcs11Bypass
 
   builder_with_tests:
     extends: builder
@@ -478,6 +485,51 @@ graph:
   build-64-opt-clang:
     name: "Linux 64 (opt, clang)"
     extends: builder_clang
+    env:
+      BUILD_OPT: 1
+      USE_64: 1
+    treeherder:
+      build:
+        platform: linux64
+      collection:
+        opt: true
+
+  ## Build Options ############################################################
+
+  build-32-debug-no-pkcs11-bypass:
+    name: "Linux 32 (debug, NO_PKCS11_BYPASS=1)"
+    extends: builder_no_pkcs11_bypass
+    treeherder:
+      build:
+        platform: linux32
+      collection:
+        debug: true
+
+  build-32-opt-no-pkcs11-bypass:
+    name: "Linux 32 (opt, NO_PKCS11_BYPASS=1)"
+    extends: builder_no_pkcs11_bypass
+    env:
+      BUILD_OPT: 1
+    treeherder:
+      build:
+        platform: linux32
+      collection:
+        opt: true
+
+  build-64-debug-no-pkcs11-bypass:
+    name: "Linux 64 (debug, NO_PKCS11_BYPASS=1)"
+    extends: builder_no_pkcs11_bypass
+    env:
+      USE_64: 1
+    treeherder:
+      build:
+        platform: linux64
+      collection:
+        debug: true
+
+  build-64-opt-no-pkcs11-bypass:
+    name: "Linux 64 (opt, NO_PKCS11_BYPASS=1)"
+    extends: builder_no_pkcs11_bypass
     env:
       BUILD_OPT: 1
       USE_64: 1
