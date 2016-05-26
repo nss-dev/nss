@@ -25,6 +25,7 @@ function from_now(hours) {
 function build_task(id, def) {
   var task, retvals = [{
     taskId: taskid(id),
+    reruns: 3,
     task: task = {
       scopes: [
         "queue:route:tc-treeherder-stage.nss." + process.env.TC_REVISION,
