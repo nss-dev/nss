@@ -26,7 +26,7 @@ templates:
       GCC_VERSION: gcc-4.8
       GXX_VERSION: g++-4.8
     treeherder:
-      symbol: gcc4
+      symbol: gcc-4.8
 
   builder_gcc6:
     extends: builder_no_tests
@@ -34,7 +34,7 @@ templates:
       GCC_VERSION: gcc-6
       GXX_VERSION: g++-6
     treeherder:
-      symbol: gcc6
+      symbol: gcc-6.1
 
   builder_clang:
     extends: builder_no_tests
@@ -42,7 +42,7 @@ templates:
       GCC_VERSION: clang-3.8
       GXX_VERSION: clang++-3.8
     treeherder:
-      symbol: clang
+      symbol: clang-3.8
 
   builder_no_pkcs11_bypass:
     extends: builder_no_tests
@@ -50,6 +50,13 @@ templates:
       NO_PKCS11_BYPASS: 1
     treeherder:
       symbol: noPkcs11Bypass
+
+  builder_no_tls_1_3:
+    extends: builder_no_tests
+    env:
+      NSS_ENABLE_TLS_1_3: ""
+    treeherder:
+      symbol: noTLSv1.3
 
   builder_with_tests:
     extends: builder
@@ -494,7 +501,7 @@ graph:
       collection:
         opt: true
 
-  ## Build Options ############################################################
+  ## NO_PKCS11_BYPASS=1 #######################################################
 
   build-32-debug-no-pkcs11-bypass:
     name: "Linux 32 (debug, NO_PKCS11_BYPASS=1)"
@@ -530,6 +537,51 @@ graph:
   build-64-opt-no-pkcs11-bypass:
     name: "Linux 64 (opt, NO_PKCS11_BYPASS=1)"
     extends: builder_no_pkcs11_bypass
+    env:
+      BUILD_OPT: 1
+      USE_64: 1
+    treeherder:
+      build:
+        platform: linux64
+      collection:
+        opt: true
+
+  ## NSS_ENABLE_TLS_1_3=0 #####################################################
+
+  build-32-debug-no-tls-13:
+    name: "Linux 32 (debug, no TLS 1.3)"
+    extends: builder_no_tls_1_3
+    treeherder:
+      build:
+        platform: linux32
+      collection:
+        debug: true
+
+  build-32-opt-no-tls-13:
+    name: "Linux 32 (opt, no TLS 1.3)"
+    extends: builder_no_tls_1_3
+    env:
+      BUILD_OPT: 1
+    treeherder:
+      build:
+        platform: linux32
+      collection:
+        opt: true
+
+  build-64-debug-no-tls-13:
+    name: "Linux 64 (debug, no TLS 1.3)"
+    extends: builder_no_tls_1_3
+    env:
+      USE_64: 1
+    treeherder:
+      build:
+        platform: linux64
+      collection:
+        debug: true
+
+  build-64-opt-no-tls-13:
+    name: "Linux 64 (opt, no TLS 1.3)"
+    extends: builder_no_tls_1_3
     env:
       BUILD_OPT: 1
       USE_64: 1
