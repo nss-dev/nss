@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "Cipher tests"
-      decription: "Cipher tests"
+      description: "Cipher tests"
 
     payload:
       command:

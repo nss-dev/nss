@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "libpkix tests"
-      decription: "libpkix tests"
+      description: "libpkix tests"
 
     payload:
       command:

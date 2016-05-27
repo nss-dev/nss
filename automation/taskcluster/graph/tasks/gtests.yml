@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "GTests"
-      decription: "GTests"
+      description: "GTests"
 
     payload:
       command:

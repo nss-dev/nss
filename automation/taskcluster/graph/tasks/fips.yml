@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "FIPS tests"
-      decription: "FIPS tests"
+      description: "FIPS tests"
 
     payload:
       command:

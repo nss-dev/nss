@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "Linux 64 (ASan, debug)"
-      decription: "Linux 64 (ASan, debug)"
+      description: "Linux 64 (ASan, debug)"
 
     payload:
       artifacts:

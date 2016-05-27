@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "CRMF tests"
-      decription: "CRMF tests"
+      description: "CRMF tests"
 
     payload:
       command:

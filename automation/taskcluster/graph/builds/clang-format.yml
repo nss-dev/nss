@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "clang-format-3.8"
-      decription: "clang-format-3.8"
+      description: "clang-format-3.8"
 
     payload:
       command:

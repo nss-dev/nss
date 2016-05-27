@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "Lowhash tests"
-      decription: "Lowhash tests"
+      description: "Lowhash tests"
 
     payload:
       command:

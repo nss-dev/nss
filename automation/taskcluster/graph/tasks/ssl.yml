@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "SSL tests"
-      decription: "SSL tests"
+      description: "SSL tests"
 
     payload:
       artifacts:

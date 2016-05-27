@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "Tools tests"
-      decription: "Tools tests"
+      description: "Tools tests"
 
     payload:
       command:

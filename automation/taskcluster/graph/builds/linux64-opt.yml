@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "Linux 64 (opt)"
-      decription: "Linux 64 (opt)"
+      description: "Linux 64 (opt)"
 
     payload:
       artifacts:
@@ -51,7 +51,7 @@
 - task:
     metadata:
       name: "Linux 64 (opt, clang-3.8)"
-      decription: "Linux 64 (opt, clang-3.8)"
+      description: "Linux 64 (opt, clang-3.8)"
 
     payload:
       command:
@@ -78,7 +78,7 @@
 - task:
     metadata:
       name: "Linux 64 (opt, gcc-4.8)"
-      decription: "Linux 64 (opt, gcc-4.8)"
+      description: "Linux 64 (opt, gcc-4.8)"
 
     payload:
       command:
@@ -105,7 +105,7 @@
 - task:
     metadata:
       name: "Linux 64 (opt, gcc-6.1)"
-      decription: "Linux 64 (opt, gcc-6.1)"
+      description: "Linux 64 (opt, gcc-6.1)"
 
     payload:
       command:
@@ -132,7 +132,7 @@
 - task:
     metadata:
       name: "Linux 64 (opt, NO_PKCS11_BYPASS=1)"
-      decription: "Linux 64 (opt, NO_PKCS11_BYPASS=1)"
+      description: "Linux 64 (opt, NO_PKCS11_BYPASS=1)"
 
     payload:
       command:
@@ -160,7 +160,7 @@
 - task:
     metadata:
       name: "Linux 64 (opt, no TLS 1.3)"
-      decription: "Linux 64 (opt, no TLS 1.3)"
+      description: "Linux 64 (opt, no TLS 1.3)"
 
     payload:
       command:
