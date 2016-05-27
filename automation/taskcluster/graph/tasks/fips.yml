@@ -1,0 +1,17 @@
+---
+- task:
+    metadata:
+      name: "FIPS tests"
+      decription: "FIPS tests"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_TESTS: "fips"
+
+    extra:
+      treeherder:
+        symbol: FIPS

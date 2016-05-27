@@ -1,0 +1,17 @@
+---
+- task:
+    metadata:
+      name: "Chains tests"
+      decription: "Chains tests"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_TESTS: "chains"
+
+    extra:
+      treeherder:
+        symbol: Chains

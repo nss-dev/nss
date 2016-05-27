@@ -1,0 +1,17 @@
+---
+- task:
+    metadata:
+      name: "NIST PKITS tests"
+      decription: "NIST PKITS tests"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_TESTS: "pkits"
+
+    extra:
+      treeherder:
+        symbol: PKITS

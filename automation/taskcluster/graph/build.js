@@ -1,155 +1,177 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 var fs = require("fs");
 var path = require("path");
-var yaml = require("js-yaml");
 var merge = require("merge");
+var yaml = require("js-yaml");
 var slugid = require("slugid");
 var flatmap = require("flatmap");
-var taskids = {};
 
-// TODO
-function taskid(id) {
-  if (!(id in taskids)) {
-    taskids[id] = slugid.v4();
-  }
-  return taskids[id];
-}
+var TC_WORKER_TYPE = process.env.TC_WORKER_TYPE || "hg-worker";
+var TC_PROVISIONER_ID = process.env.TC_PROVISIONER_ID || "aws-provisioner-v1";
 
-// TODO
+// Default values for debugging.
+var TC_REVISION = process.env.TC_REVISION || "{{tc_rev}}";
+var TC_REVISION_HASH = process.env.TC_REVISION_HASH || "{{tc_rev_hash}}";
+var TC_DOCKER_IMAGE = process.env.TC_DOCKER_IMAGE || "{{tc_docker_img}}";
+var TC_OWNER = process.env.TC_OWNER || "{{tc_owner}}";
+var TC_SOURCE = process.env.TC_SOURCE || "{{tc_source}}";
+var NSS_HEAD_REPOSITORY = process.env.NSS_HEAD_REPOSITORY || "{{nss_head_repo}}";
+var NSS_HEAD_REVISION = process.env.NSS_HEAD_REVISION || "{{nss_head_rev}}";
+
+// Point in time at $now + x hours.
 function from_now(hours) {
   var d = new Date();
   d.setHours(d.getHours() + (hours || 0));
   return d.toJSON();
 }
 
-// TODO
-function build_task(id, def) {
-  var task, retvals = [{
-    taskId: taskid(id),
-    reruns: 3,
+// Register custom YAML types.
+var YAML_SCHEMA = yaml.Schema.create([
+  new yaml.Type('!from_now', {
+    kind: "scalar",
+
+    resolve: function (data) {
+      return true;
+    },
+
+    construct: function (data) {
+      return from_now(data|0);
+    }
+  })
+]);
+
+// Parse a directory containing YAML files.
+function parseDirectory(dir) {
+  var tasks = {};
+
+  fs.readdirSync(dir).forEach(function (file) {
+    if (file.endsWith(".yml")) {
+      var source = fs.readFileSync(path.join(dir, file), "utf-8");
+      tasks[file.slice(0, -4)] = yaml.load(source, {schema: YAML_SCHEMA});
+    }
+  });
+
+  return tasks;
+}
+
+// Generates a task using a given definition.
+function generateTasks(definition) {
+  var task = {
+    taskId: slugid.v4(),
+    reruns: 2,
+
     task: task = {
+      created: from_now(0),
+      deadline: from_now(24),
+      provisionerId: TC_PROVISIONER_ID,
+      workerType: TC_WORKER_TYPE,
+      schedulerId: "task-graph-scheduler",
+
       scopes: [
-        "queue:route:tc-treeherder-stage.nss." + process.env.TC_REVISION,
-        "queue:route:tc-treeherder.nss." + process.env.TC_REVISION,
+        "queue:route:tc-treeherder-stage.nss." + TC_REVISION,
+        "queue:route:tc-treeherder.nss." + TC_REVISION,
         "scheduler:extend-task-graph:*"
       ],
 
       routes: [
-        "tc-treeherder-stage.nss." + process.env.TC_REVISION_HASH,
-        "tc-treeherder.nss." + process.env.TC_REVISION_HASH
+        "tc-treeherder-stage.nss." + TC_REVISION_HASH,
+        "tc-treeherder.nss." + TC_REVISION_HASH
       ],
 
       payload: {
-        image: process.env.TC_DOCKER_IMAGE,
-        maxRunTime: 3600
+        image: TC_DOCKER_IMAGE,
+        maxRunTime: 3600,
+
+        env: {
+          NSS_HEAD_REPOSITORY: NSS_HEAD_REPOSITORY,
+          NSS_HEAD_REVISION: NSS_HEAD_REVISION
+        }
       },
 
       metadata: {
-        owner: process.env.TC_OWNER,
-        source: process.env.TC_SOURCE
+        owner: TC_OWNER,
+        source: TC_SOURCE
       },
 
       extra: {
         treeherder: {
-          revision: process.env.TC_REVISION,
-          revision_hash: process.env.TC_REVISION_HASH
+          revision: TC_REVISION,
+          revision_hash: TC_REVISION_HASH
         }
       }
     }
-  }];
+  };
 
-  // Fill in some basic data.
-  task.created = from_now(0);
-  task.deadline = from_now(24);
-  task.provisionerId = process.env.TC_PROVISIONER_ID || "aws-provisioner-v1";
-  task.workerType = process.env.TC_WORKER_TYPE || "hg-worker";
-  task.schedulerId = "task-graph-scheduler";
+  // Merge base task definition with the YAML one.
+  var tasks = [task = merge.recursive(true, task, definition)];
 
-  // Clone definition.
-  def = merge.recursive(true, {}, def);
+  // Generate dependent tasks.
+  if (task.dependents) {
+    // The base definition for all subtasks.
+    var base = {
+      requires: [task.taskId],
 
-  // Extend task definition.
-  while (def.extends) {
-    var base = def.extends;
-    delete def.extends;
-
-    var template = doc.templates[base];
-    def = merge.recursive(true, template, def);
-  }
-
-  // Fill in attributes.
-  task.metadata.name = def.name;
-  task.metadata.description = def.name;
-  task.payload.command = def.command;
-  task.payload.env = def.env || {};
-  task.extra.treeherder = merge.recursive(true, task.extra.treeherder, def.treeherder || {});
-
-  // Forward some GitHub env variables.
-  task.payload.env.NSS_HEAD_REPOSITORY = process.env.NSS_HEAD_REPOSITORY;
-  task.payload.env.NSS_HEAD_REVISION = process.env.NSS_HEAD_REVISION;
-
-  // Register artifacts.
-  if (def.artifact) {
-    task.payload.artifacts = {
-      "public": {
-        "type": "directory",
-        "path": "/home/worker/artifacts",
-        "expires": from_now(24)
+      task: {
+        payload: {
+          env: {
+            TC_PARENT_TASK_ID: task.taskId
+          }
+        }
       }
     };
-  }
 
-  // Create subtasks.
-  if ("subtasks" in def) {
-    Object.keys(def.subtasks).forEach(function (sid) {
-      if (!(sid in doc.templates)) {
-        throw new Error("Can't find template '" + sid + "'");
+    // We clone everything but the taskId, we need a new and unique one.
+    delete base.taskId;
+
+    // Iterate and generate all subtasks.
+    var subtasks = flatmap(task.dependents, function (name) {
+      if (!(name in TASKS)) {
+        throw new Error("Can't find task '" + name + "'");
       }
 
-      var subtasks = build_task(id + "_" + sid, doc.templates[sid]);
+      return flatmap(TASKS[name], function (subtask) {
+        // Merge subtask with base definition.
+        var dependent = merge.recursive(true, subtask, base);
 
-      // TODO
-      subtasks.forEach(function (subtask) {
-        subtask.task.payload.env = merge.recursive(true, task.payload.env, subtask.task.payload.env);
-        subtask.task.extra.treeherder = merge.recursive(true, task.extra.treeherder, subtask.task.extra.treeherder);
+        // We only want to carry over environment variables and
+        // TreeHerder configuration data.
+        dependent.task.payload.env =
+          merge.recursive(true, task.task.payload.env,
+                                dependent.task.payload.env);
+        dependent.task.extra.treeherder =
+          merge.recursive(true, task.task.extra.treeherder,
+                                dependent.task.extra.treeherder);
 
-        // TODO
-        if (!subtask.task.metadata.description) {
-          subtask.task.metadata.description = task.metadata.description;
-        }
-
-        // TODO
-        if (!subtask.requires) {
-          subtask.requires = [taskid(id)];
-          subtask.task.payload.env.TC_PARENT_TASK_ID = taskid(id);
-        }
+        // Print all subtasks.
+        return generateTasks(dependent);
       });
-
-      // Append subtasks.
-      retvals = retvals.concat(subtasks);
     });
+
+    // Append subtasks.
+    tasks = tasks.concat(subtasks);
+
+    // The dependents field is not part of the schema.
+    delete task.dependents;
   }
 
-  return retvals;
+  return tasks;
 }
 
-// Load the tasks definition file.
-var source = fs.readFileSync(path.join(__dirname, "./graph.yml"), "utf-8");
-var doc = yaml.load(source);
+// Parse YAML task definitions.
+var BUILDS = parseDirectory(path.join(__dirname, "./builds/"));
+var TASKS = parseDirectory(path.join(__dirname, "./tasks/"));
 
-// Build the graph.
-var graph = {tasks: flatmap(Object.keys(doc.graph), function (id) {
-  return build_task(id, doc.graph[id]);
-})};
-
-// Clean up env variables.
-graph.tasks.forEach(function (task) {
-  var env = task.task.payload.env;
-  Object.keys(env).forEach(function (name) {
-    if (env[name] === "") {
-      delete env[name];
-    }
-  });
-});
+var graph = {
+  // Use files in the "builds" directory as roots.
+  tasks: flatmap(Object.keys(BUILDS), function (name) {
+    return flatmap(BUILDS[name], function (build) {
+      return generateTasks(build);
+    });
+  })
+};
 
 // Output the final graph.
 process.stdout.write(JSON.stringify(graph, null, 2));

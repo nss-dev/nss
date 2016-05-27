@@ -1,0 +1,17 @@
+---
+- task:
+    metadata:
+      name: "Cipher tests"
+      decription: "Cipher tests"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_TESTS: "cipher"
+
+    extra:
+      treeherder:
+        symbol: Cipher

@@ -1,0 +1,309 @@
+---
+- task:
+    metadata:
+      name: "MemLeak tests (ocsp)"
+      decription: "MemLeak tests (ocsp)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_MEMLEAK_TESTS: "ocsp"
+        NSS_TESTS: "memleak"
+
+    extra:
+      treeherder:
+        collection:
+          debug: !!js/undefined # override
+          memleak: true
+        symbol: ocsp
+
+- task:
+    metadata:
+      name: "MemLeak tests (ssl_server, standard)"
+      decription: "MemLeak tests (ssl_server, standard)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_MEMLEAK_TESTS: "ssl_server"
+        NSS_CYCLES: "standard"
+        NSS_TESTS: "memleak"
+
+    extra:
+      treeherder:
+        collection:
+          debug: !!js/undefined # override
+          memleak: true
+        groupSymbol: Server
+        groupName: MemLeak tests (ssl_server)
+        symbol: standard
+
+- task:
+    metadata:
+      name: "MemLeak tests (ssl_server, pkix)"
+      decription: "MemLeak tests (ssl_server, pkix)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_MEMLEAK_TESTS: "ssl_server"
+        NSS_TESTS: "memleak"
+        NSS_CYCLES: "pkix"
+
+    extra:
+      treeherder:
+        collection:
+          debug: !!js/undefined # override
+          memleak: true
+        groupSymbol: Server
+        groupName: MemLeak tests (ssl_server)
+        symbol: pkix
+
+- task:
+    metadata:
+      name: "MemLeak tests (ssl_server, sharedb)"
+      decription: "MemLeak tests (ssl_server, sharedb)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_MEMLEAK_TESTS: "ssl_server"
+        NSS_CYCLES: "sharedb"
+        NSS_TESTS: "memleak"
+
+    extra:
+      treeherder:
+        collection:
+          debug: !!js/undefined # override
+          memleak: true
+        groupSymbol: Server
+        groupName: MemLeak tests (ssl_server)
+        symbol: sharedb
+
+- task:
+    metadata:
+      name: "MemLeak tests (ssl_server, upgradedb)"
+      decription: "MemLeak tests (ssl_server, upgradedb)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_MEMLEAK_TESTS: "ssl_server"
+        NSS_CYCLES: "upgradedb"
+        NSS_TESTS: "memleak"
+
+    extra:
+      treeherder:
+        collection:
+          debug: !!js/undefined # override
+          memleak: true
+        groupSymbol: Server
+        groupName: MemLeak tests (ssl_server)
+        symbol: upgradedb
+
+- task:
+    metadata:
+      name: "MemLeak tests (ssl_client, standard)"
+      decription: "MemLeak tests (ssl_client, standard)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_MEMLEAK_TESTS: "ssl_client"
+        NSS_CYCLES: "standard"
+        NSS_TESTS: "memleak"
+
+    extra:
+      treeherder:
+        collection:
+          debug: !!js/undefined # override
+          memleak: true
+        groupSymbol: Client
+        groupName: MemLeak tests (ssl_client)
+        symbol: standard
+
+- task:
+    metadata:
+      name: "MemLeak tests (ssl_client, pkix)"
+      decription: "MemLeak tests (ssl_client, pkix)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_MEMLEAK_TESTS: "ssl_client"
+        NSS_TESTS: "memleak"
+        NSS_CYCLES: "pkix"
+
+    extra:
+      treeherder:
+        collection:
+          debug: !!js/undefined # override
+          memleak: true
+        groupSymbol: Client
+        groupName: MemLeak tests (ssl_client)
+        symbol: pkix
+
+- task:
+    metadata:
+      name: "MemLeak tests (ssl_client, sharedb)"
+      decription: "MemLeak tests (ssl_client, sharedb)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_MEMLEAK_TESTS: "ssl_client"
+        NSS_CYCLES: "sharedb"
+        NSS_TESTS: "memleak"
+
+    extra:
+      treeherder:
+        collection:
+          debug: !!js/undefined # override
+          memleak: true
+        groupSymbol: Client
+        groupName: MemLeak tests (ssl_client)
+        symbol: sharedb
+
+- task:
+    metadata:
+      name: "MemLeak tests (ssl_client, upgradedb)"
+      decription: "MemLeak tests (ssl_client, upgradedb)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_MEMLEAK_TESTS: "ssl_client"
+        NSS_CYCLES: "upgradedb"
+        NSS_TESTS: "memleak"
+
+    extra:
+      treeherder:
+        collection:
+          debug: !!js/undefined # override
+          memleak: true
+        groupSymbol: Client
+        groupName: MemLeak tests (ssl_client)
+        symbol: upgradedb
+
+- task:
+    metadata:
+      name: "MemLeak tests (chains, standard)"
+      decription: "MemLeak tests (chains, standard)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_MEMLEAK_TESTS: "chains"
+        NSS_CYCLES: "standard"
+        NSS_TESTS: "memleak"
+
+    extra:
+      treeherder:
+        collection:
+          debug: !!js/undefined # override
+          memleak: true
+        groupSymbol: Chains
+        groupName: MemLeak tests (chains)
+        symbol: standard
+
+- task:
+    metadata:
+      name: "MemLeak tests (chains, pkix)"
+      decription: "MemLeak tests (chains, pkix)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_MEMLEAK_TESTS: "chains"
+        NSS_TESTS: "memleak"
+        NSS_CYCLES: "pkix"
+
+    extra:
+      treeherder:
+        collection:
+          debug: !!js/undefined # override
+          memleak: true
+        groupSymbol: Chains
+        groupName: MemLeak tests (chains)
+        symbol: pkix
+
+- task:
+    metadata:
+      name: "MemLeak tests (chains, sharedb)"
+      decription: "MemLeak tests (chains, sharedb)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_MEMLEAK_TESTS: "chains"
+        NSS_CYCLES: "sharedb"
+        NSS_TESTS: "memleak"
+
+    extra:
+      treeherder:
+        collection:
+          debug: !!js/undefined # override
+          memleak: true
+        groupSymbol: Chains
+        groupName: MemLeak tests (chains)
+        symbol: sharedb
+
+- task:
+    metadata:
+      name: "MemLeak tests (chains, upgradedb)"
+      decription: "MemLeak tests (chains, upgradedb)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_MEMLEAK_TESTS: "chains"
+        NSS_CYCLES: "upgradedb"
+        NSS_TESTS: "memleak"
+
+    extra:
+      treeherder:
+        collection:
+          debug: !!js/undefined # override
+          memleak: true
+        groupSymbol: Chains
+        groupName: MemLeak tests (chains)
+        symbol: upgradedb
