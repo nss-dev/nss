@@ -585,6 +585,7 @@ void TlsAgent::Handshake() {
       if (mode_ == DGRAM) {
         if (timer_handle_) {
           timer_handle_->Cancel();
+          timer_handle_ = nullptr;
         }
 
         PRIntervalTime timeout;
