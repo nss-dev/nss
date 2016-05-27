@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "Linux 32 (debug)"
-      decription: "Linux 32 (debug)"
+      description: "Linux 32 (debug)"
 
     payload:
       artifacts:
@@ -49,7 +49,7 @@
 - task:
     metadata:
       name: "Linux 32 (debug, clang-3.8)"
-      decription: "Linux 32 (debug, clang-3.8)"
+      description: "Linux 32 (debug, clang-3.8)"
 
     payload:
       command:
@@ -74,7 +74,7 @@
 - task:
     metadata:
       name: "Linux 32 (debug, gcc-4.8)"
-      decription: "Linux 32 (debug, gcc-4.8)"
+      description: "Linux 32 (debug, gcc-4.8)"
 
     payload:
       command:
@@ -99,7 +99,7 @@
 - task:
     metadata:
       name: "Linux 32 (debug, gcc-6.1)"
-      decription: "Linux 32 (debug, gcc-6.1)"
+      description: "Linux 32 (debug, gcc-6.1)"
 
     payload:
       command:
@@ -124,7 +124,7 @@
 - task:
     metadata:
       name: "Linux 32 (debug, NO_PKCS11_BYPASS=1)"
-      decription: "Linux 32 (debug, NO_PKCS11_BYPASS=1)"
+      description: "Linux 32 (debug, NO_PKCS11_BYPASS=1)"
 
     payload:
       command:
@@ -150,7 +150,7 @@
 - task:
     metadata:
       name: "Linux 32 (debug, no TLS 1.3)"
-      decription: "Linux 32 (debug, no TLS 1.3)"
+      description: "Linux 32 (debug, no TLS 1.3)"
 
     payload:
       command:

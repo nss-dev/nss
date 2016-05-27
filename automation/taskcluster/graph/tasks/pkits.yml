@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "NIST PKITS tests"
-      decription: "NIST PKITS tests"
+      description: "NIST PKITS tests"
 
     payload:
       command:

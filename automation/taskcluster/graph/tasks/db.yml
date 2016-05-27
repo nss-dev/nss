@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "DB tests"
-      decription: "DB tests"
+      description: "DB tests"
 
     payload:
       command:

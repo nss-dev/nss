@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "SSL tests (standard)"
-      decription: "SSL tests (standard)"
+      description: "SSL tests (standard)"
 
     payload:
       command:
@@ -19,7 +19,7 @@
 - task:
     metadata:
       name: "SSL tests (pkix)"
-      decription: "SSL tests (pkix)"
+      description: "SSL tests (pkix)"
 
     payload:
       command:
@@ -36,7 +36,7 @@
 - task:
     metadata:
       name: "SSL tests (sharedb)"
-      decription: "SSL tests (sharedb)"
+      description: "SSL tests (sharedb)"
 
     payload:
       command:
@@ -53,7 +53,7 @@
 - task:
     metadata:
       name: "SSL tests (upgradedb)"
-      decription: "SSL tests (upgradedb)"
+      description: "SSL tests (upgradedb)"
 
     payload:
       command:

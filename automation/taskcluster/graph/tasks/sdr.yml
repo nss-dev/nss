@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "SDR tests"
-      decription: "SDR tests"
+      description: "SDR tests"
 
     payload:
       command:

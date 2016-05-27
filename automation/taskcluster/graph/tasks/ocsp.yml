@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "OCSP tests"
-      decription: "OCSP tests"
+      description: "OCSP tests"
 
     payload:
       command:

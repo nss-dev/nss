@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "MemLeak tests (ocsp)"
-      decription: "MemLeak tests (ocsp)"
+      description: "MemLeak tests (ocsp)"
 
     payload:
       command:
@@ -23,7 +23,7 @@
 - task:
     metadata:
       name: "MemLeak tests (ssl_server, standard)"
-      decription: "MemLeak tests (ssl_server, standard)"
+      description: "MemLeak tests (ssl_server, standard)"
 
     payload:
       command:
@@ -47,7 +47,7 @@
 - task:
     metadata:
       name: "MemLeak tests (ssl_server, pkix)"
-      decription: "MemLeak tests (ssl_server, pkix)"
+      description: "MemLeak tests (ssl_server, pkix)"
 
     payload:
       command:
@@ -71,7 +71,7 @@
 - task:
     metadata:
       name: "MemLeak tests (ssl_server, sharedb)"
-      decription: "MemLeak tests (ssl_server, sharedb)"
+      description: "MemLeak tests (ssl_server, sharedb)"
 
     payload:
       command:
@@ -95,7 +95,7 @@
 - task:
     metadata:
       name: "MemLeak tests (ssl_server, upgradedb)"
-      decription: "MemLeak tests (ssl_server, upgradedb)"
+      description: "MemLeak tests (ssl_server, upgradedb)"
 
     payload:
       command:
@@ -119,7 +119,7 @@
 - task:
     metadata:
       name: "MemLeak tests (ssl_client, standard)"
-      decription: "MemLeak tests (ssl_client, standard)"
+      description: "MemLeak tests (ssl_client, standard)"
 
     payload:
       command:
@@ -143,7 +143,7 @@
 - task:
     metadata:
       name: "MemLeak tests (ssl_client, pkix)"
-      decription: "MemLeak tests (ssl_client, pkix)"
+      description: "MemLeak tests (ssl_client, pkix)"
 
     payload:
       command:
@@ -167,7 +167,7 @@
 - task:
     metadata:
       name: "MemLeak tests (ssl_client, sharedb)"
-      decription: "MemLeak tests (ssl_client, sharedb)"
+      description: "MemLeak tests (ssl_client, sharedb)"
 
     payload:
       command:
@@ -191,7 +191,7 @@
 - task:
     metadata:
       name: "MemLeak tests (ssl_client, upgradedb)"
-      decription: "MemLeak tests (ssl_client, upgradedb)"
+      description: "MemLeak tests (ssl_client, upgradedb)"
 
     payload:
       command:
@@ -215,7 +215,7 @@
 - task:
     metadata:
       name: "MemLeak tests (chains, standard)"
-      decription: "MemLeak tests (chains, standard)"
+      description: "MemLeak tests (chains, standard)"
 
     payload:
       command:
@@ -239,7 +239,7 @@
 - task:
     metadata:
       name: "MemLeak tests (chains, pkix)"
-      decription: "MemLeak tests (chains, pkix)"
+      description: "MemLeak tests (chains, pkix)"
 
     payload:
       command:
@@ -263,7 +263,7 @@
 - task:
     metadata:
       name: "MemLeak tests (chains, sharedb)"
-      decription: "MemLeak tests (chains, sharedb)"
+      description: "MemLeak tests (chains, sharedb)"
 
     payload:
       command:
@@ -287,7 +287,7 @@
 - task:
     metadata:
       name: "MemLeak tests (chains, upgradedb)"
-      decription: "MemLeak tests (chains, upgradedb)"
+      description: "MemLeak tests (chains, upgradedb)"
 
     payload:
       command:

@@ -2,7 +2,7 @@
 - task:
     metadata:
       name: "Merge tests"
-      decription: "Merge tests"
+      description: "Merge tests"
 
     payload:
       command:
