@@ -1,0 +1,68 @@
+---
+- task:
+    metadata:
+      name: "SSL tests (standard)"
+      decription: "SSL tests (standard)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_CYCLES: "standard"
+
+    extra:
+      treeherder:
+        symbol: standard
+
+- task:
+    metadata:
+      name: "SSL tests (pkix)"
+      decription: "SSL tests (pkix)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_CYCLES: "pkix"
+
+    extra:
+      treeherder:
+        symbol: pkix
+
+- task:
+    metadata:
+      name: "SSL tests (sharedb)"
+      decription: "SSL tests (sharedb)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_CYCLES: "sharedb"
+
+    extra:
+      treeherder:
+        symbol: sharedb
+
+- task:
+    metadata:
+      name: "SSL tests (upgradedb)"
+      decription: "SSL tests (upgradedb)"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_CYCLES: "upgradedb"
+
+    extra:
+      treeherder:
+        symbol: upgradedb

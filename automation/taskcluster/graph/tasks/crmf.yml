@@ -1,0 +1,17 @@
+---
+- task:
+    metadata:
+      name: "CRMF tests"
+      decription: "CRMF tests"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_TESTS: "crmf"
+
+    extra:
+      treeherder:
+        symbol: CRMF

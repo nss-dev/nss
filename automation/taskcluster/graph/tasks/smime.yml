@@ -1,0 +1,17 @@
+---
+- task:
+    metadata:
+      name: "S/MIME tests"
+      decription: "S/MIME tests"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_TESTS: "smime"
+
+    extra:
+      treeherder:
+        symbol: SMIME

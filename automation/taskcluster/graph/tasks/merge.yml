@@ -1,0 +1,17 @@
+---
+- task:
+    metadata:
+      name: "Merge tests"
+      decription: "Merge tests"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_TESTS: "merge"
+
+    extra:
+      treeherder:
+        symbol: Merge

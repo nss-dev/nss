@@ -1,0 +1,17 @@
+---
+- task:
+    metadata:
+      name: "Cert tests"
+      decription: "Cert tests"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_TESTS: "cert"
+
+    extra:
+      treeherder:
+        symbol: Cert

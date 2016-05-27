@@ -1,0 +1,17 @@
+---
+- task:
+    metadata:
+      name: "SDR tests"
+      decription: "SDR tests"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_TESTS: "sdr"
+
+    extra:
+      treeherder:
+        symbol: SDR

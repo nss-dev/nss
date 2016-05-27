@@ -1,0 +1,17 @@
+---
+- task:
+    metadata:
+      name: "OCSP tests"
+      decription: "OCSP tests"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_TESTS: "ocsp"
+
+    extra:
+      treeherder:
+        symbol: OCSP

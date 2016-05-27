@@ -1,0 +1,18 @@
+---
+- task:
+    metadata:
+      name: "clang-format-3.8"
+      decription: "clang-format-3.8"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_clang_format.sh nss/lib/ssl"
+
+    extra:
+      treeherder:
+        build:
+          platform: nss-tools
+        symbol: clang-format-3.8
+  reruns: 0

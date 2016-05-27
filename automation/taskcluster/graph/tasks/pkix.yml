@@ -1,0 +1,17 @@
+---
+- task:
+    metadata:
+      name: "libpkix tests"
+      decription: "libpkix tests"
+
+    payload:
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      env:
+        NSS_TESTS: "libpkix"
+
+    extra:
+      treeherder:
+        symbol: PKIX
