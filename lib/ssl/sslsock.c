@@ -63,26 +63,26 @@ static sslOptions ssl_defaults = {
     2,                     /* requireCertificate */
     PR_FALSE,              /* handshakeAsClient  */
     PR_FALSE,              /* handshakeAsServer  */
-    PR_FALSE,                /* noCache            */
-    PR_FALSE,                /* fdx                */
-    PR_TRUE,                 /* detectRollBack     */
-    PR_FALSE,                /* noStepDown         */
-    PR_FALSE,                /* bypassPKCS11       */
-    PR_FALSE,                /* noLocks            */
-    PR_FALSE,                /* enableSessionTickets */
-    PR_FALSE,                /* enableDeflate      */
-    2,                       /* enableRenegotiation (default: requires extension) */
-    PR_FALSE,                /* requireSafeNegotiation */
-    PR_FALSE,                /* enableFalseStart   */
-    PR_TRUE,                 /* cbcRandomIV        */
-    PR_FALSE,                /* enableOCSPStapling */
-    PR_TRUE,                 /* enableNPN          */
-    PR_FALSE,                /* enableALPN         */
-    PR_TRUE,                 /* reuseServerECDHEKey */
-    PR_FALSE,                /* enableFallbackSCSV */
-    PR_TRUE,                 /* enableServerDhe */
-    PR_FALSE,                /* enableExtendedMS    */
-    PR_FALSE,                /* enableSignedCertTimestamps */
+    PR_FALSE,              /* noCache            */
+    PR_FALSE,              /* fdx                */
+    PR_TRUE,               /* detectRollBack     */
+    PR_FALSE,              /* noStepDown         */
+    PR_FALSE,              /* bypassPKCS11       */
+    PR_FALSE,              /* noLocks            */
+    PR_FALSE,              /* enableSessionTickets */
+    PR_FALSE,              /* enableDeflate      */
+    2,                     /* enableRenegotiation (default: requires extension) */
+    PR_FALSE,              /* requireSafeNegotiation */
+    PR_FALSE,              /* enableFalseStart   */
+    PR_TRUE,               /* cbcRandomIV        */
+    PR_FALSE,              /* enableOCSPStapling */
+    PR_TRUE,               /* enableNPN          */
+    PR_FALSE,              /* enableALPN         */
+    PR_TRUE,               /* reuseServerECDHEKey */
+    PR_FALSE,              /* enableFallbackSCSV */
+    PR_TRUE,               /* enableServerDhe */
+    PR_FALSE,              /* enableExtendedMS    */
+    PR_FALSE,              /* enableSignedCertTimestamps */
 };
 
 /*
