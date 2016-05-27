@@ -772,6 +772,11 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
             break;
 
         case SSL_ENABLE_RENEGOTIATION:
+            if (IS_DTLS(ss) && on != SSL_RENEGOTIATE_NEVER) {
+                PORT_SetError(SEC_ERROR_INVALID_ARGS);
+                rv = SECFailure;
+                break;
+            }
             ss->opt.enableRenegotiation = on;
             break;
 
@@ -3727,6 +3732,9 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
         return NULL;
     }
     ss->opt = ssl_defaults;
+    if (protocolVariant == ssl_variant_datagram) {
+        ss->opt.enableRenegotiation = SSL_RENEGOTIATE_NEVER;
+    }
     ss->opt.useSocks = PR_FALSE;
     ss->opt.noLocks = !makeLocks;
     ss->vrange = *VERSIONS_DEFAULTS(protocolVariant);
