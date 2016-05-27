@@ -11,13 +11,9 @@
         - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
       env:
         NSS_MEMLEAK_TESTS: "ocsp"
-        NSS_TESTS: "memleak"
 
     extra:
       treeherder:
-        collection:
-          debug: !!js/undefined # override
-          memleak: true
         symbol: ocsp
 
 - task:
@@ -33,13 +29,9 @@
       env:
         NSS_MEMLEAK_TESTS: "ssl_server"
         NSS_CYCLES: "standard"
-        NSS_TESTS: "memleak"
 
     extra:
       treeherder:
-        collection:
-          debug: !!js/undefined # override
-          memleak: true
         groupSymbol: Server
         groupName: MemLeak tests (ssl_server)
         symbol: standard
@@ -56,14 +48,10 @@
         - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
       env:
         NSS_MEMLEAK_TESTS: "ssl_server"
-        NSS_TESTS: "memleak"
         NSS_CYCLES: "pkix"
 
     extra:
       treeherder:
-        collection:
-          debug: !!js/undefined # override
-          memleak: true
         groupSymbol: Server
         groupName: MemLeak tests (ssl_server)
         symbol: pkix
@@ -81,13 +69,9 @@
       env:
         NSS_MEMLEAK_TESTS: "ssl_server"
         NSS_CYCLES: "sharedb"
-        NSS_TESTS: "memleak"
 
     extra:
       treeherder:
-        collection:
-          debug: !!js/undefined # override
-          memleak: true
         groupSymbol: Server
         groupName: MemLeak tests (ssl_server)
         symbol: sharedb
@@ -105,13 +89,9 @@
       env:
         NSS_MEMLEAK_TESTS: "ssl_server"
         NSS_CYCLES: "upgradedb"
-        NSS_TESTS: "memleak"
 
     extra:
       treeherder:
-        collection:
-          debug: !!js/undefined # override
-          memleak: true
         groupSymbol: Server
         groupName: MemLeak tests (ssl_server)
         symbol: upgradedb
@@ -129,13 +109,9 @@
       env:
         NSS_MEMLEAK_TESTS: "ssl_client"
         NSS_CYCLES: "standard"
-        NSS_TESTS: "memleak"
 
     extra:
       treeherder:
-        collection:
-          debug: !!js/undefined # override
-          memleak: true
         groupSymbol: Client
         groupName: MemLeak tests (ssl_client)
         symbol: standard
@@ -152,14 +128,10 @@
         - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
       env:
         NSS_MEMLEAK_TESTS: "ssl_client"
-        NSS_TESTS: "memleak"
         NSS_CYCLES: "pkix"
 
     extra:
       treeherder:
-        collection:
-          debug: !!js/undefined # override
-          memleak: true
         groupSymbol: Client
         groupName: MemLeak tests (ssl_client)
         symbol: pkix
@@ -177,13 +149,9 @@
       env:
         NSS_MEMLEAK_TESTS: "ssl_client"
         NSS_CYCLES: "sharedb"
-        NSS_TESTS: "memleak"
 
     extra:
       treeherder:
-        collection:
-          debug: !!js/undefined # override
-          memleak: true
         groupSymbol: Client
         groupName: MemLeak tests (ssl_client)
         symbol: sharedb
@@ -201,13 +169,9 @@
       env:
         NSS_MEMLEAK_TESTS: "ssl_client"
         NSS_CYCLES: "upgradedb"
-        NSS_TESTS: "memleak"
 
     extra:
       treeherder:
-        collection:
-          debug: !!js/undefined # override
-          memleak: true
         groupSymbol: Client
         groupName: MemLeak tests (ssl_client)
         symbol: upgradedb
@@ -225,13 +189,9 @@
       env:
         NSS_MEMLEAK_TESTS: "chains"
         NSS_CYCLES: "standard"
-        NSS_TESTS: "memleak"
 
     extra:
       treeherder:
-        collection:
-          debug: !!js/undefined # override
-          memleak: true
         groupSymbol: Chains
         groupName: MemLeak tests (chains)
         symbol: standard
@@ -248,14 +208,10 @@
         - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
       env:
         NSS_MEMLEAK_TESTS: "chains"
-        NSS_TESTS: "memleak"
         NSS_CYCLES: "pkix"
 
     extra:
       treeherder:
-        collection:
-          debug: !!js/undefined # override
-          memleak: true
         groupSymbol: Chains
         groupName: MemLeak tests (chains)
         symbol: pkix
@@ -273,13 +229,9 @@
       env:
         NSS_MEMLEAK_TESTS: "chains"
         NSS_CYCLES: "sharedb"
-        NSS_TESTS: "memleak"
 
     extra:
       treeherder:
-        collection:
-          debug: !!js/undefined # override
-          memleak: true
         groupSymbol: Chains
         groupName: MemLeak tests (chains)
         symbol: sharedb
@@ -297,13 +249,9 @@
       env:
         NSS_MEMLEAK_TESTS: "chains"
         NSS_CYCLES: "upgradedb"
-        NSS_TESTS: "memleak"
 
     extra:
       treeherder:
-        collection:
-          debug: !!js/undefined # override
-          memleak: true
         groupSymbol: Chains
         groupName: MemLeak tests (chains)
         symbol: upgradedb

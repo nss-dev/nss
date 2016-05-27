@@ -81,6 +81,11 @@ function generateTasks(definition) {
         "tc-treeherder.nss." + TC_REVISION_HASH
       ],
 
+      metadata: {
+        owner: TC_OWNER,
+        source: TC_SOURCE
+      },
+
       payload: {
         image: TC_DOCKER_IMAGE,
         maxRunTime: 3600,
@@ -89,11 +94,6 @@ function generateTasks(definition) {
           NSS_HEAD_REPOSITORY: NSS_HEAD_REPOSITORY,
           NSS_HEAD_REVISION: NSS_HEAD_REVISION
         }
-      },
-
-      metadata: {
-        owner: TC_OWNER,
-        source: TC_SOURCE
       },
 
       extra: {

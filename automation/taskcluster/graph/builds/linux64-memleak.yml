@@ -1,0 +1,32 @@
+---
+- task:
+    metadata:
+      name: "Linux 64 (MemLeak, debug)"
+      description: "Linux 64 (MemLeak, debug)"
+
+    payload:
+      artifacts:
+        public:
+          type: directory
+          path: /home/worker/artifacts
+          expires: !from_now 24
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "bin/checkout.sh && nss/automation/taskcluster/scripts/build.sh"
+      env:
+        GCC_VERSION: gcc-5
+        GXX_VERSION: g++-5
+        NSS_TESTS: "memleak"
+        USE_64: 1
+
+    extra:
+      treeherder:
+        build:
+          platform: linux64
+        collection:
+          memleak: true
+        symbol: B
+
+  dependents:
+    - memleak
