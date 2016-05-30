@@ -71,8 +71,8 @@ function generateTasks(definition) {
       schedulerId: "task-graph-scheduler",
 
       scopes: [
-        "queue:route:tc-treeherder-stage.nss." + TC_REVISION,
-        "queue:route:tc-treeherder.nss." + TC_REVISION,
+        "queue:route:tc-treeherder-stage.nss." + TC_REVISION_HASH,
+        "queue:route:tc-treeherder.nss." + TC_REVISION_HASH,
         "scheduler:extend-task-graph:*"
       ],
 
