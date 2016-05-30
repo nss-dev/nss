@@ -234,7 +234,7 @@ ssl_DupSocket(sslSocket *os)
     ss->ssl3.dtlsSRTPCipherCount = os->ssl3.dtlsSRTPCipherCount;
     PORT_Memcpy(ss->ssl3.signatureAlgorithms, os->ssl3.signatureAlgorithms,
                 sizeof(ss->ssl3.signatureAlgorithms[0]) *
-                os->ssl3.signatureAlgorithmCount);
+                    os->ssl3.signatureAlgorithmCount);
     ss->ssl3.signatureAlgorithmCount = os->ssl3.signatureAlgorithmCount;
     ss->ssl3.downgradeCheckVersion = os->ssl3.downgradeCheckVersion;
 
