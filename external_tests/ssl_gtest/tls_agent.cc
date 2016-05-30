@@ -659,6 +659,7 @@ void TlsAgent::ReadBytes() {
 
   int32_t rv = PR_Read(ssl_fd_, block, sizeof(block));
   LOG("ReadBytes " << rv);
+  int32_t err;
 
   if (rv >= 0) {
     size_t count = static_cast<size_t>(rv);
@@ -667,7 +668,7 @@ void TlsAgent::ReadBytes() {
       recv_ctr_++;
     }
   } else {
-    int32_t err = PR_GetError();
+    err = PR_GetError();
     LOG("Read error " << err << ": " << PORT_ErrorToString(err));
     if (err != PR_WOULD_BLOCK_ERROR && expected_read_error_) {
       error_code_ = err;
@@ -675,7 +676,8 @@ void TlsAgent::ReadBytes() {
   }
 
   // If closed, then don't bother waiting around.
-  if (rv) {
+  if (rv > 0 || (rv < 0 && err == PR_WOULD_BLOCK_ERROR)) {
+    LOG("Re-arming");
     Poller::Instance()->Wait(READABLE_EVENT, adapter_, this,
                              &TlsAgent::ReadableCallback);
   }
