@@ -252,9 +252,8 @@ tls13_GetHashSize(sslSocket *ss)
             return 48;
         default:
             PORT_Assert(0);
-            return ssl_hash_sha256;
     }
-    return ssl_hash_sha256;
+    return 32;
 }
 
 CK_MECHANISM_TYPE
@@ -428,7 +427,7 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
     SS = PK11_UnwrapSymKeyWithFlags(wrapKey, sid->u.ssl3.masterWrapMech,
                                     NULL, &wrappedMS,
                                     CKM_SSL3_MASTER_KEY_DERIVE,
-                                    CKA_DERIVE, hashType,
+                                    CKA_DERIVE, tls13_GetHashSize(ss),
                                     CKF_SIGN | CKF_VERIFY);
     PK11_FreeSymKey(wrapKey);
     if (!SS) {

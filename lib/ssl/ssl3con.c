@@ -4751,7 +4751,7 @@ ssl3_AppendSignatureAndHashAlgorithm(
     PRUint8 serialized[2];
     SECOidTag hashAlg = ssl3_TLSHashAlgorithmToOID(sigAndHash->hashAlg);
     if (hashAlg == SEC_OID_UNKNOWN) {
-        PORT_Assert(hashAlg != SEC_OID_UNKNOWN);
+        PORT_Assert(0);
         PORT_SetError(SSL_ERROR_UNSUPPORTED_HASH_ALGORITHM);
         return SECFailure;
     }
@@ -6861,6 +6861,12 @@ ssl3_SetCipherSuite(sslSocket *ss, ssl3CipherSuite chosenSuite)
     ss->ssl3.hs.suite_def = ssl_LookupCipherSuiteDef(chosenSuite);
     ss->ssl3.hs.kea_def = &kea_defs[ss->ssl3.hs.suite_def->key_exchange_alg];
     ss->ssl3.hs.preliminaryInfo |= ssl_preinfo_cipher_suite;
+
+    if (!ss->ssl3.hs.suite_def) {
+        PORT_Assert(0);
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
 
     /* Now we've have a cipher suite, initialize the handshake hashes. */
     return ssl3_InitHandshakeHashes(ss);
