@@ -33,6 +33,7 @@ INCLUDES += -I$(CORE_DEPTH)/external_tests/google_test/gtest/include \
 REQUIRES = nspr nss libdbm gtest
 
 PROGRAM = ssl_gtest
-EXTRA_LIBS = $(DIST)/lib/$(LIB_PREFIX)gtest.$(LIB_SUFFIX)
+EXTRA_LIBS = $(DIST)/lib/$(LIB_PREFIX)gtest.$(LIB_SUFFIX) \
+             $(DIST)/lib/$(LIB_PREFIX)softokn3.$(DLL_SUFFIX)
 
 USE_STATIC_LIBS = 1
