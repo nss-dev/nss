@@ -327,6 +327,12 @@ void TlsConnectTestBase::ConfigureSessionCache(SessionResumptionMode client,
                                                SessionResumptionMode server) {
   client_->ConfigureSessionCache(client);
   server_->ConfigureSessionCache(server);
+  if ((server & RESUME_TICKET) != 0) {
+    // This is an abomination.  NSS encrypts session tickets with the server's
+    // RSA public key.  That means we need the server to have an RSA certificate
+    // even if it won't be used for the connection.
+    server_->ConfigServerCert(TlsAgent::kServerRsaDecrypt);
+  }
 }
 
 void TlsConnectTestBase::CheckResumption(SessionResumptionMode expected) {
