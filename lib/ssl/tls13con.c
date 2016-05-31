@@ -391,6 +391,12 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
         return SECFailure;
     }
 
+    hashType = tls13_GetHash(ss);
+    if (hashType != ssl_hash_sha256 && hashType != ssl_hash_sha384) {
+        PORT_Assert(0);
+        return SECFailure;
+    }
+
     /* If we are the server, we compute the wrapping key, but if we
      * are the client, it's coordinates are stored with the ticket. */
     if (ss->sec.isServer) {
@@ -422,8 +428,6 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
     wrappedMS.len = sid->u.ssl3.keys.wrapped_master_secret_len;
 
     /* unwrap the "master secret" which becomes SS. */
-    hashType = tls13_GetHash(ss);
-    PORT_Assert(hashType == ssl_hash_sha256 || hashType == ssl_hash_sha384);
     SS = PK11_UnwrapSymKeyWithFlags(wrapKey, sid->u.ssl3.masterWrapMech,
                                     NULL, &wrappedMS,
                                     CKM_SSL3_MASTER_KEY_DERIVE,
