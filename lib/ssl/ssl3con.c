@@ -99,8 +99,13 @@ static ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED] = {
  /* ECDHE-PSK from [draft-mattsson-tls-ecdhe-psk-aead]. We only enable PSK if we
   * are doing TLS 1.3 PSK-resumption.
   */
- { TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256,   SSL_ALLOWED, PR_TRUE,  PR_FALSE},
- { TLS_DHE_PSK_WITH_AES_128_GCM_SHA256,   SSL_ALLOWED, PR_TRUE,  PR_FALSE},
+ { TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE },
+ { TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE },
+ { TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384, SSL_ALLOWED, PR_TRUE, PR_FALSE },
+ { TLS_DHE_PSK_WITH_AES_128_GCM_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE },
+ { TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE },
+ { TLS_DHE_PSK_WITH_AES_256_GCM_SHA384, SSL_ALLOWED, PR_TRUE, PR_FALSE },
+
  { TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE},
  { TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,   SSL_ALLOWED, PR_TRUE, PR_FALSE},
  { TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE},
@@ -473,7 +478,11 @@ static const ssl3CipherSuiteDef cipher_suite_defs[] =
     {TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,  cipher_aes_256, mac_sha, kea_ecdhe_rsa, ssl_hash_none},
 
     {TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256, cipher_aes_128_gcm, mac_aead, kea_ecdhe_psk, ssl_hash_sha256},
+    {TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256, cipher_chacha20, mac_aead, kea_ecdhe_psk, ssl_hash_sha256},
+    {TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384, cipher_aes_256_gcm, mac_aead, kea_ecdhe_psk, ssl_hash_sha384},
     {TLS_DHE_PSK_WITH_AES_128_GCM_SHA256, cipher_aes_128_gcm, mac_aead, kea_dhe_psk, ssl_hash_sha256},
+    {TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256, cipher_chacha20, mac_aead, kea_dhe_psk, ssl_hash_sha256},
+    {TLS_DHE_PSK_WITH_AES_256_GCM_SHA384, cipher_aes_256_gcm, mac_aead, kea_dhe_psk, ssl_hash_sha384},
 };
 /* clang-format on */
 
@@ -790,7 +799,11 @@ ssl3_CipherSuiteAllowedForVersionRange(
                    vrange->min < SSL_LIBRARY_VERSION_TLS_1_3;
 
         case TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256:
+        case TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256:
+        case TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384:
         case TLS_DHE_PSK_WITH_AES_128_GCM_SHA256:
+        case TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256:
+        case TLS_DHE_PSK_WITH_AES_256_GCM_SHA384:
             return vrange->max >= SSL_LIBRARY_VERSION_TLS_1_3;
 
         default:
