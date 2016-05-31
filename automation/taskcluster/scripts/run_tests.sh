@@ -3,6 +3,13 @@
 set -v -e -x
 
 if [ $(id -u) = 0 ]; then
+    # Switch compilers.
+    GCC=${GCC_VERSION:-gcc-5}
+    GXX=${GXX_VERSION:-g++-5}
+
+    update-alternatives --set gcc "/usr/bin/$GCC"
+    update-alternatives --set g++ "/usr/bin/$GXX"
+
     # Stupid Docker.
     echo "127.0.0.1 localhost.localdomain" >> /etc/hosts
 
