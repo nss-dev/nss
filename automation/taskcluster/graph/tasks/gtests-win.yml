@@ -1,5 +1,7 @@
 ---
 - task:
+    workerType: ttaubert-win2012r2
+
     metadata:
       name: "GTests"
       description: "GTests"
@@ -10,6 +12,7 @@
         - "time /t && bash -c nss/automation/taskcluster/windows/run_tests.sh"
       env:
         NSS_TESTS: "ssl_gtests gtests"
+      image: !!js/undefined
 
     extra:
       treeherder:

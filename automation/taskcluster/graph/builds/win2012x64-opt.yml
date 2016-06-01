@@ -21,6 +21,7 @@
         HOST: localhost
         BUILD_OPT: "1"
         USE_64: "1"
+      image: !!js/undefined
 
     extra:
       treeherder:
