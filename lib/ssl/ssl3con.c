@@ -1428,6 +1428,9 @@ ssl3_ComputeExportRSAKeyHash(SSLHashType hashAlg,
     unsigned int bufLen;
     PRUint8 buf[2 * SSL3_RANDOM_LENGTH + 2 + 4096 / 8 + 2 + 4096 / 8];
 
+    PORT_Assert(publicExponent.data);
+    PORT_Assert(modulus.data);
+
     bufLen = 2 * SSL3_RANDOM_LENGTH + 2 + modulus.len + 2 + publicExponent.len;
     if (bufLen <= sizeof buf) {
         hashBuf = buf;
@@ -1458,18 +1461,21 @@ ssl3_ComputeExportRSAKeyHash(SSLHashType hashAlg,
                                    bypassPKCS11);
 
     PRINT_BUF(95, (NULL, "RSAkey hash: ", hashBuf, bufLen));
-    if (hashAlg == ssl_hash_none) {
-        PRINT_BUF(95, (NULL, "RSAkey hash: MD5 result",
-                       hashes->u.s.md5, MD5_LENGTH));
-        PRINT_BUF(95, (NULL, "RSAkey hash: SHA1 result",
-                       hashes->u.s.sha, SHA1_LENGTH));
-    } else {
-        PRINT_BUF(95, (NULL, "RSAkey hash: result",
-                       hashes->u.raw, hashes->len));
+    if (rv == SECSuccess) {
+        if (hashAlg == ssl_hash_none) {
+            PRINT_BUF(95, (NULL, "RSAkey hash: MD5 result",
+                           hashes->u.s.md5, MD5_LENGTH));
+            PRINT_BUF(95, (NULL, "RSAkey hash: SHA1 result",
+                           hashes->u.s.sha, SHA1_LENGTH));
+        } else {
+            PRINT_BUF(95, (NULL, "RSAkey hash: result",
+                           hashes->u.raw, hashes->len));
+        }
     }
 
-    if (hashBuf != buf && hashBuf != NULL)
+    if (hashBuf != buf && hashBuf != NULL) {
         PORT_Free(hashBuf);
+    }
     return rv;
 }
 
@@ -1484,6 +1490,9 @@ ssl3_ComputeDHKeyHash(sslSocket *ss, SSLHashType hashAlg, SSL3Hashes *hashes,
     SECStatus rv = SECSuccess;
     unsigned int bufLen;
     PRUint8 buf[2 * SSL3_RANDOM_LENGTH + 2 + 4096 / 8 + 2 + 4096 / 8];
+
+    PORT_Assert(dh_p.data);
+    PORT_Assert(dh_g.data);
 
     bufLen = 2 * SSL3_RANDOM_LENGTH +
              2 + dh_p.len +
@@ -1529,14 +1538,16 @@ ssl3_ComputeDHKeyHash(sslSocket *ss, SSLHashType hashAlg, SSL3Hashes *hashes,
                                    ss->opt.bypassPKCS11);
 
     PRINT_BUF(95, (NULL, "DHkey hash: ", hashBuf, bufLen));
-    if (hashAlg == ssl_hash_none) {
-        PRINT_BUF(95, (NULL, "DHkey hash: MD5 result",
-                       hashes->u.s.md5, MD5_LENGTH));
-        PRINT_BUF(95, (NULL, "DHkey hash: SHA1 result",
-                       hashes->u.s.sha, SHA1_LENGTH));
-    } else {
-        PRINT_BUF(95, (NULL, "DHkey hash: result",
-                       hashes->u.raw, hashes->len));
+    if (rv == SECSuccess) {
+        if (hashAlg == ssl_hash_none) {
+            PRINT_BUF(95, (NULL, "DHkey hash: MD5 result",
+                           hashes->u.s.md5, MD5_LENGTH));
+            PRINT_BUF(95, (NULL, "DHkey hash: SHA1 result",
+                           hashes->u.s.sha, SHA1_LENGTH));
+        } else {
+            PRINT_BUF(95, (NULL, "DHkey hash: result",
+                           hashes->u.raw, hashes->len));
+        }
     }
 
     if (hashBuf != buf && hashBuf != NULL)
