@@ -5,6 +5,7 @@
       description: "SSL tests (standard)"
 
     payload:
+      maxRunTime: 7200
       command:
         - "/bin/bash"
         - "-c"
