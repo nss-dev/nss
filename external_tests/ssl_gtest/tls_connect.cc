@@ -113,7 +113,8 @@ TlsConnectTestBase::TlsConnectTestBase(Mode mode, uint16_t version)
         version_(version),
         expected_resumption_mode_(RESUME_NONE),
         session_ids_(),
-        expect_extended_master_secret_(false) {
+        expect_extended_master_secret_(false),
+        expect_early_data_accepted_(false) {
   std::string v;
   if (mode_ == DGRAM && version_ == SSL_LIBRARY_VERSION_TLS_1_1) {
     v = "1.0";
@@ -269,8 +270,10 @@ void TlsConnectTestBase::CheckConnected() {
   }
 
   CheckExtendedMasterSecret();
-
+  CheckEarlyDataAccepted();
   CheckResumption(expected_resumption_mode_);
+  client_->CheckSecretsDestroyed();
+  server_->CheckSecretsDestroyed();
 }
 
 void TlsConnectTestBase::CheckKeys(SSLKEAType keaType,
@@ -385,13 +388,61 @@ void TlsConnectTestBase::SendReceive() {
   Receive(50);
 }
 
+// Do a first connection so we can do 0-RTT on the second one.
+void TlsConnectTestBase::SetupForZeroRtt() {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->Set0RttEnabled(true); // So we signal that we allow 0-RTT.
+  Connect();
+  SendReceive(); // Need to read so that we absorb the session ticket.
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+
+  Reset();
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->StartConnect();
+  client_->StartConnect();
+}
+
+void TlsConnectTestBase::ZeroRttSendReceive(bool expect_success) {
+  const char *k0RttData = "ABCDEF";
+  const PRInt32 k0RttDataLen = static_cast<PRInt32>(strlen(k0RttData));
+
+  client_->Handshake(); // Send ClientHello.
+  PRInt32 rv = PR_Write(client_->ssl_fd(),
+                        k0RttData, k0RttDataLen); // 0-RTT write.
+  EXPECT_EQ(k0RttDataLen, rv);
+
+  server_->Handshake(); // Consume ClientHello, EE, Finished.
+  uint8_t buf[k0RttDataLen];
+  rv = PR_Read(server_->ssl_fd(), buf, k0RttDataLen); // 0-RTT read
+  if (expect_success) {
+    std::cerr << "0-RTT read " << rv << " bytes\n";
+    EXPECT_EQ(k0RttDataLen, rv);
+  } else {
+    EXPECT_EQ(SECFailure, rv);
+    EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
+  }
+
+  // Do a second read. this should fail.
+  rv = PR_Read(server_->ssl_fd(),
+               buf, k0RttDataLen);
+  EXPECT_EQ(SECFailure, rv);
+  EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
+
+}
+
 void TlsConnectTestBase::Receive(size_t amount) {
   WAIT_(client_->received_bytes() == amount &&
         server_->received_bytes() == amount, 2000);
   ASSERT_EQ(amount, client_->received_bytes());
   ASSERT_EQ(amount, server_->received_bytes());
 }
-
 
 void TlsConnectTestBase::ExpectExtendedMasterSecret(bool expected) {
   expect_extended_master_secret_ = expected;
@@ -400,6 +451,15 @@ void TlsConnectTestBase::ExpectExtendedMasterSecret(bool expected) {
 void TlsConnectTestBase::CheckExtendedMasterSecret() {
   client_->CheckExtendedMasterSecret(expect_extended_master_secret_);
   server_->CheckExtendedMasterSecret(expect_extended_master_secret_);
+}
+
+void TlsConnectTestBase::ExpectEarlyDataAccepted(bool expected) {
+  expect_early_data_accepted_ = expected;
+}
+
+void TlsConnectTestBase::CheckEarlyDataAccepted() {
+  client_->CheckEarlyDataAccepted(expect_early_data_accepted_);
+  server_->CheckEarlyDataAccepted(expect_early_data_accepted_);
 }
 
 TlsConnectGeneric::TlsConnectGeneric()

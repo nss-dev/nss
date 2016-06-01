@@ -813,6 +813,10 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
             ss->opt.requireDHENamedGroups = on;
             break;
 
+        case SSL_ENABLE_0RTT_DATA:
+            ss->opt.enable0RttData = on;
+            break;
+
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             rv = SECFailure;
@@ -943,7 +947,9 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
         case SSL_REQUIRE_DH_NAMED_GROUPS:
             on = ss->opt.requireDHENamedGroups;
             break;
-
+        case SSL_ENABLE_0RTT_DATA:
+            on = ss->opt.enable0RttData;
+            break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             rv = SECFailure;
@@ -1058,7 +1064,9 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
         case SSL_ENABLE_SIGNED_CERT_TIMESTAMPS:
             on = ssl_defaults.enableSignedCertTimestamps;
             break;
-
+        case SSL_ENABLE_0RTT_DATA:
+            on = ssl_defaults.enable0RttData;
+            break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             rv = SECFailure;
@@ -1249,6 +1257,10 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 
         case SSL_ENABLE_SIGNED_CERT_TIMESTAMPS:
             ssl_defaults.enableSignedCertTimestamps = on;
+            break;
+
+        case SSL_ENABLE_0RTT_DATA:
+            ssl_defaults.enable0RttData = on;
             break;
 
         default:
@@ -3719,7 +3731,7 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     PR_INIT_CLIST(&ss->ssl3.hs.lastMessageFlight);
     PR_INIT_CLIST(&ss->ssl3.hs.remoteKeyShares);
     PR_INIT_CLIST(&ss->ssl3.hs.cipherSpecs);
-
+    PR_INIT_CLIST(&ss->ssl3.hs.bufferedEarlyData);
     if (makeLocks) {
         rv = ssl_MakeLocks(ss);
         if (rv != SECSuccess)
