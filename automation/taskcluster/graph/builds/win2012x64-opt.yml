@@ -29,3 +29,6 @@
         collection:
           opt: true
         symbol: B
+
+  dependents:
+    - gtests-win

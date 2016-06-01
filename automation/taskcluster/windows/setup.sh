@@ -4,7 +4,7 @@ set -v -e -x
 
 hg clone https://hg.mozilla.org/build/tools
 
-tools/scripts/tooltool/tooltool_wrapper.sh $(dirname $0)/releng.manifest https://api.pub.build.mozilla.org/tooltool/ setup.sh /c/mozilla-build/python/python.exe /c/builds/tooltool.py --authentication-file /c/builds/relengapi.tok -c /c/builds/tooltool_cache
+tools/scripts/tooltool/tooltool_wrapper.sh $(dirname $0)/releng.manifest https://api.pub.build.mozilla.org/tooltool/ non-existant-file.sh /c/mozilla-build/python/python.exe /c/builds/tooltool.py --authentication-file /c/builds/relengapi.tok -c /c/builds/tooltool_cache
 VSPATH="$(pwd)/vs2015u2"
 
 export WINDOWSSDKDIR="${VSPATH}/SDK"
