@@ -58,6 +58,7 @@
 const PRUint16 SSL_ImplementedCiphers[] = {
     /* ECDHE-PSK from [draft-mattsson-tls-ecdhe-psk-aead]. */
     TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256,
+    TLS_DHE_PSK_WITH_AES_128_GCM_SHA256,
 
     TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
     TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,

@@ -163,6 +163,7 @@ SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
 #define K_ECDH "ECDH", ssl_kea_ecdh
 #define K_ECDHE "ECDHE", ssl_kea_ecdh
 #define K_ECDHE_PSK "ECDHE-PSK", ssl_kea_ecdh_psk
+#define K_DHE_PSK "DHE-PSK", ssl_kea_dh_psk
 
 /* record protection cipher */
 #define C_SEED "SEED", calg_seed
@@ -222,6 +223,7 @@ static const SSLCipherSuiteInfo suiteInfo[] = {
     { 0, CS(DHE_DSS_WITH_RC4_128_SHA), S_DSA, K_DHE, C_RC4, B_128, M_SHA, F_NFIPS_STD, A_DSA },
     { 0, CS(DHE_RSA_WITH_AES_128_CBC_SHA256), S_RSA, K_DHE, C_AES, B_128, M_SHA256, F_FIPS_STD, A_RSAS },
     { 0, CS(DHE_RSA_WITH_AES_128_GCM_SHA256), S_RSA, K_DHE, C_AESGCM, B_128, M_AEAD_128, F_FIPS_STD, A_RSAS },
+    { 0, CS(DHE_PSK_WITH_AES_128_GCM_SHA256), S_PSK, K_DHE_PSK, C_AESGCM, B_128, M_AEAD_128, F_FIPS_STD, A_PSK },
     { 0, CS(DHE_RSA_WITH_AES_128_CBC_SHA), S_RSA, K_DHE, C_AES, B_128, M_SHA, F_FIPS_STD, A_RSAS },
     { 0, CS(DHE_DSS_WITH_AES_128_GCM_SHA256), S_DSA, K_DHE, C_AESGCM, B_128, M_AEAD_128, F_FIPS_STD, A_DSA },
     { 0, CS(DHE_DSS_WITH_AES_128_CBC_SHA), S_DSA, K_DHE, C_AES, B_128, M_SHA, F_FIPS_STD, A_DSA },
