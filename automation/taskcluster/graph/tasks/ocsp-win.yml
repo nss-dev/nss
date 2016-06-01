@@ -1,0 +1,19 @@
+---
+- task:
+    workerType: ttaubert-win2012r2
+
+    metadata:
+      name: "OCSP tests"
+      description: "OCSP tests"
+
+    payload:
+      command:
+        - "time /t && hg clone -r %NSS_HEAD_REVISION% %NSS_HEAD_REPOSITORY% nss"
+        - "time /t && bash -c nss/automation/taskcluster/windows/run_tests.sh"
+      env:
+        NSS_TESTS: "ocsp"
+      image: !!js/undefined
+
+    extra:
+      treeherder:
+        symbol: OCSP

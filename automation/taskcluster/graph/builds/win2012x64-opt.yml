@@ -33,4 +33,8 @@
 
   dependents:
     - cipher-win
+    - ec-win
     - gtests-win
+    - ocsp-win
+    - pkix-win
+    - sdr-win
