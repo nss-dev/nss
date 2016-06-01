@@ -214,7 +214,14 @@ void TlsAgent::StartConnect() {
   SetState(STATE_CONNECTING);
 }
 
-void TlsAgent::DisableCiphersByKeyExchange(SSLKEAType kea) {
+void TlsAgent::DisableAllCiphers() {
+  for (size_t i = 0; i < SSL_NumImplementedCiphers; ++i) {
+    SECStatus rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], PR_FALSE);
+    EXPECT_EQ(SECSuccess, rv);
+  }
+}
+
+void TlsAgent::EnableCiphersByKeyExchange(SSLKEAType kea) {
   EXPECT_TRUE(EnsureTlsSetup());
 
   for (size_t i = 0; i < SSL_NumImplementedCiphers; ++i) {
@@ -226,7 +233,7 @@ void TlsAgent::DisableCiphersByKeyExchange(SSLKEAType kea) {
     EXPECT_EQ(sizeof(csinfo), csinfo.length);
 
     if (csinfo.keaType == kea) {
-      rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], PR_FALSE);
+      rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], PR_TRUE);
       EXPECT_EQ(SECSuccess, rv);
     }
   }
@@ -242,18 +249,17 @@ void TlsAgent::EnableCiphersByAuthType(SSLAuthType authType) {
                                           &csinfo, sizeof(csinfo));
     ASSERT_EQ(SECSuccess, rv);
 
-    bool enable = csinfo.authType == authType;
-    rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], enable);
-    EXPECT_EQ(SECSuccess, rv);
+    if (csinfo.authType == authType) {
+      rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], PR_TRUE);
+      EXPECT_EQ(SECSuccess, rv);
+    }
   }
 }
 
 void TlsAgent::EnableSingleCipher(uint16_t cipher) {
-  for (size_t i = 0; i < SSL_NumImplementedCiphers; ++i) {
-    bool enable = SSL_ImplementedCiphers[i] == cipher;
-    SECStatus rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], enable);
-    EXPECT_EQ(SECSuccess, rv);
-  }
+  DisableAllCiphers();
+  SECStatus rv = SSL_CipherPrefSet(ssl_fd_, cipher, PR_TRUE);
+  EXPECT_EQ(SECSuccess, rv);
 }
 
 void TlsAgent::SetSessionTicketsEnabled(bool en) {
@@ -722,9 +728,8 @@ void TlsAgentTestBase::Init() {
       role_ == TlsAgent::CLIENT ? TlsAgent::kClient : TlsAgent::kServerRsa,
       role_, mode_);
   agent_->Init();
-  fd_ = DummyPrSocket::CreateFD("dummy", mode_);
-  agent_->adapter()->SetPeer(
-      DummyPrSocket::GetAdapter(fd_));
+  fd_ = DummyPrSocket::CreateFD(agent_->role_str(), mode_);
+  agent_->adapter()->SetPeer(DummyPrSocket::GetAdapter(fd_));
   agent_->StartConnect();
 }
 
