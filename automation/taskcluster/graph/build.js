@@ -157,6 +157,14 @@ function generateTasks(definition) {
     delete task.dependents;
   }
 
+  // Convert env variables to strings.
+  tasks.forEach(function (task) {
+    var env = task.task.payload.env || {};
+    Object.keys(env).forEach(function (name) {
+      env[name] = env[name] + "";
+    });
+  });
+
   return tasks;
 }
 
