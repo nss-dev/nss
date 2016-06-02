@@ -60,6 +60,25 @@ function parseYamlFile(file, fallback) {
   return yaml.load(source, {schema: YAML_SCHEMA});
 }
 
+// Add base information to the given task.
+function decorateTask(task) {
+  // Assign random task id.
+  task.taskId = slugid.v4();
+
+  // Permissions.
+  task.task.scopes = [
+    "queue:route:tc-treeherder-stage.nss." + TC_REVISION_HASH,
+    "queue:route:tc-treeherder.nss." + TC_REVISION_HASH,
+    "scheduler:extend-task-graph:*"
+  ];
+
+  // TreeHerder routes.
+  task.task.routes = [
+    "tc-treeherder-stage.nss." + TC_REVISION_HASH,
+    "tc-treeherder.nss." + TC_REVISION_HASH
+  ];
+}
+
 // Generate all tasks for a given build.
 function generateBuildTasks(platform, file) {
   var dir = path.join(__dirname, "./" + platform);
@@ -72,8 +91,8 @@ function generateBuildTasks(platform, file) {
     // Merge base build task definition with the current one.
     var tasks = [task = merge.recursive(true, buildBase, task)];
 
-    // Assign random task id.
-    task.taskId = slugid.v4();
+    // Add base info.
+    decorateTask(task);
 
     // Generate test tasks.
     if (task.tests) {
@@ -113,8 +132,8 @@ function generateTestTasks(name, base, task) {
     // Merge test with base definition.
     test = merge.recursive(true, base, test);
 
-    // Assign random task id.
-    test.taskId = slugid.v4();
+    // Add base info.
+    decorateTask(test);
 
     // We only want to carry over environment variables...
     test.task.payload.env =
