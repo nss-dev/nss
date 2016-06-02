@@ -14,7 +14,7 @@ task:
 
   payload:
     maxRunTime: 3600
-    image: !env TC_DOCKER_IMAGE
+    image: ttaubert/nss-ci:0.0.16
 
     command:
       - "/bin/bash"
