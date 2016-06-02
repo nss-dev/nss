@@ -18,9 +18,18 @@
           opt: true
 
   tests:
+    - cert
     - cipher
+    - crmf
+    - db
     - ec
+    - fips
     - gtests
+    - lowhash
+    - merge
     - ocsp
+    - pkits
     - pkix
     - sdr
+    - smime
+    - tools
