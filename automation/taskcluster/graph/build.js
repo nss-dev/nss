@@ -9,27 +9,17 @@ var yaml = require("js-yaml");
 var slugid = require("slugid");
 var flatmap = require("flatmap");
 
-var TC_WORKER_TYPE = process.env.TC_WORKER_TYPE || "hg-worker";
-var TC_PROVISIONER_ID = process.env.TC_PROVISIONER_ID || "aws-provisioner-v1";
-
 // Default values for debugging.
 var TC_REVISION = process.env.TC_REVISION || "{{tc_rev}}";
 var TC_REVISION_HASH = process.env.TC_REVISION_HASH || "{{tc_rev_hash}}";
-var TC_DOCKER_IMAGE = process.env.TC_DOCKER_IMAGE || "{{tc_docker_img}}";
 var TC_OWNER = process.env.TC_OWNER || "{{tc_owner}}";
 var TC_SOURCE = process.env.TC_SOURCE || "{{tc_source}}";
 var NSS_HEAD_REPOSITORY = process.env.NSS_HEAD_REPOSITORY || "{{nss_head_repo}}";
 var NSS_HEAD_REVISION = process.env.NSS_HEAD_REVISION || "{{nss_head_rev}}";
 
-// Point in time at $now + x hours.
-function from_now(hours) {
-  var d = new Date();
-  d.setHours(d.getHours() + (hours || 0));
-  return d.toJSON();
-}
-
 // Register custom YAML types.
 var YAML_SCHEMA = yaml.Schema.create([
+  // Point in time at $now + x hours.
   new yaml.Type('!from_now', {
     kind: "scalar",
 
@@ -38,149 +28,137 @@ var YAML_SCHEMA = yaml.Schema.create([
     },
 
     construct: function (data) {
-      return from_now(data|0);
+      var d = new Date();
+      d.setHours(d.getHours() + (data|0));
+      return d.toJSON();
+    }
+  }),
+
+  // Environment variables.
+  new yaml.Type('!env', {
+    kind: "scalar",
+
+    resolve: function (data) {
+      return true;
+    },
+
+    construct: function (data) {
+      return process.env[data];
     }
   })
 ]);
 
-// Parse a directory containing YAML files.
-function parseDirectory(dir) {
-  var tasks = {};
-
-  fs.readdirSync(dir).forEach(function (file) {
-    if (file.endsWith(".yml")) {
-      var source = fs.readFileSync(path.join(dir, file), "utf-8");
-      tasks[file.slice(0, -4)] = yaml.load(source, {schema: YAML_SCHEMA});
-    }
-  });
-
-  return tasks;
-}
-
-// Generates a task using a given definition.
-function generateTasks(definition) {
-  var task = {
-    taskId: slugid.v4(),
-    reruns: 2,
-
-    task: task = {
-      created: from_now(0),
-      deadline: from_now(24),
-      provisionerId: TC_PROVISIONER_ID,
-      workerType: TC_WORKER_TYPE,
-      schedulerId: "task-graph-scheduler",
-
-      scopes: [
-        "queue:route:tc-treeherder-stage.nss." + TC_REVISION_HASH,
-        "queue:route:tc-treeherder.nss." + TC_REVISION_HASH,
-        "scheduler:extend-task-graph:*"
-      ],
-
-      routes: [
-        "tc-treeherder-stage.nss." + TC_REVISION_HASH,
-        "tc-treeherder.nss." + TC_REVISION_HASH
-      ],
-
-      metadata: {
-        owner: TC_OWNER,
-        source: TC_SOURCE
-      },
-
-      payload: {
-        image: TC_DOCKER_IMAGE,
-        maxRunTime: 3600,
-
-        env: {
-          NSS_HEAD_REPOSITORY: NSS_HEAD_REPOSITORY,
-          NSS_HEAD_REVISION: NSS_HEAD_REVISION
-        }
-      },
-
-      extra: {
-        treeherder: {
-          revision: TC_REVISION,
-          revision_hash: TC_REVISION_HASH
-        }
-      }
-    }
-  };
-
-  // Merge base task definition with the YAML one.
-  var tasks = [task = merge.recursive(true, task, definition)];
-
-  // Generate dependent tasks.
-  if (task.dependents) {
-    // The base definition for all subtasks.
-    var base = {
-      requires: [task.taskId],
-
-      task: {
-        payload: {
-          env: {
-            TC_PARENT_TASK_ID: task.taskId
-          }
-        }
-      }
-    };
-
-    // We clone everything but the taskId, we need a new and unique one.
-    delete base.taskId;
-
-    // Iterate and generate all subtasks.
-    var subtasks = flatmap(task.dependents, function (name) {
-      if (!(name in TASKS)) {
-        throw new Error("Can't find task '" + name + "'");
-      }
-
-      return flatmap(TASKS[name], function (subtask) {
-        // Merge subtask with base definition.
-        var dependent = merge.recursive(true, subtask, base);
-
-        // We only want to carry over environment variables and
-        // TreeHerder configuration data.
-        dependent.task.payload.env =
-          merge.recursive(true, task.task.payload.env,
-                                dependent.task.payload.env);
-        dependent.task.extra.treeherder =
-          merge.recursive(true, task.task.extra.treeherder,
-                                dependent.task.extra.treeherder);
-
-        // Print all subtasks.
-        return generateTasks(dependent);
-      });
-    });
-
-    // Append subtasks.
-    tasks = tasks.concat(subtasks);
-
-    // The dependents field is not part of the schema.
-    delete task.dependents;
+// Parse a given YAML file.
+function parseYamlFile(file, fallback) {
+  // Return fallback if the file doesn't exist.
+  if (!fs.existsSync(file) && fallback) {
+    return fallback;
   }
 
-  // Convert env variables to strings.
-  tasks.forEach(function (task) {
-    var env = task.task.payload.env || {};
-    Object.keys(env).forEach(function (name) {
-      if (typeof(env[name]) != "undefined") {
-        env[name] = env[name] + "";
-      }
-    });
-  });
-
-  return tasks;
+  // Otherwise, read the file or fail.
+  var source = fs.readFileSync(file, "utf-8");
+  return yaml.load(source, {schema: YAML_SCHEMA});
 }
 
-// Parse YAML task definitions.
-var BUILDS = parseDirectory(path.join(__dirname, "./builds/"));
-var TASKS = parseDirectory(path.join(__dirname, "./tasks/"));
+// Generate all tasks for a given build.
+function generateBuildTasks(platform, file) {
+  var dir = path.join(__dirname, "./" + platform);
 
+  // Parse base definitions.
+  var buildBase = parseYamlFile(path.join(dir, "_build_base.yml"), {});
+  var testBase = parseYamlFile(path.join(dir, "_test_base.yml"), {});
+
+  return flatmap(parseYamlFile(path.join(dir, file)), function (task) {
+    // Merge base build task definition with the current one.
+    var tasks = [task = merge.recursive(true, buildBase, task)];
+
+    // Assign random task id.
+    task.taskId = slugid.v4();
+
+    // Generate test tasks.
+    if (task.tests) {
+      // The base definition for all tests of this platform.
+      var base = merge.recursive(true, {
+        requires: [task.taskId],
+
+        task: {
+          payload: {
+            env: {
+              TC_PARENT_TASK_ID: task.taskId
+            }
+          }
+        }
+      }, testBase);
+
+      // Generate and append test task definitions.
+      tasks = tasks.concat(flatmap(task.tests, function (name) {
+        return generateTestTasks(name, base, task);
+      }));
+
+      // |tests| is not part of the schema.
+      delete task.tests;
+    }
+
+    return tasks;
+  });
+}
+
+// Generate all tasks for a given test.
+function generateTestTasks(name, base, task) {
+  // Load test definitions.
+  var dir = path.join(__dirname, "./tests");
+  var tests = parseYamlFile(path.join(dir, name + ".yml"));
+
+  return tests.map(function (test) {
+    // Merge test with base definition.
+    test = merge.recursive(true, base, test);
+
+    // Assign random task id.
+    test.taskId = slugid.v4();
+
+    // We only want to carry over environment variables...
+    test.task.payload.env =
+      merge.recursive(true, task.task.payload.env,
+                            test.task.payload.env);
+
+    // ...and TreeHerder configuration data.
+    test.task.extra.treeherder =
+      merge.recursive(true, task.task.extra.treeherder,
+                            test.task.extra.treeherder);
+
+    return test;
+  });
+}
+
+// Generate all tasks for a given platform.
+function generatePlatformTasks(platform) {
+  var dir = path.join(__dirname, "./" + platform);
+  var buildBase = parseYamlFile(path.join(dir, "_build_base.yml"), {});
+  var testBase = parseYamlFile(path.join(dir, "_test_base.yml"), {});
+
+  // Parse all build tasks.
+  return flatmap(fs.readdirSync(dir), function (file) {
+    if (!file.startsWith("_") && file.endsWith(".yml")) {
+      var tasks = generateBuildTasks(platform, file);
+
+      // Convert env variables to strings.
+      tasks.forEach(function (task) {
+        var env = task.task.payload.env || {};
+        Object.keys(env).forEach(function (name) {
+          if (typeof(env[name]) != "undefined") {
+            env[name] = env[name] + "";
+          }
+        });
+      });
+
+      return tasks;
+    }
+  });
+}
+
+// Construct the task graph.
 var graph = {
-  // Use files in the "builds" directory as roots.
-  tasks: flatmap(Object.keys(BUILDS), function (name) {
-    return flatmap(BUILDS[name], function (build) {
-      return generateTasks(build);
-    });
-  })
+  tasks: flatmap(["linux", "windows", "tools"], generatePlatformTasks)
 };
 
 // Output the final graph.

@@ -71,14 +71,8 @@ tasks:
           TC_SOURCE: {{{source}}}
           TC_REVISION: '{{revision}}'
           TC_REVISION_HASH: '{{revision_hash}}'
-          TC_DOCKER_IMAGE: "ttaubert/nss-ci:0.0.16"
-          TC_PROVISIONER_ID: "aws-provisioner-v1"
-          TC_WORKER_TYPE: "hg-worker"
           NSS_HEAD_REPOSITORY: '{{{url}}}'
           NSS_HEAD_REVISION: '{{revision}}'
-
-        features:
-          taskclusterProxy: true
 
         maxRunTime: 1800
 
