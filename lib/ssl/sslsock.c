@@ -646,6 +646,18 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
             ssl_EnableSSL3(&ss->vrange, on);
             break;
 
+        case SSL_ENABLE_SSL2:
+        case SSL_V2_COMPATIBLE_HELLO:
+            /* We no longer support SSL v2.
+             * However, if an old application requests to disable SSL v2,
+             * we shouldn't fail.
+             */
+            if (on) {
+                PORT_SetError(SEC_ERROR_INVALID_ARGS);
+                rv = SECFailure;
+            }
+            break;
+
         case SSL_NO_CACHE:
             ss->opt.noCache = on;
             break;
@@ -827,6 +839,10 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
         case SSL_ENABLE_SSL3:
             on = ss->vrange.min == SSL_LIBRARY_VERSION_3_0;
             break;
+        case SSL_ENABLE_SSL2:
+        case SSL_V2_COMPATIBLE_HELLO:
+            on = PR_FALSE;
+            break;
         case SSL_NO_CACHE:
             on = ss->opt.noCache;
             break;
@@ -937,6 +953,10 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
             break;
         case SSL_ENABLE_SSL3:
             on = versions_defaults_stream.min == SSL_LIBRARY_VERSION_3_0;
+            break;
+        case SSL_ENABLE_SSL2:
+        case SSL_V2_COMPATIBLE_HELLO:
+            on = PR_FALSE;
             break;
         case SSL_NO_CACHE:
             on = ssl_defaults.noCache;
@@ -1069,6 +1089,18 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 
         case SSL_ENABLE_SSL3:
             ssl_EnableSSL3(&versions_defaults_stream, on);
+            break;
+
+        case SSL_ENABLE_SSL2:
+        case SSL_V2_COMPATIBLE_HELLO:
+            /* We no longer support SSL v2.
+             * However, if an old application requests to disable SSL v2,
+             * we shouldn't fail.
+             */
+            if (on) {
+                PORT_SetError(SEC_ERROR_INVALID_ARGS);
+                rv = SECFailure;
+            }
             break;
 
         case SSL_NO_CACHE:
