@@ -1099,7 +1099,7 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
              */
             if (on) {
                 PORT_SetError(SEC_ERROR_INVALID_ARGS);
-                rv = SECFailure;
+                return SECFailure;
             }
             break;
 
