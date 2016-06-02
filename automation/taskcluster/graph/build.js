@@ -161,7 +161,9 @@ function generateTasks(definition) {
   tasks.forEach(function (task) {
     var env = task.task.payload.env || {};
     Object.keys(env).forEach(function (name) {
-      env[name] = env[name] + "";
+      if (typeof(env[name]) != "undefined") {
+        env[name] = env[name] + "";
+      }
     });
   });
 
