@@ -17,7 +17,6 @@
           opt: true
 
   tests:
-    - cert
     - chains
     - cipher
     - crmf

@@ -20,7 +20,6 @@
           asan: true
 
   tests:
-    - cert
     - chains
     - cipher
     - crmf

@@ -16,7 +16,6 @@
           debug: true
 
   tests:
-    - cert
     - chains
     - cipher
     - crmf
