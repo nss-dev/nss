@@ -660,6 +660,11 @@ void TlsAgent::SendData(size_t bytes, size_t blocksize) {
   }
 }
 
+static bool ErrorIsNonFatal(PRErrorCode code) {
+  return code == PR_WOULD_BLOCK_ERROR ||
+      code == SSL_ERROR_RX_SHORT_DTLS_READ;
+}
+
 void TlsAgent::ReadBytes() {
   uint8_t block[1024];
 
@@ -682,7 +687,7 @@ void TlsAgent::ReadBytes() {
   }
 
   // If closed, then don't bother waiting around.
-  if (rv > 0 || (rv < 0 && err == PR_WOULD_BLOCK_ERROR)) {
+  if (rv > 0 || (rv < 0 && ErrorIsNonFatal(err))) {
     LOG("Re-arming");
     Poller::Instance()->Wait(READABLE_EVENT, adapter_, this,
                              &TlsAgent::ReadableCallback);
