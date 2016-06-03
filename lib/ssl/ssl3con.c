@@ -4390,7 +4390,7 @@ ssl3_InitHandshakeHashes(sslSocket *ss)
         ss->ssl3.hs.hashType = handshake_hash_record;
     } else
 #ifndef NO_PKCS11_BYPASS
-    if (ss->opt.bypassPKCS11) {
+        if (ss->opt.bypassPKCS11) {
         PORT_Assert(!ss->ssl3.hs.sha_obj && !ss->ssl3.hs.sha_clone);
         if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
             const SECOidData *hashOid =
