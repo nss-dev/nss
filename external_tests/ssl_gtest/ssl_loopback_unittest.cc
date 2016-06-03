@@ -469,13 +469,11 @@ TEST_P(TlsConnectPre12, SignatureAlgorithmNoOverlapEcdsa) {
   Connect();
 }
 
-// The server requests client auth but doesn't offer a SHA-256 option.
-// This fails because NSS only uses SHA-256 for handshake transcript hashes.
-TEST_P(TlsConnectTls12, RequestClientAuthWithoutSha256) {
+TEST_P(TlsConnectTls12, RequestClientAuthWithSha384) {
   server_->SetSignatureAlgorithms(SignatureRsaSha384,
                                   PR_ARRAY_SIZE(SignatureRsaSha384));
   server_->RequestClientAuth(false);
-  ConnectExpectFail();
+  Connect();
 }
 
 TEST_P(TlsConnectGeneric, ConnectAlpn) {
