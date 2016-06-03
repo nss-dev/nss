@@ -23,7 +23,7 @@ fi
 cd nss && make nss_build_all
 
 # Generate certificates.
-cd tests/cert/ && ./cert.sh
+cd tests && NSS_TESTS=cert NSS_CYCLES="standard pkix sharedb" ./all.sh
 
 # Reset test counter so that test runs pick up our certificates.
 cd && echo 1 > tests_results/security/localhost

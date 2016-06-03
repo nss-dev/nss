@@ -17,7 +17,6 @@
           debug: true
 
   tests:
-    - cert
     - cipher
     - crmf
     - db
