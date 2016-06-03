@@ -848,7 +848,7 @@ typedef struct TLS13KeyShareEntryStr {
 
 typedef enum {
     handshake_hash_unknown = 0,
-    handshake_hash_combo = 1, /* The MD5/SHA-1 combination */
+    handshake_hash_combo = 1,  /* The MD5/SHA-1 combination */
     handshake_hash_single = 2, /* A single hash */
     handshake_hash_record
 } SSL3HandshakeHashType;
@@ -879,7 +879,7 @@ typedef struct SSL3HandshakeStateStr {
      * pointer for the <HASH>_Clone function. */
     void (*sha_clone)(void *dest, void *src);
 #endif
-/* PKCS #11 mode:
+    /* PKCS #11 mode:
      * SSL 3.0 - TLS 1.1 use both |md5| and |sha|. |md5| is used for MD5 and
      * |sha| for SHA-1.
      * TLS 1.2 and later use only |sha|, for SHA-256. */
