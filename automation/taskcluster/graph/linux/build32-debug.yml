@@ -12,6 +12,8 @@
       treeherder:
         build:
           platform: linux32
+        machine:
+          platform: linux32
         collection:
           debug: true
 
@@ -45,6 +47,8 @@
       treeherder:
         build:
           platform: linux32
+        machine:
+          platform: linux32
         collection:
           debug: true
         groupSymbol: Builds
@@ -69,6 +73,8 @@
       treeherder:
         build:
           platform: linux32
+        machine:
+          platform: linux32
         collection:
           debug: true
         groupSymbol: Builds
@@ -89,6 +95,8 @@
     extra:
       treeherder:
         build:
+          platform: linux32
+        machine:
           platform: linux32
         collection:
           debug: true
@@ -111,6 +119,8 @@
       treeherder:
         build:
           platform: linux32
+        machine:
+          platform: linux32
         collection:
           debug: true
         groupSymbol: Builds
@@ -130,6 +140,8 @@
     extra:
       treeherder:
         build:
+          platform: linux32
+        machine:
           platform: linux32
         collection:
           debug: true
