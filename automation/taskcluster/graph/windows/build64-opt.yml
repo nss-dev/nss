@@ -14,6 +14,8 @@
       treeherder:
         build:
           platform: windows2012-64
+        machine:
+          platform: windows2012-64
         collection:
           opt: true
 
