@@ -1359,6 +1359,22 @@ TEST_F(TlsConnectDatagram13, AuthCompleteAfterFinished) {
       });
   Connect();
 }
+
+// The TLS v1.3 spec section C.4 states that 'Implementations MUST NOT send or
+// accept any records with a version less than { 3, 0 }'. Thus we will not
+// allow version ranges including both SSL v3 and TLS v1.3.
+TEST_F(TlsConnectTest, DisallowSSLv3HelloWithTLSv13Enabled) {
+  SECStatus rv;
+  SSLVersionRange vrange = { SSL_LIBRARY_VERSION_3_0,
+                             SSL_LIBRARY_VERSION_TLS_1_3 };
+
+  EnsureTlsSetup();
+  rv = SSL_VersionRangeSet(client_->ssl_fd(), &vrange);
+  EXPECT_EQ(SECFailure, rv);
+
+  rv = SSL_VersionRangeSet(server_->ssl_fd(), &vrange);
+  EXPECT_EQ(SECFailure, rv);
+}
 #endif // NSS_ENABLE_TLS_1_3
 
 INSTANTIATE_TEST_CASE_P(GenericStream, TlsConnectGeneric,
