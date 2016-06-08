@@ -112,6 +112,8 @@ class TlsDheSkeChangeY : public TlsHandshakeFilter {
  protected:
   void ChangeY(const DataBuffer& input, DataBuffer* output,
                size_t offset, const DataBuffer& prime) {
+    static const uint8_t kExtraZero = 0;
+
     uint32_t dh_Ys_len;
     EXPECT_TRUE(input.Read(offset, 2, &dh_Ys_len));
     EXPECT_LT(offset + dh_Ys_len, input.len());
@@ -158,7 +160,6 @@ class TlsDheSkeChangeY : public TlsHandshakeFilter {
         break;
 
       case kYZeroPad:
-        static const uint8_t kExtraZero = 0;
         output->Write(offset - 2, prime.len() + sizeof(kExtraZero), 2);
         output->Splice(&kExtraZero, sizeof(kExtraZero), offset);
         break;
@@ -188,7 +189,7 @@ class TlsDheSkeChangeYServer : public TlsDheSkeChangeY {
 
     size_t offset = 2;
     // Read dh_p
-    uint32_t dh_len;
+    uint32_t dh_len = 0;
     EXPECT_TRUE(input.Read(0, 2, &dh_len));
     EXPECT_GT(input.len(), offset + dh_len);
     p_.Assign(input.data() + offset, dh_len);
@@ -335,7 +336,7 @@ class TlsDheSkeMakePEven : public TlsHandshakeFilter {
     }
 
     // Find the end of dh_p
-    uint32_t dh_len;
+    uint32_t dh_len = 0;
     EXPECT_TRUE(input.Read(0, 2, &dh_len));
     EXPECT_GT(input.len(), 2 + dh_len) << "enough space for dh_p";
     size_t offset = 2 + dh_len - 1;
@@ -369,7 +370,7 @@ class TlsDheSkeZeroPadP : public TlsHandshakeFilter {
     }
 
     *output = input;
-    uint32_t dh_len;
+    uint32_t dh_len = 0;
     EXPECT_TRUE(input.Read(0, 2, &dh_len));
     static const uint8_t kZeroPad = 0;
     output->Write(0, dh_len + sizeof(kZeroPad), 2); // increment the length
