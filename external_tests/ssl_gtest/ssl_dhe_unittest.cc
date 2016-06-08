@@ -113,6 +113,7 @@ class TlsDheSkeChangeY : public TlsHandshakeFilter {
   void ChangeY(const DataBuffer& input, DataBuffer* output,
                size_t offset, const DataBuffer& prime) {
     static const uint8_t kExtraZero = 0;
+    static const uint8_t kTooLargeExtra = 1;
 
     uint32_t dh_Ys_len;
     EXPECT_TRUE(input.Read(offset, 2, &dh_Ys_len));
@@ -152,7 +153,6 @@ class TlsDheSkeChangeY : public TlsHandshakeFilter {
         break;
 
       case kYTooLarge:
-        static const uint8_t kTooLargeExtra = 1;
         // Increase the dh_Ys length.
         output->Write(offset - 2, prime.len() + sizeof(kTooLargeExtra), 2);
         // Then insert the octet.
