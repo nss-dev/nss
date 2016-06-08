@@ -2284,7 +2284,9 @@ ssl3_VersionRangeIsValid(SSLProtocolVariant protocolVariant,
     return vrange &&
            vrange->min <= vrange->max &&
            ssl3_VersionIsSupported(protocolVariant, vrange->min) &&
-           ssl3_VersionIsSupported(protocolVariant, vrange->max);
+           ssl3_VersionIsSupported(protocolVariant, vrange->max) &&
+           (vrange->min > SSL_LIBRARY_VERSION_3_0 ||
+            vrange->max < SSL_LIBRARY_VERSION_TLS_1_3);
 }
 
 const SECItem *
