@@ -1486,9 +1486,9 @@ ssl3_ComputeDHKeyHash(sslSocket *ss, SSLHashType hashAlg, SSL3Hashes *hashes,
     PRUint8 buf[2 * SSL3_RANDOM_LENGTH + 2 + 4096 / 8 + 2 + 4096 / 8];
 
     bufLen = 2 * SSL3_RANDOM_LENGTH +
-            2 + dh_p.len +
-            2 + dh_g.len +
-            2 + (padY ? dh_p.len : dh_Ys.len);
+             2 + dh_p.len +
+             2 + dh_g.len +
+             2 + (padY ? dh_p.len : dh_Ys.len);
     if (bufLen <= sizeof buf) {
         hashBuf = buf;
     } else {
@@ -10921,7 +10921,7 @@ ssl3_HandleDHClientKeyExchange(sslSocket *ss,
     }
 
     if (!ssl_IsValidDHEShare(&serverKeyPair->pubKey->u.dh.prime,
-                           &clntPubKey.u.dh.publicValue)) {
+                             &clntPubKey.u.dh.publicValue)) {
         PORT_SetError(SSL_ERROR_RX_MALFORMED_DHE_KEY_SHARE);
         return SECFailure;
     }
