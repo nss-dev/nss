@@ -302,6 +302,8 @@ ssl_DupSocket(sslSocket *os)
              cursor = PR_NEXT_LINK(cursor)) {
             sslEphemeralKeyPair *okp = (sslEphemeralKeyPair *)cursor;
             sslEphemeralKeyPair *skp = ssl_CopyEphemeralKeyPair(okp);
+            if (!skp)
+                goto loser;
             PR_APPEND_LINK(&skp->link, &ss->ephemeralKeyPairs);
         }
         ss->namedGroups = os->namedGroups;
@@ -2122,6 +2124,8 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
          cursor = PR_NEXT_LINK(cursor)) {
         sslEphemeralKeyPair *mkp = (sslEphemeralKeyPair *)cursor;
         sslEphemeralKeyPair *skp = ssl_CopyEphemeralKeyPair(mkp);
+        if (!skp)
+            return NULL;
         PR_APPEND_LINK(&skp->link, &ss->ephemeralKeyPairs);
     }
     /* copy trust anchor names */
