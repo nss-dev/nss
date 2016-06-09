@@ -1213,6 +1213,9 @@ ssl_HandleSupportedGroupsXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
     if (ss->sec.isServer && ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
         rv = ssl3_RegisterServerHelloExtensionSender(ss, ex_type,
                                                      &ssl_SendSupportedGroupsXtn);
+        if (rv != SECSuccess) {
+            return SECFailure; /* error already set. */
+        }
     }
 
     return SECSuccess;

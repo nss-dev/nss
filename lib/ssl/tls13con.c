@@ -771,7 +771,7 @@ tls13_HandleClientKeyShare(sslSocket *ss)
     TLS13KeyShareEntry *peerShare = NULL; /* theirs */
     sslEphemeralKeyPair *keyPair;         /* ours */
     PRCList *cur_p;
-    const ssl3DHParams *dheParams;
+    const ssl3DHParams *dheParams = NULL;
 
     SSL_TRC(3, ("%d: TLS13[%d]: handle client_key_share handshake",
                 SSL_GETPID(), ss->fd));
@@ -838,6 +838,7 @@ tls13_HandleClientKeyShare(sslSocket *ss)
             rv = ssl_CreateECDHEphemeralKeyPair(expectedGroup, &keyPair);
             break;
         case group_type_ff:
+            PORT_Assert(dheParams);
             rv = ssl_CreateDHEKeyPair(expectedGroup, dheParams, &keyPair);
             break;
     }

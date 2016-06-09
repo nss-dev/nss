@@ -10945,7 +10945,7 @@ ssl3_HandleDHClientKeyExchange(sslSocket *ss,
     rv = ssl3_InitPendingCipherSpec(ss, pms);
     PK11_FreeSymKey(pms);
     ssl_FreeEphemeralKeyPairs(ss);
-    return SECSuccess;
+    return rv;
 }
 
 /* Called from ssl3_HandlePostHelloHandshakeMessage() when it has deciphered
