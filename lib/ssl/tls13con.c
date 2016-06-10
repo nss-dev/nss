@@ -2473,19 +2473,18 @@ tls13_SendClientSecondRound(sslSocket *ss)
                      ss->ssl3.clientCertChain != NULL &&
                      ss->ssl3.clientPrivateKey != NULL;
 
-    /* Defer client authentication sending if we are still waiting for server
-     * authentication.  This avoids unnecessary disclosure of client credentials
-     * to an unauthenticated server.
+    /* Defer client authentication sending if we are still
+     * waiting for server authentication. See the long block
+     * comment in ssl3_SendClientSecondRound for more detail.
      */
     if (ss->ssl3.hs.restartTarget) {
         PR_NOT_REACHED("unexpected ss->ssl3.hs.restartTarget");
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
     }
-    if (ss->ssl3.hs.authCertificatePending &&
-        (sendClientCert || ss->ssl3.sendEmptyCert)) {
-        SSL_TRC(3, ("%d: TLS13[%p]: deferring tls13_SendClientSecondRound"
-                    " because certificate authentication is still pending.",
+    if (ss->ssl3.hs.authCertificatePending) {
+        SSL_TRC(3, ("%d: TLS13[%p]: deferring ssl3_SendClientSecondRound because"
+                    " certificate authentication is still pending.",
                     SSL_GETPID(), ss->fd));
         ss->ssl3.hs.restartTarget = tls13_SendClientSecondRound;
         return SECWouldBlock;
