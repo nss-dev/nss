@@ -735,6 +735,12 @@ TEST_P(TlsConnectGenericPre13, ConnectExtendedMasterSecret) {
   Connect();
 }
 
+TEST_P(TlsConnectTls12Plus, ConnectExtendedMasterSecretSha384) {
+  EnableExtendedMasterSecret();
+  server_->EnableSingleCipher(TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384);
+  ConnectWithCipherSuite(TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384);
+}
+
 TEST_P(TlsConnectGenericPre13, ConnectExtendedMasterSecretStaticRSA) {
   EnableOnlyStaticRsaCiphers();
   EnableExtendedMasterSecret();
@@ -1417,4 +1423,10 @@ INSTANTIATE_TEST_CASE_P(Pre13Datagram, TlsConnectGenericPre13,
                              TlsConnectTestBase::kTlsV11V12));
 INSTANTIATE_TEST_CASE_P(Pre13StreamOnly, TlsConnectStreamPre13,
                         TlsConnectTestBase::kTlsV10ToV12);
+
+INSTANTIATE_TEST_CASE_P(Version12Plus, TlsConnectTls12Plus,
+                        ::testing::Combine(
+                          TlsConnectTestBase::kTlsModesAll,
+                          TlsConnectTestBase::kTlsV12Plus));
+
 }  // namespace nspr_test

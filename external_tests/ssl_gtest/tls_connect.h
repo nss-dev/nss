@@ -158,6 +158,14 @@ class TlsConnectTls12
   TlsConnectTls12();
 };
 
+// A TLS 1.2+ generic test.
+class TlsConnectTls12Plus
+  : public TlsConnectTestBase,
+    public ::testing::WithParamInterface<std::tuple<std::string, uint16_t>> {
+ public:
+  TlsConnectTls12Plus();
+};
+
 #ifdef NSS_ENABLE_TLS_1_3
 // A TLS 1.3 only generic test.
 class TlsConnectTls13

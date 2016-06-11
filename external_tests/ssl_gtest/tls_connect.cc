@@ -414,6 +414,10 @@ TlsConnectTls12::TlsConnectTls12()
   : TlsConnectTestBase(TlsConnectTestBase::ToMode(GetParam()),
                        SSL_LIBRARY_VERSION_TLS_1_2) {}
 
+TlsConnectTls12Plus::TlsConnectTls12Plus()
+  : TlsConnectTestBase(TlsConnectTestBase::ToMode(std::get<0>(GetParam())),
+                       std::get<1>(GetParam())) {}
+
 #ifdef NSS_ENABLE_TLS_1_3
 TlsConnectTls13::TlsConnectTls13()
   : TlsConnectTestBase(TlsConnectTestBase::ToMode(GetParam()),

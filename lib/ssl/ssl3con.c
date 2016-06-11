@@ -4228,8 +4228,8 @@ tls_ComputeExtendedMasterSecretInt(sslSocket *ss, PK11SymKey *pms,
     }
 
     if (pwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2) {
-        /* TLS 1.2 */
-        extended_master_params.prfHashMechanism = CKM_SHA256;
+        /* TLS 1.2+ */
+        extended_master_params.prfHashMechanism = ssl3_GetPrfHashMechanism(ss);
         key_derive = CKM_TLS12_KEY_AND_MAC_DERIVE;
     } else {
         /* TLS < 1.2 */
