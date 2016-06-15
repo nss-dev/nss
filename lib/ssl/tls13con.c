@@ -1378,7 +1378,7 @@ tls13_CipherSpecRelease(ssl3CipherSpec *spec)
     if (!spec->refCt) {
         SSL_TRC(50, ("%d: TLS 1.3: Freeing spec %d",
                      SSL_GETPID(), spec));
-        PR_REMOVE_LINK((PRCList *)spec);
+        PR_REMOVE_LINK(&spec->link);
         ssl3_DestroyCipherSpec(spec, PR_TRUE);
         PORT_Free(spec);
     }
