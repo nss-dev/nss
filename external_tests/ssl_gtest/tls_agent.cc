@@ -132,6 +132,11 @@ bool TlsAgent::EnsureTlsSetup() {
   EXPECT_EQ(SECSuccess, rv);
   if (rv != SECSuccess) return false;
 
+  // Needs to be set before configuring server certs.
+  rv = SSL_OptionSet(ssl_fd_, SSL_NO_STEP_DOWN, PR_TRUE);
+  EXPECT_EQ(SECSuccess, rv);
+  if (rv != SECSuccess) return false;
+
   if (role_ == SERVER) {
     EXPECT_TRUE(ConfigServerCert(name_, true));
 
@@ -232,7 +237,7 @@ void TlsAgent::EnableCiphersByKeyExchange(SSLKEAType kea) {
     ASSERT_EQ(SECSuccess, rv);
     EXPECT_EQ(sizeof(csinfo), csinfo.length);
 
-    if (csinfo.keaType == kea) {
+    if (csinfo.keaType == kea && !csinfo.isExportable) {
       rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], PR_TRUE);
       EXPECT_EQ(SECSuccess, rv);
     }
@@ -249,7 +254,7 @@ void TlsAgent::EnableCiphersByAuthType(SSLAuthType authType) {
                                           &csinfo, sizeof(csinfo));
     ASSERT_EQ(SECSuccess, rv);
 
-    if (csinfo.authType == authType) {
+    if (csinfo.authType == authType && !csinfo.isExportable) {
       rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], PR_TRUE);
       EXPECT_EQ(SECSuccess, rv);
     }
