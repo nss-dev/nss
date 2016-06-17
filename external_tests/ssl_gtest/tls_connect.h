@@ -81,11 +81,15 @@ class TlsConnectTestBase : public ::testing::Test {
   void ConfigureSessionCache(SessionResumptionMode client,
                              SessionResumptionMode server);
   void EnableAlpn();
+  void EnableAlpn(const uint8_t* val, size_t len);
+  void CheckAlpn(const std::string& val);
   void EnableSrtp();
   void CheckSrtp() const;
   void SendReceive();
   void SetupForZeroRtt();
-  void ZeroRttSendReceive(bool expect_success);
+  void ZeroRttSendReceive(
+      bool expect_readable,
+      std::function<bool()> post_clienthello_check = nullptr);
   void Receive(size_t amount);
   void ExpectExtendedMasterSecret(bool expected);
   void ExpectEarlyDataAccepted(bool expected);

@@ -703,6 +703,10 @@ struct sslSessionIDStr {
             */
             SECItem signedCertTimestamps;
 
+            /* The NPN/ALPN value negotiated in the original connection.
+             * Used for TLS 1.3. */
+            SECItem alpnSelection;
+
             /* This lock is lazily initialized by CacheSID when a sid is first
              * cached. Before then, there is no need to lock anything because
              * the sid isn't being shared by anything.
@@ -1152,6 +1156,7 @@ typedef struct SessionTicketStr {
     PRUint32 timestamp;
     PRUint32 flags;
     SECItem srvName; /* negotiated server name */
+    SECItem alpnSelection;
 } SessionTicket;
 
 /*

@@ -475,3 +475,6 @@ ER3(SSL_ERROR_RX_MALFORMED_EARLY_DATA, (SSL_ERROR_BASE + 148),
 
 ER3(SSL_ERROR_END_OF_EARLY_DATA_ALERT, (SSL_ERROR_BASE + 149),
     "SSL received an unexpected end of early data alert.")
+
+ER3(SSL_ERROR_MISSING_ALPN_EXTENSION, (SSL_ERROR_BASE + 150),
+    "SSL didn't receive an expected ALPN extension.")

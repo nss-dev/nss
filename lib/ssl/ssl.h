@@ -303,10 +303,11 @@ SSL_IMPORT SECStatus SSL_SetNextProtoNego(PRFileDesc *fd,
                                           unsigned int length);
 
 typedef enum SSLNextProtoState {
-    SSL_NEXT_PROTO_NO_SUPPORT = 0, /* No peer support                */
-    SSL_NEXT_PROTO_NEGOTIATED = 1, /* Mutual agreement               */
-    SSL_NEXT_PROTO_NO_OVERLAP = 2, /* No protocol overlap found      */
-    SSL_NEXT_PROTO_SELECTED = 3    /* Server selected proto (ALPN)   */
+    SSL_NEXT_PROTO_NO_SUPPORT = 0, /* No peer support                   */
+    SSL_NEXT_PROTO_NEGOTIATED = 1, /* Mutual agreement                  */
+    SSL_NEXT_PROTO_NO_OVERLAP = 2, /* No protocol overlap found         */
+    SSL_NEXT_PROTO_SELECTED = 3,   /* Server selected proto (ALPN)      */
+    SSL_NEXT_PROTO_EARLY_VALUE = 4 /* We are in 0-RTT using this value. */
 } SSLNextProtoState;
 
 /* SSL_GetNextProto can be used in the HandshakeCallback or any time after

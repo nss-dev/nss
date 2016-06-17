@@ -116,7 +116,7 @@ class TlsAgent : public PollTarget {
                               size_t count);
   void EnableAlpn(const uint8_t* val, size_t len);
   void CheckAlpn(SSLNextProtoState expected_state,
-                 const std::string& expected) const;
+                 const std::string& expected = "") const;
   void EnableSrtp();
   void CheckSrtp() const;
   void CheckErrorCode(int32_t expected) const;
