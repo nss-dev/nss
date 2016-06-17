@@ -449,7 +449,12 @@ void TlsAgent::CheckAlpn(SSLNextProtoState expected_state,
                                   &chosen_len, sizeof(chosen));
   EXPECT_EQ(SECSuccess, rv);
   EXPECT_EQ(expected_state, state);
-  EXPECT_EQ(expected, std::string(chosen, chosen_len));
+  if (state == SSL_NEXT_PROTO_NO_SUPPORT) {
+    EXPECT_EQ("", expected);
+  } else {
+    EXPECT_NE("", expected);
+    EXPECT_EQ(expected, std::string(chosen, chosen_len));
+  }
 }
 
 void TlsAgent::EnableSrtp() {

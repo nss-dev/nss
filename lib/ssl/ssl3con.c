@@ -12437,6 +12437,14 @@ ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid)
         sid->certType.authType = ssl_auth_null;
     }
 
+    if (ss->ssl3.nextProtoState != SSL_NEXT_PROTO_NO_SUPPORT &&
+        ss->ssl3.nextProto.data) {
+        if (SECITEM_CopyItem(
+                NULL, &sid->u.ssl3.alpnSelection, &ss->ssl3.nextProto) != SECSuccess) {
+            return SECFailure; /* error already set. */
+        }
+    }
+
     ssl_GetSpecReadLock(ss); /*************************************/
 
     /* Copy the master secret (wrapped or unwrapped) into the sid */

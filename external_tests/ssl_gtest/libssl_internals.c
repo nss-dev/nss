@@ -213,3 +213,22 @@ PRBool SSLInt_DamageEarlyTrafficSecret(PRFileDesc *fd)
       offsetof(SSL3HandshakeState,
                earlyTrafficSecret));
 }
+
+SECStatus
+SSLInt_Set0RttAlpn(PRFileDesc *fd, PRUint8 *data, unsigned int len)
+{
+  sslSocket *ss = ssl_FindSocket(fd);
+  if (!ss) {
+    return SECFailure;
+  }
+
+  ss->ssl3.nextProtoState = SSL_NEXT_PROTO_EARLY_VALUE;
+  if (ss->ssl3.nextProto.data) {
+    SECITEM_FreeItem(&ss->ssl3.nextProto, PR_FALSE);
+  }
+  if (!SECITEM_AllocItem(NULL, &ss->ssl3.nextProto, len))
+    return SECFailure;
+  PORT_Memcpy(ss->ssl3.nextProto.data, data, len);
+
+  return SECSuccess;
+}

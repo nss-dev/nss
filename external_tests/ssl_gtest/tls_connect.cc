@@ -372,6 +372,16 @@ void TlsConnectTestBase::EnableAlpn() {
   server_->EnableAlpn(val, sizeof(val));
 }
 
+void TlsConnectTestBase::EnableAlpn(const uint8_t *val, size_t len) {
+  client_->EnableAlpn(val, len);
+  server_->EnableAlpn(val, len);
+}
+
+void TlsConnectTestBase::CheckAlpn(const std::string& val) {
+  client_->CheckAlpn(SSL_NEXT_PROTO_SELECTED, val);
+  server_->CheckAlpn(SSL_NEXT_PROTO_NEGOTIATED, val);
+}
+
 void TlsConnectTestBase::EnableSrtp() {
   client_->EnableSrtp();
   server_->EnableSrtp();
@@ -409,19 +419,25 @@ void TlsConnectTestBase::SetupForZeroRtt() {
   client_->StartConnect();
 }
 
-void TlsConnectTestBase::ZeroRttSendReceive(bool expect_success) {
+void TlsConnectTestBase::ZeroRttSendReceive(
+    bool expect_readable,
+    std::function<bool()> post_clienthello_check) {
   const char *k0RttData = "ABCDEF";
   const PRInt32 k0RttDataLen = static_cast<PRInt32>(strlen(k0RttData));
 
   client_->Handshake(); // Send ClientHello.
+  if (post_clienthello_check) {
+    if (!post_clienthello_check())
+      return;
+  }
   PRInt32 rv = PR_Write(client_->ssl_fd(),
                         k0RttData, k0RttDataLen); // 0-RTT write.
   EXPECT_EQ(k0RttDataLen, rv);
-
   server_->Handshake(); // Consume ClientHello, EE, Finished.
+
   std::vector<uint8_t> buf(k0RttDataLen);
   rv = PR_Read(server_->ssl_fd(), buf.data(), k0RttDataLen); // 0-RTT read
-  if (expect_success) {
+  if (expect_readable) {
     std::cerr << "0-RTT read " << rv << " bytes\n";
     EXPECT_EQ(k0RttDataLen, rv);
   } else {

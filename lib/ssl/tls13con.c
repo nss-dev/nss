@@ -48,6 +48,7 @@ static SECStatus tls13_ChaCha20Poly1305(
     const unsigned char *in, int inlen,
     const unsigned char *additionalData, int additionalDataLen);
 static SECStatus tls13_SendEncryptedExtensions(sslSocket *ss);
+static PRBool tls13_ServerAllow0Rtt(sslSocket *ss, const sslSessionID *sid);
 static SECStatus tls13_HandleEncryptedExtensions(sslSocket *ss, SSL3Opaque *b,
                                                  PRUint32 length);
 static SECStatus tls13_HandleCertificate(
@@ -909,6 +910,27 @@ tls13_CanResume(sslSocket *ss, const sslSessionID *sid)
     return PR_TRUE;
 }
 
+static PRBool
+tls13_AlpnTagAllowed(sslSocket *ss, const SECItem *tag)
+{
+    const unsigned char *data = ss->opt.nextProtoNego.data;
+    unsigned int length = ss->opt.nextProtoNego.len;
+    unsigned int offset = 0;
+
+    if (!tag->len)
+        return PR_TRUE;
+
+    while (offset < length) {
+        unsigned int taglen = (unsigned int)data[offset];
+        if ((taglen == tag->len) &&
+            !PORT_Memcmp(data + offset + 1, tag->data, tag->len))
+            return PR_TRUE;
+        offset += 1 + taglen;
+    }
+
+    return PR_FALSE;
+}
+
 /* Called from ssl3_HandleClientHello after we have parsed the
  * ClientHello and are sure that we are going to do TLS 1.3
  * or fail. */
@@ -974,13 +996,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
         ssl3_RegisterServerHelloExtensionSender(
             ss, ssl_tls13_pre_shared_key_xtn, tls13_ServerSendPreSharedKeyXtn);
         ss->sec.ci.sid = sid;
-
-        ss->ssl3.hs.doing0Rtt = ss->opt.enable0RttData;
-        ss->ssl3.hs.doing0Rtt &=
-            ssl3_ExtensionNegotiated(ss, ssl_tls13_early_data_xtn);
-        if ((sid->u.ssl3.locked.sessionTicket.flags & ticket_allow_early_data) == 0) {
-            ss->ssl3.hs.doing0Rtt = PR_FALSE;
-        }
+        ss->ssl3.hs.doing0Rtt = tls13_ServerAllow0Rtt(ss, sid);
     } else {
         if (sid) { /* we had a sid, but it's no longer valid, free it */
             SSL_AtomicIncrementLong(&ssl3stats->hch_sid_cache_not_ok);
@@ -2300,11 +2316,31 @@ tls13_HandleEncryptedExtensions(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
 
     if (!ss->sec.isServer) {
+        SECItem oldNpn = { siBuffer, NULL, 0 };
+
+        /* If we are doing 0-RTT, then we already have an NPN value. Stash
+         * it for comparison. */
+        if (ss->ssl3.hs.doing0Rtt &&
+            ss->ssl3.nextProtoState == SSL_NEXT_PROTO_EARLY_VALUE) {
+            oldNpn = ss->ssl3.nextProto;
+            ss->ssl3.nextProto.data = NULL;
+            ss->ssl3.nextProtoState = SSL_NEXT_PROTO_NO_SUPPORT;
+        }
         rv = ssl3_HandleHelloExtensions(ss, &b, &length, encrypted_extensions);
         if (rv != SECSuccess) {
             return SECFailure; /* Error code set below */
         }
 
+        if (ss->ssl3.hs.doing0Rtt &&
+            ssl3_ExtensionNegotiated(ss, ssl_tls13_early_data_xtn)) {
+            /* check that the server negotiated the same ALPN (if any). */
+            if (SECITEM_CompareItem(&oldNpn, &ss->ssl3.nextProto)) {
+                SECITEM_FreeItem(&oldNpn, PR_FALSE);
+                FATAL_ERROR(ss, SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID,
+                            illegal_parameter);
+                return SECFailure;
+            }
+        }
         if (ss->ssl3.hs.kea_def->authKeyType == ssl_auth_psk) {
             TLS13_SET_HS_STATE(ss, wait_finished);
         } else {
@@ -3357,6 +3393,54 @@ tls13_UnprotectRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *plaintext
     return SECSuccess;
 }
 
+/* 0-RTT is only permitted if:
+ *
+ * 1. We are doing TLS 1.3
+ * 2. The 0-RTT option is set.
+ * 3. We have a valid ticket.
+ * 4. The server is willing to accept 0-RTT.
+ * 5. We have not changed our ALPN settings to disallow the ALPN tag
+ *    in the ticket.
+ *
+ * Called from tls13_ClientSendEarlyDataXtn().
+ */
+PRBool
+tls13_ClientAllow0Rtt(sslSocket *ss, const sslSessionID *sid)
+{
+    if (sid->version < SSL_LIBRARY_VERSION_TLS_1_3)
+        return PR_FALSE;
+    if (!ss->opt.enable0RttData)
+        return PR_FALSE;
+    if (!ss->xtnData.ticketTimestampVerified &&
+        !ssl3_ClientExtensionAdvertised(ss, ssl_tls13_pre_shared_key_xtn))
+        return PR_FALSE;
+    if ((sid->u.ssl3.locked.sessionTicket.flags & ticket_allow_early_data) == 0)
+        return PR_FALSE;
+    return tls13_AlpnTagAllowed(ss, &sid->u.ssl3.alpnSelection);
+}
+
+/* 0-RTT is only permitted if:
+ *
+ * 1. The 0-RTT option is set.
+ * 2. The ticket allowed 0-RTT.
+ * 3. We negotiated the same ALPN value as in the ticket.
+ * 4. Early data was negotiated.
+ */
+static PRBool
+tls13_ServerAllow0Rtt(sslSocket *ss, const sslSessionID *sid)
+{
+    if (!ss->opt.enable0RttData)
+        return PR_FALSE;
+    if ((sid->u.ssl3.locked.sessionTicket.flags & ticket_allow_early_data) == 0) {
+        return PR_FALSE;
+    }
+    if (SECITEM_CompareItem(&ss->ssl3.nextProto, &sid->u.ssl3.alpnSelection))
+        return PR_FALSE;
+    if (!ssl3_ExtensionNegotiated(ss, ssl_tls13_early_data_xtn))
+        return PR_FALSE;
+    return PR_TRUE;
+}
+
 SECStatus
 tls13_MaybeDo0RTTHandshake(sslSocket *ss)
 {
@@ -3372,6 +3456,16 @@ tls13_MaybeDo0RTTHandshake(sslSocket *ss)
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
         return SECFailure;
+    }
+
+    /* Set the ALPN data as if it was negotiated. We check in the ServerHello
+     * handler that the server negotiates the same value. */
+    if (ss->sec.ci.sid->u.ssl3.alpnSelection.len) {
+        ss->ssl3.nextProtoState = SSL_NEXT_PROTO_EARLY_VALUE;
+        rv = SECITEM_CopyItem(NULL, &ss->ssl3.nextProto,
+                              &ss->sec.ci.sid->u.ssl3.alpnSelection);
+        if (rv != SECSuccess)
+            return rv;
     }
 
     /* Need to do this first so we know the PRF for the early secret

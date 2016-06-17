@@ -1188,6 +1188,7 @@ ssl3_EncodeSessionTicket(sslSocket *ss, SECItem *ticket_data)
                                           * must be >= 0 */
     ssl3CipherSpec *spec = ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 ? ss->ssl3.cwSpec : ss->ssl3.pwSpec;
     const sslServerCertType *certType;
+    SECItem alpnSelection = { siBuffer, NULL, 0 };
 
     SSL_TRC(3, ("%d: SSL3[%d]: send session_ticket handshake",
                 SSL_GETPID(), ss->fd));
@@ -1256,23 +1257,28 @@ ssl3_EncodeSessionTicket(sslSocket *ss, SECItem *ticket_data)
         srvNameLen = 2 + srvName->len; /* len bytes + name len */
     }
 
+    if (ss->ssl3.nextProtoState != SSL_NEXT_PROTO_NO_SUPPORT &&
+        ss->ssl3.nextProto.data) {
+        alpnSelection = ss->ssl3.nextProto;
+    }
+
     ciphertext_length =
-        sizeof(PRUint16)              /* ticket_version */
-        + sizeof(SSL3ProtocolVersion) /* ssl_version */
-        + sizeof(ssl3CipherSuite)     /* ciphersuite */
-        + 1                           /* compression */
-        + 10                          /* cipher spec parameters */
-        + 1                           /* certType arguments */
-        + 1                           /* SessionTicket.ms_is_wrapped */
-        + 4                           /* msWrapMech */
-        + 2                           /* master_secret.length */
-        + ms_item.len                 /* master_secret */
-        + 1                           /* client_auth_type */
-        + cert_length                 /* cert */
-        + 1                           /* server name type */
-        + srvNameLen                  /* name len + length field */
-        + 1                           /* extendedMasterSecretUsed */
-        + sizeof(ticket.ticket_lifetime_hint) + sizeof(ticket.flags);
+        sizeof(PRUint16)                                                                      /* ticket_version */
+        + sizeof(SSL3ProtocolVersion)                                                         /* ssl_version */
+        + sizeof(ssl3CipherSuite)                                                             /* ciphersuite */
+        + 1                                                                                   /* compression */
+        + 10                                                                                  /* cipher spec parameters */
+        + 1                                                                                   /* certType arguments */
+        + 1                                                                                   /* SessionTicket.ms_is_wrapped */
+        + 4                                                                                   /* msWrapMech */
+        + 2                                                                                   /* master_secret.length */
+        + ms_item.len                                                                         /* master_secret */
+        + 1                                                                                   /* client_auth_type */
+        + cert_length                                                                         /* cert */
+        + 1                                                                                   /* server name type */
+        + srvNameLen                                                                          /* name len + length field */
+        + 1                                                                                   /* extendedMasterSecretUsed */
+        + sizeof(ticket.ticket_lifetime_hint) + sizeof(ticket.flags) + 1 + alpnSelection.len; /* npn value + length field. */
     padding_length = AES_BLOCK_SIZE -
                      (ciphertext_length %
                       AES_BLOCK_SIZE);
@@ -1382,12 +1388,6 @@ ssl3_EncodeSessionTicket(sslSocket *ss, SECItem *ticket_data)
     if (rv != SECSuccess)
         goto loser;
 
-    /* Flags */
-    rv = ssl3_AppendNumberToItem(&plaintext, ticket.flags,
-                                 sizeof(ticket.flags));
-    if (rv != SECSuccess)
-        goto loser;
-
     if (srvNameLen) {
         /* Name Type (sni_host_name) */
         rv = ssl3_AppendNumberToItem(&plaintext, srvName->type, 1);
@@ -1412,6 +1412,23 @@ ssl3_EncodeSessionTicket(sslSocket *ss, SECItem *ticket_data)
         &plaintext, ss->sec.ci.sid->u.ssl3.keys.extendedMasterSecretUsed, 1);
     if (rv != SECSuccess)
         goto loser;
+
+    /* Flags */
+    rv = ssl3_AppendNumberToItem(&plaintext, ticket.flags,
+                                 sizeof(ticket.flags));
+    if (rv != SECSuccess)
+        goto loser;
+
+    /* NPN value. */
+    PORT_Assert(alpnSelection.len < 256);
+    rv = ssl3_AppendNumberToItem(&plaintext, alpnSelection.len, 1);
+    if (rv != SECSuccess)
+        goto loser;
+    if (alpnSelection.len) {
+        rv = ssl3_AppendToItem(&plaintext, alpnSelection.data, alpnSelection.len);
+        if (rv != SECSuccess)
+            goto loser;
+    }
 
     PORT_Assert(plaintext.len == padding_length);
     for (i = 0; i < padding_length; i++)
@@ -1619,6 +1636,7 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
     PRInt32 temp;
     SECItem cert_item;
     PRInt8 nameType = TLS_STE_NO_SERVER_NAME;
+    SECItem alpn_item;
 
     /* Turn off stateless session resumption if the client sends a
      * SessionTicket extension, even if the extension turns out to be
@@ -1922,12 +1940,6 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
         goto no_ticket;
     parsed_session_ticket->timestamp = (PRUint32)temp;
 
-    rv = ssl3_ConsumeHandshake(ss, &parsed_session_ticket->flags, 4,
-                               &buffer, &buffer_len);
-    if (rv != SECSuccess)
-        goto no_ticket;
-    parsed_session_ticket->flags = PR_ntohl(parsed_session_ticket->flags);
-
     /* Read server name */
     nameType =
         ssl3_ConsumeHandshakeNumber(ss, 1, &buffer, &buffer_len);
@@ -1950,6 +1962,24 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
         goto no_ticket;
     PORT_Assert(temp == PR_TRUE || temp == PR_FALSE);
     parsed_session_ticket->extendedMasterSecretUsed = (PRBool)temp;
+
+    rv = ssl3_ConsumeHandshake(ss, &parsed_session_ticket->flags, 4,
+                               &buffer, &buffer_len);
+    if (rv != SECSuccess)
+        goto no_ticket;
+    parsed_session_ticket->flags = PR_ntohl(parsed_session_ticket->flags);
+
+    rv = ssl3_ConsumeHandshakeVariable(ss, &alpn_item, 1, &buffer, &buffer_len);
+    if (rv != SECSuccess)
+        goto no_ticket;
+    if (alpn_item.len != 0) {
+        rv = SECITEM_CopyItem(NULL, &parsed_session_ticket->alpnSelection,
+                              &alpn_item);
+        if (rv != SECSuccess)
+            goto no_ticket;
+        if (alpn_item.len >= 256)
+            goto no_ticket;
+    }
 
     /* Done parsing.  Check that all bytes have been consumed. */
     if (buffer_len != padding_length)
@@ -2020,6 +2050,11 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
         if (parsed_session_ticket->srvName.data != NULL) {
             sid->u.ssl3.srvName = parsed_session_ticket->srvName;
         }
+        if (parsed_session_ticket->alpnSelection.data != NULL) {
+            sid->u.ssl3.alpnSelection = parsed_session_ticket->alpnSelection;
+            /* So we don't free below. */
+            parsed_session_ticket->alpnSelection.data = NULL;
+        }
         ss->statelessResume = PR_TRUE;
         ss->sec.ci.sid = sid;
     }
@@ -2049,6 +2084,9 @@ loser:
     if (parsed_session_ticket != NULL) {
         if (parsed_session_ticket->peer_cert.data) {
             SECITEM_FreeItem(&parsed_session_ticket->peer_cert, PR_FALSE);
+        }
+        if (parsed_session_ticket->alpnSelection.data) {
+            SECITEM_FreeItem(&parsed_session_ticket->alpnSelection, PR_FALSE);
         }
         PORT_ZFree(parsed_session_ticket, sizeof(SessionTicket));
     }
@@ -3625,24 +3663,7 @@ tls13_ClientSendEarlyDataXtn(sslSocket *ss,
     SECStatus rv;
     sslSessionID *sid = ss->sec.ci.sid;
 
-    /* 0-RTT is only permitted if:
-     *
-     * 1. We are doing TLS 1.3
-     * 2. The 0-RTT option is set.
-     * 3. We have a valid ticket.
-     * 4. The server is willing to accept 0-RTT.
-     */
-    if (sid->version < SSL_LIBRARY_VERSION_TLS_1_3)
-        return 0;
-
-    if (!ss->opt.enable0RttData)
-        return 0;
-
-    if (!ss->xtnData.ticketTimestampVerified &&
-        !ssl3_ClientExtensionAdvertised(ss, ssl_tls13_pre_shared_key_xtn))
-        return 0;
-
-    if ((sid->u.ssl3.locked.sessionTicket.flags & ticket_allow_early_data) == 0)
+    if (!tls13_ClientAllow0Rtt(ss, sid))
         return 0;
 
     /* type + length + empty context. */
