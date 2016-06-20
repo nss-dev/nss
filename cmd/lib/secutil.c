@@ -3513,9 +3513,7 @@ SECU_SignAndEncodeCRL(CERTCertificate *issuer, CERTSignedCrl *signCrl,
     }
 
 done:
-    if (caPrivateKey) {
-        SECKEY_DestroyPrivateKey(caPrivateKey);
-    }
+    SECKEY_DestroyPrivateKey(caPrivateKey);
     return rv;
 }
 
