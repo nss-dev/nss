@@ -272,7 +272,7 @@ static SECStatus
 parseNextCmdInput(const char *const *valueArray, int *value, char **nextPos,
                   PRBool *critical)
 {
-    char *thisPos = *nextPos;
+    char *thisPos;
     int keyLen = 0;
     int arrIndex = 0;
 
@@ -280,6 +280,7 @@ parseNextCmdInput(const char *const *valueArray, int *value, char **nextPos,
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
+    thisPos = *nextPos;
     while (1) {
         if ((*nextPos = strchr(thisPos, ',')) == NULL) {
             keyLen = strlen(thisPos);
