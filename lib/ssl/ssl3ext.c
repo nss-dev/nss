@@ -189,12 +189,11 @@ ssl3_GenerateSessionTicketKeysPKCS11(void *data)
 {
     SECStatus rv;
     sslSocket *ss = (sslSocket *)data;
-    sslServerCertType certType;
+    sslServerCertType certType = { ssl_auth_rsa_decrypt, NULL };
     const sslServerCert *sc;
     SECKEYPrivateKey *svrPrivKey;
     SECKEYPublicKey *svrPubKey;
 
-    certType.authType = ssl_auth_rsa_decrypt;
     sc = ssl_FindServerCert(ss, &certType);
     if (!sc || !sc->serverKeyPair) {
         SSL_DBG(("%d: SSL[%d]: No ssl_auth_rsa_decrypt cert and key pair",

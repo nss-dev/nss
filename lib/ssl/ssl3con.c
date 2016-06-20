@@ -6774,7 +6774,7 @@ ssl3_SendDHClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
     rv = ssl_CreateDHEKeyPair(groupDef, params, &keyPair);
     if (rv != SECSuccess) {
         ssl_MapLowLevelError(SEC_ERROR_KEYGEN_FAIL);
-        return SECFailure;
+        goto loser;
     }
     pubKey = keyPair->keys->pubKey;
     PRINT_BUF(50, (ss, "DH public value:",
