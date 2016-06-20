@@ -62,6 +62,12 @@ ssl_NamedGroup2ECParams(PLArenaPool *arena, const namedGroupDef *ecGroup,
     PRUint32 policyFlags = 0;
     SECStatus rv;
 
+    if (!params) {
+        PORT_Assert(0);
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
     if (!ecGroup || ecGroup->type != group_type_ec ||
         (oidData = SECOID_FindOIDByTag(ecGroup->oidTag)) == NULL) {
         PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
@@ -74,7 +80,11 @@ ssl_NamedGroup2ECParams(PLArenaPool *arena, const namedGroupDef *ecGroup,
         return SECFailure;
     }
 
-    SECITEM_AllocItem(arena, params, (2 + oidData->oid.len));
+    if (SECITEM_AllocItem(arena, params, (2 + oidData->oid.len)) == NULL) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        return SECFailure;
+    }
+
     /*
      * params->data needs to contain the ASN encoding of an object ID (OID)
      * representing the named curve. The actual OID is in
@@ -795,9 +805,6 @@ ssl3_SendECDHServerKeyExchange(
             goto loser;
         }
         PR_APPEND_LINK(&keyPair->link, &ss->ephemeralKeyPairs);
-    }
-    if (rv != SECSuccess) {
-        goto loser;
     }
 
     PORT_Assert(keyPair);
