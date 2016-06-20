@@ -5837,7 +5837,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
     }
 
     length = sizeof(SSL3ProtocolVersion) + SSL3_RANDOM_LENGTH +
-             1 + (((sid == NULL) || sid->version >= SSL_LIBRARY_VERSION_TLS_1_3)
+             1 + (sid->version >= SSL_LIBRARY_VERSION_TLS_1_3
                       ? 0
                       : sid->u.ssl3.sessionIDLength) +
              2 + num_suites * sizeof(ssl3CipherSuite) +
@@ -5908,7 +5908,7 @@ ssl3_SendClientHello(sslSocket *ss, PRBool resending)
         return rv; /* err set by ssl3_AppendHandshake* */
     }
 
-    if (sid && sid->version < SSL_LIBRARY_VERSION_TLS_1_3)
+    if (sid->version < SSL_LIBRARY_VERSION_TLS_1_3)
         rv = ssl3_AppendHandshakeVariable(
             ss, sid->u.ssl3.sessionID, sid->u.ssl3.sessionIDLength, 1);
     else
