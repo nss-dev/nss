@@ -1929,11 +1929,8 @@ sftk_NewTokenObject(SFTKSlot *slot, SECItem *dbKey, CK_OBJECT_HANDLE handle)
 
     return object;
 loser:
-    if (object) {
-	(void) sftk_DestroyObject(object);
-    }
+    (void) sftk_DestroyObject(object);
     return NULL;
-
 }
 
 SFTKTokenObject *

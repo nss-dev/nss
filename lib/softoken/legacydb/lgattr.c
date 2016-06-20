@@ -71,11 +71,8 @@ lg_NewObjectCache(SDB *sdb, const SECItem *dbKey, CK_OBJECT_HANDLE handle)
 
     return obj;
 loser:
-    if (obj) {
-	(void) lg_DestroyObjectCache(obj);
-    }
+    (void) lg_DestroyObjectCache(obj);
     return NULL;
-
 }
 
 /*
