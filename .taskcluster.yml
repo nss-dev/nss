@@ -52,16 +52,9 @@ tasks:
       tags:
         createdForUser: {{owner}}
 
-      scopes:
-        - "queue:route:tc-treeherder-stage.nss.{{revision_hash}}"
-        - "queue:route:tc-treeherder.nss.{{revision_hash}}"
-        - "scheduler:extend-task-graph:*"
-        # mozilla-taskcluster will append the appropriate assume:repo:<repo>
-        # scope here.
-
       routes:
-        - "tc-treeherder-stage.nss.{{revision_hash}}"
-        - "tc-treeherder.nss.{{revision_hash}}"
+        - "tc-treeherder-stage.v2.nss.{{head_rev}}.{{pushlog_id}}"
+        - "tc-treeherder.v2.nss.{{head_rev}}.{{pushlog_id}}"
 
       payload:
         image: "ttaubert/nss-ci:0.0.16"
@@ -69,8 +62,8 @@ tasks:
         env:
           TC_OWNER: {{owner}}
           TC_SOURCE: {{{source}}}
-          TC_REVISION: '{{revision}}'
-          TC_REVISION_HASH: '{{revision_hash}}'
+          TC_HEAD_REV: '{{head_rev}}'
+          TC_PUSHLOG_ID: '{{pushlog_id}}'
           NSS_HEAD_REPOSITORY: '{{{url}}}'
           NSS_HEAD_REVISION: '{{revision}}'
 

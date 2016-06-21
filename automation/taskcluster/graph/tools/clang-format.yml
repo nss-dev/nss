@@ -33,5 +33,3 @@
         machine:
           platform: nss-tools
         symbol: clang-format-3.8
-        revision: !env TC_REVISION
-        revision_hash: !env TC_REVISION_HASH
