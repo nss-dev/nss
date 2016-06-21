@@ -10,8 +10,8 @@ var slugid = require("slugid");
 var flatmap = require("flatmap");
 
 // Default values for debugging.
-var TC_REVISION = process.env.TC_REVISION || "{{tc_rev}}";
-var TC_REVISION_HASH = process.env.TC_REVISION_HASH || "{{tc_rev_hash}}";
+var TC_HEAD_REV = process.env.TC_HEAD_REV || "{{tc_head_rev}}";
+var TC_PUSHLOG_ID = process.env.TC_PUSHLOG_ID || "{{tc_pushlog_id}}";
 var TC_OWNER = process.env.TC_OWNER || "{{tc_owner}}";
 var TC_SOURCE = process.env.TC_SOURCE || "{{tc_source}}";
 var NSS_HEAD_REPOSITORY = process.env.NSS_HEAD_REPOSITORY || "{{nss_head_repo}}";
@@ -67,15 +67,15 @@ function decorateTask(task) {
 
   // Permissions.
   task.task.scopes = [
-    "queue:route:tc-treeherder-stage.nss." + TC_REVISION_HASH,
-    "queue:route:tc-treeherder.nss." + TC_REVISION_HASH,
+    "queue:route:tc-treeherder-stage.v2.nss." + TC_HEAD_REV + "." + TC_PUSHLOG_ID,
+    "queue:route:tc-treeherder.v2.nss." + TC_HEAD_REV + "." + TC_PUSHLOG_ID,
     "scheduler:extend-task-graph:*"
   ];
 
   // TreeHerder routes.
   task.task.routes = [
-    "tc-treeherder-stage.nss." + TC_REVISION_HASH,
-    "tc-treeherder.nss." + TC_REVISION_HASH
+    "tc-treeherder-stage.v2.nss." + TC_HEAD_REV + "." + TC_PUSHLOG_ID,
+    "tc-treeherder.v2.nss." + TC_HEAD_REV + "." + TC_PUSHLOG_ID
   ];
 }
 
