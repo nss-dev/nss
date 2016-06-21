@@ -53,8 +53,8 @@ tasks:
         createdForUser: {{owner}}
 
       routes:
-        - "tc-treeherder-stage.v2.nss.{{head_rev}}.{{pushlog_id}}"
-        - "tc-treeherder.v2.nss.{{head_rev}}.{{pushlog_id}}"
+        - "tc-treeherder-stage.v2.nss.{{revision}}.{{pushlog_id}}"
+        - "tc-treeherder.v2.nss.{{revision}}.{{pushlog_id}}"
 
       payload:
         image: "ttaubert/nss-ci:0.0.16"
@@ -62,8 +62,7 @@ tasks:
         env:
           TC_OWNER: {{owner}}
           TC_SOURCE: {{{source}}}
-          TC_HEAD_REV: '{{head_rev}}'
-          TC_PUSHLOG_ID: '{{pushlog_id}}'
+          NSS_PUSHLOG_ID: '{{pushlog_id}}'
           NSS_HEAD_REPOSITORY: '{{{url}}}'
           NSS_HEAD_REVISION: '{{revision}}'
 
