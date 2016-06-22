@@ -33,6 +33,7 @@
     - pkix
     - sdr
     - smime
+    - ssl
     - tools
 
 - task:
@@ -42,7 +43,6 @@
 
     payload:
       env:
-        NSS_TESTS: ssl
         USE_64: 1
 
     extra:
@@ -56,9 +56,6 @@
         groupSymbol: Builds
         groupName: Various builds
         symbol: noTLSv1.3
-
-  tests:
-    - ssl
 
 - task:
     metadata:
