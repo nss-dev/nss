@@ -2325,6 +2325,10 @@ SSL_VersionRangeGetSupported(SSLProtocolVariant protocolVariant,
         case ssl_variant_stream:
             vrange->min = SSL_LIBRARY_VERSION_3_0;
             vrange->max = SSL_LIBRARY_VERSION_MAX_SUPPORTED;
+            // We don't allow SSLv3 and TLSv1.3 together.
+            if (vrange->max == SSL_LIBRARY_VERSION_TLS_1_3) {
+                vrange->min = SSL_LIBRARY_VERSION_TLS_1_0;
+            }
             break;
         case ssl_variant_datagram:
             vrange->min = SSL_LIBRARY_VERSION_TLS_1_1;
