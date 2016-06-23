@@ -12,6 +12,8 @@
     extra:
       treeherder:
         symbol: ocsp
+        collection:
+          memleak: true
 
 - task:
     metadata:
@@ -29,6 +31,8 @@
         groupSymbol: Server
         groupName: MemLeak tests (ssl_server)
         symbol: standard
+        collection:
+          memleak: true
 
 - task:
     metadata:
@@ -46,6 +50,8 @@
         groupSymbol: Server
         groupName: MemLeak tests (ssl_server)
         symbol: pkix
+        collection:
+          memleak: true
 
 - task:
     metadata:
@@ -63,6 +69,8 @@
         groupSymbol: Server
         groupName: MemLeak tests (ssl_server)
         symbol: sharedb
+        collection:
+          memleak: true
 
 - task:
     metadata:
@@ -80,6 +88,8 @@
         groupSymbol: Server
         groupName: MemLeak tests (ssl_server)
         symbol: upgradedb
+        collection:
+          memleak: true
 
 - task:
     metadata:
@@ -97,6 +107,8 @@
         groupSymbol: Client
         groupName: MemLeak tests (ssl_client)
         symbol: standard
+        collection:
+          memleak: true
 
 - task:
     metadata:
@@ -114,6 +126,8 @@
         groupSymbol: Client
         groupName: MemLeak tests (ssl_client)
         symbol: pkix
+        collection:
+          memleak: true
 
 - task:
     metadata:
@@ -131,6 +145,8 @@
         groupSymbol: Client
         groupName: MemLeak tests (ssl_client)
         symbol: sharedb
+        collection:
+          memleak: true
 
 - task:
     metadata:
@@ -148,6 +164,8 @@
         groupSymbol: Client
         groupName: MemLeak tests (ssl_client)
         symbol: upgradedb
+        collection:
+          memleak: true
 
 - task:
     metadata:
@@ -165,6 +183,8 @@
         groupSymbol: Chains
         groupName: MemLeak tests (chains)
         symbol: standard
+        collection:
+          memleak: true
 
 - task:
     metadata:
@@ -182,6 +202,8 @@
         groupSymbol: Chains
         groupName: MemLeak tests (chains)
         symbol: pkix
+        collection:
+          memleak: true
 
 - task:
     metadata:
@@ -199,6 +221,8 @@
         groupSymbol: Chains
         groupName: MemLeak tests (chains)
         symbol: sharedb
+        collection:
+          memleak: true
 
 - task:
     metadata:
@@ -216,3 +240,5 @@
         groupSymbol: Chains
         groupName: MemLeak tests (chains)
         symbol: upgradedb
+        collection:
+          memleak: true
