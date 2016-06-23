@@ -27,6 +27,7 @@
     - fips
     - gtests
     - lowhash
+    - memleak
     - merge
     - ocsp
     - pkits
