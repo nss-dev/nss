@@ -183,7 +183,7 @@ PRBool sslint_DamageTrafficSecret(PRFileDesc *fd,
   if (!slot) {
     return PR_FALSE;
   }
-  keyPtr = (PK11SymKey **)((void *)&ss->ssl3.hs + offset);
+  keyPtr = (PK11SymKey **)((char *)&ss->ssl3.hs + offset);
   if (!keyPtr)
     return PR_FALSE;
   PK11_FreeSymKey(*keyPtr);
