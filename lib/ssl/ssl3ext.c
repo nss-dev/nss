@@ -3616,7 +3616,7 @@ tls13_ClientHandlePreSharedKeyXtn(sslSocket *ss, PRUint16 ex_type,
  *       }
  *   } EarlyDataIndication;
  */
-static SECStatus
+static PRInt32
 tls13_ClientSendEarlyDataXtn(sslSocket *ss,
                              PRBool append,
                              PRUint32 maxBytes)
