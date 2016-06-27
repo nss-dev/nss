@@ -2199,10 +2199,10 @@ AddExtensions(void *extHandle, const char *emailAddrs, const char *dnsNames,
             break;
         }
         rv = CERT_AddExtensionByOID(extHandle, &oid_item, &value, isCritical,
-                                    PR_FALSE /*copyData*/);
+                                    PR_TRUE /*copyData*/);
+        SECITEM_FreeItem(&value, PR_FALSE);
+        SECITEM_FreeItem(&oid_item, PR_FALSE);
         if (rv != SECSuccess) {
-            SECITEM_FreeItem(&oid_item, PR_FALSE);
-            SECITEM_FreeItem(&value, PR_FALSE);
             SECU_PrintError(progName, "failed to add extension %s", nextExtension);
             break;
         }
