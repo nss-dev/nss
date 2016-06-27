@@ -152,3 +152,26 @@
         groupSymbol: Builds
         groupName: Various builds
         symbol: noPkcs11Bypass
+
+- task:
+    metadata:
+      name: "Linux 64 (debug, NO_BUILD_LIBPKIX=1)"
+      description: "Linux 64 (debug, NO_BUILD_LIBPKIX=1)"
+
+    payload:
+      env:
+        NSS_ENABLE_TLS_1_3: 1
+        NO_BUILD_LIBPKIX: 1
+        USE_64: 1
+
+    extra:
+      treeherder:
+        build:
+          platform: linux64
+        machine:
+          platform: linux64
+        collection:
+          debug: true
+        groupSymbol: Builds
+        groupName: Various builds
+        symbol: noLibpkix
