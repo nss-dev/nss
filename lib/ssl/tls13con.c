@@ -439,6 +439,7 @@ tls13_HandleKeyShare(sslSocket *ss,
         ssl_MapLowLevelError(SSL_ERROR_KEY_EXCHANGE_FAILURE);
         goto loser;
     }
+    PORT_DestroyCheapArena(&arena);
     return SECSuccess;
 
 loser:
@@ -610,6 +611,8 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
     if (rv != SECSuccess) {
         goto loser;
     }
+
+    PK11_FreeSymKey(RMS);
     return SECSuccess;
 
 loser:
@@ -2570,6 +2573,7 @@ tls13_ComputeFinished(sslSocket *ss, PK11SymKey *baseKey,
         goto abort;
     *outputLen = outputLenUint;
 
+    PK11_FreeSymKey(secret);
     PK11_DestroyContext(hmacCtx, PR_TRUE);
     return SECSuccess;
 

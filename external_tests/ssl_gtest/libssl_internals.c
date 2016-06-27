@@ -170,6 +170,7 @@ PRBool sslint_DamageTrafficSecret(PRFileDesc *fd,
 {
   unsigned char data[32] = {0};
   PK11SymKey **keyPtr;
+  PK11SlotInfo *slot = PK11_GetInternalSlot();
   SECItem key_item = {
       siBuffer,
       data,
@@ -179,14 +180,17 @@ PRBool sslint_DamageTrafficSecret(PRFileDesc *fd,
   if (!ss) {
     return PR_FALSE;
   }
-
+  if (!slot) {
+    return PR_FALSE;
+  }
   keyPtr = (PK11SymKey **)((void *)&ss->ssl3.hs + offset);
   if (!keyPtr)
     return PR_FALSE;
   PK11_FreeSymKey(*keyPtr);
-  *keyPtr = PK11_ImportSymKey(PK11_GetInternalSlot(),
+  *keyPtr = PK11_ImportSymKey(slot,
                               CKM_NSS_HKDF_SHA256, PK11_OriginUnwrap,
                               CKA_DERIVE, &key_item, NULL);
+  PK11_FreeSlot(slot);
   if (!*keyPtr)
     return PR_FALSE;
 

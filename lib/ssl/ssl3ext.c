@@ -3539,13 +3539,9 @@ tls13_ServerSendPreSharedKeyXtn(sslSocket *ss,
                                 PRBool append,
                                 PRUint32 maxBytes)
 {
-    SECItem *session_ticket =
-        &ss->sec.ci.sid->u.ssl3.locked.sessionTicket.ticket;
     PRInt32 extension_length =
         2 + 2 + 2; /* type + len + index */
     SECStatus rv;
-
-    PORT_Assert(session_ticket->len);
 
     if (maxBytes < (PRUint32)extension_length) {
         PORT_Assert(0);
