@@ -1626,7 +1626,7 @@ lg_SetTrustAttribute(LGObjectCache *obj, const CK_ATTRIBUTE *attr)
 {
     unsigned int flags;
     CK_TRUST  trust;
-    NSSLOWCERTCertificate  *cert;
+    NSSLOWCERTCertificate  *cert = NULL;
     NSSLOWCERTCertDBHandle *certHandle;
     NSSLOWCERTCertTrust    dbTrust;
     SECStatus rv;
@@ -1681,6 +1681,9 @@ lg_SetTrustAttribute(LGObjectCache *obj, const CK_ATTRIBUTE *attr)
     rv = nsslowcert_ChangeCertTrust(certHandle, cert, &dbTrust);
     crv = (rv == SECSuccess) ? CKR_OK : CKR_DEVICE_ERROR;
 done:
+    if (cert) {
+        nsslowcert_DestroyCertificate(cert);
+    }
     return crv;
 }
 
