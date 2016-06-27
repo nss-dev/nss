@@ -103,7 +103,6 @@ class TlsAgent : public PollTarget {
   void ConfigureSessionCache(SessionResumptionMode mode);
   void SetSessionTicketsEnabled(bool en);
   void SetSessionCacheEnabled(bool en);
-  void Set0RttEnabled(bool en);
   void SetVersionRange(uint16_t minver, uint16_t maxver);
   void GetVersionRange(uint16_t* minver, uint16_t* maxver);
   void CheckPreliminaryInfo();
@@ -128,11 +127,9 @@ class TlsAgent : public PollTarget {
   void ResetSentBytes(); // Hack to test drops.
   void EnableExtendedMasterSecret();
   void CheckExtendedMasterSecret(bool expected);
-  void CheckEarlyDataAccepted(bool expected);
   void DisableRollbackDetection();
   void EnableCompression();
   void SetDowngradeCheckVersion(uint16_t version);
-  void CheckSecretsDestroyed();
 
   const std::string& name() const { return name_; }
 
@@ -406,11 +403,6 @@ class TlsAgentTestClient : public TlsAgentTestBase,
 class TlsAgentStreamTestClient : public TlsAgentTestBase {
  public:
   TlsAgentStreamTestClient() : TlsAgentTestBase(TlsAgent::CLIENT, STREAM) {}
-};
-
-class TlsAgentStreamTestServer : public TlsAgentTestBase {
- public:
-  TlsAgentStreamTestServer() : TlsAgentTestBase(TlsAgent::SERVER, STREAM) {}
 };
 
 class TlsAgentDgramTestClient : public TlsAgentTestBase {

@@ -283,14 +283,6 @@ void TlsAgent::SetSessionCacheEnabled(bool en) {
   EXPECT_EQ(SECSuccess, rv);
 }
 
-void TlsAgent::Set0RttEnabled(bool en) {
-  EXPECT_TRUE(EnsureTlsSetup());
-
-  SECStatus rv = SSL_OptionSet(ssl_fd_, SSL_ENABLE_0RTT_DATA,
-                               en ? PR_TRUE : PR_FALSE);
-  EXPECT_EQ(SECSuccess, rv);
-}
-
 void TlsAgent::SetVersionRange(uint16_t minver, uint16_t maxver) {
    vrange_.min = minver;
    vrange_.max = maxver;
@@ -539,11 +531,8 @@ void TlsAgent::Connected() {
 
   if (expected_version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
     PRInt32 cipherSuites = SSLInt_CountTls13CipherSpecs(ssl_fd_);
-    // We use one ciphersuite in each direction, plus one that's kept around
-    // by DTLS for retransmission.
-    EXPECT_EQ(((mode_ == DGRAM) && (role_ == CLIENT)) ? 3 : 2, cipherSuites);
+    EXPECT_EQ(((mode_ == DGRAM) && (role_ == CLIENT)) ? 2 : 1, cipherSuites);
   }
-
   SetState(STATE_CONNECTED);
 }
 
@@ -563,18 +552,6 @@ void TlsAgent::CheckExtendedMasterSecret(bool expected) {
   }
   ASSERT_EQ(expected, info_.extendedMasterSecretUsed != PR_FALSE)
       << "unexpected extended master secret state for " << name_;
-}
-
-void TlsAgent::CheckEarlyDataAccepted(bool expected) {
-  if (version() < SSL_LIBRARY_VERSION_TLS_1_3) {
-    expected = false;
-  }
-  ASSERT_EQ(expected, info_.earlyDataAccepted != PR_FALSE)
-      << "unexpected early data state for " << name_;
-}
-
-void TlsAgent::CheckSecretsDestroyed() {
-  ASSERT_EQ(true, SSLInt_CheckSecretsDestroyed(ssl_fd_));
 }
 
 void TlsAgent::DisableRollbackDetection() {

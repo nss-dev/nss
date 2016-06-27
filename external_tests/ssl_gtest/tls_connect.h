@@ -84,11 +84,8 @@ class TlsConnectTestBase : public ::testing::Test {
   void EnableSrtp();
   void CheckSrtp() const;
   void SendReceive();
-  void SetupForZeroRtt();
-  void ZeroRttSendReceive(bool expect_success);
   void Receive(size_t amount);
   void ExpectExtendedMasterSecret(bool expected);
-  void ExpectEarlyDataAccepted(bool expected);
 
  protected:
   Mode mode_;
@@ -101,10 +98,8 @@ class TlsConnectTestBase : public ::testing::Test {
  private:
   void CheckResumption(SessionResumptionMode expected);
   void CheckExtendedMasterSecret();
-  void CheckEarlyDataAccepted();
 
   bool expect_extended_master_secret_;
-  bool expect_early_data_accepted_;
 };
 
 // A non-parametrized TLS test base.
