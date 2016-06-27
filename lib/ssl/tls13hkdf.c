@@ -44,6 +44,7 @@ tls13_HkdfExtract(PK11SymKey *ikm1, PK11SymKey *ikm2in, SSLHashType baseHash,
     PK11SymKey *prk;
     static const PRUint8 zeroKeyBuf[HASH_LENGTH_MAX];
     PK11SymKey *zeroKey = NULL;
+    PK11SlotInfo *slot = NULL;
     PK11SymKey *ikm2;
 
     params.bExtract = CK_TRUE;
@@ -83,12 +84,15 @@ tls13_HkdfExtract(PK11SymKey *ikm1, PK11SymKey *ikm2in, SSLHashType baseHash,
 
     /* A zero ikm2 is a key of hash-length 0s. */
     if (!ikm2in) {
+        slot = PK11_GetInternalSlot();
         SECItem zeroItem = {
             siBuffer,
             (unsigned char *)zeroKeyBuf,
             kTlsHkdfInfo[baseHash].hashSize
         };
-        zeroKey = PK11_ImportSymKey(PK11_GetInternalSlot(),
+        if (!slot)
+            return SECFailure;
+        zeroKey = PK11_ImportSymKey(slot,
                                     kTlsHkdfInfo[baseHash].pkcs11Mech,
                                     PK11_OriginUnwrap,
                                     CKA_DERIVE, &zeroItem, NULL);
@@ -108,6 +112,8 @@ tls13_HkdfExtract(PK11SymKey *ikm1, PK11SymKey *ikm2in, SSLHashType baseHash,
                       CKA_DERIVE, kTlsHkdfInfo[baseHash].hashSize);
     if (zeroKey)
         PK11_FreeSymKey(zeroKey);
+    if (slot)
+        PK11_FreeSlot(slot);
     if (!prk)
         return SECFailure;
 
