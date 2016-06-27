@@ -213,7 +213,6 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
     secuPWData *pwdata = (secuPWData *)arg;
     secuPWData pwnull = { PW_NONE, 0 };
     secuPWData pwxtrn = { PW_EXTERNAL, "external" };
-    char *pw;
 
     if (pwdata == NULL)
         pwdata = &pwnull;
@@ -232,14 +231,7 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
                     PK11_GetTokenName(slot));
             return SECU_GetPasswordString(NULL, prompt);
         case PW_FROMFILE:
-            /* Instead of opening and closing the file every time, get the pw
-             * once, then keep it in memory (duh).
-             */
-            pw = SECU_FilePasswd(slot, retry, pwdata->data);
-            pwdata->source = PW_PLAINTEXT;
-            pwdata->data = PL_strdup(pw);
-            /* it's already been dup'ed */
-            return pw;
+            return SECU_FilePasswd(slot, retry, pwdata->data);
         case PW_EXTERNAL:
             sprintf(prompt,
                     "Press Enter, then enter PIN for \"%s\" on external device.\n",
