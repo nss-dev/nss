@@ -219,11 +219,14 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
     extHandle = CERT_StartCertificateRequestAttributes(cr);
     if (extHandle == NULL) {
         PORT_FreeArena(arena, PR_FALSE);
+        CERT_DestroyCertificateRequest(cr);
         return SECFailure;
     }
     if (AddExtensions(extHandle, emailAddrs, dnsNames, extnList, extGeneric) !=
         SECSuccess) {
         PORT_FreeArena(arena, PR_FALSE);
+        CERT_FinishExtensions(extHandle);
+        CERT_DestroyCertificateRequest(cr);
         return SECFailure;
     }
     CERT_FinishExtensions(extHandle);
@@ -1971,7 +1974,7 @@ CreateCert(
     int certVersion,
     SECItem *certDER)
 {
-    void *extHandle;
+    void *extHandle = NULL;
     CERTCertificate *subjectCert = NULL;
     CERTCertificateRequest *certReq = NULL;
     SECStatus rv = SECSuccess;
@@ -2015,6 +2018,7 @@ CreateCert(
         }
 
         CERT_FinishExtensions(extHandle);
+        extHandle = NULL;
 
         /* self-signing a cert request, find the private key */
         if (selfsign && *selfsignprivkey == NULL) {
@@ -2055,6 +2059,9 @@ CreateCert(
             rv = SECITEM_CopyItem(NULL, certDER, &subjectCert->derCert);
         }
     } while (0);
+    if (extHandle) {
+        CERT_FinishExtensions(extHandle);
+    }
     CERT_DestroyCertificateRequest(certReq);
     CERT_DestroyCertificate(subjectCert);
     if (rv != SECSuccess) {
