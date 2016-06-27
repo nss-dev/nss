@@ -917,7 +917,9 @@ sftk_freeObjectData(SFTKObject *object) {
 static void
 sftk_InitFreeList(SFTKObjectFreeList *list)
 {
-    list->lock = PZ_NewLock(nssILockObject);
+    if (!list->lock) {
+        list->lock = PZ_NewLock(nssILockObject);
+    }
 }
 
 void sftk_InitFreeLists(void)
