@@ -389,6 +389,7 @@ ChangeTrustAttributes(CERTCertDBHandle *handle, PK11SlotInfo *slot,
         }
     }
     CERT_DestroyCertificate(cert);
+    PORT_Free(trust);
 
     return SECSuccess;
 }
@@ -3154,6 +3155,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
                            PR_TRUE /*binary*/, PR_FALSE /*ascii*/,
                            &oid_item,
                            outFile, &pwdata);
+            SECITEM_FreeItem(&oid_item, PR_FALSE);
         } else {
             rv = ListCerts(certHandle, name, email, slot,
                            certutil.options[opt_BinaryDER].activated,

@@ -1089,6 +1089,10 @@ main(int argc, char **argv)
     }
 
 done:
+    if (import_file != NULL)
+        PORT_ZFree(import_file, PL_strlen(import_file));
+    if (export_file != NULL)
+        PORT_ZFree(export_file, PL_strlen(export_file));
     if (slotPw.data != NULL)
         PORT_ZFree(slotPw.data, PL_strlen(slotPw.data));
     if (p12FilePw.data != NULL)
