@@ -3557,20 +3557,24 @@ SECU_DerSignDataCRL(PLArenaPool *arena, CERTSignedData *sd,
 
     /* Sign input buffer */
     rv = SEC_SignData(&it, buf, len, pk, algID);
-    if (rv)
+    if (rv != SECSuccess) {
         goto loser;
+    }
 
     /* Fill out SignedData object */
     PORT_Memset(sd, 0, sizeof(*sd));
     sd->data.data = buf;
     sd->data.len = len;
-    sd->signature.data = it.data;
-    sd->signature.len = it.len << 3; /* convert to bit string */
-    rv = SECOID_SetAlgorithmID(arena, &sd->signatureAlgorithm, algID, 0);
-    if (rv)
+    rv = SECITEM_CopyItem(arena, &sd->signature, &it);
+    if (rv != SECSuccess) {
         goto loser;
+    }
 
-    return rv;
+    sd->signature.len <<= 3; /* convert to bit string */
+    rv = SECOID_SetAlgorithmID(arena, &sd->signatureAlgorithm, algID, 0);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
 
 loser:
     PORT_Free(it.data);
