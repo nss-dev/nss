@@ -1068,7 +1068,9 @@ ssl_run()
     do
         case "${SSL_RUN}" in
         "stapling")
-            ssl_stapling
+            if [ -nz "$NSS_DISABLE_LIBPKIX" ]; then
+              ssl_stapling
+            fi
             ;;
         "signed_cert_timestamps")
             ssl_signed_cert_timestamps
