@@ -574,7 +574,7 @@ void TlsAgent::CheckEarlyDataAccepted(bool expected) {
 }
 
 void TlsAgent::CheckSecretsDestroyed() {
-  ASSERT_EQ(true, SSLInt_CheckSecretsDestroyed(ssl_fd_));
+  ASSERT_EQ(PR_TRUE, SSLInt_CheckSecretsDestroyed(ssl_fd_));
 }
 
 void TlsAgent::DisableRollbackDetection() {

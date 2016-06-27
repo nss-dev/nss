@@ -419,8 +419,8 @@ void TlsConnectTestBase::ZeroRttSendReceive(bool expect_success) {
   EXPECT_EQ(k0RttDataLen, rv);
 
   server_->Handshake(); // Consume ClientHello, EE, Finished.
-  uint8_t buf[k0RttDataLen];
-  rv = PR_Read(server_->ssl_fd(), buf, k0RttDataLen); // 0-RTT read
+  std::vector<uint8_t> buf(k0RttDataLen);
+  rv = PR_Read(server_->ssl_fd(), buf.data(), k0RttDataLen); // 0-RTT read
   if (expect_success) {
     std::cerr << "0-RTT read " << rv << " bytes\n";
     EXPECT_EQ(k0RttDataLen, rv);
@@ -431,7 +431,7 @@ void TlsConnectTestBase::ZeroRttSendReceive(bool expect_success) {
 
   // Do a second read. this should fail.
   rv = PR_Read(server_->ssl_fd(),
-               buf, k0RttDataLen);
+               buf.data(), k0RttDataLen);
   EXPECT_EQ(SECFailure, rv);
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 
