@@ -289,7 +289,7 @@ unsigned int
 tls13_SizeOfECDHEKeyShareKEX(const SECKEYPublicKey *pubKey)
 {
     PORT_Assert(pubKey->keyType == ecKey);
-    return pubKey->u.ec.publicValue.len;
+    return 1 + pubKey->u.ec.publicValue.len;
 }
 
 /* This function encodes the key_exchange field in
@@ -301,8 +301,8 @@ tls13_EncodeECDHEKeyShareKEX(sslSocket *ss, const SECKEYPublicKey *pubKey)
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
     PORT_Assert(pubKey->keyType == ecKey);
 
-    return ssl3_AppendHandshake(ss, pubKey->u.ec.publicValue.data,
-                                pubKey->u.ec.publicValue.len);
+    return ssl3_AppendHandshakeVariable(ss, pubKey->u.ec.publicValue.data,
+                                        pubKey->u.ec.publicValue.len, 1);
 }
 
 /*
@@ -391,13 +391,18 @@ tls13_ImportECDHKeyShare(sslSocket *ss, SECKEYPublicKey *peerKey,
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
-    if (!length) {
+    rv = ssl3_ConsumeHandshakeVariable(ss, &ecPoint, 1, &b, &length);
+    if (rv != SECSuccess) {
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_ECDHE_KEY_SHARE);
+        return SECFailure;
+    }
+    if (length || !ecPoint.len) {
         PORT_SetError(SSL_ERROR_RX_MALFORMED_ECDHE_KEY_SHARE);
         return SECFailure;
     }
 
     /* Fail if the ec point uses compressed representation */
-    if (b[0] != EC_POINT_FORM_UNCOMPRESSED) {
+    if (ecPoint.data[0] != EC_POINT_FORM_UNCOMPRESSED) {
         PORT_SetError(SEC_ERROR_UNSUPPORTED_EC_POINT_FORM);
         return SECFailure;
     }
@@ -412,9 +417,6 @@ tls13_ImportECDHKeyShare(sslSocket *ss, SECKEYPublicKey *peerKey,
     }
 
     /* copy publicValue in peerKey */
-    ecPoint.data = b;
-    ecPoint.len = length;
-
     rv = SECITEM_CopyItem(peerKey->arena, &peerKey->u.ec.publicValue, &ecPoint);
     if (rv != SECSuccess) {
         return SECFailure;

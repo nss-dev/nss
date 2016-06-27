@@ -469,9 +469,3 @@ ER3(SSL_ERROR_RX_MALFORMED_ENCRYPTED_EXTENSIONS, (SSL_ERROR_BASE + 146),
 
 ER3(SSL_ERROR_RX_MALFORMED_PRE_SHARED_KEY, (SSL_ERROR_BASE + 147),
     "SSL received an invalid PreSharedKey extension.")
-
-ER3(SSL_ERROR_RX_MALFORMED_EARLY_DATA, (SSL_ERROR_BASE + 148),
-    "SSL received an invalid EarlyData extension.")
-
-ER3(SSL_ERROR_END_OF_EARLY_DATA_ALERT, (SSL_ERROR_BASE + 149),
-    "SSL received an unexpected end of early data alert.")
