@@ -67,16 +67,23 @@ static SECStatus
 crlgen_RmEntry(CRLGENGeneratorData *crlGenData, SECItem *certId)
 {
     CRLGENEntryData *data = NULL;
+    SECStatus rv = SECSuccess;
 
-    if (!crlGenData->entryDataHashTable)
+    if (!crlGenData->entryDataHashTable) {
         return SECSuccess;
+    }
+
     data = crlgen_FindEntry(crlGenData, certId);
-    if (!data)
+    if (!data) {
         return SECSuccess;
-    if (PL_HashTableRemove(crlGenData->entryDataHashTable, certId))
-        return SECSuccess;
+    }
+
+    if (!PL_HashTableRemove(crlGenData->entryDataHashTable, certId)) {
+        rv = SECFailure;
+    }
+
     destroyEntryData(data);
-    return SECFailure;
+    return rv;
 }
 
 /* Stores CRLGENEntryData in hashtable according to certId
