@@ -124,7 +124,7 @@ static SECStatus tls13_ServerHandlePreSharedKeyXtn(sslSocket *ss,
 static SECStatus tls13_ClientHandlePreSharedKeyXtn(sslSocket *ss,
                                                    PRUint16 ex_type,
                                                    SECItem *data);
-static SECStatus tls13_ClientSendEarlyDataXtn(sslSocket *ss,
+static PRInt32 tls13_ClientSendEarlyDataXtn(sslSocket *ss,
                                               PRBool append,
                                               PRUint32 maxBytes);
 static SECStatus tls13_ServerHandleEarlyDataXtn(sslSocket *ss, PRUint16 ex_type,
