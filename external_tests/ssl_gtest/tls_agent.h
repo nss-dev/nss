@@ -78,7 +78,7 @@ class TlsAgent : public PollTarget {
   }
 
 
-  void StartConnect();
+  void StartConnect(PRFileDesc *model = nullptr);
   void CheckKEAType(SSLKEAType type) const;
   void CheckAuthType(SSLAuthType type) const;
 
@@ -93,7 +93,7 @@ class TlsAgent : public PollTarget {
   // Prepares for renegotiation, then actually triggers it.
   void StartRenegotiate();
   bool ConfigServerCert(const std::string& name, bool updateKeyBits = false);
-  bool EnsureTlsSetup();
+  bool EnsureTlsSetup(PRFileDesc *modelSocket = nullptr);
 
   void SetupClientAuth();
   void RequestClientAuth(bool requireAuth);

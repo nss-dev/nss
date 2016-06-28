@@ -114,14 +114,14 @@ bool TlsAgent::ConfigServerCert(const std::string& name, bool updateKeyBits) {
   return rv == SECSuccess;
 }
 
-bool TlsAgent::EnsureTlsSetup() {
+bool TlsAgent::EnsureTlsSetup(PRFileDesc *modelSocket) {
   // Don't set up twice
   if (ssl_fd_) return true;
 
   if (adapter_->mode() == STREAM) {
-    ssl_fd_ = SSL_ImportFD(nullptr, pr_fd_);
+    ssl_fd_ = SSL_ImportFD(modelSocket, pr_fd_);
   } else {
-    ssl_fd_ = DTLS_ImportFD(nullptr, pr_fd_);
+    ssl_fd_ = DTLS_ImportFD(modelSocket, pr_fd_);
   }
 
   EXPECT_NE(nullptr, ssl_fd_);
@@ -210,8 +210,8 @@ void TlsAgent::RequestClientAuth(bool requireAuth) {
   expect_client_auth_ = true;
 }
 
-void TlsAgent::StartConnect() {
-  EXPECT_TRUE(EnsureTlsSetup());
+void TlsAgent::StartConnect(PRFileDesc *model) {
+  EXPECT_TRUE(EnsureTlsSetup(model));
 
   SECStatus rv;
   rv = SSL_ResetHandshake(ssl_fd_, role_ == SERVER ? PR_TRUE : PR_FALSE);

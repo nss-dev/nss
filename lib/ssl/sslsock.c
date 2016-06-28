@@ -260,6 +260,7 @@ ssl_DupSocket(sslSocket *os)
 
     ss->opt = os->opt;
     ss->opt.useSocks = PR_FALSE;
+    SECITEM_CopyItem(NULL, &ss->opt.nextProtoNego, &os->opt.nextProtoNego);
     ss->vrange = os->vrange;
 
     ss->peerID = !os->peerID ? NULL : PORT_Strdup(os->peerID);
@@ -325,6 +326,8 @@ ssl_DupSocket(sslSocket *os)
         ss->canFalseStartCallback = os->canFalseStartCallback;
         ss->canFalseStartCallbackData = os->canFalseStartCallbackData;
         ss->pkcs11PinArg = os->pkcs11PinArg;
+        ss->nextProtoCallback = os->nextProtoCallback;
+        ss->nextProtoArg = os->nextProtoArg;
 
         /* Create security data */
         rv = ssl_CopySecurityInfo(ss, os);

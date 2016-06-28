@@ -484,6 +484,12 @@ TEST_P(TlsConnectGeneric, ConnectAlpn) {
   CheckAlpn("a");
 }
 
+TEST_P(TlsConnectGeneric, ConnectAlpnClone) {
+  EnsureModelSockets();
+  Connect();
+  CheckAlpn("a");
+}
+
 TEST_P(TlsConnectDatagram, ConnectSrtp) {
   EnableSrtp();
   Connect();
