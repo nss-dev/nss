@@ -49,6 +49,7 @@ class Packet : public DataBuffer {
 static PRStatus DummyClose(PRFileDesc *f) {
   DummyPrSocket *io = reinterpret_cast<DummyPrSocket *>(f->secret);
   f->secret = nullptr;
+  f->dtor(f);
   delete io;
   return PR_SUCCESS;
 }
