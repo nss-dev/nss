@@ -82,6 +82,7 @@ class TlsConnectTestBase : public ::testing::Test {
                              SessionResumptionMode server);
   void EnableAlpn();
   void EnableAlpn(const uint8_t* val, size_t len);
+  void EnsureModelSockets();
   void CheckAlpn(const std::string& val);
   void EnableSrtp();
   void CheckSrtp() const;
@@ -98,9 +99,17 @@ class TlsConnectTestBase : public ::testing::Test {
   Mode mode_;
   TlsAgent* client_;
   TlsAgent* server_;
+  TlsAgent* client_model_;
+  TlsAgent* server_model_;
   uint16_t version_;
   SessionResumptionMode expected_resumption_mode_;
   std::vector<std::vector<uint8_t>> session_ids_;
+
+  // A simple value of "a", "b".  Note that the preferred value of "a" is placed
+  // at the end, because the NSS API follows the now defunct NPN specification,
+  // which places the preferred (and default) entry at the end of the list.
+  // NSS will move this final entry to the front when used with ALPN.
+  const uint8_t alpn_dummy_val_[4] = { 0x01, 0x62, 0x01, 0x61 };
 
  private:
   void CheckResumption(SessionResumptionMode expected);

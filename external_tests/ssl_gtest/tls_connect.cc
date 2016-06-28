@@ -110,6 +110,8 @@ TlsConnectTestBase::TlsConnectTestBase(Mode mode, uint16_t version)
       : mode_(mode),
         client_(new TlsAgent(TlsAgent::kClient, TlsAgent::CLIENT, mode_)),
         server_(new TlsAgent(TlsAgent::kServerRsa, TlsAgent::SERVER, mode_)),
+        client_model_(nullptr),
+        server_model_(nullptr),
         version_(version),
         expected_resumption_mode_(RESUME_NONE),
         session_ids_(),
@@ -149,6 +151,11 @@ void TlsConnectTestBase::SetUp() {
 void TlsConnectTestBase::TearDown() {
   delete client_;
   delete server_;
+  if (client_model_) {
+    ASSERT_NE(server_model_, nullptr);
+    delete client_model_;
+    delete server_model_;
+  }
 
   SSL_ClearSessionCache();
   SSLInt_ClearSessionTicketKey();
@@ -193,8 +200,8 @@ void TlsConnectTestBase::ExpectResumption(SessionResumptionMode expected) {
 }
 
 void TlsConnectTestBase::EnsureTlsSetup() {
-  EXPECT_TRUE(client_->EnsureTlsSetup());
-  EXPECT_TRUE(server_->EnsureTlsSetup());
+  EXPECT_TRUE(server_->EnsureTlsSetup(server_model_ ? server_model_->ssl_fd() : nullptr));
+  EXPECT_TRUE(client_->EnsureTlsSetup(client_model_ ? client_model_->ssl_fd() : nullptr));
 }
 
 void TlsConnectTestBase::Handshake() {
@@ -215,8 +222,8 @@ void TlsConnectTestBase::EnableExtendedMasterSecret() {
 }
 
 void TlsConnectTestBase::Connect() {
-  server_->StartConnect();
-  client_->StartConnect();
+  server_->StartConnect(server_model_ ? server_model_->ssl_fd() : nullptr);
+  client_->StartConnect(client_model_ ? client_model_->ssl_fd() : nullptr);
   Handshake();
   CheckConnected();
 }
@@ -363,18 +370,31 @@ void TlsConnectTestBase::CheckResumption(SessionResumptionMode expected) {
 }
 
 void TlsConnectTestBase::EnableAlpn() {
-  // A simple value of "a", "b".  Note that the preferred value of "a" is placed
-  // at the end, because the NSS API follows the now defunct NPN specification,
-  // which places the preferred (and default) entry at the end of the list.
-  // NSS will move this final entry to the front when used with ALPN.
-  static const uint8_t val[] = { 0x01, 0x62, 0x01, 0x61 };
-  client_->EnableAlpn(val, sizeof(val));
-  server_->EnableAlpn(val, sizeof(val));
+  client_->EnableAlpn(alpn_dummy_val_, sizeof(alpn_dummy_val_));
+  server_->EnableAlpn(alpn_dummy_val_, sizeof(alpn_dummy_val_));
 }
 
 void TlsConnectTestBase::EnableAlpn(const uint8_t *val, size_t len) {
   client_->EnableAlpn(val, len);
   server_->EnableAlpn(val, len);
+}
+
+void TlsConnectTestBase::EnsureModelSockets() {
+  // Make sure models agents are available.
+  if (!client_model_) {
+    ASSERT_EQ(server_model_, nullptr);
+    client_model_ = new TlsAgent(TlsAgent::kClient, TlsAgent::CLIENT, mode_);
+    server_model_ = new TlsAgent(TlsAgent::kServerRsa, TlsAgent::SERVER, mode_);
+  }
+
+  // Initialise agents.
+  ASSERT_TRUE(client_model_->Init());
+  ASSERT_TRUE(server_model_->Init());
+
+  // Set desired properties on the models.
+  // For now only ALPN.
+  client_model_->EnableAlpn(alpn_dummy_val_, sizeof(alpn_dummy_val_));
+  server_model_->EnableAlpn(alpn_dummy_val_, sizeof(alpn_dummy_val_));
 }
 
 void TlsConnectTestBase::CheckAlpn(const std::string& val) {
