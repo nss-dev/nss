@@ -398,6 +398,15 @@ void Poller::Shutdown() {
   instance = nullptr;
 }
 
+Poller::~Poller()
+{
+  while (!timers_.empty()) {
+    Timer *timer = timers_.top();
+    timers_.pop();
+    delete timer;
+  }
+}
+
 void Poller::Wait(Event event, DummyPrSocket *adapter, PollTarget *target,
                   PollCallback cb) {
   auto it = waiters_.find(adapter);
