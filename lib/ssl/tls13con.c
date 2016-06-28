@@ -2342,6 +2342,7 @@ tls13_HandleEncryptedExtensions(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
                 return SECFailure;
             }
         }
+        SECITEM_FreeItem(&oldNpn, PR_FALSE);
         if (ss->ssl3.hs.kea_def->authKeyType == ssl_auth_psk) {
             TLS13_SET_HS_STATE(ss, wait_finished);
         } else {
