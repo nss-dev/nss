@@ -1334,6 +1334,7 @@ tls13_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         goto loser;
     }
 
+    PORT_FreeArena(arena, PR_FALSE);
     return SECSuccess;
 
 loser:
