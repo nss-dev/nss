@@ -14016,6 +14016,7 @@ ssl3_DestroySSL3Info(sslSocket *ss)
     PORT_Free(ss->ssl3.hs.msg_body.buf);
 
     SECITEM_FreeItem(&ss->ssl3.hs.newSessionTicket.ticket, PR_FALSE);
+    SECITEM_FreeItem(&ss->ssl3.hs.srvVirtName, PR_FALSE);
 
     /* free up the CipherSpecs */
     ssl3_DestroyCipherSpec(&ss->ssl3.specs[0], PR_TRUE /*freeSrvName*/);
