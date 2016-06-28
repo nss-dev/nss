@@ -9607,6 +9607,13 @@ alert_loser:
     (void)SSL3_SendAlert(ss, alert_fatal, desc);
 /* FALLTHRU */
 loser:
+    if (sid && sid != ss->sec.ci.sid) {
+        if (ss->sec.uncache) {
+            ss->sec.uncache(sid);
+        }
+        ssl_FreeSID(sid);
+    }
+
     if (haveSpecWriteLock) {
         ssl_ReleaseSpecWriteLock(ss);
     }
