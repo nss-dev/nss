@@ -20,3 +20,6 @@
           platform: linux64
         collection:
           lsan: true
+
+  tests:
+    - gtests
