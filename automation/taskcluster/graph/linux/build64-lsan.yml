@@ -22,5 +22,6 @@
           lsan: true
 
   tests:
+    - ec
     - gtests
     - ocsp
