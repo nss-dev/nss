@@ -2773,9 +2773,11 @@ AddNicknameToSubject(NSSLOWCERTCertDBHandle *dbhandle,
 	goto loser;
     }
 
+    DestroyDBEntry((certDBEntry *)entry);
     return(SECSuccess);
 
 loser:
+    DestroyDBEntry((certDBEntry *)entry);
     return(SECFailure);
 }
 
