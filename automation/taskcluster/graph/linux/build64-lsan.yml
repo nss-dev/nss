@@ -22,6 +22,7 @@
           lsan: true
 
   tests:
+    - cipher
     - ec
     - gtests
     - lowhash
