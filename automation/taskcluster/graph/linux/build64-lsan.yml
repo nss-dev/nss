@@ -26,6 +26,7 @@
     - ec
     - gtests
     - lowhash
+    - merge
     - ocsp
     - pkits
     - sdr
