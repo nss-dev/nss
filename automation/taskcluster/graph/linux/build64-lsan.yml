@@ -24,4 +24,7 @@
   tests:
     - ec
     - gtests
+    - lowhash
     - ocsp
+    - pkits
+    - sdr
