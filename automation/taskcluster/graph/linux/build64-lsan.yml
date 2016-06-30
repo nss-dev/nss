@@ -6,6 +6,8 @@
 
     payload:
       env:
+        GCC_VERSION: clang
+        GXX_VERSION: clang++
         NSS_DISABLE_ARENA_FREE_LIST: 1
         NSS_DISABLE_UNLOAD: 1
         NSS_ENABLE_TLS_1_3: 1

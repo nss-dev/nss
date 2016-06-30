@@ -65,8 +65,8 @@
     payload:
       env:
         NSS_ENABLE_TLS_1_3: 1
-        GCC_VERSION: clang-3.8
-        GXX_VERSION: clang++-3.8
+        GCC_VERSION: clang
+        GXX_VERSION: clang++
         BUILD_OPT: 1
 
     extra:

@@ -15,7 +15,7 @@
 
     payload:
       maxRunTime: 3600
-      image: ttaubert/nss-ci:0.0.16
+      image: ttaubert/nss-ci:0.0.17
 
       command:
         - "/bin/bash"
