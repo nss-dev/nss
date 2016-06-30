@@ -185,7 +185,6 @@ class TlsConnectTls12Plus
   TlsConnectTls12Plus();
 };
 
-#ifdef NSS_ENABLE_TLS_1_3
 // A TLS 1.3 only generic test.
 class TlsConnectTls13
   : public TlsConnectTestBase,
@@ -200,7 +199,6 @@ class TlsConnectDatagram13
   TlsConnectDatagram13()
       : TlsConnectTestBase(DGRAM, SSL_LIBRARY_VERSION_TLS_1_3) {}
 };
-#endif
 
 // A variant that is used only with Pre13.
 class TlsConnectGenericPre13 : public TlsConnectGeneric {

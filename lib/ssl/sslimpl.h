@@ -1614,7 +1614,7 @@ extern PRInt32 ssl3_SendRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
  * runtime to determine which versions are supported by the version of libssl
  * in use.
  */
-#ifdef NSS_ENABLE_TLS_1_3
+#ifndef NSS_DISABLE_TLS_1_3
 #define SSL_LIBRARY_VERSION_MAX_SUPPORTED SSL_LIBRARY_VERSION_TLS_1_3
 #else
 #define SSL_LIBRARY_VERSION_MAX_SUPPORTED SSL_LIBRARY_VERSION_TLS_1_2

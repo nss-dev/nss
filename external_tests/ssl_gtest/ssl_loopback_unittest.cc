@@ -39,25 +39,6 @@ TEST_P(TlsConnectGeneric, ConnectEcdsa) {
   CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa);
 }
 
-TEST_P(TlsConnectGenericPre13, ConnectEcdh) {
-  SetExpectedVersion(std::get<1>(GetParam()));
-  Reset(TlsAgent::kServerEcdhEcdsa);
-  DisableAllCiphers();
-  EnableSomeEcdhCiphers();
-
-  Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_ecdh_ecdsa);
-}
-
-TEST_P(TlsConnectGenericPre13, ConnectEcdhWithoutDisablingSuites) {
-  SetExpectedVersion(std::get<1>(GetParam()));
-  Reset(TlsAgent::kServerEcdhEcdsa);
-  EnableSomeEcdhCiphers();
-
-  Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_ecdh_ecdsa);
-}
-
 TEST_P(TlsConnectGenericPre13, ConnectFalseStart) {
   client_->EnableFalseStart();
   Connect();
@@ -99,31 +80,6 @@ TEST_P(TlsConnectStreamPre13, ConnectAndServerRenegotiate) {
   server_->StartRenegotiate();
   Handshake();
   CheckConnected();
-}
-
-TEST_P(TlsConnectGeneric, ConnectEcdhe) {
-  Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
-}
-
-TEST_P(TlsConnectGeneric, ConnectEcdheP384) {
-  EnsureTlsSetup();
-  client_->ConfigNamedGroup(ssl_grp_ec_secp256r1, false);
-  Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign, 384);
-}
-
-// This enables only P-256 on the client and disables it on the server.
-// This test will fail when we add other groups that identify as ECDHE.
-TEST_P(TlsConnectGeneric, ConnectEcdheGroupMismatch) {
-  EnsureTlsSetup();
-  client_->ConfigNamedGroup(ssl_grp_ec_secp256r1, true);
-  client_->ConfigNamedGroup(ssl_grp_ec_secp384r1, false);
-  client_->ConfigNamedGroup(ssl_grp_ec_secp521r1, false);
-  server_->ConfigNamedGroup(ssl_grp_ec_secp256r1, false);
-
-  Connect();
-  CheckKeys(ssl_kea_dh, ssl_auth_rsa_sign);
 }
 
 TEST_P(TlsConnectGeneric, ConnectSendReceive) {
@@ -180,45 +136,6 @@ TEST_P(TlsConnectGeneric, ConnectWithCompressionMaybe)
   SendReceive();
 }
 
-#ifdef NSS_ENABLE_TLS_1_3
-TEST_F(TlsConnectTest, DamageSecretHandleClientFinished) {
-  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
-                           SSL_LIBRARY_VERSION_TLS_1_3);
-  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
-                           SSL_LIBRARY_VERSION_TLS_1_3);
-  server_->StartConnect();
-  client_->StartConnect();
-  client_->Handshake();
-  server_->Handshake();
-  std::cerr << "Damaging HS secret\n";
-  SSLInt_DamageHsTrafficSecret(server_->ssl_fd());
-  client_->Handshake();
-  server_->Handshake();
-  // The client thinks it has connected.
-  EXPECT_EQ(TlsAgent::STATE_CONNECTED, client_->state());
-  server_->CheckErrorCode(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
-  client_->Handshake();
-  client_->CheckErrorCode(SSL_ERROR_DECRYPT_ERROR_ALERT);
-}
-
-TEST_F(TlsConnectTest, DamageSecretHandleServerFinished) {
-  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
-                           SSL_LIBRARY_VERSION_TLS_1_3);
-  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
-                           SSL_LIBRARY_VERSION_TLS_1_3);
-  server_->SetPacketFilter(new AfterRecordN(
-      server_,
-      client_,
-      0, // ServerHello.
-      [this]() {
-        SSLInt_DamageHsTrafficSecret(client_->ssl_fd());
-      }));
-  ConnectExpectFail();
-  client_->CheckErrorCode(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
-  server_->CheckErrorCode(SSL_ERROR_DECRYPT_ERROR_ALERT);
-}
-#endif
-
 TEST_P(TlsConnectDatagram, TestDtlsHolddownExpiry) {
   Connect();
   std::cerr << "Expiring holddown timer\n";
@@ -229,64 +146,6 @@ TEST_P(TlsConnectDatagram, TestDtlsHolddownExpiry) {
     // One for send, one for receive.
     EXPECT_EQ(2, SSLInt_CountTls13CipherSpecs(client_->ssl_fd()));
   }
-}
-
-// Replace the point in the client key exchange message with an empty one
-class ECCClientKEXFilter : public TlsHandshakeFilter {
-public:
-  ECCClientKEXFilter() {}
-
-protected:
-  virtual PacketFilter::Action FilterHandshake(const HandshakeHeader &header,
-                                               const DataBuffer &input,
-                                               DataBuffer *output) {
-    if (header.handshake_type() != kTlsHandshakeClientKeyExchange) {
-      return KEEP;
-    }
-
-    // Replace the client key exchange message with an empty point
-    output->Allocate(1);
-    output->Write(0, 0U, 1); // set point length 0
-    return CHANGE;
-  }
-};
-
-// Replace the point in the server key exchange message with an empty one
-class ECCServerKEXFilter : public TlsHandshakeFilter {
-public:
-  ECCServerKEXFilter() {}
-
-protected:
-  virtual PacketFilter::Action FilterHandshake(const HandshakeHeader &header,
-                                               const DataBuffer &input,
-                                               DataBuffer *output) {
-    if (header.handshake_type() != kTlsHandshakeServerKeyExchange) {
-      return KEEP;
-    }
-
-    // Replace the server key exchange message with an empty point
-    output->Allocate(4);
-    output->Write(0, 3U, 1); // named curve
-    uint32_t curve;
-    EXPECT_TRUE(input.Read(1, 2, &curve)); // get curve id
-    output->Write(1, curve, 2); // write curve id
-    output->Write(3, 0U, 1); // point length 0
-    return CHANGE;
-  }
-};
-
-TEST_P(TlsConnectGenericPre13, ConnectECDHEmptyServerPoint) {
-  // add packet filter
-  server_->SetPacketFilter(new ECCServerKEXFilter());
-  ConnectExpectFail();
-  client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_SERVER_KEY_EXCH);
-}
-
-TEST_P(TlsConnectGenericPre13, ConnectECDHEmptyClientPoint) {
-  // add packet filter
-  client_->SetPacketFilter(new ECCClientKEXFilter());
-  ConnectExpectFail();
-  server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_KEY_EXCH);
 }
 
 INSTANTIATE_TEST_CASE_P(GenericStream, TlsConnectGeneric,
@@ -314,7 +173,7 @@ INSTANTIATE_TEST_CASE_P(Pre12Datagram, TlsConnectPre12,
 
 INSTANTIATE_TEST_CASE_P(Version12Only, TlsConnectTls12,
                         TlsConnectTestBase::kTlsModesAll);
-#ifdef NSS_ENABLE_TLS_1_3
+#ifndef NSS_DISABLE_TLS_1_3
 INSTANTIATE_TEST_CASE_P(Version13Only, TlsConnectTls13,
                         TlsConnectTestBase::kTlsModesAll);
 #endif

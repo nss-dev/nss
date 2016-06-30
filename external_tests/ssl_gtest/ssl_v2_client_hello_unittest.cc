@@ -251,7 +251,6 @@ TEST_P(SSLv2ClientHelloTest, Connect) {
 }
 
 // Test negotiating TLS 1.3.
-#ifdef NSS_ENABLE_TLS_1_3
 TEST_F(SSLv2ClientHelloTestF, Connect13) {
   SetExpectedVersion(SSL_LIBRARY_VERSION_TLS_1_3);
   client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_3,
@@ -266,7 +265,6 @@ TEST_F(SSLv2ClientHelloTestF, Connect13) {
   ConnectExpectFail();
   EXPECT_EQ(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO, server_->error_code());
 }
-#endif
 
 // Test negotiating an EC suite.
 TEST_P(SSLv2ClientHelloTest, NegotiateECSuite) {
