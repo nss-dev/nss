@@ -667,7 +667,6 @@ TEST_P(TlsExtensionTest13, ModifyDraftVersionAndFail) {
   EXPECT_EQ(SSL_ERROR_UNSUPPORTED_VERSION, server_->error_code());
 }
 
-#ifdef NSS_ENABLE_TLS_1_3
 // This test only works with TLS because the MAC error causes a
 // timeout on the server.
 TEST_F(TlsExtensionTest13Stream, DropServerKeyShare) {
@@ -680,7 +679,6 @@ TEST_F(TlsExtensionTest13Stream, DropServerKeyShare) {
   // from the TLS 1.3 stack.
   EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, server_->error_code());
 }
-#endif
 
 INSTANTIATE_TEST_CASE_P(ExtensionStream, TlsExtensionTestGeneric,
                         ::testing::Combine(
@@ -707,9 +705,7 @@ INSTANTIATE_TEST_CASE_P(ExtensionPre13Datagram, TlsExtensionTestPre13,
                           TlsConnectTestBase::kTlsModesAll,
                           TlsConnectTestBase::kTlsV11V12));
 
-#ifdef NSS_ENABLE_TLS_1_3
 INSTANTIATE_TEST_CASE_P(ExtensionTls13, TlsExtensionTest13,
                         TlsConnectTestBase::kTlsModesAll);
-#endif
 
 }  // namespace nspr_test

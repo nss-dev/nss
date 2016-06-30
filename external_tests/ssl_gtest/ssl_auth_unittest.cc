@@ -264,7 +264,6 @@ class BeforeFinished13 : public PacketFilter {
   size_t records_;
 };
 
-#ifdef NSS_ENABLE_TLS_1_3
 // This test uses an AuthCertificateCallback that blocks.  A filter is used to
 // split the server's first flight into two pieces.  Before the second piece is
 // processed by the client, SSL_AuthCertificateComplete() is called.
@@ -300,7 +299,6 @@ TEST_F(TlsConnectDatagram13, AuthCompleteAfterFinished) {
       });
   Connect();
 }
-#endif
 
 TEST_P(TlsConnectGenericPre13, ClientWriteBetweenCCSAndFinishedWithFalseStart) {
   client_->EnableFalseStart();

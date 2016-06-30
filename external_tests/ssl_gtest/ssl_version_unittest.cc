@@ -96,7 +96,6 @@ TEST_F(DtlsConnectTest, TestDtlsVersion11) {
   EXPECT_EQ(SSL_ERROR_UNSUPPORTED_VERSION, server_->error_code());
 }
 
-#ifdef NSS_ENABLE_TLS_1_3
 TEST_F(TlsConnectTest, TestDowngradeDetectionToTls12) {
   EnsureTlsSetup();
   client_->SetPacketFilter(new TlsInspectorClientHelloVersionSetter
@@ -108,7 +107,6 @@ TEST_F(TlsConnectTest, TestDowngradeDetectionToTls12) {
   ConnectExpectFail();
   ASSERT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
 }
-#endif
 
 // TLS 1.1 clients do not check the random values, so we should
 // instead get a handshake failure alert from the server.
@@ -135,7 +133,6 @@ TEST_F(TlsConnectTest, TestFallbackFromTls12) {
   ASSERT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
 }
 
-#ifdef NSS_ENABLE_TLS_1_3
 TEST_F(TlsConnectTest, TestFallbackFromTls13) {
   EnsureTlsSetup();
   client_->SetDowngradeCheckVersion(SSL_LIBRARY_VERSION_TLS_1_3);
@@ -162,6 +159,5 @@ TEST_F(TlsConnectTest, DisallowSSLv3HelloWithTLSv13Enabled) {
   rv = SSL_VersionRangeSet(server_->ssl_fd(), &vrange);
   EXPECT_EQ(SECFailure, rv);
 }
-#endif // NSS_ENABLE_TLS_1_3
 
 } // namespace nss_test

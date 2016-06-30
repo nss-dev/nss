@@ -72,7 +72,6 @@ static void CheckShares(const DataBuffer& shares,
   EXPECT_EQ(shares.len(), i);
 }
 
-#ifdef NSS_ENABLE_TLS_1_3
 TEST_P(TlsConnectTls13, SharesForBothEcdheAndDhe) {
   EnsureTlsSetup();
   client_->DisableAllCiphers();
@@ -125,7 +124,6 @@ TEST_P(TlsConnectTls13, NoDheOnEcdheConnections) {
   CheckGroups(groups_capture->extension(), is_ecc);
   CheckShares(shares_capture->extension(), is_ecc);
 }
-#endif
 
 TEST_P(TlsConnectGeneric, ConnectFfdheClient) {
   EnableOnlyDheCiphers();
@@ -544,8 +542,6 @@ TEST_P(TlsConnectGenericPre13, PreferredFfdhe) {
   CheckKeys(ssl_kea_dh, ssl_auth_rsa_sign, 3072);
 }
 
-#ifdef NSS_ENABLE_TLS_1_3
-
 TEST_P(TlsConnectTls13, ResumeFfdhe) {
   EnableOnlyDheCiphers();
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
@@ -568,7 +564,5 @@ TEST_P(TlsConnectTls13, ResumeFfdhe) {
   ASSERT_LT(0UL, clientCapture->extension().len());
   ASSERT_LT(0UL, serverCapture->extension().len());
 }
-
-#endif // NSS_ENABLE_TLS_1_3
 
 } // namespace nss_test

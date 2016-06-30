@@ -53,7 +53,7 @@ static const uint16_t kTlsV11V12Arr[] = {SSL_LIBRARY_VERSION_TLS_1_1,
   TlsConnectTestBase::kTlsV11V12 = ::testing::ValuesIn(kTlsV11V12Arr);
 
 static const uint16_t kTlsV11PlusArr[] = {
-#ifdef NSS_ENABLE_TLS_1_3
+#ifndef NSS_DISABLE_TLS_1_3
   SSL_LIBRARY_VERSION_TLS_1_3,
 #endif
   SSL_LIBRARY_VERSION_TLS_1_2,
@@ -62,22 +62,20 @@ static const uint16_t kTlsV11PlusArr[] = {
 ::testing::internal::ParamGenerator<uint16_t>
   TlsConnectTestBase::kTlsV11Plus = ::testing::ValuesIn(kTlsV11PlusArr);
 static const uint16_t kTlsV12PlusArr[] = {
-#ifdef NSS_ENABLE_TLS_1_3
+#ifndef NSS_DISABLE_TLS_1_3
   SSL_LIBRARY_VERSION_TLS_1_3,
 #endif
   SSL_LIBRARY_VERSION_TLS_1_2
 };
 ::testing::internal::ParamGenerator<uint16_t>
   TlsConnectTestBase::kTlsV12Plus = ::testing::ValuesIn(kTlsV12PlusArr);
-#ifdef NSS_ENABLE_TLS_1_3
 static const uint16_t kTlsV13Arr[] = {
   SSL_LIBRARY_VERSION_TLS_1_3
 };
 ::testing::internal::ParamGenerator<uint16_t>
   TlsConnectTestBase::kTlsV13 = ::testing::ValuesIn(kTlsV13Arr);
-#endif
 static const uint16_t kTlsVAllArr[] = {
-#ifdef NSS_ENABLE_TLS_1_3
+#ifndef NSS_DISABLE_TLS_1_3
   SSL_LIBRARY_VERSION_TLS_1_3,
 #endif
   SSL_LIBRARY_VERSION_TLS_1_2,
@@ -520,10 +518,8 @@ TlsConnectTls12Plus::TlsConnectTls12Plus()
   : TlsConnectTestBase(TlsConnectTestBase::ToMode(std::get<0>(GetParam())),
                        std::get<1>(GetParam())) {}
 
-#ifdef NSS_ENABLE_TLS_1_3
 TlsConnectTls13::TlsConnectTls13()
   : TlsConnectTestBase(TlsConnectTestBase::ToMode(GetParam()),
                        SSL_LIBRARY_VERSION_TLS_1_3) {}
-#endif
 
 } // namespace nss_test

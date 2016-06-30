@@ -18,7 +18,6 @@
 
 namespace nss_test {
 
-#ifdef NSS_ENABLE_TLS_1_3
 // This is a 1-RTT ClientHello with ECDHE and DHE.
 const static uint8_t kCannedTls13ClientHello[] = {
   0x01, 0x00, 0x01, 0xfc, 0x03, 0x04, 0x77, 0x5c,
@@ -105,7 +104,6 @@ const static uint8_t kCannedTls13ServerHello[] = {
 };
 
 static const char *k0RttData = "ABCDEF";
-#endif
 
 TEST_P(TlsAgentTest, EarlyFinished) {
   DataBuffer buffer;
@@ -121,7 +119,6 @@ TEST_P(TlsAgentTest, EarlyCertificateVerify) {
                  SSL_ERROR_RX_UNEXPECTED_CERT_VERIFY);
 }
 
-#ifdef NSS_ENABLE_TLS_1_3
 TEST_P(TlsAgentTestClient, CannedHello) {
   DataBuffer buffer;
   EnsureInit();
@@ -299,14 +296,11 @@ TEST_F(TlsAgentStreamTestServer, Set0RttOptionClientHelloThenRead) {
                  SSL_ERROR_BAD_MAC_READ);
 }
 
-#endif
 
 INSTANTIATE_TEST_CASE_P(AgentTests, TlsAgentTest,
                         ::testing::Combine(
                              TlsAgentTestBase::kTlsRolesAll,
                              TlsConnectTestBase::kTlsModesStream));
-#ifdef NSS_ENABLE_TLS_1_3
 INSTANTIATE_TEST_CASE_P(ClientTests, TlsAgentTestClient,
                         TlsConnectTestBase::kTlsModesAll);
-#endif
 } // namespace nss_test
