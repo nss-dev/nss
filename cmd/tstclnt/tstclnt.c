@@ -1291,6 +1291,7 @@ main(int argc, char **argv)
         rv = NSS_Init(certDir);
         if (rv != SECSuccess) {
             SECU_PrintError(progName, "unable to open cert database");
+            PORT_Free(host);
             return 1;
         }
     } else {
