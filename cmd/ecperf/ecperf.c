@@ -295,7 +295,8 @@ hexString2SECItem(PLArenaPool *arena, SECItem *item, const char *str)
         tmp -= 2;
     }
 
-    if (SECITEM_AllocItem(arena, item, tmp / 2) == NULL) {
+    item = SECITEM_AllocItem(arena, item, tmp / 2);
+    if (item == NULL) {
         return NULL;
     }
 
@@ -574,6 +575,7 @@ ectest_curve_freebl(ECCurveName curve, int iterations, int numThreads)
     }
 
     if ((curve < ECCurve_noName) || (curve > ECCurve_pastLastCurve)) {
+        PORT_FreeArena(arena, PR_FALSE);
         return SECFailure;
     }
 
