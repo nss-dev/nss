@@ -314,46 +314,67 @@ tls13_GetHmacMechanism(sslSocket *ss)
 }
 
 /*
- * Called from ssl3_SendClientHello
+ * Generate shares for ECDHE and FFDHE.  This picks the first enabled group of
+ * the requisite type and creates a share for that.
+ *
+ * Called from ssl3_SendClientHello.
  */
 SECStatus
 tls13_SetupClientHello(sslSocket *ss)
 {
+    unsigned int i;
+    PRBool ecNeeded = ssl_IsECCEnabled(ss);
     /* This does FFDHE always only while we don't have HelloRetryRequest
      * support.  FFDHE is too much of a burden for normal requests.  We really
      * only want it when EC suites are disabled. */
-    static const NamedGroup groups_to_try[] = { ec_secp256r1, ffdhe_2048 };
-    unsigned int i;
+    PRBool ffNeeded = ssl_IsDHEEnabled(ss);
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
 
     PORT_Assert(PR_CLIST_IS_EMPTY(&ss->ephemeralKeyPairs));
 
-    for (i = 0; i < PR_ARRAY_SIZE(groups_to_try); ++i) {
+    for (i = 0; i < ssl_named_group_count; ++i) {
         SECStatus rv;
-        sslEphemeralKeyPair *keyPair;
-        const namedGroupDef *groupDef = ssl_LookupNamedGroup(groups_to_try[i]);
+        sslEphemeralKeyPair *keyPair = NULL;
+        const namedGroupDef *groupDef = &ssl_named_groups[i];
+        const ssl3DHParams *params;
         if (!ssl_NamedGroupEnabled(ss, groupDef)) {
             continue;
         }
         switch (groupDef->type) {
             case group_type_ec:
+                if (!ecNeeded) {
+                    continue;
+                }
                 rv = ssl_CreateECDHEphemeralKeyPair(groupDef, &keyPair);
+                if (rv != SECSuccess) {
+                    return SECFailure;
+                }
+                ecNeeded = PR_FALSE;
                 break;
-            case group_type_ff: {
-                const ssl3DHParams *params = ssl_GetDHEParams(groupDef);
+            case group_type_ff:
+                if (!ffNeeded) {
+                    continue;
+                }
+                params = ssl_GetDHEParams(groupDef);
                 PORT_Assert(params->name != ffdhe_custom);
                 rv = ssl_CreateDHEKeyPair(groupDef, params, &keyPair);
+                if (rv != SECSuccess) {
+                    return SECFailure;
+                }
+                ffNeeded = PR_FALSE;
                 break;
-            }
         }
-        if (rv != SECSuccess)
-            return rv;
 
         PR_APPEND_LINK(&keyPair->link, &ss->ephemeralKeyPairs);
     }
+
     PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->ephemeralKeyPairs));
+    /* We don't permit all groups of a given type to be disabled, so this should
+     * never reach this point wanting for a share of either type. */
+    PORT_Assert(!ecNeeded);
+    PORT_Assert(!ffNeeded);
 
     return SECSuccess;
 }

@@ -1737,7 +1737,8 @@ extern SECStatus ssl_ValidateDHENamedGroup(sslSocket *ss,
                                            const namedGroupDef **groupDef,
                                            const ssl3DHParams **dhParams);
 
-extern PRBool ssl3_IsECCEnabled(sslSocket *ss);
+extern PRBool ssl_IsECCEnabled(sslSocket *ss);
+extern PRBool ssl_IsDHEEnabled(sslSocket *ss);
 
 /* Macro for finding a curve equivalent in strength to RSA key's */
 /* clang-format off */
