@@ -346,12 +346,13 @@ jar_parse_any(JAR *jar, int type, JAR_Signer *signer,
                 sf_sha1 = (char *)met->info;
             } else {
                 PORT_Free(met->info);
+                met->info = NULL;
             }
         }
 
         if (type != jarTypeMF) {
             PORT_Free(met->header);
-            if (type != jarTypeSF || !jar->globalmeta) {
+            if ((type != jarTypeSF || !jar->globalmeta) && met->info) {
                 PORT_Free(met->info);
             }
             PORT_Free(met);
