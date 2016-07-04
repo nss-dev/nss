@@ -29,8 +29,6 @@
     - lowhash
     - merge
     - ocsp
-    - pkits
-    - pkix
     - sdr
     - smime
     - tools
