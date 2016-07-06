@@ -25,6 +25,7 @@
           lsan: true
 
   tests:
+    - chains
     - cipher
     - db
     - ec
