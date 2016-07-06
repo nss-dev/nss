@@ -34,4 +34,5 @@
     - merge
     - ocsp
     - sdr
+    - smime
     - tools
