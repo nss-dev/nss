@@ -1493,6 +1493,7 @@ ssl3_ComputeDHKeyHash(sslSocket *ss, SSLHashType hashAlg, SSL3Hashes *hashes,
 
     PORT_Assert(dh_p.data);
     PORT_Assert(dh_g.data);
+    PORT_Assert(dh_Ys.data);
 
     bufLen = 2 * SSL3_RANDOM_LENGTH +
              2 + dh_p.len +
@@ -5139,7 +5140,7 @@ ssl3_ConsumeSignatureAndHashAlgorithm(sslSocket *ss,
     PRUint8 bytes[2];
     SECStatus rv;
 
-    rv = ssl3_ConsumeHandshake(ss, bytes, sizeof(bytes), b, length);
+    rv = ssl3_ConsumeHandshake(ss, &bytes[0], sizeof(bytes), b, length);
     if (rv != SECSuccess) {
         return rv;
     }
@@ -10555,20 +10556,26 @@ ssl3_HandleCertificateVerify(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
             desc = decrypt_error;
             goto alert_loser;
         }
+
+        if (hashes->u.pointer_to_hash_input.data) {
 #ifndef NO_PKCS11_BYPASS
-        if (ss->opt.bypassPKCS11) {
-            rv = ssl3_ComputeBypassHandshakeHash(hashes->u.pointer_to_hash_input.data,
-                                                 hashes->u.pointer_to_hash_input.len,
-                                                 sigAndHash.hashAlg,
-                                                 &localHashes);
-        } else
+            if (ss->opt.bypassPKCS11 && hashes->u.pointer_to_hash_input.data) {
+                rv = ssl3_ComputeBypassHandshakeHash(hashes->u.pointer_to_hash_input.data,
+                                                     hashes->u.pointer_to_hash_input.len,
+                                                     sigAndHash.hashAlg,
+                                                     &localHashes);
+            } else
 #endif
-        {
-            rv = ssl3_ComputePkcs11HandshakeHash(hashes->u.pointer_to_hash_input.data,
-                                                 hashes->u.pointer_to_hash_input.len,
-                                                 sigAndHash.hashAlg,
-                                                 &localHashes);
+            {
+                rv = ssl3_ComputePkcs11HandshakeHash(hashes->u.pointer_to_hash_input.data,
+                                                     hashes->u.pointer_to_hash_input.len,
+                                                     sigAndHash.hashAlg,
+                                                     &localHashes);
+            }
+        } else {
+            rv = SECFailure;
         }
+
         if (rv == SECSuccess) {
             hashesForVerify = &localHashes;
         } else {
