@@ -1769,10 +1769,10 @@ done:
         PR_Close(s);
     }
 
-    if (!pingServerFirst) {
+    if (NSS_IsInitialized()) {
         SSL_ClearSessionCache();
         if (NSS_Shutdown() != SECSuccess) {
-            exit(1);
+            error = 1;
         }
     }
 
