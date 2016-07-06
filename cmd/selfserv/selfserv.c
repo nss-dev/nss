@@ -836,6 +836,7 @@ PRBool enableSessionTickets = PR_FALSE;
 PRBool enableCompression = PR_FALSE;
 PRBool failedToNegotiateName = PR_FALSE;
 PRBool enableExtendedMasterSecret = PR_FALSE;
+PRBool zeroRTT = PR_FALSE;
 
 static char *virtServerNameArray[MAX_VIRT_SERVER_NAME_ARRAY_INDEX];
 static int virtServerNameIndex = 1;
@@ -1987,6 +1988,16 @@ server_main(
         }
     }
 
+    if (zeroRTT) {
+        if (enabledVersions.max < SSL_LIBRARY_VERSION_TLS_1_3) {
+            errExit("You tried enabling 0RTT without enabling TLS 1.3!");
+        }
+        rv = SSL_OptionSet(model_sock, SSL_ENABLE_0RTT_DATA, PR_TRUE);
+        if (rv != SECSuccess) {
+            errExit("error enabling 0RTT ");
+        }
+    }
+
     /* This cipher is not on by default. The Acceptance test
      * would like it to be. Turn this cipher on.
      */
@@ -2239,7 +2250,7 @@ main(int argc, char **argv)
     ** numbers, then capital letters, then lower case, alphabetical.
     */
     optstate = PL_CreateOptState(argc, argv,
-                                 "2:A:BC:DEGH:L:M:NP:RS:T:U:V:W:Ya:bc:d:e:f:g:hi:jk:lmn:op:qrst:uvw:xyz");
+                                 "2:A:BC:DEGH:L:M:NP:RS:T:U:V:W:YZa:bc:d:e:f:g:hi:jk:lmn:op:qrst:uvw:xyz");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         ++optionsFound;
         switch (optstate->option) {
@@ -2460,6 +2471,10 @@ main(int argc, char **argv)
 
             case 'z':
                 enableCompression = PR_TRUE;
+                break;
+
+            case 'Z':
+                zeroRTT = PR_TRUE;
                 break;
 
             default:
