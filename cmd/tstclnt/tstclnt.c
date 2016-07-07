@@ -1232,6 +1232,15 @@ main(int argc, char **argv)
 
     printHostNameAndAddr(host, &addr);
 
+    if (!certDir) {
+        certDir = SECU_DefaultSSLDir(); /* Look in $SSL_DIR */
+        certDir = SECU_ConfigDirectory(certDir);
+    } else {
+        char *certDirTmp = certDir;
+        certDir = SECU_ConfigDirectory(certDirTmp);
+        PORT_Free(certDirTmp);
+    }
+
     if (pingServerFirst) {
         int iter = 0;
         PRErrorCode err;
@@ -1283,15 +1292,6 @@ main(int argc, char **argv)
     }
 
     /* open the cert DB, the key DB, and the secmod DB. */
-    if (!certDir) {
-        certDir = SECU_DefaultSSLDir(); /* Look in $SSL_DIR */
-        certDir = SECU_ConfigDirectory(certDir);
-    } else {
-        char *certDirTmp = certDir;
-        certDir = SECU_ConfigDirectory(certDirTmp);
-        PORT_Free(certDirTmp);
-    }
-
     if (openDB) {
         rv = NSS_Init(certDir);
         if (rv != SECSuccess) {
