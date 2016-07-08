@@ -29,7 +29,6 @@
     - gtests
     - lowhash
     - merge
-    - ocsp
     - sdr
     - smime
     - ssl

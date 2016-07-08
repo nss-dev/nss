@@ -29,7 +29,6 @@
     - lowhash
     - memleak
     - merge
-    - ocsp
     - sdr
     - smime
     - ssl
