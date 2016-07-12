@@ -39,12 +39,12 @@ set +v +x
 STATUS=0
 for i in "${!scan[@]}"
 do
-   n=$(grep -Rn "${scan[i]#*/}/" /home/worker/artifacts/*/index.html | wc -l)
+   n=$(grep -Rn "${scan[i]}" /home/worker/artifacts/*/report-*.html | wc -l)
    if [ $n -ne ${ignore[$i]} ]; then
      STATUS=1
-     echo "$(date '+%T') WARNING - TEST-UNEXPECTED-FAIL: $i contains $n scan-build errors"
-   elif [$n -ne 0]; then
-     echo "$(date '+%T') WARNING - TEST-UNEXPECTED-FAIL: $i contains $n scan-build errors (nonfatal!)"
+     echo "$(date '+%T') WARNING - TEST-UNEXPECTED-FAIL: ${scan[$i]} contains $n scan-build errors"
+   elif [ $n -ne 0 ]; then
+     echo "$(date '+%T') WARNING - TEST-UNEXPECTED-FAIL: ${scan[$i]} contains $n scan-build errors (nonfatal!)"
    fi
 
 done
