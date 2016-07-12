@@ -72,6 +72,7 @@ static void CheckShares(const DataBuffer& shares,
   EXPECT_EQ(shares.len(), i);
 }
 
+#ifdef NSS_ENABLE_TLS_1_3
 TEST_P(TlsConnectTls13, SharesForBothEcdheAndDhe) {
   EnsureTlsSetup();
   client_->DisableAllCiphers();
@@ -124,6 +125,7 @@ TEST_P(TlsConnectTls13, NoDheOnEcdheConnections) {
   CheckGroups(groups_capture->extension(), is_ecc);
   CheckShares(shares_capture->extension(), is_ecc);
 }
+#endif
 
 TEST_P(TlsConnectGeneric, ConnectFfdheClient) {
   EnableOnlyDheCiphers();
