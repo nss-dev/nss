@@ -2909,9 +2909,9 @@ tls13_SendClientSecondRound(sslSocket *ss)
                      ss->ssl3.clientCertChain != NULL &&
                      ss->ssl3.clientPrivateKey != NULL;
 
-    /* Defer client authentication sending if we are still
-     * waiting for server authentication. See the long block
-     * comment in ssl3_SendClientSecondRound for more detail.
+    /* Defer client authentication sending if we are still waiting for server
+     * authentication.  This avoids unnecessary disclosure of client credentials
+     * to an unauthenticated server.
      */
     if (ss->ssl3.hs.restartTarget) {
         PR_NOT_REACHED("unexpected ss->ssl3.hs.restartTarget");
