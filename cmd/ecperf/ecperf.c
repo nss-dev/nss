@@ -83,6 +83,9 @@ static SECOidTag ecCurve_oid_map[] = {
     SEC_OID_SECG_EC_SECT193R1,
     SEC_OID_SECG_EC_SECT193R2,
     SEC_OID_SECG_EC_SECT239K1,
+    SEC_OID_UNKNOWN, /* ECCurve_WTLS_1 */
+    SEC_OID_UNKNOWN, /* ECCurve_WTLS_8 */
+    SEC_OID_UNKNOWN, /* ECCurve_WTLS_9 */
     SEC_OID_UNKNOWN /* ECCurve_pastLastCurve */
 };
 
@@ -206,6 +209,12 @@ M_TimeOperation(void (*threadFunc)(void *),
             } else {
                 rv = (*opfunc)(param1, param2, param3);
             }
+            if (rv != SECSuccess) {
+                PORT_Free(threadIDs);
+                PORT_Free(threadData);
+                SECU_PrintError("Error:", op);
+                return rv;
+            }
         }
         total = iters;
     } else {
@@ -228,9 +237,6 @@ M_TimeOperation(void (*threadFunc)(void *),
             /* check the status */
             total += threadData[i].count;
         }
-
-        PORT_Free(threadIDs);
-        PORT_Free(threadData);
     }
 
     totalTime = PR_Now() - startTime;
@@ -243,40 +249,11 @@ M_TimeOperation(void (*threadFunc)(void *),
             *rate = ((double)total) / dUserTime;
         }
     }
+    PORT_Free(threadIDs);
+    PORT_Free(threadData);
+
     return SECSuccess;
 }
-
-#define GFP_POPULATE(params, name_v)                         \
-    params.name = name_v;                                    \
-    if ((params.name < ECCurve_noName) ||                    \
-        (params.name > ECCurve_pastLastCurve))               \
-        goto cleanup;                                        \
-    params.type = ec_params_named;                           \
-    params.curveOID.data = NULL;                             \
-    params.curveOID.len = 0;                                 \
-    params.curve.seed.data = NULL;                           \
-    params.curve.seed.len = 0;                               \
-    params.DEREncoding.data = NULL;                          \
-    params.DEREncoding.len = 0;                              \
-    params.arena = NULL;                                     \
-    params.fieldID.size = ecCurve_map[name_v]->size;         \
-    params.fieldID.type = ec_field_GFp;                      \
-    hexString2SECItem(params.arena, &params.fieldID.u.prime, \
-                      ecCurve_map[name_v]->irr);             \
-    hexString2SECItem(params.arena, &params.curve.a,         \
-                      ecCurve_map[name_v]->curvea);          \
-    hexString2SECItem(params.arena, &params.curve.b,         \
-                      ecCurve_map[name_v]->curveb);          \
-    genenc[0] = '0';                                         \
-    genenc[1] = '4';                                         \
-    genenc[2] = '\0';                                        \
-    strcat(genenc, ecCurve_map[name_v]->genx);               \
-    strcat(genenc, ecCurve_map[name_v]->geny);               \
-    hexString2SECItem(params.arena, &params.base,            \
-                      genenc);                               \
-    hexString2SECItem(params.arena, &params.order,           \
-                      ecCurve_map[name_v]->order);           \
-    params.cofactor = ecCurve_map[name_v]->cofactor;
 
 /* Test curve using specific field arithmetic. */
 #define ECTEST_NAMED_GFP(name_c, name_v)                               \
@@ -308,6 +285,9 @@ hexString2SECItem(PLArenaPool *arena, SECItem *item, const char *str)
     int byteval = 0;
     int tmp = PORT_Strlen(str);
 
+    PORT_Assert(arena);
+    PORT_Assert(item);
+
     if ((tmp % 2) != 0) {
         return NULL;
     }
@@ -318,20 +298,22 @@ hexString2SECItem(PLArenaPool *arena, SECItem *item, const char *str)
         tmp -= 2;
     }
 
-    item->data = (unsigned char *)PORT_Alloc(tmp / 2);
-    if (item->data == NULL)
+    item = SECITEM_AllocItem(arena, item, tmp / 2);
+    if (item == NULL) {
         return NULL;
-    item->len = tmp / 2;
+    }
 
     while (str[i]) {
-        if ((str[i] >= '0') && (str[i] <= '9'))
+        if ((str[i] >= '0') && (str[i] <= '9')) {
             tmp = str[i] - '0';
-        else if ((str[i] >= 'a') && (str[i] <= 'f'))
+        } else if ((str[i] >= 'a') && (str[i] <= 'f')) {
             tmp = str[i] - 'a' + 10;
-        else if ((str[i] >= 'A') && (str[i] <= 'F'))
+        } else if ((str[i] >= 'A') && (str[i] <= 'F')) {
             tmp = str[i] - 'A' + 10;
-        else
+        } else {
+            /* item is in arena and gets freed by the caller */
             return NULL;
+        }
 
         byteval = byteval * 16 + tmp;
         if ((i % 2) != 0) {
@@ -382,6 +364,7 @@ PKCS11_Sign(CK_SESSION_HANDLE session, CK_OBJECT_HANDLE *hKey,
 {
     CK_RV crv;
     CK_MECHANISM mech;
+    CK_ULONG sigLen = sig->len;
 
     mech.mechanism = CKM_ECDSA;
     mech.pParameter = NULL;
@@ -392,12 +375,12 @@ PKCS11_Sign(CK_SESSION_HANDLE session, CK_OBJECT_HANDLE *hKey,
         printf("Sign Failed CK_RV=0x%x\n", (int)crv);
         return SECFailure;
     }
-    crv = NSC_Sign(session, digest->data, digest->len, sig->data,
-                   (CK_ULONG_PTR)&sig->len);
+    crv = NSC_Sign(session, digest->data, digest->len, sig->data, &sigLen);
     if (crv != CKR_OK) {
         printf("Sign Failed CK_RV=0x%x\n", (int)crv);
         return SECFailure;
     }
+    sig->len = (unsigned int)sigLen;
     return SECSuccess;
 }
 
@@ -569,11 +552,7 @@ ECDH_DeriveWrap(ECPrivateKey *priv, ECPublicKey *pub, int *dummy)
 
     rv = ECDH_Derive(&pub->publicValue, &pub->ecParams,
                      &priv->privateValue, 0, &secret);
-#ifdef notdef
-    if (rv == SECSuccess) {
-        PORT_Free(secret.data);
-    }
-#endif
+    SECITEM_FreeItem(&secret, PR_FALSE);
     return rv;
 }
 
@@ -583,7 +562,7 @@ ECDH_DeriveWrap(ECPrivateKey *priv, ECPublicKey *pub, int *dummy)
 SECStatus
 ectest_curve_freebl(ECCurveName curve, int iterations, int numThreads)
 {
-    ECParams ecParams;
+    ECParams ecParams = { 0 };
     ECPrivateKey *ecPriv = NULL;
     ECPublicKey ecPub;
     SECItem sig;
@@ -593,8 +572,40 @@ ectest_curve_freebl(ECCurveName curve, int iterations, int numThreads)
     double signRate, deriveRate;
     char genenc[3 + 2 * 2 * MAX_ECKEY_LEN];
     SECStatus rv = SECFailure;
+    PLArenaPool *arena;
 
-    GFP_POPULATE(ecParams, curve);
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (!arena) {
+        return SECFailure;
+    }
+
+    if ((curve < ECCurve_noName) || (curve > ECCurve_pastLastCurve)) {
+        PORT_FreeArena(arena, PR_FALSE);
+        return SECFailure;
+    }
+
+    ecParams.name = curve;
+    ecParams.type = ec_params_named;
+    ecParams.curveOID.data = NULL;
+    ecParams.curveOID.len = 0;
+    ecParams.curve.seed.data = NULL;
+    ecParams.curve.seed.len = 0;
+    ecParams.DEREncoding.data = NULL;
+    ecParams.DEREncoding.len = 0;
+
+    ecParams.fieldID.size = ecCurve_map[curve]->size;
+    ecParams.fieldID.type = ec_field_GFp;
+    hexString2SECItem(arena, &ecParams.fieldID.u.prime, ecCurve_map[curve]->irr);
+    hexString2SECItem(arena, &ecParams.curve.a, ecCurve_map[curve]->curvea);
+    hexString2SECItem(arena, &ecParams.curve.b, ecCurve_map[curve]->curveb);
+    genenc[0] = '0';
+    genenc[1] = '4';
+    genenc[2] = '\0';
+    strcat(genenc, ecCurve_map[curve]->genx);
+    strcat(genenc, ecCurve_map[curve]->geny);
+    hexString2SECItem(arena, &ecParams.base, genenc);
+    hexString2SECItem(arena, &ecParams.order, ecCurve_map[curve]->order);
+    ecParams.cofactor = ecCurve_map[curve]->cofactor;
 
     PORT_Memset(digestData, 0xa5, sizeof(digestData));
     digest.data = digestData;
@@ -609,13 +620,13 @@ ectest_curve_freebl(ECCurveName curve, int iterations, int numThreads)
     ecPub.ecParams = ecParams;
     ecPub.publicValue = ecPriv->publicValue;
 
-    M_TimeOperation(genericThread, (op_func)ECDH_DeriveWrap, "ECDH_Derive",
-                    ecPriv, &ecPub, NULL, iterations, numThreads, 0, 0, 0, &deriveRate);
+    rv = M_TimeOperation(genericThread, (op_func)ECDH_DeriveWrap, "ECDH_Derive",
+                         ecPriv, &ecPub, NULL, iterations, numThreads, 0, 0, 0, &deriveRate);
     if (rv != SECSuccess) {
         goto cleanup;
     }
-    M_TimeOperation(genericThread, (op_func)ECDSA_SignDigest, "ECDSA_Sign",
-                    ecPriv, &sig, &digest, iterations, numThreads, 0, 0, 1, &signRate);
+    rv = M_TimeOperation(genericThread, (op_func)ECDSA_SignDigest, "ECDSA_Sign",
+                         ecPriv, &sig, &digest, iterations, numThreads, 0, 0, 1, &signRate);
     if (rv != SECSuccess)
         goto cleanup;
     printf("        ECDHE max rate = %.2f\n", (deriveRate + signRate) / 4.0);
@@ -623,13 +634,15 @@ ectest_curve_freebl(ECCurveName curve, int iterations, int numThreads)
     if (rv != SECSuccess) {
         goto cleanup;
     }
-    M_TimeOperation(genericThread, (op_func)ECDSA_VerifyDigest, "ECDSA_Verify",
-                    &ecPub, &sig, &digest, iterations, numThreads, 0, 0, 0, NULL);
+    rv = M_TimeOperation(genericThread, (op_func)ECDSA_VerifyDigest, "ECDSA_Verify",
+                         &ecPub, &sig, &digest, iterations, numThreads, 0, 0, 0, NULL);
     if (rv != SECSuccess) {
         goto cleanup;
     }
 
 cleanup:
+    PORT_FreeArena(arena, PR_FALSE);
+    PORT_FreeArena(ecPriv->ecParams.arena, PR_FALSE);
     return rv;
 }
 
@@ -752,6 +765,8 @@ main(int argv, char **argc)
 #endif
 
 cleanup:
+    rv |= NSS_Shutdown();
+
     if (rv != SECSuccess) {
         printf("Error: exiting with error value\n");
     }

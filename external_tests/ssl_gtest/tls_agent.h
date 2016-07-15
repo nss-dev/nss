@@ -20,7 +20,7 @@
 
 namespace nss_test {
 
-#define LOG(msg) std::cerr << name_ << ": " << msg << std::endl
+#define LOG(msg) std::cerr << role_str() << ": " << msg << std::endl
 
 enum SessionResumptionMode {
   RESUME_NONE = 0,
@@ -62,7 +62,7 @@ class TlsAgent : public PollTarget {
   virtual ~TlsAgent();
 
   bool Init() {
-    pr_fd_ = DummyPrSocket::CreateFD(name_, mode_);
+    pr_fd_ = DummyPrSocket::CreateFD(role_str(), mode_);
     if (!pr_fd_) return false;
 
     adapter_ = DummyPrSocket::GetAdapter(pr_fd_);
@@ -78,20 +78,22 @@ class TlsAgent : public PollTarget {
   }
 
 
-  void StartConnect();
+  void StartConnect(PRFileDesc *model = nullptr);
   void CheckKEAType(SSLKEAType type) const;
   void CheckAuthType(SSLAuthType type) const;
+
+  void DisableAllCiphers();
+  void EnableCiphersByAuthType(SSLAuthType authType);
+  void EnableCiphersByKeyExchange(SSLKEAType kea);
+  void EnableSingleCipher(uint16_t cipher);
 
   void Handshake();
   // Marks the internal state as CONNECTING in anticipation of renegotiation.
   void PrepareForRenegotiate();
   // Prepares for renegotiation, then actually triggers it.
   void StartRenegotiate();
-  void DisableCiphersByKeyExchange(SSLKEAType kea);
-  void EnableCiphersByAuthType(SSLAuthType authType);
-  void EnableSingleCipher(uint16_t cipher);
   bool ConfigServerCert(const std::string& name, bool updateKeyBits = false);
-  bool EnsureTlsSetup();
+  bool EnsureTlsSetup(PRFileDesc *modelSocket = nullptr);
 
   void SetupClientAuth();
   void RequestClientAuth(bool requireAuth);
@@ -101,6 +103,7 @@ class TlsAgent : public PollTarget {
   void ConfigureSessionCache(SessionResumptionMode mode);
   void SetSessionTicketsEnabled(bool en);
   void SetSessionCacheEnabled(bool en);
+  void Set0RttEnabled(bool en);
   void SetVersionRange(uint16_t minver, uint16_t maxver);
   void GetVersionRange(uint16_t* minver, uint16_t* maxver);
   void CheckPreliminaryInfo();
@@ -113,7 +116,7 @@ class TlsAgent : public PollTarget {
                               size_t count);
   void EnableAlpn(const uint8_t* val, size_t len);
   void CheckAlpn(SSLNextProtoState expected_state,
-                 const std::string& expected) const;
+                 const std::string& expected = "") const;
   void EnableSrtp();
   void CheckSrtp() const;
   void CheckErrorCode(int32_t expected) const;
@@ -125,13 +128,16 @@ class TlsAgent : public PollTarget {
   void ResetSentBytes(); // Hack to test drops.
   void EnableExtendedMasterSecret();
   void CheckExtendedMasterSecret(bool expected);
+  void CheckEarlyDataAccepted(bool expected);
   void DisableRollbackDetection();
   void EnableCompression();
   void SetDowngradeCheckVersion(uint16_t version);
+  void CheckSecretsDestroyed();
 
   const std::string& name() const { return name_; }
 
   Role role() const { return role_; }
+  std::string role_str() const { return role_ == SERVER ? "server" : "client"; }
 
   State state() const { return state_; }
 
@@ -281,8 +287,8 @@ class TlsAgent : public PollTarget {
 
   static void HandshakeCallback(PRFileDesc *fd, void *arg) {
     TlsAgent* agent = reinterpret_cast<TlsAgent*>(arg);
-    agent->CheckPreliminaryInfo();
     agent->handshake_callback_called_ = true;
+    agent->Connected();
     if (agent->handshake_callback_) {
       agent->handshake_callback_(*agent);
     }
@@ -331,12 +337,32 @@ class TlsAgentTestBase : public ::testing::Test {
                                 role_(role),
                                 mode_(mode) {}
   ~TlsAgentTestBase() {
-    delete agent_;
     if (fd_) {
       PR_Close(fd_);
     }
   }
 
+  void SetUp();
+  void TearDown();
+
+  void MakeRecord(uint8_t type, uint16_t version,
+                  const uint8_t *buf, size_t len,
+                  DataBuffer* out, uint32_t seq_num = 0);
+  void MakeHandshakeMessage(uint8_t hs_type,
+                            const uint8_t *data,
+                            size_t hs_len,
+                            DataBuffer* out,
+                            uint32_t seq_num = 0);
+  void MakeHandshakeMessageFragment(uint8_t hs_type,
+                                    const uint8_t *data,
+                                    size_t hs_len,
+                                    DataBuffer* out,
+                                    uint32_t seq_num,
+                                    uint32_t fragment_offset,
+                                    uint32_t fragment_length);
+  void MakeTrivialHandshakeRecord(uint8_t hs_type,
+                                  size_t hs_len,
+                                  DataBuffer* out);
   static inline TlsAgent::Role ToRole(const std::string& str) {
     return str == "CLIENT" ? TlsAgent::CLIENT : TlsAgent::SERVER;
   }
@@ -358,7 +384,6 @@ class TlsAgentTestBase : public ::testing::Test {
   PRFileDesc* fd_;
   TlsAgent::Role role_;
   Mode mode_;
-  SSLKEAType kea_;
 };
 
 class TlsAgentTest :
@@ -371,6 +396,28 @@ class TlsAgentTest :
                        ToMode(std::get<1>(GetParam()))) {}
 };
 
-}  // namespace nss_test
+class TlsAgentTestClient : public TlsAgentTestBase,
+                           public ::testing::WithParamInterface<std::string> {
+ public:
+  TlsAgentTestClient() : TlsAgentTestBase(TlsAgent::CLIENT,
+                                          ToMode(GetParam())) {}
+};
+
+class TlsAgentStreamTestClient : public TlsAgentTestBase {
+ public:
+  TlsAgentStreamTestClient() : TlsAgentTestBase(TlsAgent::CLIENT, STREAM) {}
+};
+
+class TlsAgentStreamTestServer : public TlsAgentTestBase {
+ public:
+  TlsAgentStreamTestServer() : TlsAgentTestBase(TlsAgent::SERVER, STREAM) {}
+};
+
+class TlsAgentDgramTestClient : public TlsAgentTestBase {
+ public:
+  TlsAgentDgramTestClient() : TlsAgentTestBase(TlsAgent::CLIENT, DGRAM) {}
+};
+
+} // namespace nss_test
 
 #endif

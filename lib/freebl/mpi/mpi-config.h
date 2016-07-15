@@ -61,10 +61,6 @@
 #define MP_DEFPREC    64 /* default precision, in digits        */
 #endif
 
-#ifndef MP_MACRO
-#define MP_MACRO      1  /* use macros for frequent calls?      */
-#endif
-
 #ifndef MP_SQUARE
 #define MP_SQUARE     1  /* use separate squaring code?         */
 #endif
