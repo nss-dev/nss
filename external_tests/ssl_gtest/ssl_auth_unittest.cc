@@ -114,8 +114,8 @@ TEST_P(TlsConnectGenericPre13, SignatureAlgorithmNoOverlapStaticRsa) {
   CheckKeys(ssl_kea_rsa, ssl_auth_rsa_decrypt);
 }
 
-// Signature algorithms governs both verification and generation of signatures.
-// With ECDSA, we need to at least have a common signature algorithm configured.
+// TODO(ekr@rtfm.com): We need to enable this for 1.3 when we fix
+// bug 1287267.
 TEST_P(TlsConnectTls12, SignatureAlgorithmNoOverlapEcdsa) {
   Reset(TlsAgent::kServerEcdsa);
   client_->SetSignatureAlgorithms(SignatureEcdsaSha384,
@@ -135,7 +135,7 @@ TEST_P(TlsConnectPre12, SignatureAlgorithmNoOverlapEcdsa) {
   Connect();
 }
 
-TEST_P(TlsConnectTls12, RequestClientAuthWithSha384) {
+TEST_P(TlsConnectTls12Plus, RequestClientAuthWithSha384) {
   server_->SetSignatureAlgorithms(SignatureRsaSha384,
                                   PR_ARRAY_SIZE(SignatureRsaSha384));
   server_->RequestClientAuth(false);
