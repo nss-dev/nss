@@ -49,6 +49,5 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 #######################################################################
 
 ifndef NSS_ENABLE_TLS_1_3
-$(warning Not including ssl_0rtt_unittest.cc because TLS 1.3 is disabled)
 CPPSRCS := $(filter-out ssl_0rtt_unittest.cc, $(CPPSRCS))
 endif
