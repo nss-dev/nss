@@ -312,6 +312,7 @@ TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceNewKey) {
                         dhe1.public_key_.len())));
 }
 
+#ifdef NSS_ENABLE_TLS_1_3
 // Test that two TLS resumptions work and produce the same ticket.
 // This will change after bug 1257047 is fixed.
 TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
@@ -439,5 +440,6 @@ TEST_F(TlsConnectTest, DisableServerPSKAndFailToResume) {
   EXPECT_LT(0U, clientCapture->extension().len());
   EXPECT_EQ(0U, serverCapture->extension().len());
 }
+#endif
 
 }  // namespace nss_test

@@ -160,6 +160,7 @@ TEST_P(TlsConnectGeneric, ConnectWithCompressionMaybe)
   SendReceive();
 }
 
+#ifdef NSS_ENABLE_TLS_1_3
 TEST_F(TlsConnectTest, DamageSecretHandleClientFinished) {
   client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
                            SSL_LIBRARY_VERSION_TLS_1_3);
@@ -196,6 +197,7 @@ TEST_F(TlsConnectTest, DamageSecretHandleServerFinished) {
   client_->CheckErrorCode(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
   server_->CheckErrorCode(SSL_ERROR_DECRYPT_ERROR_ALERT);
 }
+#endif
 
 TEST_P(TlsConnectDatagram, TestDtlsHolddownExpiry) {
   Connect();
