@@ -3194,6 +3194,7 @@ static const struct {
     { ssl_tls13_early_data_xtn, ExtensionSendClear },
     { ssl_next_proto_nego_xtn, ExtensionNotUsed },
     { ssl_renegotiation_info_xtn, ExtensionNotUsed },
+    { ssl_signed_cert_timestamp_xtn, ExtensionSendEncrypted },
     { ssl_tls13_draft_version_xtn, ExtensionClientOnly }
 };
 
