@@ -58,9 +58,6 @@ update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 30
 locale-gen en_US.UTF-8
 dpkg-reconfigure locales
 
-# Install required Node modules.
-su -c "npm install flatmap js-yaml merge slugid" worker
-
 # Cleanup.
 rm -rf ~/.ccache ~/.cache
 apt-get clean
