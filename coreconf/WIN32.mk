@@ -13,7 +13,7 @@ DEFAULT_COMPILER = cl
 ifdef NS_USE_GCC
 	CC           = gcc
 	CCC          = g++
-	LINK         = ld
+	LD           = ld
 	AR           = ar
 	AR          += cr $@
 	RANLIB       = ranlib
@@ -23,7 +23,7 @@ ifdef NS_USE_GCC
 else
 	CC           = cl
 	CCC          = cl
-	LINK         = link
+	LD           = link
         LDFLAGS += -nologo
 	AR           = lib
 	AR          += -nologo -OUT:$@
