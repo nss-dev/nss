@@ -21,8 +21,9 @@ class TlsRecordFilter : public PacketFilter {
  public:
   TlsRecordFilter() : count_(0) {}
 
-  virtual PacketFilter::Action Filter(const DataBuffer& input,
-                                      DataBuffer* output);
+  // External interface. Overrides PacketFilter.
+  PacketFilter::Action Filter(const DataBuffer& input,
+                              DataBuffer* output);
 
   // Report how many packets were altered by the filter.
   size_t filtered_packets() const { return count_; }
@@ -30,6 +31,8 @@ class TlsRecordFilter : public PacketFilter {
   class Versioned {
    public:
     Versioned() : version_(0) {}
+    explicit Versioned(uint16_t version) : version_(version) {}
+
     bool is_dtls() const { return IsDtls(version_); }
     uint16_t version() const { return version_; }
 
@@ -41,6 +44,10 @@ class TlsRecordFilter : public PacketFilter {
    public:
     RecordHeader()
         : Versioned(), content_type_(0), sequence_number_(0) {}
+    RecordHeader(uint16_t version, uint8_t content_type,
+                 uint64_t sequence_number) :
+        Versioned(version), content_type_(content_type),
+        sequence_number_(sequence_number) {}
 
     uint8_t content_type() const { return content_type_; }
     uint64_t sequence_number() const { return sequence_number_; }
@@ -58,16 +65,30 @@ class TlsRecordFilter : public PacketFilter {
   };
 
  protected:
+  // There are two filter functions which can be overriden. Both are
+  // called with the header and the record but the outer one is called
+  // with a raw pointer to let you write into the buffer and lets you
+  // do anything with this section of the stream. The inner one
+  // just lets you change the record contents. By default, the
+  // outer one calls the inner one, so if you override the outer
+  // one, the inner one is never called unless you call it yourself.
+  virtual PacketFilter::Action FilterRecord(const RecordHeader& header,
+                                            const DataBuffer& record,
+                                            size_t *offset,
+                                            DataBuffer *output);
+
   // The record filter receives the record contentType, version and DTLS
   // sequence number (which is zero for TLS), plus the existing record payload.
   // It returns an action (KEEP, CHANGE, DROP).  It writes to the `changed`
   // outparam with the new record contents if it chooses to CHANGE the record.
   virtual PacketFilter::Action FilterRecord(const RecordHeader& header,
                                             const DataBuffer& data,
-                                            DataBuffer* changed) = 0;
+                                            DataBuffer* changed) {
+    return KEEP;
+  }
+
 
  private:
-
   size_t count_;
 };
 
