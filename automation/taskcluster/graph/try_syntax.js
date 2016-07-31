@@ -79,11 +79,6 @@ function filterTasks(tasks, comment) {
     var coll = th.collection || {};
     var found;
 
-    // Never include memleak builds, they'll go away soon.
-    if (coll.memleak) {
-      return false;
-    }
-
     // Filter tools. We can immediately return here as those
     // are not affected by platform or build type selectors.
     if (machine == "nss-tools") {
@@ -114,9 +109,9 @@ function filterTasks(tasks, comment) {
       // Check the platform name.
       var keep = machine == (aliases[platform] || platform);
 
-      // Additional check for LSan.
+      // Additional check for ASan.
       if (platform == "linux64-asan") {
-        keep &= coll.asan || coll.lsan;
+        keep &= coll.asan;
       }
 
       return keep;
@@ -127,7 +122,7 @@ function filterTasks(tasks, comment) {
     }
 
     // Finally, filter by build type.
-    var isDebug = coll.debug || coll.asan || coll.lsan;
+    var isDebug = coll.debug || coll.asan;
     return (isDebug && opts.builds.indexOf("d") > -1) ||
            (!isDebug && opts.builds.indexOf("o") > -1);
   });

@@ -9,7 +9,6 @@ apt_packages+=('curl')
 apt_packages+=('mercurial')
 apt_packages+=('npm')
 apt_packages+=('git')
-apt_packages+=('valgrind')
 apt_packages+=('zlib1g-dev')
 
 # 32-bit builds
