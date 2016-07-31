@@ -18,7 +18,8 @@ extern "C" {
 
 namespace nss_test {
 
-PacketFilter::Action TlsRecordFilter::Filter(const DataBuffer& input, DataBuffer* output) {
+PacketFilter::Action TlsRecordFilter::Filter(const DataBuffer& input,
+                                             DataBuffer* output) {
   bool changed = false;
   size_t offset = 0U;
   output->Allocate(input.len());
@@ -31,24 +32,11 @@ PacketFilter::Action TlsRecordFilter::Filter(const DataBuffer& input, DataBuffer
       return KEEP;
     }
 
-    DataBuffer filtered;
-    PacketFilter::Action action = FilterRecord(header, record, &filtered);
-    if (action == DROP) {
+    if (FilterRecord(header, record, &offset, output) != KEEP) {
       changed = true;
-      std::cerr << "record drop: " << record << std::endl;
-      continue; // don't copy this one
+    } else {
+      offset = header.Write(output, offset, record);
     }
-
-    const DataBuffer* source = &record;
-    if (action == CHANGE) {
-      EXPECT_GT(0x10000U, filtered.len());
-      changed = true;
-      std::cerr << "record old: " << record << std::endl;
-      std::cerr << "record new: " << filtered << std::endl;
-      source = &filtered;
-    }
-
-    offset = header.Write(output, offset, *source);
   }
   output->Truncate(offset);
 
@@ -59,6 +47,33 @@ PacketFilter::Action TlsRecordFilter::Filter(const DataBuffer& input, DataBuffer
   }
 
   return KEEP;
+}
+
+PacketFilter::Action TlsRecordFilter::FilterRecord(const RecordHeader& header,
+                                                   const DataBuffer& record,
+                                                   size_t *offset,
+                                                   DataBuffer *output) {
+  DataBuffer filtered;
+  PacketFilter::Action action = FilterRecord(header, record, &filtered);
+  if (action == KEEP) {
+    return KEEP;
+  }
+
+  if (action == DROP) {
+    std::cerr << "record drop: " << record << std::endl;
+    return DROP;
+  }
+
+  const DataBuffer* source = &record;
+  if (action == CHANGE) {
+    EXPECT_GT(0x10000U, filtered.len());
+    std::cerr << "record old: " << record << std::endl;
+    std::cerr << "record new: " << filtered << std::endl;
+    source = &filtered;
+  }
+
+  *offset = header.Write(output, *offset, *source);
+  return CHANGE;
 }
 
 bool TlsRecordFilter::RecordHeader::Parse(TlsParser* parser, DataBuffer* body) {

@@ -148,6 +148,45 @@ TEST_P(TlsConnectDatagram, TestDtlsHolddownExpiry) {
   }
 }
 
+class TlsPreCCSHeaderInjector : public TlsRecordFilter {
+ public:
+  TlsPreCCSHeaderInjector() {}
+  virtual PacketFilter::Action FilterRecord(
+      const RecordHeader& record_header,
+      const DataBuffer& input,
+      size_t* offset, DataBuffer* output) override {
+
+    if (record_header.content_type() != kTlsChangeCipherSpecType)
+      return KEEP;
+
+    std::cerr << "Injecting Finished header before CCS\n";
+    const uint8_t hhdr[] = {kTlsHandshakeFinished, 0x00, 0x00, 0x0c};
+    DataBuffer hhdr_buf(hhdr, sizeof(hhdr));
+    RecordHeader nhdr(record_header.version(),
+                      kTlsHandshakeType, 0);
+    *offset = nhdr.Write(output, *offset, hhdr_buf);
+    *offset = record_header.Write(output, *offset, input);
+    return CHANGE;
+  }
+};
+
+TEST_P(TlsConnectStreamPre13, ClientFinishedHeaderBeforeCCS) {
+  client_->SetPacketFilter(new TlsPreCCSHeaderInjector());
+  ConnectExpectFail();
+  client_->CheckErrorCode(SSL_ERROR_HANDSHAKE_UNEXPECTED_ALERT);
+  server_->CheckErrorCode(SSL_ERROR_RX_UNEXPECTED_CHANGE_CIPHER);
+}
+
+TEST_P(TlsConnectStreamPre13, ServerFinishedHeaderBeforeCCS) {
+  server_->SetPacketFilter(new TlsPreCCSHeaderInjector());
+  client_->StartConnect();
+  server_->StartConnect();
+  Handshake();
+  EXPECT_EQ(TlsAgent::STATE_ERROR, client_->state());
+  client_->CheckErrorCode(SSL_ERROR_RX_UNEXPECTED_CHANGE_CIPHER);
+  EXPECT_EQ(TlsAgent::STATE_CONNECTED, server_->state());
+}
+
 INSTANTIATE_TEST_CASE_P(GenericStream, TlsConnectGeneric,
                         ::testing::Combine(
                           TlsConnectTestBase::kTlsModesStream,

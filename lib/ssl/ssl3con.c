@@ -3985,7 +3985,12 @@ ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
         PORT_SetError(SSL_ERROR_RX_UNEXPECTED_CHANGE_CIPHER);
         return SECFailure;
     }
-
+    /* Handshake messages should not span ChangeCipherSpec. */
+    if (ss->ssl3.hs.header_bytes) {
+        (void)SSL3_SendAlert(ss, alert_fatal, unexpected_message);
+        PORT_SetError(SSL_ERROR_RX_UNEXPECTED_CHANGE_CIPHER);
+        return SECFailure;
+    }
     if (buf->len != 1) {
         (void)ssl3_DecodeError(ss);
         PORT_SetError(SSL_ERROR_RX_MALFORMED_CHANGE_CIPHER);
