@@ -27,7 +27,6 @@
     - fips
     - gtests
     - lowhash
-    - memleak
     - merge
     - sdr
     - smime
