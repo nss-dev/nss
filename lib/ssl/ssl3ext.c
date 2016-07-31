@@ -2237,12 +2237,14 @@ ssl3_HandleHelloExtensions(sslSocket *ss, SSL3Opaque **b, PRUint32 *length,
         if (!ss->sec.isServer &&
             !ssl3_ClientExtensionAdvertised(ss, extension_type)) {
             (void)SSL3_SendAlert(ss, alert_fatal, unsupported_extension);
+            PORT_SetError(SSL_ERROR_RX_UNEXPECTED_EXTENSION);
             return SECFailure;
         }
 
         /* Check whether an extension has been sent multiple times. */
         if (ssl3_ExtensionNegotiated(ss, extension_type)) {
             (void)SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
+            PORT_SetError(SSL_ERROR_RX_UNEXPECTED_EXTENSION);
             return SECFailure;
         }
 
