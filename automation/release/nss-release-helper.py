@@ -16,10 +16,6 @@ softkver_h = "lib/softoken/softkver.h"
 nss_h = "lib/nss/nss.h"
 nssckbi_h = "lib/ckfw/builtins/nssckbi.h"
 
-topsrcdir = os.path.dirname(__file__)
-if topsrcdir == '':
-    topsrcdir = '.'
-
 def check_call_noisy(cmd, *args, **kwargs):
     print "Executing command:", cmd
     check_call(cmd, *args, **kwargs)
