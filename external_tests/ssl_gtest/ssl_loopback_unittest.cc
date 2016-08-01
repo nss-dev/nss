@@ -106,6 +106,26 @@ TEST_P(TlsConnectGeneric, ConnectEcdhe) {
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
 }
 
+TEST_P(TlsConnectGeneric, ConnectEcdheP384) {
+  EnsureTlsSetup();
+  client_->ConfigNamedGroup(ssl_grp_ec_secp256r1, false);
+  Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign, 384);
+}
+
+// This enables only P-256 on the client and disables it on the server.
+// This test will fail when we add other groups that identify as ECDHE.
+TEST_P(TlsConnectGeneric, ConnectEcdheGroupMismatch) {
+  EnsureTlsSetup();
+  client_->ConfigNamedGroup(ssl_grp_ec_secp256r1, true);
+  client_->ConfigNamedGroup(ssl_grp_ec_secp384r1, false);
+  client_->ConfigNamedGroup(ssl_grp_ec_secp521r1, false);
+  server_->ConfigNamedGroup(ssl_grp_ec_secp256r1, false);
+
+  Connect();
+  CheckKeys(ssl_kea_dh, ssl_auth_rsa_sign);
+}
+
 TEST_P(TlsConnectGeneric, ConnectSendReceive) {
   Connect();
   SendReceive();

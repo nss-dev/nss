@@ -269,6 +269,12 @@ void TlsAgent::EnableSingleCipher(uint16_t cipher) {
   EXPECT_EQ(SECSuccess, rv);
 }
 
+void TlsAgent::ConfigNamedGroup(SSLNamedGroup group, bool en) {
+  EXPECT_TRUE(EnsureTlsSetup());
+  SECStatus rv = SSL_NamedGroupPrefSet(ssl_fd_, group, en ? PR_TRUE : PR_FALSE);
+  EXPECT_EQ(SECSuccess, rv);
+}
+
 void TlsAgent::SetSessionTicketsEnabled(bool en) {
   EXPECT_TRUE(EnsureTlsSetup());
 
@@ -855,7 +861,7 @@ void TlsAgentTestBase::MakeTrivialHandshakeRecord(uint8_t hs_type,
   index = out->Write(index, kTlsHandshakeType, 1); // Content Type
   index = out->Write(index, 3, 1); // Version high
   index = out->Write(index, 1, 1); // Version low
-  index =out->Write(index, 4 + hs_len, 2); // Length
+  index = out->Write(index, 4 + hs_len, 2); // Length
 
   index = out->Write(index, hs_type, 1); // Handshake record type.
   index = out->Write(index, hs_len, 3); // Handshake length

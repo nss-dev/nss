@@ -154,41 +154,6 @@ typedef enum {
     ec_type_named = 3
 } ECType;
 
-/* Previously known as NamedCurve. */
-typedef enum {
-    ec_sect163k1 = 1,
-    ec_sect163r1 = 2,
-    ec_sect163r2 = 3,
-    ec_sect193r1 = 4,
-    ec_sect193r2 = 5,
-    ec_sect233k1 = 6,
-    ec_sect233r1 = 7,
-    ec_sect239k1 = 8,
-    ec_sect283k1 = 9,
-    ec_sect283r1 = 10,
-    ec_sect409k1 = 11,
-    ec_sect409r1 = 12,
-    ec_sect571k1 = 13,
-    ec_sect571r1 = 14,
-    ec_secp160k1 = 15,
-    ec_secp160r1 = 16,
-    ec_secp160r2 = 17,
-    ec_secp192k1 = 18,
-    ec_secp192r1 = 19,
-    ec_secp224k1 = 20,
-    ec_secp224r1 = 21,
-    ec_secp256k1 = 22,
-    ec_secp256r1 = 23,
-    ec_secp384r1 = 24,
-    ec_secp521r1 = 25,
-    ffdhe_2048 = 256, /* draft-ietf-tls-negotiated-ff-dhe-10 */
-    ffdhe_3072 = 257,
-    ffdhe_4096 = 258,
-    ffdhe_6144 = 259,
-    ffdhe_8192 = 260,
-    ffdhe_custom = 65537 /* special value */
-} NamedGroup;
-
 /* TODO: decide if SSLKEAType might be better here. */
 typedef enum {
     group_type_ec,
@@ -200,7 +165,7 @@ typedef struct {
      * what has been negotiated on the socket. */
     PRUint8 index;
     /* The name is the value that is encoded on the wire in TLS. */
-    NamedGroup name;
+    SSLNamedGroup name;
     /* The number of bits in the group. */
     unsigned int bits;
     /* Whether the group is Elliptic or Finite-Field. */
@@ -1123,7 +1088,7 @@ typedef struct {
 } sslEphemeralKeyPair;
 
 struct ssl3DHParamsStr {
-    NamedGroup name;
+    SSLNamedGroup name;
     SECItem prime; /* p */
     SECItem base;  /* g */
 };
@@ -1757,7 +1722,7 @@ extern PRBool ssl_IsDHEEnabled(sslSocket *ss);
                                                                   : 521 ) ) ) )
 /* clang-format on */
 
-extern const namedGroupDef *ssl_LookupNamedGroup(NamedGroup group);
+extern const namedGroupDef *ssl_LookupNamedGroup(SSLNamedGroup group);
 extern PRBool ssl_NamedGroupEnabled(const sslSocket *ss, const namedGroupDef *group);
 extern SECStatus ssl_NamedGroup2ECParams(PLArenaPool *arena,
                                          const namedGroupDef *curve,

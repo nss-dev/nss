@@ -6750,7 +6750,7 @@ ssl3_SendDHClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
     ssl3DHParams customParams;
     const namedGroupDef *groupDef;
     namedGroupDef customGroupDef = {
-        0, ffdhe_custom, 0, group_type_ff,
+        0, ssl_grp_ffdhe_custom, 0, group_type_ff,
         SEC_OID_TLS_DHE_CUSTOM, PR_FALSE
     };
     sslEphemeralKeyPair *keyPair = NULL;
@@ -6778,7 +6778,7 @@ ssl3_SendDHClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
         /* We already checked this. */
         PORT_Assert(rv == SECSuccess);
     } else {
-        customParams.name = ffdhe_custom;
+        customParams.name = ssl_grp_ffdhe_custom;
         customParams.prime.data = svrPubKey->u.dh.prime.data;
         customParams.prime.len = svrPubKey->u.dh.prime.len;
         customParams.base.data = svrPubKey->u.dh.base.data;
