@@ -358,7 +358,7 @@ tls13_SetupClientHello(sslSocket *ss)
                     continue;
                 }
                 params = ssl_GetDHEParams(groupDef);
-                PORT_Assert(params->name != ffdhe_custom);
+                PORT_Assert(params->name != ssl_grp_ffdhe_custom);
                 rv = ssl_CreateDHEKeyPair(groupDef, params, &keyPair);
                 if (rv != SECSuccess) {
                     return SECFailure;

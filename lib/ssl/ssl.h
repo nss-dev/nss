@@ -384,7 +384,17 @@ SSL_IMPORT SECStatus SSL_SignaturePrefGet(
 */
 SSL_IMPORT unsigned int SSL_SignatureMaxCount();
 
-/* SSL_DHEGroupPrefSet is used to configure the set of allowed/enabled DHE group
+/*
+** Enable or disable a named group (see SSLNamedGroup).  This includes both EC
+** and FF groups using in Diffie-Hellman key exchange, as well as the EC groups
+** used in ECDSA signatures.  By default libssl enables all EC groups, and the
+** 2048-bit group from RFC7919.
+*/
+SSL_IMPORT SECStatus SSL_NamedGroupPrefSet(PRFileDesc *fd, SSLNamedGroup group,
+                                           PRBool enable);
+
+/* Deprecated: use SSL_NamedGroupPrefSet() instead.
+** SSL_DHEGroupPrefSet is used to configure the set of allowed/enabled DHE group
 ** parameters that can be used by NSS for the given server socket.
 ** The first item in the array is used as the default group, if no other
 ** selection criteria can be used by NSS.

@@ -1888,7 +1888,7 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
         case ssl_auth_ecdh_rsa:
         case ssl_auth_ecdh_ecdsa:
             parsed_session_ticket->certType.namedCurve =
-                ssl_LookupNamedGroup((NamedGroup)temp);
+                ssl_LookupNamedGroup((SSLNamedGroup)temp);
             if (!parsed_session_ticket->certType.namedCurve ||
                 parsed_session_ticket->certType.namedCurve->type != group_type_ec) {
                 goto no_ticket;

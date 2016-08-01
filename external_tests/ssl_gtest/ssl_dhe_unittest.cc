@@ -524,13 +524,9 @@ TEST_P(TlsConnectGenericPre13, WeakDHGroup) {
 
 TEST_P(TlsConnectGeneric, Ffdhe3072) {
   EnableOnlyDheCiphers();
-  static const SSLDHEGroupType groups[] = { ssl_ff_dhe_3072_group };
-  EXPECT_EQ(SECSuccess,
-            SSL_DHEGroupPrefSet(client_->ssl_fd(), groups,
-                                PR_ARRAY_SIZE(groups)));
-  EXPECT_EQ(SECSuccess,
-            SSL_DHEGroupPrefSet(server_->ssl_fd(), groups,
-                                PR_ARRAY_SIZE(groups)));
+  client_->ConfigNamedGroup(ssl_grp_ffdhe_2048, false);
+  client_->ConfigNamedGroup(ssl_grp_ffdhe_3072, true);
+  server_->ConfigNamedGroup(ssl_grp_ffdhe_3072, true);
 
   Connect();
 }
