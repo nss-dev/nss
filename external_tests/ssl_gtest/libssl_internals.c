@@ -38,9 +38,16 @@ SSLInt_DetermineKEABits(PRUint16 serverKeyBits, SSLAuthType authAlgorithm) {
 
     PORT_Assert(authAlgorithm == ssl_auth_rsa_decrypt ||
                 authAlgorithm == ssl_auth_rsa_sign);
+    PRUint32 minKeaBits;
+#ifdef NSS_ECC_MORE_THAN_SUITE_B
+    // P-192 is the smallest curve we want to use.
+    minKeaBits = 192U;
+#else
+    // P-256 is the smallest supported curve.
+    minKeaBits = 256U;
+#endif
 
-    // P-256 is the smallest group we accept.
-    return PR_MAX(SSL_RSASTRENGTH_TO_ECSTRENGTH(serverKeyBits), 256U);
+    return PR_MAX(SSL_RSASTRENGTH_TO_ECSTRENGTH(serverKeyBits), minKeaBits);
 }
 
 /* Use this function to update the ClientRandom of a client's handshake state
