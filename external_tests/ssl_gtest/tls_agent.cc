@@ -114,39 +114,6 @@ bool TlsAgent::ConfigServerCert(const std::string& name, bool updateKeyBits) {
   return rv == SECSuccess;
 }
 
-void TlsAgent::DisableLameGroups() {
-  static const SSLNamedGroup lame_groups[] = {
-#ifdef NSS_ECC_MORE_THAN_SUITE_B
-    ssl_grp_ec_sect163k1,
-    ssl_grp_ec_sect163r1,
-    ssl_grp_ec_sect163r2,
-    ssl_grp_ec_sect193r1,
-    ssl_grp_ec_sect193r2,
-    ssl_grp_ec_sect233k1,
-    ssl_grp_ec_sect233r1,
-    ssl_grp_ec_sect239k1,
-    ssl_grp_ec_sect283k1,
-    ssl_grp_ec_sect283r1,
-    ssl_grp_ec_sect409k1,
-    ssl_grp_ec_sect409r1,
-    ssl_grp_ec_sect571k1,
-    ssl_grp_ec_sect571r1,
-    ssl_grp_ec_secp160k1,
-    ssl_grp_ec_secp160r1,
-    ssl_grp_ec_secp160r2,
-    ssl_grp_ec_secp192k1,
-    ssl_grp_ec_secp192r1,
-    ssl_grp_ec_secp224k1,
-    ssl_grp_ec_secp224r1,
-#endif
-    // MSVC complains if this list is empty, so disable one always.
-    ssl_grp_ec_secp256k1
-  };
-  for (size_t i = 0; i < PR_ARRAY_SIZE(lame_groups); ++i) {
-    ConfigNamedGroup(lame_groups[i], false);
-  }
-}
-
 bool TlsAgent::EnsureTlsSetup(PRFileDesc *modelSocket) {
   // Don't set up twice
   if (ssl_fd_) return true;
@@ -189,8 +156,6 @@ bool TlsAgent::EnsureTlsSetup(PRFileDesc *modelSocket) {
   rv = SSL_HandshakeCallback(ssl_fd_, HandshakeCallback, this);
   EXPECT_EQ(SECSuccess, rv);
   if (rv != SECSuccess) return false;
-
-  DisableLameGroups();
 
   return true;
 }
