@@ -138,8 +138,9 @@ void TlsAgent::DisableLameGroups() {
     ssl_grp_ec_secp192r1,
     ssl_grp_ec_secp224k1,
     ssl_grp_ec_secp224r1,
-    ssl_grp_ec_secp256k1
 #endif
+    // MSVC complains if this list is empty, so disable one always.
+    ssl_grp_ec_secp256k1
   };
   for (size_t i = 0; i < PR_ARRAY_SIZE(lame_groups); ++i) {
     ConfigNamedGroup(lame_groups[i], false);
