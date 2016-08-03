@@ -176,10 +176,6 @@ TEST_P(TlsConnectGenericPre13, P384PriorityOnServer) {
 }
 
 TEST_P(TlsConnectGenericPre13, P384PriorityFromModelSocket) {
-#ifdef NSS_ECC_MORE_THAN_SUITE_B
-  // We can't run this test with a model socket and more than suite B.
-  return;
-#endif
   EnsureModelSockets();
 
   /* Both prefer P384, set on the model socket. */
@@ -211,9 +207,7 @@ TEST_P(TlsConnectTls13, UseLameGroup) {
   server_->ConfigNamedGroups(groups);
   client_->StartConnect();
   client_->Handshake();
-#ifndef NSS_ECC_MORE_THAN_SUITE_B  // TODO: remove this guard
   client_->CheckErrorCode(SSL_ERROR_NO_CIPHERS_SUPPORTED);
-#endif
 }
 
 TEST_P(TlsConnectStreamPre13, ConfiguredGroupsRenegotiate) {
