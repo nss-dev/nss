@@ -539,7 +539,6 @@ Pk11Install_DoInstall(char *jarFile, const char *installDir,
 loser:
     if (Pk11Install_valueList) {
         Pk11Install_ValueList_delete(Pk11Install_valueList);
-        PR_Free(Pk11Install_valueList);
         Pk11Install_valueList = NULL;
     }
     if (jar) {
@@ -564,8 +563,6 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
 {
     Pk11Install_File *file;
     Pk11Install_Error ret;
-    char *reldir;
-    char *dest;
     char *modDest;
     char *cp;
     int i;
@@ -580,8 +577,6 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
     int errcode;
 
     ret = PK11_INSTALL_UNSPECIFIED;
-    reldir = NULL;
-    dest = NULL;
     modDest = NULL;
     tempname = NULL;
 
@@ -604,11 +599,17 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
     // Install all the files
     */
     for (i = 0; i < platform->numFiles; i++) {
+        char *dest;
         file = &platform->files[i];
 
         if (file->relativePath) {
             PRBool foundMarker = PR_FALSE;
-            reldir = PR_Strdup(file->relativePath);
+            char *reldir = PR_Strdup(file->relativePath);
+
+            if (!reldir) {
+                error(PK11_INSTALL_UNSPECIFIED);
+                goto loser;
+            }
 
             /* Replace all the markers with the directories for which they stand */
             while (1) {
@@ -636,12 +637,15 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
                 /* Has no markers...this isn't really a relative directory */
                 error(PK11_INSTALL_BOGUS_REL_DIR, file->relativePath);
                 ret = PK11_INSTALL_BOGUS_REL_DIR;
+                PR_Free(reldir);
                 goto loser;
             }
             dest = reldir;
-            reldir = NULL;
         } else if (file->absolutePath) {
             dest = PR_Strdup(file->absolutePath);
+        } else {
+            error(PK11_INSTALL_UNSPECIFIED);
+            goto loser;
         }
 
         /* Remember if this is the module file, we'll need to add it later */
@@ -685,18 +689,10 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
 
 /* no NSPR command to change permissions? */
 #ifdef XP_UNIX
-        chmod(dest, file->permissions);
+        (void)chmod(dest, file->permissions);
 #endif
 
-        /* Memory clean-up tasks */
-        if (reldir) {
-            PR_Free(reldir);
-            reldir = NULL;
-        }
-        if (dest) {
-            PR_Free(dest);
-            dest = NULL;
-        }
+        PR_Free(dest);
     }
     /* Make sure we found the module file */
     if (!modDest) {
@@ -777,12 +773,6 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
     ret = PK11_INSTALL_SUCCESS;
 
 loser:
-    if (reldir) {
-        PR_Free(reldir);
-    }
-    if (dest) {
-        PR_Free(dest);
-    }
     if (modDest) {
         PR_Free(modDest);
     }
