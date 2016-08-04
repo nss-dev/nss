@@ -1350,6 +1350,8 @@ main(int argc, char **argv)
         goto done;
     }
 
+    SSL_SetPKCS11PinArg(s, &pwdata);
+
     rv = SSL_OptionSet(s, SSL_SECURITY, 1);
     if (rv != SECSuccess) {
         SECU_PrintError(progName, "error enabling socket");
@@ -1499,8 +1501,6 @@ main(int argc, char **argv)
         error = 1;
         goto done;
     }
-
-    SSL_SetPKCS11PinArg(s, &pwdata);
 
     serverCertAuth.dbHandle = CERT_GetDefaultCertDB();
 
