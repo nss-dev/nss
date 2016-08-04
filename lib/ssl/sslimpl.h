@@ -1162,7 +1162,7 @@ struct sslConnectInfoStr {
  * protected by firstHandshakeLock AND ssl3HandshakeLock.
  */
 struct sslSecurityInfoStr {
-    int isServer;       /* Spec Lock?*/
+    PRBool isServer;
     sslBuffer writeBuf; /*xmitBufLock*/
 
     int cipherType;

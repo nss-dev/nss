@@ -949,7 +949,6 @@ ssl3_config_match_init(sslSocket *ss)
     int i;
     int numPresent = 0;
     int numEnabled = 0;
-    PRBool isServer;
 
     PORT_Assert(ss);
     if (!ss) {
@@ -959,7 +958,6 @@ ssl3_config_match_init(sslSocket *ss)
     if (SSL_ALL_VERSIONS_DISABLED(&ss->vrange)) {
         return 0;
     }
-    isServer = (PRBool)(ss->sec.isServer != 0);
 
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
         suite = &ss->cipherSuites[i];
@@ -981,7 +979,7 @@ ssl3_config_match_init(sslSocket *ss)
 
             authType = kea_defs[cipher_def->key_exchange_alg].authKeyType;
             if (authType != ssl_auth_null) {
-                if (isServer && !ssl_HasCert(ss, authType)) {
+                if (ss->sec.isServer && !ssl_HasCert(ss, authType)) {
                     suite->isPresent = PR_FALSE;
                 }
                 if (!PK11_TokenExists(auth_alg_defs[authType])) {
@@ -11529,7 +11527,7 @@ ssl3_CompleteHandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     PRInt32 remaining = 0;
     PRInt32 size;
     SECStatus rv;
-    PRBool isServer = (PRBool)(!!ss->sec.isServer);
+    PRBool isServer = ss->sec.isServer;
     PRBool isTLS;
     SSL3AlertDescription desc;
     int errCode = SSL_ERROR_RX_MALFORMED_CERTIFICATE;
@@ -11695,7 +11693,7 @@ static SECStatus
 ssl3_AuthCertificate(sslSocket *ss)
 {
     SECStatus rv;
-    PRBool isServer = (PRBool)(!!ss->sec.isServer);
+    PRBool isServer = ss->sec.isServer;
     int errCode;
 
     ss->ssl3.hs.authCertificatePending = PR_FALSE;
