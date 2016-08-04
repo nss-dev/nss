@@ -199,7 +199,7 @@ test_nss()
 	print_log "$ cd ${HGDIR}/nss/tests"
 	cd ${HGDIR}/nss/tests
 	print_log "$ ./all.sh"
-	./all.sh 2>&1 | tee ${LOG_TMP} | egrep ${GREP_BUFFER} ": #|^\[..........\] "
+	./all.sh 2>&1 | tee ${LOG_TMP} | egrep ${GREP_BUFFER} ": #|^\[.{10}\] "
 	OUTPUTFILE=${LOG_TMP}
     fi
 
