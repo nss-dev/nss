@@ -285,10 +285,10 @@ ssl_DupSocket(sslSocket *os)
     PORT_Memcpy(ss->ssl3.dtlsSRTPCiphers, os->ssl3.dtlsSRTPCiphers,
                 sizeof(PRUint16) * os->ssl3.dtlsSRTPCipherCount);
     ss->ssl3.dtlsSRTPCipherCount = os->ssl3.dtlsSRTPCipherCount;
-    PORT_Memcpy(ss->ssl3.signatureAlgorithms, os->ssl3.signatureAlgorithms,
-                sizeof(ss->ssl3.signatureAlgorithms[0]) *
-                    os->ssl3.signatureAlgorithmCount);
-    ss->ssl3.signatureAlgorithmCount = os->ssl3.signatureAlgorithmCount;
+    PORT_Memcpy(ss->ssl3.signatureSchemes, os->ssl3.signatureSchemes,
+                sizeof(ss->ssl3.signatureSchemes[0]) *
+                    os->ssl3.signatureSchemeCount);
+    ss->ssl3.signatureSchemeCount = os->ssl3.signatureSchemeCount;
     ss->ssl3.downgradeCheckVersion = os->ssl3.downgradeCheckVersion;
 
     ss->ssl3.dheWeakGroupEnabled = os->ssl3.dheWeakGroupEnabled;
@@ -2155,10 +2155,10 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
     PORT_Memcpy(ss->ssl3.dtlsSRTPCiphers, sm->ssl3.dtlsSRTPCiphers,
                 sizeof(PRUint16) * sm->ssl3.dtlsSRTPCipherCount);
     ss->ssl3.dtlsSRTPCipherCount = sm->ssl3.dtlsSRTPCipherCount;
-    PORT_Memcpy(ss->ssl3.signatureAlgorithms, sm->ssl3.signatureAlgorithms,
-                sizeof(ss->ssl3.signatureAlgorithms[0]) *
-                    sm->ssl3.signatureAlgorithmCount);
-    ss->ssl3.signatureAlgorithmCount = sm->ssl3.signatureAlgorithmCount;
+    PORT_Memcpy(ss->ssl3.signatureSchemes, sm->ssl3.signatureSchemes,
+                sizeof(ss->ssl3.signatureSchemes[0]) *
+                    sm->ssl3.signatureSchemeCount);
+    ss->ssl3.signatureSchemeCount = sm->ssl3.signatureSchemeCount;
     ss->ssl3.downgradeCheckVersion = sm->ssl3.downgradeCheckVersion;
 
     if (!ss->opt.useSecurity) {

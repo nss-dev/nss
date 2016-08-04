@@ -53,6 +53,7 @@ class TlsAgent : public PollTarget {
   enum State { STATE_INIT, STATE_CONNECTING, STATE_CONNECTED, STATE_ERROR };
 
   static const std::string kClient;     // the client key is sign only
+  static const std::string kRsa2048;    // bigger sign and encrypt for either
   static const std::string kServerRsa;  // both sign and encrypt
   static const std::string kServerRsaSign;
   static const std::string kServerRsaPss;
