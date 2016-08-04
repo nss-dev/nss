@@ -1513,8 +1513,8 @@ SSL_NamedGroupPrefSet(PRFileDesc *fd, SSLNamedGroup group, PRBool enable)
         }
     }
 
-    SSL_DBG(("%d: SSL[%d]: unsupported group in SSL_NamedGroupPrefSet",
-             SSL_GETPID(), fd));
+    SSL_DBG(("%d: SSL[%d]: unsupported group %d in SSL_NamedGroupPrefSet",
+             SSL_GETPID(), fd, group));
     PORT_SetError(SEC_ERROR_INVALID_ARGS);
     return SECFailure;
 }

@@ -114,6 +114,38 @@ bool TlsAgent::ConfigServerCert(const std::string& name, bool updateKeyBits) {
   return rv == SECSuccess;
 }
 
+void TlsAgent::DisableLameGroups() {
+  static const SSLNamedGroup lame_groups[] = {
+#ifdef NSS_ECC_MORE_THAN_SUITE_B
+    ssl_grp_ec_sect163k1,
+    ssl_grp_ec_sect163r1,
+    ssl_grp_ec_sect163r2,
+    ssl_grp_ec_sect193r1,
+    ssl_grp_ec_sect193r2,
+    ssl_grp_ec_sect233k1,
+    ssl_grp_ec_sect233r1,
+    ssl_grp_ec_sect239k1,
+    ssl_grp_ec_sect283k1,
+    ssl_grp_ec_sect283r1,
+    ssl_grp_ec_sect409k1,
+    ssl_grp_ec_sect409r1,
+    ssl_grp_ec_sect571k1,
+    ssl_grp_ec_secp160k1,
+    ssl_grp_ec_secp160r1,
+    ssl_grp_ec_secp160r2,
+    ssl_grp_ec_secp192k1,
+    ssl_grp_ec_secp192r1,
+    ssl_grp_ec_secp224k1,
+    ssl_grp_ec_secp224r1,
+#endif
+    // MSVC complains if this list is empty, so disable one always.
+    ssl_grp_ec_secp256k1
+  };
+  for (size_t i = 0; i < PR_ARRAY_SIZE(lame_groups); ++i) {
+    ConfigNamedGroup(lame_groups[i], false);
+  }
+}
+
 bool TlsAgent::EnsureTlsSetup(PRFileDesc *modelSocket) {
   // Don't set up twice
   if (ssl_fd_) return true;
@@ -157,6 +189,7 @@ bool TlsAgent::EnsureTlsSetup(PRFileDesc *modelSocket) {
   EXPECT_EQ(SECSuccess, rv);
   if (rv != SECSuccess) return false;
 
+  DisableLameGroups();
   return true;
 }
 
@@ -629,8 +662,7 @@ void TlsAgent::Handshake() {
   }
 
   int32_t err = PR_GetError();
-  switch (err) {
-    case PR_WOULD_BLOCK_ERROR:
+  if (err == PR_WOULD_BLOCK_ERROR) {
       LOG("Would have blocked");
       if (mode_ == DGRAM) {
         if (timer_handle_) {
@@ -649,20 +681,19 @@ void TlsAgent::Handshake() {
       Poller::Instance()->Wait(READABLE_EVENT, adapter_, this,
                                &TlsAgent::ReadableCallback);
       return;
-
-    case SSL_ERROR_RX_MALFORMED_HANDSHAKE:
-    default:
-      if (IS_SSL_ERROR(err)) {
-        LOG("Handshake failed with SSL error " << (err - SSL_ERROR_BASE)
-            << ": " << PORT_ErrorToString(err));
-      } else {
-        LOG("Handshake failed with error " << err
-            << ": " << PORT_ErrorToString(err));
-      }
-      error_code_ = err;
-      SetState(STATE_ERROR);
-      return;
   }
+
+  if (IS_SSL_ERROR(err)) {
+    LOG("Handshake failed with SSL error " << (err - SSL_ERROR_BASE)
+        << " (" << PORT_ErrorToName(err)
+        << "): " << PORT_ErrorToString(err));
+  } else {
+    LOG("Handshake failed with error " << err
+        << " (" << PORT_ErrorToName(err)
+        << "): " << PORT_ErrorToString(err));
+  }
+  error_code_ = err;
+  SetState(STATE_ERROR);
 }
 
 void TlsAgent::PrepareForRenegotiate() {
