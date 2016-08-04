@@ -178,32 +178,44 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     {      # 3 functions so we can put targets in the output.log easier
         echo $* >>${RESULTS}
     }
-    html_passed()
+    html_passed_ignore_core()
     {
-        html_detect_core "$@" || return
         MSG_ID=`cat ${MSG_ID_FILE}`
         MSG_ID=`expr ${MSG_ID} + 1`
         echo ${MSG_ID} > ${MSG_ID_FILE}
         html "<TR><TD>#${MSG_ID}: $1 ${HTML_PASSED}"
         echo "${SCRIPTNAME}: #${MSG_ID}: $* - PASSED"
     }
-    html_failed()
+    html_passed()
     {
         html_detect_core "$@" || return
+        html_passed_ignore_core
+    }
+    html_failed_ignore_core()
+    {
         MSG_ID=`cat ${MSG_ID_FILE}`
         MSG_ID=`expr ${MSG_ID} + 1`
         echo ${MSG_ID} > ${MSG_ID_FILE}
         html "<TR><TD>#${MSG_ID}: $1 ${HTML_FAILED}"
         echo "${SCRIPTNAME}: #${MSG_ID}: $* - FAILED"
     }
-    html_unknown()
+    html_failed()
     {
         html_detect_core "$@" || return
+        html_failed_ignore_core
+    }
+    html_unknown_ignore_core()
+    {
         MSG_ID=`cat ${MSG_ID_FILE}`
         MSG_ID=`expr ${MSG_ID} + 1`
         echo ${MSG_ID} > ${MSG_ID_FILE}
         html "<TR><TD>#${MSG_ID}: $1 ${HTML_UNKNOWN}"
         echo "${SCRIPTNAME}: #${MSG_ID}: $* - UNKNOWN"
+    }
+    html_unknown()
+    {
+        html_detect_core "$@" || return
+        html_unknown_ignore_core
     }
     html_detect_core()
     {
