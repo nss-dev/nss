@@ -112,16 +112,20 @@ ssl_gtest_start()
   fi
 
   SSLGTESTREPORT="${SSLGTESTDIR}/report.xml"
+  PARSED_REPORT="${SSLGTESTDIR}/report.parsed"
+  echo "executing ssl_gtest"
   ${BINDIR}/ssl_gtest -d "${SSLGTESTDIR}" --gtest_output=xml:"${SSLGTESTREPORT}"
   html_msg $? 0 "ssl_gtest run successfully"
-  sed -f ${COMMON}/parsegtestreport.sed "${SSLGTESTREPORT}" | \
-  while read result name; do
+  echo "executing sed to parse the xml report"
+  sed -f ${COMMON}/parsegtestreport.sed "${SSLGTESTREPORT}" > "${PARSED_REPORT}"
+  echo "processing the parsed report"
+  cat "${PARSED_REPORT}" | while read result name; do
     if [ "$result" = "notrun" ]; then
       echo "$name" SKIPPED
     elif [ "$result" = "run" ]; then
-      html_passed "$name" > /dev/null
+      html_passed_ignore_core "$name"
     else
-      html_failed "$name"
+      html_failed_ignore_core "$name"
     fi
   done
 }
