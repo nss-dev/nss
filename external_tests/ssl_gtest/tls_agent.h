@@ -296,6 +296,7 @@ class TlsAgent : public PollTarget {
     }
   }
 
+  void DisableLameGroups();
   void CheckCallbacks() const;
   void Connected();
 
