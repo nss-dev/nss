@@ -56,10 +56,11 @@ class TlsConnectTestBase : public ::testing::Test {
   void ClearServerCache();
   // Make sure TLS is configured for a connection.
   void EnsureTlsSetup();
-  // Reset
+  // Reset and keep the same certificate names
   void Reset();
-  // Reset, and update the server name
-  void Reset(const std::string& server_name);
+  // Reset, and update the certificate names on both peers
+  void Reset(const std::string& server_name,
+             const std::string& client_name = "client");
 
   // Run the handshake.
   void Handshake();

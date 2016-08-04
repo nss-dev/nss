@@ -22,6 +22,12 @@ extern "C" {
 
 namespace nss_test {
 
+TEST_P(TlsConnectGeneric, ServerAuthBigRsa) {
+  Reset(TlsAgent::kRsa2048);
+  Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+}
+
 TEST_P(TlsConnectGeneric, ClientAuth) {
   client_->SetupClientAuth();
   server_->RequestClientAuth(true);
@@ -53,6 +59,72 @@ TEST_P(TlsConnectGeneric, ClientAuthEcdsa) {
   CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa);
 }
 
+TEST_P(TlsConnectGeneric, ClientAuthBigRsa) {
+  Reset(TlsAgent::kServerRsa, TlsAgent::kRsa2048);
+  client_->SetupClientAuth();
+  server_->RequestClientAuth(true);
+  Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+}
+
+// Offset is the position in the captured buffer where the signature sits.
+static void CheckSigAlgs(TlsInspectorRecordHandshakeMessage* capture,
+                         size_t offset, TlsAgent* peer,
+                         SSLHashType expected_hash, size_t expected_size) {
+  EXPECT_LT(offset + 2U, capture->buffer().len());
+  EXPECT_EQ(expected_hash, capture->buffer().data()[offset]);
+  EXPECT_EQ(ssl_sign_rsa, capture->buffer().data()[offset + 1]);
+
+  ScopedCERTCertificate remote_cert(SSL_PeerCertificate(peer->ssl_fd()));
+  ScopedSECKEYPublicKey remote_key(CERT_ExtractPublicKey(remote_cert.get()));
+  EXPECT_EQ(expected_size, SECKEY_PublicKeyStrengthInBits(remote_key.get()));
+}
+
+// The server should prefer SHA-256 by default, even for the small key size used
+// in the default certificate.
+TEST_P(TlsConnectTls12, ServerAuthCheckSigAlg) {
+  EnsureTlsSetup();
+  auto capture_ske =
+      new TlsInspectorRecordHandshakeMessage(kTlsHandshakeServerKeyExchange);
+  server_->SetPacketFilter(capture_ske);
+  Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+
+  const DataBuffer& buffer = capture_ske->buffer();
+  EXPECT_LT(3U, buffer.len());
+  EXPECT_EQ(3U, buffer.data()[0]) << "curve_type == named_curve";
+  uint32_t tmp;
+  EXPECT_TRUE(buffer.Read(1, 2, &tmp)) << "read NamedCurve";
+  EXPECT_EQ(ssl_grp_ec_secp256r1, tmp);
+  EXPECT_TRUE(buffer.Read(3, 1, &tmp)) << " read ECPoint";
+  CheckSigAlgs(capture_ske, 4 + tmp, client_, ssl_hash_sha256, 1024);
+}
+
+TEST_P(TlsConnectTls12, ClientAuthCheckSigAlg) {
+  EnsureTlsSetup();
+  auto capture_cert_verify =
+      new TlsInspectorRecordHandshakeMessage(kTlsHandshakeCertificateVerify);
+  client_->SetPacketFilter(capture_cert_verify);
+  client_->SetupClientAuth();
+  server_->RequestClientAuth(true);
+  Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+
+  CheckSigAlgs(capture_cert_verify, 0, server_, ssl_hash_sha1, 1024);
+}
+
+TEST_P(TlsConnectTls12, ClientAuthBigRsaCheckSigAlg) {
+  Reset(TlsAgent::kServerRsa, TlsAgent::kRsa2048);
+  auto capture_cert_verify =
+      new TlsInspectorRecordHandshakeMessage(kTlsHandshakeCertificateVerify);
+  client_->SetPacketFilter(capture_cert_verify);
+  client_->SetupClientAuth();
+  server_->RequestClientAuth(true);
+  Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+  CheckSigAlgs(capture_cert_verify, 0, server_, ssl_hash_sha256, 2048);
+}
+
 static const SSLSignatureAndHashAlg SignatureEcdsaSha384[] = {
     {ssl_hash_sha384, ssl_sign_ecdsa}};
 static const SSLSignatureAndHashAlg SignatureEcdsaSha256[] = {
@@ -71,6 +143,7 @@ TEST_P(TlsConnectGeneric, SignatureAlgorithmServerAuth) {
   server_->SetSignatureAlgorithms(SignatureEcdsaSha384,
                                   PR_ARRAY_SIZE(SignatureEcdsaSha384));
   Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa);
 }
 
 // Here the client picks a single option, which should work in all versions.
@@ -85,6 +158,7 @@ TEST_P(TlsConnectGeneric, SignatureAlgorithmClientOnly) {
   client_->SetSignatureAlgorithms(clientAlgorithms,
                                   PR_ARRAY_SIZE(clientAlgorithms));
   Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa);
 }
 
 // Here the server picks a single option, which should work in all versions.
@@ -94,11 +168,40 @@ TEST_P(TlsConnectGeneric, SignatureAlgorithmServerOnly) {
   server_->SetSignatureAlgorithms(SignatureEcdsaSha384,
                                   PR_ARRAY_SIZE(SignatureEcdsaSha384));
   Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa);
 }
 
-// There is no need for overlap on signatures; since we don't actually use the
-// signatures for static RSA, this should still connect successfully.
-// This should also work in TLS 1.0 and 1.1 where the algorithms aren't used.
+// In TlS 1.2, a P-256 cert can be used with SHA-384.
+TEST_P(TlsConnectTls12, SignatureSchemeCurveMismatch12) {
+  Reset(TlsAgent::kServerEcdsa256);
+  client_->SetSignatureAlgorithms(SignatureEcdsaSha384,
+                                  PR_ARRAY_SIZE(SignatureEcdsaSha384));
+  Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa);
+}
+
+#ifdef NSS_ENABLE_TLS_1_3
+TEST_P(TlsConnectTls13, SignatureAlgorithmServerUnsupported) {
+  Reset(TlsAgent::kServerEcdsa256);  // P-256 cert
+  server_->SetSignatureAlgorithms(SignatureEcdsaSha384,
+                                  PR_ARRAY_SIZE(SignatureEcdsaSha384));
+  ConnectExpectFail();
+  server_->CheckErrorCode(SSL_ERROR_UNSUPPORTED_SIGNATURE_ALGORITHM);
+  client_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
+}
+
+TEST_P(TlsConnectTls13, SignatureAlgorithmClientUnsupported) {
+  Reset(TlsAgent::kServerEcdsa256);  // P-256 cert
+  client_->SetSignatureAlgorithms(SignatureEcdsaSha384,
+                                  PR_ARRAY_SIZE(SignatureEcdsaSha384));
+  ConnectExpectFail();
+  server_->CheckErrorCode(SSL_ERROR_UNSUPPORTED_SIGNATURE_ALGORITHM);
+  client_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
+}
+#endif
+
+// Where there is no overlap on signature schemes, we still connect successfully
+// if we aren't going to use a signature.
 TEST_P(TlsConnectGenericPre13, SignatureAlgorithmNoOverlapStaticRsa) {
   client_->SetSignatureAlgorithms(SignatureRsaSha384,
                                   PR_ARRAY_SIZE(SignatureRsaSha384));
@@ -116,14 +219,8 @@ TEST_P(TlsConnectTls12Plus, SignatureAlgorithmNoOverlapEcdsa) {
   server_->SetSignatureAlgorithms(SignatureEcdsaSha256,
                                   PR_ARRAY_SIZE(SignatureEcdsaSha256));
   ConnectExpectFail();
-  // In DTLS 1.2, we don't flush the ServerHello, which means that the client
-  // thinks that the alert means that we don't have a common cipher suite.
-  if (version_ == SSL_LIBRARY_VERSION_TLS_1_2 && mode_ == DGRAM) {
-    client_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
-  } else {
-    client_->CheckErrorCode(SSL_ERROR_HANDSHAKE_FAILURE_ALERT);
-  }
-  server_->CheckErrorCode(SSL_ERROR_UNSUPPORTED_HASH_ALGORITHM);
+  client_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
+  server_->CheckErrorCode(SSL_ERROR_UNSUPPORTED_SIGNATURE_ALGORITHM);
 }
 
 // Pre 1.2, a mismatch on signature algorithms shouldn't affect anything.

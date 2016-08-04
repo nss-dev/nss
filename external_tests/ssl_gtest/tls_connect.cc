@@ -167,16 +167,18 @@ void TlsConnectTestBase::Init() {
 }
 
 void TlsConnectTestBase::Reset() {
-  // Take a copy of the name because it's about to disappear.
-  std::string name = server_->name();
-  Reset(name);
+  // Take a copy of the names because they are about to disappear.
+  std::string server_name = server_->name();
+  std::string client_name = client_->name();
+  Reset(server_name, client_name);
 }
 
-void TlsConnectTestBase::Reset(const std::string& server_name) {
+void TlsConnectTestBase::Reset(const std::string& server_name,
+                               const std::string& client_name) {
   delete client_;
   delete server_;
 
-  client_ = new TlsAgent(TlsAgent::kClient, TlsAgent::CLIENT, mode_);
+  client_ = new TlsAgent(client_name, TlsAgent::CLIENT, mode_);
   server_ = new TlsAgent(server_name, TlsAgent::SERVER, mode_);
 
   Init();

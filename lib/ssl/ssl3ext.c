@@ -2669,63 +2669,29 @@ static SECStatus
 ssl3_ServerHandleSigAlgsXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 {
     SECStatus rv;
-    SECItem algorithms;
-    const unsigned char *b;
-    unsigned int numAlgorithms, i;
 
     /* Ignore this extension if we aren't doing TLS 1.2 or greater. */
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_2) {
         return SECSuccess;
     }
 
-    rv = ssl3_ConsumeHandshakeVariable(ss, &algorithms, 2, &data->data,
-                                       &data->len);
+    if (ss->ssl3.hs.clientSigSchemes) {
+        PORT_Free(ss->ssl3.hs.clientSigSchemes);
+        ss->ssl3.hs.clientSigSchemes = NULL;
+    }
+    rv = ssl_ParseSignatureSchemes(ss, NULL,
+                                   &ss->ssl3.hs.clientSigSchemes,
+                                   &ss->ssl3.hs.numClientSigScheme,
+                                   &data->data, &data->len);
     if (rv != SECSuccess) {
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
         return SECFailure;
     }
-    /* Trailing data, empty value, or odd-length value is invalid. */
-    if (data->len != 0 || algorithms.len == 0 || (algorithms.len & 1) != 0) {
+    /* Check for trailing data. */
+    if (data->len != 0) {
         (void)SSL3_SendAlert(ss, alert_fatal, decode_error);
         PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
         return SECFailure;
-    }
-
-    numAlgorithms = algorithms.len / 2;
-
-    /* We don't care to process excessive numbers of algorithms. */
-    if (numAlgorithms > 512) {
-        numAlgorithms = 512;
-    }
-
-    if (ss->ssl3.hs.clientSigAndHash) {
-        PORT_Free(ss->ssl3.hs.clientSigAndHash);
-    }
-    ss->ssl3.hs.clientSigAndHash =
-        PORT_NewArray(SSLSignatureAndHashAlg, numAlgorithms);
-    if (!ss->ssl3.hs.clientSigAndHash) {
-        (void)SSL3_SendAlert(ss, alert_fatal, internal_error);
-        PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
-        return SECFailure;
-    }
-    ss->ssl3.hs.numClientSigAndHash = 0;
-
-    b = algorithms.data;
-    ss->ssl3.hs.numClientSigAndHash = 0;
-    for (i = 0; i < numAlgorithms; i++) {
-        SSLSignatureAndHashAlg *sigAndHash =
-            &ss->ssl3.hs.clientSigAndHash[ss->ssl3.hs.numClientSigAndHash];
-        sigAndHash->hashAlg = (SSLHashType) * (b++);
-        sigAndHash->sigAlg = (SSLSignType) * (b++);
-        if (ssl3_IsSupportedSignatureAlgorithm(sigAndHash)) {
-            ++ss->ssl3.hs.numClientSigAndHash;
-        }
-    }
-
-    if (!ss->ssl3.hs.numClientSigAndHash) {
-        /* We didn't understand any of the client's requested signature
-         * formats. We'll use the defaults. */
-        PORT_Free(ss->ssl3.hs.clientSigAndHash);
-        ss->ssl3.hs.clientSigAndHash = NULL;
     }
 
     /* Keep track of negotiated extensions. */
@@ -2739,30 +2705,24 @@ static PRInt32
 ssl3_ClientSendSigAlgsXtn(sslSocket *ss, PRBool append, PRUint32 maxBytes)
 {
     PRInt32 extension_length;
-    unsigned int i;
-    PRInt32 pos = 0;
-    PRUint32 policy;
-    PRUint8 buf[MAX_SIGNATURE_ALGORITHMS * 2];
+    PRUint8 buf[MAX_SIGNATURE_SCHEMES * 2];
+    PRUint32 len;
+    SECStatus rv;
 
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_2) {
         return 0;
     }
 
-    for (i = 0; i < ss->ssl3.signatureAlgorithmCount; i++) {
-        SECOidTag hashOID = ssl3_TLSHashAlgorithmToOID(
-            ss->ssl3.signatureAlgorithms[i].hashAlg);
-        if ((NSS_GetAlgorithmPolicy(hashOID, &policy) != SECSuccess) ||
-            (policy & NSS_USE_ALG_IN_SSL_KX)) {
-            buf[pos++] = ss->ssl3.signatureAlgorithms[i].hashAlg;
-            buf[pos++] = ss->ssl3.signatureAlgorithms[i].sigAlg;
-        }
+    rv = ssl3_EncodeSigAlgs(ss, buf, sizeof(buf), &len);
+    if (rv != SECSuccess) {
+        return -1;
     }
 
     extension_length =
         2 /* extension type */ +
         2 /* extension length */ +
         2 /* supported_signature_algorithms length */ +
-        pos;
+        len;
 
     if (maxBytes < extension_length) {
         PORT_Assert(0);
@@ -2775,12 +2735,12 @@ ssl3_ClientSendSigAlgsXtn(sslSocket *ss, PRBool append, PRUint32 maxBytes)
         if (rv != SECSuccess) {
             return -1;
         }
-        rv = ssl3_AppendHandshakeNumber(ss, extension_length - 4, 2);
+        rv = ssl3_AppendHandshakeNumber(ss, len + 2, 2);
         if (rv != SECSuccess) {
             return -1;
         }
 
-        rv = ssl3_AppendHandshakeVariable(ss, buf, extension_length - 6, 2);
+        rv = ssl3_AppendHandshakeVariable(ss, buf, len, 2);
         if (rv != SECSuccess) {
             return -1;
         }
