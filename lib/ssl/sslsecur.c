@@ -652,8 +652,6 @@ SECStatus
 ssl_CopySecurityInfo(sslSocket *ss, sslSocket *os)
 {
     ss->sec.isServer = os->sec.isServer;
-    ss->sec.keyBits = os->sec.keyBits;
-    ss->sec.secretKeyBits = os->sec.secretKeyBits;
 
     ss->sec.peerCert = CERT_DupCertificate(os->sec.peerCert);
     if (os->sec.peerCert && !ss->sec.peerCert)

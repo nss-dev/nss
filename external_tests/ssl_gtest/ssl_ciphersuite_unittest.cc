@@ -43,7 +43,7 @@ class TlsCipherSuiteTestBase : public TlsConnectTestBase {
         Reset(TlsAgent::kServerRsaDecrypt);
         break;
       case ssl_auth_ecdsa:
-        Reset(TlsAgent::kServerEcdsa);
+        Reset(TlsAgent::kServerEcdsa256);
         break;
       case ssl_auth_ecdh_ecdsa:
         Reset(TlsAgent::kServerEcdhEcdsa);
@@ -272,5 +272,93 @@ INSTANTIATE_CIPHER_TEST_P(CBCDatagram, Datagram, V11V12,
                           TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
                           TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
                           TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA);
+
+// Fields are: version, cipher suite, bulk cipher name, secretKeySize
+struct SecStatusParams {
+  uint16_t version;
+  uint16_t cipher_suite;
+  std::string name;
+  int keySize;
+};
+
+inline std::ostream& operator<<(std::ostream& stream,
+                                const SecStatusParams& vals) {
+  SSLCipherSuiteInfo csinfo;
+  SECStatus rv = SSL_GetCipherSuiteInfo(vals.cipher_suite,
+                                        &csinfo, sizeof(csinfo));
+  if (rv != SECSuccess) {
+    return stream << "Error invoking SSL_GetCipherSuiteInfo()";
+  }
+
+  return stream << "TLS " << VersionString(vals.version)
+                << ", " << csinfo.cipherSuiteName
+                << ", name = \"" << vals.name
+                << "\", key size = " << vals.keySize;
+}
+
+class SecurityStatusTest
+    : public TlsCipherSuiteTestBase,
+      public ::testing::WithParamInterface<SecStatusParams> {
+
+ public:
+  SecurityStatusTest()
+      : TlsCipherSuiteTestBase("TLS", GetParam().version,
+                               GetParam().cipher_suite) {}
+};
+
+// SSL_SecurityStatus produces fairly useless output when compared to
+// SSL_GetCipherSuiteInfo and SSL_GetChannelInfo, but we can't break it, so we
+// need to check it.
+TEST_P(SecurityStatusTest, CheckSecurityStatus) {
+  SetupCertificate();
+  EnableSingleCipher();
+  ConnectAndCheckCipherSuite();
+
+  int on;
+  char *cipher;
+  int keySize;
+  int secretKeySize;
+  char *issuer;
+  char *subject;
+  EXPECT_EQ(SECSuccess,
+            SSL_SecurityStatus(client_->ssl_fd(), &on, &cipher, &keySize,
+                               &secretKeySize, &issuer, &subject));
+  if (std::string(cipher) == "NULL") {
+    EXPECT_EQ(0, on);
+  } else {
+    EXPECT_NE(0, on);
+  }
+  EXPECT_EQ(GetParam().name, std::string(cipher));
+  // All the ciphers we support have secret key size == key size.
+  EXPECT_EQ(GetParam().keySize, keySize);
+  EXPECT_EQ(GetParam().keySize, secretKeySize);
+  EXPECT_LT(0U, strlen(issuer));
+  EXPECT_LT(0U, strlen(subject));
+
+  PORT_Free(cipher);
+  PORT_Free(issuer);
+  PORT_Free(subject);
+}
+
+static const SecStatusParams kSecStatusTestValuesArr[] = {
+  { SSL_LIBRARY_VERSION_TLS_1_0,
+    TLS_ECDHE_RSA_WITH_NULL_SHA, "NULL", 0 },
+  { SSL_LIBRARY_VERSION_TLS_1_0,
+    TLS_RSA_WITH_RC4_128_SHA, "RC4", 128 },
+  { SSL_LIBRARY_VERSION_TLS_1_0,
+    TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, "3DES-EDE-CBC", 168 },
+  { SSL_LIBRARY_VERSION_TLS_1_0,
+    TLS_RSA_WITH_AES_128_CBC_SHA, "AES-128", 128 },
+  { SSL_LIBRARY_VERSION_TLS_1_2,
+    TLS_RSA_WITH_AES_256_CBC_SHA256, "AES-256", 256 },
+  { SSL_LIBRARY_VERSION_TLS_1_2,
+    TLS_RSA_WITH_AES_128_GCM_SHA256, "AES-128-GCM", 128 },
+  { SSL_LIBRARY_VERSION_TLS_1_2,
+    TLS_RSA_WITH_AES_256_GCM_SHA384, "AES-256-GCM", 256 },
+  { SSL_LIBRARY_VERSION_TLS_1_2,
+    TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256, "ChaCha20-Poly1305", 256 }
+};
+INSTANTIATE_TEST_CASE_P(TestSecurityStatus, SecurityStatusTest,
+                        ::testing::ValuesIn(kSecStatusTestValuesArr));
 
 }  // namespace nspr_test

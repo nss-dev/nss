@@ -48,6 +48,16 @@ TEST_P(TlsConnectGeneric, ConnectEcdhe) {
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
 }
 
+// If we pick a 256-bit cipher suite and use a P-384 certificate, the server
+// should choose P-384 for key exchange too.  Only valid for TLS >=1.2 because
+// we don't have 256-bit ciphers before then.
+// TODO: Re-enable for 1.3 when Bug 1286140 lands.
+TEST_P(TlsConnectTls12, ConnectEcdheP384) {
+  Reset(TlsAgent::kServerEcdsa384);
+  ConnectWithCipherSuite(TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256);
+  CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa, 384);
+}
+
 TEST_P(TlsConnectGeneric, ConnectEcdheP384) {
   EnsureTlsSetup();
   client_->ConfigNamedGroup(ssl_grp_ec_secp256r1, false);

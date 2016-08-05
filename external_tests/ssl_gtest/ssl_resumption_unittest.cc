@@ -231,7 +231,7 @@ TEST_P(TlsConnectGeneric, ServerSNICertSwitch) {
 }
 
 TEST_P(TlsConnectGeneric, ServerSNICertTypeSwitch) {
-  Reset(TlsAgent::kServerEcdsa);
+  Reset(TlsAgent::kServerEcdsa256);
   Connect();
   ScopedCERTCertificate cert1(SSL_PeerCertificate(client_->ssl_fd()));
 
