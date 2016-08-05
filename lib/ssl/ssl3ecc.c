@@ -424,7 +424,7 @@ tls13_ImportECDHKeyShare(sslSocket *ss, SECKEYPublicKey *peerKey,
 }
 
 const namedGroupDef *
-ssl_GetECGroupWithStrength(PRUint32 curvemsk, int requiredECCbits)
+ssl_GetECGroupWithStrength(PRUint32 curvemsk, unsigned int requiredECCbits)
 {
     int i;
 
@@ -447,8 +447,9 @@ const namedGroupDef *
 ssl_GetECGroupForServerSocket(sslSocket *ss)
 {
     const sslServerCert *cert = ss->sec.serverCert;
-    int certKeySize;
-    int requiredECCbits = ss->sec.secretKeyBits * 2;
+    unsigned int certKeySize;
+    const ssl3BulkCipherDef *bulkCipher;
+    unsigned int requiredECCbits;
 
     PORT_Assert(cert);
     if (!cert || !cert->serverKeyPair || !cert->serverKeyPair->pubKey) {
@@ -477,6 +478,10 @@ ssl_GetECGroupForServerSocket(sslSocket *ss)
         PORT_Assert(0);
         return NULL;
     }
+    bulkCipher = ssl_GetBulkCipherDef(ss->ssl3.hs.suite_def);
+    requiredECCbits = bulkCipher->key_size * BPB * 2;
+    PORT_Assert(requiredECCbits ||
+                ss->ssl3.hs.suite_def->bulk_cipher_alg == cipher_null);
     if (requiredECCbits > certKeySize) {
         requiredECCbits = certKeySize;
     }

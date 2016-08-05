@@ -19,6 +19,8 @@
 
 namespace nss_test {
 
+extern std::string VersionString(uint16_t version);
+
 // A generic TLS connection test base.
 class TlsConnectTestBase : public ::testing::Test {
  public:

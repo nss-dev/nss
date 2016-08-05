@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /* vim: set ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -26,21 +26,28 @@ SSLInt_IncrementClientHandshakeVersion(PRFileDesc *fd)
     return SECSuccess;
 }
 
+// This function guesses what key exchange strength libssl will choose.
 PRUint32
-SSLInt_DetermineKEABits(PRUint16 serverKeyBits, SSLAuthType authAlgorithm) {
-    // For ECDSA authentication we expect a curve for key exchange with the
-    // same strength as the one used for the certificate's signature.
+SSLInt_DetermineKEABits(PRUint16 serverKeyBits,
+                        const SSLCipherSuiteInfo *info) {
+    PRUint32 authBits;
+    SSLAuthType authAlgorithm = info->authType;
     if (authAlgorithm == ssl_auth_ecdsa ||
         authAlgorithm == ssl_auth_ecdh_rsa ||
         authAlgorithm == ssl_auth_ecdh_ecdsa) {
-        return serverKeyBits;
+        authBits = serverKeyBits;
+    } else {
+        PORT_Assert(authAlgorithm == ssl_auth_rsa_decrypt ||
+                    authAlgorithm == ssl_auth_rsa_sign);
+        authBits = SSL_RSASTRENGTH_TO_ECSTRENGTH(serverKeyBits);
     }
 
-    PORT_Assert(authAlgorithm == ssl_auth_rsa_decrypt ||
-                authAlgorithm == ssl_auth_rsa_sign);
+    // We expect a curve for key exchange to be selected based on the symmetric
+    // key strength (times 2) or the server key size, whichever is smaller.
+    PRUint32 targetKeaBits = PR_MIN(info->symKeyBits * 2, authBits);
 
-    // P-256 is the smallest group we accept.
-    return PR_MAX(SSL_RSASTRENGTH_TO_ECSTRENGTH(serverKeyBits), 256U);
+    // P-256 is the preferred curve of minimum size.
+    return PR_MAX(256U, targetKeaBits);
 }
 
 /* Use this function to update the ClientRandom of a client's handshake state

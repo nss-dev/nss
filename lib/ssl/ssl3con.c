@@ -281,32 +281,51 @@ static SSL3Statistics ssl3stats;
 /* indexed by SSL3BulkCipher */
 /* clang-format off */
 static const ssl3BulkCipherDef bulk_cipher_defs[] = {
-    /*                                       |--------- Lengths --------| */
-    /* cipher             calg               k  s  type         i  b  t  n o */
-    /*                                       e  e               v  l  a  o i */
-    /*                                       y  c               |  o  g  n d */
-    /*                                       |  r               |  c  |  c | */
-    /*                                       |  e               |  k  |  e | */
-    /*                                       |  t               |  |  |  | | */
-    {cipher_null,         calg_null,         0, 0, type_stream, 0, 0, 0, 0, SEC_OID_NULL_CIPHER},
-    {cipher_rc4,          calg_rc4,         16,16, type_stream, 0, 0, 0, 0, SEC_OID_RC4},
-    {cipher_rc4_40,       calg_rc4,         16, 5, type_stream, 0, 0, 0, 0, SEC_OID_RC4_40},
-    {cipher_rc4_56,       calg_rc4,         16, 7, type_stream, 0, 0, 0, 0, SEC_OID_RC4_56},
-    {cipher_rc2,          calg_rc2,         16,16, type_block,  8, 8, 0, 0, SEC_OID_RC2_CBC},
-    {cipher_rc2_40,       calg_rc2,         16, 5, type_block,  8, 8, 0, 0, SEC_OID_RC2_40_CBC},
-    {cipher_des,          calg_des,          8, 8, type_block,  8, 8, 0, 0, SEC_OID_DES_CBC},
-    {cipher_3des,         calg_3des,        24,24, type_block,  8, 8, 0, 0, SEC_OID_DES_EDE3_CBC},
-    {cipher_des40,        calg_des,          8, 5, type_block,  8, 8, 0, 0, SEC_OID_DES_40_CBC},
-    {cipher_idea,         calg_idea,        16,16, type_block,  8, 8, 0, 0, SEC_OID_IDEA_CBC},
-    {cipher_aes_128,      calg_aes,         16,16, type_block, 16,16, 0, 0, SEC_OID_AES_128_CBC},
-    {cipher_aes_256,      calg_aes,         32,32, type_block, 16,16, 0, 0, SEC_OID_AES_256_CBC},
-    {cipher_camellia_128, calg_camellia,    16,16, type_block, 16,16, 0, 0, SEC_OID_CAMELLIA_128_CBC},
-    {cipher_camellia_256, calg_camellia,    32,32, type_block, 16,16, 0, 0, SEC_OID_CAMELLIA_256_CBC},
-    {cipher_seed,         calg_seed,        16,16, type_block, 16,16, 0, 0, SEC_OID_SEED_CBC},
-    {cipher_aes_128_gcm,  calg_aes_gcm,     16,16, type_aead,   4, 0,16, 8, SEC_OID_AES_128_GCM},
-    {cipher_aes_256_gcm,  calg_aes_gcm,     32,32, type_aead,   4, 0,16, 8, SEC_OID_AES_256_GCM},
-    {cipher_chacha20,     calg_chacha20,    32,32, type_aead,  12, 0,16, 0, SEC_OID_CHACHA20_POLY1305},
-    {cipher_missing,      calg_null,         0, 0, type_stream, 0, 0, 0, 0, 0},
+    /*                                    |--------- Lengths ---------| */
+    /* cipher             calg            k  s  type         i  b  t  n */
+    /*                                    e  e               v  l  a  o */
+    /* oid                short_name      y  c               |  o  g  n */
+    /*                                    |  r               |  c  |  c */
+    /*                                    |  e               |  k  |  e */
+    /*                                    |  t               |  |  |  | */
+    {cipher_null,         calg_null,      0, 0, type_stream, 0, 0, 0, 0,
+     SEC_OID_NULL_CIPHER, "NULL"},
+    {cipher_rc4,          calg_rc4,      16,16, type_stream, 0, 0, 0, 0,
+     SEC_OID_RC4,         "RC4"},
+    {cipher_rc4_40,       calg_rc4,      16, 5, type_stream, 0, 0, 0, 0,
+     SEC_OID_RC4_40,      "RC4-40"},
+    {cipher_rc4_56,       calg_rc4,      16, 7, type_stream, 0, 0, 0, 0,
+     SEC_OID_RC4_56,      "RC4-56"},
+    {cipher_rc2,          calg_rc2,      16,16, type_block,  8, 8, 0, 0,
+     SEC_OID_RC2_CBC,     "RC2-CBC"},
+    {cipher_rc2_40,       calg_rc2,      16, 5, type_block,  8, 8, 0, 0,
+     SEC_OID_RC2_40_CBC,  "RC2-CBC-40"},
+    {cipher_des,          calg_des,       8, 8, type_block,  8, 8, 0, 0,
+     SEC_OID_DES_CBC,     "DES-CBC"},
+    {cipher_3des,         calg_3des,     24,24, type_block,  8, 8, 0, 0,
+     SEC_OID_DES_EDE3_CBC, "3DES-EDE-CBC"},
+    {cipher_des40,        calg_des,       8, 5, type_block,  8, 8, 0, 0,
+     SEC_OID_DES_40_CBC,  "DES-CBC-40"},
+    {cipher_idea,         calg_idea,     16,16, type_block,  8, 8, 0, 0,
+     SEC_OID_IDEA_CBC,    "IDEA-CBC"},
+    {cipher_aes_128,      calg_aes,      16,16, type_block, 16,16, 0, 0,
+     SEC_OID_AES_128_CBC, "AES-128"},
+    {cipher_aes_256,      calg_aes,      32,32, type_block, 16,16, 0, 0,
+     SEC_OID_AES_256_CBC, "AES-256"},
+    {cipher_camellia_128, calg_camellia, 16,16, type_block, 16,16, 0, 0,
+     SEC_OID_CAMELLIA_128_CBC, "Camellia-128"},
+    {cipher_camellia_256, calg_camellia, 32,32, type_block, 16,16, 0, 0,
+     SEC_OID_CAMELLIA_256_CBC, "Camellia-256"},
+    {cipher_seed,         calg_seed,     16,16, type_block, 16,16, 0, 0,
+     SEC_OID_SEED_CBC,    "SEED-CBC"},
+    {cipher_aes_128_gcm,  calg_aes_gcm,  16,16, type_aead,   4, 0,16, 8,
+     SEC_OID_AES_128_GCM, "AES-128-GCM"},
+    {cipher_aes_256_gcm,  calg_aes_gcm,  32,32, type_aead,   4, 0,16, 8,
+     SEC_OID_AES_256_GCM, "AES-256-GCM"},
+    {cipher_chacha20,     calg_chacha20, 32,32, type_aead,  12, 0,16, 0,
+     SEC_OID_CHACHA20_POLY1305, "ChaCha20-Poly1305"},
+    {cipher_missing,      calg_null,      0, 0, type_stream, 0, 0, 0, 0,
+     SEC_OID_UNKNOWN,     "missing"},
 };
 
 static const ssl3KEADef kea_defs[] =
@@ -556,27 +575,6 @@ static const ssl3MACDef mac_defs[] = { /* indexed by SSL3MACAlgorithm */
     {hmac_sha384, mmech_sha384_hmac, 0, SHA384_LENGTH, SEC_OID_HMAC_SHA384}
 };
 /* clang-format on */
-
-/* indexed by SSL3BulkCipher */
-const char *const ssl3_cipherName[] = {
-    "NULL",
-    "RC4",
-    "RC4-40",
-    "RC4-56",
-    "RC2-CBC",
-    "RC2-CBC-40",
-    "DES-CBC",
-    "3DES-EDE-CBC",
-    "DES-CBC-40",
-    "IDEA-CBC",
-    "AES-128",
-    "AES-256",
-    "Camellia-128",
-    "Camellia-256",
-    "SEED-CBC",
-    "AES-128-GCM",
-    "missing"
-};
 
 const PRUint8 tls13_downgrade_random[] = { 0x44, 0x4F, 0x57, 0x4E,
                                            0x47, 0x52, 0x44, 0x01 };
@@ -932,6 +930,14 @@ ssl_HasCert(const sslSocket *ss, SSLAuthType authType)
     return PR_FALSE;
 }
 
+const ssl3BulkCipherDef *
+ssl_GetBulkCipherDef(const ssl3CipherSuiteDef *cipher_def) {
+    PORT_Assert(cipher_def->bulk_cipher_alg < PR_ARRAY_SIZE(bulk_cipher_defs));
+    PORT_Assert(bulk_cipher_defs[cipher_def->bulk_cipher_alg].cipher
+                == cipher_def->bulk_cipher_alg);
+    return &bulk_cipher_defs[cipher_def->bulk_cipher_alg];
+}
+
 /* Initialize the suite->isPresent value for config_match
  * Returns count of enabled ciphers supported by extant tokens,
  * regardless of policy or user preference.
@@ -971,7 +977,7 @@ ssl3_config_match_init(sslSocket *ss)
                 suite->isPresent = PR_FALSE;
                 continue;
             }
-            cipher_alg = bulk_cipher_defs[cipher_def->bulk_cipher_alg].calg;
+            cipher_alg = ssl_GetBulkCipherDef(cipher_def)->calg;
             cipher_mech = ssl3_Alg2Mech(cipher_alg);
 
             /* Mark the suites that are backed by real tokens, certs and keys */
@@ -1631,7 +1637,6 @@ ssl3_SetupPendingCipherSpec(sslSocket *ss)
     ssl3CipherSpec *cwSpec;
     ssl3CipherSuite suite = ss->ssl3.hs.cipher_suite;
     SSL3MACAlgorithm mac;
-    SSL3BulkCipher cipher;
     SSL3KeyExchangeAlgorithm kea;
     const ssl3CipherSuiteDef *suite_def;
     PRBool isTLS;
@@ -1669,7 +1674,6 @@ ssl3_SetupPendingCipherSpec(sslSocket *ss)
                     (suite_def->bulk_cipher_alg != cipher_rc4_56));
     }
 
-    cipher = suite_def->bulk_cipher_alg;
     kea = suite_def->key_exchange_alg;
     mac = suite_def->mac_alg;
     if (mac <= ssl_mac_sha && mac != ssl_mac_null && isTLS)
@@ -1679,15 +1683,10 @@ ssl3_SetupPendingCipherSpec(sslSocket *ss)
     ss->ssl3.hs.kea_def = &kea_defs[kea];
     PORT_Assert(ss->ssl3.hs.kea_def->kea == kea);
 
-    pwSpec->cipher_def = &bulk_cipher_defs[cipher];
-    PORT_Assert(pwSpec->cipher_def->cipher == cipher);
+    pwSpec->cipher_def = ssl_GetBulkCipherDef(suite_def);
 
     pwSpec->mac_def = &mac_defs[mac];
     PORT_Assert(pwSpec->mac_def->mac == mac);
-
-    ss->sec.keyBits = pwSpec->cipher_def->key_size * BPB;
-    ss->sec.secretKeyBits = pwSpec->cipher_def->secret_key_size * BPB;
-    ss->sec.cipherType = cipher;
 
     pwSpec->encodeContext = NULL;
     pwSpec->decodeContext = NULL;
@@ -14132,7 +14131,7 @@ ssl3_ApplyNSSPolicy(void)
             continue;
         }
 
-        policyOid = MAP_NULL(bulk_cipher_defs[suite->bulk_cipher_alg].oid);
+        policyOid = MAP_NULL(ssl_GetBulkCipherDef(suite)->oid);
         rv = NSS_GetAlgorithmPolicy(policyOid, &policy);
         if (rv == SECSuccess && !(policy & NSS_USE_ALG_IN_SSL)) {
             ssl_CipherPrefSetDefault(suite->cipher_suite, PR_FALSE);
@@ -14140,7 +14139,7 @@ ssl3_ApplyNSSPolicy(void)
             continue;
         }
 
-        if (bulk_cipher_defs[suite->bulk_cipher_alg].type != type_aead) {
+        if (ssl_GetBulkCipherDef(suite)->type != type_aead) {
             policyOid = MAP_NULL(mac_defs[suite->mac_alg].oid);
             rv = NSS_GetAlgorithmPolicy(policyOid, &policy);
             if (rv == SECSuccess && !(policy & NSS_USE_ALG_IN_SSL)) {

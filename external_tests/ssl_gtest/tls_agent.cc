@@ -33,7 +33,8 @@ const std::string TlsAgent::kServerRsa = "rsa"; // both sign and encrypt
 const std::string TlsAgent::kServerRsaSign = "rsa_sign";
 const std::string TlsAgent::kServerRsaPss = "rsa_pss";
 const std::string TlsAgent::kServerRsaDecrypt = "rsa_decrypt";
-const std::string TlsAgent::kServerEcdsa = "ecdsa";
+const std::string TlsAgent::kServerEcdsa256 = "ecdsa256";
+const std::string TlsAgent::kServerEcdsa384 = "ecdsa384";
 // TODO: const std::string TlsAgent::kServerEcdhRsa = "ecdh_rsa";
 const std::string TlsAgent::kServerEcdhEcdsa = "ecdh_ecdsa";
 const std::string TlsAgent::kServerDsa = "dsa";
@@ -411,7 +412,7 @@ void TlsAgent::CheckKEA(SSLKEAType type, size_t kea_size) const {
 
 void TlsAgent::CheckKEA(SSLKEAType type) const {
   PRUint32 ecKEAKeyBits = SSLInt_DetermineKEABits(server_key_bits_,
-                                                  csinfo_.authType);
+                                                  &csinfo_);
   switch (type) {
     case ssl_kea_ecdh:
       CheckKEA(type, ecKEAKeyBits);
@@ -432,16 +433,6 @@ void TlsAgent::CheckAuthType(SSLAuthType type) const {
   EXPECT_EQ(STATE_CONNECTED, state_);
   EXPECT_EQ(type, csinfo_.authType);
   EXPECT_EQ(server_key_bits_, info_.authKeyBits);
-
-  // Do some extra checks based on type.
-  switch (type) {
-      case ssl_auth_ecdsa:
-          // extra check for P-256
-          EXPECT_EQ(256U, info_.authKeyBits);
-          break;
-    default:
-      break;
-  }
 
   // Check authAlgorithm, which is the old value for authType.  This is a second switch
   // statement because default label is different.

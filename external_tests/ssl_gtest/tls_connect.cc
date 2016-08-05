@@ -85,7 +85,7 @@ static const uint16_t kTlsVAllArr[] = {
 ::testing::internal::ParamGenerator<uint16_t>
   TlsConnectTestBase::kTlsVAll = ::testing::ValuesIn(kTlsVAllArr);
 
-static std::string VersionString(uint16_t version) {
+std::string VersionString(uint16_t version) {
   switch(version) {
   case 0:
     return "(no version)";

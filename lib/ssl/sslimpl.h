@@ -733,14 +733,15 @@ typedef struct {
 struct ssl3BulkCipherDefStr {
     SSL3BulkCipher cipher;
     SSLCipherAlgorithm calg;
-    int key_size;
-    int secret_key_size;
+    unsigned int key_size;
+    unsigned int secret_key_size;
     CipherType type;
-    int iv_size;
-    int block_size;
-    int tag_size;            /* authentication tag size for AEAD ciphers. */
-    int explicit_nonce_size; /* for AEAD ciphers. */
+    unsigned int iv_size;
+    unsigned int block_size;
+    unsigned int tag_size;            /* for AEAD ciphers. */
+    unsigned int explicit_nonce_size; /* for AEAD ciphers. */
     SECOidTag oid;
+    const char *short_name;
 };
 
 /*
@@ -1165,9 +1166,6 @@ struct sslSecurityInfoStr {
     PRBool isServer;
     sslBuffer writeBuf; /*xmitBufLock*/
 
-    int cipherType;
-    int keyBits;
-    int secretKeyBits;
     CERTCertificate *localCert;
     CERTCertificate *peerCert;
     SECKEYPublicKey *peerKey;
@@ -1732,7 +1730,7 @@ extern const namedGroupDef *ssl_ECPubKey2NamedGroup(
     const SECKEYPublicKey *pubKey);
 
 extern const namedGroupDef *ssl_GetECGroupWithStrength(PRUint32 curvemsk,
-                                                       int requiredECCbits);
+                                                       unsigned int requiredECCbits);
 extern const namedGroupDef *ssl_GetECGroupForServerSocket(sslSocket *ss);
 extern void ssl_DisableNonSuiteBGroups(sslSocket *ss);
 
@@ -1993,6 +1991,8 @@ PRInt32 tls13_ServerSendEarlyDataXtn(sslSocket *ss,
 PRBool ssl3_ClientExtensionAdvertised(sslSocket *ss, PRUint16 ex_type);
 SECStatus ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid);
 const ssl3CipherSuiteDef *ssl_LookupCipherSuiteDef(ssl3CipherSuite suite);
+const ssl3BulkCipherDef *
+ssl_GetBulkCipherDef(const ssl3CipherSuiteDef *cipher_def);
 SECStatus ssl3_SelectServerCert(sslSocket *ss);
 SECStatus ssl3_TLSSignatureAlgorithmForKeyType(KeyType keyType,
                                                SSLSignType *out);
