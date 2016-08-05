@@ -1733,7 +1733,7 @@ extern const namedGroupDef *ssl_ECPubKey2NamedGroup(
 extern const namedGroupDef *ssl_GetECGroupWithStrength(PRUint32 curvemsk,
                                                        int requiredECCbits);
 extern const namedGroupDef *ssl_GetECGroupForServerSocket(sslSocket *ss);
-extern PRBool ssl_SuiteBOnly(sslSocket *ss);
+extern void ssl_DisableNonSuiteBGroups(sslSocket *ss);
 
 extern SECStatus ssl3_CipherPrefSetDefault(ssl3CipherSuite which, PRBool on);
 extern SECStatus ssl3_CipherPrefGetDefault(ssl3CipherSuite which, PRBool *on);

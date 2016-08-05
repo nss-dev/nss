@@ -140,12 +140,14 @@ TEST_P(TlsConnectGeneric, ConnectFfdheClient) {
   Connect();
 
   CheckKeys(ssl_kea_dh, ssl_auth_rsa_sign);
-  auto is_ffdhe_2048 = [](uint16_t group) {
-    EXPECT_EQ(0x100U, group);
+  auto is_ffdhe = [](uint16_t group) {
+    // The group has to be in this range.
+    EXPECT_LE(ssl_grp_ffdhe_2048, group);
+    EXPECT_GE(ssl_grp_ffdhe_8192, group);
   };
-  CheckGroups(groups_capture->extension(), is_ffdhe_2048);
+  CheckGroups(groups_capture->extension(), is_ffdhe);
   if (version_ == SSL_LIBRARY_VERSION_TLS_1_3) {
-    CheckShares(shares_capture->extension(), is_ffdhe_2048);
+    CheckShares(shares_capture->extension(), is_ffdhe);
   } else {
     EXPECT_EQ(0U, shares_capture->extension().len());
   }
@@ -523,8 +525,6 @@ TEST_P(TlsConnectGenericPre13, WeakDHGroup) {
 TEST_P(TlsConnectGeneric, Ffdhe3072) {
   EnableOnlyDheCiphers();
   client_->ConfigNamedGroup(ssl_grp_ffdhe_2048, false);
-  client_->ConfigNamedGroup(ssl_grp_ffdhe_3072, true);
-  server_->ConfigNamedGroup(ssl_grp_ffdhe_3072, true);
 
   Connect();
 }

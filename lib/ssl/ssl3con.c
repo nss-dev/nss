@@ -13707,6 +13707,8 @@ ssl3_InitState(sslSocket *ss)
     PORT_Memset(&ss->ssl3.hs.newSessionTicket, 0,
                 sizeof(ss->ssl3.hs.newSessionTicket));
 
+    ssl_DisableNonSuiteBGroups(ss);
+
     ss->ssl3.initialized = PR_TRUE;
     return SECSuccess;
 }
