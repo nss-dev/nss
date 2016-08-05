@@ -178,52 +178,56 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     {      # 3 functions so we can put targets in the output.log easier
         echo $* >>${RESULTS}
     }
-    html_passed_ignore_core()
+    increase_msg_id()
     {
         MSG_ID=`cat ${MSG_ID_FILE}`
         MSG_ID=`expr ${MSG_ID} + 1`
         echo ${MSG_ID} > ${MSG_ID_FILE}
+    }
+    html_passed_ignore_core()
+    {
+        increase_msg_id
         html "<TR><TD>#${MSG_ID}: $1 ${HTML_PASSED}"
         echo "${SCRIPTNAME}: #${MSG_ID}: $* - PASSED"
     }
     html_passed()
     {
         html_detect_core "$@" || return
-        html_passed_ignore_core
+        increase_msg_id
+        html "<TR><TD>#${MSG_ID}: $1 ${HTML_PASSED}"
+        echo "${SCRIPTNAME}: #${MSG_ID}: $* - PASSED"
     }
     html_failed_ignore_core()
     {
-        MSG_ID=`cat ${MSG_ID_FILE}`
-        MSG_ID=`expr ${MSG_ID} + 1`
-        echo ${MSG_ID} > ${MSG_ID_FILE}
+        increase_msg_id
         html "<TR><TD>#${MSG_ID}: $1 ${HTML_FAILED}"
         echo "${SCRIPTNAME}: #${MSG_ID}: $* - FAILED"
     }
     html_failed()
     {
         html_detect_core "$@" || return
-        html_failed_ignore_core
+        increase_msg_id
+        html "<TR><TD>#${MSG_ID}: $1 ${HTML_FAILED}"
+        echo "${SCRIPTNAME}: #${MSG_ID}: $* - FAILED"
     }
     html_unknown_ignore_core()
     {
-        MSG_ID=`cat ${MSG_ID_FILE}`
-        MSG_ID=`expr ${MSG_ID} + 1`
-        echo ${MSG_ID} > ${MSG_ID_FILE}
+        increase_msg_id
         html "<TR><TD>#${MSG_ID}: $1 ${HTML_UNKNOWN}"
         echo "${SCRIPTNAME}: #${MSG_ID}: $* - UNKNOWN"
     }
     html_unknown()
     {
         html_detect_core "$@" || return
-        html_unknown_ignore_core
+        increase_msg_id
+        html "<TR><TD>#${MSG_ID}: $1 ${HTML_UNKNOWN}"
+        echo "${SCRIPTNAME}: #${MSG_ID}: $* - UNKNOWN"
     }
     html_detect_core()
     {
         detect_core
         if [ $? -ne 0 ]; then
-            MSG_ID=`cat ${MSG_ID_FILE}`
-            MSG_ID=`expr ${MSG_ID} + 1`
-            echo ${MSG_ID} > ${MSG_ID_FILE}
+            increase_msg_id
             html "<TR><TD>#${MSG_ID}: $* ${HTML_FAILED_CORE}"
             echo "${SCRIPTNAME}: #${MSG_ID}: $* - Core file is detected - FAILED"
             return 1
