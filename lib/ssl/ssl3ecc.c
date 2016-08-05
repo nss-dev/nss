@@ -52,7 +52,7 @@ static PRCallOnceType gECDHEInitOnce;
 static int gECDHEInitError;
 /* This must be the same as ssl_named_groups_count.  ssl_ECRegister() asserts
  * this at runtime; no compile-time error, sorry. */
-static ECDHEKeyPair gECDHEKeyPairs[29];
+static ECDHEKeyPair gECDHEKeyPairs[30];
 
 SECStatus
 ssl_NamedGroup2ECParams(PLArenaPool *arena, const namedGroupDef *ecGroup,
