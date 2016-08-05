@@ -987,28 +987,29 @@ ssl_IsDHEEnabled(sslSocket *ss)
     return ssl_IsSuiteEnabled(ss, ssl_dhe_suites);
 }
 
-/* This function already presumes we can do ECC, ssl_IsECCEnabled must be
- * called before this function. It looks to see if we have a token which
- * is capable of doing smaller than SuiteB curves. If the token can, we
- * presume the token can do the whole SSL suite of curves. If it can't we
- * presume the token that allowed ECC to be enabled can only do suite B
- * curves. */
-PRBool
-ssl_SuiteBOnly(sslSocket *ss)
+void
+ssl_DisableNonSuiteBGroups(sslSocket *ss)
 {
+    unsigned int i;
+    PK11SlotInfo *slot;
+
     /* See if we can support small curves (like 163). If not, assume we can
      * only support Suite-B curves (P-256, P-384, P-521). */
-    PK11SlotInfo *slot =
-        PK11_GetBestSlotWithAttributes(CKM_ECDH1_DERIVE, 0, 163,
-                                       ss ? ss->pkcs11PinArg : NULL);
-
-    if (!slot) {
-        /* nope, presume we can only do suite B */
-        return PR_TRUE;
+    slot = PK11_GetBestSlotWithAttributes(CKM_ECDH1_DERIVE, 0, 163,
+                                          ss->pkcs11PinArg);
+    if (slot) {
+        /* Looks like we're committed to having lots of curves. */
+        PK11_FreeSlot(slot);
+        return;
     }
-    /* we can, presume we can do all curves */
-    PK11_FreeSlot(slot);
-    return PR_FALSE;
+
+    for (i = 0; i < ssl_named_group_count; ++i) {
+        PORT_Assert(ssl_named_groups[i].index == i);
+        if (ssl_named_groups[i].type == group_type_ec &&
+            !ssl_named_groups[i].suiteb) {
+            ss->namedGroups &= ~(1U << ssl_named_groups[i].index);
+        }
+    }
 }
 
 /* Send our Supported Groups extension. */

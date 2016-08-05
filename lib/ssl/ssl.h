@@ -216,7 +216,7 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  * enabled.  A server will only negotiate TLS_DHE_* cipher suites if the
  * client includes the extension.
  *
- * See SSL_DHEGroupPrefSet() for how to control which groups are enabled.
+ * See SSL_NamedGroupPrefSet() for how to control which groups are enabled.
  *
  * This option cannot be enabled if NSS is not compiled with ECC support.
  */
@@ -387,8 +387,9 @@ SSL_IMPORT unsigned int SSL_SignatureMaxCount();
 /*
 ** Enable or disable a named group (see SSLNamedGroup).  This includes both EC
 ** and FF groups using in Diffie-Hellman key exchange, as well as the EC groups
-** used in ECDSA signatures.  By default libssl enables all EC groups, and the
-** 2048-bit group from RFC7919.
+** used in ECDSA signatures.  By default libssl enables all supported groups.
+** NSS uses its own preferences to select a group though it will select the
+** first group from SSL_DHEGroupPrefSet if that was called.
 */
 SSL_IMPORT SECStatus SSL_NamedGroupPrefSet(PRFileDesc *fd, SSLNamedGroup group,
                                            PRBool enable);
@@ -424,13 +425,11 @@ SSL_IMPORT SECStatus SSL_DHEGroupPrefSet(PRFileDesc *fd,
 ** on sockets. The function needs to be called again for every socket that
 ** should use the weak group.
 **
-** It is allowed to use this API in combination with the SSL_DHEGroupPrefSet API.
+** It is allowed to use this API in combination with the SSL_NamedGroupPrefSet API.
 ** If both APIs have been called, the weakest group will be used,
 ** unless it is certain that the client supports larger group parameters.
 ** The weak group will be used as the default group, overriding the preference
-** for the first group potentially set with a call to SSL_DHEGroupPrefSet
-** (The first group set using SSL_DHEGroupPrefSet will still be enabled, but
-** it's no longer the default group.)
+** for the first group potentially set with a call to SSL_DHEGroupPrefSet.
 */
 SSL_IMPORT SECStatus SSL_EnableWeakDHEPrimeGroup(PRFileDesc *fd, PRBool enabled);
 

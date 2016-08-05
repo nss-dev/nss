@@ -3586,26 +3586,6 @@ ssl_NamedGroupEnabled(const sslSocket *ss, const namedGroupDef *groupDef)
     return (ss->namedGroups & (1U << groupDef->index)) != 0;
 }
 
-static void
-ssl_InitNamedGroups(sslSocket *ss)
-{
-    unsigned int i;
-    PRUint32 supported = 0;
-    PRBool suitebOnly = ssl_SuiteBOnly(ss);
-
-    for (i = 0; i < ssl_named_group_count; ++i) {
-        PORT_Assert(ssl_named_groups[i].index == i);
-        if (ssl_named_groups[i].type == group_type_ec &&
-            (!suitebOnly || ssl_named_groups[i].suiteb)) {
-            supported |= (1U << ssl_named_groups[i].index);
-        }
-        if (ssl_named_groups[i].name == ssl_grp_ffdhe_2048) {
-            supported |= (1U << ssl_named_groups[i].index);
-        }
-    }
-    ss->namedGroups = supported;
-}
-
 /* Returns a reference counted object that contains a key pair.
  * Or NULL on failure.  Initial ref count is 1.
  * Uses the keys in the pair as input.  Adopts the keys given.
@@ -3775,7 +3755,7 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
 
     ssl_ChooseOps(ss);
     ssl3_InitSocketPolicy(ss);
-    ssl_InitNamedGroups(ss);
+    ss->namedGroups = PR_UINT32_MAX; /* All groups enabled to start. */
     PR_INIT_CLIST(&ss->ssl3.hs.lastMessageFlight);
     PR_INIT_CLIST(&ss->ssl3.hs.remoteKeyShares);
     PR_INIT_CLIST(&ss->ssl3.hs.cipherSpecs);
