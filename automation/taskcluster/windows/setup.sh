@@ -11,7 +11,7 @@ export WINDOWSSDKDIR="${VSPATH}/SDK"
 export WIN32_REDIST_DIR="${VSPATH}/VC/redist/x64/Microsoft.VC140.CRT"
 export WIN_UCRT_REDIST_DIR="${VSPATH}/SDK/Redist/ucrt/DLLs/x64"
 
-export PATH="${VSPATH}/VC/bin/amd64:${VSPATH}/VC/bin:${VSPATH}/SDK/bin/x64:${VSPATH}/VC/redist/x64/Microsoft.VC140.CRT:${VSPATH}/SDK/Redist/ucrt/DLLs/x64:${VSPATH}/DIASDK/bin/amd64:${PATH}"
+export PATH="${VSPATH}/VC/bin/amd64:${VSPATH}/VC/bin:${VSPATH}/SDK/bin/x64:${VSPATH}/VC/redist/x64/Microsoft.VC140.CRT:${VSPATH}/SDK/Redist/ucrt/DLLs/x64:${PATH}"
 
-export INCLUDE="${VSPATH}/VC/include:${VSPATH}/VC/atlmfc/include:${VSPATH}/SDK/Include/ucrt:${VSPATH}/SDK/Include/shared:${VSPATH}/SDK/Include/um:${VSPATH}/SDK/Include/winrt:${VSPATH}/DIASDK/include"
-export LIB="${VSPATH}/VC/lib/amd64:${VSPATH}/VC/atlmfc/lib/amd64:${VSPATH}/SDK/lib/ucrt/x64:${VSPATH}/SDK/lib/um/x64:${VSPATH}/DIASDK/lib/amd64"
+export INCLUDE="${VSPATH}/VC/include:${VSPATH}/SDK/Include/10.0.10586.0/ucrt:${VSPATH}/SDK/Include/10.0.10586.0/shared:${VSPATH}/SDK/Include/10.0.10586.0/um"
+export LIB="${VSPATH}/VC/lib/amd64:${VSPATH}/SDK/lib/10.0.10586.0/ucrt/x64:${VSPATH}/SDK/lib/10.0.10586.0/um/x64"
