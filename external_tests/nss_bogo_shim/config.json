@@ -1,0 +1,38 @@
+{
+    "DisabledTests": {
+        "*TLS13*":"TLS 1.3: Draft version mismatch",
+        "*HelloRetryRequest*":"TLS 1.3: Draft version mismatch",
+        "SecondClientHelloWrongCurve":"TLS 1.3: Draft version mismatch",
+        "KeyUpdate":"TLS 1.3: Draft version mismatch",
+        "*KeyShare*":"TLS 1.3: Draft version mismatch",
+        "FragmentedClientVersion":"TLS 1.3: Draft version mismatch",
+        "*VersionTolerance":"TLS 1.3: Draft version mismatch",
+        "Downgrade-TLS12-*":"TLS 1.3: Draft version mismatch",
+        "ClientAuth-SHA1-Fallback":"TLS 1.3: Draft version mismatch",
+        "NoSupportedCurves":"TLS 1.3: Draft version mismatch",
+        "SendEmptyRecords-Pass":"TLS 1.3: Draft version mismatch",
+        "*SSL3*":"NSS disables SSLv3",
+        "*SSLv3*":"NSS disables SSLv3",
+        "*AES256*":"Inconsistent support for AES256",
+        "*AES128-SHA256*":"No support for Suite B ciphers",
+        "*CHACHA20-POLY1305-OLD*":"Old ChaCha/Poly",
+        "DuplicateExtension*":"NSS sends unexpected_extension alert",
+        "WeakDH":"NSS supports 768-bit DH",
+        "SillyDH":"NSS supports 4097-bit DH",
+        "SendWarningAlerts":"This appears to be Boring-specific",
+        "V2ClientHello-WarningAlertPrefix":"Bug 1292893",
+        "TLS12-AES128-GCM-client":"Bug 1292895",
+        "*TLS12-AES128-GCM-LargeRecord*":"Bug 1292895",
+        "Renegotiate-Client-Forbidden-1":"Bug 1292898",
+        "Renegotiate-Server-Forbidden":"NSS doesn't disable renegotiation by default",
+        "Renegotiate-Client-NoIgnore":"NSS doesn't disable renegotiation by default",
+        "StrayHelloRequest*":"NSS doesn't disable renegotiation by default"
+    },
+    "ErrorMap" : {
+        ":HANDSHAKE_FAILURE_ON_CLIENT_HELLO:":"SSL_ERROR_NO_CYPHER_OVERLAP",
+        ":UNKNOWN_CIPHER_RETURNED:":"SSL_ERROR_NO_CYPHER_OVERLAP",
+        ":OLD_SESSION_CIPHER_NOT_RETURNED:":"SSL_ERROR_NO_CYPHER_OVERLAP",
+        ":NO_SHARED_CIPHER:":"SSL_ERROR_NO_CYPHER_OVERLAP"
+    }
+}
+

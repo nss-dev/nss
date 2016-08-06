@@ -244,3 +244,4 @@ SSLInt_HasCertWithAuthType(PRFileDesc *fd, SSLAuthType authType)
 
   return (PRBool)(!!ssl_FindServerCertByAuthType(ss, authType));
 }
+
