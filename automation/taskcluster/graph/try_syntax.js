@@ -74,7 +74,6 @@ function filterTasks(tasks, comment) {
   return tasks.filter(function (task) {
     var env = task.task.payload.env || {};
     var th = task.task.extra.treeherder;
-    var symbol = th.symbol.toLowerCase();
     var machine = th.machine.platform;
     var coll = th.collection || {};
     var found;
@@ -83,6 +82,7 @@ function filterTasks(tasks, comment) {
     // are not affected by platform or build type selectors.
     if (machine == "nss-tools") {
       return opts.tools.some(function (tool) {
+        var symbol = th.symbol.toLowerCase();
         return symbol.startsWith(tool);
       });
     }
@@ -90,6 +90,7 @@ function filterTasks(tasks, comment) {
     // Filter unit tests.
     if (env.NSS_TESTS && env.TC_PARENT_TASK_ID) {
       found = opts.unittests.some(function (test) {
+        var symbol = (th.groupSymbol || th.symbol).toLowerCase();
         return symbol.startsWith(test);
       });
 
