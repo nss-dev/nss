@@ -5,6 +5,7 @@
       description: Chains tests
 
     payload:
+      maxRunTime: 7200
       env:
         NSS_TESTS: chains
 
