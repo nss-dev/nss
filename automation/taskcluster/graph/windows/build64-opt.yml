@@ -19,6 +19,7 @@
           opt: true
 
   tests:
+    - chains
     - cipher
     - crmf
     - db
