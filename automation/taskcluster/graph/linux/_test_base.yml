@@ -20,3 +20,7 @@ task:
       - "/bin/bash"
       - "-c"
       - "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+
+  extra:
+    treeherder:
+      jobKind: test

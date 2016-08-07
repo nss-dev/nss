@@ -35,4 +35,5 @@ task:
 
   extra:
     treeherder:
+      jobKind: build
       symbol: B
