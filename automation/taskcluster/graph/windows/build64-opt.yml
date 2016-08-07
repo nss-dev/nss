@@ -30,6 +30,7 @@
     - merge
     - sdr
     - smime
+    - ssl
     - tools
 
 - task:
