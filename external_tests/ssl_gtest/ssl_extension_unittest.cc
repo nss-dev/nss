@@ -405,21 +405,6 @@ TEST_P(TlsExtensionTest12Plus, SignatureAlgorithmsOddLength) {
                                                 extension));
 }
 
-// The extension handling ignores unsupported hashes, so breaking that has no
-// effect on success rates.  However, ssl3_SendServerKeyExchange catches an
-// unsupported signature algorithm.
-
-// This actually fails with a decryption error (fatal alert 51).  That's a bad
-// to fail, since any tampering with the handshake will trigger that alert when
-// verifying the Finished message.  Thus, this test is disabled until this error
-// is turned into an alert.
-TEST_P(TlsExtensionTest12Plus, DISABLED_SignatureAlgorithmsSigUnsupported) {
-  const uint8_t val[] = { 0x00, 0x02, 0x04, 0x99 };
-  DataBuffer extension(val, sizeof(val));
-  ClientHelloErrorTest(new TlsExtensionReplacer(ssl_signature_algorithms_xtn,
-                                                extension));
-}
-
 TEST_P(TlsExtensionTestGeneric, SupportedCurvesShort) {
   const uint8_t val[] = { 0x00, 0x01, 0x00 };
   DataBuffer extension(val, sizeof(val));
