@@ -113,6 +113,7 @@ class TlsAgent : public PollTarget {
   void SetVersionRange(uint16_t minver, uint16_t maxver);
   void GetVersionRange(uint16_t* minver, uint16_t* maxver);
   void CheckPreliminaryInfo();
+  void ResetPreliminaryInfo();
   void SetExpectedVersion(uint16_t version);
   void SetServerKeyBits(uint16_t bits);
   void SetExpectedReadError(bool err);
