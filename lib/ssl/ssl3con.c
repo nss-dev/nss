@@ -7120,6 +7120,15 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         errCode = SSL_ERROR_UNSUPPORTED_VERSION;
         goto alert_loser;
     }
+    /* Check that the server negotiated the same version as it did
+     * in the first handshake. This isn't really the best place for
+     * us to be getting this version number, but it's what we have.
+     * (1294697). */
+    if (ss->firstHsDone && (version != ss->ssl3.crSpec->version)) {
+        desc = illegal_parameter;
+        errCode = SSL_ERROR_UNSUPPORTED_VERSION;
+        goto alert_loser;
+    }
     ss->ssl3.hs.preliminaryInfo |= ssl_preinfo_version;
     isTLS = (ss->version > SSL_LIBRARY_VERSION_3_0);
 
@@ -8871,6 +8880,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         goto alert_loser;
     }
     if (ss->ssl3.hs.ws == idle_handshake) {
+        /* Refuse re-handshake when we have already negotiated TLS 1.3. */
         if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
             desc = unexpected_message;
             errCode = SSL_ERROR_RENEGOTIATION_NOT_ALLOWED;
@@ -9078,6 +9088,14 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
                 break;
             }
         }
+    }
+    /* This is a second check for TLS 1.3 and re-handshake to stop us
+     * from re-handshake up to TLS 1.3, so it happens after version
+     * negotiation. */
+    if (ss->firstHsDone && ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
+        desc = unexpected_message;
+        errCode = SSL_ERROR_RENEGOTIATION_NOT_ALLOWED;
+        goto alert_loser;
     }
     if (ss->firstHsDone &&
         (ss->opt.enableRenegotiation == SSL_RENEGOTIATE_REQUIRES_XTN ||
@@ -13965,7 +13983,8 @@ ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache)
         dtls_RehandshakeCleanup(ss);
     }
 
-    if (ss->opt.enableRenegotiation == SSL_RENEGOTIATE_NEVER) {
+    if (ss->opt.enableRenegotiation == SSL_RENEGOTIATE_NEVER ||
+        ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
         PORT_SetError(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED);
         return SECFailure;
     }

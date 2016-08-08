@@ -99,6 +99,8 @@ ssl_FinishHandshake(sslSocket *ss)
                     ssl_preinfo_all);
         (ss->handshakeCallback)(ss->fd, ss->handshakeCallbackData);
     }
+
+    ssl_FreeEphemeralKeyPairs(ss);
 }
 
 /*

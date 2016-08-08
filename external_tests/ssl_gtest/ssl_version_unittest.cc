@@ -160,4 +160,95 @@ TEST_F(TlsConnectTest, DisallowSSLv3HelloWithTLSv13Enabled) {
   EXPECT_EQ(SECFailure, rv);
 }
 
+
+TEST_P(TlsConnectStream, ConnectTls10AndServerRenegotiateHigher) {
+  if (version_ == SSL_LIBRARY_VERSION_TLS_1_0) {
+    return;
+  }
+  // Set the client so it will accept any version from 1.0
+  // to |version_|.
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
+                           version_);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
+                           SSL_LIBRARY_VERSION_TLS_1_0);
+  // Reset version so that the checks succeed.
+  uint16_t test_version = version_;
+  version_ = SSL_LIBRARY_VERSION_TLS_1_0;
+  Connect();
+
+  // Now renegotiate, with the server being set to do
+  // |version_|.
+  client_->PrepareForRenegotiate();
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
+                           test_version);
+  // Reset version and cipher suite so that the preinfo callback
+  // doesn't fail.
+  server_->ResetPreliminaryInfo();
+  server_->StartRenegotiate();
+  Handshake();
+  if (test_version < SSL_LIBRARY_VERSION_TLS_1_3) {
+    client_->CheckErrorCode(SSL_ERROR_UNSUPPORTED_VERSION);
+    server_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
+  } else {
+    client_->CheckErrorCode(SSL_ERROR_HANDSHAKE_UNEXPECTED_ALERT);
+    server_->CheckErrorCode(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED);
+  }
+}
+
+TEST_P(TlsConnectStream, ConnectTls10AndClientRenegotiateHigher) {
+  if (version_ == SSL_LIBRARY_VERSION_TLS_1_0) {
+    return;
+  }
+  // Set the client so it will accept any version from 1.0
+  // to |version_|.
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
+                           version_);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
+                           SSL_LIBRARY_VERSION_TLS_1_0);
+  // Reset version so that the checks succeed.
+  uint16_t test_version = version_;
+  version_ = SSL_LIBRARY_VERSION_TLS_1_0;
+  Connect();
+
+  // Now renegotiate, with the server being set to do
+  // |version_|.
+  server_->PrepareForRenegotiate();
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
+                           test_version);
+  // Reset version and cipher suite so that the preinfo callback
+  // doesn't fail.
+  server_->ResetPreliminaryInfo();
+  client_->StartRenegotiate();
+  Handshake();
+  if (test_version < SSL_LIBRARY_VERSION_TLS_1_3) {
+    client_->CheckErrorCode(SSL_ERROR_UNSUPPORTED_VERSION);
+    server_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
+  } else {
+    client_->CheckErrorCode(SSL_ERROR_HANDSHAKE_UNEXPECTED_ALERT);
+    server_->CheckErrorCode(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED);
+  }
+}
+
+TEST_F(TlsConnectTest, Tls13RejectsRehandshakeClient) {
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  Connect();
+  SECStatus rv = SSL_ReHandshake(client_->ssl_fd(), PR_TRUE);
+  EXPECT_EQ(SECFailure, rv);
+  EXPECT_EQ(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED, PORT_GetError());
+}
+
+TEST_F(TlsConnectTest, Tls13RejectsRehandshakeServer) {
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  Connect();
+  SECStatus rv = SSL_ReHandshake(server_->ssl_fd(), PR_TRUE);
+  EXPECT_EQ(SECFailure, rv);
+  EXPECT_EQ(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED, PORT_GetError());
+}
+
 } // namespace nss_test

@@ -570,6 +570,11 @@ void TlsAgent::CheckCallbacks() const {
   }
 }
 
+void TlsAgent::ResetPreliminaryInfo() {
+  expected_version_ = 0;
+  expected_cipher_suite_ = 0;
+}
+
 void TlsAgent::Connected() {
   LOG("Handshake success");
   CheckPreliminaryInfo();
