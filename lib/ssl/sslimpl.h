@@ -1661,6 +1661,7 @@ SECStatus ssl3_SendClientHello(sslSocket *ss, PRBool resending);
  */
 SECStatus ssl3_HandleRecord(
     sslSocket *ss, SSL3Ciphertext *cipher, sslBuffer *out);
+SECStatus ssl_RemoveTLSCBCPadding(sslBuffer *plaintext, unsigned int macSize);
 
 int ssl3_GatherAppDataRecord(sslSocket *ss, int flags);
 int ssl3_GatherCompleteHandshake(sslSocket *ss, int flags);

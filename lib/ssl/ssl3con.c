@@ -13010,7 +13010,7 @@ ssl_RemoveSSLv3CBCPadding(sslBuffer *plaintext,
     return (good & SECSuccess) | (~good & SECFailure);
 }
 
-static SECStatus
+SECStatus
 ssl_RemoveTLSCBCPadding(sslBuffer *plaintext, unsigned int macSize)
 {
     unsigned int paddingLength, good, t, toCheck, i;
@@ -13037,9 +13037,9 @@ ssl_RemoveTLSCBCPadding(sslBuffer *plaintext, unsigned int macSize)
      * decrypted information. Therefore we always have to check the maximum
      * amount of padding possible. (Again, the length of the record is
      * public information so we can use it.) */
-    toCheck = 255; /* maximum amount of padding. */
-    if (toCheck > plaintext->len - 1) {
-        toCheck = plaintext->len - 1;
+    toCheck = 256; /* maximum amount of padding + 1. */
+    if (toCheck > plaintext->len) {
+        toCheck = plaintext->len;
     }
 
     for (i = 0; i < toCheck; i++) {
