@@ -114,21 +114,21 @@ TEST_P(TlsConnectGenericPre13, SignatureAlgorithmNoOverlapStaticRsa) {
   CheckKeys(ssl_kea_rsa, ssl_auth_rsa_decrypt);
 }
 
-// TODO(ekr@rtfm.com): We need to enable this for 1.3 when we fix
-// bug 1287267.
-TEST_P(TlsConnectTls12, SignatureAlgorithmNoOverlapEcdsa) {
+TEST_P(TlsConnectTls12Plus, SignatureAlgorithmNoOverlapEcdsa) {
   Reset(TlsAgent::kServerEcdsa256);
   client_->SetSignatureAlgorithms(SignatureEcdsaSha384,
                                   PR_ARRAY_SIZE(SignatureEcdsaSha384));
   server_->SetSignatureAlgorithms(SignatureEcdsaSha256,
                                   PR_ARRAY_SIZE(SignatureEcdsaSha256));
   ConnectExpectFail();
-  server_->CheckErrorCode(SSL_ERROR_UNSUPPORTED_HASH_ALGORITHM);
-  if (mode_ == STREAM) {
-    client_->CheckErrorCode(SSL_ERROR_HANDSHAKE_FAILURE_ALERT);
-  } else {
+  // In DTLS 1.2, we don't flush the ServerHello, which means that the client
+  // thinks that the alert means that we don't have a common cipher suite.
+  if (version_ == SSL_LIBRARY_VERSION_TLS_1_2 && mode_ == DGRAM) {
     client_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
+  } else {
+    client_->CheckErrorCode(SSL_ERROR_HANDSHAKE_FAILURE_ALERT);
   }
+  server_->CheckErrorCode(SSL_ERROR_UNSUPPORTED_HASH_ALGORITHM);
 }
 
 // Pre 1.2, a mismatch on signature algorithms shouldn't affect anything.
