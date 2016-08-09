@@ -665,24 +665,24 @@ void TlsAgent::Handshake() {
 
   int32_t err = PR_GetError();
   if (err == PR_WOULD_BLOCK_ERROR) {
-      LOG("Would have blocked");
-      if (mode_ == DGRAM) {
-        if (timer_handle_) {
-          timer_handle_->Cancel();
-          timer_handle_ = nullptr;
-        }
-
-        PRIntervalTime timeout;
-        rv = DTLS_GetHandshakeTimeout(ssl_fd_, &timeout);
-        if (rv == SECSuccess) {
-          Poller::Instance()->SetTimer(timeout + 1, this,
-                                       &TlsAgent::ReadableCallback,
-                                       &timer_handle_);
-        }
+    LOG("Would have blocked");
+    if (mode_ == DGRAM) {
+      if (timer_handle_) {
+        timer_handle_->Cancel();
+        timer_handle_ = nullptr;
       }
-      Poller::Instance()->Wait(READABLE_EVENT, adapter_, this,
-                               &TlsAgent::ReadableCallback);
-      return;
+
+      PRIntervalTime timeout;
+      rv = DTLS_GetHandshakeTimeout(ssl_fd_, &timeout);
+      if (rv == SECSuccess) {
+        Poller::Instance()->SetTimer(timeout + 1, this,
+                                     &TlsAgent::ReadableCallback,
+                                     &timer_handle_);
+      }
+    }
+    Poller::Instance()->Wait(READABLE_EVENT, adapter_, this,
+                             &TlsAgent::ReadableCallback);
+    return;
   }
 
   LOG("Handshake failed with error " << PORT_ErrorToName(err)
