@@ -18,9 +18,12 @@
 #define GTEST_HAS_RTTI 0
 #include "gtest/gtest.h"
 
+extern bool g_ssl_gtest_verbose;
+
 namespace nss_test {
 
 #define LOG(msg) std::cerr << role_str() << ": " << msg << std::endl
+#define LOGV(msg) do { if (g_ssl_gtest_verbose) LOG(msg); } while(false)
 
 enum SessionResumptionMode {
   RESUME_NONE = 0,
@@ -250,7 +253,7 @@ class TlsAgent : public PollTarget {
   }
 
   void ReadableCallback_int() {
-    LOG("Readable");
+    LOGV("Readable");
     switch (state_) {
       case STATE_CONNECTING:
         Handshake();

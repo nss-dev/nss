@@ -653,7 +653,7 @@ void TlsAgent::SetDowngradeCheckVersion(uint16_t version) {
 }
 
 void TlsAgent::Handshake() {
-  LOG("Handshake");
+  LOGV("Handshake");
   SECStatus rv = SSL_ForceHandshake(ssl_fd_);
   if (rv == SECSuccess) {
     Connected();
@@ -685,15 +685,8 @@ void TlsAgent::Handshake() {
       return;
   }
 
-  if (IS_SSL_ERROR(err)) {
-    LOG("Handshake failed with SSL error " << (err - SSL_ERROR_BASE)
-        << " (" << PORT_ErrorToName(err)
-        << "): " << PORT_ErrorToString(err));
-  } else {
-    LOG("Handshake failed with error " << err
-        << " (" << PORT_ErrorToName(err)
-        << "): " << PORT_ErrorToString(err));
-  }
+  LOG("Handshake failed with error " << PORT_ErrorToName(err)
+      << ": " << PORT_ErrorToString(err));
   error_code_ = err;
   SetState(STATE_ERROR);
 }
@@ -729,7 +722,7 @@ void TlsAgent::SendData(size_t bytes, size_t blocksize) {
       ++send_ctr_;
     }
 
-    LOG("Writing " << tosend << " bytes");
+    LOGV("Writing " << tosend << " bytes");
     int32_t rv = PR_Write(ssl_fd_, block, tosend);
     ASSERT_EQ(tosend, static_cast<size_t>(rv));
 
@@ -746,7 +739,7 @@ void TlsAgent::ReadBytes() {
   uint8_t block[1024];
 
   int32_t rv = PR_Read(ssl_fd_, block, sizeof(block));
-  LOG("ReadBytes " << rv);
+  LOGV("ReadBytes " << rv);
   int32_t err;
 
   if (rv >= 0) {
@@ -765,7 +758,7 @@ void TlsAgent::ReadBytes() {
 
   // If closed, then don't bother waiting around.
   if (rv > 0 || (rv < 0 && ErrorIsNonFatal(err))) {
-    LOG("Re-arming");
+    LOGV("Re-arming");
     Poller::Instance()->Wait(READABLE_EVENT, adapter_, this,
                              &TlsAgent::ReadableCallback);
   }

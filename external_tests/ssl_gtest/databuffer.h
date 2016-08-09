@@ -18,6 +18,8 @@
 #include <arpa/inet.h>
 #endif
 
+extern bool g_ssl_gtest_verbose;
+
 namespace nss_test {
 
 class DataBuffer {
@@ -156,16 +158,12 @@ class DataBuffer {
   size_t len_;
 };
 
-#ifdef DEBUG
-static const size_t kMaxBufferPrint = 10000;
-#else
 static const size_t kMaxBufferPrint = 32;
-#endif
 
 inline std::ostream& operator<<(std::ostream& stream, const DataBuffer& buf) {
   stream << "[" << buf.len() << "] ";
   for (size_t i = 0; i < buf.len(); ++i) {
-    if (i >= kMaxBufferPrint) {
+    if (!g_ssl_gtest_verbose && i >= kMaxBufferPrint) {
       stream << "...";
       break;
     }
