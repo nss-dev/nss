@@ -17,6 +17,8 @@
 
 #include "databuffer.h"
 
+extern bool g_ssl_gtest_verbose;
+
 namespace nss_test {
 
 static PRDescIdentity test_fd_identity = PR_INVALID_IO_LAYER;
@@ -28,6 +30,7 @@ static PRDescIdentity test_fd_identity = PR_INVALID_IO_LAYER;
   PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0)
 
 #define LOG(a) std::cerr << name_ << ": " << a << std::endl
+#define LOGV(a) do { if (g_ssl_gtest_verbose) LOG(a); } while(false)
 
 class Packet : public DataBuffer {
  public:
@@ -313,7 +316,7 @@ int32_t DummyPrSocket::Read(void *data, int32_t len) {
   }
 
   if (input_.empty()) {
-    LOG("Read --> wouldblock " << len);
+    LOGV("Read --> wouldblock " << len);
     PR_SetError(PR_WOULD_BLOCK_ERROR, 0);
     return -1;
   }
@@ -378,6 +381,7 @@ int32_t DummyPrSocket::Write(const void *buf, int32_t length) {
       LOG("Droppped packet: " << packet);
       break;
     case PacketFilter::KEEP:
+      LOGV("Packet: " << packet);
       peer_->PacketReceived(packet);
       break;
   }
@@ -458,8 +462,10 @@ void Poller::SetTimer(uint32_t timer_ms, PollTarget *target, PollCallback cb,
 }
 
 bool Poller::Poll() {
-  std::cerr << "Poll() waiters = " << waiters_.size()
-            << " timers = " << timers_.size() << std::endl;
+  if (g_ssl_gtest_verbose) {
+    std::cerr << "Poll() waiters = " << waiters_.size()
+              << " timers = " << timers_.size() << std::endl;
+  }
   PRIntervalTime timeout = PR_INTERVAL_NO_TIMEOUT;
   PRTime now = PR_Now();
   bool fired = false;

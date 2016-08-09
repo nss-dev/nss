@@ -11,11 +11,13 @@
 #include "gtest/gtest.h"
 
 std::string g_working_dir_path;
+bool g_ssl_gtest_verbose;
 
 int main(int argc, char **argv) {
   // Start the tests
   ::testing::InitGoogleTest(&argc, argv);
   g_working_dir_path = ".";
+  g_ssl_gtest_verbose = false;
 
   char* workdir = PR_GetEnvSecure("NSS_GTEST_WORKDIR");
   if (workdir)
@@ -25,6 +27,8 @@ int main(int argc, char **argv) {
     if (!strcmp(argv[i], "-d")) {
       g_working_dir_path = argv[i + 1];
       ++i;
+    } else if (!strcmp(argv[i], "-v")) {
+      g_ssl_gtest_verbose = true;
     }
   }
 
