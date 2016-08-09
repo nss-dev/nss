@@ -675,7 +675,7 @@ void TlsAgent::Handshake() {
         PRIntervalTime timeout;
         rv = DTLS_GetHandshakeTimeout(ssl_fd_, &timeout);
         if (rv == SECSuccess) {
-          Poller::Instance()->SetTimer(timeout, this,
+          Poller::Instance()->SetTimer(timeout + 1, this,
                                        &TlsAgent::ReadableCallback,
                                        &timer_handle_);
         }
