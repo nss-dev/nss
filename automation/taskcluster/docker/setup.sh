@@ -15,6 +15,8 @@ apt_packages+=('ca-certificates')
 apt_packages+=('curl')
 apt_packages+=('npm')
 apt_packages+=('git')
+apt_packages+=('ninja-build')
+apt_packages+=('pkg-config')
 apt_packages+=('zlib1g-dev')
 
 # 32-bit builds
@@ -59,8 +61,8 @@ locale-gen en_US.UTF-8
 dpkg-reconfigure locales
 
 # Cleanup.
-apt-get autoremove -y && apt-get clean
 rm -rf ~/.ccache ~/.cache
+apt-get autoremove -y
 apt-get clean
 apt-get autoclean
 rm $0
