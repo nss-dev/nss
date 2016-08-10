@@ -21,7 +21,7 @@ function parseOptions(opts) {
   }
 
   // Parse platforms.
-  var allPlatforms = ["linux", "linux64", "linux64-asan", "win64"];
+  var allPlatforms = ["linux", "linux64", "linux64-asan", "win64", "arm"];
   var platforms = intersect(opts.platform.split(/\s*,\s*/), allPlatforms);
 
   // If the given value is nonsense or "none" default to all platforms.
@@ -110,7 +110,8 @@ function filterTasks(tasks, comment) {
       var aliases = {
         "linux": "linux32",
         "linux64-asan": "linux64",
-        "win64": "windows2012-64"
+        "win64": "windows2012-64",
+        "arm": "linux32"
       };
 
       // Check the platform name.
@@ -119,6 +120,11 @@ function filterTasks(tasks, comment) {
       // Additional check for ASan.
       if (platform == "linux64-asan") {
         keep &= coll.asan;
+      }
+
+      // Additional ARM checks.
+      if (platform.startsWith("arm")) {
+        keep &= (coll["arm-opt"] || coll["arm-debug"]);
       }
 
       return keep;
