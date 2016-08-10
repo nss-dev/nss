@@ -171,7 +171,7 @@ function generatePlatformTasks(platform) {
 
 // Construct the task graph.
 var graph = {
-  tasks: flatmap(["linux", "windows", "tools"], generatePlatformTasks)
+  tasks: flatmap(["linux", "windows", "arm", "tools"], generatePlatformTasks)
 };
 
 // Filter tasks when try syntax is given.
