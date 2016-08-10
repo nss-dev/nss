@@ -43,6 +43,7 @@ make_cert() {
   case $type in
     dsa) type_args='-g 1024' ;;
     rsa) type_args='-g 1024' ;;
+    rsapss) type_args='-g 1024 --pss';type=rsa ;;
     ec) type_args='-q nistp256' ;;
   esac
   shift 2
@@ -69,6 +70,7 @@ ssl_gtest_certs() {
   # Server certs are named by type
   make_cert rsa rsa sign kex
   make_cert rsa_sign rsa sign
+  make_cert rsa_pss rsapss sign
   make_cert rsa_decrypt rsa kex
   make_cert ecdsa ec sign
   make_cert ecdh_ecdsa ec kex
