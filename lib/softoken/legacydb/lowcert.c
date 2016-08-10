@@ -799,6 +799,7 @@ nsslowcert_ExtractPublicKey(NSSLOWCERTCertificate *cert)
     switch (tag) {
         case SEC_OID_X500_RSA_ENCRYPTION:
         case SEC_OID_PKCS1_RSA_ENCRYPTION:
+        case SEC_OID_PKCS1_RSA_PSS_SIGNATURE:
             pubk->keyType = NSSLOWKEYRSAKey;
             prepare_low_rsa_pub_key_for_asn1(pubk);
             rv = SEC_QuickDERDecodeItem(arena, pubk,

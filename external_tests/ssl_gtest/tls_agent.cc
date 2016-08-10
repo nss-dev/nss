@@ -31,6 +31,7 @@ const char* TlsAgent::states[] = {"INIT", "CONNECTING", "CONNECTED", "ERROR"};
 const std::string TlsAgent::kClient = "client"; // both sign and encrypt
 const std::string TlsAgent::kServerRsa = "rsa"; // both sign and encrypt
 const std::string TlsAgent::kServerRsaSign = "rsa_sign";
+const std::string TlsAgent::kServerRsaPss = "rsa_pss";
 const std::string TlsAgent::kServerRsaDecrypt = "rsa_decrypt";
 const std::string TlsAgent::kServerEcdsa = "ecdsa";
 // TODO: const std::string TlsAgent::kServerEcdhRsa = "ecdh_rsa";

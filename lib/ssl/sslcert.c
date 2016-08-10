@@ -368,6 +368,7 @@ ssl_GetEcdhAuthType(CERTCertificate *cert)
     SECOidTag sigTag = SECOID_GetAlgorithmTag(&cert->signature);
     switch (sigTag) {
         case SEC_OID_PKCS1_RSA_ENCRYPTION:
+        case SEC_OID_PKCS1_RSA_PSS_SIGNATURE:
         case SEC_OID_PKCS1_MD2_WITH_RSA_ENCRYPTION:
         case SEC_OID_PKCS1_MD4_WITH_RSA_ENCRYPTION:
         case SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION:
