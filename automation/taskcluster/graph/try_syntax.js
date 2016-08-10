@@ -8,8 +8,8 @@ var parse_args = require("minimist");
 function parseOptions(opts) {
   opts = parse_args(opts.split(/\s+/), {
     default: {build: "do", platform: "all", unittests: "none", tools: "none"},
-    alias: {b: "build", p: "platform", u: "unittests", t: "tools"},
-    string: ["build", "platform", "unittests", "tools"]
+    alias: {b: "build", p: "platform", u: "unittests", t: "tools", e: "extra-builds"},
+    string: ["build", "platform", "unittests", "tools", "extra-builds"]
   });
 
   // Parse build types (d=debug, o=opt).
@@ -58,6 +58,7 @@ function parseOptions(opts) {
     builds: builds,
     platforms: platforms,
     unittests: unittests,
+    extra: (opts.e == "all"),
     tools: tools
   };
 }
@@ -97,6 +98,11 @@ function filterTasks(tasks, comment) {
       if (!found) {
         return false;
       }
+    }
+
+    // Filter extra builds.
+    if (th.groupSymbol == "Builds" && !opts.extra) {
+      return false;
     }
 
     // Filter by platform.
