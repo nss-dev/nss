@@ -117,14 +117,13 @@ function filterTasks(tasks, comment) {
       // Check the platform name.
       var keep = machine == (aliases[platform] || platform);
 
-      // Additional check for ASan.
+      // Additional checks.
       if (platform == "linux64-asan") {
         keep &= coll.asan;
-      }
-
-      // Additional ARM checks.
-      if (platform.startsWith("arm")) {
+      } else if (platform == "arm") {
         keep &= (coll["arm-opt"] || coll["arm-debug"]);
+      } else {
+        keep &= (coll.opt || coll.debug);
       }
 
       return keep;
@@ -135,7 +134,7 @@ function filterTasks(tasks, comment) {
     }
 
     // Finally, filter by build type.
-    var isDebug = coll.debug || coll.asan;
+    var isDebug = coll.debug || coll.asan || coll["arm-debug"];
     return (isDebug && opts.builds.indexOf("d") > -1) ||
            (!isDebug && opts.builds.indexOf("o") > -1);
   });
