@@ -1142,11 +1142,12 @@ ssl3_ClientSendStatusRequestXtn(sslSocket *ss, PRBool append,
  * Called from ssl3_SendNewSessionTicket, tls13_SendNewSessionTicket
  */
 SECStatus
-ssl3_EncodeSessionTicket(sslSocket *ss, SECItem *ticket_data)
+ssl3_EncodeSessionTicket(sslSocket *ss,
+                         const NewSessionTicket* ticket,
+                         SECItem *ticket_data)
 {
     PRUint32 i;
     SECStatus rv;
-    NewSessionTicket ticket;
     SECItem plaintext;
     SECItem plaintext_item = { 0, NULL, 0 };
     SECItem ciphertext = { 0, NULL, 0 };
@@ -1196,11 +1197,6 @@ ssl3_EncodeSessionTicket(sslSocket *ss, SECItem *ticket_data)
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
-    ticket.flags = 0;
-    if ((ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) && ss->opt.enable0RttData) {
-        ticket.flags |= ticket_allow_early_data;
-    }
-    ticket.ticket_lifetime_hint = TLS_EX_SESS_TICKET_LIFETIME_HINT;
     if (ss->opt.requestCertificate && ss->sec.ci.sid->peerCert) {
         cert_length = 3 + ss->sec.ci.sid->peerCert->derCert.len;
     }
@@ -1278,7 +1274,7 @@ ssl3_EncodeSessionTicket(sslSocket *ss, SECItem *ticket_data)
         + 1                                                                                   /* server name type */
         + srvNameLen                                                                          /* name len + length field */
         + 1                                                                                   /* extendedMasterSecretUsed */
-        + sizeof(ticket.ticket_lifetime_hint) + sizeof(ticket.flags) + 1 + alpnSelection.len; /* npn value + length field. */
+        + sizeof(ticket->ticket_lifetime_hint) + sizeof(ticket->flags) + 1 + alpnSelection.len; /* npn value + length field. */
     padding_length = AES_BLOCK_SIZE -
                      (ciphertext_length %
                       AES_BLOCK_SIZE);
@@ -1384,7 +1380,7 @@ ssl3_EncodeSessionTicket(sslSocket *ss, SECItem *ticket_data)
     /* timestamp */
     now = ssl_Time();
     rv = ssl3_AppendNumberToItem(&plaintext, now,
-                                 sizeof(ticket.ticket_lifetime_hint));
+                                 sizeof(ticket->ticket_lifetime_hint));
     if (rv != SECSuccess)
         goto loser;
 
@@ -1414,8 +1410,8 @@ ssl3_EncodeSessionTicket(sslSocket *ss, SECItem *ticket_data)
         goto loser;
 
     /* Flags */
-    rv = ssl3_AppendNumberToItem(&plaintext, ticket.flags,
-                                 sizeof(ticket.flags));
+    rv = ssl3_AppendNumberToItem(&plaintext, ticket->flags,
+                                 sizeof(ticket->flags));
     if (rv != SECSuccess)
         goto loser;
 
@@ -3663,7 +3659,7 @@ tls13_ClientHandlePreSharedKeyXtn(sslSocket *ss, PRUint16 ex_type,
  *  struct {
  *       select (Role) {
  *           case client:
- *               opaque context<0..255>;
+ *               uint32 obfuscated_ticket_age;
  *
  *           case server:
  *              struct {};
@@ -3678,12 +3674,12 @@ tls13_ClientSendEarlyDataXtn(sslSocket *ss,
     PRInt32 extension_length;
     SECStatus rv;
     sslSessionID *sid = ss->sec.ci.sid;
-
+    NewSessionTicket *session_ticket = &sid->u.ssl3.locked.sessionTicket;
     if (!tls13_ClientAllow0Rtt(ss, sid))
         return 0;
 
-    /* type + length + empty context. */
-    extension_length = 2 + 2 + 1;
+    /* type + length + obfuscated ticket age. */
+    extension_length = 2 + 2 + 4;
 
     if (maxBytes < (PRUint32)extension_length) {
         PORT_Assert(0);
@@ -3699,8 +3695,11 @@ tls13_ClientSendEarlyDataXtn(sslSocket *ss,
         if (rv != SECSuccess)
             return -1;
 
-        /* Context */
-        rv = ssl3_AppendHandshakeNumber(ss, 0, 1);
+        /* Obfuscated age. */
+        PRUint32 age = ssl_Time() - session_ticket->received_timestamp;
+        age += session_ticket->ticket_age_add;
+
+        rv = ssl3_AppendHandshakeNumber(ss, age, 4);
         if (rv != SECSuccess)
             return -1;
     }
@@ -3716,7 +3715,7 @@ static SECStatus
 tls13_ServerHandleEarlyDataXtn(sslSocket *ss, PRUint16 ex_type,
                                SECItem *data)
 {
-    SECItem tmp;
+    PRUint32 obfuscated_ticket_age;
     SECStatus rv;
 
     SSL_TRC(3, ("%d: TLS13[%d]: handle early_data extension",
@@ -3727,10 +3726,12 @@ tls13_ServerHandleEarlyDataXtn(sslSocket *ss, PRUint16 ex_type,
         return SECSuccess;
     }
 
-    /* Context: ignore. */
-    rv = ssl3_ConsumeHandshakeVariable(ss, &tmp, 1, &data->data, &data->len);
-    if (rv != SECSuccess)
+    /* Obfuscated ticket age. Ignore. Bug 1295163. */
+    rv = ssl3_ConsumeHandshake(ss, &obfuscated_ticket_age, 4,
+                               &data->data, &data->len);
+    if (rv != SECSuccess) {
         return SECFailure;
+    }
 
     if (data->len) {
         PORT_SetError(SSL_ERROR_MALFORMED_EARLY_DATA);

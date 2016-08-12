@@ -580,6 +580,8 @@ const PRUint8 tls13_downgrade_random[] = { 0x44, 0x4F, 0x57, 0x4E,
                                            0x47, 0x52, 0x44, 0x01 };
 const PRUint8 tls12_downgrade_random[] = { 0x44, 0x4F, 0x57, 0x4E,
                                            0x47, 0x52, 0x44, 0x00 };
+PR_STATIC_ASSERT(sizeof(tls13_downgrade_random) ==
+                 sizeof(tls13_downgrade_random));
 
 /* The ECCWrappedKeyInfo structure defines how various pieces of
  * information are laid out within wrappedSymmetricWrappingkey
@@ -3846,6 +3848,18 @@ ssl3_HandleAlert(sslSocket *ss, sslBuffer *buf)
         default:
             error = SSL_ERROR_RX_UNKNOWN_ALERT;
             break;
+    }
+    if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
+        /* TLS 1.3 requires all but "end of data" alerts to be
+         * treated as fatal. */
+        switch (desc){
+            case close_notify:
+            case user_canceled:
+            case end_of_early_data:
+                break;
+            default:
+                level = alert_fatal;
+        }
     }
     if (level == alert_fatal) {
         if (!ss->opt.noCache) {
@@ -7149,10 +7163,14 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     if (downgradeCheckVersion >= SSL_LIBRARY_VERSION_TLS_1_2 &&
         downgradeCheckVersion > ss->version) {
-        if (!PORT_Memcmp(ss->ssl3.hs.server_random.rand,
+        /* Both sections use the same sentinel region. */
+        unsigned char *downgrade_sentinel =
+                ss->ssl3.hs.server_random.rand +
+                SSL3_RANDOM_LENGTH - sizeof(tls13_downgrade_random);
+        if (!PORT_Memcmp(downgrade_sentinel,
                          tls13_downgrade_random,
                          sizeof(tls13_downgrade_random)) ||
-            !PORT_Memcmp(ss->ssl3.hs.server_random.rand,
+            !PORT_Memcmp(downgrade_sentinel,
                          tls12_downgrade_random,
                          sizeof(tls12_downgrade_random))) {
             desc = illegal_parameter;
@@ -8940,13 +8958,13 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     /*
      * [draft-ietf-tls-tls13-11 Section 6.3.1.1].
      * TLS 1.3 server implementations which respond to a ClientHello with a
-     * client_version indicating TLS 1.2 or below MUST set the first eight
+     * client_version indicating TLS 1.2 or below MUST set the last eight
      * bytes of their Random value to the bytes:
      *
      * 44 4F 57 4E 47 52 44 01
      *
      * TLS 1.2 server implementations which respond to a ClientHello with a
-     * client_version indicating TLS 1.1 or below SHOULD set the first eight
+     * client_version indicating TLS 1.1 or below SHOULD set the last eight
      * bytes of their Random value to the bytes:
      *
      * 44 4F 57 4E 47 52 44 00
@@ -8956,14 +8974,18 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
      * we ship the final version of TLS 1.3.
      */
     if (ss->vrange.max > ss->version) {
+        unsigned char *downgrade_sentinel =
+                ss->ssl3.hs.server_random.rand +
+                SSL3_RANDOM_LENGTH - sizeof(tls13_downgrade_random);
+
         switch (ss->vrange.max) {
             case SSL_LIBRARY_VERSION_TLS_1_3:
-                PORT_Memcpy(ss->ssl3.hs.server_random.rand,
+                PORT_Memcpy(downgrade_sentinel,
                             tls13_downgrade_random,
                             sizeof(tls13_downgrade_random));
                 break;
             case SSL_LIBRARY_VERSION_TLS_1_2:
-                PORT_Memcpy(ss->ssl3.hs.server_random.rand,
+                PORT_Memcpy(downgrade_sentinel,
                             tls12_downgrade_random,
                             sizeof(tls12_downgrade_random));
                 break;
@@ -11105,8 +11127,9 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
 {
     SECItem ticket = { 0, NULL, 0 };
     SECStatus rv;
+    NewSessionTicket nticket = { 0 };
 
-    rv = ssl3_EncodeSessionTicket(ss, &ticket);
+    rv = ssl3_EncodeSessionTicket(ss, &nticket, &ticket);
     if (rv != SECSuccess)
         goto loser;
 

@@ -97,10 +97,7 @@ TEST_P(TlsConnectDatagram, ShortRead) {
   Connect();
   client_->SetExpectedReadError(true);
   server_->SendData(1200, 1200);
-  WAIT_(client_->error_code() == SSL_ERROR_RX_SHORT_DTLS_READ, 2000);
-  // Don't call CheckErrorCode() because it requires us to being
-  // in state ERROR.
-  ASSERT_EQ(SSL_ERROR_RX_SHORT_DTLS_READ, client_->error_code());
+  client_->WaitForErrorCode(SSL_ERROR_RX_SHORT_DTLS_READ, 2000);
 
   // Now send and receive another packet.
   client_->SetExpectedReadError(false);
@@ -185,6 +182,21 @@ TEST_P(TlsConnectStreamPre13, ServerFinishedHeaderBeforeCCS) {
   EXPECT_EQ(TlsAgent::STATE_ERROR, client_->state());
   client_->CheckErrorCode(SSL_ERROR_RX_UNEXPECTED_CHANGE_CIPHER);
   EXPECT_EQ(TlsAgent::STATE_CONNECTED, server_->state());
+}
+
+TEST_P(TlsConnectTls13, UnknownAlert) {
+  Connect();
+  SSLInt_SendAlert(server_->ssl_fd(), kTlsAlertWarning, 0xff); // Unknown value.
+  client_->SetExpectedReadError(true);
+  client_->WaitForErrorCode(SSL_ERROR_RX_UNKNOWN_ALERT, 2000);
+}
+
+TEST_P(TlsConnectTls13, AlertWrongLevel) {
+  Connect();
+  SSLInt_SendAlert(server_->ssl_fd(), kTlsAlertWarning,
+                   kTlsAlertUnexpectedMessage);
+  client_->SetExpectedReadError(true);
+  client_->WaitForErrorCode(SSL_ERROR_HANDSHAKE_UNEXPECTED_ALERT, 2000);
 }
 
 INSTANTIATE_TEST_CASE_P(GenericStream, TlsConnectGeneric,
