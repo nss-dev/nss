@@ -12,4 +12,9 @@ REVISION=${NSS_HEAD_REVISION:-default}
 REPOSITORY=${NSS_HEAD_REPOSITORY:-https://hg.mozilla.org/projects/nss}
 
 # Clone NSS.
-hg clone -r $REVISION $REPOSITORY nss
+for i in 0 2 5; do
+    sleep $i
+    hg clone -r $REVISION $REPOSITORY nss && exit 0
+    rm -rf nss
+done
+exit 1
