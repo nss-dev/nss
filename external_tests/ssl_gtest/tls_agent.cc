@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+
 #include "tls_agent.h"
 #include "tls_parser.h"
 #include "pk11func.h"
@@ -19,6 +20,7 @@ extern "C" {
 }
 
 #define GTEST_HAS_RTTI 0
+#include "gtest_utils.h"
 #include "gtest/gtest.h"
 #include "scoped_ptrs.h"
 
@@ -512,7 +514,23 @@ void TlsAgent::CheckSrtp() const {
 
 void TlsAgent::CheckErrorCode(int32_t expected) const {
   EXPECT_EQ(STATE_ERROR, state_);
-  EXPECT_EQ(expected, error_code_);
+  EXPECT_EQ(expected, error_code_)
+      << "Got error code "
+      << PORT_ErrorToString(error_code_)
+      << " expecting "
+      << PORT_ErrorToString(expected)
+      << std::endl;
+}
+
+void TlsAgent::WaitForErrorCode(int32_t expected, uint32_t delay) const {
+  ASSERT_EQ(0, error_code_);
+  WAIT_(error_code_ != 0, delay);
+  EXPECT_EQ(expected, error_code_)
+      << "Got error code "
+      << error_code_
+      << " expecting "
+      << PORT_ErrorToString(expected)
+      << std::endl;
 }
 
 void TlsAgent::CheckPreliminaryInfo() {

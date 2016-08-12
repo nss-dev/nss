@@ -1088,7 +1088,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
             FATAL_ERROR(ss, PORT_GetError(), handshake_failure);
             return SECFailure;
         }
-        TLS13_SET_HS_STATE(ss, wait_encrypted_extensions);
+        TLS13_SET_HS_STATE(ss, wait_0rtt_finished);
     } else {
         ssl_GetXmitBufLock(ss);
         rv = tls13_SendServerHelloSequence(ss);
@@ -1388,6 +1388,14 @@ tls13_SendEncryptedServerSequence(sslSocket *ss)
         return SECFailure;
     }
 
+    if (ss->ssl3.hs.doing0Rtt) {
+        rv = ssl3_RegisterServerHelloExtensionSender(ss, ssl_tls13_early_data_xtn,
+                                                     tls13_ServerSendEarlyDataXtn);
+        if (rv != SECSuccess) {
+            return SECFailure; /* Error code set already. */
+        }
+    }
+
     rv = tls13_SendEncryptedExtensions(ss);
     if (rv != SECSuccess) {
         return SECFailure; /* error code is set. */
@@ -1437,16 +1445,6 @@ tls13_SendServerHelloSequence(sslSocket *ss)
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
-
-    if (ss->ssl3.hs.doing0Rtt) {
-        /* TODO(ekr@rtfm.com): Send this in EncryptedExtensions. The spec is
-         * wrong in draft-13. Bug 1281249. */
-        rv = ssl3_RegisterServerHelloExtensionSender(ss, ssl_tls13_early_data_xtn,
-                                                     tls13_ServerSendEarlyDataXtn);
-        if (rv != SECSuccess) {
-            return SECFailure; /* Error code set already. */
-        }
-    }
 
     rv = ssl3_SendServerHello(ss);
     if (rv != SECSuccess) {
@@ -2347,6 +2345,7 @@ tls13_HandleEncryptedExtensions(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
     SECStatus rv;
     PRInt32 innerLength;
+    SECItem oldNpn = { siBuffer, NULL, 0 };
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
@@ -2370,41 +2369,34 @@ tls13_HandleEncryptedExtensions(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         return SECFailure;
     }
 
-    if (!ss->sec.isServer) {
-        SECItem oldNpn = { siBuffer, NULL, 0 };
+    /* If we are doing 0-RTT, then we already have an NPN value. Stash
+     * it for comparison. */
+    if (ss->ssl3.hs.doing0Rtt &&
+        ss->ssl3.nextProtoState == SSL_NEXT_PROTO_EARLY_VALUE) {
+        oldNpn = ss->ssl3.nextProto;
+        ss->ssl3.nextProto.data = NULL;
+        ss->ssl3.nextProtoState = SSL_NEXT_PROTO_NO_SUPPORT;
+    }
+    rv = ssl3_HandleHelloExtensions(ss, &b, &length, encrypted_extensions);
+    if (rv != SECSuccess) {
+        return SECFailure; /* Error code set below */
+    }
 
-        /* If we are doing 0-RTT, then we already have an NPN value. Stash
-         * it for comparison. */
-        if (ss->ssl3.hs.doing0Rtt &&
-            ss->ssl3.nextProtoState == SSL_NEXT_PROTO_EARLY_VALUE) {
-            oldNpn = ss->ssl3.nextProto;
-            ss->ssl3.nextProto.data = NULL;
-            ss->ssl3.nextProtoState = SSL_NEXT_PROTO_NO_SUPPORT;
+    if (ss->ssl3.hs.doing0Rtt &&
+        ssl3_ExtensionNegotiated(ss, ssl_tls13_early_data_xtn)) {
+        /* check that the server negotiated the same ALPN (if any). */
+        if (SECITEM_CompareItem(&oldNpn, &ss->ssl3.nextProto)) {
+            SECITEM_FreeItem(&oldNpn, PR_FALSE);
+            FATAL_ERROR(ss, SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID,
+                        illegal_parameter);
+            return SECFailure;
         }
-        rv = ssl3_HandleHelloExtensions(ss, &b, &length, encrypted_extensions);
-        if (rv != SECSuccess) {
-            return SECFailure; /* Error code set below */
-        }
-
-        if (ss->ssl3.hs.doing0Rtt &&
-            ssl3_ExtensionNegotiated(ss, ssl_tls13_early_data_xtn)) {
-            /* check that the server negotiated the same ALPN (if any). */
-            if (SECITEM_CompareItem(&oldNpn, &ss->ssl3.nextProto)) {
-                SECITEM_FreeItem(&oldNpn, PR_FALSE);
-                FATAL_ERROR(ss, SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID,
-                            illegal_parameter);
-                return SECFailure;
-            }
-        }
-        SECITEM_FreeItem(&oldNpn, PR_FALSE);
-        if (ss->ssl3.hs.kea_def->authKeyType == ssl_auth_psk) {
-            TLS13_SET_HS_STATE(ss, wait_finished);
-        } else {
-            TLS13_SET_HS_STATE(ss, wait_cert_request);
-        }
+    }
+    SECITEM_FreeItem(&oldNpn, PR_FALSE);
+    if (ss->ssl3.hs.kea_def->authKeyType == ssl_auth_psk) {
+        TLS13_SET_HS_STATE(ss, wait_finished);
     } else {
-        /* TODO(ekr@rtfm.com): Actually process this rather than ignoring it. */
-        TLS13_SET_HS_STATE(ss, wait_0rtt_finished);
+        TLS13_SET_HS_STATE(ss, wait_cert_request);
     }
 
     return SECSuccess;
@@ -3013,6 +3005,7 @@ loser:
     struct {
         uint32 ticket_lifetime;
         uint32 flags;
+        uint32 ticket_age_add;
         TicketExtension extensions<2..2^16-2>;
         opaque ticket<0..2^16-1>;
     } NewSessionTicket;
@@ -3024,14 +3017,27 @@ tls13_SendNewSessionTicket(sslSocket *ss)
     SECItem ticket_data = { 0, NULL, 0 };
     PRUint32 flags = ticket_allow_dhe_resumption;
     SECStatus rv;
+    NewSessionTicket ticket = {0};
 
-    rv = ssl3_EncodeSessionTicket(ss, &ticket_data);
+    ticket.flags = 0;
+    if (ss->opt.enable0RttData) {
+        ticket.flags |= ticket_allow_early_data;
+    }
+    ticket.ticket_lifetime_hint = TLS_EX_SESS_TICKET_LIFETIME_HINT;
+    /* Generate a random value to add to ticket age. */
+    rv = PK11_GenerateRandom((PRUint8*)&ticket.ticket_age_add,
+                             sizeof(ticket.ticket_age_add));
+    if (rv != SECSuccess)
+        goto loser;
+
+    rv = ssl3_EncodeSessionTicket(ss, &ticket, &ticket_data);
     if (rv != SECSuccess)
         goto loser;
 
     message_length =
         4 + /* lifetime */
         4 + /* flags */
+        4 + /* ticket_age_add */
         2 + /* empty extensions */
         2 + /* ticket length */
         ticket_data.len;
@@ -3053,6 +3059,11 @@ tls13_SendNewSessionTicket(sslSocket *ss)
         flags |= ticket_allow_early_data;
     }
     rv = ssl3_AppendHandshakeNumber(ss, flags, sizeof(flags));
+    if (rv != SECSuccess)
+        goto loser;
+
+    rv = ssl3_AppendHandshakeNumber(ss, ticket.ticket_age_add,
+                                    sizeof(ticket.ticket_age_add));
     if (rv != SECSuccess)
         goto loser;
 
@@ -3081,7 +3092,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
     SECStatus rv;
     PRInt32 tmp;
-    PRUint32 flags;
+    PRUint32 tmpu;
     NewSessionTicket ticket;
     SECItem data;
 
@@ -3110,13 +3121,21 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     ticket.ticket.type = siBuffer;
 
     /* Flags. */
-    rv = ssl3_ConsumeHandshake(ss, &flags, 4, &b, &length);
+    rv = ssl3_ConsumeHandshake(ss, &tmpu, 4, &b, &length);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET,
                     decode_error);
         return SECFailure;
     }
-    ticket.flags = PR_ntohl(flags);
+    ticket.flags = PR_ntohl(tmpu);
+
+    rv = ssl3_ConsumeHandshake(ss, &tmpu, 4, &b, &length);
+    if (rv != SECSuccess) {
+        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET,
+                    decode_error);
+        return SECFailure;
+    }
+    ticket.ticket_age_add = (PRUint32)tmpu;
 
     /* Parse and discard extensions. */
     rv = ssl3_ConsumeHandshakeVariable(ss, &data, 2, &b, &length);
@@ -3203,7 +3222,7 @@ static const struct {
     { ssl_session_ticket_xtn, ExtensionClientOnly },
     { ssl_tls13_key_share_xtn, ExtensionSendClear },
     { ssl_tls13_pre_shared_key_xtn, ExtensionSendClear },
-    { ssl_tls13_early_data_xtn, ExtensionSendClear },
+    { ssl_tls13_early_data_xtn, ExtensionSendEncrypted },
     { ssl_next_proto_nego_xtn, ExtensionNotUsed },
     { ssl_renegotiation_info_xtn, ExtensionNotUsed },
     { ssl_signed_cert_timestamp_xtn, ExtensionSendEncrypted },
@@ -3548,11 +3567,6 @@ tls13_MaybeDo0RTTHandshake(sslSocket *ss)
                              CipherSpecWrite, PR_FALSE);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-        return SECFailure;
-    }
-
-    rv = tls13_SendEncryptedExtensions(ss);
-    if (rv != SECSuccess) {
         return SECFailure;
     }
 

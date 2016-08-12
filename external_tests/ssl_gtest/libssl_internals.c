@@ -245,3 +245,18 @@ SSLInt_HasCertWithAuthType(PRFileDesc *fd, SSLAuthType authType)
   return (PRBool)(!!ssl_FindServerCertByAuthType(ss, authType));
 }
 
+PRBool
+SSLInt_SendAlert(PRFileDesc *fd, uint8_t level, uint8_t type)
+{
+  sslSocket *ss = ssl_FindSocket(fd);
+  if (!ss) {
+    return PR_FALSE;
+  }
+
+  SECStatus rv = SSL3_SendAlert(ss, level, type);
+  if (rv != SECSuccess)
+      return PR_FALSE;
+
+  return PR_TRUE;
+}
+
