@@ -90,7 +90,8 @@ TlsAgent::~TlsAgent() {
   }
 }
 
-bool TlsAgent::ConfigServerCert(const std::string& name, bool updateKeyBits) {
+bool TlsAgent::ConfigServerCert(const std::string& name, bool updateKeyBits,
+                                const SSLExtraServerCertData *serverCertData) {
   ScopedCERTCertificate cert(PK11_FindCertFromNickname(name.c_str(), nullptr));
   EXPECT_NE(nullptr, cert.get());
   if (!cert.get()) return false;
@@ -108,9 +109,8 @@ bool TlsAgent::ConfigServerCert(const std::string& name, bool updateKeyBits) {
 
   SECStatus rv = SSL_ConfigSecureServer(ssl_fd_, nullptr, nullptr, ssl_kea_null);
   EXPECT_EQ(SECFailure, rv);
-  rv = SSL_ConfigServerCert(ssl_fd_, cert.get(), priv.get(), nullptr, 0);
-  EXPECT_EQ(SECSuccess, rv);
-
+  rv = SSL_ConfigServerCert(ssl_fd_, cert.get(), priv.get(), serverCertData,
+                            serverCertData ? sizeof(*serverCertData) : 0);
   return rv == SECSuccess;
 }
 
@@ -798,9 +798,14 @@ void TlsAgentTestBase::TearDown() {
   SSL_ShutdownServerSessionIDCache();
 }
 
-void TlsAgentTestBase::Init() {
+void TlsAgentTestBase::Reset(const std::string& server_name) {
+  delete agent_;
+  Init(server_name);
+}
+
+void TlsAgentTestBase::Init(const std::string& server_name) {
   agent_ = new TlsAgent(
-      role_ == TlsAgent::CLIENT ? TlsAgent::kClient : TlsAgent::kServerRsa,
+      role_ == TlsAgent::CLIENT ? TlsAgent::kClient : server_name,
       role_, mode_);
   agent_->Init();
   fd_ = DummyPrSocket::CreateFD(agent_->role_str(), mode_);

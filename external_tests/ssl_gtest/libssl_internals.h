@@ -31,5 +31,6 @@ PRBool SSLInt_CheckSecretsDestroyed(PRFileDesc *fd);
 PRBool SSLInt_DamageHsTrafficSecret(PRFileDesc *fd);
 PRBool SSLInt_DamageEarlyTrafficSecret(PRFileDesc *fd);
 SECStatus SSLInt_Set0RttAlpn(PRFileDesc *fd, PRUint8 *data, unsigned int len);
+PRBool SSLInt_HasCertWithAuthType(PRFileDesc *fd, SSLAuthType authType);
 
 #endif // ndef libssl_internals_h_
