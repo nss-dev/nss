@@ -96,7 +96,8 @@ class TlsAgent : public PollTarget {
   void PrepareForRenegotiate();
   // Prepares for renegotiation, then actually triggers it.
   void StartRenegotiate();
-  bool ConfigServerCert(const std::string& name, bool updateKeyBits = false);
+  bool ConfigServerCert(const std::string& name, bool updateKeyBits = false,
+                        const SSLExtraServerCertData *serverCertData = nullptr);
   bool EnsureTlsSetup(PRFileDesc *modelSocket = nullptr);
 
   void SetupClientAuth();
@@ -377,7 +378,8 @@ class TlsAgentTestBase : public ::testing::Test {
     return str == "TLS" ? STREAM : DGRAM;
   }
 
-  void Init();
+  void Init(const std::string& server_name = TlsAgent::kServerRsa);
+  void Reset(const std::string& server_name = TlsAgent::kServerRsa);
 
  protected:
   void EnsureInit();

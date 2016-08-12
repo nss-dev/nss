@@ -335,4 +335,72 @@ TEST_P(TlsConnectGenericPre13, AuthCompleteBeforeFinishedWithFalseStart) {
   Receive(10);
 }
 
+static const SSLExtraServerCertData ServerCertDataRsaPkcs1Decrypt = {
+  ssl_auth_rsa_decrypt, nullptr, nullptr, nullptr
+};
+static const SSLExtraServerCertData ServerCertDataRsaPkcs1Sign = {
+  ssl_auth_rsa_sign, nullptr, nullptr, nullptr
+};
+static const SSLExtraServerCertData ServerCertDataRsaPss = {
+  ssl_auth_rsa_pss, nullptr, nullptr, nullptr
+};
+
+// Test RSA cert with usage=[signature, encipherment].
+TEST_F(TlsAgentStreamTestServer, ConfigureCertRsaPkcs1SignAndKEX) {
+  Reset(TlsAgent::kServerRsa);
+
+  PRFileDesc *ssl_fd = agent_->ssl_fd();
+  EXPECT_TRUE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_decrypt));
+  EXPECT_TRUE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_sign));
+  EXPECT_TRUE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_pss));
+
+  // Configuring for only rsa_sign, rsa_pss, or rsa_decrypt should work.
+  EXPECT_TRUE(agent_->ConfigServerCert(TlsAgent::kServerRsa, false,
+                                       &ServerCertDataRsaPkcs1Decrypt));
+  EXPECT_TRUE(agent_->ConfigServerCert(TlsAgent::kServerRsa, false,
+                                       &ServerCertDataRsaPkcs1Sign));
+  EXPECT_TRUE(agent_->ConfigServerCert(TlsAgent::kServerRsa, false,
+                                       &ServerCertDataRsaPss));
+}
+
+// Test RSA cert with usage=[signature].
+TEST_F(TlsAgentStreamTestServer, ConfigureCertRsaPkcs1Sign) {
+  Reset(TlsAgent::kServerRsaSign);
+
+  PRFileDesc *ssl_fd = agent_->ssl_fd();
+  EXPECT_FALSE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_decrypt));
+  EXPECT_TRUE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_sign));
+  EXPECT_TRUE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_pss));
+
+  // Configuring for only rsa_decrypt should fail.
+  EXPECT_FALSE(agent_->ConfigServerCert(TlsAgent::kServerRsaSign, false,
+                                        &ServerCertDataRsaPkcs1Decrypt));
+
+  // Configuring for only rsa_sign or rsa_pss should work.
+  EXPECT_TRUE(agent_->ConfigServerCert(TlsAgent::kServerRsaSign, false,
+                                       &ServerCertDataRsaPkcs1Sign));
+  EXPECT_TRUE(agent_->ConfigServerCert(TlsAgent::kServerRsaSign, false,
+                                       &ServerCertDataRsaPss));
+}
+
+// Test RSA cert with usage=[encipherment].
+TEST_F(TlsAgentStreamTestServer, ConfigureCertRsaPkcs1KEX) {
+  Reset(TlsAgent::kServerRsaDecrypt);
+
+  PRFileDesc *ssl_fd = agent_->ssl_fd();
+  EXPECT_TRUE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_decrypt));
+  EXPECT_FALSE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_sign));
+  EXPECT_FALSE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_pss));
+
+  // Configuring for only rsa_sign or rsa_pss should fail.
+  EXPECT_FALSE(agent_->ConfigServerCert(TlsAgent::kServerRsaDecrypt, false,
+                                        &ServerCertDataRsaPkcs1Sign));
+  EXPECT_FALSE(agent_->ConfigServerCert(TlsAgent::kServerRsaDecrypt, false,
+                                        &ServerCertDataRsaPss));
+
+  // Configuring for only rsa_decrypt should work.
+  EXPECT_TRUE(agent_->ConfigServerCert(TlsAgent::kServerRsaDecrypt, false,
+                                       &ServerCertDataRsaPkcs1Decrypt));
+}
+
 }

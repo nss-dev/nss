@@ -226,3 +226,14 @@ SSLInt_Set0RttAlpn(PRFileDesc *fd, PRUint8 *data, unsigned int len)
 
   return SECSuccess;
 }
+
+PRBool
+SSLInt_HasCertWithAuthType(PRFileDesc *fd, SSLAuthType authType)
+{
+  sslSocket *ss = ssl_FindSocket(fd);
+  if (!ss) {
+    return PR_FALSE;
+  }
+
+  return (PRBool)(!!ssl_FindServerCertByAuthType(ss, authType));
+}
