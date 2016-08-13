@@ -405,6 +405,14 @@ TEST_P(TlsExtensionTest12Plus, SignatureAlgorithmsOddLength) {
                                                 extension));
 }
 
+
+TEST_P(TlsExtensionTestGeneric, NoSupportedGroups) {
+  ClientHelloErrorTest(new TlsExtensionDropper(ssl_supported_groups_xtn),
+                       version_ < SSL_LIBRARY_VERSION_TLS_1_3 ?
+                       kTlsAlertDecryptError:
+                       kTlsAlertMissingExtension);
+}
+
 TEST_P(TlsExtensionTestGeneric, SupportedCurvesShort) {
   const uint8_t val[] = { 0x00, 0x01, 0x00 };
   DataBuffer extension(val, sizeof(val));
