@@ -1235,5 +1235,8 @@ ssl_HandleSupportedGroupsXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
         }
     }
 
+    /* Remember that we negotiated this extension. */
+    ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
+
     return SECSuccess;
 }

@@ -41,6 +41,8 @@ const uint8_t kTlsAlertBadRecordMac = 20;
 const uint8_t kTlsAlertHandshakeFailure = 40;
 const uint8_t kTlsAlertIllegalParameter = 47;
 const uint8_t kTlsAlertDecodeError = 50;
+const uint8_t kTlsAlertDecryptError = 51;
+const uint8_t kTlsAlertMissingExtension = 109;
 const uint8_t kTlsAlertUnsupportedExtension = 110;
 const uint8_t kTlsAlertNoApplicationProtocol = 120;
 

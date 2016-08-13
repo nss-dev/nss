@@ -481,3 +481,6 @@ ER3(SSL_ERROR_MISSING_ALPN_EXTENSION, (SSL_ERROR_BASE + 150),
 
 ER3(SSL_ERROR_RX_UNEXPECTED_EXTENSION, (SSL_ERROR_BASE + 151),
     "SSL received an unexpected extension.")
+
+ER3(SSL_ERROR_MISSING_SUPPORTED_GROUPS, (SSL_ERROR_BASE + 152),
+    "SSL expected a supported groups extension.")

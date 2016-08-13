@@ -1122,6 +1122,14 @@ tls13_HandleClientKeyShare(sslSocket *ss)
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
+    /* Verify that the other side sent supported groups as required
+     * by the specification. */
+    if (!ssl3_ExtensionNegotiated(ss, ssl_supported_groups_xtn)) {
+        FATAL_ERROR(ss, SSL_ERROR_MISSING_SUPPORTED_GROUPS_EXTENSION,
+                    missing_extension);
+        return SECFailure;
+    }
+
     /* Figure out what group we expect */
     switch (ss->ssl3.hs.kea_def->exchKeyType) {
         case ssl_kea_ecdh:

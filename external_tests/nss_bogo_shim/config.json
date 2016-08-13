@@ -9,7 +9,7 @@
         "*SignatureType-TLS13":"SignatureScheme patch",
         "ECDSACurveMismatch-Verify-TLS13":"SignatureScheme patch",
         "ServerAuth-NoFallback-TLS13":"PSS",
-        "NoSupportedCurves":"NSS needs to fail when no supported curves. Bug 1294977",
+        "NoSupportedCurves":"This tests a non-spec behavior for TLS 1.2 and expects the wrong alert for TLS 1.3",
         "SendEmptyRecords":"Tests a non-spec behavior in BoGo where it chokes on too many empty records",
         "LargePlaintext":"NSS needs to check for over-long records. Bug 1294978",
         "TLS13-RC4-MD5-server":"This fails properly but returns an unexpected error. Not a bug but needs cleanup",
