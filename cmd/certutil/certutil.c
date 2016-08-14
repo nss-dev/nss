@@ -3435,8 +3435,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
                      certutil.options[opt_ExtendedEmailAddrs].arg,
                      certutil.options[opt_ExtendedDNSNames].arg,
                      certutil_extns,
-                     (certutil.options[opt_GenericExtensions].activated ?
-                                                                        certutil.options[opt_GenericExtensions].arg
+                     (certutil.options[opt_GenericExtensions].activated ? certutil.options[opt_GenericExtensions].arg
                                                                         : NULL),
                      certutil.options[opt_Pss].activated,
                      &certReqDER);
@@ -3461,8 +3460,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
                      NULL,
                      NULL,
                      nullextnlist,
-                     (certutil.options[opt_GenericExtensions].activated ?
-                                                                        certutil.options[opt_GenericExtensions].arg
+                     (certutil.options[opt_GenericExtensions].activated ? certutil.options[opt_GenericExtensions].arg
                                                                         : NULL),
                      certutil.options[opt_Pss].activated,
                      &certReqDER);
@@ -3484,8 +3482,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
                             certutil.commands[cmd_CreateNewCert].activated,
                         certutil.options[opt_SelfSign].activated,
                         certutil_extns,
-                        (certutil.options[opt_GenericExtensions].activated ?
-                                                                           certutil.options[opt_GenericExtensions].arg
+                        (certutil.options[opt_GenericExtensions].activated ? certutil.options[opt_GenericExtensions].arg
                                                                            : NULL),
                         certVersion,
                         &certDER);

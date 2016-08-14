@@ -86,7 +86,7 @@ static SECOidTag ecCurve_oid_map[] = {
     SEC_OID_UNKNOWN, /* ECCurve_WTLS_1 */
     SEC_OID_UNKNOWN, /* ECCurve_WTLS_8 */
     SEC_OID_UNKNOWN, /* ECCurve_WTLS_9 */
-    SEC_OID_UNKNOWN /* ECCurve_pastLastCurve */
+    SEC_OID_UNKNOWN  /* ECCurve_pastLastCurve */
 };
 
 typedef SECStatus (*op_func)(void *, void *, void *);

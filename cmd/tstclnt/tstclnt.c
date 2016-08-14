@@ -256,7 +256,8 @@ PrintParameterUsage(void)
     fprintf(stderr, "%-20s (Options -4 and -6 cannot be combined.)\n", "");
     fprintf(stderr, "%-20s Enable the extended master secret extension [RFC7627]\n", "-G");
     fprintf(stderr, "%-20s Require the use of FFDHE supported groups "
-                    "[I-D.ietf-tls-negotiated-ff-dhe]\n", "-H");
+                    "[I-D.ietf-tls-negotiated-ff-dhe]\n",
+            "-H");
 }
 
 static void
