@@ -24,8 +24,17 @@ if [ $# -gt 0 ]; then
 else
     top=$(dirname $0)/../../..
     dirs=( \
-         "$top/lib/ssl" \
+         "$top/cmd" \
+         "$top/lib/base" \
+         "$top/lib/certdb" \
+         "$top/lib/certhigh" \
+         "$top/lib/ckfw" \
+         "$top/lib/crmf" \
+         "$top/lib/cryptohi" \
+         "$top/lib/dbm" \
+         "$top/lib/dev" \
          "$top/lib/softoken" \
+         "$top/lib/ssl" \
          "$top/external_tests/common" \
          "$top/external_tests/der_gtest" \
          "$top/external_tests/pk11_gtest" \
