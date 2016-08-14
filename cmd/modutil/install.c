@@ -406,10 +406,8 @@ Pk11Install_DoInstall(char *jarFile, const char *installDir,
      * Show the user security information, allow them to abort or continue
      */
     if (Pk11Install_UserVerifyJar(jar, PR_STDOUT,
-                                  force ?
-                                        PR_FALSE
-                                        :
-                                        PR_TRUE) &&
+                                  force ? PR_FALSE
+                                        : PR_TRUE) &&
         !force) {
         if (feedback) {
             PR_fprintf(feedback, msgStrings[USER_ABORT]);
