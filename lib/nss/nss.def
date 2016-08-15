@@ -1108,6 +1108,7 @@ PK11_HasAttributeSet;
 ;+    global:
 CERT_GetCertIsPerm;
 CERT_GetCertIsTemp;
+PK11_GetTokenURI;
 ;+    local:
 ;+       *;
 ;+};

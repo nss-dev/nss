@@ -18,6 +18,7 @@
 #include "dev3hack.h"
 #include "pkim.h"
 #include "utilpars.h"
+#include "pkcs11uri.h"
 
 /*************************************************************
  * local static and global data
@@ -1685,6 +1686,63 @@ char *
 PK11_GetTokenName(PK11SlotInfo *slot)
 {
     return slot->token_name;
+}
+
+char *
+PK11_GetTokenURI(PK11SlotInfo *slot)
+{
+    PK11URI *uri;
+    char *ret = NULL;
+    char label[32 + 1], manufacturer[32 + 1], serial[16 + 1], model[16 + 1];
+    PK11URIAttribute attrs[4];
+    size_t nattrs = 0;
+
+    PK11_MakeString(NULL, label, (char *)slot->tokenInfo.label,
+                    sizeof(slot->tokenInfo.label));
+    if (*label != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_TOKEN;
+        attrs[nattrs].value = label;
+        nattrs++;
+    }
+
+    PK11_MakeString(NULL, manufacturer, (char *)slot->tokenInfo.manufacturerID,
+                    sizeof(slot->tokenInfo.manufacturerID));
+    if (*manufacturer != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_MANUFACTURER;
+        attrs[nattrs].value = manufacturer;
+        nattrs++;
+    }
+
+    PK11_MakeString(NULL, serial, (char *)slot->tokenInfo.serialNumber,
+                    sizeof(slot->tokenInfo.serialNumber));
+    if (*serial != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_SERIAL;
+        attrs[nattrs].value = serial;
+        nattrs++;
+    }
+
+    PK11_MakeString(NULL, model, (char *)slot->tokenInfo.model,
+                    sizeof(slot->tokenInfo.model));
+    if (*model != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_MODEL;
+        attrs[nattrs].value = model;
+        nattrs++;
+    }
+
+    uri = PK11URI_CreateURI(attrs, nattrs, NULL, 0);
+    if (uri == NULL) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return NULL;
+    }
+
+    ret = PK11URI_FormatURI(NULL, uri);
+    PK11URI_DestroyURI(uri);
+
+    if (ret == NULL) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    }
+
+    return ret;
 }
 
 char *
