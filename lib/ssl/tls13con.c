@@ -1317,11 +1317,6 @@ tls13_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     rv = ssl3_ConsumeHandshakeVariable(ss, &context, 1, &b, &length);
     if (rv != SECSuccess)
         goto loser;
-    if (context.len == 0) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CERT_REQUEST,
-                    illegal_parameter);
-        goto loser;
-    }
 
     rv = ssl3_ConsumeHandshakeVariable(ss, &algorithms, 2, &b, &length);
     if (rv != SECSuccess)
