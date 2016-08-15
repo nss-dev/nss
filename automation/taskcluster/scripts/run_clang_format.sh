@@ -13,6 +13,12 @@ fi
 
 # Includes a default set of directories.
 
+apply=false
+if [ $1 = "--apply" ]; then
+    apply=true
+    shift
+fi
+
 if [ $# -gt 0 ]; then
     dirs=("$@")
 else
@@ -20,13 +26,20 @@ else
     dirs=( \
          "$top/lib/ssl" \
          "$top/lib/softoken" \
+         "$top/external_tests/common" \
+         "$top/external_tests/der_gtest" \
+         "$top/external_tests/pk11_gtest" \
+         "$top/external_tests/ssl_gtest" \
+         "$top/external_tests/util_gtest" \
     )
 fi
 
 STATUS=0
 for dir in "${dirs[@]}"; do
     for i in $(find "$dir" -type f \( -name '*.[ch]' -o -name '*.cc' \) -print); do
-        if ! clang-format "$i" | diff -Naur "$i" -; then
+        if $apply; then
+            clang-format -i "$i"
+        elif ! clang-format "$i" | diff -Naur "$i" -; then
             echo "Sorry, $i is not formatted properly. Please use clang-format 3.8 on your patch before landing."
             STATUS=1
         fi
