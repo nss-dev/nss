@@ -37,13 +37,12 @@ enum SessionResumptionMode {
 
 class TlsAgent;
 
-typedef std::function<SECStatus(TlsAgent& agent, PRBool checksig,
-                                PRBool isServer)>
+typedef std::function<SECStatus(TlsAgent* agent, bool checksig, bool isServer)>
     AuthCertificateCallbackFunction;
 
-typedef std::function<void(TlsAgent& agent)> HandshakeCallbackFunction;
+typedef std::function<void(TlsAgent* agent)> HandshakeCallbackFunction;
 
-typedef std::function<int32_t(TlsAgent& agent, const SECItem* srvNameArr,
+typedef std::function<int32_t(TlsAgent* agent, const SECItem* srvNameArr,
                               PRUint32 srvNameArrSize)>
     SniCallbackFunction;
 
@@ -229,7 +228,8 @@ class TlsAgent : public PollTarget {
     agent->CheckPreliminaryInfo();
     agent->auth_certificate_hook_called_ = true;
     if (agent->auth_certificate_callback_) {
-      return agent->auth_certificate_callback_(*agent, checksig, isServer);
+      return agent->auth_certificate_callback_(
+          agent, static_cast<bool>(checksig), static_cast<bool>(isServer));
     }
     return SECSuccess;
   }
@@ -241,7 +241,8 @@ class TlsAgent : public PollTarget {
     EXPECT_TRUE(agent->expect_client_auth_);
     EXPECT_TRUE(isServer);
     if (agent->auth_certificate_callback_) {
-      return agent->auth_certificate_callback_(*agent, checksig, isServer);
+      return agent->auth_certificate_callback_(
+          agent, static_cast<bool>(checksig), static_cast<bool>(isServer));
     }
     return SECSuccess;
   }
@@ -280,7 +281,7 @@ class TlsAgent : public PollTarget {
     agent->sni_hook_called_ = true;
     EXPECT_EQ(1UL, srvNameArrSize);
     if (agent->sni_callback_) {
-      return agent->sni_callback_(*agent, srvNameArr, srvNameArrSize);
+      return agent->sni_callback_(agent, srvNameArr, srvNameArrSize);
     }
     return 0;  // First configuration.
   }
@@ -301,7 +302,7 @@ class TlsAgent : public PollTarget {
     agent->handshake_callback_called_ = true;
     agent->Connected();
     if (agent->handshake_callback_) {
-      agent->handshake_callback_(*agent);
+      agent->handshake_callback_(agent);
     }
   }
 

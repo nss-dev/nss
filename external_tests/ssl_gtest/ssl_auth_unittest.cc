@@ -364,7 +364,7 @@ class BeforeFinished13 : public PacketFilter {
 // processed by the client, SSL_AuthCertificateComplete() is called.
 TEST_F(TlsConnectDatagram13, AuthCompleteBeforeFinished) {
   client_->SetAuthCertificateCallback(
-      [](TlsAgent&, PRBool, PRBool) -> SECStatus { return SECWouldBlock; });
+      [](TlsAgent*, PRBool, PRBool) -> SECStatus { return SECWouldBlock; });
   server_->SetPacketFilter(new BeforeFinished13(client_, server_, [this]() {
     EXPECT_EQ(SECSuccess, SSL_AuthCertificateComplete(client_->ssl_fd(), 0));
   }));
@@ -383,7 +383,7 @@ static void TriggerAuthComplete(PollTarget* target, Event event) {
 // will trigger after the Finished message is processed.
 TEST_F(TlsConnectDatagram13, AuthCompleteAfterFinished) {
   client_->SetAuthCertificateCallback(
-      [this](TlsAgent&, PRBool, PRBool) -> SECStatus {
+      [this](TlsAgent*, PRBool, PRBool) -> SECStatus {
         Poller::Timer* timer_handle;
         // This is really just to unroll the stack.
         Poller::Instance()->SetTimer(1U, client_, TriggerAuthComplete,
@@ -411,7 +411,7 @@ TEST_P(TlsConnectGenericPre13, ClientWriteBetweenCCSAndFinishedWithFalseStart) {
 TEST_P(TlsConnectGenericPre13, AuthCompleteBeforeFinishedWithFalseStart) {
   client_->EnableFalseStart();
   client_->SetAuthCertificateCallback(
-      [](TlsAgent&, PRBool, PRBool) -> SECStatus { return SECWouldBlock; });
+      [](TlsAgent*, PRBool, PRBool) -> SECStatus { return SECWouldBlock; });
   server_->SetPacketFilter(new BeforeFinished(
       client_, server_,
       []() {

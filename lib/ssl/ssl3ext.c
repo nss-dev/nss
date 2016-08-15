@@ -75,6 +75,8 @@ static SECStatus ssl3_ServerHandleUseSRTPXtn(sslSocket *ss, PRUint16 ex_type,
                                              SECItem *data);
 static PRInt32 ssl3_ServerSendStatusRequestXtn(sslSocket *ss,
                                                PRBool append, PRUint32 maxBytes);
+static PRInt32 tls13_ServerSendStatusRequestXtn(sslSocket *ss,
+                                                PRBool append, PRUint32 maxBytes);
 static SECStatus ssl3_ServerHandleStatusRequestXtn(sslSocket *ss,
                                                    PRUint16 ex_type, SECItem *data);
 static SECStatus ssl3_ClientHandleStatusRequestXtn(sslSocket *ss,
@@ -1035,18 +1037,22 @@ ssl3_ServerSendAppProtoXtn(sslSocket *ss, PRBool append, PRUint32 maxBytes)
 }
 
 static SECStatus
-ssl3_ClientHandleStatusRequestXtn(sslSocket *ss, PRUint16 ex_type,
+ssl3_ServerHandleStatusRequestXtn(sslSocket *ss, PRUint16 ex_type,
                                   SECItem *data)
 {
-    /* The echoed extension must be empty. */
-    if (data->len != 0) {
-        return SECSuccess; /* Ignore the extension. */
-    }
+    ssl3HelloExtensionSenderFunc sender;
 
-    /* Keep track of negotiated extensions. */
+    PORT_Assert(ss->sec.isServer);
+
+    /* remember that we got this extension. */
     ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
 
-    return SECSuccess;
+    if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
+        sender = tls13_ServerSendStatusRequestXtn;
+    } else {
+        sender = ssl3_ServerSendStatusRequestXtn;
+    }
+    return ssl3_RegisterServerHelloExtensionSender(ss, ex_type, sender);
 }
 
 static PRInt32
@@ -1083,8 +1089,53 @@ ssl3_ServerSendStatusRequestXtn(
     return extension_length;
 }
 
+static PRInt32
+tls13_ServerSendStatusRequestXtn(
+    sslSocket *ss,
+    PRBool append,
+    PRUint32 maxBytes)
+{
+    PRInt32 extension_length;
+    const sslServerCert *serverCert = ss->sec.serverCert;
+    const SECItem *item;
+    SECStatus rv;
+
+    if (!serverCert->certStatusArray ||
+        !serverCert->certStatusArray->len) {
+        return 0;
+    }
+
+    item = &serverCert->certStatusArray->items[0];
+
+    /* Only send the first entry. */
+    extension_length = 2 + 2 + 1 /* status_type */ + 3 + item->len;
+    if (maxBytes < (PRUint32)extension_length) {
+        return 0;
+    }
+    if (append) {
+        /* extension_type */
+        rv = ssl3_AppendHandshakeNumber(ss, ssl_cert_status_xtn, 2);
+        if (rv != SECSuccess)
+            return -1;
+        /* length of extension_data */
+        rv = ssl3_AppendHandshakeNumber(ss, extension_length - 4, 2);
+        if (rv != SECSuccess)
+            return -1;
+        /* status_type == ocsp */
+        rv = ssl3_AppendHandshakeNumber(ss, 1 /*ocsp*/, 1);
+        if (rv != SECSuccess)
+            return rv; /* err set by AppendHandshake. */
+        /* opaque OCSPResponse<1..2^24-1> */
+        rv = ssl3_AppendHandshakeVariable(ss, item->data, item->len, 3);
+        if (rv != SECSuccess)
+            return rv; /* err set by AppendHandshake. */
+    }
+
+    return extension_length;
+}
+
 /* ssl3_ClientSendStatusRequestXtn builds the status_request extension on the
- * client side. See RFC 4366 section 3.6. */
+ * client side. See RFC 6066 section 8. */
 static PRInt32
 ssl3_ClientSendStatusRequestXtn(sslSocket *ss, PRBool append,
                                 PRUint32 maxBytes)
@@ -1136,6 +1187,26 @@ ssl3_ClientSendStatusRequestXtn(sslSocket *ss, PRBool append,
         xtnData->advertised[xtnData->numAdvertised++] = ssl_cert_status_xtn;
     }
     return extension_length;
+}
+
+static SECStatus
+ssl3_ClientHandleStatusRequestXtn(sslSocket *ss, PRUint16 ex_type,
+                                  SECItem *data)
+{
+    /* In TLS 1.3, the extension carries the OCSP response. */
+    if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
+        SECStatus rv;
+        rv = ssl_ReadCertificateStatus(ss, data->data, data->len);
+        if (rv != SECSuccess) {
+            return SECFailure; /* code already set */
+        }
+    } else if (data->len != 0) {
+        return SECSuccess; /* Ignore the extension. */
+    }
+
+    /* Keep track of negotiated extensions. */
+    ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
+    return SECSuccess;
 }
 
 /*
@@ -2392,21 +2463,6 @@ ssl3_SendRenegotiationInfoXtn(
         }
     }
     return needed;
-}
-
-static SECStatus
-ssl3_ServerHandleStatusRequestXtn(sslSocket *ss, PRUint16 ex_type,
-                                  SECItem *data)
-{
-    SECStatus rv = SECSuccess;
-
-    /* remember that we got this extension. */
-    ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
-    PORT_Assert(ss->sec.isServer);
-    /* prepare to send back the appropriate response */
-    rv = ssl3_RegisterServerHelloExtensionSender(ss, ex_type,
-                                                 ssl3_ServerSendStatusRequestXtn);
-    return rv;
 }
 
 /* This function runs in both the client and server.  */

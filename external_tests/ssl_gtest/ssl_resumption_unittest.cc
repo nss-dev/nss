@@ -206,9 +206,9 @@ TEST_P(TlsConnectGeneric, ConnectResumeClientBothTicketServerTicketForget) {
 
 // This callback switches out the "server" cert used on the server with
 // the "client" certificate, which should be the same type.
-static int32_t SwitchCertificates(TlsAgent& agent, const SECItem* srvNameArr,
+static int32_t SwitchCertificates(TlsAgent* agent, const SECItem* srvNameArr,
                                   uint32_t srvNameArrSize) {
-  bool ok = agent.ConfigServerCert("client");
+  bool ok = agent->ConfigServerCert("client");
   if (!ok) return SSL_SNI_SEND_ALERT;
 
   return 0;  // first config

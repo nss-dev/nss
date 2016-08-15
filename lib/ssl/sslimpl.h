@@ -1958,8 +1958,8 @@ SECStatus ssl3_CompleteHandleCertificate(sslSocket *ss,
                                          SSL3Opaque *b, PRUint32 length);
 SECStatus ssl3_SendEmptyCertificate(sslSocket *ss);
 SECStatus ssl3_SendCertificateStatus(sslSocket *ss);
-SECStatus ssl3_CompleteHandleCertificateStatus(sslSocket *ss, SSL3Opaque *b,
-                                               PRUint32 length);
+SECStatus ssl_ReadCertificateStatus(sslSocket *ss, SSL3Opaque *b,
+                                    PRUint32 length);
 SECStatus ssl3_EncodeSigAlgs(sslSocket *ss, PRUint8 *buf,
                              unsigned maxLen, PRUint32 *len);
 void ssl3_GetCertificateRequestCAs(sslSocket *ss, int *calenp, SECItem **namesp,

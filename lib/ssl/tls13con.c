@@ -55,8 +55,6 @@ static SECStatus tls13_HandleCertificate(
     sslSocket *ss, SSL3Opaque *b, PRUint32 length);
 static SECStatus tls13_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b,
                                                 PRUint32 length);
-static SECStatus tls13_HandleCertificateStatus(sslSocket *ss, SSL3Opaque *b,
-                                               PRUint32 length);
 static SECStatus
 tls13_SendCertificateVerify(sslSocket *ss, SECKEYPrivateKey *privKey);
 static SECStatus tls13_HandleCertificateVerify(
@@ -158,7 +156,6 @@ tls13_HandshakeState(SSL3WaitState st)
         STATE_CASE(wait_cert_verify);
         STATE_CASE(wait_finished);
         STATE_CASE(wait_server_hello);
-        STATE_CASE(wait_certificate_status);
         STATE_CASE(wait_server_cert);
         STATE_CASE(wait_cert_request);
         STATE_CASE(wait_encrypted_extensions);
@@ -488,9 +485,6 @@ tls13_HandlePostHelloHandshakeMessage(sslSocket *ss, SSL3Opaque *b,
     switch (ss->ssl3.hs.msg_type) {
         case certificate:
             return tls13_HandleCertificate(ss, b, length);
-
-        case certificate_status:
-            return tls13_HandleCertificateStatus(ss, b, length);
 
         case certificate_request:
             return tls13_HandleCertificateRequest(ss, b, length);
@@ -1413,10 +1407,6 @@ tls13_SendEncryptedServerSequence(sslSocket *ss)
         if (rv != SECSuccess) {
             return SECFailure; /* error code is set. */
         }
-        rv = ssl3_SendCertificateStatus(ss);
-        if (rv != SECSuccess) {
-            return SECFailure; /* error code is set. */
-        }
 
         svrPrivKey = ss->sec.serverCert->serverKeyPair->privKey;
         rv = tls13_SendCertificateVerify(ss, svrPrivKey);
@@ -1755,23 +1745,6 @@ tls13_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         return rv;
 
     return SECSuccess;
-}
-
-/* Called from tls13_CompleteHandleHandshakeMessage() when it has deciphered a complete
- * ssl3 CertificateStatus message.
- * Caller must hold Handshake and RecvBuf locks.
- */
-static SECStatus
-tls13_HandleCertificateStatus(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
-{
-    SECStatus rv;
-
-    rv = TLS13_CHECK_HS_STATE(ss, SSL_ERROR_RX_UNEXPECTED_CERT_STATUS,
-                              wait_certificate_status);
-    if (rv != SECSuccess)
-        return rv;
-
-    return ssl3_CompleteHandleCertificateStatus(ss, b, length);
 }
 
 void
@@ -3192,14 +3165,7 @@ static const struct {
     SSLExtensionType ex_value;
     Tls13ExtensionStatus status;
 } KnownExtensions[] = {
-    { ssl_server_name_xtn,
-      ExtensionSendEncrypted },
-    {
-        ssl_cert_status_xtn,
-        ExtensionNotUsed /* TODO(ekr@rtfm.com): Disabled because broken
-                            in TLS 1.3. */
-        /* ExtensionSendEncrypted */
-    },
+    { ssl_server_name_xtn, ExtensionSendEncrypted },
     { ssl_supported_groups_xtn, ExtensionSendEncrypted },
     { ssl_ec_point_formats_xtn, ExtensionNotUsed },
     { ssl_signature_algorithms_xtn, ExtensionClientOnly },
@@ -3214,6 +3180,7 @@ static const struct {
     { ssl_next_proto_nego_xtn, ExtensionNotUsed },
     { ssl_renegotiation_info_xtn, ExtensionNotUsed },
     { ssl_signed_cert_timestamp_xtn, ExtensionSendEncrypted },
+    { ssl_cert_status_xtn, ExtensionSendEncrypted },
     { ssl_tls13_draft_version_xtn, ExtensionClientOnly }
 };
 

@@ -11580,22 +11580,24 @@ ssl3_CleanupPeerCerts(sslSocket *ss)
 static SECStatus
 ssl3_HandleCertificateStatus(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
+    SECStatus rv;
+
     if (ss->ssl3.hs.ws != wait_certificate_status) {
         (void)SSL3_SendAlert(ss, alert_fatal, unexpected_message);
         PORT_SetError(SSL_ERROR_RX_UNEXPECTED_CERT_STATUS);
         return SECFailure;
     }
 
-    return ssl3_CompleteHandleCertificateStatus(ss, b, length);
+    rv = ssl_ReadCertificateStatus(ss, b, length);
+    if (rv != SECSuccess) {
+        return SECFailure; /* code already set */
+    }
+
+    return ssl3_AuthCertificate(ss);
 }
 
-/* Called from:
- *      ssl3_HandleCertificateStatus
- *      tls13_HandleCertificateStatus
- */
 SECStatus
-ssl3_CompleteHandleCertificateStatus(sslSocket *ss, SSL3Opaque *b,
-                                     PRUint32 length)
+ssl_ReadCertificateStatus(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
     PRInt32 status, len;
 
@@ -11604,39 +11606,39 @@ ssl3_CompleteHandleCertificateStatus(sslSocket *ss, SSL3Opaque *b,
     /* Consume the CertificateStatusType enum */
     status = ssl3_ConsumeHandshakeNumber(ss, 1, &b, &length);
     if (status != 1 /* ocsp */) {
-        goto format_loser;
+        ssl3_DecodeError(ss); /* sets error code */
+        return SECFailure;
     }
 
     len = ssl3_ConsumeHandshakeNumber(ss, 3, &b, &length);
     if (len != length) {
-        goto format_loser;
+        ssl3_DecodeError(ss); /* sets error code */
+        return SECFailure;
     }
 
 #define MAX_CERTSTATUS_LEN 0x1ffff /* 128k - 1 */
-    if (length > MAX_CERTSTATUS_LEN)
-        goto format_loser;
+    if (length > MAX_CERTSTATUS_LEN) {
+        ssl3_DecodeError(ss); /* sets error code */
+        return SECFailure;
+    }
 #undef MAX_CERTSTATUS_LEN
 
     /* Array size 1, because we currently implement single-stapling only */
     SECITEM_AllocArray(NULL, &ss->sec.ci.sid->peerCertStatus, 1);
     if (!ss->sec.ci.sid->peerCertStatus.items)
-        return SECFailure;
+        return SECFailure; /* code already set */
 
     ss->sec.ci.sid->peerCertStatus.items[0].data = PORT_Alloc(length);
 
     if (!ss->sec.ci.sid->peerCertStatus.items[0].data) {
         SECITEM_FreeArray(&ss->sec.ci.sid->peerCertStatus, PR_FALSE);
-        return SECFailure;
+        return SECFailure; /* code already set */
     }
 
     PORT_Memcpy(ss->sec.ci.sid->peerCertStatus.items[0].data, b, length);
     ss->sec.ci.sid->peerCertStatus.items[0].len = length;
     ss->sec.ci.sid->peerCertStatus.items[0].type = siBuffer;
-
-    return ssl3_AuthCertificate(ss);
-
-format_loser:
-    return ssl3_DecodeError(ss);
+    return SECSuccess;
 }
 
 /* Called from ssl3_HandlePostHelloHandshakeMessage() when it has deciphered
@@ -11798,7 +11800,9 @@ ssl3_CompleteHandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     SECKEY_UpdateCertPQG(ss->sec.peerCert);
 
-    if (!isServer && ssl3_ExtensionNegotiated(ss, ssl_cert_status_xtn)) {
+    if (!isServer &&
+        ss->version < SSL_LIBRARY_VERSION_TLS_1_3 &&
+        ssl3_ExtensionNegotiated(ss, ssl_cert_status_xtn)) {
         ss->ssl3.hs.ws = wait_certificate_status;
         rv = SECSuccess;
     } else {
