@@ -931,10 +931,10 @@ ssl_HasCert(const sslSocket *ss, SSLAuthType authType)
 }
 
 const ssl3BulkCipherDef *
-ssl_GetBulkCipherDef(const ssl3CipherSuiteDef *cipher_def) {
+ssl_GetBulkCipherDef(const ssl3CipherSuiteDef *cipher_def)
+{
     PORT_Assert(cipher_def->bulk_cipher_alg < PR_ARRAY_SIZE(bulk_cipher_defs));
-    PORT_Assert(bulk_cipher_defs[cipher_def->bulk_cipher_alg].cipher
-                == cipher_def->bulk_cipher_alg);
+    PORT_Assert(bulk_cipher_defs[cipher_def->bulk_cipher_alg].cipher == cipher_def->bulk_cipher_alg);
     return &bulk_cipher_defs[cipher_def->bulk_cipher_alg];
 }
 
