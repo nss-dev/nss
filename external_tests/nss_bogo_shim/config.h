@@ -17,6 +17,7 @@
 #include <map>
 #include <queue>
 #include <string>
+#include <typeinfo>
 
 // Abstract base class for a given config flag.
 class ConfigEntryBase {
