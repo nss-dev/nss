@@ -14,6 +14,7 @@
 #include "seccomon.h"
 #include "pkcs7t.h"
 #include "cmsreclist.h"
+#include "pkcs11uri.h"
 
 /*
  * These are the private NSS functions. They are not exported by nss.def, and
@@ -39,6 +40,7 @@ int PK11_GetMaxKeyLength(CK_MECHANISM_TYPE type);
  * Generic Slot Management
  ************************************************************/
 CK_OBJECT_HANDLE PK11_CopyKey(PK11SlotInfo *slot, CK_OBJECT_HANDLE srcObject);
+PRBool pk11_MatchUriTokenInfo(PK11SlotInfo *slot, PK11URI *uri);
 SECStatus PK11_ReadAttribute(PK11SlotInfo *slot, CK_OBJECT_HANDLE id,
                              CK_ATTRIBUTE_TYPE type, PLArenaPool *arena, SECItem *result);
 CK_ULONG PK11_ReadULongAttribute(PK11SlotInfo *slot, CK_OBJECT_HANDLE id,

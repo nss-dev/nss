@@ -1851,6 +1851,46 @@ PK11_GetTokenInfo(PK11SlotInfo *slot, CK_TOKEN_INFO *info)
     return SECSuccess;
 }
 
+PRBool
+pk11_MatchUriTokenInfo(PK11SlotInfo *slot, PK11URI *uri)
+{
+    const char *value;
+
+    value = PK11URI_GetPathAttribute(uri, PK11URI_PATTR_TOKEN);
+    if (value) {
+        if (!pk11_MatchString(value, (char *)slot->tokenInfo.label,
+                              sizeof(slot->tokenInfo.label))) {
+            return PR_FALSE;
+        }
+    }
+
+    value = PK11URI_GetPathAttribute(uri, PK11URI_PATTR_MANUFACTURER);
+    if (value) {
+        if (!pk11_MatchString(value, (char *)slot->tokenInfo.manufacturerID,
+                              sizeof(slot->tokenInfo.manufacturerID))) {
+            return PR_FALSE;
+        }
+    }
+
+    value = PK11URI_GetPathAttribute(uri, PK11URI_PATTR_SERIAL);
+    if (value) {
+        if (!pk11_MatchString(value, (char *)slot->tokenInfo.serialNumber,
+                              sizeof(slot->tokenInfo.serialNumber))) {
+            return PR_FALSE;
+        }
+    }
+
+    value = PK11URI_GetPathAttribute(uri, PK11URI_PATTR_MODEL);
+    if (value) {
+        if (!pk11_MatchString(value, (char *)slot->tokenInfo.model,
+                              sizeof(slot->tokenInfo.model))) {
+            return PR_FALSE;
+        }
+    }
+
+    return PR_TRUE;
+}
+
 /* Find out if we need to initialize the user's pin */
 PRBool
 PK11_NeedUserInit(PK11SlotInfo *slot)
