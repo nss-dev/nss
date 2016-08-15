@@ -131,10 +131,10 @@ PR_STATIC_ASSERT(SSL_LIBRARY_VERSION_MAX_SUPPORTED <=
     } while (0)
 
 /* Log an error and generate an alert because something is irreparably wrong. */
-#define FATAL_ERROR(ss, prError, desc)                                  \
-    do {                                                                \
-        LOG_ERROR(ss, prError);                                         \
-        tls13_FatalError(ss, prError, desc);                            \
+#define FATAL_ERROR(ss, prError, desc)       \
+    do {                                     \
+        LOG_ERROR(ss, prError);              \
+        tls13_FatalError(ss, prError, desc); \
     } while (0)
 
 void
