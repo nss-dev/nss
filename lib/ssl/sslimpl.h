@@ -1855,7 +1855,7 @@ extern PRBool ssl3_ExtensionNegotiated(sslSocket *ss, PRUint16 ex_type);
 extern void ssl3_SetSIDSessionTicket(sslSessionID *sid,
                                      /*in/out*/ NewSessionTicket *session_ticket);
 SECStatus ssl3_EncodeSessionTicket(sslSocket *ss,
-                                   const NewSessionTicket* ticket_input,
+                                   const NewSessionTicket *ticket_input,
                                    SECItem *ticket_data);
 extern PRBool ssl_GetSessionTicketKeys(unsigned char *keyName,
                                        unsigned char *encKey, unsigned char *macKey);

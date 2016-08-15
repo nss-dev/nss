@@ -3017,7 +3017,7 @@ tls13_SendNewSessionTicket(sslSocket *ss)
     SECItem ticket_data = { 0, NULL, 0 };
     PRUint32 flags = ticket_allow_dhe_resumption;
     SECStatus rv;
-    NewSessionTicket ticket = {0};
+    NewSessionTicket ticket = { 0 };
 
     ticket.flags = 0;
     if (ss->opt.enable0RttData) {
@@ -3025,7 +3025,7 @@ tls13_SendNewSessionTicket(sslSocket *ss)
     }
     ticket.ticket_lifetime_hint = TLS_EX_SESS_TICKET_LIFETIME_HINT;
     /* Generate a random value to add to ticket age. */
-    rv = PK11_GenerateRandom((PRUint8*)&ticket.ticket_age_add,
+    rv = PK11_GenerateRandom((PRUint8 *)&ticket.ticket_age_add,
                              sizeof(ticket.ticket_age_add));
     if (rv != SECSuccess)
         goto loser;

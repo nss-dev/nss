@@ -3852,7 +3852,7 @@ ssl3_HandleAlert(sslSocket *ss, sslBuffer *buf)
     if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
         /* TLS 1.3 requires all but "end of data" alerts to be
          * treated as fatal. */
-        switch (desc){
+        switch (desc) {
             case close_notify:
             case user_canceled:
             case end_of_early_data:
@@ -7165,8 +7165,8 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         downgradeCheckVersion > ss->version) {
         /* Both sections use the same sentinel region. */
         unsigned char *downgrade_sentinel =
-                ss->ssl3.hs.server_random.rand +
-                SSL3_RANDOM_LENGTH - sizeof(tls13_downgrade_random);
+            ss->ssl3.hs.server_random.rand +
+            SSL3_RANDOM_LENGTH - sizeof(tls13_downgrade_random);
         if (!PORT_Memcmp(downgrade_sentinel,
                          tls13_downgrade_random,
                          sizeof(tls13_downgrade_random)) ||
@@ -8975,8 +8975,8 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
      */
     if (ss->vrange.max > ss->version) {
         unsigned char *downgrade_sentinel =
-                ss->ssl3.hs.server_random.rand +
-                SSL3_RANDOM_LENGTH - sizeof(tls13_downgrade_random);
+            ss->ssl3.hs.server_random.rand +
+            SSL3_RANDOM_LENGTH - sizeof(tls13_downgrade_random);
 
         switch (ss->vrange.max) {
             case SSL_LIBRARY_VERSION_TLS_1_3:

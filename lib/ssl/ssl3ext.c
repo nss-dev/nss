@@ -1143,7 +1143,7 @@ ssl3_ClientSendStatusRequestXtn(sslSocket *ss, PRBool append,
  */
 SECStatus
 ssl3_EncodeSessionTicket(sslSocket *ss,
-                         const NewSessionTicket* ticket,
+                         const NewSessionTicket *ticket,
                          SECItem *ticket_data)
 {
     PRUint32 i;
@@ -1259,21 +1259,21 @@ ssl3_EncodeSessionTicket(sslSocket *ss,
     }
 
     ciphertext_length =
-        sizeof(PRUint16)                                                                      /* ticket_version */
-        + sizeof(SSL3ProtocolVersion)                                                         /* ssl_version */
-        + sizeof(ssl3CipherSuite)                                                             /* ciphersuite */
-        + 1                                                                                   /* compression */
-        + 10                                                                                  /* cipher spec parameters */
-        + 1                                                                                   /* certType arguments */
-        + 1                                                                                   /* SessionTicket.ms_is_wrapped */
-        + 4                                                                                   /* msWrapMech */
-        + 2                                                                                   /* master_secret.length */
-        + ms_item.len                                                                         /* master_secret */
-        + 1                                                                                   /* client_auth_type */
-        + cert_length                                                                         /* cert */
-        + 1                                                                                   /* server name type */
-        + srvNameLen                                                                          /* name len + length field */
-        + 1                                                                                   /* extendedMasterSecretUsed */
+        sizeof(PRUint16)                                                                        /* ticket_version */
+        + sizeof(SSL3ProtocolVersion)                                                           /* ssl_version */
+        + sizeof(ssl3CipherSuite)                                                               /* ciphersuite */
+        + 1                                                                                     /* compression */
+        + 10                                                                                    /* cipher spec parameters */
+        + 1                                                                                     /* certType arguments */
+        + 1                                                                                     /* SessionTicket.ms_is_wrapped */
+        + 4                                                                                     /* msWrapMech */
+        + 2                                                                                     /* master_secret.length */
+        + ms_item.len                                                                           /* master_secret */
+        + 1                                                                                     /* client_auth_type */
+        + cert_length                                                                           /* cert */
+        + 1                                                                                     /* server name type */
+        + srvNameLen                                                                            /* name len + length field */
+        + 1                                                                                     /* extendedMasterSecretUsed */
         + sizeof(ticket->ticket_lifetime_hint) + sizeof(ticket->flags) + 1 + alpnSelection.len; /* npn value + length field. */
     padding_length = AES_BLOCK_SIZE -
                      (ciphertext_length %
