@@ -228,8 +228,8 @@ class TlsAgent : public PollTarget {
     agent->CheckPreliminaryInfo();
     agent->auth_certificate_hook_called_ = true;
     if (agent->auth_certificate_callback_) {
-      return agent->auth_certificate_callback_(
-          agent, static_cast<bool>(checksig), static_cast<bool>(isServer));
+      return agent->auth_certificate_callback_(agent, checksig ? true : false,
+                                               isServer ? true : false);
     }
     return SECSuccess;
   }
@@ -239,10 +239,10 @@ class TlsAgent : public PollTarget {
                                        PRBool checksig, PRBool isServer) {
     TlsAgent* agent = reinterpret_cast<TlsAgent*>(arg);
     EXPECT_TRUE(agent->expect_client_auth_);
-    EXPECT_TRUE(isServer);
+    EXPECT_EQ(PR_TRUE, isServer);
     if (agent->auth_certificate_callback_) {
-      return agent->auth_certificate_callback_(
-          agent, static_cast<bool>(checksig), static_cast<bool>(isServer));
+      return agent->auth_certificate_callback_(agent, checksig ? true : false,
+                                               isServer ? true : false);
     }
     return SECSuccess;
   }
