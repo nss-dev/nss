@@ -3647,6 +3647,8 @@ tls13_ClientSendEarlyDataXtn(sslSocket *ss,
     }
 
     if (append) {
+        PRUint32 age;
+
         rv = ssl3_AppendHandshakeNumber(ss, ssl_tls13_early_data_xtn, 2);
         if (rv != SECSuccess)
             return -1;
@@ -3656,7 +3658,7 @@ tls13_ClientSendEarlyDataXtn(sslSocket *ss,
             return -1;
 
         /* Obfuscated age. */
-        PRUint32 age = ssl_Time() - session_ticket->received_timestamp;
+        age = ssl_Time() - session_ticket->received_timestamp;
         age += session_ticket->ticket_age_add;
 
         rv = ssl3_AppendHandshakeNumber(ss, age, 4);
