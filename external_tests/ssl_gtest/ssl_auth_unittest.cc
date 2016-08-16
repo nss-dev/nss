@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "secerr.h"
 #include "ssl.h"
+#include "secerr.h"
 #include "sslerr.h"
 #include "sslproto.h"
 
@@ -14,11 +14,11 @@ extern "C" {
 #include "libssl_internals.h"
 }
 
-#include "scoped_ptrs.h"
-#include "tls_parser.h"
-#include "tls_filter.h"
-#include "tls_connect.h"
 #include "gtest_utils.h"
+#include "scoped_ptrs.h"
+#include "tls_connect.h"
+#include "tls_filter.h"
+#include "tls_parser.h"
 
 namespace nss_test {
 
@@ -45,7 +45,6 @@ TEST_P(TlsConnectGeneric, ClientAuthRequestedRejected) {
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
 }
 
-
 TEST_P(TlsConnectGeneric, ClientAuthEcdsa) {
   Reset(TlsAgent::kServerEcdsa256);
   client_->SetupClientAuth();
@@ -55,17 +54,13 @@ TEST_P(TlsConnectGeneric, ClientAuthEcdsa) {
 }
 
 static const SSLSignatureAndHashAlg SignatureEcdsaSha384[] = {
-  {ssl_hash_sha384, ssl_sign_ecdsa}
-};
+    {ssl_hash_sha384, ssl_sign_ecdsa}};
 static const SSLSignatureAndHashAlg SignatureEcdsaSha256[] = {
-  {ssl_hash_sha256, ssl_sign_ecdsa}
-};
+    {ssl_hash_sha256, ssl_sign_ecdsa}};
 static const SSLSignatureAndHashAlg SignatureRsaSha384[] = {
-  {ssl_hash_sha384, ssl_sign_rsa}
-};
+    {ssl_hash_sha384, ssl_sign_rsa}};
 static const SSLSignatureAndHashAlg SignatureRsaSha256[] = {
-  {ssl_hash_sha256, ssl_sign_rsa}
-};
+    {ssl_hash_sha256, ssl_sign_rsa}};
 
 // When signature algorithms match up, this should connect successfully; even
 // for TLS 1.1 and 1.0, where they should be ignored.
@@ -82,9 +77,9 @@ TEST_P(TlsConnectGeneric, SignatureAlgorithmServerAuth) {
 // Defaults on the server include the first option.
 TEST_P(TlsConnectGeneric, SignatureAlgorithmClientOnly) {
   const SSLSignatureAndHashAlg clientAlgorithms[] = {
-    {ssl_hash_sha384, ssl_sign_ecdsa},
-    {ssl_hash_sha384, ssl_sign_rsa}, // supported but unusable
-    {ssl_hash_md5, ssl_sign_ecdsa} // unsupported and ignored
+      {ssl_hash_sha384, ssl_sign_ecdsa},
+      {ssl_hash_sha384, ssl_sign_rsa},  // supported but unusable
+      {ssl_hash_md5, ssl_sign_ecdsa}    // unsupported and ignored
   };
   Reset(TlsAgent::kServerEcdsa384);
   client_->SetSignatureAlgorithms(clientAlgorithms,
@@ -150,15 +145,11 @@ TEST_P(TlsConnectTls12Plus, RequestClientAuthWithSha384) {
 
 class BeforeFinished : public TlsRecordFilter {
  private:
-  enum HandshakeState {
-    BEFORE_CCS,
-    AFTER_CCS,
-    DONE
-  };
+  enum HandshakeState { BEFORE_CCS, AFTER_CCS, DONE };
 
  public:
-  BeforeFinished(TlsAgent* client, TlsAgent* server,
-                 VoidFunction before_ccs, VoidFunction before_finished)
+  BeforeFinished(TlsAgent* client, TlsAgent* server, VoidFunction before_ccs,
+                 VoidFunction before_finished)
       : client_(client),
         server_(server),
         before_ccs_(before_ccs),
@@ -166,8 +157,9 @@ class BeforeFinished : public TlsRecordFilter {
         state_(BEFORE_CCS) {}
 
  protected:
-  virtual PacketFilter::Action FilterRecord(
-      const RecordHeader& header, const DataBuffer& body, DataBuffer* out) {
+  virtual PacketFilter::Action FilterRecord(const RecordHeader& header,
+                                            const DataBuffer& body,
+                                            DataBuffer* out) {
     switch (state_) {
       case BEFORE_CCS:
         // Awaken when we see the CCS.
@@ -229,7 +221,7 @@ class BeforeFinished13 : public PacketFilter {
   };
 
  public:
-  BeforeFinished13(TlsAgent* client, TlsAgent *server,
+  BeforeFinished13(TlsAgent* client, TlsAgent* server,
                    VoidFunction before_finished)
       : client_(client),
         server_(server),
@@ -246,8 +238,8 @@ class BeforeFinished13 : public PacketFilter {
                   SSLInt_SetMTU(server_->ssl_fd(), input.len() - 1));
         return DROP;
 
-        // Packet 2 is the first part of the server's retransmitted first
-        // flight.  Keep that.
+      // Packet 2 is the first part of the server's retransmitted first
+      // flight.  Keep that.
 
       case 3:
         // Packet 3 is the second part of the server's retransmitted first
@@ -264,8 +256,8 @@ class BeforeFinished13 : public PacketFilter {
   }
 
  private:
-  TlsAgent *client_;
-  TlsAgent *server_;
+  TlsAgent* client_;
+  TlsAgent* server_;
   VoidFunction before_finished_;
   size_t records_;
 };
@@ -275,16 +267,14 @@ class BeforeFinished13 : public PacketFilter {
 // processed by the client, SSL_AuthCertificateComplete() is called.
 TEST_F(TlsConnectDatagram13, AuthCompleteBeforeFinished) {
   client_->SetAuthCertificateCallback(
-      [](TlsAgent&, PRBool, PRBool) -> SECStatus {
-        return SECWouldBlock;
-      });
+      [](TlsAgent&, PRBool, PRBool) -> SECStatus { return SECWouldBlock; });
   server_->SetPacketFilter(new BeforeFinished13(client_, server_, [this]() {
-        EXPECT_EQ(SECSuccess, SSL_AuthCertificateComplete(client_->ssl_fd(), 0));
-      }));
+    EXPECT_EQ(SECSuccess, SSL_AuthCertificateComplete(client_->ssl_fd(), 0));
+  }));
   Connect();
 }
 
-static void TriggerAuthComplete(PollTarget *target, Event event) {
+static void TriggerAuthComplete(PollTarget* target, Event event) {
   std::cerr << "client: call SSL_AuthCertificateComplete" << std::endl;
   EXPECT_EQ(TIMER_EVENT, event);
   TlsAgent* client = static_cast<TlsAgent*>(target);
@@ -297,7 +287,7 @@ static void TriggerAuthComplete(PollTarget *target, Event event) {
 TEST_F(TlsConnectDatagram13, AuthCompleteAfterFinished) {
   client_->SetAuthCertificateCallback(
       [this](TlsAgent&, PRBool, PRBool) -> SECStatus {
-        Poller::Timer *timer_handle;
+        Poller::Timer* timer_handle;
         // This is really just to unroll the stack.
         Poller::Instance()->SetTimer(1U, client_, TriggerAuthComplete,
                                      &timer_handle);
@@ -308,9 +298,10 @@ TEST_F(TlsConnectDatagram13, AuthCompleteAfterFinished) {
 
 TEST_P(TlsConnectGenericPre13, ClientWriteBetweenCCSAndFinishedWithFalseStart) {
   client_->EnableFalseStart();
-  server_->SetPacketFilter(new BeforeFinished(client_, server_, [this]() {
-        EXPECT_TRUE(client_->can_falsestart_hook_called());
-      }, [this]() {
+  server_->SetPacketFilter(new BeforeFinished(
+      client_, server_,
+      [this]() { EXPECT_TRUE(client_->can_falsestart_hook_called()); },
+      [this]() {
         // Write something, which used to fail: bug 1235366.
         client_->SendData(10);
       }));
@@ -323,15 +314,17 @@ TEST_P(TlsConnectGenericPre13, ClientWriteBetweenCCSAndFinishedWithFalseStart) {
 TEST_P(TlsConnectGenericPre13, AuthCompleteBeforeFinishedWithFalseStart) {
   client_->EnableFalseStart();
   client_->SetAuthCertificateCallback(
-      [](TlsAgent&, PRBool, PRBool) -> SECStatus {
-        return SECWouldBlock;
-      });
-  server_->SetPacketFilter(new BeforeFinished(client_, server_, []() {
+      [](TlsAgent&, PRBool, PRBool) -> SECStatus { return SECWouldBlock; });
+  server_->SetPacketFilter(new BeforeFinished(
+      client_, server_,
+      []() {
         // Do nothing before CCS
-      }, [this]() {
+      },
+      [this]() {
         EXPECT_FALSE(client_->can_falsestart_hook_called());
         // AuthComplete before Finished still enables false start.
-        EXPECT_EQ(SECSuccess, SSL_AuthCertificateComplete(client_->ssl_fd(), 0));
+        EXPECT_EQ(SECSuccess,
+                  SSL_AuthCertificateComplete(client_->ssl_fd(), 0));
         EXPECT_TRUE(client_->can_falsestart_hook_called());
         client_->SendData(10);
       }));
@@ -342,20 +335,17 @@ TEST_P(TlsConnectGenericPre13, AuthCompleteBeforeFinishedWithFalseStart) {
 }
 
 static const SSLExtraServerCertData ServerCertDataRsaPkcs1Decrypt = {
-  ssl_auth_rsa_decrypt, nullptr, nullptr, nullptr
-};
+    ssl_auth_rsa_decrypt, nullptr, nullptr, nullptr};
 static const SSLExtraServerCertData ServerCertDataRsaPkcs1Sign = {
-  ssl_auth_rsa_sign, nullptr, nullptr, nullptr
-};
+    ssl_auth_rsa_sign, nullptr, nullptr, nullptr};
 static const SSLExtraServerCertData ServerCertDataRsaPss = {
-  ssl_auth_rsa_pss, nullptr, nullptr, nullptr
-};
+    ssl_auth_rsa_pss, nullptr, nullptr, nullptr};
 
 // Test RSA cert with usage=[signature, encipherment].
 TEST_F(TlsAgentStreamTestServer, ConfigureCertRsaPkcs1SignAndKEX) {
   Reset(TlsAgent::kServerRsa);
 
-  PRFileDesc *ssl_fd = agent_->ssl_fd();
+  PRFileDesc* ssl_fd = agent_->ssl_fd();
   EXPECT_TRUE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_decrypt));
   EXPECT_TRUE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_sign));
   EXPECT_TRUE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_pss));
@@ -373,7 +363,7 @@ TEST_F(TlsAgentStreamTestServer, ConfigureCertRsaPkcs1SignAndKEX) {
 TEST_F(TlsAgentStreamTestServer, ConfigureCertRsaPkcs1Sign) {
   Reset(TlsAgent::kServerRsaSign);
 
-  PRFileDesc *ssl_fd = agent_->ssl_fd();
+  PRFileDesc* ssl_fd = agent_->ssl_fd();
   EXPECT_FALSE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_decrypt));
   EXPECT_TRUE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_sign));
   EXPECT_TRUE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_pss));
@@ -393,7 +383,7 @@ TEST_F(TlsAgentStreamTestServer, ConfigureCertRsaPkcs1Sign) {
 TEST_F(TlsAgentStreamTestServer, ConfigureCertRsaPkcs1KEX) {
   Reset(TlsAgent::kServerRsaDecrypt);
 
-  PRFileDesc *ssl_fd = agent_->ssl_fd();
+  PRFileDesc* ssl_fd = agent_->ssl_fd();
   EXPECT_TRUE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_decrypt));
   EXPECT_FALSE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_sign));
   EXPECT_FALSE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_pss));
@@ -413,7 +403,7 @@ TEST_F(TlsAgentStreamTestServer, ConfigureCertRsaPkcs1KEX) {
 TEST_F(TlsAgentStreamTestServer, ConfigureCertRsaPss) {
   Reset(TlsAgent::kServerRsaPss);
 
-  PRFileDesc *ssl_fd = agent_->ssl_fd();
+  PRFileDesc* ssl_fd = agent_->ssl_fd();
   EXPECT_FALSE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_decrypt));
   EXPECT_FALSE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_sign));
   EXPECT_TRUE(SSLInt_HasCertWithAuthType(ssl_fd, ssl_auth_rsa_pss));
@@ -428,5 +418,4 @@ TEST_F(TlsAgentStreamTestServer, ConfigureCertRsaPss) {
   EXPECT_TRUE(agent_->ConfigServerCert(TlsAgent::kServerRsaPss, false,
                                        &ServerCertDataRsaPss));
 }
-
 }

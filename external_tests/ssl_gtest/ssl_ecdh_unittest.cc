@@ -4,23 +4,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "secerr.h"
 #include "ssl.h"
+#include <functional>
+#include <memory>
+#include "secerr.h"
 #include "sslerr.h"
 #include "sslproto.h"
-#include <memory>
-#include <functional>
 
 extern "C" {
 // This is not something that should make you happy.
 #include "libssl_internals.h"
 }
 
-#include "scoped_ptrs.h"
-#include "tls_parser.h"
-#include "tls_filter.h"
-#include "tls_connect.h"
 #include "gtest_utils.h"
+#include "scoped_ptrs.h"
+#include "tls_connect.h"
+#include "tls_filter.h"
+#include "tls_parser.h"
 
 namespace nss_test {
 
@@ -80,10 +80,10 @@ TEST_P(TlsConnectGeneric, ConnectEcdheGroupMismatch) {
 
 // Replace the point in the client key exchange message with an empty one
 class ECCClientKEXFilter : public TlsHandshakeFilter {
-public:
+ public:
   ECCClientKEXFilter() {}
 
-protected:
+ protected:
   virtual PacketFilter::Action FilterHandshake(const HandshakeHeader &header,
                                                const DataBuffer &input,
                                                DataBuffer *output) {
@@ -93,17 +93,17 @@ protected:
 
     // Replace the client key exchange message with an empty point
     output->Allocate(1);
-    output->Write(0, 0U, 1); // set point length 0
+    output->Write(0, 0U, 1);  // set point length 0
     return CHANGE;
   }
 };
 
 // Replace the point in the server key exchange message with an empty one
 class ECCServerKEXFilter : public TlsHandshakeFilter {
-public:
+ public:
   ECCServerKEXFilter() {}
 
-protected:
+ protected:
   virtual PacketFilter::Action FilterHandshake(const HandshakeHeader &header,
                                                const DataBuffer &input,
                                                DataBuffer *output) {
@@ -113,11 +113,11 @@ protected:
 
     // Replace the server key exchange message with an empty point
     output->Allocate(4);
-    output->Write(0, 3U, 1); // named curve
+    output->Write(0, 3U, 1);  // named curve
     uint32_t curve;
-    EXPECT_TRUE(input.Read(1, 2, &curve)); // get curve id
-    output->Write(1, curve, 2); // write curve id
-    output->Write(3, 0U, 1); // point length 0
+    EXPECT_TRUE(input.Read(1, 2, &curve));  // get curve id
+    output->Write(1, curve, 2);             // write curve id
+    output->Write(3, 0U, 1);                // point length 0
     return CHANGE;
   }
 };

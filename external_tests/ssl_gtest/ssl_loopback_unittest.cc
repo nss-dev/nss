@@ -4,23 +4,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "secerr.h"
 #include "ssl.h"
+#include <functional>
+#include <memory>
+#include "secerr.h"
 #include "sslerr.h"
 #include "sslproto.h"
-#include <memory>
-#include <functional>
 
 extern "C" {
 // This is not something that should make you happy.
 #include "libssl_internals.h"
 }
 
-#include "scoped_ptrs.h"
-#include "tls_parser.h"
-#include "tls_filter.h"
-#include "tls_connect.h"
 #include "gtest_utils.h"
+#include "scoped_ptrs.h"
+#include "tls_connect.h"
+#include "tls_filter.h"
+#include "tls_parser.h"
 
 namespace nss_test {
 
@@ -101,7 +101,7 @@ TEST_P(TlsConnectDatagram, ShortRead) {
 
   // Now send and receive another packet.
   client_->SetExpectedReadError(false);
-  server_->ResetSentBytes(); // Reset the counter.
+  server_->ResetSentBytes();  // Reset the counter.
   SendReceive();
 }
 
@@ -109,8 +109,7 @@ TEST_P(TlsConnectDatagram, ShortRead) {
 TEST_P(TlsConnectStream, ShortRead) {
   // This test behaves oddly with TLS 1.0 because of 1/n+1 splitting,
   // so skip in that case.
-  if (version_ < SSL_LIBRARY_VERSION_TLS_1_1)
-    return;
+  if (version_ < SSL_LIBRARY_VERSION_TLS_1_1) return;
 
   Connect();
   server_->SendData(1200, 1200);
@@ -122,14 +121,13 @@ TEST_P(TlsConnectStream, ShortRead) {
   ASSERT_EQ(1200U, client_->received_bytes());
 }
 
-TEST_P(TlsConnectGeneric, ConnectWithCompressionMaybe)
-{
+TEST_P(TlsConnectGeneric, ConnectWithCompressionMaybe) {
   EnsureTlsSetup();
   client_->EnableCompression();
   server_->EnableCompression();
   Connect();
-  EXPECT_EQ(client_->version() < SSL_LIBRARY_VERSION_TLS_1_3 &&
-            mode_ != DGRAM, client_->is_compressed());
+  EXPECT_EQ(client_->version() < SSL_LIBRARY_VERSION_TLS_1_3 && mode_ != DGRAM,
+            client_->is_compressed());
   SendReceive();
 }
 
@@ -148,19 +146,16 @@ TEST_P(TlsConnectDatagram, TestDtlsHolddownExpiry) {
 class TlsPreCCSHeaderInjector : public TlsRecordFilter {
  public:
   TlsPreCCSHeaderInjector() {}
-  virtual PacketFilter::Action FilterRecord(
-      const RecordHeader& record_header,
-      const DataBuffer& input,
-      size_t* offset, DataBuffer* output) override {
-
-    if (record_header.content_type() != kTlsChangeCipherSpecType)
-      return KEEP;
+  virtual PacketFilter::Action FilterRecord(const RecordHeader& record_header,
+                                            const DataBuffer& input,
+                                            size_t* offset,
+                                            DataBuffer* output) override {
+    if (record_header.content_type() != kTlsChangeCipherSpecType) return KEEP;
 
     std::cerr << "Injecting Finished header before CCS\n";
     const uint8_t hhdr[] = {kTlsHandshakeFinished, 0x00, 0x00, 0x0c};
     DataBuffer hhdr_buf(hhdr, sizeof(hhdr));
-    RecordHeader nhdr(record_header.version(),
-                      kTlsHandshakeType, 0);
+    RecordHeader nhdr(record_header.version(), kTlsHandshakeType, 0);
     *offset = nhdr.Write(output, *offset, hhdr_buf);
     *offset = record_header.Write(output, *offset, input);
     return CHANGE;
@@ -186,7 +181,8 @@ TEST_P(TlsConnectStreamPre13, ServerFinishedHeaderBeforeCCS) {
 
 TEST_P(TlsConnectTls13, UnknownAlert) {
   Connect();
-  SSLInt_SendAlert(server_->ssl_fd(), kTlsAlertWarning, 0xff); // Unknown value.
+  SSLInt_SendAlert(server_->ssl_fd(), kTlsAlertWarning,
+                   0xff);  // Unknown value.
   client_->SetExpectedReadError(true);
   client_->WaitForErrorCode(SSL_ERROR_RX_UNKNOWN_ALERT, 2000);
 }
@@ -200,13 +196,12 @@ TEST_P(TlsConnectTls13, AlertWrongLevel) {
 }
 
 INSTANTIATE_TEST_CASE_P(GenericStream, TlsConnectGeneric,
-                        ::testing::Combine(
-                          TlsConnectTestBase::kTlsModesStream,
-                          TlsConnectTestBase::kTlsVAll));
-INSTANTIATE_TEST_CASE_P(GenericDatagram, TlsConnectGeneric,
-                        ::testing::Combine(
-                          TlsConnectTestBase::kTlsModesDatagram,
-                          TlsConnectTestBase::kTlsV11Plus));
+                        ::testing::Combine(TlsConnectTestBase::kTlsModesStream,
+                                           TlsConnectTestBase::kTlsVAll));
+INSTANTIATE_TEST_CASE_P(
+    GenericDatagram, TlsConnectGeneric,
+    ::testing::Combine(TlsConnectTestBase::kTlsModesDatagram,
+                       TlsConnectTestBase::kTlsV11Plus));
 
 INSTANTIATE_TEST_CASE_P(StreamOnly, TlsConnectStream,
                         TlsConnectTestBase::kTlsVAll);
@@ -214,13 +209,12 @@ INSTANTIATE_TEST_CASE_P(DatagramOnly, TlsConnectDatagram,
                         TlsConnectTestBase::kTlsV11Plus);
 
 INSTANTIATE_TEST_CASE_P(Pre12Stream, TlsConnectPre12,
-                        ::testing::Combine(
-                          TlsConnectTestBase::kTlsModesStream,
-                          TlsConnectTestBase::kTlsV10V11));
-INSTANTIATE_TEST_CASE_P(Pre12Datagram, TlsConnectPre12,
-                        ::testing::Combine(
-                          TlsConnectTestBase::kTlsModesDatagram,
-                          TlsConnectTestBase::kTlsV11));
+                        ::testing::Combine(TlsConnectTestBase::kTlsModesStream,
+                                           TlsConnectTestBase::kTlsV10V11));
+INSTANTIATE_TEST_CASE_P(
+    Pre12Datagram, TlsConnectPre12,
+    ::testing::Combine(TlsConnectTestBase::kTlsModesDatagram,
+                       TlsConnectTestBase::kTlsV11));
 
 INSTANTIATE_TEST_CASE_P(Version12Only, TlsConnectTls12,
                         TlsConnectTestBase::kTlsModesAll);
@@ -230,19 +224,17 @@ INSTANTIATE_TEST_CASE_P(Version13Only, TlsConnectTls13,
 #endif
 
 INSTANTIATE_TEST_CASE_P(Pre13Stream, TlsConnectGenericPre13,
-                        ::testing::Combine(
-                          TlsConnectTestBase::kTlsModesStream,
-                          TlsConnectTestBase::kTlsV10ToV12));
-INSTANTIATE_TEST_CASE_P(Pre13Datagram, TlsConnectGenericPre13,
-                        ::testing::Combine(
-                             TlsConnectTestBase::kTlsModesDatagram,
-                             TlsConnectTestBase::kTlsV11V12));
+                        ::testing::Combine(TlsConnectTestBase::kTlsModesStream,
+                                           TlsConnectTestBase::kTlsV10ToV12));
+INSTANTIATE_TEST_CASE_P(
+    Pre13Datagram, TlsConnectGenericPre13,
+    ::testing::Combine(TlsConnectTestBase::kTlsModesDatagram,
+                       TlsConnectTestBase::kTlsV11V12));
 INSTANTIATE_TEST_CASE_P(Pre13StreamOnly, TlsConnectStreamPre13,
                         TlsConnectTestBase::kTlsV10ToV12);
 
 INSTANTIATE_TEST_CASE_P(Version12Plus, TlsConnectTls12Plus,
-                        ::testing::Combine(
-                          TlsConnectTestBase::kTlsModesAll,
-                          TlsConnectTestBase::kTlsV12Plus));
+                        ::testing::Combine(TlsConnectTestBase::kTlsModesAll,
+                                           TlsConnectTestBase::kTlsV12Plus));
 
 }  // namespace nspr_test
