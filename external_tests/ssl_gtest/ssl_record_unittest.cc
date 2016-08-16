@@ -3,8 +3,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include "nss.h"
 #include "ssl.h"
+#include "nss.h"
 #include "sslimpl.h"
 
 #include "databuffer.h"
@@ -14,13 +14,13 @@ namespace nss_test {
 
 const static size_t kMacSize = 20;
 
-class TlsPaddingTest :
-      public ::testing::Test,
+class TlsPaddingTest
+    : public ::testing::Test,
       public ::testing::WithParamInterface<std::tuple<size_t, bool>> {
  public:
-  TlsPaddingTest() :
-      plaintext_len_(std::get<0>(GetParam())) {
-    size_t extra = (plaintext_len_ + 1) % 16; // Bytes past a block (1 == pad len)
+  TlsPaddingTest() : plaintext_len_(std::get<0>(GetParam())) {
+    size_t extra =
+        (plaintext_len_ + 1) % 16;  // Bytes past a block (1 == pad len)
     // Minimal padding.
     pad_len_ = extra ? 16 - extra : 0;
     if (std::get<1>(GetParam())) {
@@ -47,8 +47,7 @@ class TlsPaddingTest :
   void Unpad(bool expect_success) {
     std::cerr << "Content length=" << plaintext_len_
               << " padding length=" << pad_len_
-              << " total length=" << plaintext_.len()
-              << std::endl;
+              << " total length=" << plaintext_.len() << std::endl;
     std::cerr << "Plaintext: " << plaintext_ << std::endl;
     sslBuffer s;
     s.buf = const_cast<unsigned char *>(
@@ -63,7 +62,7 @@ class TlsPaddingTest :
     }
   }
 
-protected:
+ protected:
   size_t plaintext_len_;
   size_t pad_len_;
   DataBuffer plaintext_;
@@ -86,29 +85,26 @@ TEST_P(TlsPaddingTest, PadTooLong) {
 
 TEST_P(TlsPaddingTest, FirstByteOfPadWrong) {
   if (pad_len_) {
-    plaintext_.Write(plaintext_len_,
-                     plaintext_.data()[plaintext_len_] + 1, 1);
+    plaintext_.Write(plaintext_len_, plaintext_.data()[plaintext_len_] + 1, 1);
     Unpad(false);
   }
 }
 
 TEST_P(TlsPaddingTest, LastByteOfPadWrong) {
   if (pad_len_) {
-    plaintext_.Write(plaintext_.len()-2,
-                     plaintext_.data()[plaintext_.len()-1] + 1, 1);
+    plaintext_.Write(plaintext_.len() - 2,
+                     plaintext_.data()[plaintext_.len() - 1] + 1, 1);
     Unpad(false);
   }
 }
 
-const static size_t kContentSizesArr[] = { 1, kMacSize - 1, kMacSize,
-                                           30, 31, 32, 36, 256, 257, 287, 288 };
+const static size_t kContentSizesArr[] = {
+    1, kMacSize - 1, kMacSize, 30, 31, 32, 36, 256, 257, 287, 288};
 
 auto kContentSizes = ::testing::ValuesIn(kContentSizesArr);
 const static bool kTrueFalseArr[] = {true, false};
 auto kTrueFalse = ::testing::ValuesIn(kTrueFalseArr);
 
 INSTANTIATE_TEST_CASE_P(TlsPadding, TlsPaddingTest,
-                      ::testing::Combine(
-                           kContentSizes,
-                           kTrueFalse));
+                        ::testing::Combine(kContentSizes, kTrueFalse));
 }  // namespace nspr_test

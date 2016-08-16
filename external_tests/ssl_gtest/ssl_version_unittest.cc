@@ -4,16 +4,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "secerr.h"
 #include "ssl.h"
+#include "secerr.h"
 #include "sslerr.h"
 #include "sslproto.h"
 
-#include "scoped_ptrs.h"
-#include "tls_parser.h"
-#include "tls_filter.h"
-#include "tls_connect.h"
 #include "gtest_utils.h"
+#include "scoped_ptrs.h"
+#include "tls_connect.h"
+#include "tls_filter.h"
+#include "tls_parser.h"
 
 namespace nss_test {
 
@@ -22,9 +22,9 @@ class TlsInspectorClientHelloVersionSetter : public TlsHandshakeFilter {
  public:
   TlsInspectorClientHelloVersionSetter(uint16_t version) : version_(version) {}
 
-  virtual PacketFilter::Action FilterHandshake(
-      const HandshakeHeader& header,
-      const DataBuffer& input, DataBuffer* output) {
+  virtual PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
+                                               const DataBuffer& input,
+                                               DataBuffer* output) {
     if (header.handshake_type() == kTlsHandshakeClientHello) {
       *output = input;
       output->Write(0, version_, 2);
@@ -40,34 +40,29 @@ class TlsInspectorClientHelloVersionSetter : public TlsHandshakeFilter {
 TEST_P(TlsConnectStream, ServerNegotiateTls10) {
   uint16_t minver, maxver;
   client_->GetVersionRange(&minver, &maxver);
-  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
-                           maxver);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0, maxver);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
                            SSL_LIBRARY_VERSION_TLS_1_0);
   Connect();
 }
 
 TEST_P(TlsConnectGeneric, ServerNegotiateTls11) {
-  if (version_ < SSL_LIBRARY_VERSION_TLS_1_1)
-    return;
+  if (version_ < SSL_LIBRARY_VERSION_TLS_1_1) return;
 
   uint16_t minver, maxver;
   client_->GetVersionRange(&minver, &maxver);
-  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
-                           maxver);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1, maxver);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
                            SSL_LIBRARY_VERSION_TLS_1_1);
   Connect();
 }
 
 TEST_P(TlsConnectGeneric, ServerNegotiateTls12) {
-  if (version_ < SSL_LIBRARY_VERSION_TLS_1_2)
-    return;
+  if (version_ < SSL_LIBRARY_VERSION_TLS_1_2) return;
 
   uint16_t minver, maxver;
   client_->GetVersionRange(&minver, &maxver);
-  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
-                           maxver);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2, maxver);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
                            SSL_LIBRARY_VERSION_TLS_1_2);
   Connect();
@@ -79,16 +74,16 @@ TEST_P(TlsConnectGeneric, ServerNegotiateTls12) {
 // two validate that we can also detect fallback using the
 // SSL_SetDowngradeCheckVersion() API.
 TEST_F(TlsConnectTest, TestDowngradeDetectionToTls11) {
-  client_->SetPacketFilter(new TlsInspectorClientHelloVersionSetter
-                           (SSL_LIBRARY_VERSION_TLS_1_1));
+  client_->SetPacketFilter(
+      new TlsInspectorClientHelloVersionSetter(SSL_LIBRARY_VERSION_TLS_1_1));
   ConnectExpectFail();
   ASSERT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
 }
 
 /* Attempt to negotiate the bogus DTLS 1.1 version. */
 TEST_F(DtlsConnectTest, TestDtlsVersion11) {
-  client_->SetPacketFilter(new TlsInspectorClientHelloVersionSetter(
-      ((~0x0101) & 0xffff)));
+  client_->SetPacketFilter(
+      new TlsInspectorClientHelloVersionSetter(((~0x0101) & 0xffff)));
   ConnectExpectFail();
   // It's kind of surprising that SSL_ERROR_NO_CYPHER_OVERLAP is
   // what is returned here, but this is deliberate in ssl3_HandleAlert().
@@ -98,8 +93,8 @@ TEST_F(DtlsConnectTest, TestDtlsVersion11) {
 
 TEST_F(TlsConnectTest, TestDowngradeDetectionToTls12) {
   EnsureTlsSetup();
-  client_->SetPacketFilter(new TlsInspectorClientHelloVersionSetter
-                           (SSL_LIBRARY_VERSION_TLS_1_2));
+  client_->SetPacketFilter(
+      new TlsInspectorClientHelloVersionSetter(SSL_LIBRARY_VERSION_TLS_1_2));
   client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
                            SSL_LIBRARY_VERSION_TLS_1_3);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
@@ -111,8 +106,8 @@ TEST_F(TlsConnectTest, TestDowngradeDetectionToTls12) {
 // TLS 1.1 clients do not check the random values, so we should
 // instead get a handshake failure alert from the server.
 TEST_F(TlsConnectTest, TestDowngradeDetectionToTls10) {
-  client_->SetPacketFilter(new TlsInspectorClientHelloVersionSetter
-                          (SSL_LIBRARY_VERSION_TLS_1_0));
+  client_->SetPacketFilter(
+      new TlsInspectorClientHelloVersionSetter(SSL_LIBRARY_VERSION_TLS_1_0));
   client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
                            SSL_LIBRARY_VERSION_TLS_1_1);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
@@ -149,8 +144,8 @@ TEST_F(TlsConnectTest, TestFallbackFromTls13) {
 // allow version ranges including both SSL v3 and TLS v1.3.
 TEST_F(TlsConnectTest, DisallowSSLv3HelloWithTLSv13Enabled) {
   SECStatus rv;
-  SSLVersionRange vrange = { SSL_LIBRARY_VERSION_3_0,
-                             SSL_LIBRARY_VERSION_TLS_1_3 };
+  SSLVersionRange vrange = {SSL_LIBRARY_VERSION_3_0,
+                            SSL_LIBRARY_VERSION_TLS_1_3};
 
   EnsureTlsSetup();
   rv = SSL_VersionRangeSet(client_->ssl_fd(), &vrange);
@@ -160,15 +155,13 @@ TEST_F(TlsConnectTest, DisallowSSLv3HelloWithTLSv13Enabled) {
   EXPECT_EQ(SECFailure, rv);
 }
 
-
 TEST_P(TlsConnectStream, ConnectTls10AndServerRenegotiateHigher) {
   if (version_ == SSL_LIBRARY_VERSION_TLS_1_0) {
     return;
   }
   // Set the client so it will accept any version from 1.0
   // to |version_|.
-  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
-                           version_);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0, version_);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
                            SSL_LIBRARY_VERSION_TLS_1_0);
   // Reset version so that the checks succeed.
@@ -179,8 +172,7 @@ TEST_P(TlsConnectStream, ConnectTls10AndServerRenegotiateHigher) {
   // Now renegotiate, with the server being set to do
   // |version_|.
   client_->PrepareForRenegotiate();
-  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
-                           test_version);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0, test_version);
   // Reset version and cipher suite so that the preinfo callback
   // doesn't fail.
   server_->ResetPreliminaryInfo();
@@ -201,8 +193,7 @@ TEST_P(TlsConnectStream, ConnectTls10AndClientRenegotiateHigher) {
   }
   // Set the client so it will accept any version from 1.0
   // to |version_|.
-  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
-                           version_);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0, version_);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
                            SSL_LIBRARY_VERSION_TLS_1_0);
   // Reset version so that the checks succeed.
@@ -213,8 +204,7 @@ TEST_P(TlsConnectStream, ConnectTls10AndClientRenegotiateHigher) {
   // Now renegotiate, with the server being set to do
   // |version_|.
   server_->PrepareForRenegotiate();
-  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
-                           test_version);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0, test_version);
   // Reset version and cipher suite so that the preinfo callback
   // doesn't fail.
   server_->ResetPreliminaryInfo();
@@ -251,4 +241,4 @@ TEST_F(TlsConnectTest, Tls13RejectsRehandshakeServer) {
   EXPECT_EQ(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED, PORT_GetError());
 }
 
-} // namespace nss_test
+}  // namespace nss_test

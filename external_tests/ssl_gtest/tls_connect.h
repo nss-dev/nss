@@ -112,7 +112,7 @@ class TlsConnectTestBase : public ::testing::Test {
   // at the end, because the NSS API follows the now defunct NPN specification,
   // which places the preferred (and default) entry at the end of the list.
   // NSS will move this final entry to the front when used with ALPN.
-  const uint8_t alpn_dummy_val_[4] = { 0x01, 0x62, 0x01, 0x61 };
+  const uint8_t alpn_dummy_val_[4] = {0x01, 0x62, 0x01, 0x61};
 
  private:
   void CheckResumption(SessionResumptionMode expected);
@@ -126,7 +126,7 @@ class TlsConnectTestBase : public ::testing::Test {
 // A non-parametrized TLS test base.
 class TlsConnectTest : public TlsConnectTestBase {
  public:
- TlsConnectTest() : TlsConnectTestBase(STREAM, 0) {}
+  TlsConnectTest() : TlsConnectTestBase(STREAM, 0) {}
 };
 
 // A non-parametrized DTLS-only test base.
@@ -143,8 +143,7 @@ class TlsConnectStream : public TlsConnectTestBase,
 };
 
 // A TLS-only test base for tests before 1.3
-class TlsConnectStreamPre13 : public TlsConnectStream {
-};
+class TlsConnectStreamPre13 : public TlsConnectStream {};
 
 // A DTLS-only test base.
 class TlsConnectDatagram : public TlsConnectTestBase,
@@ -157,55 +156,51 @@ class TlsConnectDatagram : public TlsConnectTestBase,
 // of TLS.  This is configured in ssl_loopback_unittest.cc.  All uses of this
 // should use TEST_P().
 class TlsConnectGeneric
-  : public TlsConnectTestBase,
-    public ::testing::WithParamInterface<std::tuple<std::string, uint16_t>> {
+    : public TlsConnectTestBase,
+      public ::testing::WithParamInterface<std::tuple<std::string, uint16_t>> {
  public:
   TlsConnectGeneric();
 };
 
 // A Pre TLS 1.2 generic test.
 class TlsConnectPre12
-  : public TlsConnectTestBase,
-    public ::testing::WithParamInterface<std::tuple<std::string, uint16_t>> {
+    : public TlsConnectTestBase,
+      public ::testing::WithParamInterface<std::tuple<std::string, uint16_t>> {
  public:
   TlsConnectPre12();
 };
 
 // A TLS 1.2 only generic test.
-class TlsConnectTls12
-  : public TlsConnectTestBase,
-    public ::testing::WithParamInterface<std::string> {
+class TlsConnectTls12 : public TlsConnectTestBase,
+                        public ::testing::WithParamInterface<std::string> {
  public:
   TlsConnectTls12();
 };
 
 // A TLS 1.2+ generic test.
 class TlsConnectTls12Plus
-  : public TlsConnectTestBase,
-    public ::testing::WithParamInterface<std::tuple<std::string, uint16_t>> {
+    : public TlsConnectTestBase,
+      public ::testing::WithParamInterface<std::tuple<std::string, uint16_t>> {
  public:
   TlsConnectTls12Plus();
 };
 
 // A TLS 1.3 only generic test.
-class TlsConnectTls13
-  : public TlsConnectTestBase,
-    public ::testing::WithParamInterface<std::string> {
+class TlsConnectTls13 : public TlsConnectTestBase,
+                        public ::testing::WithParamInterface<std::string> {
  public:
   TlsConnectTls13();
 };
 
-class TlsConnectDatagram13
-  : public TlsConnectTestBase {
+class TlsConnectDatagram13 : public TlsConnectTestBase {
  public:
   TlsConnectDatagram13()
       : TlsConnectTestBase(DGRAM, SSL_LIBRARY_VERSION_TLS_1_3) {}
 };
 
 // A variant that is used only with Pre13.
-class TlsConnectGenericPre13 : public TlsConnectGeneric {
-};
+class TlsConnectGenericPre13 : public TlsConnectGeneric {};
 
-} // namespace nss_test
+}  // namespace nss_test
 
 #endif

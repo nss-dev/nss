@@ -4,23 +4,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "secerr.h"
 #include "ssl.h"
+#include <functional>
+#include <memory>
+#include "secerr.h"
 #include "sslerr.h"
 #include "sslproto.h"
-#include <memory>
-#include <functional>
 
 extern "C" {
 // This is not something that should make you happy.
 #include "libssl_internals.h"
 }
 
-#include "scoped_ptrs.h"
-#include "tls_parser.h"
-#include "tls_filter.h"
-#include "tls_connect.h"
 #include "gtest_utils.h"
+#include "scoped_ptrs.h"
+#include "tls_connect.h"
+#include "tls_filter.h"
+#include "tls_parser.h"
 
 namespace nss_test {
 
@@ -50,12 +50,9 @@ TEST_F(TlsConnectTest, DamageSecretHandleServerFinished) {
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
                            SSL_LIBRARY_VERSION_TLS_1_3);
   server_->SetPacketFilter(new AfterRecordN(
-      server_,
-      client_,
-      0, // ServerHello.
-      [this]() {
-        SSLInt_DamageHsTrafficSecret(client_->ssl_fd());
-      }));
+      server_, client_,
+      0,  // ServerHello.
+      [this]() { SSLInt_DamageHsTrafficSecret(client_->ssl_fd()); }));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
   server_->CheckErrorCode(SSL_ERROR_DECRYPT_ERROR_ALERT);

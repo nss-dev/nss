@@ -25,7 +25,7 @@ namespace nss_test {
 class DataBuffer {
  public:
   DataBuffer() : data_(nullptr), len_(0) {}
-  DataBuffer(const uint8_t *data, size_t len) : data_(nullptr), len_(0) {
+  DataBuffer(const uint8_t* data, size_t len) : data_(nullptr), len_(0) {
     Assign(data, len);
   }
   explicit DataBuffer(const DataBuffer& other) : data_(nullptr), len_(0) {
@@ -46,18 +46,14 @@ class DataBuffer {
     len_ = len;
   }
 
-  void Truncate(size_t len) {
-    len_ = std::min(len_, len);
-  }
+  void Truncate(size_t len) { len_ = std::min(len_, len); }
 
-  void Assign(const DataBuffer& other) {
-    Assign(other.data(), other.len());
-  }
+  void Assign(const DataBuffer& other) { Assign(other.data(), other.len()); }
 
   void Assign(const uint8_t* data, size_t len) {
     if (data) {
       Allocate(len);
-      memcpy(static_cast<void *>(data_), static_cast<const void *>(data), len);
+      memcpy(static_cast<void*>(data_), static_cast<const void*>(data), len);
     } else {
       assert(len == 0);
       data_ = nullptr;
@@ -70,9 +66,8 @@ class DataBuffer {
   size_t Write(size_t index, const uint8_t* val, size_t count) {
     if (index + count > len_) {
       size_t newlen = index + count;
-      uint8_t* tmp = new uint8_t[newlen]; // Always > 0.
-      memcpy(static_cast<void*>(tmp),
-             static_cast<const void*>(data_), len_);
+      uint8_t* tmp = new uint8_t[newlen];  // Always > 0.
+      memcpy(static_cast<void*>(tmp), static_cast<const void*>(data_), len_);
       if (index > len_) {
         memset(static_cast<void*>(tmp + len_), 0, index - len_);
       }
@@ -80,8 +75,8 @@ class DataBuffer {
       data_ = tmp;
       len_ = newlen;
     }
-    memcpy(static_cast<void*>(data_ + index),
-           static_cast<const void*>(val), count);
+    memcpy(static_cast<void*>(data_ + index), static_cast<const void*>(val),
+           count);
     return index + count;
   }
 
@@ -119,7 +114,8 @@ class DataBuffer {
     Splice(buf.data(), buf.len(), index, remove);
   }
 
-  void Splice(const uint8_t* ins, size_t ins_len, size_t index, size_t remove = 0) {
+  void Splice(const uint8_t* ins, size_t ins_len, size_t index,
+              size_t remove = 0) {
     uint8_t* old_value = data_;
     size_t old_len = len_;
 
@@ -139,8 +135,7 @@ class DataBuffer {
     Write(index, ins, ins_len);
     // The tail of the old.
     if (tail_len > 0) {
-      Write(index + ins_len,
-            old_value + index + remove, tail_len);
+      Write(index + ins_len, old_value + index + remove, tail_len);
     }
 
     delete[] old_value;
@@ -148,7 +143,7 @@ class DataBuffer {
 
   void Append(const DataBuffer& buf) { Splice(buf, len_); }
 
-  const uint8_t *data() const { return data_; }
+  const uint8_t* data() const { return data_; }
   uint8_t* data() { return data_; }
   size_t len() const { return len_; }
   bool empty() const { return len_ == 0; }
@@ -176,13 +171,13 @@ inline std::ostream& operator<<(std::ostream& stream, const DataBuffer& buf) {
 
 inline bool operator==(const DataBuffer& a, const DataBuffer& b) {
   return (a.empty() && b.empty()) ||
-    (a.len() == b.len() && 0 == memcmp(a.data(), b.data(), a.len()));
+         (a.len() == b.len() && 0 == memcmp(a.data(), b.data(), a.len()));
 }
 
 inline bool operator!=(const DataBuffer& a, const DataBuffer& b) {
   return !(a == b);
 }
 
-} // namespace nss_test
+}  // namespace nss_test
 
 #endif
