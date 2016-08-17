@@ -34,6 +34,8 @@
 #include "pkitm.h"
 #include "pkistore.h" /* to remove temp cert */
 #include "devt.h"
+#include "ckhelper.h"
+#include "pkcs11uri.h"
 
 extern const NSSError NSS_ERROR_NOT_FOUND;
 extern const NSSError NSS_ERROR_INVALID_CERTIFICATE;
@@ -505,6 +507,225 @@ transfer_token_certs_to_collection(nssList *certList, NSSToken *token,
         CERT_DestroyCertificate(STAN_GetCERTCertificateOrRelease(certs[i]));
     }
     nss_ZFreeIf(certs);
+}
+
+static void
+transfer_uri_certs_to_collection(nssList *certList, PK11URI *uri,
+                                 nssPKIObjectCollection *collection)
+{
+
+    NSSCertificate **certs;
+    PRUint32 i, count;
+    NSSToken **tokens, **tp;
+    PK11SlotInfo *slot;
+    const char *id;
+
+    id = PK11URI_GetPathAttribute(uri, PK11URI_PATTR_ID);
+    count = nssList_Count(certList);
+    if (count == 0) {
+        return;
+    }
+    certs = nss_ZNEWARRAY(NULL, NSSCertificate *, count);
+    if (!certs) {
+        return;
+    }
+    nssList_GetArray(certList, (void **)certs, count);
+    for (i = 0; i < count; i++) {
+        /*
+	 * Filter the subject matched certs based on the
+	 * CKA_ID from the URI
+	 */
+        if (id && (strlen(id) != certs[i]->id.size ||
+                   memcmp(id, certs[i]->id.data, certs[i]->id.size)))
+            continue;
+        tokens = nssPKIObject_GetTokens(&certs[i]->object, NULL);
+        if (tokens) {
+            for (tp = tokens; *tp; tp++) {
+                const char *value;
+                slot = (*tp)->pk11slot;
+
+                value = PK11URI_GetPathAttribute(uri, PK11URI_PATTR_TOKEN);
+                if (value &&
+                    !pk11_MatchString(value,
+                                      (char *)slot->tokenInfo.label,
+                                      sizeof(slot->tokenInfo.label))) {
+                    continue;
+                }
+
+                value = PK11URI_GetPathAttribute(uri, PK11URI_PATTR_MANUFACTURER);
+                if (value &&
+                    !pk11_MatchString(value,
+                                      (char *)slot->tokenInfo.manufacturerID,
+                                      sizeof(slot->tokenInfo.manufacturerID))) {
+                    continue;
+                }
+
+                value = PK11URI_GetPathAttribute(uri, PK11URI_PATTR_MODEL);
+                if (value &&
+                    !pk11_MatchString(value,
+                                      (char *)slot->tokenInfo.model,
+                                      sizeof(slot->tokenInfo.model))) {
+                    continue;
+                }
+
+                nssPKIObjectCollection_AddObject(collection,
+                                                 (nssPKIObject *)certs[i]);
+                break;
+            }
+            nssTokenArray_Destroy(tokens);
+        }
+        CERT_DestroyCertificate(STAN_GetCERTCertificateOrRelease(certs[i]));
+    }
+    nss_ZFreeIf(certs);
+}
+
+static NSSCertificate **
+find_certs_from_uri(const char *uriString, void *wincx)
+{
+    PK11URI *uri = NULL;
+    CK_ATTRIBUTE attributes[10];
+    CK_ULONG nattributes = 0;
+    const char *label;
+    PK11SlotInfo *slotinfo;
+    nssCryptokiObject **instances;
+    PRStatus status;
+    nssPKIObjectCollection *collection = NULL;
+    NSSTrustDomain *defaultTD = STAN_GetDefaultTrustDomain();
+    NSSCertificate **certs = NULL;
+    nssList *certList = NULL;
+    SECStatus rv;
+    CK_OBJECT_CLASS s_class = CKO_CERTIFICATE;
+    static const CK_BBOOL s_true = CK_TRUE;
+    NSSToken **tokens, **tok;
+
+    uri = PK11URI_ParseURI(uriString);
+    if (uri == NULL) {
+        goto loser;
+    }
+
+    collection = nssCertificateCollection_Create(defaultTD, NULL);
+    if (!collection) {
+        goto loser;
+    }
+    certList = nssList_Create(NULL, PR_FALSE);
+    if (!certList) {
+        goto loser;
+    }
+
+    label = PK11URI_GetPathAttribute(uri, PK11URI_PATTR_OBJECT);
+    if (label) {
+        (void)nssTrustDomain_GetCertsForNicknameFromCache(defaultTD,
+                                                          (const char *)label,
+                                                          certList);
+    } else {
+        (void)nssTrustDomain_GetCertsFromCache(defaultTD, certList);
+    }
+
+    transfer_uri_certs_to_collection(certList, uri, collection);
+
+    /* add the CKA_CLASS and CKA_TOKEN attributes manually */
+    attributes[nattributes].type = CKA_CLASS;
+    attributes[nattributes].pValue = (void *)&s_class;
+    attributes[nattributes].ulValueLen = sizeof(s_class);
+    nattributes++;
+
+    attributes[nattributes].type = CKA_TOKEN;
+    attributes[nattributes].pValue = (void *)&s_true;
+    attributes[nattributes].ulValueLen = sizeof(s_true);
+    nattributes++;
+
+    if (label) {
+        attributes[nattributes].type = CKA_LABEL;
+        attributes[nattributes].pValue = (void *)label;
+        attributes[nattributes].ulValueLen = strlen(label);
+        nattributes++;
+    }
+
+    tokens = NSSTrustDomain_FindTokensByURI(defaultTD, uri);
+    for (tok = tokens; tok && *tok; tok++) {
+        if (nssToken_IsPresent(*tok)) {
+            slotinfo = (*tok)->pk11slot;
+
+            rv = pk11_AuthenticateUnfriendly(slotinfo, PR_TRUE, wincx);
+            if (rv != SECSuccess) {
+                continue;
+            }
+            instances = nssToken_FindObjectsByTemplate(*tok, NULL,
+                                                       attributes,
+                                                       nattributes,
+                                                       0, &status);
+            nssPKIObjectCollection_AddInstances(collection, instances, 0);
+            nss_ZFreeIf(instances);
+        }
+        nssToken_Destroy(*tok);
+    }
+    nss_ZFreeIf(tokens);
+    nssList_Destroy(certList);
+    certs = nssPKIObjectCollection_GetCertificates(collection, NULL, 0, NULL);
+
+loser:
+    if (collection) {
+        nssPKIObjectCollection_Destroy(collection);
+    }
+    if (uri) {
+        PK11URI_DestroyURI(uri);
+    }
+    return certs;
+}
+
+CERTCertificate *
+PK11_FindCertFromURI(const char *uri, void *wincx)
+{
+    static const NSSUsage usage = { PR_TRUE /* ... */ };
+    NSSCertificate *cert = NULL;
+    NSSCertificate **certs = NULL;
+    CERTCertificate *rvCert = NULL;
+
+    certs = find_certs_from_uri(uri, wincx);
+    if (certs) {
+        cert = nssCertificateArray_FindBestCertificate(certs, NULL,
+                                                       &usage, NULL);
+        if (cert) {
+            rvCert = STAN_GetCERTCertificateOrRelease(cert);
+        }
+        nssCertificateArray_Destroy(certs);
+    }
+    return rvCert;
+}
+
+CERTCertList *
+PK11_FindCertsFromURI(const char *uri, void *wincx)
+{
+    int i;
+    CERTCertList *certList = NULL;
+    NSSCertificate **foundCerts;
+    NSSCertificate *c;
+
+    foundCerts = find_certs_from_uri(uri, wincx);
+    if (foundCerts) {
+        PRTime now = PR_Now();
+        certList = CERT_NewCertList();
+        for (i = 0, c = *foundCerts; c; c = foundCerts[++i]) {
+            if (certList) {
+                CERTCertificate *certCert = STAN_GetCERTCertificateOrRelease(c);
+                /* c may be invalid after this, don't reference it */
+                if (certCert) {
+                    /* CERT_AddCertToListSorted adopts certCert  */
+                    CERT_AddCertToListSorted(certList, certCert,
+                                             CERT_SortCBValidity, &now);
+                }
+            } else {
+                nssCertificate_Destroy(c);
+            }
+        }
+        if (certList && CERT_LIST_HEAD(certList) == NULL) {
+            CERT_DestroyCertList(certList);
+            certList = NULL;
+        }
+        /* all the certs have been adopted or freed, free the  raw array */
+        nss_ZFreeIf(foundCerts);
+    }
+    return certList;
 }
 
 static NSSCertificate **
