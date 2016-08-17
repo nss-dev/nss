@@ -644,6 +644,8 @@ SECStatus PK11_TraverseSlotCerts(
     SECStatus (*callback)(CERTCertificate *, SECItem *, void *),
     void *arg, void *wincx);
 CERTCertificate *PK11_FindCertFromNickname(const char *nickname, void *wincx);
+CERTCertificate *PK11_FindCertFromURI(const char *uri, void *wincx);
+CERTCertList *PK11_FindCertsFromURI(const char *uri, void *wincx);
 CERTCertList *PK11_FindCertsFromEmailAddress(const char *email, void *wincx);
 CERTCertList *PK11_FindCertsFromNickname(const char *nickname, void *wincx);
 CERTCertificate *PK11_GetCertFromPrivateKey(SECKEYPrivateKey *privKey);
