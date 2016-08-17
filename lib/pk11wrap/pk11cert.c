@@ -507,14 +507,11 @@ transfer_token_certs_to_collection(nssList *certList, NSSToken *token,
     nss_ZFreeIf(certs);
 }
 
-CERTCertificate *
-PK11_FindCertFromNickname(const char *nickname, void *wincx)
+static NSSCertificate **
+find_certs_from_nickname(const char *nickname, void *wincx)
 {
     PRStatus status;
-    CERTCertificate *rvCert = NULL;
-    NSSCertificate *cert = NULL;
     NSSCertificate **certs = NULL;
-    static const NSSUsage usage = { PR_TRUE /* ... */ };
     NSSToken *token;
     NSSTrustDomain *defaultTD = STAN_GetDefaultTrustDomain();
     PK11SlotInfo *slot = NULL;
@@ -600,29 +597,35 @@ PK11_FindCertFromNickname(const char *nickname, void *wincx)
         certs = nssPKIObjectCollection_GetCertificates(collection,
                                                        NULL, 0, NULL);
         nssPKIObjectCollection_Destroy(collection);
-        if (certs) {
-            cert = nssCertificateArray_FindBestCertificate(certs, NULL,
-                                                           &usage, NULL);
-            if (cert) {
-                rvCert = STAN_GetCERTCertificateOrRelease(cert);
-            }
-            nssCertificateArray_Destroy(certs);
-        }
         nssList_Destroy(certList);
     }
-    if (slot) {
-        PK11_FreeSlot(slot);
-    }
-    if (nickCopy)
-        PORT_Free(nickCopy);
-    return rvCert;
 loser:
     if (slot) {
         PK11_FreeSlot(slot);
     }
     if (nickCopy)
         PORT_Free(nickCopy);
-    return NULL;
+    return certs;
+}
+
+CERTCertificate *
+PK11_FindCertFromNickname(const char *nickname, void *wincx)
+{
+    CERTCertificate *rvCert = NULL;
+    NSSCertificate *cert = NULL;
+    NSSCertificate **certs = NULL;
+    static const NSSUsage usage = { PR_TRUE /* ... */ };
+
+    certs = find_certs_from_nickname(nickname, wincx);
+    if (certs) {
+        cert = nssCertificateArray_FindBestCertificate(certs, NULL,
+                                                       &usage, NULL);
+        if (cert) {
+            rvCert = STAN_GetCERTCertificateOrRelease(cert);
+        }
+        nssCertificateArray_Destroy(certs);
+    }
+    return rvCert;
 }
 
 /* Traverse slots callback */
@@ -702,111 +705,12 @@ PK11_FindCertsFromEmailAddress(const char *email, void *wincx)
 CERTCertList *
 PK11_FindCertsFromNickname(const char *nickname, void *wincx)
 {
-    char *nickCopy;
-    char *delimit = NULL;
-    char *tokenName;
     int i;
     CERTCertList *certList = NULL;
-    nssPKIObjectCollection *collection = NULL;
     NSSCertificate **foundCerts = NULL;
-    NSSTrustDomain *defaultTD = STAN_GetDefaultTrustDomain();
     NSSCertificate *c;
-    NSSToken *token;
-    PK11SlotInfo *slot;
-    SECStatus rv;
 
-    nickCopy = PORT_Strdup(nickname);
-    if (!nickCopy) {
-        /* error code is set */
-        return NULL;
-    }
-    if ((delimit = PORT_Strchr(nickCopy, ':')) != NULL) {
-        tokenName = nickCopy;
-        nickname = delimit + 1;
-        *delimit = '\0';
-        /* find token by name */
-        token = NSSTrustDomain_FindTokenByName(defaultTD, (NSSUTF8 *)tokenName);
-        if (token) {
-            slot = PK11_ReferenceSlot(token->pk11slot);
-        } else {
-            PORT_SetError(SEC_ERROR_NO_TOKEN);
-            slot = NULL;
-        }
-        *delimit = ':';
-    } else {
-        slot = PK11_GetInternalKeySlot();
-        token = PK11Slot_GetNSSToken(slot);
-    }
-    if (token) {
-        PRStatus status;
-        nssList *nameList;
-        nssCryptokiObject **instances;
-        nssTokenSearchType tokenOnly = nssTokenSearchType_TokenOnly;
-        rv = pk11_AuthenticateUnfriendly(slot, PR_TRUE, wincx);
-        if (rv != SECSuccess) {
-            PK11_FreeSlot(slot);
-            if (nickCopy)
-                PORT_Free(nickCopy);
-            return NULL;
-        }
-        collection = nssCertificateCollection_Create(defaultTD, NULL);
-        if (!collection) {
-            PK11_FreeSlot(slot);
-            if (nickCopy)
-                PORT_Free(nickCopy);
-            return NULL;
-        }
-        nameList = nssList_Create(NULL, PR_FALSE);
-        if (!nameList) {
-            PK11_FreeSlot(slot);
-            if (nickCopy)
-                PORT_Free(nickCopy);
-            return NULL;
-        }
-        (void)nssTrustDomain_GetCertsForNicknameFromCache(defaultTD,
-                                                          nickname,
-                                                          nameList);
-        transfer_token_certs_to_collection(nameList, token, collection);
-        instances = nssToken_FindCertificatesByNickname(token,
-                                                        NULL,
-                                                        nickname,
-                                                        tokenOnly,
-                                                        0,
-                                                        &status);
-        nssPKIObjectCollection_AddInstances(collection, instances, 0);
-        nss_ZFreeIf(instances);
-
-        /* if it wasn't found, repeat the process for email address */
-        if (nssPKIObjectCollection_Count(collection) == 0 &&
-            PORT_Strchr(nickname, '@') != NULL) {
-            char *lowercaseName = CERT_FixupEmailAddr(nickname);
-            if (lowercaseName) {
-                (void)nssTrustDomain_GetCertsForEmailAddressFromCache(defaultTD,
-                                                                      lowercaseName,
-                                                                      nameList);
-                transfer_token_certs_to_collection(nameList, token, collection);
-                instances = nssToken_FindCertificatesByEmail(token,
-                                                             NULL,
-                                                             lowercaseName,
-                                                             tokenOnly,
-                                                             0,
-                                                             &status);
-                nssPKIObjectCollection_AddInstances(collection, instances, 0);
-                nss_ZFreeIf(instances);
-                PORT_Free(lowercaseName);
-            }
-        }
-
-        nssList_Destroy(nameList);
-        foundCerts = nssPKIObjectCollection_GetCertificates(collection,
-                                                            NULL, 0, NULL);
-        nssPKIObjectCollection_Destroy(collection);
-    }
-    if (slot) {
-        PK11_FreeSlot(slot);
-    }
-    if (nickCopy)
-        PORT_Free(nickCopy);
+    foundCerts = find_certs_from_nickname(nickname, wincx);
     if (foundCerts) {
         PRTime now = PR_Now();
         certList = CERT_NewCertList();
