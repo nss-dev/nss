@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,11 +25,12 @@ certscript() {
     case $1 in
       sign) echo 0 ;;
       kex) echo 2 ;;
+      ca) echo 5;echo 6 ;;
     esac; shift
   done;
   echo 9
   echo n
-  echo n
+  echo ${ca:-n}
   echo
   echo n
 }
@@ -47,12 +48,15 @@ make_cert() {
     rsapss) type_args='-g 1024 --pss';type=rsa ;;
     p256) type_args='-q nistp256';type=ec ;;
     p384) type_args='-q secp384r1';type=ec ;;
+    rsa_ca) type_args='-g 1024';trust='CT,CT,CT';ca=y;type=rsa ;;
+    ecdh_rsa) type_args='-q nistp256';sign='-c rsa_ca';type=ec ;;
   esac
   shift 2
+  counter=$(($counter + 1))
   certscript $@ | ${BINDIR}/certutil -S \
     -z ${R_NOISE_FILE} -d "${PROFILEDIR}" \
-    -n $name -s "CN=$name" -t C,C,C -x -m 1 -w -2 -v 120 \
-    -k $type $type_args -Z SHA256 -1 -2
+    -n $name -s "CN=$name" -t ${trust:-C,C,C} ${sign:--x} -m $counter \
+    -w -2 -v 120 -k $type $type_args -Z SHA256 -1 -2
   html_msg $? 0 "create certificate: $@"
 }
 
@@ -68,8 +72,8 @@ ssl_gtest_certs() {
   ${BINDIR}/certutil -N -d "${PROFILEDIR}" --empty-password 2>&1
   html_msg $? 0 "create ssl_gtest database"
 
+  counter=0
   make_cert client rsa sign
-  # Server certs are named by type
   make_cert rsa rsa sign kex
   make_cert rsa2048 rsa2048 sign kex
   make_cert rsa_sign rsa sign
@@ -78,7 +82,8 @@ ssl_gtest_certs() {
   make_cert ecdsa256 p256 sign
   make_cert ecdsa384 p384 sign
   make_cert ecdh_ecdsa p256 kex
-  # TODO ecdh_rsa
+  make_cert rsa_ca rsa_ca ca
+  make_cert ecdh_rsa ecdh_rsa kex
   make_cert dsa dsa sign
 }
 
