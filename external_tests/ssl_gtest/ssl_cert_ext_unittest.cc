@@ -175,7 +175,7 @@ TEST_P(TlsConnectGenericPre13, OcspMangled) {
   EXPECT_TRUE(
       server_->ConfigServerCert(TlsAgent::kServerRsa, true, &kOcspExtraData));
 
-  static const uint8_t val[] = { 1 };
+  static const uint8_t val[] = {1};
   auto replacer = new TlsExtensionReplacer(ssl_cert_status_xtn,
                                            DataBuffer(val, sizeof(val)));
   server_->SetPacketFilter(replacer);
