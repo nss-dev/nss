@@ -75,26 +75,6 @@ class TlsExtensionDamager : public TlsExtensionFilter {
   size_t index_;
 };
 
-class TlsExtensionReplacer : public TlsExtensionFilter {
- public:
-  TlsExtensionReplacer(uint16_t extension, const DataBuffer& data)
-      : extension_(extension), data_(data) {}
-  virtual PacketFilter::Action FilterExtension(uint16_t extension_type,
-                                               const DataBuffer& input,
-                                               DataBuffer* output) {
-    if (extension_type != extension_) {
-      return KEEP;
-    }
-
-    *output = data_;
-    return CHANGE;
-  }
-
- private:
-  const uint16_t extension_;
-  const DataBuffer data_;
-};
-
 class TlsExtensionInjector : public TlsHandshakeFilter {
  public:
   TlsExtensionInjector(uint16_t ext, DataBuffer& data)

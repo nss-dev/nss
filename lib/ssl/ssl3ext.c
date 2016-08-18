@@ -1201,7 +1201,9 @@ ssl3_ClientHandleStatusRequestXtn(sslSocket *ss, PRUint16 ex_type,
             return SECFailure; /* code already set */
         }
     } else if (data->len != 0) {
-        return SECSuccess; /* Ignore the extension. */
+        (void)SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
+        return SECFailure;
     }
 
     /* Keep track of negotiated extensions. */

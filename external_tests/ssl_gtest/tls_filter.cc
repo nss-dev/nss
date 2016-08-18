@@ -429,6 +429,16 @@ PacketFilter::Action TlsExtensionCapture::FilterExtension(
   return KEEP;
 }
 
+PacketFilter::Action TlsExtensionReplacer::FilterExtension(
+    uint16_t extension_type, const DataBuffer& input, DataBuffer* output) {
+  if (extension_type != extension_) {
+    return KEEP;
+  }
+
+  *output = data_;
+  return CHANGE;
+}
+
 PacketFilter::Action AfterRecordN::FilterRecord(const RecordHeader& header,
                                                 const DataBuffer& body,
                                                 DataBuffer* out) {
