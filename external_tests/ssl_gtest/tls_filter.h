@@ -233,6 +233,19 @@ class TlsExtensionCapture : public TlsExtensionFilter {
   DataBuffer data_;
 };
 
+class TlsExtensionReplacer : public TlsExtensionFilter {
+ public:
+  TlsExtensionReplacer(uint16_t extension, const DataBuffer& data)
+      : extension_(extension), data_(data) {}
+  PacketFilter::Action FilterExtension(uint16_t extension_type,
+                                       const DataBuffer& input,
+                                       DataBuffer* output) override;
+
+ private:
+  const uint16_t extension_;
+  const DataBuffer data_;
+};
+
 class TlsAgent;
 typedef std::function<void(void)> VoidFunction;
 

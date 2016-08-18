@@ -168,6 +168,22 @@ TEST_P(TlsConnectGeneric, OcspNotProvided) {
   Connect();
 }
 
+TEST_P(TlsConnectGenericPre13, OcspMangled) {
+  EnsureTlsSetup();
+  EXPECT_EQ(SECSuccess, SSL_OptionSet(client_->ssl_fd(),
+                                      SSL_ENABLE_OCSP_STAPLING, PR_TRUE));
+  EXPECT_TRUE(
+      server_->ConfigServerCert(TlsAgent::kServerRsa, true, &kOcspExtraData));
+
+  static const uint8_t val[] = { 1 };
+  auto replacer = new TlsExtensionReplacer(ssl_cert_status_xtn,
+                                           DataBuffer(val, sizeof(val)));
+  server_->SetPacketFilter(replacer);
+  ConnectExpectFail();
+  client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
+  server_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
+}
+
 TEST_P(TlsConnectGeneric, OcspSuccess) {
   EnsureTlsSetup();
   EXPECT_EQ(SECSuccess, SSL_OptionSet(client_->ssl_fd(),
