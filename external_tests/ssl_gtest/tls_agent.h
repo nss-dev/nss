@@ -60,7 +60,7 @@ class TlsAgent : public PollTarget {
   static const std::string kServerEcdsa256;
   static const std::string kServerEcdsa384;
   static const std::string kServerEcdhEcdsa;
-  // TODO: static const std::string kServerEcdhRsa;
+  static const std::string kServerEcdhRsa;
   static const std::string kServerDsa;
 
   TlsAgent(const std::string& name, Role role, Mode mode);
