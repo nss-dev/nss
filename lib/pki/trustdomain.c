@@ -248,8 +248,10 @@ NSSTrustDomain_FindTokenByName(
          tok = (NSSToken *)nssListIterator_Next(td->tokens)) {
         if (nssToken_IsPresent(tok)) {
             myName = nssToken_GetName(tok);
-            if (nssUTF8_Equal(tokenName, myName, &nssrv))
+            if (nssUTF8_Equal(tokenName, myName, &nssrv)) {
+                tok = nssToken_AddRef(tok);
                 break;
+            }
         }
     }
     nssListIterator_Finish(td->tokens);

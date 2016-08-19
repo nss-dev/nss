@@ -512,7 +512,7 @@ find_certs_from_nickname(const char *nickname, void *wincx)
 {
     PRStatus status;
     NSSCertificate **certs = NULL;
-    NSSToken *token;
+    NSSToken *token = NULL;
     NSSTrustDomain *defaultTD = STAN_GetDefaultTrustDomain();
     PK11SlotInfo *slot = NULL;
     SECStatus rv;
@@ -539,7 +539,7 @@ find_certs_from_nickname(const char *nickname, void *wincx)
         *delimit = ':';
     } else {
         slot = PK11_GetInternalKeySlot();
-        token = PK11Slot_GetNSSToken(slot);
+        token = nssToken_AddRef(PK11Slot_GetNSSToken(slot));
     }
     if (token) {
         nssList *certList;
@@ -600,6 +600,9 @@ find_certs_from_nickname(const char *nickname, void *wincx)
         nssList_Destroy(certList);
     }
 loser:
+    if (token) {
+        nssToken_Destroy(token);
+    }
     if (slot) {
         PK11_FreeSlot(slot);
     }
