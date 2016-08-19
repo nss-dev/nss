@@ -1128,9 +1128,13 @@ dtls_RecordSetRecvd(DTLSRecvdRecords *records, sslSequenceNumber seq)
         new_right = seq | 0x07;
         new_left = (new_right - DTLS_RECVD_RECORDS_WINDOW) + 1;
 
-        for (right = records->right + 8; right <= new_right; right += 8) {
-            offset = right % DTLS_RECVD_RECORDS_WINDOW;
-            records->data[offset / 8] = 0;
+        if (new_right > records->right + DTLS_RECVD_RECORDS_WINDOW) {
+            PORT_Memset(records->data, 0, sizeof(records->data));
+        } else {
+            for (right = records->right + 8; right <= new_right; right += 8) {
+                offset = right % DTLS_RECVD_RECORDS_WINDOW;
+                records->data[offset / 8] = 0;
+            }
         }
 
         records->right = new_right;
