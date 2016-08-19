@@ -269,3 +269,17 @@ SECStatus SSLInt_AdvanceWriteSeqNum(PRFileDesc *fd, PRUint64 to) {
   ssl_ReleaseSpecWriteLock(ss);
   return SECSuccess;
 }
+
+SECStatus SSLInt_AdvanceWriteSeqByAWindow(PRFileDesc *fd, PRInt32 extra) {
+  sslSocket *ss;
+  sslSequenceNumber to;
+
+  ss = ssl_FindSocket(fd);
+  if (!ss) {
+    return SECFailure;
+  }
+  ssl_GetSpecReadLock(ss);
+  to = ss->ssl3.cwSpec->write_seq_num + DTLS_RECVD_RECORDS_WINDOW + extra;
+  ssl_ReleaseSpecReadLock(ss);
+  return SSLInt_AdvanceWriteSeqNum(fd, to & RECORD_SEQ_MAX);
+}

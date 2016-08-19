@@ -297,9 +297,9 @@ static SSL3Statistics ssl3stats;
  * connection when this limit is reached and we want to ensure that we only
  * rarely hit this limit.  See bug 1268745 for details.
  */
-#define MR_MAX RECORD_SEQ_MAX /* 2^48-1 */
-#define MR_128 (0x5aULL<<28)  /* For AES and similar. */
-#define MR_LOW (1ULL<<20)     /* For weak ciphers. */
+#define MR_MAX RECORD_SEQ_MAX  /* 2^48-1 */
+#define MR_128 (0x5aULL << 28) /* For AES and similar. */
+#define MR_LOW (1ULL << 20)    /* For weak ciphers. */
 /* clang-format off */
 static const ssl3BulkCipherDef bulk_cipher_defs[] = {
     /*                                    |--------- Lengths ---------| */

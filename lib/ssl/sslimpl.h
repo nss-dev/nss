@@ -511,15 +511,15 @@ typedef SECStatus (*SSLCompressor)(void *context,
                                    int inlen);
 typedef SECStatus (*SSLDestroy)(void *context, PRBool freeit);
 
-/* The DTLS anti-replay window. Defined here because we need it in
- * the cipher spec. Note that this is a ring buffer but left and
- * right represent the true window, with modular arithmetic used to
- * map them onto the buffer.
+/* The DTLS anti-replay window in number of packets. Defined here because we
+ * need it in the cipher spec. Note that this is a ring buffer but left and
+ * right represent the true window, with modular arithmetic used to map them
+ * onto the buffer.
  */
-#define DTLS_RECVD_RECORDS_WINDOW 1024 /* Packets; approximate   \
-                                        * Must be divisible by 8 \
-                                        */
-#define RECORD_SEQ_MAX ((1ULL<<48)-1)
+#define DTLS_RECVD_RECORDS_WINDOW 1024
+#define RECORD_SEQ_MAX ((1ULL << 48) - 1)
+PR_STATIC_ASSERT(DTLS_RECVD_RECORDS_WINDOW % 8 == 0);
+
 typedef struct DTLSRecvdRecordsStr {
     unsigned char data[DTLS_RECVD_RECORDS_WINDOW / 8];
     sslSequenceNumber left;
