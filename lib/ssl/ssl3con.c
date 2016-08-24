@@ -3081,7 +3081,7 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
 
         b = ssl_EncodeUintX(version, 2, b);
     }
-    b = ssl_EncodeUintX(cipherBytes, 2, b);
+    (void)ssl_EncodeUintX(cipherBytes, 2, b);
 
     ++cwSpec->write_seq_num;
 
