@@ -431,10 +431,15 @@ DumpChain(CERTCertDBHandle *handle, char *name, PRBool ascii)
     for (i = chain->len - 1; i >= 0; i--) {
         CERTCertificate *c;
         c = CERT_FindCertByDERCert(handle, &chain->certs[i]);
-        for (j = i; j < chain->len - 1; j++)
+        for (j = i; j < chain->len - 1; j++) {
             printf("  ");
-        printf("\"%s\" [%s]\n\n", c->nickname, c->subjectName);
-        CERT_DestroyCertificate(c);
+        }
+        if (c) {
+            printf("\"%s\" [%s]\n\n", c->nickname, c->subjectName);
+            CERT_DestroyCertificate(c);
+        } else {
+            printf("(null)\n\n");
+        }
     }
     CERT_DestroyCertificateList(chain);
     return SECSuccess;
