@@ -57,7 +57,7 @@ tasks:
         - "tc-treeherder.v2.{{project}}.{{revision}}.{{pushlog_id}}"
 
       payload:
-        image: "ttaubert/nss-ci:0.0.22"
+        image: ttaubert/nss-decision:0.0.1
 
         env:
           TC_OWNER: {{owner}}
