@@ -7,6 +7,7 @@ var path = require("path");
 var crypto = require("crypto");
 var slugid = require("slugid");
 var flatmap = require("flatmap");
+var taskcluster = require("taskcluster-client");
 
 var yaml = require("./yaml");
 
@@ -47,8 +48,10 @@ function collectFilesInDirectory(dir) {
   });
 }
 
-// Compute a hash over the given directory's contents.
-function hashDirectory(dir) {
+// Compute a context hash for the given context path.
+function computeContextHash(context_path) {
+  var root = path.join(__dirname, "../../..");
+  var dir = path.join(root, context_path);
   var files = collectFilesInDirectory(dir).sort();
   var hashes = files.map(function (file) {
     return sha256(file + "|" + fs.readFileSync(file, "utf-8"));
@@ -59,7 +62,6 @@ function hashDirectory(dir) {
 
 // Generates the image-builder task description.
 function generateImageBuilderTask(context_path) {
-  var root = path.join(__dirname, "../../..");
   var task = yaml.parse(path.join(__dirname, "image_builder.yml"), {});
 
   // Add base info.
@@ -67,32 +69,80 @@ function generateImageBuilderTask(context_path) {
 
   // Add info for docker image building.
   task.task.payload.env.CONTEXT_PATH = context_path;
-  task.task.payload.env.HASH = hashDirectory(path.join(root, context_path));
+  task.task.payload.env.HASH = computeContextHash(context_path);
 
   return task;
 }
 
-// Tweak the given list of tasks by injecting the image-builder task
-// and setting the right dependencies where needed.
-function tweakTasks(tasks) {
-  var id = "automation/taskcluster/docker";
-  var builder_task = generateImageBuilderTask(id);
+// Returns a Promise<bool> that tells whether the task with the given id
+// has a public/image.tar artifact with a ready-to-use docker image.
+function asyncTaskHasImageArtifact(taskId) {
+  var queue = new taskcluster.Queue();
 
-  tasks.forEach(function (task) {
-    if (task.task.payload.image == id) {
-      task.task.payload.image = {
-        taskId: builder_task.taskId,
-        path: "public/image.tar",
-        type: "task-image"
-      };
-
-      if (!task.requires) {
-        task.requires = [builder_task.taskId];
-      }
-    }
+  return queue.listLatestArtifacts(taskId).then(function (result) {
+    return result.artifacts.some(function (artifact) {
+      return artifact.name == "public/image.tar";
+    });
+  }, function () {
+    return false;
   });
-
-  return [builder_task].concat(tasks);
 }
 
-module.exports.tweakTasks = tweakTasks;
+// Returns a Promise<task-id|null> with either a task id or null, depending
+// on whether we could find a task in the given namespace with a docker image.
+function asyncFindTaskWithImageArtifact(ns) {
+  var index = new taskcluster.Index();
+
+  return index.findTask(ns).then(function (result) {
+    return asyncTaskHasImageArtifact(result.taskId).then(function (has_image) {
+      return has_image ? result.taskId : null;
+    });
+  }, function () {
+    return null;
+  });
+}
+
+// Tweak the given list of tasks by injecting the image-builder task
+// and setting the right dependencies where needed.
+function asyncTweakTasks(tasks) {
+  var id = "linux";
+  var cx_path = "automation/taskcluster/docker";
+  var hash = computeContextHash(cx_path);
+  var ns = "docker.images.v1." + TC_PROJECT + "." + id + ".hash." + hash;
+  var additional_tasks = [];
+
+  // Check whether the docker image was already built.
+  return asyncFindTaskWithImageArtifact(ns).then(function (taskId) {
+    var builder_task;
+
+    if (!taskId) {
+      // No docker image found, add a task to build one.
+      builder_task = generateImageBuilderTask(cx_path);
+      taskId = builder_task.taskId;
+
+      // Add a route so we can find the task later again.
+      builder_task.task.routes.push("index." + ns);
+      additional_tasks.push(builder_task);
+    }
+
+    tasks.forEach(function (task) {
+      if (task.task.payload.image == cx_path) {
+        task.task.payload.image = {
+          path: "public/image.tar",
+          type: "task-image",
+          taskId: taskId
+        };
+
+        // Add a dependency only for top-level tasks (builds & tools) and only
+        // if we added an image building task. Otherwise we don't need to wait.
+        if (builder_task && !task.requires) {
+          task.requires = [taskId];
+        }
+      }
+    });
+
+    return additional_tasks.concat(tasks);
+  });
+}
+
+module.exports.asyncTweakTasks = asyncTweakTasks;

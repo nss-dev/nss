@@ -139,7 +139,9 @@ if (TC_PROJECT == "nss-try") {
 }
 
 // Inject the image builder tasks and dependencies.
-graph.tasks = image_builder.tweakTasks(graph.tasks);
+image_builder.asyncTweakTasks(graph.tasks).then(function (tasks) {
+  graph.tasks = tasks;
 
-// Output the final graph.
-process.stdout.write(JSON.stringify(graph, null, 2));
+  // Output the final graph.
+  process.stdout.write(JSON.stringify(graph, null, 2));
+});
