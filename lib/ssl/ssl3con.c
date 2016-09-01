@@ -7015,17 +7015,8 @@ static SECStatus
 ssl3_PickServerSignatureScheme(sslSocket *ss)
 {
     sslKeyPair *keyPair = ss->sec.serverCert->serverKeyPair;
-    SECStatus rv;
 
     if (ss->ssl3.hs.numClientSigScheme == 0) {
-        if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
-            /* TODO test what happens when we strip signature_algorithms... this
-             might not be needed */
-            (void)SSL3_SendAlert(ss, alert_fatal, missing_extension);
-            PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
-            return SECFailure;
-        }
-
         /* If the client didn't provide any signature_algorithms extension then
          * we can assume that they support SHA-1: RFC5246, Section 7.4.1.4.1 */
         switch (SECKEY_GetPublicKeyType(keyPair->pubKey)) {
@@ -7046,16 +7037,11 @@ ssl3_PickServerSignatureScheme(sslSocket *ss)
         return SECSuccess;
     }
 
-    rv = ssl_PickSignatureScheme(ss, keyPair->pubKey,
-                                 ss->ssl3.hs.clientSigSchemes,
-                                 ss->ssl3.hs.numClientSigScheme,
-                                 PR_FALSE);
-    if (rv != SECSuccess) {
-        (void)SSL3_SendAlert(ss, alert_fatal, handshake_failure);
-        /* Error code set by ssl3_PickSignatureScheme */
-        return SECFailure;
-    }
-    return SECSuccess;
+    /* Sets error code, if needed. */
+    return ssl_PickSignatureScheme(ss, keyPair->pubKey,
+                                   ss->ssl3.hs.clientSigSchemes,
+                                   ss->ssl3.hs.numClientSigScheme,
+                                   PR_FALSE);
 }
 
 static SECStatus
