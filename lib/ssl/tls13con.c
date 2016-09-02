@@ -2734,7 +2734,7 @@ tls13_SendCertificateVerify(sslSocket *ss, SECKEYPrivateKey *privKey)
         return SECFailure;
     }
 
-    rv = ssl3_SignHashes(&tbsHash, privKey, &buf, PR_TRUE);
+    rv = ssl3_SignHashes(ss, &tbsHash, privKey, &buf);
     if (rv == SECSuccess && !ss->sec.isServer) {
         /* Remember the info about the slot that did the signing.
          * Later, when doing an SSL restart handshake, verify this.
@@ -2835,8 +2835,7 @@ tls13_HandleCertificateVerify(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
         return SECFailure;
     }
 
-    rv = ssl3_VerifySignedHashes(&tbsHash, ss->sec.peerCert, &signed_hash,
-                                 PR_TRUE, ss->pkcs11PinArg);
+    rv = ssl3_VerifySignedHashes(ss, sigScheme, &tbsHash, &signed_hash);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, PORT_GetError(), decrypt_error);
         return SECFailure;
