@@ -305,7 +305,7 @@ typedef struct {
 #define MAX_DTLS_SRTP_CIPHER_SUITES 4
 
 /* MAX_SIGNATURE_SCHEMES allows for all the values we support. */
-#define MAX_SIGNATURE_SCHEMES 12
+#define MAX_SIGNATURE_SCHEMES 15
 
 typedef struct sslOptionsStr {
     /* If SSL_SetNextProtoNego has been called, then this contains the
@@ -1827,11 +1827,10 @@ extern SECStatus ssl_ParseSignatureSchemes(sslSocket *ss, PLArenaPool *arena,
                                            unsigned int *len);
 extern SECStatus ssl_ConsumeSignatureScheme(
     sslSocket *ss, SSL3Opaque **b, PRUint32 *length, SignatureScheme *out);
-extern SECStatus ssl3_SignHashes(SSL3Hashes *hash, SECKEYPrivateKey *key,
-                                 SECItem *buf, PRBool isTLS);
-extern SECStatus ssl3_VerifySignedHashes(SSL3Hashes *hash,
-                                         CERTCertificate *cert, SECItem *buf, PRBool isTLS,
-                                         void *pwArg);
+extern SECStatus ssl3_SignHashes(sslSocket *ss, SSL3Hashes *hash,
+                                 SECKEYPrivateKey *key, SECItem *buf);
+extern SECStatus ssl3_VerifySignedHashes(sslSocket *ss, SignatureScheme scheme,
+                                         SSL3Hashes *hash, SECItem *buf);
 extern SECStatus ssl3_CacheWrappedMasterSecret(
     sslSocket *ss, sslSessionID *sid,
     ssl3CipherSpec *spec, SSLAuthType authType);
