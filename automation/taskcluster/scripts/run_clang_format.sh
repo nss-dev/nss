@@ -36,6 +36,7 @@ else
          "$top/lib/freebl" \
          "$top/lib/softoken" \
          "$top/lib/ssl" \
+         "$top/lib/sysinit" \
          "$top/external_tests/common" \
          "$top/external_tests/der_gtest" \
          "$top/external_tests/pk11_gtest" \
