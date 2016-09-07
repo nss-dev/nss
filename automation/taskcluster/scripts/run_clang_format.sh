@@ -34,6 +34,7 @@ else
          "$top/lib/dbm" \
          "$top/lib/dev" \
          "$top/lib/freebl" \
+         "$top/lib/nss" \
          "$top/lib/softoken" \
          "$top/lib/ssl" \
          "$top/lib/util" \
