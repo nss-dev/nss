@@ -6,20 +6,19 @@ set -v -e -x
 export DEBIAN_FRONTEND=noninteractive
 apt-get -y update && apt-get -y upgrade
 
-# Need this to add keys for PPAs below.
-apt-get install -y --no-install-recommends apt-utils
-
-apt_packages=()
-apt_packages+=('npm')
+# Need those to install newer packages below.
+apt-get install -y --no-install-recommends apt-utils curl ca-certificates
 
 # Latest Mercurial.
-apt_packages+=('mercurial')
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 41BD8711B1F0EC2B0D85B91CF59CE3A8323293EE
 echo "deb http://ppa.launchpad.net/mercurial-ppa/releases/ubuntu xenial main" > /etc/apt/sources.list.d/mercurial.list
 
 # Install packages.
-apt-get -y update
-apt-get install -y --no-install-recommends ${apt_packages[@]}
+apt-get -y update && apt-get install -y --no-install-recommends mercurial
+
+# Latest Node.JS.
+curl -sL https://deb.nodesource.com/setup_6.x | bash -
+apt-get install -y --no-install-recommends nodejs
 
 locale-gen en_US.UTF-8
 dpkg-reconfigure locales
