@@ -18,7 +18,6 @@
 #include "secasn1.h" 
 #include "secoid.h" 
 #include "secerr.h"
-#include "sslerr.h"
 #include "sechash.h"
 
 #include "secpkcs5.h"  
@@ -169,7 +168,7 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
 	    PK11_SETATTRS(attrs, CKA_EC_PARAMS, 
 		          pubKey->u.ec.DEREncodedParams.data,
 		          pubKey->u.ec.DEREncodedParams.len); attrs++;
-	    if (PR_GetEnv("NSS_USE_DECODED_CKA_EC_POINT")) {
+	    if (PR_GetEnvSecure("NSS_USE_DECODED_CKA_EC_POINT")) {
 	    	PK11_SETATTRS(attrs, CKA_EC_POINT, 
 			  pubKey->u.ec.publicValue.data,
 			  pubKey->u.ec.publicValue.len); attrs++;
@@ -814,10 +813,9 @@ PK11_GetPrivateModulusLen(SECKEYPrivateKey *key)
 	if ( *(unsigned char *)theTemplate.pValue == 0) {
 	    length--;
 	}
-	if (theTemplate.pValue != NULL)
-	    PORT_Free(theTemplate.pValue);
+	PORT_Free(theTemplate.pValue);
 	return (int) length;
-	
+
     case fortezzaKey:
     case dsaKey:
     case dhKey:
@@ -1516,6 +1514,7 @@ PK11_MakeKEAPubKey(unsigned char *keyData,int length)
 
     pkData.data = keyData;
     pkData.len = length;
+    pkData.type = siBuffer;
 
     arena = PORT_NewArena (DER_DEFAULT_CHUNKSIZE);
     if (arena == NULL)

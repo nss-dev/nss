@@ -1,6 +1,7 @@
+#include "ssl.h"
 #include "nspr.h"
 #include "nss.h"
-#include "ssl.h"
+#include "prenv.h"
 
 #include <cstdlib>
 
@@ -10,27 +11,28 @@
 #include "gtest/gtest.h"
 
 std::string g_working_dir_path;
+bool g_ssl_gtest_verbose;
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   // Start the tests
   ::testing::InitGoogleTest(&argc, argv);
   g_working_dir_path = ".";
+  g_ssl_gtest_verbose = false;
 
-  // Temporarily disable asserts for PKCS#11 slot leakage until
-  // Bug 1168425 is fixed.
-  unsetenv("NSS_STRICT_SHUTDOWN");
-  char* workdir = getenv("NSS_GTEST_WORKDIR");
-  if (workdir)
-    g_working_dir_path = workdir;
+  char* workdir = PR_GetEnvSecure("NSS_GTEST_WORKDIR");
+  if (workdir) g_working_dir_path = workdir;
 
   for (int i = 0; i < argc; i++) {
     if (!strcmp(argv[i], "-d")) {
       g_working_dir_path = argv[i + 1];
       ++i;
+    } else if (!strcmp(argv[i], "-v")) {
+      g_ssl_gtest_verbose = true;
     }
   }
 
-  NSS_Initialize(g_working_dir_path.c_str(), "", "", SECMOD_DB, NSS_INIT_READONLY);
+  NSS_Initialize(g_working_dir_path.c_str(), "", "", SECMOD_DB,
+                 NSS_INIT_READONLY);
   NSS_SetDomesticPolicy();
   int rv = RUN_ALL_TESTS();
 

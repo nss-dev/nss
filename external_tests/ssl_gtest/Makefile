@@ -25,7 +25,19 @@ include $(CORE_DEPTH)/coreconf/config.mk
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
 #######################################################################
 
-include ../../cmd/platlibs.mk
+include ../common/gtest.mk
+
+CFLAGS += -I$(CORE_DEPTH)/lib/ssl
+
+ifdef NSS_SSL_ENABLE_ZLIB
+include $(CORE_DEPTH)/coreconf/zlib.mk
+endif
+
+ifdef NSS_DISABLE_TLS_1_3
+# Run parameterized tests only, for which we can easily exclude TLS 1.3
+CPPSRCS := $(filter-out $(shell grep -l '^TEST_F' $(CPPSRCS)), $(CPPSRCS))
+CFLAGS += -DNSS_DISABLE_TLS_1_3
+endif
 
 #######################################################################
 # (5) Execute "global" rules. (OPTIONAL)                              #
@@ -41,21 +53,3 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 #######################################################################
 # (7) Execute "local" rules. (OPTIONAL).                              #
 #######################################################################
-
-MKPROG = $(CCC)
-CXXFLAGS += -std=c++0x
-CFLAGS += -I$(CORE_DEPTH)/lib/ssl
-
-include ../../cmd/platrules.mk
-
-ifeq (WINNT,$(OS_ARCH))
-    # -MTd (not -MD) because that makes it link to the right library
-    # -EHsc because gtest has exception handlers
-    OS_CFLAGS := $(filterout -MD,$(OS_CFLAGS))
-    OS_CFLAGS += -MTd -EHsc -nologo
-    # http://www.suodenjoki.dk/us/archive/2010/min-max.htm
-    OS_CFLAGS += -DNOMINMAX
-
-    # Linking to winsock to get htonl
-    OS_LIBS += Ws2_32.lib
-endif

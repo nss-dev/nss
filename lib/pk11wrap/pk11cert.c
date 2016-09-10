@@ -1441,6 +1441,7 @@ pk11_FindCertObjectByRecipientNew(PK11SlotInfo *slot, NSSCMSRecipient **recipien
 		                   sizeof(CK_SLOT_ID) + sizeof(SECMODModuleID));
 		    if (!slotid) {
 			PORT_SetError(SEC_ERROR_NO_MEMORY);
+			PK11_FreeSlotList(sl);
 			return NULL;
 		    }
 		    for (le = sl->head; le; le = le->next) {
@@ -2150,6 +2151,7 @@ PK11_FindCertFromDERCertItem(PK11SlotInfo *slot, const SECItem *inDerCert,
     NSSToken *tok;
     nssCryptokiObject *co = NULL;
     SECStatus rv;
+    CERTCertificate *cert = NULL;
 
     tok = PK11Slot_GetNSSToken(slot);
     NSSITEM_FROM_SECITEM(&derCert, inDerCert);
@@ -2162,9 +2164,13 @@ PK11_FindCertFromDERCertItem(PK11SlotInfo *slot, const SECItem *inDerCert,
     co = nssToken_FindCertificateByEncodedCertificate(tok, NULL, &derCert,
                                           nssTokenSearchType_TokenOnly, NULL);
 
-    return co ? PK11_MakeCertFromHandle(slot, co->handle, NULL) : NULL;
+    if (co) {
+	cert = PK11_MakeCertFromHandle(slot, co->handle, NULL);
+	nssCryptokiObject_Destroy(co);
+    }
 
-} 
+    return cert;
+}
 
 /*
  * import a cert for a private key we have already generated. Set the label

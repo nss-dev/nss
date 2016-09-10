@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include "util.h"
 #include <prprf.h>
+#include <prerror.h>
 #include <nss.h>
 #include <pk11func.h>
 

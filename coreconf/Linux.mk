@@ -36,9 +36,12 @@ endif
 	ANDROID_TOOLCHAIN=$(ANDROID_NDK)/toolchains/$(ANDROID_TARGET)/prebuilt/linux-x86
 	ANDROID_SYSROOT=$(ANDROID_NDK)/platforms/android-$(OS_TARGET_RELEASE)/arch-$(OS_TEST)
 	ANDROID_CC=$(ANDROID_TOOLCHAIN)/bin/$(ANDROID_PREFIX)-gcc
+	ANDROID_CCC=$(ANDROID_TOOLCHAIN)/bin/$(ANDROID_PREFIX)-g++
+        NSS_DISABLE_GTESTS=1
 # internal tools need to be built with the native compiler
 ifndef INTERNAL_TOOLS
 	CC = $(ANDROID_CC) --sysroot=$(ANDROID_SYSROOT)
+	CCC = $(ANDROID_CCC) --sysroot=$(ANDROID_SYSROOT)
 	DEFAULT_COMPILER=$(ANDROID_PREFIX)-gcc
 	ARCHFLAG = --sysroot=$(ANDROID_SYSROOT)
 	DEFINES += -DNO_SYSINFO -DNO_FORK_CHECK -DANDROID
@@ -129,48 +132,15 @@ endif
 endif
 
 ifndef COMPILER_TAG
-COMPILER_TAG = _$(shell $(CC) -? 2>&1 >/dev/null | sed -e 's/:.*//;1q')
-CCC_COMPILER_TAG = _$(shell $(CCC) -? 2>&1 >/dev/null | sed -e 's/:.*//;1q')
+COMPILER_TAG := _$(CC_NAME)
 endif
 
 ifeq ($(USE_PTHREADS),1)
 OS_PTHREAD = -lpthread 
 endif
 
-OS_CFLAGS		= $(DSO_CFLAGS) $(OS_REL_CFLAGS) $(ARCHFLAG) -Wall -pipe -ffunction-sections -fdata-sections -DLINUX -Dlinux -DHAVE_STRERROR
+OS_CFLAGS		= $(DSO_CFLAGS) $(OS_REL_CFLAGS) $(ARCHFLAG) -pipe -ffunction-sections -fdata-sections -DLINUX -Dlinux -DHAVE_STRERROR
 OS_LIBS			= $(OS_PTHREAD) -ldl -lc
-
-ifeq ($(COMPILER_TAG),_clang)
-# -Qunused-arguments : clang objects to arguments that it doesn't understand
-#    and fixing this would require rearchitecture
-# -Wno-parentheses-equality : because clang warns about macro expansions
-OS_CFLAGS += -Qunused-arguments -Wno-parentheses-equality
-ifdef BUILD_OPT
-# clang is unable to handle glib's expansion of strcmp and similar for optimized
-# builds, so ignore the resulting errors.
-# See https://llvm.org/bugs/show_bug.cgi?id=20144
-OS_CFLAGS += -Wno-array-bounds -Wno-unevaluated-expression
-endif
-# Clang reports its version as an older gcc, but it's OK
-NSS_HAS_GCC48 = true
-endif
-
-ifndef NSS_HAS_GCC48
-NSS_HAS_GCC48 := $(shell \
-  [ `$(CC) -dumpversion | cut -f 1 -d . -` -eq 4 -a \
-    `$(CC) -dumpversion | cut -f 2 -d . -` -ge 8 -o \
-    `$(CC) -dumpversion | cut -f 1 -d . -` -ge 5 ] && \
-  echo true || echo false)
-export NSS_HAS_GCC48
-endif
-ifeq (true,$(NSS_HAS_GCC48))
-OS_CFLAGS += -Werror
-else
-# Old versions of gcc (< 4.8) don't support #pragma diagnostic in functions.
-# Use this to disable use of that #pragma and the warnings it suppresses.
-OS_CFLAGS += -DNSS_NO_GCC48
-$(warning Unable to find gcc >= 4.8 disabling -Werror)
-endif
 
 ifdef USE_PTHREADS
 	DEFINES		+= -D_REENTRANT
@@ -183,8 +153,12 @@ DSO_LDOPTS		= -shared $(ARCHFLAG) -Wl,--gc-sections
 # The linker on Red Hat Linux 7.2 and RHEL 2.1 (GNU ld version 2.11.90.0.8)
 # incorrectly reports undefined references in the libraries we link with, so
 # we don't use -z defs there.
+# Also, -z defs conflicts with Address Sanitizer, which emits relocations
+# against the libsanitizer runtime built into the main executable.
 ZDEFS_FLAG		= -Wl,-z,defs
+ifneq ($(USE_ASAN),1)
 DSO_LDOPTS		+= $(if $(findstring 2.11.90.0.8,$(shell ld -v)),,$(ZDEFS_FLAG))
+endif
 LDFLAGS			+= $(ARCHFLAG)
 
 # On Maemo, we need to use the -rpath-link flag for even the standard system
@@ -240,3 +214,5 @@ PROCESS_MAP_FILE = grep -v ';-' $< | \
 ifeq ($(OS_RELEASE),2.4)
 DEFINES += -DNO_FORK_CHECK
 endif
+
+include $(CORE_DEPTH)/coreconf/sanitizers.mk

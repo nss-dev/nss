@@ -13,6 +13,7 @@
 # OS_TARGET	User defined, or set to OS_ARCH
 # CPU_ARCH  	(from unmame -m or -p, ONLY on WINNT)
 # OS_CONFIG	OS_TARGET + OS_RELEASE
+# ASAN_TAG
 # OBJDIR_TAG
 # OBJDIR_NAME
 #######################################################################
@@ -205,11 +206,11 @@ ifeq (CYGWIN_NT,$(findstring CYGWIN_NT,$(OS_ARCH)))
     endif
 endif
 #
-# If uname -s returns "MINGW32_NT-*", we assume that we are using
+# If uname -s returns "MINGW*_NT-*", we assume that we are using
 # the uname.exe in the MSYS toolkit.
 #
-ifeq (MINGW32_NT,$(findstring MINGW32_NT,$(OS_ARCH)))
-    OS_RELEASE := $(patsubst MINGW32_NT-%,%,$(OS_ARCH))
+ifneq (,$(filter MINGW32_NT-% MINGW64_NT-%,$(OS_ARCH)))
+    OS_RELEASE := $(patsubst MINGW64_NT-%,%,$(patsubst MINGW32_NT-%,%,$(OS_ARCH)))
     OS_ARCH = WINNT
     USE_MSYS = 1
     ifndef CPU_ARCH
@@ -217,7 +218,7 @@ ifeq (MINGW32_NT,$(findstring MINGW32_NT,$(OS_ARCH)))
 	#
 	# MSYS's uname -m returns "i686" on a Pentium Pro machine.
 	#
-	ifneq (,$(findstring 86,$(CPU_ARCH)))
+	ifneq (,$(filter i%86,$(CPU_ARCH)))
 	    CPU_ARCH = x386
 	endif
     endif
@@ -257,17 +258,27 @@ endif
 OS_CONFIG = $(OS_TARGET)$(OS_RELEASE)
 
 #
+# Set Address Sanitizer prefix.
+#
+
+ifeq ($(USE_ASAN), 1)
+    ASAN_TAG = _ASAN
+else
+    ASAN_TAG =
+endif
+
+#
 # OBJDIR_TAG depends on the predefined variable BUILD_OPT,
 # to distinguish between debug and release builds.
 #
 
 ifdef BUILD_OPT
-    OBJDIR_TAG = $(64BIT_TAG)_OPT
+    OBJDIR_TAG = $(64BIT_TAG)$(ASAN_TAG)_OPT
 else
     ifdef BUILD_IDG
-	OBJDIR_TAG = $(64BIT_TAG)_IDG
+	OBJDIR_TAG = $(64BIT_TAG)$(ASAN_TAG)_IDG
     else
-	OBJDIR_TAG = $(64BIT_TAG)_DBG
+	OBJDIR_TAG = $(64BIT_TAG)$(ASAN_TAG)_DBG
     endif
 endif
 

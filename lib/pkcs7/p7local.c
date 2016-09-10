@@ -203,7 +203,8 @@ sec_PKCS7CreateEncryptObject (PLArenaPool *poolp, PK11SymKey *key,
 	rv = PK11_ParamToAlgid(algtag,param,poolp,algid);
 	if(rv != SECSuccess) {
 	    PORT_Free (result);
-            SECITEM_FreeItem(param,PR_TRUE);
+	    SECITEM_FreeItem(param,PR_TRUE);
+	    PK11_DestroyContext(ciphercx, PR_TRUE);
 	    return NULL;
 	}
     }
@@ -710,8 +711,12 @@ sec_PKCS7Encrypt (sec_PKCS7CipherObject *obj, unsigned char *output,
     }
 
     if (final) {
-	padlen = padsize - (pcount % padsize);
-	PORT_Memset (pbuf + pcount, padlen, padlen);
+        if (padsize) {
+	    padlen = padsize - (pcount % padsize);
+	    PORT_Memset (pbuf + pcount, padlen, padlen);
+        } else {
+	    padlen = 0;
+        }
 	rv = (* obj->doit) (obj->cx, output, &ofraglen, max_output_len,
 			    pbuf, pcount+padlen);
 	if (rv != SECSuccess)

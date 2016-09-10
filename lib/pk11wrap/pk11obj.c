@@ -25,6 +25,8 @@ SECItem *
 PK11_BlockData(SECItem *data,unsigned long size) {
     SECItem *newData;
 
+    if (size == 0u) return NULL;
+
     newData = (SECItem *)PORT_Alloc(sizeof(SECItem));
     if (newData == NULL) return NULL;
 
@@ -666,6 +668,18 @@ SECStatus
 PK11_Verify(SECKEYPublicKey *key, const SECItem *sig, const SECItem *hash,
 	    void *wincx)
 {
+    CK_MECHANISM_TYPE mech = PK11_MapSignKeyType(key->keyType);
+    return PK11_VerifyWithMechanism(key, mech, NULL, sig, hash, wincx);
+}
+
+/*
+ * Verify a signature from its hash using the given algorithm.
+ */
+SECStatus
+PK11_VerifyWithMechanism(SECKEYPublicKey *key, CK_MECHANISM_TYPE mechanism,
+                         const SECItem *param, const SECItem *sig,
+                         const SECItem *hash, void *wincx)
+{
     PK11SlotInfo *slot = key->pkcs11Slot;
     CK_OBJECT_HANDLE id = key->pkcs11ID;
     CK_MECHANISM mech = {0, NULL, 0 };
@@ -673,7 +687,11 @@ PK11_Verify(SECKEYPublicKey *key, const SECItem *sig, const SECItem *hash,
     CK_SESSION_HANDLE session;
     CK_RV crv;
 
-    mech.mechanism = PK11_MapSignKeyType(key->keyType);
+    mech.mechanism = mechanism;
+    if (param) {
+        mech.pParameter = param->data;
+        mech.ulParameterLen = param->len;
+    }
 
     if (slot == NULL) {
 	unsigned int length =  0;
@@ -737,6 +755,17 @@ PK11_Verify(SECKEYPublicKey *key, const SECItem *sig, const SECItem *hash,
 SECStatus
 PK11_Sign(SECKEYPrivateKey *key, SECItem *sig, const SECItem *hash)
 {
+    CK_MECHANISM_TYPE mech = PK11_MapSignKeyType(key->keyType);
+    return PK11_SignWithMechanism(key, mech, NULL, sig, hash);
+}
+
+/*
+ * Sign a hash using the given algorithm.
+ */
+SECStatus
+PK11_SignWithMechanism(SECKEYPrivateKey *key, CK_MECHANISM_TYPE mechanism,
+                       const SECItem *param, SECItem *sig, const SECItem *hash)
+{
     PK11SlotInfo *slot = key->pkcs11Slot;
     CK_MECHANISM mech = {0, NULL, 0 };
     PRBool owner = PR_TRUE;
@@ -745,7 +774,11 @@ PK11_Sign(SECKEYPrivateKey *key, SECItem *sig, const SECItem *hash)
     CK_ULONG len;
     CK_RV crv;
 
-    mech.mechanism = PK11_MapSignKeyType(key->keyType);
+    mech.mechanism = mechanism;
+    if (param) {
+        mech.pParameter = param->data;
+        mech.ulParameterLen = param->len;
+    }
 
     if (SECKEY_HAS_ATTRIBUTE_SET(key,CKA_PRIVATE)) {
 	PK11_HandlePasswordCheck(slot, key->wincx);
@@ -1211,10 +1244,8 @@ PK11_UnwrapPrivKey(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
 	crv = CKR_FUNCTION_NOT_SUPPORTED;
     }
 
-    if (ck_id) {
-	SECITEM_FreeItem(ck_id, PR_TRUE);
-	ck_id = NULL;
-    }
+    SECITEM_FreeItem(ck_id, PR_TRUE);
+    ck_id = NULL;
 
     if (crv != CKR_OK) {
 	/* we couldn't unwrap the key, use the internal module to do the
@@ -1781,22 +1812,21 @@ PK11_MatchItem(PK11SlotInfo *slot, CK_OBJECT_HANDLE searchID,
     int tsize = sizeof(theTemplate)/sizeof(theTemplate[0]);
     /* if you change the array, change the variable below as well */
     CK_OBJECT_HANDLE peerID;
-    PLArenaPool *arena;
+    PORTCheapArenaPool tmpArena;
     CK_RV crv;
 
     /* now we need to create space for the public key */
-    arena = PORT_NewArena( DER_DEFAULT_CHUNKSIZE);
-    if (arena == NULL) return CK_INVALID_HANDLE;
+    PORT_InitCheapArena(&tmpArena, DER_DEFAULT_CHUNKSIZE);
 
-    crv = PK11_GetAttributes(arena,slot,searchID,theTemplate,tsize);
+    crv = PK11_GetAttributes(&tmpArena.arena,slot,searchID,theTemplate,tsize);
     if (crv != CKR_OK) {
-	PORT_FreeArena(arena,PR_FALSE);
+	PORT_DestroyCheapArena(&tmpArena);
 	PORT_SetError( PK11_MapError(crv) );
 	return CK_INVALID_HANDLE;
     }
 
     if ((theTemplate[0].ulValueLen == 0) || (theTemplate[0].ulValueLen == -1)) {
-	PORT_FreeArena(arena,PR_FALSE);
+	PORT_DestroyCheapArena(&tmpArena);
 	if (matchclass == CKO_CERTIFICATE)
 	    PORT_SetError(SEC_ERROR_BAD_KEY);
 	else
@@ -1812,7 +1842,7 @@ PK11_MatchItem(PK11SlotInfo *slot, CK_OBJECT_HANDLE searchID,
     *(CK_OBJECT_CLASS *)(keyclass->pValue) = matchclass;
 
     peerID = pk11_FindObjectByTemplate(slot,theTemplate,tsize);
-    PORT_FreeArena(arena,PR_FALSE);
+    PORT_DestroyCheapArena(&tmpArena);
 
     return peerID;
 }

@@ -7,5 +7,10 @@ DEPTH      = ..
 
 DIRS = \
 	google_test \
-        ssl_gtest \
+	common \
+	der_gtest \
+	util_gtest \
+	pk11_gtest \
+	ssl_gtest \
+        nss_bogo_shim \
 	$(NULL)
