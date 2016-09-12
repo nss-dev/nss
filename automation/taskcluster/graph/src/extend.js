@@ -160,12 +160,12 @@ async function scheduleLinux(name, base) {
   // Extra builds.
   let extra_base = merge({group: "Builds"}, build_base);
   queue.scheduleTask(merge(extra_base, {
-    name: `${name} w/ clang-3.8`,
+    name: `${name} w/ clang-3.9`,
     env: {
       GCC_VERSION: "clang",
       GXX_VERSION: "clang++"
     },
-    symbol: "clang-3.8"
+    symbol: "clang-3.9"
   }));
 
   queue.scheduleTask(merge(extra_base, {
@@ -341,8 +341,8 @@ async function scheduleTools() {
   };
 
   queue.scheduleTask(merge(base, {
-    symbol: "clang-format-3.8",
-    name: "clang-format-3.8",
+    symbol: "clang-format-3.9",
+    name: "clang-format-3.9",
     command: [
       "/bin/bash",
       "-c",
@@ -351,8 +351,8 @@ async function scheduleTools() {
   }));
 
   queue.scheduleTask(merge(base, {
-    symbol: "scan-build-3.8",
-    name: "scan-build-3.8",
+    symbol: "scan-build-3.9",
+    name: "scan-build-3.9",
     env: {
       USE_64: "1",
       GCC_VERSION: "clang",

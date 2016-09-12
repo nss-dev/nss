@@ -2200,7 +2200,7 @@ CERT_AddOCSPAcceptableResponses(CERTOCSPRequest *request,
                                 SECOidTag responseType0, ...)
 {
     void *extHandle;
-    va_list ap;
+    va_list ap, ap2;
     int i, count;
     SECOidTag responseType;
     SECOidData *responseOid;
@@ -2217,7 +2217,15 @@ CERT_AddOCSPAcceptableResponses(CERTOCSPRequest *request,
     /* Count number of OIDS going into the extension value. */
     count = 1;
     if (responseType0 != SEC_OID_PKIX_OCSP_BASIC_RESPONSE) {
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wvarargs"
+#endif
         va_start(ap, responseType0);
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+        va_copy(ap2, ap);
         do {
             count++;
             responseType = va_arg(ap, SECOidTag);
@@ -2233,13 +2241,12 @@ CERT_AddOCSPAcceptableResponses(CERTOCSPRequest *request,
     responseOid = SECOID_FindOIDByTag(responseType0);
     acceptableResponses[i++] = &(responseOid->oid);
     if (count > 1) {
-        va_start(ap, responseType0);
         for (; i < count; i++) {
-            responseType = va_arg(ap, SECOidTag);
+            responseType = va_arg(ap2, SECOidTag);
             responseOid = SECOID_FindOIDByTag(responseType);
             acceptableResponses[i] = &(responseOid->oid);
         }
-        va_end(ap);
+        va_end(ap2);
     }
     acceptableResponses[i] = NULL;
 

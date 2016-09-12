@@ -11151,20 +11151,20 @@ ssl3_HandleClientKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         ss->sec.keaKeyBits = EXPORT_RSA_KEY_LENGTH * BPB;
     } else
     skip:
-    if (kea_def->ephemeral) {
-        sslEphemeralKeyPair *keyPair;
-        /* There should be exactly one pair. */
-        PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->ephemeralKeyPairs));
-        PORT_Assert(PR_PREV_LINK(&ss->ephemeralKeyPairs) ==
-                    PR_NEXT_LINK(&ss->ephemeralKeyPairs));
-        keyPair = (sslEphemeralKeyPair *)PR_NEXT_LINK(&ss->ephemeralKeyPairs);
-        serverKeyPair = keyPair->keys;
-        ss->sec.keaKeyBits =
-            SECKEY_PublicKeyStrengthInBits(serverKeyPair->pubKey);
-    } else {
-        serverKeyPair = ss->sec.serverCert->serverKeyPair;
-        ss->sec.keaKeyBits = ss->sec.serverCert->serverKeyBits;
-    }
+        if (kea_def->ephemeral) {
+            sslEphemeralKeyPair *keyPair;
+            /* There should be exactly one pair. */
+            PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->ephemeralKeyPairs));
+            PORT_Assert(PR_PREV_LINK(&ss->ephemeralKeyPairs) ==
+                        PR_NEXT_LINK(&ss->ephemeralKeyPairs));
+            keyPair = (sslEphemeralKeyPair *)PR_NEXT_LINK(&ss->ephemeralKeyPairs);
+            serverKeyPair = keyPair->keys;
+            ss->sec.keaKeyBits =
+                SECKEY_PublicKeyStrengthInBits(serverKeyPair->pubKey);
+        } else {
+            serverKeyPair = ss->sec.serverCert->serverKeyPair;
+            ss->sec.keaKeyBits = ss->sec.serverCert->serverKeyBits;
+        }
 
     if (!serverKeyPair) {
         SSL3_SendAlert(ss, alert_fatal, handshake_failure);
