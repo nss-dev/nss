@@ -51,18 +51,30 @@ TEST_P(TlsConnectGeneric, ConnectEcdhe) {
 // If we pick a 256-bit cipher suite and use a P-384 certificate, the server
 // should choose P-384 for key exchange too.  Only valid for TLS >=1.2 because
 // we don't have 256-bit ciphers before then.
-// TODO: Re-enable for 1.3 when Bug 1286140 lands.
-TEST_P(TlsConnectTls12, ConnectEcdheP384) {
+TEST_P(TlsConnectTls12Plus, ConnectEcdheP384) {
   Reset(TlsAgent::kServerEcdsa384);
   ConnectWithCipherSuite(TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256);
   CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa, 384);
 }
 
-TEST_P(TlsConnectGeneric, ConnectEcdheP384) {
+TEST_P(TlsConnectGeneric, ConnectEcdheP384Client) {
   EnsureTlsSetup();
   client_->ConfigNamedGroup(ssl_grp_ec_secp256r1, false);
   Connect();
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign, 384);
+}
+
+// This causes a HelloRetryRequest in TLS 1.3.  Earlier versions don't care.
+TEST_P(TlsConnectGeneric, ConnectEcdheP384Server) {
+  EnsureTlsSetup();
+  auto hrr_capture =
+      new TlsInspectorRecordHandshakeMessage(kTlsHandshakeHelloRetryRequest);
+  server_->SetPacketFilter(hrr_capture);
+  server_->ConfigNamedGroup(ssl_grp_ec_secp256r1, false);
+  Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign, 384);
+  EXPECT_EQ(version_ == SSL_LIBRARY_VERSION_TLS_1_3,
+            hrr_capture->buffer().len() != 0);
 }
 
 // This enables only P-256 on the client and disables it on the server.

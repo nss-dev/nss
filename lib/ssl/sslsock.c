@@ -1723,6 +1723,9 @@ ssl_GetDHEParams(const namedGroupDef *groupDef)
             return &ff_dhe_6144_params;
         case ssl_grp_ffdhe_8192:
             return &ff_dhe_8192_params;
+        case ssl_grp_ffdhe_custom:
+            PORT_Assert(gWeakDHParams);
+            return gWeakDHParams;
         default:
             PORT_Assert(0);
     }
@@ -1818,9 +1821,7 @@ ssl_ValidateDHENamedGroup(sslSocket *ss,
 /* Ensure DH parameters have been selected.  This just picks the first enabled
  * FFDHE group in ssl_named_groups, or the weak one if it was enabled. */
 SECStatus
-ssl_SelectDHEParams(sslSocket *ss,
-                    const namedGroupDef **groupDef,
-                    const ssl3DHParams **params)
+ssl_SelectDHEGroup(sslSocket *ss, const namedGroupDef **groupDef)
 {
     unsigned int i;
     static const namedGroupDef weak_group_def = {
@@ -1833,28 +1834,23 @@ ssl_SelectDHEParams(sslSocket *ss,
     if (ss->ssl3.dheWeakGroupEnabled &&
         ss->version < SSL_LIBRARY_VERSION_TLS_1_3 &&
         !ss->ssl3.hs.peerSupportsFfdheGroups) {
-        PORT_Assert(gWeakDHParams);
         *groupDef = &weak_group_def;
-        *params = gWeakDHParams;
         return SECSuccess;
     }
     if (ss->ssl3.dhePreferredGroup &&
         ssl_NamedGroupEnabled(ss, ss->ssl3.dhePreferredGroup)) {
         *groupDef = ss->ssl3.dhePreferredGroup;
-        *params = ssl_GetDHEParams(ss->ssl3.dhePreferredGroup);
         return SECSuccess;
     }
     for (i = 0; i < ssl_named_group_count; ++i) {
         if (ssl_named_groups[i].type == group_type_ff &&
             ssl_NamedGroupEnabled(ss, &ssl_named_groups[i])) {
             *groupDef = &ssl_named_groups[i];
-            *params = ssl_GetDHEParams(&ssl_named_groups[i]);
             return SECSuccess;
         }
     }
 
     *groupDef = NULL;
-    *params = NULL;
     PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
     return SECFailure;
 }

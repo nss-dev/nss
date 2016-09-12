@@ -750,6 +750,20 @@ struct ssl3MACDefStr {
 };
 
 typedef enum {
+    ssl_0rtt_none,     /* 0-RTT not present */
+    ssl_0rtt_sent,     /* 0-RTT sent (no decision yet) */
+    ssl_0rtt_accepted, /* 0-RTT sent and accepted */
+    ssl_0rtt_ignored,  /* 0-RTT sent but rejected/ignored */
+    ssl_0rtt_done      /* 0-RTT accepted, but finished */
+} sslZeroRttState;
+
+typedef enum {
+    ssl_0rtt_ignore_none,  /* not ignoring */
+    ssl_0rtt_ignore_trial, /* ignoring with trial decryption */
+    ssl_0rtt_ignore_hrr    /* ignoring until ClientHello (due to HRR) */
+} sslZeroRttIgnore;
+
+typedef enum {
     wait_client_hello,
     wait_client_cert,
     wait_client_key,
@@ -766,10 +780,15 @@ typedef enum {
     wait_encrypted_extensions,
     idle_handshake,
     wait_0rtt_finished,
-    wait_0rtt_end_of_early_data, /* Not processed by handshake code. */
-    wait_0rtt_trial_decrypt,     /* Wait for trial decryption to succeed. */
-    wait_invalid                 /* Invalid value. There is no handshake message "invalid". */
+    wait_invalid /* Invalid value. There is no handshake message "invalid". */
 } SSL3WaitState;
+
+typedef enum {
+    client_hello_initial,      /* The first attempt. */
+    client_hello_retry,        /* If we receive HelloRetryRequest. */
+    client_hello_retransmit,   /* In DTLS, if we receive HelloVerifyRequest. */
+    client_hello_renegotiation /* A renegotiation attempt. */
+} sslClientHelloType;
 
 /*
  * TLS extension related constants and data structures.
@@ -989,9 +1008,13 @@ typedef struct SSL3HandshakeStateStr {
                                         * connection if we are resuming. */
     PRCList cipherSpecs;             /* The cipher specs in the sequence they
                                         * will be applied. */
-    PRBool doing0Rtt;                /* Are we doing a 0-RTT handshake? */
+    ssl3CipherSpec *nullSpec;        /* In case 0-RTT is rejected. */
+    sslZeroRttState zeroRttState;    /* Are we doing a 0-RTT handshake? */
+    sslZeroRttIgnore zeroRttIgnore;  /* Are we ignoring 0-RTT? */
     PRCList bufferedEarlyData;       /* Buffered TLS 1.3 early data
                                         * on server.*/
+    PRBool helloRetry;               /* True if HelloRetryRequest has been sent
+                                      * or received. */
 } SSL3HandshakeState;
 
 /*
@@ -1648,7 +1671,7 @@ extern SECStatus ssl3_AuthCertificateComplete(sslSocket *ss, PRErrorCode error);
 extern SECStatus ssl3_HandleV2ClientHello(
     sslSocket *ss, unsigned char *buffer, int length, PRUint8 padding);
 
-SECStatus ssl3_SendClientHello(sslSocket *ss, PRBool resending);
+SECStatus ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type);
 
 /*
  * input into the SSL3 machinery from the actualy network reading code
@@ -1691,9 +1714,8 @@ extern SECStatus ssl_AppendPaddedDHKeyShare(sslSocket *ss,
                                             SECKEYPublicKey *pubKey,
                                             PRBool appendLength);
 extern const ssl3DHParams *ssl_GetDHEParams(const namedGroupDef *groupDef);
-extern SECStatus ssl_SelectDHEParams(sslSocket *ss,
-                                     const namedGroupDef **groupDef,
-                                     const ssl3DHParams **params);
+extern SECStatus ssl_SelectDHEGroup(sslSocket *ss,
+                                    const namedGroupDef **groupDef);
 extern SECStatus ssl_CreateDHEKeyPair(const namedGroupDef *groupDef,
                                       const ssl3DHParams *params,
                                       sslEphemeralKeyPair **keyPair);
@@ -1940,14 +1962,15 @@ extern SSL3ProtocolVersion
 dtls_TLSVersionToDTLSVersion(SSL3ProtocolVersion tlsv);
 extern SSL3ProtocolVersion
 dtls_DTLSVersionToTLSVersion(SSL3ProtocolVersion dtlsv);
-extern PRBool dtls_IsRelevant(sslSocket *ss, const ssl3CipherSpec *crSpec,
-                              const SSL3Ciphertext *cText,
-                              sslSequenceNumber *seqNum);
+extern PRBool dtls_IsRelevant(sslSocket *ss, const SSL3Ciphertext *cText,
+                              PRBool *sameEpoch, PRUint64 *seqNum);
 extern SECStatus dtls_MaybeRetransmitHandshake(sslSocket *ss,
-                                               const SSL3Ciphertext *cText);
+                                               const SSL3Ciphertext *cText,
+                                               PRBool sameEpoch);
 
 CK_MECHANISM_TYPE ssl3_Alg2Mech(SSLCipherAlgorithm calg);
-SECStatus ssl3_NegotiateCipherSuite(sslSocket *ss, const SECItem *suites);
+SECStatus ssl3_NegotiateCipherSuite(sslSocket *ss, const SECItem *suites,
+                                    PRBool initHashes);
 SECStatus ssl3_ServerCallSNICallback(sslSocket *ss);
 SECStatus ssl3_SetupPendingCipherSpec(sslSocket *ss);
 SECStatus ssl3_FlushHandshake(sslSocket *ss, PRInt32 flags);
