@@ -13,12 +13,6 @@ fi
 
 # Includes a default set of directories.
 
-apply=false
-if [ $1 = "--apply" ]; then
-    apply=true
-    shift
-fi
-
 if [ $# -gt 0 ]; then
     dirs=("$@")
 else
@@ -47,15 +41,15 @@ else
     )
 fi
 
-STATUS=0
 for dir in "${dirs[@]}"; do
-    for i in $(find "$dir" -type f \( -name '*.[ch]' -o -name '*.cc' \) -print); do
-        if $apply; then
-            clang-format -i "$i"
-        elif ! clang-format "$i" | diff -Naur "$i" -; then
-            echo "Sorry, $i is not formatted properly. Please use clang-format 3.8 on your patch before landing."
-            STATUS=1
-        fi
-    done
+    find "$dir" -type f \( -name '*.[ch]' -o -name '*.cc' \) -exec clang-format -i {} \+
 done
-exit $STATUS
+
+TMPFILE=$(mktemp /tmp/$(basename $0).XXXXXX)
+trap 'rm $TMPFILE' exit
+if hg root >/dev/null 2>&1; then
+    hg diff --git "$top" | tee $TMPFILE
+else
+    git -C "$top" diff | tee $TMPFILE
+fi
+[[ ! -s $TMPFILE ]]
