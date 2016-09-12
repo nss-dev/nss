@@ -2131,6 +2131,9 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
             }
         }
         if (parsed_session_ticket->srvName.data != NULL) {
+            if (sid->u.ssl3.srvName.data) {
+                SECITEM_FreeItem(&sid->u.ssl3.srvName, PR_FALSE);
+            }
             sid->u.ssl3.srvName = parsed_session_ticket->srvName;
         }
         if (parsed_session_ticket->alpnSelection.data != NULL) {
