@@ -80,7 +80,7 @@ function parseTreeherder(def) {
 }
 
 function convertTask(def) {
-  let dependencies = def.dependencies || [];
+  let dependencies = [];
 
   let env = merge({
     NSS_HEAD_REPOSITORY: process.env.NSS_HEAD_REPOSITORY,
@@ -159,7 +159,7 @@ export function scheduleTask(def) {
 }
 
 export async function submit() {
-  let promises = [];
+  let promises = new Map();
 
   for (let [taskId, task] of tasks) {
     // Allow filtering tasks before we schedule them.
@@ -172,6 +172,8 @@ export async function submit() {
 
     let log_id = `${task.name} @ ${task.platform}[${task.collection || "opt"}]`;
     console.log(`+ Submitting ${log_id}.`);
+
+    let parent = task.parent;
 
     // Convert the task definition.
     task = await convertTask(task);
@@ -219,15 +221,20 @@ export async function submit() {
       };
     }
 
-    // Schedule the task.
-    promises.push(queue.createTask(taskId, task).catch(err => {
-      console.error(`! FAIL: Scheduling ${log_id} failed.`, err);
+    // Wait for the parent task to be created before scheduling dependants.
+    let predecessor = parent ? promises.get(parent) : Promise.resolve();
+
+    promises.set(taskId, predecessor.then(() => {
+      // Schedule the task.
+      return queue.createTask(taskId, task).catch(err => {
+        console.error(`! FAIL: Scheduling ${log_id} failed.`, err);
+      });
     }));
   }
 
   // Wait for all requests to finish.
   if (promises.length) {
-    await Promise.all(promises);
+    await Promise.all([...promises.values()]);
     console.log("=== Total:", promises.length, "tasks. ===");
   }
 
