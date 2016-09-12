@@ -344,23 +344,27 @@ void TlsConnectTestBase::ConfigureSessionCache(SessionResumptionMode client,
 void TlsConnectTestBase::CheckResumption(SessionResumptionMode expected) {
   EXPECT_NE(RESUME_BOTH, expected);
 
-  int resume_ct = expected ? 1 : 0;
-  int stateless_ct = (expected & RESUME_TICKET) ? 1 : 0;
+  int resume_count = expected ? 1 : 0;
+  int stateless_count = (expected & RESUME_TICKET) ? 1 : 0;
 
+  // Note: hch == server counter; hsh == client counter.
   SSL3Statistics* stats = SSL_GetStatistics();
-  EXPECT_EQ(resume_ct, stats->hch_sid_cache_hits);
-  EXPECT_EQ(resume_ct, stats->hsh_sid_cache_hits);
+  EXPECT_EQ(resume_count, stats->hch_sid_cache_hits);
+  EXPECT_EQ(resume_count, stats->hsh_sid_cache_hits);
 
-  EXPECT_EQ(stateless_ct, stats->hch_sid_stateless_resumes);
-  EXPECT_EQ(stateless_ct, stats->hsh_sid_stateless_resumes);
+  EXPECT_EQ(stateless_count, stats->hch_sid_stateless_resumes);
+  EXPECT_EQ(stateless_count, stats->hsh_sid_stateless_resumes);
 
-  if (resume_ct && client_->version() < SSL_LIBRARY_VERSION_TLS_1_3) {
-    // Check that the last two session ids match.
-    // TLS 1.3 doesn't do session id-based resumption. It's all
-    // tickets.
-    EXPECT_EQ(2U, session_ids_.size());
-    EXPECT_EQ(session_ids_[session_ids_.size() - 1],
-              session_ids_[session_ids_.size() - 2]);
+  if (expected != RESUME_NONE) {
+    if (client_->version() < SSL_LIBRARY_VERSION_TLS_1_3) {
+      // Check that the last two session ids match.
+      ASSERT_EQ(2U, session_ids_.size());
+      EXPECT_EQ(session_ids_[session_ids_.size() - 1],
+                session_ids_[session_ids_.size() - 2]);
+    } else {
+      // TLS 1.3 only uses tickets.
+      EXPECT_TRUE(expected & RESUME_TICKET);
+    }
   }
 }
 

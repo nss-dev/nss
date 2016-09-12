@@ -92,6 +92,13 @@ TlsAgent::~TlsAgent() {
   }
 }
 
+void TlsAgent::SetState(State state) {
+  if (state_ == state) return;
+
+  LOG("Changing state from " << state_ << " to " << state);
+  state_ = state;
+}
+
 bool TlsAgent::ConfigServerCert(const std::string& name, bool updateKeyBits,
                                 const SSLExtraServerCertData* serverCertData) {
   ScopedCERTCertificate cert(PK11_FindCertFromNickname(name.c_str(), nullptr));
@@ -802,6 +809,7 @@ void TlsAgentTestBase::EnsureInit() {
 void TlsAgentTestBase::ProcessMessage(const DataBuffer& buffer,
                                       TlsAgent::State expected_state,
                                       int32_t error_code) {
+  std::cerr << "Process message: " << buffer << std::endl;
   EnsureInit();
   agent_->adapter()->PacketReceived(buffer);
   agent_->Handshake();
@@ -830,19 +838,22 @@ void TlsAgentTestBase::MakeRecord(Mode mode, uint8_t type, uint16_t version,
 
 void TlsAgentTestBase::MakeRecord(uint8_t type, uint16_t version,
                                   const uint8_t* buf, size_t len,
-                                  DataBuffer* out, uint64_t seq_num) {
+                                  DataBuffer* out, uint64_t seq_num) const {
   MakeRecord(mode_, type, version, buf, len, out, seq_num);
 }
 
 void TlsAgentTestBase::MakeHandshakeMessage(uint8_t hs_type,
                                             const uint8_t* data, size_t hs_len,
-                                            DataBuffer* out, uint64_t seq_num) {
+                                            DataBuffer* out,
+                                            uint64_t seq_num) const {
   return MakeHandshakeMessageFragment(hs_type, data, hs_len, out, seq_num, 0,
                                       0);
 }
+
 void TlsAgentTestBase::MakeHandshakeMessageFragment(
     uint8_t hs_type, const uint8_t* data, size_t hs_len, DataBuffer* out,
-    uint64_t seq_num, uint32_t fragment_offset, uint32_t fragment_length) {
+    uint64_t seq_num, uint32_t fragment_offset,
+    uint32_t fragment_length) const {
   size_t index = 0;
   if (!fragment_length) fragment_length = hs_len;
   index = out->Write(index, hs_type, 1);  // Handshake record type.

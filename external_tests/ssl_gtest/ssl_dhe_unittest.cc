@@ -534,10 +534,10 @@ TEST_P(TlsConnectTls13, ResumeFfdhe) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   EnableOnlyDheCiphers();
   TlsExtensionCapture* clientCapture =
-      new TlsExtensionCapture(kTlsExtensionPreSharedKey);
+      new TlsExtensionCapture(ssl_tls13_pre_shared_key_xtn);
   client_->SetPacketFilter(clientCapture);
   TlsExtensionCapture* serverCapture =
-      new TlsExtensionCapture(kTlsExtensionPreSharedKey);
+      new TlsExtensionCapture(ssl_tls13_pre_shared_key_xtn);
   server_->SetPacketFilter(serverCapture);
   ExpectResumption(RESUME_TICKET);
   Connect();

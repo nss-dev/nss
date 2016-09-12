@@ -20,25 +20,6 @@ extern "C" {
 
 namespace nss_test {
 
-// This class selectively drops complete writes.  This relies on the fact that
-// writes in libssl are on record boundaries.
-class SelectiveDropFilter : public PacketFilter, public PollTarget {
- public:
-  SelectiveDropFilter(uint32_t pattern) : pattern_(pattern), counter_(0) {}
-
- protected:
-  virtual Action Filter(const DataBuffer& input, DataBuffer* output) override {
-    if (counter_ >= 32) {
-      return KEEP;
-    }
-    return ((1 << counter_++) & pattern_) ? DROP : KEEP;
-  }
-
- private:
-  const uint32_t pattern_;
-  uint8_t counter_;
-};
-
 TEST_P(TlsConnectDatagram, DropClientFirstFlightOnce) {
   client_->SetPacketFilter(new SelectiveDropFilter(0x1));
   Connect();
