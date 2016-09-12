@@ -15,9 +15,17 @@ const WINDOWS_CHECKOUT_CMD =
 /*****************************************************************************/
 
 queue.filter(task => {
-  // Remove extra builds on ASan and ARM.
-  if (task.collection == "asan" || task.collection == "arm-debug") {
-    return task.group != "Builds";
+  if (task.group == "Builds") {
+    // Remove extra builds on ASan and ARM.
+    if (task.collection == "asan" || task.collection == "arm-debug") {
+      return false;
+    }
+
+    // Remove extra builds w/o libpkix for non-linux64-debug.
+    if (task.symbol == "noLibpkix" &&
+        (task.platform != "linux64" || task.collection != "debug")) {
+      return false;
+    }
   }
 
   return true;
@@ -182,6 +190,12 @@ async function scheduleLinux(name, base) {
     name: `${name} w/ NSS_NO_PKCS11_BYPASS=1`,
     env: {NSS_NO_PKCS11_BYPASS: "1"},
     symbol: "noPkcs11Bypass"
+  }));
+
+  queue.scheduleTask(merge(extra_base, {
+    name: `${name} w/ NSS_DISABLE_LIBPKIX=1`,
+    env: {NSS_DISABLE_LIBPKIX: "1"},
+    symbol: "noLibpkix"
   }));
 
   return queue.submit();
