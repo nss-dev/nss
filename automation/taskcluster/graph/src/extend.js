@@ -37,6 +37,11 @@ queue.map(task => {
     if (task.tests == "crmf" || task.tests == "fips") {
       task.env.ASAN_OPTIONS = "detect_leaks=0";
     }
+
+    // SSL(standard) runs on ASan take some time.
+    if (task.tests == "ssl" && task.cycle == "standard") {
+      task.maxRunTime = 7200;
+    }
   }
 
   if (task.collection == "arm-debug") {
