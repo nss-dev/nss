@@ -99,7 +99,8 @@ TEST_P(TlsConnectTls12, ServerAuthCheckSigAlg) {
   EXPECT_TRUE(buffer.Read(1, 2, &tmp)) << "read NamedCurve";
   EXPECT_EQ(ssl_grp_ec_secp256r1, tmp);
   EXPECT_TRUE(buffer.Read(3, 1, &tmp)) << " read ECPoint";
-  CheckSigScheme(capture_ske, 4 + tmp, client_, kTlsSigSchemeRsaPssSha256, 1024);
+  CheckSigScheme(capture_ske, 4 + tmp, client_, kTlsSigSchemeRsaPssSha256,
+                 1024);
 }
 
 TEST_P(TlsConnectTls12, ClientAuthCheckSigAlg) {
@@ -112,7 +113,8 @@ TEST_P(TlsConnectTls12, ClientAuthCheckSigAlg) {
   Connect();
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
 
-  CheckSigScheme(capture_cert_verify, 0, server_, kTlsSigSchemeRsaPkcs1Sha1, 1024);
+  CheckSigScheme(capture_cert_verify, 0, server_, kTlsSigSchemeRsaPkcs1Sha1,
+                 1024);
 }
 
 TEST_P(TlsConnectTls12, ClientAuthBigRsaCheckSigAlg) {
@@ -124,7 +126,8 @@ TEST_P(TlsConnectTls12, ClientAuthBigRsaCheckSigAlg) {
   server_->RequestClientAuth(true);
   Connect();
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
-  CheckSigScheme(capture_cert_verify, 0, server_, kTlsSigSchemeRsaPssSha256, 2048);
+  CheckSigScheme(capture_cert_verify, 0, server_, kTlsSigSchemeRsaPssSha256,
+                 2048);
 }
 
 static const SSLSignatureAndHashAlg SignatureEcdsaSha384[] = {
