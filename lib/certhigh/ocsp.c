@@ -2195,6 +2195,10 @@ SetRequestExts(void *object, CERTCertExtension **exts)
     request->tbsRequest->requestExtensions = exts;
 }
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wvarargs"
+#endif
 SECStatus
 CERT_AddOCSPAcceptableResponses(CERTOCSPRequest *request,
                                 SECOidTag responseType0, ...)
@@ -2217,14 +2221,7 @@ CERT_AddOCSPAcceptableResponses(CERTOCSPRequest *request,
     /* Count number of OIDS going into the extension value. */
     count = 1;
     if (responseType0 != SEC_OID_PKIX_OCSP_BASIC_RESPONSE) {
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wvarargs"
-#endif
         va_start(ap, responseType0);
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
         va_copy(ap2, ap);
         do {
             count++;
@@ -2268,6 +2265,9 @@ loser:
         (void)CERT_FinishExtensions(extHandle);
     return rv;
 }
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * FUNCTION: CERT_DestroyOCSPRequest
