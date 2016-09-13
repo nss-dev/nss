@@ -838,9 +838,10 @@ static PRBool
 ssl_NamedGroupTypeEnabled(const sslSocket *ss, NamedGroupType groupType)
 {
     unsigned int i;
-    for (i = 0; i < ssl_named_group_count; ++i) {
-        if (ssl_named_groups[i].type == groupType &&
-            ssl_NamedGroupEnabled(ss, &ssl_named_groups[i])) {
+    for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
+        if (ss->namedGroupPreferences[i] &&
+            ss->namedGroupPreferences[i]->type == groupType &&
+            ssl_NamedGroupEnabled(ss, ss->namedGroupPreferences[i])) {
             return PR_TRUE;
         }
     }
@@ -864,6 +865,11 @@ ssl_KEAEnabled(const sslSocket *ss, SSLKEAType keaType)
              * earlier and named groups aren't required. */
             if (!ss->opt.requireDHENamedGroups &&
                 ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+                /* If the client indicates support for named FFDHE groups, check
+                 * that we have one in common. */
+                if (ss->sec.isServer && ss->ssl3.hs.peerSupportsFfdheGroups) {
+                    return ssl_NamedGroupTypeEnabled(ss, group_type_ff);
+                }
                 return PR_TRUE;
             }
             /* If the server requires the extension, then the client must have
@@ -12666,7 +12672,6 @@ ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid)
     sid->authKeyBits = ss->sec.authKeyBits;
     sid->keaType = ss->sec.keaType;
     sid->keaKeyBits = ss->sec.keaKeyBits;
-    sid->namedGroups = ss->namedGroups;
     sid->lastAccessTime = sid->creationTime = ssl_Time();
     sid->expirationTime = sid->creationTime + ssl3_sid_timeout;
     sid->localCert = CERT_DupCertificate(ss->sec.localCert);

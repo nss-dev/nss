@@ -3303,14 +3303,15 @@ tls13_HandleKeyShareEntry(sslSocket *ss, SECItem *data)
         goto loser;
     }
     groupDef = ssl_LookupNamedGroup(group);
+    rv = ssl3_ConsumeHandshakeVariable(ss, &share, 2, &data->data,
+                                       &data->len);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    /* If the group is disabled, continue. */
     if (!groupDef) {
         return SECSuccess;
     }
-
-    rv = ssl3_ConsumeHandshakeVariable(ss, &share, 2, &data->data,
-                                       &data->len);
-    if (rv != SECSuccess)
-        goto loser;
 
     ks = PORT_ZNew(TLS13KeyShareEntry);
     if (!ks)

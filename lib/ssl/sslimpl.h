@@ -147,6 +147,9 @@ typedef enum { SSLAppOpRead = 0,
 /* Time to wait in FINISHED state for retransmissions. */
 #define DTLS_RETRANSMIT_FINISHED_MS 30000
 
+/* default number of entries in namedGroupPreferences */
+#define SSL_NAMED_GROUP_COUNT 30
+
 /* Types and names of elliptic curves used in TLS */
 typedef enum {
     ec_type_explicitPrime = 1,      /* not supported */
@@ -607,7 +610,6 @@ struct sslSessionIDStr {
     PRUint32 authKeyBits;
     SSLKEAType keaType;
     PRUint32 keaKeyBits;
-    PRUint32 namedGroups;
 
     union {
         struct {
@@ -1325,11 +1327,18 @@ struct sslSocketStr {
     PRCList /* <sslServerCert> */ serverCerts;
 
     ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED];
-    /* This bit mask determines what EC and FFDHE groups are enabled.  This
+
+    /* A list of groups that are sorted according to user preferences pointing
+     * to entries of ssl_named_groups. By default this list contains pointers
+     * to all elements in ssl_named_groups in the default order.
+     * This list also determines which groups are enabled. This
      * starts with all being enabled and can be modified either by negotiation
      * (in which case groups not supported by a peer are masked off), or by
-     * calling SSL_DHEGroupPrefSet(), which will alter the mask for FFDHE. */
-    PRUint32 namedGroups;
+     * calling SSL_DHEGroupPrefSet().
+     * Note that renegotiation will ignore groups that were disabled in the
+     * first handshake.
+     */
+    const namedGroupDef *namedGroupPreferences[SSL_NAMED_GROUP_COUNT];
 
     /* SSL3 state info.  Formerly was a pointer */
     ssl3State ssl3;
@@ -1364,7 +1373,6 @@ extern sslSessionIDCacheFunc ssl_sid_cache;
 extern sslSessionIDUncacheFunc ssl_sid_uncache;
 
 extern const namedGroupDef ssl_named_groups[];
-extern const unsigned int ssl_named_group_count;
 
 /************************************************************************/
 
@@ -1747,7 +1755,7 @@ extern SECStatus ssl_NamedGroup2ECParams(PLArenaPool *arena,
 extern const namedGroupDef *ssl_ECPubKey2NamedGroup(
     const SECKEYPublicKey *pubKey);
 
-extern const namedGroupDef *ssl_GetECGroupWithStrength(PRUint32 curvemsk,
+extern const namedGroupDef *ssl_GetECGroupWithStrength(sslSocket *ss,
                                                        unsigned int requiredECCbits);
 extern const namedGroupDef *ssl_GetECGroupForServerSocket(sslSocket *ss);
 extern void ssl_DisableNonSuiteBGroups(sslSocket *ss);

@@ -11,6 +11,7 @@ extern "C" {
 
 #include <iostream>
 
+#include "databuffer.h"
 #include "gtest_utils.h"
 #include "sslproto.h"
 
@@ -119,6 +120,39 @@ TlsConnectTestBase::TlsConnectTestBase(Mode mode, uint16_t version)
 }
 
 TlsConnectTestBase::~TlsConnectTestBase() {}
+
+// Check the group of each of the supported groups
+void TlsConnectTestBase::CheckGroups(
+    const DataBuffer& groups, std::function<void(SSLNamedGroup)> check_group) {
+  DuplicateGroupChecker group_set;
+  uint32_t tmp = 0;
+  EXPECT_TRUE(groups.Read(0, 2, &tmp));
+  EXPECT_EQ(groups.len() - 2, static_cast<size_t>(tmp));
+  for (size_t i = 2; i < groups.len(); i += 2) {
+    EXPECT_TRUE(groups.Read(i, 2, &tmp));
+    SSLNamedGroup group = static_cast<SSLNamedGroup>(tmp);
+    group_set.AddAndCheckGroup(group);
+    check_group(group);
+  }
+}
+
+// Check the group of each of the shares
+void TlsConnectTestBase::CheckShares(
+    const DataBuffer& shares, std::function<void(SSLNamedGroup)> check_group) {
+  DuplicateGroupChecker group_set;
+  uint32_t tmp = 0;
+  EXPECT_TRUE(shares.Read(0, 2, &tmp));
+  EXPECT_EQ(shares.len() - 2, static_cast<size_t>(tmp));
+  size_t i;
+  for (i = 2; i < shares.len(); i += 4 + tmp) {
+    ASSERT_TRUE(shares.Read(i, 2, &tmp));
+    SSLNamedGroup group = static_cast<SSLNamedGroup>(tmp);
+    group_set.AddAndCheckGroup(group);
+    check_group(group);
+    ASSERT_TRUE(shares.Read(i + 2, 2, &tmp));
+  }
+  EXPECT_EQ(shares.len(), i);
+}
 
 void TlsConnectTestBase::ClearStats() {
   // Clear statistics.
@@ -389,11 +423,6 @@ void TlsConnectTestBase::EnsureModelSockets() {
   // Initialise agents.
   ASSERT_TRUE(client_model_->Init());
   ASSERT_TRUE(server_model_->Init());
-
-  // Set desired properties on the models.
-  // For now only ALPN.
-  client_model_->EnableAlpn(alpn_dummy_val_, sizeof(alpn_dummy_val_));
-  server_model_->EnableAlpn(alpn_dummy_val_, sizeof(alpn_dummy_val_));
 }
 
 void TlsConnectTestBase::CheckAlpn(const std::string& val) {

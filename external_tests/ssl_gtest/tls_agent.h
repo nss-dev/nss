@@ -141,7 +141,7 @@ class TlsAgent : public PollTarget {
   void EnableCompression();
   void SetDowngradeCheckVersion(uint16_t version);
   void CheckSecretsDestroyed();
-  void ConfigNamedGroup(SSLNamedGroup group, bool en);
+  void ConfigNamedGroups(const SSLNamedGroup* groups, size_t num);
 
   const std::string& name() const { return name_; }
 

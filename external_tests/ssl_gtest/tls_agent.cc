@@ -128,18 +128,9 @@ bool TlsAgent::ConfigServerCert(const std::string& name, bool updateKeyBits,
 // (NIST P-256, P-384, and P-521) are enabled. Disable all other curves.
 void TlsAgent::DisableLameGroups() {
 #ifdef NSS_ECC_MORE_THAN_SUITE_B
-  static const SSLNamedGroup lame_groups[] = {
-      ssl_grp_ec_sect163k1, ssl_grp_ec_sect163r1, ssl_grp_ec_sect163r2,
-      ssl_grp_ec_sect193r1, ssl_grp_ec_sect193r2, ssl_grp_ec_sect233k1,
-      ssl_grp_ec_sect233r1, ssl_grp_ec_sect239k1, ssl_grp_ec_sect283k1,
-      ssl_grp_ec_sect283r1, ssl_grp_ec_sect409k1, ssl_grp_ec_sect409r1,
-      ssl_grp_ec_sect571k1, ssl_grp_ec_sect571r1, ssl_grp_ec_secp160k1,
-      ssl_grp_ec_secp160r1, ssl_grp_ec_secp160r2, ssl_grp_ec_secp192k1,
-      ssl_grp_ec_secp192r1, ssl_grp_ec_secp224k1, ssl_grp_ec_secp224r1,
-      ssl_grp_ec_secp256k1};
-  for (size_t i = 0; i < PR_ARRAY_SIZE(lame_groups); ++i) {
-    ConfigNamedGroup(lame_groups[i], false);
-  }
+  static const SSLNamedGroup groups[] = {
+      ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1};
+  ConfigNamedGroups(groups, PR_ARRAY_SIZE(groups));
 #endif
 }
 
@@ -297,9 +288,9 @@ void TlsAgent::EnableSingleCipher(uint16_t cipher) {
   EXPECT_EQ(SECSuccess, rv);
 }
 
-void TlsAgent::ConfigNamedGroup(SSLNamedGroup group, bool en) {
+void TlsAgent::ConfigNamedGroups(const SSLNamedGroup* groups, size_t num) {
   EXPECT_TRUE(EnsureTlsSetup());
-  SECStatus rv = SSL_NamedGroupPrefSet(ssl_fd_, group, en ? PR_TRUE : PR_FALSE);
+  SECStatus rv = SSL_NamedGroupConfig(ssl_fd_, groups, num);
   EXPECT_EQ(SECSuccess, rv);
 }
 
