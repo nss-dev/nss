@@ -53,6 +53,8 @@ TEST_P(TlsConnectGeneric, ConnectAlpn) {
 
 TEST_P(TlsConnectGeneric, ConnectAlpnClone) {
   EnsureModelSockets();
+  client_model_->EnableAlpn(alpn_dummy_val_, sizeof(alpn_dummy_val_));
+  server_model_->EnableAlpn(alpn_dummy_val_, sizeof(alpn_dummy_val_));
   Connect();
   CheckAlpn("a");
 }

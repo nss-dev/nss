@@ -357,9 +357,12 @@ tls13_SetupClientHello(sslSocket *ss)
 
     PORT_Assert(PR_CLIST_IS_EMPTY(&ss->ephemeralKeyPairs));
 
-    for (i = 0; i < ssl_named_group_count; ++i) {
+    for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
         SECStatus rv;
-        const namedGroupDef *groupDef = &ssl_named_groups[i];
+        const namedGroupDef *groupDef = ss->namedGroupPreferences[i];
+        if (!groupDef) {
+            continue;
+        }
 
         if (!ssl_NamedGroupEnabled(ss, groupDef)) {
             continue;

@@ -23,7 +23,8 @@ TEST_P(TlsConnectTls13, HelloRetryRequestAbortsZeroRtt) {
 
   SetupForZeroRtt();  // initial handshake as normal
 
-  server_->ConfigNamedGroup(ssl_grp_ec_secp256r1, false);
+  const SSLNamedGroup groups[2] = {ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1};
+  server_->ConfigNamedGroups(groups, PR_ARRAY_SIZE(groups));
   client_->Set0RttEnabled(true);
   server_->Set0RttEnabled(true);
   ExpectResumption(RESUME_TICKET);
@@ -90,7 +91,8 @@ class KeyShareReplayer : public TlsExtensionFilter {
 TEST_P(TlsConnectTls13, RetryWithSameKeyShare) {
   EnsureTlsSetup();
   client_->SetPacketFilter(new KeyShareReplayer());
-  server_->ConfigNamedGroup(ssl_grp_ec_secp256r1, false);
+  const SSLNamedGroup groups[2] = {ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1};
+  server_->ConfigNamedGroups(groups, PR_ARRAY_SIZE(groups));
   ConnectExpectFail();
   EXPECT_EQ(SSL_ERROR_BAD_2ND_CLIENT_HELLO, server_->error_code());
   EXPECT_EQ(SSL_ERROR_ILLEGAL_PARAMETER_ALERT, client_->error_code());
@@ -99,7 +101,8 @@ TEST_P(TlsConnectTls13, RetryWithSameKeyShare) {
 // This tests that the second attempt at sending a ClientHello (after receiving
 // a HelloRetryRequest) is correctly retransmitted.
 TEST_F(TlsConnectDatagram13, DropClientSecondFlightWithHelloRetry) {
-  client_->ConfigNamedGroup(ssl_grp_ec_secp256r1, false);
+  const SSLNamedGroup groups[2] = {ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1};
+  server_->ConfigNamedGroups(groups, PR_ARRAY_SIZE(groups));
   server_->SetPacketFilter(new SelectiveDropFilter(0x2));
   Connect();
 }
@@ -110,7 +113,8 @@ TEST_F(TlsConnectTest, Select12AfterHelloRetryRequest) {
                            SSL_LIBRARY_VERSION_TLS_1_3);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
                            SSL_LIBRARY_VERSION_TLS_1_3);
-  server_->ConfigNamedGroup(ssl_grp_ec_secp256r1, false);
+  const SSLNamedGroup groups[2] = {ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1};
+  server_->ConfigNamedGroups(groups, PR_ARRAY_SIZE(groups));
   client_->StartConnect();
   server_->StartConnect();
 
