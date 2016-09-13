@@ -316,7 +316,7 @@ function scheduleTests(task_build, task_cert, test_base) {
   }));
 
   // SSL tests, need certificates too.
-  let ssl_base = merge(cert_base, {tests: "ssl"});
+  let ssl_base = merge(cert_base, {tests: "ssl", group: "SSL"});
   queue.scheduleTask(merge(ssl_base, {
     name: "SSL tests (standard)", symbol: "standard", cycle: "standard"
   }));
