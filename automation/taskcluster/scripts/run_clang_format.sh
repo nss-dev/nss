@@ -47,7 +47,7 @@ done
 
 TMPFILE=$(mktemp /tmp/$(basename $0).XXXXXX)
 trap 'rm $TMPFILE' exit
-if hg root >/dev/null 2>&1; then
+if (cd $(dirname $0); hg root >/dev/null 2>&1); then
     hg diff --git "$top" | tee $TMPFILE
 else
     git -C "$top" diff | tee $TMPFILE
