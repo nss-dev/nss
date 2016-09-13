@@ -73,7 +73,7 @@ static void CheckSigScheme(TlsInspectorRecordHandshakeMessage* capture,
                            uint16_t expected_scheme, size_t expected_size) {
   EXPECT_LT(offset + 2U, capture->buffer().len());
 
-  uint32_t scheme;
+  uint32_t scheme = 0;
   capture->buffer().Read(offset, 2, &scheme);
   EXPECT_EQ(expected_scheme, static_cast<uint16_t>(scheme));
 
