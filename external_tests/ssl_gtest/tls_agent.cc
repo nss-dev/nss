@@ -130,7 +130,7 @@ void TlsAgent::DisableLameGroups() {
 #ifdef NSS_ECC_MORE_THAN_SUITE_B
   static const SSLNamedGroup groups[] = {
       ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1,
-      ssl_grp_ffdhe_2048, ssl_grp_ffdhe_3072, ssl_grp_ffdhe_4096};
+      ssl_grp_ffdhe_2048,   ssl_grp_ffdhe_3072,   ssl_grp_ffdhe_4096};
   ConfigNamedGroups(groups, PR_ARRAY_SIZE(groups));
 #endif
 }
