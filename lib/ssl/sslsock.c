@@ -801,7 +801,6 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
             break;
 
         case SSL_ENABLE_NPN:
-            ss->opt.enableNPN = on;
             break;
 
         case SSL_ENABLE_ALPN:
@@ -1251,7 +1250,6 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
             break;
 
         case SSL_ENABLE_NPN:
-            ssl_defaults.enableNPN = on;
             break;
 
         case SSL_ENABLE_ALPN:
