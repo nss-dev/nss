@@ -1527,17 +1527,18 @@ ssl3_ComputeDHKeyHash(sslSocket *ss, SSLHashType hashAlg, SSL3Hashes *hashes,
     PRUint8 *hashBuf;
     PRUint8 *pBuf;
     SECStatus rv = SECSuccess;
-    unsigned int bufLen;
+    unsigned int bufLen, yLen;
     PRUint8 buf[2 * SSL3_RANDOM_LENGTH + 2 + 4096 / 8 + 2 + 4096 / 8];
 
     PORT_Assert(dh_p.data);
     PORT_Assert(dh_g.data);
     PORT_Assert(dh_Ys.data);
 
+    yLen = padY ? dh_p.len : dh_Ys.len;
     bufLen = 2 * SSL3_RANDOM_LENGTH +
              2 + dh_p.len +
              2 + dh_g.len +
-             2 + (padY ? dh_p.len : dh_Ys.len);
+             2 + yLen;
     if (bufLen <= sizeof buf) {
         hashBuf = buf;
     } else {
@@ -1551,19 +1552,13 @@ ssl3_ComputeDHKeyHash(sslSocket *ss, SSLHashType hashAlg, SSL3Hashes *hashes,
     pBuf = hashBuf + SSL3_RANDOM_LENGTH;
     memcpy(pBuf, &ss->ssl3.hs.server_random, SSL3_RANDOM_LENGTH);
     pBuf += SSL3_RANDOM_LENGTH;
-    pBuf[0] = (PRUint8)(dh_p.len >> 8);
-    pBuf[1] = (PRUint8)(dh_p.len);
-    pBuf += 2;
+    pBuf = ssl_EncodeUintX(dh_p.len, 2, pBuf);
     memcpy(pBuf, dh_p.data, dh_p.len);
     pBuf += dh_p.len;
-    pBuf[0] = (PRUint8)(dh_g.len >> 8);
-    pBuf[1] = (PRUint8)(dh_g.len);
-    pBuf += 2;
+    pBuf = ssl_EncodeUintX(dh_g.len, 2, pBuf);
     memcpy(pBuf, dh_g.data, dh_g.len);
     pBuf += dh_g.len;
-    pBuf[0] = (PRUint8)(dh_p.len >> 8);
-    pBuf[1] = (PRUint8)(dh_p.len);
-    pBuf += 2;
+    pBuf = ssl_EncodeUintX(yLen, 2, pBuf);
     if (padY && dh_p.len > dh_Ys.len) {
         memset(pBuf, 0, dh_p.len - dh_Ys.len);
         pBuf += dh_p.len - dh_Ys.len;
