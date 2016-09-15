@@ -3522,11 +3522,10 @@ ssl3_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags)
     if ((flags & ~allowedFlags) != 0) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
-    } else {
-        count = ssl3_SendRecord(ss, NULL, content_handshake,
-                                ss->sec.ci.sendBuf.buf,
-                                ss->sec.ci.sendBuf.len, flags);
     }
+    count = ssl3_SendRecord(ss, NULL, content_handshake,
+                            ss->sec.ci.sendBuf.buf,
+                            ss->sec.ci.sendBuf.len, flags);
     if (count < 0) {
         int err = PORT_GetError();
         PORT_Assert(err != PR_WOULD_BLOCK_ERROR);
@@ -6212,17 +6211,6 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
             ssl_renegotiation_info_xtn;
     }
 
-    {
-        PRInt32 flags = ssl_SEND_FLAG_FORCE_INTO_BUFFER;
-        if (!ss->firstHsDone && !IS_DTLS(ss)) {
-            flags |= ssl_SEND_FLAG_CAP_RECORD_VERSION;
-        }
-        rv = ssl3_FlushHandshake(ss, flags);
-        if (rv != SECSuccess) {
-            return rv; /* error code set by ssl3_FlushHandshake */
-        }
-    }
-
     if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
         rv = tls13_MaybeDo0RTTHandshake(ss);
         if (rv != SECSuccess) {
@@ -6230,13 +6218,26 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
         }
     }
 
-    /* Now that all the messages are properly staged, push them out. */
-    if (IS_DTLS(ss)) {
-        dtls_FlushHandshakeMessages(ss, 0);
-    } else {
+    /* On TLS (but not DTLS), if we sent 0-RTT, then we will have data in the
+     * pending buffer. This just pushes a little of that out.  If we didn't do
+     * that, we wouldn't send a ClientHello the first time and applications
+     * would have to push SSL_ForceHandshake() twice. This should go away once
+     * we have Finished stuffed in the ClientHello. */
+    if (!IS_DTLS(ss) && ss->ssl3.hs.zeroRttState == ssl_0rtt_sent) {
+        PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+        PORT_Assert(ss->pendingBuf.len);
         int sent = ssl_SendSavedWriteData(ss);
-        if ((sent < 0) && (PORT_GetError() != PR_WOULD_BLOCK_ERROR)) {
+        if (sent < 0) {
             return SECFailure;
+        }
+    } else {
+        PRInt32 flags = 0;
+        if (!ss->firstHsDone && !IS_DTLS(ss)) {
+            flags |= ssl_SEND_FLAG_CAP_RECORD_VERSION;
+        }
+        rv = ssl3_FlushHandshake(ss, flags);
+        if (rv != SECSuccess) {
+            return rv; /* error code set by ssl3_FlushHandshake */
         }
     }
 
