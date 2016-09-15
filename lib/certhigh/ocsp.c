@@ -2204,7 +2204,7 @@ CERT_AddOCSPAcceptableResponses(CERTOCSPRequest *request,
                                 SECOidTag responseType0, ...)
 {
     void *extHandle;
-    va_list ap, ap2;
+    va_list ap;
     int i, count;
     SECOidTag responseType;
     SECOidData *responseOid;
@@ -2222,7 +2222,6 @@ CERT_AddOCSPAcceptableResponses(CERTOCSPRequest *request,
     count = 1;
     if (responseType0 != SEC_OID_PKIX_OCSP_BASIC_RESPONSE) {
         va_start(ap, responseType0);
-        va_copy(ap2, ap);
         do {
             count++;
             responseType = va_arg(ap, SECOidTag);
@@ -2238,12 +2237,13 @@ CERT_AddOCSPAcceptableResponses(CERTOCSPRequest *request,
     responseOid = SECOID_FindOIDByTag(responseType0);
     acceptableResponses[i++] = &(responseOid->oid);
     if (count > 1) {
+        va_start(ap, responseType0);
         for (; i < count; i++) {
-            responseType = va_arg(ap2, SECOidTag);
+            responseType = va_arg(ap, SECOidTag);
             responseOid = SECOID_FindOIDByTag(responseType);
             acceptableResponses[i] = &(responseOid->oid);
         }
-        va_end(ap2);
+        va_end(ap);
     }
     acceptableResponses[i] = NULL;
 
