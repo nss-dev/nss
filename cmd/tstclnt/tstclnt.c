@@ -214,8 +214,6 @@ PrintParameterUsage(void)
     fprintf(stderr, "%-20s Nickname of key and cert for client auth\n",
             "-n nickname");
     fprintf(stderr,
-            "%-20s Bypass PKCS11 layer for SSL encryption and MACing.\n", "-B");
-    fprintf(stderr,
             "%-20s Restricts the set of enabled SSL/TLS protocols versions.\n"
             "%-20s All versions are enabled by default.\n"
             "%-20s Possible values for min/max: ssl3 tls1.0 tls1.1 tls1.2 tls1.3\n"
@@ -902,7 +900,6 @@ main(int argc, char **argv)
     int npds;
     int override = 0;
     SSLVersionRange enabledVersions;
-    int bypassPKCS11 = 0;
     int disableLocking = 0;
     int enableSessionTickets = 0;
     int enableCompression = 0;
@@ -959,8 +956,10 @@ main(int argc, char **argv)
 
     SSL_VersionRangeGetSupported(ssl_variant_stream, &enabledVersions);
 
+    /* XXX: 'B' was used in the past but removed in 3.28,
+     *      please leave some time before resuing it. */
     optstate = PL_CreateOptState(argc, argv,
-                                 "46BCDFGHKM:OR:STUV:W:Ya:bc:d:fgh:m:n:op:qr:st:uvw:z");
+                                 "46CDFGHKM:OR:STUV:W:Ya:bc:d:fgh:m:n:op:qr:st:uvw:z");
     while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
@@ -977,10 +976,6 @@ main(int argc, char **argv)
                 allowIPv4 = PR_FALSE;
                 if (!allowIPv6)
                     Usage(progName);
-                break;
-
-            case 'B':
-                bypassPKCS11 = 1;
                 break;
 
             case 'C':
@@ -1395,14 +1390,6 @@ main(int argc, char **argv)
     rv = SSL_VersionRangeSet(s, &enabledVersions);
     if (rv != SECSuccess) {
         SECU_PrintError(progName, "error setting SSL/TLS version range ");
-        error = 1;
-        goto done;
-    }
-
-    /* enable PKCS11 bypass */
-    rv = SSL_OptionSet(s, SSL_BYPASS_PKCS11, bypassPKCS11);
-    if (rv != SECSuccess) {
-        SECU_PrintError(progName, "error enabling PKCS11 bypass");
         error = 1;
         goto done;
     }
