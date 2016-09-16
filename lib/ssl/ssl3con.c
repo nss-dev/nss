@@ -6224,9 +6224,11 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
      * would have to push SSL_ForceHandshake() twice. This should go away once
      * we have Finished stuffed in the ClientHello. */
     if (!IS_DTLS(ss) && ss->ssl3.hs.zeroRttState == ssl_0rtt_sent) {
+        int sent;
+
         PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
         PORT_Assert(ss->pendingBuf.len);
-        int sent = ssl_SendSavedWriteData(ss);
+        sent = ssl_SendSavedWriteData(ss);
         if (sent < 0) {
             return SECFailure;
         }
