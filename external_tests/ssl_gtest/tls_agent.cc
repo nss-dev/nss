@@ -259,7 +259,7 @@ void TlsAgent::EnableCiphersByKeyExchange(SSLKEAType kea) {
     ASSERT_EQ(SECSuccess, rv);
     EXPECT_EQ(sizeof(csinfo), csinfo.length);
 
-    if (csinfo.keaType == kea && !csinfo.isExportable) {
+    if (csinfo.keaType == kea) {
       rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], PR_TRUE);
       EXPECT_EQ(SECSuccess, rv);
     }
@@ -276,7 +276,7 @@ void TlsAgent::EnableCiphersByAuthType(SSLAuthType authType) {
                                           sizeof(csinfo));
     ASSERT_EQ(SECSuccess, rv);
 
-    if (csinfo.authType == authType && !csinfo.isExportable) {
+    if (csinfo.authType == authType) {
       rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], PR_TRUE);
       EXPECT_EQ(SECSuccess, rv);
     }

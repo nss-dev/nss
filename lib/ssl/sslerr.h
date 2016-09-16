@@ -137,6 +137,7 @@ typedef enum {
     SSL_ERROR_SYM_KEY_CONTEXT_FAILURE       = (SSL_ERROR_BASE + 76),
     SSL_ERROR_SYM_KEY_UNWRAP_FAILURE        = (SSL_ERROR_BASE + 77),
     SSL_ERROR_PUB_KEY_SIZE_LIMIT_EXCEEDED   = (SSL_ERROR_BASE + 78),
+                                            /* error 78 is obsolete */
     SSL_ERROR_IV_PARAM_FAILURE              = (SSL_ERROR_BASE + 79),
     SSL_ERROR_INIT_CIPHER_SUITE_FAILURE     = (SSL_ERROR_BASE + 80),
     SSL_ERROR_SESSION_KEY_GEN_FAILURE       = (SSL_ERROR_BASE + 81),

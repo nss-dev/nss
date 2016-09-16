@@ -138,8 +138,6 @@ typedef enum { SSLAppOpRead = 0,
 #define BPB 8 /* Bits Per Byte */
 #endif
 
-#define EXPORT_RSA_KEY_LENGTH 64 /* bytes */
-
 /* The default value from RFC 4347 is 1s, which is too slow. */
 #define DTLS_RETRANSMIT_INITIAL_MS 50
 /* The maximum time to wait between retransmissions. */
@@ -303,7 +301,7 @@ typedef struct {
 #endif
 } ssl3CipherSuiteCfg;
 
-#define ssl_V3_SUITES_IMPLEMENTED 80
+#define ssl_V3_SUITES_IMPLEMENTED 74
 
 #define MAX_DTLS_SRTP_CIPHER_SUITES 4
 
@@ -324,7 +322,6 @@ typedef struct sslOptionsStr {
     unsigned int noCache : 1;
     unsigned int fdx : 1;
     unsigned int detectRollBack : 1;
-    unsigned int noStepDown : 1;
     unsigned int bypassPKCS11 : 1;
     unsigned int noLocks : 1;
     unsigned int enableSessionTickets : 1;
@@ -707,12 +704,6 @@ typedef struct {
     /* In most cases, cipher suites depend on their signature type for
      * authentication, ECDH certificates being the exception. */
     SSLAuthType authKeyType;
-    /* For export cipher suites:
-     * is_limited identifies a suite as having a limit on the key size.
-     * key_size_limit provides the corresponding limit. */
-    PRBool is_limited;
-    unsigned int key_size_limit;
-    PRBool tls_keygen;
     /* True if the key exchange for the suite is ephemeral.  Or to be more
      * precise: true if the ServerKeyExchange message is always required. */
     PRBool ephemeral;
@@ -927,11 +918,10 @@ typedef struct SSL3HandshakeStateStr {
     /* message for message type and header length */
     SSL3HandshakeType msg_type;
     unsigned long msg_len;
-    PRBool isResuming;      /* we are resuming (not used in TLS 1.3) */
-    PRBool usedStepDownKey; /* we did a server key exchange. */
-    PRBool sendingSCSV;     /* instead of empty RI */
-    sslBuffer msgState;     /* current state for handshake messages*/
-                            /* protected by recvBufLock */
+    PRBool isResuming;  /* we are resuming (not used in TLS 1.3) */
+    PRBool sendingSCSV; /* instead of empty RI */
+    sslBuffer msgState; /* current state for handshake messages*/
+                        /* protected by recvBufLock */
 
     /* The session ticket received in a NewSessionTicket message is temporarily
      * stored in newSessionTicket until the handshake is finished; then it is
@@ -1254,8 +1244,6 @@ struct sslSocketStr {
 
     /* the following variable is only used with socks or other proxies. */
     char *peerID; /* String uniquely identifies target server. */
-
-    sslKeyPair *stepDownKeyPair; /* RSA step down keys */
 
     /* ECDHE and DHE keys: In TLS 1.3, we might have to maintain multiple of
      * these on the client side.  The server inserts a single value into this
@@ -1653,7 +1641,7 @@ extern PRBool ssl3_VersionIsSupported(SSLProtocolVariant protocolVariant,
 
 extern SECStatus ssl3_KeyAndMacDeriveBypass(ssl3CipherSpec *pwSpec,
                                             const unsigned char *cr, const unsigned char *sr,
-                                            PRBool isTLS, HASH_HashType tls12HashType, PRBool isExport);
+                                            PRBool isTLS, HASH_HashType tls12HashType);
 extern SECStatus ssl3_MasterSecretDeriveBypass(ssl3CipherSpec *pwSpec,
                                                const unsigned char *cr, const unsigned char *sr,
                                                const SECItem *pms, PRBool isTLS,
@@ -1690,13 +1678,6 @@ SECStatus ssl_RemoveTLSCBCPadding(sslBuffer *plaintext, unsigned int macSize);
 
 int ssl3_GatherAppDataRecord(sslSocket *ss, int flags);
 int ssl3_GatherCompleteHandshake(sslSocket *ss, int flags);
-/*
- * When talking to export clients or using export cipher suites, servers
- * with public RSA keys larger than 512 bits need to use a 512-bit public
- * key, signed by the larger key.  The smaller key is a "step down" key.
- * Generate that key pair and keep it around.
- */
-extern SECStatus ssl3_CreateRSAStepDownKeys(sslSocket *ss);
 
 /* Create a new ref counted key pair object from two keys. */
 extern sslKeyPair *ssl_NewKeyPair(SECKEYPrivateKey *privKey,
@@ -2045,10 +2026,6 @@ extern int ssl_MapLowLevelError(int hiLevelError);
 extern PRUint32 ssl_Time(void);
 
 extern void SSL_AtomicIncrementLong(long *x);
-
-SECStatus SSL_DisableDefaultExportCipherSuites(void);
-SECStatus SSL_DisableExportCipherSuites(PRFileDesc *fd);
-PRBool SSL_IsExportCipherSuite(PRUint16 cipherSuite);
 
 SECStatus ssl3_ApplyNSSPolicy(void);
 

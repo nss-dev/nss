@@ -240,18 +240,12 @@ static const SSLCipherSuiteInfo suiteInfo[] = {
 
     { 0, CS(DHE_RSA_WITH_3DES_EDE_CBC_SHA), S_RSA, K_DHE, C_3DES, B_3DES, M_SHA, F_FIPS_STD, A_RSAS },
     { 0, CS(DHE_DSS_WITH_3DES_EDE_CBC_SHA), S_DSA, K_DHE, C_3DES, B_3DES, M_SHA, F_FIPS_STD, A_DSA },
-    { 0, CS_(SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA), S_RSA, K_RSA, C_3DES, B_3DES, M_SHA, F_FIPS_NSTD, A_RSAD },
     { 0, CS(RSA_WITH_3DES_EDE_CBC_SHA), S_RSA, K_RSA, C_3DES, B_3DES, M_SHA, F_FIPS_STD, A_RSAD },
 
     { 0, CS(DHE_RSA_WITH_DES_CBC_SHA), S_RSA, K_DHE, C_DES, B_DES, M_SHA, F_NFIPS_STD, A_RSAS },
     { 0, CS(DHE_DSS_WITH_DES_CBC_SHA), S_DSA, K_DHE, C_DES, B_DES, M_SHA, F_NFIPS_STD, A_DSA },
-    { 0, CS_(SSL_RSA_FIPS_WITH_DES_CBC_SHA), S_RSA, K_RSA, C_DES, B_DES, M_SHA, F_NFIPS_NSTD, A_RSAD },
     { 0, CS(RSA_WITH_DES_CBC_SHA), S_RSA, K_RSA, C_DES, B_DES, M_SHA, F_NFIPS_STD, A_RSAD },
 
-    { 0, CS(RSA_EXPORT1024_WITH_RC4_56_SHA), S_RSA, K_RSA, C_RC4, B_56, M_SHA, F_EXPORT, A_EXP },
-    { 0, CS(RSA_EXPORT1024_WITH_DES_CBC_SHA), S_RSA, K_RSA, C_DES, B_DES, M_SHA, F_EXPORT, A_EXP },
-    { 0, CS(RSA_EXPORT_WITH_RC4_40_MD5), S_RSA, K_RSA, C_RC4, B_40, M_MD5, F_EXPORT, A_EXP },
-    { 0, CS(RSA_EXPORT_WITH_RC2_CBC_40_MD5), S_RSA, K_RSA, C_RC2, B_40, M_MD5, F_EXPORT, A_EXP },
     { 0, CS(RSA_WITH_NULL_SHA256), S_RSA, K_RSA, C_NULL, B_0, M_SHA256, F_EXPORT, A_RSAD },
     { 0, CS(RSA_WITH_NULL_SHA), S_RSA, K_RSA, C_NULL, B_0, M_SHA, F_EXPORT, A_RSAD },
     { 0, CS(RSA_WITH_NULL_MD5), S_RSA, K_RSA, C_NULL, B_0, M_MD5, F_EXPORT, A_RSAD },
@@ -329,57 +323,6 @@ SSL_GetCipherSuiteInfo(PRUint16 cipherSuite,
     }
     PORT_SetError(SEC_ERROR_INVALID_ARGS);
     return SECFailure;
-}
-
-/* This function might be a candidate to be public.
- * Disables all export ciphers in the default set of enabled ciphers.
- */
-SECStatus
-SSL_DisableDefaultExportCipherSuites(void)
-{
-    const SSLCipherSuiteInfo *pInfo = suiteInfo;
-    unsigned int i;
-
-    for (i = 0; i < NUM_SUITEINFOS; ++i, ++pInfo) {
-        if (pInfo->isExportable) {
-            PORT_CheckSuccess(SSL_CipherPrefSetDefault(pInfo->cipherSuite, PR_FALSE));
-        }
-    }
-    return SECSuccess;
-}
-
-/* This function might be a candidate to be public,
- * except that it takes an sslSocket pointer as an argument.
- * A Public version would take a PRFileDesc pointer.
- * Disables all export ciphers in the default set of enabled ciphers.
- */
-SECStatus
-SSL_DisableExportCipherSuites(PRFileDesc *fd)
-{
-    const SSLCipherSuiteInfo *pInfo = suiteInfo;
-    unsigned int i;
-
-    for (i = 0; i < NUM_SUITEINFOS; ++i, ++pInfo) {
-        if (pInfo->isExportable) {
-            PORT_CheckSuccess(SSL_CipherPrefSet(fd, pInfo->cipherSuite, PR_FALSE));
-        }
-    }
-    return SECSuccess;
-}
-
-/* Tells us if the named suite is exportable
- * returns false for unknown suites.
- */
-PRBool
-SSL_IsExportCipherSuite(PRUint16 cipherSuite)
-{
-    unsigned int i;
-    for (i = 0; i < NUM_SUITEINFOS; i++) {
-        if (suiteInfo[i].cipherSuite == cipherSuite) {
-            return (PRBool)(suiteInfo[i].isExportable);
-        }
-    }
-    return PR_FALSE;
 }
 
 SECItem *
