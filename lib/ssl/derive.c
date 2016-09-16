@@ -254,7 +254,6 @@ ssl3_KeyAndMacDeriveBypass(
                 buildSSLKey(&key_block[i], IVSize,
                             &pwSpec->server.write_iv_item,
                             "Domestic Server Write IV");
-                i += IVSize;
             }
         }
     }
