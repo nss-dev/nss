@@ -28,11 +28,28 @@ queue.filter(task => {
     }
   }
 
+  if (task.tests == "bogo") {
+    // No BoGo tests on Windows.
+    if (task.platform == "windows2012-64") {
+      return false;
+    }
+
+    // No BoGo tests on ARM.
+    if (task.collection == "arm-debug") {
+      return false;
+    }
+  }
+
   return true;
 });
 
 queue.map(task => {
   if (task.collection == "asan") {
+    // Disable LSan on BoGo runs, for now.
+    if (task.tests == "bogo") {
+      task.env.ASAN_OPTIONS = "detect_leaks=0";
+    }
+
     // CRMF and FIPS tests still leak, unfortunately.
     if (task.tests == "crmf" || task.tests == "fips") {
       task.env.ASAN_OPTIONS = "detect_leaks=0";
