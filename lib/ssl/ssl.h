@@ -102,10 +102,7 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 #define SSL_ENABLE_TLS 13 /* enable TLS (on by default) */
 
 #define SSL_ROLLBACK_DETECTION 14       /* for compatibility, default: on */
-#define SSL_NO_STEP_DOWN 15             /* Disable export cipher suites   */
-                                        /* if step-down keys are needed.  */
-                                        /* default: off, generate         */
-                                        /* step-down keys if needed.      */
+#define SSL_NO_STEP_DOWN 15             /* (unsupported, deprecated, off) */
 #define SSL_BYPASS_PKCS11 16            /* use PKCS#11 for pub key only   */
 #define SSL_NO_LOCKS 17                 /* Don't use locks for protection */
 #define SSL_ENABLE_SESSION_TICKETS 18   /* Enable TLS SessionTicket       */

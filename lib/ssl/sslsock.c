@@ -67,7 +67,6 @@ static sslOptions ssl_defaults = {
     PR_FALSE,              /* noCache            */
     PR_FALSE,              /* fdx                */
     PR_TRUE,               /* detectRollBack     */
-    PR_FALSE,              /* noStepDown         */
     PR_FALSE,              /* bypassPKCS11       */
     PR_FALSE,              /* noLocks            */
     PR_FALSE,              /* enableSessionTickets */
@@ -305,7 +304,6 @@ ssl_DupSocket(sslSocket *os)
             PR_APPEND_LINK(&sc->link, &ss->serverCerts);
         }
 
-        ss->stepDownKeyPair = !os->stepDownKeyPair ? NULL : ssl_GetKeyPairRef(os->stepDownKeyPair);
         PR_INIT_CLIST(&ss->ephemeralKeyPairs);
         for (cursor = PR_NEXT_LINK(&os->ephemeralKeyPairs);
              cursor != &os->ephemeralKeyPairs;
@@ -413,10 +411,6 @@ ssl_DestroySocketContents(sslSocket *ss)
         cursor = PR_LIST_TAIL(&ss->serverCerts);
         PR_REMOVE_LINK(cursor);
         ssl_FreeServerCert((sslServerCert *)cursor);
-    }
-    if (ss->stepDownKeyPair) {
-        ssl_FreeKeyPair(ss->stepDownKeyPair);
-        ss->stepDownKeyPair = NULL;
     }
     ssl_FreeEphemeralKeyPairs(ss);
     SECITEM_FreeItem(&ss->opt.nextProtoNego, PR_FALSE);
@@ -722,9 +716,6 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
             break;
 
         case SSL_NO_STEP_DOWN:
-            ss->opt.noStepDown = on;
-            if (on)
-                SSL_DisableExportCipherSuites(fd);
             break;
 
         case SSL_BYPASS_PKCS11:
@@ -912,7 +903,7 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
             on = ss->opt.detectRollBack;
             break;
         case SSL_NO_STEP_DOWN:
-            on = ss->opt.noStepDown;
+            on = PR_FALSE;
             break;
         case SSL_BYPASS_PKCS11:
             on = ss->opt.bypassPKCS11;
@@ -1032,7 +1023,7 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
             on = ssl_defaults.detectRollBack;
             break;
         case SSL_NO_STEP_DOWN:
-            on = ssl_defaults.noStepDown;
+            on = PR_FALSE;
             break;
         case SSL_BYPASS_PKCS11:
             on = ssl_defaults.bypassPKCS11;
@@ -1186,9 +1177,6 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
             break;
 
         case SSL_NO_STEP_DOWN:
-            ssl_defaults.noStepDown = on;
-            if (on)
-                SSL_DisableDefaultExportCipherSuites();
             break;
 
         case SSL_BYPASS_PKCS11:
@@ -1308,13 +1296,6 @@ ssl_IsRemovedCipherSuite(PRInt32 suite)
 SECStatus
 SSL_SetPolicy(long which, int policy)
 {
-    if ((which & 0xfffe) == SSL_RSA_OLDFIPS_WITH_3DES_EDE_CBC_SHA) {
-        /* one of the two old FIPS ciphers */
-        if (which == SSL_RSA_OLDFIPS_WITH_3DES_EDE_CBC_SHA)
-            which = SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA;
-        else if (which == SSL_RSA_OLDFIPS_WITH_DES_CBC_SHA)
-            which = SSL_RSA_FIPS_WITH_DES_CBC_SHA;
-    }
     if (ssl_IsRemovedCipherSuite(which))
         return SECSuccess;
     return SSL_CipherPolicySet(which, policy);
@@ -1369,13 +1350,6 @@ SSL_CipherPolicyGet(PRInt32 which, PRInt32 *oPolicy)
 SECStatus
 SSL_EnableCipher(long which, PRBool enabled)
 {
-    if ((which & 0xfffe) == SSL_RSA_OLDFIPS_WITH_3DES_EDE_CBC_SHA) {
-        /* one of the two old FIPS ciphers */
-        if (which == SSL_RSA_OLDFIPS_WITH_3DES_EDE_CBC_SHA)
-            which = SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA;
-        else if (which == SSL_RSA_OLDFIPS_WITH_DES_CBC_SHA)
-            which = SSL_RSA_FIPS_WITH_DES_CBC_SHA;
-    }
     if (ssl_IsRemovedCipherSuite(which))
         return SECSuccess;
     return SSL_CipherPrefSetDefault(which, enabled);
@@ -1386,10 +1360,6 @@ ssl_CipherPrefSetDefault(PRInt32 which, PRBool enabled)
 {
     if (ssl_IsRemovedCipherSuite(which))
         return SECSuccess;
-    if (enabled && ssl_defaults.noStepDown && SSL_IsExportCipherSuite(which)) {
-        PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
-        return SECFailure;
-    }
     return ssl3_CipherPrefSetDefault((ssl3CipherSuite)which, enabled);
 }
 
@@ -1433,10 +1403,6 @@ SSL_CipherPrefSet(PRFileDesc *fd, PRInt32 which, PRBool enabled)
     }
     if (ssl_IsRemovedCipherSuite(which))
         return SECSuccess;
-    if (enabled && ss->opt.noStepDown && SSL_IsExportCipherSuite(which)) {
-        PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
-        return SECFailure;
-    }
     return ssl3_CipherPrefSet(ss, (ssl3CipherSuite)which, enabled);
 }
 
@@ -2210,12 +2176,6 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
         PR_APPEND_LINK(&sc->link, &ss->serverCerts);
     }
 
-    if (sm->stepDownKeyPair) {
-        if (ss->stepDownKeyPair) {
-            ssl_FreeKeyPair(ss->stepDownKeyPair);
-        }
-        ss->stepDownKeyPair = ssl_GetKeyPairRef(sm->stepDownKeyPair);
-    }
     ssl_FreeEphemeralKeyPairs(ss);
     for (cursor = PR_NEXT_LINK(&sm->ephemeralKeyPairs);
          cursor != &sm->ephemeralKeyPairs;
@@ -3787,7 +3747,6 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     ss->url = NULL;
 
     PR_INIT_CLIST(&ss->serverCerts);
-    ss->stepDownKeyPair = NULL;
     PR_INIT_CLIST(&ss->ephemeralKeyPairs);
 
     ss->dbHandle = CERT_GetDefaultCertDB();
