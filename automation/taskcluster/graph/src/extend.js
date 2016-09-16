@@ -284,6 +284,9 @@ function scheduleTests(task_build, task_cert, test_base) {
     name: "Gtests", symbol: "Gtest", tests: "ssl_gtests gtests", cycle: "standard"
   }));
   queue.scheduleTask(merge(no_cert_base, {
+    name: "Bogo tests", symbol: "Bogo", tests: "bogo", cycle: "standard"
+  }));
+  queue.scheduleTask(merge(no_cert_base, {
     name: "Chains tests", symbol: "Chains", tests: "chains"
   }));
   queue.scheduleTask(merge(no_cert_base, {
