@@ -72,7 +72,6 @@ ssl3_KeyAndMacDeriveBypass(
 {
     const ssl3BulkCipherDef *cipher_def = pwSpec->cipher_def;
     unsigned char *key_block = pwSpec->key_block;
-    unsigned int block_bytes = 0;
     unsigned int block_needed = 0;
     unsigned int i;
     unsigned int keySize;    /* actual    size of cipher keys */
@@ -86,10 +85,8 @@ ssl3_KeyAndMacDeriveBypass(
     PRBool isTLS12 = pwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2;
 
     SECItem srcr;
-    SECItem crsr;
 
     unsigned char srcrdata[SSL3_RANDOM_LENGTH * 2];
-    unsigned char crsrdata[SSL3_RANDOM_LENGTH * 2];
     PRUint64 md5buf[22];
     PRUint64 shabuf[40];
 
@@ -138,14 +135,6 @@ ssl3_KeyAndMacDeriveBypass(
     PORT_Memcpy(srcrdata, sr, SSL3_RANDOM_LENGTH);
     PORT_Memcpy(srcrdata + SSL3_RANDOM_LENGTH, cr, SSL3_RANDOM_LENGTH);
 
-    /* initialize the client random, server random block */
-    crsr.type = siBuffer;
-    crsr.data = crsrdata;
-    crsr.len = sizeof crsrdata;
-    PORT_Memcpy(crsrdata, cr, SSL3_RANDOM_LENGTH);
-    PORT_Memcpy(crsrdata + SSL3_RANDOM_LENGTH, sr, SSL3_RANDOM_LENGTH);
-    PRINT_BUF(100, (NULL, "Key & MAC CRSR", crsr.data, crsr.len));
-
     /*
      * generate the key material:
      */
@@ -166,7 +155,6 @@ ssl3_KeyAndMacDeriveBypass(
         if (status != SECSuccess) {
             goto key_and_mac_derive_fail;
         }
-        block_bytes = keyblk.len;
     } else {
         /* key_block =
         *     MD5(master_secret + SHA('A' + master_secret +
@@ -196,11 +184,7 @@ ssl3_KeyAndMacDeriveBypass(
             PORT_Assert(outLen == MD5_LENGTH);
             made += MD5_LENGTH;
         }
-        block_bytes = made;
     }
-    PORT_Assert(block_bytes >= block_needed);
-    PORT_Assert(block_bytes <= sizeof pwSpec->key_block);
-    PRINT_BUF(100, (NULL, "key block", key_block, block_bytes));
 
     i = 0; /* now shows how much consumed */
 
@@ -273,7 +257,6 @@ ssl3_KeyAndMacDeriveBypass(
                 i += IVSize;
             }
         }
-        PORT_Assert(i <= block_bytes);
     }
     rv = SECSuccess;
 
