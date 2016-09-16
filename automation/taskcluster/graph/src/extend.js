@@ -209,12 +209,6 @@ async function scheduleLinux(name, base) {
   }));
 
   queue.scheduleTask(merge(extra_base, {
-    name: `${name} w/ NSS_NO_PKCS11_BYPASS=1`,
-    env: {NSS_NO_PKCS11_BYPASS: "1"},
-    symbol: "noPkcs11Bypass"
-  }));
-
-  queue.scheduleTask(merge(extra_base, {
     name: `${name} w/ NSS_DISABLE_LIBPKIX=1`,
     env: {NSS_DISABLE_LIBPKIX: "1"},
     symbol: "noLibpkix"
@@ -277,14 +271,6 @@ async function scheduleWindows(name, base) {
       WINDOWS_CHECKOUT_CMD,
       "bash -c nss/automation/taskcluster/windows/run_tests.sh"
     ]
-  }));
-
-  // Extra builds.
-  let extra_base = merge({group: "Builds"}, build_base);
-  queue.scheduleTask(merge(extra_base, {
-    name: `${name} w/ NSS_NO_PKCS11_BYPASS=1`,
-    env: {NSS_NO_PKCS11_BYPASS: "1"},
-    symbol: "noPkcs11Bypass"
   }));
 
   return queue.submit();

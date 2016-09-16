@@ -1222,9 +1222,6 @@ ssl_run_tests()
             "normal")
                 SERVER_OPTIONS=
                 ;;
-            "bypass")
-                SERVER_OPTIONS="-B -s"
-                ;;
             "fips")
                 SERVER_OPTIONS=
                 ssl_set_fips server on
@@ -1238,9 +1235,6 @@ ssl_run_tests()
             case "${CLIENT_MODE}" in
             "normal")
                 CLIENT_OPTIONS=
-                ;;
-            "bypass")
-                CLIENT_OPTIONS="-B -s"
                 ;;
             "fips")
                 SERVER_OPTIONS=

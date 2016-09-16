@@ -18,7 +18,6 @@ MODULE = nss
 MAPFILE = $(OBJDIR)/ssl.def
 
 CSRCS = \
-        derive.c \
         dtlscon.c \
         prelib.c \
         ssl3con.c \

@@ -112,7 +112,6 @@ static SSL3Statistics *ssl3stats;
 
 static int failed_already = 0;
 static SSLVersionRange enabledVersions;
-static PRBool bypassPKCS11 = PR_FALSE;
 static PRBool disableLocking = PR_FALSE;
 static PRBool ignoreErrors = PR_FALSE;
 static PRBool enableSessionTickets = PR_FALSE;
@@ -159,7 +158,6 @@ Usage(const char *progName)
             "          Possible values for min/max: ssl3 tls1.0 tls1.1 tls1.2\n"
             "          Example: \"-V ssl3:\" enables SSL 3 and newer.\n"
             "       -U means enable throttling up threads\n"
-            "       -B bypasses the PKCS11 layer for SSL encryption and MACing\n"
             "       -T enable the cert_status extension (OCSP stapling)\n"
             "       -u enable TLS Session Ticket extension\n"
             "       -z enable compression\n"
@@ -1174,13 +1172,6 @@ client_main(
         }
     }
 
-    if (bypassPKCS11) {
-        rv = SSL_OptionSet(model_sock, SSL_BYPASS_PKCS11, 1);
-        if (rv < 0) {
-            errExit("SSL_OptionSet SSL_BYPASS_PKCS11");
-        }
-    }
-
     if (disableLocking) {
         rv = SSL_OptionSet(model_sock, SSL_NO_LOCKS, 1);
         if (rv < 0) {
@@ -1322,14 +1313,12 @@ main(int argc, char **argv)
     progName = strrchr(tmp, '\\');
     progName = progName ? progName + 1 : tmp;
 
+    /* XXX: 'B' was used in the past but removed in 3.28,
+     *      please leave some time before resuing it. */
     optstate = PL_CreateOptState(argc, argv,
-                                 "BC:DNP:TUV:W:a:c:d:f:gin:op:qst:uvw:z");
+                                 "C:DNP:TUV:W:a:c:d:f:gin:op:qst:uvw:z");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
-            case 'B':
-                bypassPKCS11 = PR_TRUE;
-                break;
-
             case 'C':
                 cipherString = optstate->value;
                 break;
