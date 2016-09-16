@@ -281,7 +281,7 @@ function scheduleTests(task_build, task_cert, test_base) {
   // Schedule tests that do NOT need certificates.
   let no_cert_base = merge(test_base, {parent: task_build});
   queue.scheduleTask(merge(no_cert_base, {
-    name: "Gtests", symbol: "Gtest", tests: "ssl_gtests gtests"
+    name: "Gtests", symbol: "Gtest", tests: "ssl_gtests gtests", cycle: "standard"
   }));
   queue.scheduleTask(merge(no_cert_base, {
     name: "Chains tests", symbol: "Chains", tests: "chains"
