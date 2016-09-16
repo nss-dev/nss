@@ -118,7 +118,7 @@ static SECStatus
 ssl3_ComputeECDHKeyHash(SSLHashType hashAlg,
                         SECItem ec_params, SECItem server_ecpoint,
                         SSL3Random *client_rand, SSL3Random *server_rand,
-                        SSL3Hashes *hashes, PRBool bypassPKCS11)
+                        SSL3Hashes *hashes)
 {
     PRUint8 *hashBuf;
     PRUint8 *pBuf;
@@ -153,8 +153,7 @@ ssl3_ComputeECDHKeyHash(SSLHashType hashAlg,
     pBuf += server_ecpoint.len;
     PORT_Assert((unsigned int)(pBuf - hashBuf) == bufLen);
 
-    rv = ssl3_ComputeCommonKeyHash(hashAlg, hashBuf, bufLen, hashes,
-                                   bypassPKCS11);
+    rv = ssl3_ComputeCommonKeyHash(hashAlg, hashBuf, bufLen, hashes);
 
     PRINT_BUF(95, (NULL, "ECDHkey hash: ", hashBuf, bufLen));
     PRINT_BUF(95, (NULL, "ECDHkey hash: MD5 result",
@@ -408,19 +407,16 @@ ssl_GetECGroupWithStrength(sslSocket *ss, unsigned int requiredECCbits)
 {
     int i;
 
+    PORT_Assert(ss);
+
     for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
-        const sslNamedGroupDef *group;
-        if (ss) {
-            group = ss->namedGroupPreferences[i];
-        } else {
-            group = &ssl_named_groups[i];
+        const sslNamedGroupDef *group = ss->namedGroupPreferences[i];
+        if (group && group->keaType == ssl_kea_ecdh &&
+            group->bits >= requiredECCbits) {
+            return group;
         }
-        if (!group || group->keaType != ssl_kea_ecdh ||
-            group->bits < requiredECCbits) {
-            continue;
-        }
-        return group;
     }
+
     PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
     return NULL;
 }
@@ -607,7 +603,7 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     rv = ssl3_ComputeECDHKeyHash(hashAlg, ec_params, ec_point,
                                  &ss->ssl3.hs.client_random,
                                  &ss->ssl3.hs.server_random,
-                                 &hashes, ss->opt.bypassPKCS11);
+                                 &hashes);
 
     if (rv != SECSuccess) {
         errCode =
@@ -721,7 +717,7 @@ ssl3_SendECDHServerKeyExchange(sslSocket *ss)
                                  pubKey->u.ec.publicValue,
                                  &ss->ssl3.hs.client_random,
                                  &ss->ssl3.hs.server_random,
-                                 &hashes, ss->opt.bypassPKCS11);
+                                 &hashes);
     if (rv != SECSuccess) {
         ssl_MapLowLevelError(SSL_ERROR_SERVER_KEY_EXCHANGE_FAILURE);
         goto loser;

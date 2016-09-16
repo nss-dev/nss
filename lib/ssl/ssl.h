@@ -103,7 +103,7 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 
 #define SSL_ROLLBACK_DETECTION 14       /* for compatibility, default: on */
 #define SSL_NO_STEP_DOWN 15             /* (unsupported, deprecated, off) */
-#define SSL_BYPASS_PKCS11 16            /* use PKCS#11 for pub key only   */
+#define SSL_BYPASS_PKCS11 16            /* (unsupported, deprecated, off) */
 #define SSL_NO_LOCKS 17                 /* Don't use locks for protection */
 #define SSL_ENABLE_SESSION_TICKETS 18   /* Enable TLS SessionTicket       */
                                         /* extension (off by default)     */
@@ -1215,31 +1215,11 @@ SSL_IMPORT SECStatus SSL_ExportKeyingMaterial(PRFileDesc *fd,
 */
 SSL_IMPORT CERTCertificate *SSL_LocalCertificate(PRFileDesc *fd);
 
-/* Test an SSL configuration to see if  SSL_BYPASS_PKCS11 can be turned on.
-** Check the key exchange algorithm for each cipher in the list to see if
-** a master secret key can be extracted after being derived with the mechanism
-** required by the protocolmask argument. If the KEA will use keys from the
-** specified cert make sure the extract operation is attempted from the slot
-** where the private key resides.
-** If MS can be extracted for all ciphers, (*pcanbypass) is set to TRUE and
-** SECSuccess is returned. In all other cases but one (*pcanbypass) is
-** set to FALSE and SECFailure is returned.
-** In that last case Derive() has been called successfully but the MS is null,
-** CanBypass sets (*pcanbypass) to FALSE and returns SECSuccess indicating the
-** arguments were all valid but the slot cannot be bypassed.
-**
-** Note: A TRUE return code from CanBypass means "Your configuration will perform
-** NO WORSE with the bypass enabled than without"; it does NOT mean that every
-** cipher suite listed will work properly with the selected protocols.
-**
-** Caveat: If export cipher suites are included in the argument list Canbypass
-** will return FALSE.
-**/
+#define SSL_CBP_SSL3 0x0001   /* (deprecated) */
+#define SSL_CBP_TLS1_0 0x0002 /* (deprecated) */
 
-/* protocol mask bits */
-#define SSL_CBP_SSL3 0x0001   /* test SSL v3 mechanisms */
-#define SSL_CBP_TLS1_0 0x0002 /* test TLS v1.0 mechanisms */
-
+/* DEPRECATED: The PKCS#11 bypass has been removed.
+**             This function will now always return false. */
 SSL_IMPORT SECStatus SSL_CanBypass(CERTCertificate *cert,
                                    SECKEYPrivateKey *privKey,
                                    PRUint32 protocolmask,

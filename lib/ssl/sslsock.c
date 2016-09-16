@@ -15,9 +15,6 @@
 #include "sslproto.h"
 #include "nspr.h"
 #include "private/pprio.h"
-#ifndef NO_PKCS11_BYPASS
-#include "blapi.h"
-#endif
 #include "nss.h"
 #include "pk11pqg.h"
 
@@ -65,7 +62,6 @@ static sslOptions ssl_defaults = {
     PR_FALSE,              /* noCache            */
     PR_FALSE,              /* fdx                */
     PR_TRUE,               /* detectRollBack     */
-    PR_FALSE,              /* bypassPKCS11       */
     PR_FALSE,              /* noLocks            */
     PR_FALSE,              /* enableSessionTickets */
     PR_FALSE,              /* enableDeflate      */
@@ -501,39 +497,6 @@ SSL_Enable(PRFileDesc *fd, int which, PRBool on)
     return SSL_OptionSet(fd, which, on);
 }
 
-#ifndef NO_PKCS11_BYPASS
-static const PRCallOnceType pristineCallOnce;
-static PRCallOnceType setupBypassOnce;
-
-static SECStatus
-SSL_BypassShutdown(void *appData, void *nssData)
-{
-    /* unload freeBL shared library from memory */
-    BL_Unload();
-    setupBypassOnce = pristineCallOnce;
-    return SECSuccess;
-}
-
-static PRStatus
-SSL_BypassRegisterShutdown(void)
-{
-    SECStatus rv = NSS_RegisterShutdown(SSL_BypassShutdown, NULL);
-    PORT_Assert(SECSuccess == rv);
-    return SECSuccess == rv ? PR_SUCCESS : PR_FAILURE;
-}
-#endif
-
-static PRStatus
-SSL_BypassSetup(void)
-{
-#ifdef NO_PKCS11_BYPASS
-    /* Guarantee binary compatibility */
-    return PR_SUCCESS;
-#else
-    return PR_CallOnce(&setupBypassOnce, &SSL_BypassRegisterShutdown);
-#endif
-}
-
 static PRBool ssl_VersionIsSupportedByPolicy(
     SSLProtocolVariant protocolVariant, SSL3ProtocolVersion version);
 
@@ -724,24 +687,6 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
             break;
 
         case SSL_BYPASS_PKCS11:
-            if (ss->handshakeBegun) {
-                PORT_SetError(PR_INVALID_STATE_ERROR);
-                rv = SECFailure;
-            } else {
-                if (PR_FALSE != on) {
-                    if (PR_SUCCESS == SSL_BypassSetup()) {
-#ifdef NO_PKCS11_BYPASS
-                        ss->opt.bypassPKCS11 = PR_FALSE;
-#else
-                        ss->opt.bypassPKCS11 = on;
-#endif
-                    } else {
-                        rv = SECFailure;
-                    }
-                } else {
-                    ss->opt.bypassPKCS11 = PR_FALSE;
-                }
-            }
             break;
 
         case SSL_NO_LOCKS:
@@ -911,7 +856,7 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
             on = PR_FALSE;
             break;
         case SSL_BYPASS_PKCS11:
-            on = ss->opt.bypassPKCS11;
+            on = PR_FALSE;
             break;
         case SSL_NO_LOCKS:
             on = ss->opt.noLocks;
@@ -1031,7 +976,7 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
             on = PR_FALSE;
             break;
         case SSL_BYPASS_PKCS11:
-            on = ssl_defaults.bypassPKCS11;
+            on = PR_FALSE;
             break;
         case SSL_NO_LOCKS:
             on = ssl_defaults.noLocks;
@@ -1185,19 +1130,6 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
             break;
 
         case SSL_BYPASS_PKCS11:
-            if (PR_FALSE != on) {
-                if (PR_SUCCESS == SSL_BypassSetup()) {
-#ifdef NO_PKCS11_BYPASS
-                    ssl_defaults.bypassPKCS11 = PR_FALSE;
-#else
-                    ssl_defaults.bypassPKCS11 = on;
-#endif
-                } else {
-                    return SECFailure;
-                }
-            } else {
-                ssl_defaults.bypassPKCS11 = PR_FALSE;
-            }
             break;
 
         case SSL_NO_LOCKS:
@@ -3512,14 +3444,6 @@ ssl_SetDefaultsFromEnvironment(void)
             }
         }
 #endif
-#ifndef NO_PKCS11_BYPASS
-        ev = PR_GetEnvSecure("SSLBYPASS");
-        if (ev && ev[0]) {
-            ssl_defaults.bypassPKCS11 = (ev[0] == '1');
-            SSL_TRACE(("SSL: bypass default set to %d",
-                       ssl_defaults.bypassPKCS11));
-        }
-#endif /* NO_PKCS11_BYPASS */
         ev = PR_GetEnvSecure("SSLFORCELOCKS");
         if (ev && ev[0] == '1') {
             ssl_force_locks = PR_TRUE;
@@ -3805,4 +3729,20 @@ loser:
     ssl_DestroyLocks(ss);
     PORT_Free(ss);
     return NULL;
+}
+
+/**
+ * DEPRECATED: Will always return false.
+ */
+SECStatus
+SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
+              PRUint32 protocolmask, PRUint16 *ciphersuites, int nsuites,
+              PRBool *pcanbypass, void *pwArg)
+{
+    if (!pcanbypass) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+    *pcanbypass = PR_FALSE;
+    return SECSuccess;
 }

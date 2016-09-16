@@ -316,7 +316,6 @@ typedef struct sslOptionsStr {
     unsigned int noCache : 1;
     unsigned int fdx : 1;
     unsigned int detectRollBack : 1;
-    unsigned int bypassPKCS11 : 1;
     unsigned int noLocks : 1;
     unsigned int enableSessionTickets : 1;
     unsigned int enableDeflate : 1;
@@ -534,7 +533,6 @@ typedef struct {
     SSLCipher encode;
     SSLCipher decode;
     SSLAEADCipher aead;
-    SSLDestroy destroy;
     void *encodeContext;
     void *decodeContext;
     SSLCompressor compressor;   /* Don't name these fields compress */
@@ -544,7 +542,6 @@ typedef struct {
     void *compressContext;
     SSLDestroy destroyDecompressContext;
     void *decompressContext;
-    PRBool bypassCiphers; /* did double bypass (at least) */
     PK11SymKey *master_secret;
     sslSequenceNumber write_seq_num;
     sslSequenceNumber read_seq_num;
@@ -884,20 +881,6 @@ typedef struct SSL3HandshakeStateStr {
     /* This group of members is used for handshake running hashes. */
     SSL3HandshakeHashType hashType;
     sslBuffer messages; /* Accumulated handshake messages */
-#ifndef NO_PKCS11_BYPASS
-    /* Bypass mode:
-     * SSL 3.0 - TLS 1.1 use both |md5_cx| and |sha_cx|. |md5_cx| is used for
-     * MD5 and |sha_cx| for SHA-1.
-     * TLS 1.2 and later use only |sha_cx|, for SHA-256. NOTE: When we support
-     * SHA-384, increase MAX_MAC_CONTEXT_BYTES to 712. */
-    PRUint64 md5_cx[MAX_MAC_CONTEXT_LLONGS];
-    PRUint64 sha_cx[MAX_MAC_CONTEXT_LLONGS];
-    const SECHashObject *sha_obj;
-    /* The function prototype of sha_obj->clone() does not match the prototype
-     * of the freebl <HASH>_Clone functions, so we need a dedicated function
-     * pointer for the <HASH>_Clone function. */
-    void (*sha_clone)(void *dest, void *src);
-#endif
     /* PKCS #11 mode:
      * SSL 3.0 - TLS 1.1 use both |md5| and |sha|. |md5| is used for MD5 and
      * |sha| for SHA-1.
@@ -1639,14 +1622,6 @@ extern PRInt32 ssl3_SendRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
 extern PRBool ssl3_VersionIsSupported(SSLProtocolVariant protocolVariant,
                                       SSL3ProtocolVersion version);
 
-extern SECStatus ssl3_KeyAndMacDeriveBypass(ssl3CipherSpec *pwSpec,
-                                            const unsigned char *cr, const unsigned char *sr,
-                                            PRBool isTLS, HASH_HashType tls12HashType);
-extern SECStatus ssl3_MasterSecretDeriveBypass(ssl3CipherSpec *pwSpec,
-                                               const unsigned char *cr, const unsigned char *sr,
-                                               const SECItem *pms, PRBool isTLS,
-                                               HASH_HashType tls12HashType, PRBool isRSA);
-
 /* These functions are called from secnav, even though they're "private". */
 
 extern int SSL_RestartHandshakeAfterCertReq(struct sslSocketStr *ss,
@@ -1734,8 +1709,6 @@ extern SECStatus ssl_NamedGroup2ECParams(PLArenaPool *arena,
 extern const sslNamedGroupDef *ssl_ECPubKey2NamedGroup(
     const SECKEYPublicKey *pubKey);
 
-extern const sslNamedGroupDef *ssl_GetECGroupWithStrength(sslSocket *ss,
-                                                          unsigned int requiredECCbits);
 extern const sslNamedGroupDef *ssl_GetECGroupForServerSocket(sslSocket *ss);
 extern void ssl_FilterSupportedGroups(sslSocket *ss);
 
@@ -1781,8 +1754,8 @@ SECStatus tls13_EncodeECDHEKeyShareKEX(sslSocket *ss,
 
 extern SECStatus ssl3_ComputeCommonKeyHash(SSLHashType hashAlg,
                                            PRUint8 *hashBuf,
-                                           unsigned int bufLen, SSL3Hashes *hashes,
-                                           PRBool bypassPKCS11);
+                                           unsigned int bufLen,
+                                           SSL3Hashes *hashes);
 extern void ssl3_DestroyCipherSpec(ssl3CipherSpec *spec, PRBool freeSrvName);
 extern SECStatus ssl3_InitPendingCipherSpec(sslSocket *ss, PK11SymKey *pms);
 extern SECStatus ssl3_AppendHandshake(sslSocket *ss, const void *void_src,
@@ -1865,12 +1838,10 @@ extern void ssl3_SetSIDSessionTicket(sslSessionID *sid,
 SECStatus ssl3_EncodeSessionTicket(sslSocket *ss,
                                    const NewSessionTicket *ticket_input,
                                    SECItem *ticket_data);
-extern PRBool ssl_GetSessionTicketKeys(unsigned char *keyName,
-                                       unsigned char *encKey, unsigned char *macKey);
-extern PRBool ssl_GetSessionTicketKeysPKCS11(SECKEYPrivateKey *svrPrivKey,
-                                             SECKEYPublicKey *svrPubKey, void *pwArg,
-                                             unsigned char *keyName, PK11SymKey **aesKey,
-                                             PK11SymKey **macKey);
+extern PRBool ssl_GetSessionTicketKeys(SECKEYPrivateKey *svrPrivKey,
+                                       SECKEYPublicKey *svrPubKey, void *pwArg,
+                                       unsigned char *keyName, PK11SymKey **aesKey,
+                                       PK11SymKey **macKey);
 extern SECStatus ssl3_SessionTicketShutdown(void *appData, void *nssData);
 
 /* Tell clients to consider tickets valid for this long. */
