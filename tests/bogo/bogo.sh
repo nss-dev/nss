@@ -26,7 +26,7 @@ bogo_init()
   if [ ! -d "boringssl" ]; then
     git clone https://boringssl.googlesource.com/boringssl
     cd boringssl
-    git checkout 5013fb41f2bdb1a2ab99371effce3b23e70719a3
+    git checkout 57e929f3c8c3d412639eb123382c79ff3bdc3ed3
     cd ssl/test/runner
   else
     cd boringssl/ssl/test/runner
@@ -49,10 +49,14 @@ export PATH=$PATH:/usr/lib/go-1.6/bin
 SOURCE_DIR=$(echo $PWD/../../)
 bogo_init
 exec 3>&1
-BOGO_OUT=$(GOPATH=$PWD go test -pipe -shim-path "${BINDIR}"/nss_bogo_shim -loose-errors -allow-unimplemented -shim-config "${SOURCE_DIR}external_tests/nss_bogo_shim/config.json" 2>&1 1>&3)
+BOGO_OUT=$(GOPATH=$PWD go test -pipe -shim-path "${BINDIR}"/nss_bogo_shim \
+   -loose-errors -allow-unimplemented \
+   -shim-config "${SOURCE_DIR}external_tests/nss_bogo_shim/config.json" \
+   2>&1 1>&3)
+BOGO_STATUS=$?
 exec 3>&-
 BOGO_OUT=`echo $BOGO_OUT | grep -i 'FAILED\|Assertion failure'`
-if [ -n "$BOGO_OUT" ] ; then
+if [ -n "$BOGO_OUT" ] || [ "$BOGO_STATUS" -ne "0" ]; then
   html_failed "Bogo test"
 else
   html_passed "Bogo test"
