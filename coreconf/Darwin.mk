@@ -111,9 +111,9 @@ DARWIN_DYLIB_VERSIONS = -compatibility_version 1 -current_version 1
 DSO_LDOPTS	= -dynamiclib $(DARWIN_DYLIB_VERSIONS) -install_name @executable_path/$(notdir $@) -headerpad_max_install_names
 
 ifdef USE_GCOV
-OS_CFLAGS += --coverage
-LDFLAGS += --coverage
-DSO_LDOPTS += --coverage
+   OS_CFLAGS += --coverage
+   LDFLAGS += --coverage
+   DSO_LDOPTS += --coverage
 endif
 
 MKSHLIB		= $(CC) $(DSO_LDOPTS) $(DARWIN_SDK_SHLIBFLAGS)
