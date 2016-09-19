@@ -2775,6 +2775,9 @@ main(int argc, char **argv)
     if (configureWeakDHE > 0) {
         fprintf(stderr, "selfserv: Creating dynamic weak DH parameters\n");
         rv = SSL_EnableWeakDHEPrimeGroup(NULL, PR_TRUE);
+        if (rv != SECSuccess) {
+            goto cleanup;
+        }
         fprintf(stderr, "selfserv: Done creating dynamic weak DH parameters\n");
     }
 
