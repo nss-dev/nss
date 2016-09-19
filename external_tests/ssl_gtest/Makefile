@@ -33,6 +33,12 @@ ifdef NSS_SSL_ENABLE_ZLIB
 include $(CORE_DEPTH)/coreconf/zlib.mk
 endif
 
+ifdef NSS_DISABLE_TLS_1_3
+# Run parameterized tests only, for which we can easily exclude TLS 1.3
+CPPSRCS := $(filter-out $(shell grep -l '^TEST_F' $(CPPSRCS)), $(CPPSRCS))
+CFLAGS += -DNSS_DISABLE_TLS_1_3
+endif
+
 #######################################################################
 # (5) Execute "global" rules. (OPTIONAL)                              #
 #######################################################################
