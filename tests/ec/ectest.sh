@@ -40,7 +40,7 @@ ectest_cleanup()
 }
 
 ectest_init
-ECTEST_OUT=$(ectest 2>&1)
+ECTEST_OUT=$(ectest -f -p -n -d 2>&1)
 ECTEST_OUT=`echo $ECTEST_OUT | grep -i 'not okay\|Assertion failure'`
 # TODO: expose individual tests and failures instead of overall
 if [ -n "$ECTEST_OUT" ] ; then
