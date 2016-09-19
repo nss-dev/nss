@@ -38,7 +38,6 @@
         "WrongMessageType-TLS13-ServerFinished":"nss updated/broken",
         "EncryptedExtensionsWithKeyShare":"nss updated/broken",
         "EmptyEncryptedExtensions":"nss updated/broken",
-        "TLS13-RequestContextInHandshake":"Bug 1303711 - Fail with a decode_error when the req_ctx is non-zero during the handshake",
         "ClientAuth-SHA1-Fallback-RSA":"We fail when the sig_algs_ext is empty"
     },
     "ErrorMap" : {
