@@ -5057,19 +5057,22 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
                 break;
             }
             rv = EC_NewKey(ecParams, &ecPriv);
-            PORT_FreeArena(ecParams->arena, PR_TRUE);
             if (rv != SECSuccess) {
                 if (PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
                     sftk_fatalError = PR_TRUE;
                 }
+                PORT_FreeArena(ecParams->arena, PR_TRUE);
                 crv = sftk_MapCryptError(PORT_GetError());
                 break;
             }
 
-            if (PR_GetEnvSecure("NSS_USE_DECODED_CKA_EC_POINT")) {
+            if (PR_GetEnvSecure("NSS_USE_DECODED_CKA_EC_POINT") ||
+                ecParams->fieldID.type == ec_field_plain) {
+                PORT_FreeArena(ecParams->arena, PR_TRUE);
                 crv = sftk_AddAttributeType(publicKey, CKA_EC_POINT,
                                             sftk_item_expand(&ecPriv->publicValue));
             } else {
+                PORT_FreeArena(ecParams->arena, PR_TRUE);
                 SECItem *pubValue = SEC_ASN1EncodeItem(NULL, NULL,
                                                        &ecPriv->publicValue,
                                                        SEC_ASN1_GET(SEC_OctetStringTemplate));
@@ -7178,7 +7181,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             PRBool withCofactor = PR_FALSE;
             unsigned char *secret;
             unsigned char *keyData = NULL;
-            unsigned int secretlen, curveLen, pubKeyLen;
+            unsigned int secretlen, pubKeyLen;
             CK_ECDH1_DERIVE_PARAMS *mechParams;
             NSSLOWKEYPrivateKey *privKey;
             PLArenaPool *arena = NULL;
@@ -7204,8 +7207,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             ecPoint.data = mechParams->pPublicData;
             ecPoint.len = mechParams->ulPublicDataLen;
 
-            curveLen = (privKey->u.ec.ecParams.fieldID.size + 7) / 8;
-            pubKeyLen = (2 * curveLen) + 1;
+            pubKeyLen = privKey->u.ec.ecParams.pointSize;
 
             /* if the len is too small, can't be a valid point */
             if (ecPoint.len < pubKeyLen) {
