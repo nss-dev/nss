@@ -1399,8 +1399,6 @@ tls13_HandleClientKeyShare(sslSocket *ss, PRBool *shouldRetry)
     return rv; /* Error code set already. */
 }
 
-static const unsigned char tls13_certreq_context[] = { 0 };
-
 /*
  *     [draft-ietf-tls-tls13-11] Section 6.3.3.2
  *
@@ -1442,15 +1440,14 @@ tls13_SendCertificateRequest(sslSocket *ss)
     }
 
     ssl3_GetCertificateRequestCAs(ss, &calen, &names, &nnames);
-    length = 1 + sizeof(tls13_certreq_context) +
+    length = 1 + 0 /* length byte for empty request context */ +
              2 + sigSchemesLength + 2 + calen + 2;
 
     rv = ssl3_AppendHandshakeHeader(ss, certificate_request, length);
     if (rv != SECSuccess) {
         return rv; /* err set by AppendHandshake. */
     }
-    rv = ssl3_AppendHandshakeVariable(ss, tls13_certreq_context,
-                                      sizeof(tls13_certreq_context), 1);
+    rv = ssl3_AppendHandshakeNumber(ss, 0, 1);
     if (rv != SECSuccess) {
         return rv; /* err set by AppendHandshake. */
     }
@@ -1610,6 +1607,13 @@ tls13_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     rv = ssl3_ConsumeHandshakeVariable(ss, &context, 1, &b, &length);
     if (rv != SECSuccess)
         goto loser;
+
+    /* We don't support post-handshake client auth, the certificate request
+     * context must always be null. */
+    if (context.len > 0) {
+        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CERT_REQUEST, illegal_parameter);
+        goto loser;
+    }
 
     certRequest = PORT_ArenaZNew(arena, TLS13CertificateRequest);
     if (!certRequest)
@@ -2002,22 +2006,11 @@ tls13_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     rv = ssl3_ConsumeHandshakeVariable(ss, &context, 1, &b, &length);
     if (rv != SECSuccess)
         return SECFailure;
-    if (!ss->sec.isServer) {
-        if (context.len) {
-            /* The server's context string MUST be empty */
-            FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CERTIFICATE,
-                        illegal_parameter);
-            return SECFailure;
-        }
-    } else {
-        if (context.len != sizeof(tls13_certreq_context) ||
-            (NSS_SecureMemcmp(tls13_certreq_context,
-                              context.data, context.len) != 0)) {
-            FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CERTIFICATE,
-                        illegal_parameter);
-            return SECFailure;
-        }
-        context.len = 0; /* Belt and suspenders. Zero out the context. */
+
+    if (context.len) {
+        /* The context string MUST be empty */
+        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CERTIFICATE, illegal_parameter);
+        return SECFailure;
     }
 
     rv = ssl3_CompleteHandleCertificate(ss, b, length);
