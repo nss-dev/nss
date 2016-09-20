@@ -5188,7 +5188,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
          * the Windows SChannel bug described above. */
         PORT_Assert(ss->version == ss->clientHelloVersion);
     }
-    ss->clientHelloVersion = ss->version;
+    ss->clientHelloVersion = PR_MIN(ss->version, SSL_LIBRARY_VERSION_TLS_1_2);
     if (IS_DTLS(ss)) {
         PRUint16 version;
 
@@ -6469,7 +6469,9 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     PRBool isTLS = PR_FALSE;
     SSL3AlertDescription desc = illegal_parameter;
     SSL3ProtocolVersion version;
+#ifndef TLS_1_3_DRAFT_VERSION
     SSL3ProtocolVersion downgradeCheckVersion;
+#endif
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle server_hello handshake",
                 SSL_GETPID(), ss->fd));
@@ -6501,8 +6503,9 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (temp < 0) {
         goto loser; /* alert has been sent */
     }
-    version = (SSL3ProtocolVersion)temp;
+    version = tls13_DecodeDraftVersion((PRUint16)temp);
 
+    /* Try to translate DTLS versions. */
     if (IS_DTLS(ss)) {
         /* RFC 4347 required that you verify that the server versions
          * match (Section 4.2.1) in the HelloVerifyRequest and the
@@ -6552,6 +6555,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         goto loser; /* alert has been sent */
     }
 
+#ifndef TLS_1_3_DRAFT_VERSION
     /* Check the ServerHello.random per
      * [draft-ietf-tls-tls13-11 Section 6.3.1.1].
      *
@@ -6560,6 +6564,8 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
      * TLS 1.2 clients SHOULD also perform this check if the ServerHello
      * indicates TLS 1.1 or below.  If a match is found the client MUST
      * abort the handshake with a fatal "illegal_parameter" alert.
+     *
+     * Disable this test during the TLS 1.3 draft version period.
      */
     downgradeCheckVersion = ss->ssl3.downgradeCheckVersion ? ss->ssl3.downgradeCheckVersion
                                                            : ss->vrange.max;
@@ -6581,6 +6587,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
             goto alert_loser;
         }
     }
+#endif
 
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
         rv = ssl3_ConsumeHandshakeVariable(ss, &sidBytes, 1, &b, &length);
@@ -8118,6 +8125,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SSL3AlertDescription desc = illegal_parameter;
     SSL3AlertLevel level = alert_fatal;
     SSL3ProtocolVersion version;
+    TLSExtension *versionExtension;
     SECItem sidBytes = { siBuffer, NULL, 0 };
     SECItem cookieBytes = { siBuffer, NULL, 0 };
     SECItem suites = { siBuffer, NULL, 0 };
@@ -8175,7 +8183,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (tmp < 0)
         goto loser; /* malformed, alert already sent */
 
-    /* Translate the version */
+    /* Translate the version. */
     if (IS_DTLS(ss)) {
         ss->clientHelloVersion = version =
             dtls_DTLSVersionToTLSVersion((SSL3ProtocolVersion)tmp);
@@ -8183,15 +8191,93 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         ss->clientHelloVersion = version = (SSL3ProtocolVersion)tmp;
     }
 
-    rv = ssl3_NegotiateVersion(ss, version, PR_TRUE);
+    /* Grab the client random data. */
+    rv = ssl3_ConsumeHandshake(
+        ss, &ss->ssl3.hs.client_random, SSL3_RANDOM_LENGTH, &b, &length);
     if (rv != SECSuccess) {
-        desc = (version > SSL_LIBRARY_VERSION_3_0) ? protocol_version
-                                                   : handshake_failure;
-        errCode = SSL_ERROR_UNSUPPORTED_VERSION;
-        goto alert_loser;
+        goto loser; /* malformed */
+    }
+
+    /* Grab the client's SID, if present. */
+    rv = ssl3_ConsumeHandshakeVariable(ss, &sidBytes, 1, &b, &length);
+    if (rv != SECSuccess) {
+        goto loser; /* malformed */
+    }
+
+    /* Grab the client's cookie, if present. */
+    if (IS_DTLS(ss)) {
+        rv = ssl3_ConsumeHandshakeVariable(ss, &cookieBytes, 1, &b, &length);
+        if (rv != SECSuccess) {
+            goto loser; /* malformed */
+        }
+    }
+
+    /* Grab the list of cipher suites. */
+    rv = ssl3_ConsumeHandshakeVariable(ss, &suites, 2, &b, &length);
+    if (rv != SECSuccess) {
+        goto loser; /* malformed */
+    }
+
+    /* Grab the list of compression methods. */
+    rv = ssl3_ConsumeHandshakeVariable(ss, &comps, 1, &b, &length);
+    if (rv != SECSuccess) {
+        goto loser; /* malformed */
+    }
+
+    /* Handle TLS hello extensions for SSL3 & TLS. We do not know if
+     * we are restarting a previous session until extensions have been
+     * parsed, since we might have received a SessionTicket extension.
+     * Note: we allow extensions even when negotiating SSL3 for the sake
+     * of interoperability (and backwards compatibility).
+     */
+
+    if (length) {
+        /* Get length of hello extensions */
+        PRInt32 extension_length;
+        extension_length = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
+        if (extension_length < 0) {
+            goto loser; /* alert already sent */
+        }
+        if (extension_length != length) {
+            ssl3_DecodeError(ss); /* send alert */
+            goto loser;
+        }
+
+        rv = ssl3_ParseExtensions(ss, &b, &length);
+        if (rv != SECSuccess) {
+            goto loser; /* malformed */
+        }
+    }
+
+    versionExtension = ssl3_FindExtension(ss, ssl_tls13_supported_versions_xtn);
+    if (versionExtension) {
+        rv = tls13_NegotiateVersion(ss, versionExtension);
+        if (rv != SECSuccess) {
+            desc = protocol_version;
+            errCode = SSL_ERROR_UNSUPPORTED_VERSION;
+            goto alert_loser;
+        }
+    } else {
+        /* The PR_MIN here ensures that we never negotiate 1.3 if the
+         * peer didn't offer "supported_versions". */
+        rv = ssl3_NegotiateVersion(ss,
+                                   PR_MIN(version,
+                                          SSL_LIBRARY_VERSION_TLS_1_2),
+                                   PR_TRUE);
+        if (rv != SECSuccess) {
+            desc = (version > SSL_LIBRARY_VERSION_3_0) ? protocol_version
+                                                       : handshake_failure;
+            errCode = SSL_ERROR_UNSUPPORTED_VERSION;
+            goto alert_loser;
+        }
     }
     isTLS13 = ss->version >= SSL_LIBRARY_VERSION_TLS_1_3;
     ss->ssl3.hs.preliminaryInfo |= ssl_preinfo_version;
+
+    /* You can't resume TLS 1.3 like this. */
+    if (isTLS13 && sidBytes.len) {
+        goto alert_loser;
+    }
 
     /* Generate the Server Random now so it is available
      * when we process the ClientKeyShare in TLS 1.3 */
@@ -8201,6 +8287,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         goto loser;
     }
 
+#ifndef TLS_1_3_DRAFT_VERSION
     /*
      * [draft-ietf-tls-tls13-11 Section 6.3.1.1].
      * TLS 1.3 server implementations which respond to a ClientHello with a
@@ -8217,7 +8304,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
      *
      * TODO(ekr@rtfm.com): Note this change was not added in the SSLv2
      * compat processing code since that will most likely be removed before
-     * we ship the final version of TLS 1.3.
+     * we ship the final version of TLS 1.3. Bug 1306672.
      */
     if (ss->vrange.max > ss->version) {
         unsigned char *downgrade_sentinel =
@@ -8240,35 +8327,10 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
                 break;
         }
     }
+#endif
 
-    /* grab the client random data. */
-    rv = ssl3_ConsumeHandshake(
-        ss, &ss->ssl3.hs.client_random, SSL3_RANDOM_LENGTH, &b, &length);
-    if (rv != SECSuccess) {
-        goto loser; /* malformed */
-    }
-
-    /* grab the client's SID, if present. */
-    rv = ssl3_ConsumeHandshakeVariable(ss, &sidBytes, 1, &b, &length);
-    if (rv != SECSuccess) {
-        goto loser; /* malformed */
-    }
-
-    /* You can't resume TLS 1.3 like this, */
-    if (isTLS13 && sidBytes.len) {
-        goto alert_loser;
-    }
-
-    /* grab the client's cookie, if present. */
-    if (IS_DTLS(ss)) {
-        rv = ssl3_ConsumeHandshakeVariable(ss, &cookieBytes, 1, &b, &length);
-        if (rv != SECSuccess) {
-            goto loser; /* malformed */
-        }
-    }
-
-    /* grab the list of cipher suites. */
-    rv = ssl3_ConsumeHandshakeVariable(ss, &suites, 2, &b, &length);
+    /* Now parse the rest of the extensions. */
+    rv = ssl3_HandleParsedExtensions(ss, client_hello);
     if (rv != SECSuccess) {
         goto loser; /* malformed */
     }
@@ -8286,55 +8348,9 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         }
     }
 
-    /* grab the list of compression methods. */
-    rv = ssl3_ConsumeHandshakeVariable(ss, &comps, 1, &b, &length);
-    if (rv != SECSuccess) {
-        goto loser; /* malformed */
-    }
-
-    /* TLS 1.3 requires that compression be empty */
+    /* TLS 1.3 requires that compression only include null. */
     if (isTLS13) {
         if (comps.len != 1 || comps.data[0] != ssl_compression_null) {
-            goto alert_loser;
-        }
-    }
-
-    /* Handle TLS hello extensions for SSL3 & TLS. We do not know if
-     * we are restarting a previous session until extensions have been
-     * parsed, since we might have received a SessionTicket extension.
-     * Note: we allow extensions even when negotiating SSL3 for the sake
-     * of interoperability (and backwards compatibility).
-     */
-
-    if (length) {
-        /* Get length of hello extensions */
-        PRInt32 extension_length;
-        extension_length = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
-        if (extension_length < 0) {
-            goto loser; /* alert already sent */
-        }
-        if (extension_length != length) {
-            ssl3_DecodeError(ss); /* send alert */
-            goto loser;
-        }
-        rv = ssl3_HandleExtensions(ss, &b, &length, client_hello);
-        if (rv != SECSuccess) {
-            goto loser; /* malformed */
-        }
-    }
-
-    /* TODO: For TLS 1.3 final, downgrade when the extension IS present. */
-    if (ss->version == SSL_LIBRARY_VERSION_TLS_1_3 &&
-        !ssl3_ExtensionNegotiated(ss, ssl_tls13_draft_version_xtn)) {
-        SSL_TRC(30, ("%d: SSL3[%d]: Unsupported version of TLS 1.3 "
-                     "advertised, expected %d",
-                     SSL_GETPID(), ss->fd, TLS_1_3_DRAFT_VERSION));
-        ss->version = SSL_LIBRARY_VERSION_TLS_1_2;
-        /* Maybe TLS 1.2 is disabled... */
-        if (ss->version < ss->vrange.min) {
-            desc = protocol_version;
-            level = alert_fatal;
-            errCode = SSL_ERROR_UNSUPPORTED_VERSION;
             goto alert_loser;
         }
     }
@@ -9134,20 +9150,10 @@ ssl3_SendServerHello(sslSocket *ss)
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
-    if (!IS_DTLS(ss)) {
-        PORT_Assert(MSB(ss->version) == MSB(SSL_LIBRARY_VERSION_3_0));
-
-        if (MSB(ss->version) != MSB(SSL_LIBRARY_VERSION_3_0)) {
-            PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
-            return SECFailure;
-        }
-    } else {
-        PORT_Assert(MSB(ss->version) == MSB(SSL_LIBRARY_VERSION_DTLS_1_0));
-
-        if (MSB(ss->version) != MSB(SSL_LIBRARY_VERSION_DTLS_1_0)) {
-            PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
-            return SECFailure;
-        }
+    PORT_Assert(MSB(ss->version) == MSB(SSL_LIBRARY_VERSION_3_0));
+    if (MSB(ss->version) != MSB(SSL_LIBRARY_VERSION_3_0)) {
+        PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
+        return SECFailure;
     }
 
     sid = ss->sec.ci.sid;
@@ -9174,10 +9180,10 @@ ssl3_SendServerHello(sslSocket *ss)
         return rv; /* err set by AppendHandshake. */
     }
 
-    if (IS_DTLS(ss)) {
+    if (IS_DTLS(ss) && ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
         version = dtls_TLSVersionToDTLSVersion(ss->version);
     } else {
-        version = ss->version;
+        version = tls13_EncodeDraftVersion(ss->version);
     }
 
     rv = ssl3_AppendHandshakeNumber(ss, version, 2);
@@ -12701,7 +12707,7 @@ ssl3_InitState(sslSocket *ss)
     ss->ssl3.hs.ws = (ss->sec.isServer) ? wait_client_hello : wait_server_hello;
 
     PORT_Memset(&ss->xtnData, 0, sizeof(TLSExtensionData));
-
+    PR_INIT_CLIST(&ss->ssl3.hs.remoteExtensions);
     if (IS_DTLS(ss)) {
         ss->ssl3.hs.sendMessageSeq = 0;
         ss->ssl3.hs.recvMessageSeq = 0;
@@ -13030,6 +13036,9 @@ ssl3_DestroySSL3Info(sslSocket *ss)
             PORT_Free(ss->ssl3.hs.recvdFragments.buf);
         }
     }
+
+    /* Destroy remote extensions */
+    ssl3_DestroyRemoteExtensions(&ss->ssl3.hs.remoteExtensions);
 
     /* Destroy TLS 1.3 handshake shares */
     tls13_DestroyKeyShares(&ss->ssl3.hs.remoteKeyShares);
