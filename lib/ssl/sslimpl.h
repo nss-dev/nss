@@ -141,7 +141,7 @@ typedef enum { SSLAppOpRead = 0,
 #define DTLS_RETRANSMIT_FINISHED_MS 30000
 
 /* default number of entries in namedGroupPreferences */
-#define SSL_NAMED_GROUP_COUNT 30
+#define SSL_NAMED_GROUP_COUNT 31
 
 /* Types and names of elliptic curves used in TLS */
 typedef enum {
@@ -1711,14 +1711,12 @@ extern PRBool ssl_IsECCEnabled(sslSocket *ss);
 extern PRBool ssl_IsDHEEnabled(sslSocket *ss);
 
 /* Macro for finding a curve equivalent in strength to RSA key's */
-/* clang-format off */
-#define SSL_RSASTRENGTH_TO_ECSTRENGTH(s)                                       \
-        ((s <= 1024) ? 160                                                     \
-                     : ((s <= 2048) ? 224                                      \
-                                    : ((s <= 3072) ? 256                       \
-                                                   : ((s <= 7168) ? 384        \
-                                                                  : 521 ) ) ) )
-/* clang-format on */
+#define SSL_RSASTRENGTH_TO_ECSTRENGTH(s)                            \
+    ((s <= 1024) ? 160                                              \
+                 : ((s <= 2048) ? 224                               \
+                                : ((s <= 3072) ? 256                \
+                                               : ((s <= 7168) ? 384 \
+                                                              : 521))))
 
 extern const namedGroupDef *ssl_LookupNamedGroup(SSLNamedGroup group);
 extern PRBool ssl_NamedGroupEnabled(const sslSocket *ss, const namedGroupDef *group);
@@ -1766,7 +1764,7 @@ extern SECStatus ssl3_HandleECDHClientKeyExchange(sslSocket *ss,
                                                   SSL3Opaque *b, PRUint32 length,
                                                   sslKeyPair *serverKeys);
 extern SECStatus ssl3_SendECDHServerKeyExchange(sslSocket *ss);
-extern SECStatus tls13_ImportECDHKeyShare(
+extern SECStatus ssl_ImportECDHKeyShare(
     sslSocket *ss, SECKEYPublicKey *peerKey,
     SSL3Opaque *b, PRUint32 length, const namedGroupDef *curve);
 unsigned int tls13_SizeOfECDHEKeyShareKEX(const SECKEYPublicKey *pubKey);

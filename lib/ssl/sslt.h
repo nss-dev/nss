@@ -339,7 +339,8 @@ typedef enum {
     ssl_grp_ec_secp256r1 = 23,
     ssl_grp_ec_secp384r1 = 24,
     ssl_grp_ec_secp521r1 = 25,
-    ssl_grp_ffdhe_2048 = 256, /* RFC7919 */
+    ssl_grp_ec_curve25519 = 29, /* RFC4492 */
+    ssl_grp_ffdhe_2048 = 256,   /* RFC7919 */
     ssl_grp_ffdhe_3072 = 257,
     ssl_grp_ffdhe_4096 = 258,
     ssl_grp_ffdhe_6144 = 259,

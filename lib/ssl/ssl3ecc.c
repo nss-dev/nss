@@ -125,10 +125,9 @@ ssl3_ComputeECDHKeyHash(SSLHashType hashAlg,
     SECStatus rv = SECSuccess;
     unsigned int bufLen;
     /*
-     * XXX For now, we only support named curves (the appropriate
-     * checks are made before this method is called) so ec_params
-     * takes up only two bytes. ECPoint needs to fit in 256 bytes
-     * (because the spec says the length must fit in one byte)
+     * We only support named curves (the appropriate checks are made before this
+     * method is called) so ec_params takes up only two bytes. ECPoint needs to
+     * fit in 256 bytes because the spec says the length must fit in one byte.
      */
     PRUint8 buf[2 * SSL3_RANDOM_LENGTH + 2 + 1 + 256];
 
@@ -303,7 +302,7 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
         serverKeyPair->pubKey->u.ec.DEREncodedParams.len;
     clntPubKey.u.ec.DEREncodedParams.data =
         serverKeyPair->pubKey->u.ec.DEREncodedParams.data;
-    clntPubKey.u.ec.encoding = ECPoint_Uncompressed;
+    clntPubKey.u.ec.encoding = serverKeyPair->pubKey->u.ec.encoding;
 
     rv = ssl3_ConsumeHandshakeVariable(ss, &clntPubKey.u.ec.publicValue,
                                        1, &b, &length);
@@ -354,12 +353,11 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 
 /*
 ** Take an encoded key share and make a public key out of it.
-** returns NULL on error.
 */
 SECStatus
-tls13_ImportECDHKeyShare(sslSocket *ss, SECKEYPublicKey *peerKey,
-                         SSL3Opaque *b, PRUint32 length,
-                         const namedGroupDef *ecGroup)
+ssl_ImportECDHKeyShare(sslSocket *ss, SECKEYPublicKey *peerKey,
+                       SSL3Opaque *b, PRUint32 length,
+                       const namedGroupDef *ecGroup)
 {
     SECStatus rv;
     SECItem ecPoint = { siBuffer, NULL, 0 };
@@ -373,7 +371,8 @@ tls13_ImportECDHKeyShare(sslSocket *ss, SECKEYPublicKey *peerKey,
     }
 
     /* Fail if the ec point uses compressed representation */
-    if (b[0] != EC_POINT_FORM_UNCOMPRESSED) {
+    if (b[0] != EC_POINT_FORM_UNCOMPRESSED &&
+        ecGroup->name != ssl_grp_ec_curve25519) {
         PORT_SetError(SEC_ERROR_UNSUPPORTED_EC_POINT_FORM);
         return SECFailure;
     }
@@ -385,6 +384,11 @@ tls13_ImportECDHKeyShare(sslSocket *ss, SECKEYPublicKey *peerKey,
     if (rv != SECSuccess) {
         ssl_MapLowLevelError(SSL_ERROR_RX_MALFORMED_ECDHE_KEY_SHARE);
         return SECFailure;
+    }
+    if (ecGroup->name == ssl_grp_ec_curve25519) {
+        peerKey->u.ec.encoding = ECPoint_XOnly;
+    } else {
+        peerKey->u.ec.encoding = ECPoint_Uncompressed;
     }
 
     /* copy publicValue in peerKey */
@@ -517,7 +521,7 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     SECItem ec_params = { siBuffer, NULL, 0 };
     SECItem ec_point = { siBuffer, NULL, 0 };
-    unsigned char paramBuf[3]; /* only for curve_type == named_curve */
+    unsigned char paramBuf[3];
     const namedGroupDef *ecGroup;
 
     isTLS = (PRBool)(ss->ssl3.prSpec->version > SSL_LIBRARY_VERSION_3_0);
@@ -553,8 +557,9 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         goto alert_loser;
     }
 
-    /* Fail if the ec point uses compressed representation. */
-    if (ec_point.data[0] != EC_POINT_FORM_UNCOMPRESSED) {
+    /* Fail if the ec point is not uncompressed for any curve that's not 25519. */
+    if (ecGroup->name != ssl_grp_ec_curve25519 &&
+        ec_point.data[0] != EC_POINT_FORM_UNCOMPRESSED) {
         errCode = SEC_ERROR_UNSUPPORTED_EC_POINT_FORM;
         desc = handshake_failure;
         goto alert_loser;
@@ -589,8 +594,7 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         goto alert_loser; /* malformed. */
     }
 
-    PRINT_BUF(60, (NULL, "Server EC params", ec_params.data,
-                   ec_params.len));
+    PRINT_BUF(60, (NULL, "Server EC params", ec_params.data, ec_params.len));
     PRINT_BUF(60, (NULL, "Server EC point", ec_point.data, ec_point.len));
 
     /* failures after this point are not malformed handshakes. */
@@ -628,25 +632,16 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         errCode = SEC_ERROR_NO_MEMORY;
         goto loser;
     }
-
     peerKey->arena = arena;
-    peerKey->keyType = ecKey;
 
-    /* set up EC parameters in peerKey */
-    rv = ssl_NamedGroup2ECParams(arena, ecGroup,
-                                 &peerKey->u.ec.DEREncodedParams);
+    /* create public key from point data */
+    rv = ssl_ImportECDHKeyShare(ss, peerKey, ec_point.data, ec_point.len,
+                                ecGroup);
     if (rv != SECSuccess) {
-        /* we should never get here since we already
-         * checked that we are dealing with a supported curve
-         */
-        errCode = SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE;
+        /* error code is set */
+        desc = handshake_failure;
+        errCode = PORT_GetError();
         goto alert_loser;
-    }
-
-    /* copy publicValue in peerKey */
-    if (SECITEM_CopyItem(arena, &peerKey->u.ec.publicValue, &ec_point)) {
-        errCode = SEC_ERROR_NO_MEMORY;
-        goto loser;
     }
     peerKey->pkcs11Slot = NULL;
     peerKey->pkcs11ID = CK_INVALID_HANDLE;

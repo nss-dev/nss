@@ -450,10 +450,10 @@ tls13_HandleKeyShare(sslSocket *ss,
 
     switch (entry->group->type) {
         case group_type_ec:
-            rv = tls13_ImportECDHKeyShare(ss, peerKey,
-                                          entry->key_exchange.data,
-                                          entry->key_exchange.len,
-                                          entry->group);
+            rv = ssl_ImportECDHKeyShare(ss, peerKey,
+                                        entry->key_exchange.data,
+                                        entry->key_exchange.len,
+                                        entry->group);
             mechanism = CKM_ECDH1_DERIVE;
             break;
         case group_type_ff:

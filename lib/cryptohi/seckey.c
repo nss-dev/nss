@@ -1967,19 +1967,18 @@ seckey_SetPointEncoding(PLArenaPool *arena, SECKEYPublicKey *pubKey)
 
     tag = SECOID_FindOIDTag(&oid);
     switch (tag) {
+        case SEC_OID_CURVE25519:
+            pubKey->u.ec.encoding = ECPoint_XOnly;
+            break;
         case SEC_OID_SECG_EC_SECP256R1:
         /* fall through */
         case SEC_OID_SECG_EC_SECP384R1:
         /* fall through */
         case SEC_OID_SECG_EC_SECP521R1:
-            pubKey->u.ec.encoding = ECPoint_Uncompressed;
-            break;
-        case SEC_OID_CURVE25519:
-            pubKey->u.ec.encoding = ECPoint_XOnly;
-            break;
+        /* fall through */
         default:
-            /* unsupported curve */
-            return SECFailure;
+            /* unknown curve, default to uncompressed */
+            pubKey->u.ec.encoding = ECPoint_Uncompressed;
     }
     return SECSuccess;
 }
