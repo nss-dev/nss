@@ -299,6 +299,38 @@ TEST_P(TlsConnectStreamPre13, ConfiguredGroupsRenegotiate) {
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign, 384);
 }
 
+TEST_P(TlsKeyExchangeTest, Curve25519) {
+  Reset(TlsAgent::kServerEcdsa256);
+  const SSLNamedGroup groups[] = {ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1,
+                                  ssl_grp_ec_secp521r1};
+  EnsureKeyShareSetup(groups, PR_ARRAY_SIZE(groups));
+  Connect();
+
+  CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa, 255);
+  std::vector<SSLNamedGroup> shares = {ssl_grp_ec_curve25519};
+  std::vector<SSLNamedGroup> expected_groups(groups,
+                                             groups + PR_ARRAY_SIZE(groups));
+  CheckKEXDetails(expected_groups, shares);
+}
+
+TEST_P(TlsConnectGeneric, P256andCurve25519OnlyServer) {
+  EnsureTlsSetup();
+  client_->DisableAllCiphers();
+  client_->EnableCiphersByKeyExchange(ssl_kea_ecdh);
+
+  // the client sends a P256 key share while the server prefers 25519
+  const SSLNamedGroup serverGroups[] = {ssl_grp_ec_curve25519,
+                                        ssl_grp_ec_secp256r1};
+  const SSLNamedGroup clientGroups[] = {ssl_grp_ec_secp256r1,
+                                        ssl_grp_ec_curve25519};
+  client_->ConfigNamedGroups(clientGroups, PR_ARRAY_SIZE(clientGroups));
+  server_->ConfigNamedGroups(serverGroups, PR_ARRAY_SIZE(serverGroups));
+
+  Connect();
+
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign, 255);
+}
+
 // Replace the point in the client key exchange message with an empty one
 class ECCClientKEXFilter : public TlsHandshakeFilter {
  public:

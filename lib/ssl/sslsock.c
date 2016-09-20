@@ -147,7 +147,11 @@ static const PRUint16 srtpCiphers[] = {
             SEC_OID_TLS_FFDHE_##size, PR_TRUE      \
     }
 
+/* update SSL_NAMED_GROUP_COUNT when changing the number of entries */
 const namedGroupDef ssl_named_groups[] = {
+    /* Note that 256 for 25519 is a lie, but we only use it for checking bit
+     * security and expect 256 bits there (not 255). */
+    { ssl_grp_ec_curve25519, 256, group_type_ec, SEC_OID_CURVE25519, PR_TRUE },
     ECGROUP(secp256r1, 256, SECP256R1, PR_TRUE),
     ECGROUP(secp384r1, 384, SECP384R1, PR_TRUE),
     ECGROUP(secp521r1, 521, SECP521R1, PR_TRUE),
@@ -1818,7 +1822,7 @@ ssl_SelectDHEGroup(sslSocket *ss, const namedGroupDef **groupDef)
     unsigned int i;
     static const namedGroupDef weak_group_def = {
         ssl_grp_ffdhe_custom, WEAK_DHE_SIZE, group_type_ff,
-        SEC_OID_TLS_DHE_CUSTOM
+        SEC_OID_TLS_DHE_CUSTOM, PR_FALSE
     };
 
     /* Only select weak groups in TLS 1.2 and earlier, but not if the client has
@@ -3707,6 +3711,17 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     SECStatus rv;
     sslSocket *ss;
     int i;
+    /* TODO: remove this when 25519 and p256 have equal priority */
+    const SSLNamedGroup preferredGroups[] = {
+        ssl_grp_ec_secp256r1,
+        ssl_grp_ec_secp384r1,
+        ssl_grp_ec_secp521r1,
+        ssl_grp_ffdhe_2048,
+        ssl_grp_ffdhe_3072,
+        ssl_grp_ffdhe_4096,
+        ssl_grp_ffdhe_6144,
+        ssl_grp_ffdhe_8192
+    };
 
     ssl_SetDefaultsFromEnvironment();
 
@@ -3750,8 +3765,10 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
 
     ssl_ChooseOps(ss);
     ssl3_InitSocketPolicy(ss);
-    for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
-        ss->namedGroupPreferences[i] = &ssl_named_groups[i];
+    memset((namedGroupDef *)ss->namedGroupPreferences, 0, sizeof(ss->namedGroupPreferences));
+    PORT_Assert(PR_ARRAY_SIZE(preferredGroups) < SSL_NAMED_GROUP_COUNT);
+    for (i = 0; i < PR_ARRAY_SIZE(preferredGroups); ++i) {
+        ss->namedGroupPreferences[i] = ssl_LookupNamedGroup(preferredGroups[i]);
     }
     PR_INIT_CLIST(&ss->ssl3.hs.lastMessageFlight);
     PR_INIT_CLIST(&ss->ssl3.hs.remoteKeyShares);
