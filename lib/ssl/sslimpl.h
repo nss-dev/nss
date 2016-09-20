@@ -830,6 +830,12 @@ typedef struct {
     unsigned int len;
 } TLS13CombinedHash;
 
+typedef struct TLSExtensionStr {
+    PRCList link;  /* The linked list link */
+    PRUint16 type; /* Extension type */
+    SECItem data;  /* Pointers into the handshake data. */
+} TLSExtension;
+
 typedef enum {
     handshake_hash_unknown = 0,
     handshake_hash_combo = 1,  /* The MD5/SHA-1 combination */
@@ -914,6 +920,9 @@ typedef struct SSL3HandshakeStateStr {
      * or later. */
     SSLSignatureScheme *clientSigSchemes;
     unsigned int numClientSigScheme;
+
+    /* Parsed extensions */
+    PRCList remoteExtensions; /* Parsed incoming extensions */
 
     /* This group of values is used for DTLS */
     PRUint16 sendMessageSeq;       /* The sending message sequence
@@ -1807,6 +1816,13 @@ extern PRInt32 ssl3_SendSupportedPointFormatsXtn(sslSocket *ss,
 extern SECStatus ssl3_HandleExtensions(sslSocket *ss,
                                        SSL3Opaque **b, PRUint32 *length,
                                        SSL3HandshakeType handshakeMessage);
+extern SECStatus ssl3_ParseExtensions(sslSocket *ss,
+                                      SSL3Opaque **b, PRUint32 *length);
+extern SECStatus ssl3_HandleParsedExtensions(sslSocket *ss,
+                                             SSL3HandshakeType handshakeMessage);
+extern TLSExtension *ssl3_FindExtension(sslSocket *ss,
+                                        SSLExtensionType extension_type);
+extern void ssl3_DestroyRemoteExtensions(PRCList *list);
 
 /* Hello Extension related routines. */
 extern PRBool ssl3_ExtensionNegotiated(sslSocket *ss, PRUint16 ex_type);
