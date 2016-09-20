@@ -9,6 +9,7 @@
 #include "basicutil.h"
 #include "pkcs11.h"
 #include "nspr.h"
+#include "certt.h" /* TODO: remove when old curves are removed */
 #include <stdio.h>
 
 #define __PASTE(x, y) x##y
