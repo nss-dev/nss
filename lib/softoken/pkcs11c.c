@@ -4543,6 +4543,14 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession,
     /**********************************************/
 
     canSignVerify = sftk_isTrue(privateKey, CKA_SIGN);
+    /* Unfortunately CKA_SIGN is always true in lg dbs. We have to check the
+     * actual curve to determine if we can do sign/verify. */
+    if (canSignVerify && keyType == CKK_EC) {
+        NSSLOWKEYPrivateKey *privKey = sftk_GetPrivKey(privateKey, CKK_EC, &crv);
+        if (privKey && privKey->u.ec.ecParams.name == ECCurve25519) {
+            canSignVerify = PR_FALSE;
+        }
+    }
 
     if (canSignVerify) {
         /* Determine length of signature. */
