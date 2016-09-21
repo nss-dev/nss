@@ -439,8 +439,8 @@ TEST_P(TlsConnectGenericPre13, WeakDHGroup) {
 
 TEST_P(TlsConnectGeneric, Ffdhe3072) {
   EnableOnlyDheCiphers();
-  SSLNamedGroup groups[] = {ssl_grp_ffdhe_3072};
-  client_->ConfigNamedGroups(groups, PR_ARRAY_SIZE(groups));
+  static const std::vector<SSLNamedGroup> groups = {ssl_grp_ffdhe_3072};
+  client_->ConfigNamedGroups(groups);
 
   Connect();
 }

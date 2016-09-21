@@ -255,10 +255,6 @@ const std::vector<SSLNamedGroup> kFasterDHEGroups = {
     ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1,
     ssl_grp_ffdhe_2048, ssl_grp_ffdhe_3072};
 
-void TlsAgent::ConfigNamedGroups(const std::vector<SSLNamedGroup>& groups) {
-  ConfigNamedGroups(&groups[0], groups.size());
-}
-
 void TlsAgent::EnableCiphersByKeyExchange(SSLKEAType kea) {
   EXPECT_TRUE(EnsureTlsSetup());
 
@@ -321,9 +317,9 @@ void TlsAgent::EnableSingleCipher(uint16_t cipher) {
   EXPECT_EQ(SECSuccess, rv);
 }
 
-void TlsAgent::ConfigNamedGroups(const SSLNamedGroup* groups, size_t num) {
+void TlsAgent::ConfigNamedGroups(const std::vector<SSLNamedGroup>& groups) {
   EXPECT_TRUE(EnsureTlsSetup());
-  SECStatus rv = SSL_NamedGroupConfig(ssl_fd_, groups, num);
+  SECStatus rv = SSL_NamedGroupConfig(ssl_fd_, &groups[0], groups.size());
   EXPECT_EQ(SECSuccess, rv);
 }
 
@@ -680,7 +676,7 @@ void TlsAgent::Handshake() {
 
   int32_t err = PR_GetError();
   if (err == PR_WOULD_BLOCK_ERROR) {
-    LOG("Would have blocked");
+    LOGV("Would have blocked");
     if (mode_ == DGRAM) {
       if (timer_handle_) {
         timer_handle_->Cancel();

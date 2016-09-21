@@ -261,7 +261,6 @@ ssl_DupSocket(sslSocket *os)
 {
     sslSocket *ss;
     SECStatus rv;
-    unsigned int i;
 
     ss = ssl_NewSocket((PRBool)(!os->opt.noLocks), os->protocolVariant);
     if (!ss) {
@@ -339,9 +338,10 @@ ssl_DupSocket(sslSocket *os)
         ss->pkcs11PinArg = os->pkcs11PinArg;
         ss->nextProtoCallback = os->nextProtoCallback;
         ss->nextProtoArg = os->nextProtoArg;
-        for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
-            ss->namedGroupPreferences[i] = os->namedGroupPreferences[i];
-        }
+        PORT_Memcpy((void *)ss->namedGroupPreferences,
+                    os->namedGroupPreferences,
+                    sizeof(ss->namedGroupPreferences));
+        ss->additionalShares = os->additionalShares;
 
         /* Create security data */
         rv = ssl_CopySecurityInfo(ss, os);
@@ -2180,6 +2180,11 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
             return NULL;
         PR_APPEND_LINK(&skp->link, &ss->ephemeralKeyPairs);
     }
+    PORT_Memcpy((void *)ss->namedGroupPreferences,
+                sm->namedGroupPreferences,
+                sizeof(ss->namedGroupPreferences));
+    ss->additionalShares = sm->additionalShares;
+
     /* copy trust anchor names */
     if (sm->ssl3.ca_list) {
         if (ss->ssl3.ca_list) {
@@ -3776,6 +3781,7 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     for (i = 0; i < PR_ARRAY_SIZE(preferredGroups); ++i) {
         ss->namedGroupPreferences[i] = ssl_LookupNamedGroup(preferredGroups[i]);
     }
+    ss->additionalShares = 0;
     PR_INIT_CLIST(&ss->ssl3.hs.lastMessageFlight);
     PR_INIT_CLIST(&ss->ssl3.hs.remoteKeyShares);
     PR_INIT_CLIST(&ss->ssl3.hs.cipherSpecs);

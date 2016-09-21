@@ -217,6 +217,7 @@ ssl_BeginServerHandshake(sslSocket *ss)
     SECStatus rv;
 
     ss->sec.isServer = PR_TRUE;
+    ss->ssl3.hs.ws = wait_client_hello;
     ssl_ChooseSessionIDProcs(&ss->sec);
 
     rv = ssl_CheckConfigSanity(ss);

@@ -561,4 +561,73 @@ TlsConnectTls13::TlsConnectTls13()
     : TlsConnectTestBase(TlsConnectTestBase::ToMode(GetParam()),
                          SSL_LIBRARY_VERSION_TLS_1_3) {}
 
+void TlsKeyExchangeTest::EnsureKeyShareSetup() {
+  EnsureTlsSetup();
+  groups_capture_ = new TlsExtensionCapture(ssl_supported_groups_xtn);
+  shares_capture_ = new TlsExtensionCapture(ssl_tls13_key_share_xtn);
+  std::vector<PacketFilter*> captures;
+  captures.push_back(groups_capture_);
+  captures.push_back(shares_capture_);
+  client_->SetPacketFilter(new ChainedPacketFilter(captures));
+  capture_hrr_ =
+      new TlsInspectorRecordHandshakeMessage(kTlsHandshakeHelloRetryRequest);
+  server_->SetPacketFilter(capture_hrr_);
+}
+
+void TlsKeyExchangeTest::ConfigNamedGroups(
+    const std::vector<SSLNamedGroup>& groups) {
+  client_->ConfigNamedGroups(groups);
+  server_->ConfigNamedGroups(groups);
+}
+
+std::vector<SSLNamedGroup> TlsKeyExchangeTest::GetGroupDetails(
+    const DataBuffer& ext) {
+  uint32_t tmp = 0;
+  EXPECT_TRUE(ext.Read(0, 2, &tmp));
+  EXPECT_EQ(ext.len() - 2, static_cast<size_t>(tmp));
+  EXPECT_TRUE(ext.len() % 2 == 0);
+  std::vector<SSLNamedGroup> groups;
+  for (size_t i = 1; i < ext.len() / 2; i += 1) {
+    EXPECT_TRUE(ext.Read(2 * i, 2, &tmp));
+    groups.push_back(static_cast<SSLNamedGroup>(tmp));
+  }
+  return groups;
+}
+
+std::vector<SSLNamedGroup> TlsKeyExchangeTest::GetShareDetails(
+    const DataBuffer& ext) {
+  uint32_t tmp = 0;
+  EXPECT_TRUE(ext.Read(0, 2, &tmp));
+  EXPECT_EQ(ext.len() - 2, static_cast<size_t>(tmp));
+  std::vector<SSLNamedGroup> shares;
+  size_t i = 2;
+  while (i < ext.len()) {
+    EXPECT_TRUE(ext.Read(i, 2, &tmp));
+    shares.push_back(static_cast<SSLNamedGroup>(tmp));
+    EXPECT_TRUE(ext.Read(i + 2, 2, &tmp));
+    i += 4 + tmp;
+  }
+  EXPECT_EQ(ext.len(), i);
+  return shares;
+}
+
+void TlsKeyExchangeTest::CheckKEXDetails(
+    const std::vector<SSLNamedGroup>& expected_groups,
+    const std::vector<SSLNamedGroup>& expected_shares, bool expect_hrr) {
+  std::vector<SSLNamedGroup> groups =
+      GetGroupDetails(groups_capture_->extension());
+  EXPECT_EQ(expected_groups, groups);
+
+  if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    ASSERT_LT(0U, expected_shares.size());
+    std::vector<SSLNamedGroup> shares =
+        GetShareDetails(shares_capture_->extension());
+    EXPECT_EQ(expected_shares, shares);
+  } else {
+    EXPECT_EQ(0U, shares_capture_->extension().len());
+  }
+
+  EXPECT_EQ(expect_hrr, capture_hrr_->buffer().len() != 0);
+}
+
 }  // namespace nss_test
