@@ -5,11 +5,13 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #include "stdarg.h"
 #include "cert.h"
 #include "ssl.h"
 #include "keyhi.h"
 #include "pk11func.h"
+#include "prerr.h"
 #include "secitem.h"
 #include "secmod.h"
 #include "sslimpl.h"
@@ -324,6 +326,7 @@ tls13_CreateKeyShare(sslSocket *ss, const sslNamedGroupDef *groupDef)
     sslEphemeralKeyPair *keyPair = NULL;
     const ssl3DHParams *params;
 
+    PORT_Assert(groupDef);
     switch (groupDef->keaType) {
         case ssl_kea_ecdh:
             rv = ssl_CreateECDHEphemeralKeyPair(groupDef, &keyPair);
@@ -349,6 +352,19 @@ tls13_CreateKeyShare(sslSocket *ss, const sslNamedGroupDef *groupDef)
     return rv;
 }
 
+SECStatus
+SSL_SendAdditionalKeyShares(PRFileDesc *fd, unsigned int count)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+    if (!ss) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    ss->additionalShares = count;
+    return SECSuccess;
+}
+
 /*
  * Generate shares for ECDHE and FFDHE.  This picks the first enabled group of
  * the requisite type and creates a share for that.
@@ -361,10 +377,10 @@ tls13_SetupClientHello(sslSocket *ss)
     unsigned int i;
     NewSessionTicket *session_ticket = NULL;
     sslSessionID *sid = ss->sec.ci.sid;
+    unsigned int numShares = 0;
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
-
     PORT_Assert(PR_CLIST_IS_EMPTY(&ss->ephemeralKeyPairs));
 
     /* Select the first enabled group.
@@ -372,16 +388,16 @@ tls13_SetupClientHello(sslSocket *ss)
      * that the other side negotiated if we are resuming. */
     for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
         SECStatus rv;
-        const sslNamedGroupDef *groupDef = ss->namedGroupPreferences[i];
-        if (!groupDef) {
+        if (!ss->namedGroupPreferences[i]) {
             continue;
         }
-
-        rv = tls13_CreateKeyShare(ss, groupDef);
+        rv = tls13_CreateKeyShare(ss, ss->namedGroupPreferences[i]);
         if (rv != SECSuccess) {
             return SECFailure;
         }
-        break;
+        if (++numShares > ss->additionalShares) {
+            break;
+        }
     }
 
     if (PR_CLIST_IS_EMPTY(&ss->ephemeralKeyPairs)) {

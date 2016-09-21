@@ -751,6 +751,7 @@ typedef enum {
 } sslZeroRttIgnore;
 
 typedef enum {
+    idle_handshake,
     wait_client_hello,
     wait_client_cert,
     wait_client_key,
@@ -765,7 +766,6 @@ typedef enum {
     wait_hello_done,
     wait_new_session_ticket,
     wait_encrypted_extensions,
-    idle_handshake,
     wait_0rtt_finished,
     wait_invalid /* Invalid value. There is no handshake message "invalid". */
 } SSL3WaitState;
@@ -1325,6 +1325,8 @@ struct sslSocketStr {
      * first handshake.
      */
     const sslNamedGroupDef *namedGroupPreferences[SSL_NAMED_GROUP_COUNT];
+    /* The number of additional shares to generate for the TLS 1.3 ClientHello */
+    unsigned int additionalShares;
 
     /* SSL3 state info.  Formerly was a pointer */
     ssl3State ssl3;

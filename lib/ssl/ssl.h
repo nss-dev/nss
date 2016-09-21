@@ -398,6 +398,22 @@ SSL_IMPORT SECStatus SSL_NamedGroupConfig(PRFileDesc *fd,
                                           const SSLNamedGroup *groups,
                                           unsigned int num_groups);
 
+/*
+** Configure the socket to configure additional key shares.  Normally when a TLS
+** 1.3 ClientHello is sent, just one key share is included using the first
+** preference group (as set by SSL_NamedGroupConfig).  If the server decides to
+** pick a different group for key exchange, it is forced to send a
+** HelloRetryRequest, which adds an entire round trip of latency.
+**
+** This function can be used to configure libssl to generate additional key
+** shares when sending a TLS 1.3 ClientHello.  If |count| is set to a non-zero
+** value, then additional key shares are generated.  Shares are added in the
+** preference order set in SSL_NamedGroupConfig.  |count| can be set to any
+** value; NSS limits the number of shares to the number of supported groups.
+*/
+SSL_IMPORT SECStatus SSL_SendAdditionalKeyShares(PRFileDesc *fd,
+                                                 unsigned int count);
+
 /* Deprecated: use SSL_NamedGroupConfig() instead.
 ** SSL_DHEGroupPrefSet is used to configure the set of allowed/enabled DHE group
 ** parameters that can be used by NSS for the given server socket.

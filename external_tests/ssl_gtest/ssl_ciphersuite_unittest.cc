@@ -55,8 +55,9 @@ class TlsCipherSuiteTestBase : public TlsConnectTestBase {
     server_->EnableSingleCipher(cipher_suite_);
 
     if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
-      client_->ConfigNamedGroups(&group_, 1);
-      server_->ConfigNamedGroups(&group_, 1);
+      std::vector<SSLNamedGroup> groups = {group_};
+      client_->ConfigNamedGroups(groups);
+      server_->ConfigNamedGroups(groups);
       kea_type_ = SSLInt_GetKEAType(group_);
 
       SSLSignatureAndHashAlg signature_scheme = {
