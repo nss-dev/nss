@@ -3458,8 +3458,7 @@ ssl3_HandleNoCertificate(sslSocket *ss)
          (ss->opt.requireCertificate == SSL_REQUIRE_FIRST_HANDSHAKE))) {
         PRFileDesc *lower;
 
-        if (ss->sec.uncache)
-            ss->sec.uncache(ss->sec.ci.sid);
+        ss->sec.uncache(ss->sec.ci.sid);
         SSL3_SendAlert(ss, alert_fatal, bad_certificate);
 
         lower = ss->fd->lower;
@@ -3515,7 +3514,7 @@ SSL3_SendAlert(sslSocket *ss, SSL3AlertLevel level, SSL3AlertDescription desc)
 
     ssl_GetSSL3HandshakeLock(ss);
     if (level == alert_fatal) {
-        if (!ss->opt.noCache && ss->sec.ci.sid && ss->sec.uncache) {
+        if (!ss->opt.noCache && ss->sec.ci.sid) {
             ss->sec.uncache(ss->sec.ci.sid);
         }
     }
@@ -3764,8 +3763,7 @@ ssl3_HandleAlert(sslSocket *ss, sslBuffer *buf)
     }
     if (level == alert_fatal) {
         if (!ss->opt.noCache) {
-            if (ss->sec.uncache)
-                ss->sec.uncache(ss->sec.ci.sid);
+            ss->sec.uncache(ss->sec.ci.sid);
         }
         if ((ss->ssl3.hs.ws == wait_server_hello) &&
             (desc == handshake_failure)) {
@@ -5711,8 +5709,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
 
         if (!sidOK) {
             SSL_AtomicIncrementLong(&ssl3stats.sch_sid_cache_not_ok);
-            if (ss->sec.uncache)
-                (*ss->sec.uncache)(sid);
+            ss->sec.uncache(sid);
             ssl_FreeSID(sid);
             sid = NULL;
         }
@@ -6153,8 +6150,7 @@ ssl3_HandleHelloRequest(sslSocket *ss)
     }
 
     if (sid) {
-        if (ss->sec.uncache)
-            ss->sec.uncache(sid);
+        ss->sec.uncache(sid);
         ssl_FreeSID(sid);
         ss->sec.ci.sid = NULL;
     }
@@ -7620,8 +7616,7 @@ ssl3_HandleServerHelloPart2(sslSocket *ss, const SECItem *sidBytes,
 
     /* throw the old one away */
     sid->u.ssl3.keys.resumable = PR_FALSE;
-    if (ss->sec.uncache)
-        (*ss->sec.uncache)(sid);
+    ss->sec.uncache(sid);
     ssl_FreeSID(sid);
 
     /* get a new sid */
@@ -9200,8 +9195,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
               !ss->firstHsDone))) {
 
             SSL_AtomicIncrementLong(&ssl3stats.hch_sid_cache_not_ok);
-            if (ss->sec.uncache)
-                ss->sec.uncache(sid);
+            ss->sec.uncache(sid);
             ssl_FreeSID(sid);
             sid = NULL;
         }
@@ -9417,8 +9411,7 @@ compression_found:
             }
 
             if (ss->sec.ci.sid) {
-                if (ss->sec.uncache)
-                    ss->sec.uncache(ss->sec.ci.sid);
+                ss->sec.uncache(ss->sec.ci.sid);
                 PORT_Assert(ss->sec.ci.sid != sid); /* should be impossible, but ... */
                 if (ss->sec.ci.sid != sid) {
                     ssl_FreeSID(ss->sec.ci.sid);
@@ -9586,8 +9579,7 @@ compression_found:
 
     if (sid) { /* we had a sid, but it's no longer valid, free it */
         SSL_AtomicIncrementLong(&ssl3stats.hch_sid_cache_not_ok);
-        if (ss->sec.uncache)
-            ss->sec.uncache(sid);
+        ss->sec.uncache(sid);
         ssl_FreeSID(sid);
         sid = NULL;
     }
@@ -9642,9 +9634,7 @@ alert_loser:
 /* FALLTHRU */
 loser:
     if (sid && sid != ss->sec.ci.sid) {
-        if (ss->sec.uncache) {
-            ss->sec.uncache(sid);
-        }
+        ss->sec.uncache(sid);
         ssl_FreeSID(sid);
     }
 
@@ -12222,7 +12212,7 @@ xmit_loser:
         return rv;
     }
 
-    if (sid->cached == never_cached && !ss->opt.noCache && ss->sec.cache) {
+    if (sid->cached == never_cached && !ss->opt.noCache) {
         rv = ssl3_FillInCachedSID(ss, sid);
 
         /* If the wrap failed, we don't cache the sid.
@@ -12319,7 +12309,7 @@ ssl3_FinishHandshake(sslSocket *ss)
      * the handshake is finished (we have verified the server's Finished
      * AND the server's certificate) before we update the ticket in the sid.
      *
-     * This must be done before we call (*ss->sec.cache)(ss->sec.ci.sid)
+     * This must be done before we call ss->sec.cache(ss->sec.ci.sid)
      * because CacheSID requires the session ticket to already be set, and also
      * because of the lazy lock creation scheme used by CacheSID and
      * ssl3_SetSIDSessionTicket.
@@ -12334,8 +12324,7 @@ ssl3_FinishHandshake(sslSocket *ss)
 
     if (ss->ssl3.hs.cacheSID) {
         PORT_Assert(ss->sec.ci.sid->cached == never_cached);
-        PORT_Assert(ss->sec.cache);
-        (*ss->sec.cache)(ss->sec.ci.sid);
+        ss->sec.cache(ss->sec.ci.sid);
         ss->ssl3.hs.cacheSID = PR_FALSE;
     }
 
@@ -13819,9 +13808,8 @@ ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache)
         return SECFailure;
     }
     if (sid && flushCache) {
-        if (ss->sec.uncache)
-            ss->sec.uncache(sid); /* remove it from whichever cache it's in. */
-        ssl_FreeSID(sid);         /* dec ref count and free if zero. */
+        ss->sec.uncache(sid); /* remove it from whichever cache it's in. */
+        ssl_FreeSID(sid);     /* dec ref count and free if zero. */
         ss->sec.ci.sid = NULL;
     }
 
