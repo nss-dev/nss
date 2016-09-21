@@ -385,7 +385,7 @@ async function scheduleTools() {
     },
     artifacts: {
       public: {
-        expires: 24,
+        expires: 24 * 7,
         type: "directory",
         path: "/home/worker/artifacts"
       }
