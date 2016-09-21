@@ -1140,8 +1140,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
         }
 
         if (sid) { /* Free the sid. */
-            if (ss->sec.uncache)
-                ss->sec.uncache(sid);
+            ss->sec.uncache(sid);
             ssl_FreeSID(sid);
         }
         PORT_Assert(ss->ssl3.hs.helloRetry);
@@ -1156,8 +1155,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
         if (sid) {
             /* We had a sid, but it's no longer valid, free it. */
             SSL_AtomicIncrementLong(&ssl3stats->hch_sid_cache_not_ok);
-            if (ss->sec.uncache)
-                ss->sec.uncache(sid);
+            ss->sec.uncache(sid);
             ssl_FreeSID(sid);
         } else {
             SSL_AtomicIncrementLong(&ssl3stats->hch_sid_cache_misses);
@@ -1205,8 +1203,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
 
 loser:
     if (sid) {
-        if (ss->sec.uncache)
-            ss->sec.uncache(sid);
+        ss->sec.uncache(sid);
         ssl_FreeSID(sid);
     }
     return SECFailure;
@@ -1833,8 +1830,7 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
 
         if (!cacheOK) {
             SSL_AtomicIncrementLong(&ssl3stats->hsh_sid_cache_not_ok);
-            if (ss->sec.uncache)
-                ss->sec.uncache(sid);
+            ss->sec.uncache(sid);
             return SECFailure;
         }
 
@@ -1877,7 +1873,7 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
         }
         ss->ssl3.hs.origCipherSuite = ss->ssl3.hs.cipher_suite;
 
-        if (sid->cached == in_client_cache && (ss->sec.uncache)) {
+        if (sid->cached == in_client_cache) {
             /* If we tried to resume and failed, let's not try again. */
             ss->sec.uncache(sid);
         }
@@ -3413,11 +3409,10 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
      * in use. I believe this works, but I can't test it until the
      * server side supports it. Bug 1257047.
      */
-    if (!ss->opt.noCache && ss->sec.cache &&
-        ss->ssl3.hs.kea_def->authKeyType != ssl_auth_psk) {
+    if (!ss->opt.noCache && ss->ssl3.hs.kea_def->authKeyType != ssl_auth_psk) {
 
         /* Uncache so that we replace. */
-        (*ss->sec.uncache)(ss->sec.ci.sid);
+        ss->sec.uncache(ss->sec.ci.sid);
 
         /* We only support DHE resumption so any ticket which doesn't
          * support it we don't cache, but it can evict previous
@@ -3444,7 +3439,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
         /* Cache the session. */
         ss->sec.ci.sid->cached = never_cached;
-        (*ss->sec.cache)(ss->sec.ci.sid);
+        ss->sec.cache(ss->sec.ci.sid);
     }
 
     return SECSuccess;

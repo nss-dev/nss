@@ -168,8 +168,7 @@ ssl_BeginClientHandshake(sslSocket *ss)
             PORT_Assert(!ss->sec.localCert);
             ss->sec.localCert = CERT_DupCertificate(sid->localCert);
         } else {
-            if (ss->sec.uncache)
-                ss->sec.uncache(sid);
+            ss->sec.uncache(sid);
             ssl_FreeSID(sid);
             sid = NULL;
         }

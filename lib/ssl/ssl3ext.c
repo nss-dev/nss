@@ -1724,8 +1724,7 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
      * renegotiation.)
      */
     if (ss->sec.ci.sid != NULL) {
-        if (ss->sec.uncache)
-            ss->sec.uncache(ss->sec.ci.sid);
+        ss->sec.uncache(ss->sec.ci.sid);
         ssl_FreeSID(ss->sec.ci.sid);
         ss->sec.ci.sid = NULL;
     }
