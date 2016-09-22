@@ -197,6 +197,7 @@ typedef enum {
     kea_ecdh_anon,
     kea_ecdhe_psk,
     kea_dhe_psk,
+    kea_tls13_any,
 } SSL3KeyExchangeAlgorithm;
 
 typedef struct {
@@ -291,10 +292,14 @@ typedef struct {
 } NewSessionTicket;
 
 typedef enum {
-    ticket_allow_early_data = 1,
-    ticket_allow_dhe_resumption = 2,
-    ticket_allow_psk_resumption = 4
-} TLS13SessionTicketFlags;
+    tls13_psk_ke = 0,
+    tls13_psk_dh_ke = 1
+} TLS13PskKEModes;
+
+typedef enum {
+    tls13_psk_auth = 0,
+    tls13_psk_sign_auth = 1
+} TLS13PskAuthModes;
 
 typedef enum {
     CLIENT_AUTH_ANONYMOUS = 0,

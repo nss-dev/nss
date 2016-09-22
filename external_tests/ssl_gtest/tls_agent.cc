@@ -124,17 +124,6 @@ bool TlsAgent::ConfigServerCert(const std::string& name, bool updateKeyBits,
   return rv == SECSuccess;
 }
 
-// The tests expect that only curves secp256r1, secp384r1, and secp521r1
-// (NIST P-256, P-384, and P-521) are enabled. Disable all other curves.
-void TlsAgent::DisableLameGroups() {
-#ifdef NSS_ECC_MORE_THAN_SUITE_B
-  static const SSLNamedGroup groups[] = {
-      ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1,
-      ssl_grp_ffdhe_2048,   ssl_grp_ffdhe_3072,   ssl_grp_ffdhe_4096};
-  ConfigNamedGroups(groups, PR_ARRAY_SIZE(groups));
-#endif
-}
-
 bool TlsAgent::EnsureTlsSetup(PRFileDesc* modelSocket) {
   // Don't set up twice
   if (ssl_fd_) return true;
@@ -178,7 +167,6 @@ bool TlsAgent::EnsureTlsSetup(PRFileDesc* modelSocket) {
   EXPECT_EQ(SECSuccess, rv);
   if (rv != SECSuccess) return false;
 
-  DisableLameGroups();
   return true;
 }
 
@@ -248,6 +236,33 @@ void TlsAgent::DisableAllCiphers() {
   }
 }
 
+// Not actually all groups, just the onece that we are actually willing
+// to use.
+const std::vector<SSLNamedGroup> kAllDHEGroups = {
+  ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1,
+  ssl_grp_ffdhe_2048, ssl_grp_ffdhe_3072, ssl_grp_ffdhe_4096,
+  ssl_grp_ffdhe_6144, ssl_grp_ffdhe_8192
+};
+
+const std::vector<SSLNamedGroup> kECDHEGroups = {
+  ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1
+};
+
+const std::vector<SSLNamedGroup> kFFDHEGroups = {
+  ssl_grp_ffdhe_2048, ssl_grp_ffdhe_3072, ssl_grp_ffdhe_4096,
+  ssl_grp_ffdhe_6144, ssl_grp_ffdhe_8192
+};
+
+// Defined because the big DHE groups are ridiculously slow.
+const std::vector<SSLNamedGroup> kFasterDHEGroups = {
+  ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1,
+  ssl_grp_ffdhe_2048, ssl_grp_ffdhe_3072
+};
+
+void TlsAgent::ConfigNamedGroups(const std::vector<SSLNamedGroup>& groups) {
+  ConfigNamedGroups(&groups[0], groups.size());
+}
+
 void TlsAgent::EnableCiphersByKeyExchange(SSLKEAType kea) {
   EXPECT_TRUE(EnsureTlsSetup());
 
@@ -259,10 +274,33 @@ void TlsAgent::EnableCiphersByKeyExchange(SSLKEAType kea) {
     ASSERT_EQ(SECSuccess, rv);
     EXPECT_EQ(sizeof(csinfo), csinfo.length);
 
-    if (csinfo.keaType == kea) {
+    if ((csinfo.keaType == kea) ||
+        (csinfo.keaType == ssl_kea_tls13_any)) {
       rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], PR_TRUE);
       EXPECT_EQ(SECSuccess, rv);
     }
+  }
+}
+
+void TlsAgent::EnableGroupsByKeyExchange(SSLKEAType kea) {
+  switch (kea) {
+    case ssl_kea_dh:
+      ConfigNamedGroups(kFFDHEGroups);
+      break;
+    case ssl_kea_ecdh:
+      ConfigNamedGroups(kECDHEGroups);
+      break;
+    default:
+      break;
+  }
+}
+
+void TlsAgent::EnableGroupsByAuthType(SSLAuthType authType) {
+  if (authType == ssl_auth_ecdh_rsa
+      || authType == ssl_auth_ecdh_ecdsa
+      || authType == ssl_auth_ecdsa
+      || authType == ssl_auth_tls13_any) {
+    ConfigNamedGroups(kECDHEGroups);
   }
 }
 
@@ -276,7 +314,8 @@ void TlsAgent::EnableCiphersByAuthType(SSLAuthType authType) {
                                           sizeof(csinfo));
     ASSERT_EQ(SECSuccess, rv);
 
-    if (csinfo.authType == authType) {
+    if ((csinfo.authType == authType) ||
+        (csinfo.keaType == ssl_kea_tls13_any)) {
       rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], PR_TRUE);
       EXPECT_EQ(SECSuccess, rv);
     }
@@ -382,12 +421,14 @@ void TlsAgent::SetSignatureAlgorithms(const SSLSignatureAndHashAlg* algorithms,
 
 void TlsAgent::CheckKEA(SSLKEAType type, size_t kea_size) const {
   EXPECT_EQ(STATE_CONNECTED, state_);
-  EXPECT_EQ(type, csinfo_.keaType);
+  EXPECT_EQ(type, info_.keaType);
   EXPECT_EQ(kea_size, info_.keaKeyBits);
 }
 
 void TlsAgent::CheckKEA(SSLKEAType type) const {
-  PRUint32 ecKEAKeyBits = SSLInt_DetermineKEABits(server_key_bits_, &csinfo_);
+  PRUint32 ecKEAKeyBits = SSLInt_DetermineKEABits(server_key_bits_,
+                                                  info_.authType,
+                                                  csinfo_.symKeyBits);
   switch (type) {
     case ssl_kea_ecdh:
       CheckKEA(type, ecKEAKeyBits);
@@ -406,8 +447,12 @@ void TlsAgent::CheckKEA(SSLKEAType type) const {
 
 void TlsAgent::CheckAuthType(SSLAuthType type) const {
   EXPECT_EQ(STATE_CONNECTED, state_);
-  EXPECT_EQ(type, csinfo_.authType);
+  EXPECT_EQ(type, info_.authType);
   EXPECT_EQ(server_key_bits_, info_.authKeyBits);
+
+  if (info_.protocolVersion >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    return;
+  }
 
   // Check authAlgorithm, which is the old value for authType.  This is a second
   // switch

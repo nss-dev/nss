@@ -99,16 +99,10 @@ PRBool ssl_IsRsaPssSignatureScheme(SignatureScheme scheme);
 /* clang-format off */
 static ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED] = {
    /*      cipher_suite                     policy       enabled   isPresent */
-
- /* ECDHE-PSK from [draft-mattsson-tls-ecdhe-psk-aead]. We only enable PSK if we
-  * are doing TLS 1.3 PSK-resumption.
-  */
- { TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE },
- { TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE },
- { TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384, SSL_ALLOWED, PR_TRUE, PR_FALSE },
- { TLS_DHE_PSK_WITH_AES_128_GCM_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE },
- { TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE },
- { TLS_DHE_PSK_WITH_AES_256_GCM_SHA384, SSL_ALLOWED, PR_TRUE, PR_FALSE },
+ /* Special TLS 1.3 suites. */
+ { TLS_AES_128_GCM_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE },
+ { TLS_CHACHA20_POLY1305_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE },
+ { TLS_AES_256_GCM_SHA384, SSL_ALLOWED, PR_TRUE, PR_FALSE },
 
  { TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, SSL_ALLOWED, PR_TRUE, PR_FALSE},
  { TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,   SSL_ALLOWED, PR_TRUE, PR_FALSE},
@@ -341,7 +335,6 @@ static const ssl3KEADef kea_defs[] =
     /* kea            exchKeyType signKeyType authKeyType ephemeral  oid */
     {kea_null,           ssl_kea_null, nullKey, ssl_auth_null, PR_FALSE, 0},
     {kea_rsa,            ssl_kea_rsa,  nullKey, ssl_auth_rsa_decrypt, PR_FALSE, SEC_OID_TLS_RSA},
-    /* note: export suites abuse RSA, but these will be removed soon */
     {kea_dh_dss,         ssl_kea_dh,   dsaKey, ssl_auth_dsa, PR_FALSE, SEC_OID_TLS_DH_DSS},
     {kea_dh_rsa,         ssl_kea_dh,   rsaKey, ssl_auth_rsa_sign, PR_FALSE, SEC_OID_TLS_DH_RSA},
     {kea_dhe_dss,        ssl_kea_dh,   dsaKey, ssl_auth_dsa, PR_TRUE,  SEC_OID_TLS_DHE_DSS},
@@ -354,6 +347,7 @@ static const ssl3KEADef kea_defs[] =
     {kea_ecdh_anon,      ssl_kea_ecdh, nullKey, ssl_auth_null, PR_TRUE,  SEC_OID_TLS_ECDH_ANON},
     {kea_ecdhe_psk,      ssl_kea_ecdh_psk, nullKey, ssl_auth_psk, PR_TRUE, SEC_OID_TLS_ECDHE_PSK},
     {kea_dhe_psk,      ssl_kea_dh_psk, nullKey, ssl_auth_psk, PR_TRUE, SEC_OID_TLS_DHE_PSK},
+    {kea_tls13_any,      ssl_kea_tls13_any, nullKey, ssl_auth_tls13_any, PR_TRUE, SEC_OID_TLS13_KEA_ANY},    
 };
 
 /* must use ssl_LookupCipherSuiteDef to access */
@@ -451,12 +445,9 @@ static const ssl3CipherSuiteDef cipher_suite_defs[] =
     {TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, cipher_aes_128, hmac_sha256, kea_ecdhe_rsa, ssl_hash_sha256},
     {TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,  cipher_aes_256, mac_sha, kea_ecdhe_rsa, ssl_hash_none},
 
-    {TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256, cipher_aes_128_gcm, mac_aead, kea_ecdhe_psk, ssl_hash_sha256},
-    {TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256, cipher_chacha20, mac_aead, kea_ecdhe_psk, ssl_hash_sha256},
-    {TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384, cipher_aes_256_gcm, mac_aead, kea_ecdhe_psk, ssl_hash_sha384},
-    {TLS_DHE_PSK_WITH_AES_128_GCM_SHA256, cipher_aes_128_gcm, mac_aead, kea_dhe_psk, ssl_hash_sha256},
-    {TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256, cipher_chacha20, mac_aead, kea_dhe_psk, ssl_hash_sha256},
-    {TLS_DHE_PSK_WITH_AES_256_GCM_SHA384, cipher_aes_256_gcm, mac_aead, kea_dhe_psk, ssl_hash_sha384},
+    {TLS_AES_128_GCM_SHA256, cipher_aes_128_gcm, mac_aead, kea_tls13_any, ssl_hash_sha256},
+    {TLS_CHACHA20_POLY1305_SHA256, cipher_chacha20, mac_aead, kea_tls13_any, ssl_hash_sha256},
+    {TLS_AES_256_GCM_SHA384, cipher_aes_256_gcm, mac_aead, kea_tls13_any, ssl_hash_sha384},
 };
 /* clang-format on */
 
@@ -470,7 +461,8 @@ static const CK_MECHANISM_TYPE auth_alg_defs[] = {
     CKM_ECDH1_DERIVE,      /* ssl_auth_ecdh_ecdsa */
     CKM_RSA_PKCS,          /* ssl_auth_rsa_sign */
     CKM_RSA_PKCS_PSS,      /* ssl_auth_rsa_pss */
-    CKM_NSS_HKDF_SHA256    /* ssl_auth_psk (just check for HKDF) */
+    CKM_NSS_HKDF_SHA256,   /* ssl_auth_psk (just check for HKDF) */
+    CKM_INVALID_MECHANISM  /* ssl_auth_tls13_any */
 };
 PR_STATIC_ASSERT(PR_ARRAY_SIZE(auth_alg_defs) == ssl_auth_size);
 
@@ -481,7 +473,8 @@ static const CK_MECHANISM_TYPE kea_alg_defs[] = {
     CKM_INVALID_MECHANISM, /* ssl_kea_fortezza (unused) */
     CKM_ECDH1_DERIVE,      /* ssl_kea_ecdh */
     CKM_ECDH1_DERIVE,      /* ssl_kea_ecdh_psk */
-    CKM_DH_PKCS_DERIVE     /* ssl_kea_dh_psk */
+    CKM_DH_PKCS_DERIVE,    /* ssl_kea_dh_psk */
+    CKM_INVALID_MECHANISM, /* ssl_kea_tls13_any */
 };
 PR_STATIC_ASSERT(PR_ARRAY_SIZE(kea_alg_defs) == ssl_kea_size);
 
@@ -702,8 +695,6 @@ ssl3_CipherSuiteAllowedForVersionRange(
         case TLS_RSA_WITH_NULL_SHA256:
         case TLS_DHE_DSS_WITH_AES_128_GCM_SHA256:
         case TLS_DHE_DSS_WITH_AES_256_GCM_SHA384:
-            return vrange->max == SSL_LIBRARY_VERSION_TLS_1_2;
-
         case TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
         case TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:
         case TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
@@ -713,7 +704,8 @@ ssl3_CipherSuiteAllowedForVersionRange(
         case TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256:
         case TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256:
         case TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256:
-            return vrange->max >= SSL_LIBRARY_VERSION_TLS_1_2;
+            return vrange->max >= SSL_LIBRARY_VERSION_TLS_1_2 &&
+                   vrange->min < SSL_LIBRARY_VERSION_TLS_1_3;
 
         /* RFC 4492: ECC cipher suites need TLS extensions to negotiate curves and
          * point formats.*/
@@ -740,12 +732,9 @@ ssl3_CipherSuiteAllowedForVersionRange(
             return vrange->max >= SSL_LIBRARY_VERSION_TLS_1_0 &&
                    vrange->min < SSL_LIBRARY_VERSION_TLS_1_3;
 
-        case TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256:
-        case TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256:
-        case TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384:
-        case TLS_DHE_PSK_WITH_AES_128_GCM_SHA256:
-        case TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256:
-        case TLS_DHE_PSK_WITH_AES_256_GCM_SHA384:
+        case TLS_AES_128_GCM_SHA256:
+        case TLS_AES_256_GCM_SHA384:
+        case TLS_CHACHA20_POLY1305_SHA256:
             return vrange->max >= SSL_LIBRARY_VERSION_TLS_1_3;
 
         default:
@@ -841,6 +830,9 @@ ssl_KEAEnabled(const sslSocket *ss, SSLKEAType keaType)
         case ssl_kea_ecdh_psk:
             return ssl_NamedGroupTypeEnabled(ss, group_type_ec);
 
+        case ssl_kea_tls13_any:
+            return PR_TRUE;
+
         case ssl_kea_fortezza:
         default:
             PORT_Assert(0);
@@ -852,7 +844,7 @@ static PRBool
 ssl_HasCert(const sslSocket *ss, SSLAuthType authType)
 {
     PRCList *cursor;
-    if (authType == ssl_auth_null || authType == ssl_auth_psk) {
+    if (authType == ssl_auth_null || authType == ssl_auth_psk || authType == ssl_auth_tls13_any) {
         return PR_TRUE;
     }
     for (cursor = PR_NEXT_LINK(&ss->serverCerts);
@@ -937,7 +929,7 @@ ssl3_config_match_init(sslSocket *ss)
             suite->isPresent = PR_TRUE;
 
             authType = kea_defs[cipher_def->key_exchange_alg].authKeyType;
-            if (authType != ssl_auth_null) {
+            if (authType != ssl_auth_null && authType != ssl_auth_tls13_any) {
                 if (ss->sec.isServer && !ssl_HasCert(ss, authType)) {
                     suite->isPresent = PR_FALSE;
                 }
@@ -948,6 +940,7 @@ ssl3_config_match_init(sslSocket *ss)
 
             keaType = kea_defs[cipher_def->key_exchange_alg].exchKeyType;
             if (keaType != ssl_kea_null &&
+                keaType != ssl_kea_tls13_any &&
                 !PK11_TokenExists(kea_alg_defs[keaType])) {
                 suite->isPresent = PR_FALSE;
             }
@@ -1003,12 +996,6 @@ config_match(ssl3CipherSuiteCfg *suite, int policy,
         return PR_FALSE;
     }
 
-    /* We only allow PSK for TLS 1.3 and only if there is resumption. */
-    if (kea_def->authKeyType == ssl_auth_psk &&
-        !tls13_AllowPskCipher(ss, cipher_def)) {
-        return PR_FALSE;
-    }
-
     return ssl3_CipherSuiteAllowedForVersionRange(suite->cipher_suite, vrange);
 }
 
@@ -1032,28 +1019,9 @@ count_cipher_suites(sslSocket *ss, int policy)
     return count;
 }
 
-PRBool
-tls13_PskSuiteEnabled(sslSocket *ss)
-{
-    int i;
-    const ssl3CipherSuiteDef *cipher_def;
-
-    for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; ++i) {
-        ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
-
-        cipher_def = ssl_LookupCipherSuiteDef(suite->cipher_suite);
-        if (ssl_auth_psk == kea_defs[cipher_def->key_exchange_alg].authKeyType &&
-            config_match(suite, ss->ssl3.policy, &ss->vrange, ss)) {
-            return PR_TRUE;
-        }
-    }
-    return PR_FALSE;
-}
-
 /*
  * Null compression, mac and encryption functions
  */
-
 static SECStatus
 Null_Cipher(void *ctx, unsigned char *output, int *outputLen, int maxOutputLen,
             const unsigned char *input, int inputLen)
@@ -4941,7 +4909,7 @@ ssl_SignatureSchemeToHashType(SignatureScheme scheme)
     return ssl_hash_none;
 }
 
-static KeyType
+KeyType
 ssl_SignatureSchemeToKeyType(SignatureScheme scheme)
 {
     switch (scheme) {
@@ -5048,7 +5016,9 @@ ssl_CheckSignatureSchemeConsistency(
 
     /* If we're a client, check that the signature algorithm matches the signing
      * key type of the cipher suite. */
-    if (!ss->sec.isServer && ss->ssl3.hs.kea_def->signKeyType != keyType) {
+    if (!isTLS13 &&
+        !ss->sec.isServer &&
+        ss->ssl3.hs.kea_def->signKeyType != keyType) {
         PORT_SetError(SSL_ERROR_INCORRECT_SIGNATURE_ALGORITHM);
         return SECFailure;
     }
@@ -5749,17 +5719,6 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
         }
     }
 
-    if (ss->vrange.max >= SSL_LIBRARY_VERSION_TLS_1_3 &&
-        type == client_hello_initial) {
-        rv = tls13_SetupClientHello(ss);
-        if (rv != SECSuccess) {
-            if (sid) {
-                ssl_FreeSID(sid);
-            }
-            return rv;
-        }
-    }
-
     isTLS = (ss->version > SSL_LIBRARY_VERSION_3_0);
     ssl_GetSpecWriteLock(ss);
     cwSpec = ss->ssl3.cwSpec;
@@ -5805,6 +5764,14 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
      */
     if (sid->u.ssl3.lock) {
         PR_RWLock_Rlock(sid->u.ssl3.lock);
+    }
+
+    if (ss->vrange.max >= SSL_LIBRARY_VERSION_TLS_1_3 &&
+        type == client_hello_initial) {
+        rv = tls13_SetupClientHello(ss);
+        if (rv != SECSuccess) {
+            return rv;
+        }
     }
 
     if (isTLS || (ss->firstHsDone && ss->peerRequestedProtection)) {
@@ -6921,7 +6888,7 @@ ssl3_SendClientKeyExchange(sslSocket *ss)
     return rv; /* err code already set. */
 }
 
-static SECStatus
+SECStatus
 ssl_PickSignatureScheme(sslSocket *ss, SECKEYPublicKey *key,
                         const SignatureScheme *peerSchemes,
                         unsigned int peerSchemeCount,
@@ -7391,8 +7358,8 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
             if (isTLS)
                 goto alert_loser;
         } else {
-            rv = ssl3_HandleHelloExtensions(ss, &extensions.data,
-                                            &extensions.len, server_hello);
+            rv = ssl3_HandleExtensions(ss, &extensions.data,
+                                       &extensions.len, server_hello);
             if (rv != SECSuccess)
                 goto alert_loser;
         }
@@ -9057,7 +9024,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
             ssl3_DecodeError(ss); /* send alert */
             goto loser;
         }
-        rv = ssl3_HandleHelloExtensions(ss, &b, &length, client_hello);
+        rv = ssl3_HandleExtensions(ss, &b, &length, client_hello);
         if (rv != SECSuccess) {
             goto loser; /* malformed */
         }
@@ -9089,7 +9056,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
             if (suite_i == TLS_EMPTY_RENEGOTIATION_INFO_SCSV) {
                 SSL3Opaque *b2 = (SSL3Opaque *)emptyRIext;
                 PRUint32 L2 = sizeof emptyRIext;
-                (void)ssl3_HandleHelloExtensions(ss, &b2, &L2, client_hello);
+                (void)ssl3_HandleExtensions(ss, &b2, &L2, client_hello);
                 break;
             }
         }
@@ -9812,7 +9779,7 @@ suite_found:
         if (suite_i == TLS_EMPTY_RENEGOTIATION_INFO_SCSV) {
             SSL3Opaque *b2 = (SSL3Opaque *)emptyRIext;
             PRUint32 L2 = sizeof emptyRIext;
-            (void)ssl3_HandleHelloExtensions(ss, &b2, &L2, client_hello);
+            (void)ssl3_HandleExtensions(ss, &b2, &L2, client_hello);
             break;
         }
     }
@@ -11535,8 +11502,12 @@ ssl3_AuthCertificate(sslSocket *ss)
         /* set the server authentication type and size from the value
         ** in the cert. */
         SECKEYPublicKey *pubKey = CERT_ExtractPublicKey(cert);
-        ss->sec.authType = ss->ssl3.hs.kea_def->authKeyType;
-        ss->sec.keaType = ss->ssl3.hs.kea_def->exchKeyType;
+        if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+            /* These are filled in in the tls13_HandleCertificateVerify and
+             * tls13_HandleServerKeyShare. */
+            ss->sec.authType = ss->ssl3.hs.kea_def->authKeyType;
+            ss->sec.keaType = ss->ssl3.hs.kea_def->exchKeyType;
+        }
         if (pubKey) {
             KeyType pubKeyType;
             PRInt32 minKey;
@@ -12242,8 +12213,7 @@ ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid)
     SECStatus rv;
 
     /* fill in the sid */
-    sid->u.ssl3.cipherSuite =
-        ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 ? ss->ssl3.hs.origCipherSuite : ss->ssl3.hs.cipher_suite;
+    sid->u.ssl3.cipherSuite = ss->ssl3.hs.cipher_suite;
     sid->u.ssl3.compression = ss->ssl3.hs.compression;
     sid->u.ssl3.policy = ss->ssl3.policy;
     sid->version = ss->version;

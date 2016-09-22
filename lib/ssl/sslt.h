@@ -45,6 +45,7 @@ typedef enum {
     ssl_kea_ecdh = 4,
     ssl_kea_ecdh_psk = 5,
     ssl_kea_dh_psk = 6,
+    ssl_kea_tls13_any = 7,
     ssl_kea_size /* number of ssl_kea_ algorithms */
 } SSLKEAType;
 
@@ -103,6 +104,7 @@ typedef enum {
     ssl_auth_rsa_sign = 7,   /* RSA PKCS#1.5 signing */
     ssl_auth_rsa_pss = 8,
     ssl_auth_psk = 9,
+    ssl_auth_tls13_any = 10,
     ssl_auth_size /* number of authentication types */
 } SSLAuthType;
 
@@ -196,6 +198,13 @@ typedef struct SSLChannelInfoStr {
      */
     PRBool earlyDataAccepted;
 
+    /* The following fields were added in NSS 3.28. */
+    /* These fields have the same meaning as in SSLCipherSuiteInfo. */
+    SSLKEAType keaType;
+    SSLCipherAlgorithm symCipher;
+    SSLMACAlgorithm macAlgorithm;
+    SSLAuthType authType;
+    
     /* When adding new fields to this structure, please document the
      * NSS version in which they were added. */
 } SSLChannelInfo;
@@ -309,10 +318,15 @@ typedef enum {
     ssl_tls13_draft_version_xtn = 0xff02 /* experimental number */
 } SSLExtensionType;
 
+typedef enum {
+    ssl_tls13_ticket_early_data_info_xtn = 1
+} TLS13TicketExtensionType;
+
 /* This is the old name for the supported_groups extensions. */
 #define ssl_elliptic_curves_xtn ssl_supported_groups_xtn
 
-#define SSL_MAX_EXTENSIONS 16 /* doesn't include ssl_padding_xtn. */
+#define SSL_MAX_EXTENSIONS 16 /* doesn't include ssl_padding_xtn or \
+                               * TLS 1.3 NewSessionTicket extensions. */
 
 /* Deprecated */
 typedef enum {

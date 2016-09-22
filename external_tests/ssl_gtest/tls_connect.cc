@@ -348,19 +348,26 @@ void TlsConnectTestBase::EnableOnlyStaticRsaCiphers() {
 }
 
 void TlsConnectTestBase::EnableOnlyDheCiphers() {
-  DisableAllCiphers();
-
-  client_->EnableCiphersByKeyExchange(ssl_kea_dh);
-  client_->EnableCiphersByKeyExchange(ssl_kea_dh_psk);
-  server_->EnableCiphersByKeyExchange(ssl_kea_dh);
-  server_->EnableCiphersByKeyExchange(ssl_kea_dh_psk);
+  if (version_ < SSL_LIBRARY_VERSION_TLS_1_3) {
+    DisableAllCiphers();
+    client_->EnableCiphersByKeyExchange(ssl_kea_dh);
+    server_->EnableCiphersByKeyExchange(ssl_kea_dh);
+  } else {
+    client_->ConfigNamedGroups(kFFDHEGroups);
+    server_->ConfigNamedGroups(kFFDHEGroups);
+  }
 }
 
 void TlsConnectTestBase::EnableSomeEcdhCiphers() {
-  client_->EnableCiphersByAuthType(ssl_auth_ecdh_rsa);
-  client_->EnableCiphersByAuthType(ssl_auth_ecdh_ecdsa);
-  server_->EnableCiphersByAuthType(ssl_auth_ecdh_rsa);
-  server_->EnableCiphersByAuthType(ssl_auth_ecdh_ecdsa);
+  if (version_ < SSL_LIBRARY_VERSION_TLS_1_3) {
+    client_->EnableCiphersByAuthType(ssl_auth_ecdh_rsa);
+    client_->EnableCiphersByAuthType(ssl_auth_ecdh_ecdsa);
+    server_->EnableCiphersByAuthType(ssl_auth_ecdh_rsa);
+    server_->EnableCiphersByAuthType(ssl_auth_ecdh_ecdsa);
+  } else {
+    client_->ConfigNamedGroups(kECDHEGroups);
+    server_->ConfigNamedGroups(kECDHEGroups);
+  }
 }
 
 void TlsConnectTestBase::ConfigureSessionCache(SessionResumptionMode client,
@@ -465,6 +472,17 @@ void TlsConnectTestBase::SetupForZeroRtt() {
                            SSL_LIBRARY_VERSION_TLS_1_3);
   server_->StartConnect();
   client_->StartConnect();
+}
+
+// Do a first connection so we can do resumption
+void TlsConnectTestBase::SetupForResume() {
+  EnsureTlsSetup();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  Connect();
+  SendReceive();  // Need to read so that we absorb the session ticket.
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+
+  Reset();
 }
 
 void TlsConnectTestBase::ZeroRttSendReceive(
