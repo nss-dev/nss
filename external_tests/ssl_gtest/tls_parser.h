@@ -45,6 +45,7 @@ const uint8_t kTlsAlertDecodeError = 50;
 const uint8_t kTlsAlertDecryptError = 51;
 const uint8_t kTlsAlertMissingExtension = 109;
 const uint8_t kTlsAlertUnsupportedExtension = 110;
+const uint8_t kTlsAlertUnrecognizedName = 112;
 const uint8_t kTlsAlertNoApplicationProtocol = 120;
 
 const uint16_t kTlsSigSchemeRsaPkcs1Sha1 = 0x0201;
