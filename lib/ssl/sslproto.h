@@ -205,9 +205,9 @@
 #define TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256     0xCCAA
 
 /* Special TLS 1.3 cipher suites that really just specify AEAD */
-#define TLS_AES_128_GCM_SHA256                0xD101
-#define TLS_AES_256_GCM_SHA384                0xD102
-#define TLS_CHACHA20_POLY1305_SHA256          0xD103
+#define TLS_AES_128_GCM_SHA256                0x1301
+#define TLS_AES_256_GCM_SHA384                0x1302
+#define TLS_CHACHA20_POLY1305_SHA256          0x1303
 
 /* DTLS-SRTP cipher suites from RFC 5764 */
 /* If you modify this, also modify MAX_DTLS_SRTP_CIPHER_SUITES in sslimpl.h */
