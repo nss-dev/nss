@@ -896,15 +896,17 @@ ssl_SendSupportedGroupsXtn(sslSocket *ss, PRBool append, PRUint32 maxBytes)
     if (!ss)
         return 0;
 
-    ec = ssl_IsECCEnabled(ss);
-    /* We only send FF supported groups if we require DH named groups or if TLS
-     * 1.3 is a possibility. */
-    if (ss->opt.requireDHENamedGroups ||
-        ss->vrange.max >= SSL_LIBRARY_VERSION_TLS_1_3) {
-        ff = ssl_IsDHEEnabled(ss);
-    }
-    if (!ec && !ff) {
-        return 0;
+    /* We only send FF supported groups if we require DH named groups
+     * or if TLS 1.3 is a possibility. */
+    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+        ec = ssl_IsECCEnabled(ss);
+        if (ss->opt.requireDHENamedGroups) {
+            ff = ssl_IsDHEEnabled(ss);
+        }
+        if (!ec && !ff)
+            return 0;
+    } else {
+        ec = ff = PR_TRUE;
     }
 
     PORT_Assert(sizeof(enabledGroups) > SSL_NAMED_GROUP_COUNT * 2);

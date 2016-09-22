@@ -113,8 +113,12 @@ TEST_F(TlsConnectTest, Select12AfterHelloRetryRequest) {
                            SSL_LIBRARY_VERSION_TLS_1_3);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
                            SSL_LIBRARY_VERSION_TLS_1_3);
-  const SSLNamedGroup groups[2] = {ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1};
-  server_->ConfigNamedGroups(groups, PR_ARRAY_SIZE(groups));
+  const SSLNamedGroup client_groups[] = {ssl_grp_ec_secp256r1,
+                                          ssl_grp_ec_secp521r1};
+  client_->ConfigNamedGroups(client_groups, PR_ARRAY_SIZE(client_groups));
+  const SSLNamedGroup server_groups[] = {ssl_grp_ec_secp384r1,
+                                          ssl_grp_ec_secp521r1};
+  server_->ConfigNamedGroups(server_groups, PR_ARRAY_SIZE(server_groups));
   client_->StartConnect();
   server_->StartConnect();
 
@@ -132,8 +136,8 @@ TEST_F(TlsConnectTest, Select12AfterHelloRetryRequest) {
   server_->SetPeer(client_);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
                            SSL_LIBRARY_VERSION_TLS_1_2);
-
-  ConnectExpectFail();
+  server_->StartConnect();
+  Handshake();
   EXPECT_EQ(SSL_ERROR_ILLEGAL_PARAMETER_ALERT, server_->error_code());
   EXPECT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
 }

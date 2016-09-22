@@ -203,15 +203,11 @@
 #define TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256   0xCCA8
 #define TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 0xCCA9
 #define TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256     0xCCAA
-#define TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256   0xCCAC
-#define TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256     0xCCAD
 
-/* PSK suites are for resumption only */
-/* Experimental PSK support for [draft-mattsson-tls-ecdhe-psk-aead] */
-#define TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256   0xD001
-#define TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384   0xD002
-#define TLS_DHE_PSK_WITH_AES_128_GCM_SHA256     0x00AA /* RFC 5487 */
-#define TLS_DHE_PSK_WITH_AES_256_GCM_SHA384     0x00AB /* RFC 5487 */
+/* Special TLS 1.3 cipher suites that really just specify AEAD */
+#define TLS_AES_128_GCM_SHA256                0xD101
+#define TLS_AES_256_GCM_SHA384                0xD102
+#define TLS_CHACHA20_POLY1305_SHA256          0xD103
 
 /* DTLS-SRTP cipher suites from RFC 5764 */
 /* If you modify this, also modify MAX_DTLS_SRTP_CIPHER_SUITES in sslimpl.h */

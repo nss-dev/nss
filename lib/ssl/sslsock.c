@@ -3568,8 +3568,15 @@ PRBool
 ssl_NamedGroupEnabled(const sslSocket *ss, const namedGroupDef *groupDef)
 {
     unsigned int i;
-
+    SECStatus rv;
+    PRUint32 policy;
+    
     if (!groupDef) {
+        return PR_FALSE;
+    }
+
+    rv = NSS_GetAlgorithmPolicy(groupDef->oidTag, &policy);
+    if (rv == SECSuccess && !(policy & NSS_USE_ALG_IN_SSL_KX)) {
         return PR_FALSE;
     }
 

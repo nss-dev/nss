@@ -492,6 +492,8 @@ typedef enum {
 
     SEC_OID_CURVE25519 = 355,
 
+    SEC_OID_TLS13_KEA_ANY = 356,
+
     SEC_OID_TOTAL
 } SECOidTag;
 

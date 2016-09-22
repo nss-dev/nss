@@ -96,6 +96,7 @@ class TlsConnectTestBase : public ::testing::Test {
   void CheckSrtp() const;
   void SendReceive();
   void SetupForZeroRtt();
+  void SetupForResume();
   void ZeroRttSendReceive(
       bool expect_readable,
       std::function<bool()> post_clienthello_check = nullptr);

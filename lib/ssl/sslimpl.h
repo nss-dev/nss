@@ -156,6 +156,14 @@ typedef enum {
     group_type_ff
 } NamedGroupType;
 
+typedef enum {
+    ticket_allow_early_data = 1,
+    ticket_allow_psk_ke = 2,
+    ticket_allow_psk_dhe_ke = 4,
+    ticket_allow_psk_auth = 8,
+    ticket_allow_psk_sign_auth = 16
+} TLS13SessionTicketFlags;
+
 typedef struct {
     /* The name is the value that is encoded on the wire in TLS. */
     SSLNamedGroup name;
@@ -208,9 +216,9 @@ typedef PRInt32 (*ssl3HelloExtensionSenderFunc)(sslSocket *ss, PRBool append,
 /* registerable callback function that handles a received extension,
  * of the given type.
  */
-typedef SECStatus (*ssl3HelloExtensionHandlerFunc)(sslSocket *ss,
-                                                   PRUint16 ex_type,
-                                                   SECItem *data);
+typedef SECStatus (*ssl3ExtensionHandlerFunc)(sslSocket *ss,
+                                              PRUint16 ex_type,
+                                              SECItem *data);
 
 /* row in a table of hello extension senders */
 typedef struct {
@@ -221,8 +229,8 @@ typedef struct {
 /* row in a table of hello extension handlers */
 typedef struct {
     PRInt32 ex_type;
-    ssl3HelloExtensionHandlerFunc ex_handler;
-} ssl3HelloExtensionHandler;
+    ssl3ExtensionHandlerFunc ex_handler;
+} ssl3ExtensionHandler;
 
 extern SECStatus
 ssl3_RegisterServerHelloExtensionSender(sslSocket *ss, PRUint16 ex_type,
@@ -293,7 +301,7 @@ typedef struct {
 #endif
 } ssl3CipherSuiteCfg;
 
-#define ssl_V3_SUITES_IMPLEMENTED 74
+#define ssl_V3_SUITES_IMPLEMENTED 71
 
 #define MAX_DTLS_SRTP_CIPHER_SUITES 4
 
@@ -796,6 +804,10 @@ struct TLSExtensionDataStr {
     PRBool ticketTimestampVerified;
     PRBool emptySessionTicket;
     PRBool sentSessionTicketInClientHello;
+    SECItem psk_ke_modes;
+    SECItem psk_auth_modes;
+    PRUint32 ticket_age_add;
+    PRBool ticket_age_add_found;
 
     /* SNI Extension related data
      * Names data is not coppied from the input buffer. It can not be
@@ -988,17 +1000,17 @@ typedef struct SSL3HandshakeStateStr {
                                         * traffic keys */
     /* The certificate request from the server. */
     TLS13CertificateRequest *certificateRequest;
-    ssl3CipherSuite origCipherSuite; /* The cipher suite from the original
-                                        * connection if we are resuming. */
-    PRCList cipherSpecs;             /* The cipher specs in the sequence they
+    PRCList cipherSpecs;            /* The cipher specs in the sequence they
                                         * will be applied. */
-    ssl3CipherSpec *nullSpec;        /* In case 0-RTT is rejected. */
-    sslZeroRttState zeroRttState;    /* Are we doing a 0-RTT handshake? */
-    sslZeroRttIgnore zeroRttIgnore;  /* Are we ignoring 0-RTT? */
-    PRCList bufferedEarlyData;       /* Buffered TLS 1.3 early data
+    ssl3CipherSpec *nullSpec;       /* In case 0-RTT is rejected. */
+    sslZeroRttState zeroRttState;   /* Are we doing a 0-RTT handshake? */
+    sslZeroRttIgnore zeroRttIgnore; /* Are we ignoring 0-RTT? */
+    PRCList bufferedEarlyData;      /* Buffered TLS 1.3 early data
                                         * on server.*/
-    PRBool helloRetry;               /* True if HelloRetryRequest has been sent
+    PRBool helloRetry;              /* True if HelloRetryRequest has been sent
                                       * or received. */
+    ssl3KEADef kea_def_mutable;     /* Used to hold the writable kea_def
+                                      * we use for TLS 1.3 */
 } SSL3HandshakeState;
 
 /*
@@ -1846,9 +1858,9 @@ extern PRInt32 ssl3_SendSupportedPointFormatsXtn(sslSocket *ss,
                                                  PRBool append, PRUint32 maxBytes);
 
 /* call the registered extension handlers. */
-extern SECStatus ssl3_HandleHelloExtensions(sslSocket *ss,
-                                            SSL3Opaque **b, PRUint32 *length,
-                                            SSL3HandshakeType handshakeMessage);
+extern SECStatus ssl3_HandleExtensions(sslSocket *ss,
+                                       SSL3Opaque **b, PRUint32 *length,
+                                       SSL3HandshakeType handshakeMessage);
 
 /* Hello Extension related routines. */
 extern PRBool ssl3_ExtensionNegotiated(sslSocket *ss, PRUint16 ex_type);
@@ -1992,14 +2004,22 @@ PRInt32 tls13_ServerSendPreSharedKeyXtn(sslSocket *ss,
 PRInt32 tls13_ServerSendEarlyDataXtn(sslSocket *ss,
                                      PRBool append,
                                      PRUint32 maxBytes);
+PRInt32 tls13_ServerSendSigAlgsXtn(sslSocket *ss,
+                                   PRBool append,
+                                   PRUint32 maxBytes);
 PRBool ssl3_ClientExtensionAdvertised(sslSocket *ss, PRUint16 ex_type);
 SECStatus ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid);
 const ssl3CipherSuiteDef *ssl_LookupCipherSuiteDef(ssl3CipherSuite suite);
 const ssl3BulkCipherDef *
 ssl_GetBulkCipherDef(const ssl3CipherSuiteDef *cipher_def);
 SECStatus ssl3_SelectServerCert(sslSocket *ss);
+SECStatus ssl_PickSignatureScheme(sslSocket *ss, SECKEYPublicKey *key,
+                                  const SignatureScheme *peerSchemes,
+                                  unsigned int peerSchemeCount,
+                                  PRBool requireSha1);
 SECOidTag ssl3_HashTypeToOID(SSLHashType hashType);
 SSLHashType ssl_SignatureSchemeToHashType(SignatureScheme scheme);
+KeyType ssl_SignatureSchemeToKeyType(SignatureScheme scheme);
 
 SECStatus ssl3_SetCipherSuite(sslSocket *ss, ssl3CipherSuite chosenSuite,
                               PRBool initHashes);
