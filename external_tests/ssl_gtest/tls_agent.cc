@@ -239,25 +239,21 @@ void TlsAgent::DisableAllCiphers() {
 // Not actually all groups, just the onece that we are actually willing
 // to use.
 const std::vector<SSLNamedGroup> kAllDHEGroups = {
-  ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1,
-  ssl_grp_ffdhe_2048, ssl_grp_ffdhe_3072, ssl_grp_ffdhe_4096,
-  ssl_grp_ffdhe_6144, ssl_grp_ffdhe_8192
-};
+    ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1,
+    ssl_grp_ffdhe_2048,   ssl_grp_ffdhe_3072,   ssl_grp_ffdhe_4096,
+    ssl_grp_ffdhe_6144,   ssl_grp_ffdhe_8192};
 
 const std::vector<SSLNamedGroup> kECDHEGroups = {
-  ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1
-};
+    ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1};
 
 const std::vector<SSLNamedGroup> kFFDHEGroups = {
-  ssl_grp_ffdhe_2048, ssl_grp_ffdhe_3072, ssl_grp_ffdhe_4096,
-  ssl_grp_ffdhe_6144, ssl_grp_ffdhe_8192
-};
+    ssl_grp_ffdhe_2048, ssl_grp_ffdhe_3072, ssl_grp_ffdhe_4096,
+    ssl_grp_ffdhe_6144, ssl_grp_ffdhe_8192};
 
 // Defined because the big DHE groups are ridiculously slow.
 const std::vector<SSLNamedGroup> kFasterDHEGroups = {
-  ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1,
-  ssl_grp_ffdhe_2048, ssl_grp_ffdhe_3072
-};
+    ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1,
+    ssl_grp_ffdhe_2048, ssl_grp_ffdhe_3072};
 
 void TlsAgent::ConfigNamedGroups(const std::vector<SSLNamedGroup>& groups) {
   ConfigNamedGroups(&groups[0], groups.size());
@@ -274,8 +270,7 @@ void TlsAgent::EnableCiphersByKeyExchange(SSLKEAType kea) {
     ASSERT_EQ(SECSuccess, rv);
     EXPECT_EQ(sizeof(csinfo), csinfo.length);
 
-    if ((csinfo.keaType == kea) ||
-        (csinfo.keaType == ssl_kea_tls13_any)) {
+    if ((csinfo.keaType == kea) || (csinfo.keaType == ssl_kea_tls13_any)) {
       rv = SSL_CipherPrefSet(ssl_fd_, SSL_ImplementedCiphers[i], PR_TRUE);
       EXPECT_EQ(SECSuccess, rv);
     }
@@ -296,10 +291,8 @@ void TlsAgent::EnableGroupsByKeyExchange(SSLKEAType kea) {
 }
 
 void TlsAgent::EnableGroupsByAuthType(SSLAuthType authType) {
-  if (authType == ssl_auth_ecdh_rsa
-      || authType == ssl_auth_ecdh_ecdsa
-      || authType == ssl_auth_ecdsa
-      || authType == ssl_auth_tls13_any) {
+  if (authType == ssl_auth_ecdh_rsa || authType == ssl_auth_ecdh_ecdsa ||
+      authType == ssl_auth_ecdsa || authType == ssl_auth_tls13_any) {
     ConfigNamedGroups(kECDHEGroups);
   }
 }
@@ -426,9 +419,8 @@ void TlsAgent::CheckKEA(SSLKEAType type, size_t kea_size) const {
 }
 
 void TlsAgent::CheckKEA(SSLKEAType type) const {
-  PRUint32 ecKEAKeyBits = SSLInt_DetermineKEABits(server_key_bits_,
-                                                  info_.authType,
-                                                  csinfo_.symKeyBits);
+  PRUint32 ecKEAKeyBits = SSLInt_DetermineKEABits(
+      server_key_bits_, info_.authType, csinfo_.symKeyBits);
   switch (type) {
     case ssl_kea_ecdh:
       CheckKEA(type, ecKEAKeyBits);

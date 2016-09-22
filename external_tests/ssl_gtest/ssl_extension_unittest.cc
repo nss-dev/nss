@@ -124,7 +124,6 @@ class TlsExtensionInjector : public TlsHandshakeFilter {
   const DataBuffer data_;
 };
 
-
 class TlsExtensionTestBase : public TlsConnectTestBase {
  protected:
   TlsExtensionTestBase(Mode mode, uint16_t version)
@@ -571,8 +570,7 @@ TEST_F(TlsExtensionTest13Stream, NonEmptySignatureAlgorithms) {
   index = sig_algs.Write(index, 2, 2);
   index = sig_algs.Write(index, kTlsSignatureRsaPssSha256, 2);
   server_->SetPacketFilter(
-      new TlsExtensionReplacer(ssl_signature_algorithms_xtn,
-                               sig_algs));
+      new TlsExtensionReplacer(ssl_signature_algorithms_xtn, sig_algs));
   ConnectExpectFail();
   EXPECT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
   EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, server_->error_code());
@@ -590,12 +588,9 @@ TEST_F(TlsExtensionTest13Stream, AddServerSignatureAlgorithmsOnResumption) {
 
 class TlsPreSharedKeyReplacer : public TlsExtensionFilter {
  public:
-  TlsPreSharedKeyReplacer(const uint8_t* psk,
-                          size_t psk_len,
-                          const uint8_t* ke_modes,
-                          size_t ke_modes_len,
-                          const uint8_t* auth_modes,
-                          size_t auth_modes_len) {
+  TlsPreSharedKeyReplacer(const uint8_t* psk, size_t psk_len,
+                          const uint8_t* ke_modes, size_t ke_modes_len,
+                          const uint8_t* auth_modes, size_t auth_modes_len) {
     if (psk) {
       psk_.reset(new DataBuffer(psk, psk_len));
     }
@@ -607,31 +602,30 @@ class TlsPreSharedKeyReplacer : public TlsExtensionFilter {
     }
   }
 
-  static size_t CopyAndMaybeReplace(TlsParser *parser,
-                                    size_t size,
+  static size_t CopyAndMaybeReplace(TlsParser* parser, size_t size,
                                     const std::unique_ptr<DataBuffer>& replace,
-                                    size_t index,
-                                    DataBuffer* output) {
+                                    size_t index, DataBuffer* output) {
     DataBuffer tmp;
     bool ret = parser->ReadVariable(&tmp, size);
     EXPECT_EQ(true, ret);
-    if (!ret)
-      return 0;
+    if (!ret) return 0;
     if (replace) {
       tmp = *replace;
     }
 
-    return WriteVariable(output, index, tmp, size);;
+    return WriteVariable(output, index, tmp, size);
+    ;
   }
 
-  PacketFilter::Action FilterExtension(
-      uint16_t extension_type, const DataBuffer& input, DataBuffer* output) {
+  PacketFilter::Action FilterExtension(uint16_t extension_type,
+                                       const DataBuffer& input,
+                                       DataBuffer* output) {
     if (extension_type != ssl_tls13_pre_shared_key_xtn) {
       return KEEP;
     }
 
     TlsParser parser(input);
-    uint32_t len;   // Length of the overall vector.
+    uint32_t len;          // Length of the overall vector.
     parser.Read(&len, 2);  // We only allow one entry.
     EXPECT_EQ(parser.remaining(), len);
     if (len != parser.remaining()) {
@@ -670,11 +664,11 @@ class TlsPreSharedKeyReplacer : public TlsExtensionFilter {
 // extensions so generate errors.
 TEST_F(TlsExtensionTest13Stream, ResumeEmptyPskLabel) {
   SetupForResume();
-  const static uint8_t psk[1] = { 0 };
+  const static uint8_t psk[1] = {0};
 
   DataBuffer empty;
-  client_->SetPacketFilter(new TlsPreSharedKeyReplacer(
-      &psk[0], 0, nullptr, 0, nullptr, 0));
+  client_->SetPacketFilter(
+      new TlsPreSharedKeyReplacer(&psk[0], 0, nullptr, 0, nullptr, 0));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -682,11 +676,11 @@ TEST_F(TlsExtensionTest13Stream, ResumeEmptyPskLabel) {
 
 TEST_F(TlsExtensionTest13Stream, ResumeNoKeModes) {
   SetupForResume();
-  const static uint8_t ke_modes[1] = { 0 };
+  const static uint8_t ke_modes[1] = {0};
 
   DataBuffer empty;
-  client_->SetPacketFilter(new TlsPreSharedKeyReplacer(
-      nullptr, 0, &ke_modes[0], 0, nullptr, 0));
+  client_->SetPacketFilter(
+      new TlsPreSharedKeyReplacer(nullptr, 0, &ke_modes[0], 0, nullptr, 0));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -694,11 +688,11 @@ TEST_F(TlsExtensionTest13Stream, ResumeNoKeModes) {
 
 TEST_F(TlsExtensionTest13Stream, ResumeNoAuthModes) {
   SetupForResume();
-  const static uint8_t auth_modes[1] = { 0 };
+  const static uint8_t auth_modes[1] = {0};
 
   DataBuffer empty;
-  client_->SetPacketFilter(new TlsPreSharedKeyReplacer(
-      nullptr, 0, nullptr, 0, &auth_modes[0], 0));
+  client_->SetPacketFilter(
+      new TlsPreSharedKeyReplacer(nullptr, 0, nullptr, 0, &auth_modes[0], 0));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -711,8 +705,8 @@ TEST_F(TlsExtensionTest13Stream, ResumeBogusKeModes) {
   const static uint8_t ke_modes = kTls13PskKe;
 
   DataBuffer empty;
-  client_->SetPacketFilter(new TlsPreSharedKeyReplacer(
-      nullptr, 0, &ke_modes, 1, nullptr, 0));
+  client_->SetPacketFilter(
+      new TlsPreSharedKeyReplacer(nullptr, 0, &ke_modes, 1, nullptr, 0));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
   server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
@@ -723,8 +717,8 @@ TEST_F(TlsExtensionTest13Stream, ResumeBogusAuthModes) {
   const static uint8_t auth_modes = kTls13PskSignAuth;
 
   DataBuffer empty;
-  client_->SetPacketFilter(new TlsPreSharedKeyReplacer(
-      nullptr, 0, nullptr, 0, &auth_modes, 1));
+  client_->SetPacketFilter(
+      new TlsPreSharedKeyReplacer(nullptr, 0, nullptr, 0, &auth_modes, 1));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
   server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);

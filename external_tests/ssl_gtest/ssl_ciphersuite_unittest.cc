@@ -23,18 +23,19 @@ extern "C" {
 namespace nss_test {
 
 // mode, version, cipher suite
-typedef std::tuple<std::string, uint16_t, uint16_t,
-                   SSLNamedGroup, TlsSignatureScheme> CipherSuiteProfile;
+typedef std::tuple<std::string, uint16_t, uint16_t, SSLNamedGroup,
+                   TlsSignatureScheme>
+    CipherSuiteProfile;
 
 class TlsCipherSuiteTestBase : public TlsConnectTestBase {
  public:
   TlsCipherSuiteTestBase(std::string mode, uint16_t version,
-                         uint16_t cipher_suite,
-                         SSLNamedGroup group,
+                         uint16_t cipher_suite, SSLNamedGroup group,
                          TlsSignatureScheme signature_scheme)
       : TlsConnectTestBase(TlsConnectTestBase::ToMode(mode), version),
         cipher_suite_(cipher_suite),
-        group_(group), signature_scheme_(signature_scheme),
+        group_(group),
+        signature_scheme_(signature_scheme),
         csinfo_({0}) {
     SECStatus rv =
         SSL_GetCipherSuiteInfo(cipher_suite_, &csinfo_, sizeof(csinfo_));
@@ -59,9 +60,8 @@ class TlsCipherSuiteTestBase : public TlsConnectTestBase {
       kea_type_ = SSLInt_GetKEAType(group_);
 
       SSLSignatureAndHashAlg signature_scheme = {
-        static_cast<SSLHashType>(signature_scheme_ >> 8),
-        static_cast<SSLSignType>(signature_scheme_ & 0xff)
-      };
+          static_cast<SSLHashType>(signature_scheme_ >> 8),
+          static_cast<SSLSignType>(signature_scheme_ & 0xff)};
       client_->SetSignatureAlgorithms(&signature_scheme, 1);
       server_->SetSignatureAlgorithms(&signature_scheme, 1);
     }
@@ -99,30 +99,29 @@ class TlsCipherSuiteTestBase : public TlsConnectTestBase {
                              << signature_scheme_;
           break;
       }
-    }
-    else {
+    } else {
       switch (csinfo_.authType) {
         case ssl_auth_rsa_sign:
-        Reset(TlsAgent::kServerRsaSign);
-        break;
-      case ssl_auth_rsa_decrypt:
-        Reset(TlsAgent::kServerRsaDecrypt);
-        break;
-      case ssl_auth_ecdsa:
-        Reset(TlsAgent::kServerEcdsa256);
-        break;
-      case ssl_auth_ecdh_ecdsa:
-        Reset(TlsAgent::kServerEcdhEcdsa);
-        break;
-      case ssl_auth_ecdh_rsa:
-        Reset(TlsAgent::kServerEcdhRsa);
-        break;
-      case ssl_auth_dsa:
-        Reset(TlsAgent::kServerDsa);
-        break;
-      default:
-        ASSERT_TRUE(false) << "Unsupported cipher suite: " << cipher_suite_;
-        break;
+          Reset(TlsAgent::kServerRsaSign);
+          break;
+        case ssl_auth_rsa_decrypt:
+          Reset(TlsAgent::kServerRsaDecrypt);
+          break;
+        case ssl_auth_ecdsa:
+          Reset(TlsAgent::kServerEcdsa256);
+          break;
+        case ssl_auth_ecdh_ecdsa:
+          Reset(TlsAgent::kServerEcdhEcdsa);
+          break;
+        case ssl_auth_ecdh_rsa:
+          Reset(TlsAgent::kServerEcdhRsa);
+          break;
+        case ssl_auth_dsa:
+          Reset(TlsAgent::kServerDsa);
+          break;
+        default:
+          ASSERT_TRUE(false) << "Unsupported cipher suite: " << cipher_suite_;
+          break;
       }
     }
   }
@@ -285,47 +284,39 @@ TEST_P(TlsCipherSuiteTest, WriteLimit) {
 
 // This awful macro makes the test instantiations easier to read.
 #define INSTANTIATE_CIPHER_TEST_P(name, modes, versions, groups, sigalgs, ...) \
-  static const uint16_t k##name##CiphersArr[] = {__VA_ARGS__};          \
-  static const ::testing::internal::ParamGenerator<uint16_t>            \
-  k##name##Ciphers = ::testing::ValuesIn(k##name##CiphersArr);          \
-  INSTANTIATE_TEST_CASE_P(                                              \
-      CipherSuite##name, TlsCipherSuiteTest,                            \
-      ::testing::Combine(TlsConnectTestBase::kTlsModes##modes,          \
-                         TlsConnectTestBase::kTls##versions,            \
-                         k##name##Ciphers, groups, sigalgs));
+  static const uint16_t k##name##CiphersArr[] = {__VA_ARGS__};                 \
+  static const ::testing::internal::ParamGenerator<uint16_t>                   \
+      k##name##Ciphers = ::testing::ValuesIn(k##name##CiphersArr);             \
+  INSTANTIATE_TEST_CASE_P(                                                     \
+      CipherSuite##name, TlsCipherSuiteTest,                                   \
+      ::testing::Combine(TlsConnectTestBase::kTlsModes##modes,                 \
+                         TlsConnectTestBase::kTls##versions, k##name##Ciphers, \
+                         groups, sigalgs));
 
 static const SSLNamedGroup kDummyNamedGroupParamsArr[] = {
-  static_cast<SSLNamedGroup>(0)
-};
+    static_cast<SSLNamedGroup>(0)};
 static const auto kDummyNamedGroupParams =
-                          ::testing::ValuesIn(kDummyNamedGroupParamsArr);
+    ::testing::ValuesIn(kDummyNamedGroupParamsArr);
 static const TlsSignatureScheme kDummySignatureSchemesParamsArr[] = {
-  kTlsSignatureNone
-};
+    kTlsSignatureNone};
 static const auto kDummySignatureSchemesParams =
-                          ::testing::ValuesIn(kDummySignatureSchemesParamsArr);
+    ::testing::ValuesIn(kDummySignatureSchemesParamsArr);
 
 static TlsSignatureScheme kSignatureSchemesParamsArr[] = {
-  kTlsSignatureRsaPkcs1Sha256,
-  kTlsSignatureRsaPkcs1Sha384,
-  kTlsSignatureRsaPkcs1Sha512,
-  kTlsSignatureEcdsaSecp256r1Sha256,
-  kTlsSignatureEcdsaSecp384r1Sha384,
-  kTlsSignatureRsaPssSha256,
-  kTlsSignatureRsaPssSha384,
-  kTlsSignatureRsaPssSha512,
+    kTlsSignatureRsaPkcs1Sha256,       kTlsSignatureRsaPkcs1Sha384,
+    kTlsSignatureRsaPkcs1Sha512,       kTlsSignatureEcdsaSecp256r1Sha256,
+    kTlsSignatureEcdsaSecp384r1Sha384, kTlsSignatureRsaPssSha256,
+    kTlsSignatureRsaPssSha384,         kTlsSignatureRsaPssSha512,
 };
 
-INSTANTIATE_CIPHER_TEST_P(RC4, Stream, V10ToV12,
-                          kDummyNamedGroupParams,
+INSTANTIATE_CIPHER_TEST_P(RC4, Stream, V10ToV12, kDummyNamedGroupParams,
                           kDummySignatureSchemesParams,
                           TLS_RSA_WITH_RC4_128_SHA,
                           TLS_ECDH_ECDSA_WITH_RC4_128_SHA,
                           TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
                           TLS_ECDH_RSA_WITH_RC4_128_SHA,
                           TLS_ECDHE_RSA_WITH_RC4_128_SHA);
-INSTANTIATE_CIPHER_TEST_P(AEAD12, All, V12,
-                          kDummyNamedGroupParams,
+INSTANTIATE_CIPHER_TEST_P(AEAD12, All, V12, kDummyNamedGroupParams,
                           kDummySignatureSchemesParams,
                           TLS_RSA_WITH_AES_128_GCM_SHA256,
                           TLS_RSA_WITH_AES_256_GCM_SHA384,
@@ -333,8 +324,7 @@ INSTANTIATE_CIPHER_TEST_P(AEAD12, All, V12,
                           TLS_DHE_DSS_WITH_AES_256_GCM_SHA384,
                           TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,
                           TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384);
-INSTANTIATE_CIPHER_TEST_P(AEAD, All, V12,
-                          kDummyNamedGroupParams,
+INSTANTIATE_CIPHER_TEST_P(AEAD, All, V12, kDummyNamedGroupParams,
                           kDummySignatureSchemesParams,
                           TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
                           TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
@@ -345,22 +335,16 @@ INSTANTIATE_CIPHER_TEST_P(AEAD, All, V12,
                           TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
                           TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
                           TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256);
-INSTANTIATE_CIPHER_TEST_P(CBC12, All, V12,
-                          kDummyNamedGroupParams,
-                          kDummySignatureSchemesParams,
-                          TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
-                          TLS_RSA_WITH_AES_256_CBC_SHA256,
-                          TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-                          TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-                          TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
-                          TLS_RSA_WITH_AES_128_CBC_SHA256,
-                          TLS_DHE_DSS_WITH_AES_128_CBC_SHA256,
-                          TLS_DHE_DSS_WITH_AES_256_CBC_SHA256);
 INSTANTIATE_CIPHER_TEST_P(
-    CBCStream, Stream, V10ToV12,
-    kDummyNamedGroupParams,
-    kDummySignatureSchemesParams,
-    TLS_ECDH_ECDSA_WITH_NULL_SHA,
+    CBC12, All, V12, kDummyNamedGroupParams, kDummySignatureSchemesParams,
+    TLS_DHE_RSA_WITH_AES_256_CBC_SHA256, TLS_RSA_WITH_AES_256_CBC_SHA256,
+    TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
+    TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_DSS_WITH_AES_128_CBC_SHA256,
+    TLS_DHE_DSS_WITH_AES_256_CBC_SHA256);
+INSTANTIATE_CIPHER_TEST_P(
+    CBCStream, Stream, V10ToV12, kDummyNamedGroupParams,
+    kDummySignatureSchemesParams, TLS_ECDH_ECDSA_WITH_NULL_SHA,
     TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA, TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,
     TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_ECDSA_WITH_NULL_SHA,
     TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
@@ -370,10 +354,8 @@ INSTANTIATE_CIPHER_TEST_P(
     TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
     TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA);
 INSTANTIATE_CIPHER_TEST_P(
-    CBCDatagram, Datagram, V11V12,
-    kDummyNamedGroupParams,
-    kDummySignatureSchemesParams,
-    TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,
+    CBCDatagram, Datagram, V11V12, kDummyNamedGroupParams,
+    kDummySignatureSchemesParams, TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,
     TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA, TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA,
     TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
     TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,
@@ -383,14 +365,12 @@ INSTANTIATE_CIPHER_TEST_P(
 INSTANTIATE_CIPHER_TEST_P(TLS13, All, V13,
                           ::testing::ValuesIn(kFasterDHEGroups),
                           ::testing::ValuesIn(kSignatureSchemesParamsArr),
-                          TLS_AES_128_GCM_SHA256,
-                          TLS_CHACHA20_POLY1305_SHA256,
+                          TLS_AES_128_GCM_SHA256, TLS_CHACHA20_POLY1305_SHA256,
                           TLS_AES_256_GCM_SHA384);
 INSTANTIATE_CIPHER_TEST_P(TLS13AllGroups, All, V13,
                           ::testing::ValuesIn(kAllDHEGroups),
                           ::testing::Values(kTlsSignatureEcdsaSecp384r1Sha384),
                           TLS_AES_256_GCM_SHA384);
-
 
 // Fields are: version, cipher suite, bulk cipher name, secretKeySize
 struct SecStatusParams {
@@ -419,10 +399,9 @@ class SecurityStatusTest
       public ::testing::WithParamInterface<SecStatusParams> {
  public:
   SecurityStatusTest()
-      : TlsCipherSuiteTestBase("TLS", GetParam().version,
-                               GetParam().cipher_suite,
-                               static_cast<SSLNamedGroup>(0),
-                               kTlsSignatureNone) {}
+      : TlsCipherSuiteTestBase(
+            "TLS", GetParam().version, GetParam().cipher_suite,
+            static_cast<SSLNamedGroup>(0), kTlsSignatureNone) {}
 };
 
 // SSL_SecurityStatus produces fairly useless output when compared to

@@ -114,10 +114,10 @@ TEST_F(TlsConnectTest, Select12AfterHelloRetryRequest) {
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
                            SSL_LIBRARY_VERSION_TLS_1_3);
   const SSLNamedGroup client_groups[] = {ssl_grp_ec_secp256r1,
-                                          ssl_grp_ec_secp521r1};
+                                         ssl_grp_ec_secp521r1};
   client_->ConfigNamedGroups(client_groups, PR_ARRAY_SIZE(client_groups));
   const SSLNamedGroup server_groups[] = {ssl_grp_ec_secp384r1,
-                                          ssl_grp_ec_secp521r1};
+                                         ssl_grp_ec_secp521r1};
   server_->ConfigNamedGroups(server_groups, PR_ARRAY_SIZE(server_groups));
   client_->StartConnect();
   server_->StartConnect();
