@@ -777,12 +777,12 @@ ssl_LookupCipherSuiteCfg(ssl3CipherSuite suite, ssl3CipherSuiteCfg *suites)
 }
 
 static PRBool
-ssl_NamedGroupTypeEnabled(const sslSocket *ss, NamedGroupType groupType)
+ssl_NamedGroupTypeEnabled(const sslSocket *ss, SSLKEAType keaType)
 {
     unsigned int i;
     for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
         if (ss->namedGroupPreferences[i] &&
-            ss->namedGroupPreferences[i]->type == groupType) {
+            ss->namedGroupPreferences[i]->keaType == keaType) {
             return PR_TRUE;
         }
     }
@@ -823,12 +823,12 @@ ssl_KEAEnabled(const sslSocket *ss, SSLKEAType keaType)
                     return PR_TRUE;
                 }
             }
-            return ssl_NamedGroupTypeEnabled(ss, group_type_ff);
+            return ssl_NamedGroupTypeEnabled(ss, ssl_kea_dh);
         }
 
         case ssl_kea_ecdh:
         case ssl_kea_ecdh_psk:
-            return ssl_NamedGroupTypeEnabled(ss, group_type_ec);
+            return ssl_NamedGroupTypeEnabled(ss, ssl_kea_ecdh);
 
         case ssl_kea_tls13_any:
             return PR_TRUE;
@@ -4969,7 +4969,7 @@ ssl_NamedGroupForSignatureScheme(SignatureScheme scheme)
 
 static PRBool
 ssl_SignatureSchemeValidForKey(PRBool isTLS13, KeyType keyType,
-                               const namedGroupDef *ecGroup,
+                               const sslNamedGroupDef *ecGroup,
                                SignatureScheme scheme)
 {
     if (!ssl_ValidateSignatureScheme(isTLS13, keyType, scheme)) {
@@ -4997,7 +4997,7 @@ ssl_CheckSignatureSchemeConsistency(
     sslSocket *ss, SignatureScheme scheme, CERTCertificate *cert)
 {
     unsigned int i;
-    const namedGroupDef *group = NULL;
+    const sslNamedGroupDef *group = NULL;
     SECKEYPublicKey *key;
     KeyType keyType;
     PRBool isTLS13 = ss->version == SSL_LIBRARY_VERSION_TLS_1_3;
@@ -6742,9 +6742,9 @@ ssl3_SendDHClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
 
     const ssl3DHParams *params;
     ssl3DHParams customParams;
-    const namedGroupDef *groupDef;
-    namedGroupDef customGroupDef = {
-        ssl_grp_ffdhe_custom, 0, group_type_ff, SEC_OID_TLS_DHE_CUSTOM
+    const sslNamedGroupDef *groupDef;
+    sslNamedGroupDef customGroupDef = {
+        ssl_grp_ffdhe_custom, 0, ssl_kea_dh, SEC_OID_TLS_DHE_CUSTOM, PR_FALSE
     };
     sslEphemeralKeyPair *keyPair = NULL;
     SECKEYPublicKey *pubKey;
@@ -6895,7 +6895,7 @@ ssl_PickSignatureScheme(sslSocket *ss, SECKEYPublicKey *key,
                         PRBool requireSha1)
 {
     unsigned int i, j;
-    const namedGroupDef *group = NULL;
+    const sslNamedGroupDef *group = NULL;
     KeyType keyType;
     PRBool isTLS13 = ss->version == SSL_LIBRARY_VERSION_TLS_1_3;
 
@@ -9962,7 +9962,7 @@ ssl3_SendServerHello(sslSocket *ss)
 }
 
 SECStatus
-ssl_CreateDHEKeyPair(const namedGroupDef *groupDef,
+ssl_CreateDHEKeyPair(const sslNamedGroupDef *groupDef,
                      const ssl3DHParams *params,
                      sslEphemeralKeyPair **keyPair)
 {
@@ -10014,7 +10014,7 @@ ssl3_SendDHServerKeyExchange(sslSocket *ss)
     sslEphemeralKeyPair *keyPair;
     SECKEYPublicKey *pubKey;
     SECKEYPrivateKey *certPrivateKey;
-    const namedGroupDef *groupDef;
+    const sslNamedGroupDef *groupDef;
 
     if (kea_def->kea != kea_dhe_dss && kea_def->kea != kea_dhe_rsa) {
         /* TODO: Support DH_anon. It might be sufficient to drop the signature.

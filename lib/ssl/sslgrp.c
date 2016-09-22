@@ -48,11 +48,11 @@ ssl_SetupCleanupECDHEKeysOnce(void)
 static PRStatus
 ssl_CreateStaticECDHEKeyPair(void *arg)
 {
-    const namedGroupDef *group = (const namedGroupDef *)arg;
+    const sslNamedGroupDef *group = (const sslNamedGroupDef *)arg;
     unsigned int i = group - ssl_named_groups;
     SECStatus rv;
 
-    PORT_Assert(group->type == group_type_ec);
+    PORT_Assert(group->keaType == ssl_kea_ecdh);
     PORT_Assert(i < SSL_NAMED_GROUP_COUNT);
     rv = ssl_CreateECDHEphemeralKeyPair(group, &gECDHEKeyPairs[i].keyPair);
     if (rv != SECSuccess) {
@@ -80,7 +80,7 @@ ssl_FilterSupportedGroups(sslSocket *ss)
         PRUint32 policy;
         SECStatus srv;
         unsigned int index;
-        const namedGroupDef *group = ss->namedGroupPreferences[i];
+        const sslNamedGroupDef *group = ss->namedGroupPreferences[i];
         if (!group) {
             continue;
         }
@@ -119,7 +119,7 @@ ssl_FilterSupportedGroups(sslSocket *ss)
  * ECDHE_RSA and ECDHE_ECDSA handshakes when we reuse the same key.
  */
 SECStatus
-ssl_CreateStaticECDHEKey(sslSocket *ss, const namedGroupDef *ecGroup)
+ssl_CreateStaticECDHEKey(sslSocket *ss, const sslNamedGroupDef *ecGroup)
 {
     sslEphemeralKeyPair *keyPair;
     /* We index gECDHEKeyPairs by the named group.  Pointer arithmetic! */

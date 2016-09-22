@@ -138,20 +138,19 @@ static const PRUint16 srtpCiphers[] = {
  * through this list. ffdhe_custom must not appear in this list. */
 #define ECGROUP(name, size, oid, assumeSupported)  \
     {                                              \
-        ssl_grp_ec_##name, size, group_type_ec,    \
+        ssl_grp_ec_##name, size, ssl_kea_ecdh,     \
             SEC_OID_SECG_EC_##oid, assumeSupported \
     }
-#define FFGROUP(size)                              \
-    {                                              \
-        ssl_grp_ffdhe_##size, size, group_type_ff, \
-            SEC_OID_TLS_FFDHE_##size, PR_TRUE      \
+#define FFGROUP(size)                           \
+    {                                           \
+        ssl_grp_ffdhe_##size, size, ssl_kea_dh, \
+            SEC_OID_TLS_FFDHE_##size, PR_TRUE   \
     }
 
-/* update SSL_NAMED_GROUP_COUNT when changing the number of entries */
-const namedGroupDef ssl_named_groups[] = {
+const sslNamedGroupDef ssl_named_groups[] = {
     /* Note that 256 for 25519 is a lie, but we only use it for checking bit
      * security and expect 256 bits there (not 255). */
-    { ssl_grp_ec_curve25519, 256, group_type_ec, SEC_OID_CURVE25519, PR_TRUE },
+    { ssl_grp_ec_curve25519, 256, ssl_kea_ecdh, SEC_OID_CURVE25519, PR_TRUE },
     ECGROUP(secp256r1, 256, SECP256R1, PR_TRUE),
     ECGROUP(secp384r1, 384, SECP384R1, PR_TRUE),
     ECGROUP(secp521r1, 521, SECP521R1, PR_TRUE),
@@ -1495,7 +1494,7 @@ SSL_NamedGroupConfig(PRFileDesc *fd, const SSLNamedGroup *groups,
     memset((void *)ss->namedGroupPreferences, 0,
            sizeof(ss->namedGroupPreferences));
     for (i = 0; i < numGroups; ++i) {
-        const namedGroupDef *groupDef = ssl_LookupNamedGroup(groups[i]);
+        const sslNamedGroupDef *groupDef = ssl_LookupNamedGroup(groups[i]);
         if (!ssl_NamedGroupEnabled(ss, groupDef)) {
             ss->namedGroupPreferences[j++] = groupDef;
         }
@@ -1512,7 +1511,7 @@ SSL_DHEGroupPrefSet(PRFileDesc *fd, const SSLDHEGroupType *groups,
     const SSLDHEGroupType *list;
     unsigned int count;
     int i, k;
-    const namedGroupDef *enabled[SSL_NAMED_GROUP_COUNT] = { 0 };
+    const sslNamedGroupDef *enabled[SSL_NAMED_GROUP_COUNT] = { 0 };
     static const SSLDHEGroupType default_dhe_groups[] = {
         ssl_ff_dhe_2048_group
     };
@@ -1541,7 +1540,7 @@ SSL_DHEGroupPrefSet(PRFileDesc *fd, const SSLDHEGroupType *groups,
     k = 0;
     for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
         if (ss->namedGroupPreferences[i] &&
-            ss->namedGroupPreferences[i]->type != group_type_ff) {
+            ss->namedGroupPreferences[i]->keaType != ssl_kea_dh) {
             enabled[k++] = ss->namedGroupPreferences[i];
         }
         ss->namedGroupPreferences[i] = NULL;
@@ -1551,7 +1550,7 @@ SSL_DHEGroupPrefSet(PRFileDesc *fd, const SSLDHEGroupType *groups,
     for (i = 0; i < count; ++i) {
         PRBool duplicate = PR_FALSE;
         SSLNamedGroup name;
-        const namedGroupDef *groupDef;
+        const sslNamedGroupDef *groupDef;
         switch (list[i]) {
             case ssl_ff_dhe_2048_group:
                 name = ssl_grp_ffdhe_2048;
@@ -1706,7 +1705,7 @@ SSL_EnableWeakDHEPrimeGroup(PRFileDesc *fd, PRBool enabled)
 #include "dhe-param.c"
 
 const ssl3DHParams *
-ssl_GetDHEParams(const namedGroupDef *groupDef)
+ssl_GetDHEParams(const sslNamedGroupDef *groupDef)
 {
     switch (groupDef->name) {
         case ssl_grp_ffdhe_2048:
@@ -1783,7 +1782,7 @@ SECStatus
 ssl_ValidateDHENamedGroup(sslSocket *ss,
                           const SECItem *dh_p,
                           const SECItem *dh_g,
-                          const namedGroupDef **groupDef,
+                          const sslNamedGroupDef **groupDef,
                           const ssl3DHParams **dhParams)
 {
     unsigned int i;
@@ -1793,7 +1792,7 @@ ssl_ValidateDHENamedGroup(sslSocket *ss,
         if (!ss->namedGroupPreferences[i]) {
             continue;
         }
-        if (ss->namedGroupPreferences[i]->type != group_type_ff) {
+        if (ss->namedGroupPreferences[i]->keaType != ssl_kea_dh) {
             continue;
         }
 
@@ -1817,12 +1816,12 @@ ssl_ValidateDHENamedGroup(sslSocket *ss,
 /* Ensure DH parameters have been selected.  This just picks the first enabled
  * FFDHE group in ssl_named_groups, or the weak one if it was enabled. */
 SECStatus
-ssl_SelectDHEGroup(sslSocket *ss, const namedGroupDef **groupDef)
+ssl_SelectDHEGroup(sslSocket *ss, const sslNamedGroupDef **groupDef)
 {
     unsigned int i;
-    static const namedGroupDef weak_group_def = {
-        ssl_grp_ffdhe_custom, WEAK_DHE_SIZE, group_type_ff,
-        SEC_OID_TLS_DHE_CUSTOM, PR_FALSE
+    static const sslNamedGroupDef weak_group_def = {
+        ssl_grp_ffdhe_custom, WEAK_DHE_SIZE, ssl_kea_dh,
+        SEC_OID_TLS_DHE_CUSTOM, PR_TRUE
     };
 
     /* Only select weak groups in TLS 1.2 and earlier, but not if the client has
@@ -1840,7 +1839,7 @@ ssl_SelectDHEGroup(sslSocket *ss, const namedGroupDef **groupDef)
     }
     for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
         if (ss->namedGroupPreferences[i] &&
-            ss->namedGroupPreferences[i]->type == group_type_ff) {
+            ss->namedGroupPreferences[i]->keaType == ssl_kea_dh) {
             *groupDef = ss->namedGroupPreferences[i];
             return SECSuccess;
         }
@@ -3551,7 +3550,7 @@ ssl_SetDefaultsFromEnvironment(void)
 #endif /* NSS_HAVE_GETENV */
 }
 
-const namedGroupDef *
+const sslNamedGroupDef *
 ssl_LookupNamedGroup(SSLNamedGroup group)
 {
     unsigned int i;
@@ -3565,7 +3564,7 @@ ssl_LookupNamedGroup(SSLNamedGroup group)
 }
 
 PRBool
-ssl_NamedGroupEnabled(const sslSocket *ss, const namedGroupDef *groupDef)
+ssl_NamedGroupEnabled(const sslSocket *ss, const sslNamedGroupDef *groupDef)
 {
     unsigned int i;
     SECStatus rv;
@@ -3631,7 +3630,7 @@ ssl_FreeKeyPair(sslKeyPair *keyPair)
 
 /* Ephemeral key handling. */
 sslEphemeralKeyPair *
-ssl_NewEphemeralKeyPair(const namedGroupDef *group,
+ssl_NewEphemeralKeyPair(const sslNamedGroupDef *group,
                         SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey)
 {
     sslKeyPair *keys;
@@ -3686,7 +3685,7 @@ ssl_FreeEphemeralKeyPair(sslEphemeralKeyPair *keyPair)
 }
 
 sslEphemeralKeyPair *
-ssl_LookupEphemeralKeyPair(sslSocket *ss, const namedGroupDef *groupDef)
+ssl_LookupEphemeralKeyPair(sslSocket *ss, const sslNamedGroupDef *groupDef)
 {
     PRCList *cursor;
     for (cursor = PR_NEXT_LINK(&ss->ephemeralKeyPairs);
@@ -3772,7 +3771,7 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
 
     ssl_ChooseOps(ss);
     ssl3_InitSocketPolicy(ss);
-    memset((namedGroupDef *)ss->namedGroupPreferences, 0, sizeof(ss->namedGroupPreferences));
+    memset((void *)ss->namedGroupPreferences, 0, sizeof(ss->namedGroupPreferences));
     PORT_Assert(PR_ARRAY_SIZE(preferredGroups) < SSL_NAMED_GROUP_COUNT);
     for (i = 0; i < PR_ARRAY_SIZE(preferredGroups); ++i) {
         ss->namedGroupPreferences[i] = ssl_LookupNamedGroup(preferredGroups[i]);

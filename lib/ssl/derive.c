@@ -598,7 +598,7 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
                 pecParams = &srvPubkey->u.ec.DEREncodedParams;
             } else if (privKeytype == rsaKey && testecdhe) {
                 /* TLS_ECDHE_RSA */
-                const namedGroupDef *ecGroup;
+                const sslNamedGroupDef *ecGroup;
                 int serverKeyStrengthInBits;
                 int signatureKeyStrength;
                 int requiredECCbits;
