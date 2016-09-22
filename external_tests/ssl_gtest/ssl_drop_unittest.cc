@@ -86,7 +86,7 @@ static void GetCipherAndLimit(uint16_t version, uint16_t* cipher,
 TEST_P(TlsConnectDatagram, MissLotsOfPackets) {
   uint16_t cipher;
   uint64_t limit;
-  
+
   GetCipherAndLimit(version_, &cipher, &limit);
 
   EnsureTlsSetup();

@@ -204,7 +204,7 @@ typedef struct SSLChannelInfoStr {
     SSLCipherAlgorithm symCipher;
     SSLMACAlgorithm macAlgorithm;
     SSLAuthType authType;
-    
+
     /* When adding new fields to this structure, please document the
      * NSS version in which they were added. */
 } SSLChannelInfo;

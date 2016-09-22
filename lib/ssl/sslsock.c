@@ -3570,7 +3570,7 @@ ssl_NamedGroupEnabled(const sslSocket *ss, const namedGroupDef *groupDef)
     unsigned int i;
     SECStatus rv;
     PRUint32 policy;
-    
+
     if (!groupDef) {
         return PR_FALSE;
     }
