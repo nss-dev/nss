@@ -841,9 +841,9 @@ typedef struct DTLSQueuedMessageStr {
 } DTLSQueuedMessage;
 
 typedef struct TLS13KeyShareEntryStr {
-    PRCList link;               /* The linked list link */
+    PRCList link;                  /* The linked list link */
     const sslNamedGroupDef *group; /* The group for the entry */
-    SECItem key_exchange;       /* The share itself */
+    SECItem key_exchange;          /* The share itself */
 } TLS13KeyShareEntry;
 
 typedef struct TLS13EarlyDataStr {
@@ -1733,7 +1733,7 @@ extern const sslNamedGroupDef *ssl_ECPubKey2NamedGroup(
     const SECKEYPublicKey *pubKey);
 
 extern const sslNamedGroupDef *ssl_GetECGroupWithStrength(sslSocket *ss,
-                                                       unsigned int requiredECCbits);
+                                                          unsigned int requiredECCbits);
 extern const sslNamedGroupDef *ssl_GetECGroupForServerSocket(sslSocket *ss);
 extern void ssl_FilterSupportedGroups(sslSocket *ss);
 
