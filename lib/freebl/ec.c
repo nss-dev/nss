@@ -459,8 +459,8 @@ EC_ValidatePublicKey(ECParams *ecParams, SECItem *publicValue)
         const ECMethod *method = ec_get_method_from_name(ecParams->name);
         if (method == NULL || method->validate == NULL) {
             /* unknown curve */
-            rv = SECFailure;
-            goto cleanup;
+            PORT_SetError(SEC_ERROR_INVALID_ARGS);
+            return SECFailure;
         }
         return method->validate(publicValue);
     }
@@ -570,7 +570,7 @@ ECDH_Derive(SECItem *publicValue,
     if (ecParams->fieldID.type == ec_field_plain) {
         const ECMethod *method;
         memset(derivedSecret, 0, sizeof(*derivedSecret));
-        SECITEM_AllocItem(NULL, derivedSecret, ecParams->pointSize);
+        derivedSecret = SECITEM_AllocItem(NULL, derivedSecret, ecParams->pointSize);
         if (derivedSecret == NULL) {
             PORT_SetError(SEC_ERROR_NO_MEMORY);
             return SECFailure;
