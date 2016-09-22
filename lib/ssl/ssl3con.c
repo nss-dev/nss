@@ -793,8 +793,7 @@ ssl_NamedGroupTypeEnabled(const sslSocket *ss, NamedGroupType groupType)
     unsigned int i;
     for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
         if (ss->namedGroupPreferences[i] &&
-            ss->namedGroupPreferences[i]->type == groupType &&
-            ssl_NamedGroupEnabled(ss, ss->namedGroupPreferences[i])) {
+            ss->namedGroupPreferences[i]->type == groupType) {
             return PR_TRUE;
         }
     }
@@ -814,22 +813,26 @@ ssl_KEAEnabled(const sslSocket *ss, SSLKEAType keaType)
                 return PR_FALSE;
             }
 
-            /* No need to check for a common FFDHE group if we are in TLS 1.2 or
-             * earlier and named groups aren't required. */
-            if (!ss->opt.requireDHENamedGroups &&
-                ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
-                /* If the client indicates support for named FFDHE groups, check
-                 * that we have one in common. */
-                if (ss->sec.isServer && ss->ssl3.hs.peerSupportsFfdheGroups) {
-                    return ssl_NamedGroupTypeEnabled(ss, group_type_ff);
+            if (ss->sec.isServer) {
+                /* If the server requires named FFDHE groups, then the client
+                 * must have included an FFDHE group. peerSupportsFfdheGroups
+                 * is set to true in ssl_HandleSupportedGroupsXtn(). */
+                if (ss->opt.requireDHENamedGroups &&
+                    !ss->ssl3.hs.peerSupportsFfdheGroups) {
+                    return PR_FALSE;
                 }
-                return PR_TRUE;
-            }
-            /* If the server requires the extension, then the client must have
-             * already sent a ffdhe group. peerSupportsFfdheGroups is set to true in
-             * ssl_HandleSupportedGroupsXtn(). */
-            if (ss->sec.isServer && !ss->ssl3.hs.peerSupportsFfdheGroups) {
-                return PR_FALSE;
+
+                /* We can use the weak DH group if all of these are true:
+                 * 1. We don't require named groups.
+                 * 2. The peer doesn't support named groups.
+                 * 3. This isn't TLS 1.3.
+                 * 4. The weak group is enabled. */
+                if (!ss->opt.requireDHENamedGroups &&
+                    !ss->ssl3.hs.peerSupportsFfdheGroups &&
+                    ss->version < SSL_LIBRARY_VERSION_TLS_1_3 &&
+                    ss->ssl3.dheWeakGroupEnabled) {
+                    return PR_TRUE;
+                }
             }
             return ssl_NamedGroupTypeEnabled(ss, group_type_ff);
         }
@@ -6778,8 +6781,7 @@ ssl3_SendDHClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
     ssl3DHParams customParams;
     const namedGroupDef *groupDef;
     namedGroupDef customGroupDef = {
-        0, ssl_grp_ffdhe_custom, 0, group_type_ff,
-        SEC_OID_TLS_DHE_CUSTOM, PR_FALSE
+        ssl_grp_ffdhe_custom, 0, group_type_ff, SEC_OID_TLS_DHE_CUSTOM
     };
     sslEphemeralKeyPair *keyPair = NULL;
     SECKEYPublicKey *pubKey;
@@ -13593,7 +13595,7 @@ ssl3_InitState(sslSocket *ss)
 
     ss->ssl3.hs.zeroRttState = ssl_0rtt_none;
 
-    ssl_DisableNonSuiteBGroups(ss);
+    ssl_FilterSupportedGroups(ss);
 
     ss->ssl3.initialized = PR_TRUE;
     return SECSuccess;

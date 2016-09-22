@@ -157,9 +157,6 @@ typedef enum {
 } NamedGroupType;
 
 typedef struct {
-    /* This is the index of the curve into the bit mask that we use to track
-     * what has been negotiated on the socket. */
-    PRUint8 index;
     /* The name is the value that is encoded on the wire in TLS. */
     SSLNamedGroup name;
     /* The number of bits in the group. */
@@ -169,8 +166,8 @@ typedef struct {
     /* The OID that identifies the group to PKCS11.  This also determines
      * whether the group is enabled in policy. */
     SECOidTag oidTag;
-    /* Non-suite-B groups are enabled by patching NSS. Yuck. */
-    PRBool suiteb;
+    /* Assume that the group is always supported. */
+    PRBool assumeSupported;
 } namedGroupDef;
 
 typedef struct sslBufferStr sslBuffer;
@@ -1734,7 +1731,7 @@ extern const namedGroupDef *ssl_ECPubKey2NamedGroup(
 extern const namedGroupDef *ssl_GetECGroupWithStrength(sslSocket *ss,
                                                        unsigned int requiredECCbits);
 extern const namedGroupDef *ssl_GetECGroupForServerSocket(sslSocket *ss);
-extern void ssl_DisableNonSuiteBGroups(sslSocket *ss);
+extern void ssl_FilterSupportedGroups(sslSocket *ss);
 
 extern SECStatus ssl3_CipherPrefSetDefault(ssl3CipherSuite which, PRBool on);
 extern SECStatus ssl3_CipherPrefGetDefault(ssl3CipherSuite which, PRBool *on);
@@ -1983,6 +1980,8 @@ PRInt32 tls13_ServerSendKeyShareXtn(sslSocket *ss, PRBool append,
                                     PRUint32 maxBytes);
 SECStatus ssl_CreateECDHEphemeralKeyPair(const namedGroupDef *ecGroup,
                                          sslEphemeralKeyPair **keyPair);
+SECStatus ssl_CreateStaticECDHEKey(sslSocket *ss,
+                                   const namedGroupDef *ecGroup);
 SECStatus ssl3_FlushHandshake(sslSocket *ss, PRInt32 flags);
 PK11SymKey *ssl3_GetWrappingKey(sslSocket *ss,
                                 PK11SlotInfo *masterSecretSlot,
