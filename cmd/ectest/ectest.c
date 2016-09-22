@@ -149,6 +149,8 @@ ectest_ecdh_kat(ECDH_KAT *kat)
     genenc[0] = '0';
     genenc[1] = '4';
     genenc[2] = '\0';
+    PORT_Assert(PR_ARRAY_SIZE(genenc) >= PORT_Strlen(ecCurve_map[curve]->genx));
+    PORT_Assert(PR_ARRAY_SIZE(genenc) >= PORT_Strlen(ecCurve_map[curve]->geny));
     strcat(genenc, ecCurve_map[curve]->genx);
     strcat(genenc, ecCurve_map[curve]->geny);
     hexString2SECItem(arena, &ecParams.base, genenc);
@@ -185,8 +187,14 @@ ectest_ecdh_kat(ECDH_KAT *kat)
             rv = SECFailure;
             goto cleanup;
         }
-        SECITEM_CopyItem(ecParams.arena, &theirKey, &ecPriv->privateValue);
-        SECITEM_CopyItem(ecParams.arena, &ecPriv->privateValue, &derived);
+        rv = SECITEM_CopyItem(ecParams.arena, &theirKey, &ecPriv->privateValue);
+        if (rv != SECSuccess) {
+            goto cleanup;
+        }
+        rv = SECITEM_CopyItem(ecParams.arena, &ecPriv->privateValue, &derived);
+        if (rv != SECSuccess) {
+            goto cleanup;
+        }
         SECITEM_FreeItem(&derived, PR_FALSE);
     }
 
@@ -204,7 +212,9 @@ cleanup:
     if (ecPriv) {
         PORT_FreeArena(ecPriv->ecParams.arena, PR_FALSE);
     }
-    SECITEM_FreeItem(&derived, PR_FALSE);
+    if (derived.data) {
+        SECITEM_FreeItem(&derived, PR_FALSE);
+    }
     return rv;
 }
 
