@@ -3255,7 +3255,8 @@ ssl3_HandleAlert(sslSocket *ss, sslBuffer *buf)
             error = SSL_ERROR_RX_UNKNOWN_ALERT;
             break;
     }
-    if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    if ((ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) &&
+        (ss->ssl3.hs.ws != wait_server_hello)) {
         /* TLS 1.3 requires all but "end of data" alerts to be
          * treated as fatal. */
         switch (desc) {

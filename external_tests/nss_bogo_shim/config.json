@@ -50,7 +50,6 @@
         "EncryptedExtensionsWithKeyShare":"nss updated/broken",
         "EmptyEncryptedExtensions":"nss updated/broken",
         "ClientAuth-SHA1-Fallback-RSA":"We fail when the sig_algs_ext is empty",
-        "SendSNIWarningAlert":"Bug 1304574",
         "Downgrade-TLS12-*":"NSS implements downgrade detection",
         "TrailingMessageData-*": "Bug 1304575",
         "DuplicateKeyShares":"Bug 1304578"
