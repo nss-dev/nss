@@ -38,7 +38,7 @@
 #endif
 
 SECStatus
-ssl_NamedGroup2ECParams(PLArenaPool *arena, const namedGroupDef *ecGroup,
+ssl_NamedGroup2ECParams(PLArenaPool *arena, const sslNamedGroupDef *ecGroup,
                         SECKEYECParams *params)
 {
     SECOidData *oidData = NULL;
@@ -49,7 +49,7 @@ ssl_NamedGroup2ECParams(PLArenaPool *arena, const namedGroupDef *ecGroup,
         return SECFailure;
     }
 
-    if (!ecGroup || ecGroup->type != group_type_ec ||
+    if (!ecGroup || ecGroup->keaType != ssl_kea_ecdh ||
         (oidData = SECOID_FindOIDByTag(ecGroup->oidTag)) == NULL) {
         PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
         return SECFailure;
@@ -72,7 +72,7 @@ ssl_NamedGroup2ECParams(PLArenaPool *arena, const namedGroupDef *ecGroup,
     return SECSuccess;
 }
 
-const namedGroupDef *
+const sslNamedGroupDef *
 ssl_ECPubKey2NamedGroup(const SECKEYPublicKey *pubKey)
 {
     SECItem oid = { siBuffer, NULL, 0 };
@@ -175,7 +175,7 @@ ssl3_SendECDHClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
     SECStatus rv = SECFailure;
     PRBool isTLS, isTLS12;
     CK_MECHANISM_TYPE target;
-    const namedGroupDef *groupDef;
+    const sslNamedGroupDef *groupDef;
     sslEphemeralKeyPair *keyPair = NULL;
     SECKEYPublicKey *pubKey;
 
@@ -357,7 +357,7 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 SECStatus
 ssl_ImportECDHKeyShare(sslSocket *ss, SECKEYPublicKey *peerKey,
                        SSL3Opaque *b, PRUint32 length,
-                       const namedGroupDef *ecGroup)
+                       const sslNamedGroupDef *ecGroup)
 {
     SECStatus rv;
     SECItem ecPoint = { siBuffer, NULL, 0 };
@@ -403,19 +403,19 @@ ssl_ImportECDHKeyShare(sslSocket *ss, SECKEYPublicKey *peerKey,
     return SECSuccess;
 }
 
-const namedGroupDef *
+const sslNamedGroupDef *
 ssl_GetECGroupWithStrength(sslSocket *ss, unsigned int requiredECCbits)
 {
     int i;
 
     for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
-        const namedGroupDef *group;
+        const sslNamedGroupDef *group;
         if (ss) {
             group = ss->namedGroupPreferences[i];
         } else {
             group = &ssl_named_groups[i];
         }
-        if (!group || group->type != group_type_ec ||
+        if (!group || group->keaType != ssl_kea_ecdh ||
             group->bits < requiredECCbits) {
             continue;
         }
@@ -427,7 +427,7 @@ ssl_GetECGroupWithStrength(sslSocket *ss, unsigned int requiredECCbits)
 
 /* Find the "weakest link".  Get the strength of the signature and symmetric
  * keys and choose a curve based on the weakest of those two. */
-const namedGroupDef *
+const sslNamedGroupDef *
 ssl_GetECGroupForServerSocket(sslSocket *ss)
 {
     const sslServerCert *cert = ss->sec.serverCert;
@@ -448,11 +448,11 @@ ssl_GetECGroupForServerSocket(sslSocket *ss)
     } else if (cert->certType.authType == ssl_auth_ecdsa ||
                cert->certType.authType == ssl_auth_ecdh_rsa ||
                cert->certType.authType == ssl_auth_ecdh_ecdsa) {
-        const namedGroupDef *groupDef = cert->certType.namedCurve;
+        const sslNamedGroupDef *groupDef = cert->certType.namedCurve;
 
         /* We won't select a certificate unless the named curve has been
          * negotiated (or supported_curves was absent), double check that. */
-        PORT_Assert(groupDef->type == group_type_ec);
+        PORT_Assert(groupDef->keaType == ssl_kea_ecdh);
         PORT_Assert(ssl_NamedGroupEnabled(ss, groupDef));
         if (!ssl_NamedGroupEnabled(ss, groupDef)) {
             return NULL;
@@ -475,7 +475,7 @@ ssl_GetECGroupForServerSocket(sslSocket *ss)
 
 /* Create an ECDHE key pair for a given curve */
 SECStatus
-ssl_CreateECDHEphemeralKeyPair(const namedGroupDef *ecGroup,
+ssl_CreateECDHEphemeralKeyPair(const sslNamedGroupDef *ecGroup,
                                sslEphemeralKeyPair **keyPair)
 {
     SECKEYPrivateKey *privKey = NULL;
@@ -522,7 +522,7 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SECItem ec_params = { siBuffer, NULL, 0 };
     SECItem ec_point = { siBuffer, NULL, 0 };
     unsigned char paramBuf[3];
-    const namedGroupDef *ecGroup;
+    const sslNamedGroupDef *ecGroup;
 
     isTLS = (PRBool)(ss->ssl3.prSpec->version > SSL_LIBRARY_VERSION_3_0);
 
@@ -540,7 +540,7 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         goto alert_loser;
     }
     ecGroup = ssl_LookupNamedGroup(ec_params.data[1] << 8 | ec_params.data[2]);
-    if (!ecGroup || ecGroup->type != group_type_ec) {
+    if (!ecGroup || ecGroup->keaType != ssl_kea_ecdh) {
         errCode = SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE;
         desc = handshake_failure;
         goto alert_loser;
@@ -671,7 +671,7 @@ ssl3_SendECDHServerKeyExchange(sslSocket *ss)
 
     SECItem ec_params = { siBuffer, NULL, 0 };
     unsigned char paramBuf[3];
-    const namedGroupDef *ecGroup;
+    const sslNamedGroupDef *ecGroup;
     sslEphemeralKeyPair *keyPair;
     SECKEYPublicKey *pubKey;
 
@@ -705,7 +705,7 @@ ssl3_SendECDHServerKeyExchange(sslSocket *ss)
     ec_params.len = sizeof(paramBuf);
     ec_params.data = paramBuf;
     PORT_Assert(keyPair->group);
-    PORT_Assert(keyPair->group->type == group_type_ec);
+    PORT_Assert(keyPair->group->keaType == ssl_kea_ecdh);
     ec_params.data[0] = ec_type_named;
     ec_params.data[1] = keyPair->group->name >> 8;
     ec_params.data[2] = keyPair->group->name & 0xff;
@@ -911,14 +911,14 @@ ssl_SendSupportedGroupsXtn(sslSocket *ss, PRBool append, PRUint32 maxBytes)
 
     PORT_Assert(sizeof(enabledGroups) > SSL_NAMED_GROUP_COUNT * 2);
     for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
-        const namedGroupDef *group = ss->namedGroupPreferences[i];
+        const sslNamedGroupDef *group = ss->namedGroupPreferences[i];
         if (!group) {
             continue;
         }
-        if (group->type == group_type_ec && !ec) {
+        if (group->keaType == ssl_kea_ecdh && !ec) {
             continue;
         }
-        if (group->type == group_type_ff && !ff) {
+        if (group->keaType == ssl_kea_dh && !ff) {
             continue;
         }
 
@@ -1032,7 +1032,7 @@ ssl_UpdateSupportedGroups(sslSocket *ss, SECItem *data)
 {
     PRInt32 list_len;
     unsigned int i;
-    const namedGroupDef *enabled[SSL_NAMED_GROUP_COUNT] = { 0 };
+    const sslNamedGroupDef *enabled[SSL_NAMED_GROUP_COUNT] = { 0 };
     PORT_Assert(SSL_NAMED_GROUP_COUNT == PR_ARRAY_SIZE(enabled));
 
     if (!data->data || data->len < 4) {
@@ -1055,7 +1055,7 @@ ssl_UpdateSupportedGroups(sslSocket *ss, SECItem *data)
 
     /* Read groups from data and enable if in |enabled| */
     while (data->len) {
-        const namedGroupDef *group;
+        const sslNamedGroupDef *group;
         PRInt32 curve_name =
             ssl3_ConsumeHandshakeNumber(ss, 2, &data->data, &data->len);
         if (curve_name < 0) {
@@ -1086,7 +1086,7 @@ ssl_UpdateSupportedGroups(sslSocket *ss, SECItem *data)
         /* If we don't require that DHE use named groups, and no FFDHE was
          * included, we pretend that they support all the FFDHE groups we do. */
         for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
-            if (enabled[i] && enabled[i]->type == group_type_ff) {
+            if (enabled[i] && enabled[i]->keaType == ssl_kea_dh) {
                 ss->namedGroupPreferences[i] = enabled[i];
             }
         }

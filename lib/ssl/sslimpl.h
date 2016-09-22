@@ -150,12 +150,6 @@ typedef enum {
     ec_type_named = 3
 } ECType;
 
-/* TODO: decide if SSLKEAType might be better here. */
-typedef enum {
-    group_type_ec,
-    group_type_ff
-} NamedGroupType;
-
 typedef enum {
     ticket_allow_early_data = 1,
     ticket_allow_psk_ke = 2,
@@ -169,14 +163,14 @@ typedef struct {
     SSLNamedGroup name;
     /* The number of bits in the group. */
     unsigned int bits;
-    /* Whether the group is Elliptic or Finite-Field. */
-    NamedGroupType type;
+    /* The key exchange algorithm this group provides. */
+    SSLKEAType keaType;
     /* The OID that identifies the group to PKCS11.  This also determines
      * whether the group is enabled in policy. */
     SECOidTag oidTag;
     /* Assume that the group is always supported. */
     PRBool assumeSupported;
-} namedGroupDef;
+} sslNamedGroupDef;
 
 typedef struct sslBufferStr sslBuffer;
 typedef struct sslConnectInfoStr sslConnectInfo;
@@ -848,7 +842,7 @@ typedef struct DTLSQueuedMessageStr {
 
 typedef struct TLS13KeyShareEntryStr {
     PRCList link;               /* The linked list link */
-    const namedGroupDef *group; /* The group for the entry */
+    const sslNamedGroupDef *group; /* The group for the entry */
     SECItem key_exchange;       /* The share itself */
 } TLS13KeyShareEntry;
 
@@ -1065,7 +1059,7 @@ struct ssl3StateStr {
     PRUint16 dtlsSRTPCipherSuite; /* 0 if not selected */
     PRBool fatalAlertSent;
     PRBool dheWeakGroupEnabled; /* used by server */
-    const namedGroupDef *dhePreferredGroup;
+    const sslNamedGroupDef *dhePreferredGroup;
 
     /* TLS 1.2 introduces separate signature algorithm negotiation.
      * TLS 1.3 combined signature and hash into a single enum.
@@ -1099,7 +1093,7 @@ struct sslKeyPairStr {
 
 typedef struct {
     PRCList link;
-    const namedGroupDef *group;
+    const sslNamedGroupDef *group;
     sslKeyPair *keys;
 } sslEphemeralKeyPair;
 
@@ -1330,7 +1324,7 @@ struct sslSocketStr {
      * Note that renegotiation will ignore groups that were disabled in the
      * first handshake.
      */
-    const namedGroupDef *namedGroupPreferences[SSL_NAMED_GROUP_COUNT];
+    const sslNamedGroupDef *namedGroupPreferences[SSL_NAMED_GROUP_COUNT];
 
     /* SSL3 state info.  Formerly was a pointer */
     ssl3State ssl3;
@@ -1364,7 +1358,7 @@ extern sslSessionIDLookupFunc ssl_sid_lookup;
 extern sslSessionIDCacheFunc ssl_sid_cache;
 extern sslSessionIDUncacheFunc ssl_sid_uncache;
 
-extern const namedGroupDef ssl_named_groups[];
+extern const sslNamedGroupDef ssl_named_groups[];
 
 /************************************************************************/
 
@@ -1694,29 +1688,29 @@ extern sslKeyPair *ssl_GetKeyPairRef(sslKeyPair *keyPair);
 extern void ssl_FreeKeyPair(sslKeyPair *keyPair);
 
 extern sslEphemeralKeyPair *ssl_NewEphemeralKeyPair(
-    const namedGroupDef *group,
+    const sslNamedGroupDef *group,
     SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey);
 extern sslEphemeralKeyPair *ssl_CopyEphemeralKeyPair(
     sslEphemeralKeyPair *keyPair);
 extern void ssl_FreeEphemeralKeyPair(sslEphemeralKeyPair *keyPair);
 extern sslEphemeralKeyPair *ssl_LookupEphemeralKeyPair(
-    sslSocket *ss, const namedGroupDef *groupDef);
+    sslSocket *ss, const sslNamedGroupDef *groupDef);
 extern void ssl_FreeEphemeralKeyPairs(sslSocket *ss);
 
 extern SECStatus ssl_AppendPaddedDHKeyShare(sslSocket *ss,
                                             SECKEYPublicKey *pubKey,
                                             PRBool appendLength);
-extern const ssl3DHParams *ssl_GetDHEParams(const namedGroupDef *groupDef);
+extern const ssl3DHParams *ssl_GetDHEParams(const sslNamedGroupDef *groupDef);
 extern SECStatus ssl_SelectDHEGroup(sslSocket *ss,
-                                    const namedGroupDef **groupDef);
-extern SECStatus ssl_CreateDHEKeyPair(const namedGroupDef *groupDef,
+                                    const sslNamedGroupDef **groupDef);
+extern SECStatus ssl_CreateDHEKeyPair(const sslNamedGroupDef *groupDef,
                                       const ssl3DHParams *params,
                                       sslEphemeralKeyPair **keyPair);
 extern PRBool ssl_IsValidDHEShare(const SECItem *dh_p, const SECItem *dh_Ys);
 extern SECStatus ssl_ValidateDHENamedGroup(sslSocket *ss,
                                            const SECItem *dh_p,
                                            const SECItem *dh_g,
-                                           const namedGroupDef **groupDef,
+                                           const sslNamedGroupDef **groupDef,
                                            const ssl3DHParams **dhParams);
 
 extern PRBool ssl_IsECCEnabled(sslSocket *ss);
@@ -1730,17 +1724,17 @@ extern PRBool ssl_IsDHEEnabled(sslSocket *ss);
                                                : ((s <= 7168) ? 384 \
                                                               : 521))))
 
-extern const namedGroupDef *ssl_LookupNamedGroup(SSLNamedGroup group);
-extern PRBool ssl_NamedGroupEnabled(const sslSocket *ss, const namedGroupDef *group);
+extern const sslNamedGroupDef *ssl_LookupNamedGroup(SSLNamedGroup group);
+extern PRBool ssl_NamedGroupEnabled(const sslSocket *ss, const sslNamedGroupDef *group);
 extern SECStatus ssl_NamedGroup2ECParams(PLArenaPool *arena,
-                                         const namedGroupDef *curve,
+                                         const sslNamedGroupDef *curve,
                                          SECKEYECParams *params);
-extern const namedGroupDef *ssl_ECPubKey2NamedGroup(
+extern const sslNamedGroupDef *ssl_ECPubKey2NamedGroup(
     const SECKEYPublicKey *pubKey);
 
-extern const namedGroupDef *ssl_GetECGroupWithStrength(sslSocket *ss,
+extern const sslNamedGroupDef *ssl_GetECGroupWithStrength(sslSocket *ss,
                                                        unsigned int requiredECCbits);
-extern const namedGroupDef *ssl_GetECGroupForServerSocket(sslSocket *ss);
+extern const sslNamedGroupDef *ssl_GetECGroupForServerSocket(sslSocket *ss);
 extern void ssl_FilterSupportedGroups(sslSocket *ss);
 
 extern SECStatus ssl3_CipherPrefSetDefault(ssl3CipherSuite which, PRBool on);
@@ -1778,7 +1772,7 @@ extern SECStatus ssl3_HandleECDHClientKeyExchange(sslSocket *ss,
 extern SECStatus ssl3_SendECDHServerKeyExchange(sslSocket *ss);
 extern SECStatus ssl_ImportECDHKeyShare(
     sslSocket *ss, SECKEYPublicKey *peerKey,
-    SSL3Opaque *b, PRUint32 length, const namedGroupDef *curve);
+    SSL3Opaque *b, PRUint32 length, const sslNamedGroupDef *curve);
 unsigned int tls13_SizeOfECDHEKeyShareKEX(const SECKEYPublicKey *pubKey);
 SECStatus tls13_EncodeECDHEKeyShareKEX(sslSocket *ss,
                                        const SECKEYPublicKey *pubKey);
@@ -1988,10 +1982,10 @@ SECStatus ssl3_ComputeHandshakeHashes(sslSocket *ss,
                                       PRUint32 sender);
 PRInt32 tls13_ServerSendKeyShareXtn(sslSocket *ss, PRBool append,
                                     PRUint32 maxBytes);
-SECStatus ssl_CreateECDHEphemeralKeyPair(const namedGroupDef *ecGroup,
+SECStatus ssl_CreateECDHEphemeralKeyPair(const sslNamedGroupDef *ecGroup,
                                          sslEphemeralKeyPair **keyPair);
 SECStatus ssl_CreateStaticECDHEKey(sslSocket *ss,
-                                   const namedGroupDef *ecGroup);
+                                   const sslNamedGroupDef *ecGroup);
 SECStatus ssl3_FlushHandshake(sslSocket *ss, PRInt32 flags);
 PK11SymKey *ssl3_GetWrappingKey(sslSocket *ss,
                                 PK11SlotInfo *masterSecretSlot,

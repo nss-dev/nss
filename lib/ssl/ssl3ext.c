@@ -1415,7 +1415,7 @@ ssl3_EncodeSessionTicket(sslSocket *ss,
         case ssl_auth_ecdh_rsa:
         case ssl_auth_ecdh_ecdsa:
             PORT_Assert(certType->namedCurve);
-            PORT_Assert(certType->namedCurve->type == group_type_ec);
+            PORT_Assert(certType->namedCurve->keaType == ssl_kea_ecdh);
             /* EC curves only use the second of the two bytes. */
             PORT_Assert(certType->namedCurve->name < 256);
             rv = ssl3_AppendNumberToItem(&plaintext,
@@ -1966,14 +1966,14 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
     switch (parsed_session_ticket->authType) {
         case ssl_auth_ecdsa:
         case ssl_auth_ecdh_rsa:
-        case ssl_auth_ecdh_ecdsa:
-            parsed_session_ticket->certType.namedCurve =
+        case ssl_auth_ecdh_ecdsa: {
+            const sslNamedGroupDef *group =
                 ssl_LookupNamedGroup((SSLNamedGroup)temp);
-            if (!parsed_session_ticket->certType.namedCurve ||
-                parsed_session_ticket->certType.namedCurve->type != group_type_ec) {
+            if (!group || group->keaType != ssl_kea_ecdh) {
                 goto no_ticket;
             }
-            break;
+            parsed_session_ticket->certType.namedCurve = group;
+        } break;
         default:
             break;
     }
@@ -3310,7 +3310,7 @@ tls13_HandleKeyShareEntry(sslSocket *ss, SECItem *data)
 {
     SECStatus rv;
     PRInt32 group;
-    const namedGroupDef *groupDef;
+    const sslNamedGroupDef *groupDef;
     TLS13KeyShareEntry *ks = NULL;
     SECItem share = { siBuffer, NULL, 0 };
 

@@ -49,9 +49,9 @@ static SECStatus tls13_ChaCha20Poly1305(
     const unsigned char *additionalData, int additionalDataLen);
 static SECStatus tls13_SendServerHelloSequence(sslSocket *ss);
 static SECStatus tls13_SendEncryptedExtensions(sslSocket *ss);
-static void tls13_SetKeyExchangeType(sslSocket *ss, const namedGroupDef *group);
+static void tls13_SetKeyExchangeType(sslSocket *ss, const sslNamedGroupDef *group);
 static SECStatus tls13_HandleClientKeyShare(sslSocket *ss,
-                                            const namedGroupDef *group,
+                                            const sslNamedGroupDef *group,
                                             PRBool *shouldRetry);
 
 static SECStatus tls13_HandleServerKeyShare(sslSocket *ss);
@@ -318,20 +318,20 @@ tls13_GetHmacMechanism(sslSocket *ss)
 }
 
 SECStatus
-tls13_CreateKeyShare(sslSocket *ss, const namedGroupDef *groupDef)
+tls13_CreateKeyShare(sslSocket *ss, const sslNamedGroupDef *groupDef)
 {
     SECStatus rv;
     sslEphemeralKeyPair *keyPair = NULL;
     const ssl3DHParams *params;
 
-    switch (groupDef->type) {
-        case group_type_ec:
+    switch (groupDef->keaType) {
+        case ssl_kea_ecdh:
             rv = ssl_CreateECDHEphemeralKeyPair(groupDef, &keyPair);
             if (rv != SECSuccess) {
                 return SECFailure;
             }
             break;
-        case group_type_ff:
+        case ssl_kea_dh:
             params = ssl_GetDHEParams(groupDef);
             PORT_Assert(params->name != ssl_grp_ffdhe_custom);
             rv = ssl_CreateDHEKeyPair(groupDef, params, &keyPair);
@@ -339,6 +339,10 @@ tls13_CreateKeyShare(sslSocket *ss, const namedGroupDef *groupDef)
                 return SECFailure;
             }
             break;
+        default:
+            PORT_Assert(0);
+            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+            return SECFailure;
     }
 
     PR_APPEND_LINK(&keyPair->link, &ss->ephemeralKeyPairs);
@@ -368,8 +372,8 @@ tls13_SetupClientHello(sslSocket *ss)
      * that the other side negotiated if we are resuming. */
     for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
         SECStatus rv;
-        const namedGroupDef *groupDef = ss->namedGroupPreferences[i];
-        if (!ssl_NamedGroupEnabled(ss, groupDef)) {
+        const sslNamedGroupDef *groupDef = ss->namedGroupPreferences[i];
+        if (!groupDef) {
             continue;
         }
 
@@ -457,15 +461,15 @@ tls13_HandleKeyShare(sslSocket *ss,
     peerKey->pkcs11Slot = NULL;
     peerKey->pkcs11ID = CK_INVALID_HANDLE;
 
-    switch (entry->group->type) {
-        case group_type_ec:
+    switch (entry->group->keaType) {
+        case ssl_kea_ecdh:
             rv = ssl_ImportECDHKeyShare(ss, peerKey,
                                         entry->key_exchange.data,
                                         entry->key_exchange.len,
                                         entry->group);
             mechanism = CKM_ECDH1_DERIVE;
             break;
-        case group_type_ff:
+        case ssl_kea_dh:
             rv = tls13_ImportDHEKeyShare(ss, peerKey,
                                          entry->key_exchange.data,
                                          entry->key_exchange.len,
@@ -993,7 +997,7 @@ tls13_NegotiateZeroRtt(sslSocket *ss, const sslSessionID *sid)
 }
 
 static SECStatus
-tls13_NegotiateKeyExchange(sslSocket *ss, const namedGroupDef **group)
+tls13_NegotiateKeyExchange(sslSocket *ss, const sslNamedGroupDef **group)
 {
     int index;
 
@@ -1133,7 +1137,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
 {
     SECStatus rv;
     SSL3Statistics *ssl3stats = SSL_GetStatistics();
-    const namedGroupDef *expectedGroup;
+    const sslNamedGroupDef *expectedGroup;
     int j;
     PRBool shouldRetry = PR_FALSE;
     ssl3CipherSuite previousCipherSuite;
@@ -1337,7 +1341,7 @@ loser:
 }
 
 static SECStatus
-tls13_SendHelloRetryRequest(sslSocket *ss, const namedGroupDef *selectedGroup)
+tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup)
 {
     SECStatus rv;
 
@@ -1420,7 +1424,7 @@ loser:
  */
 
 static SECStatus
-tls13_HandleClientKeyShare(sslSocket *ss, const namedGroupDef *selectedGroup,
+tls13_HandleClientKeyShare(sslSocket *ss, const sslNamedGroupDef *selectedGroup,
                            PRBool *shouldRetry)
 {
     SECStatus rv;
@@ -1556,7 +1560,7 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
     SECStatus rv;
     PRInt32 tmp;
-    const namedGroupDef *group;
+    const sslNamedGroupDef *group;
 
     SSL_TRC(3, ("%d: TLS13[%d]: handle hello retry request",
                 SSL_GETPID(), ss->fd));
@@ -2029,22 +2033,24 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
 }
 
 static void
-tls13_SetKeyExchangeType(sslSocket *ss, const namedGroupDef *group)
+tls13_SetKeyExchangeType(sslSocket *ss, const sslNamedGroupDef *group)
 {
-    switch (group->type) {
+    switch (group->keaType) {
         /* Note: These overwrite on resumption.... so if you start with ECDH
          * and resume with DH, we report DH. That's fine, since no answer
          * is really right. */
-        case group_type_ec:
+        case ssl_kea_ecdh:
             ss->ssl3.hs.kea_def_mutable.exchKeyType =
                 ss->statelessResume ? ssl_kea_ecdh_psk : ssl_kea_ecdh;
             ss->sec.keaType = ssl_kea_ecdh;
             break;
-        case group_type_ff:
+        case ssl_kea_dh:
             ss->ssl3.hs.kea_def_mutable.exchKeyType =
                 ss->statelessResume ? ssl_kea_dh_psk : ssl_kea_dh;
             ss->sec.keaType = ssl_kea_dh;
             break;
+        default:
+            PORT_Assert(0);
     }
 }
 
