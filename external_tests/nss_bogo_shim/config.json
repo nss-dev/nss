@@ -1,5 +1,16 @@
 {
     "DisabledTests": {
+        "*TLS13*":"Draft version mismatch (NSS=15, BoGo=14)",
+        "FallbackSCSV-VersionMatch":"Draft version mismatch (NSS=15, BoGo=14)",
+        "SendEmptyRecords-Pass":"Draft version mismatch (NSS=15, BoGo=14)",
+        "SendSNIWarningAlert":"Draft version mismatch (NSS=15, BoGo=14)",
+        "UnknownCipher":"Draft version mismatch (NSS=15, BoGo=14)",
+        "Downgrade-TLS12-Client":"Draft version mismatch (NSS=15, BoGo=14)",
+        "Downgrade-TLS12-Server":"Draft version mismatch (NSS=15, BoGo=14)",
+        "UnknownCurve":"Draft version mismatch (NSS=15, BoGo=14)",
+        "*TrailingMessageData*":"Draft version mismatch (NSS=15, BoGo=14)",
+        "*Downgrade-TLS12*":"Draft version mismatch (NSS=15, BoGo=14)",
+        "UnknownCurve":"Draft version mismatch (NSS=15, BoGo=14)",
         "SendHelloRetryRequest":"Expects CurveX25519",
         "SendHelloRetryRequest-2":"Expects CurveX25519",
         "KeyUpdate":"KeyUpdate Unimplemented",
