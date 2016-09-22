@@ -133,52 +133,56 @@ static const PRUint16 srtpCiphers[] = {
     0
 };
 
-/* This list is in rough order of speed.  Note that while some smaller groups
- * appear early in the list, smaller groups are generally ignored when iterating
+/* This list is in preference order.  Note that while some smaller groups appear
+ * early in the list, smaller groups are generally ignored when iterating
  * through this list. ffdhe_custom must not appear in this list. */
-#define ECGROUP(name, size, oid) \
-    ssl_grp_ec_##name, size, group_type_ec, SEC_OID_SECG_EC_##oid
-#define FFGROUP(size, oid) \
-    ssl_grp_ffdhe_##size, size, group_type_ff, SEC_OID_TLS_FFDHE_##oid
+#define ECGROUP(name, size, oid, assumeSupported)  \
+    {                                              \
+        ssl_grp_ec_##name, size, group_type_ec,    \
+            SEC_OID_SECG_EC_##oid, assumeSupported \
+    }
+#define FFGROUP(size)                              \
+    {                                              \
+        ssl_grp_ffdhe_##size, size, group_type_ff, \
+            SEC_OID_TLS_FFDHE_##size, PR_TRUE      \
+    }
 
-/* update SSL_NAMED_GROUP_COUNT when changing the number of entries */
 const namedGroupDef ssl_named_groups[] = {
-    { 0, ECGROUP(secp192r1, 192, SECP192R1), PR_FALSE },
-    { 1, ECGROUP(secp160r2, 160, SECP160R2), PR_FALSE },
-    { 2, ECGROUP(secp160k1, 160, SECP160K1), PR_FALSE },
-    { 3, ECGROUP(secp160r1, 160, SECP160R1), PR_FALSE },
-    { 4, ECGROUP(sect163k1, 163, SECT163K1), PR_FALSE },
-    { 5, ECGROUP(sect163r1, 163, SECT163R1), PR_FALSE },
-    { 6, ECGROUP(sect163r2, 163, SECT163R2), PR_FALSE },
-    { 7, ECGROUP(secp192k1, 192, SECP192K1), PR_FALSE },
-    { 8, ECGROUP(sect193r1, 193, SECT193R1), PR_FALSE },
-    { 9, ECGROUP(sect193r2, 193, SECT193R2), PR_FALSE },
-    { 10, ECGROUP(secp224r1, 224, SECP224R1), PR_FALSE },
-    { 11, ECGROUP(secp224k1, 224, SECP224K1), PR_FALSE },
-    { 12, ECGROUP(sect233k1, 233, SECT233K1), PR_FALSE },
-    { 13, ECGROUP(sect233r1, 233, SECT233R1), PR_FALSE },
-    { 14, ECGROUP(sect239k1, 239, SECT239K1), PR_FALSE },
-    { 15, ECGROUP(secp256r1, 256, SECP256R1), PR_TRUE },
-    { 16, ECGROUP(secp256k1, 256, SECP256K1), PR_FALSE },
-    { 17, ECGROUP(sect283k1, 283, SECT283K1), PR_FALSE },
-    { 18, ECGROUP(sect283r1, 283, SECT283R1), PR_FALSE },
-    { 19, ECGROUP(secp384r1, 384, SECP384R1), PR_TRUE },
-    { 20, ECGROUP(sect409k1, 409, SECT409K1), PR_FALSE },
-    { 21, ECGROUP(sect409r1, 409, SECT409R1), PR_FALSE },
-    { 22, ECGROUP(secp521r1, 521, SECP521R1), PR_TRUE },
-    { 23, ECGROUP(sect571k1, 571, SECT571K1), PR_FALSE },
-    { 24, ECGROUP(sect571r1, 571, SECT571R1), PR_FALSE },
-    { 25, FFGROUP(2048, 2048), PR_FALSE },
-    { 26, FFGROUP(3072, 3072), PR_FALSE },
-    { 27, FFGROUP(4096, 4096), PR_FALSE },
-    { 28, FFGROUP(6144, 6144), PR_FALSE },
-    { 29, FFGROUP(8192, 8192), PR_FALSE }
+    ECGROUP(secp256r1, 256, SECP256R1, PR_TRUE),
+    ECGROUP(secp384r1, 384, SECP384R1, PR_TRUE),
+    ECGROUP(secp521r1, 521, SECP521R1, PR_TRUE),
+    FFGROUP(2048),
+    FFGROUP(3072),
+    FFGROUP(4096),
+    FFGROUP(6144),
+    FFGROUP(8192),
+    ECGROUP(secp192r1, 192, SECP192R1, PR_FALSE),
+    ECGROUP(secp160r2, 160, SECP160R2, PR_FALSE),
+    ECGROUP(secp160k1, 160, SECP160K1, PR_FALSE),
+    ECGROUP(secp160r1, 160, SECP160R1, PR_FALSE),
+    ECGROUP(sect163k1, 163, SECT163K1, PR_FALSE),
+    ECGROUP(sect163r1, 163, SECT163R1, PR_FALSE),
+    ECGROUP(sect163r2, 163, SECT163R2, PR_FALSE),
+    ECGROUP(secp192k1, 192, SECP192K1, PR_FALSE),
+    ECGROUP(sect193r1, 193, SECT193R1, PR_FALSE),
+    ECGROUP(sect193r2, 193, SECT193R2, PR_FALSE),
+    ECGROUP(secp224r1, 224, SECP224R1, PR_FALSE),
+    ECGROUP(secp224k1, 224, SECP224K1, PR_FALSE),
+    ECGROUP(sect233k1, 233, SECT233K1, PR_FALSE),
+    ECGROUP(sect233r1, 233, SECT233R1, PR_FALSE),
+    ECGROUP(sect239k1, 239, SECT239K1, PR_FALSE),
+    ECGROUP(secp256k1, 256, SECP256K1, PR_FALSE),
+    ECGROUP(sect283k1, 283, SECT283K1, PR_FALSE),
+    ECGROUP(sect283r1, 283, SECT283R1, PR_FALSE),
+    ECGROUP(sect409k1, 409, SECT409K1, PR_FALSE),
+    ECGROUP(sect409r1, 409, SECT409R1, PR_FALSE),
+    ECGROUP(sect571k1, 571, SECT571K1, PR_FALSE),
+    ECGROUP(sect571r1, 571, SECT571R1, PR_FALSE),
 };
+PR_STATIC_ASSERT(SSL_NAMED_GROUP_COUNT == PR_ARRAY_SIZE(ssl_named_groups));
+
 #undef ECGROUP
 #undef FFGROUP
-
-/* Check that the supported groups bits will fit into ss->namedGroups. */
-PR_STATIC_ASSERT(PR_ARRAY_SIZE(ssl_named_groups) < (sizeof(PRUint32) * 8));
 
 /* forward declarations. */
 static sslSocket *ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant variant);
@@ -1466,8 +1470,10 @@ SECStatus
 SSL_NamedGroupConfig(PRFileDesc *fd, const SSLNamedGroup *groups,
                      unsigned int numGroups)
 {
-    unsigned int i, j;
+    unsigned int i;
+    unsigned int j = 0;
     sslSocket *ss = ssl_FindSocket(fd);
+
     if (!ss) {
         PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
         return SECFailure;
@@ -1482,21 +1488,12 @@ SSL_NamedGroupConfig(PRFileDesc *fd, const SSLNamedGroup *groups,
         return SECFailure;
     }
 
-    for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
-        ss->namedGroupPreferences[i] = NULL;
-    }
-
+    memset((void *)ss->namedGroupPreferences, 0,
+           sizeof(ss->namedGroupPreferences));
     for (i = 0; i < numGroups; ++i) {
-        for (j = 0; j < SSL_NAMED_GROUP_COUNT; ++j) {
-            /* skip duplicate groups */
-            if (ss->namedGroupPreferences[j] &&
-                ss->namedGroupPreferences[j]->name == groups[i]) {
-                break;
-            }
-            if (ssl_named_groups[j].name == groups[i]) {
-                ss->namedGroupPreferences[i] = &ssl_named_groups[j];
-                break;
-            }
+        const namedGroupDef *groupDef = ssl_LookupNamedGroup(groups[i]);
+        if (!ssl_NamedGroupEnabled(ss, groupDef)) {
+            ss->namedGroupPreferences[j++] = groupDef;
         }
     }
 
@@ -1795,9 +1792,6 @@ ssl_ValidateDHENamedGroup(sslSocket *ss,
         if (ss->namedGroupPreferences[i]->type != group_type_ff) {
             continue;
         }
-        if (!ssl_NamedGroupEnabled(ss, ss->namedGroupPreferences[i])) {
-            continue;
-        }
 
         params = ssl_GetDHEParams(ss->namedGroupPreferences[i]);
         PORT_Assert(params);
@@ -1823,8 +1817,8 @@ ssl_SelectDHEGroup(sslSocket *ss, const namedGroupDef **groupDef)
 {
     unsigned int i;
     static const namedGroupDef weak_group_def = {
-        0, ssl_grp_ffdhe_custom, WEAK_DHE_SIZE, group_type_ff,
-        SEC_OID_TLS_DHE_CUSTOM, PR_FALSE
+        ssl_grp_ffdhe_custom, WEAK_DHE_SIZE, group_type_ff,
+        SEC_OID_TLS_DHE_CUSTOM
     };
 
     /* Only select weak groups in TLS 1.2 and earlier, but not if the client has
@@ -1842,8 +1836,7 @@ ssl_SelectDHEGroup(sslSocket *ss, const namedGroupDef **groupDef)
     }
     for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
         if (ss->namedGroupPreferences[i] &&
-            ss->namedGroupPreferences[i]->type == group_type_ff &&
-            ssl_NamedGroupEnabled(ss, ss->namedGroupPreferences[i])) {
+            ss->namedGroupPreferences[i]->type == group_type_ff) {
             *groupDef = ss->namedGroupPreferences[i];
             return SECSuccess;
         }
@@ -3570,16 +3563,12 @@ ssl_LookupNamedGroup(SSLNamedGroup group)
 PRBool
 ssl_NamedGroupEnabled(const sslSocket *ss, const namedGroupDef *groupDef)
 {
-    PRUint32 policy;
-    SECStatus rv;
     unsigned int i;
 
-    PORT_Assert(groupDef);
-
-    rv = NSS_GetAlgorithmPolicy(groupDef->oidTag, &policy);
-    if (rv == SECSuccess && !(policy & NSS_USE_ALG_IN_SSL_KX)) {
+    if (!groupDef) {
         return PR_FALSE;
     }
+
     for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
         if (ss->namedGroupPreferences[i] &&
             ss->namedGroupPreferences[i] == groupDef) {

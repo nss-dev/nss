@@ -363,10 +363,6 @@ tls13_SetupClientHello(sslSocket *ss)
         if (!groupDef) {
             continue;
         }
-
-        if (!ssl_NamedGroupEnabled(ss, groupDef)) {
-            continue;
-        }
         switch (groupDef->type) {
             case group_type_ec:
                 if (!ecNeeded) {
@@ -388,7 +384,10 @@ tls13_SetupClientHello(sslSocket *ss)
         }
     }
 
-    PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->ephemeralKeyPairs));
+    if (PR_CLIST_IS_EMPTY(&ss->ephemeralKeyPairs)) {
+        PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
+        return SECFailure;
+    }
     /* We don't permit all groups of a given type to be disabled, so this should
      * never reach this point wanting for a share of either type. */
     PORT_Assert(!ecNeeded);
@@ -1529,7 +1528,7 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         return SECFailure; /* error code already set */
     }
     group = ssl_LookupNamedGroup((SSLNamedGroup)tmp);
-    if (!group || !ssl_NamedGroupEnabled(ss, group)) {
+    if (!ssl_NamedGroupEnabled(ss, group)) {
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST,
                     illegal_parameter);
         return SECFailure;

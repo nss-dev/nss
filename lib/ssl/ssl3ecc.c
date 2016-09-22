@@ -8,7 +8,6 @@
 
 /* ECC code moved here from ssl3con.c */
 
-#include "nss.h"
 #include "cert.h"
 #include "ssl.h"
 #include "cryptohi.h" /* for DSAU_ stuff */
@@ -38,29 +37,11 @@
     (x)->ulValueLen = (l);
 #endif
 
-static SECStatus ssl_CreateECDHEphemeralKeys(sslSocket *ss,
-                                             const namedGroupDef *ecGroup);
-
-typedef struct ECDHEKeyPairStr {
-    sslEphemeralKeyPair *pair;
-    int error; /* error code of the call-once function */
-    PRCallOnceType once;
-} ECDHEKeyPair;
-
-/* arrays of ECDHE KeyPairs */
-static PRCallOnceType gECDHEInitOnce;
-static int gECDHEInitError;
-/* This must be the same as ssl_named_groups_count.  ssl_ECRegister() asserts
- * this at runtime; no compile-time error, sorry. */
-static ECDHEKeyPair gECDHEKeyPairs[30];
-
 SECStatus
 ssl_NamedGroup2ECParams(PLArenaPool *arena, const namedGroupDef *ecGroup,
                         SECKEYECParams *params)
 {
     SECOidData *oidData = NULL;
-    PRUint32 policyFlags = 0;
-    SECStatus rv;
 
     if (!params) {
         PORT_Assert(0);
@@ -70,12 +51,6 @@ ssl_NamedGroup2ECParams(PLArenaPool *arena, const namedGroupDef *ecGroup,
 
     if (!ecGroup || ecGroup->type != group_type_ec ||
         (oidData = SECOID_FindOIDByTag(ecGroup->oidTag)) == NULL) {
-        PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
-        return SECFailure;
-    }
-
-    rv = NSS_GetAlgorithmPolicy(ecGroup->oidTag, &policyFlags);
-    if (rv == SECSuccess && !(policyFlags & NSS_USE_ALG_IN_SSL_KX)) {
         PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
         return SECFailure;
     }
@@ -440,9 +415,7 @@ ssl_GetECGroupWithStrength(sslSocket *ss, unsigned int requiredECCbits)
             group->bits < requiredECCbits) {
             continue;
         }
-        if (!ss || ssl_NamedGroupEnabled(ss, group)) {
-            return group;
-        }
+        return group;
     }
     PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
     return NULL;
@@ -496,33 +469,6 @@ ssl_GetECGroupForServerSocket(sslSocket *ss)
     return ssl_GetECGroupWithStrength(ss, requiredECCbits);
 }
 
-/* function to clear out the lists */
-static SECStatus
-ssl_ShutdownECDHECurves(void *appData, void *nssData)
-{
-    int i;
-
-    for (i = 0; i < PR_ARRAY_SIZE(gECDHEKeyPairs); i++) {
-        if (gECDHEKeyPairs[i].pair) {
-            ssl_FreeEphemeralKeyPair(gECDHEKeyPairs[i].pair);
-        }
-    }
-    memset(gECDHEKeyPairs, 0, sizeof(gECDHEKeyPairs));
-    return SECSuccess;
-}
-
-static PRStatus
-ssl_ECRegister(void)
-{
-    SECStatus rv;
-    PORT_Assert(PR_ARRAY_SIZE(gECDHEKeyPairs) == SSL_NAMED_GROUP_COUNT);
-    rv = NSS_RegisterShutdown(ssl_ShutdownECDHECurves, gECDHEKeyPairs);
-    if (rv != SECSuccess) {
-        gECDHEInitError = PORT_GetError();
-    }
-    return (PRStatus)rv;
-}
-
 /* Create an ECDHE key pair for a given curve */
 SECStatus
 ssl_CreateECDHEphemeralKeyPair(const namedGroupDef *ecGroup,
@@ -552,70 +498,6 @@ ssl_CreateECDHEphemeralKeyPair(const namedGroupDef *ecGroup,
     }
 
     *keyPair = pair;
-    return SECSuccess;
-}
-
-/* CallOnce function, called once for each named curve. */
-static PRStatus
-ssl_CreateECDHEphemeralKeyPairOnce(void *arg)
-{
-    const namedGroupDef *groupDef = (const namedGroupDef *)arg;
-    sslEphemeralKeyPair *keyPair = NULL;
-    SECStatus rv;
-
-    PORT_Assert(groupDef->type == group_type_ec);
-    PORT_Assert(gECDHEKeyPairs[groupDef->index].pair == NULL);
-
-    /* ok, no one has generated a global key for this curve yet, do so */
-    rv = ssl_CreateECDHEphemeralKeyPair(groupDef, &keyPair);
-    if (rv != SECSuccess) {
-        gECDHEKeyPairs[groupDef->index].error = PORT_GetError();
-        return PR_FAILURE;
-    }
-
-    gECDHEKeyPairs[groupDef->index].pair = keyPair;
-    return PR_SUCCESS;
-}
-
-/*
- * Creates the ephemeral public and private ECDH keys used by
- * server in ECDHE_RSA and ECDHE_ECDSA handshakes.
- * For now, the elliptic curve is chosen to be the same
- * strength as the signing certificate (ECC or RSA).
- * We need an API to specify the curve. This won't be a real
- * issue until we further develop server-side support for ECC
- * cipher suites.
- */
-static SECStatus
-ssl_CreateECDHEphemeralKeys(sslSocket *ss, const namedGroupDef *ecGroup)
-{
-    sslEphemeralKeyPair *keyPair = NULL;
-
-    /* if there's no global key for this curve, make one. */
-    if (gECDHEKeyPairs[ecGroup->index].pair == NULL) {
-        PRStatus status;
-
-        status = PR_CallOnce(&gECDHEInitOnce, ssl_ECRegister);
-        if (status != PR_SUCCESS) {
-            PORT_SetError(gECDHEInitError);
-            return SECFailure;
-        }
-        status = PR_CallOnceWithArg(&gECDHEKeyPairs[ecGroup->index].once,
-                                    ssl_CreateECDHEphemeralKeyPairOnce,
-                                    (void *)ecGroup);
-        if (status != PR_SUCCESS) {
-            PORT_SetError(gECDHEKeyPairs[ecGroup->index].error);
-            return SECFailure;
-        }
-    }
-
-    keyPair = ssl_CopyEphemeralKeyPair(gECDHEKeyPairs[ecGroup->index].pair);
-    PORT_Assert(keyPair != NULL);
-    if (!keyPair)
-        return SECFailure;
-
-    PORT_Assert(PR_CLIST_IS_EMPTY(&ss->ephemeralKeyPairs));
-    PR_APPEND_LINK(&keyPair->link, &ss->ephemeralKeyPairs);
     return SECSuccess;
 }
 
@@ -806,7 +688,7 @@ ssl3_SendECDHServerKeyExchange(sslSocket *ss)
 
     PORT_Assert(PR_CLIST_IS_EMPTY(&ss->ephemeralKeyPairs));
     if (ss->opt.reuseServerECDHEKey) {
-        rv = ssl_CreateECDHEphemeralKeys(ss, ecGroup);
+        rv = ssl_CreateStaticECDHEKey(ss, ecGroup);
         if (rv != SECSuccess) {
             goto loser;
         }
@@ -1005,31 +887,6 @@ ssl_IsDHEEnabled(sslSocket *ss)
     return ssl_IsSuiteEnabled(ss, ssl_dhe_suites);
 }
 
-void
-ssl_DisableNonSuiteBGroups(sslSocket *ss)
-{
-    unsigned int i;
-    PK11SlotInfo *slot;
-
-    /* See if we can support small curves (like 163). If not, assume we can
-     * only support Suite-B curves (P-256, P-384, P-521). */
-    slot = PK11_GetBestSlotWithAttributes(CKM_ECDH1_DERIVE, 0, 163,
-                                          ss->pkcs11PinArg);
-    if (slot) {
-        /* Looks like we're committed to having lots of curves. */
-        PK11_FreeSlot(slot);
-        return;
-    }
-
-    for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
-        if (ss->namedGroupPreferences[i] &&
-            ss->namedGroupPreferences[i]->type == group_type_ec &&
-            !ss->namedGroupPreferences[i]->suiteb) {
-            ss->namedGroupPreferences[i] = NULL;
-        }
-    }
-}
-
 /* Send our Supported Groups extension. */
 PRInt32
 ssl_SendSupportedGroupsXtn(sslSocket *ss, PRBool append, PRUint32 maxBytes)
@@ -1067,14 +924,15 @@ ssl_SendSupportedGroupsXtn(sslSocket *ss, PRBool append, PRUint32 maxBytes)
         if (group->type == group_type_ff && !ff) {
             continue;
         }
-        if (!ssl_NamedGroupEnabled(ss, group)) {
-            continue;
-        }
 
         if (append) {
             (void)ssl_EncodeUintX(group->name, 2, &enabledGroups[enabledGroupsLen]);
         }
         enabledGroupsLen += 2;
+    }
+
+    if (enabledGroupsLen == 0) {
+        return 0;
     }
 
     extension_length =

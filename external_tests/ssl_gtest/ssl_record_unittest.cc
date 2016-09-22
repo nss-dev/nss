@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nss.h"
 #include "ssl.h"
+#include "nss.h"
 #include "sslimpl.h"
 
 #include "databuffer.h"

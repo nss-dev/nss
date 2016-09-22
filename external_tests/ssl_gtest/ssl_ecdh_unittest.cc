@@ -4,10 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "ssl.h"
 #include <functional>
 #include <memory>
 #include "secerr.h"
-#include "ssl.h"
 #include "sslerr.h"
 #include "sslproto.h"
 
@@ -253,6 +253,27 @@ TEST_P(TlsConnectGenericPre13, P384PriorityFromModelSocket) {
   Connect();
 
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign, 384);
+}
+
+// If we only have a lame group, we fall back to static RSA.
+TEST_P(TlsConnectGenericPre13, UseLameGroup) {
+  static const SSLNamedGroup groups[] = {ssl_grp_ec_secp192r1};
+  client_->ConfigNamedGroups(groups, PR_ARRAY_SIZE(groups));
+  server_->ConfigNamedGroups(groups, PR_ARRAY_SIZE(groups));
+  Connect();
+  CheckKeys(ssl_kea_rsa, ssl_auth_rsa_decrypt);
+}
+
+// In TLS 1.3, we can't generate the ClientHello.
+TEST_P(TlsConnectTls13, UseLameGroup) {
+  static const SSLNamedGroup groups[] = {ssl_grp_ec_sect283k1};
+  client_->ConfigNamedGroups(groups, PR_ARRAY_SIZE(groups));
+  server_->ConfigNamedGroups(groups, PR_ARRAY_SIZE(groups));
+  client_->StartConnect();
+  client_->Handshake();
+#ifndef NSS_ECC_MORE_THAN_SUITE_B  // TODO: remove this guard
+  client_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
+#endif
 }
 
 TEST_P(TlsConnectStreamPre13, ConfiguredGroupsRenegotiate) {
