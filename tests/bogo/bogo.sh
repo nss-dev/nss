@@ -42,15 +42,15 @@ bogo_cleanup()
 # Need to add go to the PATH.
 export PATH=$PATH:/usr/lib/go-1.6/bin
 
-SOURCE_DIR=$(echo $PWD/../..)
+cd "$(dirname "$0")"
+SOURCE_DIR="$PWD"/../..
 bogo_init
 (cd "$BORING"/ssl/test/runner;
  GOPATH="$PWD" go test -pipe -shim-path "${BINDIR}"/nss_bogo_shim \
 	 -loose-errors -allow-unimplemented \
 	 -shim-config "${SOURCE_DIR}/external_tests/nss_bogo_shim/config.json") \
-	 1>bogo.log 2>bogo.errors
-html_msg $? 0 "Bogo" "Run successfully"
-cat bogo.log
-grep -i 'exit status 1\|FAILED\|Assertion failure' bogo.errors
+	 2>bogo.errors | tee bogo.log
+html_msg "${PIPESTATUS[0]}" 0 "Bogo" "Run successfully"
+grep -i 'FAILED\|Assertion failure' bogo.errors
 html_msg $? 1 "Bogo" "No failures"
 bogo_cleanup
