@@ -286,12 +286,10 @@ SECStatus SSLInt_AdvanceWriteSeqByAWindow(PRFileDesc *fd, PRInt32 extra) {
 }
 
 SSLKEAType SSLInt_GetKEAType(SSLNamedGroup group) {
-  const namedGroupDef* groupDef = ssl_LookupNamedGroup(group);
-  if (!groupDef)
-    return ssl_kea_null;
+  const namedGroupDef *groupDef = ssl_LookupNamedGroup(group);
+  if (!groupDef) return ssl_kea_null;
 
-  if (groupDef->type == group_type_ec)
-    return ssl_kea_ecdh;
+  if (groupDef->type == group_type_ec) return ssl_kea_ecdh;
 
   return ssl_kea_dh;
 }
