@@ -14,22 +14,18 @@
 
 bogo_init()
 {
-  mkdir -p "${HOSTDIR}/bogo"
-  cd "${HOSTDIR}/bogo"
-
   SCRIPTNAME="bogo.sh"
   if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ] ; then
     cd ../common
     . ./init.sh
   fi
 
-  if [ ! -d "boringssl" ]; then
-    git clone https://boringssl.googlesource.com/boringssl
-    cd boringssl
-    git checkout 57e929f3c8c3d412639eb123382c79ff3bdc3ed3
-    cd ssl/test/runner
-  else
-    cd boringssl/ssl/test/runner
+  mkdir -p "${HOSTDIR}/bogo"
+  cd "${HOSTDIR}/bogo"
+  BORING=${BORING:=boringssl}
+  if [ ! -d "$BORING" ]; then
+    git clone -q https://boringssl.googlesource.com/boringssl "$BORING"
+    git -C "$BORING" checkout -q e34bcc91c07c0bf65ecc53a814d51f5246007150
   fi
 
   SCRIPTNAME="bogo.sh"
@@ -46,19 +42,15 @@ bogo_cleanup()
 # Need to add go to the PATH.
 export PATH=$PATH:/usr/lib/go-1.6/bin
 
-SOURCE_DIR=$(echo $PWD/../../)
+SOURCE_DIR=$(echo $PWD/../..)
 bogo_init
-exec 3>&1
-BOGO_OUT=$(GOPATH=$PWD go test -pipe -shim-path "${BINDIR}"/nss_bogo_shim \
-   -loose-errors -allow-unimplemented \
-   -shim-config "${SOURCE_DIR}external_tests/nss_bogo_shim/config.json" \
-   2>&1 1>&3)
-BOGO_STATUS=$?
-exec 3>&-
-BOGO_OUT=`echo $BOGO_OUT | grep -i 'FAILED\|Assertion failure'`
-if [ -n "$BOGO_OUT" ] || [ "$BOGO_STATUS" -ne "0" ]; then
-  html_failed "Bogo test"
-else
-  html_passed "Bogo test"
-fi
+(cd "$BORING"/ssl/test/runner;
+ GOPATH="$PWD" go test -pipe -shim-path "${BINDIR}"/nss_bogo_shim \
+	 -loose-errors -allow-unimplemented \
+	 -shim-config "${SOURCE_DIR}/external_tests/nss_bogo_shim/config.json") \
+	 1>bogo.log 2>bogo.errors
+html_msg $? 0 "Bogo" "Run successfully"
+cat bogo.log
+grep -i 'exit status 1\|FAILED\|Assertion failure' bogo.errors
+html_msg $? 1 "Bogo" "No failures"
 bogo_cleanup
