@@ -60,7 +60,13 @@ ifndef WARNING_CFLAGS
   endif #ndef NSS_ENABLE_WERROR
 
   ifeq ($(NSS_ENABLE_WERROR),1)
-    WARNING_CFLAGS += -Werror -Wno-error=misleading-indentation
+    WARNING_CFLAGS += -Werror
+    # For gcc 6 and newer we need -Wno-error=misleading-indentation
+    # to prevent compiler errors caused by mixed whitespace.
+    CC_VERSION := $(subst ., ,$(shell $(CC) -dumpversion))
+    ifeq (,$(filter 0 1 2 3 4 5,$(word 1,$(CC_VERSION))))
+      WARNING_CFLAGS += -Wno-error=misleading-indentation
+    endif
   else
     # Old versions of gcc (< 4.8) don't support #pragma diagnostic in functions.
     # Use this to disable use of that #pragma and the warnings it suppresses.
