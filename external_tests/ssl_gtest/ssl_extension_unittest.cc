@@ -544,7 +544,8 @@ TEST_F(TlsExtensionTest13Stream, DropServerSignatureAlgorithms) {
   server_->SetPacketFilter(
       new TlsExtensionDropper(ssl_signature_algorithms_xtn));
   ConnectExpectFail();
-  EXPECT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
+  EXPECT_EQ(SSL_ERROR_MISSING_SIGNATURE_ALGORITHMS_EXTENSION,
+            client_->error_code());
   EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, server_->error_code());
 }
 
