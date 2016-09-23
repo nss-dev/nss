@@ -3,6 +3,8 @@ syntax: glob
 *OPT.OBJ/*
 *DBG.OBJ/*
 *DBG.OBJD/*
+out/*
+*.pyc
 *.bak
 *.out
 *.rej
