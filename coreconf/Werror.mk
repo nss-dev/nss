@@ -60,7 +60,7 @@ ifndef WARNING_CFLAGS
   endif #ndef NSS_ENABLE_WERROR
 
   ifeq ($(NSS_ENABLE_WERROR),1)
-    WARNING_CFLAGS += -Werror
+    WARNING_CFLAGS += -Werror -Wno-error=misleading-indentation
   else
     # Old versions of gcc (< 4.8) don't support #pragma diagnostic in functions.
     # Use this to disable use of that #pragma and the warnings it suppresses.
