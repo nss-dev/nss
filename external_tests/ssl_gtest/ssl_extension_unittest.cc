@@ -16,21 +16,6 @@
 
 namespace nss_test {
 
-class TlsExtensionDropper : public TlsExtensionFilter {
- public:
-  TlsExtensionDropper(uint16_t extension) : extension_(extension) {}
-  virtual PacketFilter::Action FilterExtension(uint16_t extension_type,
-                                               const DataBuffer&, DataBuffer*) {
-    if (extension_type == extension_) {
-      return DROP;
-    }
-    return KEEP;
-  }
-
- private:
-  uint16_t extension_;
-};
-
 class TlsExtensionTruncator : public TlsExtensionFilter {
  public:
   TlsExtensionTruncator(uint16_t extension, size_t length)

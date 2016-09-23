@@ -6954,7 +6954,7 @@ ssl3_PickServerSignatureScheme(sslSocket *ss)
 {
     sslKeyPair *keyPair = ss->sec.serverCert->serverKeyPair;
 
-    if (ss->ssl3.hs.numClientSigScheme == 0) {
+    if (!ssl3_ExtensionNegotiated(ss, ssl_signature_algorithms_xtn)) {
         /* If the client didn't provide any signature_algorithms extension then
          * we can assume that they support SHA-1: RFC5246, Section 7.4.1.4.1 */
         switch (SECKEY_GetPublicKeyType(keyPair->pubKey)) {
@@ -7965,8 +7965,6 @@ ssl_ParseSignatureSchemes(sslSocket *ss, PLArenaPool *arena,
     }
 
     if (!numSchemes) {
-        /* Bug 1295060 - We fall back to defaults if we have no common
-         * algorithms.  We should instead avoid signatures. */
         PORT_Free(schemes);
         schemes = NULL;
     }

@@ -1060,9 +1060,9 @@ tls13_SelectServerCert(sslSocket *ss)
     PRCList *cursor;
     SECStatus rv;
 
-    if (ss->ssl3.hs.numClientSigScheme == 0) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CLIENT_HELLO,
-                    illegal_parameter);
+    if (!ssl3_ExtensionNegotiated(ss, ssl_signature_algorithms_xtn)) {
+        FATAL_ERROR(ss, SSL_ERROR_MISSING_SIGNATURE_ALGORITHMS_EXTENSION,
+                    missing_extension);
         return SECFailure;
     }
 
@@ -1921,7 +1921,7 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
         }
     } else {
         if (!ssl3_ExtensionNegotiated(ss, ssl_signature_algorithms_xtn)) {
-            FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_SERVER_HELLO,
+            FATAL_ERROR(ss, SSL_ERROR_MISSING_SIGNATURE_ALGORITHMS_EXTENSION,
                         missing_extension);
             return SECFailure;
         }
