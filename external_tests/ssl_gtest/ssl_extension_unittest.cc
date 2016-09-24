@@ -611,8 +611,10 @@ class TlsPreSharedKeyReplacer : public TlsExtensionFilter {
     }
 
     TlsParser parser(input);
-    uint32_t len;          // Length of the overall vector.
-    parser.Read(&len, 2);  // We only allow one entry.
+    uint32_t len;                 // Length of the overall vector.
+    if (!parser.Read(&len, 2)) {  // We only allow one entry.
+      return DROP;
+    }
     EXPECT_EQ(parser.remaining(), len);
     if (len != parser.remaining()) {
       return DROP;
