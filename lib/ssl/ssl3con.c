@@ -2031,8 +2031,6 @@ ssl3_InitPendingContexts(sslSocket *ss)
 fail:
     if (serverContext != NULL)
         PK11_DestroyContext(serverContext, PR_TRUE);
-    if (clientContext != NULL)
-        PK11_DestroyContext(clientContext, PR_TRUE);
     if (pwSpec->client.write_mac_context != NULL) {
         PK11_DestroyContext(pwSpec->client.write_mac_context, PR_TRUE);
         pwSpec->client.write_mac_context = NULL;
