@@ -291,14 +291,6 @@ static const ssl3BulkCipherDef bulk_cipher_defs[] = {
      SEC_OID_NULL_CIPHER, "NULL", MR_MAX},
     {cipher_rc4,          calg_rc4,      16,16, type_stream, 0, 0, 0, 0,
      SEC_OID_RC4,         "RC4", MR_LOW},
-    {cipher_rc4_40,       calg_rc4,      16, 5, type_stream, 0, 0, 0, 0,
-     SEC_OID_RC4_40,      "RC4-40", MR_LOW},
-    {cipher_rc4_56,       calg_rc4,      16, 7, type_stream, 0, 0, 0, 0,
-     SEC_OID_RC4_56,      "RC4-56", MR_LOW},
-    {cipher_rc2,          calg_rc2,      16,16, type_block,  8, 8, 0, 0,
-     SEC_OID_RC2_CBC,     "RC2-CBC", MR_LOW},
-    {cipher_rc2_40,       calg_rc2,      16, 5, type_block,  8, 8, 0, 0,
-     SEC_OID_RC2_40_CBC,  "RC2-CBC-40", MR_LOW},
     {cipher_des,          calg_des,       8, 8, type_block,  8, 8, 0, 0,
      SEC_OID_DES_CBC,     "DES-CBC", MR_LOW},
     {cipher_3des,         calg_3des,     24,24, type_block,  8, 8, 0, 0,
@@ -1512,9 +1504,7 @@ ssl3_SetupPendingCipherSpec(sslSocket *ss)
 
     if (IS_DTLS(ss)) {
         /* Double-check that we did not pick an RC4 suite */
-        PORT_Assert((suite_def->bulk_cipher_alg != cipher_rc4) &&
-                    (suite_def->bulk_cipher_alg != cipher_rc4_40) &&
-                    (suite_def->bulk_cipher_alg != cipher_rc4_56));
+        PORT_Assert(suite_def->bulk_cipher_alg != cipher_rc4);
     }
 
     kea = suite_def->key_exchange_alg;
