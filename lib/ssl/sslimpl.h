@@ -424,10 +424,6 @@ struct sslGatherStr {
 typedef enum {
     cipher_null,
     cipher_rc4,
-    cipher_rc4_40,
-    cipher_rc4_56,
-    cipher_rc2,
-    cipher_rc2_40,
     cipher_des,
     cipher_3des,
     cipher_aes_128,
