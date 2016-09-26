@@ -53,7 +53,6 @@ endif
 SHARED_LIBRARY_LIBS = \
 	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)cryptohi.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)p11uri.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)certdb.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
@@ -75,7 +74,6 @@ SHARED_LIBRARY_LIBS = \
 SHARED_LIBRARY_DIRS = \
 	../certhigh \
 	../cryptohi \
-	../p11uri \
 	../pk11wrap \
 	../certdb \
 	../pki \
