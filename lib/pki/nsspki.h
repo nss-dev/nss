@@ -23,6 +23,8 @@
 #include "base.h"
 #endif /* BASE_H */
 
+#include "p11uri.h"
+
 PR_BEGIN_EXTERN_C
 
 /*
@@ -1499,6 +1501,18 @@ NSSTrustDomain_FindSlotByName
 (
   NSSTrustDomain *td,
   NSSUTF8 *slotName
+);
+
+/*
+ * NSSTrustDomain_FindTokensByURI
+ *
+ */
+
+NSS_EXTERN NSSToken **
+NSSTrustDomain_FindTokensByURI
+(
+  NSSTrustDomain *td,
+  P11URI *uri
 );
 
 /*
