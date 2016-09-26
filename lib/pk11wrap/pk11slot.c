@@ -394,7 +394,6 @@ PK11_NewSlotInfo(SECMODModule *mod)
     slot->slot_name[0] = 0;
     slot->token_name[0] = 0;
     PORT_Memset(slot->serial,' ',sizeof(slot->serial));
-    PORT_Memset(&slot->tokenInfo, 0, sizeof(slot->tokenInfo));
     slot->module = NULL;
     slot->authTransact = 0;
     slot->authTime = LL_ZERO;
@@ -1103,13 +1102,14 @@ PK11_ReadMechanismList(PK11SlotInfo *slot)
 SECStatus
 PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
 {
+    CK_TOKEN_INFO tokenInfo;
     CK_RV crv;
     SECStatus rv;
     PRStatus status;
 
     /* set the slot flags to the current token values */
     if (!slot->isThreadSafe) PK11_EnterSlotMonitor(slot);
-    crv = PK11_GETTAB(slot)->C_GetTokenInfo(slot->slotID,&slot->tokenInfo);
+    crv = PK11_GETTAB(slot)->C_GetTokenInfo(slot->slotID,&tokenInfo);
     if (!slot->isThreadSafe) PK11_ExitSlotMonitor(slot);
     if (crv != CKR_OK) {
 	PORT_SetError(PK11_MapError(crv));
@@ -1119,16 +1119,16 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
     /* set the slot flags to the current token values */
     slot->series++; /* allow other objects to detect that the 
 		      * slot is different */
-    slot->flags = slot->tokenInfo.flags;
-    slot->needLogin = ((slot->tokenInfo.flags & CKF_LOGIN_REQUIRED) ? 
+    slot->flags = tokenInfo.flags;
+    slot->needLogin = ((tokenInfo.flags & CKF_LOGIN_REQUIRED) ? 
 							PR_TRUE : PR_FALSE);
-    slot->readOnly = ((slot->tokenInfo.flags & CKF_WRITE_PROTECTED) ? 
+    slot->readOnly = ((tokenInfo.flags & CKF_WRITE_PROTECTED) ? 
 							PR_TRUE : PR_FALSE);
 	
 	 
-    slot->hasRandom = ((slot->tokenInfo.flags & CKF_RNG) ? PR_TRUE : PR_FALSE);
+    slot->hasRandom = ((tokenInfo.flags & CKF_RNG) ? PR_TRUE : PR_FALSE);
     slot->protectedAuthPath =
-    		((slot->tokenInfo.flags & CKF_PROTECTED_AUTHENTICATION_PATH) 
+    		((tokenInfo.flags & CKF_PROTECTED_AUTHENTICATION_PATH) 
 	 						? PR_TRUE : PR_FALSE);
     slot->lastLoginCheck = 0;
     slot->lastState = 0;
@@ -1138,15 +1138,15 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
 	slot->protectedAuthPath = PR_FALSE;
     }
     (void)PK11_MakeString(NULL,slot->token_name,
-			  (char *)slot->tokenInfo.label, sizeof(slot->tokenInfo.label));
-    slot->minPassword = slot->tokenInfo.ulMinPinLen;
-    slot->maxPassword = slot->tokenInfo.ulMaxPinLen;
-    PORT_Memcpy(slot->serial,slot->tokenInfo.serialNumber,sizeof(slot->serial));
+			  (char *)tokenInfo.label, sizeof(tokenInfo.label));
+    slot->minPassword = tokenInfo.ulMinPinLen;
+    slot->maxPassword = tokenInfo.ulMaxPinLen;
+    PORT_Memcpy(slot->serial,tokenInfo.serialNumber,sizeof(slot->serial));
 
     nssToken_UpdateName(slot->nssToken);
 
     slot->defRWSession = (PRBool)((!slot->readOnly) && 
-					(slot->tokenInfo.ulMaxSessionCount == 1));
+					(tokenInfo.ulMaxSessionCount == 1));
     rv = PK11_ReadMechanismList(slot);
     if (rv != SECSuccess) return rv;
 
@@ -1154,13 +1154,13 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
     slot->RSAInfoFlags = 0;
 
     /* initialize the maxKeyCount value */
-    if (slot->tokenInfo.ulMaxSessionCount == 0) {
+    if (tokenInfo.ulMaxSessionCount == 0) {
 	slot->maxKeyCount = 800; /* should be #define or a config param */
-    } else if (slot->tokenInfo.ulMaxSessionCount < 20) {
+    } else if (tokenInfo.ulMaxSessionCount < 20) {
 	/* don't have enough sessions to keep that many keys around */
 	slot->maxKeyCount = 0;
     } else {
-	slot->maxKeyCount = slot->tokenInfo.ulMaxSessionCount/2;
+	slot->maxKeyCount = tokenInfo.ulMaxSessionCount/2;
     }
 
     /* Make sure our session handle is valid */
@@ -1285,25 +1285,26 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
 SECStatus
 PK11_TokenRefresh(PK11SlotInfo *slot)
 {
+    CK_TOKEN_INFO tokenInfo;
     CK_RV crv;
 
     /* set the slot flags to the current token values */
     if (!slot->isThreadSafe) PK11_EnterSlotMonitor(slot);
-    crv = PK11_GETTAB(slot)->C_GetTokenInfo(slot->slotID,&slot->tokenInfo);
+    crv = PK11_GETTAB(slot)->C_GetTokenInfo(slot->slotID,&tokenInfo);
     if (!slot->isThreadSafe) PK11_ExitSlotMonitor(slot);
     if (crv != CKR_OK) {
 	PORT_SetError(PK11_MapError(crv));
 	return SECFailure;
     }
 
-    slot->flags = slot->tokenInfo.flags;
-    slot->needLogin = ((slot->tokenInfo.flags & CKF_LOGIN_REQUIRED) ? 
+    slot->flags = tokenInfo.flags;
+    slot->needLogin = ((tokenInfo.flags & CKF_LOGIN_REQUIRED) ? 
 							PR_TRUE : PR_FALSE);
-    slot->readOnly = ((slot->tokenInfo.flags & CKF_WRITE_PROTECTED) ? 
+    slot->readOnly = ((tokenInfo.flags & CKF_WRITE_PROTECTED) ? 
 							PR_TRUE : PR_FALSE);
-    slot->hasRandom = ((slot->tokenInfo.flags & CKF_RNG) ? PR_TRUE : PR_FALSE);
+    slot->hasRandom = ((tokenInfo.flags & CKF_RNG) ? PR_TRUE : PR_FALSE);
     slot->protectedAuthPath =
-    		((slot->tokenInfo.flags & CKF_PROTECTED_AUTHENTICATION_PATH) 
+    		((tokenInfo.flags & CKF_PROTECTED_AUTHENTICATION_PATH) 
 	 						? PR_TRUE : PR_FALSE);
     /* on some platforms Active Card incorrectly sets the 
      * CKF_PROTECTED_AUTHENTICATION_PATH bit when it doesn't mean to. */
