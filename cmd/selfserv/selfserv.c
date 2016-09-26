@@ -2661,7 +2661,7 @@ main(int argc, char **argv)
 #ifdef NSS_DISABLE_ECC
         if (privKey[i]->keyType != ecKey)
 #endif
-        setupCertStatus(certStatusArena, ocspStaplingMode, cert[i], i, &pwdata);
+            setupCertStatus(certStatusArena, ocspStaplingMode, cert[i], i, &pwdata);
     }
 
     if (configureWeakDHE > 0) {
