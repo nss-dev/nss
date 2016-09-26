@@ -14,8 +14,6 @@
 #include "pki3hack.h"
 #include "pk11pub.h"
 #include "nssrwlk.h"
-#include "p11uri.h"
-#include "pk11priv.h"
 
 #define NSSTRUSTDOMAIN_DEFAULT_CACHE_SIZE 32
 
@@ -246,38 +244,6 @@ NSSTrustDomain_FindSlotByName (
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
     return NULL;
-}
-
-NSS_IMPLEMENT NSSToken **
-NSSTrustDomain_FindTokensByURI (
-  NSSTrustDomain *td,
-  P11URI *uri
-)
-{
-    NSSToken *tok = NULL;
-    PK11SlotInfo *slotinfo;
-    NSSToken **tokens;
-    int count, i=0;
-
-    NSSRWLock_LockRead(td->tokensLock);
-    count = nssList_Count(td->tokenList);
-    tokens = nss_ZNEWARRAY(NULL, NSSToken *, count + 1);
-    if (!tokens) {
-	return NULL;
-    }
-    for (tok = (NSSToken *)nssListIterator_Start(td->tokens);
-	 tok != (NSSToken *)NULL;
-	 tok = (NSSToken *)nssListIterator_Next(td->tokens)) {
-	if (nssToken_IsPresent(tok)) {
-	    slotinfo = tok->pk11slot;
-	    if (pk11_MatchUriTokenInfo(slotinfo, uri))
-		tokens[i++] = nssToken_AddRef(tok);
-	}
-    }
-    tokens[i] = NULL;
-    nssListIterator_Finish(td->tokens);
-    NSSRWLock_UnlockRead(td->tokensLock);
-    return tokens;
 }
 
 NSS_IMPLEMENT NSSToken *
