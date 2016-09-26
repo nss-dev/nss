@@ -28,7 +28,7 @@ ifndef NSS_BUILD_SOFTOKEN_ONLY
 NSS_SRCDIRS = \
 	base dev pki \
 	$(LIBPKIX_SRCDIR) \
-	certdb certhigh pk11wrap cryptohi nss \
+	certdb certhigh p11uri pk11wrap cryptohi nss \
 	$(ZLIB_SRCDIR) ssl \
 	pkcs7 pkcs12 smime \
 	crmf jar \
