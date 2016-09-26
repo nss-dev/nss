@@ -1724,6 +1724,12 @@ PK11_GetTokenInfo(PK11SlotInfo *slot, CK_TOKEN_INFO *info)
     return SECSuccess;
 }
 
+PRBool
+pk11_MatchUriTokenInfo(PK11SlotInfo *slot, P11URI *uri)
+{
+    return P11URI_MatchTokenInfo(uri, &slot->tokenInfo);
+}
+
 /* Find out if we need to initialize the user's pin */
 PRBool
 PK11_NeedUserInit(PK11SlotInfo *slot)
