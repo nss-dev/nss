@@ -205,7 +205,6 @@ PK11_GetBestWrapMechanism;
 PK11_GetCurrentWrapIndex;
 PK11_GetMechanism;
 PK11_GetModuleID;
-PK11_GetModuleURI;
 PK11_GetPrivateModulusLen;
 PK11_GetSlotFromKey;
 PK11_GetSlotFromPrivateKey;
