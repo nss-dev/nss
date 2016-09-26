@@ -104,6 +104,7 @@ PK11_GetInternalKeySlot;
 PK11_GetInternalSlot;
 PK11_GetSlotName;
 PK11_GetTokenName;
+PK11_GetTokenURI;
 PK11_HashBuf;
 PK11_IsFIPS;
 PK11_IsFriendly;

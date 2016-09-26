@@ -18,6 +18,7 @@
 #include "dev3hack.h" 
 #include "pkim.h"
 #include "utilpars.h"
+#include "p11uri.h"
 
 
 /*************************************************************
@@ -1600,6 +1601,25 @@ char *
 PK11_GetTokenName(PK11SlotInfo *slot)
 {
      return slot->token_name;
+}
+
+char *
+PK11_GetTokenURI(PK11SlotInfo *slot)
+{
+    P11URI *uri;
+    char *ret;
+
+    uri = P11URI_New();
+    if (!uri)
+        return NULL;
+
+    memcpy(P11URI_GetTokenInfo(uri), &slot->tokenInfo,
+           sizeof(slot->tokenInfo));
+
+    ret = P11URI_Format(uri, P11URI_FOR_TOKEN);
+    P11URI_Free(uri);
+
+    return ret;
 }
 
 char *
