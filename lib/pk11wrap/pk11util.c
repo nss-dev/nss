@@ -579,6 +579,25 @@ PK11_GetModInfo(SECMODModule *mod,CK_INFO *info)
     return (crv == CKR_OK) ? SECSuccess : SECFailure;
 }
 
+char *
+PK11_GetModuleURI(SECMODModule *mod)
+{
+    P11URI *uri;
+    char *ret;
+
+    uri = P11URI_New();
+    if (uri == NULL)
+	return NULL;
+
+    if (PK11_GetModInfo(mod, P11URI_GetModuleInfo(uri)) == SECFailure)
+	return NULL;
+
+    ret = P11URI_Format(uri, P11URI_FOR_MODULE);
+    P11URI_Free(uri);
+
+    return ret;
+}
+
 /* Determine if we have the FIP's module loaded as the default
  * module to trigger other bogus FIPS requirements in PKCS #12 and
  * SSL

@@ -139,6 +139,7 @@ PK11TokenStatus PK11_WaitForTokenEvent(PK11SlotInfo *slot, PK11TokenEvent event,
 PRBool PK11_NeedPWInit(void);
 PRBool PK11_TokenExists(CK_MECHANISM_TYPE);
 SECStatus PK11_GetModInfo(SECMODModule *mod, CK_INFO *info);
+char *PK11_GetModuleURI(SECMODModule *mod);
 PRBool PK11_IsFIPS(void);
 SECMODModule *PK11_GetModule(PK11SlotInfo *slot);
 
