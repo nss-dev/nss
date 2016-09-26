@@ -1001,12 +1001,9 @@ ListModules(void)
 
     /* look at each slot*/
     for (le = list->head; le; le = le->next) {
-        char *token_uri = PK11_GetTokenURI(le->slot);
         printf("\n");
         printf("    slot: %s\n", PK11_GetSlotName(le->slot));
         printf("   token: %s\n", PK11_GetTokenName(le->slot));
-        printf("     uri: %s\n", token_uri);
-        P11URI_FreeString(token_uri);
     }
     PK11_FreeSlotList(list);
 
