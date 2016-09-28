@@ -2944,7 +2944,7 @@ tls13_HandleCertificateVerify(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 {
     SECItem signed_hash = { siBuffer, NULL, 0 };
     SECStatus rv;
-    SignatureScheme sigScheme;
+    SSLSignatureScheme sigScheme;
     SSLHashType hashAlg;
     SSL3Hashes tbsHash;
 

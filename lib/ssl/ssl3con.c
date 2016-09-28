@@ -76,7 +76,7 @@ static SECStatus Null_Cipher(void *ctx, unsigned char *output, int *outputLen,
 
 static CK_MECHANISM_TYPE ssl3_GetHashMechanismByHashType(SSLHashType hashType);
 static CK_MECHANISM_TYPE ssl3_GetMgfMechanismByHashType(SSLHashType hash);
-PRBool ssl_IsRsaPssSignatureScheme(SignatureScheme scheme);
+PRBool ssl_IsRsaPssSignatureScheme(SSLSignatureScheme scheme);
 
 #define MAX_SEND_BUF_LENGTH 32000 /* watch for 16-bit integer overflow */
 #define MIN_SEND_BUF_LENGTH 4000
@@ -186,7 +186,7 @@ static ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED] = {
  * order of signature types is based on the same rules for ordering we use for
  * cipher suites just for consistency.
  */
-static const SignatureScheme defaultSignatureSchemes[] = {
+static const SSLSignatureScheme defaultSignatureSchemes[] = {
     ssl_sig_ecdsa_secp256r1_sha256,
     ssl_sig_ecdsa_secp384r1_sha384,
     ssl_sig_ecdsa_secp521r1_sha512,
@@ -1173,7 +1173,7 @@ done:
 
 /* Called from ssl3_HandleServerKeyExchange, ssl3_HandleCertificateVerify */
 SECStatus
-ssl3_VerifySignedHashes(sslSocket *ss, SignatureScheme scheme, SSL3Hashes *hash,
+ssl3_VerifySignedHashes(sslSocket *ss, SSLSignatureScheme scheme, SSL3Hashes *hash,
                         SECItem *buf)
 {
     SECKEYPublicKey *key;
@@ -4343,7 +4343,7 @@ ssl3_HashTypeToOID(SSLHashType hashType)
 }
 
 SSLHashType
-ssl_SignatureSchemeToHashType(SignatureScheme scheme)
+ssl_SignatureSchemeToHashType(SSLSignatureScheme scheme)
 {
     switch (scheme) {
         case ssl_sig_rsa_pkcs1_sha1:
@@ -4375,7 +4375,7 @@ ssl_SignatureSchemeToHashType(SignatureScheme scheme)
 }
 
 KeyType
-ssl_SignatureSchemeToKeyType(SignatureScheme scheme)
+ssl_SignatureSchemeToKeyType(SSLSignatureScheme scheme)
 {
     switch (scheme) {
         case ssl_sig_rsa_pkcs1_sha256:
@@ -4407,7 +4407,7 @@ ssl_SignatureSchemeToKeyType(SignatureScheme scheme)
 
 static SECStatus
 ssl_ValidateSignatureScheme(PRBool isTLS13, KeyType keyType,
-                            SignatureScheme scheme)
+                            SSLSignatureScheme scheme)
 {
     /* Match key type to the scheme; also, SHA1 is forbidden in TLS 1.3. */
     return ssl_IsSupportedSignatureScheme(scheme) &&
@@ -4416,7 +4416,7 @@ ssl_ValidateSignatureScheme(PRBool isTLS13, KeyType keyType,
 }
 
 static SSLNamedGroup
-ssl_NamedGroupForSignatureScheme(SignatureScheme scheme)
+ssl_NamedGroupForSignatureScheme(SSLSignatureScheme scheme)
 {
     switch (scheme) {
         case ssl_sig_ecdsa_secp256r1_sha256:
@@ -4435,7 +4435,7 @@ ssl_NamedGroupForSignatureScheme(SignatureScheme scheme)
 static PRBool
 ssl_SignatureSchemeValidForKey(PRBool isTLS13, KeyType keyType,
                                const sslNamedGroupDef *ecGroup,
-                               SignatureScheme scheme)
+                               SSLSignatureScheme scheme)
 {
     if (!ssl_ValidateSignatureScheme(isTLS13, keyType, scheme)) {
         return PR_FALSE;
@@ -4459,7 +4459,7 @@ ssl_SignatureSchemeValidForKey(PRBool isTLS13, KeyType keyType,
  * PORT_SetError is called and SECFailure is returned. */
 SECStatus
 ssl_CheckSignatureSchemeConsistency(
-    sslSocket *ss, SignatureScheme scheme, CERTCertificate *cert)
+    sslSocket *ss, SSLSignatureScheme scheme, CERTCertificate *cert)
 {
     unsigned int i;
     const sslNamedGroupDef *group = NULL;
@@ -4504,7 +4504,7 @@ ssl_CheckSignatureSchemeConsistency(
 }
 
 PRBool
-ssl_IsSupportedSignatureScheme(SignatureScheme scheme)
+ssl_IsSupportedSignatureScheme(SSLSignatureScheme scheme)
 {
     switch (scheme) {
         case ssl_sig_rsa_pkcs1_sha1:
@@ -4533,7 +4533,7 @@ ssl_IsSupportedSignatureScheme(SignatureScheme scheme)
 }
 
 PRBool
-ssl_IsRsaPssSignatureScheme(SignatureScheme scheme)
+ssl_IsRsaPssSignatureScheme(SSLSignatureScheme scheme)
 {
     switch (scheme) {
         case ssl_sig_rsa_pss_sha256:
@@ -4547,14 +4547,14 @@ ssl_IsRsaPssSignatureScheme(SignatureScheme scheme)
     return PR_FALSE;
 }
 
-/* ssl_ConsumeSignatureScheme reads a SignatureScheme (formerly
+/* ssl_ConsumeSignatureScheme reads a SSLSignatureScheme (formerly
  * SignatureAndHashAlgorithm) structure from |b| and puts the resulting value
  * into |out|. |b| and |length| are updated accordingly.
  *
  * See https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */
 SECStatus
 ssl_ConsumeSignatureScheme(sslSocket *ss, SSL3Opaque **b,
-                           PRUint32 *length, SignatureScheme *out)
+                           PRUint32 *length, SSLSignatureScheme *out)
 {
     PRInt32 tmp;
 
@@ -4562,11 +4562,11 @@ ssl_ConsumeSignatureScheme(sslSocket *ss, SSL3Opaque **b,
     if (tmp < 0) {
         return SECFailure; /* Error code set already. */
     }
-    if (!ssl_IsSupportedSignatureScheme((SignatureScheme)tmp)) {
+    if (!ssl_IsSupportedSignatureScheme((SSLSignatureScheme)tmp)) {
         PORT_SetError(SSL_ERROR_UNSUPPORTED_SIGNATURE_ALGORITHM);
         return SECFailure;
     }
-    *out = (SignatureScheme)tmp;
+    *out = (SSLSignatureScheme)tmp;
     return SECSuccess;
 }
 
@@ -6217,7 +6217,7 @@ ssl3_SendClientKeyExchange(sslSocket *ss)
 
 SECStatus
 ssl_PickSignatureScheme(sslSocket *ss, SECKEYPublicKey *key,
-                        const SignatureScheme *peerSchemes,
+                        const SSLSignatureScheme *peerSchemes,
                         unsigned int peerSchemeCount,
                         PRBool requireSha1)
 {
@@ -6241,7 +6241,7 @@ ssl_PickSignatureScheme(sslSocket *ss, SECKEYPublicKey *key,
     for (i = 0; i < ss->ssl3.signatureSchemeCount; ++i) {
         SSLHashType hashType;
         SECOidTag hashOID;
-        SignatureScheme preferred = ss->ssl3.signatureSchemes[i];
+        SSLSignatureScheme preferred = ss->ssl3.signatureSchemes[i];
         PRUint32 policy;
 
         if (!ssl_SignatureSchemeValidForKey(isTLS13, keyType, group,
@@ -6310,7 +6310,7 @@ ssl3_PickServerSignatureScheme(sslSocket *ss)
 }
 
 static SECStatus
-ssl_PickClientSignatureScheme(sslSocket *ss, const SignatureScheme *schemes,
+ssl_PickClientSignatureScheme(sslSocket *ss, const SSLSignatureScheme *schemes,
                               unsigned int numSchemes)
 {
     SECKEYPublicKey *key;
@@ -6935,7 +6935,7 @@ ssl_HandleDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SSL3AlertDescription desc = illegal_parameter;
     SSLHashType hashAlg;
     PRBool isTLS = ss->ssl3.prSpec->version > SSL_LIBRARY_VERSION_3_0;
-    SignatureScheme sigScheme;
+    SSLSignatureScheme sigScheme;
 
     SECItem dh_p = { siBuffer, NULL, 0 };
     SECItem dh_g = { siBuffer, NULL, 0 };
@@ -7213,13 +7213,13 @@ alert_loser:
 
 SECStatus
 ssl_ParseSignatureSchemes(sslSocket *ss, PLArenaPool *arena,
-                          SignatureScheme **schemesOut,
+                          SSLSignatureScheme **schemesOut,
                           unsigned int *numSchemesOut,
                           unsigned char **b, unsigned int *len)
 {
     SECStatus rv;
     SECItem buf;
-    SignatureScheme *schemes;
+    SSLSignatureScheme *schemes;
     unsigned int numSchemes = 0;
     unsigned int max;
 
@@ -7237,9 +7237,9 @@ ssl_ParseSignatureSchemes(sslSocket *ss, PLArenaPool *arena,
     max = PR_MIN(buf.len / 2, MAX_SIGNATURE_SCHEMES);
 
     if (arena) {
-        schemes = PORT_ArenaZNewArray(arena, SignatureScheme, max);
+        schemes = PORT_ArenaZNewArray(arena, SSLSignatureScheme, max);
     } else {
-        schemes = PORT_ZNewArray(SignatureScheme, max);
+        schemes = PORT_ZNewArray(SSLSignatureScheme, max);
     }
     if (!schemes) {
         (void)SSL3_SendAlert(ss, alert_fatal, internal_error);
@@ -7254,8 +7254,8 @@ ssl_ParseSignatureSchemes(sslSocket *ss, PLArenaPool *arena,
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             return SECFailure;
         }
-        if (ssl_IsSupportedSignatureScheme((SignatureScheme)tmp)) {
-            schemes[numSchemes++] = (SignatureScheme)tmp;
+        if (ssl_IsSupportedSignatureScheme((SSLSignatureScheme)tmp)) {
+            schemes[numSchemes++] = (SSLSignatureScheme)tmp;
         }
     }
 
@@ -7283,7 +7283,7 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SECStatus rv;
     SSL3AlertDescription desc = illegal_parameter;
     SECItem cert_types = { siBuffer, NULL, 0 };
-    SignatureScheme *signatureSchemes = NULL;
+    SSLSignatureScheme *signatureSchemes = NULL;
     unsigned int signatureSchemeCount = 0;
     CERTDistNames ca_list;
 
@@ -7362,7 +7362,7 @@ done:
 
 SECStatus
 ssl3_CompleteHandleCertificateRequest(sslSocket *ss,
-                                      const SignatureScheme *signatureSchemes,
+                                      const SSLSignatureScheme *signatureSchemes,
                                       unsigned int signatureSchemeCount,
                                       CERTDistNames *ca_list)
 {
@@ -9584,7 +9584,7 @@ ssl3_HandleCertificateVerify(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
     int errCode = SSL_ERROR_RX_MALFORMED_CERT_VERIFY;
     SSL3AlertDescription desc = handshake_failure;
     PRBool isTLS;
-    SignatureScheme sigScheme = ssl_sig_none;
+    SSLSignatureScheme sigScheme = ssl_sig_none;
     SSLHashType hashAlg;
     SSL3Hashes localHashes;
     SSL3Hashes *hashesForVerify = NULL;
@@ -12861,7 +12861,7 @@ SSL_SignaturePrefSet(PRFileDesc *fd, const SSLSignatureAndHashAlg *algorithms,
 
     ss->ssl3.signatureSchemeCount = 0;
     for (i = 0; i < count; ++i) {
-        SignatureScheme scheme =
+        SSLSignatureScheme scheme =
             (algorithms[i].hashAlg << 8) | algorithms[i].sigAlg;
         if (!ssl_IsSupportedSignatureScheme(scheme)) {
             SSL_DBG(("%d: SSL[%d]: invalid signature algorithm set %d/%d",

@@ -351,6 +351,6 @@ typedef enum {
     ssl_sig_dsa_sha384 = 0x0502,
     ssl_sig_dsa_sha512 = 0x0602,
     ssl_sig_ecdsa_sha1 = 0x0203
-} SignatureScheme;
+} SSLSignatureScheme;
 
 #endif /* __ssl3proto_h_ */
