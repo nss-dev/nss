@@ -325,8 +325,11 @@ typedef enum {
 /* This is the old name for the supported_groups extensions. */
 #define ssl_elliptic_curves_xtn ssl_supported_groups_xtn
 
-#define SSL_MAX_EXTENSIONS 16 /* doesn't include ssl_padding_xtn or \
-                               * TLS 1.3 NewSessionTicket extensions. */
+/* SSL_MAX_EXTENSIONS doesn't include ssl_padding_xtn.  It includes the maximum
+ * number of extensions that are supported for any single message type.  That
+ * is, a ClientHello; ServerHello and TLS 1.3 NewSessionTicket and
+ * HelloRetryRequest extensions are smaller. */
+#define SSL_MAX_EXTENSIONS 16
 
 /* Deprecated */
 typedef enum {

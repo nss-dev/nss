@@ -96,6 +96,9 @@ static PRInt32 tls13_ClientSendKeyShareXtn(sslSocket *ss, PRBool append,
 static SECStatus tls13_ClientHandleKeyShareXtn(sslSocket *ss,
                                                PRUint16 ex_type,
                                                SECItem *data);
+static SECStatus tls13_ClientHandleKeyShareXtnHrr(sslSocket *ss,
+                                                  PRUint16 ex_type,
+                                                  SECItem *data);
 static SECStatus tls13_ServerHandleKeyShareXtn(sslSocket *ss,
                                                PRUint16 ex_type,
                                                SECItem *data);
@@ -284,6 +287,11 @@ static const ssl3ExtensionHandler serverHelloHandlersTLS[] = {
     { ssl_tls13_pre_shared_key_xtn, &tls13_ClientHandlePreSharedKeyXtn },
     { ssl_tls13_early_data_xtn, &tls13_ClientHandleEarlyDataXtn },
     { ssl_signature_algorithms_xtn, &tls13_ClientHandleSigAlgsXtn },
+    { -1, NULL }
+};
+
+static const ssl3ExtensionHandler helloRetryRequestHandlers[] = {
+    { ssl_tls13_key_share_xtn, tls13_ClientHandleKeyShareXtnHrr },
     { -1, NULL }
 };
 
@@ -2165,6 +2173,10 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
             PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
             handlers = newSessionTicketHandlers;
             break;
+        case hello_retry_request:
+            PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+            handlers = helloRetryRequestHandlers;
+            break;
         case encrypted_extensions:
             PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
         /* fall through */
@@ -3164,6 +3176,49 @@ tls13_ClientHandleKeyShareXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 
     if (data->len) {
         PORT_SetError(SSL_ERROR_RX_MALFORMED_KEY_SHARE);
+        return SECFailure;
+    }
+
+    return SECSuccess;
+}
+
+static SECStatus
+tls13_ClientHandleKeyShareXtnHrr(sslSocket *ss, PRUint16 ex_type, SECItem *data)
+{
+    SECStatus rv;
+    PRInt32 tmp;
+    const sslNamedGroupDef *group;
+
+    PORT_Assert(!ss->sec.isServer);
+    PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+
+    SSL_TRC(3, ("%d: SSL3[%d]: handle key_share extension in HRR",
+                SSL_GETPID(), ss->fd));
+
+    tmp = ssl3_ConsumeHandshakeNumber(ss, 2, &data->data, &data->len);
+    if (tmp < 0) {
+        return SECFailure; /* error code already set */
+    }
+    if (data->len) {
+        (void)SSL3_SendAlert(ss, alert_fatal, decode_error);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST);
+        return SECFailure;
+    }
+
+    group = ssl_LookupNamedGroup((SSLNamedGroup)tmp);
+    /* If the group is not enabled, or we already have a share for the
+     * requested group, abort. */
+    if (!ssl_NamedGroupEnabled(ss, group) ||
+        ssl_LookupEphemeralKeyPair(ss, group)) {
+        (void)SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST);
+        return SECFailure;
+    }
+
+    rv = tls13_CreateKeyShare(ss, group);
+    if (rv != SECSuccess) {
+        (void)SSL3_SendAlert(ss, alert_fatal, internal_error);
+        PORT_SetError(SEC_ERROR_KEYGEN_FAIL);
         return SECFailure;
     }
 
