@@ -258,6 +258,12 @@ async function scheduleLinux(name, base) {
     symbol: "noLibpkix"
   }));
 
+  queue.scheduleTask(merge(extra_base, {
+    name: `${name} w/ modular builds`,
+    env: {NSS_BUILD_MODULAR: "1"},
+    symbol: "modular"
+  }));
+
   return queue.submit();
 }
 
