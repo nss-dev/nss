@@ -8,10 +8,10 @@
   ],
   'targets': [
     {
-      'target_name': 'ectest',
+      'target_name': 'fbectest',
       'type': 'executable',
       'sources': [
-        'ectest.c'
+        'fbectest.c'
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',
