@@ -189,11 +189,13 @@ class HelloRetryRequestAgentTest : public TlsAgentTestClient {
         SSL_LIBRARY_VERSION_TLS_1_3 >> 8,
         SSL_LIBRARY_VERSION_TLS_1_3 & 0xff,
         0,
-        0,  // The cipher suite is ignored.
-        static_cast<uint8_t>(group >> 8),
-        static_cast<uint8_t>(group),
+        6,  // length of extensions
+        static_cast<uint8_t>(ssl_tls13_key_share_xtn >> 8),
+        static_cast<uint8_t>(ssl_tls13_key_share_xtn),
         0,
-        0  // no extensions
+        2,  // length of key share extension
+        static_cast<uint8_t>(group >> 8),
+        static_cast<uint8_t>(group)
     };
     DataBuffer hrr;
     MakeHandshakeMessage(kTlsHandshakeHelloRetryRequest, canned_hrr,

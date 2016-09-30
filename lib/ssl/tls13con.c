@@ -1405,9 +1405,10 @@ tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup
     ssl_GetXmitBufLock(ss);
     rv = ssl3_AppendHandshakeHeader(ss, hello_retry_request,
                                     2 +     /* version */
-                                        2 + /* cipher suite */
-                                        2 + /* group */
-                                        2 /* (empty) extensions */);
+                                        2 + /* extension length */
+                                        2 + /* group extension id */
+                                        2 + /* group extension length */
+                                        2   /* group */);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
         goto loser;
@@ -1420,20 +1421,26 @@ tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup
         goto loser;
     }
 
-    rv = ssl3_AppendHandshakeNumber(ss, ss->ssl3.hs.cipher_suite, 2);
+    /* Length of extensions. */
+    rv = ssl3_AppendHandshakeNumber(ss, 2 + 2 + 2, 2);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
         goto loser;
     }
 
+    /* Key share extension - currently the only reason we send this. */
+    rv = ssl3_AppendHandshakeNumber(ss, ssl_tls13_key_share_xtn, 2);
+    if (rv != SECSuccess) {
+        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
+        goto loser;
+    }
+    /* Key share extension length. */
+    rv = ssl3_AppendHandshakeNumber(ss, 2, 2);
+    if (rv != SECSuccess) {
+        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
+        goto loser;
+    }
     rv = ssl3_AppendHandshakeNumber(ss, selectedGroup->name, 2);
-    if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-        goto loser;
-    }
-
-    /* Send an empty extensions block. */
-    rv = ssl3_AppendHandshakeNumber(ss, 0, 2);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
         goto loser;
@@ -1608,7 +1615,6 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SECStatus rv;
     PRInt32 tmp;
     PRUint32 version;
-    const sslNamedGroupDef *group;
 
     SSL_TRC(3, ("%d: TLS13[%d]: handle hello retry request",
                 SSL_GETPID(), ss->fd));
@@ -1649,45 +1655,19 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         return SECFailure;
     }
 
-    /* Ignore the cipher suite, it's going to be removed soon anyway. */
     tmp = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
     if (tmp < 0) {
         return SECFailure; /* error code already set */
     }
-
-    tmp = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
-    if (tmp < 0) {
-        return SECFailure; /* error code already set */
-    }
-    group = ssl_LookupNamedGroup((SSLNamedGroup)tmp);
-    if (!ssl_NamedGroupEnabled(ss, group)) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST,
-                    illegal_parameter);
-        return SECFailure;
-    }
-
-    tmp = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
-    if (tmp < 0) {
-        return SECFailure; /* error code already set */
-    }
-    /* Ignore the extensions. */
     if (tmp != length) {
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST,
                     decode_error);
         return SECFailure;
     }
 
-    /* If there is already a share for the requested group, abort. */
-    if (ssl_LookupEphemeralKeyPair(ss, group)) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST,
-                    illegal_parameter);
-        return SECFailure;
-    }
-
-    rv = tls13_CreateKeyShare(ss, group);
+    rv = ssl3_HandleExtensions(ss, &b, &length, hello_retry_request);
     if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SEC_ERROR_KEYGEN_FAIL, internal_error);
-        return SECFailure;
+        return SECFailure; /* Error code set below */
     }
 
     ss->ssl3.hs.helloRetry = PR_TRUE;
@@ -3718,6 +3698,7 @@ typedef enum {
     ExtensionNotUsed,
     ExtensionClientOnly,
     ExtensionSendClear,
+    ExtensionSendClearOrHrr,
     ExtensionSendEncrypted,
     ExtensionNewSessionTicket
 } Tls13ExtensionStatus;
@@ -3735,7 +3716,7 @@ static const struct {
     { ssl_padding_xtn, ExtensionNotUsed },
     { ssl_extended_master_secret_xtn, ExtensionNotUsed },
     { ssl_session_ticket_xtn, ExtensionClientOnly },
-    { ssl_tls13_key_share_xtn, ExtensionSendClear },
+    { ssl_tls13_key_share_xtn, ExtensionSendClearOrHrr },
     { ssl_tls13_pre_shared_key_xtn, ExtensionSendClear },
     { ssl_tls13_early_data_xtn, ExtensionSendEncrypted },
     { ssl_next_proto_nego_xtn, ExtensionNotUsed },
@@ -3752,6 +3733,7 @@ tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message)
 
     PORT_Assert((message == client_hello) ||
                 (message == server_hello) ||
+                (message == hello_retry_request) ||
                 (message == encrypted_extensions) ||
                 (message == new_session_ticket));
 
@@ -3773,6 +3755,10 @@ tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message)
         case ExtensionSendClear:
             return message == client_hello ||
                    message == server_hello;
+        case ExtensionSendClearOrHrr:
+            return message == client_hello ||
+                   message == server_hello ||
+                   message == hello_retry_request;
         case ExtensionSendEncrypted:
             return message == client_hello ||
                    message == encrypted_extensions;
