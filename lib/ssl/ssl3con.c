@@ -12724,8 +12724,11 @@ ssl3_InitState(sslSocket *ss)
     ss->ssl3.hs.resumptionPsk = NULL;
     ss->ssl3.hs.resumptionContext = nullItem;
     ss->ssl3.hs.dheSecret = NULL;
-    ss->ssl3.hs.trafficSecret = NULL;
-    ss->ssl3.hs.hsTrafficSecret = NULL;
+    ss->ssl3.hs.clientEarlyTrafficSecret = NULL;
+    ss->ssl3.hs.clientHsTrafficSecret = NULL;
+    ss->ssl3.hs.serverHsTrafficSecret = NULL;
+    ss->ssl3.hs.clientTrafficSecret = NULL;
+    ss->ssl3.hs.serverTrafficSecret = NULL;
     ss->ssl3.hs.certificateRequest = NULL;
     PR_INIT_CLIST(&ss->ssl3.hs.cipherSpecs);
 
@@ -13060,12 +13063,16 @@ ssl3_DestroySSL3Info(sslSocket *ss)
         PK11_FreeSymKey(ss->ssl3.hs.dheSecret);
     if (ss->ssl3.hs.resumptionContext.data)
         SECITEM_FreeItem(&ss->ssl3.hs.resumptionContext, PR_FALSE);
-    if (ss->ssl3.hs.earlyTrafficSecret)
-        PK11_FreeSymKey(ss->ssl3.hs.earlyTrafficSecret);
-    if (ss->ssl3.hs.hsTrafficSecret)
-        PK11_FreeSymKey(ss->ssl3.hs.hsTrafficSecret);
-    if (ss->ssl3.hs.trafficSecret)
-        PK11_FreeSymKey(ss->ssl3.hs.trafficSecret);
+    if (ss->ssl3.hs.clientEarlyTrafficSecret)
+        PK11_FreeSymKey(ss->ssl3.hs.clientEarlyTrafficSecret);
+    if (ss->ssl3.hs.clientHsTrafficSecret)
+        PK11_FreeSymKey(ss->ssl3.hs.clientHsTrafficSecret);
+    if (ss->ssl3.hs.serverHsTrafficSecret)
+        PK11_FreeSymKey(ss->ssl3.hs.serverHsTrafficSecret);
+    if (ss->ssl3.hs.clientTrafficSecret)
+        PK11_FreeSymKey(ss->ssl3.hs.clientTrafficSecret);
+    if (ss->ssl3.hs.serverTrafficSecret)
+        PK11_FreeSymKey(ss->ssl3.hs.serverTrafficSecret);
 
     ss->ssl3.hs.zeroRttState = ssl_0rtt_none;
     /* Destroy TLS 1.3 buffered early data. */
