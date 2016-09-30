@@ -949,18 +949,19 @@ typedef struct SSL3HandshakeStateStr {
                           * always set to NULL.*/
 
     /* This group of values is used for TLS 1.3 and above */
-    PK11Context *clientHelloHash;   /* The client hello hash state, used
+    PK11Context *clientHelloHash;         /* The client hello hash state, used
                                         * by the server for 0-RTT. */
-    PRCList remoteKeyShares;        /* The other side's public keys */
-    PK11SymKey *currentSecret;      /* The secret down the "left hand side"
+    PRCList remoteKeyShares;              /* The other side's public keys */
+    PK11SymKey *currentSecret;            /* The secret down the "left hand side"
                                         * of the TLS 1.3 key schedule. */
-    PK11SymKey *resumptionPsk;      /* The resumption PSK. */
-    SECItem resumptionContext;      /* The resumption context. */
-    PK11SymKey *dheSecret;          /* The (EC)DHE shared secret. */
-    PK11SymKey *earlyTrafficSecret; /* The secret we use for 0-RTT. */
-    PK11SymKey *hsTrafficSecret;    /* The handshake traffic secret. */
-    PK11SymKey *trafficSecret;      /* The source key to use to generate
-                                        * traffic keys */
+    PK11SymKey *resumptionPsk;            /* The resumption PSK. */
+    SECItem resumptionContext;            /* The resumption context. */
+    PK11SymKey *dheSecret;                /* The (EC)DHE shared secret. */
+    PK11SymKey *clientEarlyTrafficSecret; /* The secret we use for 0-RTT. */
+    PK11SymKey *clientHsTrafficSecret;    /* The source keys for handshake */
+    PK11SymKey *serverHsTrafficSecret;    /* traffic keys. */
+    PK11SymKey *clientTrafficSecret;      /* The source keys for application */
+    PK11SymKey *serverTrafficSecret;      /* traffic keys */
     /* The certificate request from the server. */
     TLS13CertificateRequest *certificateRequest;
     PRCList cipherSpecs;            /* The cipher specs in the sequence they
