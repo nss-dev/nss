@@ -1934,14 +1934,6 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
     ss->ssl3.hs.kea_def_mutable = *ss->ssl3.hs.kea_def;
     ss->ssl3.hs.kea_def = &ss->ssl3.hs.kea_def_mutable;
 
-    if (ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted) {
-        rv = SSL3_SendAlert(ss, alert_warning, end_of_early_data);
-        if (rv != SECSuccess) {
-            FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-            return SECFailure;
-        }
-    }
-
     if (ss->statelessResume) {
         PRBool cacheOK = PR_FALSE;
         do {
