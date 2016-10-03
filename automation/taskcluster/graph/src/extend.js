@@ -45,11 +45,6 @@ queue.filter(task => {
 
 queue.map(task => {
   if (task.collection == "asan") {
-    // Disable LSan on BoGo runs, for now.
-    if (task.tests == "bogo") {
-      task.env.ASAN_OPTIONS = "detect_leaks=0";
-    }
-
     // CRMF and FIPS tests still leak, unfortunately.
     if (task.tests == "crmf" || task.tests == "fips") {
       task.env.ASAN_OPTIONS = "detect_leaks=0";

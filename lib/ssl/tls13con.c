@@ -3626,14 +3626,10 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
      * in use. I believe this works, but I can't test it until the
      * server side supports it. Bug 1257047.
      */
-    if (!ss->opt.noCache && ss->ssl3.hs.kea_def->authKeyType != ssl_auth_psk) {
+    if (!ss->opt.noCache) {
+        PORT_Assert(ss->sec.ci.sid);
 
-        /* Uncache so that we replace. */
-        ss->sec.uncache(ss->sec.ci.sid);
-
-        /* We only support DHE resumption so any ticket which doesn't
-         * support it we don't cache, but it can evict previous
-         * cache entries. */
+        /* We only support DHE resumption. */
         if (!(ticket.flags & ticket_allow_psk_dhe_ke)) {
             return SECSuccess;
         }
@@ -3651,6 +3647,18 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
                        ticket.ticket.data,
                        ticket.ticket.len));
 
+        /* Replace a previous session ticket when
+         * we receive a second NewSessionTicket message. */
+        if (ss->sec.ci.sid->cached == in_client_cache) {
+            /* Uncache first. */
+            ss->sec.uncache(ss->sec.ci.sid);
+
+            /* Then destroy and rebuild the SID. */
+            ssl_FreeSID(ss->sec.ci.sid);
+            ss->sec.ci.sid = ssl3_NewSessionID(ss, PR_FALSE);
+            ss->sec.ci.sid->cached = never_cached;
+        }
+
         ssl3_SetSIDSessionTicket(ss->sec.ci.sid, &ticket);
         PORT_Assert(!ticket.ticket.data);
 
@@ -3659,7 +3667,6 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
             return SECFailure;
 
         /* Cache the session. */
-        ss->sec.ci.sid->cached = never_cached;
         ss->sec.cache(ss->sec.ci.sid);
     }
 
