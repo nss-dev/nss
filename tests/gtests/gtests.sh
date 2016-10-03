@@ -42,6 +42,10 @@ gtest_start()
 {
   echo "gtests: ${GTESTS}"
   for i in ${GTESTS}; do
+    if [ ! -f ${BINDIR}/$i ]; then
+      html_unknown "Skipping $i (not built)"
+      continue
+    fi
     GTESTDIR="${HOSTDIR}/$i"
     html_head "$i"
     if [ ! -d "$GTESTDIR" ]; then
