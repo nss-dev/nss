@@ -187,6 +187,15 @@ class TlsExtensionTest13 : public TlsExtensionTestBase,
       : TlsExtensionTestBase(TlsConnectTestBase::ToMode(GetParam()),
                              SSL_LIBRARY_VERSION_TLS_1_3) {}
 
+  void ConnectWithBogusVersionList(const uint8_t* buf, size_t len) {
+    DataBuffer versions_buf(buf, len);
+    client_->SetPacketFilter(new TlsExtensionReplacer(
+        ssl_tls13_supported_versions_xtn, versions_buf));
+    ConnectExpectFail();
+    client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
+    server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
+  }
+
   void ConnectWithReplacementVersionList(uint16_t version) {
     DataBuffer versions_buf;
 
@@ -518,6 +527,40 @@ TEST_F(TlsExtensionTest13Stream, DropServerKeyShare) {
   EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, server_->error_code());
 }
 
+TEST_F(TlsExtensionTest13Stream, WrongServerKeyShare) {
+  const uint16_t wrong_group = ssl_grp_ec_secp384r1;
+
+  static const uint8_t key_share[] = {
+    wrong_group >> 8, wrong_group & 0xff, // Group we didn't offer.
+    0x00, 0x02, // length = 2
+    0x01, 0x02 };
+  DataBuffer buf(key_share, sizeof(key_share));
+  EnsureTlsSetup();
+  server_->SetPacketFilter(new TlsExtensionReplacer(ssl_tls13_key_share_xtn,
+                                                    buf));
+  ConnectExpectFail();
+  EXPECT_EQ(SSL_ERROR_RX_MALFORMED_KEY_SHARE, client_->error_code());
+  EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, server_->error_code());
+}
+
+// TODO(ekr@rtfm.com): This is the wrong error code. See bug 1307269.
+TEST_F(TlsExtensionTest13Stream, UnknownServerKeyShare) {
+  const uint16_t wrong_group = 0xffff;
+
+  static const uint8_t key_share[] = {
+    wrong_group >> 8, wrong_group & 0xff, // Group we didn't offer.
+    0x00, 0x02, // length = 2
+    0x01, 0x02 };
+  DataBuffer buf(key_share, sizeof(key_share));
+  EnsureTlsSetup();
+  server_->SetPacketFilter(new TlsExtensionReplacer(ssl_tls13_key_share_xtn,
+                                                    buf));
+  ConnectExpectFail();
+  EXPECT_EQ(SSL_ERROR_MISSING_KEY_SHARE, client_->error_code());
+  EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, server_->error_code());
+}
+
+
 TEST_F(TlsExtensionTest13Stream, DropServerSignatureAlgorithms) {
   EnsureTlsSetup();
   server_->SetPacketFilter(
@@ -726,6 +769,16 @@ TEST_P(TlsExtensionTest13, RemoveTls13FromVersionListBothV12) {
   client_->CheckErrorCode(SSL_ERROR_DECRYPT_ERROR_ALERT);
   server_->CheckErrorCode(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
 #endif
+}
+
+TEST_P(TlsExtensionTest13, EmptyVersionList) {
+  static const uint8_t ext[] = {0x00, 0x00};
+  ConnectWithBogusVersionList(ext, sizeof(ext));
+}
+
+TEST_P(TlsExtensionTest13, OddVersionList) {
+  static const uint8_t ext[] = {0x00, 0x01, 0x00};
+  ConnectWithBogusVersionList(ext, sizeof(ext));
 }
 
 INSTANTIATE_TEST_CASE_P(ExtensionStream, TlsExtensionTestGeneric,
