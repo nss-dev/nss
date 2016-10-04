@@ -150,7 +150,7 @@ PRBool SSLInt_CheckSecretsDestroyed(PRFileDesc *fd) {
   CHECK_SECRET(clientEarlyTrafficSecret);
   CHECK_SECRET(clientHsTrafficSecret);
   CHECK_SECRET(serverHsTrafficSecret);
-  
+
   return PR_TRUE;
 }
 
