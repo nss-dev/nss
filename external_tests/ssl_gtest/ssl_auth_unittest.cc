@@ -337,4 +337,18 @@ TEST_P(TlsConnectGenericPre13, AuthCompleteBeforeFinishedWithFalseStart) {
   Receive(10);
 }
 
+TEST_P(TlsConnectTls12, ClientAuthNoMatchingSigAlgs) {
+  Reset(TlsAgent::kServerEcdsa);
+  server_->RequestClientAuth(false);
+  client_->SetupClientAuth();
+
+  server_->EnableCiphersByAuthType(ssl_auth_ecdh_ecdsa);
+  server_->SetSignatureAlgorithms(SignatureEcdsaSha256,
+                                  PR_ARRAY_SIZE(SignatureEcdsaSha256));
+
+  Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa);
+  EXPECT_TRUE(!SSL_PeerCertificate(server_->ssl_fd()));
+}
+
 }
