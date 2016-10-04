@@ -937,8 +937,7 @@ typedef struct SSL3HandshakeStateStr {
     PRInt32 recvdHighWater;        /* The high water mark for fragments
                                     * received. -1 means no reassembly
                                     * in progress. */
-    unsigned char cookie[32];      /* The cookie */
-    unsigned char cookieLen;       /* The length of the cookie */
+    SECItem cookie;                /* The Hello(Retry|Verify)Request cookie. */
     PRIntervalTime rtTimerStarted; /* When the timer was started */
     DTLSTimerCb rtTimerCb;         /* The function to call on expiry */
     PRUint32 rtTimeoutMs;          /* The length of the current timeout

@@ -5157,7 +5157,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
              2 + num_suites * sizeof(ssl3CipherSuite) +
              1 + numCompressionMethods + total_exten_len;
     if (IS_DTLS(ss)) {
-        length += 1 + ss->ssl3.hs.cookieLen;
+        length += 1 + ss->ssl3.hs.cookie.len;
     }
 
     /* A padding extension may be included to ensure that the record containing
@@ -5237,7 +5237,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
 
     if (IS_DTLS(ss)) {
         rv = ssl3_AppendHandshakeVariable(
-            ss, ss->ssl3.hs.cookie, ss->ssl3.hs.cookieLen, 1);
+            ss, ss->ssl3.hs.cookie.data, ss->ssl3.hs.cookie.len, 1);
         if (rv != SECSuccess) {
             if (sid->u.ssl3.lock) {
                 PR_RWLock_Unlock(sid->u.ssl3.lock);
