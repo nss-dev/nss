@@ -5,7 +5,7 @@ ifeq ($(USE_ASAN), 1)
 SANITIZER_FLAGS_COMMON = -fsanitize=address
 
 ifeq ($(USE_UBSAN), 1)
-SANITIZER_FLAGS_COMMON = -fsanitize=undefined -fno-sanitize-recover=undefined
+SANITIZER_FLAGS_COMMON += -fsanitize=undefined -fno-sanitize-recover=undefined
 endif
 
 SANITIZER_FLAGS_COMMON += $(EXTRA_SANITIZER_FLAGS)
