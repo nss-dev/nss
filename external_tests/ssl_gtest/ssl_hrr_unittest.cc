@@ -126,7 +126,7 @@ TEST_P(TlsKeyExchange13, ConnectEcdhePreferenceMismatchHrr) {
   client_->ConfigNamedGroups(client_groups);
   server_->ConfigNamedGroups(server_groups);
   Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+  CheckKeys();
   static const std::vector<SSLNamedGroup> expectedShares = {
       ssl_grp_ec_secp384r1};
   CheckKEXDetails(client_groups, expectedShares, true /* expect_hrr */);
@@ -145,7 +145,7 @@ TEST_P(TlsKeyExchange13, ConnectEcdhePreferenceMismatchHrrExtraShares) {
   EXPECT_EQ(SECSuccess, SSL_SendAdditionalKeyShares(client_->ssl_fd(), 1));
 
   Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+  CheckKeys();
   CheckKEXDetails(client_groups, client_groups, false /* expect_hrr */);
 }
 
