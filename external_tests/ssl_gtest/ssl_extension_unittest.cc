@@ -102,7 +102,9 @@ class TlsExtensionInjector : public TlsHandshakeFilter {
     output->Splice(type_length, offset + 2);
 
     // Insert the payload.
-    output->Splice(data_, offset + 6);
+    if (data_.len() > 0) {
+      output->Splice(data_, offset + 6);
+    }
 
     return CHANGE;
   }
