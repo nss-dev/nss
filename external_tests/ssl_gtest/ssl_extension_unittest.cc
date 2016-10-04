@@ -89,8 +89,10 @@ class TlsExtensionInjector : public TlsHandshakeFilter {
     *output = input;
 
     // Increase the size of the extensions.
-    uint16_t* len_addr = reinterpret_cast<uint16_t*>(output->data() + offset);
-    *len_addr = htons(ntohs(*len_addr) + data_.len() + 4);
+    uint16_t ext_len;
+    memcpy(&ext_len, output->data() + offset, sizeof(ext_len));
+    ext_len = htons(ntohs(ext_len) + data_.len() + 4);
+    memcpy(output->data() + offset, &ext_len, sizeof(ext_len));
 
     // Insert the extension type and length.
     DataBuffer type_length;
