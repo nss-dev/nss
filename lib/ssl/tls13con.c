@@ -1408,7 +1408,7 @@ tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup
                                         2 + /* extension length */
                                         2 + /* group extension id */
                                         2 + /* group extension length */
-                                        2   /* group */);
+                                        2 /* group */);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
         goto loser;
@@ -1659,7 +1659,12 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (tmp < 0) {
         return SECFailure; /* error code already set */
     }
-    if (tmp != length) {
+    /* Extensions must be non-empty and use the remainder of the message.
+     * This means that a HelloRetryRequest cannot be a no-op: we must have an
+     * extension, it must be one that we understand and recognize as being valid
+     * for HelloRetryRequest, and all the extensions we permit cause us to
+     * modify our ClientHello in some way. */
+    if (!tmp || tmp != length) {
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST,
                     decode_error);
         return SECFailure;
@@ -3699,6 +3704,7 @@ typedef enum {
     ExtensionClientOnly,
     ExtensionSendClear,
     ExtensionSendClearOrHrr,
+    ExtensionSendHrr,
     ExtensionSendEncrypted,
     ExtensionNewSessionTicket
 } Tls13ExtensionStatus;
@@ -3723,7 +3729,8 @@ static const struct {
     { ssl_renegotiation_info_xtn, ExtensionNotUsed },
     { ssl_signed_cert_timestamp_xtn, ExtensionSendEncrypted },
     { ssl_cert_status_xtn, ExtensionSendEncrypted },
-    { ssl_tls13_ticket_early_data_info_xtn, ExtensionNewSessionTicket }
+    { ssl_tls13_ticket_early_data_info_xtn, ExtensionNewSessionTicket },
+    { ssl_tls13_cookie_xtn, ExtensionSendHrr }
 };
 
 PRBool
@@ -3758,6 +3765,9 @@ tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message)
         case ExtensionSendClearOrHrr:
             return message == client_hello ||
                    message == server_hello ||
+                   message == hello_retry_request;
+        case ExtensionSendHrr:
+            return message == client_hello ||
                    message == hello_retry_request;
         case ExtensionSendEncrypted:
             return message == client_hello ||
