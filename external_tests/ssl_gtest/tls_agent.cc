@@ -403,35 +403,54 @@ void TlsAgent::SetSignatureAlgorithms(const SSLSignatureAndHashAlg* algorithms,
   EXPECT_EQ(i, configuredCount) << "algorithms in use were all set";
 }
 
-void TlsAgent::CheckKEA(SSLKEAType type, size_t kea_size) const {
+void TlsAgent::CheckKEA(SSLKEAType kea_type, SSLNamedGroup kea_group,
+                        size_t kea_size) const {
   EXPECT_EQ(STATE_CONNECTED, state_);
-  EXPECT_EQ(type, info_.keaType);
+  EXPECT_EQ(kea_type, info_.keaType);
+  EXPECT_EQ(kea_group, info_.keaGroup);
+  if (kea_size == 0) {
+    switch (kea_group) {
+      case ssl_grp_ec_curve25519:
+        kea_size = 255;
+        break;
+      case ssl_grp_ec_secp256r1:
+        kea_size = 256;
+        break;
+      case ssl_grp_ec_secp384r1:
+        kea_size = 384;
+        break;
+      case ssl_grp_ffdhe_2048:
+        kea_size = 2048;
+        break;
+      default:
+        if (kea_type == ssl_kea_rsa) {
+          kea_size = server_key_bits_;
+        } else {
+          EXPECT_TRUE(false) << "need to update group sizes";
+        }
+    }
+  }
   EXPECT_EQ(kea_size, info_.keaKeyBits);
 }
 
-void TlsAgent::CheckKEA(SSLKEAType type) const {
-  PRUint32 ecKEAKeyBits = SSLInt_DetermineKEABits(
-      server_key_bits_, info_.authType, csinfo_.symKeyBits);
-  switch (type) {
-    case ssl_kea_ecdh:
-      CheckKEA(type, ecKEAKeyBits);
-      break;
-    case ssl_kea_dh:
-      CheckKEA(type, 2048);
-      break;
-    case ssl_kea_rsa:
-      CheckKEA(type, server_key_bits_);
-      break;
-    default:
-      EXPECT_TRUE(false) << "Unknown KEA type";
-      break;
-  }
-}
-
-void TlsAgent::CheckAuthType(SSLAuthType type) const {
+void TlsAgent::CheckAuthType(SSLAuthType auth_type,
+                             SSLSignatureScheme sig_scheme) const {
   EXPECT_EQ(STATE_CONNECTED, state_);
-  EXPECT_EQ(type, info_.authType);
+  EXPECT_EQ(auth_type, info_.authType);
   EXPECT_EQ(server_key_bits_, info_.authKeyBits);
+  if (expected_version_ < SSL_LIBRARY_VERSION_TLS_1_2) {
+    switch (auth_type) {
+      case ssl_auth_rsa_sign:
+        sig_scheme = ssl_sig_rsa_pkcs1_sha1md5;
+        break;
+      case ssl_auth_ecdsa:
+        sig_scheme = ssl_sig_ecdsa_sha1;
+        break;
+      default:
+        break;
+    }
+  }
+  EXPECT_EQ(sig_scheme, info_.signatureScheme);
 
   if (info_.protocolVersion >= SSL_LIBRARY_VERSION_TLS_1_3) {
     return;
@@ -440,7 +459,7 @@ void TlsAgent::CheckAuthType(SSLAuthType type) const {
   // Check authAlgorithm, which is the old value for authType.  This is a second
   // switch
   // statement because default label is different.
-  switch (type) {
+  switch (auth_type) {
     case ssl_auth_rsa_sign:
       EXPECT_EQ(ssl_auth_rsa_decrypt, csinfo_.authAlgorithm)
           << "authAlgorithm for RSA is always decrypt";
@@ -454,7 +473,7 @@ void TlsAgent::CheckAuthType(SSLAuthType type) const {
           << "authAlgorithm for ECDH_ECDSA is ECDSA (i.e., wrong)";
       break;
     default:
-      EXPECT_EQ(type, csinfo_.authAlgorithm)
+      EXPECT_EQ(auth_type, csinfo_.authAlgorithm)
           << "authAlgorithm is (usually) the same as authType";
       break;
   }

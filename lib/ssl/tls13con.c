@@ -2063,6 +2063,7 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
 static void
 tls13_SetKeyExchangeType(sslSocket *ss, const sslNamedGroupDef *group)
 {
+    ss->sec.keaGroup = group;
     switch (group->keaType) {
         /* Note: These overwrite on resumption.... so if you start with ECDH
          * and resume with DH, we report DH. That's fine, since no answer
