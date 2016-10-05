@@ -277,7 +277,6 @@ TEST_P(TlsConnectGeneric, P256ClientAndCurve25519Server) {
   server_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
 }
 
-
 // Replace the point in the client key exchange message with an empty one
 class ECCClientKEXFilter : public TlsHandshakeFilter {
  public:
