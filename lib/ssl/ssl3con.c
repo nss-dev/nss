@@ -1054,6 +1054,52 @@ ssl3_NegotiateVersion(sslSocket *ss, SSL3ProtocolVersion peerVersion,
     return SECSuccess;
 }
 
+/* Used by the client when the server produces a version number.
+ * This reads, validates, and normalizes the value. */
+SECStatus
+ssl_ClientReadVersion(sslSocket *ss, SSL3Opaque **b, unsigned int *len,
+                      SSL3ProtocolVersion *version)
+{
+    SSL3ProtocolVersion v;
+    PRInt32 temp;
+
+    temp = ssl3_ConsumeHandshakeNumber(ss, 2, b, len);
+    if (temp < 0) {
+        return SECFailure; /* alert has been sent */
+    }
+
+#ifdef TLS_1_3_DRAFT_VERSION
+    if (temp == SSL_LIBRARY_VERSION_TLS_1_3) {
+        (void)SSL3_SendAlert(ss, alert_fatal, protocol_version);
+        PORT_SetError(SSL_ERROR_UNSUPPORTED_VERSION);
+        return SECFailure;
+    }
+    if (temp == tls13_EncodeDraftVersion(SSL_LIBRARY_VERSION_TLS_1_3)) {
+        v = SSL_LIBRARY_VERSION_TLS_1_3;
+    } else {
+        v = (SSL3ProtocolVersion)temp;
+    }
+#else
+    v = (SSL3ProtocolVersion)temp;
+#endif
+
+    if (IS_DTLS(ss)) {
+        /* If this fails, we get 0 back and the next check to fails. */
+        v = dtls_DTLSVersionToTLSVersion(v);
+    }
+
+    PORT_Assert(!SSL_ALL_VERSIONS_DISABLED(&ss->vrange));
+    if (ss->vrange.min > v || ss->vrange.max < v) {
+        (void)SSL3_SendAlert(ss, alert_fatal,
+                             (v > SSL_LIBRARY_VERSION_3_0) ? protocol_version
+                                                           : handshake_failure);
+        PORT_SetError(SSL_ERROR_UNSUPPORTED_VERSION);
+        return SECFailure;
+    }
+    *version = v;
+    return SECSuccess;
+}
+
 static SECStatus
 ssl3_GetNewRandom(SSL3Random *random)
 {
@@ -6468,7 +6514,6 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SECItem sidBytes = { siBuffer, NULL, 0 };
     PRBool isTLS = PR_FALSE;
     SSL3AlertDescription desc = illegal_parameter;
-    SSL3ProtocolVersion version;
 #ifndef TLS_1_3_DRAFT_VERSION
     SSL3ProtocolVersion downgradeCheckVersion;
 #endif
@@ -6499,49 +6544,23 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         ss->ssl3.clientPrivateKey = NULL;
     }
 
-    temp = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
-    if (temp < 0) {
+    rv = ssl_ClientReadVersion(ss, &b, &length, &ss->version);
+    if (rv != SECSuccess) {
         goto loser; /* alert has been sent */
-    }
-    version = tls13_DecodeDraftVersion((PRUint16)temp);
-
-    /* Try to translate DTLS versions. */
-    if (IS_DTLS(ss)) {
-        /* RFC 4347 required that you verify that the server versions
-         * match (Section 4.2.1) in the HelloVerifyRequest and the
-         * ServerHello.
-         *
-         * RFC 6347 suggests (SHOULD) that servers always use 1.0
-         * in HelloVerifyRequest and allows the versions not to match,
-         * especially when 1.2 is being negotiated.
-         *
-         * Therefore we do not check for matching here.
-         */
-        version = dtls_DTLSVersionToTLSVersion(version);
-        if (version == 0) { /* Insane version number */
-            goto alert_loser;
-        }
     }
 
     /* We got a HelloRetryRequest, but the server didn't pick 1.3.  Scream. */
-    if (ss->ssl3.hs.helloRetry && version < SSL_LIBRARY_VERSION_TLS_1_3) {
+    if (ss->ssl3.hs.helloRetry && ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
         desc = illegal_parameter;
         errCode = SSL_ERROR_RX_MALFORMED_SERVER_HELLO;
         goto alert_loser;
     }
 
-    rv = ssl3_NegotiateVersion(ss, version, PR_FALSE);
-    if (rv != SECSuccess) {
-        desc = (version > SSL_LIBRARY_VERSION_3_0) ? protocol_version
-                                                   : handshake_failure;
-        errCode = SSL_ERROR_UNSUPPORTED_VERSION;
-        goto alert_loser;
-    }
     /* Check that the server negotiated the same version as it did
      * in the first handshake. This isn't really the best place for
      * us to be getting this version number, but it's what we have.
      * (1294697). */
-    if (ss->firstHsDone && (version != ss->ssl3.crSpec->version)) {
+    if (ss->firstHsDone && (ss->version != ss->ssl3.crSpec->version)) {
         desc = illegal_parameter;
         errCode = SSL_ERROR_UNSUPPORTED_VERSION;
         goto alert_loser;
