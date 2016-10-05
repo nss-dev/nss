@@ -1224,7 +1224,7 @@ ssl3_EncodeSessionTicket(sslSocket *ss,
     PRUint32 srvNameLen = 0;
     CK_MECHANISM_TYPE msWrapMech = 0; /* dummy default value,
                                           * must be >= 0 */
-    ssl3CipherSpec *spec = ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 ? ss->ssl3.cwSpec : ss->ssl3.pwSpec;
+    ssl3CipherSpec *spec;
     const sslServerCertType *certType;
     SECItem alpnSelection = { siBuffer, NULL, 0 };
 
@@ -1249,6 +1249,11 @@ ssl3_EncodeSessionTicket(sslSocket *ss,
     if (rv != SECSuccess)
         goto loser;
 
+    if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
+        spec = ss->ssl3.cwSpec;
+    } else {
+        spec = ss->ssl3.pwSpec;
+    }
     if (spec->msItem.len && spec->msItem.data) {
         /* The master secret is available unwrapped. */
         ms_item.data = spec->msItem.data;
@@ -1287,22 +1292,24 @@ ssl3_EncodeSessionTicket(sslSocket *ss,
     }
 
     ciphertext_length =
-        sizeof(PRUint16)                                                                        /* ticket_version */
-        + sizeof(SSL3ProtocolVersion)                                                           /* ssl_version */
-        + sizeof(ssl3CipherSuite)                                                               /* ciphersuite */
-        + 1                                                                                     /* compression */
-        + 10                                                                                    /* cipher spec parameters */
-        + 1                                                                                     /* certType arguments */
-        + 1                                                                                     /* SessionTicket.ms_is_wrapped */
-        + 4                                                                                     /* msWrapMech */
-        + 2                                                                                     /* master_secret.length */
-        + ms_item.len                                                                           /* master_secret */
-        + 1                                                                                     /* client_auth_type */
-        + cert_length                                                                           /* cert */
-        + 1                                                                                     /* server name type */
-        + srvNameLen                                                                            /* name len + length field */
-        + 1                                                                                     /* extendedMasterSecretUsed */
-        + sizeof(ticket->ticket_lifetime_hint) + sizeof(ticket->flags) + 1 + alpnSelection.len; /* npn value + length field. */
+        sizeof(PRUint16)                       /* ticket_version */
+        + sizeof(SSL3ProtocolVersion)          /* ssl_version */
+        + sizeof(ssl3CipherSuite)              /* ciphersuite */
+        + 1                                    /* compression */
+        + 10                                   /* cipher spec parameters */
+        + 1                                    /* certType arguments */
+        + 1                                    /* SessionTicket.ms_is_wrapped */
+        + 4                                    /* msWrapMech */
+        + 2                                    /* master_secret.length */
+        + ms_item.len                          /* master_secret */
+        + 1                                    /* client_auth_type */
+        + cert_length                          /* cert */
+        + 1                                    /* server name type */
+        + srvNameLen                           /* name len + length field */
+        + 1                                    /* extendedMasterSecretUsed */
+        + sizeof(ticket->ticket_lifetime_hint) /* ticket lifetime hint */
+        + sizeof(ticket->flags)                /* ticket flags */
+        + 1 + alpnSelection.len;               /* npn value + length field. */
     padding_length = AES_BLOCK_SIZE -
                      (ciphertext_length %
                       AES_BLOCK_SIZE);
