@@ -8254,8 +8254,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         rv = tls13_NegotiateVersion(ss, versionExtension);
         if (rv != SECSuccess) {
             errCode = PORT_GetError();
-            desc = (errCode == SSL_ERROR_UNSUPPORTED_VERSION) ?
-                    protocol_version : illegal_parameter;
+            desc = (errCode == SSL_ERROR_UNSUPPORTED_VERSION) ? protocol_version : illegal_parameter;
             goto alert_loser;
         }
     } else {
