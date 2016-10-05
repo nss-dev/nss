@@ -486,8 +486,8 @@ void TlsConnectTestBase::SetupForResume() {
 }
 
 void TlsConnectTestBase::ZeroRttSendReceive(
-    bool expect_writable,
-    bool expect_readable, std::function<bool()> post_clienthello_check) {
+    bool expect_writable, bool expect_readable,
+    std::function<bool()> post_clienthello_check) {
   const char* k0RttData = "ABCDEF";
   const PRInt32 k0RttDataLen = static_cast<PRInt32>(strlen(k0RttData));
 

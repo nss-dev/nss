@@ -531,13 +531,16 @@ TEST_F(TlsExtensionTest13Stream, WrongServerKeyShare) {
   const uint16_t wrong_group = ssl_grp_ec_secp384r1;
 
   static const uint8_t key_share[] = {
-    wrong_group >> 8, wrong_group & 0xff, // Group we didn't offer.
-    0x00, 0x02, // length = 2
-    0x01, 0x02 };
+      wrong_group >> 8,
+      wrong_group & 0xff,  // Group we didn't offer.
+      0x00,
+      0x02,  // length = 2
+      0x01,
+      0x02};
   DataBuffer buf(key_share, sizeof(key_share));
   EnsureTlsSetup();
-  server_->SetPacketFilter(new TlsExtensionReplacer(ssl_tls13_key_share_xtn,
-                                                    buf));
+  server_->SetPacketFilter(
+      new TlsExtensionReplacer(ssl_tls13_key_share_xtn, buf));
   ConnectExpectFail();
   EXPECT_EQ(SSL_ERROR_RX_MALFORMED_KEY_SHARE, client_->error_code());
   EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, server_->error_code());
@@ -548,18 +551,20 @@ TEST_F(TlsExtensionTest13Stream, UnknownServerKeyShare) {
   const uint16_t wrong_group = 0xffff;
 
   static const uint8_t key_share[] = {
-    wrong_group >> 8, wrong_group & 0xff, // Group we didn't offer.
-    0x00, 0x02, // length = 2
-    0x01, 0x02 };
+      wrong_group >> 8,
+      wrong_group & 0xff,  // Group we didn't offer.
+      0x00,
+      0x02,  // length = 2
+      0x01,
+      0x02};
   DataBuffer buf(key_share, sizeof(key_share));
   EnsureTlsSetup();
-  server_->SetPacketFilter(new TlsExtensionReplacer(ssl_tls13_key_share_xtn,
-                                                    buf));
+  server_->SetPacketFilter(
+      new TlsExtensionReplacer(ssl_tls13_key_share_xtn, buf));
   ConnectExpectFail();
   EXPECT_EQ(SSL_ERROR_MISSING_KEY_SHARE, client_->error_code());
   EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, server_->error_code());
 }
-
 
 TEST_F(TlsExtensionTest13Stream, DropServerSignatureAlgorithms) {
   EnsureTlsSetup();
