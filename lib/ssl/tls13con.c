@@ -89,8 +89,6 @@ static SECStatus tls13_ServerHandleFinished(sslSocket *ss,
 static SECStatus tls13_SendNewSessionTicket(sslSocket *ss);
 static SECStatus tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b,
                                               PRUint32 length);
-static SECStatus tls13_HandleHelloRetryRequest(sslSocket *ss, SSL3Opaque *b,
-                                               PRUint32 length);
 static void
 tls13_CombineHashes(sslSocket *ss, const PRUint8 *hhash, unsigned int hlen,
                     TLS13CombinedHash *hashes);
@@ -536,9 +534,6 @@ tls13_HandlePostHelloHandshakeMessage(sslSocket *ss, SSL3Opaque *b,
 
     /* TODO(ekr@rtfm.com): Would it be better to check all the states here? */
     switch (ss->ssl3.hs.msg_type) {
-        case hello_retry_request:
-            return tls13_HandleHelloRetryRequest(ss, b, length);
-
         case certificate:
             return tls13_HandleCertificate(ss, b, length);
 
@@ -1609,7 +1604,7 @@ tls13_SendCertificateRequest(sslSocket *ss)
     return SECSuccess;
 }
 
-static SECStatus
+SECStatus
 tls13_HandleHelloRetryRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
     SECStatus rv;
@@ -1622,7 +1617,13 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
-    /* Client */
+    if (ss->vrange.max < SSL_LIBRARY_VERSION_TLS_1_3) {
+        FATAL_ERROR(ss, SSL_ERROR_RX_UNEXPECTED_HELLO_RETRY_REQUEST,
+                    unexpected_message);
+        return SECFailure;
+    }
+
+    /* Client only. */
     rv = TLS13_CHECK_HS_STATE(ss, SSL_ERROR_RX_UNEXPECTED_HELLO_RETRY_REQUEST,
                               wait_server_hello);
     if (rv != SECSuccess) {
@@ -2432,7 +2433,8 @@ tls13_SetupPendingCipherSpec(sslSocket *ss)
     ssl_GetSpecWriteLock(ss); /*******************************/
 
     pSpec = ss->ssl3.pwSpec;
-    pSpec->version = ss->version;
+    /* Version isn't set when we send 0-RTT data. */
+    pSpec->version = PR_MAX(SSL_LIBRARY_VERSION_TLS_1_3, ss->version);
 
     SSL_TRC(3, ("%d: TLS13[%d]: Set Pending Cipher Suite to 0x%04x",
                 SSL_GETPID(), ss->fd, suite));
