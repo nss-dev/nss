@@ -1614,7 +1614,7 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
     SECStatus rv;
     PRInt32 tmp;
-    PRUint32 version;
+    SSL3ProtocolVersion version;
 
     SSL_TRC(3, ("%d: TLS13[%d]: handle hello retry request",
                 SSL_GETPID(), ss->fd));
@@ -1644,17 +1644,18 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_none);
     }
 
-    tmp = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
-    if (tmp < 0) {
-        return SECFailure; /* error code already set */
+    /* Version. */
+    rv = ssl_ClientReadVersion(ss, &b, &length, &version);
+    if (rv != SECSuccess) {
+        return SECFailure; /* alert already sent */
     }
-    version = tls13_DecodeDraftVersion((PRUint16)tmp);
     if (version > ss->vrange.max || version < SSL_LIBRARY_VERSION_TLS_1_3) {
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST,
                     protocol_version);
         return SECFailure;
     }
 
+    /* Extensions. */
     tmp = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
     if (tmp < 0) {
         return SECFailure; /* error code already set */
@@ -4202,23 +4203,14 @@ tls13_HandleEarlyApplicationData(sslSocket *ss, sslBuffer *origBuf)
 }
 
 PRUint16
-tls13_EncodeDraftVersion(PRUint16 version)
+tls13_EncodeDraftVersion(SSL3ProtocolVersion version)
 {
 #ifdef TLS_1_3_DRAFT_VERSION
-    return version == SSL_LIBRARY_VERSION_TLS_1_3 ? (0x7f00 | TLS_1_3_DRAFT_VERSION) : version;
-#else
-    return version;
+    if (version == SSL_LIBRARY_VERSION_TLS_1_3) {
+        return 0x7f00 | TLS_1_3_DRAFT_VERSION;
+    }
 #endif
-}
-
-PRUint16
-tls13_DecodeDraftVersion(PRUint16 version)
-{
-#ifdef TLS_1_3_DRAFT_VERSION
-    return version == (0x7f00 | TLS_1_3_DRAFT_VERSION) ? SSL_LIBRARY_VERSION_TLS_1_3 : version;
-#else
-    return version;
-#endif
+    return (PRUint16)version;
 }
 
 /* Pick the highest version we support that is also advertised. */
