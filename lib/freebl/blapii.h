@@ -40,4 +40,14 @@ extern PRBool bl_parentForkedAfterC_Initialize;
 
 SEC_END_PROTOS
 
+#if defined(NSS_X86_OR_X64)
+#define HAVE_UNALIGNED_ACCESS 1
+#endif
+
+#if (defined(__GNUC__) || defined(__clang__)) && defined(HAVE_UNALIGNED_ACCESS)
+#define NO_SANITIZE_ALIGNMENT __attribute__((no_sanitize("alignment")))
+#else
+#define NO_SANITIZE_ALIGNMENT
+#endif
+
 #endif /* _BLAPII_H_ */
