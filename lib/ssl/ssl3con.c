@@ -6896,7 +6896,9 @@ ssl3_HandleServerHelloPart2(sslSocket *ss, const SECItem *sidBytes,
 
     sid->version = ss->version;
     sid->u.ssl3.sessionIDLength = sidBytes->len;
-    PORT_Memcpy(sid->u.ssl3.sessionID, sidBytes->data, sidBytes->len);
+    if (sidBytes->len > 0) {
+        PORT_Memcpy(sid->u.ssl3.sessionID, sidBytes->data, sidBytes->len);
+    }
 
     sid->u.ssl3.keys.extendedMasterSecretUsed =
         ssl3_ExtensionNegotiated(ss, ssl_extended_master_secret_xtn);
