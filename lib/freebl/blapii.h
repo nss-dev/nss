@@ -44,7 +44,7 @@ SEC_END_PROTOS
 #define HAVE_UNALIGNED_ACCESS 1
 #endif
 
-#if (defined(__GNUC__) || defined(__clang__)) && defined(HAVE_UNALIGNED_ACCESS)
+#if defined(__clang__) && defined(HAVE_UNALIGNED_ACCESS)
 #define NO_SANITIZE_ALIGNMENT __attribute__((no_sanitize("alignment")))
 #else
 #define NO_SANITIZE_ALIGNMENT
