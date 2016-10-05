@@ -2188,7 +2188,6 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
             handlers = newSessionTicketHandlers;
             break;
         case hello_retry_request:
-            PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
             handlers = helloRetryRequestHandlers;
             break;
         case encrypted_extensions:
@@ -2324,7 +2323,7 @@ ssl3_CallHelloExtensionSenders(sslSocket *ss, PRBool append, PRUint32 maxBytes,
     int i;
 
     if (!sender) {
-        if (ss->version > SSL_LIBRARY_VERSION_3_0) {
+        if (ss->vrange.max > SSL_LIBRARY_VERSION_3_0) {
             sender = &clientHelloSendersTLS[0];
         } else {
             sender = &clientHelloSendersSSL3[0];
@@ -2697,7 +2696,7 @@ ssl3_ClientSendSigAlgsXtn(sslSocket *ss, PRBool append, PRUint32 maxBytes)
     PRUint32 len;
     SECStatus rv;
 
-    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_2) {
+    if (ss->vrange.max < SSL_LIBRARY_VERSION_TLS_1_2) {
         return 0;
     }
 
@@ -3068,7 +3067,7 @@ tls13_ClientSendKeyShareXtn(sslSocket *ss, PRBool append,
 {
     PRUint32 extension_length;
 
-    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+    if (ss->vrange.max < SSL_LIBRARY_VERSION_TLS_1_3) {
         return 0;
     }
 
@@ -3205,7 +3204,7 @@ tls13_ClientHandleKeyShareXtnHrr(sslSocket *ss, PRUint16 ex_type, SECItem *data)
     const sslNamedGroupDef *group;
 
     PORT_Assert(!ss->sec.isServer);
-    PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+    PORT_Assert(ss->vrange.max >= SSL_LIBRARY_VERSION_TLS_1_3);
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle key_share extension in HRR",
                 SSL_GETPID(), ss->fd));
@@ -3356,8 +3355,11 @@ tls13_ClientSendPreSharedKeyXtn(sslSocket *ss,
     static const unsigned long ke_modes_len = sizeof(ke_modes);
     NewSessionTicket *session_ticket;
 
+    /* We only set statelessResume on the client in TLS 1.3 code. */
     if (!ss->statelessResume)
         return 0;
+
+    PORT_Assert(ss->vrange.max >= SSL_LIBRARY_VERSION_TLS_1_3);
 
     session_ticket = &ss->sec.ci.sid->u.ssl3.locked.sessionTicket;
 
@@ -3818,7 +3820,7 @@ tls13_ClientSendSupportedVersionsXtn(sslSocket *ss, PRBool append,
     PRUint16 version;
     SECStatus rv;
 
-    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+    if (ss->vrange.max < SSL_LIBRARY_VERSION_TLS_1_3) {
         return 0;
     }
 
