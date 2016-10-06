@@ -97,7 +97,7 @@ TEST_P(TlsConnectTls12, ServerAuthCheckSigAlg) {
   EXPECT_EQ(3U, buffer.data()[0]) << "curve_type == named_curve";
   uint32_t tmp;
   EXPECT_TRUE(buffer.Read(1, 2, &tmp)) << "read NamedCurve";
-  EXPECT_EQ(ssl_grp_ec_secp256r1, tmp);
+  EXPECT_EQ(ssl_grp_ec_curve25519, tmp);
   EXPECT_TRUE(buffer.Read(3, 1, &tmp)) << " read ECPoint";
   CheckSigScheme(capture_ske, 4 + tmp, client_, kTlsSigSchemeRsaPssSha256,
                  1024);
@@ -142,11 +142,11 @@ static const SSLSignatureAndHashAlg SignatureRsaSha256[] = {
 static SSLNamedGroup NamedGroupForEcdsa384(uint16_t version) {
   // NSS tries to match the group size to the symmetric cipher. In TLS 1.1 and
   // 1.0, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA is the highest priority suite, so
-  // we use P-384. With TLS 1.2 on we pick AES-128 GCM so use P-256.
+  // we use P-384. With TLS 1.2 on we pick AES-128 GCM so use x25519.
   if (version <= SSL_LIBRARY_VERSION_TLS_1_1) {
     return ssl_grp_ec_secp384r1;
   }
-  return ssl_grp_ec_secp256r1;
+  return ssl_grp_ec_curve25519;
 }
 
 // When signature algorithms match up, this should connect successfully; even
@@ -197,7 +197,7 @@ TEST_P(TlsConnectTls12, SignatureSchemeCurveMismatch12) {
   Connect();
   // The scheme is reported as using secp384r1, but this is just the generic
   // ECDSA + SHA-384 codepoint as defined in TLS 1.2.
-  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_secp256r1, ssl_auth_ecdsa,
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_curve25519, ssl_auth_ecdsa,
             ssl_sig_ecdsa_secp384r1_sha384);
 }
 
