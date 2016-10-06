@@ -255,6 +255,9 @@ class TlsKeyExchangeTest : public TlsConnectGeneric {
                        bool expect_hrr = false);
 };
 
+class TlsKeyExchangeTest13 : public TlsKeyExchangeTest {};
+class TlsKeyExchangeTestPre13 : public TlsKeyExchangeTest {};
+
 }  // namespace nss_test
 
 #endif

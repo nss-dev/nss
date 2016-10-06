@@ -322,7 +322,7 @@ void TlsConnectTestBase::CheckKeys(SSLKEAType kea_type,
   SSLNamedGroup group;
   switch (kea_type) {
     case ssl_kea_ecdh:
-      group = ssl_grp_ec_secp256r1;
+      group = ssl_grp_ec_curve25519;
       break;
     case ssl_kea_dh:
       group = ssl_grp_ffdhe_2048;

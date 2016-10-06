@@ -234,12 +234,13 @@ void TlsAgent::DisableAllCiphers() {
 // Not actually all groups, just the onece that we are actually willing
 // to use.
 const std::vector<SSLNamedGroup> kAllDHEGroups = {
-    ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1,
-    ssl_grp_ffdhe_2048,   ssl_grp_ffdhe_3072,   ssl_grp_ffdhe_4096,
-    ssl_grp_ffdhe_6144,   ssl_grp_ffdhe_8192};
+    ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1,
+    ssl_grp_ec_secp521r1,  ssl_grp_ffdhe_2048,   ssl_grp_ffdhe_3072,
+    ssl_grp_ffdhe_4096,    ssl_grp_ffdhe_6144,   ssl_grp_ffdhe_8192};
 
 const std::vector<SSLNamedGroup> kECDHEGroups = {
-    ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1};
+    ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1,
+    ssl_grp_ec_secp521r1};
 
 const std::vector<SSLNamedGroup> kFFDHEGroups = {
     ssl_grp_ffdhe_2048, ssl_grp_ffdhe_3072, ssl_grp_ffdhe_4096,
@@ -247,7 +248,7 @@ const std::vector<SSLNamedGroup> kFFDHEGroups = {
 
 // Defined because the big DHE groups are ridiculously slow.
 const std::vector<SSLNamedGroup> kFasterDHEGroups = {
-    ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1,
+    ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1,
     ssl_grp_ffdhe_2048, ssl_grp_ffdhe_3072};
 
 void TlsAgent::EnableCiphersByKeyExchange(SSLKEAType kea) {
@@ -843,6 +844,9 @@ void TlsAgentTestBase::EnsureInit() {
   if (!agent_) {
     Init();
   }
+  const std::vector<SSLNamedGroup> groups = {
+      ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ffdhe_2048};
+  agent_->ConfigNamedGroups(groups);
 }
 
 void TlsAgentTestBase::ProcessMessage(const DataBuffer& buffer,

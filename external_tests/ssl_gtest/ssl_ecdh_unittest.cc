@@ -93,11 +93,11 @@ TEST_P(TlsConnectGeneric, ConnectEcdheP384Server) {
 // This test will fail when we add other groups that identify as ECDHE.
 TEST_P(TlsConnectGeneric, ConnectEcdheGroupMismatch) {
   EnsureTlsSetup();
-  const std::vector<SSLNamedGroup> clientGroups = {ssl_grp_ec_secp256r1,
-                                                   ssl_grp_ffdhe_2048};
-  const std::vector<SSLNamedGroup> serverGroups = {ssl_grp_ffdhe_2048};
-  client_->ConfigNamedGroups(clientGroups);
-  server_->ConfigNamedGroups(serverGroups);
+  const std::vector<SSLNamedGroup> client_groups = {ssl_grp_ec_secp256r1,
+                                                    ssl_grp_ffdhe_2048};
+  const std::vector<SSLNamedGroup> server_groups = {ssl_grp_ffdhe_2048};
+  client_->ConfigNamedGroups(client_groups);
+  server_->ConfigNamedGroups(server_groups);
 
   Connect();
   CheckKeys(ssl_kea_dh, ssl_auth_rsa_sign);
@@ -167,9 +167,9 @@ TEST_P(TlsConnectGenericPre13, P384PriorityOnServer) {
   client_->EnableCiphersByKeyExchange(ssl_kea_ecdh);
 
   // The server prefers P384. It has to win.
-  const std::vector<SSLNamedGroup> serverGroups = {
+  const std::vector<SSLNamedGroup> server_groups = {
       ssl_grp_ec_secp384r1, ssl_grp_ec_secp256r1, ssl_grp_ec_secp521r1};
-  server_->ConfigNamedGroups(serverGroups);
+  server_->ConfigNamedGroups(server_groups);
 
   Connect();
 
@@ -223,15 +223,15 @@ TEST_P(TlsConnectStreamPre13, ConfiguredGroupsRenegotiate) {
   client_->DisableAllCiphers();
   client_->EnableCiphersByKeyExchange(ssl_kea_ecdh);
 
-  const std::vector<SSLNamedGroup> serverGroups = {ssl_grp_ec_secp256r1,
-                                                   ssl_grp_ec_secp384r1};
-  const std::vector<SSLNamedGroup> clientGroups = {ssl_grp_ec_secp384r1};
-  server_->ConfigNamedGroups(clientGroups);
-  client_->ConfigNamedGroups(serverGroups);
+  const std::vector<SSLNamedGroup> client_groups = {ssl_grp_ec_secp256r1};
+  const std::vector<SSLNamedGroup> server_groups = {ssl_grp_ec_secp256r1,
+                                                    ssl_grp_ec_secp256r1};
+  client_->ConfigNamedGroups(client_groups);
+  server_->ConfigNamedGroups(server_groups);
 
   Connect();
 
-  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_secp384r1, ssl_auth_rsa_sign,
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_secp256r1, ssl_auth_rsa_sign,
             ssl_sig_rsa_pss_sha256);
   CheckConnected();
 
@@ -239,7 +239,7 @@ TEST_P(TlsConnectStreamPre13, ConfiguredGroupsRenegotiate) {
   server_->PrepareForRenegotiate();
   client_->StartRenegotiate();
   Handshake();
-  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_secp384r1, ssl_auth_rsa_sign,
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_secp256r1, ssl_auth_rsa_sign,
             ssl_sig_rsa_pss_sha256);
 }
 
@@ -257,16 +257,17 @@ TEST_P(TlsKeyExchangeTest, Curve25519) {
   CheckKEXDetails(groups, shares);
 }
 
-TEST_P(TlsConnectGeneric, P256andCurve25519OnlyServer) {
+TEST_P(TlsConnectGenericPre13, GroupPreferenceServerPriority) {
   EnsureTlsSetup();
   client_->DisableAllCiphers();
   client_->EnableCiphersByKeyExchange(ssl_kea_ecdh);
 
-  // the client sends a P256 key share while the server prefers 25519
-  const std::vector<SSLNamedGroup> server_groups = {ssl_grp_ec_curve25519,
-                                                    ssl_grp_ec_secp256r1};
+  // The client prefers P256 while the server prefers 25519.
+  // The server's preference has to win.
   const std::vector<SSLNamedGroup> client_groups = {ssl_grp_ec_secp256r1,
                                                     ssl_grp_ec_curve25519};
+  const std::vector<SSLNamedGroup> server_groups = {ssl_grp_ec_curve25519,
+                                                    ssl_grp_ec_secp256r1};
   client_->ConfigNamedGroups(client_groups);
   server_->ConfigNamedGroups(server_groups);
 
@@ -276,14 +277,142 @@ TEST_P(TlsConnectGeneric, P256andCurve25519OnlyServer) {
             ssl_sig_rsa_pss_sha256);
 }
 
+#ifndef NSS_DISABLE_TLS_1_3
+TEST_P(TlsKeyExchangeTest13, Curve25519P256EqualPriorityClient13) {
+  EnsureKeyShareSetup();
+
+  // The client sends a P256 key share while the server prefers 25519.
+  // We have to accept P256 without retry.
+  const std::vector<SSLNamedGroup> client_groups = {ssl_grp_ec_secp256r1,
+                                                    ssl_grp_ec_curve25519};
+  const std::vector<SSLNamedGroup> server_groups = {ssl_grp_ec_curve25519,
+                                                    ssl_grp_ec_secp256r1};
+  client_->ConfigNamedGroups(client_groups);
+  server_->ConfigNamedGroups(server_groups);
+
+  Connect();
+
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_secp256r1, ssl_auth_rsa_sign,
+            ssl_sig_rsa_pss_sha256);
+  const std::vector<SSLNamedGroup> shares = {ssl_grp_ec_secp256r1};
+  CheckKEXDetails(client_groups, shares, false);
+}
+
+TEST_P(TlsKeyExchangeTest13, Curve25519P256EqualPriorityServer13) {
+  EnsureKeyShareSetup();
+
+  // The client sends a 25519 key share while the server prefers P256.
+  // We have to accept 25519 without retry.
+  const std::vector<SSLNamedGroup> client_groups = {ssl_grp_ec_curve25519,
+                                                    ssl_grp_ec_secp256r1};
+  const std::vector<SSLNamedGroup> server_groups = {ssl_grp_ec_secp256r1,
+                                                    ssl_grp_ec_curve25519};
+  client_->ConfigNamedGroups(client_groups);
+  server_->ConfigNamedGroups(server_groups);
+
+  Connect();
+
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_curve25519, ssl_auth_rsa_sign,
+            ssl_sig_rsa_pss_sha256);
+  const std::vector<SSLNamedGroup> shares = {ssl_grp_ec_curve25519};
+  CheckKEXDetails(client_groups, shares, false);
+}
+
+TEST_P(TlsKeyExchangeTest13, EqualPriorityTestRetryECServer13) {
+  EnsureKeyShareSetup();
+
+  // The client sends a 25519 key share while the server prefers P256.
+  // The server prefers P-384 over x25519, so it must not consider P-256 and
+  // x25519 to be equivalent. It will therefore request a P-256 share
+  // with a HelloRetryRequest.
+  const std::vector<SSLNamedGroup> client_groups = {
+      ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1};
+  const std::vector<SSLNamedGroup> server_groups = {
+      ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_curve25519};
+  client_->ConfigNamedGroups(client_groups);
+  server_->ConfigNamedGroups(server_groups);
+
+  Connect();
+
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_secp256r1, ssl_auth_rsa_sign,
+            ssl_sig_rsa_pss_sha256);
+  const std::vector<SSLNamedGroup> shares = {ssl_grp_ec_curve25519};
+  CheckKEXDetails(client_groups, shares, true);
+}
+
+TEST_P(TlsKeyExchangeTest13, NotEqualPriorityWithIntermediateGroup13) {
+  EnsureKeyShareSetup();
+
+  // The client sends a 25519 key share while the server prefers P256.
+  // The server prefers ffdhe_2048 over x25519, so it must not consider the
+  // P-256 and x25519 to be equivalent. It will therefore request a P-256 share
+  // with a HelloRetryRequest.
+  const std::vector<SSLNamedGroup> client_groups = {
+      ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1, ssl_grp_ffdhe_2048};
+  const std::vector<SSLNamedGroup> server_groups = {
+      ssl_grp_ec_secp256r1, ssl_grp_ffdhe_2048, ssl_grp_ec_curve25519};
+  client_->ConfigNamedGroups(client_groups);
+  server_->ConfigNamedGroups(server_groups);
+
+  Connect();
+
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_secp256r1, ssl_auth_rsa_sign,
+            ssl_sig_rsa_pss_sha256);
+  const std::vector<SSLNamedGroup> shares = {ssl_grp_ec_curve25519};
+  CheckKEXDetails(client_groups, shares, true);
+}
+
+TEST_P(TlsKeyExchangeTest13,
+       NotEqualPriorityWithUnsupportedIntermediateGroup13) {
+  EnsureKeyShareSetup();
+
+  // As in the previous test, the server prefers ffdhe_2048. Thus, even though
+  // the client doesn't support this group, the server must not regard x25519 as
+  // equivalent to P-256.
+  const std::vector<SSLNamedGroup> client_groups = {ssl_grp_ec_curve25519,
+                                                    ssl_grp_ec_secp256r1};
+  const std::vector<SSLNamedGroup> server_groups = {
+      ssl_grp_ec_secp256r1, ssl_grp_ffdhe_2048, ssl_grp_ec_curve25519};
+  client_->ConfigNamedGroups(client_groups);
+  server_->ConfigNamedGroups(server_groups);
+
+  Connect();
+
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_secp256r1, ssl_auth_rsa_sign,
+            ssl_sig_rsa_pss_sha256);
+  const std::vector<SSLNamedGroup> shares = {ssl_grp_ec_curve25519};
+  CheckKEXDetails(client_groups, shares, true);
+}
+
+TEST_P(TlsKeyExchangeTest13, EqualPriority13) {
+  EnsureKeyShareSetup();
+
+  // The client sends a 25519 key share while the server prefers P256.
+  // We have to accept 25519 without retry because it's considered equivalent to
+  // P256 by the server.
+  const std::vector<SSLNamedGroup> client_groups = {
+      ssl_grp_ec_curve25519, ssl_grp_ffdhe_2048, ssl_grp_ec_secp256r1};
+  const std::vector<SSLNamedGroup> server_groups = {ssl_grp_ec_secp256r1,
+                                                    ssl_grp_ec_curve25519};
+  client_->ConfigNamedGroups(client_groups);
+  server_->ConfigNamedGroups(server_groups);
+
+  Connect();
+
+  CheckKeys();
+  const std::vector<SSLNamedGroup> shares = {ssl_grp_ec_curve25519};
+  CheckKEXDetails(client_groups, shares, false);
+}
+#endif
+
 TEST_P(TlsConnectGeneric, P256ClientAndCurve25519Server) {
   EnsureTlsSetup();
   client_->DisableAllCiphers();
   client_->EnableCiphersByKeyExchange(ssl_kea_ecdh);
 
-  // the client sends a P256 key share while the server prefers 25519.
-  const std::vector<SSLNamedGroup> server_groups = {ssl_grp_ec_curve25519};
+  // The client sends a P256 key share while the server prefers 25519.
   const std::vector<SSLNamedGroup> client_groups = {ssl_grp_ec_secp256r1};
+  const std::vector<SSLNamedGroup> server_groups = {ssl_grp_ec_curve25519};
 
   client_->ConfigNamedGroups(client_groups);
   server_->ConfigNamedGroups(server_groups);
@@ -291,6 +420,31 @@ TEST_P(TlsConnectGeneric, P256ClientAndCurve25519Server) {
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
   server_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
+}
+
+TEST_P(TlsKeyExchangeTest13, MultipleClientShares) {
+  EnsureKeyShareSetup();
+
+  // The client sends 25519 and P256 key shares. The server prefers P256,
+  // which must be chosen here.
+  const std::vector<SSLNamedGroup> client_groups = {ssl_grp_ec_curve25519,
+                                                    ssl_grp_ec_secp256r1};
+  const std::vector<SSLNamedGroup> server_groups = {ssl_grp_ec_secp256r1,
+                                                    ssl_grp_ec_curve25519};
+  client_->ConfigNamedGroups(client_groups);
+  server_->ConfigNamedGroups(server_groups);
+
+  // Generate a key share on the client for both curves.
+  EXPECT_EQ(SECSuccess, SSL_SendAdditionalKeyShares(client_->ssl_fd(), 1));
+
+  Connect();
+
+  // The server would accept 25519 but its preferred group (P256) has to win.
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_secp256r1, ssl_auth_rsa_sign,
+            ssl_sig_rsa_pss_sha256);
+  const std::vector<SSLNamedGroup> shares = {ssl_grp_ec_curve25519,
+                                             ssl_grp_ec_secp256r1};
+  CheckKEXDetails(client_groups, shares, false);
 }
 
 // Replace the point in the client key exchange message with an empty one
@@ -354,5 +508,11 @@ TEST_P(TlsConnectGenericPre13, ConnectECDHEmptyClientPoint) {
 INSTANTIATE_TEST_CASE_P(KeyExchangeTest, TlsKeyExchangeTest,
                         ::testing::Combine(TlsConnectTestBase::kTlsModesAll,
                                            TlsConnectTestBase::kTlsV11Plus));
+
+#ifndef NSS_DISABLE_TLS_1_3
+INSTANTIATE_TEST_CASE_P(KeyExchangeTest, TlsKeyExchangeTest13,
+                        ::testing::Combine(TlsConnectTestBase::kTlsModesAll,
+                                           TlsConnectTestBase::kTlsV13));
+#endif
 
 }  // namespace nss_test
