@@ -99,7 +99,7 @@ TEST_F(DERPrivateKeyImportTest, ImportPrivateRSAKey) {
   EXPECT_FALSE(PORT_GetError());
 }
 
-TEST_F(DERPrivateKeyImportTest, importinvalidprivatekey) {
+TEST_F(DERPrivateKeyImportTest, ImportInvalidPrivateKey) {
   EXPECT_FALSE(ParsePrivateKey(kInvalidLengthKey));
   EXPECT_EQ(PORT_GetError(), SEC_ERROR_BAD_DER);
 }
