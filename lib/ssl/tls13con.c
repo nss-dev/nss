@@ -1983,6 +1983,12 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
                         unexpected_message);
             return SECFailure;
         }
+
+        if (ss->ssl3.hs.cipher_suite != sid->u.ssl3.cipherSuite) {
+            FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_SERVER_HELLO,
+                        illegal_parameter);
+            return SECFailure;
+        }
     } else {
         if (!ssl3_ExtensionNegotiated(ss, ssl_signature_algorithms_xtn)) {
             FATAL_ERROR(ss, SSL_ERROR_MISSING_SIGNATURE_ALGORITHMS_EXTENSION,

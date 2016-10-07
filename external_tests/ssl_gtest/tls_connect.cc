@@ -199,8 +199,7 @@ void TlsConnectTestBase::Init() {
   server_->SetPeer(client_);
 
   if (version_) {
-    client_->SetVersionRange(version_, version_);
-    server_->SetVersionRange(version_, version_);
+    ConfigureVersion(version_);
   }
 }
 
@@ -372,6 +371,11 @@ void TlsConnectTestBase::ConnectExpectFail() {
   Handshake();
   ASSERT_EQ(TlsAgent::STATE_ERROR, client_->state());
   ASSERT_EQ(TlsAgent::STATE_ERROR, server_->state());
+}
+
+void TlsConnectTestBase::ConfigureVersion(uint16_t version) {
+  client_->SetVersionRange(version, version);
+  server_->SetVersionRange(version, version);
 }
 
 void TlsConnectTestBase::SetExpectedVersion(uint16_t version) {

@@ -81,6 +81,7 @@ class TlsConnectTestBase : public ::testing::Test {
   void CheckShares(const DataBuffer& shares,
                    std::function<void(SSLNamedGroup)> check_group);
 
+  void ConfigureVersion(uint16_t version);
   void SetExpectedVersion(uint16_t version);
   // Expect resumption of a particular type.
   void ExpectResumption(SessionResumptionMode expected);
