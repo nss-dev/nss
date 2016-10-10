@@ -10231,6 +10231,9 @@ ssl3_DecideTls12CertVerifyHash(sslSocket *ss, const SECItem *algorithms)
             SSLHashType hashAlg = algorithms->data[i];
             SECOidTag hashOID;
             PRUint32 policy;
+            if (hashAlg == ssl_hash_md5) {
+                continue; /* No MD5 signature support. */
+            }
             if (hashAlg == ssl_hash_sha1 &&
                 ss->ssl3.pwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
                 /* TLS 1.3 explicitly forbids using SHA-1 with certificate_verify. */
