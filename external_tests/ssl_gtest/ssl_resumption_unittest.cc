@@ -322,26 +322,42 @@ TEST_P(TlsConnectTls13, TestTls13ResumeDifferentGroup) {
   CheckKeys(ssl_kea_dh, ssl_grp_ffdhe_2048, ssl_auth_rsa_sign, ssl_sig_none);
 }
 
-// Test that we don't resume when we can't negotiate the same cipher.
-TEST_P(TlsConnectTls13, TestTls13ResumeClientDifferentCipher) {
-  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
-  client_->EnableSingleCipher(TLS_AES_128_GCM_SHA256);
-  Connect();
-  SendReceive();  // Need to read so that we absorb the session ticket.
-  CheckKeys();
+// We need to enable different cipher suites at different times in the following
+// tests.  Those cipher suites need to be suited to the version.
+static uint16_t ChooseOneCipher(uint16_t version) {
+  if (version >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    return TLS_AES_128_GCM_SHA256;
+  }
+  return TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA;
+}
 
-  Reset();
-  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
-  ExpectResumption(RESUME_NONE);
-  client_->EnableSingleCipher(TLS_AES_256_GCM_SHA384);
-  Connect();
-  CheckKeys();
+static uint16_t ChooseAnotherCipher(uint16_t version) {
+  if (version >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    return TLS_CHACHA20_POLY1305_SHA256;
+  }
+  return TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA;
 }
 
 // Test that we don't resume when we can't negotiate the same cipher.
-TEST_P(TlsConnectTls13, TestTls13ResumeServerDifferentCipher) {
+TEST_P(TlsConnectGeneric, TestResumeClientDifferentCipher) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
-  server_->EnableSingleCipher(TLS_AES_128_GCM_SHA256);
+  client_->EnableSingleCipher(ChooseOneCipher(version_));
+  Connect();
+  SendReceive();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  ExpectResumption(RESUME_NONE);
+  client_->EnableSingleCipher(ChooseAnotherCipher(version_));
+  Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+}
+
+// Test that we don't resume when we can't negotiate the same cipher.
+TEST_P(TlsConnectGeneric, TestResumeServerDifferentCipher) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  server_->EnableSingleCipher(ChooseOneCipher(version_));
   Connect();
   SendReceive();  // Need to read so that we absorb the session ticket.
   CheckKeys();
@@ -349,7 +365,7 @@ TEST_P(TlsConnectTls13, TestTls13ResumeServerDifferentCipher) {
   Reset();
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   ExpectResumption(RESUME_NONE);
-  server_->EnableSingleCipher(TLS_AES_256_GCM_SHA384);
+  server_->EnableSingleCipher(ChooseAnotherCipher(version_));
   Connect();
   CheckKeys();
 }
@@ -388,24 +404,14 @@ class SelectedCipherSuiteReplacer : public TlsHandshakeFilter {
 // suite for resumption.
 TEST_P(TlsConnectStream, TestResumptionOverrideCipher) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
-  if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
-    server_->EnableSingleCipher(TLS_AES_128_GCM_SHA256);
-  } else {
-    server_->EnableSingleCipher(TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA);
-  }
+  server_->EnableSingleCipher(ChooseOneCipher(version_));
   Connect();
   SendReceive();
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
 
   Reset();
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
-  uint16_t overrideCipher;
-  if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
-    overrideCipher = TLS_CHACHA20_POLY1305_SHA256;
-  } else {
-    overrideCipher = TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA;
-  }
-  server_->SetPacketFilter(new SelectedCipherSuiteReplacer(overrideCipher));
+  server_->SetPacketFilter(new SelectedCipherSuiteReplacer(ChooseAnotherCipher(version_)));
 
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
