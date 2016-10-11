@@ -367,8 +367,16 @@ class SelectedCipherSuiteReplacer : public TlsHandshakeFilter {
     }
 
     *output = input;
+    uint32_t temp = 0;
+    EXPECT_TRUE(input.Read(0, 2, &temp));
     // Cipher suite is after version(2) and random(32).
-    output->Write(34, static_cast<uint32_t>(cipher_suite_), 2);
+    size_t pos = 34;
+    if (temp < SSL_LIBRARY_VERSION_TLS_1_3) {
+      // In old versions, we have to skip a session_id too.
+      EXPECT_TRUE(input.Read(pos, 1, &temp));
+      pos += 1 + temp;
+    }
+    output->Write(pos, static_cast<uint32_t>(cipher_suite_), 2);
     return CHANGE;
   }
 
@@ -376,25 +384,102 @@ class SelectedCipherSuiteReplacer : public TlsHandshakeFilter {
   uint16_t cipher_suite_;
 };
 
-// Test that the client won't tolerate the server picking a different cipher
-// suite for resumption.  (Stream only because the server is unable to decrypt
-// the alert that the client sends, see bug 1304603.)
-TEST_F(TlsConnectTest, TestTls13ResumeOverrideCipher) {
+// Test that the client doesn't tolerate the server picking a different cipher
+// suite for resumption.
+TEST_P(TlsConnectStream, TestResumptionOverrideCipher) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
-  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
-  server_->EnableSingleCipher(TLS_AES_128_GCM_SHA256);
+  if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    server_->EnableSingleCipher(TLS_AES_128_GCM_SHA256);
+  } else {
+    server_->EnableSingleCipher(TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA);
+  }
   Connect();
   SendReceive();
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
 
   Reset();
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
-  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
-  server_->SetPacketFilter(
-      new SelectedCipherSuiteReplacer(TLS_CHACHA20_POLY1305_SHA256));
+  uint16_t overrideCipher;
+  if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    overrideCipher = TLS_CHACHA20_POLY1305_SHA256;
+  } else {
+    overrideCipher = TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA;
+  }
+  server_->SetPacketFilter(new SelectedCipherSuiteReplacer(overrideCipher));
+
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
-  server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
+  if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    // The reason this test is stream only: the server is unable to decrypt
+    // the alert that the client sends, see bug 1304603.
+    server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
+  } else {
+    server_->CheckErrorCode(SSL_ERROR_HANDSHAKE_FAILURE_ALERT);
+  }
+}
+
+class SelectedVersionReplacer : public TlsHandshakeFilter {
+ public:
+  SelectedVersionReplacer(uint16_t version) : version_(version) {}
+ protected:
+  PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
+                                       const DataBuffer& input,
+                                       DataBuffer* output) override {
+    if (header.handshake_type() != kTlsHandshakeServerHello) {
+      return KEEP;
+    }
+
+    *output = input;
+    output->Write(0, static_cast<uint32_t>(version_), 2);
+    return CHANGE;
+  }
+
+ private:
+  uint16_t version_;
+};
+
+// Test how the client handles the case where the server picks a
+// lower version number on resumption.
+TEST_P(TlsConnectGenericPre13, TestResumptionOverrideVersion) {
+  uint16_t override_version = 0;
+  if (mode_ == STREAM) {
+    switch (version_) {
+      case SSL_LIBRARY_VERSION_TLS_1_0:
+        return; // Skip the test.
+      case SSL_LIBRARY_VERSION_TLS_1_1:
+        override_version = SSL_LIBRARY_VERSION_TLS_1_0;
+        break;
+      case SSL_LIBRARY_VERSION_TLS_1_2:
+        override_version = SSL_LIBRARY_VERSION_TLS_1_1;
+        break;
+      default:
+        ASSERT_TRUE(false) << "unknown version";
+    }
+  } else {
+    if (version_ == SSL_LIBRARY_VERSION_TLS_1_2) {
+      override_version = SSL_LIBRARY_VERSION_DTLS_1_0_WIRE;
+    } else {
+      ASSERT_EQ(SSL_LIBRARY_VERSION_TLS_1_1, version_);
+      return; // Skip the test.
+    }
+  }
+
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  // Need to use a cipher that is plausible for the lower version.
+  server_->EnableSingleCipher(TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA);
+  Connect();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  // Enable the lower version on the client.
+  client_->SetVersionRange(version_ - 1, version_);
+  server_->EnableSingleCipher(TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA);
+  server_->SetPacketFilter(new SelectedVersionReplacer(override_version));
+
+  ConnectExpectFail();
+  client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
+  server_->CheckErrorCode(SSL_ERROR_HANDSHAKE_FAILURE_ALERT);
 }
 
 // Test that two TLS resumptions work and produce the same ticket.
