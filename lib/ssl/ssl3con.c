@@ -59,8 +59,7 @@ static SECStatus ssl3_SendServerKeyExchange(sslSocket *ss);
 static SECStatus ssl3_HandleClientHelloPart2(sslSocket *ss,
                                              SECItem *suites,
                                              SECItem *comps,
-                                             sslSessionID *sid,
-                                             PRBool canOfferSessionTicket);
+                                             sslSessionID *sid);
 static SECStatus ssl3_HandleServerHelloPart2(sslSocket *ss,
                                              const SECItem *sidBytes,
                                              int *retErrCode);
@@ -8202,7 +8201,6 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SECItem cookieBytes = { siBuffer, NULL, 0 };
     SECItem suites = { siBuffer, NULL, 0 };
     SECItem comps = { siBuffer, NULL, 0 };
-    PRBool canOfferSessionTicket = PR_FALSE;
     PRBool isTLS13;
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle client_hello handshake",
@@ -8515,19 +8513,6 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         ss->sec.ci.sid = NULL;
     }
 
-    /* We only send a session ticket extension if the client supports
-     * the extension and we are unable to do either a stateful or
-     * stateless resume.
-     *
-     * TODO: send a session ticket if performing a stateful
-     * resumption.  (As per RFC4507, a server may issue a session
-     * ticket while doing a (stateless or stateful) session resume,
-     * but OpenSSL-0.9.8g does not accept session tickets while
-     * resuming.)
-     */
-    if (ssl3_ExtensionNegotiated(ss, ssl_session_ticket_xtn) && sid == NULL) {
-        canOfferSessionTicket = PR_TRUE;
-    }
 
     if (sid != NULL) {
         /* We've found a session cache entry for this client.
@@ -8565,8 +8550,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
         rv = tls13_HandleClientHelloPart2(ss, &suites, sid);
     } else {
-        rv = ssl3_HandleClientHelloPart2(ss, &suites, &comps, sid,
-                                         canOfferSessionTicket);
+        rv = ssl3_HandleClientHelloPart2(ss, &suites, &comps, sid);
     }
     if (rv != SECSuccess) {
         errCode = PORT_GetError();
@@ -8586,8 +8570,7 @@ static SECStatus
 ssl3_HandleClientHelloPart2(sslSocket *ss,
                             SECItem *suites,
                             SECItem *comps,
-                            sslSessionID *sid,
-                            PRBool canOfferSessionTicket)
+                            sslSessionID *sid)
 {
     PRBool haveSpecWriteLock = PR_FALSE;
     PRBool haveXmitBufLock = PR_FALSE;
@@ -8677,15 +8660,6 @@ ssl3_HandleClientHelloPart2(sslSocket *ss,
         desc = handshake_failure;
         errCode = SSL_ERROR_NO_CYPHER_OVERLAP;
         goto alert_loser;
-    }
-
-    if (canOfferSessionTicket)
-        canOfferSessionTicket =
-            ssl3_KEASupportsTickets(ss->ssl3.hs.kea_def);
-
-    if (canOfferSessionTicket) {
-        ssl3_RegisterServerHelloExtensionSender(ss,
-                                                ssl_session_ticket_xtn, ssl3_SendSessionTicketXtn);
     }
 
     /* Select a compression algorithm. */
@@ -8915,6 +8889,22 @@ compression_found:
         sid = NULL;
     }
     SSL_AtomicIncrementLong(&ssl3stats.hch_sid_cache_misses);
+
+    /* We only send a session ticket extension if the client supports
+     * the extension and we are unable to resume.
+     *
+     * TODO: send a session ticket if performing a stateful
+     * resumption.  (As per RFC4507, a server may issue a session
+     * ticket while doing a (stateless or stateful) session resume,
+     * but OpenSSL-0.9.8g does not accept session tickets while
+     * resuming.)
+     */
+    if (ssl3_ExtensionNegotiated(ss, ssl_session_ticket_xtn) &&
+        ssl3_KEASupportsTickets(ss->ssl3.hs.kea_def)) {
+        ssl3_RegisterServerHelloExtensionSender(ss,
+                                                ssl_session_ticket_xtn,
+                                                ssl3_SendSessionTicketXtn);
+    }
 
     rv = ssl3_ServerCallSNICallback(ss);
     if (rv != SECSuccess) {
