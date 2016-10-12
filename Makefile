@@ -116,6 +116,7 @@ else
 NSPR_PREFIX = $$(topsrcdir)/../dist/$(OBJDIR_NAME)
 endif
 
+ifndef NSS_GYP
 $(NSPR_CONFIG_STATUS): $(NSPR_CONFIGURE)
 	mkdir -p $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME)
 	cd $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME) ; \
@@ -123,9 +124,20 @@ $(NSPR_CONFIG_STATUS): $(NSPR_CONFIGURE)
 	$(NSPR_CONFIGURE_OPTS) \
 	--with-dist-prefix='$(NSPR_PREFIX)' \
 	--with-dist-includedir='$(NSPR_PREFIX)/include'
+else
+$(NSPR_CONFIG_STATUS): $(NSPR_CONFIGURE)
+	mkdir -p $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME)
+	cd $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME) ; \
+	$(NSPR_CONFIGURE_ENV) sh ../configure \
+	$(NSPR_CONFIGURE_OPTS) \
+	--prefix='$(NSPR_PREFIX)'
+endif
 
 build_nspr: $(NSPR_CONFIG_STATUS)
 	$(MAKE) -C $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME)
+
+install_nspr: build_nspr
+	$(MAKE) -C $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME) install
 
 clobber_nspr: $(NSPR_CONFIG_STATUS)
 	$(MAKE) -C $(CORE_DEPTH)/../nspr/$(OBJDIR_NAME) clobber
