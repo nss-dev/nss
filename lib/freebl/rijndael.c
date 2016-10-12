@@ -99,13 +99,13 @@ static PRBool use_hw_gcm = PR_FALSE;
     ((((PRUint32)b3) << 24) | \
      (((PRUint32)b2) << 16) | \
      (((PRUint32)b1) << 8) |  \
-      ((PRUint32)b0))
+     ((PRUint32)b0))
 #else
 #define WORD4(b0, b1, b2, b3) \
     ((((PRUint32)b0) << 24) | \
      (((PRUint32)b1) << 16) | \
      (((PRUint32)b2) << 8) |  \
-      ((PRUint32)b3))
+     ((PRUint32)b3))
 #endif
 
 /*
@@ -359,7 +359,7 @@ init_rijndael_tables(void)
     ((((PRUint32)SBOX((w >> 24) & 0xff)) << 24) | \
      (((PRUint32)SBOX((w >> 16) & 0xff)) << 16) | \
      (((PRUint32)SBOX((w >> 8) & 0xff)) << 8) |   \
-     (((PRUint32)SBOX((w) & 0xff))))
+     (((PRUint32)SBOX((w)&0xff))))
 
 #ifdef IS_LITTLE_ENDIAN
 #define ROTBYTE(b) \
