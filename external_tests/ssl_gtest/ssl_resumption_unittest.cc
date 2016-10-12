@@ -350,8 +350,17 @@ TEST_P(TlsConnectGeneric, TestResumeClientDifferentCipher) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   ExpectResumption(RESUME_NONE);
   client_->EnableSingleCipher(ChooseAnotherCipher(version_));
+  uint16_t ticket_extension;
+  if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    ticket_extension = ssl_tls13_pre_shared_key_xtn;
+  } else {
+    ticket_extension = ssl_session_ticket_xtn;
+  }
+  auto ticket_capture = new TlsExtensionCapture(ticket_extension);
+  client_->SetPacketFilter(ticket_capture);
   Connect();
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+  EXPECT_EQ(0U, ticket_capture->extension().len());
 }
 
 // Test that we don't resume when we can't negotiate the same cipher.
@@ -411,7 +420,8 @@ TEST_P(TlsConnectStream, TestResumptionOverrideCipher) {
 
   Reset();
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
-  server_->SetPacketFilter(new SelectedCipherSuiteReplacer(ChooseAnotherCipher(version_)));
+  server_->SetPacketFilter(
+      new SelectedCipherSuiteReplacer(ChooseAnotherCipher(version_)));
 
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
@@ -427,6 +437,7 @@ TEST_P(TlsConnectStream, TestResumptionOverrideCipher) {
 class SelectedVersionReplacer : public TlsHandshakeFilter {
  public:
   SelectedVersionReplacer(uint16_t version) : version_(version) {}
+
  protected:
   PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
                                        const DataBuffer& input,
@@ -451,7 +462,7 @@ TEST_P(TlsConnectGenericPre13, TestResumptionOverrideVersion) {
   if (mode_ == STREAM) {
     switch (version_) {
       case SSL_LIBRARY_VERSION_TLS_1_0:
-        return; // Skip the test.
+        return;  // Skip the test.
       case SSL_LIBRARY_VERSION_TLS_1_1:
         override_version = SSL_LIBRARY_VERSION_TLS_1_0;
         break;
@@ -466,7 +477,7 @@ TEST_P(TlsConnectGenericPre13, TestResumptionOverrideVersion) {
       override_version = SSL_LIBRARY_VERSION_DTLS_1_0_WIRE;
     } else {
       ASSERT_EQ(SSL_LIBRARY_VERSION_TLS_1_1, version_);
-      return; // Skip the test.
+      return;  // Skip the test.
     }
   }
 
