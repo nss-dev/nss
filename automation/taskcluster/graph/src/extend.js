@@ -98,6 +98,18 @@ export default async function main() {
     image: LINUX_IMAGE
   });
 
+  await scheduleLinux("Linux 64 (debug, gyp)", {
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/build_gyp.sh"
+    ],
+    env: {USE_64: "1"},
+    platform: "linux64",
+    collection: "gyp",
+    image: LINUX_IMAGE
+  });
+
   await scheduleLinux("Linux 64 (ASan, debug)", {
     env: {
       NSS_DISABLE_ARENA_FREE_LIST: "1",
@@ -137,7 +149,7 @@ export default async function main() {
 
 async function scheduleLinux(name, base) {
   // Build base definition.
-  let build_base = merge(base, {
+  let build_base = merge({
     command: [
       "/bin/bash",
       "-c",
@@ -152,7 +164,7 @@ async function scheduleLinux(name, base) {
     },
     kind: "build",
     symbol: "B"
-  });
+  }, base);
 
   // The task that builds NSPR+NSS.
   let task_build = queue.scheduleTask(merge(build_base, {name}));

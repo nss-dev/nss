@@ -201,7 +201,7 @@ TEST_P(TlsConnectTls12, SignatureSchemeCurveMismatch12) {
             ssl_sig_ecdsa_secp384r1_sha384);
 }
 
-#ifdef NSS_ENABLE_TLS_1_3
+#ifndef NSS_DISABLE_TLS_1_3
 TEST_P(TlsConnectTls13, SignatureAlgorithmServerUnsupported) {
   Reset(TlsAgent::kServerEcdsa256);  // P-256 cert
   server_->SetSignatureAlgorithms(SignatureEcdsaSha384,
