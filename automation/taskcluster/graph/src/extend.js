@@ -39,6 +39,11 @@ queue.filter(task => {
     if (task.symbol == "gcc-5" && task.collection != "asan") {
       return false;
     }
+
+    // Remove extra builds on gyp builds (TODO: add when it supports CC/CCC).
+    if (task.collection == "gyp") {
+      return false;
+    }
   }
 
   if (task.tests == "bogo") {
@@ -125,8 +130,8 @@ export default async function main() {
     env: {
       NSS_DISABLE_ARENA_FREE_LIST: "1",
       NSS_DISABLE_UNLOAD: "1",
-      GCC_VERSION: "clang",
-      GXX_VERSION: "clang++",
+      CC: "clang",
+      CCC: "clang++",
       USE_ASAN: "1",
       USE_64: "1"
     },
@@ -140,8 +145,8 @@ export default async function main() {
       UBSAN_OPTIONS: "print_stacktrace=1",
       NSS_DISABLE_ARENA_FREE_LIST: "1",
       NSS_DISABLE_UNLOAD: "1",
-      GCC_VERSION: "clang",
-      GXX_VERSION: "clang++",
+      CC: "clang",
+      CCC: "clang++",
       USE_UBSAN: "1",
       USE_ASAN: "1",
       USE_64: "1"
@@ -222,8 +227,8 @@ async function scheduleLinux(name, base) {
   queue.scheduleTask(merge(extra_base, {
     name: `${name} w/ clang-3.9`,
     env: {
-      GCC_VERSION: "clang",
-      GXX_VERSION: "clang++"
+      CC: "clang",
+      CCC: "clang++",
     },
     symbol: "clang-3.9"
   }));
@@ -231,8 +236,8 @@ async function scheduleLinux(name, base) {
   queue.scheduleTask(merge(extra_base, {
     name: `${name} w/ gcc-4.8`,
     env: {
-      GCC_VERSION: "gcc-4.8",
-      GXX_VERSION: "g++-4.8"
+      CC: "gcc-4.8",
+      CCC: "g++-4.8"
     },
     symbol: "gcc-4.8"
   }));
@@ -240,8 +245,8 @@ async function scheduleLinux(name, base) {
   queue.scheduleTask(merge(extra_base, {
     name: `${name} w/ gcc-5`,
     env: {
-      GCC_VERSION: "gcc-5",
-      GXX_VERSION: "g++-5"
+      CC: "gcc-5",
+      CCC: "g++-5"
     },
     symbol: "gcc-5"
   }));
@@ -249,8 +254,8 @@ async function scheduleLinux(name, base) {
   queue.scheduleTask(merge(extra_base, {
     name: `${name} w/ gcc-6.1`,
     env: {
-      GCC_VERSION: "gcc-6",
-      GXX_VERSION: "g++-6"
+      CC: "gcc-6",
+      CCC: "g++-6"
     },
     symbol: "gcc-6.1"
   }));
@@ -413,8 +418,8 @@ async function scheduleTools() {
     name: "scan-build-3.9",
     env: {
       USE_64: "1",
-      GCC_VERSION: "clang",
-      GXX_VERSION: "clang++"
+      CC: "clang",
+      CCC: "clang++",
     },
     artifacts: {
       public: {

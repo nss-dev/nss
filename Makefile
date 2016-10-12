@@ -85,6 +85,12 @@ endif
 ifdef NS_USE_GCC
 NSPR_CONFIGURE_ENV = CC=gcc CXX=g++
 endif
+ifdef CC
+NSPR_CONFIGURE_ENV = CC=$(CC)
+endif
+ifdef CCC
+NSPR_CONFIGURE_ENV += CXX=$(CCC)
+endif
 
 ifdef SANITIZER_CFLAGS
 ifdef BUILD_OPT
