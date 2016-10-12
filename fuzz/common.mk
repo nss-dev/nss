@@ -1,17 +1,10 @@
-# 
+#! gmake
+#
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-CORE_DEPTH = .
-DEPTH      = .
 
-IMPORTS =	nspr20/v4.8 \
-		$(NULL)
+MKPROG = $(CCC)
+MKSHLIB = $(CCC) $(DSO_LDOPTS) $(DARWIN_SDK_SHLIBFLAGS)
 
-RELEASE = nss
-
-DIRS = coreconf lib cmd external_tests
-
-ifdef FUZZ
-DIRS += fuzz
-endif
+CXXFLAGS += -std=c++11
