@@ -3577,6 +3577,12 @@ tls13_SendNewSessionTicket(sslSocket *ss)
     if (rv != SECSuccess)
         goto loser;
 
+    /* Encode the ticket. */
+    rv = ssl3_AppendHandshakeVariable(
+        ss, ticket_data.data, ticket_data.len, 2);
+    if (rv != SECSuccess)
+        goto loser;
+
     /* Extensions. */
     rv = ssl3_AppendHandshakeNumber(ss, ticket_age_add_len, 2);
     if (rv != SECSuccess)
@@ -3598,19 +3604,14 @@ tls13_SendNewSessionTicket(sslSocket *ss)
             goto loser;
     }
 
-    /* Encode the ticket. */
-    rv = ssl3_AppendHandshakeVariable(
-        ss, ticket_data.data, ticket_data.len, 2);
-    if (rv != SECSuccess)
-        goto loser;
-
-    rv = SECSuccess;
+    SECITEM_FreeItem(&ticket_data, PR_FALSE);
+    return SECSuccess;
 
 loser:
     if (ticket_data.data) {
         SECITEM_FreeItem(&ticket_data, PR_FALSE);
     }
-    return rv;
+    return SECFailure;
 }
 
 static SECStatus
@@ -3620,6 +3621,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     PRInt32 tmp;
     NewSessionTicket ticket = { 0 };
     SECItem data;
+    SECItem ticket_data;
 
     SSL_TRC(3, ("%d: TLS13[%d]: handle new session ticket message",
                 SSL_GETPID(), ss->fd));
@@ -3667,6 +3669,14 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         ticket.flags |= ticket_allow_psk_auth;
     }
 
+    /* Get the ticket value. */
+    rv = ssl3_ConsumeHandshakeVariable(ss, &ticket_data, 2, &b, &length);
+    if (rv != SECSuccess || !ticket_data.len) {
+        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET,
+                    decode_error);
+        return SECFailure;
+    }
+
     /* Parse extensions. */
     rv = ssl3_ConsumeHandshakeVariable(ss, &data, 2, &b, &length);
     if (rv != SECSuccess) {
@@ -3682,15 +3692,12 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
                     decode_error);
         return SECFailure;
     }
-
     if (ss->xtnData.ticket_age_add_found) {
         ticket.flags |= ticket_allow_early_data;
         ticket.ticket_age_add = ss->xtnData.ticket_age_add;
     }
 
-    /* Get the ticket value. */
-    rv = ssl3_ConsumeHandshakeVariable(ss, &data, 2, &b, &length);
-    if (rv != SECSuccess || length != 0 || !data.len) {
+    if (length != 0) {
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET,
                     decode_error);
         return SECFailure;
@@ -3712,7 +3719,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
             return SECSuccess;
         }
 
-        rv = SECITEM_CopyItem(NULL, &ticket.ticket, &data);
+        rv = SECITEM_CopyItem(NULL, &ticket.ticket, &ticket_data);
         if (rv != SECSuccess) {
             FATAL_ERROR(ss, SEC_ERROR_NO_MEMORY, internal_error);
             return SECFailure;
