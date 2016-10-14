@@ -91,6 +91,10 @@ endif
 ifdef CCC
 NSPR_CONFIGURE_ENV += CXX=$(CCC)
 endif
+# Remove -arch definitions. NSPR can't handle that.
+NSPR_CONFIGURE_ENV := $(filter-out -arch x86_64,$(NSPR_CONFIGURE_ENV))
+NSPR_CONFIGURE_ENV := $(filter-out -arch i386,$(NSPR_CONFIGURE_ENV))
+NSPR_CONFIGURE_ENV := $(filter-out -arch ppc,$(NSPR_CONFIGURE_ENV))
 
 ifdef SANITIZER_CFLAGS
 ifdef BUILD_OPT
