@@ -20,14 +20,23 @@ function isSanitizer(task) {
 
 queue.filter(task => {
   if (task.group == "Builds") {
-    // Remove extra builds on ASan and ARM.
-    if (isSanitizer(task) || task.collection == "arm-debug") {
+    // Remove extra builds on UBSan and ARM.
+    if (task.collection == "ubsan" || task.collection == "arm-debug") {
       return false;
     }
 
-    // Remove extra builds w/o libpkix for non-linux64-debug.
-    if (task.symbol == "noLibpkix" &&
-        (task.platform != "linux64" || task.collection != "debug")) {
+    // Remove extra builds w/o libpkix for non-asan.
+    if (task.symbol == "noLibpkix" && task.collection != "asan") {
+      return false;
+    }
+
+    // Remove extra builds w/ clang-3.9 on ASan.
+    if (task.symbol == "clang-3.9" && task.collection == "asan") {
+      return false;
+    }
+
+    // Remove extra builds w/ gcc-5 on non-ASan.
+    if (task.symbol == "gcc-5" && task.collection != "asan") {
       return false;
     }
   }
@@ -97,13 +106,6 @@ export default async function main() {
   await scheduleLinux("Linux 64 (opt)", {
     env: {USE_64: "1", BUILD_OPT: "1"},
     platform: "linux64",
-    image: LINUX_IMAGE
-  });
-
-  await scheduleLinux("Linux 64 (debug)", {
-    env: {USE_64: "1"},
-    platform: "linux64",
-    collection: "debug",
     image: LINUX_IMAGE
   });
 
@@ -233,6 +235,15 @@ async function scheduleLinux(name, base) {
       GXX_VERSION: "g++-4.8"
     },
     symbol: "gcc-4.8"
+  }));
+
+  queue.scheduleTask(merge(extra_base, {
+    name: `${name} w/ gcc-5`,
+    env: {
+      GCC_VERSION: "gcc-5",
+      GXX_VERSION: "g++-5"
+    },
+    symbol: "gcc-5"
   }));
 
   queue.scheduleTask(merge(extra_base, {
