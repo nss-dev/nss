@@ -111,7 +111,7 @@ function filter(opts) {
 
       // Additional checks.
       if (platform == "linux64-asan") {
-        keep &= coll("asan");
+        keep &= coll("asan") || coll("ubsan");
       } else if (platform == "arm") {
         keep &= coll("arm-opt") || coll("arm-debug");
       } else if (platform == "linux64-gyp") {
