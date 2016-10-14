@@ -14,10 +14,14 @@ const WINDOWS_CHECKOUT_CMD =
 
 /*****************************************************************************/
 
+function isSanitizer(task) {
+  return task.collection == "asan" || task.collection == "ubsan";
+}
+
 queue.filter(task => {
   if (task.group == "Builds") {
     // Remove extra builds on ASan and ARM.
-    if (task.collection == "asan" || task.collection == "arm-debug") {
+    if (isSanitizer(task) || task.collection == "arm-debug") {
       return false;
     }
 
@@ -40,11 +44,16 @@ queue.filter(task => {
     }
   }
 
+  // Start with BoGo on UBSan builds.
+  if (task.collection == "ubsan" && task.tests && task.tests != "bogo") {
+    return false;
+  }
+
   return true;
 });
 
 queue.map(task => {
-  if (task.collection == "asan") {
+  if (isSanitizer(task)) {
     // CRMF and FIPS tests still leak, unfortunately.
     if (task.tests == "crmf" || task.tests == "fips") {
       task.env.ASAN_OPTIONS = "detect_leaks=0";
@@ -121,6 +130,22 @@ export default async function main() {
     },
     platform: "linux64",
     collection: "asan",
+    image: LINUX_IMAGE
+  });
+
+  await scheduleLinux("Linux 64 (ASan+UBSan, debug)", {
+    env: {
+      UBSAN_OPTIONS: "print_stacktrace=1",
+      NSS_DISABLE_ARENA_FREE_LIST: "1",
+      NSS_DISABLE_UNLOAD: "1",
+      GCC_VERSION: "clang",
+      GXX_VERSION: "clang++",
+      USE_UBSAN: "1",
+      USE_ASAN: "1",
+      USE_64: "1"
+    },
+    platform: "linux64",
+    collection: "ubsan",
     image: LINUX_IMAGE
   });
 
