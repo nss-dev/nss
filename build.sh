@@ -1,36 +1,69 @@
 #!/bin/bash
+# This script builds NSS with gyp and ninja.
+#
+# This build system is still under development.  It does not yet support all
+# the features or platforms that NSS supports.
+#
+# -c = clean before build
+# -g = force a rebuild of gyp (and NSPR, because why not)
 
-CWD="$PWD/$(dirname $0)"
-OBJ_DIR="$(make platform)"
+set -e
+
+CWD=$(realpath $(dirname $0))
+OBJ_DIR=$(make platform)
 DIST_DIR="$CWD/../dist/$OBJ_DIR"
 
-# do NSPR things
-NSS_GYP=1 make install_nspr
+# -c = clean first
+if [ "$1" = "-c" ]; then
+    rm -rf "$CWD/out"
+fi
 
-if [ -z "${USE_64}" ]; then
+if [ "$BUILD_OPT" = "1" ]; then
+    TARGET=Release
+else
+    TARGET=Debug
+fi
+TARGET_DIR="$CWD/out/$TARGET"
+if [ "$USE_64" != "1" ]; then
     GYP_PARAMS="-Dtarget_arch=ia32"
 fi
 
-# generate NSS build files only if asked for it
-if [ -n "${NSS_GYP_GEN}" -o ! -d out/Debug ]; then
-    PKG_CONFIG_PATH="$CWD/../nspr/$OBJ_DIR/config" $SCANBUILD gyp -f ninja $GYP_PARAMS --depth=. nss.gyp
+# These steps can take a while, so don't overdo them.
+# Force a redo with -g.
+if [ "$1" = "-g" -o ! -d "$TARGET_DIR" ]; then
+    # Build NSPR.
+    make NSS_GYP=1 install_nspr
+
+    # Run gyp.
+    PKG_CONFIG_PATH="$CWD/../nspr/$OBJ_DIR/config" $SCANBUILD \
+        gyp -f ninja $GYP_PARAMS --depth=. --generator-output="." nss.gyp
 fi
-# build NSS
-# TODO: only doing this for debug build for now
-$SCANBUILD ninja -C out/Debug/
-if [ $? != 0 ]; then
+
+# Run ninja.
+if which ninja >/dev/null 2>&1; then
+    NINJA=ninja
+elif which ninja-build >/dev/null 2>&1; then
+    NINJA=ninja-build
+else
+    echo "Please install ninja" 1>&2
     exit 1
 fi
+$NINJA -C "$TARGET_DIR"
 
-# sign libs
-# TODO: this is done every time at the moment.
-cd out/Debug/
-LD_LIBRARY_PATH=$DIST_DIR/lib/ ./shlibsign -v -i lib/libfreebl3.so
-LD_LIBRARY_PATH=$DIST_DIR/lib/ ./shlibsign -v -i lib/libfreeblpriv3.so
-LD_LIBRARY_PATH=$DIST_DIR/lib/ ./shlibsign -v -i lib/libnssdbm3.so
-LD_LIBRARY_PATH=$DIST_DIR/lib/ ./shlibsign -v -i lib/libsoftokn3.so
+# Copy files over to the right directory.
+mkdir -p "$DIST_DIR/bin" "$DIST_DIR/lib"
+find "$TARGET_DIR" -maxdepth 1 -type f -executable -exec ln -sft "$DIST_DIR/bin" {} \+
+find "$TARGET_DIR/lib" -maxdepth 1 -type f -exec ln -sft "$DIST_DIR/lib" {} \+
+find "$TARGET_DIR" -name '*.a' -exec ln -sft "$DIST_DIR/lib" {} \+
 
-# copy files over to the right directory
-cp * "$DIST_DIR/bin/"
-cp lib/* "$DIST_DIR/lib/"
-find . -name "*.a" | xargs cp -t "$DIST_DIR/lib/"
+# Sign libs.  TODO: get ninja to do this
+echo >"$TARGET_DIR/shlibsign.log"
+for lib in freebl3 freeblpriv3 nssdbm3 softokn3; do
+    if [ ! -e "$DIST_DIR/lib/lib$lib.signed" -o \
+         "$DIST_DIR/lib/lib$lib.so" -nt "$DIST_DIR/lib/lib$lib.signed" ]; then
+        LD_LIBRARY_PATH="$DIST_DIR/lib" DYLD_LIBRARY_PATH="$DIST_DIR/lib" \
+            "$DIST_DIR/bin/shlibsign" -v -i "$DIST_DIR/lib/lib$lib.so" \
+            >>"$TARGET_DIR/shlibsign.log" 2>&1
+        touch "$DIST_DIR/lib/lib$lib.signed"
+    fi
+done
