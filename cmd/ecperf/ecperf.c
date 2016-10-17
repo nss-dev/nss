@@ -470,7 +470,7 @@ ectest_curve_pkcs11(ECCurveName curve, int iterations, int numThreads)
     unsigned char digestData[20];
     unsigned char pubKeyData[256];
     PRLock *lock = NULL;
-    double signRate, deriveRate;
+    double signRate, deriveRate = 0;
     CK_ATTRIBUTE template;
     SECStatus rv;
     CK_RV crv;
@@ -595,7 +595,7 @@ ectest_curve_freebl(ECCurveName curve, int iterations, int numThreads,
     SECItem digest;
     unsigned char sigData[256];
     unsigned char digestData[20];
-    double signRate, deriveRate;
+    double signRate, deriveRate = 0;
     char genenc[3 + 2 * 2 * MAX_ECKEY_LEN];
     SECStatus rv = SECFailure;
     PLArenaPool *arena;
