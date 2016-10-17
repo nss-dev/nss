@@ -13,11 +13,11 @@ fi
 
 # generate NSS build files only if asked for it
 if [ -n "${NSS_GYP_GEN}" -o ! -d out/Debug ]; then
-    PKG_CONFIG_PATH="$CWD/../nspr/$OBJ_DIR/config" gyp -f ninja $GYP_PARAMS --depth=. nss.gyp
+    PKG_CONFIG_PATH="$CWD/../nspr/$OBJ_DIR/config" $SCANBUILD gyp -f ninja $GYP_PARAMS --depth=. nss.gyp
 fi
 # build NSS
 # TODO: only doing this for debug build for now
-ninja -C out/Debug/
+$SCANBUILD ninja -C out/Debug/
 if [ $? != 0 ]; then
     exit 1
 fi

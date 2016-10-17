@@ -147,6 +147,10 @@ CERT_FindUserCertsByUsage(CERTCertDBHandle *handle,
             goto loser;
         }
 
+        if (!certList) {
+            goto loser;
+        }
+
         node = CERT_LIST_HEAD(certList);
 
         /* treverse all certs in the list */
