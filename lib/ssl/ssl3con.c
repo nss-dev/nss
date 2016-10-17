@@ -13009,7 +13009,6 @@ SSL_SignatureSchemePrefGet(PRFileDesc *fd, SSLSignatureScheme *schemes,
                            unsigned int *count, unsigned int maxCount)
 {
     sslSocket *ss;
-    unsigned int i;
 
     ss = ssl_FindSocket(fd);
     if (!ss) {
