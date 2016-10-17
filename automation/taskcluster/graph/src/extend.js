@@ -59,8 +59,8 @@ queue.filter(task => {
   }
 
   // Start with BoGo and Gtests on UBSan builds.
-  if (task.collection == "ubsan" && task.tests &&
-      task.tests != "bogo" && task.tests != "ssl_gtests gtests") {
+  if (task.collection == "ubsan" &&
+      ["crmf", "cipher", "fips", "merge", "smime", "ssl"].includes(task.tests)) {
     return false;
   }
 
