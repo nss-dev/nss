@@ -279,8 +279,7 @@ class TlsDamageDHYTest
       public ::testing::WithParamInterface<DamageDHYProfile> {
  public:
   TlsDamageDHYTest()
-      : TlsConnectTestBase(TlsConnectTestBase::ToMode(std::get<0>(GetParam())),
-                           std::get<1>(GetParam())) {}
+      : TlsConnectTestBase(std::get<0>(GetParam()), std::get<1>(GetParam())) {}
 };
 
 TEST_P(TlsDamageDHYTest, DamageServerY) {
