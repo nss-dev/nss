@@ -57,10 +57,8 @@ TEST_P(TlsConnectGeneric, ConnectEcdhe) {
 TEST_P(TlsConnectTls12, ConnectEcdheP384) {
   Reset(TlsAgent::kServerEcdsa384);
   ConnectWithCipherSuite(TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256);
-  // This uses SHA-256 because TLS 1.2 doesn't care for the
-  // pairing of curve and hash function like in TLS 1.3.
   CheckKeys(ssl_kea_ecdh, ssl_grp_ec_secp384r1, ssl_auth_ecdsa,
-            ssl_sig_ecdsa_secp256r1_sha256);
+            ssl_sig_ecdsa_secp384r1_sha384);
 }
 
 TEST_P(TlsConnectGeneric, ConnectEcdheP384Client) {

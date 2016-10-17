@@ -39,11 +39,8 @@ class TlsConnectTestBase : public ::testing::Test {
   static ::testing::internal::ParamGenerator<uint16_t> kTlsV12Plus;
   static ::testing::internal::ParamGenerator<uint16_t> kTlsVAll;
 
-  static inline Mode ToMode(const std::string& str) {
-    return str == "TLS" ? STREAM : DGRAM;
-  }
-
   TlsConnectTestBase(Mode mode, uint16_t version);
+  TlsConnectTestBase(const std::string& mode, uint16_t version);
   virtual ~TlsConnectTestBase();
 
   void SetUp();
@@ -127,6 +124,10 @@ class TlsConnectTestBase : public ::testing::Test {
   const uint8_t alpn_dummy_val_[4] = {0x01, 0x62, 0x01, 0x61};
 
  private:
+  static inline Mode ToMode(const std::string& str) {
+    return str == "TLS" ? STREAM : DGRAM;
+  }
+
   void CheckResumption(SessionResumptionMode expected);
   void CheckExtendedMasterSecret();
   void CheckEarlyDataAccepted();
