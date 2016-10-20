@@ -1,6 +1,5 @@
 {
     "DisabledTests": {
-        "TLS13-CustomTicketExtension":"Draft version mismatch (NSS=15, BoGo=14)",
         "FallbackSCSV-VersionMatch":"Draft version mismatch (NSS=15, BoGo=14)",
         "*KeyUpdate*":"KeyUpdate Unimplemented",
         "ClientAuth-NoFallback-TLS13":"Disagreement about alerts. Bug 1294975",
