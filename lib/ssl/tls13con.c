@@ -3810,9 +3810,10 @@ tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message)
             break;
     }
     if (i == PR_ARRAY_SIZE(KnownExtensions)) {
-        /* We have never heard of this extension which is OK on
-         * the server but not the client. */
-        return message == client_hello;
+        /* We have never heard of this extension which is OK
+         * in client_hello and new_session_ticket. */
+        return (message == client_hello) ||
+                (message == new_session_ticket);
     }
 
     switch (KnownExtensions[i].status) {
