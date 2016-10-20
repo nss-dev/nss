@@ -711,8 +711,10 @@ cert_DecodeNameConstraintSubTree(PLArenaPool *arena, SECItem **subTree,
         last = current;
         i++;
     }
-    first->l.prev = &(last->l);
-    last->l.next = &(first->l);
+    if (first && last) {
+        first->l.prev = &(last->l);
+        last->l.next = &(first->l);
+    }
     /* TODO: unmark arena */
     return first;
 loser:
