@@ -3813,7 +3813,7 @@ tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message)
         /* We have never heard of this extension which is OK
          * in client_hello and new_session_ticket. */
         return (message == client_hello) ||
-                (message == new_session_ticket);
+               (message == new_session_ticket);
     }
 
     switch (KnownExtensions[i].status) {
