@@ -30,20 +30,23 @@
           #XXX: gyp breaks if these are empty!
           'nspr_lib_dir%': ' ',
           'nspr_include_dir%': ' ',
+          'nss_dist_obj_dir%': ' ',
+          'nss_dist_dir%': ' ',
           'zlib_libs%': [],
           #TODO
           'moz_debug_flags%': '',
           'dll_prefix': '',
           'dll_suffix': 'dll',
         }, {
-          # On non-windows, default to a system NSPR.
           'nspr_libs%': ['-lplds4', '-lplc4', '-lnspr4'],
-          'nspr_lib_dir%': '<!(<(python) <(DEPTH)/coreconf/nspr_lib_dir.py)',
-          'nspr_include_dir%': '<!(<(python) <(DEPTH)/coreconf/nspr_include_dir.py)',
+          'nspr_lib_dir%': '<!(<(python) <(DEPTH)/coreconf/pkg_config.py . --libs nspr)',
+          'nspr_include_dir%': '<!(<(python) <(DEPTH)/coreconf/pkg_config.py . --cflags nspr)',
+          'nss_dist_obj_dir%': '<!(<(python) <(DEPTH)/coreconf/pkg_config.py ../.. --cflags nspr)',
+          'nss_dist_dir%': '<!(<(python) <(DEPTH)/coreconf/pkg_config.py ../../.. --cflags nspr)',
           'use_system_zlib%': 1,
         }],
         ['OS=="linux" or OS=="android"', {
-          'zlib_libs%': ['<!@(<(python) <(DEPTH)/coreconf/pkg_config.py --libs zlib)'],
+          'zlib_libs%': ['<!@(<(python) <(DEPTH)/coreconf/pkg_config.py raw --libs zlib)'],
           'moz_debug_flags%': '-gdwarf-2',
           'optimize_flags%': '-O2',
           'dll_prefix': 'lib',
@@ -76,6 +79,8 @@
     'nspr_libs%': ['<@(nspr_libs)'],
     'nspr_lib_dir%': '<(nspr_lib_dir)',
     'nspr_include_dir%': '<(nspr_include_dir)',
+    'nss_dist_obj_dir%': '<(nss_dist_obj_dir)',
+    'nss_dist_dir%': '<(nss_dist_dir)',
     'use_system_sqlite%': '<(use_system_sqlite)',
     'sqlite_libs%': ['-lsqlite3'],
     'dll_prefix': '<(dll_prefix)',
@@ -99,7 +104,7 @@
     },
     'include_dirs': [
       '<(nspr_include_dir)',
-      '<(PRODUCT_DIR)/dist/<(module)/private',
+      '<(nss_dist_dir)/private/<(module)',
     ],
     'conditions': [
       [ 'OS=="linux"', {
@@ -111,6 +116,14 @@
       }],
     ],
     'target_conditions': [
+      # If we ever want to properly export a static library, and copy it to lib,
+      # we will need to mark it as a 'standalone_static_library'. Otherwise,
+      # the relative paths in the thin archive will break linking.
+      [ '_type=="shared_library"', {
+        'product_dir': '<(nss_dist_obj_dir)/lib'
+      }, '_type=="executable"', {
+        'product_dir': '<(nss_dist_obj_dir)/bin'
+      }],
       # mapfile handling
       [ 'mapfile!=""', {
         # Work around a gyp bug. Fixed upstream but not in Ubuntu packages:

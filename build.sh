@@ -50,12 +50,6 @@ else
 fi
 $NINJA -C "$TARGET_DIR"
 
-# Copy files over to the right directory.
-mkdir -p "$DIST_DIR/bin" "$DIST_DIR/lib"
-find "$TARGET_DIR" -maxdepth 1 -type f -executable -exec ln -sft "$DIST_DIR/bin" {} \+
-find "$TARGET_DIR/lib" -maxdepth 1 -type f -exec ln -sft "$DIST_DIR/lib" {} \+
-find "$TARGET_DIR" -name '*.a' -exec ln -sft "$DIST_DIR/lib" {} \+
-
 # Sign libs.  TODO: get ninja to do this
 echo >"$TARGET_DIR/shlibsign.log"
 for lib in freebl3 freeblpriv3 nssdbm3 softokn3; do
