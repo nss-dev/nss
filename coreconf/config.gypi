@@ -86,15 +86,17 @@
     'dll_prefix': '<(dll_prefix)',
     'dll_suffix': '<(dll_suffix)',
     'cc_is_clang%': '<(cc_is_clang)',
+    # Some defaults
     'disable_tests%': 0,
     'disable_chachapoly%': 0,
     'disable_dbm%': 0,
     'disable_libpkix%': 0,
-    'ssl_enable_zlib%': 1,
-    'use_asan%': 0,
+    'disable_werror%': 0,
     'mozilla_client%': 0,
     'moz_fold_libs%': 0,
     'moz_folded_library_name%': '',
+    'ssl_enable_zlib%': 1,
+    'use_asan%': 0,
   },
   'target_defaults': {
     # Settings specific to targets should go here.
@@ -226,12 +228,9 @@
             '-fno-common',
             '-pipe',
           ],
-          # TODO:
-          # 'GCC_TREAT_WARNINGS_AS_ERRORS'
-          # 'WARNING_CFLAGS'
         },
         'conditions': [
-          ['OS=="linux" or OS=="android"', {
+          [ 'OS=="linux" or OS=="android"', {
             'defines': [
               'LINUX2_1',
               'LINUX',
@@ -260,6 +259,11 @@
                 'cflags': ['-m64'],
                 'ldflags': ['-m64'],
               }],
+            ],
+          }],
+          [ 'disable_werror==0 and (OS=="linux" or OS=="mac")', {
+            'cflags': [
+              '<!@(<(python) <(DEPTH)/coreconf/werror.py)',
             ],
           }],
           [ 'OS=="android" and mozilla_client==0', {
@@ -298,6 +302,15 @@
             ],
             'cflags': [
               '-W3',
+              '-w44267', # Disable C4267: conversion from 'size_t' to 'type', possible loss of data
+              '-w44244', # Disable C4244: conversion from 'type1' to 'type2', possible loss of data
+              '-w44018', # Disable C4018: 'expression' : signed/unsigned mismatch
+              '-w44312', # Disable C4312: 'type cast': conversion from 'type1' to 'type2' of greater size
+            ],
+            'conditions': [
+              [ 'disable_werror==0', {
+                'cflags': ['-WX']
+              }]
             ],
           }],
           [ 'disable_dbm==1', {
