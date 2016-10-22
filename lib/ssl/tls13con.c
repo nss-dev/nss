@@ -1107,6 +1107,12 @@ tls13_NegotiateKeyExchange(sslSocket *ss, TLS13KeyShareEntry **clientShare)
     for (index = 0; index < SSL_NAMED_GROUP_COUNT; ++index) {
         /* Continue to the next group if this one is not enabled. */
         if (!ss->namedGroupPreferences[index]) {
+            /* There's a gap in the preferred groups list. Assume this is a group
+             * that's not supported by the client but preferred by the server. */
+            if (preferredGroup) {
+                entry = NULL;
+                break;
+            }
             continue;
         }
 
