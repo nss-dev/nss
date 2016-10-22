@@ -10,10 +10,10 @@
 set -e
 
 CWD=$(cd $(dirname $0); pwd -P)
-OBJ_DIR=$(make -C $CWD platform)
+OBJ_DIR=$(make platform)
 DIST_DIR="$CWD/../dist/$OBJ_DIR"
 
-if [ -n $CCC ] && [ -z $CXX ]; then
+if [ -n "$CCC" ] && [ -z "$CXX" ]; then
     export CXX="$CCC"
 fi
 
