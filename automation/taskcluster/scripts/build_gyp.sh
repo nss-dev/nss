@@ -11,7 +11,7 @@ fi
 hg_clone https://hg.mozilla.org/projects/nspr nspr default
 
 # Build.
-cd nss && NSS_GYP_GEN=1 ./build.sh
+cd nss && ./build.sh -g
 if [ $? != 0 ]; then
     exit 1
 fi
