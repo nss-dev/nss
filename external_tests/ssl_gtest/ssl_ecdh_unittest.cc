@@ -355,7 +355,7 @@ TEST_P(TlsKeyExchangeTest13, NotEqualPriorityWithIntermediateGroup13) {
 }
 
 TEST_P(TlsKeyExchangeTest13,
-       NotEqualPriorityWithUnsupportedIntermediateGroup13) {
+       NotEqualPriorityWithUnsupportedFFIntermediateGroup13) {
   EnsureKeyShareSetup();
 
   // As in the previous test, the server prefers ffdhe_2048. Thus, even though
@@ -365,6 +365,28 @@ TEST_P(TlsKeyExchangeTest13,
                                                     ssl_grp_ec_secp256r1};
   const std::vector<SSLNamedGroup> server_groups = {
       ssl_grp_ec_secp256r1, ssl_grp_ffdhe_2048, ssl_grp_ec_curve25519};
+  client_->ConfigNamedGroups(client_groups);
+  server_->ConfigNamedGroups(server_groups);
+
+  Connect();
+
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_secp256r1, ssl_auth_rsa_sign,
+            ssl_sig_rsa_pss_sha256);
+  const std::vector<SSLNamedGroup> shares = {ssl_grp_ec_curve25519};
+  CheckKEXDetails(client_groups, shares, true);
+}
+
+TEST_P(TlsKeyExchangeTest13,
+       NotEqualPriorityWithUnsupportedECIntermediateGroup13) {
+  EnsureKeyShareSetup();
+
+  // As in the previous test, the server prefers P-384. Thus, even though
+  // the client doesn't support this group, the server must not regard x25519 as
+  // equivalent to P-256. The server sends a HelloRetryRequest.
+  const std::vector<SSLNamedGroup> client_groups = {ssl_grp_ec_curve25519,
+                                                    ssl_grp_ec_secp256r1};
+  const std::vector<SSLNamedGroup> server_groups = {
+      ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_curve25519};
   client_->ConfigNamedGroups(client_groups);
   server_->ConfigNamedGroups(server_groups);
 

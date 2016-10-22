@@ -409,7 +409,6 @@ void TlsAgent::CheckKEA(SSLKEAType kea_type, SSLNamedGroup kea_group,
                         size_t kea_size) const {
   EXPECT_EQ(STATE_CONNECTED, state_);
   EXPECT_EQ(kea_type, info_.keaType);
-  EXPECT_EQ(kea_group, info_.keaGroup);
   if (kea_size == 0) {
     switch (kea_group) {
       case ssl_grp_ec_curve25519:
@@ -424,6 +423,11 @@ void TlsAgent::CheckKEA(SSLKEAType kea_type, SSLNamedGroup kea_group,
       case ssl_grp_ffdhe_2048:
         kea_size = 2048;
         break;
+      case ssl_grp_ffdhe_3072:
+        kea_size = 3072;
+        break;
+      case ssl_grp_ffdhe_custom:
+        break;
       default:
         if (kea_type == ssl_kea_rsa) {
           kea_size = server_key_bits_;
@@ -432,7 +436,10 @@ void TlsAgent::CheckKEA(SSLKEAType kea_type, SSLNamedGroup kea_group,
         }
     }
   }
-  EXPECT_EQ(kea_size, info_.keaKeyBits);
+  if (kea_group != ssl_grp_ffdhe_custom) {
+    EXPECT_EQ(kea_size, info_.keaKeyBits);
+    EXPECT_EQ(kea_group, info_.keaGroup);
+  }
 }
 
 void TlsAgent::CheckAuthType(SSLAuthType auth_type,
