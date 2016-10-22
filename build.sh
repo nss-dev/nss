@@ -9,9 +9,13 @@
 
 set -e
 
-CWD=$(realpath $(dirname $0))
-OBJ_DIR=$(make platform)
+CWD=$(cd $(dirname $0); pwd -P)
+OBJ_DIR=$(make -C $CWD platform)
 DIST_DIR="$CWD/../dist/$OBJ_DIR"
+
+if [ -n $CCC ] && [ -z $CXX ]; then
+    export CXX="$CCC"
+fi
 
 # -c = clean first
 if [ "$1" = "-c" ]; then
@@ -49,15 +53,3 @@ else
     exit 1
 fi
 $NINJA -C "$TARGET_DIR"
-
-# Sign libs.  TODO: get ninja to do this
-echo >"$TARGET_DIR/shlibsign.log"
-for lib in freebl3 freeblpriv3 nssdbm3 softokn3; do
-    if [ ! -e "$DIST_DIR/lib/lib$lib.signed" -o \
-         "$DIST_DIR/lib/lib$lib.so" -nt "$DIST_DIR/lib/lib$lib.signed" ]; then
-        LD_LIBRARY_PATH="$DIST_DIR/lib" DYLD_LIBRARY_PATH="$DIST_DIR/lib" \
-            "$DIST_DIR/bin/shlibsign" -v -i "$DIST_DIR/lib/lib$lib.so" \
-            >>"$TARGET_DIR/shlibsign.log" 2>&1
-        touch "$DIST_DIR/lib/lib$lib.signed"
-    fi
-done
