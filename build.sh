@@ -11,7 +11,7 @@
 set -e
 
 CWD=$(cd $(dirname $0); pwd -P)
-OBJ_DIR=$(cd "$CWD";make platform)
+OBJ_DIR=$(make -s -C "$CWD" platform)
 DIST_DIR="$CWD/../dist/$OBJ_DIR"
 
 if [ -n "$CCC" ] && [ -z "$CXX" ]; then
