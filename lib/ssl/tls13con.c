@@ -1136,12 +1136,12 @@ tls13_NegotiateKeyExchange(sslSocket *ss, TLS13KeyShareEntry **clientShare)
         }
     }
 
-    SSL_TRC(3, ("%d: TLS13[%d]: group = %d", preferredGroup->name));
-
     if (!preferredGroup) {
         FATAL_ERROR(ss, SSL_ERROR_NO_CYPHER_OVERLAP, handshake_failure);
         return SECFailure;
     }
+
+    SSL_TRC(3, ("%d: TLS13[%d]: group = %d", preferredGroup->name));
 
     if (!entry) {
         return tls13_SendHelloRetryRequest(ss, preferredGroup);
