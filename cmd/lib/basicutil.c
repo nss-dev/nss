@@ -787,11 +787,11 @@ parseGroupList(const char *arg, SSLNamedGroup **enabledGroups,
         p = strtok(NULL, ",");
     }
     groups = PORT_ZNewArray(SSLNamedGroup, numValues);
-    if (!groups) {
-        return SECFailure;
-    }
     if (str) {
         PORT_Free(str);
+    }
+    if (!groups) {
+        return SECFailure;
     }
 
     /* Get group names. */
