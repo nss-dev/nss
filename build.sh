@@ -7,6 +7,7 @@
 # -c = clean before build
 # -g = force a rebuild of gyp (and NSPR, because why not)
 # -v = verbose build
+# --test = ignore map files and export everything we have
 
 set -e
 
@@ -23,6 +24,7 @@ while [ $# -gt 0 ]; do
         -c) CLEAN=1 ;;
         -g) REBUILD_GYP=1 ;;
         -v) VERBOSE=1 ;;
+        --test) GYP_PARAMS="$GYP_PARAMS -Dtest_build=1" ;;
     esac
     shift
 done
@@ -40,7 +42,7 @@ fi
 if [ "$USE_64" == "1" ]; then
     TARGET="${TARGET}_x64"
 else
-    GYP_PARAMS="-Dtarget_arch=ia32"
+    GYP_PARAMS="$GYP_PARAMS -Dtarget_arch=ia32"
 fi
 TARGET_DIR="$CWD/out/$TARGET"
 
