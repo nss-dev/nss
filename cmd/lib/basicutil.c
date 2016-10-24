@@ -776,22 +776,25 @@ parseGroupList(const char *arg, SSLNamedGroup **enabledGroups,
                unsigned int *enabledGroupsCount)
 {
     SSLNamedGroup *groups;
-    char *str = PORT_Strdup(arg);
+    char *str;
+    char *p;
     unsigned int numValues = 0;
     unsigned int count = 0;
 
     /* Count the number of groups. */
-    char *p = strtok(str, ",");
+    str = PORT_Strdup(arg);
+    if (!str) {
+        return SECFailure;
+    }
+    p = strtok(str, ",");
     while (p) {
         ++numValues;
         p = strtok(NULL, ",");
     }
+    PORT_Free(str);
     groups = PORT_ZNewArray(SSLNamedGroup, numValues);
-    if (str) {
-        PORT_Free(str);
-    }
     if (!groups) {
-        return SECFailure;
+        goto done;
     }
 
     /* Get group names. */
