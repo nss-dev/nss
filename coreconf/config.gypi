@@ -97,6 +97,7 @@
     'moz_folded_library_name%': '',
     'ssl_enable_zlib%': 1,
     'use_asan%': 0,
+    'test_build%': 0,
   },
   'target_defaults': {
     # Settings specific to targets should go here.
@@ -104,6 +105,7 @@
     'variables': {
       'mapfile%': '',
     },
+    'standalone_static_library': 0,
     'include_dirs': [
       '<(nspr_include_dir)',
       '<(nss_dist_dir)/private/<(module)',
@@ -116,57 +118,64 @@
           '-lc',
         ],
       }],
+      [ 'test_build!=1', {
+        # skip the maps for test builds
+        'target_conditions': [
+          # mapfile handling
+          [ 'mapfile!=""', {
+            # Work around a gyp bug. Fixed upstream but not in Ubuntu packages:
+            # https://chromium.googlesource.com/external/gyp/+/b85ad3e578da830377dbc1843aa4fbc5af17a192%5E%21/
+            'sources': [
+              '<(DEPTH)/coreconf/empty.c',
+            ] ,
+            'xcode_settings': {
+              'OTHER_LDFLAGS': [
+                '-exported_symbols_list',
+                '<(INTERMEDIATE_DIR)/out.>(mapfile)',
+              ],
+            },
+              'conditions': [
+                [ 'OS=="linux" or OS=="android"', {
+                  'ldflags': [
+                    '-Wl,--version-script,<(INTERMEDIATE_DIR)/out.>(mapfile)',
+                  ],
+                }],
+                [ 'OS=="win"', {
+                  # On Windows, .def files are used directly as sources.
+                  'sources': [
+                    '>(mapfile)',
+                  ],
+                }, {
+                  # On other platforms, .def files need processing.
+                  'sources': [
+                    '<(INTERMEDIATE_DIR)/out.>(mapfile)',
+                  ],
+                  'actions': [{
+                    'action_name': 'generate_mapfile',
+                    'inputs': [
+                      '>(mapfile)',
+                    ],
+                    'outputs': [
+                      '<(INTERMEDIATE_DIR)/out.>(mapfile)',
+                    ],
+                    'action': ['<@(process_map_file)'],
+                  }],
+                }]
+              ],
+          }],
+        ],
+      }]
     ],
     'target_conditions': [
-      # If we ever want to properly export a static library, and copy it to lib,
-      # we will need to mark it as a 'standalone_static_library'. Otherwise,
+      # If we want to properly export a static library, and copy it to lib,
+      # we need to mark it as a 'standalone_static_library'. Otherwise,
       # the relative paths in the thin archive will break linking.
       [ '_type=="shared_library"', {
         'product_dir': '<(nss_dist_obj_dir)/lib'
       }, '_type=="executable"', {
         'product_dir': '<(nss_dist_obj_dir)/bin'
-      }],
-      # mapfile handling
-      [ 'mapfile!=""', {
-        # Work around a gyp bug. Fixed upstream but not in Ubuntu packages:
-        # https://chromium.googlesource.com/external/gyp/+/b85ad3e578da830377dbc1843aa4fbc5af17a192%5E%21/
-        'sources': [
-          '<(DEPTH)/coreconf/empty.c',
-        ],
-        'xcode_settings': {
-          'OTHER_LDFLAGS': [
-            '-exported_symbols_list',
-            '<(INTERMEDIATE_DIR)/out.>(mapfile)',
-          ],
-        },
-        'conditions': [
-          [ 'OS=="linux" or OS=="android"', {
-            'ldflags': [
-              '-Wl,--version-script,<(INTERMEDIATE_DIR)/out.>(mapfile)',
-            ],
-          }],
-          [ 'OS=="win"', {
-            # On Windows, .def files are used directly as sources.
-            'sources': [
-              '>(mapfile)',
-            ],
-          }, {
-            # On other platforms, .def files need processing.
-            'sources': [
-              '<(INTERMEDIATE_DIR)/out.>(mapfile)',
-            ],
-            'actions': [{
-              'action_name': 'generate_mapfile',
-              'inputs': [
-                '>(mapfile)',
-              ],
-              'outputs': [
-                '<(INTERMEDIATE_DIR)/out.>(mapfile)',
-              ],
-              'action': ['<@(process_map_file)'],
-            }],
-          }]
-        ],
+      }, '_standalone_static_library==1', {
+        'product_dir': '<(nss_dist_obj_dir)/lib'
       }],
       [ '_type=="shared_library" or _type=="executable"', {
         'libraries': [
