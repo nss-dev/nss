@@ -483,8 +483,8 @@ TEST_P(TlsConnectGenericPre13, RequireNamedGroupsMismatchPre13) {
   EXPECT_EQ(SECSuccess, SSL_OptionSet(client_->ssl_fd(),
                                       SSL_REQUIRE_DH_NAMED_GROUPS, PR_TRUE));
   static const std::vector<SSLNamedGroup> server_groups = {ssl_grp_ffdhe_3072};
-  static const std::vector<SSLNamedGroup> client_groups = {
-      ssl_grp_ec_secp256r1, ssl_grp_ffdhe_2048};
+  static const std::vector<SSLNamedGroup> client_groups = {ssl_grp_ec_secp256r1,
+                                                           ssl_grp_ffdhe_2048};
   server_->ConfigNamedGroups(server_groups);
   client_->ConfigNamedGroups(client_groups);
 
