@@ -230,5 +230,22 @@
         },
       ],
     }],
+    [ 'fuzz==1', {
+      'targets': [
+        {
+          'target_name': 'fuzz',
+          'type': 'none',
+          'actions': [
+            {
+              'action_name': 'warn_fuzz',
+              'action': ['cat', 'fuzz/warning.txt'],
+              'inputs': ['fuzz/warning.txt'],
+              'ninja_use_console': 1,
+              'outputs': ['dummy'],
+            }
+          ],
+        },
+      ],
+    }],
   ],
 }

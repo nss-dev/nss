@@ -25,6 +25,7 @@ while [ $# -gt 0 ]; do
         -g) REBUILD_GYP=1 ;;
         -v) VERBOSE=1 ;;
         --test) GYP_PARAMS="$GYP_PARAMS -Dtest_build=1" ;;
+        --fuzz) GYP_PARAMS="$GYP_PARAMS -Dtest_build=1 -Dfuzz=1" ;;
     esac
     shift
 done
