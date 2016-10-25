@@ -47,6 +47,7 @@
         'cts.c',
         'des.c',
         'desblapi.c',
+        'det_rng.c',
         'dh.c',
         'drbg.c',
         'dsa.c',
@@ -211,6 +212,11 @@
                 'poly1305.c',
               ],
             }],
+          ],
+        }],
+        [ 'fuzz==1', {
+          'defines': [
+            'UNSAFE_FUZZER_MODE',
           ],
         }],
         [ 'OS=="mac"', {
@@ -393,12 +399,5 @@
   },
   'variables': {
     'module': 'nss',
-    'conditions': [
-      [ 'OS=="linux"', {
-        'freebl_name': 'freeblpriv3',
-      }, {
-        'freebl_name': 'freebl3',
-      }],
-    ],
   }
 }
