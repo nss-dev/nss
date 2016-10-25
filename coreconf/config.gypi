@@ -118,53 +118,6 @@
           '-lc',
         ],
       }],
-      [ 'test_build!=1', {
-        # skip the maps for test builds
-        'target_conditions': [
-          # mapfile handling
-          [ 'mapfile!=""', {
-            # Work around a gyp bug. Fixed upstream but not in Ubuntu packages:
-            # https://chromium.googlesource.com/external/gyp/+/b85ad3e578da830377dbc1843aa4fbc5af17a192%5E%21/
-            'sources': [
-              '<(DEPTH)/coreconf/empty.c',
-            ] ,
-            'xcode_settings': {
-              'OTHER_LDFLAGS': [
-                '-exported_symbols_list',
-                '<(INTERMEDIATE_DIR)/out.>(mapfile)',
-              ],
-            },
-              'conditions': [
-                [ 'OS=="linux" or OS=="android"', {
-                  'ldflags': [
-                    '-Wl,--version-script,<(INTERMEDIATE_DIR)/out.>(mapfile)',
-                  ],
-                }],
-                [ 'OS=="win"', {
-                  # On Windows, .def files are used directly as sources.
-                  'sources': [
-                    '>(mapfile)',
-                  ],
-                }, {
-                  # On other platforms, .def files need processing.
-                  'sources': [
-                    '<(INTERMEDIATE_DIR)/out.>(mapfile)',
-                  ],
-                  'actions': [{
-                    'action_name': 'generate_mapfile',
-                    'inputs': [
-                      '>(mapfile)',
-                    ],
-                    'outputs': [
-                      '<(INTERMEDIATE_DIR)/out.>(mapfile)',
-                    ],
-                    'action': ['<@(process_map_file)'],
-                  }],
-                }]
-              ],
-          }],
-        ],
-      }]
     ],
     'target_conditions': [
       # If we want to properly export a static library, and copy it to lib,
@@ -176,6 +129,56 @@
         'product_dir': '<(nss_dist_obj_dir)/bin'
       }, '_standalone_static_library==1', {
         'product_dir': '<(nss_dist_obj_dir)/lib'
+      }],
+      # mapfile handling
+      [ 'test_build==0 and mapfile!=""', {
+        # Work around a gyp bug. Fixed upstream but not in Ubuntu packages:
+        # https://chromium.googlesource.com/external/gyp/+/b85ad3e578da830377dbc1843aa4fbc5af17a192%5E%21/
+        'sources': [
+          '<(DEPTH)/coreconf/empty.c',
+        ],
+        'xcode_settings': {
+          'OTHER_LDFLAGS': [
+            '-exported_symbols_list',
+            '<(INTERMEDIATE_DIR)/out.>(mapfile)',
+          ],
+        },
+        'conditions': [
+          [ 'OS=="linux" or OS=="android"', {
+            'ldflags': [
+              '-Wl,--version-script,<(INTERMEDIATE_DIR)/out.>(mapfile)',
+            ],
+          }],
+          [ 'OS=="win"', {
+            # On Windows, .def files are used directly as sources.
+            'sources': [
+              '>(mapfile)',
+            ],
+          }, {
+            # On other platforms, .def files need processing.
+            'sources': [
+              '<(INTERMEDIATE_DIR)/out.>(mapfile)',
+            ],
+            'actions': [{
+              'action_name': 'generate_mapfile',
+              'inputs': [
+                '>(mapfile)',
+              ],
+              'outputs': [
+                '<(INTERMEDIATE_DIR)/out.>(mapfile)',
+              ],
+              'action': ['<@(process_map_file)'],
+            }],
+          }]
+        ],
+      }, 'test_build==1 and _type=="shared_library"', {
+        # When linking a shared lib against a static one, XCode doesn't
+        # export the latter's symbols by default. -all_load fixes that.
+        'xcode_settings': {
+          'OTHER_LDFLAGS': [
+            '-all_load',
+          ],
+        },
       }],
       [ '_type=="shared_library" or _type=="executable"', {
         'libraries': [
