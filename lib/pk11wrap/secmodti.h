@@ -174,6 +174,7 @@ struct PK11GenericObjectStr {
     PK11GenericObject *prev;
     PK11GenericObject *next;
     PK11SlotInfo *slot;
+    PRBool owner;
     CK_OBJECT_HANDLE objectID;
 };
 
