@@ -104,6 +104,7 @@
     # This is mostly for linking to libraries.
     'variables': {
       'mapfile%': '',
+      'test_build%': 0,
     },
     'standalone_static_library': 0,
     'include_dirs': [
