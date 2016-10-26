@@ -14,14 +14,10 @@ const WINDOWS_CHECKOUT_CMD =
 
 /*****************************************************************************/
 
-function isSanitizer(task) {
-  return task.collection == "asan" || task.collection == "ubsan";
-}
-
 queue.filter(task => {
   if (task.group == "Builds") {
     // Remove extra builds on {A,UB}San and ARM.
-    if (isSanitizer(task) || task.collection == "arm-debug") {
+    if (task.collection == "asan" || task.collection == "arm-debug") {
       return false;
     }
 
@@ -44,17 +40,11 @@ queue.filter(task => {
     }
   }
 
-  // Filter test suites that currently fail with UBSan.
-  if (task.collection == "ubsan" &&
-      ["crmf", "cipher", "fips", "merge", "smime"].includes(task.tests)) {
-    return false;
-  }
-
   return true;
 });
 
 queue.map(task => {
-  if (isSanitizer(task)) {
+  if (task.collection == "asan") {
     // CRMF and FIPS tests still leak, unfortunately.
     if (task.tests == "crmf" || task.tests == "fips") {
       task.env.ASAN_OPTIONS = "detect_leaks=0";
@@ -122,20 +112,6 @@ export default async function main() {
 
   await scheduleLinux("Linux 64 (ASan, debug)", {
     env: {
-      NSS_DISABLE_ARENA_FREE_LIST: "1",
-      NSS_DISABLE_UNLOAD: "1",
-      CC: "clang",
-      CCC: "clang++",
-      USE_ASAN: "1",
-      USE_64: "1"
-    },
-    platform: "linux64",
-    collection: "asan",
-    image: LINUX_IMAGE
-  });
-
-  await scheduleLinux("Linux 64 (ASan+UBSan, debug)", {
-    env: {
       UBSAN_OPTIONS: "print_stacktrace=1",
       NSS_DISABLE_ARENA_FREE_LIST: "1",
       NSS_DISABLE_UNLOAD: "1",
@@ -146,7 +122,7 @@ export default async function main() {
       USE_64: "1"
     },
     platform: "linux64",
-    collection: "ubsan",
+    collection: "asan",
     image: LINUX_IMAGE
   });
 

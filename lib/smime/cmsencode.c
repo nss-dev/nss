@@ -105,7 +105,9 @@ nss_cms_encoder_out(void *arg, const char *buf, unsigned long len,
 	output->dest->len += len;
 
 	/* copy it in */
-	PORT_Memcpy(output->dest->data + offset, buf, len);
+        if (len) {
+            PORT_Memcpy(output->dest->data + offset, buf, len);
+        }
     }
 }
 
