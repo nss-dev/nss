@@ -158,6 +158,8 @@ export default async function main() {
     collection: "debug"
   });
 
+  await scheduleFuzzing();
+
   await scheduleTools();
 
   await scheduleLinux("Linux 32 (ARM, debug)", {
@@ -249,6 +251,65 @@ async function scheduleLinux(name, base) {
     name: `${name} w/ NSS_DISABLE_LIBPKIX=1`,
     env: {NSS_DISABLE_LIBPKIX: "1"},
     symbol: "noLibpkix"
+  }));
+
+  return queue.submit();
+}
+
+/*****************************************************************************/
+
+async function scheduleFuzzing() {
+  let base = {
+    env: {
+      ASAN_OPTIONS: "allocator_may_return_null=1",
+      UBSAN_OPTIONS: "print_stacktrace=1",
+      CC: "clang",
+      CCC: "clang++",
+      USE_64: "1"
+    },
+    platform: "linux64",
+    collection: "fuzz",
+    image: LINUX_IMAGE
+  };
+
+  // Build base definition.
+  let build_base = merge({
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && " +
+      "nss/automation/taskcluster/scripts/build_gyp.sh -g -v --fuzz"
+    ],
+    artifacts: {
+      public: {
+        expires: 24 * 7,
+        type: "directory",
+        path: "/home/worker/artifacts"
+      }
+    },
+    kind: "build",
+    symbol: "B"
+  }, base);
+
+  // The task that builds NSPR+NSS.
+  let task_build = queue.scheduleTask(merge(build_base, {
+    name: "Linux x64 (debug, fuzz)"
+  }));
+
+  // Schedule tests.
+  queue.scheduleTask(merge(base, {
+    parent: task_build,
+    name: "Gtests",
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+    ],
+    env: {GTESTFILTER: "*Fuzz*"},
+    symbol: "Gtest",
+    tests: "gtests",
+    cycle: "standard",
+    kind: "test"
   }));
 
   return queue.submit();
