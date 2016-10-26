@@ -11,7 +11,7 @@ fi
 hg_clone https://hg.mozilla.org/projects/nspr nspr default
 
 # Build.
-nss/build.sh ${*-"-g -v"}
+nss/build.sh ${*--g -v}
 
 # Package.
 mkdir artifacts
