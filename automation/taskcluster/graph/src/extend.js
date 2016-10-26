@@ -30,11 +30,6 @@ queue.filter(task => {
         (task.platform != "linux64" || task.collection != "debug")) {
       return false;
     }
-
-    // Remove extra builds on gyp builds (TODO: add when it supports CC/CCC).
-    if (task.collection == "gyp") {
-      return false;
-    }
   }
 
   if (task.tests == "bogo") {
