@@ -98,7 +98,6 @@ nss_makeFlags(PRBool readOnly, PRBool noCertDB,
         if (!first)
             PORT_Strcat(flags, ",");
         PORT_Strcat(flags, "optimizeSpace");
-        first = PR_FALSE;
     }
     return flags;
 }
