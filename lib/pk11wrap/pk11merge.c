@@ -61,19 +61,44 @@ pk11_copyAttributes(PLArenaPool *arena,
 	PK11SlotInfo *sourceSlot, CK_OBJECT_HANDLE sourceID,
 	CK_ATTRIBUTE *copyTemplate, CK_ULONG copyTemplateCount)
 {
-    SECStatus rv = PK11_GetAttributes(arena, sourceSlot, sourceID, 
+    SECStatus rv;
+    CK_ATTRIBUTE *newTemplate = NULL;
+    CK_RV crv;
+
+    crv  = PK11_GetAttributes(arena, sourceSlot, sourceID,
 				copyTemplate, copyTemplateCount);
-    if (rv != SECSuccess) {
-	return rv;
+    /* if we have missing attributes, just skip them and create the object */
+    if (crv == CKR_ATTRIBUTE_TYPE_INVALID) {
+	int i,j;
+	newTemplate = PORT_NewArray(CK_ATTRIBUTE, copyTemplateCount);
+	/* remove the unknown attributes. If we don't have enough attributes
+	 * PK11_CreateNewObject() will fail */
+	for (i=0,j=0; i < copyTemplateCount; i++) {
+	    if (copyTemplate[i].ulValueLen != -1) {
+		newTemplate[j] = copyTemplate[i];
+		j++;
+	    }
+	}
+	copyTemplate = newTemplate;
+	copyTemplateCount = j;
+    	crv  = PK11_GetAttributes(arena, sourceSlot, sourceID,
+				copyTemplate, copyTemplateCount);
+    }
+    if (crv != CKR_OK) {
+ 	PORT_SetError( PK11_MapError(crv) );
+	return SECFailure;
     }
     if (targetID == CK_INVALID_HANDLE) {
 	/* we need to create the object */
-	rv = PK11_CreateNewObject(targetSlot, CK_INVALID_SESSION, 
+	rv = PK11_CreateNewObject(targetSlot, CK_INVALID_SESSION,
 		copyTemplate, copyTemplateCount, PR_TRUE, &targetID);
     } else {
 	/* update the existing object with the new attributes */
-	rv = pk11_setAttributes(targetSlot, targetID, 
+	rv = pk11_setAttributes(targetSlot, targetID,
 			copyTemplate, copyTemplateCount);
+    }
+    if (newTemplate) {
+	free(newTemplate);
     }
     return rv;
 }
