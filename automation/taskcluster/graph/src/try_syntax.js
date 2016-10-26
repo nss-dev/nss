@@ -113,7 +113,7 @@ function filter(opts) {
 
       // Additional checks.
       if (platform == "linux64-asan") {
-        keep &= coll("asan") || coll("ubsan");
+        keep &= coll("asan");
       } else if (platform == "arm") {
         keep &= coll("arm-opt") || coll("arm-debug");
       } else if (platform == "linux64-gyp") {
@@ -132,8 +132,8 @@ function filter(opts) {
     }
 
     // Finally, filter by build type.
-    let isDebug = coll("debug") || coll("asan") || coll("ubsan") ||
-                  coll("arm-debug") || coll("gyp") || coll("fuzz");
+    let isDebug = coll("debug") || coll("asan") || coll("arm-debug") ||
+                  coll("gyp") || coll("fuzz");
     return (isDebug && opts.builds.includes("d")) ||
            (!isDebug && opts.builds.includes("o"));
   }
