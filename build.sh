@@ -3,13 +3,32 @@
 #
 # This build system is still under development.  It does not yet support all
 # the features or platforms that NSS supports.
-#
-# -c = clean before build
-# -g = force a rebuild of gyp (and NSPR, because why not)
-# -v = verbose build
-# --test = ignore map files and export everything we have
 
 set -e
+
+# Usage info
+show_help() {
+cat << EOF
+
+Usage: ${0##*/} [-hcgv] [--test] [--fuzz] [--scan-build[=output]]
+
+This script builds NSS with gyp and ninja.
+
+This build system is still under development.  It does not yet support all
+the features or platforms that NSS supports.
+
+NSS build tool options:
+
+    -h            display this help and exit
+    -c            clean before build
+    -g            force a rebuild of gyp (and NSPR, because why not)
+    -v            verbose build
+    --test        ignore map files and export everything we have
+    --fuzz        enable fuzzing mode. this always enables test builds
+    --scan-build  run the build with scan-build (scan-build has to be in the path)
+                  --scan-build=/out/path sets the output path for scan-build
+EOF
+}
 
 CWD=$(cd $(dirname $0); pwd -P)
 OBJ_DIR=$(make -s -C "$CWD" platform)
@@ -19,6 +38,7 @@ if [ -n "$CCC" ] && [ -z "$CXX" ]; then
     export CXX="$CCC"
 fi
 
+# parse command line arguments
 while [ $# -gt 0 ]; do
     case $1 in
         -c) CLEAN=1 ;;
@@ -26,6 +46,12 @@ while [ $# -gt 0 ]; do
         -v) VERBOSE=1 ;;
         --test) GYP_PARAMS="$GYP_PARAMS -Dtest_build=1" ;;
         --fuzz) GYP_PARAMS="$GYP_PARAMS -Dtest_build=1 -Dfuzz=1" ;;
+        --scan-build) SCANBUILD="scan-build" ;;
+        --scan-build=?*) SCANBUILD="scan-build -o ${1#*=}" ;;
+        *)
+            show_help
+            exit
+            ;;
     esac
     shift
 done
@@ -47,6 +73,16 @@ else
 fi
 TARGET_DIR="$CWD/out/$TARGET"
 
+# figure out scan-build string
+if [ -n "$SCANBUILD" ]; then
+    if [ -n "$CC" ]; then
+       SCANBUILD="$SCANBUILD --use-cc=$CC"
+    fi
+    if [ -n "$CCC" ]; then
+       SCANBUILD="$SCANBUILD --use-c++=$CCC"
+    fi
+ fi
+
 # These steps can take a while, so don't overdo them.
 # Force a redo with -g.
 if [ "$REBUILD_GYP" = 1 -o ! -d "$TARGET_DIR" ]; then
@@ -54,8 +90,9 @@ if [ "$REBUILD_GYP" = 1 -o ! -d "$TARGET_DIR" ]; then
     make -C "$CWD" NSS_GYP=1 install_nspr
 
     # Run gyp.
-    PKG_CONFIG_PATH="$CWD/../nspr/$OBJ_DIR/config" $SCANBUILD \
-        gyp -f ninja $GYP_PARAMS --depth="$CWD" --generator-output="." "$CWD/nss.gyp"
+    PKG_CONFIG_PATH="$CWD/../nspr/$OBJ_DIR/config" \
+        $SCANBUILD gyp -f ninja $GYP_PARAMS --depth="$CWD" \
+          --generator-output="." "$CWD/nss.gyp"
 fi
 
 # Run ninja.
@@ -70,4 +107,4 @@ fi
 if [ "$VERBOSE" = 1 ]; then
     NINJA="$NINJA -v"
 fi
-$NINJA -C "$TARGET_DIR"
+$SCANBUILD $NINJA -C "$TARGET_DIR"
