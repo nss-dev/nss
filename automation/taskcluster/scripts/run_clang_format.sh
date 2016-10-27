@@ -28,9 +28,12 @@ else
          "$top/lib/dbm" \
          "$top/lib/dev" \
          "$top/lib/freebl" \
+         "$top/lib/jar" \
          "$top/lib/nss" \
          "$top/lib/pk11wrap" \
+         "$top/lib/pkcs7" \
          "$top/lib/pkcs12" \
+         "$top/lib/pki" \
          "$top/lib/softoken" \
          "$top/lib/ssl" \
          "$top/lib/sysinit" \
