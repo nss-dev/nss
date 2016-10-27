@@ -10,7 +10,7 @@ set -e
 show_help() {
 cat << EOF
 
-Usage: ${0##*/} [-hcgv] [--test] [--fuzz] [--scan-build[=output]]
+Usage: ${0##*/} [-hcgv] [-j <n>] [--test] [--fuzz] [--scan-build[=output]]
 
 This script builds NSS with gyp and ninja.
 
@@ -22,6 +22,7 @@ NSS build tool options:
     -h            display this help and exit
     -c            clean before build
     -g            force a rebuild of gyp (and NSPR, because why not)
+    -j <n>        run at most <n> concurrent jobs
     -v            verbose build
     --test        ignore map files and export everything we have
     --fuzz        enable fuzzing mode. this always enables test builds
@@ -39,15 +40,19 @@ if [ -n "$CCC" ] && [ -z "$CXX" ]; then
 fi
 
 # parse command line arguments
+GYP_PARAMS=()
+NINJA_PARAMS=()
+SCANBUILD=()
 while [ $# -gt 0 ]; do
     case $1 in
         -c) CLEAN=1 ;;
         -g) REBUILD_GYP=1 ;;
-        -v) VERBOSE=1 ;;
-        --test) GYP_PARAMS="$GYP_PARAMS -Dtest_build=1" ;;
-        --fuzz) GYP_PARAMS="$GYP_PARAMS -Dtest_build=1 -Dfuzz=1" ;;
-        --scan-build) SCANBUILD="scan-build" ;;
-        --scan-build=?*) SCANBUILD="scan-build -o ${1#*=}" ;;
+        -j) NINJA_PARAMS+=(-j "$2"); shift ;;
+        -v) NINJA_PARAMS+=(-v) ;;
+        --test) GYP_PARAMS+=(-Dtest_build=1) ;;
+        --fuzz) GYP_PARAMS+=(-Dtest_build=1 -Dfuzz=1) ;;
+        --scan-build) SCANBUILD=(scan-build) ;;
+        --scan-build=?*) SCANBUILD=(scan-build -o "${1#*=}") ;;
         *)
             show_help
             exit
@@ -69,17 +74,17 @@ fi
 if [ "$USE_64" == "1" ]; then
     TARGET="${TARGET}_x64"
 else
-    GYP_PARAMS="$GYP_PARAMS -Dtarget_arch=ia32"
+    GYP_PARAMS+=(-Dtarget_arch=ia32)
 fi
 TARGET_DIR="$CWD/out/$TARGET"
 
 # figure out scan-build string
-if [ -n "$SCANBUILD" ]; then
+if [ "${#SCANBUILD[@]}" -gt 0 ]; then
     if [ -n "$CC" ]; then
-       SCANBUILD="$SCANBUILD --use-cc=$CC"
+       SCANBUILD+=(--use-cc="$CC")
     fi
     if [ -n "$CCC" ]; then
-       SCANBUILD="$SCANBUILD --use-c++=$CCC"
+       SCANBUILD+=(--use-c++="$CCC")
     fi
  fi
 
@@ -91,20 +96,17 @@ if [ "$REBUILD_GYP" = 1 -o ! -d "$TARGET_DIR" ]; then
 
     # Run gyp.
     PKG_CONFIG_PATH="$CWD/../nspr/$OBJ_DIR/config" \
-        $SCANBUILD gyp -f ninja $GYP_PARAMS --depth="$CWD" \
+        "${SCANBUILD[@]}" gyp -f ninja "${GYP_PARAMS[@]}" --depth="$CWD" \
           --generator-output="." "$CWD/nss.gyp"
 fi
 
 # Run ninja.
 if which ninja >/dev/null 2>&1; then
-    NINJA=ninja
+    NINJA=(ninja)
 elif which ninja-build >/dev/null 2>&1; then
-    NINJA=ninja-build
+    NINJA=(ninja-build)
 else
     echo "Please install ninja" 1>&2
     exit 1
 fi
-if [ "$VERBOSE" = 1 ]; then
-    NINJA="$NINJA -v"
-fi
-$SCANBUILD $NINJA -C "$TARGET_DIR"
+"${SCANBUILD[@]}" $NINJA -C "$TARGET_DIR" "${NINJA_PARAMS[@]}"
