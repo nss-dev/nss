@@ -1151,7 +1151,7 @@ secmod_matchConfig(char *configDir1, char *configDir2,
     if (isReadOnly2) { /* isReadonly1 == PR_FALSE */
         return PR_FALSE;
     }
-    return PR_FALSE;
+    return PR_TRUE;
 }
 
 /*
