@@ -17,6 +17,7 @@
 #include "secerr.h"
 #include "nss.h"
 #include "utilpars.h"
+#include "pk11pub.h"
 
 /* create a new module */
 static  SECMODModule *
@@ -1114,11 +1115,41 @@ secmod_matchPrefix(char *prefix1, char *prefix2)
     return PR_FALSE;
 }
 
+/* do two config paramters match? Not all callers are compariing 
+ * SECMODConfigLists directly, so this function breaks them out to their
+ * components. */
+static PRBool
+secmod_matchConfig(char *configDir1, char *configDir2,
+		   char *certPrefix1, char *certPrefix2,
+		   char *keyPrefix1, char *keyPrefix2,
+		   PRBool isReadOnly1, PRBool isReadOnly2)
+{
+    if (strcmp(configDir1,configDir2) != 0) {
+	return PR_FALSE;
+    } 
+    if (!secmod_matchPrefix(certPrefix1, certPrefix2)) {
+	return PR_FALSE;
+    }
+    if (!secmod_matchPrefix(keyPrefix1, keyPrefix2)) {
+	return PR_FALSE;
+    }
+    /* these last test -- if we just need the DB open read only,
+     * than any open will suffice, but if we requested it read/write
+     * and it's only open read only, we need to open it again */
+    if (isReadOnly1) {
+	return PR_TRUE;
+    }
+    if (isReadOnly2) { /* isReadonly1 == PR_FALSE */
+	return PR_FALSE;
+    }
+    return PR_FALSE;
+}
+
 /*
  * return true if we are requesting a database that is already openned.
  */
 PRBool
-secmod_MatchConfigList(char *spec, SECMODConfigList *conflist, int count)
+secmod_MatchConfigList(const char *spec, SECMODConfigList *conflist, int count)
 {
     char *config;
     char *certPrefix;
@@ -1142,13 +1173,10 @@ secmod_MatchConfigList(char *spec, SECMODConfigList *conflist, int count)
 	isReadOnly = 1;
     }
     for (i=0; i < count; i++) {
-	if ((strcmp(config,conflist[i].config) == 0)  &&
-	    secmod_matchPrefix(certPrefix, conflist[i].certPrefix) &&
-	    secmod_matchPrefix(keyPrefix, conflist[i].keyPrefix) &&
-	    /* this last test -- if we just need the DB open read only,
-	     * than any open will suffice, but if we requested it read/write
-	     * and it's only open read only, we need to open it again */
-	    (isReadOnly || !conflist[i].isReadOnly)) {
+	if ( secmod_matchConfig(config,conflist[i].config,certPrefix,
+				conflist[i].certPrefix, keyPrefix,
+				conflist[i].keyPrefix, isReadOnly,
+				conflist[i].isReadOnly) ) {
 	    ret = PR_TRUE;
 	    goto done;
 	}
@@ -1160,6 +1188,88 @@ done:
     PORT_Free(certPrefix);
     PORT_Free(keyPrefix);
     return ret;
+}
+
+/*
+ * Find the slot id from the module spec. If the slot is the database slot, we
+ * can get the slot id from the default database slot.
+ */
+CK_SLOT_ID
+secmod_GetSlotIDFromModuleSpec(const char *moduleSpec, SECMODModule *module)
+{
+    char *tmp_spec = NULL;;
+    char **children, **thisChild;
+    CK_SLOT_ID *ids, *thisID, slotID = -1;
+    char *inConfig = NULL, *thisConfig = NULL;
+    char *inCertPrefix, *thisCertPrefix;
+    char *inKeyPrefix, *thisKeyPrefix;
+    PRBool inReadOnly,thisReadOnly;
+
+    inConfig = secmod_getConfigDir(moduleSpec,&inCertPrefix, &inKeyPrefix, 
+				   &inReadOnly);
+    if (!inConfig) {
+        goto done;
+    }
+
+    if (secmod_configIsDBM(inConfig)) {
+        inReadOnly = 1;
+    }
+
+    tmp_spec = secmod_ParseModuleSpecForTokens(PR_TRUE, module->isFIPS, 
+				 module->libraryParams, &children, &ids);
+    if (tmp_spec == NULL) {
+        goto done;
+    }
+
+    /* first check to see if the parent is the database */
+    thisConfig = secmod_getConfigDir(tmp_spec,&thisCertPrefix, &thisKeyPrefix, 
+				     &thisReadOnly);
+    if (secmod_matchConfig(inConfig,thisConfig,inCertPrefix,thisCertPrefix,
+          	       inKeyPrefix, thisKeyPrefix, inReadOnly, thisReadOnly)) {
+	/* yup it's the default key slot, get the id for it */
+	PK11SlotInfo *slot = PK11_GetInternalKeySlot();
+	if (slot) {
+	    slotID = slot->slotID;
+	    PK11_FreeSlot(slot);
+        }
+	goto done;
+    }
+
+    /* find id of the token */
+    for (thisChild=children, thisID=ids; thisChild && *thisChild; thisChild++, 
+								thisID++) {
+        thisConfig = secmod_getConfigDir(*thisChild, &thisCertPrefix, 
+				         &thisKeyPrefix, &thisReadOnly);
+        if (thisConfig == NULL) {
+            continue;
+        }
+	if (secmod_matchConfig(inConfig,thisConfig,inCertPrefix,thisCertPrefix,
+        	       inKeyPrefix, thisKeyPrefix, inReadOnly, thisReadOnly)) {
+	    slotID = *thisID;
+	    break;
+        }
+        PORT_Free(thisConfig);
+        PORT_Free(thisCertPrefix);
+        PORT_Free(thisKeyPrefix);
+	thisConfig = NULL;
+    }
+
+done:
+    if (inConfig) {
+        PORT_Free(inConfig);
+        PORT_Free(inCertPrefix);
+        PORT_Free(inKeyPrefix);
+    }
+    if (thisConfig) {
+        PORT_Free(thisConfig);
+        PORT_Free(thisCertPrefix);
+        PORT_Free(thisKeyPrefix);
+    }
+    if (tmp_spec) {
+        secmod_FreeChildren(children, ids);
+        PORT_Free(tmp_spec);
+    }
+    return slotID;
 }
 
 void
