@@ -8,28 +8,24 @@
   ],
   'targets': [
     {
-      'target_name': 'pk11_gtest',
+      'target_name': 'util_gtest',
       'type': 'executable',
       'sources': [
-        'pk11_aeskeywrap_unittest.cc',
-        'pk11_chacha20poly1305_unittest.cc',
-        'pk11_pbkdf2_unittest.cc',
-        'pk11_prf_unittest.cc',
-        'pk11_prng_unittest.cc',
-        'pk11_rsapss_unittest.cc',
-        '<(DEPTH)/external_tests/common/gtests.cc'
+        'util_utf8_unittest.cc',
+        '<(DEPTH)/gtests/common/gtests.cc'
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',
-        '<(DEPTH)/lib/freebl/freebl.gyp:<(freebl_name)',
-        '<(DEPTH)/external_tests/google_test/google_test.gyp:gtest',
-      ],
+        '<(DEPTH)/gtests/google_test/google_test.gyp:gtest',
+        '<(DEPTH)/lib/util/util.gyp:nssutil',
+      ]
     }
   ],
   'target_defaults': {
     'include_dirs': [
-      '../../external_tests/google_test/gtest/include',
-      '../../external_tests/common'
+      '../../gtests/google_test/gtest/include',
+      '../../gtests/common',
+      '../../lib/util'
     ]
   },
   'variables': {

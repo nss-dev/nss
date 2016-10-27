@@ -8,24 +8,22 @@
   ],
   'targets': [
     {
-      'target_name': 'util_gtest',
+      'target_name': 'der_gtest',
       'type': 'executable',
       'sources': [
-        'util_utf8_unittest.cc',
-        '<(DEPTH)/external_tests/common/gtests.cc'
+        'der_getint_unittest.cc',
+        '<(DEPTH)/gtests/common/gtests.cc'
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',
-        '<(DEPTH)/external_tests/google_test/google_test.gyp:gtest',
-        '<(DEPTH)/lib/util/util.gyp:nssutil',
+        '<(DEPTH)/gtests/google_test/google_test.gyp:gtest',
       ]
     }
   ],
   'target_defaults': {
     'include_dirs': [
-      '../../external_tests/google_test/gtest/include',
-      '../../external_tests/common',
-      '../../lib/util'
+      '../../gtests/google_test/gtest/include',
+      '../../gtests/common'
     ]
   },
   'variables': {
