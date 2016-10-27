@@ -65,8 +65,10 @@ typedef struct SECMODConfigListStr SECMODConfigList;
 /* collect all the databases in a given spec */
 SECMODConfigList *secmod_GetConfigList(PRBool isFIPS, char *spec, int *count);
 /* see is a spec matches a database on the list */
-PRBool secmod_MatchConfigList(char *spec, 
+PRBool secmod_MatchConfigList(const char *spec, 
 			      SECMODConfigList *conflist, int count);
+/* returns the slot id from a module and modulespec */
+CK_SLOT_ID secmod_GetSlotIDFromModuleSpec(const char *moduleSpec, SECMODModule *module);
 /* free our list of databases */
 void secmod_FreeConfigList(SECMODConfigList *conflist, int count);
 

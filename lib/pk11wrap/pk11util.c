@@ -1411,6 +1411,20 @@ SECMOD_OpenNewSlot(SECMODModule *mod, const char *moduleSpec)
 }
 
 /*
+ * given a module spec, find the slot in the module for it.
+ */
+PK11SlotInfo *
+secmod_FindSlotFromModuleSpec(const char *moduleSpec, SECMODModule *module)
+{
+    CK_SLOT_ID slot_id = secmod_GetSlotIDFromModuleSpec(moduleSpec,module);
+    if (slot_id == -1) {
+	return NULL;
+    }
+
+    return SECMOD_FindSlotByID(module, slot_id);
+}
+
+/*
  * Open a new database using the softoken. The caller is responsible for making
  * sure the module spec is correct and usable. The caller should ask for one
  * new database per call if the caller wants to get meaningful information 
@@ -1463,6 +1477,8 @@ PK11SlotInfo *
 SECMOD_OpenUserDB(const char *moduleSpec)
 {
     SECMODModule *mod;
+    SECMODConfigList *conflist = NULL;
+    int count = 0;
 
     if (moduleSpec == NULL) {
 	return NULL;
@@ -1475,6 +1491,21 @@ SECMOD_OpenUserDB(const char *moduleSpec)
 	/* shouldn't happen */
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
 	return NULL;
+    }
+
+    /* make sure we don't open the same database twice. We only understand 
+     * the moduleSpec for internal databases well enough to do this, so only
+     * do this in OpenUserDB */
+    conflist = secmod_GetConfigList(mod->isFIPS, mod->libraryParams, &count);
+    if (conflist) {
+	PK11SlotInfo *slot = NULL;
+	if (secmod_MatchConfigList(moduleSpec, conflist, count)) {
+	    slot = secmod_FindSlotFromModuleSpec(moduleSpec, mod);
+	}
+	secmod_FreeConfigList(conflist,count);
+	if (slot) {
+		return slot;
+	}
     }
     return SECMOD_OpenNewSlot(mod, moduleSpec);
 }
