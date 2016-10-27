@@ -34,6 +34,7 @@ else
          "$top/lib/pkcs7" \
          "$top/lib/pkcs12" \
          "$top/lib/pki" \
+         "$top/lib/smime" \
          "$top/lib/softoken" \
          "$top/lib/ssl" \
          "$top/lib/sysinit" \
