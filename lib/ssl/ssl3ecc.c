@@ -507,7 +507,7 @@ ssl_CreateECDHEphemeralKeyPair(const sslSocket *ss,
                    pubKey->u.ec.publicValue.len));
 #ifdef TRACE
     if (ssl_trace >= 50) {
-        SECItem d = {siBuffer, NULL, 0};
+        SECItem d = { siBuffer, NULL, 0 };
         SECStatus rv = PK11_ReadRawAttribute(PK11_TypePrivKey, privKey,
                                              CKA_VALUE, &d);
         if (rv == SECSuccess) {
