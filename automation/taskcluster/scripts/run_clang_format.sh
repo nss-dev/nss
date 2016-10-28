@@ -19,6 +19,7 @@ else
     top=$(dirname $0)/../../..
     dirs=( \
          "$top/cmd" \
+         "$top/fuzz" \
          "$top/lib/base" \
          "$top/lib/certdb" \
          "$top/lib/certhigh" \
