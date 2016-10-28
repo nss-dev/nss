@@ -1210,8 +1210,8 @@ secmod_GetSlotIDFromModuleSpec(const char *moduleSpec, SECMODModule *module)
     char **children, **thisChild;
     CK_SLOT_ID *ids, *thisID, slotID = -1;
     char *inConfig = NULL, *thisConfig = NULL;
-    char *inCertPrefix, *thisCertPrefix;
-    char *inKeyPrefix, *thisKeyPrefix;
+    char *inCertPrefix = NULL, *thisCertPrefix = NULL;
+    char *inKeyPrefix = NULL, *thisKeyPrefix = NULL;
     PRBool inReadOnly, thisReadOnly;
 
     inConfig = secmod_getConfigDir(moduleSpec, &inCertPrefix, &inKeyPrefix,
@@ -1233,6 +1233,9 @@ secmod_GetSlotIDFromModuleSpec(const char *moduleSpec, SECMODModule *module)
     /* first check to see if the parent is the database */
     thisConfig = secmod_getConfigDir(tmp_spec, &thisCertPrefix, &thisKeyPrefix,
                                      &thisReadOnly);
+    if (!thisConfig) {
+        goto done;
+    }
     if (secmod_matchConfig(inConfig, thisConfig, inCertPrefix, thisCertPrefix,
                            inKeyPrefix, thisKeyPrefix, inReadOnly, thisReadOnly)) {
         /* yup it's the default key slot, get the id for it */
@@ -1245,8 +1248,10 @@ secmod_GetSlotIDFromModuleSpec(const char *moduleSpec, SECMODModule *module)
     }
 
     /* find id of the token */
-    for (thisChild = children, thisID = ids; thisChild && *thisChild; thisChild++,
-        thisID++) {
+    for (thisChild = children, thisID = ids; thisChild && *thisChild; thisChild++, thisID++) {
+        PORT_Free(thisConfig);
+        PORT_Free(thisCertPrefix);
+        PORT_Free(thisKeyPrefix);
         thisConfig = secmod_getConfigDir(*thisChild, &thisCertPrefix,
                                          &thisKeyPrefix, &thisReadOnly);
         if (thisConfig == NULL) {
@@ -1257,23 +1262,15 @@ secmod_GetSlotIDFromModuleSpec(const char *moduleSpec, SECMODModule *module)
             slotID = *thisID;
             break;
         }
-        PORT_Free(thisConfig);
-        PORT_Free(thisCertPrefix);
-        PORT_Free(thisKeyPrefix);
-        thisConfig = NULL;
     }
 
 done:
-    if (inConfig) {
-        PORT_Free(inConfig);
-        PORT_Free(inCertPrefix);
-        PORT_Free(inKeyPrefix);
-    }
-    if (thisConfig) {
-        PORT_Free(thisConfig);
-        PORT_Free(thisCertPrefix);
-        PORT_Free(thisKeyPrefix);
-    }
+    PORT_Free(inConfig);
+    PORT_Free(inCertPrefix);
+    PORT_Free(inKeyPrefix);
+    PORT_Free(thisConfig);
+    PORT_Free(thisCertPrefix);
+    PORT_Free(thisKeyPrefix);
     if (tmp_spec) {
         secmod_FreeChildren(children, ids);
         PORT_Free(tmp_spec);
