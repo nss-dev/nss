@@ -40,6 +40,9 @@ fi
 
 opt_build=0
 build_64=0
+clean=0
+rebuild_gyp=0
+target=Debug
 
 # try to guess sensible defaults
 arch=$(uname -m)
