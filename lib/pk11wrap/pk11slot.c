@@ -551,7 +551,13 @@ PK11_FindSlotsByNames(const char *dllName, const char *slotName,
         ((NULL == slotName) || (0 == *slotName)) &&
         ((NULL == tokenName) || (0 == *tokenName))) {
         /* default to softoken */
-        PK11_AddSlotToList(slotList, PK11_GetInternalKeySlot(), PR_TRUE);
+        /* PK11_GetInternalKeySlot increments the refcount on the internal slot,
+         * but so does PK11_AddSlotToList. To avoid erroneously increasing the
+         * refcount twice, we get our own reference to the internal slot and
+         * decrement its refcount when we're done with it. */
+        PK11SlotInfo *internalKeySlot = PK11_GetInternalKeySlot();
+        PK11_AddSlotToList(slotList, internalKeySlot, PR_TRUE);
+        PK11_FreeSlot(internalKeySlot);
         return slotList;
     }
 
