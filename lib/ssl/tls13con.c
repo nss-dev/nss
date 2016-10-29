@@ -2448,8 +2448,9 @@ tls13_DeriveTrafficKeys(sslSocket *ss, ssl3CipherSpec *spec,
     PORT_Assert(prkp != NULL);
     prk = *prkp;
 
-    SSL_TRC(3, ("%d: TLS13[%d]: deriving traffic keys phase='%s'",
-                SSL_GETPID(), ss->fd, phase));
+    SSL_TRC(3, ("%d: TLS13[%d]: deriving %s traffic keys phase='%s'",
+                SSL_GETPID(), ss->fd,
+                (direction == CipherSpecWrite) ? "write" : "read", phase));
     PORT_Assert(phase);
     spec->phase = phase;
 
