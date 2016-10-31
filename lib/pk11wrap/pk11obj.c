@@ -1498,7 +1498,6 @@ PK11_FindGenericObjects(PK11SlotInfo *slot, CK_OBJECT_CLASS objClass)
         /* initialize it */
         obj->slot = PK11_ReferenceSlot(slot);
         obj->objectID = objectIDs[i];
-        obj->owner = PR_FALSE;
         obj->next = NULL;
         obj->prev = NULL;
 
@@ -1579,9 +1578,6 @@ PK11_DestroyGenericObject(PK11GenericObject *object)
 
     PK11_UnlinkGenericObject(object);
     if (object->slot) {
-        if (object->owner) {
-            PK11_DestroyObject(object->slot, object->objectID);
-        }
         PK11_FreeSlot(object->slot);
     }
     PORT_Free(object);
@@ -1648,7 +1644,6 @@ PK11_CreateGenericObject(PK11SlotInfo *slot, const CK_ATTRIBUTE *pTemplate,
     /* initialize it */
     obj->slot = PK11_ReferenceSlot(slot);
     obj->objectID = objectID;
-    obj->owner = !token;
     obj->next = NULL;
     obj->prev = NULL;
     return obj;
