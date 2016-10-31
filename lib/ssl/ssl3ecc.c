@@ -485,7 +485,7 @@ ssl_CreateECDHEphemeralKeyPair(const sslSocket *ss,
     if (ssl_NamedGroup2ECParams(NULL, ecGroup, &ecParams) != SECSuccess) {
         return SECFailure;
     }
-    privKey = SECKEY_CreateECPrivateKey(&ecParams, &pubKey, NULL);
+    privKey = SECKEY_CreateECPrivateKey(&ecParams, &pubKey, ss->pkcs11PinArg);
     SECITEM_FreeItem(&ecParams, PR_FALSE);
 
     if (!privKey || !pubKey ||
