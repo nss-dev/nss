@@ -343,7 +343,7 @@ static const ssl3KEADef kea_defs[] =
     {kea_ecdh_anon,      ssl_kea_ecdh, nullKey, ssl_auth_null, PR_TRUE,  SEC_OID_TLS_ECDH_ANON},
     {kea_ecdhe_psk,      ssl_kea_ecdh_psk, nullKey, ssl_auth_psk, PR_TRUE, SEC_OID_TLS_ECDHE_PSK},
     {kea_dhe_psk,      ssl_kea_dh_psk, nullKey, ssl_auth_psk, PR_TRUE, SEC_OID_TLS_DHE_PSK},
-    {kea_tls13_any,      ssl_kea_tls13_any, nullKey, ssl_auth_tls13_any, PR_TRUE, SEC_OID_TLS13_KEA_ANY},    
+    {kea_tls13_any,      ssl_kea_tls13_any, nullKey, ssl_auth_tls13_any, PR_TRUE, SEC_OID_TLS13_KEA_ANY},
 };
 
 /* must use ssl_LookupCipherSuiteDef to access */
@@ -1557,6 +1557,7 @@ ssl3_SetupPendingCipherSpec(sslSocket *ss)
     PRBool isTLS;
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert(ss->version < SSL_LIBRARY_VERSION_TLS_1_3);
 
     ssl_GetSpecWriteLock(ss); /*******************************/
 
@@ -9338,9 +9339,12 @@ ssl3_SendServerHello(sslSocket *ss)
             return SECFailure;
         }
     }
-    rv = ssl3_SetupPendingCipherSpec(ss);
-    if (rv != SECSuccess) {
-        return rv; /* err set by ssl3_SetupPendingCipherSpec */
+
+    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+        rv = ssl3_SetupPendingCipherSpec(ss);
+        if (rv != SECSuccess) {
+            return rv; /* err set by ssl3_SetupPendingCipherSpec */
+        }
     }
 
     return SECSuccess;
