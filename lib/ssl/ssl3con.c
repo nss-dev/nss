@@ -6365,7 +6365,7 @@ ssl_PickSignatureScheme(sslSocket *ss,
         }
 
         /* Skip RSA-PSS schemes when the certificate's private key slot does
-         * not supporting that mechanism. */
+         * not support this signature mechanism. */
         if (ssl_IsRsaPssSignatureScheme(preferred) && !slotDoesPss) {
             continue;
         }
@@ -9552,6 +9552,13 @@ ssl3_EncodeSigAlgs(sslSocket *ss, PRUint8 *buf, unsigned maxLen, PRUint32 *len)
         SSLHashType hashType = ssl_SignatureSchemeToHashType(
             ss->ssl3.signatureSchemes[i]);
         SECOidTag hashOID = ssl3_HashTypeToOID(hashType);
+
+        /* Skip RSA-PSS schemes if there are no tokens to verify them. */
+        if (ssl_IsRsaPssSignatureScheme(ss->ssl3.signatureSchemes[i]) &&
+            !PK11_TokenExists(auth_alg_defs[ssl_auth_rsa_pss])) {
+            continue;
+        }
+
         if ((NSS_GetAlgorithmPolicy(hashOID, &policy) != SECSuccess) ||
             (policy & NSS_USE_ALG_IN_SSL_KX)) {
             p = ssl_EncodeUintX((PRUint32)ss->ssl3.signatureSchemes[i], 2, p);
