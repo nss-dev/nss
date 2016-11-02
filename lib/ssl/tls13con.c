@@ -1196,7 +1196,9 @@ tls13_SelectServerCert(sslSocket *ss)
             continue;
         }
 
-        rv = ssl_PickSignatureScheme(ss, cert->serverKeyPair->pubKey,
+        rv = ssl_PickSignatureScheme(ss,
+                                     cert->serverKeyPair->pubKey,
+                                     cert->serverKeyPair->privKey,
                                      ss->ssl3.hs.clientSigSchemes,
                                      ss->ssl3.hs.numClientSigScheme,
                                      PR_FALSE);
