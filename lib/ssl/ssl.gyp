@@ -17,7 +17,7 @@
         'ssl3con.c',
         'ssl3ecc.c',
         'ssl3ext.c',
-        'ssl3exthandle.c'
+        'ssl3exthandle.c',
         'ssl3gthr.c',
         'sslauth.c',
         'sslcert.c',
