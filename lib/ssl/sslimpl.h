@@ -1983,7 +1983,9 @@ const ssl3CipherSuiteDef *ssl_LookupCipherSuiteDef(ssl3CipherSuite suite);
 const ssl3BulkCipherDef *
 ssl_GetBulkCipherDef(const ssl3CipherSuiteDef *cipher_def);
 SECStatus ssl3_SelectServerCert(sslSocket *ss);
-SECStatus ssl_PickSignatureScheme(sslSocket *ss, SECKEYPublicKey *key,
+SECStatus ssl_PickSignatureScheme(sslSocket *ss,
+                                  SECKEYPublicKey *pubKey,
+                                  SECKEYPrivateKey *privKey,
                                   const SSLSignatureScheme *peerSchemes,
                                   unsigned int peerSchemeCount,
                                   PRBool requireSha1);
