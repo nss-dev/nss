@@ -451,10 +451,6 @@ tls13_ClientSendPreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                                 PRUint32 maxBytes)
 {
     PRInt32 extension_length;
-    static const PRUint8 auth_modes[] = { tls13_psk_auth };
-    static const unsigned long auth_modes_len = sizeof(auth_modes);
-    static const PRUint8 ke_modes[] = { tls13_psk_dh_ke };
-    static const unsigned long ke_modes_len = sizeof(ke_modes);
     NewSessionTicket *session_ticket;
 
     /* We only set statelessResume on the client in TLS 1.3 code. */
@@ -467,8 +463,6 @@ tls13_ClientSendPreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData,
 
     extension_length =
         2 + 2 + 2 +                     /* Type + length + vector length */
-        1 + ke_modes_len +              /* key exchange modes vector */
-        1 + auth_modes_len +            /* auth modes vector */
         2 + session_ticket->ticket.len; /* identity length + ticket len */
 
     if (maxBytes < (PRUint32)extension_length) {
@@ -488,14 +482,8 @@ tls13_ClientSendPreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData,
         rv = ssl3_ExtAppendHandshakeNumber(ss, extension_length - 6, 2);
         if (rv != SECSuccess)
             goto loser;
-        rv = ssl3_ExtAppendHandshakeVariable(ss, ke_modes, ke_modes_len, 1);
-        if (rv != SECSuccess)
-            goto loser;
-        rv = ssl3_ExtAppendHandshakeVariable(ss, auth_modes, auth_modes_len, 1);
-        if (rv != SECSuccess)
-            goto loser;
         rv = ssl3_ExtAppendHandshakeVariable(ss, session_ticket->ticket.data,
-                                             session_ticket->ticket.len, 2);
+                                          session_ticket->ticket.len, 2);
         PRINT_BUF(50, (ss, "Sending PreSharedKey value",
                        session_ticket->ticket.data,
                        session_ticket->ticket.len));
@@ -543,24 +531,8 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
     while (data->len) {
         SECItem label;
 
-        /* IMPORTANT: We aren't copying these values, just setting pointers.
-         * They will only be valid as long as the ClientHello is in memory. */
-        rv = ssl3_ExtConsumeHandshakeVariable(ss, &xtnData->psk_ke_modes, 1,
-                                              &data->data, &data->len);
-        if (rv != SECSuccess)
-            return rv;
-        if (!xtnData->psk_ke_modes.len) {
-            goto alert_loser;
-        }
-        rv = ssl3_ExtConsumeHandshakeVariable(ss, &xtnData->psk_auth_modes, 1,
-                                              &data->data, &data->len);
-        if (rv != SECSuccess)
-            return rv;
-        if (!xtnData->psk_auth_modes.len) {
-            goto alert_loser;
-        }
         rv = ssl3_ExtConsumeHandshakeVariable(ss, &label, 2,
-                                              &data->data, &data->len);
+                                           &data->data, &data->len);
         if (rv != SECSuccess)
             return rv;
         if (!label.len) {
@@ -837,61 +809,7 @@ tls13_ClientHandleTicketEarlyDataInfoXtn(const sslSocket *ss, TLSExtensionData *
         return SECFailure;
     }
 
-    xtnData->ticket_age_add_found = PR_TRUE;
-    xtnData->ticket_age_add = PR_ntohl(utmp);
-
-    return SECSuccess;
-}
-
-/* This is only registered if we are sending it. */
-PRInt32
-tls13_ServerSendSigAlgsXtn(const sslSocket *ss, TLSExtensionData *xtnData,
-                           PRBool append,
-                           PRUint32 maxBytes)
-{
-    SSL_TRC(3, ("%d: TLS13[%d]: send signature_algorithms extension",
-                SSL_GETPID(), ss->fd));
-
-    if (maxBytes < 4) {
-        PORT_Assert(0);
-    }
-
-    if (append) {
-        SECStatus rv;
-
-        rv = ssl3_ExtAppendHandshakeNumber(ss, ssl_signature_algorithms_xtn, 2);
-        if (rv != SECSuccess)
-            return -1;
-
-        rv = ssl3_ExtAppendHandshakeNumber(ss, 0, 2);
-        if (rv != SECSuccess)
-            return -1;
-    }
-
-    return 4;
-}
-
-/* This will only be called if we also offered the extension. */
-SECStatus
-tls13_ClientHandleSigAlgsXtn(const sslSocket *ss, TLSExtensionData *xtnData, PRUint16 ex_type,
-                             SECItem *data)
-{
-    SSL_TRC(3, ("%d: TLS13[%d]: handle signature_algorithms extension",
-                SSL_GETPID(), ss->fd));
-
-    /* If we are doing < TLS 1.3, then ignore this. */
-    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
-        PORT_SetError(SSL_ERROR_EXTENSION_DISALLOWED_FOR_VERSION);
-        return SECFailure;
-    }
-
-    if (data->len != 0) {
-        PORT_SetError(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
-        return SECFailure;
-    }
-
-    /* Keep track of negotiated extensions. */
-    xtnData->negotiated[xtnData->numNegotiated++] = ex_type;
+    xtnData->max_early_data_size = PR_ntohl(utmp);
 
     return SECSuccess;
 }
@@ -1017,4 +935,91 @@ tls13_ClientSendHrrCookieXtn(const sslSocket *ss, TLSExtensionData *xtnData, PRB
             return -1;
     }
     return extension_len;
+}
+
+
+/*
+ *     enum { psk_ke(0), psk_dhe_ke(1), (255) } PskKeyExchangeMode;
+ *
+ *     struct {
+ *         PskKeyExchangeMode ke_modes<1..255>;
+ *     } PskKeyExchangeModes;
+ */
+PRInt32
+tls13_ClientSendPskKeyExchangeModesXtn(const sslSocket *ss,
+                                       TLSExtensionData *xtnData,
+                                       PRBool append, PRUint32 maxBytes)
+{
+    static const PRUint8 ke_modes[] = { tls13_psk_dh_ke };
+    static const unsigned long ke_modes_len = sizeof(ke_modes);
+    PRInt32 extension_len;
+
+    if (ss->vrange.max < SSL_LIBRARY_VERSION_TLS_1_3 ||
+        ss->opt.noCache) {
+        return 0;
+    }
+
+    extension_len =
+            2 + 2 +                    /* Type + length */
+            1 + ke_modes_len;          /* key exchange modes vector */
+
+
+    SSL_TRC(3, ("%d: TLS13[%d]: send psk key exchange modes extension",
+                SSL_GETPID(), ss->fd));
+
+    if (maxBytes < (PRUint32)extension_len) {
+        PORT_Assert(0);
+        return 0;
+    }
+
+    if (append) {
+        SECStatus rv = ssl3_ExtAppendHandshakeNumber(
+            ss, ssl_tls13_psk_key_exchange_modes_xtn, 2);
+        if (rv != SECSuccess)
+            return -1;
+
+        rv = ssl3_ExtAppendHandshakeNumber(ss, extension_len - 4, 2);
+        if (rv != SECSuccess)
+            return -1;
+
+        rv = ssl3_ExtAppendHandshakeVariable(
+            ss, ke_modes, ke_modes_len, 1);
+        if (rv != SECSuccess)
+            return -1;
+    }
+    return extension_len;
+}
+
+SECStatus
+tls13_ServerHandlePskKeyExchangeModesXtn(const sslSocket *ss,
+                                         TLSExtensionData *xtnData,
+                                         PRUint16 ex_type, SECItem *data)
+{
+    SECStatus rv;
+
+    /* If we are doing < TLS 1.3, then ignore this. */
+    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+        return SECSuccess;
+    }
+
+    SSL_TRC(3, ("%d: TLS13[%d]: handle PSK key exchange modes extension",
+                SSL_GETPID(), ss->fd));
+
+
+    /* IMPORTANT: We aren't copying these values, just setting pointers.
+     * They will only be valid as long as the ClientHello is in memory. */
+    rv = ssl3_ExtConsumeHandshakeVariable(ss,
+                                          &xtnData->psk_ke_modes, 1,
+                                          &data->data, &data->len);
+    if (rv != SECSuccess)
+        return rv;
+    if (!xtnData->psk_ke_modes.len || data->len) {
+        PORT_SetError(SSL_ERROR_MALFORMED_PSK_KEY_EXCHANGE_MODES);
+        return SECFailure;
+    }
+
+    /* Keep track of negotiated extensions. */
+    xtnData->negotiated[xtnData->numNegotiated++] = ex_type;
+
+    return SECSuccess;
 }
