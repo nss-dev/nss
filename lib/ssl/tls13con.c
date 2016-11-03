@@ -608,7 +608,6 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
     PK11SymKey *RMS = NULL;
     SECItem wrappedMS = { siBuffer, NULL, 0 };
     SSLHashType hashType;
-    const ssl3CipherSuiteDef *cipherDef;
     SECStatus rv;
 
     SSL_TRC(3, ("%d: TLS13[%d]: recovering static secret (%s)",
@@ -619,12 +618,7 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
     }
 
     /* Now find the hash used as the PRF for the previous handshake. */
-    cipherDef = ssl_LookupCipherSuiteDef(sid->u.ssl3.cipherSuite);
-    PORT_Assert(cipherDef);
-    if (!cipherDef) {
-        return SECFailure;
-    }
-    hashType = cipherDef->prf_hash;
+    hashType = tls13_GetHashForCipherSuite(sid->u.ssl3.cipherSuite);
 
     /* If we are the server, we compute the wrapping key, but if we
      * are the client, it's coordinates are stored with the ticket. */
@@ -940,7 +934,8 @@ tls13_CanResume(sslSocket *ss, const sslSessionID *sid)
         return PR_FALSE;
     }
 
-    if (sid->u.ssl3.cipherSuite != ss->ssl3.hs.cipher_suite) {
+    if (tls13_GetHashForCipherSuite(sid->u.ssl3.cipherSuite)
+        != tls13_GetHashForCipherSuite(ss->ssl3.hs.cipher_suite)) {
         return PR_FALSE;
     }
 
@@ -977,6 +972,29 @@ tls13_AlpnTagAllowed(const sslSocket *ss, const SECItem *tag)
     return PR_FALSE;
 }
 
+static PRBool
+tls13_CanNegotiateZeroRtt(sslSocket *ss, const sslSessionID *sid)
+{
+    PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_sent);
+
+    if (!sid)
+        return PR_FALSE;
+    PORT_Assert(ss->statelessResume);
+    if (!ss->statelessResume)
+        return PR_FALSE;
+    if (ss->ssl3.hs.cipher_suite != sid->u.ssl3.cipherSuite)
+        return PR_FALSE;
+    if (!ss->opt.enable0RttData)
+        return PR_FALSE;
+    if (!(sid->u.ssl3.locked.sessionTicket.flags & ticket_allow_early_data))
+        return PR_FALSE;
+    if (SECITEM_CompareItem(&ss->xtnData.nextProto,
+                            &sid->u.ssl3.alpnSelection) != 0)
+        return PR_FALSE;
+
+    return PR_TRUE;
+}
+
 /* Called from tls13_HandleClientHelloPart2 to update the state of 0-RTT handling.
  *
  * 0-RTT is only permitted if:
@@ -1008,21 +1026,19 @@ tls13_NegotiateZeroRtt(sslSocket *ss, const sslSessionID *sid)
         return;
     }
 
-    PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_sent);
-    if (sid && ss->opt.enable0RttData &&
-        (sid->u.ssl3.locked.sessionTicket.flags & ticket_allow_early_data) != 0 &&
-        SECITEM_CompareItem(&ss->xtnData.nextProto, &sid->u.ssl3.alpnSelection) == 0) {
-        SSL_TRC(3, ("%d: TLS13[%d]: enable 0-RTT",
-                    SSL_GETPID(), ss->fd));
-        PORT_Assert(ss->statelessResume);
-        ss->ssl3.hs.zeroRttState = ssl_0rtt_accepted;
-        ss->ssl3.hs.zeroRttIgnore = ssl_0rtt_ignore_none;
-    } else {
+    if (!tls13_CanNegotiateZeroRtt(ss, sid)) {
         SSL_TRC(3, ("%d: TLS13[%d]: ignore 0-RTT",
                     SSL_GETPID(), ss->fd));
         ss->ssl3.hs.zeroRttState = ssl_0rtt_ignored;
         ss->ssl3.hs.zeroRttIgnore = ssl_0rtt_ignore_trial;
+        return;
     }
+
+    SSL_TRC(3, ("%d: TLS13[%d]: enable 0-RTT",
+                SSL_GETPID(), ss->fd));
+    PORT_Assert(ss->statelessResume);
+    ss->ssl3.hs.zeroRttState = ssl_0rtt_accepted;
+    ss->ssl3.hs.zeroRttIgnore = ssl_0rtt_ignore_none;
 }
 
 /* Check if the offered group is acceptable. */
@@ -1985,7 +2001,8 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
     }
 
     if (ss->statelessResume) {
-        if (ss->ssl3.hs.cipher_suite != sid->u.ssl3.cipherSuite) {
+        if (tls13_GetHash(ss) !=
+            tls13_GetHashForCipherSuite(sid->u.ssl3.cipherSuite)) {
             FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_SERVER_HELLO,
                         illegal_parameter);
             return SECFailure;
@@ -3059,6 +3076,12 @@ tls13_HandleEncryptedExtensions(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         if (SECITEM_CompareItem(&oldNpn, &ss->xtnData.nextProto)) {
             SECITEM_FreeItem(&oldNpn, PR_FALSE);
             FATAL_ERROR(ss, SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID,
+                        illegal_parameter);
+            return SECFailure;
+        }
+        /* Check that the server negotiated the same cipher suite. */
+        if (ss->ssl3.hs.cipher_suite != ss->ssl3.hs.zeroRttSuite) {
+            FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_ENCRYPTED_EXTENSIONS,
                         illegal_parameter);
             return SECFailure;
         }
@@ -4261,6 +4284,8 @@ tls13_UnprotectRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *plaintext
 PRBool
 tls13_ClientAllow0Rtt(const sslSocket *ss, const sslSessionID *sid)
 {
+    /* We checked that the cipher suite was still allowed back in
+     * ssl3_SendClientHello. */
     if (sid->version < SSL_LIBRARY_VERSION_TLS_1_3)
         return PR_FALSE;
     if (ss->ssl3.hs.helloRetry)
@@ -4285,6 +4310,7 @@ tls13_MaybeDo0RTTHandshake(sslSocket *ss)
         return SECSuccess;
     }
     ss->ssl3.hs.zeroRttState = ssl_0rtt_sent;
+    ss->ssl3.hs.zeroRttSuite = ss->ssl3.hs.cipher_suite;
 
     SSL_TRC(3, ("%d: TLS13[%d]: in 0-RTT mode", SSL_GETPID(), ss->fd));
 
