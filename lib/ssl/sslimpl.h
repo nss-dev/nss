@@ -862,12 +862,13 @@ typedef struct SSL3HandshakeStateStr {
     ssl3CipherSpec *nullSpec;       /* In case 0-RTT is rejected. */
     sslZeroRttState zeroRttState;   /* Are we doing a 0-RTT handshake? */
     sslZeroRttIgnore zeroRttIgnore; /* Are we ignoring 0-RTT? */
+    ssl3CipherSuite zeroRttSuite;   /* The cipher suite we used for 0-RTT. */
     PRCList bufferedEarlyData;      /* Buffered TLS 1.3 early data
-                                        * on server.*/
+                                     * on server.*/
     PRBool helloRetry;              /* True if HelloRetryRequest has been sent
-                                      * or received. */
+                                     * or received. */
     ssl3KEADef kea_def_mutable;     /* Used to hold the writable kea_def
-                                      * we use for TLS 1.3 */
+                                     * we use for TLS 1.3 */
 } SSL3HandshakeState;
 
 /*
