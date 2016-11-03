@@ -1089,6 +1089,11 @@ tls13_NegotiateKeyExchange(sslSocket *ss, TLS13KeyShareEntry **clientShare)
 
     /* We insist on DHE. */
     if (ss->statelessResume) {
+        if (!ssl3_ExtensionNegotiated(ss, ssl_tls13_psk_key_exchange_modes_xtn)) {
+            FATAL_ERROR(ss, SSL_ERROR_MISSING_PSK_KEY_EXCHANGE_MODES,
+                        missing_extension);
+            return SECFailure;
+        }
         if (!memchr(ss->xtnData.psk_ke_modes.data, tls13_psk_dh_ke,
                     ss->xtnData.psk_ke_modes.len)) {
             SSL_TRC(3, ("%d: TLS13[%d]: client offered PSK without DH",
@@ -1221,32 +1226,15 @@ tls13_NegotiateAuthentication(sslSocket *ss)
     SECStatus rv;
 
     if (ss->statelessResume) {
-        /* We refuse to sign. */
-        if (memchr(ss->xtnData.psk_auth_modes.data, tls13_psk_auth,
-                   ss->xtnData.psk_auth_modes.len)) {
-            SSL_TRC(3, ("%d: TLS13[%d]: selected PSK authentication",
-                        SSL_GETPID(), ss->fd));
-
-            ss->ssl3.hs.signatureScheme = ssl_sig_none;
-            ss->ssl3.hs.kea_def_mutable.authKeyType = ssl_auth_psk;
-            return SECSuccess;
-        }
-
-        SSL_TRC(3, ("%d: TLS13[%d]: rejected PSK authentication",
+        SSL_TRC(3, ("%d: TLS13[%d]: selected PSK authentication",
                     SSL_GETPID(), ss->fd));
-
-        ss->statelessResume = PR_FALSE;
+        ss->ssl3.hs.signatureScheme = ssl_sig_none;
+        ss->ssl3.hs.kea_def_mutable.authKeyType = ssl_auth_psk;
+        return SECSuccess;
     }
 
     SSL_TRC(3, ("%d: TLS13[%d]: selected certificate authentication",
                 SSL_GETPID(), ss->fd));
-    rv = ssl3_RegisterExtensionSender(
-        ss, &ss->xtnData, ssl_signature_algorithms_xtn,
-        tls13_ServerSendSigAlgsXtn);
-    if (rv != SECSuccess) {
-        return SECFailure; /* Error code set already. */
-    }
-
     /* We've now established that we need to sign.... */
     rv = tls13_SelectServerCert(ss);
     if (rv != SECSuccess) {
@@ -1335,7 +1323,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
     /* Select key exchange. */
     rv = tls13_NegotiateKeyExchange(ss, &clientShare);
     if (rv != SECSuccess) {
-        return SECFailure;
+        goto loser;
     }
 
     /* If we didn't find a client key share, we have to retry. */
@@ -1351,7 +1339,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
     /* Select the authentication (this is also handshake shape). */
     rv = tls13_NegotiateAuthentication(ss);
     if (rv != SECSuccess) {
-        return SECFailure;
+        goto loser;
     }
 
     if (ss->statelessResume) {
@@ -2017,12 +2005,6 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
         if (ss->ssl3.hs.cipher_suite != sid->u.ssl3.cipherSuite) {
             FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_SERVER_HELLO,
                         illegal_parameter);
-            return SECFailure;
-        }
-    } else {
-        if (!ssl3_ExtensionNegotiated(ss, ssl_signature_algorithms_xtn)) {
-            FATAL_ERROR(ss, SSL_ERROR_MISSING_SIGNATURE_ALGORITHMS_EXTENSION,
-                        missing_extension);
             return SECFailure;
         }
     }
@@ -3554,12 +3536,14 @@ loser:
  *
  *   struct {
  *       uint32 ticket_lifetime;
- *       PskKeMode ke_modes<1..255>;
- *       PskAuthMode auth_modes<1..255>;
+ *       uint32 ticket_age_add;
  *       opaque ticket<1..2^16-1>;
  *       TicketExtension extensions<0..2^16-2>;
  *   } NewSessionTicket;
  */
+
+#define MAX_EARLY_DATA_SIZE (2<<16) /* Arbitrary limit. */
+
 SECStatus
 tls13_SendNewSessionTicket(sslSocket *ss)
 {
@@ -3567,17 +3551,11 @@ tls13_SendNewSessionTicket(sslSocket *ss)
     SECItem ticket_data = { 0, NULL, 0 };
     SECStatus rv;
     NewSessionTicket ticket = { 0 };
-    PRUint32 ticket_age_add_len = 0;
+    PRUint32 max_early_data_size_len = 0;
     ticket.flags = 0;
     if (ss->opt.enable0RttData) {
         ticket.flags |= ticket_allow_early_data;
-
-        /* Generate a random value to add to ticket age. */
-        rv = PK11_GenerateRandom((PRUint8 *)&ticket.ticket_age_add,
-                                 sizeof(ticket.ticket_age_add));
-        if (rv != SECSuccess)
-            goto loser;
-        ticket_age_add_len = 8; /* type + len + value. */
+        max_early_data_size_len = 8; /* type + len + value. */
     }
     ticket.ticket_lifetime_hint = TLS_EX_SESS_TICKET_LIFETIME_HINT;
 
@@ -3587,9 +3565,8 @@ tls13_SendNewSessionTicket(sslSocket *ss)
 
     message_length =
         4 +                      /* lifetime */
-        1 + 1 +                  /* ke_modes */
-        1 + 1 +                  /* auth_modes */
-        2 + ticket_age_add_len + /* ticket_age_add_len */
+        4 +                      /* ticket_age_add */
+        2 + max_early_data_size_len +  /* max_early_data_size_len */
         2 +                      /* ticket length */
         ticket_data.len;
 
@@ -3603,19 +3580,13 @@ tls13_SendNewSessionTicket(sslSocket *ss)
     if (rv != SECSuccess)
         goto loser;
 
-    /* Key exchange modes. */
-    rv = ssl3_AppendHandshakeNumber(ss, 1, 1);
-    if (rv != SECSuccess)
-        goto loser;
-    rv = ssl3_AppendHandshakeNumber(ss, tls13_psk_dh_ke, 1);
+    /* The ticket age obfuscator. */
+    rv = PK11_GenerateRandom((PRUint8 *)&ticket.ticket_age_add,
+                             sizeof(ticket.ticket_age_add));
     if (rv != SECSuccess)
         goto loser;
 
-    /* Authentication modes. */
-    rv = ssl3_AppendHandshakeNumber(ss, 1, 1);
-    if (rv != SECSuccess)
-        goto loser;
-    rv = ssl3_AppendHandshakeNumber(ss, tls13_psk_auth, 1);
+    rv = ssl3_AppendHandshakeNumber(ss, ticket.ticket_age_add, 4);
     if (rv != SECSuccess)
         goto loser;
 
@@ -3626,11 +3597,11 @@ tls13_SendNewSessionTicket(sslSocket *ss)
         goto loser;
 
     /* Extensions. */
-    rv = ssl3_AppendHandshakeNumber(ss, ticket_age_add_len, 2);
+    rv = ssl3_AppendHandshakeNumber(ss, max_early_data_size_len, 2);
     if (rv != SECSuccess)
         goto loser;
 
-    if (ticket_age_add_len) {
+    if (max_early_data_size_len) {
         rv = ssl3_AppendHandshakeNumber(
             ss, ssl_tls13_ticket_early_data_info_xtn, 2);
         if (rv != SECSuccess)
@@ -3641,7 +3612,7 @@ tls13_SendNewSessionTicket(sslSocket *ss)
         if (rv != SECSuccess)
             goto loser;
 
-        rv = ssl3_AppendHandshakeNumber(ss, ticket.ticket_age_add, 4);
+        rv = ssl3_AppendHandshakeNumber(ss, MAX_EARLY_DATA_SIZE, 4);
         if (rv != SECSuccess)
             goto loser;
     }
@@ -3661,6 +3632,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
     SECStatus rv;
     PRInt32 tmp;
+    PRUint32 utmp;
     NewSessionTicket ticket = { 0 };
     SECItem data;
     SECItem ticket_data;
@@ -3689,27 +3661,13 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     ticket.ticket_lifetime_hint = (PRUint32)tmp;
     ticket.ticket.type = siBuffer;
 
-    /* key exchange modes. */
-    rv = ssl3_ConsumeHandshakeVariable(ss, &data, 1, &b, &length);
+    rv = ssl3_ConsumeHandshake(ss, &utmp, sizeof(utmp),
+                               &b, &length);
     if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET,
-                    decode_error);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET);
         return SECFailure;
     }
-    if (memchr(data.data, tls13_psk_dh_ke, data.len)) {
-        ticket.flags |= ticket_allow_psk_dhe_ke;
-    }
-
-    /* auth modes. */
-    rv = ssl3_ConsumeHandshakeVariable(ss, &data, 1, &b, &length);
-    if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET,
-                    decode_error);
-        return SECFailure;
-    }
-    if (memchr(data.data, tls13_psk_auth, data.len)) {
-        ticket.flags |= ticket_allow_psk_auth;
-    }
+    ticket.ticket_age_add = PR_ntohl(utmp);
 
     /* Get the ticket value. */
     rv = ssl3_ConsumeHandshakeVariable(ss, &ticket_data, 2, &b, &length);
@@ -3726,7 +3684,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
                     decode_error);
         return SECFailure;
     }
-    ss->xtnData.ticket_age_add_found = PR_FALSE;
+
     rv = ssl3_HandleExtensions(ss, &data.data,
                                &data.len, new_session_ticket);
     if (rv != SECSuccess) {
@@ -3734,9 +3692,9 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
                     decode_error);
         return SECFailure;
     }
-    if (ss->xtnData.ticket_age_add_found) {
+    if (ss->xtnData.max_early_data_size) {
         ticket.flags |= ticket_allow_early_data;
-        ticket.ticket_age_add = ss->xtnData.ticket_age_add;
+        ticket.max_early_data_size = ss->xtnData.max_early_data_size;
     }
 
     if (length != 0) {
@@ -3747,16 +3705,6 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     if (!ss->opt.noCache) {
         PORT_Assert(ss->sec.ci.sid);
-
-        /* We only support DHE resumption. */
-        if (!(ticket.flags & ticket_allow_psk_dhe_ke)) {
-            return SECSuccess;
-        }
-
-        if (!(ticket.flags & ticket_allow_psk_auth)) {
-            return SECSuccess;
-        }
-
         rv = SECITEM_CopyItem(NULL, &ticket.ticket, &ticket_data);
         if (rv != SECSuccess) {
             FATAL_ERROR(ss, SEC_ERROR_NO_MEMORY, internal_error);
@@ -3820,7 +3768,7 @@ static const struct {
     { ssl_server_name_xtn, ExtensionSendEncrypted },
     { ssl_supported_groups_xtn, ExtensionSendEncrypted },
     { ssl_ec_point_formats_xtn, ExtensionNotUsed },
-    { ssl_signature_algorithms_xtn, ExtensionSendClear },
+    { ssl_signature_algorithms_xtn, ExtensionClientOnly },
     { ssl_use_srtp_xtn, ExtensionSendEncrypted },
     { ssl_app_layer_protocol_xtn, ExtensionSendEncrypted },
     { ssl_padding_xtn, ExtensionNotUsed },

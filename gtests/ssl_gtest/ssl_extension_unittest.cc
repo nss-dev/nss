@@ -581,29 +581,6 @@ TEST_F(TlsExtensionTest13Stream, UnknownServerKeyShare) {
   EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, server_->error_code());
 }
 
-TEST_F(TlsExtensionTest13Stream, DropServerSignatureAlgorithms) {
-  EnsureTlsSetup();
-  server_->SetPacketFilter(
-      new TlsExtensionDropper(ssl_signature_algorithms_xtn));
-  ConnectExpectFail();
-  EXPECT_EQ(SSL_ERROR_MISSING_SIGNATURE_ALGORITHMS_EXTENSION,
-            client_->error_code());
-  EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, server_->error_code());
-}
-
-TEST_F(TlsExtensionTest13Stream, NonEmptySignatureAlgorithms) {
-  EnsureTlsSetup();
-  DataBuffer sig_algs;
-  size_t index = 0;
-  index = sig_algs.Write(index, 2, 2);
-  index = sig_algs.Write(index, ssl_sig_rsa_pss_sha256, 2);
-  server_->SetPacketFilter(
-      new TlsExtensionReplacer(ssl_signature_algorithms_xtn, sig_algs));
-  ConnectExpectFail();
-  EXPECT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
-  EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, server_->error_code());
-}
-
 TEST_F(TlsExtensionTest13Stream, AddServerSignatureAlgorithmsOnResumption) {
   SetupForResume();
   DataBuffer empty;
@@ -642,7 +619,6 @@ class TlsPreSharedKeyReplacer : public TlsExtensionFilter {
     }
 
     return WriteVariable(output, index, tmp, size);
-    ;
   }
 
   PacketFilter::Action FilterExtension(uint16_t extension_type,
@@ -663,15 +639,6 @@ class TlsPreSharedKeyReplacer : public TlsExtensionFilter {
     }
     DataBuffer buf;
     size_t index = 0;
-    index = CopyAndMaybeReplace(&parser, 1, ke_modes_, index, &buf);
-    if (!index) {
-      return DROP;
-    }
-
-    index = CopyAndMaybeReplace(&parser, 1, auth_modes_, index, &buf);
-    if (!index) {
-      return DROP;
-    }
 
     index = CopyAndMaybeReplace(&parser, 2, psk_, index, &buf);
     if (!index) {
@@ -706,49 +673,29 @@ TEST_F(TlsExtensionTest13Stream, ResumeEmptyPskLabel) {
 
 TEST_F(TlsExtensionTest13Stream, ResumeNoKeModes) {
   SetupForResume();
-  const static uint8_t ke_modes[1] = {0};
 
   DataBuffer empty;
   client_->SetPacketFilter(
-      new TlsPreSharedKeyReplacer(nullptr, 0, &ke_modes[0], 0, nullptr, 0));
+      new TlsExtensionDropper(ssl_tls13_psk_key_exchange_modes_xtn));
   ConnectExpectFail();
-  client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
-  server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
+  client_->CheckErrorCode(SSL_ERROR_MISSING_EXTENSION_ALERT);
+  server_->CheckErrorCode(SSL_ERROR_MISSING_PSK_KEY_EXCHANGE_MODES);
 }
 
-TEST_F(TlsExtensionTest13Stream, ResumeNoAuthModes) {
-  SetupForResume();
-  const static uint8_t auth_modes[1] = {0};
-
-  DataBuffer empty;
-  client_->SetPacketFilter(
-      new TlsPreSharedKeyReplacer(nullptr, 0, nullptr, 0, &auth_modes[0], 0));
-  ConnectExpectFail();
-  client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
-  server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
-}
-
-// The following two tests are valid but unacceptable PreSharedKey
-// modes and therefore produce non-resumption followed by MAC errors.
+// The following test contains valid but unacceptable PreSharedKey
+// modes and therefore produces non-resumption followed by MAC
+// errors.
 TEST_F(TlsExtensionTest13Stream, ResumeBogusKeModes) {
   SetupForResume();
-  const static uint8_t ke_modes = kTls13PskKe;
+  const static uint8_t ke_modes[] = {
+    1, // Length
+    kTls13PskKe
+  };
 
-  DataBuffer empty;
+  DataBuffer modes(ke_modes, sizeof(ke_modes));
   client_->SetPacketFilter(
-      new TlsPreSharedKeyReplacer(nullptr, 0, &ke_modes, 1, nullptr, 0));
-  ConnectExpectFail();
-  client_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
-  server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
-}
-
-TEST_F(TlsExtensionTest13Stream, ResumeBogusAuthModes) {
-  SetupForResume();
-  const static uint8_t auth_modes = kTls13PskSignAuth;
-
-  DataBuffer empty;
-  client_->SetPacketFilter(
-      new TlsPreSharedKeyReplacer(nullptr, 0, nullptr, 0, &auth_modes, 1));
+      new TlsExtensionReplacer(ssl_tls13_psk_key_exchange_modes_xtn,
+                               modes));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
   server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);

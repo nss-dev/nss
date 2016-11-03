@@ -288,6 +288,7 @@ typedef struct {
     PRUint32 ticket_lifetime_hint;
     PRUint32 flags;
     PRUint32 ticket_age_add;
+    PRUint32 max_early_data_size;
     SECItem ticket;
 } NewSessionTicket;
 
@@ -295,11 +296,6 @@ typedef enum {
     tls13_psk_ke = 0,
     tls13_psk_dh_ke = 1
 } TLS13PskKEModes;
-
-typedef enum {
-    tls13_psk_auth = 0,
-    tls13_psk_sign_auth = 1
-} TLS13PskAuthModes;
 
 typedef enum {
     CLIENT_AUTH_ANONYMOUS = 0,
