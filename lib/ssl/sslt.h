@@ -385,13 +385,10 @@ typedef enum {
     ssl_tls13_early_data_xtn = 42,
     ssl_tls13_supported_versions_xtn = 43,
     ssl_tls13_cookie_xtn = 44,
+    ssl_tls13_ticket_early_data_info_xtn = 46,
     ssl_next_proto_nego_xtn = 13172,
     ssl_renegotiation_info_xtn = 0xff01
 } SSLExtensionType;
-
-typedef enum {
-    ssl_tls13_ticket_early_data_info_xtn = 1
-} TLS13TicketExtensionType;
 
 /* This is the old name for the supported_groups extensions. */
 #define ssl_elliptic_curves_xtn ssl_supported_groups_xtn
