@@ -114,11 +114,7 @@ const char kHkdfLabelHandshakeTrafficSecret[] = "handshake traffic secret";
 const char kHkdfLabelApplicationTrafficSecret[] = "application traffic secret";
 const char kHkdfLabelFinishedSecret[] = "finished";
 const char kHkdfLabelResumptionMasterSecret[] = "resumption master secret";
-const char kHkdfLabelResumptionPsk[] = "resumption psk";
 const char kHkdfLabelExporterMasterSecret[] = "exporter master secret";
-const char kHkdfPhaseEarlyApplicationDataKeys[] = "early application data key expansion";
-const char kHkdfPhaseHandshakeKeys[] = "handshake key expansion";
-const char kHkdfPhaseApplicationDataKeys[] = "application data key expansion";
 const char kHkdfPurposeKey[] = "key";
 const char kHkdfPurposeIv[] = "iv";
 
@@ -605,10 +601,8 @@ static SECStatus
 tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
 {
     PK11SymKey *wrapKey; /* wrapping key */
-    PK11SymKey *RMS = NULL;
     SECItem wrappedMS = { siBuffer, NULL, 0 };
     SSLHashType hashType;
-    SECStatus rv;
 
     SSL_TRC(3, ("%d: TLS13[%d]: recovering static secret (%s)",
                 SSL_GETPID(), ss->fd, SSL_ROLE(ss)));
@@ -651,41 +645,21 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
     wrappedMS.len = sid->u.ssl3.keys.wrapped_master_secret_len;
 
     /* unwrap the "master secret" which is actually RMS. */
-    RMS = PK11_UnwrapSymKeyWithFlags(wrapKey, sid->u.ssl3.masterWrapMech,
-                                     NULL, &wrappedMS,
-                                     CKM_SSL3_MASTER_KEY_DERIVE,
-                                     CKA_DERIVE,
-                                     tls13_GetHashSizeForHash(hashType),
-                                     CKF_SIGN | CKF_VERIFY);
+    ss->ssl3.hs.resumptionMasterSecret = PK11_UnwrapSymKeyWithFlags(
+        wrapKey, sid->u.ssl3.masterWrapMech,
+        NULL, &wrappedMS,
+        CKM_SSL3_MASTER_KEY_DERIVE,
+        CKA_DERIVE,
+        tls13_GetHashSizeForHash(hashType),
+        CKF_SIGN | CKF_VERIFY);
     PK11_FreeSymKey(wrapKey);
-    if (!RMS) {
+    if (!ss->ssl3.hs.resumptionMasterSecret) {
         return SECFailure;
     }
 
-    PRINT_KEY(50, (ss, "Recovered RMS", RMS));
-    /* Now compute resumption_psk.
-     *
-     * resumption_psk = HKDF-Expand-Label(resumption_secret,
-     *                                    "resumption psk", "", L)
-     */
-    rv = tls13_HkdfExpandLabel(RMS, hashType, NULL, 0,
-                               kHkdfLabelResumptionPsk,
-                               strlen(kHkdfLabelResumptionPsk),
-                               tls13_GetHkdfMechanismForHash(hashType),
-                               tls13_GetHashSizeForHash(hashType),
-                               &ss->ssl3.hs.resumptionPsk);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
+    PRINT_KEY(50, (ss, "Recovered RMS", ss->ssl3.hs.resumptionMasterSecret));
 
-    PK11_FreeSymKey(RMS);
     return SECSuccess;
-
-loser:
-    if (RMS) {
-        PK11_FreeSymKey(RMS);
-    }
-    return SECFailure;
 }
 
 /* Key Derivation Functions.
@@ -748,28 +722,23 @@ tls13_ComputeEarlySecrets(sslSocket *ss)
     SSL_TRC(5, ("%d: TLS13[%d]: compute early secrets (%s)",
                 SSL_GETPID(), ss->fd, SSL_ROLE(ss)));
 
-    /* Extract off the resumptionPsk (if present), else pass the NULL
-     * resumptionPsk which will be internally translated to zeroes. */
+
+    /* Extract off the resumptionMasterSecret (if present), else pass the NULL
+     * resumptionMasterSecret which will be internally translated to zeroes. */
     PORT_Assert(!ss->ssl3.hs.currentSecret);
-    rv = tls13_HkdfExtract(NULL, ss->ssl3.hs.resumptionPsk,
+    rv = tls13_HkdfExtract(NULL, ss->ssl3.hs.resumptionMasterSecret,
                            tls13_GetHash(ss), &ss->ssl3.hs.currentSecret);
     if (rv != SECSuccess) {
         return SECFailure;
     }
 
-    PORT_Assert(ss->statelessResume == (ss->ssl3.hs.resumptionPsk != NULL));
+    PORT_Assert(ss->statelessResume == (ss->ssl3.hs.resumptionMasterSecret != NULL));
     if (ss->statelessResume) {
         PRUint8 buf[1] = { 0 };
         SSL3Hashes hashes;
 
-        PORT_Assert(ss->ssl3.hs.resumptionPsk);
-        if (!ss->ssl3.hs.resumptionPsk) {
-            FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-            return SECFailure;
-        }
-
-        PK11_FreeSymKey(ss->ssl3.hs.resumptionPsk);
-        ss->ssl3.hs.resumptionPsk = NULL;
+        PK11_FreeSymKey(ss->ssl3.hs.resumptionMasterSecret);
+        ss->ssl3.hs.resumptionMasterSecret = NULL;
 
         rv = PK11_HashBuf(ssl3_HashTypeToOID(tls13_GetHash(ss)),
                           hashes.u.raw, buf, 0);
@@ -786,7 +755,7 @@ tls13_ComputeEarlySecrets(sslSocket *ss)
             return SECFailure;
         }
     } else {
-        PORT_Assert(!ss->ssl3.hs.resumptionPsk);
+        PORT_Assert(!ss->ssl3.hs.resumptionMasterSecret);
     }
 
     return SECSuccess;
@@ -2619,6 +2588,10 @@ tls13_DeriveTrafficKeys(sslSocket *ss, ssl3CipherSpec *spec,
     ssl3KeyMaterial *target;
     const char *phase;
     SECStatus rv;
+    /* These labels are just used for debugging. */
+    const char kHkdfPhaseEarlyApplicationDataKeys[] = "early application data";
+    const char kHkdfPhaseHandshakeKeys[] = "handshake data";
+    const char kHkdfPhaseApplicationDataKeys[] = "application data";
 
     if (ss->sec.isServer ^ (direction == CipherSpecWrite)) {
         clientKey = PR_TRUE;

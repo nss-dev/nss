@@ -846,8 +846,8 @@ typedef struct SSL3HandshakeStateStr {
 
     /* This group of values is used for TLS 1.3 and above */
     PK11SymKey *currentSecret;            /* The secret down the "left hand side"
-                                        * of the TLS 1.3 key schedule. */
-    PK11SymKey *resumptionPsk;            /* The resumption PSK. */
+                                           * of the TLS 1.3 key schedule. */
+    PK11SymKey *resumptionMasterSecret;   /* The resumption PSK. */
     PK11SymKey *dheSecret;                /* The (EC)DHE shared secret. */
     PK11SymKey *pskBinderKey;             /* Used to compute the PSK binder. */
     PK11SymKey *clientEarlyTrafficSecret; /* The secret we use for 0-RTT. */
