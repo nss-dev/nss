@@ -102,7 +102,6 @@ static const ssl3HelloExtensionSender clientHelloSendersTLS[SSL_MAX_EXTENSIONS] 
       { ssl_cert_status_xtn, &ssl3_ClientSendStatusRequestXtn },
       { ssl_signed_cert_timestamp_xtn, &ssl3_ClientSendSignedCertTimestampXtn },
       { ssl_tls13_key_share_xtn, &tls13_ClientSendKeyShareXtn },
-      { ssl_tls13_pre_shared_key_xtn, &tls13_ClientSendPreSharedKeyXtn },
       { ssl_tls13_early_data_xtn, &tls13_ClientSendEarlyDataXtn },
       /* Some servers (e.g. WebSphere Application Server 7.0 and Tomcat) will
        * time out or terminate the connection if the last extension in the
@@ -113,6 +112,8 @@ static const ssl3HelloExtensionSender clientHelloSendersTLS[SSL_MAX_EXTENSIONS] 
       { ssl_tls13_cookie_xtn, &tls13_ClientSendHrrCookieXtn },
       { ssl_tls13_psk_key_exchange_modes_xtn,
         &tls13_ClientSendPskKeyExchangeModesXtn },
+      /* The pre_shared_key extension MUST be last. */
+      { ssl_tls13_pre_shared_key_xtn, &tls13_ClientSendPreSharedKeyXtn },
       /* any extra entries will appear as { 0, NULL }    */
     };
 
@@ -174,6 +175,8 @@ ssl3_ParseExtensions(sslSocket *ss, SSL3Opaque **b, PRUint32 *length)
             return SECFailure;    /* alert already sent */
         }
 
+        SSL_TRC(10, ("%d: SSL3[%d]: parsing extension %d",
+                    SSL_GETPID(), ss->fd, extension_type));
         /* Check whether an extension has been sent multiple times. */
         for (cursor = PR_NEXT_LINK(&ss->ssl3.hs.remoteExtensions);
              cursor != &ss->ssl3.hs.remoteExtensions;
@@ -294,6 +297,17 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
             return SECFailure;
         }
 
+        /* Special check for this being the last extension if it's
+         * PreSharedKey */
+        if (ss->sec.isServer && isTLS13 &&
+            (extension->type == ssl_tls13_pre_shared_key_xtn) &&
+            (PR_NEXT_LINK(cursor) != &ss->ssl3.hs.remoteExtensions)) {
+            tls13_FatalError(ss,
+                             SSL_ERROR_RX_MALFORMED_CLIENT_HELLO,
+                             illegal_parameter);
+            return SECFailure;
+        }
+
         /* find extension_type in table of Hello Extension Handlers */
         for (handler = handlers; handler->ex_type >= 0; handler++) {
             /* if found, call this handler */
@@ -311,6 +325,7 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
                     return SECFailure;
                 }
             }
+
         }
     }
     return SECSuccess;

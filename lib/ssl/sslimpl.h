@@ -705,7 +705,6 @@ typedef enum {
     wait_hello_done,
     wait_new_session_ticket,
     wait_encrypted_extensions,
-    wait_0rtt_finished,
     wait_invalid /* Invalid value. There is no handshake message "invalid". */
 } SSL3WaitState;
 
@@ -744,11 +743,6 @@ typedef struct TLS13EarlyDataStr {
     PRCList link; /* The linked list link */
     SECItem data; /* The data */
 } TLS13EarlyData;
-
-typedef struct {
-    PRUint8 hash[HASH_LENGTH_MAX * 2];
-    unsigned int len;
-} TLS13CombinedHash;
 
 typedef enum {
     handshake_hash_unknown = 0,
@@ -854,13 +848,11 @@ typedef struct SSL3HandshakeStateStr {
                           * always set to NULL.*/
 
     /* This group of values is used for TLS 1.3 and above */
-    PK11Context *clientHelloHash;         /* The client hello hash state, used
-                                        * by the server for 0-RTT. */
     PK11SymKey *currentSecret;            /* The secret down the "left hand side"
                                         * of the TLS 1.3 key schedule. */
     PK11SymKey *resumptionPsk;            /* The resumption PSK. */
-    SECItem resumptionContext;            /* The resumption context. */
     PK11SymKey *dheSecret;                /* The (EC)DHE shared secret. */
+    PK11SymKey *pskBinderKey;             /* Used to compute the PSK binder. */
     PK11SymKey *clientEarlyTrafficSecret; /* The secret we use for 0-RTT. */
     PK11SymKey *clientHsTrafficSecret;    /* The source keys for handshake */
     PK11SymKey *serverHsTrafficSecret;    /* traffic keys. */
@@ -1787,6 +1779,7 @@ extern SECStatus dtls_MaybeRetransmitHandshake(sslSocket *ss,
 CK_MECHANISM_TYPE ssl3_Alg2Mech(SSLCipherAlgorithm calg);
 SECStatus ssl3_NegotiateCipherSuite(sslSocket *ss, const SECItem *suites,
                                     PRBool initHashes);
+SECStatus ssl3_InitHandshakeHashes(sslSocket *ss);
 SECStatus ssl3_ServerCallSNICallback(sslSocket *ss);
 SECStatus ssl3_SetupPendingCipherSpec(sslSocket *ss);
 SECStatus ssl3_FlushHandshake(sslSocket *ss, PRInt32 flags);

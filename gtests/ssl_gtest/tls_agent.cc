@@ -629,7 +629,11 @@ void TlsAgent::Connected() {
     PRInt32 cipherSuites = SSLInt_CountTls13CipherSpecs(ssl_fd_);
     // We use one ciphersuite in each direction, plus one that's kept around
     // by DTLS for retransmission.
-    EXPECT_EQ(((mode_ == DGRAM) && (role_ == CLIENT)) ? 3 : 2, cipherSuites);
+    PRInt32 expected = ((mode_ == DGRAM) && (role_ == CLIENT)) ? 3 : 2;
+    EXPECT_EQ(expected, cipherSuites);
+    if (expected != cipherSuites) {
+      SSLInt_PrintTls13CipherSpecs(ssl_fd_);
+    }
   }
 
   SetState(STATE_CONNECTED);
@@ -859,7 +863,8 @@ void TlsAgentTestBase::EnsureInit() {
     Init();
   }
   const std::vector<SSLNamedGroup> groups = {
-      ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ffdhe_2048};
+    ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1,
+    ssl_grp_ec_secp384r1, ssl_grp_ffdhe_2048};
   agent_->ConfigNamedGroups(groups);
 }
 
