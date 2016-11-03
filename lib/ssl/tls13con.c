@@ -2359,7 +2359,6 @@ tls13_DeriveTrafficKeys(sslSocket *ss, ssl3CipherSpec *spec,
     PRBool clientKey;
     ssl3KeyMaterial *target;
     const char *phase;
-    char label[256]; /* Arbitrary buffer large enough to hold the label */
     SECStatus rv;
 
     if (ss->sec.isServer ^ (direction == CipherSpecWrite)) {
@@ -2369,17 +2368,6 @@ tls13_DeriveTrafficKeys(sslSocket *ss, ssl3CipherSpec *spec,
         clientKey = PR_FALSE;
         target = &spec->server;
     }
-
-#define FORMAT_LABEL(phase_, purpose_)                                              \
-    do {                                                                            \
-        PRUint32 n = PR_snprintf(label, sizeof(label), "%s, %s", phase_, purpose_); \
-        /* Check for getting close. */                                              \
-        if ((n + 1) >= sizeof(label)) {                                             \
-            LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);                               \
-            PORT_Assert(0);                                                         \
-            goto loser;                                                             \
-        }                                                                           \
-    } while (0)
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
@@ -2411,10 +2399,9 @@ tls13_DeriveTrafficKeys(sslSocket *ss, ssl3CipherSpec *spec,
     PORT_Assert(phase);
     spec->phase = phase;
 
-    FORMAT_LABEL(phase, kHkdfPurposeKey);
     rv = tls13_HkdfExpandLabel(prk, tls13_GetHash(ss),
                                NULL, 0,
-                               label, strlen(label),
+                               kHkdfPurposeKey, strlen(kHkdfPurposeKey),
                                bulkAlgorithm, keySize,
                                &target->write_key);
     if (rv != SECSuccess) {
@@ -2423,10 +2410,9 @@ tls13_DeriveTrafficKeys(sslSocket *ss, ssl3CipherSpec *spec,
         goto loser;
     }
 
-    FORMAT_LABEL(phase, kHkdfPurposeIv);
     rv = tls13_HkdfExpandLabelRaw(prk, tls13_GetHash(ss),
                                   NULL, 0,
-                                  label, strlen(label),
+                                  kHkdfPurposeIv, strlen(kHkdfPurposeIv),
                                   target->write_iv, ivSize);
     if (rv != SECSuccess) {
         LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
