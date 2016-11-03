@@ -3984,8 +3984,9 @@ loser:
 
 /* ssl3_InitHandshakeHashes creates handshake hash contexts and hashes in
  * buffered messages in ss->ssl3.hs.messages. Called from
- * ssl3_NegotiateCipherSuite() and ssl3_HandleServerHello. */
-static SECStatus
+ * ssl3_NegotiateCipherSuite(), tls13_HandleClientHelloPart2(),
+ * and ssl3_HandleServerHello. */
+SECStatus
 ssl3_InitHandshakeHashes(sslSocket *ss)
 {
     SSL_TRC(30, ("%d: SSL3[%d]: start handshake hashes", SSL_GETPID(), ss->fd));
@@ -4970,6 +4971,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
     unsigned paddingExtensionLen;
     unsigned numCompressionMethods;
     PRUint16 version;
+    PRInt32 flags;
 
     SSL_TRC(3, ("%d: SSL3[%d]: send %s ClientHello handshake", SSL_GETPID(),
                 ss->fd, ssl_ClientHelloTypeName(type)));
@@ -5209,10 +5211,9 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
         type == client_hello_initial) {
         rv = tls13_SetupClientHello(ss);
         if (rv != SECSuccess) {
-            return rv;
+            return SECFailure;
         }
     }
-
     if (isTLS || (ss->firstHsDone && ss->peerRequestedProtection)) {
         PRUint32 maxBytes = 65535; /* 2^16 - 1 */
         PRInt32 extLen;
@@ -5453,7 +5454,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
             return rv; /* err set by AppendHandshake. */
         }
 
-        extLen = ssl3_CallHelloExtensionSenders(ss, PR_TRUE, maxBytes, NULL);
+        extLen = ssl3_AppendPaddingExtension(ss, paddingExtensionLen, maxBytes);
         if (extLen < 0) {
             if (sid->u.ssl3.lock) {
                 PR_RWLock_Unlock(sid->u.ssl3.lock);
@@ -5462,7 +5463,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
         }
         maxBytes -= extLen;
 
-        extLen = ssl3_AppendPaddingExtension(ss, paddingExtensionLen, maxBytes);
+        extLen = ssl3_CallHelloExtensionSenders(ss, PR_TRUE, maxBytes, NULL);
         if (extLen < 0) {
             if (sid->u.ssl3.lock) {
                 PR_RWLock_Unlock(sid->u.ssl3.lock);
@@ -5489,35 +5490,19 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
             ssl_renegotiation_info_xtn;
     }
 
+    flags = 0;
+    if (!ss->firstHsDone && !IS_DTLS(ss)) {
+        flags |= ssl_SEND_FLAG_CAP_RECORD_VERSION;
+    }
+    rv = ssl3_FlushHandshake(ss, flags);
+    if (rv != SECSuccess) {
+        return rv; /* error code set by ssl3_FlushHandshake */
+    }
+
     if (version >= SSL_LIBRARY_VERSION_TLS_1_3) {
         rv = tls13_MaybeDo0RTTHandshake(ss);
         if (rv != SECSuccess) {
             return SECFailure; /* error code set already. */
-        }
-    }
-
-    /* On TLS (but not DTLS), if we sent 0-RTT, then we will have data in the
-     * pending buffer. This just pushes a little of that out.  If we didn't do
-     * that, we wouldn't send a ClientHello the first time and applications
-     * would have to push SSL_ForceHandshake() twice. This should go away once
-     * we have Finished stuffed in the ClientHello. */
-    if (!IS_DTLS(ss) && ss->ssl3.hs.zeroRttState == ssl_0rtt_sent) {
-        int sent;
-
-        PORT_Assert(version >= SSL_LIBRARY_VERSION_TLS_1_3);
-        PORT_Assert(ss->pendingBuf.len);
-        sent = ssl_SendSavedWriteData(ss);
-        if (sent < 0) {
-            return SECFailure;
-        }
-    } else {
-        PRInt32 flags = 0;
-        if (!ss->firstHsDone && !IS_DTLS(ss)) {
-            flags |= ssl_SEND_FLAG_CAP_RECORD_VERSION;
-        }
-        rv = ssl3_FlushHandshake(ss, flags);
-        if (rv != SECSuccess) {
-            return rv; /* error code set by ssl3_FlushHandshake */
         }
     }
 
@@ -11678,8 +11663,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
             computeHashes = TLS13_IN_HS_STATE(ss, wait_cert_verify);
         } else if (type == finished) {
             computeHashes =
-                TLS13_IN_HS_STATE(ss, wait_cert_request, wait_finished,
-                                  wait_0rtt_finished);
+                    TLS13_IN_HS_STATE(ss, wait_cert_request, wait_finished);
         }
     }
 
@@ -12831,7 +12815,6 @@ ssl3_InitCipherSpec(ssl3CipherSpec *spec)
 SECStatus
 ssl3_InitState(sslSocket *ss)
 {
-    SECItem nullItem = { siBuffer, NULL, 0 };
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     if (ss->ssl3.initialized)
@@ -12865,11 +12848,10 @@ ssl3_InitState(sslSocket *ss)
         dtls_SetMTU(ss, 0); /* Set the MTU to the highest plateau */
     }
 
-    ss->ssl3.hs.clientHelloHash = NULL;
     ss->ssl3.hs.currentSecret = NULL;
     ss->ssl3.hs.resumptionPsk = NULL;
-    ss->ssl3.hs.resumptionContext = nullItem;
     ss->ssl3.hs.dheSecret = NULL;
+    ss->ssl3.hs.pskBinderKey = NULL;
     ss->ssl3.hs.clientEarlyTrafficSecret = NULL;
     ss->ssl3.hs.clientHsTrafficSecret = NULL;
     ss->ssl3.hs.serverHsTrafficSecret = NULL;
@@ -13236,11 +13218,6 @@ ssl3_DestroySSL3Info(sslSocket *ss)
     ssl3_DestroyRemoteExtensions(&ss->ssl3.hs.remoteExtensions);
     ssl3_ResetExtensionData(&ss->xtnData);
 
-    /* Destroy the stored hash. */
-    if (ss->ssl3.hs.clientHelloHash) {
-        PK11_DestroyContext(ss->ssl3.hs.clientHelloHash, PR_TRUE);
-    }
-
     /* Destroy TLS 1.3 cipher specs */
     tls13_DestroyCipherSpecs(&ss->ssl3.hs.cipherSpecs);
 
@@ -13251,8 +13228,8 @@ ssl3_DestroySSL3Info(sslSocket *ss)
         PK11_FreeSymKey(ss->ssl3.hs.resumptionPsk);
     if (ss->ssl3.hs.dheSecret)
         PK11_FreeSymKey(ss->ssl3.hs.dheSecret);
-    if (ss->ssl3.hs.resumptionContext.data)
-        SECITEM_FreeItem(&ss->ssl3.hs.resumptionContext, PR_FALSE);
+    if (ss->ssl3.hs.pskBinderKey)
+        PK11_FreeSymKey(ss->ssl3.hs.pskBinderKey);
     if (ss->ssl3.hs.clientEarlyTrafficSecret)
         PK11_FreeSymKey(ss->ssl3.hs.clientEarlyTrafficSecret);
     if (ss->ssl3.hs.clientHsTrafficSecret)

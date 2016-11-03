@@ -200,7 +200,8 @@ TEST_P(TlsConnectTls13, TestTls13ZeroRttAlpnChangeBoth) {
   CheckAlpn("b");
 }
 
-TEST_F(TlsConnectTest, DamageSecretHandleZeroRttClientFinished) {
+// Re-enable when PSK binders are written.
+TEST_F(TlsConnectTest, DISABLED_DamageSecretHandleZeroRttClientFinished) {
   SetupForZeroRtt();
   client_->Set0RttEnabled(true);
   server_->Set0RttEnabled(true);

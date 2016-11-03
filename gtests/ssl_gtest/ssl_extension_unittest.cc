@@ -587,7 +587,7 @@ TEST_F(TlsExtensionTest13Stream, AddServerSignatureAlgorithmsOnResumption) {
   server_->SetPacketFilter(
       new TlsExtensionInjector(ssl_signature_algorithms_xtn, empty));
   ConnectExpectFail();
-  EXPECT_EQ(SSL_ERROR_RX_UNEXPECTED_EXTENSION, client_->error_code());
+  EXPECT_EQ(SSL_ERROR_EXTENSION_DISALLOWED_FOR_VERSION, client_->error_code());
   EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, server_->error_code());
 }
 
@@ -657,9 +657,8 @@ class TlsPreSharedKeyReplacer : public TlsExtensionFilter {
   std::unique_ptr<DataBuffer> auth_modes_;
 };
 
-// The following three tests produce bogus (ill-formatted) PreSharedKey
-// extensions so generate errors.
-TEST_F(TlsExtensionTest13Stream, ResumeEmptyPskLabel) {
+// TODO(ekr@rtfm.com): Update for new PSK format
+TEST_F(TlsExtensionTest13Stream, DISABLED_ResumeEmptyPskLabel) {
   SetupForResume();
   const static uint8_t psk[1] = {0};
 
