@@ -46,7 +46,8 @@ struct TLSExtensionDataStr {
     /* registered callbacks that send server hello extensions */
     ssl3HelloExtensionSender serverHelloSenders[SSL_MAX_EXTENSIONS];
     ssl3HelloExtensionSender encryptedExtensionsSenders[SSL_MAX_EXTENSIONS];
-
+    ssl3HelloExtensionSender certificateSenders[SSL_MAX_EXTENSIONS];
+    
     /* Keep track of the extensions that are negotiated. */
     PRUint16 numAdvertised;
     PRUint16 numNegotiated;

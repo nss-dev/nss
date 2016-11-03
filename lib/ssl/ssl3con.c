@@ -45,14 +45,12 @@
     (x)->ulValueLen = (l);
 #endif
 
-static SECStatus ssl3_AuthCertificate(sslSocket *ss);
-static void ssl3_CleanupPeerCerts(sslSocket *ss);
 static PK11SymKey *ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
                                        PK11SlotInfo *serverKeySlot);
 static SECStatus ssl3_DeriveMasterSecret(sslSocket *ss, PK11SymKey *pms);
 static SECStatus ssl3_DeriveConnectionKeys(sslSocket *ss);
 static SECStatus ssl3_HandshakeFailure(sslSocket *ss);
-
+static SECStatus ssl3_SendCertificate(sslSocket *ss);
 static SECStatus ssl3_SendCertificateRequest(sslSocket *ss);
 static SECStatus ssl3_SendNextProto(sslSocket *ss);
 static SECStatus ssl3_SendFinished(sslSocket *ss, PRInt32 flags);
@@ -3030,17 +3028,9 @@ ssl3_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags)
  * Returns SECFailure if the application has required client auth.
  *         SECSuccess otherwise.
  */
-static SECStatus
+SECStatus
 ssl3_HandleNoCertificate(sslSocket *ss)
 {
-    if (ss->sec.peerCert != NULL) {
-        if (ss->sec.peerKey != NULL) {
-            SECKEY_DestroyPublicKey(ss->sec.peerKey);
-            ss->sec.peerKey = NULL;
-        }
-        CERT_DestroyCertificate(ss->sec.peerCert);
-        ss->sec.peerCert = NULL;
-    }
     ssl3_CleanupPeerCerts(ss);
 
     /* If the server has required client-auth blindly but doesn't
@@ -3155,7 +3145,7 @@ ssl3_HandshakeFailure(sslSocket *ss)
     return SECFailure;
 }
 
-static void
+void
 ssl3_SendAlertForCertError(sslSocket *ss, PRErrorCode errCode)
 {
     SSL3AlertDescription desc = bad_certificate;
@@ -10336,7 +10326,7 @@ loser:
  * Used by both client and server.
  * Called from HandleServerHelloDone and from SendServerHelloSequence.
  */
-SECStatus
+static SECStatus
 ssl3_SendCertificate(sslSocket *ss)
 {
     SECStatus rv;
@@ -10492,7 +10482,7 @@ ssl3_SendCertificateStatus(sslSocket *ss)
 /* This is used to delete the CA certificates in the peer certificate chain
  * from the cert database after they've been validated.
  */
-static void
+void
 ssl3_CleanupPeerCerts(sslSocket *ss)
 {
     PLArenaPool *arena = ss->ssl3.peerCertArena;
@@ -10505,6 +10495,15 @@ ssl3_CleanupPeerCerts(sslSocket *ss)
         PORT_FreeArena(arena, PR_FALSE);
     ss->ssl3.peerCertArena = NULL;
     ss->ssl3.peerCertChain = NULL;
+
+    if (ss->sec.peerCert != NULL) {
+        if (ss->sec.peerKey) {
+            SECKEY_DestroyPublicKey(ss->sec.peerKey);
+            ss->sec.peerKey = NULL;
+        }
+        CERT_DestroyCertificate(ss->sec.peerCert);
+        ss->sec.peerCert = NULL;
+    }
 }
 
 /* Called from ssl3_HandlePostHelloHandshakeMessage() when it has deciphered
@@ -10612,15 +10611,6 @@ ssl3_CompleteHandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SSL3AlertDescription desc;
     int errCode = SSL_ERROR_RX_MALFORMED_CERTIFICATE;
     SECItem certItem;
-
-    if (ss->sec.peerCert != NULL) {
-        if (ss->sec.peerKey) {
-            SECKEY_DestroyPublicKey(ss->sec.peerKey);
-            ss->sec.peerKey = NULL;
-        }
-        CERT_DestroyCertificate(ss->sec.peerCert);
-        ss->sec.peerCert = NULL;
-    }
 
     ssl3_CleanupPeerCerts(ss);
     isTLS = (PRBool)(ss->ssl3.prSpec->version > SSL_LIBRARY_VERSION_3_0);
@@ -10771,7 +10761,7 @@ loser:
     return SECFailure;
 }
 
-static SECStatus
+SECStatus
 ssl3_AuthCertificate(sslSocket *ss)
 {
     SECStatus rv;

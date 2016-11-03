@@ -78,6 +78,13 @@ static const ssl3ExtensionHandler newSessionTicketHandlers[] = {
     { -1, NULL }
 };
 
+/* This table is used by the client to handle server certificates in TLS 1.3 */
+static const ssl3ExtensionHandler serverCertificateHandlers[] = {
+    { ssl_signed_cert_timestamp_xtn, &ssl3_ClientHandleSignedCertTimestampXtn },
+    { ssl_cert_status_xtn, &ssl3_ClientHandleStatusRequestXtn },
+    { -1, NULL }
+};
+
 /* Tables of functions to format TLS hello extensions, one function per
  * extension.
  * These static tables are for the formatting of client hello extensions.
@@ -263,6 +270,10 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
                 handlers = serverHelloHandlersSSL3;
             }
             break;
+        case certificate:
+            PORT_Assert(!ss->sec.isServer);
+            handlers = serverCertificateHandlers;
+            break;
         default:
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             PORT_Assert(0);
@@ -368,12 +379,13 @@ ssl3_RegisterExtensionSender(const sslSocket *ss,
         if (tls13_ExtensionAllowed(ex_type, server_hello)) {
             PORT_Assert(!tls13_ExtensionAllowed(ex_type, encrypted_extensions));
             sender = &xtnData->serverHelloSenders[0];
+        } else if (tls13_ExtensionAllowed(ex_type, certificate)) {
+            sender = &xtnData->certificateSenders[0];
         } else {
             PORT_Assert(tls13_ExtensionAllowed(ex_type, encrypted_extensions));
             sender = &xtnData->encryptedExtensionsSenders[0];
         }
     }
-
     for (i = 0; i < SSL_MAX_EXTENSIONS; ++i, ++sender) {
         if (!sender->ex_sender) {
             sender->ex_type = ex_type;
