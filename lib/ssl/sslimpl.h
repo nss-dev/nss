@@ -715,9 +715,6 @@ typedef enum {
     client_hello_renegotiation /* A renegotiation attempt. */
 } sslClientHelloType;
 
-/*
- * TLS extension related constants and data structures.
- */
 typedef struct SessionTicketDataStr SessionTicketData;
 
 typedef SECStatus (*sslRestartTarget)(sslSocket *);
@@ -1783,11 +1780,14 @@ SECStatus ssl3_InitHandshakeHashes(sslSocket *ss);
 SECStatus ssl3_ServerCallSNICallback(sslSocket *ss);
 SECStatus ssl3_SetupPendingCipherSpec(sslSocket *ss);
 SECStatus ssl3_FlushHandshake(sslSocket *ss, PRInt32 flags);
-SECStatus ssl3_SendCertificate(sslSocket *ss);
 SECStatus ssl3_CompleteHandleCertificate(sslSocket *ss,
                                          SSL3Opaque *b, PRUint32 length);
+void ssl3_SendAlertForCertError(sslSocket *ss, PRErrorCode errCode);
+SECStatus ssl3_HandleNoCertificate(sslSocket *ss);
 SECStatus ssl3_SendEmptyCertificate(sslSocket *ss);
+void ssl3_CleanupPeerCerts(sslSocket *ss);
 SECStatus ssl3_SendCertificateStatus(sslSocket *ss);
+SECStatus ssl3_AuthCertificate(sslSocket *ss);
 SECStatus ssl_ReadCertificateStatus(sslSocket *ss, SSL3Opaque *b,
                                     PRUint32 length);
 SECStatus ssl3_EncodeSigAlgs(const sslSocket *ss, PRUint8 *buf,
