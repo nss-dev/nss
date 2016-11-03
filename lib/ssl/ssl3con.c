@@ -12839,7 +12839,7 @@ ssl3_InitState(sslSocket *ss)
     }
 
     ss->ssl3.hs.currentSecret = NULL;
-    ss->ssl3.hs.resumptionPsk = NULL;
+    ss->ssl3.hs.resumptionMasterSecret = NULL;
     ss->ssl3.hs.dheSecret = NULL;
     ss->ssl3.hs.pskBinderKey = NULL;
     ss->ssl3.hs.clientEarlyTrafficSecret = NULL;
@@ -13214,8 +13214,8 @@ ssl3_DestroySSL3Info(sslSocket *ss)
     /* Destroy TLS 1.3 keys */
     if (ss->ssl3.hs.currentSecret)
         PK11_FreeSymKey(ss->ssl3.hs.currentSecret);
-    if (ss->ssl3.hs.resumptionPsk)
-        PK11_FreeSymKey(ss->ssl3.hs.resumptionPsk);
+    if (ss->ssl3.hs.resumptionMasterSecret)
+        PK11_FreeSymKey(ss->ssl3.hs.resumptionMasterSecret);
     if (ss->ssl3.hs.dheSecret)
         PK11_FreeSymKey(ss->ssl3.hs.dheSecret);
     if (ss->ssl3.hs.pskBinderKey)
