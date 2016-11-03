@@ -314,6 +314,10 @@ tls13_ClientHandleKeyShareXtnHrr(const sslSocket *ss, TLSExtensionData *xtnData,
         return SECFailure;
     }
 
+    /* Now delete all the key shares per [draft-ietf-tls-tls13 S 4.1.2] */
+    ssl_FreeEphemeralKeyPairs(CONST_CAST(sslSocket, ss));
+
+    /* And replace with our new share. */
     rv = tls13_CreateKeyShare(CONST_CAST(sslSocket, ss), group);
     if (rv != SECSuccess) {
         ssl3_ExtSendAlert(ss, alert_fatal, internal_error);
@@ -360,6 +364,17 @@ tls13_ServerHandleKeyShareXtn(const sslSocket *ss, TLSExtensionData *xtnData, PR
         if (rv != SECSuccess)
             goto loser;
     }
+
+    /* Check that the client only offered one share if this is
+     * after HRR. */
+    if (ss->ssl3.hs.helloRetry) {
+        if (PR_PREV_LINK(&xtnData->remoteKeyShares) !=
+            PR_NEXT_LINK(&xtnData->remoteKeyShares)) {
+            PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
+            goto loser;
+        }
+    }
+
     return SECSuccess;
 
 loser:
