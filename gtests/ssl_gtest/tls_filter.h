@@ -234,7 +234,8 @@ class TlsExtensionFilter : public TlsHandshakeFilter {
 
 class TlsExtensionCapture : public TlsExtensionFilter {
  public:
-  TlsExtensionCapture(uint16_t ext) : extension_(ext), data_() {}
+  TlsExtensionCapture(uint16_t ext, bool last = false) :
+      extension_(ext), last_(last), data_() {}
 
   const DataBuffer& extension() const { return data_; }
 
@@ -245,6 +246,7 @@ class TlsExtensionCapture : public TlsExtensionFilter {
 
  private:
   const uint16_t extension_;
+  bool last_;
   DataBuffer data_;
 };
 

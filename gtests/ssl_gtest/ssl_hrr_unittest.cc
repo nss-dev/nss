@@ -129,7 +129,7 @@ TEST_P(TlsKeyExchange13, ConnectEcdhePreferenceMismatchHrr) {
   CheckKeys();
   static const std::vector<SSLNamedGroup> expectedShares = {
       ssl_grp_ec_secp384r1};
-  CheckKEXDetails(client_groups, expectedShares, true /* expect_hrr */);
+  CheckKEXDetails(client_groups, expectedShares, ssl_grp_ec_curve25519);
 }
 
 // This should work, but not use HRR because the key share for x25519 was
@@ -146,7 +146,7 @@ TEST_P(TlsKeyExchange13, ConnectEcdhePreferenceMismatchHrrExtraShares) {
 
   Connect();
   CheckKeys();
-  CheckKEXDetails(client_groups, client_groups, false /* expect_hrr */);
+  CheckKEXDetails(client_groups, client_groups);
 }
 
 TEST_F(TlsConnectTest, Select12AfterHelloRetryRequest) {
