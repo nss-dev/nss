@@ -700,6 +700,14 @@ TEST_F(TlsExtensionTest13Stream, ResumeBogusKeModes) {
   server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
 }
 
+TEST_P(TlsExtensionTest13, NoKeModesIfResumptionOff) {
+  ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
+  auto capture = new TlsExtensionCapture(ssl_tls13_psk_key_exchange_modes_xtn);
+  client_->SetPacketFilter(capture);
+  Connect();
+  EXPECT_FALSE(capture->captured());
+}
+
 // In these tests, we downgrade to TLS 1.2, causing the
 // server to negotiate TLS 1.2.
 // 1. Both sides only support TLS 1.3, so we get a cipher version
