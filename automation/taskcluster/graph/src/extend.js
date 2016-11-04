@@ -104,7 +104,6 @@ export default async function main() {
       "-c",
       "bin/checkout.sh && nss/automation/taskcluster/scripts/build_gyp.sh"
     ],
-    env: {USE_64: "1"}, // This is only necessary for tests to work.
     platform: "linux64",
     collection: "gyp",
     image: LINUX_IMAGE
@@ -240,8 +239,7 @@ async function scheduleFuzzing() {
       ASAN_OPTIONS: "allocator_may_return_null=1",
       UBSAN_OPTIONS: "print_stacktrace=1",
       CC: "clang",
-      CCC: "clang++",
-      USE_64: "1" // This is only necessary for tests to work.
+      CCC: "clang++"
     },
     platform: "linux64",
     collection: "fuzz",
