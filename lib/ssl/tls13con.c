@@ -82,7 +82,8 @@ static SECStatus tls13_SendFinished(sslSocket *ss, PK11SymKey *baseKey);
 static SECStatus tls13_ComputePskBinderHash(sslSocket *ss,
                                             unsigned long prefixLength,
                                             SSL3Hashes *hashes);
-static SECStatus tls13_VerifyFinished(sslSocket *ss, PK11SymKey *secret,
+static SECStatus tls13_VerifyFinished(sslSocket *ss, SSL3HandshakeType message,
+                                      PK11SymKey *secret,
                                       SSL3Opaque *b, PRUint32 length,
                                       const SSL3Hashes *hashes);
 static SECStatus tls13_ClientHandleFinished(sslSocket *ss,
@@ -1365,7 +1366,8 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
             goto loser;
         }
 
-        rv = tls13_VerifyFinished(ss, ss->ssl3.hs.pskBinderKey,
+        rv = tls13_VerifyFinished(ss, client_hello,
+                                  ss->ssl3.hs.pskBinderKey,
                                   ss->xtnData.pskBinder.data,
                                   ss->xtnData.pskBinder.len,
                                   &hashes);
@@ -3453,7 +3455,8 @@ tls13_SendFinished(sslSocket *ss, PK11SymKey *baseKey)
 }
 
 static SECStatus
-tls13_VerifyFinished(sslSocket *ss, PK11SymKey *secret,
+tls13_VerifyFinished(sslSocket *ss, SSL3HandshakeType message,
+                     PK11SymKey *secret,
                      SSL3Opaque *b, PRUint32 length,
                      const SSL3Hashes *hashes)
 {
@@ -3474,7 +3477,9 @@ tls13_VerifyFinished(sslSocket *ss, PK11SymKey *secret,
     }
 
     if (length != finishedLen) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_FINISHED, decode_error);
+        FATAL_ERROR(ss, message == finished ?
+                    SSL_ERROR_RX_MALFORMED_FINISHED :
+                    SSL_ERROR_RX_MALFORMED_CLIENT_HELLO, illegal_parameter);
         return SECFailure;
     }
 
@@ -3505,7 +3510,8 @@ tls13_ClientHandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
         return SECFailure;
     }
 
-    rv = tls13_VerifyFinished(ss, ss->ssl3.hs.serverHsTrafficSecret,
+    rv = tls13_VerifyFinished(ss, finished,
+                              ss->ssl3.hs.serverHsTrafficSecret,
                               b, length, hashes);
     if (rv != SECSuccess)
         return SECFailure;
@@ -3537,7 +3543,7 @@ tls13_ServerHandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
         secret = ss->ssl3.hs.clientEarlyTrafficSecret;
     }
 
-    rv = tls13_VerifyFinished(ss, secret, b, length, hashes);
+    rv = tls13_VerifyFinished(ss, finished, secret, b, length, hashes);
     if (rv != SECSuccess)
         return SECFailure;
 
