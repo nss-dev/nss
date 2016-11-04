@@ -96,6 +96,7 @@
     'use_sancov%': 0,
     'test_build%': 0,
     'fuzz%': 0,
+    'sign_libs%': 1,
   },
   'target_defaults': {
     # Settings specific to targets should go here.
