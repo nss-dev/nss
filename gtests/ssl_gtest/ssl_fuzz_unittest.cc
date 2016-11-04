@@ -21,5 +21,4 @@ TEST_F(TlsFuzzTest, Fuzz_SSL_Time_Constant) {
 }
 
 #endif
-
 }

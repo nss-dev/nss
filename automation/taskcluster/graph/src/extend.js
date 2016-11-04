@@ -280,9 +280,9 @@ async function scheduleFuzzing() {
       "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
     ],
     env: {GTESTFILTER: "*Fuzz*"},
-    symbol: "Gtest",
-    tests: "gtests",
+    tests: "ssl_gtests gtests",
     cycle: "standard",
+    symbol: "Gtest",
     kind: "test"
   }));
 
