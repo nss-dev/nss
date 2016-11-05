@@ -90,6 +90,6 @@ PRInt32 ssl_SendSupportedGroupsXtn(const sslSocket *ss,
                                    TLSExtensionData *xtnData,
                                    PRBool append, PRUint32 maxBytes);
 PRInt32 ssl3_SendSupportedPointFormatsXtn(const sslSocket *ss,
-                                                 TLSExtensionData *xtnData,
-                                                 PRBool append, PRUint32 maxBytes);
+                                          TLSExtensionData *xtnData,
+                                          PRBool append, PRUint32 maxBytes);
 #endif
