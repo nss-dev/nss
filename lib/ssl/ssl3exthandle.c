@@ -1891,8 +1891,7 @@ ssl3_HandleRenegotiationInfoXtn(const sslSocket *ss, TLSExtensionData *xtnData, 
         return SECFailure;
     }
     /* remember that we got this extension and it was correct. */
-    CONST_CAST(sslSocket, ss)
-        ->peerRequestedProtection = 1;
+    CONST_CAST(sslSocket, ss)->peerRequestedProtection = 1;
     xtnData->negotiated[xtnData->numNegotiated++] = ex_type;
     if (ss->sec.isServer) {
         /* prepare to send back the appropriate response */
@@ -2451,6 +2450,7 @@ ssl3_ServerHandleSignedCertTimestampXtn(const sslSocket *ss,
     return ssl3_RegisterExtensionSender(
         ss, xtnData, ex_type, ssl3_ServerSendSignedCertTimestampXtn);
 }
+
 
 /* Just make sure that the remote client supports uncompressed points,
  * Since that is all we support.  Disable ECC cipher suites if it doesn't.
