@@ -19,7 +19,6 @@
 #include "sslerr.h"
 #include "tls13hkdf.h"
 #include "tls13con.h"
-#include "tls13exthandle.h"
 
 typedef enum {
     TrafficKeyEarlyHandshake,
@@ -977,7 +976,7 @@ tls13_CanResume(sslSocket *ss, const sslSessionID *sid)
 }
 
 static PRBool
-tls13_AlpnTagAllowed(const sslSocket *ss, const SECItem *tag)
+tls13_AlpnTagAllowed(sslSocket *ss, const SECItem *tag)
 {
     const unsigned char *data = ss->opt.nextProtoNego.data;
     unsigned int length = ss->opt.nextProtoNego.len;
@@ -1031,7 +1030,7 @@ tls13_NegotiateZeroRtt(sslSocket *ss, const sslSessionID *sid)
     PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_sent);
     if (sid && ss->opt.enable0RttData &&
         (sid->u.ssl3.locked.sessionTicket.flags & ticket_allow_early_data) != 0 &&
-        SECITEM_CompareItem(&ss->xtnData.nextProto, &sid->u.ssl3.alpnSelection) == 0) {
+        SECITEM_CompareItem(&ss->ssl3.nextProto, &sid->u.ssl3.alpnSelection) == 0) {
         SSL_TRC(3, ("%d: TLS13[%d]: enable 0-RTT",
                     SSL_GETPID(), ss->fd));
         PORT_Assert(ss->statelessResume);
@@ -1069,8 +1068,8 @@ tls13_isGroupAcceptable(const sslNamedGroupDef *offered,
 static TLS13KeyShareEntry *
 tls13_FindKeyShareEntry(sslSocket *ss, const sslNamedGroupDef *group)
 {
-    PRCList *cur_p = PR_NEXT_LINK(&ss->xtnData.remoteKeyShares);
-    while (cur_p != &ss->xtnData.remoteKeyShares) {
+    PRCList *cur_p = PR_NEXT_LINK(&ss->ssl3.hs.remoteKeyShares);
+    while (cur_p != &ss->ssl3.hs.remoteKeyShares) {
         TLS13KeyShareEntry *offer = (TLS13KeyShareEntry *)cur_p;
         if (offer->group == group) {
             return offer;
@@ -1156,6 +1155,8 @@ tls13_NegotiateKeyExchange(sslSocket *ss, TLS13KeyShareEntry **clientShare)
     SSL_TRC(3, ("%d: TLS13[%d]: group = %d", SSL_GETPID(), ss->fd,
                 preferredGroup->name));
 
+    SSL_TRC(3, ("%d: TLS13[%d]: group = %d", preferredGroup->name));
+
     if (!entry) {
         return tls13_SendHelloRetryRequest(ss, preferredGroup);
     }
@@ -1197,8 +1198,8 @@ tls13_SelectServerCert(sslSocket *ss)
         rv = ssl_PickSignatureScheme(ss,
                                      cert->serverKeyPair->pubKey,
                                      cert->serverKeyPair->privKey,
-                                     ss->xtnData.clientSigSchemes,
-                                     ss->xtnData.numClientSigScheme,
+                                     ss->ssl3.hs.clientSigSchemes,
+                                     ss->ssl3.hs.numClientSigScheme,
                                      PR_FALSE);
         if (rv == SECSuccess) {
             /* Found one. */
@@ -1240,8 +1241,8 @@ tls13_NegotiateAuthentication(sslSocket *ss)
 
     SSL_TRC(3, ("%d: TLS13[%d]: selected certificate authentication",
                 SSL_GETPID(), ss->fd));
-    rv = ssl3_RegisterExtensionSender(
-        ss, &ss->xtnData, ssl_signature_algorithms_xtn,
+    rv = ssl3_RegisterServerHelloExtensionSender(
+        ss, ssl_signature_algorithms_xtn,
         tls13_ServerSendSigAlgsXtn);
     if (rv != SECSuccess) {
         return SECFailure; /* Error code set already. */
@@ -1270,20 +1271,6 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
     TLS13KeyShareEntry *clientShare = NULL;
     int j;
     ssl3CipherSuite previousCipherSuite;
-
-    if (ssl3_ExtensionNegotiated(ss, ssl_tls13_early_data_xtn)) {
-        ss->ssl3.hs.zeroRttState = ssl_0rtt_sent;
-
-        if (IS_DTLS(ss)) {
-            /* Save the null spec, which we should be currently reading.  We will
-             * use this when 0-RTT sending is over. */
-            ssl_GetSpecReadLock(ss);
-            ss->ssl3.hs.nullSpec = ss->ssl3.crSpec;
-            tls13_CipherSpecAddRef(ss->ssl3.hs.nullSpec);
-            PORT_Assert(ss->ssl3.hs.nullSpec->cipher_def->cipher == cipher_null);
-            ssl_ReleaseSpecReadLock(ss);
-        }
-    }
 
 #ifndef PARANOID
     /* Look for a matching cipher suite. */
@@ -1380,9 +1367,8 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
         if (sid->peerCert != NULL) {
             ss->sec.peerCert = CERT_DupCertificate(sid->peerCert);
         }
-        ssl3_RegisterExtensionSender(
-            ss, &ss->xtnData,
-            ssl_tls13_pre_shared_key_xtn, tls13_ServerSendPreSharedKeyXtn);
+        ssl3_RegisterServerHelloExtensionSender(
+            ss, ssl_tls13_pre_shared_key_xtn, tls13_ServerSendPreSharedKeyXtn);
 
         tls13_NegotiateZeroRtt(ss, sid);
     } else {
@@ -1594,8 +1580,8 @@ tls13_HandleClientKeyShare(sslSocket *ss, TLS13KeyShareEntry *peerShare)
     ss->sec.keaKeyBits = SECKEY_PublicKeyStrengthInBits(keyPair->keys->pubKey);
 
     /* Register the sender */
-    rv = ssl3_RegisterExtensionSender(ss, &ss->xtnData, ssl_tls13_key_share_xtn,
-                                      tls13_ServerSendKeyShareXtn);
+    rv = ssl3_RegisterServerHelloExtensionSender(ss, ssl_tls13_key_share_xtn,
+                                                 tls13_ServerSendKeyShareXtn);
     if (rv != SECSuccess) {
         return SECFailure; /* Error code set already. */
     }
@@ -1871,8 +1857,8 @@ tls13_SendEncryptedServerSequence(sslSocket *ss)
     }
 
     if (ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted) {
-        rv = ssl3_RegisterExtensionSender(ss, &ss->xtnData, ssl_tls13_early_data_xtn,
-                                          tls13_ServerSendEarlyDataXtn);
+        rv = ssl3_RegisterServerHelloExtensionSender(ss, ssl_tls13_early_data_xtn,
+                                                     tls13_ServerSendEarlyDataXtn);
         if (rv != SECSuccess) {
             return SECFailure; /* Error code set already. */
         }
@@ -2181,13 +2167,13 @@ tls13_HandleServerKeyShare(sslSocket *ss)
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     /* This list should have one entry. */
-    if (PR_CLIST_IS_EMPTY(&ss->xtnData.remoteKeyShares)) {
+    if (PR_CLIST_IS_EMPTY(&ss->ssl3.hs.remoteKeyShares)) {
         FATAL_ERROR(ss, SSL_ERROR_MISSING_KEY_SHARE, missing_extension);
         return SECFailure;
     }
 
-    entry = (TLS13KeyShareEntry *)PR_NEXT_LINK(&ss->xtnData.remoteKeyShares);
-    PORT_Assert(PR_NEXT_LINK(&entry->link) == &ss->xtnData.remoteKeyShares);
+    entry = (TLS13KeyShareEntry *)PR_NEXT_LINK(&ss->ssl3.hs.remoteKeyShares);
+    PORT_Assert(PR_NEXT_LINK(&entry->link) == &ss->ssl3.hs.remoteKeyShares);
 
     PORT_Assert(ssl_NamedGroupEnabled(ss, entry->group));
 
@@ -2883,28 +2869,19 @@ tls13_HandleEncryptedExtensions(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     /* If we are doing 0-RTT, then we already have an NPN value. Stash
      * it for comparison. */
     if (ss->ssl3.hs.zeroRttState == ssl_0rtt_sent &&
-        ss->xtnData.nextProtoState == SSL_NEXT_PROTO_EARLY_VALUE) {
-        oldNpn = ss->xtnData.nextProto;
-        ss->xtnData.nextProto.data = NULL;
-        ss->xtnData.nextProtoState = SSL_NEXT_PROTO_NO_SUPPORT;
+        ss->ssl3.nextProtoState == SSL_NEXT_PROTO_EARLY_VALUE) {
+        oldNpn = ss->ssl3.nextProto;
+        ss->ssl3.nextProto.data = NULL;
+        ss->ssl3.nextProtoState = SSL_NEXT_PROTO_NO_SUPPORT;
     }
     rv = ssl3_HandleExtensions(ss, &b, &length, encrypted_extensions);
     if (rv != SECSuccess) {
         return SECFailure; /* Error code set below */
     }
 
-    /* We can only get here if we offered 0-RTT. */
-    if (ssl3_ExtensionNegotiated(ss, ssl_tls13_early_data_xtn)) {
-        PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_sent);
-        if (!ss->statelessResume) {
-            /* Illegal to accept 0-RTT without also accepting PSK. */
-            FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_ENCRYPTED_EXTENSIONS,
-                        illegal_parameter);
-        }
-        ss->ssl3.hs.zeroRttState = ssl_0rtt_accepted;
-
+    if (ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted) {
         /* Check that the server negotiated the same ALPN (if any). */
-        if (SECITEM_CompareItem(&oldNpn, &ss->xtnData.nextProto)) {
+        if (SECITEM_CompareItem(&oldNpn, &ss->ssl3.nextProto)) {
             SECITEM_FreeItem(&oldNpn, PR_FALSE);
             FATAL_ERROR(ss, SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID,
                         illegal_parameter);
@@ -4098,7 +4075,7 @@ tls13_UnprotectRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *plaintext
  * Called from tls13_ClientSendEarlyDataXtn().
  */
 PRBool
-tls13_ClientAllow0Rtt(const sslSocket *ss, const sslSessionID *sid)
+tls13_ClientAllow0Rtt(sslSocket *ss, const sslSessionID *sid)
 {
     if (sid->version < SSL_LIBRARY_VERSION_TLS_1_3)
         return PR_FALSE;
@@ -4119,12 +4096,11 @@ tls13_MaybeDo0RTTHandshake(sslSocket *ss)
     SECStatus rv;
     int bufferLen = ss->ssl3.hs.messages.len;
 
-    /* Don't do anything if there is no early_data xtn, which means we're
-     * not doing early data. */
-    if (!ssl3_ClientExtensionAdvertised(ss, ssl_tls13_early_data_xtn)) {
+    /* Don't do anything if this is the second ClientHello or we decided not to
+     * do 0-RTT (which means that there is no early_data extension). */
+    if (ss->ssl3.hs.zeroRttState != ssl_0rtt_sent) {
         return SECSuccess;
     }
-    ss->ssl3.hs.zeroRttState = ssl_0rtt_sent;
 
     SSL_TRC(3, ("%d: TLS13[%d]: in 0-RTT mode", SSL_GETPID(), ss->fd));
 
@@ -4137,8 +4113,8 @@ tls13_MaybeDo0RTTHandshake(sslSocket *ss)
     /* Set the ALPN data as if it was negotiated. We check in the ServerHello
      * handler that the server negotiates the same value. */
     if (ss->sec.ci.sid->u.ssl3.alpnSelection.len) {
-        ss->xtnData.nextProtoState = SSL_NEXT_PROTO_EARLY_VALUE;
-        rv = SECITEM_CopyItem(NULL, &ss->xtnData.nextProto,
+        ss->ssl3.nextProtoState = SSL_NEXT_PROTO_EARLY_VALUE;
+        rv = SECITEM_CopyItem(NULL, &ss->ssl3.nextProto,
                               &ss->sec.ci.sid->u.ssl3.alpnSelection);
         if (rv != SECSuccess)
             return rv;
