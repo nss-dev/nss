@@ -27,9 +27,6 @@
         ['OS=="win"', {
           'use_system_zlib%': 0,
           'nspr_libs%': ['nspr4.lib', 'plc4.lib', 'plds4.lib'],
-          #XXX: gyp breaks if these are empty!
-          'nspr_lib_dir%': ' ',
-          'nspr_include_dir%': ' ',
           'zlib_libs%': [],
           #TODO
           'moz_debug_flags%': '',
@@ -37,12 +34,10 @@
           'dll_suffix': 'dll',
         }, {
           'nspr_libs%': ['-lplds4', '-lplc4', '-lnspr4'],
-          'nspr_lib_dir%': '<!(<(python) <(DEPTH)/coreconf/pkg_config.py . --libs nspr)',
-          'nspr_include_dir%': '<!(<(python) <(DEPTH)/coreconf/pkg_config.py . --cflags nspr)',
           'use_system_zlib%': 1,
         }],
         ['OS=="linux" or OS=="android"', {
-          'zlib_libs%': ['<!@(<(python) <(DEPTH)/coreconf/pkg_config.py raw --libs zlib)'],
+          'zlib_libs%': ['-lz'],
           'moz_debug_flags%': '-gdwarf-2',
           'optimize_flags%': '-O2',
           'dll_prefix': 'lib',
@@ -97,6 +92,8 @@
     'moz_folded_library_name%': '',
     'ssl_enable_zlib%': 1,
     'use_asan%': 0,
+    'use_ubsan%': 0,
+    'use_sancov%': 0,
     'test_build%': 0,
     'fuzz%': 0,
   },
@@ -258,13 +255,11 @@
               '-pipe',
               '-ffunction-sections',
               '-fdata-sections',
-              '<(moz_debug_flags)',
             ],
             'cflags_cc': [
               '-std=c++0x',
             ],
             'conditions': [
-
               [ 'target_arch=="ia32"', {
                 'cflags': ['-m32'],
                 'ldflags': ['-m32'],
@@ -281,7 +276,27 @@
             ],
           }],
           [ 'fuzz==1', {
-            'cflags': ['-Wno-unused-function']
+            'cflags': [
+              '-Wno-unused-function',
+            ]
+          }],
+          [ 'use_asan==1 or use_ubsan==1', {
+            'cflags': ['-O1'],
+          }],
+          [ 'use_asan==1', {
+            'cflags': ['<!@(<(python) <(DEPTH)/coreconf/sanitizers.py asan)'],
+            'ldflags': ['<!@(<(python) <(DEPTH)/coreconf/sanitizers.py asan)'],
+            'ldflags!': ['<!@(<(python) <(DEPTH)/coreconf/sanitizers.py ld)'],
+          }],
+          [ 'use_ubsan==1', {
+            'cflags': ['<!@(<(python) <(DEPTH)/coreconf/sanitizers.py ubsan)'],
+            'ldflags': ['<!@(<(python) <(DEPTH)/coreconf/sanitizers.py ubsan)'],
+            'ldflags!': ['<!@(<(python) <(DEPTH)/coreconf/sanitizers.py ld)'],
+          }],
+          [ 'use_sancov!=0', {
+            'cflags': ['<!@(<(python) <(DEPTH)/coreconf/sanitizers.py sancov <(use_sancov))'],
+            'ldflags': ['<!@(<(python) <(DEPTH)/coreconf/sanitizers.py sancov <(use_sancov))'],
+            'ldflags!': ['<!@(<(python) <(DEPTH)/coreconf/sanitizers.py ld)'],
           }],
           [ 'OS=="android" and mozilla_client==0', {
             'defines': [
@@ -377,11 +392,20 @@
       # Common settings for debug should go here.
       'Debug_Base': {
         'abstract': 1,
+        'conditions': [
+          [ 'OS=="linux" or OS=="android"', {
+            'cflags': [
+              '-g',
+              '<(moz_debug_flags)',
+            ],
+          }]
+        ],
         #TODO: DEBUG_$USER
         'defines': ['DEBUG'],
         'xcode_settings': {
           'COPY_PHASE_STRIP': 'NO',
           'GCC_OPTIMIZATION_LEVEL': '0',
+          'GCC_GENERATE_DEBUGGING_SYMBOLS': 'YES',
         },
         'msvs_settings': {
           'VCCLCompilerTool': {

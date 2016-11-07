@@ -61,9 +61,6 @@
         '<(DEPTH)/lib/dev/dev.gyp:nssdev',
         '<(DEPTH)/lib/base/base.gyp:nssb',
         '<(DEPTH)/lib/freebl/freebl.gyp:<(freebl_name)',
-        '<(DEPTH)/lib/nss/nss.gyp:nss_static',
-        '<(DEPTH)/lib/pk11wrap/pk11wrap.gyp:pk11wrap',
-        '<(DEPTH)/lib/certhigh/certhigh.gyp:certhi',
         '<(DEPTH)/lib/zlib/zlib.gyp:nss_zlib'
       ],
       'conditions': [
@@ -96,12 +93,8 @@
       '../../gtests/common',
       '../../lib/ssl'
     ],
-    'defines': [
-      'NSS_USE_STATIC_LIBS'
-    ]
   },
   'variables': {
     'module': 'nss',
-    'use_static_libs': 1
   }
 }

@@ -17,7 +17,8 @@ const WINDOWS_CHECKOUT_CMD =
 queue.filter(task => {
   if (task.group == "Builds") {
     // Remove extra builds on {A,UB}San and ARM.
-    if (task.collection == "asan" || task.collection == "arm-debug") {
+    if (task.collection == "asan" || task.collection == "arm-debug" ||
+        task.collection == "gyp-asan") {
       return false;
     }
 
@@ -41,7 +42,8 @@ queue.filter(task => {
   }
 
   // GYP builds with -Ddisable_libpkix=1 by default.
-  if (task.collection == "gyp" && task.tests == "chains") {
+  if ((task.collection == "gyp" || task.collection == "gyp-asan") &&
+      task.tests == "chains") {
     return false;
   }
 
@@ -49,15 +51,10 @@ queue.filter(task => {
 });
 
 queue.map(task => {
-  if (task.collection == "asan") {
+  if (task.collection == "asan" || task.collection == "gyp-asan") {
     // CRMF and FIPS tests still leak, unfortunately.
     if (task.tests == "crmf" || task.tests == "fips") {
       task.env.ASAN_OPTIONS = "detect_leaks=0";
-    }
-
-    // SSL(standard) runs on ASan take some time.
-    if (task.tests == "ssl" && task.cycle == "standard") {
-      task.maxRunTime = 7200;
     }
   }
 
@@ -111,6 +108,25 @@ export default async function main() {
     ],
     platform: "linux64",
     collection: "gyp",
+    image: LINUX_IMAGE
+  });
+
+  await scheduleLinux("Linux 64 (debug, gyp, asan, ubsan)", {
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/build_gyp.sh -g -v --ubsan --asan"
+    ],
+    env: {
+      ASAN_OPTIONS: "detect_odr_violation=0", // bug 1316276
+      UBSAN_OPTIONS: "print_stacktrace=1",
+      NSS_DISABLE_ARENA_FREE_LIST: "1",
+      NSS_DISABLE_UNLOAD: "1",
+      CC: "clang",
+      CCC: "clang++"
+    },
+    platform: "linux64",
+    collection: "gyp-asan",
     image: LINUX_IMAGE
   });
 
@@ -241,7 +257,8 @@ async function scheduleLinux(name, base) {
 async function scheduleFuzzing() {
   let base = {
     env: {
-      ASAN_OPTIONS: "allocator_may_return_null=1",
+       // bug 1316276
+      ASAN_OPTIONS: "allocator_may_return_null=1:detect_odr_violation=0",
       UBSAN_OPTIONS: "print_stacktrace=1",
       CC: "clang",
       CCC: "clang++"
