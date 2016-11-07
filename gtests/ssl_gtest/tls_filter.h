@@ -165,14 +165,14 @@ class TlsInspectorReplaceHandshakeMessage : public TlsHandshakeFilter {
 // Make a copy of the complete conversation.
 class TlsConversationRecorder : public TlsRecordFilter {
  public:
-  TlsConversationRecorder(DataBuffer &buffer) : buffer_(buffer) {}
+  TlsConversationRecorder(DataBuffer& buffer) : buffer_(buffer) {}
 
   virtual PacketFilter::Action FilterRecord(const RecordHeader& header,
                                             const DataBuffer& input,
                                             DataBuffer* output);
 
  private:
-  DataBuffer &buffer_;
+  DataBuffer& buffer_;
 };
 
 // Records an alert.  If an alert has already been recorded, it won't save the
