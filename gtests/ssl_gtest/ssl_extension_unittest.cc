@@ -643,7 +643,8 @@ struct PskIdentity {
 
 class TlsPreSharedKeyReplacer;
 
-typedef std::function<void(TlsPreSharedKeyReplacer*)> TlsPreSharedKeyReplacerFunc;
+typedef std::function<void(TlsPreSharedKeyReplacer*)>
+    TlsPreSharedKeyReplacerFunc;
 
 class TlsPreSharedKeyReplacer : public TlsExtensionFilter {
  public:
@@ -722,7 +723,7 @@ class TlsPreSharedKeyReplacer : public TlsExtensionFilter {
     }
 
     parser.reset(new TlsParser(binders));
-    while(parser->remaining()) {
+    while (parser->remaining()) {
       DataBuffer binder;
 
       if (!parser->ReadVariable(&binder, 1)) {
@@ -762,12 +763,8 @@ class TlsPreSharedKeyReplacer : public TlsExtensionFilter {
 TEST_F(TlsExtensionTest13Stream, ResumeEmptyPskLabel) {
   SetupForResume();
 
-  client_->SetPacketFilter(
-      new TlsPreSharedKeyReplacer(
-          [](TlsPreSharedKeyReplacer *r) {
-            r->identities_[0].identity.Truncate(0);
-          }
-                                  ));
+  client_->SetPacketFilter(new TlsPreSharedKeyReplacer([](
+      TlsPreSharedKeyReplacer* r) { r->identities_[0].identity.Truncate(0); }));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -778,12 +775,9 @@ TEST_F(TlsExtensionTest13Stream, ResumeIncorrectBinderValue) {
   SetupForResume();
 
   client_->SetPacketFilter(
-      new TlsPreSharedKeyReplacer(
-          [](TlsPreSharedKeyReplacer *r) {
-            r->binders_[0].Write(0,
-                                 r->binders_[0].data()[0] ^ 0xff, 1);
-          }
-                                  ));
+      new TlsPreSharedKeyReplacer([](TlsPreSharedKeyReplacer* r) {
+        r->binders_[0].Write(0, r->binders_[0].data()[0] ^ 0xff, 1);
+      }));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_DECRYPT_ERROR_ALERT);
   server_->CheckErrorCode(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
@@ -794,11 +788,9 @@ TEST_F(TlsExtensionTest13Stream, ResumeIncorrectBinderLength) {
   SetupForResume();
 
   client_->SetPacketFilter(
-      new TlsPreSharedKeyReplacer(
-          [](TlsPreSharedKeyReplacer *r) {
-            r->binders_[0].Write(r->binders_[0].len(), 0xff, 1);
-          }
-                                  ));
+      new TlsPreSharedKeyReplacer([](TlsPreSharedKeyReplacer* r) {
+        r->binders_[0].Write(r->binders_[0].len(), 0xff, 1);
+      }));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -808,12 +800,8 @@ TEST_F(TlsExtensionTest13Stream, ResumeIncorrectBinderLength) {
 TEST_F(TlsExtensionTest13Stream, ResumeBinderTooShort) {
   SetupForResume();
 
-  client_->SetPacketFilter(
-      new TlsPreSharedKeyReplacer(
-          [](TlsPreSharedKeyReplacer *r) {
-            r->binders_[0].Truncate(31);
-          }
-                                  ));
+  client_->SetPacketFilter(new TlsPreSharedKeyReplacer(
+      [](TlsPreSharedKeyReplacer* r) { r->binders_[0].Truncate(31); }));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -825,12 +813,10 @@ TEST_F(TlsExtensionTest13Stream, ResumeTwoPsks) {
   SetupForResume();
 
   client_->SetPacketFilter(
-      new TlsPreSharedKeyReplacer(
-          [](TlsPreSharedKeyReplacer *r) {
-            r->identities_.push_back(r->identities_[0]);
-            r->binders_.push_back(r->binders_[0]);
-          }
-                                  ));
+      new TlsPreSharedKeyReplacer([](TlsPreSharedKeyReplacer* r) {
+        r->identities_.push_back(r->identities_[0]);
+        r->binders_.push_back(r->binders_[0]);
+      }));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_DECRYPT_ERROR_ALERT);
   server_->CheckErrorCode(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
@@ -842,11 +828,9 @@ TEST_F(TlsExtensionTest13Stream, ResumeTwoIdentitiesOneBinder) {
   SetupForResume();
 
   client_->SetPacketFilter(
-      new TlsPreSharedKeyReplacer(
-          [](TlsPreSharedKeyReplacer *r) {
-            r->identities_.push_back(r->identities_[0]);
-          }
-                                  ));
+      new TlsPreSharedKeyReplacer([](TlsPreSharedKeyReplacer* r) {
+        r->identities_.push_back(r->identities_[0]);
+      }));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -855,23 +839,18 @@ TEST_F(TlsExtensionTest13Stream, ResumeTwoIdentitiesOneBinder) {
 TEST_F(TlsExtensionTest13Stream, ResumeOneIdentityTwoBinders) {
   SetupForResume();
 
-  client_->SetPacketFilter(
-      new TlsPreSharedKeyReplacer(
-          [](TlsPreSharedKeyReplacer *r) {
-            r->binders_.push_back(r->binders_[0]);
-          }
-                                  ));
+  client_->SetPacketFilter(new TlsPreSharedKeyReplacer([](
+      TlsPreSharedKeyReplacer* r) { r->binders_.push_back(r->binders_[0]); }));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
 }
 
-
 TEST_F(TlsExtensionTest13Stream, ResumePskExtensionNotLast) {
   SetupForResume();
 
-  const uint8_t empty_buf[] = { 0 };
-  DataBuffer empty (empty_buf, 0);
+  const uint8_t empty_buf[] = {0};
+  DataBuffer empty(empty_buf, 0);
   client_->SetPacketFilter(
       // Inject an unused extension.
       new TlsExtensionAppender(0xffff, empty));
@@ -896,15 +875,12 @@ TEST_F(TlsExtensionTest13Stream, ResumeNoKeModes) {
 // errors.
 TEST_F(TlsExtensionTest13Stream, ResumeBogusKeModes) {
   SetupForResume();
-  const static uint8_t ke_modes[] = {
-    1, // Length
-    kTls13PskKe
-  };
+  const static uint8_t ke_modes[] = {1,  // Length
+                                     kTls13PskKe};
 
   DataBuffer modes(ke_modes, sizeof(ke_modes));
   client_->SetPacketFilter(
-      new TlsExtensionReplacer(ssl_tls13_psk_key_exchange_modes_xtn,
-                               modes));
+      new TlsExtensionReplacer(ssl_tls13_psk_key_exchange_modes_xtn, modes));
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
   server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);

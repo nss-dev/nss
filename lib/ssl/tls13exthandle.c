@@ -469,16 +469,16 @@ tls13_ClientSendPreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData,
      * is just one ticket at most. */
     session_ticket = &ss->sec.ci.sid->u.ssl3.locked.sessionTicket;
     identities_length =
-            2 +                              /* vector length */
-            2 + session_ticket->ticket.len + /* identity length + ticket len */
-            4;                               /* obfuscated_ticket_age */
+        2 +                              /* vector length */
+        2 + session_ticket->ticket.len + /* identity length + ticket len */
+        4;                               /* obfuscated_ticket_age */
     binders_length =
-            2 +                              /* vector length */
-            1 + tls13_GetHashSizeForHash(
+        2 + /* vector length */
+        1 + tls13_GetHashSizeForHash(
                 tls13_GetHashForCipherSuite(ss->sec.ci.sid->u.ssl3.cipherSuite));
     extension_length =
-            2 + 2 +                          /* Type + length */
-            identities_length + binders_length;
+        2 + 2 + /* Type + length */
+        identities_length + binders_length;
 
     if (maxBytes < (PRUint32)extension_length) {
         PORT_Assert(0);
@@ -526,7 +526,7 @@ tls13_ClientSendPreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData,
         if (rv != SECSuccess)
             goto loser;
         rv = ssl3_ExtAppendHandshakeVariable(ss,
-                                          binder, binderLen, 1);
+                                             binder, binderLen, 1);
         if (rv != SECSuccess)
             goto loser;
 
@@ -568,7 +568,7 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
 
     /* Parse the identities list. */
     rv = ssl3_ExtConsumeHandshakeVariable(ss,
-                                       &inner,  2, &data->data, &data->len);
+                                          &inner, 2, &data->data, &data->len);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -578,7 +578,7 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
         PRUint32 utmp;
 
         rv = ssl3_ExtConsumeHandshakeVariable(ss, &label, 2,
-                                           &inner.data, &inner.len);
+                                              &inner.data, &inner.len);
         if (rv != SECSuccess)
             return rv;
         if (!label.len) {
@@ -587,7 +587,7 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
 
         /* Read and discard session ticket age. Bug 1295163 */
         rv = ssl3_ExtConsumeHandshake(ss, &utmp, 4,
-                                   &inner.data, &inner.len);
+                                      &inner.data, &inner.len);
         if (rv != SECSuccess)
             return rv;
 
@@ -609,7 +609,7 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
 
     /* Parse the binders list. */
     rv = ssl3_ExtConsumeHandshakeVariable(ss,
-                                       &inner,  2, &data->data, &data->len);
+                                          &inner, 2, &data->data, &data->len);
     if (rv != SECSuccess)
         return SECFailure;
     if (data->len) {
@@ -619,7 +619,7 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
     while (inner.len) {
         SECItem binder;
         rv = ssl3_ExtConsumeHandshakeVariable(ss, &binder, 1,
-                                           &inner.data, &inner.len);
+                                              &inner.data, &inner.len);
         if (rv != SECSuccess)
             return rv;
         if (binder.len < 32) {
@@ -717,7 +717,6 @@ tls13_ClientHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
 
     return SECSuccess;
 }
-
 
 /*
  *  struct { } EarlyDataIndication;
@@ -989,7 +988,6 @@ tls13_ClientSendHrrCookieXtn(const sslSocket *ss, TLSExtensionData *xtnData, PRB
     return extension_len;
 }
 
-
 /*
  *     enum { psk_ke(0), psk_dhe_ke(1), (255) } PskKeyExchangeMode;
  *
@@ -1012,9 +1010,8 @@ tls13_ClientSendPskKeyExchangeModesXtn(const sslSocket *ss,
     }
 
     extension_len =
-            2 + 2 +                    /* Type + length */
-            1 + ke_modes_len;          /* key exchange modes vector */
-
+        2 + 2 +           /* Type + length */
+        1 + ke_modes_len; /* key exchange modes vector */
 
     SSL_TRC(3, ("%d: TLS13[%d]: send psk key exchange modes extension",
                 SSL_GETPID(), ss->fd));
@@ -1056,7 +1053,6 @@ tls13_ServerHandlePskKeyExchangeModesXtn(const sslSocket *ss,
 
     SSL_TRC(3, ("%d: TLS13[%d]: handle PSK key exchange modes extension",
                 SSL_GETPID(), ss->fd));
-
 
     /* IMPORTANT: We aren't copying these values, just setting pointers.
      * They will only be valid as long as the ClientHello is in memory. */

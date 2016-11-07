@@ -863,8 +863,8 @@ void TlsAgentTestBase::EnsureInit() {
     Init();
   }
   const std::vector<SSLNamedGroup> groups = {
-    ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1,
-    ssl_grp_ec_secp384r1, ssl_grp_ffdhe_2048};
+      ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1,
+      ssl_grp_ffdhe_2048};
   agent_->ConfigNamedGroups(groups);
 }
 
