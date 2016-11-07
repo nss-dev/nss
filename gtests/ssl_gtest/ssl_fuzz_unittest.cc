@@ -46,10 +46,9 @@ TEST_P(TlsConnectGeneric, Fuzz_DeterministicExporter) {
   Connect();
 
   // Export a key derived from the MS and nonces.
-  SECStatus rv = SSL_ExportKeyingMaterial(client_->ssl_fd(),
-                                          kLabel, strlen(kLabel),
-                                          false, NULL, 0,
-                                          out1.data(), out1.size());
+  SECStatus rv =
+      SSL_ExportKeyingMaterial(client_->ssl_fd(), kLabel, strlen(kLabel), false,
+                               NULL, 0, out1.data(), out1.size());
   EXPECT_EQ(SECSuccess, rv);
 
   Reset();
