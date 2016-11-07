@@ -258,7 +258,7 @@ SSLHashType
 tls13_GetHashForCipherSuite(ssl3CipherSuite suite)
 {
     const ssl3CipherSuiteDef *cipherDef =
-            ssl_LookupCipherSuiteDef(suite);
+        ssl_LookupCipherSuiteDef(suite);
     PORT_Assert(cipherDef);
     if (!cipherDef) {
         return ssl_hash_none;
@@ -723,7 +723,6 @@ tls13_ComputeEarlySecrets(sslSocket *ss)
     SSL_TRC(5, ("%d: TLS13[%d]: compute early secrets (%s)",
                 SSL_GETPID(), ss->fd, SSL_ROLE(ss)));
 
-
     /* Extract off the resumptionMasterSecret (if present), else pass the NULL
      * resumptionMasterSecret which will be internally translated to zeroes. */
     PORT_Assert(!ss->ssl3.hs.currentSecret);
@@ -904,8 +903,7 @@ tls13_CanResume(sslSocket *ss, const sslSessionID *sid)
         return PR_FALSE;
     }
 
-    if (tls13_GetHashForCipherSuite(sid->u.ssl3.cipherSuite)
-        != tls13_GetHashForCipherSuite(ss->ssl3.hs.cipher_suite)) {
+    if (tls13_GetHashForCipherSuite(sid->u.ssl3.cipherSuite) != tls13_GetHashForCipherSuite(ss->ssl3.hs.cipher_suite)) {
         return PR_FALSE;
     }
 
@@ -2201,14 +2199,14 @@ tls13_SendCertificate(sslSocket *ss)
     if (certChain) {
         for (i = 0; i < certChain->len; i++) {
             certChainLen +=
-                    3 + certChain->certs[i].len + /* cert length + cert */
-                    2 + (!i ? extensionsLen : 0);  /* extensions length + extensions */
+                3 + certChain->certs[i].len + /* cert length + cert */
+                2 + (!i ? extensionsLen : 0); /* extensions length + extensions */
         }
     }
 
     rv = ssl3_AppendHandshakeHeader(ss, certificate,
                                     1 + context.len +
-                                    3 + certChainLen);
+                                        3 + certChainLen);
     if (rv != SECSuccess) {
         return SECFailure; /* err set by AppendHandshake. */
     }
@@ -2317,7 +2315,6 @@ tls13_HandleCertificateEntry(sslSocket *ss, SECItem *data, PRBool first,
     return SECSuccess;
 }
 
-
 /* Called from tls13_CompleteHandleHandshakeMessage() when it has deciphered a complete
  * tls13 Certificate message.
  * Caller must hold Handshake and RecvBuf locks.
@@ -2405,7 +2402,7 @@ tls13_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
             ss->sec.peerCert = cert;
         } else {
             ssl3CertNode *c = PORT_ArenaNew(ss->ssl3.peerCertArena,
-                                             ssl3CertNode);
+                                            ssl3CertNode);
             if (!c) {
                 FATAL_ERROR(ss, SEC_ERROR_NO_MEMORY, internal_error);
                 return SECFailure;
@@ -3477,9 +3474,7 @@ tls13_VerifyFinished(sslSocket *ss, SSL3HandshakeType message,
     }
 
     if (length != finishedLen) {
-        FATAL_ERROR(ss, message == finished ?
-                    SSL_ERROR_RX_MALFORMED_FINISHED :
-                    SSL_ERROR_RX_MALFORMED_CLIENT_HELLO, illegal_parameter);
+        FATAL_ERROR(ss, message == finished ? SSL_ERROR_RX_MALFORMED_FINISHED : SSL_ERROR_RX_MALFORMED_CLIENT_HELLO, illegal_parameter);
         return SECFailure;
     }
 
@@ -3742,7 +3737,7 @@ loser:
  *   } NewSessionTicket;
  */
 
-#define MAX_EARLY_DATA_SIZE (2<<16) /* Arbitrary limit. */
+#define MAX_EARLY_DATA_SIZE (2 << 16) /* Arbitrary limit. */
 
 SECStatus
 tls13_SendNewSessionTicket(sslSocket *ss)
@@ -3764,10 +3759,10 @@ tls13_SendNewSessionTicket(sslSocket *ss)
         goto loser;
 
     message_length =
-        4 +                      /* lifetime */
-        4 +                      /* ticket_age_add */
-        2 + max_early_data_size_len +  /* max_early_data_size_len */
-        2 +                      /* ticket length */
+        4 +                           /* lifetime */
+        4 +                           /* ticket_age_add */
+        2 + max_early_data_size_len + /* max_early_data_size_len */
+        2 +                           /* ticket length */
         ticket_data.len;
 
     rv = ssl3_AppendHandshakeHeader(ss, new_session_ticket,
@@ -4031,7 +4026,7 @@ tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message)
             return message == new_session_ticket;
         case ExtensionSendCertificate:
             return message == client_hello ||
-                    message == certificate;
+                   message == certificate;
     }
 
     PORT_Assert(0);

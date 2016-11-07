@@ -183,7 +183,7 @@ ssl3_ParseExtensions(sslSocket *ss, SSL3Opaque **b, PRUint32 *length)
         }
 
         SSL_TRC(10, ("%d: SSL3[%d]: parsing extension %d",
-                    SSL_GETPID(), ss->fd, extension_type));
+                     SSL_GETPID(), ss->fd, extension_type));
         /* Check whether an extension has been sent multiple times. */
         for (cursor = PR_NEXT_LINK(&ss->ssl3.hs.remoteExtensions);
              cursor != &ss->ssl3.hs.remoteExtensions;
@@ -336,7 +336,6 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
                     return SECFailure;
                 }
             }
-
         }
     }
     return SECSuccess;

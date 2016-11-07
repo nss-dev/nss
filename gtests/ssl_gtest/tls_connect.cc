@@ -700,11 +700,9 @@ void TlsKeyExchangeTest::CheckKEXDetails(
   for (auto it : expected_shares) {
     EXPECT_NE(expected_share2, it);
   }
-  std::vector<SSLNamedGroup> expected_shares2 = {
-    expected_share2
-  };
+  std::vector<SSLNamedGroup> expected_shares2 = {expected_share2};
   std::vector<SSLNamedGroup> shares =
-        GetShareDetails(shares_capture2_->extension());
+      GetShareDetails(shares_capture2_->extension());
   EXPECT_EQ(expected_shares2, shares);
 }
 }  // namespace nss_test

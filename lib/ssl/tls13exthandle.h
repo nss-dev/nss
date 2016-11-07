@@ -65,5 +65,4 @@ SECStatus tls13_ServerHandlePskKeyExchangeModesXtn(const sslSocket *ss,
                                                    TLSExtensionData *xtnData,
                                                    PRUint16 ex_type, SECItem *data);
 
-
 #endif

@@ -259,6 +259,7 @@ class TlsKeyExchangeTest : public TlsConnectGeneric {
   void CheckKEXDetails(const std::vector<SSLNamedGroup>& expectedGroups,
                        const std::vector<SSLNamedGroup>& expectedShares,
                        SSLNamedGroup expectedShare2);
+
  private:
   void CheckKEXDetails(const std::vector<SSLNamedGroup>& expectedGroups,
                        const std::vector<SSLNamedGroup>& expectedShares,

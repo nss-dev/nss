@@ -11653,7 +11653,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
             computeHashes = TLS13_IN_HS_STATE(ss, wait_cert_verify);
         } else if (type == finished) {
             computeHashes =
-                    TLS13_IN_HS_STATE(ss, wait_cert_request, wait_finished);
+                TLS13_IN_HS_STATE(ss, wait_cert_request, wait_finished);
         }
     }
 

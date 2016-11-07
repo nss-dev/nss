@@ -47,7 +47,7 @@ struct TLSExtensionDataStr {
     ssl3HelloExtensionSender serverHelloSenders[SSL_MAX_EXTENSIONS];
     ssl3HelloExtensionSender encryptedExtensionsSenders[SSL_MAX_EXTENSIONS];
     ssl3HelloExtensionSender certificateSenders[SSL_MAX_EXTENSIONS];
-    
+
     /* Keep track of the extensions that are negotiated. */
     PRUint16 numAdvertised;
     PRUint16 numNegotiated;
@@ -96,9 +96,9 @@ struct TLSExtensionDataStr {
 
     PRUint16 dtlsSRTPCipherSuite; /* 0 if not selected */
 
-    SECItem pskBinder; /* The PSK binder for the first PSK (TLS 1.3) */
+    SECItem pskBinder;                /* The PSK binder for the first PSK (TLS 1.3) */
     unsigned long pskBinderPrefixLen; /* The length of the binder input. */
-    PRCList remoteKeyShares; /* The other side's public keys (TLS 1.3) */
+    PRCList remoteKeyShares;          /* The other side's public keys (TLS 1.3) */
 };
 
 typedef struct TLSExtensionStr {
