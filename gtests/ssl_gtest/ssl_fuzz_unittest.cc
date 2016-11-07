@@ -68,5 +68,34 @@ TEST_P(TlsConnectGeneric, Fuzz_DeterministicExporter) {
   EXPECT_EQ(out1, out2);
 }
 
+// Check that due to the deterministic RNG two consecutive
+// TLS sessions will have the exact same transcript.
+TEST_P(TlsConnectGeneric, Fuzz_DeterministicTranscript) {
+  // Connect a few times and compare the transcripts byte-by-byte.
+  DataBuffer last;
+  for (size_t i = 0; i < 5; i++) {
+    Reset();
+    ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
+    DisableECDHEServerKeyReuse();
+
+    DataBuffer buffer;
+    client_->SetPacketFilter(new TlsConversationRecorder(buffer));
+    server_->SetPacketFilter(new TlsConversationRecorder(buffer));
+
+    ResetState();
+    Connect();
+
+    // Ensure the filters go away before |buffer| does.
+    client_->SetPacketFilter(nullptr);
+    server_->SetPacketFilter(nullptr);
+
+    if (last.len() > 0) {
+      EXPECT_EQ(last, buffer);
+    }
+
+    last = buffer;
+  }
+}
+
 #endif
 }
