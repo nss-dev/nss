@@ -47,7 +47,6 @@
         'cts.c',
         'des.c',
         'desblapi.c',
-        'det_rng.c',
         'dh.c',
         'drbg.c',
         'dsa.c',
@@ -215,6 +214,9 @@
           ],
         }],
         [ 'fuzz==1', {
+          'sources': [
+            'det_rng.c',
+          ],
           'defines': [
             'UNSAFE_FUZZER_MODE',
           ],
