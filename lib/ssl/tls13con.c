@@ -2588,9 +2588,9 @@ tls13_DeriveTrafficKeys(sslSocket *ss, ssl3CipherSpec *spec,
     const char *phase;
     SECStatus rv;
     /* These labels are just used for debugging. */
-    const char kHkdfPhaseEarlyApplicationDataKeys[] = "early application data";
-    const char kHkdfPhaseHandshakeKeys[] = "handshake data";
-    const char kHkdfPhaseApplicationDataKeys[] = "application data";
+    static const char kHkdfPhaseEarlyApplicationDataKeys[] = "early application data";
+    static const char kHkdfPhaseHandshakeKeys[] = "handshake data";
+    static const char kHkdfPhaseApplicationDataKeys[] = "application data";
 
     if (ss->sec.isServer ^ (direction == CipherSpecWrite)) {
         clientKey = PR_TRUE;
