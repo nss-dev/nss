@@ -191,7 +191,8 @@ PrintUsageHeader(const char *progName)
             "[-D | -d certdir] [-C] [-b | -R root-module] \n"
             "[-n nickname] [-Bafosvx] [-c ciphers] [-Y]\n"
             "[-V [min-version]:[max-version]] [-K] [-T] [-U]\n"
-            "[-r N] [-w passwd] [-W pwfile] [-q [-t seconds]] [-I groups]\n",
+            "[-r N] [-w passwd] [-W pwfile] [-q [-t seconds]] [-I groups]\n"
+            "[-A requestfile] [-L totalconnections]",
             progName);
 }
 
@@ -258,6 +259,8 @@ PrintParameterUsage(void)
     fprintf(stderr, "%-20s Require the use of FFDHE supported groups "
                     "[I-D.ietf-tls-negotiated-ff-dhe]\n",
             "-H");
+    fprintf(stderr, "%-20s Read from a file instead of stdin\n", "-A");
+    fprintf(stderr, "%-20s Disconnect and reconnect up to N times total\n", "-L");
     fprintf(stderr, "%-20s Comma separated list of enabled groups for TLS key exchange.\n"
                     "%-20s The following values are valid:\n"
                     "%-20s P256, P384, P521, x25519, FF2048, FF3072, FF4096, FF6144, FF8192\n",
@@ -890,434 +893,100 @@ restartHandshakeAfterServerCertIfNeeded(PRFileDesc *fd,
     return rv;
 }
 
-int
-main(int argc, char **argv)
+char *host = NULL;
+char *nickname = NULL;
+char *cipherString = NULL;
+int multiplier = 0;
+SSLVersionRange enabledVersions;
+int disableLocking = 0;
+int enableSessionTickets = 0;
+int enableCompression = 0;
+int enableFalseStart = 0;
+int enableCertStatus = 0;
+int enableSignedCertTimestamps = 0;
+int forceFallbackSCSV = 0;
+int enableExtendedMasterSecret = 0;
+PRBool requireDHNamedGroups = 0;
+PRSocketOptionData opt;
+PRNetAddr addr;
+PRBool allowIPv4 = PR_TRUE;
+PRBool allowIPv6 = PR_TRUE;
+PRBool pingServerFirst = PR_FALSE;
+int pingTimeoutSeconds = -1;
+PRBool clientSpeaksFirst = PR_FALSE;
+PRBool skipProtoHeader = PR_FALSE;
+ServerCertAuth serverCertAuth;
+char *hs1SniHostName = NULL;
+char *hs2SniHostName = NULL;
+PRUint16 portno = 443;
+int override = 0;
+char *requestString = NULL;
+PRInt32 requestStringLen = 0;
+
+static int
+writeBytesToServer(PRFileDesc *s, PRPollDesc *pollset, const char *buf, int nb)
 {
-    PRFileDesc *s = NULL;
-    PRFileDesc *std_out;
-    char *host = NULL;
-    char *certDir = NULL;
-    char *nickname = NULL;
-    char *cipherString = NULL;
-    char *tmp;
-    int multiplier = 0;
+    SECStatus rv;
+    const char *bufp = buf;
+
+    FPRINTF(stderr, "%s: Writing %d bytes to server\n",
+            progName, nb);
+    do {
+        PRInt32 cc = PR_Send(s, bufp, nb, 0, maxInterval);
+        if (cc < 0) {
+            PRErrorCode err = PR_GetError();
+            if (err != PR_WOULD_BLOCK_ERROR) {
+                SECU_PrintError(progName,
+                                "write to SSL socket failed");
+                return 254;
+            }
+            cc = 0;
+        }
+        bufp += cc;
+        nb -= cc;
+        if (nb <= 0)
+            break;
+
+        rv = restartHandshakeAfterServerCertIfNeeded(s,
+                                                     &serverCertAuth, override);
+        if (rv != SECSuccess) {
+            SECU_PrintError(progName, "authentication of server cert failed");
+            return EXIT_CODE_HANDSHAKE_FAILED;
+        }
+
+        pollset[SSOCK_FD].in_flags = PR_POLL_WRITE | PR_POLL_EXCEPT;
+        pollset[SSOCK_FD].out_flags = 0;
+        FPRINTF(stderr,
+                "%s: about to call PR_Poll on writable socket !\n",
+                progName);
+        cc = PR_Poll(pollset, 1, PR_INTERVAL_NO_TIMEOUT);
+        if (cc < 0) {
+            SECU_PrintError(progName,
+                            "PR_Poll failed");
+            return -1;
+        }
+        FPRINTF(stderr,
+                "%s: PR_Poll returned with writable socket !\n",
+                progName);
+    } while (1);
+
+    return 0;
+}
+
+static int
+run_client(void)
+{
+    int headerSeparatorPtrnId = 0;
+    int error = 0;
     SECStatus rv;
     PRStatus status;
     PRInt32 filesReady;
     int npds;
-    int override = 0;
-    SSLVersionRange enabledVersions;
-    int disableLocking = 0;
-    int enableSessionTickets = 0;
-    int enableCompression = 0;
-    int enableFalseStart = 0;
-    int enableCertStatus = 0;
-    int enableSignedCertTimestamps = 0;
-    int forceFallbackSCSV = 0;
-    int enableExtendedMasterSecret = 0;
-    PRBool requireDHNamedGroups = 0;
-    PRSocketOptionData opt;
-    PRNetAddr addr;
+    PRFileDesc *s = NULL;
+    PRFileDesc *std_out;
     PRPollDesc pollset[2];
-    PRBool allowIPv4 = PR_TRUE;
-    PRBool allowIPv6 = PR_TRUE;
-    PRBool pingServerFirst = PR_FALSE;
-    int pingTimeoutSeconds = -1;
-    PRBool clientSpeaksFirst = PR_FALSE;
     PRBool wrStarted = PR_FALSE;
-    PRBool skipProtoHeader = PR_FALSE;
-    ServerCertAuth serverCertAuth;
-    int headerSeparatorPtrnId = 0;
-    int error = 0;
-    PRUint16 portno = 443;
-    char *hs1SniHostName = NULL;
-    char *hs2SniHostName = NULL;
-    PLOptState *optstate;
-    PLOptStatus optstatus;
-    PRStatus prStatus;
-    PRBool openDB = PR_TRUE;
-    PRBool loadDefaultRootCAs = PR_FALSE;
-    char *rootModule = NULL;
-
-    serverCertAuth.shouldPause = PR_TRUE;
-    serverCertAuth.isPaused = PR_FALSE;
-    serverCertAuth.dbHandle = NULL;
-    serverCertAuth.testFreshStatusFromSideChannel = PR_FALSE;
-    serverCertAuth.sideChannelRevocationTestResultCode = EXIT_CODE_HANDSHAKE_FAILED;
-    serverCertAuth.requireDataForIntermediates = PR_FALSE;
-    serverCertAuth.allowOCSPSideChannelData = PR_TRUE;
-    serverCertAuth.allowCRLSideChannelData = PR_TRUE;
-
-    progName = strrchr(argv[0], '/');
-    if (!progName)
-        progName = strrchr(argv[0], '\\');
-    progName = progName ? progName + 1 : argv[0];
-
-    tmp = PR_GetEnvSecure("NSS_DEBUG_TIMEOUT");
-    if (tmp && tmp[0]) {
-        int sec = PORT_Atoi(tmp);
-        if (sec > 0) {
-            maxInterval = PR_SecondsToInterval(sec);
-        }
-    }
-
-    SSL_VersionRangeGetSupported(ssl_variant_stream, &enabledVersions);
-
-    /* XXX: 'B' was used in the past but removed in 3.28,
-     *      please leave some time before resuing it. */
-    optstate = PL_CreateOptState(argc, argv,
-                                 "46CDFGHI:KM:OR:STUV:W:Ya:bc:d:fgh:m:n:op:qr:st:uvw:z");
-    while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
-        switch (optstate->option) {
-            case '?':
-            default:
-                Usage(progName);
-                break;
-
-            case '4':
-                allowIPv6 = PR_FALSE;
-                if (!allowIPv4)
-                    Usage(progName);
-                break;
-            case '6':
-                allowIPv4 = PR_FALSE;
-                if (!allowIPv6)
-                    Usage(progName);
-                break;
-
-            case 'C':
-                ++dumpServerChain;
-                break;
-
-            case 'D':
-                openDB = PR_FALSE;
-                break;
-
-            case 'F':
-                if (serverCertAuth.testFreshStatusFromSideChannel) {
-                    /* parameter given twice or more */
-                    serverCertAuth.requireDataForIntermediates = PR_TRUE;
-                }
-                serverCertAuth.testFreshStatusFromSideChannel = PR_TRUE;
-                break;
-
-            case 'G':
-                enableExtendedMasterSecret = PR_TRUE;
-                break;
-
-            case 'H':
-                requireDHNamedGroups = PR_TRUE;
-                break;
-
-            case 'O':
-                serverCertAuth.shouldPause = PR_FALSE;
-                break;
-
-            case 'K':
-                forceFallbackSCSV = PR_TRUE;
-                break;
-
-            case 'M':
-                switch (atoi(optstate->value)) {
-                    case 1:
-                        serverCertAuth.allowOCSPSideChannelData = PR_TRUE;
-                        serverCertAuth.allowCRLSideChannelData = PR_FALSE;
-                        break;
-                    case 2:
-                        serverCertAuth.allowOCSPSideChannelData = PR_FALSE;
-                        serverCertAuth.allowCRLSideChannelData = PR_TRUE;
-                        break;
-                    case 0:
-                    default:
-                        serverCertAuth.allowOCSPSideChannelData = PR_TRUE;
-                        serverCertAuth.allowCRLSideChannelData = PR_TRUE;
-                        break;
-                };
-                break;
-
-            case 'R':
-                rootModule = PORT_Strdup(optstate->value);
-                break;
-
-            case 'S':
-                skipProtoHeader = PR_TRUE;
-                break;
-
-            case 'T':
-                enableCertStatus = 1;
-                break;
-
-            case 'U':
-                enableSignedCertTimestamps = 1;
-                break;
-
-            case 'V':
-                if (SECU_ParseSSLVersionRangeString(optstate->value,
-                                                    enabledVersions, &enabledVersions) !=
-                    SECSuccess) {
-                    Usage(progName);
-                }
-                break;
-
-            case 'Y':
-                PrintCipherUsage(progName);
-                exit(0);
-                break;
-
-            case 'a':
-                if (!hs1SniHostName) {
-                    hs1SniHostName = PORT_Strdup(optstate->value);
-                } else if (!hs2SniHostName) {
-                    hs2SniHostName = PORT_Strdup(optstate->value);
-                } else {
-                    Usage(progName);
-                }
-                break;
-
-            case 'b':
-                loadDefaultRootCAs = PR_TRUE;
-                break;
-
-            case 'c':
-                cipherString = PORT_Strdup(optstate->value);
-                break;
-
-            case 'g':
-                enableFalseStart = 1;
-                break;
-
-            case 'd':
-                certDir = PORT_Strdup(optstate->value);
-                break;
-
-            case 'f':
-                clientSpeaksFirst = PR_TRUE;
-                break;
-
-            case 'h':
-                host = PORT_Strdup(optstate->value);
-                break;
-
-            case 'm':
-                multiplier = atoi(optstate->value);
-                if (multiplier < 0)
-                    multiplier = 0;
-                break;
-
-            case 'n':
-                nickname = PORT_Strdup(optstate->value);
-                break;
-
-            case 'o':
-                override = 1;
-                break;
-
-            case 'p':
-                portno = (PRUint16)atoi(optstate->value);
-                break;
-
-            case 'q':
-                pingServerFirst = PR_TRUE;
-                break;
-
-            case 's':
-                disableLocking = 1;
-                break;
-
-            case 't':
-                pingTimeoutSeconds = atoi(optstate->value);
-                break;
-
-            case 'u':
-                enableSessionTickets = PR_TRUE;
-                break;
-
-            case 'v':
-                verbose++;
-                break;
-
-            case 'r':
-                renegotiationsToDo = atoi(optstate->value);
-                break;
-
-            case 'w':
-                pwdata.source = PW_PLAINTEXT;
-                pwdata.data = PORT_Strdup(optstate->value);
-                break;
-
-            case 'W':
-                pwdata.source = PW_FROMFILE;
-                pwdata.data = PORT_Strdup(optstate->value);
-                break;
-
-            case 'z':
-                enableCompression = 1;
-                break;
-
-            case 'I':
-                rv = parseGroupList(optstate->value, &enabledGroups, &enabledGroupsCount);
-                if (rv != SECSuccess) {
-                    PL_DestroyOptState(optstate);
-                    fprintf(stderr, "Bad group specified.\n");
-                    Usage(progName);
-                }
-                break;
-        }
-    }
-
-    PL_DestroyOptState(optstate);
-
-    if (optstatus == PL_OPT_BAD) {
-        Usage(progName);
-    }
-
-    if (!host || !portno) {
-        fprintf(stderr, "%s: parameters -h and -p are mandatory\n", progName);
-        Usage(progName);
-    }
-
-    if (serverCertAuth.testFreshStatusFromSideChannel &&
-        serverCertAuth.shouldPause) {
-        fprintf(stderr, "%s: -F requires the use of -O\n", progName);
-        exit(1);
-    }
-
-    if (certDir && !openDB) {
-        fprintf(stderr, "%s: Cannot combine parameters -D and -d\n", progName);
-        exit(1);
-    }
-
-    if (rootModule && loadDefaultRootCAs) {
-        fprintf(stderr, "%s: Cannot combine parameters -b and -R\n", progName);
-        exit(1);
-    }
-
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
-
-    PK11_SetPasswordFunc(SECU_GetModulePassword);
-
-    status = PR_StringToNetAddr(host, &addr);
-    if (status == PR_SUCCESS) {
-        addr.inet.port = PR_htons(portno);
-    } else {
-        /* Lookup host */
-        PRAddrInfo *addrInfo;
-        void *enumPtr = NULL;
-
-        addrInfo = PR_GetAddrInfoByName(host, PR_AF_UNSPEC,
-                                        PR_AI_ADDRCONFIG | PR_AI_NOCANONNAME);
-        if (!addrInfo) {
-            SECU_PrintError(progName, "error looking up host");
-            error = 1;
-            goto done;
-        }
-        for (;;) {
-            enumPtr = PR_EnumerateAddrInfo(enumPtr, addrInfo, portno, &addr);
-            if (enumPtr == NULL)
-                break;
-            if (addr.raw.family == PR_AF_INET && allowIPv4)
-                break;
-            if (addr.raw.family == PR_AF_INET6 && allowIPv6)
-                break;
-        }
-        PR_FreeAddrInfo(addrInfo);
-        if (enumPtr == NULL) {
-            SECU_PrintError(progName, "error looking up host address");
-            error = 1;
-            goto done;
-        }
-    }
-
-    printHostNameAndAddr(host, &addr);
-
-    if (!certDir) {
-        certDir = SECU_DefaultSSLDir(); /* Look in $SSL_DIR */
-        certDir = SECU_ConfigDirectory(certDir);
-    } else {
-        char *certDirTmp = certDir;
-        certDir = SECU_ConfigDirectory(certDirTmp);
-        PORT_Free(certDirTmp);
-    }
-
-    if (pingServerFirst) {
-        int iter = 0;
-        PRErrorCode err;
-        int max_attempts = MAX_WAIT_FOR_SERVER;
-        if (pingTimeoutSeconds >= 0) {
-            /* If caller requested a timeout, let's try just twice. */
-            max_attempts = 2;
-        }
-        do {
-            PRIntervalTime timeoutInterval = PR_INTERVAL_NO_TIMEOUT;
-            s = PR_OpenTCPSocket(addr.raw.family);
-            if (s == NULL) {
-                SECU_PrintError(progName, "Failed to create a TCP socket");
-                error = 1;
-                goto done;
-            }
-            opt.option = PR_SockOpt_Nonblocking;
-            opt.value.non_blocking = PR_FALSE;
-            prStatus = PR_SetSocketOption(s, &opt);
-            if (prStatus != PR_SUCCESS) {
-                SECU_PrintError(progName,
-                                "Failed to set blocking socket option");
-                error = 1;
-                goto done;
-            }
-            if (pingTimeoutSeconds >= 0) {
-                timeoutInterval = PR_SecondsToInterval(pingTimeoutSeconds);
-            }
-            prStatus = PR_Connect(s, &addr, timeoutInterval);
-            if (prStatus == PR_SUCCESS) {
-                PR_Shutdown(s, PR_SHUTDOWN_BOTH);
-                goto done;
-            }
-            err = PR_GetError();
-            if ((err != PR_CONNECT_REFUSED_ERROR) &&
-                (err != PR_CONNECT_RESET_ERROR)) {
-                SECU_PrintError(progName, "TCP Connection failed");
-                error = 1;
-                goto done;
-            }
-            PR_Close(s);
-            s = NULL;
-            PR_Sleep(PR_MillisecondsToInterval(WAIT_INTERVAL));
-        } while (++iter < max_attempts);
-        SECU_PrintError(progName,
-                        "Client timed out while waiting for connection to server");
-        error = 1;
-        goto done;
-    }
-
-    /* open the cert DB, the key DB, and the secmod DB. */
-    if (openDB) {
-        rv = NSS_Init(certDir);
-        if (rv != SECSuccess) {
-            SECU_PrintError(progName, "unable to open cert database");
-            error = 1;
-            goto done;
-        }
-    } else {
-        rv = NSS_NoDB_Init(NULL);
-        if (rv != SECSuccess) {
-            SECU_PrintError(progName, "failed to initialize NSS");
-            error = 1;
-            goto done;
-        }
-    }
-
-    if (loadDefaultRootCAs) {
-        SECMOD_AddNewModule("Builtins",
-                            DLL_PREFIX "nssckbi." DLL_SUFFIX, 0, 0);
-    } else if (rootModule) {
-        SECMOD_AddNewModule("Builtins", rootModule, 0, 0);
-    }
-
-    /* all SSL3 cipher suites are enabled by default. */
-    if (cipherString) {
-        /* disable all the ciphers, then enable the ones we want. */
-        disableAllSSLCiphers();
-    }
+    char *requestStringInt = requestString;
 
     /* Create socket */
     s = PR_OpenTCPSocket(addr.raw.family);
@@ -1560,8 +1229,12 @@ main(int argc, char **argv)
     pollset[SSOCK_FD].in_flags = PR_POLL_EXCEPT |
                                  (clientSpeaksFirst ? 0 : PR_POLL_READ);
     pollset[STDIN_FD].fd = PR_GetSpecialFD(PR_StandardInput);
-    pollset[STDIN_FD].in_flags = PR_POLL_READ;
-    npds = 2;
+    if (!requestStringInt) {
+        pollset[STDIN_FD].in_flags = PR_POLL_READ;
+        npds = 1;
+    } else {
+        npds = 2;
+    }
     std_out = PR_GetSpecialFD(PR_StandardOutput);
 
 #if defined(WIN32) || defined(OS2)
@@ -1605,8 +1278,8 @@ main(int argc, char **argv)
     ** socket, read data from socket and write to stdout.
     */
     FPRINTF(stderr, "%s: ready...\n", progName);
-
-    while (pollset[SSOCK_FD].in_flags | pollset[STDIN_FD].in_flags) {
+    while ((pollset[SSOCK_FD].in_flags | pollset[STDIN_FD].in_flags) ||
+           requestStringInt) {
         char buf[4000]; /* buffer for stdin */
         int nb;         /* num bytes read from stdin. */
 
@@ -1644,6 +1317,15 @@ main(int argc, char **argv)
                     "%s: PR_Poll returned 0x%02x for socket out_flags.\n",
                     progName, pollset[SSOCK_FD].out_flags);
         }
+        if (requestStringInt) {
+            error = writeBytesToServer(s, pollset,
+                                       requestStringInt, requestStringLen);
+            if (error) {
+                goto done;
+            }
+            requestStringInt = NULL;
+            pollset[SSOCK_FD].in_flags = PR_POLL_READ;
+        }
         if (pollset[STDIN_FD].out_flags & PR_POLL_READ) {
             /* Read from stdin and write to socket */
             nb = PR_Read(pollset[STDIN_FD].fd, buf, sizeof(buf));
@@ -1658,50 +1340,10 @@ main(int argc, char **argv)
                 /* EOF on stdin, stop polling stdin for read. */
                 pollset[STDIN_FD].in_flags = 0;
             } else {
-                char *bufp = buf;
-                FPRINTF(stderr, "%s: Writing %d bytes to server\n",
-                        progName, nb);
-                do {
-                    PRInt32 cc = PR_Send(s, bufp, nb, 0, maxInterval);
-                    if (cc < 0) {
-                        PRErrorCode err = PR_GetError();
-                        if (err != PR_WOULD_BLOCK_ERROR) {
-                            SECU_PrintError(progName,
-                                            "write to SSL socket failed");
-                            error = 254;
-                            goto done;
-                        }
-                        cc = 0;
-                    }
-                    bufp += cc;
-                    nb -= cc;
-                    if (nb <= 0)
-                        break;
-
-                    rv = restartHandshakeAfterServerCertIfNeeded(s,
-                                                                 &serverCertAuth, override);
-                    if (rv != SECSuccess) {
-                        error = EXIT_CODE_HANDSHAKE_FAILED;
-                        SECU_PrintError(progName, "authentication of server cert failed");
-                        goto done;
-                    }
-
-                    pollset[SSOCK_FD].in_flags = PR_POLL_WRITE | PR_POLL_EXCEPT;
-                    pollset[SSOCK_FD].out_flags = 0;
-                    FPRINTF(stderr,
-                            "%s: about to call PR_Poll on writable socket !\n",
-                            progName);
-                    cc = PR_Poll(pollset, 1, PR_INTERVAL_NO_TIMEOUT);
-                    if (cc < 0) {
-                        SECU_PrintError(progName,
-                                        "PR_Poll failed");
-                        error = 1;
-                        goto done;
-                    }
-                    FPRINTF(stderr,
-                            "%s: PR_Poll returned with writable socket !\n",
-                            progName);
-                } while (1);
+                error = writeBytesToServer(s, pollset, buf, nb);
+                if (error) {
+                    goto done;
+                }
                 pollset[SSOCK_FD].in_flags = PR_POLL_READ;
             }
         }
@@ -1744,6 +1386,465 @@ main(int argc, char **argv)
     }
 
 done:
+    if (s) {
+        PR_Close(s);
+    }
+
+    return error;
+}
+
+PRInt32
+ReadFile(const char *filename, char **data)
+{
+    char *ret = NULL;
+    char buf[8192];
+    unsigned int len = 0;
+    PRStatus rv;
+
+    PRFileDesc *fd = PR_Open(filename, PR_RDONLY, 0);
+    if (!fd)
+        return -1;
+
+    for (;;) {
+        rv = PR_Read(fd, buf, sizeof(buf));
+        if (rv < 0) {
+            PR_Free(ret);
+            return rv;
+        }
+
+        if (!rv)
+            break;
+
+        ret = PR_Realloc(ret, len + rv);
+        if (!ret) {
+            return -1;
+        }
+        PORT_Memcpy(ret + len, buf, rv);
+        len += rv;
+    }
+
+    *data = ret;
+    return len;
+}
+
+int
+main(int argc, char **argv)
+{
+    PLOptState *optstate;
+    PLOptStatus optstatus;
+    PRStatus status;
+    PRStatus prStatus;
+    int error = 0;
+    char *tmp;
+    SECStatus rv;
+    char *certDir = NULL;
+    PRBool openDB = PR_TRUE;
+    PRBool loadDefaultRootCAs = PR_FALSE;
+    char *rootModule = NULL;
+    int numConnections = 1;
+
+    serverCertAuth.shouldPause = PR_TRUE;
+    serverCertAuth.isPaused = PR_FALSE;
+    serverCertAuth.dbHandle = NULL;
+    serverCertAuth.testFreshStatusFromSideChannel = PR_FALSE;
+    serverCertAuth.sideChannelRevocationTestResultCode = EXIT_CODE_HANDSHAKE_FAILED;
+    serverCertAuth.requireDataForIntermediates = PR_FALSE;
+    serverCertAuth.allowOCSPSideChannelData = PR_TRUE;
+    serverCertAuth.allowCRLSideChannelData = PR_TRUE;
+
+    progName = strrchr(argv[0], '/');
+    if (!progName)
+        progName = strrchr(argv[0], '\\');
+    progName = progName ? progName + 1 : argv[0];
+
+    tmp = PR_GetEnvSecure("NSS_DEBUG_TIMEOUT");
+    if (tmp && tmp[0]) {
+        int sec = PORT_Atoi(tmp);
+        if (sec > 0) {
+            maxInterval = PR_SecondsToInterval(sec);
+        }
+    }
+
+    SSL_VersionRangeGetSupported(ssl_variant_stream, &enabledVersions);
+
+    /* XXX: 'B' was used in the past but removed in 3.28,
+     *      please leave some time before resuing it. */
+    optstate = PL_CreateOptState(argc, argv,
+                                 "46A:CDFGHI:KL:M:OR:STUV:WZ:Ya:bc:d:fgh:m:n:op:qr:st:uvw:z");
+    while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+        switch (optstate->option) {
+            case '?':
+            default:
+                Usage(progName);
+                break;
+
+            case '4':
+                allowIPv6 = PR_FALSE;
+                if (!allowIPv4)
+                    Usage(progName);
+                break;
+            case '6':
+                allowIPv4 = PR_FALSE;
+                if (!allowIPv6)
+                    Usage(progName);
+                break;
+
+            case 'A':
+                requestStringLen = ReadFile(optstate->value, &requestString);
+                if (requestStringLen < 0) {
+                    fprintf(stderr, "Couldn't read file %s\n", optstate->value);
+                    exit(1);
+                }
+                break;
+
+            case 'C':
+                ++dumpServerChain;
+                break;
+
+            case 'D':
+                openDB = PR_FALSE;
+                break;
+
+            case 'F':
+                if (serverCertAuth.testFreshStatusFromSideChannel) {
+                    /* parameter given twice or more */
+                    serverCertAuth.requireDataForIntermediates = PR_TRUE;
+                }
+                serverCertAuth.testFreshStatusFromSideChannel = PR_TRUE;
+                break;
+
+            case 'G':
+                enableExtendedMasterSecret = PR_TRUE;
+                break;
+
+            case 'H':
+                requireDHNamedGroups = PR_TRUE;
+                break;
+
+            case 'O':
+                serverCertAuth.shouldPause = PR_FALSE;
+                break;
+
+            case 'K':
+                forceFallbackSCSV = PR_TRUE;
+                break;
+
+            case 'L':
+                numConnections = atoi(optstate->value);
+                break;
+
+            case 'M':
+                switch (atoi(optstate->value)) {
+                    case 1:
+                        serverCertAuth.allowOCSPSideChannelData = PR_TRUE;
+                        serverCertAuth.allowCRLSideChannelData = PR_FALSE;
+                        break;
+                    case 2:
+                        serverCertAuth.allowOCSPSideChannelData = PR_FALSE;
+                        serverCertAuth.allowCRLSideChannelData = PR_TRUE;
+                        break;
+                    case 0:
+                    default:
+                        serverCertAuth.allowOCSPSideChannelData = PR_TRUE;
+                        serverCertAuth.allowCRLSideChannelData = PR_TRUE;
+                        break;
+                };
+                break;
+
+            case 'R':
+                rootModule = PORT_Strdup(optstate->value);
+                break;
+
+            case 'S':
+                skipProtoHeader = PR_TRUE;
+                break;
+
+            case 'T':
+                enableCertStatus = 1;
+                break;
+
+            case 'U':
+                enableSignedCertTimestamps = 1;
+                break;
+
+            case 'V':
+                if (SECU_ParseSSLVersionRangeString(optstate->value,
+                                                    enabledVersions, &enabledVersions) !=
+                    SECSuccess) {
+                    Usage(progName);
+                }
+                break;
+
+            case 'Y':
+                PrintCipherUsage(progName);
+                exit(0);
+                break;
+
+            case 'a':
+                if (!hs1SniHostName) {
+                    hs1SniHostName = PORT_Strdup(optstate->value);
+                } else if (!hs2SniHostName) {
+                    hs2SniHostName = PORT_Strdup(optstate->value);
+                } else {
+                    Usage(progName);
+                }
+                break;
+
+            case 'b':
+                loadDefaultRootCAs = PR_TRUE;
+                break;
+
+            case 'c':
+                cipherString = PORT_Strdup(optstate->value);
+                break;
+
+            case 'g':
+                enableFalseStart = 1;
+                break;
+
+            case 'd':
+                certDir = PORT_Strdup(optstate->value);
+                break;
+
+            case 'f':
+                clientSpeaksFirst = PR_TRUE;
+                break;
+
+            case 'h':
+                host = PORT_Strdup(optstate->value);
+                break;
+
+            case 'm':
+                multiplier = atoi(optstate->value);
+                if (multiplier < 0)
+                    multiplier = 0;
+                break;
+
+            case 'n':
+                nickname = PORT_Strdup(optstate->value);
+                break;
+
+            case 'o':
+                override = 1;
+                break;
+
+            case 'p':
+                portno = (PRUint16)atoi(optstate->value);
+                break;
+
+            case 'q':
+                pingServerFirst = PR_TRUE;
+                break;
+
+            case 's':
+                disableLocking = 1;
+                break;
+
+            case 't':
+                pingTimeoutSeconds = atoi(optstate->value);
+                break;
+
+            case 'u':
+                enableSessionTickets = PR_TRUE;
+                break;
+
+            case 'v':
+                verbose++;
+                break;
+
+            case 'r':
+                renegotiationsToDo = atoi(optstate->value);
+                break;
+
+            case 'w':
+                pwdata.source = PW_PLAINTEXT;
+                pwdata.data = PORT_Strdup(optstate->value);
+                break;
+
+            case 'W':
+                pwdata.source = PW_FROMFILE;
+                pwdata.data = PORT_Strdup(optstate->value);
+                break;
+
+            case 'z':
+                enableCompression = 1;
+                break;
+
+            case 'I':
+                rv = parseGroupList(optstate->value, &enabledGroups, &enabledGroupsCount);
+                if (rv != SECSuccess) {
+                    PL_DestroyOptState(optstate);
+                    fprintf(stderr, "Bad group specified.\n");
+                    Usage(progName);
+                }
+                break;
+        }
+    }
+
+    PL_DestroyOptState(optstate);
+
+    if (optstatus == PL_OPT_BAD) {
+        Usage(progName);
+    }
+
+    if (!host || !portno) {
+        fprintf(stderr, "%s: parameters -h and -p are mandatory\n", progName);
+        Usage(progName);
+    }
+
+    if (serverCertAuth.testFreshStatusFromSideChannel &&
+        serverCertAuth.shouldPause) {
+        fprintf(stderr, "%s: -F requires the use of -O\n", progName);
+        exit(1);
+    }
+
+    if (certDir && !openDB) {
+        fprintf(stderr, "%s: Cannot combine parameters -D and -d\n", progName);
+        exit(1);
+    }
+
+    if (rootModule && loadDefaultRootCAs) {
+        fprintf(stderr, "%s: Cannot combine parameters -b and -R\n", progName);
+        exit(1);
+    }
+
+    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+
+    PK11_SetPasswordFunc(SECU_GetModulePassword);
+
+    status = PR_StringToNetAddr(host, &addr);
+    if (status == PR_SUCCESS) {
+        addr.inet.port = PR_htons(portno);
+    } else {
+        /* Lookup host */
+        PRAddrInfo *addrInfo;
+        void *enumPtr = NULL;
+
+        addrInfo = PR_GetAddrInfoByName(host, PR_AF_UNSPEC,
+                                        PR_AI_ADDRCONFIG | PR_AI_NOCANONNAME);
+        if (!addrInfo) {
+            SECU_PrintError(progName, "error looking up host");
+            error = 1;
+            goto done;
+        }
+        for (;;) {
+            enumPtr = PR_EnumerateAddrInfo(enumPtr, addrInfo, portno, &addr);
+            if (enumPtr == NULL)
+                break;
+            if (addr.raw.family == PR_AF_INET && allowIPv4)
+                break;
+            if (addr.raw.family == PR_AF_INET6 && allowIPv6)
+                break;
+        }
+        PR_FreeAddrInfo(addrInfo);
+        if (enumPtr == NULL) {
+            SECU_PrintError(progName, "error looking up host address");
+            error = 1;
+            goto done;
+        }
+    }
+
+    printHostNameAndAddr(host, &addr);
+
+    if (!certDir) {
+        certDir = SECU_DefaultSSLDir(); /* Look in $SSL_DIR */
+        certDir = SECU_ConfigDirectory(certDir);
+    } else {
+        char *certDirTmp = certDir;
+        certDir = SECU_ConfigDirectory(certDirTmp);
+        PORT_Free(certDirTmp);
+    }
+
+    if (pingServerFirst) {
+        PRFileDesc *s = NULL;
+        int iter = 0;
+        PRErrorCode err;
+
+        int max_attempts = MAX_WAIT_FOR_SERVER;
+        if (pingTimeoutSeconds >= 0) {
+            /* If caller requested a timeout, let's try just twice. */
+            max_attempts = 2;
+        }
+        do {
+            PRIntervalTime timeoutInterval = PR_INTERVAL_NO_TIMEOUT;
+            s = PR_OpenTCPSocket(addr.raw.family);
+            if (s == NULL) {
+                SECU_PrintError(progName, "Failed to create a TCP socket");
+                error = 1;
+                goto done;
+            }
+            opt.option = PR_SockOpt_Nonblocking;
+            opt.value.non_blocking = PR_FALSE;
+            prStatus = PR_SetSocketOption(s, &opt);
+            if (prStatus != PR_SUCCESS) {
+                SECU_PrintError(progName,
+                                "Failed to set blocking socket option");
+                error = 1;
+                goto done;
+            }
+            if (pingTimeoutSeconds >= 0) {
+                timeoutInterval = PR_SecondsToInterval(pingTimeoutSeconds);
+            }
+            prStatus = PR_Connect(s, &addr, timeoutInterval);
+            if (prStatus == PR_SUCCESS) {
+                PR_Shutdown(s, PR_SHUTDOWN_BOTH);
+                goto done;
+            }
+            err = PR_GetError();
+            if ((err != PR_CONNECT_REFUSED_ERROR) &&
+                (err != PR_CONNECT_RESET_ERROR)) {
+                SECU_PrintError(progName, "TCP Connection failed");
+                error = 1;
+                goto done;
+            }
+            PR_Close(s);
+            s = NULL;
+            PR_Sleep(PR_MillisecondsToInterval(WAIT_INTERVAL));
+        } while (++iter < max_attempts);
+        SECU_PrintError(progName,
+                        "Client timed out while waiting for connection to server");
+        error = 1;
+        goto done;
+    }
+
+    /* open the cert DB, the key DB, and the secmod DB. */
+    if (openDB) {
+        rv = NSS_Init(certDir);
+        if (rv != SECSuccess) {
+            SECU_PrintError(progName, "unable to open cert database");
+            error = 1;
+            goto done;
+        }
+    } else {
+        rv = NSS_NoDB_Init(NULL);
+        if (rv != SECSuccess) {
+            SECU_PrintError(progName, "failed to initialize NSS");
+            error = 1;
+            goto done;
+        }
+    }
+
+    if (loadDefaultRootCAs) {
+        SECMOD_AddNewModule("Builtins",
+                            DLL_PREFIX "nssckbi." DLL_SUFFIX, 0, 0);
+    } else if (rootModule) {
+        SECMOD_AddNewModule("Builtins", rootModule, 0, 0);
+    }
+
+    /* all SSL3 cipher suites are enabled by default. */
+    if (cipherString) {
+        /* disable all the ciphers, then enable the ones we want. */
+        disableAllSSLCiphers();
+    }
+
+    while (numConnections--) {
+        error = run_client();
+        if (error) {
+            goto done;
+        }
+    }
+
+done:
     if (hs1SniHostName) {
         PORT_Free(hs1SniHostName);
     }
@@ -1757,14 +1858,11 @@ done:
         PORT_Free(pwdata.data);
     }
     PORT_Free(host);
+    PORT_Free(requestString);
 
-    if (s) {
-        PR_Close(s);
-    }
     if (enabledGroups) {
         PORT_Free(enabledGroups);
     }
-
     if (NSS_IsInitialized()) {
         SSL_ClearSessionCache();
         if (NSS_Shutdown() != SECSuccess) {
