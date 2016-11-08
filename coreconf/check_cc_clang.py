@@ -9,7 +9,11 @@ def main():
         print 0
     else:
         cc = os.environ.get('CC', 'cc')
-        cc_is_clang = 'clang' in subprocess.check_output([cc, '--version'])
+        try:
+            cc_is_clang = 'clang' in subprocess.check_output([cc, '--version'])
+        except OSError:
+            # We probably just don't have CC/cc.
+            cc_is_clang = False
         print int(cc_is_clang)
 
 if __name__ == '__main__':
