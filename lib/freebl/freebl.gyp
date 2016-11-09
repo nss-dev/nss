@@ -289,47 +289,44 @@
       'MP_API_COMPATIBLE'
     ],
     'conditions': [
-      [ 'OS=="win"', {
-        'configurations': {
-          'x86_Base': {
-            'msvs_settings': {
-              'VCCLCompilerTool': {
-                #TODO: -Ox optimize flags
-                'PreprocessorDefinitions': [
-                  'NSS_X86_OR_X64',
-                  'NSS_X86',
-                  'MP_ASSEMBLY_MULTIPLY',
-                  'MP_ASSEMBLY_SQUARE',
-                  'MP_ASSEMBLY_DIV_2DX1D',
-                  'MP_USE_UINT_DIGIT',
-                  'MP_NO_MP_WORD',
-                  'USE_HW_AES',
-                  'INTEL_GCM',
-                ],
-              },
-            },
-          },
-          'x64_Base': {
-            'msvs_settings': {
-              'VCCLCompilerTool': {
-                #TODO: -Ox optimize flags
-                'PreprocessorDefinitions': [
-                  'NSS_USE_64',
-                  'NSS_X86_OR_X64',
-                  'NSS_X64',
-                  'MP_IS_LITTLE_ENDIAN',
-                  'NSS_BEVAND_ARCFOUR',
-                  'MPI_AMD64',
-                  'MP_ASSEMBLY_MULTIPLY',
-                  'NSS_USE_COMBA',
-                  'USE_HW_AES',
-                  'INTEL_GCM',
-                ],
-              },
-            },
+      [ 'OS=="win" and target_arch=="ia32"', {
+        'msvs_settings': {
+          'VCCLCompilerTool': {
+            #TODO: -Ox optimize flags
+            'PreprocessorDefinitions': [
+              'NSS_X86_OR_X64',
+              'NSS_X86',
+              'MP_ASSEMBLY_MULTIPLY',
+              'MP_ASSEMBLY_SQUARE',
+              'MP_ASSEMBLY_DIV_2DX1D',
+              'MP_USE_UINT_DIGIT',
+              'MP_NO_MP_WORD',
+              'USE_HW_AES',
+              'INTEL_GCM',
+            ],
           },
         },
-      }, {
+      }],
+      [ 'OS=="win" and target_arch=="x64"', {
+        'msvs_settings': {
+          'VCCLCompilerTool': {
+            #TODO: -Ox optimize flags
+            'PreprocessorDefinitions': [
+              'NSS_USE_64',
+              'NSS_X86_OR_X64',
+              'NSS_X64',
+              'MP_IS_LITTLE_ENDIAN',
+              'NSS_BEVAND_ARCFOUR',
+              'MPI_AMD64',
+              'MP_ASSEMBLY_MULTIPLY',
+              'NSS_USE_COMBA',
+              'USE_HW_AES',
+              'INTEL_GCM',
+            ],
+          },
+        },
+      }],
+      [ 'OS!="win"', {
         'conditions': [
           [ 'target_arch=="x64"', {
             'defines': [
@@ -391,10 +388,6 @@
             ],
           }],
         ],
-      }],
-      [ 'OS=="mac"', {
-      }],
-      [ 'OS=="win"', {
       }],
     ],
   },
