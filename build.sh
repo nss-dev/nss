@@ -54,6 +54,9 @@ params=$(echo "$* $CC $CCC" | tr " " "\n")
 cwd=$(cd $(dirname $0); pwd -P)
 dist_dir="$cwd/../dist"
 
+cwd=$(cd $(dirname $0); pwd -P)
+dist_dir="$cwd/../dist"
+
 # try to guess sensible defaults
 arch=$(python "$cwd/coreconf/detect_host_arch.py")
 if [ "$arch" = "x64" -o "$arch" = "aarch64" ]; then
@@ -161,8 +164,10 @@ if [ "$rebuild_gyp" = 1 -o ! -d "$target_dir" ]; then
     build_nspr
 
     # Run gyp.
+    set -v -x
     "${scanbuild[@]}" gyp -f ninja "${gyp_params[@]}" --depth="$cwd" \
       --generator-output="." "$cwd/nss.gyp"
+    set +v +x
 
     # Store used parameters for next run.
     echo "$params" > "$cwd/out/config"
