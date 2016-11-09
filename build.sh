@@ -109,7 +109,6 @@ else
     target=Debug
 fi
 if [ "$build_64" == "1" ]; then
-    target="${target}_x64"
     nspr_opt+=(--enable-64bit)
 else
     gyp_params+=(-Dtarget_arch=ia32)

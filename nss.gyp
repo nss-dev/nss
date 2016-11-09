@@ -133,6 +133,7 @@
       'actions': [
         {
           'action_name': 'shlibsign',
+          'msvs_cygwin_shell': 0,
           'inputs': [
             '<(nss_dist_obj_dir)/lib/<(dll_prefix)freebl3.<(dll_suffix)',
             '<(nss_dist_obj_dir)/lib/<(dll_prefix)freeblpriv3.<(dll_suffix)',

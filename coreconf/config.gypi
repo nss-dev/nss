@@ -215,7 +215,7 @@
     'default_configuration': 'Debug',
     'configurations': {
       # Common settings for Debug+Release should go here.
-      'Common_Base': {
+      'Common': {
         'abstract': 1,
         'defines': [
           'NSS_NO_INIT_SUPPORT',
@@ -379,7 +379,37 @@
             'conditions': [
               [ 'disable_werror==0', {
                 'cflags': ['-WX']
-              }]
+              }],
+              [ 'target_arch=="ia32"', {
+                'msvs_configuration_platform': 'Win32',
+                'msvs_settings': {
+                  'VCLinkerTool': {
+                    'MinimumRequiredVersion': '5.01',  # XP.
+                    'TargetMachine': '1',
+                    'ImageHasSafeExceptionHandlers': 'false',
+                  },
+                  'VCCLCompilerTool': {
+                    'PreprocessorDefinitions': [
+                      'WIN32',
+                    ],
+                  },
+                },
+
+              }],
+              [ 'target_arch=="x64"', {
+                'msvs_configuration_platform': 'x64',
+                'msvs_settings': {
+                  'VCLinkerTool': {
+                    'TargetMachine': '17', # x86-64
+                  },
+                  'VCCLCompilerTool': {
+                    'PreprocessorDefinitions': [
+                      'WIN64',
+                      '_AMD64_',
+                    ],
+                  },
+                },
+              }],
             ],
           }],
           [ 'disable_dbm==1', {
@@ -394,41 +424,9 @@
           }],
         ],
       },
-      # Common settings for x86 should go here.
-      'x86_Base': {
-        'abstract': 1,
-        'msvs_settings': {
-          'VCLinkerTool': {
-            'MinimumRequiredVersion': '5.01',  # XP.
-            'TargetMachine': '1',
-          },
-          'VCCLCompilerTool': {
-            'PreprocessorDefinitions': [
-              'WIN32',
-            ],
-          },
-        },
-        'msvs_configuration_platform': 'Win32',
-      },
-      # Common settings for x86-64 should go here.
-      'x64_Base': {
-        'abstract': 1,
-        'msvs_configuration_platform': 'x64',
-        'msvs_settings': {
-          'VCLinkerTool': {
-            'TargetMachine': '17', # x86-64
-          },
-          'VCCLCompilerTool': {
-            'PreprocessorDefinitions': [
-              'WIN64',
-              '_AMD64_',
-            ],
-          },
-        },
-      },
       # Common settings for debug should go here.
-      'Debug_Base': {
-        'abstract': 1,
+      'Debug': {
+        'inherit_from': ['Common'],
         'conditions': [
           [ 'OS=="linux" or OS=="android"', {
             'cflags': [
@@ -458,9 +456,9 @@
           },
         },
       },
-      # Common settings for release should go here.n
-      'Release_Base': {
-        'abstract': 1,
+      # Common settings for release should go here.
+      'Release': {
+        'inherit_from': ['Common'],
         'defines': [
           'NDEBUG',
         ],
@@ -478,24 +476,20 @@
           },
         },
       },
-      #
-      # Concrete configurations
-      #
-      # These configurations shouldn't have anything in them, it should
-      # all be derived from the _Base configurations above.
-      'Debug': {
-        'inherit_from': ['Common_Base', 'x86_Base', 'Debug_Base'],
-      },
-      'Release': {
-        'inherit_from': ['Common_Base', 'x86_Base', 'Release_Base'],
-      },
-      # The gyp ninja backend requires these.
-      'Debug_x64': {
-        'inherit_from': ['Common_Base', 'x64_Base', 'Debug_Base'],
-      },
-      'Release_x64': {
-        'inherit_from': ['Common_Base', 'x64_Base', 'Release_Base'],
-      },
+      'conditions': [
+        [ 'OS=="win"', {
+          # The gyp ninja backend requires these.
+          # TODO: either we should support building both 32/64-bit as
+          # configurations from the same gyp build, or we should fix
+          # upstream gyp to not require these.
+          'Debug_x64': {
+            'inherit_from': ['Debug'],
+          },
+          'Release_x64': {
+            'inherit_from': ['Release'],
+          },
+        }],
+      ],
     },
   },
   'conditions': [
