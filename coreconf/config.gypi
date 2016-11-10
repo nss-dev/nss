@@ -97,6 +97,8 @@
     'test_build%': 0,
     'fuzz%': 0,
     'sign_libs%': 1,
+    'nss_public_dist_dir%': '<(nss_dist_dir)/public',
+    'nss_private_dist_dir%': '<(nss_dist_dir)/private',
   },
   'target_defaults': {
     # Settings specific to targets should go here.
