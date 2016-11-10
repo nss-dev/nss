@@ -2009,18 +2009,6 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
         if (ssl3_ClientExtensionAdvertised(ss, ssl_tls13_pre_shared_key_xtn)) {
             SSL_AtomicIncrementLong(&ssl3stats->hsh_sid_cache_misses);
         }
-        /* Copy Signed Certificate Timestamps, if any. */
-        if (ss->xtnData.signedCertTimestamps.data) {
-            rv = SECITEM_CopyItem(NULL, &sid->u.ssl3.signedCertTimestamps,
-                                  &ss->xtnData.signedCertTimestamps);
-            if (rv != SECSuccess) {
-                FATAL_ERROR(ss, SEC_ERROR_NO_MEMORY, internal_error);
-                return SECFailure;
-            }
-            /* Clean up the temporary pointer to the handshake buffer. */
-            ss->xtnData.signedCertTimestamps.data = NULL;
-            ss->xtnData.signedCertTimestamps.len = 0;
-        }
         if (sid->cached == in_client_cache) {
             /* If we tried to resume and failed, let's not try again. */
             ss->sec.uncache(sid);
@@ -2395,11 +2383,23 @@ tls13_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         rv = tls13_HandleCertificateEntry(ss, &certList, first,
                                           &cert);
         if (rv != SECSuccess) {
+            ss->xtnData.signedCertTimestamps.len = 0;
             return SECFailure;
         }
 
         if (first) {
             ss->sec.peerCert = cert;
+
+            if (ss->xtnData.signedCertTimestamps.len) {
+                sslSessionID *sid = ss->sec.ci.sid;
+                rv = SECITEM_CopyItem(NULL, &sid->u.ssl3.signedCertTimestamps,
+                                      &ss->xtnData.signedCertTimestamps);
+                ss->xtnData.signedCertTimestamps.len = 0;
+                if (rv != SECSuccess) {
+                    FATAL_ERROR(ss, SEC_ERROR_NO_MEMORY, internal_error);
+                    return SECFailure;
+                }
+            }
         } else {
             ssl3CertNode *c = PORT_ArenaNew(ss->ssl3.peerCertArena,
                                             ssl3CertNode);
@@ -3975,8 +3975,8 @@ static const struct {
     { ssl_tls13_early_data_xtn, ExtensionSendEncrypted },
     { ssl_next_proto_nego_xtn, ExtensionNotUsed },
     { ssl_renegotiation_info_xtn, ExtensionNotUsed },
-    { ssl_signed_cert_timestamp_xtn, ExtensionSendEncrypted },
-    { ssl_cert_status_xtn, ExtensionSendEncrypted },
+    { ssl_signed_cert_timestamp_xtn, ExtensionSendCertificate },
+    { ssl_cert_status_xtn, ExtensionSendCertificate },
     { ssl_tls13_ticket_early_data_info_xtn, ExtensionNewSessionTicket },
     { ssl_tls13_cookie_xtn, ExtensionSendHrr }
 };

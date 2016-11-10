@@ -6802,7 +6802,6 @@ alert_loser:
 
 loser:
     /* Clean up the temporary pointer to the handshake buffer. */
-    ss->xtnData.signedCertTimestamps.data = NULL;
     ss->xtnData.signedCertTimestamps.len = 0;
     ssl_MapLowLevelError(errCode);
     return SECFailure;
@@ -7001,14 +7000,12 @@ ssl3_HandleServerHelloPart2(sslSocket *ss, const SECItem *sidBytes,
         ssl3_ExtensionNegotiated(ss, ssl_extended_master_secret_xtn);
 
     /* Copy Signed Certificate Timestamps, if any. */
-    if (ss->xtnData.signedCertTimestamps.data) {
+    if (ss->xtnData.signedCertTimestamps.len) {
         rv = SECITEM_CopyItem(NULL, &sid->u.ssl3.signedCertTimestamps,
                               &ss->xtnData.signedCertTimestamps);
+        ss->xtnData.signedCertTimestamps.len = 0;
         if (rv != SECSuccess)
             goto loser;
-        /* Clean up the temporary pointer to the handshake buffer. */
-        ss->xtnData.signedCertTimestamps.data = NULL;
-        ss->xtnData.signedCertTimestamps.len = 0;
     }
 
     ss->ssl3.hs.isResuming = PR_FALSE;
