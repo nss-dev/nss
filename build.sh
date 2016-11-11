@@ -85,8 +85,12 @@ enable_fuzz()
     gyp_params+=(-Duse_asan=1)
     gyp_params+=(-Duse_ubsan=1)
     gyp_params+=(-Duse_sancov=edge)
+
     # Adding debug symbols even for opt builds.
     nspr_opt+=(--enable-debug-symbols)
+
+    # Clone libFuzzer repository.
+    $cwd/fuzz/clone_libfuzzer.sh &>/dev/null
 }
 
 # parse command line arguments
@@ -97,7 +101,7 @@ while [ $# -gt 0 ]; do
         -j) ninja_params+=(-j "$2"); shift ;;
         -v) ninja_params+=(-v) ;;
         --test) gyp_params+=(-Dtest_build=1) ;;
-        --fuzz) gyp_params+=(-Dtest_build=1 -Dfuzz=1); check_sanitizer; enable_fuzz ;;
+        --fuzz) gyp_params+=(-Dtest_build=1 -Dfuzz=1); enable_fuzz ;;
         --scan-build) scanbuild=(scan-build) ;;
         --scan-build=?*) scanbuild=(scan-build -o "${1#*=}") ;;
         --opt|-o) opt_build=1 ;;
