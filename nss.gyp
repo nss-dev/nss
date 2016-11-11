@@ -233,17 +233,24 @@
     [ 'fuzz==1', {
       'targets': [
         {
-          'target_name': 'fuzz',
+          'target_name': 'fuzz_warning',
           'type': 'none',
           'actions': [
             {
-              'action_name': 'warn_fuzz',
+              'action_name': 'fuzz_warning',
               'action': ['cat', 'fuzz/warning.txt'],
               'inputs': ['fuzz/warning.txt'],
               'ninja_use_console': 1,
               'outputs': ['dummy'],
             }
           ],
+        },
+        {
+          'target_name': 'fuzz',
+          'type': 'none',
+          'dependencies': [
+            'fuzz/fuzz.gyp:nssfuzz',
+          ]
         },
       ],
     }],
