@@ -1788,7 +1788,7 @@ main(int argc, char **argv)
             prStatus = PR_Connect(s, &addr, timeoutInterval);
             if (prStatus == PR_SUCCESS) {
                 PR_Shutdown(s, PR_SHUTDOWN_BOTH);
-                goto done;
+                goto success;
             }
             err = PR_GetError();
             if ((err != PR_CONNECT_REFUSED_ERROR) &&
@@ -1807,6 +1807,7 @@ main(int argc, char **argv)
         goto done;
     }
 
+success:
     /* open the cert DB, the key DB, and the secmod DB. */
     if (openDB) {
         rv = NSS_Init(certDir);
