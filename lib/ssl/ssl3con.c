@@ -13229,6 +13229,10 @@ ssl3_DestroySSL3Info(sslSocket *ss)
         PK11_FreeSymKey(ss->ssl3.hs.clientTrafficSecret);
     if (ss->ssl3.hs.serverTrafficSecret)
         PK11_FreeSymKey(ss->ssl3.hs.serverTrafficSecret);
+    if (ss->ssl3.hs.earlyExporterSecret)
+        PK11_FreeSymKey(ss->ssl3.hs.earlyExporterSecret);
+    if (ss->ssl3.hs.exporterSecret)
+        PK11_FreeSymKey(ss->ssl3.hs.exporterSecret);
 
     ss->ssl3.hs.zeroRttState = ssl_0rtt_none;
     /* Destroy TLS 1.3 buffered early data. */
