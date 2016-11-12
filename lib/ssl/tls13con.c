@@ -3357,7 +3357,9 @@ tls13_ComputeFinished(sslSocket *ss, PK11SymKey *baseKey,
     PK11SymKey *secret = NULL;
 
     PORT_Assert(baseKey);
-    PRINT_BUF(50, (NULL, "Handshake hash", hashes->u.raw, hashes->len));
+    SSL_TRC(3, ("%d: TLS13[%d]: %s calculate finished",
+                SSL_GETPID(), ss->fd, SSL_ROLE(ss)));
+    PRINT_BUF(50, (ss, "Handshake hash", hashes->u.raw, hashes->len));
 
     /* Now derive the appropriate finished secret from the base secret. */
     rv = tls13_HkdfExpandLabel(baseKey,
@@ -3370,7 +3372,6 @@ tls13_ComputeFinished(sslSocket *ss, PK11SymKey *baseKey,
         goto abort;
     }
 
-    PRINT_BUF(50, (NULL, "Handshake hash", hashes->u.raw, hashes->len));
     PORT_Assert(hashes->len == tls13_GetHashSize(ss));
     hmacCtx = PK11_CreateContextBySymKey(macAlg, CKA_SIGN,
                                          secret, &param);
