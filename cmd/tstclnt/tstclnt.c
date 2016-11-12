@@ -1442,6 +1442,7 @@ main(int argc, char **argv)
     PRBool loadDefaultRootCAs = PR_FALSE;
     char *rootModule = NULL;
     int numConnections = 1;
+    PRFileDesc *s = NULL;
 
     serverCertAuth.shouldPause = PR_TRUE;
     serverCertAuth.isPaused = PR_FALSE;
@@ -1756,7 +1757,6 @@ main(int argc, char **argv)
     }
 
     if (pingServerFirst) {
-        PRFileDesc *s = NULL;
         int iter = 0;
         PRErrorCode err;
 
@@ -1845,6 +1845,10 @@ main(int argc, char **argv)
     }
 
 done:
+    if (s) {
+        PR_Close(s);
+    }
+
     if (hs1SniHostName) {
         PORT_Free(hs1SniHostName);
     }
