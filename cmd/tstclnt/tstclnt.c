@@ -189,7 +189,7 @@ PrintUsageHeader(const char *progName)
     fprintf(stderr,
             "Usage:  %s -h host [-a 1st_hs_name ] [-a 2nd_hs_name ] [-p port]\n"
             "[-D | -d certdir] [-C] [-b | -R root-module] \n"
-            "[-n nickname] [-Bafosvx] [-c ciphers] [-Y]\n"
+            "[-n nickname] [-Bafosvx] [-c ciphers] [-Y] [-Z]\n"
             "[-V [min-version]:[max-version]] [-K] [-T] [-U]\n"
             "[-r N] [-w passwd] [-W pwfile] [-q [-t seconds]] [-I groups]\n"
             "[-A requestfile] [-L totalconnections]",
@@ -260,6 +260,7 @@ PrintParameterUsage(void)
                     "[I-D.ietf-tls-negotiated-ff-dhe]\n",
             "-H");
     fprintf(stderr, "%-20s Read from a file instead of stdin\n", "-A");
+    fprintf(stderr, "%-20s Allow 0-RTT data (TLS 1.3 only)\n", "-Z");
     fprintf(stderr, "%-20s Disconnect and reconnect up to N times total\n", "-L");
     fprintf(stderr, "%-20s Comma separated list of enabled groups for TLS key exchange.\n"
                     "%-20s The following values are valid:\n"
@@ -922,6 +923,7 @@ PRUint16 portno = 443;
 int override = 0;
 char *requestString = NULL;
 PRInt32 requestStringLen = 0;
+PRBool enableZeroRtt = PR_FALSE;
 
 static int
 writeBytesToServer(PRFileDesc *s, PRPollDesc *pollset, const char *buf, int nb)
@@ -1131,6 +1133,16 @@ run_client(void)
         rv = SSL_OptionSet(s, SSL_ENABLE_EXTENDED_MASTER_SECRET, PR_TRUE);
         if (rv != SECSuccess) {
             SECU_PrintError(progName, "error enabling extended master secret");
+            error = 1;
+            goto done;
+        }
+    }
+
+    /* enable 0-RTT (TLS 1.3 only) */
+    if (enableZeroRtt) {
+        rv = SSL_OptionSet(s, SSL_ENABLE_0RTT_DATA, PR_TRUE);
+        if (rv != SECSuccess) {
+            SECU_PrintError(progName, "error enabling 0-RTT");
             error = 1;
             goto done;
         }
@@ -1471,7 +1483,7 @@ main(int argc, char **argv)
     /* XXX: 'B' was used in the past but removed in 3.28,
      *      please leave some time before resuing it. */
     optstate = PL_CreateOptState(argc, argv,
-                                 "46A:CDFGHI:KL:M:OR:STUV:WZ:Ya:bc:d:fgh:m:n:op:qr:st:uvw:z");
+                                 "46A:CDFGHI:KL:M:OR:STUV:WYZa:bc:d:fgh:m:n:op:qr:st:uvw:z");
     while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
@@ -1579,6 +1591,10 @@ main(int argc, char **argv)
             case 'Y':
                 PrintCipherUsage(progName);
                 exit(0);
+                break;
+
+            case 'Z':
+                enableZeroRtt = PR_TRUE;
                 break;
 
             case 'a':
