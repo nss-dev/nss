@@ -111,6 +111,7 @@ const char kHkdfLabelClient[] = "client";
 const char kHkdfLabelServer[] = "server";
 const char kHkdfLabelPskBinderKey[] = "resumption psk binder key";
 const char kHkdfLabelEarlyTrafficSecret[] = "early traffic secret";
+const char kHkdfLabelEarlyExporterSecret[] = "early exporter master secret";
 const char kHkdfLabelHandshakeTrafficSecret[] = "handshake traffic secret";
 const char kHkdfLabelApplicationTrafficSecret[] = "application traffic secret";
 const char kHkdfLabelFinishedSecret[] = "finished";
@@ -754,6 +755,13 @@ tls13_ComputeEarlySecrets(sslSocket *ss)
         if (rv != SECSuccess) {
             return SECFailure;
         }
+
+        rv = tls13_DeriveSecret(ss, ss->ssl3.hs.currentSecret,
+                                NULL, kHkdfLabelEarlyExporterSecret,
+                                &hashes, &ss->ssl3.hs.earlyExporterSecret);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
     } else {
         PORT_Assert(!ss->ssl3.hs.resumptionMasterSecret);
     }
@@ -840,6 +848,13 @@ tls13_ComputeApplicationSecrets(sslSocket *ss)
                             kHkdfLabelApplicationTrafficSecret,
                             NULL,
                             &ss->ssl3.hs.serverTrafficSecret);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    rv = tls13_DeriveSecret(ss, ss->ssl3.hs.currentSecret,
+                            NULL, kHkdfLabelExporterMasterSecret,
+                            NULL, &ss->ssl3.hs.exporterSecret);
     if (rv != SECSuccess) {
         return SECFailure;
     }

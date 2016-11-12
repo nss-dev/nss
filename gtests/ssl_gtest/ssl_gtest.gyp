@@ -22,6 +22,7 @@
         'ssl_drop_unittest.cc',
         'ssl_ecdh_unittest.cc',
         'ssl_ems_unittest.cc',
+        'ssl_exporter_unittest.cc',
         'ssl_extension_unittest.cc',
         'ssl_fuzz_unittest.cc',
         'ssl_gtest.cc',

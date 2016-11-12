@@ -841,8 +841,8 @@ typedef struct SSL3HandshakeStateStr {
                                     * used for backoff (in ms) */
     PRUint32 rtRetries;            /* The retry counter */
     SECItem srvVirtName;           /* for server: name that was negotiated
-                          * with a client. For client - is
-                          * always set to NULL.*/
+                                    * with a client. For client - is
+                                    * always set to NULL.*/
 
     /* This group of values is used for TLS 1.3 and above */
     PK11SymKey *currentSecret;            /* The secret down the "left hand side"
@@ -855,10 +855,12 @@ typedef struct SSL3HandshakeStateStr {
     PK11SymKey *serverHsTrafficSecret;    /* traffic keys. */
     PK11SymKey *clientTrafficSecret;      /* The source keys for application */
     PK11SymKey *serverTrafficSecret;      /* traffic keys */
+    PK11SymKey *earlyExporterSecret;      /* for 0-RTT exporters */
+    PK11SymKey *exporterSecret;           /* for exporters */
     /* The certificate request from the server. */
     TLS13CertificateRequest *certificateRequest;
     PRCList cipherSpecs;            /* The cipher specs in the sequence they
-                                        * will be applied. */
+                                     * will be applied. */
     ssl3CipherSpec *nullSpec;       /* In case 0-RTT is rejected. */
     sslZeroRttState zeroRttState;   /* Are we doing a 0-RTT handshake? */
     sslZeroRttIgnore zeroRttIgnore; /* Are we ignoring 0-RTT? */
