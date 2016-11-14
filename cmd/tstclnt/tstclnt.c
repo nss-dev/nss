@@ -1003,8 +1003,12 @@ run_client(void)
     if (serverCertAuth.testFreshStatusFromSideChannel) {
         opt.value.non_blocking = PR_FALSE;
     }
-    PR_SetSocketOption(s, &opt);
-    /*PR_SetSocketOption(PR_GetSpecialFD(PR_StandardInput), &opt);*/
+    status = PR_SetSocketOption(s, &opt);
+    if (status != PR_SUCCESS) {
+        SECU_PrintError(progName, "error setting socket options");
+        error = 1;
+        goto done;
+    }
 
     s = SSL_ImportFD(NULL, s);
     if (s == NULL) {
