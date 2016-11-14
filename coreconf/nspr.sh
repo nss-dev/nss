@@ -12,7 +12,6 @@ nspr_ldflags=
 
 nspr_sanitizer()
 {
-    check_sanitizer
     nspr_cflags="$nspr_cflags $(python $cwd/coreconf/sanitizers.py $1 $2)"
     nspr_cxxflags="$nspr_cxxflags $(python $cwd/coreconf/sanitizers.py $1 $2)"
     nspr_ldflags="$nspr_ldflags $(python $cwd/coreconf/sanitizers.py $1 $2)"
