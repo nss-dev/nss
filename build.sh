@@ -64,19 +64,6 @@ gyp_params=()
 ninja_params=()
 scanbuild=()
 
-check_sanitizer()
-{
-    # We can't run sanitizers on Mac for now.
-    if [ $(uname) != "Linux" ]; then
-        echo "
-         #### #### #### #### #### #### #### #### #### #### #### ####
-         ####   Sorry, sanitizers only work on Linux for now    ####
-         #### #### #### #### #### #### #### #### #### #### #### ####"
-        show_help
-        exit
-    fi
-}
-
 enable_fuzz()
 {
     nspr_sanitizer asan

@@ -30,7 +30,14 @@
       'cflags/': [
         ['exclude', '-fsanitize='],
         ['exclude', '-fsanitize-'],
-      ]
+      ],
+      'xcode_settings': {
+        'GCC_OPTIMIZATION_LEVEL': '2', # -O2
+        'OTHER_CFLAGS/': [
+          ['exclude', '-fsanitize='],
+          ['exclude', '-fsanitize-'],
+        ],
+      },
     }
   ],
 }
