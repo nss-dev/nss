@@ -1348,16 +1348,6 @@ extern SECStatus ssl3_UpdateHandshakeHashes(sslSocket *ss,
  */
 extern PRBool ssl3_WaitingForServerSecondRound(sslSocket *ss);
 
-extern SECStatus
-ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
-                              PRBool isServer,
-                              PRBool isDTLS,
-                              PRBool capRecordVersion,
-                              SSL3ContentType type,
-                              const SSL3Opaque *pIn,
-                              PRUint32 contentLen,
-                              sslBuffer *wrBuf);
-
 extern PRInt32 ssl3_SendRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
                                SSL3ContentType type,
                                const SSL3Opaque *pIn, PRInt32 nIn,
@@ -1749,12 +1739,6 @@ extern SECStatus dtls_StageHandshakeMessage(sslSocket *ss);
 extern SECStatus dtls_QueueMessage(sslSocket *ss, SSL3ContentType type,
                                    const SSL3Opaque *pIn, PRInt32 nIn);
 extern SECStatus dtls_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags);
-extern SECStatus dtls_CompressMACEncryptRecord(sslSocket *ss,
-                                               ssl3CipherSpec *cwSpec,
-                                               SSL3ContentType type,
-                                               const SSL3Opaque *pIn,
-                                               PRUint32 contentLen,
-                                               sslBuffer *wrBuf);
 SECStatus ssl3_DisableNonDTLSSuites(sslSocket *ss);
 extern SECStatus dtls_StartHolddownTimer(sslSocket *ss);
 extern void dtls_CheckTimer(sslSocket *ss);

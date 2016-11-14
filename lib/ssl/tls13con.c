@@ -4076,79 +4076,46 @@ tls13_ProtectRecord(sslSocket *ss,
                     sslBuffer *wrBuf)
 {
     const ssl3BulkCipherDef *cipher_def = cwSpec->cipher_def;
-    SECStatus rv;
-    PRUint16 headerLen;
-    int cipherBytes = 0;
     const int tagLen = cipher_def->tag_size;
+    SECStatus rv;
 
     SSL_TRC(3, ("%d: TLS13[%d]: spec=%d (%s) protect record 0x%0llx len=%u",
                 SSL_GETPID(), ss->fd, cwSpec, cwSpec->phase,
                 cwSpec->write_seq_num, contentLen));
 
-    PORT_Assert(cipher_def->max_records <= RECORD_SEQ_MAX);
-    if ((cwSpec->write_seq_num & RECORD_SEQ_MAX) >= cipher_def->max_records) {
-        SSL_TRC(3, ("%d: TLS13[%d]: write sequence number at limit 0x%0llx",
-                    SSL_GETPID(), ss->fd, cwSpec->write_seq_num));
-        PORT_SetError(SSL_ERROR_TOO_MANY_RECORDS);
-        return SECFailure;
-    }
-
-    headerLen = IS_DTLS(ss) ? DTLS_RECORD_HEADER_LENGTH : SSL3_RECORD_HEADER_LENGTH;
-
-    if (headerLen + contentLen + 1 + tagLen > wrBuf->space) {
+    if (contentLen + 1 + tagLen > wrBuf->space) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
     }
 
     /* Copy the data into the wrBuf. We're going to encrypt in-place
      * in the AEAD branch anyway */
-    PORT_Memcpy(wrBuf->buf + headerLen, pIn, contentLen);
+    PORT_Memcpy(wrBuf->buf, pIn, contentLen);
 
     if (cipher_def->calg == ssl_calg_null) {
         /* Shortcut for plaintext */
-        cipherBytes = contentLen;
+        wrBuf->len = contentLen;
     } else {
         PRUint8 aad[8];
         PORT_Assert(cipher_def->type == type_aead);
 
         /* Add the content type at the end. */
-        wrBuf->buf[headerLen + contentLen] = type;
-
-        /* Stomp the content type to be application_data */
-        type = content_application_data;
+        wrBuf->buf[contentLen] = type;
 
         tls13_FormatAdditionalData(aad, sizeof(aad), cwSpec->write_seq_num);
-        cipherBytes = contentLen + 1; /* Room for the content type on the end. */
         rv = cwSpec->aead(
             ss->sec.isServer ? &cwSpec->server : &cwSpec->client,
-            PR_FALSE,                               /* do encrypt */
-            wrBuf->buf + headerLen,                 /* output  */
-            &cipherBytes,                           /* out len */
-            wrBuf->space - headerLen,               /* max out */
-            wrBuf->buf + headerLen, contentLen + 1, /* input   */
+            PR_FALSE,                   /* do encrypt */
+            wrBuf->buf,                 /* output  */
+            (int *)&wrBuf->len,         /* out len */
+            wrBuf->space,               /* max out */
+            wrBuf->buf, contentLen + 1, /* input   */
             aad, sizeof(aad));
         if (rv != SECSuccess) {
             PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
             return SECFailure;
         }
     }
-
-    PORT_Assert(cipherBytes <= MAX_FRAGMENT_LENGTH + 256);
-
-    wrBuf->len = cipherBytes + headerLen;
-    wrBuf->buf[0] = type;
-
-    if (IS_DTLS(ss)) {
-        (void)ssl_EncodeUintX(
-            dtls_TLSVersionToDTLSVersion(kDtlsRecordVersion), 2,
-            &wrBuf->buf[1]);
-        (void)ssl_EncodeUintX(cwSpec->write_seq_num, 8, &wrBuf->buf[3]);
-        (void)ssl_EncodeUintX(cipherBytes, 2, &wrBuf->buf[11]);
-    } else {
-        (void)ssl_EncodeUintX(kTlsRecordVersion, 2, &wrBuf->buf[1]);
-        (void)ssl_EncodeUintX(cipherBytes, 2, &wrBuf->buf[3]);
-    }
-    ++cwSpec->write_seq_num;
 
     return SECSuccess;
 }
