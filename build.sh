@@ -141,9 +141,6 @@ target_dir="$cwd/out/$target"
 # get the realpath of $dist_dir
 dist_dir=$(mkdir -p $dist_dir; cd $dist_dir; pwd -P)
 
-# save the chosen target
-echo $target > $dist_dir/latest
-
 # get object directory
 obj_dir="$dist_dir/$target"
 gyp_params+=(-Dnss_dist_dir=$dist_dir)
@@ -157,6 +154,10 @@ if [ "$clean" = 1 ]; then
     rm -rf "$cwd/../nspr/$target"
     rm -rf "$dist_dir"
 fi
+
+# save the chosen target
+mkdir -p $dist_dir
+echo $target > $dist_dir/latest
 
 # pass on CC and CCC
 if [ "${#scanbuild[@]}" -gt 0 ]; then
