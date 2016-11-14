@@ -2412,23 +2412,11 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
     PRUint32 macLen = 0;
     PRUint32 fragLen;
     PRUint32 p1Len, p2Len, oddLen = 0;
-    PRUint16 headerLen;
     unsigned int ivLen = 0;
-    int cipherBytes = 0;
     unsigned char pseudoHeader[13];
     unsigned int pseudoHeaderLen;
-    PRUint8 *b;
 
     cipher_def = cwSpec->cipher_def;
-    headerLen = isDTLS ? DTLS_RECORD_HEADER_LENGTH : SSL3_RECORD_HEADER_LENGTH;
-
-    PORT_Assert(cipher_def->max_records <= RECORD_SEQ_MAX);
-    if ((cwSpec->write_seq_num & RECORD_SEQ_MAX) >= cipher_def->max_records) {
-        SSL_TRC(3, ("%d: SSL[-]: write sequence number at limit 0x%0llx",
-                    SSL_GETPID(), cwSpec->write_seq_num));
-        PORT_SetError(SSL_ERROR_TOO_MANY_RECORDS);
-        return SECFailure;
-    }
 
     if (cipher_def->type == type_block &&
         cwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_1) {
@@ -2438,22 +2426,22 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
          * record.
          */
         ivLen = cipher_def->iv_size;
-        if (ivLen > wrBuf->space - headerLen) {
+        if (ivLen > wrBuf->space) {
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             return SECFailure;
         }
-        rv = PK11_GenerateRandom(wrBuf->buf + headerLen, ivLen);
+        rv = PK11_GenerateRandom(wrBuf->buf, ivLen);
         if (rv != SECSuccess) {
             ssl_MapLowLevelError(SSL_ERROR_GENERATE_RANDOM_FAILURE);
             return rv;
         }
         rv = cwSpec->encode(cwSpec->encodeContext,
-                            wrBuf->buf + headerLen,
-                            &cipherBytes, /* output and actual outLen */
-                            ivLen,        /* max outlen */
-                            wrBuf->buf + headerLen,
-                            ivLen); /* input and inputLen*/
-        if (rv != SECSuccess || cipherBytes != ivLen) {
+                            wrBuf->buf,         /* output */
+                            (int *)&wrBuf->len, /* outlen */
+                            ivLen,              /* max outlen */
+                            wrBuf->buf,         /* input */
+                            ivLen);             /* input len */
+        if (rv != SECSuccess || wrBuf->len != ivLen) {
             PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
             return SECFailure;
         }
@@ -2461,13 +2449,11 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
 
     if (cwSpec->compressor) {
         int outlen;
-        rv = cwSpec->compressor(
-            cwSpec->compressContext,
-            wrBuf->buf + headerLen + ivLen, &outlen,
-            wrBuf->space - headerLen - ivLen, pIn, contentLen);
+        rv = cwSpec->compressor(cwSpec->compressContext, wrBuf->buf + ivLen,
+                                &outlen, wrBuf->space - ivLen, pIn, contentLen);
         if (rv != SECSuccess)
             return rv;
-        pIn = wrBuf->buf + headerLen + ivLen;
+        pIn = wrBuf->buf + ivLen;
         contentLen = outlen;
     }
 
@@ -2480,19 +2466,18 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
         const int nonceLen = cipher_def->explicit_nonce_size;
         const int tagLen = cipher_def->tag_size;
 
-        if (headerLen + nonceLen + contentLen + tagLen > wrBuf->space) {
+        if (nonceLen + contentLen + tagLen > wrBuf->space) {
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             return SECFailure;
         }
 
-        cipherBytes = contentLen;
         rv = cwSpec->aead(
             isServer ? &cwSpec->server : &cwSpec->client,
-            PR_FALSE,                 /* do encrypt */
-            wrBuf->buf + headerLen,   /* output  */
-            &cipherBytes,             /* out len */
-            wrBuf->space - headerLen, /* max out */
-            pIn, contentLen,          /* input   */
+            PR_FALSE,           /* do encrypt */
+            wrBuf->buf,         /* output  */
+            (int *)&wrBuf->len, /* out len */
+            wrBuf->space,       /* max out */
+            pIn, contentLen,    /* input   */
             pseudoHeader, pseudoHeaderLen);
         if (rv != SECSuccess) {
             PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
@@ -2502,10 +2487,9 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
         /*
          * Add the MAC
          */
-        rv = ssl3_ComputeRecordMAC(cwSpec, isServer,
-                                   pseudoHeader, pseudoHeaderLen, pIn, contentLen,
-                                   wrBuf->buf + headerLen + ivLen + contentLen,
-                                   &macLen);
+        rv = ssl3_ComputeRecordMAC(cwSpec, isServer, pseudoHeader,
+                                   pseudoHeaderLen, pIn, contentLen,
+                                   wrBuf->buf + ivLen + contentLen, &macLen);
         if (rv != SECSuccess) {
             ssl_MapLowLevelError(SSL_ERROR_MAC_COMPUTATION_FAILURE);
             return SECFailure;
@@ -2531,7 +2515,7 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
             PORT_Assert((fragLen % cipher_def->block_size) == 0);
 
             /* Pad according to TLS rules (also acceptable to SSL3). */
-            pBuf = &wrBuf->buf[headerLen + ivLen + fragLen - 1];
+            pBuf = &wrBuf->buf[ivLen + fragLen - 1];
             for (i = padding_length + 1; i > 0; --i) {
                 *pBuf-- = padding_length;
             }
@@ -2548,15 +2532,14 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
             p2Len += oddLen;
             PORT_Assert((cipher_def->block_size < 2) ||
                         (p2Len % cipher_def->block_size) == 0);
-            memmove(wrBuf->buf + headerLen + ivLen + p1Len, pIn + p1Len,
-                    oddLen);
+            memmove(wrBuf->buf + ivLen + p1Len, pIn + p1Len, oddLen);
         }
         if (p1Len > 0) {
             int cipherBytesPart1 = -1;
             rv = cwSpec->encode(cwSpec->encodeContext,
-                                wrBuf->buf + headerLen + ivLen, /* output */
-                                &cipherBytesPart1,              /* actual outlen */
-                                p1Len,                          /* max outlen */
+                                wrBuf->buf + ivLen, /* output */
+                                &cipherBytesPart1,  /* actual outlen */
+                                p1Len,              /* max outlen */
                                 pIn,
                                 p1Len); /* input, and inputlen */
             PORT_Assert(rv == SECSuccess && cipherBytesPart1 == (int)p1Len);
@@ -2564,47 +2547,85 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
                 PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
                 return SECFailure;
             }
-            cipherBytes += cipherBytesPart1;
+            wrBuf->len += cipherBytesPart1;
         }
         if (p2Len > 0) {
             int cipherBytesPart2 = -1;
             rv = cwSpec->encode(cwSpec->encodeContext,
-                                wrBuf->buf + headerLen + ivLen + p1Len,
+                                wrBuf->buf + ivLen + p1Len,
                                 &cipherBytesPart2, /* output and actual outLen */
                                 p2Len,             /* max outlen */
-                                wrBuf->buf + headerLen + ivLen + p1Len,
+                                wrBuf->buf + ivLen + p1Len,
                                 p2Len); /* input and inputLen*/
             PORT_Assert(rv == SECSuccess && cipherBytesPart2 == (int)p2Len);
             if (rv != SECSuccess || cipherBytesPart2 != (int)p2Len) {
                 PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
                 return SECFailure;
             }
-            cipherBytes += cipherBytesPart2;
+            wrBuf->len += cipherBytesPart2;
         }
     }
 
-    PORT_Assert(cipherBytes <= MAX_FRAGMENT_LENGTH + 1024);
+    return SECSuccess;
+}
 
-    wrBuf->len = cipherBytes + headerLen;
-    b = &wrBuf->buf[0];
-    b = ssl_EncodeUintX(type, 1, b);
-    if (isDTLS) {
-        SSL3ProtocolVersion version;
+SECStatus
+ssl_ProtectRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
+                  PRBool capRecordVersion, SSL3ContentType type,
+                  const SSL3Opaque *pIn, PRUint32 contentLen, sslBuffer *wrBuf)
+{
+    const ssl3BulkCipherDef *cipher_def = cwSpec->cipher_def;
+    PRUint16 headerLen = IS_DTLS(ss) ? DTLS_RECORD_HEADER_LENGTH : SSL3_RECORD_HEADER_LENGTH;
+    sslBuffer protBuf = { wrBuf->buf + headerLen, 0, wrBuf->space - headerLen };
+    SSL3ProtocolVersion version = cwSpec->version;
+    PRBool isTLS13;
+    SECStatus rv;
 
-        version = dtls_TLSVersionToDTLSVersion(cwSpec->version);
-        b = ssl_EncodeUintX(version, 2, b);
-        b = ssl_EncodeUintX(cwSpec->write_seq_num, 8, b);
+    PORT_Assert(cipher_def->max_records <= RECORD_SEQ_MAX);
+    if ((cwSpec->write_seq_num & RECORD_SEQ_MAX) >= cipher_def->max_records) {
+        SSL_TRC(3, ("%d: SSL[-]: write sequence number at limit 0x%0llx",
+                    SSL_GETPID(), cwSpec->write_seq_num));
+        PORT_SetError(SSL_ERROR_TOO_MANY_RECORDS);
+        return SECFailure;
+    }
+
+    isTLS13 = (PRBool)(cwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+
+    if (isTLS13) {
+        rv = tls13_ProtectRecord(ss, cwSpec, type, pIn, contentLen, &protBuf);
     } else {
-        SSL3ProtocolVersion version = cwSpec->version;
+        rv = ssl3_CompressMACEncryptRecord(cwSpec, ss->sec.isServer,
+                                           IS_DTLS(ss), capRecordVersion, type,
+                                           pIn, contentLen, &protBuf);
+    }
+    if (rv != SECSuccess) {
+        return SECFailure; /* error was set */
+    }
 
-        if (capRecordVersion || version >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    PORT_Assert(protBuf.len <= MAX_FRAGMENT_LENGTH + (isTLS13 ? 256 : 1024));
+    wrBuf->len = protBuf.len + headerLen;
+
+    if (isTLS13 && cipher_def->calg != ssl_calg_null) {
+        wrBuf->buf[0] = content_application_data;
+    } else {
+        wrBuf->buf[0] = type;
+    }
+
+    if (IS_DTLS(ss)) {
+        version = isTLS13 ? SSL_LIBRARY_VERSION_TLS_1_1 : version;
+        version = dtls_TLSVersionToDTLSVersion(version);
+
+        (void)ssl_EncodeUintX(version, 2, &wrBuf->buf[1]);
+        (void)ssl_EncodeUintX(cwSpec->write_seq_num, 8, &wrBuf->buf[3]);
+        (void)ssl_EncodeUintX(protBuf.len, 2, &wrBuf->buf[11]);
+    } else {
+        if (capRecordVersion || isTLS13) {
             version = PR_MIN(SSL_LIBRARY_VERSION_TLS_1_0, version);
         }
 
-        b = ssl_EncodeUintX(version, 2, b);
+        (void)ssl_EncodeUintX(version, 2, &wrBuf->buf[1]);
+        (void)ssl_EncodeUintX(protBuf.len, 2, &wrBuf->buf[3]);
     }
-    (void)ssl_EncodeUintX(cipherBytes, 2, b);
-
     ++cwSpec->write_seq_num;
 
     return SECSuccess;
@@ -2731,10 +2752,8 @@ ssl3_SendRecord(sslSocket *ss,
 
         if (numRecords == 2) {
             sslBuffer secondRecord;
-            rv = ssl3_CompressMACEncryptRecord(ss->ssl3.cwSpec,
-                                               ss->sec.isServer, IS_DTLS(ss),
-                                               capRecordVersion, type, pIn,
-                                               1, wrBuf);
+            rv = ssl_ProtectRecord(ss, ss->ssl3.cwSpec, capRecordVersion, type,
+                                   pIn, 1, wrBuf);
             if (rv != SECSuccess)
                 goto spec_locked_loser;
 
@@ -2745,41 +2764,26 @@ ssl3_SendRecord(sslSocket *ss,
             secondRecord.len = 0;
             secondRecord.space = wrBuf->space - wrBuf->len;
 
-            rv = ssl3_CompressMACEncryptRecord(ss->ssl3.cwSpec,
-                                               ss->sec.isServer, IS_DTLS(ss),
-                                               capRecordVersion, type,
-                                               pIn + 1,
-                                               contentLen - 1,
-                                               &secondRecord);
+            rv = ssl_ProtectRecord(ss, ss->ssl3.cwSpec, capRecordVersion, type,
+                                   pIn + 1, contentLen - 1, &secondRecord);
             if (rv == SECSuccess) {
                 PRINT_BUF(50, (ss, "send (encrypted) record data [2/2]:",
                                secondRecord.buf, secondRecord.len));
                 wrBuf->len += secondRecord.len;
             }
         } else {
-            if (!IS_DTLS(ss)) {
+            if (cwSpec) {
                 /* cwSpec can only be set for retransmissions of DTLS handshake
                  * messages. */
-                PORT_Assert(!cwSpec);
-                if (ss->ssl3.cwSpec->version < SSL_LIBRARY_VERSION_TLS_1_3) {
-                    rv = ssl3_CompressMACEncryptRecord(ss->ssl3.cwSpec,
-                                                       ss->sec.isServer,
-                                                       PR_FALSE,
-                                                       capRecordVersion,
-                                                       type, pIn,
-                                                       contentLen, wrBuf);
-                } else {
-                    rv = tls13_ProtectRecord(ss, ss->ssl3.cwSpec, type, pIn,
-                                             contentLen, wrBuf);
-                }
+                PORT_Assert(IS_DTLS(ss) &&
+                            (type == content_handshake ||
+                             type == content_change_cipher_spec));
             } else {
-                /* TLS <= 1.2 and TLS 1.3 cases are both handled in
-                 * dtls_CompressMACEncryptRecord. */
-                rv = dtls_CompressMACEncryptRecord(ss, cwSpec,
-                                                   type, pIn,
-                                                   contentLen, wrBuf);
+                cwSpec = ss->ssl3.cwSpec;
             }
 
+            rv = ssl_ProtectRecord(ss, cwSpec, !IS_DTLS(ss) && capRecordVersion,
+                                   type, pIn, contentLen, wrBuf);
             if (rv == SECSuccess) {
                 PRINT_BUF(50, (ss, "send (encrypted) record data:",
                                wrBuf->buf, wrBuf->len));
@@ -12476,7 +12480,7 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     SSL3ContentType rType;
     sslBuffer *plaintext;
     sslBuffer temp_buf;
-    SSL3AlertDescription alert;
+    SSL3AlertDescription alert = internal_error;
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
 
     if (!ss->ssl3.initialized) {
