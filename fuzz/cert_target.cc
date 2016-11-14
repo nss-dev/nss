@@ -19,8 +19,8 @@ extern "C" int cert_fuzzing_target(const uint8_t *Data, size_t Size) {
   static std::unique_ptr<NSSDatabase> db(new NSSDatabase());
   assert(db != nullptr);
 
-  CERTCertificate *cert =
-      CERT_DecodeDERCertificate(&data, false, const_cast<char*>("certificate"));
+  CERTCertificate *cert = CERT_DecodeDERCertificate(
+      &data, false, const_cast<char *>("certificate"));
 
   if (cert) {
     CERT_DestroyCertificate(cert);
