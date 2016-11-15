@@ -16,7 +16,9 @@ namespace nss_test {
 
 struct ScopedDelete {
   void operator()(CERTCertificate* cert) { CERT_DestroyCertificate(cert); }
-  void operator()(CERTCertificateList* list) { CERT_DestroyCertificateList(list); }
+  void operator()(CERTCertificateList* list) {
+    CERT_DestroyCertificateList(list);
+  }
   void operator()(CERTSubjectPublicKeyInfo* spki) {
     SECKEY_DestroySubjectPublicKeyInfo(spki);
   }

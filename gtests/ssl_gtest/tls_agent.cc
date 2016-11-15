@@ -203,15 +203,13 @@ SECStatus TlsAgent::GetClientAuthDataHook(void* self, PRFileDesc* fd,
 }
 
 bool TlsAgent::GetPeerChainLength(size_t* count) {
-  CERTCertList *chain = SSL_PeerCertificateChain(ssl_fd_);
-  if (!chain)
-    return false;
+  CERTCertList* chain = SSL_PeerCertificateChain(ssl_fd_);
+  if (!chain) return false;
   *count = 0;
 
-  for (PRCList *cursor = PR_NEXT_LINK(&chain->list);
-       cursor != &chain->list;
+  for (PRCList* cursor = PR_NEXT_LINK(&chain->list); cursor != &chain->list;
        cursor = PR_NEXT_LINK(cursor)) {
-    CERTCertListNode *node = (CERTCertListNode *)cursor;
+    CERTCertListNode* node = (CERTCertListNode*)cursor;
     std::cerr << node->cert->subjectName << std::endl;
     ++(*count);
   }
