@@ -35,6 +35,7 @@ const std::string TlsAgent::kServerRsa = "rsa";    // both sign and encrypt
 const std::string TlsAgent::kServerRsaSign = "rsa_sign";
 const std::string TlsAgent::kServerRsaPss = "rsa_pss";
 const std::string TlsAgent::kServerRsaDecrypt = "rsa_decrypt";
+const std::string TlsAgent::kServerRsaChain = "rsa_chain";
 const std::string TlsAgent::kServerEcdsa256 = "ecdsa256";
 const std::string TlsAgent::kServerEcdsa384 = "ecdsa384";
 const std::string TlsAgent::kServerEcdsa521 = "ecdsa521";
@@ -199,6 +200,25 @@ SECStatus TlsAgent::GetClientAuthDataHook(void* self, PRFileDesc* fd,
     return SECSuccess;
   }
   return SECFailure;
+}
+
+bool TlsAgent::GetPeerChainLength(size_t* count) {
+  CERTCertList *chain = SSL_PeerCertificateChain(ssl_fd_);
+  if (!chain)
+    return false;
+  *count = 0;
+
+  for (PRCList *cursor = PR_NEXT_LINK(&chain->list);
+       cursor != &chain->list;
+       cursor = PR_NEXT_LINK(cursor)) {
+    CERTCertListNode *node = (CERTCertListNode *)cursor;
+    std::cerr << node->cert->subjectName << std::endl;
+    ++(*count);
+  }
+
+  CERT_DestroyCertList(chain);
+
+  return true;
 }
 
 void TlsAgent::RequestClientAuth(bool requireAuth) {
