@@ -8,7 +8,6 @@
         "#*ServerHelloSignatureAlgorithms*":"(NSS=18, BoGo=16)",
         "#*SecondClientHello*":"(NSS=18, BoGo=16)",
         "#*IgnoreClientVersionOrder*":"(NSS=18, BoGo=16)",
-        "TLS13-HelloRetryRequest-Client-Sync-SplitHandshakeRecords": "Bug 1317668)",
         "Resume-Server-BinderWrongLength":"Alert disagreement (Bug 1317633)",
         "Resume-Server-NoPSKBinder":"Alert disagreement (Bug 1317633)",
         "CheckRecordVersion-TLS*":"Bug 1317634",
