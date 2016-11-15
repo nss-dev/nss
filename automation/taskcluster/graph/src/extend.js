@@ -65,6 +65,11 @@ queue.map(task => {
     }
   }
 
+  // Windows is slow.
+  if (task.platform == "windows2012-64" && task.tests == "chains") {
+    task.maxRunTime = 7200;
+  }
+
   // Enable TLS 1.3 for every task.
   task.env = task.env || {};
   task.env.NSS_ENABLE_TLS_1_3 = "1";
