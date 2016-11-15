@@ -50,6 +50,7 @@ clean=0
 rebuild_gyp=0
 target=Debug
 params=$(echo "$* $CC $CCC" | tr " " "\n")
+verbose=0
 
 cwd=$(cd $(dirname $0); pwd -P)
 dist_dir="$cwd/../dist"
@@ -89,7 +90,7 @@ while [ $# -gt 0 ]; do
         -c) clean=1 ;;
         -g) rebuild_gyp=1 ;;
         -j) ninja_params+=(-j "$2"); shift ;;
-        -v) ninja_params+=(-v) ;;
+        -v) ninja_params+=(-v); verbose=1 ;;
         --test) gyp_params+=(-Dtest_build=1) ;;
         --fuzz) gyp_params+=(-Dtest_build=1 -Dfuzz=1); enable_fuzz ;;
         --scan-build) scanbuild=(scan-build) ;;
@@ -161,13 +162,13 @@ if [ "${#scanbuild[@]}" -gt 0 ]; then
 # These steps can take a while, so don't overdo them.
 # Force a redo with -g.
 if [ "$rebuild_gyp" = 1 -o ! -d "$target_dir" ]; then
-    build_nspr
+    build_nspr $verbose
 
     # Run gyp.
-    set -v -x
+    [ $verbose = 1 ] && set -v -x
     "${scanbuild[@]}" gyp -f ninja "${gyp_params[@]}" --depth="$cwd" \
       --generator-output="." "$cwd/nss.gyp"
-    set +v +x
+    [ $verbose = 1 ] && set +v +x
 
     # Store used parameters for next run.
     echo "$params" > "$cwd/out/config"

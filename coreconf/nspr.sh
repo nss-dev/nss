@@ -21,8 +21,16 @@ build_nspr()
 {
     mkdir -p "$cwd/../nspr/$target"
     cd "$cwd/../nspr/$target"
+    if [ "$1" == 1 ]; then
+        out=/dev/stdout
+    else
+        out=/dev/null
+    fi
+    echo "[1/3] configure NSPR ..."
     CFLAGS=$nspr_cflags CXXFLAGS=$nspr_cxxflags LDFLAGS=$nspr_ldflags \
-    CC=$CC CXX=$CCC ../configure "${nspr_opt[@]}" --prefix="$obj_dir"
-    make -C "$cwd/../nspr/$target"
-    make -C "$cwd/../nspr/$target" install
+      CC=$CC CXX=$CCC ../configure "${nspr_opt[@]}" --prefix="$obj_dir" 1> $out
+    echo "[2/3] make NSPR ..."
+    make -C "$cwd/../nspr/$target" 1> $out
+    echo "[3/3] install NSPR ..."
+    make -C "$cwd/../nspr/$target" install 1> $out
 }
