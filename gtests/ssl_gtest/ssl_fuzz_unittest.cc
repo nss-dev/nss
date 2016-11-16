@@ -23,7 +23,7 @@ class TlsApplicationDataRecorder : public TlsRecordFilter {
  public:
   TlsApplicationDataRecorder() : buffer_() {}
 
-  virtual PacketFilter::Action FilterRecord(const RecordHeader& header,
+  virtual PacketFilter::Action FilterRecord(const TlsRecordHeader& header,
                                             const DataBuffer& input,
                                             DataBuffer* output) {
     if (header.content_type() == kTlsApplicationDataType) {
@@ -130,8 +130,8 @@ TEST_P(TlsConnectGeneric, Fuzz_DeterministicTranscript) {
     Connect();
 
     // Ensure the filters go away before |buffer| does.
-    client_->SetPacketFilter(nullptr);
-    server_->SetPacketFilter(nullptr);
+    client_->DeletePacketFilter();
+    server_->DeletePacketFilter();
 
     if (last.len() > 0) {
       EXPECT_EQ(last, buffer);

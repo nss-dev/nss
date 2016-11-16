@@ -33,11 +33,11 @@ class RecordFragmenter : public PacketFilter {
           sequence_number_(sequence_number) {}
 
    private:
-    void WriteRecord(TlsRecordFilter::RecordHeader& record_header,
+    void WriteRecord(TlsRecordHeader& record_header,
                      DataBuffer& record_fragment) {
-      TlsRecordFilter::RecordHeader fragment_header(
-          record_header.version(), record_header.content_type(),
-          *sequence_number_);
+      TlsRecordHeader fragment_header(record_header.version(),
+                                      record_header.content_type(),
+                                      *sequence_number_);
       ++*sequence_number_;
       if (::g_ssl_gtest_verbose) {
         std::cerr << "Fragment: " << fragment_header << ' ' << record_fragment
@@ -46,8 +46,7 @@ class RecordFragmenter : public PacketFilter {
       cursor_ = fragment_header.Write(output_, cursor_, record_fragment);
     }
 
-    bool SplitRecord(TlsRecordFilter::RecordHeader& record_header,
-                     DataBuffer& record) {
+    bool SplitRecord(TlsRecordHeader& record_header, DataBuffer& record) {
       TlsParser parser(record);
       while (parser.remaining()) {
         TlsHandshakeFilter::HandshakeHeader handshake_header;
@@ -81,7 +80,7 @@ class RecordFragmenter : public PacketFilter {
     bool Split() {
       TlsParser parser(input_);
       while (parser.remaining()) {
-        TlsRecordFilter::RecordHeader header;
+        TlsRecordHeader header;
         DataBuffer record;
         if (!header.Parse(&parser, &record)) {
           ADD_FAILURE() << "bad record header";

@@ -2774,6 +2774,10 @@ tls13_SetCipherSpec(sslSocket *ss, TrafficKeyType type,
                 spec->phase, spec->epoch,
                 direction == CipherSpecRead ? "read" : "write"));
 
+    if (ss->ssl3.changedCipherSpecFunc) {
+        ss->ssl3.changedCipherSpecFunc(ss->ssl3.changedCipherSpecArg,
+                                       direction == CipherSpecWrite, spec);
+    }
     return SECSuccess;
 }
 
@@ -2919,6 +2923,7 @@ tls13_WriteNonce(ssl3KeyMaterial *keys,
     for (i = 0; i < 8; ++i) {
         nonce[4 + i] ^= seqNumBuf[i];
     }
+    PRINT_BUF(50, (NULL, "Nonce", nonce, nonceLen));
 }
 
 /* Implement the SSLAEADCipher interface defined in sslimpl.h.
