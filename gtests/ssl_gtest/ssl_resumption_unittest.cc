@@ -21,6 +21,7 @@ extern "C" {
 #include "tls_connect.h"
 #include "tls_filter.h"
 #include "tls_parser.h"
+#include "tls_protect.h"
 
 namespace nss_test {
 
