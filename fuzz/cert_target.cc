@@ -4,28 +4,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <assert.h>
 #include <stdint.h>
-#include <memory>
 
 #include "cert.h"
 
 #include "registry.h"
-#include "shared.h"
 
 extern "C" int cert_fuzzing_target(const uint8_t *Data, size_t Size) {
+  PORTCheapArenaPool pool;
+  PORT_InitCheapArena(&pool, DER_DEFAULT_CHUNKSIZE);
+
+  CERTCertificate cert;
   SECItem data = {siBuffer, (unsigned char *)Data, (unsigned int)Size};
+  SEC_QuickDERDecodeItem(&pool.arena, &cert, SEC_SignedCertificateTemplate,
+                         &data);
 
-  static std::unique_ptr<NSSDatabase> db(new NSSDatabase());
-  assert(db != nullptr);
-
-  CERTCertificate *cert = CERT_DecodeDERCertificate(
-      &data, false, const_cast<char *>("certificate"));
-
-  if (cert) {
-    CERT_DestroyCertificate(cert);
-  }
-
+  PORT_DestroyCheapArena(&pool);
   return 0;
 }
 
