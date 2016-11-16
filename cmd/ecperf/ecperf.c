@@ -94,8 +94,6 @@ static SECOidTag ecCurve_oid_map[] = {
 typedef SECStatus (*op_func)(void *, void *, void *);
 typedef SECStatus (*pk11_op_func)(CK_SESSION_HANDLE, void *, void *, void *);
 
-typedef SECItem SECKEYECParams;
-
 typedef struct ThreadDataStr {
     op_func op;
     void *p1;
