@@ -195,6 +195,12 @@
                 'cmd/pkix-errcodes/pkix-errcodes.gyp:pkix-errcodes',
               ],
             }],
+            [ 'test_build==1', {
+              'dependencies': [
+                'cmd/mpitests/mpitests.gyp:mpi_tests',
+                'gtests/freebl_gtest/freebl_gtest.gyp:freebl_gtest',
+              ],
+            }],
           ],
         },
       ],

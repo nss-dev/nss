@@ -103,6 +103,9 @@
               'dependencies': [
                 '<(DEPTH)/lib/util/util.gyp:nssutil3',
               ],
+              'defines': [
+                'CT_VERIF',
+              ],
             }],
             [ 'target_arch=="x64"', {
               'sources': [
