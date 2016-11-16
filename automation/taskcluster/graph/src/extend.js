@@ -161,6 +161,8 @@ export default async function main() {
 
   await scheduleFuzzing();
 
+  await scheduleTestBuilds();
+
   await scheduleTools();
 
   await scheduleLinux("Linux 32 (ARM, debug)", {
@@ -315,6 +317,58 @@ async function scheduleFuzzing() {
 
   return queue.submit();
 }
+
+/*****************************************************************************/
+
+async function scheduleTestBuilds() {
+  let base = {
+    platform: "linux64",
+    collection: "gyp",
+    group: "Test",
+    image: LINUX_IMAGE
+  };
+
+  // Build base definition.
+  let build = merge({
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && " +
+      "nss/automation/taskcluster/scripts/build_gyp.sh -g -v --test"
+    ],
+    artifacts: {
+      public: {
+        expires: 24 * 7,
+        type: "directory",
+        path: "/home/worker/artifacts"
+      }
+    },
+    kind: "build",
+    symbol: "B",
+    name: "Linux 64 (debug, gyp, test)"
+  }, base);
+
+  // The task that builds NSPR+NSS.
+  let task_build = queue.scheduleTask(build);
+
+  // Schedule tests.
+  queue.scheduleTask(merge(base, {
+    parent: task_build,
+    name: "mpi",
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+    ],
+    tests: "mpi",
+    cycle: "standard",
+    symbol: "mpi",
+    kind: "test"
+  }));
+
+  return queue.submit();
+}
+
 
 /*****************************************************************************/
 

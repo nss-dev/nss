@@ -35,7 +35,7 @@ function parseOptions(opts) {
   let aliases = {"gtests": "gtest"};
   let allUnitTests = ["bogo", "crmf", "chains", "cipher", "db", "ec", "fips",
                       "gtest", "lowhash", "merge", "sdr", "smime", "tools",
-                      "ssl"];
+                      "ssl", "mpi"];
   let unittests = intersect(opts.unittests.split(/\s*,\s*/).map(t => {
     return aliases[t] || t;
   }), allUnitTests);
@@ -82,6 +82,10 @@ function filter(opts) {
     // Filter unit tests.
     if (task.tests) {
       let found = opts.unittests.some(test => {
+        // TODO: think of something more intelligent here.
+        if (task.symbol.toLowerCase().startsWith("mpi") && test == "mpi") {
+          return true;
+        }
         return (task.group || task.symbol).toLowerCase().startsWith(test);
       });
 
