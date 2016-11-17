@@ -54,6 +54,7 @@ verbose=0
 # parse parameters to store in config
 params=$(echo "$*" | sed -e 's/-c\|-v\|-g\|-j [0-9]*\|-h//g' -e 's/^[ \t]*//')
 params=$(echo "$params $CC $CCC" | tr " " "\n" | sed -e '/^\s*$/d')
+params=$(echo "${params[*]}" | sort)
 
 cwd=$(cd $(dirname $0); pwd -P)
 dist_dir="$cwd/../dist"
