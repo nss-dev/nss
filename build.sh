@@ -52,8 +52,8 @@ target=Debug
 verbose=0
 
 # parse parameters to store in config
-params=$(echo "$*" | sed -e 's/-c\|-v\|-g\|-j [0-9]*\|-h//g' -e 's/^[ \t]*//')
-params=$(echo "$params $CC $CCC" | tr " " "\n" | sed -e '/^\s*$/d')
+params=$(echo "$*" | perl -pe 's/-c|-v|-g|-j [0-9]*|-h//g' | perl -pe 's/^[ \t]*//')
+params=$(echo "$params $CC $CCC" | tr " " "\n" | perl -pe '/^\s*$/d')
 params=$(echo "${params[*]}" | sort)
 
 cwd=$(cd $(dirname $0); pwd -P)
