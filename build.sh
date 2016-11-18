@@ -14,6 +14,7 @@ cat << EOF
 
 Usage: ${0##*/} [-hcgv] [-j <n>] [--test] [--fuzz] [--scan-build[=output]]
                 [-m32] [--opt|-o] [--asan] [--ubsan] [--sancov[=edge|bb|func]]
+                [--pprof]
 
 This script builds NSS with gyp and ninja.
 
@@ -37,6 +38,7 @@ NSS build tool options:
     --ubsan       do an ubsan build
     --sancov      do sanitize coverage builds
                   --sancov=func sets coverage to function level for example
+    --pprof       build with gperftool support
 EOF
 }
 
@@ -101,6 +103,7 @@ while [ $# -gt 0 ]; do
         --ubsan) gyp_params+=(-Duse_ubsan=1); nspr_sanitizer ubsan ;;
         --sancov) gyp_params+=(-Duse_sancov=edge); nspr_sanitizer sancov edge ;;
         --sancov=?*) gyp_params+=(-Duse_sancov="${1#*=}"); nspr_sanitizer sancov "${1#*=}" ;;
+        --pprof) gyp_params+=(-Duse_pprof=1) ;;
         *) show_help; exit ;;
     esac
     shift

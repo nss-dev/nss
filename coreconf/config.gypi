@@ -97,6 +97,7 @@
     'test_build%': 0,
     'fuzz%': 0,
     'sign_libs%': 1,
+    'use_pprof%': 0,
     'nss_public_dist_dir%': '<(nss_dist_dir)/public',
     'nss_private_dist_dir%': '<(nss_dist_dir)/private',
   },
@@ -270,6 +271,9 @@
               [ 'target_arch=="x64"', {
                 'cflags': ['-m64'],
                 'ldflags': ['-m64'],
+              }],
+              [ 'use_pprof==1' , {
+                'ldflags': [ '-lprofiler' ],
               }],
             ],
           }],
