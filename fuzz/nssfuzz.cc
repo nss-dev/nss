@@ -24,7 +24,8 @@ class Args {
   string &operator[](const int idx) { return args_[idx]; }
 
   bool Has(const string &arg) {
-    return find(args_.begin(), args_.end(), arg) != args_.end();
+    return any_of(args_.begin(), args_.end(),
+                  [&arg](string &a) { return a.find(arg) == 0; });
   }
 
   void Append(const string &arg) { args_.push_back(arg); }
