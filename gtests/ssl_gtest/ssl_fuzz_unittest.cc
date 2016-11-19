@@ -13,6 +13,9 @@ namespace nss_test {
 
 #ifdef UNSAFE_FUZZER_MODE
 
+const uint8_t kShortEmptyFinished[8] = {0};
+const uint8_t kLongEmptyFinished[128] = {0};
+
 class TlsFuzzTest : public ::testing::Test {};
 
 // Record the application data stream.
@@ -34,6 +37,28 @@ class TlsApplicationDataRecorder : public TlsRecordFilter {
 
  private:
   DataBuffer buffer_;
+};
+
+// Damages an SKE or CV signature.
+class TlsSignatureDamager : public TlsHandshakeFilter {
+ public:
+  TlsSignatureDamager(uint8_t type) : type_(type) {}
+  virtual PacketFilter::Action FilterHandshake(
+      const TlsHandshakeFilter::HandshakeHeader& header,
+      const DataBuffer& input, DataBuffer* output) {
+    if (header.handshake_type() != type_) {
+      return KEEP;
+    }
+
+    *output = input;
+
+    // Modify the last byte of the signature.
+    output->data()[output->len() - 1]++;
+    return CHANGE;
+  }
+
+ private:
+  uint8_t type_;
 };
 
 void ResetState() {
@@ -147,6 +172,51 @@ TEST_P(TlsConnectGeneric, Fuzz_ConnectSendReceive_NullCipher) {
   // Check for plaintext on the wire.
   EXPECT_EQ(buf, client_recorder->buffer());
   EXPECT_EQ(buf, server_recorder->buffer());
+}
+
+// Check that an invalid Finished message doesn't abort the connection.
+TEST_P(TlsConnectGeneric, Fuzz_BogusClientFinished) {
+  EnsureTlsSetup();
+
+  auto i1 = new TlsInspectorReplaceHandshakeMessage(
+      kTlsHandshakeFinished,
+      DataBuffer(kShortEmptyFinished, sizeof(kShortEmptyFinished)));
+  client_->SetPacketFilter(i1);
+  Connect();
+  SendReceive();
+}
+
+// Check that an invalid Finished message doesn't abort the connection.
+TEST_P(TlsConnectGeneric, Fuzz_BogusServerFinished) {
+  EnsureTlsSetup();
+
+  auto i1 = new TlsInspectorReplaceHandshakeMessage(
+      kTlsHandshakeFinished,
+      DataBuffer(kLongEmptyFinished, sizeof(kLongEmptyFinished)));
+  server_->SetPacketFilter(i1);
+  Connect();
+  SendReceive();
+}
+
+// Check that an invalid server auth signature doesn't abort the connection.
+TEST_P(TlsConnectGeneric, Fuzz_BogusServerAuthSignature) {
+  EnsureTlsSetup();
+  uint8_t msg_type = version_ == SSL_LIBRARY_VERSION_TLS_1_3
+                         ? kTlsHandshakeCertificateVerify
+                         : kTlsHandshakeServerKeyExchange;
+  server_->SetPacketFilter(new TlsSignatureDamager(msg_type));
+  Connect();
+  SendReceive();
+}
+
+// Check that an invalid client auth signature doesn't abort the connection.
+TEST_P(TlsConnectGeneric, Fuzz_BogusClientAuthSignature) {
+  EnsureTlsSetup();
+  client_->SetupClientAuth();
+  server_->RequestClientAuth(true);
+  client_->SetPacketFilter(
+      new TlsSignatureDamager(kTlsHandshakeCertificateVerify));
+  Connect();
 }
 
 #endif
