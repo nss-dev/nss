@@ -2591,6 +2591,10 @@ ssl_ProtectRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
 
     isTLS13 = (PRBool)(cwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_3);
 
+#ifdef UNSAFE_FUZZER_MODE
+    rv = Null_Cipher(NULL, protBuf.buf, (int *)&protBuf.len, protBuf.space,
+                     pIn, contentLen);
+#else
     if (isTLS13) {
         rv = tls13_ProtectRecord(ss, cwSpec, type, pIn, contentLen, &protBuf);
     } else {
@@ -2598,6 +2602,7 @@ ssl_ProtectRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
                                            IS_DTLS(ss), capRecordVersion, type,
                                            pIn, contentLen, &protBuf);
     }
+#endif
     if (rv != SECSuccess) {
         return SECFailure; /* error was set */
     }
@@ -2605,9 +2610,12 @@ ssl_ProtectRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
     PORT_Assert(protBuf.len <= MAX_FRAGMENT_LENGTH + (isTLS13 ? 256 : 1024));
     wrBuf->len = protBuf.len + headerLen;
 
+#ifndef UNSAFE_FUZZER_MODE
     if (isTLS13 && cipher_def->calg != ssl_calg_null) {
         wrBuf->buf[0] = content_application_data;
-    } else {
+    } else
+#endif
+    {
         wrBuf->buf[0] = type;
     }
 
@@ -12569,6 +12577,10 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
         return SECSuccess;
     }
 
+#ifdef UNSAFE_FUZZER_MODE
+    rv = Null_Cipher(NULL, plaintext->buf, (int *)&plaintext->len,
+                     plaintext->space, cText->buf->buf, cText->buf->len);
+#else
     /* IMPORTANT: Unprotect functions MUST NOT send alerts
      * because we still hold the spec read lock. Instead, if they
      * return SECFailure, they set *alert to the alert to be sent. */
@@ -12579,6 +12591,7 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     } else {
         rv = tls13_UnprotectRecord(ss, cText, plaintext, &alert);
     }
+#endif
 
     if (rv != SECSuccess) {
         ssl_ReleaseSpecReadLock(ss); /***************************/
