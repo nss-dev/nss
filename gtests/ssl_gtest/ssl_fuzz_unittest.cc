@@ -15,6 +15,27 @@ namespace nss_test {
 
 class TlsFuzzTest : public ::testing::Test {};
 
+// Record the application data stream.
+class TlsApplicationDataRecorder : public TlsRecordFilter {
+ public:
+  TlsApplicationDataRecorder() : buffer_() {}
+
+  virtual PacketFilter::Action FilterRecord(const RecordHeader& header,
+                                            const DataBuffer& input,
+                                            DataBuffer* output) {
+    if (header.content_type() == kTlsApplicationDataType) {
+      buffer_.Append(input);
+    }
+
+    return KEEP;
+  }
+
+  const DataBuffer& buffer() const { return buffer_; }
+
+ private:
+  DataBuffer buffer_;
+};
+
 void ResetState() {
   // Clear the list of RSA blinding params.
   BL_Cleanup();
@@ -94,6 +115,38 @@ TEST_P(TlsConnectGeneric, Fuzz_DeterministicTranscript) {
 
     last = buffer;
   }
+}
+
+// Check that we can establish and use a connection
+// with all supported TLS versions, STREAM and DGRAM.
+// Check that records are NOT encrypted.
+// Check that records don't have a MAC.
+TEST_P(TlsConnectGeneric, Fuzz_ConnectSendReceive_NullCipher) {
+  EnsureTlsSetup();
+
+  // Set up app data filters.
+  auto client_recorder = new TlsApplicationDataRecorder();
+  client_->SetPacketFilter(client_recorder);
+  auto server_recorder = new TlsApplicationDataRecorder();
+  server_->SetPacketFilter(server_recorder);
+
+  Connect();
+
+  // Construct the plaintext.
+  DataBuffer buf;
+  buf.Allocate(50);
+  for (size_t i = 0; i < buf.len(); ++i) {
+    buf.data()[i] = i & 0xff;
+  }
+
+  // Send/Receive data.
+  client_->SendBuffer(buf);
+  server_->SendBuffer(buf);
+  Receive(buf.len());
+
+  // Check for plaintext on the wire.
+  EXPECT_EQ(buf, client_recorder->buffer());
+  EXPECT_EQ(buf, server_recorder->buffer());
 }
 
 #endif
