@@ -1369,6 +1369,10 @@ ssl3_VerifySignedHashes(sslSocket *ss, SSLSignatureScheme scheme, SSL3Hashes *ha
     if (signature) {
         SECITEM_FreeItem(signature, PR_TRUE);
     }
+#ifdef UNSAFE_FUZZER_MODE
+    rv = SECSuccess;
+    PORT_SetError(0);
+#endif
     if (rv != SECSuccess) {
         ssl_MapLowLevelError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
     }
@@ -11384,10 +11388,12 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
     if (isTLS) {
         TLSFinished tlsFinished;
 
-        if (length != sizeof tlsFinished) {
+        if (length != sizeof(tlsFinished)) {
+#ifndef UNSAFE_FUZZER_MODE
             (void)SSL3_SendAlert(ss, alert_fatal, decode_error);
             PORT_SetError(SSL_ERROR_RX_MALFORMED_FINISHED);
             return SECFailure;
+#endif
         }
         rv = ssl3_ComputeTLSFinished(ss, ss->ssl3.crSpec, !isServer,
                                      hashes, &tlsFinished);
@@ -11395,12 +11401,15 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
             ss->ssl3.hs.finishedMsgs.tFinished[1] = tlsFinished;
         else
             ss->ssl3.hs.finishedMsgs.tFinished[0] = tlsFinished;
-        ss->ssl3.hs.finishedBytes = sizeof tlsFinished;
+        ss->ssl3.hs.finishedBytes = sizeof(tlsFinished);
         if (rv != SECSuccess ||
-            0 != NSS_SecureMemcmp(&tlsFinished, b, length)) {
+            0 != NSS_SecureMemcmp(&tlsFinished, b,
+                                  PR_MIN(length, ss->ssl3.hs.finishedBytes))) {
+#ifndef UNSAFE_FUZZER_MODE
             (void)SSL3_SendAlert(ss, alert_fatal, decrypt_error);
             PORT_SetError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
             return SECFailure;
+#endif
         }
     } else {
         if (length != sizeof(SSL3Finished)) {
