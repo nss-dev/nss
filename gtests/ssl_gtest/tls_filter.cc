@@ -18,6 +18,32 @@ extern "C" {
 
 namespace nss_test {
 
+void TlsRecordFilter::Versioned::WriteStream(std::ostream& stream) const {
+  stream << (is_dtls() ? "DTLS " : "TLS ");
+  switch (version()) {
+    case 0:
+      stream << "(no version)";
+      break;
+    case SSL_LIBRARY_VERSION_TLS_1_0:
+      stream << "1.0";
+      break;
+    case SSL_LIBRARY_VERSION_DTLS_1_0_WIRE:
+    case SSL_LIBRARY_VERSION_TLS_1_1:
+      stream << (is_dtls() ? "1.0" : "1.1");
+      break;
+    case SSL_LIBRARY_VERSION_DTLS_1_2_WIRE:
+    case SSL_LIBRARY_VERSION_TLS_1_2:
+      stream << "1.2";
+      break;
+    case SSL_LIBRARY_VERSION_TLS_1_3:
+      stream << "1.3";
+      break;
+    default:
+      stream << "Invalid version: " << version();
+      break;
+  }
+}
+
 PacketFilter::Action TlsRecordFilter::Filter(const DataBuffer& input,
                                              DataBuffer* output) {
   bool changed = false;
@@ -29,6 +55,7 @@ PacketFilter::Action TlsRecordFilter::Filter(const DataBuffer& input,
     RecordHeader header;
     DataBuffer record;
     if (!header.Parse(&parser, &record)) {
+      ADD_FAILURE() << "not a valid record";
       return KEEP;
     }
 
@@ -205,15 +232,28 @@ bool TlsHandshakeFilter::HandshakeHeader::Parse(
   return parser->Read(body, length);
 }
 
-size_t TlsHandshakeFilter::HandshakeHeader::Write(
-    DataBuffer* buffer, size_t offset, const DataBuffer& body) const {
+size_t TlsHandshakeFilter::HandshakeHeader::WriteFragment(
+    DataBuffer* buffer, size_t offset, const DataBuffer& body,
+    size_t fragment_offset, size_t fragment_length) const {
+  EXPECT_TRUE(is_dtls());
+  EXPECT_GE(body.len(), fragment_offset + fragment_length);
   offset = buffer->Write(offset, handshake_type(), 1);
   offset = buffer->Write(offset, body.len(), 3);
+  offset = buffer->Write(offset, message_seq_, 2);
+  offset = buffer->Write(offset, fragment_offset, 3);
+  offset = buffer->Write(offset, fragment_length, 3);
+  offset =
+      buffer->Write(offset, body.data() + fragment_offset, fragment_length);
+  return offset;
+}
+
+size_t TlsHandshakeFilter::HandshakeHeader::Write(
+    DataBuffer* buffer, size_t offset, const DataBuffer& body) const {
   if (is_dtls()) {
-    offset = buffer->Write(offset, message_seq_, 2);
-    offset = buffer->Write(offset, 0U, 3);  // fragment_offset
-    offset = buffer->Write(offset, body.len(), 3);
+    return WriteFragment(buffer, offset, body, 0U, body.len());
   }
+  offset = buffer->Write(offset, handshake_type(), 1);
+  offset = buffer->Write(offset, body.len(), 3);
   offset = buffer->Write(offset, body);
   return offset;
 }

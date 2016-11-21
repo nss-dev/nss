@@ -35,6 +35,8 @@ class TlsRecordFilter : public PacketFilter {
     bool is_dtls() const { return IsDtls(version_); }
     uint16_t version() const { return version_; }
 
+    void WriteStream(std::ostream& stream) const;
+
    protected:
     uint16_t version_;
   };
@@ -90,6 +92,36 @@ class TlsRecordFilter : public PacketFilter {
   size_t count_;
 };
 
+inline std::ostream& operator<<(std::ostream& stream,
+                                const TlsRecordFilter::Versioned v) {
+  v.WriteStream(stream);
+  return stream;
+}
+
+inline std::ostream& operator<<(std::ostream& stream,
+                                const TlsRecordFilter::RecordHeader& hdr) {
+  hdr.WriteStream(stream);
+  stream << ' ';
+  switch (hdr.content_type()) {
+    case kTlsChangeCipherSpecType:
+      stream << "CCS";
+      break;
+    case kTlsAlertType:
+      stream << "Alert";
+      break;
+    case kTlsHandshakeType:
+      stream << "Handshake";
+      break;
+    case kTlsApplicationDataType:
+      stream << "Data";
+      break;
+    default:
+      stream << '<' << hdr.content_type() << '>';
+      break;
+  }
+  return stream << ' ' << std::hex << hdr.sequence_number() << std::dec;
+}
+
 // Abstract filter that operates on handshake messages rather than records.
 // This assumes that the handshake messages are written in a block as entire
 // records and that they don't span records or anything crazy like that.
@@ -106,6 +138,9 @@ class TlsHandshakeFilter : public TlsRecordFilter {
                DataBuffer* body);
     size_t Write(DataBuffer* buffer, size_t offset,
                  const DataBuffer& body) const;
+    size_t WriteFragment(DataBuffer* buffer, size_t offset,
+                         const DataBuffer& body, size_t fragment_offset,
+                         size_t fragment_length) const;
 
    private:
     // Reads the length from the record header.

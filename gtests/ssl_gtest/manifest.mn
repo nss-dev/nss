@@ -24,6 +24,7 @@ CPPSRCS = \
       ssl_ems_unittest.cc \
       ssl_exporter_unittest.cc \
       ssl_extension_unittest.cc \
+      ssl_fragment_unittest.cc \
       ssl_fuzz_unittest.cc \
       ssl_gtest.cc \
       ssl_hrr_unittest.cc \
