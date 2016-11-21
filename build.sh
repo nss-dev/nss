@@ -53,7 +53,7 @@ verbose=0
 fuzz=0
 
 # parse parameters to store in config
-params=$(echo "$*" | perl -pe 's/-c|-v|-g|-j [0-9]*|-h//g' | perl -pe 's/^[ \t]*//')
+params=$(echo "$*" | perl -pe 's/-c|-v|-g|-j [0-9]*|-h//g' | perl -pe 's/^\s*(.*?)\s*$/\1/')
 params=$(echo "$params $CC $CCC" | tr " " "\n" | perl -pe '/^\s*$/d')
 params=$(echo "${params[*]}" | sort)
 
