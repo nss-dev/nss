@@ -25,6 +25,7 @@
         'ssl_exporter_unittest.cc',
         'ssl_extension_unittest.cc',
         'ssl_fuzz_unittest.cc',
+        'ssl_fragment_unittest.cc',
         'ssl_gtest.cc',
         'ssl_hrr_unittest.cc',
         'ssl_loopback_unittest.cc',
