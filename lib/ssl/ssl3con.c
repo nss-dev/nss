@@ -9453,10 +9453,7 @@ ssl3_SendDHServerKeyExchange(sslSocket *ss)
     if (rv != SECSuccess) {
         goto loser; /* ssl3_SignHashes has set err. */
     }
-    if (signed_hash.data == NULL) {
-        PORT_SetError(SSL_ERROR_SERVER_KEY_EXCHANGE_FAILURE);
-        goto loser;
-    }
+
     length = 2 + pubKey->u.dh.prime.len +
              2 + pubKey->u.dh.base.len +
              2 + pubKey->u.dh.prime.len +
