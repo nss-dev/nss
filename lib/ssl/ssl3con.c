@@ -7391,9 +7391,7 @@ ssl_ParseSignatureSchemes(const sslSocket *ss, PLArenaPool *arena,
     }
 
     if (!numSchemes) {
-        if (!arena) {
-            PORT_Free(schemes);
-        }
+        PORT_Free(schemes);
         schemes = NULL;
     }
 
