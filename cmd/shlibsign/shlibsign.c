@@ -707,7 +707,7 @@ main(int argc, char **argv)
     PLOptState *optstate;
     char *program_name;
     char *libname = NULL;
-    PRLibrary *lib;
+    PRLibrary *lib = NULL;
     PRFileDesc *fd;
     PRStatus rv = PR_SUCCESS;
     const char *input_file = NULL; /* read/create encrypted data from here */
@@ -1320,7 +1320,7 @@ cleanup:
 #endif
 
     disableUnload = PR_GetEnvSecure("NSS_DISABLE_UNLOAD");
-    if (!disableUnload) {
+    if (!disableUnload && lib) {
         PR_UnloadLibrary(lib);
     }
     PR_Cleanup();
