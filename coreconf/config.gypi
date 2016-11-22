@@ -93,6 +93,7 @@
     'ssl_enable_zlib%': 1,
     'use_asan%': 0,
     'use_ubsan%': 0,
+    'use_msan%': 0,
     'use_sancov%': 0,
     'test_build%': 0,
     'fuzz%': 0,
@@ -325,6 +326,21 @@
               'OTHER_LDFLAGS!': ['<@(no_ldflags)'],
               # See comment above.
               'LIBRARY_SEARCH_PATHS': ['/usr/lib <(ubsan_flags)'],
+            },
+          }],
+          [ 'use_msan==1', {
+            'variables': {
+              'msan_flags': '<!(<(python) <(DEPTH)/coreconf/sanitizers.py msan)',
+              'no_ldflags': '<!(<(python) <(DEPTH)/coreconf/sanitizers.py ld)',
+            },
+            'cflags': ['<@(msan_flags)'],
+            'ldflags': ['<@(msan_flags)'],
+            'ldflags!': ['<@(no_ldflags)'],
+            'xcode_settings': {
+              'OTHER_CFLAGS': ['<@(msan_flags)'],
+              'OTHER_LDFLAGS!': ['<@(no_ldflags)'],
+              # See comment above.
+              'LIBRARY_SEARCH_PATHS': ['/usr/lib <(msan_flags)'],
             },
           }],
           [ 'use_sancov!=0', {
