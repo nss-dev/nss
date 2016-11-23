@@ -13195,6 +13195,9 @@ ssl3_DestroySSL3Info(sslSocket *ss)
         CERT_DestroyCertificateList(ss->ssl3.clientCertChain);
         ss->ssl3.clientCertChain = NULL;
     }
+    if (ss->ssl3.ca_list) {
+        CERT_FreeDistNames(ss->ssl3.ca_list);
+    }
 
     /* clean up handshake */
     if (ss->ssl3.hs.md5) {
