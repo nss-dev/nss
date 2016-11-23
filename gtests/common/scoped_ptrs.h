@@ -19,9 +19,7 @@ struct ScopedDelete {
   void operator()(CERTCertificateList* list) {
     CERT_DestroyCertificateList(list);
   }
-  void operator()(CERTCertList* list) {
-    CERT_DestroyCertList(list);
-  }
+  void operator()(CERTCertList* list) { CERT_DestroyCertList(list); }
   void operator()(CERTSubjectPublicKeyInfo* spki) {
     SECKEY_DestroySubjectPublicKeyInfo(spki);
   }
