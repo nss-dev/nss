@@ -273,9 +273,17 @@
                 'cflags': ['-m64'],
                 'ldflags': ['-m64'],
               }],
-              [ 'use_pprof==1' , {
-                'ldflags': [ '-lprofiler' ],
-              }],
+            ],
+          }],
+          [ 'use_pprof==1 and OS=="linux"', {
+            'ldflags': [ '-lprofiler' ],
+          }],
+          [ 'use_pprof==1 and OS=="mac"', {
+            'xcode_settings': {
+              'OTHER_LDFLAGS': [ '-lprofiler' ],
+            },
+            'library_dirs': [
+              '/usr/local/lib/',
             ],
           }],
           [ 'disable_werror==0 and (OS=="linux" or OS=="mac")', {
