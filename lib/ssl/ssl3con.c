@@ -1624,10 +1624,6 @@ ssl3_SetupPendingCipherSpec(sslSocket *ss)
     pwSpec->compressContext = NULL;
     pwSpec->decompressContext = NULL;
 
-    if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
-        PORT_Assert(ss->ssl3.hs.kea_def->ephemeral);
-        PORT_Assert(pwSpec->cipher_def->type == type_aead);
-    }
     ssl_ReleaseSpecWriteLock(ss); /*******************************/
     return SECSuccess;
 }
