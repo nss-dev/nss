@@ -41,19 +41,34 @@ the tools, set your system environment to use the libraries of your build from
 the "lib" directory, e.g., using the `LD_LIBRARY_PATH` or `DYLD_LIBRARY_PATH`.
 
     Usage: build.sh [-hcgv] [-j <n>] [--test] [--fuzz] [--scan-build[=output]]
-                    [-m32] [--opt|-o]
+                    [-m32] [--opt|-o] [--asan] [--ubsan] [--sancov[=edge|bb|func]]
+                    [--pprof] [--msan]
 
-    -h            display this help and exit
-    -c            clean before build
-    -g            force a rebuild of gyp (and NSPR, because why not)
-    -j <n>        run at most <n> concurrent jobs
-    -v            verbose build
-    -m32          do a 32-bit build on a 64-bit system
-    --test        ignore map files and export everything we have
-    --fuzz        enable fuzzing mode. this always enables test builds
-    --scan-build  run the build with scan-build (scan-build has to be in the path)
-                  --scan-build=/out/path sets the output path for scan-build
-    --opt|-o      do an opt build
+    This script builds NSS with gyp and ninja.
+
+    This build system is still under development.  It does not yet support all
+    the features or platforms that NSS supports.
+
+    NSS build tool options:
+
+        -h            display this help and exit
+        -c            clean before build
+        -g            force a rebuild of gyp (and NSPR, because why not)
+        -j <n>        run at most <n> concurrent jobs
+        -v            verbose build
+        -m32          do a 32-bit build on a 64-bit system
+        --test        ignore map files and export everything we have
+        --fuzz        enable fuzzing mode. this always enables test builds
+        --scan-build  run the build with scan-build (scan-build has to be in the path)
+                      --scan-build=/out/path sets the output path for scan-build
+        --opt|-o      do an opt build
+        --asan        do an asan build
+        --ubsan       do an ubsan build
+        --msan        do an msan build
+        --sancov      do sanitize coverage builds
+                      --sancov=func sets coverage to function level for example
+        --pprof       build with gperftool support
+
 
 ## Building NSS (legacy build system)
 
