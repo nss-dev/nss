@@ -121,7 +121,6 @@ if [ "$build_64" == "1" ]; then
     nspr_opt+=(--enable-64bit)
 else
     gyp_params+=(-Dtarget_arch=ia32)
-    nspr_opt+=(--enable-x32)
 fi
 
 # clone fuzzing stuff
