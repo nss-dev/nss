@@ -6629,8 +6629,11 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         goto loser; /* alert has been sent */
     }
 
-    /* We got a HelloRetryRequest, but the server didn't pick 1.3.  Scream. */
-    if (ss->ssl3.hs.helloRetry && ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+    /* The server didn't pick 1.3 although we either received a
+     * HelloRetryRequest, or we prepared to send early app data. */
+    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3 &&
+        (ss->ssl3.hs.helloRetry || ss->ssl3.hs.zeroRttState == ssl_0rtt_sent)) {
+        /* SSL3_SendAlert() will uncache the SID. */
         desc = illegal_parameter;
         errCode = SSL_ERROR_RX_MALFORMED_SERVER_HELLO;
         goto alert_loser;
@@ -6989,6 +6992,19 @@ ssl3_HandleServerHelloPart2(sslSocket *ss, const SECItem *sidBytes,
         SSL_AtomicIncrementLong(&ssl3stats.hsh_sid_cache_not_ok);
     else
         SSL_AtomicIncrementLong(&ssl3stats.hsh_sid_cache_misses);
+
+    /* We tried to resume a 1.3 session but the server negotiated 1.2. */
+    if (ss->statelessResume) {
+        PORT_Assert(sid->version == SSL_LIBRARY_VERSION_TLS_1_3);
+        PORT_Assert(ss->ssl3.hs.currentSecret);
+
+        /* Reset resumption state, only used by 1.3 code. */
+        ss->statelessResume = PR_FALSE;
+
+        /* Clear TLS 1.3 early data traffic key. */
+        PK11_FreeSymKey(ss->ssl3.hs.currentSecret);
+        ss->ssl3.hs.currentSecret = NULL;
+    }
 
     /* throw the old one away */
     sid->u.ssl3.keys.resumable = PR_FALSE;
