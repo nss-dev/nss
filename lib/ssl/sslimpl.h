@@ -1645,12 +1645,13 @@ extern SECStatus ssl3_AppendHandshakeVariable(sslSocket *ss,
                                               const SSL3Opaque *src, PRInt32 bytes, PRInt32 lenSize);
 extern SECStatus ssl3_AppendSignatureAndHashAlgorithm(
     sslSocket *ss, const SSLSignatureAndHashAlg *sigAndHash);
-extern SECStatus ssl3_ConsumeHandshake(sslSocket *ss, void *v, PRInt32 bytes,
+extern SECStatus ssl3_ConsumeHandshake(sslSocket *ss, void *v, PRUint32 bytes,
                                        SSL3Opaque **b, PRUint32 *length);
-extern PRInt32 ssl3_ConsumeHandshakeNumber(sslSocket *ss, PRInt32 bytes,
-                                           SSL3Opaque **b, PRUint32 *length);
+extern SECStatus ssl3_ConsumeHandshakeNumber(sslSocket *ss, PRUint32 *num,
+                                             PRUint32 bytes, SSL3Opaque **b,
+                                             PRUint32 *length);
 extern SECStatus ssl3_ConsumeHandshakeVariable(sslSocket *ss, SECItem *i,
-                                               PRInt32 bytes, SSL3Opaque **b,
+                                               PRUint32 bytes, SSL3Opaque **b,
                                                PRUint32 *length);
 extern PRUint8 *ssl_EncodeUintX(PRUint64 value, unsigned int bytes,
                                 PRUint8 *to);
