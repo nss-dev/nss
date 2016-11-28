@@ -61,17 +61,6 @@ class TlsSignatureDamager : public TlsHandshakeFilter {
   uint8_t type_;
 };
 
-void ResetState() {
-  // Clear the list of RSA blinding params.
-  BL_Cleanup();
-
-  // Reinit the list of RSA blinding params.
-  EXPECT_EQ(SECSuccess, BL_Init());
-
-  // Reset the RNG state.
-  EXPECT_EQ(SECSuccess, RNG_ResetForFuzzing());
-}
-
 // Ensure that ssl_Time() returns a constant value.
 TEST_F(TlsFuzzTest, Fuzz_SSL_Time_Constant) {
   PRInt32 now = ssl_Time();
@@ -85,10 +74,15 @@ TEST_P(TlsConnectGeneric, Fuzz_DeterministicExporter) {
   const char kLabel[] = "label";
   std::vector<unsigned char> out1(32), out2(32);
 
+  // Make sure we have RSA blinding params.
+  Connect();
+
+  Reset();
   ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
   DisableECDHEServerKeyReuse();
 
-  ResetState();
+  // Reset the RNG state.
+  EXPECT_EQ(SECSuccess, RNG_ResetForFuzzing());
   Connect();
 
   // Export a key derived from the MS and nonces.
@@ -101,7 +95,8 @@ TEST_P(TlsConnectGeneric, Fuzz_DeterministicExporter) {
   ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
   DisableECDHEServerKeyReuse();
 
-  ResetState();
+  // Reset the RNG state.
+  EXPECT_EQ(SECSuccess, RNG_ResetForFuzzing());
   Connect();
 
   // Export another key derived from the MS and nonces.
@@ -116,6 +111,9 @@ TEST_P(TlsConnectGeneric, Fuzz_DeterministicExporter) {
 // Check that due to the deterministic RNG two consecutive
 // TLS sessions will have the exact same transcript.
 TEST_P(TlsConnectGeneric, Fuzz_DeterministicTranscript) {
+  // Make sure we have RSA blinding params.
+  Connect();
+
   // Connect a few times and compare the transcripts byte-by-byte.
   DataBuffer last;
   for (size_t i = 0; i < 5; i++) {
@@ -127,7 +125,8 @@ TEST_P(TlsConnectGeneric, Fuzz_DeterministicTranscript) {
     client_->SetPacketFilter(new TlsConversationRecorder(buffer));
     server_->SetPacketFilter(new TlsConversationRecorder(buffer));
 
-    ResetState();
+    // Reset the RNG state.
+    EXPECT_EQ(SECSuccess, RNG_ResetForFuzzing());
     Connect();
 
     // Ensure the filters go away before |buffer| does.
