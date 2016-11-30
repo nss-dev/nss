@@ -11,9 +11,9 @@
 
 #include "prio.h"
 #include "seccomon.h"
-#include "sslt.h"
 #include "ssl.h"
 #include "sslimpl.h"
+#include "sslt.h"
 
 SECStatus SSLInt_IncrementClientHandshakeVersion(PRFileDesc *fd);
 
