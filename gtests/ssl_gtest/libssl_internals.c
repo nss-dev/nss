@@ -10,8 +10,6 @@
 #include "nss.h"
 #include "pk11pub.h"
 #include "seccomon.h"
-#include "ssl.h"
-#include "sslimpl.h"
 
 SECStatus SSLInt_IncrementClientHandshakeVersion(PRFileDesc *fd) {
   sslSocket *ss = ssl_FindSocket(fd);
