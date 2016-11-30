@@ -35,7 +35,6 @@ class AeadCipher {
   CK_MECHANISM_TYPE mech_;
   PK11SymKey *key_;
   uint8_t iv_[12];
-  SECItem params_;  // The params for this block.
 };
 
 class AeadCipherChacha20Poly1305 : public AeadCipher {
