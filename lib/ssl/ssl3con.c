@@ -10746,9 +10746,6 @@ ssl3_CompleteHandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         lastCert = c;
     }
 
-    if (remaining != 0)
-        goto decode_loser;
-
     SECKEY_UpdateCertPQG(ss->sec.peerCert);
 
     if (!isServer &&
