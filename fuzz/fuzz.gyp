@@ -50,7 +50,7 @@
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',
-        '<(DEPTH)/fuzz/libFuzzer.gyp:libFuzzer'
+        'libFuzzer',
       ]
     }
   ],
