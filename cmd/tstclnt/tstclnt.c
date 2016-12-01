@@ -917,11 +917,11 @@ writeBytesToServer(PRFileDesc *s, const char *buf, int nb)
 {
     SECStatus rv;
     const char *bufp = buf;
-    PRPollDesc pollset[1];
+    PRPollDesc pollDesc;
 
-    pollset[SSOCK_FD].in_flags = PR_POLL_WRITE | PR_POLL_EXCEPT;
-    pollset[SSOCK_FD].out_flags = 0;
-    pollset[SSOCK_FD].fd = s;
+    pollDesc.in_flags = PR_POLL_WRITE | PR_POLL_EXCEPT;
+    pollDesc.out_flags = 0;
+    pollDesc.fd = s;
 
     FPRINTF(stderr, "%s: Writing %d bytes to server\n",
             progName, nb);
@@ -948,12 +948,12 @@ writeBytesToServer(PRFileDesc *s, const char *buf, int nb)
             return EXIT_CODE_HANDSHAKE_FAILED;
         }
 
-        pollset[SSOCK_FD].in_flags = PR_POLL_WRITE | PR_POLL_EXCEPT;
-        pollset[SSOCK_FD].out_flags = 0;
+        pollDesc.in_flags = PR_POLL_WRITE | PR_POLL_EXCEPT;
+        pollDesc.out_flags = 0;
         FPRINTF(stderr,
                 "%s: about to call PR_Poll on writable socket !\n",
                 progName);
-        cc = PR_Poll(pollset, 1, PR_INTERVAL_NO_TIMEOUT);
+        cc = PR_Poll(&pollDesc, 1, PR_INTERVAL_NO_TIMEOUT);
         if (cc < 0) {
             SECU_PrintError(progName,
                             "PR_Poll failed");
