@@ -25,25 +25,12 @@
         'libFuzzer/FuzzerUtilDarwin.cpp',
         'libFuzzer/FuzzerUtilLinux.cpp',
       ],
-      'cflags': [
-        '-O2',
-      ],
-      'cflags/': [
-        ['exclude', '-fsanitize='],
-        ['exclude', '-fsanitize-'],
-      ],
-      'xcode_settings': {
-        'GCC_OPTIMIZATION_LEVEL': '2', # -O2
-        'OTHER_CFLAGS/': [
-          ['exclude', '-fsanitize='],
-          ['exclude', '-fsanitize-'],
-        ],
-      },
     },
     {
       'target_name': 'nssfuzz',
       'type': 'executable',
       'sources': [
+        'asn1_mutators.cc',
         'nssfuzz.cc',
         'pkcs8_target.cc',
         'quickder_targets.cc',
@@ -58,6 +45,20 @@
     'include_dirs': [
       'libFuzzer',
     ],
+    'cflags': [
+      '-O2',
+    ],
+    'cflags/': [
+      ['exclude', '-fsanitize='],
+      ['exclude', '-fsanitize-'],
+    ],
+    'xcode_settings': {
+      'GCC_OPTIMIZATION_LEVEL': '2', # -O2
+      'OTHER_CFLAGS/': [
+        ['exclude', '-fsanitize='],
+        ['exclude', '-fsanitize-'],
+      ],
+    },
   },
   'variables': {
     'module': 'nss',
