@@ -747,10 +747,11 @@ tls13_ClientSendEarlyDataXtn(const sslSocket *ss, TLSExtensionData *xtnData,
         rv = ssl3_ExtAppendHandshakeNumber(ss, 0, 2);
         if (rv != SECSuccess)
             return -1;
+
+        xtnData->advertised[xtnData->numAdvertised++] =
+                ssl_tls13_early_data_xtn;
     }
 
-    xtnData->advertised[xtnData->numAdvertised++] =
-        ssl_tls13_early_data_xtn;
 
     return extension_length;
 }
