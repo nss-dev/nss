@@ -54,7 +54,7 @@ rebuild_gyp=0
 target=Debug
 verbose=0
 fuzz=0
-sancov_default=edge,indirect-calls,8bit-counters,trace-cmp
+sancov_default=edge,indirect-calls,8bit-counters
 
 # parse parameters to store in config
 params=$(echo "$*" | perl -pe 's/-c|-v|-g|-j [0-9]*|-h//g' | perl -pe 's/^\s*(.*?)\s*$/\1/')
@@ -78,10 +78,8 @@ enable_fuzz()
 {
     fuzz=1
     nspr_sanitizer asan
-    nspr_sanitizer ubsan
     nspr_sanitizer sancov $sancov_default
     gyp_params+=(-Duse_asan=1)
-    gyp_params+=(-Duse_ubsan=1)
     gyp_params+=(-Duse_sancov=$sancov_default)
 
     # Adding debug symbols even for opt builds.
