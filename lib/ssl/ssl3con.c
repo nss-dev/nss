@@ -4394,19 +4394,6 @@ ssl3_ConsumeHandshakeVariable(sslSocket *ss, SECItem *i, PRUint32 bytes,
     return SECSuccess;
 }
 
-/* Helper function to encode an unsigned integer into a buffer. */
-PRUint8 *
-ssl_EncodeUintX(PRUint64 value, unsigned int bytes, PRUint8 *to)
-{
-    PRUint64 encoded;
-
-    PORT_Assert(bytes > 0 && bytes <= sizeof(encoded));
-
-    encoded = PR_htonll(value);
-    memcpy(to, ((unsigned char *)(&encoded)) + (sizeof(encoded) - bytes), bytes);
-    return to + bytes;
-}
-
 /* ssl3_TLSHashAlgorithmToOID converts a TLS hash identifier into an OID value.
  * If the hash is not recognised, SEC_OID_UNKNOWN is returned.
  *
