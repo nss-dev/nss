@@ -296,7 +296,7 @@
               '-Wno-unused-function',
             ]
           }],
-          [ 'use_asan==1 or use_ubsan==1', {
+          [ 'fuzz==1 or use_asan==1 or use_ubsan==1', {
             'cflags': ['-O1'],
             'xcode_settings': {
               'GCC_OPTIMIZATION_LEVEL': '1', # -O1
