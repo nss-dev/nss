@@ -749,9 +749,8 @@ tls13_ClientSendEarlyDataXtn(const sslSocket *ss, TLSExtensionData *xtnData,
             return -1;
 
         xtnData->advertised[xtnData->numAdvertised++] =
-                ssl_tls13_early_data_xtn;
+            ssl_tls13_early_data_xtn;
     }
-
 
     return extension_length;
 }
