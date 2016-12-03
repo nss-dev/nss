@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # This script builds NSS with gyp and ninja.
 #
 # This build system is still under development.  It does not yet support all
