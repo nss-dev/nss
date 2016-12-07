@@ -426,10 +426,7 @@ tls13_SetupClientHello(sslSocket *ss)
     session_ticket = &sid->u.ssl3.locked.sessionTicket;
     PORT_Assert(session_ticket && session_ticket->ticket.data);
 
-    if (session_ticket->ticket_lifetime_hint == 0 ||
-        (session_ticket->ticket_lifetime_hint +
-             session_ticket->received_timestamp >
-         ssl_Time())) {
+    if (ssl_TicketTimeValid(session_ticket)) {
         ss->statelessResume = PR_TRUE;
     }
 
@@ -3867,7 +3864,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         return SECFailure;
     }
 
-    ticket.received_timestamp = ssl_Time();
+    ticket.received_timestamp = PR_Now();
     rv = ssl3_ConsumeHandshakeNumber(ss, &ticket.ticket_lifetime_hint, 4, &b,
                                      &length);
     if (rv != SECSuccess) {
