@@ -163,15 +163,21 @@ static char *
 tls13_HandshakeState(SSL3WaitState st)
 {
     switch (st) {
+        STATE_CASE(idle_handshake);
         STATE_CASE(wait_client_hello);
         STATE_CASE(wait_client_cert);
+        STATE_CASE(wait_client_key);
         STATE_CASE(wait_cert_verify);
+        STATE_CASE(wait_change_cipher);
         STATE_CASE(wait_finished);
         STATE_CASE(wait_server_hello);
+        STATE_CASE(wait_certificate_status);
         STATE_CASE(wait_server_cert);
+        STATE_CASE(wait_server_key);
         STATE_CASE(wait_cert_request);
+        STATE_CASE(wait_hello_done);
+        STATE_CASE(wait_new_session_ticket);
         STATE_CASE(wait_encrypted_extensions);
-        STATE_CASE(idle_handshake);
         default:
             break;
     }
