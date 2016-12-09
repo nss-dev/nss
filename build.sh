@@ -58,7 +58,7 @@ sancov_default=edge,indirect-calls,8bit-counters
 
 # parse parameters to store in config
 params=$(echo "$*" | perl -pe 's/-c|-v|-g|-j [0-9]*|-h//g' | perl -pe 's/^\s*(.*?)\s*$/\1/')
-params=$(echo "$params $CC $CCC" | tr " " "\n" | perl -pe '/^\s*$/d')
+params=$(echo "$params $CC $CCC" | tr " " "\n" | perl -pe 's/^\s*$//')
 params=$(echo "${params[*]}" | sort)
 
 cwd=$(cd $(dirname $0); pwd -P)

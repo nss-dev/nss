@@ -26,7 +26,7 @@
         }],
         ['OS=="win"', {
           'use_system_zlib%': 0,
-          'nspr_libs%': ['nspr4.lib', 'plc4.lib', 'plds4.lib'],
+          'nspr_libs%': ['libnspr4.lib', 'libplc4.lib', 'libplds4.lib'],
           'zlib_libs%': [],
           #TODO
           'moz_debug_flags%': '',
