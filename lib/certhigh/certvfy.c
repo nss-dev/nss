@@ -470,11 +470,11 @@ static const unsigned char StartComCertificationAuthorityG2DN[85] = {
 };
 
 struct DataAndLength {
-    const unsigned char* data;
+    const unsigned char *data;
     PRUint32 len;
 };
 
-static const struct DataAndLength StartComAndWoSignDNs[]= {
+static const struct DataAndLength StartComAndWoSignDNs[] = {
     { CAWoSignRootDN,
       sizeof(CAWoSignRootDN) },
     { CAWoSignECCRootDN,
@@ -494,7 +494,7 @@ CertIsStartComOrWoSign(const CERTCertificate *cert)
 {
     int i;
     const struct DataAndLength *dn = StartComAndWoSignDNs;
-    
+
     for (i = 0; i < sizeof(StartComAndWoSignDNs) / sizeof(struct DataAndLength); ++i, dn++) {
         if (cert->derSubject.len == dn->len &&
             memcmp(cert->derSubject.data, dn->data, dn->len) == 0) {
