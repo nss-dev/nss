@@ -78,12 +78,7 @@ static sslOptions ssl_defaults = {
     PR_FALSE,              /* enableExtendedMS    */
     PR_FALSE,              /* enableSignedCertTimestamps */
     PR_FALSE,              /* requireDHENamedGroups */
-    PR_FALSE,              /* enable0RttData */
-#ifdef NSS_ENABLE_TLS13_SHORT_HEADERS
-    PR_TRUE /* enableShortHeaders */
-#else
-    PR_FALSE /* enableShortHeaders */
-#endif
+    PR_FALSE               /* enable0RttData */
 };
 
 /*
