@@ -671,7 +671,7 @@ void TlsAgent::Connected() {
   PRBool short_headers;
   rv = SSLInt_UsingShortHeaders(ssl_fd_, &short_headers);
   EXPECT_EQ(SECSuccess, rv);
-  EXPECT_EQ((PRBool)expect_short_headers_, short_headers);
+  EXPECT_EQ(expect_short_headers_, short_headers);
   SetState(STATE_CONNECTED);
 }
 
