@@ -471,7 +471,7 @@ static const unsigned char StartComCertificationAuthorityG2DN[85] = {
 
 struct DataAndLength {
     const unsigned char* data;
-    uint32_t len;
+    PRUint32 len;
 };
 
 static const struct DataAndLength StartComAndWoSignDNs[]= {
