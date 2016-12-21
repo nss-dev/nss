@@ -4328,8 +4328,7 @@ tls13_MaybeDo0RTTHandshake(sslSocket *ss)
     ssl_ReleaseSpecReadLock(ss);
 
     /* Cipher suite already set in tls13_SetupClientHello. */
-    ss->ssl3.hs.preliminaryInfo = 0; /* TODO(ekr@rtfm.com) Fill this in.
-                                      * bug 1281255. */
+    ss->ssl3.hs.preliminaryInfo = 0;
 
     rv = tls13_DeriveSecret(ss, ss->ssl3.hs.currentSecret,
                             kHkdfLabelClient,
