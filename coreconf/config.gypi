@@ -346,7 +346,7 @@
               '-Wno-unused-function',
             ]
           }],
-          [ 'fuzz==1 or use_asan==1 or use_ubsan==1', {
+          [ 'fuzz==1 or use_asan==1 or use_ubsan!=0', {
             'cflags': ['-O1'],
             'xcode_settings': {
               'GCC_OPTIMIZATION_LEVEL': '1', # -O1
@@ -371,9 +371,9 @@
               'LIBRARY_SEARCH_PATHS': ['/usr/lib <(asan_flags)'],
             },
           }],
-          [ 'use_ubsan==1', {
+          [ 'use_ubsan!=0', {
             'variables': {
-              'ubsan_flags': '<!(<(python) <(DEPTH)/coreconf/sanitizers.py ubsan)',
+              'ubsan_flags': '<!(<(python) <(DEPTH)/coreconf/sanitizers.py ubsan <(use_ubsan))',
               'no_ldflags': '<!(<(python) <(DEPTH)/coreconf/sanitizers.py ld)',
             },
             'cflags': ['<@(ubsan_flags)'],
