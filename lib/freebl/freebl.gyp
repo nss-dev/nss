@@ -104,6 +104,10 @@
                 '<(DEPTH)/lib/util/util.gyp:nssutil3',
               ],
             }],
+          ]
+        }],
+        [ 'OS=="linux" or OS=="android"', {
+          'conditions': [
             [ 'target_arch=="x64"', {
               'sources': [
                 'arcfour-amd64-gas.s',
@@ -142,7 +146,7 @@
             }],
           ],
         }, {
-          # not Linux
+          # not Linux or Android
           'conditions': [
             [ 'moz_fold_libs==0', {
               'dependencies': [
@@ -374,6 +378,10 @@
               'FREEBL_NO_DEPEND',
             ],
           }],
+        ],
+      }],
+      [ 'OS=="linux" or OS=="android"', {
+        'conditions': [
           [ 'target_arch=="x64"', {
             'defines': [
               'MP_IS_LITTLE_ENDIAN',
