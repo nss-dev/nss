@@ -406,7 +406,7 @@
               'SHA_NO_LONG_LONG',
             ],
           }],
-          [ 'target_arch=="arm64"', {
+          [ 'target_arch=="arm64" or target_arch=="aarch64"', {
             'defines': [
               'NSS_USE_64',
             ],
