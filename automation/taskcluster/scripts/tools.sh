@@ -7,6 +7,10 @@ hg_clone() {
     repo=$1
     dir=$2
     rev=${3:-@}
+    if [ -d "$dir" ]; then
+        hg pull -R "$dir" -ur "$rev" "$repo" && return
+        rm -rf "$dir"
+    fi
     for i in 0 2 5; do
         sleep $i
         hg clone -r "$rev" "$repo" "$dir" && return
