@@ -23,5 +23,8 @@ ENV LC_ALL en_US.UTF-8
 ENV HOST localhost
 ENV DOMSUF localdomain
 
+# Rust
+ENV PATH PATH="${PATH}:/home/worker/.cargo/bin/"
+
 # Set a default command for debugging.
 CMD ["/bin/bash", "--login"]

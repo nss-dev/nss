@@ -41,9 +41,6 @@ apt_packages+=('g++-4.8-multilib')
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 60C317803A41BA51845E371A1E9377A2BA9EF27F
 echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu xenial main" > /etc/apt/sources.list.d/toolchain.list
 
-# rust
-apt_packages+=('cargo')
-
 # Install packages.
 apt-get -y update
 apt-get install -y --no-install-recommends ${apt_packages[@]}
@@ -54,6 +51,9 @@ ln -s /usr/include/x86_64-linux-gnu/zconf.h /usr/include
 # Install clang-3.9 into /usr/local/.
 # FIXME: verify signature
 curl -L http://releases.llvm.org/3.9.0/clang+llvm-3.9.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz | tar xJv -C /usr/local --strip-components=1
+
+# Install latest Rust (stable).
+su worker -c "curl https://sh.rustup.rs -sSf | sh -s -- -y"
 
 locale-gen en_US.UTF-8
 dpkg-reconfigure locales
