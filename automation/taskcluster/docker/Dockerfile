@@ -12,6 +12,9 @@ RUN chmod +x /home/worker/bin/*
 ADD setup.sh /tmp/setup.sh
 RUN bash /tmp/setup.sh
 
+# Change user.
+USER worker
+
 # Env variables.
 ENV HOME /home/worker
 ENV SHELL /bin/bash
@@ -24,7 +27,7 @@ ENV HOST localhost
 ENV DOMSUF localdomain
 
 # Rust
-ENV PATH PATH="${PATH}:/home/worker/.cargo/bin/"
+ENV PATH "${PATH}:/home/worker/.cargo/bin/"
 
 # Set a default command for debugging.
 CMD ["/bin/bash", "--login"]
