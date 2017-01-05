@@ -2,6 +2,12 @@
 
 set -v -e -x
 
+if [[ $(id -u) -eq 0 ]]; then
+    # Drop privileges by re-running this script.
+    # Note: this mangles arguments, better to avoid running scripts as root.
+    exec su worker -c "$0 $*"
+fi
+
 # Usage: hg_clone repo dir [revision=@]
 hg_clone() {
     repo=$1

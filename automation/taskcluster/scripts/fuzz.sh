@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 
-source $(dirname $0)/tools.sh
-
-if [ $(id -u) = 0 ]; then
-    # Drop privileges by re-running this script.
-    exec su worker -c "$0 $*"
-fi
+source $(dirname "$0")/tools.sh
 
 # Fetch artifact if needed.
 fetch_dist
@@ -17,4 +12,6 @@ fetch_dist
 objdir=$(cat dist/latest)
 
 # Run nssfuzz.
-LD_LIBRARY_PATH=$LD_LIBRARY_PATH:dist/$objdir/lib dist/$objdir/bin/nssfuzz-$*
+type="$1"
+shift
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:dist/$objdir/lib dist/$objdir/bin/nssfuzz-"$type" "$@"
