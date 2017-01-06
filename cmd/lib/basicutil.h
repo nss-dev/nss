@@ -81,6 +81,12 @@ SECStatus
 SECU_SECItemHexStringToBinary(SECItem *srcdest);
 
 /*
+** Read a hex string into a SecItem.
+*/
+extern SECItem *SECU_HexString2SECItem(PLArenaPool *arena, SECItem *item,
+                                       const char *str);
+
+/*
  *
  *  Utilities for parsing security tools command lines
  *
