@@ -2,8 +2,8 @@
 
 Network Security Services (NSS) is a set of libraries designed to support
 cross-platform development of security-enabled client and server
-applications. NSS supports SSL v3-TLS 1.2 (experimental TLS 1.3), PKCS #5, PKCS
-#7, PKCS #11, PKCS #12, S/MIME, X.509 v3 certificates, and other security
+applications. NSS supports SSL v3-TLS 1.2 (experimental TLS 1.3), PKCS #5, PKCS#7,
+PKCS #11, PKCS #12, S/MIME, X.509 v3 certificates, and other security
 standards.
 
 ## Getting started
@@ -41,7 +41,7 @@ the tools, set your system environment to use the libraries of your build from
 the "lib" directory, e.g., using the `LD_LIBRARY_PATH` or `DYLD_LIBRARY_PATH`.
 
     Usage: build.sh [-hcgv] [-j <n>] [--test] [--fuzz] [--scan-build[=output]]
-                    [-m32] [--opt|-o] [--asan] [--ubsan] [--sancov[=edge|bb|func]]
+                    [-m32] [--opt|-o] [--asan] [--ubsan] [--sancov[=edge|bb|func|...]]
                     [--pprof] [--msan]
 
     This script builds NSS with gyp and ninja.
@@ -64,6 +64,7 @@ the "lib" directory, e.g., using the `LD_LIBRARY_PATH` or `DYLD_LIBRARY_PATH`.
         --opt|-o      do an opt build
         --asan        do an asan build
         --ubsan       do an ubsan build
+                      --ubsan=bool,shift,... sets specific UB sanitizers
         --msan        do an msan build
         --sancov      do sanitize coverage builds
                       --sancov=func sets coverage to function level for example
