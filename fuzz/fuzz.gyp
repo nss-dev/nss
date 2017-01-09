@@ -25,21 +25,11 @@
         'libFuzzer/FuzzerUtilDarwin.cpp',
         'libFuzzer/FuzzerUtilLinux.cpp',
       ],
-      'cflags': [
-        '-O2',
-      ],
-      'cflags!': [
-        '-O1',
-      ],
-      'cflags/': [
-        ['exclude', '-fsanitize'],
-      ],
-      'xcode_settings': {
-        'GCC_OPTIMIZATION_LEVEL': '2', # -O2
-        'OTHER_CFLAGS/': [
-          ['exclude', '-fsanitize'],
+      'direct_dependent_settings': {
+        'include_dirs': [
+          'libFuzzer',
         ],
-      },
+      }
     },
     {
       'target_name': 'nssfuzz',
@@ -54,27 +44,20 @@
         '<(DEPTH)/exports.gyp:nss_exports',
         'libFuzzer',
       ],
-      'cflags': [
-        '-O2',
-      ],
-      'cflags!': [
-        '-O1',
-      ],
-      'cflags/': [
-        ['exclude', '-fsanitize-coverage'],
-      ],
-      'xcode_settings': {
-        'GCC_OPTIMIZATION_LEVEL': '2', # -O2
-        'OTHER_CFLAGS/': [
-          ['exclude', '-fsanitize-coverage'],
-        ],
-      },
     }
   ],
   'target_defaults': {
-    'include_dirs': [
-      'libFuzzer',
+    'variables': {
+      'debug_optimization_level': '2',
+    },
+    'cflags/': [
+      ['exclude', '-fsanitize-coverage'],
     ],
+    'xcode_settings': {
+      'OTHER_CFLAGS/': [
+        ['exclude', '-fsanitize-coverage'],
+      ],
+    },
   },
   'variables': {
     'module': 'nss',
