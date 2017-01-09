@@ -17,4 +17,4 @@ fetch_dist
 objdir=$(cat dist/latest)
 
 # Run nssfuzz.
-LD_LIBRARY_PATH=$LD_LIBRARY_PATH:dist/$objdir/lib dist/$objdir/bin/nssfuzz $*
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:dist/$objdir/lib dist/$objdir/bin/nssfuzz-$*
