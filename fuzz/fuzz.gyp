@@ -15,8 +15,13 @@
         'libFuzzer/FuzzerDriver.cpp',
         'libFuzzer/FuzzerExtFunctionsDlsym.cpp',
         'libFuzzer/FuzzerExtFunctionsWeak.cpp',
+        'libFuzzer/FuzzerExtFunctionsWeakAlias.cpp',
         'libFuzzer/FuzzerIO.cpp',
+        'libFuzzer/FuzzerIOPosix.cpp',
+        'libFuzzer/FuzzerIOWindows.cpp',
         'libFuzzer/FuzzerLoop.cpp',
+        'libFuzzer/FuzzerMain.cpp',
+        'libFuzzer/FuzzerMerge.cpp',
         'libFuzzer/FuzzerMutate.cpp',
         'libFuzzer/FuzzerSHA1.cpp',
         'libFuzzer/FuzzerTracePC.cpp',
@@ -24,6 +29,8 @@
         'libFuzzer/FuzzerUtil.cpp',
         'libFuzzer/FuzzerUtilDarwin.cpp',
         'libFuzzer/FuzzerUtilLinux.cpp',
+        'libFuzzer/FuzzerUtilPosix.cpp',
+        'libFuzzer/FuzzerUtilWindows.cpp',
       ],
       'direct_dependent_settings': {
         'include_dirs': [
@@ -32,18 +39,52 @@
       }
     },
     {
-      'target_name': 'nssfuzz',
+      'target_name': 'nssfuzz-cert',
       'type': 'executable',
       'sources': [
         'asn1_mutators.cc',
-        'nssfuzz.cc',
-        'pkcs8_target.cc',
-        'quickder_targets.cc',
+        'cert_target.cc',
+        'initialize.cc',
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',
         'libFuzzer',
       ],
+    },
+    {
+      'target_name': 'nssfuzz-pkcs8',
+      'type': 'executable',
+      'sources': [
+        'asn1_mutators.cc',
+        'initialize.cc',
+        'pkcs8_target.cc',
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports',
+        'libFuzzer',
+      ],
+    },
+    {
+      'target_name': 'nssfuzz-spki',
+      'type': 'executable',
+      'sources': [
+        'asn1_mutators.cc',
+        'spki_target.cc',
+        'initialize.cc',
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports',
+        'libFuzzer',
+      ],
+    },
+    {
+      'target_name': 'nssfuzz',
+      'type': 'none',
+      'dependencies': [
+        'nssfuzz-cert',
+        'nssfuzz-pkcs8',
+        'nssfuzz-spki',
+      ]
     }
   ],
   'target_defaults': {
