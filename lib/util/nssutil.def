@@ -295,4 +295,4 @@ PORT_DestroyCheapArena;
 SEC_ASN1DecoderSetMaximumElementSize;
 ;+    local:
 ;+       *;
-;+}
+;+};
