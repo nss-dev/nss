@@ -158,9 +158,6 @@ dist_dir="$cwd"/../dist
 dist_dir=$(mkdir -p "$dist_dir"; cd "$dist_dir"; pwd -P)
 gyp_params+=(-Dnss_dist_dir="$dist_dir")
 
-# save the chosen target
-echo $target > "$dist_dir"/latest
-
 # pass on CC and CCC to scanbuild
 if [ "${#scanbuild[@]}" -gt 0 ]; then
     if [ -n "$CC" ]; then
@@ -185,11 +182,25 @@ normalize_config()
 
 gyp_config="$cwd"/out/gyp_config
 nspr_config="$cwd"/out/$target/nspr_config
+
 # If we don't have a build directory make sure that we rebuild.
 if [ ! -d "$target_dir" ]; then
     rebuild_nspr=1
     rebuild_gyp=1
 fi
+
+# -c = clean first
+if [ "$clean" = 1 ]; then
+    rebuild_gyp=1
+    rebuild_nspr=1
+    nspr_clean
+    rm -rf "$cwd"/out
+    rm -rf "$dist_dir"
+    mkdir -p "$dist_dir"
+fi
+
+# save the chosen target
+echo $target > "$dist_dir"/latest
 
 normalize_config "$gyp_config".new "${gyp_params[@]}"
 if ! diff -q "$gyp_config".new "$gyp_config" >/dev/null 2>&1; then
@@ -202,15 +213,6 @@ normalize_config "$nspr_config".new "${nspr_params[@]}" \
 if [ ! -d "$dist_dir"/$target ] || \
    ! diff -q "$nspr_config".new "$nspr_config" >/dev/null 2>&1; then
     rebuild_nspr=1
-fi
-
-# -c = clean first
-if [ "$clean" = 1 ]; then
-    rebuild_gyp=1
-    rebuild_nspr=1
-    nspr_clean
-    rm -rf "$cwd"/out
-    rm -rf "$dist_dir"
 fi
 
 if [ "$rebuild_nspr" = 1 ]; then
