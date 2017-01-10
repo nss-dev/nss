@@ -42,6 +42,11 @@ queue.filter(task => {
     }
   }
 
+  // Temporarily disable SSL tests on ARM.
+  if (task.tests == "ssl" && task.collection == "arm-debug") {
+    return false;
+  }
+
   // GYP builds with -Ddisable_libpkix=1 by default.
   if ((task.collection == "gyp" || task.collection == "gyp-asan") &&
       task.tests == "chains") {
