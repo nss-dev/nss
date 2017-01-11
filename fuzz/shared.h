@@ -27,13 +27,23 @@ void QuickDERDecode(void *dst, const SEC_ASN1Template *tpl, const uint8_t *buf,
   PORT_DestroyCheapArena(&pool);
 }
 
-#define ADD_CUSTOM_MUTATORS(...)                                             \
-  extern "C" size_t LLVMFuzzerCustomMutator(                                 \
-      uint8_t *Data, size_t Size, size_t MaxSize, unsigned int Seed) {       \
-    std::vector<decltype(LLVMFuzzerCustomMutator) *> mutators = __VA_ARGS__; \
-    fuzzer::Random R(Seed);                                                  \
-    auto idx = R(mutators.size());                                           \
-    return mutators.at(idx)(Data, Size, MaxSize, Seed);                      \
+size_t CustomMutate(std::vector<decltype(LLVMFuzzerCustomMutator) *> mutators,
+                    uint8_t *Data, size_t Size, size_t MaxSize,
+                    unsigned int Seed) {
+  fuzzer::Random R(Seed);
+
+  if (R.RandBool()) {
+    auto idx = R(mutators.size());
+    return mutators.at(idx)(Data, Size, MaxSize, Seed);
+  }
+
+  return LLVMFuzzerMutate(Data, Size, MaxSize);
+}
+
+#define ADD_CUSTOM_MUTATORS(...)                                       \
+  extern "C" size_t LLVMFuzzerCustomMutator(                           \
+      uint8_t *Data, size_t Size, size_t MaxSize, unsigned int Seed) { \
+    return CustomMutate(__VA_ARGS__, Data, Size, MaxSize, Seed);       \
   }
 
 #endif  // shared_h__
