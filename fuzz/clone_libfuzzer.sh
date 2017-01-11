@@ -3,28 +3,6 @@
 d=$(dirname $0)
 $d/git-copy.sh https://chromium.googlesource.com/chromium/llvm-project/llvm/lib/Fuzzer e6cbbd6ba1cd57e52cb3a237974c89911b08b5d7 $d/libFuzzer
 
-# [https://llvm.org/bugs/show_bug.cgi?id=31583]
-# Libfuzzer currently disables all internal default mutators when we specify
-# a custom one. Need to file a bug to maybe have an option to disable this, or
-# make ours the default behavior.
-cat <<EOF | patch -p0 -d $d
-diff --git libFuzzer/FuzzerMutate.cpp libFuzzer/FuzzerMutate.cpp
---- libFuzzer/FuzzerMutate.cpp
-+++ libFuzzer/FuzzerMutate.cpp
-@@ -52,10 +52,9 @@
-     DefaultMutators.push_back(
-         {&MutationDispatcher::Mutate_AddWordFromTORC, "CMP"});
-
-+  Mutators = DefaultMutators;
-   if (EF->LLVMFuzzerCustomMutator)
-     Mutators.push_back({&MutationDispatcher::Mutate_Custom, "Custom"});
--  else
--    Mutators = DefaultMutators;
-
-   if (EF->LLVMFuzzerCustomCrossOver)
-     Mutators.push_back(
-EOF
-
 # [https://llvm.org/bugs/show_bug.cgi?id=31318]
 # This prevents a known buffer overrun that won't be fixed as the affected code
 # will go away in the near future. Until that is we have to patch it as we seem
