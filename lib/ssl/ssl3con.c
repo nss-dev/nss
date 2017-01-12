@@ -6655,12 +6655,19 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     /* The server didn't pick 1.3 although we either received a
      * HelloRetryRequest, or we prepared to send early app data. */
-    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3 &&
-        (ss->ssl3.hs.helloRetry || ss->ssl3.hs.zeroRttState == ssl_0rtt_sent)) {
-        /* SSL3_SendAlert() will uncache the SID. */
-        desc = illegal_parameter;
-        errCode = SSL_ERROR_RX_MALFORMED_SERVER_HELLO;
-        goto alert_loser;
+    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+        if (ss->ssl3.hs.helloRetry) {
+            /* SSL3_SendAlert() will uncache the SID. */
+            desc = illegal_parameter;
+            errCode = SSL_ERROR_RX_MALFORMED_SERVER_HELLO;
+            goto alert_loser;
+        }
+        if (ss->ssl3.hs.zeroRttState == ssl_0rtt_sent) {
+            /* SSL3_SendAlert() will uncache the SID. */
+            desc = illegal_parameter;
+            errCode = SSL_ERROR_DOWNGRADE_WITH_EARLY_DATA;
+            goto alert_loser;
+        }
     }
 
     /* Check that the server negotiated the same version as it did
