@@ -266,7 +266,7 @@ TEST_P(TlsConnectTls13, TestTls13ZeroRttDowngradeEarlyData) {
   client_->Handshake();
   server_->Handshake();
   ASSERT_TRUE_WAIT(
-      (client_->error_code() ==  SSL_ERROR_DOWNGRADE_WITH_EARLY_DATA), 2000);
+      (client_->error_code() == SSL_ERROR_DOWNGRADE_WITH_EARLY_DATA), 2000);
 
   // DTLS will timeout as we bump the epoch when installing the early app data
   // cipher suite. Thus the encrypted alert will be ignored.
