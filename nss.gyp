@@ -120,6 +120,7 @@
             'cmd/smimetools/smimetools.gyp:cmsutil',
             'cmd/ssltap/ssltap.gyp:ssltap',
             'cmd/symkeyutil/symkeyutil.gyp:symkeyutil',
+            'nss-tool/nss_tool.gyp:nss',
           ],
         }],
       ],
