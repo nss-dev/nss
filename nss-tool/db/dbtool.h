@@ -6,6 +6,7 @@
 #define dbtool_h__
 
 #include <string>
+#include <vector>
 
 class DBTool {
  public:
