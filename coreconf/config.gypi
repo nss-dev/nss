@@ -105,6 +105,7 @@
     'fuzz%': 0,
     'sign_libs%': 1,
     'use_pprof%': 0,
+    'ct_verif%': 0,
     'nss_public_dist_dir%': '<(nss_dist_dir)/public',
     'nss_private_dist_dir%': '<(nss_dist_dir)/private',
   },
