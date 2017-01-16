@@ -368,7 +368,7 @@ async function scheduleTestBuilds() {
       "/bin/bash",
       "-c",
       "bin/checkout.sh && " +
-      "nss/automation/taskcluster/scripts/build_gyp.sh -g -v --test"
+      "nss/automation/taskcluster/scripts/build_gyp.sh -g -v --test --ct-verif"
     ],
     artifacts: {
       public: {

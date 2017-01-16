@@ -233,7 +233,7 @@
             'UNSAFE_FUZZER_MODE',
           ],
         }],
-        [ 'test_build==1', {
+        [ 'ct_verif==1', {
           'defines': [
             'CT_VERIF',
           ],

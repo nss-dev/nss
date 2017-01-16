@@ -36,6 +36,7 @@ NSS build tool options:
     --test        ignore map files and export everything we have
     --fuzz        enable fuzzing mode. this always enables test builds
     --pprof       build with gperftool support
+    --ct-verif    build with valgrind for ct-verif
     --scan-build  run the build with scan-build (scan-build has to be in the path)
                   --scan-build=/out/path sets the output path for scan-build
     --asan        do an asan build
@@ -103,6 +104,7 @@ while [ $# -gt 0 ]; do
         --sancov) enable_sancov ;;
         --sancov=?*) enable_sancov "${1#*=}" ;;
         --pprof) gyp_params+=(-Duse_pprof=1) ;;
+        --ct-verif) gyp_params+=(-Dct_verif=1) ;;
         *) show_help; exit 2 ;;
     esac
     shift
