@@ -14,6 +14,7 @@
 #include <cert.h>
 #include <certdb.h>
 #include <nss.h>
+#include <prio.h>
 
 static std::string PrintFlags(unsigned int flags) {
   std::stringstream ss;
@@ -58,6 +59,12 @@ bool DBTool::Run(const std::vector<std::string> &arguments) {
   std::string initDir(".");
   if (parser.Has("--path")) {
     initDir = parser.Get("--path");
+    if (PR_Access(initDir.c_str(), PR_ACCESS_READ_OK) != PR_SUCCESS) {
+      std::cerr << "Directory '" << initDir
+                << "' does not exists or you don't have permissions!"
+                << std::endl;
+      return false;
+    }
   }
 
   if (!parser.Has("--list-certs")) {
