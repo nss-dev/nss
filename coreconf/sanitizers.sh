@@ -26,7 +26,7 @@ enable_sancov()
     elif [ "$clang_version" = "clang version 3.9." ]; then
         sancov=edge,indirect-calls,8bit-counters
     else
-        sancov=trace-pc-guard
+        sancov=trace-pc-guard,trace-cmp
     fi
     enable_sanitizer sancov "$sancov"
 }

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 d=$(dirname $0)
-$d/git-copy.sh https://chromium.googlesource.com/chromium/llvm-project/llvm/lib/Fuzzer e6cbbd6ba1cd57e52cb3a237974c89911b08b5d7 $d/libFuzzer
+$d/git-copy.sh https://chromium.googlesource.com/chromium/llvm-project/llvm/lib/Fuzzer 33c20f597a2e312611d52677ff0fdd9335b485b7 $d/libFuzzer
 
 # [https://llvm.org/bugs/show_bug.cgi?id=31318]
 # This prevents a known buffer overrun that won't be fixed as the affected code
