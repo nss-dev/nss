@@ -25,26 +25,27 @@ the features or platforms that NSS supports.
 
 NSS build tool options:
 
-    -h            display this help and exit
-    -c            clean before build
-    -v            verbose build
-    -j <n>        run at most <n> concurrent jobs
-    --nspr        force a rebuild of NSPR
-    --gyp|-g      force a rerun of gyp
-    --opt|-o      do an opt build
-    -m32          do a 32-bit build on a 64-bit system
-    --test        ignore map files and export everything we have
-    --fuzz        enable fuzzing mode. this always enables test builds
-    --pprof       build with gperftool support
-    --ct-verif    build with valgrind for ct-verif
-    --scan-build  run the build with scan-build (scan-build has to be in the path)
-                  --scan-build=/out/path sets the output path for scan-build
-    --asan        do an asan build
-    --ubsan       do an ubsan build
-                  --ubsan=bool,shift,... sets specific UB sanitizers
-    --msan        do an msan build
-    --sancov      do sanitize coverage builds
-                  --sancov=func sets coverage to function level for example
+    -h               display this help and exit
+    -c               clean before build
+    -v               verbose build
+    -j <n>           run at most <n> concurrent jobs
+    --nspr           force a rebuild of NSPR
+    --gyp|-g         force a rerun of gyp
+    --opt|-o         do an opt build
+    -m32             do a 32-bit build on a 64-bit system
+    --test           ignore map files and export everything we have
+    --fuzz           enable fuzzing mode. this always enables test builds
+    --pprof          build with gperftool support
+    --ct-verif       build with valgrind for ct-verif
+    --scan-build     run the build with scan-build (scan-build has to be in the path)
+                     --scan-build=/out/path sets the output path for scan-build
+    --asan           do an asan build
+    --ubsan          do an ubsan build
+                     --ubsan=bool,shift,... sets specific UB sanitizers
+    --msan           do an msan build
+    --sancov         do sanitize coverage builds
+                     --sancov=func sets coverage to function level for example
+    --disable-tests  don't build tests and corresponding cmdline utils
 EOF
 }
 
@@ -105,6 +106,7 @@ while [ $# -gt 0 ]; do
         --sancov=?*) enable_sancov "${1#*=}" ;;
         --pprof) gyp_params+=(-Duse_pprof=1) ;;
         --ct-verif) gyp_params+=(-Dct_verif=1) ;;
+        --disable-tests) gyp_params+=(-Ddisable_tests=1) ;;
         *) show_help; exit 2 ;;
     esac
     shift
