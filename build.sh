@@ -17,6 +17,7 @@ show_help()
 Usage: ${0##*/} [-hcv] [-j <n>] [--nspr] [--gyp|-g] [--opt|-o] [-m32]
                 [--test] [--fuzz] [--pprof] [--scan-build[=output]]
                 [--asan] [--ubsan] [--msan] [--sancov[=edge|bb|func|...]]
+                [--ct-verif] [--disable-tests]
 
 This script builds NSS with gyp and ninja.
 
