@@ -125,13 +125,26 @@
       ],
     },
     {
+      'target_name': 'nssfuzz-hash',
+      'type': 'executable',
+      'sources': [
+        'hash_target.cc',
+        'initialize.cc',
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports',
+        'fuzz_base',
+      ],
+    },
+    {
       'target_name': 'nssfuzz',
       'type': 'none',
       'dependencies': [
         'nssfuzz-cert',
-        'nssfuzz-spki',
+        'nssfuzz-hash',
         'nssfuzz-pkcs8',
-      ],
+        'nssfuzz-spki',
+      ]
     }
   ],
 }
