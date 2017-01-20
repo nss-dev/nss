@@ -9,7 +9,6 @@
 #include "pk11pub.h"
 
 #include "FuzzerInternal.h"
-#include "FuzzerRandom.h"
 #include "asn1_mutators.h"
 #include "assert.h"
 #include "shared.h"

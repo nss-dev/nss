@@ -7,6 +7,7 @@
 #ifndef shared_h__
 #define shared_h__
 
+#include "FuzzerRandom.h"
 #include "cert.h"
 #include "nss.h"
 

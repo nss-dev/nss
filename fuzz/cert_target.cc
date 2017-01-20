@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "FuzzerInternal.h"
-#include "FuzzerRandom.h"
 #include "asn1_mutators.h"
 #include "shared.h"
 
