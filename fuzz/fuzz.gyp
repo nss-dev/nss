@@ -38,6 +38,7 @@
         '<(DEPTH)/lib/util/util.gyp:nssutil',
         '<(DEPTH)/lib/nss/nss.gyp:nss_static',
         '<(DEPTH)/lib/pk11wrap/pk11wrap.gyp:pk11wrap',
+        '<(DEPTH)/lib/pkcs7/pkcs7.gyp:pkcs7',
       ],
       'conditions': [
         ['use_fuzzing_engine==0', {
@@ -86,38 +87,25 @@
       ],
     },
     {
-      'target_name': 'nssfuzz-cert',
-      'type': 'executable',
-      'sources': [
-        'asn1_mutators.cc',
-        'cert_target.cc',
-        'initialize.cc',
-      ],
-      'dependencies': [
-        '<(DEPTH)/exports.gyp:nss_exports',
-        'fuzz_base',
-      ],
-    },
-    {
-      'target_name': 'nssfuzz-spki',
-      'type': 'executable',
-      'sources': [
-        'asn1_mutators.cc',
-        'spki_target.cc',
-        'initialize.cc',
-      ],
-      'dependencies': [
-        '<(DEPTH)/exports.gyp:nss_exports',
-        'fuzz_base',
-      ],
-    },
-    {
       'target_name': 'nssfuzz-pkcs8',
       'type': 'executable',
       'sources': [
         'asn1_mutators.cc',
         'initialize.cc',
         'pkcs8_target.cc',
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports',
+        'fuzz_base',
+      ],
+    },
+    {
+      'target_name': 'nssfuzz-quickder',
+      'type': 'executable',
+      'sources': [
+        'asn1_mutators.cc',
+        'initialize.cc',
+        'quickder_target.cc',
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',
@@ -140,11 +128,10 @@
       'target_name': 'nssfuzz',
       'type': 'none',
       'dependencies': [
-        'nssfuzz-cert',
         'nssfuzz-hash',
         'nssfuzz-pkcs8',
-        'nssfuzz-spki',
-      ]
+        'nssfuzz-quickder',
+      ],
     }
   ],
 }

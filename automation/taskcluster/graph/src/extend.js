@@ -321,31 +321,16 @@ async function scheduleFuzzing() {
 
   queue.scheduleTask(merge(base, {
     parent: task_build,
-    name: "Cert",
+    name: "QuickDER",
     command: [
       "/bin/bash",
       "-c",
       "bin/checkout.sh && nss/automation/taskcluster/scripts/fuzz.sh " +
-        "cert nss/fuzz/corpus/cert -max_total_time=300"
+        "quickder nss/fuzz/corpus/quickder -max_total_time=300"
     ],
     // Need a privileged docker container to remove this.
     env: {ASAN_OPTIONS: "detect_leaks=0"},
-    symbol: "SCert",
-    kind: "test"
-  }));
-
-  queue.scheduleTask(merge(base, {
-    parent: task_build,
-    name: "SPKI",
-    command: [
-      "/bin/bash",
-      "-c",
-      "bin/checkout.sh && nss/automation/taskcluster/scripts/fuzz.sh " +
-        "spki nss/fuzz/corpus/spki -max_total_time=300"
-    ],
-    // Need a privileged docker container to remove this.
-    env: {ASAN_OPTIONS: "detect_leaks=0"},
-    symbol: "SPKI",
+    symbol: "QuickDER",
     kind: "test"
   }));
 
