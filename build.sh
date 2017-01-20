@@ -15,9 +15,9 @@ show_help()
 {
     cat << EOF
 Usage: ${0##*/} [-hcv] [-j <n>] [--nspr] [--gyp|-g] [--opt|-o] [-m32]
-                [--test] [--fuzz] [--pprof] [--scan-build[=output]]
+                [--test] [--pprof] [--scan-build[=output]] [--ct-verif]
                 [--asan] [--ubsan] [--msan] [--sancov[=edge|bb|func|...]]
-                [--ct-verif] [--disable-tests]
+                [--disable-tests] [--fuzz[=tls|oss]]
 
 This script builds NSS with gyp and ninja.
 
@@ -35,7 +35,9 @@ NSS build tool options:
     --opt|-o         do an opt build
     -m32             do a 32-bit build on a 64-bit system
     --test           ignore map files and export everything we have
-    --fuzz           enable fuzzing mode. this always enables test builds
+    --fuzz           build fuzzing targets (this always enables test builds)
+                     --fuzz=tls to enable TLS fuzzing mode
+                     --fuzz=oss to build for OSS-Fuzz
     --pprof          build with gperftool support
     --ct-verif       build with valgrind for ct-verif
     --scan-build     run the build with scan-build (scan-build has to be in the path)
@@ -74,6 +76,8 @@ rebuild_nspr=0
 target=Debug
 verbose=0
 fuzz=0
+fuzz_tls=0
+fuzz_oss=0
 
 gyp_params=(--depth="$cwd" --generator-output=".")
 nspr_params=()
@@ -95,6 +99,8 @@ while [ $# -gt 0 ]; do
         -v) ninja_params+=(-v); verbose=1 ;;
         --test) gyp_params+=(-Dtest_build=1) ;;
         --fuzz) fuzz=1 ;;
+        --fuzz=oss) fuzz=1; fuzz_oss=1 ;;
+        --fuzz=tls) fuzz=1; fuzz_tls=1 ;;
         --scan-build) enable_scanbuild  ;;
         --scan-build=?*) enable_scanbuild "${1#*=}" ;;
         --opt|-o) opt_build=1 ;;
@@ -108,6 +114,7 @@ while [ $# -gt 0 ]; do
         --pprof) gyp_params+=(-Duse_pprof=1) ;;
         --ct-verif) gyp_params+=(-Dct_verif=1) ;;
         --disable-tests) gyp_params+=(-Ddisable_tests=1) ;;
+        --no-zdefs) gyp_params+=(-Dno_zdefs=1) ;;
         *) show_help; exit 2 ;;
     esac
     shift
@@ -152,6 +159,7 @@ check_config()
     mkdir -p $(dirname "$newconf")
     echo CC="$CC" >"$newconf"
     echo CCC="$CCC" >>"$newconf"
+    echo CXX="$CXX" >>"$newconf"
     for i in "$@"; do echo $i; done | sort >>"$newconf"
 
     # Note: The following diff fails if $oldconf isn't there as well, which
@@ -170,11 +178,19 @@ elif [ ! -d "$dist_dir"/$target ]; then
     rebuild_nspr=1
 fi
 
+# Update NSPR ${C,CXX,LD}FLAGS.
+nspr_set_flags $sanitizer_flags
+
 if check_config "$nspr_config" "${nspr_params[@]}" \
                  nspr_cflags="$nspr_cflags" \
                  nspr_cxxflags="$nspr_cxxflags" \
                  nspr_ldflags="$nspr_ldflags"; then
     rebuild_nspr=1
+fi
+
+# Forward sanitizer flags.
+if [ ! -z "$sanitizer_flags" ]; then
+    gyp_params+=(-Dsanitizer_flags="$sanitizer_flags")
 fi
 
 if check_config "$gyp_config" "${gyp_params[@]}"; then

@@ -18,4 +18,4 @@ mkdir -p nss/fuzz/corpus/$type
 objdir=$(cat dist/latest)
 
 # Run nssfuzz.
-LD_LIBRARY_PATH=$LD_LIBRARY_PATH:dist/$objdir/lib dist/$objdir/bin/nssfuzz-"$type" "$@"
+dist/$objdir/bin/nssfuzz-"$type" "$@"

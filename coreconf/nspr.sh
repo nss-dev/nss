@@ -14,12 +14,11 @@ if hash gmake 2>/dev/null; then
     make() { command gmake "$@"; }
 fi
 
-nspr_sanitizer()
+nspr_set_flags()
 {
-    local extra=$(python $cwd/coreconf/sanitizers.py "$@")
-    nspr_cflags="$nspr_cflags $extra"
-    nspr_cxxflags="$nspr_cxxflags $extra"
-    nspr_ldflags="$nspr_ldflags $extra"
+    nspr_cflags="$CFLAGS $@"
+    nspr_cxxflags="$CXXFLAGS $@"
+    nspr_ldflags="$LDFLAGS $@"
 }
 
 nspr_build()
