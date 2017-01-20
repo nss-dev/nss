@@ -225,7 +225,7 @@
             }],
           ],
         }],
-        [ 'fuzz==1', {
+        [ 'fuzz_tls==1', {
           'sources': [
             'det_rng.c',
           ],
@@ -391,7 +391,7 @@
               'NSS_USE_COMBA',
             ],
           }],
-          [ 'target_arch=="x64" and use_msan==0', {
+          [ 'target_arch=="x64"', {
             'defines': [
               'USE_HW_AES',
               'INTEL_GCM',

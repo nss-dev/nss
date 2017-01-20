@@ -241,7 +241,7 @@
         },
       ],
     }],
-    [ 'fuzz==1', {
+    [ 'fuzz_tls==1', {
       'targets': [
         {
           'target_name': 'fuzz_warning',
@@ -256,12 +256,16 @@
             }
           ],
         },
+      ],
+    }],
+    [ 'fuzz==1', {
+      'targets': [
         {
           'target_name': 'fuzz',
           'type': 'none',
           'dependencies': [
             'fuzz/fuzz.gyp:nssfuzz',
-          ]
+          ],
         },
       ],
     }],

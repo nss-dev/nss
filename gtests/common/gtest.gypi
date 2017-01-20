@@ -14,7 +14,7 @@
           '-lstdc++',
         ],
       }],
-      [ 'fuzz==1', {
+      [ 'fuzz_tls==1', {
         'defines': [
           'UNSAFE_FUZZER_MODE',
         ],

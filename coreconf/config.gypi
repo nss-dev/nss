@@ -97,12 +97,11 @@
     'moz_fold_libs%': 0,
     'moz_folded_library_name%': '',
     'ssl_enable_zlib%': 1,
-    'use_asan%': 0,
-    'use_ubsan%': 0,
-    'use_msan%': 0,
-    'use_sancov%': 0,
+    'sanitizer_flags%': 0,
     'test_build%': 0,
+    'no_zdefs%': 0,
     'fuzz%': 0,
+    'fuzz_tls%': 0,
     'sign_libs%': 1,
     'use_pprof%': 0,
     'ct_verif%': 0,
@@ -135,7 +134,7 @@
           '-lc',
         ],
       }],
-      [ 'use_asan==1 or use_ubsan!=0 or fuzz==1', {
+      [ 'fuzz==1', {
         'variables': {
           'debug_optimization_level%': '1',
         },
@@ -216,13 +215,17 @@
           [ 'cc_use_gnu_ld==1', {
             'ldflags': [
               '-Wl,--gc-sections',
-              '-Wl,-z,defs',
             ],
             'conditions': [
               ['OS=="dragonfly" or OS=="freebsd" or OS=="netbsd" or OS=="openbsd"', {
                 # Bug 1321317 - unix_rand.c:880: undefined reference to `environ'
                 'ldflags': [
                   '-Wl,--warn-unresolved-symbols',
+                ],
+              }],
+              ['no_zdefs==0', {
+                'ldflags': [
+                  '-Wl,-z,defs',
                 ],
               }],
             ],
@@ -348,73 +351,22 @@
               '<!@(<(python) <(DEPTH)/coreconf/werror.py)',
             ],
           }],
-          [ 'fuzz==1', {
+          [ 'fuzz_tls==1', {
             'cflags': [
               '-Wno-unused-function',
-            ]
+            ],
           }],
-          [ 'use_asan==1', {
-            'variables': {
-              'asan_flags': '<!(<(python) <(DEPTH)/coreconf/sanitizers.py asan)',
-              'no_ldflags': '<!(<(python) <(DEPTH)/coreconf/sanitizers.py ld)',
-            },
-            'cflags': ['<@(asan_flags)'],
-            'ldflags': ['<@(asan_flags)'],
-            'ldflags!': ['<@(no_ldflags)'],
+          [ 'sanitizer_flags!=0', {
+            'cflags': ['<@(sanitizer_flags)'],
+            'ldflags': ['<@(sanitizer_flags)'],
             'xcode_settings': {
-              'OTHER_CFLAGS': ['<@(asan_flags)'],
-              'OTHER_LDFLAGS!': ['<@(no_ldflags)'],
+              'OTHER_CFLAGS': ['<@(sanitizer_flags)'],
               # We want to pass -fsanitize=... to our final link call,
               # but not to libtool. OTHER_LDFLAGS is passed to both.
               # To trick GYP into doing what we want, we'll piggyback on
               # LIBRARY_SEARCH_PATHS, producing "-L/usr/lib -fsanitize=...".
               # The -L/usr/lib is redundant but innocuous: it's a default path.
-              'LIBRARY_SEARCH_PATHS': ['/usr/lib <(asan_flags)'],
-            },
-          }],
-          [ 'use_ubsan!=0', {
-            'variables': {
-              'ubsan_flags': '<!(<(python) <(DEPTH)/coreconf/sanitizers.py ubsan <(use_ubsan))',
-              'no_ldflags': '<!(<(python) <(DEPTH)/coreconf/sanitizers.py ld)',
-            },
-            'cflags': ['<@(ubsan_flags)'],
-            'ldflags': ['<@(ubsan_flags)'],
-            'ldflags!': ['<@(no_ldflags)'],
-            'xcode_settings': {
-              'OTHER_CFLAGS': ['<@(ubsan_flags)'],
-              'OTHER_LDFLAGS!': ['<@(no_ldflags)'],
-              # See comment above.
-              'LIBRARY_SEARCH_PATHS': ['/usr/lib <(ubsan_flags)'],
-            },
-          }],
-          [ 'use_msan==1', {
-            'variables': {
-              'msan_flags': '<!(<(python) <(DEPTH)/coreconf/sanitizers.py msan)',
-              'no_ldflags': '<!(<(python) <(DEPTH)/coreconf/sanitizers.py ld)',
-            },
-            'cflags': ['<@(msan_flags)'],
-            'ldflags': ['<@(msan_flags)'],
-            'ldflags!': ['<@(no_ldflags)'],
-            'xcode_settings': {
-              'OTHER_CFLAGS': ['<@(msan_flags)'],
-              'OTHER_LDFLAGS!': ['<@(no_ldflags)'],
-              # See comment above.
-              'LIBRARY_SEARCH_PATHS': ['/usr/lib <(msan_flags)'],
-            },
-          }],
-          [ 'use_sancov!=0', {
-            'variables': {
-              'sancov_flags': '<!(<(python) <(DEPTH)/coreconf/sanitizers.py sancov <(use_sancov))',
-              'no_ldflags': '<!(<(python) <(DEPTH)/coreconf/sanitizers.py ld)',
-            },
-            'cflags': ['<@(sancov_flags)'],
-            'ldflags': ['<@(sancov_flags)'],
-            'ldflags!': ['<@(no_ldflags)'],
-            'xcode_settings': {
-              'OTHER_CFLAGS': ['<@(sancov_flags)'],
-              'OTHER_LDFLAGS!': ['<@(no_ldflags)'],
-              # See comment above.
-              'LIBRARY_SEARCH_PATHS': ['/usr/lib <(sancov_flags)'],
+              'LIBRARY_SEARCH_PATHS': ['/usr/lib <(sanitizer_flags)'],
             },
           }],
           [ 'OS=="android" and mozilla_client==0', {

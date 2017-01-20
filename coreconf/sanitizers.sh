@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # This file is used by build.sh to setup sanitizers.
 
+sanitizer_flags=""
+
 # This tracks what sanitizers are enabled, and their options.
 declare -A sanitizers
 enable_sanitizer()
@@ -8,8 +10,13 @@ enable_sanitizer()
     local san="$1"
     [ -n "${sanitizers[$san]}" ] && return
     sanitizers[$san]="${2:-1}"
-    gyp_params+=(-Duse_"$san"="${2:-1}")
-    nspr_sanitizer "$san" "$2"
+
+    if [ -z "$sanitizer_flags" ]; then
+        gyp_params+=(-Dno_zdefs=1)
+    fi
+
+    local cflags=$(python $cwd/coreconf/sanitizers.py "$@")
+    sanitizer_flags="$sanitizer_flags $cflags"
 }
 
 enable_sancov()
