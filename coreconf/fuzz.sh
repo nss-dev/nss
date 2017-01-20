@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 # This file is used by build.sh to setup fuzzing.
 
+set +e
+
+# Default to clang if CC is not set.
+command -v clang &> /dev/null 2>&1
+if [[ $? = 0 && -z "$CC" ]]; then
+    export CC=clang
+    export CCC=clang++
+    export CXX=clang++
+else
+    echo "Fuzzing requires clang!"
+    exit 1
+fi
+
 gyp_params+=(-Dtest_build=1 -Dfuzz=1)
 
 # Add debug symbols even for opt builds.
