@@ -4,14 +4,15 @@
 set +e
 
 # Default to clang if CC is not set.
-command -v clang &> /dev/null 2>&1
-if [[ $? = 0 && -z "$CC" ]]; then
+if [ -z "$CC" ]; then
+    command -v clang &> /dev/null 2>&1
+    if [ $? != 0 ]; then
+        echo "Fuzzing requires clang!"
+        exit 1
+    fi
     export CC=clang
     export CCC=clang++
     export CXX=clang++
-else
-    echo "Fuzzing requires clang!"
-    exit 1
 fi
 
 gyp_params+=(-Dtest_build=1 -Dfuzz=1)
