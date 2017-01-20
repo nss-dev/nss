@@ -68,13 +68,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
   char *dest[2048];
 
   for (auto tpl : templates) {
-     PORTCheapArenaPool pool;
-     SECItem buf = {siBuffer, const_cast<unsigned char *>(Data),
-                     static_cast<unsigned int>(Size)};
+    PORTCheapArenaPool pool;
+    SECItem buf = {siBuffer, const_cast<unsigned char *>(Data),
+                   static_cast<unsigned int>(Size)};
 
-     PORT_InitCheapArena(&pool, DER_DEFAULT_CHUNKSIZE);
-     (void)SEC_QuickDERDecodeItem(&pool.arena, dest, tpl, &buf);
-     PORT_DestroyCheapArena(&pool);
+    PORT_InitCheapArena(&pool, DER_DEFAULT_CHUNKSIZE);
+    (void)SEC_QuickDERDecodeItem(&pool.arena, dest, tpl, &buf);
+    PORT_DestroyCheapArena(&pool);
   }
 
   return 0;
