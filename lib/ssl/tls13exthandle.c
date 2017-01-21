@@ -1093,6 +1093,13 @@ tls13_SendShortHeaderXtn(const sslSocket *ss,
         return 0;
     }
 
+    /* Don't send this if TLS 1.3 isn't at least possible. */
+    if (ss->vrange.max < SSL_LIBRARY_VERSION_TLS_1_3) {
+        /* This should only happen on the client. */
+        PORT_Assert(!ss->sec.isServer);
+        return 0;
+    }
+
     SSL_TRC(3, ("%d: TLS13[%d]: send short_header extension",
                 SSL_GETPID(), ss->fd));
 
@@ -1124,13 +1131,12 @@ tls13_HandleShortHeaderXtn(
     const sslSocket *ss, TLSExtensionData *xtnData, PRUint16 ex_type,
     SECItem *data)
 {
-    SSL_TRC(3, ("%d: TLS13[%d]: handle early_data extension",
+    SSL_TRC(3, ("%d: TLS13[%d]: handle short_header extension",
                 SSL_GETPID(), ss->fd));
 
-    /* The server must not send this extension when negotiating < TLS 1.3. */
+    /* The client might have asked for this, but we didn't negotiate TLS 1.3. */
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
-        PORT_SetError(SSL_ERROR_EXTENSION_DISALLOWED_FOR_VERSION);
-        return SECFailure;
+        return SECSuccess;
     }
 
     /* Presently this is incompatible with 0-RTT. We will fix if
