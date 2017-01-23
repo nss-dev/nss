@@ -350,6 +350,11 @@
             'cflags': [
               '<!@(<(python) <(DEPTH)/coreconf/werror.py)',
             ],
+            'xcode_settings': {
+              'OTHER_CFLAGS': [
+                '<!@(<(python) <(DEPTH)/coreconf/werror.py)',
+              ],
+            },
           }],
           [ 'fuzz_tls==1', {
             'cflags': [
