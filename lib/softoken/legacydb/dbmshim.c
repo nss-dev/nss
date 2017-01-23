@@ -376,8 +376,6 @@ static int
 dbs_sync(const DB *dbs, unsigned int flags)
 {
     DB *db = (DB *)dbs->internal;
-    DBS *dbsp = (DBS *)dbs;
-
     return (*db->sync)(db, flags);
 }
 
