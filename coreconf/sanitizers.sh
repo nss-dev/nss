@@ -30,7 +30,7 @@ enable_sancov()
     local sancov
     if [ -n "$1" ]; then
         sancov="$1"
-    elif [ "$clang_version" = "clang version 3.9." ]; then
+    elif [ "${clang_version:0:3}" = "3.9" ]; then
         sancov=edge,indirect-calls,8bit-counters
     else
         sancov=trace-pc-guard,trace-cmp
