@@ -145,9 +145,21 @@
       ],
     },
     {
+      'target_name': 'nssfuzz-certDN',
+      'type': 'executable',
+      'sources': [
+        'certDN_target.cc',
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports',
+        'fuzz_base',
+      ],
+    },
+    {
       'target_name': 'nssfuzz',
       'type': 'none',
       'dependencies': [
+        'nssfuzz-certDN',
         'nssfuzz-hash',
         'nssfuzz-mpi',
         'nssfuzz-pkcs8',
