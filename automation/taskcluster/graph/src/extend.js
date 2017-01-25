@@ -374,6 +374,23 @@ async function scheduleFuzzing() {
     kind: "test"
   }));
 
+  queue.scheduleTask(merge(base, {
+    parent: task_build,
+    name: "CertDN",
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/fuzz.sh " +
+        "certDN nss/fuzz/corpus/quickder -max_total_time=300 -max_len=4096"
+    ],
+    // Need a privileged docker container to remove detect_leaks=0.
+    env: {
+      ASAN_OPTIONS: "allocator_may_return_null=1:detect_leaks=0",
+    },
+    symbol: "CertDN",
+    kind: "test"
+  }));
+
   return queue.submit();
 }
 

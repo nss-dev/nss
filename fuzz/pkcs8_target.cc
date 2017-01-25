@@ -9,7 +9,6 @@
 #include "pk11pub.h"
 
 #include "asn1_mutators.h"
-#include "assert.h"
 #include "shared.h"
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
