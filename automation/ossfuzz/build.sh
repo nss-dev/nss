@@ -16,7 +16,7 @@ CXX="$CXX -stdlib=libc++" CXXFLAGS="$CXXFLAGS -I$SRC/libfuzzer" \
 # Find fuzzing targets.
 for fuzzer in $(find ../dist/Debug/bin -name "nssfuzz-*" -printf "%f\n"); do
     name=${fuzzer:8}
-    [ "${disabled[$name]}" ] && continue;
+    [ -n "${disabled[$name]:-}" ] && continue;
 
     # Copy the binary.
     cp ../dist/Debug/bin/$fuzzer $OUT/$name
@@ -24,5 +24,7 @@ for fuzzer in $(find ../dist/Debug/bin -name "nssfuzz-*" -printf "%f\n"); do
     # Zip and copy the corpus, if any.
     if [ -d "$SRC/nss-corpus/$name" ]; then
         zip $OUT/${name}_seed_corpus.zip $SRC/nss-corpus/$name/*
+    else
+        zip $OUT/${name}_seed_corpus.zip $SRC/nss-corpus/*/*
     fi
 done
