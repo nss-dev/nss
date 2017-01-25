@@ -15,7 +15,7 @@ if [ -z "$CC" ]; then
     export CXX=clang++
 fi
 
-gyp_params+=(-Dtest_build=1 -Dfuzz=1)
+gyp_params+=(-Dtest_build=1 -Dfuzz=1 -Dsign_libs=0)
 
 # Add debug symbols even for opt builds.
 nspr_params+=(--enable-debug-symbols)

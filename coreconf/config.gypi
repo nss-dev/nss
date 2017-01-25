@@ -152,7 +152,7 @@
         'product_dir': '<(nss_dist_obj_dir)/lib'
       }],
       # mapfile handling
-      [ 'test_build==0 and mapfile!=""', {
+      [ 'mapfile!=""', {
         # Work around a gyp bug. Fixed upstream but not in Ubuntu packages:
         # https://chromium.googlesource.com/external/gyp/+/b85ad3e578da830377dbc1843aa4fbc5af17a192%5E%21/
         'sources': [
@@ -360,6 +360,11 @@
             'cflags': [
               '-Wno-unused-function',
             ],
+            'xcode_settings': {
+              'OTHER_CFLAGS': [
+                '-Wno-unused-function',
+              ],
+            },
           }],
           [ 'sanitizer_flags!=0', {
             'cflags': ['<@(sanitizer_flags)'],

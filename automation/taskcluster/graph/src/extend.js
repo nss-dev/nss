@@ -125,7 +125,6 @@ export default async function main() {
       "bin/checkout.sh && nss/automation/taskcluster/scripts/build_gyp.sh -g -v --ubsan --asan"
     ],
     env: {
-      ASAN_OPTIONS: "detect_odr_violation=0", // bug 1316276
       UBSAN_OPTIONS: "print_stacktrace=1",
       NSS_DISABLE_ARENA_FREE_LIST: "1",
       NSS_DISABLE_UNLOAD: "1",
@@ -272,8 +271,7 @@ async function scheduleLinux(name, base) {
 async function scheduleFuzzing() {
   let base = {
     env: {
-       // bug 1316276
-      ASAN_OPTIONS: "allocator_may_return_null=1:detect_odr_violation=0",
+      ASAN_OPTIONS: "allocator_may_return_null=1",
       UBSAN_OPTIONS: "print_stacktrace=1",
       NSS_DISABLE_ARENA_FREE_LIST: "1",
       NSS_DISABLE_UNLOAD: "1",
@@ -334,8 +332,10 @@ async function scheduleFuzzing() {
       "bin/checkout.sh && nss/automation/taskcluster/scripts/fuzz.sh " +
         "quickder nss/fuzz/corpus/quickder -max_total_time=300"
     ],
-    // Need a privileged docker container to remove this.
-    env: {ASAN_OPTIONS: "detect_leaks=0"},
+    // Need a privileged docker container to remove detect_leaks=0.
+    env: {
+      ASAN_OPTIONS: "allocator_may_return_null=1:detect_leaks=0",
+    },
     symbol: "QuickDER",
     kind: "test"
   }));
