@@ -13,8 +13,8 @@
 
 class NSSDatabase {
  public:
-  NSSDatabase() { NSS_NoDB_Init(nullptr); }
-  ~NSSDatabase() { NSS_Shutdown(); }
+  NSSDatabase() { assert(NSS_NoDB_Init(nullptr) == SECSuccess); }
+  ~NSSDatabase() { assert(NSS_Shutdown() == SECSuccess); }
 };
 
 size_t CustomMutate(std::vector<decltype(LLVMFuzzerCustomMutator) *> mutators,

@@ -37,8 +37,9 @@
         '<(DEPTH)/lib/pki/pki.gyp:nsspki',
         '<(DEPTH)/lib/util/util.gyp:nssutil',
         '<(DEPTH)/lib/nss/nss.gyp:nss_static',
-        '<(DEPTH)/lib/pk11wrap/pk11wrap.gyp:pk11wrap',
         '<(DEPTH)/lib/pkcs7/pkcs7.gyp:pkcs7',
+        # This is a static build of pk11wrap, softoken, and freebl.
+        '<(DEPTH)/lib/pk11wrap/pk11wrap.gyp:pk11wrap_static',
       ],
       'conditions': [
         ['use_fuzzing_engine==0', {
