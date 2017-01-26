@@ -92,7 +92,6 @@
       'type': 'executable',
       'sources': [
         'asn1_mutators.cc',
-        'initialize.cc',
         'pkcs8_target.cc',
       ],
       'dependencies': [
@@ -105,7 +104,6 @@
       'type': 'executable',
       'sources': [
         'asn1_mutators.cc',
-        'initialize.cc',
         'quickder_target.cc',
       ],
       'dependencies': [
@@ -118,7 +116,6 @@
       'type': 'executable',
       'sources': [
         'hash_target.cc',
-        'initialize.cc',
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',

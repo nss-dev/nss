@@ -10,8 +10,8 @@
 declare -A disabled=([pkcs8]=1)
 
 # Build the library.
-CXX="$CXX -stdlib=libc++" CXXFLAGS="$CXXFLAGS -I$SRC/libfuzzer" \
-    LDFLAGS="$CFLAGS" ./build.sh -c -v --fuzz=oss --fuzz=tls --disable-tests
+CXX="$CXX -stdlib=libc++" LDFLAGS="$CFLAGS" \
+    ./build.sh -c -v --fuzz=oss --fuzz=tls --disable-tests
 
 # Find fuzzing targets.
 for fuzzer in $(find ../dist/Debug/bin -name "nssfuzz-*" -printf "%f\n"); do
