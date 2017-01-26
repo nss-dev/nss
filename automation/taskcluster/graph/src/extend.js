@@ -357,6 +357,23 @@ async function scheduleFuzzing() {
     kind: "test"
   }));
 
+  queue.scheduleTask(merge(base, {
+    parent: task_build,
+    name: "MPI",
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/fuzz.sh " +
+        "mpi nss/fuzz/corpus/mpi -max_total_time=300 -max_len=2048"
+    ],
+    // Need a privileged docker container to remove detect_leaks=0.
+    env: {
+      ASAN_OPTIONS: "allocator_may_return_null=1:detect_leaks=0",
+    },
+    symbol: "MPI",
+    kind: "test"
+  }));
+
   return queue.submit();
 }
 

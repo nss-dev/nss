@@ -21,7 +21,7 @@ gyp_params+=(-Dtest_build=1 -Dfuzz=1 -Dsign_libs=0)
 nspr_params+=(--enable-debug-symbols)
 
 if [ "$fuzz_oss" = 1 ]; then
-  gyp_params+=(-Dno_zdefs=1)
+  gyp_params+=(-Dno_zdefs=1 -Dfuzz_oss=1)
 else
   enable_sanitizer asan
   enable_ubsan
