@@ -6,8 +6,8 @@
 
 #include "shared.h"
 
-#define TEST_FUNCTION(f)   \
-  out = f(certName); \
+#define TEST_FUNCTION(f) \
+  out = f(certName);     \
   free(out);
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
@@ -17,7 +17,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
   CERTName* certName = CERT_AsciiToName(name.c_str());
   if (certName) {
-    char *out;
+    char* out;
     TEST_FUNCTION(CERT_NameToAscii)
     TEST_FUNCTION(CERT_GetCertEmailAddress)
 
