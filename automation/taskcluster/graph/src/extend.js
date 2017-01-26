@@ -325,12 +325,29 @@ async function scheduleFuzzing() {
 
   queue.scheduleTask(merge(base, {
     parent: task_build,
+    name: "Hash",
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/fuzz.sh " +
+        "hash nss/fuzz/corpus/hash -max_total_time=300 -max_len=4096"
+    ],
+    // Need a privileged docker container to remove detect_leaks=0.
+    env: {
+      ASAN_OPTIONS: "allocator_may_return_null=1:detect_leaks=0",
+    },
+    symbol: "Hash",
+    kind: "test"
+  }));
+
+  queue.scheduleTask(merge(base, {
+    parent: task_build,
     name: "QuickDER",
     command: [
       "/bin/bash",
       "-c",
       "bin/checkout.sh && nss/automation/taskcluster/scripts/fuzz.sh " +
-        "quickder nss/fuzz/corpus/quickder -max_total_time=300"
+        "quickder nss/fuzz/corpus/quickder -max_total_time=300 -max_len=10000"
     ],
     // Need a privileged docker container to remove detect_leaks=0.
     env: {
