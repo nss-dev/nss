@@ -735,7 +735,8 @@ void TlsAgent::Handshake() {
   LOGV("Handshake");
   SECStatus rv = SSL_ForceHandshake(ssl_fd_);
   if (rv == SECSuccess) {
-    Connected();
+    EXPECT_EQ(STATE_CONNECTED, state_)
+        << "the handshake callback should have been called already";
 
     Poller::Instance()->Wait(READABLE_EVENT, adapter_, this,
                              &TlsAgent::ReadableCallback);
