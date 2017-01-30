@@ -861,6 +861,9 @@ p12u_EnableAllCiphers()
     SEC_PKCS12EnableCipher(PKCS12_RC2_CBC_128, 1);
     SEC_PKCS12EnableCipher(PKCS12_DES_56, 1);
     SEC_PKCS12EnableCipher(PKCS12_DES_EDE3_168, 1);
+    SEC_PKCS12EnableCipher(PKCS12_AES_CBC_128, 1);
+    SEC_PKCS12EnableCipher(PKCS12_AES_CBC_192, 1);
+    SEC_PKCS12EnableCipher(PKCS12_AES_CBC_256, 1);
     SEC_PKCS12SetPreferredCipher(PKCS12_DES_EDE3_168, 1);
 }
 
