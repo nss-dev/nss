@@ -6404,7 +6404,7 @@ ssl_PickSignatureScheme(sslSocket *ss,
         PRUint32 policy;
 
         if (!ssl_SignatureSchemeValidForKey(!isTLS13 /* allowSha1 */,
-                                            PR_TRUE /* matchGroup */,
+                                            isTLS13 /* matchGroup */,
                                             keyType, group, preferred)) {
             continue;
         }
