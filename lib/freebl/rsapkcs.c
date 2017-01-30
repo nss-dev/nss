@@ -981,8 +981,6 @@ failure:
  * We use mHash instead of M as input.
  * emBits from the RFC is just modBits - 1, see section 8.1.1.
  * We only support MGF1 as the MGF.
- *
- * NOTE: this code assumes modBits is a multiple of 8.
  */
 static SECStatus
 emsa_pss_encode(unsigned char *em,
@@ -1204,6 +1202,7 @@ RSA_SignPSS(RSAPrivateKey *key,
 
     /* len(em) == ceil((modulusBits - 1) / 8). */
     if (modulusBits % 8 == 1) {
+        em[0] = 0;
         emLen--;
         em++;
     }
