@@ -136,6 +136,75 @@ TEST_P(TlsConnectTls12, ClientAuthBigRsaCheckSigAlg) {
   CheckSigScheme(capture_cert_verify, 0, server_, ssl_sig_rsa_pss_sha256, 2048);
 }
 
+class TlsZeroCertificateRequestSigAlgsFilter : public TlsHandshakeFilter {
+ public:
+  virtual PacketFilter::Action FilterHandshake(
+      const TlsHandshakeFilter::HandshakeHeader& header,
+      const DataBuffer& input, DataBuffer* output) {
+    if (header.handshake_type() != kTlsHandshakeCertificateRequest) {
+      return KEEP;
+    }
+
+    TlsParser parser(input);
+    std::cerr << "Zeroing CertReq.supported_signature_algorithms" << std::endl;
+
+    DataBuffer cert_types;
+    if (!parser.ReadVariable(&cert_types, 1)) {
+      ADD_FAILURE();
+      return KEEP;
+    }
+
+    if (!parser.SkipVariable(2)) {
+      ADD_FAILURE();
+      return KEEP;
+    }
+
+    DataBuffer cas;
+    if (!parser.ReadVariable(&cas, 2)) {
+      ADD_FAILURE();
+      return KEEP;
+    }
+
+    size_t idx = 0;
+
+    // Write certificate types.
+    idx = output->Write(idx, cert_types.len(), 1);
+    idx = output->Write(idx, cert_types);
+
+    // Write zero signature algorithms.
+    idx = output->Write(idx, 0U, 2);
+
+    // Write certificate authorities.
+    idx = output->Write(idx, cas.len(), 2);
+    idx = output->Write(idx, cas);
+
+    return CHANGE;
+  }
+};
+
+// Check that we fall back to SHA-1 when the server doesn't provide any
+// supported_signature_algorithms in the CertificateRequest message.
+TEST_P(TlsConnectTls12, ClientAuthNoSigAlgsFallback) {
+  EnsureTlsSetup();
+  auto filter = new TlsZeroCertificateRequestSigAlgsFilter();
+  server_->SetPacketFilter(filter);
+  auto capture_cert_verify =
+      new TlsInspectorRecordHandshakeMessage(kTlsHandshakeCertificateVerify);
+  client_->SetPacketFilter(capture_cert_verify);
+  client_->SetupClientAuth();
+  server_->RequestClientAuth(true);
+
+  ConnectExpectFail();
+
+  // We're expecting a bad signature here because we tampered with a handshake
+  // message (CertReq). Previously, without the SHA-1 fallback, we would've
+  // seen a malformed record alert.
+  server_->CheckErrorCode(SEC_ERROR_BAD_SIGNATURE);
+  client_->CheckErrorCode(SSL_ERROR_DECRYPT_ERROR_ALERT);
+
+  CheckSigScheme(capture_cert_verify, 0, server_, ssl_sig_rsa_pkcs1_sha1, 1024);
+}
+
 static const SSLSignatureScheme SignatureSchemeEcdsaSha384[] = {
     ssl_sig_ecdsa_secp384r1_sha384};
 static const SSLSignatureScheme SignatureSchemeEcdsaSha256[] = {
