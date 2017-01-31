@@ -6503,7 +6503,9 @@ ssl_PickClientSignatureScheme(sslSocket *ss, const SSLSignatureScheme *schemes,
     if (!isTLS13 && numSchemes == 0) {
         /* If the server didn't provide any signature algorithms
          * then let's assume they support SHA-1. */
-        return ssl_PickFallbackSignatureScheme(ss, pubKey);
+        rv = ssl_PickFallbackSignatureScheme(ss, pubKey);
+        SECKEY_DestroyPublicKey(pubKey);
+        return rv;
     }
 
     PORT_Assert(schemes && numSchemes > 0);
