@@ -254,18 +254,18 @@ class TlsAlertRecorder : public TlsRecordFilter {
 class ChainedPacketFilter : public PacketFilter {
  public:
   ChainedPacketFilter() {}
-  ChainedPacketFilter(const std::vector<PacketFilter*> filters)
+  ChainedPacketFilter(const std::vector<std::shared_ptr<PacketFilter>> filters)
       : filters_(filters.begin(), filters.end()) {}
-  virtual ~ChainedPacketFilter();
+  virtual ~ChainedPacketFilter() {}
 
   virtual PacketFilter::Action Filter(const DataBuffer& input,
                                       DataBuffer* output);
 
   // Takes ownership of the filter.
-  void Add(PacketFilter* filter) { filters_.push_back(filter); }
+  void Add(std::shared_ptr<PacketFilter> filter) { filters_.push_back(filter); }
 
  private:
-  std::vector<PacketFilter*> filters_;
+  std::vector<std::shared_ptr<PacketFilter>> filters_;
 };
 
 class TlsExtensionFilter : public TlsHandshakeFilter {

@@ -246,10 +246,10 @@ class TlsConnectGenericPre13 : public TlsConnectGeneric {};
 
 class TlsKeyExchangeTest : public TlsConnectGeneric {
  protected:
-  TlsExtensionCapture* groups_capture_;
-  TlsExtensionCapture* shares_capture_;
-  TlsExtensionCapture* shares_capture2_;
-  TlsInspectorRecordHandshakeMessage* capture_hrr_;
+  std::shared_ptr<TlsExtensionCapture> groups_capture_;
+  std::shared_ptr<TlsExtensionCapture> shares_capture_;
+  std::shared_ptr<TlsExtensionCapture> shares_capture2_;
+  std::shared_ptr<TlsInspectorRecordHandshakeMessage> capture_hrr_;
 
   void EnsureKeyShareSetup();
   void ConfigNamedGroups(const std::vector<SSLNamedGroup>& groups);

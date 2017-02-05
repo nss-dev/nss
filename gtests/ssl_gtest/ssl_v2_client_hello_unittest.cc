@@ -148,7 +148,7 @@ class SSLv2ClientHelloTestF : public TlsConnectTestBase {
 
   void SetUp() {
     TlsConnectTestBase::SetUp();
-    filter_ = new SSLv2ClientHelloFilter(client_, version_);
+    filter_ = std::make_shared<SSLv2ClientHelloFilter>(client_, version_);
     client_->SetPacketFilter(filter_);
   }
 
@@ -185,7 +185,7 @@ class SSLv2ClientHelloTestF : public TlsConnectTestBase {
   void SetSendEscape(bool send_escape) { filter_->SetSendEscape(send_escape); }
 
  private:
-  SSLv2ClientHelloFilter* filter_;
+  std::shared_ptr<SSLv2ClientHelloFilter> filter_;
 };
 
 // Parameterized version of SSLv2ClientHelloTestF we can

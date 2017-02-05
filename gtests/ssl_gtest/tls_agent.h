@@ -87,12 +87,12 @@ class TlsAgent : public PollTarget {
 
   void SetPeer(TlsAgent* peer) { adapter_->SetPeer(peer->adapter_); }
 
-  void SetPacketFilter(TlsRecordFilter* filter) {
+  void SetTlsRecordFilter(std::shared_ptr<TlsRecordFilter> filter) {
     filter->SetAgent(this);
     adapter_->SetPacketFilter(filter);
   }
 
-  void SetPacketFilter(PacketFilter* filter) {
+  void SetPacketFilter(std::shared_ptr<PacketFilter> filter) {
     adapter_->SetPacketFilter(filter);
   }
 
