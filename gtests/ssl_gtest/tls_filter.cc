@@ -394,12 +394,6 @@ PacketFilter::Action TlsAlertRecorder::FilterRecord(
   return KEEP;
 }
 
-ChainedPacketFilter::~ChainedPacketFilter() {
-  for (auto it = filters_.begin(); it != filters_.end(); ++it) {
-    delete *it;
-  }
-}
-
 PacketFilter::Action ChainedPacketFilter::Filter(const DataBuffer& input,
                                                  DataBuffer* output) {
   DataBuffer in(input);

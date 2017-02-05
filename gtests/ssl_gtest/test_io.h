@@ -58,7 +58,7 @@ class DummyPrSocket {
 
   DummyPrSocket* peer() const { return peer_; }
   void SetPeer(DummyPrSocket* peer) { peer_ = peer; }
-  void SetPacketFilter(PacketFilter* filter);
+  void SetPacketFilter(std::shared_ptr<PacketFilter> filter);
   // Drops peer, packet filter and any outstanding packets.
   void Reset();
 
@@ -84,7 +84,7 @@ class DummyPrSocket {
   Mode mode_;
   DummyPrSocket* peer_;
   std::queue<Packet*> input_;
-  PacketFilter* filter_;
+  std::shared_ptr<PacketFilter> filter_;
   bool writeable_;
 };
 

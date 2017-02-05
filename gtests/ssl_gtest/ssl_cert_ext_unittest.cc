@@ -185,8 +185,8 @@ TEST_P(TlsConnectGenericPre13, OcspMangled) {
       server_->ConfigServerCert(TlsAgent::kServerRsa, true, &kOcspExtraData));
 
   static const uint8_t val[] = {1};
-  auto replacer = new TlsExtensionReplacer(ssl_cert_status_xtn,
-                                           DataBuffer(val, sizeof(val)));
+  auto replacer = std::make_shared<TlsExtensionReplacer>(
+      ssl_cert_status_xtn, DataBuffer(val, sizeof(val)));
   server_->SetPacketFilter(replacer);
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
@@ -197,7 +197,8 @@ TEST_P(TlsConnectGeneric, OcspSuccess) {
   EnsureTlsSetup();
   EXPECT_EQ(SECSuccess, SSL_OptionSet(client_->ssl_fd(),
                                       SSL_ENABLE_OCSP_STAPLING, PR_TRUE));
-  auto capture_ocsp = new TlsExtensionCapture(ssl_cert_status_xtn);
+  auto capture_ocsp =
+      std::make_shared<TlsExtensionCapture>(ssl_cert_status_xtn);
   server_->SetPacketFilter(capture_ocsp);
 
   // The value should be available during the AuthCertificateCallback
