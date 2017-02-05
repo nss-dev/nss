@@ -114,8 +114,8 @@ class TlsConnectTestBase : public ::testing::Test {
   Mode mode_;
   TlsAgent* client_;
   TlsAgent* server_;
-  TlsAgent* client_model_;
-  TlsAgent* server_model_;
+  std::unique_ptr<TlsAgent> client_model_;
+  std::unique_ptr<TlsAgent> server_model_;
   uint16_t version_;
   SessionResumptionMode expected_resumption_mode_;
   std::vector<std::vector<uint8_t>> session_ids_;

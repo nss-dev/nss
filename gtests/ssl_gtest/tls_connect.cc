@@ -181,11 +181,6 @@ void TlsConnectTestBase::SetUp() {
 void TlsConnectTestBase::TearDown() {
   delete client_;
   delete server_;
-  if (client_model_) {
-    ASSERT_NE(server_model_, nullptr);
-    delete client_model_;
-    delete server_model_;
-  }
 
   SSL_ClearSessionCache();
   SSLInt_ClearSessionTicketKey();
@@ -503,8 +498,8 @@ void TlsConnectTestBase::EnsureModelSockets() {
   // Make sure models agents are available.
   if (!client_model_) {
     ASSERT_EQ(server_model_, nullptr);
-    client_model_ = new TlsAgent(TlsAgent::kClient, TlsAgent::CLIENT, mode_);
-    server_model_ = new TlsAgent(TlsAgent::kServerRsa, TlsAgent::SERVER, mode_);
+    client_model_.reset(new TlsAgent(TlsAgent::kClient, TlsAgent::CLIENT, mode_));
+    server_model_.reset(new TlsAgent(TlsAgent::kServerRsa, TlsAgent::SERVER, mode_));
   }
 
   // Initialise agents.
