@@ -115,12 +115,12 @@ class Poller {
             PollTarget* target, PollCallback cb);
   void Cancel(Event event, std::shared_ptr<DummyPrSocket>& adapter);
   void SetTimer(uint32_t timer_ms, PollTarget* target, PollCallback cb,
-                Timer** handle);
+                std::shared_ptr<Timer>* handle);
   bool Poll();
 
  private:
   Poller() : waiters_(), timers_() {}
-  ~Poller();
+  ~Poller() {}
 
   class Waiter {
    public:
@@ -137,14 +137,17 @@ class Poller {
 
   class TimerComparator {
    public:
-    bool operator()(const Timer* lhs, const Timer* rhs) {
+    bool operator()(const std::shared_ptr<Timer> lhs,
+                    const std::shared_ptr<Timer> rhs) {
       return lhs->deadline_ > rhs->deadline_;
     }
   };
 
   static Poller* instance;
   std::map<std::shared_ptr<DummyPrSocket>, std::unique_ptr<Waiter>> waiters_;
-  std::priority_queue<Timer*, std::vector<Timer*>, TimerComparator> timers_;
+  std::priority_queue<std::shared_ptr<Timer>,
+                      std::vector<std::shared_ptr<Timer>>, TimerComparator>
+      timers_;
 };
 
 }  // end of namespace

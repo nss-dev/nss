@@ -517,7 +517,7 @@ static void TriggerAuthComplete(PollTarget* target, Event event) {
 TEST_F(TlsConnectDatagram13, AuthCompleteAfterFinished) {
   client_->SetAuthCertificateCallback(
       [this](TlsAgent*, PRBool, PRBool) -> SECStatus {
-        Poller::Timer* timer_handle;
+        std::shared_ptr<Poller::Timer> timer_handle;
         // This is really just to unroll the stack.
         Poller::Instance()->SetTimer(1U, client_.get(), TriggerAuthComplete,
                                      &timer_handle);

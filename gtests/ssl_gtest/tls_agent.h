@@ -347,7 +347,7 @@ class TlsAgent : public PollTarget {
   std::shared_ptr<DummyPrSocket> adapter_;
   ScopedPRFileDesc ssl_fd_;
   State state_;
-  Poller::Timer* timer_handle_;
+  std::shared_ptr<Poller::Timer> timer_handle_;
   bool falsestart_enabled_;
   uint16_t expected_version_;
   uint16_t expected_cipher_suite_;
