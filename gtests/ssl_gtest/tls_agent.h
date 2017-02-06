@@ -171,14 +171,14 @@ class TlsAgent : public PollTarget {
   State state() const { return state_; }
 
   const CERTCertificate* peer_cert() const {
-    return SSL_PeerCertificate(ssl_fd_);
+    return SSL_PeerCertificate(ssl_fd_.get());
   }
 
   const char* state_str() const { return state_str(state()); }
 
   static const char* state_str(State state) { return states[state]; }
 
-  PRFileDesc* ssl_fd() const { return ssl_fd_; }
+  PRFileDesc* ssl_fd() const { return ssl_fd_.get(); }
   std::shared_ptr<DummyPrSocket>& adapter() { return adapter_; }
 
   bool is_compressed() const {
@@ -345,7 +345,7 @@ class TlsAgent : public PollTarget {
   Role role_;
   uint16_t server_key_bits_;
   std::shared_ptr<DummyPrSocket> adapter_;
-  PRFileDesc* ssl_fd_;
+  ScopedPRFileDesc ssl_fd_;
   State state_;
   Poller::Timer* timer_handle_;
   bool falsestart_enabled_;

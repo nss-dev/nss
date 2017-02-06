@@ -291,12 +291,12 @@ static const struct PRIOMethods DummyMethods = {
     DummyReserved,      DummyReserved,
     DummyReserved,      DummyReserved};
 
-PRFileDesc *DummyPrSocket::CreateFD() {
+ScopedPRFileDesc DummyPrSocket::CreateFD() {
   if (test_fd_identity == PR_INVALID_IO_LAYER) {
     test_fd_identity = PR_GetUniqueIdentity("testtransportadapter");
   }
 
-  PRFileDesc *fd = PR_CreateIOLayerStub(test_fd_identity, &DummyMethods);
+  ScopedPRFileDesc fd(PR_CreateIOLayerStub(test_fd_identity, &DummyMethods));
   fd->secret = reinterpret_cast<PRFilePrivate *>(this);
   return fd;
 }

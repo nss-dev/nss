@@ -15,6 +15,7 @@
 #include <string>
 
 #include "prio.h"
+#include "scoped_ptrs.h"
 
 namespace nss_test {
 
@@ -59,7 +60,9 @@ class DummyPrSocket {
         writeable_(true) {}
   ~DummyPrSocket();
 
-  PRFileDesc* CreateFD();
+  // Create a file descriptor that will reference this object.  The fd must not
+  // live longer than this adapter; call PR_Close() before.
+  ScopedPRFileDesc CreateFD();
 
   std::weak_ptr<DummyPrSocket>& peer() { return peer_; }
   void SetPeer(const std::shared_ptr<DummyPrSocket>& peer) { peer_ = peer; }
