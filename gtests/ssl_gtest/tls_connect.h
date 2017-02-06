@@ -112,8 +112,8 @@ class TlsConnectTestBase : public ::testing::Test {
 
  protected:
   Mode mode_;
-  TlsAgent* client_;
-  TlsAgent* server_;
+  std::shared_ptr<TlsAgent> client_;
+  std::shared_ptr<TlsAgent> server_;
   std::unique_ptr<TlsAgent> client_model_;
   std::unique_ptr<TlsAgent> server_model_;
   uint16_t version_;
