@@ -77,16 +77,6 @@ class TlsAgent : public PollTarget {
   TlsAgent(const std::string& name, Role role, Mode mode);
   virtual ~TlsAgent();
 
-  bool Init() {
-    pr_fd_ = DummyPrSocket::CreateFD(role_str(), mode_);
-    if (!pr_fd_) return false;
-
-    adapter_ = DummyPrSocket::GetAdapter(pr_fd_);
-    if (!adapter_) return false;
-
-    return true;
-  }
-
   void SetPeer(std::shared_ptr<TlsAgent>& peer) {
     adapter_->SetPeer(peer->adapter_);
   }
@@ -189,7 +179,7 @@ class TlsAgent : public PollTarget {
   static const char* state_str(State state) { return states[state]; }
 
   PRFileDesc* ssl_fd() const { return ssl_fd_; }
-  DummyPrSocket* adapter() { return adapter_; }
+  std::shared_ptr<DummyPrSocket>& adapter() { return adapter_; }
 
   bool is_compressed() const {
     return info_.compressionMethod != ssl_compression_null;
@@ -352,11 +342,10 @@ class TlsAgent : public PollTarget {
 
   const std::string name_;
   Mode mode_;
-  uint16_t server_key_bits_;
-  PRFileDesc* pr_fd_;
-  DummyPrSocket* adapter_;
-  PRFileDesc* ssl_fd_;
   Role role_;
+  uint16_t server_key_bits_;
+  std::shared_ptr<DummyPrSocket> adapter_;
+  PRFileDesc* ssl_fd_;
   State state_;
   Poller::Timer* timer_handle_;
   bool falsestart_enabled_;
@@ -391,12 +380,11 @@ class TlsAgentTestBase : public ::testing::Test {
   static ::testing::internal::ParamGenerator<std::string> kTlsRolesAll;
 
   TlsAgentTestBase(TlsAgent::Role role, Mode mode)
-      : agent_(nullptr), fd_(nullptr), role_(role), mode_(mode) {}
-  ~TlsAgentTestBase() {
-    if (fd_) {
-      PR_Close(fd_);
-    }
-  }
+      : agent_(nullptr),
+        role_(role),
+        mode_(mode),
+        sink_adapter_(new DummyPrSocket("sink", mode)) {}
+  virtual ~TlsAgentTestBase() {}
 
   void SetUp();
   void TearDown();
@@ -430,10 +418,11 @@ class TlsAgentTestBase : public ::testing::Test {
   void ProcessMessage(const DataBuffer& buffer, TlsAgent::State expected_state,
                       int32_t error_code = 0);
 
-  TlsAgent* agent_;
-  PRFileDesc* fd_;
+  std::unique_ptr<TlsAgent> agent_;
   TlsAgent::Role role_;
   Mode mode_;
+  // This adapter is here just to accept packets from this agent.
+  std::shared_ptr<DummyPrSocket> sink_adapter_;
 };
 
 class TlsAgentTest : public TlsAgentTestBase,

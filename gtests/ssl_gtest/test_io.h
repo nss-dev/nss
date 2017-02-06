@@ -50,14 +50,19 @@ inline std::ostream& operator<<(std::ostream& os, Mode m) {
 
 class DummyPrSocket {
  public:
+  DummyPrSocket(const std::string& name, Mode mode)
+      : name_(name),
+        mode_(mode),
+        peer_(),
+        input_(),
+        filter_(nullptr),
+        writeable_(true) {}
   ~DummyPrSocket();
 
-  static PRFileDesc* CreateFD(const std::string& name,
-                              Mode mode);  // Returns an FD.
-  static DummyPrSocket* GetAdapter(PRFileDesc* fd);
+  PRFileDesc* CreateFD();
 
-  DummyPrSocket* peer() const { return peer_; }
-  void SetPeer(DummyPrSocket* peer) { peer_ = peer; }
+  std::weak_ptr<DummyPrSocket>& peer() { return peer_; }
+  void SetPeer(const std::shared_ptr<DummyPrSocket>& peer) { peer_ = peer; }
   void SetPacketFilter(std::shared_ptr<PacketFilter> filter);
   // Drops peer, packet filter and any outstanding packets.
   void Reset();
@@ -72,17 +77,9 @@ class DummyPrSocket {
   bool readable() const { return !input_.empty(); }
 
  private:
-  DummyPrSocket(const std::string& name, Mode mode)
-      : name_(name),
-        mode_(mode),
-        peer_(nullptr),
-        input_(),
-        filter_(nullptr),
-        writeable_(true) {}
-
   const std::string name_;
   Mode mode_;
-  DummyPrSocket* peer_;
+  std::weak_ptr<DummyPrSocket> peer_;
   std::queue<Packet*> input_;
   std::shared_ptr<PacketFilter> filter_;
   bool writeable_;
@@ -111,9 +108,9 @@ class Poller {
     PollCallback callback_;
   };
 
-  void Wait(Event event, DummyPrSocket* adapter, PollTarget* target,
-            PollCallback cb);
-  void Cancel(Event event, DummyPrSocket* adapter);
+  void Wait(Event event, std::shared_ptr<DummyPrSocket>& adapter,
+            PollTarget* target, PollCallback cb);
+  void Cancel(Event event, std::shared_ptr<DummyPrSocket>& adapter);
   void SetTimer(uint32_t timer_ms, PollTarget* target, PollCallback cb,
                 Timer** handle);
   bool Poll();
@@ -124,13 +121,13 @@ class Poller {
 
   class Waiter {
    public:
-    Waiter(DummyPrSocket* io) : io_(io) {
+    Waiter(std::shared_ptr<DummyPrSocket> io) : io_(io) {
       memset(&callbacks_[0], 0, sizeof(callbacks_));
     }
 
     void WaitFor(Event event, PollCallback callback);
 
-    DummyPrSocket* io_;
+    std::shared_ptr<DummyPrSocket> io_;
     PollTarget* targets_[TIMER_EVENT];
     PollCallback callbacks_[TIMER_EVENT];
   };
@@ -143,7 +140,7 @@ class Poller {
   };
 
   static Poller* instance;
-  std::map<DummyPrSocket*, Waiter*> waiters_;
+  std::map<std::shared_ptr<DummyPrSocket>, std::unique_ptr<Waiter>> waiters_;
   std::priority_queue<Timer*, std::vector<Timer*>, TimerComparator> timers_;
 };
 

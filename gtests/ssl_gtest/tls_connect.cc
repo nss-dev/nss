@@ -188,9 +188,6 @@ void TlsConnectTestBase::TearDown() {
 }
 
 void TlsConnectTestBase::Init() {
-  EXPECT_TRUE(client_->Init());
-  EXPECT_TRUE(server_->Init());
-
   client_->SetPeer(server_);
   server_->SetPeer(client_);
 
@@ -498,10 +495,6 @@ void TlsConnectTestBase::EnsureModelSockets() {
     server_model_.reset(
         new TlsAgent(TlsAgent::kServerRsa, TlsAgent::SERVER, mode_));
   }
-
-  // Initialise agents.
-  ASSERT_TRUE(client_model_->Init());
-  ASSERT_TRUE(server_model_->Init());
 }
 
 void TlsConnectTestBase::CheckAlpn(const std::string& val) {

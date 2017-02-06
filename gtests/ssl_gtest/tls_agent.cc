@@ -46,11 +46,10 @@ const std::string TlsAgent::kServerDsa = "dsa";
 TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode)
     : name_(name),
       mode_(mode),
-      server_key_bits_(0),
-      pr_fd_(nullptr),
-      adapter_(nullptr),
-      ssl_fd_(nullptr),
       role_(role),
+      server_key_bits_(0),
+      adapter_(new DummyPrSocket(role_str(), mode)),
+      ssl_fd_(nullptr),
       state_(STATE_INIT),
       timer_handle_(nullptr),
       falsestart_enabled_(false),
@@ -78,16 +77,12 @@ TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode)
 }
 
 TlsAgent::~TlsAgent() {
-  if (adapter_) {
-    Poller::Instance()->Cancel(READABLE_EVENT, adapter_);
-    // The adapter is closed when the FD closes.
-  }
   if (timer_handle_) {
     timer_handle_->Cancel();
   }
 
-  if (pr_fd_) {
-    PR_Close(pr_fd_);
+  if (adapter_) {
+    Poller::Instance()->Cancel(READABLE_EVENT, adapter_);
   }
 
   if (ssl_fd_) {
@@ -143,15 +138,22 @@ bool TlsAgent::EnsureTlsSetup(PRFileDesc* modelSocket) {
   // Don't set up twice
   if (ssl_fd_) return true;
 
+  ScopedPRFileDesc dummy_fd(adapter_->CreateFD());
+  EXPECT_NE(nullptr, dummy_fd);
+  if (!dummy_fd) {
+    return false;
+  }
   if (adapter_->mode() == STREAM) {
-    ssl_fd_ = SSL_ImportFD(modelSocket, pr_fd_);
+    ssl_fd_ = SSL_ImportFD(modelSocket, dummy_fd.get());
   } else {
-    ssl_fd_ = DTLS_ImportFD(modelSocket, pr_fd_);
+    ssl_fd_ = DTLS_ImportFD(modelSocket, dummy_fd.get());
   }
 
   EXPECT_NE(nullptr, ssl_fd_);
-  if (!ssl_fd_) return false;
-  pr_fd_ = nullptr;
+  if (!ssl_fd_) {
+    return false;
+  }
+  dummy_fd.release();  // Now subsumed by ssl_fd_.
 
   SECStatus rv = SSL_VersionRangeSet(ssl_fd_, &vrange_);
   EXPECT_EQ(SECSuccess, rv);
@@ -795,7 +797,12 @@ void TlsAgent::StartRenegotiate() {
 
 void TlsAgent::SendDirect(const DataBuffer& buf) {
   LOG("Send Direct " << buf);
-  adapter_->peer()->PacketReceived(buf);
+  auto peer = adapter_->peer().lock();
+  if (peer) {
+    peer->PacketReceived(buf);
+  } else {
+    LOG("Send Direct peer absent");
+  }
 }
 
 static bool ErrorIsNonFatal(PRErrorCode code) {
@@ -894,29 +901,22 @@ void TlsAgentTestBase::SetUp() {
 }
 
 void TlsAgentTestBase::TearDown() {
-  delete agent_;
+  agent_ = nullptr;
   SSL_ClearSessionCache();
   SSL_ShutdownServerSessionIDCache();
 }
 
 void TlsAgentTestBase::Reset(const std::string& server_name) {
-  delete agent_;
-  Init(server_name);
-}
-
-void TlsAgentTestBase::Init(const std::string& server_name) {
-  agent_ =
+  agent_.reset(
       new TlsAgent(role_ == TlsAgent::CLIENT ? TlsAgent::kClient : server_name,
-                   role_, mode_);
-  agent_->Init();
-  fd_ = DummyPrSocket::CreateFD(agent_->role_str(), mode_);
-  agent_->adapter()->SetPeer(DummyPrSocket::GetAdapter(fd_));
+                   role_, mode_));
+  agent_->adapter()->SetPeer(sink_adapter_);
   agent_->StartConnect();
 }
 
 void TlsAgentTestBase::EnsureInit() {
   if (!agent_) {
-    Init();
+    Reset();
   }
   const std::vector<SSLNamedGroup> groups = {
       ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1,
