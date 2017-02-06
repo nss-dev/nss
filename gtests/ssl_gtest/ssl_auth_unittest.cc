@@ -79,7 +79,8 @@ TEST_P(TlsConnectGeneric, ClientAuthBigRsa) {
 // Offset is the position in the captured buffer where the signature sits.
 static void CheckSigScheme(
     std::shared_ptr<TlsInspectorRecordHandshakeMessage>& capture, size_t offset,
-    TlsAgent* peer, uint16_t expected_scheme, size_t expected_size) {
+    std::shared_ptr<TlsAgent>& peer, uint16_t expected_scheme,
+    size_t expected_size) {
   EXPECT_LT(offset + 2U, capture->buffer().len());
 
   uint32_t scheme = 0;
@@ -370,7 +371,8 @@ class BeforeFinished : public TlsRecordFilter {
   enum HandshakeState { BEFORE_CCS, AFTER_CCS, DONE };
 
  public:
-  BeforeFinished(TlsAgent* client, TlsAgent* server, VoidFunction before_ccs,
+  BeforeFinished(std::shared_ptr<TlsAgent>& client,
+                 std::shared_ptr<TlsAgent>& server, VoidFunction before_ccs,
                  VoidFunction before_finished)
       : client_(client),
         server_(server),
@@ -393,8 +395,8 @@ class BeforeFinished : public TlsRecordFilter {
           // but that means that they both get processed together.
           DataBuffer ccs;
           header.Write(&ccs, 0, body);
-          server_->SendDirect(ccs);
-          client_->Handshake();
+          server_.lock()->SendDirect(ccs);
+          client_.lock()->Handshake();
           state_ = AFTER_CCS;
           // Request that the original record be dropped by the filter.
           return DROP;
@@ -417,8 +419,8 @@ class BeforeFinished : public TlsRecordFilter {
   }
 
  private:
-  TlsAgent* client_;
-  TlsAgent* server_;
+  std::weak_ptr<TlsAgent> client_;
+  std::weak_ptr<TlsAgent> server_;
   VoidFunction before_ccs_;
   VoidFunction before_finished_;
   HandshakeState state_;
@@ -443,7 +445,8 @@ class BeforeFinished13 : public PacketFilter {
   };
 
  public:
-  BeforeFinished13(TlsAgent* client, TlsAgent* server,
+  BeforeFinished13(std::shared_ptr<TlsAgent>& client,
+                   std::shared_ptr<TlsAgent>& server,
                    VoidFunction before_finished)
       : client_(client),
         server_(server),
@@ -457,7 +460,7 @@ class BeforeFinished13 : public PacketFilter {
       case 1:
         // Packet 1 is the server's entire first flight.  Drop it.
         EXPECT_EQ(SECSuccess,
-                  SSLInt_SetMTU(server_->ssl_fd(), input.len() - 1));
+                  SSLInt_SetMTU(server_.lock()->ssl_fd(), input.len() - 1));
         return DROP;
 
       // Packet 2 is the first part of the server's retransmitted first
@@ -467,7 +470,7 @@ class BeforeFinished13 : public PacketFilter {
         // Packet 3 is the second part of the server's retransmitted first
         // flight.  Before passing that on, make sure that the client processes
         // packet 2, then call the before_finished_() callback.
-        client_->Handshake();
+        client_.lock()->Handshake();
         before_finished_();
         break;
 
@@ -478,8 +481,8 @@ class BeforeFinished13 : public PacketFilter {
   }
 
  private:
-  TlsAgent* client_;
-  TlsAgent* server_;
+  std::weak_ptr<TlsAgent> client_;
+  std::weak_ptr<TlsAgent> server_;
   VoidFunction before_finished_;
   size_t records_;
 };
@@ -516,7 +519,7 @@ TEST_F(TlsConnectDatagram13, AuthCompleteAfterFinished) {
       [this](TlsAgent*, PRBool, PRBool) -> SECStatus {
         Poller::Timer* timer_handle;
         // This is really just to unroll the stack.
-        Poller::Instance()->SetTimer(1U, client_, TriggerAuthComplete,
+        Poller::Instance()->SetTimer(1U, client_.get(), TriggerAuthComplete,
                                      &timer_handle);
         return SECWouldBlock;
       });
@@ -729,7 +732,7 @@ class TlsSignatureSchemeConfiguration
         signature_scheme_(std::get<4>(GetParam())) {}
 
  protected:
-  void TestSignatureSchemeConfig(TlsAgent* configPeer) {
+  void TestSignatureSchemeConfig(std::shared_ptr<TlsAgent>& configPeer) {
     EnsureTlsSetup();
     configPeer->SetSignatureSchemes(&signature_scheme_, 1);
     Connect();

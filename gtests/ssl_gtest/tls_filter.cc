@@ -576,8 +576,8 @@ PacketFilter::Action AfterRecordN::FilterRecord(const TlsRecordHeader& header,
   if (counter_++ == record_) {
     DataBuffer buf;
     header.Write(&buf, 0, body);
-    src_->SendDirect(buf);
-    dest_->Handshake();
+    src_.lock()->SendDirect(buf);
+    dest_.lock()->Handshake();
     func_();
     return DROP;
   }
@@ -590,7 +590,7 @@ PacketFilter::Action TlsInspectorClientHelloVersionChanger::FilterHandshake(
     DataBuffer* output) {
   if (header.handshake_type() == kTlsHandshakeClientKeyExchange) {
     EXPECT_EQ(SECSuccess,
-              SSLInt_IncrementClientHandshakeVersion(server_->ssl_fd()));
+              SSLInt_IncrementClientHandshakeVersion(server_.lock()->ssl_fd()));
   }
   return KEEP;
 }

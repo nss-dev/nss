@@ -171,10 +171,7 @@ TEST_F(TlsConnectTest, Select12AfterHelloRetryRequest) {
 
   // Here we replace the TLS server with one that does TLS 1.2 only.
   // This will happily send the client a TLS 1.2 ServerHello.
-  TlsAgent* replacement_server =
-      new TlsAgent(server_->name(), TlsAgent::SERVER, mode_);
-  delete server_;
-  server_ = replacement_server;
+  server_.reset(new TlsAgent(server_->name(), TlsAgent::SERVER, mode_));
   server_->Init();
   client_->SetPeer(server_);
   server_->SetPeer(client_);

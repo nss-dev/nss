@@ -44,6 +44,8 @@ const extern std::vector<SSLNamedGroup> kECDHEGroups;
 const extern std::vector<SSLNamedGroup> kFFDHEGroups;
 const extern std::vector<SSLNamedGroup> kFasterDHEGroups;
 
+// These functions are called from callbacks.  They use bare pointers because
+// TlsAgent sets up the callback and it doesn't know who owns it.
 typedef std::function<SECStatus(TlsAgent* agent, bool checksig, bool isServer)>
     AuthCertificateCallbackFunction;
 
@@ -85,7 +87,9 @@ class TlsAgent : public PollTarget {
     return true;
   }
 
-  void SetPeer(TlsAgent* peer) { adapter_->SetPeer(peer->adapter_); }
+  void SetPeer(std::shared_ptr<TlsAgent>& peer) {
+    adapter_->SetPeer(peer->adapter_);
+  }
 
   void SetTlsRecordFilter(std::shared_ptr<TlsRecordFilter> filter) {
     filter->SetAgent(this);
