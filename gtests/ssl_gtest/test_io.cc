@@ -52,10 +52,8 @@ class Packet : public DataBuffer {
 
 // Implementation of NSPR methods
 static PRStatus DummyClose(PRFileDesc *f) {
-  DummyPrSocket *io = reinterpret_cast<DummyPrSocket *>(f->secret);
   f->secret = nullptr;
   f->dtor(f);
-  delete io;
   return PR_SUCCESS;
 }
 
@@ -74,7 +72,7 @@ static int32_t DummyAvailable(PRFileDesc *f) {
   return -1;
 }
 
-int64_t DummyAvailable64(PRFileDesc *f) {
+static int64_t DummyAvailable64(PRFileDesc *f) {
   UNIMPLEMENTED();
   return -1;
 }
@@ -265,10 +263,7 @@ void DummyPrSocket::SetPacketFilter(std::shared_ptr<PacketFilter> filter) {
 }
 
 void DummyPrSocket::Reset() {
-  if (peer_) {
-    peer_->SetPeer(nullptr);
-    peer_ = nullptr;
-  }
+  peer_.reset();
   while (!input_.empty()) {
     Packet *front = input_.front();
     input_.pop();
@@ -296,19 +291,14 @@ static const struct PRIOMethods DummyMethods = {
     DummyReserved,      DummyReserved,
     DummyReserved,      DummyReserved};
 
-PRFileDesc *DummyPrSocket::CreateFD(const std::string &name, Mode mode) {
+PRFileDesc *DummyPrSocket::CreateFD() {
   if (test_fd_identity == PR_INVALID_IO_LAYER) {
     test_fd_identity = PR_GetUniqueIdentity("testtransportadapter");
   }
 
-  PRFileDesc *fd = (PR_CreateIOLayerStub(test_fd_identity, &DummyMethods));
-  fd->secret = reinterpret_cast<PRFilePrivate *>(new DummyPrSocket(name, mode));
-
+  PRFileDesc *fd = PR_CreateIOLayerStub(test_fd_identity, &DummyMethods);
+  fd->secret = reinterpret_cast<PRFilePrivate *>(this);
   return fd;
-}
-
-DummyPrSocket *DummyPrSocket::GetAdapter(PRFileDesc *fd) {
-  return reinterpret_cast<DummyPrSocket *>(fd->secret);
 }
 
 void DummyPrSocket::PacketReceived(const DataBuffer &packet) {
@@ -367,7 +357,8 @@ int32_t DummyPrSocket::Recv(void *buf, int32_t buflen) {
 }
 
 int32_t DummyPrSocket::Write(const void *buf, int32_t length) {
-  if (!peer_ || !writeable_) {
+  auto peer = peer_.lock();
+  if (!peer || !writeable_) {
     PR_SetError(PR_IO_ERROR, 0);
     return -1;
   }
@@ -383,14 +374,14 @@ int32_t DummyPrSocket::Write(const void *buf, int32_t length) {
     case PacketFilter::CHANGE:
       LOG("Original packet: " << packet);
       LOG("Filtered packet: " << filtered);
-      peer_->PacketReceived(filtered);
+      peer->PacketReceived(filtered);
       break;
     case PacketFilter::DROP:
       LOG("Droppped packet: " << packet);
       break;
     case PacketFilter::KEEP:
       LOGV("Packet: " << packet);
-      peer_->PacketReceived(packet);
+      peer->PacketReceived(packet);
       break;
   }
   // libssl can't handle it if this reports something other than the length
@@ -419,35 +410,31 @@ Poller::~Poller() {
   }
 }
 
-void Poller::Wait(Event event, DummyPrSocket *adapter, PollTarget *target,
-                  PollCallback cb) {
-  auto it = waiters_.find(adapter);
-  Waiter *waiter;
-
-  if (it == waiters_.end()) {
-    waiter = new Waiter(adapter);
-  } else {
-    waiter = it->second;
-  }
-
+void Poller::Wait(Event event, std::shared_ptr<DummyPrSocket> &adapter,
+                  PollTarget *target, PollCallback cb) {
   assert(event < TIMER_EVENT);
   if (event >= TIMER_EVENT) return;
 
+  std::unique_ptr<Waiter> waiter;
+  auto it = waiters_.find(adapter);
+  if (it == waiters_.end()) {
+    waiter.reset(new Waiter(adapter));
+  } else {
+    waiter = std::move(it->second);
+  }
+
   waiter->targets_[event] = target;
   waiter->callbacks_[event] = cb;
-  waiters_[adapter] = waiter;
+  waiters_[adapter] = std::move(waiter);
 }
 
-void Poller::Cancel(Event event, DummyPrSocket *adapter) {
+void Poller::Cancel(Event event, std::shared_ptr<DummyPrSocket> &adapter) {
   auto it = waiters_.find(adapter);
-  Waiter *waiter;
-
   if (it == waiters_.end()) {
     return;
   }
 
-  waiter = it->second;
-
+  auto &waiter = it->second;
   waiter->targets_[event] = nullptr;
   waiter->callbacks_[event] = nullptr;
 
@@ -456,7 +443,6 @@ void Poller::Cancel(Event event, DummyPrSocket *adapter) {
     if (waiter->callbacks_[i]) return;
   }
 
-  delete waiter;
   waiters_.erase(adapter);
 }
 
@@ -489,7 +475,7 @@ bool Poller::Poll() {
   }
 
   for (auto it = waiters_.begin(); it != waiters_.end(); ++it) {
-    Waiter *waiter = it->second;
+    auto &waiter = it->second;
 
     if (waiter->callbacks_[READABLE_EVENT]) {
       if (waiter->io_->readable()) {
