@@ -14,13 +14,13 @@
 #include <queue>
 #include <string>
 
+#include "databuffer.h"
 #include "prio.h"
 #include "scoped_ptrs.h"
 
 namespace nss_test {
 
 class DataBuffer;
-class Packet;
 class DummyPrSocket;  // Fwd decl.
 
 // Allow us to inspect a packet before it is written.
@@ -58,7 +58,7 @@ class DummyPrSocket {
         input_(),
         filter_(nullptr),
         writeable_(true) {}
-  ~DummyPrSocket();
+  virtual ~DummyPrSocket() {}
 
   // Create a file descriptor that will reference this object.  The fd must not
   // live longer than this adapter; call PR_Close() before.
@@ -80,10 +80,26 @@ class DummyPrSocket {
   bool readable() const { return !input_.empty(); }
 
  private:
+  class Packet : public DataBuffer {
+   public:
+    Packet(const DataBuffer& buf) : DataBuffer(buf), offset_(0) {}
+
+    void Advance(size_t delta) {
+      PR_ASSERT(offset_ + delta <= len());
+      offset_ = std::min(len(), offset_ + delta);
+    }
+
+    size_t offset() const { return offset_; }
+    size_t remaining() const { return len() - offset_; }
+
+   private:
+    size_t offset_;
+  };
+
   const std::string name_;
   Mode mode_;
   std::weak_ptr<DummyPrSocket> peer_;
-  std::queue<Packet*> input_;
+  std::queue<Packet> input_;
   std::shared_ptr<PacketFilter> filter_;
   bool writeable_;
 };

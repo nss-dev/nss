@@ -15,8 +15,6 @@
 #include "prlog.h"
 #include "prthread.h"
 
-#include "databuffer.h"
-
 extern bool g_ssl_gtest_verbose;
 
 namespace nss_test {
@@ -33,22 +31,6 @@ static PRDescIdentity test_fd_identity = PR_INVALID_IO_LAYER;
   do {                               \
     if (g_ssl_gtest_verbose) LOG(a); \
   } while (false)
-
-class Packet : public DataBuffer {
- public:
-  Packet(const DataBuffer &buf) : DataBuffer(buf), offset_(0) {}
-
-  void Advance(size_t delta) {
-    PR_ASSERT(offset_ + delta <= len());
-    offset_ = std::min(len(), offset_ + delta);
-  }
-
-  size_t offset() const { return offset_; }
-  size_t remaining() const { return len() - offset_; }
-
- private:
-  size_t offset_;
-};
 
 // Implementation of NSPR methods
 static PRStatus DummyClose(PRFileDesc *f) {
@@ -130,11 +112,7 @@ static PRStatus DummyListen(PRFileDesc *f, int32_t depth) {
   return PR_FAILURE;
 }
 
-static PRStatus DummyShutdown(PRFileDesc *f, int32_t how) {
-  DummyPrSocket *io = reinterpret_cast<DummyPrSocket *>(f->secret);
-  io->Reset();
-  return PR_SUCCESS;
-}
+static PRStatus DummyShutdown(PRFileDesc *f, int32_t how) { return PR_SUCCESS; }
 
 // This function does not support peek.
 static int32_t DummyRecv(PRFileDesc *f, void *buf, int32_t buflen,
@@ -256,19 +234,8 @@ static int32_t DummyReserved(PRFileDesc *f) {
   return -1;
 }
 
-DummyPrSocket::~DummyPrSocket() { Reset(); }
-
 void DummyPrSocket::SetPacketFilter(std::shared_ptr<PacketFilter> filter) {
   filter_ = filter;
-}
-
-void DummyPrSocket::Reset() {
-  peer_.reset();
-  while (!input_.empty()) {
-    Packet *front = input_.front();
-    input_.pop();
-    delete front;
-  }
 }
 
 static const struct PRIOMethods DummyMethods = {
@@ -302,7 +269,7 @@ ScopedPRFileDesc DummyPrSocket::CreateFD() {
 }
 
 void DummyPrSocket::PacketReceived(const DataBuffer &packet) {
-  input_.push(new Packet(packet));
+  input_.push(Packet(packet));
 }
 
 int32_t DummyPrSocket::Read(void *data, int32_t len) {
@@ -319,16 +286,15 @@ int32_t DummyPrSocket::Read(void *data, int32_t len) {
     return -1;
   }
 
-  Packet *front = input_.front();
+  auto &front = input_.front();
   size_t to_read =
-      std::min(static_cast<size_t>(len), front->len() - front->offset());
-  memcpy(data, static_cast<const void *>(front->data() + front->offset()),
+      std::min(static_cast<size_t>(len), front.len() - front.offset());
+  memcpy(data, static_cast<const void *>(front.data() + front.offset()),
          to_read);
-  front->Advance(to_read);
+  front.Advance(to_read);
 
-  if (!front->remaining()) {
+  if (!front.remaining()) {
     input_.pop();
-    delete front;
   }
 
   return static_cast<int32_t>(to_read);
@@ -340,19 +306,17 @@ int32_t DummyPrSocket::Recv(void *buf, int32_t buflen) {
     return -1;
   }
 
-  Packet *front = input_.front();
-  if (static_cast<size_t>(buflen) < front->len()) {
+  auto &front = input_.front();
+  if (static_cast<size_t>(buflen) < front.len()) {
     PR_ASSERT(false);
     PR_SetError(PR_BUFFER_OVERFLOW_ERROR, 0);
     return -1;
   }
 
-  size_t count = front->len();
-  memcpy(buf, front->data(), count);
+  size_t count = front.len();
+  memcpy(buf, front.data(), count);
 
   input_.pop();
-  delete front;
-
   return static_cast<int32_t>(count);
 }
 
