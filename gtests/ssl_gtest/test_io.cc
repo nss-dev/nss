@@ -402,14 +402,6 @@ void Poller::Shutdown() {
   instance = nullptr;
 }
 
-Poller::~Poller() {
-  while (!timers_.empty()) {
-    Timer *timer = timers_.top();
-    timers_.pop();
-    delete timer;
-  }
-}
-
 void Poller::Wait(Event event, std::shared_ptr<DummyPrSocket> &adapter,
                   PollTarget *target, PollCallback cb) {
   assert(event < TIMER_EVENT);
@@ -447,8 +439,8 @@ void Poller::Cancel(Event event, std::shared_ptr<DummyPrSocket> &adapter) {
 }
 
 void Poller::SetTimer(uint32_t timer_ms, PollTarget *target, PollCallback cb,
-                      Timer **timer) {
-  Timer *t = new Timer(PR_Now() + timer_ms * 1000, target, cb);
+                      std::shared_ptr<Timer> *timer) {
+  auto t = std::make_shared<Timer>(PR_Now() + timer_ms * 1000, target, cb);
   timers_.push(t);
   if (timer) *timer = t;
 }
@@ -464,7 +456,7 @@ bool Poller::Poll() {
 
   // Figure out the timer for the select.
   if (!timers_.empty()) {
-    Timer *first_timer = timers_.top();
+    auto first_timer = timers_.top();
     if (now >= first_timer->deadline_) {
       // Timer expired.
       timeout = PR_INTERVAL_NO_WAIT;
@@ -504,12 +496,11 @@ bool Poller::Poll() {
   while (!timers_.empty()) {
     if (now < timers_.top()->deadline_) break;
 
-    Timer *timer = timers_.top();
+    auto timer = timers_.top();
     timers_.pop();
     if (timer->callback_) {
       timer->callback_(timer->target_, TIMER_EVENT);
     }
-    delete timer;
   }
 
   return true;
