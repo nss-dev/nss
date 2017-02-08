@@ -105,7 +105,8 @@ TEST_P(TlsConnectTls13, SecondClientHelloRejectEarlyDataXtn) {
 
   // A new client that tries to resume with 0-RTT but doesn't send the
   // correct key share(s). The server will respond with an HRR.
-  auto orig_client = std::make_shared<TlsAgent>(client_->name(), TlsAgent::CLIENT, mode_);
+  auto orig_client =
+      std::make_shared<TlsAgent>(client_->name(), TlsAgent::CLIENT, mode_);
   client_.swap(orig_client);
   client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
                            SSL_LIBRARY_VERSION_TLS_1_3);
