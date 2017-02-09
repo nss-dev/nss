@@ -52,14 +52,9 @@
               ['exclude', '-fsanitize-coverage'],
             ],
           },
-          'direct_dependent_settings': {
-            'include_dirs': [
-              'libFuzzer',
-            ],
-          },
         }, {
           'type': 'none',
-          'direct_dependent_settings': {
+          'all_dependent_settings': {
             'libraries': ['-lFuzzingEngine'],
           }
         }]
