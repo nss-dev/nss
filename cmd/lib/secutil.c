@@ -3244,7 +3244,7 @@ SEC_PrintCertificateAndTrust(CERTCertificate *cert,
     slotList = PK11_GetAllSlotsForCert(cert, NULL);
     if (slotList) {
         PK11SlotListElement *se = PK11_GetFirstSafe(slotList);
-        for ( ; se; se = PK11_GetNextSafe(slotList, se, PR_FALSE)) {
+        for (; se; se = PK11_GetNextSafe(slotList, se, PR_FALSE)) {
             CK_OBJECT_HANDLE handle = PK11_FindCertInSlot(se->slot, cert, NULL);
             if (handle != CK_INVALID_HANDLE) {
                 PORT_SetError(0);
