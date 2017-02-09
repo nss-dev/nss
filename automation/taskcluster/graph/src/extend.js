@@ -326,7 +326,7 @@ async function scheduleFuzzing() {
 
   // Schedule fuzzing runs.
   let run_base = merge(base, {parent: task_build, kind: "test"});
-  let mpi_base = merge(run_base, {groupSymbol: "MPI"});
+  let mpi_base = merge(run_base, {group: "MPI"});
   scheduleFuzzingRun(run_base, "CertDN", "certDN", 4096);
   scheduleFuzzingRun(run_base, "Hash", "hash", 4096);
   scheduleFuzzingRun(run_base, "QuickDER", "quickder", 10000);
