@@ -29,6 +29,7 @@
         '<(DEPTH)/lib/certdb/certdb.gyp:certdb',
         '<(DEPTH)/lib/certhigh/certhigh.gyp:certhi',
         '<(DEPTH)/lib/cryptohi/cryptohi.gyp:cryptohi',
+        '<(DEPTH)/lib/ssl/ssl.gyp:ssl',
         '<(DEPTH)/lib/base/base.gyp:nssb',
         '<(DEPTH)/lib/dev/dev.gyp:nssdev',
         '<(DEPTH)/lib/pki/pki.gyp:nsspki',
@@ -244,6 +245,22 @@
       ],
     },
     {
+      'target_name': 'nssfuzz-tls-client',
+      'type': 'executable',
+      'sources': [
+        'tls_client_socket.cc',
+        'tls_client_target.cc',
+      ],
+      'dependencies': [
+        '<(DEPTH)/cpputil/cpputil.gyp:cpputil',
+        '<(DEPTH)/exports.gyp:nss_exports',
+        'fuzz_base',
+      ],
+      'include_dirs': [
+        '<(DEPTH)/lib/freebl',
+      ],
+    },
+    {
       'target_name': 'nssfuzz',
       'type': 'none',
       'dependencies': [
@@ -251,6 +268,7 @@
         'nssfuzz-hash',
         'nssfuzz-pkcs8',
         'nssfuzz-quickder',
+        'nssfuzz-tls-client',
       ],
       'conditions': [
         ['OS=="linux"', {

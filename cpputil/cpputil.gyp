@@ -3,24 +3,25 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 {
   'includes': [
-    '../../coreconf/config.gypi',
-    '../common/gtest.gypi',
+    '../coreconf/config.gypi',
   ],
   'targets': [
     {
-      'target_name': 'gtest',
+      'target_name': 'cpputil',
       'type': 'static_library',
       'sources': [
-        'gtest/src/gtest-all.cc'
+        'dummy_io.cc',
+        'dummy_io_fwd.cc',
       ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports',
+      ],
+      'direct_dependent_settings': {
+        'include_dirs': [
+          '<(DEPTH)/cpputil',
+        ],
+      },
     },
   ],
-  'target_defaults': {
-    'include_dirs': [
-      'gtest'
-    ],
-  },
-  'variables': {
-    'module': 'gtest'
-  }
 }
+

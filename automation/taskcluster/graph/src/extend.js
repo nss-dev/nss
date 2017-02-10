@@ -326,15 +326,21 @@ async function scheduleFuzzing() {
 
   // Schedule fuzzing runs.
   let run_base = merge(base, {parent: task_build, kind: "test"});
-  let mpi_base = merge(run_base, {group: "MPI"});
   scheduleFuzzingRun(run_base, "CertDN", "certDN", 4096);
   scheduleFuzzingRun(run_base, "Hash", "hash", 4096);
   scheduleFuzzingRun(run_base, "QuickDER", "quickder", 10000);
-  for (let mpi_name of ["add", "addmod", "div", "expmod", "mod", "mulmod",
-                        "sqr", "sqrmod", "sub", "submod"]) {
-    scheduleFuzzingRun(mpi_base, `MPI (${mpi_name})`, `mpi-${mpi_name}`,
-                       4096, mpi_name);
+
+  // Schedule MPI fuzzing runs.
+  let mpi_base = merge(run_base, {group: "MPI"});
+  let mpi_names = ["add", "addmod", "div", "expmod", "mod", "mulmod", "sqr",
+                   "sqrmod", "sub", "submod"];
+  for (let name of mpi_names) {
+    scheduleFuzzingRun(mpi_base, `MPI (${name})`, `mpi-${name}`, 4096, name);
   }
+
+  // Schedule TLS fuzzing runs.
+  let tls_base = merge(run_base, {group: "TLS"});
+  scheduleFuzzingRun(tls_base, "TLS Client", "tls-client", 20000, "client");
 
   return queue.submit();
 }
