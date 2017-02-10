@@ -143,6 +143,7 @@ class Poller {
   class Waiter {
    public:
     Waiter(std::shared_ptr<DummyPrSocket> io) : io_(io) {
+      memset(&targets_[0], 0, sizeof(targets_));
       memset(&callbacks_[0], 0, sizeof(callbacks_));
     }
 
