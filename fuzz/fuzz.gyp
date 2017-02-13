@@ -248,6 +248,7 @@
       'target_name': 'nssfuzz-tls-client',
       'type': 'executable',
       'sources': [
+        'tls_client_config.cc',
         'tls_client_socket.cc',
         'tls_client_target.cc',
       ],
