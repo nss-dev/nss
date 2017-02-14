@@ -3930,6 +3930,7 @@ struct {
     EXP(GetExtensionSupport),
     EXP(HelloRetryRequestCallback),
     EXP(InstallExtensionHooks),
+    EXP(KeyUpdate),
     EXP(SendSessionTicket),
     EXP(SetupAntiReplay),
 #endif

@@ -726,6 +726,10 @@ struct ssl3StateStr {
     ssl3CipherSpec *cwSpec; /* current write spec. */
     ssl3CipherSpec *pwSpec; /* pending write spec. */
 
+    /* This is true after the peer requests a key update; false after a key
+     * update is initiated locally. */
+    PRBool peerRequestedKeyUpdate;
+
     /* Internal callback for when we do a cipher suite change. Used for
      * debugging in TLS 1.3. This can only be set by non-public functions. */
     sslCipherSpecChangedFunc changedCipherSpecFunc;
