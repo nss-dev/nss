@@ -870,7 +870,6 @@ typedef struct SSL3HandshakeStateStr {
     TLS13CertificateRequest *certificateRequest;
     PRCList cipherSpecs;            /* The cipher specs in the sequence they
                                      * will be applied. */
-    ssl3CipherSpec *nullSpec;       /* In case 0-RTT is rejected. */
     sslZeroRttState zeroRttState;   /* Are we doing a 0-RTT handshake? */
     sslZeroRttIgnore zeroRttIgnore; /* Are we ignoring 0-RTT? */
     ssl3CipherSuite zeroRttSuite;   /* The cipher suite we used for 0-RTT. */
