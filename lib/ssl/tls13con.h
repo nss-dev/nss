@@ -101,13 +101,14 @@ SECStatus tls13_NegotiateVersion(sslSocket *ss,
 
 PRBool tls13_IsReplay(const sslSocket *ss, const sslSessionID *sid);
 void tls13_AntiReplayRollover(PRTime now);
+
 SECStatus SSLExp_SetupAntiReplay(PRTime window, unsigned int k,
                                  unsigned int bits);
 
 SECStatus SSLExp_HelloRetryRequestCallback(PRFileDesc *fd,
                                            SSLHelloRetryRequestCallback cb,
                                            void *arg);
-SECStatus SSLExp_UseAltHandshakeType(PRFileDesc *fd, PRBool enable);
+SECStatus SSLExp_KeyUpdate(PRFileDesc *fd, PRBool requestUpdate);
 PRBool tls13_MaybeTls13(sslSocket *ss);
 void tls13_SetSpecRecordVersion(sslSocket *ss, ssl3CipherSpec *spec);
 
