@@ -18,13 +18,18 @@ const WINDOWS_CHECKOUT_CMD =
 queue.filter(task => {
   if (task.group == "Builds") {
     // Remove extra builds on {A,UB}San and ARM.
-    if (task.collection == "asan" || task.collection == "arm-debug") {
+    if (task.collection == "asan" || task.platform == "aarch64") {
       return false;
     }
 
     // Remove extra builds w/o libpkix for non-linux64-debug.
     if (task.symbol == "noLibpkix" &&
         (task.platform != "linux64" || task.collection != "debug")) {
+      return false;
+    }
+
+    // Make modular builds only on Linux x64.
+    if (task.symbol == "modular" && task.platform != "linux64") {
       return false;
     }
   }
@@ -35,20 +40,15 @@ queue.filter(task => {
       return false;
     }
 
-    // No ARM
-    if (task.collection == "arm-debug") {
+    // No ARM; TODO: enable
+    if (task.platform == "aarch64") {
       return false;
     }
   }
 
-  // Temporarily disable SSL tests on ARM.
-  if (task.tests == "ssl" && task.collection == "arm-debug") {
-    return false;
-  }
-
   // GYP builds with -Ddisable_libpkix=1 by default.
-  if ((task.collection == "gyp" || task.collection == "asan") &&
-      task.tests == "chains") {
+  if ((task.collection == "gyp" || task.collection == "asan"
+       || task.platform == "aarch64") && task.tests == "chains") {
     return false;
   }
 
@@ -60,13 +60,6 @@ queue.map(task => {
     // CRMF and FIPS tests still leak, unfortunately.
     if (task.tests == "crmf" || task.tests == "fips") {
       task.env.ASAN_OPTIONS = "detect_leaks=0";
-    }
-  }
-
-  if (task.collection == "arm-debug") {
-    // These tests take quite some time on our poor ARM devices.
-    if (task.tests == "chains" || (task.tests == "ssl" && task.cycle == "standard")) {
-      task.maxRunTime = 14400;
     }
   }
 
@@ -149,15 +142,35 @@ export default async function main() {
 
   await scheduleTools();
 
-  await scheduleLinux("Linux 32 (ARM, debug)", {
-    image: "franziskus/nss-arm-ci",
+  let aarch64_base = {
+    image: "franziskus/nss-aarch64-ci",
     provisioner: "localprovisioner",
-    collection: "arm-debug",
-    workerType: "nss-rpi",
-    platform: "linux32",
-    maxRunTime: 7200,
-    tier: 3
-  });
+    workerType: "nss-aarch64",
+    platform: "aarch64",
+    maxRunTime: 7200
+  };
+
+  await scheduleLinux("Linux AArch64 (debug)",
+    merge({
+      command: [
+        "/bin/bash",
+        "-c",
+        "bin/checkout.sh && nss/automation/taskcluster/scripts/build_gyp.sh"
+      ],
+      collection: "debug",
+    }, aarch64_base)
+  );
+
+  await scheduleLinux("Linux AArch64 (opt)",
+    merge({
+      command: [
+        "/bin/bash",
+        "-c",
+        "bin/checkout.sh && nss/automation/taskcluster/scripts/build_gyp.sh --opt"
+      ],
+      collection: "opt",
+    }, aarch64_base)
+  );
 }
 
 /*****************************************************************************/
