@@ -260,6 +260,13 @@
       'include_dirs': [
         '<(DEPTH)/lib/freebl',
       ],
+      'conditions': [
+        [ 'fuzz_tls==1', {
+          'defines': [
+            'UNSAFE_FUZZER_MODE',
+          ],
+        }],
+      ],
     },
     {
       'target_name': 'nssfuzz',

@@ -105,9 +105,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
   EnableAllProtocolVersions();
   std::unique_ptr<ClientConfig> config(new ClientConfig(data, len));
 
+#ifdef UNSAFE_FUZZER_MODE
   // Reset the RNG state.
   SECStatus rv = RNG_ResetForFuzzing();
   assert(rv == SECSuccess);
+#endif
 
   // Create and import dummy socket.
   std::unique_ptr<DummyPrSocket> socket(new DummyPrSocket(data, len));
