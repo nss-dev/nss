@@ -264,7 +264,7 @@ async function scheduleLinux(name, base) {
 
 /*****************************************************************************/
 
-function scheduleFuzzingRun(base, name, target, max_len, symbol = null) {
+function scheduleFuzzingRun(base, name, target, max_len, symbol = null, corpus = null) {
   const MAX_FUZZ_TIME = 300;
 
   queue.scheduleTask(merge(base, {
@@ -273,7 +273,7 @@ function scheduleFuzzingRun(base, name, target, max_len, symbol = null) {
       "/bin/bash",
       "-c",
       "bin/checkout.sh && nss/automation/taskcluster/scripts/fuzz.sh " +
-        `${target} nss/fuzz/corpus/${target} ` +
+        `${target} nss/fuzz/corpus/${corpus || target} ` +
         `-max_total_time=${MAX_FUZZ_TIME} ` +
         `-max_len=${max_len}`
     ],
@@ -303,7 +303,7 @@ async function scheduleFuzzing() {
       "/bin/bash",
       "-c",
       "bin/checkout.sh && " +
-      "nss/automation/taskcluster/scripts/build_gyp.sh -g -v --fuzz=tls"
+      "nss/automation/taskcluster/scripts/build_gyp.sh -g -v --fuzz"
     ],
     artifacts: {
       public: {
@@ -321,9 +321,22 @@ async function scheduleFuzzing() {
     name: "Linux x64 (debug, fuzz)"
   }));
 
+  // The task that builds NSPR+NSS (TLS fuzzing mode).
+  let task_build_tls = queue.scheduleTask(merge(build_base, {
+    name: "Linux x64 (debug, TLS fuzz)",
+    symbol: "B",
+    group: "TLS",
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && " +
+      "nss/automation/taskcluster/scripts/build_gyp.sh -g -v --fuzz=tls"
+    ],
+  }));
+
   // Schedule tests.
   queue.scheduleTask(merge(base, {
-    parent: task_build,
+    parent: task_build_tls,
     name: "Gtests",
     command: [
       "/bin/bash",
@@ -351,9 +364,14 @@ async function scheduleFuzzing() {
     scheduleFuzzingRun(mpi_base, `MPI (${name})`, `mpi-${name}`, 4096, name);
   }
 
-  // Schedule TLS fuzzing runs.
+  // Schedule TLS fuzzing runs (non-fuzzing mode).
   let tls_base = merge(run_base, {group: "TLS"});
-  scheduleFuzzingRun(tls_base, "TLS Client", "tls-client", 20000, "client");
+  scheduleFuzzingRun(tls_base, "TLS Client", "tls-client", 20000, "client-nfm",
+                     "tls-client-no_fuzzer_mode");
+
+  // Schedule TLS fuzzing runs (fuzzing mode).
+  let tls_fm_base = merge(tls_base, {parent: task_build_tls});
+  scheduleFuzzingRun(tls_fm_base, "TLS Client", "tls-client", 20000, "client");
 
   return queue.submit();
 }
