@@ -3071,7 +3071,9 @@ ssl3_HandleNoCertificate(sslSocket *ss)
          (ss->opt.requireCertificate == SSL_REQUIRE_FIRST_HANDSHAKE))) {
         PRFileDesc *lower;
 
-        ss->sec.uncache(ss->sec.ci.sid);
+        if (!ss->opt.noCache) {
+            ss->sec.uncache(ss->sec.ci.sid);
+        }
         SSL3_SendAlert(ss, alert_fatal, bad_certificate);
 
         lower = ss->fd->lower;
