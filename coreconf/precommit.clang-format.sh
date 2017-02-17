@@ -43,7 +43,7 @@ if [ "$hg" -eq 1 ]; then
     files=($(hg status -m -a --rev tip^:tip | cut -f 2 -d ' ' -))
 fi
 if [ "$git" -eq 1 ]; then
-    files=($(git status --porcelain | sed '/^[MARCU]/{s/..//;p;};d'))
+    files=($(git status --porcelain | sed '/^[MACU]/{s/..//;p;};/^R/{s/^.* -> //;p;};d'))
 fi
 tmp=$(mktemp)
 trap 'rm -f "$tmp"' ERR EXIT
