@@ -850,6 +850,9 @@ ssl3_ClientHandleStatusRequestXtn(const sslSocket *ss, TLSExtensionData *xtnData
     return SECSuccess;
 }
 
+PRUint32 ssl_ticket_lifetime = 2 * 24 * 60 * 60; /* 2 days in seconds */
+#define TLS_EX_SESS_TICKET_VERSION (0x0103)
+
 /*
  * Called from ssl3_SendNewSessionTicket, tls13_SendNewSessionTicket
  */
@@ -1567,8 +1570,7 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
      * memory since the ticket is of no use.
      */
     if (parsed_session_ticket->timestamp != 0 &&
-        parsed_session_ticket->timestamp +
-                TLS_EX_SESS_TICKET_LIFETIME_HINT >
+        parsed_session_ticket->timestamp + ssl_ticket_lifetime >
             ssl_Time()) {
 
         sid = ssl3_NewSessionID(ss, PR_TRUE);
