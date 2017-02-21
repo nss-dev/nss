@@ -174,7 +174,6 @@ void TlsConnectTestBase::ClearServerCache() {
 void TlsConnectTestBase::SetUp() {
   SSL_ConfigServerSessionIDCache(1024, 0, 0, g_working_dir_path.c_str());
   SSLInt_ClearSessionTicketKey();
-  SSLInt_SetTicketLifetime(10);
   ClearStats();
   Init();
 }
