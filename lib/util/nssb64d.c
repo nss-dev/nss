@@ -705,7 +705,7 @@ NSSBase64_DecodeBuffer(PLArenaPool *arenaOpt, SECItem *outItemOpt,
     SECItem *out_item = NULL;
     PRUint32 max_out_len = 0;
     void *mark = NULL;
-    unsigned char *dummy;
+    unsigned char *dummy = NULL;
 
     if ((outItemOpt != NULL && outItemOpt->data != NULL) || inLen == 0) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
