@@ -219,16 +219,18 @@
               '-Wl,--gc-sections',
             ],
             'conditions': [
-              ['OS=="dragonfly" or OS=="freebsd" or OS=="netbsd" or OS=="openbsd"', {
-                # Bug 1321317 - unix_rand.c:880: undefined reference to `environ'
-                'ldflags': [
-                  '-Wl,--warn-unresolved-symbols',
-                ],
-              }],
               ['no_zdefs==0', {
                 'ldflags': [
                   '-Wl,-z,defs',
                 ],
+               'conditions': [
+                 ['OS=="dragonfly" or OS=="freebsd" or OS=="netbsd" or OS=="openbsd"', {
+                   # Bug 1321317 - unix_rand.c:880: undefined reference to `environ'
+                   'ldflags': [
+                     '-Wl,--warn-unresolved-symbols',
+                   ],
+                 }],
+               ],
               }],
             ],
           }],
