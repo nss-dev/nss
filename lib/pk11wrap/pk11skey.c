@@ -2214,7 +2214,7 @@ pk11_PubDeriveECKeyWithKDF(
      * try this again with an encoded public key */
     if (crv != CKR_OK) {
         /* For curves that only use X as public value and no encoding we don't
-         * have to try again. (Currently onlye Curve25519) */
+         * have to try again. (Currently only Curve25519) */
         if (pk11_ECGetPubkeyEncoding(pubKey) == ECPoint_XOnly) {
             goto loser;
         }
