@@ -314,12 +314,12 @@ FUZZ_P(TlsConnectGeneric, UnencryptedSessionTickets) {
             2;   /* TLS_EX_SESS_TICKET_VERSION */
 
   // Check the protocol version number.
-  uint32_t tls_version;
+  uint32_t tls_version = 0;
   EXPECT_TRUE(i1->buffer().Read(offset, sizeof(version_), &tls_version));
   EXPECT_EQ(version_, static_cast<decltype(version_)>(tls_version));
 
   // Check the cipher suite.
-  uint32_t suite;
+  uint32_t suite = 0;
   EXPECT_TRUE(i1->buffer().Read(offset + sizeof(version_), 2, &suite));
   client_->CheckCipherSuite(static_cast<uint16_t>(suite));
 }
