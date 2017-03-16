@@ -10,6 +10,7 @@
 #include "secder.h"
 #include "secitem.h"
 #include "nspr.h"
+#include "secutil.h"
 #include <stdio.h>
 
 typedef struct {
@@ -68,9 +69,9 @@ init_params(ECParams *ecParams, ECCurveName curve, PLArenaPool **arena,
     ecParams->DEREncoding.data = NULL;
     ecParams->DEREncoding.len = 0;
     ecParams->arena = *arena;
-    ecParams->fieldID.size = ecCurve_map[curve]->size;
+    ecParams->fieldID.size = ecCurve_mapB[curve]->size;
     ecParams->fieldID.type = type;
-    ecParams->cofactor = ecCurve_map[curve]->cofactor;
+    ecParams->cofactor = ecCurve_mapB[curve]->cofactor;
 
     return SECSuccess;
 }
@@ -88,26 +89,19 @@ ectest_ecdh_kat(ECDH_KAT *kat)
     SECItem answer = { siBuffer, NULL, 0 };
     SECItem answer2 = { siBuffer, NULL, 0 };
     SECItem derived = { siBuffer, NULL, 0 };
-    char genenc[3 + 2 * 2 * MAX_ECKEY_LEN];
+    SECItem ecEncodedParams = { siBuffer, NULL, 0 };
     int i;
 
-    rv = init_params(&ecParams, curve, &arena, kat->fieldType);
-    if (rv != SECSuccess) {
-        return rv;
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (!arena) {
+        return SECFailure;
     }
 
-    SECU_HexString2SECItem(arena, &ecParams.fieldID.u.prime, ecCurve_map[curve]->irr);
-    SECU_HexString2SECItem(arena, &ecParams.curve.a, ecCurve_map[curve]->curvea);
-    SECU_HexString2SECItem(arena, &ecParams.curve.b, ecCurve_map[curve]->curveb);
-    genenc[0] = '0';
-    genenc[1] = '4';
-    genenc[2] = '\0';
-    PORT_Assert(PR_ARRAY_SIZE(genenc) >= PORT_Strlen(ecCurve_map[curve]->genx));
-    PORT_Assert(PR_ARRAY_SIZE(genenc) >= PORT_Strlen(ecCurve_map[curve]->geny));
-    strcat(genenc, ecCurve_map[curve]->genx);
-    strcat(genenc, ecCurve_map[curve]->geny);
-    SECU_HexString2SECItem(arena, &ecParams.base, genenc);
-    SECU_HexString2SECItem(arena, &ecParams.order, ecCurve_map[curve]->order);
+    rv = SECU_ecName2params(curve, &ecEncodedParams);
+    if (rv != SECSuccess) {
+        goto cleanup;
+    }
+    EC_FillParams(arena, &ecEncodedParams, &ecParams);
 
     if (kat->our_pubhex) {
         SECU_HexString2SECItem(arena, &answer, kat->our_pubhex);

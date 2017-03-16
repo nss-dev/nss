@@ -18,6 +18,7 @@
 #include "basicutil.h"
 #include "sslerr.h"
 #include "sslt.h"
+#include "blapi.h"
 
 #define SEC_CT_PRIVATE_KEY "private-key"
 #define SEC_CT_PUBLIC_KEY "public-key"
@@ -411,6 +412,8 @@ extern SECItem *SECU_HexString2SECItem(PLArenaPool *arena, SECItem *item,
 SECStatus parseGroupList(const char *arg, SSLNamedGroup **enabledGroups,
                          unsigned int *enabledGroupsCount);
 SSLNamedGroup groupNameToNamedGroup(char *name);
+
+extern SECStatus SECU_ecName2params(ECCurveName curve, SECKEYECParams *params);
 
 /*
  *
