@@ -363,10 +363,12 @@
           [ 'fuzz_tls==1', {
             'cflags': [
               '-Wno-unused-function',
+              '-Wno-unused-variable',
             ],
             'xcode_settings': {
               'OTHER_CFLAGS': [
                 '-Wno-unused-function',
+                '-Wno-unused-variable',
               ],
             },
           }],
