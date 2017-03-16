@@ -2830,7 +2830,7 @@ print_td:
                 ECPrivateKey *key = (ECPrivateKey *)info->params.asymk.privKey;
                 ECCurveName curveName = key->ecParams.name;
                 fprintf(stdout, "%12s",
-                        ecCurve_map[curveName] ? ecCurve_map[curveName]->text : "Unsupported curve");
+                        ecCurve_mapB[curveName] ? ecCurve_mapB[curveName]->text : "Unsupported curve");
             }
             break;
 #endif
