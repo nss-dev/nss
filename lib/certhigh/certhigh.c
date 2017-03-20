@@ -11,7 +11,6 @@
 #include "cert.h"
 #include "certxutl.h"
 
-#include "certi.h"
 #include "nsspki.h"
 #include "pki.h"
 #include "pkit.h"
@@ -873,7 +872,6 @@ cert_ImportCAChain(SECItem *certs, int numcerts, SECCertUsage certUsage, PRBool 
     PRBool isca;
     char *nickname;
     unsigned int certtype;
-    PRBool istemp = PR_FALSE;
 
     handle = CERT_GetDefaultCertDB();
 
@@ -951,11 +949,7 @@ cert_ImportCAChain(SECItem *certs, int numcerts, SECCertUsage certUsage, PRBool 
         }
 
         /* if the cert is temp, make it perm; otherwise we're done */
-        rv = CERT_GetCertIsTemp(cert, &istemp);
-        if (rv != SECSuccess) {
-            goto loser;
-        }
-        if (istemp) {
+        if (cert->istemp) {
             /* get a default nickname for it */
             nickname = CERT_MakeCANickname(cert);
 
@@ -968,6 +962,9 @@ cert_ImportCAChain(SECItem *certs, int numcerts, SECCertUsage certUsage, PRBool 
         } else {
             rv = SECSuccess;
         }
+
+        CERT_DestroyCertificate(cert);
+        cert = NULL;
 
         if (rv != SECSuccess) {
             goto loser;
