@@ -54,7 +54,7 @@ TEST_P(TlsConnectStreamPre13, ConnectStaticRSABogusCKE) {
   client_->SetPacketFilter(i1);
   auto alert_recorder = std::make_shared<TlsAlertRecorder>();
   server_->SetPacketFilter(alert_recorder);
-  ConnectExpectFail();
+  ConnectExpectAlert(server_, kTlsAlertBadRecordMac);
   EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
   EXPECT_EQ(kTlsAlertBadRecordMac, alert_recorder->description());
 }
@@ -67,7 +67,7 @@ TEST_P(TlsConnectStreamPre13, ConnectStaticRSABogusPMSVersionDetect) {
       std::make_shared<TlsInspectorClientHelloVersionChanger>(server_));
   auto alert_recorder = std::make_shared<TlsAlertRecorder>();
   server_->SetPacketFilter(alert_recorder);
-  ConnectExpectFail();
+  ConnectExpectAlert(server_, kTlsAlertBadRecordMac);
   EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
   EXPECT_EQ(kTlsAlertBadRecordMac, alert_recorder->description());
 }
@@ -93,7 +93,7 @@ TEST_P(TlsConnectStreamPre13, ConnectExtendedMasterSecretStaticRSABogusCKE) {
   client_->SetPacketFilter(inspect);
   auto alert_recorder = std::make_shared<TlsAlertRecorder>();
   server_->SetPacketFilter(alert_recorder);
-  ConnectExpectFail();
+  ConnectExpectAlert(server_, kTlsAlertBadRecordMac);
   EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
   EXPECT_EQ(kTlsAlertBadRecordMac, alert_recorder->description());
 }
@@ -107,7 +107,7 @@ TEST_P(TlsConnectStreamPre13,
       std::make_shared<TlsInspectorClientHelloVersionChanger>(server_));
   auto alert_recorder = std::make_shared<TlsAlertRecorder>();
   server_->SetPacketFilter(alert_recorder);
-  ConnectExpectFail();
+  ConnectExpectAlert(server_, kTlsAlertBadRecordMac);
   EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
   EXPECT_EQ(kTlsAlertBadRecordMac, alert_recorder->description());
 }
