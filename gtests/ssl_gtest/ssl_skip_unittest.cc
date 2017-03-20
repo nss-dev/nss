@@ -90,7 +90,7 @@ class TlsSkipTest
     auto alert_recorder = std::make_shared<TlsAlertRecorder>();
     client_->SetPacketFilter(alert_recorder);
     server_->SetPacketFilter(filter);
-    ConnectExpectFail();
+    ConnectExpectAlert(client_, alert);
     EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
     EXPECT_EQ(alert, alert_recorder->description());
   }
@@ -106,7 +106,9 @@ class Tls13SkipTest : public TlsConnectTestBase,
     EnsureTlsSetup();
     server_->SetTlsRecordFilter(filter);
     filter->EnableDecryption();
+    client_->ExpectSendAlert(kTlsAlertUnexpectedMessage);
     if (mode_ == STREAM) {
+      server_->ExpectSendAlert(kTlsAlertBadRecordMac);
       ConnectExpectFail();
     } else {
       ConnectExpectFailOneSide(TlsAgent::CLIENT);
@@ -123,6 +125,7 @@ class Tls13SkipTest : public TlsConnectTestBase,
     EnsureTlsSetup();
     client_->SetTlsRecordFilter(filter);
     filter->EnableDecryption();
+    server_->ExpectSendAlert(kTlsAlertUnexpectedMessage);
     ConnectExpectFailOneSide(TlsAgent::SERVER);
 
     server_->CheckErrorCode(error);
@@ -211,17 +214,21 @@ TEST_P(Tls13SkipTest, SkipServerCertificateVerify) {
 TEST_P(Tls13SkipTest, SkipClientCertificate) {
   client_->SetupClientAuth();
   server_->RequestClientAuth(true);
+  client_->ExpectReceiveAlert(kTlsAlertUnexpectedMessage);
   ClientSkipTest(
       std::make_shared<TlsHandshakeSkipFilter>(kTlsHandshakeCertificate),
       SSL_ERROR_RX_UNEXPECTED_CERT_VERIFY);
+  client_->Handshake();  // Make sure to consume the alert.
 }
 
 TEST_P(Tls13SkipTest, SkipClientCertificateVerify) {
   client_->SetupClientAuth();
   server_->RequestClientAuth(true);
+  client_->ExpectReceiveAlert(kTlsAlertUnexpectedMessage);
   ClientSkipTest(
       std::make_shared<TlsHandshakeSkipFilter>(kTlsHandshakeCertificateVerify),
       SSL_ERROR_RX_UNEXPECTED_FINISHED);
+  client_->Handshake();  // Make sure to consume the alert.
 }
 
 INSTANTIATE_TEST_CASE_P(SkipTls10, TlsSkipTest,

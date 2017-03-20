@@ -48,7 +48,7 @@ TEST_P(TlsConnectGenericPre13, CipherSuiteMismatch) {
     client_->EnableSingleCipher(TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA);
     server_->EnableSingleCipher(TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA);
   }
-  ConnectExpectFail();
+  ConnectExpectAlert(server_, kTlsAlertHandshakeFailure);
   client_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
   server_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
 }
@@ -178,7 +178,7 @@ class TlsPreCCSHeaderInjector : public TlsRecordFilter {
 
 TEST_P(TlsConnectStreamPre13, ClientFinishedHeaderBeforeCCS) {
   client_->SetPacketFilter(std::make_shared<TlsPreCCSHeaderInjector>());
-  ConnectExpectFail();
+  ConnectExpectAlert(server_, kTlsAlertUnexpectedMessage);
   client_->CheckErrorCode(SSL_ERROR_HANDSHAKE_UNEXPECTED_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_UNEXPECTED_CHANGE_CIPHER);
 }
@@ -187,14 +187,18 @@ TEST_P(TlsConnectStreamPre13, ServerFinishedHeaderBeforeCCS) {
   server_->SetPacketFilter(std::make_shared<TlsPreCCSHeaderInjector>());
   client_->StartConnect();
   server_->StartConnect();
+  ExpectAlert(client_, kTlsAlertUnexpectedMessage);
   Handshake();
   EXPECT_EQ(TlsAgent::STATE_ERROR, client_->state());
   client_->CheckErrorCode(SSL_ERROR_RX_UNEXPECTED_CHANGE_CIPHER);
   EXPECT_EQ(TlsAgent::STATE_CONNECTED, server_->state());
+  server_->Handshake();  // Make sure alert is consumed.
 }
 
 TEST_P(TlsConnectTls13, UnknownAlert) {
   Connect();
+  server_->ExpectSendAlert(0xff, kTlsAlertWarning);
+  client_->ExpectReceiveAlert(0xff, kTlsAlertWarning);
   SSLInt_SendAlert(server_->ssl_fd(), kTlsAlertWarning,
                    0xff);  // Unknown value.
   client_->ExpectReadWriteError();
@@ -203,6 +207,8 @@ TEST_P(TlsConnectTls13, UnknownAlert) {
 
 TEST_P(TlsConnectTls13, AlertWrongLevel) {
   Connect();
+  server_->ExpectSendAlert(kTlsAlertUnexpectedMessage, kTlsAlertWarning);
+  client_->ExpectReceiveAlert(kTlsAlertUnexpectedMessage, kTlsAlertWarning);
   SSLInt_SendAlert(server_->ssl_fd(), kTlsAlertWarning,
                    kTlsAlertUnexpectedMessage);
   client_->ExpectReadWriteError();
