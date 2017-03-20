@@ -2865,18 +2865,7 @@ CERT_LockCertTrust(const CERTCertificate *cert)
 {
     PORT_Assert(certTrustLock != NULL);
     PZ_Lock(certTrustLock);
-}
-
-static PZLock *certTempPermLock = NULL;
-
-/*
- * Acquire the cert temp/perm lock
- */
-void
-CERT_LockCertTempPerm(const CERTCertificate *cert)
-{
-    PORT_Assert(certTempPermLock != NULL);
-    PZ_Lock(certTempPermLock);
+    return;
 }
 
 SECStatus
@@ -2896,18 +2885,6 @@ cert_InitLocks(void)
         if (!certTrustLock) {
             PZ_DestroyLock(certRefCountLock);
             certRefCountLock = NULL;
-            return SECFailure;
-        }
-    }
-
-    if (certTempPermLock == NULL) {
-        certTempPermLock = PZ_NewLock(nssILockCertDB);
-        PORT_Assert(certTempPermLock != NULL);
-        if (!certTempPermLock) {
-            PZ_DestroyLock(certTrustLock);
-            PZ_DestroyLock(certRefCountLock);
-            certRefCountLock = NULL;
-            certTrustLock = NULL;
             return SECFailure;
         }
     }
@@ -2935,14 +2912,6 @@ cert_DestroyLocks(void)
     } else {
         rv = SECFailure;
     }
-
-    PORT_Assert(certTempPermLock != NULL);
-    if (certTempPermLock) {
-        PZ_DestroyLock(certTempPermLock);
-        certTempPermLock = NULL;
-    } else {
-        rv = SECFailure;
-    }
     return rv;
 }
 
@@ -2961,23 +2930,6 @@ CERT_UnlockCertTrust(const CERTCertificate *cert)
     }
 #else
     PZ_Unlock(certTrustLock);
-#endif
-}
-
-/*
- * Free the temp/perm lock
- */
-void
-CERT_UnlockCertTempPerm(const CERTCertificate *cert)
-{
-    PORT_Assert(certTempPermLock != NULL);
-#ifdef DEBUG
-    {
-        PRStatus prstat = PZ_Unlock(certTempPermLock);
-        PORT_Assert(prstat == PR_SUCCESS);
-    }
-#else
-    (void)PZ_Unlock(certTempPermLock);
 #endif
 }
 
