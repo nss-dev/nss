@@ -297,7 +297,7 @@ function scheduleFuzzingRun(base, name, target, max_len, symbol = null, corpus =
 async function scheduleFuzzing() {
   let base = {
     env: {
-      ASAN_OPTIONS: "allocator_may_return_null=1",
+      ASAN_OPTIONS: "allocator_may_return_null=1:detect_stack_use_after_return=1",
       UBSAN_OPTIONS: "print_stacktrace=1",
       NSS_DISABLE_ARENA_FREE_LIST: "1",
       NSS_DISABLE_UNLOAD: "1",
