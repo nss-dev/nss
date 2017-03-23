@@ -16,8 +16,7 @@
 #include "secitem.h"
 
 const SEC_ASN1Template mySEC_NullTemplate[] = {
-    { SEC_ASN1_NULL, 0, NULL, sizeof(SECItem) }
-};
+    {SEC_ASN1_NULL, 0, NULL, sizeof(SECItem)}};
 
 namespace nss_test {
 
