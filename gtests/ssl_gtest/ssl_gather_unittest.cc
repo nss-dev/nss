@@ -16,17 +16,11 @@ class GatherV2ClientHelloTest : public TlsConnectTestBase {
   void ConnectExpectMalformedClientHello(const DataBuffer &data) {
     EnsureTlsSetup();
     server_->ExpectSendAlert(kTlsAlertIllegalParameter);
-    auto alert_recorder = std::make_shared<TlsAlertRecorder>();
-    server_->SetPacketFilter(alert_recorder);
-
     client_->SendDirect(data);
     server_->StartConnect();
     server_->Handshake();
     ASSERT_TRUE_WAIT(
         (server_->error_code() == SSL_ERROR_RX_MALFORMED_CLIENT_HELLO), 2000);
-
-    EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
-    EXPECT_EQ(kTlsAlertIllegalParameter, alert_recorder->description());
   }
 };
 
@@ -56,16 +50,11 @@ TEST_F(TlsConnectTest, GatherExcessiveV3Record) {
 
   EnsureTlsSetup();
   server_->ExpectSendAlert(kTlsAlertRecordOverflow);
-  auto alert_recorder = std::make_shared<TlsAlertRecorder>();
-  server_->SetPacketFilter(alert_recorder);
   client_->SendDirect(buffer);
   server_->StartConnect();
   server_->Handshake();
   ASSERT_TRUE_WAIT((server_->error_code() == SSL_ERROR_RX_RECORD_TOO_LONG),
                    2000);
-
-  EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
-  EXPECT_EQ(kTlsAlertRecordOverflow, alert_recorder->description());
 }
 
 // Gather a 3-byte v2 header, with a fragment length of 2.

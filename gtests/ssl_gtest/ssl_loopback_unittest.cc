@@ -39,7 +39,7 @@ TEST_P(TlsConnectGeneric, ConnectEcdsa) {
   CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa);
 }
 
-TEST_P(TlsConnectGenericPre13, CipherSuiteMismatch) {
+TEST_P(TlsConnectGeneric, CipherSuiteMismatch) {
   EnsureTlsSetup();
   if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
     client_->EnableSingleCipher(TLS_AES_128_GCM_SHA256);
@@ -51,6 +51,92 @@ TEST_P(TlsConnectGenericPre13, CipherSuiteMismatch) {
   ConnectExpectAlert(server_, kTlsAlertHandshakeFailure);
   client_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
   server_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
+}
+
+class TlsAlertRecorder : public TlsRecordFilter {
+ public:
+  TlsAlertRecorder() : level_(255), description_(255) {}
+
+  PacketFilter::Action FilterRecord(const TlsRecordHeader& header,
+                                    const DataBuffer& input,
+                                    DataBuffer* output) override {
+    if (level_ != 255) {  // Already captured.
+      return KEEP;
+    }
+    if (header.content_type() != kTlsAlertType) {
+      return KEEP;
+    }
+
+    std::cerr << "Alert: " << input << std::endl;
+
+    TlsParser parser(input);
+    EXPECT_TRUE(parser.Read(&level_));
+    EXPECT_TRUE(parser.Read(&description_));
+    return KEEP;
+  }
+
+  uint8_t level() const { return level_; }
+  uint8_t description() const { return description_; }
+
+ private:
+  uint8_t level_;
+  uint8_t description_;
+};
+
+class HelloTruncator : public TlsHandshakeFilter {
+  PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
+                                       const DataBuffer& input,
+                                       DataBuffer* output) override {
+    if (header.handshake_type() != kTlsHandshakeClientHello &&
+        header.handshake_type() != kTlsHandshakeServerHello) {
+      return KEEP;
+    }
+    output->Assign(input.data(), input.len() - 1);
+    return CHANGE;
+  }
+};
+
+// Verify that when NSS reports that an alert is sent, it is actually sent.
+TEST_P(TlsConnectGeneric, CaptureAlertServer) {
+  client_->SetPacketFilter(std::make_shared<HelloTruncator>());
+  auto alert_recorder = std::make_shared<TlsAlertRecorder>();
+  server_->SetPacketFilter(alert_recorder);
+
+  ConnectExpectAlert(server_, kTlsAlertIllegalParameter);
+  EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
+  EXPECT_EQ(kTlsAlertIllegalParameter, alert_recorder->description());
+}
+
+TEST_P(TlsConnectGenericPre13, CaptureAlertClient) {
+  server_->SetPacketFilter(std::make_shared<HelloTruncator>());
+  auto alert_recorder = std::make_shared<TlsAlertRecorder>();
+  client_->SetPacketFilter(alert_recorder);
+
+  ConnectExpectAlert(client_, kTlsAlertDecodeError);
+  EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
+  EXPECT_EQ(kTlsAlertDecodeError, alert_recorder->description());
+}
+
+// In TLS 1.3, the server can't read the client alert.
+TEST_P(TlsConnectTls13, CaptureAlertClient) {
+  server_->SetPacketFilter(std::make_shared<HelloTruncator>());
+  auto alert_recorder = std::make_shared<TlsAlertRecorder>();
+  client_->SetPacketFilter(alert_recorder);
+
+  server_->StartConnect();
+  client_->StartConnect();
+
+  client_->Handshake();
+  client_->ExpectSendAlert(kTlsAlertDecodeError);
+  server_->Handshake();
+  client_->Handshake();
+  if (mode_ == STREAM) {
+    // DTLS just drops the alert it can't decrypt.
+    server_->ExpectSendAlert(kTlsAlertBadRecordMac);
+  }
+  server_->Handshake();
+  EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
+  EXPECT_EQ(kTlsAlertDecodeError, alert_recorder->description());
 }
 
 TEST_P(TlsConnectGenericPre13, ConnectFalseStart) {
