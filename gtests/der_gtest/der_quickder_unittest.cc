@@ -15,6 +15,10 @@
 #include "secerr.h"
 #include "secitem.h"
 
+const SEC_ASN1Template mySEC_NullTemplate[] = {
+    { SEC_ASN1_NULL, 0, NULL, sizeof(SECItem) }
+};
+
 namespace nss_test {
 
 class QuickDERTest : public ::testing::Test,
@@ -67,9 +71,9 @@ TEST_P(QuickDERTest, InvalidLengths) {
   PORT_InitCheapArena(&pool, DER_DEFAULT_CHUNKSIZE);
   ScopedSECItem parsed_value(SECITEM_AllocItem(nullptr, nullptr, 0U));
   ASSERT_TRUE(parsed_value);
-  ASSERT_EQ(SECFailure, SEC_QuickDERDecodeItem(&pool.arena, parsed_value.get(),
-                                               SEC_ASN1_SUB(SEC_NullTemplate),
-                                               copy_of_input.get()));
+  ASSERT_EQ(SECFailure,
+            SEC_QuickDERDecodeItem(&pool.arena, parsed_value.get(),
+                                   mySEC_NullTemplate, copy_of_input.get()));
   ASSERT_EQ(SEC_ERROR_BAD_DER, PR_GetError());
   PORT_DestroyCheapArena(&pool);
 }
