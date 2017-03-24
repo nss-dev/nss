@@ -1120,6 +1120,25 @@ TEST_P(TlsBogusExtensionTest13, AddBogusExtensionNewSessionTicket) {
   SendReceive();
 }
 
+TEST_P(TlsConnectStream, IncludePadding) {
+  EnsureTlsSetup();
+
+  // This needs to be long enough to push a TLS 1.0 ClientHello over 255, but
+  // short enough not to push a TLS 1.3 ClientHello over 511.
+  static const char* long_name =
+      "chickenchickenchickenchickenchickenchickenchickenchicken."
+      "chickenchickenchickenchickenchickenchickenchickenchicken."
+      "chickenchickenchickenchickenchicken.";
+  SECStatus rv = SSL_SetURL(client_->ssl_fd(), long_name);
+  EXPECT_EQ(SECSuccess, rv);
+
+  auto capture = std::make_shared<TlsExtensionCapture>(ssl_padding_xtn);
+  client_->SetPacketFilter(capture);
+  client_->StartConnect();
+  client_->Handshake();
+  EXPECT_TRUE(capture->captured());
+}
+
 INSTANTIATE_TEST_CASE_P(ExtensionStream, TlsExtensionTestGeneric,
                         ::testing::Combine(TlsConnectTestBase::kTlsModesStream,
                                            TlsConnectTestBase::kTlsVAll));
