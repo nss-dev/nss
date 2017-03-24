@@ -126,6 +126,7 @@ static const ssl3HelloExtensionSender clientHelloSendersTLS[SSL_MAX_EXTENSIONS] 
       { ssl_tls13_cookie_xtn, &tls13_ClientSendHrrCookieXtn },
       { ssl_tls13_psk_key_exchange_modes_xtn,
         &tls13_ClientSendPskKeyExchangeModesXtn },
+      { ssl_padding_xtn, &ssl3_ClientSendPaddingExtension },
       /* The pre_shared_key extension MUST be last. */
       { ssl_tls13_pre_shared_key_xtn, &tls13_ClientSendPreSharedKeyXtn },
       /* any extra entries will appear as { 0, NULL }    */
