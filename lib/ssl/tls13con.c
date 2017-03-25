@@ -3843,7 +3843,7 @@ tls13_SendNewSessionTicket(sslSocket *ss)
 
     if (max_early_data_size_len) {
         rv = ssl3_AppendHandshakeNumber(
-            ss, ssl_tls13_ticket_early_data_info_xtn, 2);
+            ss, ssl_tls13_early_data_xtn, 2);
         if (rv != SECSuccess)
             goto loser;
 
@@ -3990,40 +3990,37 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     return SECSuccess;
 }
 
-typedef enum {
-    ExtensionNotUsed,
-    ExtensionClientOnly,
-    ExtensionSendClear,
-    ExtensionSendClearOrHrr,
-    ExtensionSendHrr,
-    ExtensionSendEncrypted,
-    ExtensionSendCertificate,
-    ExtensionNewSessionTicket
-} Tls13ExtensionStatus;
+#define _M1(a) (1 << PR_MIN(a, 31))
+#define _M2(a, b) (_M1(a) | _M1(b))
+#define _M3(a, b, c) (_M1(a) | _M2(b, c))
 
 static const struct {
     PRUint16 ex_value;
-    Tls13ExtensionStatus status;
+    PRUint32 messages;
 } KnownExtensions[] = {
-    { ssl_server_name_xtn, ExtensionSendEncrypted },
-    { ssl_supported_groups_xtn, ExtensionSendEncrypted },
-    { ssl_ec_point_formats_xtn, ExtensionNotUsed },
-    { ssl_signature_algorithms_xtn, ExtensionClientOnly },
-    { ssl_use_srtp_xtn, ExtensionSendEncrypted },
-    { ssl_app_layer_protocol_xtn, ExtensionSendEncrypted },
-    { ssl_padding_xtn, ExtensionNotUsed },
-    { ssl_extended_master_secret_xtn, ExtensionNotUsed },
-    { ssl_session_ticket_xtn, ExtensionClientOnly },
-    { ssl_tls13_key_share_xtn, ExtensionSendClearOrHrr },
-    { ssl_tls13_pre_shared_key_xtn, ExtensionSendClear },
-    { ssl_tls13_early_data_xtn, ExtensionSendEncrypted },
-    { ssl_next_proto_nego_xtn, ExtensionNotUsed },
-    { ssl_renegotiation_info_xtn, ExtensionNotUsed },
-    { ssl_signed_cert_timestamp_xtn, ExtensionSendCertificate },
-    { ssl_cert_status_xtn, ExtensionSendCertificate },
-    { ssl_tls13_ticket_early_data_info_xtn, ExtensionNewSessionTicket },
-    { ssl_tls13_cookie_xtn, ExtensionSendHrr },
-    { ssl_tls13_short_header_xtn, ExtensionSendClear }
+    { ssl_server_name_xtn, _M2(client_hello, encrypted_extensions) },
+    { ssl_supported_groups_xtn, _M2(client_hello, encrypted_extensions) },
+    { ssl_ec_point_formats_xtn, 0 },
+    { ssl_signature_algorithms_xtn, _M2(client_hello, certificate_request) },
+    { ssl_use_srtp_xtn, _M2(client_hello, encrypted_extensions) },
+    { ssl_app_layer_protocol_xtn, _M2(client_hello, encrypted_extensions) },
+    { ssl_padding_xtn, _M1(client_hello) },
+    { ssl_extended_master_secret_xtn, 0 },
+    { ssl_session_ticket_xtn, 0 },
+    { ssl_tls13_key_share_xtn, _M3(client_hello, server_hello,
+                                   hello_retry_request) },
+    { ssl_tls13_pre_shared_key_xtn, _M2(client_hello, server_hello) },
+    { ssl_tls13_psk_key_exchange_modes_xtn, _M1(client_hello) },
+    { ssl_tls13_early_data_xtn, _M3(client_hello, encrypted_extensions,
+                                    new_session_ticket) },
+    { ssl_next_proto_nego_xtn, 0 },
+    { ssl_renegotiation_info_xtn, 0 },
+    { ssl_signed_cert_timestamp_xtn, _M3(client_hello, certificate_request,
+                                         certificate) },
+    { ssl_cert_status_xtn, _M3(client_hello, certificate_request,
+                               certificate) },
+    { ssl_tls13_cookie_xtn, _M2(client_hello, hello_retry_request) },
+    { ssl_tls13_short_header_xtn, _M2(client_hello, server_hello) },
 };
 
 PRBool
@@ -4040,6 +4037,8 @@ tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message)
                 (message == certificate_request));
 
     for (i = 0; i < PR_ARRAY_SIZE(KnownExtensions); i++) {
+        /* Hacky check for message numbers > 30. */
+        PORT_Assert(!(KnownExtensions[i].messages & (1U << 31)));
         if (KnownExtensions[i].ex_value == extension)
             break;
     }
@@ -4050,36 +4049,20 @@ tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message)
                (message == new_session_ticket);
     }
 
-    switch (KnownExtensions[i].status) {
-        case ExtensionNotUsed:
-            return PR_FALSE;
-        case ExtensionClientOnly:
-            return message == client_hello;
-        case ExtensionSendClear:
-            return message == client_hello ||
-                   message == server_hello;
-        case ExtensionSendClearOrHrr:
-            return message == client_hello ||
-                   message == server_hello ||
-                   message == hello_retry_request;
-        case ExtensionSendHrr:
-            return message == client_hello ||
-                   message == hello_retry_request;
-        case ExtensionSendEncrypted:
-            return message == client_hello ||
-                   message == encrypted_extensions;
-        case ExtensionNewSessionTicket:
-            return message == new_session_ticket;
-        case ExtensionSendCertificate:
-            return message == client_hello ||
-                   message == certificate;
+    /* Return PR_TRUE iff the message mask bit is set. */
+    if (!(_M1(message) & KnownExtensions[i].messages)) {
+        SSL_TRC(3, ("%d: TLS13: unexpected extension %d in message %d",
+                    SSL_GETPID(), extension, message));
+
+        return PR_FALSE;
     }
 
-    PORT_Assert(0);
-
-    /* Not reached */
     return PR_TRUE;
 }
+
+#undef _M1
+#undef _M2
+#undef _M3
 
 /* TLS 1.3 doesn't actually have additional data but the aead function
  * signature overloads additional data to carry the record sequence
