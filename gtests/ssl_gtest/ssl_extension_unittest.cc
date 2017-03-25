@@ -1005,7 +1005,8 @@ class TlsBogusExtensionTest
   void AddFilter(uint8_t message, uint16_t extension) {
     static uint8_t empty_buf[1] = {0};
     DataBuffer empty(empty_buf, 0);
-    auto filter = std::make_shared<TlsExtensionAppender>(message, extension, empty);
+    auto filter =
+        std::make_shared<TlsExtensionAppender>(message, extension, empty);
     if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
       server_->SetTlsRecordFilter(filter);
       filter->EnableDecryption();
@@ -1101,7 +1102,6 @@ TEST_P(TlsBogusExtensionTest13, AddVersionExtensionHelloRetryRequest) {
 
   Run(kTlsHandshakeHelloRetryRequest, ssl_tls13_supported_versions_xtn);
 }
-
 
 // NewSessionTicket allows unknown extensions AND it isn't protected by the
 // Finished.  So adding an unknown extension doesn't cause an error.
