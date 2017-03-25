@@ -256,7 +256,7 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
     /* HelloRetryRequest doesn't set ss->version. It might be safe to
      * do so, but we weren't entirely sure. TODO(ekr@rtfm.com). */
     PRBool isTLS13 = (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) ||
-            (handshakeMessage == hello_retry_request);
+                     (handshakeMessage == hello_retry_request);
     PRCList *cursor;
 
     switch (handshakeMessage) {
