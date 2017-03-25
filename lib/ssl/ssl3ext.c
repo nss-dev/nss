@@ -87,6 +87,10 @@ static const ssl3ExtensionHandler serverCertificateHandlers[] = {
     { -1, NULL }
 };
 
+static const ssl3ExtensionHandler certificateRequestHandlers[] = {
+    { -1, NULL }
+};
+
 /* Tables of functions to format TLS hello extensions, one function per
  * extension.
  * These static tables are for the formatting of client hello extensions.
@@ -249,7 +253,10 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
                             SSL3HandshakeType handshakeMessage)
 {
     const ssl3ExtensionHandler *handlers;
-    PRBool isTLS13 = ss->version >= SSL_LIBRARY_VERSION_TLS_1_3;
+    /* HelloRetryRequest doesn't set ss->version. It might be safe to
+     * do so, but we weren't entirely sure. TODO(ekr@rtfm.com). */
+    PRBool isTLS13 = (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) ||
+            (handshakeMessage == hello_retry_request);
     PRCList *cursor;
 
     switch (handshakeMessage) {
@@ -276,6 +283,10 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
         case certificate:
             PORT_Assert(!ss->sec.isServer);
             handlers = serverCertificateHandlers;
+            break;
+        case certificate_request:
+            PORT_Assert(!ss->sec.isServer);
+            handlers = certificateRequestHandlers;
             break;
         default:
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
