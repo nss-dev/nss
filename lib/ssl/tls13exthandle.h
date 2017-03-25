@@ -47,7 +47,7 @@ SECStatus tls13_ClientHandleEarlyDataXtn(const sslSocket *ss, TLSExtensionData *
 PRInt32 tls13_ServerSendEarlyDataXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                                      PRBool append,
                                      PRUint32 maxBytes);
-SECStatus tls13_ClientHandleTicketEarlyDataInfoXtn(
+SECStatus tls13_ClientHandleTicketEarlyDataXtn(
     const sslSocket *ss, TLSExtensionData *xtnData, PRUint16 ex_type,
     SECItem *data);
 PRInt32 tls13_ClientSendSupportedVersionsXtn(const sslSocket *ss, TLSExtensionData *xtnData,

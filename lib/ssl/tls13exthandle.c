@@ -840,13 +840,13 @@ tls13_ClientHandleEarlyDataXtn(const sslSocket *ss, TLSExtensionData *xtnData, P
 }
 
 SECStatus
-tls13_ClientHandleTicketEarlyDataInfoXtn(const sslSocket *ss, TLSExtensionData *xtnData, PRUint16 ex_type,
-                                         SECItem *data)
+tls13_ClientHandleTicketEarlyDataXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                                     PRUint16 ex_type, SECItem *data)
 {
     PRUint32 utmp;
     SECStatus rv;
 
-    SSL_TRC(3, ("%d: TLS13[%d]: handle early_data_info extension",
+    SSL_TRC(3, ("%d: TLS13[%d]: handle ticket early_data extension",
                 SSL_GETPID(), ss->fd));
 
     /* The server must not send this extension when negotiating < TLS 1.3. */
