@@ -75,8 +75,8 @@ static const ssl3ExtensionHandler serverHelloHandlersSSL3[] = {
 };
 
 static const ssl3ExtensionHandler newSessionTicketHandlers[] = {
-    { ssl_tls13_early_data_xtn,
-      &tls13_ClientHandleTicketEarlyDataXtn },
+    { ssl_tls13_ticket_early_data_info_xtn,
+      &tls13_ClientHandleTicketEarlyDataInfoXtn },
     { -1, NULL }
 };
 
