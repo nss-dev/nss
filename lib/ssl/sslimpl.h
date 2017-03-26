@@ -1345,6 +1345,9 @@ extern void ssl3_RestartHandshakeHashes(sslSocket *ss);
 extern SECStatus ssl3_UpdateHandshakeHashes(sslSocket *ss,
                                             const unsigned char *b,
                                             unsigned int l);
+SECStatus ssl_HashHandshakeMessage(sslSocket *ss, const PRUint8 *b,
+                                   PRUint32 length);
+
 
 /* Returns PR_TRUE if we are still waiting for the server to complete its
  * response to our client second round. Once we've received the Finished from

@@ -88,6 +88,8 @@ std::string VersionString(uint16_t version) {
   switch (version) {
     case 0:
       return "(no version)";
+    case SSL_LIBRARY_VERSION_3_0:
+      return "1.0";
     case SSL_LIBRARY_VERSION_TLS_1_0:
       return "1.0";
     case SSL_LIBRARY_VERSION_TLS_1_1:
