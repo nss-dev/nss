@@ -214,7 +214,6 @@ typedef struct {
     union {
         PRUint8 raw[64];
         SSL3HashesIndividually s;
-        unsigned int transcriptLen;
     } u;
 } SSL3Hashes;
 

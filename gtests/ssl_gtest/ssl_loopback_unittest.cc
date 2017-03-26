@@ -315,6 +315,22 @@ TEST_F(TlsConnectStreamTls13, Tls13FailedWriteSecondFlight) {
   client_->CheckErrorCode(SSL_ERROR_SOCKET_WRITE_FAILURE);
 }
 
+TEST_F(TlsConnectTest, ConnectSSLv3) {
+  ConfigureVersion(SSL_LIBRARY_VERSION_3_0);
+  EnableOnlyStaticRsaCiphers();
+  Connect();
+  CheckKeys(ssl_kea_rsa, ssl_grp_none, ssl_auth_rsa_decrypt, ssl_sig_none);
+}
+
+TEST_F(TlsConnectTest, ConnectSSLv3ClientAuth) {
+  ConfigureVersion(SSL_LIBRARY_VERSION_3_0);
+  EnableOnlyStaticRsaCiphers();
+  client_->SetupClientAuth();
+  server_->RequestClientAuth(true);
+  Connect();
+  CheckKeys(ssl_kea_rsa, ssl_grp_none, ssl_auth_rsa_decrypt, ssl_sig_none);
+}
+
 INSTANTIATE_TEST_CASE_P(
     GenericStream, TlsConnectGeneric,
     ::testing::Combine(TlsConnectTestBase::kTlsVariantsStream,

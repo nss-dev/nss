@@ -58,10 +58,8 @@ static SECStatus ssl3_HandleServerHelloPart2(sslSocket *ss,
                                              int *retErrCode);
 static SECStatus ssl3_HandlePostHelloHandshakeMessage(sslSocket *ss,
                                                       PRUint8 *b,
-                                                      PRUint32 length,
-                                                      SSL3Hashes *hashesPtr);
+                                                      PRUint32 length);
 static SECStatus ssl3_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags);
-
 static SECStatus Null_Cipher(void *ctx, unsigned char *output, int *outputLen,
                              int maxOutputLen, const unsigned char *input,
                              int inputLen);
@@ -9653,8 +9651,7 @@ ssl3_SendServerHelloDone(sslSocket *ss)
  * Caller must hold Handshake and RecvBuf locks.
  */
 static SECStatus
-ssl3_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length,
-                             SSL3Hashes *hashes)
+ssl3_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     SECItem signed_hash = { siBuffer, NULL, 0 };
     SECStatus rv;
@@ -9662,9 +9659,9 @@ ssl3_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length,
     SSL3AlertDescription desc = handshake_failure;
     PRBool isTLS;
     SSLSignatureScheme sigScheme;
-    SSLHashType hashAlg;
-    SSL3Hashes localHashes;
-    SSL3Hashes *hashesForVerify = NULL;
+    SSL3Hashes hashes;
+    const PRUint8 *savedMsg = b;
+    const PRUint32 savedLen = length;
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle certificate_verify handshake",
                 SSL_GETPID(), ss->fd));
@@ -9680,14 +9677,8 @@ ssl3_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length,
     /* TLS 1.3 is handled by tls13_HandleCertificateVerify */
     PORT_Assert(ss->ssl3.prSpec->version <= SSL_LIBRARY_VERSION_TLS_1_2);
 
-    if (!hashes) {
-        PORT_Assert(0);
-        desc = internal_error;
-        errCode = SEC_ERROR_LIBRARY_FAILURE;
-        goto alert_loser;
-    }
-
-    if (ss->ssl3.hs.hashType == handshake_hash_record) {
+    if (ss->ssl3.prSpec->version == SSL_LIBRARY_VERSION_TLS_1_2) {
+        PORT_Assert(ss->ssl3.hs.hashType == handshake_hash_record);
         rv = ssl_ConsumeSignatureScheme(ss, &b, &length, &sigScheme);
         if (rv != SECSuccess) {
             goto loser; /* malformed or unsupported. */
@@ -9700,25 +9691,20 @@ ssl3_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length,
             goto alert_loser;
         }
 
-        hashAlg = ssl_SignatureSchemeToHashType(sigScheme);
-
-        /* Read from the message buffer, but we need to use only up to the end
-         * of the previous handshake message. The length of the transcript up to
-         * that point is saved in |hashes->u.transcriptLen|. */
         rv = ssl3_ComputeHandshakeHash(ss->ssl3.hs.messages.buf,
-                                       hashes->u.transcriptLen,
-                                       hashAlg, &localHashes);
-
-        if (rv == SECSuccess) {
-            hashesForVerify = &localHashes;
-        } else {
-            errCode = SSL_ERROR_DIGEST_FAILURE;
-            desc = decrypt_error;
-            goto alert_loser;
-        }
+                                       ss->ssl3.hs.messages.len,
+                                       ssl_SignatureSchemeToHashType(sigScheme),
+                                       &hashes);
     } else {
-        hashesForVerify = hashes;
+        PORT_Assert(ss->ssl3.hs.hashType != handshake_hash_record);
         sigScheme = ssl_sig_none;
+        rv = ssl3_ComputeHandshakeHashes(ss, ss->ssl3.prSpec, &hashes, 0);
+    }
+
+    if (rv != SECSuccess) {
+        errCode = SSL_ERROR_DIGEST_FAILURE;
+        desc = decrypt_error;
+        goto alert_loser;
     }
 
     rv = ssl3_ConsumeHandshakeVariable(ss, &signed_hash, 2, &b, &length);
@@ -9729,7 +9715,7 @@ ssl3_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length,
     isTLS = (PRBool)(ss->ssl3.prSpec->version > SSL_LIBRARY_VERSION_3_0);
 
     /* XXX verify that the key & kea match */
-    rv = ssl3_VerifySignedHashes(ss, sigScheme, hashesForVerify, &signed_hash);
+    rv = ssl3_VerifySignedHashes(ss, sigScheme, &hashes, &signed_hash);
     if (rv != SECSuccess) {
         errCode = PORT_GetError();
         desc = isTLS ? decrypt_error : handshake_failure;
@@ -9742,6 +9728,13 @@ ssl3_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length,
         desc = isTLS ? decode_error : illegal_parameter;
         goto alert_loser; /* malformed */
     }
+
+    rv = ssl_HashHandshakeMessage(ss, savedMsg, savedLen);
+    if (rv != SECSuccess) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return rv;
+    }
+
     ss->ssl3.hs.ws = wait_change_cipher;
     return SECSuccess;
 
@@ -11314,13 +11307,13 @@ ssl3_CacheWrappedSecret(sslSocket *ss, sslSessionID *sid,
  * Caller must hold Handshake and RecvBuf locks.
  */
 static SECStatus
-ssl3_HandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length,
-                    const SSL3Hashes *hashes)
+ssl3_HandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     sslSessionID *sid = ss->sec.ci.sid;
     SECStatus rv = SECSuccess;
     PRBool isServer = ss->sec.isServer;
     PRBool isTLS;
+    SSL3Hashes hashes;
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
@@ -11334,11 +11327,17 @@ ssl3_HandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length,
         return SECFailure;
     }
 
-    if (!hashes) {
-        PORT_Assert(0);
-        SSL3_SendAlert(ss, alert_fatal, internal_error);
+    rv = ssl3_ComputeHandshakeHashes(ss, ss->ssl3.crSpec, &hashes,
+                                     isServer ? sender_client : sender_server);
+    if (rv != SECSuccess) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
+    }
+
+    rv = ssl_HashHandshakeMessage(ss, b, length);
+    if (rv != SECSuccess) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return rv;
     }
 
     isTLS = (PRBool)(ss->ssl3.crSpec->version > SSL_LIBRARY_VERSION_3_0);
@@ -11353,7 +11352,7 @@ ssl3_HandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length,
 #endif
         }
         rv = ssl3_ComputeTLSFinished(ss, ss->ssl3.crSpec, !isServer,
-                                     hashes, &tlsFinished);
+                                     &hashes, &tlsFinished);
         if (!isServer)
             ss->ssl3.hs.finishedMsgs.tFinished[1] = tlsFinished;
         else
@@ -11376,12 +11375,12 @@ ssl3_HandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length,
         }
 
         if (!isServer)
-            ss->ssl3.hs.finishedMsgs.sFinished[1] = hashes->u.s;
+            ss->ssl3.hs.finishedMsgs.sFinished[1] = hashes.u.s;
         else
-            ss->ssl3.hs.finishedMsgs.sFinished[0] = hashes->u.s;
-        PORT_Assert(hashes->len == sizeof hashes->u.s);
-        ss->ssl3.hs.finishedBytes = sizeof hashes->u.s;
-        if (0 != NSS_SecureMemcmp(&hashes->u.s, b, length)) {
+            ss->ssl3.hs.finishedMsgs.sFinished[0] = hashes.u.s;
+        PORT_Assert(hashes.len == sizeof hashes.u.s);
+        ss->ssl3.hs.finishedBytes = sizeof hashes.u.s;
+        if (0 != NSS_SecureMemcmp(&hashes.u.s, b, length)) {
             (void)ssl3_HandshakeFailure(ss);
             PORT_SetError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
             return SECFailure;
@@ -11571,8 +11570,55 @@ ssl3_FinishHandshake(sslSocket *ss)
     return SECSuccess;
 }
 
+SECStatus
+ssl_HashHandshakeMessage(sslSocket *ss, const PRUint8 *b, PRUint32 length)
+{
+    PRUint8 hdr[4];
+    PRUint8 dtlsData[8];
+    SECStatus rv;
+
+    hdr[0] = (PRUint8)ss->ssl3.hs.msg_type;
+    hdr[1] = (PRUint8)(length >> 16);
+    hdr[2] = (PRUint8)(length >> 8);
+    hdr[3] = (PRUint8)(length);
+
+    rv = ssl3_UpdateHandshakeHashes(ss, (unsigned char *)hdr, 4);
+    if (rv != SECSuccess)
+        return rv; /* err code already set. */
+
+    /* Extra data to simulate a complete DTLS handshake fragment */
+    if (IS_DTLS(ss)) {
+        /* Sequence number */
+        dtlsData[0] = MSB(ss->ssl3.hs.recvMessageSeq);
+        dtlsData[1] = LSB(ss->ssl3.hs.recvMessageSeq);
+
+        /* Fragment offset */
+        dtlsData[2] = 0;
+        dtlsData[3] = 0;
+        dtlsData[4] = 0;
+
+        /* Fragment length */
+        dtlsData[5] = (PRUint8)(length >> 16);
+        dtlsData[6] = (PRUint8)(length >> 8);
+        dtlsData[7] = (PRUint8)(length);
+
+        rv = ssl3_UpdateHandshakeHashes(ss, (unsigned char *)dtlsData,
+                                        sizeof(dtlsData));
+        if (rv != SECSuccess)
+            return rv; /* err code already set. */
+    }
+
+    /* The message body */
+    rv = ssl3_UpdateHandshakeHashes(ss, b, length);
+    if (rv != SECSuccess)
+        return rv; /* err code already set. */
+
+    return SECSuccess;
+}
+
+
 /* Called from ssl3_HandleHandshake() when it has gathered a complete ssl3
- * hanshake message.
+ * handshake message.
  * Caller must hold Handshake and RecvBuf locks.
  */
 SECStatus
@@ -11580,125 +11626,38 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, PRUint8 *b, PRUint32 length,
                             PRBool endOfRecord)
 {
     SECStatus rv = SECSuccess;
-    SSLHandshakeType type = ss->ssl3.hs.msg_type;
-    SSL3Hashes hashes;            /* computed hashes are put here. */
-    SSL3Hashes *hashesPtr = NULL; /* Set when hashes are computed */
-    PRUint8 hdr[4];
-    PRUint8 dtlsData[8];
-    PRBool computeHashes = PR_FALSE;
     PRUint16 epoch;
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
-    /*
-     * We have to compute the hashes before we update them with the
-     * current message.
-     */
-    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
-        if ((type == ssl_hs_finished) && (ss->ssl3.hs.ws == wait_finished)) {
-            computeHashes = PR_TRUE;
-        } else if ((type == ssl_hs_certificate_verify) &&
-                   (ss->ssl3.hs.ws == wait_cert_verify)) {
-            if (ss->ssl3.hs.hashType == handshake_hash_record) {
-                /* We cannot compute the hash yet. We must wait until we have
-                 * decoded the certificate_verify message in
-                 * ssl3_HandleCertificateVerify, which will tell us which
-                 * hash function we must use.
-                 *
-                 * (ssl3_HandleCertificateVerify cannot simply look at the
-                 * buffer length itself, because at the time we reach it,
-                 * additional handshake messages will have been added to the
-                 * buffer, e.g. the certificate_verify message itself.)
-                 *
-                 * Therefore, we use SSL3Hashes.u.transcriptLen to save how much
-                 * data there is and read directly from ss->ssl3.hs.messages
-                 * when calculating the hashes.
-                 *
-                 * ssl3_HandleCertificateVerify will detect
-                 *     hashType == handshake_hash_record
-                 * and use that information to calculate the hash.
-                 */
-                hashes.u.transcriptLen = ss->ssl3.hs.messages.len;
-                hashesPtr = &hashes;
-            } else {
-                computeHashes = PR_TRUE;
-            }
-        }
-    } else {
-        if (type == ssl_hs_certificate_verify) {
-            computeHashes = TLS13_IN_HS_STATE(ss, wait_cert_verify);
-        } else if (type == ssl_hs_finished) {
-            computeHashes =
-                TLS13_IN_HS_STATE(ss, wait_cert_request, wait_finished);
-        }
-    }
 
-    ssl_GetSpecReadLock(ss); /************************************/
-    if (computeHashes) {
-        SSL3Sender sender = (SSL3Sender)0;
-        ssl3CipherSpec *rSpec = ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 ? ss->ssl3.crSpec
-                                                                           : ss->ssl3.prSpec;
-
-        if (type == ssl_hs_finished) {
-            sender = ss->sec.isServer ? sender_client : sender_server;
-            rSpec = ss->ssl3.crSpec;
-        }
-        rv = ssl3_ComputeHandshakeHashes(ss, rSpec, &hashes, sender);
-        if (rv == SECSuccess) {
-            hashesPtr = &hashes;
-        }
-    }
-    ssl_ReleaseSpecReadLock(ss); /************************************/
-    if (rv != SECSuccess) {
-        return rv; /* error code was set by ssl3_ComputeHandshakeHashes*/
-    }
     SSL_TRC(30, ("%d: SSL3[%d]: handle handshake message: %s", SSL_GETPID(),
                  ss->fd, ssl3_DecodeHandshakeType(ss->ssl3.hs.msg_type)));
 
-    hdr[0] = (PRUint8)ss->ssl3.hs.msg_type;
-    hdr[1] = (PRUint8)(length >> 16);
-    hdr[2] = (PRUint8)(length >> 8);
-    hdr[3] = (PRUint8)(length);
 
     /* Start new handshake hashes when we start a new handshake.  Unless this is
      * TLS 1.3 and we sent a HelloRetryRequest. */
     if (ss->ssl3.hs.msg_type == ssl_hs_client_hello && !ss->ssl3.hs.helloRetry) {
         ssl3_RestartHandshakeHashes(ss);
     }
-    /* We should not include hello_request and hello_verify_request messages
-     * in the handshake hashes */
-    if ((ss->ssl3.hs.msg_type != ssl_hs_hello_request) &&
-        (ss->ssl3.hs.msg_type != ssl_hs_hello_verify_request)) {
-        rv = ssl3_UpdateHandshakeHashes(ss, (unsigned char *)hdr, 4);
-        if (rv != SECSuccess)
-            return rv; /* err code already set. */
+    switch (ss->ssl3.hs.msg_type) {
+        case ssl_hs_hello_request:
+        case ssl_hs_hello_verify_request:
+            /* We don't include hello_request and hello_verify_request messages
+             * in the handshake hashes */
+            break;
 
-        /* Extra data to simulate a complete DTLS handshake fragment */
-        if (IS_DTLS(ss)) {
-            /* Sequence number */
-            dtlsData[0] = MSB(ss->ssl3.hs.recvMessageSeq);
-            dtlsData[1] = LSB(ss->ssl3.hs.recvMessageSeq);
+        case ssl_hs_certificate_verify:
+        case ssl_hs_finished:
+            /* Defer hashing of these messages until the message handlers
+             * we need to finalize the hashes there. */
+            break;
 
-            /* Fragment offset */
-            dtlsData[2] = 0;
-            dtlsData[3] = 0;
-            dtlsData[4] = 0;
-
-            /* Fragment length */
-            dtlsData[5] = (PRUint8)(length >> 16);
-            dtlsData[6] = (PRUint8)(length >> 8);
-            dtlsData[7] = (PRUint8)(length);
-
-            rv = ssl3_UpdateHandshakeHashes(ss, (unsigned char *)dtlsData,
-                                            sizeof(dtlsData));
-            if (rv != SECSuccess)
-                return rv; /* err code already set. */
-        }
-
-        /* The message body */
-        rv = ssl3_UpdateHandshakeHashes(ss, b, length);
-        if (rv != SECSuccess)
-            return rv; /* err code already set. */
+        default:
+            rv = ssl_HashHandshakeMessage(ss, b, length);
+            if (rv != SECSuccess) {
+                return SECFailure;
+            }
     }
 
     PORT_SetError(0); /* each message starts with no error. */
@@ -11739,10 +11698,9 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, PRUint8 *b, PRUint32 length,
             break;
         default:
             if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
-                rv = ssl3_HandlePostHelloHandshakeMessage(ss, b, length, hashesPtr);
+                rv = ssl3_HandlePostHelloHandshakeMessage(ss, b, length);
             } else {
-                rv = tls13_HandlePostHelloHandshakeMessage(ss, b, length,
-                                                           hashesPtr);
+                rv = tls13_HandlePostHelloHandshakeMessage(ss, b, length);
             }
             break;
     }
@@ -11764,7 +11722,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, PRUint8 *b, PRUint32 length,
 
 static SECStatus
 ssl3_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b,
-                                     PRUint32 length, SSL3Hashes *hashesPtr)
+                                     PRUint32 length)
 {
     SECStatus rv;
     PORT_Assert(ss->version < SSL_LIBRARY_VERSION_TLS_1_3);
@@ -11839,7 +11797,7 @@ ssl3_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b,
                 PORT_SetError(SSL_ERROR_RX_UNEXPECTED_CERT_VERIFY);
                 return SECFailure;
             }
-            rv = ssl3_HandleCertificateVerify(ss, b, length, hashesPtr);
+            rv = ssl3_HandleCertificateVerify(ss, b, length);
             break;
         case ssl_hs_client_key_exchange:
             if (!ss->sec.isServer) {
@@ -11858,7 +11816,7 @@ ssl3_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b,
             rv = ssl3_HandleNewSessionTicket(ss, b, length);
             break;
         case ssl_hs_finished:
-            rv = ssl3_HandleFinished(ss, b, length, hashesPtr);
+            rv = ssl3_HandleFinished(ss, b, length);
             break;
         default:
             (void)SSL3_SendAlert(ss, alert_fatal, unexpected_message);

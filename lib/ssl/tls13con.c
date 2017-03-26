@@ -68,8 +68,7 @@ static SECStatus tls13_HandleCertificateRequest(sslSocket *ss, PRUint8 *b,
 static SECStatus
 tls13_SendCertificateVerify(sslSocket *ss, SECKEYPrivateKey *privKey);
 static SECStatus tls13_HandleCertificateVerify(
-    sslSocket *ss, PRUint8 *b, PRUint32 length,
-    SSL3Hashes *hashes);
+                                               sslSocket *ss, PRUint8 *b, PRUint32 length);
 static SECStatus tls13_RecoverWrappedSharedSecret(sslSocket *ss,
                                                   sslSessionID *sid);
 static SECStatus
@@ -94,11 +93,9 @@ static SECStatus tls13_VerifyFinished(sslSocket *ss, SSLHandshakeType message,
                                       PRUint8 *b, PRUint32 length,
                                       const SSL3Hashes *hashes);
 static SECStatus tls13_ClientHandleFinished(sslSocket *ss,
-                                            PRUint8 *b, PRUint32 length,
-                                            const SSL3Hashes *hashes);
+                                            PRUint8 *b, PRUint32 length);
 static SECStatus tls13_ServerHandleFinished(sslSocket *ss,
-                                            PRUint8 *b, PRUint32 length,
-                                            const SSL3Hashes *hashes);
+                                            PRUint8 *b, PRUint32 length);
 static SECStatus tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b,
                                               PRUint32 length);
 static SECStatus tls13_ComputeHandshakeHashes(sslSocket *ss,
@@ -587,8 +584,7 @@ loser:
 }
 
 SECStatus
-tls13_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b,
-                                      PRUint32 length, SSL3Hashes *hashesPtr)
+tls13_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     if (ss->sec.isServer && ss->ssl3.hs.zeroRttIgnore != ssl_0rtt_ignore_none) {
         SSL_TRC(3, ("%d: TLS13[%d]: %s successfully decrypted handshake after"
@@ -606,11 +602,7 @@ tls13_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b,
             return tls13_HandleCertificateRequest(ss, b, length);
 
         case ssl_hs_certificate_verify:
-            if (!hashesPtr) {
-                FATAL_ERROR(ss, SSL_ERROR_RX_UNEXPECTED_CERT_VERIFY, unexpected_message);
-                return SECFailure;
-            }
-            return tls13_HandleCertificateVerify(ss, b, length, hashesPtr);
+            return tls13_HandleCertificateVerify(ss, b, length);
 
         case ssl_hs_encrypted_extensions:
             return tls13_HandleEncryptedExtensions(ss, b, length);
@@ -619,14 +611,11 @@ tls13_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b,
             return tls13_HandleNewSessionTicket(ss, b, length);
 
         case ssl_hs_finished:
-            if (!hashesPtr) {
-                FATAL_ERROR(ss, SSL_ERROR_RX_UNEXPECTED_FINISHED, unexpected_message);
-                return SECFailure;
-            }
             if (ss->sec.isServer) {
-                return tls13_ServerHandleFinished(ss, b, length, hashesPtr);
+                return tls13_ServerHandleFinished(ss, b, length);
+            } else {
+                return tls13_ClientHandleFinished(ss, b, length);
             }
-            return tls13_ClientHandleFinished(ss, b, length, hashesPtr);
 
         case ssl_hs_end_of_early_data:
             return tls13_HandleEndOfEarlyData(ss, b, length);
@@ -3256,14 +3245,14 @@ done:
  * Caller must hold Handshake and RecvBuf locks.
  */
 SECStatus
-tls13_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length,
-                              SSL3Hashes *hashes)
+tls13_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     SECItem signed_hash = { siBuffer, NULL, 0 };
     SECStatus rv;
     SSLSignatureScheme sigScheme;
     SSLHashType hashAlg;
     SSL3Hashes tbsHash;
+    SSL3Hashes hashes;
 
     SSL_TRC(3, ("%d: TLS13[%d]: handle certificate_verify handshake",
                 SSL_GETPID(), ss->fd));
@@ -3275,7 +3264,17 @@ tls13_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length,
     if (rv != SECSuccess) {
         return SECFailure;
     }
-    PORT_Assert(hashes);
+
+    rv = tls13_ComputeHandshakeHashes(ss, &hashes);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    rv = ssl_HashHandshakeMessage(ss, b, length);
+    if (rv != SECSuccess) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
 
     rv = ssl_ConsumeSignatureScheme(ss, &b, &length, &sigScheme);
     if (rv != SECSuccess) {
@@ -3290,7 +3289,7 @@ tls13_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length,
     }
     hashAlg = ssl_SignatureSchemeToHashType(sigScheme);
 
-    rv = tls13_AddContextToHashes(ss, hashes, hashAlg, PR_FALSE, &tbsHash);
+    rv = tls13_AddContextToHashes(ss, &hashes, hashAlg, PR_FALSE, &tbsHash);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SSL_ERROR_DIGEST_FAILURE, internal_error);
         return SECFailure;
@@ -3570,10 +3569,10 @@ tls13_VerifyFinished(sslSocket *ss, SSLHandshakeType message,
 }
 
 static SECStatus
-tls13_ClientHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length,
-                           const SSL3Hashes *hashes)
+tls13_ClientHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     SECStatus rv;
+    SSL3Hashes hashes;
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
@@ -3587,9 +3586,21 @@ tls13_ClientHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length,
         return SECFailure;
     }
 
+    rv = tls13_ComputeHandshakeHashes(ss, &hashes);
+    if (rv != SECSuccess) {
+        LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+
+    rv = ssl_HashHandshakeMessage(ss, b, length);
+    if (rv != SECSuccess) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+
     rv = tls13_VerifyFinished(ss, ssl_hs_finished,
                               ss->ssl3.hs.serverHsTrafficSecret,
-                              b, length, hashes);
+                              b, length, &hashes);
     if (rv != SECSuccess)
         return SECFailure;
 
@@ -3597,11 +3608,11 @@ tls13_ClientHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length,
 }
 
 static SECStatus
-tls13_ServerHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length,
-                           const SSL3Hashes *hashes)
+tls13_ServerHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     SECStatus rv;
     PK11SymKey *secret;
+    SSL3Hashes hashes;
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
@@ -3620,7 +3631,19 @@ tls13_ServerHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length,
         secret = ss->ssl3.hs.clientEarlyTrafficSecret;
     }
 
-    rv = tls13_VerifyFinished(ss, ssl_hs_finished, secret, b, length, hashes);
+    rv = tls13_ComputeHandshakeHashes(ss, &hashes);
+    if (rv != SECSuccess) {
+        LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+
+    rv = ssl_HashHandshakeMessage(ss, b, length);
+    if (rv != SECSuccess) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+
+    rv = tls13_VerifyFinished(ss, ssl_hs_finished, secret, b, length, &hashes);
     if (rv != SECSuccess)
         return SECFailure;
 
