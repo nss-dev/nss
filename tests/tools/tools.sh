@@ -325,7 +325,7 @@ tools_p12_export_list_import_all_pkcs12v2pbe_ciphers()
                   "${pkcs12v2pbeWithSha1AndDESCBC}" \
                   "DEFAULT"\
                   "none"; do        
-	  export_list_import "${key_cipher}" "${key_cipher}" 
+	  export_list_import "${key_cipher}" "${cert_cipher}" 
 	done
   #done
 }
