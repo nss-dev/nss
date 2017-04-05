@@ -29,7 +29,7 @@
 "PKCS #12 V2 PBE With SHA-1 and 40 Bit RC4"
 
   export pkcs12v2pbeWithSha1AndTripleDESCBC=\
-"PKCS #12 V2 PBE With SHA-1 and Triple DES-CBC"
+"PKCS #12 V2 PBE With SHA-1 and 3KEY Triple DES-CBC"
 
   export pkcs12v2pbeWithSha1And128BitRc2Cbc=\
 "PKCS #12 V2 PBE With SHA-1 and 128 Bit RC2 CBC"
