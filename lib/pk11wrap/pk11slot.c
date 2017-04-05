@@ -2291,6 +2291,14 @@ PK11_GetMaxKeyLength(CK_MECHANISM_TYPE mechanism)
             }
         }
     }
+
+    /* fallback to pk11_GetPredefinedKeyLength for fixed key size algorithms */
+    if (keyLength == 0) {
+        CK_KEY_TYPE keyType;
+        keyType = PK11_GetKeyType(mechanism, 0);
+        keyLength = pk11_GetPredefinedKeyLength(keyType);
+    }
+
     if (le)
         PK11_FreeSlotListElement(list, le);
     if (freeit)
