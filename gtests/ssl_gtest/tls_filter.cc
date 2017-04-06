@@ -448,13 +448,6 @@ static bool FindCertReqExtensions(TlsParser* parser,
   if (!parser->SkipVariable(1)) {  // request context
     return false;
   }
-  // TODO remove the next two for -19
-  if (!parser->SkipVariable(2)) {  // signature_algorithms
-    return false;
-  }
-  if (!parser->SkipVariable(2)) {  // certificate_authorities
-    return false;
-  }
   return true;
 }
 

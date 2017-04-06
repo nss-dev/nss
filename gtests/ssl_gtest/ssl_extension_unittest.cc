@@ -1037,12 +1037,16 @@ class TlsBogusExtensionTest13 : public TlsBogusExtensionTest {
       return;
     }
 
+    FailWithAlert(kTlsAlertUnsupportedExtension);
+  }
+
+  void FailWithAlert(uint8_t alert) {
     client_->StartConnect();
     server_->StartConnect();
     client_->Handshake();  // ClientHello
     server_->Handshake();  // ServerHello
 
-    client_->ExpectSendAlert(kTlsAlertUnsupportedExtension);
+    client_->ExpectSendAlert(alert);
     client_->Handshake();
     if (mode_ == STREAM) {
       server_->ExpectSendAlert(kTlsAlertBadRecordMac);
@@ -1067,9 +1071,12 @@ TEST_P(TlsBogusExtensionTest13, AddBogusExtensionCertificate) {
   Run(kTlsHandshakeCertificate);
 }
 
+// It's perfectly valid to set unknown extensions in CertificateRequest.
 TEST_P(TlsBogusExtensionTest13, AddBogusExtensionCertificateRequest) {
   server_->RequestClientAuth(false);
-  Run(kTlsHandshakeCertificateRequest);
+  AddFilter(kTlsHandshakeCertificateRequest, 0xff);
+  FailWithAlert(kTlsAlertDecryptError);
+  client_->CheckErrorCode(SEC_ERROR_BAD_SIGNATURE);
 }
 
 TEST_P(TlsBogusExtensionTest13, AddBogusExtensionHelloRetryRequest) {

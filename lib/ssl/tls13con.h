@@ -14,6 +14,12 @@ typedef enum {
     EphemeralSharedSecret
 } SharedSecretType;
 
+typedef enum {
+    tls13_extension_allowed,
+    tls13_extension_disallowed,
+    tls13_extension_unknown
+} tls13ExtensionStatus;
+
 #define TLS13_MAX_FINISHED_SIZE 64
 
 SECStatus tls13_UnprotectRecord(
@@ -76,7 +82,8 @@ void tls13_DestroyEarlyData(PRCList *list);
 void tls13_CipherSpecAddRef(ssl3CipherSpec *spec);
 void tls13_CipherSpecRelease(ssl3CipherSpec *spec);
 void tls13_DestroyCipherSpecs(PRCList *list);
-PRBool tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message);
+tls13ExtensionStatus tls13_ExtensionStatus(PRUint16 extension,
+                                           SSL3HandshakeType message);
 SECStatus tls13_ProtectRecord(sslSocket *ss,
                               ssl3CipherSpec *cwSpec,
                               SSL3ContentType type,

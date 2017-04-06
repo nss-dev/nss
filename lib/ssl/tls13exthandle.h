@@ -71,4 +71,11 @@ SECStatus tls13_HandleShortHeaderXtn(
     const sslSocket *ss, TLSExtensionData *xtnData, PRUint16 ex_type,
     SECItem *data);
 
+PRInt32 tls13_SendCertAuthoritiesXtn(const sslSocket *ss,
+                                     TLSExtensionData *xtnData,
+                                     PRBool append, PRUint32 maxBytes);
+SECStatus tls13_ClientHandleCertAuthoritiesXtn(const sslSocket *ss,
+                                               TLSExtensionData *xtnData,
+                                               PRUint16 ex_type, SECItem *data);
+
 #endif

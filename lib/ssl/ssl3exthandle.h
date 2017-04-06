@@ -44,10 +44,10 @@ SECStatus ssl3_ClientHandleStatusRequestXtn(const sslSocket *ss, TLSExtensionDat
                                             SECItem *data);
 PRInt32 ssl3_ClientSendStatusRequestXtn(const sslSocket *ss, TLSExtensionData *xtnData, PRBool append,
                                         PRUint32 maxBytes);
-PRInt32 ssl3_ClientSendSigAlgsXtn(const sslSocket *ss, TLSExtensionData *xtnData, PRBool append,
-                                  PRUint32 maxBytes);
-SECStatus ssl3_ServerHandleSigAlgsXtn(const sslSocket *ss, TLSExtensionData *xtnData, PRUint16 ex_type,
-                                      SECItem *data);
+PRInt32 ssl3_SendSigAlgsXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                            PRBool append, PRUint32 maxBytes);
+SECStatus ssl3_HandleSigAlgsXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                                PRUint16 ex_type, SECItem *data);
 
 PRInt32 ssl3_ClientSendPaddingExtension(const sslSocket *ss, TLSExtensionData *xtnData,
                                         PRBool append, PRUint32 maxBytes);
