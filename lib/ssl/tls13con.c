@@ -17,6 +17,7 @@
 #include "sslimpl.h"
 #include "sslproto.h"
 #include "sslerr.h"
+#include "ssl3exthandle.h"
 #include "tls13hkdf.h"
 #include "tls13con.h"
 #include "tls13exthandle.h"
@@ -1204,8 +1205,8 @@ tls13_SelectServerCert(sslSocket *ss)
         rv = ssl_PickSignatureScheme(ss,
                                      cert->serverKeyPair->pubKey,
                                      cert->serverKeyPair->privKey,
-                                     ss->xtnData.clientSigSchemes,
-                                     ss->xtnData.numClientSigScheme,
+                                     ss->xtnData.sigSchemes,
+                                     ss->xtnData.numSigSchemes,
                                      PR_FALSE);
         if (rv == SECSuccess) {
             /* Found one. */
@@ -1598,6 +1599,12 @@ tls13_HandleClientKeyShare(sslSocket *ss, TLS13KeyShareEntry *peerShare)
     return rv; /* Error code set already. */
 }
 
+static const ssl3HelloExtensionSender tls13_cert_req_senders[] = {
+    { ssl_signature_algorithms_xtn, &ssl3_SendSigAlgsXtn },
+    { ssl_tls13_certificate_authorities_xtn, &tls13_SendCertAuthoritiesXtn },
+    { 0, NULL }
+};
+
 /*
  *     [draft-ietf-tls-tls13-11] Section 6.3.3.2
  *
@@ -1620,56 +1627,36 @@ static SECStatus
 tls13_SendCertificateRequest(sslSocket *ss)
 {
     SECStatus rv;
-    unsigned int calen;
-    SECItem *names;
-    unsigned int nnames;
-    SECItem *name;
-    int i;
-    PRUint8 sigSchemes[MAX_SIGNATURE_SCHEMES * 2];
-    unsigned int sigSchemesLength = 0;
-    int length;
+    PRInt32 extLen;
 
     SSL_TRC(3, ("%d: TLS13[%d]: begin send certificate_request",
                 SSL_GETPID(), ss->fd));
 
-    rv = ssl3_EncodeSigAlgs(ss, sigSchemes, sizeof(sigSchemes),
-                            &sigSchemesLength);
-    if (rv != SECSuccess) {
-        return rv;
-    }
+    extLen = ssl3_CallHelloExtensionSenders(ss, PR_FALSE, 0xffff,
+                                            tls13_cert_req_senders);
+    PORT_Assert(extLen > 0); /* These can't be empty. */
 
-    rv = ssl_GetCertificateRequestCAs(ss, &calen, &names, &nnames);
-    if (rv != SECSuccess) {
-        return rv;
-    }
-    length = 1 + 0 /* length byte for empty request context */ +
-             2 + sigSchemesLength + 2 + calen + 2;
-
-    rv = ssl3_AppendHandshakeHeader(ss, certificate_request, length);
+    rv = ssl3_AppendHandshakeHeader(ss, certificate_request,
+                                    1 + 0 + /* empty request context */
+                                        2 + extLen /* len + extensions */);
     if (rv != SECSuccess) {
         return rv; /* err set by AppendHandshake. */
     }
+
+    /* Context. */
     rv = ssl3_AppendHandshakeNumber(ss, 0, 1);
     if (rv != SECSuccess) {
         return rv; /* err set by AppendHandshake. */
     }
-    rv = ssl3_AppendHandshakeVariable(ss, sigSchemes, sigSchemesLength, 2);
+    /* Extensions. */
+    rv = ssl3_AppendHandshakeNumber(ss, extLen, 2);
     if (rv != SECSuccess) {
         return rv; /* err set by AppendHandshake. */
     }
-    rv = ssl3_AppendHandshakeNumber(ss, calen, 2);
-    if (rv != SECSuccess) {
-        return rv; /* err set by AppendHandshake. */
-    }
-    for (i = 0, name = names; i < nnames; i++, name++) {
-        rv = ssl3_AppendHandshakeVariable(ss, name->data, name->len, 2);
-        if (rv != SECSuccess) {
-            return rv; /* err set by AppendHandshake. */
-        }
-    }
-    rv = ssl3_AppendHandshakeNumber(ss, 0, 2);
-    if (rv != SECSuccess) {
-        return rv; /* err set by AppendHandshake. */
+    extLen = ssl3_CallHelloExtensionSenders(ss, PR_TRUE, extLen,
+                                            tls13_cert_req_senders);
+    if (extLen < 0) {
+        return SECFailure; /* rely on the extension sender setting code */
     }
 
     return SECSuccess;
@@ -1768,9 +1755,7 @@ static SECStatus
 tls13_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
     SECStatus rv;
-    TLS13CertificateRequest *certRequest = NULL;
     SECItem context = { siBuffer, NULL, 0 };
-    PLArenaPool *arena;
     SECItem extensionsData = { siBuffer, NULL, 0 };
 
     SSL_TRC(3, ("%d: TLS13[%d]: handle certificate_request sequence",
@@ -1789,71 +1774,51 @@ tls13_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     PORT_Assert(ss->ssl3.clientCertChain == NULL);
     PORT_Assert(ss->ssl3.clientCertificate == NULL);
     PORT_Assert(ss->ssl3.clientPrivateKey == NULL);
-    PORT_Assert(ss->ssl3.hs.certificateRequest == NULL);
+    PORT_Assert(!ss->ssl3.hs.clientCertRequested);
 
-    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if (!arena) {
-        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
+    rv = ssl3_ConsumeHandshakeVariable(ss, &context, 1, &b, &length);
+    if (rv != SECSuccess) {
         return SECFailure;
     }
 
-    rv = ssl3_ConsumeHandshakeVariable(ss, &context, 1, &b, &length);
-    if (rv != SECSuccess)
-        goto loser;
-
     /* We don't support post-handshake client auth, the certificate request
-     * context must always be null. */
+     * context must always be empty. */
     if (context.len > 0) {
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CERT_REQUEST, illegal_parameter);
-        goto loser;
+        return SECFailure;
     }
 
-    certRequest = PORT_ArenaZNew(arena, TLS13CertificateRequest);
-    if (!certRequest)
-        goto loser;
-    certRequest->arena = arena;
-    certRequest->ca_list.arena = arena;
-
-    rv = ssl_ParseSignatureSchemes(ss, arena,
-                                   &certRequest->signatureSchemes,
-                                   &certRequest->signatureSchemeCount,
-                                   &b, &length);
-    if (rv != SECSuccess || certRequest->signatureSchemeCount == 0) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CERT_REQUEST,
-                    decode_error);
-        goto loser;
-    }
-
-    rv = ssl3_ParseCertificateRequestCAs(ss, &b, &length, arena,
-                                         &certRequest->ca_list);
-    if (rv != SECSuccess)
-        goto loser; /* alert already sent */
-
-    /* Verify that the extensions are sane. */
     rv = ssl3_ConsumeHandshakeVariable(ss, &extensionsData, 2, &b, &length);
     if (rv != SECSuccess) {
-        goto loser;
+        return SECFailure;
     }
 
-    /* Process all the extensions (note: currently a no-op). */
+    if (length) {
+        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CERT_REQUEST, decode_error);
+        return SECFailure;
+    }
+
+    /* Process all the extensions. */
     rv = ssl3_HandleExtensions(ss, &extensionsData.data, &extensionsData.len,
                                certificate_request);
     if (rv != SECSuccess) {
-        goto loser;
+        return SECFailure;
     }
 
-    rv = SECITEM_CopyItem(arena, &certRequest->context, &context);
-    if (rv != SECSuccess)
-        goto loser;
+    if (!ss->xtnData.numSigSchemes) {
+        FATAL_ERROR(ss, SSL_ERROR_MISSING_SIGNATURE_ALGORITHMS_EXTENSION,
+                    missing_extension);
+        return SECFailure;
+    }
 
+    rv = SECITEM_CopyItem(NULL, &ss->xtnData.certReqContext, &context);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    ss->ssl3.hs.clientCertRequested = PR_TRUE;
     TLS13_SET_HS_STATE(ss, wait_server_cert);
-    ss->ssl3.hs.certificateRequest = certRequest;
-
     return SECSuccess;
-
-loser:
-    PORT_FreeArena(arena, PR_FALSE);
-    return SECFailure;
 }
 
 static SECStatus
@@ -2215,8 +2180,8 @@ tls13_SendCertificate(sslSocket *ss)
         ss, PR_FALSE, maxBytes, &ss->xtnData.certificateSenders[0]);
 
     if (!ss->sec.isServer) {
-        PORT_Assert(ss->ssl3.hs.certificateRequest);
-        context = ss->ssl3.hs.certificateRequest->context;
+        PORT_Assert(ss->ssl3.hs.clientCertRequested);
+        context = ss->xtnData.certReqContext;
     }
     if (certChain) {
         for (i = 0; i < certChain->len; i++) {
@@ -2227,8 +2192,7 @@ tls13_SendCertificate(sslSocket *ss)
     }
 
     rv = ssl3_AppendHandshakeHeader(ss, certificate,
-                                    1 + context.len +
-                                        3 + certChainLen);
+                                    1 + context.len + 3 + certChainLen);
     if (rv != SECSuccess) {
         return SECFailure; /* err set by AppendHandshake. */
     }
@@ -3329,13 +3293,11 @@ tls13_HandleCertificateVerify(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
     }
 
     /* Request a client certificate now if one was requested. */
-    if (ss->ssl3.hs.certificateRequest) {
-        TLS13CertificateRequest *req = ss->ssl3.hs.certificateRequest;
-
+    if (ss->ssl3.hs.clientCertRequested) {
         PORT_Assert(!ss->sec.isServer);
-        rv = ssl3_CompleteHandleCertificateRequest(ss, req->signatureSchemes,
-                                                   req->signatureSchemeCount,
-                                                   &req->ca_list);
+        rv = ssl3_CompleteHandleCertificateRequest(
+            ss, ss->xtnData.sigSchemes, ss->xtnData.numSigSchemes,
+            &ss->xtnData.certReqAuthorities);
         if (rv != SECSuccess) {
             FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
             return rv;
@@ -3680,9 +3642,15 @@ tls13_SendClientSecondFlight(sslSocket *ss, PRBool sendClientCert,
             return SECFailure; /* error code is set. */
         }
     }
-    if (ss->ssl3.hs.certificateRequest) {
-        PORT_FreeArena(ss->ssl3.hs.certificateRequest->arena, PR_FALSE);
-        ss->ssl3.hs.certificateRequest = NULL;
+    if (ss->ssl3.hs.clientCertRequested) {
+        SECITEM_FreeItem(&ss->xtnData.certReqContext, PR_FALSE);
+        if (ss->xtnData.certReqAuthorities.arena) {
+            PORT_FreeArena(ss->xtnData.certReqAuthorities.arena, PR_FALSE);
+            ss->xtnData.certReqAuthorities.arena = NULL;
+        }
+        PORT_Memset(&ss->xtnData.certReqAuthorities, 0,
+                    sizeof(ss->xtnData.certReqAuthorities));
+        ss->ssl3.hs.clientCertRequested = PR_FALSE;
     }
 
     if (sendClientCert) {
@@ -3946,7 +3914,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     /* Parse extensions. */
     rv = ssl3_ConsumeHandshakeVariable(ss, &data, 2, &b, &length);
-    if (rv != SECSuccess) {
+    if (rv != SECSuccess || length) {
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET,
                     decode_error);
         return SECFailure;
@@ -3962,12 +3930,6 @@ tls13_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (ss->xtnData.max_early_data_size) {
         ticket.flags |= ticket_allow_early_data;
         ticket.max_early_data_size = ss->xtnData.max_early_data_size;
-    }
-
-    if (length != 0) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET,
-                    decode_error);
-        return SECFailure;
     }
 
     if (!ss->opt.noCache) {
@@ -4028,31 +3990,28 @@ static const struct {
 } KnownExtensions[] = {
     { ssl_server_name_xtn, _M2(client_hello, encrypted_extensions) },
     { ssl_supported_groups_xtn, _M2(client_hello, encrypted_extensions) },
-    { ssl_ec_point_formats_xtn, 0 },
     { ssl_signature_algorithms_xtn, _M2(client_hello, certificate_request) },
     { ssl_use_srtp_xtn, _M2(client_hello, encrypted_extensions) },
     { ssl_app_layer_protocol_xtn, _M2(client_hello, encrypted_extensions) },
     { ssl_padding_xtn, _M1(client_hello) },
-    { ssl_extended_master_secret_xtn, 0 },
-    { ssl_session_ticket_xtn, 0 },
     { ssl_tls13_key_share_xtn, _M3(client_hello, server_hello,
                                    hello_retry_request) },
     { ssl_tls13_pre_shared_key_xtn, _M2(client_hello, server_hello) },
     { ssl_tls13_psk_key_exchange_modes_xtn, _M1(client_hello) },
     { ssl_tls13_early_data_xtn, _M3(client_hello, encrypted_extensions,
                                     new_session_ticket) },
-    { ssl_next_proto_nego_xtn, 0 },
-    { ssl_renegotiation_info_xtn, 0 },
     { ssl_signed_cert_timestamp_xtn, _M3(client_hello, certificate_request,
                                          certificate) },
     { ssl_cert_status_xtn, _M3(client_hello, certificate_request,
                                certificate) },
     { ssl_tls13_cookie_xtn, _M2(client_hello, hello_retry_request) },
     { ssl_tls13_short_header_xtn, _M2(client_hello, server_hello) },
+    { ssl_tls13_certificate_authorities_xtn, _M1(certificate_request) },
+    { ssl_tls13_supported_versions_xtn, _M1(client_hello) }
 };
 
-PRBool
-tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message)
+tls13ExtensionStatus
+tls13_ExtensionStatus(PRUint16 extension, SSL3HandshakeType message)
 {
     unsigned int i;
 
@@ -4067,25 +4026,23 @@ tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message)
     for (i = 0; i < PR_ARRAY_SIZE(KnownExtensions); i++) {
         /* Hacky check for message numbers > 30. */
         PORT_Assert(!(KnownExtensions[i].messages & (1U << 31)));
-        if (KnownExtensions[i].ex_value == extension)
+        if (KnownExtensions[i].ex_value == extension) {
             break;
+        }
     }
-    if (i == PR_ARRAY_SIZE(KnownExtensions)) {
-        /* We have never heard of this extension which is OK
-         * in client_hello and new_session_ticket. */
-        return (message == client_hello) ||
-               (message == new_session_ticket);
+    if (i >= PR_ARRAY_SIZE(KnownExtensions)) {
+        return tls13_extension_unknown;
     }
 
-    /* Return PR_TRUE iff the message mask bit is set. */
+    /* Return "disallowed" if the message mask bit isn't set. */
     if (!(_M1(message) & KnownExtensions[i].messages)) {
         SSL_TRC(3, ("%d: TLS13: unexpected extension %d in message %d",
                     SSL_GETPID(), extension, message));
 
-        return PR_FALSE;
+        return tls13_extension_disallowed;
     }
 
-    return PR_TRUE;
+    return tls13_extension_allowed;
 }
 
 #undef _M1
