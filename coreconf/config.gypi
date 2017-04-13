@@ -141,6 +141,47 @@
           'debug_optimization_level%': '1',
         },
       }],
+      [ 'target_arch=="ia32" or target_arch=="x64"', {
+        'defines': [
+          'NSS_X86_OR_X64',
+        ],
+        # For Windows.
+        'msvs_settings': {
+          'VCCLCompilerTool': {
+            'PreprocessorDefinitions': [
+              'NSS_X86_OR_X64',
+            ],
+          },
+        },
+      }],
+      [ 'target_arch=="ia32"', {
+        'defines': [
+          'NSS_X86',
+        ],
+        # For Windows.
+        'msvs_settings': {
+          'VCCLCompilerTool': {
+            'PreprocessorDefinitions': [
+              'NSS_X86',
+            ],
+          },
+        },
+      }],
+      [ 'target_arch=="x64"', {
+        'defines': [
+          'NSS_X64',
+          'NSS_USE_64',
+        ],
+        # For Windows.
+        'msvs_settings': {
+          'VCCLCompilerTool': {
+            'PreprocessorDefinitions': [
+              'NSS_X64',
+              'NSS_USE_64',
+            ],
+          },
+        },
+      }],
     ],
     'target_conditions': [
       # If we want to properly export a static library, and copy it to lib,
