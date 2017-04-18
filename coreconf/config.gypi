@@ -356,6 +356,9 @@
             'cflags_cc': [
               '-std=c++0x',
             ],
+            'ldflags': [
+              '-z', 'noexecstack',
+            ],
             'conditions': [
               [ 'target_arch=="ia32"', {
                 'cflags': ['-m32'],
