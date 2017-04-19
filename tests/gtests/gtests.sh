@@ -55,10 +55,9 @@ gtest_start()
     GTESTREPORT="$GTESTDIR/report.xml"
     PARSED_REPORT="$GTESTDIR/report.parsed"
     echo "executing $i"
-    # We disable slow b64 tests because they fail on ppc and armhf (bug 1351459).
     ${BINDIR}/$i "${SOURCE_DIR}/gtests/freebl_gtest/kat/Hash_DRBG.rsp" \
                  -d "$GTESTDIR" --gtest_output=xml:"${GTESTREPORT}" \
-                 --gtest_filter="${GTESTFILTER-*}:-*B64*Long*"
+                                --gtest_filter="${GTESTFILTER-*}"
     html_msg $? 0 "$i run successfully"
     echo "test output dir: ${GTESTREPORT}"
     echo "executing sed to parse the xml report"
