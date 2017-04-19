@@ -238,13 +238,13 @@ bool EncTool::DoCipher(std::string file_name, std::string out_file,
   ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
   if (!slot) {
     PrintError("Unable to find security device", PR_GetError(), __LINE__);
-    return SECFailure;
+    return false;
   }
 
   ScopedSECItem key, params;
   if (!(this->*get_params)(std::vector<uint8_t>(), key, params)) {
     PrintError("Geting keys and params failed.", __LINE__);
-    return SECFailure;
+    return false;
   }
 
   ScopedPK11SymKey symKey(
@@ -252,7 +252,7 @@ bool EncTool::DoCipher(std::string file_name, std::string out_file,
                         CKA_DECRYPT | CKA_ENCRYPT, key.get(), nullptr));
   if (!symKey) {
     PrintError("Failure to import key into NSS", PR_GetError(), __LINE__);
-    return SECFailure;
+    return false;
   }
 
   std::streambuf* buf;
