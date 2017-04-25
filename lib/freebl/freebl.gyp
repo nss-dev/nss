@@ -174,7 +174,6 @@
           'VCCLCompilerTool': {
             #TODO: -Ox optimize flags
             'PreprocessorDefinitions': [
-              'NSS_USE_64',
               'MP_IS_LITTLE_ENDIAN',
               'NSS_BEVAND_ARCFOUR',
               'MPI_AMD64',
@@ -188,11 +187,6 @@
       }],
       [ 'OS!="win"', {
         'conditions': [
-          [ 'target_arch=="x64"', {
-            'defines': [
-              'NSS_USE_64',
-            ],
-          }],
           [ 'target_arch=="x64" or target_arch=="arm64" or target_arch=="aarch64"', {
             'defines': [
               # The Makefile does version-tests on GCC, but we're not doing that here.
@@ -244,11 +238,6 @@
               'MP_USE_UINT_DIGIT',
               'SHA_NO_LONG_LONG',
               'ARMHF',
-            ],
-          }],
-          [ 'target_arch=="arm64" or target_arch=="aarch64"', {
-            'defines': [
-              'NSS_USE_64',
             ],
           }],
         ],
