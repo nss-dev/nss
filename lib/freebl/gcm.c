@@ -23,11 +23,11 @@
 
 /* Forward declarations */
 SECStatus gcm_HashMult_hw(gcmHashContext *ghash, const unsigned char *buf,
-                          unsigned int count, unsigned int blocksize);
+                          unsigned int count);
 SECStatus gcm_HashMult_sftw(gcmHashContext *ghash, const unsigned char *buf,
-                            unsigned int count, unsigned int blocksize);
+                            unsigned int count);
 SECStatus gcm_HashMult_sftw32(gcmHashContext *ghash, const unsigned char *buf,
-                              unsigned int count, unsigned int blocksize);
+                              unsigned int count);
 
 uint64_t
 get64(const unsigned char *bytes)
@@ -121,7 +121,7 @@ bmul(uint64_t x, uint64_t y, uint64_t *r_high, uint64_t *r_low)
 
 SECStatus
 gcm_HashMult_sftw(gcmHashContext *ghash, const unsigned char *buf,
-                  unsigned int count, unsigned int blocksize)
+                  unsigned int count)
 {
     uint64_t ci_low, ci_high;
     size_t i;
@@ -198,7 +198,7 @@ bmul32(uint32_t x, uint32_t y, uint32_t *r_high, uint32_t *r_low)
 
 SECStatus
 gcm_HashMult_sftw32(gcmHashContext *ghash, const unsigned char *buf,
-                    unsigned int count, unsigned int blocksize)
+                    unsigned int count)
 {
     size_t i;
     uint64_t ci_low, ci_high;
@@ -285,7 +285,7 @@ gcm_HashMult_sftw32(gcmHashContext *ghash, const unsigned char *buf,
 
 SECStatus
 gcm_HashMult_hw(gcmHashContext *ghash, const unsigned char *buf,
-                unsigned int count, unsigned int blocksize)
+                unsigned int count)
 {
 #ifdef NSS_X86_OR_X64
     size_t i;
@@ -383,12 +383,12 @@ gcm_zeroX(gcmHashContext *ghash)
 
 /*
  * implement GCM GHASH using the freebl GHASH function. The gcm_HashMult
- * function always takes blocksize lengths of data. gcmHash_Update will
+ * function always takes AES_BLOCK_SIZE lengths of data. gcmHash_Update will
  * format the data properly.
  */
 SECStatus
 gcmHash_Update(gcmHashContext *ghash, const unsigned char *buf,
-               unsigned int len, unsigned int blocksize)
+               unsigned int len)
 {
     unsigned int blocks;
     SECStatus rv;
@@ -398,7 +398,7 @@ gcmHash_Update(gcmHashContext *ghash, const unsigned char *buf,
     /* first deal with the current buffer of data. Try to fill it out so
      * we can hash it */
     if (ghash->bufLen) {
-        unsigned int needed = PR_MIN(len, blocksize - ghash->bufLen);
+        unsigned int needed = PR_MIN(len, AES_BLOCK_SIZE - ghash->bufLen);
         if (needed != 0) {
             PORT_Memcpy(ghash->buffer + ghash->bufLen, buf, needed);
         }
@@ -409,24 +409,24 @@ gcmHash_Update(gcmHashContext *ghash, const unsigned char *buf,
             /* didn't add enough to hash the data, nothing more do do */
             return SECSuccess;
         }
-        PORT_Assert(ghash->bufLen == blocksize);
+        PORT_Assert(ghash->bufLen == AES_BLOCK_SIZE);
         /* hash the buffer and clear it */
-        rv = ghash->ghash_mul(ghash, ghash->buffer, 1, blocksize);
-        PORT_Memset(ghash->buffer, 0, blocksize);
+        rv = ghash->ghash_mul(ghash, ghash->buffer, 1);
+        PORT_Memset(ghash->buffer, 0, AES_BLOCK_SIZE);
         ghash->bufLen = 0;
         if (rv != SECSuccess) {
             return SECFailure;
         }
     }
     /* now hash any full blocks remaining in the data stream */
-    blocks = len / blocksize;
+    blocks = len / AES_BLOCK_SIZE;
     if (blocks) {
-        rv = ghash->ghash_mul(ghash, buf, blocks, blocksize);
+        rv = ghash->ghash_mul(ghash, buf, blocks);
         if (rv != SECSuccess) {
             return SECFailure;
         }
-        buf += blocks * blocksize;
-        len -= blocks * blocksize;
+        buf += blocks * AES_BLOCK_SIZE;
+        len -= blocks * AES_BLOCK_SIZE;
     }
 
     /* save any remainder in the buffer to be hashed with the next call */
@@ -442,7 +442,7 @@ gcmHash_Update(gcmHashContext *ghash, const unsigned char *buf,
  * save the lengths for the final completion of the hash
  */
 static SECStatus
-gcmHash_Sync(gcmHashContext *ghash, unsigned int blocksize)
+gcmHash_Sync(gcmHashContext *ghash)
 {
     int i;
     SECStatus rv;
@@ -459,9 +459,9 @@ gcmHash_Sync(gcmHashContext *ghash, unsigned int blocksize)
 
     /* now zero fill the buffer and hash the last block */
     if (ghash->bufLen) {
-        PORT_Memset(ghash->buffer + ghash->bufLen, 0, blocksize - ghash->bufLen);
-        rv = ghash->ghash_mul(ghash, ghash->buffer, 1, blocksize);
-        PORT_Memset(ghash->buffer, 0, blocksize);
+        PORT_Memset(ghash->buffer + ghash->bufLen, 0, AES_BLOCK_SIZE - ghash->bufLen);
+        rv = ghash->ghash_mul(ghash, ghash->buffer, 1);
+        PORT_Memset(ghash->buffer, 0, AES_BLOCK_SIZE);
         ghash->bufLen = 0;
         if (rv != SECSuccess) {
             return SECFailure;
@@ -486,20 +486,18 @@ gcmHash_Sync(gcmHashContext *ghash, unsigned int blocksize)
  */
 SECStatus
 gcmHash_Final(gcmHashContext *ghash, unsigned char *outbuf,
-              unsigned int *outlen, unsigned int maxout,
-              unsigned int blocksize)
+              unsigned int *outlen, unsigned int maxout)
 {
     unsigned char T[MAX_BLOCK_SIZE];
     SECStatus rv;
 
-    rv = gcmHash_Sync(ghash, blocksize);
+    rv = gcmHash_Sync(ghash);
     if (rv != SECSuccess) {
         goto cleanup;
     }
 
     rv = ghash->ghash_mul(ghash, ghash->counterBuf,
-                          (GCM_HASH_LEN_LEN * 2) / blocksize,
-                          blocksize);
+                          (GCM_HASH_LEN_LEN * 2) / AES_BLOCK_SIZE);
     if (rv != SECSuccess) {
         goto cleanup;
     }
@@ -519,8 +517,8 @@ gcmHash_Final(gcmHashContext *ghash, unsigned char *outbuf,
         WRITE64(ghash->x_high, T);
     }
 
-    if (maxout > blocksize) {
-        maxout = blocksize;
+    if (maxout > AES_BLOCK_SIZE) {
+        maxout = AES_BLOCK_SIZE;
     }
     PORT_Memcpy(outbuf, T, maxout);
     *outlen = maxout;
@@ -533,7 +531,7 @@ cleanup:
 
 SECStatus
 gcmHash_Reset(gcmHashContext *ghash, const unsigned char *AAD,
-              unsigned int AADLen, unsigned int blocksize)
+              unsigned int AADLen)
 {
     SECStatus rv;
 
@@ -547,11 +545,11 @@ gcmHash_Reset(gcmHashContext *ghash, const unsigned char *AAD,
 
     /* now kick things off by hashing the Additional Authenticated Data */
     if (AADLen != 0) {
-        rv = gcmHash_Update(ghash, AAD, AADLen, blocksize);
+        rv = gcmHash_Update(ghash, AAD, AADLen);
         if (rv != SECSuccess) {
             return SECFailure;
         }
-        rv = gcmHash_Sync(ghash, blocksize);
+        rv = gcmHash_Sync(ghash);
         if (rv != SECSuccess) {
             return SECFailure;
         }
@@ -573,7 +571,7 @@ struct GCMContextStr {
 
 GCMContext *
 GCM_CreateContext(void *context, freeblCipherFunc cipher,
-                  const unsigned char *params, unsigned int blocksize)
+                  const unsigned char *params)
 {
     GCMContext *gcm = NULL;
     gcmHashContext *ghash = NULL;
@@ -589,10 +587,6 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
     const PRBool sw = PR_FALSE;
 #endif
 
-    if (blocksize > MAX_BLOCK_SIZE || blocksize > sizeof(ctrParams.cb)) {
-        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-        return NULL;
-    }
     gcm = PORT_ZNew(GCMContext);
     if (gcm == NULL) {
         PORT_SetError(SEC_ERROR_NO_MEMORY);
@@ -609,8 +603,8 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
 
     /* first plug in the ghash context */
     gcm->ghash_context = ghash;
-    PORT_Memset(H, 0, blocksize);
-    rv = (*cipher)(context, H, &tmp, blocksize, H, blocksize, blocksize);
+    PORT_Memset(H, 0, AES_BLOCK_SIZE);
+    rv = (*cipher)(context, H, &tmp, AES_BLOCK_SIZE, H, AES_BLOCK_SIZE, AES_BLOCK_SIZE);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -622,22 +616,21 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
     /* fill in the Counter context */
     ctrParams.ulCounterBits = 32;
     PORT_Memset(ctrParams.cb, 0, sizeof(ctrParams.cb));
-    if ((blocksize == 16) && (gcmParams->ulIvLen == 12)) {
+    if (gcmParams->ulIvLen == 12) {
         PORT_Memcpy(ctrParams.cb, gcmParams->pIv, gcmParams->ulIvLen);
-        ctrParams.cb[blocksize - 1] = 1;
+        ctrParams.cb[AES_BLOCK_SIZE - 1] = 1;
     } else {
-        rv = gcmHash_Update(ghash, gcmParams->pIv, gcmParams->ulIvLen,
-                            blocksize);
+        rv = gcmHash_Update(ghash, gcmParams->pIv, gcmParams->ulIvLen);
         if (rv != SECSuccess) {
             goto loser;
         }
-        rv = gcmHash_Final(ghash, ctrParams.cb, &tmp, blocksize, blocksize);
+        rv = gcmHash_Final(ghash, ctrParams.cb, &tmp, AES_BLOCK_SIZE);
         if (rv != SECSuccess) {
             goto loser;
         }
     }
     rv = CTR_InitContext(&gcm->ctr_context, context, cipher,
-                         (unsigned char *)&ctrParams, blocksize);
+                         (unsigned char *)&ctrParams);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -647,14 +640,14 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
     gcm->tagBits = gcmParams->ulTagBits; /* save for final step */
     /* calculate the final tag key. NOTE: gcm->tagKey is zero to start with.
      * if this assumption changes, we would need to explicitly clear it here */
-    rv = CTR_Update(&gcm->ctr_context, gcm->tagKey, &tmp, blocksize,
-                    gcm->tagKey, blocksize, blocksize);
+    rv = CTR_Update(&gcm->ctr_context, gcm->tagKey, &tmp, AES_BLOCK_SIZE,
+                    gcm->tagKey, AES_BLOCK_SIZE, AES_BLOCK_SIZE);
     if (rv != SECSuccess) {
         goto loser;
     }
 
     /* finally mix in the AAD data */
-    rv = gcmHash_Reset(ghash, gcmParams->pAAD, gcmParams->ulAADLen, blocksize);
+    rv = gcmHash_Reset(ghash, gcmParams->pAAD, gcmParams->ulAADLen);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -691,8 +684,7 @@ GCM_DestroyContext(GCMContext *gcm, PRBool freeit)
 
 static SECStatus
 gcm_GetTag(GCMContext *gcm, unsigned char *outbuf,
-           unsigned int *outlen, unsigned int maxout,
-           unsigned int blocksize)
+           unsigned int *outlen, unsigned int maxout)
 {
     unsigned int tagBytes;
     unsigned int extra;
@@ -714,7 +706,7 @@ gcm_GetTag(GCMContext *gcm, unsigned char *outbuf,
         return SECFailure;
     }
     maxout = tagBytes;
-    rv = gcmHash_Final(gcm->ghash_context, outbuf, outlen, maxout, blocksize);
+    rv = gcmHash_Final(gcm->ghash_context, outbuf, outlen, maxout);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -744,6 +736,12 @@ GCM_EncryptUpdate(GCMContext *gcm, unsigned char *outbuf,
     unsigned int tagBytes;
     unsigned int len;
 
+    PORT_Assert(blocksize == AES_BLOCK_SIZE);
+    if (blocksize != AES_BLOCK_SIZE) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+
     tagBytes = (gcm->tagBits + (PR_BITS_PER_BYTE - 1)) / PR_BITS_PER_BYTE;
     if (UINT_MAX - inlen < tagBytes) {
         PORT_SetError(SEC_ERROR_INPUT_LEN);
@@ -756,17 +754,17 @@ GCM_EncryptUpdate(GCMContext *gcm, unsigned char *outbuf,
     }
 
     rv = CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
-                    inbuf, inlen, blocksize);
+                    inbuf, inlen, AES_BLOCK_SIZE);
     if (rv != SECSuccess) {
         return SECFailure;
     }
-    rv = gcmHash_Update(gcm->ghash_context, outbuf, *outlen, blocksize);
+    rv = gcmHash_Update(gcm->ghash_context, outbuf, *outlen);
     if (rv != SECSuccess) {
         PORT_Memset(outbuf, 0, *outlen); /* clear the output buffer */
         *outlen = 0;
         return SECFailure;
     }
-    rv = gcm_GetTag(gcm, outbuf + *outlen, &len, maxout - *outlen, blocksize);
+    rv = gcm_GetTag(gcm, outbuf + *outlen, &len, maxout - *outlen);
     if (rv != SECSuccess) {
         PORT_Memset(outbuf, 0, *outlen); /* clear the output buffer */
         *outlen = 0;
@@ -796,6 +794,12 @@ GCM_DecryptUpdate(GCMContext *gcm, unsigned char *outbuf,
     const unsigned char *intag;
     unsigned int len;
 
+    PORT_Assert(blocksize == AES_BLOCK_SIZE);
+    if (blocksize != AES_BLOCK_SIZE) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+
     tagBytes = (gcm->tagBits + (PR_BITS_PER_BYTE - 1)) / PR_BITS_PER_BYTE;
 
     /* get the authentication block */
@@ -808,11 +812,11 @@ GCM_DecryptUpdate(GCMContext *gcm, unsigned char *outbuf,
     intag = inbuf + inlen;
 
     /* verify the block */
-    rv = gcmHash_Update(gcm->ghash_context, inbuf, inlen, blocksize);
+    rv = gcmHash_Update(gcm->ghash_context, inbuf, inlen);
     if (rv != SECSuccess) {
         return SECFailure;
     }
-    rv = gcm_GetTag(gcm, tag, &len, blocksize, blocksize);
+    rv = gcm_GetTag(gcm, tag, &len, AES_BLOCK_SIZE);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -828,5 +832,5 @@ GCM_DecryptUpdate(GCMContext *gcm, unsigned char *outbuf,
     PORT_Memset(tag, 0, sizeof(tag));
     /* finish the decryption */
     return CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
-                      inbuf, inlen, blocksize);
+                      inbuf, inlen, AES_BLOCK_SIZE);
 }

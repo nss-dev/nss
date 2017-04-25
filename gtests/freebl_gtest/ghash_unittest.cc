@@ -137,16 +137,15 @@ class GHashTest : public ::testing::TestWithParam<ghash_kat_value> {
     // Hash additional_data, cipher_text.
     gcmHash_Reset(&ghashCtx,
                   const_cast<const unsigned char *>(additional_data.data()),
-                  additional_data.size(), 16);
+                  additional_data.size());
     gcmHash_Update(&ghashCtx,
                    const_cast<const unsigned char *>(cipher_text.data()),
-                   cipher_text.size(), 16);
+                   cipher_text.size());
 
     // Finalise (hash in the length).
     uint8_t result_bytes[16];
     unsigned int out_len;
-    ASSERT_EQ(SECSuccess,
-              gcmHash_Final(&ghashCtx, result_bytes, &out_len, 16, 16));
+    ASSERT_EQ(SECSuccess, gcmHash_Final(&ghashCtx, result_bytes, &out_len, 16));
     ASSERT_EQ(16U, out_len);
     EXPECT_EQ(expected, std::vector<uint8_t>(result_bytes, result_bytes + 16));
   }
