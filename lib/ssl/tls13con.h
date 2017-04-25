@@ -49,11 +49,10 @@ unsigned int tls13_GetHashSize(const sslSocket *ss);
 CK_MECHANISM_TYPE tls13_GetHkdfMechanism(sslSocket *ss);
 SECStatus tls13_ComputeHash(sslSocket *ss, SSL3Hashes *hashes,
                             const PRUint8 *buf, unsigned int len);
-SECStatus tls13_DeriveSecret(sslSocket *ss, PK11SymKey *key,
-                             const char *label,
-                             unsigned int labelLen,
-                             const SSL3Hashes *hashes,
-                             PK11SymKey **dest);
+SECStatus tls13_DeriveSecretNullHash(sslSocket *ss, PK11SymKey *key,
+                                     const char *label,
+                                     unsigned int labelLen,
+                                     PK11SymKey **dest);
 void tls13_FatalError(sslSocket *ss, PRErrorCode prError,
                       SSL3AlertDescription desc);
 SECStatus tls13_SetupClientHello(sslSocket *ss);
