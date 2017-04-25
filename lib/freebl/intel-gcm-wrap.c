@@ -41,8 +41,7 @@ struct intel_AES_GCMContextStr {
 intel_AES_GCMContext *
 intel_AES_GCM_CreateContext(void *context,
                             freeblCipherFunc cipher,
-                            const unsigned char *params,
-                            unsigned int blocksize)
+                            const unsigned char *params)
 {
     intel_AES_GCMContext *gcm = NULL;
     AESContext *aes = (AESContext *)context;
@@ -59,10 +58,6 @@ intel_AES_GCM_CreateContext(void *context,
     unsigned int j;
     SECStatus rv;
 
-    if (blocksize != AES_BLOCK_SIZE) {
-        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-        return NULL;
-    }
     gcm = PORT_ZNew(intel_AES_GCMContext);
 
     if (gcm == NULL) {
