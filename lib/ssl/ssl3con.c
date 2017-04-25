@@ -576,6 +576,9 @@ ssl3_DecodeHandshakeType(int msgType)
         case new_session_ticket:
             rv = "session_ticket (4)";
             break;
+        case end_of_early_data:
+            rv = "end_of_early_data (5)";
+            break;
         case hello_retry_request:
             rv = "hello_retry_request (6)";
             break;
@@ -3347,9 +3350,6 @@ ssl3_HandleAlert(sslSocket *ss, sslBuffer *buf)
         case bad_certificate_hash_value:
             error = SSL_ERROR_BAD_CERT_HASH_VALUE_ALERT;
             break;
-        case end_of_early_data:
-            error = SSL_ERROR_END_OF_EARLY_DATA_ALERT;
-            break;
         default:
             error = SSL_ERROR_RX_UNKNOWN_ALERT;
             break;
@@ -3361,7 +3361,6 @@ ssl3_HandleAlert(sslSocket *ss, sslBuffer *buf)
         switch (desc) {
             case close_notify:
             case user_canceled:
-            case end_of_early_data:
                 break;
             default:
                 level = alert_fatal;
@@ -3380,9 +3379,6 @@ ssl3_HandleAlert(sslSocket *ss, sslBuffer *buf)
         }
         PORT_SetError(error);
         return SECFailure;
-    }
-    if (desc == end_of_early_data) {
-        return tls13_HandleEndOfEarlyData(ss);
     }
     if ((desc == no_certificate) && (ss->ssl3.hs.ws == wait_client_cert)) {
         /* I'm a server. I've requested a client cert. He hasn't got one. */

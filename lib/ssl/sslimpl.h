@@ -704,6 +704,7 @@ typedef enum {
 typedef enum {
     idle_handshake,
     wait_client_hello,
+    wait_end_of_early_data,
     wait_client_cert,
     wait_client_key,
     wait_cert_verify,

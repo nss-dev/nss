@@ -40,7 +40,6 @@ const uint8_t kTlsAlertWarning = 1;
 const uint8_t kTlsAlertFatal = 2;
 
 const uint8_t kTlsAlertCloseNotify = 0;
-const uint8_t kTlsAlertEndOfEarlyData = 1;
 const uint8_t kTlsAlertUnexpectedMessage = 10;
 const uint8_t kTlsAlertBadRecordMac = 20;
 const uint8_t kTlsAlertRecordOverflow = 22;
