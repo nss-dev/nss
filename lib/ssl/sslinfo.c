@@ -401,10 +401,8 @@ tls13_Exporter(sslSocket *ss, PK11SymKey *secret,
                unsigned char *out, unsigned int outLen)
 {
     SSL3Hashes contextHash;
-    SSL3Hashes emptyHash;
     PK11SymKey *innerSecret = NULL;
     SECStatus rv;
-    static unsigned char buf[1] = { 0 };
 
     static const char *kExporterInnerLabel = "exporter";
 
@@ -413,19 +411,14 @@ tls13_Exporter(sslSocket *ss, PK11SymKey *secret,
         return SECFailure;
     }
 
-    rv = tls13_ComputeHash(ss, &emptyHash, buf, 0);
-    if (rv != SECSuccess) {
-        return rv;
-    }
-
     /* Pre-hash the context. */
     rv = tls13_ComputeHash(ss, &contextHash, context, contextLen);
     if (rv != SECSuccess) {
         return rv;
     }
 
-    rv = tls13_DeriveSecret(ss, secret, label, labelLen,
-                            &emptyHash, &innerSecret);
+    rv = tls13_DeriveSecretNullHash(ss, secret, label, labelLen,
+                                    &innerSecret);
     if (rv != SECSuccess) {
         return rv;
     }
