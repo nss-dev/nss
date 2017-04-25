@@ -115,17 +115,17 @@ static SECStatus tls13_ComputeFinished(
 static SECStatus tls13_SendClientSecondRound(sslSocket *ss);
 static SECStatus tls13_FinishHandshake(sslSocket *ss);
 
-const char kHkdfLabelClient[] = "client";
-const char kHkdfLabelServer[] = "server";
-const char kHkdfLabelDerivedSecret[] = "derived secret";
-const char kHkdfLabelPskBinderKey[] = "resumption psk binder key";
-const char kHkdfLabelEarlyTrafficSecret[] = "early traffic secret";
-const char kHkdfLabelEarlyExporterSecret[] = "early exporter master secret";
-const char kHkdfLabelHandshakeTrafficSecret[] = "handshake traffic secret";
-const char kHkdfLabelApplicationTrafficSecret[] = "application traffic secret";
+const char kHkdfLabelClient[] = "c";
+const char kHkdfLabelServer[] = "s";
+const char kHkdfLabelDerivedSecret[] = "derived";
+const char kHkdfLabelPskBinderKey[] = "res binder";
+const char kHkdfLabelEarlyTrafficSecret[] = "e traffic";
+const char kHkdfLabelEarlyExporterSecret[] = "e exp master";
+const char kHkdfLabelHandshakeTrafficSecret[] = "hs traffic";
+const char kHkdfLabelApplicationTrafficSecret[] = "ap traffic";
 const char kHkdfLabelFinishedSecret[] = "finished";
-const char kHkdfLabelResumptionMasterSecret[] = "resumption master secret";
-const char kHkdfLabelExporterMasterSecret[] = "exporter master secret";
+const char kHkdfLabelResumptionMasterSecret[] = "res master";
+const char kHkdfLabelExporterMasterSecret[] = "exp master";
 const char kHkdfPurposeKey[] = "key";
 const char kHkdfPurposeIv[] = "iv";
 
@@ -707,51 +707,48 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
  *                 v
  *   PSK ->  HKDF-Extract = Early Secret
  *                 |
- *                 +-----> Derive-Secret(.,
- *                 |                     "external psk binder key" |
- *                 |                     "resumption psk binder key",
- *                 |                     "")
+ *                 +-----> Derive-Secret(., "ext binder" | "res binder", "")
  *                 |                     = binder_key
  *                 |
- *                 +-----> Derive-Secret(., "client early traffic secret",
+ *                 +-----> Derive-Secret(., "c e traffic",
  *                 |                     ClientHello)
  *                 |                     = client_early_traffic_secret
  *                 |
- *                 +-----> Derive-Secret(., "early exporter master secret",
+ *                 +-----> Derive-Secret(., "e exp master",
  *                 |                     ClientHello)
  *                 |                     = early_exporter_secret
  *                 v
- *           Derive-Secret(., "derived secret", "")
+ *           Derive-Secret(., "derived", "")
  *                 |
  *                 v
  *(EC)DHE -> HKDF-Extract = Handshake Secret
  *                 |
- *                 +-----> Derive-Secret(., "client handshake traffic secret",
+ *                 +-----> Derive-Secret(., "c hs traffic",
  *                 |                     ClientHello...ServerHello)
  *                 |                     = client_handshake_traffic_secret
  *                 |
- *                 +-----> Derive-Secret(., "server handshake traffic secret",
+ *                 +-----> Derive-Secret(., "s hs traffic",
  *                 |                     ClientHello...ServerHello)
  *                 |                     = server_handshake_traffic_secret
  *                 v
- *           Derive-Secret(., "derived secret", "")
+ *           Derive-Secret(., "derived", "")
  *                 |
  *                 v
  *      0 -> HKDF-Extract = Master Secret
  *                 |
- *                 +-----> Derive-Secret(., "client application traffic secret",
+ *                 +-----> Derive-Secret(., "c ap traffic",
  *                 |                     ClientHello...Server Finished)
  *                 |                     = client_traffic_secret_0
  *                 |
- *                 +-----> Derive-Secret(., "server application traffic secret",
+ *                 +-----> Derive-Secret(., "s ap traffic",
  *                 |                     ClientHello...Server Finished)
  *                 |                     = server_traffic_secret_0
  *                 |
- *                 +-----> Derive-Secret(., "exporter master secret",
+ *                 +-----> Derive-Secret(., "exp master",
  *                 |                     ClientHello...Server Finished)
  *                 |                     = exporter_secret
  *                 |
- *                 +-----> Derive-Secret(., "resumption master secret",
+ *                 +-----> Derive-Secret(., "res master",
  *                                       ClientHello...Client Finished)
  *                                       = resumption_master_secret
  *
