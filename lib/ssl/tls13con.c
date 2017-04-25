@@ -79,6 +79,8 @@ tls13_DeriveSecretWrap(sslSocket *ss, PK11SymKey *key,
                        const SSL3Hashes *hashes,
                        PK11SymKey **dest);
 static SECStatus tls13_SendEndOfEarlyData(sslSocket *ss);
+static SECStatus tls13_HandleEndOfEarlyData(sslSocket *ss, SSL3Opaque *b,
+                                            PRUint32 length);
 static SECStatus tls13_SendFinished(sslSocket *ss, PK11SymKey *baseKey);
 static SECStatus tls13_ComputePskBinderHash(sslSocket *ss,
                                             unsigned long prefixLength,
@@ -166,6 +168,7 @@ tls13_HandshakeState(SSL3WaitState st)
     switch (st) {
         STATE_CASE(idle_handshake);
         STATE_CASE(wait_client_hello);
+        STATE_CASE(wait_end_of_early_data);
         STATE_CASE(wait_client_cert);
         STATE_CASE(wait_client_key);
         STATE_CASE(wait_cert_verify);
@@ -615,9 +618,11 @@ tls13_HandlePostHelloHandshakeMessage(sslSocket *ss, SSL3Opaque *b,
             }
             if (ss->sec.isServer) {
                 return tls13_ServerHandleFinished(ss, b, length, hashesPtr);
-            } else {
-                return tls13_ClientHandleFinished(ss, b, length, hashesPtr);
             }
+            return tls13_ClientHandleFinished(ss, b, length, hashesPtr);
+
+        case end_of_early_data:
+            return tls13_HandleEndOfEarlyData(ss, b, length);
 
         default:
             FATAL_ERROR(ss, SSL_ERROR_RX_UNKNOWN_HANDSHAKE, unexpected_message);
@@ -1940,6 +1945,7 @@ tls13_SendServerHelloSequence(sslSocket *ss)
             LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
             return SECFailure;
         }
+        TLS13_SET_HS_STATE(ss, wait_end_of_early_data);
     } else {
         PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_none ||
                     ss->ssl3.hs.zeroRttState == ssl_0rtt_ignored);
@@ -1951,11 +1957,11 @@ tls13_SendServerHelloSequence(sslSocket *ss)
             LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
             return SECFailure;
         }
+        TLS13_SET_HS_STATE(ss,
+                           ss->opt.requestCertificate ? wait_client_cert
+                                                      : wait_finished);
     }
 
-    TLS13_SET_HS_STATE(ss,
-                       ss->opt.requestCertificate ? wait_client_cert
-                                                  : wait_finished);
     return SECSuccess;
 }
 
@@ -3713,8 +3719,16 @@ tls13_SendClientSecondRound(sslSocket *ss)
         return SECWouldBlock;
     }
 
+    rv = tls13_ComputeApplicationSecrets(ss);
+    if (rv != SECSuccess) {
+        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
+        return SECFailure;
+    }
+
     if (ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted) {
+        ssl_GetXmitBufLock(ss); /*******************************/
         rv = tls13_SendEndOfEarlyData(ss);
+        ssl_ReleaseXmitBufLock(ss); /*******************************/
         if (rv != SECSuccess) {
             return SECFailure; /* Error code already set. */
         }
@@ -3724,12 +3738,6 @@ tls13_SendClientSecondRound(sslSocket *ss)
                              CipherSpecWrite, PR_FALSE);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SSL_ERROR_INIT_CIPHER_SUITE_FAILURE, internal_error);
-        return SECFailure;
-    }
-
-    rv = tls13_ComputeApplicationSecrets(ss);
-    if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
         return SECFailure;
     }
 
@@ -4360,32 +4368,37 @@ tls13_SendEndOfEarlyData(sslSocket *ss)
 {
     SECStatus rv;
 
-    SSL_TRC(3, ("%d: TLS13[%d]: send end_of_early_data extension",
-                SSL_GETPID(), ss->fd));
+    SSL_TRC(3, ("%d: TLS13[%d]: send EndOfEarlyData", SSL_GETPID(), ss->fd));
+    PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
 
-    rv = SSL3_SendAlert(ss, alert_warning, end_of_early_data);
+    rv = ssl3_AppendHandshakeHeader(ss, end_of_early_data, 0);
     if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-        return SECFailure;
+        return rv; /* err set by AppendHandshake. */
     }
 
     ss->ssl3.hs.zeroRttState = ssl_0rtt_done;
     return SECSuccess;
 }
 
-SECStatus
-tls13_HandleEndOfEarlyData(sslSocket *ss)
+static SECStatus
+tls13_HandleEndOfEarlyData(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
     SECStatus rv;
 
-    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3 ||
-        ss->ssl3.hs.zeroRttState != ssl_0rtt_accepted) {
-        (void)SSL3_SendAlert(ss, alert_fatal, unexpected_message);
-        PORT_SetError(SSL_ERROR_END_OF_EARLY_DATA_ALERT);
+    PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+
+    rv = TLS13_CHECK_HS_STATE(ss, SSL_ERROR_RX_UNEXPECTED_END_OF_EARLY_DATA,
+                              wait_end_of_early_data);
+    if (rv != SECSuccess) {
         return SECFailure;
     }
 
-    PORT_Assert(TLS13_IN_HS_STATE(ss, ss->opt.requestCertificate ? wait_client_cert : wait_finished));
+    PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted);
+
+    if (length) {
+        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_END_OF_EARLY_DATA, decode_error);
+        return SECFailure;
+    }
 
     rv = tls13_SetCipherSpec(ss, TrafficKeyHandshake,
                              CipherSpecRead, PR_FALSE);
@@ -4395,6 +4408,9 @@ tls13_HandleEndOfEarlyData(sslSocket *ss)
     }
 
     ss->ssl3.hs.zeroRttState = ssl_0rtt_done;
+    TLS13_SET_HS_STATE(ss,
+                       ss->opt.requestCertificate ? wait_client_cert
+                                                  : wait_finished);
     return SECSuccess;
 }
 

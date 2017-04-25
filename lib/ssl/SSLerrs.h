@@ -473,8 +473,7 @@ ER3(SSL_ERROR_RX_MALFORMED_PRE_SHARED_KEY, (SSL_ERROR_BASE + 147),
 ER3(SSL_ERROR_RX_MALFORMED_EARLY_DATA, (SSL_ERROR_BASE + 148),
     "SSL received an invalid EarlyData extension.")
 
-ER3(SSL_ERROR_END_OF_EARLY_DATA_ALERT, (SSL_ERROR_BASE + 149),
-    "SSL received an unexpected end of early data alert.")
+UNUSED_ERROR(149)
 
 ER3(SSL_ERROR_MISSING_ALPN_EXTENSION, (SSL_ERROR_BASE + 150),
     "SSL didn't receive an expected ALPN extension.")
@@ -511,3 +510,9 @@ ER3(SSL_ERROR_DOWNGRADE_WITH_EARLY_DATA, (SSL_ERROR_BASE + 160),
 
 ER3(SSL_ERROR_TOO_MUCH_EARLY_DATA, (SSL_ERROR_BASE + 161),
     "SSL received more early data than permitted.")
+
+ER3(SSL_ERROR_RX_UNEXPECTED_END_OF_EARLY_DATA, (SSL_ERROR_BASE + 162),
+    "SSL received an unexpected End of Early Data message.")
+
+ER3(SSL_ERROR_RX_MALFORMED_END_OF_EARLY_DATA, (SSL_ERROR_BASE + 163),
+    "SSL received a malformed End of Early Data message.")
