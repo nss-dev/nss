@@ -231,7 +231,7 @@ bool EncTool::DoCipher(std::string file_name, std::string out_file,
                        bool encrypt, key_func_t get_params) {
   SECStatus rv;
   unsigned int outLen = 0, chunkSize = 1024;
-  char buffer[chunkSize + 16];
+  char buffer[1040];
   const unsigned char* bufferStart =
       reinterpret_cast<const unsigned char*>(buffer);
 
@@ -270,13 +270,13 @@ bool EncTool::DoCipher(std::string file_name, std::string out_file,
   // Read from stdin.
   if (file_name.empty()) {
     std::vector<uint8_t> data = ReadInputData("");
-    uint8_t out[data.size() + 16];
+    std::vector<uint8_t> out(data.size() + 16);
     SECStatus rv;
     if (encrypt) {
-      rv = PK11_Encrypt(symKey.get(), cipher_mech_, params.get(), out, &outLen,
+      rv = PK11_Encrypt(symKey.get(), cipher_mech_, params.get(), out.data(), &outLen,
                         data.size() + 16, data.data(), data.size());
     } else {
-      rv = PK11_Decrypt(symKey.get(), cipher_mech_, params.get(), out, &outLen,
+      rv = PK11_Decrypt(symKey.get(), cipher_mech_, params.get(), out.data(), &outLen,
                         data.size() + 16, data.data(), data.size());
     }
     if (rv != SECSuccess) {
@@ -284,7 +284,7 @@ bool EncTool::DoCipher(std::string file_name, std::string out_file,
                  PR_GetError(), __LINE__);
       return false;
     };
-    output.write(reinterpret_cast<char*>(out), outLen);
+    output.write(reinterpret_cast<char*>(out.data()), outLen);
     output.flush();
     if (output_file.good()) {
       output_file.close();
@@ -302,7 +302,7 @@ bool EncTool::DoCipher(std::string file_name, std::string out_file,
   if (!input.good()) {
     return false;
   }
-  uint8_t out[chunkSize + 16];
+  uint8_t out[1040];
   while (input) {
     if (encrypt) {
       input.read(buffer, chunkSize);
