@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
-source $(dirname "$0")/tools.sh
-
-set +x
+if [[ $(id -u) -eq 0 ]]; then
+    # Drop privileges by re-running this script.
+    # Note: this mangles arguments, better to avoid running scripts as root.
+    exec su worker -c "$0 $*"
+fi
 
 # Apply clang-format on the provided folder and verify that this doesn't change any file.
 # If any file differs after formatting, the script eventually exits with 1.
@@ -22,13 +24,13 @@ blacklist=(
      "./.hg" \
 )
 
-top="$PWD/$(dirname $0)/../../.."
+top="$(dirname $0)/../.."
 cd "$top"
 
 if [ $# -gt 0 ]; then
     dirs=("$@")
 else
-    dirs=($(find . ! -path . \( ! -regex '.*/' \) -maxdepth 2 -mindepth 1 -type d))
+    dirs=($(find . -maxdepth 2 -mindepth 1 -type d ! -path . \( ! -regex '.*/' \)))
 fi
 
 format_folder()
