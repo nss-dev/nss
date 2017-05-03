@@ -12,6 +12,7 @@ apt-get install -y --no-install-recommends apt-utils
 apt_packages=()
 apt_packages+=('ca-certificates')
 apt_packages+=('curl')
+apt_packages+=('locales')
 apt_packages+=('xz-utils')
 
 # Latest Mercurial.
@@ -34,9 +35,8 @@ tar xJvf *.tar.xz -C /usr/local --strip-components=1
 # Cleanup.
 rm *.tar.xz*
 
-# XXX Currently broken (bug 1361413).
-#locale-gen en_US.UTF-8
-#dpkg-reconfigure locales
+locale-gen en_US.UTF-8
+dpkg-reconfigure locales
 
 # Cleanup.
 rm -rf ~/.ccache ~/.cache
