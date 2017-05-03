@@ -24,8 +24,9 @@ apt-get install -y --no-install-recommends ${apt_packages[@]}
 pip install --upgrade pip
 pip install Mercurial
 
-locale-gen en_US.UTF-8
-dpkg-reconfigure locales
+# XXX Currently broken (bug 1361413).
+#locale-gen en_US.UTF-8
+#dpkg-reconfigure locales
 
 # Cleanup.
 rm -rf ~/.ccache ~/.cache
