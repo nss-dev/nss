@@ -12,6 +12,7 @@ apt_packages=()
 apt_packages+=('build-essential')
 apt_packages+=('ca-certificates')
 apt_packages+=('curl')
+apt_packages+=('locales')
 apt_packages+=('python-dev')
 apt_packages+=('python-pip')
 apt_packages+=('python-setuptools')
@@ -24,9 +25,8 @@ apt-get install -y --no-install-recommends ${apt_packages[@]}
 pip install --upgrade pip
 pip install Mercurial
 
-# XXX Currently broken (bug 1361413).
-#locale-gen en_US.UTF-8
-#dpkg-reconfigure locales
+locale-gen en_US.UTF-8
+dpkg-reconfigure locales
 
 # Cleanup.
 rm -rf ~/.ccache ~/.cache
