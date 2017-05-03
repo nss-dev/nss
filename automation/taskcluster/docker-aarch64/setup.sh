@@ -30,8 +30,9 @@ apt_packages+=('mercurial')
 # Install packages.
 apt-get install -y --no-install-recommends ${apt_packages[@]}
 
-locale-gen en_US.UTF-8
-dpkg-reconfigure locales
+# XXX Currently broken (bug 1361413).
+#locale-gen en_US.UTF-8
+#dpkg-reconfigure locales
 
 # Cleanup.
 rm -rf ~/.ccache ~/.cache

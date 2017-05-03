@@ -34,8 +34,9 @@ tar xJvf *.tar.xz -C /usr/local --strip-components=1
 # Cleanup.
 rm *.tar.xz*
 
-locale-gen en_US.UTF-8
-dpkg-reconfigure locales
+# XXX Currently broken (bug 1361413).
+#locale-gen en_US.UTF-8
+#dpkg-reconfigure locales
 
 # Cleanup.
 rm -rf ~/.ccache ~/.cache
