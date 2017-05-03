@@ -47,7 +47,8 @@ check_xcr0_ymm()
     xcr0 = (PRUint32)_xgetbv(0); /* Requires VS2010 SP1 or later. */
 #endif /* _M_IX86 */
 #else  /* _MSC_VER */
-    __asm__("xgetbv"
+    /* Old OSX compilers don't support xgetbv. Use byte form. */
+    __asm__(".byte 0x0F, 0x01, 0xd0"
             : "=a"(xcr0)
             : "c"(0)
             : "%edx");
