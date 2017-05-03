@@ -17,6 +17,7 @@ apt_packages+=('npm')
 apt_packages+=('git')
 apt_packages+=('golang-1.6')
 apt_packages+=('libxml2-utils')
+apt_packages+=('locales')
 apt_packages+=('ninja-build')
 apt_packages+=('pkg-config')
 apt_packages+=('zlib1g-dev')
@@ -63,9 +64,8 @@ rm *.tar.xz*
 # Install latest Rust (stable).
 su worker -c "curl https://sh.rustup.rs -sSf | sh -s -- -y"
 
-# XXX Currently broken (bug 1361413).
-#locale-gen en_US.UTF-8
-#dpkg-reconfigure locales
+locale-gen en_US.UTF-8
+dpkg-reconfigure locales
 
 # Cleanup.
 rm -rf ~/.ccache ~/.cache
