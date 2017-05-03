@@ -63,8 +63,9 @@ rm *.tar.xz*
 # Install latest Rust (stable).
 su worker -c "curl https://sh.rustup.rs -sSf | sh -s -- -y"
 
-locale-gen en_US.UTF-8
-dpkg-reconfigure locales
+# XXX Currently broken (bug 1361413).
+#locale-gen en_US.UTF-8
+#dpkg-reconfigure locales
 
 # Cleanup.
 rm -rf ~/.ccache ~/.cache
