@@ -14,6 +14,7 @@
         'mpi_unittest.cc',
         'dh_unittest.cc',
         'ecl_unittest.cc',
+        'ghash_unittest.cc',
         '<(DEPTH)/gtests/common/gtests.cc'
       ],
       'dependencies': [
