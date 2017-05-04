@@ -2152,11 +2152,11 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
         ss->sniSocketConfig = sm->sniSocketConfig;
     if (sm->sniSocketConfigArg)
         ss->sniSocketConfigArg = sm->sniSocketConfigArg;
-    if (ss->alertReceivedCallback) {
+    if (sm->alertReceivedCallback) {
         ss->alertReceivedCallback = sm->alertReceivedCallback;
         ss->alertReceivedCallbackArg = sm->alertReceivedCallbackArg;
     }
-    if (ss->alertSentCallback) {
+    if (sm->alertSentCallback) {
         ss->alertSentCallback = sm->alertSentCallback;
         ss->alertSentCallbackArg = sm->alertSentCallbackArg;
     }
