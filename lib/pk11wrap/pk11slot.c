@@ -1077,6 +1077,29 @@ PK11_MakeString(PLArenaPool *arena, char *space,
 }
 
 /*
+ * check if a null-terminated string matches with a PKCS11 Static Label
+ */
+PRBool
+pk11_MatchString(const char *string,
+                 const char *staticString, int staticStringLen)
+{
+    int i;
+
+    for (i = (staticStringLen - 1); i >= 0; i--) {
+        if (staticString[i] != ' ')
+            break;
+    }
+    /* move i to point to the last space */
+    i++;
+
+    if (strlen(string) == i && memcmp(string, staticString, i) == 0) {
+        return PR_TRUE;
+    }
+
+    return PR_FALSE;
+}
+
+/*
  * Reads in the slots mechanism list for later use
  */
 SECStatus
