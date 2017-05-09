@@ -28,7 +28,7 @@ cd "$top"
 if [ $# -gt 0 ]; then
     dirs=("$@")
 else
-    dirs=($(find . ! -path . \( ! -regex '.*/' \) -type d -maxdepth 2 -mindepth 2))
+    dirs=($(find . ! -path . \( ! -regex '.*/' \) -maxdepth 2 -mindepth 1 -type d))
 fi
 
 format_folder()
@@ -44,8 +44,13 @@ format_folder()
 
 for dir in "${dirs[@]}"; do
     if format_folder "$dir" ; then
+        c="${dir//[^\/]}"
         echo "formatting $dir ..."
-        find "$dir" -type f \( -name '*.[ch]' -o -name '*.cc' \) -exec clang-format -i {} \+
+        depth=""
+        if [ "${#c}" == "1" ]; then
+            depth="-maxdepth 1"
+        fi
+        find "$dir" $depth -type f \( -name '*.[ch]' -o -name '*.cc' \) -exec clang-format -i {} \+
     fi
 done
 
