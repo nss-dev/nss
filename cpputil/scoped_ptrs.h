@@ -17,6 +17,7 @@ struct ScopedDelete {
   void operator()(CERTCertificateList* list) {
     CERT_DestroyCertificateList(list);
   }
+  void operator()(CERTName* name) { CERT_DestroyName(name); }
   void operator()(CERTCertList* list) { CERT_DestroyCertList(list); }
   void operator()(CERTSubjectPublicKeyInfo* spki) {
     SECKEY_DestroySubjectPublicKeyInfo(spki);
@@ -48,6 +49,7 @@ struct ScopedMaybeDelete {
 SCOPED(CERTCertificate);
 SCOPED(CERTCertificateList);
 SCOPED(CERTCertList);
+SCOPED(CERTName);
 SCOPED(CERTSubjectPublicKeyInfo);
 SCOPED(PK11SlotInfo);
 SCOPED(PK11SymKey);

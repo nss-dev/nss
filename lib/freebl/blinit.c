@@ -69,12 +69,15 @@ CheckX86CPUSupport()
 {
     unsigned long eax, ebx, ecx, edx;
     char *disable_hw_aes = PR_GetEnvSecure("NSS_DISABLE_HW_AES");
+    char *disable_pclmul = PR_GetEnvSecure("NSS_DISABLE_PCLMUL");
+    char *disable_avx = PR_GetEnvSecure("NSS_DISABLE_AVX");
     freebl_cpuid(1, &eax, &ebx, &ecx, &edx);
     aesni_support_ = (PRBool)((ecx & ECX_AESNI) != 0 && disable_hw_aes == NULL);
-    clmul_support_ = (PRBool)((ecx & ECX_CLMUL) != 0);
+    clmul_support_ = (PRBool)((ecx & ECX_CLMUL) != 0 && disable_pclmul == NULL);
     /* For AVX we check AVX, OSXSAVE, and XSAVE
      * as well as XMM and YMM state. */
-    avx_support_ = (PRBool)((ecx & AVX_BITS) == AVX_BITS) && check_xcr0_ymm();
+    avx_support_ = (PRBool)((ecx & AVX_BITS) == AVX_BITS) && check_xcr0_ymm() &&
+                   disable_avx == NULL;
 }
 #endif /* NSS_X86_OR_X64 */
 
