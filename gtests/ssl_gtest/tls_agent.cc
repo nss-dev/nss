@@ -43,12 +43,13 @@ const std::string TlsAgent::kServerEcdhRsa = "ecdh_rsa";
 const std::string TlsAgent::kServerEcdhEcdsa = "ecdh_ecdsa";
 const std::string TlsAgent::kServerDsa = "dsa";
 
-TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode)
+TlsAgent::TlsAgent(const std::string& name, Role role,
+                   SSLProtocolVariant variant)
     : name_(name),
-      mode_(mode),
+      variant_(variant),
       role_(role),
       server_key_bits_(0),
-      adapter_(new DummyPrSocket(role_str(), mode)),
+      adapter_(new DummyPrSocket(role_str(), variant)),
       ssl_fd_(nullptr),
       state_(STATE_INIT),
       timer_handle_(nullptr),
@@ -72,11 +73,11 @@ TlsAgent::TlsAgent(const std::string& name, Role role, Mode mode)
       handshake_callback_(),
       auth_certificate_callback_(),
       sni_callback_(),
-      expect_short_headers_(false) {
+      expect_short_headers_(false),
+      skip_version_checks_(false) {
   memset(&info_, 0, sizeof(info_));
   memset(&csinfo_, 0, sizeof(csinfo_));
-  SECStatus rv = SSL_VersionRangeGetDefault(
-      mode_ == STREAM ? ssl_variant_stream : ssl_variant_datagram, &vrange_);
+  SECStatus rv = SSL_VersionRangeGetDefault(variant_, &vrange_);
   EXPECT_EQ(SECSuccess, rv);
 }
 
@@ -153,7 +154,7 @@ bool TlsAgent::EnsureTlsSetup(PRFileDesc* modelSocket) {
   if (!dummy_fd) {
     return false;
   }
-  if (adapter_->mode() == STREAM) {
+  if (adapter_->variant() == ssl_variant_stream) {
     ssl_fd_.reset(SSL_ImportFD(modelSocket, dummy_fd.get()));
   } else {
     ssl_fd_.reset(DTLS_ImportFD(modelSocket, dummy_fd.get()));
@@ -165,9 +166,12 @@ bool TlsAgent::EnsureTlsSetup(PRFileDesc* modelSocket) {
   }
   dummy_fd.release();  // Now subsumed by ssl_fd_.
 
-  SECStatus rv = SSL_VersionRangeSet(ssl_fd(), &vrange_);
-  EXPECT_EQ(SECSuccess, rv);
-  if (rv != SECSuccess) return false;
+  SECStatus rv;
+  if (!skip_version_checks_) {
+    rv = SSL_VersionRangeSet(ssl_fd(), &vrange_);
+    EXPECT_EQ(SECSuccess, rv);
+    if (rv != SECSuccess) return false;
+  }
 
   if (role_ == SERVER) {
     EXPECT_TRUE(ConfigServerCert(name_, true));
@@ -434,6 +438,8 @@ void TlsAgent::SetServerKeyBits(uint16_t bits) { server_key_bits_ = bits; }
 void TlsAgent::ExpectReadWriteError() { expect_readwrite_error_ = true; }
 
 void TlsAgent::ExpectShortHeaders() { expect_short_headers_ = true; }
+
+void TlsAgent::SkipVersionChecks() { skip_version_checks_ = true; }
 
 void TlsAgent::SetSignatureSchemes(const SSLSignatureScheme* schemes,
                                    size_t count) {
@@ -749,7 +755,7 @@ void TlsAgent::Connected() {
     PRInt32 expected = 2;
     // For DTLS, the client retains the cipher spec for early data and the
     // handshake so that it can retransmit EndOfEarlyData and its final flight.
-    if (mode_ == DGRAM && role_ == CLIENT) {
+    if (variant_ == ssl_variant_datagram && role_ == CLIENT) {
       expected = info_.earlyDataAccepted ? 4 : 3;
     }
     EXPECT_EQ(expected, cipherSuites);
@@ -829,7 +835,7 @@ void TlsAgent::Handshake() {
   int32_t err = PR_GetError();
   if (err == PR_WOULD_BLOCK_ERROR) {
     LOGV("Would have blocked");
-    if (mode_ == DGRAM) {
+    if (variant_ == ssl_variant_datagram) {
       if (timer_handle_) {
         timer_handle_->Cancel();
         timer_handle_ = nullptr;
@@ -980,7 +986,7 @@ void TlsAgentTestBase::TearDown() {
 void TlsAgentTestBase::Reset(const std::string& server_name) {
   agent_.reset(
       new TlsAgent(role_ == TlsAgent::CLIENT ? TlsAgent::kClient : server_name,
-                   role_, mode_));
+                   role_, variant_));
   if (version_) {
     agent_->SetVersionRange(version_, version_);
   }
@@ -1018,14 +1024,16 @@ void TlsAgentTestBase::ProcessMessage(const DataBuffer& buffer,
   }
 }
 
-void TlsAgentTestBase::MakeRecord(Mode mode, uint8_t type, uint16_t version,
-                                  const uint8_t* buf, size_t len,
-                                  DataBuffer* out, uint64_t seq_num) {
+void TlsAgentTestBase::MakeRecord(SSLProtocolVariant variant, uint8_t type,
+                                  uint16_t version, const uint8_t* buf,
+                                  size_t len, DataBuffer* out,
+                                  uint64_t seq_num) {
   size_t index = 0;
   index = out->Write(index, type, 1);
-  index = out->Write(
-      index, mode == STREAM ? version : TlsVersionToDtlsVersion(version), 2);
-  if (mode == DGRAM) {
+  if (variant == ssl_variant_stream) {
+    index = out->Write(index, version, 2);
+  } else {
+    index = out->Write(index, TlsVersionToDtlsVersion(version), 2);
     index = out->Write(index, seq_num >> 32, 4);
     index = out->Write(index, seq_num & PR_UINT32_MAX, 4);
   }
@@ -1036,7 +1044,7 @@ void TlsAgentTestBase::MakeRecord(Mode mode, uint8_t type, uint16_t version,
 void TlsAgentTestBase::MakeRecord(uint8_t type, uint16_t version,
                                   const uint8_t* buf, size_t len,
                                   DataBuffer* out, uint64_t seq_num) const {
-  MakeRecord(mode_, type, version, buf, len, out, seq_num);
+  MakeRecord(variant_, type, version, buf, len, out, seq_num);
 }
 
 void TlsAgentTestBase::MakeHandshakeMessage(uint8_t hs_type,
@@ -1055,7 +1063,7 @@ void TlsAgentTestBase::MakeHandshakeMessageFragment(
   if (!fragment_length) fragment_length = hs_len;
   index = out->Write(index, hs_type, 1);  // Handshake record type.
   index = out->Write(index, hs_len, 3);   // Handshake length
-  if (mode_ == DGRAM) {
+  if (variant_ == ssl_variant_datagram) {
     index = out->Write(index, seq_num, 2);
     index = out->Write(index, fragment_offset, 3);
     index = out->Write(index, fragment_length, 3);
