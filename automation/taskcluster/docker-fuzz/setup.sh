@@ -40,9 +40,6 @@ dpkg --add-architecture i386
 apt-get -y update
 apt-get install -y --no-install-recommends libssl-dev:i386
 
-# 32-bit builds
-ln -s /usr/include/x86_64-linux-gnu/zconf.h /usr/include
-
 # Install LLVM/clang-4.0.
 mkdir clang-tmp
 git clone -n --depth 1 https://chromium.googlesource.com/chromium/src/tools/clang clang-tmp/clang
