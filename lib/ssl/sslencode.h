@@ -35,10 +35,10 @@ void sslBuffer_Clear(sslBuffer *b);
 SECStatus ssl3_AppendToItem(SECItem *item,
                             const unsigned char *buf, PRUint32 bytes);
 SECStatus ssl3_AppendNumberToItem(SECItem *item,
-                                  PRUint32 num, PRInt32 lenSize);
+                                  PRUint64 num, unsigned int size);
 SECStatus ssl3_ConsumeFromItem(SECItem *item,
-                               unsigned char **buf, PRUint32 bytes);
+                               unsigned char **buf, unsigned int size);
 SECStatus ssl3_ConsumeNumberFromItem(SECItem *item,
-                                     PRUint32 *num, PRUint32 bytes);
+                                     PRUint32 *num, unsigned int size);
 
 #endif /* __sslencode_h_ */

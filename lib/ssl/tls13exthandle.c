@@ -418,7 +418,7 @@ tls13_ClientSendPreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData,
         goto loser;
 
     /* Obfuscated age. */
-    age = PR_Now() - session_ticket->received_timestamp;
+    age = ssl_TimeUsec() - session_ticket->received_timestamp;
     age /= PR_USEC_PER_MSEC;
     age += session_ticket->ticket_age_add;
     rv = sslBuffer_AppendNumber(buf, age, 4);
@@ -476,7 +476,7 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
 
     while (inner.len) {
         SECItem label;
-        PRUint32 utmp;
+        PRUint32 obfuscatedAge;
 
         rv = ssl3_ExtConsumeHandshakeVariable(ss, &label, 2,
                                               &inner.data, &inner.len);
@@ -486,9 +486,8 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
             goto alert_loser;
         }
 
-        /* Read and discard session ticket age. Bug 1295163 */
-        rv = ssl3_ExtConsumeHandshake(ss, &utmp, 4,
-                                      &inner.data, &inner.len);
+        rv = ssl3_ExtConsumeHandshakeNumber(ss, &obfuscatedAge, 4,
+                                            &inner.data, &inner.len);
         if (rv != SECSuccess)
             return rv;
 
@@ -502,6 +501,18 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
              * and return SECSuccess. */
             if (rv != SECSuccess)
                 return SECFailure;
+
+            if (ss->sec.ci.sid) {
+                /* xtnData->ticketAge contains the baseline we use for
+                 * calculating the ticket age (i.e., our RTT estimate less the
+                 * value of ticket_age_add).
+                 *
+                 * Add that to the obfuscated ticket age to recover the client's
+                 * view of the ticket age plus the estimated RTT.
+                 *
+                 * See ssl3_EncodeSessionTicket() for details. */
+                xtnData->ticketAge += obfuscatedAge;
+            }
         }
         ++numIdentities;
     }

@@ -654,7 +654,7 @@ ssl3_ClientHandleStatusRequestXtn(const sslSocket *ss, TLSExtensionData *xtnData
 }
 
 PRUint32 ssl_ticket_lifetime = 2 * 24 * 60 * 60; /* 2 days in seconds */
-#define TLS_EX_SESS_TICKET_VERSION (0x0105)
+#define TLS_EX_SESS_TICKET_VERSION (0x0106)
 
 /*
  * Called from ssl3_SendNewSessionTicket, tls13_SendNewSessionTicket
@@ -673,11 +673,12 @@ ssl3_EncodeSessionTicket(sslSocket *ss,
     unsigned char wrapped_ms[SSL3_MASTER_SECRET_LENGTH];
     SECItem ms_item = { 0, NULL, 0 };
     PRUint32 cert_length = 0;
-    PRUint32 now;
+    PRTime now;
     SECItem *srvName = NULL;
     CK_MECHANISM_TYPE msWrapMech = 0; /* dummy default value,
                                           * must be >= 0 */
     SECItem *alpnSelection = NULL;
+    PRUint32 ticketAgeBaseline;
 
     SSL_TRC(3, ("%d: SSL3[%d]: send session_ticket handshake",
                 SSL_GETPID(), ss->fd));
@@ -726,24 +727,25 @@ ssl3_EncodeSessionTicket(sslSocket *ss,
     alpnSelection = &ss->xtnData.nextProto;
 
     plaintext_length =
-        sizeof(PRUint16)                       /* ticket version */
-        + sizeof(SSL3ProtocolVersion)          /* ssl_version */
-        + sizeof(ssl3CipherSuite)              /* ciphersuite */
-        + 1                                    /* compression */
-        + 10                                   /* cipher spec parameters */
-        + 1                                    /* certType arguments */
-        + 1                                    /* SessionTicket.ms_is_wrapped */
-        + 4                                    /* msWrapMech */
-        + 2                                    /* master_secret.length */
-        + ms_item.len                          /* master_secret */
-        + 1                                    /* client_auth_type */
-        + cert_length                          /* cert */
-        + 2 + srvName->len                     /* name len + length field */
-        + 1                                    /* extendedMasterSecretUsed */
-        + sizeof(ticket->ticket_lifetime_hint) /* ticket lifetime hint */
-        + sizeof(ticket->flags)                /* ticket flags */
-        + 1 + alpnSelection->len               /* alpn value + length field */
-        + 4;                                   /* maxEarlyData */
+        sizeof(PRUint16)              /* ticket version */
+        + sizeof(SSL3ProtocolVersion) /* ssl_version */
+        + sizeof(ssl3CipherSuite)     /* ciphersuite */
+        + 1                           /* compression */
+        + 10                          /* cipher spec parameters */
+        + 1                           /* certType arguments */
+        + 1                           /* SessionTicket.ms_is_wrapped */
+        + 4                           /* msWrapMech */
+        + 2                           /* master_secret.length */
+        + ms_item.len                 /* master_secret */
+        + 1                           /* client_auth_type */
+        + cert_length                 /* cert */
+        + 2 + srvName->len            /* name len + length field */
+        + 1                           /* extendedMasterSecretUsed */
+        + sizeof(now)                 /* ticket lifetime hint */
+        + sizeof(ticket->flags)       /* ticket flags */
+        + 1 + alpnSelection->len      /* alpn value + length field */
+        + 4                           /* maxEarlyData */
+        + 4;                          /* ticketAgeBaseline */
 
     if (SECITEM_AllocItem(NULL, &plaintext_item, plaintext_length) == NULL)
         goto loser;
@@ -836,9 +838,9 @@ ssl3_EncodeSessionTicket(sslSocket *ss,
     }
 
     /* timestamp */
-    now = ssl_Time();
-    rv = ssl3_AppendNumberToItem(&plaintext, now,
-                                 sizeof(ticket->ticket_lifetime_hint));
+    now = ssl_TimeUsec();
+    PORT_Assert(sizeof(now) == 8);
+    rv = ssl3_AppendNumberToItem(&plaintext, now, 8);
     if (rv != SECSuccess)
         goto loser;
 
@@ -877,6 +879,29 @@ ssl3_EncodeSessionTicket(sslSocket *ss,
     }
 
     rv = ssl3_AppendNumberToItem(&plaintext, ssl_max_early_data_size, 4);
+    if (rv != SECSuccess)
+        goto loser;
+
+    /*
+     * We store this in the ticket:
+     *    ticket_age_baseline = 1rtt - ticket_age_add
+     *
+     * When the client resumes, it will provide:
+     *    obfuscated_age = ticket_age_client + ticket_age_add
+     *
+     * We expect to receive the ticket at:
+     *    ticket_create + 1rtt + ticket_age_server
+     *
+     * We calculate the client's estimate of this as:
+     *    ticket_create + ticket_age_baseline + obfuscated_age
+     *    = ticket_create + 1rtt + ticket_age_client
+     *
+     * This is compared to the expected time, which should differ only as a
+     * result of clock errors or errors in the RTT estimate.
+     */
+    ticketAgeBaseline = (ssl_TimeUsec() - ss->ssl3.hs.serverHelloTime) / PR_USEC_PER_MSEC;
+    ticketAgeBaseline -= ticket->ticket_age_add;
+    rv = ssl3_AppendNumberToItem(&plaintext, ticketAgeBaseline, 4);
     if (rv != SECSuccess)
         goto loser;
 
@@ -1091,13 +1116,21 @@ ssl_ParseSessionTicket(sslSocket *ss, const SECItem *decryptedTicket,
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             return SECFailure;
     }
-    /* Read timestamp. */
+
+    /* Read timestamp.  This is a 64-bit value and
+     * ssl3_ExtConsumeHandshakeNumber only reads 32-bits at a time. */
     rv = ssl3_ExtConsumeHandshakeNumber(ss, &temp, 4, &buffer, &len);
     if (rv != SECSuccess) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
     }
-    parsedTicket->timestamp = temp;
+    parsedTicket->timestamp = (PRTime)temp << 32;
+    rv = ssl3_ExtConsumeHandshakeNumber(ss, &temp, 4, &buffer, &len);
+    if (rv != SECSuccess) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+    parsedTicket->timestamp |= (PRTime)temp;
 
     /* Read server name */
     rv = ssl3_ExtConsumeHandshakeVariable(ss, &parsedTicket->srvName, 2,
@@ -1138,6 +1171,13 @@ ssl_ParseSessionTicket(sslSocket *ss, const SECItem *decryptedTicket,
     }
     parsedTicket->maxEarlyData = temp;
 
+    rv = ssl3_ExtConsumeHandshakeNumber(ss, &temp, 4, &buffer, &len);
+    if (rv != SECSuccess) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+    parsedTicket->ticketAgeBaseline = temp;
+
 #ifndef UNSAFE_FUZZER_MODE
     /* Done parsing.  Check that all bytes have been consumed. */
     if (len != 0) {
@@ -1164,6 +1204,7 @@ ssl_CreateSIDFromTicket(sslSocket *ss, const SECItem *rawTicket,
 
     /* Copy over parameters. */
     sid->version = parsedTicket->ssl_version;
+    sid->creationTime = parsedTicket->timestamp;
     sid->u.ssl3.cipherSuite = parsedTicket->cipher_suite;
     sid->u.ssl3.compression = parsedTicket->compression_method;
     sid->authType = parsedTicket->authType;
@@ -1279,8 +1320,8 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
     }
 
     /* Use the ticket if it is valid and unexpired. */
-    if (parsedTicket.valid &&
-        parsedTicket.timestamp + ssl_ticket_lifetime > ssl_Time()) {
+    if (parsedTicket.timestamp + ssl_ticket_lifetime * PR_USEC_PER_SEC >
+        ssl_TimeUsec()) {
         sslSessionID *sid;
 
         rv = ssl_CreateSIDFromTicket(ss, data, &parsedTicket, &sid);
@@ -1289,6 +1330,11 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
         }
         ss->statelessResume = PR_TRUE;
         ss->sec.ci.sid = sid;
+
+        /* We have the baseline value for the obfuscated ticket age here.  Save
+         * that in xtnData temporarily.  This value is updated in
+         * tls13_ServerHandlePreSharedKeyXtn with the final estimate. */
+        ss->xtnData.ticketAge = parsedTicket.ticketAgeBaseline;
     }
 
     SECITEM_ZfreeItem(&decryptedTicket, PR_FALSE);

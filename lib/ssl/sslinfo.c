@@ -88,9 +88,9 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
         if (sid) {
             unsigned int sidLen;
 
-            inf.creationTime = sid->creationTime;
-            inf.lastAccessTime = sid->lastAccessTime;
-            inf.expirationTime = sid->expirationTime;
+            inf.creationTime = sid->creationTime / PR_USEC_PER_SEC;
+            inf.lastAccessTime = sid->lastAccessTime / PR_USEC_PER_SEC;
+            inf.expirationTime = sid->expirationTime / PR_USEC_PER_SEC;
             inf.extendedMasterSecretUsed =
                 (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 ||
                  sid->u.ssl3.keys.extendedMasterSecretUsed)

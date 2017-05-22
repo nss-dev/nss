@@ -100,6 +100,59 @@ TEST_P(TlsConnectTls13, ZeroRttServerOnly) {
   CheckKeys();
 }
 
+// A small sleep after sending the ClientHello means that the ticket age that
+// arrives at the server is too low.  With a small tolerance for variation in
+// ticket age, the server then rejects early data.
+TEST_P(TlsConnectTls13, ZeroRttRejectOldTicket) {
+  SetupForZeroRtt();
+  client_->Set0RttEnabled(true);
+  server_->Set0RttEnabled(true);
+  SSLInt_SetTicketAgeTolerance(server_->ssl_fd(), 1);
+  ExpectResumption(RESUME_TICKET);
+  ZeroRttSendReceive(true, false, []() {
+    PR_Sleep(PR_MillisecondsToInterval(10));
+    return true;
+  });
+  Handshake();
+  ExpectEarlyDataAccepted(false);
+  CheckConnected();
+  SendReceive();
+}
+
+// In this test, we falsely inflate the estimate of the RTT by delaying the
+// ServerHello on the first handshake.  This results in the server estimating a
+// higher value of the ticket age than the client ultimately provides.  Add a
+// small tolerance for variation in ticket age and the ticket will appear to
+// arrive prematurely, causing the server to reject early data.
+TEST_P(TlsConnectTls13, ZeroRttRejectPrematureTicket) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
+  server_->Set0RttEnabled(true);
+  client_->StartConnect();
+  server_->StartConnect();
+  client_->Handshake();  // ClientHello
+  server_->Handshake();  // ServerHello
+  PR_Sleep(PR_MillisecondsToInterval(10));
+  Handshake();  // Remainder of handshake
+  CheckConnected();
+  SendReceive();
+  CheckKeys();
+
+  Reset();
+  client_->Set0RttEnabled(true);
+  server_->Set0RttEnabled(true);
+  SSLInt_SetTicketAgeTolerance(server_->ssl_fd(), 1);
+  ExpectResumption(RESUME_TICKET);
+  ExpectEarlyDataAccepted(false);
+
+  server_->StartConnect();
+  client_->StartConnect();
+  ZeroRttSendReceive(true, false);
+  Handshake();
+  CheckConnected();
+  SendReceive();
+}
+
 TEST_P(TlsConnectTls13, TestTls13ZeroRttAlpn) {
   EnableAlpn();
   SetupForZeroRtt();

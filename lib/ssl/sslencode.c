@@ -110,61 +110,61 @@ sslBuffer_Clear(sslBuffer *b)
 }
 
 SECStatus
-ssl3_AppendToItem(SECItem *item, const unsigned char *buf, PRUint32 bytes)
+ssl3_AppendToItem(SECItem *item, const unsigned char *buf, unsigned int size)
 {
-    if (bytes > item->len) {
+    if (size > item->len) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
 
-    PORT_Memcpy(item->data, buf, bytes);
-    item->data += bytes;
-    item->len -= bytes;
+    PORT_Memcpy(item->data, buf, size);
+    item->data += size;
+    item->len -= size;
     return SECSuccess;
 }
 
 SECStatus
-ssl3_AppendNumberToItem(SECItem *item, PRUint32 num, PRInt32 lenSize)
+ssl3_AppendNumberToItem(SECItem *item, PRUint64 num, unsigned int size)
 {
     SECStatus rv;
     PRUint8 b[sizeof(num)];
 
-    ssl_EncodeUintX(num, lenSize, b);
-    rv = ssl3_AppendToItem(item, &b[0], lenSize);
+    ssl_EncodeUintX(num, size, b);
+    rv = ssl3_AppendToItem(item, &b[0], size);
     return rv;
 }
 
 SECStatus
-ssl3_ConsumeFromItem(SECItem *item, unsigned char **buf, PRUint32 bytes)
+ssl3_ConsumeFromItem(SECItem *item, unsigned char **buf, unsigned int size)
 {
-    if (bytes > item->len) {
+    if (size > item->len) {
         PORT_SetError(SEC_ERROR_BAD_DATA);
         return SECFailure;
     }
 
     *buf = item->data;
-    item->data += bytes;
-    item->len -= bytes;
+    item->data += size;
+    item->len -= size;
     return SECSuccess;
 }
 
 SECStatus
-ssl3_ConsumeNumberFromItem(SECItem *item, PRUint32 *num, PRUint32 bytes)
+ssl3_ConsumeNumberFromItem(SECItem *item, PRUint32 *num, unsigned int size)
 {
     int i;
 
-    if (bytes > item->len || bytes > sizeof(*num)) {
+    if (size > item->len || size > sizeof(*num)) {
         PORT_SetError(SEC_ERROR_BAD_DATA);
         return SECFailure;
     }
 
     *num = 0;
-    for (i = 0; i < bytes; i++) {
+    for (i = 0; i < size; i++) {
         *num = (*num << 8) + item->data[i];
     }
 
-    item->data += bytes;
-    item->len -= bytes;
+    item->data += size;
+    item->len -= size;
 
     return SECSuccess;
 }

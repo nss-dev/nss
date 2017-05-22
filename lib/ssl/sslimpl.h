@@ -262,6 +262,10 @@ typedef struct sslOptionsStr {
      * list of supported protocols. */
     SECItem nextProtoNego;
 
+    /* The amount of tolerance to allow for relative clock drift and network
+     * delays when validating the age of a TLS 1.3. */
+    PRUint16 ticketAgeTolerance;
+
     unsigned int useSecurity : 1;
     unsigned int useSocks : 1;
     unsigned int requestCertificate : 1;
@@ -518,7 +522,7 @@ struct sslSessionIDStr {
     sslSessionID *next; /* chain used for client sockets, only */
     Cached cached;
     int references;
-    PRUint32 lastAccessTime; /* seconds since Jan 1, 1970 */
+    PRTime lastAccessTime;
 
     /* The rest of the members, except for the members of u.ssl3.locked, may
      * be modified only when the sid is not in any cache.
@@ -536,8 +540,8 @@ struct sslSessionIDStr {
 
     SSL3ProtocolVersion version;
 
-    PRUint32 creationTime;   /* seconds since Jan 1, 1970 */
-    PRUint32 expirationTime; /* seconds since Jan 1, 1970 */
+    PRTime creationTime;
+    PRTime expirationTime;
 
     SSLAuthType authType;
     PRUint32 authKeyBits;
@@ -853,17 +857,18 @@ typedef struct SSL3HandshakeStateStr {
     PK11SymKey *earlyExporterSecret;      /* for 0-RTT exporters */
     PK11SymKey *exporterSecret;           /* for exporters */
     PRCList cipherSpecs;                  /* The cipher specs in the sequence they
-                                     * will be applied. */
+                                           * will be applied. */
     sslZeroRttState zeroRttState;         /* Are we doing a 0-RTT handshake? */
     sslZeroRttIgnore zeroRttIgnore;       /* Are we ignoring 0-RTT? */
     ssl3CipherSuite zeroRttSuite;         /* The cipher suite we used for 0-RTT. */
     PRCList bufferedEarlyData;            /* Buffered TLS 1.3 early data
-                                     * on server.*/
+                                           * on server.*/
     PRBool helloRetry;                    /* True if HelloRetryRequest has been sent
-                                     * or received. */
+                                           * or received. */
     PRBool clientCertRequested;           /* True if CertificateRequest received. */
     ssl3KEADef kea_def_mutable;           /* Used to hold the writable kea_def
-                                     * we use for TLS 1.3 */
+                                           * we use for TLS 1.3 */
+    PRTime serverHelloTime;               /* Time the ServerHello flight was sent. */
 } SSL3HandshakeState;
 
 /*
@@ -993,11 +998,12 @@ typedef struct SessionTicketStr {
     PRBool extendedMasterSecretUsed;
     ClientAuthenticationType client_auth_type;
     SECItem peer_cert;
-    PRUint32 timestamp;
+    PRTime timestamp;
     PRUint32 flags;
     SECItem srvName; /* negotiated server name */
     SECItem alpnSelection;
     PRUint32 maxEarlyData;
+    PRUint32 ticketAgeBaseline;
 } SessionTicket;
 
 /*
@@ -1694,7 +1700,7 @@ extern void ssl3_FreeSniNameArray(TLSExtensionData *xtnData);
 extern void ssl3_SetSIDSessionTicket(sslSessionID *sid,
                                      /*in/out*/ NewSessionTicket *session_ticket);
 SECStatus ssl3_EncodeSessionTicket(sslSocket *ss,
-                                   const NewSessionTicket *ticket_input,
+                                   const NewSessionTicket *ticket,
                                    SECItem *ticket_data, PK11SymKey *secret);
 
 SECStatus ssl_MaybeSetSelfEncryptKeyPair(const sslKeyPair *keyPair);
@@ -1845,7 +1851,12 @@ extern void ssl3_CheckCipherSuiteOrderConsistency();
 
 extern int ssl_MapLowLevelError(int hiLevelError);
 
-extern PRUint32 ssl_Time(void);
+extern PRUint32 ssl_TimeSec(void);
+#ifdef UNSAFE_FUZZER_MODE
+#define ssl_TimeUsec() ((PRTime)12345678)
+#else
+#define ssl_TimeUsec() (PR_Now())
+#endif
 extern PRBool ssl_TicketTimeValid(const NewSessionTicket *ticket);
 
 extern void SSL_AtomicIncrementLong(long *x);

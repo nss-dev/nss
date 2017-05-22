@@ -85,11 +85,12 @@
 /*
 ** Format of a cache entry in the shared memory.
 */
+PR_STATIC_ASSERT(sizeof(PRTime) == 8);
 struct sidCacheEntryStr {
     /* 16 */ PRIPv6Addr addr; /* client's IP address */
-    /*  4 */ PRUint32 creationTime;
-    /*  4 */ PRUint32 lastAccessTime;
-    /*  4 */ PRUint32 expirationTime;
+    /*  8 */ PRTime creationTime;
+    /*  8 */ PRTime lastAccessTime;
+    /*  8 */ PRTime expirationTime;
     /*  2 */ PRUint16 version;
     /*  1 */ PRUint8 valid;
     /*  1 */ PRUint8 sessionIDLength;
@@ -98,7 +99,7 @@ struct sidCacheEntryStr {
     /*  2 */ PRUint16 authKeyBits;
     /*  2 */ PRUint16 keaType;
     /*  2 */ PRUint16 keaKeyBits;
-    /* 72  - common header total */
+    /* 84  - common header total */
 
     union {
         struct {
@@ -116,7 +117,7 @@ struct sidCacheEntryStr {
 
 /* force sizeof(sidCacheEntry) to be a multiple of cache line size */
 struct {
-    /*120 */ PRUint8 filler[120]; /* 72+120==192, a multiple of 16 */
+    /*124 */ PRUint8 filler[124]; /* 84+124==208, a multiple of 16 */
 } forceSize;
     } u;
 };
@@ -282,7 +283,7 @@ LockSidCacheLock(sidCacheLock *lock, PRUint32 now)
     if (rv != SECSuccess)
         return 0;
     if (!now)
-        now = ssl_Time();
+        now = ssl_TimeSec();
     lock->timeStamp = now;
     lock->pid = myPid;
     return now;
@@ -298,7 +299,7 @@ UnlockSidCacheLock(sidCacheLock *lock)
     return rv;
 }
 
-/* returns the value of ssl_Time on success, zero on failure. */
+/* returns the value of ssl_TimeSec on success, zero on failure. */
 static PRUint32
 LockSet(cacheDesc *cache, PRUint32 set, PRUint32 now)
 {
@@ -452,9 +453,10 @@ ConvertFromSID(sidCacheEntry *to, sslSessionID *from)
 
     SSL_TRC(8, ("%d: SSL3: ConvertSID: time=%d addr=0x%08x%08x%08x%08x "
                 "cipherSuite=%d",
-                myPid, to->creationTime, to->addr.pr_s6_addr32[0],
-                to->addr.pr_s6_addr32[1], to->addr.pr_s6_addr32[2],
-                to->addr.pr_s6_addr32[3], to->u.ssl3.cipherSuite));
+                myPid, to->creationTime / PR_USEC_PER_SEC,
+                to->addr.pr_s6_addr32[0], to->addr.pr_s6_addr32[1],
+                to->addr.pr_s6_addr32[2], to->addr.pr_s6_addr32[3],
+                to->u.ssl3.cipherSuite));
 }
 
 /*
@@ -748,17 +750,19 @@ ServerSessionIDCache(sslSessionID *sid)
 
         PORT_Assert(sid->creationTime != 0);
         if (!sid->creationTime)
-            sid->lastAccessTime = sid->creationTime = ssl_Time();
+            sid->lastAccessTime = sid->creationTime = ssl_TimeUsec();
         /* override caller's expiration time, which uses client timeout
          * duration, not server timeout duration.
          */
-        sid->expirationTime = sid->creationTime + cache->ssl3Timeout;
+        sid->expirationTime =
+            sid->creationTime + cache->ssl3Timeout * PR_USEC_PER_SEC;
         SSL_TRC(8, ("%d: SSL: CacheMT: cached=%d addr=0x%08x%08x%08x%08x time=%x "
                     "cipherSuite=%d",
                     myPid, sid->cached,
                     sid->addr.pr_s6_addr32[0], sid->addr.pr_s6_addr32[1],
                     sid->addr.pr_s6_addr32[2], sid->addr.pr_s6_addr32[3],
-                    sid->creationTime, sid->u.ssl3.cipherSuite));
+                    sid->creationTime / PR_USEC_PER_SEC,
+                    sid->u.ssl3.cipherSuite));
         PRINT_BUF(8, (0, "sessionID:", sid->u.ssl3.sessionID,
                       sid->u.ssl3.sessionIDLength));
 
@@ -820,7 +824,8 @@ ServerSessionIDUncache(sslSessionID *sid)
                 myPid, sid->cached,
                 sid->addr.pr_s6_addr32[0], sid->addr.pr_s6_addr32[1],
                 sid->addr.pr_s6_addr32[2], sid->addr.pr_s6_addr32[3],
-                sid->creationTime, sid->u.ssl3.cipherSuite));
+                sid->creationTime / PR_USEC_PER_SEC,
+                sid->u.ssl3.cipherSuite));
     PRINT_BUF(8, (0, "sessionID:", sessionID, sessionIDLength));
     set = SIDindex(cache, &sid->addr, sessionID, sessionIDLength);
     now = LockSet(cache, set, 0);
@@ -1086,7 +1091,7 @@ InitCache(cacheDesc *cache, int maxCacheEntries, int maxCertCacheEntries,
     cache->srvNameCacheData = (srvNameCacheEntry *)(cache->cacheMem + (ptrdiff_t)cache->srvNameCacheData);
 
     /* initialize the locks */
-    init_time = ssl_Time();
+    init_time = ssl_TimeSec();
     pLock = cache->sidCacheLocks;
     for (locks_to_initialize = cache->numSIDCacheLocks + 3;
          locks_initialized < locks_to_initialize;
@@ -1134,6 +1139,10 @@ SSL_SetMaxServerCacheLocks(PRUint32 maxLocks)
     return SECSuccess;
 }
 
+PR_STATIC_ASSERT(sizeof(sidCacheEntry) % 16 == 0);
+PR_STATIC_ASSERT(sizeof(certCacheEntry) == 4096);
+PR_STATIC_ASSERT(sizeof(srvNameCacheEntry) == 1072);
+
 static SECStatus
 ssl_ConfigServerSessionIDCacheInstanceWithOpt(cacheDesc *cache,
                                               PRUint32 ssl3_timeout,
@@ -1144,10 +1153,6 @@ ssl_ConfigServerSessionIDCacheInstanceWithOpt(cacheDesc *cache,
                                               int maxSrvNameCacheEntries)
 {
     SECStatus rv;
-
-    PORT_Assert(sizeof(sidCacheEntry) == 192);
-    PORT_Assert(sizeof(certCacheEntry) == 4096);
-    PORT_Assert(sizeof(srvNameCacheEntry) == 1072);
 
     rv = ssl_Init();
     if (rv != SECSuccess) {
@@ -1519,7 +1524,7 @@ LockPoller(void *arg)
         if (sharedCache->stopPolling)
             break;
 
-        now = ssl_Time();
+        now = ssl_TimeSec();
         then = now - expiration;
         for (pLock = cache->sidCacheLocks, locks_polled = 0;
              locks_to_poll > locks_polled && !sharedCache->stopPolling;

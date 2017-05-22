@@ -54,6 +54,7 @@ static const sslSocketOps ssl_secure_ops = { /* SSL. */
 */
 static sslOptions ssl_defaults = {
     { siBuffer, NULL, 0 }, /* nextProtoNego */
+    1000,                  /* ticketAgeTolerance (1s) */
     PR_TRUE,               /* useSecurity        */
     PR_FALSE,              /* useSocks           */
     PR_FALSE,              /* requestCertificate */
