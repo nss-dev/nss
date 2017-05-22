@@ -965,6 +965,8 @@ tls13_CanResume(sslSocket *ss, const sslSessionID *sid)
 static PRBool
 tls13_CanNegotiateZeroRtt(sslSocket *ss, const sslSessionID *sid)
 {
+    PRInt32 timeDelta;
+
     PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_sent);
 
     if (!sid)
@@ -981,6 +983,17 @@ tls13_CanNegotiateZeroRtt(sslSocket *ss, const sslSessionID *sid)
     if (SECITEM_CompareItem(&ss->xtnData.nextProto,
                             &sid->u.ssl3.alpnSelection) != 0)
         return PR_FALSE;
+
+    /* Calculate the difference between the client's view of the age of the
+     * ticket (in |ss->xtnData.ticketAge|) and the server's view, which we now
+     * calculate.  The result should be close to zero.  timeDelta is signed to
+     * make the comparisons below easier. */
+    timeDelta = ss->xtnData.ticketAge -
+                ((ssl_TimeUsec() - sid->creationTime) / PR_USEC_PER_MSEC);
+    if (timeDelta > ss->opt.ticketAgeTolerance ||
+        timeDelta < (-1 * ss->opt.ticketAgeTolerance)) {
+        return PR_FALSE;
+    }
 
     return PR_TRUE;
 }
@@ -2024,6 +2037,7 @@ tls13_SendServerHelloSequence(sslSocket *ss)
                                                       : wait_finished);
     }
 
+    ss->ssl3.hs.serverHelloTime = ssl_TimeUsec();
     return SECSuccess;
 }
 
@@ -3942,6 +3956,12 @@ tls13_SendNewSessionTicket(sslSocket *ss)
     }
     ticket.ticket_lifetime_hint = ssl_ticket_lifetime;
 
+    /* The ticket age obfuscator. */
+    rv = PK11_GenerateRandom((PRUint8 *)&ticket.ticket_age_add,
+                             sizeof(ticket.ticket_age_add));
+    if (rv != SECSuccess)
+        goto loser;
+
     rv = tls13_HkdfExpandLabel(ss->ssl3.hs.resumptionMasterSecret,
                                tls13_GetHash(ss),
                                NULL, 0,
@@ -3973,12 +3993,6 @@ tls13_SendNewSessionTicket(sslSocket *ss)
 
     /* This is a fixed value. */
     rv = ssl3_AppendHandshakeNumber(ss, ssl_ticket_lifetime, 4);
-    if (rv != SECSuccess)
-        goto loser;
-
-    /* The ticket age obfuscator. */
-    rv = PK11_GenerateRandom((PRUint8 *)&ticket.ticket_age_add,
-                             sizeof(ticket.ticket_age_add));
     if (rv != SECSuccess)
         goto loser;
 
@@ -4052,7 +4066,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
         return SECFailure;
     }
 
-    ticket.received_timestamp = PR_Now();
+    ticket.received_timestamp = ssl_TimeUsec();
     rv = ssl3_ConsumeHandshakeNumber(ss, &ticket.ticket_lifetime_hint, 4, &b,
                                      &length);
     if (rv != SECSuccess) {

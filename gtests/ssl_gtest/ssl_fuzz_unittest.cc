@@ -47,9 +47,9 @@ class TlsApplicationDataRecorder : public TlsRecordFilter {
 
 // Ensure that ssl_Time() returns a constant value.
 FUZZ_F(TlsFuzzTest, SSL_Time_Constant) {
-  PRUint32 now = ssl_Time();
+  PRUint32 now = ssl_TimeSec();
   PR_Sleep(PR_SecondsToInterval(2));
-  EXPECT_EQ(ssl_Time(), now);
+  EXPECT_EQ(ssl_TimeSec(), now);
 }
 
 // Check that due to the deterministic PRNG we derive

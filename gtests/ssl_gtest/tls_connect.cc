@@ -552,20 +552,13 @@ void TlsConnectTestBase::SendReceive() {
 // Do a first connection so we can do 0-RTT on the second one.
 void TlsConnectTestBase::SetupForZeroRtt() {
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
-  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
-                           SSL_LIBRARY_VERSION_TLS_1_3);
-  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
-                           SSL_LIBRARY_VERSION_TLS_1_3);
+  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
   server_->Set0RttEnabled(true);  // So we signal that we allow 0-RTT.
   Connect();
   SendReceive();  // Need to read so that we absorb the session ticket.
   CheckKeys();
 
   Reset();
-  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
-                           SSL_LIBRARY_VERSION_TLS_1_3);
-  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
-                           SSL_LIBRARY_VERSION_TLS_1_3);
   server_->StartConnect();
   client_->StartConnect();
 }

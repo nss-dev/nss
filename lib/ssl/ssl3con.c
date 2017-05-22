@@ -2949,9 +2949,8 @@ ssl3_FlushHandshake(sslSocket *ss, PRInt32 flags)
 {
     if (IS_DTLS(ss)) {
         return dtls_FlushHandshakeMessages(ss, flags);
-    } else {
-        return ssl3_FlushHandshakeMessages(ss, flags);
     }
+    return ssl3_FlushHandshakeMessages(ss, flags);
 }
 
 /* Attempt to send the content of sendBuf buffer in an SSL handshake record.
@@ -10196,7 +10195,7 @@ ssl3_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
      * until it has verified the server's Finished message." See the comment in
      * ssl3_FinishHandshake for more details.
      */
-    ss->ssl3.hs.newSessionTicket.received_timestamp = PR_Now();
+    ss->ssl3.hs.newSessionTicket.received_timestamp = ssl_TimeUsec();
     if (length < 4) {
         (void)SSL3_SendAlert(ss, alert_fatal, decode_error);
         PORT_SetError(SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET);
@@ -11488,8 +11487,8 @@ ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid, PK11SymKey *secret)
     sid->authKeyBits = ss->sec.authKeyBits;
     sid->keaType = ss->sec.keaType;
     sid->keaKeyBits = ss->sec.keaKeyBits;
-    sid->lastAccessTime = sid->creationTime = ssl_Time();
-    sid->expirationTime = sid->creationTime + ssl3_sid_timeout;
+    sid->lastAccessTime = sid->creationTime = ssl_TimeUsec();
+    sid->expirationTime = sid->creationTime + ssl3_sid_timeout * PR_USEC_PER_SEC;
     sid->localCert = CERT_DupCertificate(ss->sec.localCert);
     if (ss->sec.isServer) {
         sid->namedCurve = ss->sec.serverCert->namedCurve;

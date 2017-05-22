@@ -90,6 +90,8 @@ struct TLSExtensionDataStr {
     SECItem pskBinder;               /* The PSK binder for the first PSK (TLS 1.3) */
     unsigned int pskBinderPrefixLen; /* The length of the binder input. */
     PRCList remoteKeyShares;         /* The other side's public keys (TLS 1.3) */
+    /* This is used when deciding whether to accept early data. */
+    PRUint32 ticketAge;
 };
 
 typedef struct TLSExtensionStr {

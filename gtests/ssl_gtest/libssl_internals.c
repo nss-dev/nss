@@ -380,3 +380,14 @@ SECStatus SSLInt_SetSocketMaxEarlyDataSize(PRFileDesc *fd, uint32_t size) {
 
   return SECSuccess;
 }
+
+SECStatus SSLInt_SetTicketAgeTolerance(PRFileDesc *fd, PRUint16 tolerance) {
+  sslSocket *ss = ssl_FindSocket(fd);
+
+  if (!ss) {
+    return SECFailure;
+  }
+
+  ss->opt.ticketAgeTolerance = tolerance;
+  return SECSuccess;
+}
