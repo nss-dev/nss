@@ -50,6 +50,16 @@
         '<(DEPTH)/lib/pki/pki.gyp:nsspki',
         '<(DEPTH)/lib/ssl/ssl.gyp:ssl',
       ],
+      'conditions': [
+        [ 'OS=="win"', {
+          'libraries': [
+            'advapi32.lib',
+          ],
+        }],
+      ],
+      'defines': [
+        'NSS_USE_STATIC_LIBS'
+      ],
     },
   ],
   'target_defaults': {
