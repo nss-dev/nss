@@ -224,28 +224,21 @@ check_abi()
     print_log "######## NSS ABI CHECK - ${BITS} bits - ${OPT} ########"
     rm -rf ${HGDIR}/baseline
     mkdir ${HGDIR}/baseline
-    hg clone ${HGDIR}/nspr ${HGDIR}/baseline/nspr
-    hg clone ${HGDIR}/nss ${HGDIR}/baseline/nss
-    BASE_PR=`cat ${HGDIR}/nss/automation/abi-check/previous-nspr-release`
-    BASE_S=`cat ${HGDIR}/nss/automation/abi-check/previous-nss-release`
+    BASE_NSPR=`cat ${HGDIR}/nss/automation/abi-check/previous-nspr-release`
+    BASE_NSS=`cat ${HGDIR}/nss/automation/abi-check/previous-nss-release`
 
     print_log "######## creating temporary HG clones ########"
 
-    cd ${HGDIR}/baseline/nspr
-    hg update $BASE_PR
+    hg clone -u "${BASE_NSPR}" "${HGDIR}/nspr" "${HGDIR}/baseline/nspr"
     if [ $? -ne 0 ]; then
         echo "invalid tag in automation/abi-check/previous-nspr-release"
         return 1
     fi
-    cd ../..
-
-    cd ${HGDIR}/baseline/nss
-    hg update $BASE_S
+    hg clone -u "${BASE_NSS}" "${HGDIR}/nss" "${HGDIR}/baseline/nss"
     if [ $? -ne 0 ]; then
         echo "invalid tag in automation/abi-check/previous-nss-release"
         return 1
     fi
-    cd ../..
 
     print_log "######## building older NSPR/NSS ########"
 
@@ -281,7 +274,7 @@ check_abi()
         diff -u nss/automation/abi-check/expected-report-$SO.txt \
                 nss/automation/abi-check/new-report-$SO.txt >> ${ABI_REPORT}
     done
-    
+
     if [ -s ${ABI_REPORT} ]; then
         print_log "FAILED: there are new unexpected ABI changes"
         cat ${ABI_REPORT}
