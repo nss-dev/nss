@@ -4089,7 +4089,7 @@ s_mpv_sqr_add_prop(const mp_digit *pa, mp_size a_len, mp_digit *ps)
 }
 #endif
 
-#if (defined(MP_NO_MP_WORD) || defined(MP_NO_DIV_WORD)) && !defined(MP_ASSEMBLY_DIV_2DX1D)
+#if !defined(MP_ASSEMBLY_DIV_2DX1D)
 /*
 ** Divide 64-bit (Nhi,Nlo) by 32-bit divisor, which must be normalized
 ** so its high bit is 1.   This code is from NSPR.
