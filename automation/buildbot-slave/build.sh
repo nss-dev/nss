@@ -222,41 +222,35 @@ test_nss()
 check_abi()
 {
     print_log "######## NSS ABI CHECK - ${BITS} bits - ${OPT} ########"
-    rm -rf ${HGDIR}/baseline
-    mkdir ${HGDIR}/baseline
-    BASE_NSPR=`cat ${HGDIR}/nss/automation/abi-check/previous-nspr-release`
-    BASE_NSS=`cat ${HGDIR}/nss/automation/abi-check/previous-nss-release`
-
     print_log "######## creating temporary HG clones ########"
 
-    hg clone -u "${BASE_NSPR}" "${HGDIR}/nspr" "${HGDIR}/baseline/nspr"
-    if [ $? -ne 0 ]; then
-        echo "invalid tag in automation/abi-check/previous-nspr-release"
-        return 1
-    fi
+    rm -rf ${HGDIR}/baseline
+    mkdir ${HGDIR}/baseline
+    BASE_NSS=`cat ${HGDIR}/nss/automation/abi-check/previous-nss-release`
     hg clone -u "${BASE_NSS}" "${HGDIR}/nss" "${HGDIR}/baseline/nss"
     if [ $? -ne 0 ]; then
         echo "invalid tag in automation/abi-check/previous-nss-release"
         return 1
     fi
 
-    print_log "######## building older NSPR/NSS ########"
+    BASE_NSPR=NSPR_$(head -1 ${HGDIR}/baseline/nss/automation/release/nspr-version.txt | cut -d . -f 1-2 | tr . _)_BRANCH
+    hg clone -u "${BASE_NSPR}" "${HGDIR}/nspr" "${HGDIR}/baseline/nspr"
+    if [ $? -ne 0 ]; then
+        echo "invalid tag ${BASE_NSPR} derived from ${BASE_NSS} automation/release/nspr-version.txt"
+        return 1
+    fi
 
-    print_log "$ pushd ${HGDIR}/baseline/nss"
+    print_log "######## building older NSPR/NSS ########"
     pushd ${HGDIR}/baseline/nss
 
     print_log "$ ${MAKE} ${NSS_BUILD_TARGET}"
-    #${MAKE} ${NSS_BUILD_TARGET} 2>&1 | tee -a ${LOG_ALL} | grep ${GREP_BUFFER} "^${MAKE}"
     ${MAKE} ${NSS_BUILD_TARGET} 2>&1 | tee -a ${LOG_ALL}
     RET=$?
     print_result "NSS - build - ${BITS} bits - ${OPT}" ${RET} 0
-
     if [ ${RET} -ne 0 ]; then
         tail -100 ${LOG_ALL}
         return ${RET}
     fi
-
-    print_log "$ popd"
     popd
 
     ABI_REPORT=${OUTPUTDIR}/abi-diff.txt
