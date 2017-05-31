@@ -10,7 +10,8 @@ import sys
 
 def main():
     args = [os.path.realpath(x) for x in sys.argv[1:]]
-    subprocess.check_call(['perl', 'certdata.perl'] + args, env=os.environ)
+    script = os.path.dirname(os.path.abspath(__file__))+'/certdata.perl'
+    subprocess.check_call(['perl', script] + args, env=os.environ)
 
 if __name__ == '__main__':
     main()
