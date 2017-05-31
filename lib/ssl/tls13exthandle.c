@@ -400,7 +400,7 @@ tls13_ClientSendPreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     /* Save where this extension starts so that if we have to add padding, it
      * can be inserted before this extension. */
     PORT_Assert(buf->len >= 4);
-    xtnData->paddingOffset = buf->len - 4;
+    xtnData->lastXtnOffset = buf->len - 4;
 
     PORT_Assert(ss->vrange.max >= SSL_LIBRARY_VERSION_TLS_1_3);
 

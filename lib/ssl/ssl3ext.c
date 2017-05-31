@@ -151,6 +151,120 @@ static const sslExtensionBuilder tls13_cert_req_senders[] = {
     { 0, NULL }
 };
 
+static const struct {
+    SSLExtensionType type;
+    SSLExtensionSupport support;
+} ssl_supported_extensions[] = {
+    { ssl_server_name_xtn, ssl_ext_native_only },
+    { ssl_cert_status_xtn, ssl_ext_native },
+    { ssl_supported_groups_xtn, ssl_ext_native_only },
+    { ssl_ec_point_formats_xtn, ssl_ext_native },
+    { ssl_signature_algorithms_xtn, ssl_ext_native_only },
+    { ssl_use_srtp_xtn, ssl_ext_native },
+    { ssl_app_layer_protocol_xtn, ssl_ext_native_only },
+    { ssl_signed_cert_timestamp_xtn, ssl_ext_native },
+    { ssl_padding_xtn, ssl_ext_native },
+    { ssl_extended_master_secret_xtn, ssl_ext_native_only },
+    { ssl_session_ticket_xtn, ssl_ext_native_only },
+    { ssl_tls13_key_share_xtn, ssl_ext_native_only },
+    { ssl_tls13_pre_shared_key_xtn, ssl_ext_native_only },
+    { ssl_tls13_early_data_xtn, ssl_ext_native_only },
+    { ssl_tls13_supported_versions_xtn, ssl_ext_native_only },
+    { ssl_tls13_cookie_xtn, ssl_ext_native },
+    { ssl_tls13_psk_key_exchange_modes_xtn, ssl_ext_native_only },
+    { ssl_tls13_ticket_early_data_info_xtn, ssl_ext_native_only },
+    { ssl_next_proto_nego_xtn, ssl_ext_none },
+    { ssl_renegotiation_info_xtn, ssl_ext_native }
+};
+
+SSLExtensionSupport
+SSL_GetExtensionSupport(PRUint16 type)
+{
+    unsigned int i;
+    for (i = 0; i < PR_ARRAY_SIZE(ssl_supported_extensions); ++i) {
+        if (type == ssl_supported_extensions[i].type) {
+            return ssl_supported_extensions[i].support;
+        }
+    }
+    return ssl_ext_none;
+}
+
+SECStatus
+SSL_InstallExtensionHooks(PRFileDesc *fd, PRUint16 extension,
+                          SSLExtensionWriter writer, void *writerArg,
+                          SSLExtensionHandler handler, void *handlerArg)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+    PRCList *cursor;
+    sslCustomExtensionHooks *hook;
+
+    if (!ss) {
+        return SECFailure; /* Code already set. */
+    }
+
+    /* Need to specify both or neither, but not just one. */
+    if ((writer && !handler) || (!writer && handler)) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (SSL_GetExtensionSupport(extension) == ssl_ext_native_only) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (ss->ssl3.hs.ws != idle_handshake || ss->firstHsDone) {
+        PORT_SetError(PR_INVALID_STATE_ERROR);
+        return SECFailure;
+    }
+
+    /* Remove any old handler. */
+    for (cursor = PR_NEXT_LINK(&ss->extensionHooks);
+         cursor != &ss->extensionHooks;
+         cursor = PR_NEXT_LINK(cursor)) {
+        hook = (sslCustomExtensionHooks *)cursor;
+        if (hook->type == extension) {
+            PR_REMOVE_LINK(&hook->link);
+            PORT_Free(hook);
+            break;
+        }
+    }
+
+    if (!writer && !handler) {
+        return SECSuccess;
+    }
+
+    hook = PORT_ZNew(sslCustomExtensionHooks);
+    if (!hook) {
+        return SECFailure; /* This removed the old one, oh well. */
+    }
+
+    hook->type = extension;
+    hook->writer = writer;
+    hook->writerArg = writerArg;
+    hook->handler = handler;
+    hook->handlerArg = handlerArg;
+    PR_APPEND_LINK(&hook->link, &ss->extensionHooks);
+    return SECSuccess;
+}
+
+static sslCustomExtensionHooks *
+ssl_FindCustomExtensionHooks(sslSocket *ss, PRUint16 extension)
+{
+    PRCList *cursor;
+
+    for (cursor = PR_NEXT_LINK(&ss->extensionHooks);
+         cursor != &ss->extensionHooks;
+         cursor = PR_NEXT_LINK(cursor)) {
+        sslCustomExtensionHooks *hook = (sslCustomExtensionHooks *)cursor;
+        if (hook->type == extension) {
+            return hook;
+        }
+    }
+
+    return NULL;
+}
+
 static PRBool
 arrayContainsExtension(const PRUint16 *array, PRUint32 len, PRUint16 ex_type)
 {
@@ -170,8 +284,11 @@ ssl3_ExtensionNegotiated(const sslSocket *ss, PRUint16 ex_type)
                                   xtnData->numNegotiated, ex_type);
 }
 
+/* This checks for whether an extension was advertised.  On the client, this
+ * covers extensions that are sent in ClientHello; on the server, extensions
+ * sent in CertificateRequest (TLS 1.3 only). */
 PRBool
-ssl3_ClientExtensionAdvertised(const sslSocket *ss, PRUint16 ex_type)
+ssl3_ExtensionAdvertised(const sslSocket *ss, PRUint16 ex_type)
 {
     const TLSExtensionData *xtnData = &ss->xtnData;
     return arrayContainsExtension(xtnData->advertised,
@@ -254,6 +371,44 @@ ssl3_FindExtension(sslSocket *ss, SSLExtensionType extension_type)
     return NULL;
 }
 
+static SECStatus
+ssl_CallExtensionHandler(sslSocket *ss, SSLHandshakeType handshakeMessage,
+                         TLSExtension *extension,
+                         const ssl3ExtensionHandler *handler)
+{
+    SECStatus rv = SECSuccess;
+    SSLAlertDescription alert = handshake_failure;
+    sslCustomExtensionHooks *customHooks;
+
+    customHooks = ssl_FindCustomExtensionHooks(ss, extension->type);
+    if (customHooks) {
+        if (customHooks->handler) {
+            rv = customHooks->handler(ss->fd, handshakeMessage,
+                                      extension->data.data,
+                                      extension->data.len,
+                                      &alert, customHooks->handlerArg);
+        }
+    } else {
+        /* Find extension_type in table of Hello Extension Handlers. */
+        for (; handler->ex_handler != NULL; ++handler) {
+            if (handler->ex_type == extension->type) {
+                rv = (*handler->ex_handler)(ss, &ss->xtnData, &extension->data);
+                break;
+            }
+        }
+    }
+
+    if (rv != SECSuccess) {
+        if (!ss->ssl3.fatalAlertSent) {
+            /* Send an alert if the handler didn't already. */
+            (void)SSL3_SendAlert(ss, alert_fatal, alert);
+        }
+        return SECFailure;
+    }
+
+    return SECSuccess;
+}
+
 /* Go through the hello extensions in |ss->ssl3.hs.remoteExtensions|.
  * For each one, find the extension handler in the table, and
  * if present, invoke that handler.
@@ -264,23 +419,21 @@ ssl3_FindExtension(sslSocket *ss, SSLExtensionType extension_type)
  * right phase.
  */
 SECStatus
-ssl3_HandleParsedExtensions(sslSocket *ss,
-                            SSLHandshakeType handshakeMessage)
+ssl3_HandleParsedExtensions(sslSocket *ss, SSLHandshakeType message)
 {
     const ssl3ExtensionHandler *handlers;
-    const ssl3ExtensionHandler *handler;
     /* HelloRetryRequest doesn't set ss->version. It might be safe to
      * do so, but we weren't entirely sure. TODO(ekr@rtfm.com). */
     PRBool isTLS13 = (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) ||
-                     (handshakeMessage == ssl_hs_hello_retry_request);
+                     (message == ssl_hs_hello_retry_request);
     /* The following messages can include extensions that were not included in
      * the original ClientHello. */
-    PRBool allowNotOffered = (handshakeMessage == ssl_hs_client_hello) ||
-                             (handshakeMessage == ssl_hs_certificate_request) ||
-                             (handshakeMessage == ssl_hs_new_session_ticket);
+    PRBool allowNotOffered = (message == ssl_hs_client_hello) ||
+                             (message == ssl_hs_certificate_request) ||
+                             (message == ssl_hs_new_session_ticket);
     PRCList *cursor;
 
-    switch (handshakeMessage) {
+    switch (message) {
         case ssl_hs_client_hello:
             handlers = clientHelloHandlers;
             break;
@@ -319,6 +472,7 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
          cursor != &ss->ssl3.hs.remoteExtensions;
          cursor = PR_NEXT_LINK(cursor)) {
         TLSExtension *extension = (TLSExtension *)cursor;
+        SECStatus rv;
 
         /* Check whether the server sent an extension which was not advertised
          * in the ClientHello.
@@ -326,18 +480,19 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
          * Note that a TLS 1.3 server should check if CertificateRequest
          * extensions were sent.  But the extensions used for CertificateRequest
          * do not have any response, so we rely on
-         * ssl3_ClientExtensionAdvertised to return false on the server.  That
+         * ssl3_ExtensionAdvertised to return false on the server.  That
          * results in the server only rejecting any extension. */
         if (!allowNotOffered && (extension->type != ssl_tls13_cookie_xtn) &&
-            !ssl3_ClientExtensionAdvertised(ss, extension->type)) {
+            !ssl3_ExtensionAdvertised(ss, extension->type)) {
             (void)SSL3_SendAlert(ss, alert_fatal, unsupported_extension);
             PORT_SetError(SSL_ERROR_RX_UNEXPECTED_EXTENSION);
             return SECFailure;
         }
 
         /* Check that this is a legal extension in TLS 1.3 */
-        if (isTLS13) {
-            switch (tls13_ExtensionStatus(extension->type, handshakeMessage)) {
+        if (isTLS13 &&
+            !ssl_FindCustomExtensionHooks(ss, extension->type)) {
+            switch (tls13_ExtensionStatus(extension->type, message)) {
                 case tls13_extension_allowed:
                     break;
                 case tls13_extension_unknown:
@@ -363,23 +518,9 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
             return SECFailure;
         }
 
-        /* find extension_type in table of Hello Extension Handlers */
-        for (handler = handlers; handler->ex_handler; ++handler) {
-            /* if found, call this handler */
-            if (handler->ex_type == extension->type) {
-                SECStatus rv;
-
-                rv = (*handler->ex_handler)(ss, &ss->xtnData,
-                                            &extension->data);
-                if (rv != SECSuccess) {
-                    if (!ss->ssl3.fatalAlertSent) {
-                        /* send a generic alert if the handler didn't already */
-                        (void)SSL3_SendAlert(ss, alert_fatal, handshake_failure);
-                    }
-                    return SECFailure;
-                }
-                break;
-            }
+        rv = ssl_CallExtensionHandler(ss, message, extension, handlers);
+        if (rv != SECSuccess) {
+            return SECFailure;
         }
     }
     return SECSuccess;
@@ -456,6 +597,79 @@ ssl3_RegisterExtensionSender(const sslSocket *ss,
     return SECFailure;
 }
 
+static SECStatus
+ssl_CallCustomExtensionSenders(sslSocket *ss, sslBuffer *buf,
+                               SSLHandshakeType message)
+{
+    sslBuffer tail = { NULL, 0, 0 };
+    SECStatus rv;
+    PRCList *cursor;
+
+    /* Save any extensions that want to be last. */
+    if (ss->xtnData.lastXtnOffset) {
+        rv = sslBuffer_Append(&tail, buf->buf + ss->xtnData.lastXtnOffset,
+                              buf->len - ss->xtnData.lastXtnOffset);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+        buf->len = ss->xtnData.lastXtnOffset;
+    }
+
+    /* Reserve the maximum amount of space possible. */
+    rv = sslBuffer_Grow(buf, 65535);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    for (cursor = PR_NEXT_LINK(&ss->extensionHooks);
+         cursor != &ss->extensionHooks;
+         cursor = PR_NEXT_LINK(cursor)) {
+        sslCustomExtensionHooks *hook =
+            (sslCustomExtensionHooks *)cursor;
+        PRBool append = PR_FALSE;
+        unsigned int len = 0;
+
+        if (hook->writer) {
+            /* The writer writes directly into |buf|.  Provide space that allows
+             * for the existing extensions, any tail, plus type and length. */
+            unsigned int space = buf->space - (buf->len + tail.len + 4);
+            append = (*hook->writer)(ss->fd, message,
+                                     buf->buf + buf->len + 4, &len, space,
+                                     hook->writerArg);
+            if (len > space) {
+                PORT_SetError(SEC_ERROR_APPLICATION_CALLBACK_ERROR);
+                goto loser;
+            }
+        }
+        if (!append) {
+            continue;
+        }
+
+        rv = sslBuffer_AppendNumber(buf, hook->type, 2);
+        if (rv != SECSuccess) {
+            goto loser; /* Code already set. */
+        }
+        rv = sslBuffer_AppendNumber(buf, len, 2);
+        if (rv != SECSuccess) {
+            goto loser; /* Code already set. */
+        }
+        buf->len += len;
+
+        if (message == ssl_hs_client_hello ||
+            message == ssl_hs_certificate_request) {
+            ss->xtnData.advertised[ss->xtnData.numAdvertised++] = hook->type;
+        }
+    }
+
+    sslBuffer_Append(buf, tail.buf, tail.len);
+    sslBuffer_Clear(&tail);
+    return SECSuccess;
+
+loser:
+    sslBuffer_Clear(&tail);
+    return SECFailure;
+}
+
 /* Call extension handlers for the given message. */
 SECStatus
 ssl_ConstructExtensions(sslSocket *ss, sslBuffer *buf, SSLHandshakeType message)
@@ -499,10 +713,14 @@ ssl_ConstructExtensions(sslSocket *ss, sslBuffer *buf, SSLHandshakeType message)
             return SECFailure;
     }
 
-    for (; sender->ex_sender; ++sender) {
+    for (; sender->ex_sender != NULL; ++sender) {
         PRBool append = PR_FALSE;
         unsigned int start = buf->len;
         unsigned int length;
+
+        if (ssl_FindCustomExtensionHooks(ss, sender->ex_type)) {
+            continue;
+        }
 
         /* Save space for the extension type and length. Note that we don't grow
          * the buffer now; rely on sslBuffer_Append* to do that. */
@@ -531,9 +749,17 @@ ssl_ConstructExtensions(sslSocket *ss, sslBuffer *buf, SSLHandshakeType message)
         /* Skip over the extension body. */
         buf->len += length;
 
-        if (message == ssl_hs_client_hello) {
+        if (message == ssl_hs_client_hello ||
+            message == ssl_hs_certificate_request) {
             ss->xtnData.advertised[ss->xtnData.numAdvertised++] =
                 sender->ex_type;
+        }
+    }
+
+    if (!PR_CLIST_IS_EMPTY(&ss->extensionHooks)) {
+        rv = ssl_CallCustomExtensionSenders(ss, buf, message);
+        if (rv != SECSuccess) {
+            goto loser;
         }
     }
 
@@ -622,17 +848,17 @@ ssl_InsertPaddingExtension(const sslSocket *ss, unsigned int prefixLen,
 
     /* Move the tail if there is one. This only happens if we are sending the
      * TLS 1.3 PSK extension, which needs to be at the end. */
-    if (ss->xtnData.paddingOffset) {
-        PORT_Assert(buf->len > ss->xtnData.paddingOffset);
-        tailLen = buf->len - ss->xtnData.paddingOffset;
+    if (ss->xtnData.lastXtnOffset) {
+        PORT_Assert(buf->len > ss->xtnData.lastXtnOffset);
+        tailLen = buf->len - ss->xtnData.lastXtnOffset;
         rv = sslBuffer_Grow(buf, buf->len + 4 + paddingLen);
         if (rv != SECSuccess) {
             return SECFailure;
         }
-        PORT_Memmove(buf->buf + ss->xtnData.paddingOffset + 4 + paddingLen,
-                     buf->buf + ss->xtnData.paddingOffset,
+        PORT_Memmove(buf->buf + ss->xtnData.lastXtnOffset + 4 + paddingLen,
+                     buf->buf + ss->xtnData.lastXtnOffset,
                      tailLen);
-        buf->len = ss->xtnData.paddingOffset;
+        buf->len = ss->xtnData.lastXtnOffset;
     } else {
         tailLen = 0;
     }
@@ -665,20 +891,36 @@ ssl3_DestroyRemoteExtensions(PRCList *list)
 
 /* Initialize the extension data block. */
 void
-ssl3_InitExtensionData(TLSExtensionData *xtnData)
+ssl3_InitExtensionData(TLSExtensionData *xtnData, const sslSocket *ss)
 {
+    unsigned int advertisedMax;
+    PRCList *cursor;
+
     /* Set things up to the right starting state. */
     PORT_Memset(xtnData, 0, sizeof(*xtnData));
     xtnData->peerSupportsFfdheGroups = PR_FALSE;
     PR_INIT_CLIST(&xtnData->remoteKeyShares);
+
+    /* Allocate enough to allow for native extensions, plus any custom ones. */
+    if (ss->sec.isServer) {
+        advertisedMax = PR_MAX(PR_ARRAY_SIZE(certificateRequestHandlers),
+                               PR_ARRAY_SIZE(tls13_cert_req_senders));
+    } else {
+        advertisedMax = PR_MAX(PR_ARRAY_SIZE(clientHelloHandlers),
+                               PR_ARRAY_SIZE(clientHelloSendersTLS));
+        ++advertisedMax; /* For the RI SCSV, which we also track. */
+    }
+    for (cursor = PR_NEXT_LINK(&ss->extensionHooks);
+         cursor != &ss->extensionHooks;
+         cursor = PR_NEXT_LINK(cursor)) {
+        ++advertisedMax;
+    }
+    xtnData->advertised = PORT_ZNewArray(PRUint16, advertisedMax);
 }
 
-/* Free everything that has been allocated and then reset back to
- * the starting state. */
 void
-ssl3_ResetExtensionData(TLSExtensionData *xtnData)
+ssl3_DestroyExtensionData(TLSExtensionData *xtnData)
 {
-    /* Clean up. */
     ssl3_FreeSniNameArray(xtnData);
     PORT_Free(xtnData->sigSchemes);
     SECITEM_FreeItem(&xtnData->nextProto, PR_FALSE);
@@ -688,9 +930,16 @@ ssl3_ResetExtensionData(TLSExtensionData *xtnData)
         PORT_FreeArena(xtnData->certReqAuthorities.arena, PR_FALSE);
         xtnData->certReqAuthorities.arena = NULL;
     }
+    PORT_Free(xtnData->advertised);
+}
 
-    /* Now reinit. */
-    ssl3_InitExtensionData(xtnData);
+/* Free everything that has been allocated and then reset back to
+ * the starting state. */
+void
+ssl3_ResetExtensionData(TLSExtensionData *xtnData, const sslSocket *ss)
+{
+    ssl3_DestroyExtensionData(xtnData);
+    ssl3_InitExtensionData(xtnData, ss);
 }
 
 /* Thunks to let extension handlers operate on const sslSocket* objects. */

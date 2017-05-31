@@ -259,10 +259,15 @@ class TlsExtensionFilter : public TlsHandshakeFilter {
   TlsExtensionFilter() : handshake_types_() {
     handshake_types_.insert(kTlsHandshakeClientHello);
     handshake_types_.insert(kTlsHandshakeServerHello);
+    handshake_types_.insert(kTlsHandshakeEncryptedExtensions);
   }
 
   TlsExtensionFilter(const std::set<uint8_t>& types)
       : handshake_types_(types) {}
+
+  void SetHandshakeTypes(const std::set<uint8_t>& types) {
+    handshake_types_ = types;
+  }
 
   static bool FindExtensions(TlsParser* parser, const HandshakeHeader& header);
 

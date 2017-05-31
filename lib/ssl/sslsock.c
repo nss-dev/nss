@@ -295,6 +295,7 @@ ssl_DupSocket(sslSocket *os)
 
     if (ss->opt.useSecurity) {
         PRCList *cursor;
+
         for (cursor = PR_NEXT_LINK(&os->serverCerts);
              cursor != &os->serverCerts;
              cursor = PR_NEXT_LINK(cursor)) {
@@ -304,7 +305,6 @@ ssl_DupSocket(sslSocket *os)
             PR_APPEND_LINK(&sc->link, &ss->serverCerts);
         }
 
-        PR_INIT_CLIST(&ss->ephemeralKeyPairs);
         for (cursor = PR_NEXT_LINK(&os->ephemeralKeyPairs);
              cursor != &os->ephemeralKeyPairs;
              cursor = PR_NEXT_LINK(cursor)) {
@@ -313,6 +313,18 @@ ssl_DupSocket(sslSocket *os)
             if (!skp)
                 goto loser;
             PR_APPEND_LINK(&skp->link, &ss->ephemeralKeyPairs);
+        }
+
+        for (cursor = PR_NEXT_LINK(&os->extensionHooks);
+             cursor != &os->extensionHooks;
+             cursor = PR_NEXT_LINK(cursor)) {
+            sslCustomExtensionHooks *oh = (sslCustomExtensionHooks *)cursor;
+            sslCustomExtensionHooks *sh = PORT_ZNew(sslCustomExtensionHooks);
+            if (!sh) {
+                goto loser;
+            }
+            *sh = *oh;
+            PR_APPEND_LINK(&sh->link, &ss->extensionHooks);
         }
 
         /*
@@ -417,6 +429,14 @@ ssl_DestroySocketContents(sslSocket *ss)
         PR_REMOVE_LINK(cursor);
         ssl_FreeServerCert((sslServerCert *)cursor);
     }
+
+    /* Remove extension handlers. */
+    while (!PR_CLIST_IS_EMPTY(&ss->extensionHooks)) {
+        cursor = PR_LIST_TAIL(&ss->extensionHooks);
+        PR_REMOVE_LINK(cursor);
+        PORT_Free(cursor);
+    }
+
     ssl_FreeEphemeralKeyPairs(ss);
     SECITEM_FreeItem(&ss->opt.nextProtoNego, PR_FALSE);
     ssl3_FreeSniNameArray(&ss->xtnData);
@@ -2119,6 +2139,25 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
             return NULL;
         PR_APPEND_LINK(&skp->link, &ss->ephemeralKeyPairs);
     }
+
+    while (!PR_CLIST_IS_EMPTY(&ss->extensionHooks)) {
+        cursor = PR_LIST_TAIL(&ss->extensionHooks);
+        PR_REMOVE_LINK(cursor);
+        PORT_Free(cursor);
+    }
+    for (cursor = PR_NEXT_LINK(&sm->extensionHooks);
+         cursor != &sm->extensionHooks;
+         cursor = PR_NEXT_LINK(cursor)) {
+        SECStatus rv;
+        sslCustomExtensionHooks *hook = (sslCustomExtensionHooks *)cursor;
+        rv = SSL_InstallExtensionHooks(ss->fd, hook->type,
+                                       hook->writer, hook->writerArg,
+                                       hook->handler, hook->handlerArg);
+        if (rv != SECSuccess) {
+            return NULL;
+        }
+    }
+
     PORT_Memcpy((void *)ss->namedGroupPreferences,
                 sm->namedGroupPreferences,
                 sizeof(ss->namedGroupPreferences));
@@ -2209,7 +2248,7 @@ ssl3_GetEffectiveVersionPolicy(SSLProtocolVariant variant,
     return SECSuccess;
 }
 
-/* 
+/*
  * Assumes that rangeParam values are within the supported boundaries,
  * but should contain all potentially allowed versions, even if they contain
  * conflicting versions.
@@ -3772,6 +3811,7 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
 
     PR_INIT_CLIST(&ss->serverCerts);
     PR_INIT_CLIST(&ss->ephemeralKeyPairs);
+    PR_INIT_CLIST(&ss->extensionHooks);
 
     ss->dbHandle = CERT_GetDefaultCertDB();
 
@@ -3799,7 +3839,7 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     PR_INIT_CLIST(&ss->ssl3.hs.lastMessageFlight);
     PR_INIT_CLIST(&ss->ssl3.hs.cipherSpecs);
     PR_INIT_CLIST(&ss->ssl3.hs.bufferedEarlyData);
-    ssl3_InitExtensionData(&ss->xtnData);
+    ssl3_InitExtensionData(&ss->xtnData, ss);
     if (makeLocks) {
         rv = ssl_MakeLocks(ss);
         if (rv != SECSuccess)

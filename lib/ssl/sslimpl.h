@@ -1132,7 +1132,7 @@ struct sslSocketStr {
     void *pkcs11PinArg;
     SSLNextProtoCallback nextProtoCallback;
     void *nextProtoArg;
-    PRCList extensionHandlers;
+    PRCList extensionHooks;
 
     PRIntervalTime rTimeout; /* timeout for NSPR I/O */
     PRIntervalTime wTimeout; /* timeout for NSPR I/O */
