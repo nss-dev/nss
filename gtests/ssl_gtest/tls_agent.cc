@@ -73,7 +73,6 @@ TlsAgent::TlsAgent(const std::string& name, Role role,
       handshake_callback_(),
       auth_certificate_callback_(),
       sni_callback_(),
-      expect_short_headers_(false),
       skip_version_checks_(false) {
   memset(&info_, 0, sizeof(info_));
   memset(&csinfo_, 0, sizeof(csinfo_));
@@ -407,13 +406,6 @@ void TlsAgent::SetFallbackSCSVEnabled(bool en) {
   EXPECT_EQ(SECSuccess, rv);
 }
 
-void TlsAgent::SetShortHeadersEnabled() {
-  EXPECT_TRUE(EnsureTlsSetup());
-
-  SECStatus rv = SSLInt_EnableShortHeaders(ssl_fd());
-  EXPECT_EQ(SECSuccess, rv);
-}
-
 void TlsAgent::SetVersionRange(uint16_t minver, uint16_t maxver) {
   vrange_.min = minver;
   vrange_.max = maxver;
@@ -436,8 +428,6 @@ void TlsAgent::SetExpectedVersion(uint16_t version) {
 void TlsAgent::SetServerKeyBits(uint16_t bits) { server_key_bits_ = bits; }
 
 void TlsAgent::ExpectReadWriteError() { expect_readwrite_error_ = true; }
-
-void TlsAgent::ExpectShortHeaders() { expect_short_headers_ = true; }
 
 void TlsAgent::SkipVersionChecks() { skip_version_checks_ = true; }
 
@@ -764,10 +754,6 @@ void TlsAgent::Connected() {
     }
   }
 
-  PRBool short_headers;
-  rv = SSLInt_UsingShortHeaders(ssl_fd(), &short_headers);
-  EXPECT_EQ(SECSuccess, rv);
-  EXPECT_EQ((PRBool)expect_short_headers_, short_headers);
   SetState(STATE_CONNECTED);
 }
 

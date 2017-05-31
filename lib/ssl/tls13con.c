@@ -87,10 +87,9 @@ static SECStatus tls13_SendEndOfEarlyData(sslSocket *ss);
 static SECStatus tls13_HandleEndOfEarlyData(sslSocket *ss, PRUint8 *b,
                                             PRUint32 length);
 static SECStatus tls13_SendFinished(sslSocket *ss, PK11SymKey *baseKey);
-static SECStatus tls13_ComputePskBinderHash(sslSocket *ss,
-                                            unsigned long prefixLength,
+static SECStatus tls13_ComputePskBinderHash(sslSocket *ss, unsigned int prefix,
                                             SSL3Hashes *hashes);
-static SECStatus tls13_VerifyFinished(sslSocket *ss, SSL3HandshakeType message,
+static SECStatus tls13_VerifyFinished(sslSocket *ss, SSLHandshakeType message,
                                       PK11SymKey *secret,
                                       PRUint8 *b, PRUint32 length,
                                       const SSL3Hashes *hashes);
@@ -599,26 +598,26 @@ tls13_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b,
 
     /* TODO(ekr@rtfm.com): Would it be better to check all the states here? */
     switch (ss->ssl3.hs.msg_type) {
-        case certificate:
+        case ssl_hs_certificate:
             return tls13_HandleCertificate(ss, b, length);
 
-        case certificate_request:
+        case ssl_hs_certificate_request:
             return tls13_HandleCertificateRequest(ss, b, length);
 
-        case certificate_verify:
+        case ssl_hs_certificate_verify:
             if (!hashesPtr) {
                 FATAL_ERROR(ss, SSL_ERROR_RX_UNEXPECTED_CERT_VERIFY, unexpected_message);
                 return SECFailure;
             }
             return tls13_HandleCertificateVerify(ss, b, length, hashesPtr);
 
-        case encrypted_extensions:
+        case ssl_hs_encrypted_extensions:
             return tls13_HandleEncryptedExtensions(ss, b, length);
 
-        case new_session_ticket:
+        case ssl_hs_new_session_ticket:
             return tls13_HandleNewSessionTicket(ss, b, length);
 
-        case finished:
+        case ssl_hs_finished:
             if (!hashesPtr) {
                 FATAL_ERROR(ss, SSL_ERROR_RX_UNEXPECTED_FINISHED, unexpected_message);
                 return SECFailure;
@@ -628,7 +627,7 @@ tls13_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b,
             }
             return tls13_ClientHandleFinished(ss, b, length, hashesPtr);
 
-        case end_of_early_data:
+        case ssl_hs_end_of_early_data:
             return tls13_HandleEndOfEarlyData(ss, b, length);
 
         default:
@@ -1423,7 +1422,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
             goto loser;
         }
 
-        rv = tls13_VerifyFinished(ss, client_hello,
+        rv = tls13_VerifyFinished(ss, ssl_hs_client_hello,
                                   ss->ssl3.hs.pskBinderKey,
                                   ss->xtnData.pskBinder.data,
                                   ss->xtnData.pskBinder.len,
@@ -1517,7 +1516,7 @@ tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup
     }
 
     ssl_GetXmitBufLock(ss);
-    rv = ssl3_AppendHandshakeHeader(ss, hello_retry_request,
+    rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_hello_retry_request,
                                     2 +     /* version */
                                         2 + /* cipher suite */
                                         2 + /* extension length */
@@ -1633,12 +1632,6 @@ tls13_HandleClientKeyShare(sslSocket *ss, TLS13KeyShareEntry *peerShare)
     return rv; /* Error code set already. */
 }
 
-static const ssl3HelloExtensionSender tls13_cert_req_senders[] = {
-    { ssl_signature_algorithms_xtn, &ssl3_SendSigAlgsXtn },
-    { ssl_tls13_certificate_authorities_xtn, &tls13_SendCertAuthoritiesXtn },
-    { 0, NULL }
-};
-
 /*
  *     [draft-ietf-tls-tls13-11] Section 6.3.3.2
  *
@@ -1661,39 +1654,42 @@ static SECStatus
 tls13_SendCertificateRequest(sslSocket *ss)
 {
     SECStatus rv;
-    PRInt32 extLen;
+    sslBuffer extensionBuf = { NULL, 0, 0 };
 
     SSL_TRC(3, ("%d: TLS13[%d]: begin send certificate_request",
                 SSL_GETPID(), ss->fd));
 
-    extLen = ssl3_CallHelloExtensionSenders(ss, PR_FALSE, 0xffff,
-                                            tls13_cert_req_senders);
-    PORT_Assert(extLen > 0); /* These can't be empty. */
-
-    rv = ssl3_AppendHandshakeHeader(ss, certificate_request,
-                                    1 + 0 + /* empty request context */
-                                        2 + extLen /* len + extensions */);
+    rv = ssl_ConstructExtensions(ss, &extensionBuf, ssl_hs_certificate_request);
     if (rv != SECSuccess) {
-        return rv; /* err set by AppendHandshake. */
+        return SECFailure; /* Code already set. */
+    }
+    PORT_Assert(extensionBuf.len > 0); /* These can't be empty. */
+
+    rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_certificate_request,
+                                    1 + 0 + /* empty request context */
+                                        2 + /* extension length */
+                                        extensionBuf.len /* extensions */);
+    if (rv != SECSuccess) {
+        goto loser; /* err set by AppendHandshake. */
     }
 
     /* Context. */
     rv = ssl3_AppendHandshakeNumber(ss, 0, 1);
     if (rv != SECSuccess) {
-        return rv; /* err set by AppendHandshake. */
+        goto loser; /* err set by AppendHandshake. */
     }
     /* Extensions. */
-    rv = ssl3_AppendHandshakeNumber(ss, extLen, 2);
+    rv = ssl3_AppendBufferToHandshakeVariable(ss, &extensionBuf, 2);
     if (rv != SECSuccess) {
-        return rv; /* err set by AppendHandshake. */
-    }
-    extLen = ssl3_CallHelloExtensionSenders(ss, PR_TRUE, extLen,
-                                            tls13_cert_req_senders);
-    if (extLen < 0) {
-        return SECFailure; /* rely on the extension sender setting code */
+        goto loser; /* err set by AppendHandshake. */
     }
 
+    sslBuffer_Clear(&extensionBuf);
     return SECSuccess;
+
+loser:
+    sslBuffer_Clear(&extensionBuf);
+    return SECFailure;
 }
 
 SECStatus
@@ -1773,7 +1769,7 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
         return SECFailure;
     }
 
-    rv = ssl3_HandleExtensions(ss, &b, &length, hello_retry_request);
+    rv = ssl3_HandleExtensions(ss, &b, &length, ssl_hs_hello_retry_request);
     if (rv != SECSuccess) {
         return SECFailure; /* Error code set below */
     }
@@ -1839,7 +1835,7 @@ tls13_HandleCertificateRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
 
     /* Process all the extensions. */
     rv = ssl3_HandleExtensions(ss, &extensionsData.data, &extensionsData.len,
-                               certificate_request);
+                               ssl_hs_certificate_request);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -1877,12 +1873,10 @@ tls13_SendEncryptedServerSequence(sslSocket *ss)
         return SECFailure;
     }
 
-    ss->ssl3.hs.shortHeaders = ssl3_ExtensionNegotiated(
-        ss, ssl_tls13_short_header_xtn);
-
     if (ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted) {
-        rv = ssl3_RegisterExtensionSender(ss, &ss->xtnData, ssl_tls13_early_data_xtn,
-                                          tls13_ServerSendEarlyDataXtn);
+        rv = ssl3_RegisterExtensionSender(ss, &ss->xtnData,
+                                          ssl_tls13_early_data_xtn,
+                                          ssl_SendEmptyExtension);
         if (rv != SECSuccess) {
             return SECFailure; /* Error code set already. */
         }
@@ -2087,9 +2081,6 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
         return SECFailure; /* error code is set. */
     }
 
-    ss->ssl3.hs.shortHeaders = ssl3_ExtensionNegotiated(
-        ss, ssl_tls13_short_header_xtn);
-
     rv = tls13_SetCipherSpec(ss, TrafficKeyHandshake,
                              CipherSpecRead, PR_FALSE);
     if (rv != SECSuccess) {
@@ -2190,8 +2181,7 @@ tls13_SendCertificate(sslSocket *ss)
     int certChainLen = 0;
     int i;
     SECItem context = { siBuffer, NULL, 0 };
-    PRInt32 extensionsLen = 0;
-    PRUint32 maxBytes = 65535;
+    sslBuffer extensionBuf = { NULL, 0, 0 };
 
     SSL_TRC(3, ("%d: TLS1.3[%d]: send certificate handshake",
                 SSL_GETPID(), ss->fd));
@@ -2214,24 +2204,27 @@ tls13_SendCertificate(sslSocket *ss)
         ss->sec.localCert = CERT_DupCertificate(ss->ssl3.clientCertificate);
     }
 
-    /* Get the extensions length. This only applies to the leaf cert,
-     * because we don't yet send extensions for non-leaf certs. */
-    extensionsLen = ssl3_CallHelloExtensionSenders(
-        ss, PR_FALSE, maxBytes, &ss->xtnData.certificateSenders[0]);
-
     if (!ss->sec.isServer) {
         PORT_Assert(ss->ssl3.hs.clientCertRequested);
         context = ss->xtnData.certReqContext;
     }
     if (certChain) {
         for (i = 0; i < certChain->len; i++) {
-            certChainLen +=
-                3 + certChain->certs[i].len + /* cert length + cert */
-                2 + (!i ? extensionsLen : 0); /* extensions length + extensions */
+            /* Each cert is 3 octet length, cert, and extensions */
+            certChainLen += 3 + certChain->certs[i].len + 2;
         }
+
+        /* Build the extensions. This only applies to the leaf cert, because we
+         * don't yet send extensions for non-leaf certs. */
+        rv = ssl_ConstructExtensions(ss, &extensionBuf, ssl_hs_certificate);
+        if (rv != SECSuccess) {
+            return SECFailure; /* code already set */
+        }
+        /* extensionBuf.len is only added once, for the leaf cert. */
+        certChainLen += extensionBuf.len;
     }
 
-    rv = ssl3_AppendHandshakeHeader(ss, certificate,
+    rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_certificate,
                                     1 + context.len + 3 + certChainLen);
     if (rv != SECSuccess) {
         return SECFailure; /* err set by AppendHandshake. */
@@ -2240,50 +2233,44 @@ tls13_SendCertificate(sslSocket *ss)
     rv = ssl3_AppendHandshakeVariable(ss, context.data,
                                       context.len, 1);
     if (rv != SECSuccess) {
-        return SECFailure; /* err set by AppendHandshake. */
+        goto loser; /* err set by AppendHandshake. */
     }
 
     rv = ssl3_AppendHandshakeNumber(ss, certChainLen, 3);
     if (rv != SECSuccess) {
-        return SECFailure; /* err set by AppendHandshake. */
+        goto loser; /* err set by AppendHandshake. */
     }
     if (certChain) {
         for (i = 0; i < certChain->len; i++) {
-            PRInt32 sentLen;
-
             rv = ssl3_AppendHandshakeVariable(ss, certChain->certs[i].data,
                                               certChain->certs[i].len, 3);
             if (rv != SECSuccess) {
-                return SECFailure; /* err set by AppendHandshake. */
+                goto loser; /* err set by AppendHandshake. */
             }
 
             if (i) {
                 /* Not end-entity. */
                 rv = ssl3_AppendHandshakeNumber(ss, 0, 2);
                 if (rv != SECSuccess) {
-                    return SECFailure; /* err set by AppendHandshake. */
+                    goto loser; /* err set by AppendHandshake. */
                 }
                 continue;
             }
 
             /* End-entity, send extensions. */
-            rv = ssl3_AppendHandshakeNumber(ss, extensionsLen, 2);
+            rv = ssl3_AppendBufferToHandshakeVariable(ss, &extensionBuf, 2);
             if (rv != SECSuccess) {
-                return SECFailure; /* err set by AppendHandshake. */
-            }
-
-            sentLen = ssl3_CallHelloExtensionSenders(
-                ss, PR_TRUE, extensionsLen,
-                &ss->xtnData.certificateSenders[0]);
-            PORT_Assert(sentLen == extensionsLen);
-            if (sentLen != extensionsLen) {
-                LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
-                return SECFailure;
+                goto loser; /* err set by AppendHandshake. */
             }
         }
     }
 
+    sslBuffer_Clear(&extensionBuf);
     return SECSuccess;
+
+loser:
+    sslBuffer_Clear(&extensionBuf);
+    return SECFailure;
 }
 
 static SECStatus
@@ -2311,7 +2298,7 @@ tls13_HandleCertificateEntry(sslSocket *ss, SECItem *data, PRBool first,
     if (first && !ss->sec.isServer) {
         rv = ssl3_HandleExtensions(ss, &extensionsData.data,
                                    &extensionsData.len,
-                                   certificate);
+                                   ssl_hs_certificate);
         if (rv != SECSuccess) {
             return SECFailure;
         }
@@ -3109,7 +3096,7 @@ tls13_HandleEncryptedExtensions(sslSocket *ss, PRUint8 *b, PRUint32 length)
         ss->xtnData.nextProto.data = NULL;
         ss->xtnData.nextProtoState = SSL_NEXT_PROTO_NO_SUPPORT;
     }
-    rv = ssl3_HandleExtensions(ss, &b, &length, encrypted_extensions);
+    rv = ssl3_HandleExtensions(ss, &b, &length, ssl_hs_encrypted_extensions);
     if (rv != SECSuccess) {
         return SECFailure; /* Error code set below */
     }
@@ -3161,10 +3148,8 @@ tls13_HandleEncryptedExtensions(sslSocket *ss, PRUint8 *b, PRUint32 length)
 static SECStatus
 tls13_SendEncryptedExtensions(sslSocket *ss)
 {
+    sslBuffer extensions = { NULL, 0, 0 };
     SECStatus rv;
-    PRInt32 extensions_len = 0;
-    PRInt32 sent_len = 0;
-    PRUint32 maxBytes = 65535;
 
     SSL_TRC(3, ("%d: TLS13[%d]: send encrypted extensions handshake",
                 SSL_GETPID(), ss->fd));
@@ -3172,31 +3157,28 @@ tls13_SendEncryptedExtensions(sslSocket *ss)
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
 
-    extensions_len = ssl3_CallHelloExtensionSenders(
-        ss, PR_FALSE, maxBytes, &ss->xtnData.encryptedExtensionsSenders[0]);
-
-    rv = ssl3_AppendHandshakeHeader(ss, encrypted_extensions,
-                                    extensions_len + 2);
+    rv = ssl_ConstructExtensions(ss, &extensions, ssl_hs_encrypted_extensions);
     if (rv != SECSuccess) {
-        LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
-        return SECFailure;
-    }
-    rv = ssl3_AppendHandshakeNumber(ss, extensions_len, 2);
-    if (rv != SECSuccess) {
-        LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
-        return SECFailure;
-    }
-    sent_len = ssl3_CallHelloExtensionSenders(
-        ss, PR_TRUE, extensions_len,
-        &ss->xtnData.encryptedExtensionsSenders[0]);
-    PORT_Assert(sent_len == extensions_len);
-    if (sent_len != extensions_len) {
-        LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
-        PORT_Assert(sent_len == 0);
         return SECFailure;
     }
 
+    rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_encrypted_extensions,
+                                    extensions.len + 2);
+    if (rv != SECSuccess) {
+        LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
+        goto loser;
+    }
+    rv = ssl3_AppendBufferToHandshakeVariable(ss, &extensions, 2);
+    if (rv != SECSuccess) {
+        LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
+        goto loser;
+    }
+    sslBuffer_Clear(&extensions);
     return SECSuccess;
+
+loser:
+    sslBuffer_Clear(&extensions);
+    return SECFailure;
 }
 
 SECStatus
@@ -3257,7 +3239,7 @@ tls13_SendCertificateVerify(sslSocket *ss, SECKEYPrivateKey *privKey)
 
     len = buf.len + 2 + 2;
 
-    rv = ssl3_AppendHandshakeHeader(ss, certificate_verify, len);
+    rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_certificate_verify, len);
     if (rv != SECSuccess) {
         goto done; /* error code set by AppendHandshake */
     }
@@ -3365,7 +3347,7 @@ tls13_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length,
 }
 
 static SECStatus
-tls13_ComputePskBinderHash(sslSocket *ss, unsigned long prefixLength,
+tls13_ComputePskBinderHash(sslSocket *ss, unsigned int prefixLength,
                            SSL3Hashes *hashes)
 {
     SECStatus rv;
@@ -3377,38 +3359,75 @@ tls13_ComputePskBinderHash(sslSocket *ss, unsigned long prefixLength,
     PRINT_BUF(10, (NULL, "Handshake hash computed over ClientHello prefix",
                    ss->ssl3.hs.messages.buf, prefixLength));
     rv = PK11_HashBuf(ssl3_HashTypeToOID(tls13_GetHash(ss)),
-                      hashes->u.raw,
-                      ss->ssl3.hs.messages.buf, prefixLength);
+                      hashes->u.raw, ss->ssl3.hs.messages.buf, prefixLength);
     if (rv != SECSuccess) {
         ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
-        goto loser;
+        return SECFailure;
     }
-    hashes->len = tls13_GetHashSize(ss);
 
-    PRINT_BUF(10, (NULL, "PSK Binder hash",
-                   hashes->u.raw, hashes->len));
+    hashes->len = tls13_GetHashSize(ss);
+    PRINT_BUF(10, (NULL, "PSK Binder hash", hashes->u.raw, hashes->len));
 
     return SECSuccess;
-
-loser:
-    return SECFailure;
 }
-/* Compute the PSK Binder This is kind of sneaky.*/
+
+/* Compute and inject the PSK Binder for sending.
+ *
+ * When sending a ClientHello, we construct all the extensions with a dummy
+ * value for the binder.  To construct the binder, we commit the entire message
+ * up to the point where the binders start.  Then we calculate the hash using
+ * the saved message (in ss->ssl3.hs.messages).  This is written over the dummy
+ * binder, after which we write the remainder of the binder extension. */
 SECStatus
-tls13_ComputePskBinder(sslSocket *ss, PRBool sending,
-                       unsigned int prefixLength,
-                       PRUint8 *output, unsigned int *outputLen,
-                       unsigned int maxOutputLen)
+tls13_WriteExtensionsWithBinder(sslSocket *ss, sslBuffer *extensions)
 {
     SSL3Hashes hashes;
     SECStatus rv;
+    unsigned int size = tls13_GetHashSize(ss);
+    unsigned int prefixLen = extensions->len - size - 3;
+    unsigned int finishedLen;
 
-    rv = tls13_ComputePskBinderHash(ss, prefixLength, &hashes);
-    if (rv != SECSuccess)
+    PORT_Assert(extensions->len - size - 3 >= 0);
+
+    rv = ssl3_AppendHandshakeNumber(ss, extensions->len, 2);
+    if (rv != SECSuccess) {
         return SECFailure;
+    }
 
-    return tls13_ComputeFinished(ss, ss->ssl3.hs.pskBinderKey, &hashes,
-                                 sending, output, outputLen, maxOutputLen);
+    /* Only write the extension up to the point before the binders.  Assume that
+     * the pre_shared_key extension is at the end of the buffer.  Don't write
+     * the binder, or the lengths that precede it (a 2 octet length for the list
+     * of all binders, plus a 1 octet length for the binder length). */
+    rv = ssl3_AppendHandshake(ss, extensions->buf, prefixLen);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    /* Calculate the binder based on what has been written out. */
+    rv = tls13_ComputePskBinderHash(ss, ss->ssl3.hs.messages.len, &hashes);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    /* Write the binder into the extensions buffer, over the zeros we reserved
+     * previously.  This avoids an allocation and means that we don't need a
+     * separate write for the extra bits that precede the binder. */
+    rv = tls13_ComputeFinished(ss, ss->ssl3.hs.pskBinderKey, &hashes, PR_TRUE,
+                               extensions->buf + extensions->len - size,
+                               &finishedLen, size);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    PORT_Assert(finishedLen == size);
+
+    /* Write out the remainder of the extension. */
+    rv = ssl3_AppendHandshake(ss, extensions->buf + prefixLen,
+                              extensions->len - prefixLen);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    return SECSuccess;
 }
 
 static SECStatus
@@ -3507,7 +3526,7 @@ tls13_SendFinished(sslSocket *ss, PK11SymKey *baseKey)
         return SECFailure;
     }
 
-    rv = ssl3_AppendHandshakeHeader(ss, finished, finishedLen);
+    rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_finished, finishedLen);
     if (rv != SECSuccess) {
         return SECFailure; /* Error code already set. */
     }
@@ -3522,7 +3541,7 @@ tls13_SendFinished(sslSocket *ss, PK11SymKey *baseKey)
 }
 
 static SECStatus
-tls13_VerifyFinished(sslSocket *ss, SSL3HandshakeType message,
+tls13_VerifyFinished(sslSocket *ss, SSLHandshakeType message,
                      PK11SymKey *secret,
                      PRUint8 *b, PRUint32 length,
                      const SSL3Hashes *hashes)
@@ -3545,7 +3564,7 @@ tls13_VerifyFinished(sslSocket *ss, SSL3HandshakeType message,
 
     if (length != finishedLen) {
 #ifndef UNSAFE_FUZZER_MODE
-        FATAL_ERROR(ss, message == finished ? SSL_ERROR_RX_MALFORMED_FINISHED : SSL_ERROR_RX_MALFORMED_CLIENT_HELLO, illegal_parameter);
+        FATAL_ERROR(ss, message == ssl_hs_finished ? SSL_ERROR_RX_MALFORMED_FINISHED : SSL_ERROR_RX_MALFORMED_CLIENT_HELLO, illegal_parameter);
         return SECFailure;
 #endif
     }
@@ -3579,7 +3598,7 @@ tls13_ClientHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length,
         return SECFailure;
     }
 
-    rv = tls13_VerifyFinished(ss, finished,
+    rv = tls13_VerifyFinished(ss, ssl_hs_finished,
                               ss->ssl3.hs.serverHsTrafficSecret,
                               b, length, hashes);
     if (rv != SECSuccess)
@@ -3612,7 +3631,7 @@ tls13_ServerHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length,
         secret = ss->ssl3.hs.clientEarlyTrafficSecret;
     }
 
-    rv = tls13_VerifyFinished(ss, finished, secret, b, length, hashes);
+    rv = tls13_VerifyFinished(ss, ssl_hs_finished, secret, b, length, hashes);
     if (rv != SECSuccess)
         return SECFailure;
 
@@ -3863,7 +3882,7 @@ tls13_SendNewSessionTicket(sslSocket *ss)
         2 +                           /* ticket length */
         ticket_data.len;
 
-    rv = ssl3_AppendHandshakeHeader(ss, new_session_ticket,
+    rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_new_session_ticket,
                                     message_length);
     if (rv != SECSuccess)
         goto loser;
@@ -3978,7 +3997,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
     }
 
     rv = ssl3_HandleExtensions(ss, &data.data,
-                               &data.len, new_session_ticket);
+                               &data.len, ssl_hs_new_session_ticket);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET,
                     decode_error);
@@ -4037,7 +4056,8 @@ tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
     return SECSuccess;
 }
 
-#define _M1(a) (1 << PR_MIN(a, 31))
+#define _M(a) (1 << PR_MIN(a, 31))
+#define _M1(a) (_M(ssl_hs_##a))
 #define _M2(a, b) (_M1(a) | _M1(b))
 #define _M3(a, b, c) (_M1(a) | _M2(b, c))
 
@@ -4068,17 +4088,17 @@ static const struct {
 };
 
 tls13ExtensionStatus
-tls13_ExtensionStatus(PRUint16 extension, SSL3HandshakeType message)
+tls13_ExtensionStatus(PRUint16 extension, SSLHandshakeType message)
 {
     unsigned int i;
 
-    PORT_Assert((message == client_hello) ||
-                (message == server_hello) ||
-                (message == hello_retry_request) ||
-                (message == encrypted_extensions) ||
-                (message == new_session_ticket) ||
-                (message == certificate) ||
-                (message == certificate_request));
+    PORT_Assert((message == ssl_hs_client_hello) ||
+                (message == ssl_hs_server_hello) ||
+                (message == ssl_hs_hello_retry_request) ||
+                (message == ssl_hs_encrypted_extensions) ||
+                (message == ssl_hs_new_session_ticket) ||
+                (message == ssl_hs_certificate) ||
+                (message == ssl_hs_certificate_request));
 
     for (i = 0; i < PR_ARRAY_SIZE(KnownExtensions); i++) {
         /* Hacky check for message numbers > 30. */
@@ -4092,7 +4112,7 @@ tls13_ExtensionStatus(PRUint16 extension, SSL3HandshakeType message)
     }
 
     /* Return "disallowed" if the message mask bit isn't set. */
-    if (!(_M1(message) & KnownExtensions[i].messages)) {
+    if (!(_M(message) & KnownExtensions[i].messages)) {
         SSL_TRC(3, ("%d: TLS13: unexpected extension %d in message %d",
                     SSL_GETPID(), extension, message));
 
@@ -4102,6 +4122,7 @@ tls13_ExtensionStatus(PRUint16 extension, SSL3HandshakeType message)
     return tls13_extension_allowed;
 }
 
+#undef _M
 #undef _M1
 #undef _M2
 #undef _M3
@@ -4419,7 +4440,7 @@ tls13_SendEndOfEarlyData(sslSocket *ss)
     SSL_TRC(3, ("%d: TLS13[%d]: send EndOfEarlyData", SSL_GETPID(), ss->fd));
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
 
-    rv = ssl3_AppendHandshakeHeader(ss, end_of_early_data, 0);
+    rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_end_of_early_data, 0);
     if (rv != SECSuccess) {
         return rv; /* err set by AppendHandshake. */
     }

@@ -1,3 +1,4 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /*
  * Various SSL functions.
  *
@@ -433,58 +434,6 @@ SSL_ForceHandshakeWithTimeout(PRFileDesc *fd,
 }
 
 /************************************************************************/
-
-/*
-** Grow a buffer to hold newLen bytes of data.
-** Called for both recv buffers and xmit buffers.
-** Caller must hold xmitBufLock or recvBufLock, as appropriate.
-*/
-SECStatus
-sslBuffer_Grow(sslBuffer *b, unsigned int newLen)
-{
-    newLen = PR_MAX(newLen, MAX_FRAGMENT_LENGTH + 2048);
-    if (newLen > b->space) {
-        unsigned char *newBuf;
-        if (b->buf) {
-            newBuf = (unsigned char *)PORT_Realloc(b->buf, newLen);
-        } else {
-            newBuf = (unsigned char *)PORT_Alloc(newLen);
-        }
-        if (!newBuf) {
-            return SECFailure;
-        }
-        SSL_TRC(10, ("%d: SSL: grow buffer from %d to %d",
-                     SSL_GETPID(), b->space, newLen));
-        b->buf = newBuf;
-        b->space = newLen;
-    }
-    return SECSuccess;
-}
-
-SECStatus
-sslBuffer_Append(sslBuffer *b, const void *data, unsigned int len)
-{
-    unsigned int newLen = b->len + len;
-    SECStatus rv;
-
-    rv = sslBuffer_Grow(b, newLen);
-    if (rv != SECSuccess)
-        return rv;
-    PORT_Memcpy(b->buf + b->len, data, len);
-    b->len += len;
-    return SECSuccess;
-}
-
-void
-sslBuffer_Clear(sslBuffer *b)
-{
-    if (b->buf) {
-        PORT_Free(b->buf);
-        b->buf = NULL;
-        b->len = 0;
-        b->space = 0;
-    }
-}
 
 /*
 ** Save away write data that is trying to be written before the security

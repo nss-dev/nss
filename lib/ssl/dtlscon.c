@@ -346,7 +346,7 @@ dtls_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
             (fragment_offset == 0) &&
             (fragment_length == message_length)) {
             /* Complete next message. Process immediately */
-            ss->ssl3.hs.msg_type = (SSL3HandshakeType)type;
+            ss->ssl3.hs.msg_type = (SSLHandshakeType)type;
             ss->ssl3.hs.msg_len = message_length;
 
             rv = dtls_HandleHandshakeMessage(ss, buf.buf,
@@ -391,7 +391,7 @@ dtls_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
                     ss->ssl3.hs.recvdHighWater = 0;
                     PORT_Memset(ss->ssl3.hs.recvdFragments.buf, 0,
                                 ss->ssl3.hs.recvdFragments.space);
-                    ss->ssl3.hs.msg_type = (SSL3HandshakeType)type;
+                    ss->ssl3.hs.msg_type = (SSLHandshakeType)type;
                     ss->ssl3.hs.msg_len = message_length;
                 }
 
