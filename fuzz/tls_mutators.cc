@@ -6,7 +6,9 @@
 #include "tls_parser.h"
 
 #include "ssl.h"
+extern "C" {
 #include "sslimpl.h"
+}
 
 using namespace nss_test;
 

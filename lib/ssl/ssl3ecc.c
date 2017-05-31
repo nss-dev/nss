@@ -219,7 +219,7 @@ ssl3_SendECDHClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
         goto loser;
     }
 
-    rv = ssl3_AppendHandshakeHeader(ss, client_key_exchange,
+    rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_client_key_exchange,
                                     pubKey->u.ec.publicValue.len + 1);
     if (rv != SECSuccess) {
         goto loser; /* err set by ssl3_AppendHandshake* */
@@ -248,19 +248,6 @@ loser:
     if (keyPair)
         ssl_FreeEphemeralKeyPair(keyPair);
     return SECFailure;
-}
-
-/* This function encodes the key_exchange field in
- * the KeyShareEntry structure. */
-SECStatus
-tls13_EncodeECDHEKeyShareKEX(const sslSocket *ss, const SECKEYPublicKey *pubKey)
-{
-    PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
-    PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
-    PORT_Assert(pubKey->keyType == ecKey);
-
-    return ssl3_ExtAppendHandshake(ss, pubKey->u.ec.publicValue.data,
-                                   pubKey->u.ec.publicValue.len);
 }
 
 /*
@@ -731,7 +718,7 @@ ssl3_SendECDHServerKeyExchange(sslSocket *ss)
              1 + pubKey->u.ec.publicValue.len +
              (isTLS12 ? 2 : 0) + 2 + signed_hash.len;
 
-    rv = ssl3_AppendHandshakeHeader(ss, server_key_exchange, length);
+    rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_server_key_exchange, length);
     if (rv != SECSuccess) {
         goto loser; /* err set by AppendHandshake. */
     }
@@ -870,20 +857,15 @@ ssl_IsDHEEnabled(const sslSocket *ss)
 }
 
 /* Send our Supported Groups extension. */
-PRInt32
-ssl_SendSupportedGroupsXtn(const sslSocket *ss,
-                           TLSExtensionData *xtnData,
-                           PRBool append, PRUint32 maxBytes)
+SECStatus
+ssl_SendSupportedGroupsXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                           sslBuffer *buf, PRBool *added)
 {
-    PRInt32 extension_length;
-    unsigned char enabledGroups[64];
-    unsigned int enabledGroupsLen = 0;
     unsigned int i;
     PRBool ec;
     PRBool ff = PR_FALSE;
-
-    if (!ss)
-        return 0;
+    SECStatus rv;
+    sslBuffer tmpBuf = { NULL, 0, 0 };
 
     /* We only send FF supported groups if we require DH named groups
      * or if TLS 1.3 is a possibility. */
@@ -892,13 +874,14 @@ ssl_SendSupportedGroupsXtn(const sslSocket *ss,
         if (ss->opt.requireDHENamedGroups) {
             ff = ssl_IsDHEEnabled(ss);
         }
-        if (!ec && !ff)
-            return 0;
+        if (!ec && !ff) {
+            return SECSuccess;
+        }
     } else {
         ec = ff = PR_TRUE;
     }
 
-    PORT_Assert(sizeof(enabledGroups) > SSL_NAMED_GROUP_COUNT * 2);
+    /* Reserve space for the length. */
     for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
         const sslNamedGroupDef *group = ss->namedGroupPreferences[i];
         if (!group) {
@@ -911,78 +894,55 @@ ssl_SendSupportedGroupsXtn(const sslSocket *ss,
             continue;
         }
 
-        if (append) {
-            (void)ssl_EncodeUintX(group->name, 2, &enabledGroups[enabledGroupsLen]);
-        }
-        enabledGroupsLen += 2;
-    }
-
-    if (enabledGroupsLen == 0) {
-        return 0;
-    }
-
-    extension_length =
-        2 /* extension type */ +
-        2 /* extension length */ +
-        2 /* enabled groups length */ +
-        enabledGroupsLen;
-
-    if (maxBytes < (PRUint32)extension_length) {
-        return 0;
-    }
-
-    if (append) {
-        SECStatus rv;
-        rv = ssl3_ExtAppendHandshakeNumber(ss, ssl_supported_groups_xtn, 2);
-        if (rv != SECSuccess)
-            return -1;
-        rv = ssl3_ExtAppendHandshakeNumber(ss, extension_length - 4, 2);
-        if (rv != SECSuccess)
-            return -1;
-        rv = ssl3_ExtAppendHandshakeVariable(ss, enabledGroups,
-                                             enabledGroupsLen, 2);
-        if (rv != SECSuccess)
-            return -1;
-        if (!ss->sec.isServer) {
-            xtnData->advertised[xtnData->numAdvertised++] =
-                ssl_supported_groups_xtn;
+        rv = sslBuffer_AppendNumber(&tmpBuf, group->name, 2);
+        if (rv != SECSuccess) {
+            sslBuffer_Clear(&tmpBuf);
+            return SECFailure;
         }
     }
-    return extension_length;
+
+    if (!tmpBuf.len) {
+        sslBuffer_Clear(&tmpBuf);
+        /* We added nothing, don't send the extension. */
+        return SECSuccess;
+    }
+
+    rv = sslBuffer_AppendBufferVariable(buf, &tmpBuf, 2);
+    sslBuffer_Clear(&tmpBuf);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    *added = PR_TRUE;
+    return SECSuccess;
 }
 
 /* Send our "canned" (precompiled) Supported Point Formats extension,
  * which says that we only support uncompressed points.
  */
-PRInt32
-ssl3_SendSupportedPointFormatsXtn(
-    const sslSocket *ss,
-    TLSExtensionData *xtnData,
-    PRBool append,
-    PRUint32 maxBytes)
+SECStatus
+ssl3_SendSupportedPointFormatsXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                                  sslBuffer *buf, PRBool *added)
 {
-    static const PRUint8 ecPtFmt[6] = {
-        0, 11, /* Extension type */
-        0, 2,  /* octets that follow */
-        1,     /* octets that follow */
-        0      /* uncompressed type only */
-    };
+    SECStatus rv;
 
     /* No point in doing this unless we have a socket that supports ECC.
      * Similarly, no point if we are going to do TLS 1.3 only or we have already
      * picked TLS 1.3 (server) given that it doesn't use point formats. */
     if (!ss || !ssl_IsECCEnabled(ss) ||
         ss->vrange.min >= SSL_LIBRARY_VERSION_TLS_1_3 ||
-        (ss->sec.isServer && ss->version >= SSL_LIBRARY_VERSION_TLS_1_3))
-        return 0;
-    if (append && maxBytes >= (sizeof ecPtFmt)) {
-        SECStatus rv = ssl3_ExtAppendHandshake(ss, ecPtFmt, (sizeof ecPtFmt));
-        if (rv != SECSuccess)
-            return -1;
-        if (!ss->sec.isServer) {
-            xtnData->advertised[xtnData->numAdvertised++] =
-                ssl_ec_point_formats_xtn;
-        }
+        (ss->sec.isServer && ss->version >= SSL_LIBRARY_VERSION_TLS_1_3)) {
+        return SECSuccess;
     }
-    return sizeof(ecPtFmt);
+    rv = sslBuffer_AppendNumber(buf, 1, 1); /* length */
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    rv = sslBuffer_AppendNumber(buf, 0, 1); /* uncompressed type only */
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    *added = PR_TRUE;
+    return SECSuccess;
 }

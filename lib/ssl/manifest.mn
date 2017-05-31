@@ -25,7 +25,7 @@ CSRCS = \
         sslauth.c \
         sslcon.c \
         ssldef.c \
-        ssl3encode.c \
+        sslencode.c \
         sslenum.c \
         sslerr.c \
         sslerrstrs.c \

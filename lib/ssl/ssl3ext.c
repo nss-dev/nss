@@ -16,6 +16,17 @@
 #include "ssl3exthandle.h"
 #include "tls13exthandle.h"
 
+/* Callback function that handles a received extension. */
+typedef SECStatus (*ssl3ExtensionHandlerFunc)(const sslSocket *ss,
+                                              TLSExtensionData *xtnData,
+                                              SECItem *data);
+
+/* Row in a table of hello extension handlers. */
+typedef struct {
+    SSLExtensionType ex_type;
+    ssl3ExtensionHandlerFunc ex_handler;
+} ssl3ExtensionHandler;
+
 /* Table of handlers for received TLS hello extensions, one per extension.
  * In the second generation, this table will be dynamic, and functions
  * will be registered here.
@@ -37,10 +48,8 @@ static const ssl3ExtensionHandler clientHelloHandlers[] = {
     { ssl_tls13_key_share_xtn, &tls13_ServerHandleKeyShareXtn },
     { ssl_tls13_pre_shared_key_xtn, &tls13_ServerHandlePreSharedKeyXtn },
     { ssl_tls13_early_data_xtn, &tls13_ServerHandleEarlyDataXtn },
-    { ssl_tls13_psk_key_exchange_modes_xtn,
-      &tls13_ServerHandlePskKeyExchangeModesXtn },
-    { ssl_tls13_short_header_xtn, &tls13_HandleShortHeaderXtn },
-    { -1, NULL }
+    { ssl_tls13_psk_key_exchange_modes_xtn, &tls13_ServerHandlePskModesXtn },
+    { 0, NULL }
 };
 
 /* These two tables are used by the client, to handle server hello
@@ -59,39 +68,38 @@ static const ssl3ExtensionHandler serverHelloHandlersTLS[] = {
     { ssl_tls13_key_share_xtn, &tls13_ClientHandleKeyShareXtn },
     { ssl_tls13_pre_shared_key_xtn, &tls13_ClientHandlePreSharedKeyXtn },
     { ssl_tls13_early_data_xtn, &tls13_ClientHandleEarlyDataXtn },
-    { ssl_tls13_short_header_xtn, &tls13_HandleShortHeaderXtn },
-    { -1, NULL }
+    { 0, NULL }
 };
 
 static const ssl3ExtensionHandler helloRetryRequestHandlers[] = {
     { ssl_tls13_key_share_xtn, tls13_ClientHandleKeyShareXtnHrr },
     { ssl_tls13_cookie_xtn, tls13_ClientHandleHrrCookie },
-    { -1, NULL }
+    { 0, NULL }
 };
 
 static const ssl3ExtensionHandler serverHelloHandlersSSL3[] = {
     { ssl_renegotiation_info_xtn, &ssl3_HandleRenegotiationInfoXtn },
-    { -1, NULL }
+    { 0, NULL }
 };
 
 static const ssl3ExtensionHandler newSessionTicketHandlers[] = {
     { ssl_tls13_early_data_xtn,
       &tls13_ClientHandleTicketEarlyDataXtn },
-    { -1, NULL }
+    { 0, NULL }
 };
 
 /* This table is used by the client to handle server certificates in TLS 1.3 */
 static const ssl3ExtensionHandler serverCertificateHandlers[] = {
     { ssl_signed_cert_timestamp_xtn, &ssl3_ClientHandleSignedCertTimestampXtn },
     { ssl_cert_status_xtn, &ssl3_ClientHandleStatusRequestXtn },
-    { -1, NULL }
+    { 0, NULL }
 };
 
 static const ssl3ExtensionHandler certificateRequestHandlers[] = {
     { ssl_signature_algorithms_xtn, &ssl3_HandleSigAlgsXtn },
     { ssl_tls13_certificate_authorities_xtn,
       &tls13_ClientHandleCertAuthoritiesXtn },
-    { -1, NULL }
+    { 0, NULL }
 };
 
 /* Tables of functions to format TLS hello extensions, one function per
@@ -104,14 +112,14 @@ static const ssl3ExtensionHandler certificateRequestHandlers[] = {
  * the client hello is empty (for example, the extended master secret
  * extension, if it were listed last). See bug 1243641.
  */
-static const ssl3HelloExtensionSender clientHelloSendersTLS[] =
+static const sslExtensionBuilder clientHelloSendersTLS[] =
     {
-      { ssl_server_name_xtn, &ssl3_SendServerNameXtn },
+      { ssl_server_name_xtn, &ssl3_ClientSendServerNameXtn },
       { ssl_extended_master_secret_xtn, &ssl3_SendExtendedMasterSecretXtn },
       { ssl_renegotiation_info_xtn, &ssl3_SendRenegotiationInfoXtn },
       { ssl_supported_groups_xtn, &ssl_SendSupportedGroupsXtn },
       { ssl_ec_point_formats_xtn, &ssl3_SendSupportedPointFormatsXtn },
-      { ssl_session_ticket_xtn, &ssl3_SendSessionTicketXtn },
+      { ssl_session_ticket_xtn, &ssl3_ClientSendSessionTicketXtn },
       { ssl_next_proto_nego_xtn, &ssl3_ClientSendNextProtoNegoXtn },
       { ssl_app_layer_protocol_xtn, &ssl3_ClientSendAppProtoXtn },
       { ssl_use_srtp_xtn, &ssl3_ClientSendUseSRTPXtn },
@@ -124,19 +132,22 @@ static const ssl3HelloExtensionSender clientHelloSendersTLS[] =
        * client hello is empty. They are not intolerant of TLS 1.2, so list
        * signature_algorithms at the end. See bug 1243641. */
       { ssl_tls13_supported_versions_xtn, &tls13_ClientSendSupportedVersionsXtn },
-      { ssl_tls13_short_header_xtn, &tls13_SendShortHeaderXtn },
       { ssl_signature_algorithms_xtn, &ssl3_SendSigAlgsXtn },
       { ssl_tls13_cookie_xtn, &tls13_ClientSendHrrCookieXtn },
-      { ssl_tls13_psk_key_exchange_modes_xtn,
-        &tls13_ClientSendPskKeyExchangeModesXtn },
-      { ssl_padding_xtn, &ssl3_ClientSendPaddingExtension },
+      { ssl_tls13_psk_key_exchange_modes_xtn, &tls13_ClientSendPskModesXtn },
       /* The pre_shared_key extension MUST be last. */
       { ssl_tls13_pre_shared_key_xtn, &tls13_ClientSendPreSharedKeyXtn },
       { 0, NULL }
     };
 
-static const ssl3HelloExtensionSender clientHelloSendersSSL3[] = {
+static const sslExtensionBuilder clientHelloSendersSSL3[] = {
     { ssl_renegotiation_info_xtn, &ssl3_SendRenegotiationInfoXtn },
+    { 0, NULL }
+};
+
+static const sslExtensionBuilder tls13_cert_req_senders[] = {
+    { ssl_signature_algorithms_xtn, &ssl3_SendSigAlgsXtn },
+    { ssl_tls13_certificate_authorities_xtn, &tls13_SendCertAuthoritiesXtn },
     { 0, NULL }
 };
 
@@ -254,46 +265,47 @@ ssl3_FindExtension(sslSocket *ss, SSLExtensionType extension_type)
  */
 SECStatus
 ssl3_HandleParsedExtensions(sslSocket *ss,
-                            SSL3HandshakeType handshakeMessage)
+                            SSLHandshakeType handshakeMessage)
 {
     const ssl3ExtensionHandler *handlers;
+    const ssl3ExtensionHandler *handler;
     /* HelloRetryRequest doesn't set ss->version. It might be safe to
      * do so, but we weren't entirely sure. TODO(ekr@rtfm.com). */
     PRBool isTLS13 = (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) ||
-                     (handshakeMessage == hello_retry_request);
+                     (handshakeMessage == ssl_hs_hello_retry_request);
     /* The following messages can include extensions that were not included in
      * the original ClientHello. */
-    PRBool allowNotOffered = (handshakeMessage == client_hello) ||
-                             (handshakeMessage == certificate_request) ||
-                             (handshakeMessage == new_session_ticket);
+    PRBool allowNotOffered = (handshakeMessage == ssl_hs_client_hello) ||
+                             (handshakeMessage == ssl_hs_certificate_request) ||
+                             (handshakeMessage == ssl_hs_new_session_ticket);
     PRCList *cursor;
 
     switch (handshakeMessage) {
-        case client_hello:
+        case ssl_hs_client_hello:
             handlers = clientHelloHandlers;
             break;
-        case new_session_ticket:
+        case ssl_hs_new_session_ticket:
             PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
             handlers = newSessionTicketHandlers;
             break;
-        case hello_retry_request:
+        case ssl_hs_hello_retry_request:
             handlers = helloRetryRequestHandlers;
             break;
-        case encrypted_extensions:
+        case ssl_hs_encrypted_extensions:
             PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
         /* fall through */
-        case server_hello:
+        case ssl_hs_server_hello:
             if (ss->version > SSL_LIBRARY_VERSION_3_0) {
                 handlers = serverHelloHandlersTLS;
             } else {
                 handlers = serverHelloHandlersSSL3;
             }
             break;
-        case certificate:
+        case ssl_hs_certificate:
             PORT_Assert(!ss->sec.isServer);
             handlers = serverCertificateHandlers;
             break;
-        case certificate_request:
+        case ssl_hs_certificate_request:
             PORT_Assert(!ss->sec.isServer);
             handlers = certificateRequestHandlers;
             break;
@@ -307,7 +319,6 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
          cursor != &ss->ssl3.hs.remoteExtensions;
          cursor = PR_NEXT_LINK(cursor)) {
         TLSExtension *extension = (TLSExtension *)cursor;
-        const ssl3ExtensionHandler *handler;
 
         /* Check whether the server sent an extension which was not advertised
          * in the ClientHello.
@@ -353,13 +364,12 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
         }
 
         /* find extension_type in table of Hello Extension Handlers */
-        for (handler = handlers; handler->ex_type >= 0; handler++) {
+        for (handler = handlers; handler->ex_handler; ++handler) {
             /* if found, call this handler */
             if (handler->ex_type == extension->type) {
                 SECStatus rv;
 
                 rv = (*handler->ex_handler)(ss, &ss->xtnData,
-                                            (PRUint16)extension->type,
                                             &extension->data);
                 if (rv != SECSuccess) {
                     if (!ss->ssl3.fatalAlertSent) {
@@ -380,7 +390,7 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
 SECStatus
 ssl3_HandleExtensions(sslSocket *ss,
                       PRUint8 **b, PRUint32 *length,
-                      SSL3HandshakeType handshakeMessage)
+                      SSLHandshakeType handshakeMessage)
 {
     SECStatus rv;
 
@@ -402,22 +412,24 @@ SECStatus
 ssl3_RegisterExtensionSender(const sslSocket *ss,
                              TLSExtensionData *xtnData,
                              PRUint16 ex_type,
-                             ssl3HelloExtensionSenderFunc cb)
+                             sslExtensionBuilderFunc cb)
 {
     int i;
-    ssl3HelloExtensionSender *sender;
+    sslExtensionBuilder *sender;
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
         sender = &xtnData->serverHelloSenders[0];
     } else {
-        if (tls13_ExtensionStatus(ex_type, server_hello) ==
+        if (tls13_ExtensionStatus(ex_type, ssl_hs_server_hello) ==
             tls13_extension_allowed) {
-            PORT_Assert(tls13_ExtensionStatus(ex_type, encrypted_extensions) ==
+            PORT_Assert(tls13_ExtensionStatus(ex_type,
+                                              ssl_hs_encrypted_extensions) ==
                         tls13_extension_disallowed);
             sender = &xtnData->serverHelloSenders[0];
-        } else if (tls13_ExtensionStatus(ex_type, encrypted_extensions) ==
+        } else if (tls13_ExtensionStatus(ex_type,
+                                         ssl_hs_encrypted_extensions) ==
                    tls13_extension_allowed) {
             sender = &xtnData->encryptedExtensionsSenders[0];
-        } else if (tls13_ExtensionStatus(ex_type, certificate) ==
+        } else if (tls13_ExtensionStatus(ex_type, ssl_hs_certificate) ==
                    tls13_extension_allowed) {
             sender = &xtnData->certificateSenders[0];
         } else {
@@ -444,31 +456,199 @@ ssl3_RegisterExtensionSender(const sslSocket *ss,
     return SECFailure;
 }
 
-/* call each of the extension senders and return the accumulated length */
-PRInt32
-ssl3_CallHelloExtensionSenders(sslSocket *ss, PRBool append, PRUint32 maxBytes,
-                               const ssl3HelloExtensionSender *sender)
+/* Call extension handlers for the given message. */
+SECStatus
+ssl_ConstructExtensions(sslSocket *ss, sslBuffer *buf, SSLHandshakeType message)
 {
-    PRInt32 total_exten_len = 0;
+    const sslExtensionBuilder *sender;
+    SECStatus rv;
 
-    if (!sender) {
-        if (ss->vrange.max > SSL_LIBRARY_VERSION_3_0) {
-            sender = &clientHelloSendersTLS[0];
-        } else {
-            sender = &clientHelloSendersSSL3[0];
+    PORT_Assert(buf->len == 0);
+
+    switch (message) {
+        case ssl_hs_client_hello:
+            if (ss->vrange.max > SSL_LIBRARY_VERSION_3_0) {
+                sender = clientHelloSendersTLS;
+            } else {
+                sender = clientHelloSendersSSL3;
+            }
+            break;
+
+        case ssl_hs_server_hello:
+            sender = ss->xtnData.serverHelloSenders;
+            break;
+
+        case ssl_hs_certificate_request:
+            PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+            sender = tls13_cert_req_senders;
+            break;
+
+        case ssl_hs_certificate:
+            PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+            sender = ss->xtnData.certificateSenders;
+            break;
+
+        case ssl_hs_encrypted_extensions:
+            PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+            sender = ss->xtnData.encryptedExtensionsSenders;
+            break;
+
+        default:
+            PORT_Assert(0);
+            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+            return SECFailure;
+    }
+
+    for (; sender->ex_sender; ++sender) {
+        PRBool append = PR_FALSE;
+        unsigned int start = buf->len;
+        unsigned int length;
+
+        /* Save space for the extension type and length. Note that we don't grow
+         * the buffer now; rely on sslBuffer_Append* to do that. */
+        buf->len += 4;
+        rv = (*sender->ex_sender)(ss, &ss->xtnData, buf, &append);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+
+        /* Save the length and go back to the start. */
+        length = buf->len - start - 4;
+        buf->len = start;
+        if (!append) {
+            continue;
+        }
+
+        buf->len = start;
+        rv = sslBuffer_AppendNumber(buf, sender->ex_type, 2);
+        if (rv != SECSuccess) {
+            goto loser; /* Code already set. */
+        }
+        rv = sslBuffer_AppendNumber(buf, length, 2);
+        if (rv != SECSuccess) {
+            goto loser; /* Code already set. */
+        }
+        /* Skip over the extension body. */
+        buf->len += length;
+
+        if (message == ssl_hs_client_hello) {
+            ss->xtnData.advertised[ss->xtnData.numAdvertised++] =
+                sender->ex_type;
         }
     }
 
-    while (sender->ex_sender) {
-        PRInt32 extLen = (*sender->ex_sender)(ss, &ss->xtnData, append, maxBytes);
-        if (extLen < 0) {
-            return -1;
-        }
-        maxBytes -= extLen;
-        total_exten_len += extLen;
-        ++sender;
+    if (buf->len > 0xffff) {
+        PORT_SetError(SSL_ERROR_TX_RECORD_TOO_LONG);
+        goto loser;
     }
-    return total_exten_len;
+
+    return SECSuccess;
+
+loser:
+    sslBuffer_Clear(buf);
+    return SECFailure;
+}
+
+/* This extension sender can be used anywhere that an always empty extension is
+ * needed. Mostly that is for ServerHello where sender registration is dynamic;
+ * ClientHello senders are usually conditional in some way. */
+SECStatus
+ssl_SendEmptyExtension(const sslSocket *ss, TLSExtensionData *xtnData,
+                       sslBuffer *buf, PRBool *append)
+{
+    *append = PR_TRUE;
+    return SECSuccess;
+}
+
+/* Takes the size of the ClientHello, less the record header, and determines how
+ * much padding is required. */
+static unsigned int
+ssl_CalculatePaddingExtLen(const sslSocket *ss, unsigned int clientHelloLength)
+{
+    unsigned int recordLength = 1 /* handshake message type */ +
+                                3 /* handshake message length */ +
+                                clientHelloLength;
+    unsigned int extensionLen;
+
+    /* Don't pad for DTLS, for SSLv3, or for renegotiation. */
+    if (IS_DTLS(ss) ||
+        ss->vrange.max < SSL_LIBRARY_VERSION_TLS_1_0 ||
+        ss->firstHsDone) {
+        return 0;
+    }
+
+    /* A padding extension may be included to ensure that the record containing
+     * the ClientHello doesn't have a length between 256 and 511 bytes
+     * (inclusive). Initial ClientHello records with such lengths trigger bugs
+     * in F5 devices. */
+    if (recordLength < 256 || recordLength >= 512) {
+        return 0;
+    }
+
+    extensionLen = 512 - recordLength;
+    /* Extensions take at least four bytes to encode. Always include at least
+     * one byte of data if we are padding. Some servers will time out or
+     * terminate the connection if the last ClientHello extension is empty. */
+    if (extensionLen < 5) {
+        extensionLen = 5;
+    }
+
+    return extensionLen - 4;
+}
+
+/* ssl3_SendPaddingExtension possibly adds an extension which ensures that a
+ * ClientHello record is either < 256 bytes or is >= 512 bytes. This ensures
+ * that we don't trigger bugs in F5 products.
+ *
+ * This takes an existing extension buffer, |buf|, and the length of the
+ * remainder of the ClientHello, |prefixLen|.  It modifies the extension buffer
+ * to insert padding at the right place.
+ */
+SECStatus
+ssl_InsertPaddingExtension(const sslSocket *ss, unsigned int prefixLen,
+                           sslBuffer *buf)
+{
+    static unsigned char padding[252] = { 0 };
+    unsigned int paddingLen;
+    unsigned int tailLen;
+    SECStatus rv;
+
+    /* Account for the size of the header, the length field of the extensions
+     * block and the size of the existing extensions. */
+    paddingLen = ssl_CalculatePaddingExtLen(ss, prefixLen + 2 + buf->len);
+    if (!paddingLen) {
+        return SECSuccess;
+    }
+
+    /* Move the tail if there is one. This only happens if we are sending the
+     * TLS 1.3 PSK extension, which needs to be at the end. */
+    if (ss->xtnData.paddingOffset) {
+        PORT_Assert(buf->len > ss->xtnData.paddingOffset);
+        tailLen = buf->len - ss->xtnData.paddingOffset;
+        rv = sslBuffer_Grow(buf, buf->len + 4 + paddingLen);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+        PORT_Memmove(buf->buf + ss->xtnData.paddingOffset + 4 + paddingLen,
+                     buf->buf + ss->xtnData.paddingOffset,
+                     tailLen);
+        buf->len = ss->xtnData.paddingOffset;
+    } else {
+        tailLen = 0;
+    }
+
+    rv = sslBuffer_AppendNumber(buf, ssl_padding_xtn, 2);
+    if (rv != SECSuccess) {
+        return SECFailure; /* Code already set. */
+    }
+    rv = sslBuffer_AppendVariable(buf, padding, paddingLen, 2);
+    if (rv != SECSuccess) {
+        return SECFailure; /* Code already set. */
+    }
+
+    buf->len += tailLen;
+
+    return SECSuccess;
 }
 
 void
@@ -514,28 +694,6 @@ ssl3_ResetExtensionData(TLSExtensionData *xtnData)
 }
 
 /* Thunks to let extension handlers operate on const sslSocket* objects. */
-SECStatus
-ssl3_ExtAppendHandshake(const sslSocket *ss, const void *void_src,
-                        PRInt32 bytes)
-{
-    return ssl3_AppendHandshake((sslSocket *)ss, void_src, bytes);
-}
-
-SECStatus
-ssl3_ExtAppendHandshakeNumber(const sslSocket *ss, PRInt32 num,
-                              PRInt32 lenSize)
-{
-    return ssl3_AppendHandshakeNumber((sslSocket *)ss, num, lenSize);
-}
-
-SECStatus
-ssl3_ExtAppendHandshakeVariable(const sslSocket *ss,
-                                const PRUint8 *src, PRInt32 bytes,
-                                PRInt32 lenSize)
-{
-    return ssl3_AppendHandshakeVariable((sslSocket *)ss, src, bytes, lenSize);
-}
-
 void
 ssl3_ExtSendAlert(const sslSocket *ss, SSL3AlertLevel level,
                   SSL3AlertDescription desc)

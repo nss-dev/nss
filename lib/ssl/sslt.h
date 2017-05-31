@@ -13,6 +13,26 @@
 #include "secitem.h"
 #include "certt.h"
 
+typedef enum {
+    ssl_hs_hello_request = 0,
+    ssl_hs_client_hello = 1,
+    ssl_hs_server_hello = 2,
+    ssl_hs_hello_verify_request = 3,
+    ssl_hs_new_session_ticket = 4,
+    ssl_hs_end_of_early_data = 5,
+    ssl_hs_hello_retry_request = 6,
+    ssl_hs_encrypted_extensions = 8,
+    ssl_hs_certificate = 11,
+    ssl_hs_server_key_exchange = 12,
+    ssl_hs_certificate_request = 13,
+    ssl_hs_server_hello_done = 14,
+    ssl_hs_certificate_verify = 15,
+    ssl_hs_client_key_exchange = 16,
+    ssl_hs_finished = 20,
+    ssl_hs_certificate_status = 22,
+    ssl_hs_next_proto = 67
+} SSLHandshakeType;
+
 typedef struct SSL3StatisticsStr {
     /* statistics from ssl3_SendClientHello (sch) */
     long sch_sid_cache_hits;

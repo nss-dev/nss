@@ -30,7 +30,6 @@ typedef PRUint16 ssl3CipherSuite;
 #define SSL3_RANDOM_LENGTH 32
 
 #define SSL3_RECORD_HEADER_LENGTH 5
-#define TLS13_RECORD_HEADER_LENGTH_SHORT 2
 
 /* SSL3_RECORD_HEADER_LENGTH + epoch/sequence_number */
 #define DTLS_RECORD_HEADER_LENGTH 13
@@ -126,26 +125,6 @@ typedef struct {
     SSL3AlertDescription description;
 } SSL3Alert;
 
-typedef enum {
-    hello_request = 0,
-    client_hello = 1,
-    server_hello = 2,
-    hello_verify_request = 3,
-    new_session_ticket = 4,
-    end_of_early_data = 5,
-    hello_retry_request = 6,
-    encrypted_extensions = 8,
-    certificate = 11,
-    server_key_exchange = 12,
-    certificate_request = 13,
-    server_hello_done = 14,
-    certificate_verify = 15,
-    client_key_exchange = 16,
-    finished = 20,
-    certificate_status = 22,
-    next_proto = 67,
-} SSL3HandshakeType;
-
 typedef struct {
     PRUint8 empty;
 } SSL3HelloRequest;
@@ -235,7 +214,7 @@ typedef struct {
     union {
         PRUint8 raw[64];
         SSL3HashesIndividually s;
-        SECItem pointer_to_hash_input;
+        unsigned int transcriptLen;
     } u;
 } SSL3Hashes;
 
