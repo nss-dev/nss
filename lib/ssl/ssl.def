@@ -234,3 +234,10 @@ SSL_AlertSentCallback;
 ;+    local:
 ;+*;
 ;+};
+;+NSS_3.32 {    # NSS 3.32 release
+;+    global:
+SSL_GetExtensionSupport;
+SSL_InstallExtensionHooks;
+;+    local:
+;+*;
+;+};

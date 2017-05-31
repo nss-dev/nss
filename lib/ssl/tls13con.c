@@ -2036,7 +2036,7 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
         SSL_AtomicIncrementLong(&ssl3stats->hsh_sid_stateless_resumes);
     } else {
         /* !PSK */
-        if (ssl3_ClientExtensionAdvertised(ss, ssl_tls13_pre_shared_key_xtn)) {
+        if (ssl3_ExtensionAdvertised(ss, ssl_tls13_pre_shared_key_xtn)) {
             SSL_AtomicIncrementLong(&ssl3stats->hsh_sid_cache_misses);
         }
         if (sid->cached == in_client_cache) {
@@ -4082,7 +4082,6 @@ static const struct {
     { ssl_cert_status_xtn, _M3(client_hello, certificate_request,
                                certificate) },
     { ssl_tls13_cookie_xtn, _M2(client_hello, hello_retry_request) },
-    { ssl_tls13_short_header_xtn, _M2(client_hello, server_hello) },
     { ssl_tls13_certificate_authorities_xtn, _M1(certificate_request) },
     { ssl_tls13_supported_versions_xtn, _M1(client_hello) }
 };
@@ -4372,7 +4371,7 @@ tls13_MaybeDo0RTTHandshake(sslSocket *ss)
 
     /* Don't do anything if there is no early_data xtn, which means we're
      * not doing early data. */
-    if (!ssl3_ClientExtensionAdvertised(ss, ssl_tls13_early_data_xtn)) {
+    if (!ssl3_ExtensionAdvertised(ss, ssl_tls13_early_data_xtn)) {
         return SECSuccess;
     }
 

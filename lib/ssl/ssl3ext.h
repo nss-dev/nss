@@ -35,10 +35,10 @@ struct TLSExtensionDataStr {
     sslExtensionBuilder encryptedExtensionsSenders[SSL_MAX_EXTENSIONS];
     sslExtensionBuilder certificateSenders[SSL_MAX_EXTENSIONS];
 
-    /* Keep track of the extensions that are negotiated. */
+    /* Keep track of the extensions that are advertised or negotiated. */
     PRUint16 numAdvertised;
+    PRUint16 *advertised; /* Allocated dynamically. */
     PRUint16 numNegotiated;
-    PRUint16 advertised[SSL_MAX_EXTENSIONS];
     PRUint16 negotiated[SSL_MAX_EXTENSIONS];
 
     /* SessionTicket Extension related data. */
@@ -86,7 +86,7 @@ struct TLSExtensionDataStr {
 
     PRUint16 dtlsSRTPCipherSuite; /* 0 if not selected */
 
-    unsigned int paddingOffset;      /* Where to insert padding. 0 = end. */
+    unsigned int lastXtnOffset;      /* Where to insert padding. 0 = end. */
     SECItem pskBinder;               /* The PSK binder for the first PSK (TLS 1.3) */
     unsigned int pskBinderPrefixLen; /* The length of the binder input. */
     PRCList remoteKeyShares;         /* The other side's public keys (TLS 1.3) */
@@ -98,6 +98,15 @@ typedef struct TLSExtensionStr {
     SECItem data;  /* Pointers into the handshake data. */
 } TLSExtension;
 
+typedef struct sslCustomExtensionHooks {
+    PRCList link;
+    PRUint16 type;
+    SSLExtensionWriter writer;
+    void *writerArg;
+    SSLExtensionHandler handler;
+    void *handlerArg;
+} sslCustomExtensionHooks;
+
 SECStatus ssl3_HandleExtensions(sslSocket *ss,
                                 PRUint8 **b, PRUint32 *length,
                                 SSLHandshakeType handshakeMessage);
@@ -108,11 +117,12 @@ SECStatus ssl3_HandleParsedExtensions(sslSocket *ss,
 TLSExtension *ssl3_FindExtension(sslSocket *ss,
                                  SSLExtensionType extension_type);
 void ssl3_DestroyRemoteExtensions(PRCList *list);
-void ssl3_InitExtensionData(TLSExtensionData *xtnData);
-void ssl3_ResetExtensionData(TLSExtensionData *xtnData);
+void ssl3_InitExtensionData(TLSExtensionData *xtnData, const sslSocket *ss);
+void ssl3_DestroyExtensionData(TLSExtensionData *xtnData);
+void ssl3_ResetExtensionData(TLSExtensionData *xtnData, const sslSocket *ss);
 
 PRBool ssl3_ExtensionNegotiated(const sslSocket *ss, PRUint16 ex_type);
-PRBool ssl3_ClientExtensionAdvertised(const sslSocket *ss, PRUint16 ex_type);
+PRBool ssl3_ExtensionAdvertised(const sslSocket *ss, PRUint16 ex_type);
 
 SECStatus ssl3_RegisterExtensionSender(const sslSocket *ss,
                                        TLSExtensionData *xtnData,

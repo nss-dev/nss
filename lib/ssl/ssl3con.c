@@ -4958,12 +4958,12 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
     }
 
     /* These must be reset every handshake. */
+    ssl3_ResetExtensionData(&ss->xtnData, ss);
     ss->ssl3.hs.sendingSCSV = PR_FALSE;
     ss->ssl3.hs.preliminaryInfo = 0;
     PORT_Assert(IS_DTLS(ss) || type != client_hello_retransmit);
     SECITEM_FreeItem(&ss->ssl3.hs.newSessionTicket.ticket, PR_FALSE);
     ss->ssl3.hs.receivedNewSessionTicket = PR_FALSE;
-    ssl3_ResetExtensionData(&ss->xtnData);
 
     /* How many suites does our PKCS11 support (regardless of policy)? */
     num_suites = ssl3_config_match_init(ss);
@@ -5351,8 +5351,8 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
     }
 
     sslBuffer_Clear(&extensionBuf);
-    if (sid->u.ssl3.lock) {
-        unlockNeeded = PR_FALSE;
+    if (unlockNeeded) {
+        /* Note: goto loser can't be used past this point. */
         PR_RWLock_Unlock(sid->u.ssl3.lock);
     }
 
@@ -8277,7 +8277,7 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
     /* We might be starting session renegotiation in which case we should
      * clear previous state.
      */
-    ssl3_ResetExtensionData(&ss->xtnData);
+    ssl3_ResetExtensionData(&ss->xtnData, ss);
     ss->statelessResume = PR_FALSE;
 
     if (IS_DTLS(ss)) {
@@ -9031,8 +9031,6 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length,
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
 
     ssl_GetSSL3HandshakeLock(ss);
-
-    ssl3_ResetExtensionData(&ss->xtnData);
 
     version = (buffer[1] << 8) | buffer[2];
     if (version < SSL_LIBRARY_VERSION_3_0) {
@@ -12800,7 +12798,7 @@ ssl3_InitState(sslSocket *ss)
     ss->ssl3.hs.preliminaryInfo = 0;
     ss->ssl3.hs.ws = (ss->sec.isServer) ? wait_client_hello : wait_server_hello;
 
-    ssl3_ResetExtensionData(&ss->xtnData);
+    ssl3_ResetExtensionData(&ss->xtnData, ss);
     PR_INIT_CLIST(&ss->ssl3.hs.remoteExtensions);
     if (IS_DTLS(ss)) {
         ss->ssl3.hs.sendMessageSeq = 0;
@@ -13176,7 +13174,7 @@ ssl3_DestroySSL3Info(sslSocket *ss)
 
     /* Destroy remote extensions */
     ssl3_DestroyRemoteExtensions(&ss->ssl3.hs.remoteExtensions);
-    ssl3_ResetExtensionData(&ss->xtnData);
+    ssl3_DestroyExtensionData(&ss->xtnData);
 
     /* Destroy TLS 1.3 cipher specs */
     tls13_DestroyCipherSpecs(&ss->ssl3.hs.cipherSpecs);

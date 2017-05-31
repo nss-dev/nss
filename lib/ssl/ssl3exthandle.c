@@ -1813,7 +1813,8 @@ ssl3_ServerHandleSignedCertTimestampXtn(const sslSocket *ss,
  * Since that is all we support.  Disable ECC cipher suites if it doesn't.
  */
 SECStatus
-ssl3_HandleSupportedPointFormatsXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+ssl3_HandleSupportedPointFormatsXtn(const sslSocket *ss,
+                                    TLSExtensionData *xtnData,
                                     SECItem *data)
 {
     int i;

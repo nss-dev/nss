@@ -423,9 +423,9 @@ typedef enum {
     ssl_tls13_psk_key_exchange_modes_xtn = 45,
     ssl_tls13_ticket_early_data_info_xtn = 46, /* Deprecated. */
     ssl_tls13_certificate_authorities_xtn = 47,
-    ssl_next_proto_nego_xtn = 13172,
+    ssl_next_proto_nego_xtn = 13172, /* Deprecated. */
     ssl_renegotiation_info_xtn = 0xff01,
-    ssl_tls13_short_header_xtn = 0xff03
+    ssl_tls13_short_header_xtn = 0xff03 /* Deprecated. */
 } SSLExtensionType;
 
 /* This is the old name for the supported_groups extensions. */
@@ -434,7 +434,7 @@ typedef enum {
 /* SSL_MAX_EXTENSIONS includes the maximum number of extensions that are
  * supported for any single message type.  That is, a ClientHello; ServerHello
  * and TLS 1.3 NewSessionTicket and HelloRetryRequest extensions have fewer. */
-#define SSL_MAX_EXTENSIONS 20
+#define SSL_MAX_EXTENSIONS 19
 
 /* Deprecated */
 typedef enum {
