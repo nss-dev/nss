@@ -665,7 +665,7 @@ loser:
     if (freeCtr) {
         CTR_DestroyContext(&gcm->ctr_context, PR_FALSE);
     }
-    if (ghash->mem) {
+    if (ghash && ghash->mem) {
         PORT_Free(ghash->mem);
     }
     if (gcm) {
