@@ -1292,8 +1292,8 @@ ssl_DecryptSessionTicket(sslSocket *ss, const SECItem *rawTicket,
     SECItem ivItem;
 
     unsigned int i;
-    SSL3Opaque *padding;
-    SSL3Opaque paddingLength;
+    PRUint8 *padding;
+    PRUint8 paddingLength;
 #endif
 
     PORT_Assert(!decryptedTicket->data);
@@ -1438,7 +1438,7 @@ ssl_ParseSessionTicket(sslSocket *ss, const SECItem *decryptedTicket,
     PRUint32 temp;
     SECStatus rv;
 
-    SSL3Opaque *buffer = decryptedTicket->data;
+    PRUint8 *buffer = decryptedTicket->data;
     unsigned int len = decryptedTicket->len;
 
     PORT_Memset(parsedTicket, 0, sizeof(*parsedTicket));
