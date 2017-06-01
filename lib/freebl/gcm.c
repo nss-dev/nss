@@ -580,7 +580,6 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
     unsigned char H[MAX_BLOCK_SIZE];
     unsigned int tmp;
     PRBool freeCtr = PR_FALSE;
-    PRBool freeHash = PR_FALSE;
     const CK_GCM_PARAMS *gcmParams = (const CK_GCM_PARAMS *)params;
     CK_AES_CTR_PARAMS ctrParams;
     SECStatus rv;
@@ -603,7 +602,7 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
     ghash = PORT_ZAlloc(sizeof(gcmHashContext) + 15);
     if (ghash == NULL) {
         PORT_SetError(SEC_ERROR_NO_MEMORY);
-        return NULL;
+        goto loser;
     }
     ghash->mem = ghash;
     ghash = (gcmHashContext *)(((uintptr_t)ghash + 15) & ~(uintptr_t)0x0F);
@@ -619,7 +618,6 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
     if (rv != SECSuccess) {
         goto loser;
     }
-    freeHash = PR_TRUE;
 
     /* fill in the Counter context */
     ctrParams.ulCounterBits = 32;
@@ -667,8 +665,8 @@ loser:
     if (freeCtr) {
         CTR_DestroyContext(&gcm->ctr_context, PR_FALSE);
     }
-    if (freeHash) {
-        PORT_Free(gcm->ghash_context->mem);
+    if (ghash->mem) {
+        PORT_Free(ghash->mem);
     }
     if (gcm) {
         PORT_Free(gcm);
