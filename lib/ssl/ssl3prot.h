@@ -16,7 +16,7 @@ typedef PRUint16 SSL3ProtocolVersion;
 /* The TLS 1.3 draft version. Used to avoid negotiating
  * between incompatible pre-standard TLS 1.3 drafts.
  * TODO(ekr@rtfm.com): Remove when TLS 1.3 is published. */
-#define TLS_1_3_DRAFT_VERSION 18
+#define TLS_1_3_DRAFT_VERSION 20
 
 typedef PRUint16 ssl3CipherSuite;
 /* The cipher suites are defined in sslproto.h */
@@ -81,7 +81,6 @@ typedef enum { alert_warning = 1,
 
 typedef enum {
     close_notify = 0,
-    end_of_early_data = 1, /* TLS 1.3 */
     unexpected_message = 10,
     bad_record_mac = 20,
     decryption_failed_RESERVED = 21, /* do not send; see RFC 5246 */
@@ -133,6 +132,7 @@ typedef enum {
     server_hello = 2,
     hello_verify_request = 3,
     new_session_ticket = 4,
+    end_of_early_data = 5,
     hello_retry_request = 6,
     encrypted_extensions = 8,
     certificate = 11,
@@ -143,7 +143,7 @@ typedef enum {
     client_key_exchange = 16,
     finished = 20,
     certificate_status = 22,
-    next_proto = 67
+    next_proto = 67,
 } SSL3HandshakeType;
 
 typedef struct {

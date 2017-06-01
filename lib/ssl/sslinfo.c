@@ -2,6 +2,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+#include "pk11pub.h"
 #include "ssl.h"
 #include "sslimpl.h"
 #include "sslproto.h"
@@ -392,22 +393,47 @@ SSL_GetNegotiatedHostInfo(PRFileDesc *fd)
     return sniName;
 }
 
+/*
+ *     HKDF-Expand-Label(Derive-Secret(Secret, label, ""),
+ *                       "exporter", Hash(context_value), key_length)
+ */
 static SECStatus
 tls13_Exporter(sslSocket *ss, PK11SymKey *secret,
                const char *label, unsigned int labelLen,
                const unsigned char *context, unsigned int contextLen,
                unsigned char *out, unsigned int outLen)
 {
+    SSL3Hashes contextHash;
+    PK11SymKey *innerSecret = NULL;
+    SECStatus rv;
+
+    static const char *kExporterInnerLabel = "exporter";
+
     if (!secret) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
 
-    return tls13_HkdfExpandLabelRaw(secret,
-                                    tls13_GetHash(ss),
-                                    context, contextLen,
-                                    label, labelLen,
-                                    out, outLen);
+    /* Pre-hash the context. */
+    rv = tls13_ComputeHash(ss, &contextHash, context, contextLen);
+    if (rv != SECSuccess) {
+        return rv;
+    }
+
+    rv = tls13_DeriveSecretNullHash(ss, secret, label, labelLen,
+                                    &innerSecret);
+    if (rv != SECSuccess) {
+        return rv;
+    }
+
+    rv = tls13_HkdfExpandLabelRaw(innerSecret,
+                                  tls13_GetHash(ss),
+                                  contextHash.u.raw, contextHash.len,
+                                  kExporterInnerLabel,
+                                  strlen(kExporterInnerLabel),
+                                  out, outLen);
+    PK11_FreeSymKey(innerSecret);
+    return rv;
 }
 
 SECStatus

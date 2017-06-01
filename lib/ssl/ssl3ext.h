@@ -86,10 +86,13 @@ struct TLSExtensionDataStr {
     PRBool peerSupportsFfdheGroups; /* if the peer supports named ffdhe groups */
 
     /* clientSigAndHash contains the contents of the signature_algorithms
-     * extension (if any) from the client. This is only valid for TLS 1.2
-     * or later. */
-    SSLSignatureScheme *clientSigSchemes;
-    unsigned int numClientSigScheme;
+     * extension (if any) the other side supports. This is only valid for TLS
+     * 1.2 or later. In TLS 1.3, it is also used for CertificateRequest. */
+    SSLSignatureScheme *sigSchemes;
+    unsigned int numSigSchemes;
+
+    SECItem certReqContext;
+    CERTDistNames certReqAuthorities;
 
     /* In a client: if the server supports Next Protocol Negotiation, then
      * this is the protocol that was negotiated.

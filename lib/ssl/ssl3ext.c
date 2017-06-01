@@ -31,7 +31,7 @@ static const ssl3ExtensionHandler clientHelloHandlers[] = {
     { ssl_app_layer_protocol_xtn, &ssl3_ServerHandleAppProtoXtn },
     { ssl_use_srtp_xtn, &ssl3_ServerHandleUseSRTPXtn },
     { ssl_cert_status_xtn, &ssl3_ServerHandleStatusRequestXtn },
-    { ssl_signature_algorithms_xtn, &ssl3_ServerHandleSigAlgsXtn },
+    { ssl_signature_algorithms_xtn, &ssl3_HandleSigAlgsXtn },
     { ssl_extended_master_secret_xtn, &ssl3_HandleExtendedMasterSecretXtn },
     { ssl_signed_cert_timestamp_xtn, &ssl3_ServerHandleSignedCertTimestampXtn },
     { ssl_tls13_key_share_xtn, &tls13_ServerHandleKeyShareXtn },
@@ -75,8 +75,8 @@ static const ssl3ExtensionHandler serverHelloHandlersSSL3[] = {
 };
 
 static const ssl3ExtensionHandler newSessionTicketHandlers[] = {
-    { ssl_tls13_ticket_early_data_info_xtn,
-      &tls13_ClientHandleTicketEarlyDataInfoXtn },
+    { ssl_tls13_early_data_xtn,
+      &tls13_ClientHandleTicketEarlyDataXtn },
     { -1, NULL }
 };
 
@@ -88,6 +88,9 @@ static const ssl3ExtensionHandler serverCertificateHandlers[] = {
 };
 
 static const ssl3ExtensionHandler certificateRequestHandlers[] = {
+    { ssl_signature_algorithms_xtn, &ssl3_HandleSigAlgsXtn },
+    { ssl_tls13_certificate_authorities_xtn,
+      &tls13_ClientHandleCertAuthoritiesXtn },
     { -1, NULL }
 };
 
@@ -101,7 +104,7 @@ static const ssl3ExtensionHandler certificateRequestHandlers[] = {
  * the client hello is empty (for example, the extended master secret
  * extension, if it were listed last). See bug 1243641.
  */
-static const ssl3HelloExtensionSender clientHelloSendersTLS[SSL_MAX_EXTENSIONS] =
+static const ssl3HelloExtensionSender clientHelloSendersTLS[] =
     {
       { ssl_server_name_xtn, &ssl3_SendServerNameXtn },
       { ssl_extended_master_secret_xtn, &ssl3_SendExtendedMasterSecretXtn },
@@ -122,19 +125,19 @@ static const ssl3HelloExtensionSender clientHelloSendersTLS[SSL_MAX_EXTENSIONS] 
        * signature_algorithms at the end. See bug 1243641. */
       { ssl_tls13_supported_versions_xtn, &tls13_ClientSendSupportedVersionsXtn },
       { ssl_tls13_short_header_xtn, &tls13_SendShortHeaderXtn },
-      { ssl_signature_algorithms_xtn, &ssl3_ClientSendSigAlgsXtn },
+      { ssl_signature_algorithms_xtn, &ssl3_SendSigAlgsXtn },
       { ssl_tls13_cookie_xtn, &tls13_ClientSendHrrCookieXtn },
       { ssl_tls13_psk_key_exchange_modes_xtn,
         &tls13_ClientSendPskKeyExchangeModesXtn },
       { ssl_padding_xtn, &ssl3_ClientSendPaddingExtension },
       /* The pre_shared_key extension MUST be last. */
       { ssl_tls13_pre_shared_key_xtn, &tls13_ClientSendPreSharedKeyXtn },
-      /* any extra entries will appear as { 0, NULL }    */
+      { 0, NULL }
     };
 
-static const ssl3HelloExtensionSender clientHelloSendersSSL3[SSL_MAX_EXTENSIONS] = {
-    { ssl_renegotiation_info_xtn, &ssl3_SendRenegotiationInfoXtn }
-    /* any extra entries will appear as { 0, NULL }    */
+static const ssl3HelloExtensionSender clientHelloSendersSSL3[] = {
+    { ssl_renegotiation_info_xtn, &ssl3_SendRenegotiationInfoXtn },
+    { 0, NULL }
 };
 
 static PRBool
@@ -258,6 +261,11 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
      * do so, but we weren't entirely sure. TODO(ekr@rtfm.com). */
     PRBool isTLS13 = (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) ||
                      (handshakeMessage == hello_retry_request);
+    /* The following messages can include extensions that were not included in
+     * the original ClientHello. */
+    PRBool allowNotOffered = (handshakeMessage == client_hello) ||
+                             (handshakeMessage == certificate_request) ||
+                             (handshakeMessage == new_session_ticket);
     PRCList *cursor;
 
     switch (handshakeMessage) {
@@ -302,25 +310,35 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
         const ssl3ExtensionHandler *handler;
 
         /* Check whether the server sent an extension which was not advertised
-         * in the ClientHello */
-        if (!ss->sec.isServer &&
-            !ssl3_ClientExtensionAdvertised(ss, extension->type) &&
-            (handshakeMessage != new_session_ticket) &&
-            (extension->type != ssl_tls13_cookie_xtn)) {
+         * in the ClientHello.
+         *
+         * Note that a TLS 1.3 server should check if CertificateRequest
+         * extensions were sent.  But the extensions used for CertificateRequest
+         * do not have any response, so we rely on
+         * ssl3_ClientExtensionAdvertised to return false on the server.  That
+         * results in the server only rejecting any extension. */
+        if (!allowNotOffered && (extension->type != ssl_tls13_cookie_xtn) &&
+            !ssl3_ClientExtensionAdvertised(ss, extension->type)) {
             (void)SSL3_SendAlert(ss, alert_fatal, unsupported_extension);
             PORT_SetError(SSL_ERROR_RX_UNEXPECTED_EXTENSION);
             return SECFailure;
         }
 
         /* Check that this is a legal extension in TLS 1.3 */
-        if (isTLS13 && !tls13_ExtensionAllowed(extension->type, handshakeMessage)) {
-            if (handshakeMessage == client_hello) {
-                /* Skip extensions not used in TLS 1.3 */
-                continue;
+        if (isTLS13) {
+            switch (tls13_ExtensionStatus(extension->type, handshakeMessage)) {
+                case tls13_extension_allowed:
+                    break;
+                case tls13_extension_unknown:
+                    if (allowNotOffered) {
+                        continue; /* Skip over unknown extensions. */
+                    }
+                /* Fall through. */
+                case tls13_extension_disallowed:
+                    tls13_FatalError(ss, SSL_ERROR_EXTENSION_DISALLOWED_FOR_VERSION,
+                                     unsupported_extension);
+                    return SECFailure;
             }
-            tls13_FatalError(ss, SSL_ERROR_EXTENSION_DISALLOWED_FOR_VERSION,
-                             unsupported_extension);
-            return SECFailure;
         }
 
         /* Special check for this being the last extension if it's
@@ -350,6 +368,7 @@ ssl3_HandleParsedExtensions(sslSocket *ss,
                     }
                     return SECFailure;
                 }
+                break;
             }
         }
     }
@@ -390,14 +409,21 @@ ssl3_RegisterExtensionSender(const sslSocket *ss,
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
         sender = &xtnData->serverHelloSenders[0];
     } else {
-        if (tls13_ExtensionAllowed(ex_type, server_hello)) {
-            PORT_Assert(!tls13_ExtensionAllowed(ex_type, encrypted_extensions));
+        if (tls13_ExtensionStatus(ex_type, server_hello) ==
+            tls13_extension_allowed) {
+            PORT_Assert(tls13_ExtensionStatus(ex_type, encrypted_extensions) ==
+                        tls13_extension_disallowed);
             sender = &xtnData->serverHelloSenders[0];
-        } else if (tls13_ExtensionAllowed(ex_type, certificate)) {
+        } else if (tls13_ExtensionStatus(ex_type, encrypted_extensions) ==
+                   tls13_extension_allowed) {
+            sender = &xtnData->encryptedExtensionsSenders[0];
+        } else if (tls13_ExtensionStatus(ex_type, certificate) ==
+                   tls13_extension_allowed) {
             sender = &xtnData->certificateSenders[0];
         } else {
-            PORT_Assert(tls13_ExtensionAllowed(ex_type, encrypted_extensions));
-            sender = &xtnData->encryptedExtensionsSenders[0];
+            PORT_Assert(0);
+            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+            return SECFailure;
         }
     }
     for (i = 0; i < SSL_MAX_EXTENSIONS; ++i, ++sender) {
@@ -424,7 +450,6 @@ ssl3_CallHelloExtensionSenders(sslSocket *ss, PRBool append, PRUint32 maxBytes,
                                const ssl3HelloExtensionSender *sender)
 {
     PRInt32 total_exten_len = 0;
-    int i;
 
     if (!sender) {
         if (ss->vrange.max > SSL_LIBRARY_VERSION_3_0) {
@@ -434,14 +459,14 @@ ssl3_CallHelloExtensionSenders(sslSocket *ss, PRBool append, PRUint32 maxBytes,
         }
     }
 
-    for (i = 0; i < SSL_MAX_EXTENSIONS; ++i, ++sender) {
-        if (sender->ex_sender) {
-            PRInt32 extLen = (*sender->ex_sender)(ss, &ss->xtnData, append, maxBytes);
-            if (extLen < 0)
-                return -1;
-            maxBytes -= extLen;
-            total_exten_len += extLen;
+    while (sender->ex_sender) {
+        PRInt32 extLen = (*sender->ex_sender)(ss, &ss->xtnData, append, maxBytes);
+        if (extLen < 0) {
+            return -1;
         }
+        maxBytes -= extLen;
+        total_exten_len += extLen;
+        ++sender;
     }
     return total_exten_len;
 }
@@ -475,9 +500,14 @@ ssl3_ResetExtensionData(TLSExtensionData *xtnData)
 {
     /* Clean up. */
     ssl3_FreeSniNameArray(xtnData);
-    PORT_Free(xtnData->clientSigSchemes);
+    PORT_Free(xtnData->sigSchemes);
     SECITEM_FreeItem(&xtnData->nextProto, PR_FALSE);
     tls13_DestroyKeyShares(&xtnData->remoteKeyShares);
+    SECITEM_FreeItem(&xtnData->certReqContext, PR_FALSE);
+    if (xtnData->certReqAuthorities.arena) {
+        PORT_FreeArena(xtnData->certReqAuthorities.arena, PR_FALSE);
+        xtnData->certReqAuthorities.arena = NULL;
+    }
 
     /* Now reinit. */
     ssl3_InitExtensionData(xtnData);

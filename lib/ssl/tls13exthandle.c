@@ -840,13 +840,13 @@ tls13_ClientHandleEarlyDataXtn(const sslSocket *ss, TLSExtensionData *xtnData, P
 }
 
 SECStatus
-tls13_ClientHandleTicketEarlyDataInfoXtn(const sslSocket *ss, TLSExtensionData *xtnData, PRUint16 ex_type,
-                                         SECItem *data)
+tls13_ClientHandleTicketEarlyDataXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                                     PRUint16 ex_type, SECItem *data)
 {
     PRUint32 utmp;
     SECStatus rv;
 
-    SSL_TRC(3, ("%d: TLS13[%d]: handle early_data_info extension",
+    SSL_TRC(3, ("%d: TLS13[%d]: handle ticket early_data extension",
                 SSL_GETPID(), ss->fd));
 
     /* The server must not send this extension when negotiating < TLS 1.3. */
@@ -1184,4 +1184,98 @@ tls13_HandleShortHeaderXtn(
     }
 
     return SECSuccess;
+}
+
+PRInt32
+tls13_SendCertAuthoritiesXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                             PRBool append, PRUint32 maxBytes)
+{
+    unsigned int extensionLen;
+    unsigned int calen;
+    const SECItem *name;
+    unsigned int nnames;
+    SECStatus rv;
+
+    PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+
+    rv = ssl_GetCertificateRequestCAs(ss, &calen, &name, &nnames);
+    if (rv != SECSuccess) {
+        return -1;
+    }
+
+    if (!calen) {
+        return 0;
+    }
+
+    extensionLen = 2 + 2 + 2 + calen; /* type, length, inner length, CA list */
+    if (maxBytes < extensionLen) {
+        PORT_Assert(0);
+        return 0;
+    }
+
+    if (append) {
+        rv = ssl3_ExtAppendHandshakeNumber(ss, ssl_tls13_certificate_authorities_xtn, 2);
+        if (rv != SECSuccess) {
+            return -1;
+        }
+        rv = ssl3_ExtAppendHandshakeNumber(ss, calen + 2, 2);
+        if (rv != SECSuccess) {
+            return -1;
+        }
+        rv = ssl3_ExtAppendHandshakeNumber(ss, calen, 2);
+        if (rv != SECSuccess) {
+            return -1;
+        }
+
+        while (nnames) {
+            rv = ssl3_ExtAppendHandshakeVariable(ss, name->data, name->len, 2);
+            if (rv != SECSuccess) {
+                return -1;
+            }
+            ++name;
+            --nnames;
+        }
+    }
+
+    return extensionLen;
+}
+
+SECStatus
+tls13_ClientHandleCertAuthoritiesXtn(const sslSocket *ss,
+                                     TLSExtensionData *xtnData,
+                                     PRUint16 ex_type, SECItem *data)
+{
+    SECStatus rv;
+    PLArenaPool *arena;
+
+    if (!data->len) {
+        ssl3_ExtSendAlert(ss, alert_fatal, decode_error);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_CERT_REQUEST);
+        return SECFailure;
+    }
+
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (!arena) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+
+    xtnData->certReqAuthorities.arena = arena;
+    rv = ssl3_ParseCertificateRequestCAs((sslSocket *)ss,
+                                         &data->data, &data->len,
+                                         &xtnData->certReqAuthorities);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    if (data->len) {
+        ssl3_ExtSendAlert(ss, alert_fatal, decode_error);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_CERT_REQUEST);
+        goto loser;
+    }
+    return SECSuccess;
+
+loser:
+    PORT_FreeArena(arena, PR_FALSE);
+    xtnData->certReqAuthorities.arena = NULL;
+    return SECFailure;
 }
