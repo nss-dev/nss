@@ -2365,6 +2365,7 @@ ssl3_HandleExtendedMasterSecretXtn(const sslSocket *ss, TLSExtensionData *xtnDat
     if (data->len != 0) {
         SSL_TRC(30, ("%d: SSL3[%d]: Bogus extended master secret extension",
                      SSL_GETPID(), ss->fd));
+        ssl3_ExtSendAlert(ss, alert_fatal, decode_error);
         return SECFailure;
     }
 
@@ -2489,6 +2490,12 @@ ssl3_ServerHandleSignedCertTimestampXtn(const sslSocket *ss,
                                         PRUint16 ex_type,
                                         SECItem *data)
 {
+    if (data->len != 0) {
+        ssl3_ExtSendAlert(ss, alert_fatal, decode_error);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
+        return SECFailure;
+    }
+
     xtnData->negotiated[xtnData->numNegotiated++] = ex_type;
     PORT_Assert(ss->sec.isServer);
     return ssl3_RegisterExtensionSender(
