@@ -14,6 +14,12 @@ typedef enum {
     EphemeralSharedSecret
 } SharedSecretType;
 
+typedef enum {
+    tls13_extension_allowed,
+    tls13_extension_disallowed,
+    tls13_extension_unknown
+} tls13ExtensionStatus;
+
 #define TLS13_MAX_FINISHED_SIZE 64
 
 SECStatus tls13_UnprotectRecord(
@@ -41,6 +47,12 @@ SSLHashType tls13_GetHash(const sslSocket *ss);
 unsigned int tls13_GetHashSizeForHash(SSLHashType hash);
 unsigned int tls13_GetHashSize(const sslSocket *ss);
 CK_MECHANISM_TYPE tls13_GetHkdfMechanism(sslSocket *ss);
+SECStatus tls13_ComputeHash(sslSocket *ss, SSL3Hashes *hashes,
+                            const PRUint8 *buf, unsigned int len);
+SECStatus tls13_DeriveSecretNullHash(sslSocket *ss, PK11SymKey *key,
+                                     const char *label,
+                                     unsigned int labelLen,
+                                     PK11SymKey **dest);
 void tls13_FatalError(sslSocket *ss, PRErrorCode prError,
                       SSL3AlertDescription desc);
 SECStatus tls13_SetupClientHello(sslSocket *ss);
@@ -69,7 +81,8 @@ void tls13_DestroyEarlyData(PRCList *list);
 void tls13_CipherSpecAddRef(ssl3CipherSpec *spec);
 void tls13_CipherSpecRelease(ssl3CipherSpec *spec);
 void tls13_DestroyCipherSpecs(PRCList *list);
-PRBool tls13_ExtensionAllowed(PRUint16 extension, SSL3HandshakeType message);
+tls13ExtensionStatus tls13_ExtensionStatus(PRUint16 extension,
+                                           SSL3HandshakeType message);
 SECStatus tls13_ProtectRecord(sslSocket *ss,
                               ssl3CipherSpec *cwSpec,
                               SSL3ContentType type,
@@ -77,7 +90,6 @@ SECStatus tls13_ProtectRecord(sslSocket *ss,
                               PRUint32 contentLen,
                               sslBuffer *wrBuf);
 PRInt32 tls13_Read0RttData(sslSocket *ss, void *buf, PRInt32 len);
-SECStatus tls13_HandleEndOfEarlyData(sslSocket *ss);
 SECStatus tls13_HandleEarlyApplicationData(sslSocket *ss, sslBuffer *origBuf);
 PRBool tls13_ClientAllow0Rtt(const sslSocket *ss, const sslSessionID *sid);
 PRUint16 tls13_EncodeDraftVersion(SSL3ProtocolVersion version);

@@ -584,10 +584,6 @@ void TlsConnectTestBase::ZeroRttSendReceive(
   const char* k0RttData = "ABCDEF";
   const PRInt32 k0RttDataLen = static_cast<PRInt32>(strlen(k0RttData));
 
-  if (expect_writable && expect_readable) {
-    ExpectAlert(client_, kTlsAlertEndOfEarlyData);
-  }
-
   client_->Handshake();  // Send ClientHello.
   if (post_clienthello_check) {
     if (!post_clienthello_check()) return;

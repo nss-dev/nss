@@ -704,6 +704,7 @@ typedef enum {
 typedef enum {
     idle_handshake,
     wait_client_hello,
+    wait_end_of_early_data,
     wait_client_cert,
     wait_client_key,
     wait_cert_verify,
@@ -759,15 +760,6 @@ typedef enum {
     handshake_hash_single = 2, /* A single hash */
     handshake_hash_record
 } SSL3HandshakeHashType;
-
-/* This holds state for TLS 1.3 CertificateRequest handling. */
-typedef struct TLS13CertificateRequestStr {
-    PLArenaPool *arena;
-    SECItem context;
-    SSLSignatureScheme *signatureSchemes;
-    unsigned int signatureSchemeCount;
-    CERTDistNames ca_list;
-} TLS13CertificateRequest;
 
 /*
 ** This is the "hs" member of the "ssl3" struct.
@@ -869,20 +861,19 @@ typedef struct SSL3HandshakeStateStr {
     PK11SymKey *serverTrafficSecret;      /* traffic keys */
     PK11SymKey *earlyExporterSecret;      /* for 0-RTT exporters */
     PK11SymKey *exporterSecret;           /* for exporters */
-    /* The certificate request from the server. */
-    TLS13CertificateRequest *certificateRequest;
-    PRCList cipherSpecs;            /* The cipher specs in the sequence they
+    PRCList cipherSpecs;                  /* The cipher specs in the sequence they
                                      * will be applied. */
-    sslZeroRttState zeroRttState;   /* Are we doing a 0-RTT handshake? */
-    sslZeroRttIgnore zeroRttIgnore; /* Are we ignoring 0-RTT? */
-    ssl3CipherSuite zeroRttSuite;   /* The cipher suite we used for 0-RTT. */
-    PRCList bufferedEarlyData;      /* Buffered TLS 1.3 early data
+    sslZeroRttState zeroRttState;         /* Are we doing a 0-RTT handshake? */
+    sslZeroRttIgnore zeroRttIgnore;       /* Are we ignoring 0-RTT? */
+    ssl3CipherSuite zeroRttSuite;         /* The cipher suite we used for 0-RTT. */
+    PRCList bufferedEarlyData;            /* Buffered TLS 1.3 early data
                                      * on server.*/
-    PRBool helloRetry;              /* True if HelloRetryRequest has been sent
+    PRBool helloRetry;                    /* True if HelloRetryRequest has been sent
                                      * or received. */
-    ssl3KEADef kea_def_mutable;     /* Used to hold the writable kea_def
+    PRBool clientCertRequested;           /* True if CertificateRequest received. */
+    ssl3KEADef kea_def_mutable;           /* Used to hold the writable kea_def
                                      * we use for TLS 1.3 */
-    PRBool shortHeaders;            /* Assigned if we are doing short headers. */
+    PRBool shortHeaders;                  /* Assigned if we are doing short headers. */
 } SSL3HandshakeState;
 
 /*
@@ -1800,10 +1791,12 @@ SECStatus ssl_ReadCertificateStatus(sslSocket *ss, PRUint8 *b,
                                     PRUint32 length);
 SECStatus ssl3_EncodeSigAlgs(const sslSocket *ss, PRUint8 *buf,
                              unsigned maxLen, PRUint32 *len);
-SECStatus ssl_GetCertificateRequestCAs(sslSocket *ss, unsigned int *calenp,
-                                       SECItem **namesp, unsigned int *nnamesp);
+SECStatus ssl_GetCertificateRequestCAs(const sslSocket *ss,
+                                       unsigned int *calenp,
+                                       const SECItem **namesp,
+                                       unsigned int *nnamesp);
 SECStatus ssl3_ParseCertificateRequestCAs(sslSocket *ss, PRUint8 **b,
-                                          PRUint32 *length, PLArenaPool *arena,
+                                          PRUint32 *length,
                                           CERTDistNames *ca_list);
 SECStatus ssl3_CompleteHandleCertificateRequest(
     sslSocket *ss, const SSLSignatureScheme *signatureSchemes,

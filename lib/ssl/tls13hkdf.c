@@ -137,7 +137,7 @@ tls13_HkdfExpandLabel(PK11SymKey *prk, SSLHashType baseHash,
     PRUint8 *ptr = info;
     unsigned int infoLen;
     PK11SymKey *derived;
-    const char *kLabelPrefix = "TLS 1.3, ";
+    const char *kLabelPrefix = "tls13 ";
     const unsigned int kLabelPrefixLen = strlen(kLabelPrefix);
 
     if (handshakeHash) {
@@ -211,7 +211,7 @@ tls13_HkdfExpandLabel(PK11SymKey *prk, SSLHashType baseHash,
         char labelStr[100];
         PORT_Memcpy(labelStr, label, labelLen);
         labelStr[labelLen] = 0;
-        SSL_TRC(50, ("HKDF Expand: label=[TLS 1.3, ] + '%s',requested length=%d",
+        SSL_TRC(50, ("HKDF Expand: label='tls13 %s',requested length=%d",
                      labelStr, keySize));
     }
     PRINT_KEY(50, (NULL, "PRK", prk));
