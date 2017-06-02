@@ -1628,6 +1628,10 @@ extern SECStatus ssl_ClientReadVersion(sslSocket *ss, PRUint8 **b,
 extern SECStatus ssl3_NegotiateVersion(sslSocket *ss,
                                        SSL3ProtocolVersion peerVersion,
                                        PRBool allowLargerPeerVersion);
+extern SECStatus ssl_ClientConsumeCipherSuite(sslSocket *ss,
+                                              SSL3ProtocolVersion version,
+                                              PRUint8 **b,
+                                              unsigned int *length);
 
 extern SECStatus ssl_GetPeerInfo(sslSocket *ss);
 
@@ -1830,8 +1834,7 @@ SECOidTag ssl3_HashTypeToOID(SSLHashType hashType);
 SSLHashType ssl_SignatureSchemeToHashType(SSLSignatureScheme scheme);
 KeyType ssl_SignatureSchemeToKeyType(SSLSignatureScheme scheme);
 
-SECStatus ssl3_SetCipherSuite(sslSocket *ss, ssl3CipherSuite chosenSuite,
-                              PRBool initHashes);
+SECStatus ssl3_SetupCipherSuite(sslSocket *ss, PRBool initHashes);
 
 /* Pull in TLS 1.3 functions */
 #include "tls13con.h"

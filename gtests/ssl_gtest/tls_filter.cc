@@ -432,8 +432,7 @@ bool FindServerHelloExtensions(TlsParser* parser, const TlsVersioned& header) {
 
 static bool FindHelloRetryExtensions(TlsParser* parser,
                                      const TlsVersioned& header) {
-  // TODO for -19 add cipher suite
-  if (!parser->Skip(2)) {  // version
+  if (!parser->Skip(4)) {  // version (2) + cipher suite (2)
     return false;
   }
   return true;
@@ -645,6 +644,27 @@ PacketFilter::Action TlsInspectorClientHelloVersionSetter::FilterHandshake(
     return CHANGE;
   }
   return KEEP;
+}
+
+PacketFilter::Action SelectedCipherSuiteReplacer::FilterHandshake(
+    const HandshakeHeader& header, const DataBuffer& input,
+    DataBuffer* output) {
+  if (header.handshake_type() != kTlsHandshakeServerHello) {
+    return KEEP;
+  }
+
+  *output = input;
+  uint32_t temp = 0;
+  EXPECT_TRUE(input.Read(0, 2, &temp));
+  // Cipher suite is after version(2) and random(32).
+  size_t pos = 34;
+  if (temp < SSL_LIBRARY_VERSION_TLS_1_3) {
+    // In old versions, we have to skip a session_id too.
+    EXPECT_TRUE(input.Read(pos, 1, &temp));
+    pos += 1 + temp;
+  }
+  output->Write(pos, static_cast<uint32_t>(cipher_suite_), 2);
+  return CHANGE;
 }
 
 }  // namespace nss_test

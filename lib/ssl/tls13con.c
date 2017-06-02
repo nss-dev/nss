@@ -477,7 +477,8 @@ tls13_SetupClientHello(sslSocket *ss)
             return SECFailure;
         }
 
-        rv = ssl3_SetCipherSuite(ss, ss->sec.ci.sid->u.ssl3.cipherSuite, PR_FALSE);
+        ss->ssl3.hs.cipher_suite = ss->sec.ci.sid->u.ssl3.cipherSuite;
+        rv = ssl3_SetupCipherSuite(ss, PR_FALSE);
         if (rv != SECSuccess) {
             FATAL_ERROR(ss, PORT_GetError(), internal_error);
             return SECFailure;
@@ -1518,6 +1519,7 @@ tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup
     ssl_GetXmitBufLock(ss);
     rv = ssl3_AppendHandshakeHeader(ss, hello_retry_request,
                                     2 +     /* version */
+                                        2 + /* cipher suite */
                                         2 + /* extension length */
                                         2 + /* group extension id */
                                         2 + /* group extension length */
@@ -1529,6 +1531,12 @@ tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup
 
     rv = ssl3_AppendHandshakeNumber(
         ss, tls13_EncodeDraftVersion(ss->version), 2);
+    if (rv != SECSuccess) {
+        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
+        goto loser;
+    }
+
+    rv = ssl3_AppendHandshakeNumber(ss, ss->ssl3.hs.cipher_suite, 2);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
         goto loser;
@@ -1742,6 +1750,11 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST,
                     protocol_version);
         return SECFailure;
+    }
+
+    rv = ssl_ClientConsumeCipherSuite(ss, version, &b, &length);
+    if (rv != SECSuccess) {
+        return SECFailure; /* error code already set */
     }
 
     /* Extensions. */
