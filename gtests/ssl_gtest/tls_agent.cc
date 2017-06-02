@@ -918,7 +918,7 @@ void TlsAgent::SendBuffer(const DataBuffer& buf) {
 }
 
 void TlsAgent::ReadBytes() {
-  uint8_t block[1024];
+  uint8_t block[16384];  // An entire maximum-sized record.
 
   int32_t rv = PR_Read(ssl_fd(), block, sizeof(block));
   LOGV("ReadBytes " << rv);
