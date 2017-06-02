@@ -437,36 +437,6 @@ TEST_P(TlsConnectGeneric, TestResumeServerDifferentCipher) {
   CheckKeys();
 }
 
-class SelectedCipherSuiteReplacer : public TlsHandshakeFilter {
- public:
-  SelectedCipherSuiteReplacer(uint16_t suite) : cipher_suite_(suite) {}
-
- protected:
-  PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
-                                       const DataBuffer& input,
-                                       DataBuffer* output) override {
-    if (header.handshake_type() != kTlsHandshakeServerHello) {
-      return KEEP;
-    }
-
-    *output = input;
-    uint32_t temp = 0;
-    EXPECT_TRUE(input.Read(0, 2, &temp));
-    // Cipher suite is after version(2) and random(32).
-    size_t pos = 34;
-    if (temp < SSL_LIBRARY_VERSION_TLS_1_3) {
-      // In old versions, we have to skip a session_id too.
-      EXPECT_TRUE(input.Read(pos, 1, &temp));
-      pos += 1 + temp;
-    }
-    output->Write(pos, static_cast<uint32_t>(cipher_suite_), 2);
-    return CHANGE;
-  }
-
- private:
-  uint16_t cipher_suite_;
-};
-
 // Test that the client doesn't tolerate the server picking a different cipher
 // suite for resumption.
 TEST_P(TlsConnectStream, TestResumptionOverrideCipher) {

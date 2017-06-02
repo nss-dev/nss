@@ -187,6 +187,23 @@ TEST_P(TlsConnectTls13, RetryWithSameKeyShare) {
   EXPECT_EQ(SSL_ERROR_ILLEGAL_PARAMETER_ALERT, client_->error_code());
 }
 
+// Stream because the server doesn't consume the alert and terminate.
+TEST_F(TlsConnectStreamTls13, RetryWithDifferentCipherSuite) {
+  EnsureTlsSetup();
+  // Force a HelloRetryRequest.
+  static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1};
+  server_->ConfigNamedGroups(groups);
+  // Then switch out the default suite (TLS_AES_128_GCM_SHA256).
+  server_->SetPacketFilter(std::make_shared<SelectedCipherSuiteReplacer>(
+      TLS_CHACHA20_POLY1305_SHA256));
+
+  client_->ExpectSendAlert(kTlsAlertIllegalParameter);
+  server_->ExpectSendAlert(kTlsAlertBadRecordMac);
+  ConnectExpectFail();
+  EXPECT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
+  EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, server_->error_code());
+}
+
 // This tests that the second attempt at sending a ClientHello (after receiving
 // a HelloRetryRequest) is correctly retransmitted.
 TEST_F(TlsConnectDatagram13, DropClientSecondFlightWithHelloRetry) {
@@ -276,9 +293,10 @@ class HelloRetryRequestAgentTest : public TlsAgentTestClient {
   void MakeCannedHrr(const uint8_t* body, size_t len, DataBuffer* hrr_record,
                      uint32_t seq_num = 0) const {
     DataBuffer hrr_data;
-    hrr_data.Allocate(len + 4);
+    hrr_data.Allocate(len + 6);
     size_t i = 0;
     i = hrr_data.Write(i, 0x7f00 | TLS_1_3_DRAFT_VERSION, 2);
+    i = hrr_data.Write(i, TLS_AES_128_GCM_SHA256, 2);
     i = hrr_data.Write(i, static_cast<uint32_t>(len), 2);
     if (len) {
       hrr_data.Write(i, body, len);

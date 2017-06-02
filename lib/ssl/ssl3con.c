@@ -6573,11 +6573,9 @@ done:
 /* Once a cipher suite has been selected, make sure that the necessary secondary
  * information is properly set. */
 SECStatus
-ssl3_SetCipherSuite(sslSocket *ss, ssl3CipherSuite chosenSuite,
-                    PRBool initHashes)
+ssl3_SetupCipherSuite(sslSocket *ss, PRBool initHashes)
 {
-    ss->ssl3.hs.cipher_suite = chosenSuite;
-    ss->ssl3.hs.suite_def = ssl_LookupCipherSuiteDef(chosenSuite);
+    ss->ssl3.hs.suite_def = ssl_LookupCipherSuiteDef(ss->ssl3.hs.cipher_suite);
     if (!ss->ssl3.hs.suite_def) {
         PORT_Assert(0);
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -6594,6 +6592,59 @@ ssl3_SetCipherSuite(sslSocket *ss, ssl3CipherSuite chosenSuite,
     return ssl3_InitHandshakeHashes(ss);
 }
 
+SECStatus
+ssl_ClientConsumeCipherSuite(sslSocket *ss, SSL3ProtocolVersion version,
+                             PRUint8 **b, unsigned int *length)
+{
+    PRUint32 temp;
+    int i;
+    SECStatus rv;
+
+    /* Find the selected cipher suite in our list. */
+    rv = ssl3_ConsumeHandshakeNumber(ss, &temp, 2, b, length);
+    if (rv != SECSuccess) {
+        return SECFailure; /* alert has been sent */
+    }
+
+    i = ssl3_config_match_init(ss);
+    PORT_Assert(i > 0);
+    if (i <= 0) {
+        return SECFailure;
+    }
+    for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
+        ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
+        if (temp == suite->cipher_suite) {
+            SSLVersionRange vrange = { version, version };
+            if (!config_match(suite, ss->ssl3.policy, &vrange, ss)) {
+                /* config_match already checks whether the cipher suite is
+                 * acceptable for the version, but the check is repeated here
+                 * in order to give a more precise error code. */
+                if (!ssl3_CipherSuiteAllowedForVersionRange(temp, &vrange)) {
+                    PORT_SetError(SSL_ERROR_CIPHER_DISALLOWED_FOR_VERSION);
+                } else {
+                    PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
+                }
+                return SECFailure;
+            }
+            break;
+        }
+    }
+    if (i >= ssl_V3_SUITES_IMPLEMENTED) {
+        PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
+        return SECFailure;
+    }
+
+    /* Don't let the server change its mind. */
+    if (ss->ssl3.hs.helloRetry && temp != ss->ssl3.hs.cipher_suite) {
+        (void)SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
+        return SECFailure;
+    }
+
+    ss->ssl3.hs.cipher_suite = (ssl3CipherSuite)temp;
+    return SECSuccess;
+}
+
 /* Called from ssl3_HandleHandshakeMessage() when it has deciphered a complete
  * ssl3 ServerHello message.
  * Caller must hold Handshake and RecvBuf locks.
@@ -6602,7 +6653,6 @@ static SECStatus
 ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     PRUint32 temp;
-    PRBool suite_found = PR_FALSE;
     int i;
     int errCode = SSL_ERROR_RX_MALFORMED_SERVER_HELLO;
     SECStatus rv;
@@ -6725,68 +6775,35 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
         }
     }
 
-    /* find selected cipher suite in our list. */
-    rv = ssl3_ConsumeHandshakeNumber(ss, &temp, 2, &b, &length);
+    rv = ssl_ClientConsumeCipherSuite(ss, ss->version, &b, &length);
     if (rv != SECSuccess) {
-        goto loser; /* alert has been sent */
-    }
-    i = ssl3_config_match_init(ss);
-    PORT_Assert(i > 0);
-    if (i <= 0) {
         errCode = PORT_GetError();
-        goto loser;
-    }
-    for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
-        ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
-        if (temp == suite->cipher_suite) {
-            SSLVersionRange vrange = { ss->version, ss->version };
-            if (!config_match(suite, ss->ssl3.policy, &vrange, ss)) {
-                /* config_match already checks whether the cipher suite is
-                 * acceptable for the version, but the check is repeated here
-                 * in order to give a more precise error code. */
-                if (!ssl3_CipherSuiteAllowedForVersionRange(temp, &vrange)) {
-                    desc = handshake_failure;
-                    errCode = SSL_ERROR_CIPHER_DISALLOWED_FOR_VERSION;
-                    goto alert_loser;
-                }
-
-                break; /* failure */
-            }
-
-            suite_found = PR_TRUE;
-            break; /* success */
-        }
-    }
-    if (!suite_found) {
-        desc = handshake_failure;
-        errCode = SSL_ERROR_NO_CYPHER_OVERLAP;
         goto alert_loser;
     }
-
-    rv = ssl3_SetCipherSuite(ss, (ssl3CipherSuite)temp, PR_TRUE);
+    rv = ssl3_SetupCipherSuite(ss, PR_TRUE);
     if (rv != SECSuccess) {
         desc = internal_error;
         errCode = PORT_GetError();
-        goto alert_loser;
+        goto loser;
     }
 
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+        PRBool found = PR_FALSE;
         /* find selected compression method in our list. */
         rv = ssl3_ConsumeHandshakeNumber(ss, &temp, 1, &b, &length);
         if (rv != SECSuccess) {
             goto loser; /* alert has been sent */
         }
-        suite_found = PR_FALSE;
         for (i = 0; i < ssl_compression_method_count; i++) {
             if (temp == ssl_compression_methods[i]) {
                 if (!ssl_CompressionEnabled(ss, ssl_compression_methods[i])) {
                     break; /* failure */
                 }
-                suite_found = PR_TRUE;
+                found = PR_TRUE;
                 break; /* success */
             }
         }
-        if (!suite_found) {
+        if (!found) {
             desc = handshake_failure;
             errCode = SSL_ERROR_NO_COMPRESSION_OVERLAP;
             goto alert_loser;
@@ -8058,7 +8075,8 @@ ssl3_NegotiateCipherSuite(sslSocket *ss, const SECItem *suites,
         for (i = 0; i + 1 < suites->len; i += 2) {
             PRUint16 suite_i = (suites->data[i] << 8) | suites->data[i + 1];
             if (suite_i == suite->cipher_suite) {
-                return ssl3_SetCipherSuite(ss, suite_i, initHashes);
+                ss->ssl3.hs.cipher_suite = suite_i;
+                return ssl3_SetupCipherSuite(ss, initHashes);
             }
         }
     }
@@ -8723,7 +8741,8 @@ ssl3_HandleClientHelloPart2(sslSocket *ss,
             for (i = 0; i + 1 < suites->len; i += 2) {
                 PRUint16 suite_i = (suites->data[i] << 8) | suites->data[i + 1];
                 if (suite_i == suite->cipher_suite) {
-                    rv = ssl3_SetCipherSuite(ss, suite_i, PR_TRUE);
+                    ss->ssl3.hs.cipher_suite = suite_i;
+                    rv = ssl3_SetupCipherSuite(ss, PR_TRUE);
                     if (rv != SECSuccess) {
                         desc = internal_error;
                         errCode = PORT_GetError();
@@ -9170,8 +9189,6 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length,
     **
     ** NOTE: This suite selection algorithm should be the same as the one in
     ** ssl3_HandleClientHello().
-    **
-    ** See the comments about export cipher suites in ssl3_HandleClientHello().
     */
     for (j = 0; j < ssl_V3_SUITES_IMPLEMENTED; j++) {
         ssl3CipherSuiteCfg *suite = &ss->cipherSuites[j];
@@ -9182,7 +9199,8 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length,
         for (i = 0; i + 2 < suite_length; i += 3) {
             PRUint32 suite_i = (suites[i] << 16) | (suites[i + 1] << 8) | suites[i + 2];
             if (suite_i == suite->cipher_suite) {
-                rv = ssl3_SetCipherSuite(ss, suite_i, PR_TRUE);
+                ss->ssl3.hs.cipher_suite = suite_i;
+                rv = ssl3_SetupCipherSuite(ss, PR_TRUE);
                 if (rv != SECSuccess) {
                     desc = internal_error;
                     errCode = PORT_GetError();

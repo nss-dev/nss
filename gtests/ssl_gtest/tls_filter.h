@@ -411,6 +411,19 @@ class TlsLastByteDamager : public TlsHandshakeFilter {
   uint8_t type_;
 };
 
+class SelectedCipherSuiteReplacer : public TlsHandshakeFilter {
+ public:
+  SelectedCipherSuiteReplacer(uint16_t suite) : cipher_suite_(suite) {}
+
+ protected:
+  PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
+                                       const DataBuffer& input,
+                                       DataBuffer* output) override;
+
+ private:
+  uint16_t cipher_suite_;
+};
+
 }  // namespace nss_test
 
 #endif
