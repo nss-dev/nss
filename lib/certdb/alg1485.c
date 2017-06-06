@@ -430,8 +430,6 @@ ParseRFC1485AVA(PLArenaPool* arena, const char** pbp, const char* endptr)
             goto loser;
         a = CERT_CreateAVAFromRaw(arena, &derOid, &derVal);
     } else {
-        if (kind == SEC_OID_UNKNOWN && !isDottedOid)
-            goto loser;
         if (kind == SEC_OID_AVA_COUNTRY_NAME && valLen != 2)
             goto loser;
         if (vt == SEC_ASN1_PRINTABLE_STRING &&

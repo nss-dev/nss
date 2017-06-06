@@ -6,6 +6,17 @@
 #define GCM_H 1
 
 #include "blapii.h"
+#include <stdint.h>
+
+#ifdef NSS_X86_OR_X64
+#include <emmintrin.h> /* __m128i */
+#endif
+
+SEC_BEGIN_PROTOS
+
+#ifdef HAVE_INT128_SUPPORT
+typedef unsigned __int128 uint128_t;
+#endif
 
 typedef struct GCMContextStr GCMContext;
 
@@ -27,5 +38,47 @@ SECStatus GCM_DecryptUpdate(GCMContext *gcm, unsigned char *outbuf,
                             unsigned int *outlen, unsigned int maxout,
                             const unsigned char *inbuf, unsigned int inlen,
                             unsigned int blocksize);
+
+/* These functions are here only so we can test them */
+#if defined(_WINDOWS) && defined(NSS_X86_OR_X64)
+#define pre_align __declspec(align(16))
+#define post_align
+#elif defined(NSS_X86_OR_X64)
+#define pre_align
+#define post_align __attribute__((aligned(16)))
+#else
+#define pre_align
+#define post_align
+#endif
+
+#define GCM_HASH_LEN_LEN 8 /* gcm hash defines lengths to be 64 bits */
+typedef struct gcmHashContextStr gcmHashContext;
+typedef SECStatus (*ghash_t)(gcmHashContext *, const unsigned char *,
+                             unsigned int, unsigned int);
+pre_align struct gcmHashContextStr {
+#ifdef NSS_X86_OR_X64
+    __m128i x, h;
+#endif
+    uint64_t x_low, x_high, h_high, h_low;
+    unsigned char buffer[MAX_BLOCK_SIZE];
+    unsigned int bufLen;
+    uint8_t counterBuf[16];
+    uint64_t cLen;
+    ghash_t ghash_mul;
+    PRBool hw;
+    gcmHashContext *mem;
+} post_align;
+
+SECStatus gcmHash_Update(gcmHashContext *ghash, const unsigned char *buf,
+                         unsigned int len, unsigned int blocksize);
+SECStatus gcmHash_InitContext(gcmHashContext *ghash, const unsigned char *H,
+                              PRBool sw);
+SECStatus gcmHash_Reset(gcmHashContext *ghash, const unsigned char *AAD,
+                        unsigned int AADLen, unsigned int blocksize);
+SECStatus gcmHash_Final(gcmHashContext *ghash, unsigned char *outbuf,
+                        unsigned int *outlen, unsigned int maxout,
+                        unsigned int blocksize);
+
+SEC_END_PROTOS
 
 #endif

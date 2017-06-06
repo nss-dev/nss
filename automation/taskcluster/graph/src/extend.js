@@ -42,7 +42,8 @@ queue.filter(task => {
 
   if (task.tests == "bogo" || task.tests == "interop") {
     // No windows
-    if (task.platform == "windows2012-64") {
+    if (task.platform == "windows2012-64" ||
+        task.platform == "windows2012-32") {
       return false;
     }
 
@@ -53,8 +54,7 @@ queue.filter(task => {
   }
 
   // Only old make builds have -Ddisable_libpkix=0 and can run chain tests.
-  if (task.tests == "chains" && task.collection != "make" &&
-      task.platform != "windows2012-64") {
+  if (task.tests == "chains" && task.collection != "make") {
     return false;
   }
 
@@ -63,13 +63,7 @@ queue.filter(task => {
     if (task.collection == "make") {
       return false;
     }
-
-    // Disable mpi tests for now on 32-bit builds (bug 1362392)
-    if (task.platform == "linux32") {
-      return false;
-    }
   }
-
 
   // Don't run additional hardware tests on ARM (we don't have anything there).
   if (task.group == "Cipher" && task.platform == "aarch64" && task.env &&
@@ -159,15 +153,37 @@ export default async function main() {
     features: ["allowPtrace"],
   }, "--ubsan --asan");
 
+  await scheduleWindows("Windows 2012 64 (debug, make)", {
+    platform: "windows2012-64",
+    collection: "make",
+    env: {USE_64: "1"}
+  }, "build.sh");
+
+  await scheduleWindows("Windows 2012 32 (debug, make)", {
+    platform: "windows2012-32",
+    collection: "make"
+  }, "build.sh");
+
   await scheduleWindows("Windows 2012 64 (opt)", {
-    env: {BUILD_OPT: "1"}
-  });
+    platform: "windows2012-64",
+  }, "build_gyp.sh --opt");
 
   await scheduleWindows("Windows 2012 64 (debug)", {
+    platform: "windows2012-64",
     collection: "debug"
-  });
+  }, "build_gyp.sh");
+
+  await scheduleWindows("Windows 2012 32 (opt)", {
+    platform: "windows2012-32",
+  }, "build_gyp.sh --opt -m32");
+
+  await scheduleWindows("Windows 2012 32 (debug)", {
+    platform: "windows2012-32",
+    collection: "debug"
+  }, "build_gyp.sh -m32");
 
   await scheduleFuzzing();
+  await scheduleFuzzing32();
 
   await scheduleTools();
 
@@ -415,6 +431,110 @@ async function scheduleFuzzing() {
   return queue.submit();
 }
 
+async function scheduleFuzzing32() {
+  let base = {
+    env: {
+      ASAN_OPTIONS: "allocator_may_return_null=1:detect_stack_use_after_return=1",
+      UBSAN_OPTIONS: "print_stacktrace=1",
+      NSS_DISABLE_ARENA_FREE_LIST: "1",
+      NSS_DISABLE_UNLOAD: "1",
+      CC: "clang",
+      CCC: "clang++"
+    },
+    features: ["allowPtrace"],
+    platform: "linux32",
+    collection: "fuzz",
+    image: FUZZ_IMAGE
+  };
+
+  // Build base definition.
+  let build_base = merge({
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && " +
+      "nss/automation/taskcluster/scripts/build_gyp.sh -g -v --fuzz -m32"
+    ],
+    artifacts: {
+      public: {
+        expires: 24 * 7,
+        type: "directory",
+        path: "/home/worker/artifacts"
+      }
+    },
+    kind: "build",
+    symbol: "B"
+  }, base);
+
+  // The task that builds NSPR+NSS.
+  let task_build = queue.scheduleTask(merge(build_base, {
+    name: "Linux 32 (debug, fuzz)"
+  }));
+
+  // The task that builds NSPR+NSS (TLS fuzzing mode).
+  let task_build_tls = queue.scheduleTask(merge(build_base, {
+    name: "Linux 32 (debug, TLS fuzz)",
+    symbol: "B",
+    group: "TLS",
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && " +
+      "nss/automation/taskcluster/scripts/build_gyp.sh -g -v --fuzz=tls -m32"
+    ],
+  }));
+
+  // Schedule tests.
+  queue.scheduleTask(merge(base, {
+    parent: task_build_tls,
+    name: "Gtests",
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+    ],
+    env: {GTESTFILTER: "*Fuzz*"},
+    tests: "ssl_gtests gtests",
+    cycle: "standard",
+    symbol: "Gtest",
+    kind: "test"
+  }));
+
+  // Schedule fuzzing runs.
+  let run_base = merge(base, {parent: task_build, kind: "test"});
+  scheduleFuzzingRun(run_base, "CertDN", "certDN", 4096);
+  scheduleFuzzingRun(run_base, "QuickDER", "quickder", 10000);
+
+  // Schedule MPI fuzzing runs.
+  let mpi_base = merge(run_base, {group: "MPI"});
+  let mpi_names = ["add", "addmod", "div", "expmod", "mod", "mulmod", "sqr",
+                   "sqrmod", "sub", "submod"];
+  for (let name of mpi_names) {
+    scheduleFuzzingRun(mpi_base, `MPI (${name})`, `mpi-${name}`, 4096, name);
+  }
+  scheduleFuzzingRun(mpi_base, `MPI (invmod)`, `mpi-invmod`, 256, "invmod");
+
+  // Schedule TLS fuzzing runs (non-fuzzing mode).
+  let tls_base = merge(run_base, {group: "TLS"});
+  scheduleFuzzingRun(tls_base, "TLS Client", "tls-client", 20000, "client-nfm",
+                     "tls-client-no_fuzzer_mode");
+  scheduleFuzzingRun(tls_base, "TLS Server", "tls-server", 20000, "server-nfm",
+                     "tls-server-no_fuzzer_mode");
+  scheduleFuzzingRun(tls_base, "DTLS Client", "dtls-client", 20000,
+                     "dtls-client-nfm", "dtls-client-no_fuzzer_mode");
+  scheduleFuzzingRun(tls_base, "DTLS Server", "dtls-server", 20000,
+                     "dtls-server-nfm", "dtls-server-no_fuzzer_mode");
+
+  // Schedule TLS fuzzing runs (fuzzing mode).
+  let tls_fm_base = merge(tls_base, {parent: task_build_tls});
+  scheduleFuzzingRun(tls_fm_base, "TLS Client", "tls-client", 20000, "client");
+  scheduleFuzzingRun(tls_fm_base, "TLS Server", "tls-server", 20000, "server");
+  scheduleFuzzingRun(tls_fm_base, "DTLS Client", "dtls-client", 20000, "dtls-client");
+  scheduleFuzzingRun(tls_fm_base, "DTLS Server", "dtls-server", 20000, "dtls-server");
+
+  return queue.submit();
+}
+
 /*****************************************************************************/
 
 async function scheduleTestBuilds(base, args = "") {
@@ -475,10 +595,9 @@ async function scheduleTestBuilds(base, args = "") {
 
 /*****************************************************************************/
 
-async function scheduleWindows(name, base) {
+async function scheduleWindows(name, base, build_script) {
   base = merge(base, {
     workerType: "nss-win2012r2",
-    platform: "windows2012-64",
     env: {
       PATH: "c:\\mozilla-build\\python;c:\\mozilla-build\\msys\\local\\bin;" +
             "c:\\mozilla-build\\7zip;c:\\mozilla-build\\info-zip;" +
@@ -488,7 +607,6 @@ async function scheduleWindows(name, base) {
             "c:\\mozilla-build\\wget",
       DOMSUF: "localdomain",
       HOST: "localhost",
-      USE_64: "1"
     }
   });
 
@@ -496,7 +614,7 @@ async function scheduleWindows(name, base) {
   let build_base = merge(base, {
     command: [
       WINDOWS_CHECKOUT_CMD,
-      "bash -c nss/automation/taskcluster/windows/build.sh"
+      `bash -c 'nss/automation/taskcluster/windows/${build_script}'`
     ],
     artifacts: [{
       expires: 24 * 7,

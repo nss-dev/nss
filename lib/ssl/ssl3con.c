@@ -38,13 +38,6 @@
 #include "zlib.h"
 #endif
 
-#ifndef PK11_SETATTRS
-#define PK11_SETATTRS(x, id, v, l) \
-    (x)->type = (id);              \
-    (x)->pValue = (v);             \
-    (x)->ulValueLen = (l);
-#endif
-
 static PK11SymKey *ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
                                        PK11SlotInfo *serverKeySlot);
 static SECStatus ssl3_DeriveMasterSecret(sslSocket *ss, PK11SymKey *pms);
@@ -64,7 +57,7 @@ static SECStatus ssl3_HandleServerHelloPart2(sslSocket *ss,
                                              const SECItem *sidBytes,
                                              int *retErrCode);
 static SECStatus ssl3_HandlePostHelloHandshakeMessage(sslSocket *ss,
-                                                      SSL3Opaque *b,
+                                                      PRUint8 *b,
                                                       PRUint32 length,
                                                       SSL3Hashes *hashesPtr);
 static SECStatus ssl3_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags);
@@ -1082,7 +1075,7 @@ ssl3_NegotiateVersion(sslSocket *ss, SSL3ProtocolVersion peerVersion,
 /* Used by the client when the server produces a version number.
  * This reads, validates, and normalizes the value. */
 SECStatus
-ssl_ClientReadVersion(sslSocket *ss, SSL3Opaque **b, unsigned int *len,
+ssl_ClientReadVersion(sslSocket *ss, PRUint8 **b, unsigned int *len,
                       SSL3ProtocolVersion *version)
 {
     SSL3ProtocolVersion v;
@@ -2226,7 +2219,7 @@ ssl3_ComputeRecordMAC(
     PRBool useServerMacKey,
     const unsigned char *header,
     unsigned int headerLen,
-    const SSL3Opaque *input,
+    const PRUint8 *input,
     int inputLength,
     unsigned char *outbuf,
     unsigned int *outLength)
@@ -2273,7 +2266,7 @@ ssl3_ComputeRecordMACConstantTime(
     PRBool useServerMacKey,
     const unsigned char *header,
     unsigned int headerLen,
-    const SSL3Opaque *input,
+    const PRUint8 *input,
     int inputLen,
     int originalLen,
     unsigned char *outbuf,
@@ -2378,7 +2371,7 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
                               PRBool isDTLS,
                               PRBool capRecordVersion,
                               SSL3ContentType type,
-                              const SSL3Opaque *pIn,
+                              const PRUint8 *pIn,
                               PRUint32 contentLen,
                               sslBuffer *wrBuf)
 {
@@ -2547,7 +2540,7 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
 SECStatus
 ssl_ProtectRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
                   PRBool capRecordVersion, SSL3ContentType type,
-                  const SSL3Opaque *pIn, PRUint32 contentLen, sslBuffer *wrBuf)
+                  const PRUint8 *pIn, PRUint32 contentLen, sslBuffer *wrBuf)
 {
     const ssl3BulkCipherDef *cipher_def = cwSpec->cipher_def;
     PRUint16 headerLen;
@@ -2664,8 +2657,8 @@ PRInt32
 ssl3_SendRecord(sslSocket *ss,
                 ssl3CipherSpec *cwSpec, /* non-NULL for DTLS retransmits */
                 SSL3ContentType type,
-                const SSL3Opaque *pIn, /* input buffer */
-                PRInt32 nIn,           /* bytes of input */
+                const PRUint8 *pIn, /* input buffer */
+                PRInt32 nIn,        /* bytes of input */
                 PRInt32 flags)
 {
     sslBuffer *wrBuf = &ss->sec.writeBuf;
@@ -4222,7 +4215,7 @@ ssl3_AppendHandshakeNumber(sslSocket *ss, PRInt32 num, PRInt32 lenSize)
 
 SECStatus
 ssl3_AppendHandshakeVariable(
-    sslSocket *ss, const SSL3Opaque *src, PRInt32 bytes, PRInt32 lenSize)
+    sslSocket *ss, const PRUint8 *src, PRInt32 bytes, PRInt32 lenSize)
 {
     SECStatus rv;
 
@@ -4309,7 +4302,7 @@ ssl3_AppendHandshakeHeader(sslSocket *ss, SSL3HandshakeType t, PRUint32 length)
  * override the generic error code by setting another.
  */
 SECStatus
-ssl3_ConsumeHandshake(sslSocket *ss, void *v, PRUint32 bytes, SSL3Opaque **b,
+ssl3_ConsumeHandshake(sslSocket *ss, void *v, PRUint32 bytes, PRUint8 **b,
                       PRUint32 *length)
 {
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
@@ -4334,7 +4327,7 @@ ssl3_ConsumeHandshake(sslSocket *ss, void *v, PRUint32 bytes, SSL3Opaque **b,
  */
 SECStatus
 ssl3_ConsumeHandshakeNumber(sslSocket *ss, PRUint32 *num, PRUint32 bytes,
-                            SSL3Opaque **b, PRUint32 *length)
+                            PRUint8 **b, PRUint32 *length)
 {
     PRUint8 *buf = *b;
     int i;
@@ -4372,7 +4365,7 @@ ssl3_ConsumeHandshakeNumber(sslSocket *ss, PRUint32 *num, PRUint32 bytes,
  */
 SECStatus
 ssl3_ConsumeHandshakeVariable(sslSocket *ss, SECItem *i, PRUint32 bytes,
-                              SSL3Opaque **b, PRUint32 *length)
+                              PRUint8 **b, PRUint32 *length)
 {
     PRUint32 count;
     SECStatus rv;
@@ -4654,7 +4647,7 @@ ssl_IsRsaPssSignatureScheme(SSLSignatureScheme scheme)
  *
  * See https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */
 SECStatus
-ssl_ConsumeSignatureScheme(sslSocket *ss, SSL3Opaque **b,
+ssl_ConsumeSignatureScheme(sslSocket *ss, PRUint8 **b,
                            PRUint32 *length, SSLSignatureScheme *out)
 {
     PRUint32 tmp;
@@ -4720,8 +4713,8 @@ ssl3_ComputeHandshakeHashes(sslSocket *ss,
     SECStatus rv = SECSuccess;
     PRBool isTLS = (PRBool)(spec->version > SSL_LIBRARY_VERSION_3_0);
     unsigned int outLength;
-    SSL3Opaque md5_inner[MAX_MAC_LENGTH];
-    SSL3Opaque sha_inner[MAX_MAC_LENGTH];
+    PRUint8 md5_inner[MAX_MAC_LENGTH];
+    PRUint8 sha_inner[MAX_MAC_LENGTH];
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     if (ss->ssl3.hs.hashType == handshake_hash_unknown) {
@@ -6606,7 +6599,7 @@ ssl3_SetCipherSuite(sslSocket *ss, ssl3CipherSuite chosenSuite,
  * Caller must hold Handshake and RecvBuf locks.
  */
 static SECStatus
-ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     PRUint32 temp;
     PRBool suite_found = PR_FALSE;
@@ -7087,7 +7080,7 @@ loser:
 }
 
 static SECStatus
-ssl_HandleDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+ssl_HandleDHServerKeyExchange(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     SECStatus rv;
     int errCode = SSL_ERROR_RX_MALFORMED_SERVER_KEY_EXCH;
@@ -7247,7 +7240,7 @@ loser:
  * Caller must hold Handshake and RecvBuf locks.
  */
 static SECStatus
-ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+ssl3_HandleServerKeyExchange(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     SECStatus rv;
 
@@ -7298,7 +7291,7 @@ typedef struct dnameNode {
  * tls13_HandleCertificateRequest
  */
 SECStatus
-ssl3_ParseCertificateRequestCAs(sslSocket *ss, SSL3Opaque **b, PRUint32 *length,
+ssl3_ParseCertificateRequestCAs(sslSocket *ss, PRUint8 **b, PRUint32 *length,
                                 CERTDistNames *ca_list)
 {
     PRUint32 remaining;
@@ -7442,7 +7435,7 @@ done:
  * Caller must hold Handshake and RecvBuf locks.
  */
 static SECStatus
-ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+ssl3_HandleCertificateRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     PLArenaPool *arena = NULL;
     PRBool isTLS = PR_FALSE;
@@ -8288,7 +8281,7 @@ ssl3_SelectServerCert(sslSocket *ss)
  * Caller must hold Handshake and RecvBuf locks.
  */
 static SECStatus
-ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     sslSessionID *sid = NULL;
     PRUint32 tmp;
@@ -8535,7 +8528,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         for (i = 0; i + 1 < suites.len; i += 2) {
             PRUint16 suite_i = (suites.data[i] << 8) | suites.data[i + 1];
             if (suite_i == TLS_EMPTY_RENEGOTIATION_INFO_SCSV) {
-                SSL3Opaque *b2 = (SSL3Opaque *)emptyRIext;
+                PRUint8 *b2 = (PRUint8 *)emptyRIext;
                 PRUint32 L2 = sizeof emptyRIext;
                 (void)ssl3_HandleExtensions(ss, &b2, &L2, client_hello);
                 break;
@@ -9223,7 +9216,7 @@ suite_found:
     for (i = 0; i + 2 < suite_length; i += 3) {
         PRUint32 suite_i = (suites[i] << 16) | (suites[i + 1] << 8) | suites[i + 2];
         if (suite_i == TLS_EMPTY_RENEGOTIATION_INFO_SCSV) {
-            SSL3Opaque *b2 = (SSL3Opaque *)emptyRIext;
+            PRUint8 *b2 = (PRUint8 *)emptyRIext;
             PRUint32 L2 = sizeof emptyRIext;
             (void)ssl3_HandleExtensions(ss, &b2, &L2, client_hello);
             break;
@@ -9719,7 +9712,7 @@ ssl3_SendServerHelloDone(sslSocket *ss)
  * Caller must hold Handshake and RecvBuf locks.
  */
 static SECStatus
-ssl3_HandleCertificateVerify(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
+ssl3_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length,
                              SSL3Hashes *hashes)
 {
     SECItem signed_hash = { siBuffer, NULL, 0 };
@@ -9907,7 +9900,7 @@ ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
  */
 static SECStatus
 ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
-                                SSL3Opaque *b,
+                                PRUint8 *b,
                                 PRUint32 length,
                                 sslKeyPair *serverKeyPair)
 {
@@ -10034,7 +10027,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 
 static SECStatus
 ssl3_HandleDHClientKeyExchange(sslSocket *ss,
-                               SSL3Opaque *b,
+                               PRUint8 *b,
                                PRUint32 length,
                                sslKeyPair *serverKeyPair)
 {
@@ -10092,7 +10085,7 @@ ssl3_HandleDHClientKeyExchange(sslSocket *ss,
  * Caller must hold Handshake and RecvBuf locks.
  */
 static SECStatus
-ssl3_HandleClientKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+ssl3_HandleClientKeyExchange(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     sslKeyPair *serverKeyPair = NULL;
     SECStatus rv;
@@ -10243,7 +10236,7 @@ loser:
 }
 
 static SECStatus
-ssl3_HandleNewSessionTicket(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+ssl3_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     SECStatus rv;
     SECItem ticketData;
@@ -10554,7 +10547,7 @@ ssl3_CleanupPeerCerts(sslSocket *ss)
  * Caller must hold Handshake and RecvBuf locks.
  */
 static SECStatus
-ssl3_HandleCertificateStatus(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+ssl3_HandleCertificateStatus(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     SECStatus rv;
 
@@ -10573,7 +10566,7 @@ ssl3_HandleCertificateStatus(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 }
 
 SECStatus
-ssl_ReadCertificateStatus(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+ssl_ReadCertificateStatus(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     PRUint32 status, len;
     SECStatus rv;
@@ -10621,7 +10614,7 @@ ssl_ReadCertificateStatus(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
  * Caller must hold Handshake and RecvBuf locks.
  */
 static SECStatus
-ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+ssl3_HandleCertificate(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     SSL_TRC(3, ("%d: SSL3[%d]: handle certificate handshake",
                 SSL_GETPID(), ss->fd));
@@ -10641,7 +10634,7 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 /* Called from ssl3_HandleCertificate
  */
 SECStatus
-ssl3_CompleteHandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+ssl3_CompleteHandleCertificate(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     ssl3CertNode *c;
     ssl3CertNode *lastCert = NULL;
@@ -11380,7 +11373,7 @@ ssl3_CacheWrappedMasterSecret(sslSocket *ss, sslSessionID *sid,
  * Caller must hold Handshake and RecvBuf locks.
  */
 static SECStatus
-ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
+ssl3_HandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length,
                     const SSL3Hashes *hashes)
 {
     sslSessionID *sid = ss->sec.ci.sid;
@@ -11641,7 +11634,7 @@ ssl3_FinishHandshake(sslSocket *ss)
  * Caller must hold Handshake and RecvBuf locks.
  */
 SECStatus
-ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
+ssl3_HandleHandshakeMessage(sslSocket *ss, PRUint8 *b, PRUint32 length,
                             PRBool endOfRecord)
 {
     SECStatus rv = SECSuccess;
@@ -11827,7 +11820,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 }
 
 static SECStatus
-ssl3_HandlePostHelloHandshakeMessage(sslSocket *ss, SSL3Opaque *b,
+ssl3_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b,
                                      PRUint32 length, SSL3Hashes *hashesPtr)
 {
     SECStatus rv;
@@ -12195,7 +12188,7 @@ ssl_RemoveTLSCBCPadding(sslBuffer *plaintext, unsigned int macSize)
 static void
 ssl_CBCExtractMAC(sslBuffer *plaintext,
                   unsigned int originalLength,
-                  SSL3Opaque *out,
+                  PRUint8 *out,
                   unsigned int macSize)
 {
     unsigned char rotatedMac[MAX_MAC_LENGTH];
@@ -12306,9 +12299,9 @@ ssl3_UnprotectRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *plaintext,
     unsigned int originalLen = 0;
     unsigned char header[13];
     unsigned int headerLen;
-    SSL3Opaque hash[MAX_MAC_LENGTH];
-    SSL3Opaque givenHashBuf[MAX_MAC_LENGTH];
-    SSL3Opaque *givenHash;
+    PRUint8 hash[MAX_MAC_LENGTH];
+    PRUint8 givenHashBuf[MAX_MAC_LENGTH];
+    PRUint8 *givenHash;
     unsigned int hashBytes = MAX_MAC_LENGTH + 1;
     SECStatus rv;
 
@@ -12339,7 +12332,7 @@ ssl3_UnprotectRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *plaintext,
          * component." Instead, we decrypt the first cipher block and then
          * discard it before decrypting the rest.
          */
-        SSL3Opaque iv[MAX_IV_LENGTH];
+        PRUint8 iv[MAX_IV_LENGTH];
         int decoded;
 
         ivLen = cipher_def->iv_size;
