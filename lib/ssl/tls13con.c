@@ -84,7 +84,7 @@ tls13_DeriveSecret(sslSocket *ss, PK11SymKey *key,
                    const SSL3Hashes *hashes,
                    PK11SymKey **dest);
 static SECStatus tls13_SendEndOfEarlyData(sslSocket *ss);
-static SECStatus tls13_HandleEndOfEarlyData(sslSocket *ss, SSL3Opaque *b,
+static SECStatus tls13_HandleEndOfEarlyData(sslSocket *ss, PRUint8 *b,
                                             PRUint32 length);
 static SECStatus tls13_SendFinished(sslSocket *ss, PK11SymKey *baseKey);
 static SECStatus tls13_ComputePskBinderHash(sslSocket *ss,
@@ -4416,7 +4416,7 @@ tls13_SendEndOfEarlyData(sslSocket *ss)
 }
 
 static SECStatus
-tls13_HandleEndOfEarlyData(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+tls13_HandleEndOfEarlyData(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     SECStatus rv;
 
