@@ -153,6 +153,16 @@
       'MP_API_COMPATIBLE'
     ],
     'conditions': [
+      [ 'OS=="mac"', {
+        'xcode_settings': {
+          # I'm not sure since when this is supported.
+          # But I hope that doesn't matter. We also assume this is x86/x64.
+          'OTHER_CFLAGS': [
+            '-mpclmul',
+            '-maes',
+          ],
+        },
+      }],
       [ 'OS=="win" and target_arch=="ia32"', {
         'msvs_settings': {
           'VCCLCompilerTool': {
@@ -174,6 +184,7 @@
           'VCCLCompilerTool': {
             #TODO: -Ox optimize flags
             'PreprocessorDefinitions': [
+              # Should be copied to mingw defines below
               'MP_IS_LITTLE_ENDIAN',
               'NSS_BEVAND_ARCFOUR',
               'MPI_AMD64',
@@ -184,6 +195,17 @@
             ],
           },
         },
+      }],
+      [ 'cc_use_gnu_ld==1 and OS=="win" and target_arch=="x64"', {
+        'defines': [
+          'MP_IS_LITTLE_ENDIAN',
+          'NSS_BEVAND_ARCFOUR',
+          'MPI_AMD64',
+          'MP_ASSEMBLY_MULTIPLY',
+          'NSS_USE_COMBA',
+          'USE_HW_AES',
+          'INTEL_GCM',
+         ],
       }],
       [ 'OS!="win"', {
         'conditions': [
@@ -229,6 +251,14 @@
               'MP_ASSEMBLY_SQUARE',
               'MP_ASSEMBLY_DIV_2DX1D',
               'MP_USE_UINT_DIGIT',
+            ],
+          }],
+          [ 'target_arch=="ia32" or target_arch=="x64"', {
+            'cflags': [
+              # enable isa option for pclmul am aes-ni; supported since gcc 4.4
+              # This is only support by x84/x64. It's not needed for Windows.
+              '-mpclmul',
+              '-maes',
             ],
           }],
           [ 'target_arch=="arm"', {

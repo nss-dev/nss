@@ -31,13 +31,6 @@
 
 #include <stdio.h>
 
-#ifndef PK11_SETATTRS
-#define PK11_SETATTRS(x, id, v, l) \
-    (x)->type = (id);              \
-    (x)->pValue = (v);             \
-    (x)->ulValueLen = (l);
-#endif
-
 SECStatus
 ssl_NamedGroup2ECParams(PLArenaPool *arena, const sslNamedGroupDef *ecGroup,
                         SECKEYECParams *params)
@@ -274,7 +267,7 @@ tls13_EncodeECDHEKeyShareKEX(const sslSocket *ss, const SECKEYPublicKey *pubKey)
 ** Called from ssl3_HandleClientKeyExchange()
 */
 SECStatus
-ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
+ssl3_HandleECDHClientKeyExchange(sslSocket *ss, PRUint8 *b,
                                  PRUint32 length,
                                  sslKeyPair *serverKeyPair)
 {
@@ -348,7 +341,7 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 */
 SECStatus
 ssl_ImportECDHKeyShare(sslSocket *ss, SECKEYPublicKey *peerKey,
-                       SSL3Opaque *b, PRUint32 length,
+                       PRUint8 *b, PRUint32 length,
                        const sslNamedGroupDef *ecGroup)
 {
     SECStatus rv;
@@ -505,7 +498,7 @@ ssl_CreateECDHEphemeralKeyPair(const sslSocket *ss,
 }
 
 SECStatus
-ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+ssl3_HandleECDHServerKeyExchange(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     PLArenaPool *arena = NULL;
     SECKEYPublicKey *peerKey = NULL;

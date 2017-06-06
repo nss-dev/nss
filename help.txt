@@ -1,4 +1,4 @@
-Usage: ${0##*/} [-hcv] [-j <n>] [--nspr] [--gyp|-g] [--opt|-o] [-m32]
+Usage: build.sh [-hcv] [-j <n>] [--nspr] [--gyp|-g] [--opt|-o] [-m32]
                 [--test] [--pprof] [--scan-build[=output]] [--ct-verif]
                 [--asan] [--ubsan] [--msan] [--sancov[=edge|bb|func|...]]
                 [--disable-tests] [--fuzz[=tls|oss]] [--system-sqlite]
