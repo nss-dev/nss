@@ -100,7 +100,13 @@ class testAction(argparse.Action):
     def runTest(self, test, cycles="standard"):
         cwd = os.path.dirname(os.path.abspath(__file__))
         domsuf = os.getenv('DOMSUF', "localdomain")
-        env = {"NSS_TESTS": test, "NSS_CYCLES": cycles, "DOMSUF": domsuf}
+        host = os.getenv('HOST', "localhost")
+        env = {
+            "NSS_TESTS": test,
+            "NSS_CYCLES": cycles,
+            "DOMSUF": domsuf,
+            "HOST": host
+        }
         command = cwd + "/tests/all.sh"
         subprocess.check_call(command, env=env)
 
@@ -131,7 +137,7 @@ def parse_arguments():
     parser_test = subparsers.add_parser(
         'tests', help='Run tests through tests/all.sh.')
     tests = [
-        "cipher", "lowhash", "libpkix", "cert", "dbtests", "tools", "fips",
+        "cipher", "lowhash", "chains", "cert", "dbtests", "tools", "fips",
         "sdr", "crmf", "smime", "ssl", "ocsp", "merge", "pkits", "ec",
         "gtests", "ssl_gtests"
     ]
