@@ -11,9 +11,9 @@
 
 #define GTEST_HAS_RTTI 0
 #include "gtest/gtest.h"
+#include "util.h"
 
 #include "blapi.h"
-#include "freebl_util.h"
 
 namespace nss_test {
 

@@ -587,9 +587,12 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
     const PRBool sw = PR_FALSE;
 #endif
 
+    if (gcmParams->ulIvLen == 0) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return NULL;
+    }
     gcm = PORT_ZNew(GCMContext);
     if (gcm == NULL) {
-        PORT_SetError(SEC_ERROR_NO_MEMORY);
         return NULL;
     }
     /* aligned_alloc is C11 so we have to do it the old way. */
