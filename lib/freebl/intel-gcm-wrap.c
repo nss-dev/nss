@@ -58,8 +58,11 @@ intel_AES_GCM_CreateContext(void *context,
     unsigned int j;
     SECStatus rv;
 
+    if (gcmParams->ulIvLen == 0) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return NULL;
+    }
     gcm = PORT_ZNew(intel_AES_GCMContext);
-
     if (gcm == NULL) {
         return NULL;
     }
