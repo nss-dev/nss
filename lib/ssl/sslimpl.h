@@ -1220,6 +1220,14 @@ struct sslSocketStr {
     SSLProtocolVariant protocolVariant;
 };
 
+struct sslSelfEncryptKeysStr {
+    PRCallOnceType setup;
+    PRUint8 keyName[SELF_ENCRYPT_KEY_NAME_LEN];
+    PK11SymKey *encKey;
+    PK11SymKey *macKey;
+};
+typedef struct sslSelfEncryptKeysStr sslSelfEncryptKeys;
+
 extern char ssl_debug;
 extern char ssl_trace;
 extern FILE *ssl_trace_iob;
@@ -1700,10 +1708,11 @@ extern void ssl3_SetSIDSessionTicket(sslSessionID *sid,
 SECStatus ssl3_EncodeSessionTicket(sslSocket *ss,
                                    const NewSessionTicket *ticket_input,
                                    SECItem *ticket_data);
-SECStatus ssl_MaybeSetSessionTicketKeyPair(const sslKeyPair *keyPair);
-SECStatus ssl_GetSessionTicketKeys(sslSocket *ss, unsigned char *keyName,
-                                   PK11SymKey **encKey, PK11SymKey **macKey);
-void ssl_ResetSessionTicketKeys();
+
+SECStatus ssl_MaybeSetSelfEncryptKeyPair(const sslKeyPair *keyPair);
+SECStatus ssl_GetSelfEncryptKeys(sslSocket *ss, unsigned char *keyName,
+                                 PK11SymKey **encKey, PK11SymKey **macKey);
+void ssl_ResetSelfEncryptKeys();
 
 extern SECStatus ssl3_ValidateNextProtoNego(const unsigned char *data,
                                             unsigned int length);

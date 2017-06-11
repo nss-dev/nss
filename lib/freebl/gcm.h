@@ -28,7 +28,7 @@ typedef struct GCMContextStr GCMContext;
  * The cipher argument is a block cipher in the ECB encrypt mode.
  */
 GCMContext *GCM_CreateContext(void *context, freeblCipherFunc cipher,
-                              const unsigned char *params, unsigned int blocksize);
+                              const unsigned char *params);
 void GCM_DestroyContext(GCMContext *gcm, PRBool freeit);
 SECStatus GCM_EncryptUpdate(GCMContext *gcm, unsigned char *outbuf,
                             unsigned int *outlen, unsigned int maxout,
@@ -40,21 +40,10 @@ SECStatus GCM_DecryptUpdate(GCMContext *gcm, unsigned char *outbuf,
                             unsigned int blocksize);
 
 /* These functions are here only so we can test them */
-#if defined(_WINDOWS) && defined(NSS_X86_OR_X64)
-#define pre_align __declspec(align(16))
-#define post_align
-#elif defined(NSS_X86_OR_X64)
-#define pre_align
-#define post_align __attribute__((aligned(16)))
-#else
-#define pre_align
-#define post_align
-#endif
-
 #define GCM_HASH_LEN_LEN 8 /* gcm hash defines lengths to be 64 bits */
 typedef struct gcmHashContextStr gcmHashContext;
 typedef SECStatus (*ghash_t)(gcmHashContext *, const unsigned char *,
-                             unsigned int, unsigned int);
+                             unsigned int);
 pre_align struct gcmHashContextStr {
 #ifdef NSS_X86_OR_X64
     __m128i x, h;
@@ -70,14 +59,13 @@ pre_align struct gcmHashContextStr {
 } post_align;
 
 SECStatus gcmHash_Update(gcmHashContext *ghash, const unsigned char *buf,
-                         unsigned int len, unsigned int blocksize);
+                         unsigned int len);
 SECStatus gcmHash_InitContext(gcmHashContext *ghash, const unsigned char *H,
                               PRBool sw);
 SECStatus gcmHash_Reset(gcmHashContext *ghash, const unsigned char *AAD,
-                        unsigned int AADLen, unsigned int blocksize);
+                        unsigned int AADLen);
 SECStatus gcmHash_Final(gcmHashContext *ghash, unsigned char *outbuf,
-                        unsigned int *outlen, unsigned int maxout,
-                        unsigned int blocksize);
+                        unsigned int *outlen, unsigned int maxout);
 
 SEC_END_PROTOS
 

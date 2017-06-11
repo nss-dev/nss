@@ -12,6 +12,7 @@
       'type': 'executable',
       'sources': [
         'libssl_internals.c',
+        'selfencrypt_unittest.cc',
         'ssl_0rtt_unittest.cc',
         'ssl_agent_unittest.cc',
         'ssl_auth_unittest.cc',
