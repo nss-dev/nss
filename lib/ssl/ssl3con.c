@@ -6782,7 +6782,6 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
     }
     rv = ssl3_SetupCipherSuite(ss, PR_TRUE);
     if (rv != SECSuccess) {
-        desc = internal_error;
         errCode = PORT_GetError();
         goto loser;
     }
