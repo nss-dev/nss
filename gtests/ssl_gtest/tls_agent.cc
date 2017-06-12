@@ -919,9 +919,9 @@ void TlsAgent::SendBuffer(const DataBuffer& buf) {
 }
 
 void TlsAgent::ReadBytes(size_t amount) {
-  uint8_t block[amount];
+  uint8_t block[16384];
 
-  int32_t rv = PR_Read(ssl_fd(), block, sizeof(block));
+  int32_t rv = PR_Read(ssl_fd(), block, (std::min)(amount, sizeof(block)));
   LOGV("ReadBytes " << rv);
   int32_t err;
 
