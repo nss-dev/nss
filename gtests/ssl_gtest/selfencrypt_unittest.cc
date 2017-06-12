@@ -10,8 +10,10 @@
 #include "pk11pub.h"
 #include "prerror.h"
 #include "secerr.h"
+#include "ssl.h"
 #include "sslerr.h"
 extern "C" {
+#include "sslimpl.h"
 #include "selfencrypt.h"
 }
 
