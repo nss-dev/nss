@@ -23,10 +23,15 @@ split_util() {
   # Copy everything.
   cp -R $nssdir $dstdir
 
+  # Skip gtests when building.
+  sed '/^DIRS = /s/ gtests$//' $nssdir/manifest.mn > $dstdir/manifest.mn-t && mv $dstdir/manifest.mn-t $dstdir/manifest.mn
+
   # Remove subdirectories that we don't want.
   rm -rf $dstdir/cmd
+  rm -rf $dstdir/tests
   rm -rf $dstdir/lib
   rm -rf $dstdir/automation
+  rm -rf $dstdir/gtests
   rm -rf $dstdir/doc
 
   # Start with an empty cmd lib directories to be filled selectively.
