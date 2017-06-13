@@ -153,6 +153,12 @@
       'MP_API_COMPATIBLE'
     ],
     'conditions': [
+      [ 'target_arch=="ia32" or target_arch=="x64"', {
+        'cflags_mozilla': [
+          '-mpclmul',
+          '-maes',
+        ],
+      }],
       [ 'OS=="mac"', {
         'xcode_settings': {
           # I'm not sure since when this is supported.
@@ -164,10 +170,6 @@
         },
       }],
       [ 'OS=="win" and target_arch=="ia32"', {
-        'cflags_mozilla': [
-          '-mpclmul',
-          '-maes',
-        ],
         'msvs_settings': {
           'VCCLCompilerTool': {
             #TODO: -Ox optimize flags
@@ -201,10 +203,6 @@
         },
       }],
       [ 'cc_use_gnu_ld==1 and OS=="win" and target_arch=="x64"', {
-        'cflags_mozilla': [
-          '-mpclmul',
-          '-maes',
-        ],
         'defines': [
           'MP_IS_LITTLE_ENDIAN',
           'NSS_BEVAND_ARCFOUR',
@@ -265,10 +263,6 @@
             'cflags': [
               # enable isa option for pclmul am aes-ni; supported since gcc 4.4
               # This is only support by x84/x64. It's not needed for Windows.
-              '-mpclmul',
-              '-maes',
-            ],
-            'cflags_mozilla': [
               '-mpclmul',
               '-maes',
             ],
