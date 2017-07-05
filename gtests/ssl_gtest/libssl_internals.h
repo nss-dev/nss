@@ -51,6 +51,6 @@ unsigned char *SSLInt_CipherSpecToIv(PRBool isServer, ssl3CipherSpec *spec);
 void SSLInt_SetTicketLifetime(uint32_t lifetime);
 void SSLInt_SetMaxEarlyDataSize(uint32_t size);
 SECStatus SSLInt_SetSocketMaxEarlyDataSize(PRFileDesc *fd, uint32_t size);
-SECStatus SSLInt_SetTicketAgeTolerance(PRFileDesc *fd, PRUint16 tolerance);
+void SSLInt_RolloverAntiReplay(void);
 
 #endif  // ndef libssl_internals_h_

@@ -181,6 +181,7 @@ void TlsConnectTestBase::SetUp() {
   SSLInt_ClearSelfEncryptKey();
   SSLInt_SetTicketLifetime(30);
   SSLInt_SetMaxEarlyDataSize(1024);
+  SSL_SetupAntiReplay(1 * PR_USEC_PER_SEC, 1, 3);
   ClearStats();
   Init();
 }
@@ -551,6 +552,9 @@ void TlsConnectTestBase::SendReceive() {
 
 // Do a first connection so we can do 0-RTT on the second one.
 void TlsConnectTestBase::SetupForZeroRtt() {
+  // If we don't do this, then all 0-RTT attempts will be rejected.
+  SSLInt_RolloverAntiReplay();
+
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
   server_->Set0RttEnabled(true);  // So we signal that we allow 0-RTT.

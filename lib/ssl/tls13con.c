@@ -965,8 +965,6 @@ tls13_CanResume(sslSocket *ss, const sslSessionID *sid)
 static PRBool
 tls13_CanNegotiateZeroRtt(sslSocket *ss, const sslSessionID *sid)
 {
-    PRInt32 timeDelta;
-
     PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_sent);
 
     if (!sid)
@@ -984,14 +982,7 @@ tls13_CanNegotiateZeroRtt(sslSocket *ss, const sslSessionID *sid)
                             &sid->u.ssl3.alpnSelection) != 0)
         return PR_FALSE;
 
-    /* Calculate the difference between the client's view of the age of the
-     * ticket (in |ss->xtnData.ticketAge|) and the server's view, which we now
-     * calculate.  The result should be close to zero.  timeDelta is signed to
-     * make the comparisons below easier. */
-    timeDelta = ss->xtnData.ticketAge -
-                ((ssl_TimeUsec() - sid->creationTime) / PR_USEC_PER_MSEC);
-    if (timeDelta > ss->opt.ticketAgeTolerance ||
-        timeDelta < (-1 * ss->opt.ticketAgeTolerance)) {
+    if (tls13_IsReplay(ss, sid)) {
         return PR_FALSE;
     }
 

@@ -21,6 +21,7 @@
         'ssl3exthandle.c',
         'ssl3gthr.c',
         'sslauth.c',
+        'sslbloom.c',
         'sslcert.c',
         'sslcon.c',
         'ssldef.c',
@@ -42,6 +43,7 @@
         'tls13con.c',
         'tls13exthandle.c',
         'tls13hkdf.c',
+        'tls13replay.c',
       ],
       'conditions': [
         [ 'OS=="win"', {

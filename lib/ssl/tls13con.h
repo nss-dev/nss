@@ -94,4 +94,9 @@ SECStatus tls13_NegotiateVersion(sslSocket *ss,
                                  const TLSExtension *supported_versions);
 SECStatus tls13_SendNewSessionTicket(sslSocket *ss);
 
+PRBool tls13_IsReplay(const sslSocket *ss, const sslSessionID *sid);
+void tls13_AntiReplayRollover(PRTime now);
+SECStatus SSLExp_SetupAntiReplay(PRTime window, unsigned int k,
+                                 unsigned int bits);
+
 #endif /* __tls13con_h_ */
