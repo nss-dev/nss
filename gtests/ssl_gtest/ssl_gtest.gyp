@@ -11,6 +11,7 @@
       'target_name': 'ssl_gtest',
       'type': 'executable',
       'sources': [
+        'bloomfilter_unittest.cc',
         'libssl_internals.c',
         'selfencrypt_unittest.cc',
         'ssl_0rtt_unittest.cc',

@@ -262,10 +262,6 @@ typedef struct sslOptionsStr {
      * list of supported protocols. */
     SECItem nextProtoNego;
 
-    /* The amount of tolerance to allow for relative clock drift and network
-     * delays when validating the age of a TLS 1.3. */
-    PRUint16 ticketAgeTolerance;
-
     unsigned int useSecurity : 1;
     unsigned int useSocks : 1;
     unsigned int requestCertificate : 1;

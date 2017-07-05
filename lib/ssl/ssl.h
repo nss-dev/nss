@@ -1376,6 +1376,7 @@ SSL_IMPORT SECStatus SSL_AuthCertificateComplete(PRFileDesc *fd,
                                                  PRErrorCode error);
 
 /*
+<<<<<<< dest
  * SSL_GetExtensionSupport() returns whether NSS supports a particular TLS extension.
  *
  * - ssl_ext_none indicates that NSS does not support the extension and

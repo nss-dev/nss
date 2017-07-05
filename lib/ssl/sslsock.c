@@ -54,7 +54,6 @@ static const sslSocketOps ssl_secure_ops = { /* SSL. */
 */
 static sslOptions ssl_defaults = {
     { siBuffer, NULL, 0 }, /* nextProtoNego */
-    1000,                  /* ticketAgeTolerance (1s) */
     PR_TRUE,               /* useSecurity        */
     PR_FALSE,              /* useSocks           */
     PR_FALSE,              /* requestCertificate */
@@ -3903,6 +3902,7 @@ struct {
     void *function;
 } ssl_experimental_functions[] = {
 #ifndef SSL_DISABLE_EXPERIMENTAL_API
+    EXP(SetupAntiReplay),
 #endif
     { "", NULL }
 };
