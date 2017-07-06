@@ -11,8 +11,6 @@
 
 #include "secmodt.h"
 
-typedef struct sslSocketStr sslSocket; /* Forward declaration. */
-
 SECStatus ssl_SelfEncryptProtect(
     sslSocket *ss, const PRUint8 *in, unsigned int inLen,
     PRUint8 *out, unsigned int *outLen, unsigned int maxOutLen);
