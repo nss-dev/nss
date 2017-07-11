@@ -122,10 +122,6 @@ set or export:
 Note that you might have to add `nss.local` to `/etc/hosts` if it's not
 there. The entry should look something like `127.0.0.1 nss.local nss`.
 
-If you get name resolution errors, try to ensure that you are using an IPv4
-address; IPv6 is the default on many systems for the loopback device which
-doesn't work.
-
 ### Running tests
 
 **Runnning all tests will take a while!**
