@@ -733,6 +733,10 @@ CERT_GetOidString(const SECItem* oid)
                 break;
             }
         }
+        /* There's no first bit set, so this isn't valid. Bail.*/
+        if (last == stop) {
+            goto unsupported;
+        }
         bytesBeforeLast = (unsigned int)(last - first);
         if (bytesBeforeLast <= 3U) { /* 0-28 bit number */
             PRUint32 n = 0;
@@ -756,8 +760,9 @@ CERT_GetOidString(const SECItem* oid)
                     n |= last[0] & 0x7f;
                     break;
             }
-            if (last[0] & 0x80)
+            if (last[0] & 0x80) {
                 goto unsupported;
+            }
 
             if (!rvString) {
                 /* This is the first number.. decompose it */
