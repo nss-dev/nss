@@ -470,6 +470,9 @@ static bool FindNewSessionTicketExtensions(TlsParser* parser,
   if (!parser->Skip(8)) {  // lifetime, age add
     return false;
   }
+  if (!parser->SkipVariable(1)) {  // ticket_nonce
+    return false;
+  }
   if (!parser->SkipVariable(2)) {  // ticket
     return false;
   }
