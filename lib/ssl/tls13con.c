@@ -125,6 +125,7 @@ const char kHkdfLabelApplicationTrafficSecret[] = "ap traffic";
 const char kHkdfLabelFinishedSecret[] = "finished";
 const char kHkdfLabelResumptionMasterSecret[] = "res master";
 const char kHkdfLabelExporterMasterSecret[] = "exp master";
+const char kHkdfLabelResumption[] = "resumption";
 const char kHkdfPurposeKey[] = "key";
 const char kHkdfPurposeIv[] = "iv";
 
@@ -791,9 +792,8 @@ tls13_ComputeEarlySecrets(sslSocket *ss)
         if (rv != SECSuccess) {
             return SECFailure;
         }
-    } else {
-        PORT_Assert(!ss->ssl3.hs.resumptionMasterSecret);
     }
+    PORT_Assert(!ss->ssl3.hs.resumptionMasterSecret);
 
     return SECSuccess;
 }
@@ -915,29 +915,18 @@ static SECStatus
 tls13_ComputeFinalSecrets(sslSocket *ss)
 {
     SECStatus rv;
-    PK11SymKey *resumptionMasterSecret = NULL;
 
     PORT_Assert(!ss->ssl3.crSpec->master_secret);
     PORT_Assert(!ss->ssl3.cwSpec->master_secret);
 
     rv = tls13_DeriveSecretWrap(ss, ss->ssl3.hs.currentSecret,
                                 NULL, kHkdfLabelResumptionMasterSecret,
-                                &resumptionMasterSecret);
+                                &ss->ssl3.hs.resumptionMasterSecret);
     PK11_FreeSymKey(ss->ssl3.hs.currentSecret);
     ss->ssl3.hs.currentSecret = NULL;
     if (rv != SECSuccess) {
         return SECFailure;
     }
-
-    /* This is pretty gross. TLS 1.3 uses a number of master secrets:
-     * The master secret to generate the keys and then the resumption
-     * master secret for future connections. To make this work without
-     * refactoring too much of the SSLv3 code, we store the RMS in
-     * |crSpec->master_secret| and |cwSpec->master_secret|.
-     */
-    ss->ssl3.crSpec->master_secret = resumptionMasterSecret;
-    ss->ssl3.cwSpec->master_secret =
-        PK11_ReferenceSymKey(ss->ssl3.crSpec->master_secret);
 
     return SECSuccess;
 }
@@ -3849,6 +3838,7 @@ tls13_SendClientSecondRound(sslSocket *ss)
  *   struct {
  *       uint32 ticket_lifetime;
  *       uint32 ticket_age_add;
+ *       opaque ticket_nonce<1..255>;
  *       opaque ticket<1..2^16-1>;
  *       TicketExtension extensions<0..2^16-2>;
  *   } NewSessionTicket;
@@ -3860,10 +3850,12 @@ SECStatus
 tls13_SendNewSessionTicket(sslSocket *ss)
 {
     PRUint16 message_length;
+    PK11SymKey *secret;
     SECItem ticket_data = { 0, NULL, 0 };
     SECStatus rv;
     NewSessionTicket ticket = { 0 };
     PRUint32 max_early_data_size_len = 0;
+
     ticket.flags = 0;
     if (ss->opt.enable0RttData) {
         ticket.flags |= ticket_allow_early_data;
@@ -3871,13 +3863,26 @@ tls13_SendNewSessionTicket(sslSocket *ss)
     }
     ticket.ticket_lifetime_hint = ssl_ticket_lifetime;
 
-    rv = ssl3_EncodeSessionTicket(ss, &ticket, &ticket_data);
+    rv = tls13_HkdfExpandLabel(ss->ssl3.hs.resumptionMasterSecret,
+                               tls13_GetHash(ss),
+                               NULL, 0,
+                               kHkdfLabelResumption,
+                               strlen(kHkdfLabelResumption),
+                               tls13_GetHkdfMechanism(ss),
+                               tls13_GetHashSize(ss), &secret);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+
+    rv = ssl3_EncodeSessionTicket(ss, &ticket, &ticket_data, secret);
+    PK11_FreeSymKey(secret);
     if (rv != SECSuccess)
         goto loser;
 
     message_length =
         4 +                           /* lifetime */
         4 +                           /* ticket_age_add */
+        1 +                           /* ticket_nonce length */
         2 + max_early_data_size_len + /* max_early_data_size_len */
         2 +                           /* ticket length */
         ticket_data.len;
@@ -3899,6 +3904,11 @@ tls13_SendNewSessionTicket(sslSocket *ss)
         goto loser;
 
     rv = ssl3_AppendHandshakeNumber(ss, ticket.ticket_age_add, 4);
+    if (rv != SECSuccess)
+        goto loser;
+
+    /* An empty nonce. */
+    rv = ssl3_AppendHandshakeVariable(ss, NULL, 0, 1);
     if (rv != SECSuccess)
         goto loser;
 
@@ -3946,6 +3956,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
     PRUint32 utmp;
     NewSessionTicket ticket = { 0 };
     SECItem data;
+    SECItem ticket_nonce;
     SECItem ticket_data;
 
     SSL_TRC(3, ("%d: TLS13[%d]: handle new session ticket message",
@@ -3980,6 +3991,14 @@ tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
     }
     ticket.ticket_age_add = PR_ntohl(utmp);
 
+    /* The nonce. */
+    rv = ssl3_ConsumeHandshakeVariable(ss, &ticket_nonce, 1, &b, &length);
+    if (rv != SECSuccess) {
+        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET,
+                    decode_error);
+        return SECFailure;
+    }
+
     /* Get the ticket value. */
     rv = ssl3_ConsumeHandshakeVariable(ss, &ticket_data, 2, &b, &length);
     if (rv != SECSuccess || !ticket_data.len) {
@@ -4009,6 +4028,8 @@ tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
     }
 
     if (!ss->opt.noCache) {
+        PK11SymKey *secret;
+
         PORT_Assert(ss->sec.ci.sid);
         rv = SECITEM_CopyItem(NULL, &ticket.ticket, &ticket_data);
         if (rv != SECSuccess) {
@@ -4045,9 +4066,22 @@ tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
         ssl3_SetSIDSessionTicket(ss->sec.ci.sid, &ticket);
         PORT_Assert(!ticket.ticket.data);
 
-        rv = ssl3_FillInCachedSID(ss, ss->sec.ci.sid);
-        if (rv != SECSuccess)
+        rv = tls13_HkdfExpandLabel(ss->ssl3.hs.resumptionMasterSecret,
+                                   tls13_GetHash(ss),
+                                   ticket_nonce.data, ticket_nonce.len,
+                                   kHkdfLabelResumption,
+                                   strlen(kHkdfLabelResumption),
+                                   tls13_GetHkdfMechanism(ss),
+                                   tls13_GetHashSize(ss), &secret);
+        if (rv != SECSuccess) {
             return SECFailure;
+        }
+
+        rv = ssl3_FillInCachedSID(ss, ss->sec.ci.sid, secret);
+        PK11_FreeSymKey(secret);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
 
         /* Cache the session. */
         ss->sec.cache(ss->sec.ci.sid);

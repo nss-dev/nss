@@ -10145,7 +10145,8 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     SECStatus rv;
     NewSessionTicket nticket = { 0 };
 
-    rv = ssl3_EncodeSessionTicket(ss, &nticket, &ticket);
+    rv = ssl3_EncodeSessionTicket(ss, &nticket, &ticket,
+                                  ss->ssl3.pwSpec->master_secret);
     if (rv != SECSuccess)
         goto loser;
 
@@ -11229,8 +11230,8 @@ fail:
  * Caller holds the Spec read lock.
  */
 SECStatus
-ssl3_CacheWrappedMasterSecret(sslSocket *ss, sslSessionID *sid,
-                              ssl3CipherSpec *spec)
+ssl3_CacheWrappedSecret(sslSocket *ss, sslSessionID *sid,
+                        PK11SymKey *secret)
 {
     PK11SymKey *wrappingKey = NULL;
     PK11SlotInfo *symKeySlot;
@@ -11239,7 +11240,7 @@ ssl3_CacheWrappedMasterSecret(sslSocket *ss, sslSessionID *sid,
     PRBool isServer = ss->sec.isServer;
     CK_MECHANISM_TYPE mechanism = CKM_INVALID_MECHANISM;
 
-    symKeySlot = PK11_GetSlotFromKey(spec->master_secret);
+    symKeySlot = PK11_GetSlotFromKey(secret);
     if (!isServer) {
         int wrapKeyIndex;
         int incarnation;
@@ -11300,7 +11301,7 @@ ssl3_CacheWrappedMasterSecret(sslSocket *ss, sslSessionID *sid,
         wmsItem.data = sid->u.ssl3.keys.wrapped_master_secret;
         wmsItem.len = sizeof sid->u.ssl3.keys.wrapped_master_secret;
         rv = PK11_WrapSymKey(mechanism, NULL, wrappingKey,
-                             spec->master_secret, &wmsItem);
+                             secret, &wmsItem);
         /* rv is examined below. */
         sid->u.ssl3.keys.wrapped_master_secret_len = wmsItem.len;
         PK11_FreeSymKey(wrappingKey);
@@ -11450,7 +11451,7 @@ xmit_loser:
     }
 
     if (sid->cached == never_cached && !ss->opt.noCache) {
-        rv = ssl3_FillInCachedSID(ss, sid);
+        rv = ssl3_FillInCachedSID(ss, sid, ss->ssl3.crSpec->master_secret);
 
         /* If the wrap failed, we don't cache the sid.
          * The connection continues normally however.
@@ -11474,7 +11475,7 @@ xmit_loser:
 }
 
 SECStatus
-ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid)
+ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid, PK11SymKey *secret)
 {
     SECStatus rv;
 
@@ -11506,6 +11507,7 @@ ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid)
 
     /* Copy the master secret (wrapped or unwrapped) into the sid */
     if (ss->ssl3.crSpec->msItem.len && ss->ssl3.crSpec->msItem.data) {
+        PORT_Assert(ss->version < SSL_LIBRARY_VERSION_TLS_1_3);
         sid->u.ssl3.keys.wrapped_master_secret_len =
             ss->ssl3.crSpec->msItem.len;
         memcpy(sid->u.ssl3.keys.wrapped_master_secret,
@@ -11514,8 +11516,8 @@ ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid)
         sid->u.ssl3.keys.msIsWrapped = PR_FALSE;
         rv = SECSuccess;
     } else {
-        rv = ssl3_CacheWrappedMasterSecret(ss, ss->sec.ci.sid,
-                                           ss->ssl3.crSpec);
+        PORT_Assert(secret);
+        rv = ssl3_CacheWrappedSecret(ss, ss->sec.ci.sid, secret);
         sid->u.ssl3.keys.msIsWrapped = PR_TRUE;
     }
     ssl_ReleaseSpecReadLock(ss); /*************************************/

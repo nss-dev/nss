@@ -1683,8 +1683,8 @@ extern SECStatus ssl3_SignHashes(sslSocket *ss, SSL3Hashes *hash,
                                  SECKEYPrivateKey *key, SECItem *buf);
 extern SECStatus ssl3_VerifySignedHashes(sslSocket *ss, SSLSignatureScheme scheme,
                                          SSL3Hashes *hash, SECItem *buf);
-extern SECStatus ssl3_CacheWrappedMasterSecret(
-    sslSocket *ss, sslSessionID *sid, ssl3CipherSpec *spec);
+extern SECStatus ssl3_CacheWrappedSecret(sslSocket *ss, sslSessionID *sid,
+                                         PK11SymKey *secret);
 extern void ssl3_FreeSniNameArray(TLSExtensionData *xtnData);
 
 /* Hello Extension related routines. */
@@ -1692,7 +1692,7 @@ extern void ssl3_SetSIDSessionTicket(sslSessionID *sid,
                                      /*in/out*/ NewSessionTicket *session_ticket);
 SECStatus ssl3_EncodeSessionTicket(sslSocket *ss,
                                    const NewSessionTicket *ticket_input,
-                                   SECItem *ticket_data);
+                                   SECItem *ticket_data, PK11SymKey *secret);
 
 SECStatus ssl_MaybeSetSelfEncryptKeyPair(const sslKeyPair *keyPair);
 SECStatus ssl_GetSelfEncryptKeys(sslSocket *ss, unsigned char *keyName,
@@ -1813,7 +1813,8 @@ PK11SymKey *ssl3_GetWrappingKey(sslSocket *ss,
                                 PK11SlotInfo *masterSecretSlot,
                                 CK_MECHANISM_TYPE masterWrapMech,
                                 void *pwArg);
-SECStatus ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid);
+SECStatus ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid,
+                               PK11SymKey *secret);
 const ssl3CipherSuiteDef *ssl_LookupCipherSuiteDef(ssl3CipherSuite suite);
 const ssl3BulkCipherDef *
 ssl_GetBulkCipherDef(const ssl3CipherSuiteDef *cipher_def);

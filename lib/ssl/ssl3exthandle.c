@@ -662,7 +662,7 @@ PRUint32 ssl_ticket_lifetime = 2 * 24 * 60 * 60; /* 2 days in seconds */
 SECStatus
 ssl3_EncodeSessionTicket(sslSocket *ss,
                          const NewSessionTicket *ticket,
-                         SECItem *ticket_data)
+                         SECItem *ticket_data, PK11SymKey *secret)
 {
     SECStatus rv;
     SECItem plaintext;
@@ -677,7 +677,6 @@ ssl3_EncodeSessionTicket(sslSocket *ss,
     SECItem *srvName = NULL;
     CK_MECHANISM_TYPE msWrapMech = 0; /* dummy default value,
                                           * must be >= 0 */
-    ssl3CipherSpec *spec;
     SECItem *alpnSelection = NULL;
 
     SSL_TRC(3, ("%d: SSL3[%d]: send session_ticket handshake",
@@ -690,22 +689,20 @@ ssl3_EncodeSessionTicket(sslSocket *ss,
         cert_length = 2 + ss->sec.ci.sid->peerCert->derCert.len;
     }
 
-    if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
-        spec = ss->ssl3.cwSpec;
-    } else {
-        spec = ss->ssl3.pwSpec;
-    }
-    if (spec->msItem.len && spec->msItem.data) {
+    if (ss->ssl3.pwSpec->msItem.len && ss->ssl3.pwSpec->msItem.data) {
+        PORT_Assert(ss->version < SSL_LIBRARY_VERSION_TLS_1_3);
         /* The master secret is available unwrapped. */
-        ms_item.data = spec->msItem.data;
-        ms_item.len = spec->msItem.len;
+        ms_item.data = ss->ssl3.pwSpec->msItem.data;
+        ms_item.len = ss->ssl3.pwSpec->msItem.len;
         ms_is_wrapped = PR_FALSE;
     } else {
         /* Extract the master secret wrapped. */
         sslSessionID sid;
+
         PORT_Memset(&sid, 0, sizeof(sslSessionID));
 
-        rv = ssl3_CacheWrappedMasterSecret(ss, &sid, spec);
+        PORT_Assert(secret);
+        rv = ssl3_CacheWrappedSecret(ss, &sid, secret);
         if (rv == SECSuccess) {
             if (sid.u.ssl3.keys.wrapped_master_secret_len > sizeof(wrapped_ms))
                 goto loser;
