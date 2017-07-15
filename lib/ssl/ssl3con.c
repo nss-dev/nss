@@ -6563,7 +6563,7 @@ ssl_ClientConsumeCipherSuite(sslSocket *ss, SSL3ProtocolVersion version,
     }
 
     ss->ssl3.hs.cipher_suite = (ssl3CipherSuite)temp;
-    return SECSuccess;
+    return ssl3_SetupCipherSuite(ss, PR_FALSE);
 }
 
 /* Called from ssl3_HandleHandshakeMessage() when it has deciphered a complete
@@ -9729,7 +9729,8 @@ ssl3_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length)
         goto alert_loser; /* malformed */
     }
 
-    rv = ssl_HashHandshakeMessage(ss, savedMsg, savedLen);
+    rv = ssl_HashHandshakeMessage(ss, ssl_hs_certificate_verify,
+                                  savedMsg, savedLen);
     if (rv != SECSuccess) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return rv;
@@ -11334,7 +11335,7 @@ ssl3_HandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
         return SECFailure;
     }
 
-    rv = ssl_HashHandshakeMessage(ss, b, length);
+    rv = ssl_HashHandshakeMessage(ss, ssl_hs_finished, b, length);
     if (rv != SECSuccess) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return rv;
@@ -11571,13 +11572,14 @@ ssl3_FinishHandshake(sslSocket *ss)
 }
 
 SECStatus
-ssl_HashHandshakeMessage(sslSocket *ss, const PRUint8 *b, PRUint32 length)
+ssl_HashHandshakeMessage(sslSocket *ss, SSLHandshakeType type,
+                         const PRUint8 *b, PRUint32 length)
 {
     PRUint8 hdr[4];
     PRUint8 dtlsData[8];
     SECStatus rv;
 
-    hdr[0] = (PRUint8)ss->ssl3.hs.msg_type;
+    hdr[0] = (PRUint8)type;
     hdr[1] = (PRUint8)(length >> 16);
     hdr[2] = (PRUint8)(length >> 8);
     hdr[3] = (PRUint8)(length);
@@ -11647,6 +11649,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, PRUint8 *b, PRUint32 length,
              * in the handshake hashes */
             break;
 
+        case ssl_hs_hello_retry_request:
         case ssl_hs_certificate_verify:
         case ssl_hs_finished:
             /* Defer hashing of these messages until the message handlers
@@ -11654,7 +11657,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, PRUint8 *b, PRUint32 length,
             break;
 
         default:
-            rv = ssl_HashHandshakeMessage(ss, b, length);
+            rv = ssl_HashHandshakeMessage(ss, ss->ssl3.hs.msg_type, b, length);
             if (rv != SECSuccess) {
                 return SECFailure;
             }
