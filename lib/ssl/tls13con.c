@@ -63,6 +63,7 @@ static SECStatus tls13_HandleEncryptedExtensions(sslSocket *ss, PRUint8 *b,
 static SECStatus tls13_SendCertificate(sslSocket *ss);
 static SECStatus tls13_HandleCertificate(
     sslSocket *ss, PRUint8 *b, PRUint32 length);
+static SECStatus tls13_ReinjectHandshakeTranscript(sslSocket *ss);
 static SECStatus tls13_HandleCertificateRequest(sslSocket *ss, PRUint8 *b,
                                                 PRUint32 length);
 static SECStatus
@@ -1494,6 +1495,13 @@ tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup
     }
 
     ssl_GetXmitBufLock(ss);
+    /* Reset the handshake hash. */
+    rv = tls13_ReinjectHandshakeTranscript(ss);
+    if (rv != SECSuccess) {
+        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
+        goto loser;
+    }
+
     rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_hello_retry_request,
                                     2 +     /* version */
                                         2 + /* cipher suite */
@@ -1670,12 +1678,49 @@ loser:
     return SECFailure;
 }
 
+/* [draft-ietf-tls-tls13; S 4.4.1] says:
+ *
+ *     Transcript-Hash(ClientHello1, HelloRetryRequest, ... MN) =
+ *      Hash(message_hash ||        // Handshake type
+ *           00 00 Hash.length ||   // Handshake message length
+ *           Hash(ClientHello1) ||  // Hash of ClientHello1
+ *           HelloRetryRequest ... MN)
+ */
+static SECStatus
+tls13_ReinjectHandshakeTranscript(sslSocket *ss)
+{
+    SSL3Hashes hashes;
+    SECStatus rv;
+
+    // First compute the hash.
+    rv = tls13_ComputeHash(ss, &hashes,
+                           ss->ssl3.hs.messages.buf,
+                           ss->ssl3.hs.messages.len);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    // Now re-init the handshake.
+    ssl3_RestartHandshakeHashes(ss);
+
+    // And reinject the message.
+    rv = ssl_HashHandshakeMessage(ss, ssl_hs_message_hash,
+                                  hashes.u.raw, hashes.len);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    return SECSuccess;
+}
+
 SECStatus
 tls13_HandleHelloRetryRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     SECStatus rv;
     PRUint32 tmp;
     SSL3ProtocolVersion version;
+    const PRUint8 *savedMsg = b;
+    const PRUint32 savedLength = length;
 
     SSL_TRC(3, ("%d: TLS13[%d]: handle hello retry request",
                 SSL_GETPID(), ss->fd));
@@ -1753,8 +1798,19 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
     }
 
     ss->ssl3.hs.helloRetry = PR_TRUE;
+    rv = tls13_ReinjectHandshakeTranscript(ss);
+    if (rv != SECSuccess) {
+        return rv;
+    }
+
+    rv = ssl_HashHandshakeMessage(ss, ssl_hs_hello_retry_request,
+                                   savedMsg, savedLength);
+    if (rv != SECSuccess) {
+        return rv;
+    }
 
     ssl_GetXmitBufLock(ss);
+
     rv = ssl3_SendClientHello(ss, client_hello_retry);
     ssl_ReleaseXmitBufLock(ss);
     if (rv != SECSuccess) {
@@ -3270,7 +3326,7 @@ tls13_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length)
         return SECFailure;
     }
 
-    rv = ssl_HashHandshakeMessage(ss, b, length);
+    rv = ssl_HashHandshakeMessage(ss, ssl_hs_certificate_verify, b, length);
     if (rv != SECSuccess) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
@@ -3592,7 +3648,7 @@ tls13_ClientHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
         return SECFailure;
     }
 
-    rv = ssl_HashHandshakeMessage(ss, b, length);
+    rv = ssl_HashHandshakeMessage(ss, ssl_hs_finished, b, length);
     if (rv != SECSuccess) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
@@ -3637,7 +3693,7 @@ tls13_ServerHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
         return SECFailure;
     }
 
-    rv = ssl_HashHandshakeMessage(ss, b, length);
+    rv = ssl_HashHandshakeMessage(ss, ssl_hs_finished, b, length);
     if (rv != SECSuccess) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
