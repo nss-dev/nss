@@ -276,10 +276,13 @@ FUZZ_P(TlsConnectGeneric, UnencryptedSessionTickets) {
   server_->SetPacketFilter(i1);
   Connect();
 
+  std::cerr << "ticket" << i1->buffer() << std::endl;
   size_t offset = 4; /* lifetime */
   if (version_ == SSL_LIBRARY_VERSION_TLS_1_3) {
-    offset += 1 + 1 + /* ke_modes */
-              1 + 1;  /* auth_modes */
+    offset += 4;  /* ticket_age_add */
+    uint32_t nonce_len;
+    EXPECT_TRUE(i1->buffer().Read(offset, 1, &nonce_len));
+    offset += 1 + nonce_len;
   }
   offset += 2 + /* ticket length */
             2;  /* TLS_EX_SESS_TICKET_VERSION */
