@@ -280,7 +280,7 @@ FUZZ_P(TlsConnectGeneric, UnencryptedSessionTickets) {
   size_t offset = 4; /* lifetime */
   if (version_ == SSL_LIBRARY_VERSION_TLS_1_3) {
     offset += 4;  /* ticket_age_add */
-    uint32_t nonce_len;
+    uint32_t nonce_len = 0;
     EXPECT_TRUE(i1->buffer().Read(offset, 1, &nonce_len));
     offset += 1 + nonce_len;
   }
