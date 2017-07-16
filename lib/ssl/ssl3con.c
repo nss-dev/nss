@@ -565,7 +565,7 @@ ssl3_DecodeHandshakeType(int msgType)
             rv = "hello_verify_request (3)";
             break;
         case ssl_hs_new_session_ticket:
-            rv = "session_ticket (4)";
+            rv = "new_session_ticket (4)";
             break;
         case ssl_hs_end_of_early_data:
             rv = "end_of_early_data (5)";
