@@ -95,6 +95,9 @@ struct TLSExtensionDataStr {
     PRUint32 ticketAge;                    /* Used to accept early data. */
     SECItem cookie;                        /* HRR Cookie. */
     const sslNamedGroupDef *selectedGroup; /* For HRR. */
+    /* The application token contains a value that was passed to the client via
+     * a session ticket, or the cookie in a HelloRetryRequest. */
+    SECItem applicationToken;
 };
 
 typedef struct TLSExtensionStr {

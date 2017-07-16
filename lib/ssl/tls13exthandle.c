@@ -458,6 +458,7 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
     SECStatus rv;
     unsigned int numIdentities = 0;
     unsigned int numBinders = 0;
+    SECItem *appToken;
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle pre_shared_key extension",
                 SSL_GETPID(), ss->fd));
@@ -467,9 +468,19 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
         return SECSuccess;
     }
 
+    /* The application token is set via the cookie extension if this is the
+     * second ClientHello.  Don't set it twice.  The cookie extension handler
+     * sets |helloRetry| and that will have been called already because this
+     * extension always comes last. */
+    if (!ss->ssl3.hs.helloRetry) {
+        appToken = &xtnData->applicationToken;
+    } else {
+        appToken = NULL;
+    }
+
     /* Parse the identities list. */
-    rv = ssl3_ExtConsumeHandshakeVariable(ss,
-                                          &inner, 2, &data->data, &data->len);
+    rv = ssl3_ExtConsumeHandshakeVariable(ss, &inner, 2,
+                                          &data->data, &data->len);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -495,7 +506,7 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
             PRINT_BUF(50, (ss, "Handling PreSharedKey value",
                            label.data, label.len));
             rv = ssl3_ProcessSessionTicketCommon(
-                CONST_CAST(sslSocket, ss), &label);
+                CONST_CAST(sslSocket, ss), &label, appToken);
             /* This only happens if we have an internal error, not
              * a malformed ticket. Bogus tickets just don't resume
              * and return SECSuccess. */
@@ -987,10 +998,6 @@ tls13_ServerSendHrrKeyShareXtn(const sslSocket *ss, TLSExtensionData *xtnData,
 
     PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
 
-    /* In future, we may want to send HRRs w/o key_share but we don't
-     * currently do that. At that time, this assert can simply be
-     * removed. */
-    PORT_Assert(xtnData->selectedGroup != NULL);
     if (!xtnData->selectedGroup) {
         return SECSuccess;
     }

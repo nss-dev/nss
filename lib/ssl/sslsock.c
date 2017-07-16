@@ -3903,6 +3903,7 @@ struct {
 } ssl_experimental_functions[] = {
 #ifndef SSL_DISABLE_EXPERIMENTAL_API
     EXP(GetExtensionSupport),
+    EXP(HelloRetryRequestCallback),
     EXP(InstallExtensionHooks),
     EXP(SendSessionTicket),
     EXP(SetupAntiReplay),

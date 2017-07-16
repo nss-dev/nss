@@ -33,11 +33,11 @@ void sslBuffer_Clear(sslBuffer *b);
 /* All of these functions modify the underlying SECItem, and so should
  * be performed on a shallow copy.*/
 SECStatus ssl3_AppendToItem(SECItem *item,
-                            const unsigned char *buf, PRUint32 bytes);
+                            const PRUint8 *buf, PRUint32 bytes);
 SECStatus ssl3_AppendNumberToItem(SECItem *item,
                                   PRUint64 num, unsigned int size);
 SECStatus ssl3_ConsumeFromItem(SECItem *item,
-                               unsigned char **buf, unsigned int size);
+                               PRUint8 **buf, unsigned int size);
 SECStatus ssl3_ConsumeNumberFromItem(SECItem *item,
                                      PRUint32 *num, unsigned int size);
 

@@ -8444,6 +8444,10 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
     }
 #endif
 
+    if (ssl3_FindExtension(ss, ssl_tls13_cookie_xtn)) {
+        ss->ssl3.hs.helloRetry = PR_TRUE;
+    }
+
     /* Now parse the rest of the extensions. */
     rv = ssl3_HandleParsedExtensions(ss, ssl_hs_client_hello);
     if (rv != SECSuccess) {

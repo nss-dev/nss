@@ -110,7 +110,7 @@ sslBuffer_Clear(sslBuffer *b)
 }
 
 SECStatus
-ssl3_AppendToItem(SECItem *item, const unsigned char *buf, unsigned int size)
+ssl3_AppendToItem(SECItem *item, const PRUint8 *buf, unsigned int size)
 {
     if (size > item->len) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -135,7 +135,7 @@ ssl3_AppendNumberToItem(SECItem *item, PRUint64 num, unsigned int size)
 }
 
 SECStatus
-ssl3_ConsumeFromItem(SECItem *item, unsigned char **buf, unsigned int size)
+ssl3_ConsumeFromItem(SECItem *item, PRUint8 **buf, unsigned int size)
 {
     if (size > item->len) {
         PORT_SetError(SEC_ERROR_BAD_DATA);
