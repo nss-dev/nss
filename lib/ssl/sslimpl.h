@@ -19,6 +19,7 @@
 #include "secport.h"
 #include "secerr.h"
 #include "sslerr.h"
+#include "sslexp.h"
 #include "ssl3prot.h"
 #include "hasht.h"
 #include "nssilock.h"
@@ -1144,6 +1145,8 @@ struct sslSocketStr {
     void *pkcs11PinArg;
     SSLNextProtoCallback nextProtoCallback;
     void *nextProtoArg;
+    SSLHelloRetryRequestCallback hrrCallback;
+    void *hrrCallbackArg;
     PRCList extensionHooks;
 
     PRIntervalTime rTimeout; /* timeout for NSPR I/O */

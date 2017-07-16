@@ -56,8 +56,9 @@ static SECStatus tls13_SendEncryptedExtensions(sslSocket *ss);
 static void tls13_SetKeyExchangeType(sslSocket *ss, const sslNamedGroupDef *group);
 static SECStatus tls13_HandleClientKeyShare(sslSocket *ss,
                                             TLS13KeyShareEntry *peerShare);
-static SECStatus tls13_SendHelloRetryRequest(sslSocket *ss,
-                                             const sslNamedGroupDef *selectedGroup);
+static SECStatus tls13_SendHelloRetryRequest(
+    sslSocket *ss, const sslNamedGroupDef *selectedGroup,
+    const PRUint8 *token, unsigned int tokenLen);
 
 static SECStatus tls13_HandleServerKeyShare(sslSocket *ss);
 static SECStatus tls13_HandleEncryptedExtensions(sslSocket *ss, PRUint8 *b,
@@ -1074,7 +1075,9 @@ tls13_FindKeyShareEntry(sslSocket *ss, const sslNamedGroupDef *group)
 }
 
 static SECStatus
-tls13_NegotiateKeyExchange(sslSocket *ss, TLS13KeyShareEntry **clientShare)
+tls13_NegotiateKeyExchange(sslSocket *ss,
+                           const sslNamedGroupDef **requestedGroup,
+                           TLS13KeyShareEntry **clientShare)
 {
     unsigned int index;
     TLS13KeyShareEntry *entry = NULL;
@@ -1154,13 +1157,16 @@ tls13_NegotiateKeyExchange(sslSocket *ss, TLS13KeyShareEntry **clientShare)
     SSL_TRC(3, ("%d: TLS13[%d]: group = %d", SSL_GETPID(), ss->fd,
                 preferredGroup->name));
 
-    if (!entry) {
-        return tls13_SendHelloRetryRequest(ss, preferredGroup);
+    /* Either provide a share, or provide a group that should be requested in a
+     * HelloRetryRequest, but not both. */
+    if (entry) {
+        PORT_Assert(preferredGroup == entry->group);
+        *clientShare = entry;
+        *requestedGroup = NULL;
+    } else {
+        *clientShare = NULL;
+        *requestedGroup = preferredGroup;
     }
-
-    PORT_Assert(preferredGroup == entry->group);
-    *clientShare = entry;
-
     return SECSuccess;
 }
 
@@ -1236,6 +1242,68 @@ tls13_SelectServerCert(sslSocket *ss)
     return SECFailure;
 }
 
+/* Note: |requestedGroup| is non-NULL when we send a key_share extension. */
+static SECStatus
+tls13_MaybeSendHelloRetry(sslSocket *ss, const sslNamedGroupDef *requestedGroup,
+                          PRBool *hrrSent)
+{
+    SSLHelloRetryRequestAction action = ssl_hello_retry_accept;
+    PRUint8 token[256] = { 0 };
+    unsigned int tokenLen = 0;
+    SECStatus rv;
+
+    /* We asked already, but didn't get a share. */
+    if (requestedGroup && ss->ssl3.hs.helloRetry) {
+        FATAL_ERROR(ss, SSL_ERROR_BAD_2ND_CLIENT_HELLO, illegal_parameter);
+        return SECFailure;
+    }
+
+    if (ss->hrrCallback) {
+        action = ss->hrrCallback(!ss->ssl3.hs.helloRetry,
+                                 ss->xtnData.applicationToken.data,
+                                 ss->xtnData.applicationToken.len,
+                                 token, &tokenLen, sizeof(token),
+                                 ss->hrrCallbackArg);
+    }
+
+    /* These use SSL3_SendAlert directly to avoid an assertion in
+     * tls13_FatalError(), which is ordinarily OK. */
+    if (action == ssl_hello_retry_request && ss->ssl3.hs.helloRetry) {
+        (void)SSL3_SendAlert(ss, alert_fatal, internal_error);
+        PORT_SetError(SSL_ERROR_APP_CALLBACK_ERROR);
+        return SECFailure;
+    }
+
+    if (action != ssl_hello_retry_request && tokenLen) {
+        (void)SSL3_SendAlert(ss, alert_fatal, internal_error);
+        PORT_SetError(SSL_ERROR_APP_CALLBACK_ERROR);
+        return SECFailure;
+    }
+
+    if (tokenLen > sizeof(token)) {
+        (void)SSL3_SendAlert(ss, alert_fatal, internal_error);
+        PORT_SetError(SSL_ERROR_APP_CALLBACK_ERROR);
+        return SECFailure;
+    }
+
+    if (action == ssl_hello_retry_fail) {
+        FATAL_ERROR(ss, SSL_ERROR_APPLICATION_ABORT, handshake_failure);
+        return SECFailure;
+    }
+
+    if (!requestedGroup && action != ssl_hello_retry_request) {
+        return SECSuccess;
+    }
+
+    rv = tls13_SendHelloRetryRequest(ss, requestedGroup, token, tokenLen);
+    if (rv != SECSuccess) {
+        return SECFailure; /* Code already set. */
+    }
+
+    *hrrSent = PR_TRUE;
+    return SECSuccess;
+}
+
 static SECStatus
 tls13_NegotiateAuthentication(sslSocket *ss)
 {
@@ -1271,8 +1339,9 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
 {
     SECStatus rv;
     SSL3Statistics *ssl3stats = SSL_GetStatistics();
+    const sslNamedGroupDef *requestedGroup = NULL;
     TLS13KeyShareEntry *clientShare = NULL;
-    int j;
+    PRBool hrr = PR_FALSE;
     ssl3CipherSuite previousCipherSuite;
 
     if (ssl3_ExtensionNegotiated(ss, ssl_tls13_early_data_xtn)) {
@@ -1281,8 +1350,8 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
 
 #ifndef PARANOID
     /* Look for a matching cipher suite. */
-    j = ssl3_config_match_init(ss);
-    if (j <= 0) { /* no ciphers are working/supported by PK11 */
+    if (ssl3_config_match_init(ss) <= 0) {
+        /* no ciphers are working/supported by PK11 */
         FATAL_ERROR(ss, PORT_GetError(), internal_error);
         goto loser;
     }
@@ -1353,13 +1422,19 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
     }
 
     /* Select key exchange. */
-    rv = tls13_NegotiateKeyExchange(ss, &clientShare);
+    rv = tls13_NegotiateKeyExchange(ss, &requestedGroup, &clientShare);
     if (rv != SECSuccess) {
         goto loser;
     }
+    /* We should get either one of these, but not both. */
+    PORT_Assert((requestedGroup && !clientShare) ||
+                (!requestedGroup && clientShare));
 
-    /* If we didn't find a client key share, we have to retry. */
-    if (!clientShare) {
+    rv = tls13_MaybeSendHelloRetry(ss, requestedGroup, &hrr);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    if (hrr) {
         if (sid) { /* Free the sid. */
             ss->sec.uncache(sid);
             ssl_FreeSID(sid);
@@ -1517,6 +1592,20 @@ loser:
     return SECFailure;
 }
 
+SECStatus
+SSLExp_HelloRetryRequestCallback(PRFileDesc *fd,
+                                 SSLHelloRetryRequestCallback cb, void *arg)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+    if (!ss) {
+        return SECFailure; /* Code already set. */
+    }
+
+    ss->hrrCallback = cb;
+    ss->hrrCallbackArg = arg;
+    return SECSuccess;
+}
+
 /*
  * struct {
  *     ProtocolVersion server_version;
@@ -1579,7 +1668,9 @@ loser:
 }
 
 static SECStatus
-tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup)
+tls13_SendHelloRetryRequest(sslSocket *ss,
+                            const sslNamedGroupDef *requestedGroup,
+                            const PRUint8 *appToken, unsigned int appTokenLen)
 {
     SECStatus rv;
     unsigned int cookieLen;
@@ -1591,14 +1682,9 @@ tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
-    /* We asked already, but made no progress. */
-    if (ss->ssl3.hs.helloRetry) {
-        FATAL_ERROR(ss, SSL_ERROR_BAD_2ND_CLIENT_HELLO, illegal_parameter);
-        return SECFailure;
-    }
-
     /* Compute the cookie we are going to need. */
-    rv = tls13_MakeHrrCookie(ss, selectedGroup,
+    rv = tls13_MakeHrrCookie(ss, requestedGroup,
+                             appToken, appTokenLen,
                              cookie, &cookieLen, sizeof(cookie));
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
@@ -1606,7 +1692,7 @@ tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup
     }
 
     /* Now build the body of the message. */
-    rv = tls13_ConstructHelloRetryRequest(ss, selectedGroup,
+    rv = tls13_ConstructHelloRetryRequest(ss, requestedGroup,
                                           cookie, cookieLen, &messageBuf);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);

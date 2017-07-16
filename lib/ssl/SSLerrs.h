@@ -519,3 +519,9 @@ ER3(SSL_ERROR_RX_MALFORMED_END_OF_EARLY_DATA, (SSL_ERROR_BASE + 163),
 
 ER3(SSL_ERROR_UNSUPPORTED_EXPERIMENTAL_API, (SSL_ERROR_BASE + 164),
     "An experimental API was called, but not supported.")
+
+ER3(SSL_ERROR_APPLICATION_ABORT, (SSL_ERROR_BASE + 165),
+    "SSL handshake aborted by the application.")
+
+ER3(SSL_ERROR_APP_CALLBACK_ERROR, (SSL_ERROR_BASE + 166),
+    "An application callback produced an invalid response.")

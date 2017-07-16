@@ -14,6 +14,7 @@
 #include "sslimpl.h"
 
 SECStatus tls13_MakeHrrCookie(sslSocket *ss, const sslNamedGroupDef *selectedGroup,
+                              const PRUint8 *appToken, unsigned int appTokenLen,
                               PRUint8 *buf, unsigned int *len, unsigned int maxlen);
 SECStatus tls13_GetHrrCookieLength(sslSocket *ss, unsigned int *length);
 SECStatus tls13_RecoverHashState(sslSocket *ss,

@@ -9,6 +9,8 @@
 #ifndef __tls13con_h_
 #define __tls13con_h_
 
+#include "sslexp.h"
+
 typedef enum {
     StaticSharedSecret,
     EphemeralSharedSecret
@@ -105,5 +107,9 @@ PRBool tls13_IsReplay(const sslSocket *ss, const sslSessionID *sid);
 void tls13_AntiReplayRollover(PRTime now);
 SECStatus SSLExp_SetupAntiReplay(PRTime window, unsigned int k,
                                  unsigned int bits);
+
+SECStatus SSLExp_HelloRetryRequestCallback(PRFileDesc *fd,
+                                           SSLHelloRetryRequestCallback cb,
+                                           void *arg);
 
 #endif /* __tls13con_h_ */

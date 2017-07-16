@@ -187,6 +187,307 @@ TEST_P(TlsConnectTls13, RetryWithSameKeyShare) {
   EXPECT_EQ(SSL_ERROR_ILLEGAL_PARAMETER_ALERT, client_->error_code());
 }
 
+TEST_P(TlsConnectTls13, RetryCallbackAccept) {
+  EnsureTlsSetup();
+
+  auto accept_hello = [](PRBool firstHello, const PRUint8* clientToken,
+                         unsigned int clientTokenLen, PRUint8* appToken,
+                         unsigned int* appTokenLen, unsigned int appTokenMax,
+                         void* arg) {
+    auto* called = reinterpret_cast<bool*>(arg);
+    *called = true;
+
+    EXPECT_TRUE(firstHello);
+    EXPECT_EQ(0U, clientTokenLen);
+    return ssl_hello_retry_accept;
+  };
+
+  bool cb_run = false;
+  EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(server_->ssl_fd(),
+                                                      accept_hello, &cb_run));
+  Connect();
+  EXPECT_TRUE(cb_run);
+}
+
+TEST_P(TlsConnectTls13, RetryCallbackAcceptGroupMismatch) {
+  EnsureTlsSetup();
+
+  auto accept_hello_twice = [](PRBool firstHello, const PRUint8* clientToken,
+                               unsigned int clientTokenLen, PRUint8* appToken,
+                               unsigned int* appTokenLen,
+                               unsigned int appTokenMax, void* arg) {
+    auto* called = reinterpret_cast<size_t*>(arg);
+    ++*called;
+
+    EXPECT_EQ(0U, clientTokenLen);
+    return ssl_hello_retry_accept;
+  };
+
+  auto capture = std::make_shared<TlsExtensionCapture>(ssl_tls13_cookie_xtn);
+  capture->SetHandshakeTypes({kTlsHandshakeHelloRetryRequest});
+  server_->SetPacketFilter(capture);
+
+  static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1};
+  server_->ConfigNamedGroups(groups);
+
+  size_t cb_run = 0;
+  EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(
+                            server_->ssl_fd(), accept_hello_twice, &cb_run));
+  Connect();
+  EXPECT_EQ(2U, cb_run);
+  EXPECT_TRUE(capture->captured()) << "expected a cookie in HelloRetryRequest";
+}
+
+TEST_P(TlsConnectTls13, RetryCallbackFail) {
+  EnsureTlsSetup();
+
+  auto fail_hello = [](PRBool firstHello, const PRUint8* clientToken,
+                       unsigned int clientTokenLen, PRUint8* appToken,
+                       unsigned int* appTokenLen, unsigned int appTokenMax,
+                       void* arg) {
+    auto* called = reinterpret_cast<bool*>(arg);
+    *called = true;
+
+    EXPECT_TRUE(firstHello);
+    EXPECT_EQ(0U, clientTokenLen);
+    return ssl_hello_retry_fail;
+  };
+
+  bool cb_run = false;
+  EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(server_->ssl_fd(),
+                                                      fail_hello, &cb_run));
+  ConnectExpectAlert(server_, kTlsAlertHandshakeFailure);
+  server_->CheckErrorCode(SSL_ERROR_APPLICATION_ABORT);
+  EXPECT_TRUE(cb_run);
+}
+
+// Asking for retry twice isn't allowed.
+TEST_P(TlsConnectTls13, RetryCallbackRequestHrrTwice) {
+  EnsureTlsSetup();
+
+  auto bad_callback = [](PRBool firstHello, const PRUint8* clientToken,
+                         unsigned int clientTokenLen, PRUint8* appToken,
+                         unsigned int* appTokenLen, unsigned int appTokenMax,
+                         void* arg) -> SSLHelloRetryRequestAction {
+    return ssl_hello_retry_request;
+  };
+  EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(server_->ssl_fd(),
+                                                      bad_callback, NULL));
+  ConnectExpectAlert(server_, kTlsAlertInternalError);
+  server_->CheckErrorCode(SSL_ERROR_APP_CALLBACK_ERROR);
+}
+
+// Accepting the CH and modifying the token isn't allowed.
+TEST_P(TlsConnectTls13, RetryCallbackAcceptAndSetToken) {
+  EnsureTlsSetup();
+
+  auto bad_callback = [](PRBool firstHello, const PRUint8* clientToken,
+                         unsigned int clientTokenLen, PRUint8* appToken,
+                         unsigned int* appTokenLen, unsigned int appTokenMax,
+                         void* arg) -> SSLHelloRetryRequestAction {
+    *appTokenLen = 1;
+    return ssl_hello_retry_accept;
+  };
+  EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(server_->ssl_fd(),
+                                                      bad_callback, NULL));
+  ConnectExpectAlert(server_, kTlsAlertInternalError);
+  server_->CheckErrorCode(SSL_ERROR_APP_CALLBACK_ERROR);
+}
+
+// As above, but with reject.
+TEST_P(TlsConnectTls13, RetryCallbackRejectAndSetToken) {
+  EnsureTlsSetup();
+
+  auto bad_callback = [](PRBool firstHello, const PRUint8* clientToken,
+                         unsigned int clientTokenLen, PRUint8* appToken,
+                         unsigned int* appTokenLen, unsigned int appTokenMax,
+                         void* arg) -> SSLHelloRetryRequestAction {
+    *appTokenLen = 1;
+    return ssl_hello_retry_fail;
+  };
+  EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(server_->ssl_fd(),
+                                                      bad_callback, NULL));
+  ConnectExpectAlert(server_, kTlsAlertInternalError);
+  server_->CheckErrorCode(SSL_ERROR_APP_CALLBACK_ERROR);
+}
+
+// This is a (pretend) buffer overflow.
+TEST_P(TlsConnectTls13, RetryCallbackSetTooLargeToken) {
+  EnsureTlsSetup();
+
+  auto bad_callback = [](PRBool firstHello, const PRUint8* clientToken,
+                         unsigned int clientTokenLen, PRUint8* appToken,
+                         unsigned int* appTokenLen, unsigned int appTokenMax,
+                         void* arg) -> SSLHelloRetryRequestAction {
+    *appTokenLen = appTokenMax + 1;
+    return ssl_hello_retry_accept;
+  };
+  EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(server_->ssl_fd(),
+                                                      bad_callback, NULL));
+  ConnectExpectAlert(server_, kTlsAlertInternalError);
+  server_->CheckErrorCode(SSL_ERROR_APP_CALLBACK_ERROR);
+}
+
+SSLHelloRetryRequestAction RetryHello(PRBool firstHello,
+                                      const PRUint8* clientToken,
+                                      unsigned int clientTokenLen,
+                                      PRUint8* appToken,
+                                      unsigned int* appTokenLen,
+                                      unsigned int appTokenMax, void* arg) {
+  auto* called = reinterpret_cast<size_t*>(arg);
+  ++*called;
+
+  EXPECT_EQ(0U, clientTokenLen);
+  return firstHello ? ssl_hello_retry_request : ssl_hello_retry_accept;
+}
+
+TEST_P(TlsConnectTls13, RetryCallbackRetry) {
+  EnsureTlsSetup();
+
+  auto capture_hrr = std::make_shared<TlsInspectorRecordHandshakeMessage>(
+      ssl_hs_hello_retry_request);
+  auto capture_key_share =
+      std::make_shared<TlsExtensionCapture>(ssl_tls13_key_share_xtn);
+  capture_key_share->SetHandshakeTypes({kTlsHandshakeHelloRetryRequest});
+  std::vector<std::shared_ptr<PacketFilter>> chain = {capture_hrr,
+                                                      capture_key_share};
+  server_->SetPacketFilter(std::make_shared<ChainedPacketFilter>(chain));
+
+  size_t cb_called = 0;
+  EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(server_->ssl_fd(),
+                                                      RetryHello, &cb_called));
+
+  // Do the first message exchange.
+  client_->StartConnect();
+  server_->StartConnect();
+  client_->Handshake();
+  server_->Handshake();
+
+  EXPECT_EQ(1U, cb_called) << "callback should be called once here";
+  EXPECT_LT(0U, capture_hrr->buffer().len()) << "HelloRetryRequest expected";
+  EXPECT_FALSE(capture_key_share->captured())
+      << "no key_share extension expected";
+
+  auto capture_cookie =
+      std::make_shared<TlsExtensionCapture>(ssl_tls13_cookie_xtn);
+  client_->SetPacketFilter(capture_cookie);
+
+  Connect();
+  EXPECT_EQ(2U, cb_called);
+  EXPECT_TRUE(capture_cookie->captured()) << "should have a cookie";
+}
+
+// The callback should be run even if we have another reason to send
+// HelloRetryRequest.  In this case, the server sends HRR because the server
+// wants a P-384 key share and the client didn't offer one.
+TEST_P(TlsConnectTls13, RetryCallbackRetryWithGroupMismatch) {
+  EnsureTlsSetup();
+
+  auto capture = std::make_shared<TlsExtensionCapture>(ssl_tls13_cookie_xtn);
+  capture->SetHandshakeTypes({kTlsHandshakeHelloRetryRequest});
+  server_->SetPacketFilter(capture);
+
+  static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1};
+  server_->ConfigNamedGroups(groups);
+
+  size_t cb_called = 0;
+  EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(server_->ssl_fd(),
+                                                      RetryHello, &cb_called));
+  Connect();
+  EXPECT_EQ(2U, cb_called);
+  EXPECT_TRUE(capture->captured()) << "cookie expected";
+}
+
+static const uint8_t kApplicationToken[] = {0x92, 0x44, 0x00};
+
+SSLHelloRetryRequestAction RetryHelloWithToken(
+    PRBool firstHello, const PRUint8* clientToken, unsigned int clientTokenLen,
+    PRUint8* appToken, unsigned int* appTokenLen, unsigned int appTokenMax,
+    void* arg) {
+  auto* called = reinterpret_cast<size_t*>(arg);
+  ++*called;
+
+  if (firstHello) {
+    memcpy(appToken, kApplicationToken, sizeof(kApplicationToken));
+    *appTokenLen = sizeof(kApplicationToken);
+    return ssl_hello_retry_request;
+  }
+
+  EXPECT_EQ(DataBuffer(kApplicationToken, sizeof(kApplicationToken)),
+            DataBuffer(clientToken, static_cast<size_t>(clientTokenLen)));
+  return ssl_hello_retry_accept;
+}
+
+TEST_P(TlsConnectTls13, RetryCallbackRetryWithToken) {
+  EnsureTlsSetup();
+
+  auto capture_key_share =
+      std::make_shared<TlsExtensionCapture>(ssl_tls13_key_share_xtn);
+  capture_key_share->SetHandshakeTypes({kTlsHandshakeHelloRetryRequest});
+  server_->SetPacketFilter(capture_key_share);
+
+  size_t cb_called = 0;
+  EXPECT_EQ(SECSuccess,
+            SSL_HelloRetryRequestCallback(server_->ssl_fd(),
+                                          RetryHelloWithToken, &cb_called));
+  Connect();
+  EXPECT_EQ(2U, cb_called);
+  EXPECT_FALSE(capture_key_share->captured()) << "no key share expected";
+}
+
+TEST_P(TlsConnectTls13, RetryCallbackRetryWithTokenAndGroupMismatch) {
+  EnsureTlsSetup();
+
+  static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1};
+  server_->ConfigNamedGroups(groups);
+
+  auto capture_key_share =
+      std::make_shared<TlsExtensionCapture>(ssl_tls13_key_share_xtn);
+  capture_key_share->SetHandshakeTypes({kTlsHandshakeHelloRetryRequest});
+  server_->SetPacketFilter(capture_key_share);
+
+  size_t cb_called = 0;
+  EXPECT_EQ(SECSuccess,
+            SSL_HelloRetryRequestCallback(server_->ssl_fd(),
+                                          RetryHelloWithToken, &cb_called));
+  Connect();
+  EXPECT_EQ(2U, cb_called);
+  EXPECT_TRUE(capture_key_share->captured()) << "key share expected";
+}
+
+SSLHelloRetryRequestAction CheckTicketToken(
+    PRBool firstHello, const PRUint8* clientToken, unsigned int clientTokenLen,
+    PRUint8* appToken, unsigned int* appTokenLen, unsigned int appTokenMax,
+    void* arg) {
+  auto* called = reinterpret_cast<bool*>(arg);
+  *called = true;
+
+  EXPECT_TRUE(firstHello);
+  EXPECT_EQ(DataBuffer(kApplicationToken, sizeof(kApplicationToken)),
+            DataBuffer(clientToken, static_cast<size_t>(clientTokenLen)));
+  return ssl_hello_retry_accept;
+}
+
+// Stream because SSL_SendSessionTicket only supports that.
+TEST_F(TlsConnectStreamTls13, RetryCallbackWithSessionTicketToken) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  Connect();
+  EXPECT_EQ(SECSuccess,
+            SSL_SendSessionTicket(server_->ssl_fd(), kApplicationToken,
+                                  sizeof(kApplicationToken)));
+  SendReceive();
+
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  ExpectResumption(RESUME_TICKET);
+
+  bool cb_run = false;
+  EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(
+                            server_->ssl_fd(), CheckTicketToken, &cb_run));
+  Connect();
+  EXPECT_TRUE(cb_run);
+}
+
 // Stream because the server doesn't consume the alert and terminate.
 TEST_F(TlsConnectStreamTls13, RetryWithDifferentCipherSuite) {
   EnsureTlsSetup();
@@ -350,28 +651,6 @@ TEST_P(HelloRetryRequestAgentTest, HandleNoopHelloRetryRequest) {
   ExpectAlert(kTlsAlertDecodeError);
   ProcessMessage(hrr, TlsAgent::STATE_ERROR,
                  SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST);
-}
-
-TEST_P(HelloRetryRequestAgentTest, HandleHelloRetryRequestCookie) {
-  const uint8_t canned_cookie_hrr[] = {
-      static_cast<uint8_t>(ssl_tls13_cookie_xtn >> 8),
-      static_cast<uint8_t>(ssl_tls13_cookie_xtn),
-      0,
-      5,  // length of cookie extension
-      0,
-      3,  // cookie value length
-      0xc0,
-      0x0c,
-      0x13};
-  DataBuffer hrr;
-  MakeCannedHrr(canned_cookie_hrr, sizeof(canned_cookie_hrr), &hrr);
-  auto capture = std::make_shared<TlsExtensionCapture>(ssl_tls13_cookie_xtn);
-  agent_->SetPacketFilter(capture);
-  ProcessMessage(hrr, TlsAgent::STATE_CONNECTING);
-  const size_t cookie_pos = 2 + 2;  // cookie_xtn, extension len
-  DataBuffer cookie(canned_cookie_hrr + cookie_pos,
-                    sizeof(canned_cookie_hrr) - cookie_pos);
-  EXPECT_EQ(cookie, capture->extension());
 }
 
 INSTANTIATE_TEST_CASE_P(HelloRetryRequestAgentTests, HelloRetryRequestAgentTest,

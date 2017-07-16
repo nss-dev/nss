@@ -89,7 +89,8 @@ SECStatus ssl3_SendExtendedMasterSecretXtn(const sslSocket *ss,
 SECStatus ssl3_HandleExtendedMasterSecretXtn(const sslSocket *ss,
                                              TLSExtensionData *xtnData,
                                              SECItem *data);
-SECStatus ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data);
+SECStatus ssl3_ProcessSessionTicketCommon(sslSocket *ss, const SECItem *ticket,
+                                          /* out */ SECItem *appToken);
 SECStatus ssl3_ClientSendServerNameXtn(const sslSocket *ss,
                                        TLSExtensionData *xtnData,
                                        sslBuffer *buf, PRBool *added);

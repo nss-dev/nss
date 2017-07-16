@@ -242,6 +242,102 @@ typedef SECStatus(PR_CALLBACK *SSLExtensionHandler)(
                           unsigned int _appTokenLen),                 \
                          (fd, appToken, appTokenLen))
 
+/*
+ * A stateless retry handler gives an application some control over NSS handling
+ * of ClientHello messages.
+ *
+ * SSL_HelloRetryRequestCallback() installs a callback that allows an
+ * application to control how NSS sends HelloRetryRequest messages.  This
+ * handler is only used on servers and will only be called if the server selects
+ * TLS 1.3.  Support for older TLS versions could be added in other releases.
+ *
+ * The SSLHelloRetryRequestCallback is invoked during the processing of a
+ * TLS 1.3 ClientHello message.  It takes the following arguments:
+ *
+ * - |firstHello| indicates if the NSS believes that this is an initial
+ *   ClientHello.  An initial ClientHello will never include a cookie extension,
+ *   though it may contain a session ticket.
+ *
+ * - |clientToken| includes a token previously provided by the application.  If
+ *   |clientTokenLen| is 0, then |clientToken| may be NULL.
+ *
+ *   - If |firstHello| is PR_FALSE, the value that was provided in the
+ *     |retryToken| outparam of previous invocations of this callback will be
+ *     present here.
+ *
+ *   - If |firstHello| is PR_TRUE, and the handshake is resuming a session, then
+ *     this will contain any value that was passed in the |token| parameter of
+ *     SSL_SendNewSessionTicket() method (see below).  If this is not resuming a
+ *     session, then the token will be empty (and this value could be NULL).
+ *
+ * - |clientTokenLen| is the length of |clientToken|.
+ *
+ * - |retryToken| is an item that callback can write to.  This provides NSS with
+ *   a token.  This token is encrypted and integrity protected and embedded in
+ *   the cookie extension of a HelloRetryRequest.  The value of this field is
+ *   only used if the handler returns ssl_stateless_retry_check.  NSS allocates
+ *   space for this value.
+ *
+ * - |retryTokenLen| is an outparam for the length of the token. If this value
+ *   is not set, or set to 0, an empty token will be sent.
+ *
+ * - |retryTokenMax| is the size of the space allocated for retryToken. An
+ *   application cannot write more than this many bytes to retryToken.
+ *
+ * - |arg| is the same value that was passed to
+ *   SSL_InstallStatelessRetryHandler().
+ *
+ * The handler can validate any the value of |clientToken|, query the socket
+ * status (using SSL_GetPreliminaryChannelInfo() for example) and decide how to
+ * proceed:
+ *
+ * - Returning ssl_hello_retry_fail causes the handshake to fail.  This might be
+ *   used if the token is invalid or the application wishes to abort the
+ *   handshake.
+ *
+ * - Returning ssl_hello_retry_accept causes the handshake to proceed.
+ *
+ * - Returning ssl_hello_retry_request causes NSS to send a HelloRetryRequest
+ *   message and request a second ClientHello.  NSS generates a cookie extension
+ *   and embeds the value of |retryToken|.  The value of |retryToken| value may
+ *   be left empty if the application does not require any additional context to
+ *   validate a second ClientHello attempt.  This return code cannot be used to
+ *   reject a second ClientHello (i.e., when firstHello is PR_FALSE); NSS will
+ *   abort the handshake if this value is returned from a second call.
+ *
+ * An application that chooses to perform a stateless retry can discard the
+ * server socket.  All necessary state to continue the TLS handshake will be
+ * included in the cookie extension.  This makes it possible to use a new socket
+ * to handle the remainder of the handshake.  The existing socket can be safely
+ * discarded.  [TODO: see Bug 1386096]
+ *
+ * If the same socket is retained, the information in the cookie will be checked
+ * for consistency against the existing state of the socket.  Any discrepancy
+ * will result in the connection being closed.
+ *
+ * Tokens should be kept as small as possible.  NSS sets a limit on the size of
+ * tokens, which it passes in |retryTokenMax|.  Depending on circumstances,
+ * observing a smaller limit might be desirable or even necessary.  For
+ * instance, having HelloRetryRequest and ClientHello fit in a single packet has
+ * significant performance benefits.
+ */
+typedef enum {
+    ssl_hello_retry_fail,
+    ssl_hello_retry_accept,
+    ssl_hello_retry_request
+} SSLHelloRetryRequestAction;
+
+typedef SSLHelloRetryRequestAction(PR_CALLBACK *SSLHelloRetryRequestCallback)(
+    PRBool firstHello, const PRUint8 *clientToken, unsigned int clientTokenLen,
+    PRUint8 *retryToken, unsigned int *retryTokenLen, unsigned int retryTokMax,
+    void *arg);
+
+#define SSL_HelloRetryRequestCallback(fd, cb, arg)                       \
+    SSL_EXPERIMENTAL_API("SSL_HelloRetryRequestCallback",                \
+                         (PRFileDesc * _fd,                              \
+                          SSLHelloRetryRequestCallback _cb, void *_arg), \
+                         (fd, cb, arg))
+
 SEC_END_PROTOS
 
 #endif /* __sslexp_h_ */

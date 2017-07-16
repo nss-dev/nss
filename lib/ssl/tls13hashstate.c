@@ -21,14 +21,16 @@
  * inner value being.
  *
  * struct {
- *     uint8 indicator = 0xff;          // To disambiguate from tickets.
- *     uint16 cipherSuite;              // Selected cipher suite.
- *     uint16 keyShare;                 // Key share we requested (0 if none)
- *     opaque ch_hash[rest_of_buffer]; // H(ClientHello)
+ *     uint8 indicator = 0xff;            // To disambiguate from tickets.
+ *     uint16 cipherSuite;                // Selected cipher suite.
+ *     uint16 keyShare;                   // Requested key share group (0=none)
+ *     opaque applicationToken<0..65535>; // Application token
+ *     opaque ch_hash[rest_of_buffer];    // H(ClientHello)
  * } CookieInner;
  */
 SECStatus
 tls13_MakeHrrCookie(sslSocket *ss, const sslNamedGroupDef *selectedGroup,
+                    const PRUint8 *appToken, unsigned int appTokenLen,
                     PRUint8 *buf, unsigned int *len, unsigned int maxlen)
 {
     SECStatus rv;
@@ -48,6 +50,16 @@ tls13_MakeHrrCookie(sslSocket *ss, const sslNamedGroupDef *selectedGroup,
         return SECFailure;
     }
     rv = ssl3_AppendNumberToItem(&cookieItem, selectedGroup ? selectedGroup->name : 0, 2);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    /* Application token. */
+    rv = ssl3_AppendNumberToItem(&cookieItem, appTokenLen, 2);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    rv = ssl3_AppendToItem(&cookieItem, appToken, appTokenLen);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -87,6 +99,8 @@ tls13_RecoverHashState(sslSocket *ss,
     PRUint32 cipherSuite;
     PRUint32 group;
     const sslNamedGroupDef *selectedGroup;
+    PRUint32 appTokenLen;
+    PRUint8 *appToken;
 
     rv = ssl_SelfEncryptUnprotect(ss, cookie, cookieLen,
                                   ptItem.data, &ptItem.len, sizeof(plaintext));
@@ -114,11 +128,26 @@ tls13_RecoverHashState(sslSocket *ss,
         return SECFailure;
     }
     selectedGroup = ssl_LookupNamedGroup(group);
-    PORT_Assert(selectedGroup);
-    if (selectedGroup == NULL) {
+
+    /* Application token. */
+    PORT_Assert(ss->xtnData.applicationToken.len == 0);
+    rv = ssl3_ConsumeNumberFromItem(&ptItem, &appTokenLen, 2);
+    if (rv != SECSuccess) {
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CLIENT_HELLO, illegal_parameter);
         return SECFailure;
     }
+    if (SECITEM_AllocItem(NULL, &ss->xtnData.applicationToken,
+                          appTokenLen) == NULL) {
+        FATAL_ERROR(ss, PORT_GetError(), internal_error);
+        return SECFailure;
+    }
+    ss->xtnData.applicationToken.len = appTokenLen;
+    rv = ssl3_ConsumeFromItem(&ptItem, &appToken, appTokenLen);
+    if (rv != SECSuccess) {
+        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CLIENT_HELLO, illegal_parameter);
+        return SECFailure;
+    }
+    PORT_Memcpy(ss->xtnData.applicationToken.data, appToken, appTokenLen);
 
     /* The remainder is the hash. */
     if (ptItem.len != tls13_GetHashSize(ss)) {

@@ -1304,10 +1304,12 @@ loser:
 
 /* Generic ticket processing code, common to all TLS versions. */
 SECStatus
-ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
+ssl3_ProcessSessionTicketCommon(sslSocket *ss, const SECItem *ticket,
+                                SECItem *appToken)
 {
     SECItem decryptedTicket = { siBuffer, NULL, 0 };
     SessionTicket parsedTicket;
+    sslSessionID *sid = NULL;
     SECStatus rv;
 
     if (ss->sec.ci.sid != NULL) {
@@ -1316,12 +1318,12 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
         ss->sec.ci.sid = NULL;
     }
 
-    if (!SECITEM_AllocItem(NULL, &decryptedTicket, data->len)) {
+    if (!SECITEM_AllocItem(NULL, &decryptedTicket, ticket->len)) {
         return SECFailure;
     }
 
     /* Decrypt the ticket. */
-    rv = ssl_SelfEncryptUnprotect(ss, data->data, data->len,
+    rv = ssl_SelfEncryptUnprotect(ss, ticket->data, ticket->len,
                                   decryptedTicket.data,
                                   &decryptedTicket.len,
                                   decryptedTicket.len);
@@ -1353,12 +1355,19 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
     /* Use the ticket if it is valid and unexpired. */
     if (parsedTicket.timestamp + ssl_ticket_lifetime * PR_USEC_PER_SEC >
         ssl_TimeUsec()) {
-        sslSessionID *sid;
 
-        rv = ssl_CreateSIDFromTicket(ss, data, &parsedTicket, &sid);
+        rv = ssl_CreateSIDFromTicket(ss, ticket, &parsedTicket, &sid);
         if (rv != SECSuccess) {
             goto loser; /* code already set */
         }
+        if (appToken && parsedTicket.applicationToken.len) {
+            rv = SECITEM_CopyItem(NULL, appToken,
+                                  &parsedTicket.applicationToken);
+            if (rv != SECSuccess) {
+                goto loser; /* code already set */
+            }
+        }
+
         ss->statelessResume = PR_TRUE;
         ss->sec.ci.sid = sid;
 
@@ -1373,6 +1382,9 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, SECItem *data)
     return SECSuccess;
 
 loser:
+    if (sid) {
+        ssl_FreeSID(sid);
+    }
     SECITEM_ZfreeItem(&decryptedTicket, PR_FALSE);
     PORT_Memset(&parsedTicket, 0, sizeof(parsedTicket));
     return SECFailure;
@@ -1406,7 +1418,8 @@ ssl3_ServerHandleSessionTicketXtn(const sslSocket *ss, TLSExtensionData *xtnData
         return SECSuccess;
     }
 
-    return ssl3_ProcessSessionTicketCommon(CONST_CAST(sslSocket, ss), data);
+    return ssl3_ProcessSessionTicketCommon(CONST_CAST(sslSocket, ss), data,
+                                           NULL);
 }
 
 /* Extension format:

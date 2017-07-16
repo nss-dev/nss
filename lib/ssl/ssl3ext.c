@@ -178,7 +178,7 @@ static const struct {
     { ssl_tls13_pre_shared_key_xtn, ssl_ext_native_only },
     { ssl_tls13_early_data_xtn, ssl_ext_native_only },
     { ssl_tls13_supported_versions_xtn, ssl_ext_native_only },
-    { ssl_tls13_cookie_xtn, ssl_ext_native },
+    { ssl_tls13_cookie_xtn, ssl_ext_native_only },
     { ssl_tls13_psk_key_exchange_modes_xtn, ssl_ext_native_only },
     { ssl_tls13_ticket_early_data_info_xtn, ssl_ext_native_only },
     { ssl_next_proto_nego_xtn, ssl_ext_none },
@@ -946,6 +946,7 @@ ssl3_DestroyExtensionData(TLSExtensionData *xtnData)
     SECITEM_FreeItem(&xtnData->nextProto, PR_FALSE);
     tls13_DestroyKeyShares(&xtnData->remoteKeyShares);
     SECITEM_FreeItem(&xtnData->certReqContext, PR_FALSE);
+    SECITEM_FreeItem(&xtnData->applicationToken, PR_FALSE);
     if (xtnData->certReqAuthorities.arena) {
         PORT_FreeArena(xtnData->certReqAuthorities.arena, PR_FALSE);
         xtnData->certReqAuthorities.arena = NULL;
