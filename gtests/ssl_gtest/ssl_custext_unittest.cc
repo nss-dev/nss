@@ -329,7 +329,6 @@ TEST_F(TlsConnectStreamTls13, CustomExtensionServerToClientEE) {
   auto capture = std::make_shared<TlsExtensionCapture>(extension_code);
   capture->SetHandshakeTypes({kTlsHandshakeEncryptedExtensions});
   server_->SetTlsRecordFilter(capture);
-  capture->EnableDecryption();
 
   Connect();
 

@@ -82,7 +82,7 @@ class RecordFragmenter : public PacketFilter {
       while (parser.remaining()) {
         TlsRecordHeader header;
         DataBuffer record;
-        if (!header.Parse(&parser, &record)) {
+        if (!header.Parse(0, &parser, &record)) {
           ADD_FAILURE() << "bad record header";
           return false;
         }

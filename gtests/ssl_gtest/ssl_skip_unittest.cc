@@ -101,7 +101,6 @@ class Tls13SkipTest : public TlsConnectTestBase,
   void ServerSkipTest(std::shared_ptr<TlsRecordFilter> filter, int32_t error) {
     EnsureTlsSetup();
     server_->SetTlsRecordFilter(filter);
-    filter->EnableDecryption();
     client_->ExpectSendAlert(kTlsAlertUnexpectedMessage);
     if (variant_ == ssl_variant_stream) {
       server_->ExpectSendAlert(kTlsAlertBadRecordMac);
@@ -120,7 +119,6 @@ class Tls13SkipTest : public TlsConnectTestBase,
   void ClientSkipTest(std::shared_ptr<TlsRecordFilter> filter, int32_t error) {
     EnsureTlsSetup();
     client_->SetTlsRecordFilter(filter);
-    filter->EnableDecryption();
     server_->ExpectSendAlert(kTlsAlertUnexpectedMessage);
     ConnectExpectFailOneSide(TlsAgent::SERVER);
 

@@ -119,7 +119,6 @@ class TlsZeroRttReplayTest : public TlsConnectTls13 {
     auto early_data_ext =
         std::make_shared<TlsExtensionCapture>(ssl_tls13_early_data_xtn);
     server_->SetPacketFilter(early_data_ext);
-    early_data_ext->EnableDecryption();
 
     // Finally, replay the ClientHello and force the server to consume it.  Stop
     // after the server sends its first flight; the client will not be able to

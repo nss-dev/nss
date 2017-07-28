@@ -79,7 +79,6 @@ TEST_P(TlsConnectTls13, DamageServerSignature) {
   auto filter =
       std::make_shared<TlsLastByteDamager>(kTlsHandshakeCertificateVerify);
   server_->SetTlsRecordFilter(filter);
-  filter->EnableDecryption();
   client_->ExpectSendAlert(kTlsAlertDecryptError);
   // The server can't read the client's alert, so it also sends an alert.
   if (variant_ == ssl_variant_stream) {
@@ -100,7 +99,6 @@ TEST_P(TlsConnectGeneric, DamageClientSignature) {
       std::make_shared<TlsLastByteDamager>(kTlsHandshakeCertificateVerify);
   client_->SetTlsRecordFilter(filter);
   server_->ExpectSendAlert(kTlsAlertDecryptError);
-  filter->EnableDecryption();
   // Do these handshakes by hand to avoid race condition on
   // the client processing the server's alert.
   client_->StartConnect();
