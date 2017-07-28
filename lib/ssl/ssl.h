@@ -1501,6 +1501,12 @@ SSL_InstallExtensionHooks(PRFileDesc *fd, PRUint16 extension,
                           SSLExtensionWriter writer, void *writerArg,
                           SSLExtensionHandler handler, void *handlerArg);
 
+/*
+ * This is used to access experimental APIs.  Don't call this directly.  This is
+ * used to enable the experimental APIs that are defined in "sslexp.h".
+ */
+SSL_IMPORT void *SSL_GetExperimentalAPI(const char *name);
+
 SEC_END_PROTOS
 
 #endif /* __ssl_h_ */

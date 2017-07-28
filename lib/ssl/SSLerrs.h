@@ -516,3 +516,6 @@ ER3(SSL_ERROR_RX_UNEXPECTED_END_OF_EARLY_DATA, (SSL_ERROR_BASE + 162),
 
 ER3(SSL_ERROR_RX_MALFORMED_END_OF_EARLY_DATA, (SSL_ERROR_BASE + 163),
     "SSL received a malformed End of Early Data message.")
+
+ER3(SSL_ERROR_UNSUPPORTED_EXPERIMENTAL_API, (SSL_ERROR_BASE + 164),
+    "An experimental API was called, but not supported.")
