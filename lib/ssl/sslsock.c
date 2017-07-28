@@ -2215,7 +2215,7 @@ ssl3_GetEffectiveVersionPolicy(SSLProtocolVariant variant,
     return SECSuccess;
 }
 
-/* 
+/*
  * Assumes that rangeParam values are within the supported boundaries,
  * but should contain all potentially allowed versions, even if they contain
  * conflicting versions.
@@ -3868,6 +3868,7 @@ struct {
 } ssl_experimental_functions[] = {
 #ifndef SSL_DISABLE_EXPERIMENTAL_API
 #endif
+    { "", NULL }
 };
 #undef EXP
 #undef PUB
