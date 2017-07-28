@@ -1009,7 +1009,6 @@ class TlsBogusExtensionTest : public TlsConnectTestBase,
         std::make_shared<TlsExtensionAppender>(message, extension, empty);
     if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
       server_->SetTlsRecordFilter(filter);
-      filter->EnableDecryption();
     } else {
       server_->SetPacketFilter(filter);
     }

@@ -81,9 +81,11 @@ class TlsAgent : public PollTarget {
     adapter_->SetPeer(peer->adapter_);
   }
 
+  // Set a filter that can access plaintext (TLS 1.3 only).
   void SetTlsRecordFilter(std::shared_ptr<TlsRecordFilter> filter) {
     filter->SetAgent(this);
     adapter_->SetPacketFilter(filter);
+    filter->EnableDecryption();
   }
 
   void SetPacketFilter(std::shared_ptr<PacketFilter> filter) {

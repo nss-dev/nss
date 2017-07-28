@@ -189,6 +189,105 @@ TEST_P(TlsConnectGeneric, ConnectSendReceive) {
   SendReceive();
 }
 
+class SaveTlsRecord : public TlsRecordFilter {
+ public:
+  SaveTlsRecord(size_t index) : index_(index), count_(0), contents_() {}
+
+  const DataBuffer& contents() const { return contents_; }
+
+ protected:
+  PacketFilter::Action FilterRecord(const TlsRecordHeader& header,
+                                    const DataBuffer& data,
+                                    DataBuffer* changed) override {
+    if (count_++ == index_) {
+      contents_ = data;
+    }
+    return KEEP;
+  }
+
+ private:
+  const size_t index_;
+  size_t count_;
+  DataBuffer contents_;
+};
+
+// Check that decrypting filters work and can read any record.
+// This test (currently) only works in TLS 1.3 where we can decrypt.
+TEST_F(TlsConnectStreamTls13, DecryptRecordClient) {
+  EnsureTlsSetup();
+  // 0 = ClientHello, 1 = Finished, 2 = SendReceive, 3 = SendBuffer
+  auto saved = std::make_shared<SaveTlsRecord>(3);
+  client_->SetTlsRecordFilter(saved);
+  Connect();
+  SendReceive();
+
+  static const uint8_t data[] = {0xde, 0xad, 0xdc};
+  DataBuffer buf(data, sizeof(data));
+  client_->SendBuffer(buf);
+  EXPECT_EQ(buf, saved->contents());
+}
+
+TEST_F(TlsConnectStreamTls13, DecryptRecordServer) {
+  EnsureTlsSetup();
+  // Disable tickets so that we are sure to not get NewSessionTicket.
+  EXPECT_EQ(SECSuccess, SSL_OptionSet(server_->ssl_fd(),
+                                      SSL_ENABLE_SESSION_TICKETS, PR_FALSE));
+  // 0 = ServerHello, 1 = other handshake, 2 = SendReceive, 3 = SendBuffer
+  auto saved = std::make_shared<SaveTlsRecord>(3);
+  server_->SetTlsRecordFilter(saved);
+  Connect();
+  SendReceive();
+
+  static const uint8_t data[] = {0xde, 0xad, 0xd5};
+  DataBuffer buf(data, sizeof(data));
+  server_->SendBuffer(buf);
+  EXPECT_EQ(buf, saved->contents());
+}
+
+class DropTlsRecord : public TlsRecordFilter {
+ public:
+  DropTlsRecord(size_t index) : index_(index), count_(0) {}
+
+ protected:
+  PacketFilter::Action FilterRecord(const TlsRecordHeader& header,
+                                    const DataBuffer& data,
+                                    DataBuffer* changed) override {
+    if (count_++ == index_) {
+      return DROP;
+    }
+    return KEEP;
+  }
+
+ private:
+  const size_t index_;
+  size_t count_;
+};
+
+// Test that decrypting filters work correctly and are able to drop records.
+TEST_F(TlsConnectStreamTls13, DropRecordServer) {
+  EnsureTlsSetup();
+  // Disable session tickets so that the server doesn't send an extra record.
+  EXPECT_EQ(SECSuccess, SSL_OptionSet(server_->ssl_fd(),
+                                      SSL_ENABLE_SESSION_TICKETS, PR_FALSE));
+
+  // 0 = ServerHello, 1 = other handshake, 2 = first write
+  server_->SetTlsRecordFilter(std::make_shared<DropTlsRecord>(2));
+  Connect();
+  server_->SendData(23, 23);  // This should be dropped, so it won't be counted.
+  server_->ResetSentBytes();
+  SendReceive();
+}
+
+TEST_F(TlsConnectStreamTls13, DropRecordClient) {
+  EnsureTlsSetup();
+  // 0 = ClientHello, 1 = Finished, 2 = first write
+  client_->SetTlsRecordFilter(std::make_shared<DropTlsRecord>(2));
+  Connect();
+  client_->SendData(26, 26);  // This should be dropped, so it won't be counted.
+  client_->ResetSentBytes();
+  SendReceive();
+}
+
 // The next two tests takes advantage of the fact that we
 // automatically read the first 1024 bytes, so if
 // we provide 1200 bytes, they overrun the read buffer
