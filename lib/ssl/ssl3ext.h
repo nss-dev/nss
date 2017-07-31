@@ -150,4 +150,10 @@ SECStatus ssl3_ExtConsumeHandshakeVariable(const sslSocket *ss, SECItem *i,
                                            PRUint32 bytes, PRUint8 **b,
                                            PRUint32 *length);
 
+SECStatus SSLExp_GetExtensionSupport(PRUint16 type,
+                                     SSLExtensionSupport *support);
+SECStatus SSLExp_InstallExtensionHooks(
+    PRFileDesc *fd, PRUint16 extension, SSLExtensionWriter writer,
+    void *writerArg, SSLExtensionHandler handler, void *handlerArg);
+
 #endif

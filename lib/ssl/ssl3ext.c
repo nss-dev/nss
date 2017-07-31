@@ -177,8 +177,8 @@ static const struct {
     { ssl_renegotiation_info_xtn, ssl_ext_native }
 };
 
-SSLExtensionSupport
-SSL_GetExtensionSupport(PRUint16 type)
+static SSLExtensionSupport
+ssl_GetExtensionSupport(PRUint16 type)
 {
     unsigned int i;
     for (i = 0; i < PR_ARRAY_SIZE(ssl_supported_extensions); ++i) {
@@ -190,9 +190,16 @@ SSL_GetExtensionSupport(PRUint16 type)
 }
 
 SECStatus
-SSL_InstallExtensionHooks(PRFileDesc *fd, PRUint16 extension,
-                          SSLExtensionWriter writer, void *writerArg,
-                          SSLExtensionHandler handler, void *handlerArg)
+SSLExp_GetExtensionSupport(PRUint16 type, SSLExtensionSupport *support)
+{
+    *support = ssl_GetExtensionSupport(type);
+    return SECSuccess;
+}
+
+SECStatus
+SSLExp_InstallExtensionHooks(PRFileDesc *fd, PRUint16 extension,
+                             SSLExtensionWriter writer, void *writerArg,
+                             SSLExtensionHandler handler, void *handlerArg)
 {
     sslSocket *ss = ssl_FindSocket(fd);
     PRCList *cursor;
@@ -208,7 +215,7 @@ SSL_InstallExtensionHooks(PRFileDesc *fd, PRUint16 extension,
         return SECFailure;
     }
 
-    if (SSL_GetExtensionSupport(extension) == ssl_ext_native_only) {
+    if (ssl_GetExtensionSupport(extension) == ssl_ext_native_only) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }

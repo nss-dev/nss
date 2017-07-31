@@ -35,6 +35,7 @@
 
 typedef struct sslSocketStr sslSocket;
 typedef struct ssl3CipherSpecStr ssl3CipherSpec;
+#include "sslexp.h"
 #include "ssl3ext.h"
 #include "sslencode.h"
 
@@ -1349,7 +1350,6 @@ extern SECStatus ssl3_UpdateHandshakeHashes(sslSocket *ss,
                                             unsigned int l);
 SECStatus ssl_HashHandshakeMessage(sslSocket *ss, SSLHandshakeType type,
                                    const PRUint8 *b, PRUint32 length);
-
 
 /* Returns PR_TRUE if we are still waiting for the server to complete its
  * response to our client second round. Once we've received the Finished from
