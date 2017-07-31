@@ -253,7 +253,7 @@ class TlsSessionTicketMacDamager : public TlsExtensionFilter {
 };
 
 // Check that session ticket resumption works with a bad MAC.
-FUZZ_P(TlsConnectGeneric, SessionTicketResumptionBadMac) {
+FUZZ_P(TlsConnectGeneric, DISABLED_SessionTicketResumptionBadMac) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   Connect();
   SendReceive();
