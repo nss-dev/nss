@@ -3904,6 +3904,7 @@ struct {
 #ifndef SSL_DISABLE_EXPERIMENTAL_API
     EXP(GetExtensionSupport),
     EXP(InstallExtensionHooks),
+    EXP(SendSessionTicket),
     EXP(SetupAntiReplay),
 #endif
     { "", NULL }

@@ -69,7 +69,7 @@ static SECStatus tls13_HandleCertificateRequest(sslSocket *ss, PRUint8 *b,
 static SECStatus
 tls13_SendCertificateVerify(sslSocket *ss, SECKEYPrivateKey *privKey);
 static SECStatus tls13_HandleCertificateVerify(
-                                               sslSocket *ss, PRUint8 *b, PRUint32 length);
+    sslSocket *ss, PRUint8 *b, PRUint32 length);
 static SECStatus tls13_RecoverWrappedSharedSecret(sslSocket *ss,
                                                   sslSessionID *sid);
 static SECStatus
@@ -1808,7 +1808,7 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
     }
 
     rv = ssl_HashHandshakeMessage(ss, ssl_hs_hello_retry_request,
-                                   savedMsg, savedLength);
+                                  savedMsg, savedLength);
     if (rv != SECSuccess) {
         return rv;
     }
@@ -3939,6 +3939,10 @@ tls13_SendNewSessionTicket(sslSocket *ss)
     SECStatus rv;
     NewSessionTicket ticket = { 0 };
     PRUint32 max_early_data_size_len = 0;
+    PRUint8 ticketNonce[sizeof(ss->ssl3.hs.ticketNonce)];
+
+    SSL_TRC(3, ("%d: TLS13[%d]: send new session ticket message %d",
+                SSL_GETPID(), ss->fd, ss->ssl3.hs.ticketNonce));
 
     ticket.flags = 0;
     if (ss->opt.enable0RttData) {
@@ -3953,9 +3957,12 @@ tls13_SendNewSessionTicket(sslSocket *ss)
     if (rv != SECSuccess)
         goto loser;
 
+    (void)ssl_EncodeUintX(ss->ssl3.hs.ticketNonce, sizeof(ticketNonce),
+                          ticketNonce);
+    ++ss->ssl3.hs.ticketNonce;
     rv = tls13_HkdfExpandLabel(ss->ssl3.hs.resumptionMasterSecret,
                                tls13_GetHash(ss),
-                               NULL, 0,
+                               ticketNonce, sizeof(ticketNonce),
                                kHkdfLabelResumption,
                                strlen(kHkdfLabelResumption),
                                tls13_GetHkdfMechanism(ss),
@@ -3972,7 +3979,7 @@ tls13_SendNewSessionTicket(sslSocket *ss)
     message_length =
         4 +                           /* lifetime */
         4 +                           /* ticket_age_add */
-        1 +                           /* ticket_nonce length */
+        1 + sizeof(ticketNonce) +     /* ticket_nonce */
         2 + max_early_data_size_len + /* max_early_data_size_len */
         2 +                           /* ticket length */
         ticket_data.len;
@@ -3991,8 +3998,8 @@ tls13_SendNewSessionTicket(sslSocket *ss)
     if (rv != SECSuccess)
         goto loser;
 
-    /* An empty nonce. */
-    rv = ssl3_AppendHandshakeVariable(ss, NULL, 0, 1);
+    /* The ticket nonce. */
+    rv = ssl3_AppendHandshakeVariable(ss, ticketNonce, sizeof(ticketNonce), 1);
     if (rv != SECSuccess)
         goto loser;
 
@@ -4031,6 +4038,36 @@ loser:
         SECITEM_FreeItem(&ticket_data, PR_FALSE);
     }
     return SECFailure;
+}
+
+SECStatus
+SSLExp_SendSessionTicket(PRFileDesc *fd, const PRUint8 *token,
+                         unsigned int tokenLen)
+{
+    sslSocket *ss;
+    SECStatus rv;
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+        return SECFailure;
+    }
+
+    if (!ss->sec.isServer || !ss->firstHsDone ||
+        ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    ssl_GetSSL3HandshakeLock(ss);
+    ssl_GetXmitBufLock(ss);
+    rv = tls13_SendNewSessionTicket(ss);
+    if (rv == SECSuccess) {
+        rv = ssl3_FlushHandshake(ss, 0);
+    }
+    ssl_ReleaseXmitBufLock(ss);
+    ssl_ReleaseSSL3HandshakeLock(ss);
+
+    return rv;
 }
 
 static SECStatus

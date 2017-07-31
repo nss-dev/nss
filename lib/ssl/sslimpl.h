@@ -866,6 +866,7 @@ typedef struct SSL3HandshakeStateStr {
     ssl3KEADef kea_def_mutable;           /* Used to hold the writable kea_def
                                            * we use for TLS 1.3 */
     PRTime serverHelloTime;               /* Time the ServerHello flight was sent. */
+    PRUint16 ticketNonce;                 /* A counter we use for tickets. */
 } SSL3HandshakeState;
 
 /*
@@ -1698,6 +1699,8 @@ extern void ssl3_SetSIDSessionTicket(sslSessionID *sid,
 SECStatus ssl3_EncodeSessionTicket(sslSocket *ss,
                                    const NewSessionTicket *ticket,
                                    SECItem *ticket_data, PK11SymKey *secret);
+SECStatus SSLExp_SendSessionTicket(PRFileDesc *fd, const PRUint8 *token,
+                                   unsigned int tokenLen);
 
 SECStatus ssl_MaybeSetSelfEncryptKeyPair(const sslKeyPair *keyPair);
 SECStatus ssl_GetSelfEncryptKeys(sslSocket *ss, unsigned char *keyName,

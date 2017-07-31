@@ -222,6 +222,26 @@ typedef SECStatus(PR_CALLBACK *SSLExtensionHandler)(
                          (PRTime _window, unsigned int _k, unsigned int _bits), \
                          (window, k, bits))
 
+/*
+ * This function allows a server application to generate a session ticket that
+ * will embed the provided token.
+ *
+ * This function will cause a NewSessionTicket message to be sent by a server.
+ * This happens even if SSL_ENABLE_SESSION_TICKETS is disabled.  This allows a
+ * server to suppress the usually automatic generation of a session ticket at
+ * the completion of the handshake - which do not include any token - and to
+ * control when session tickets are transmitted.
+ *
+ * This function will fail unless the socket has an active TLS 1.3 session.
+ * Earlier versions of TLS do not support the spontaneous sending of the
+ * NewSessionTicket message.
+ */
+#define SSL_SendSessionTicket(fd, token, tokenLen)                 \
+    SSL_EXPERIMENTAL_API("SSL_SendSessionTicket",                  \
+                         (PRFiledesc * _fd, const PRUint8 *_token, \
+                          unsigned int _tokenLen),                 \
+                         (fd, token, tokenLen))
+
 SEC_END_PROTOS
 
 #endif /* __sslexp_h_ */

@@ -11617,7 +11617,6 @@ ssl_HashHandshakeMessage(sslSocket *ss, SSLHandshakeType type,
     return SECSuccess;
 }
 
-
 /* Called from ssl3_HandleHandshake() when it has gathered a complete ssl3
  * handshake message.
  * Caller must hold Handshake and RecvBuf locks.
@@ -11634,7 +11633,6 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, PRUint8 *b, PRUint32 length,
 
     SSL_TRC(30, ("%d: SSL3[%d]: handle handshake message: %s", SSL_GETPID(),
                  ss->fd, ssl3_DecodeHandshakeType(ss->ssl3.hs.msg_type)));
-
 
     /* Start new handshake hashes when we start a new handshake.  Unless this is
      * TLS 1.3 and we sent a HelloRetryRequest. */
