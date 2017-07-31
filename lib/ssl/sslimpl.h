@@ -1002,6 +1002,7 @@ typedef struct SessionTicketStr {
     SECItem alpnSelection;
     PRUint32 maxEarlyData;
     PRUint32 ticketAgeBaseline;
+    SECItem applicationToken;
 } SessionTicket;
 
 /*
@@ -1698,7 +1699,9 @@ extern void ssl3_SetSIDSessionTicket(sslSessionID *sid,
                                      /*in/out*/ NewSessionTicket *session_ticket);
 SECStatus ssl3_EncodeSessionTicket(sslSocket *ss,
                                    const NewSessionTicket *ticket,
-                                   SECItem *ticket_data, PK11SymKey *secret);
+                                   const PRUint8 *appToken,
+                                   unsigned int appTokenLen,
+                                   PK11SymKey *secret, SECItem *ticket_data);
 SECStatus SSLExp_SendSessionTicket(PRFileDesc *fd, const PRUint8 *token,
                                    unsigned int tokenLen);
 

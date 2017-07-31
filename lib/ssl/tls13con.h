@@ -92,7 +92,6 @@ PRUint16 tls13_EncodeDraftVersion(SSL3ProtocolVersion version);
 PRUint16 tls13_DecodeDraftVersion(PRUint16 version);
 SECStatus tls13_NegotiateVersion(sslSocket *ss,
                                  const TLSExtension *supported_versions);
-SECStatus tls13_SendNewSessionTicket(sslSocket *ss);
 
 PRBool tls13_IsReplay(const sslSocket *ss, const sslSessionID *sid);
 void tls13_AntiReplayRollover(PRTime now);

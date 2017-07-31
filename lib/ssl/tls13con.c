@@ -97,6 +97,9 @@ static SECStatus tls13_ClientHandleFinished(sslSocket *ss,
                                             PRUint8 *b, PRUint32 length);
 static SECStatus tls13_ServerHandleFinished(sslSocket *ss,
                                             PRUint8 *b, PRUint32 length);
+static SECStatus tls13_SendNewSessionTicket(sslSocket *ss,
+                                            const PRUint8 *appToken,
+                                            unsigned int appTokenLen);
 static SECStatus tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b,
                                               PRUint32 length);
 static SECStatus tls13_ComputeHandshakeHashes(sslSocket *ss,
@@ -3721,7 +3724,7 @@ tls13_ServerHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
     }
     ssl_GetXmitBufLock(ss);
     if (ss->opt.enableSessionTickets) {
-        rv = tls13_SendNewSessionTicket(ss);
+        rv = tls13_SendNewSessionTicket(ss, NULL, 0);
         if (rv != SECSuccess) {
             ssl_ReleaseXmitBufLock(ss);
             return SECFailure; /* Error code and alerts handled below */
@@ -3930,8 +3933,9 @@ tls13_SendClientSecondRound(sslSocket *ss)
 
 PRUint32 ssl_max_early_data_size = (2 << 16); /* Arbitrary limit. */
 
-SECStatus
-tls13_SendNewSessionTicket(sslSocket *ss)
+static SECStatus
+tls13_SendNewSessionTicket(sslSocket *ss, const PRUint8 *appToken,
+                           unsigned int appTokenLen)
 {
     PRUint16 message_length;
     PK11SymKey *secret;
@@ -3971,7 +3975,8 @@ tls13_SendNewSessionTicket(sslSocket *ss)
         goto loser;
     }
 
-    rv = ssl3_EncodeSessionTicket(ss, &ticket, &ticket_data, secret);
+    rv = ssl3_EncodeSessionTicket(ss, &ticket, appToken, appTokenLen,
+                                  secret, &ticket_data);
     PK11_FreeSymKey(secret);
     if (rv != SECSuccess)
         goto loser;
@@ -4052,15 +4057,21 @@ SSLExp_SendSessionTicket(PRFileDesc *fd, const PRUint8 *token,
         return SECFailure;
     }
 
+    if (IS_DTLS(ss)) {
+        PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_VERSION);
+        return SECFailure;
+    }
+
     if (!ss->sec.isServer || !ss->firstHsDone ||
-        ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+        ss->version < SSL_LIBRARY_VERSION_TLS_1_3 ||
+        tokenLen > 0xffff) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
 
     ssl_GetSSL3HandshakeLock(ss);
     ssl_GetXmitBufLock(ss);
-    rv = tls13_SendNewSessionTicket(ss);
+    rv = tls13_SendNewSessionTicket(ss, token, tokenLen);
     if (rv == SECSuccess) {
         rv = ssl3_FlushHandshake(ss, 0);
     }

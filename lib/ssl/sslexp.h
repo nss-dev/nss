@@ -236,11 +236,11 @@ typedef SECStatus(PR_CALLBACK *SSLExtensionHandler)(
  * Earlier versions of TLS do not support the spontaneous sending of the
  * NewSessionTicket message.
  */
-#define SSL_SendSessionTicket(fd, token, tokenLen)                 \
-    SSL_EXPERIMENTAL_API("SSL_SendSessionTicket",                  \
-                         (PRFiledesc * _fd, const PRUint8 *_token, \
-                          unsigned int _tokenLen),                 \
-                         (fd, token, tokenLen))
+#define SSL_SendSessionTicket(fd, appToken, appTokenLen)              \
+    SSL_EXPERIMENTAL_API("SSL_SendSessionTicket",                     \
+                         (PRFileDesc * _fd, const PRUint8 *_appToken, \
+                          unsigned int _appTokenLen),                 \
+                         (fd, appToken, appTokenLen))
 
 SEC_END_PROTOS
 
