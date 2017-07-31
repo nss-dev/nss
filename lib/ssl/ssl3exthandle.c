@@ -660,9 +660,9 @@ PRUint32 ssl_ticket_lifetime = 2 * 24 * 60 * 60; /* 2 days in seconds */
  * Called from ssl3_SendNewSessionTicket, tls13_SendNewSessionTicket
  */
 SECStatus
-ssl3_EncodeSessionTicket(sslSocket *ss,
-                         const NewSessionTicket *ticket,
-                         SECItem *ticket_data, PK11SymKey *secret)
+ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
+                         const PRUint8 *appToken, unsigned int appTokenLen,
+                         PK11SymKey *secret, SECItem *ticket_data)
 {
     SECStatus rv;
     SECItem plaintext;
@@ -745,7 +745,15 @@ ssl3_EncodeSessionTicket(sslSocket *ss,
         + sizeof(ticket->flags)       /* ticket flags */
         + 1 + alpnSelection->len      /* alpn value + length field */
         + 4                           /* maxEarlyData */
-        + 4;                          /* ticketAgeBaseline */
+        + 4                           /* ticketAgeBaseline */
+        + 2 + appTokenLen;            /* application token */
+
+    /* This really only happens if appTokenLen is too much, and that always
+     * comes from the using application. */
+    if (plaintext_length > 0xffff) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        goto loser;
+    }
 
     if (SECITEM_AllocItem(NULL, &plaintext_item, plaintext_length) == NULL)
         goto loser;
@@ -902,6 +910,14 @@ ssl3_EncodeSessionTicket(sslSocket *ss,
     ticketAgeBaseline = (ssl_TimeUsec() - ss->ssl3.hs.serverHelloTime) / PR_USEC_PER_MSEC;
     ticketAgeBaseline -= ticket->ticket_age_add;
     rv = ssl3_AppendNumberToItem(&plaintext, ticketAgeBaseline, 4);
+    if (rv != SECSuccess)
+        goto loser;
+
+    /* Application token */
+    rv = ssl3_AppendNumberToItem(&plaintext, appTokenLen, 2);
+    if (rv != SECSuccess)
+        goto loser;
+    rv = ssl3_AppendToItem(&plaintext, appToken, appTokenLen);
     if (rv != SECSuccess)
         goto loser;
 
@@ -1177,6 +1193,13 @@ ssl_ParseSessionTicket(sslSocket *ss, const SECItem *decryptedTicket,
         return SECFailure;
     }
     parsedTicket->ticketAgeBaseline = temp;
+
+    rv = ssl3_ExtConsumeHandshakeVariable(ss, &parsedTicket->applicationToken,
+                                          2, &buffer, &len);
+    if (rv != SECSuccess) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
 
 #ifndef UNSAFE_FUZZER_MODE
     /* Done parsing.  Check that all bytes have been consumed. */

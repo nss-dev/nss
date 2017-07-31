@@ -9,6 +9,7 @@
 #include "secerr.h"
 #include "ssl.h"
 #include "sslerr.h"
+#include "sslexp.h"
 #include "sslproto.h"
 
 extern "C" {
@@ -622,7 +623,7 @@ TEST_F(TlsConnectTest, TestTls13ResumptionDuplicateNST) {
 
   // Clear the session ticket keys to invalidate the old ticket.
   SSLInt_ClearSelfEncryptKey();
-  SSLInt_SendNewSessionTicket(server_->ssl_fd());
+  SSL_SendSessionTicket(server_->ssl_fd(), NULL, 0);
 
   SendReceive();  // Need to read so that we absorb the session tickets.
   CheckKeys();
@@ -634,6 +635,145 @@ TEST_F(TlsConnectTest, TestTls13ResumptionDuplicateNST) {
   ExpectResumption(RESUME_TICKET);
   Connect();
   SendReceive();
+}
+
+// Check that the value captured in a NewSessionTicket message matches the value
+// captured from a pre_shared_key extension.
+void NstTicketMatchesPskIdentity(const DataBuffer& nst, const DataBuffer& psk) {
+  uint32_t len;
+
+  size_t offset = 4 + 4;  // Skip ticket_lifetime and ticket_age_add.
+  ASSERT_TRUE(nst.Read(offset, 1, &len));
+  offset += 1 + len;  // Skip ticket_nonce.
+
+  ASSERT_TRUE(nst.Read(offset, 2, &len));
+  offset += 2;  // Skip the ticket length.
+  ASSERT_LE(offset + len, nst.len());
+  DataBuffer nst_ticket(nst.data() + offset, static_cast<size_t>(len));
+
+  offset = 2;  // Skip the identities length.
+  ASSERT_TRUE(psk.Read(offset, 2, &len));
+  offset += 2;  // Skip the identity length.
+  ASSERT_LE(offset + len, psk.len());
+  DataBuffer psk_ticket(psk.data() + offset, static_cast<size_t>(len));
+
+  EXPECT_EQ(nst_ticket, psk_ticket);
+}
+
+TEST_F(TlsConnectTest, TestTls13ResumptionDuplicateNSTWithToken) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
+
+  auto nst_capture = std::make_shared<TlsInspectorRecordHandshakeMessage>(
+      ssl_hs_new_session_ticket);
+  server_->SetTlsRecordFilter(nst_capture);
+  Connect();
+
+  // Clear the session ticket keys to invalidate the old ticket.
+  SSLInt_ClearSelfEncryptKey();
+  nst_capture->Reset();
+  uint8_t token[] = {0x20, 0x20, 0xff, 0x00};
+  EXPECT_EQ(SECSuccess,
+            SSL_SendSessionTicket(server_->ssl_fd(), token, sizeof(token)));
+
+  SendReceive();  // Need to read so that we absorb the session tickets.
+  CheckKeys();
+  EXPECT_LT(0U, nst_capture->buffer().len());
+
+  // Resume the connection.
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
+  ExpectResumption(RESUME_TICKET);
+
+  auto psk_capture =
+      std::make_shared<TlsExtensionCapture>(ssl_tls13_pre_shared_key_xtn);
+  client_->SetPacketFilter(psk_capture);
+  Connect();
+  SendReceive();
+
+  NstTicketMatchesPskIdentity(nst_capture->buffer(), psk_capture->extension());
+}
+
+// Disable SSL_ENABLE_SESSION_TICKETS but ensure that tickets can still be sent
+// by invoking SSL_SendSessionTicket directly (and that the ticket is usable).
+TEST_F(TlsConnectTest, SendSessionTicketWithTicketsDisabled) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
+
+  EXPECT_EQ(SECSuccess, SSL_OptionSet(server_->ssl_fd(),
+                                      SSL_ENABLE_SESSION_TICKETS, PR_FALSE));
+
+  auto nst_capture = std::make_shared<TlsInspectorRecordHandshakeMessage>(
+      ssl_hs_new_session_ticket);
+  server_->SetTlsRecordFilter(nst_capture);
+  Connect();
+
+  EXPECT_EQ(0U, nst_capture->buffer().len()) << "expect nothing captured yet";
+
+  EXPECT_EQ(SECSuccess, SSL_SendSessionTicket(server_->ssl_fd(), NULL, 0));
+  EXPECT_LT(0U, nst_capture->buffer().len()) << "should capture now";
+
+  SendReceive();  // Ensure that the client reads the ticket.
+
+  // Resume the connection.
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
+  ExpectResumption(RESUME_TICKET);
+
+  auto psk_capture =
+      std::make_shared<TlsExtensionCapture>(ssl_tls13_pre_shared_key_xtn);
+  client_->SetPacketFilter(psk_capture);
+  Connect();
+  SendReceive();
+
+  NstTicketMatchesPskIdentity(nst_capture->buffer(), psk_capture->extension());
+}
+
+// Test calling SSL_SendSessionTicket in inappropriate conditions.
+TEST_F(TlsConnectTest, SendSessionTicketInappropriate) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_2);
+
+  EXPECT_EQ(SECFailure, SSL_SendSessionTicket(client_->ssl_fd(), NULL, 0))
+      << "clients can't send tickets";
+  EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
+
+  server_->StartConnect();
+  client_->StartConnect();
+
+  EXPECT_EQ(SECFailure, SSL_SendSessionTicket(server_->ssl_fd(), NULL, 0))
+      << "no ticket before the handshake has started";
+  EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
+  Handshake();
+  EXPECT_EQ(SECFailure, SSL_SendSessionTicket(server_->ssl_fd(), NULL, 0))
+      << "no special tickets in TLS 1.2";
+  EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
+}
+
+TEST_F(TlsConnectTest, SendSessionTicketMassiveToken) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
+  Connect();
+  // It should be safe to set length with a NULL token because the length should
+  // be checked before reading token.
+  EXPECT_EQ(SECFailure, SSL_SendSessionTicket(server_->ssl_fd(), NULL, 0xffff))
+      << "no special tickets in TLS 1.2";
+  EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
+
+  EXPECT_EQ(SECFailure, SSL_SendSessionTicket(server_->ssl_fd(), NULL, 0x1ffff))
+      << "no special tickets in TLS 1.2";
+  EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
+}
+
+TEST_F(TlsConnectDatagram13, SendSessionTicketDtls) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
+  Connect();
+  EXPECT_EQ(SECFailure, SSL_SendSessionTicket(server_->ssl_fd(), NULL, 0))
+      << "no extra tickets in DTLS until we have Ack support";
+  EXPECT_EQ(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_VERSION, PORT_GetError());
 }
 
 TEST_F(TlsConnectTest, TestTls13ResumptionDowngrade) {

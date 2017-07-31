@@ -209,6 +209,8 @@ class TlsInspectorRecordHandshakeMessage : public TlsHandshakeFilter {
                                                const DataBuffer& input,
                                                DataBuffer* output);
 
+  void Reset() { buffer_.Truncate(0); }
+
   const DataBuffer& buffer() const { return buffer_; }
 
  private:

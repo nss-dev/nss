@@ -10138,8 +10138,8 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     SECStatus rv;
     NewSessionTicket nticket = { 0 };
 
-    rv = ssl3_EncodeSessionTicket(ss, &nticket, &ticket,
-                                  ss->ssl3.pwSpec->master_secret);
+    rv = ssl3_EncodeSessionTicket(ss, &nticket, NULL, 0,
+                                  ss->ssl3.pwSpec->master_secret, &ticket);
     if (rv != SECSuccess)
         goto loser;
 
