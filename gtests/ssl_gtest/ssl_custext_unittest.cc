@@ -8,6 +8,7 @@
 #include "ssl3prot.h"
 #include "sslerr.h"
 #include "sslproto.h"
+#include "sslexp.h"
 
 #include <memory>
 
@@ -75,10 +76,12 @@ void InstallManyWriters(std::shared_ptr<TlsAgent> agent,
                         SSLExtensionWriter writer, size_t *installed = nullptr,
                         size_t *called = nullptr) {
   for (size_t i = 0; i < PR_ARRAY_SIZE(kManyExtensions); ++i) {
-    SSLExtensionSupport support = SSL_GetExtensionSupport(kManyExtensions[i]);
-    SECStatus rv =
-        SSL_InstallExtensionHooks(agent->ssl_fd(), kManyExtensions[i], writer,
-                                  called, NoopExtensionHandler, nullptr);
+    SSLExtensionSupport support;
+    SECStatus rv = SSL_GetExtensionSupport(kManyExtensions[i], &support);
+    ASSERT_EQ(SECSuccess, rv) << "SSL_GetExtensionSupport cannot fail";
+
+    rv = SSL_InstallExtensionHooks(agent->ssl_fd(), kManyExtensions[i], writer,
+                                   called, NoopExtensionHandler, nullptr);
     if (support == ssl_ext_native_only) {
       EXPECT_EQ(SECFailure, rv);
       EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
