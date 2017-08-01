@@ -20,7 +20,9 @@
 #include "ssl3exthandle.h"
 #include "tls13hkdf.h"
 #include "tls13con.h"
+#include "tls13err.h"
 #include "tls13exthandle.h"
+#include "tls13hashstate.h"
 
 typedef enum {
     TrafficKeyClearText = 0,
@@ -102,8 +104,6 @@ static SECStatus tls13_SendNewSessionTicket(sslSocket *ss,
                                             unsigned int appTokenLen);
 static SECStatus tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b,
                                               PRUint32 length);
-static SECStatus tls13_ComputeHandshakeHashes(sslSocket *ss,
-                                              SSL3Hashes *hashes);
 static SECStatus tls13_ComputeEarlySecrets(sslSocket *ss);
 static SECStatus tls13_ComputeHandshakeSecrets(sslSocket *ss);
 static SECStatus tls13_ComputeApplicationSecrets(sslSocket *ss);
@@ -1265,7 +1265,9 @@ tls13_NegotiateAuthentication(sslSocket *ss)
 SECStatus
 tls13_HandleClientHelloPart2(sslSocket *ss,
                              const SECItem *suites,
-                             sslSessionID *sid)
+                             sslSessionID *sid,
+                             const PRUint8 *msg,
+                             unsigned int len)
 {
     SECStatus rv;
     SSL3Statistics *ssl3stats = SSL_GetStatistics();
@@ -1294,9 +1296,36 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
     }
     /* If we are going around again, then we should make sure that the cipher
      * suite selection doesn't change. That's a sign of client shennanigans. */
-    if (ss->ssl3.hs.helloRetry &&
-        ss->ssl3.hs.cipher_suite != previousCipherSuite) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CLIENT_HELLO, handshake_failure);
+    if (ss->ssl3.hs.helloRetry) {
+        if (ss->ssl3.hs.cipher_suite != previousCipherSuite) {
+            FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CLIENT_HELLO, handshake_failure);
+            goto loser;
+        }
+        if (!ss->xtnData.cookie.len) {
+            FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CLIENT_HELLO, handshake_failure);
+            goto loser;
+        }
+        PRINT_BUF(50, (ss, "Client sent cookie",
+                       ss->xtnData.cookie.data, ss->xtnData.cookie.len));
+
+        rv = tls13_RecoverHashState(ss, ss->xtnData.cookie.data, ss->xtnData.cookie.len);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+    } else {
+        if (ss->xtnData.cookie.len) {
+            /* Client shouldn't be sending a cookie if we're not doing HRR.
+             * TODO(ekr@rtfm.com): Remove this when we go to totally stateless.
+             */
+            FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CLIENT_HELLO, handshake_failure);
+            goto loser;
+        }
+    }
+
+    /* Now merge the ClientHello into the hash state. */
+    rv = ssl_HashHandshakeMessage(ss, ssl_hs_client_hello, msg, len);
+    if (rv != SECSuccess) {
+        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
         goto loser;
     }
 
@@ -1401,8 +1430,11 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
     if (ss->statelessResume) {
         SSL3Hashes hashes;
 
-        rv = tls13_ComputePskBinderHash(ss, ss->xtnData.pskBinderPrefixLen,
-                                        &hashes);
+        PORT_Assert(ss->ssl3.hs.messages.len > ss->xtnData.pskBindersLen);
+        rv = tls13_ComputePskBinderHash(
+            ss,
+            ss->ssl3.hs.messages.len - ss->xtnData.pskBindersLen,
+            &hashes);
         if (rv != SECSuccess) {
             FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
             goto loser;
@@ -1485,10 +1517,74 @@ loser:
     return SECFailure;
 }
 
+/*
+ * struct {
+ *     ProtocolVersion server_version;
+ *     CipherSuite cipher_suite;
+ *     Extension extensions<2..2^16-1>;
+ * } HelloRetryRequest;
+ *
+ * Note: this function takes an empty buffer and returns
+ * a non-empty one on success, in which case the caller must
+ * eventually clean up.
+ */
+SECStatus
+tls13_ConstructHelloRetryRequest(sslSocket *ss,
+                                 const sslNamedGroupDef *selectedGroup,
+                                 PRUint8 *cookie, unsigned int cookieLen,
+                                 sslBuffer *buffer)
+{
+    SECStatus rv;
+    sslBuffer extensionsBuf = { NULL, 0, 0 };
+    PORT_Assert(buffer->len == 0);
+
+    rv = sslBuffer_AppendNumber(buffer,
+                                tls13_EncodeDraftVersion(ss->version), 2);
+
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+
+    rv = sslBuffer_AppendNumber(buffer, ss->ssl3.hs.cipher_suite, 2);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+
+    /* Note: cookie is pointing to a stack variable, so is only valid
+     * now. */
+    ss->xtnData.selectedGroup = selectedGroup;
+    ss->xtnData.cookie.data = cookie;
+    ss->xtnData.cookie.len = cookieLen;
+    rv = ssl_ConstructExtensions(ss, &extensionsBuf, ssl_hs_hello_retry_request);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    PORT_Assert(extensionsBuf.len > 0); /* These can't be empty. */
+
+    /* Clean up cookie so we're not pointing at random memory. */
+    ss->xtnData.cookie.data = NULL;
+    ss->xtnData.cookie.len = 0;
+
+    rv = sslBuffer_AppendBufferVariable(buffer, &extensionsBuf, 2);
+    sslBuffer_Clear(&extensionsBuf);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+
+    return SECSuccess;
+
+loser:
+    sslBuffer_Clear(buffer);
+    return SECFailure;
+}
+
 static SECStatus
 tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup)
 {
     SECStatus rv;
+    unsigned int cookieLen;
+    PRUint8 cookie[1024];
+    sslBuffer messageBuf = { NULL, 0, 0 };
 
     SSL_TRC(3, ("%d: TLS13[%d]: send hello retry request handshake",
                 SSL_GETPID(), ss->fd));
@@ -1501,64 +1597,34 @@ tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup
         return SECFailure;
     }
 
+    /* Compute the cookie we are going to need. */
+    rv = tls13_MakeHrrCookie(ss, selectedGroup,
+                             cookie, &cookieLen, sizeof(cookie));
+    if (rv != SECSuccess) {
+        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
+        return SECFailure;
+    }
+
+    /* Now build the body of the message. */
+    rv = tls13_ConstructHelloRetryRequest(ss, selectedGroup,
+                                          cookie, cookieLen, &messageBuf);
+    if (rv != SECSuccess) {
+        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
+        return SECFailure;
+    }
+
+    /* And send it. */
     ssl_GetXmitBufLock(ss);
-    /* Reset the handshake hash. */
-    rv = tls13_ReinjectHandshakeTranscript(ss);
-    if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-        goto loser;
-    }
-
     rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_hello_retry_request,
-                                    2 +     /* version */
-                                        2 + /* cipher suite */
-                                        2 + /* extension length */
-                                        2 + /* group extension id */
-                                        2 + /* group extension length */
-                                        2 /* group */);
+                                    messageBuf.len);
     if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
         goto loser;
     }
-
-    rv = ssl3_AppendHandshakeNumber(
-        ss, tls13_EncodeDraftVersion(ss->version), 2);
+    rv = ssl3_AppendBufferToHandshake(ss, &messageBuf);
     if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
         goto loser;
     }
-
-    rv = ssl3_AppendHandshakeNumber(ss, ss->ssl3.hs.cipher_suite, 2);
-    if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-        goto loser;
-    }
-
-    /* Length of extensions. */
-    rv = ssl3_AppendHandshakeNumber(ss, 2 + 2 + 2, 2);
-    if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-        goto loser;
-    }
-
-    /* Key share extension - currently the only reason we send this. */
-    rv = ssl3_AppendHandshakeNumber(ss, ssl_tls13_key_share_xtn, 2);
-    if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-        goto loser;
-    }
-    /* Key share extension length. */
-    rv = ssl3_AppendHandshakeNumber(ss, 2, 2);
-    if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-        goto loser;
-    }
-    rv = ssl3_AppendHandshakeNumber(ss, selectedGroup->name, 2);
-    if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-        goto loser;
-    }
-
+    sslBuffer_Clear(&messageBuf); /* Done with messageBuf */
     rv = ssl3_FlushHandshake(ss, 0);
     if (rv != SECSuccess) {
         goto loser; /* error code set by ssl3_FlushHandshake */
@@ -1573,9 +1639,14 @@ tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup
         ss->ssl3.hs.zeroRttIgnore = ssl_0rtt_ignore_hrr;
     }
 
+    /* Restart the handshake hashes because we will refresh them when we
+     * get ClientHello2 again. */
+    ssl3_RestartHandshakeHashes(ss);
+
     return SECSuccess;
 
 loser:
+    sslBuffer_Clear(&messageBuf);
     ssl_ReleaseXmitBufLock(ss);
     return SECFailure;
 }
@@ -2870,9 +2941,8 @@ tls13_SetCipherSpec(sslSocket *ss, TrafficKeyType type,
     return SECSuccess;
 }
 
-static SECStatus
-tls13_ComputeHandshakeHashes(sslSocket *ss,
-                             SSL3Hashes *hashes)
+SECStatus
+tls13_ComputeHandshakeHashes(sslSocket *ss, SSL3Hashes *hashes)
 {
     SECStatus rv;
     PK11Context *ctx = NULL;
@@ -2917,6 +2987,8 @@ tls13_ComputeHandshakeHashes(sslSocket *ss,
         ssl_MapLowLevelError(SSL_ERROR_DIGEST_FAILURE);
         goto loser;
     }
+
+    PRINT_BUF(10, (NULL, "Handshake hash", hashes->u.raw, hashes->len));
     PORT_Assert(hashes->len == tls13_GetHashSize(ss));
     PK11_DestroyContext(ctx, PR_TRUE);
 

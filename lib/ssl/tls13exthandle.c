@@ -517,7 +517,7 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
         ++numIdentities;
     }
 
-    xtnData->pskBinderPrefixLen = ss->ssl3.hs.messages.len - data->len;
+    xtnData->pskBindersLen = data->len;
 
     /* Parse the binders list. */
     rv = ssl3_ExtConsumeHandshakeVariable(ss,
@@ -806,6 +806,37 @@ tls13_ClientSendHrrCookieXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     return SECSuccess;
 }
 
+SECStatus
+tls13_ServerHandleCookieXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                            SECItem *data)
+{
+    SECStatus rv;
+
+    SSL_TRC(3, ("%d: TLS13[%d]: handle cookie extension",
+                SSL_GETPID(), ss->fd));
+
+    rv = ssl3_ExtConsumeHandshakeVariable(ss, &xtnData->cookie, 2,
+                                          &data->data, &data->len);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    if (xtnData->cookie.len == 0) {
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
+        return SECFailure;
+    }
+
+    if (data->len) {
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
+        return SECFailure;
+    }
+
+    /* Keep track of negotiated extensions. */
+    xtnData->negotiated[xtnData->numNegotiated++] = ssl_tls13_cookie_xtn;
+
+    return SECSuccess;
+}
+
 /*
  *     enum { psk_ke(0), psk_dhe_ke(1), (255) } PskKeyExchangeMode;
  *
@@ -946,4 +977,48 @@ loser:
     PORT_FreeArena(arena, PR_FALSE);
     xtnData->certReqAuthorities.arena = NULL;
     return SECFailure;
+}
+
+SECStatus
+tls13_ServerSendHrrKeyShareXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                               sslBuffer *buf, PRBool *added)
+{
+    SECStatus rv;
+
+    PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+
+    /* In future, we may want to send HRRs w/o key_share but we don't
+     * currently do that. At that time, this assert can simply be
+     * removed. */
+    PORT_Assert(xtnData->selectedGroup != NULL);
+    if (!xtnData->selectedGroup) {
+        return SECSuccess;
+    }
+
+    rv = sslBuffer_AppendNumber(buf, xtnData->selectedGroup->name, 2);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    *added = PR_TRUE;
+    return SECSuccess;
+}
+
+SECStatus
+tls13_ServerSendHrrCookieXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                             sslBuffer *buf, PRBool *added)
+{
+    SECStatus rv;
+
+    PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+    PORT_Assert(xtnData->cookie.len > 0);
+
+    rv = sslBuffer_AppendVariable(buf,
+                                  xtnData->cookie.data, xtnData->cookie.len, 2);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    *added = PR_TRUE;
+    return SECSuccess;
 }

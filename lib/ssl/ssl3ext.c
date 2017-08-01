@@ -14,6 +14,7 @@
 #include "sslimpl.h"
 #include "sslproto.h"
 #include "ssl3exthandle.h"
+#include "tls13err.h"
 #include "tls13exthandle.h"
 
 /* Callback function that handles a received extension. */
@@ -49,6 +50,7 @@ static const ssl3ExtensionHandler clientHelloHandlers[] = {
     { ssl_tls13_pre_shared_key_xtn, &tls13_ServerHandlePreSharedKeyXtn },
     { ssl_tls13_early_data_xtn, &tls13_ServerHandleEarlyDataXtn },
     { ssl_tls13_psk_key_exchange_modes_xtn, &tls13_ServerHandlePskModesXtn },
+    { ssl_tls13_cookie_xtn, &tls13_ServerHandleCookieXtn },
     { 0, NULL }
 };
 
@@ -148,6 +150,12 @@ static const sslExtensionBuilder clientHelloSendersSSL3[] = {
 static const sslExtensionBuilder tls13_cert_req_senders[] = {
     { ssl_signature_algorithms_xtn, &ssl3_SendSigAlgsXtn },
     { ssl_tls13_certificate_authorities_xtn, &tls13_SendCertAuthoritiesXtn },
+    { 0, NULL }
+};
+
+static const sslExtensionBuilder tls13_hrr_senders[] = {
+    { ssl_tls13_key_share_xtn, &tls13_ServerSendHrrKeyShareXtn },
+    { ssl_tls13_cookie_xtn, &tls13_ServerSendHrrCookieXtn },
     { 0, NULL }
 };
 
@@ -712,6 +720,11 @@ ssl_ConstructExtensions(sslSocket *ss, sslBuffer *buf, SSLHandshakeType message)
         case ssl_hs_encrypted_extensions:
             PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
             sender = ss->xtnData.encryptedExtensionsSenders;
+            break;
+
+        case ssl_hs_hello_retry_request:
+            PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+            sender = tls13_hrr_senders;
             break;
 
         default:
