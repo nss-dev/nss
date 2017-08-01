@@ -1671,17 +1671,6 @@ extern SECStatus ssl3_ComputeCommonKeyHash(SSLHashType hashAlg,
                                            SSL3Hashes *hashes);
 extern void ssl3_DestroyCipherSpec(ssl3CipherSpec *spec, PRBool freeSrvName);
 extern SECStatus ssl3_InitPendingCipherSpec(sslSocket *ss, PK11SymKey *pms);
-extern SECStatus ssl3_AppendHandshake(sslSocket *ss, const void *void_src,
-                                      unsigned int bytes);
-extern SECStatus ssl3_AppendHandshakeHeader(sslSocket *ss,
-                                            SSLHandshakeType t, unsigned int length);
-extern SECStatus ssl3_AppendHandshakeNumber(sslSocket *ss, PRUint64 num,
-                                            unsigned int lenSize);
-extern SECStatus ssl3_AppendHandshakeVariable(sslSocket *ss, const PRUint8 *src,
-                                              unsigned int bytes, unsigned int lenSize);
-extern SECStatus ssl3_AppendBufferToHandshake(sslSocket *ss, sslBuffer *buf);
-extern SECStatus ssl3_AppendBufferToHandshakeVariable(sslSocket *ss, sslBuffer *buf,
-                                                      unsigned int lenSize);
 extern SECStatus ssl3_AppendSignatureAndHashAlgorithm(
     sslSocket *ss, const SSLSignatureAndHashAlg *sigAndHash);
 extern SECStatus ssl3_ConsumeHandshake(sslSocket *ss, void *v, PRUint32 bytes,
@@ -1814,8 +1803,7 @@ SECStatus ssl3_SendCertificateStatus(sslSocket *ss);
 SECStatus ssl3_AuthCertificate(sslSocket *ss);
 SECStatus ssl_ReadCertificateStatus(sslSocket *ss, PRUint8 *b,
                                     PRUint32 length);
-SECStatus ssl3_EncodeSigAlgs(const sslSocket *ss, PRUint8 *buf,
-                             unsigned maxLen, PRUint32 *len);
+SECStatus ssl3_EncodeSigAlgs(const sslSocket *ss, sslBuffer *buf);
 SECStatus ssl_GetCertificateRequestCAs(const sslSocket *ss,
                                        unsigned int *calenp,
                                        const SECItem **namesp,

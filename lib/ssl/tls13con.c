@@ -1644,7 +1644,7 @@ tls13_ConstructHelloRetryRequest(sslSocket *ss,
                                  sslBuffer *buffer)
 {
     SECStatus rv;
-    sslBuffer extensionsBuf = { NULL, 0, 0 };
+    sslBuffer extensionsBuf = SSL_BUFFER_EMPTY;
     PORT_Assert(buffer->len == 0);
 
     rv = sslBuffer_AppendNumber(buffer,
@@ -1668,7 +1668,8 @@ tls13_ConstructHelloRetryRequest(sslSocket *ss,
     if (rv != SECSuccess) {
         goto loser;
     }
-    PORT_Assert(extensionsBuf.len > 0); /* These can't be empty. */
+    /* These extensions can't be empty. */
+    PORT_Assert(SSL_BUFFER_LEN(&extensionsBuf) > 0);
 
     /* Clean up cookie so we're not pointing at random memory. */
     ss->xtnData.cookie.data = NULL;
@@ -1695,7 +1696,7 @@ tls13_SendHelloRetryRequest(sslSocket *ss,
     SECStatus rv;
     unsigned int cookieLen;
     PRUint8 cookie[1024];
-    sslBuffer messageBuf = { NULL, 0, 0 };
+    sslBuffer messageBuf = SSL_BUFFER_EMPTY;
 
     SSL_TRC(3, ("%d: TLS13[%d]: send hello retry request handshake",
                 SSL_GETPID(), ss->fd));
@@ -1723,7 +1724,7 @@ tls13_SendHelloRetryRequest(sslSocket *ss,
     /* And send it. */
     ssl_GetXmitBufLock(ss);
     rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_hello_retry_request,
-                                    messageBuf.len);
+                                    SSL_BUFFER_LEN(&messageBuf));
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -1824,7 +1825,7 @@ static SECStatus
 tls13_SendCertificateRequest(sslSocket *ss)
 {
     SECStatus rv;
-    sslBuffer extensionBuf = { NULL, 0, 0 };
+    sslBuffer extensionBuf = SSL_BUFFER_EMPTY;
 
     SSL_TRC(3, ("%d: TLS13[%d]: begin send certificate_request",
                 SSL_GETPID(), ss->fd));
@@ -1833,12 +1834,13 @@ tls13_SendCertificateRequest(sslSocket *ss)
     if (rv != SECSuccess) {
         return SECFailure; /* Code already set. */
     }
-    PORT_Assert(extensionBuf.len > 0); /* These can't be empty. */
+    /* We should always have at least one of these. */
+    PORT_Assert(SSL_BUFFER_LEN(&extensionBuf) > 0);
 
     rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_certificate_request,
                                     1 + 0 + /* empty request context */
                                         2 + /* extension length */
-                                        extensionBuf.len /* extensions */);
+                                        SSL_BUFFER_LEN(&extensionBuf));
     if (rv != SECSuccess) {
         goto loser; /* err set by AppendHandshake. */
     }
@@ -2402,7 +2404,7 @@ tls13_SendCertificate(sslSocket *ss)
     int certChainLen = 0;
     int i;
     SECItem context = { siBuffer, NULL, 0 };
-    sslBuffer extensionBuf = { NULL, 0, 0 };
+    sslBuffer extensionBuf = SSL_BUFFER_EMPTY;
 
     SSL_TRC(3, ("%d: TLS1.3[%d]: send certificate handshake",
                 SSL_GETPID(), ss->fd));
@@ -2442,7 +2444,7 @@ tls13_SendCertificate(sslSocket *ss)
             return SECFailure; /* code already set */
         }
         /* extensionBuf.len is only added once, for the leaf cert. */
-        certChainLen += extensionBuf.len;
+        certChainLen += SSL_BUFFER_LEN(&extensionBuf);
     }
 
     rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_certificate,
@@ -3404,7 +3406,7 @@ tls13_HandleEncryptedExtensions(sslSocket *ss, PRUint8 *b, PRUint32 length)
 static SECStatus
 tls13_SendEncryptedExtensions(sslSocket *ss)
 {
-    sslBuffer extensions = { NULL, 0, 0 };
+    sslBuffer extensions = SSL_BUFFER_EMPTY;
     SECStatus rv;
 
     SSL_TRC(3, ("%d: TLS13[%d]: send encrypted extensions handshake",
@@ -3419,7 +3421,7 @@ tls13_SendEncryptedExtensions(sslSocket *ss)
     }
 
     rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_encrypted_extensions,
-                                    extensions.len + 2);
+                                    SSL_BUFFER_LEN(&extensions) + 2);
     if (rv != SECSuccess) {
         LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
         goto loser;
@@ -4158,6 +4160,7 @@ tls13_SendNewSessionTicket(sslSocket *ss, const PRUint8 *appToken,
     NewSessionTicket ticket = { 0 };
     PRUint32 max_early_data_size_len = 0;
     PRUint8 ticketNonce[sizeof(ss->ssl3.hs.ticketNonce)];
+    sslBuffer ticketNonceBuf = SSL_BUFFER(ticketNonce);
 
     SSL_TRC(3, ("%d: TLS13[%d]: send new session ticket message %d",
                 SSL_GETPID(), ss->fd, ss->ssl3.hs.ticketNonce));
@@ -4175,8 +4178,11 @@ tls13_SendNewSessionTicket(sslSocket *ss, const PRUint8 *appToken,
     if (rv != SECSuccess)
         goto loser;
 
-    (void)ssl_EncodeUintX(ss->ssl3.hs.ticketNonce, sizeof(ticketNonce),
-                          ticketNonce);
+    rv = sslBuffer_AppendNumber(&ticketNonceBuf, ss->ssl3.hs.ticketNonce,
+                                sizeof(ticketNonce));
+    if (rv != SECSuccess) {
+        goto loser;
+    }
     ++ss->ssl3.hs.ticketNonce;
     rv = tls13_HkdfExpandLabel(ss->ssl3.hs.resumptionMasterSecret,
                                tls13_GetHash(ss),
@@ -4511,15 +4517,14 @@ tls13_ExtensionStatus(PRUint16 extension, SSLHandshakeType message)
  * number and that's what we put here. The TLS 1.3 AEAD functions
  * just use this input as the sequence number and not as additional
  * data. */
-static void
+static SECStatus
 tls13_FormatAdditionalData(PRUint8 *aad, unsigned int length,
                            sslSequenceNumber seqNum)
 {
-    PRUint8 *ptr = aad;
+    sslBuffer buf = SSL_BUFFER_FIXED(aad, length);
 
     PORT_Assert(length == 8);
-    ptr = ssl_EncodeUintX(seqNum, 8, ptr);
-    PORT_Assert((ptr - aad) == length);
+    return sslBuffer_AppendNumber(&buf, seqNum, length);
 }
 
 PRInt32
@@ -4579,7 +4584,10 @@ tls13_ProtectRecord(sslSocket *ss,
         /* Add the content type at the end. */
         wrBuf->buf[contentLen] = type;
 
-        tls13_FormatAdditionalData(aad, sizeof(aad), cwSpec->write_seq_num);
+        rv = tls13_FormatAdditionalData(aad, sizeof(aad), cwSpec->write_seq_num);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
         rv = cwSpec->aead(
             ss->sec.isServer ? &cwSpec->server : &cwSpec->client,
             PR_FALSE,                   /* do encrypt */
@@ -4653,9 +4661,12 @@ tls13_UnprotectRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *plaintext
 
     /* Decrypt */
     PORT_Assert(cipher_def->type == type_aead);
-    tls13_FormatAdditionalData(aad, sizeof(aad),
-                               IS_DTLS(ss) ? cText->seq_num
-                                           : crSpec->read_seq_num);
+    rv = tls13_FormatAdditionalData(aad, sizeof(aad),
+                                    IS_DTLS(ss) ? cText->seq_num
+                                                : crSpec->read_seq_num);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
     rv = crSpec->aead(
         ss->sec.isServer ? &crSpec->client : &crSpec->server,
         PR_TRUE,                /* do decrypt */

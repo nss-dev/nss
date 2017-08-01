@@ -35,48 +35,43 @@ tls13_MakeHrrCookie(sslSocket *ss, const sslNamedGroupDef *selectedGroup,
 {
     SECStatus rv;
     SSL3Hashes hashes;
-    PRUint8 encodedCookie[1024];
-    SECItem cookieItem = { siBuffer, encodedCookie, sizeof(encodedCookie) };
-
-    PORT_Assert(sizeof(encodedCookie) >= maxlen);
+    PRUint8 cookie[1024];
+    sslBuffer cookieBuf = SSL_BUFFER(cookie);
+    static const PRUint8 indicator = 0xff;
 
     /* Encode header. */
-    rv = ssl3_AppendNumberToItem(&cookieItem, 0xff, 1);
+    rv = sslBuffer_Append(&cookieBuf, &indicator, 1);
     if (rv != SECSuccess) {
         return SECFailure;
     }
-    rv = ssl3_AppendNumberToItem(&cookieItem, ss->ssl3.hs.cipher_suite, 2);
+    rv = sslBuffer_AppendNumber(&cookieBuf, ss->ssl3.hs.cipher_suite, 2);
     if (rv != SECSuccess) {
         return SECFailure;
     }
-    rv = ssl3_AppendNumberToItem(&cookieItem, selectedGroup ? selectedGroup->name : 0, 2);
+    rv = sslBuffer_AppendNumber(&cookieBuf,
+                                selectedGroup ? selectedGroup->name : 0, 2);
     if (rv != SECSuccess) {
         return SECFailure;
     }
 
     /* Application token. */
-    rv = ssl3_AppendNumberToItem(&cookieItem, appTokenLen, 2);
-    if (rv != SECSuccess) {
-        return SECFailure;
-    }
-    rv = ssl3_AppendToItem(&cookieItem, appToken, appTokenLen);
+    rv = sslBuffer_AppendVariable(&cookieBuf, appToken, appTokenLen, 2);
     if (rv != SECSuccess) {
         return SECFailure;
     }
 
-    /* Encode the hash state */
+    /* Compute and encode hashes. */
     rv = tls13_ComputeHandshakeHashes(ss, &hashes);
     if (rv != SECSuccess) {
         return SECFailure;
     }
-    rv = ssl3_AppendToItem(&cookieItem, hashes.u.raw, hashes.len);
+    rv = sslBuffer_Append(&cookieBuf, hashes.u.raw, hashes.len);
     if (rv != SECSuccess) {
         return SECFailure;
     }
 
     /* Encrypt right into the buffer. */
-    rv = ssl_SelfEncryptProtect(ss,
-                                encodedCookie, cookieItem.data - encodedCookie,
+    rv = ssl_SelfEncryptProtect(ss, cookieBuf.buf, cookieBuf.len,
                                 buf, len, maxlen);
     if (rv != SECSuccess) {
         return SECFailure;
@@ -95,7 +90,7 @@ tls13_RecoverHashState(sslSocket *ss,
     SECStatus rv;
     unsigned char plaintext[1024];
     SECItem ptItem = { siBuffer, plaintext, 0 };
-    sslBuffer messageBuf = { NULL, 0, 0 };
+    sslBuffer messageBuf = SSL_BUFFER_EMPTY;
     PRUint32 sentinel;
     PRUint32 cipherSuite;
     PRUint32 group;
@@ -174,7 +169,8 @@ tls13_RecoverHashState(sslSocket *ss,
     }
 
     rv = ssl_HashHandshakeMessageInt(ss, ssl_hs_hello_retry_request, 0,
-                                     messageBuf.buf, messageBuf.len);
+                                     SSL_BUFFER_BASE(&messageBuf),
+                                     SSL_BUFFER_LEN(&messageBuf));
     sslBuffer_Clear(&messageBuf);
     if (rv != SECSuccess) {
         return SECFailure;
