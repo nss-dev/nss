@@ -52,7 +52,9 @@ static SECStatus ssl3_SendServerKeyExchange(sslSocket *ss);
 static SECStatus ssl3_HandleClientHelloPart2(sslSocket *ss,
                                              SECItem *suites,
                                              SECItem *comps,
-                                             sslSessionID *sid);
+                                             sslSessionID *sid,
+                                             const PRUint8 *msg,
+                                             unsigned int len);
 static SECStatus ssl3_HandleServerHelloPart2(sslSocket *ss,
                                              const SECItem *sidBytes,
                                              int *retErrCode);
@@ -355,8 +357,7 @@ static const ssl3CipherSuiteDef cipher_suite_defs[] =
     {TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
                                     cipher_3des,   mac_sha, kea_dhe_rsa, ssl_hash_none},
 
-
-/* New TLS cipher suites */
+    /* New TLS cipher suites */
     {TLS_RSA_WITH_AES_128_CBC_SHA,      cipher_aes_128, mac_sha, kea_rsa, ssl_hash_none},
     {TLS_RSA_WITH_AES_128_CBC_SHA256,   cipher_aes_128, hmac_sha256, kea_rsa, ssl_hash_sha256},
     {TLS_DHE_DSS_WITH_AES_128_CBC_SHA,  cipher_aes_128, mac_sha, kea_dhe_dss, ssl_hash_none},
@@ -4004,11 +4005,11 @@ ssl3_InitHandshakeHashes(sslSocket *ss)
                 return SECFailure;
             }
             ss->ssl3.hs.hashType = handshake_hash_single;
-
             if (PK11_DigestBegin(ss->ssl3.hs.sha) != SECSuccess) {
                 ssl_MapLowLevelError(SSL_ERROR_DIGEST_FAILURE);
                 return SECFailure;
             }
+
         } else {
             /* Both ss->ssl3.hs.md5 and ss->ssl3.hs.sha should be NULL or
              * created successfully. */
@@ -4931,6 +4932,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
     unsigned numCompressionMethods;
     PRUint16 version;
     PRInt32 flags;
+    unsigned int cookieLen = ss->ssl3.hs.cookie.len;
 
     SSL_TRC(3, ("%d: SSL3[%d]: send %s ClientHello handshake", SSL_GETPID(),
                 ss->fd, ssl_ClientHelloTypeName(type)));
@@ -4949,6 +4951,9 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
      * to maintain the handshake hashes. */
     if (ss->ssl3.hs.helloRetry) {
         PORT_Assert(type == client_hello_retry);
+        /* This cookieLen applies to the cookie that appears in the DTLS
+           ClientHello, which isn't used in DTLS 1.3. */
+        cookieLen = 0;
     } else {
         ssl3_InitState(ss);
         ssl3_RestartHandshakeHashes(ss);
@@ -5208,7 +5213,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
              2 + num_suites * sizeof(ssl3CipherSuite) +
              1 + numCompressionMethods;
     if (IS_DTLS(ss)) {
-        length += 1 + ss->ssl3.hs.cookie.len;
+        length += 1 + cookieLen;
     }
 
     if (extensionBuf.len) {
@@ -5266,7 +5271,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
 
     if (IS_DTLS(ss)) {
         rv = ssl3_AppendHandshakeVariable(
-            ss, ss->ssl3.hs.cookie.data, ss->ssl3.hs.cookie.len, 1);
+            ss, ss->ssl3.hs.cookie.data, cookieLen, 1);
         if (rv != SECSuccess) {
             goto loser; /* err set by ssl3_AppendHandshake* */
         }
@@ -8234,6 +8239,8 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
     SECItem suites = { siBuffer, NULL, 0 };
     SECItem comps = { siBuffer, NULL, 0 };
     PRBool isTLS13;
+    const PRUint8 *savedMsg = b;
+    const PRUint32 savedLen = length;
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle client_hello handshake",
                 SSL_GETPID(), ss->fd));
@@ -8264,6 +8271,9 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
             goto alert_loser;
         }
     }
+
+    /* We should always be in a fresh state. */
+    SSL_ASSERT_HASHES_EMPTY(ss);
 
     /* Get peer name of client */
     rv = ssl_GetPeerInfo(ss);
@@ -8311,6 +8321,9 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
         rv = ssl3_ConsumeHandshakeVariable(ss, &cookieBytes, 1, &b, &length);
         if (rv != SECSuccess) {
             goto loser; /* malformed */
+        }
+        if (cookieBytes.len != 0) {
+            goto loser; /* We never send cookies in DTLS 1.2. */
         }
     }
 
@@ -8579,9 +8592,10 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
 #endif
 
     if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
-        rv = tls13_HandleClientHelloPart2(ss, &suites, sid);
+        rv = tls13_HandleClientHelloPart2(ss, &suites, sid, savedMsg, savedLen);
     } else {
-        rv = ssl3_HandleClientHelloPart2(ss, &suites, &comps, sid);
+        rv = ssl3_HandleClientHelloPart2(ss, &suites, &comps, sid,
+                                         savedMsg, savedLen);
     }
     if (rv != SECSuccess) {
         errCode = PORT_GetError();
@@ -8601,7 +8615,9 @@ static SECStatus
 ssl3_HandleClientHelloPart2(sslSocket *ss,
                             SECItem *suites,
                             SECItem *comps,
-                            sslSessionID *sid)
+                            sslSessionID *sid,
+                            const PRUint8 *msg,
+                            unsigned int len)
 {
     PRBool haveSpecWriteLock = PR_FALSE;
     PRBool haveXmitBufLock = PR_FALSE;
@@ -8610,6 +8626,13 @@ ssl3_HandleClientHelloPart2(sslSocket *ss,
     SECStatus rv;
     unsigned int i;
     int j;
+
+    rv = ssl_HashHandshakeMessage(ss, ssl_hs_client_hello, msg, len);
+    if (rv != SECSuccess) {
+        errCode = SEC_ERROR_LIBRARY_FAILURE;
+        desc = internal_error;
+        goto alert_loser;
+    }
 
     /* If we already have a session for this client, be sure to pick the
     ** same cipher suite and compression method we picked before.
@@ -11571,8 +11594,9 @@ ssl3_FinishHandshake(sslSocket *ss)
 }
 
 SECStatus
-ssl_HashHandshakeMessage(sslSocket *ss, SSLHandshakeType type,
-                         const PRUint8 *b, PRUint32 length)
+ssl_HashHandshakeMessageInt(sslSocket *ss, SSLHandshakeType type,
+                            PRUint32 dtlsSeq,
+                            const PRUint8 *b, PRUint32 length)
 {
     PRUint8 hdr[4];
     PRUint8 dtlsData[8];
@@ -11590,8 +11614,8 @@ ssl_HashHandshakeMessage(sslSocket *ss, SSLHandshakeType type,
     /* Extra data to simulate a complete DTLS handshake fragment */
     if (IS_DTLS(ss)) {
         /* Sequence number */
-        dtlsData[0] = MSB(ss->ssl3.hs.recvMessageSeq);
-        dtlsData[1] = LSB(ss->ssl3.hs.recvMessageSeq);
+        dtlsData[0] = MSB(dtlsSeq);
+        dtlsData[1] = LSB(dtlsSeq);
 
         /* Fragment offset */
         dtlsData[2] = 0;
@@ -11615,6 +11639,14 @@ ssl_HashHandshakeMessage(sslSocket *ss, SSLHandshakeType type,
         return rv; /* err code already set. */
 
     return SECSuccess;
+}
+
+SECStatus
+ssl_HashHandshakeMessage(sslSocket *ss, SSLHandshakeType type,
+                         const PRUint8 *b, PRUint32 length)
+{
+    return ssl_HashHandshakeMessageInt(ss, type, ss->ssl3.hs.recvMessageSeq,
+                                       b, length);
 }
 
 /* Called from ssl3_HandleHandshake() when it has gathered a complete ssl3
@@ -11646,11 +11678,11 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, PRUint8 *b, PRUint32 length,
              * in the handshake hashes */
             break;
 
+        /* Defer hashing of these messages until the message handlers. */
+        case ssl_hs_client_hello:
         case ssl_hs_hello_retry_request:
         case ssl_hs_certificate_verify:
         case ssl_hs_finished:
-            /* Defer hashing of these messages until the message handlers
-             * we need to finalize the hashes there. */
             break;
 
         default:

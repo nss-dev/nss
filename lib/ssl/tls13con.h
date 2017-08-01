@@ -49,6 +49,8 @@ unsigned int tls13_GetHashSize(const sslSocket *ss);
 CK_MECHANISM_TYPE tls13_GetHkdfMechanism(sslSocket *ss);
 SECStatus tls13_ComputeHash(sslSocket *ss, SSL3Hashes *hashes,
                             const PRUint8 *buf, unsigned int len);
+SECStatus tls13_ComputeHandshakeHashes(sslSocket *ss,
+                                       SSL3Hashes *hashes);
 SECStatus tls13_DeriveSecretNullHash(sslSocket *ss, PK11SymKey *key,
                                      const char *label,
                                      unsigned int labelLen,
@@ -64,10 +66,16 @@ PRBool tls13_PskSuiteEnabled(sslSocket *ss);
 SECStatus tls13_WriteExtensionsWithBinder(sslSocket *ss, sslBuffer *extensions);
 SECStatus tls13_HandleClientHelloPart2(sslSocket *ss,
                                        const SECItem *suites,
-                                       sslSessionID *sid);
+                                       sslSessionID *sid,
+                                       const PRUint8 *msg,
+                                       unsigned int len);
 SECStatus tls13_HandleServerHelloPart2(sslSocket *ss);
 SECStatus tls13_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b,
                                                 PRUint32 length);
+SECStatus tls13_ConstructHelloRetryRequest(sslSocket *ss,
+                                           const sslNamedGroupDef *selectedGroup,
+                                           PRUint8 *cookie, unsigned int cookieLen,
+                                           sslBuffer *buffer);
 SECStatus tls13_HandleHelloRetryRequest(sslSocket *ss, PRUint8 *b,
                                         PRUint32 length);
 void tls13_DestroyKeyShareEntry(TLS13KeyShareEntry *entry);

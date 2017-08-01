@@ -86,12 +86,15 @@ struct TLSExtensionDataStr {
 
     PRUint16 dtlsSRTPCipherSuite; /* 0 if not selected */
 
-    unsigned int lastXtnOffset;      /* Where to insert padding. 0 = end. */
-    SECItem pskBinder;               /* The PSK binder for the first PSK (TLS 1.3) */
-    unsigned int pskBinderPrefixLen; /* The length of the binder input. */
-    PRCList remoteKeyShares;         /* The other side's public keys (TLS 1.3) */
-    /* This is used when deciding whether to accept early data. */
-    PRUint32 ticketAge;
+    unsigned int lastXtnOffset; /* Where to insert padding. 0 = end. */
+    PRCList remoteKeyShares;    /* The other side's public keys (TLS 1.3) */
+
+    /* The following are used by a TLS 1.3 server. */
+    SECItem pskBinder;                     /* The binder for the first PSK. */
+    unsigned int pskBindersLen;            /* The length of the binders. */
+    PRUint32 ticketAge;                    /* Used to accept early data. */
+    SECItem cookie;                        /* HRR Cookie. */
+    const sslNamedGroupDef *selectedGroup; /* For HRR. */
 };
 
 typedef struct TLSExtensionStr {

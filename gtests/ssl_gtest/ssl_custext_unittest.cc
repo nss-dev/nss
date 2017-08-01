@@ -119,6 +119,7 @@ TEST_F(TlsConnectStreamTls13, CustomExtensionAllNoopServer) {
 TEST_F(TlsConnectStreamTls13, CustomExtensionEmptyWriterClient) {
   EnsureTlsSetup();
   InstallManyWriters(client_, EmptyExtensionWriter);
+  InstallManyWriters(server_, EmptyExtensionWriter);
   Connect();
 }
 

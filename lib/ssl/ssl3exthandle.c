@@ -971,6 +971,8 @@ ssl3_ClientHandleSessionTicketXtn(const sslSocket *ss, TLSExtensionData *xtnData
     return SECSuccess;
 }
 
+PR_STATIC_ASSERT((TLS_EX_SESS_TICKET_VERSION >> 8) == 1);
+
 static SECStatus
 ssl_ParseSessionTicket(sslSocket *ss, const SECItem *decryptedTicket,
                        SessionTicket *parsedTicket)
@@ -997,6 +999,12 @@ ssl_ParseSessionTicket(sslSocket *ss, const SECItem *decryptedTicket,
         return SECFailure;
     }
 
+    /* All ticket versions start with 0x01, so check to see if this
+     * is a ticket or some other self-encrypted thing. */
+    if ((temp >> 8) != 1) {
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
+        return SECFailure;
+    }
     /* Skip the ticket if the version is wrong.  This won't result in a
      * handshake failure, just a failure to resume. */
     if (temp != TLS_EX_SESS_TICKET_VERSION) {

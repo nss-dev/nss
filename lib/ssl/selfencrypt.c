@@ -269,6 +269,19 @@ ssl_SelfEncryptUnprotectInt(
 }
 #endif
 
+/* Predict the size of the encrypted data, including padding */
+SECStatus
+ssl_SelfEncryptGetProtectedSize(unsigned int inLen, unsigned int *outLen)
+{
+    *outLen = SELF_ENCRYPT_KEY_NAME_LEN +
+              AES_BLOCK_SIZE +
+              2 +
+              ((inLen / AES_BLOCK_SIZE) + 1) * AES_BLOCK_SIZE + /* Padded */
+              SHA256_LENGTH;
+
+    return SECSuccess;
+}
+
 SECStatus
 ssl_SelfEncryptProtect(
     sslSocket *ss, const PRUint8 *in, unsigned int inLen,

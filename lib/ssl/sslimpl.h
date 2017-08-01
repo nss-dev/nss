@@ -35,6 +35,7 @@
 
 typedef struct sslSocketStr sslSocket;
 typedef struct ssl3CipherSpecStr ssl3CipherSpec;
+typedef struct sslNamedGroupDefStr sslNamedGroupDef;
 #include "sslexp.h"
 #include "ssl3ext.h"
 #include "sslencode.h"
@@ -162,7 +163,7 @@ typedef enum {
     ticket_allow_psk_sign_auth = 16
 } TLS13SessionTicketFlags;
 
-typedef struct {
+struct sslNamedGroupDefStr {
     /* The name is the value that is encoded on the wire in TLS. */
     SSLNamedGroup name;
     /* The number of bits in the group. */
@@ -174,7 +175,7 @@ typedef struct {
     SECOidTag oidTag;
     /* Assume that the group is always supported. */
     PRBool assumeSupported;
-} sslNamedGroupDef;
+};
 
 typedef struct sslConnectInfoStr sslConnectInfo;
 typedef struct sslGatherStr sslGather;
@@ -869,6 +870,12 @@ typedef struct SSL3HandshakeStateStr {
     PRUint16 ticketNonce;                 /* A counter we use for tickets. */
 } SSL3HandshakeState;
 
+#define SSL_ASSERT_HASHES_EMPTY(ss)                                  \
+    do {                                                             \
+        PORT_Assert(ss->ssl3.hs.hashType == handshake_hash_unknown); \
+        PORT_Assert(ss->ssl3.hs.messages.len == 0);                  \
+    } while (0)
+
 /*
 ** This is the "ssl3" struct, as in "ss->ssl3".
 ** note:
@@ -1350,6 +1357,10 @@ extern void ssl3_RestartHandshakeHashes(sslSocket *ss);
 extern SECStatus ssl3_UpdateHandshakeHashes(sslSocket *ss,
                                             const unsigned char *b,
                                             unsigned int l);
+SECStatus
+ssl_HashHandshakeMessageInt(sslSocket *ss, SSLHandshakeType type,
+                            PRUint32 dtlsSeq,
+                            const PRUint8 *b, PRUint32 length);
 SECStatus ssl_HashHandshakeMessage(sslSocket *ss, SSLHandshakeType type,
                                    const PRUint8 *b, PRUint32 length);
 
