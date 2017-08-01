@@ -665,14 +665,11 @@ ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
                          PK11SymKey *secret, SECItem *ticket_data)
 {
     SECStatus rv;
-    SECItem plaintext;
-    SECItem plaintext_item = { 0, NULL, 0 };
-    PRUint32 plaintext_length;
+    sslBuffer plaintext = { NULL, 0, 0 };
     SECItem ticket_buf = { 0, NULL, 0 };
     PRBool ms_is_wrapped;
     unsigned char wrapped_ms[SSL3_MASTER_SECRET_LENGTH];
     SECItem ms_item = { 0, NULL, 0 };
-    PRUint32 cert_length = 0;
     PRTime now;
     SECItem *srvName = NULL;
     CK_MECHANISM_TYPE msWrapMech = 0; /* dummy default value,
@@ -685,10 +682,6 @@ ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
-
-    if (ss->opt.requestCertificate && ss->sec.ci.sid->peerCert) {
-        cert_length = 2 + ss->sec.ci.sid->peerCert->derCert.len;
-    }
 
     if (ss->ssl3.pwSpec->msItem.len && ss->ssl3.pwSpec->msItem.data) {
         PORT_Assert(ss->version < SSL_LIBRARY_VERSION_TLS_1_3);
@@ -721,79 +714,40 @@ ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
     /* Prep to send negotiated name */
     srvName = &ss->sec.ci.sid->u.ssl3.srvName;
 
-    PORT_Assert(ss->xtnData.nextProtoState == SSL_NEXT_PROTO_SELECTED ||
-                ss->xtnData.nextProtoState == SSL_NEXT_PROTO_NEGOTIATED ||
-                ss->xtnData.nextProto.len == 0);
-    alpnSelection = &ss->xtnData.nextProto;
-
-    plaintext_length =
-        sizeof(PRUint16)              /* ticket version */
-        + sizeof(SSL3ProtocolVersion) /* ssl_version */
-        + sizeof(ssl3CipherSuite)     /* ciphersuite */
-        + 1                           /* compression */
-        + 10                          /* cipher spec parameters */
-        + 1                           /* certType arguments */
-        + 1                           /* SessionTicket.ms_is_wrapped */
-        + 4                           /* msWrapMech */
-        + 2                           /* master_secret.length */
-        + ms_item.len                 /* master_secret */
-        + 1                           /* client_auth_type */
-        + cert_length                 /* cert */
-        + 2 + srvName->len            /* name len + length field */
-        + 1                           /* extendedMasterSecretUsed */
-        + sizeof(now)                 /* ticket lifetime hint */
-        + sizeof(ticket->flags)       /* ticket flags */
-        + 1 + alpnSelection->len      /* alpn value + length field */
-        + 4                           /* maxEarlyData */
-        + 4                           /* ticketAgeBaseline */
-        + 2 + appTokenLen;            /* application token */
-
-    /* This really only happens if appTokenLen is too much, and that always
-     * comes from the using application. */
-    if (plaintext_length > 0xffff) {
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        goto loser;
-    }
-
-    if (SECITEM_AllocItem(NULL, &plaintext_item, plaintext_length) == NULL)
-        goto loser;
-
-    plaintext = plaintext_item;
-
     /* ticket version */
-    rv = ssl3_AppendNumberToItem(&plaintext, TLS_EX_SESS_TICKET_VERSION,
-                                 sizeof(PRUint16));
+    rv = sslBuffer_AppendNumber(&plaintext, TLS_EX_SESS_TICKET_VERSION,
+                                sizeof(PRUint16));
     if (rv != SECSuccess)
         goto loser;
 
     /* ssl_version */
-    rv = ssl3_AppendNumberToItem(&plaintext, ss->version,
-                                 sizeof(SSL3ProtocolVersion));
+    rv = sslBuffer_AppendNumber(&plaintext, ss->version,
+                                sizeof(SSL3ProtocolVersion));
     if (rv != SECSuccess)
         goto loser;
 
     /* ciphersuite */
-    rv = ssl3_AppendNumberToItem(&plaintext, ss->ssl3.hs.cipher_suite,
-                                 sizeof(ssl3CipherSuite));
+    rv = sslBuffer_AppendNumber(&plaintext, ss->ssl3.hs.cipher_suite,
+                                sizeof(ssl3CipherSuite));
     if (rv != SECSuccess)
         goto loser;
 
     /* compression */
-    rv = ssl3_AppendNumberToItem(&plaintext, ss->ssl3.hs.compression, 1);
+    rv = sslBuffer_AppendNumber(&plaintext, ss->ssl3.hs.compression, 1);
     if (rv != SECSuccess)
         goto loser;
 
     /* cipher spec parameters */
-    rv = ssl3_AppendNumberToItem(&plaintext, ss->sec.authType, 1);
+    rv = sslBuffer_AppendNumber(&plaintext, ss->sec.authType, 1);
     if (rv != SECSuccess)
         goto loser;
-    rv = ssl3_AppendNumberToItem(&plaintext, ss->sec.authKeyBits, 4);
+    rv = sslBuffer_AppendNumber(&plaintext, ss->sec.authKeyBits, 4);
     if (rv != SECSuccess)
         goto loser;
-    rv = ssl3_AppendNumberToItem(&plaintext, ss->sec.keaType, 1);
+    rv = sslBuffer_AppendNumber(&plaintext, ss->sec.keaType, 1);
     if (rv != SECSuccess)
         goto loser;
-    rv = ssl3_AppendNumberToItem(&plaintext, ss->sec.keaKeyBits, 4);
+    rv = sslBuffer_AppendNumber(&plaintext, ss->sec.keaKeyBits, 4);
     if (rv != SECSuccess)
         goto loser;
 
@@ -804,43 +758,36 @@ ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
         PORT_Assert(cert->namedCurve);
         /* EC curves only use the second of the two bytes. */
         PORT_Assert(cert->namedCurve->name < 256);
-        rv = ssl3_AppendNumberToItem(&plaintext, cert->namedCurve->name, 1);
+        rv = sslBuffer_AppendNumber(&plaintext, cert->namedCurve->name, 1);
     } else {
-        rv = ssl3_AppendNumberToItem(&plaintext, 0, 1);
+        rv = sslBuffer_AppendNumber(&plaintext, 0, 1);
     }
     if (rv != SECSuccess)
         goto loser;
 
     /* master_secret */
-    rv = ssl3_AppendNumberToItem(&plaintext, ms_is_wrapped, 1);
+    rv = sslBuffer_AppendNumber(&plaintext, ms_is_wrapped, 1);
     if (rv != SECSuccess)
         goto loser;
-    rv = ssl3_AppendNumberToItem(&plaintext, msWrapMech, 4);
+    rv = sslBuffer_AppendNumber(&plaintext, msWrapMech, 4);
     if (rv != SECSuccess)
         goto loser;
-    rv = ssl3_AppendNumberToItem(&plaintext, ms_item.len, 2);
-    if (rv != SECSuccess)
-        goto loser;
-    rv = ssl3_AppendToItem(&plaintext, ms_item.data, ms_item.len);
+    rv = sslBuffer_AppendVariable(&plaintext, ms_item.data, ms_item.len, 2);
     if (rv != SECSuccess)
         goto loser;
 
     /* client identity */
     if (ss->opt.requestCertificate && ss->sec.ci.sid->peerCert) {
-        rv = ssl3_AppendNumberToItem(&plaintext, CLIENT_AUTH_CERTIFICATE, 1);
+        rv = sslBuffer_AppendNumber(&plaintext, CLIENT_AUTH_CERTIFICATE, 1);
         if (rv != SECSuccess)
             goto loser;
-        rv = ssl3_AppendNumberToItem(&plaintext,
-                                     ss->sec.ci.sid->peerCert->derCert.len, 2);
-        if (rv != SECSuccess)
-            goto loser;
-        rv = ssl3_AppendToItem(&plaintext,
-                               ss->sec.ci.sid->peerCert->derCert.data,
-                               ss->sec.ci.sid->peerCert->derCert.len);
+        rv = sslBuffer_AppendVariable(&plaintext,
+                                      ss->sec.ci.sid->peerCert->derCert.data,
+                                      ss->sec.ci.sid->peerCert->derCert.len, 2);
         if (rv != SECSuccess)
             goto loser;
     } else {
-        rv = ssl3_AppendNumberToItem(&plaintext, 0, 1);
+        rv = sslBuffer_AppendNumber(&plaintext, 0, 1);
         if (rv != SECSuccess)
             goto loser;
     }
@@ -848,45 +795,39 @@ ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
     /* timestamp */
     now = ssl_TimeUsec();
     PORT_Assert(sizeof(now) == 8);
-    rv = ssl3_AppendNumberToItem(&plaintext, now, 8);
+    rv = sslBuffer_AppendNumber(&plaintext, now, 8);
     if (rv != SECSuccess)
         goto loser;
 
     /* HostName (length and value) */
-    rv = ssl3_AppendNumberToItem(&plaintext, srvName->len, 2);
+    rv = sslBuffer_AppendVariable(&plaintext, srvName->data, srvName->len, 2);
     if (rv != SECSuccess)
         goto loser;
-    if (srvName->len) {
-        rv = ssl3_AppendToItem(&plaintext, srvName->data, srvName->len);
-        if (rv != SECSuccess)
-            goto loser;
-    }
 
     /* extendedMasterSecretUsed */
-    rv = ssl3_AppendNumberToItem(
+    rv = sslBuffer_AppendNumber(
         &plaintext, ss->sec.ci.sid->u.ssl3.keys.extendedMasterSecretUsed, 1);
     if (rv != SECSuccess)
         goto loser;
 
     /* Flags */
-    rv = ssl3_AppendNumberToItem(&plaintext, ticket->flags,
-                                 sizeof(ticket->flags));
+    rv = sslBuffer_AppendNumber(&plaintext, ticket->flags,
+                                sizeof(ticket->flags));
     if (rv != SECSuccess)
         goto loser;
 
     /* ALPN value. */
+    PORT_Assert(ss->xtnData.nextProtoState == SSL_NEXT_PROTO_SELECTED ||
+                ss->xtnData.nextProtoState == SSL_NEXT_PROTO_NEGOTIATED ||
+                ss->xtnData.nextProto.len == 0);
+    alpnSelection = &ss->xtnData.nextProto;
     PORT_Assert(alpnSelection->len < 256);
-    rv = ssl3_AppendNumberToItem(&plaintext, alpnSelection->len, 1);
+    rv = sslBuffer_AppendVariable(&plaintext, alpnSelection->data,
+                                  alpnSelection->len, 1);
     if (rv != SECSuccess)
         goto loser;
-    if (alpnSelection->len) {
-        rv = ssl3_AppendToItem(&plaintext, alpnSelection->data,
-                               alpnSelection->len);
-        if (rv != SECSuccess)
-            goto loser;
-    }
 
-    rv = ssl3_AppendNumberToItem(&plaintext, ssl_max_early_data_size, 4);
+    rv = sslBuffer_AppendNumber(&plaintext, ssl_max_early_data_size, 4);
     if (rv != SECSuccess)
         goto loser;
 
@@ -909,28 +850,31 @@ ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
      */
     ticketAgeBaseline = (ssl_TimeUsec() - ss->ssl3.hs.serverHelloTime) / PR_USEC_PER_MSEC;
     ticketAgeBaseline -= ticket->ticket_age_add;
-    rv = ssl3_AppendNumberToItem(&plaintext, ticketAgeBaseline, 4);
+    rv = sslBuffer_AppendNumber(&plaintext, ticketAgeBaseline, 4);
     if (rv != SECSuccess)
         goto loser;
 
     /* Application token */
-    rv = ssl3_AppendNumberToItem(&plaintext, appTokenLen, 2);
-    if (rv != SECSuccess)
-        goto loser;
-    rv = ssl3_AppendToItem(&plaintext, appToken, appTokenLen);
+    rv = sslBuffer_AppendVariable(&plaintext, appToken, appTokenLen, 2);
     if (rv != SECSuccess)
         goto loser;
 
-    /* Check that we are totally full. */
-    PORT_Assert(plaintext.len == 0);
+    /* This really only happens if appTokenLen is too much, and that always
+     * comes from the using application. */
+    if (SSL_BUFFER_LEN(&plaintext) > 0xffff) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        goto loser;
+    }
 
-    /* 128 just gives us enough room for overhead. */
-    if (SECITEM_AllocItem(NULL, &ticket_buf, plaintext_length + 128) == NULL) {
+    ticket_buf.len = ssl_SelfEncryptGetProtectedSize(SSL_BUFFER_LEN(&plaintext));
+    PORT_Assert(ticket_buf.len > 0);
+    if (SECITEM_AllocItem(NULL, &ticket_buf, ticket_buf.len) == NULL) {
         goto loser;
     }
 
     /* Finally, encrypt the ticket. */
-    rv = ssl_SelfEncryptProtect(ss, plaintext_item.data, plaintext_item.len,
+    rv = ssl_SelfEncryptProtect(ss, SSL_BUFFER_BASE(&plaintext),
+                                SSL_BUFFER_LEN(&plaintext),
                                 ticket_buf.data, &ticket_buf.len, ticket_buf.len);
     if (rv != SECSuccess) {
         goto loser;
@@ -939,13 +883,11 @@ ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
     /* Give ownership of memory to caller. */
     *ticket_data = ticket_buf;
 
-    SECITEM_FreeItem(&plaintext_item, PR_FALSE);
+    sslBuffer_Clear(&plaintext);
     return SECSuccess;
 
 loser:
-    if (plaintext_item.data) {
-        SECITEM_FreeItem(&plaintext_item, PR_FALSE);
-    }
+    sslBuffer_Clear(&plaintext);
     if (ticket_buf.data) {
         SECITEM_FreeItem(&ticket_buf, PR_FALSE);
     }
@@ -1745,21 +1687,15 @@ SECStatus
 ssl3_SendSigAlgsXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                     sslBuffer *buf, PRBool *added)
 {
-    PRUint8 schemes[MAX_SIGNATURE_SCHEMES * 2];
-    PRUint32 len;
     SECStatus rv;
 
     if (ss->vrange.max < SSL_LIBRARY_VERSION_TLS_1_2) {
         return SECSuccess;
     }
 
-    rv = ssl3_EncodeSigAlgs(ss, schemes, sizeof(schemes), &len);
+    rv = ssl3_EncodeSigAlgs(ss, buf);
     if (rv != SECSuccess) {
         return SECFailure;
-    }
-    rv = sslBuffer_AppendVariable(buf, schemes, len, 2);
-    if (rv != SECSuccess) {
-        return -1;
     }
 
     *added = PR_TRUE;

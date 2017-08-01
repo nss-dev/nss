@@ -13,6 +13,7 @@
 #include "sslt.h"
 #include "sslerr.h"
 #include "sslimpl.h"
+#include "sslencode.h"
 
 /* This table contains the mapping between TLS hash identifiers and the
  * PKCS#11 identifiers */
@@ -134,9 +135,9 @@ tls13_HkdfExpandLabel(PK11SymKey *prk, SSLHashType baseHash,
      * Label, plus HandshakeHash. If it's ever to small, the code will abort.
      */
     PRUint8 info[256];
-    PRUint8 *ptr = info;
-    unsigned int infoLen;
+    sslBuffer infoBuf = SSL_BUFFER(info);
     PK11SymKey *derived;
+    SECStatus rv;
     const char *kLabelPrefix = "tls13 ";
     const unsigned int kLabelPrefixLen = strlen(kLabelPrefix);
 
@@ -170,29 +171,31 @@ tls13_HkdfExpandLabel(PK11SymKey *prk, SSLHashType baseHash,
      *  - HkdfLabel.label is "TLS 1.3, " + Label
      *
      */
-    infoLen = 2 + 1 + kLabelPrefixLen + labelLen + 1 + handshakeHashLen;
-    if (infoLen > sizeof(info)) {
-        PORT_Assert(0);
-        goto abort;
+    rv = sslBuffer_AppendNumber(&infoBuf, keySize, 2);
+    if (rv != SECSuccess) {
+        return SECFailure;
     }
-
-    ptr = ssl_EncodeUintX(keySize, 2, ptr);
-    ptr = ssl_EncodeUintX(labelLen + kLabelPrefixLen, 1, ptr);
-    PORT_Memcpy(ptr, kLabelPrefix, kLabelPrefixLen);
-    ptr += kLabelPrefixLen;
-    PORT_Memcpy(ptr, label, labelLen);
-    ptr += labelLen;
-    ptr = ssl_EncodeUintX(handshakeHashLen, 1, ptr);
-    if (handshakeHash) {
-        PORT_Memcpy(ptr, handshakeHash, handshakeHashLen);
-        ptr += handshakeHashLen;
+    rv = sslBuffer_AppendNumber(&infoBuf, labelLen + kLabelPrefixLen, 1);
+    if (rv != SECSuccess) {
+        return SECFailure;
     }
-    PORT_Assert((ptr - info) == infoLen);
+    rv = sslBuffer_Append(&infoBuf, kLabelPrefix, kLabelPrefixLen);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    rv = sslBuffer_Append(&infoBuf, label, labelLen);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    rv = sslBuffer_AppendVariable(&infoBuf, handshakeHash, handshakeHashLen, 1);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
 
     params.bExtract = CK_FALSE;
     params.bExpand = CK_TRUE;
-    params.pInfo = info;
-    params.ulInfoLen = infoLen;
+    params.pInfo = SSL_BUFFER_BASE(&infoBuf);
+    params.ulInfoLen = SSL_BUFFER_LEN(&infoBuf);
     paramsi.data = (unsigned char *)&params;
     paramsi.len = sizeof(params);
 
@@ -216,15 +219,12 @@ tls13_HkdfExpandLabel(PK11SymKey *prk, SSLHashType baseHash,
     }
     PRINT_KEY(50, (NULL, "PRK", prk));
     PRINT_BUF(50, (NULL, "Hash", handshakeHash, handshakeHashLen));
-    PRINT_BUF(50, (NULL, "Info", info, infoLen));
+    PRINT_BUF(50, (NULL, "Info", SSL_BUFFER_BASE(&infoBuf),
+                   SSL_BUFFER_LEN(&infoBuf)));
     PRINT_KEY(50, (NULL, "Derived key", derived));
 #endif
 
     return SECSuccess;
-
-abort:
-    PORT_SetError(SSL_ERROR_SYM_KEY_CONTEXT_FAILURE);
-    return SECFailure;
 }
 
 SECStatus

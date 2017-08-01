@@ -135,8 +135,10 @@ tls13_ClientSendKeyShareXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                 SSL_GETPID(), ss->fd));
 
     /* Save the offset to the length. */
-    lengthOffset = buf->len;
-    buf->len += 2;
+    rv = sslBuffer_Skip(buf, 2, &lengthOffset);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
 
     for (cursor = PR_NEXT_LINK(&ss->ephemeralKeyPairs);
          cursor != &ss->ephemeralKeyPairs;
@@ -147,9 +149,10 @@ tls13_ClientSendKeyShareXtn(const sslSocket *ss, TLSExtensionData *xtnData,
             return SECFailure;
         }
     }
-    PORT_Assert(buf->len >= lengthOffset + 2);
-    (void)ssl_EncodeUintX(buf->len - lengthOffset - 2, 2,
-                          buf->buf + lengthOffset);
+    rv = sslBuffer_InsertLength(buf, lengthOffset, 2);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
 
     *added = PR_TRUE;
     return SECSuccess;
@@ -737,7 +740,7 @@ tls13_ClientSendSupportedVersionsXtn(const sslSocket *ss, TLSExtensionData *xtnD
                                      sslBuffer *buf, PRBool *added)
 {
     PRUint16 version;
-    unsigned int size;
+    unsigned int lengthOffset;
     SECStatus rv;
 
     if (ss->vrange.max < SSL_LIBRARY_VERSION_TLS_1_3) {
@@ -747,14 +750,10 @@ tls13_ClientSendSupportedVersionsXtn(const sslSocket *ss, TLSExtensionData *xtnD
     SSL_TRC(3, ("%d: TLS13[%d]: send supported_versions extension",
                 SSL_GETPID(), ss->fd));
 
-    size = 2 * (ss->vrange.max - ss->vrange.min + 1);
-    if (ss->opt.enableAltHandshaketype && !IS_DTLS(ss)) {
-        size += 2;
+    rv = sslBuffer_Skip(buf, 1, &lengthOffset);
+    if (rv != SECSuccess) {
+        return SECFailure;
     }
-
-    rv = sslBuffer_AppendNumber(buf, size, 1);
-    if (rv != SECSuccess)
-        return -1;
 
     if (ss->opt.enableAltHandshaketype && !IS_DTLS(ss)) {
         rv = sslBuffer_AppendNumber(
@@ -766,8 +765,14 @@ tls13_ClientSendSupportedVersionsXtn(const sslSocket *ss, TLSExtensionData *xtnD
     }
     for (version = ss->vrange.max; version >= ss->vrange.min; --version) {
         rv = sslBuffer_AppendNumber(buf, tls13_EncodeDraftVersion(version), 2);
-        if (rv != SECSuccess)
+        if (rv != SECSuccess) {
             return SECFailure;
+        }
+    }
+
+    rv = sslBuffer_InsertLength(buf, lengthOffset, 1);
+    if (rv != SECSuccess) {
+        return SECFailure;
     }
 
     *added = PR_TRUE;

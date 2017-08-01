@@ -13,8 +13,7 @@
 
 typedef struct sslSocketStr sslSocket;
 
-SECStatus ssl_SelfEncryptGetProtectedSize(unsigned int inLen,
-                                          unsigned int *outLen);
+unsigned int ssl_SelfEncryptGetProtectedSize(unsigned int inLen);
 SECStatus ssl_SelfEncryptProtect(
     sslSocket *ss, const PRUint8 *in, unsigned int inLen,
     PRUint8 *out, unsigned int *outLen, unsigned int maxOutLen);

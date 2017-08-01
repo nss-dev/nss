@@ -758,12 +758,14 @@ TEST_F(TlsConnectTest, SendSessionTicketMassiveToken) {
   Connect();
   // It should be safe to set length with a NULL token because the length should
   // be checked before reading token.
-  EXPECT_EQ(SECFailure, SSL_SendSessionTicket(server_->ssl_fd(), NULL, 0xffff))
-      << "no special tickets in TLS 1.2";
+  EXPECT_EQ(SECFailure, SSL_SendSessionTicket(server_->ssl_fd(), NULL, 0x1ffff))
+      << "this is clearly too big";
   EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
 
-  EXPECT_EQ(SECFailure, SSL_SendSessionTicket(server_->ssl_fd(), NULL, 0x1ffff))
-      << "no special tickets in TLS 1.2";
+  static const uint8_t big_token[0xffff] = {1};
+  EXPECT_EQ(SECFailure, SSL_SendSessionTicket(server_->ssl_fd(), big_token,
+                                              sizeof(big_token)))
+      << "this is too big, but that's not immediately obvious";
   EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
 }
 

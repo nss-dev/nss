@@ -864,8 +864,9 @@ ssl_SendSupportedGroupsXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     unsigned int i;
     PRBool ec;
     PRBool ff = PR_FALSE;
+    PRBool found = PR_FALSE;
     SECStatus rv;
-    sslBuffer tmpBuf = { NULL, 0, 0 };
+    unsigned int lengthOffset;
 
     /* We only send FF supported groups if we require DH named groups
      * or if TLS 1.3 is a possibility. */
@@ -881,7 +882,12 @@ ssl_SendSupportedGroupsXtn(const sslSocket *ss, TLSExtensionData *xtnData,
         ec = ff = PR_TRUE;
     }
 
-    /* Reserve space for the length. */
+    /* Mark the location of the length. */
+    rv = sslBuffer_Skip(buf, 2, &lengthOffset);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
     for (i = 0; i < SSL_NAMED_GROUP_COUNT; ++i) {
         const sslNamedGroupDef *group = ss->namedGroupPreferences[i];
         if (!group) {
@@ -894,21 +900,19 @@ ssl_SendSupportedGroupsXtn(const sslSocket *ss, TLSExtensionData *xtnData,
             continue;
         }
 
-        rv = sslBuffer_AppendNumber(&tmpBuf, group->name, 2);
+        found = PR_TRUE;
+        rv = sslBuffer_AppendNumber(buf, group->name, 2);
         if (rv != SECSuccess) {
-            sslBuffer_Clear(&tmpBuf);
             return SECFailure;
         }
     }
 
-    if (!tmpBuf.len) {
-        sslBuffer_Clear(&tmpBuf);
+    if (!found) {
         /* We added nothing, don't send the extension. */
         return SECSuccess;
     }
 
-    rv = sslBuffer_AppendBufferVariable(buf, &tmpBuf, 2);
-    sslBuffer_Clear(&tmpBuf);
+    rv = sslBuffer_InsertLength(buf, lengthOffset, 2);
     if (rv != SECSuccess) {
         return SECFailure;
     }

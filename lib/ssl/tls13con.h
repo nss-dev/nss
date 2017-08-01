@@ -77,7 +77,8 @@ SECStatus tls13_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b,
 SECStatus tls13_ConstructHelloRetryRequest(sslSocket *ss,
                                            ssl3CipherSuite cipherSuite,
                                            const sslNamedGroupDef *selectedGroup,
-                                           PRUint8 *cookie, unsigned int cookieLen,
+                                           PRUint8 *cookie,
+                                           unsigned int cookieLen,
                                            sslBuffer *buffer);
 SECStatus tls13_HandleHelloRetryRequest(sslSocket *ss, PRUint8 *b,
                                         PRUint32 length);
