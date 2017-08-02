@@ -11666,9 +11666,8 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, PRUint8 *b, PRUint32 length,
     SSL_TRC(30, ("%d: SSL3[%d]: handle handshake message: %s", SSL_GETPID(),
                  ss->fd, ssl3_DecodeHandshakeType(ss->ssl3.hs.msg_type)));
 
-    /* Start new handshake hashes when we start a new handshake.  Unless this is
-     * TLS 1.3 and we sent a HelloRetryRequest. */
-    if (ss->ssl3.hs.msg_type == ssl_hs_client_hello && !ss->ssl3.hs.helloRetry) {
+    /* Start new handshake hashes when we start a new handshake. */
+    if (ss->ssl3.hs.msg_type == ssl_hs_client_hello) {
         ssl3_RestartHandshakeHashes(ss);
     }
     switch (ss->ssl3.hs.msg_type) {
