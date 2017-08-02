@@ -1639,10 +1639,6 @@ tls13_SendHelloRetryRequest(sslSocket *ss, const sslNamedGroupDef *selectedGroup
         ss->ssl3.hs.zeroRttIgnore = ssl_0rtt_ignore_hrr;
     }
 
-    /* Restart the handshake hashes because we will refresh them when we
-     * get ClientHello2 again. */
-    ssl3_RestartHandshakeHashes(ss);
-
     return SECSuccess;
 
 loser:
