@@ -24,17 +24,15 @@ namespace nss_test {
 // directory name, but this is extremely unlikely given the expected workload of
 // this implementation.
 class ScopedUniqueDirectory {
-public:
+ public:
   explicit ScopedUniqueDirectory(const std::string& prefix);
 
   // NB: the directory must be empty upon destruction
-  ~ScopedUniqueDirectory() {
-    assert(rmdir(mPath.c_str()) == 0);
-  }
+  ~ScopedUniqueDirectory() { assert(rmdir(mPath.c_str()) == 0); }
 
   const std::string& GetPath() { return mPath; }
 
-private:
+ private:
   static const int RETRY_LIMIT = 5;
   static void GenerateRandomName(/*in/out*/ std::string& prefix);
   static bool TryMakingDirectory(/*in/out*/ std::string& prefix);
@@ -42,8 +40,7 @@ private:
   std::string mPath;
 };
 
-ScopedUniqueDirectory::ScopedUniqueDirectory(const std::string& prefix)
-{
+ScopedUniqueDirectory::ScopedUniqueDirectory(const std::string& prefix) {
   std::string path;
   const char* workingDirectory = PR_GetEnvSecure("NSS_GTEST_WORKDIR");
   if (workingDirectory) {
@@ -62,9 +59,7 @@ ScopedUniqueDirectory::ScopedUniqueDirectory(const std::string& prefix)
   assert(mPath.length() > 0);
 }
 
-void
-ScopedUniqueDirectory::GenerateRandomName(std::string& prefix)
-{
+void ScopedUniqueDirectory::GenerateRandomName(std::string& prefix) {
   std::stringstream ss;
   ss << prefix;
   // RAND_MAX is at least 32767.
@@ -74,9 +69,7 @@ ScopedUniqueDirectory::GenerateRandomName(std::string& prefix)
   ss >> prefix;
 }
 
-bool
-ScopedUniqueDirectory::TryMakingDirectory(std::string& prefix)
-{
+bool ScopedUniqueDirectory::TryMakingDirectory(std::string& prefix) {
   GenerateRandomName(prefix);
 #if defined(_WIN32)
   return _mkdir(prefix.c_str()) == 0;
@@ -86,8 +79,8 @@ ScopedUniqueDirectory::TryMakingDirectory(std::string& prefix)
 }
 
 class SoftokenTest : public ::testing::Test {
-protected:
-  SoftokenTest() : mNSSDBDir("SoftokenTest.d-") { }
+ protected:
+  SoftokenTest() : mNSSDBDir("SoftokenTest.d-") {}
 
   virtual void SetUp() {
     std::string nssInitArg("sql:");
@@ -125,7 +118,7 @@ TEST_F(SoftokenTest, ResetSoftokenNonEmptyPassword) {
 
 }  // namespace nss_test
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
 
   return RUN_ALL_TESTS();
