@@ -309,7 +309,7 @@ typedef SECStatus(PR_CALLBACK *SSLExtensionHandler)(
  * server socket.  All necessary state to continue the TLS handshake will be
  * included in the cookie extension.  This makes it possible to use a new socket
  * to handle the remainder of the handshake.  The existing socket can be safely
- * discarded.  [TODO: see Bug 1386096]
+ * discarded.
  *
  * If the same socket is retained, the information in the cookie will be checked
  * for consistency against the existing state of the socket.  Any discrepancy

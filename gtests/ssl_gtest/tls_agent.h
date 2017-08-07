@@ -171,6 +171,8 @@ class TlsAgent : public PollTarget {
   Role role() const { return role_; }
   std::string role_str() const { return role_ == SERVER ? "server" : "client"; }
 
+  SSLProtocolVariant variant() const { return variant_; }
+
   State state() const { return state_; }
 
   const CERTCertificate* peer_cert() const {

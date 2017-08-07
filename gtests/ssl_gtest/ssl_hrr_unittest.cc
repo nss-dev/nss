@@ -488,6 +488,192 @@ TEST_F(TlsConnectStreamTls13, RetryCallbackWithSessionTicketToken) {
   EXPECT_TRUE(cb_run);
 }
 
+std::shared_ptr<TlsAgent> MakeNewServer(std::shared_ptr<TlsAgent>& client) {
+  auto server = std::make_shared<TlsAgent>(TlsAgent::kServerRsa,
+                                           TlsAgent::SERVER, client->variant());
+  server->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                          SSL_LIBRARY_VERSION_TLS_1_3);
+  client->SetPeer(server);
+  server->SetPeer(client);
+  server->StartConnect();
+  return server;
+}
+
+void TriggerHelloRetryRequest(std::shared_ptr<TlsAgent>& client,
+                              std::shared_ptr<TlsAgent>& server) {
+  size_t cb_called = 0;
+  EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(server->ssl_fd(),
+                                                      RetryHello, &cb_called));
+
+  // Start the handshake.
+  client->StartConnect();
+  server->StartConnect();
+  client->Handshake();
+  server->Handshake();
+  EXPECT_EQ(1U, cb_called);
+}
+
+TEST_P(TlsConnectTls13, RetryStateless) {
+  ConfigureSelfEncrypt();
+  EnsureTlsSetup();
+
+  TriggerHelloRetryRequest(client_, server_);
+  server_ = MakeNewServer(client_);
+
+  Handshake();
+  SendReceive();
+}
+
+// Stream only because DTLS drops bad packets.
+TEST_F(TlsConnectStreamTls13, RetryStatelessDamageFirstClientHello) {
+  ConfigureSelfEncrypt();
+  EnsureTlsSetup();
+
+  auto damage_ch = std::make_shared<TlsExtensionInjector>(0xfff3, DataBuffer());
+  client_->SetPacketFilter(damage_ch);
+
+  TriggerHelloRetryRequest(client_, server_);
+  server_ = MakeNewServer(client_);
+
+  // Key exchange fails when the handshake continues because client and server
+  // disagree about the transcript.
+  client_->ExpectSendAlert(kTlsAlertBadRecordMac);
+  server_->ExpectSendAlert(kTlsAlertBadRecordMac);
+  Handshake();
+  server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
+  client_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
+}
+
+TEST_F(TlsConnectStreamTls13, RetryStatelessDamageSecondClientHello) {
+  ConfigureSelfEncrypt();
+  EnsureTlsSetup();
+
+  TriggerHelloRetryRequest(client_, server_);
+  server_ = MakeNewServer(client_);
+
+  auto damage_ch = std::make_shared<TlsExtensionInjector>(0xfff3, DataBuffer());
+  client_->SetPacketFilter(damage_ch);
+
+  // Key exchange fails when the handshake continues because client and server
+  // disagree about the transcript.
+  client_->ExpectSendAlert(kTlsAlertBadRecordMac);
+  server_->ExpectSendAlert(kTlsAlertBadRecordMac);
+  Handshake();
+  server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
+  client_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
+}
+
+TEST_P(TlsConnectTls13, RetryStatelessDisableSuiteClient) {
+  ConfigureSelfEncrypt();
+  EnsureTlsSetup();
+
+  auto capture_hrr = std::make_shared<TlsInspectorRecordHandshakeMessage>(
+      ssl_hs_hello_retry_request);
+  server_->SetPacketFilter(capture_hrr);
+
+  TriggerHelloRetryRequest(client_, server_);
+  server_ = MakeNewServer(client_);
+
+  // Read the cipher suite from the HRR and disable it on the client.
+  uint32_t suite;
+  ASSERT_TRUE(capture_hrr->buffer().Read(2, 2, &suite));
+  EXPECT_EQ(SECSuccess,
+            SSL_CipherPrefSet(client_->ssl_fd(), static_cast<uint16_t>(suite),
+                              PR_FALSE));
+
+  // The client thinks that the HelloRetryRequest is bad, even though its
+  // because it changed its mind about the cipher suite.
+  ExpectAlert(client_, kTlsAlertIllegalParameter);
+  Handshake();
+  client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST);
+  server_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
+}
+
+TEST_P(TlsConnectTls13, RetryStatelessDisableSuiteServer) {
+  ConfigureSelfEncrypt();
+  EnsureTlsSetup();
+
+  auto capture_hrr = std::make_shared<TlsInspectorRecordHandshakeMessage>(
+      ssl_hs_hello_retry_request);
+  server_->SetPacketFilter(capture_hrr);
+
+  TriggerHelloRetryRequest(client_, server_);
+  server_ = MakeNewServer(client_);
+
+  // Read the cipher suite from the HRR and disable it on the server.
+  uint32_t suite;
+  ASSERT_TRUE(capture_hrr->buffer().Read(2, 2, &suite));
+  EXPECT_EQ(SECSuccess,
+            SSL_CipherPrefSet(server_->ssl_fd(), static_cast<uint16_t>(suite),
+                              PR_FALSE));
+
+  ExpectAlert(server_, kTlsAlertIllegalParameter);
+  Handshake();
+  server_->CheckErrorCode(SSL_ERROR_BAD_2ND_CLIENT_HELLO);
+  client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
+}
+
+TEST_P(TlsConnectTls13, RetryStatelessDisableGroupClient) {
+  ConfigureSelfEncrypt();
+  EnsureTlsSetup();
+
+  TriggerHelloRetryRequest(client_, server_);
+  server_ = MakeNewServer(client_);
+
+  static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1};
+  client_->ConfigNamedGroups(groups);
+
+  // We're into undefined behavior on the client side, but - at the point this
+  // test was written - the client here doesn't amend its key shares because the
+  // server doesn't ask it to.  The server notices that the key share (x25519)
+  // doesn't match the negotiated group (P-384) and objects.
+  ExpectAlert(server_, kTlsAlertIllegalParameter);
+  Handshake();
+  server_->CheckErrorCode(SSL_ERROR_BAD_2ND_CLIENT_HELLO);
+  client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
+}
+
+TEST_P(TlsConnectTls13, RetryStatelessDisableGroupServer) {
+  ConfigureSelfEncrypt();
+  EnsureTlsSetup();
+
+  TriggerHelloRetryRequest(client_, server_);
+  server_ = MakeNewServer(client_);
+
+  static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1};
+  server_->ConfigNamedGroups(groups);
+
+  ExpectAlert(server_, kTlsAlertIllegalParameter);
+  Handshake();
+  server_->CheckErrorCode(SSL_ERROR_BAD_2ND_CLIENT_HELLO);
+  client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
+}
+
+TEST_P(TlsConnectTls13, RetryStatelessBadCookie) {
+  ConfigureSelfEncrypt();
+  EnsureTlsSetup();
+
+  TriggerHelloRetryRequest(client_, server_);
+
+  // Now replace the self-encrypt MAC key with a garbage key.
+  static const uint8_t bad_hmac_key[32] = {0};
+  SECItem key_item = {siBuffer, const_cast<uint8_t*>(bad_hmac_key),
+                      sizeof(bad_hmac_key)};
+  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  PK11SymKey* hmac_key =
+      PK11_ImportSymKey(slot.get(), CKM_SHA256_HMAC, PK11_OriginUnwrap,
+                        CKA_SIGN, &key_item, nullptr);
+  ASSERT_NE(nullptr, hmac_key);
+  SSLInt_SetSelfEncryptMacKey(hmac_key);  // Passes ownership.
+
+  server_ = MakeNewServer(client_);
+
+  ExpectAlert(server_, kTlsAlertIllegalParameter);
+  Handshake();
+  server_->CheckErrorCode(SSL_ERROR_BAD_2ND_CLIENT_HELLO);
+  client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
+}
+
 // Stream because the server doesn't consume the alert and terminate.
 TEST_F(TlsConnectStreamTls13, RetryWithDifferentCipherSuite) {
   EnsureTlsSetup();

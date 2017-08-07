@@ -4123,7 +4123,7 @@ ssl3_UpdateHandshakeHashes(sslSocket *ss, const unsigned char *b, unsigned int l
         return sslBuffer_Append(&ss->ssl3.hs.messages, b, l);
     }
 
-    PRINT_BUF(90, (NULL, "handshake hash input:", b, l));
+    PRINT_BUF(90, (ss, "handshake hash input:", b, l));
 
     if (ss->ssl3.hs.hashType == handshake_hash_single) {
         PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
@@ -8467,6 +8467,7 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
     }
 #endif
 
+    /* If there is a cookie, then this is a second ClientHello (TLS 1.3). */
     if (ssl3_FindExtension(ss, ssl_tls13_cookie_xtn)) {
         ss->ssl3.hs.helloRetry = PR_TRUE;
     }

@@ -95,6 +95,7 @@ class TlsConnectTestBase : public ::testing::Test {
   void EnableOnlyDheCiphers();
   void EnableSomeEcdhCiphers();
   void EnableExtendedMasterSecret();
+  void ConfigureSelfEncrypt();
   void ConfigureSessionCache(SessionResumptionMode client,
                              SessionResumptionMode server);
   void EnableAlpn();

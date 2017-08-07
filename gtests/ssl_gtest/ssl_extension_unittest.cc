@@ -61,48 +61,6 @@ class TlsExtensionDamager : public TlsExtensionFilter {
   size_t index_;
 };
 
-class TlsExtensionInjector : public TlsHandshakeFilter {
- public:
-  TlsExtensionInjector(uint16_t ext, DataBuffer& data)
-      : extension_(ext), data_(data) {}
-
-  virtual PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
-                                               const DataBuffer& input,
-                                               DataBuffer* output) {
-    TlsParser parser(input);
-    if (!TlsExtensionFilter::FindExtensions(&parser, header)) {
-      return KEEP;
-    }
-    size_t offset = parser.consumed();
-
-    *output = input;
-
-    // Increase the size of the extensions.
-    uint16_t ext_len;
-    memcpy(&ext_len, output->data() + offset, sizeof(ext_len));
-    ext_len = htons(ntohs(ext_len) + data_.len() + 4);
-    memcpy(output->data() + offset, &ext_len, sizeof(ext_len));
-
-    // Insert the extension type and length.
-    DataBuffer type_length;
-    type_length.Allocate(4);
-    type_length.Write(0, extension_, 2);
-    type_length.Write(2, data_.len(), 2);
-    output->Splice(type_length, offset + 2);
-
-    // Insert the payload.
-    if (data_.len() > 0) {
-      output->Splice(data_, offset + 6);
-    }
-
-    return CHANGE;
-  }
-
- private:
-  const uint16_t extension_;
-  const DataBuffer data_;
-};
-
 class TlsExtensionAppender : public TlsHandshakeFilter {
  public:
   TlsExtensionAppender(uint8_t handshake_type, uint16_t ext, DataBuffer& data)
