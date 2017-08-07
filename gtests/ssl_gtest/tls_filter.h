@@ -358,6 +358,21 @@ class TlsExtensionDropper : public TlsExtensionFilter {
   uint16_t extension_;
 };
 
+class TlsExtensionInjector : public TlsHandshakeFilter {
+ public:
+  TlsExtensionInjector(uint16_t ext, const DataBuffer& data)
+      : extension_(ext), data_(data) {}
+
+ protected:
+  PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
+                                       const DataBuffer& input,
+                                       DataBuffer* output) override;
+
+ private:
+  const uint16_t extension_;
+  const DataBuffer data_;
+};
+
 class TlsAgent;
 typedef std::function<void(void)> VoidFunction;
 

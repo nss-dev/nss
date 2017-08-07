@@ -19,5 +19,7 @@ SECStatus tls13_MakeHrrCookie(sslSocket *ss, const sslNamedGroupDef *selectedGro
 SECStatus tls13_GetHrrCookieLength(sslSocket *ss, unsigned int *length);
 SECStatus tls13_RecoverHashState(sslSocket *ss,
                                  unsigned char *cookie,
-                                 unsigned int cookieLen);
+                                 unsigned int cookieLen,
+                                 ssl3CipherSuite *previousCipherSuite,
+                                 const sslNamedGroupDef **previousGroup);
 #endif

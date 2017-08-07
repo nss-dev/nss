@@ -459,21 +459,25 @@ void TlsConnectTestBase::EnableSomeEcdhCiphers() {
   }
 }
 
+void TlsConnectTestBase::ConfigureSelfEncrypt() {
+  ScopedCERTCertificate cert;
+  ScopedSECKEYPrivateKey privKey;
+  ASSERT_TRUE(
+      TlsAgent::LoadCertificate(TlsAgent::kServerRsaDecrypt, &cert, &privKey));
+
+  ScopedSECKEYPublicKey pubKey(CERT_ExtractPublicKey(cert.get()));
+  ASSERT_TRUE(pubKey);
+
+  EXPECT_EQ(SECSuccess,
+            SSL_SetSessionTicketKeyPair(pubKey.get(), privKey.get()));
+}
+
 void TlsConnectTestBase::ConfigureSessionCache(SessionResumptionMode client,
                                                SessionResumptionMode server) {
   client_->ConfigureSessionCache(client);
   server_->ConfigureSessionCache(server);
   if ((server & RESUME_TICKET) != 0) {
-    ScopedCERTCertificate cert;
-    ScopedSECKEYPrivateKey privKey;
-    ASSERT_TRUE(TlsAgent::LoadCertificate(TlsAgent::kServerRsaDecrypt, &cert,
-                                          &privKey));
-
-    ScopedSECKEYPublicKey pubKey(CERT_ExtractPublicKey(cert.get()));
-    ASSERT_TRUE(pubKey);
-
-    EXPECT_EQ(SECSuccess,
-              SSL_SetSessionTicketKeyPair(pubKey.get(), privKey.get()));
+    ConfigureSelfEncrypt();
   }
 }
 

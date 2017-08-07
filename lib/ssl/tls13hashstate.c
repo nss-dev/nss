@@ -88,8 +88,9 @@ tls13_MakeHrrCookie(sslSocket *ss, const sslNamedGroupDef *selectedGroup,
 /* Recover the hash state from the cookie. */
 SECStatus
 tls13_RecoverHashState(sslSocket *ss,
-                       unsigned char *cookie,
-                       unsigned int cookieLen)
+                       unsigned char *cookie, unsigned int cookieLen,
+                       ssl3CipherSuite *previousCipherSuite,
+                       const sslNamedGroupDef **previousGroup)
 {
     SECStatus rv;
     unsigned char plaintext[1024];
@@ -116,7 +117,7 @@ tls13_RecoverHashState(sslSocket *ss,
     }
     /* The cipher suite should be the same or there are some shenanigans. */
     rv = ssl3_ConsumeNumberFromItem(&ptItem, &cipherSuite, 2);
-    if ((rv != SECSuccess) || cipherSuite != ss->ssl3.hs.cipher_suite) {
+    if (rv != SECSuccess) {
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CLIENT_HELLO, illegal_parameter);
         return SECFailure;
     }
@@ -164,7 +165,8 @@ tls13_RecoverHashState(sslSocket *ss,
     }
 
     /* And finally reinject the HRR. */
-    rv = tls13_ConstructHelloRetryRequest(ss, selectedGroup,
+    rv = tls13_ConstructHelloRetryRequest(ss, cipherSuite,
+                                          selectedGroup,
                                           cookie, cookieLen,
                                           &messageBuf);
     if (rv != SECSuccess) {
@@ -178,5 +180,7 @@ tls13_RecoverHashState(sslSocket *ss,
         return SECFailure;
     }
 
+    *previousCipherSuite = cipherSuite;
+    *previousGroup = selectedGroup;
     return SECSuccess;
 }
