@@ -264,6 +264,14 @@ TEST_P(TlsConnectTls13, TestTls13ZeroRttAlpn) {
   CheckAlpn("a");
 }
 
+// NOTE: In this test and those below, the client always sends
+// post-ServerHello alerts with the handshake keys, even if the server
+// has accepted 0-RTT.  In some cases, as with errors in
+// EncryptedExtensions, the client can't know the server's behavior,
+// and in others it's just simpler.  What the server is expecting
+// depends on whether it accepted 0-RTT or not. Eventually, we may
+// make the server trial decrypt.
+//
 // Have the server negotiate a different ALPN value, and therefore
 // reject 0-RTT.
 TEST_P(TlsConnectTls13, TestTls13ZeroRttAlpnChangeServer) {
@@ -302,12 +310,17 @@ TEST_P(TlsConnectTls13, TestTls13ZeroRttNoAlpnServer) {
     client_->CheckAlpn(SSL_NEXT_PROTO_EARLY_VALUE, "a");
     EXPECT_EQ(SECSuccess, SSLInt_Set0RttAlpn(client_->ssl_fd(), b, sizeof(b)));
     client_->CheckAlpn(SSL_NEXT_PROTO_EARLY_VALUE, "b");
-    ExpectAlert(client_, kTlsAlertIllegalParameter);
+    client_->ExpectSendAlert(kTlsAlertIllegalParameter);
     return true;
   });
-  Handshake();
+  if (variant_ == ssl_variant_stream) {
+    server_->ExpectSendAlert(kTlsAlertBadRecordMac);
+    Handshake();
+    server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
+  } else {
+    client_->Handshake();
+  }
   client_->CheckErrorCode(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
-  server_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
 }
 
 // Set up with no ALPN and then set the client so it thinks it has ALPN.
@@ -322,12 +335,17 @@ TEST_P(TlsConnectTls13, TestTls13ZeroRttNoAlpnClient) {
     PRUint8 b[] = {'b'};
     EXPECT_EQ(SECSuccess, SSLInt_Set0RttAlpn(client_->ssl_fd(), b, 1));
     client_->CheckAlpn(SSL_NEXT_PROTO_EARLY_VALUE, "b");
-    ExpectAlert(client_, kTlsAlertIllegalParameter);
+    client_->ExpectSendAlert(kTlsAlertIllegalParameter);
     return true;
   });
-  Handshake();
+  if (variant_ == ssl_variant_stream) {
+    server_->ExpectSendAlert(kTlsAlertBadRecordMac);
+    Handshake();
+    server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
+  } else {
+    client_->Handshake();
+  }
   client_->CheckErrorCode(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
-  server_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
 }
 
 // Remove the old ALPN value and so the client will not offer early data.

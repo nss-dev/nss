@@ -2934,6 +2934,40 @@ tls13_SetupPendingCipherSpec(sslSocket *ss)
     return SECSuccess;
 }
 
+/*
+ * Called before sending alerts to set up the right key on the client.
+ * We might encounter errors during the handshake where the current
+ * key is ClearText or EarlyApplicationData. This
+ * function switches to the Handshake key if possible.
+ */
+SECStatus
+tls13_SetAlertCipherSpec(sslSocket *ss)
+{
+    SECStatus rv;
+
+    if (ss->sec.isServer) {
+        return SECSuccess;
+    }
+    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+        return SECSuccess;
+    }
+    if (TLS13_IN_HS_STATE(ss, wait_server_hello)) {
+        return SECSuccess;
+    }
+    if ((ss->ssl3.cwSpec->epoch != TrafficKeyClearText) &&
+        (ss->ssl3.cwSpec->epoch != TrafficKeyEarlyApplicationData)) {
+        return SECSuccess;
+    }
+
+    rv = tls13_SetCipherSpec(ss, TrafficKeyHandshake,
+                             CipherSpecWrite, PR_FALSE);
+    if (rv != SECSuccess) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+    return SECSuccess;
+}
+
 /* Install a new cipher spec for this direction. */
 static SECStatus
 tls13_SetCipherSpec(sslSocket *ss, TrafficKeyType type,

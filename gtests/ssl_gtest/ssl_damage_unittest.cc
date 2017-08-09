@@ -51,16 +51,12 @@ TEST_F(TlsConnectTest, DamageSecretHandleServerFinished) {
                            SSL_LIBRARY_VERSION_TLS_1_3);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
                            SSL_LIBRARY_VERSION_TLS_1_3);
-  client_->ExpectSendAlert(kTlsAlertDecryptError);
-  // The server can't read the client's alert, so it also sends an alert.
-  server_->ExpectSendAlert(kTlsAlertBadRecordMac);
   server_->SetPacketFilter(std::make_shared<AfterRecordN>(
       server_, client_,
       0,  // ServerHello.
       [this]() { SSLInt_DamageServerHsTrafficSecret(client_->ssl_fd()); }));
-  ConnectExpectFail();
+  ConnectExpectAlert(client_, kTlsAlertDecryptError);
   client_->CheckErrorCode(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
-  server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
 }
 
 TEST_P(TlsConnectGenericPre13, DamageServerSignature) {
@@ -79,15 +75,7 @@ TEST_P(TlsConnectTls13, DamageServerSignature) {
   auto filter =
       std::make_shared<TlsLastByteDamager>(kTlsHandshakeCertificateVerify);
   server_->SetTlsRecordFilter(filter);
-  client_->ExpectSendAlert(kTlsAlertDecryptError);
-  // The server can't read the client's alert, so it also sends an alert.
-  if (variant_ == ssl_variant_stream) {
-    server_->ExpectSendAlert(kTlsAlertBadRecordMac);
-    ConnectExpectFail();
-    server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
-  } else {
-    ConnectExpectFailOneSide(TlsAgent::CLIENT);
-  }
+  ConnectExpectAlert(client_, kTlsAlertDecryptError);
   client_->CheckErrorCode(SEC_ERROR_BAD_SIGNATURE);
 }
 

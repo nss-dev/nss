@@ -3109,6 +3109,15 @@ SSL3_SendAlert(sslSocket *ss, SSL3AlertLevel level, SSL3AlertDescription desc)
             ss->sec.uncache(ss->sec.ci.sid);
         }
     }
+
+    rv = tls13_SetAlertCipherSpec(ss);
+    if (rv != SECSuccess) {
+        if (needHsLock) {
+            ssl_ReleaseSSL3HandshakeLock(ss);
+        }
+        return rv;
+    }
+
     ssl_GetXmitBufLock(ss);
     rv = ssl3_FlushHandshake(ss, ssl_SEND_FLAG_FORCE_INTO_BUFFER);
     if (rv == SECSuccess) {

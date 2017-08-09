@@ -1031,7 +1031,7 @@ class TlsBogusExtensionTestPre13 : public TlsBogusExtensionTest {
 class TlsBogusExtensionTest13 : public TlsBogusExtensionTest {
  protected:
   void ConnectAndFail(uint8_t message) override {
-    if (message == kTlsHandshakeHelloRetryRequest) {
+    if (message != kTlsHandshakeServerHello) {
       ConnectExpectAlert(client_, kTlsAlertUnsupportedExtension);
       return;
     }
@@ -1074,7 +1074,7 @@ TEST_P(TlsBogusExtensionTest13, AddBogusExtensionCertificate) {
 TEST_P(TlsBogusExtensionTest13, AddBogusExtensionCertificateRequest) {
   server_->RequestClientAuth(false);
   AddFilter(kTlsHandshakeCertificateRequest, 0xff);
-  FailWithAlert(kTlsAlertDecryptError);
+  ConnectExpectAlert(client_, kTlsAlertDecryptError);
   client_->CheckErrorCode(SEC_ERROR_BAD_SIGNATURE);
 }
 

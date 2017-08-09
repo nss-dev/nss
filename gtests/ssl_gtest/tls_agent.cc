@@ -93,11 +93,11 @@ TlsAgent::~TlsAgent() {
   // Add failures manually, if any, so we don't throw in a destructor.
   if (expected_received_alert_ != kTlsAlertCloseNotify ||
       expected_received_alert_level_ != kTlsAlertWarning) {
-    ADD_FAILURE() << "Wrong expected_received_alert status";
+    ADD_FAILURE() << "Wrong expected_received_alert status: " << role_str();
   }
   if (expected_sent_alert_ != kTlsAlertCloseNotify ||
       expected_sent_alert_level_ != kTlsAlertWarning) {
-    ADD_FAILURE() << "Wrong expected_sent_alert status";
+    ADD_FAILURE() << "Wrong expected_sent_alert status: " << role_str();
   }
 }
 
