@@ -30,6 +30,7 @@ typedef enum {
     ssl_hs_client_key_exchange = 16,
     ssl_hs_finished = 20,
     ssl_hs_certificate_status = 22,
+    ssl_hs_key_update = 24,
     ssl_hs_next_proto = 67,
     ssl_hs_message_hash = 254, /* Not a real message. */
 } SSLHandshakeType;
