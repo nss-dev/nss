@@ -87,6 +87,7 @@ void tls13_DestroyEarlyData(PRCList *list);
 void tls13_CipherSpecAddRef(ssl3CipherSpec *spec);
 void tls13_CipherSpecRelease(ssl3CipherSpec *spec);
 void tls13_DestroyCipherSpecs(PRCList *list);
+SECStatus tls13_SetAlertCipherSpec(sslSocket *ss);
 tls13ExtensionStatus tls13_ExtensionStatus(PRUint16 extension,
                                            SSLHandshakeType message);
 SECStatus tls13_ProtectRecord(sslSocket *ss,
