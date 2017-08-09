@@ -598,6 +598,12 @@ ssl3_DecodeHandshakeType(int msgType)
         case ssl_hs_finished:
             rv = "finished     (20)";
             break;
+        case ssl_hs_certificate_status:
+            rv = "certificate_status  (22)";
+            break;
+        case ssl_hs_key_update:
+            rv = "key_update   (24)";
+            break;
         default:
             sprintf(line, "*UNKNOWN* handshake type! (%d)", msgType);
             rv = line;
