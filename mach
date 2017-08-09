@@ -122,6 +122,13 @@ class testAction(argparse.Action):
         self.runTest(values)
 
 
+class commandsAction(argparse.Action):
+    commands = []
+    def __call__(self, parser, args, values, option_string=None):
+        for c in commandsAction.commands:
+            print(c)
+
+
 def parse_arguments():
     parser = argparse.ArgumentParser(
         description='NSS helper script. ' +
@@ -151,6 +158,16 @@ def parse_arguments():
     ]
     parser_test.add_argument(
         'test', choices=tests, help="Available tests", action=testAction)
+
+    parser_commands = subparsers.add_parser(
+        'mach-commands',
+        help="list commands")
+    parser_commands.add_argument(
+        'mach-commands',
+        nargs='*',
+        action=commandsAction)
+
+    commandsAction.commands = [c for c in subparsers.choices]
     return parser.parse_args()
 
 

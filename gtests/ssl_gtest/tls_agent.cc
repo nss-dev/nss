@@ -10,6 +10,7 @@
 #include "pk11func.h"
 #include "ssl.h"
 #include "sslerr.h"
+#include "sslexp.h"
 #include "sslproto.h"
 #include "tls_parser.h"
 
@@ -403,6 +404,13 @@ void TlsAgent::SetFallbackSCSVEnabled(bool en) {
 
   SECStatus rv = SSL_OptionSet(ssl_fd(), SSL_ENABLE_FALLBACK_SCSV,
                                en ? PR_TRUE : PR_FALSE);
+  EXPECT_EQ(SECSuccess, rv);
+}
+
+void TlsAgent::SetAltHandshakeTypeEnabled() {
+  EXPECT_TRUE(EnsureTlsSetup());
+
+  SECStatus rv = SSL_UseAltServerHelloType(ssl_fd(), true);
   EXPECT_EQ(SECSuccess, rv);
 }
 

@@ -292,6 +292,7 @@ typedef struct sslOptionsStr {
     unsigned int requireDHENamedGroups : 1;
     unsigned int enable0RttData : 1;
     unsigned int enableShortHeaders : 1;
+    unsigned int enableAltHandshaketype : 1;
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -869,6 +870,7 @@ typedef struct SSL3HandshakeStateStr {
                                            * we use for TLS 1.3 */
     PRTime serverHelloTime;               /* Time the ServerHello flight was sent. */
     PRUint16 ticketNonce;                 /* A counter we use for tickets. */
+    PRBool altHandshakeType;              /* Alternative ServerHello content type. */
 } SSL3HandshakeState;
 
 #define SSL_ASSERT_HASHES_EMPTY(ss)                                  \

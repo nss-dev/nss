@@ -79,7 +79,8 @@ static sslOptions ssl_defaults = {
     PR_FALSE,              /* enableExtendedMS    */
     PR_FALSE,              /* enableSignedCertTimestamps */
     PR_FALSE,              /* requireDHENamedGroups */
-    PR_FALSE               /* enable0RttData */
+    PR_FALSE,              /* enable0RttData */
+    PR_FALSE               /* enableAltHandshakeType */
 };
 
 /*
@@ -3907,6 +3908,7 @@ struct {
     EXP(InstallExtensionHooks),
     EXP(SendSessionTicket),
     EXP(SetupAntiReplay),
+    EXP(UseAltServerHelloType),
 #endif
     { "", NULL }
 };

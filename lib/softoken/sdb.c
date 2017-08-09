@@ -1600,7 +1600,7 @@ loser:
     return error;
 }
 
-static const char RESET_CMD[] = "DROP TABLE IF EXISTS %s;";
+static const char RESET_CMD[] = "DELETE FROM %s;";
 CK_RV
 sdb_Reset(SDB *sdb)
 {
@@ -1621,17 +1621,19 @@ sdb_Reset(SDB *sdb)
         goto loser;
     }
 
-    /* delete the key table */
-    newStr = sqlite3_mprintf(RESET_CMD, sdb_p->table);
-    if (newStr == NULL) {
-        error = CKR_HOST_MEMORY;
-        goto loser;
-    }
-    sqlerr = sqlite3_exec(sqlDB, newStr, NULL, 0, NULL);
-    sqlite3_free(newStr);
+    if (tableExists(sqlDB, sdb_p->table)) {
+        /* delete the contents of the key table */
+        newStr = sqlite3_mprintf(RESET_CMD, sdb_p->table);
+        if (newStr == NULL) {
+            error = CKR_HOST_MEMORY;
+            goto loser;
+        }
+        sqlerr = sqlite3_exec(sqlDB, newStr, NULL, 0, NULL);
+        sqlite3_free(newStr);
 
-    if (sqlerr != SQLITE_OK)
-        goto loser;
+        if (sqlerr != SQLITE_OK)
+            goto loser;
+    }
 
     /* delete the password entry table */
     sqlerr = sqlite3_exec(sqlDB, "DROP TABLE IF EXISTS metaData;",
