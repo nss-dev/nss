@@ -158,6 +158,14 @@
           '-mpclmul',
           '-maes',
         ],
+        'conditions': [
+          [ 'OS=="dragonfly" or OS=="freebsd" or OS=="netbsd" or OS=="openbsd"', {
+            'cflags': [
+              '-mpclmul',
+              '-maes',
+            ],
+          }],
+        ],
       }],
       [ 'OS=="mac"', {
         'xcode_settings': {
@@ -166,6 +174,7 @@
           'OTHER_CFLAGS': [
             '-mpclmul',
             '-maes',
+            '-std=gnu99',
           ],
         },
       }],
@@ -231,6 +240,9 @@
         'defines': [
           'FREEBL_LOWHASH',
           'FREEBL_NO_DEPEND',
+        ],
+        'cflags': [
+          '-std=gnu99',
         ],
       }],
       [ 'OS=="linux" or OS=="android"', {

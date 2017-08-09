@@ -748,10 +748,22 @@ tls13_ClientSendSupportedVersionsXtn(const sslSocket *ss, TLSExtensionData *xtnD
                 SSL_GETPID(), ss->fd));
 
     size = 2 * (ss->vrange.max - ss->vrange.min + 1);
+    if (ss->opt.enableAltHandshaketype && !IS_DTLS(ss)) {
+        size += 2;
+    }
+
     rv = sslBuffer_AppendNumber(buf, size, 1);
     if (rv != SECSuccess)
         return -1;
 
+    if (ss->opt.enableAltHandshaketype && !IS_DTLS(ss)) {
+        rv = sslBuffer_AppendNumber(
+            buf, tls13_EncodeAltDraftVersion(SSL_LIBRARY_VERSION_TLS_1_3),
+            2);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+    }
     for (version = ss->vrange.max; version >= ss->vrange.min; --version) {
         rv = sslBuffer_AppendNumber(buf, tls13_EncodeDraftVersion(version), 2);
         if (rv != SECSuccess)

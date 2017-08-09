@@ -338,6 +338,16 @@ typedef SSLHelloRetryRequestAction(PR_CALLBACK *SSLHelloRetryRequestCallback)(
                           SSLHelloRetryRequestCallback _cb, void *_arg), \
                          (fd, cb, arg))
 
+/* Allow the ServerHello to be record type 24. Experiment to test:
+ * https://github.com/tlswg/tls13-spec/pull/1051
+ * This will either become part of the standard or be disabled
+ * after we have tested it.
+ */
+#define SSL_UseAltServerHelloType(fd, enable)                \
+    SSL_EXPERIMENTAL_API("SSL_UseAltServerHelloType",        \
+                         (PRFileDesc * _fd, PRBool _enable), \
+                         (fd, enable))
+
 SEC_END_PROTOS
 
 #endif /* __sslexp_h_ */
