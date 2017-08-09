@@ -181,6 +181,7 @@ static const struct {
     { ssl_tls13_cookie_xtn, ssl_ext_native_only },
     { ssl_tls13_psk_key_exchange_modes_xtn, ssl_ext_native_only },
     { ssl_tls13_ticket_early_data_info_xtn, ssl_ext_native_only },
+    { ssl_tls13_certificate_authorities_xtn, ssl_ext_native },
     { ssl_next_proto_nego_xtn, ssl_ext_none },
     { ssl_renegotiation_info_xtn, ssl_ext_native }
 };
