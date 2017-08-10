@@ -3788,7 +3788,10 @@ NSC_SetPIN(CK_SESSION_HANDLE hSession, CK_CHAR_PTR pOldPin,
 
     /* Now update our local copy of the pin */
     if (rv == SECSuccess) {
+        PZ_Lock(slot->slotLock);
         slot->needLogin = (PRBool)(ulNewLen != 0);
+        slot->isLoggedIn = (PRBool)(sftkdb_PWCached(handle) == SECSuccess);
+        PZ_Unlock(slot->slotLock);
         /* Reset login flags. */
         if (ulNewLen == 0) {
             PRBool tokenRemoved = PR_FALSE;
