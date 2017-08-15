@@ -2657,93 +2657,38 @@ ssl_ProtectRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
 }
 
 SECStatus
-ssl_ProtectRecordMaybeSplit(sslSocket *ss, ssl3CipherSpec *cwSpec,
-                            SSL3ContentType type, PRBool capRecordVersion,
-                            const PRUint8 *pIn, unsigned int nIn,
-                            unsigned int *written)
+ssl_ProtectNextRecord(sslSocket *ss, ssl3CipherSpec *spec,
+                      SSL3ContentType type, PRBool capRecordVersion,
+                      const PRUint8 *pIn, unsigned int nIn,
+                      unsigned int *written)
 {
     sslBuffer *wrBuf = &ss->sec.writeBuf;
-    unsigned int contentLen = PR_MIN(nIn, MAX_FRAGMENT_LENGTH);
+    unsigned int contentLen;
     unsigned int spaceNeeded;
-    unsigned int numRecords;
     SECStatus rv;
 
-    if (nIn > 1 && ss->opt.cbcRandomIV &&
-        ss->ssl3.cwSpec->version < SSL_LIBRARY_VERSION_TLS_1_1 &&
-        type == content_application_data &&
-        ss->ssl3.cwSpec->cipher_def->type == type_block /* CBC mode */) {
-        /* We will split the first byte of the record into its own record,
-         * as explained in the documentation for SSL_CBC_RANDOM_IV in ssl.h
-         */
-        numRecords = 2;
-    } else {
-        numRecords = 1;
-    }
-
-    spaceNeeded = contentLen + (numRecords * SSL3_BUFFER_FUDGE);
-    if (ss->ssl3.cwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_1 &&
-        ss->ssl3.cwSpec->cipher_def->type == type_block) {
-        spaceNeeded += ss->ssl3.cwSpec->cipher_def->iv_size;
+    contentLen = PR_MIN(nIn, MAX_FRAGMENT_LENGTH);
+    spaceNeeded = contentLen + SSL3_BUFFER_FUDGE;
+    if (spec->version >= SSL_LIBRARY_VERSION_TLS_1_1 &&
+        spec->cipher_def->type == type_block) {
+        spaceNeeded += spec->cipher_def->iv_size;
     }
     if (spaceNeeded > SSL_BUFFER_SPACE(wrBuf)) {
         rv = sslBuffer_Grow(wrBuf, spaceNeeded);
         if (rv != SECSuccess) {
-            SSL_DBG(("%d: SSL3[%d]: expand write buffer to %d bytes",
+            SSL_DBG(("%d: SSL3[%d]: failed to expand write buffer to %d",
                      SSL_GETPID(), ss->fd, spaceNeeded));
             return SECFailure;
         }
     }
 
-    if (numRecords == 2) {
-        rv = ssl_ProtectRecord(ss, ss->ssl3.cwSpec, capRecordVersion, type,
-                               pIn, 1, wrBuf);
-        if (rv != SECSuccess) {
-            return SECFailure;
-        }
-
-        PRINT_BUF(50, (ss, "send (encrypted) record data [1/2]:",
-                       SSL_BUFFER_BASE(wrBuf), SSL_BUFFER_LEN(wrBuf)));
-
-        {
-            sslBuffer secondRecord = SSL_BUFFER_FIXED(SSL_BUFFER_NEXT(wrBuf),
-                                                      SSL_BUFFER_SPACE(wrBuf));
-
-            rv = ssl_ProtectRecord(ss, ss->ssl3.cwSpec, capRecordVersion, type,
-                                   pIn + 1, contentLen - 1, &secondRecord);
-            if (rv != SECSuccess) {
-                return SECFailure;
-            }
-            PRINT_BUF(50, (ss, "send (encrypted) record data [2/2]:",
-                           SSL_BUFFER_BASE(&secondRecord),
-                           SSL_BUFFER_LEN(&secondRecord)));
-            rv = sslBuffer_Skip(wrBuf, SSL_BUFFER_LEN(&secondRecord), NULL);
-            if (rv != SECSuccess) {
-                return SECFailure;
-            }
-        }
-    } else {
-        ssl3CipherSpec *spec;
-
-        if (cwSpec) {
-            /* cwSpec can only be set for retransmissions of DTLS handshake
-             * messages. */
-            PORT_Assert(IS_DTLS(ss) &&
-                        (type == content_handshake ||
-                         type == content_change_cipher_spec));
-            spec = cwSpec;
-        } else {
-            spec = ss->ssl3.cwSpec;
-        }
-
-        rv = ssl_ProtectRecord(ss, spec, !IS_DTLS(ss) && capRecordVersion,
-                               type, pIn, contentLen, wrBuf);
-        if (rv != SECSuccess) {
-            return SECFailure;
-        }
-        PRINT_BUF(50, (ss, "send (encrypted) record data:",
-                       SSL_BUFFER_BASE(wrBuf), SSL_BUFFER_LEN(wrBuf)));
+    rv = ssl_ProtectRecord(ss, spec, capRecordVersion,
+                           type, pIn, contentLen, wrBuf);
+    if (rv != SECSuccess) {
+        return SECFailure;
     }
-
+    PRINT_BUF(50, (ss, "send (encrypted) record data:",
+                   SSL_BUFFER_BASE(wrBuf), SSL_BUFFER_LEN(wrBuf)));
     *written = contentLen;
     return SECSuccess;
 }
@@ -2788,6 +2733,7 @@ ssl3_SendRecord(sslSocket *ss,
                 PRInt32 flags)
 {
     sslBuffer *wrBuf = &ss->sec.writeBuf;
+    ssl3CipherSpec *spec;
     SECStatus rv;
     PRInt32 totalSent = 0;
     PRBool capRecordVersion;
@@ -2831,19 +2777,35 @@ ssl3_SendRecord(sslSocket *ss,
         return SECFailure;
     }
 
-    while (nIn > 0) {
-        unsigned int contentLen = 0;
+    if (cwSpec) {
+        /* cwSpec can only be set for retransmissions of the DTLS handshake. */
+        PORT_Assert(IS_DTLS(ss) &&
+                    (type == content_handshake ||
+                     type == content_change_cipher_spec));
+        spec = cwSpec;
+    } else {
+        spec = ss->ssl3.cwSpec;
+    }
 
-        ssl_GetSpecReadLock(ss); /********************************/
-        rv = ssl_ProtectRecordMaybeSplit(ss, cwSpec, type, capRecordVersion,
-                                         pIn, nIn, &contentLen);
-        ssl_ReleaseSpecReadLock(ss); /************************************/
+    while (nIn > 0) {
+        unsigned int written = 0;
+
+        ssl_GetSpecReadLock(ss);
+        rv = ssl_ProtectNextRecord(ss, spec, type, capRecordVersion,
+                                   pIn, nIn, &written);
+        ssl_ReleaseSpecReadLock(ss);
         if (rv != SECSuccess) {
             return SECFailure;
         }
 
-        pIn += contentLen;
-        nIn -= contentLen;
+        PORT_Assert(written > 0);
+        /* DTLS should not fragment non-application data here. */
+        if (IS_DTLS(ss) && type != content_application_data) {
+            PORT_Assert(written == nIn);
+        }
+
+        pIn += written;
+        nIn -= written;
         PORT_Assert(nIn >= 0);
 
         /* If there's still some previously saved ciphertext,
@@ -2906,7 +2868,7 @@ ssl3_SendRecord(sslSocket *ss,
             }
         }
         wrBuf->len = 0;
-        totalSent += contentLen;
+        totalSent += written;
     }
     return totalSent;
 }
@@ -2922,6 +2884,7 @@ ssl3_SendApplicationData(sslSocket *ss, const unsigned char *in,
 {
     PRInt32 totalSent = 0;
     PRInt32 discarded = 0;
+    PRBool splitNeeded = PR_FALSE;
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
     /* These flags for internal use only */
@@ -2948,6 +2911,16 @@ ssl3_SendApplicationData(sslSocket *ss, const unsigned char *in,
         len--;
         discarded = 1;
     }
+
+    /* We will split the first byte of the record into its own record, as
+     * explained in the documentation for SSL_CBC_RANDOM_IV in ssl.h.
+     */
+    if (len > 1 && ss->opt.cbcRandomIV &&
+        ss->version < SSL_LIBRARY_VERSION_TLS_1_1 &&
+        ss->ssl3.cwSpec->cipher_def->type == type_block /* CBC */) {
+        splitNeeded = PR_TRUE;
+    }
+
     while (len > totalSent) {
         PRInt32 sent, toSend;
 
@@ -2962,7 +2935,13 @@ ssl3_SendApplicationData(sslSocket *ss, const unsigned char *in,
             PR_Sleep(PR_INTERVAL_NO_WAIT); /* PR_Yield(); */
             ssl_GetXmitBufLock(ss);
         }
-        toSend = PR_MIN(len - totalSent, MAX_FRAGMENT_LENGTH);
+
+        if (splitNeeded) {
+            toSend = 1;
+            splitNeeded = PR_FALSE;
+        } else {
+            toSend = PR_MIN(len - totalSent, MAX_FRAGMENT_LENGTH);
+        }
 
         /*
          * Note that the 0 epoch is OK because flags will never require

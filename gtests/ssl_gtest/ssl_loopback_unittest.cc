@@ -337,7 +337,7 @@ TEST_P(TlsConnectGeneric, ConnectWithCompressionMaybe) {
 
 TEST_P(TlsConnectDatagram, TestDtlsHolddownExpiry) {
   Connect();
-  std::cerr << "Expiring holddown timer\n";
+  std::cerr << "Expiring holddown timer" << std::endl;
   SSLInt_ForceRtTimerExpiry(client_->ssl_fd());
   SSLInt_ForceRtTimerExpiry(server_->ssl_fd());
   SendReceive();
@@ -355,7 +355,7 @@ class TlsPreCCSHeaderInjector : public TlsRecordFilter {
       size_t* offset, DataBuffer* output) override {
     if (record_header.content_type() != kTlsChangeCipherSpecType) return KEEP;
 
-    std::cerr << "Injecting Finished header before CCS\n";
+    std::cerr << "Injecting Finished header before CCS" << std::endl;
     const uint8_t hhdr[] = {kTlsHandshakeFinished, 0x00, 0x00, 0x0c};
     DataBuffer hhdr_buf(hhdr, sizeof(hhdr));
     TlsRecordHeader nhdr(record_header.version(), kTlsHandshakeType, 0);
@@ -463,6 +463,27 @@ TEST_F(TlsConnectStreamTls13, BothAltHandshakeType) {
   uint32_t ver;
   ASSERT_TRUE(sh_filter->buffer().Read(0, 2, &ver));
   ASSERT_EQ((uint32_t)(0x7a00 | TLS_1_3_DRAFT_VERSION), ver);
+}
+
+static size_t ExpectedCbcLen(size_t in, size_t hmac = 20, size_t block = 16) {
+  // MAC-then-Encrypt expansion formula:
+  return ((in + hmac + (block - 1)) / 16) * 16;
+}
+
+TEST_F(TlsConnectTest, OneNRecordSplitting) {
+  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_0);
+  EnsureTlsSetup();
+  ConnectWithCipherSuite(TLS_RSA_WITH_AES_128_CBC_SHA);
+  auto records = std::make_shared<TlsRecordRecorder>();
+  server_->SetPacketFilter(records);
+  // This should be split into 1, 16384 and 20.
+  DataBuffer big_buffer;
+  big_buffer.Allocate(1 + 16384 + 20);
+  server_->SendBuffer(big_buffer);
+  ASSERT_EQ(3U, records->count());
+  EXPECT_EQ(ExpectedCbcLen(1), records->record(0).buffer.len());
+  EXPECT_EQ(ExpectedCbcLen(16384), records->record(1).buffer.len());
+  EXPECT_EQ(ExpectedCbcLen(20), records->record(2).buffer.len());
 }
 
 INSTANTIATE_TEST_CASE_P(
