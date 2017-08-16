@@ -30,6 +30,8 @@
 #define PORT_SetError PORT_SetError_stub
 #define PORT_ZAlloc PORT_ZAlloc_stub
 #define PORT_ZFree PORT_ZFree_stub
+#define PORT_ZAllocAligned PORT_ZAllocAligned_stub
+#define PORT_ZAllocAlignedOffset PORT_ZAllocAlignedOffset_stub
 
 #define SECITEM_AllocItem SECITEM_AllocItem_stub
 #define SECITEM_CompareItem SECITEM_CompareItem_stub
