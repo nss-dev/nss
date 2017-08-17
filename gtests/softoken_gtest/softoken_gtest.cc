@@ -200,6 +200,19 @@ TEST_F(SoftokenTest, CreateObjectChangeToEmptyPassword) {
   EXPECT_NE(nullptr, obj);
 }
 
+class SoftokenNoDBTest : public ::testing::Test {};
+
+TEST_F(SoftokenNoDBTest, NeedUserInitNoDB) {
+  ASSERT_EQ(SECSuccess, NSS_NoDB_Init("."));
+  ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
+  ASSERT_TRUE(slot);
+  EXPECT_EQ(PR_FALSE, PK11_NeedUserInit(slot.get()));
+
+  // When shutting down in here we have to release the slot first.
+  slot = nullptr;
+  ASSERT_EQ(SECSuccess, NSS_Shutdown());
+}
+
 }  // namespace nss_test
 
 int main(int argc, char **argv) {
