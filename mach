@@ -115,8 +115,10 @@ class testAction(argparse.Action):
             "DOMSUF": domsuf,
             "HOST": host
         }
+        os_env = os.environ
+        os_env.update(env)
         command = cwd + "/tests/all.sh"
-        subprocess.check_call(command, env=env)
+        subprocess.check_call(command, env=os_env)
 
     def __call__(self, parser, args, values, option_string=None):
         self.runTest(values)
