@@ -440,6 +440,7 @@ TEST_P(TlsConnectTls13, ZeroRttOrdering) {
 
   // Send (and hold) the second client handshake flight.
   // The client sends EndOfEarlyData after seeing the server Finished.
+  ExpectAlert(client_, kTlsAlertEndOfEarlyData);
   server_->Handshake();
   client_->Handshake();
 
