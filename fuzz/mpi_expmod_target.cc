@@ -19,6 +19,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   auto modulus = get_modulus(data, size, ctx);
   // Compare with OpenSSL exp mod
   m1 = &std::get<1>(modulus);
+  check_equal(A, &a, max_size);
+  check_equal(B, &b, max_size);
+  print_bn("A", A);
+  print_bn("B", B);
   assert(mp_exptmod(&a, &b, m1, &c) == MP_OKAY);
   (void)BN_mod_exp(C, A, B, std::get<0>(modulus), ctx);
   check_equal(C, &c, 2 * max_size);
