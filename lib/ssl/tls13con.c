@@ -3655,7 +3655,7 @@ tls13_WriteExtensionsWithBinder(sslSocket *ss, sslBuffer *extensions)
     unsigned int prefixLen = extensions->len - size - 3;
     unsigned int finishedLen;
 
-    PORT_Assert(extensions->len - size - 3 >= 0);
+    PORT_Assert(extensions->len >= size + 3);
 
     rv = ssl3_AppendHandshakeNumber(ss, extensions->len, 2);
     if (rv != SECSuccess) {
