@@ -21,8 +21,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   m1 = &std::get<1>(modulus);
   check_equal(A, &a, max_size);
   check_equal(B, &b, max_size);
+  check_equal(std::get<0>(modulus), m1, max_size);
   print_bn("A", A);
   print_bn("B", B);
+  print_bn("m", std::get<0>(modulus));
   assert(mp_exptmod(&a, &b, m1, &c) == MP_OKAY);
   (void)BN_mod_exp(C, A, B, std::get<0>(modulus), ctx);
   check_equal(C, &c, 2 * max_size);
