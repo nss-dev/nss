@@ -101,7 +101,7 @@ queue.map(task => {
     if (!task.env) {
       task.env = {};
     }
-    task.env.NSS_SSL_TESTS = "1";
+    task.env.NSS_SSL_TESTS = "crl iopr policy";
   }
 
   // Windows is slow.
