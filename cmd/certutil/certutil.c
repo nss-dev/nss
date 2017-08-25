@@ -591,6 +591,10 @@ ListCerts(CERTCertDBHandle *handle, char *nickname, char *email,
 {
     SECStatus rv;
 
+    if (slot && PK11_NeedUserInit(slot)) {
+        printf("\nDatabase needs user init\n");
+    }
+
     if (!ascii && !raw && !nickname && !email) {
         PR_fprintf(outfile, "\n%-60s %-5s\n%-60s %-5s\n\n",
                    "Certificate Nickname", "Trust Attributes", "",
