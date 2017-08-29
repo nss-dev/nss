@@ -251,15 +251,20 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 
 #ifdef SSL_DEPRECATED_FUNCTION
 /* Old deprecated function names */
-SSL_IMPORT SECStatus SSL_Enable(PRFileDesc *fd, int option, PRBool on);
-SSL_IMPORT SECStatus SSL_EnableDefault(int option, PRBool on);
+SSL_IMPORT SECStatus SSL_Enable(PRFileDesc *fd, int option, PRIntn on);
+SSL_IMPORT SECStatus SSL_EnableDefault(int option, PRIntn on);
 #endif
 
-/* New function names */
-SSL_IMPORT SECStatus SSL_OptionSet(PRFileDesc *fd, PRInt32 option, PRBool on);
-SSL_IMPORT SECStatus SSL_OptionGet(PRFileDesc *fd, PRInt32 option, PRBool *on);
-SSL_IMPORT SECStatus SSL_OptionSetDefault(PRInt32 option, PRBool on);
-SSL_IMPORT SECStatus SSL_OptionGetDefault(PRInt32 option, PRBool *on);
+/* Set (and get) options for sockets and defaults for newly created sockets.
+ *
+ * While the |val| parameter of these methods is PRIntn, options only support
+ * two values by default: PR_TRUE or PR_FALSE.  The documentation of specific
+ * options will explain if other values are permitted.
+ */
+SSL_IMPORT SECStatus SSL_OptionSet(PRFileDesc *fd, PRInt32 option, PRIntn val);
+SSL_IMPORT SECStatus SSL_OptionGet(PRFileDesc *fd, PRInt32 option, PRIntn *val);
+SSL_IMPORT SECStatus SSL_OptionSetDefault(PRInt32 option, PRIntn val);
+SSL_IMPORT SECStatus SSL_OptionGetDefault(PRInt32 option, PRIntn *val);
 SSL_IMPORT SECStatus SSL_CertDBHandleSet(PRFileDesc *fd, CERTCertDBHandle *dbHandle);
 
 /* SSLNextProtoCallback is called during the handshake for the client, when a
