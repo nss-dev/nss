@@ -1276,6 +1276,11 @@ MODSCRIPT
     html_passed "${CU_ACTION}"
   fi
 
+  CU_ACTION="Setting invalid database password in FIPS mode"
+  RETEXPECTED=255
+  certu -W -d "${PROFILEDIR}" -f "${R_FIPSPWFILE}" -@ "${R_FIPSBADPWFILE}" 2>&1
+  RETEXPECTED=0
+
   CU_ACTION="Generate Certificate for ${CERTNAME}"
   CU_SUBJECT="CN=${CERTNAME}, E=fips@bogus.com, O=BOGUS NSS, OU=FIPS PUB 140, L=Mountain View, ST=California, C=US"
   certu -S -n ${FIPSCERTNICK} -x -t "Cu,Cu,Cu" -d "${PROFILEDIR}" -f "${R_FIPSPWFILE}" -k dsa -v 600 -m 500 -z "${R_NOISE_FILE}" 2>&1
