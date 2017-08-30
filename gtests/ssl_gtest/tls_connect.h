@@ -264,8 +264,10 @@ class TlsKeyExchangeTest : public TlsConnectGeneric {
 
   void EnsureKeyShareSetup();
   void ConfigNamedGroups(const std::vector<SSLNamedGroup>& groups);
-  std::vector<SSLNamedGroup> GetGroupDetails(const DataBuffer& ext);
-  std::vector<SSLNamedGroup> GetShareDetails(const DataBuffer& ext);
+  std::vector<SSLNamedGroup> GetGroupDetails(
+      const std::shared_ptr<TlsExtensionCapture>& capture);
+  std::vector<SSLNamedGroup> GetShareDetails(
+      const std::shared_ptr<TlsExtensionCapture>& capture);
   void CheckKEXDetails(const std::vector<SSLNamedGroup>& expectedGroups,
                        const std::vector<SSLNamedGroup>& expectedShares);
   void CheckKEXDetails(const std::vector<SSLNamedGroup>& expectedGroups,

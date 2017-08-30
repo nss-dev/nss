@@ -1433,10 +1433,21 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
                         illegal_parameter);
             goto loser;
         }
-        if (previousGroup && clientShare->group != previousGroup) {
-            FATAL_ERROR(ss, SSL_ERROR_BAD_2ND_CLIENT_HELLO,
-                        illegal_parameter);
-            goto loser;
+
+        /* If we requested a new key share, check that the client provided just
+         * one of the right type. */
+        if (previousGroup) {
+            if (PR_PREV_LINK(&ss->xtnData.remoteKeyShares) !=
+                PR_NEXT_LINK(&ss->xtnData.remoteKeyShares)) {
+                FATAL_ERROR(ss, SSL_ERROR_BAD_2ND_CLIENT_HELLO,
+                            illegal_parameter);
+                goto loser;
+            }
+            if (clientShare->group != previousGroup) {
+                FATAL_ERROR(ss, SSL_ERROR_BAD_2ND_CLIENT_HELLO,
+                            illegal_parameter);
+                goto loser;
+            }
         }
     }
 

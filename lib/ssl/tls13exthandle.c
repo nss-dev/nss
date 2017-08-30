@@ -321,16 +321,6 @@ tls13_ServerHandleKeyShareXtn(const sslSocket *ss, TLSExtensionData *xtnData,
             goto loser;
     }
 
-    /* Check that the client only offered one share if this is
-     * after HRR. */
-    if (ss->ssl3.hs.helloRetry) {
-        if (PR_PREV_LINK(&xtnData->remoteKeyShares) !=
-            PR_NEXT_LINK(&xtnData->remoteKeyShares)) {
-            PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
-            goto loser;
-        }
-    }
-
     return SECSuccess;
 
 loser:

@@ -187,6 +187,21 @@ TEST_P(TlsConnectTls13, RetryWithSameKeyShare) {
   EXPECT_EQ(SSL_ERROR_ILLEGAL_PARAMETER_ALERT, client_->error_code());
 }
 
+// Here we modify the second ClientHello so that the client retries with the
+// same shares, even though the server wanted something else.
+TEST_P(TlsConnectTls13, RetryWithTwoShares) {
+  EnsureTlsSetup();
+  EXPECT_EQ(SECSuccess, SSL_SendAdditionalKeyShares(client_->ssl_fd(), 1));
+  client_->SetPacketFilter(std::make_shared<KeyShareReplayer>());
+
+  static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1,
+                                                    ssl_grp_ec_secp521r1};
+  server_->ConfigNamedGroups(groups);
+  ConnectExpectAlert(server_, kTlsAlertIllegalParameter);
+  EXPECT_EQ(SSL_ERROR_BAD_2ND_CLIENT_HELLO, server_->error_code());
+  EXPECT_EQ(SSL_ERROR_ILLEGAL_PARAMETER_ALERT, client_->error_code());
+}
+
 TEST_P(TlsConnectTls13, RetryCallbackAccept) {
   EnsureTlsSetup();
 
@@ -371,9 +386,60 @@ TEST_P(TlsConnectTls13, RetryCallbackRetry) {
       std::make_shared<TlsExtensionCapture>(ssl_tls13_cookie_xtn);
   client_->SetPacketFilter(capture_cookie);
 
-  Connect();
+  Handshake();
+  CheckConnected();
   EXPECT_EQ(2U, cb_called);
   EXPECT_TRUE(capture_cookie->captured()) << "should have a cookie";
+}
+
+static size_t CountShares(const DataBuffer& key_share) {
+  size_t count = 0;
+  uint32_t len = 0;
+  size_t offset = 2;
+
+  EXPECT_TRUE(key_share.Read(0, 2, &len));
+  EXPECT_EQ(key_share.len() - 2, len);
+  while (offset < key_share.len()) {
+    offset += 2;  // Skip KeyShareEntry.group
+    EXPECT_TRUE(key_share.Read(offset, 2, &len));
+    offset += 2 + len;  // Skip KeyShareEntry.key_exchange
+    ++count;
+  }
+  return count;
+}
+
+TEST_P(TlsConnectTls13, RetryCallbackRetryWithAdditionalShares) {
+  EnsureTlsSetup();
+  EXPECT_EQ(SECSuccess, SSL_SendAdditionalKeyShares(client_->ssl_fd(), 1));
+
+  auto capture_server =
+      std::make_shared<TlsExtensionCapture>(ssl_tls13_key_share_xtn);
+  capture_server->SetHandshakeTypes({kTlsHandshakeHelloRetryRequest});
+  server_->SetPacketFilter(capture_server);
+
+  size_t cb_called = 0;
+  EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(server_->ssl_fd(),
+                                                      RetryHello, &cb_called));
+
+  // Do the first message exchange.
+  StartConnect();
+  client_->Handshake();
+  server_->Handshake();
+
+  EXPECT_EQ(1U, cb_called) << "callback should be called once here";
+  EXPECT_FALSE(capture_server->captured())
+      << "no key_share extension expected from server";
+
+  auto capture_client_2nd =
+      std::make_shared<TlsExtensionCapture>(ssl_tls13_key_share_xtn);
+  client_->SetPacketFilter(capture_client_2nd);
+
+  Handshake();
+  CheckConnected();
+  EXPECT_EQ(2U, cb_called);
+  EXPECT_TRUE(capture_client_2nd->captured()) << "client should send key_share";
+  EXPECT_EQ(2U, CountShares(capture_client_2nd->extension()))
+      << "client should still send two shares";
 }
 
 // The callback should be run even if we have another reason to send
@@ -382,9 +448,14 @@ TEST_P(TlsConnectTls13, RetryCallbackRetry) {
 TEST_P(TlsConnectTls13, RetryCallbackRetryWithGroupMismatch) {
   EnsureTlsSetup();
 
-  auto capture = std::make_shared<TlsExtensionCapture>(ssl_tls13_cookie_xtn);
-  capture->SetHandshakeTypes({kTlsHandshakeHelloRetryRequest});
-  server_->SetPacketFilter(capture);
+  auto capture_cookie =
+      std::make_shared<TlsExtensionCapture>(ssl_tls13_cookie_xtn);
+  capture_cookie->SetHandshakeTypes({kTlsHandshakeHelloRetryRequest});
+  auto capture_key_share =
+      std::make_shared<TlsExtensionCapture>(ssl_tls13_key_share_xtn);
+  capture_key_share->SetHandshakeTypes({kTlsHandshakeHelloRetryRequest});
+  server_->SetPacketFilter(std::make_shared<ChainedPacketFilter>(
+      ChainedPacketFilterInit{capture_cookie, capture_key_share}));
 
   static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1};
   server_->ConfigNamedGroups(groups);
@@ -394,7 +465,8 @@ TEST_P(TlsConnectTls13, RetryCallbackRetryWithGroupMismatch) {
                                                       RetryHello, &cb_called));
   Connect();
   EXPECT_EQ(2U, cb_called);
-  EXPECT_TRUE(capture->captured()) << "cookie expected";
+  EXPECT_TRUE(capture_cookie->captured()) << "cookie expected";
+  EXPECT_TRUE(capture_key_share->captured()) << "key_share expected";
 }
 
 static const uint8_t kApplicationToken[] = {0x92, 0x44, 0x00};
@@ -734,6 +806,54 @@ TEST_P(TlsKeyExchange13, ConnectEcdhePreferenceMismatchHrrExtraShares) {
   Connect();
   CheckKeys();
   CheckKEXDetails(client_groups, client_groups);
+}
+
+// The callback should be run even if we have another reason to send
+// HelloRetryRequest.  In this case, the server sends HRR because the server
+// wants an X25519 key share and the client didn't offer one.
+TEST_P(TlsKeyExchange13,
+       RetryCallbackRetryWithGroupMismatchAndAdditionalShares) {
+  EnsureKeyShareSetup();
+
+  static const std::vector<SSLNamedGroup> client_groups = {
+      ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_curve25519};
+  client_->ConfigNamedGroups(client_groups);
+  static const std::vector<SSLNamedGroup> server_groups = {
+      ssl_grp_ec_curve25519};
+  server_->ConfigNamedGroups(server_groups);
+  EXPECT_EQ(SECSuccess, SSL_SendAdditionalKeyShares(client_->ssl_fd(), 1));
+
+  auto capture_server =
+      std::make_shared<TlsExtensionCapture>(ssl_tls13_key_share_xtn);
+  capture_server->SetHandshakeTypes({kTlsHandshakeHelloRetryRequest});
+  server_->SetPacketFilter(std::make_shared<ChainedPacketFilter>(
+      ChainedPacketFilterInit{capture_hrr_, capture_server}));
+
+  size_t cb_called = 0;
+  EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(server_->ssl_fd(),
+                                                      RetryHello, &cb_called));
+
+  // Do the first message exchange.
+  StartConnect();
+  client_->Handshake();
+  server_->Handshake();
+
+  EXPECT_EQ(1U, cb_called) << "callback should be called once here";
+  EXPECT_TRUE(capture_server->captured()) << "key_share extension expected";
+
+  uint32_t server_group = 0;
+  EXPECT_TRUE(capture_server->extension().Read(0, 2, &server_group));
+  EXPECT_EQ(ssl_grp_ec_curve25519, static_cast<SSLNamedGroup>(server_group));
+
+  Handshake();
+  CheckConnected();
+  EXPECT_EQ(2U, cb_called);
+  EXPECT_TRUE(shares_capture2_->captured()) << "client should send shares";
+
+  CheckKeys();
+  static const std::vector<SSLNamedGroup> client_shares(
+      client_groups.begin(), client_groups.begin() + 2);
+  CheckKEXDetails(client_groups, client_shares, server_groups[0]);
 }
 
 TEST_F(TlsConnectTest, Select12AfterHelloRetryRequest) {
