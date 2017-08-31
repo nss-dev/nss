@@ -264,6 +264,11 @@ start_selfserv()
   echo "selfserv with PID ${PID} started at `date`"
 }
 
+ignore_blank_lines()
+{
+  LC_ALL=C grep -v '^[[:space:]]*\(#\|$\)' "$1"
+}
+
 ############################## ssl_cov #################################
 # local shell function to perform SSL Cipher Coverage tests
 ########################################################################
@@ -280,7 +285,7 @@ ssl_cov()
   VMIN="ssl3"
   VMAX="tls1.1"
 
-  exec < ${SSLCOV}
+  ignore_blank_lines ${SSLCOV} | \
   while read ectype testmax param testname
   do
       echo "${testname}" | grep "EXPORT" > /dev/null
@@ -288,7 +293,7 @@ ssl_cov()
 
       if [ "$ectype" = "ECC" -a -n "$NSS_DISABLE_ECC" ] ; then
           echo "$SCRIPTNAME: skipping  $testname (ECC only)"
-      elif [ "`echo $ectype | cut -b 1`" != "#" ] ; then
+      else
           echo "$SCRIPTNAME: running $testname ----------------------------"
           VMAX="ssl3"
           if [ "$testmax" = "TLS10" ]; then
@@ -328,10 +333,9 @@ ssl_auth()
   #verbose="-v"
   html_head "SSL Client Authentication $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE $ECC_STRING"
 
-  exec < ${SSLAUTH}
+  ignore_blank_lines ${SSLAUTH} | \
   while read ectype value sparam cparam testname
   do
-      [ -z "$ectype" ] && continue
       echo "${testname}" | grep "don't require client auth" > /dev/null
       CAUTH=$?
 
@@ -341,7 +345,7 @@ ssl_auth()
           echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
       elif [ "$ectype" = "ECC" -a  -n "$NSS_DISABLE_ECC" ] ; then
           echo "$SCRIPTNAME: skipping  $testname (ECC only)"
-      elif [ "`echo $ectype | cut -b 1`" != "#" ]; then
+      else
           cparam=`echo $cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
           if [ "$ectype" = "SNI" ]; then
               cparam=`echo $cparam | sed -e "s/Host/$HOST/g" -e "s/Dom/$DOMSUF/g" `
@@ -544,14 +548,9 @@ ssl_stress()
 {
   html_head "SSL Stress Test $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE $ECC_STRING"
 
-  exec < ${SSLSTRESS}
+  ignore_blank_lines ${SSLSTRESS} | \
   while read ectype value sparam cparam testname
   do
-      if [ -z "$ectype" ]; then
-          # silently ignore blank lines
-          continue
-      fi
-
       echo "${testname}" | grep "client auth" > /dev/null
       CAUTH=$?
       echo "${testname}" | grep "no login" > /dev/null
@@ -566,7 +565,7 @@ ssl_stress()
       elif [ "${NOLOGIN}" -eq 0 ] && \
            [ "${CLIENT_MODE}" = "fips" -o "$NORM_EXT" = "Extended Test" ] ; then
           echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
-      elif [ "`echo $ectype | cut -b 1`" != "#" ]; then
+      else
           cparam=`echo $cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
           if [ "$ectype" = "SNI" ]; then
               cparam=`echo $cparam | sed -e "s/Host/$HOST/g" -e "s/Dom/$DOMSUF/g" `
@@ -621,15 +620,14 @@ ssl_crl_ssl()
   CRL_GROUP_RANGE=$CRL_GRP_1_RANGE
   UNREVOKED_CERT=$UNREVOKED_CERT_GRP_1
 
-  exec < ${SSLAUTH}
+  ignore_blank_lines ${SSLAUTH} | \
   while read ectype value sparam cparam testname
   do
-    [ "$ectype" = "" ] && continue
     if [ "$ectype" = "ECC" -a  -n "$NSS_DISABLE_ECC" ] ; then
         echo "$SCRIPTNAME: skipping $testname (ECC only)"
     elif [ "$ectype" = "SNI" ]; then
         continue
-    elif [ "`echo $ectype | cut -b 1`" != "#" ]; then
+    else
 	servarg=`echo $sparam | awk '{r=split($0,a,"-r") - 1;print r;}'`
 	pwd=`echo $cparam | grep nss`
 	user=`echo $cparam | grep TestUser`
@@ -709,14 +707,14 @@ ssl_policy()
   VMIN="ssl3"
   VMAX="tls1.2"
 
-  exec < ${SSLPOLICY}
+  ignore_blank_lines ${SSLPOLICY} | \
   while read value ectype testmax param policy testname
   do
       VMIN="ssl3"
 
       if [ "$ectype" = "ECC" -a -n "$NSS_DISABLE_ECC" ] ; then
           echo "$SCRIPTNAME: skipping  $testname (ECC only)"
-      elif [ "`echo $value | cut -b 1`" != "#" ] ; then
+      else
           echo "$SCRIPTNAME: running $testname ----------------------------"
           VMAX="ssl3"
           if [ "$testmax" = "TLS10" ]; then
