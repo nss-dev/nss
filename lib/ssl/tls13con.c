@@ -639,13 +639,8 @@ tls13_UpdateTrafficKeys(sslSocket *ss, CipherSpecDirection direction)
     return SECSuccess;
 }
 
-typedef enum {
-    update_not_requested = 0,
-    update_requested = 1
-} tls13KeyUpdateRequest;
-
-static SECStatus
-tls13_SendKeyUpdate(sslSocket *ss, tls13KeyUpdateRequest request)
+SECStatus
+tls13_SendKeyUpdate(sslSocket *ss, tls13KeyUpdateRequest request, PRBool buffer)
 {
     SECStatus rv;
 
@@ -685,7 +680,9 @@ tls13_SendKeyUpdate(sslSocket *ss, tls13KeyUpdateRequest request)
         goto loser;
     }
 
-    rv = ssl3_FlushHandshake(ss, 0);
+    /* If we have been asked to buffer, then do so.  This allows us to coalesce
+     * a KeyUpdate with a pending write. */
+    rv = ssl3_FlushHandshake(ss, buffer ? ssl_SEND_FLAG_FORCE_INTO_BUFFER : 0);
     if (rv != SECSuccess) {
         goto loser; /* error code set by ssl3_FlushHandshake */
     }
@@ -712,8 +709,20 @@ SSLExp_KeyUpdate(PRFileDesc *fd, PRBool requestUpdate)
         return SECFailure;
     }
 
+    if (!ss->firstHsDone) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    rv = TLS13_CHECK_HS_STATE(ss, SEC_ERROR_INVALID_ARGS,
+                              idle_handshake);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
     ssl_GetSSL3HandshakeLock(ss);
-    rv = tls13_SendKeyUpdate(ss, requestUpdate ? update_requested : update_not_requested);
+    rv = tls13_SendKeyUpdate(ss, requestUpdate ? update_requested : update_not_requested,
+                             PR_FALSE /* don't buffer */);
 
     /* Remember that we are the ones that initiated this KeyUpdate. */
     if (rv == SECSuccess) {
@@ -766,8 +775,8 @@ tls13_HandleKeyUpdate(sslSocket *ss, PRUint8 *b, unsigned int length)
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_KEY_UPDATE, decode_error);
         return SECFailure;
     }
-    if (update != update_requested &&
-        update != update_not_requested) {
+    if (!(update == update_requested ||
+          update == update_not_requested)) {
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_KEY_UPDATE, decode_error);
         return SECFailure;
     }
@@ -789,7 +798,8 @@ tls13_HandleKeyUpdate(sslSocket *ss, PRUint8 *b, unsigned int length)
             sendUpdate = PR_TRUE;
         }
         if (sendUpdate) {
-            rv = tls13_SendKeyUpdate(ss, update_not_requested);
+            /* Respond immediately (don't buffer). */
+            rv = tls13_SendKeyUpdate(ss, update_not_requested, PR_FALSE);
             if (rv != SECSuccess) {
                 return SECFailure; /* Error already set. */
             }

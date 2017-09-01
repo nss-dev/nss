@@ -116,4 +116,63 @@ TEST_F(TlsConnectTest, KeyUpdateBothRequest) {
   CheckEpochs(5, 5);
 }
 
+// If the sequence number exceeds the number of writes before an automatic
+// update (currently 3/4 of the max records for the cipher suite), then the
+// stack should send an update automatically (but not request one).
+TEST_F(TlsConnectTest, KeyUpdateAutomaticOnWrite) {
+  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
+  ConnectWithCipherSuite(TLS_AES_128_GCM_SHA256);
+
+  // Set this to one below the write threshold.
+  uint64_t threshold = (0x5aULL << 28) * 3 / 4;
+  EXPECT_EQ(SECSuccess,
+            SSLInt_AdvanceWriteSeqNum(client_->ssl_fd(), threshold));
+  EXPECT_EQ(SECSuccess, SSLInt_AdvanceReadSeqNum(server_->ssl_fd(), threshold));
+
+  // This should be OK.
+  client_->SendData(10);
+  server_->ReadBytes();
+
+  // This should cause the client to update.
+  client_->SendData(10);
+  server_->ReadBytes();
+
+  SendReceive(100);
+  CheckEpochs(4, 3);
+}
+
+// If the sequence number exceeds a certain number of reads (currently 7/8 of
+// the max records for the cipher suite), then the stack should send AND request
+// an update automatically.  However, the sender (client) will be above its
+// automatic update threshold, so the KeyUpdate - that it sends with the old
+// cipher spec - will exceed the receiver (server) automatic update threshold.
+// The receiver gets a packet with a sequence number over its automatic read
+// update threshold.  Even though the sender has updated, the code that checks
+// the sequence numbers at the receiver doesn't know this and it will request an
+// update.  This causes two updates: one from the sender (without requesting a
+// response) and one from the receiver (which does request a response).
+TEST_F(TlsConnectTest, KeyUpdateAutomaticOnRead) {
+  ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
+  ConnectWithCipherSuite(TLS_AES_128_GCM_SHA256);
+
+  // Move to right at the read threshold.  Unlike the write test, we can't send
+  // packets because that would cause the client to update, which would spoil
+  // the test.
+  uint64_t threshold = ((0x5aULL << 28) * 7 / 8) + 1;
+  EXPECT_EQ(SECSuccess,
+            SSLInt_AdvanceWriteSeqNum(client_->ssl_fd(), threshold));
+  EXPECT_EQ(SECSuccess, SSLInt_AdvanceReadSeqNum(server_->ssl_fd(), threshold));
+
+  // This should cause the client to update, but not early enough to prevent the
+  // server from updating also.
+  client_->SendData(10);
+  server_->ReadBytes();
+
+  // Need two SendReceive() calls to ensure that the update that the server
+  // requested is properly generated and consumed.
+  SendReceive(70);
+  SendReceive(80);
+  CheckEpochs(5, 4);
+}
+
 }  // namespace nss_test
