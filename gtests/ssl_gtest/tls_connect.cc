@@ -172,13 +172,13 @@ void TlsConnectTestBase::CheckEpochs(uint16_t client_epoch,
 
   EXPECT_EQ(SECSuccess,
             SSLInt_GetEpochs(client_->ssl_fd(), &read_epoch, &write_epoch));
-  EXPECT_EQ(server_epoch, read_epoch);
-  EXPECT_EQ(client_epoch, write_epoch);
+  EXPECT_EQ(server_epoch, read_epoch) << "client read epoch";
+  EXPECT_EQ(client_epoch, write_epoch) << "client write epoch";
 
   EXPECT_EQ(SECSuccess,
             SSLInt_GetEpochs(server_->ssl_fd(), &read_epoch, &write_epoch));
-  EXPECT_EQ(client_epoch, read_epoch);
-  EXPECT_EQ(server_epoch, write_epoch);
+  EXPECT_EQ(client_epoch, read_epoch) << "server read epoch";
+  EXPECT_EQ(server_epoch, write_epoch) << "server write epoch";
 }
 
 void TlsConnectTestBase::ClearStats() {

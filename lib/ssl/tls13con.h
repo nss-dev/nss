@@ -18,6 +18,11 @@ typedef enum {
     tls13_extension_unknown
 } tls13ExtensionStatus;
 
+typedef enum {
+    update_not_requested = 0,
+    update_requested = 1
+} tls13KeyUpdateRequest;
+
 #define TLS13_MAX_FINISHED_SIZE 64
 
 SECStatus tls13_UnprotectRecord(
@@ -108,6 +113,8 @@ SECStatus SSLExp_SetupAntiReplay(PRTime window, unsigned int k,
 SECStatus SSLExp_HelloRetryRequestCallback(PRFileDesc *fd,
                                            SSLHelloRetryRequestCallback cb,
                                            void *arg);
+SECStatus tls13_SendKeyUpdate(sslSocket *ss, tls13KeyUpdateRequest request,
+                              PRBool buffer);
 SECStatus SSLExp_KeyUpdate(PRFileDesc *fd, PRBool requestUpdate);
 PRBool tls13_MaybeTls13(sslSocket *ss);
 void tls13_SetSpecRecordVersion(sslSocket *ss, ssl3CipherSpec *spec);
