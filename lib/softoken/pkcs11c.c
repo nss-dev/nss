@@ -6269,6 +6269,44 @@ sftk_ANSI_X9_63_kdf(CK_BYTE **key, CK_ULONG key_len,
 #endif /* NSS_DISABLE_ECC */
 
 /*
+ *  Handle The derive from a block encryption cipher
+ */
+CK_RV
+sftk_DeriveEncrypt(SFTKObject *key, CK_ULONG keySize, void *cipherInfo,
+	int blockSize, unsigned char *data, CK_ULONG len, SFTKCipher encrypt)
+{
+    unsigned char *tmpdata = NULL;
+    SECStatus rv;
+    unsigned int outLen;
+    CK_RV crv;
+
+    if ((len % blockSize) != 0) {
+        return CKR_MECHANISM_PARAM_INVALID;
+    }
+    if (keySize && (len < keySize)) {
+        return CKR_MECHANISM_PARAM_INVALID;
+    }
+    if (keySize == 0) {
+        keySize = len;
+    }
+
+    tmpdata = PORT_Alloc(len);
+    if (tmpdata == NULL) {
+        return CKR_HOST_MEMORY;
+    }
+    rv = (*encrypt)(cipherInfo, tmpdata, &outLen, len, data, len);
+    if (rv != SECSuccess) {
+        crv = sftk_MapCryptError(PORT_GetError());
+        PORT_ZFree(tmpdata, len);
+        return crv;
+    }
+
+    crv = sftk_forceAttribute (key,CKA_VALUE,tmpdata,keySize);
+    PORT_ZFree(tmpdata,len);
+    return crv;
+}
+
+/*
  * SSL Key generation given pre master secret
  */
 #define NUM_MIXERS 9
@@ -6313,6 +6351,9 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
     CK_KEY_TYPE keyType = CKK_GENERIC_SECRET;
     CK_OBJECT_CLASS classType = CKO_SECRET_KEY;
     CK_KEY_DERIVATION_STRING_DATA *stringPtr;
+    CK_AES_CBC_ENCRYPT_DATA_PARAMS *aesEncryptPtr;
+    CK_DES_CBC_ENCRYPT_DATA_PARAMS *desEncryptPtr;
+    void *cipherInfo;
     CK_MECHANISM_TYPE mechanism = pMechanism->mechanism;
     PRBool isTLS = PR_FALSE;
     PRBool isDH = PR_FALSE;
@@ -6322,6 +6363,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
     unsigned int outLen;
     unsigned char sha_out[SHA1_LENGTH];
     unsigned char key_block[NUM_MIXERS * SFTK_MAX_MAC_LENGTH];
+    unsigned char des3key[24];
     PRBool isFIPS;
     HASH_HashType hashType;
     PRBool extractValue = PR_TRUE;
@@ -6925,6 +6967,164 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             key = NULL;
             break;
         }
+
+        case CKM_DES_ECB_ENCRYPT_DATA:
+            stringPtr = (CK_KEY_DERIVATION_STRING_DATA *) pMechanism->pParameter;
+            cipherInfo =  DES_CreateContext((unsigned char*) att->attrib.pValue,
+                                            NULL, NSS_DES, PR_TRUE);
+            if (cipherInfo == NULL) {
+                crv = CKR_HOST_MEMORY;
+                break;
+            }
+            crv = sftk_DeriveEncrypt(key, keySize, cipherInfo, 8,
+                                     stringPtr->pData, stringPtr->ulLen, (SFTKCipher) DES_Encrypt);
+            DES_DestroyContext(cipherInfo, PR_TRUE);
+            break;
+
+        case CKM_DES_CBC_ENCRYPT_DATA:
+            desEncryptPtr = (CK_DES_CBC_ENCRYPT_DATA_PARAMS *)
+            pMechanism->pParameter;
+            cipherInfo =  DES_CreateContext((unsigned char*)att->attrib.pValue,
+                                            desEncryptPtr->iv, NSS_DES_CBC, PR_TRUE);
+            if (cipherInfo == NULL) {
+                crv = CKR_HOST_MEMORY;
+                break;
+            }
+            crv = sftk_DeriveEncrypt(key, keySize, cipherInfo, 8,
+                                     desEncryptPtr->pData, desEncryptPtr->length,
+                                     (SFTKCipher) DES_Encrypt);
+            DES_DestroyContext(cipherInfo, PR_TRUE);
+            break;
+
+        case CKM_DES3_ECB_ENCRYPT_DATA:
+            stringPtr = (CK_KEY_DERIVATION_STRING_DATA *) pMechanism->pParameter;
+            if (att->attrib.ulValueLen == 16) {
+                PORT_Memcpy(des3key, att->attrib.pValue, 16);
+                PORT_Memcpy(des3key + 16, des3key, 8);
+            } else if (att->attrib.ulValueLen == 24) {
+                PORT_Memcpy(des3key, att->attrib.pValue, 24);
+            } else {
+               crv = CKR_KEY_SIZE_RANGE;
+               break;
+            }
+            cipherInfo =  DES_CreateContext(des3key, NULL, NSS_DES_EDE3, PR_TRUE);
+            PORT_Memset(des3key, 0, 24);
+            if (cipherInfo == NULL) {
+                crv = CKR_HOST_MEMORY;
+                break;
+            }
+            crv = sftk_DeriveEncrypt(key, keySize, cipherInfo, 8,
+                                     stringPtr->pData, stringPtr->ulLen, (SFTKCipher) DES_Encrypt);
+            DES_DestroyContext(cipherInfo, PR_TRUE);
+            break;
+
+        case CKM_DES3_CBC_ENCRYPT_DATA:
+            desEncryptPtr = (CK_DES_CBC_ENCRYPT_DATA_PARAMS *)
+                        pMechanism->pParameter;
+            if (att->attrib.ulValueLen == 16) {
+                PORT_Memcpy(des3key, att->attrib.pValue, 16);
+                PORT_Memcpy(des3key + 16, des3key, 8);
+            } else if (att->attrib.ulValueLen == 24) {
+                PORT_Memcpy(des3key, att->attrib.pValue, 24);
+            } else {
+               crv = CKR_KEY_SIZE_RANGE; break;
+            }
+            cipherInfo =  DES_CreateContext(des3key, desEncryptPtr->iv,
+                                            NSS_DES_EDE3_CBC, PR_TRUE);
+            PORT_Memset(des3key, 0, 24);
+            if (cipherInfo == NULL) { crv = CKR_HOST_MEMORY; break; }
+            crv = sftk_DeriveEncrypt(key, keySize, cipherInfo, 8,
+                                     desEncryptPtr->pData, desEncryptPtr->length,
+                                     (SFTKCipher) DES_Encrypt);
+            DES_DestroyContext(cipherInfo, PR_TRUE);
+            break;
+
+        case CKM_AES_ECB_ENCRYPT_DATA:
+            stringPtr = (CK_KEY_DERIVATION_STRING_DATA *) pMechanism->pParameter;
+            cipherInfo = AES_CreateContext((unsigned char*)att->attrib.pValue,
+                                           NULL, NSS_AES, PR_TRUE, att->attrib.ulValueLen, 16);
+            if (cipherInfo == NULL) {
+                crv = CKR_HOST_MEMORY;
+                break;
+            }
+            crv = sftk_DeriveEncrypt(key, keySize, cipherInfo, 16,
+            stringPtr->pData, stringPtr->ulLen, (SFTKCipher) AES_Encrypt);
+            AES_DestroyContext(cipherInfo, PR_TRUE);
+            break;
+
+        case CKM_AES_CBC_ENCRYPT_DATA:
+            aesEncryptPtr = (CK_AES_CBC_ENCRYPT_DATA_PARAMS *)
+                        pMechanism->pParameter;
+            cipherInfo = AES_CreateContext((unsigned char*)att->attrib.pValue,
+                                           aesEncryptPtr->iv, NSS_AES_CBC,
+                                           PR_TRUE, att->attrib.ulValueLen, 16);
+            if (cipherInfo == NULL) {
+                crv = CKR_HOST_MEMORY;
+                break;
+            }
+            crv = sftk_DeriveEncrypt(key, keySize, cipherInfo, 16,
+                                     aesEncryptPtr->pData, aesEncryptPtr->length,
+                                     (SFTKCipher) AES_Encrypt);
+            AES_DestroyContext(cipherInfo, PR_TRUE);
+            break;
+
+    case CKM_CAMELLIA_ECB_ENCRYPT_DATA:
+            stringPtr = (CK_KEY_DERIVATION_STRING_DATA *) pMechanism->pParameter;
+            cipherInfo = Camellia_CreateContext((unsigned char*)att->attrib.pValue,
+                                                NULL, NSS_CAMELLIA, PR_TRUE,att->attrib.ulValueLen);
+            if (cipherInfo == NULL) {
+                crv = CKR_HOST_MEMORY;
+                break;
+            }
+            crv = sftk_DeriveEncrypt(key, keySize, cipherInfo, 16,
+                                     stringPtr->pData, stringPtr->ulLen,
+                                    (SFTKCipher) Camellia_Encrypt);
+            Camellia_DestroyContext(cipherInfo, PR_TRUE);
+            break;
+
+        case CKM_CAMELLIA_CBC_ENCRYPT_DATA:
+            aesEncryptPtr = (CK_AES_CBC_ENCRYPT_DATA_PARAMS *)
+                        pMechanism->pParameter;
+            cipherInfo = Camellia_CreateContext((unsigned char*)att->attrib.pValue,
+                                                aesEncryptPtr->iv,NSS_CAMELLIA_CBC,
+                                                PR_TRUE, att->attrib.ulValueLen);
+            if (cipherInfo == NULL) {
+                crv = CKR_HOST_MEMORY;
+                break;
+            }
+            crv = sftk_DeriveEncrypt(key, keySize, cipherInfo, 16,
+                                     aesEncryptPtr->pData, aesEncryptPtr->length,
+                                     (SFTKCipher) Camellia_Encrypt);
+            Camellia_DestroyContext(cipherInfo, PR_TRUE);
+            break;
+
+        case CKM_SEED_ECB_ENCRYPT_DATA:
+            stringPtr = (CK_KEY_DERIVATION_STRING_DATA *) pMechanism->pParameter;
+            cipherInfo = SEED_CreateContext((unsigned char*)att->attrib.pValue,
+                                            NULL, NSS_SEED, PR_TRUE);
+            if (cipherInfo == NULL) {
+                crv = CKR_HOST_MEMORY;
+                break;
+            }
+            crv = sftk_DeriveEncrypt(key, keySize, cipherInfo, 16,
+                                     stringPtr->pData, stringPtr->ulLen, (SFTKCipher) SEED_Encrypt);
+            SEED_DestroyContext(cipherInfo, PR_TRUE);
+            break;
+
+        case CKM_SEED_CBC_ENCRYPT_DATA:
+            aesEncryptPtr = (CK_AES_CBC_ENCRYPT_DATA_PARAMS *)
+                        pMechanism->pParameter;
+            cipherInfo = SEED_CreateContext( (unsigned char*)att->attrib.pValue,
+            aesEncryptPtr->iv, NSS_SEED_CBC, PR_TRUE);
+            if (cipherInfo == NULL) {
+                crv = CKR_HOST_MEMORY;
+                break;
+            }
+            crv = sftk_DeriveEncrypt(key, keySize, cipherInfo, 16,
+                                     aesEncryptPtr->pData, aesEncryptPtr->length,
+                                     (SFTKCipher) SEED_Encrypt);
+            SEED_DestroyContext(cipherInfo, PR_TRUE);
+            break;
 
         case CKM_CONCATENATE_BASE_AND_KEY: {
             SFTKObject *newKey;
