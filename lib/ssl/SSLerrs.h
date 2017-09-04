@@ -525,3 +525,6 @@ ER3(SSL_ERROR_APPLICATION_ABORT, (SSL_ERROR_BASE + 165),
 
 ER3(SSL_ERROR_APP_CALLBACK_ERROR, (SSL_ERROR_BASE + 166),
     "An application callback produced an invalid response.")
+
+ER3(SSL_ERROR_NO_TIMERS_ERROR, (SSL_ERROR_BASE + 167),
+    "No timers are currently running.")

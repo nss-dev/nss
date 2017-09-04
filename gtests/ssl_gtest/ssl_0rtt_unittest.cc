@@ -59,8 +59,7 @@ TEST_P(TlsConnectTls13, ZeroRttApparentReplayAfterRestart) {
   CheckKeys();
 
   Reset();
-  server_->StartConnect();
-  client_->StartConnect();
+  StartConnect();
   client_->Set0RttEnabled(true);
   server_->Set0RttEnabled(true);
   ExpectResumption(RESUME_TICKET);
@@ -141,8 +140,7 @@ TEST_P(TlsConnectTls13, ZeroRttOptionsSetLate) {
   SendReceive();  // Need to read so that we absorb the session ticket.
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
   Reset();
-  server_->StartConnect();
-  client_->StartConnect();
+  StartConnect();
   // Now turn on 0-RTT but too late for the ticket.
   client_->Set0RttEnabled(true);
   server_->Set0RttEnabled(true);
@@ -169,8 +167,7 @@ TEST_P(TlsConnectTls13, ZeroRttServerForgetTicket) {
 TEST_P(TlsConnectTls13, ZeroRttServerOnly) {
   ExpectResumption(RESUME_NONE);
   server_->Set0RttEnabled(true);
-  client_->StartConnect();
-  server_->StartConnect();
+  StartConnect();
 
   // Client sends ordinary ClientHello.
   client_->Handshake();
@@ -219,8 +216,7 @@ TEST_P(TlsConnectTls13, ZeroRttRejectPrematureTicket) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
   server_->Set0RttEnabled(true);
-  client_->StartConnect();
-  server_->StartConnect();
+  StartConnect();
   client_->Handshake();  // ClientHello
   server_->Handshake();  // ServerHello
   PR_Sleep(PR_MillisecondsToInterval(10));
@@ -237,9 +233,7 @@ TEST_P(TlsConnectTls13, ZeroRttRejectPrematureTicket) {
   SSLInt_RolloverAntiReplay();
   ExpectResumption(RESUME_TICKET);
   ExpectEarlyDataAccepted(false);
-
-  server_->StartConnect();
-  client_->StartConnect();
+  StartConnect();
   ZeroRttSendReceive(true, false);
   Handshake();
   CheckConnected();
@@ -383,9 +377,7 @@ TEST_P(TlsConnectTls13, TestTls13ZeroRttDowngrade) {
                            SSL_LIBRARY_VERSION_TLS_1_3);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
                            SSL_LIBRARY_VERSION_TLS_1_2);
-  client_->StartConnect();
-  server_->StartConnect();
-
+  StartConnect();
   // We will send the early data xtn without sending actual early data. Thus
   // a 1.2 server shouldn't fail until the client sends an alert because the
   // client sends end_of_early_data only after reading the server's flight.
@@ -426,9 +418,7 @@ TEST_P(TlsConnectTls13, TestTls13ZeroRttDowngradeEarlyData) {
                            SSL_LIBRARY_VERSION_TLS_1_3);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
                            SSL_LIBRARY_VERSION_TLS_1_2);
-  client_->StartConnect();
-  server_->StartConnect();
-
+  StartConnect();
   // Send the early data xtn in the CH, followed by early app data. The server
   // will fail right after sending its flight, when receiving the early data.
   client_->Set0RttEnabled(true);

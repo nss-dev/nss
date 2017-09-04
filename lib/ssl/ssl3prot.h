@@ -41,7 +41,8 @@ typedef enum {
     content_alert = 21,
     content_handshake = 22,
     content_application_data = 23,
-    content_alt_handshake = 24
+    content_alt_handshake = 24,
+    content_ack = 25
 } SSL3ContentType;
 
 typedef struct {

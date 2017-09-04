@@ -100,8 +100,8 @@ class DataBuffer {
 
   // This can't use the same trick as Write(), since we might be reading from a
   // smaller data source.
-  bool Read(size_t index, size_t count, uint32_t* val) const {
-    assert(count < sizeof(uint32_t));
+  bool Read(size_t index, size_t count, uint64_t* val) const {
+    assert(count <= sizeof(uint64_t));
     assert(val);
     if ((index > len()) || (count > (len() - index))) {
       return false;
@@ -110,6 +110,18 @@ class DataBuffer {
     for (size_t i = 0; i < count; ++i) {
       *val = (*val << 8) | data()[index + i];
     }
+    return true;
+  }
+
+  // Overload because we have a lot of places where we are doing uint32_t
+  bool Read(size_t index, size_t count, uint32_t* val) const {
+    assert(count <= sizeof(uint32_t));
+    uint64_t tmp;
+
+    if (!Read(index, count, &tmp)) {
+      return false;
+    }
+    *val = tmp & 0xffffffff;
     return true;
   }
 

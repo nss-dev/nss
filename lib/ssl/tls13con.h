@@ -12,9 +12,11 @@
 #include "sslexp.h"
 
 typedef enum {
-    StaticSharedSecret,
-    EphemeralSharedSecret
-} SharedSecretType;
+    TrafficKeyClearText = 0,
+    TrafficKeyEarlyApplicationData = 1,
+    TrafficKeyHandshake = 2,
+    TrafficKeyApplicationData = 3
+} TrafficKeyType;
 
 typedef enum {
     tls13_extension_allowed,
@@ -25,7 +27,8 @@ typedef enum {
 #define TLS13_MAX_FINISHED_SIZE 64
 
 SECStatus tls13_UnprotectRecord(
-    sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *plaintext,
+    sslSocket *ss, ssl3CipherSpec *spec,
+    SSL3Ciphertext *cText, sslBuffer *plaintext,
     SSL3AlertDescription *alert);
 
 #if defined(WIN32)
@@ -115,5 +118,6 @@ SECStatus SSLExp_HelloRetryRequestCallback(PRFileDesc *fd,
                                            SSLHelloRetryRequestCallback cb,
                                            void *arg);
 SECStatus SSLExp_UseAltServerHelloType(PRFileDesc *fd, PRBool enable);
+PRBool tls13_MaybeTls13(sslSocket *ss);
 
 #endif /* __tls13con_h_ */

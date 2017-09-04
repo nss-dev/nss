@@ -262,6 +262,11 @@ void TlsConnectTestBase::Connect() {
   CheckConnected();
 }
 
+void TlsConnectTestBase::StartConnect() {
+  server_->StartConnect(server_model_ ? server_model_->ssl_fd() : nullptr);
+  client_->StartConnect(client_model_ ? client_model_->ssl_fd() : nullptr);
+}
+
 void TlsConnectTestBase::ConnectWithCipherSuite(uint16_t cipher_suite) {
   EnsureTlsSetup();
   client_->EnableSingleCipher(cipher_suite);
@@ -278,6 +283,19 @@ void TlsConnectTestBase::ConnectWithCipherSuite(uint16_t cipher_suite) {
 }
 
 void TlsConnectTestBase::CheckConnected() {
+  // Have the client read handshake twice to make sure we get the
+  // NST and the ACK.
+  if (client_->version() >= SSL_LIBRARY_VERSION_TLS_1_3 &&
+      variant_ == ssl_variant_datagram) {
+    client_->Handshake();
+    client_->Handshake();
+    auto suites = SSLInt_CountTls13CipherSpecs(client_->ssl_fd());
+    // Verify that we dropped the client's retransmission cipher suites.
+    EXPECT_EQ(2, suites) << "Client has the wrong number of suites";
+    if (suites != 2) {
+      SSLInt_PrintTls13CipherSpecs("client", client_->ssl_fd());
+    }
+  }
   EXPECT_EQ(client_->version(), server_->version());
   if (!skip_version_checks_) {
     // Check the version is as expected
@@ -377,8 +395,7 @@ void TlsConnectTestBase::CheckKeys() const {
 }
 
 void TlsConnectTestBase::ConnectExpectFail() {
-  server_->StartConnect();
-  client_->StartConnect();
+  StartConnect();
   Handshake();
   ASSERT_EQ(TlsAgent::STATE_ERROR, client_->state());
   ASSERT_EQ(TlsAgent::STATE_ERROR, server_->state());
@@ -399,8 +416,7 @@ void TlsConnectTestBase::ConnectExpectAlert(std::shared_ptr<TlsAgent>& sender,
 }
 
 void TlsConnectTestBase::ConnectExpectFailOneSide(TlsAgent::Role failing_side) {
-  server_->StartConnect();
-  client_->StartConnect();
+  StartConnect();
   client_->SetServerKeyBits(server_->server_key_bits());
   client_->Handshake();
   server_->Handshake();
@@ -567,8 +583,7 @@ void TlsConnectTestBase::SetupForZeroRtt() {
   CheckKeys();
 
   Reset();
-  server_->StartConnect();
-  client_->StartConnect();
+  StartConnect();
 }
 
 // Do a first connection so we can do resumption
@@ -599,7 +614,7 @@ void TlsConnectTestBase::ZeroRttSendReceive(
   } else {
     EXPECT_EQ(SECFailure, rv);
   }
-  server_->Handshake();  // Consume ClientHello, EE, Finished.
+  server_->Handshake();  // Consume ClientHello
 
   std::vector<uint8_t> buf(k0RttDataLen);
   rv = PR_Read(server_->ssl_fd(), buf.data(), k0RttDataLen);  // 0-RTT read

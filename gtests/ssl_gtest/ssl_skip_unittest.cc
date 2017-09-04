@@ -160,11 +160,10 @@ TEST_P(TlsSkipTest, SkipServerKeyExchangeEcdsa) {
 }
 
 TEST_P(TlsSkipTest, SkipCertAndKeyExch) {
-  auto chain = std::make_shared<ChainedPacketFilter>();
-  chain->Add(
-      std::make_shared<TlsHandshakeSkipFilter>(kTlsHandshakeCertificate));
-  chain->Add(
-      std::make_shared<TlsHandshakeSkipFilter>(kTlsHandshakeServerKeyExchange));
+  auto chain = std::make_shared<ChainedPacketFilter>(ChainedPacketFilterInit{
+      std::make_shared<TlsHandshakeSkipFilter>(kTlsHandshakeCertificate),
+      std::make_shared<TlsHandshakeSkipFilter>(
+          kTlsHandshakeServerKeyExchange)});
   ServerSkipTest(chain);
   client_->CheckErrorCode(SSL_ERROR_RX_UNEXPECTED_HELLO_DONE);
 }

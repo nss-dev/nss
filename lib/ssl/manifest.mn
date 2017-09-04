@@ -20,6 +20,7 @@ MAPFILE = $(OBJDIR)/ssl.def
 
 CSRCS = \
         dtlscon.c \
+        dtls13con.c \
         prelib.c \
         ssl3con.c \
         ssl3gthr.c \

@@ -13,6 +13,7 @@
         'authcert.c',
         'cmpcert.c',
         'dtlscon.c',
+        'dtls13con.c',
         'prelib.c',
         'selfencrypt.c',
         'ssl3con.c',

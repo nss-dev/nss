@@ -350,6 +350,9 @@ dtls_GatherData(sslSocket *ss, sslGather *gs, int flags)
         }
     }
 
+    SSL_TRC(20, ("%d: SSL3[%d]: dtls gathered record type=%d len=%d",
+                 SSL_GETPID(), ss->fd, gs->hdr[0], gs->inbuf.len));
+
     memcpy(gs->inbuf.buf, gs->dtlsPacket.buf + gs->dtlsPacketOffset,
            gs->remainder);
     gs->inbuf.len = gs->remainder;
@@ -555,8 +558,9 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
         ssl_ReleaseSSL3HandshakeLock(ss);
     } while (keepGoing);
 
-    /* Service the DTLS timer so that the holddown timer eventually fires. */
-    if (IS_DTLS(ss)) {
+    /* Service the DTLS timer so that the post-handshake timers
+     * fire. */
+    if (IS_DTLS(ss) && (ss->ssl3.hs.ws == idle_handshake)) {
         dtls_CheckTimer(ss);
     }
     ss->gs.readOffset = 0;

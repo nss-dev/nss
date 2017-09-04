@@ -25,8 +25,8 @@ PRBool SSLInt_ExtensionNegotiated(PRFileDesc *fd, PRUint16 ext);
 void SSLInt_ClearSelfEncryptKey();
 void SSLInt_SetSelfEncryptMacKey(PK11SymKey *key);
 PRInt32 SSLInt_CountTls13CipherSpecs(PRFileDesc *fd);
-void SSLInt_PrintTls13CipherSpecs(PRFileDesc *fd);
-void SSLInt_ForceTimerExpiry(PRFileDesc *fd);
+void SSLInt_PrintTls13CipherSpecs(const char *label, PRFileDesc *fd);
+void SSLInt_ForceRtTimerExpiry(PRFileDesc *fd);
 SECStatus SSLInt_SetMTU(PRFileDesc *fd, PRUint16 mtu);
 PRBool SSLInt_CheckSecretsDestroyed(PRFileDesc *fd);
 PRBool SSLInt_DamageClientHsTrafficSecret(PRFileDesc *fd);
@@ -47,6 +47,7 @@ PK11SymKey *SSLInt_CipherSpecToKey(PRBool isServer, ssl3CipherSpec *spec);
 SSLCipherAlgorithm SSLInt_CipherSpecToAlgorithm(PRBool isServer,
                                                 ssl3CipherSpec *spec);
 unsigned char *SSLInt_CipherSpecToIv(PRBool isServer, ssl3CipherSpec *spec);
+PRUint16 SSLInt_CipherSpecToEpoch(PRBool isServer, ssl3CipherSpec *spec);
 void SSLInt_SetTicketLifetime(uint32_t lifetime);
 void SSLInt_SetMaxEarlyDataSize(uint32_t size);
 SECStatus SSLInt_SetSocketMaxEarlyDataSize(PRFileDesc *fd, uint32_t size);

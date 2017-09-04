@@ -29,8 +29,7 @@ TEST_F(TlsConnectTest, DamageSecretHandleClientFinished) {
                            SSL_LIBRARY_VERSION_TLS_1_3);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
                            SSL_LIBRARY_VERSION_TLS_1_3);
-  server_->StartConnect();
-  client_->StartConnect();
+  StartConnect();
   client_->Handshake();
   server_->Handshake();
   std::cerr << "Damaging HS secret" << std::endl;
@@ -89,8 +88,7 @@ TEST_P(TlsConnectGeneric, DamageClientSignature) {
   server_->ExpectSendAlert(kTlsAlertDecryptError);
   // Do these handshakes by hand to avoid race condition on
   // the client processing the server's alert.
-  client_->StartConnect();
-  server_->StartConnect();
+  StartConnect();
   client_->Handshake();
   server_->Handshake();
   client_->Handshake();

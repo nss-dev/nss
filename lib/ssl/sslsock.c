@@ -433,15 +433,14 @@ ssl_DestroySocketContents(sslSocket *ss)
     }
 
     /* Remove extension handlers. */
-    while (!PR_CLIST_IS_EMPTY(&ss->extensionHooks)) {
-        cursor = PR_LIST_TAIL(&ss->extensionHooks);
-        PR_REMOVE_LINK(cursor);
-        PORT_Free(cursor);
-    }
+    ssl_ClearPRCList(&ss->extensionHooks, NULL);
 
     ssl_FreeEphemeralKeyPairs(ss);
     SECITEM_FreeItem(&ss->opt.nextProtoNego, PR_FALSE);
     ssl3_FreeSniNameArray(&ss->xtnData);
+
+    ssl_ClearPRCList(&ss->ssl3.hs.dtlsSentHandshake, NULL);
+    ssl_ClearPRCList(&ss->ssl3.hs.dtlsRcvdHandshake, NULL);
 }
 
 /*
@@ -3782,7 +3781,6 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     SECStatus rv;
     sslSocket *ss;
     int i;
-
     ssl_SetDefaultsFromEnvironment();
 
     if (ssl_force_locks)
@@ -3842,6 +3840,10 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     PR_INIT_CLIST(&ss->ssl3.hs.cipherSpecs);
     PR_INIT_CLIST(&ss->ssl3.hs.bufferedEarlyData);
     ssl3_InitExtensionData(&ss->xtnData, ss);
+    PR_INIT_CLIST(&ss->ssl3.hs.dtlsSentHandshake);
+    PR_INIT_CLIST(&ss->ssl3.hs.dtlsRcvdHandshake);
+    dtls_InitTimers(ss);
+
     if (makeLocks) {
         rv = ssl_MakeLocks(ss);
         if (rv != SECSuccess)
@@ -3926,4 +3928,20 @@ SSL_GetExperimentalAPI(const char *name)
     }
     PORT_SetError(SSL_ERROR_UNSUPPORTED_EXPERIMENTAL_API);
     return NULL;
+}
+
+void
+ssl_ClearPRCList(PRCList *list, void (*f)(void *))
+{
+    PRCList *cursor;
+
+    while (!PR_CLIST_IS_EMPTY(list)) {
+        cursor = PR_LIST_TAIL(list);
+
+        PR_REMOVE_LINK(cursor);
+        if (f) {
+            f(cursor);
+        }
+        PORT_Free(cursor);
+    }
 }

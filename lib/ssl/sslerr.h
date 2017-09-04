@@ -254,6 +254,7 @@ typedef enum {
 
     SSL_ERROR_APPLICATION_ABORT = (SSL_ERROR_BASE + 165),
     SSL_ERROR_APP_CALLBACK_ERROR = (SSL_ERROR_BASE + 166),
+    SSL_ERROR_NO_TIMERS_FOUND = (SSL_ERROR_BASE + 167),
 
     SSL_ERROR_END_OF_LIST   /* let the c compiler determine the value of this. */
 } SSLErrorCodes;

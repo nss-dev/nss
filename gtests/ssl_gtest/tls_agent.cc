@@ -753,12 +753,19 @@ void TlsAgent::Connected() {
     PRInt32 expected = 2;
     // For DTLS, the client retains the cipher spec for early data and the
     // handshake so that it can retransmit EndOfEarlyData and its final flight.
-    if (variant_ == ssl_variant_datagram && role_ == CLIENT) {
-      expected = info_.earlyDataAccepted ? 4 : 3;
+    // It also retains the handshake read cipher spec so that it can
+    // read ACKs from the server. The server retains the handshake read
+    // cipher spec so it can read the client's retransmitted Finished.
+    if (variant_ == ssl_variant_datagram) {
+      if (role_ == CLIENT) {
+        expected = info_.earlyDataAccepted ? 5 : 4;
+      } else {
+        expected = 3;
+      }
     }
     EXPECT_EQ(expected, cipherSuites);
     if (expected != cipherSuites) {
-      SSLInt_PrintTls13CipherSpecs(ssl_fd());
+      SSLInt_PrintTls13CipherSpecs(role_str().c_str(), ssl_fd());
     }
   }
 
@@ -876,6 +883,14 @@ void TlsAgent::SendDirect(const DataBuffer& buf) {
   }
 }
 
+void TlsAgent::SendRecordDirect(const TlsRecord& record) {
+  DataBuffer buf;
+
+  auto rv = record.header.Write(&buf, 0, record.buffer);
+  EXPECT_EQ(record.header.header_length() + record.buffer.len(), rv);
+  SendDirect(buf);
+}
+
 static bool ErrorIsNonFatal(PRErrorCode code) {
   return code == PR_WOULD_BLOCK_ERROR || code == SSL_ERROR_RX_SHORT_DTLS_READ;
 }
@@ -909,6 +924,27 @@ void TlsAgent::SendBuffer(const DataBuffer& buf) {
   } else {
     ASSERT_EQ(buf.len(), static_cast<size_t>(rv));
   }
+}
+
+bool TlsAgent::SendEncryptedRecord(const std::shared_ptr<TlsCipherSpec>& spec,
+                                   uint16_t wireVersion, uint64_t seq,
+                                   uint8_t ct, const DataBuffer& buf) {
+  LOGV("Writing " << buf.len() << " bytes");
+  // Ensure we are a TLS 1.3 cipher agent.
+  EXPECT_GE(expected_version_, SSL_LIBRARY_VERSION_TLS_1_3);
+  TlsRecordHeader header(wireVersion, kTlsApplicationDataType, seq);
+  DataBuffer padded = buf;
+  padded.Write(padded.len(), ct, 1);
+  DataBuffer ciphertext;
+  if (!spec->Protect(header, padded, &ciphertext)) {
+    return false;
+  }
+
+  DataBuffer record;
+  auto rv = header.Write(&record, 0, ciphertext);
+  EXPECT_EQ(header.header_length() + ciphertext.len(), rv);
+  SendDirect(record);
+  return true;
 }
 
 void TlsAgent::ReadBytes(size_t amount) {

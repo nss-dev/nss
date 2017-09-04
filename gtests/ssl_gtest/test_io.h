@@ -33,8 +33,17 @@ class PacketFilter {
     CHANGE,  // change the packet to a different value
     DROP     // drop the packet
   };
-
+  PacketFilter(bool enabled = true) : enabled_(enabled) {}
   virtual ~PacketFilter() {}
+
+  virtual Action Process(const DataBuffer& input, DataBuffer* output) {
+    if (!enabled_) {
+      return KEEP;
+    }
+    return Filter(input, output);
+  }
+  void Enable() { enabled_ = true; }
+  void Disable() { enabled_ = false; }
 
   // The packet filter takes input and has the option of mutating it.
   //
@@ -43,6 +52,9 @@ class PacketFilter {
   // case the value in *output is ignored.  A Filter can return DROP, in which
   // case the packet is dropped (and *output is ignored).
   virtual Action Filter(const DataBuffer& input, DataBuffer* output) = 0;
+
+ private:
+  bool enabled_;
 };
 
 class DummyPrSocket : public DummyIOLayerMethods {
