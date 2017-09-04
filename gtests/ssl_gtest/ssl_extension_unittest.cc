@@ -158,8 +158,7 @@ class TlsExtensionTestBase : public TlsConnectTestBase {
     client_->ConfigNamedGroups(client_groups);
     server_->ConfigNamedGroups(server_groups);
     EnsureTlsSetup();
-    client_->StartConnect();
-    server_->StartConnect();
+    StartConnect();
     client_->Handshake();  // Send ClientHello
     server_->Handshake();  // Send HRR.
     client_->SetPacketFilter(std::make_shared<TlsExtensionDropper>(type));
@@ -998,8 +997,7 @@ class TlsBogusExtensionTest13 : public TlsBogusExtensionTest {
   }
 
   void FailWithAlert(uint8_t alert) {
-    client_->StartConnect();
-    server_->StartConnect();
+    StartConnect();
     client_->Handshake();  // ClientHello
     server_->Handshake();  // ServerHello
 

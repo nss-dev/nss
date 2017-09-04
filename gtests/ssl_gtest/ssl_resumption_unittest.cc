@@ -247,8 +247,7 @@ TEST_P(TlsConnectGeneric, ConnectWithExpiredTicketAtServer) {
                              : ssl_session_ticket_xtn;
   auto capture = std::make_shared<TlsExtensionCapture>(xtn);
   client_->SetPacketFilter(capture);
-  client_->StartConnect();
-  server_->StartConnect();
+  StartConnect();
   client_->Handshake();
   EXPECT_TRUE(capture->captured());
   EXPECT_LT(0U, capture->extension().len());
@@ -740,8 +739,7 @@ TEST_F(TlsConnectTest, SendSessionTicketInappropriate) {
       << "clients can't send tickets";
   EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
 
-  server_->StartConnect();
-  client_->StartConnect();
+  StartConnect();
 
   EXPECT_EQ(SECFailure, SSL_SendSessionTicket(server_->ssl_fd(), NULL, 0))
       << "no ticket before the handshake has started";

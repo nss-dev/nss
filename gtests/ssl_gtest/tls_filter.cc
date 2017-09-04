@@ -70,7 +70,8 @@ void TlsRecordFilter::CipherSpecChanged(void* arg, PRBool sending,
   self->dropped_record_ = false;
   self->cipher_spec_.reset(new TlsCipherSpec());
   bool ret =
-      self->cipher_spec_->Init(SSLInt_CipherSpecToAlgorithm(isServer, newSpec),
+      self->cipher_spec_->Init(SSLInt_CipherSpecToEpoch(isServer, newSpec),
+                               SSLInt_CipherSpecToAlgorithm(isServer, newSpec),
                                SSLInt_CipherSpecToKey(isServer, newSpec),
                                SSLInt_CipherSpecToIv(isServer, newSpec));
   EXPECT_EQ(true, ret);
@@ -147,7 +148,7 @@ PacketFilter::Action TlsRecordFilter::FilterRecord(
   }
 
   if (action == DROP) {
-    std::cerr << "record drop: " << record << std::endl;
+    std::cerr << "record drop: " << header << ":" << record << std::endl;
     dropped_record_ = true;
     return DROP;
   }
@@ -234,7 +235,9 @@ bool TlsRecordFilter::Unprotect(const TlsRecordHeader& header,
   if (g_ssl_gtest_verbose) {
     std::cerr << "unprotect: " << header.sequence_number() << std::endl;
   }
-  if (!cipher_spec_->Unprotect(header, ciphertext, plaintext)) return false;
+  if (!cipher_spec_->Unprotect(header, ciphertext, plaintext)) {
+    return false;
+  }
 
   size_t len = plaintext->len();
   while (len > 0 && !plaintext->data()[len - 1]) {
@@ -407,6 +410,15 @@ PacketFilter::Action TlsInspectorReplaceHandshakeMessage::FilterHandshake(
   return KEEP;
 }
 
+PacketFilter::Action TlsRecordRecorder::FilterRecord(
+    const TlsRecordHeader& header, const DataBuffer& input,
+    DataBuffer* output) {
+  if (!filter_ || (header.content_type() == ct_)) {
+    records_.push_back({header, input});
+  }
+  return KEEP;
+}
+
 PacketFilter::Action TlsConversationRecorder::FilterRecord(
     const TlsRecordHeader& header, const DataBuffer& input,
     DataBuffer* output) {
@@ -433,7 +445,7 @@ PacketFilter::Action ChainedPacketFilter::Filter(const DataBuffer& input,
   DataBuffer in(input);
   bool changed = false;
   for (auto it = filters_.begin(); it != filters_.end(); ++it) {
-    PacketFilter::Action action = (*it)->Filter(in, output);
+    PacketFilter::Action action = (*it)->Process(in, output);
     if (action == DROP) {
       return DROP;
     }
@@ -724,6 +736,15 @@ PacketFilter::Action TlsInspectorClientHelloVersionChanger::FilterHandshake(
 
 PacketFilter::Action SelectiveDropFilter::Filter(const DataBuffer& input,
                                                  DataBuffer* output) {
+  if (counter_ >= 32) {
+    return KEEP;
+  }
+  return ((1 << counter_++) & pattern_) ? DROP : KEEP;
+}
+
+PacketFilter::Action SelectiveRecordDropFilter::FilterRecord(
+    const TlsRecordHeader& header, const DataBuffer& data,
+    DataBuffer* changed) {
   if (counter_ >= 32) {
     return KEEP;
   }

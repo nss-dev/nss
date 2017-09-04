@@ -92,7 +92,7 @@ PRInt32 SSLInt_CountTls13CipherSpecs(PRFileDesc *fd) {
   return ct;
 }
 
-void SSLInt_PrintTls13CipherSpecs(PRFileDesc *fd) {
+void SSLInt_PrintTls13CipherSpecs(const char *label, PRFileDesc *fd) {
   PRCList *cur_p;
 
   sslSocket *ss = ssl_FindSocket(fd);
@@ -100,27 +100,29 @@ void SSLInt_PrintTls13CipherSpecs(PRFileDesc *fd) {
     return;
   }
 
-  fprintf(stderr, "Cipher specs\n");
+  fprintf(stderr, "Cipher specs for %s\n", label);
   for (cur_p = PR_NEXT_LINK(&ss->ssl3.hs.cipherSpecs);
        cur_p != &ss->ssl3.hs.cipherSpecs; cur_p = PR_NEXT_LINK(cur_p)) {
     ssl3CipherSpec *spec = (ssl3CipherSpec *)cur_p;
-    fprintf(stderr, "  %s\n", spec->phase);
+    fprintf(stderr, "  %s %s refct=%d\n", spec->phase,
+            spec->direction == CipherSpecRead ? "read" : "write", spec->refCt);
   }
 }
 
-/* Force a timer expiry by backdating when the timer was started.
- * We could set the remaining time to 0 but then backoff would not
- * work properly if we decide to test it. */
-void SSLInt_ForceTimerExpiry(PRFileDesc *fd) {
+/* Force a retransmission timer expiry by backdating when the timer
+ * was started. We could set the remaining time to 0 but then backoff
+ * would not work properly if we decide to test it. */
+void SSLInt_ForceRtTimerExpiry(PRFileDesc *fd) {
   sslSocket *ss = ssl_FindSocket(fd);
   if (!ss) {
     return;
   }
 
-  if (!ss->ssl3.hs.rtTimerCb) return;
+  if (!ss->ssl3.hs.rtTimer->cb) return;
 
-  ss->ssl3.hs.rtTimerStarted =
-      PR_IntervalNow() - PR_MillisecondsToInterval(ss->ssl3.hs.rtTimeoutMs + 1);
+  ss->ssl3.hs.rtTimer->started =
+      PR_IntervalNow() -
+      PR_MillisecondsToInterval(ss->ssl3.hs.rtTimer->timeout + 1);
 }
 
 #define CHECK_SECRET(secret)                  \
@@ -328,6 +330,10 @@ SSLCipherAlgorithm SSLInt_CipherSpecToAlgorithm(PRBool isServer,
 
 unsigned char *SSLInt_CipherSpecToIv(PRBool isServer, ssl3CipherSpec *spec) {
   return GetKeyingMaterial(isServer, spec)->write_iv;
+}
+
+PRUint16 SSLInt_CipherSpecToEpoch(PRBool isServer, ssl3CipherSpec *spec) {
+  return spec->epoch;
 }
 
 void SSLInt_SetTicketLifetime(uint32_t lifetime) {

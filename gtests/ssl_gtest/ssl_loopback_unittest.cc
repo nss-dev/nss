@@ -125,8 +125,7 @@ TEST_P(TlsConnectTls13, CaptureAlertClient) {
   auto alert_recorder = std::make_shared<TlsAlertRecorder>();
   client_->SetPacketFilter(alert_recorder);
 
-  server_->StartConnect();
-  client_->StartConnect();
+  StartConnect();
 
   client_->Handshake();
   client_->ExpectSendAlert(kTlsAlertDecodeError);
@@ -339,8 +338,8 @@ TEST_P(TlsConnectGeneric, ConnectWithCompressionMaybe) {
 TEST_P(TlsConnectDatagram, TestDtlsHolddownExpiry) {
   Connect();
   std::cerr << "Expiring holddown timer\n";
-  SSLInt_ForceTimerExpiry(client_->ssl_fd());
-  SSLInt_ForceTimerExpiry(server_->ssl_fd());
+  SSLInt_ForceRtTimerExpiry(client_->ssl_fd());
+  SSLInt_ForceRtTimerExpiry(server_->ssl_fd());
   SendReceive();
   if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
     // One for send, one for receive.
@@ -375,8 +374,7 @@ TEST_P(TlsConnectStreamPre13, ClientFinishedHeaderBeforeCCS) {
 
 TEST_P(TlsConnectStreamPre13, ServerFinishedHeaderBeforeCCS) {
   server_->SetPacketFilter(std::make_shared<TlsPreCCSHeaderInjector>());
-  client_->StartConnect();
-  server_->StartConnect();
+  StartConnect();
   ExpectAlert(client_, kTlsAlertUnexpectedMessage);
   Handshake();
   EXPECT_EQ(TlsAgent::STATE_ERROR, client_->state());
@@ -407,8 +405,7 @@ TEST_P(TlsConnectTls13, AlertWrongLevel) {
 
 TEST_F(TlsConnectStreamTls13, Tls13FailedWriteSecondFlight) {
   EnsureTlsSetup();
-  client_->StartConnect();
-  server_->StartConnect();
+  StartConnect();
   client_->Handshake();
   server_->Handshake();  // Send first flight.
   client_->adapter()->CloseWrites();

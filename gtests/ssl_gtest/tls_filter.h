@@ -50,7 +50,7 @@ class TlsRecordHeader : public TlsVersioned {
 
   uint8_t content_type() const { return content_type_; }
   uint64_t sequence_number() const { return sequence_number_; }
-  size_t header_length() const { return is_dtls() ? 11 : 3; }
+  size_t header_length() const { return is_dtls() ? 13 : 5; }
 
   // Parse the header; return true if successful; body in an outparam if OK.
   bool Parse(uint64_t sequence_number, TlsParser* parser, DataBuffer* body);
@@ -61,6 +61,11 @@ class TlsRecordHeader : public TlsVersioned {
  private:
   uint8_t content_type_;
   uint64_t sequence_number_;
+};
+
+struct TlsRecord {
+  const TlsRecordHeader header;
+  const DataBuffer buffer;
 };
 
 // Abstract filter that operates on entire (D)TLS records.
@@ -129,12 +134,13 @@ class TlsRecordFilter : public PacketFilter {
   uint64_t out_sequence_number_;
 };
 
-inline std::ostream& operator<<(std::ostream& stream, TlsVersioned v) {
+inline std::ostream& operator<<(std::ostream& stream, const TlsVersioned& v) {
   v.WriteStream(stream);
   return stream;
 }
 
-inline std::ostream& operator<<(std::ostream& stream, TlsRecordHeader& hdr) {
+inline std::ostream& operator<<(std::ostream& stream,
+                                const TlsRecordHeader& hdr) {
   hdr.WriteStream(stream);
   stream << ' ';
   switch (hdr.content_type()) {
@@ -235,6 +241,29 @@ class TlsInspectorReplaceHandshakeMessage : public TlsHandshakeFilter {
   DataBuffer buffer_;
 };
 
+// Make a copy of each record of a given type.
+class TlsRecordRecorder : public TlsRecordFilter {
+ public:
+  TlsRecordRecorder(uint8_t ct) : filter_(true), ct_(ct), records_() {}
+  TlsRecordRecorder()
+      : filter_(false),
+        ct_(content_handshake),  // dummy (<optional> is C++14)
+        records_() {}
+  virtual PacketFilter::Action FilterRecord(const TlsRecordHeader& header,
+                                            const DataBuffer& input,
+                                            DataBuffer* output);
+
+  size_t count() const { return records_.size(); }
+  void Clear() { records_.clear(); }
+
+  const TlsRecord& record(size_t i) const { return records_[i]; }
+
+ private:
+  bool filter_;
+  uint8_t ct_;
+  std::vector<TlsRecord> records_;
+};
+
 // Make a copy of the complete conversation.
 class TlsConversationRecorder : public TlsRecordFilter {
  public:
@@ -261,11 +290,15 @@ class TlsHeaderRecorder : public TlsRecordFilter {
 };
 
 // Runs multiple packet filters in series.
+typedef std::initializer_list<std::shared_ptr<PacketFilter>>
+    ChainedPacketFilterInit;
+
 class ChainedPacketFilter : public PacketFilter {
  public:
   ChainedPacketFilter() {}
   ChainedPacketFilter(const std::vector<std::shared_ptr<PacketFilter>> filters)
       : filters_(filters.begin(), filters.end()) {}
+  ChainedPacketFilter(ChainedPacketFilterInit il) : filters_(il) {}
   virtual ~ChainedPacketFilter() {}
 
   virtual PacketFilter::Action Filter(const DataBuffer& input,
@@ -421,6 +454,34 @@ class SelectiveDropFilter : public PacketFilter {
 
  private:
   const uint32_t pattern_;
+  uint8_t counter_;
+};
+
+// This class selectively drops complete records. The difference from
+// SelectiveDropFilter is that if multiple DTLS records are in the same
+// datagram, we just drop one.
+class SelectiveRecordDropFilter : public TlsRecordFilter {
+ public:
+  SelectiveRecordDropFilter(uint32_t pattern, bool enabled = true)
+      : pattern_(pattern), counter_(0) {
+    if (!enabled) {
+      Disable();
+    }
+  }
+
+  void Enable(uint32_t pattern) {
+    std::cerr << "Enable " << this << std::endl;
+    PacketFilter::Enable();
+    pattern_ = pattern;
+  }
+
+ protected:
+  PacketFilter::Action FilterRecord(const TlsRecordHeader& header,
+                                    const DataBuffer& data,
+                                    DataBuffer* changed) override;
+
+ private:
+  uint32_t pattern_;
   uint8_t counter_;
 };
 

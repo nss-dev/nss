@@ -358,8 +358,7 @@ TEST_P(TlsConnectTls13, RetryCallbackRetry) {
                                                       RetryHello, &cb_called));
 
   // Do the first message exchange.
-  client_->StartConnect();
-  server_->StartConnect();
+  StartConnect();
   client_->Handshake();
   server_->Handshake();
 
@@ -749,8 +748,7 @@ TEST_F(TlsConnectTest, Select12AfterHelloRetryRequest) {
   static const std::vector<SSLNamedGroup> server_groups = {
       ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1};
   server_->ConfigNamedGroups(server_groups);
-  client_->StartConnect();
-  server_->StartConnect();
+  StartConnect();
 
   client_->Handshake();
   server_->Handshake();

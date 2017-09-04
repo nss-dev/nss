@@ -243,6 +243,9 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  * WARNING: 0-RTT data has different anti-replay and PFS properties than
  * the rest of the TLS data. See [draft-ietf-tls-tls13; Section 8]
  * for more details.
+ *
+ * Note: when DTLS 1.3 is in use, any 0-RTT data received after EndOfEarlyData
+ * (e.g., because of reordering) is discarded.
  */
 #define SSL_ENABLE_0RTT_DATA 33
 

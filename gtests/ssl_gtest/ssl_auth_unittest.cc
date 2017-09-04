@@ -581,8 +581,7 @@ class EnforceNoActivity : public PacketFilter {
 TEST_P(TlsConnectGenericPre13, AuthCompleteDelayed) {
   client_->SetAuthCertificateCallback(AuthCompleteBlock);
 
-  server_->StartConnect();
-  client_->StartConnect();
+  StartConnect();
   client_->Handshake();  // Send ClientHello
   server_->Handshake();  // Send ServerHello
   client_->Handshake();  // Send ClientKeyExchange and Finished
@@ -610,8 +609,7 @@ TEST_P(TlsConnectGenericPre13, AuthCompleteDelayed) {
 TEST_P(TlsConnectTls13, AuthCompleteDelayed) {
   client_->SetAuthCertificateCallback(AuthCompleteBlock);
 
-  server_->StartConnect();
-  client_->StartConnect();
+  StartConnect();
   client_->Handshake();  // Send ClientHello
   server_->Handshake();  // Send ServerHello
   EXPECT_EQ(TlsAgent::STATE_CONNECTING, client_->state());

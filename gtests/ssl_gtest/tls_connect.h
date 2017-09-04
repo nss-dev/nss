@@ -62,6 +62,8 @@ class TlsConnectTestBase : public ::testing::Test {
   void Reset(const std::string& server_name,
              const std::string& client_name = "client");
 
+  // Set up
+  void StartConnect();
   // Run the handshake.
   void Handshake();
   // Connect and check that it works.
@@ -243,6 +245,11 @@ class TlsConnectDatagram13 : public TlsConnectTestBase {
  public:
   TlsConnectDatagram13()
       : TlsConnectTestBase(ssl_variant_datagram, SSL_LIBRARY_VERSION_TLS_1_3) {}
+};
+
+class TlsConnectDatagramPre13 : public TlsConnectDatagram {
+ public:
+  TlsConnectDatagramPre13() {}
 };
 
 // A variant that is used only with Pre13.

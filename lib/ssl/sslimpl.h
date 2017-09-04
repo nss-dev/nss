@@ -408,8 +408,6 @@ typedef enum { type_stream,
 typedef PRUint64 sslSequenceNumber;
 typedef PRUint16 DTLSEpoch;
 
-typedef void (*DTLSTimerCb)(sslSocket *);
-
 typedef struct {
     PRUint8 wrapped_master_secret[48];
     PRUint16 wrapped_master_secret_len;
@@ -467,6 +465,11 @@ typedef struct DTLSRecvdRecordsStr {
     sslSequenceNumber right;
 } DTLSRecvdRecords;
 
+typedef enum {
+    CipherSpecRead,
+    CipherSpecWrite,
+} CipherSpecDirection;
+
 /*
 ** These are the "specs" in the "ssl3" struct.
 ** Access to the pointers to these specs, and all the specs' contents
@@ -504,6 +507,7 @@ struct ssl3CipherSpecStr {
     PRUint32 earlyDataRemaining;
 
     PRUint8 refCt;
+    CipherSpecDirection direction;
     const char *phase;
 };
 
@@ -756,6 +760,16 @@ typedef enum {
     handshake_hash_record
 } SSL3HandshakeHashType;
 
+// A DTLS Timer.
+typedef void (*DTLSTimerCb)(sslSocket *);
+
+typedef struct {
+    const char *label;
+    DTLSTimerCb cb;
+    PRIntervalTime started;
+    PRUint32 timeout;
+} dtlsTimer;
+
 /*
 ** This is the "hs" member of the "ssl3" struct.
 ** This entire struct is protected by ssl3HandshakeLock
@@ -821,25 +835,25 @@ typedef struct SSL3HandshakeStateStr {
     PRCList remoteExtensions; /* Parsed incoming extensions */
 
     /* This group of values is used for DTLS */
-    PRUint16 sendMessageSeq;       /* The sending message sequence
+    PRUint16 sendMessageSeq;   /* The sending message sequence
                                     * number */
-    PRCList lastMessageFlight;     /* The last message flight we
+    PRCList lastMessageFlight; /* The last message flight we
                                     * sent */
-    PRUint16 maxMessageSent;       /* The largest message we sent */
-    PRUint16 recvMessageSeq;       /* The receiving message sequence
+    PRUint16 maxMessageSent;   /* The largest message we sent */
+    PRUint16 recvMessageSeq;   /* The receiving message sequence
                                     * number */
-    sslBuffer recvdFragments;      /* The fragments we have received in
+    sslBuffer recvdFragments;  /* The fragments we have received in
                                     * a bitmask */
-    PRInt32 recvdHighWater;        /* The high water mark for fragments
+    PRInt32 recvdHighWater;    /* The high water mark for fragments
                                     * received. -1 means no reassembly
                                     * in progress. */
-    SECItem cookie;                /* The Hello(Retry|Verify)Request cookie. */
-    PRIntervalTime rtTimerStarted; /* When the timer was started */
-    DTLSTimerCb rtTimerCb;         /* The function to call on expiry */
-    PRUint32 rtTimeoutMs;          /* The length of the current timeout
-                                    * used for backoff (in ms) */
-    PRUint32 rtRetries;            /* The retry counter */
-    SECItem srvVirtName;           /* for server: name that was negotiated
+    SECItem cookie;            /* The Hello(Retry|Verify)Request cookie. */
+    dtlsTimer timers[3];       /* Holder for timers. */
+    dtlsTimer *rtTimer;        /* Retransmit timer. */
+    dtlsTimer *ackTimer;       /* Ack timer (DTLS 1.3 only). */
+    dtlsTimer *hdTimer;        /* Read cipher holddown timer (DLTS 1.3 only) */
+    PRUint32 rtRetries;        /* The retry counter */
+    SECItem srvVirtName;       /* for server: name that was negotiated
                                     * with a client. For client - is
                                     * always set to NULL.*/
 
@@ -871,6 +885,12 @@ typedef struct SSL3HandshakeStateStr {
     PRTime serverHelloTime;               /* Time the ServerHello flight was sent. */
     PRUint16 ticketNonce;                 /* A counter we use for tickets. */
     PRBool altHandshakeType;              /* Alternative ServerHello content type. */
+    PRBool endOfFlight;                   /* Processed a full flight (DTLS 1.3). */
+
+    /* The following lists contain DTLSHandshakeRecordEntry */
+    PRCList dtlsSentHandshake; /* Used to map records to handshake fragments. */
+    PRCList dtlsRcvdHandshake; /* Handshake records we have received
+                                           * used to generate ACKs. */
 } SSL3HandshakeState;
 
 #define SSL_ASSERT_HASHES_EMPTY(ss)                                  \
@@ -1380,6 +1400,9 @@ extern PRInt32 ssl3_SendRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
                                const PRUint8 *pIn, PRInt32 nIn,
                                PRInt32 flags);
 
+/* Clear any PRCList, optionally calling f on the value. */
+void ssl_ClearPRCList(PRCList *list, void (*f)(void *));
+
 #ifdef NSS_SSL_ENABLE_ZLIB
 /*
  * The DEFLATE algorithm can result in an expansion of 0.1% + 12 bytes. For a
@@ -1678,6 +1701,9 @@ extern SECStatus ssl3_ConsumeHandshake(sslSocket *ss, void *v, PRUint32 bytes,
 extern SECStatus ssl3_ConsumeHandshakeNumber(sslSocket *ss, PRUint32 *num,
                                              PRUint32 bytes, PRUint8 **b,
                                              PRUint32 *length);
+extern SECStatus ssl3_ConsumeHandshakeNumber64(sslSocket *ss, PRUint64 *num,
+                                               PRUint32 bytes, PRUint8 **b,
+                                               PRUint32 *length);
 extern SECStatus ssl3_ConsumeHandshakeVariable(sslSocket *ss, SECItem *i,
                                                PRUint32 bytes, PRUint8 **b,
                                                PRUint32 *length);
@@ -1754,38 +1780,6 @@ extern SECStatus ssl_InitSessionCacheLocks(PRBool lazyInit);
 
 extern SECStatus ssl_FreeSessionCacheLocks(void);
 
-/**************** DTLS-specific functions **************/
-extern void dtls_FreeHandshakeMessage(DTLSQueuedMessage *msg);
-extern void dtls_FreeHandshakeMessages(PRCList *lst);
-
-extern SECStatus dtls_HandleHandshake(sslSocket *ss, sslBuffer *origBuf);
-extern SECStatus dtls_HandleHelloVerifyRequest(sslSocket *ss,
-                                               PRUint8 *b, PRUint32 length);
-extern SECStatus dtls_StageHandshakeMessage(sslSocket *ss);
-extern SECStatus dtls_QueueMessage(sslSocket *ss, SSL3ContentType type,
-                                   const PRUint8 *pIn, PRInt32 nIn);
-extern SECStatus dtls_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags);
-SECStatus ssl3_DisableNonDTLSSuites(sslSocket *ss);
-extern SECStatus dtls_StartHolddownTimer(sslSocket *ss);
-extern void dtls_CheckTimer(sslSocket *ss);
-extern void dtls_CancelTimer(sslSocket *ss);
-extern void dtls_SetMTU(sslSocket *ss, PRUint16 advertised);
-extern void dtls_InitRecvdRecords(DTLSRecvdRecords *records);
-extern int dtls_RecordGetRecvd(const DTLSRecvdRecords *records,
-                               sslSequenceNumber seq);
-extern void dtls_RecordSetRecvd(DTLSRecvdRecords *records,
-                                sslSequenceNumber seq);
-extern void dtls_RehandshakeCleanup(sslSocket *ss);
-extern SSL3ProtocolVersion
-dtls_TLSVersionToDTLSVersion(SSL3ProtocolVersion tlsv);
-extern SSL3ProtocolVersion
-dtls_DTLSVersionToTLSVersion(SSL3ProtocolVersion dtlsv);
-extern PRBool dtls_IsRelevant(sslSocket *ss, const SSL3Ciphertext *cText,
-                              PRBool *sameEpoch, PRUint64 *seqNum);
-extern SECStatus dtls_MaybeRetransmitHandshake(sslSocket *ss,
-                                               const SSL3Ciphertext *cText,
-                                               PRBool sameEpoch);
-
 CK_MECHANISM_TYPE ssl3_Alg2Mech(SSLCipherAlgorithm calg);
 SECStatus ssl3_NegotiateCipherSuite(sslSocket *ss, const SECItem *suites,
                                     PRBool initHashes);
@@ -1846,8 +1840,12 @@ KeyType ssl_SignatureSchemeToKeyType(SSLSignatureScheme scheme);
 
 SECStatus ssl3_SetupCipherSuite(sslSocket *ss, PRBool initHashes);
 
+/* Pull in DTLS functions */
+#include "dtlscon.h"
+
 /* Pull in TLS 1.3 functions */
 #include "tls13con.h"
+#include "dtls13con.h"
 
 /********************** misc calls *********************/
 
