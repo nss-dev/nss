@@ -179,6 +179,7 @@ STUB_DECLARE(void, SECITEM_FreeItem_Util, (SECItem * zap, PRBool freeit));
 STUB_DECLARE(void, SECITEM_ZfreeItem_Util, (SECItem * zap, PRBool freeit));
 STUB_DECLARE(SECOidTag, SECOID_FindOIDTag_Util, (const SECItem *oid));
 STUB_DECLARE(int, NSS_SecureMemcmp, (const void *a, const void *b, size_t n));
+STUB_DECLARE(unsigned int, NSS_SecureMemcmpZero, (const void *mem, size_t n));
 
 #define PORT_ZNew_stub(type) (type *)PORT_ZAlloc_stub(sizeof(type))
 #define PORT_New_stub(type) (type *)PORT_Alloc_stub(sizeof(type))
@@ -643,6 +644,13 @@ NSS_SecureMemcmp_stub(const void *a, const void *b, size_t n)
     abort();
 }
 
+extern unsigned int
+NSS_SecureMemcmpZero_stub(const void *mem, size_t n)
+{
+    STUB_SAFE_CALL2(NSS_SecureMemcmpZero, mem, n);
+    abort();
+}
+
 #ifdef FREEBL_NO_WEAK
 
 static const char *nsprLibName = SHLIB_PREFIX "nspr4." SHLIB_SUFFIX;
@@ -695,6 +703,7 @@ freebl_InitNSSUtil(void *lib)
     STUB_FETCH_FUNCTION(SECITEM_ZfreeItem_Util);
     STUB_FETCH_FUNCTION(SECOID_FindOIDTag_Util);
     STUB_FETCH_FUNCTION(NSS_SecureMemcmp);
+    STUB_FETCH_FUNCTION(NSS_SecureMemcmpZero);
     return SECSuccess;
 }
 

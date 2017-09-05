@@ -780,3 +780,18 @@ NSS_SecureMemcmp(const void *ia, const void *ib, size_t n)
 
     return r;
 }
+
+/*
+ * Perform a constant-time check if a memory region is all 0. The return value
+ * is 0 if the memory region is all zero.
+ */
+unsigned int
+NSS_SecureMemcmpZero(const void *mem, size_t n)
+{
+    PRUint8 zero = 0;
+    int i;
+    for (i = 0; i < n; ++i) {
+        zero |= *(PRUint8 *)((uintptr_t)mem + i);
+    }
+    return zero;
+}
