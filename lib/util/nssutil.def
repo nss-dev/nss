@@ -311,6 +311,7 @@ PK11URI_GetQueryAttribute;
 ;+    global:
 PORT_ZAllocAligned_Util;
 PORT_ZAllocAlignedOffset_Util;
+NSS_SecureMemcmpZero;
 ;+    local:
 ;+       *;
 ;+};
