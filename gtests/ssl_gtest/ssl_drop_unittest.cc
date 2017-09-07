@@ -112,7 +112,7 @@ class TlsDropDatagram13 : public TlsConnectDatagram13 {
             server_->ssl_fd(), 1,
             [](PRFileDesc* fd, SSLHandshakeType message, PRUint8* data,
                unsigned int* len, unsigned int maxLen, void* arg) -> PRBool {
-              SSLInt_SetMTU(fd, 384);  // Splits the certificate.
+              SSLInt_SetMTU(fd, 400);  // Splits the certificate.
               return PR_FALSE;
             },
             nullptr,

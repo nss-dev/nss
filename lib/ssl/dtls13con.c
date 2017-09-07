@@ -44,9 +44,15 @@ dtls13_RememberFragment(sslSocket *ss,
                         sslSequenceNumber record)
 {
     DTLSHandshakeRecordEntry *entry;
+
     PORT_Assert(IS_DTLS(ss));
-    PORT_Assert(tls13_MaybeTls13(ss));
-    PORT_Assert(sequence != 0xffff);
+    /* We should never send an empty fragment with offset > 0. */
+    PORT_Assert(length || !offset);
+
+    if (!tls13_MaybeTls13(ss)) {
+        return SECSuccess;
+    }
+
     SSL_TRC(20, ("%d: SSL3[%d]: %s remembering %s record=%llx msg=%d offset=%d",
                  SSL_GETPID(), ss->fd,
                  SSL_ROLE(ss),
@@ -118,32 +124,133 @@ dtls13_SendAckCb(sslSocket *ss)
     (void)dtls13_SendAck(ss);
 }
 
-/* Check to see if all of a message was ACKed. */
-PRBool
-dtls13_FragmentWasAcked(sslSocket *ss, PRUint16 msgSeq, PRUint32 offset,
-                        PRUint32 len)
+/* Zero length messages are very simple to check. */
+static PRBool
+dtls_IsEmptyMessageAcknowledged(sslSocket *ss, PRUint16 msgSeq, PRUint32 offset)
 {
     PRCList *cursor;
-    PORT_Assert(msgSeq != 0xffff);
-    PORT_Assert(tls13_MaybeTls13(ss));
 
     for (cursor = PR_LIST_HEAD(&ss->ssl3.hs.dtlsSentHandshake);
          cursor != &ss->ssl3.hs.dtlsSentHandshake;
          cursor = PR_NEXT_LINK(cursor)) {
         DTLSHandshakeRecordEntry *entry = (DTLSHandshakeRecordEntry *)cursor;
-        if (!entry->acked) {
+        if (!entry->acked || msgSeq != entry->messageSeq) {
             continue;
         }
-        if (msgSeq != entry->messageSeq) {
-            continue;
+        /* Empty fragments are always offset 0. */
+        if (entry->length == 0) {
+            PORT_Assert(!entry->offset);
+            return PR_TRUE;
         }
-        if (offset < entry->offset)
-            continue;
-        if ((offset + len) > (entry->offset + entry->length))
-            continue;
-        return PR_TRUE;
     }
     return PR_FALSE;
+}
+
+/* Take a range starting at |*start| and that start forwards based on the
+ * contents of the acknowedgement in |entry|. Only move if the acknowledged
+ * range overlaps |*start|. Return PR_TRUE if it moves. */
+static PRBool
+dtls_MoveUnackedStartForward(DTLSHandshakeRecordEntry *entry, PRUint32 *start)
+{
+    /* This entry starts too late. */
+    if (*start < entry->offset) {
+        return PR_FALSE;
+    }
+    /* This entry ends too early. */
+    if (*start >= entry->offset + entry->length) {
+        return PR_FALSE;
+    }
+    *start = entry->offset + entry->length;
+    return PR_TRUE;
+}
+
+/* Take a range ending at |*end| and move that end backwards based on the
+ * contents of the acknowedgement in |entry|. Only move if the acknowledged
+ * range overlaps |*end|. Return PR_TRUE if it moves. */
+static PRBool
+dtls_MoveUnackedEndBackward(DTLSHandshakeRecordEntry *entry, PRUint32 *end)
+{
+    /* This entry ends too early. */
+    if (*end > entry->offset + entry->length) {
+        return PR_FALSE;
+    }
+    /* This entry starts too late. */
+    if (*end <= entry->offset) {
+        return PR_FALSE;
+    }
+    *end = entry->offset;
+    return PR_TRUE;
+}
+
+/* Get the next contiguous range of unacknowledged bytes from the handshake
+ * message identified by |msgSeq|.  The search starts at the offset in |offset|.
+ * |len| contains the full length of the message.
+ *
+ * Returns PR_TRUE if there is an unacknowledged range.  In this case, values at
+ * |start| and |end| are modified to contain the range.
+ *
+ * Returns PR_FALSE if the message is entirely acknowledged from |offset|
+ * onwards.
+ */
+PRBool
+dtls_NextUnackedRange(sslSocket *ss, PRUint16 msgSeq, PRUint32 offset,
+                      PRUint32 len, PRUint32 *startOut, PRUint32 *endOut)
+{
+    PRCList *cur_p;
+    PRBool done = PR_FALSE;
+    DTLSHandshakeRecordEntry *entry;
+    PRUint32 start;
+    PRUint32 end;
+
+    PORT_Assert(IS_DTLS(ss));
+
+    *startOut = offset;
+    *endOut = len;
+    if (!tls13_MaybeTls13(ss)) {
+        return PR_TRUE;
+    }
+
+    /* The message is empty. Use a simple search. */
+    if (!len) {
+        PORT_Assert(!offset);
+        return !dtls_IsEmptyMessageAcknowledged(ss, msgSeq, offset);
+    }
+
+    /* This iterates multiple times over the acknowledgments and only terminates
+     * when an entire iteration happens without start or end moving.  If that
+     * happens without start and end crossing each other, then there is a range
+     * of unacknowledged data.  If they meet, then the message is fully
+     * acknowledged. */
+    start = offset;
+    end = len;
+    while (!done) {
+        done = PR_TRUE;
+        for (cur_p = PR_LIST_HEAD(&ss->ssl3.hs.dtlsSentHandshake);
+             cur_p != &ss->ssl3.hs.dtlsSentHandshake;
+             cur_p = PR_NEXT_LINK(cur_p)) {
+            entry = (DTLSHandshakeRecordEntry *)cur_p;
+            if (!entry->acked || msgSeq != entry->messageSeq) {
+                continue;
+            }
+
+            if (dtls_MoveUnackedStartForward(entry, &start) ||
+                dtls_MoveUnackedEndBackward(entry, &end)) {
+                if (start >= end) {
+                    /* The message is all acknowledged. */
+                    return PR_FALSE;
+                }
+                /* Start over again and keep going until we don't move either
+                 * start or end. */
+                done = PR_FALSE;
+                break;
+            }
+        }
+    }
+    PORT_Assert(start < end);
+
+    *startOut = start;
+    *endOut = end;
+    return PR_TRUE;
 }
 
 ssl3CipherSpec *
@@ -329,7 +436,6 @@ dtls13_HandleAck(sslSocket *ss, sslBuffer *databuf)
     PRUint8 *b = databuf->buf;
     PRUint32 l = databuf->len;
     SECStatus rv;
-    PRBool messagesSent;
 
     /* Ensure we don't loop. */
     databuf->len = 0;
@@ -366,7 +472,7 @@ dtls13_HandleAck(sslSocket *ss, sslBuffer *databuf)
     }
 
     /* Try to flush. */
-    rv = dtls_TransmitMessageFlight(ss, &messagesSent);
+    rv = dtls_TransmitMessageFlight(ss);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -376,15 +482,13 @@ dtls13_HandleAck(sslSocket *ss, sslBuffer *databuf)
         (void)dtls_RestartTimer(ss, ss->ssl3.hs.rtTimer);
     }
 
-    /* If no messages were sent, then clean up. */
-    if (!messagesSent) {
-        SSL_TRC(10, (
-                        "%d: SSL3[%d]: No more unacked handshake messages, cancelling retransmits",
-                        SSL_GETPID(), ss->fd));
+    /* If there are no more messages to send, cleanup. */
+    if (PR_CLIST_IS_EMPTY(&ss->ssl3.hs.lastMessageFlight)) {
+        SSL_TRC(10, ("%d: SSL3[%d]: No more unacked handshake messages",
+                     SSL_GETPID(), ss->fd));
 
         dtls_CancelTimer(ss, ss->ssl3.hs.rtTimer);
         ssl_ClearPRCList(&ss->ssl3.hs.dtlsSentHandshake, NULL);
-        dtls_FreeHandshakeMessages(&ss->ssl3.hs.lastMessageFlight);
         /* If the handshake is finished, and we're the client then
          * also clean up the handshake read cipher spec. Any ACKs
          * we receive will be with the application data cipher spec.

@@ -232,9 +232,6 @@ bool TlsRecordFilter::Unprotect(const TlsRecordHeader& header,
     return true;
   }
 
-  if (g_ssl_gtest_verbose) {
-    std::cerr << "unprotect: " << header.sequence_number() << std::endl;
-  }
   if (!cipher_spec_->Unprotect(header, ciphertext, plaintext)) {
     return false;
   }
@@ -250,6 +247,11 @@ bool TlsRecordFilter::Unprotect(const TlsRecordHeader& header,
 
   *inner_content_type = plaintext->data()[len - 1];
   plaintext->Truncate(len - 1);
+  if (g_ssl_gtest_verbose) {
+    std::cerr << "unprotect: " << std::hex << header.sequence_number()
+              << std::dec << " type=" << static_cast<int>(*inner_content_type)
+              << " " << *plaintext << std::endl;
+  }
 
   return true;
 }
