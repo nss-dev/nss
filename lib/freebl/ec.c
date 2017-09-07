@@ -566,7 +566,11 @@ ECDH_Derive(SECItem *publicValue,
             PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
             return SECFailure;
         }
-        return method->mul(derivedSecret, privateValue, publicValue);
+        rv = method->mul(derivedSecret, privateValue, publicValue);
+        if (rv != SECSuccess) {
+            SECITEM_ZfreeItem(derivedSecret, PR_FALSE);
+        }
+        return rv;
     }
 
     /*
