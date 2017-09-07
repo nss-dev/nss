@@ -228,7 +228,7 @@ dtls_RetransmitDetected(sslSocket *ss)
          * may be a re-ordered packet rather than slowness,
          * so let's be aggressive. */
         dtls_CancelTimer(ss, ss->ssl3.hs.rtTimer);
-        rv = dtls_TransmitMessageFlight(ss, NULL);
+        rv = dtls_TransmitMessageFlight(ss);
         if (rv == SECSuccess) {
             rv = dtls_StartHolddownTimer(ss);
         }
@@ -588,7 +588,7 @@ dtls_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags)
         return rv;
 
     if (!(flags & ssl_SEND_FLAG_FORCE_INTO_BUFFER)) {
-        rv = dtls_TransmitMessageFlight(ss, NULL);
+        rv = dtls_TransmitMessageFlight(ss);
         if (rv != SECSuccess) {
             return rv;
         }
@@ -623,7 +623,7 @@ dtls_RetransmitTimerExpiredCb(sslSocket *ss)
         dtls_SetMTU(ss, ss->ssl3.hs.maxMessageSent - 1);
     }
 
-    rv = dtls_TransmitMessageFlight(ss, NULL);
+    rv = dtls_TransmitMessageFlight(ss);
     if (rv == SECSuccess) {
         /* Re-arm the timer */
         timer->timeout *= 2;
@@ -643,25 +643,179 @@ dtls_RetransmitTimerExpiredCb(sslSocket *ss)
      * transmit. For now, let the read handle any real network errors */
 }
 
+#define DTLS_HS_HDR_LEN 12
+#define DTLS_MIN_FRAGMENT (DTLS_HS_HDR_LEN + 1 + DTLS_MAX_EXPANSION)
+
+/* Encrypt and encode a handshake message fragment.  Flush the data out to the
+ * network if there is insufficient space for any fragment. */
+static SECStatus
+dtls_SendFragment(sslSocket *ss, DTLSQueuedMessage *msg, PRUint8 *data,
+                  unsigned int len)
+{
+    PRInt32 sent;
+    SECStatus rv;
+
+    PRINT_BUF(40, (ss, "dtls_SendFragment", data, len));
+    sent = ssl3_SendRecord(ss, msg->cwSpec, msg->type, data, len,
+                           ssl_SEND_FLAG_FORCE_INTO_BUFFER);
+    if (sent != len) {
+        if (sent != -1) {
+            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        }
+        return SECFailure;
+    }
+
+    /* If another fragment won't fit, flush. */
+    if (ss->ssl3.mtu < ss->pendingBuf.len + DTLS_MIN_FRAGMENT) {
+        SSL_TRC(20, ("%d: DTLS[%d]: dtls_SendFragment: flush",
+                     SSL_GETPID(), ss->fd));
+        rv = dtls_SendSavedWriteData(ss);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+    }
+    return SECSuccess;
+}
+
+/* Fragment a handshake message into multiple records and send them. */
+static SECStatus
+dtls_FragmentHandshake(sslSocket *ss, DTLSQueuedMessage *msg)
+{
+    PRBool fragmentWritten = PR_FALSE;
+    PRUint16 msgSeq;
+    PRUint8 *fragment;
+    PRUint32 fragmentOffset = 0;
+    PRUint32 fragmentLen;
+    const PRUint8 *content = msg->data + DTLS_HS_HDR_LEN;
+    PRUint32 contentLen = msg->len - DTLS_HS_HDR_LEN;
+    SECStatus rv;
+
+    /* The headers consume 12 bytes so the smallest possible message (i.e., an
+     * empty one) is 12 bytes. */
+    PORT_Assert(msg->len >= DTLS_HS_HDR_LEN);
+
+    /* DTLS only supports fragmenting handshaking messages. */
+    PORT_Assert(msg->type == content_handshake);
+
+    msgSeq = (msg->data[4] << 8) | msg->data[5];
+
+    /* do {} while() so that empty messages are sent at least once. */
+    do {
+        PRUint8 buf[DTLS_MAX_MTU]; /* >= than largest plausible MTU */
+        PRBool hasUnackedRange;
+        PRUint32 end;
+
+        hasUnackedRange = dtls_NextUnackedRange(ss, msgSeq,
+                                                fragmentOffset, contentLen,
+                                                &fragmentOffset, &end);
+        if (!hasUnackedRange) {
+            SSL_TRC(20, ("%d: SSL3[%d]: FragmentHandshake %d: all acknowledged",
+                         SSL_GETPID(), ss->fd, msgSeq));
+            break;
+        }
+
+        SSL_TRC(20, ("%d: SSL3[%d]: FragmentHandshake %d: unacked=%u-%u",
+                     SSL_GETPID(), ss->fd, msgSeq, fragmentOffset, end));
+
+        /* Cut down to the data we have available. */
+        PORT_Assert(fragmentOffset <= contentLen);
+        PORT_Assert(fragmentOffset <= end);
+        PORT_Assert(end <= contentLen);
+        fragmentLen = PR_MIN(end, contentLen) - fragmentOffset;
+
+        /* Reduce to the space remaining in the MTU.  Allow for any existing
+         * messages, record expansion, and the handshake header. */
+        fragmentLen = PR_MIN(fragmentLen,
+                             ss->ssl3.mtu -           /* MTU estimate. */
+                                 ss->pendingBuf.len - /* Less unsent records. */
+                                 DTLS_MAX_EXPANSION - /* Allow for expansion. */
+                                 DTLS_HS_HDR_LEN);    /* + handshake header. */
+        PORT_Assert(fragmentLen > 0 || fragmentOffset == 0);
+
+        /* Make totally sure that we will fit in the buffer. This should be
+         * impossible; DTLS_MAX_MTU should always be more than ss->ssl3.mtu. */
+        if (fragmentLen >= (DTLS_MAX_MTU - DTLS_HS_HDR_LEN)) {
+            PORT_Assert(0);
+            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+            return SECFailure;
+        }
+
+        if (fragmentLen == contentLen) {
+            fragment = msg->data;
+        } else {
+            sslBuffer tmp = SSL_BUFFER_FIXED(buf, sizeof(buf));
+
+            /* Construct an appropriate-sized fragment */
+            /* Type, length, sequence */
+            rv = sslBuffer_Append(&tmp, msg->data, 6);
+            if (rv != SECSuccess) {
+                return SECFailure;
+            }
+            /* Offset. */
+            rv = sslBuffer_AppendNumber(&tmp, fragmentOffset, 3);
+            if (rv != SECSuccess) {
+                return SECFailure;
+            }
+            /* Length. */
+            rv = sslBuffer_AppendNumber(&tmp, fragmentLen, 3);
+            if (rv != SECSuccess) {
+                return SECFailure;
+            }
+            /* Data. */
+            rv = sslBuffer_Append(&tmp, content + fragmentOffset, fragmentLen);
+            if (rv != SECSuccess) {
+                return SECFailure;
+            }
+
+            fragment = SSL_BUFFER_BASE(&tmp);
+        }
+
+        /* Record that we are sending first, because encrypting
+         * increments the sequence number. */
+        rv = dtls13_RememberFragment(ss, &ss->ssl3.hs.dtlsSentHandshake,
+                                     msgSeq, fragmentOffset, fragmentLen,
+                                     msg->cwSpec->epoch,
+                                     msg->cwSpec->write_seq_num);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+
+        rv = dtls_SendFragment(ss, msg, fragment,
+                               fragmentLen + DTLS_HS_HDR_LEN);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+
+        fragmentWritten = PR_TRUE;
+        fragmentOffset += fragmentLen;
+    } while (fragmentOffset < contentLen);
+
+    if (!fragmentWritten) {
+        /* Nothing was written if we got here, so the whole message must have
+         * been acknowledged.  Discard it. */
+        SSL_TRC(10, ("%d: SSL3[%d]: FragmentHandshake %d: removed",
+                     SSL_GETPID(), ss->fd, msgSeq));
+        PR_REMOVE_LINK(&msg->link);
+        dtls_FreeHandshakeMessage(msg);
+    }
+
+    return SECSuccess;
+}
+
 /* Transmit a flight of handshake messages, stuffing them
- * into as few records as seems reasonable
+ * into as few records as seems reasonable.
+ *
+ * TODO: Space separate UDP packets out a little.
  *
  * Called from:
  *             dtls_FlushHandshake()
  *             dtls_RetransmitTimerExpiredCb()
  */
 SECStatus
-dtls_TransmitMessageFlight(sslSocket *ss, PRBool *messagesSent)
+dtls_TransmitMessageFlight(sslSocket *ss)
 {
     SECStatus rv = SECSuccess;
     PRCList *msg_p;
-    PRUint16 room_left = ss->ssl3.mtu;
-    PRInt32 sent;
-    PRBool maybeDtls13 = tls13_MaybeTls13(ss);
-
-    if (messagesSent) {
-        *messagesSent = PR_FALSE;
-    }
 
     SSL_TRC(10, ("%d: SSL3[%d]: dtls_TransmitMessageFlight",
                  SSL_GETPID(), ss->fd));
@@ -669,199 +823,42 @@ dtls_TransmitMessageFlight(sslSocket *ss, PRBool *messagesSent)
     ssl_GetXmitBufLock(ss);
     ssl_GetSpecReadLock(ss);
 
-    /* DTLS does not buffer its handshake messages in
-     * ss->pendingBuf, but rather in the lastMessageFlight
-     * structure. This is just a sanity check that
-     * some programming error hasn't inadvertantly
-     * stuffed something in ss->pendingBuf
+    /* DTLS does not buffer its handshake messages in ss->pendingBuf, but rather
+     * in the lastMessageFlight structure. This is just a sanity check that some
+     * programming error hasn't inadvertantly stuffed something in
+     * ss->pendingBuf.  This function uses ss->pendingBuf temporarily and it
+     * needs to be empty to start.
      */
     PORT_Assert(!ss->pendingBuf.len);
+
     for (msg_p = PR_LIST_HEAD(&ss->ssl3.hs.lastMessageFlight);
-         msg_p != &ss->ssl3.hs.lastMessageFlight;
-         msg_p = PR_NEXT_LINK(msg_p)) {
+         msg_p != &ss->ssl3.hs.lastMessageFlight;) {
         DTLSQueuedMessage *msg = (DTLSQueuedMessage *)msg_p;
-        PRUint16 msgSeq = 0xffff; /* Compiler can't tell it's not used
-                                   * uninitialized. */
 
-        if (maybeDtls13) {
-            msgSeq = (msg->data[4] << 8) | msg->data[5];
-        }
+        /* Move the pointer forward so that the functions below are free to
+         * remove messages from the list. */
+        msg_p = PR_NEXT_LINK(msg_p);
 
-        /* The logic here is:
-         *
-         * 1. If this is a message that will not fit into the remaining
-         *    space, then flush.
-         * 2. If the message will now fit into the remaining space,
-         *    encrypt, buffer, and loop.
-         * 3. If the message will not fit, then fragment.
-         *
-         * At the end of the function, flush.
-         */
-        if ((msg->len + DTLS_MAX_EXPANSION) > room_left) {
-            /* The message will not fit into the remaining space, so flush */
-            rv = dtls_SendSavedWriteData(ss);
-            if (rv != SECSuccess)
-                break;
+        /* Note: This function fragments messages so that each record is close
+         * to full.  This produces fewer records, but it means that messages can
+         * be quite fragmented.  Adding an extra flush here would push new
+         * messages into new records and reduce fragmentation. */
 
-            room_left = ss->ssl3.mtu;
-        }
-
-        if ((msg->len + DTLS_MAX_EXPANSION) <= room_left) {
-            if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
-                if (dtls13_FragmentWasAcked(ss, msgSeq, 0, msg->len)) {
-                    SSL_TRC(10, (
-                                    "%d: SSL3[%d]: message %d offset %d length=%d was ACKed; skipping",
-                                    SSL_GETPID(), ss->fd,
-                                    msgSeq, 0, msg->len));
-                    continue;
-                }
-            }
-            /* The message will fit, so encrypt and then continue with the
-             * next packet */
-
-            if (maybeDtls13) {
-                /* Record that we are sending first, because encrypting
-                 * increments the sequence number. */
-                if (messagesSent) {
-                    *messagesSent = PR_TRUE;
-                }
-                rv = dtls13_RememberFragment(ss,
-                                             &ss->ssl3.hs.dtlsSentHandshake,
-                                             msgSeq, 0, msg->len,
-                                             msg->cwSpec->epoch,
-                                             msg->cwSpec->write_seq_num);
-                if (rv != SECSuccess) {
-                    break;
-                }
-            }
-            sent = ssl3_SendRecord(ss, msg->cwSpec, msg->type,
-                                   msg->data, msg->len,
-                                   ssl_SEND_FLAG_FORCE_INTO_BUFFER);
-            if (sent != msg->len) {
-                rv = SECFailure;
-                if (sent != -1) {
-                    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-                }
-                break;
-            }
-
-            room_left = ss->ssl3.mtu - ss->pendingBuf.len;
+        if (msg->type == content_handshake) {
+            rv = dtls_FragmentHandshake(ss, msg);
         } else {
-            /* The message will not fit, so fragment.
-             *
-             * XXX OK for now. Arrange to coalesce the last fragment
-             * of this message with the next message if possible.
-             * That would be more efficient.
-             */
-            PRUint32 fragment_offset = 0;
-            unsigned char fragment[DTLS_MAX_MTU]; /* >= than largest
-                                                   * plausible MTU */
-
-            /* Assert that we have already flushed */
-            PORT_Assert(room_left == ss->ssl3.mtu);
-
-            /* Case 3: We now need to fragment this message
-             * DTLS only supports fragmenting handshaking messages */
-            PORT_Assert(msg->type == content_handshake);
-
-            /* The headers consume 12 bytes so the smalles possible
-             *  message (i.e., an empty one) is 12 bytes
-             */
-            PORT_Assert(msg->len >= 12);
-
-            while ((fragment_offset + 12) < msg->len) {
-                PRUint32 fragment_len;
-                const unsigned char *content = msg->data + 12;
-                PRUint32 content_len = msg->len - 12;
-
-                /* The reason we use 8 here is that that's the length of
-                 * the new DTLS data that we add to the header */
-                fragment_len = PR_MIN((PRUint32)room_left - (DTLS_MAX_EXPANSION),
-                                      content_len - fragment_offset);
-                PORT_Assert(fragment_len < DTLS_MAX_MTU - 12);
-                /* Make totally sure that we are within the buffer.
-                 * Note that the only way that fragment len could get
-                 * adjusted here is if
-                 *
-                 * (a) we are in release mode so the PORT_Assert is compiled out
-                 * (b) either the MTU table is inconsistent with DTLS_MAX_MTU
-                 * or ss->ssl3.mtu has become corrupt.
-                 */
-                fragment_len = PR_MIN(fragment_len, DTLS_MAX_MTU - 12);
-
-                if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
-                    /* Now see if we want to send this fragment. */
-                    if (dtls13_FragmentWasAcked(ss, msgSeq, fragment_offset,
-                                                fragment_len)) {
-                        SSL_TRC(10, (
-                                        "%d: SSL3[%d]: message %d offset %d length=%d was ACKed; skipping",
-                                        SSL_GETPID(), ss->fd,
-                                        msgSeq, fragment_offset, fragment_len));
-                        fragment_offset += fragment_len;
-                        continue;
-                    }
-                }
-
-                /* Construct an appropriate-sized fragment */
-                /* Type, length, sequence */
-                PORT_Memcpy(fragment, msg->data, 6);
-
-                /* Offset */
-                fragment[6] = (fragment_offset >> 16) & 0xff;
-                fragment[7] = (fragment_offset >> 8) & 0xff;
-                fragment[8] = (fragment_offset)&0xff;
-
-                /* Fragment length */
-                fragment[9] = (fragment_len >> 16) & 0xff;
-                fragment[10] = (fragment_len >> 8) & 0xff;
-                fragment[11] = (fragment_len)&0xff;
-
-                PORT_Memcpy(fragment + 12, content + fragment_offset,
-                            fragment_len);
-
-                /*
-                 *  Send the record. We do this in two stages
-                 * 1. Encrypt
-                 */
-
-                /* Record that we are sending first, because encrypting
-                 * increments the sequence number. */
-                if (maybeDtls13) {
-                    if (messagesSent) {
-                        *messagesSent = PR_TRUE;
-                    }
-                    rv = dtls13_RememberFragment(ss,
-                                                 &ss->ssl3.hs.dtlsSentHandshake,
-                                                 msgSeq, fragment_offset, fragment_len,
-                                                 msg->cwSpec->epoch,
-                                                 msg->cwSpec->write_seq_num);
-                    if (rv != SECSuccess) {
-                        break;
-                    }
-                }
-                sent = ssl3_SendRecord(ss, msg->cwSpec, msg->type,
-                                       fragment, fragment_len + 12,
-                                       ssl_SEND_FLAG_FORCE_INTO_BUFFER);
-                if (sent != (fragment_len + 12)) {
-                    rv = SECFailure;
-                    if (sent != -1) {
-                        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-                    }
-                    break;
-                }
-                /* 2. Flush */
-                rv = dtls_SendSavedWriteData(ss);
-                if (rv != SECSuccess)
-                    break;
-
-                fragment_offset += fragment_len;
-            }
+            PORT_Assert(!tls13_MaybeTls13(ss));
+            rv = dtls_SendFragment(ss, msg, msg->data, msg->len);
+        }
+        if (rv != SECSuccess) {
+            break;
         }
     }
 
-    /* Finally, we need to flush */
-    if (rv == SECSuccess)
+    /* Finally, flush any data that wasn't flushed already. */
+    if (rv == SECSuccess) {
         rv = dtls_SendSavedWriteData(ss);
+    }
 
     /* Give up the locks */
     ssl_ReleaseSpecReadLock(ss);

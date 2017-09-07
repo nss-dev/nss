@@ -13,8 +13,8 @@ SECStatus dtls13_RememberFragment(sslSocket *ss, PRCList *list,
                                   PRUint32 sequence, PRUint32 offset,
                                   PRUint32 length, DTLSEpoch epoch,
                                   sslSequenceNumber record);
-PRBool dtls13_FragmentWasAcked(sslSocket *ss, PRUint16 msgSeq, PRUint32 offset,
-                               PRUint32 len);
+PRBool dtls_NextUnackedRange(sslSocket *ss, PRUint16 msgSeq, PRUint32 offset,
+                             PRUint32 len, PRUint32 *startOut, PRUint32 *endOut);
 ssl3CipherSpec *dtls13_FindCipherSpecByEpoch(sslSocket *ss, CipherSpecDirection direction,
                                              DTLSEpoch epoch);
 SECStatus dtls13_SetupAcks(sslSocket *ss);

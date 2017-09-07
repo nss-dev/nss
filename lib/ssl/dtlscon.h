@@ -11,8 +11,7 @@
 
 extern void dtls_FreeHandshakeMessage(DTLSQueuedMessage *msg);
 extern void dtls_FreeHandshakeMessages(PRCList *lst);
-SECStatus dtls_TransmitMessageFlight(sslSocket *ss,
-                                     PRBool *messagesSent);
+SECStatus dtls_TransmitMessageFlight(sslSocket *ss);
 void dtls_InitTimers(sslSocket *ss);
 SECStatus dtls_StartTimer(sslSocket *ss, dtlsTimer *timer,
                           PRUint32 time, DTLSTimerCb cb);
