@@ -63,10 +63,6 @@
 #   BUILT_OPT    - use optimized/debug build
 #   USE_64       - use 64bit/32bit build
 #
-# Optional environment variables to enable specific NSS features:
-# ---------------------------------------------------------------
-#   NSS_DISABLE_ECC             - disable ECC
-#
 # Optional environment variables to select which cycles/suites to test:
 # ---------------------------------------------------------------------
 #   NSS_CYCLES     - list of cycles to run (separated by space

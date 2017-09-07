@@ -96,15 +96,8 @@ ssl_init()
   NON_EC_SUITES=":0016:0032:0033:0038:0039:003B:003C:003D:0040:0041:0067:006A:006B"
   NON_EC_SUITES="${NON_EC_SUITES}:0084:009C:009D:009E:009F:00A2:00A3:CCAAcdeinvyz"
 
-  if [ -z "$NSS_DISABLE_ECC" ] ; then
-      ECC_STRING=" - with ECC"
-      # List of cipher suites to test, including ECC cipher suites.
-      CIPHER_SUITES="-c ${EC_SUITES}${NON_EC_SUITES}"
-  else
-      ECC_STRING=""
-      # List of cipher suites to test, excluding ECC cipher suites.
-      CIPHER_SUITES="-c ${NON_EC_SUITES}"
-  fi
+  # List of cipher suites to test, including ECC cipher suites.
+  CIPHER_SUITES="-c ${EC_SUITES}${NON_EC_SUITES}"
 
   if [ "${OS_ARCH}" != "WINNT" ]; then
       ulimit -n 1000 # make sure we have enough file descriptors
@@ -218,8 +211,7 @@ start_selfserv()
       echo "$SCRIPTNAME: $testname ----"
   fi
   sparam=`echo $sparam | sed -e 's;_; ;g'`
-  if [ -z "$NSS_DISABLE_ECC" ] && \
-     [ -z "$NO_ECC_CERTS" -o "$NO_ECC_CERTS" != "1"  ] ; then
+  if [ -z "$NO_ECC_CERTS" -o "$NO_ECC_CERTS" != "1"  ] ; then
       ECC_OPTIONS="-e ${HOSTADDR}-ecmixed -e ${HOSTADDR}-ec"
   else
       ECC_OPTIONS=""
@@ -275,7 +267,7 @@ ignore_blank_lines()
 ssl_cov()
 {
   #verbose="-v"
-  html_head "SSL Cipher Coverage $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE $ECC_STRING"
+  html_head "SSL Cipher Coverage $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE"
 
   testname=""
   sparam="$CIPHER_SUITES"
@@ -291,7 +283,7 @@ ssl_cov()
       echo "${testname}" | grep "EXPORT" > /dev/null
       EXP=$?
 
-      if [ "$ectype" = "ECC" -a -n "$NSS_DISABLE_ECC" ] ; then
+      if [ "$ectype" = "ECC" ] ; then
           echo "$SCRIPTNAME: skipping  $testname (ECC only)"
       else
           echo "$SCRIPTNAME: running $testname ----------------------------"
@@ -331,7 +323,7 @@ ssl_cov()
 ssl_auth()
 {
   #verbose="-v"
-  html_head "SSL Client Authentication $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE $ECC_STRING"
+  html_head "SSL Client Authentication $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE"
 
   ignore_blank_lines ${SSLAUTH} | \
   while read ectype value sparam cparam testname
@@ -343,7 +335,7 @@ ssl_auth()
           echo "$SCRIPTNAME: skipping  $testname (non-FIPS only)"
       elif [ "$ectype" = "SNI" -a "$NORM_EXT" = "Extended Test" ] ; then
           echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
-      elif [ "$ectype" = "ECC" -a  -n "$NSS_DISABLE_ECC" ] ; then
+      elif [ "$ectype" = "ECC" ] ; then
           echo "$SCRIPTNAME: skipping  $testname (ECC only)"
       else
           cparam=`echo $cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
@@ -475,7 +467,7 @@ ssl_stapling_stress()
 ########################################################################
 ssl_stapling()
 {
-  html_head "SSL Cert Status (OCSP Stapling) $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE $ECC_STRING"
+  html_head "SSL Cert Status (OCSP Stapling) $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE"
 
   # tstclnt Exit code:
   # 0: have fresh and valid revocation data, status good
@@ -508,7 +500,7 @@ ssl_stapling()
 ssl_signed_cert_timestamps()
 {
   #verbose="-v"
-  html_head "SSL Signed Certificate Timestamps $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE $ECC_STRING"
+  html_head "SSL Signed Certificate Timestamps $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE"
 
     testname="ssl_signed_cert_timestamps"
     value=0
@@ -546,7 +538,7 @@ ssl_signed_cert_timestamps()
 ########################################################################
 ssl_stress()
 {
-  html_head "SSL Stress Test $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE $ECC_STRING"
+  html_head "SSL Stress Test $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE"
 
   ignore_blank_lines ${SSLSTRESS} | \
   while read ectype value sparam cparam testname
@@ -558,7 +550,7 @@ ssl_stress()
 
       if [ "$ectype" = "SNI" -a "$NORM_EXT" = "Extended Test" ] ; then
           echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
-      elif [ "$ectype" = "ECC" -a  -n "$NSS_DISABLE_ECC" ] ; then
+      elif [ "$ectype" = "ECC" -a ] ; then
           echo "$SCRIPTNAME: skipping  $testname (ECC only)"
       elif [ "${CLIENT_MODE}" = "fips" -a "${CAUTH}" -ne 0 ] ; then
           echo "$SCRIPTNAME: skipping  $testname (non-FIPS only)"
@@ -612,7 +604,7 @@ ssl_stress()
 ssl_crl_ssl()
 {
   #verbose="-v"
-  html_head "CRL SSL Client Tests $NORM_EXT $ECC_STRING"
+  html_head "CRL SSL Client Tests $NORM_EXT"
 
   # Using First CRL Group for this test. There are $CRL_GRP_1_RANGE certs in it.
   # Cert number $UNREVOKED_CERT_GRP_1 was not revoked
@@ -623,7 +615,7 @@ ssl_crl_ssl()
   ignore_blank_lines ${SSLAUTH} | \
   while read ectype value sparam cparam testname
   do
-    if [ "$ectype" = "ECC" -a  -n "$NSS_DISABLE_ECC" ] ; then
+    if [ "$ectype" = "ECC" ] ; then
         echo "$SCRIPTNAME: skipping $testname (ECC only)"
     elif [ "$ectype" = "SNI" ]; then
         continue
@@ -690,7 +682,7 @@ ssl_crl_ssl()
 ssl_policy()
 {
   #verbose="-v"
-  html_head "SSL POLICY $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE $ECC_STRING"
+  html_head "SSL POLICY $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE"
 
   testname=""
   sparam="$CIPHER_SUITES"
@@ -712,7 +704,7 @@ ssl_policy()
   do
       VMIN="ssl3"
 
-      if [ "$ectype" = "ECC" -a -n "$NSS_DISABLE_ECC" ] ; then
+      if [ "$ectype" = "ECC" ] ; then
           echo "$SCRIPTNAME: skipping  $testname (ECC only)"
       else
           echo "$SCRIPTNAME: running $testname ----------------------------"
@@ -891,7 +883,7 @@ _EOF_REQUEST_
 ssl_crl_cache()
 {
   #verbose="-v"
-  html_head "Cache CRL SSL Client Tests $NORM_EXT $ECC_STRING"
+  html_head "Cache CRL SSL Client Tests $NORM_EXT"
   SSLAUTH_TMP=${TMP}/authin.tl.tmp
   SERV_ARG=-r_-r
   rm -f ${SSLAUTH_TMP}
@@ -907,7 +899,7 @@ ssl_crl_cache()
     while read ectype value sparam cparam testname
       do
       [ "$ectype" = "" ] && continue
-      if [ "$ectype" = "ECC" -a  -n "$NSS_DISABLE_ECC" ] ; then
+      if [ "$ectype" = "ECC" ] ; then
         echo "$SCRIPTNAME: skipping  $testname (ECC only)"
       elif [ "$ectype" = "SNI" ]; then
           continue
