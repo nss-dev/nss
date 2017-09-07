@@ -685,6 +685,30 @@ void TlsConnectTestBase::SkipVersionChecks() {
   server_->SkipVersionChecks();
 }
 
+// Shift the DTLS timers, to the minimum time necessary to let the next timer
+// run on either client or server.  This allows tests to skip waiting without
+// having timers run out of order.
+void TlsConnectTestBase::ShiftDtlsTimers() {
+  PRIntervalTime time_shift = PR_INTERVAL_NO_TIMEOUT;
+  PRIntervalTime time;
+  SECStatus rv = DTLS_GetHandshakeTimeout(client_->ssl_fd(), &time);
+  if (rv == SECSuccess) {
+    time_shift = time;
+  }
+  rv = DTLS_GetHandshakeTimeout(server_->ssl_fd(), &time);
+  if (rv == SECSuccess &&
+      (time < time_shift || time_shift == PR_INTERVAL_NO_TIMEOUT)) {
+    time_shift = time;
+  }
+
+  if (time_shift == PR_INTERVAL_NO_TIMEOUT) {
+    return;
+  }
+
+  EXPECT_EQ(SECSuccess, SSLInt_ShiftDtlsTimers(client_->ssl_fd(), time_shift));
+  EXPECT_EQ(SECSuccess, SSLInt_ShiftDtlsTimers(server_->ssl_fd(), time_shift));
+}
+
 TlsConnectGeneric::TlsConnectGeneric()
     : TlsConnectTestBase(std::get<0>(GetParam()), std::get<1>(GetParam())) {}
 

@@ -385,6 +385,8 @@ dtls_HandleHandshake(sslSocket *ss, DTLSEpoch epoch, sslSequenceNumber seqNum,
                              SSL_GETPID(), ss->fd));
                 discarded = PR_TRUE;
             } else {
+                PRInt32 end = fragment_offset + fragment_length;
+
                 /* Case 1
                  *
                  * Buffer the fragment for reassembly
@@ -421,11 +423,11 @@ dtls_HandleHandshake(sslSocket *ss, DTLSEpoch epoch, sslSequenceNumber seqNum,
                     goto loser;
                 }
 
-                /* Now copy this fragment into the buffer */
-                PORT_Assert((fragment_offset + fragment_length) <=
-                            ss->ssl3.hs.msg_body.space);
-                PORT_Memcpy(ss->ssl3.hs.msg_body.buf + fragment_offset,
-                            buf.buf, fragment_length);
+                /* Now copy this fragment into the buffer. */
+                if (end > ss->ssl3.hs.recvdHighWater) {
+                    PORT_Memcpy(ss->ssl3.hs.msg_body.buf + fragment_offset,
+                                buf.buf, fragment_length);
+                }
 
                 /* This logic is a bit tricky. We have two values for
                  * reassembly state:
@@ -441,12 +443,11 @@ dtls_HandleHandshake(sslSocket *ss, DTLSEpoch epoch, sslSequenceNumber seqNum,
                 if (fragment_offset <= (unsigned int)ss->ssl3.hs.recvdHighWater) {
                     /* Either this is the adjacent fragment or an overlapping
                      * fragment */
-                    ss->ssl3.hs.recvdHighWater = fragment_offset +
-                                                 fragment_length;
+                    if (end > ss->ssl3.hs.recvdHighWater) {
+                        ss->ssl3.hs.recvdHighWater = end;
+                    }
                 } else {
-                    for (offset = fragment_offset;
-                         offset < fragment_offset + fragment_length;
-                         offset++) {
+                    for (offset = fragment_offset; offset < end; offset++) {
                         ss->ssl3.hs.recvdFragments.buf[OFFSET_BYTE(offset)] |=
                             OFFSET_MASK(offset);
                     }

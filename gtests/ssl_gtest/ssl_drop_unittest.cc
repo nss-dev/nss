@@ -90,16 +90,9 @@ class TlsDropDatagram13 : public TlsConnectDatagram13 {
     server_filters_.ack_->EnableDecryption();
   }
 
-  void WaitTimeout(const std::shared_ptr<TlsAgent>& agent, uint32_t minTo) {
-    PRIntervalTime timeout;
-    ASSERT_EQ(SECSuccess, DTLS_GetHandshakeTimeout(agent->ssl_fd(), &timeout));
-    ASSERT_GE(PR_MillisecondsToInterval(minTo), timeout);
-    PR_Sleep(timeout);
-  }
-
   void HandshakeAndAck(const std::shared_ptr<TlsAgent>& agent) {
     agent->Handshake();  // Read flight.
-    WaitTimeout(agent, DTLS_RETRANSMIT_INITIAL_MS);
+    ShiftDtlsTimers();
     agent->Handshake();  // Generate ACK.
   }
 
@@ -192,7 +185,7 @@ class TlsDropDatagram13 : public TlsConnectDatagram13 {
 // Dropping complete first and second flights does not produce
 // ACKs
 TEST_F(TlsDropDatagram13, DropClientFirstFlightOnce) {
-  client_filters_.drop_->Enable(1);
+  client_filters_.drop_->Reset({0});
   StartConnect();
   client_->Handshake();
   server_->Handshake();
@@ -201,7 +194,7 @@ TEST_F(TlsDropDatagram13, DropClientFirstFlightOnce) {
 }
 
 TEST_F(TlsDropDatagram13, DropServerFirstFlightOnce) {
-  server_filters_.drop_->Enable(0xff);
+  server_filters_.drop_->Reset(0xff);
   StartConnect();
   client_->Handshake();
   // Send the first flight, all dropped.
@@ -215,7 +208,7 @@ TEST_F(TlsDropDatagram13, DropServerFirstFlightOnce) {
 // an ACK because the next record is ignored.
 // TODO(ekr@rtfm.com): We should generate an empty ACK.
 TEST_F(TlsDropDatagram13, DropServerFirstRecordOnce) {
-  server_filters_.drop_->Enable(1);
+  server_filters_.drop_->Reset({0});
   StartConnect();
   client_->Handshake();
   server_->Handshake();
@@ -227,7 +220,7 @@ TEST_F(TlsDropDatagram13, DropServerFirstRecordOnce) {
 // Dropping the second packet of the server's flight should
 // produce an ACK.
 TEST_F(TlsDropDatagram13, DropServerSecondRecordOnce) {
-  server_filters_.drop_->Enable(2);
+  server_filters_.drop_->Reset({1});
   StartConnect();
   client_->Handshake();
   server_->Handshake();
@@ -246,14 +239,14 @@ TEST_F(TlsDropDatagram13, DropServerAckOnce) {
   server_->Handshake();
   // At this point the server has sent it's first flight,
   // so make it drop the ACK.
-  server_filters_.drop_->Enable(1);
+  server_filters_.drop_->Reset({0});
   client_->Handshake();  // Send the client Finished.
   server_->Handshake();  // Receive the Finished and send the ACK.
   EXPECT_EQ(TlsAgent::STATE_CONNECTED, client_->state());
   EXPECT_EQ(TlsAgent::STATE_CONNECTED, server_->state());
   // Wait for the DTLS timeout to make sure we retransmit the
   // Finished.
-  WaitTimeout(client_, DTLS_RETRANSMIT_INITIAL_MS * 2);
+  ShiftDtlsTimers();
   client_->Handshake();  // Retransmit the Finished.
   server_->Handshake();  // Read the Finished and send an ACK.
   uint8_t buf[1];
@@ -275,7 +268,7 @@ TEST_F(TlsDropDatagram13, DropClientCertVerify) {
   client_->Handshake();
   server_->Handshake();
   // Have the client drop Cert Verify
-  client_filters_.drop_->Enable(2);
+  client_filters_.drop_->Reset({1});
   expected_server_acks_ = 2;
   CheckedHandshakeSendReceive();
   // Ack of the Cert.
@@ -291,7 +284,7 @@ TEST_F(TlsDropDatagram13, DropClientCertVerify) {
 
 // Shrink the MTU down so that certs get split and drop the first piece.
 TEST_F(TlsDropDatagram13, DropFirstHalfOfServerCertificate) {
-  server_filters_.drop_->Enable(4);
+  server_filters_.drop_->Reset({2});
   StartConnect();
   ShrinkPostServerHelloMtu();
   client_->Handshake();
@@ -319,7 +312,7 @@ TEST_F(TlsDropDatagram13, DropFirstHalfOfServerCertificate) {
 
 // Shrink the MTU down so that certs get split and drop the second piece.
 TEST_F(TlsDropDatagram13, DropSecondHalfOfServerCertificate) {
-  server_filters_.drop_->Enable(8);
+  server_filters_.drop_->Reset({3});
   StartConnect();
   ShrinkPostServerHelloMtu();
   client_->Handshake();
@@ -345,6 +338,193 @@ TEST_F(TlsDropDatagram13, DropSecondHalfOfServerCertificate) {
   CheckAcks(server_filters_, 0, {0x0002000000000000ULL});
 }
 
+// In this test, the Certificate message is sent four times, we drop all or part
+// of the first three attempts:
+// 1. Without fragmentation so that we can see how big it is - we drop that.
+// 2. In two pieces - we drop half AND the resulting ACK.
+// 3. In three pieces - we drop the middle piece.
+//
+// After that we let all the ACKs through and allow the handshake to complete
+// without further interference.
+//
+// This allows us to test that ranges of handshake messages are sent correctly
+// even when there are overlapping acknowledgments; that ACKs with duplicate or
+// overlapping message ranges are handled properly; and that extra
+// retransmissions are handled properly.
+class TlsFragmentationAndRecoveryTest : public TlsDropDatagram13 {
+ protected:
+  void RunTest(size_t dropped_half) {
+    FirstFlightDropCertificate();
+
+    SecondAttemptDropHalf(dropped_half);
+    size_t dropped_half_size = server_record_len(dropped_half);
+    size_t second_flight_count = server_filters_.records_->count();
+
+    ThirdAttemptDropMiddle();
+    size_t repaired_third_size = server_record_len((dropped_half == 0) ? 0 : 2);
+    size_t third_flight_count = server_filters_.records_->count();
+
+    AckAndCompleteRetransmission();
+    size_t final_server_flight_count = server_filters_.records_->count();
+    EXPECT_LE(3U, final_server_flight_count);  // CT(sixth), CV, Fin
+    CheckSizeOfSixth(dropped_half_size, repaired_third_size);
+
+    SendDelayedAck();
+    // Same number of messages as the last flight.
+    EXPECT_EQ(final_server_flight_count, server_filters_.records_->count());
+    // Double check that the Certificate size is still correct.
+    CheckSizeOfSixth(dropped_half_size, repaired_third_size);
+
+    CompleteHandshake(final_server_flight_count);
+
+    // This is the ACK for the first attempt to send a whole certificate.
+    std::vector<uint64_t> client_acks = {
+        0,                     // SH
+        0x0002000000000000ULL  // EE
+    };
+    CheckAcks(client_filters_, 0, client_acks);
+    // And from the second attempt for the half was kept (we delayed this ACK).
+    client_acks.push_back(0x0002000000000000ULL + second_flight_count +
+                          ~dropped_half % 2);
+    CheckAcks(client_filters_, 1, client_acks);
+    // And the third attempt where the first and last thirds got through.
+    client_acks.push_back(0x0002000000000000ULL + second_flight_count +
+                          third_flight_count - 1);
+    client_acks.push_back(0x0002000000000000ULL + second_flight_count +
+                          third_flight_count + 1);
+    CheckAcks(client_filters_, 2, client_acks);
+    CheckAcks(server_filters_, 0, {0x0002000000000000ULL});
+  }
+
+ private:
+  void FirstFlightDropCertificate() {
+    StartConnect();
+    client_->Handshake();
+
+    // Note: 1 << N is the Nth packet, starting from zero.
+    server_filters_.drop_->Reset(1 << 2);  // Drop Cert0.
+    server_->Handshake();
+    EXPECT_EQ(5U, server_filters_.records_->count());  // SH, EE, CT, CV, Fin
+    cert_len_ = server_filters_.records_->record(2).buffer.len();
+
+    HandshakeAndAck(client_);
+    EXPECT_EQ(2U, client_filters_.records_->count());
+  }
+
+  // Lower the MTU so that the server has to split the certificate in two
+  // pieces.  The server resends Certificate (in two), plus CV and Fin.
+  void SecondAttemptDropHalf(size_t dropped_half) {
+    ASSERT_LE(0U, dropped_half);
+    ASSERT_GT(2U, dropped_half);
+    server_filters_.records_->Clear();
+    server_filters_.drop_->Reset({dropped_half});  // Drop Cert1[half]
+    SplitServerMtu(2);
+    server_->Handshake();
+    EXPECT_LE(4U, server_filters_.records_->count());  // CT x2, CV, Fin
+
+    // Generate and capture the ACK from the client.
+    client_filters_.drop_->Reset({0});
+    HandshakeAndAck(client_);
+    EXPECT_EQ(3U, client_filters_.records_->count());
+  }
+
+  // Lower the MTU again so that the server sends Certificate cut into three
+  // pieces.  Drop the middle piece.
+  void ThirdAttemptDropMiddle() {
+    server_filters_.records_->Clear();
+    server_filters_.drop_->Reset({1});  // Drop Cert2[1] (of 3)
+    SplitServerMtu(3);
+    // Because we dropped the client ACK, the server retransmits on a timer.
+    ShiftDtlsTimers();
+    server_->Handshake();
+    EXPECT_LE(5U, server_filters_.records_->count());  // CT x3, CV, Fin
+  }
+
+  void AckAndCompleteRetransmission() {
+    // Generate ACKs.
+    HandshakeAndAck(client_);
+    // The server should send the final sixth of the certificate: the client has
+    // acknowledged the first half and the last third.  Also send CV and Fin.
+    server_filters_.records_->Clear();
+    server_->Handshake();
+  }
+
+  void CheckSizeOfSixth(size_t size_of_half, size_t size_of_third) {
+    // Work out if the final sixth is the right size.  We get the records with
+    // overheads added, which obscures the length of the payload.  We want to
+    // ensure that the server only sent the missing sixth of the Certificate.
+    //
+    // We captured |size_of_half + overhead| and |size_of_third + overhead| and
+    // want to calculate |size_of_third - size_of_third + overhead|.  We can't
+    // calculate |overhead|, but it is is (currently) always a handshake message
+    // header, a content type, and an authentication tag:
+    static const size_t record_overhead = 12 + 1 + 16;
+    EXPECT_EQ(size_of_half - size_of_third + record_overhead,
+              server_filters_.records_->record(0).buffer.len());
+  }
+
+  void SendDelayedAck() {
+    // Send the ACK we held back.  The reordered ACK doesn't add new
+    // information,
+    // but triggers an extra retransmission of the missing records again (even
+    // though the client has all that it needs).
+    client_->SendRecordDirect(client_filters_.records_->record(2));
+    server_filters_.records_->Clear();
+    server_->Handshake();
+  }
+
+  void CompleteHandshake(size_t extra_retransmissions) {
+    // All this messing around shouldn't cause a failure...
+    Handshake();
+    // ...but it leaves a mess.  Add an extra few calls to Handshake() for the
+    // client so that it absorbs the extra retransmissions.
+    for (size_t i = 0; i < extra_retransmissions; ++i) {
+      client_->Handshake();
+    }
+    CheckConnected();
+  }
+
+  // Split the server MTU so that the Certificate is split into |count| pieces.
+  // The calculation doesn't need to be perfect as long as the Certificate
+  // message is split into the right number of pieces.
+  void SplitServerMtu(size_t count) {
+    // Set the MTU based on the formula:
+    // bare_size = cert_len_ - actual_overhead
+    // MTU = ceil(bare_size / count) + pessimistic_overhead
+    //
+    // actual_overhead is the amount of actual overhead on the record we
+    // captured, which is (note that our length doesn't include the header):
+    static const size_t actual_overhead = 12 +  // handshake message header
+                                          1 +   // content type
+                                          16;   // authentication tag
+    size_t bare_size = cert_len_ - actual_overhead;
+
+    // pessimistic_overhead is the amount of expansion that NSS assumes will be
+    // added to each handshake record.  Right now, that is DTLS_MIN_FRAGMENT:
+    static const size_t pessimistic_overhead =
+        12 +  // handshake message header
+        1 +   // content type
+        13 +  // record header length
+        64;   // maximum record expansion: IV, MAC and block cipher expansion
+
+    size_t mtu = (bare_size + count - 1) / count + pessimistic_overhead;
+    if (g_ssl_gtest_verbose) {
+      std::cerr << "server: set MTU to " << mtu << std::endl;
+    }
+    EXPECT_EQ(SECSuccess, SSLInt_SetMTU(server_->ssl_fd(), mtu));
+  }
+
+  size_t server_record_len(size_t index) const {
+    return server_filters_.records_->record(index).buffer.len();
+  }
+
+  size_t cert_len_;
+};
+
+TEST_F(TlsFragmentationAndRecoveryTest, DropFirstHalf) { RunTest(0); }
+
+TEST_F(TlsFragmentationAndRecoveryTest, DropSecondHalf) { RunTest(1); }
+
 TEST_F(TlsDropDatagram13, NoDropsDuringZeroRtt) {
   SetupForZeroRtt();
   SetFilters();
@@ -367,7 +547,7 @@ TEST_F(TlsDropDatagram13, DropEEDuringZeroRtt) {
   client_->Set0RttEnabled(true);
   server_->Set0RttEnabled(true);
   ExpectResumption(RESUME_TICKET);
-  server_filters_.drop_->Enable(2);
+  server_filters_.drop_->Reset({1});
   ZeroRttSendReceive(true, true);
   HandshakeAndAck(client_);
   Handshake();
@@ -404,7 +584,7 @@ class TlsReorderDatagram13 : public TlsDropDatagram13 {
 // Reorder the server records so that EE comes at the end
 // of the flight and will still produce an ACK.
 TEST_F(TlsDropDatagram13, ReorderServerEE) {
-  server_filters_.drop_->Enable(2);
+  server_filters_.drop_->Reset({1});
   StartConnect();
   client_->Handshake();
   server_->Handshake();
@@ -518,7 +698,7 @@ TEST_F(TlsReorderDatagram13, ReorderServerCertificate) {
   ShrinkPostServerHelloMtu();
   client_->Handshake();
   // Drop the entire handshake flight so we can reorder.
-  server_filters_.drop_->Enable(255);
+  server_filters_.drop_->Reset(0xff);
   server_->Handshake();
   // Check that things got split.
   EXPECT_EQ(6UL,
@@ -529,7 +709,7 @@ TEST_F(TlsReorderDatagram13, ReorderServerCertificate) {
   server_filters_.drop_->Disable();
   server_filters_.records_->Clear();
   // Wait for client to send ACK.
-  WaitTimeout(client_, DTLS_RETRANSMIT_INITIAL_MS);
+  ShiftDtlsTimers();
   CheckedHandshakeSendReceive();
   EXPECT_EQ(2UL, server_filters_.records_->count());  // ACK + Data
   CheckAcks(server_filters_, 0, {0x0002000000000000ULL});
@@ -547,7 +727,7 @@ TEST_F(TlsReorderDatagram13, DataAfterEOEDDuringZeroRtt) {
   // Now send another client application data record but
   // capture it.
   client_filters_.records_->Clear();
-  client_filters_.drop_->Enable(255);
+  client_filters_.drop_->Reset(0xff);
   const char* k0RttData = "123456";
   const PRInt32 k0RttDataLen = static_cast<PRInt32>(strlen(k0RttData));
   PRInt32 rv =
@@ -584,7 +764,7 @@ TEST_F(TlsReorderDatagram13, DataAfterFinDuringZeroRtt) {
   // Now send another client application data record but
   // capture it.
   client_filters_.records_->Clear();
-  client_filters_.drop_->Enable(255);
+  client_filters_.drop_->Reset(0xff);
   const char* k0RttData = "123456";
   const PRInt32 k0RttDataLen = static_cast<PRInt32>(strlen(k0RttData));
   PRInt32 rv =

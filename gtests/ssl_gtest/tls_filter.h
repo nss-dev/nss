@@ -157,8 +157,11 @@ inline std::ostream& operator<<(std::ostream& stream,
     case kTlsApplicationDataType:
       stream << "Data";
       break;
+    case kTlsAckType:
+      stream << "ACK";
+      break;
     default:
-      stream << '<' << hdr.content_type() << '>';
+      stream << '<' << static_cast<int>(hdr.content_type()) << '>';
       break;
   }
   return stream << ' ' << std::hex << hdr.sequence_number() << std::dec;
@@ -468,11 +471,17 @@ class SelectiveRecordDropFilter : public TlsRecordFilter {
       Disable();
     }
   }
+  SelectiveRecordDropFilter(std::initializer_list<size_t> records)
+      : SelectiveRecordDropFilter(ToPattern(records), true) {}
 
-  void Enable(uint32_t pattern) {
-    std::cerr << "Enable " << this << std::endl;
+  void Reset(uint32_t pattern) {
+    counter_ = 0;
     PacketFilter::Enable();
     pattern_ = pattern;
+  }
+
+  void Reset(std::initializer_list<size_t> records) {
+    Reset(ToPattern(records));
   }
 
  protected:
@@ -481,6 +490,8 @@ class SelectiveRecordDropFilter : public TlsRecordFilter {
                                     DataBuffer* changed) override;
 
  private:
+  static uint32_t ToPattern(std::initializer_list<size_t> records);
+
   uint32_t pattern_;
   uint8_t counter_;
 };
