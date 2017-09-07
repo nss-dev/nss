@@ -279,14 +279,14 @@ BLAKE2B_End(BLAKE2BContext* ctx, unsigned char* out,
     size_t i;
     unsigned int outlen = PR_MIN(BLAKE2B512_LENGTH, maxDigestLen);
 
-    /* Sanity check against outlen in context. */
-    if (ctx->outlen < outlen) {
+    /* Argument checks */
+    if (!ctx || !out) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
 
-    /* Argument checks */
-    if (!ctx || !out) {
+    /* Sanity check against outlen in context. */
+    if (ctx->outlen < outlen) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
