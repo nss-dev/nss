@@ -73,6 +73,7 @@ SECStatus SSLInt_SetMTU(PRFileDesc *fd, PRUint16 mtu) {
     return SECFailure;
   }
   ss->ssl3.mtu = mtu;
+  ss->ssl3.hs.rtRetries = 0; /* Avoid DTLS shrinking the MTU any more. */
   return SECSuccess;
 }
 
@@ -109,20 +110,22 @@ void SSLInt_PrintTls13CipherSpecs(const char *label, PRFileDesc *fd) {
   }
 }
 
-/* Force a retransmission timer expiry by backdating when the timer
- * was started. We could set the remaining time to 0 but then backoff
- * would not work properly if we decide to test it. */
-void SSLInt_ForceRtTimerExpiry(PRFileDesc *fd) {
+/* Force a timer expiry by backdating when all active timers were started. We
+ * could set the remaining time to 0 but then backoff would not work properly if
+ * we decide to test it. */
+SECStatus SSLInt_ShiftDtlsTimers(PRFileDesc *fd, PRIntervalTime shift) {
+  size_t i;
   sslSocket *ss = ssl_FindSocket(fd);
   if (!ss) {
-    return;
+    return SECFailure;
   }
 
-  if (!ss->ssl3.hs.rtTimer->cb) return;
-
-  ss->ssl3.hs.rtTimer->started =
-      PR_IntervalNow() -
-      PR_MillisecondsToInterval(ss->ssl3.hs.rtTimer->timeout + 1);
+  for (i = 0; i < PR_ARRAY_SIZE(ss->ssl3.hs.timers); ++i) {
+    if (ss->ssl3.hs.timers[i].cb) {
+      ss->ssl3.hs.timers[i].started -= shift;
+    }
+  }
+  return SECSuccess;
 }
 
 #define CHECK_SECRET(secret)                  \

@@ -26,7 +26,7 @@ void SSLInt_ClearSelfEncryptKey();
 void SSLInt_SetSelfEncryptMacKey(PK11SymKey *key);
 PRInt32 SSLInt_CountTls13CipherSpecs(PRFileDesc *fd);
 void SSLInt_PrintTls13CipherSpecs(const char *label, PRFileDesc *fd);
-void SSLInt_ForceRtTimerExpiry(PRFileDesc *fd);
+SECStatus SSLInt_ShiftDtlsTimers(PRFileDesc *fd, PRIntervalTime shift);
 SECStatus SSLInt_SetMTU(PRFileDesc *fd, PRUint16 mtu);
 PRBool SSLInt_CheckSecretsDestroyed(PRFileDesc *fd);
 PRBool SSLInt_DamageClientHsTrafficSecret(PRFileDesc *fd);

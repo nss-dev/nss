@@ -124,6 +124,9 @@ class TlsConnectTestBase : public ::testing::Test {
   void DisableECDHEServerKeyReuse();
   void SkipVersionChecks();
 
+  // Move the DTLS timers for both endpoints to pop the next timer.
+  void ShiftDtlsTimers();
+
  protected:
   SSLProtocolVariant variant_;
   std::shared_ptr<TlsAgent> client_;

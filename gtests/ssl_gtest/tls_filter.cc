@@ -12,6 +12,7 @@ extern "C" {
 #include "libssl_internals.h"
 }
 
+#include <cassert>
 #include <iostream>
 #include "gtest_utils.h"
 #include "tls_agent.h"
@@ -751,6 +752,17 @@ PacketFilter::Action SelectiveRecordDropFilter::FilterRecord(
     return KEEP;
   }
   return ((1 << counter_++) & pattern_) ? DROP : KEEP;
+}
+
+/* static */ uint32_t SelectiveRecordDropFilter::ToPattern(
+    std::initializer_list<size_t> records) {
+  uint32_t pattern = 0;
+  for (auto it = records.begin(); it != records.end(); ++it) {
+    EXPECT_GT(32U, *it);
+    assert(*it < 32U);
+    pattern |= 1 << *it;
+  }
+  return pattern;
 }
 
 PacketFilter::Action TlsInspectorClientHelloVersionSetter::FilterHandshake(

@@ -12589,7 +12589,7 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     }
     if (spec != ss->ssl3.crSpec) {
         PORT_Assert(IS_DTLS(ss));
-        SSL_TRC(3, ("%d: DTLS[%d]: Handling out-of-epoch record from epoch=",
+        SSL_TRC(3, ("%d: DTLS[%d]: Handling out-of-epoch record from epoch=%d",
                     SSL_GETPID(), ss->fd, spec->epoch));
         outOfOrderSpec = PR_TRUE;
     }

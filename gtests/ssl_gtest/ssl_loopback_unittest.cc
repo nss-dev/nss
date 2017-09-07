@@ -317,11 +317,54 @@ TEST_P(TlsConnectGeneric, ConnectWithCompressionEnabled) {
   SendReceive();
 }
 
-TEST_P(TlsConnectDatagram, TestDtlsHolddownExpiry) {
+class TlsHolddownTest : public TlsConnectDatagram {
+ protected:
+  // This causes all timers to run to completion.  It advances the clock and
+  // handshakes on both peers until both peers have no more timers pending,
+  // which should happen at the end of a handshake.  This is necessary to ensure
+  // that the relatively long holddown timer expires, but that any other timers
+  // also expire and run correctly.
+  void RunAllTimersDown() {
+    while (true) {
+      PRIntervalTime time;
+      SECStatus rv = DTLS_GetHandshakeTimeout(client_->ssl_fd(), &time);
+      if (rv != SECSuccess) {
+        rv = DTLS_GetHandshakeTimeout(server_->ssl_fd(), &time);
+        if (rv != SECSuccess) {
+          break;  // Neither peer has an outstanding timer.
+        }
+      }
+
+      if (g_ssl_gtest_verbose) {
+        std::cerr << "Shifting timers" << std::endl;
+      }
+      ShiftDtlsTimers();
+      Handshake();
+    }
+  }
+};
+
+TEST_P(TlsHolddownTest, TestDtlsHolddownExpiry) {
   Connect();
   std::cerr << "Expiring holddown timer" << std::endl;
-  SSLInt_ForceRtTimerExpiry(client_->ssl_fd());
-  SSLInt_ForceRtTimerExpiry(server_->ssl_fd());
+  RunAllTimersDown();
+  SendReceive();
+  if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    // One for send, one for receive.
+    EXPECT_EQ(2, SSLInt_CountTls13CipherSpecs(client_->ssl_fd()));
+  }
+}
+
+TEST_P(TlsHolddownTest, TestDtlsHolddownExpiryResumption) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  Connect();
+  SendReceive();
+
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
+  ExpectResumption(RESUME_TICKET);
+  Connect();
+  RunAllTimersDown();
   SendReceive();
   if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
     // One for send, one for receive.
@@ -337,7 +380,7 @@ class TlsPreCCSHeaderInjector : public TlsRecordFilter {
       size_t* offset, DataBuffer* output) override {
     if (record_header.content_type() != kTlsChangeCipherSpecType) return KEEP;
 
-    std::cerr << "Injecting Finished header before CCS" << std::endl;
+    std::cerr << "Injecting Finished header before CCS\n";
     const uint8_t hhdr[] = {kTlsHandshakeFinished, 0x00, 0x00, 0x0c};
     DataBuffer hhdr_buf(hhdr, sizeof(hhdr));
     TlsRecordHeader nhdr(record_header.version(), kTlsHandshakeType, 0);
@@ -480,6 +523,8 @@ INSTANTIATE_TEST_CASE_P(
 INSTANTIATE_TEST_CASE_P(StreamOnly, TlsConnectStream,
                         TlsConnectTestBase::kTlsVAll);
 INSTANTIATE_TEST_CASE_P(DatagramOnly, TlsConnectDatagram,
+                        TlsConnectTestBase::kTlsV11Plus);
+INSTANTIATE_TEST_CASE_P(DatagramHolddown, TlsHolddownTest,
                         TlsConnectTestBase::kTlsV11Plus);
 
 INSTANTIATE_TEST_CASE_P(
