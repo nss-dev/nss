@@ -365,7 +365,7 @@ ChangeTrustAttributes(CERTCertDBHandle *handle, PK11SlotInfo *slot,
     CERTCertificate *cert;
     CERTCertTrust *trust;
 
-    cert = CERT_FindCertByNicknameOrEmailAddr(handle, name);
+    cert = CERT_FindCertByNicknameOrEmailAddrCX(handle, name, pwdata);
     if (!cert) {
         SECU_PrintError(progName, "could not find certificate named \"%s\"",
                         name);
