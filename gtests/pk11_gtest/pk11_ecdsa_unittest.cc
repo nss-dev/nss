@@ -36,26 +36,23 @@ class Pkcs11EcdsaSha512Test : public Pkcs11EcdsaTest {
   SECOidTag hashOID() { return SEC_OID_SHA512; }
 };
 
-TEST_F(Pkcs11EcdsaSha256Test, VerifyP256) {
-  SIG_TEST_VECTOR_VERIFY(kP256Spki, kP256Data, kP256Signature)
-}
-TEST_F(Pkcs11EcdsaSha256Test, SignAndVerifyP256) {
-  SIG_TEST_VECTOR_SIGN_VERIFY(kP256Pkcs8, kP256Spki, kP256Data)
-}
+TEST_F(Pkcs11EcdsaSha256Test,
+       VerifyP256){SIG_TEST_VECTOR_VERIFY(kP256Spki, kP256Data, kP256Signature)}
 
-TEST_F(Pkcs11EcdsaSha384Test, VerifyP384) {
-  SIG_TEST_VECTOR_VERIFY(kP384Spki, kP384Data, kP384Signature)
-}
-TEST_F(Pkcs11EcdsaSha384Test, SignAndVerifyP384) {
-  SIG_TEST_VECTOR_SIGN_VERIFY(kP384Pkcs8, kP384Spki, kP384Data)
-}
+TEST_F(Pkcs11EcdsaSha256Test, SignAndVerifyP256){
+    SIG_TEST_VECTOR_SIGN_VERIFY(kP256Pkcs8, kP256Spki, kP256Data)}
 
-TEST_F(Pkcs11EcdsaSha512Test, VerifyP521) {
-  SIG_TEST_VECTOR_VERIFY(kP521Spki, kP521Data, kP521Signature)
-}
-TEST_F(Pkcs11EcdsaSha512Test, SignAndVerifyP521) {
-  SIG_TEST_VECTOR_SIGN_VERIFY(kP521Pkcs8, kP521Spki, kP521Data)
-}
+TEST_F(Pkcs11EcdsaSha384Test,
+       VerifyP384){SIG_TEST_VECTOR_VERIFY(kP384Spki, kP384Data, kP384Signature)}
+
+TEST_F(Pkcs11EcdsaSha384Test, SignAndVerifyP384){
+    SIG_TEST_VECTOR_SIGN_VERIFY(kP384Pkcs8, kP384Spki, kP384Data)}
+
+TEST_F(Pkcs11EcdsaSha512Test,
+       VerifyP521){SIG_TEST_VECTOR_VERIFY(kP521Spki, kP521Data, kP521Signature)}
+
+TEST_F(Pkcs11EcdsaSha512Test, SignAndVerifyP521){
+    SIG_TEST_VECTOR_SIGN_VERIFY(kP521Pkcs8, kP521Spki, kP521Data)}
 
 // Importing a private key in PKCS#8 format must fail when the outer AlgID
 // struct contains neither id-ecPublicKey nor a namedCurve parameter.
