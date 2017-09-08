@@ -221,8 +221,7 @@ SECKEY_CreateECPrivateKey(SECKEYECParams *param, SECKEYPublicKey **pubk, void *c
                                             PK11_ATTR_SESSION |
                                                 PK11_ATTR_INSENSITIVE |
                                                 PK11_ATTR_PUBLIC,
-                                            CKF_DERIVE, CKF_DERIVE |
-                                                            CKF_SIGN,
+                                            CKF_DERIVE, CKF_DERIVE | CKF_SIGN,
                                             cx);
     if (!privk)
         privk = PK11_GenerateKeyPairWithOpFlags(slot, CKM_EC_KEY_PAIR_GEN,
@@ -230,8 +229,7 @@ SECKEY_CreateECPrivateKey(SECKEYECParams *param, SECKEYPublicKey **pubk, void *c
                                                 PK11_ATTR_SESSION |
                                                     PK11_ATTR_SENSITIVE |
                                                     PK11_ATTR_PRIVATE,
-                                                CKF_DERIVE, CKF_DERIVE |
-                                                                CKF_SIGN,
+                                                CKF_DERIVE, CKF_DERIVE | CKF_SIGN,
                                                 cx);
 
     PK11_FreeSlot(slot);

@@ -309,9 +309,10 @@ TEST_F(TlsDropDatagram13, DropFirstHalfOfServerCertificate) {
   // as the previous CT1).
   EXPECT_EQ(ct1_size, server_filters_.record(0).buffer.len());
   CheckedHandshakeSendReceive();
-  CheckAcks(client_filters_, 0, {0,                      // SH
-                                 0x0002000000000000ULL,  // EE
-                                 0x0002000000000002ULL}  // CT2
+  CheckAcks(client_filters_, 0,
+            {0,                      // SH
+             0x0002000000000000ULL,  // EE
+             0x0002000000000002ULL}  // CT2
             );
   CheckAcks(server_filters_, 0, {0x0002000000000000ULL});
 }
@@ -335,11 +336,12 @@ TEST_F(TlsDropDatagram13, DropSecondHalfOfServerCertificate) {
   // Check that the first record is CT1
   EXPECT_EQ(ct1_size, server_filters_.record(0).buffer.len());
   CheckedHandshakeSendReceive();
-  CheckAcks(client_filters_, 0, {
-                                    0,                      // SH
-                                    0x0002000000000000ULL,  // EE
-                                    0x0002000000000001ULL,  // CT1
-                                });
+  CheckAcks(client_filters_, 0,
+            {
+                0,                      // SH
+                0x0002000000000000ULL,  // EE
+                0x0002000000000001ULL,  // CT1
+            });
   CheckAcks(server_filters_, 0, {0x0002000000000000ULL});
 }
 
@@ -411,10 +413,11 @@ TEST_F(TlsDropDatagram13, ReorderServerEE) {
   expected_client_acks_ = 1;
   HandshakeAndAck(client_);
   CheckedHandshakeSendReceive();
-  CheckAcks(client_filters_, 0, {
-                                    0,                   // SH
-                                    0x0002000000000000,  // EE
-                                });
+  CheckAcks(client_filters_, 0,
+            {
+                0,                   // SH
+                0x0002000000000000,  // EE
+            });
   CheckAcks(server_filters_, 0, {0x0002000000000000ULL});
 }
 
