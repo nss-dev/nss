@@ -473,7 +473,6 @@ common_FindCertByIssuerAndSN(CERTCertDBHandle *handle,
     return cert;
 }
 
-
 /* maybe all the wincx's should be some const for internal token login? */
 CERTCertificate *
 CERT_FindCertByIssuerAndSN(CERTCertDBHandle *handle,
