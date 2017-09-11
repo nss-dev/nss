@@ -1867,9 +1867,6 @@ extern void SSL_AtomicIncrementLong(long *x);
 
 SECStatus ssl3_ApplyNSSPolicy(void);
 
-extern HASH_HashType
-ssl3_GetTls12HashType(sslSocket *ss);
-
 extern SECStatus
 ssl3_TLSPRFWithMasterSecret(sslSocket *ss, ssl3CipherSpec *spec,
                             const char *label, unsigned int labelLen,

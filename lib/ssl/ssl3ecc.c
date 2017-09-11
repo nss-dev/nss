@@ -175,8 +175,8 @@ ssl3_SendECDHClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
 
-    isTLS = (PRBool)(ss->ssl3.pwSpec->version > SSL_LIBRARY_VERSION_3_0);
-    isTLS12 = (PRBool)(ss->ssl3.pwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2);
+    isTLS = (PRBool)(ss->version > SSL_LIBRARY_VERSION_3_0);
+    isTLS12 = (PRBool)(ss->version >= SSL_LIBRARY_VERSION_TLS_1_2);
 
     /* Generate ephemeral EC keypair */
     if (svrPubKey->keyType != ecKey) {
@@ -690,7 +690,7 @@ ssl3_SendECDHServerKeyExchange(sslSocket *ss)
     ec_params.data[2] = keyPair->group->name & 0xff;
 
     pubKey = keyPair->keys->pubKey;
-    if (ss->ssl3.pwSpec->version == SSL_LIBRARY_VERSION_TLS_1_2) {
+    if (ss->version == SSL_LIBRARY_VERSION_TLS_1_2) {
         hashAlg = ssl_SignatureSchemeToHashType(ss->ssl3.hs.signatureScheme);
     } else {
         /* Use ssl_hash_none to represent the MD5+SHA1 combo. */
@@ -706,7 +706,7 @@ ssl3_SendECDHServerKeyExchange(sslSocket *ss)
         goto loser;
     }
 
-    isTLS12 = (PRBool)(ss->ssl3.pwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2);
+    isTLS12 = (PRBool)(ss->version >= SSL_LIBRARY_VERSION_TLS_1_2);
 
     rv = ssl3_SignHashes(ss, &hashes,
                          ss->sec.serverCert->serverKeyPair->privKey, &signed_hash);
