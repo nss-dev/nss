@@ -253,28 +253,6 @@ dtls_NextUnackedRange(sslSocket *ss, PRUint16 msgSeq, PRUint32 offset,
     return PR_TRUE;
 }
 
-ssl3CipherSpec *
-dtls13_FindCipherSpecByEpoch(sslSocket *ss, CipherSpecDirection direction,
-                             DTLSEpoch epoch)
-{
-    PRCList *cur_p;
-    PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
-    for (cur_p = PR_LIST_HEAD(&ss->ssl3.hs.cipherSpecs);
-         cur_p != &ss->ssl3.hs.cipherSpecs;
-         cur_p = PR_NEXT_LINK(cur_p)) {
-        ssl3CipherSpec *spec = (ssl3CipherSpec *)cur_p;
-
-        if (spec->epoch != epoch) {
-            continue;
-        }
-        if (direction != spec->direction) {
-            continue;
-        }
-        return spec;
-    }
-    return NULL;
-}
-
 SECStatus
 dtls13_SetupAcks(sslSocket *ss)
 {
@@ -411,25 +389,6 @@ dtls13_SaveNullCipherSpec(sslSocket *ss, const ssl3CipherSpec *crSpec)
     return SECSuccess;
 }
 
-void
-dtls13_ReleaseReadCipherSpec(sslSocket *ss, DTLSEpoch epoch)
-{
-    ssl3CipherSpec *spec;
-    if (!IS_DTLS(ss)) {
-        return;
-    }
-
-    SSL_TRC(10, ("%d: SSL3[%d]: releasing read cipher spec for epoch %d",
-                 SSL_GETPID(), ss->fd, epoch));
-
-    spec = dtls13_FindCipherSpecByEpoch(ss, CipherSpecRead, epoch);
-    if (!spec) {
-        return;
-    }
-
-    tls13_CipherSpecRelease(spec);
-}
-
 SECStatus
 dtls13_HandleAck(sslSocket *ss, sslBuffer *databuf)
 {
@@ -496,7 +455,7 @@ dtls13_HandleAck(sslSocket *ss, sslBuffer *databuf)
          * for the holddown period to process retransmitted Finisheds.
          */
         if (!ss->sec.isServer && (ss->ssl3.hs.ws == idle_handshake)) {
-            dtls13_ReleaseReadCipherSpec(ss, TrafficKeyHandshake);
+            ssl_ReleaseReadCipherSpec(ss, TrafficKeyHandshake);
         }
     }
     return SECSuccess;
@@ -522,6 +481,6 @@ dtls13_HolddownTimerCb(sslSocket *ss)
 {
     SSL_TRC(10, ("%d: SSL3[%d]: holddown timer fired",
                  SSL_GETPID(), ss->fd));
-    dtls13_ReleaseReadCipherSpec(ss, TrafficKeyHandshake);
+    ssl_ReleaseReadCipherSpec(ss, TrafficKeyHandshake);
     ssl_ClearPRCList(&ss->ssl3.hs.dtlsRcvdHandshake, NULL);
 }
