@@ -243,7 +243,6 @@ typedef struct sslOptionsStr {
     unsigned int detectRollBack : 1;
     unsigned int noLocks : 1;
     unsigned int enableSessionTickets : 1;
-    unsigned int enableDeflate : 1;
     unsigned int enableRenegotiation : 2;
     unsigned int requireSafeNegotiation : 1;
     unsigned int enableFalseStart : 1;
@@ -401,7 +400,6 @@ struct sslSessionIDStr {
             PRUint8 sessionID[SSL3_SESSIONID_BYTES];
 
             ssl3CipherSuite cipherSuite;
-            SSLCompressionMethod compression;
             int policy;
             ssl3SidKeys keys;
             /* mechanism used to wrap master secret */
@@ -603,7 +601,6 @@ typedef struct SSL3HandshakeStateStr {
     const ssl3KEADef *kea_def;
     ssl3CipherSuite cipher_suite;
     const ssl3CipherSuiteDef *suite_def;
-    SSLCompressionMethod compression;
     sslBuffer msg_body; /* protected by recvBufLock */
                         /* partial handshake message from record layer */
     unsigned int header_bytes;
@@ -751,7 +748,6 @@ struct ssl3StateStr {
     /* used by server.  trusted CAs for this socket. */
     PRBool initialized;
     SSL3HandshakeState hs;
-    ssl3CipherSpec specs[2]; /* one is current, one is pending. */
 
     PRUint16 mtu; /* Our estimate of the MTU */
 
@@ -820,7 +816,6 @@ typedef struct SessionTicketStr {
     PRBool valid;
     SSL3ProtocolVersion ssl_version;
     ssl3CipherSuite cipher_suite;
-    SSLCompressionMethod compression_method;
     SSLAuthType authType;
     PRUint32 authKeyBits;
     SSLKEAType keaType;
@@ -1193,7 +1188,7 @@ extern SECStatus ssl_CipherPrefSetDefault(PRInt32 which, PRBool enabled);
 
 extern SECStatus ssl3_ConstrainRangeByPolicy(void);
 
-extern void ssl3_InitState(sslSocket *ss);
+extern SECStatus ssl3_InitState(sslSocket *ss);
 extern SECStatus Null_Cipher(void *ctx, unsigned char *output, int *outputLen,
                              int maxOutputLen, const unsigned char *input,
                              int inputLen);
@@ -1222,21 +1217,11 @@ extern PRInt32 ssl3_SendRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
 /* Clear any PRCList, optionally calling f on the value. */
 void ssl_ClearPRCList(PRCList *list, void (*f)(void *));
 
-#ifdef NSS_SSL_ENABLE_ZLIB
 /*
- * The DEFLATE algorithm can result in an expansion of 0.1% + 12 bytes. For a
- * maximum TLS record payload of 2**14 bytes, that's 29 bytes.
+ * Make sure there is room in the write buffer for padding and
+ * cryptographic expansions.
  */
-#define SSL3_COMPRESSION_MAX_EXPANSION 29
-#else /* !NSS_SSL_ENABLE_ZLIB */
-#define SSL3_COMPRESSION_MAX_EXPANSION 0
-#endif
-
-/*
- * make sure there is room in the write buffer for padding and
- * other compression and cryptographic expansions.
- */
-#define SSL3_BUFFER_FUDGE 100 + SSL3_COMPRESSION_MAX_EXPANSION
+#define SSL3_BUFFER_FUDGE 100
 
 #define SSL_LOCK_READER(ss) \
     if (ss->recvLock)       \

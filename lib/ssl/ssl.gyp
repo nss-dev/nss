@@ -62,14 +62,6 @@
             'unix_err.c'
           ],
         }],
-        [ 'ssl_enable_zlib==1', {
-          'dependencies': [
-            '<(DEPTH)/lib/zlib/zlib.gyp:nss_zlib'
-          ],
-          'defines': [
-            'NSS_SSL_ENABLE_ZLIB',
-          ],
-        }],
         [ 'fuzz_tls==1', {
           'defines': [
             'UNSAFE_FUZZER_MODE',

@@ -654,7 +654,7 @@ ssl3_ClientHandleStatusRequestXtn(const sslSocket *ss, TLSExtensionData *xtnData
 }
 
 PRUint32 ssl_ticket_lifetime = 2 * 24 * 60 * 60; /* 2 days in seconds */
-#define TLS_EX_SESS_TICKET_VERSION (0x0107)
+#define TLS_EX_SESS_TICKET_VERSION (0x0108)
 
 /*
  * Called from ssl3_SendNewSessionTicket, tls13_SendNewSessionTicket
@@ -718,11 +718,6 @@ ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
     /* ciphersuite */
     rv = sslBuffer_AppendNumber(&plaintext, ss->ssl3.hs.cipher_suite,
                                 sizeof(ssl3CipherSuite));
-    if (rv != SECSuccess)
-        goto loser;
-
-    /* compression */
-    rv = sslBuffer_AppendNumber(&plaintext, ss->ssl3.hs.compression, 1);
     if (rv != SECSuccess)
         goto loser;
 
@@ -973,14 +968,6 @@ ssl_ParseSessionTicket(sslSocket *ss, const SECItem *decryptedTicket,
     }
     parsedTicket->cipher_suite = (ssl3CipherSuite)temp;
 
-    /* Read compression_method. */
-    rv = ssl3_ExtConsumeHandshakeNumber(ss, &temp, 1, &buffer, &len);
-    if (rv != SECSuccess) {
-        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-        return SECFailure;
-    }
-    parsedTicket->compression_method = (SSLCompressionMethod)temp;
-
     /* Read cipher spec parameters. */
     rv = ssl3_ExtConsumeHandshakeNumber(ss, &temp, 1, &buffer, &len);
     if (rv != SECSuccess) {
@@ -1182,7 +1169,6 @@ ssl_CreateSIDFromTicket(sslSocket *ss, const SECItem *rawTicket,
     sid->version = parsedTicket->ssl_version;
     sid->creationTime = parsedTicket->timestamp;
     sid->u.ssl3.cipherSuite = parsedTicket->cipher_suite;
-    sid->u.ssl3.compression = parsedTicket->compression_method;
     sid->authType = parsedTicket->authType;
     sid->authKeyBits = parsedTicket->authKeyBits;
     sid->keaType = parsedTicket->keaType;

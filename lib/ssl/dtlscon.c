@@ -729,7 +729,7 @@ dtls_TransmitMessageFlight(sslSocket *ss, PRBool *messagesSent)
                                              &ss->ssl3.hs.dtlsSentHandshake,
                                              msgSeq, 0, msg->len,
                                              msg->cwSpec->epoch,
-                                             msg->cwSpec->write_seq_num);
+                                             msg->cwSpec->seqNum);
                 if (rv != SECSuccess) {
                     break;
                 }
@@ -834,7 +834,7 @@ dtls_TransmitMessageFlight(sslSocket *ss, PRBool *messagesSent)
                                                  &ss->ssl3.hs.dtlsSentHandshake,
                                                  msgSeq, fragment_offset, fragment_len,
                                                  msg->cwSpec->epoch,
-                                                 msg->cwSpec->write_seq_num);
+                                                 msg->cwSpec->seqNum);
                     if (rv != SECSuccess) {
                         break;
                     }
@@ -1041,9 +1041,6 @@ static void
 dtls_FinishedTimerCb(sslSocket *ss)
 {
     dtls_FreeHandshakeMessages(&ss->ssl3.hs.lastMessageFlight);
-    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
-        ssl_FreeCipherSpec(ss->ssl3.pwSpec);
-    }
 }
 
 /* Cancel the Finished hold-down timer and destroy the
@@ -1063,7 +1060,7 @@ dtls_RehandshakeCleanup(sslSocket *ss)
     }
     PORT_Assert((ss->version < SSL_LIBRARY_VERSION_TLS_1_3));
     dtls_CancelAllTimers(ss);
-    ssl_FreeCipherSpec(ss->ssl3.pwSpec);
+    dtls_FreeHandshakeMessages(&ss->ssl3.hs.lastMessageFlight);
     ss->ssl3.hs.sendMessageSeq = 0;
     ss->ssl3.hs.recvMessageSeq = 0;
 }
