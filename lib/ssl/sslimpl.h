@@ -749,7 +749,6 @@ struct ssl3StateStr {
     /* used by server.  trusted CAs for this socket. */
     PRBool initialized;
     SSL3HandshakeState hs;
-    ssl3CipherSpec specs[2]; /* one is current, one is pending. */
 
     PRUint16 mtu; /* Our estimate of the MTU */
 
@@ -1190,7 +1189,7 @@ extern SECStatus ssl_CipherPrefSetDefault(PRInt32 which, PRBool enabled);
 
 extern SECStatus ssl3_ConstrainRangeByPolicy(void);
 
-extern void ssl3_InitState(sslSocket *ss);
+extern SECStatus ssl3_InitState(sslSocket *ss);
 extern SECStatus Null_Cipher(void *ctx, unsigned char *output, int *outputLen,
                              int maxOutputLen, const unsigned char *input,
                              int inputLen);

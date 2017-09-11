@@ -494,7 +494,7 @@ SSL_ExportKeyingMaterial(PRFileDesc *fd,
      * secret is available and we have sent ChangeCipherSpec.
      */
     ssl_GetSpecReadLock(ss);
-    if (!ss->ssl3.cwSpec->master_secret) {
+    if (!ss->ssl3.cwSpec->masterSecret) {
         PORT_SetError(SSL_ERROR_HANDSHAKE_NOT_COMPLETED);
         rv = SECFailure;
     } else {

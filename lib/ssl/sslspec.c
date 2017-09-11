@@ -62,17 +62,12 @@ static const ssl3BulkCipherDef ssl_bulk_cipher_defs[] = {
 /* clang-format on */
 
 const ssl3BulkCipherDef *
-ssl_GetBulkCipherDefById(SSL3BulkCipher bulkCipher)
+ssl_GetBulkCipherDef(const ssl3CipherSuiteDef *suiteDef)
 {
+    SSL3BulkCipher bulkCipher = suiteDef->bulk_cipher_alg;
     PORT_Assert(bulkCipher < PR_ARRAY_SIZE(ssl_bulk_cipher_defs));
     PORT_Assert(ssl_bulk_cipher_defs[bulkCipher].cipher == bulkCipher);
     return &ssl_bulk_cipher_defs[bulkCipher];
-}
-
-const ssl3BulkCipherDef *
-ssl_GetBulkCipherDef(const ssl3CipherSuiteDef *suiteDef)
-{
-    return ssl_GetBulkCipherDefById(suiteDef->bulk_cipher_alg);
 }
 
 /* indexed by SSL3MACAlgorithm */
@@ -151,9 +146,51 @@ ssl_CreateCipherSpec(sslSocket *ss, CipherSpecDirection direction)
     SSL_TRC(10, ("%d: SSL[%d]: new %s spec %d ct=%d",
                  SSL_GETPID(), ss->fd, SPEC_DIR(spec), spec,
                  spec->refCt));
-
-    PR_APPEND_LINK(&spec->link, &ss->ssl3.hs.cipherSpecs);
     return spec;
+}
+
+void
+ssl_SaveCipherSpec(sslSocket *ss, ssl3CipherSpec *spec)
+{
+    PR_APPEND_LINK(&spec->link, &ss->ssl3.hs.cipherSpecs);
+}
+
+/* Called from ssl3_InitState. */
+/* Caller must hold the SpecWriteLock. */
+SECStatus
+ssl_SetupNullCipherSpec(sslSocket *ss, CipherSpecDirection dir)
+{
+    ssl3CipherSpec *spec;
+
+    PORT_Assert(ss->opt.noLocks || ssl_HaveSpecWriteLock(ss));
+
+    spec = ssl_CreateCipherSpec(ss, dir);
+    if (!spec) {
+        return SECFailure;
+    }
+
+    /* The null spec is set before we start the handshake.  So, we set the
+     * version to the highest that is negotiated.  Each version then follows its
+     * own rules about construction of unencrypted records.  For instance, TLS
+     * 1.3 will set the record version number to TLS 1.0. */
+    spec->version = ss->vrange.max;
+
+    spec->cipherDef = &ssl_bulk_cipher_defs[cipher_null];
+    PORT_Assert(spec->cipherDef->cipher == cipher_null);
+    spec->macDef = &ssl_mac_defs[ssl_mac_null];
+    PORT_Assert(spec->macDef->mac == ssl_mac_null);
+    spec->cipher = Null_Cipher;
+
+    spec->phase = "cleartext";
+    dtls_InitRecvdRecords(&spec->recvdRecords);
+
+    ssl_SaveCipherSpec(ss, spec);
+    if (dir == CipherSpecRead) {
+        ss->ssl3.crSpec = spec;
+    } else {
+        ss->ssl3.cwSpec = spec;
+    }
+    return SECSuccess;
 }
 
 void
@@ -164,47 +201,32 @@ ssl_CipherSpecAddRef(ssl3CipherSpec *spec)
                  SSL_GETPID(), SPEC_DIR(spec), spec, spec->refCt));
 }
 
-/* Called twice, only from ssl3_DestroyCipherSpec (immediately below). */
 static void
-ssl3_CleanupKeyMaterial(ssl3KeyMaterial *mat)
+ssl_DestroyKeyMaterial(ssl3KeyMaterial *keyMaterial)
 {
-    if (mat->write_key != NULL) {
-        PK11_FreeSymKey(mat->write_key);
-        mat->write_key = NULL;
-    }
-    if (mat->write_mac_key != NULL) {
-        PK11_FreeSymKey(mat->write_mac_key);
-        mat->write_mac_key = NULL;
-    }
-    if (mat->write_mac_context != NULL) {
-        PK11_DestroyContext(mat->write_mac_context, PR_TRUE);
-        mat->write_mac_context = NULL;
+    PK11_FreeSymKey(keyMaterial->key);
+    PK11_FreeSymKey(keyMaterial->macKey);
+    if (keyMaterial->macContext != NULL) {
+        PK11_DestroyContext(keyMaterial->macContext, PR_TRUE);
     }
 }
 
-/* Called from ssl3_SendChangeCipherSpecs() and
-**         ssl3_HandleChangeCipherSpecs()
-**             ssl3_DestroySSL3Info
-** Caller must hold SpecWriteLock.
-*/
-void
+static void
 ssl_FreeCipherSpec(ssl3CipherSpec *spec)
 {
+    SSL_TRC(10, ("%d: SSL[-]: Freeing %s spec %d. epoch=%d",
+                 SSL_GETPID(), SPEC_DIR(spec), spec, spec->epoch));
+
+    PR_REMOVE_LINK(&spec->link);
+
     /*  PORT_Assert( ss->opt.noLocks || ssl_HaveSpecWriteLock(ss)); Don't have ss! */
-    if (spec->encodeContext) {
-        PK11_DestroyContext(spec->encodeContext, PR_TRUE);
-        spec->encodeContext = NULL;
+    if (spec->cipherContext) {
+        PK11_DestroyContext(spec->cipherContext, PR_TRUE);
     }
-    if (spec->decodeContext) {
-        PK11_DestroyContext(spec->decodeContext, PR_TRUE);
-        spec->decodeContext = NULL;
-    }
-    if (spec->master_secret != NULL) {
-        PK11_FreeSymKey(spec->master_secret);
-        spec->master_secret = NULL;
-    }
-    ssl3_CleanupKeyMaterial(&spec->client);
-    ssl3_CleanupKeyMaterial(&spec->server);
+    PK11_FreeSymKey(spec->masterSecret);
+    ssl_DestroyKeyMaterial(&spec->keyMaterial);
+
+    PORT_ZFree(spec, sizeof(*spec));
 }
 
 /* This function is never called on a spec which is on the
@@ -212,14 +234,16 @@ ssl_FreeCipherSpec(ssl3CipherSpec *spec)
 void
 ssl_CipherSpecRelease(ssl3CipherSpec *spec)
 {
+    if (!spec) {
+        return;
+    }
+
     PORT_Assert(spec->refCt > 0);
     --spec->refCt;
     SSL_TRC(10, ("%d: SSL[-]: decrement refct for %s spec %d. epoch=%d new ct = %d",
                  SSL_GETPID(), SPEC_DIR(spec), spec, spec->epoch, spec->refCt));
     if (!spec->refCt) {
-        PR_REMOVE_LINK(&spec->link);
         ssl_FreeCipherSpec(spec);
-        PORT_Free(spec);
     }
 }
 
@@ -227,28 +251,21 @@ void
 ssl_DestroyCipherSpecs(PRCList *list)
 {
     while (!PR_CLIST_IS_EMPTY(list)) {
-        PRCList *cur_p = PR_LIST_TAIL(list);
-        PR_REMOVE_LINK(cur_p);
-        ssl_FreeCipherSpec((ssl3CipherSpec *)cur_p);
-        PORT_Free(cur_p);
+        ssl_FreeCipherSpec((ssl3CipherSpec *)PR_LIST_TAIL(list));
     }
 }
 
 void
-ssl_ReleaseReadCipherSpec(sslSocket *ss, DTLSEpoch epoch)
+ssl_CipherSpecReleaseByEpoch(sslSocket *ss, CipherSpecDirection dir,
+                             DTLSEpoch epoch)
 {
     ssl3CipherSpec *spec;
-    if (!IS_DTLS(ss)) {
-        return;
+    SSL_TRC(10, ("%d: SSL[%d]: releasing %s cipher spec for epoch %d",
+                 SSL_GETPID(), ss->fd,
+                 (dir == CipherSpecRead) ? "read" : "write", epoch));
+
+    spec = ssl_FindCipherSpecByEpoch(ss, dir, epoch);
+    if (spec) {
+        ssl_CipherSpecRelease(spec);
     }
-
-    SSL_TRC(10, ("%d: SSL[%d]: releasing read cipher spec for epoch %d",
-                 SSL_GETPID(), ss->fd, epoch));
-
-    spec = ssl_FindCipherSpecByEpoch(ss, CipherSpecRead, epoch);
-    if (!spec) {
-        return;
-    }
-
-    ssl_CipherSpecRelease(spec);
 }

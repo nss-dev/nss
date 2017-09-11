@@ -20,7 +20,6 @@ SECStatus dtls13_HandleOutOfEpochRecord(sslSocket *ss, const ssl3CipherSpec *spe
                                         SSL3ContentType rType,
                                         sslBuffer *databuf);
 SECStatus dtls13_HandleAck(sslSocket *ss, sslBuffer *databuf);
-SECStatus dtls13_SaveNullCipherSpec(sslSocket *ss, const ssl3CipherSpec *crSpec);
 
 SECStatus dtls13_SendAck(sslSocket *ss);
 void dtls13_SendAckCb(sslSocket *ss);
