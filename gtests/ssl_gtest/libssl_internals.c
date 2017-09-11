@@ -228,7 +228,6 @@ PRBool SSLInt_SendAlert(PRFileDesc *fd, uint8_t level, uint8_t type) {
 }
 
 SECStatus SSLInt_AdvanceReadSeqNum(PRFileDesc *fd, PRUint64 to) {
-  PRUint64 epoch;
   sslSocket *ss;
   ssl3CipherSpec *spec;
 
@@ -236,43 +235,41 @@ SECStatus SSLInt_AdvanceReadSeqNum(PRFileDesc *fd, PRUint64 to) {
   if (!ss) {
     return SECFailure;
   }
-  if (to >= (1ULL << 48)) {
+  if (to >= RECORD_SEQ_MAX) {
     PORT_SetError(SEC_ERROR_INVALID_ARGS);
     return SECFailure;
   }
   ssl_GetSpecWriteLock(ss);
   spec = ss->ssl3.crSpec;
-  epoch = spec->read_seq_num >> 48;
-  spec->read_seq_num = (epoch << 48) | to;
+  spec->read_seq_num = to;
 
   /* For DTLS, we need to fix the record sequence number.  For this, we can just
    * scrub the entire structure on the assumption that the new sequence number
    * is far enough past the last received sequence number. */
-  if (to <= spec->recvdRecords.right + DTLS_RECVD_RECORDS_WINDOW) {
+  if (spec->read_seq_num <=
+      spec->recvdRecords.right + DTLS_RECVD_RECORDS_WINDOW) {
     PORT_SetError(SEC_ERROR_INVALID_ARGS);
     return SECFailure;
   }
-  dtls_RecordSetRecvd(&spec->recvdRecords, to);
+  dtls_RecordSetRecvd(&spec->recvdRecords, spec->read_seq_num);
 
   ssl_ReleaseSpecWriteLock(ss);
   return SECSuccess;
 }
 
 SECStatus SSLInt_AdvanceWriteSeqNum(PRFileDesc *fd, PRUint64 to) {
-  PRUint64 epoch;
   sslSocket *ss;
 
   ss = ssl_FindSocket(fd);
   if (!ss) {
     return SECFailure;
   }
-  if (to >= (1ULL << 48)) {
+  if (to >= RECORD_SEQ_MAX) {
     PORT_SetError(SEC_ERROR_INVALID_ARGS);
     return SECFailure;
   }
   ssl_GetSpecWriteLock(ss);
-  epoch = ss->ssl3.cwSpec->write_seq_num >> 48;
-  ss->ssl3.cwSpec->write_seq_num = (epoch << 48) | to;
+  ss->ssl3.cwSpec->write_seq_num = to;
   ssl_ReleaseSpecWriteLock(ss);
   return SECSuccess;
 }
@@ -288,7 +285,7 @@ SECStatus SSLInt_AdvanceWriteSeqByAWindow(PRFileDesc *fd, PRInt32 extra) {
   ssl_GetSpecReadLock(ss);
   to = ss->ssl3.cwSpec->write_seq_num + DTLS_RECVD_RECORDS_WINDOW + extra;
   ssl_ReleaseSpecReadLock(ss);
-  return SSLInt_AdvanceWriteSeqNum(fd, to & RECORD_SEQ_MAX);
+  return SSLInt_AdvanceWriteSeqNum(fd, to);
 }
 
 SSLKEAType SSLInt_GetKEAType(SSLNamedGroup group) {

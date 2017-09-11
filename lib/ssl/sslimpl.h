@@ -452,7 +452,8 @@ typedef SECStatus (*SSLDestroy)(void *context, PRBool freeit);
  * onto the buffer.
  */
 #define DTLS_RECVD_RECORDS_WINDOW 1024
-#define RECORD_SEQ_MAX ((1ULL << 48) - 1)
+#define RECORD_SEQ_MASK ((1ULL << 48) - 1)
+#define RECORD_SEQ_MAX RECORD_SEQ_MASK
 PR_STATIC_ASSERT(DTLS_RECVD_RECORDS_WINDOW % 8 == 0);
 
 typedef struct DTLSRecvdRecordsStr {
