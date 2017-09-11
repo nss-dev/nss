@@ -19,10 +19,10 @@
  */
 typedef struct DTLSHandshakeRecordEntryStr {
     PRCList link;
-    PRUint16 messageSeq;      /* The handshake message sequence */
+    PRUint16 messageSeq;      /* The handshake message sequence number. */
     PRUint32 offset;          /* The offset into the handshake message. */
     PRUint32 length;          /* The length of the fragment. */
-    sslSequenceNumber record; /* The record */
+    sslSequenceNumber record; /* The record (includes epoch). */
     PRBool acked;             /* Has this packet been acked. */
 } DTLSHandshakeRecordEntry;
 
@@ -32,6 +32,7 @@ dtls13_RememberFragment(sslSocket *ss,
                         PRUint32 sequence,
                         PRUint32 offset,
                         PRUint32 length,
+                        DTLSEpoch epoch,
                         sslSequenceNumber record)
 {
     DTLSHandshakeRecordEntry *entry;
@@ -42,7 +43,7 @@ dtls13_RememberFragment(sslSocket *ss,
                  SSL_GETPID(), ss->fd,
                  SSL_ROLE(ss),
                  list == &ss->ssl3.hs.dtlsSentHandshake ? "sent" : "received",
-                 record, sequence, offset));
+                 ((sslSequenceNumber)epoch << 48) | record, sequence, offset));
 
     entry = PORT_ZAlloc(sizeof(DTLSHandshakeRecordEntry));
     if (!entry) {
@@ -52,7 +53,7 @@ dtls13_RememberFragment(sslSocket *ss,
     entry->messageSeq = sequence;
     entry->offset = offset;
     entry->length = length;
-    entry->record = record;
+    entry->record = ((sslSequenceNumber)epoch << 48) | record;
     entry->acked = PR_FALSE;
 
     PR_APPEND_LINK(&entry->link, list);

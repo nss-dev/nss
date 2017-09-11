@@ -3094,14 +3094,8 @@ tls13_SetCipherSpec(sslSocket *ss, TrafficKeyType type,
         return SECFailure;
     }
     spec->epoch = (PRUint16)type;
-
-    if (!IS_DTLS(ss)) {
-        spec->read_seq_num = spec->write_seq_num = 0;
-    } else {
-        /* The sequence number has the high 16 bits as the epoch. */
-        spec->read_seq_num = spec->write_seq_num =
-            (sslSequenceNumber)spec->epoch << 48;
-
+    spec->read_seq_num = spec->write_seq_num = 0;
+    if (IS_DTLS(ss)) {
         dtls_InitRecvdRecords(&spec->recvdRecords);
     }
 
@@ -4565,13 +4559,24 @@ tls13_ExtensionStatus(PRUint16 extension, SSLHandshakeType message)
  * just use this input as the sequence number and not as additional
  * data. */
 static SECStatus
-tls13_FormatAdditionalData(PRUint8 *aad, unsigned int length,
-                           sslSequenceNumber seqNum)
+tls13_FormatAdditionalData(sslSocket *ss, PRUint8 *aad, unsigned int length,
+                           DTLSEpoch epoch, sslSequenceNumber seqNum)
 {
+    SECStatus rv;
     sslBuffer buf = SSL_BUFFER_FIXED(aad, length);
 
     PORT_Assert(length == 8);
-    return sslBuffer_AppendNumber(&buf, seqNum, length);
+    if (IS_DTLS(ss)) {
+        rv = sslBuffer_AppendNumber(&buf, epoch, 2);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+    }
+    rv = sslBuffer_AppendNumber(&buf, seqNum, IS_DTLS(ss) ? 6 : 8);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    return SECSuccess;
 }
 
 PRInt32
@@ -4631,7 +4636,8 @@ tls13_ProtectRecord(sslSocket *ss,
         /* Add the content type at the end. */
         wrBuf->buf[contentLen] = type;
 
-        rv = tls13_FormatAdditionalData(aad, sizeof(aad), cwSpec->write_seq_num);
+        rv = tls13_FormatAdditionalData(ss, aad, sizeof(aad), cwSpec->epoch,
+                                        cwSpec->write_seq_num);
         if (rv != SECSuccess) {
             return SECFailure;
         }
@@ -4709,9 +4715,8 @@ tls13_UnprotectRecord(sslSocket *ss,
 
     /* Decrypt */
     PORT_Assert(cipher_def->type == type_aead);
-    rv = tls13_FormatAdditionalData(aad, sizeof(aad),
-                                    IS_DTLS(ss) ? cText->seq_num
-                                                : spec->read_seq_num);
+    rv = tls13_FormatAdditionalData(ss, aad, sizeof(aad), spec->epoch,
+                                    IS_DTLS(ss) ? cText->seq_num : spec->read_seq_num);
     if (rv != SECSuccess) {
         return SECFailure;
     }
