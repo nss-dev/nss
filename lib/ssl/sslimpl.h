@@ -411,7 +411,6 @@ typedef PRUint16 DTLSEpoch;
 typedef struct {
     PRUint8 wrapped_master_secret[48];
     PRUint16 wrapped_master_secret_len;
-    PRUint8 msIsWrapped;
     PRUint8 resumable;
     PRUint8 extendedMasterSecretUsed;
 } ssl3SidKeys; /* 53 bytes */
@@ -420,9 +419,6 @@ typedef struct {
     PK11SymKey *write_key;
     PK11SymKey *write_mac_key;
     PK11Context *write_mac_context;
-    SECItem write_key_item;
-    SECItem write_iv_item;
-    SECItem write_mac_key_item;
     PRUint8 write_iv[MAX_IV_LENGTH];
 } ssl3KeyMaterial;
 
@@ -499,7 +495,6 @@ struct ssl3CipherSpecStr {
     SSL3ProtocolVersion version;
     ssl3KeyMaterial client;
     ssl3KeyMaterial server;
-    SECItem msItem;
     DTLSEpoch epoch;
     DTLSRecvdRecords recvdRecords;
     /* The number of 0-RTT bytes that can be sent or received in TLS 1.3. This
@@ -1358,7 +1353,8 @@ extern int ssl_Do1stHandshake(sslSocket *ss);
 
 extern void ssl_ChooseSessionIDProcs(sslSecurityInfo *sec);
 
-extern void ssl3_InitCipherSpec(ssl3CipherSpec *spec);
+extern SECStatus ssl3_InitPendingCipherSpecs(sslSocket *ss, PK11SymKey *secret,
+                                             PRBool derive);
 extern sslSessionID *ssl3_NewSessionID(sslSocket *ss, PRBool is_server);
 extern sslSessionID *ssl_LookupSID(const PRIPv6Addr *addr, PRUint16 port,
                                    const char *peerID, const char *urlSvrName);

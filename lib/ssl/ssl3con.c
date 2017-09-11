@@ -40,8 +40,10 @@
 
 static PK11SymKey *ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
                                        PK11SlotInfo *serverKeySlot);
-static SECStatus ssl3_DeriveMasterSecret(sslSocket *ss, PK11SymKey *pms);
-static SECStatus ssl3_DeriveConnectionKeys(sslSocket *ss);
+static SECStatus ssl3_ComputeMasterSecret(sslSocket *ss, PK11SymKey *pms,
+                                          PK11SymKey **msp);
+static SECStatus ssl3_DeriveConnectionKeys(sslSocket *ss,
+                                           PK11SymKey *masterSecret);
 static SECStatus ssl3_HandshakeFailure(sslSocket *ss);
 static SECStatus ssl3_SendCertificate(sslSocket *ss);
 static SECStatus ssl3_SendCertificateRequest(sslSocket *ss);
@@ -1562,8 +1564,6 @@ ssl3_DestroyCipherSpec(ssl3CipherSpec *spec, PRBool freeSrvName)
         PK11_FreeSymKey(spec->master_secret);
         spec->master_secret = NULL;
     }
-    spec->msItem.data = NULL;
-    spec->msItem.len = 0;
     ssl3_CleanupKeyMaterial(&spec->client);
     ssl3_CleanupKeyMaterial(&spec->server);
     spec->destroyCompressContext = NULL;
@@ -1962,9 +1962,8 @@ ssl3_ChaCha20Poly1305(ssl3KeyMaterial *keys, PRBool doDecrypt,
  * Caller holds Spec write lock.
  */
 static SECStatus
-ssl3_InitPendingContexts(sslSocket *ss)
+ssl3_InitPendingContexts(sslSocket *ss, ssl3CipherSpec *pwSpec)
 {
-    ssl3CipherSpec *pwSpec;
     const ssl3BulkCipherDef *cipher_def;
     PK11Context *serverContext = NULL;
     PK11Context *clientContext = NULL;
@@ -1980,7 +1979,6 @@ ssl3_InitPendingContexts(sslSocket *ss)
     PORT_Assert(ss->opt.noLocks || ssl_HaveSpecWriteLock(ss));
     PORT_Assert(ss->ssl3.prSpec == ss->ssl3.pwSpec);
 
-    pwSpec = ss->ssl3.pwSpec;
     cipher_def = pwSpec->cipher_def;
     macLength = pwSpec->mac_size;
     calg = cipher_def->calg;
@@ -2123,73 +2121,80 @@ fail:
  *              ssl3_HandleServerHello      (for session restart)
  *              ssl3_HandleClientHello      (for session restart)
  * Sets error code, but caller probably should override to disambiguate.
- * NULL pms means re-use old master_secret.
  *
- *  If the old master secret is reused, pms is NULL and the master secret is
- *  already in pwSpec->master_secret.
+ * If |secret| is a master secret from a previous connection is reused, |derive|
+ * is PR_FALSE.  If the secret is a pre-master secret, then |derive| is PR_TRUE
+ * and the master secret is derived from |secret|.
  */
 SECStatus
-ssl3_InitPendingCipherSpec(sslSocket *ss, PK11SymKey *pms)
+ssl3_InitPendingCipherSpecs(sslSocket *ss, PK11SymKey *secret, PRBool derive)
 {
+    PK11SymKey *masterSecret;
     ssl3CipherSpec *pwSpec;
-    ssl3CipherSpec *cwSpec;
     SECStatus rv;
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert(secret);
 
     ssl_GetSpecWriteLock(ss); /**************************************/
 
     PORT_Assert(ss->ssl3.prSpec == ss->ssl3.pwSpec);
-
+    PORT_Assert(ss->ssl3.pwSpec);
+    PORT_Assert(ss->ssl3.cwSpec->epoch == ss->ssl3.crSpec->epoch);
     pwSpec = ss->ssl3.pwSpec;
-    cwSpec = ss->ssl3.cwSpec;
 
-    if (pms || (!pwSpec->msItem.len && !pwSpec->master_secret)) {
-        rv = ssl3_DeriveMasterSecret(ss, pms);
-        if (rv != SECSuccess) {
-            goto done; /* err code set by ssl3_DeriveMasterSecret */
-        }
-    }
-    if (pwSpec->master_secret) {
-        rv = ssl3_DeriveConnectionKeys(ss);
-        if (rv == SECSuccess) {
-            rv = ssl3_InitPendingContexts(ss);
-        }
-    } else {
-        PORT_Assert(pwSpec->master_secret);
+    if (ss->ssl3.cwSpec->epoch == PR_UINT16_MAX) {
+        /* The problem here is that we have rehandshaked too many
+         * times (you are not allowed to wrap the epoch). The
+         * spec says you should be discarding the connection
+         * and start over, so not much we can do here. */
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-        rv = SECFailure;
-    }
-    if (rv != SECSuccess) {
-        goto done;
+        goto loser;
     }
 
-    /* Generic behaviors -- common to all crypto methods */
-    if (!IS_DTLS(ss)) {
-        pwSpec->read_seq_num = pwSpec->write_seq_num = 0;
-    } else {
-        if (cwSpec->epoch == PR_UINT16_MAX) {
-            /* The problem here is that we have rehandshaked too many
-             * times (you are not allowed to wrap the epoch). The
-             * spec says you should be discarding the connection
-             * and start over, so not much we can do here. */
-            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-            rv = SECFailure;
-            goto done;
+    if (derive) {
+        rv = ssl3_ComputeMasterSecret(ss, secret, &masterSecret);
+        if (rv != SECSuccess) {
+            goto loser;
         }
+    } else {
+        masterSecret = secret;
+    }
+
+    PORT_Assert(masterSecret);
+    rv = ssl3_DeriveConnectionKeys(ss, masterSecret);
+    if (rv != SECSuccess) {
+        if (derive) {
+            /* masterSecret was created here. */
+            PK11_FreeSymKey(masterSecret);
+        }
+        goto loser;
+    }
+
+    pwSpec->master_secret = masterSecret;
+    rv = ssl3_InitPendingContexts(ss, ss->ssl3.pwSpec);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+
+    /* With keys created, get ready to read and write records. */
+    if (IS_DTLS(ss)) {
         /* The sequence number has the high 16 bits as the epoch. */
-        pwSpec->epoch = cwSpec->epoch + 1;
-        pwSpec->read_seq_num = pwSpec->write_seq_num =
-            (sslSequenceNumber)pwSpec->epoch << 48;
+        pwSpec->epoch = ss->ssl3.cwSpec->epoch + 1;
+        pwSpec->read_seq_num = pwSpec->write_seq_num = (sslSequenceNumber)pwSpec->epoch << 48;
 
         dtls_InitRecvdRecords(&pwSpec->recvdRecords);
+    } else {
+        pwSpec->read_seq_num = pwSpec->write_seq_num = 0;
     }
 
-done:
     ssl_ReleaseSpecWriteLock(ss); /******************************/
-    if (rv != SECSuccess)
-        ssl_MapLowLevelError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
-    return rv;
+    return SECSuccess;
+
+loser:
+    ssl_ReleaseSpecWriteLock(ss); /******************************/
+    ssl_MapLowLevelError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
+    return SECFailure;
 }
 
 /*
@@ -3856,36 +3861,6 @@ ssl3_ComputeMasterSecret(sslSocket *ss, PK11SymKey *pms,
     }
 }
 
-/* This method uses PKCS11 to derive the MS from the PMS, where PMS
-** is a PKCS11 symkey. We call ssl3_ComputeMasterSecret to do the
-** computations and then modify the pwSpec->state as a side effect.
-**
-** This is used in all cases except the "triple bypass" with RSA key
-** exchange.
-**
-** Called from ssl3_InitPendingCipherSpec.   prSpec is pwSpec.
-*/
-static SECStatus
-ssl3_DeriveMasterSecret(sslSocket *ss, PK11SymKey *pms)
-{
-    SECStatus rv;
-    PK11SymKey *ms = NULL;
-    ssl3CipherSpec *pwSpec = ss->ssl3.pwSpec;
-
-    PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
-    PORT_Assert(ss->opt.noLocks || ssl_HaveSpecWriteLock(ss));
-    PORT_Assert(ss->ssl3.prSpec == ss->ssl3.pwSpec);
-
-    if (pms) {
-        rv = ssl3_ComputeMasterSecret(ss, pms, &ms);
-        pwSpec->master_secret = ms;
-        if (rv != SECSuccess)
-            return rv;
-    }
-
-    return SECSuccess;
-}
-
 /*
  * Derive encryption and MAC Keys (and IVs) from master secret
  * Sets a useful error code when returning SECFailure.
@@ -3902,7 +3877,7 @@ ssl3_DeriveMasterSecret(sslSocket *ss, PK11SymKey *pms)
  *
  */
 static SECStatus
-ssl3_DeriveConnectionKeys(sslSocket *ss)
+ssl3_DeriveConnectionKeys(sslSocket *ss, PK11SymKey *masterSecret)
 {
     ssl3CipherSpec *pwSpec = ss->ssl3.pwSpec;
     unsigned char *cr = (unsigned char *)&ss->ssl3.hs.client_random;
@@ -3928,11 +3903,8 @@ ssl3_DeriveConnectionKeys(sslSocket *ss)
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSpecWriteLock(ss));
     PORT_Assert(ss->ssl3.prSpec == ss->ssl3.pwSpec);
+    PORT_Assert(masterSecret);
 
-    if (!pwSpec->master_secret) {
-        PORT_SetError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
-        return SECFailure;
-    }
     /*
      * generate the key material
      */
@@ -3986,7 +3958,7 @@ ssl3_DeriveConnectionKeys(sslSocket *ss)
 
     /* CKM_SSL3_KEY_AND_MAC_DERIVE is defined to set ENCRYPT, DECRYPT, and
      * DERIVE by DEFAULT */
-    symKey = PK11_Derive(pwSpec->master_secret, key_derive, &params,
+    symKey = PK11_Derive(masterSecret, key_derive, &params,
                          bulk_mechanism, CKA_ENCRYPT, keySize);
     if (!symKey) {
         ssl_MapLowLevelError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
@@ -5021,7 +4993,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
         }
 
         /* Check that we can recover the master secret. */
-        if (sidOK && sid->u.ssl3.keys.msIsWrapped) {
+        if (sidOK) {
             PK11SlotInfo *slot = NULL;
             if (sid->u.ssl3.masterValid) {
                 slot = SECMOD_LookupSlot(sid->u.ssl3.masterModuleID,
@@ -6000,7 +5972,7 @@ ssl3_SendRSAClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
         goto loser; /* err set by ssl3_AppendHandshake* */
     }
 
-    rv = ssl3_InitPendingCipherSpec(ss, pms);
+    rv = ssl3_InitPendingCipherSpecs(ss, pms, PR_TRUE);
     PK11_FreeSymKey(pms);
     pms = NULL;
 
@@ -6143,7 +6115,7 @@ ssl3_SendDHClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
         goto loser; /* err set by ssl3_AppendBufferToHandshake */
     }
 
-    rv = ssl3_InitPendingCipherSpec(ss, pms);
+    rv = ssl3_InitPendingCipherSpecs(ss, pms, PR_TRUE);
     if (rv != SECSuccess) {
         ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
         goto loser;
@@ -6771,6 +6743,51 @@ loser:
 }
 
 static SECStatus
+ssl3_UnwrapMasterSecretClient(sslSocket *ss, sslSessionID *sid, PK11SymKey **ms)
+{
+    PK11SlotInfo *slot;
+    PK11SymKey *wrapKey;
+    CK_FLAGS keyFlags = 0;
+    SECItem wrappedMS = {
+        siBuffer,
+        sid->u.ssl3.keys.wrapped_master_secret,
+        sid->u.ssl3.keys.wrapped_master_secret_len
+    };
+
+    /* unwrap master secret */
+    slot = SECMOD_LookupSlot(sid->u.ssl3.masterModuleID,
+                             sid->u.ssl3.masterSlotID);
+    if (slot == NULL) {
+        return SECFailure;
+    }
+    if (!PK11_IsPresent(slot)) {
+        PK11_FreeSlot(slot);
+        return SECFailure;
+    }
+    wrapKey = PK11_GetWrapKey(slot, sid->u.ssl3.masterWrapIndex,
+                              sid->u.ssl3.masterWrapMech,
+                              sid->u.ssl3.masterWrapSeries,
+                              ss->pkcs11PinArg);
+    PK11_FreeSlot(slot);
+    if (wrapKey == NULL) {
+        return SECFailure;
+    }
+
+    if (ss->version > SSL_LIBRARY_VERSION_3_0) { /* isTLS */
+        keyFlags = CKF_SIGN | CKF_VERIFY;
+    }
+
+    *ms = PK11_UnwrapSymKeyWithFlags(wrapKey, sid->u.ssl3.masterWrapMech,
+                                     NULL, &wrappedMS, CKM_SSL3_MASTER_KEY_DERIVE,
+                                     CKA_DERIVE, sizeof(SSL3MasterSecret), keyFlags);
+    PK11_FreeSymKey(wrapKey);
+    if (!*ms) {
+        return SECFailure;
+    }
+    return SECSuccess;
+}
+
+static SECStatus
 ssl3_HandleServerHelloPart2(sslSocket *ss, const SECItem *sidBytes,
                             int *retErrCode)
 {
@@ -6819,9 +6836,7 @@ ssl3_HandleServerHelloPart2(sslSocket *ss, const SECItem *sidBytes,
             goto alert_loser;
         }
         do {
-            ssl3CipherSpec *pwSpec = ss->ssl3.pwSpec;
-
-            SECItem wrappedMS; /* wrapped master secret. */
+            PK11SymKey *masterSecret;
 
             /* [draft-ietf-tls-session-hash-06; Section 5.3]
              *
@@ -6856,59 +6871,9 @@ ssl3_HandleServerHelloPart2(sslSocket *ss, const SECItem *sidBytes,
             ss->sec.originalKeaGroup = ssl_LookupNamedGroup(sid->keaGroup);
             ss->sec.signatureScheme = sid->sigScheme;
 
-            if (sid->u.ssl3.keys.msIsWrapped) {
-                PK11SlotInfo *slot;
-                PK11SymKey *wrapKey; /* wrapping key */
-                CK_FLAGS keyFlags = 0;
-
-                /* unwrap master secret */
-                slot = SECMOD_LookupSlot(sid->u.ssl3.masterModuleID,
-                                         sid->u.ssl3.masterSlotID);
-                if (slot == NULL) {
-                    break; /* not considered an error. */
-                }
-                if (!PK11_IsPresent(slot)) {
-                    PK11_FreeSlot(slot);
-                    break; /* not considered an error. */
-                }
-                wrapKey = PK11_GetWrapKey(slot, sid->u.ssl3.masterWrapIndex,
-                                          sid->u.ssl3.masterWrapMech,
-                                          sid->u.ssl3.masterWrapSeries,
-                                          ss->pkcs11PinArg);
-                PK11_FreeSlot(slot);
-                if (wrapKey == NULL) {
-                    break; /* not considered an error. */
-                }
-
-                if (ss->version > SSL_LIBRARY_VERSION_3_0) { /* isTLS */
-                    keyFlags =
-                        CKF_SIGN | CKF_VERIFY;
-                }
-
-                wrappedMS.data = sid->u.ssl3.keys.wrapped_master_secret;
-                wrappedMS.len = sid->u.ssl3.keys.wrapped_master_secret_len;
-                pwSpec->master_secret =
-                    PK11_UnwrapSymKeyWithFlags(wrapKey, sid->u.ssl3.masterWrapMech,
-                                               NULL, &wrappedMS, CKM_SSL3_MASTER_KEY_DERIVE,
-                                               CKA_DERIVE, sizeof(SSL3MasterSecret), keyFlags);
-                errCode = PORT_GetError();
-                PK11_FreeSymKey(wrapKey);
-                if (pwSpec->master_secret == NULL) {
-                    break; /* errorCode set just after call to UnwrapSymKey. */
-                }
-            } else {
-                /* need to import the raw master secret to session object */
-                PK11SlotInfo *slot = PK11_GetInternalSlot();
-                wrappedMS.data = sid->u.ssl3.keys.wrapped_master_secret;
-                wrappedMS.len = sid->u.ssl3.keys.wrapped_master_secret_len;
-                pwSpec->master_secret =
-                    PK11_ImportSymKey(slot, CKM_SSL3_MASTER_KEY_DERIVE,
-                                      PK11_OriginUnwrap, CKA_ENCRYPT,
-                                      &wrappedMS, NULL);
-                PK11_FreeSlot(slot);
-                if (pwSpec->master_secret == NULL) {
-                    break;
-                }
+            rv = ssl3_UnwrapMasterSecretClient(ss, sid, &masterSecret);
+            if (rv != SECSuccess) {
+                break; /* not considered an error */
             }
 
             /* Got a Match */
@@ -6930,8 +6895,8 @@ ssl3_HandleServerHelloPart2(sslSocket *ss, const SECItem *sidBytes,
                 ss->sec.peerCert = CERT_DupCertificate(sid->peerCert);
             }
 
-            /* NULL value for PMS because we are reusing the old MS */
-            rv = ssl3_InitPendingCipherSpec(ss, NULL);
+            /* We are re-using the old MS, so no need to derive again. */
+            rv = ssl3_InitPendingCipherSpecs(ss, masterSecret, PR_FALSE);
             if (rv != SECSuccess) {
                 goto alert_loser; /* err code was set */
             }
@@ -8612,6 +8577,38 @@ loser:
 }
 
 static SECStatus
+ssl3_UnwrapMasterSecretServer(sslSocket *ss, sslSessionID *sid, PK11SymKey **ms)
+{
+    PK11SymKey *wrapKey;
+    CK_FLAGS keyFlags = 0;
+    SECItem wrappedMS = {
+        siBuffer,
+        sid->u.ssl3.keys.wrapped_master_secret,
+        sid->u.ssl3.keys.wrapped_master_secret_len
+    };
+
+    wrapKey = ssl3_GetWrappingKey(ss, NULL, sid->u.ssl3.masterWrapMech,
+                                  ss->pkcs11PinArg);
+    if (!wrapKey) {
+        return SECFailure;
+    }
+
+    if (ss->version > SSL_LIBRARY_VERSION_3_0) { /* isTLS */
+        keyFlags = CKF_SIGN | CKF_VERIFY;
+    }
+
+    /* unwrap the master secret. */
+    *ms = PK11_UnwrapSymKeyWithFlags(wrapKey, sid->u.ssl3.masterWrapMech,
+                                     NULL, &wrappedMS, CKM_SSL3_MASTER_KEY_DERIVE,
+                                     CKA_DERIVE, sizeof(SSL3MasterSecret), keyFlags);
+    PK11_FreeSymKey(wrapKey);
+    if (!*ms) {
+        return SECFailure;
+    }
+    return SECSuccess;
+}
+
+static SECStatus
 ssl3_HandleClientHelloPart2(sslSocket *ss,
                             SECItem *suites,
                             SECItem *comps,
@@ -8619,7 +8616,6 @@ ssl3_HandleClientHelloPart2(sslSocket *ss,
                             const PRUint8 *msg,
                             unsigned int len)
 {
-    PRBool haveSpecWriteLock = PR_FALSE;
     PRBool haveXmitBufLock = PR_FALSE;
     int errCode = SSL_ERROR_RX_MALFORMED_CLIENT_HELLO;
     SSL3AlertDescription desc = illegal_parameter;
@@ -8745,8 +8741,7 @@ compression_found:
      */
     if (sid != NULL)
         do {
-            ssl3CipherSpec *pwSpec;
-            SECItem wrappedMS; /* wrapped key */
+            PK11SymKey *masterSecret;
 
             if (sid->version != ss->version ||
                 sid->u.ssl3.cipherSuite != ss->ssl3.hs.cipher_suite ||
@@ -8799,54 +8794,13 @@ compression_found:
                 }
                 ss->sec.ci.sid = NULL;
             }
+
             /* we need to resurrect the master secret.... */
-
-            ssl_GetSpecWriteLock(ss);
-            haveSpecWriteLock = PR_TRUE;
-            pwSpec = ss->ssl3.pwSpec;
-            if (sid->u.ssl3.keys.msIsWrapped) {
-                PK11SymKey *wrapKey; /* wrapping key */
-                CK_FLAGS keyFlags = 0;
-
-                wrapKey = ssl3_GetWrappingKey(ss, NULL,
-                                              sid->u.ssl3.masterWrapMech,
-                                              ss->pkcs11PinArg);
-                if (!wrapKey) {
-                    /* we have a SID cache entry, but no wrapping key for it??? */
-                    break;
-                }
-
-                if (ss->version > SSL_LIBRARY_VERSION_3_0) { /* isTLS */
-                    keyFlags = CKF_SIGN | CKF_VERIFY;
-                }
-
-                wrappedMS.data = sid->u.ssl3.keys.wrapped_master_secret;
-                wrappedMS.len = sid->u.ssl3.keys.wrapped_master_secret_len;
-
-                /* unwrap the master secret. */
-                pwSpec->master_secret =
-                    PK11_UnwrapSymKeyWithFlags(wrapKey, sid->u.ssl3.masterWrapMech,
-                                               NULL, &wrappedMS, CKM_SSL3_MASTER_KEY_DERIVE,
-                                               CKA_DERIVE, sizeof(SSL3MasterSecret), keyFlags);
-                PK11_FreeSymKey(wrapKey);
-                if (pwSpec->master_secret == NULL) {
-                    break; /* not an error */
-                }
-            } else {
-                /* need to import the raw master secret to session object */
-                PK11SlotInfo *slot;
-                wrappedMS.data = sid->u.ssl3.keys.wrapped_master_secret;
-                wrappedMS.len = sid->u.ssl3.keys.wrapped_master_secret_len;
-                slot = PK11_GetInternalSlot();
-                pwSpec->master_secret =
-                    PK11_ImportSymKey(slot, CKM_SSL3_MASTER_KEY_DERIVE,
-                                      PK11_OriginUnwrap, CKA_ENCRYPT, &wrappedMS,
-                                      NULL);
-                PK11_FreeSlot(slot);
-                if (pwSpec->master_secret == NULL) {
-                    break; /* not an error */
-                }
+            rv = ssl3_UnwrapMasterSecretServer(ss, sid, &masterSecret);
+            if (rv != SECSuccess) {
+                break; /* not an error */
             }
+
             ss->sec.ci.sid = sid;
             if (sid->peerCert != NULL) {
                 ss->sec.peerCert = CERT_DupCertificate(sid->peerCert);
@@ -8902,13 +8856,8 @@ compression_found:
                 goto loser;
             }
 
-            if (haveSpecWriteLock) {
-                ssl_ReleaseSpecWriteLock(ss);
-                haveSpecWriteLock = PR_FALSE;
-            }
-
-            /* NULL value for PMS because we are re-using the old MS */
-            rv = ssl3_InitPendingCipherSpec(ss, NULL);
+            /* We are re-using the old MS, so no need to derive again. */
+            rv = ssl3_InitPendingCipherSpecs(ss, masterSecret, PR_FALSE);
             if (rv != SECSuccess) {
                 errCode = PORT_GetError();
                 goto loser;
@@ -8932,11 +8881,6 @@ compression_found:
 
             return SECSuccess;
         } while (0);
-
-    if (haveSpecWriteLock) {
-        ssl_ReleaseSpecWriteLock(ss);
-        haveSpecWriteLock = PR_FALSE;
-    }
 
     if (sid) { /* we had a sid, but it's no longer valid, free it */
         ss->statelessResume = PR_FALSE;
@@ -9003,20 +8947,12 @@ compression_found:
     return SECSuccess;
 
 alert_loser:
-    if (haveSpecWriteLock) {
-        ssl_ReleaseSpecWriteLock(ss);
-        haveSpecWriteLock = PR_FALSE;
-    }
     (void)SSL3_SendAlert(ss, alert_fatal, desc);
 /* FALLTHRU */
 loser:
     if (sid && sid != ss->sec.ci.sid) {
         ss->sec.uncache(sid);
         ssl_FreeSID(sid);
-    }
-
-    if (haveSpecWriteLock) {
-        ssl_ReleaseSpecWriteLock(ss);
     }
 
     if (haveXmitBufLock) {
@@ -9978,7 +9914,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
     }
 
     /* This step will derive the MS from the PMS, among other things. */
-    rv = ssl3_InitPendingCipherSpec(ss, currentPms);
+    rv = ssl3_InitPendingCipherSpecs(ss, currentPms, PR_TRUE);
     PK11_FreeSymKey(currentPms);
 
     if (rv != SECSuccess) {
@@ -10043,7 +9979,7 @@ ssl3_HandleDHClientKeyExchange(sslSocket *ss,
         return SECFailure;
     }
 
-    rv = ssl3_InitPendingCipherSpec(ss, pms);
+    rv = ssl3_InitPendingCipherSpecs(ss, pms, PR_TRUE);
     PK11_FreeSymKey(pms);
     ssl_FreeEphemeralKeyPairs(ss);
     return rv;
@@ -11054,40 +10990,39 @@ ssl3_TLSPRFWithMasterSecret(sslSocket *ss, ssl3CipherSpec *spec,
                             const unsigned char *val, unsigned int valLen,
                             unsigned char *out, unsigned int outLen)
 {
-    SECStatus rv = SECSuccess;
+    SECItem param = { siBuffer, NULL, 0 };
+    CK_MECHANISM_TYPE mech = CKM_TLS_PRF_GENERAL;
+    PK11Context *prf_context;
+    unsigned int retLen;
+    SECStatus rv;
 
-    if (spec->master_secret) {
-        SECItem param = { siBuffer, NULL, 0 };
-        CK_MECHANISM_TYPE mech = CKM_TLS_PRF_GENERAL;
-        PK11Context *prf_context;
-        unsigned int retLen;
-
-        if (spec->version >= SSL_LIBRARY_VERSION_TLS_1_2) {
-            /* Bug 1312976 non-SHA256 exporters are broken. */
-            if (ssl3_GetPrfHashMechanism(ss) != CKM_SHA256) {
-                PORT_Assert(0);
-                PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-                return SECFailure;
-            }
-            mech = CKM_NSS_TLS_PRF_GENERAL_SHA256;
-        }
-        prf_context = PK11_CreateContextBySymKey(mech, CKA_SIGN,
-                                                 spec->master_secret, &param);
-        if (!prf_context)
-            return SECFailure;
-
-        rv = PK11_DigestBegin(prf_context);
-        rv |= PK11_DigestOp(prf_context, (unsigned char *)label, labelLen);
-        rv |= PK11_DigestOp(prf_context, val, valLen);
-        rv |= PK11_DigestFinal(prf_context, out, &retLen, outLen);
-        PORT_Assert(rv != SECSuccess || retLen == outLen);
-
-        PK11_DestroyContext(prf_context, PR_TRUE);
-    } else {
+    if (!spec->master_secret) {
         PORT_Assert(spec->master_secret);
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-        rv = SECFailure;
+        return SECFailure;
     }
+
+    if (spec->version >= SSL_LIBRARY_VERSION_TLS_1_2) {
+        /* Bug 1312976 non-SHA256 exporters are broken. */
+        if (ssl3_GetPrfHashMechanism(ss) != CKM_SHA256) {
+            PORT_Assert(0);
+            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+            return SECFailure;
+        }
+        mech = CKM_NSS_TLS_PRF_GENERAL_SHA256;
+    }
+    prf_context = PK11_CreateContextBySymKey(mech, CKA_SIGN,
+                                             spec->master_secret, &param);
+    if (!prf_context)
+        return SECFailure;
+
+    rv = PK11_DigestBegin(prf_context);
+    rv |= PK11_DigestOp(prf_context, (unsigned char *)label, labelLen);
+    rv |= PK11_DigestOp(prf_context, val, valLen);
+    rv |= PK11_DigestFinal(prf_context, out, &retLen, outLen);
+    PORT_Assert(rv != SECSuccess || retLen == outLen);
+
+    PK11_DestroyContext(prf_context, PR_TRUE);
     return rv;
 }
 
@@ -11523,7 +11458,7 @@ xmit_loser:
 SECStatus
 ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid, PK11SymKey *secret)
 {
-    SECStatus rv;
+    PORT_Assert(secret);
 
     /* fill in the sid */
     sid->u.ssl3.cipherSuite = ss->ssl3.hs.cipher_suite;
@@ -11555,26 +11490,8 @@ ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid, PK11SymKey *secret)
         }
     }
 
-    ssl_GetSpecReadLock(ss); /*************************************/
-
     /* Copy the master secret (wrapped or unwrapped) into the sid */
-    if (ss->ssl3.crSpec->msItem.len && ss->ssl3.crSpec->msItem.data) {
-        PORT_Assert(ss->version < SSL_LIBRARY_VERSION_TLS_1_3);
-        sid->u.ssl3.keys.wrapped_master_secret_len =
-            ss->ssl3.crSpec->msItem.len;
-        memcpy(sid->u.ssl3.keys.wrapped_master_secret,
-               ss->ssl3.crSpec->msItem.data, ss->ssl3.crSpec->msItem.len);
-        sid->u.ssl3.masterValid = PR_TRUE;
-        sid->u.ssl3.keys.msIsWrapped = PR_FALSE;
-        rv = SECSuccess;
-    } else {
-        PORT_Assert(secret);
-        rv = ssl3_CacheWrappedSecret(ss, ss->sec.ci.sid, secret);
-        sid->u.ssl3.keys.msIsWrapped = PR_TRUE;
-    }
-    ssl_ReleaseSpecReadLock(ss); /*************************************/
-
-    return rv;
+    return ssl3_CacheWrappedSecret(ss, ss->sec.ci.sid, secret);
 }
 
 /* The return type is SECStatus instead of void because this function needs
@@ -12848,9 +12765,6 @@ ssl3_InitCipherSpec(ssl3CipherSpec *spec)
     spec->destroyDecompressContext = NULL;
     spec->mac_size = 0;
     spec->master_secret = NULL;
-
-    spec->msItem.data = NULL;
-    spec->msItem.len = 0;
 
     spec->client.write_key = NULL;
     spec->client.write_mac_key = NULL;

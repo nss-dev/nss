@@ -232,7 +232,7 @@ ssl3_SendECDHClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
         goto loser; /* err set by ssl3_AppendHandshake* */
     }
 
-    rv = ssl3_InitPendingCipherSpec(ss, pms);
+    rv = ssl3_InitPendingCipherSpecs(ss, pms, PR_TRUE);
     if (rv != SECSuccess) {
         ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
         goto loser;
@@ -313,7 +313,7 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, PRUint8 *b,
         return SECFailure;
     }
 
-    rv = ssl3_InitPendingCipherSpec(ss, pms);
+    rv = ssl3_InitPendingCipherSpecs(ss, pms, PR_TRUE);
     PK11_FreeSymKey(pms);
     if (rv != SECSuccess) {
         /* error code set by ssl3_InitPendingCipherSpec */
