@@ -123,9 +123,9 @@ static DTLSQueuedMessage *
 dtls_AllocQueuedMessage(ssl3CipherSpec *cwSpec, SSL3ContentType type,
                         const unsigned char *data, PRUint32 len)
 {
-    DTLSQueuedMessage *msg = NULL;
+    DTLSQueuedMessage *msg;
 
-    msg = PORT_ZAlloc(sizeof(DTLSQueuedMessage));
+    msg = PORT_ZNew(DTLSQueuedMessage);
     if (!msg)
         return NULL;
 
@@ -141,7 +141,7 @@ dtls_AllocQueuedMessage(ssl3CipherSpec *cwSpec, SSL3ContentType type,
     msg->type = type;
     /* Safe if we are < 1.3, since the refct is
      * already very high. */
-    tls13_CipherSpecAddRef(cwSpec);
+    ssl_CipherSpecAddRef(cwSpec);
 
     return msg;
 }
@@ -159,7 +159,7 @@ dtls_FreeHandshakeMessage(DTLSQueuedMessage *msg)
 
     /* Safe if we are < 1.3, since the refct is
      * already very high. */
-    tls13_CipherSpecRelease(msg->cwSpec);
+    ssl_CipherSpecRelease(msg->cwSpec);
     PORT_ZFree(msg->data, msg->len);
     PORT_Free(msg);
 }
@@ -1042,7 +1042,7 @@ dtls_FinishedTimerCb(sslSocket *ss)
 {
     dtls_FreeHandshakeMessages(&ss->ssl3.hs.lastMessageFlight);
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
-        ssl3_DestroyCipherSpec(ss->ssl3.pwSpec, PR_FALSE);
+        ssl_FreeCipherSpec(ss->ssl3.pwSpec);
     }
 }
 
@@ -1063,7 +1063,7 @@ dtls_RehandshakeCleanup(sslSocket *ss)
     }
     PORT_Assert((ss->version < SSL_LIBRARY_VERSION_TLS_1_3));
     dtls_CancelAllTimers(ss);
-    ssl3_DestroyCipherSpec(ss->ssl3.pwSpec, PR_FALSE);
+    ssl_FreeCipherSpec(ss->ssl3.pwSpec);
     ss->ssl3.hs.sendMessageSeq = 0;
     ss->ssl3.hs.recvMessageSeq = 0;
 }
