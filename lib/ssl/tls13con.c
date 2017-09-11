@@ -119,7 +119,6 @@ const char kHkdfLabelExporterMasterSecret[] = "exp master";
 const char kHkdfLabelResumption[] = "resumption";
 const char kHkdfPurposeKey[] = "key";
 const char kHkdfPurposeIv[] = "iv";
-const char kKeyPhaseCleartext[] = "clear";
 
 const char keylogLabelClientEarlyTrafficSecret[] = "CLIENT_EARLY_TRAFFIC_SECRET";
 const char keylogLabelClientHsTrafficSecret[] = "CLIENT_HANDSHAKE_TRAFFIC_SECRET";
@@ -908,8 +907,8 @@ tls13_ComputeFinalSecrets(sslSocket *ss)
 {
     SECStatus rv;
 
-    PORT_Assert(!ss->ssl3.crSpec->master_secret);
-    PORT_Assert(!ss->ssl3.cwSpec->master_secret);
+    PORT_Assert(!ss->ssl3.crSpec->masterSecret);
+    PORT_Assert(!ss->ssl3.cwSpec->masterSecret);
 
     rv = tls13_DeriveSecretWrap(ss, ss->ssl3.hs.currentSecret,
                                 NULL, kHkdfLabelResumptionMasterSecret,
@@ -1375,7 +1374,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
             ssl_GetSpecWriteLock(ss);
             /* Increase the write sequence number.  The read sequence number
              * will be reset after this to early data or handshake. */
-            ss->ssl3.cwSpec->write_seq_num = 1;
+            ss->ssl3.cwSpec->seqNum = 1;
             ssl_ReleaseSpecWriteLock(ss);
         }
 
@@ -1754,7 +1753,7 @@ tls13_SendHelloRetryRequest(sslSocket *ss,
     }
     /* We depend on this being exactly one record and one message. */
     PORT_Assert(!IS_DTLS(ss) || (ss->ssl3.hs.sendMessageSeq == 1 &&
-                                 ss->ssl3.cwSpec->write_seq_num == 1));
+                                 ss->ssl3.cwSpec->seqNum == 1));
     ssl_ReleaseXmitBufLock(ss);
 
     ss->ssl3.hs.helloRetry = PR_TRUE;
@@ -1954,8 +1953,9 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
         /* Restore the null cipher spec for writing. */
         ssl_GetSpecWriteLock(ss);
         ssl_CipherSpecRelease(ss->ssl3.cwSpec);
-        ss->ssl3.cwSpec = ss->ssl3.crSpec;
-        PORT_Assert(ss->ssl3.cwSpec->cipher_def->cipher == cipher_null);
+        ss->ssl3.cwSpec = ssl_FindCipherSpecByEpoch(ss, CipherSpecWrite,
+                                                    TrafficKeyClearText);
+        PORT_Assert(ss->ssl3.cwSpec);
         ssl_ReleaseSpecWriteLock(ss);
     } else {
         PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_none);
@@ -2204,6 +2204,10 @@ tls13_SendServerHelloSequence(sslSocket *ss)
         return SECFailure;
     }
 
+    if (IS_DTLS(ss)) {
+        /* We need this for reading ACKs. */
+        ssl_CipherSpecAddRef(ss->ssl3.crSpec);
+    }
     if (ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted) {
         rv = tls13_SetCipherSpec(ss,
                                  TrafficKeyEarlyApplicationData,
@@ -2217,13 +2221,6 @@ tls13_SendServerHelloSequence(sslSocket *ss)
         PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_none ||
                     ss->ssl3.hs.zeroRttState == ssl_0rtt_ignored);
 
-        if (IS_DTLS(ss)) {
-            /* Store the cleartext cipherSpec so we can decrypt ACKs. */
-            dtls13_SaveNullCipherSpec(ss, ss->ssl3.crSpec);
-            if (rv != SECSuccess) {
-                return SECFailure;
-            }
-        }
         rv = tls13_SetCipherSpec(ss,
                                  TrafficKeyHandshake,
                                  CipherSpecRead, PR_FALSE);
@@ -2326,6 +2323,13 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
     rv = tls13_ComputeHandshakeSecrets(ss);
     if (rv != SECSuccess) {
         return SECFailure; /* error code is set. */
+    }
+
+    if (ss->ssl3.hs.zeroRttState == ssl_0rtt_sent) {
+        /* When we send 0-RTT, we saved the null spec in case we needed it to
+         * send another ClientHello in response to a HelloRetryRequest.  Now
+         * that we won't be receiving a HelloRetryRequest, release the spec. */
+        ssl_CipherSpecReleaseByEpoch(ss, CipherSpecWrite, TrafficKeyClearText);
     }
 
     rv = tls13_SetCipherSpec(ss, TrafficKeyHandshake,
@@ -2604,8 +2608,8 @@ tls13_HandleCertificate(sslSocket *ss, PRUint8 *b, PRUint32 length)
         return SECFailure;
 
     /* We can ignore any other cleartext from the client. */
-    if (ss->sec.isServer) {
-        ssl_ReleaseReadCipherSpec(ss, TrafficKeyClearText);
+    if (ss->sec.isServer && IS_DTLS(ss)) {
+        ssl_CipherSpecReleaseByEpoch(ss, CipherSpecRead, TrafficKeyClearText);
         dtls_ReceivedFirstMessageInFlight(ss);
     }
     /* Process the context string */
@@ -2861,32 +2865,27 @@ tls13_DeriveSecretWrap(sslSocket *ss, PK11SymKey *key,
 static SECStatus
 tls13_DeriveTrafficKeys(sslSocket *ss, ssl3CipherSpec *spec,
                         TrafficKeyType type,
-                        CipherSpecDirection direction,
                         PRBool deleteSecret)
 {
-    size_t keySize = spec->cipher_def->key_size;
-    size_t ivSize = spec->cipher_def->iv_size +
-                    spec->cipher_def->explicit_nonce_size; /* This isn't always going to
-                                                              * work, but it does for
-                                                              * AES-GCM */
-    CK_MECHANISM_TYPE bulkAlgorithm = ssl3_Alg2Mech(spec->cipher_def->calg);
+    size_t keySize = spec->cipherDef->key_size;
+    size_t ivSize = spec->cipherDef->iv_size +
+                    spec->cipherDef->explicit_nonce_size; /* This isn't always going to
+                                                           * work, but it does for
+                                                           * AES-GCM */
+    CK_MECHANISM_TYPE bulkAlgorithm = ssl3_Alg2Mech(spec->cipherDef->calg);
     PK11SymKey **prkp = NULL;
     PK11SymKey *prk = NULL;
     PRBool clientKey;
-    ssl3KeyMaterial *target;
-    const char *phase;
     SECStatus rv;
     /* These labels are just used for debugging. */
     static const char kHkdfPhaseEarlyApplicationDataKeys[] = "early application data";
     static const char kHkdfPhaseHandshakeKeys[] = "handshake data";
     static const char kHkdfPhaseApplicationDataKeys[] = "application data";
 
-    if (ss->sec.isServer ^ (direction == CipherSpecWrite)) {
+    if (ss->sec.isServer ^ (spec->direction == CipherSpecWrite)) {
         clientKey = PR_TRUE;
-        target = &spec->client;
     } else {
         clientKey = PR_FALSE;
-        target = &spec->server;
     }
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
@@ -2894,16 +2893,16 @@ tls13_DeriveTrafficKeys(sslSocket *ss, ssl3CipherSpec *spec,
     switch (type) {
         case TrafficKeyEarlyApplicationData:
             PORT_Assert(clientKey);
-            phase = kHkdfPhaseEarlyApplicationDataKeys;
             prkp = &ss->ssl3.hs.clientEarlyTrafficSecret;
+            spec->phase = kHkdfPhaseEarlyApplicationDataKeys;
             break;
         case TrafficKeyHandshake:
-            phase = kHkdfPhaseHandshakeKeys;
             prkp = clientKey ? &ss->ssl3.hs.clientHsTrafficSecret : &ss->ssl3.hs.serverHsTrafficSecret;
+            spec->phase = kHkdfPhaseHandshakeKeys;
             break;
         case TrafficKeyApplicationData:
-            phase = kHkdfPhaseApplicationDataKeys;
             prkp = clientKey ? &ss->ssl3.hs.clientTrafficSecret : &ss->ssl3.hs.serverTrafficSecret;
+            spec->phase = kHkdfPhaseApplicationDataKeys;
             break;
         default:
             LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
@@ -2913,17 +2912,15 @@ tls13_DeriveTrafficKeys(sslSocket *ss, ssl3CipherSpec *spec,
     PORT_Assert(prkp != NULL);
     prk = *prkp;
 
-    SSL_TRC(3, ("%d: TLS13[%d]: deriving %s traffic keys phase='%s'",
-                SSL_GETPID(), ss->fd,
-                (direction == CipherSpecWrite) ? "write" : "read", phase));
-    PORT_Assert(phase);
-    spec->phase = phase;
+    SSL_TRC(3, ("%d: TLS13[%d]: deriving %s traffic keys epoch=%d (%s)",
+                SSL_GETPID(), ss->fd, SPEC_DIR(spec),
+                spec->epoch, spec->phase));
 
     rv = tls13_HkdfExpandLabel(prk, tls13_GetHash(ss),
                                NULL, 0,
                                kHkdfPurposeKey, strlen(kHkdfPurposeKey),
                                bulkAlgorithm, keySize,
-                               &target->write_key);
+                               &spec->keyMaterial.key);
     if (rv != SECSuccess) {
         LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
         PORT_Assert(0);
@@ -2933,7 +2930,7 @@ tls13_DeriveTrafficKeys(sslSocket *ss, ssl3CipherSpec *spec,
     rv = tls13_HkdfExpandLabelRaw(prk, tls13_GetHash(ss),
                                   NULL, 0,
                                   kHkdfPurposeIv, strlen(kHkdfPurposeIv),
-                                  target->write_iv, ivSize);
+                                  spec->keyMaterial.iv, ivSize);
     if (rv != SECSuccess) {
         LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
         PORT_Assert(0);
@@ -2954,19 +2951,25 @@ static SECStatus
 tls13_SetupPendingCipherSpec(sslSocket *ss, ssl3CipherSpec *spec)
 {
     ssl3CipherSuite suite = ss->ssl3.hs.cipher_suite;
-    const ssl3BulkCipherDef *bulk = ssl_GetBulkCipherDef(
-        ssl_LookupCipherSuiteDef(suite));
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     /* Version isn't set when we send 0-RTT data. */
     spec->version = PR_MAX(SSL_LIBRARY_VERSION_TLS_1_3, ss->version);
 
+    ssl_SaveCipherSpec(ss, spec);
+    /* We want to keep read cipher specs around longer because
+     * there are cases where we might get either epoch N or
+     * epoch N+1. */
+    if (IS_DTLS(ss) && spec->direction == CipherSpecRead) {
+        ssl_CipherSpecAddRef(spec);
+    }
+
     SSL_TRC(3, ("%d: TLS13[%d]: Set Pending Cipher Suite to 0x%04x",
                 SSL_GETPID(), ss->fd, suite));
-    spec->cipher_def = bulk;
 
-    switch (spec->cipher_def->calg) {
+    spec->cipherDef = ssl_GetBulkCipherDef(ssl_LookupCipherSuiteDef(suite));
+    switch (spec->cipherDef->calg) {
         case ssl_calg_aes_gcm:
             spec->aead = tls13_AESGCM;
             break;
@@ -2976,9 +2979,7 @@ tls13_SetupPendingCipherSpec(sslSocket *ss, ssl3CipherSpec *spec)
         default:
             PORT_Assert(0);
             return SECFailure;
-            break;
     }
-
     return SECSuccess;
 }
 
@@ -3023,7 +3024,8 @@ tls13_SetCipherSpec(sslSocket *ss, TrafficKeyType type,
 {
     SECStatus rv;
     ssl3CipherSpec *spec = NULL;
-    ssl3CipherSpec **specp = (direction == CipherSpecRead) ? &ss->ssl3.crSpec : &ss->ssl3.cwSpec;
+    ssl3CipherSpec **specp;
+
     /* Flush out old handshake data. */
     ssl_GetXmitBufLock(ss);
     rv = ssl3_FlushHandshake(ss, ssl_SEND_FLAG_FORCE_INTO_BUFFER);
@@ -3034,23 +3036,14 @@ tls13_SetCipherSpec(sslSocket *ss, TrafficKeyType type,
 
     /* Create the new spec. */
     spec = ssl_CreateCipherSpec(ss, direction);
-    /* We want to keep read cipher specs around longer because
-     * there are cases where we might get either epoch N or
-     * epoch N+1. */
-    if (IS_DTLS(ss) && direction == CipherSpecRead) {
-        ++spec->refCt;
+    if (!spec) {
+        return SECFailure;
     }
-    ss->ssl3.pwSpec = ss->ssl3.prSpec = spec;
-
     rv = tls13_SetupPendingCipherSpec(ss, spec);
     if (rv != SECSuccess)
         return SECFailure;
 
-    rv = tls13_DeriveTrafficKeys(ss, spec, type, direction,
-                                 deleteSecret);
-    if (rv != SECSuccess) {
-        return SECFailure;
-    }
+    specp = (direction == CipherSpecRead) ? &ss->ssl3.crSpec : &ss->ssl3.cwSpec;
 
     /* We use the epoch for cipher suite identification, so increment
      * it in both TLS and DTLS. */
@@ -3058,14 +3051,18 @@ tls13_SetCipherSpec(sslSocket *ss, TrafficKeyType type,
         return SECFailure;
     }
     spec->epoch = (PRUint16)type;
-    spec->read_seq_num = spec->write_seq_num = 0;
+    spec->seqNum = 0;
     if (IS_DTLS(ss)) {
         dtls_InitRecvdRecords(&spec->recvdRecords);
     }
-
     if (type == TrafficKeyEarlyApplicationData) {
         spec->earlyDataRemaining =
             ss->sec.ci.sid->u.ssl3.locked.sessionTicket.max_early_data_size;
+    }
+
+    rv = tls13_DeriveTrafficKeys(ss, spec, type, deleteSecret);
+    if (rv != SECSuccess) {
+        return SECFailure;
     }
 
     /* Now that we've set almost everything up, finally cut over. */
@@ -3074,10 +3071,9 @@ tls13_SetCipherSpec(sslSocket *ss, TrafficKeyType type,
     *specp = spec;                 /* Overwrite. */
     ssl_ReleaseSpecWriteLock(ss);
 
-    SSL_TRC(3, ("%d: TLS13[%d]: %s installed key for phase='%s'.%d dir=%s",
-                SSL_GETPID(), ss->fd, SSL_ROLE(ss),
-                spec->phase, spec->epoch,
-                direction == CipherSpecRead ? "read" : "write"));
+    SSL_TRC(3, ("%d: TLS13[%d]: %s installed key for epoch=%d (%s) dir=%s",
+                SSL_GETPID(), ss->fd, SSL_ROLE(ss), spec->epoch,
+                spec->phase, SPEC_DIR(spec)));
 
     if (ss->ssl3.changedCipherSpecFunc) {
         ss->ssl3.changedCipherSpecFunc(ss->ssl3.changedCipherSpecArg,
@@ -3212,7 +3208,7 @@ tls13_WriteNonce(ssl3KeyMaterial *keys,
     size_t i;
 
     PORT_Assert(nonceLen == 12);
-    memcpy(nonce, keys->write_iv, 12);
+    memcpy(nonce, keys->iv, 12);
 
     /* XOR the last 8 bytes of the IV with the sequence number. */
     PORT_Assert(seqNumLen == 8);
@@ -3242,10 +3238,10 @@ tls13_AEAD(ssl3KeyMaterial *keys, PRBool doDecrypt,
     };
 
     if (doDecrypt) {
-        rv = PK11_Decrypt(keys->write_key, mechanism, &param,
+        rv = PK11_Decrypt(keys->key, mechanism, &param,
                           out, &uOutLen, maxout, in, inlen);
     } else {
-        rv = PK11_Encrypt(keys->write_key, mechanism, &param,
+        rv = PK11_Encrypt(keys->key, mechanism, &param,
                           out, &uOutLen, maxout, in, inlen);
     }
     *outlen = (int)uOutLen;
@@ -3916,7 +3912,7 @@ tls13_ServerHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
     }
 
     if (IS_DTLS(ss)) {
-        ssl_ReleaseReadCipherSpec(ss, TrafficKeyClearText);
+        ssl_CipherSpecReleaseByEpoch(ss, CipherSpecRead, TrafficKeyClearText);
         /* We need to keep the handshake cipher spec so we can
          * read re-transmitted client Finished. */
         rv = dtls_StartTimer(ss, ss->ssl3.hs.hdTimer,
@@ -4560,13 +4556,14 @@ tls13_ProtectRecord(sslSocket *ss,
                     PRUint32 contentLen,
                     sslBuffer *wrBuf)
 {
-    const ssl3BulkCipherDef *cipher_def = cwSpec->cipher_def;
+    const ssl3BulkCipherDef *cipher_def = cwSpec->cipherDef;
     const int tagLen = cipher_def->tag_size;
     SECStatus rv;
 
-    SSL_TRC(3, ("%d: TLS13[%d]: spec=%d (%s) protect record 0x%0llx len=%u",
-                SSL_GETPID(), ss->fd, cwSpec, cwSpec->phase,
-                cwSpec->write_seq_num, contentLen));
+    PORT_Assert(cwSpec->direction == CipherSpecWrite);
+    SSL_TRC(3, ("%d: TLS13[%d]: spec=%d epoch=%d (%s) protect 0x%0llx len=%u",
+                SSL_GETPID(), ss->fd, cwSpec, cwSpec->epoch, cwSpec->phase,
+                cwSpec->seqNum, contentLen));
 
     if (contentLen + 1 + tagLen > wrBuf->space) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -4588,18 +4585,17 @@ tls13_ProtectRecord(sslSocket *ss,
         wrBuf->buf[contentLen] = type;
 
         rv = tls13_FormatAdditionalData(ss, aad, sizeof(aad), cwSpec->epoch,
-                                        cwSpec->write_seq_num);
+                                        cwSpec->seqNum);
         if (rv != SECSuccess) {
             return SECFailure;
         }
-        rv = cwSpec->aead(
-            ss->sec.isServer ? &cwSpec->server : &cwSpec->client,
-            PR_FALSE,                   /* do encrypt */
-            wrBuf->buf,                 /* output  */
-            (int *)&wrBuf->len,         /* out len */
-            wrBuf->space,               /* max out */
-            wrBuf->buf, contentLen + 1, /* input   */
-            aad, sizeof(aad));
+        rv = cwSpec->aead(&cwSpec->keyMaterial,
+                          PR_FALSE,                   /* do encrypt */
+                          wrBuf->buf,                 /* output  */
+                          (int *)&wrBuf->len,         /* out len */
+                          wrBuf->space,               /* max out */
+                          wrBuf->buf, contentLen + 1, /* input   */
+                          aad, sizeof(aad));
         if (rv != SECSuccess) {
             PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
             return SECFailure;
@@ -4624,15 +4620,22 @@ tls13_UnprotectRecord(sslSocket *ss,
                       SSL3Ciphertext *cText, sslBuffer *plaintext,
                       SSL3AlertDescription *alert)
 {
-    const ssl3BulkCipherDef *cipher_def = spec->cipher_def;
+    const ssl3BulkCipherDef *cipher_def = spec->cipherDef;
+    sslSequenceNumber seqNum;
     PRUint8 aad[8];
     SECStatus rv;
 
     *alert = bad_record_mac; /* Default alert for most issues. */
 
-    SSL_TRC(3, ("%d: TLS13[%d]: spec=%d (%s) unprotect record 0x%0llx len=%u",
-                SSL_GETPID(), ss->fd, spec, spec->phase,
-                spec->read_seq_num, cText->buf->len));
+    PORT_Assert(spec->direction == CipherSpecRead);
+    if (IS_DTLS(ss)) {
+        seqNum = cText->seq_num & RECORD_SEQ_MASK;
+    } else {
+        seqNum = spec->seqNum;
+    }
+    SSL_TRC(3, ("%d: TLS13[%d]: spec=%d epoch=%d (%s) unprotect 0x%0llx len=%u",
+                SSL_GETPID(), ss->fd, spec, spec->epoch, spec->phase, seqNum,
+                cText->buf->len));
 
     /* We can perform this test in variable time because the record's total
      * length and the ciphersuite are both public knowledge. */
@@ -4666,20 +4669,18 @@ tls13_UnprotectRecord(sslSocket *ss,
 
     /* Decrypt */
     PORT_Assert(cipher_def->type == type_aead);
-    rv = tls13_FormatAdditionalData(ss, aad, sizeof(aad), spec->epoch,
-                                    IS_DTLS(ss) ? cText->seq_num : spec->read_seq_num);
+    rv = tls13_FormatAdditionalData(ss, aad, sizeof(aad), spec->epoch, seqNum);
     if (rv != SECSuccess) {
         return SECFailure;
     }
-    rv = spec->aead(
-        ss->sec.isServer ? &spec->client : &spec->server,
-        PR_TRUE,                /* do decrypt */
-        plaintext->buf,         /* out */
-        (int *)&plaintext->len, /* outlen */
-        plaintext->space,       /* maxout */
-        cText->buf->buf,        /* in */
-        cText->buf->len,        /* inlen */
-        aad, sizeof(aad));
+    rv = spec->aead(&spec->keyMaterial,
+                    PR_TRUE,                /* do decrypt */
+                    plaintext->buf,         /* out */
+                    (int *)&plaintext->len, /* outlen */
+                    plaintext->space,       /* maxout */
+                    cText->buf->buf,        /* in */
+                    cText->buf->len,        /* inlen */
+                    aad, sizeof(aad));
     if (rv != SECSuccess) {
         SSL_TRC(3,
                 ("%d: TLS13[%d]: record has bogus MAC",
@@ -4796,6 +4797,10 @@ tls13_MaybeDo0RTTHandshake(sslSocket *ss)
     if (rv != SECSuccess)
         return SECFailure;
 
+    /* Save cwSpec in case we get a HelloRetryRequest and have to send another
+     * ClientHello. */
+    ssl_CipherSpecAddRef(ss->ssl3.cwSpec);
+
     rv = tls13_SetCipherSpec(ss, TrafficKeyEarlyApplicationData,
                              CipherSpecWrite, PR_TRUE);
     if (rv != SECSuccess) {
@@ -4857,10 +4862,13 @@ tls13_HandleEndOfEarlyData(sslSocket *ss, PRUint8 *b, PRUint32 length)
         return SECFailure;
     }
 
-    /* We shouldn't be getting any more application data, and if we do,
-     * because of reordering, we drop it. */
-    ssl_ReleaseReadCipherSpec(ss, TrafficKeyEarlyApplicationData);
-    dtls_ReceivedFirstMessageInFlight(ss);
+    /* We shouldn't be getting any more early data, and if we do,
+     * it is because of reordering and we drop it. */
+    if (IS_DTLS(ss)) {
+        ssl_CipherSpecReleaseByEpoch(ss, CipherSpecRead,
+                                     TrafficKeyEarlyApplicationData);
+        dtls_ReceivedFirstMessageInFlight(ss);
+    }
 
     PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted);
 

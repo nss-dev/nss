@@ -98,10 +98,10 @@ struct ssl3MACDefStr {
 #define MAX_IV_LENGTH 24
 
 typedef struct {
-    PK11SymKey *write_key;
-    PK11SymKey *write_mac_key;
-    PK11Context *write_mac_context;
-    PRUint8 write_iv[MAX_IV_LENGTH];
+    PK11SymKey *key;
+    PK11SymKey *macKey;
+    PK11Context *macContext;
+    PRUint8 iv[MAX_IV_LENGTH];
 } ssl3KeyMaterial;
 
 typedef SECStatus (*SSLCipher)(void *context,
@@ -138,55 +138,56 @@ typedef struct DTLSRecvdRecordsStr {
 } DTLSRecvdRecords;
 
 /*
-** These are the "specs" in the "ssl3" struct.
-** Access to the pointers to these specs, and all the specs' contents
-** (direct and indirect) is protected by the reader/writer lock ss->specLock.
-*/
+ * These are the "specs" used for reading and writing records.  Access to the
+ * pointers to these specs, and all the specs' contents (direct and indirect) is
+ * protected by the reader/writer lock ss->specLock.
+ */
 struct ssl3CipherSpecStr {
     PRCList link;
-    const ssl3BulkCipherDef *cipher_def;
-    const ssl3MACDef *mac_def;
-    int mac_size;
-    SSLCipher encode;
-    SSLCipher decode;
-    SSLAEADCipher aead;
-    void *encodeContext;
-    void *decodeContext;
-    PK11SymKey *master_secret;
-    sslSequenceNumber write_seq_num;
-    sslSequenceNumber read_seq_num;
+    PRUint8 refCt;
+
+    CipherSpecDirection direction;
     SSL3ProtocolVersion version;
-    ssl3KeyMaterial client;
-    ssl3KeyMaterial server;
+
+    const ssl3BulkCipherDef *cipherDef;
+    const ssl3MACDef *macDef;
+
+    SSLCipher cipher;
+    SSLAEADCipher aead;
+    void *cipherContext;
+
+    PK11SymKey *masterSecret;
+    ssl3KeyMaterial keyMaterial;
+
     DTLSEpoch epoch;
+    const char *phase;
+    sslSequenceNumber seqNum;
     DTLSRecvdRecords recvdRecords;
+
     /* The number of 0-RTT bytes that can be sent or received in TLS 1.3. This
      * will be zero for everything but 0-RTT. */
     PRUint32 earlyDataRemaining;
-
-    PRUint8 refCt;
-    CipherSpecDirection direction;
-    const char *phase;
 };
 
 typedef void (*sslCipherSpecChangedFunc)(void *arg,
                                          PRBool sending,
                                          ssl3CipherSpec *newSpec);
 
-const ssl3BulkCipherDef *ssl_GetBulkCipherDefById(SSL3BulkCipher bulkCipher);
 const ssl3BulkCipherDef *ssl_GetBulkCipherDef(const ssl3CipherSuiteDef *cipher_def);
 const ssl3MACDef *ssl_GetMacDefByAlg(SSL3MACAlgorithm mac);
 const ssl3MACDef *ssl_GetMacDef(const sslSocket *ss, const ssl3CipherSuiteDef *suiteDef);
 
 ssl3CipherSpec *ssl_CreateCipherSpec(sslSocket *ss, CipherSpecDirection direction);
+void ssl_SaveCipherSpec(sslSocket *ss, ssl3CipherSpec *spec);
 void ssl_CipherSpecAddRef(ssl3CipherSpec *spec);
-void ssl_FreeCipherSpec(ssl3CipherSpec *spec);
 void ssl_CipherSpecRelease(ssl3CipherSpec *spec);
 void ssl_DestroyCipherSpecs(PRCList *list);
-ssl3CipherSpec *ssl_CreateNullCipherSpec(sslSocket *ss, CipherSpecDirection dir);
+SECStatus ssl_SetupNullCipherSpec(sslSocket *ss, CipherSpecDirection dir);
 
-ssl3CipherSpec *ssl_FindCipherSpecByEpoch(sslSocket *ss, CipherSpecDirection direction,
+ssl3CipherSpec *ssl_FindCipherSpecByEpoch(sslSocket *ss,
+                                          CipherSpecDirection direction,
                                           DTLSEpoch epoch);
-void ssl_ReleaseReadCipherSpec(sslSocket *ss, DTLSEpoch epoch);
+void ssl_CipherSpecReleaseByEpoch(sslSocket *ss, CipherSpecDirection direction,
+                                  DTLSEpoch epoch);
 
 #endif /* __sslspec_h_ */

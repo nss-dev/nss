@@ -606,7 +606,7 @@ TEST_F(TlsDropDatagram13, ReorderServerEE) {
 class TlsSendCipherSpecCapturer {
  public:
   TlsSendCipherSpecCapturer(std::shared_ptr<TlsAgent>& agent)
-      : is_server_(agent->role() == TlsAgent::SERVER), send_cipher_specs_() {
+      : send_cipher_specs_() {
     SSLInt_SetCipherSpecChangeFunc(agent->ssl_fd(), CipherSpecChanged,
                                    (void*)this);
   }
@@ -628,16 +628,14 @@ class TlsSendCipherSpecCapturer {
     auto self = static_cast<TlsSendCipherSpecCapturer*>(arg);
 
     auto spec = std::make_shared<TlsCipherSpec>();
-    bool ret =
-        spec->Init(SSLInt_CipherSpecToEpoch(self->is_server_, newSpec),
-                   SSLInt_CipherSpecToAlgorithm(self->is_server_, newSpec),
-                   SSLInt_CipherSpecToKey(self->is_server_, newSpec),
-                   SSLInt_CipherSpecToIv(self->is_server_, newSpec));
+    bool ret = spec->Init(SSLInt_CipherSpecToEpoch(newSpec),
+                          SSLInt_CipherSpecToAlgorithm(newSpec),
+                          SSLInt_CipherSpecToKey(newSpec),
+                          SSLInt_CipherSpecToIv(newSpec));
     EXPECT_EQ(true, ret);
     self->send_cipher_specs_.push_back(spec);
   }
 
-  bool is_server_;
   std::vector<std::shared_ptr<TlsCipherSpec>> send_cipher_specs_;
 };
 
