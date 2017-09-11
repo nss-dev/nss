@@ -654,7 +654,7 @@ ssl3_ClientHandleStatusRequestXtn(const sslSocket *ss, TLSExtensionData *xtnData
 }
 
 PRUint32 ssl_ticket_lifetime = 2 * 24 * 60 * 60; /* 2 days in seconds */
-#define TLS_EX_SESS_TICKET_VERSION (0x0106)
+#define TLS_EX_SESS_TICKET_VERSION (0x0107)
 
 /*
  * Called from ssl3_SendNewSessionTicket, tls13_SendNewSessionTicket
@@ -667,13 +667,12 @@ ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
     SECStatus rv;
     sslBuffer plaintext = { NULL, 0, 0 };
     SECItem ticket_buf = { 0, NULL, 0 };
-    PRBool ms_is_wrapped;
+    sslSessionID sid;
     unsigned char wrapped_ms[SSL3_MASTER_SECRET_LENGTH];
     SECItem ms_item = { 0, NULL, 0 };
     PRTime now;
     SECItem *srvName = NULL;
-    CK_MECHANISM_TYPE msWrapMech = 0; /* dummy default value,
-                                          * must be >= 0 */
+    CK_MECHANISM_TYPE msWrapMech;
     SECItem *alpnSelection = NULL;
     PRUint32 ticketAgeBaseline;
 
@@ -683,33 +682,23 @@ ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
-    if (ss->ssl3.pwSpec->msItem.len && ss->ssl3.pwSpec->msItem.data) {
-        PORT_Assert(ss->version < SSL_LIBRARY_VERSION_TLS_1_3);
-        /* The master secret is available unwrapped. */
-        ms_item.data = ss->ssl3.pwSpec->msItem.data;
-        ms_item.len = ss->ssl3.pwSpec->msItem.len;
-        ms_is_wrapped = PR_FALSE;
-    } else {
-        /* Extract the master secret wrapped. */
-        sslSessionID sid;
+    /* Extract the master secret wrapped. */
 
-        PORT_Memset(&sid, 0, sizeof(sslSessionID));
+    PORT_Memset(&sid, 0, sizeof(sslSessionID));
 
-        PORT_Assert(secret);
-        rv = ssl3_CacheWrappedSecret(ss, &sid, secret);
-        if (rv == SECSuccess) {
-            if (sid.u.ssl3.keys.wrapped_master_secret_len > sizeof(wrapped_ms))
-                goto loser;
-            memcpy(wrapped_ms, sid.u.ssl3.keys.wrapped_master_secret,
-                   sid.u.ssl3.keys.wrapped_master_secret_len);
-            ms_item.data = wrapped_ms;
-            ms_item.len = sid.u.ssl3.keys.wrapped_master_secret_len;
-            msWrapMech = sid.u.ssl3.masterWrapMech;
-        } else {
-            /* TODO: else send an empty ticket. */
+    PORT_Assert(secret);
+    rv = ssl3_CacheWrappedSecret(ss, &sid, secret);
+    if (rv == SECSuccess) {
+        if (sid.u.ssl3.keys.wrapped_master_secret_len > sizeof(wrapped_ms))
             goto loser;
-        }
-        ms_is_wrapped = PR_TRUE;
+        memcpy(wrapped_ms, sid.u.ssl3.keys.wrapped_master_secret,
+               sid.u.ssl3.keys.wrapped_master_secret_len);
+        ms_item.data = wrapped_ms;
+        ms_item.len = sid.u.ssl3.keys.wrapped_master_secret_len;
+        msWrapMech = sid.u.ssl3.masterWrapMech;
+    } else {
+        /* TODO: else send an empty ticket. */
+        goto loser;
     }
     /* Prep to send negotiated name */
     srvName = &ss->sec.ci.sid->u.ssl3.srvName;
@@ -779,9 +768,6 @@ ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
         goto loser;
 
     /* master_secret */
-    rv = sslBuffer_AppendNumber(&plaintext, ms_is_wrapped, 1);
-    if (rv != SECSuccess)
-        goto loser;
     rv = sslBuffer_AppendNumber(&plaintext, msWrapMech, 4);
     if (rv != SECSuccess)
         goto loser;
@@ -1052,14 +1038,6 @@ ssl_ParseSessionTicket(sslSocket *ss, const SECItem *decryptedTicket,
     }
 
     /* Read the master secret (and how it is wrapped). */
-    rv = ssl3_ExtConsumeHandshakeNumber(ss, &temp, 1, &buffer, &len);
-    if (rv != SECSuccess) {
-        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-        return SECFailure;
-    }
-    PORT_Assert(temp == PR_TRUE || temp == PR_FALSE);
-    parsedTicket->ms_is_wrapped = (PRBool)temp;
-
     rv = ssl3_ExtConsumeHandshakeNumber(ss, &temp, 4, &buffer, &len);
     if (rv != SECSuccess) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -1230,7 +1208,6 @@ ssl_CreateSIDFromTicket(sslSocket *ss, const SECItem *rawTicket,
                 parsedTicket->master_secret, parsedTicket->ms_length);
     sid->u.ssl3.keys.wrapped_master_secret_len = parsedTicket->ms_length;
     sid->u.ssl3.masterWrapMech = parsedTicket->msWrapMech;
-    sid->u.ssl3.keys.msIsWrapped = parsedTicket->ms_is_wrapped;
     sid->u.ssl3.masterValid = PR_TRUE;
     sid->u.ssl3.keys.resumable = PR_TRUE;
     sid->u.ssl3.keys.extendedMasterSecretUsed = parsedTicket->extendedMasterSecretUsed;

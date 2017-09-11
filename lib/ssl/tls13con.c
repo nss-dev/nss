@@ -640,10 +640,6 @@ tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
 
     SSL_TRC(3, ("%d: TLS13[%d]: recovering static secret (%s)",
                 SSL_GETPID(), ss->fd, SSL_ROLE(ss)));
-    if (!sid->u.ssl3.keys.msIsWrapped) {
-        PORT_Assert(0); /* I think this can't happen. */
-        return SECFailure;
-    }
 
     /* Now find the hash used as the PRF for the previous handshake. */
     hashType = tls13_GetHashForCipherSuite(sid->u.ssl3.cipherSuite);
