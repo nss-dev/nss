@@ -1060,6 +1060,8 @@ SECStatus
 ssl3_NegotiateVersion(sslSocket *ss, SSL3ProtocolVersion peerVersion,
                       PRBool allowLargerPeerVersion)
 {
+    SSL3ProtocolVersion negotiated;
+
     if (SSL_ALL_VERSIONS_DISABLED(&ss->vrange)) {
         PORT_SetError(SSL_ERROR_SSL_DISABLED);
         return SECFailure;
@@ -1071,9 +1073,14 @@ ssl3_NegotiateVersion(sslSocket *ss, SSL3ProtocolVersion peerVersion,
         return SECFailure;
     }
 
-    ss->version = PR_MIN(peerVersion, ss->vrange.max);
-    PORT_Assert(ssl3_VersionIsSupported(ss->protocolVariant, ss->version));
+    negotiated = PR_MIN(peerVersion, ss->vrange.max);
+    PORT_Assert(ssl3_VersionIsSupported(ss->protocolVariant, negotiated));
+    if (ss->firstHsDone && ss->version != negotiated) {
+        PORT_SetError(SSL_ERROR_UNSUPPORTED_VERSION);
+        return SECFailure;
+    }
 
+    ss->version = negotiated;
     return SECSuccess;
 }
 
@@ -1145,7 +1152,7 @@ ssl3_SignHashes(sslSocket *ss, SSL3Hashes *hash, SECKEYPrivateKey *key,
 {
     SECStatus rv = SECFailure;
     PRBool doDerEncode = PR_FALSE;
-    PRBool isTLS = (PRBool)(ss->ssl3.pwSpec->version > SSL_LIBRARY_VERSION_3_0);
+    PRBool isTLS = (PRBool)(ss->version > SSL_LIBRARY_VERSION_3_0);
     PRBool useRsaPss = ssl_IsRsaPssSignatureScheme(ss->ssl3.hs.signatureScheme);
     SECItem hashItem;
 
@@ -2102,26 +2109,6 @@ fail:
     }
 
     return SECFailure;
-}
-
-HASH_HashType
-ssl3_GetTls12HashType(sslSocket *ss)
-{
-    if (ss->ssl3.pwSpec->version < SSL_LIBRARY_VERSION_TLS_1_2) {
-        return HASH_AlgNULL;
-    }
-
-    switch (ss->ssl3.hs.suite_def->prf_hash) {
-        case ssl_hash_sha384:
-            return HASH_AlgSHA384;
-        case ssl_hash_sha256:
-        case ssl_hash_none:
-            /* ssl_hash_none is for pre-1.2 suites, which use SHA-256. */
-            return HASH_AlgSHA256;
-        default:
-            PORT_Assert(0);
-    }
-    return HASH_AlgSHA256;
 }
 
 /* Complete the initialization of all keys, ciphers, MACs and their contexts
@@ -3733,12 +3720,10 @@ static SECStatus
 ssl3_ComputeMasterSecretInt(sslSocket *ss, PK11SymKey *pms,
                             PK11SymKey **msp)
 {
-    ssl3CipherSpec *pwSpec = ss->ssl3.pwSpec;
     unsigned char *cr = (unsigned char *)&ss->ssl3.hs.client_random;
     unsigned char *sr = (unsigned char *)&ss->ssl3.hs.server_random;
-    PRBool isTLS = (PRBool)(pwSpec->version > SSL_LIBRARY_VERSION_3_0);
-    PRBool isTLS12 =
-        (PRBool)(isTLS && pwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2);
+    PRBool isTLS = (PRBool)(ss->version > SSL_LIBRARY_VERSION_3_0);
+    PRBool isTLS12 = (PRBool)(ss->version >= SSL_LIBRARY_VERSION_TLS_1_2);
     /*
      * Whenever isDH is true, we need to use CKM_TLS_MASTER_KEY_DERIVE_DH
      * which, unlike CKM_TLS_MASTER_KEY_DERIVE, converts arbitrary size
@@ -3846,7 +3831,7 @@ tls_ComputeExtendedMasterSecretInt(sslSocket *ss, PK11SymKey *pms,
         pms_version_ptr = &pms_version;
     }
 
-    if (pwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2) {
+    if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_2) {
         /* TLS 1.2+ */
         extended_master_params.prfHashMechanism = ssl3_GetPrfHashMechanism(ss);
         key_derive = CKM_TLS12_KEY_AND_MAC_DERIVE;
@@ -3938,9 +3923,9 @@ ssl3_DeriveConnectionKeys(sslSocket *ss)
     ssl3CipherSpec *pwSpec = ss->ssl3.pwSpec;
     unsigned char *cr = (unsigned char *)&ss->ssl3.hs.client_random;
     unsigned char *sr = (unsigned char *)&ss->ssl3.hs.server_random;
-    PRBool isTLS = (PRBool)(pwSpec->version > SSL_LIBRARY_VERSION_3_0);
+    PRBool isTLS = (PRBool)(ss->version > SSL_LIBRARY_VERSION_3_0);
     PRBool isTLS12 =
-        (PRBool)(isTLS && pwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2);
+        (PRBool)(isTLS && ss->version >= SSL_LIBRARY_VERSION_TLS_1_2);
     const ssl3BulkCipherDef *cipher_def = pwSpec->cipher_def;
     PK11SlotInfo *slot = NULL;
     PK11SymKey *symKey = NULL;
@@ -5980,7 +5965,7 @@ ssl3_SendRSAClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
 
     /* Generate the pre-master secret ...  */
     ssl_GetSpecWriteLock(ss);
-    isTLS = (PRBool)(ss->ssl3.pwSpec->version > SSL_LIBRARY_VERSION_3_0);
+    isTLS = (PRBool)(ss->version > SSL_LIBRARY_VERSION_3_0);
 
     pms = ssl3_GenerateRSAPMS(ss, ss->ssl3.pwSpec, NULL);
     ssl_ReleaseSpecWriteLock(ss);
@@ -6126,7 +6111,7 @@ ssl3_SendDHClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
 
-    isTLS = (PRBool)(ss->ssl3.pwSpec->version > SSL_LIBRARY_VERSION_3_0);
+    isTLS = (PRBool)(ss->version > SSL_LIBRARY_VERSION_3_0);
 
     /* Copy DH parameters from server key */
 
@@ -6677,7 +6662,7 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
      * us to be getting this version number, but it's what we have.
      * (1294697). */
     if (ss->firstHsDone && (ss->version != ss->ssl3.crSpec->version)) {
-        desc = illegal_parameter;
+        desc = protocol_version;
         errCode = SSL_ERROR_UNSUPPORTED_VERSION;
         goto alert_loser;
     }
@@ -9472,7 +9457,7 @@ ssl3_SendDHServerKeyExchange(sslSocket *ss)
     }
     PR_APPEND_LINK(&keyPair->link, &ss->ephemeralKeyPairs);
 
-    if (ss->ssl3.pwSpec->version == SSL_LIBRARY_VERSION_TLS_1_2) {
+    if (ss->version == SSL_LIBRARY_VERSION_TLS_1_2) {
         hashAlg = ssl_SignatureSchemeToHashType(ss->ssl3.hs.signatureScheme);
     } else {
         /* Use ssl_hash_none to represent the MD5+SHA1 combo. */
@@ -9504,7 +9489,7 @@ ssl3_SendDHServerKeyExchange(sslSocket *ss)
              2 + pubKey->u.dh.prime.len +
              2 + signed_hash.len;
 
-    if (ss->ssl3.pwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2) {
+    if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_2) {
         length += 2;
     }
 
@@ -9534,7 +9519,7 @@ ssl3_SendDHServerKeyExchange(sslSocket *ss)
         goto loser; /* err set by AppendHandshake. */
     }
 
-    if (ss->ssl3.pwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2) {
+    if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_2) {
         rv = ssl3_AppendHandshakeNumber(ss, ss->ssl3.hs.signatureScheme, 2);
         if (rv != SECSuccess) {
             goto loser; /* err set by AppendHandshake. */
@@ -9654,7 +9639,7 @@ ssl3_SendCertificateRequest(sslSocket *ss)
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
-    isTLS12 = (PRBool)(ss->ssl3.pwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_2);
+    isTLS12 = (PRBool)(ss->version >= SSL_LIBRARY_VERSION_TLS_1_2);
 
     rv = ssl_GetCertificateRequestCAs(ss, &calen, &names, &nnames);
     if (rv != SECSuccess) {
@@ -13239,6 +13224,11 @@ ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache)
         PORT_SetError(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED);
         return SECFailure;
     }
+    if (ss->version > ss->vrange.max || ss->version < ss->vrange.min) {
+        PORT_SetError(SSL_ERROR_UNSUPPORTED_VERSION);
+        return SECFailure;
+    }
+
     if (sid && flushCache) {
         ss->sec.uncache(sid); /* remove it from whichever cache it's in. */
         ssl_FreeSID(sid);     /* dec ref count and free if zero. */
