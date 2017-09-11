@@ -1791,58 +1791,66 @@ ssl3_InitCompressionContext(ssl3CipherSpec *pwSpec)
     return SECSuccess;
 }
 
-/* ssl3_BuildRecordPseudoHeader writes the SSL/TLS pseudo-header (the data
- * which is included in the MAC or AEAD additional data) to |out| and returns
- * its length. See https://tools.ietf.org/html/rfc5246#section-6.2.3.3 for the
- * definition of the AEAD additional data.
+/* ssl3_BuildRecordPseudoHeader writes the SSL/TLS pseudo-header (the data which
+ * is included in the MAC or AEAD additional data) to |buf|. See
+ * https://tools.ietf.org/html/rfc5246#section-6.2.3.3 for the definition of the
+ * AEAD additional data.
  *
  * TLS pseudo-header includes the record's version field, SSL's doesn't. Which
- * pseudo-header defintiion to use should be decided based on the version of
+ * pseudo-header definition to use should be decided based on the version of
  * the protocol that was negotiated when the cipher spec became current, NOT
  * based on the version value in the record itself, and the decision is passed
  * to this function as the |includesVersion| argument. But, the |version|
  * argument should be the record's version value.
  */
-static unsigned int
-ssl3_BuildRecordPseudoHeader(unsigned char *out,
-                             sslSequenceNumber seq_num,
+static SECStatus
+ssl3_BuildRecordPseudoHeader(DTLSEpoch epoch,
+                             sslSequenceNumber seqNum,
                              SSL3ContentType type,
                              PRBool includesVersion,
                              SSL3ProtocolVersion version,
                              PRBool isDTLS,
-                             int length)
+                             int length,
+                             sslBuffer *buf)
 {
-    out[0] = (unsigned char)(seq_num >> 56);
-    out[1] = (unsigned char)(seq_num >> 48);
-    out[2] = (unsigned char)(seq_num >> 40);
-    out[3] = (unsigned char)(seq_num >> 32);
-    out[4] = (unsigned char)(seq_num >> 24);
-    out[5] = (unsigned char)(seq_num >> 16);
-    out[6] = (unsigned char)(seq_num >> 8);
-    out[7] = (unsigned char)(seq_num >> 0);
-    out[8] = type;
+    SECStatus rv;
+    if (isDTLS) {
+        rv = sslBuffer_AppendNumber(buf, epoch, 2);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+        rv = sslBuffer_AppendNumber(buf, seqNum, 6);
+    } else {
+        rv = sslBuffer_AppendNumber(buf, seqNum, 8);
+    }
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    rv = sslBuffer_AppendNumber(buf, type, 1);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
 
     /* SSL3 MAC doesn't include the record's version field. */
-    if (!includesVersion) {
-        out[9] = MSB(length);
-        out[10] = LSB(length);
-        return 11;
+    if (includesVersion) {
+        /* TLS MAC and AEAD additional data include version. */
+        if (isDTLS) {
+            rv = sslBuffer_AppendNumber(buf,
+                                        dtls_TLSVersionToDTLSVersion(version),
+                                        2);
+        } else {
+            rv = sslBuffer_AppendNumber(buf, version, 2);
+        }
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+    }
+    rv = sslBuffer_AppendNumber(buf, length, 2);
+    if (rv != SECSuccess) {
+        return SECFailure;
     }
 
-    /* TLS MAC and AEAD additional data include version. */
-    if (isDTLS) {
-        SSL3ProtocolVersion dtls_version;
-
-        dtls_version = dtls_TLSVersionToDTLSVersion(version);
-        out[9] = MSB(dtls_version);
-        out[10] = LSB(dtls_version);
-    } else {
-        out[9] = MSB(version);
-        out[10] = LSB(version);
-    }
-    out[11] = MSB(length);
-    out[12] = LSB(length);
-    return 13;
+    return SECSuccess;
 }
 
 static SECStatus
@@ -2178,14 +2186,10 @@ ssl3_InitPendingCipherSpecs(sslSocket *ss, PK11SymKey *secret, PRBool derive)
     }
 
     /* With keys created, get ready to read and write records. */
+    pwSpec->epoch = ss->ssl3.cwSpec->epoch + 1;
+    pwSpec->read_seq_num = pwSpec->write_seq_num = 0;
     if (IS_DTLS(ss)) {
-        /* The sequence number has the high 16 bits as the epoch. */
-        pwSpec->epoch = ss->ssl3.cwSpec->epoch + 1;
-        pwSpec->read_seq_num = pwSpec->write_seq_num = (sslSequenceNumber)pwSpec->epoch << 48;
-
         dtls_InitRecvdRecords(&pwSpec->recvdRecords);
-    } else {
-        pwSpec->read_seq_num = pwSpec->write_seq_num = 0;
     }
 
     ssl_ReleaseSpecWriteLock(ss); /******************************/
@@ -2392,8 +2396,8 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
     PRUint32 fragLen;
     PRUint32 p1Len, p2Len, oddLen = 0;
     unsigned int ivLen = 0;
-    unsigned char pseudoHeader[13];
-    unsigned int pseudoHeaderLen;
+    unsigned char pseudoHeaderBuf[13];
+    sslBuffer pseudoHeader = SSL_BUFFER(pseudoHeaderBuf);
 
     cipher_def = cwSpec->cipher_def;
 
@@ -2436,11 +2440,11 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
         contentLen = outlen;
     }
 
-    pseudoHeaderLen = ssl3_BuildRecordPseudoHeader(
-        pseudoHeader, cwSpec->write_seq_num, type,
+    rv = ssl3_BuildRecordPseudoHeader(
+        cwSpec->epoch, cwSpec->write_seq_num, type,
         cwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_0, cwSpec->version,
-        isDTLS, contentLen);
-    PORT_Assert(pseudoHeaderLen <= sizeof(pseudoHeader));
+        isDTLS, contentLen, &pseudoHeader);
+    PORT_Assert(rv == SECSuccess);
     if (cipher_def->type == type_aead) {
         const int nonceLen = cipher_def->explicit_nonce_size;
         const int tagLen = cipher_def->tag_size;
@@ -2457,7 +2461,7 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
             (int *)&wrBuf->len, /* out len */
             wrBuf->space,       /* max out */
             pIn, contentLen,    /* input   */
-            pseudoHeader, pseudoHeaderLen);
+            SSL_BUFFER_BASE(&pseudoHeader), SSL_BUFFER_LEN(&pseudoHeader));
         if (rv != SECSuccess) {
             PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
             return SECFailure;
@@ -2466,8 +2470,10 @@ ssl3_CompressMACEncryptRecord(ssl3CipherSpec *cwSpec,
         /*
          * Add the MAC
          */
-        rv = ssl3_ComputeRecordMAC(cwSpec, isServer, pseudoHeader,
-                                   pseudoHeaderLen, pIn, contentLen,
+        rv = ssl3_ComputeRecordMAC(cwSpec, isServer,
+                                   SSL_BUFFER_BASE(&pseudoHeader),
+                                   SSL_BUFFER_LEN(&pseudoHeader),
+                                   pIn, contentLen,
                                    wrBuf->buf + ivLen + contentLen, &macLen);
         if (rv != SECSuccess) {
             ssl_MapLowLevelError(SSL_ERROR_MAC_COMPUTATION_FAILURE);
@@ -2578,7 +2584,11 @@ ssl_InsertRecordHeader(const sslSocket *ss, ssl3CipherSpec *cwSpec,
         if (rv != SECSuccess) {
             return SECFailure;
         }
-        rv = sslBuffer_AppendNumber(wrBuf, cwSpec->write_seq_num, 8);
+        rv = sslBuffer_AppendNumber(wrBuf, cwSpec->epoch, 2);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+        rv = sslBuffer_AppendNumber(wrBuf, cwSpec->write_seq_num, 6);
         if (rv != SECSuccess) {
             return SECFailure;
         }
@@ -2604,7 +2614,6 @@ ssl_ProtectRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
                   PRBool capRecordVersion, SSL3ContentType type,
                   const PRUint8 *pIn, PRUint32 contentLen, sslBuffer *wrBuf)
 {
-    const ssl3BulkCipherDef *cipher_def = cwSpec->cipher_def;
     unsigned int headerLen = IS_DTLS(ss) ? DTLS_RECORD_HEADER_LENGTH
                                          : SSL3_RECORD_HEADER_LENGTH;
     sslBuffer protBuf = SSL_BUFFER_FIXED(SSL_BUFFER_BASE(wrBuf) + headerLen,
@@ -2613,8 +2622,8 @@ ssl_ProtectRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
     SECStatus rv;
 
     PORT_Assert(SSL_BUFFER_LEN(wrBuf) == 0);
-    PORT_Assert(cipher_def->max_records <= RECORD_SEQ_MAX);
-    if ((cwSpec->write_seq_num & RECORD_SEQ_MAX) >= cipher_def->max_records) {
+    PORT_Assert(cwSpec->cipher_def->max_records <= RECORD_SEQ_MAX);
+    if (cwSpec->write_seq_num >= cwSpec->cipher_def->max_records) {
         SSL_TRC(3, ("%d: SSL[-]: write sequence number at limit 0x%0llx",
                     SSL_GETPID(), cwSpec->write_seq_num));
         PORT_SetError(SSL_ERROR_TOO_MANY_RECORDS);
@@ -12177,8 +12186,8 @@ ssl3_UnprotectRecord(sslSocket *ss,
     SSL3ContentType rType;
     unsigned int minLength;
     unsigned int originalLen = 0;
-    unsigned char header[13];
-    unsigned int headerLen;
+    PRUint8 headerBuf[13];
+    sslBuffer header = SSL_BUFFER(headerBuf);
     PRUint8 hash[MAX_MAC_LENGTH];
     PRUint8 givenHashBuf[MAX_MAC_LENGTH];
     PRUint8 *givenHash;
@@ -12254,10 +12263,10 @@ ssl3_UnprotectRecord(sslSocket *ss,
         unsigned int decryptedLen =
             cText->buf->len - cipher_def->explicit_nonce_size -
             cipher_def->tag_size;
-        headerLen = ssl3_BuildRecordPseudoHeader(
-            header, IS_DTLS(ss) ? cText->seq_num : spec->read_seq_num,
-            rType, isTLS, cText->version, IS_DTLS(ss), decryptedLen);
-        PORT_Assert(headerLen <= sizeof(header));
+        rv = ssl3_BuildRecordPseudoHeader(
+            spec->epoch, IS_DTLS(ss) ? cText->seq_num : spec->read_seq_num,
+            rType, isTLS, cText->version, IS_DTLS(ss), decryptedLen, &header);
+        PORT_Assert(rv == SECSuccess);
         rv = spec->aead(
             ss->sec.isServer ? &spec->client : &spec->server,
             PR_TRUE,                /* do decrypt */
@@ -12266,7 +12275,7 @@ ssl3_UnprotectRecord(sslSocket *ss,
             plaintext->space,       /* maxout */
             cText->buf->buf,        /* in */
             cText->buf->len,        /* inlen */
-            header, headerLen);
+            SSL_BUFFER_BASE(&header), SSL_BUFFER_LEN(&header));
         if (rv != SECSuccess) {
             good = 0;
         }
@@ -12303,14 +12312,15 @@ ssl3_UnprotectRecord(sslSocket *ss,
         }
 
         /* compute the MAC */
-        headerLen = ssl3_BuildRecordPseudoHeader(
-            header, IS_DTLS(ss) ? cText->seq_num : spec->read_seq_num,
+        rv = ssl3_BuildRecordPseudoHeader(
+            spec->epoch, IS_DTLS(ss) ? cText->seq_num : spec->read_seq_num,
             rType, isTLS, cText->version, IS_DTLS(ss),
-            plaintext->len - spec->mac_size);
-        PORT_Assert(headerLen <= sizeof(header));
+            plaintext->len - spec->mac_size, &header);
+        PORT_Assert(rv == SECSuccess);
         if (cipher_def->type == type_block) {
             rv = ssl3_ComputeRecordMACConstantTime(
-                spec, (PRBool)(!ss->sec.isServer), header, headerLen,
+                spec, (PRBool)(!ss->sec.isServer),
+                SSL_BUFFER_BASE(&header), SSL_BUFFER_LEN(&header),
                 plaintext->buf, plaintext->len, originalLen,
                 hash, &hashBytes);
 
@@ -12328,7 +12338,8 @@ ssl3_UnprotectRecord(sslSocket *ss,
             plaintext->len -= spec->mac_size;
 
             rv = ssl3_ComputeRecordMAC(
-                spec, (PRBool)(!ss->sec.isServer), header, headerLen,
+                spec, (PRBool)(!ss->sec.isServer),
+                SSL_BUFFER_BASE(&header), SSL_BUFFER_LEN(&header),
                 plaintext->buf, plaintext->len, hash, &hashBytes);
 
             /* We can read the MAC directly from the record because its location
@@ -12419,6 +12430,7 @@ ssl3_Decompress(sslSocket *ss, ssl3CipherSpec *crSpec,
 
 static SECStatus
 ssl3_HandleNonApplicationData(sslSocket *ss, SSL3ContentType rType,
+                              DTLSEpoch epoch, sslSequenceNumber seqNum,
                               sslBuffer *databuf)
 {
     SECStatus rv;
@@ -12448,7 +12460,7 @@ ssl3_HandleNonApplicationData(sslSocket *ss, SSL3ContentType rType,
             if (!IS_DTLS(ss)) {
                 rv = ssl3_HandleHandshake(ss, databuf);
             } else {
-                rv = dtls_HandleHandshake(ss, databuf);
+                rv = dtls_HandleHandshake(ss, epoch, seqNum, databuf);
             }
             break;
         case content_ack:
@@ -12530,7 +12542,8 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
 {
     SECStatus rv;
     PRBool isTLS;
-    sslSequenceNumber seq_num = 0;
+    DTLSEpoch epoch;
+    sslSequenceNumber seqNum = 0;
     ssl3CipherSpec *spec = NULL;
     PRBool outOfOrderSpec = PR_FALSE;
     SSL3ContentType rType;
@@ -12558,8 +12571,12 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     if (cText == NULL) {
         SSL_DBG(("%d: SSL3[%d]: HandleRecord, resuming handshake",
                  SSL_GETPID(), ss->fd));
+        /* Note that this doesn't pass the epoch and sequence number of the
+         * record through, which DTLS 1.3 depends on.  DTLS doesn't support
+         * asynchronous certificate validation, so that should be OK. */
+        PORT_Assert(!IS_DTLS(ss));
         return ssl3_HandleNonApplicationData(ss, content_handshake,
-                                             databuf);
+                                             0, 0, databuf);
     }
 
     ssl_GetSpecReadLock(ss); /******************************************/
@@ -12578,21 +12595,19 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     }
     isTLS = (PRBool)(spec->version > SSL_LIBRARY_VERSION_3_0);
     if (IS_DTLS(ss)) {
-        if (!dtls_IsRelevant(ss, spec, cText, &seq_num)) {
+        if (!dtls_IsRelevant(ss, spec, cText, &seqNum)) {
             ssl_ReleaseSpecReadLock(ss); /*****************************/
             databuf->len = 0;            /* Needed to ensure data not left around */
 
             return SECSuccess;
         }
     } else {
-        PORT_Assert(spec == ss->ssl3.crSpec);
-        seq_num = spec->read_seq_num + 1;
+        seqNum = spec->read_seq_num + 1;
     }
-
-    if (seq_num >= spec->cipher_def->max_records) {
+    if (seqNum >= spec->cipher_def->max_records) {
         ssl_ReleaseSpecReadLock(ss); /*****************************/
         SSL_TRC(3, ("%d: SSL[%d]: read sequence number at limit 0x%0llx",
-                    SSL_GETPID(), ss->fd, seq_num));
+                    SSL_GETPID(), ss->fd, seqNum));
         PORT_SetError(SSL_ERROR_TOO_MANY_RECORDS);
         return SECFailure;
     }
@@ -12672,10 +12687,11 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     }
 
     /* SECSuccess */
-    spec->read_seq_num = seq_num;
+    spec->read_seq_num = PR_MAX(spec->read_seq_num, seqNum);
     if (IS_DTLS(ss)) {
-        dtls_RecordSetRecvd(&spec->recvdRecords, seq_num);
+        dtls_RecordSetRecvd(&spec->recvdRecords, seqNum);
     }
+    epoch = spec->epoch;
 
     ssl_ReleaseSpecReadLock(ss); /*****************************************/
 
@@ -12730,7 +12746,7 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
         return SECFailure;
     }
 
-    return ssl3_HandleNonApplicationData(ss, rType, databuf);
+    return ssl3_HandleNonApplicationData(ss, rType, epoch, seqNum, databuf);
 }
 
 /*

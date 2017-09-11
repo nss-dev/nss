@@ -10,7 +10,8 @@
 #define __dtls13con_h_
 
 SECStatus dtls13_RememberFragment(sslSocket *ss, PRCList *list,
-                                  PRUint32 sequence, PRUint32 offset, PRUint32 length,
+                                  PRUint32 sequence, PRUint32 offset,
+                                  PRUint32 length, DTLSEpoch epoch,
                                   sslSequenceNumber record);
 PRBool dtls13_FragmentWasAcked(sslSocket *ss, PRUint16 msgSeq, PRUint32 offset,
                                PRUint32 len);
