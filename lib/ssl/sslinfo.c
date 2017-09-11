@@ -208,17 +208,17 @@ SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
 #define K_ANY "TLS 1.3", ssl_kea_tls13_any
 
 /* record protection cipher */
-#define C_SEED "SEED", calg_seed
-#define C_CAMELLIA "CAMELLIA", calg_camellia
-#define C_AES "AES", calg_aes
-#define C_RC4 "RC4", calg_rc4
-#define C_RC2 "RC2", calg_rc2
-#define C_DES "DES", calg_des
-#define C_3DES "3DES", calg_3des
-#define C_NULL "NULL", calg_null
-#define C_SJ "SKIPJACK", calg_sj
-#define C_AESGCM "AES-GCM", calg_aes_gcm
-#define C_CHACHA20 "CHACHA20POLY1305", calg_chacha20
+#define C_SEED "SEED", ssl_calg_seed
+#define C_CAMELLIA "CAMELLIA", ssl_calg_camellia
+#define C_AES "AES", ssl_calg_aes
+#define C_RC4 "RC4", ssl_calg_rc4
+#define C_RC2 "RC2", ssl_calg_rc2
+#define C_DES "DES", ssl_calg_des
+#define C_3DES "3DES", ssl_calg_3des
+#define C_NULL "NULL", ssl_calg_null
+#define C_SJ "SKIPJACK", ssl_calg_sj
+#define C_AESGCM "AES-GCM", ssl_calg_aes_gcm
+#define C_CHACHA20 "CHACHA20POLY1305", ssl_calg_chacha20
 
 /* "block cipher" sizes */
 #define B_256 256, 256, 256

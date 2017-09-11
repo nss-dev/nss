@@ -108,14 +108,14 @@ struct sidCacheEntryStr {
             /*  2 */ ssl3CipherSuite cipherSuite;
             /*  2 */ PRUint16 compression; /* SSLCompressionMethod */
 
-            /* 53 */ ssl3SidKeys keys; /* keys, wrapped as needed. */
+            /* 52 */ ssl3SidKeys keys; /* keys, wrapped as needed. */
 
             /*  4 */ PRUint32 masterWrapMech;
             /*  4 */ PRInt32 certIndex;
             /*  4 */ PRInt32 srvNameIndex;
             /* 32 */ PRUint8 srvNameHash[SHA256_LENGTH]; /* SHA256 name hash */
             /*  2 */ PRUint16 namedCurve;
-/*103 */} ssl3;
+/*102 */} ssl3;
 
 /* force sizeof(sidCacheEntry) to be a multiple of cache line size */
 struct {

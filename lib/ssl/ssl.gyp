@@ -39,6 +39,7 @@
         'sslsecur.c',
         'sslsnce.c',
         'sslsock.c',
+        'sslspec.c',
         'ssltrace.c',
         'sslver.c',
         'tls13con.c',
