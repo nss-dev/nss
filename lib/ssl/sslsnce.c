@@ -106,8 +106,6 @@ struct sidCacheEntryStr {
     union {
         struct {
             /*  2 */ ssl3CipherSuite cipherSuite;
-            /*  2 */ PRUint16 compression; /* SSLCompressionMethod */
-
             /* 52 */ ssl3SidKeys keys; /* keys, wrapped as needed. */
 
             /*  4 */ PRUint32 masterWrapMech;
@@ -115,7 +113,7 @@ struct sidCacheEntryStr {
             /*  4 */ PRInt32 srvNameIndex;
             /* 32 */ PRUint8 srvNameHash[SHA256_LENGTH]; /* SHA256 name hash */
             /*  2 */ PRUint16 namedCurve;
-/*102 */} ssl3;
+/*100 */} ssl3;
 
 /* force sizeof(sidCacheEntry) to be a multiple of cache line size */
 struct {
@@ -439,7 +437,6 @@ ConvertFromSID(sidCacheEntry *to, sslSessionID *from)
     to->signatureScheme = from->sigScheme;
 
     to->u.ssl3.cipherSuite = from->u.ssl3.cipherSuite;
-    to->u.ssl3.compression = (PRUint16)from->u.ssl3.compression;
     to->u.ssl3.keys = from->u.ssl3.keys;
     to->u.ssl3.masterWrapMech = from->u.ssl3.masterWrapMech;
     to->sessionIDLength = from->u.ssl3.sessionIDLength;
@@ -482,7 +479,6 @@ ConvertToSID(sidCacheEntry *from,
 
     to->u.ssl3.sessionIDLength = from->sessionIDLength;
     to->u.ssl3.cipherSuite = from->u.ssl3.cipherSuite;
-    to->u.ssl3.compression = (SSLCompressionMethod)from->u.ssl3.compression;
     to->u.ssl3.keys = from->u.ssl3.keys;
     to->u.ssl3.masterWrapMech = from->u.ssl3.masterWrapMech;
     if (from->u.ssl3.srvNameIndex != -1 && psnce) {

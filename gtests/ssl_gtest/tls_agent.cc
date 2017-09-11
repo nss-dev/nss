@@ -699,6 +699,49 @@ void TlsAgent::ResetPreliminaryInfo() {
   expected_cipher_suite_ = 0;
 }
 
+void TlsAgent::ValidateCipherSpecs() {
+  PRInt32 cipherSpecs = SSLInt_CountCipherSpecs(ssl_fd());
+  // We use one ciphersuite in each direction.
+  PRInt32 expected = 2;
+  // For DTLS 1.3, the client retains the cipher spec for early data and the
+  // handshake so that it can retransmit EndOfEarlyData and its final flight.
+  // It also retains the handshake read cipher spec so that it can read ACKs
+  // from the server. The server retains the handshake read cipher spec so it
+  // can read the client's retransmitted Finished.
+  if (variant_ == ssl_variant_datagram) {
+    if (expected_version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
+      if (role_ == CLIENT) {
+        expected = info_.earlyDataAccepted ? 5 : 4;
+      } else {
+        expected = 3;
+      }
+    } else {
+      // For DTLS 1.1 and 1.2, the last endpoint to send maintains a cipher spec
+      // until the holddown timer runs down.
+      if (expect_resumption_) {
+        if (role_ == CLIENT) {
+          expected = 3;
+        }
+      } else {
+        if (role_ == SERVER) {
+          expected = 3;
+        }
+      }
+    }
+  }
+  // A client using false start will still be reading cleartext while it has a
+  // spec prepared for reading ciphertext.  In DTLS, that also means being
+  // prepared for retransmission of handshake messages.
+  if (role_ == CLIENT && falsestart_enabled_ && !handshake_callback_called_) {
+    EXPECT_GT(SSL_LIBRARY_VERSION_TLS_1_3, expected_version_);
+    expected = (variant_ == ssl_variant_datagram) ? 4 : 3;
+  }
+  EXPECT_EQ(expected, cipherSpecs);
+  if (expected != cipherSpecs) {
+    SSLInt_PrintCipherSpecs(role_str().c_str(), ssl_fd());
+  }
+}
+
 void TlsAgent::Connected() {
   if (state_ == STATE_CONNECTED) {
     return;
@@ -724,27 +767,7 @@ void TlsAgent::Connected() {
   EXPECT_EQ(SECSuccess, rv);
   EXPECT_EQ(sizeof(csinfo_), csinfo_.length);
 
-  if (expected_version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
-    PRInt32 cipherSuites = SSLInt_CountTls13CipherSpecs(ssl_fd());
-    // We use one ciphersuite in each direction.
-    PRInt32 expected = 2;
-    // For DTLS, the client retains the cipher spec for early data and the
-    // handshake so that it can retransmit EndOfEarlyData and its final flight.
-    // It also retains the handshake read cipher spec so that it can
-    // read ACKs from the server. The server retains the handshake read
-    // cipher spec so it can read the client's retransmitted Finished.
-    if (variant_ == ssl_variant_datagram) {
-      if (role_ == CLIENT) {
-        expected = info_.earlyDataAccepted ? 5 : 4;
-      } else {
-        expected = 3;
-      }
-    }
-    EXPECT_EQ(expected, cipherSuites);
-    if (expected != cipherSuites) {
-      SSLInt_PrintTls13CipherSpecs(role_str().c_str(), ssl_fd());
-    }
-  }
+  ValidateCipherSpecs();
 
   SetState(STATE_CONNECTED);
 }

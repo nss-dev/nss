@@ -98,10 +98,10 @@ struct ssl3MACDefStr {
 #define MAX_IV_LENGTH 24
 
 typedef struct {
-    PK11SymKey *write_key;
-    PK11SymKey *write_mac_key;
-    PK11Context *write_mac_context;
-    PRUint8 write_iv[MAX_IV_LENGTH];
+    PK11SymKey *key;
+    PK11SymKey *macKey;
+    PK11Context *macContext;
+    PRUint8 iv[MAX_IV_LENGTH];
 } ssl3KeyMaterial;
 
 typedef SECStatus (*SSLCipher)(void *context,
@@ -120,13 +120,6 @@ typedef SECStatus (*SSLAEADCipher)(
     int inlen,
     const unsigned char *additionalData,
     int additionalDataLen);
-typedef SECStatus (*SSLCompressor)(void *context,
-                                   unsigned char *out,
-                                   int *outlen,
-                                   int maxout,
-                                   const unsigned char *in,
-                                   int inlen);
-typedef SECStatus (*SSLDestroy)(void *context, PRBool freeit);
 
 /* The DTLS anti-replay window in number of packets. Defined here because we
  * need it in the cipher spec. Note that this is a ring buffer but left and
@@ -145,60 +138,52 @@ typedef struct DTLSRecvdRecordsStr {
 } DTLSRecvdRecords;
 
 /*
-** These are the "specs" in the "ssl3" struct.
-** Access to the pointers to these specs, and all the specs' contents
-** (direct and indirect) is protected by the reader/writer lock ss->specLock.
-*/
+ * These are the "specs" used for reading and writing records.  Access to the
+ * pointers to these specs, and all the specs' contents (direct and indirect) is
+ * protected by the reader/writer lock ss->specLock.
+ */
 struct ssl3CipherSpecStr {
     PRCList link;
-    const ssl3BulkCipherDef *cipher_def;
-    const ssl3MACDef *mac_def;
-    SSLCompressionMethod compression_method;
-    int mac_size;
-    SSLCipher encode;
-    SSLCipher decode;
-    SSLAEADCipher aead;
-    void *encodeContext;
-    void *decodeContext;
-    SSLCompressor compressor;   /* Don't name these fields compress */
-    SSLCompressor decompressor; /* and uncompress because zconf.h   */
-                                /* may define them as macros.       */
-    SSLDestroy destroyCompressContext;
-    void *compressContext;
-    SSLDestroy destroyDecompressContext;
-    void *decompressContext;
-    PK11SymKey *master_secret;
-    sslSequenceNumber write_seq_num;
-    sslSequenceNumber read_seq_num;
+    PRUint8 refCt;
+
+    CipherSpecDirection direction;
     SSL3ProtocolVersion version;
-    ssl3KeyMaterial client;
-    ssl3KeyMaterial server;
+
+    const ssl3BulkCipherDef *cipherDef;
+    const ssl3MACDef *macDef;
+
+    SSLCipher cipher;
+    SSLAEADCipher aead;
+    void *cipherContext;
+
+    PK11SymKey *masterSecret;
+    ssl3KeyMaterial keyMaterial;
+
     DTLSEpoch epoch;
+    const char *phase;
+    sslSequenceNumber seqNum;
     DTLSRecvdRecords recvdRecords;
+
     /* The number of 0-RTT bytes that can be sent or received in TLS 1.3. This
      * will be zero for everything but 0-RTT. */
     PRUint32 earlyDataRemaining;
-
-    PRUint8 refCt;
-    CipherSpecDirection direction;
-    const char *phase;
 };
 
 typedef void (*sslCipherSpecChangedFunc)(void *arg,
                                          PRBool sending,
                                          ssl3CipherSpec *newSpec);
 
-const ssl3BulkCipherDef *ssl_GetBulkCipherDefById(SSL3BulkCipher bulkCipher);
 const ssl3BulkCipherDef *ssl_GetBulkCipherDef(const ssl3CipherSuiteDef *cipher_def);
 const ssl3MACDef *ssl_GetMacDefByAlg(SSL3MACAlgorithm mac);
 const ssl3MACDef *ssl_GetMacDef(const sslSocket *ss, const ssl3CipherSuiteDef *suiteDef);
 
 ssl3CipherSpec *ssl_CreateCipherSpec(sslSocket *ss, CipherSpecDirection direction);
+void ssl_SaveCipherSpec(sslSocket *ss, ssl3CipherSpec *spec);
 void ssl_CipherSpecAddRef(ssl3CipherSpec *spec);
-void ssl_FreeCipherSpec(ssl3CipherSpec *spec);
 void ssl_CipherSpecRelease(ssl3CipherSpec *spec);
 void ssl_DestroyCipherSpecs(PRCList *list);
-ssl3CipherSpec *ssl_CreateNullCipherSpec(sslSocket *ss, CipherSpecDirection dir);
+void ssl_DestroyKeyMaterial(ssl3KeyMaterial *keyMaterial);
+SECStatus ssl_SetupNullCipherSpec(sslSocket *ss, CipherSpecDirection dir);
 
 ssl3CipherSpec *ssl_FindCipherSpecByEpoch(sslSocket *ss, CipherSpecDirection direction,
                                           DTLSEpoch epoch);

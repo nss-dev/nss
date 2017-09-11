@@ -323,10 +323,8 @@ TEST_P(TlsConnectDatagram, TestDtlsHolddownExpiry) {
   SSLInt_ForceRtTimerExpiry(client_->ssl_fd());
   SSLInt_ForceRtTimerExpiry(server_->ssl_fd());
   SendReceive();
-  if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
-    // One for send, one for receive.
-    EXPECT_EQ(2, SSLInt_CountTls13CipherSpecs(client_->ssl_fd()));
-  }
+  // One for send, one for receive.
+  EXPECT_EQ(2, SSLInt_CountCipherSpecs(client_->ssl_fd()));
 }
 
 class TlsPreCCSHeaderInjector : public TlsRecordFilter {

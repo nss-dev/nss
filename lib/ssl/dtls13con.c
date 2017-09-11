@@ -244,36 +244,6 @@ dtls13_HandleOutOfEpochRecord(sslSocket *ss, const ssl3CipherSpec *spec,
     return SECFailure;
 }
 
-/* Store the null cipher spec with the right refct. */
-SECStatus
-dtls13_SaveNullCipherSpec(sslSocket *ss, const ssl3CipherSpec *crSpec)
-{
-    ssl3CipherSpec *spec;
-    extern const char kKeyPhaseCleartext[];
-    PORT_Assert(IS_DTLS(ss));
-
-    spec = PORT_ZNew(ssl3CipherSpec);
-    if (!spec) {
-        PORT_SetError(SEC_ERROR_NO_MEMORY);
-        return SECFailure;
-    }
-    spec->refCt = 1;
-    spec->cipher_def = crSpec->cipher_def;
-    spec->mac_def = crSpec->mac_def;
-    spec->decode = crSpec->decode;
-    spec->epoch = crSpec->epoch;
-    PORT_Memcpy(&spec->recvdRecords, &crSpec->recvdRecords,
-                sizeof(spec->recvdRecords));
-    spec->direction = CipherSpecRead;
-    spec->phase = kKeyPhaseCleartext;
-    spec->read_seq_num = crSpec->write_seq_num;
-    spec->refCt = 1;
-
-    PR_APPEND_LINK(&spec->link, &ss->ssl3.hs.cipherSpecs);
-
-    return SECSuccess;
-}
-
 SECStatus
 dtls13_HandleAck(sslSocket *ss, sslBuffer *databuf)
 {
