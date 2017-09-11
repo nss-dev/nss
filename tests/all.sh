@@ -285,7 +285,10 @@ TESTS=${NSS_TESTS:-$tests}
 
 ALL_TESTS=${TESTS}
 
-nss_ssl_tests="crl fips_normal normal_fips iopr policy"
+nss_ssl_tests="crl iopr policy"
+if [ -n "$NSS_FORCE_FIPS" ]; then
+    nss_ssl_tests="$nss_ssl_tests fips_normal normal_fips"
+fi
 NSS_SSL_TESTS="${NSS_SSL_TESTS:-$nss_ssl_tests}"
 
 nss_ssl_run="cov auth stapling stress"
