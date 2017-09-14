@@ -28,15 +28,10 @@
 #endif /* INTEL_GCM */
 
 /*
- * There are currently five ways to build this code, varying in performance
+ * There are currently three ways to build this code, varying in performance
  * and code size.
  *
  * RIJNDAEL_INCLUDE_TABLES         Include all tables from rijndael32.tab
- * RIJNDAEL_GENERATE_TABLES        Generate tables on first
- *                                 encryption/decryption, then store them;
- *                                 use the function gfm
- * RIJNDAEL_GENERATE_TABLES_MACRO  Same as above, but use macros to do
- *                                 the generation
  * RIJNDAEL_GENERATE_VALUES        Do not store tables, generate the table
  *                                 values "on-the-fly", using gfm
  * RIJNDAEL_GENERATE_VALUES_MACRO  Same as above, but use macros
@@ -108,8 +103,7 @@
     ((a & 0x80) ? ((a << 1) ^ 0x1b) : (a << 1))
 
 /* Choose GFM method (macros or function) */
-#if defined(RIJNDAEL_GENERATE_TABLES_MACRO) || \
-    defined(RIJNDAEL_GENERATE_VALUES_MACRO)
+#if defined(RIJNDAEL_GENERATE_VALUES_MACRO)
 
 /*
  * Galois field GF(2**8) multipliers, in macro form
@@ -133,7 +127,7 @@
 #define GFM0E(a) \
     (GFM02(a) ^ GFM04(a) ^ GFM08(a)) /* a * 0E = a * (02 + 04 + 08) */
 
-#else /* RIJNDAEL_GENERATE_TABLES or RIJNDAEL_GENERATE_VALUES */
+#else /* RIJNDAEL_GENERATE_VALUES */
 
 /* GF_MULTIPLY
  *
@@ -244,7 +238,7 @@ gen_TInvXi(PRUint8 tx, PRUint8 i)
 #define IMXC1(b) G_IMXC1(b)
 #define IMXC2(b) G_IMXC2(b)
 #define IMXC3(b) G_IMXC3(b)
-#elif defined(RIJNDAEL_GENERATE_VALUES_MACRO)
+#else /* RIJNDAEL_GENERATE_VALUES_MACRO */
 /* generate values for the tables with macros */
 #define T0(i) G_T0(i)
 #define T1(i) G_T1(i)
@@ -258,83 +252,9 @@ gen_TInvXi(PRUint8 tx, PRUint8 i)
 #define IMXC1(b) G_IMXC1(b)
 #define IMXC2(b) G_IMXC2(b)
 #define IMXC3(b) G_IMXC3(b)
-#else /* RIJNDAEL_GENERATE_TABLES or RIJNDAEL_GENERATE_TABLES_MACRO */
-/* Generate T and T**-1 table values and store, then index */
-/* The inverse mix column tables are still generated */
-#define T0(i) rijndaelTables->T0[i]
-#define T1(i) rijndaelTables->T1[i]
-#define T2(i) rijndaelTables->T2[i]
-#define T3(i) rijndaelTables->T3[i]
-#define TInv0(i) rijndaelTables->TInv0[i]
-#define TInv1(i) rijndaelTables->TInv1[i]
-#define TInv2(i) rijndaelTables->TInv2[i]
-#define TInv3(i) rijndaelTables->TInv3[i]
-#define IMXC0(b) G_IMXC0(b)
-#define IMXC1(b) G_IMXC1(b)
-#define IMXC2(b) G_IMXC2(b)
-#define IMXC3(b) G_IMXC3(b)
 #endif /* choose T-table indexing method */
 
 #endif /* not RIJNDAEL_INCLUDE_TABLES */
-
-#if defined(RIJNDAEL_GENERATE_TABLES) || \
-    defined(RIJNDAEL_GENERATE_TABLES_MACRO)
-
-/* Code to generate and store the tables */
-
-struct rijndael_tables_str {
-    PRUint32 T0[256];
-    PRUint32 T1[256];
-    PRUint32 T2[256];
-    PRUint32 T3[256];
-    PRUint32 TInv0[256];
-    PRUint32 TInv1[256];
-    PRUint32 TInv2[256];
-    PRUint32 TInv3[256];
-};
-
-static struct rijndael_tables_str *rijndaelTables = NULL;
-static PRCallOnceType coRTInit = { 0, 0, 0 };
-static PRStatus
-init_rijndael_tables(void)
-{
-    PRUint32 i;
-    PRUint8 si01, si02, si03, si04, si08, si09, si0B, si0D, si0E;
-    struct rijndael_tables_str *rts;
-    rts = (struct rijndael_tables_str *)
-        PORT_Alloc(sizeof(struct rijndael_tables_str));
-    if (!rts)
-        return PR_FAILURE;
-    for (i = 0; i < 256; i++) {
-        /* The forward values */
-        si01 = SBOX(i);
-        si02 = XTIME(si01);
-        si03 = si02 ^ si01;
-        rts->T0[i] = WORD4(si02, si01, si01, si03);
-        rts->T1[i] = WORD4(si03, si02, si01, si01);
-        rts->T2[i] = WORD4(si01, si03, si02, si01);
-        rts->T3[i] = WORD4(si01, si01, si03, si02);
-        /* The inverse values */
-        si01 = SINV(i);
-        si02 = XTIME(si01);
-        si04 = XTIME(si02);
-        si08 = XTIME(si04);
-        si03 = si02 ^ si01;
-        si09 = si08 ^ si01;
-        si0B = si08 ^ si03;
-        si0D = si09 ^ si04;
-        si0E = si08 ^ si04 ^ si02;
-        rts->TInv0[i] = WORD4(si0E, si09, si0D, si0B);
-        rts->TInv1[i] = WORD4(si0B, si0E, si09, si0D);
-        rts->TInv2[i] = WORD4(si0D, si0B, si0E, si09);
-        rts->TInv3[i] = WORD4(si09, si0D, si0B, si0E);
-    }
-    /* wait until all the values are in to set */
-    rijndaelTables = rts;
-    return PR_SUCCESS;
-}
-
-#endif /* code to generate tables */
 
 /**************************************************************************
  *
@@ -1100,15 +1020,6 @@ aes_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
     } else
 #endif
     {
-
-#if defined(RIJNDAEL_GENERATE_TABLES) || \
-    defined(RIJNDAEL_GENERATE_TABLES_MACRO)
-        if (rijndaelTables == NULL) {
-            if (PR_CallOnce(&coRTInit, init_rijndael_tables) != PR_SUCCESS) {
-                return SECFailure;
-            }
-        }
-#endif
         /* Generate expanded key */
         if (encrypt) {
             if (use_hw_aes && (cx->mode == NSS_AES_GCM || cx->mode == NSS_AES ||
