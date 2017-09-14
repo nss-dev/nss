@@ -358,6 +358,7 @@ p12U_ReadPKCS12File(SECItem *uniPwp, char *in_file, PK11SlotInfo *slot,
     SECItem p12file = { 0 };
     SECStatus rv = SECFailure;
     PRBool swapUnicode = PR_FALSE;
+    PRBool forceUnicode = pk12uForceUnicode;
     PRBool trypw;
     int error;
 
@@ -425,6 +426,18 @@ p12U_ReadPKCS12File(SECItem *uniPwp, char *in_file, PK11SlotInfo *slot,
                 SEC_PKCS12DecoderFinish(p12dcx);
                 uniPwp->len = 0;
                 trypw = PR_TRUE;
+            } else if (forceUnicode == pk12uForceUnicode) {
+                /* try again with a different password encoding */
+                forceUnicode = !pk12uForceUnicode;
+                rv = NSS_OptionSet(__NSS_PKCS12_DECODE_FORCE_UNICODE,
+                                   forceUnicode);
+                if (rv != SECSuccess) {
+                    SECU_PrintError(progName, "PKCS12 decoding failed to set option");
+                    pk12uErrno = PK12UERR_DECODEVERIFY;
+                    break;
+                }
+                SEC_PKCS12DecoderFinish(p12dcx);
+                trypw = PR_TRUE;
             } else {
                 SECU_PrintError(progName, "PKCS12 decode not verified");
                 pk12uErrno = PK12UERR_DECODEVERIFY;
@@ -432,6 +445,15 @@ p12U_ReadPKCS12File(SECItem *uniPwp, char *in_file, PK11SlotInfo *slot,
             }
         }
     } while (trypw == PR_TRUE);
+
+    /* revert the option setting */
+    if (forceUnicode != pk12uForceUnicode) {
+        rv = NSS_OptionSet(__NSS_PKCS12_DECODE_FORCE_UNICODE, pk12uForceUnicode);
+        if (rv != SECSuccess) {
+            SECU_PrintError(progName, "PKCS12 decoding failed to set option");
+            pk12uErrno = PK12UERR_DECODEVERIFY;
+        }
+    }
 /* rv has been set at this point */
 
 done:
