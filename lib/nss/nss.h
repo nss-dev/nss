@@ -291,6 +291,15 @@ SECStatus NSS_UnregisterShutdown(NSS_ShutdownFunc sFunc, void *appData);
 #define NSS_DTLS_VERSION_MIN_POLICY 0x00a
 #define NSS_DTLS_VERSION_MAX_POLICY 0x00b
 
+/* Until NSS 3.30, the PKCS#12 implementation used BMPString encoding
+ * for all passwords.  This changed to use UTF-8 for non-PKCS#12 PBEs
+ * in NSS 3.31.
+ *
+ * For backward compatibility, this option reverts the behavior to the
+ * old NSS versions.  This option might be removed in the future NSS
+ * releases; don't rely on it. */
+#define __NSS_PKCS12_DECODE_FORCE_UNICODE 0x00c
+
 /*
  * Set and get global options for the NSS library.
  */
