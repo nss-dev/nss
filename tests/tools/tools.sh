@@ -102,6 +102,8 @@ tools_init()
   cp ${ALICEDIR}/* ${SIGNDIR}/
   mkdir -p ${TOOLSDIR}/html
   cp ${QADIR}/tools/sign*.html ${TOOLSDIR}/html
+  mkdir -p ${TOOLSDIR}/data
+  cp ${QADIR}/tools/TestOldCA.p12 ${TOOLSDIR}/data
 
   cd ${TOOLSDIR}
 }
@@ -417,6 +419,16 @@ tools_p12_export_list_import_with_default_ciphers()
   check_tmpfile
 }
 
+tools_p12_import_old_files()
+{
+  echo "$SCRIPTNAME: Importing CA cert & key created with NSS 3.21 --------------"
+  echo "pk12util -i TestOldCA.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -w ${R_PWFILE}"
+  ${BINDIR}/pk12util -i ${TOOLSDIR}/data/TestOldCA.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -w ${R_PWFILE} 2>&1
+  ret=$?
+  html_msg $ret 0 "Importing CA cert & key created with NSS 3.21"
+  check_tmpfile
+}
+
 ############################## tools_p12 ###############################
 # local shell function to test basic functionality of pk12util
 ########################################################################
@@ -428,6 +440,7 @@ tools_p12()
   tools_p12_export_list_import_all_pkcs12v2pbe_ciphers
   tools_p12_export_with_none_ciphers
   tools_p12_export_with_invalid_ciphers
+  tools_p12_import_old_files
 }
 
 ############################## tools_sign ##############################
