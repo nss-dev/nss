@@ -497,6 +497,19 @@ SIGNSCRIPT
 
 }
 
+tools_modutil()
+{
+  echo "$SCRIPTNAME: Test if DB created by modutil -create is initialized"
+  mkdir -p ${R_TOOLSDIR}/moddir
+  modu -create -dbdir "${R_TOOLSDIR}/moddir" 2>&1
+  ret=$?
+  ${BINDIR}/certutil -S -s 'CN=TestUser' -d "${TOOLSDIR}/moddir" -n TestUser \
+	   -x -t ',,' -z "${R_NOISE_FILE}"
+  ret=$?
+  html_msg $ret 0 "Test if DB created by modutil -create is initialized"
+  check_tmpfile
+}
+
 ############################## tools_cleanup ###########################
 # local shell function to finish this script (no exit since it might be 
 # sourced)
@@ -513,6 +526,7 @@ tools_cleanup()
 tools_init
 tools_p12
 tools_sign
+tools_modutil
 tools_cleanup
 
 
