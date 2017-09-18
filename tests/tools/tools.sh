@@ -501,7 +501,9 @@ tools_modutil()
 {
   echo "$SCRIPTNAME: Test if DB created by modutil -create is initialized"
   mkdir -p ${R_TOOLSDIR}/moddir
-  modu -create -dbdir "${R_TOOLSDIR}/moddir" 2>&1
+  # copied from modu function in cert.sh
+  # echo is used to press Enter expected by modutil
+  echo | ${BINDIR}/modutil -create -dbdir "${R_TOOLSDIR}/moddir" 2>&1
   ret=$?
   ${BINDIR}/certutil -S -s 'CN=TestUser' -d "${TOOLSDIR}/moddir" -n TestUser \
 	   -x -t ',,' -z "${R_NOISE_FILE}"
