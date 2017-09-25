@@ -130,9 +130,9 @@ class Pk11SignatureTest : public ::testing::Test {
 };
 
 #define SIG_TEST_VECTOR_VERIFY(spki, data, sig) \
-  Verify(spki, sizeof(spki), data, sizeof(data), sig, sizeof(sig));
+  Verify(spki, sizeof(spki), data, sizeof(data), sig, sizeof(sig))
 
 #define SIG_TEST_VECTOR_SIGN_VERIFY(pkcs8, spki, data) \
-  SignAndVerify(pkcs8, sizeof(pkcs8), spki, sizeof(spki), data, sizeof(data));
+  SignAndVerify(pkcs8, sizeof(pkcs8), spki, sizeof(spki), data, sizeof(data))
 
 }  // namespace nss_test
