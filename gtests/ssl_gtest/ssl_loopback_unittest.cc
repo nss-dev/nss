@@ -467,7 +467,7 @@ TEST_F(TlsConnectStreamTls13, BothAltHandshakeType) {
 
 static size_t ExpectedCbcLen(size_t in, size_t hmac = 20, size_t block = 16) {
   // MAC-then-Encrypt expansion formula:
-  return ((in + hmac + (block - 1)) / 16) * 16;
+  return ((in + hmac + (block - 1)) / block) * block;
 }
 
 TEST_F(TlsConnectTest, OneNRecordSplitting) {
