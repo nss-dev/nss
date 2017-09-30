@@ -11133,44 +11133,40 @@ ssl3_SendNextProto(sslSocket *ss)
     return rv;
 }
 
-/* called from ssl3_SendFinished and tls13_DeriveSecretWrap.
+/* called from ssl3_SendFinished
  *
  * This function is simply a debugging aid and therefore does not return a
  * SECStatus. */
-void
-ssl3_RecordKeyLog(sslSocket *ss, const char *label, PK11SymKey *secret)
+static void
+ssl3_RecordKeyLog(sslSocket *ss)
 {
 #ifdef NSS_ALLOW_SSLKEYLOGFILE
     SECStatus rv;
     SECItem *keyData;
-    /* Longest label is "CLIENT_HANDSHAKE_TRAFFIC_SECRET", master secret is 48
-     * bytes which happens to be the largest in TLS 1.3 as well (SHA384).
-     * Maximum line length: "CLIENT_HANDSHAKE_TRAFFIC_SECRET" (31) + " " (1) +
-     * client_random (32*2) + " " (1) +
-     * traffic_secret (48*2) + "\n" (1) = 194. */
-    char buf[200];
-    unsigned int offset, len;
+    char buf[14 /* "CLIENT_RANDOM " */ +
+             SSL3_RANDOM_LENGTH * 2 /* client_random */ +
+             1 /* " " */ +
+             48 * 2 /* master secret */ +
+             1 /* new line */];
+    unsigned int j;
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     if (!ssl_keylog_iob)
         return;
 
-    rv = PK11_ExtractKeyValue(secret);
+    rv = PK11_ExtractKeyValue(ss->ssl3.cwSpec->master_secret);
     if (rv != SECSuccess)
         return;
 
-    /* keyData does not need to be freed. */
-    keyData = PK11_GetKeyData(secret);
-    if (!keyData || !keyData->data)
-        return;
+    ssl_GetSpecReadLock(ss);
 
-    len = strlen(label) + 1 +          /* label + space */
-          SSL3_RANDOM_LENGTH * 2 + 1 + /* client random (hex) + space */
-          keyData->len * 2 + 1;        /* secret (hex) + newline */
-    PORT_Assert(len <= sizeof(buf));
-    if (len > sizeof(buf))
+    /* keyData does not need to be freed. */
+    keyData = PK11_GetKeyData(ss->ssl3.cwSpec->master_secret);
+    if (!keyData || !keyData->data || keyData->len != 48) {
+        ssl_ReleaseSpecReadLock(ss);
         return;
+    }
 
     /* https://developer.mozilla.org/en/NSS_Key_Log_Format */
 
@@ -11178,21 +11174,23 @@ ssl3_RecordKeyLog(sslSocket *ss, const char *label, PK11SymKey *secret)
      * keylog, so we have to do everything in a single call to
      * fwrite. */
 
-    strcpy(buf, label);
-    offset = strlen(label);
-    buf[offset++] += ' ';
-    hexEncode(buf + offset, ss->ssl3.hs.client_random.rand, SSL3_RANDOM_LENGTH);
-    offset += SSL3_RANDOM_LENGTH * 2;
-    buf[offset++] = ' ';
-    hexEncode(buf + offset, keyData->data, keyData->len);
-    offset += keyData->len * 2;
-    buf[offset++] = '\n';
+    memcpy(buf, "CLIENT_RANDOM ", 14);
+    j = 14;
+    hexEncode(buf + j, ss->ssl3.hs.client_random.rand, SSL3_RANDOM_LENGTH);
+    j += SSL3_RANDOM_LENGTH * 2;
+    buf[j++] = ' ';
+    hexEncode(buf + j, keyData->data, 48);
+    j += 48 * 2;
+    buf[j++] = '\n';
 
-    PORT_Assert(offset == len);
+    PORT_Assert(j == sizeof(buf));
 
-    if (fwrite(buf, len, 1, ssl_keylog_iob) != 1)
+    ssl_ReleaseSpecReadLock(ss);
+
+    if (fwrite(buf, sizeof(buf), 1, ssl_keylog_iob) != 1)
         return;
     fflush(ssl_keylog_iob);
+    return;
 #endif
 }
 
@@ -11259,7 +11257,7 @@ ssl3_SendFinished(sslSocket *ss, PRInt32 flags)
         goto fail; /* error code set by ssl3_FlushHandshake */
     }
 
-    ssl3_RecordKeyLog(ss, "CLIENT_RANDOM", ss->ssl3.cwSpec->master_secret);
+    ssl3_RecordKeyLog(ss);
 
     return SECSuccess;
 
