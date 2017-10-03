@@ -6054,35 +6054,14 @@ ssl3_SendRSAClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
         goto loser;
     }
 
-#ifdef NSS_ALLOW_SSLKEYLOGFILE
-    if (ssl_keylog_iob) {
+#ifdef TRACE
+    if (ssl_trace >= 100) {
         SECStatus extractRV = PK11_ExtractKeyValue(pms);
         if (extractRV == SECSuccess) {
             SECItem *keyData = PK11_GetKeyData(pms);
             if (keyData && keyData->data && keyData->len) {
-#ifdef TRACE
-                if (ssl_trace >= 100) {
-                    ssl_PrintBuf(ss, "Pre-Master Secret",
-                                 keyData->data, keyData->len);
-                }
-#endif
-                if (ssl_keylog_iob && enc_pms.len >= 8 && keyData->len == 48) {
-                    /* https://developer.mozilla.org/en/NSS_Key_Log_Format */
-
-                    /* There could be multiple, concurrent writers to the
-                     * keylog, so we have to do everything in a single call to
-                     * fwrite. */
-                    char buf[4 + 8 * 2 + 1 + 48 * 2 + 1];
-
-                    strcpy(buf, "RSA ");
-                    hexEncode(buf + 4, enc_pms.data, 8);
-                    buf[20] = ' ';
-                    hexEncode(buf + 21, keyData->data, 48);
-                    buf[sizeof(buf) - 1] = '\n';
-
-                    fwrite(buf, sizeof(buf), 1, ssl_keylog_iob);
-                    fflush(ssl_keylog_iob);
-                }
+                ssl_PrintBuf(ss, "Pre-Master Secret",
+                             keyData->data, keyData->len);
             }
         }
     }
