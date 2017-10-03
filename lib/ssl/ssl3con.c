@@ -11196,9 +11196,10 @@ ssl3_RecordKeyLog(sslSocket *ss, const char *label, PK11SymKey *secret)
 
     PORT_Assert(offset == len);
 
-    if (fwrite(buf, len, 1, ssl_keylog_iob) != 1)
-        return;
-    fflush(ssl_keylog_iob);
+    PZ_Lock(ssl_keylog_lock);
+    if (fwrite(buf, len, 1, ssl_keylog_iob) == 1)
+        fflush(ssl_keylog_iob);
+    PZ_Unlock(ssl_keylog_lock);
 #endif
 }
 
