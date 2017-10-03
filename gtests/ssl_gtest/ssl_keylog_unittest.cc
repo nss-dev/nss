@@ -19,10 +19,10 @@ class KeyLogFileTest : public TlsConnectGeneric {
  public:
   void SetUp() {
     TlsConnectTestBase::SetUp();
-    remove(keylog_file_path);
+    remove(keylog_file_path.c_str());
     std::ostringstream sstr;
     sstr << "SSLKEYLOGFILE=" << keylog_file_path;
-    PR_SetEnv(sstr.c_str());
+    PR_SetEnv(sstr.str().c_str());
   }
 
   void CheckKeyLog() {
