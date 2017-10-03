@@ -13,14 +13,16 @@
 
 namespace nss_test {
 
-static const char *keylog_file_path = "keylog.txt";
+static const std::string keylog_file_path = "keylog.txt";
 
 class KeyLogFileTest : public TlsConnectGeneric {
  public:
   void SetUp() {
     TlsConnectTestBase::SetUp();
     remove(keylog_file_path);
-    setenv("SSLKEYLOGFILE", keylog_file_path, 1);
+    std::ostringstream sstr;
+    sstr << "SSLKEYLOGFILE=" << keylog_file_path;
+    PR_SetEnv(sstr.c_str());
   }
 
   void CheckKeyLog() {
