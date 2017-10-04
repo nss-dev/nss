@@ -553,6 +553,8 @@ struct sslSessionIDStr {
     PRUint32 authKeyBits;
     SSLKEAType keaType;
     PRUint32 keaKeyBits;
+    SSLNamedGroup keaGroup;
+    SSLSignatureScheme sigScheme;
 
     union {
         struct {
@@ -1002,6 +1004,8 @@ typedef struct SessionTicketStr {
     PRUint32 authKeyBits;
     SSLKEAType keaType;
     PRUint32 keaKeyBits;
+    SSLNamedGroup originalKeaGroup;
+    SSLSignatureScheme signatureScheme;
     const sslNamedGroupDef *namedCurve; /* For certificate lookup. */
 
     /*
@@ -1068,6 +1072,7 @@ struct sslSecurityInfoStr {
     SSLKEAType keaType;
     PRUint32 keaKeyBits;
     const sslNamedGroupDef *keaGroup;
+    const sslNamedGroupDef *originalKeaGroup;
     /* The selected certificate (for servers only). */
     const sslServerCert *serverCert;
 
