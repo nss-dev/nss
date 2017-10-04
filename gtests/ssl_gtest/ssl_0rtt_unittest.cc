@@ -635,4 +635,8 @@ TEST_P(TlsConnectTls13, ZeroRttOrdering) {
   EXPECT_EQ(2U, step);
 }
 
+#ifndef NSS_DISABLE_TLS_1_3
+INSTANTIATE_TEST_CASE_P(Tls13ZeroRttReplayTest, TlsZeroRttReplayTest,
+                        TlsConnectTestBase::kTlsVariantsStream);
+#endif
 }  // namespace nss_test
