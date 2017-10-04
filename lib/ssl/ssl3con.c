@@ -6909,6 +6909,8 @@ ssl3_HandleServerHelloPart2(sslSocket *ss, const SECItem *sidBytes,
             ss->sec.authKeyBits = sid->authKeyBits;
             ss->sec.keaType = sid->keaType;
             ss->sec.keaKeyBits = sid->keaKeyBits;
+            ss->sec.originalKeaGroup = ssl_LookupNamedGroup(sid->keaGroup);
+            ss->sec.signatureScheme = sid->sigScheme;
 
             if (sid->u.ssl3.keys.msIsWrapped) {
                 PK11SlotInfo *slot;
@@ -7919,6 +7921,7 @@ ssl3_NewSessionID(sslSocket *ss, PRBool is_server)
     sid->references = 1;
     sid->cached = never_cached;
     sid->version = ss->version;
+    sid->sigScheme = ssl_sig_none;
 
     sid->u.ssl3.keys.resumable = PR_TRUE;
     sid->u.ssl3.policy = SSL_ALLOWED;
@@ -8892,6 +8895,8 @@ compression_found:
             ss->sec.authKeyBits = sid->authKeyBits;
             ss->sec.keaType = sid->keaType;
             ss->sec.keaKeyBits = sid->keaKeyBits;
+            ss->sec.originalKeaGroup = ssl_LookupNamedGroup(sid->keaGroup);
+            ss->sec.signatureScheme = sid->sigScheme;
 
             ss->sec.localCert =
                 CERT_DupCertificate(ss->sec.serverCert->serverCert);
@@ -8963,6 +8968,7 @@ compression_found:
     }
 
     if (sid) { /* we had a sid, but it's no longer valid, free it */
+        ss->statelessResume = PR_FALSE;
         SSL_AtomicIncrementLong(&ssl3stats.hch_sid_cache_not_ok);
         ss->sec.uncache(sid);
         ssl_FreeSID(sid);
@@ -11536,6 +11542,12 @@ ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid)
     sid->authKeyBits = ss->sec.authKeyBits;
     sid->keaType = ss->sec.keaType;
     sid->keaKeyBits = ss->sec.keaKeyBits;
+    if (ss->sec.keaGroup) {
+        sid->keaGroup = ss->sec.keaGroup->name;
+    } else {
+        sid->keaGroup = ssl_grp_none;
+    }
+    sid->sigScheme = ss->sec.signatureScheme;
     sid->lastAccessTime = sid->creationTime = ssl_Time();
     sid->expirationTime = sid->creationTime + ssl3_sid_timeout;
     sid->localCert = CERT_DupCertificate(ss->sec.localCert);

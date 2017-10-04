@@ -925,6 +925,8 @@ tls13_RestoreCipherInfo(sslSocket *ss, sslSessionID *sid)
      */
     ss->sec.authType = sid->authType;
     ss->sec.authKeyBits = sid->authKeyBits;
+    ss->sec.originalKeaGroup = ssl_LookupNamedGroup(sid->keaGroup);
+    ss->sec.signatureScheme = sid->sigScheme;
 }
 
 /* Check whether resumption-PSK is allowed. */
