@@ -15,9 +15,19 @@ const LINUX_CLANG39_IMAGE = {
   path: "automation/taskcluster/docker-clang-3.9"
 };
 
+const LINUX_GCC44_IMAGE = {
+  name: "linux-gcc-4.4",
+  path: "automation/taskcluster/docker-gcc-4.4"
+};
+
 const FUZZ_IMAGE = {
   name: "fuzz",
   path: "automation/taskcluster/docker-fuzz"
+};
+
+const HACL_GEN_IMAGE = {
+  name: "hacl",
+  path: "automation/taskcluster/docker-hacl"
 };
 
 const WINDOWS_CHECKOUT_CMD =
@@ -253,8 +263,7 @@ async function scheduleMac(name, base, args = "") {
     },
     provisioner: "localprovisioner",
     workerType: "nss-macos-10-12",
-    platform: "mac",
-    tier: 3
+    platform: "mac"
   });
 
   // Build base definition.
@@ -401,6 +410,26 @@ async function scheduleLinux(name, base, args = "") {
   }));
 
   queue.scheduleTask(merge(extra_base, {
+    name: `${name} w/ gcc-4.4`,
+    image: LINUX_GCC44_IMAGE,
+    env: {
+      USE_64: "1",
+      CC: "gcc-4.4",
+      CCC: "g++-4.4",
+      // gcc-4.6 introduced nullptr.
+      NSS_DISABLE_GTESTS: "1",
+    },
+    // Use the old Makefile-based build system, GYP doesn't have a proper GCC
+    // version check for __int128 support. It's mainly meant to cover RHEL6.
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/build.sh",
+    ],
+    symbol: "gcc-4.4"
+  }));
+
+  queue.scheduleTask(merge(extra_base, {
     name: `${name} w/ gcc-4.8`,
     env: {
       CC: "gcc-4.8",
@@ -529,12 +558,13 @@ async function scheduleFuzzing() {
 
   // Schedule MPI fuzzing runs.
   let mpi_base = merge(run_base, {group: "MPI"});
-  let mpi_names = ["add", "addmod", "div", "expmod", "mod", "mulmod", "sqr",
+  let mpi_names = ["add", "addmod", "div", "mod", "mulmod", "sqr",
                    "sqrmod", "sub", "submod"];
   for (let name of mpi_names) {
     scheduleFuzzingRun(mpi_base, `MPI (${name})`, `mpi-${name}`, 4096, name);
   }
   scheduleFuzzingRun(mpi_base, `MPI (invmod)`, `mpi-invmod`, 256, "invmod");
+  scheduleFuzzingRun(mpi_base, `MPI (expmod)`, `mpi-expmod`, 2048, "expmod");
 
   // Schedule TLS fuzzing runs (non-fuzzing mode).
   let tls_base = merge(run_base, {group: "TLS"});
@@ -931,6 +961,17 @@ async function scheduleTools() {
       "/bin/bash",
       "-c",
       "bin/checkout.sh && nss/automation/taskcluster/scripts/run_scan_build.sh"
+    ]
+  }));
+
+  queue.scheduleTask(merge(base, {
+    symbol: "hacl",
+    name: "hacl",
+    image: HACL_GEN_IMAGE,
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/run_hacl.sh"
     ]
   }));
 

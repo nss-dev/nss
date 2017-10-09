@@ -551,6 +551,8 @@ struct sslSessionIDStr {
     PRUint32 authKeyBits;
     SSLKEAType keaType;
     PRUint32 keaKeyBits;
+    SSLNamedGroup keaGroup;
+    SSLSignatureScheme sigScheme;
 
     union {
         struct {
@@ -1014,6 +1016,8 @@ typedef struct SessionTicketStr {
     PRUint32 authKeyBits;
     SSLKEAType keaType;
     PRUint32 keaKeyBits;
+    SSLNamedGroup originalKeaGroup;
+    SSLSignatureScheme signatureScheme;
     const sslNamedGroupDef *namedCurve; /* For certificate lookup. */
 
     /*
@@ -1082,6 +1086,7 @@ struct sslSecurityInfoStr {
     SSLKEAType keaType;
     PRUint32 keaKeyBits;
     const sslNamedGroupDef *keaGroup;
+    const sslNamedGroupDef *originalKeaGroup;
     /* The selected certificate (for servers only). */
     const sslServerCert *serverCert;
 
@@ -1260,6 +1265,7 @@ extern char ssl_debug;
 extern char ssl_trace;
 extern FILE *ssl_trace_iob;
 extern FILE *ssl_keylog_iob;
+extern PZLock *ssl_keylog_lock;
 extern PRUint32 ssl3_sid_timeout;
 extern PRUint32 ssl_ticket_lifetime;
 extern PRUint32 ssl_max_early_data_size;
@@ -1872,6 +1878,9 @@ ssl3_TLSPRFWithMasterSecret(sslSocket *ss, ssl3CipherSpec *spec,
                             const char *label, unsigned int labelLen,
                             const unsigned char *val, unsigned int valLen,
                             unsigned char *out, unsigned int outLen);
+
+extern void
+ssl3_RecordKeyLog(sslSocket *ss, const char *label, PK11SymKey *secret);
 
 PRBool ssl_AlpnTagAllowed(const sslSocket *ss, const SECItem *tag);
 

@@ -76,11 +76,7 @@ tools_init()
   fi
   SCRIPTNAME=tools.sh
 
-  if [ -z "$NSS_DISABLE_ECC" ] ; then
-      html_head "Tools Tests with ECC"
-  else
-      html_head "Tools Tests"
-  fi
+  html_head "Tools Tests"
 
   grep "SUCCESS: SMIME passed" $CERT_LOG_FILE >/dev/null || {
       Exit 15 "Fatal - S/MIME of cert.sh needs to pass first"
@@ -106,6 +102,8 @@ tools_init()
   cp ${ALICEDIR}/* ${SIGNDIR}/
   mkdir -p ${TOOLSDIR}/html
   cp ${QADIR}/tools/sign*.html ${TOOLSDIR}/html
+  mkdir -p ${TOOLSDIR}/data
+  cp ${QADIR}/tools/TestOldCA.p12 ${TOOLSDIR}/data
 
   cd ${TOOLSDIR}
 }
@@ -397,30 +395,38 @@ tools_p12_export_list_import_with_default_ciphers()
   
   export_list_import "DEFAULT" "DEFAULT"
 
-  if [ -z "$NSS_DISABLE_ECC" ] ; then
-      echo "$SCRIPTNAME: Exporting Alice's email EC cert & key---------------"
-      echo "pk12util -o Alice-ec.p12 -n \"Alice-ec\" -d ${P_R_ALICEDIR} -k ${R_PWFILE} \\"
-      echo "         -w ${R_PWFILE}"
-      ${BINDIR}/pk12util -o Alice-ec.p12 -n "Alice-ec" -d ${P_R_ALICEDIR} -k ${R_PWFILE} \
-           -w ${R_PWFILE} 2>&1 
-      ret=$?
-      html_msg $ret 0 "Exporting Alice's email EC cert & key (pk12util -o)"
-      check_tmpfile
+  echo "$SCRIPTNAME: Exporting Alice's email EC cert & key---------------"
+  echo "pk12util -o Alice-ec.p12 -n \"Alice-ec\" -d ${P_R_ALICEDIR} -k ${R_PWFILE} \\"
+  echo "         -w ${R_PWFILE}"
+  ${BINDIR}/pk12util -o Alice-ec.p12 -n "Alice-ec" -d ${P_R_ALICEDIR} -k ${R_PWFILE} \
+       -w ${R_PWFILE} 2>&1 
+  ret=$?
+  html_msg $ret 0 "Exporting Alice's email EC cert & key (pk12util -o)"
+  check_tmpfile
 
-      echo "$SCRIPTNAME: Importing Alice's email EC cert & key --------------"
-      echo "pk12util -i Alice-ec.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -w ${R_PWFILE}"
-      ${BINDIR}/pk12util -i Alice-ec.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -w ${R_PWFILE} 2>&1
-      ret=$?
-      html_msg $ret 0 "Importing Alice's email EC cert & key (pk12util -i)"
-      check_tmpfile
+  echo "$SCRIPTNAME: Importing Alice's email EC cert & key --------------"
+  echo "pk12util -i Alice-ec.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -w ${R_PWFILE}"
+  ${BINDIR}/pk12util -i Alice-ec.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -w ${R_PWFILE} 2>&1
+  ret=$?
+  html_msg $ret 0 "Importing Alice's email EC cert & key (pk12util -i)"
+  check_tmpfile
 
-      echo "$SCRIPTNAME: Listing Alice's pk12 EC file -----------------"
-      echo "pk12util -l Alice-ec.p12 -w ${R_PWFILE}"
-      ${BINDIR}/pk12util -l Alice-ec.p12 -w ${R_PWFILE} 2>&1
-      ret=$?
-      html_msg $ret 0 "Listing Alice's pk12 EC file (pk12util -l)"
-      check_tmpfile
-  fi
+  echo "$SCRIPTNAME: Listing Alice's pk12 EC file -----------------"
+  echo "pk12util -l Alice-ec.p12 -w ${R_PWFILE}"
+  ${BINDIR}/pk12util -l Alice-ec.p12 -w ${R_PWFILE} 2>&1
+  ret=$?
+  html_msg $ret 0 "Listing Alice's pk12 EC file (pk12util -l)"
+  check_tmpfile
+}
+
+tools_p12_import_old_files()
+{
+  echo "$SCRIPTNAME: Importing CA cert & key created with NSS 3.21 --------------"
+  echo "pk12util -i TestOldCA.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -w ${R_PWFILE}"
+  ${BINDIR}/pk12util -i ${TOOLSDIR}/data/TestOldCA.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -w ${R_PWFILE} 2>&1
+  ret=$?
+  html_msg $ret 0 "Importing CA cert & key created with NSS 3.21"
+  check_tmpfile
 }
 
 ############################## tools_p12 ###############################
@@ -434,6 +440,7 @@ tools_p12()
   tools_p12_export_list_import_all_pkcs12v2pbe_ciphers
   tools_p12_export_with_none_ciphers
   tools_p12_export_with_invalid_ciphers
+  tools_p12_import_old_files
 }
 
 ############################## tools_sign ##############################
@@ -503,6 +510,21 @@ SIGNSCRIPT
 
 }
 
+tools_modutil()
+{
+  echo "$SCRIPTNAME: Test if DB created by modutil -create is initialized"
+  mkdir -p ${R_TOOLSDIR}/moddir
+  # copied from modu function in cert.sh
+  # echo is used to press Enter expected by modutil
+  echo | ${BINDIR}/modutil -create -dbdir "${R_TOOLSDIR}/moddir" 2>&1
+  ret=$?
+  ${BINDIR}/certutil -S -s 'CN=TestUser' -d "${TOOLSDIR}/moddir" -n TestUser \
+	   -x -t ',,' -z "${R_NOISE_FILE}"
+  ret=$?
+  html_msg $ret 0 "Test if DB created by modutil -create is initialized"
+  check_tmpfile
+}
+
 ############################## tools_cleanup ###########################
 # local shell function to finish this script (no exit since it might be 
 # sourced)
@@ -519,6 +541,7 @@ tools_cleanup()
 tools_init
 tools_p12
 tools_sign
+tools_modutil
 tools_cleanup
 
 

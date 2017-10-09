@@ -355,10 +355,7 @@ TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceReuseKey) {
 
 // This test parses the ServerKeyExchange, which isn't in 1.3
 TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceNewKey) {
-  server_->EnsureTlsSetup();
-  SECStatus rv =
-      SSL_OptionSet(server_->ssl_fd(), SSL_REUSE_SERVER_ECDHE_KEY, PR_FALSE);
-  EXPECT_EQ(SECSuccess, rv);
+  server_->SetOption(SSL_REUSE_SERVER_ECDHE_KEY, PR_FALSE);
   auto i1 = std::make_shared<TlsInspectorRecordHandshakeMessage>(
       kTlsHandshakeServerKeyExchange);
   server_->SetPacketFilter(i1);
@@ -369,9 +366,7 @@ TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceNewKey) {
 
   // Restart
   Reset();
-  server_->EnsureTlsSetup();
-  rv = SSL_OptionSet(server_->ssl_fd(), SSL_REUSE_SERVER_ECDHE_KEY, PR_FALSE);
-  EXPECT_EQ(SECSuccess, rv);
+  server_->SetOption(SSL_REUSE_SERVER_ECDHE_KEY, PR_FALSE);
   auto i2 = std::make_shared<TlsInspectorRecordHandshakeMessage>(
       kTlsHandshakeServerKeyExchange);
   server_->SetPacketFilter(i2);
@@ -401,7 +396,8 @@ TEST_P(TlsConnectTls13, TestTls13ResumeDifferentGroup) {
   client_->ConfigNamedGroups(kFFDHEGroups);
   server_->ConfigNamedGroups(kFFDHEGroups);
   Connect();
-  CheckKeys(ssl_kea_dh, ssl_grp_ffdhe_2048, ssl_auth_rsa_sign, ssl_sig_none);
+  CheckKeys(ssl_kea_dh, ssl_grp_ffdhe_2048, ssl_auth_rsa_sign,
+            ssl_sig_rsa_pss_sha256);
 }
 
 // We need to enable different cipher suites at different times in the following
@@ -579,7 +575,7 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   Connect();
   SendReceive();
   CheckKeys(ssl_kea_ecdh, ssl_grp_ec_curve25519, ssl_auth_rsa_sign,
-            ssl_sig_none);
+            ssl_sig_rsa_pss_sha256);
   // The filter will go away when we reset, so save the captured extension.
   DataBuffer initialTicket(c1->extension());
   ASSERT_LT(0U, initialTicket.len());
@@ -597,7 +593,7 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   Connect();
   SendReceive();
   CheckKeys(ssl_kea_ecdh, ssl_grp_ec_curve25519, ssl_auth_rsa_sign,
-            ssl_sig_none);
+            ssl_sig_rsa_pss_sha256);
   ASSERT_LT(0U, c2->extension().len());
 
   ScopedCERTCertificate cert2(SSL_PeerCertificate(client_->ssl_fd()));
@@ -836,6 +832,63 @@ TEST_F(TlsConnectTest, TestTls13ResumptionForcedDowngrade) {
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
   server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
+}
+
+TEST_P(TlsConnectGeneric, ReConnectTicket) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  server_->EnableSingleCipher(ChooseOneCipher(version_));
+  Connect();
+  SendReceive();
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_curve25519, ssl_auth_rsa_sign,
+            ssl_sig_rsa_pss_sha256);
+  // Resume
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  ExpectResumption(RESUME_TICKET);
+  Connect();
+  // Only the client knows this.
+  CheckKeysResumption(ssl_kea_ecdh, ssl_grp_none, ssl_grp_ec_curve25519,
+                      ssl_auth_rsa_sign, ssl_sig_rsa_pss_sha256);
+}
+
+TEST_P(TlsConnectGenericPre13, ReConnectCache) {
+  ConfigureSessionCache(RESUME_SESSIONID, RESUME_SESSIONID);
+  server_->EnableSingleCipher(ChooseOneCipher(version_));
+  Connect();
+  SendReceive();
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_curve25519, ssl_auth_rsa_sign,
+            ssl_sig_rsa_pss_sha256);
+  // Resume
+  Reset();
+  ExpectResumption(RESUME_SESSIONID);
+  Connect();
+  CheckKeysResumption(ssl_kea_ecdh, ssl_grp_none, ssl_grp_ec_curve25519,
+                      ssl_auth_rsa_sign, ssl_sig_rsa_pss_sha256);
+}
+
+TEST_P(TlsConnectGeneric, ReConnectAgainTicket) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  server_->EnableSingleCipher(ChooseOneCipher(version_));
+  Connect();
+  SendReceive();
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_curve25519, ssl_auth_rsa_sign,
+            ssl_sig_rsa_pss_sha256);
+  // Resume
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  ExpectResumption(RESUME_TICKET);
+  Connect();
+  // Only the client knows this.
+  CheckKeysResumption(ssl_kea_ecdh, ssl_grp_none, ssl_grp_ec_curve25519,
+                      ssl_auth_rsa_sign, ssl_sig_rsa_pss_sha256);
+  // Resume connection again
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  ExpectResumption(RESUME_TICKET, 2);
+  Connect();
+  // Only the client knows this.
+  CheckKeysResumption(ssl_kea_ecdh, ssl_grp_none, ssl_grp_ec_curve25519,
+                      ssl_auth_rsa_sign, ssl_sig_rsa_pss_sha256);
 }
 
 }  // namespace nss_test
