@@ -7,11 +7,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "pk11func.h"
-#include "selfencrypt.h"
 #include "ssl.h"
 #include "sslt.h"
-#include "sslencode.h"
 #include "sslimpl.h"
+#include "selfencrypt.h"
 #include "tls13con.h"
 #include "tls13err.h"
 #include "tls13hashstate.h"

@@ -11,8 +11,6 @@
 
 #include "secmodt.h"
 
-typedef struct sslSocketStr sslSocket;
-
 unsigned int ssl_SelfEncryptGetProtectedSize(unsigned int inLen);
 SECStatus ssl_SelfEncryptProtect(
     sslSocket *ss, const PRUint8 *in, unsigned int inLen,

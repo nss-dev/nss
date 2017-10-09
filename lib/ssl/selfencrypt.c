@@ -11,7 +11,6 @@
 #include "pk11func.h"
 #include "ssl.h"
 #include "sslt.h"
-#include "sslencode.h"
 #include "sslimpl.h"
 #include "selfencrypt.h"
 
