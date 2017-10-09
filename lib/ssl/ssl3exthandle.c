@@ -750,6 +750,19 @@ ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
     rv = sslBuffer_AppendNumber(&plaintext, ss->sec.keaKeyBits, 4);
     if (rv != SECSuccess)
         goto loser;
+    if (ss->sec.keaGroup) {
+        rv = sslBuffer_AppendNumber(&plaintext, ss->sec.keaGroup->name, 4);
+        if (rv != SECSuccess)
+            goto loser;
+    } else {
+        /* No kea group. Write 0 as invalid value. */
+        rv = sslBuffer_AppendNumber(&plaintext, 0, 4);
+        if (rv != SECSuccess)
+            goto loser;
+    }
+    rv = sslBuffer_AppendNumber(&plaintext, ss->sec.signatureScheme, 4);
+    if (rv != SECSuccess)
+        goto loser;
 
     /* certificate type */
     PORT_Assert(SSL_CERT_IS(ss->sec.serverCert, ss->sec.authType));
@@ -1007,6 +1020,18 @@ ssl_ParseSessionTicket(sslSocket *ss, const SECItem *decryptedTicket,
         return SECFailure;
     }
     parsedTicket->keaKeyBits = temp;
+    rv = ssl3_ExtConsumeHandshakeNumber(ss, &temp, 4, &buffer, &len);
+    if (rv != SECSuccess) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+    parsedTicket->originalKeaGroup = temp;
+    rv = ssl3_ExtConsumeHandshakeNumber(ss, &temp, 4, &buffer, &len);
+    if (rv != SECSuccess) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+    parsedTicket->signatureScheme = (SSLSignatureScheme)temp;
 
     /* Read the optional named curve. */
     rv = ssl3_ExtConsumeHandshakeNumber(ss, &temp, 1, &buffer, &len);
@@ -1184,7 +1209,9 @@ ssl_CreateSIDFromTicket(sslSocket *ss, const SECItem *rawTicket,
     sid->authKeyBits = parsedTicket->authKeyBits;
     sid->keaType = parsedTicket->keaType;
     sid->keaKeyBits = parsedTicket->keaKeyBits;
+    sid->keaGroup = parsedTicket->originalKeaGroup;
     sid->namedCurve = parsedTicket->namedCurve;
+    sid->sigScheme = parsedTicket->signatureScheme;
 
     rv = SECITEM_CopyItem(NULL, &sid->u.ssl3.locked.sessionTicket.ticket,
                           rawTicket);
@@ -1378,14 +1405,12 @@ ssl3_SendRenegotiationInfoXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     PRInt32 len = 0;
     SECStatus rv;
 
-    /* In draft-ietf-tls-renegotiation-03, it is NOT RECOMMENDED to send
-     * both the SCSV and the empty RI, so when we send SCSV in
-     * the initial handshake, we don't also send RI.
+    /* In RFC 5746, it is NOT RECOMMENDED to send both the SCSV and the empty
+     * RI, so when we send SCSV in the initial handshake, we don't also send RI.
      */
-    if (!ss || ss->ssl3.hs.sendingSCSV) {
-        return SECSuccess;
+    if (ss->ssl3.hs.sendingSCSV) {
+        return 0;
     }
-
     if (ss->firstHsDone) {
         len = ss->sec.isServer ? ss->ssl3.hs.finishedBytes * 2
                                : ss->ssl3.hs.finishedBytes;

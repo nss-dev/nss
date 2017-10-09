@@ -97,6 +97,7 @@ class TlsAgent : public PollTarget {
   void StartConnect(PRFileDesc* model = nullptr);
   void CheckKEA(SSLKEAType kea_type, SSLNamedGroup group,
                 size_t kea_size = 0) const;
+  void CheckOriginalKEA(SSLNamedGroup kea_group) const;
   void CheckAuthType(SSLAuthType auth_type,
                      SSLSignatureScheme sig_scheme) const;
 
@@ -123,9 +124,8 @@ class TlsAgent : public PollTarget {
   void SetupClientAuth();
   void RequestClientAuth(bool requireAuth);
 
+  void SetOption(int32_t option, int value);
   void ConfigureSessionCache(SessionResumptionMode mode);
-  void SetSessionTicketsEnabled(bool en);
-  void SetSessionCacheEnabled(bool en);
   void Set0RttEnabled(bool en);
   void SetFallbackSCSVEnabled(bool en);
   void SetAltHandshakeTypeEnabled();
@@ -161,8 +161,6 @@ class TlsAgent : public PollTarget {
   void EnableExtendedMasterSecret();
   void CheckExtendedMasterSecret(bool expected);
   void CheckEarlyDataAccepted(bool expected);
-  void DisableRollbackDetection();
-  void EnableCompression();
   void SetDowngradeCheckVersion(uint16_t version);
   void CheckSecretsDestroyed();
   void ConfigNamedGroups(const std::vector<SSLNamedGroup>& groups);
