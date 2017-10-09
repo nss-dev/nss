@@ -37,9 +37,9 @@
 typedef struct sslSocketStr sslSocket;
 typedef struct ssl3CipherSpecStr ssl3CipherSpec;
 typedef struct sslNamedGroupDefStr sslNamedGroupDef;
+#include "sslencode.h"
 #include "sslexp.h"
 #include "ssl3ext.h"
-#include "sslencode.h"
 
 /* to make some of these old enums public without namespace pollution,
 ** it was necessary to prepend ssl_ to the names.
@@ -414,7 +414,7 @@ typedef struct {
     PRUint8 msIsWrapped;
     PRUint8 resumable;
     PRUint8 extendedMasterSecretUsed;
-} ssl3SidKeys; /* 52 bytes */
+} ssl3SidKeys; /* 53 bytes */
 
 typedef struct {
     PK11SymKey *write_key;

@@ -54,9 +54,6 @@ SECStatus ssl3_ConsumeFromItem(SECItem *item,
 SECStatus ssl3_ConsumeNumberFromItem(SECItem *item,
                                      PRUint32 *num, unsigned int size);
 
-/* These are used for building the handshake. */
-typedef struct sslSocketStr sslSocket;
-
 SECStatus ssl3_AppendHandshake(sslSocket *ss, const void *void_src,
                                unsigned int bytes);
 SECStatus ssl3_AppendHandshakeHeader(sslSocket *ss,

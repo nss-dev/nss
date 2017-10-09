@@ -13,7 +13,6 @@
 #include "sslt.h"
 #include "sslerr.h"
 #include "sslimpl.h"
-#include "sslencode.h"
 
 /* This table contains the mapping between TLS hash identifiers and the
  * PKCS#11 identifiers */
