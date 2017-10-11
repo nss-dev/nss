@@ -74,7 +74,9 @@ class Pk11SignatureTest : public ::testing::Test {
                       DataBuffer* sig) {
     SECItem hashItem = {siBuffer, toUcharPtr(hash.data()),
                         static_cast<unsigned int>(hash.len())};
-    sig->Allocate(static_cast<size_t>(PK11_SignatureLen(privKey.get())));
+    int sigLen = PK11_SignatureLen(privKey.get());
+    EXPECT_LT(0, sigLen);
+    sig->Allocate(static_cast<size_t>(sigLen));
     SECItem sigItem = {siBuffer, toUcharPtr(sig->data()),
                        static_cast<unsigned int>(sig->len())};
     SECStatus rv = PK11_SignWithMechanism(privKey.get(), mechanism_,
