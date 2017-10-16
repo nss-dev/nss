@@ -18,9 +18,7 @@ SECStatus dtls_StartTimer(sslSocket *ss, dtlsTimer *timer,
                           PRUint32 time, DTLSTimerCb cb);
 SECStatus dtls_RestartTimer(sslSocket *ss, dtlsTimer *timer);
 PRBool dtls_TimerActive(sslSocket *ss, dtlsTimer *timer);
-extern SECStatus dtls_HandleHandshake(sslSocket *ss, DTLSEpoch epoch,
-                                      sslSequenceNumber seqNum,
-                                      sslBuffer *origBuf);
+extern SECStatus dtls_HandleHandshake(sslSocket *ss, sslBuffer *origBuf);
 extern SECStatus dtls_HandleHelloVerifyRequest(sslSocket *ss,
                                                PRUint8 *b, PRUint32 length);
 extern SECStatus dtls_StageHandshakeMessage(sslSocket *ss);

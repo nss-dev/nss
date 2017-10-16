@@ -258,7 +258,6 @@ class TlsAgent : public PollTarget {
   const static char* states[];
 
   void SetState(State state);
-  void ValidateCipherSpecs();
 
   // Dummy auth certificate hook.
   static SECStatus AuthCertificateHook(void* arg, PRFileDesc* fd,

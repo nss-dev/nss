@@ -65,6 +65,7 @@ static sslOptions ssl_defaults = {
     PR_TRUE,               /* detectRollBack     */
     PR_FALSE,              /* noLocks            */
     PR_FALSE,              /* enableSessionTickets */
+    PR_FALSE,              /* enableDeflate      */
     2,                     /* enableRenegotiation (default: requires extension) */
     PR_FALSE,              /* requireSafeNegotiation */
     PR_FALSE,              /* enableFalseStart   */
@@ -738,7 +739,7 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
             break;
 
         case SSL_ENABLE_DEFLATE:
-            /* Feature disabled: Report success, do nothing. */
+            ss->opt.enableDeflate = val;
             break;
 
         case SSL_ENABLE_RENEGOTIATION:
@@ -890,7 +891,7 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRIntn *pVal)
             val = ss->opt.enableSessionTickets;
             break;
         case SSL_ENABLE_DEFLATE:
-            val = PR_FALSE;
+            val = ss->opt.enableDeflate;
             break;
         case SSL_ENABLE_RENEGOTIATION:
             val = ss->opt.enableRenegotiation;
@@ -1010,7 +1011,7 @@ SSL_OptionGetDefault(PRInt32 which, PRIntn *pVal)
             val = ssl_defaults.enableSessionTickets;
             break;
         case SSL_ENABLE_DEFLATE:
-            val = PR_FALSE;
+            val = ssl_defaults.enableDeflate;
             break;
         case SSL_ENABLE_RENEGOTIATION:
             val = ssl_defaults.enableRenegotiation;
@@ -1176,6 +1177,7 @@ SSL_OptionSetDefault(PRInt32 which, PRIntn val)
             break;
 
         case SSL_ENABLE_DEFLATE:
+            ssl_defaults.enableDeflate = val;
             break;
 
         case SSL_ENABLE_RENEGOTIATION:

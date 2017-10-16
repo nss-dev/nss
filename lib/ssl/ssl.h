@@ -107,7 +107,8 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 #define SSL_NO_LOCKS 17                 /* Don't use locks for protection */
 #define SSL_ENABLE_SESSION_TICKETS 18   /* Enable TLS SessionTicket       */
                                         /* extension (off by default)     */
-#define SSL_ENABLE_DEFLATE 19           /* (unsupported, deprecated, off) */
+#define SSL_ENABLE_DEFLATE 19           /* Enable TLS compression with    */
+                                        /* DEFLATE (off by default)       */
 #define SSL_ENABLE_RENEGOTIATION 20     /* Values below (default: never)  */
 #define SSL_REQUIRE_SAFE_NEGOTIATION 21 /* Peer must send Signaling       */
                                         /* Cipher Suite Value (SCSV) or   */

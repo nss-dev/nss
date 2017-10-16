@@ -41,7 +41,6 @@ CSRCS = \
         sslsecur.c \
         sslsnce.c \
         sslsock.c \
-        sslspec.c \
         ssltrace.c \
         sslver.c \
         authcert.c \
