@@ -19,10 +19,10 @@
  */
 typedef struct DTLSHandshakeRecordEntryStr {
     PRCList link;
-    PRUint16 messageSeq;      /* The handshake message sequence number. */
+    PRUint16 messageSeq;      /* The handshake message sequence */
     PRUint32 offset;          /* The offset into the handshake message. */
     PRUint32 length;          /* The length of the fragment. */
-    sslSequenceNumber record; /* The record (includes epoch). */
+    sslSequenceNumber record; /* The record */
     PRBool acked;             /* Has this packet been acked. */
 } DTLSHandshakeRecordEntry;
 
@@ -32,7 +32,6 @@ dtls13_RememberFragment(sslSocket *ss,
                         PRUint32 sequence,
                         PRUint32 offset,
                         PRUint32 length,
-                        DTLSEpoch epoch,
                         sslSequenceNumber record)
 {
     DTLSHandshakeRecordEntry *entry;
@@ -43,7 +42,7 @@ dtls13_RememberFragment(sslSocket *ss,
                  SSL_GETPID(), ss->fd,
                  SSL_ROLE(ss),
                  list == &ss->ssl3.hs.dtlsSentHandshake ? "sent" : "received",
-                 ((sslSequenceNumber)epoch << 48) | record, sequence, offset));
+                 record, sequence, offset));
 
     entry = PORT_ZAlloc(sizeof(DTLSHandshakeRecordEntry));
     if (!entry) {
@@ -53,7 +52,7 @@ dtls13_RememberFragment(sslSocket *ss,
     entry->messageSeq = sequence;
     entry->offset = offset;
     entry->length = length;
-    entry->record = ((sslSequenceNumber)epoch << 48) | record;
+    entry->record = record;
     entry->acked = PR_FALSE;
 
     PR_APPEND_LINK(&entry->link, list);
@@ -136,6 +135,28 @@ dtls13_FragmentWasAcked(sslSocket *ss, PRUint16 msgSeq, PRUint32 offset,
         return PR_TRUE;
     }
     return PR_FALSE;
+}
+
+ssl3CipherSpec *
+dtls13_FindCipherSpecByEpoch(sslSocket *ss, CipherSpecDirection direction,
+                             DTLSEpoch epoch)
+{
+    PRCList *cur_p;
+    PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+    for (cur_p = PR_LIST_HEAD(&ss->ssl3.hs.cipherSpecs);
+         cur_p != &ss->ssl3.hs.cipherSpecs;
+         cur_p = PR_NEXT_LINK(cur_p)) {
+        ssl3CipherSpec *spec = (ssl3CipherSpec *)cur_p;
+
+        if (spec->epoch != epoch) {
+            continue;
+        }
+        if (direction != spec->direction) {
+            continue;
+        }
+        return spec;
+    }
+    return NULL;
 }
 
 SECStatus
@@ -244,6 +265,55 @@ dtls13_HandleOutOfEpochRecord(sslSocket *ss, const ssl3CipherSpec *spec,
     return SECFailure;
 }
 
+/* Store the null cipher spec with the right refct. */
+SECStatus
+dtls13_SaveNullCipherSpec(sslSocket *ss, const ssl3CipherSpec *crSpec)
+{
+    ssl3CipherSpec *spec;
+    extern const char kKeyPhaseCleartext[];
+    PORT_Assert(IS_DTLS(ss));
+
+    spec = PORT_ZNew(ssl3CipherSpec);
+    if (!spec) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        return SECFailure;
+    }
+    spec->refCt = 1;
+    spec->cipher_def = crSpec->cipher_def;
+    spec->mac_def = crSpec->mac_def;
+    spec->decode = crSpec->decode;
+    spec->epoch = crSpec->epoch;
+    PORT_Memcpy(&spec->recvdRecords, &crSpec->recvdRecords,
+                sizeof(spec->recvdRecords));
+    spec->direction = CipherSpecRead;
+    spec->phase = kKeyPhaseCleartext;
+    spec->read_seq_num = crSpec->write_seq_num;
+    spec->refCt = 1;
+
+    PR_APPEND_LINK(&spec->link, &ss->ssl3.hs.cipherSpecs);
+
+    return SECSuccess;
+}
+
+void
+dtls13_ReleaseReadCipherSpec(sslSocket *ss, DTLSEpoch epoch)
+{
+    ssl3CipherSpec *spec;
+    if (!IS_DTLS(ss)) {
+        return;
+    }
+
+    SSL_TRC(10, ("%d: SSL3[%d]: releasing read cipher spec for epoch %d",
+                 SSL_GETPID(), ss->fd, epoch));
+
+    spec = dtls13_FindCipherSpecByEpoch(ss, CipherSpecRead, epoch);
+    if (!spec) {
+        return;
+    }
+
+    tls13_CipherSpecRelease(spec);
+}
+
 SECStatus
 dtls13_HandleAck(sslSocket *ss, sslBuffer *databuf)
 {
@@ -313,7 +383,7 @@ dtls13_HandleAck(sslSocket *ss, sslBuffer *databuf)
          * for the holddown period to process retransmitted Finisheds.
          */
         if (!ss->sec.isServer && (ss->ssl3.hs.ws == idle_handshake)) {
-            ssl_ReleaseReadCipherSpec(ss, TrafficKeyHandshake);
+            dtls13_ReleaseReadCipherSpec(ss, TrafficKeyHandshake);
         }
     }
     return SECSuccess;
@@ -339,6 +409,6 @@ dtls13_HolddownTimerCb(sslSocket *ss)
 {
     SSL_TRC(10, ("%d: SSL3[%d]: holddown timer fired",
                  SSL_GETPID(), ss->fd));
-    ssl_ReleaseReadCipherSpec(ss, TrafficKeyHandshake);
+    dtls13_ReleaseReadCipherSpec(ss, TrafficKeyHandshake);
     ssl_ClearPRCList(&ss->ssl3.hs.dtlsRcvdHandshake, NULL);
 }

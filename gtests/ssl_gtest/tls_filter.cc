@@ -59,7 +59,7 @@ void TlsRecordFilter::CipherSpecChanged(void* arg, PRBool sending,
   if (g_ssl_gtest_verbose) {
     std::cerr << (isServer ? "server" : "client") << ": "
               << (sending ? "send" : "receive")
-              << " cipher spec changed:  " << newSpec->epoch << std::endl;
+              << " cipher spec changed:  " << newSpec->phase << std::endl;
   }
   if (!sending) {
     return;
@@ -69,9 +69,11 @@ void TlsRecordFilter::CipherSpecChanged(void* arg, PRBool sending,
   self->out_sequence_number_ = 0;
   self->dropped_record_ = false;
   self->cipher_spec_.reset(new TlsCipherSpec());
-  bool ret = self->cipher_spec_->Init(
-      SSLInt_CipherSpecToEpoch(newSpec), SSLInt_CipherSpecToAlgorithm(newSpec),
-      SSLInt_CipherSpecToKey(newSpec), SSLInt_CipherSpecToIv(newSpec));
+  bool ret =
+      self->cipher_spec_->Init(SSLInt_CipherSpecToEpoch(isServer, newSpec),
+                               SSLInt_CipherSpecToAlgorithm(isServer, newSpec),
+                               SSLInt_CipherSpecToKey(isServer, newSpec),
+                               SSLInt_CipherSpecToIv(isServer, newSpec));
   EXPECT_EQ(true, ret);
 }
 

@@ -10,7 +10,13 @@
 #define __tls13con_h_
 
 #include "sslexp.h"
-#include "sslspec.h"
+
+typedef enum {
+    TrafficKeyClearText = 0,
+    TrafficKeyEarlyApplicationData = 1,
+    TrafficKeyHandshake = 2,
+    TrafficKeyApplicationData = 3
+} TrafficKeyType;
 
 typedef enum {
     tls13_extension_allowed,
@@ -83,6 +89,9 @@ void tls13_DestroyKeyShareEntry(TLS13KeyShareEntry *entry);
 void tls13_DestroyKeyShares(PRCList *list);
 SECStatus tls13_CreateKeyShare(sslSocket *ss, const sslNamedGroupDef *groupDef);
 void tls13_DestroyEarlyData(PRCList *list);
+void tls13_CipherSpecAddRef(ssl3CipherSpec *spec);
+void tls13_CipherSpecRelease(ssl3CipherSpec *spec);
+void tls13_DestroyCipherSpecs(PRCList *list);
 SECStatus tls13_SetAlertCipherSpec(sslSocket *ss);
 tls13ExtensionStatus tls13_ExtensionStatus(PRUint16 extension,
                                            SSLHandshakeType message);

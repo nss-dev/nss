@@ -293,11 +293,11 @@ void TlsConnectTestBase::CheckConnected() {
       variant_ == ssl_variant_datagram) {
     client_->Handshake();
     client_->Handshake();
-    auto suites = SSLInt_CountCipherSpecs(client_->ssl_fd());
+    auto suites = SSLInt_CountTls13CipherSpecs(client_->ssl_fd());
     // Verify that we dropped the client's retransmission cipher suites.
     EXPECT_EQ(2, suites) << "Client has the wrong number of suites";
     if (suites != 2) {
-      SSLInt_PrintCipherSpecs("client", client_->ssl_fd());
+      SSLInt_PrintTls13CipherSpecs("client", client_->ssl_fd());
     }
   }
   EXPECT_EQ(client_->version(), server_->version());
