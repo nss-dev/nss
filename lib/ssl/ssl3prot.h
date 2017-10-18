@@ -22,7 +22,6 @@ typedef PRUint16 ssl3CipherSuite;
 /* The cipher suites are defined in sslproto.h */
 
 #define MAX_CERT_TYPES 10
-#define MAX_COMPRESSION_METHODS 10
 #define MAX_MAC_LENGTH 64
 #define MAX_PADDING_LENGTH 64
 #define MAX_KEY_LENGTH 64
