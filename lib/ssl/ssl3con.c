@@ -6788,7 +6788,7 @@ ssl3_UnwrapMasterSecretClient(sslSocket *ss, sslSessionID *sid, PK11SymKey **ms)
 
     *ms = PK11_UnwrapSymKeyWithFlags(wrapKey, sid->u.ssl3.masterWrapMech,
                                      NULL, &wrappedMS, CKM_SSL3_MASTER_KEY_DERIVE,
-                                     CKA_DERIVE, sizeof(SSL3MasterSecret), keyFlags);
+                                     CKA_DERIVE, SSL3_MASTER_SECRET_LENGTH, keyFlags);
     PK11_FreeSymKey(wrapKey);
     if (!*ms) {
         return SECFailure;
@@ -8609,7 +8609,7 @@ ssl3_UnwrapMasterSecretServer(sslSocket *ss, sslSessionID *sid, PK11SymKey **ms)
     /* unwrap the master secret. */
     *ms = PK11_UnwrapSymKeyWithFlags(wrapKey, sid->u.ssl3.masterWrapMech,
                                      NULL, &wrappedMS, CKM_SSL3_MASTER_KEY_DERIVE,
-                                     CKA_DERIVE, sizeof(SSL3MasterSecret), keyFlags);
+                                     CKA_DERIVE, SSL3_MASTER_SECRET_LENGTH, keyFlags);
     PK11_FreeSymKey(wrapKey);
     if (!*ms) {
         return SECFailure;

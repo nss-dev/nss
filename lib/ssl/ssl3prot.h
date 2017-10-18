@@ -45,37 +45,7 @@ typedef enum {
     content_ack = 25
 } SSL3ContentType;
 
-typedef struct {
-    SSL3ContentType type;
-    SSL3ProtocolVersion version;
-    PRUint16 length;
-    SECItem fragment;
-} SSL3Plaintext;
-
-typedef struct {
-    SSL3ContentType type;
-    SSL3ProtocolVersion version;
-    PRUint16 length;
-    SECItem fragment;
-} SSL3Compressed;
-
-typedef struct {
-    SECItem content;
-    PRUint8 MAC[MAX_MAC_LENGTH];
-} SSL3GenericStreamCipher;
-
-typedef struct {
-    SECItem content;
-    PRUint8 MAC[MAX_MAC_LENGTH];
-    PRUint8 padding[MAX_PADDING_LENGTH];
-    PRUint8 padding_length;
-} SSL3GenericBlockCipher;
-
 typedef enum { change_cipher_spec_choice = 1 } SSL3ChangeCipherSpecChoice;
-
-typedef struct {
-    SSL3ChangeCipherSpecChoice choice;
-} SSL3ChangeCipherSpec;
 
 typedef enum { alert_warning = 1,
                alert_fatal = 2 } SSL3AlertLevel;
@@ -123,15 +93,6 @@ typedef enum {
 } SSL3AlertDescription;
 
 typedef struct {
-    SSL3AlertLevel level;
-    SSL3AlertDescription description;
-} SSL3Alert;
-
-typedef struct {
-    PRUint8 empty;
-} SSL3HelloRequest;
-
-typedef struct {
     PRUint8 rand[SSL3_RANDOM_LENGTH];
 } SSL3Random;
 
@@ -139,27 +100,6 @@ typedef struct {
     PRUint8 id[32];
     PRUint8 length;
 } SSL3SessionID;
-
-typedef struct {
-    SSL3ProtocolVersion client_version;
-    SSL3Random random;
-    SSL3SessionID session_id;
-    SECItem cipher_suites;
-    PRUint8 cm_count;
-    SSLCompressionMethod compression_methods[MAX_COMPRESSION_METHODS];
-} SSL3ClientHello;
-
-typedef struct {
-    SSL3ProtocolVersion server_version;
-    SSL3Random random;
-    SSL3SessionID session_id;
-    ssl3CipherSuite cipher_suite;
-    SSLCompressionMethod compression_method;
-} SSL3ServerHello;
-
-typedef struct {
-    SECItem list;
-} SSL3Certificate;
 
 /* SSL3SignType moved to ssl.h */
 
@@ -182,24 +122,6 @@ typedef enum {
     kea_tls13_any,
 } SSL3KeyExchangeAlgorithm;
 
-typedef struct {
-    SECItem modulus;
-    SECItem exponent;
-} SSL3ServerRSAParams;
-
-typedef struct {
-    SECItem p;
-    SECItem g;
-    SECItem Ys;
-} SSL3ServerDHParams;
-
-typedef struct {
-    union {
-        SSL3ServerDHParams dh;
-        SSL3ServerRSAParams rsa;
-    } u;
-} SSL3ServerParams;
-
 /* SSL3HashesIndividually contains a combination MD5/SHA1 hash, as used in TLS
  * prior to 1.2. */
 typedef struct {
@@ -219,13 +141,6 @@ typedef struct {
     } u;
 } SSL3Hashes;
 
-typedef struct {
-    union {
-        PRUint8 anonymous;
-        SSL3Hashes certified;
-    } u;
-} SSL3ServerKeyExchange;
-
 typedef enum {
     ct_RSA_sign = 1,
     ct_DSS_sign = 2,
@@ -236,15 +151,7 @@ typedef enum {
     ct_ECDSA_sign = 64,
     ct_RSA_fixed_ECDH = 65,
     ct_ECDSA_fixed_ECDH = 66
-
 } SSL3ClientCertificateType;
-
-typedef struct {
-    PRUint8 client_version[2];
-    PRUint8 random[46];
-} SSL3RSAPreMasterSecret;
-
-typedef PRUint8 SSL3MasterSecret[48];
 
 typedef enum {
     sender_client = 0x434c4e54,
