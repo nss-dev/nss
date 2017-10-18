@@ -8,21 +8,6 @@
 #include "sslproto.h"
 #include "tls13hkdf.h"
 
-static const char *
-ssl_GetCompressionMethodName(SSLCompressionMethod compression)
-{
-    switch (compression) {
-        case ssl_compression_null:
-            return "NULL";
-#ifdef NSS_ENABLE_ZLIB
-        case ssl_compression_deflate:
-            return "DEFLATE";
-#endif
-        default:
-            return "???";
-    }
-}
-
 SECStatus
 SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
 {
@@ -63,10 +48,9 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
              * See bug 275744 comment 69 and bug 766137.
              */
             inf.cipherSuite = ss->ssl3.hs.cipher_suite;
-            inf.compressionMethod = ss->ssl3.cwSpec->compression_method;
             ssl_ReleaseSpecReadLock(ss);
-            inf.compressionMethodName =
-                ssl_GetCompressionMethodName(inf.compressionMethod);
+            inf.compressionMethod = ssl_compression_null;
+            inf.compressionMethodName = "NULL";
 
             /* Fill in the cipher details from the cipher suite. */
             rv = SSL_GetCipherSuiteInfo(inf.cipherSuite,
