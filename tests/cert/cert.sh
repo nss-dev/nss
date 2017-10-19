@@ -1260,6 +1260,10 @@ MODSCRIPT
   CU_ACTION="Setting invalid database password in FIPS mode"
   RETEXPECTED=255
   certu -W -d "${PROFILEDIR}" -f "${R_FIPSPWFILE}" -@ "${R_FIPSBADPWFILE}" 2>&1
+  CU_ACTION="Attempt to generate a key with exponent of 3 (too small)"
+  certu -G -k rsa -g 2048 -y 3 -d "${PROFILEDIR}" -z ${R_NOISE_FILE} -f "${R_FIPSPWFILE}" 
+  CU_ACTION="Attempt to generate a key with exponent of 17 (too small)"
+  certu -G -k rsa -g 2048 -y 17 -d "${PROFILEDIR}" -z ${R_NOISE_FILE} -f "${R_FIPSPWFILE}" 
   RETEXPECTED=0
 
   CU_ACTION="Generate Certificate for ${CERTNAME}"
@@ -1268,6 +1272,20 @@ MODSCRIPT
   if [ "$RET" -eq 0 ]; then
     cert_log "SUCCESS: FIPS passed"
   fi
+
+}
+
+########################## cert_rsa_exponent #################################
+# local shell function to verify small rsa exponent can be used (only
+# run if FIPS has not been turned on in the build).
+##############################################################################
+cert_rsa_exponent()
+{
+  echo "$SCRIPTNAME: Verify that small RSA exponents still work  =============="
+  CU_ACTION="Attempt to generate a key with exponent of 3"
+  certu -G -k rsa -g 2048 -y 3 -d "${CLIENTDIR}" -z ${R_NOISE_FILE} -f "${R_PWFILE}" 
+  CU_ACTION="Attempt to generate a key with exponent of 17"
+  certu -G -k rsa -g 2048 -y 17 -d "${CLIENTDIR}" -z ${R_NOISE_FILE} -f "${R_PWFILE}" 
 }
 
 ############################## cert_eccurves ###########################
@@ -1978,6 +1996,13 @@ cert_smime_client
 if [[ -n "$NSS_TEST_ENABLE_FIPS" ]]; then
     cert_fips
 fi
+# We currently have difficulties to know if the build is a non-FIPS build,
+# because of differences between the "make" and "gyp" build systems.
+# As soon as we have a reliable way to detect that based on a variable,
+# we should enable the following test call. See bug 1409516.
+# if SYMBOL_THAT_TELLS_US_FIPS_IS_DISABLED
+#   cert_rsa_exponent
+# fi
 cert_eccurves
 cert_extensions
 cert_san_and_generic_extensions
