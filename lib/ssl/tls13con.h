@@ -85,6 +85,6 @@ PRUint16 tls13_EncodeAltDraftVersion(SSL3ProtocolVersion version);
 SECStatus tls13_NegotiateVersion(sslSocket *ss,
                                  const TLSExtension *supported_versions);
 SECStatus tls13_SendNewSessionTicket(sslSocket *ss);
-SECStatus SSLExp_UseAltServerHelloType(PRFileDesc *fd, PRBool enable);
+SECStatus SSLExp_UseAltHandshakeType(PRFileDesc *fd, PRBool enable);
 
 #endif /* __tls13con_h_ */

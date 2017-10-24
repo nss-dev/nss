@@ -395,7 +395,8 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
     SSL3Ciphertext cText;
     PRBool keepGoing = PR_TRUE;
 
-    SSL_TRC(30, ("ssl3_GatherCompleteHandshake"));
+    SSL_TRC(30, ("%d: SSL3[%d]: ssl3_GatherCompleteHandshake",
+                 SSL_GETPID(), ss->fd));
 
     /* ssl3_HandleRecord may end up eventually calling ssl_FinishHandshake,
      * which requires the 1stHandshakeLock, which must be acquired before the
