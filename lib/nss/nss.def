@@ -1123,3 +1123,12 @@ CERT_FindCertByNicknameOrEmailAddrForUsageCX;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.34 { 	# NSS 3.34 release
+;+    global:
+SGN_NewContextWithAlgorithmID;
+SEC_SignDataWithAlgorithmID;
+SEC_DerSignDataWithAlgorithmID;
+SEC_CreateSignatureAlgorithmParameters;
+;+    local:
+;+       *;
+;+};
