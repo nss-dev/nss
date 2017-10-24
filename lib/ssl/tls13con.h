@@ -108,7 +108,7 @@ SECStatus SSLExp_SetupAntiReplay(PRTime window, unsigned int k,
 SECStatus SSLExp_HelloRetryRequestCallback(PRFileDesc *fd,
                                            SSLHelloRetryRequestCallback cb,
                                            void *arg);
-SECStatus SSLExp_UseAltServerHelloType(PRFileDesc *fd, PRBool enable);
+SECStatus SSLExp_UseAltHandshakeType(PRFileDesc *fd, PRBool enable);
 PRBool tls13_MaybeTls13(sslSocket *ss);
 
 #endif /* __tls13con_h_ */

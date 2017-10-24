@@ -54,6 +54,9 @@ SECStatus tls13_ClientHandleTicketEarlyDataXtn(const sslSocket *ss,
 SECStatus tls13_ClientSendSupportedVersionsXtn(const sslSocket *ss,
                                                TLSExtensionData *xtnData,
                                                sslBuffer *buf, PRBool *append);
+SECStatus tls13_ServerSendSupportedVersionsXtn(const sslSocket *ss,
+                                               TLSExtensionData *xtnData,
+                                               sslBuffer *buf, PRBool *added);
 SECStatus tls13_ClientHandleHrrCookie(const sslSocket *ss,
                                       TLSExtensionData *xtnData,
                                       SECItem *data);
