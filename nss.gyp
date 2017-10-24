@@ -163,6 +163,7 @@
             'cmd/vfychain/vfychain.gyp:vfychain',
             'cmd/vfyserv/vfyserv.gyp:vfyserv',
             'gtests/certhigh_gtest/certhigh_gtest.gyp:certhigh_gtest',
+            'gtests/cryptohi_gtest/cryptohi_gtest.gyp:cryptohi_gtest',
             'gtests/der_gtest/der_gtest.gyp:der_gtest',
             'gtests/certdb_gtest/certdb_gtest.gyp:certdb_gtest',
             'gtests/freebl_gtest/freebl_gtest.gyp:prng_gtest',
