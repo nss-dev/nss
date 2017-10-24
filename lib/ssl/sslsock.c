@@ -3917,7 +3917,7 @@ struct {
     EXP(InstallExtensionHooks),
     EXP(SendSessionTicket),
     EXP(SetupAntiReplay),
-    EXP(UseAltServerHelloType),
+    EXP(UseAltHandshakeType),
 #endif
     { "", NULL }
 };

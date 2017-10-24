@@ -722,7 +722,12 @@ tls13_ClientHandleTicketEarlyDataXtn(const sslSocket *ss, TLSExtensionData *xtnD
 
 /*
  *     struct {
+ *       select (Handshake.msg_type) {
+ *       case client_hello:
  *          ProtocolVersion versions<2..254>;
+ *       case server_hello:
+ *          ProtocolVersion version;
+ *       };
  *     } SupportedVersions;
  */
 SECStatus
@@ -737,7 +742,7 @@ tls13_ClientSendSupportedVersionsXtn(const sslSocket *ss, TLSExtensionData *xtnD
         return SECSuccess;
     }
 
-    SSL_TRC(3, ("%d: TLS13[%d]: send supported_versions extension",
+    SSL_TRC(3, ("%d: TLS13[%d]: client send supported_versions extension",
                 SSL_GETPID(), ss->fd));
 
     rv = sslBuffer_Skip(buf, 1, &lengthOffset);
@@ -747,8 +752,7 @@ tls13_ClientSendSupportedVersionsXtn(const sslSocket *ss, TLSExtensionData *xtnD
 
     if (ss->opt.enableAltHandshaketype && !IS_DTLS(ss)) {
         rv = sslBuffer_AppendNumber(
-            buf, tls13_EncodeAltDraftVersion(SSL_LIBRARY_VERSION_TLS_1_3),
-            2);
+            buf, tls13_EncodeAltDraftVersion(SSL_LIBRARY_VERSION_TLS_1_3), 2);
         if (rv != SECSuccess) {
             return SECFailure;
         }
@@ -761,6 +765,32 @@ tls13_ClientSendSupportedVersionsXtn(const sslSocket *ss, TLSExtensionData *xtnD
     }
 
     rv = sslBuffer_InsertLength(buf, lengthOffset, 1);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    *added = PR_TRUE;
+    return SECSuccess;
+}
+
+SECStatus
+tls13_ServerSendSupportedVersionsXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                                     sslBuffer *buf, PRBool *added)
+{
+    SECStatus rv;
+
+    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+        return SECSuccess;
+    }
+    if (!ss->ssl3.hs.altHandshakeType) {
+        return SECSuccess;
+    }
+
+    SSL_TRC(3, ("%d: TLS13[%d]: server send supported_versions extension",
+                SSL_GETPID(), ss->fd));
+
+    rv = sslBuffer_AppendNumber(
+        buf, tls13_EncodeAltDraftVersion(SSL_LIBRARY_VERSION_TLS_1_3), 2);
     if (rv != SECSuccess) {
         return SECFailure;
     }
