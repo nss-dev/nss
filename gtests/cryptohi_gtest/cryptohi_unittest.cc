@@ -37,7 +37,9 @@ class SignParamsTestF : public ::testing::Test {
     SECOidData *oidData;
     oidData = SECOID_FindOIDByTag(SEC_OID_CURVE25519);
     ASSERT_NE(nullptr, oidData);
-    SECITEM_AllocItem(NULL, &ecParams, (2 + oidData->oid.len));
+    ASSERT_NE(nullptr,
+              SECITEM_AllocItem(NULL, &ecParams, (2 + oidData->oid.len)))
+        << "Couldn't allocate memory for OID.";
     ecParams.data[0] = SEC_ASN1_OBJECT_ID; /* we have to prepend 0x06 */
     ecParams.data[1] = oidData->oid.len;
     memcpy(ecParams.data + 2, oidData->oid.data, oidData->oid.len);
@@ -67,7 +69,9 @@ class SignParamsTestF : public ::testing::Test {
 
     SECAlgorithmID maskHashAlg;
     PORT_Memset(&maskHashAlg, 0, sizeof(maskHashAlg));
-    SECOID_SetAlgorithmID(arena_.get(), &maskHashAlg, maskHashAlgTag, NULL);
+    SECStatus rv =
+        SECOID_SetAlgorithmID(arena_.get(), &maskHashAlg, maskHashAlgTag, NULL);
+    ASSERT_EQ(SECSuccess, rv);
 
     SECItem *maskHashAlgItem =
         SEC_ASN1EncodeItem(arena_.get(), NULL, &maskHashAlg,
@@ -77,8 +81,8 @@ class SignParamsTestF : public ::testing::Test {
         arena_.get(), sizeof(SECAlgorithmID));
     ASSERT_NE(nullptr, params->maskAlg);
 
-    SECStatus rv = SECOID_SetAlgorithmID(arena_.get(), params->maskAlg,
-                                         SEC_OID_PKCS1_MGF1, maskHashAlgItem);
+    rv = SECOID_SetAlgorithmID(arena_.get(), params->maskAlg,
+                               SEC_OID_PKCS1_MGF1, maskHashAlgItem);
     ASSERT_EQ(SECSuccess, rv);
   }
 
