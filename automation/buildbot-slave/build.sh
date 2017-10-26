@@ -276,7 +276,7 @@ check_abi()
             ABI_PROBLEM_FOUND=1
         fi
 
-        diff -u ${HGDIR}/nss/automation/abi-check/expected-report-$SO.txt \
+        diff -wB -u ${HGDIR}/nss/automation/abi-check/expected-report-$SO.txt \
                 ${HGDIR}/nss/automation/abi-check/new-report-$SO.txt >> ${ABI_REPORT}
         if [ ! -f ${ABI_REPORT} ]; then
             ABI_PROBLEM_FOUND=1
