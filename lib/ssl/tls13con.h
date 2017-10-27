@@ -110,5 +110,6 @@ SECStatus SSLExp_HelloRetryRequestCallback(PRFileDesc *fd,
                                            void *arg);
 SECStatus SSLExp_UseAltHandshakeType(PRFileDesc *fd, PRBool enable);
 PRBool tls13_MaybeTls13(sslSocket *ss);
+void tls13_SetSpecRecordVersion(sslSocket *ss, ssl3CipherSpec *spec);
 
 #endif /* __tls13con_h_ */

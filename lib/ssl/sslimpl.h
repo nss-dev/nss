@@ -199,8 +199,6 @@ struct sslSocketOpsStr {
 #define ssl_SEND_FLAG_FORCE_INTO_BUFFER 0x40000000
 #define ssl_SEND_FLAG_NO_BUFFER 0x20000000
 #define ssl_SEND_FLAG_NO_RETRANSMIT 0x08000000 /* DTLS only */
-#define ssl_SEND_FLAG_CAP_RECORD_VERSION \
-    0x04000000 /* TLS only */
 #define ssl_SEND_FLAG_MASK 0x7f000000
 
 /*
