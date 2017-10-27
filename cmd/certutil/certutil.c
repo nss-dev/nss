@@ -1217,6 +1217,8 @@ luC(enum usage_level ul, const char *command)
         "   -o output-cert");
     FPS "%-20s Self sign\n",
         "   -x");
+    FPS "%-20s Sign the certificate with RSA-PSS (the issuer key must be rsa)\n",
+        "   --pss-sign");
     FPS "%-20s Cert serial number\n",
         "   -m serial-number");
     FPS "%-20s Time Warp\n",
@@ -1550,6 +1552,8 @@ luR(enum usage_level ul, const char *command)
         "   -h token-name");
     FPS "%-20s Key size in bits, RSA keys only (min %d, max %d, default %d)\n",
         "   -g key-size", MIN_KEY_BITS, MAX_KEY_BITS, DEFAULT_KEY_BITS);
+    FPS "%-20s Create a certificate request restricted to RSA-PSS (rsa only)\n",
+        "   --pss");
     FPS "%-20s Name of file containing PQG parameters (dsa only)\n",
         "   -q pqgfile");
     FPS "%-20s Elliptic curve name (ec only)\n",
@@ -1727,6 +1731,8 @@ luS(enum usage_level ul, const char *command)
         "   -h token-name");
     FPS "%-20s Key size in bits, RSA keys only (min %d, max %d, default %d)\n",
         "   -g key-size", MIN_KEY_BITS, MAX_KEY_BITS, DEFAULT_KEY_BITS);
+    FPS "%-20s Create a certificate restricted to RSA-PSS (rsa only)\n",
+        "   --pss");
     FPS "%-20s Name of file containing PQG parameters (dsa only)\n",
         "   -q pqgfile");
     FPS "%-20s Elliptic curve name (ec only)\n",
@@ -1735,6 +1741,8 @@ luS(enum usage_level ul, const char *command)
         "");
     FPS "%-20s Self sign\n",
         "   -x");
+    FPS "%-20s Sign the certificate with RSA-PSS (the issuer key must be rsa)\n",
+        "   --pss-sign");
     FPS "%-20s Cert serial number\n",
         "   -m serial-number");
     FPS "%-20s Time Warp\n",
