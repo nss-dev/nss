@@ -148,6 +148,7 @@ struct ssl3CipherSpecStr {
 
     CipherSpecDirection direction;
     SSL3ProtocolVersion version;
+    SSL3ProtocolVersion recordVersion;
 
     const ssl3BulkCipherDef *cipherDef;
     const ssl3MACDef *macDef;
