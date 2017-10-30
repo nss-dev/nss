@@ -91,9 +91,7 @@ typedef enum {
     no_alert = 256
 } SSL3AlertDescription;
 
-typedef struct {
-    PRUint8 rand[SSL3_RANDOM_LENGTH];
-} SSL3Random;
+typedef PRUint8 SSL3Random[SSL3_RANDOM_LENGTH];
 
 typedef struct {
     PRUint8 id[32];
