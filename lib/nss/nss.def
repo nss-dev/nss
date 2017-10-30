@@ -1125,6 +1125,7 @@ CERT_FindCertByNicknameOrEmailAddrForUsageCX;
 ;+};
 ;+NSS_3.34 { 	# NSS 3.34 release
 ;+    global:
+PK11_CreateManagedGenericObject;
 SGN_NewContextWithAlgorithmID;
 SEC_SignDataWithAlgorithmID;
 SEC_DerSignDataWithAlgorithmID;

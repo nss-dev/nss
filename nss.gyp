@@ -148,6 +148,7 @@
             'cmd/pk1sign/pk1sign.gyp:pk1sign',
             'cmd/pp/pp.gyp:pp',
             'cmd/rsaperf/rsaperf.gyp:rsaperf',
+            'cmd/rsapoptst/rsapoptst.gyp:rsapoptst',
             'cmd/sdrtest/sdrtest.gyp:sdrtest',
             'cmd/selfserv/selfserv.gyp:selfserv',
             'cmd/shlibsign/mangle/mangle.gyp:mangle',
