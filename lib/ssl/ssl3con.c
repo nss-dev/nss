@@ -1004,11 +1004,11 @@ ssl_ClientReadVersion(sslSocket *ss, PRUint8 **b, unsigned int *len,
 }
 
 static SECStatus
-ssl3_GetNewRandom(SSL3Random *random)
+ssl3_GetNewRandom(SSL3Random random)
 {
     SECStatus rv;
 
-    rv = PK11_GenerateRandom(random->rand, SSL3_RANDOM_LENGTH);
+    rv = PK11_GenerateRandom(random, SSL3_RANDOM_LENGTH);
     if (rv != SECSuccess) {
         ssl_MapLowLevelError(SSL_ERROR_GENERATE_RANDOM_FAILURE);
     }
@@ -1317,11 +1317,11 @@ ssl3_ComputeDHKeyHash(sslSocket *ss, SSLHashType hashAlg, SSL3Hashes *hashes,
     PORT_Assert(dh_g.data);
     PORT_Assert(dh_Ys.data);
 
-    rv = sslBuffer_Append(&buf, &ss->ssl3.hs.client_random, SSL3_RANDOM_LENGTH);
+    rv = sslBuffer_Append(&buf, ss->ssl3.hs.client_random, SSL3_RANDOM_LENGTH);
     if (rv != SECSuccess) {
         goto loser;
     }
-    rv = sslBuffer_Append(&buf, &ss->ssl3.hs.server_random, SSL3_RANDOM_LENGTH);
+    rv = sslBuffer_Append(&buf, ss->ssl3.hs.server_random, SSL3_RANDOM_LENGTH);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -3401,8 +3401,6 @@ static SECStatus
 ssl3_ComputeMasterSecretInt(sslSocket *ss, PK11SymKey *pms,
                             PK11SymKey **msp)
 {
-    unsigned char *cr = (unsigned char *)&ss->ssl3.hs.client_random;
-    unsigned char *sr = (unsigned char *)&ss->ssl3.hs.server_random;
     PRBool isTLS = (PRBool)(ss->version > SSL_LIBRARY_VERSION_3_0);
     PRBool isTLS12 = (PRBool)(ss->version >= SSL_LIBRARY_VERSION_TLS_1_2);
     /*
@@ -3450,9 +3448,9 @@ ssl3_ComputeMasterSecretInt(sslSocket *ss, PK11SymKey *pms,
     }
 
     master_params.pVersion = pms_version_ptr;
-    master_params.RandomInfo.pClientRandom = cr;
+    master_params.RandomInfo.pClientRandom = ss->ssl3.hs.client_random;
     master_params.RandomInfo.ulClientRandomLen = SSL3_RANDOM_LENGTH;
-    master_params.RandomInfo.pServerRandom = sr;
+    master_params.RandomInfo.pServerRandom = ss->ssl3.hs.server_random;
     master_params.RandomInfo.ulServerRandomLen = SSL3_RANDOM_LENGTH;
     if (isTLS12) {
         master_params.prfHashMechanism = ssl3_GetPrfHashMechanism(ss);
@@ -3572,8 +3570,6 @@ static SECStatus
 ssl3_DeriveConnectionKeys(sslSocket *ss, PK11SymKey *masterSecret)
 {
     ssl3CipherSpec *pwSpec = ss->ssl3.pwSpec;
-    unsigned char *cr = (unsigned char *)&ss->ssl3.hs.client_random;
-    unsigned char *sr = (unsigned char *)&ss->ssl3.hs.server_random;
     PRBool isTLS = (PRBool)(ss->version > SSL_LIBRARY_VERSION_3_0);
     PRBool isTLS12 =
         (PRBool)(isTLS && ss->version >= SSL_LIBRARY_VERSION_TLS_1_2);
@@ -3612,9 +3608,9 @@ ssl3_DeriveConnectionKeys(sslSocket *ss, PK11SymKey *masterSecret)
     }
 
     key_material_params.bIsExport = PR_FALSE;
-    key_material_params.RandomInfo.pClientRandom = cr;
+    key_material_params.RandomInfo.pClientRandom = ss->ssl3.hs.client_random;
     key_material_params.RandomInfo.ulClientRandomLen = SSL3_RANDOM_LENGTH;
-    key_material_params.RandomInfo.pServerRandom = sr;
+    key_material_params.RandomInfo.pServerRandom = ss->ssl3.hs.server_random;
     key_material_params.RandomInfo.ulServerRandomLen = SSL3_RANDOM_LENGTH;
     key_material_params.pReturnedKeyMaterial = &returnedKeys;
 
@@ -4911,12 +4907,12 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
 
     /* Generate a new random if this is the first attempt. */
     if (type == client_hello_initial) {
-        rv = ssl3_GetNewRandom(&ss->ssl3.hs.client_random);
+        rv = ssl3_GetNewRandom(ss->ssl3.hs.client_random);
         if (rv != SECSuccess) {
             goto loser; /* err set by GetNewRandom. */
         }
     }
-    rv = ssl3_AppendHandshake(ss, &ss->ssl3.hs.client_random,
+    rv = ssl3_AppendHandshake(ss, ss->ssl3.hs.client_random,
                               SSL3_RANDOM_LENGTH);
     if (rv != SECSuccess) {
         goto loser; /* err set by ssl3_AppendHandshake* */
@@ -6287,7 +6283,7 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
     isTLS = (ss->version > SSL_LIBRARY_VERSION_3_0);
 
     rv = ssl3_ConsumeHandshake(
-        ss, &ss->ssl3.hs.server_random, SSL3_RANDOM_LENGTH, &b, &length);
+        ss, ss->ssl3.hs.server_random, SSL3_RANDOM_LENGTH, &b, &length);
     if (rv != SECSuccess) {
         goto loser; /* alert has been sent */
     }
@@ -6310,8 +6306,8 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
     if (downgradeCheckVersion >= SSL_LIBRARY_VERSION_TLS_1_2 &&
         downgradeCheckVersion > ss->version) {
         /* Both sections use the same sentinel region. */
-        unsigned char *downgrade_sentinel =
-            ss->ssl3.hs.server_random.rand +
+        PRUint8 *downgrade_sentinel =
+            ss->ssl3.hs.server_random +
             SSL3_RANDOM_LENGTH - sizeof(tls13_downgrade_random);
         if (!PORT_Memcmp(downgrade_sentinel,
                          tls13_downgrade_random,
@@ -7927,7 +7923,7 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
 
     /* Grab the client random data. */
     rv = ssl3_ConsumeHandshake(
-        ss, &ss->ssl3.hs.client_random, SSL3_RANDOM_LENGTH, &b, &length);
+        ss, ss->ssl3.hs.client_random, SSL3_RANDOM_LENGTH, &b, &length);
     if (rv != SECSuccess) {
         goto loser; /* malformed */
     }
@@ -8018,7 +8014,7 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
 
     /* Generate the Server Random now so it is available
      * when we process the ClientKeyShare in TLS 1.3 */
-    rv = ssl3_GetNewRandom(&ss->ssl3.hs.server_random);
+    rv = ssl3_GetNewRandom(ss->ssl3.hs.server_random);
     if (rv != SECSuccess) {
         errCode = SSL_ERROR_GENERATE_RANDOM_FAILURE;
         goto loser;
@@ -8044,8 +8040,8 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
      * we ship the final version of TLS 1.3. Bug 1306672.
      */
     if (ss->vrange.max > ss->version) {
-        unsigned char *downgrade_sentinel =
-            ss->ssl3.hs.server_random.rand +
+        PRUint8 *downgrade_sentinel =
+            ss->ssl3.hs.server_random +
             SSL3_RANDOM_LENGTH - sizeof(tls13_downgrade_random);
 
         switch (ss->vrange.max) {
@@ -8687,12 +8683,11 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length,
 
     PORT_Assert(SSL_MAX_CHALLENGE_BYTES == SSL3_RANDOM_LENGTH);
 
-    PORT_Memset(&ss->ssl3.hs.client_random, 0, SSL3_RANDOM_LENGTH);
-    PORT_Memcpy(
-        &ss->ssl3.hs.client_random.rand[SSL3_RANDOM_LENGTH - rand_length],
-        random, rand_length);
+    PORT_Memset(ss->ssl3.hs.client_random, 0, SSL3_RANDOM_LENGTH);
+    PORT_Memcpy(&ss->ssl3.hs.client_random[SSL3_RANDOM_LENGTH - rand_length],
+                random, rand_length);
 
-    PRINT_BUF(60, (ss, "client random:", &ss->ssl3.hs.client_random.rand[0],
+    PRINT_BUF(60, (ss, "client random:", ss->ssl3.hs.client_random,
                    SSL3_RANDOM_LENGTH));
     i = ssl3_config_match_init(ss);
     if (i <= 0) {
@@ -8873,7 +8868,7 @@ ssl3_SendServerHello(sslSocket *ss)
     }
     /* Random already generated in ssl3_HandleClientHello */
     rv = ssl3_AppendHandshake(
-        ss, &ss->ssl3.hs.server_random, SSL3_RANDOM_LENGTH);
+        ss, ss->ssl3.hs.server_random, SSL3_RANDOM_LENGTH);
     if (rv != SECSuccess) {
         goto loser; /* err set by AppendHandshake. */
     }
@@ -10745,7 +10740,7 @@ ssl3_RecordKeyLog(sslSocket *ss, const char *label, PK11SymKey *secret)
     strcpy(buf, label);
     offset = strlen(label);
     buf[offset++] += ' ';
-    hexEncode(buf + offset, ss->ssl3.hs.client_random.rand, SSL3_RANDOM_LENGTH);
+    hexEncode(buf + offset, ss->ssl3.hs.client_random, SSL3_RANDOM_LENGTH);
     offset += SSL3_RANDOM_LENGTH * 2;
     buf[offset++] = ' ';
     hexEncode(buf + offset, keyData->data, keyData->len);
