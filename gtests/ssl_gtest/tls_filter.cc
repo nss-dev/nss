@@ -289,8 +289,19 @@ PacketFilter::Action TlsHandshakeFilter::FilterRecord(
   while (parser.remaining()) {
     HandshakeHeader header;
     DataBuffer handshake;
-    if (!header.Parse(&parser, record_header, &handshake)) {
+    bool complete = false;
+    if (!header.Parse(&parser, record_header, preceding_fragment_, &handshake,
+                      &complete)) {
       return KEEP;
+    }
+
+    if (!complete) {
+      EXPECT_TRUE(record_header.is_dtls());
+      // Save the fragment and drop it from this record.  Fragments are
+      // coalesced with the last fragment of the handshake message.
+      changed = true;
+      preceding_fragment_.Assign(handshake);
+      continue;
     }
 
     DataBuffer filtered;
@@ -308,6 +319,8 @@ PacketFilter::Action TlsHandshakeFilter::FilterRecord(
       std::cerr << "handshake old: " << handshake << std::endl;
       std::cerr << "handshake new: " << filtered << std::endl;
       source = &filtered;
+    } else if (preceding_fragment_.len()) {
+      changed = true;
     }
 
     offset = header.Write(output, offset, *source);
@@ -317,12 +330,16 @@ PacketFilter::Action TlsHandshakeFilter::FilterRecord(
 }
 
 bool TlsHandshakeFilter::HandshakeHeader::ReadLength(
-    TlsParser* parser, const TlsRecordHeader& header, uint32_t* length) {
-  if (!parser->Read(length, 3)) {
+    TlsParser* parser, const TlsRecordHeader& header, uint32_t expected_offset,
+    uint32_t* length, bool* last_fragment) {
+  uint32_t message_length;
+  if (!parser->Read(&message_length, 3)) {
     return false;  // malformed
   }
 
   if (!header.is_dtls()) {
+    *last_fragment = true;
+    *length = message_length;
     return true;  // nothing left to do
   }
 
@@ -333,32 +350,49 @@ bool TlsHandshakeFilter::HandshakeHeader::ReadLength(
   }
   message_seq_ = message_seq_tmp;
 
-  uint32_t fragment_offset;
-  if (!parser->Read(&fragment_offset, 3)) {
+  uint32_t offset;
+  if (!parser->Read(&offset, 3)) {
+    return false;
+  }
+  // We only parse if the fragments are all complete and in order.
+  if (offset != expected_offset) {
+    ADD_FAILURE() << "Received out of order handshake fragments";
     return false;
   }
 
-  uint32_t fragment_length;
-  if (!parser->Read(&fragment_length, 3)) {
+  // For DTLS, we return the length of just this fragment.
+  if (!parser->Read(length, 3)) {
     return false;
   }
 
-  // All current tests where we are using this code don't fragment.
-  return (fragment_offset == 0 && fragment_length == *length);
+  // It's a fragment if the entire message is longer than what we have.
+  *last_fragment = message_length == (*length + offset);
+  return true;
 }
 
 bool TlsHandshakeFilter::HandshakeHeader::Parse(
-    TlsParser* parser, const TlsRecordHeader& record_header, DataBuffer* body) {
+    TlsParser* parser, const TlsRecordHeader& record_header,
+    const DataBuffer& preceding_fragment, DataBuffer* body, bool* complete) {
+  *complete = false;
+
   version_ = record_header.version();
   if (!parser->Read(&handshake_type_)) {
     return false;  // malformed
   }
+
   uint32_t length;
-  if (!ReadLength(parser, record_header, &length)) {
+  if (!ReadLength(parser, record_header, preceding_fragment.len(), &length,
+                  complete)) {
     return false;
   }
 
-  return parser->Read(body, length);
+  if (!parser->Read(body, length)) {
+    return false;
+  }
+  if (preceding_fragment.len()) {
+    body->Splice(preceding_fragment, 0);
+  }
+  return true;
 }
 
 size_t TlsHandshakeFilter::HandshakeHeader::WriteFragment(

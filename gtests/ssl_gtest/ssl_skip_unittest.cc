@@ -43,7 +43,14 @@ class TlsHandshakeSkipFilter : public TlsRecordFilter {
       size_t start = parser.consumed();
       TlsHandshakeFilter::HandshakeHeader header;
       DataBuffer ignored;
-      if (!header.Parse(&parser, record_header, &ignored)) {
+      bool complete = false;
+      if (!header.Parse(&parser, record_header, DataBuffer(), &ignored,
+                        &complete)) {
+        ADD_FAILURE() << "Error parsing handshake header";
+        return KEEP;
+      }
+      if (!complete) {
+        ADD_FAILURE() << "Don't want to deal with fragmented input";
         return KEEP;
       }
 

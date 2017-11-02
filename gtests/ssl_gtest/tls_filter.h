@@ -172,7 +172,7 @@ inline std::ostream& operator<<(std::ostream& stream,
 // records and that they don't span records or anything crazy like that.
 class TlsHandshakeFilter : public TlsRecordFilter {
  public:
-  TlsHandshakeFilter() {}
+  TlsHandshakeFilter() : preceding_fragment_() {}
 
   class HandshakeHeader : public TlsVersioned {
    public:
@@ -180,7 +180,8 @@ class TlsHandshakeFilter : public TlsRecordFilter {
 
     uint8_t handshake_type() const { return handshake_type_; }
     bool Parse(TlsParser* parser, const TlsRecordHeader& record_header,
-               DataBuffer* body);
+               const DataBuffer& preceding_fragment, DataBuffer* body,
+               bool* complete);
     size_t Write(DataBuffer* buffer, size_t offset,
                  const DataBuffer& body) const;
     size_t WriteFragment(DataBuffer* buffer, size_t offset,
@@ -191,7 +192,8 @@ class TlsHandshakeFilter : public TlsRecordFilter {
     // Reads the length from the record header.
     // This also reads the DTLS fragment information and checks it.
     bool ReadLength(TlsParser* parser, const TlsRecordHeader& header,
-                    uint32_t* length);
+                    uint32_t expected_offset, uint32_t* length,
+                    bool* last_fragment);
 
     uint8_t handshake_type_;
     uint16_t message_seq_;
@@ -207,6 +209,7 @@ class TlsHandshakeFilter : public TlsRecordFilter {
                                                DataBuffer* output) = 0;
 
  private:
+  DataBuffer preceding_fragment_;
 };
 
 // Make a copy of the first instance of a handshake message.
