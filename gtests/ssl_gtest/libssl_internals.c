@@ -34,7 +34,6 @@ SECStatus SSLInt_UpdateSSLv2ClientRandom(PRFileDesc *fd, uint8_t *rnd,
     return SECFailure;
   }
 
-  ssl3_InitState(ss);
   ssl3_RestartHandshakeHashes(ss);
 
   // Ensure we don't overrun hs.client_random.

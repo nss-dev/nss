@@ -787,6 +787,7 @@ ssl3_config_match_init(sslSocket *ss)
         return 0;
     }
 
+    ssl_FilterSupportedGroups(ss);
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
         suite = &ss->cipherSuites[i];
         if (suite->enabled) {
@@ -2333,18 +2334,6 @@ ssl3_SendRecord(sslSocket *ss,
         SSL_TRC(3, ("%d: SSL3[%d] Suppress write, fatal alert already sent",
                     SSL_GETPID(), ss->fd));
         return SECFailure;
-    }
-
-    if (ss->ssl3.initialized == PR_FALSE) {
-        /* This can happen on a server if the very first incoming record
-        ** looks like a defective ssl3 record (e.g. too long), and we're
-        ** trying to send an alert.
-        */
-        PR_ASSERT(type == content_alert);
-        rv = ssl3_InitState(ss);
-        if (rv != SECSuccess) {
-            return SECFailure;
-        }
     }
 
     /* check for Token Presence */
@@ -4502,10 +4491,6 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
            ClientHello, which isn't used in DTLS 1.3. */
         cookieLen = 0;
     } else {
-        rv = ssl3_InitState(ss);
-        if (rv != SECSuccess) {
-            return SECFailure;
-        }
         ssl3_RestartHandshakeHashes(ss);
     }
 
@@ -6109,7 +6094,6 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
                 SSL_GETPID(), ss->fd));
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
-    PORT_Assert(ss->ssl3.initialized);
 
     if (ss->ssl3.hs.ws != wait_server_hello) {
         errCode = SSL_ERROR_RX_UNEXPECTED_SERVER_HELLO;
@@ -7803,7 +7787,6 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
-    PORT_Assert(ss->ssl3.initialized);
     ss->ssl3.hs.preliminaryInfo = 0;
 
     if (!ss->sec.isServer ||
@@ -8578,10 +8561,6 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length,
         goto loser;
     }
 
-    rv = ssl3_InitState(ss);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
     ssl3_RestartHandshakeHashes(ss);
 
     if (ss->ssl3.hs.ws != wait_client_hello) {
@@ -12068,15 +12047,6 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     SSL3AlertDescription alert = internal_error;
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
 
-    if (!ss->ssl3.initialized) {
-        ssl_GetSSL3HandshakeLock(ss);
-        rv = ssl3_InitState(ss);
-        ssl_ReleaseSSL3HandshakeLock(ss);
-        if (rv != SECSuccess) {
-            return SECFailure;
-        }
-    }
-
     /* check for Token Presence */
     if (!ssl3_ClientAuthTokenPresent(ss->sec.ci.sid)) {
         PORT_SetError(SSL_ERROR_TOKEN_INSERTION_REMOVAL);
@@ -12287,12 +12257,6 @@ ssl3_InitState(sslSocket *ss)
 {
     SECStatus rv;
 
-    PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
-
-    if (ss->ssl3.initialized) {
-        return SECSuccess; /* Function should be idempotent */
-    }
-
     ss->ssl3.policy = SSL_ALLOWED;
 
     ssl_InitSecState(&ss->sec);
@@ -12310,7 +12274,7 @@ ssl3_InitState(sslSocket *ss)
 
     ss->ssl3.hs.sendingSCSV = PR_FALSE;
     ss->ssl3.hs.preliminaryInfo = 0;
-    ss->ssl3.hs.ws = (ss->sec.isServer) ? wait_client_hello : wait_server_hello;
+    ss->ssl3.hs.ws = (ss->sec.isServer) ? wait_client_hello : idle_handshake;
 
     ssl3_ResetExtensionData(&ss->xtnData, ss);
     PR_INIT_CLIST(&ss->ssl3.hs.remoteExtensions);
@@ -12344,9 +12308,6 @@ ssl3_InitState(sslSocket *ss)
 
     ss->ssl3.hs.zeroRttState = ssl_0rtt_none;
 
-    ssl_FilterSupportedGroups(ss);
-
-    ss->ssl3.initialized = PR_TRUE;
     return SECSuccess;
 }
 
@@ -12601,8 +12562,7 @@ ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache)
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
-    if (!ss->firstHsDone ||
-        (ss->ssl3.initialized && (ss->ssl3.hs.ws != idle_handshake))) {
+    if (!ss->firstHsDone || (ss->ssl3.hs.ws != idle_handshake)) {
         PORT_SetError(SSL_ERROR_HANDSHAKE_NOT_COMPLETED);
         return SECFailure;
     }
@@ -12722,8 +12682,6 @@ ssl3_DestroySSL3Info(sslSocket *ss)
     ss->ssl3.hs.zeroRttState = ssl_0rtt_none;
     /* Destroy TLS 1.3 buffered early data. */
     tls13_DestroyEarlyData(&ss->ssl3.hs.bufferedEarlyData);
-
-    ss->ssl3.initialized = PR_FALSE;
 }
 
 #define MAP_NULL(x) (((x) != 0) ? (x) : SEC_OID_NULL_CIPHER)

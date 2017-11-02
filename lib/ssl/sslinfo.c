@@ -34,52 +34,52 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
     inf.length = PR_MIN(sizeof inf, len);
 
     if (ss->opt.useSecurity && ss->enoughFirstHsDone) {
+        SSLCipherSuiteInfo cinfo;
+        SECStatus rv;
+
         sid = ss->sec.ci.sid;
         inf.protocolVersion = ss->version;
         inf.authKeyBits = ss->sec.authKeyBits;
         inf.keaKeyBits = ss->sec.keaKeyBits;
-        if (ss->ssl3.initialized) {
-            SSLCipherSuiteInfo cinfo;
-            SECStatus rv;
 
-            ssl_GetSpecReadLock(ss);
-            /* XXX  The cipher suite should be in the specs and this
-             * function should get it from cwSpec rather than from the "hs".
-             * See bug 275744 comment 69 and bug 766137.
-             */
-            inf.cipherSuite = ss->ssl3.hs.cipher_suite;
-            ssl_ReleaseSpecReadLock(ss);
-            inf.compressionMethod = ssl_compression_null;
-            inf.compressionMethodName = "NULL";
+        ssl_GetSpecReadLock(ss);
+        /* XXX  The cipher suite should be in the specs and this
+         * function should get it from cwSpec rather than from the "hs".
+         * See bug 275744 comment 69 and bug 766137.
+         */
+        inf.cipherSuite = ss->ssl3.hs.cipher_suite;
+        ssl_ReleaseSpecReadLock(ss);
+        inf.compressionMethod = ssl_compression_null;
+        inf.compressionMethodName = "NULL";
 
-            /* Fill in the cipher details from the cipher suite. */
-            rv = SSL_GetCipherSuiteInfo(inf.cipherSuite,
-                                        &cinfo, sizeof(cinfo));
-            if (rv != SECSuccess) {
-                return SECFailure; /* Error code already set. */
-            }
-            inf.symCipher = cinfo.symCipher;
-            inf.macAlgorithm = cinfo.macAlgorithm;
-            /* Get these fromm |ss->sec| because that is accurate
-             * even with TLS 1.3 disaggregated cipher suites. */
-            inf.keaType = ss->sec.keaType;
-            inf.originalKeaGroup = ss->sec.originalKeaGroup
-                                       ? ss->sec.originalKeaGroup->name
-                                       : ssl_grp_none;
-            inf.keaGroup = ss->sec.keaGroup
-                               ? ss->sec.keaGroup->name
-                               : ssl_grp_none;
-            inf.keaKeyBits = ss->sec.keaKeyBits;
-            inf.authType = ss->sec.authType;
-            inf.authKeyBits = ss->sec.authKeyBits;
-            inf.signatureScheme = ss->sec.signatureScheme;
-            /* If this is a resumed session, signatureScheme isn't set in ss->sec.
-             * Use the signature scheme from the previous handshake. */
-            if (inf.signatureScheme == ssl_sig_none && sid->sigScheme) {
-                inf.signatureScheme = sid->sigScheme;
-            }
-            inf.resumed = ss->statelessResume || ss->ssl3.hs.isResuming;
+        /* Fill in the cipher details from the cipher suite. */
+        rv = SSL_GetCipherSuiteInfo(inf.cipherSuite,
+                                    &cinfo, sizeof(cinfo));
+        if (rv != SECSuccess) {
+            return SECFailure; /* Error code already set. */
         }
+        inf.symCipher = cinfo.symCipher;
+        inf.macAlgorithm = cinfo.macAlgorithm;
+        /* Get these fromm |ss->sec| because that is accurate
+         * even with TLS 1.3 disaggregated cipher suites. */
+        inf.keaType = ss->sec.keaType;
+        inf.originalKeaGroup = ss->sec.originalKeaGroup
+                                   ? ss->sec.originalKeaGroup->name
+                                   : ssl_grp_none;
+        inf.keaGroup = ss->sec.keaGroup
+                           ? ss->sec.keaGroup->name
+                           : ssl_grp_none;
+        inf.keaKeyBits = ss->sec.keaKeyBits;
+        inf.authType = ss->sec.authType;
+        inf.authKeyBits = ss->sec.authKeyBits;
+        inf.signatureScheme = ss->sec.signatureScheme;
+        /* If this is a resumed session, signatureScheme isn't set in ss->sec.
+         * Use the signature scheme from the previous handshake. */
+        if (inf.signatureScheme == ssl_sig_none && sid->sigScheme) {
+            inf.signatureScheme = sid->sigScheme;
+        }
+        inf.resumed = ss->statelessResume || ss->ssl3.hs.isResuming;
+
         if (sid) {
             unsigned int sidLen;
 
@@ -363,8 +363,7 @@ SSL_GetNegotiatedHostInfo(PRFileDesc *fd)
     }
 
     if (ss->sec.isServer) {
-        if (ss->version > SSL_LIBRARY_VERSION_3_0 &&
-            ss->ssl3.initialized) { /* TLS */
+        if (ss->version > SSL_LIBRARY_VERSION_3_0) { /* TLS */
             SECItem *crsName;
             ssl_GetSpecReadLock(ss); /*********************************/
             crsName = &ss->ssl3.hs.srvVirtName;

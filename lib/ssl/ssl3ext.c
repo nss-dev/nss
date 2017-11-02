@@ -229,7 +229,8 @@ SSLExp_InstallExtensionHooks(PRFileDesc *fd, PRUint16 extension,
         return SECFailure;
     }
 
-    if (ss->ssl3.hs.ws != idle_handshake || ss->firstHsDone) {
+    if (ss->firstHsDone || ((ss->ssl3.hs.ws != idle_handshake) &&
+                            (ss->ssl3.hs.ws != wait_client_hello))) {
         PORT_SetError(PR_INVALID_STATE_ERROR);
         return SECFailure;
     }

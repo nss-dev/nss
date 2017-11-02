@@ -343,11 +343,6 @@ SSL_RecommendedCanFalseStart(PRFileDesc *fd, PRBool *canFalseStart)
         return SECFailure;
     }
 
-    if (!ss->ssl3.initialized) {
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        return SECFailure;
-    }
-
     /* Require a forward-secret key exchange. */
     *canFalseStart = ss->ssl3.hs.kea_def->kea == kea_dhe_dss ||
                      ss->ssl3.hs.kea_def->kea == kea_dhe_rsa ||
@@ -723,8 +718,7 @@ ssl_SecureClose(sslSocket *ss)
 
     if (!(ss->shutdownHow & ssl_SHUTDOWN_SEND) &&
         ss->firstHsDone &&
-        !ss->recvdCloseNotify &&
-        ss->ssl3.initialized) {
+        !ss->recvdCloseNotify) {
 
         /* We don't want the final alert to be Nagle delayed. */
         if (!ss->delayDisabled) {
@@ -754,8 +748,7 @@ ssl_SecureShutdown(sslSocket *ss, int nsprHow)
     if ((sslHow & ssl_SHUTDOWN_SEND) != 0 &&
         !(ss->shutdownHow & ssl_SHUTDOWN_SEND) &&
         ss->firstHsDone &&
-        !ss->recvdCloseNotify &&
-        ss->ssl3.initialized) {
+        !ss->recvdCloseNotify) {
 
         (void)SSL3_SendAlert(ss, alert_warning, close_notify);
     }
@@ -1190,14 +1183,7 @@ SSL_AuthCertificateComplete(PRFileDesc *fd, PRErrorCode error)
     }
 
     ssl_Get1stHandshakeLock(ss);
-
-    if (!ss->ssl3.initialized) {
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        rv = SECFailure;
-    } else {
-        rv = ssl3_AuthCertificateComplete(ss, error);
-    }
-
+    rv = ssl3_AuthCertificateComplete(ss, error);
     ssl_Release1stHandshakeLock(ss);
 
     return rv;
