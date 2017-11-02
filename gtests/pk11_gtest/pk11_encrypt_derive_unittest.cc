@@ -20,19 +20,18 @@ namespace nss_test {
 static const uint8_t kIv[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
                               0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
                               0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
-static const uint8_t kInput[] = {0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00,
-                                 0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88,
-                                 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00};
+static const uint8_t kInput[] = {
+    0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00, 0xff, 0xee, 0xdd, 0xcc,
+    0xbb, 0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00};
 
 class EncryptDeriveTest
     : public ::testing::Test,
       public ::testing::WithParamInterface<CK_MECHANISM_TYPE> {
-
  public:
   void TestEncryptDerive() {
     ScopedPK11SymKey derived_key(PK11_Derive(key_.get(), derive_mech(),
-                                 derive_param(), encrypt_mech(),
-                                 CKA_DECRYPT, keysize()));
+                                             derive_param(), encrypt_mech(),
+                                             CKA_DECRYPT, keysize()));
     ASSERT_TRUE(derived_key);
 
     uint8_t derived_key_data[MAX_KEY_SIZE];
@@ -57,7 +56,6 @@ class EncryptDeriveTest
   unsigned int keysize() const { return 16; }
 
  private:
-
   CK_MECHANISM_TYPE encrypt_mech() const { return GetParam(); }
 
   CK_MECHANISM_TYPE derive_mech() const {
@@ -185,9 +183,7 @@ class EncryptDeriveTest
   ScopedPK11SymKey key_;
 };
 
-TEST_P(EncryptDeriveTest, Test) {
-  TestEncryptDerive();
-}
+TEST_P(EncryptDeriveTest, Test) { TestEncryptDerive(); }
 
 static const CK_MECHANISM_TYPE kEncryptDeriveMechanisms[] = {
     CKM_DES3_ECB,     CKM_DES3_CBC,     CKM_AES_ECB,  CKM_AES_ECB, CKM_AES_CBC,
@@ -203,9 +199,7 @@ class EncryptDerive3Test : public EncryptDeriveTest {
   unsigned int keysize() const { return 24; }
 };
 
-TEST_P(EncryptDerive3Test, Test) {
-  TestEncryptDerive();
-}
+TEST_P(EncryptDerive3Test, Test) { TestEncryptDerive(); }
 
 static const CK_MECHANISM_TYPE kDES3EncryptDeriveMechanisms[] = {CKM_DES3_ECB,
                                                                  CKM_DES3_CBC};
