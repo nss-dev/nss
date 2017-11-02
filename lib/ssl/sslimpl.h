@@ -748,7 +748,6 @@ struct ssl3StateStr {
     /* chain while we are trying to validate it.   */
     CERTDistNames *ca_list;
     /* used by server.  trusted CAs for this socket. */
-    PRBool initialized;
     SSL3HandshakeState hs;
 
     PRUint16 mtu; /* Our estimate of the MTU */

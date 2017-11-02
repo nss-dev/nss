@@ -1839,6 +1839,13 @@ ssl_ImportFD(PRFileDesc *model, PRFileDesc *fd, SSLProtocolVariant variant)
     if (ns == NULL)
         return NULL;
 
+    status = ssl3_InitState(ns);
+    if (status != SECSuccess) {
+        ssl_FreeSocket(ns);
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return NULL;
+    }
+
     rv = ssl_PushIOLayer(ns, fd, PR_TOP_IO_LAYER);
     if (rv != PR_SUCCESS) {
         ssl_FreeSocket(ns);
