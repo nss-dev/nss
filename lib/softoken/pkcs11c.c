@@ -1524,8 +1524,7 @@ NSC_DecryptUpdate(CK_SESSION_HANDLE hSession,
             maxout -= padoutlen;
         }
         /* now save the final block for the next decrypt or the final */
-        PORT_Memcpy(context->padBuf, &pEncryptedPart[ulEncryptedPartLen -
-                                                     context->blockSize],
+        PORT_Memcpy(context->padBuf, &pEncryptedPart[ulEncryptedPartLen - context->blockSize],
                     context->blockSize);
         context->padDataLength = context->blockSize;
         ulEncryptedPartLen -= context->padDataLength;
@@ -7001,7 +7000,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                 len = stringPtr->ulLen;
             } else {
                 aesEncryptPtr =
-                   (CK_AES_CBC_ENCRYPT_DATA_PARAMS *) pMechanism->pParameter;
+                    (CK_AES_CBC_ENCRYPT_DATA_PARAMS *)pMechanism->pParameter;
                 mode = NSS_AES_CBC;
                 iv = aesEncryptPtr->iv;
                 data = aesEncryptPtr->pData;
