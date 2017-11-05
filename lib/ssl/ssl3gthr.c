@@ -509,7 +509,6 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
                 if (IS_DTLS(ss)) {
                     sslSequenceNumber seq_num;
 
-                    cText.version = dtls_DTLSVersionToTLSVersion(cText.version);
                     /* DTLS sequence number */
                     PORT_Memcpy(&seq_num, &ss->gs.hdr[3], sizeof(seq_num));
                     cText.seq_num = PR_ntohll(seq_num);

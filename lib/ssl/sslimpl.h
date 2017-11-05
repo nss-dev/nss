@@ -229,8 +229,6 @@ struct sslSocketOpsStr {
 #define ssl_SEND_FLAG_FORCE_INTO_BUFFER 0x40000000
 #define ssl_SEND_FLAG_NO_BUFFER 0x20000000
 #define ssl_SEND_FLAG_NO_RETRANSMIT 0x08000000 /* DTLS only */
-#define ssl_SEND_FLAG_CAP_RECORD_VERSION \
-    0x04000000 /* TLS only */
 #define ssl_SEND_FLAG_MASK 0x7f000000
 
 /*
@@ -500,6 +498,7 @@ struct ssl3CipherSpecStr {
     sslSequenceNumber write_seq_num;
     sslSequenceNumber read_seq_num;
     SSL3ProtocolVersion version;
+    SSL3ProtocolVersion recordVersion;
     ssl3KeyMaterial client;
     ssl3KeyMaterial server;
     SECItem msItem;

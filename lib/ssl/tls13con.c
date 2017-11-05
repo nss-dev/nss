@@ -133,9 +133,6 @@ const char keylogLabelExporterSecret[] = "EXPORTER_SECRET";
                                            ? ss->ssl3.hs.client##name \
                                            : ss->ssl3.hs.server##name)
 
-const SSL3ProtocolVersion kTlsRecordVersion = SSL_LIBRARY_VERSION_TLS_1_0;
-const SSL3ProtocolVersion kDtlsRecordVersion = SSL_LIBRARY_VERSION_TLS_1_1;
-
 /* Belt and suspenders in case we ever add a TLS 1.4. */
 PR_STATIC_ASSERT(SSL_LIBRARY_VERSION_MAX_SUPPORTED <=
                  SSL_LIBRARY_VERSION_TLS_1_3);
@@ -2713,27 +2710,64 @@ loser:
     return SECFailure;
 }
 
-static SECStatus
-tls13_SetupPendingCipherSpec(sslSocket *ss)
+void
+tls13_SetSpecRecordVersion(sslSocket *ss, ssl3CipherSpec *spec)
 {
-    ssl3CipherSpec *pSpec;
+    const SSL3ProtocolVersion kTlsRecordVersion = SSL_LIBRARY_VERSION_TLS_1_0;
+    const SSL3ProtocolVersion kTlsAltRecordVersion = SSL_LIBRARY_VERSION_TLS_1_2;
+    const SSL3ProtocolVersion kDtlsRecordVersion = SSL_LIBRARY_VERSION_DTLS_1_0_WIRE;
+
+    /* Set the record version. */
+    if (IS_DTLS(ss)) {
+        spec->recordVersion = kDtlsRecordVersion;
+    } else if (spec->epoch == TrafficKeyEarlyApplicationData) {
+        /* For early data, the previous session determines the record type that
+         * is used (and not what this session might negotiate). */
+        if (ss->sec.ci.sid && ss->sec.ci.sid->u.ssl3.altHandshakeType) {
+            spec->recordVersion = kTlsAltRecordVersion;
+        } else {
+            spec->recordVersion = kTlsRecordVersion;
+        }
+    } else if (ss->ssl3.hs.altHandshakeType) {
+        spec->recordVersion = kTlsAltRecordVersion;
+    } else {
+        spec->recordVersion = kTlsRecordVersion;
+    }
+    SSL_TRC(10, ("%d: TLS13[%d]: Set record version to 0x%04x",
+                 SSL_GETPID(), ss->fd, spec->recordVersion));
+}
+
+static SECStatus
+tls13_SetupPendingCipherSpec(sslSocket *ss, ssl3CipherSpec *spec)
+{
     ssl3CipherSuite suite = ss->ssl3.hs.cipher_suite;
-    const ssl3BulkCipherDef *bulk = ssl_GetBulkCipherDef(
-        ssl_LookupCipherSuiteDef(suite));
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     ssl_GetSpecWriteLock(ss); /*******************************/
 
-    pSpec = ss->ssl3.pwSpec;
+    spec = ss->ssl3.pwSpec;
     /* Version isn't set when we send 0-RTT data. */
-    pSpec->version = PR_MAX(SSL_LIBRARY_VERSION_TLS_1_3, ss->version);
+    spec->version = PR_MAX(SSL_LIBRARY_VERSION_TLS_1_3, ss->version);
 
     SSL_TRC(3, ("%d: TLS13[%d]: Set Pending Cipher Suite to 0x%04x",
                 SSL_GETPID(), ss->fd, suite));
-    pSpec->cipher_def = bulk;
 
-    ssl_ReleaseSpecWriteLock(ss); /*******************************/
+    spec->cipher_def = ssl_GetBulkCipherDef(ssl_LookupCipherSuiteDef(suite));
+    switch (spec->cipher_def->calg) {
+        case ssl_calg_aes_gcm:
+            spec->aead = tls13_AESGCM;
+            break;
+        case ssl_calg_chacha20:
+            spec->aead = tls13_ChaCha20Poly1305;
+            break;
+        default:
+            PORT_Assert(0);
+            return SECFailure;
+            break;
+    }
+
+    tls13_SetSpecRecordVersion(ss, spec);
     return SECSuccess;
 }
 
@@ -2763,29 +2797,6 @@ tls13_SetCipherSpec(sslSocket *ss, TrafficKeyType type,
     PR_APPEND_LINK(&spec->link, &ss->ssl3.hs.cipherSpecs);
     ss->ssl3.pwSpec = ss->ssl3.prSpec = spec;
 
-    rv = tls13_SetupPendingCipherSpec(ss);
-    if (rv != SECSuccess)
-        return SECFailure;
-
-    switch (spec->cipher_def->calg) {
-        case calg_aes_gcm:
-            spec->aead = tls13_AESGCM;
-            break;
-        case calg_chacha20:
-            spec->aead = tls13_ChaCha20Poly1305;
-            break;
-        default:
-            PORT_Assert(0);
-            return SECFailure;
-            break;
-    }
-
-    rv = tls13_DeriveTrafficKeys(ss, spec, type, direction,
-                                 deleteSecret);
-    if (rv != SECSuccess) {
-        return SECFailure;
-    }
-
     /* We use the epoch for cipher suite identification, so increment
      * it in both TLS and DTLS. */
     if ((*specp)->epoch == PR_UINT16_MAX) {
@@ -2801,6 +2812,17 @@ tls13_SetCipherSpec(sslSocket *ss, TrafficKeyType type,
             (sslSequenceNumber)spec->epoch << 48;
 
         dtls_InitRecvdRecords(&spec->recvdRecords);
+    }
+
+    /* This depends on spec having a valid direction and epoch. */
+    rv = tls13_SetupPendingCipherSpec(ss, spec);
+    if (rv != SECSuccess)
+        return SECFailure;
+
+    rv = tls13_DeriveTrafficKeys(ss, spec, type, direction,
+                                 deleteSecret);
+    if (rv != SECSuccess) {
+        return SECFailure;
     }
 
     if (type == TrafficKeyEarlyApplicationData) {
@@ -4257,9 +4279,8 @@ tls13_UnprotectRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *plaintext
         return SECFailure;
     }
 
-    /* Check the version number in the record */
-    if ((IS_DTLS(ss) && cText->version != kDtlsRecordVersion) ||
-        (!IS_DTLS(ss) && cText->version != kTlsRecordVersion)) {
+    /* Check the version number in the record. */
+    if (cText->version != crSpec->recordVersion) {
         /* Do we need a better error here? */
         SSL_TRC(3,
                 ("%d: TLS13[%d]: record has bogus version",
@@ -4576,14 +4597,14 @@ tls13_NegotiateVersion(sslSocket *ss, const TLSExtension *supported_versions)
             if (ss->opt.enableAltHandshaketype &&
                 !IS_DTLS(ss) &&
                 supported == alt_wire) {
-                ss->version = version;
-                ss->ssl3.hs.altHandshakeType = PR_TRUE;
                 rv = ssl3_RegisterExtensionSender(ss, &ss->xtnData,
                                                   ssl_tls13_supported_versions_xtn,
                                                   tls13_ServerSendSupportedVersionsXtn);
                 if (rv != SECSuccess) {
                     return SECFailure;
                 }
+                ss->ssl3.hs.altHandshakeType = PR_TRUE;
+                ss->version = version;
                 return SECSuccess;
             }
         }
