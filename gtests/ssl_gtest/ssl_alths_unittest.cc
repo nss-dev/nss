@@ -18,7 +18,7 @@
 namespace nss_test {
 
 static const uint32_t kServerHelloVersionAlt = SSL_LIBRARY_VERSION_TLS_1_2;
-static const uint32_t kServerHelloVersionRegular =
+static const uint16_t kServerHelloVersionRegular =
     0x7f00 | TLS_1_3_DRAFT_VERSION;
 
 class AltHandshakeTest : public TlsConnectStreamTls13 {
@@ -27,6 +27,8 @@ class AltHandshakeTest : public TlsConnectStreamTls13 {
     TlsConnectStreamTls13::SetUp();
     client_ccs_recorder_ =
         std::make_shared<TlsRecordRecorder>(kTlsChangeCipherSpecType);
+    server_handshake_recorder_ =
+        std::make_shared<TlsRecordRecorder>(kTlsHandshakeType);
     server_ccs_recorder_ =
         std::make_shared<TlsRecordRecorder>(kTlsChangeCipherSpecType);
     server_hello_recorder_ =
@@ -42,11 +44,17 @@ class AltHandshakeTest : public TlsConnectStreamTls13 {
   void InstallFilters() {
     client_->SetPacketFilter(client_ccs_recorder_);
     auto chain = std::make_shared<ChainedPacketFilter>(ChainedPacketFilterInit(
-        {server_ccs_recorder_, server_hello_recorder_}));
+        {server_handshake_recorder_, server_ccs_recorder_,
+         server_hello_recorder_}));
     server_->SetPacketFilter(chain);
   }
 
-  void CheckServerHelloVersion(uint32_t server_hello_version) {
+  void CheckServerHelloRecordVersion(uint16_t record_version) {
+    ASSERT_EQ(record_version,
+              server_handshake_recorder_->record(0).header.version());
+  }
+
+  void CheckServerHelloVersion(uint16_t server_hello_version) {
     uint32_t ver;
     ASSERT_TRUE(server_hello_recorder_->buffer().Read(0, 2, &ver));
     ASSERT_EQ(server_hello_version, ver);
@@ -56,15 +64,18 @@ class AltHandshakeTest : public TlsConnectStreamTls13 {
     EXPECT_EQ(0U, client_ccs_recorder_->count());
     EXPECT_EQ(0U, server_ccs_recorder_->count());
     CheckServerHelloVersion(kServerHelloVersionRegular);
+    CheckServerHelloRecordVersion(SSL_LIBRARY_VERSION_TLS_1_0);
   }
 
   void CheckForAltHandshake() {
     EXPECT_EQ(1U, client_ccs_recorder_->count());
     EXPECT_EQ(1U, server_ccs_recorder_->count());
     CheckServerHelloVersion(kServerHelloVersionAlt);
+    CheckServerHelloRecordVersion(SSL_LIBRARY_VERSION_TLS_1_2);
   }
 
   std::shared_ptr<TlsRecordRecorder> client_ccs_recorder_;
+  std::shared_ptr<TlsRecordRecorder> server_handshake_recorder_;
   std::shared_ptr<TlsRecordRecorder> server_ccs_recorder_;
   std::shared_ptr<TlsInspectorRecordHandshakeMessage> server_hello_recorder_;
 };
