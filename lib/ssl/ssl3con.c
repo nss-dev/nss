@@ -2288,7 +2288,6 @@ ssl_ProtectNextRecord(sslSocket *ss, ssl3CipherSpec *spec, SSL3ContentType type,
     *written = contentLen;
     return SECSuccess;
 }
-
 /* Process the plain text before sending it.
  * Returns the number of bytes of plaintext that were successfully sent
  *  plus the number of bytes of plaintext that were copied into the
@@ -6040,7 +6039,7 @@ ssl3_SetupCipherSuite(sslSocket *ss, PRBool initHashes)
     if (!initHashes) {
         return SECSuccess;
     }
-    /* Now we've have a cipher suite, initialize the handshake hashes. */
+    /* Now we have a cipher suite, initialize the handshake hashes. */
     return ssl3_InitHandshakeHashes(ss);
 }
 
@@ -8832,8 +8831,8 @@ ssl3_SendServerHello(sslSocket *ss)
         goto loser; /* err set by AppendHandshake. */
     }
     /* Random already generated in ssl3_HandleClientHello */
-    rv = ssl3_AppendHandshake(
-        ss, ss->ssl3.hs.server_random, SSL3_RANDOM_LENGTH);
+    rv = ssl3_AppendHandshake(ss, ss->ssl3.hs.server_random,
+                              SSL3_RANDOM_LENGTH);
     if (rv != SECSuccess) {
         goto loser; /* err set by AppendHandshake. */
     }
@@ -12181,6 +12180,9 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
 
         SSL_DBG(("%d: SSL3[%d]: decryption failed", SSL_GETPID(), ss->fd));
 
+        /* Ensure that we don't process this data again. */
+        databuf->len = 0;
+
         /* Ignore a CCS if the alternative handshake is negotiated.  Note that
          * this will fail if the server fails to negotiate the alternative
          * handshake type in a 0-RTT session that is resumed from a session that
@@ -12191,14 +12193,13 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
             ss->ssl3.hs.altHandshakeType &&
             cText->buf->len == 1 &&
             cText->buf->buf[0] == change_cipher_spec_choice) {
-            databuf->len = 0;
+            /* Ignore the CCS. */
             return SECSuccess;
         }
         if (IS_DTLS(ss) ||
             (ss->sec.isServer &&
              ss->ssl3.hs.zeroRttIgnore == ssl_0rtt_ignore_trial)) {
             /* Silently drop the packet */
-            databuf->len = 0; /* Needed to ensure data not left around */
             return SECSuccess;
         } else {
             int errCode = PORT_GetError();
