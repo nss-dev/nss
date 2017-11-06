@@ -16,6 +16,7 @@
         'pk11_chacha20poly1305_unittest.cc',
         'pk11_curve25519_unittest.cc',
         'pk11_ecdsa_unittest.cc',
+        'pk11_encrypt_derive_unittest.cc',
         'pk11_pbkdf2_unittest.cc',
         'pk11_prf_unittest.cc',
         'pk11_prng_unittest.cc',
@@ -26,6 +27,7 @@
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',
         '<(DEPTH)/lib/util/util.gyp:nssutil3',
+        '<(DEPTH)/cpputil/cpputil.gyp:cpputil',
         '<(DEPTH)/gtests/google_test/google_test.gyp:gtest',
       ],
       'conditions': [

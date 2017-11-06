@@ -292,10 +292,10 @@ class TlsHeaderRecorder : public TlsRecordFilter {
   std::vector<TlsRecordHeader> headers_;
 };
 
-// Runs multiple packet filters in series.
 typedef std::initializer_list<std::shared_ptr<PacketFilter>>
     ChainedPacketFilterInit;
 
+// Runs multiple packet filters in series.
 class ChainedPacketFilter : public PacketFilter {
  public:
   ChainedPacketFilter() {}
