@@ -502,9 +502,6 @@ MP_LOGTAB       - If true, the file "logtab.h" is included, which
                   the library includes <math.h> and uses log().  This
                   typically forces you to link against math libraries.
 
-MP_MEMCPY       - If true, use memcpy() to copy buffers.  If you run
-                  into weird alignment bugs, set this to zero and an
-                  explicit loop will be used.
 
 MP_ARGCHK       - Set to 0, 1, or 2.  This defines how the argument
                   checking macro, ARGCHK(), gets expanded.  If this
