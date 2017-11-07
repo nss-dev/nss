@@ -2782,15 +2782,7 @@ s_mp_pad(mp_int *mp, mp_size min)
 void
 s_mp_setz(mp_digit *dp, mp_size count)
 {
-#if MP_MEMSET == 0
-    int ix;
-
-    for (ix = 0; ix < count; ix++)
-        dp[ix] = 0;
-#else
     memset(dp, 0, count * sizeof(mp_digit));
-#endif
-
 } /* end s_mp_setz() */
 
 /* }}} */
