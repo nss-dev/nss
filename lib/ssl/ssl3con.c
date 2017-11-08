@@ -4954,7 +4954,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
     PRBool requestingResume = PR_FALSE, fallbackSCSV = PR_FALSE;
     PRInt32 total_exten_len = 0;
     unsigned numCompressionMethods;
-    PRUint16 version;
+    PRUint16 version = ss->vrange.max;
     PRInt32 flags;
 
     SSL_TRC(3, ("%d: SSL3[%d]: send %s ClientHello handshake", SSL_GETPID(),
@@ -5102,8 +5102,6 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
                 if (sid->version < ss->vrange.min ||
                     sid->version > ss->vrange.max) {
                     sidOK = PR_FALSE;
-                } else {
-                    version = ss->vrange.max;
                 }
             }
         }
@@ -5137,8 +5135,6 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
          */
         if (ss->firstHsDone) {
             version = ss->clientHelloVersion;
-        } else {
-            version = ss->vrange.max;
         }
 
         sid = ssl3_NewSessionID(ss, PR_FALSE);
