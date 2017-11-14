@@ -2494,13 +2494,6 @@ main(int argc, char **argv)
             break;
     }
 
-    /* Call the NSS initialization routines */
-    rv = NSS_Initialize(dir, certPrefix, certPrefix, SECMOD_DB, NSS_INIT_READONLY);
-    if (rv != SECSuccess) {
-        fputs("NSS_Init failed.\n", stderr);
-        exit(8);
-    }
-
     /* The -b (bindOnly) option is only used by the ssl.sh test
      * script on Linux to determine whether a previous selfserv
      * process has fully died and freed the port.  (Bug 129701)
@@ -2609,6 +2602,13 @@ main(int argc, char **argv)
 
     /* set our password function */
     PK11_SetPasswordFunc(SECU_GetModulePassword);
+
+    /* Call the NSS initialization routines */
+    rv = NSS_Initialize(dir, certPrefix, certPrefix, SECMOD_DB, NSS_INIT_READONLY);
+    if (rv != SECSuccess) {
+        fputs("NSS_Init failed.\n", stderr);
+        exit(8);
+    }
 
     /* all SSL3 cipher suites are enabled by default. */
     if (cipherString) {
