@@ -240,7 +240,7 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
             sprintf(prompt,
                     "Press Enter, then enter PIN for \"%s\" on external device.\n",
                     PK11_GetTokenName(slot));
-            char* pw = SECU_GetPasswordString(NULL, prompt);
+            char *pw = SECU_GetPasswordString(NULL, prompt);
             PORT_Free(pw);
         /* Fall Through */
         case PW_PLAINTEXT:
