@@ -6824,7 +6824,8 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
             expectedSidLen = 0;
         }
         if (sidBytes.len != expectedSidLen ||
-            PORT_Memcmp(buf, sidBytes.data, expectedSidLen) != 0) {
+            (expectedSidLen > 0 &&
+             PORT_Memcmp(buf, sidBytes.data, expectedSidLen) != 0)) {
             desc = illegal_parameter;
             errCode = SSL_ERROR_RX_MALFORMED_SERVER_HELLO;
             goto alert_loser;
