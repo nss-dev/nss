@@ -595,6 +595,20 @@ TEST_P(TlsConnectTls13, RetryStateless) {
   SendReceive();
 }
 
+TEST_P(TlsConnectTls13, RetryStatefulDropCookie) {
+  ConfigureSelfEncrypt();
+  EnsureTlsSetup();
+
+  TriggerHelloRetryRequest(client_, server_);
+  client_->SetPacketFilter(
+      std::make_shared<TlsExtensionDropper>(ssl_tls13_cookie_xtn));
+
+  ExpectAlert(server_, kTlsAlertMissingExtension);
+  Handshake();
+  client_->CheckErrorCode(SSL_ERROR_MISSING_EXTENSION_ALERT);
+  server_->CheckErrorCode(SSL_ERROR_MISSING_COOKIE_EXTENSION);
+}
+
 // Stream only because DTLS drops bad packets.
 TEST_F(TlsConnectStreamTls13, RetryStatelessDamageFirstClientHello) {
   ConfigureSelfEncrypt();
