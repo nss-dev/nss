@@ -1375,7 +1375,12 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
             ssl_ReleaseSpecWriteLock(ss);
         }
 
-        PORT_Assert(ss->xtnData.cookie.len);
+        if (!ssl3_ExtensionNegotiated(ss, ssl_tls13_cookie_xtn) ||
+            !ss->xtnData.cookie.len) {
+            FATAL_ERROR(ss, SSL_ERROR_MISSING_COOKIE_EXTENSION,
+                        missing_extension);
+            goto loser;
+        }
         PRINT_BUF(50, (ss, "Client sent cookie",
                        ss->xtnData.cookie.data, ss->xtnData.cookie.len));
 
