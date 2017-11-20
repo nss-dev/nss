@@ -38,6 +38,7 @@
 #include "nss.h"
 #include "ssl.h"
 #include "sslproto.h"
+#include "sslexp.h"
 #include "cert.h"
 #include "certt.h"
 #include "ocsp.h"
@@ -1952,6 +1953,10 @@ server_main(
     if (zeroRTT) {
         if (enabledVersions.max < SSL_LIBRARY_VERSION_TLS_1_3) {
             errExit("You tried enabling 0RTT without enabling TLS 1.3!");
+        }
+        rv = SSL_SetupAntiReplay(10 * PR_USEC_PER_SEC, 7, 14);
+        if (rv != SECSuccess) {
+            errExit("error configuring anti-replay ");
         }
         rv = SSL_OptionSet(model_sock, SSL_ENABLE_0RTT_DATA, PR_TRUE);
         if (rv != SECSuccess) {
