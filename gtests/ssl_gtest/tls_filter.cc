@@ -303,6 +303,7 @@ PacketFilter::Action TlsHandshakeFilter::FilterRecord(
       preceding_fragment_.Assign(handshake);
       continue;
     }
+    preceding_fragment_.Truncate(0);
 
     DataBuffer filtered;
     PacketFilter::Action action = FilterHandshake(header, handshake, &filtered);
@@ -350,13 +351,14 @@ bool TlsHandshakeFilter::HandshakeHeader::ReadLength(
   }
   message_seq_ = message_seq_tmp;
 
-  uint32_t offset;
+  uint32_t offset = 0;
   if (!parser->Read(&offset, 3)) {
     return false;
   }
   // We only parse if the fragments are all complete and in order.
   if (offset != expected_offset) {
-    ADD_FAILURE() << "Received out of order handshake fragments";
+    EXPECT_NE(0U, header.epoch())
+        << "Received out of order handshake fragment for epoch 0";
     return false;
   }
 
