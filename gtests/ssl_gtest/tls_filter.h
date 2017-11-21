@@ -50,6 +50,9 @@ class TlsRecordHeader : public TlsVersioned {
 
   uint8_t content_type() const { return content_type_; }
   uint64_t sequence_number() const { return sequence_number_; }
+  uint16_t epoch() const {
+    return static_cast<uint16_t>(sequence_number_ >> 48);
+  }
   size_t header_length() const { return is_dtls() ? 13 : 5; }
 
   // Parse the header; return true if successful; body in an outparam if OK.
