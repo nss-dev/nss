@@ -13,7 +13,7 @@ set -e -x -v
 # successfully executed.
 
 # Format the extracted C code.
-cd ~/hacl-star/snapshots/nss-production
+cd ~/hacl-star/snapshots/nss
 cp ~/nss/.clang-format .
 find . -type f -name '*.[ch]' -exec clang-format -i {} \+
 
