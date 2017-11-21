@@ -12245,13 +12245,6 @@ ssl_InitSecState(sslSecurityInfo *sec)
     sec->keaGroup = NULL;
 }
 
-/* Called from: ssl3_SendRecord
-**      ssl3_SendClientHello()
-**      ssl3_HandleV2ClientHello()
-**      ssl3_HandleRecord()
-**
-** This function should perhaps acquire and release the SpecWriteLock.
-*/
 SECStatus
 ssl3_InitState(sslSocket *ss)
 {
