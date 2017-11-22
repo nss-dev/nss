@@ -169,32 +169,13 @@ ssl_SetupNullCipherSpec(sslSocket *ss, CipherSpecDirection dir)
         return SECFailure;
     }
 
-    /* The null spec is set before we start the handshake.  So, we set the
-     * version to the highest that is negotiated.  Each version then follows its
-     * own rules about construction of unencrypted records.  For instance, TLS
-     * 1.3 will set the record version number to TLS 1.0. */
-    spec->version = ss->vrange.max;
-    if (IS_DTLS(ss)) {
-        spec->recordVersion = SSL_LIBRARY_VERSION_DTLS_1_0_WIRE;
-    } else {
-        /* For new connections, cap the record layer version number of TLS
-         * ClientHello to { 3, 1 } (TLS 1.0). Some TLS 1.0 servers (which seem
-         * to use F5 BIG-IP) ignore ClientHello.client_version and use the
-         * record layer version number (TLSPlaintext.version) instead when
-         * negotiating protocol versions. In addition, if the record layer
-         * version number of ClientHello is { 3, 2 } (TLS 1.1) or higher, these
-         * servers reset the TCP connections. Lastly, some F5 BIG-IP servers
-         * hang if a record containing a ClientHello has a version greater than
-         * { 3, 1 } and a length greater than 255. Set this flag to work around
-         * such servers.
-         *
-         * We bump the version up when we settle on a version.  Before producing
-         * an initial ServerHello, or when processing it.
-         */
-        spec->recordVersion = PR_MIN(SSL_LIBRARY_VERSION_TLS_1_0,
-                                     ss->vrange.max);
-    }
-
+    /* Set default versions.  This value will be used to generate and send
+     * alerts if a version is not negotiated.  These values are overridden when
+     * sending a ClientHello and when a version is negotiated. */
+    spec->version = SSL_LIBRARY_VERSION_TLS_1_0;
+    spec->recordVersion = IS_DTLS(ss)
+                              ? SSL_LIBRARY_VERSION_DTLS_1_0_WIRE
+                              : SSL_LIBRARY_VERSION_TLS_1_0;
     spec->cipherDef = &ssl_bulk_cipher_defs[cipher_null];
     PORT_Assert(spec->cipherDef->cipher == cipher_null);
     spec->macDef = &ssl_mac_defs[ssl_mac_null];
