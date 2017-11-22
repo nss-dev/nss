@@ -22,3 +22,10 @@ files=($(find ~/nss/lib/freebl/verified/ -type f -name '*.[ch]'))
 for f in "${files[@]}"; do
     diff $f $(basename "$f")
 done
+
+# Check that the specs didn't change either.
+cd ~/hacl-star/specs
+files=($(find ~/nss/lib/freebl/verified/specs -type f))
+for f in "${files[@]}"; do
+    diff $f $(basename "$f")
+done

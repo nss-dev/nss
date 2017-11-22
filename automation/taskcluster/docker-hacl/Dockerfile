@@ -9,7 +9,7 @@ ENV haclrepo https://github.com/mitls/hacl-star.git
 
 # Define versions of dependencies
 ENV opamv 4.04.2
-ENV haclversion 050778364a97d596d097afdb430b29ad58ee6a42
+ENV haclversion daa7e159f0adf252b5e6962967bc0f27dbac243b
 
 # Install required packages and set versions
 RUN apt-get -qq update
@@ -46,6 +46,7 @@ ENV PATH "/home/worker/hacl-star/dependencies/z3/bin:$PATH"
 RUN make -C hacl-star verify-nss -j$(nproc)
 RUN make -C hacl-star -f Makefile.build snapshots/nss -j$(nproc)
 RUN KOPTS="-funroll-loops 5" make -C hacl-star/code/curve25519 test -j$(nproc)
+RUN make -C hacl-star/code/salsa-family test -j$(nproc)
 
 # Get clang-format-3.9
 RUN curl -LO http://releases.llvm.org/3.9.1/clang+llvm-3.9.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
