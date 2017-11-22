@@ -154,6 +154,7 @@
           # not x64
           'sources': [
             'chacha20.c',
+            'verified/Hacl_Chacha20.c',
             'poly1305.c',
           ],
         }],

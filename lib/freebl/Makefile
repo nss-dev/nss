@@ -524,12 +524,14 @@ ifndef NSS_DISABLE_CHACHAPOLY
 
         ifneq (1,$(CC_IS_GCC))
             EXTRA_SRCS += chacha20.c
+            VERIFIED_SRCS += Hacl_Chacha20.c
         else
             EXTRA_SRCS += chacha20_vec.c
         endif
     else
         EXTRA_SRCS += poly1305.c
         EXTRA_SRCS += chacha20.c
+        VERIFIED_SRCS += Hacl_Chacha20.c
     endif # x86_64
 endif # NSS_DISABLE_CHACHAPOLY
 
@@ -589,11 +591,6 @@ ECL_OBJS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(ECL_SRCS:.c=$(OBJ_SUFFIX)) $(
 ECL_OBJS += $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(ECL_USERS:.c=$(OBJ_SUFFIX)))
 
 $(ECL_OBJS): $(ECL_HDRS)
-
-VERIFIED_OBJS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(VERIFIED_SRCS:.c=$(OBJ_SUFFIX)))
-
-$(VERIFIED_OBJS): $(VERIFIED_HDRS)
-
 
 $(OBJDIR)/sysrand$(OBJ_SUFFIX): sysrand.c unix_rand.c win_rand.c
 
