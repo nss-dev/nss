@@ -272,6 +272,30 @@ bool TlsRecordFilter::Protect(const TlsRecordHeader& header,
   return cipher_spec_->Protect(header, padded, ciphertext);
 }
 
+bool IsHelloRetry(const DataBuffer& body) {
+  static const uint8_t ssl_hello_retry_random[] = {
+      0xCF, 0x21, 0xAD, 0x74, 0xE5, 0x9A, 0x61, 0x11, 0xBE, 0x1D, 0x8C,
+      0x02, 0x1E, 0x65, 0xB8, 0x91, 0xC2, 0xA2, 0x11, 0x16, 0x7A, 0xBB,
+      0x8C, 0x5E, 0x07, 0x9E, 0x09, 0xE2, 0xC8, 0xA8, 0x33, 0x9C};
+  return memcmp(body.data() + 2, ssl_hello_retry_random,
+                sizeof(ssl_hello_retry_random)) == 0;
+}
+
+bool TlsHandshakeFilter::IsFilteredType(const HandshakeHeader& header,
+                                        const DataBuffer& body) {
+  if (handshake_types_.empty()) {
+    return true;
+  }
+
+  uint8_t type = header.handshake_type();
+  if (type == kTlsHandshakeServerHello) {
+    if (IsHelloRetry(body)) {
+      type = kTlsHandshakeHelloRetryRequest;
+    }
+  }
+  return handshake_types_.count(type) > 0U;
+}
+
 PacketFilter::Action TlsHandshakeFilter::FilterRecord(
     const TlsRecordHeader& record_header, const DataBuffer& input,
     DataBuffer* output) {
@@ -306,7 +330,12 @@ PacketFilter::Action TlsHandshakeFilter::FilterRecord(
     preceding_fragment_.Truncate(0);
 
     DataBuffer filtered;
-    PacketFilter::Action action = FilterHandshake(header, handshake, &filtered);
+    PacketFilter::Action action;
+    if (!IsFilteredType(header, handshake)) {
+      action = KEEP;
+    } else {
+      action = FilterHandshake(header, handshake, &filtered);
+    }
     if (action == DROP) {
       changed = true;
       std::cerr << "handshake drop: " << handshake << std::endl;
@@ -431,21 +460,15 @@ PacketFilter::Action TlsInspectorRecordHandshakeMessage::FilterHandshake(
     return KEEP;
   }
 
-  if (header.handshake_type() == handshake_type_) {
-    buffer_ = input;
-  }
+  buffer_ = input;
   return KEEP;
 }
 
 PacketFilter::Action TlsInspectorReplaceHandshakeMessage::FilterHandshake(
     const HandshakeHeader& header, const DataBuffer& input,
     DataBuffer* output) {
-  if (header.handshake_type() == handshake_type_) {
-    *output = buffer_;
-    return CHANGE;
-  }
-
-  return KEEP;
+  *output = buffer_;
+  return CHANGE;
 }
 
 PacketFilter::Action TlsRecordRecorder::FilterRecord(
@@ -540,14 +563,6 @@ bool FindServerHelloExtensions(TlsParser* parser, const TlsVersioned& header) {
   return true;
 }
 
-static bool FindHelloRetryExtensions(TlsParser* parser,
-                                     const TlsVersioned& header) {
-  if (!parser->Skip(4)) {  // version (2) + cipher suite (2)
-    return false;
-  }
-  return true;
-}
-
 bool FindEncryptedExtensions(TlsParser* parser, const TlsVersioned& header) {
   return true;
 }
@@ -592,7 +607,6 @@ static bool FindNewSessionTicketExtensions(TlsParser* parser,
 static const std::map<uint16_t, TlsExtensionFinder> kExtensionFinders = {
     {kTlsHandshakeClientHello, FindClientHelloExtensions},
     {kTlsHandshakeServerHello, FindServerHelloExtensions},
-    {kTlsHandshakeHelloRetryRequest, FindHelloRetryExtensions},
     {kTlsHandshakeEncryptedExtensions, FindEncryptedExtensions},
     {kTlsHandshakeCertificateRequest, FindCertReqExtensions},
     {kTlsHandshakeCertificate, FindCertificateExtensions},
@@ -610,10 +624,6 @@ bool TlsExtensionFilter::FindExtensions(TlsParser* parser,
 PacketFilter::Action TlsExtensionFilter::FilterHandshake(
     const HandshakeHeader& header, const DataBuffer& input,
     DataBuffer* output) {
-  if (handshake_types_.count(header.handshake_type()) == 0) {
-    return KEEP;
-  }
-
   TlsParser parser(input);
   if (!FindExtensions(&parser, header)) {
     return KEEP;
@@ -765,10 +775,8 @@ PacketFilter::Action AfterRecordN::FilterRecord(const TlsRecordHeader& header,
 PacketFilter::Action TlsInspectorClientHelloVersionChanger::FilterHandshake(
     const HandshakeHeader& header, const DataBuffer& input,
     DataBuffer* output) {
-  if (header.handshake_type() == kTlsHandshakeClientKeyExchange) {
-    EXPECT_EQ(SECSuccess,
-              SSLInt_IncrementClientHandshakeVersion(server_.lock()->ssl_fd()));
-  }
+  EXPECT_EQ(SECSuccess,
+            SSLInt_IncrementClientHandshakeVersion(server_.lock()->ssl_fd()));
   return KEEP;
 }
 
@@ -803,21 +811,14 @@ PacketFilter::Action SelectiveRecordDropFilter::FilterRecord(
 PacketFilter::Action TlsInspectorClientHelloVersionSetter::FilterHandshake(
     const HandshakeHeader& header, const DataBuffer& input,
     DataBuffer* output) {
-  if (header.handshake_type() == kTlsHandshakeClientHello) {
-    *output = input;
-    output->Write(0, version_, 2);
-    return CHANGE;
-  }
-  return KEEP;
+  *output = input;
+  output->Write(0, version_, 2);
+  return CHANGE;
 }
 
 PacketFilter::Action SelectedCipherSuiteReplacer::FilterHandshake(
     const HandshakeHeader& header, const DataBuffer& input,
     DataBuffer* output) {
-  if (header.handshake_type() != kTlsHandshakeServerHello) {
-    return KEEP;
-  }
-
   *output = input;
   uint32_t temp = 0;
   EXPECT_TRUE(input.Read(0, 2, &temp));

@@ -105,7 +105,7 @@ class TlsDropDatagram13 : public TlsConnectDatagram13 {
             server_->ssl_fd(), 1,
             [](PRFileDesc* fd, SSLHandshakeType message, PRUint8* data,
                unsigned int* len, unsigned int maxLen, void* arg) -> PRBool {
-              SSLInt_SetMTU(fd, 400);  // Splits the certificate.
+              SSLInt_SetMTU(fd, 500);  // Splits the certificate.
               return PR_FALSE;
             },
             nullptr,
@@ -654,9 +654,9 @@ TEST_F(TlsDropDatagram13, SendOutOfOrderAppWithHandshakeKey) {
   auto spec = capturer.spec(0);
   ASSERT_NE(nullptr, spec.get());
   ASSERT_EQ(2, spec->epoch());
-  ASSERT_TRUE(client_->SendEncryptedRecord(spec, 0xfeff, 0x0002000000000002,
-                                           kTlsApplicationDataType,
-                                           DataBuffer(buf, sizeof(buf))));
+  ASSERT_TRUE(client_->SendEncryptedRecord(
+      spec, SSL_LIBRARY_VERSION_DTLS_1_2_WIRE, 0x0002000000000002,
+      kTlsApplicationDataType, DataBuffer(buf, sizeof(buf))));
 
   // Now have the server consume the bogus message.
   server_->ExpectSendAlert(illegal_parameter, kTlsAlertFatal);
@@ -680,9 +680,9 @@ TEST_F(TlsDropDatagram13, SendOutOfOrderHsNonsenseWithHandshakeKey) {
   auto spec = capturer.spec(0);
   ASSERT_NE(nullptr, spec.get());
   ASSERT_EQ(2, spec->epoch());
-  ASSERT_TRUE(client_->SendEncryptedRecord(spec, 0xfeff, 0x0002000000000002,
-                                           kTlsHandshakeType,
-                                           DataBuffer(buf, sizeof(buf))));
+  ASSERT_TRUE(client_->SendEncryptedRecord(
+      spec, SSL_LIBRARY_VERSION_DTLS_1_2_WIRE, 0x0002000000000002,
+      kTlsHandshakeType, DataBuffer(buf, sizeof(buf))));
   server_->Handshake();
   EXPECT_EQ(2UL, server_filters_.ack_->count());
   CheckAcks(server_filters_, 0, {0x0002000000000000ULL});

@@ -167,7 +167,7 @@ tls13_RecoverHashState(sslSocket *ss,
         return SECFailure;
     }
 
-    rv = ssl_HashHandshakeMessageInt(ss, ssl_hs_hello_retry_request, 0,
+    rv = ssl_HashHandshakeMessageInt(ss, ssl_hs_server_hello, 0,
                                      SSL_BUFFER_BASE(&messageBuf),
                                      SSL_BUFFER_LEN(&messageBuf));
     sslBuffer_Clear(&messageBuf);

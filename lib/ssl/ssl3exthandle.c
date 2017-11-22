@@ -654,7 +654,7 @@ ssl3_ClientHandleStatusRequestXtn(const sslSocket *ss, TLSExtensionData *xtnData
 }
 
 PRUint32 ssl_ticket_lifetime = 2 * 24 * 60 * 60; /* 2 days in seconds */
-#define TLS_EX_SESS_TICKET_VERSION (0x0109)
+#define TLS_EX_SESS_TICKET_VERSION (0x010a)
 
 /*
  * Called from ssl3_SendNewSessionTicket, tls13_SendNewSessionTicket
@@ -818,12 +818,6 @@ ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
     PORT_Assert(alpnSelection->len < 256);
     rv = sslBuffer_AppendVariable(&plaintext, alpnSelection->data,
                                   alpnSelection->len, 1);
-    if (rv != SECSuccess)
-        goto loser;
-
-    /* Alternative handshake type. */
-    rv = sslBuffer_AppendNumber(
-        &plaintext, ss->sec.ci.sid->u.ssl3.altHandshakeType, 1);
     if (rv != SECSuccess)
         goto loser;
 
@@ -1126,14 +1120,6 @@ ssl_ParseSessionTicket(sslSocket *ss, const SECItem *decryptedTicket,
         return SECFailure;
     }
 
-    rv = ssl3_ExtConsumeHandshakeNumber(ss, &temp, 1, &buffer, &len);
-    if (rv != SECSuccess) {
-        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-        return SECFailure;
-    }
-    PORT_Assert(temp == PR_TRUE || temp == PR_FALSE);
-    parsedTicket->altHandshakeType = temp;
-
     rv = ssl3_ExtConsumeHandshakeNumber(ss, &temp, 4, &buffer, &len);
     if (rv != SECSuccess) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -1211,7 +1197,6 @@ ssl_CreateSIDFromTicket(sslSocket *ss, const SECItem *rawTicket,
     sid->u.ssl3.masterValid = PR_TRUE;
     sid->u.ssl3.keys.resumable = PR_TRUE;
     sid->u.ssl3.keys.extendedMasterSecretUsed = parsedTicket->extendedMasterSecretUsed;
-    sid->u.ssl3.altHandshakeType = parsedTicket->altHandshakeType;
 
     /* Copy over client cert from session ticket if there is one. */
     if (parsedTicket->peer_cert.data != NULL) {

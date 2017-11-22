@@ -64,15 +64,11 @@ class TlsExtensionDamager : public TlsExtensionFilter {
 class TlsExtensionAppender : public TlsHandshakeFilter {
  public:
   TlsExtensionAppender(uint8_t handshake_type, uint16_t ext, DataBuffer& data)
-      : handshake_type_(handshake_type), extension_(ext), data_(data) {}
+      : TlsHandshakeFilter({handshake_type}), extension_(ext), data_(data) {}
 
   virtual PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
                                                const DataBuffer& input,
                                                DataBuffer* output) {
-    if (header.handshake_type() != handshake_type_) {
-      return KEEP;
-    }
-
     TlsParser parser(input);
     if (!TlsExtensionFilter::FindExtensions(&parser, header)) {
       return KEEP;
@@ -117,7 +113,6 @@ class TlsExtensionAppender : public TlsHandshakeFilter {
     return true;
   }
 
-  const uint8_t handshake_type_;
   const uint16_t extension_;
   const DataBuffer data_;
 };
@@ -1052,13 +1047,6 @@ TEST_P(TlsBogusExtensionTest13, AddVersionExtensionCertificate) {
 TEST_P(TlsBogusExtensionTest13, AddVersionExtensionCertificateRequest) {
   server_->RequestClientAuth(false);
   Run(kTlsHandshakeCertificateRequest, ssl_tls13_supported_versions_xtn);
-}
-
-TEST_P(TlsBogusExtensionTest13, AddVersionExtensionHelloRetryRequest) {
-  static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1};
-  server_->ConfigNamedGroups(groups);
-
-  Run(kTlsHandshakeHelloRetryRequest, ssl_tls13_supported_versions_xtn);
 }
 
 // NewSessionTicket allows unknown extensions AND it isn't protected by the

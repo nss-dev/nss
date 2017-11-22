@@ -159,13 +159,11 @@ TEST_P(TlsConnectTls12, ClientAuthBigRsaCheckSigAlg) {
 
 class TlsZeroCertificateRequestSigAlgsFilter : public TlsHandshakeFilter {
  public:
+  TlsZeroCertificateRequestSigAlgsFilter()
+      : TlsHandshakeFilter({kTlsHandshakeCertificateRequest}) {}
   virtual PacketFilter::Action FilterHandshake(
       const TlsHandshakeFilter::HandshakeHeader& header,
       const DataBuffer& input, DataBuffer* output) {
-    if (header.handshake_type() != kTlsHandshakeCertificateRequest) {
-      return KEEP;
-    }
-
     TlsParser parser(input);
     std::cerr << "Zeroing CertReq.supported_signature_algorithms" << std::endl;
 

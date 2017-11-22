@@ -750,13 +750,6 @@ tls13_ClientSendSupportedVersionsXtn(const sslSocket *ss, TLSExtensionData *xtnD
         return SECFailure;
     }
 
-    if (ss->opt.enableAltHandshaketype && !IS_DTLS(ss)) {
-        rv = sslBuffer_AppendNumber(
-            buf, tls13_EncodeAltDraftVersion(SSL_LIBRARY_VERSION_TLS_1_3), 2);
-        if (rv != SECSuccess) {
-            return SECFailure;
-        }
-    }
     for (version = ss->vrange.max; version >= ss->vrange.min; --version) {
         rv = sslBuffer_AppendNumber(buf, tls13_EncodeDraftVersion(version), 2);
         if (rv != SECSuccess) {
@@ -782,15 +775,12 @@ tls13_ServerSendSupportedVersionsXtn(const sslSocket *ss, TLSExtensionData *xtnD
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
         return SECSuccess;
     }
-    if (!ss->ssl3.hs.altHandshakeType) {
-        return SECSuccess;
-    }
 
     SSL_TRC(3, ("%d: TLS13[%d]: server send supported_versions extension",
                 SSL_GETPID(), ss->fd));
 
     rv = sslBuffer_AppendNumber(
-        buf, tls13_EncodeAltDraftVersion(SSL_LIBRARY_VERSION_TLS_1_3), 2);
+        buf, tls13_EncodeDraftVersion(SSL_LIBRARY_VERSION_TLS_1_3), 2);
     if (rv != SECSuccess) {
         return SECFailure;
     }

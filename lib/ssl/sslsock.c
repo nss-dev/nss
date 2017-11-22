@@ -80,7 +80,7 @@ static sslOptions ssl_defaults = {
     PR_FALSE,              /* enableSignedCertTimestamps */
     PR_FALSE,              /* requireDHENamedGroups */
     PR_FALSE,              /* enable0RttData */
-    PR_FALSE               /* enableAltHandshakeType */
+    PR_FALSE               /* enableTls13CompatMode */
 };
 
 /*
@@ -803,6 +803,10 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
             ss->opt.enable0RttData = val;
             break;
 
+        case SSL_ENABLE_TLS13_COMPAT_MODE:
+            ss->opt.enableTls13CompatMode = val;
+            break;
+
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             rv = SECFailure;
@@ -936,6 +940,9 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRIntn *pVal)
         case SSL_ENABLE_0RTT_DATA:
             val = ss->opt.enable0RttData;
             break;
+        case SSL_ENABLE_TLS13_COMPAT_MODE:
+            val = ss->opt.enableTls13CompatMode;
+            break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             rv = SECFailure;
@@ -1052,6 +1059,9 @@ SSL_OptionGetDefault(PRInt32 which, PRIntn *pVal)
             break;
         case SSL_ENABLE_0RTT_DATA:
             val = ssl_defaults.enable0RttData;
+            break;
+        case SSL_ENABLE_TLS13_COMPAT_MODE:
+            val = ssl_defaults.enableTls13CompatMode;
             break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -1230,6 +1240,10 @@ SSL_OptionSetDefault(PRInt32 which, PRIntn val)
 
         case SSL_ENABLE_0RTT_DATA:
             ssl_defaults.enable0RttData = val;
+            break;
+
+        case SSL_ENABLE_TLS13_COMPAT_MODE:
+            ssl_defaults.enableTls13CompatMode = val;
             break;
 
         default:
@@ -3922,7 +3936,6 @@ struct {
     EXP(InstallExtensionHooks),
     EXP(SendSessionTicket),
     EXP(SetupAntiReplay),
-    EXP(UseAltHandshakeType),
 #endif
     { "", NULL }
 };

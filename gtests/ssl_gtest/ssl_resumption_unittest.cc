@@ -490,16 +490,13 @@ TEST_P(TlsConnectStream, TestResumptionOverrideCipher) {
 
 class SelectedVersionReplacer : public TlsHandshakeFilter {
  public:
-  SelectedVersionReplacer(uint16_t version) : version_(version) {}
+  SelectedVersionReplacer(uint16_t version)
+      : TlsHandshakeFilter({kTlsHandshakeServerHello}), version_(version) {}
 
  protected:
   PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
                                        const DataBuffer& input,
                                        DataBuffer* output) override {
-    if (header.handshake_type() != kTlsHandshakeServerHello) {
-      return KEEP;
-    }
-
     *output = input;
     output->Write(0, static_cast<uint32_t>(version_), 2);
     return CHANGE;
@@ -825,12 +822,26 @@ TEST_F(TlsConnectTest, TestTls13ResumptionForcedDowngrade) {
       TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256));
   filters.push_back(
       std::make_shared<SelectedVersionReplacer>(SSL_LIBRARY_VERSION_TLS_1_2));
+
+  // Drop a bunch of extensions so that we get past the SH processing.  The
+  // version extension says TLS 1.3, which is counter to our goal, the others
+  // are not permitted in TLS 1.2 handshakes.
+  filters.push_back(
+      std::make_shared<TlsExtensionDropper>(ssl_tls13_supported_versions_xtn));
+  filters.push_back(
+      std::make_shared<TlsExtensionDropper>(ssl_tls13_key_share_xtn));
+  filters.push_back(
+      std::make_shared<TlsExtensionDropper>(ssl_tls13_pre_shared_key_xtn));
   server_->SetPacketFilter(std::make_shared<ChainedPacketFilter>(filters));
 
-  client_->ExpectSendAlert(kTlsAlertDecodeError);
+  // The client here generates an unexpected_message alert when it receives an
+  // encrypted handshake message from the server (EncryptedExtension).  The
+  // client expects to receive an unencrypted TLS 1.2 Certificate message.
+  // The server can't decrypt the alert.
+  client_->ExpectSendAlert(kTlsAlertUnexpectedMessage);
   server_->ExpectSendAlert(kTlsAlertBadRecordMac);  // Server can't read
   ConnectExpectFail();
-  client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
+  client_->CheckErrorCode(SSL_ERROR_RX_UNEXPECTED_APPLICATION_DATA);
   server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
 }
 
