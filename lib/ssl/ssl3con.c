@@ -4441,6 +4441,36 @@ ssl_MakeFakeSid(sslSocket *ss, PRUint8 *buf)
     }
 }
 
+/* Set the version fields of the cipher spec for a ClientHello. */
+static void
+ssl_SetClientHelloSpecVersion(sslSocket *ss, ssl3CipherSpec *spec)
+{
+    ssl_GetSpecWriteLock(ss);
+    PORT_Assert(spec->cipherDef->cipher == cipher_null);
+    /* This is - a best guess - but it doesn't matter here. */
+    spec->version = ss->vrange.max;
+    if (IS_DTLS(ss)) {
+        spec->recordVersion = SSL_LIBRARY_VERSION_DTLS_1_0_WIRE;
+    } else {
+        /* For new connections, cap the record layer version number of TLS
+         * ClientHello to { 3, 1 } (TLS 1.0). Some TLS 1.0 servers (which seem
+         * to use F5 BIG-IP) ignore ClientHello.client_version and use the
+         * record layer version number (TLSPlaintext.version) instead when
+         * negotiating protocol versions. In addition, if the record layer
+         * version number of ClientHello is { 3, 2 } (TLS 1.1) or higher, these
+         * servers reset the TCP connections. Lastly, some F5 BIG-IP servers
+         * hang if a record containing a ClientHello has a version greater than
+         * { 3, 1 } and a length greater than 255. Set this flag to work around
+         * such servers.
+         *
+         * The final version is set when a version is negotiated.
+         */
+        spec->recordVersion = PR_MIN(SSL_LIBRARY_VERSION_TLS_1_0,
+                                     ss->vrange.max);
+    }
+    ssl_ReleaseSpecWriteLock(ss);
+}
+
 /* Called from ssl3_HandleHelloRequest(),
  *             ssl3_RedoHandshake()
  *             ssl_BeginClientHandshake (when resuming ssl3 session)
@@ -4494,6 +4524,9 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
         ssl3_RestartHandshakeHashes(ss);
     }
 
+    if (type == client_hello_initial) {
+        ssl_SetClientHelloSpecVersion(ss, ss->ssl3.cwSpec);
+    }
     /* These must be reset every handshake. */
     ssl3_ResetExtensionData(&ss->xtnData, ss);
     ss->ssl3.hs.sendingSCSV = PR_FALSE;
