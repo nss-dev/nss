@@ -224,6 +224,18 @@ void TlsConnectTestBase::Reset(const std::string& server_name,
   Init();
 }
 
+void TlsConnectTestBase::MakeNewServer() {
+  auto replacement = std::make_shared<TlsAgent>(
+      server_->name(), TlsAgent::SERVER, server_->variant());
+  server_ = replacement;
+  if (version_) {
+    server_->SetVersionRange(version_, version_);
+  }
+  client_->SetPeer(server_);
+  server_->SetPeer(client_);
+  server_->StartConnect();
+}
+
 void TlsConnectTestBase::ExpectResumption(SessionResumptionMode expected,
                                           uint8_t num_resumptions) {
   expected_resumption_mode_ = expected;

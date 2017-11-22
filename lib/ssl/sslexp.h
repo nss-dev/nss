@@ -21,6 +21,8 @@ SEC_BEGIN_PROTOS
     (SSL_GetExperimentalAPI(name)                                   \
          ? ((SECStatus(*) arglist)SSL_GetExperimentalAPI(name))args \
          : SECFailure)
+#define SSL_DEPRECATED_EXPERIMENTAL_API \
+    (PR_SetError(SSL_ERROR_UNSUPPORTED_EXPERIMENTAL_API, 0), SECFailure)
 
 /*
  * SSL_GetExtensionSupport() returns whether NSS supports a particular TLS
@@ -338,14 +340,8 @@ typedef SSLHelloRetryRequestAction(PR_CALLBACK *SSLHelloRetryRequestCallback)(
                           SSLHelloRetryRequestCallback _cb, void *_arg), \
                          (fd, cb, arg))
 
-/* Make the TLS 1.3 handshake mimic TLS 1.2 session resumption.
- * This will either become part of the standard or be disabled
- * after we have tested it.
- */
-#define SSL_UseAltHandshakeType(fd, enable)                  \
-    SSL_EXPERIMENTAL_API("SSL_UseAltHandshakeType",          \
-                         (PRFileDesc * _fd, PRBool _enable), \
-                         (fd, enable))
+#define SSL_UseAltHandshakeType(fd, enable) \
+    SSL_DEPRECATED_EXPERIMENTAL_API
 
 SEC_END_PROTOS
 

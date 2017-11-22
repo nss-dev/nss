@@ -85,13 +85,13 @@ class TlsAlertRecorder : public TlsRecordFilter {
 };
 
 class HelloTruncator : public TlsHandshakeFilter {
+ public:
+  HelloTruncator()
+      : TlsHandshakeFilter(
+            {kTlsHandshakeClientHello, kTlsHandshakeServerHello}) {}
   PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
                                        const DataBuffer& input,
                                        DataBuffer* output) override {
-    if (header.handshake_type() != kTlsHandshakeClientHello &&
-        header.handshake_type() != kTlsHandshakeServerHello) {
-      return KEEP;
-    }
     output->Assign(input.data(), input.len() - 1);
     return CHANGE;
   }

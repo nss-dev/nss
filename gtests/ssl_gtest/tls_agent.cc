@@ -376,13 +376,6 @@ void TlsAgent::Set0RttEnabled(bool en) {
   SetOption(SSL_ENABLE_0RTT_DATA, en ? PR_TRUE : PR_FALSE);
 }
 
-void TlsAgent::SetAltHandshakeTypeEnabled() {
-  EXPECT_TRUE(EnsureTlsSetup());
-
-  SECStatus rv = SSL_UseAltHandshakeType(ssl_fd(), PR_TRUE);
-  EXPECT_EQ(SECSuccess, rv);
-}
-
 void TlsAgent::SetVersionRange(uint16_t minver, uint16_t maxver) {
   vrange_.min = minver;
   vrange_.max = maxver;

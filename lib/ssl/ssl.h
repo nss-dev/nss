@@ -248,6 +248,12 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  */
 #define SSL_ENABLE_0RTT_DATA 33
 
+/* Enables TLS 1.3 compatibility mode.  In this mode, the client includes a fake
+ * session ID in the handshake and sends a ChangeCipherSpec.  A server will
+ * always use the setting chosen by the client, so the value of this option has
+ * no effect for a server. This setting is ignored for DTLS. */
+#define SSL_ENABLE_TLS13_COMPAT_MODE 35
+
 #ifdef SSL_DEPRECATED_FUNCTION
 /* Old deprecated function names */
 SSL_IMPORT SECStatus SSL_Enable(PRFileDesc *fd, int option, PRIntn on);

@@ -61,6 +61,8 @@ class TlsConnectTestBase : public ::testing::Test {
   // Reset, and update the certificate names on both peers
   void Reset(const std::string& server_name,
              const std::string& client_name = "client");
+  // Replace the server.
+  void MakeNewServer();
 
   // Set up
   void StartConnect();

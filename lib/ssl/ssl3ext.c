@@ -156,6 +156,7 @@ static const sslExtensionBuilder tls13_cert_req_senders[] = {
 static const sslExtensionBuilder tls13_hrr_senders[] = {
     { ssl_tls13_key_share_xtn, &tls13_ServerSendHrrKeyShareXtn },
     { ssl_tls13_cookie_xtn, &tls13_ServerSendHrrCookieXtn },
+    { ssl_tls13_supported_versions_xtn, &tls13_ServerSendSupportedVersionsXtn },
     { 0, NULL }
 };
 

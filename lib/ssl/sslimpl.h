@@ -256,8 +256,7 @@ typedef struct sslOptionsStr {
     unsigned int enableSignedCertTimestamps : 1;
     unsigned int requireDHENamedGroups : 1;
     unsigned int enable0RttData : 1;
-    unsigned int enableShortHeaders : 1;
-    unsigned int enableAltHandshaketype : 1;
+    unsigned int enableTls13CompatMode : 1;
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -443,8 +442,6 @@ struct sslSessionIDStr {
             /* The NPN/ALPN value negotiated in the original connection.
              * Used for TLS 1.3. */
             SECItem alpnSelection;
-
-            PRBool altHandshakeType;
 
             /* This lock is lazily initialized by CacheSID when a sid is first
              * cached. Before then, there is no need to lock anything because
@@ -688,19 +685,20 @@ typedef struct SSL3HandshakeStateStr {
                                            * on server.*/
     PRBool helloRetry;                    /* True if HelloRetryRequest has been sent
                                            * or received. */
+    PRBool receivedCcs;                   /* A server received ChangeCipherSpec
+                                           * before the handshake started. */
     PRBool clientCertRequested;           /* True if CertificateRequest received. */
     ssl3KEADef kea_def_mutable;           /* Used to hold the writable kea_def
                                            * we use for TLS 1.3 */
     PRTime serverHelloTime;               /* Time the ServerHello flight was sent. */
     PRUint16 ticketNonce;                 /* A counter we use for tickets. */
-    PRBool altHandshakeType;              /* Alternative ServerHello content type. */
     SECItem fakeSid;                      /* ... (server) the SID the client used. */
     PRBool endOfFlight;                   /* Processed a full flight (DTLS 1.3). */
 
     /* The following lists contain DTLSHandshakeRecordEntry */
     PRCList dtlsSentHandshake; /* Used to map records to handshake fragments. */
     PRCList dtlsRcvdHandshake; /* Handshake records we have received
-                                           * used to generate ACKs. */
+                                * used to generate ACKs. */
 } SSL3HandshakeState;
 
 #define SSL_ASSERT_HASHES_EMPTY(ss)                                  \
@@ -839,7 +837,6 @@ typedef struct SessionTicketStr {
     PRUint32 flags;
     SECItem srvName; /* negotiated server name */
     SECItem alpnSelection;
-    PRBool altHandshakeType;
     PRUint32 maxEarlyData;
     PRUint32 ticketAgeBaseline;
     SECItem applicationToken;
@@ -1610,6 +1607,9 @@ SECStatus ssl3_ParseCertificateRequestCAs(sslSocket *ss, PRUint8 **b,
 SECStatus ssl3_CompleteHandleCertificateRequest(
     sslSocket *ss, const SSLSignatureScheme *signatureSchemes,
     unsigned int signatureSchemeCount, CERTDistNames *ca_list);
+SECStatus ssl_ConstructServerHello(sslSocket *ss, PRBool helloRetry,
+                                   const sslBuffer *extensionBuf,
+                                   sslBuffer *messageBuf);
 SECStatus ssl3_SendServerHello(sslSocket *ss);
 SECStatus ssl3_SendChangeCipherSpecsInt(sslSocket *ss);
 SECStatus ssl3_ComputeHandshakeHashes(sslSocket *ss,

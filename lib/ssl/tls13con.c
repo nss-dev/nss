@@ -1663,24 +1663,13 @@ tls13_ConstructHelloRetryRequest(sslSocket *ss,
     sslBuffer extensionsBuf = SSL_BUFFER_EMPTY;
     PORT_Assert(buffer->len == 0);
 
-    rv = sslBuffer_AppendNumber(buffer,
-                                tls13_EncodeDraftVersion(ss->version), 2);
-
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-
-    rv = sslBuffer_AppendNumber(buffer, cipherSuite, 2);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-
     /* Note: cookie is pointing to a stack variable, so is only valid
      * now. */
     ss->xtnData.selectedGroup = selectedGroup;
     ss->xtnData.cookie.data = cookie;
     ss->xtnData.cookie.len = cookieLen;
-    rv = ssl_ConstructExtensions(ss, &extensionsBuf, ssl_hs_hello_retry_request);
+    rv = ssl_ConstructExtensions(ss, &extensionsBuf,
+                                 ssl_hs_hello_retry_request);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -1691,15 +1680,15 @@ tls13_ConstructHelloRetryRequest(sslSocket *ss,
     ss->xtnData.cookie.data = NULL;
     ss->xtnData.cookie.len = 0;
 
-    rv = sslBuffer_AppendBufferVariable(buffer, &extensionsBuf, 2);
-    sslBuffer_Clear(&extensionsBuf);
+    rv = ssl_ConstructServerHello(ss, PR_TRUE, &extensionsBuf, buffer);
     if (rv != SECSuccess) {
         goto loser;
     }
-
+    sslBuffer_Clear(&extensionsBuf);
     return SECSuccess;
 
 loser:
+    sslBuffer_Clear(&extensionsBuf);
     sslBuffer_Clear(buffer);
     return SECFailure;
 }
@@ -1739,7 +1728,7 @@ tls13_SendHelloRetryRequest(sslSocket *ss,
 
     /* And send it. */
     ssl_GetXmitBufLock(ss);
-    rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_hello_retry_request,
+    rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_server_hello,
                                     SSL_BUFFER_LEN(&messageBuf));
     if (rv != SECSuccess) {
         goto loser;
@@ -1749,10 +1738,29 @@ tls13_SendHelloRetryRequest(sslSocket *ss,
         goto loser;
     }
     sslBuffer_Clear(&messageBuf); /* Done with messageBuf */
-    rv = ssl3_FlushHandshake(ss, 0);
-    if (rv != SECSuccess) {
-        goto loser; /* error code set by ssl3_FlushHandshake */
+
+    if (ss->ssl3.hs.fakeSid.len) {
+        PRInt32 sent;
+
+        PORT_Assert(!IS_DTLS(ss));
+        rv = ssl3_SendChangeCipherSpecsInt(ss);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+        /* ssl3_SendChangeCipherSpecsInt() only flushes to the output buffer, so we
+         * have to force a send. */
+        sent = ssl_SendSavedWriteData(ss);
+        if (sent < 0 && PORT_GetError() != PR_WOULD_BLOCK_ERROR) {
+            PORT_SetError(SSL_ERROR_SOCKET_WRITE_FAILURE);
+            goto loser;
+        }
+    } else {
+        rv = ssl3_FlushHandshake(ss, 0);
+        if (rv != SECSuccess) {
+            goto loser; /* error code set by ssl3_FlushHandshake */
+        }
     }
+
     /* We depend on this being exactly one record and one message. */
     PORT_Assert(!IS_DTLS(ss) || (ss->ssl3.hs.sendMessageSeq == 1 &&
                                  ss->ssl3.cwSpec->seqNum == 1));
@@ -1915,14 +1923,22 @@ tls13_ReinjectHandshakeTranscript(sslSocket *ss)
     return SECSuccess;
 }
 
+static unsigned int
+ssl_ListCount(PRCList *list)
+{
+    unsigned int c = 0;
+    PRCList *cur;
+    for (cur = PR_NEXT_LINK(list); cur != list; cur = PR_NEXT_LINK(cur)) {
+        ++c;
+    }
+    return c;
+}
+
 SECStatus
-tls13_HandleHelloRetryRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
+tls13_HandleHelloRetryRequest(sslSocket *ss, const PRUint8 *savedMsg,
+                              PRUint32 savedLength)
 {
     SECStatus rv;
-    PRUint32 tmp;
-    SSL3ProtocolVersion version;
-    const PRUint8 *savedMsg = b;
-    const PRUint32 savedLength = length;
 
     SSL_TRC(3, ("%d: TLS13[%d]: handle hello retry request",
                 SSL_GETPID(), ss->fd));
@@ -1935,20 +1951,7 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
                     unexpected_message);
         return SECFailure;
     }
-
-    /* Client only. */
-    rv = TLS13_CHECK_HS_STATE(ss, SSL_ERROR_RX_UNEXPECTED_HELLO_RETRY_REQUEST,
-                              wait_server_hello);
-    if (rv != SECSuccess) {
-        return SECFailure;
-    }
-
-    /* Fool me once, shame on you; fool me twice... */
-    if (ss->ssl3.hs.helloRetry) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_UNEXPECTED_HELLO_RETRY_REQUEST,
-                    unexpected_message);
-        return SECFailure;
-    }
+    PORT_Assert(ss->ssl3.hs.ws == wait_server_hello);
 
     if (ss->ssl3.hs.zeroRttState == ssl_0rtt_sent) {
         ss->ssl3.hs.zeroRttState = ssl_0rtt_ignored;
@@ -1963,50 +1966,20 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
         PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_none);
     }
 
-    dtls_ReceivedFirstMessageInFlight(ss);
-
-    /* Version. */
-    rv = ssl_ClientReadVersion(ss, &b, &length, &version);
-    if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST,
-                    protocol_version);
-        return SECFailure;
-    }
-    if (version > ss->vrange.max || version < SSL_LIBRARY_VERSION_TLS_1_3) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST,
-                    protocol_version);
-        return SECFailure;
-    }
-
-    rv = ssl3_ConsumeHandshakeNumber(ss, &tmp, 2, &b, &length);
-    if (rv != SECSuccess) {
-        return SECFailure; /* error code already set */
-    }
-    rv = ssl_ClientSetCipherSuite(ss, version, tmp,
-                                  PR_FALSE /* don't initHashes */);
-    if (rv != SECSuccess) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST,
-                    illegal_parameter);
-        return SECFailure; /* error code already set */
-    }
-
-    /* Extensions. */
-    rv = ssl3_ConsumeHandshakeNumber(ss, &tmp, 2, &b, &length);
-    if (rv != SECSuccess) {
-        return SECFailure; /* error code already set */
-    }
-    /* Extensions must be non-empty and use the remainder of the message.
-     * This means that a HelloRetryRequest cannot be a no-op: we must have an
-     * extension, it must be one that we understand and recognize as being valid
-     * for HelloRetryRequest, and all the extensions we permit cause us to
-     * modify our ClientHello in some way. */
-    if (!tmp || tmp != length) {
+    /* Extensions must contain more than just supported_versions.  This will
+     * ensure that a HelloRetryRequest isn't a no-op: we must have at least two
+     * extensions, supported_versions plus one other.  That other must be one
+     * that we understand and recognize as being valid for HelloRetryRequest,
+     * and all the extensions we permit cause us to modify our second
+     * ClientHello in some meaningful way. */
+    if (ssl_ListCount(&ss->ssl3.hs.remoteExtensions) <= 1) {
         FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST,
                     decode_error);
         return SECFailure;
     }
 
-    rv = ssl3_HandleExtensions(ss, &b, &length, ssl_hs_hello_retry_request);
+    rv = ssl3_HandleParsedExtensions(ss, ssl_hs_hello_retry_request);
+    ssl3_DestroyRemoteExtensions(&ss->ssl3.hs.remoteExtensions);
     if (rv != SECSuccess) {
         return SECFailure; /* Error code set below */
     }
@@ -2017,21 +1990,31 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
         return rv;
     }
 
-    rv = ssl_HashHandshakeMessage(ss, ssl_hs_hello_retry_request,
+    rv = ssl_HashHandshakeMessage(ss, ssl_hs_server_hello,
                                   savedMsg, savedLength);
-    if (rv != SECSuccess) {
-        return rv;
-    }
-
-    ssl_GetXmitBufLock(ss);
-
-    rv = ssl3_SendClientHello(ss, client_hello_retry);
-    ssl_ReleaseXmitBufLock(ss);
     if (rv != SECSuccess) {
         return SECFailure;
     }
 
+    ssl_GetXmitBufLock(ss);
+    if (ss->opt.enableTls13CompatMode && !IS_DTLS(ss) &&
+        ss->ssl3.hs.zeroRttState == ssl_0rtt_none) {
+        rv = ssl3_SendChangeCipherSpecsInt(ss);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+    }
+    rv = ssl3_SendClientHello(ss, client_hello_retry);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+
+    ssl_ReleaseXmitBufLock(ss);
     return SECSuccess;
+
+loser:
+    ssl_ReleaseXmitBufLock(ss);
+    return SECFailure;
 }
 
 static SECStatus
@@ -2177,15 +2160,26 @@ tls13_SendServerHelloSequence(sslSocket *ss)
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
 
+    rv = ssl3_RegisterExtensionSender(ss, &ss->xtnData,
+                                      ssl_tls13_supported_versions_xtn,
+                                      tls13_ServerSendSupportedVersionsXtn);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
     rv = ssl3_SendServerHello(ss);
     if (rv != SECSuccess) {
         return rv; /* err code is set. */
     }
 
-    if (ss->ssl3.hs.altHandshakeType) {
-        rv = ssl3_SendChangeCipherSpecsInt(ss);
-        if (rv != SECSuccess) {
-            return rv;
+    if (ss->ssl3.hs.fakeSid.len) {
+        PORT_Assert(!IS_DTLS(ss));
+        SECITEM_FreeItem(&ss->ssl3.hs.fakeSid, PR_FALSE);
+        if (!ss->ssl3.hs.helloRetry) {
+            rv = ssl3_SendChangeCipherSpecsInt(ss);
+            if (rv != SECSuccess) {
+                return rv;
+            }
         }
     }
 
@@ -2966,28 +2960,14 @@ loser:
 void
 tls13_SetSpecRecordVersion(sslSocket *ss, ssl3CipherSpec *spec)
 {
-    const SSL3ProtocolVersion kTlsRecordVersion = SSL_LIBRARY_VERSION_TLS_1_0;
-    const SSL3ProtocolVersion kTlsAltRecordVersion = SSL_LIBRARY_VERSION_TLS_1_2;
-    const SSL3ProtocolVersion kDtlsRecordVersion = SSL_LIBRARY_VERSION_DTLS_1_0_WIRE;
-
-    /* Set the record version. */
+    /* Set the record version to pretend to be (D)TLS 1.2. */
     if (IS_DTLS(ss)) {
-        spec->recordVersion = kDtlsRecordVersion;
-    } else if (spec->epoch == TrafficKeyEarlyApplicationData) {
-        /* For early data, the previous session determines the record type that
-         * is used (and not what this session might negotiate). */
-        if (ss->sec.ci.sid && ss->sec.ci.sid->u.ssl3.altHandshakeType) {
-            spec->recordVersion = kTlsAltRecordVersion;
-        } else {
-            spec->recordVersion = kTlsRecordVersion;
-        }
-    } else if (ss->ssl3.hs.altHandshakeType) {
-        spec->recordVersion = kTlsAltRecordVersion;
+        spec->recordVersion = SSL_LIBRARY_VERSION_DTLS_1_2_WIRE;
     } else {
-        spec->recordVersion = kTlsRecordVersion;
+        spec->recordVersion = SSL_LIBRARY_VERSION_TLS_1_2;
     }
-    SSL_TRC(10, ("%d: TLS13[%d]: Set record version to 0x%04x",
-                 SSL_GETPID(), ss->fd, spec->recordVersion));
+    SSL_TRC(10, ("%d: TLS13[%d]: set spec=%d record version to 0x%04x",
+                 SSL_GETPID(), ss->fd, spec, spec->recordVersion));
 }
 
 static SECStatus
@@ -4125,8 +4105,9 @@ tls13_SendClientSecondRound(sslSocket *ss)
         if (rv != SECSuccess) {
             return SECFailure; /* Error code already set. */
         }
-    } else if (ss->ssl3.hs.zeroRttState == ssl_0rtt_none &&
-               ss->ssl3.hs.altHandshakeType) {
+    } else if (ss->opt.enableTls13CompatMode && !IS_DTLS(ss) &&
+               ss->ssl3.hs.zeroRttState == ssl_0rtt_none &&
+               !ss->ssl3.hs.helloRetry) {
         ssl_GetXmitBufLock(ss); /*******************************/
         rv = ssl3_SendChangeCipherSpecsInt(ss);
         ssl_ReleaseXmitBufLock(ss); /*******************************/
@@ -4515,7 +4496,8 @@ static const struct {
                                certificate) },
     { ssl_tls13_cookie_xtn, _M2(client_hello, hello_retry_request) },
     { ssl_tls13_certificate_authorities_xtn, _M1(certificate_request) },
-    { ssl_tls13_supported_versions_xtn, _M2(client_hello, server_hello) }
+    { ssl_tls13_supported_versions_xtn, _M3(client_hello, server_hello,
+                                            hello_retry_request) }
 };
 
 tls13ExtensionStatus
@@ -4844,10 +4826,12 @@ tls13_MaybeDo0RTTHandshake(sslSocket *ss)
         }
     }
 
-    /* If the alternative handshake type option is enabled and the last session
-     * had the alternative handshake type, then send CCS. */
-    if (ss->opt.enableAltHandshaketype &&
-        ss->sec.ci.sid->u.ssl3.altHandshakeType) {
+    if (ss->opt.enableTls13CompatMode && !IS_DTLS(ss)) {
+        /* Pretend that this is a proper ChangeCipherSpec even though it is sent
+         * before receiving the ServerHello. */
+        ssl_GetSpecWriteLock(ss);
+        tls13_SetSpecRecordVersion(ss, ss->ssl3.cwSpec);
+        ssl_ReleaseSpecWriteLock(ss);
         ssl_GetXmitBufLock(ss);
         rv = ssl3_SendChangeCipherSpecsInt(ss);
         ssl_ReleaseXmitBufLock(ss);
@@ -5007,17 +4991,6 @@ tls13_EncodeDraftVersion(SSL3ProtocolVersion version)
     return (PRUint16)version;
 }
 
-PRUint16
-tls13_EncodeAltDraftVersion(SSL3ProtocolVersion version)
-{
-#ifdef TLS_1_3_DRAFT_VERSION
-    if (version == SSL_LIBRARY_VERSION_TLS_1_3) {
-        return 0x7e02;
-    }
-#endif
-    return (PRUint16)version;
-}
-
 /* Pick the highest version we support that is also advertised. */
 SECStatus
 tls13_NegotiateVersion(sslSocket *ss, const TLSExtension *supported_versions)
@@ -5039,7 +5012,6 @@ tls13_NegotiateVersion(sslSocket *ss, const TLSExtension *supported_versions)
     }
     for (version = ss->vrange.max; version >= ss->vrange.min; --version) {
         PRUint16 wire = tls13_EncodeDraftVersion(version);
-        PRUint16 alt_wire = tls13_EncodeAltDraftVersion(version);
         unsigned long offset;
 
         for (offset = 0; offset < versions.len; offset += 2) {
@@ -5049,42 +5021,11 @@ tls13_NegotiateVersion(sslSocket *ss, const TLSExtension *supported_versions)
                 ss->version = version;
                 return SECSuccess;
             }
-            if (ss->opt.enableAltHandshaketype &&
-                !IS_DTLS(ss) &&
-                supported == alt_wire) {
-                rv = ssl3_RegisterExtensionSender(ss, &ss->xtnData,
-                                                  ssl_tls13_supported_versions_xtn,
-                                                  tls13_ServerSendSupportedVersionsXtn);
-                if (rv != SECSuccess) {
-                    return SECFailure;
-                }
-                ss->ssl3.hs.altHandshakeType = PR_TRUE;
-                ss->version = version;
-                return SECSuccess;
-            }
         }
     }
 
     FATAL_ERROR(ss, SSL_ERROR_UNSUPPORTED_VERSION, protocol_version);
     return SECFailure;
-}
-
-SECStatus
-SSLExp_UseAltHandshakeType(PRFileDesc *fd, PRBool enable)
-{
-    sslSocket *ss;
-
-    ss = ssl_FindSocket(fd);
-    if (!ss || IS_DTLS(ss)) {
-        SSL_DBG(("%d: SSL[%d]: bad socket in SSLExp_UseAltHandshakeType",
-                 SSL_GETPID(), fd));
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        return SECFailure;
-    }
-
-    ss->opt.enableAltHandshaketype = enable;
-
-    return SECSuccess;
 }
 
 /* This is TLS 1.3 or might negotiate to it. */

@@ -559,17 +559,6 @@ TEST_F(TlsConnectStreamTls13, RetryCallbackWithSessionTicketToken) {
   EXPECT_TRUE(cb_run);
 }
 
-std::shared_ptr<TlsAgent> MakeNewServer(std::shared_ptr<TlsAgent>& client) {
-  auto server = std::make_shared<TlsAgent>(TlsAgent::kServerRsa,
-                                           TlsAgent::SERVER, client->variant());
-  server->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
-                          SSL_LIBRARY_VERSION_TLS_1_3);
-  client->SetPeer(server);
-  server->SetPeer(client);
-  server->StartConnect();
-  return server;
-}
-
 void TriggerHelloRetryRequest(std::shared_ptr<TlsAgent>& client,
                               std::shared_ptr<TlsAgent>& server) {
   size_t cb_called = 0;
@@ -589,7 +578,7 @@ TEST_P(TlsConnectTls13, RetryStateless) {
   EnsureTlsSetup();
 
   TriggerHelloRetryRequest(client_, server_);
-  server_ = MakeNewServer(client_);
+  MakeNewServer();
 
   Handshake();
   SendReceive();
@@ -618,7 +607,7 @@ TEST_F(TlsConnectStreamTls13, RetryStatelessDamageFirstClientHello) {
   client_->SetPacketFilter(damage_ch);
 
   TriggerHelloRetryRequest(client_, server_);
-  server_ = MakeNewServer(client_);
+  MakeNewServer();
 
   // Key exchange fails when the handshake continues because client and server
   // disagree about the transcript.
@@ -634,7 +623,7 @@ TEST_F(TlsConnectStreamTls13, RetryStatelessDamageSecondClientHello) {
   EnsureTlsSetup();
 
   TriggerHelloRetryRequest(client_, server_);
-  server_ = MakeNewServer(client_);
+  MakeNewServer();
 
   auto damage_ch = std::make_shared<TlsExtensionInjector>(0xfff3, DataBuffer());
   client_->SetPacketFilter(damage_ch);
@@ -648,6 +637,22 @@ TEST_F(TlsConnectStreamTls13, RetryStatelessDamageSecondClientHello) {
   client_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
 }
 
+// Read the cipher suite from the HRR and disable it on the identified agent.
+static void DisableSuiteFromHrr(
+    std::shared_ptr<TlsAgent>& agent,
+    std::shared_ptr<TlsInspectorRecordHandshakeMessage>& capture_hrr) {
+  uint32_t tmp;
+  size_t offset = 2 + 32;  // skip version + server_random
+  ASSERT_TRUE(
+      capture_hrr->buffer().Read(offset, 1, &tmp));  // session_id length
+  EXPECT_EQ(0U, tmp);
+  offset += 1 + tmp;
+  ASSERT_TRUE(capture_hrr->buffer().Read(offset, 2, &tmp));  // suite
+  EXPECT_EQ(
+      SECSuccess,
+      SSL_CipherPrefSet(agent->ssl_fd(), static_cast<uint16_t>(tmp), PR_FALSE));
+}
+
 TEST_P(TlsConnectTls13, RetryStatelessDisableSuiteClient) {
   ConfigureSelfEncrypt();
   EnsureTlsSetup();
@@ -657,20 +662,15 @@ TEST_P(TlsConnectTls13, RetryStatelessDisableSuiteClient) {
   server_->SetPacketFilter(capture_hrr);
 
   TriggerHelloRetryRequest(client_, server_);
-  server_ = MakeNewServer(client_);
+  MakeNewServer();
 
-  // Read the cipher suite from the HRR and disable it on the client.
-  uint32_t suite;
-  ASSERT_TRUE(capture_hrr->buffer().Read(2, 2, &suite));
-  EXPECT_EQ(SECSuccess,
-            SSL_CipherPrefSet(client_->ssl_fd(), static_cast<uint16_t>(suite),
-                              PR_FALSE));
+  DisableSuiteFromHrr(client_, capture_hrr);
 
   // The client thinks that the HelloRetryRequest is bad, even though its
   // because it changed its mind about the cipher suite.
   ExpectAlert(client_, kTlsAlertIllegalParameter);
   Handshake();
-  client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_HELLO_RETRY_REQUEST);
+  client_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
   server_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
 }
 
@@ -683,14 +683,9 @@ TEST_P(TlsConnectTls13, RetryStatelessDisableSuiteServer) {
   server_->SetPacketFilter(capture_hrr);
 
   TriggerHelloRetryRequest(client_, server_);
-  server_ = MakeNewServer(client_);
+  MakeNewServer();
 
-  // Read the cipher suite from the HRR and disable it on the server.
-  uint32_t suite;
-  ASSERT_TRUE(capture_hrr->buffer().Read(2, 2, &suite));
-  EXPECT_EQ(SECSuccess,
-            SSL_CipherPrefSet(server_->ssl_fd(), static_cast<uint16_t>(suite),
-                              PR_FALSE));
+  DisableSuiteFromHrr(server_, capture_hrr);
 
   ExpectAlert(server_, kTlsAlertIllegalParameter);
   Handshake();
@@ -703,7 +698,7 @@ TEST_P(TlsConnectTls13, RetryStatelessDisableGroupClient) {
   EnsureTlsSetup();
 
   TriggerHelloRetryRequest(client_, server_);
-  server_ = MakeNewServer(client_);
+  MakeNewServer();
 
   static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1};
   client_->ConfigNamedGroups(groups);
@@ -723,7 +718,7 @@ TEST_P(TlsConnectTls13, RetryStatelessDisableGroupServer) {
   EnsureTlsSetup();
 
   TriggerHelloRetryRequest(client_, server_);
-  server_ = MakeNewServer(client_);
+  MakeNewServer();
 
   static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1};
   server_->ConfigNamedGroups(groups);
@@ -751,7 +746,7 @@ TEST_P(TlsConnectTls13, RetryStatelessBadCookie) {
   ASSERT_NE(nullptr, hmac_key);
   SSLInt_SetSelfEncryptMacKey(hmac_key);  // Passes ownership.
 
-  server_ = MakeNewServer(client_);
+  MakeNewServer();
 
   ExpectAlert(server_, kTlsAlertIllegalParameter);
   Handshake();
@@ -912,16 +907,30 @@ class HelloRetryRequestAgentTest : public TlsAgentTestClient {
   void MakeCannedHrr(const uint8_t* body, size_t len, DataBuffer* hrr_record,
                      uint32_t seq_num = 0) const {
     DataBuffer hrr_data;
+    const uint8_t ssl_hello_retry_random[] = {
+        0xCF, 0x21, 0xAD, 0x74, 0xE5, 0x9A, 0x61, 0x11, 0xBE, 0x1D, 0x8C,
+        0x02, 0x1E, 0x65, 0xB8, 0x91, 0xC2, 0xA2, 0x11, 0x16, 0x7A, 0xBB,
+        0x8C, 0x5E, 0x07, 0x9E, 0x09, 0xE2, 0xC8, 0xA8, 0x33, 0x9C};
+
     hrr_data.Allocate(len + 6);
     size_t i = 0;
-    i = hrr_data.Write(i, 0x7f00 | TLS_1_3_DRAFT_VERSION, 2);
+    i = hrr_data.Write(i, 0x0303, 2);
+    i = hrr_data.Write(i, ssl_hello_retry_random,
+                       sizeof(ssl_hello_retry_random));
+    i = hrr_data.Write(i, static_cast<uint32_t>(0), 1);  // session_id
     i = hrr_data.Write(i, TLS_AES_128_GCM_SHA256, 2);
-    i = hrr_data.Write(i, static_cast<uint32_t>(len), 2);
+    i = hrr_data.Write(i, ssl_compression_null, 1);
+    // Add extensions.  First a length, which includes the supported version.
+    i = hrr_data.Write(i, static_cast<uint32_t>(len) + 6, 2);
+    // Now the supported version.
+    i = hrr_data.Write(i, ssl_tls13_supported_versions_xtn, 2);
+    i = hrr_data.Write(i, 2, 2);
+    i = hrr_data.Write(i, 0x7f00 | TLS_1_3_DRAFT_VERSION, 2);
     if (len) {
       hrr_data.Write(i, body, len);
     }
     DataBuffer hrr;
-    MakeHandshakeMessage(kTlsHandshakeHelloRetryRequest, hrr_data.data(),
+    MakeHandshakeMessage(kTlsHandshakeServerHello, hrr_data.data(),
                          hrr_data.len(), &hrr, seq_num);
     MakeRecord(kTlsHandshakeType, SSL_LIBRARY_VERSION_TLS_1_3, hrr.data(),
                hrr.len(), hrr_record, seq_num);
