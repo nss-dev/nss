@@ -181,9 +181,6 @@
     }],
   ],
   'target_defaults': {
-    'variables': {
-      'have_int128_support': '0',
-    },
     'include_dirs': [
       'mpi',
       'ecl',
@@ -258,13 +255,13 @@
               # The Makefile does version-tests on GCC, but we're not doing that here.
               'HAVE_INT128_SUPPORT',
             ],
-            'variables': {
-              'have_int128_support': '1',
-            },
+          }, {
+            'defines': [
+              'KRML_NOUINT128',
+            ],
           }],
         ],
-      }],
-      [ 'have_int128_support!=1', {
+      }, {
         'defines': [
           'KRML_NOUINT128',
         ],
