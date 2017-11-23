@@ -8612,7 +8612,7 @@ loser:
  * in asking to use the V3 handshake.
  */
 SECStatus
-ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length,
+ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, unsigned int length,
                          PRUint8 padding)
 {
     sslSessionID *sid = NULL;

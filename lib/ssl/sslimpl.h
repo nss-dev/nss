@@ -1373,7 +1373,7 @@ extern SECStatus ssl3_AuthCertificateComplete(sslSocket *ss, PRErrorCode error);
  * for dealing with SSL 3.0 clients sending SSL 2.0 format hellos
  */
 extern SECStatus ssl3_HandleV2ClientHello(
-    sslSocket *ss, unsigned char *buffer, int length, PRUint8 padding);
+    sslSocket *ss, unsigned char *buffer, unsigned int length, PRUint8 padding);
 
 SECStatus ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type);
 
