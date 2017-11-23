@@ -2329,6 +2329,7 @@ ssl3_SendRecord(sslSocket *ss,
     PRINT_BUF(50, (ss, "Send record (plain text)", pIn, nIn));
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
+    PORT_Assert(SSL_BUFFER_LEN(wrBuf) == 0);
 
     if (ss->ssl3.fatalAlertSent) {
         SSL_TRC(3, ("%d: SSL3[%d] Suppress write, fatal alert already sent",
@@ -2354,6 +2355,7 @@ ssl3_SendRecord(sslSocket *ss,
 
     while (nIn > 0) {
         unsigned int written = 0;
+        PRInt32 sent;
 
         ssl_GetSpecReadLock(ss);
         rv = ssl_ProtectNextRecord(ss, spec, type, pIn, nIn, &written);
@@ -2383,42 +2385,39 @@ ssl3_SendRecord(sslSocket *ss,
                                    SSL_BUFFER_LEN(wrBuf));
             if (rv != SECSuccess) {
                 /* presumably a memory error, SEC_ERROR_NO_MEMORY */
-                return SECFailure;
+                goto loser;
             }
 
             if (!(flags & ssl_SEND_FLAG_FORCE_INTO_BUFFER)) {
-                PRInt32 sent;
                 ss->handshakeBegun = 1;
                 sent = ssl_SendSavedWriteData(ss);
                 if (sent < 0 && PR_GetError() != PR_WOULD_BLOCK_ERROR) {
                     ssl_MapLowLevelError(SSL_ERROR_SOCKET_WRITE_FAILURE);
-                    return SECFailure;
+                    goto loser;
                 }
                 if (ss->pendingBuf.len) {
                     flags |= ssl_SEND_FLAG_FORCE_INTO_BUFFER;
                 }
             }
         } else {
-            PRInt32 sent;
-
             PORT_Assert(SSL_BUFFER_LEN(wrBuf) > 0);
             ss->handshakeBegun = 1;
             sent = ssl_DefSend(ss, SSL_BUFFER_BASE(wrBuf),
                                SSL_BUFFER_LEN(wrBuf),
                                flags & ~ssl_SEND_FLAG_MASK);
             if (sent < 0) {
-                if (PR_GetError() != PR_WOULD_BLOCK_ERROR) {
+                if (PORT_GetError() != PR_WOULD_BLOCK_ERROR) {
                     ssl_MapLowLevelError(SSL_ERROR_SOCKET_WRITE_FAILURE);
-                    return SECFailure;
+                    goto loser;
                 }
                 /* we got PR_WOULD_BLOCK_ERROR, which means none was sent. */
                 sent = 0;
             }
-            if (SSL_BUFFER_LEN(wrBuf) > sent) {
+            if (SSL_BUFFER_LEN(wrBuf) > (unsigned int)sent) {
                 if (IS_DTLS(ss)) {
                     /* DTLS just says no in this case. No buffering */
-                    PR_SetError(PR_WOULD_BLOCK_ERROR, 0);
-                    return SECFailure;
+                    PORT_SetError(PR_WOULD_BLOCK_ERROR);
+                    goto loser;
                 }
                 /* now take all the remaining unsent new ciphertext and
                  * append it to the buffer of previously unsent ciphertext.
@@ -2427,7 +2426,7 @@ ssl3_SendRecord(sslSocket *ss,
                                        SSL_BUFFER_LEN(wrBuf) - sent);
                 if (rv != SECSuccess) {
                     /* presumably a memory error, SEC_ERROR_NO_MEMORY */
-                    return SECFailure;
+                    goto loser;
                 }
             }
         }
@@ -2435,6 +2434,11 @@ ssl3_SendRecord(sslSocket *ss,
         totalSent += written;
     }
     return totalSent;
+
+loser:
+    /* Don't leave bits of buffer lying around. */
+    wrBuf->len = 0;
+    return -1;
 }
 
 #define SSL3_PENDING_HIGH_WATER 1024
