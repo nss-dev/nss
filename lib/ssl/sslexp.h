@@ -340,7 +340,7 @@ typedef SSLHelloRetryRequestAction(PR_CALLBACK *SSLHelloRetryRequestCallback)(
                           SSLHelloRetryRequestCallback _cb, void *_arg), \
                          (fd, cb, arg))
 
-#define SSL_UseAltHandshakeType(fd, enable) \
+#define SSL_UseAltServerHelloType(fd, enable) \
     SSL_DEPRECATED_EXPERIMENTAL_API
 
 SEC_END_PROTOS
