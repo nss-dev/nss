@@ -430,9 +430,25 @@ TEST_F(TlsConnectStreamTls13, Tls13FailedWriteSecondFlight) {
   StartConnect();
   client_->Handshake();
   server_->Handshake();  // Send first flight.
-  client_->adapter()->CloseWrites();
+  client_->adapter()->SetWriteError(PR_IO_ERROR);
   client_->Handshake();  // This will get an error, but shouldn't crash.
   client_->CheckErrorCode(SSL_ERROR_SOCKET_WRITE_FAILURE);
+}
+
+TEST_P(TlsConnectDatagram, BlockedWrite) {
+  Connect();
+
+  // Mark the socket as blocked.
+  client_->adapter()->SetWriteError(PR_WOULD_BLOCK_ERROR);
+  static const uint8_t data[] = {1, 2, 3};
+  int32_t rv = PR_Write(client_->ssl_fd(), data, sizeof(data));
+  EXPECT_GT(0, rv);
+  EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
+
+  // Remove the write error and though the previous write failed, future reads
+  // and writes should just work as if it never happened.
+  client_->adapter()->SetWriteError(0);
+  SendReceive();
 }
 
 TEST_F(TlsConnectTest, ConnectSSLv3) {
