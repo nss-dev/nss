@@ -892,7 +892,7 @@ ssl_GetBulkCipherDef(const ssl3CipherSuiteDef *cipher_def)
  * regardless of policy or user preference.
  * If this returns zero, the user cannot do SSL v3.
  */
-int
+unsigned int
 ssl3_config_match_init(sslSocket *ss)
 {
     ssl3CipherSuiteCfg *suite;
@@ -901,9 +901,9 @@ ssl3_config_match_init(sslSocket *ss)
     CK_MECHANISM_TYPE cipher_mech;
     SSLAuthType authType;
     SSLKEAType keaType;
-    int i;
-    int numPresent = 0;
-    int numEnabled = 0;
+    unsigned int i;
+    unsigned int numPresent = 0;
+    unsigned int numEnabled = 0;
 
     PORT_Assert(ss);
     if (!ss) {
@@ -960,7 +960,7 @@ ssl3_config_match_init(sslSocket *ss)
         }
     }
     PORT_Assert(numPresent > 0 || numEnabled == 0);
-    if (numPresent <= 0) {
+    if (numPresent == 0) {
         PORT_SetError(SSL_ERROR_NO_CIPHERS_SUPPORTED);
     }
     return numPresent;
@@ -1005,10 +1005,10 @@ config_match(const ssl3CipherSuiteCfg *suite, int policy,
 
 /* Return the number of cipher suites that are usable. */
 /* called from ssl3_SendClientHello */
-static int
+static unsigned int
 count_cipher_suites(sslSocket *ss, int policy)
 {
-    int i, count = 0;
+    unsigned int i, count = 0;
 
     if (SSL_ALL_VERSIONS_DISABLED(&ss->vrange)) {
         return 0;
@@ -1017,7 +1017,7 @@ count_cipher_suites(sslSocket *ss, int policy)
         if (config_match(&ss->cipherSuites[i], policy, &ss->vrange, ss))
             count++;
     }
-    if (count <= 0) {
+    if (count == 0) {
         PORT_SetError(SSL_ERROR_SSL_DISABLED);
     }
     return count;
@@ -4947,9 +4947,9 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
     ssl3CipherSpec *cwSpec;
     SECStatus rv;
     unsigned int i;
-    int length;
-    int num_suites;
-    int actual_count = 0;
+    unsigned int length;
+    unsigned int num_suites;
+    unsigned int actual_count = 0;
     PRBool isTLS = PR_FALSE;
     PRBool requestingResume = PR_FALSE, fallbackSCSV = PR_FALSE;
     PRInt32 total_exten_len = 0;
@@ -4988,8 +4988,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
     ssl3_ResetExtensionData(&ss->xtnData);
 
     /* How many suites does our PKCS11 support (regardless of policy)? */
-    num_suites = ssl3_config_match_init(ss);
-    if (!num_suites) {
+    if (ssl3_config_match_init(ss) == 0) {
         return SECFailure; /* ssl3_config_match_init has set error code. */
     }
 
@@ -6581,11 +6580,9 @@ SECStatus
 ssl_ClientSetCipherSuite(sslSocket *ss, SSL3ProtocolVersion version,
                          ssl3CipherSuite suite, PRBool initHashes)
 {
-    int i;
-
-    i = ssl3_config_match_init(ss);
-    PORT_Assert(i > 0);
-    if (i <= 0) {
+    unsigned int i;
+    if (ssl3_config_match_init(ss) == 0) {
+        PORT_Assert(PR_FALSE);
         return SECFailure;
     }
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
@@ -8190,7 +8187,6 @@ ssl3_ServerCallSNICallback(sslSocket *ss)
                  * and save the name. */
                 SECStatus rv;
                 SECItem *name = &ss->xtnData.sniNameArr[ret];
-                int configedCiphers;
                 SECItem *pwsName;
 
                 /* get rid of the old name and save the newly picked. */
@@ -8219,8 +8215,7 @@ ssl3_ServerCallSNICallback(sslSocket *ss)
                     ret = SSL_SNI_SEND_ALERT;
                     break;
                 }
-                configedCiphers = ssl3_config_match_init(ss);
-                if (configedCiphers <= 0) {
+                if (ssl3_config_match_init(ss) == 0) {
                     /* no ciphers are working/supported */
                     errCode = PORT_GetError();
                     desc = handshake_failure;
@@ -8780,7 +8775,7 @@ ssl3_HandleClientHelloPart2(sslSocket *ss,
 
 #ifndef PARANOID
     /* Look for a matching cipher suite. */
-    if (ssl3_config_match_init(ss) <= 0) {
+    if (ssl3_config_match_init(ss) == 0) {
         desc = internal_error;
         errCode = PORT_GetError(); /* error code is already set. */
         goto alert_loser;
@@ -9118,11 +9113,11 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length,
     unsigned char *random;
     SSL3ProtocolVersion version;
     SECStatus rv;
-    int i;
-    int j;
-    int sid_length;
-    int suite_length;
-    int rand_length;
+    unsigned int i;
+    unsigned int j;
+    unsigned int sid_length;
+    unsigned int suite_length;
+    unsigned int rand_length;
     int errCode = SSL_ERROR_RX_MALFORMED_CLIENT_HELLO;
     SSL3AlertDescription desc = handshake_failure;
     unsigned int total = SSL_HL_CLIENT_HELLO_HBYTES;
@@ -9205,8 +9200,8 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length,
 
     PRINT_BUF(60, (ss, "client random:", ss->ssl3.hs.client_random,
                    SSL3_RANDOM_LENGTH));
-    i = ssl3_config_match_init(ss);
-    if (i <= 0) {
+
+    if (ssl3_config_match_init(ss) == 0) {
         errCode = PORT_GetError(); /* error code is already set. */
         goto alert_loser;
     }

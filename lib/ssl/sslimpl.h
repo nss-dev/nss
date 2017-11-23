@@ -1743,7 +1743,7 @@ extern void ssl_FreePRSocket(PRFileDesc *fd);
 
 /* Internal config function so SSL3 can initialize the present state of
  * various ciphers */
-extern int ssl3_config_match_init(sslSocket *);
+extern unsigned int ssl3_config_match_init(sslSocket *);
 
 /* calls for accessing wrapping keys across processes. */
 extern SECStatus

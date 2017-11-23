@@ -1257,7 +1257,6 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
     SECStatus rv;
     SSL3Statistics *ssl3stats = SSL_GetStatistics();
     TLS13KeyShareEntry *clientShare = NULL;
-    int j;
     ssl3CipherSuite previousCipherSuite;
 
     if (ssl3_ExtensionNegotiated(ss, ssl_tls13_early_data_xtn)) {
@@ -1266,8 +1265,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
 
 #ifndef PARANOID
     /* Look for a matching cipher suite. */
-    j = ssl3_config_match_init(ss);
-    if (j <= 0) { /* no ciphers are working/supported by PK11 */
+    if (ssl3_config_match_init(ss) == 0) { /* no ciphers are working/supported by PK11 */
         FATAL_ERROR(ss, PORT_GetError(), internal_error);
         goto loser;
     }
