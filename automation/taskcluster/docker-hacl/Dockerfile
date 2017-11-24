@@ -9,7 +9,7 @@ ENV haclrepo https://github.com/mitls/hacl-star.git
 
 # Define versions of dependencies
 ENV opamv 4.04.2
-ENV haclversion daa7e159f0adf252b5e6962967bc0f27dbac243b
+ENV haclversion 122e47dee739029f7dd8e7b9dd8e9d77e8646652
 
 # Install required packages and set versions
 RUN apt-get -qq update
