@@ -120,7 +120,8 @@ class TlsRecordFilter : public PacketFilter {
   bool Unprotect(const TlsRecordHeader& header, const DataBuffer& cipherText,
                  uint8_t* inner_content_type, DataBuffer* plaintext);
   bool Protect(const TlsRecordHeader& header, uint8_t inner_content_type,
-               const DataBuffer& plaintext, DataBuffer* ciphertext);
+               const DataBuffer& plaintext, DataBuffer* ciphertext,
+               size_t padding = 0);
 
  protected:
   // There are two filter functions which can be overriden. Both are
