@@ -1344,8 +1344,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
 
 #ifndef PARANOID
     /* Look for a matching cipher suite. */
-    if (ssl3_config_match_init(ss) <= 0) {
-        /* no ciphers are working/supported by PK11 */
+    if (ssl3_config_match_init(ss) == 0) { /* no ciphers are working/supported by PK11 */
         FATAL_ERROR(ss, PORT_GetError(), internal_error);
         goto loser;
     }
