@@ -104,15 +104,13 @@ TEST_P(TlsPaddingTest, LastByteOfPadWrong) {
 class RecordReplacer : public TlsRecordFilter {
  public:
   RecordReplacer(const std::shared_ptr<TlsAgent>& a, size_t size)
-      : TlsRecordFilter(a), enabled_(false), size_(size) {}
+      : TlsRecordFilter(a), size_(size) {
+    Disable();
+  }
 
   PacketFilter::Action FilterRecord(const TlsRecordHeader& header,
                                     const DataBuffer& data,
                                     DataBuffer* changed) override {
-    if (!enabled_) {
-      return KEEP;
-    }
-
     EXPECT_EQ(kTlsApplicationDataType, header.content_type());
     changed->Allocate(size_);
 
@@ -120,14 +118,11 @@ class RecordReplacer : public TlsRecordFilter {
       changed->data()[i] = i & 0xff;
     }
 
-    enabled_ = false;
+    Disable();
     return CHANGE;
   }
 
-  void Enable() { enabled_ = true; }
-
  private:
-  bool enabled_;
   size_t size_;
 };
 
