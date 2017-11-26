@@ -3075,7 +3075,7 @@ tls13_SetCipherSpec(sslSocket *ss, TrafficKeyType type,
     /* We use the epoch for cipher suite identification, so increment
      * it in both TLS and DTLS. */
     if ((*specp)->epoch == PR_UINT16_MAX) {
-        return SECFailure;
+        goto loser;
     }
     spec->epoch = (PRUint16)type;
     spec->seqNum = 0;
@@ -3086,12 +3086,12 @@ tls13_SetCipherSpec(sslSocket *ss, TrafficKeyType type,
     /* This depends on spec having a valid direction and epoch. */
     rv = tls13_SetupPendingCipherSpec(ss, spec);
     if (rv != SECSuccess) {
-        return SECFailure;
+        goto loser;
     }
 
     rv = tls13_DeriveTrafficKeys(ss, spec, type, deleteSecret);
     if (rv != SECSuccess) {
-        return SECFailure;
+        goto loser;
     }
 
     /* Now that we've set almost everything up, finally cut over. */
@@ -3109,6 +3109,10 @@ tls13_SetCipherSpec(sslSocket *ss, TrafficKeyType type,
                                        direction == CipherSpecWrite, spec);
     }
     return SECSuccess;
+
+loser:
+    ssl_CipherSpecRelease(spec);
+    return SECFailure;
 }
 
 SECStatus
