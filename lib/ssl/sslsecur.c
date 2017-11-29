@@ -856,6 +856,11 @@ ssl_SecureRecv(sslSocket *ss, unsigned char *buf, int len, int flags)
         }
     }
     if (rv < 0) {
+        if (PORT_GetError() == PR_WOULD_BLOCK_ERROR &&
+            !PR_CLIST_IS_EMPTY(&ss->ssl3.hs.bufferedEarlyData)) {
+            PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+            return tls13_Read0RttData(ss, buf, len);
+        }
         return rv;
     }
 
