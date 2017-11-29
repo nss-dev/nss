@@ -55,6 +55,7 @@ class KeyLogFileTest : public TlsConnectGeneric {
       ASSERT_EQ(2U, labels["CLIENT_RANDOM"]);
     } else {
       ASSERT_EQ(2U, labels["CLIENT_EARLY_TRAFFIC_SECRET"]);
+      ASSERT_EQ(2U, labels["EARLY_EXPORTER_SECRET"]);
       ASSERT_EQ(4U, labels["CLIENT_HANDSHAKE_TRAFFIC_SECRET"]);
       ASSERT_EQ(4U, labels["SERVER_HANDSHAKE_TRAFFIC_SECRET"]);
       ASSERT_EQ(4U, labels["CLIENT_TRAFFIC_SECRET_0"]);
