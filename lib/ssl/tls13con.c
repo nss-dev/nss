@@ -125,6 +125,7 @@ const char keylogLabelClientHsTrafficSecret[] = "CLIENT_HANDSHAKE_TRAFFIC_SECRET
 const char keylogLabelServerHsTrafficSecret[] = "SERVER_HANDSHAKE_TRAFFIC_SECRET";
 const char keylogLabelClientTrafficSecret[] = "CLIENT_TRAFFIC_SECRET_0";
 const char keylogLabelServerTrafficSecret[] = "SERVER_TRAFFIC_SECRET_0";
+const char keylogLabelEarlyExporterSecret[] = "EARLY_EXPORTER_SECRET";
 const char keylogLabelExporterSecret[] = "EXPORTER_SECRET";
 
 #define TRAFFIC_SECRET(ss, dir, name) ((ss->sec.isServer ^            \
@@ -767,17 +768,37 @@ tls13_ComputeEarlySecrets(sslSocket *ss)
         if (rv != SECSuccess) {
             return SECFailure;
         }
-
-        rv = tls13_DeriveSecretNullHash(ss, ss->ssl3.hs.currentSecret,
-                                        kHkdfLabelEarlyExporterSecret,
-                                        strlen(kHkdfLabelEarlyExporterSecret),
-                                        &ss->ssl3.hs.earlyExporterSecret);
-        if (rv != SECSuccess) {
-            return SECFailure;
-        }
     }
     PORT_Assert(!ss->ssl3.hs.resumptionMasterSecret);
 
+    return SECSuccess;
+}
+
+/* This derives the early traffic and early exporter secrets. */
+static SECStatus
+tls13_DeriveEarlySecrets(sslSocket *ss)
+{
+    SECStatus rv;
+
+    rv = tls13_DeriveSecretWrap(ss, ss->ssl3.hs.currentSecret,
+                                kHkdfLabelClient,
+                                kHkdfLabelEarlyTrafficSecret,
+                                keylogLabelClientEarlyTrafficSecret,
+                                &ss->ssl3.hs.clientEarlyTrafficSecret);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    rv = tls13_DeriveSecretNullHash(ss, ss->ssl3.hs.currentSecret,
+                                    kHkdfLabelEarlyExporterSecret,
+                                    strlen(kHkdfLabelEarlyExporterSecret),
+                                    &ss->ssl3.hs.earlyExporterSecret);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    ssl3_RecordKeyLog(ss, keylogLabelEarlyExporterSecret,
+                      ss->ssl3.hs.earlyExporterSecret);
     return SECSuccess;
 }
 
@@ -1597,11 +1618,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
     sid = NULL;
 
     if (ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted) {
-        rv = tls13_DeriveSecretWrap(ss, ss->ssl3.hs.currentSecret,
-                                    kHkdfLabelClient,
-                                    kHkdfLabelEarlyTrafficSecret,
-                                    keylogLabelClientEarlyTrafficSecret,
-                                    &ss->ssl3.hs.clientEarlyTrafficSecret);
+        rv = tls13_DeriveEarlySecrets(ss);
         if (rv != SECSuccess) {
             FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
             return SECFailure;
@@ -2823,7 +2840,7 @@ tls13_DeriveSecretNullHash(sslSocket *ss, PK11SymKey *key,
     return tls13_DeriveSecret(ss, key, label, labelLen, &hashes, dest);
 }
 
-/* Convenience wrapper that lets us supply a separate previx and suffix. */
+/* Convenience wrapper that lets us supply a separate prefix and suffix. */
 static SECStatus
 tls13_DeriveSecretWrap(sslSocket *ss, PK11SymKey *key,
                        const char *prefix,
@@ -4846,11 +4863,7 @@ tls13_MaybeDo0RTTHandshake(sslSocket *ss)
     /* Cipher suite already set in tls13_SetupClientHello. */
     ss->ssl3.hs.preliminaryInfo = 0;
 
-    rv = tls13_DeriveSecretWrap(ss, ss->ssl3.hs.currentSecret,
-                                kHkdfLabelClient,
-                                kHkdfLabelEarlyTrafficSecret,
-                                keylogLabelClientEarlyTrafficSecret,
-                                &ss->ssl3.hs.clientEarlyTrafficSecret);
+    rv = tls13_DeriveEarlySecrets(ss);
     if (rv != SECSuccess) {
         return SECFailure;
     }
