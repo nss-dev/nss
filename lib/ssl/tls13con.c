@@ -789,16 +789,14 @@ tls13_DeriveEarlySecrets(sslSocket *ss)
         return SECFailure;
     }
 
-    rv = tls13_DeriveSecretNullHash(ss, ss->ssl3.hs.currentSecret,
-                                    kHkdfLabelEarlyExporterSecret,
-                                    strlen(kHkdfLabelEarlyExporterSecret),
-                                    &ss->ssl3.hs.earlyExporterSecret);
+    rv = tls13_DeriveSecretWrap(ss, ss->ssl3.hs.currentSecret,
+                                NULL, kHkdfLabelEarlyExporterSecret,
+                                keylogLabelEarlyExporterSecret,
+                                &ss->ssl3.hs.earlyExporterSecret);
     if (rv != SECSuccess) {
         return SECFailure;
     }
 
-    ssl3_RecordKeyLog(ss, keylogLabelEarlyExporterSecret,
-                      ss->ssl3.hs.earlyExporterSecret);
     return SECSuccess;
 }
 
