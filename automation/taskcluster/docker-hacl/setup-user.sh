@@ -23,4 +23,3 @@ make -C hacl-star/code/salsa-family test -j$(nproc)
 
 # Cleanup.
 rm -rf ~/.ccache ~/.cache
-rm -rf /home/worker/hacl-star/dependencies
