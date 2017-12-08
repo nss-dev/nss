@@ -26,4 +26,5 @@ USER worker
 ENV OPAMYES true
 ENV PATH "/home/worker/hacl-star/dependencies/z3/bin:$PATH"
 ADD setup-user.sh /tmp/setup-user.sh
+ADD license.txt /tmp/license.txt
 RUN bash /tmp/setup-user.sh
