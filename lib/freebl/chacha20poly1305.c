@@ -14,7 +14,7 @@
 #include "blapit.h"
 
 #ifndef NSS_DISABLE_CHACHAPOLY
-#ifdef HAVE_INT128_SUPPORT
+#if defined(HAVE_INT128_SUPPORT) && (defined(NSS_X86_OR_X64) || defined(__aarch64__))
 #include "verified/Hacl_Poly1305_64.h"
 #else
 #include "poly1305.h"
@@ -27,7 +27,7 @@
  * and ciphertext to |out|. */
 #ifndef NSS_DISABLE_CHACHAPOLY
 
-#ifdef HAVE_INT128_SUPPORT
+#if defined(HAVE_INT128_SUPPORT) && (defined(NSS_X86_OR_X64) || defined(__aarch64__))
 
 static void
 Poly1305PadUpdate(Hacl_Impl_Poly1305_64_State_poly1305_state state, unsigned char *block, const unsigned char *p, const unsigned int pLen)
