@@ -20,6 +20,7 @@ make -C hacl-star verify-nss -j$(nproc)
 make -C hacl-star -f Makefile.build snapshots/nss -j$(nproc)
 KOPTS="-funroll-loops 5" make -C hacl-star/code/curve25519 test -j$(nproc)
 make -C hacl-star/code/salsa-family test -j$(nproc)
+make -C hacl-star/code/poly1305 test -j$(nproc)
 
 # Cleanup.
 rm -rf ~/.ccache ~/.cache
