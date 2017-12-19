@@ -1359,7 +1359,7 @@ MODSCRIPT
 # local shell function to verify small rsa exponent can be used (only
 # run if FIPS has not been turned on in the build).
 ##############################################################################
-cert_rsa_exponent()
+cert_rsa_exponent_nonfips()
 {
   echo "$SCRIPTNAME: Verify that small RSA exponents still work  =============="
   CU_ACTION="Attempt to generate a key with exponent of 3"
@@ -2431,16 +2431,12 @@ cert_test_implicit_db_init
 cert_extended_ssl
 cert_ssl
 cert_smime_client
-if [[ -n "$NSS_TEST_ENABLE_FIPS" ]]; then
-    cert_fips
+IS_FIPS_DISABLED=`certutil --build-flags |grep -cw NSS_FIPS_DISABLED`
+if [ $IS_FIPS_DISABLED -ne 0 ]; then
+  cert_rsa_exponent_nonfips
+else
+  cert_fips
 fi
-# We currently have difficulties to know if the build is a non-FIPS build,
-# because of differences between the "make" and "gyp" build systems.
-# As soon as we have a reliable way to detect that based on a variable,
-# we should enable the following test call. See bug 1409516.
-# if SYMBOL_THAT_TELLS_US_FIPS_IS_DISABLED
-#   cert_rsa_exponent
-# fi
 cert_eccurves
 cert_extensions
 cert_san_and_generic_extensions
