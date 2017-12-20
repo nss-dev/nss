@@ -3171,7 +3171,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
         certutil.commands[cmd_CreateAndAddCert].activated ||
         certutil.commands[cmd_AddCert].activated ||
         certutil.commands[cmd_AddEmailCert].activated) {
-        if (PK11_NeedUserInit(slot)) {
+        if (PK11_NeedLogin(slot) && PK11_NeedUserInit(slot)) {
             char *password = NULL;
             /* fetch the password from the command line or the file
              * if no password is supplied, initialize the password to NULL */
