@@ -123,7 +123,6 @@
             'cmd/atob/atob.gyp:atob',
             'cmd/bltest/bltest.gyp:bltest',
             'cmd/btoa/btoa.gyp:btoa',
-            'cmd/certcgi/certcgi.gyp:certcgi',
             'cmd/chktest/chktest.gyp:chktest',
             'cmd/crmftest/crmftest.gyp:crmftest',
             'cmd/dbtest/dbtest.gyp:dbtest',
