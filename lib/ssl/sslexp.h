@@ -350,6 +350,14 @@ typedef SSLHelloRetryRequestAction(PR_CALLBACK *SSLHelloRetryRequestCallback)(
                          (PRFileDesc * _fd, PRBool _requestUpdate), \
                          (fd, requestUpdate))
 
+/* TLS 1.3 allows a server to set a limit on the number of bytes of early data
+ * that can be received. This allows that limit to be set. Calling this function
+ * has no effect on a client. */
+#define SSL_SetMaxEarlyDataSize(fd, size)                    \
+    SSL_EXPERIMENTAL_API("SSL_SetMaxEarlyDataSize",          \
+                         (PRFileDesc * _fd, PRUint32 _size), \
+                         (fd, size))
+
 #define SSL_UseAltServerHelloType(fd, enable) \
     SSL_DEPRECATED_EXPERIMENTAL_API
 
