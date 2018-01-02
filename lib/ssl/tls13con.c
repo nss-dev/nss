@@ -4770,9 +4770,6 @@ tls13_ExtensionStatus(PRUint16 extension, SSLHandshakeType message)
 
     /* Return "disallowed" if the message mask bit isn't set. */
     if (!(_M(message) & KnownExtensions[i].messages)) {
-        SSL_TRC(3, ("%d: TLS13: unexpected extension %d in message %d",
-                    SSL_GETPID(), extension, message));
-
         return tls13_extension_disallowed;
     }
 
