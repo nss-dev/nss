@@ -2095,6 +2095,20 @@ cert_test_rsapss()
   certu -A -n "TestCA-rsa-pss-sha1" -t "C,," -d "${PROFILEDIR}" -f "${R_PWFILE}" \
         -i "${R_CADIR}/TestCA-rsa-pss-sha1.ca.cert" 2>&1
 
+  CU_ACTION="Import Bogus RSA-PSS CA Cert (invalid trailerField)"
+  certu -A -n "TestCA-bogus-rsa-pss1" -t "C,," -d "${PROFILEDIR}" -f "${R_PWFILE}" \
+        -i "${QADIR}/cert/TestCA-bogus-rsa-pss1.crt" 2>&1
+  RETEXPECTED=255
+  certu -V -b 1712101010Z -n TestCA-bogus-rsa-pss1 -u L -e -d "${PROFILEDIR}" -f "${R_PWFILE}" 2>&1
+  RETEXPECTED=0
+
+  CU_ACTION="Import Bogus RSA-PSS CA Cert (invalid hashAlg)"
+  certu -A -n "TestCA-bogus-rsa-pss2" -t "C,," -d "${PROFILEDIR}" -f "${R_PWFILE}" \
+        -i "${QADIR}/cert/TestCA-bogus-rsa-pss2.crt" 2>&1
+  RETEXPECTED=255
+  certu -V -b 1712101010Z -n TestCA-bogus-rsa-pss2 -u L -e -d "${PROFILEDIR}" -f "${R_PWFILE}" 2>&1
+  RETEXPECTED=0
+
   CERTSERIAL=200
 
   # Subject certificate: RSA
