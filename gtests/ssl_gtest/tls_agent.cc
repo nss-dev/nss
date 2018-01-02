@@ -182,6 +182,10 @@ bool TlsAgent::EnsureTlsSetup(PRFileDesc* modelSocket) {
     ScopedCERTCertList anchors(CERT_NewCertList());
     rv = SSL_SetTrustAnchors(ssl_fd(), anchors.get());
     if (rv != SECSuccess) return false;
+
+    rv = SSL_SetMaxEarlyDataSize(ssl_fd(), 1024);
+    EXPECT_EQ(SECSuccess, rv);
+    if (rv != SECSuccess) return false;
   } else {
     rv = SSL_SetURL(ssl_fd(), "server");
     EXPECT_EQ(SECSuccess, rv);
