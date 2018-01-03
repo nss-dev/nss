@@ -95,7 +95,10 @@ sslBuffer_AppendVariable(sslBuffer *b, const PRUint8 *data, unsigned int len,
 
     ssl_EncodeUintX(SSL_BUFFER_NEXT(b), len, size);
     b->len += size;
-    PORT_Memcpy(SSL_BUFFER_NEXT(b), data, len);
+    if (len != 0) {
+        /* We sometimes pass NULL, 0 and memcpy() doesn't want NULL. */
+        PORT_Memcpy(SSL_BUFFER_NEXT(b), data, len);
+    }
     b->len += len;
     return SECSuccess;
 }
