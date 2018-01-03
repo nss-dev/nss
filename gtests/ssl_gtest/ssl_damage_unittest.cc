@@ -50,7 +50,7 @@ TEST_F(TlsConnectTest, DamageSecretHandleServerFinished) {
                            SSL_LIBRARY_VERSION_TLS_1_3);
   server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
                            SSL_LIBRARY_VERSION_TLS_1_3);
-  server_->SetPacketFilter(std::make_shared<AfterRecordN>(
+  server_->SetFilter(std::make_shared<AfterRecordN>(
       server_, client_,
       0,  // ServerHello.
       [this]() { SSLInt_DamageServerHsTrafficSecret(client_->ssl_fd()); }));
@@ -60,9 +60,10 @@ TEST_F(TlsConnectTest, DamageSecretHandleServerFinished) {
 
 TEST_P(TlsConnectGenericPre13, DamageServerSignature) {
   EnsureTlsSetup();
-  auto filter =
-      std::make_shared<TlsLastByteDamager>(kTlsHandshakeServerKeyExchange);
-  server_->SetTlsRecordFilter(filter);
+  auto filter = std::make_shared<TlsLastByteDamager>(
+      server_, kTlsHandshakeServerKeyExchange);
+  filter->EnableDecryption();
+  server_->SetFilter(filter);
   ExpectAlert(client_, kTlsAlertDecryptError);
   ConnectExpectFail();
   client_->CheckErrorCode(SEC_ERROR_BAD_SIGNATURE);
@@ -71,9 +72,10 @@ TEST_P(TlsConnectGenericPre13, DamageServerSignature) {
 
 TEST_P(TlsConnectTls13, DamageServerSignature) {
   EnsureTlsSetup();
-  auto filter =
-      std::make_shared<TlsLastByteDamager>(kTlsHandshakeCertificateVerify);
-  server_->SetTlsRecordFilter(filter);
+  auto filter = std::make_shared<TlsLastByteDamager>(
+      server_, kTlsHandshakeCertificateVerify);
+  filter->EnableDecryption();
+  server_->SetFilter(filter);
   ConnectExpectAlert(client_, kTlsAlertDecryptError);
   client_->CheckErrorCode(SEC_ERROR_BAD_SIGNATURE);
 }
@@ -82,9 +84,10 @@ TEST_P(TlsConnectGeneric, DamageClientSignature) {
   EnsureTlsSetup();
   client_->SetupClientAuth();
   server_->RequestClientAuth(true);
-  auto filter =
-      std::make_shared<TlsLastByteDamager>(kTlsHandshakeCertificateVerify);
-  client_->SetTlsRecordFilter(filter);
+  auto filter = std::make_shared<TlsLastByteDamager>(
+      client_, kTlsHandshakeCertificateVerify);
+  filter->EnableDecryption();
+  client_->SetFilter(filter);
   server_->ExpectSendAlert(kTlsAlertDecryptError);
   // Do these handshakes by hand to avoid race condition on
   // the client processing the server's alert.
@@ -100,4 +103,4 @@ TEST_P(TlsConnectGeneric, DamageClientSignature) {
   server_->CheckErrorCode(SEC_ERROR_BAD_SIGNATURE);
 }
 
-}  // namespace nspr_test
+}  // namespace nss_test
