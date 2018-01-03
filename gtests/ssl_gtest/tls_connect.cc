@@ -770,17 +770,17 @@ TlsConnectGenericResumptionToken::TlsConnectGenericResumptionToken()
 void TlsKeyExchangeTest::EnsureKeyShareSetup() {
   EnsureTlsSetup();
   groups_capture_ =
-      std::make_shared<TlsExtensionCapture>(ssl_supported_groups_xtn);
+      std::make_shared<TlsExtensionCapture>(client_, ssl_supported_groups_xtn);
   shares_capture_ =
-      std::make_shared<TlsExtensionCapture>(ssl_tls13_key_share_xtn);
-  shares_capture2_ =
-      std::make_shared<TlsExtensionCapture>(ssl_tls13_key_share_xtn, true);
+      std::make_shared<TlsExtensionCapture>(client_, ssl_tls13_key_share_xtn);
+  shares_capture2_ = std::make_shared<TlsExtensionCapture>(
+      client_, ssl_tls13_key_share_xtn, true);
   std::vector<std::shared_ptr<PacketFilter>> captures = {
       groups_capture_, shares_capture_, shares_capture2_};
-  client_->SetPacketFilter(std::make_shared<ChainedPacketFilter>(captures));
-  capture_hrr_ = std::make_shared<TlsInspectorRecordHandshakeMessage>(
-      kTlsHandshakeHelloRetryRequest);
-  server_->SetPacketFilter(capture_hrr_);
+  client_->SetFilter(std::make_shared<ChainedPacketFilter>(captures));
+  capture_hrr_ = std::make_shared<TlsHandshakeRecorder>(
+      server_, kTlsHandshakeHelloRetryRequest);
+  server_->SetFilter(capture_hrr_);
 }
 
 void TlsKeyExchangeTest::ConfigNamedGroups(

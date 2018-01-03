@@ -147,10 +147,10 @@ class SSLv2ClientHelloTestF : public TlsConnectTestBase {
   SSLv2ClientHelloTestF(SSLProtocolVariant variant, uint16_t version)
       : TlsConnectTestBase(variant, version), filter_(nullptr) {}
 
-  void SetUp() {
+  void SetUp() override {
     TlsConnectTestBase::SetUp();
     filter_ = std::make_shared<SSLv2ClientHelloFilter>(client_, version_);
-    client_->SetPacketFilter(filter_);
+    client_->SetFilter(filter_);
   }
 
   void SetExpectedVersion(uint16_t version) {
