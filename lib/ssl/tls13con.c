@@ -1417,30 +1417,6 @@ tls13_NegotiateKeyExchange(sslSocket *ss,
     return SECSuccess;
 }
 
-SSLAuthType
-ssl_SignatureSchemeToAuthType(SSLSignatureScheme scheme)
-{
-    switch (scheme) {
-        case ssl_sig_rsa_pkcs1_sha1:
-        case ssl_sig_rsa_pkcs1_sha256:
-        case ssl_sig_rsa_pkcs1_sha384:
-        case ssl_sig_rsa_pkcs1_sha512:
-        /* We report PSS signatures as being just RSA signatures. */
-        case ssl_sig_rsa_pss_rsae_sha256:
-        case ssl_sig_rsa_pss_rsae_sha384:
-        case ssl_sig_rsa_pss_rsae_sha512:
-            return ssl_auth_rsa_sign;
-        case ssl_sig_ecdsa_secp256r1_sha256:
-        case ssl_sig_ecdsa_secp384r1_sha384:
-        case ssl_sig_ecdsa_secp521r1_sha512:
-        case ssl_sig_ecdsa_sha1:
-            return ssl_auth_ecdsa;
-        default:
-            PORT_Assert(0);
-    }
-    return ssl_auth_null;
-}
-
 SECStatus
 tls13_SelectServerCert(sslSocket *ss)
 {
@@ -1469,6 +1445,7 @@ tls13_SelectServerCert(sslSocket *ss)
         }
 
         rv = ssl_PickSignatureScheme(ss,
+                                     cert->serverCert,
                                      cert->serverKeyPair->pubKey,
                                      cert->serverKeyPair->privKey,
                                      ss->xtnData.sigSchemes,
