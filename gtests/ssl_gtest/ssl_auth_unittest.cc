@@ -127,7 +127,8 @@ TEST_P(TlsConnectTls12, ServerAuthCheckSigAlg) {
   EXPECT_TRUE(buffer.Read(1, 2, &tmp)) << "read NamedCurve";
   EXPECT_EQ(ssl_grp_ec_curve25519, tmp);
   EXPECT_TRUE(buffer.Read(3, 1, &tmp)) << " read ECPoint";
-  CheckSigScheme(capture_ske, 4 + tmp, client_, ssl_sig_rsa_pss_sha256, 1024);
+  CheckSigScheme(capture_ske, 4 + tmp, client_, ssl_sig_rsa_pss_rsae_sha256,
+                 1024);
 }
 
 TEST_P(TlsConnectTls12, ClientAuthCheckSigAlg) {
@@ -154,7 +155,8 @@ TEST_P(TlsConnectTls12, ClientAuthBigRsaCheckSigAlg) {
   server_->RequestClientAuth(true);
   Connect();
   CheckKeys();
-  CheckSigScheme(capture_cert_verify, 0, server_, ssl_sig_rsa_pss_sha256, 2048);
+  CheckSigScheme(capture_cert_verify, 0, server_, ssl_sig_rsa_pss_rsae_sha256,
+                 2048);
 }
 
 class TlsZeroCertificateRequestSigAlgsFilter : public TlsHandshakeFilter {
@@ -796,8 +798,8 @@ INSTANTIATE_TEST_CASE_P(
         ::testing::Values(TlsAgent::kServerRsaSign),
         ::testing::Values(ssl_auth_rsa_sign),
         ::testing::Values(ssl_sig_rsa_pkcs1_sha256, ssl_sig_rsa_pkcs1_sha384,
-                          ssl_sig_rsa_pkcs1_sha512, ssl_sig_rsa_pss_sha256,
-                          ssl_sig_rsa_pss_sha384)));
+                          ssl_sig_rsa_pkcs1_sha512, ssl_sig_rsa_pss_rsae_sha256,
+                          ssl_sig_rsa_pss_rsae_sha384)));
 // PSS with SHA-512 needs a bigger key to work.
 INSTANTIATE_TEST_CASE_P(
     SignatureSchemeBigRsa, TlsSignatureSchemeConfiguration,
@@ -805,7 +807,7 @@ INSTANTIATE_TEST_CASE_P(
                        TlsConnectTestBase::kTlsV12Plus,
                        ::testing::Values(TlsAgent::kRsa2048),
                        ::testing::Values(ssl_auth_rsa_sign),
-                       ::testing::Values(ssl_sig_rsa_pss_sha512)));
+                       ::testing::Values(ssl_sig_rsa_pss_rsae_sha512)));
 INSTANTIATE_TEST_CASE_P(
     SignatureSchemeRsaSha1, TlsSignatureSchemeConfiguration,
     ::testing::Combine(TlsConnectTestBase::kTlsVariantsAll,

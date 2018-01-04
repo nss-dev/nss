@@ -402,13 +402,13 @@ void TlsConnectTestBase::CheckKeys(SSLKEAType kea_type,
       break;
     case ssl_auth_rsa_sign:
       if (version_ >= SSL_LIBRARY_VERSION_TLS_1_2) {
-        scheme = ssl_sig_rsa_pss_sha256;
+        scheme = ssl_sig_rsa_pss_rsae_sha256;
       } else {
         scheme = ssl_sig_rsa_pkcs1_sha256;
       }
       break;
     case ssl_auth_rsa_pss:
-      scheme = ssl_sig_rsa_pss_sha256;
+      scheme = ssl_sig_rsa_pss_rsae_sha256;
       break;
     case ssl_auth_ecdsa:
       scheme = ssl_sig_ecdsa_secp256r1_sha256;

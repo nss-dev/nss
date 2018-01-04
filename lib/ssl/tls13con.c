@@ -1426,9 +1426,9 @@ ssl_SignatureSchemeToAuthType(SSLSignatureScheme scheme)
         case ssl_sig_rsa_pkcs1_sha384:
         case ssl_sig_rsa_pkcs1_sha512:
         /* We report PSS signatures as being just RSA signatures. */
-        case ssl_sig_rsa_pss_sha256:
-        case ssl_sig_rsa_pss_sha384:
-        case ssl_sig_rsa_pss_sha512:
+        case ssl_sig_rsa_pss_rsae_sha256:
+        case ssl_sig_rsa_pss_rsae_sha384:
+        case ssl_sig_rsa_pss_rsae_sha512:
             return ssl_auth_rsa_sign;
         case ssl_sig_ecdsa_secp256r1_sha256:
         case ssl_sig_ecdsa_secp384r1_sha384:

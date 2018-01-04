@@ -507,8 +507,8 @@ TEST_P(TlsExtensionTestPre13, RenegotiationInfoExtensionEmpty) {
 // This only works on TLS 1.2, since it relies on static RSA; otherwise libssl
 // picks the wrong cipher suite.
 TEST_P(TlsExtensionTest12, SignatureAlgorithmConfiguration) {
-  const SSLSignatureScheme schemes[] = {ssl_sig_rsa_pss_sha512,
-                                        ssl_sig_rsa_pss_sha384};
+  const SSLSignatureScheme schemes[] = {ssl_sig_rsa_pss_rsae_sha512,
+                                        ssl_sig_rsa_pss_rsae_sha384};
 
   auto capture =
       std::make_shared<TlsExtensionCapture>(ssl_signature_algorithms_xtn);
