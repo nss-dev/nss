@@ -183,9 +183,9 @@ static const SSLSignatureScheme defaultSignatureSchemes[] = {
     ssl_sig_ecdsa_secp384r1_sha384,
     ssl_sig_ecdsa_secp521r1_sha512,
     ssl_sig_ecdsa_sha1,
-    ssl_sig_rsa_pss_sha256,
-    ssl_sig_rsa_pss_sha384,
-    ssl_sig_rsa_pss_sha512,
+    ssl_sig_rsa_pss_rsae_sha256,
+    ssl_sig_rsa_pss_rsae_sha384,
+    ssl_sig_rsa_pss_rsae_sha512,
     ssl_sig_rsa_pkcs1_sha256,
     ssl_sig_rsa_pkcs1_sha384,
     ssl_sig_rsa_pkcs1_sha512,
@@ -3962,17 +3962,20 @@ ssl_SignatureSchemeToHashType(SSLSignatureScheme scheme)
             return ssl_hash_sha1;
         case ssl_sig_rsa_pkcs1_sha256:
         case ssl_sig_ecdsa_secp256r1_sha256:
-        case ssl_sig_rsa_pss_sha256:
+        case ssl_sig_rsa_pss_rsae_sha256:
+        case ssl_sig_rsa_pss_pss_sha256:
         case ssl_sig_dsa_sha256:
             return ssl_hash_sha256;
         case ssl_sig_rsa_pkcs1_sha384:
         case ssl_sig_ecdsa_secp384r1_sha384:
-        case ssl_sig_rsa_pss_sha384:
+        case ssl_sig_rsa_pss_rsae_sha384:
+        case ssl_sig_rsa_pss_pss_sha384:
         case ssl_sig_dsa_sha384:
             return ssl_hash_sha384;
         case ssl_sig_rsa_pkcs1_sha512:
         case ssl_sig_ecdsa_secp521r1_sha512:
-        case ssl_sig_rsa_pss_sha512:
+        case ssl_sig_rsa_pss_rsae_sha512:
+        case ssl_sig_rsa_pss_pss_sha512:
         case ssl_sig_dsa_sha512:
             return ssl_hash_sha512;
         case ssl_sig_rsa_pkcs1_sha1md5:
@@ -3994,9 +3997,12 @@ ssl_SignatureSchemeToKeyType(SSLSignatureScheme scheme)
         case ssl_sig_rsa_pkcs1_sha384:
         case ssl_sig_rsa_pkcs1_sha512:
         case ssl_sig_rsa_pkcs1_sha1:
-        case ssl_sig_rsa_pss_sha256:
-        case ssl_sig_rsa_pss_sha384:
-        case ssl_sig_rsa_pss_sha512:
+        case ssl_sig_rsa_pss_rsae_sha256:
+        case ssl_sig_rsa_pss_rsae_sha384:
+        case ssl_sig_rsa_pss_rsae_sha512:
+        case ssl_sig_rsa_pss_pss_sha256:
+        case ssl_sig_rsa_pss_pss_sha384:
+        case ssl_sig_rsa_pss_pss_sha512:
         case ssl_sig_rsa_pkcs1_sha1md5:
             return rsaKey;
         case ssl_sig_ecdsa_secp256r1_sha256:
@@ -4131,9 +4137,9 @@ ssl_IsSupportedSignatureScheme(SSLSignatureScheme scheme)
         case ssl_sig_rsa_pkcs1_sha256:
         case ssl_sig_rsa_pkcs1_sha384:
         case ssl_sig_rsa_pkcs1_sha512:
-        case ssl_sig_rsa_pss_sha256:
-        case ssl_sig_rsa_pss_sha384:
-        case ssl_sig_rsa_pss_sha512:
+        case ssl_sig_rsa_pss_rsae_sha256:
+        case ssl_sig_rsa_pss_rsae_sha384:
+        case ssl_sig_rsa_pss_rsae_sha512:
         case ssl_sig_ecdsa_secp256r1_sha256:
         case ssl_sig_ecdsa_secp384r1_sha384:
         case ssl_sig_ecdsa_secp521r1_sha512:
@@ -4145,6 +4151,9 @@ ssl_IsSupportedSignatureScheme(SSLSignatureScheme scheme)
             return PR_TRUE;
 
         case ssl_sig_rsa_pkcs1_sha1md5:
+        case ssl_sig_rsa_pss_pss_sha256:
+        case ssl_sig_rsa_pss_pss_sha384:
+        case ssl_sig_rsa_pss_pss_sha512:
         case ssl_sig_none:
         case ssl_sig_ed25519:
         case ssl_sig_ed448:
@@ -4157,9 +4166,9 @@ PRBool
 ssl_IsRsaPssSignatureScheme(SSLSignatureScheme scheme)
 {
     switch (scheme) {
-        case ssl_sig_rsa_pss_sha256:
-        case ssl_sig_rsa_pss_sha384:
-        case ssl_sig_rsa_pss_sha512:
+        case ssl_sig_rsa_pss_rsae_sha256:
+        case ssl_sig_rsa_pss_rsae_sha384:
+        case ssl_sig_rsa_pss_rsae_sha512:
             return PR_TRUE;
 
         default:
