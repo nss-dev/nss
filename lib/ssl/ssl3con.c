@@ -2336,6 +2336,11 @@ ssl3_SendRecord(sslSocket *ss,
     if (ss->ssl3.fatalAlertSent) {
         SSL_TRC(3, ("%d: SSL3[%d] Suppress write, fatal alert already sent",
                     SSL_GETPID(), ss->fd));
+        if (type != content_alert) {
+            /* If we are sending an alert, then we already have an
+             * error, so don't overwrite. */
+            PORT_SetError(SSL_ERROR_HANDSHAKE_FAILED);
+        }
         return SECFailure;
     }
 

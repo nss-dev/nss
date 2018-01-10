@@ -622,6 +622,31 @@ TEST_P(TlsConnectGenericPre13, AuthCompleteDelayed) {
   client_->DeletePacketFilter();
 }
 
+TEST_P(TlsConnectGenericPre13, AuthCompleteFailDelayed) {
+  client_->SetAuthCertificateCallback(AuthCompleteBlock);
+
+  StartConnect();
+  client_->Handshake();  // Send ClientHello
+  server_->Handshake();  // Send ServerHello
+  client_->Handshake();  // Send ClientKeyExchange and Finished
+  server_->Handshake();  // Send Finished
+  // The server should now report that it is connected
+  EXPECT_EQ(TlsAgent::STATE_CONNECTED, server_->state());
+
+  // The client should send nothing from here on.
+  client_->SetPacketFilter(std::make_shared<EnforceNoActivity>());
+  client_->Handshake();
+  EXPECT_EQ(TlsAgent::STATE_CONNECTING, client_->state());
+
+  // Report failure.
+  client_->DeletePacketFilter();
+  client_->ExpectSendAlert(kTlsAlertBadCertificate);
+  EXPECT_EQ(SECSuccess, SSL_AuthCertificateComplete(client_->ssl_fd(),
+                                                    SSL_ERROR_BAD_CERTIFICATE));
+  client_->Handshake();  // Fail
+  EXPECT_EQ(TlsAgent::STATE_ERROR, client_->state());
+}
+
 // TLS 1.3 handles a delayed AuthComplete callback differently since the
 // shape of the handshake is different.
 TEST_P(TlsConnectTls13, AuthCompleteDelayed) {
@@ -645,6 +670,44 @@ TEST_P(TlsConnectTls13, AuthCompleteDelayed) {
   server_->Handshake();  // Transition to connected and send NewSessionTicket
   EXPECT_EQ(TlsAgent::STATE_CONNECTED, client_->state());
   EXPECT_EQ(TlsAgent::STATE_CONNECTED, server_->state());
+}
+
+TEST_P(TlsConnectTls13, AuthCompleteFailDelayed) {
+  client_->SetAuthCertificateCallback(AuthCompleteBlock);
+
+  StartConnect();
+  client_->Handshake();  // Send ClientHello
+  server_->Handshake();  // Send ServerHello
+  EXPECT_EQ(TlsAgent::STATE_CONNECTING, client_->state());
+  EXPECT_EQ(TlsAgent::STATE_CONNECTING, server_->state());
+
+  // The client will send nothing until AuthCertificateComplete is called.
+  client_->SetPacketFilter(std::make_shared<EnforceNoActivity>());
+  client_->Handshake();
+  EXPECT_EQ(TlsAgent::STATE_CONNECTING, client_->state());
+
+  // Report failure.
+  client_->DeletePacketFilter();
+  ExpectAlert(client_, kTlsAlertBadCertificate);
+  EXPECT_EQ(SECSuccess, SSL_AuthCertificateComplete(client_->ssl_fd(),
+                                                    SSL_ERROR_BAD_CERTIFICATE));
+  client_->Handshake();  // This should now fail.
+  server_->Handshake();  // Get the error.
+  EXPECT_EQ(TlsAgent::STATE_ERROR, client_->state());
+  EXPECT_EQ(TlsAgent::STATE_ERROR, server_->state());
+}
+
+static SECStatus AuthCompleteFail(TlsAgent*, PRBool, PRBool) {
+  PORT_SetError(SSL_ERROR_BAD_CERTIFICATE);
+  return SECFailure;
+}
+
+TEST_P(TlsConnectGeneric, AuthFailImmediate) {
+  client_->SetAuthCertificateCallback(AuthCompleteFail);
+
+  StartConnect();
+  ConnectExpectAlert(client_, kTlsAlertBadCertificate);
+  client_->CheckErrorCode(SSL_ERROR_BAD_CERTIFICATE);
 }
 
 static const SSLExtraServerCertData ServerCertDataRsaPkcs1Decrypt = {

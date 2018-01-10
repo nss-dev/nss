@@ -670,7 +670,8 @@ void TlsConnectTestBase::ZeroRttSendReceive(
     EXPECT_EQ(k0RttDataLen, rv);
   } else {
     EXPECT_EQ(SECFailure, rv);
-    EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
+    EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError())
+        << "Unexpected error: " << PORT_ErrorToName(PORT_GetError());
   }
 
   // Do a second read. this should fail.
