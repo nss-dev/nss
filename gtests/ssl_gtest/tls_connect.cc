@@ -230,7 +230,9 @@ void TlsConnectTestBase::Reset() {
 
 void TlsConnectTestBase::Reset(const std::string& server_name,
                                const std::string& client_name) {
+  auto token = client_->GetResumptionToken();
   client_.reset(new TlsAgent(client_name, TlsAgent::CLIENT, variant_));
+  client_->SetResumptionToken(token);
   server_.reset(new TlsAgent(server_name, TlsAgent::SERVER, variant_));
   if (skip_version_checks_) {
     client_->SkipVersionChecks();
@@ -290,6 +292,7 @@ void TlsConnectTestBase::EnableExtendedMasterSecret() {
 void TlsConnectTestBase::Connect() {
   server_->StartConnect(server_model_ ? server_model_->ssl_fd() : nullptr);
   client_->StartConnect(client_model_ ? client_model_->ssl_fd() : nullptr);
+  client_->MaybeSetResumptionToken();
   Handshake();
   CheckConnected();
 }
@@ -754,6 +757,16 @@ TlsConnectTls12Plus::TlsConnectTls12Plus()
 
 TlsConnectTls13::TlsConnectTls13()
     : TlsConnectTestBase(GetParam(), SSL_LIBRARY_VERSION_TLS_1_3) {}
+
+TlsConnectGenericResumption::TlsConnectGenericResumption()
+    : TlsConnectTestBase(std::get<0>(GetParam()), std::get<1>(GetParam())),
+      external_cache_(std::get<2>(GetParam())) {}
+
+TlsConnectTls13ResumptionToken::TlsConnectTls13ResumptionToken()
+    : TlsConnectTestBase(GetParam(), SSL_LIBRARY_VERSION_TLS_1_3) {}
+
+TlsConnectGenericResumptionToken::TlsConnectGenericResumptionToken()
+    : TlsConnectTestBase(std::get<0>(GetParam()), std::get<1>(GetParam())) {}
 
 void TlsKeyExchangeTest::EnsureKeyShareSetup() {
   EnsureTlsSetup();
