@@ -431,6 +431,10 @@
               'LIBRARY_SEARCH_PATHS': ['/usr/lib <(sanitizer_flags)'],
             },
           }],
+          [ 'emit_llvm==1', {
+            'cflags': ['-flto'],
+            'ldflags': ['-flto', '-fuse-ld=gold', '-Wl,-plugin-opt=save-temps'],
+          }],
           [ 'OS=="android" and mozilla_client==0', {
             'defines': [
               'NO_SYSINFO',
