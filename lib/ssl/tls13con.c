@@ -462,7 +462,7 @@ tls13_SetupClientHello(sslSocket *ss)
         if (rv != SECSuccess) {
             FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
             SSL_AtomicIncrementLong(&ssl3stats->sch_sid_cache_not_ok);
-            ss->sec.uncache(ss->sec.ci.sid);
+            ssl_UncacheSessionID(ss);
             ssl_FreeSID(ss->sec.ci.sid);
             ss->sec.ci.sid = NULL;
             return SECFailure;
@@ -1719,7 +1719,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
     }
     if (hrr) {
         if (sid) { /* Free the sid. */
-            ss->sec.uncache(sid);
+            ssl_UncacheSessionID(ss);
             ssl_FreeSID(sid);
         }
         PORT_Assert(ss->ssl3.hs.helloRetry);
@@ -1769,8 +1769,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
     } else {
         if (sid) { /* we had a sid, but it's no longer valid, free it */
             SSL_AtomicIncrementLong(&ssl3stats->hch_sid_cache_not_ok);
-            if (ss->sec.uncache)
-                ss->sec.uncache(sid);
+            ssl_UncacheSessionID(ss);
             ssl_FreeSID(sid);
             sid = NULL;
         }
@@ -1830,7 +1829,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
         if (sid) {
             /* We had a sid, but it's no longer valid, free it. */
             SSL_AtomicIncrementLong(&ssl3stats->hch_sid_cache_not_ok);
-            ss->sec.uncache(sid);
+            ssl_UncacheSessionID(ss);
             ssl_FreeSID(sid);
         } else {
             SSL_AtomicIncrementLong(&ssl3stats->hch_sid_cache_misses);
@@ -1866,7 +1865,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
 
 loser:
     if (sid) {
-        ss->sec.uncache(sid);
+        ssl_UncacheSessionID(ss);
         ssl_FreeSID(sid);
     }
     return SECFailure;
@@ -2539,7 +2538,7 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
         }
         if (sid->cached == in_client_cache) {
             /* If we tried to resume and failed, let's not try again. */
-            ss->sec.uncache(sid);
+            ssl_UncacheSessionID(ss);
         }
     }
 
@@ -4681,7 +4680,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
             }
 
             /* Destroy the old SID. */
-            ss->sec.uncache(ss->sec.ci.sid);
+            ssl_UncacheSessionID(ss);
             ssl_FreeSID(ss->sec.ci.sid);
             ss->sec.ci.sid = sid;
         }
@@ -4707,7 +4706,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
         }
 
         /* Cache the session. */
-        ss->sec.cache(ss->sec.ci.sid);
+        ssl_CacheSessionID(ss);
     }
 
     return SECSuccess;
