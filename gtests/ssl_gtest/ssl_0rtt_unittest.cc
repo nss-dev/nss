@@ -455,13 +455,10 @@ static void CheckEarlyDataLimit(const std::shared_ptr<TlsAgent>& agent,
 }
 
 TEST_P(TlsConnectTls13, SendTooMuchEarlyData) {
-  EnsureTlsSetup();
   const char* big_message = "0123456789abcdef";
   const size_t short_size = strlen(big_message) - 1;
   const PRInt32 short_length = static_cast<PRInt32>(short_size);
-  EXPECT_EQ(SECSuccess,
-            SSL_SetMaxEarlyDataSize(server_->ssl_fd(),
-                                    static_cast<PRUint32>(short_size)));
+  SSLInt_SetMaxEarlyDataSize(static_cast<PRUint32>(short_size));
   SetupForZeroRtt();
 
   client_->Set0RttEnabled(true);
@@ -513,10 +510,8 @@ TEST_P(TlsConnectTls13, SendTooMuchEarlyData) {
 }
 
 TEST_P(TlsConnectTls13, ReceiveTooMuchEarlyData) {
-  EnsureTlsSetup();
-
   const size_t limit = 5;
-  EXPECT_EQ(SECSuccess, SSL_SetMaxEarlyDataSize(server_->ssl_fd(), limit));
+  SSLInt_SetMaxEarlyDataSize(limit);
   SetupForZeroRtt();
 
   client_->Set0RttEnabled(true);
