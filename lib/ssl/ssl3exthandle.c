@@ -1652,9 +1652,14 @@ ssl3_HandleSigAlgsXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                                    &xtnData->sigSchemes,
                                    &xtnData->numSigSchemes,
                                    &data->data, &data->len);
-    if (rv != SECSuccess || xtnData->numSigSchemes == 0) {
+    if (rv != SECSuccess) {
         ssl3_ExtSendAlert(ss, alert_fatal, decode_error);
         PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
+        return SECFailure;
+    }
+    if (xtnData->numSigSchemes == 0) {
+        ssl3_ExtSendAlert(ss, alert_fatal, handshake_failure);
+        PORT_SetError(SSL_ERROR_UNSUPPORTED_SIGNATURE_ALGORITHM);
         return SECFailure;
     }
     /* Check for trailing data. */
