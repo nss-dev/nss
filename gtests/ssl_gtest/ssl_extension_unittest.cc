@@ -424,7 +424,16 @@ TEST_P(TlsExtensionTest12Plus, SignatureAlgorithmsEmpty) {
   const uint8_t val[] = {0x00, 0x00};
   DataBuffer extension(val, sizeof(val));
   ClientHelloErrorTest(std::make_shared<TlsExtensionReplacer>(
-      ssl_signature_algorithms_xtn, extension));
+                           ssl_signature_algorithms_xtn, extension),
+                       kTlsAlertHandshakeFailure);
+}
+
+TEST_P(TlsExtensionTest12Plus, SignatureAlgorithmsNoOverlap) {
+  const uint8_t val[] = {0x00, 0x02, 0xff, 0xff};
+  DataBuffer extension(val, sizeof(val));
+  ClientHelloErrorTest(std::make_shared<TlsExtensionReplacer>(
+                           ssl_signature_algorithms_xtn, extension),
+                       kTlsAlertHandshakeFailure);
 }
 
 TEST_P(TlsExtensionTest12Plus, SignatureAlgorithmsOddLength) {

@@ -8111,6 +8111,9 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
     rv = ssl3_HandleParsedExtensions(ss, ssl_hs_client_hello);
     ssl3_DestroyRemoteExtensions(&ss->ssl3.hs.remoteExtensions);
     if (rv != SECSuccess) {
+        if (PORT_GetError() == SSL_ERROR_UNSUPPORTED_SIGNATURE_ALGORITHM) {
+            errCode = SSL_ERROR_UNSUPPORTED_SIGNATURE_ALGORITHM;
+        }
         goto loser; /* malformed */
     }
 
