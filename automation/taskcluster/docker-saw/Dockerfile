@@ -1,4 +1,4 @@
-FROM ubuntu:17.04
+FROM ubuntu:latest
 MAINTAINER Tim Taubert <ttaubert@mozilla.com>
 
 RUN useradd -d /home/worker -s /bin/bash -m worker
@@ -20,6 +20,10 @@ RUN apt-get update && apt-get install -y \
     ninja-build \
     unzip \
     zlib1g-dev
+
+# Add missing LLVM plugin for gold linker.
+ADD LLVMgold.so.zip /usr/lib/llvm-3.8/lib/LLVMgold.so.zip
+RUN unzip /usr/lib/llvm-3.8/lib/LLVMgold.so.zip -d /usr/lib/llvm-3.8/lib/
 
 # Install SAW/Cryptol.
 RUN curl -LO https://saw.galois.com/builds/nightly/saw-0.2-2018-01-14-Ubuntu14.04-64.tar.gz && \
