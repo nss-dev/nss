@@ -233,6 +233,7 @@ typedef struct sslOptionsStr {
      * list of supported protocols. */
     SECItem nextProtoNego;
 
+    PRUint32 maxEarlyDataSize;
     unsigned int useSecurity : 1;
     unsigned int useSocks : 1;
     unsigned int requestCertificate : 1;
@@ -1069,7 +1070,6 @@ extern FILE *ssl_keylog_iob;
 extern PZLock *ssl_keylog_lock;
 extern PRUint32 ssl3_sid_timeout;
 extern PRUint32 ssl_ticket_lifetime;
-extern PRUint32 ssl_max_early_data_size;
 
 extern const char *const ssl3_cipherName[];
 
