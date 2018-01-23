@@ -212,7 +212,7 @@ test_nss()
     RET=$?
 
     print_log "######## details of detected failures (if any) ########"
-    grep -B50 FAILED ${OUTPUTFILE}
+    grep -B50 -w FAILED ${OUTPUTFILE}
     [ $? -eq 1 ] || RET=1
 
     print_result "NSS - tests - ${BITS} bits - ${OPT}" ${RET} 0
