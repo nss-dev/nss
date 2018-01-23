@@ -951,6 +951,18 @@ async function scheduleTools() {
     kind: "test"
   };
 
+  //ABI check task
+  queue.scheduleTask(merge(base, {
+    symbol: "abi",
+    name: "abi",
+    image: LINUX_IMAGE,
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/check_abi.sh"
+    ],
+  }));
+
   queue.scheduleTask(merge(base, {
     symbol: "clang-format-3.9",
     name: "clang-format-3.9",

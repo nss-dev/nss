@@ -58,6 +58,18 @@ tar xJvf *.tar.xz -C /usr/local --strip-components=1
 # Cleanup.
 rm *.tar.xz*
 
+# Latest version of abigail-tools
+apt-get install -y libxml2-dev autoconf libelf-dev libdw-dev libtool git
+git clone git://sourceware.org/git/libabigail.git
+cd ./libabigail
+autoreconf -fi
+./configure --prefix=/usr --disable-static --disable-apidoc --disable-manual
+make
+make install
+cd ..
+apt-get remove -y libxml2-dev autoconf libtool git
+rm -rf libabigail
+
 # Install latest Rust (stable).
 su worker -c "curl https://sh.rustup.rs -sSf | sh -s -- -y"
 
