@@ -268,6 +268,8 @@ check_abi()
         fi
         abidiff --hd1 $PREVDIST/public/ --hd2 $NEWDIST/public \
             $PREVDIST/*/lib/$SO $NEWDIST/*/lib/$SO \
+            | grep -v "^Functions changes summary:" \
+            | grep -v "^Variables changes summary:" \
             > ${HGDIR}/nss/automation/abi-check/new-report-$SO.txt
         RET=$?
         ABIDIFF_ERROR=$((($RET & 0x01) != 0))
