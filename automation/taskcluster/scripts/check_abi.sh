@@ -98,10 +98,14 @@ abi_diff()
       fi
       abidiff --hd1 $PREVDIST/public/ --hd2 $NEWDIST/public \
           $PREVDIST/*/lib/$SO $NEWDIST/*/lib/$SO \
+          > ${HGDIR}/nss/automation/abi-check/new-report-temp$SO.txt
+      RET=$?
+      cat ${HGDIR}/nss/automation/abi-check/new-report-temp$SO.txt \
           | grep -v "^Functions changes summary:" \
           | grep -v "^Variables changes summary:" \
           > ${HGDIR}/nss/automation/abi-check/new-report-$SO.txt
-      RET=$?
+      rm -f ${HGDIR}/nss/automation/abi-check/new-report-temp$SO.txt
+
       ABIDIFF_ERROR=$((($RET & 0x01) != 0))
       ABIDIFF_USAGE_ERROR=$((($RET & 0x02) != 0))
       ABIDIFF_ABI_CHANGE=$((($RET & 0x04) != 0))
