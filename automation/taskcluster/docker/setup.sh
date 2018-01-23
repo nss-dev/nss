@@ -59,7 +59,7 @@ tar xJvf *.tar.xz -C /usr/local --strip-components=1
 rm *.tar.xz*
 
 # Latest version of abigail-tools
-apt-get install -y libxml2-dev autoconf libelf-dev libdw-dev libtool git
+apt-get install -y libxml2-dev autoconf libelf-dev libdw-dev libtool
 git clone git://sourceware.org/git/libabigail.git
 cd ./libabigail
 autoreconf -fi
@@ -67,7 +67,7 @@ autoreconf -fi
 make
 make install
 cd ..
-apt-get remove -y libxml2-dev autoconf libtool git
+apt-get remove -y libxml2-dev autoconf libtool
 rm -rf libabigail
 
 # Install latest Rust (stable).
