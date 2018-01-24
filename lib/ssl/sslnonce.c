@@ -423,7 +423,10 @@ ReadVariableFromBuffer(sslReader *reader, sslReadBuffer *readerBuffer,
     if (readerBuffer->len) {
         SECItem tempItem = { siBuffer, (unsigned char *)readerBuffer->buf,
                              readerBuffer->len };
-        SECITEM_CopyItem(NULL, dest, &tempItem);
+        SECStatus rv = SECITEM_CopyItem(NULL, dest, &tempItem);
+        if (rv != SECSuccess) {
+            return rv;
+        }
     }
     return SECSuccess;
 }
@@ -521,6 +524,7 @@ ssl_DecodeResumptionToken(sslSessionID *sid, const PRUint8 *encodedToken,
         return SECFailure;
     }
     if (readerBuffer.len) {
+        PORT_Assert(readerBuffer.buf);
         sid->peerID = PORT_Strdup((const char *)readerBuffer.buf);
     }
 
@@ -532,6 +536,7 @@ ssl_DecodeResumptionToken(sslSessionID *sid, const PRUint8 *encodedToken,
         if (sid->urlSvrName) {
             PORT_Free((void *)sid->urlSvrName);
         }
+        PORT_Assert(readerBuffer.buf);
         sid->urlSvrName = PORT_Strdup((const char *)readerBuffer.buf);
     }
 
@@ -605,6 +610,7 @@ ssl_DecodeResumptionToken(sslSessionID *sid, const PRUint8 *encodedToken,
         return SECFailure;
     }
     if (readerBuffer.len) {
+        PORT_Assert(readerBuffer.buf);
         PORT_Memcpy(sid->u.ssl3.sessionID, readerBuffer.buf, readerBuffer.len);
     }
 
@@ -626,6 +632,7 @@ ssl_DecodeResumptionToken(sslSessionID *sid, const PRUint8 *encodedToken,
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
+    PORT_Assert(readerBuffer.buf);
     PORT_Memcpy(sid->u.ssl3.keys.wrapped_master_secret, readerBuffer.buf,
                 readerBuffer.len);
 
@@ -758,8 +765,8 @@ ssl_EncodeResumptionToken(sslSessionID *sid, sslBuffer *encodedTokenBuf)
 {
     PORT_Assert(encodedTokenBuf);
     PORT_Assert(sid);
-    if (!sid->u.ssl3.locked.sessionTicket.ticket.len || !encodedTokenBuf ||
-        !sid || !sid->u.ssl3.keys.resumable || !sid->urlSvrName) {
+    if (!sid || !sid->u.ssl3.locked.sessionTicket.ticket.len ||
+        !encodedTokenBuf || !sid->u.ssl3.keys.resumable || !sid->urlSvrName) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
