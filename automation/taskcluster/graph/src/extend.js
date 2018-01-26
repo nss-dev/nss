@@ -1059,5 +1059,18 @@ async function scheduleTools() {
     ]
   }));
 
+  queue.scheduleTask(merge(base, {
+    parent: task_saw,
+    symbol: "Poly1305",
+    group: "SAW",
+    name: "poly1305.saw",
+    image: SAW_IMAGE,
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/run_saw.sh poly1305"
+    ]
+  }));
+
   return queue.submit();
 }
