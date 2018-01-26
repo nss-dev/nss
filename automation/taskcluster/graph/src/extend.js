@@ -192,8 +192,8 @@ export default async function main() {
       UBSAN_OPTIONS: "print_stacktrace=1",
       NSS_DISABLE_ARENA_FREE_LIST: "1",
       NSS_DISABLE_UNLOAD: "1",
-      CC: "clang",
-      CCC: "clang++",
+      CC: "clang-5.0",
+      CCC: "clang++-5.0",
     },
     platform: "linux64",
     collection: "asan",
@@ -423,12 +423,12 @@ async function scheduleLinux(name, base, args = "") {
   // Extra builds.
   let extra_base = merge({group: "Builds"}, build_base);
   queue.scheduleTask(merge(extra_base, {
-    name: `${name} w/ clang-4.0`,
+    name: `${name} w/ clang-5.0`,
     env: {
-      CC: "clang",
-      CCC: "clang++",
+      CC: "clang-5.0",
+      CCC: "clang++-5.0",
     },
-    symbol: "clang-4.0"
+    symbol: "clang-5.0"
   }));
 
   queue.scheduleTask(merge(extra_base, {
@@ -975,13 +975,13 @@ async function scheduleTools() {
   }));
 
   queue.scheduleTask(merge(base, {
-    symbol: "scan-build-4.0",
-    name: "scan-build-4.0",
+    symbol: "scan-build-5.0",
+    name: "scan-build-5.0",
     image: LINUX_IMAGE,
     env: {
       USE_64: "1",
-      CC: "clang",
-      CCC: "clang++",
+      CC: "clang-5.0",
+      CCC: "clang++-5.0",
     },
     artifacts: {
       public: {
