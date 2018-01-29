@@ -179,9 +179,7 @@ class TlsAgent : public PollTarget {
         sizeof(SSLResumptionTokenInfo));
     ASSERT_EQ(SECSuccess, rv);
   }
-  void SetResumptionCallbackCalled() {
-    resumption_callback_called_ = true;
-  }
+  void SetResumptionCallbackCalled() { resumption_callback_called_ = true; }
   bool resumption_callback_called() const {
     return resumption_callback_called_;
   }
