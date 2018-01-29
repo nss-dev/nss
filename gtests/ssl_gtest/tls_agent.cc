@@ -66,6 +66,7 @@ TlsAgent::TlsAgent(const std::string& name, Role role,
       expected_sent_alert_(kTlsAlertCloseNotify),
       expected_sent_alert_level_(kTlsAlertWarning),
       handshake_callback_called_(false),
+      resumption_callback_called_(false),
       error_code_(0),
       send_ctr_(0),
       recv_ctr_(0),
@@ -424,6 +425,7 @@ SECStatus ResumptionTokenCallback(PRFileDesc* fd,
 
   std::vector<uint8_t> new_token(resumptionToken, resumptionToken + len);
   reinterpret_cast<TlsAgent*>(ctx)->SetResumptionToken(new_token);
+  reinterpret_cast<TlsAgent*>(ctx)->SetResumptionCallbackCalled();
   return SECSuccess;
 }
 
