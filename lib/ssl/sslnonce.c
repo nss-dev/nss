@@ -667,27 +667,10 @@ ssl_DecodeResumptionToken(sslSessionID *sid, const PRUint8 *encodedToken,
     }
     sid->u.ssl3.masterWrapSeries = (PRUint16)tmpInt;
 
-    if (sslRead_ReadNumber(&reader, 8, &tmpInt) != SECSuccess) {
-        return SECFailure;
-    }
-    sid->u.ssl3.clAuthModuleID = (unsigned long)tmpInt;
-    if (sslRead_ReadNumber(&reader, 8, &tmpInt) != SECSuccess) {
-        return SECFailure;
-    }
-    sid->u.ssl3.clAuthSlotID = (unsigned long)tmpInt;
-    if (sslRead_ReadNumber(&reader, 2, &tmpInt) != SECSuccess) {
-        return SECFailure;
-    }
-    sid->u.ssl3.clAuthSeries = (PRUint16)tmpInt;
-
     if (sslRead_ReadNumber(&reader, 1, &tmpInt) != SECSuccess) {
         return SECFailure;
     }
     sid->u.ssl3.masterValid = (char)tmpInt;
-    if (sslRead_ReadNumber(&reader, 1, &tmpInt) != SECSuccess) {
-        return SECFailure;
-    }
-    sid->u.ssl3.clAuthValid = (char)tmpInt;
 
     if (ReadVariableFromBuffer(&reader, &readerBuffer, 1,
                                &sid->u.ssl3.srvName) != SECSuccess) {
@@ -1029,28 +1012,7 @@ ssl_EncodeResumptionToken(sslSessionID *sid, sslBuffer *encodedTokenBuf)
         return SECFailure;
     }
 
-    rv = sslBuffer_AppendNumber(encodedTokenBuf, sid->u.ssl3.clAuthModuleID, 8);
-    if (rv != SECSuccess) {
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        return SECFailure;
-    }
-    rv = sslBuffer_AppendNumber(encodedTokenBuf, sid->u.ssl3.clAuthSlotID, 8);
-    if (rv != SECSuccess) {
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        return SECFailure;
-    }
-    rv = sslBuffer_AppendNumber(encodedTokenBuf, sid->u.ssl3.clAuthSeries, 2);
-    if (rv != SECSuccess) {
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        return SECFailure;
-    }
-
     rv = sslBuffer_AppendNumber(encodedTokenBuf, sid->u.ssl3.masterValid, 1);
-    if (rv != SECSuccess) {
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        return SECFailure;
-    }
-    rv = sslBuffer_AppendNumber(encodedTokenBuf, sid->u.ssl3.clAuthValid, 1);
     if (rv != SECSuccess) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
@@ -1106,6 +1068,11 @@ ssl_CacheExternalToken(sslSocket *ss)
 
     /* This is only available for stateless resumption. */
     if (sid->u.ssl3.locked.sessionTicket.ticket.data == NULL) {
+        return;
+    }
+
+    /* Don't export token if the session used client authentication. */
+    if (sid->u.ssl3.clAuthValid) {
         return;
     }
 

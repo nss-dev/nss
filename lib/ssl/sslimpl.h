@@ -1701,7 +1701,7 @@ SECStatus SSLExp_GetResumptionTokenInfo(const PRUint8 *tokenData, unsigned int t
 
 SECStatus SSLExp_DestroyResumptionTokenInfo(SSLResumptionTokenInfo *token);
 
-#define SSLResumptionTokenVersion 1
+#define SSLResumptionTokenVersion 2
 
 SEC_END_PROTOS
 
