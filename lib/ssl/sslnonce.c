@@ -1134,10 +1134,12 @@ ssl_UncacheSessionID(sslSocket *ss)
     sslSecurityInfo *sec = &ss->sec;
     PORT_Assert(sec);
 
-    if (sec->isServer) {
-        ssl_ServerUncacheSessionID(sec->ci.sid);
-    } else if (!ss->resumptionTokenCallback) {
-        LockAndUncacheSID(sec->ci.sid);
+    if (sec->ci.sid) {
+        if (sec->isServer) {
+            ssl_ServerUncacheSessionID(sec->ci.sid);
+        } else if (!ss->resumptionTokenCallback) {
+            LockAndUncacheSID(sec->ci.sid);
+        }
     }
 }
 
