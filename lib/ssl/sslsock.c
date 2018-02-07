@@ -4040,13 +4040,13 @@ SSLExp_SetResumptionToken(PRFileDesc *fd, const PRUint8 *token,
 
     PRINT_BUF(50, (ss, "incoming resumption token", token, len));
 
-    ss->sec.ci.sid = ssl3_NewSessionID(ss, PR_FALSE);
-    if (!ss->sec.ci.sid) {
+    SECStatus rv = ssl3_NewSessionID(ss, PR_FALSE);
+    if (rv != SECSuccess) {
         goto done;
     }
 
     /* Populate NewSessionTicket values */
-    SECStatus rv = ssl_DecodeResumptionToken(ss->sec.ci.sid, token, len);
+    rv = ssl_DecodeResumptionToken(ss->sec.ci.sid, token, len);
     if (rv != SECSuccess) {
         // If decoding fails, we assume the token is bad.
         PORT_SetError(SSL_ERROR_BAD_RESUMPTION_TOKEN_ERROR);
@@ -4066,8 +4066,7 @@ SSLExp_SetResumptionToken(PRFileDesc *fd, const PRUint8 *token,
     /* Use the sid->cached as marker that this is from an external cache and
      * we don't have to look up anything in the NSS internal cache. */
     ss->sec.ci.sid->cached = in_external_cache;
-    // This has to be 2 to not free this in sendClientHello.
-    ss->sec.ci.sid->references = 2;
+    ss->sec.ci.sid->references = 1;
     ss->sec.ci.sid->lastAccessTime = ssl_TimeSec();
 
     ssl_ReleaseSSL3HandshakeLock(ss);

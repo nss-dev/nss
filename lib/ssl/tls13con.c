@@ -61,8 +61,7 @@ static SECStatus
 tls13_SendCertificateVerify(sslSocket *ss, SECKEYPrivateKey *privKey);
 static SECStatus tls13_HandleCertificateVerify(
     sslSocket *ss, PRUint8 *b, PRUint32 length);
-static SECStatus tls13_RecoverWrappedSharedSecret(sslSocket *ss,
-                                                  sslSessionID *sid);
+static SECStatus tls13_RecoverWrappedSharedSecret(sslSocket *ss);
 static SECStatus
 tls13_DeriveSecretWrap(sslSocket *ss, PK11SymKey *key,
                        const char *prefix,
@@ -457,14 +456,12 @@ tls13_SetupClientHello(sslSocket *ss)
     if (ss->statelessResume) {
         SECStatus rv;
 
-        PORT_Assert(ss->sec.ci.sid);
-        rv = tls13_RecoverWrappedSharedSecret(ss, ss->sec.ci.sid);
+        PORT_Assert(sid);
+        rv = tls13_RecoverWrappedSharedSecret(ss);
         if (rv != SECSuccess) {
             FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
             SSL_AtomicIncrementLong(&ssl3stats->sch_sid_cache_not_ok);
             ssl_UncacheSessionID(ss);
-            ssl_FreeSID(ss->sec.ci.sid);
-            ss->sec.ci.sid = NULL;
             return SECFailure;
         }
 
@@ -860,11 +857,12 @@ tls13_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b, PRUint32 length
 }
 
 static SECStatus
-tls13_RecoverWrappedSharedSecret(sslSocket *ss, sslSessionID *sid)
+tls13_RecoverWrappedSharedSecret(sslSocket *ss)
 {
     PK11SymKey *wrapKey; /* wrapping key */
     SECItem wrappedMS = { siBuffer, NULL, 0 };
     SSLHashType hashType;
+    sslSessionID *sid = ss->sec.ci.sid;
 
     SSL_TRC(3, ("%d: TLS13[%d]: recovering static secret (%s)",
                 SSL_GETPID(), ss->fd, SSL_ROLE(ss)));
@@ -1171,12 +1169,13 @@ tls13_ComputeFinalSecrets(sslSocket *ss)
 }
 
 static void
-tls13_RestoreCipherInfo(sslSocket *ss, sslSessionID *sid)
+tls13_RestoreCipherInfo(sslSocket *ss)
 {
     /* Set these to match the cached value.
      * TODO(ekr@rtfm.com): Make a version with the "true" values.
      * Bug 1256137.
      */
+    sslSessionID *sid = ss->sec.ci.sid;
     ss->sec.authType = sid->authType;
     ss->sec.authKeyBits = sid->authKeyBits;
     ss->sec.originalKeaGroup = ssl_LookupNamedGroup(sid->keaGroup);
@@ -1185,9 +1184,10 @@ tls13_RestoreCipherInfo(sslSocket *ss, sslSessionID *sid)
 
 /* Check whether resumption-PSK is allowed. */
 static PRBool
-tls13_CanResume(sslSocket *ss, const sslSessionID *sid)
+tls13_CanResume(sslSocket *ss)
 {
     const sslServerCert *sc;
+    sslSessionID *sid = ss->sec.ci.sid;
 
     if (!sid) {
         return PR_FALSE;
@@ -1214,8 +1214,9 @@ tls13_CanResume(sslSocket *ss, const sslSessionID *sid)
 }
 
 static PRBool
-tls13_CanNegotiateZeroRtt(sslSocket *ss, const sslSessionID *sid)
+tls13_CanNegotiateZeroRtt(sslSocket *ss)
 {
+    sslSessionID *sid = ss->sec.ci.sid;
     PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_sent);
 
     if (!sid)
@@ -1233,7 +1234,7 @@ tls13_CanNegotiateZeroRtt(sslSocket *ss, const sslSessionID *sid)
                             &sid->u.ssl3.alpnSelection) != 0)
         return PR_FALSE;
 
-    if (tls13_IsReplay(ss, sid)) {
+    if (tls13_IsReplay(ss)) {
         return PR_FALSE;
     }
 
@@ -1250,10 +1251,10 @@ tls13_CanNegotiateZeroRtt(sslSocket *ss, const sslSessionID *sid)
  * 5. We negotiated the same ALPN value as in the ticket.
  */
 static void
-tls13_NegotiateZeroRtt(sslSocket *ss, const sslSessionID *sid)
+tls13_NegotiateZeroRtt(sslSocket *ss)
 {
     SSL_TRC(3, ("%d: TLS13[%d]: negotiate 0-RTT %p",
-                SSL_GETPID(), ss->fd, sid));
+                SSL_GETPID(), ss->fd, ss->sec.ci.sid));
 
     /* tls13_ServerHandleEarlyDataXtn sets this to ssl_0rtt_sent, so this will
      * be ssl_0rtt_none unless early_data is present. */
@@ -1271,7 +1272,7 @@ tls13_NegotiateZeroRtt(sslSocket *ss, const sslSessionID *sid)
         return;
     }
 
-    if (!tls13_CanNegotiateZeroRtt(ss, sid)) {
+    if (!tls13_CanNegotiateZeroRtt(ss)) {
         SSL_TRC(3, ("%d: TLS13[%d]: ignore 0-RTT",
                     SSL_GETPID(), ss->fd));
         ss->ssl3.hs.zeroRttState = ssl_0rtt_ignored;
@@ -1574,7 +1575,6 @@ tls13_NegotiateAuthentication(sslSocket *ss)
 SECStatus
 tls13_HandleClientHelloPart2(sslSocket *ss,
                              const SECItem *suites,
-                             sslSessionID *sid,
                              const PRUint8 *msg,
                              unsigned int len)
 {
@@ -1663,12 +1663,12 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
 
     /* Check if we could in principle resume. */
     if (ss->statelessResume) {
-        PORT_Assert(sid);
-        if (!sid) {
+        PORT_Assert(ss->sec.ci.sid);
+        if (!ss->sec.ci.sid) {
             FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-            return SECFailure;
+            goto loser;
         }
-        if (!tls13_CanResume(ss, sid)) {
+        if (!tls13_CanResume(ss)) {
             ss->statelessResume = PR_FALSE;
         }
     }
@@ -1718,10 +1718,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
         goto loser;
     }
     if (hrr) {
-        if (sid) { /* Free the sid. */
-            ssl_UncacheSessionID(ss);
-            ssl_FreeSID(sid);
-        }
+        ssl_UncacheSessionID(ss);
         PORT_Assert(ss->ssl3.hs.helloRetry);
         return SECSuccess;
     }
@@ -1733,6 +1730,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
     }
 
     if (ss->statelessResume) {
+        sslSessionID *sid = ss->sec.ci.sid;
         /* We are now committed to trying to resume. */
         PORT_Assert(sid);
 
@@ -1748,13 +1746,13 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
                                                 sid->namedCurve);
         PORT_Assert(ss->sec.serverCert);
 
-        rv = tls13_RecoverWrappedSharedSecret(ss, sid);
+        rv = tls13_RecoverWrappedSharedSecret(ss);
         if (rv != SECSuccess) {
             SSL_AtomicIncrementLong(&ssl3stats->hch_sid_cache_not_ok);
             FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
             goto loser;
         }
-        tls13_RestoreCipherInfo(ss, sid);
+        tls13_RestoreCipherInfo(ss);
 
         ss->sec.localCert = CERT_DupCertificate(ss->sec.serverCert->serverCert);
         if (sid->peerCert != NULL) {
@@ -1765,22 +1763,20 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
             ss, &ss->xtnData,
             ssl_tls13_pre_shared_key_xtn, tls13_ServerSendPreSharedKeyXtn);
 
-        tls13_NegotiateZeroRtt(ss, sid);
+        tls13_NegotiateZeroRtt(ss);
     } else {
-        if (sid) { /* we had a sid, but it's no longer valid, free it */
+        if (ss->sec.ci.sid) { /* we had a sid, but it's no longer valid, free it */
             SSL_AtomicIncrementLong(&ssl3stats->hch_sid_cache_not_ok);
             ssl_UncacheSessionID(ss);
-            ssl_FreeSID(sid);
-            sid = NULL;
         }
-        tls13_NegotiateZeroRtt(ss, NULL);
+        tls13_NegotiateZeroRtt(ss);
     }
 
     /* Need to compute early secrets. */
     rv = tls13_ComputeEarlySecrets(ss);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-        return SECFailure;
+        goto loser;
     }
 
     /* Now that we have the binder key check the binder. */
@@ -1826,24 +1822,20 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
         SSL_AtomicIncrementLong(&ssl3stats->hch_sid_cache_hits);
         SSL_AtomicIncrementLong(&ssl3stats->hch_sid_stateless_resumes);
     } else {
-        if (sid) {
+        if (ss->sec.ci.sid) {
             /* We had a sid, but it's no longer valid, free it. */
             SSL_AtomicIncrementLong(&ssl3stats->hch_sid_cache_not_ok);
             ssl_UncacheSessionID(ss);
-            ssl_FreeSID(sid);
         } else {
             SSL_AtomicIncrementLong(&ssl3stats->hch_sid_cache_misses);
         }
 
-        sid = ssl3_NewSessionID(ss, PR_TRUE);
-        if (!sid) {
+        rv = ssl3_NewSessionID(ss, PR_TRUE);
+        if (rv != SECSuccess) {
             FATAL_ERROR(ss, PORT_GetError(), internal_error);
-            return SECFailure;
+            goto loser;
         }
     }
-    /* Take ownership of the session. */
-    ss->sec.ci.sid = sid;
-    sid = NULL;
 
     if (ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted) {
         rv = tls13_DeriveEarlySecrets(ss);
@@ -1864,10 +1856,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
     return SECSuccess;
 
 loser:
-    if (sid) {
-        ssl_UncacheSessionID(ss);
-        ssl_FreeSID(sid);
-    }
+    ssl_UncacheSessionID(ss);
     return SECFailure;
 }
 
@@ -2494,7 +2483,6 @@ SECStatus
 tls13_HandleServerHelloPart2(sslSocket *ss)
 {
     SECStatus rv;
-    sslSessionID *sid = ss->sec.ci.sid;
     SSL3Statistics *ssl3stats = SSL_GetStatistics();
 
     if (ssl3_ExtensionNegotiated(ss, ssl_tls13_pre_shared_key_xtn)) {
@@ -2510,7 +2498,7 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
 
     if (ss->statelessResume) {
         if (tls13_GetHash(ss) !=
-            tls13_GetHashForCipherSuite(sid->u.ssl3.cipherSuite)) {
+            tls13_GetHashForCipherSuite(ss->sec.ci.sid->u.ssl3.cipherSuite)) {
             FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_SERVER_HELLO,
                         illegal_parameter);
             return SECFailure;
@@ -2524,9 +2512,9 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
     if (ss->statelessResume) {
         /* PSK */
         ss->ssl3.hs.kea_def_mutable.authKeyType = ssl_auth_psk;
-        tls13_RestoreCipherInfo(ss, sid);
-        if (sid->peerCert) {
-            ss->sec.peerCert = CERT_DupCertificate(sid->peerCert);
+        tls13_RestoreCipherInfo(ss);
+        if (ss->sec.ci.sid->peerCert) {
+            ss->sec.peerCert = CERT_DupCertificate(ss->sec.ci.sid->peerCert);
         }
 
         SSL_AtomicIncrementLong(&ssl3stats->hsh_sid_cache_hits);
@@ -2536,7 +2524,7 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
         if (ssl3_ExtensionAdvertised(ss, ssl_tls13_pre_shared_key_xtn)) {
             SSL_AtomicIncrementLong(&ssl3stats->hsh_sid_cache_misses);
         }
-        if (sid->cached == in_client_cache) {
+        if (ss->sec.ci.sid->cached == in_client_cache) {
             /* If we tried to resume and failed, let's not try again. */
             ssl_UncacheSessionID(ss);
         }
@@ -2556,18 +2544,23 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
 
     /* Discard current SID and make a new one, though it may eventually
      * end up looking a lot like the old one.
+     * Note that we don't uncache here. By freeing the sid here the uncache
+     * in ssl3_NewSessionID has no effect.
      */
-    ssl_FreeSID(sid);
-    ss->sec.ci.sid = sid = ssl3_NewSessionID(ss, PR_FALSE);
-    if (sid == NULL) {
+    if (ss->sec.ci.sid) {
+        ssl_FreeSID(ss->sec.ci.sid);
+        ss->sec.ci.sid = NULL;
+    }
+    rv = ssl3_NewSessionID(ss, PR_FALSE);
+    if (rv != SECSuccess) {
         FATAL_ERROR(ss, PORT_GetError(), internal_error);
         return SECFailure;
     }
     if (ss->statelessResume) {
         PORT_Assert(ss->sec.peerCert);
-        sid->peerCert = CERT_DupCertificate(ss->sec.peerCert);
+        ss->sec.ci.sid->peerCert = CERT_DupCertificate(ss->sec.peerCert);
     }
-    sid->version = ss->version;
+    ss->sec.ci.sid->version = ss->version;
 
     rv = tls13_HandleServerKeyShare(ss);
     if (rv != SECSuccess) {
@@ -4663,24 +4656,22 @@ tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
         /* Replace a previous session ticket when
          * we receive a second NewSessionTicket message. */
         if (ss->sec.ci.sid->cached == in_client_cache) {
-            /* Create a new session ID. */
-            sslSessionID *sid = ssl3_NewSessionID(ss, PR_FALSE);
-            if (!sid) {
-                return SECFailure;
-            }
-
-            /* Copy over the peerCert. */
+            /* We need the cert in the new sid. */
             PORT_Assert(ss->sec.ci.sid->peerCert);
-            sid->peerCert = CERT_DupCertificate(ss->sec.ci.sid->peerCert);
-            if (!sid->peerCert) {
-                ssl_FreeSID(sid);
+            CERTCertificate *tmp = CERT_DupCertificate(ss->sec.ci.sid->peerCert);
+            if (!tmp) {
                 return SECFailure;
             }
 
-            /* Destroy the old SID. */
-            ssl_UncacheSessionID(ss);
-            ssl_FreeSID(ss->sec.ci.sid);
-            ss->sec.ci.sid = sid;
+            /* Create a new session ID. The old one is being destroyed. */
+            rv = ssl3_NewSessionID(ss, PR_FALSE);
+            if (rv != SECSuccess) {
+                CERT_DestroyCertificate(tmp);
+                return SECFailure;
+            }
+
+            /* "Copy" over the peerCert. */
+            ss->sec.ci.sid->peerCert = tmp;
         }
 
         ssl3_SetSIDSessionTicket(ss->sec.ci.sid, &ticket);
@@ -4697,7 +4688,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
             return SECFailure;
         }
 
-        rv = ssl3_FillInCachedSID(ss, ss->sec.ci.sid, secret);
+        rv = ssl3_FillInCachedSID(ss, secret);
         PK11_FreeSymKey(secret);
         if (rv != SECSuccess) {
             return SECFailure;
@@ -5022,10 +5013,11 @@ tls13_UnprotectRecord(sslSocket *ss,
  * Called from tls13_ClientSendEarlyDataXtn().
  */
 PRBool
-tls13_ClientAllow0Rtt(const sslSocket *ss, const sslSessionID *sid)
+tls13_ClientAllow0Rtt(const sslSocket *ss)
 {
     /* We checked that the cipher suite was still allowed back in
      * ssl3_SendClientHello. */
+    const sslSessionID *sid = ss->sec.ci.sid;
     if (sid->version < SSL_LIBRARY_VERSION_TLS_1_3)
         return PR_FALSE;
     if (ss->ssl3.hs.helloRetry)
