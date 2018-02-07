@@ -188,16 +188,17 @@ tls13_AntiReplayUpdate()
 }
 
 PRBool
-tls13_InWindow(const sslSocket *ss, const sslSessionID *sid)
+tls13_InWindow(const sslSocket *ss)
 {
     PRInt32 timeDelta;
+    PORT_Assert(ss->sec.ci.sid);
 
     /* Calculate the difference between the client's view of the age of the
      * ticket (in |ss->xtnData.ticketAge|) and the server's view, which we now
      * calculate.  The result should be close to zero.  timeDelta is signed to
      * make the comparisons below easier. */
     timeDelta = ss->xtnData.ticketAge -
-                ((ssl_TimeUsec() - sid->creationTime) / PR_USEC_PER_MSEC);
+                ((ssl_TimeUsec() - ss->sec.ci.sid->creationTime) / PR_USEC_PER_MSEC);
 
     /* Only allow the time delta to be at most half of our window.  This is
      * symmetrical, though it doesn't need to be; this assumes that clock errors
@@ -230,7 +231,7 @@ tls13_InWindow(const sslSocket *ss, const sslSessionID *sid)
  * replay.  In that case, we reject 0-RTT unnecessarily, but that's OK because
  * no client expects 0-RTT to work every time. */
 PRBool
-tls13_IsReplay(const sslSocket *ss, const sslSessionID *sid)
+tls13_IsReplay(const sslSocket *ss)
 {
     PRBool replay;
     unsigned int size;
@@ -245,7 +246,7 @@ tls13_IsReplay(const sslSocket *ss, const sslSessionID *sid)
         return PR_TRUE;
     }
 
-    if (!tls13_InWindow(ss, sid)) {
+    if (!tls13_InWindow(ss)) {
         return PR_TRUE;
     }
 

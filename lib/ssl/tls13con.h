@@ -70,7 +70,6 @@ PRBool tls13_PskSuiteEnabled(sslSocket *ss);
 SECStatus tls13_WriteExtensionsWithBinder(sslSocket *ss, sslBuffer *extensions);
 SECStatus tls13_HandleClientHelloPart2(sslSocket *ss,
                                        const SECItem *suites,
-                                       sslSessionID *sid,
                                        const PRUint8 *msg,
                                        unsigned int len);
 SECStatus tls13_HandleServerHelloPart2(sslSocket *ss);
@@ -99,12 +98,12 @@ SECStatus tls13_ProtectRecord(sslSocket *ss,
                               sslBuffer *wrBuf);
 PRInt32 tls13_Read0RttData(sslSocket *ss, void *buf, PRInt32 len);
 SECStatus tls13_HandleEarlyApplicationData(sslSocket *ss, sslBuffer *origBuf);
-PRBool tls13_ClientAllow0Rtt(const sslSocket *ss, const sslSessionID *sid);
+PRBool tls13_ClientAllow0Rtt(const sslSocket *ss);
 PRUint16 tls13_EncodeDraftVersion(SSL3ProtocolVersion version);
 SECStatus tls13_NegotiateVersion(sslSocket *ss,
                                  const TLSExtension *supported_versions);
 
-PRBool tls13_IsReplay(const sslSocket *ss, const sslSessionID *sid);
+PRBool tls13_IsReplay(const sslSocket *ss);
 void tls13_AntiReplayRollover(PRTime now);
 
 SECStatus SSLExp_SetupAntiReplay(PRTime window, unsigned int k,

@@ -530,6 +530,11 @@ INSTANTIATE_TEST_CASE_P(
                        TlsConnectTestBase::kTlsV11V12));
 INSTANTIATE_TEST_CASE_P(Pre13StreamOnly, TlsConnectStreamPre13,
                         TlsConnectTestBase::kTlsV10ToV12);
+INSTANTIATE_TEST_CASE_P(
+    Pre13Stream, TlsConnectStreamResumptionPre13,
+    ::testing::Combine(TlsConnectTestBase::kTlsVariantsStream,
+                       TlsConnectTestBase::kTlsV10ToV12,
+                       ::testing::Values(true, false)));
 
 INSTANTIATE_TEST_CASE_P(Version12Plus, TlsConnectTls12Plus,
                         ::testing::Combine(TlsConnectTestBase::kTlsVariantsAll,

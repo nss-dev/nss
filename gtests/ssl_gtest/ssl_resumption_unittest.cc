@@ -1035,4 +1035,27 @@ TEST_P(TlsConnectGenericResumption, ConnectResumeClientAuth) {
   SendReceive();
 }
 
+// Renegotiate a resumed session.
+TEST_P(TlsConnectStreamResumptionPre13, ConnectResumeRenegotiateClient) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  Connect();
+  SendReceive();
+
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  ExpectResumption(RESUME_TICKET);
+  Connect();
+
+  // Disable resumption and prepare for renegotiation.
+  server_->ExpectResumption(false);
+  server_->PrepareForRenegotiate();
+  client_->ExpectResumption(false);
+  client_->StartRenegotiate();
+  Handshake();
+  // Don't CheckConnected its logic doesn't work in this case.
+  // It assumes a certain number of SIDs, resumed sessions, and cache
+  // hits/misses.
+  SendReceive();
+}
+
 }  // namespace nss_test

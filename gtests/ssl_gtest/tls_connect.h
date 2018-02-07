@@ -313,6 +313,7 @@ class TlsConnectDatagramPre13 : public TlsConnectDatagram {
 
 // A variant that is used only with Pre13.
 class TlsConnectGenericPre13 : public TlsConnectGeneric {};
+class TlsConnectStreamResumptionPre13 : public TlsConnectGenericResumption {};
 
 class TlsKeyExchangeTest : public TlsConnectGeneric {
  protected:

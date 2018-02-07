@@ -627,7 +627,7 @@ SECStatus
 tls13_ClientSendEarlyDataXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                              sslBuffer *buf, PRBool *added)
 {
-    if (!tls13_ClientAllow0Rtt(ss, ss->sec.ci.sid)) {
+    if (!tls13_ClientAllow0Rtt(ss)) {
         return SECSuccess;
     }
 
