@@ -275,6 +275,11 @@
           '-std=gnu99',
         ],
       }],
+      [ 'OS=="dragonfly" or OS=="freebsd" or OS=="netbsd" or OS=="openbsd"', {
+        'cflags': [
+          '-std=gnu99',
+        ],
+      }],
       [ 'OS=="linux" or OS=="android"', {
         'conditions': [
           [ 'target_arch=="x64"', {
