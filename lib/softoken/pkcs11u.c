@@ -1193,7 +1193,7 @@ sftk_DeleteObject(SFTKSession *session, SFTKObject *object)
 
     /* Handle Token case */
     if (so && so->session) {
-        SFTKSession *session = so->session;
+        session = so->session;
         PZ_Lock(session->objectLock);
         sftkqueue_delete(&so->sessionList, 0, session->objects, 0);
         PZ_Unlock(session->objectLock);
