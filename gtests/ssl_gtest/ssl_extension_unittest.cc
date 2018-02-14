@@ -161,7 +161,7 @@ class TlsExtensionTestBase : public TlsConnectTestBase {
     StartConnect();
     client_->Handshake();  // Send ClientHello
     server_->Handshake();  // Send HRR.
-    client_->SetFilter(std::make_shared<TlsExtensionDropper>(client_, type));
+    MakeTlsFilter<TlsExtensionDropper>(client_, type);
     Handshake();
     client_->CheckErrorCode(client_error);
     server_->CheckErrorCode(server_error);
@@ -202,8 +202,8 @@ class TlsExtensionTest13
 
   void ConnectWithBogusVersionList(const uint8_t* buf, size_t len) {
     DataBuffer versions_buf(buf, len);
-    client_->SetFilter(std::make_shared<TlsExtensionReplacer>(
-        client_, ssl_tls13_supported_versions_xtn, versions_buf));
+    MakeTlsFilter<TlsExtensionReplacer>(
+        client_, ssl_tls13_supported_versions_xtn, versions_buf);
     ConnectExpectAlert(server_, kTlsAlertIllegalParameter);
     client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
     server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -214,8 +214,8 @@ class TlsExtensionTest13
 
     size_t index = versions_buf.Write(0, 2, 1);
     versions_buf.Write(index, version, 2);
-    client_->SetFilter(std::make_shared<TlsExtensionReplacer>(
-        client_, ssl_tls13_supported_versions_xtn, versions_buf));
+    MakeTlsFilter<TlsExtensionReplacer>(
+        client_, ssl_tls13_supported_versions_xtn, versions_buf);
     ConnectExpectFail();
   }
 };
@@ -524,10 +524,9 @@ TEST_P(TlsExtensionTest12, SignatureAlgorithmConfiguration) {
   const SSLSignatureScheme schemes[] = {ssl_sig_rsa_pss_rsae_sha512,
                                         ssl_sig_rsa_pss_rsae_sha384};
 
-  auto capture = std::make_shared<TlsExtensionCapture>(
-      client_, ssl_signature_algorithms_xtn);
+  auto capture =
+      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_signature_algorithms_xtn);
   client_->SetSignatureSchemes(schemes, PR_ARRAY_SIZE(schemes));
-  client_->SetFilter(capture);
   EnableOnlyStaticRsaCiphers();
   Connect();
 
@@ -556,8 +555,7 @@ TEST_P(TlsExtensionTest13, EmptyClientKeyShare) {
 // packet gets dropped.
 TEST_F(TlsExtensionTest13Stream, DropServerKeyShare) {
   EnsureTlsSetup();
-  server_->SetFilter(
-      std::make_shared<TlsExtensionDropper>(server_, ssl_tls13_key_share_xtn));
+  MakeTlsFilter<TlsExtensionDropper>(server_, ssl_tls13_key_share_xtn);
   client_->ExpectSendAlert(kTlsAlertMissingExtension);
   server_->ExpectSendAlert(kTlsAlertBadRecordMac);
   ConnectExpectFail();
@@ -577,8 +575,7 @@ TEST_F(TlsExtensionTest13Stream, WrongServerKeyShare) {
       0x02};
   DataBuffer buf(key_share, sizeof(key_share));
   EnsureTlsSetup();
-  server_->SetFilter(std::make_shared<TlsExtensionReplacer>(
-      server_, ssl_tls13_key_share_xtn, buf));
+  MakeTlsFilter<TlsExtensionReplacer>(server_, ssl_tls13_key_share_xtn, buf);
   client_->ExpectSendAlert(kTlsAlertIllegalParameter);
   server_->ExpectSendAlert(kTlsAlertBadRecordMac);
   ConnectExpectFail();
@@ -599,8 +596,7 @@ TEST_F(TlsExtensionTest13Stream, UnknownServerKeyShare) {
       0x02};
   DataBuffer buf(key_share, sizeof(key_share));
   EnsureTlsSetup();
-  server_->SetFilter(std::make_shared<TlsExtensionReplacer>(
-      server_, ssl_tls13_key_share_xtn, buf));
+  MakeTlsFilter<TlsExtensionReplacer>(server_, ssl_tls13_key_share_xtn, buf);
   client_->ExpectSendAlert(kTlsAlertMissingExtension);
   server_->ExpectSendAlert(kTlsAlertBadRecordMac);
   ConnectExpectFail();
@@ -611,8 +607,8 @@ TEST_F(TlsExtensionTest13Stream, UnknownServerKeyShare) {
 TEST_F(TlsExtensionTest13Stream, AddServerSignatureAlgorithmsOnResumption) {
   SetupForResume();
   DataBuffer empty;
-  server_->SetFilter(std::make_shared<TlsExtensionInjector>(
-      server_, ssl_signature_algorithms_xtn, empty));
+  MakeTlsFilter<TlsExtensionInjector>(server_, ssl_signature_algorithms_xtn,
+                                      empty);
   client_->ExpectSendAlert(kTlsAlertUnsupportedExtension);
   server_->ExpectSendAlert(kTlsAlertBadRecordMac);
   ConnectExpectFail();
@@ -751,10 +747,10 @@ class TlsPreSharedKeyReplacer : public TlsExtensionFilter {
 TEST_F(TlsExtensionTest13Stream, ResumeEmptyPskLabel) {
   SetupForResume();
 
-  client_->SetFilter(std::make_shared<TlsPreSharedKeyReplacer>(
+  MakeTlsFilter<TlsPreSharedKeyReplacer>(
       client_, [](TlsPreSharedKeyReplacer* r) {
         r->identities_[0].identity.Truncate(0);
-      }));
+      });
   ConnectExpectAlert(server_, kTlsAlertIllegalParameter);
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -764,10 +760,10 @@ TEST_F(TlsExtensionTest13Stream, ResumeEmptyPskLabel) {
 TEST_F(TlsExtensionTest13Stream, ResumeIncorrectBinderValue) {
   SetupForResume();
 
-  client_->SetFilter(std::make_shared<TlsPreSharedKeyReplacer>(
+  MakeTlsFilter<TlsPreSharedKeyReplacer>(
       client_, [](TlsPreSharedKeyReplacer* r) {
         r->binders_[0].Write(0, r->binders_[0].data()[0] ^ 0xff, 1);
-      }));
+      });
   ConnectExpectAlert(server_, kTlsAlertDecryptError);
   client_->CheckErrorCode(SSL_ERROR_DECRYPT_ERROR_ALERT);
   server_->CheckErrorCode(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
@@ -777,10 +773,10 @@ TEST_F(TlsExtensionTest13Stream, ResumeIncorrectBinderValue) {
 TEST_F(TlsExtensionTest13Stream, ResumeIncorrectBinderLength) {
   SetupForResume();
 
-  client_->SetFilter(std::make_shared<TlsPreSharedKeyReplacer>(
+  MakeTlsFilter<TlsPreSharedKeyReplacer>(
       client_, [](TlsPreSharedKeyReplacer* r) {
         r->binders_[0].Write(r->binders_[0].len(), 0xff, 1);
-      }));
+      });
   ConnectExpectAlert(server_, kTlsAlertIllegalParameter);
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -790,9 +786,8 @@ TEST_F(TlsExtensionTest13Stream, ResumeIncorrectBinderLength) {
 TEST_F(TlsExtensionTest13Stream, ResumeBinderTooShort) {
   SetupForResume();
 
-  client_->SetFilter(std::make_shared<TlsPreSharedKeyReplacer>(
-      client_,
-      [](TlsPreSharedKeyReplacer* r) { r->binders_[0].Truncate(31); }));
+  MakeTlsFilter<TlsPreSharedKeyReplacer>(
+      client_, [](TlsPreSharedKeyReplacer* r) { r->binders_[0].Truncate(31); });
   ConnectExpectAlert(server_, kTlsAlertIllegalParameter);
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -803,11 +798,11 @@ TEST_F(TlsExtensionTest13Stream, ResumeBinderTooShort) {
 TEST_F(TlsExtensionTest13Stream, ResumeTwoPsks) {
   SetupForResume();
 
-  client_->SetFilter(std::make_shared<TlsPreSharedKeyReplacer>(
+  MakeTlsFilter<TlsPreSharedKeyReplacer>(
       client_, [](TlsPreSharedKeyReplacer* r) {
         r->identities_.push_back(r->identities_[0]);
         r->binders_.push_back(r->binders_[0]);
-      }));
+      });
   ConnectExpectAlert(server_, kTlsAlertDecryptError);
   client_->CheckErrorCode(SSL_ERROR_DECRYPT_ERROR_ALERT);
   server_->CheckErrorCode(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
@@ -818,10 +813,10 @@ TEST_F(TlsExtensionTest13Stream, ResumeTwoPsks) {
 TEST_F(TlsExtensionTest13Stream, ResumeTwoIdentitiesOneBinder) {
   SetupForResume();
 
-  client_->SetFilter(std::make_shared<TlsPreSharedKeyReplacer>(
+  MakeTlsFilter<TlsPreSharedKeyReplacer>(
       client_, [](TlsPreSharedKeyReplacer* r) {
         r->identities_.push_back(r->identities_[0]);
-      }));
+      });
   ConnectExpectAlert(server_, kTlsAlertIllegalParameter);
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -830,10 +825,10 @@ TEST_F(TlsExtensionTest13Stream, ResumeTwoIdentitiesOneBinder) {
 TEST_F(TlsExtensionTest13Stream, ResumeOneIdentityTwoBinders) {
   SetupForResume();
 
-  client_->SetFilter(std::make_shared<TlsPreSharedKeyReplacer>(
+  MakeTlsFilter<TlsPreSharedKeyReplacer>(
       client_, [](TlsPreSharedKeyReplacer* r) {
         r->binders_.push_back(r->binders_[0]);
-      }));
+      });
   ConnectExpectAlert(server_, kTlsAlertIllegalParameter);
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -845,8 +840,8 @@ TEST_F(TlsExtensionTest13Stream, ResumePskExtensionNotLast) {
   const uint8_t empty_buf[] = {0};
   DataBuffer empty(empty_buf, 0);
   // Inject an unused extension after the PSK extension.
-  client_->SetFilter(std::make_shared<TlsExtensionAppender>(
-      client_, kTlsHandshakeClientHello, 0xffff, empty));
+  MakeTlsFilter<TlsExtensionAppender>(client_, kTlsHandshakeClientHello, 0xffff,
+                                      empty);
   ConnectExpectAlert(server_, kTlsAlertIllegalParameter);
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
@@ -856,8 +851,8 @@ TEST_F(TlsExtensionTest13Stream, ResumeNoKeModes) {
   SetupForResume();
 
   DataBuffer empty;
-  client_->SetFilter(std::make_shared<TlsExtensionDropper>(
-      client_, ssl_tls13_psk_key_exchange_modes_xtn));
+  MakeTlsFilter<TlsExtensionDropper>(client_,
+                                     ssl_tls13_psk_key_exchange_modes_xtn);
   ConnectExpectAlert(server_, kTlsAlertMissingExtension);
   client_->CheckErrorCode(SSL_ERROR_MISSING_EXTENSION_ALERT);
   server_->CheckErrorCode(SSL_ERROR_MISSING_PSK_KEY_EXCHANGE_MODES);
@@ -872,8 +867,8 @@ TEST_F(TlsExtensionTest13Stream, ResumeBogusKeModes) {
                                      kTls13PskKe};
 
   DataBuffer modes(ke_modes, sizeof(ke_modes));
-  client_->SetFilter(std::make_shared<TlsExtensionReplacer>(
-      client_, ssl_tls13_psk_key_exchange_modes_xtn, modes));
+  MakeTlsFilter<TlsExtensionReplacer>(
+      client_, ssl_tls13_psk_key_exchange_modes_xtn, modes);
   client_->ExpectSendAlert(kTlsAlertBadRecordMac);
   server_->ExpectSendAlert(kTlsAlertBadRecordMac);
   ConnectExpectFail();
@@ -883,9 +878,8 @@ TEST_F(TlsExtensionTest13Stream, ResumeBogusKeModes) {
 
 TEST_P(TlsExtensionTest13, NoKeModesIfResumptionOff) {
   ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
-  auto capture = std::make_shared<TlsExtensionCapture>(
+  auto capture = MakeTlsFilter<TlsExtensionCapture>(
       client_, ssl_tls13_psk_key_exchange_modes_xtn);
-  client_->SetFilter(capture);
   Connect();
   EXPECT_FALSE(capture->captured());
 }
@@ -980,9 +974,8 @@ class TlsBogusExtensionTest : public TlsConnectTestBase,
   void AddFilter(uint8_t message, uint16_t extension) {
     static uint8_t empty_buf[1] = {0};
     DataBuffer empty(empty_buf, 0);
-    auto filter = std::make_shared<TlsExtensionAppender>(server_, message,
-                                                         extension, empty);
-    server_->SetFilter(filter);
+    auto filter =
+        MakeTlsFilter<TlsExtensionAppender>(server_, message, extension, empty);
     if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
       filter->EnableDecryption();
     }
@@ -1100,9 +1093,7 @@ TEST_P(TlsConnectStream, IncludePadding) {
   SECStatus rv = SSL_SetURL(client_->ssl_fd(), long_name);
   EXPECT_EQ(SECSuccess, rv);
 
-  auto capture =
-      std::make_shared<TlsExtensionCapture>(client_, ssl_padding_xtn);
-  client_->SetFilter(capture);
+  auto capture = MakeTlsFilter<TlsExtensionCapture>(client_, ssl_padding_xtn);
   client_->StartConnect();
   client_->Handshake();
   EXPECT_TRUE(capture->captured());

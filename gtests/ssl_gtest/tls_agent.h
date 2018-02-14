@@ -14,7 +14,6 @@
 #include <iostream>
 
 #include "test_io.h"
-#include "tls_filter.h"
 
 #define GTEST_HAS_RTTI 0
 #include "gtest/gtest.h"
@@ -37,7 +36,10 @@ enum SessionResumptionMode {
   RESUME_BOTH = RESUME_SESSIONID | RESUME_TICKET
 };
 
+class PacketFilter;
 class TlsAgent;
+class TlsCipherSpec;
+struct TlsRecord;
 
 const extern std::vector<SSLNamedGroup> kAllDHEGroups;
 const extern std::vector<SSLNamedGroup> kECDHEGroups;

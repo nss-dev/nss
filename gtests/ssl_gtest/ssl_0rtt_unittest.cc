@@ -115,9 +115,8 @@ class TlsZeroRttReplayTest : public TlsConnectTls13 {
     server_->Set0RttEnabled(true);
 
     // Capture the early_data extension, which should not appear.
-    auto early_data_ext = std::make_shared<TlsExtensionCapture>(
-        server_, ssl_tls13_early_data_xtn);
-    server_->SetFilter(early_data_ext);
+    auto early_data_ext =
+        MakeTlsFilter<TlsExtensionCapture>(server_, ssl_tls13_early_data_xtn);
 
     // Finally, replay the ClientHello and force the server to consume it.  Stop
     // after the server sends its first flight; the client will not be able to

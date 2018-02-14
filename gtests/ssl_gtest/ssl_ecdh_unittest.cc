@@ -75,9 +75,8 @@ TEST_P(TlsConnectGeneric, ConnectEcdheP384Client) {
 // This causes a HelloRetryRequest in TLS 1.3.  Earlier versions don't care.
 TEST_P(TlsConnectGeneric, ConnectEcdheP384Server) {
   EnsureTlsSetup();
-  auto hrr_capture = std::make_shared<TlsHandshakeRecorder>(
+  auto hrr_capture = MakeTlsFilter<TlsHandshakeRecorder>(
       server_, kTlsHandshakeHelloRetryRequest);
-  server_->SetFilter(hrr_capture);
   const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1};
   server_->ConfigNamedGroups(groups);
   Connect();
@@ -221,10 +220,8 @@ class TlsKeyExchangeGroupCapture : public TlsHandshakeFilter {
 // P-256 is supported by the client (<= 1.2 only).
 TEST_P(TlsConnectGenericPre13, DropSupportedGroupExtensionP256) {
   EnsureTlsSetup();
-  client_->SetFilter(
-      std::make_shared<TlsExtensionDropper>(client_, ssl_supported_groups_xtn));
-  auto group_capture = std::make_shared<TlsKeyExchangeGroupCapture>(server_);
-  server_->SetFilter(group_capture);
+  MakeTlsFilter<TlsExtensionDropper>(client_, ssl_supported_groups_xtn);
+  auto group_capture = MakeTlsFilter<TlsKeyExchangeGroupCapture>(server_);
 
   ConnectExpectAlert(server_, kTlsAlertDecryptError);
   client_->CheckErrorCode(SSL_ERROR_DECRYPT_ERROR_ALERT);
@@ -236,8 +233,7 @@ TEST_P(TlsConnectGenericPre13, DropSupportedGroupExtensionP256) {
 // Supported groups is mandatory in TLS 1.3.
 TEST_P(TlsConnectTls13, DropSupportedGroupExtension) {
   EnsureTlsSetup();
-  client_->SetFilter(
-      std::make_shared<TlsExtensionDropper>(client_, ssl_supported_groups_xtn));
+  MakeTlsFilter<TlsExtensionDropper>(client_, ssl_supported_groups_xtn);
   ConnectExpectAlert(server_, kTlsAlertMissingExtension);
   client_->CheckErrorCode(SSL_ERROR_MISSING_EXTENSION_ALERT);
   server_->CheckErrorCode(SSL_ERROR_MISSING_SUPPORTED_GROUPS_EXTENSION);
@@ -552,13 +548,13 @@ class ECCServerKEXFilter : public TlsHandshakeFilter {
 };
 
 TEST_P(TlsConnectGenericPre13, ConnectECDHEmptyServerPoint) {
-  server_->SetFilter(std::make_shared<ECCServerKEXFilter>(server_));
+  MakeTlsFilter<ECCServerKEXFilter>(server_);
   ConnectExpectAlert(client_, kTlsAlertIllegalParameter);
   client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_SERVER_KEY_EXCH);
 }
 
 TEST_P(TlsConnectGenericPre13, ConnectECDHEmptyClientPoint) {
-  client_->SetFilter(std::make_shared<ECCClientKEXFilter>(client_));
+  MakeTlsFilter<ECCClientKEXFilter>(client_);
   ConnectExpectAlert(server_, kTlsAlertIllegalParameter);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_KEY_EXCH);
 }

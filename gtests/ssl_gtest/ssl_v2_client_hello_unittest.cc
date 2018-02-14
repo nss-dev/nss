@@ -23,7 +23,8 @@ namespace nss_test {
 // Replaces the client hello with an SSLv2 version once.
 class SSLv2ClientHelloFilter : public PacketFilter {
  public:
-  SSLv2ClientHelloFilter(std::shared_ptr<TlsAgent>& client, uint16_t version)
+  SSLv2ClientHelloFilter(const std::shared_ptr<TlsAgent>& client,
+                         uint16_t version)
       : replaced_(false),
         client_(client),
         version_(version),
@@ -149,8 +150,7 @@ class SSLv2ClientHelloTestF : public TlsConnectTestBase {
 
   void SetUp() override {
     TlsConnectTestBase::SetUp();
-    filter_ = std::make_shared<SSLv2ClientHelloFilter>(client_, version_);
-    client_->SetFilter(filter_);
+    filter_ = MakeTlsFilter<SSLv2ClientHelloFilter>(client_, version_);
   }
 
   void SetExpectedVersion(uint16_t version) {

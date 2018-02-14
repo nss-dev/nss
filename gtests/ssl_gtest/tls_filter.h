@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "test_io.h"
+#include "tls_agent.h"
 #include "tls_parser.h"
 #include "tls_protect.h"
 
@@ -23,7 +24,6 @@ extern "C" {
 namespace nss_test {
 
 class TlsCipherSpec;
-class TlsAgent;
 
 class TlsVersioned {
  public:
@@ -70,6 +70,15 @@ struct TlsRecord {
   const TlsRecordHeader header;
   const DataBuffer buffer;
 };
+
+// Make a filter and install it on a TlsAgent.
+template <class T, typename... Args>
+inline std::shared_ptr<T> MakeTlsFilter(const std::shared_ptr<TlsAgent>& agent,
+                                        Args&&... args) {
+  auto filter = std::make_shared<T>(agent, std::forward<Args>(args)...);
+  agent->SetFilter(filter);
+  return filter;
+}
 
 // Abstract filter that operates on entire (D)TLS records.
 class TlsRecordFilter : public PacketFilter {

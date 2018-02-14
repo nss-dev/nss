@@ -778,9 +778,8 @@ void TlsKeyExchangeTest::EnsureKeyShareSetup() {
   std::vector<std::shared_ptr<PacketFilter>> captures = {
       groups_capture_, shares_capture_, shares_capture2_};
   client_->SetFilter(std::make_shared<ChainedPacketFilter>(captures));
-  capture_hrr_ = std::make_shared<TlsHandshakeRecorder>(
+  capture_hrr_ = MakeTlsFilter<TlsHandshakeRecorder>(
       server_, kTlsHandshakeHelloRetryRequest);
-  server_->SetFilter(capture_hrr_);
 }
 
 void TlsKeyExchangeTest::ConfigNamedGroups(
