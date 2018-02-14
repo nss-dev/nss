@@ -415,7 +415,7 @@ class TestAgent {
 
     size_t left = sizeof(block);
     while (left) {
-      int32_t rv = PR_Read(ssl_fd_, block, left);
+      rv = PR_Read(ssl_fd_, block, left);
       if (rv < 0) {
         std::cerr << "Failure reading\n";
         return SECFailure;

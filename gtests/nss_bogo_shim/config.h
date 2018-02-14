@@ -23,8 +23,8 @@
 // Abstract base class for a given config flag.
 class ConfigEntryBase {
  public:
-  ConfigEntryBase(const std::string& name, const std::string& type)
-      : name_(name), type_(type) {}
+  ConfigEntryBase(const std::string& nm, const std::string& typ)
+      : name_(nm), type_(typ) {}
 
   virtual ~ConfigEntryBase() {}
 

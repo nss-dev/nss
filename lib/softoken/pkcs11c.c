@@ -7575,13 +7575,13 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                 (const CK_NSS_HKDFParams *)pMechanism->pParameter;
             const SECHashObject *rawHash;
             unsigned hashLen;
-            CK_BYTE buf[HASH_LENGTH_MAX];
+            CK_BYTE hashbuf[HASH_LENGTH_MAX];
             CK_BYTE *prk; /* psuedo-random key */
             CK_ULONG prkLen;
             CK_BYTE *okm; /* output keying material */
 
             rawHash = HASH_GetRawHashObject(hashType);
-            if (rawHash == NULL || rawHash->length > sizeof buf) {
+            if (rawHash == NULL || rawHash->length > sizeof(hashbuf)) {
                 crv = CKR_FUNCTION_FAILED;
                 break;
             }
@@ -7615,7 +7615,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                 saltLen = params->ulSaltLen;
                 if (salt == NULL) {
                     saltLen = hashLen;
-                    salt = buf;
+                    salt = hashbuf;
                     memset(salt, 0, saltLen);
                 }
                 hmac = HMAC_Create(rawHash, salt, saltLen, isFIPS);
@@ -7626,10 +7626,10 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                 HMAC_Begin(hmac);
                 HMAC_Update(hmac, (const unsigned char *)att->attrib.pValue,
                             att->attrib.ulValueLen);
-                HMAC_Finish(hmac, buf, &bufLen, sizeof(buf));
+                HMAC_Finish(hmac, hashbuf, &bufLen, sizeof(hashbuf));
                 HMAC_Destroy(hmac, PR_TRUE);
                 PORT_Assert(bufLen == rawHash->length);
-                prk = buf;
+                prk = hashbuf;
                 prkLen = bufLen;
             } else {
                 /* PRK = base key value */
@@ -7646,24 +7646,24 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                  * key material = T(1) | ... | T(n)
                  */
                 HMACContext *hmac;
-                CK_BYTE i;
+                CK_BYTE bi;
                 unsigned iterations = PR_ROUNDUP(keySize, hashLen) / hashLen;
                 hmac = HMAC_Create(rawHash, prk, prkLen, isFIPS);
                 if (hmac == NULL) {
                     crv = CKR_HOST_MEMORY;
                     break;
                 }
-                for (i = 1; i <= iterations; ++i) {
+                for (bi = 1; bi <= iterations; ++bi) {
                     unsigned len;
                     HMAC_Begin(hmac);
-                    if (i > 1) {
-                        HMAC_Update(hmac, key_block + ((i - 2) * hashLen), hashLen);
+                    if (bi > 1) {
+                        HMAC_Update(hmac, key_block + ((bi - 2) * hashLen), hashLen);
                     }
                     if (params->ulInfoLen != 0) {
                         HMAC_Update(hmac, params->pInfo, params->ulInfoLen);
                     }
-                    HMAC_Update(hmac, &i, 1);
-                    HMAC_Finish(hmac, key_block + ((i - 1) * hashLen), &len,
+                    HMAC_Update(hmac, &bi, 1);
+                    HMAC_Finish(hmac, key_block + ((bi - 1) * hashLen), &len,
                                 hashLen);
                     PORT_Assert(len == hashLen);
                 }
