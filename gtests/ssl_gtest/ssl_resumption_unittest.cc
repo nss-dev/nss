@@ -219,8 +219,7 @@ TEST_P(TlsConnectGenericResumption, ConnectWithExpiredTicketAtClient) {
   SSLExtensionType xtn = (version_ >= SSL_LIBRARY_VERSION_TLS_1_3)
                              ? ssl_tls13_pre_shared_key_xtn
                              : ssl_session_ticket_xtn;
-  auto capture = std::make_shared<TlsExtensionCapture>(client_, xtn);
-  client_->SetFilter(capture);
+  auto capture = MakeTlsFilter<TlsExtensionCapture>(client_, xtn);
   Connect();
 
   if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
@@ -245,8 +244,7 @@ TEST_P(TlsConnectGeneric, ConnectWithExpiredTicketAtServer) {
   SSLExtensionType xtn = (version_ >= SSL_LIBRARY_VERSION_TLS_1_3)
                              ? ssl_tls13_pre_shared_key_xtn
                              : ssl_session_ticket_xtn;
-  auto capture = std::make_shared<TlsExtensionCapture>(client_, xtn);
-  client_->SetFilter(capture);
+  auto capture = MakeTlsFilter<TlsExtensionCapture>(client_, xtn);
   StartConnect();
   client_->Handshake();
   EXPECT_TRUE(capture->captured());
@@ -327,9 +325,8 @@ TEST_P(TlsConnectGeneric, ServerSNICertTypeSwitch) {
 
 // Prior to TLS 1.3, we were not fully ephemeral; though 1.3 fixes that
 TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceReuseKey) {
-  auto filter = std::make_shared<TlsHandshakeRecorder>(
+  auto filter = MakeTlsFilter<TlsHandshakeRecorder>(
       server_, kTlsHandshakeServerKeyExchange);
-  server_->SetFilter(filter);
   Connect();
   CheckKeys();
   TlsServerKeyExchangeEcdhe dhe1;
@@ -337,9 +334,8 @@ TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceReuseKey) {
 
   // Restart
   Reset();
-  auto filter2 = std::make_shared<TlsHandshakeRecorder>(
+  auto filter2 = MakeTlsFilter<TlsHandshakeRecorder>(
       server_, kTlsHandshakeServerKeyExchange);
-  server_->SetFilter(filter2);
   ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
   Connect();
   CheckKeys();
@@ -356,9 +352,8 @@ TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceReuseKey) {
 // This test parses the ServerKeyExchange, which isn't in 1.3
 TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceNewKey) {
   server_->SetOption(SSL_REUSE_SERVER_ECDHE_KEY, PR_FALSE);
-  auto filter = std::make_shared<TlsHandshakeRecorder>(
+  auto filter = MakeTlsFilter<TlsHandshakeRecorder>(
       server_, kTlsHandshakeServerKeyExchange);
-  server_->SetFilter(filter);
   Connect();
   CheckKeys();
   TlsServerKeyExchangeEcdhe dhe1;
@@ -367,9 +362,8 @@ TEST_P(TlsConnectGenericPre13, ConnectEcdheTwiceNewKey) {
   // Restart
   Reset();
   server_->SetOption(SSL_REUSE_SERVER_ECDHE_KEY, PR_FALSE);
-  auto filter2 = std::make_shared<TlsHandshakeRecorder>(
+  auto filter2 = MakeTlsFilter<TlsHandshakeRecorder>(
       server_, kTlsHandshakeServerKeyExchange);
-  server_->SetFilter(filter2);
   ConfigureSessionCache(RESUME_NONE, RESUME_NONE);
   Connect();
   CheckKeys();
@@ -435,8 +429,7 @@ TEST_P(TlsConnectGenericResumption, TestResumeClientDifferentCipher) {
     ticket_extension = ssl_session_ticket_xtn;
   }
   auto ticket_capture =
-      std::make_shared<TlsExtensionCapture>(client_, ticket_extension);
-  client_->SetFilter(ticket_capture);
+      MakeTlsFilter<TlsExtensionCapture>(client_, ticket_extension);
   Connect();
   CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
   EXPECT_EQ(0U, ticket_capture->extension().len());
@@ -469,8 +462,8 @@ TEST_P(TlsConnectStream, TestResumptionOverrideCipher) {
 
   Reset();
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
-  server_->SetFilter(std::make_shared<SelectedCipherSuiteReplacer>(
-      server_, ChooseAnotherCipher(version_)));
+  MakeTlsFilter<SelectedCipherSuiteReplacer>(server_,
+                                             ChooseAnotherCipher(version_));
 
   if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
     client_->ExpectSendAlert(kTlsAlertIllegalParameter);
@@ -546,8 +539,7 @@ TEST_P(TlsConnectGenericPre13, TestResumptionOverrideVersion) {
   // Enable the lower version on the client.
   client_->SetVersionRange(version_ - 1, version_);
   server_->EnableSingleCipher(TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA);
-  server_->SetFilter(
-      std::make_shared<SelectedVersionReplacer>(server_, override_version));
+  MakeTlsFilter<SelectedVersionReplacer>(server_, override_version);
 
   ConnectExpectAlert(client_, kTlsAlertHandshakeFailure);
   client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
@@ -570,9 +562,8 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
   ExpectResumption(RESUME_TICKET);
-  auto c1 = std::make_shared<TlsExtensionCapture>(client_,
-                                                  ssl_tls13_pre_shared_key_xtn);
-  client_->SetFilter(c1);
+  auto c1 =
+      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_tls13_pre_shared_key_xtn);
   Connect();
   SendReceive();
   CheckKeys(ssl_kea_ecdh, ssl_grp_ec_curve25519, ssl_auth_rsa_sign,
@@ -588,9 +579,8 @@ TEST_F(TlsConnectTest, TestTls13ResumptionTwice) {
   ClearStats();
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
-  auto c2 = std::make_shared<TlsExtensionCapture>(client_,
-                                                  ssl_tls13_pre_shared_key_xtn);
-  client_->SetFilter(c2);
+  auto c2 =
+      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_tls13_pre_shared_key_xtn);
   ExpectResumption(RESUME_TICKET);
   Connect();
   SendReceive();
@@ -661,10 +651,9 @@ TEST_F(TlsConnectTest, TestTls13ResumptionDuplicateNSTWithToken) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
 
-  auto nst_capture = std::make_shared<TlsHandshakeRecorder>(
-      server_, ssl_hs_new_session_ticket);
+  auto nst_capture =
+      MakeTlsFilter<TlsHandshakeRecorder>(server_, ssl_hs_new_session_ticket);
   nst_capture->EnableDecryption();
-  server_->SetFilter(nst_capture);
   Connect();
 
   // Clear the session ticket keys to invalidate the old ticket.
@@ -684,9 +673,8 @@ TEST_F(TlsConnectTest, TestTls13ResumptionDuplicateNSTWithToken) {
   ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
   ExpectResumption(RESUME_TICKET);
 
-  auto psk_capture = std::make_shared<TlsExtensionCapture>(
-      client_, ssl_tls13_pre_shared_key_xtn);
-  client_->SetFilter(psk_capture);
+  auto psk_capture =
+      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_tls13_pre_shared_key_xtn);
   Connect();
   SendReceive();
 
@@ -702,10 +690,9 @@ TEST_F(TlsConnectTest, SendSessionTicketWithTicketsDisabled) {
   EXPECT_EQ(SECSuccess, SSL_OptionSet(server_->ssl_fd(),
                                       SSL_ENABLE_SESSION_TICKETS, PR_FALSE));
 
-  auto nst_capture = std::make_shared<TlsHandshakeRecorder>(
-      server_, ssl_hs_new_session_ticket);
+  auto nst_capture =
+      MakeTlsFilter<TlsHandshakeRecorder>(server_, ssl_hs_new_session_ticket);
   nst_capture->EnableDecryption();
-  server_->SetFilter(nst_capture);
   Connect();
 
   EXPECT_EQ(0U, nst_capture->buffer().len()) << "expect nothing captured yet";
@@ -721,9 +708,8 @@ TEST_F(TlsConnectTest, SendSessionTicketWithTicketsDisabled) {
   ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_3);
   ExpectResumption(RESUME_TICKET);
 
-  auto psk_capture = std::make_shared<TlsExtensionCapture>(
-      client_, ssl_tls13_pre_shared_key_xtn);
-  client_->SetFilter(psk_capture);
+  auto psk_capture =
+      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_tls13_pre_shared_key_xtn);
   Connect();
   SendReceive();
 

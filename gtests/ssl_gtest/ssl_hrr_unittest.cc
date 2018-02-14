@@ -35,17 +35,15 @@ TEST_P(TlsConnectTls13, HelloRetryRequestAbortsZeroRtt) {
 
   // Send first ClientHello and send 0-RTT data
   auto capture_early_data =
-      std::make_shared<TlsExtensionCapture>(client_, ssl_tls13_early_data_xtn);
-  client_->SetFilter(capture_early_data);
+      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_tls13_early_data_xtn);
   client_->Handshake();
   EXPECT_EQ(k0RttDataLen, PR_Write(client_->ssl_fd(), k0RttData,
                                    k0RttDataLen));  // 0-RTT write.
   EXPECT_TRUE(capture_early_data->captured());
 
   // Send the HelloRetryRequest
-  auto hrr_capture = std::make_shared<TlsHandshakeRecorder>(
+  auto hrr_capture = MakeTlsFilter<TlsHandshakeRecorder>(
       server_, kTlsHandshakeHelloRetryRequest);
-  server_->SetFilter(hrr_capture);
   server_->Handshake();
   EXPECT_LT(0U, hrr_capture->buffer().len());
 
@@ -56,8 +54,7 @@ TEST_P(TlsConnectTls13, HelloRetryRequestAbortsZeroRtt) {
 
   // Make a new capture for the early data.
   capture_early_data =
-      std::make_shared<TlsExtensionCapture>(client_, ssl_tls13_early_data_xtn);
-  client_->SetFilter(capture_early_data);
+      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_tls13_early_data_xtn);
 
   // Complete the handshake successfully
   Handshake();
@@ -135,8 +132,7 @@ TEST_P(TlsConnectTls13, SecondClientHelloRejectEarlyDataXtn) {
 
   // Correct the DTLS message sequence number after an HRR.
   if (variant_ == ssl_variant_datagram) {
-    client_->SetFilter(
-        std::make_shared<CorrectMessageSeqAfterHrrFilter>(client_));
+    MakeTlsFilter<CorrectMessageSeqAfterHrrFilter>(client_);
   }
 
   server_->SetPeer(client_);
@@ -183,7 +179,7 @@ class KeyShareReplayer : public TlsExtensionFilter {
 // server should reject this.
 TEST_P(TlsConnectTls13, RetryWithSameKeyShare) {
   EnsureTlsSetup();
-  client_->SetFilter(std::make_shared<KeyShareReplayer>(client_));
+  MakeTlsFilter<KeyShareReplayer>(client_);
   static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1,
                                                     ssl_grp_ec_secp521r1};
   server_->ConfigNamedGroups(groups);
@@ -197,7 +193,7 @@ TEST_P(TlsConnectTls13, RetryWithSameKeyShare) {
 TEST_P(TlsConnectTls13, RetryWithTwoShares) {
   EnsureTlsSetup();
   EXPECT_EQ(SECSuccess, SSL_SendAdditionalKeyShares(client_->ssl_fd(), 1));
-  client_->SetFilter(std::make_shared<KeyShareReplayer>(client_));
+  MakeTlsFilter<KeyShareReplayer>(client_);
 
   static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1,
                                                     ssl_grp_ec_secp521r1};
@@ -244,9 +240,8 @@ TEST_P(TlsConnectTls13, RetryCallbackAcceptGroupMismatch) {
   };
 
   auto capture =
-      std::make_shared<TlsExtensionCapture>(server_, ssl_tls13_cookie_xtn);
+      MakeTlsFilter<TlsExtensionCapture>(server_, ssl_tls13_cookie_xtn);
   capture->SetHandshakeTypes({kTlsHandshakeHelloRetryRequest});
-  server_->SetFilter(capture);
 
   static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1};
   server_->ConfigNamedGroups(groups);
@@ -389,8 +384,7 @@ TEST_P(TlsConnectTls13, RetryCallbackRetry) {
       << "no key_share extension expected";
 
   auto capture_cookie =
-      std::make_shared<TlsExtensionCapture>(client_, ssl_tls13_cookie_xtn);
-  client_->SetFilter(capture_cookie);
+      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_tls13_cookie_xtn);
 
   Handshake();
   CheckConnected();
@@ -419,9 +413,8 @@ TEST_P(TlsConnectTls13, RetryCallbackRetryWithAdditionalShares) {
   EXPECT_EQ(SECSuccess, SSL_SendAdditionalKeyShares(client_->ssl_fd(), 1));
 
   auto capture_server =
-      std::make_shared<TlsExtensionCapture>(server_, ssl_tls13_key_share_xtn);
+      MakeTlsFilter<TlsExtensionCapture>(server_, ssl_tls13_key_share_xtn);
   capture_server->SetHandshakeTypes({kTlsHandshakeHelloRetryRequest});
-  server_->SetFilter(capture_server);
 
   size_t cb_called = 0;
   EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(server_->ssl_fd(),
@@ -437,8 +430,7 @@ TEST_P(TlsConnectTls13, RetryCallbackRetryWithAdditionalShares) {
       << "no key_share extension expected from server";
 
   auto capture_client_2nd =
-      std::make_shared<TlsExtensionCapture>(client_, ssl_tls13_key_share_xtn);
-  client_->SetFilter(capture_client_2nd);
+      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_tls13_key_share_xtn);
 
   Handshake();
   CheckConnected();
@@ -499,9 +491,8 @@ TEST_P(TlsConnectTls13, RetryCallbackRetryWithToken) {
   EnsureTlsSetup();
 
   auto capture_key_share =
-      std::make_shared<TlsExtensionCapture>(server_, ssl_tls13_key_share_xtn);
+      MakeTlsFilter<TlsExtensionCapture>(server_, ssl_tls13_key_share_xtn);
   capture_key_share->SetHandshakeTypes({kTlsHandshakeHelloRetryRequest});
-  server_->SetFilter(capture_key_share);
 
   size_t cb_called = 0;
   EXPECT_EQ(SECSuccess,
@@ -519,9 +510,8 @@ TEST_P(TlsConnectTls13, RetryCallbackRetryWithTokenAndGroupMismatch) {
   server_->ConfigNamedGroups(groups);
 
   auto capture_key_share =
-      std::make_shared<TlsExtensionCapture>(server_, ssl_tls13_key_share_xtn);
+      MakeTlsFilter<TlsExtensionCapture>(server_, ssl_tls13_key_share_xtn);
   capture_key_share->SetHandshakeTypes({kTlsHandshakeHelloRetryRequest});
-  server_->SetFilter(capture_key_share);
 
   size_t cb_called = 0;
   EXPECT_EQ(SECSuccess,
@@ -595,8 +585,7 @@ TEST_P(TlsConnectTls13, RetryStatefulDropCookie) {
   EnsureTlsSetup();
 
   TriggerHelloRetryRequest(client_, server_);
-  client_->SetFilter(
-      std::make_shared<TlsExtensionDropper>(client_, ssl_tls13_cookie_xtn));
+  MakeTlsFilter<TlsExtensionDropper>(client_, ssl_tls13_cookie_xtn);
 
   ExpectAlert(server_, kTlsAlertMissingExtension);
   Handshake();
@@ -610,8 +599,7 @@ TEST_F(TlsConnectStreamTls13, RetryStatelessDamageFirstClientHello) {
   EnsureTlsSetup();
 
   auto damage_ch =
-      std::make_shared<TlsExtensionInjector>(client_, 0xfff3, DataBuffer());
-  client_->SetFilter(damage_ch);
+      MakeTlsFilter<TlsExtensionInjector>(client_, 0xfff3, DataBuffer());
 
   TriggerHelloRetryRequest(client_, server_);
   MakeNewServer();
@@ -633,8 +621,7 @@ TEST_F(TlsConnectStreamTls13, RetryStatelessDamageSecondClientHello) {
   MakeNewServer();
 
   auto damage_ch =
-      std::make_shared<TlsExtensionInjector>(client_, 0xfff3, DataBuffer());
-  client_->SetFilter(damage_ch);
+      MakeTlsFilter<TlsExtensionInjector>(client_, 0xfff3, DataBuffer());
 
   // Key exchange fails when the handshake continues because client and server
   // disagree about the transcript.
@@ -665,9 +652,8 @@ TEST_P(TlsConnectTls13, RetryStatelessDisableSuiteClient) {
   ConfigureSelfEncrypt();
   EnsureTlsSetup();
 
-  auto capture_hrr = std::make_shared<TlsHandshakeRecorder>(
-      server_, ssl_hs_hello_retry_request);
-  server_->SetFilter(capture_hrr);
+  auto capture_hrr =
+      MakeTlsFilter<TlsHandshakeRecorder>(server_, ssl_hs_hello_retry_request);
 
   TriggerHelloRetryRequest(client_, server_);
   MakeNewServer();
@@ -686,9 +672,8 @@ TEST_P(TlsConnectTls13, RetryStatelessDisableSuiteServer) {
   ConfigureSelfEncrypt();
   EnsureTlsSetup();
 
-  auto capture_hrr = std::make_shared<TlsHandshakeRecorder>(
-      server_, ssl_hs_hello_retry_request);
-  server_->SetFilter(capture_hrr);
+  auto capture_hrr =
+      MakeTlsFilter<TlsHandshakeRecorder>(server_, ssl_hs_hello_retry_request);
 
   TriggerHelloRetryRequest(client_, server_);
   MakeNewServer();
@@ -769,8 +754,8 @@ TEST_F(TlsConnectStreamTls13, RetryWithDifferentCipherSuite) {
   static const std::vector<SSLNamedGroup> groups = {ssl_grp_ec_secp384r1};
   server_->ConfigNamedGroups(groups);
   // Then switch out the default suite (TLS_AES_128_GCM_SHA256).
-  server_->SetFilter(std::make_shared<SelectedCipherSuiteReplacer>(
-      server_, TLS_CHACHA20_POLY1305_SHA256));
+  MakeTlsFilter<SelectedCipherSuiteReplacer>(server_,
+                                             TLS_CHACHA20_POLY1305_SHA256);
 
   client_->ExpectSendAlert(kTlsAlertIllegalParameter);
   server_->ExpectSendAlert(kTlsAlertBadRecordMac);

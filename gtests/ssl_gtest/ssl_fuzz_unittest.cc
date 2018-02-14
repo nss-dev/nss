@@ -107,10 +107,8 @@ FUZZ_P(TlsConnectGeneric, DeterministicTranscript) {
     DisableECDHEServerKeyReuse();
 
     DataBuffer buffer;
-    client_->SetFilter(
-        std::make_shared<TlsConversationRecorder>(client_, buffer));
-    server_->SetFilter(
-        std::make_shared<TlsConversationRecorder>(server_, buffer));
+    MakeTlsFilter<TlsConversationRecorder>(client_, buffer);
+    MakeTlsFilter<TlsConversationRecorder>(server_, buffer);
 
     // Reset the RNG state.
     EXPECT_EQ(SECSuccess, RNG_RandomUpdate(NULL, 0));
@@ -136,10 +134,8 @@ FUZZ_P(TlsConnectGeneric, ConnectSendReceive_NullCipher) {
   EnsureTlsSetup();
 
   // Set up app data filters.
-  auto client_recorder = std::make_shared<TlsApplicationDataRecorder>(client_);
-  client_->SetFilter(client_recorder);
-  auto server_recorder = std::make_shared<TlsApplicationDataRecorder>(server_);
-  server_->SetFilter(server_recorder);
+  auto client_recorder = MakeTlsFilter<TlsApplicationDataRecorder>(client_);
+  auto server_recorder = MakeTlsFilter<TlsApplicationDataRecorder>(server_);
 
   Connect();
 
@@ -164,10 +160,9 @@ FUZZ_P(TlsConnectGeneric, ConnectSendReceive_NullCipher) {
 FUZZ_P(TlsConnectGeneric, BogusClientFinished) {
   EnsureTlsSetup();
 
-  auto filter = std::make_shared<TlsInspectorReplaceHandshakeMessage>(
+  MakeTlsFilter<TlsInspectorReplaceHandshakeMessage>(
       client_, kTlsHandshakeFinished,
       DataBuffer(kShortEmptyFinished, sizeof(kShortEmptyFinished)));
-  client_->SetFilter(filter);
   Connect();
   SendReceive();
 }
@@ -176,10 +171,9 @@ FUZZ_P(TlsConnectGeneric, BogusClientFinished) {
 FUZZ_P(TlsConnectGeneric, BogusServerFinished) {
   EnsureTlsSetup();
 
-  auto filter = std::make_shared<TlsInspectorReplaceHandshakeMessage>(
+  MakeTlsFilter<TlsInspectorReplaceHandshakeMessage>(
       server_, kTlsHandshakeFinished,
       DataBuffer(kLongEmptyFinished, sizeof(kLongEmptyFinished)));
-  server_->SetFilter(filter);
   Connect();
   SendReceive();
 }
@@ -190,7 +184,7 @@ FUZZ_P(TlsConnectGeneric, BogusServerAuthSignature) {
   uint8_t msg_type = version_ == SSL_LIBRARY_VERSION_TLS_1_3
                          ? kTlsHandshakeCertificateVerify
                          : kTlsHandshakeServerKeyExchange;
-  server_->SetFilter(std::make_shared<TlsLastByteDamager>(server_, msg_type));
+  MakeTlsFilter<TlsLastByteDamager>(server_, msg_type);
   Connect();
   SendReceive();
 }
@@ -200,8 +194,7 @@ FUZZ_P(TlsConnectGeneric, BogusClientAuthSignature) {
   EnsureTlsSetup();
   client_->SetupClientAuth();
   server_->RequestClientAuth(true);
-  client_->SetFilter(std::make_shared<TlsLastByteDamager>(
-      client_, kTlsHandshakeCertificateVerify));
+  MakeTlsFilter<TlsLastByteDamager>(client_, kTlsHandshakeCertificateVerify);
   Connect();
 }
 
@@ -222,9 +215,8 @@ FUZZ_P(TlsConnectGeneric, SessionTicketResumption) {
 FUZZ_P(TlsConnectGeneric, UnencryptedSessionTickets) {
   ConfigureSessionCache(RESUME_TICKET, RESUME_TICKET);
 
-  auto filter = std::make_shared<TlsHandshakeRecorder>(
+  auto filter = MakeTlsFilter<TlsHandshakeRecorder>(
       server_, kTlsHandshakeNewSessionTicket);
-  server_->SetFilter(filter);
   Connect();
 
   std::cerr << "ticket" << filter->buffer() << std::endl;

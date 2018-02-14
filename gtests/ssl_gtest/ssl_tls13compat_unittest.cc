@@ -273,10 +273,8 @@ TEST_F(TlsConnectStreamTls13, ChangeCipherSpecBeforeClientHello12) {
 TEST_F(TlsConnectDatagram13, CompatModeDtlsClient) {
   EnsureTlsSetup();
   client_->SetOption(SSL_ENABLE_TLS13_COMPAT_MODE, PR_TRUE);
-  auto client_records = std::make_shared<TlsRecordRecorder>(client_);
-  client_->SetFilter(client_records);
-  auto server_records = std::make_shared<TlsRecordRecorder>(server_);
-  server_->SetFilter(server_records);
+  auto client_records = MakeTlsFilter<TlsRecordRecorder>(client_);
+  auto server_records = MakeTlsFilter<TlsRecordRecorder>(server_);
   Connect();
 
   ASSERT_EQ(2U, client_records->count());  // CH, Fin

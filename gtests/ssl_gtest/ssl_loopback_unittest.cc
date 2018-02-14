@@ -100,9 +100,8 @@ class HelloTruncator : public TlsHandshakeFilter {
 
 // Verify that when NSS reports that an alert is sent, it is actually sent.
 TEST_P(TlsConnectGeneric, CaptureAlertServer) {
-  client_->SetFilter(std::make_shared<HelloTruncator>(client_));
-  auto alert_recorder = std::make_shared<TlsAlertRecorder>(server_);
-  server_->SetFilter(alert_recorder);
+  MakeTlsFilter<HelloTruncator>(client_);
+  auto alert_recorder = MakeTlsFilter<TlsAlertRecorder>(server_);
 
   ConnectExpectAlert(server_, kTlsAlertDecodeError);
   EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
@@ -110,9 +109,8 @@ TEST_P(TlsConnectGeneric, CaptureAlertServer) {
 }
 
 TEST_P(TlsConnectGenericPre13, CaptureAlertClient) {
-  server_->SetFilter(std::make_shared<HelloTruncator>(server_));
-  auto alert_recorder = std::make_shared<TlsAlertRecorder>(client_);
-  client_->SetFilter(alert_recorder);
+  MakeTlsFilter<HelloTruncator>(server_);
+  auto alert_recorder = MakeTlsFilter<TlsAlertRecorder>(client_);
 
   ConnectExpectAlert(client_, kTlsAlertDecodeError);
   EXPECT_EQ(kTlsAlertFatal, alert_recorder->level());
@@ -121,9 +119,8 @@ TEST_P(TlsConnectGenericPre13, CaptureAlertClient) {
 
 // In TLS 1.3, the server can't read the client alert.
 TEST_P(TlsConnectTls13, CaptureAlertClient) {
-  server_->SetFilter(std::make_shared<HelloTruncator>(server_));
-  auto alert_recorder = std::make_shared<TlsAlertRecorder>(client_);
-  client_->SetFilter(alert_recorder);
+  MakeTlsFilter<HelloTruncator>(server_);
+  auto alert_recorder = MakeTlsFilter<TlsAlertRecorder>(client_);
 
   StartConnect();
 
@@ -200,9 +197,8 @@ class SaveTlsRecord : public TlsRecordFilter {
 TEST_F(TlsConnectStreamTls13, DecryptRecordClient) {
   EnsureTlsSetup();
   // 0 = ClientHello, 1 = Finished, 2 = SendReceive, 3 = SendBuffer
-  auto saved = std::make_shared<SaveTlsRecord>(client_, 3);
+  auto saved = MakeTlsFilter<SaveTlsRecord>(client_, 3);
   saved->EnableDecryption();
-  client_->SetFilter(saved);
   Connect();
   SendReceive();
 
@@ -218,9 +214,8 @@ TEST_F(TlsConnectStreamTls13, DecryptRecordServer) {
   EXPECT_EQ(SECSuccess, SSL_OptionSet(server_->ssl_fd(),
                                       SSL_ENABLE_SESSION_TICKETS, PR_FALSE));
   // 0 = ServerHello, 1 = other handshake, 2 = SendReceive, 3 = SendBuffer
-  auto saved = std::make_shared<SaveTlsRecord>(server_, 3);
+  auto saved = MakeTlsFilter<SaveTlsRecord>(server_, 3);
   saved->EnableDecryption();
-  server_->SetFilter(saved);
   Connect();
   SendReceive();
 
@@ -258,9 +253,8 @@ TEST_F(TlsConnectStreamTls13, DropRecordServer) {
                                       SSL_ENABLE_SESSION_TICKETS, PR_FALSE));
 
   // 0 = ServerHello, 1 = other handshake, 2 = first write
-  auto filter = std::make_shared<DropTlsRecord>(server_, 2);
+  auto filter = MakeTlsFilter<DropTlsRecord>(server_, 2);
   filter->EnableDecryption();
-  server_->SetFilter(filter);
   Connect();
   server_->SendData(23, 23);  // This should be dropped, so it won't be counted.
   server_->ResetSentBytes();
@@ -270,9 +264,8 @@ TEST_F(TlsConnectStreamTls13, DropRecordServer) {
 TEST_F(TlsConnectStreamTls13, DropRecordClient) {
   EnsureTlsSetup();
   // 0 = ClientHello, 1 = Finished, 2 = first write
-  auto filter = std::make_shared<DropTlsRecord>(client_, 2);
+  auto filter = MakeTlsFilter<DropTlsRecord>(client_, 2);
   filter->EnableDecryption();
-  client_->SetFilter(filter);
   Connect();
   client_->SendData(26, 26);  // This should be dropped, so it won't be counted.
   client_->ResetSentBytes();
@@ -398,14 +391,14 @@ class TlsPreCCSHeaderInjector : public TlsRecordFilter {
 };
 
 TEST_P(TlsConnectStreamPre13, ClientFinishedHeaderBeforeCCS) {
-  client_->SetFilter(std::make_shared<TlsPreCCSHeaderInjector>(client_));
+  MakeTlsFilter<TlsPreCCSHeaderInjector>(client_);
   ConnectExpectAlert(server_, kTlsAlertUnexpectedMessage);
   client_->CheckErrorCode(SSL_ERROR_HANDSHAKE_UNEXPECTED_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_UNEXPECTED_CHANGE_CIPHER);
 }
 
 TEST_P(TlsConnectStreamPre13, ServerFinishedHeaderBeforeCCS) {
-  server_->SetFilter(std::make_shared<TlsPreCCSHeaderInjector>(server_));
+  MakeTlsFilter<TlsPreCCSHeaderInjector>(server_);
   StartConnect();
   ExpectAlert(client_, kTlsAlertUnexpectedMessage);
   Handshake();
@@ -486,8 +479,7 @@ TEST_F(TlsConnectTest, OneNRecordSplitting) {
   ConfigureVersion(SSL_LIBRARY_VERSION_TLS_1_0);
   EnsureTlsSetup();
   ConnectWithCipherSuite(TLS_RSA_WITH_AES_128_CBC_SHA);
-  auto records = std::make_shared<TlsRecordRecorder>(server_);
-  server_->SetFilter(records);
+  auto records = MakeTlsFilter<TlsRecordRecorder>(server_);
   // This should be split into 1, 16384 and 20.
   DataBuffer big_buffer;
   big_buffer.Allocate(1 + 16384 + 20);

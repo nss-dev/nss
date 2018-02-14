@@ -180,9 +180,8 @@ TEST_P(TlsConnectGenericPre13, OcspMangled) {
       server_->ConfigServerCert(TlsAgent::kServerRsa, true, &kOcspExtraData));
 
   static const uint8_t val[] = {1};
-  auto replacer = std::make_shared<TlsExtensionReplacer>(
+  auto replacer = MakeTlsFilter<TlsExtensionReplacer>(
       server_, ssl_cert_status_xtn, DataBuffer(val, sizeof(val)));
-  server_->SetFilter(replacer);
   ConnectExpectAlert(client_, kTlsAlertIllegalParameter);
   client_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
   server_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
@@ -192,8 +191,7 @@ TEST_P(TlsConnectGeneric, OcspSuccess) {
   EnsureTlsSetup();
   client_->SetOption(SSL_ENABLE_OCSP_STAPLING, PR_TRUE);
   auto capture_ocsp =
-      std::make_shared<TlsExtensionCapture>(server_, ssl_cert_status_xtn);
-  server_->SetFilter(capture_ocsp);
+      MakeTlsFilter<TlsExtensionCapture>(server_, ssl_cert_status_xtn);
 
   // The value should be available during the AuthCertificateCallback
   client_->SetAuthCertificateCallback([](TlsAgent* agent, bool checksig,
