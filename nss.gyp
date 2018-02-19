@@ -107,6 +107,7 @@
             'cmd/ssltap/ssltap.gyp:ssltap',
             'cmd/symkeyutil/symkeyutil.gyp:symkeyutil',
             'nss-tool/nss_tool.gyp:nss',
+            'nss-tool/nss_tool.gyp:hw-support',
           ],
         }],
       ],
