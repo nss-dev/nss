@@ -1127,21 +1127,19 @@ ssl_CacheSessionID(sslSocket *ss)
 void
 ssl_UncacheSessionID(sslSocket *ss)
 {
+    if (ss->opt.noCache) {
+        return;
+    }
 
     sslSecurityInfo *sec = &ss->sec;
     PORT_Assert(sec);
 
     if (sec->ci.sid) {
-        if (!ss->opt.noCache) {
-            if (sec->isServer) {
-                ssl_ServerUncacheSessionID(sec->ci.sid);
-            } else if (!ss->resumptionTokenCallback) {
-                LockAndUncacheSID(sec->ci.sid);
-            }
+        if (sec->isServer) {
+            ssl_ServerUncacheSessionID(sec->ci.sid);
+        } else if (!ss->resumptionTokenCallback) {
+            LockAndUncacheSID(sec->ci.sid);
         }
-        PORT_Assert(sec->ci.sid->references == 1);
-        ssl_FreeSID(sec->ci.sid);
-        sec->ci.sid = NULL;
     }
 }
 

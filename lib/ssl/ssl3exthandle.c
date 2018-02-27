@@ -667,7 +667,6 @@ ssl3_EncodeSessionTicket(sslSocket *ss, const NewSessionTicket *ticket,
     SECStatus rv;
     sslBuffer plaintext = SSL_BUFFER_EMPTY;
     SECItem ticket_buf = { 0, NULL, 0 };
-    /* This SID is NOT the one in ss and only used in this function. */
     sslSessionID sid;
     unsigned char wrapped_ms[SSL3_MASTER_SECRET_LENGTH];
     SECItem ms_item = { 0, NULL, 0 };
@@ -1156,13 +1155,15 @@ ssl_ParseSessionTicket(sslSocket *ss, const SECItem *decryptedTicket,
 
 static SECStatus
 ssl_CreateSIDFromTicket(sslSocket *ss, const SECItem *rawTicket,
-                        SessionTicket *parsedTicket)
+                        SessionTicket *parsedTicket, sslSessionID **out)
 {
-    SECStatus rv = ssl3_NewSessionID(ss, PR_TRUE);
-    if (rv != SECSuccess) {
-        return rv;
+    sslSessionID *sid;
+    SECStatus rv;
+
+    sid = ssl3_NewSessionID(ss, PR_TRUE);
+    if (sid == NULL) {
+        return SECFailure;
     }
-    sslSessionID *sid = ss->sec.ci.sid;
 
     /* Copy over parameters. */
     sid->version = parsedTicket->ssl_version;
@@ -1226,10 +1227,11 @@ ssl_CreateSIDFromTicket(sslSocket *ss, const SECItem *rawTicket,
         }
     }
 
+    *out = sid;
     return SECSuccess;
 
 loser:
-    ssl_UncacheSessionID(ss);
+    ssl_FreeSID(sid);
     return SECFailure;
 }
 
@@ -1240,9 +1242,15 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, const SECItem *ticket,
 {
     SECItem decryptedTicket = { siBuffer, NULL, 0 };
     SessionTicket parsedTicket;
+    sslSessionID *sid = NULL;
     SECStatus rv;
 
-    ssl_UncacheSessionID(ss);
+    if (ss->sec.ci.sid != NULL) {
+        ssl_UncacheSessionID(ss);
+        ssl_FreeSID(ss->sec.ci.sid);
+        ss->sec.ci.sid = NULL;
+    }
+
     if (!SECITEM_AllocItem(NULL, &decryptedTicket, ticket->len)) {
         return SECFailure;
     }
@@ -1281,7 +1289,7 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, const SECItem *ticket,
     if (parsedTicket.timestamp + ssl_ticket_lifetime * PR_USEC_PER_SEC >
         ssl_TimeUsec()) {
 
-        rv = ssl_CreateSIDFromTicket(ss, ticket, &parsedTicket);
+        rv = ssl_CreateSIDFromTicket(ss, ticket, &parsedTicket, &sid);
         if (rv != SECSuccess) {
             goto loser; /* code already set */
         }
@@ -1294,6 +1302,7 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, const SECItem *ticket,
         }
 
         ss->statelessResume = PR_TRUE;
+        ss->sec.ci.sid = sid;
 
         /* We have the baseline value for the obfuscated ticket age here.  Save
          * that in xtnData temporarily.  This value is updated in
@@ -1306,7 +1315,9 @@ ssl3_ProcessSessionTicketCommon(sslSocket *ss, const SECItem *ticket,
     return SECSuccess;
 
 loser:
-    ssl_UncacheSessionID(ss);
+    if (sid) {
+        ssl_FreeSID(sid);
+    }
     SECITEM_ZfreeItem(&decryptedTicket, PR_FALSE);
     PORT_Memset(&parsedTicket, 0, sizeof(parsedTicket));
     return SECFailure;

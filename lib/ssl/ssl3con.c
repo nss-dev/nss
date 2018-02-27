@@ -50,6 +50,7 @@ static SECStatus ssl3_SendServerHelloDone(sslSocket *ss);
 static SECStatus ssl3_SendServerKeyExchange(sslSocket *ss);
 static SECStatus ssl3_HandleClientHelloPart2(sslSocket *ss,
                                              SECItem *suites,
+                                             sslSessionID *sid,
                                              const PRUint8 *msg,
                                              unsigned int len);
 static SECStatus ssl3_HandleServerHelloPart2(sslSocket *ss,
@@ -2713,7 +2714,9 @@ SSL3_SendAlert(sslSocket *ss, SSL3AlertLevel level, SSL3AlertDescription desc)
         ssl_GetSSL3HandshakeLock(ss);
     }
     if (level == alert_fatal) {
-        ssl_UncacheSessionID(ss);
+        if (ss->sec.ci.sid) {
+            ssl_UncacheSessionID(ss);
+        }
     }
 
     rv = tls13_SetAlertCipherSpec(ss);
@@ -4525,6 +4528,7 @@ ssl_SetClientHelloSpecVersion(sslSocket *ss, ssl3CipherSpec *spec)
 SECStatus
 ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
 {
+    sslSessionID *sid;
     SECStatus rv;
     unsigned int i;
     unsigned int length;
@@ -4601,26 +4605,19 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
      * If we have an sid and it comes from an external cache, we use it. */
     if (ss->sec.ci.sid && ss->sec.ci.sid->cached == in_external_cache) {
         PORT_Assert(!ss->sec.isServer);
+        sid = ss->sec.ci.sid;
         SSL_TRC(3, ("%d: SSL3[%d]: using external resumption token in ClientHello",
                     SSL_GETPID(), ss->fd));
+    } else if (!ss->opt.noCache) {
+        /* We ignore ss->sec.ci.sid here, and use ssl_Lookup because Lookup
+         * handles expired entries and other details.
+         * XXX If we've been called from ssl_BeginClientHandshake, then
+         * this lookup is duplicative and wasteful.
+         */
+        sid = ssl_LookupSID(&ss->sec.ci.peer, ss->sec.ci.port, ss->peerID, ss->url);
     } else {
-        /* We allocated some sid but don't want to use it. */
-        if (ss->sec.ci.sid) {
-            ssl_FreeSID(ss->sec.ci.sid);
-            ss->sec.ci.sid = NULL;
-        }
-        if (!ss->opt.noCache) {
-            /* We ignore ss->sec.ci.sid here, and use ssl_Lookup because Lookup
-             * handles expired entries and other details.
-             * XXX If we've been called from ssl_BeginClientHandshake, then
-             * this lookup is duplicative and wasteful.
-             */
-            ss->sec.ci.sid = ssl_LookupSID(&ss->sec.ci.peer,
-                                           ss->sec.ci.port,
-                                           ss->peerID, ss->url);
-        }
+        sid = NULL;
     }
-    sslSessionID *sid = ss->sec.ci.sid;
 
     /* We can't resume based on a different token. If the sid exists,
      * make sure the token that holds the master secret still exists ...
@@ -4712,6 +4709,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
         if (!sidOK) {
             SSL_AtomicIncrementLong(&ssl3stats.sch_sid_cache_not_ok);
             ssl_UncacheSessionID(ss);
+            ssl_FreeSID(sid);
             sid = NULL;
         }
     }
@@ -4739,11 +4737,10 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
             version = ss->clientHelloVersion;
         }
 
-        rv = ssl3_NewSessionID(ss, PR_FALSE);
-        if (rv != SECSuccess) {
+        sid = ssl3_NewSessionID(ss, PR_FALSE);
+        if (!sid) {
             return SECFailure; /* memory error is set */
         }
-        sid = ss->sec.ci.sid;
         /* ss->version isn't set yet, but the sid needs a sane value. */
         sid->version = version;
     }
@@ -4755,6 +4752,11 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
         ss->ssl3.cwSpec->version = version;
     }
     ssl_ReleaseSpecWriteLock(ss);
+
+    if (ss->sec.ci.sid != NULL) {
+        ssl_FreeSID(ss->sec.ci.sid); /* decrement ref count, free if zero */
+    }
+    ss->sec.ci.sid = sid;
 
     /* HACK for SCSV in SSL 3.0.  On initial handshake, prepend SCSV,
      * only if TLS is disabled.
@@ -5013,6 +5015,7 @@ loser:
 static SECStatus
 ssl3_HandleHelloRequest(sslSocket *ss)
 {
+    sslSessionID *sid = ss->sec.ci.sid;
     SECStatus rv;
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle hello_request handshake",
@@ -5035,7 +5038,12 @@ ssl3_HandleHelloRequest(sslSocket *ss)
         return SECFailure;
     }
 
-    ssl_UncacheSessionID(ss);
+    if (sid) {
+        ssl_UncacheSessionID(ss);
+        ssl_FreeSID(sid);
+        ss->sec.ci.sid = NULL;
+    }
+
     if (IS_DTLS(ss)) {
         dtls_RehandshakeCleanup(ss);
     }
@@ -6607,13 +6615,13 @@ ssl3_HandleServerHelloPart2(sslSocket *ss, const SECItem *sidBytes,
     /* throw the old one away */
     sid->u.ssl3.keys.resumable = PR_FALSE;
     ssl_UncacheSessionID(ss);
+    ssl_FreeSID(sid);
 
     /* get a new sid */
-    rv = ssl3_NewSessionID(ss, PR_FALSE);
-    if (rv != SECSuccess) {
+    ss->sec.ci.sid = sid = ssl3_NewSessionID(ss, PR_FALSE);
+    if (sid == NULL) {
         goto alert_loser; /* memory error is set. */
     }
-    sid = ss->sec.ci.sid;
 
     sid->version = ss->version;
     sid->u.ssl3.sessionIDLength = sidBytes->len;
@@ -7481,15 +7489,14 @@ ssl3_ServerNameCompare(const SECItem *name1, const SECItem *name2)
  *  ssl3_HandleClientHello()
  *  ssl3_HandleV2ClientHello()
  */
-SECStatus
+sslSessionID *
 ssl3_NewSessionID(sslSocket *ss, PRBool is_server)
 {
     sslSessionID *sid;
 
     sid = PORT_ZNew(sslSessionID);
-    if (sid == NULL) {
-        return SECFailure;
-    }
+    if (sid == NULL)
+        return sid;
 
     if (is_server) {
         const SECItem *srvName;
@@ -7503,7 +7510,7 @@ ssl3_NewSessionID(sslSocket *ss, PRBool is_server)
         ssl_ReleaseSpecReadLock(ss); /************************************/
         if (rv != SECSuccess) {
             PORT_Free(sid);
-            return SECFailure;
+            return NULL;
         }
     }
     sid->peerID = (ss->peerID == NULL) ? NULL : PORT_Strdup(ss->peerID);
@@ -7531,16 +7538,10 @@ ssl3_NewSessionID(sslSocket *ss, PRBool is_server)
         if (rv != SECSuccess) {
             ssl_FreeSID(sid);
             ssl_MapLowLevelError(SSL_ERROR_GENERATE_RANDOM_FAILURE);
-            return SECFailure;
+            return NULL;
         }
     }
-
-    /* Destroy any sid we might have had. */
-    ssl_UncacheSessionID(ss);
-    PORT_Assert(!ss->sec.ci.sid);
-
-    ss->sec.ci.sid = sid;
-    return SECSuccess;
+    return sid;
 }
 
 /* Called from:  ssl3_HandleClientHello, ssl3_HandleV2ClientHello */
@@ -7864,6 +7865,7 @@ ssl3_SelectServerCert(sslSocket *ss)
 static SECStatus
 ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
+    sslSessionID *sid = NULL;
     PRUint32 tmp;
     unsigned int i;
     SECStatus rv;
@@ -8194,7 +8196,6 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
      * (2) the client support the session ticket extension, but sent an
      * empty ticket.
      */
-    sslSessionID *sid = ss->sec.ci.sid;
     if ((ss->version < SSL_LIBRARY_VERSION_TLS_1_3) &&
         (!ssl3_ExtensionNegotiated(ss, ssl_session_ticket_xtn) ||
          ss->xtnData.emptySessionTicket)) {
@@ -8205,31 +8206,20 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
                         ss->sec.ci.peer.pr_s6_addr32[2],
                         ss->sec.ci.peer.pr_s6_addr32[3]));
             if (ssl_sid_lookup) {
-                ssl_UncacheSessionID(ss);
-                ss->sec.ci.sid = sid = (*ssl_sid_lookup)(&ss->sec.ci.peer,
-                                                         sidBytes.data,
-                                                         sidBytes.len,
-                                                         ss->dbHandle);
+                sid = (*ssl_sid_lookup)(&ss->sec.ci.peer, sidBytes.data,
+                                        sidBytes.len, ss->dbHandle);
             } else {
                 errCode = SSL_ERROR_SERVER_CACHE_NOT_CONFIGURED;
                 goto loser;
             }
-        } else {
-            /* Free a potentially leftover session ID from a previous handshake. */
-            ssl_UncacheSessionID(ss);
-            sid = NULL;
         }
     } else if (ss->statelessResume) {
         /* Fill in the client's session ID if doing a stateless resume.
          * (When doing stateless resumes, server echos client's SessionID.)
          * This branch also handles TLS 1.3 resumption-PSK.
          */
+        sid = ss->sec.ci.sid;
         PORT_Assert(sid != NULL); /* Should have already been filled in.*/
-        if (!sid) {
-            desc = handshake_failure;
-            errCode = SEC_ERROR_LIBRARY_FAILURE;
-            goto alert_loser;
-        }
 
         if (sidBytes.len > 0 && sidBytes.len <= SSL3_SESSIONID_BYTES) {
             sid->u.ssl3.sessionIDLength = sidBytes.len;
@@ -8239,10 +8229,13 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
         } else {
             sid->u.ssl3.sessionIDLength = 0;
         }
-    } else {
-        /* Free a potentially leftover session ID from a previous handshake. */
-        ssl_UncacheSessionID(ss);
-        sid = NULL;
+        ss->sec.ci.sid = NULL;
+    }
+
+    /* Free a potentially leftover session ID from a previous handshake. */
+    if (ss->sec.ci.sid) {
+        ssl_FreeSID(ss->sec.ci.sid);
+        ss->sec.ci.sid = NULL;
     }
 
     if (sid != NULL) {
@@ -8260,6 +8253,7 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
 
             SSL_AtomicIncrementLong(&ssl3stats.hch_sid_cache_not_ok);
             ssl_UncacheSessionID(ss);
+            ssl_FreeSID(sid);
             sid = NULL;
         }
     }
@@ -8270,9 +8264,10 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
     }
 
     if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
-        rv = tls13_HandleClientHelloPart2(ss, &suites, savedMsg, savedLen);
+        rv = tls13_HandleClientHelloPart2(ss, &suites, sid, savedMsg, savedLen);
     } else {
-        rv = ssl3_HandleClientHelloPart2(ss, &suites, savedMsg, savedLen);
+        rv = ssl3_HandleClientHelloPart2(ss, &suites, sid,
+                                         savedMsg, savedLen);
     }
     if (rv != SECSuccess) {
         errCode = PORT_GetError();
@@ -8289,11 +8284,10 @@ loser:
 }
 
 static SECStatus
-ssl3_UnwrapMasterSecretServer(sslSocket *ss, PK11SymKey **ms)
+ssl3_UnwrapMasterSecretServer(sslSocket *ss, sslSessionID *sid, PK11SymKey **ms)
 {
     PK11SymKey *wrapKey;
     CK_FLAGS keyFlags = 0;
-    sslSessionID *sid = ss->sec.ci.sid;
     SECItem wrappedMS = {
         siBuffer,
         sid->u.ssl3.keys.wrapped_master_secret,
@@ -8324,6 +8318,7 @@ ssl3_UnwrapMasterSecretServer(sslSocket *ss, PK11SymKey **ms)
 static SECStatus
 ssl3_HandleClientHelloPart2(sslSocket *ss,
                             SECItem *suites,
+                            sslSessionID *sid,
                             const PRUint8 *msg,
                             unsigned int len)
 {
@@ -8333,7 +8328,6 @@ ssl3_HandleClientHelloPart2(sslSocket *ss,
     SECStatus rv;
     unsigned int i;
     unsigned int j;
-    sslSessionID *sid = ss->sec.ci.sid;
 
     rv = ssl_HashHandshakeMessage(ss, ssl_hs_client_hello, msg, len);
     if (rv != SECSuccess) {
@@ -8463,12 +8457,22 @@ cipher_found:
                 }
             }
 
+            if (ss->sec.ci.sid) {
+                ssl_UncacheSessionID(ss);
+                PORT_Assert(ss->sec.ci.sid != sid); /* should be impossible, but ... */
+                if (ss->sec.ci.sid != sid) {
+                    ssl_FreeSID(ss->sec.ci.sid);
+                }
+                ss->sec.ci.sid = NULL;
+            }
+
             /* we need to resurrect the master secret.... */
-            rv = ssl3_UnwrapMasterSecretServer(ss, &masterSecret);
+            rv = ssl3_UnwrapMasterSecretServer(ss, sid, &masterSecret);
             if (rv != SECSuccess) {
                 break; /* not an error */
             }
 
+            ss->sec.ci.sid = sid;
             if (sid->peerCert != NULL) {
                 ss->sec.peerCert = CERT_DupCertificate(sid->peerCert);
             }
@@ -8551,6 +8555,7 @@ cipher_found:
         ss->statelessResume = PR_FALSE;
         SSL_AtomicIncrementLong(&ssl3stats.hch_sid_cache_not_ok);
         ssl_UncacheSessionID(ss);
+        ssl_FreeSID(sid);
         sid = NULL;
     }
     SSL_AtomicIncrementLong(&ssl3stats.hch_sid_cache_misses);
@@ -8584,12 +8589,12 @@ cipher_found:
         goto alert_loser;
     }
 
-    rv = ssl3_NewSessionID(ss, PR_TRUE);
-    if (rv != SECSuccess) {
+    sid = ssl3_NewSessionID(ss, PR_TRUE);
+    if (sid == NULL) {
         errCode = PORT_GetError();
         goto loser; /* memory error is set. */
     }
-    sid = ss->sec.ci.sid;
+    ss->sec.ci.sid = sid;
 
     sid->u.ssl3.keys.extendedMasterSecretUsed =
         ssl3_ExtensionNegotiated(ss, ssl_extended_master_secret_xtn);
@@ -8614,7 +8619,11 @@ alert_loser:
     (void)SSL3_SendAlert(ss, alert_fatal, desc);
 /* FALLTHRU */
 loser:
-    ssl_UncacheSessionID(ss);
+    if (sid && sid != ss->sec.ci.sid) {
+        ssl_UncacheSessionID(ss);
+        ssl_FreeSID(sid);
+    }
+
     if (haveXmitBufLock) {
         ssl_ReleaseXmitBufLock(ss);
     }
@@ -8631,6 +8640,7 @@ SECStatus
 ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, unsigned int length,
                          PRUint8 padding)
 {
+    sslSessionID *sid = NULL;
     unsigned char *suites;
     unsigned char *random;
     SSL3ProtocolVersion version;
@@ -8797,12 +8807,13 @@ suite_found:
 
     /* we don't even search for a cache hit here.  It's just a miss. */
     SSL_AtomicIncrementLong(&ssl3stats.hch_sid_cache_misses);
-    PORT_Assert(!ss->sec.ci.sid);
-    rv = ssl3_NewSessionID(ss, PR_TRUE);
-    if (rv != SECSuccess) {
+    sid = ssl3_NewSessionID(ss, PR_TRUE);
+    if (sid == NULL) {
         errCode = PORT_GetError();
         goto loser; /* memory error is set. */
     }
+    ss->sec.ci.sid = sid;
+    /* do not worry about memory leak of sid since it now belongs to ci */
 
     /* We have to update the handshake hashes before we can send stuff */
     rv = ssl3_UpdateHandshakeHashes(ss, buffer, length);
@@ -10865,7 +10876,6 @@ fail:
 
 /* wrap the master secret, and put it into the SID.
  * Caller holds the Spec read lock.
- * sid here can be a local SID that's not stored in ss.
  */
 SECStatus
 ssl3_CacheWrappedSecret(sslSocket *ss, sslSessionID *sid,
@@ -10954,6 +10964,7 @@ ssl3_CacheWrappedSecret(sslSocket *ss, sslSessionID *sid,
 static SECStatus
 ssl3_HandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
+    sslSessionID *sid = ss->sec.ci.sid;
     SECStatus rv = SECSuccess;
     PRBool isServer = ss->sec.isServer;
     PRBool isTLS;
@@ -11097,9 +11108,8 @@ xmit_loser:
         return rv;
     }
 
-    PORT_Assert(ss->sec.ci.sid);
-    if (ss->sec.ci.sid->cached == never_cached && !ss->opt.noCache) {
-        rv = ssl3_FillInCachedSID(ss, ss->ssl3.crSpec->masterSecret);
+    if (sid->cached == never_cached && !ss->opt.noCache) {
+        rv = ssl3_FillInCachedSID(ss, sid, ss->ssl3.crSpec->masterSecret);
 
         /* If the wrap failed, we don't cache the sid.
          * The connection continues normally however.
@@ -11123,10 +11133,9 @@ xmit_loser:
 }
 
 SECStatus
-ssl3_FillInCachedSID(sslSocket *ss, PK11SymKey *secret)
+ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid, PK11SymKey *secret)
 {
     PORT_Assert(secret);
-    sslSessionID *sid = ss->sec.ci.sid;
 
     /* fill in the sid */
     sid->u.ssl3.cipherSuite = ss->ssl3.hs.cipher_suite;
@@ -12635,6 +12644,7 @@ ssl3_InitSocketPolicy(sslSocket *ss)
 SECStatus
 ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache)
 {
+    sslSessionID *sid = ss->sec.ci.sid;
     SECStatus rv;
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
@@ -12658,8 +12668,10 @@ ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache)
         return SECFailure;
     }
 
-    if (flushCache) {
+    if (sid && flushCache) {
         ssl_UncacheSessionID(ss); /* remove it from whichever cache it's in. */
+        ssl_FreeSID(sid);         /* dec ref count and free if zero. */
+        ss->sec.ci.sid = NULL;
     }
 
     ssl_GetXmitBufLock(ss); /**************************************/
