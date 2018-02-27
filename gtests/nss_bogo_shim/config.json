@@ -64,6 +64,7 @@
         "GarbageCertificate*":"BoringSSL updated",
         "EmptyExtensions*":"BoringSSL updated",
         "*OmitExtensions*":"BoringSSL updated",
+        "SupportedVersionSelection-TLS12":"Should maybe reject TLS 1.2 in SH.supported_versions (Bug 1438266)",
         "*TLS13*":"(NSS=19, BoGo=18)",
         "*HelloRetryRequest*":"(NSS=19, BoGo=18)",
         "*KeyShare*":"(NSS=19, BoGo=18)",
