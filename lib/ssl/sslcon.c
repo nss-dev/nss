@@ -119,6 +119,7 @@ ssl_CheckConfigSanity(sslSocket *ss)
 SECStatus
 ssl_BeginClientHandshake(sslSocket *ss)
 {
+    sslSessionID *sid = NULL;
     SECStatus rv;
 
     PORT_Assert(ss->opt.noLocks || ssl_Have1stHandshakeLock(ss));
@@ -154,16 +155,14 @@ ssl_BeginClientHandshake(sslSocket *ss)
 
     SSL_TRC(3, ("%d: SSL[%d]: sending client-hello", SSL_GETPID(), ss->fd));
 
-    sslSessionID *sid = NULL;
     /* If there's an sid set from an external cache, use it. */
     if (ss->sec.ci.sid && ss->sec.ci.sid->cached == in_external_cache) {
         sid = ss->sec.ci.sid;
         SSL_TRC(3, ("%d: SSL[%d]: using external token", SSL_GETPID(), ss->fd));
     } else if (!ss->opt.noCache) {
         /* Try to find server in our session-id cache */
-        ssl_UncacheSessionID(ss);
-        ss->sec.ci.sid = sid = ssl_LookupSID(&ss->sec.ci.peer, ss->sec.ci.port,
-                                             ss->peerID, ss->url);
+        sid = ssl_LookupSID(&ss->sec.ci.peer, ss->sec.ci.port, ss->peerID,
+                            ss->url);
     }
 
     if (sid) {
@@ -172,11 +171,12 @@ ssl_BeginClientHandshake(sslSocket *ss)
             ss->sec.localCert = CERT_DupCertificate(sid->localCert);
         } else {
             ssl_UncacheSessionID(ss);
+            ssl_FreeSID(sid);
             sid = NULL;
         }
     }
     if (!sid) {
-        ss->sec.ci.sid = sid = PORT_ZNew(sslSessionID);
+        sid = PORT_ZNew(sslSessionID);
         if (!sid) {
             goto loser;
         }
@@ -191,6 +191,7 @@ ssl_BeginClientHandshake(sslSocket *ss)
             sid->urlSvrName = PORT_Strdup(ss->url);
         }
     }
+    ss->sec.ci.sid = sid;
 
     PORT_Assert(sid != NULL);
 

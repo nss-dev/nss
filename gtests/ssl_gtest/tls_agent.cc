@@ -589,9 +589,7 @@ void TlsAgent::EnableFalseStart() {
   SetOption(SSL_ENABLE_FALSE_START, PR_TRUE);
 }
 
-void TlsAgent::ExpectResumption(bool expected) {
-  expect_resumption_ = expected;
-}
+void TlsAgent::ExpectResumption() { expect_resumption_ = true; }
 
 void TlsAgent::EnableAlpn(const uint8_t* val, size_t len) {
   EXPECT_TRUE(EnsureTlsSetup());

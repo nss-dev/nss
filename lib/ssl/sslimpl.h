@@ -1157,7 +1157,7 @@ extern int ssl_Do1stHandshake(sslSocket *ss);
 
 extern SECStatus ssl3_InitPendingCipherSpecs(sslSocket *ss, PK11SymKey *secret,
                                              PRBool derive);
-extern SECStatus ssl3_NewSessionID(sslSocket *ss, PRBool is_server);
+extern sslSessionID *ssl3_NewSessionID(sslSocket *ss, PRBool is_server);
 extern sslSessionID *ssl_LookupSID(const PRIPv6Addr *addr, PRUint16 port,
                                    const char *peerID, const char *urlSvrName);
 extern void ssl_FreeSID(sslSessionID *sid);
@@ -1621,7 +1621,8 @@ PK11SymKey *ssl3_GetWrappingKey(sslSocket *ss,
                                 PK11SlotInfo *masterSecretSlot,
                                 CK_MECHANISM_TYPE masterWrapMech,
                                 void *pwArg);
-SECStatus ssl3_FillInCachedSID(sslSocket *ss, PK11SymKey *secret);
+SECStatus ssl3_FillInCachedSID(sslSocket *ss, sslSessionID *sid,
+                               PK11SymKey *secret);
 const ssl3CipherSuiteDef *ssl_LookupCipherSuiteDef(ssl3CipherSuite suite);
 SECStatus ssl3_SelectServerCert(sslSocket *ss);
 SECStatus ssl_PickSignatureScheme(sslSocket *ss,

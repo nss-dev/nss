@@ -518,7 +518,7 @@ TEST_P(TlsConnectTls13, SendTooMuchEarlyData) {
 TEST_P(TlsConnectTls13, ReceiveTooMuchEarlyData) {
   EnsureTlsSetup();
 
-  size_t limit = 5;
+  const size_t limit = 5;
   EXPECT_EQ(SECSuccess, SSL_SetMaxEarlyDataSize(server_->ssl_fd(), limit));
   SetupForZeroRtt();
 
@@ -548,9 +548,6 @@ TEST_P(TlsConnectTls13, ReceiveTooMuchEarlyData) {
   server_->Handshake();  // This reads the early data and maybe throws an error.
   if (variant_ == ssl_variant_stream) {
     server_->CheckErrorCode(SSL_ERROR_TOO_MUCH_EARLY_DATA);
-    // We drop the SID when sending the alert such that max_early_data_size is 0
-    // here.
-    limit = 0;
   } else {
     EXPECT_EQ(TlsAgent::STATE_CONNECTING, server_->state());
   }

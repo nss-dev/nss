@@ -129,7 +129,7 @@ class TlsAgent : public PollTarget {
   void SetServerKeyBits(uint16_t bits);
   void ExpectReadWriteError();
   void EnableFalseStart();
-  void ExpectResumption(bool expected = true);
+  void ExpectResumption();
   void SkipVersionChecks();
   void SetSignatureSchemes(const SSLSignatureScheme* schemes, size_t count);
   void EnableAlpn(const uint8_t* val, size_t len);
