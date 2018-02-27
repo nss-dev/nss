@@ -278,7 +278,7 @@ extern CERTCertDBHandle *CERT_GetDefaultCertDB(void);
 extern CERTCertList *CERT_GetCertChainFromCert(CERTCertificate *cert,
                                                PRTime time, SECCertUsage usage);
 extern CERTCertificate *CERT_NewTempCertificate(CERTCertDBHandle *handle,
-                                                const SECItem *derCert,
+                                                SECItem *derCert,
                                                 char *nickname, PRBool isperm,
                                                 PRBool copyDER);
 

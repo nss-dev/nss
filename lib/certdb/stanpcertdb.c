@@ -341,7 +341,7 @@ CERT_AddTempCertToPerm(CERTCertificate *cert, char *nickname,
 }
 
 CERTCertificate *
-CERT_NewTempCertificate(CERTCertDBHandle *handle, const SECItem *derCert,
+CERT_NewTempCertificate(CERTCertDBHandle *handle, SECItem *derCert,
                         char *nickname, PRBool isperm, PRBool copyDER)
 {
     NSSCertificate *c;
