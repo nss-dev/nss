@@ -487,9 +487,9 @@ PacketFilter::Action TlsConversationRecorder::FilterRecord(
   return KEEP;
 }
 
-PacketFilter::Action TlsHeaderRecorder::FilterRecord(
-    const TlsRecordHeader& hdr, const DataBuffer& input,
-    DataBuffer* output) {
+PacketFilter::Action TlsHeaderRecorder::FilterRecord(const TlsRecordHeader& hdr,
+                                                     const DataBuffer& input,
+                                                     DataBuffer* output) {
   headers_.push_back(hdr);
   return KEEP;
 }

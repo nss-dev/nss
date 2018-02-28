@@ -43,9 +43,7 @@ class TlsRecordHeader : public TlsVersioned {
  public:
   TlsRecordHeader() : TlsVersioned(), content_type_(0), sequence_number_(0) {}
   TlsRecordHeader(uint16_t ver, uint8_t ct, uint64_t seqno)
-      : TlsVersioned(ver),
-        content_type_(ct),
-        sequence_number_(seqno) {}
+      : TlsVersioned(ver), content_type_(ct), sequence_number_(seqno) {}
 
   uint8_t content_type() const { return content_type_; }
   uint64_t sequence_number() const { return sequence_number_; }
@@ -186,9 +184,7 @@ class TlsHandshakeFilter : public TlsRecordFilter {
       : TlsRecordFilter(a), handshake_types_(), preceding_fragment_() {}
   TlsHandshakeFilter(const std::shared_ptr<TlsAgent>& a,
                      const std::set<uint8_t>& types)
-      : TlsRecordFilter(a),
-        handshake_types_(types),
-        preceding_fragment_() {}
+      : TlsRecordFilter(a), handshake_types_(types), preceding_fragment_() {}
 
   // This filter can be set to be selective based on handshake message type.  If
   // this function isn't used (or the set is empty), then all handshake messages
@@ -320,8 +316,7 @@ class TlsConversationRecorder : public TlsRecordFilter {
 // Make a copy of the records
 class TlsHeaderRecorder : public TlsRecordFilter {
  public:
-  TlsHeaderRecorder(const std::shared_ptr<TlsAgent>& a)
-      : TlsRecordFilter(a) {}
+  TlsHeaderRecorder(const std::shared_ptr<TlsAgent>& a) : TlsRecordFilter(a) {}
   virtual PacketFilter::Action FilterRecord(const TlsRecordHeader& header,
                                             const DataBuffer& input,
                                             DataBuffer* output);
@@ -412,8 +407,8 @@ class TlsExtensionCapture : public TlsExtensionFilter {
 
 class TlsExtensionReplacer : public TlsExtensionFilter {
  public:
-  TlsExtensionReplacer(const std::shared_ptr<TlsAgent>& a,
-                       uint16_t extension, const DataBuffer& data)
+  TlsExtensionReplacer(const std::shared_ptr<TlsAgent>& a, uint16_t extension,
+                       const DataBuffer& data)
       : TlsExtensionFilter(a), extension_(extension), data_(data) {}
   PacketFilter::Action FilterExtension(uint16_t extension_type,
                                        const DataBuffer& input,
@@ -426,8 +421,7 @@ class TlsExtensionReplacer : public TlsExtensionFilter {
 
 class TlsExtensionDropper : public TlsExtensionFilter {
  public:
-  TlsExtensionDropper(const std::shared_ptr<TlsAgent>& a,
-                      uint16_t extension)
+  TlsExtensionDropper(const std::shared_ptr<TlsAgent>& a, uint16_t extension)
       : TlsExtensionFilter(a), extension_(extension) {}
   PacketFilter::Action FilterExtension(uint16_t extension_type,
                                        const DataBuffer&, DataBuffer*) override;
@@ -551,8 +545,7 @@ class TlsClientHelloVersionSetter : public TlsHandshakeFilter {
  public:
   TlsClientHelloVersionSetter(const std::shared_ptr<TlsAgent>& a,
                               uint16_t version)
-      : TlsHandshakeFilter(a, {kTlsHandshakeClientHello}),
-        version_(version) {}
+      : TlsHandshakeFilter(a, {kTlsHandshakeClientHello}), version_(version) {}
 
   virtual PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
                                                const DataBuffer& input,

@@ -441,9 +441,7 @@ void TlsAgent::GetVersionRange(uint16_t* minver, uint16_t* maxver) {
   *maxver = vrange_.max;
 }
 
-void TlsAgent::SetExpectedVersion(uint16_t ver) {
-  expected_version_ = ver;
-}
+void TlsAgent::SetExpectedVersion(uint16_t ver) { expected_version_ = ver; }
 
 void TlsAgent::SetServerKeyBits(uint16_t bits) { server_key_bits_ = bits; }
 
