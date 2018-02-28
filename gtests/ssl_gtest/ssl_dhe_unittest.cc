@@ -141,8 +141,8 @@ class TlsDheSkeChangeY : public TlsHandshakeFilter {
     kYZeroPad
   };
 
-  TlsDheSkeChangeY(const std::shared_ptr<TlsAgent>& a,
-                   uint8_t handshake_type, ChangeYTo change)
+  TlsDheSkeChangeY(const std::shared_ptr<TlsAgent>& a, uint8_t handshake_type,
+                   ChangeYTo change)
       : TlsHandshakeFilter(a, {handshake_type}), change_Y_(change) {}
 
  protected:
@@ -208,8 +208,8 @@ class TlsDheSkeChangeY : public TlsHandshakeFilter {
 
 class TlsDheSkeChangeYServer : public TlsDheSkeChangeY {
  public:
-  TlsDheSkeChangeYServer(const std::shared_ptr<TlsAgent>& a,
-                         ChangeYTo change, bool modify)
+  TlsDheSkeChangeYServer(const std::shared_ptr<TlsAgent>& a, ChangeYTo change,
+                         bool modify)
       : TlsDheSkeChangeY(a, kTlsHandshakeServerKeyExchange, change),
         modify_(modify),
         p_() {}
@@ -546,8 +546,8 @@ TEST_P(TlsConnectTls13, ResumeFfdhe) {
 
 class TlsDheSkeChangeSignature : public TlsHandshakeFilter {
  public:
-  TlsDheSkeChangeSignature(const std::shared_ptr<TlsAgent>& a,
-                           uint16_t version, const uint8_t* data, size_t len)
+  TlsDheSkeChangeSignature(const std::shared_ptr<TlsAgent>& a, uint16_t version,
+                           const uint8_t* data, size_t len)
       : TlsHandshakeFilter(a, {kTlsHandshakeServerKeyExchange}),
         version_(version),
         data_(data),
