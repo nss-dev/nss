@@ -90,9 +90,14 @@ class TestAgent {
     PRStatus prv;
     PRNetAddr addr;
 
-    prv = PR_StringToNetAddr("127.0.0.1", &addr);
+    // Try IPv6 first.
+    prv = PR_StringToNetAddr("::1", &addr);
     if (prv != PR_SUCCESS) {
-      return false;
+      // If that fails, try IPv4.
+      prv = PR_StringToNetAddr("127.0.0.1", &addr);
+      if (prv != PR_SUCCESS) {
+        return false;
+      }
     }
     addr.inet.port = PR_htons(cfg_.get<int>("port"));
 
