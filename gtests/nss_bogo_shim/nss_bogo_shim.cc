@@ -5,6 +5,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "config.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -298,7 +299,7 @@ class TestAgent {
     if (sign_prefs.empty()) {
       sign_prefs = verify_prefs;
     } else if (!verify_prefs.empty()) {
-      return false; // Both shouldn't be set.
+      return false;  // Both shouldn't be set.
     }
     if (!sign_prefs.empty()) {
       std::vector<SSLSignatureScheme> sig_schemes;
