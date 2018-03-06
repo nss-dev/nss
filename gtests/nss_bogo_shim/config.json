@@ -1,7 +1,9 @@
 {
     "DisabledTests": {
         "### These tests break whenever we rev versions, so just leave them here for easy uncommenting":"",
+        "FilterExtraAlgorithms":"NSS doesn't allow sending unsupported signature algorithms",
         "SendBogusAlertType":"Unexpected TLS alerts should abort connections (Bug 1438263)",
+        "VerifyPreferences-Ed25519":"Add Ed25519 support (Bug 1325335)",
         "Ed25519DefaultDisable*":"Add Ed25519 support (Bug 1325335)",
         "ServerCipherFilter*":"Add Ed25519 support (Bug 1325335)",
         "GarbageCertificate*":"Send bad_certificate alert when certificate parsing fails (Bug 1441565)",

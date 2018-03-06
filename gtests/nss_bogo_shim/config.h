@@ -29,12 +29,13 @@ class ConfigEntryBase {
   virtual ~ConfigEntryBase() {}
 
   const std::string& type() const { return type_; }
-  virtual bool Parse(std::queue<const char*>* args) = 0;
+  virtual bool Parse(std::queue<const char*>& args) = 0;
 
  protected:
-  bool ParseInternal(std::queue<const char*>* args, std::string* out);
-  bool ParseInternal(std::queue<const char*>* args, int* out);
-  bool ParseInternal(std::queue<const char*>* args, bool* out);
+  bool ParseInternal(std::queue<const char*> &args, std::vector<int> &out);
+  bool ParseInternal(std::queue<const char*> &args, std::string &out);
+  bool ParseInternal(std::queue<const char*> &args, int &out);
+  bool ParseInternal(std::queue<const char*> &args, bool &out);
 
   const std::string name_;
   const std::string type_;
@@ -48,8 +49,8 @@ class ConfigEntry : public ConfigEntryBase {
       : ConfigEntryBase(name, typeid(T).name()), value_(init) {}
   T get() const { return value_; }
 
-  bool Parse(std::queue<const char*>* args) {
-    return ParseInternal(args, &value_);
+  bool Parse(std::queue<const char*> &args) {
+    return ParseInternal(args, value_);
   }
 
  private:
