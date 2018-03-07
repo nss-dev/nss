@@ -303,10 +303,9 @@ class TestAgent {
     }
     if (!sign_prefs.empty()) {
       std::vector<SSLSignatureScheme> sig_schemes;
-      std::transform(sign_prefs.begin(), sign_prefs.end(),
-                     std::back_inserter(sig_schemes), [](int scheme) {
-                       return static_cast<SSLSignatureScheme>(scheme);
-                     });
+      std::transform(
+          sign_prefs.begin(), sign_prefs.end(), std::back_inserter(sig_schemes),
+          [](int scheme) { return static_cast<SSLSignatureScheme>(scheme); });
 
       rv = SSL_SignatureSchemePrefSet(
           ssl_fd_, sig_schemes.data(),
