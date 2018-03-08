@@ -845,7 +845,7 @@ SECItemToHex(const SECItem *item, char *dst)
 }
 
 static const char *const keyTypeName[] = {
-    "null", "rsa", "dsa", "fortezza", "dh", "kea", "ec"
+    "null", "rsa", "dsa", "fortezza", "dh", "kea", "ec", "rsaPss"
 };
 
 #define MAX_CKA_ID_BIN_LEN 20

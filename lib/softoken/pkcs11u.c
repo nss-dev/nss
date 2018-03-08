@@ -1269,7 +1269,7 @@ static const CK_ULONG ecPubKeyAttrsCount =
 
 static const CK_ATTRIBUTE_TYPE commonPrivKeyAttrs[] = {
     CKA_DECRYPT, CKA_SIGN, CKA_SIGN_RECOVER, CKA_UNWRAP, CKA_SUBJECT,
-    CKA_SENSITIVE, CKA_EXTRACTABLE, CKA_NETSCAPE_DB
+    CKA_SENSITIVE, CKA_EXTRACTABLE, CKA_NETSCAPE_DB, CKA_PUBLIC_KEY_INFO
 };
 static const CK_ULONG commonPrivKeyAttrsCount =
     sizeof(commonPrivKeyAttrs) / sizeof(commonPrivKeyAttrs[0]);
