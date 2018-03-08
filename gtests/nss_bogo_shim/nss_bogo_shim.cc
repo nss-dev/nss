@@ -262,7 +262,11 @@ class TestAgent {
   }
 
   bool SetupOptions() {
-    SECStatus rv = SSL_OptionSet(ssl_fd_, SSL_ENABLE_SESSION_TICKETS, PR_TRUE);
+    SECStatus rv =
+        SSL_OptionSet(ssl_fd_, SSL_ENABLE_TLS13_COMPAT_MODE, PR_TRUE);
+    if (rv != SECSuccess) return false;
+
+    rv = SSL_OptionSet(ssl_fd_, SSL_ENABLE_SESSION_TICKETS, PR_TRUE);
     if (rv != SECSuccess) return false;
 
     SSLVersionRange vrange;
