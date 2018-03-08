@@ -1,6 +1,10 @@
 {
     "DisabledTests": {
         "### These tests break whenever we rev versions, so just leave them here for easy uncommenting":"",
+        "ServerBogusVersion":"Check that SH.legacy_version=TLS12 when the server picks TLS 1.3 (Bug 1443761)",
+        "DummyPQPadding-Server*":"Boring is testing a dummy PQ padding extension",
+        "VerifyPreferences-Enforced":"NSS sends alerts in response to errors in protected handshake messages in the clear",
+        "Draft-Downgrade-Server":"Boring implements a draft downgrade sentinel used for measurements.",
         "FilterExtraAlgorithms":"NSS doesn't allow sending unsupported signature algorithms",
         "SendBogusAlertType":"Unexpected TLS alerts should abort connections (Bug 1438263)",
         "VerifyPreferences-Ed25519":"Add Ed25519 support (Bug 1325335)",
