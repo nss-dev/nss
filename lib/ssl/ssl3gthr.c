@@ -158,6 +158,7 @@ ssl3_GatherData(sslSocket *ss, sslGather *gs, int flags, ssl2Gather *ssl2gs)
                      * the length of the following encrypted data, and then
                      * read in the rest of the record into gs->inbuf. */
                     gs->remainder = (gs->hdr[3] << 8) | gs->hdr[4];
+                    gs->hdrLen = SSL3_RECORD_HEADER_LENGTH;
                 } else {
                     /* Probably an SSLv2 record header. No need to handle any
                      * security escapes (gs->hdr[0] & 0x40) as we wouldn't get
@@ -340,6 +341,7 @@ dtls_GatherData(sslSocket *ss, sslGather *gs, int flags)
     }
     memcpy(gs->hdr, SSL_BUFFER_BASE(&gs->dtlsPacket) + gs->dtlsPacketOffset,
            headerLen);
+    gs->hdrLen = headerLen;
     gs->dtlsPacketOffset += headerLen;
 
     /* Have received SSL3 record header in gs->hdr. */
@@ -515,11 +517,12 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
                  * If it's application data, ss->gs.buf will not be empty upon return.
                  * If it's a change cipher spec, alert, or handshake message,
                  * ss->gs.buf.len will be 0 when ssl3_HandleRecord returns SECSuccess.
-                 * 
+                 *
                  * cText only needs to be valid for this next function call, so
                  * it can borrow gs.hdr.
                  */
                 cText.hdr = ss->gs.hdr;
+                cText.hdrLen = ss->gs.hdrLen;
                 cText.buf = &ss->gs.inbuf;
                 rv = ssl3_HandleRecord(ss, &cText);
             }
