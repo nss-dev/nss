@@ -59,7 +59,8 @@
     'sha_fast.c',
     'shvfy.c',
     'sysrand.c',
-    'tlsprfalg.c'
+    'tlsprfalg.c',
+    'verified/FStar.c',
   ],
   'conditions': [
     [ 'OS=="linux" or OS=="android"', {
@@ -135,7 +136,6 @@
         # All intel and 64-bit ARM architectures get the 64 bit version.
         'ecl/curve25519_64.c',
         'verified/Hacl_Curve25519.c',
-        'verified/FStar.c',
       ],
     }, {
       'sources': [
