@@ -10,6 +10,9 @@
 #include "prio.h"
 #include "ssl.h"
 
+// This is an internal header, used to get TLS_1_3_DRAFT_VERSION.
+#include "ssl3prot.h"
+
 #include <functional>
 #include <iostream>
 
@@ -56,6 +59,8 @@ typedef std::function<void(TlsAgent* agent)> HandshakeCallbackFunction;
 typedef std::function<int32_t(TlsAgent* agent, const SECItem* srvNameArr,
                               PRUint32 srvNameArrSize)>
     SniCallbackFunction;
+
+static const uint8_t kD13 = TLS_1_3_DRAFT_VERSION;
 
 class TlsAgent : public PollTarget {
  public:
@@ -442,6 +447,7 @@ class TlsAgentTestBase : public ::testing::Test {
                                     size_t hs_len, DataBuffer* out,
                                     uint64_t seq_num, uint32_t fragment_offset,
                                     uint32_t fragment_length) const;
+  DataBuffer MakeCannedTls13ServerHello();
   static void MakeTrivialHandshakeRecord(uint8_t hs_type, size_t hs_len,
                                          DataBuffer* out);
   static inline TlsAgent::Role ToRole(const std::string& str) {

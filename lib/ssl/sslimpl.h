@@ -326,9 +326,11 @@ struct sslGatherStr {
     ** than into buf or inbuf, while in the GS_HEADER state.
     ** The portion of the SSL record header put here always comes off the wire
     ** as plaintext, never ciphertext.
-    ** For SSL3/TLS, the plaintext portion is 5 bytes long. For DTLS it is 13.
+    ** For SSL3/TLS, the plaintext portion is 5 bytes long. For DTLS it
+    ** varies based on version and header type.
     */
     unsigned char hdr[13];
+    unsigned int hdrLen;
 
     /* Buffer for DTLS data read off the wire as a single datagram */
     sslBuffer dtlsPacket;
@@ -785,6 +787,8 @@ typedef struct {
     sslSequenceNumber seqNum;
     /* The header of the cipherText. */
     const PRUint8 *hdr;
+    unsigned int hdrLen;
+
     /* |buf| is the payload of the ciphertext. */
     sslBuffer *buf;
 } SSL3Ciphertext;
@@ -1642,6 +1646,9 @@ SSLHashType ssl_SignatureSchemeToHashType(SSLSignatureScheme scheme);
 KeyType ssl_SignatureSchemeToKeyType(SSLSignatureScheme scheme);
 
 SECStatus ssl3_SetupCipherSuite(sslSocket *ss, PRBool initHashes);
+SECStatus ssl_InsertRecordHeader(const sslSocket *ss, ssl3CipherSpec *cwSpec,
+                                 SSL3ContentType contentType, sslBuffer *wrBuf,
+                                 PRBool *needsLength);
 
 /* Pull in DTLS functions */
 #include "dtlscon.h"

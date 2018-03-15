@@ -213,14 +213,14 @@ PacketFilter::Action TlsRecordFilter::FilterRecord(
 }
 
 size_t TlsRecordHeader::header_length() const {
-  if (!is_dtls()) {
-    return 5;
+  // If we have a header, return it's length.
+  if (header_.len()) {
+    return header_.len();
   }
-  if (version() >= SSL_LIBRARY_VERSION_TLS_1_3 &&
-      content_type_ == kTlsApplicationDataType) {
-    return 7;
-  }
-  return 13;
+
+  // Otherwise make a dummy header and return the length.
+  DataBuffer buf;
+  return WriteHeader(&buf, 0, 0);
 }
 
 uint64_t TlsRecordHeader::RecoverSequenceNumber(uint64_t expected,
@@ -265,6 +265,8 @@ uint64_t TlsRecordHeader::ParseSequenceNumber(uint64_t expected, uint32_t raw,
 
 bool TlsRecordHeader::Parse(bool is_dtls13, uint64_t seqno, TlsParser* parser,
                             DataBuffer* body) {
+  auto mark = parser->consumed();
+
   if (!parser->Read(&content_type_)) {
     return false;
   }
@@ -281,6 +283,10 @@ bool TlsRecordHeader::Parse(bool is_dtls13, uint64_t seqno, TlsParser* parser,
         return false;
       }
       sequence_number_ = ParseSequenceNumber(seqno, tmp, 30, 2);
+      if (!parser->ReadFromMark(&header_, parser->consumed() + 2 - mark,
+                                mark)) {
+        return false;
+      }
       return parser->ReadVariable(body, 2);
     }
 
@@ -294,6 +300,10 @@ bool TlsRecordHeader::Parse(bool is_dtls13, uint64_t seqno, TlsParser* parser,
       tmp |= (content_type_ & 0x1f) << 8;
       content_type_ = kTlsApplicationDataType;
       sequence_number_ = ParseSequenceNumber(seqno, tmp, 12, 1);
+
+      if (!parser->ReadFromMark(&header_, parser->consumed() - mark, mark)) {
+        return false;
+      }
       return parser->Read(body, parser->remaining());
     }
 
@@ -327,11 +337,14 @@ bool TlsRecordHeader::Parse(bool is_dtls13, uint64_t seqno, TlsParser* parser,
   } else {
     sequence_number_ = seqno;
   }
+  if (!parser->ReadFromMark(&header_, parser->consumed() + 2 - mark, mark)) {
+    return false;
+  }
   return parser->ReadVariable(body, 2);
 }
 
-size_t TlsRecordHeader::Write(DataBuffer* buffer, size_t offset,
-                              const DataBuffer& body) const {
+size_t TlsRecordHeader::WriteHeader(DataBuffer* buffer, size_t offset,
+                                    size_t body_len) const {
   offset = buffer->Write(offset, content_type_, 1);
   if (is_dtls() && version_ >= SSL_LIBRARY_VERSION_TLS_1_3 &&
       content_type() == kTlsApplicationDataType) {
@@ -349,7 +362,13 @@ size_t TlsRecordHeader::Write(DataBuffer* buffer, size_t offset,
       offset = buffer->Write(offset, sequence_number_ & 0xffffffff, 4);
     }
   }
-  offset = buffer->Write(offset, body.len(), 2);
+  offset = buffer->Write(offset, body_len, 2);
+  return offset;
+}
+
+size_t TlsRecordHeader::Write(DataBuffer* buffer, size_t offset,
+                              const DataBuffer& body) const {
+  offset = WriteHeader(buffer, offset, body.len());
   offset = buffer->Write(offset, body);
   return offset;
 }

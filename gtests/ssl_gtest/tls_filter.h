@@ -44,10 +44,14 @@ class TlsVersioned {
 
 class TlsRecordHeader : public TlsVersioned {
  public:
-  TlsRecordHeader() : TlsVersioned(), content_type_(0), sequence_number_(0) {}
+  TlsRecordHeader()
+      : TlsVersioned(), content_type_(0), sequence_number_(0), header_() {}
   TlsRecordHeader(SSLProtocolVariant var, uint16_t ver, uint8_t ct,
                   uint64_t seqno)
-      : TlsVersioned(var, ver), content_type_(ct), sequence_number_(seqno) {}
+      : TlsVersioned(var, ver),
+        content_type_(ct),
+        sequence_number_(seqno),
+        header_() {}
 
   uint8_t content_type() const { return content_type_; }
   uint64_t sequence_number() const { return sequence_number_; }
@@ -55,12 +59,15 @@ class TlsRecordHeader : public TlsVersioned {
     return static_cast<uint16_t>(sequence_number_ >> 48);
   }
   size_t header_length() const;
+  const DataBuffer& header() const { return header_; }
+
   // Parse the header; return true if successful; body in an outparam if OK.
   bool Parse(bool is_dtls13, uint64_t sequence_number, TlsParser* parser,
              DataBuffer* body);
   // Write the header and body to a buffer at the given offset.
   // Return the offset of the end of the write.
   size_t Write(DataBuffer* buffer, size_t offset, const DataBuffer& body) const;
+  size_t WriteHeader(DataBuffer* buffer, size_t offset, size_t body_len) const;
 
  private:
   static uint64_t RecoverSequenceNumber(uint64_t expected, uint32_t partial,
@@ -70,6 +77,7 @@ class TlsRecordHeader : public TlsVersioned {
 
   uint8_t content_type_;
   uint64_t sequence_number_;
+  DataBuffer header_;
 };
 
 struct TlsRecord {

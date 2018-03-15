@@ -2209,6 +2209,8 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, const PRUint8 *savedMsg,
     } else {
         PORT_Assert(ss->ssl3.hs.zeroRttState == ssl_0rtt_none);
     }
+    /* Set the spec version, because we want to send CH now with 0303 */
+    tls13_SetSpecRecordVersion(ss, ss->ssl3.cwSpec);
 
     /* Extensions must contain more than just supported_versions.  This will
      * ensure that a HelloRetryRequest isn't a no-op: we must have at least two
@@ -2248,6 +2250,7 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, const PRUint8 *savedMsg,
             goto loser;
         }
     }
+
     rv = ssl3_SendClientHello(ss, client_hello_retry);
     if (rv != SECSuccess) {
         goto loser;
@@ -3536,14 +3539,15 @@ tls13_AESGCM(ssl3KeyMaterial *keys,
     CK_GCM_PARAMS gcmParams;
     unsigned char nonce[12];
 
+    PORT_Assert(additionalDataLen > 8);
     memset(&gcmParams, 0, sizeof(gcmParams));
     gcmParams.pIv = nonce;
     gcmParams.ulIvLen = sizeof(nonce);
-    gcmParams.pAAD = NULL;
-    gcmParams.ulAADLen = 0;
+    gcmParams.pAAD = (PRUint8 *)(additionalData + 8);
+    gcmParams.ulAADLen = additionalDataLen - 8;
     gcmParams.ulTagBits = 128; /* GCM measures tag length in bits. */
 
-    tls13_WriteNonce(keys, additionalData, additionalDataLen,
+    tls13_WriteNonce(keys, additionalData, 8,
                      nonce, sizeof(nonce));
     return tls13_AEAD(keys, doDecrypt, out, outlen, maxout, in, inlen,
                       CKM_AES_GCM,
@@ -3560,14 +3564,15 @@ tls13_ChaCha20Poly1305(ssl3KeyMaterial *keys, PRBool doDecrypt,
     CK_NSS_AEAD_PARAMS aeadParams;
     unsigned char nonce[12];
 
+    PORT_Assert(additionalDataLen > 8);
     memset(&aeadParams, 0, sizeof(aeadParams));
     aeadParams.pNonce = nonce;
     aeadParams.ulNonceLen = sizeof(nonce);
-    aeadParams.pAAD = NULL; /* No AAD in TLS 1.3. */
-    aeadParams.ulAADLen = 0;
+    aeadParams.pAAD = (PRUint8 *)(additionalData + 8);
+    aeadParams.ulAADLen = additionalDataLen - 8;
     aeadParams.ulTagLen = 16; /* The Poly1305 tag is 16 octets. */
 
-    tls13_WriteNonce(keys, additionalData, additionalDataLen,
+    tls13_WriteNonce(keys, additionalData, 8,
                      nonce, sizeof(nonce));
     return tls13_AEAD(keys, doDecrypt, out, outlen, maxout, in, inlen,
                       CKM_NSS_CHACHA20_POLY1305,
@@ -4780,19 +4785,20 @@ tls13_ExtensionStatus(PRUint16 extension, SSLHandshakeType message)
 #undef _M2
 #undef _M3
 
-/* TLS 1.3 doesn't actually have additional data but the aead function
- * signature overloads additional data to carry the record sequence
- * number and that's what we put here. The TLS 1.3 AEAD functions
- * just use this input as the sequence number and not as additional
- * data. */
+/* We cheat a bit on additional data because the AEAD interface
+ * which doesn't have room for the record number. The AAD we
+ * format is serialized record number followed by the true AD
+ * (i.e., the record header) plus the serialized record number. */
 static SECStatus
-tls13_FormatAdditionalData(sslSocket *ss, PRUint8 *aad, unsigned int length,
-                           DTLSEpoch epoch, sslSequenceNumber seqNum)
+tls13_FormatAdditionalData(
+    sslSocket *ss,
+    const PRUint8 *header, unsigned int headerLen,
+    DTLSEpoch epoch, sslSequenceNumber seqNum,
+    PRUint8 *aad, unsigned int *aadLength, unsigned int maxLength)
 {
     SECStatus rv;
-    sslBuffer buf = SSL_BUFFER_FIXED(aad, length);
+    sslBuffer buf = SSL_BUFFER_FIXED(aad, maxLength);
 
-    PORT_Assert(length == 8);
     if (IS_DTLS(ss)) {
         rv = sslBuffer_AppendNumber(&buf, epoch, 2);
         if (rv != SECSuccess) {
@@ -4803,6 +4809,14 @@ tls13_FormatAdditionalData(sslSocket *ss, PRUint8 *aad, unsigned int length,
     if (rv != SECSuccess) {
         return SECFailure;
     }
+
+    rv = sslBuffer_Append(&buf, header, headerLen);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    *aadLength = buf.len;
+
     return SECSuccess;
 }
 
@@ -4859,15 +4873,35 @@ tls13_ProtectRecord(sslSocket *ss,
         rv = sslBuffer_Skip(wrBuf, contentLen, NULL);
         PORT_Assert(rv == SECSuccess);
     } else {
-        PRUint8 aad[8];
+        PRUint8 hdr[13];
+        sslBuffer buf = SSL_BUFFER_FIXED(hdr, sizeof(hdr));
+        PRBool needsLength;
+        PRUint8 aad[21];
+        unsigned int aadLen;
         int len;
+
         PORT_Assert(cipher_def->type == type_aead);
 
         /* Add the content type at the end. */
         *(SSL_BUFFER_NEXT(wrBuf) + contentLen) = type;
 
-        rv = tls13_FormatAdditionalData(ss, aad, sizeof(aad), cwSpec->epoch,
-                                        cwSpec->nextSeqNum);
+        /* Create the header (ugly that we have to do it twice). */
+        rv = ssl_InsertRecordHeader(ss, cwSpec, content_application_data,
+                                    &buf, &needsLength);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+        if (needsLength) {
+            rv = sslBuffer_AppendNumber(&buf, contentLen + 1 +
+                                                  cwSpec->cipherDef->tag_size,
+                                        2);
+            if (rv != SECSuccess) {
+                return SECFailure;
+            }
+        }
+        rv = tls13_FormatAdditionalData(ss, SSL_BUFFER_BASE(&buf), SSL_BUFFER_LEN(&buf),
+                                        cwSpec->epoch, cwSpec->nextSeqNum,
+                                        aad, &aadLen, sizeof(aad));
         if (rv != SECSuccess) {
             return SECFailure;
         }
@@ -4878,7 +4912,7 @@ tls13_ProtectRecord(sslSocket *ss,
                           SSL_BUFFER_SPACE(wrBuf), /* max out */
                           SSL_BUFFER_NEXT(wrBuf),  /* input */
                           contentLen + 1,          /* input len */
-                          aad, sizeof(aad));
+                          aad, aadLen);
         if (rv != SECSuccess) {
             PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
             return SECFailure;
@@ -4908,7 +4942,8 @@ tls13_UnprotectRecord(sslSocket *ss,
                       SSL3AlertDescription *alert)
 {
     const ssl3BulkCipherDef *cipher_def = spec->cipherDef;
-    PRUint8 aad[8];
+    PRUint8 aad[21];
+    unsigned int aadLen;
     SECStatus rv;
 
     *alert = bad_record_mac; /* Default alert for most issues. */
@@ -4957,8 +4992,9 @@ tls13_UnprotectRecord(sslSocket *ss,
 
     /* Decrypt */
     PORT_Assert(cipher_def->type == type_aead);
-    rv = tls13_FormatAdditionalData(ss, aad, sizeof(aad), spec->epoch,
-                                    cText->seqNum);
+    rv = tls13_FormatAdditionalData(ss, cText->hdr, cText->hdrLen,
+                                    spec->epoch, cText->seqNum,
+                                    aad, &aadLen, sizeof(aad));
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -4969,7 +5005,7 @@ tls13_UnprotectRecord(sslSocket *ss,
                     plaintext->space,       /* maxout */
                     cText->buf->buf,        /* in */
                     cText->buf->len,        /* inlen */
-                    aad, sizeof(aad));
+                    aad, aadLen);
     if (rv != SECSuccess) {
         SSL_TRC(3,
                 ("%d: TLS13[%d]: record has bogus MAC",
@@ -5232,6 +5268,58 @@ tls13_EncodeDraftVersion(SSL3ProtocolVersion version)
     }
 #endif
     return (PRUint16)version;
+}
+
+SECStatus
+tls13_ClientReadSupportedVersion(sslSocket *ss)
+{
+    PRUint32 temp;
+    SSL3ProtocolVersion v;
+    TLSExtension *versionExtension;
+    SECItem it;
+    SECStatus rv;
+
+    /* Update the version based on the extension, as necessary. */
+    versionExtension = ssl3_FindExtension(ss, ssl_tls13_supported_versions_xtn);
+    if (!versionExtension) {
+        return SECSuccess;
+    }
+
+    /* Struct copy so we don't damage the extension. */
+    it = versionExtension->data;
+
+    rv = ssl3_ConsumeHandshakeNumber(ss, &temp, 2, &it.data, &it.len);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    if (it.len) {
+        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_SERVER_HELLO, illegal_parameter);
+        return SECFailure;
+    }
+    v = (SSL3ProtocolVersion)temp;
+
+    /* You cannot negotiate < TLS 1.3 with supported_versions. */
+    if (v < SSL_LIBRARY_VERSION_TLS_1_3) {
+        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_SERVER_HELLO, illegal_parameter);
+        return SECFailure;
+    }
+
+#ifdef TLS_1_3_DRAFT_VERSION
+    if (temp == SSL_LIBRARY_VERSION_TLS_1_3) {
+        FATAL_ERROR(ss, SSL_ERROR_UNSUPPORTED_VERSION, protocol_version);
+        return SECFailure;
+    }
+    if (temp == tls13_EncodeDraftVersion(SSL_LIBRARY_VERSION_TLS_1_3)) {
+        v = SSL_LIBRARY_VERSION_TLS_1_3;
+    } else {
+        v = (SSL3ProtocolVersion)temp;
+    }
+#else
+    v = (SSL3ProtocolVersion)temp;
+#endif
+
+    ss->version = v;
+    return SECSuccess;
 }
 
 /* Pick the highest version we support that is also advertised. */

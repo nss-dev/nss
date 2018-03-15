@@ -990,27 +990,22 @@ ssl_ClientReadVersion(sslSocket *ss, PRUint8 **b, unsigned int *len,
     if (rv != SECSuccess) {
         return SECFailure; /* alert has been sent */
     }
-
-#ifdef TLS_1_3_DRAFT_VERSION
-    if (temp == SSL_LIBRARY_VERSION_TLS_1_3) {
-        (void)SSL3_SendAlert(ss, alert_fatal, protocol_version);
-        PORT_SetError(SSL_ERROR_UNSUPPORTED_VERSION);
-        return SECFailure;
-    }
-    if (temp == tls13_EncodeDraftVersion(SSL_LIBRARY_VERSION_TLS_1_3)) {
-        v = SSL_LIBRARY_VERSION_TLS_1_3;
-    } else {
-        v = (SSL3ProtocolVersion)temp;
-    }
-#else
     v = (SSL3ProtocolVersion)temp;
-#endif
 
     if (IS_DTLS(ss)) {
-        /* If this fails, we get 0 back and the next check to fails. */
         v = dtls_DTLSVersionToTLSVersion(v);
+        /* Check for failure. */
+        if (!v || v > SSL_LIBRARY_VERSION_MAX_SUPPORTED) {
+            SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
+            return SECFailure;
+        }
     }
 
+    /* You can't negotiate TLS 1.3 this way. */
+    if (v >= SSL_LIBRARY_VERSION_TLS_1_3) {
+        SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
+        return SECFailure;
+    }
     *version = v;
     return SECSuccess;
 }
@@ -2159,7 +2154,7 @@ ssl3_MACEncryptRecord(ssl3CipherSpec *cwSpec,
 }
 
 /* Note: though this can report failure, it shouldn't. */
-static SECStatus
+SECStatus
 ssl_InsertRecordHeader(const sslSocket *ss, ssl3CipherSpec *cwSpec,
                        SSL3ContentType contentType, sslBuffer *wrBuf,
                        PRBool *needsLength)
@@ -6176,7 +6171,6 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
     SECItem sidBytes = { siBuffer, NULL, 0 };
     PRBool isHelloRetry;
     SSL3AlertDescription desc = illegal_parameter;
-    TLSExtension *versionExtension;
     const PRUint8 *savedMsg = b;
     const PRUint32 savedLength = length;
 #ifndef TLS_1_3_DRAFT_VERSION
@@ -6267,16 +6261,10 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
         }
     }
 
-    /* Update the version based on the extension, as necessary. */
-    versionExtension = ssl3_FindExtension(ss, ssl_tls13_supported_versions_xtn);
-    if (versionExtension) {
-        rv = ssl_ClientReadVersion(ss, &versionExtension->data.data,
-                                   &versionExtension->data.len,
-                                   &ss->version);
-        if (rv != SECSuccess) {
-            errCode = PORT_GetError();
-            goto loser; /* An alert is sent by ssl_ClientReadVersion */
-        }
+    /* Read supported_versions if present. */
+    rv = tls13_ClientReadSupportedVersion(ss);
+    if (rv != SECSuccess) {
+        goto loser;
     }
 
     PORT_Assert(!SSL_ALL_VERSIONS_DISABLED(&ss->vrange));
@@ -6361,8 +6349,9 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
     /* Finally, now all the version-related checks have passed. */
     ss->ssl3.hs.preliminaryInfo |= ssl_preinfo_version;
     /* Update the write cipher spec to match the version. But not after
-     * HelloRetryRequest, because cwSpec might be a 0-RTT cipher spec. */
-    if (!ss->firstHsDone && !ss->ssl3.hs.helloRetry) {
+     * HelloRetryRequest, because cwSpec might be a 0-RTT cipher spec,
+     * in which case this is a no-op. */
+    if (!ss->firstHsDone && !isHelloRetry) {
         ssl_GetSpecWriteLock(ss);
         ssl_SetSpecVersions(ss, ss->ssl3.cwSpec);
         ssl_ReleaseSpecWriteLock(ss);
@@ -8859,12 +8848,10 @@ ssl_ConstructServerHello(sslSocket *ss, PRBool helloRetry,
     SSL3ProtocolVersion version;
     sslSessionID *sid = ss->sec.ci.sid;
 
-    if (IS_DTLS(ss) && ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
-        version = dtls_TLSVersionToDTLSVersion(ss->version);
-    } else {
-        version = PR_MIN(ss->version, SSL_LIBRARY_VERSION_TLS_1_2);
+    version = PR_MIN(ss->version, SSL_LIBRARY_VERSION_TLS_1_2);
+    if (IS_DTLS(ss)) {
+        version = dtls_TLSVersionToDTLSVersion(version);
     }
-
     rv = sslBuffer_AppendNumber(messageBuf, version, 2);
     if (rv != SECSuccess) {
         return SECFailure;
