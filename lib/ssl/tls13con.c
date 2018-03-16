@@ -792,7 +792,7 @@ tls13_HandleKeyUpdate(sslSocket *ss, PRUint8 *b, unsigned int length)
             /* Only send an update if we have sent with the current spec.  This
              * prevents us from being forced to crank forward pointlessly. */
             ssl_GetSpecReadLock(ss);
-            sendUpdate = ss->ssl3.cwSpec->seqNum > 0;
+            sendUpdate = ss->ssl3.cwSpec->nextSeqNum > 0;
             ssl_ReleaseSpecReadLock(ss);
         } else {
             sendUpdate = PR_TRUE;
@@ -1620,7 +1620,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
             ssl_GetSpecWriteLock(ss);
             /* Increase the write sequence number.  The read sequence number
              * will be reset after this to early data or handshake. */
-            ss->ssl3.cwSpec->seqNum = 1;
+            ss->ssl3.cwSpec->nextSeqNum = 1;
             ssl_ReleaseSpecWriteLock(ss);
         }
 
@@ -2007,7 +2007,7 @@ tls13_SendHelloRetryRequest(sslSocket *ss,
 
     /* We depend on this being exactly one record and one message. */
     PORT_Assert(!IS_DTLS(ss) || (ss->ssl3.hs.sendMessageSeq == 1 &&
-                                 ss->ssl3.cwSpec->seqNum == 1));
+                                 ss->ssl3.cwSpec->nextSeqNum == 1));
     ssl_ReleaseXmitBufLock(ss);
 
     ss->ssl3.hs.helloRetry = PR_TRUE;
@@ -3316,7 +3316,7 @@ tls13_SetCipherSpec(sslSocket *ss, PRUint16 epoch,
         return SECFailure;
     }
     spec->epoch = epoch;
-    spec->seqNum = 0;
+    spec->nextSeqNum = 0;
     if (IS_DTLS(ss)) {
         dtls_InitRecvdRecords(&spec->recvdRecords);
     }
@@ -4843,43 +4843,48 @@ tls13_ProtectRecord(sslSocket *ss,
     PORT_Assert(cwSpec->direction == CipherSpecWrite);
     SSL_TRC(3, ("%d: TLS13[%d]: spec=%d epoch=%d (%s) protect 0x%0llx len=%u",
                 SSL_GETPID(), ss->fd, cwSpec, cwSpec->epoch, cwSpec->phase,
-                cwSpec->seqNum, contentLen));
+                cwSpec->nextSeqNum, contentLen));
 
-    if (contentLen + 1 + tagLen > wrBuf->space) {
+    if (contentLen + 1 + tagLen > SSL_BUFFER_SPACE(wrBuf)) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
     }
 
     /* Copy the data into the wrBuf. We're going to encrypt in-place
      * in the AEAD branch anyway */
-    PORT_Memcpy(wrBuf->buf, pIn, contentLen);
+    PORT_Memcpy(SSL_BUFFER_NEXT(wrBuf), pIn, contentLen);
 
     if (cipher_def->calg == ssl_calg_null) {
         /* Shortcut for plaintext */
-        wrBuf->len = contentLen;
+        rv = sslBuffer_Skip(wrBuf, contentLen, NULL);
+        PORT_Assert(rv == SECSuccess);
     } else {
         PRUint8 aad[8];
+        int len;
         PORT_Assert(cipher_def->type == type_aead);
 
         /* Add the content type at the end. */
-        wrBuf->buf[contentLen] = type;
+        *(SSL_BUFFER_NEXT(wrBuf) + contentLen) = type;
 
         rv = tls13_FormatAdditionalData(ss, aad, sizeof(aad), cwSpec->epoch,
-                                        cwSpec->seqNum);
+                                        cwSpec->nextSeqNum);
         if (rv != SECSuccess) {
             return SECFailure;
         }
         rv = cwSpec->aead(&cwSpec->keyMaterial,
-                          PR_FALSE,                   /* do encrypt */
-                          wrBuf->buf,                 /* output  */
-                          (int *)&wrBuf->len,         /* out len */
-                          wrBuf->space,               /* max out */
-                          wrBuf->buf, contentLen + 1, /* input   */
+                          PR_FALSE,                /* do encrypt */
+                          SSL_BUFFER_NEXT(wrBuf),  /* output  */
+                          &len,                    /* out len */
+                          SSL_BUFFER_SPACE(wrBuf), /* max out */
+                          SSL_BUFFER_NEXT(wrBuf),  /* input */
+                          contentLen + 1,          /* input len */
                           aad, sizeof(aad));
         if (rv != SECSuccess) {
             PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
             return SECFailure;
         }
+        rv = sslBuffer_Skip(wrBuf, len, NULL);
+        PORT_Assert(rv == SECSuccess);
     }
 
     return SECSuccess;
@@ -4897,25 +4902,21 @@ tls13_ProtectRecord(sslSocket *ss,
 SECStatus
 tls13_UnprotectRecord(sslSocket *ss,
                       ssl3CipherSpec *spec,
-                      SSL3Ciphertext *cText, sslBuffer *plaintext,
+                      SSL3Ciphertext *cText,
+                      sslBuffer *plaintext,
+                      SSL3ContentType *innerType,
                       SSL3AlertDescription *alert)
 {
     const ssl3BulkCipherDef *cipher_def = spec->cipherDef;
-    sslSequenceNumber seqNum;
     PRUint8 aad[8];
     SECStatus rv;
 
     *alert = bad_record_mac; /* Default alert for most issues. */
 
     PORT_Assert(spec->direction == CipherSpecRead);
-    if (IS_DTLS(ss)) {
-        seqNum = cText->seq_num & RECORD_SEQ_MASK;
-    } else {
-        seqNum = spec->seqNum;
-    }
     SSL_TRC(3, ("%d: TLS13[%d]: spec=%d epoch=%d (%s) unprotect 0x%0llx len=%u",
-                SSL_GETPID(), ss->fd, spec, spec->epoch, spec->phase, seqNum,
-                cText->buf->len));
+                SSL_GETPID(), ss->fd, spec, spec->epoch, spec->phase,
+                cText->seqNum, cText->buf->len));
 
     /* We can perform this test in variable time because the record's total
      * length and the ciphersuite are both public knowledge. */
@@ -4927,28 +4928,37 @@ tls13_UnprotectRecord(sslSocket *ss,
         return SECFailure;
     }
 
-    /* Verify that the content type is right, even though we overwrite it. */
-    if (cText->type != content_application_data) {
+    /* Verify that the content type is right, even though we overwrite it.
+     * Also allow the DTLS short header in TLS 1.3. */
+    if (!(cText->hdr[0] == content_application_data ||
+          (IS_DTLS(ss) &&
+           ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 &&
+           (cText->hdr[0] & 0xe0) == 0x20))) {
         SSL_TRC(3,
-                ("%d: TLS13[%d]: record has invalid exterior content type=%d",
-                 SSL_GETPID(), ss->fd, cText->type));
+                ("%d: TLS13[%d]: record has invalid exterior type=%2.2x",
+                 SSL_GETPID(), ss->fd, cText->hdr[0]));
         /* Do we need a better error here? */
         PORT_SetError(SSL_ERROR_BAD_MAC_READ);
         return SECFailure;
     }
 
-    /* Check the version number in the record. */
-    if (cText->version != spec->recordVersion) {
-        /* Do we need a better error here? */
-        SSL_TRC(3,
-                ("%d: TLS13[%d]: record has bogus version",
-                 SSL_GETPID(), ss->fd));
-        return SECFailure;
+    /* Check the version number in the record. Stream only. */
+    if (!IS_DTLS(ss)) {
+        SSL3ProtocolVersion version =
+            ((SSL3ProtocolVersion)cText->hdr[1] << 8) |
+            (SSL3ProtocolVersion)cText->hdr[2];
+        if (version != spec->recordVersion) {
+            /* Do we need a better error here? */
+            SSL_TRC(3, ("%d: TLS13[%d]: record has bogus version",
+                        SSL_GETPID(), ss->fd));
+            return SECFailure;
+        }
     }
 
     /* Decrypt */
     PORT_Assert(cipher_def->type == type_aead);
-    rv = tls13_FormatAdditionalData(ss, aad, sizeof(aad), spec->epoch, seqNum);
+    rv = tls13_FormatAdditionalData(ss, aad, sizeof(aad), spec->epoch,
+                                    cText->seqNum);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -4977,9 +4987,7 @@ tls13_UnprotectRecord(sslSocket *ss,
 
     /* Bogus padding. */
     if (plaintext->len < 1) {
-        SSL_TRC(3,
-                ("%d: TLS13[%d]: empty record",
-                 SSL_GETPID(), ss->fd, cText->type));
+        SSL_TRC(3, ("%d: TLS13[%d]: empty record", SSL_GETPID(), ss->fd));
         /* It's safe to report this specifically because it happened
          * after the MAC has been verified. */
         PORT_SetError(SSL_ERROR_BAD_BLOCK_PADDING);
@@ -4987,12 +4995,12 @@ tls13_UnprotectRecord(sslSocket *ss,
     }
 
     /* Record the type. */
-    cText->type = plaintext->buf[plaintext->len - 1];
+    *innerType = (SSL3ContentType)plaintext->buf[plaintext->len - 1];
     --plaintext->len;
 
     /* Check that we haven't received too much 0-RTT data. */
     if (spec->epoch == TrafficKeyEarlyApplicationData &&
-        cText->type == content_application_data) {
+        *innerType == content_application_data) {
         if (plaintext->len > spec->earlyDataRemaining) {
             *alert = unexpected_message;
             PORT_SetError(SSL_ERROR_TOO_MUCH_EARLY_DATA);
@@ -5002,9 +5010,8 @@ tls13_UnprotectRecord(sslSocket *ss,
     }
 
     SSL_TRC(10,
-            ("%d: TLS13[%d]: %s received record of length=%d type=%d",
-             SSL_GETPID(), ss->fd, SSL_ROLE(ss),
-             plaintext->len, cText->type));
+            ("%d: TLS13[%d]: %s received record of length=%d, type=%d",
+             SSL_GETPID(), ss->fd, SSL_ROLE(ss), plaintext->len, *innerType));
 
     return SECSuccess;
 }

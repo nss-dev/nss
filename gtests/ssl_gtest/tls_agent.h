@@ -143,8 +143,7 @@ class TlsAgent : public PollTarget {
   void SendData(size_t bytes, size_t blocksize = 1024);
   void SendBuffer(const DataBuffer& buf);
   bool SendEncryptedRecord(const std::shared_ptr<TlsCipherSpec>& spec,
-                           uint16_t wireVersion, uint64_t seq, uint8_t ct,
-                           const DataBuffer& buf);
+                           uint64_t seq, uint8_t ct, const DataBuffer& buf);
   // Send data directly to the underlying socket, skipping the TLS layer.
   void SendDirect(const DataBuffer& buf);
   void SendRecordDirect(const TlsRecord& record);

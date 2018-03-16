@@ -261,6 +261,7 @@ typedef struct sslOptionsStr {
     unsigned int requireDHENamedGroups : 1;
     unsigned int enable0RttData : 1;
     unsigned int enableTls13CompatMode : 1;
+    unsigned int enableDtlsShortHeader : 1;
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -780,9 +781,11 @@ struct ssl3StateStr {
 #define IS_DTLS(ss) (ss->protocolVariant == ssl_variant_datagram)
 
 typedef struct {
-    SSL3ContentType type;
-    SSL3ProtocolVersion version;
-    sslSequenceNumber seq_num; /* DTLS only */
+    /* |seqNum| eventually contains the reconstructed sequence number. */
+    sslSequenceNumber seqNum;
+    /* The header of the cipherText. */
+    const PRUint8 *hdr;
+    /* |buf| is the payload of the ciphertext. */
     sslBuffer *buf;
 } SSL3Ciphertext;
 
@@ -1375,8 +1378,11 @@ SECStatus ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type);
 /*
  * input into the SSL3 machinery from the actualy network reading code
  */
-SECStatus ssl3_HandleRecord(
-    sslSocket *ss, SSL3Ciphertext *cipher, sslBuffer *out);
+SECStatus ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cipher);
+SECStatus ssl3_HandleNonApplicationData(sslSocket *ss, SSL3ContentType rType,
+                                        DTLSEpoch epoch,
+                                        sslSequenceNumber seqNum,
+                                        sslBuffer *databuf);
 SECStatus ssl_RemoveTLSCBCPadding(sslBuffer *plaintext, unsigned int macSize);
 
 int ssl3_GatherAppDataRecord(sslSocket *ss, int flags);

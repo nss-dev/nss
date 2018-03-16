@@ -81,8 +81,9 @@ class CorrectMessageSeqAfterHrrFilter : public TlsRecordFilter {
     }
 
     DataBuffer buffer(record);
-    TlsRecordHeader new_header = {header.version(), header.content_type(),
-                                  header.sequence_number() + 1};
+    TlsRecordHeader new_header(header.variant(), header.version(),
+                               header.content_type(),
+                               header.sequence_number() + 1);
 
     // Correct message_seq.
     buffer.Write(4, 1U, 2);

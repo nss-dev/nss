@@ -28,6 +28,7 @@ typedef enum {
 SECStatus tls13_UnprotectRecord(
     sslSocket *ss, ssl3CipherSpec *spec,
     SSL3Ciphertext *cText, sslBuffer *plaintext,
+    SSL3ContentType *innerType,
     SSL3AlertDescription *alert);
 
 #if defined(WIN32)
