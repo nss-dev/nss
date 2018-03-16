@@ -947,12 +947,13 @@ void TlsAgent::SendBuffer(const DataBuffer& buf) {
 }
 
 bool TlsAgent::SendEncryptedRecord(const std::shared_ptr<TlsCipherSpec>& spec,
-                                   uint16_t wireVersion, uint64_t seq,
-                                   uint8_t ct, const DataBuffer& buf) {
-  LOGV("Writing " << buf.len() << " bytes");
-  // Ensure we are a TLS 1.3 cipher agent.
+                                   uint64_t seq, uint8_t ct,
+                                   const DataBuffer& buf) {
+  LOGV("Encrypting " << buf.len() << " bytes");
+  // Ensure that we are doing TLS 1.3.
   EXPECT_GE(expected_version_, SSL_LIBRARY_VERSION_TLS_1_3);
-  TlsRecordHeader header(wireVersion, kTlsApplicationDataType, seq);
+  TlsRecordHeader header(variant_, expected_version_, kTlsApplicationDataType,
+                         seq);
   DataBuffer padded = buf;
   padded.Write(padded.len(), ct, 1);
   DataBuffer ciphertext;
@@ -1074,15 +1075,20 @@ void TlsAgentTestBase::ProcessMessage(const DataBuffer& buffer,
 void TlsAgentTestBase::MakeRecord(SSLProtocolVariant variant, uint8_t type,
                                   uint16_t version, const uint8_t* buf,
                                   size_t len, DataBuffer* out,
-                                  uint64_t seq_num) {
+                                  uint64_t sequence_number) {
   size_t index = 0;
   index = out->Write(index, type, 1);
   if (variant == ssl_variant_stream) {
     index = out->Write(index, version, 2);
+  } else if (version >= SSL_LIBRARY_VERSION_TLS_1_3 &&
+             type == kTlsApplicationDataType) {
+    uint32_t epoch = (sequence_number >> 48) & 0x3;
+    uint32_t seqno = sequence_number & ((1ULL << 30) - 1);
+    index = out->Write(index, (epoch << 30) | seqno, 4);
   } else {
     index = out->Write(index, TlsVersionToDtlsVersion(version), 2);
-    index = out->Write(index, seq_num >> 32, 4);
-    index = out->Write(index, seq_num & PR_UINT32_MAX, 4);
+    index = out->Write(index, sequence_number >> 32, 4);
+    index = out->Write(index, sequence_number & PR_UINT32_MAX, 4);
   }
   index = out->Write(index, len, 2);
   out->Write(index, buf, len);
