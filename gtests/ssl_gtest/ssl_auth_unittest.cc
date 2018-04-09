@@ -370,10 +370,9 @@ TEST_P(TlsConnectTls12, SignatureAlgorithmDrop) {
 class TlsReplaceSignatureSchemeFilter : public TlsHandshakeFilter {
  public:
   TlsReplaceSignatureSchemeFilter(const std::shared_ptr<TlsAgent>& a,
-                                   SSLSignatureScheme scheme)
-      : TlsHandshakeFilter(a, {kTlsHandshakeCertificateVerify})
-      , scheme_(scheme)
-  {
+                                  SSLSignatureScheme scheme)
+      : TlsHandshakeFilter(a, {kTlsHandshakeCertificateVerify}),
+        scheme_(scheme) {
     EnableDecryption();
   }
 
