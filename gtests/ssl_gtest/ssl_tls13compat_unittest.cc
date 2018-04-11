@@ -217,8 +217,8 @@ TEST_F(Tls13CompatTest, EnabledHrrZeroRtt) {
 class TlsSessionIDEchoFilter : public TlsHandshakeFilter {
  public:
   TlsSessionIDEchoFilter(const std::shared_ptr<TlsAgent>& a)
-      : TlsHandshakeFilter(a, {kTlsHandshakeClientHello,
-                               kTlsHandshakeServerHello}) { }
+      : TlsHandshakeFilter(
+            a, {kTlsHandshakeClientHello, kTlsHandshakeServerHello}) {}
 
  protected:
   virtual PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
@@ -272,7 +272,7 @@ TEST_F(TlsConnectTest, EchoTLS13CompatibilitySessionID) {
 class TlsSessionIDInjectFilter : public TlsHandshakeFilter {
  public:
   TlsSessionIDInjectFilter(const std::shared_ptr<TlsAgent>& a)
-      : TlsHandshakeFilter(a, {kTlsHandshakeServerHello}) { }
+      : TlsHandshakeFilter(a, {kTlsHandshakeServerHello}) {}
 
  protected:
   virtual PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
@@ -286,7 +286,7 @@ class TlsSessionIDInjectFilter : public TlsHandshakeFilter {
     *output = input;
 
     // Inject a Session ID.
-    const uint8_t fake_sid[SSL3_SESSIONID_BYTES] = { 0xff };
+    const uint8_t fake_sid[SSL3_SESSIONID_BYTES] = {0xff};
     output->Write(parser.consumed(), sizeof(fake_sid), 1);
     output->Splice(fake_sid, sizeof(fake_sid), parser.consumed() + 1, 0);
 
