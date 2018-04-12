@@ -995,13 +995,13 @@ async function scheduleTools() {
   }));
 
   queue.scheduleTask(merge(base, {
-    symbol: "scan-build-5.0",
-    name: "scan-build-5.0",
-    image: LINUX_IMAGE,
+    symbol: "scan-build",
+    name: "scan-build",
+    image: FUZZ_IMAGE,
     env: {
       USE_64: "1",
-      CC: "clang-5.0",
-      CCC: "clang++-5.0",
+      CC: "clang",
+      CCC: "clang++",
     },
     artifacts: {
       public: {
