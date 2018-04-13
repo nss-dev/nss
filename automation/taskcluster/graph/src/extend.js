@@ -1092,5 +1092,17 @@ async function scheduleTools() {
     ]
   }));
 
+  queue.scheduleTask(merge(base, {
+    symbol: "Coverage",
+    name: "Coverage",
+    image: FUZZ_IMAGE,
+    features: ["allowPtrace"],
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/gen_coverage_report.sh"
+    ]
+  }));
+
   return queue.submit();
 }
