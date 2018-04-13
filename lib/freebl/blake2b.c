@@ -218,21 +218,22 @@ SECStatus
 BLAKE2B_Update(BLAKE2BContext* ctx, const unsigned char* in,
                unsigned int inlen)
 {
+    PORT_Assert(ctx != NULL);
+    PORT_Assert(in != NULL);
+    if (!ctx || !in) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
     size_t left = ctx->buflen;
     size_t fill = BLAKE2B_BLOCK_LENGTH - left;
+    PORT_Assert(left <= BLAKE2B_BLOCK_LENGTH);
 
     /* Nothing to do if there's nothing. */
     if (inlen == 0) {
         return SECSuccess;
     }
 
-    PORT_Assert(ctx != NULL);
-    PORT_Assert(in != NULL);
-    PORT_Assert(left <= BLAKE2B_BLOCK_LENGTH);
-    if (!ctx || !in) {
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        return SECFailure;
-    }
 
     /* Is this a reused context? */
     if (ctx->f) {
