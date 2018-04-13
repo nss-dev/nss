@@ -562,12 +562,11 @@ TEST_P(TlsConnectGenericPre13, ConnectECDHEmptyClientPoint) {
 // Damage ECParams/ECPoint of a SKE.
 class ECCServerKEXDamager : public TlsHandshakeFilter {
  public:
-  ECCServerKEXDamager(const std::shared_ptr<TlsAgent> &server,
-                      ECType ec_type,
+  ECCServerKEXDamager(const std::shared_ptr<TlsAgent> &server, ECType ec_type,
                       SSLNamedGroup named_curve)
-      : TlsHandshakeFilter(server, {kTlsHandshakeServerKeyExchange})
-      , ec_type_(ec_type)
-      , named_curve_(named_curve) {}
+      : TlsHandshakeFilter(server, {kTlsHandshakeServerKeyExchange}),
+        ec_type_(ec_type),
+        named_curve_(named_curve) {}
 
  protected:
   virtual PacketFilter::Action FilterHandshake(const HandshakeHeader &header,
@@ -579,13 +578,13 @@ class ECCServerKEXDamager : public TlsHandshakeFilter {
     offset = output->Write(offset, named_curve_, 2);
     // Write a point with fmt != EC_POINT_FORM_UNCOMPRESSED.
     offset = output->Write(offset, 1U, 1);
-    (void)output->Write(offset, 0x02, 1); // EC_POINT_FORM_COMPRESSED_Y0
+    (void)output->Write(offset, 0x02, 1);  // EC_POINT_FORM_COMPRESSED_Y0
     return CHANGE;
   }
 
  private:
-   ECType ec_type_;
-   SSLNamedGroup named_curve_;
+  ECType ec_type_;
+  SSLNamedGroup named_curve_;
 };
 
 TEST_P(TlsConnectGenericPre13, ConnectUnsupportedCurveType) {
@@ -593,7 +592,8 @@ TEST_P(TlsConnectGenericPre13, ConnectUnsupportedCurveType) {
   client_->DisableAllCiphers();
   client_->EnableCiphersByKeyExchange(ssl_kea_ecdh);
 
-  MakeTlsFilter<ECCServerKEXDamager>(server_, ec_type_explicitPrime, ssl_grp_none);
+  MakeTlsFilter<ECCServerKEXDamager>(server_, ec_type_explicitPrime,
+                                     ssl_grp_none);
   ConnectExpectAlert(client_, kTlsAlertHandshakeFailure);
   client_->CheckErrorCode(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
 }
@@ -603,7 +603,8 @@ TEST_P(TlsConnectGenericPre13, ConnectUnsupportedCurve) {
   client_->DisableAllCiphers();
   client_->EnableCiphersByKeyExchange(ssl_kea_ecdh);
 
-  MakeTlsFilter<ECCServerKEXDamager>(server_, ec_type_named, ssl_grp_ffdhe_2048);
+  MakeTlsFilter<ECCServerKEXDamager>(server_, ec_type_named,
+                                     ssl_grp_ffdhe_2048);
   ConnectExpectAlert(client_, kTlsAlertHandshakeFailure);
   client_->CheckErrorCode(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
 }
@@ -613,7 +614,8 @@ TEST_P(TlsConnectGenericPre13, ConnectUnsupportedPointFormat) {
   client_->DisableAllCiphers();
   client_->EnableCiphersByKeyExchange(ssl_kea_ecdh);
 
-  MakeTlsFilter<ECCServerKEXDamager>(server_, ec_type_named, ssl_grp_ec_secp256r1);
+  MakeTlsFilter<ECCServerKEXDamager>(server_, ec_type_named,
+                                     ssl_grp_ec_secp256r1);
   ConnectExpectAlert(client_, kTlsAlertHandshakeFailure);
   client_->CheckErrorCode(SEC_ERROR_UNSUPPORTED_EC_POINT_FORM);
 }
