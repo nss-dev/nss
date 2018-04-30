@@ -192,10 +192,6 @@ bool TlsAgent::EnsureTlsSetup(PRFileDesc* modelSocket) {
     EXPECT_EQ(SECSuccess, rv);
     if (rv != SECSuccess) return false;
 
-    ScopedCERTCertList anchors(CERT_NewCertList());
-    rv = SSL_SetTrustAnchors(ssl_fd(), anchors.get());
-    if (rv != SECSuccess) return false;
-
     rv = SSL_SetMaxEarlyDataSize(ssl_fd(), 1024);
     EXPECT_EQ(SECSuccess, rv);
     if (rv != SECSuccess) return false;
@@ -256,6 +252,17 @@ void TlsAgent::SetupClientAuth() {
                                       reinterpret_cast<void*>(this)));
 }
 
+static void CheckCertReqAgainstDefaultCAs(const CERTDistNames* caNames) {
+  ScopedCERTDistNames expected(CERT_GetSSLCACerts(nullptr));
+
+  ASSERT_EQ(expected->nnames, caNames->nnames);
+
+  for (size_t i = 0; i < static_cast<size_t>(expected->nnames); ++i) {
+    EXPECT_EQ(SECEqual,
+              SECITEM_CompareItem(&(expected->names[i]), &(caNames->names[i])));
+  }
+}
+
 SECStatus TlsAgent::GetClientAuthDataHook(void* self, PRFileDesc* fd,
                                           CERTDistNames* caNames,
                                           CERTCertificate** clientCert,
@@ -263,6 +270,8 @@ SECStatus TlsAgent::GetClientAuthDataHook(void* self, PRFileDesc* fd,
   TlsAgent* agent = reinterpret_cast<TlsAgent*>(self);
   ScopedCERTCertificate peerCert(SSL_PeerCertificate(agent->ssl_fd()));
   EXPECT_TRUE(peerCert) << "Client should be able to see the server cert";
+
+  CheckCertReqAgainstDefaultCAs(caNames);
 
   ScopedCERTCertificate cert;
   ScopedSECKEYPrivateKey priv;
