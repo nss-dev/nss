@@ -12166,6 +12166,14 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText)
      * processed twice. */
     plaintext->len = 0;
 
+    /* We're waiting for another ClientHello, which will appear unencrypted.
+     * Use the content type to tell whether this should be discarded. */
+    if (ss->ssl3.hs.zeroRttIgnore == ssl_0rtt_ignore_hrr &&
+        cText->hdr[0] == content_application_data) {
+        PORT_Assert(ss->ssl3.hs.ws == wait_client_hello);
+        return SECSuccess;
+    }
+
     ssl_GetSpecReadLock(ss); /******************************************/
     spec = ssl3_GetCipherSpec(ss, cText);
     if (!spec) {
@@ -12194,18 +12202,6 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText)
                     SSL_GETPID(), ss->fd, cText->seqNum));
         PORT_SetError(SSL_ERROR_TOO_MANY_RECORDS);
         return SECFailure;
-    }
-
-    /* We're waiting for another ClientHello, which will appear unencrypted.
-     * Use the content type to tell whether this is should be discarded.
-     *
-     * XXX If we decide to remove the content type from encrypted records, this
-     *     will become much more difficult to manage. */
-    if (ss->ssl3.hs.zeroRttIgnore == ssl_0rtt_ignore_hrr &&
-        cText->hdr[0] == content_application_data) {
-        ssl_ReleaseSpecReadLock(ss); /*****************************/
-        PORT_Assert(ss->ssl3.hs.ws == wait_client_hello);
-        return SECSuccess;
     }
 
     if (plaintext->space < MAX_FRAGMENT_LENGTH) {
