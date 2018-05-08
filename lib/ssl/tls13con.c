@@ -2312,8 +2312,8 @@ tls13_HandleCertificateRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
     return SECSuccess;
 }
 
-static PRBool
-tls13_CanRequestClientAuth(sslSocket *ss)
+PRBool
+tls13_ShouldRequestClientAuth(sslSocket *ss)
 {
     return ss->opt.requestCertificate &&
            ss->ssl3.hs.kea_def->authKeyType != ssl_auth_psk;
@@ -2350,7 +2350,7 @@ tls13_SendEncryptedServerSequence(sslSocket *ss)
         return SECFailure; /* error code is set. */
     }
 
-    if (tls13_CanRequestClientAuth(ss)) {
+    if (tls13_ShouldRequestClientAuth(ss)) {
         rv = tls13_SendCertificateRequest(ss);
         if (rv != SECSuccess) {
             return SECFailure; /* error code is set. */
@@ -2469,7 +2469,7 @@ tls13_SendServerHelloSequence(sslSocket *ss)
             LOG_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE);
             return SECFailure;
         }
-        if (tls13_CanRequestClientAuth(ss)) {
+        if (tls13_ShouldRequestClientAuth(ss)) {
             TLS13_SET_HS_STATE(ss, wait_client_cert);
         } else {
             TLS13_SET_HS_STATE(ss, wait_finished);
@@ -4178,7 +4178,7 @@ tls13_ServerHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
         return SECFailure;
     }
 
-    if (!tls13_CanRequestClientAuth(ss) &&
+    if (!tls13_ShouldRequestClientAuth(ss) &&
         (ss->ssl3.hs.zeroRttState != ssl_0rtt_done)) {
         dtls_ReceivedFirstMessageInFlight(ss);
     }
@@ -5231,7 +5231,7 @@ tls13_HandleEndOfEarlyData(sslSocket *ss, PRUint8 *b, PRUint32 length)
     }
 
     ss->ssl3.hs.zeroRttState = ssl_0rtt_done;
-    if (tls13_CanRequestClientAuth(ss)) {
+    if (tls13_ShouldRequestClientAuth(ss)) {
         TLS13_SET_HS_STATE(ss, wait_client_cert);
     } else {
         TLS13_SET_HS_STATE(ss, wait_finished);
