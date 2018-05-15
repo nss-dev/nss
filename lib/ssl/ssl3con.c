@@ -5572,13 +5572,20 @@ ssl3_SendRSAClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
     }
 
     /* Get the wrapped (encrypted) pre-master secret, enc_pms */
-    enc_pms.len = SECKEY_PublicKeyStrength(svrPubKey);
+    unsigned int svrPubKeyBits = SECKEY_PublicKeyStrengthInBits(svrPubKey);
+    enc_pms.len = (svrPubKeyBits + 7) / 8;
+    /* Check that the RSA key isn't larger than 8k bit. */
+    if (svrPubKeyBits > SSL_MAX_RSA_KEY_BITS) {
+        (void)SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
+        ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
+        goto loser;
+    }
     enc_pms.data = (unsigned char *)PORT_Alloc(enc_pms.len);
     if (enc_pms.data == NULL) {
         goto loser; /* err set by PORT_Alloc */
     }
 
-    /* wrap pre-master secret in server's public key. */
+    /* Wrap pre-master secret in server's public key. */
     rv = PK11_PubWrapSymKey(CKM_RSA_PKCS, svrPubKey, pms, &enc_pms);
     if (rv != SECSuccess) {
         ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
@@ -5681,7 +5688,7 @@ ssl3_SendDHClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
     };
     sslEphemeralKeyPair *keyPair = NULL;
     SECKEYPublicKey *pubKey;
-    PRUint8 dhData[1026]; /* Enough for the 8192-bit group. */
+    PRUint8 dhData[SSL_MAX_DH_KEY_BITS/8+2];
     sslBuffer dhBuf = SSL_BUFFER(dhData);
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
@@ -6726,6 +6733,10 @@ ssl_HandleDHServerKeyExchange(sslSocket *ss, PRUint8 *b, PRUint32 length)
     dh_p_bits = SECKEY_BigIntegerBitLength(&dh_p);
     if (dh_p_bits < (unsigned)minDH) {
         errCode = SSL_ERROR_WEAK_SERVER_EPHEMERAL_DH_KEY;
+        goto alert_loser;
+    }
+    if (dh_p_bits > SSL_MAX_DH_KEY_BITS) {
+        errCode = SSL_ERROR_DH_KEY_TOO_LONG;
         goto alert_loser;
     }
     rv = ssl3_ConsumeHandshakeVariable(ss, &dh_g, 2, &b, &length);
