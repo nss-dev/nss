@@ -5688,7 +5688,7 @@ ssl3_SendDHClientKeyExchange(sslSocket *ss, SECKEYPublicKey *svrPubKey)
     };
     sslEphemeralKeyPair *keyPair = NULL;
     SECKEYPublicKey *pubKey;
-    PRUint8 dhData[SSL_MAX_DH_KEY_BITS/8+2];
+    PRUint8 dhData[SSL_MAX_DH_KEY_BITS / 8 + 2];
     sslBuffer dhBuf = SSL_BUFFER(dhData);
 
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
