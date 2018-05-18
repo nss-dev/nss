@@ -479,13 +479,13 @@ TEST_P(TlsConnectTls13, NamedGroupMismatch13) {
 // larger than 8192 bits.
 class TooLongDHEServerKEXFilter : public TlsHandshakeFilter {
  public:
-  TooLongDHEServerKEXFilter(const std::shared_ptr<TlsAgent> &server)
+  TooLongDHEServerKEXFilter(const std::shared_ptr<TlsAgent>& server)
       : TlsHandshakeFilter(server, {kTlsHandshakeServerKeyExchange}) {}
 
  protected:
-  virtual PacketFilter::Action FilterHandshake(const HandshakeHeader &header,
-                                               const DataBuffer &input,
-                                               DataBuffer *output) {
+  virtual PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
+                                               const DataBuffer& input,
+                                               DataBuffer* output) {
     // Replace the server key exchange message very large DH shares that are
     // not supported by NSS.
     const uint32_t share_len = 0x401;
