@@ -447,7 +447,8 @@ ChangeTrustAttributes(CERTCertDBHandle *handle, PK11SlotInfo *slot,
 }
 
 static SECStatus
-DumpChain(CERTCertDBHandle *handle, char *name, PRBool ascii)
+DumpChain(CERTCertDBHandle *handle, char *name, PRBool ascii,
+          PRBool simpleSelfSigned)
 {
     CERTCertificate *the_cert;
     CERTCertificateList *chain;
@@ -458,6 +459,14 @@ DumpChain(CERTCertDBHandle *handle, char *name, PRBool ascii)
         SECU_PrintError(progName, "Could not find: %s\n", name);
         return SECFailure;
     }
+    if (simpleSelfSigned &&
+        SECEqual == SECITEM_CompareItem(&the_cert->derIssuer,
+                                        &the_cert->derSubject)) {
+        printf("\"%s\" [%s]\n\n", the_cert->nickname, the_cert->subjectName);
+        CERT_DestroyCertificate(the_cert);
+        return SECSuccess;
+    }
+
     chain = CERT_CertChainFromCert(the_cert, 0, PR_TRUE);
     CERT_DestroyCertificate(the_cert);
     if (!chain) {
@@ -1115,7 +1124,9 @@ PrintSyntax()
     FPS "\t%s --build-flags\n", progName);
     FPS "\t%s -M -n cert-name -t trustargs [-d certdir] [-P dbprefix]\n",
         progName);
-    FPS "\t%s -O -n cert-name [-X] [-d certdir] [-a] [-P dbprefix]\n", progName);
+    FPS "\t%s -O -n cert-name [-X] [-d certdir] [-a] [-P dbprefix]\n"
+        "\t\t [--simple-self-signed]\n",
+        progName);
     FPS "\t%s -R -s subj -o cert-request-file [-d certdir] [-P dbprefix] [-p phone] [-a]\n"
         "\t\t [-7 emailAddrs] [-k key-type-or-id] [-h token-name] [-f pwfile]\n"
         "\t\t [-g key-size] [-Z hashAlg]\n",
@@ -1542,6 +1553,8 @@ luO(enum usage_level ul, const char *command)
         "   -P dbprefix");
     FPS "%-20s force the database to open R/W\n",
         "   -X");
+    FPS "%-20s don't search for a chain if issuer name equals subject name\n",
+        "   --simple-self-signed");
     FPS "\n");
 }
 
@@ -2498,6 +2511,7 @@ enum certutilOpts {
     opt_NewNickname,
     opt_Pss,
     opt_PssSign,
+    opt_SimpleSelfSigned,
     opt_Help
 };
 
@@ -2622,6 +2636,8 @@ static const secuCommandFlag options_init[] =
         "pss" },
       { /* opt_PssSign             */ 0, PR_FALSE, 0, PR_FALSE,
         "pss-sign" },
+      { /* opt_SimpleSelfSigned    */ 0, PR_FALSE, 0, PR_FALSE,
+        "simple-self-signed" },
     };
 #define NUM_OPTIONS ((sizeof options_init) / (sizeof options_init[0]))
 
@@ -3348,7 +3364,8 @@ certutil_main(int argc, char **argv, PRBool initialize)
     }
     if (certutil.commands[cmd_DumpChain].activated) {
         rv = DumpChain(certHandle, name,
-                       certutil.options[opt_ASCIIForIO].activated);
+                       certutil.options[opt_ASCIIForIO].activated,
+                       certutil.options[opt_SimpleSelfSigned].activated);
         goto shutdown;
     }
     /*  XXX needs work  */
@@ -3533,6 +3550,14 @@ certutil_main(int argc, char **argv, PRBool initialize)
                        progName, commandToRun);
             return 255;
         }
+    }
+
+    if (certutil.options[opt_SimpleSelfSigned].activated &&
+        !certutil.commands[cmd_DumpChain].activated) {
+        PR_fprintf(PR_STDERR,
+                   "%s -%c: --simple-self-signed only works with -O.\n",
+                   progName, commandToRun);
+        return 255;
     }
 
     /* If we need a list of extensions convert the flags into list format */
