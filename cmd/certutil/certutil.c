@@ -3480,7 +3480,7 @@ certutil_main(int argc, char **argv, PRBool initialize)
                         return SECFailure;
                     }
                 }
-                if (0 == strncasecmp("0x", keysource, 2)) {
+                if (0 == PL_strncasecmp("0x", keysource, 2)) {
                     keysourcePtr = keysource + 2; // skip leading "0x"
                 }
                 arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
