@@ -507,6 +507,22 @@ class TlsClientHelloVersionChanger : public TlsHandshakeFilter {
   std::weak_ptr<TlsAgent> server_;
 };
 
+// Damage a record.
+class TlsRecordLastByteDamager : public TlsRecordFilter {
+ public:
+  TlsRecordLastByteDamager(const std::shared_ptr<TlsAgent>& a)
+      : TlsRecordFilter(a) {}
+
+ protected:
+  PacketFilter::Action FilterRecord(const TlsRecordHeader& header,
+                                    const DataBuffer& data,
+                                    DataBuffer* changed) override {
+    *changed = data;
+    changed->data()[changed->len() - 1]++;
+    return CHANGE;
+  }
+};
+
 // This class selectively drops complete writes.  This relies on the fact that
 // writes in libssl are on record boundaries.
 class SelectiveDropFilter : public PacketFilter {
