@@ -126,6 +126,25 @@ class RecordReplacer : public TlsRecordFilter {
   size_t size_;
 };
 
+TEST_P(TlsConnectStream, BadRecordMac) {
+  EnsureTlsSetup();
+  Connect();
+  client_->SetFilter(std::make_shared<TlsRecordLastByteDamager>(client_));
+  ExpectAlert(server_, kTlsAlertBadRecordMac);
+  client_->SendData(10);
+
+  // Read from the client, get error.
+  uint8_t buf[10];
+  PRInt32 rv = PR_Read(server_->ssl_fd(), buf, sizeof(buf));
+  EXPECT_GT(0, rv);
+  EXPECT_EQ(SSL_ERROR_BAD_MAC_READ, PORT_GetError());
+
+  // Read the server alert.
+  rv = PR_Read(client_->ssl_fd(), buf, sizeof(buf));
+  EXPECT_GT(0, rv);
+  EXPECT_EQ(SSL_ERROR_BAD_MAC_ALERT, PORT_GetError());
+}
+
 TEST_F(TlsConnectStreamTls13, LargeRecord) {
   EnsureTlsSetup();
 
