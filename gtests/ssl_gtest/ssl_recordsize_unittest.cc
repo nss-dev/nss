@@ -410,7 +410,7 @@ class RecordSizeDefaultsTest : public ::testing::Test {
   }
 
  private:
-  PRIntn default_;
+  PRIntn default_ = 0;
 };
 
 TEST_F(RecordSizeDefaultsTest, RecordSizeBadValues) {
