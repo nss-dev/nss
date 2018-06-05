@@ -1589,6 +1589,7 @@ sec_pkcs12_encoder_start_context(SEC_PKCS12ExportContext *p12exp)
             params = PK11_CreatePBEParams(salt, &pwd,
                                           NSS_PBE_DEFAULT_ITERATION_COUNT);
             SECITEM_ZfreeItem(salt, PR_TRUE);
+            salt = NULL;
             SECITEM_ZfreeItem(&pwd, PR_FALSE);
 
             /* get the PBA Mechanism to generate the key */
