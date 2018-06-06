@@ -884,7 +884,9 @@ sec_PKCS12AddAttributeToBag(SEC_PKCS12ExportContext *p12ctxt,
     unsigned int nItems = 0;
     SECStatus rv;
 
-    if (!safeBag || !p12ctxt) {
+    PORT_Assert(p12ctxt->arena == safeBag->arena);
+    if (!safeBag || !p12ctxt || p12ctxt->arena != safeBag->arena) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
 
