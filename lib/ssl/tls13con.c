@@ -117,6 +117,7 @@ const char kHkdfLabelFinishedSecret[] = "finished";
 const char kHkdfLabelResumptionMasterSecret[] = "res master";
 const char kHkdfLabelExporterMasterSecret[] = "exp master";
 const char kHkdfLabelResumption[] = "resumption";
+const char kHkdfLabelTrafficUpdate[] = "traffic upd";
 const char kHkdfPurposeKey[] = "key";
 const char kHkdfPurposeIv[] = "iv";
 
@@ -603,8 +604,8 @@ tls13_UpdateTrafficKeys(sslSocket *ss, CipherSpecDirection direction)
     secret = tls13_TrafficSecretRef(ss, direction);
     rv = tls13_HkdfExpandLabel(*secret, tls13_GetHash(ss),
                                NULL, 0,
-                               kHkdfLabelApplicationTrafficSecret,
-                               strlen(kHkdfLabelApplicationTrafficSecret),
+                               kHkdfLabelTrafficUpdate,
+                               strlen(kHkdfLabelTrafficUpdate),
                                tls13_GetHmacMechanism(ss),
                                tls13_GetHashSize(ss),
                                &updatedSecret);
