@@ -774,6 +774,8 @@ struct ssl3StateStr {
     /* EKT cipher preferences (if any) */
     PRUint8 ektCiphers[MAX_EKT_CIPHERS];
     PRUint16 ektCipherCount;
+    SSLEKTKey ektKey;
+    PRBool ektKeyReceived;
 
     /* TLS 1.2 introduces separate signature algorithm negotiation.
      * TLS 1.3 combined signature and hash into a single enum.

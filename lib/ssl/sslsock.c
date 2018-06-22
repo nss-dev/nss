@@ -2218,6 +2218,58 @@ SSL_GetEKTCipher(PRFileDesc *fd, PRUint8 *cipher)
     return SECSuccess;
 }
 
+SECStatus
+ssl_CopyEKTKey(SSLEKTKey *dst, const SSLEKTKey *src) {
+    if (src->ektTTL >= 1 << 24) {
+        return SECFailure;
+    }
+
+    PORT_Memcpy(dst->ektKeyValue, src->ektKeyValue, src->ektKeyLength);
+    PORT_Memcpy(dst->srtpMasterSalt, src->srtpMasterSalt, src->srtpMasterSaltLength);
+    dst->ektSPI = src->ektSPI;
+    dst->ektTTL = src->ektTTL;
+    return SECSuccess;
+}
+
+SECStatus
+SSL_SetEKTKey(PRFileDesc *fd,
+              const SSLEKTKey *key)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+    if (!ss || !IS_DTLS(ss)) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_SetEKTKey",
+                 SSL_GETPID(), fd));
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    SECStatus rv = ssl_CopyEKTKey(&ss->ssl3.ektKey, key);
+    if (rv != SECSuccess) {
+      return rv;
+    }
+
+    ss->ssl3.ektKeyReceived = PR_TRUE;
+    return SECSuccess;
+}
+
+SECStatus
+SSL_GetEKTKey(PRFileDesc *fd, SSLEKTKey *key)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+    if (!ss) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_GetEKTKey",
+                 SSL_GETPID(), fd));
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (!ss->ssl3.ektKeyReceived) {
+        return SECFailure;
+    }
+
+    return ssl_CopyEKTKey(key, &ss->ssl3.ektKey);
+}
+
 PRFileDesc *
 SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
 {
