@@ -230,6 +230,10 @@
 #define SRTP_AEAD_AES_128_GCM_DOUBLE            0x0009
 #define SRTP_AEAD_AES_256_GCM_DOUBLE            0x000A
 
+/* EKT ciphers from draft-ietf-perc-srtp-ekt-diet */
+#define EKT_AESKW_128 0x01
+#define EKT_AESKW_256 0x02
+
 /* DO NOT USE. (deprecated, will be removed) */
 #define SSL_HL_ERROR_HBYTES                     3
 #define SSL_HL_CLIENT_HELLO_HBYTES              9

@@ -32,6 +32,7 @@ typedef enum {
     ssl_hs_certificate_status = 22,
     ssl_hs_key_update = 24,
     ssl_hs_next_proto = 67,
+    ssl_hs_ekt_key = 68, /* XXX-RLB: Experimental */
     ssl_hs_message_hash = 254, /* Not a real message. */
 } SSLHandshakeType;
 
@@ -444,6 +445,7 @@ typedef enum {
     ssl_tls13_certificate_authorities_xtn = 47,
     ssl_signature_algorithms_cert_xtn = 50,
     ssl_tls13_key_share_xtn = 51,
+    ssl_supported_ekt_ciphers_xtn = 68, /* XXX-RLB: Experimental */
     ssl_next_proto_nego_xtn = 13172, /* Deprecated. */
     ssl_renegotiation_info_xtn = 0xff01,
     ssl_tls13_short_header_xtn = 0xff03 /* Deprecated. */
@@ -455,7 +457,7 @@ typedef enum {
 /* SSL_MAX_EXTENSIONS includes the maximum number of extensions that are
  * supported for any single message type.  That is, a ClientHello; ServerHello
  * and TLS 1.3 NewSessionTicket and HelloRetryRequest extensions have fewer. */
-#define SSL_MAX_EXTENSIONS 21
+#define SSL_MAX_EXTENSIONS 22
 
 /* Deprecated */
 typedef enum {

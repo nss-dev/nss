@@ -212,6 +212,13 @@ TEST_P(TlsConnectDatagram, ConnectSrtp) {
   SendReceive();
 }
 
+TEST_P(TlsConnectDatagram, ConnectEkt) {
+  EnableEkt();
+  Connect();
+  CheckEkt();
+  SendReceive();
+}
+
 TEST_P(TlsConnectGeneric, ConnectSendReceive) {
   Connect();
   SendReceive();

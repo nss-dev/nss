@@ -1932,3 +1932,122 @@ ssl_SendRecordSizeLimitXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     *added = PR_TRUE;
     return SECSuccess;
 }
+
+SECStatus
+ssl_ClientSendSupportedEKTCiphersXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                                     sslBuffer *buf, PRBool *added)
+{
+    unsigned int i;
+    SECStatus rv;
+
+    if (!IS_DTLS(ss) || !ss->ssl3.ektCipherCount) {
+        return SECSuccess; /* Not relevant */
+    }
+
+    /* Length of the EKT cipher list */
+    rv = sslBuffer_AppendNumber(buf, 2 * ss->ssl3.ektCipherCount, 1);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    /* The EKT ciphers */
+    for (i = 0; i < ss->ssl3.ektCipherCount; i++) {
+        rv = sslBuffer_AppendNumber(buf, ss->ssl3.ektCiphers[i], 1);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+    }
+
+    *added = PR_TRUE;
+    return SECSuccess;
+}
+
+SECStatus
+ssl_ServerSendSupportedEKTCiphersXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                                     sslBuffer *buf, PRBool *added)
+{
+    SECStatus rv;
+
+    /* The selected cipher */
+    rv = sslBuffer_AppendNumber(buf, xtnData->ektCipher, 1);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    *added = PR_TRUE;
+    return SECSuccess;
+}
+
+SECStatus
+ssl_ClientHandleSupportedEKTCiphersXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                                       SECItem *data)
+{
+    if (!data->data || (data->len != 1)) {
+        ssl3_ExtDecodeError(ss);
+        return SECFailure;
+    }
+
+    xtnData->negotiated[xtnData->numNegotiated++] = ssl_supported_ekt_ciphers_xtn;
+    xtnData->ektCipher = data->data[0];
+    return SECSuccess;
+}
+
+SECStatus
+ssl_ServerHandleSupportedEKTCiphersXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                                       SECItem *data)
+{
+    SECStatus rv;
+    SECItem ciphers = { siBuffer, NULL, 0 };
+    PRUint8 i;
+    unsigned int j;
+    PRUint8 cipher = 0;
+    PRBool found = PR_FALSE;
+
+    if (!IS_DTLS(ss) || !ss->ssl3.ektCipherCount) {
+        /* Ignore the extension if we aren't doing DTLS or no EKT
+         * preferences have been set. */
+        return SECSuccess;
+    }
+
+    if (!data->data || data->len < 5) {
+        ssl3_ExtDecodeError(ss);
+        return SECFailure;
+    }
+
+    /* Get the cipher list */
+    rv = ssl3_ExtConsumeHandshakeVariable(ss, &ciphers, 2,
+                                          &data->data, &data->len);
+    if (rv != SECSuccess) {
+        return SECFailure; /* alert already sent */
+    }
+
+    /* Walk through the offered list and pick the most preferred of our
+     * ciphers, if any */
+    for (i = 0; !found && i < ss->ssl3.ektCipherCount; i++) {
+        for (j = 0; j + 1 < ciphers.len; j ++) {
+            cipher = ciphers.data[j];
+            if (cipher == ss->ssl3.ektCiphers[i]) {
+                found = PR_TRUE;
+                break;
+            }
+        }
+    }
+
+    if (data->len != 0) {
+        ssl3_ExtDecodeError(ss); /* trailing bytes */
+        return SECFailure;
+    }
+
+    /* Now figure out what to do */
+    if (!found) {
+        /* No matching ciphers, pretend we don't support EKT */
+        return SECSuccess;
+    }
+
+    /* OK, we have a valid cipher and we've selected it */
+    xtnData->ektCipher = cipher;
+    xtnData->negotiated[xtnData->numNegotiated++] = ssl_supported_ekt_ciphers_xtn;
+
+    return ssl3_RegisterExtensionSender(ss, xtnData,
+                                        ssl_supported_ekt_ciphers_xtn,
+                                        ssl_ServerSendSupportedEKTCiphersXtn);
+}

@@ -69,6 +69,7 @@ static const uint16_t kManyExtensions[] = {
     ssl_renegotiation_info_xtn,
     ssl_tls13_short_header_xtn,
     ssl_record_size_limit_xtn,
+    ssl_supported_ekt_ciphers_xtn,
     1,
     0xffff};
 // The list here includes all extensions we expect to use (SSL_MAX_EXTENSIONS),

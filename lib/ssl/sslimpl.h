@@ -229,6 +229,8 @@ typedef struct {
 
 #define MAX_DTLS_SRTP_CIPHER_SUITES 7
 
+#define MAX_EKT_CIPHERS 2
+
 /* MAX_SIGNATURE_SCHEMES allows for all the values we support. */
 #define MAX_SIGNATURE_SCHEMES 15
 
@@ -768,6 +770,10 @@ struct ssl3StateStr {
     PRBool fatalAlertSent;
     PRBool dheWeakGroupEnabled; /* used by server */
     const sslNamedGroupDef *dhePreferredGroup;
+
+    /* EKT cipher preferences (if any) */
+    PRUint8 ektCiphers[MAX_EKT_CIPHERS];
+    PRUint16 ektCipherCount;
 
     /* TLS 1.2 introduces separate signature algorithm negotiation.
      * TLS 1.3 combined signature and hash into a single enum.

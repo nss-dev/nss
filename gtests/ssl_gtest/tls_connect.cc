@@ -654,6 +654,16 @@ void TlsConnectTestBase::CheckSrtp() const {
   server_->CheckSrtp();
 }
 
+void TlsConnectTestBase::EnableEkt() {
+  client_->EnableEkt();
+  server_->EnableEkt();
+}
+
+void TlsConnectTestBase::CheckEkt() const {
+  client_->CheckEkt();
+  server_->CheckEkt();
+}
+
 void TlsConnectTestBase::SendReceive(size_t total) {
   ASSERT_GT(total, client_->received_bytes());
   ASSERT_GT(total, server_->received_bytes());

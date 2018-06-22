@@ -649,6 +649,19 @@ void TlsAgent::CheckSrtp() const {
   EXPECT_EQ(SRTP_AES128_CM_HMAC_SHA1_80, actual);
 }
 
+void TlsAgent::EnableEkt() {
+  EXPECT_TRUE(EnsureTlsSetup());
+  const uint8_t ciphers[] = {EKT_AESKW_128, EKT_AESKW_256};
+  EXPECT_EQ(SECSuccess,
+            SSL_SetEKTCiphers(ssl_fd(), ciphers, PR_ARRAY_SIZE(ciphers)));
+}
+
+void TlsAgent::CheckEkt() const {
+  uint8_t actual;
+  EXPECT_EQ(SECSuccess, SSL_GetEKTCipher(ssl_fd(), &actual));
+  EXPECT_EQ(EKT_AESKW_128, actual);
+}
+
 void TlsAgent::CheckErrorCode(int32_t expected) const {
   EXPECT_EQ(STATE_ERROR, state_);
   EXPECT_EQ(expected, error_code_)

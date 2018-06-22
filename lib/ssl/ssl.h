@@ -1211,6 +1211,28 @@ SSL_IMPORT SECStatus SSL_GetSRTPCipher(PRFileDesc *fd,
                                        PRUint16 *cipher);
 
 /*
+** Configure EKT (RFC 5764) cipher preferences.
+** Input is a list of ciphers in descending preference order and a length
+** of the list. As a side effect, this causes the supported_ekt_ciphers
+** extension to be negotiated.
+**
+** Invalid or unimplemented cipher suites in |ciphers| are ignored. If at
+** least one cipher suite in |ciphers| is implemented, returns SECSuccess.
+** Otherwise returns SECFailure.
+*/
+SSL_IMPORT SECStatus SSL_SetEKTCiphers(PRFileDesc *fd,
+                                       const PRUint8 *ciphers,
+                                       unsigned int numCiphers);
+
+/*
+** Get the selected EKT cipher suite (if any).
+** To be called after the handshake completes.
+** Returns SECFailure if not negotiated.
+*/
+SSL_IMPORT SECStatus SSL_GetEKTCipher(PRFileDesc *fd,
+                                      PRUint8 *cipher);
+
+/*
  * Look to see if any of the signers in the cert chain for "cert" are found
  * in the list of caNames.
  * Returns SECSuccess if so, SECFailure if not.
