@@ -1945,7 +1945,7 @@ ssl_ClientSendSupportedEKTCiphersXtn(const sslSocket *ss, TLSExtensionData *xtnD
     }
 
     /* Length of the EKT cipher list */
-    rv = sslBuffer_AppendNumber(buf, 2 * ss->ssl3.ektCipherCount, 1);
+    rv = sslBuffer_AppendNumber(buf, ss->ssl3.ektCipherCount, 1);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -2008,13 +2008,13 @@ ssl_ServerHandleSupportedEKTCiphersXtn(const sslSocket *ss, TLSExtensionData *xt
         return SECSuccess;
     }
 
-    if (!data->data || data->len < 5) {
+    if (!data->data || data->len < 2) {
         ssl3_ExtDecodeError(ss);
         return SECFailure;
     }
 
     /* Get the cipher list */
-    rv = ssl3_ExtConsumeHandshakeVariable(ss, &ciphers, 2,
+    rv = ssl3_ExtConsumeHandshakeVariable(ss, &ciphers, 1,
                                           &data->data, &data->len);
     if (rv != SECSuccess) {
         return SECFailure; /* alert already sent */

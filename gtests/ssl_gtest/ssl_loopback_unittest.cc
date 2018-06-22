@@ -212,7 +212,8 @@ TEST_P(TlsConnectDatagram, ConnectSrtp) {
   SendReceive();
 }
 
-TEST_P(TlsConnectDatagram, ConnectEkt) {
+// XXX-RLB: This should eventually support DTLS 1.3
+TEST_P(TlsConnectDatagramPre13, ConnectEkt) {
   EnableEkt();
   Connect();
   CheckEkt();
