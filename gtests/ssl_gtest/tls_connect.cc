@@ -655,8 +655,8 @@ void TlsConnectTestBase::CheckSrtp() const {
 }
 
 void TlsConnectTestBase::EnableEkt() {
-  client_->EnableEkt();
-  server_->EnableEkt();
+  client_->EnableEktClient();
+  server_->EnableEktServer();
 }
 
 void TlsConnectTestBase::CheckEkt() const {

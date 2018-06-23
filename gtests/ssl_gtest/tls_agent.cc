@@ -649,17 +649,50 @@ void TlsAgent::CheckSrtp() const {
   EXPECT_EQ(SRTP_AES128_CM_HMAC_SHA1_80, actual);
 }
 
-void TlsAgent::EnableEkt() {
+void TlsAgent::EnableEktClient() {
   EXPECT_TRUE(EnsureTlsSetup());
   const uint8_t ciphers[] = {EKT_AESKW_128, EKT_AESKW_256};
   EXPECT_EQ(SECSuccess,
             SSL_SetEKTCiphers(ssl_fd(), ciphers, PR_ARRAY_SIZE(ciphers)));
 }
 
+void TlsAgent::EnableEktServer() {
+  EXPECT_TRUE(EnsureTlsSetup());
+  const uint8_t ciphers[] = {EKT_AESKW_128, EKT_AESKW_256};
+  EXPECT_EQ(SECSuccess,
+            SSL_SetEKTCiphers(ssl_fd(), ciphers, PR_ARRAY_SIZE(ciphers)));
+
+  const SSLEKTKey ektKey = {
+    {0, 1, 2, 3},
+    4,
+    {4, 5, 6, 7, 8, 9},
+    6,
+    0xA0A0,
+    0xB0B0B0
+  };
+  EXPECT_EQ(SECSuccess,
+            SSL_SetEKTKey(ssl_fd(), &ektKey));
+}
+
 void TlsAgent::CheckEkt() const {
-  uint8_t actual;
-  EXPECT_EQ(SECSuccess, SSL_GetEKTCipher(ssl_fd(), &actual));
-  EXPECT_EQ(EKT_AESKW_128, actual);
+  uint8_t cipher;
+  EXPECT_EQ(SECSuccess, SSL_GetEKTCipher(ssl_fd(), &cipher));
+  EXPECT_EQ(EKT_AESKW_128, cipher);
+
+  SSLEKTKey ektKey;
+  EXPECT_EQ(SECSuccess, SSL_GetEKTKey(ssl_fd(), &ektKey));
+
+  const uint8_t key[] = {0, 1, 2, 3};
+  const uint8_t salt[] = {4, 5, 6, 7, 8, 9};
+  const uint16_t spi = 0xA0A0;
+  const uint32_t ttl = 0xB0B0B0;
+
+  EXPECT_EQ(4, ektKey.ektKeyLength);
+  EXPECT_EQ(6, ektKey.srtpMasterSaltLength);
+  EXPECT_EQ(0, memcmp(key, ektKey.ektKeyValue, 4));
+  EXPECT_EQ(0, memcmp(salt, ektKey.srtpMasterSalt, 6));
+  EXPECT_EQ(spi, ektKey.ektSPI);
+  EXPECT_EQ(ttl, ektKey.ektTTL);
 }
 
 void TlsAgent::CheckErrorCode(int32_t expected) const {

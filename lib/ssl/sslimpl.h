@@ -534,6 +534,7 @@ typedef enum {
     wait_hello_done,
     wait_new_session_ticket,
     wait_encrypted_extensions,
+    wait_ekt_key,
     wait_invalid /* Invalid value. There is no handshake message "invalid". */
 } SSL3WaitState;
 

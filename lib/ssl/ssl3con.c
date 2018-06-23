@@ -10908,6 +10908,61 @@ fail:
     return rv;
 }
 
+/* called from ssl3_HandleFinished
+ */
+static SECStatus
+ssl3_SendEKTKey(sslSocket *ss, PRInt32 flags)
+{
+    SECStatus rv;
+    SSLEKTKey *ektKey;
+    int ektKeySize;
+
+    SSL_TRC(3, ("%d: SSL3[%d]: send finished handshake", SSL_GETPID(), ss->fd));
+
+    PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
+    PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
+
+    ektKey = &ss->ssl3.ektKey;
+    ektKeySize = 1 + ektKey->ektKeyLength +
+                 1 + ektKey->srtpMasterSaltLength +
+                 2 + 3;
+
+    rv = ssl3_AppendHandshakeHeader(ss, ssl_hs_ekt_key, ektKeySize);
+    if (rv != SECSuccess) {
+      goto fail;
+    }
+
+    rv = ssl3_AppendHandshakeVariable(ss, ektKey->ektKeyValue, ektKey->ektKeyLength, 1);
+    if (rv != SECSuccess) {
+      goto fail;
+    }
+
+    rv = ssl3_AppendHandshakeVariable(ss, ektKey->srtpMasterSalt, ektKey->srtpMasterSaltLength, 1);
+    if (rv != SECSuccess) {
+      goto fail;
+    }
+
+    rv = ssl3_AppendHandshakeNumber(ss, ektKey->ektSPI, 2);
+    if (rv != SECSuccess) {
+      goto fail;
+    }
+
+    rv = ssl3_AppendHandshakeNumber(ss, ektKey->ektTTL, 3);
+    if (rv != SECSuccess) {
+      goto fail;
+    }
+
+    rv = ssl3_FlushHandshake(ss, flags);
+    if (rv != SECSuccess) {
+        goto fail;
+    }
+
+    return SECSuccess;
+
+fail:
+    return rv;
+}
+
 /* wrap the master secret, and put it into the SID.
  * Caller holds the Spec read lock.
  */
@@ -10989,6 +11044,70 @@ ssl3_CacheWrappedSecret(sslSocket *ss, sslSessionID *sid,
         PK11_FreeSymKey(wrappingKey);
     }
     return rv;
+}
+
+static SECStatus
+ssl3_HandleEKTKey(sslSocket *ss, PRUint8 *b, PRUint32 length)
+{
+    SECStatus rv;
+    SECItem ektKeyData;
+    SECItem srtpMasterSaltData;
+    PRUint32 spi;
+    PRUint32 ttl;
+    SSLEKTKey *ektKey = &ss->ssl3.ektKey;
+
+    SSL_TRC(3, ("%d: SSL3[%d]: handle ekt_key handshake",
+                SSL_GETPID(), ss->fd));
+
+    PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
+    PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
+
+    if (ss->ssl3.hs.ws != wait_ekt_key) {
+        SSL3_SendAlert(ss, alert_fatal, unexpected_message);
+        PORT_SetError(SSL_ERROR_RX_UNEXPECTED_EKT_KEY);
+        return SECFailure;
+    }
+
+    rv = ssl3_ConsumeHandshakeVariable(ss, &ektKeyData, 1, &b, &length);
+    if (rv != SECSuccess) {
+        goto fail;
+    }
+
+    rv = ssl3_ConsumeHandshakeVariable(ss, &srtpMasterSaltData, 1, &b, &length);
+    if (rv != SECSuccess) {
+        goto fail;
+    }
+
+    rv = ssl3_ConsumeHandshakeNumber(ss, &spi, 2, &b, &length);
+    if (rv != SECSuccess) {
+        goto fail;
+    }
+
+    rv = ssl3_ConsumeHandshakeNumber(ss, &ttl, 3, &b, &length);
+    if (rv != SECSuccess) {
+        goto fail;
+    }
+
+    if ((spi & 0xffff0000) || (ttl & 0xff000000)) {
+        goto fail;
+    }
+
+    PORT_Memcpy(ektKey->ektKeyValue, ektKeyData.data, ektKeyData.len);
+    ektKey->ektKeyLength = ektKeyData.len;
+    PORT_Memcpy(ektKey->srtpMasterSalt, srtpMasterSaltData.data, srtpMasterSaltData.len);
+    ektKey->srtpMasterSaltLength = srtpMasterSaltData.len;
+    ektKey->ektSPI = spi;
+    ektKey->ektTTL = ttl;
+
+    ss->ssl3.ektKeyReceived = PR_TRUE;
+
+    rv = ssl3_FinishHandshake(ss);
+    return rv;
+
+fail:
+    (void)SSL3_SendAlert(ss, alert_fatal, decode_error);
+    PORT_SetError(SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET);
+    return SECFailure;
 }
 
 /* Called from ssl3_HandlePostHelloHandshakeMessage() when it has deciphered
@@ -11134,6 +11253,13 @@ ssl3_HandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
         if (rv != SECSuccess) {
             goto xmit_loser; /* err is set. */
         }
+
+        if (IS_DTLS(ss) && isServer && ss->ssl3.ektKeyReceived) {
+          rv = ssl3_SendEKTKey(ss, flags);
+          if (rv != SECSuccess) {
+            goto xmit_loser;
+          }
+        }
     }
 
 xmit_loser:
@@ -11160,6 +11286,14 @@ xmit_loser:
 
         ss->ssl3.hs.restartTarget = ssl3_FinishHandshake;
         return SECWouldBlock;
+    }
+
+    /* If an EKT cipher was negotiated, then we need to get an
+     * EKTKey message after the Finished.
+     */
+    if (!isServer && ss->xtnData.ektCipher) {
+        ss->ssl3.hs.ws = wait_ekt_key;
+        return SECSuccess;
     }
 
     rv = ssl3_FinishHandshake(ss);
@@ -11506,6 +11640,14 @@ ssl3_HandlePostHelloHandshakeMessage(sslSocket *ss, PRUint8 *b,
             break;
         case ssl_hs_finished:
             rv = ssl3_HandleFinished(ss, b, length);
+            break;
+        case ssl_hs_ekt_key:
+            if (ss->sec.isServer) {
+                (void)SSL3_SendAlert(ss, alert_fatal, unexpected_message);
+                PORT_SetError(SSL_ERROR_RX_UNEXPECTED_EKT_KEY);
+                return SECFailure;
+            }
+            rv = ssl3_HandleEKTKey(ss, b, length);
             break;
         default:
             (void)SSL3_SendAlert(ss, alert_fatal, unexpected_message);

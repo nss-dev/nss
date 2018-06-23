@@ -107,9 +107,6 @@ class TlsAgent : public PollTarget {
   void EnableGroupsByAuthType(SSLAuthType authType);
   void EnableSingleCipher(uint16_t cipher);
 
-  void DisableAllEKTCiphers();
-  void EnableSingleEKTCipher(uint8_t cipher);
-
   void Handshake();
   // Marks the internal state as CONNECTING in anticipation of renegotiation.
   void PrepareForRenegotiate();
@@ -146,7 +143,8 @@ class TlsAgent : public PollTarget {
                  const std::string& expected = "") const;
   void EnableSrtp();
   void CheckSrtp() const;
-  void EnableEkt();
+  void EnableEktClient();
+  void EnableEktServer();
   void CheckEkt() const;
   void CheckErrorCode(int32_t expected) const;
   void WaitForErrorCode(int32_t expected, uint32_t delay) const;

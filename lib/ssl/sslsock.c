@@ -2224,6 +2224,8 @@ ssl_CopyEKTKey(SSLEKTKey *dst, const SSLEKTKey *src) {
         return SECFailure;
     }
 
+    dst->ektKeyLength = src->ektKeyLength;
+    dst->srtpMasterSaltLength = src->srtpMasterSaltLength;
     PORT_Memcpy(dst->ektKeyValue, src->ektKeyValue, src->ektKeyLength);
     PORT_Memcpy(dst->srtpMasterSalt, src->srtpMasterSalt, src->srtpMasterSaltLength);
     dst->ektSPI = src->ektSPI;
