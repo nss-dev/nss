@@ -266,6 +266,7 @@ typedef struct sslOptionsStr {
     unsigned int enable0RttData : 1;
     unsigned int enableTls13CompatMode : 1;
     unsigned int enableDtlsShortHeader : 1;
+    unsigned int enableHelloDowngradeCheck : 1;
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
