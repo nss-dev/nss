@@ -448,6 +448,27 @@ cert_add_cert()
 	fi
 	cert_log "SUCCESS: $CERTNAME's mixed EC Cert Created"
 
+	echo "Importing RSA-PSS server certificate"
+	pk12u -i ${QADIR}/cert/TestUser-rsa-pss-interop.p12 -k ${R_PWFILE} -w ${R_PWFILE} -d ${PROFILEDIR}
+	# Let's get the key ID of the imported private key.
+	KEYID=`${BINDIR}/certutil -d ${PROFILEDIR} -K -f ${R_PWFILE} | \
+		grep 'TestUser-rsa-pss-interop$' | sed -n 's/^<.*> [^ ]\{1,\} *\([^ ]\{1,\}\).*/\1/p'`
+
+	CU_ACTION="Generate RSA-PSS Cert Request for $CERTNAME"
+	CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-rsa-pss@bogus.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
+	certu -R -d "${PROFILEDIR}" -k ${KEYID} -f "${R_PWFILE}" \
+	-z "${R_NOISE_FILE}" -o req 2>&1
+
+	CU_ACTION="Sign ${CERTNAME}'s RSA-PSS Request"
+	NEWSERIAL=`expr ${CERTSERIAL} + 30000`
+	certu -C -c "TestCA" -m "$NEWSERIAL" -v 60 -d "${P_R_CADIR}" \
+	      -i req -o "${CERTNAME}-rsa-pss.cert" -f "${R_PWFILE}" "$1" 2>&1
+
+	CU_ACTION="Import $CERTNAME's RSA-PSS Cert -t u,u,u"
+	certu -A -n "$CERTNAME-rsa-pss" -t "u,u,u" -d "${PROFILEDIR}" -f "${R_PWFILE}" \
+	      -i "${CERTNAME}-rsa-pss.cert" 2>&1
+	cert_log "SUCCESS: $CERTNAME's RSA-PSS Cert Created"
+
     return 0
 }
 

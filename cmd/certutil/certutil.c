@@ -856,7 +856,7 @@ SECItemToHex(const SECItem *item, char *dst)
 }
 
 static const char *const keyTypeName[] = {
-    "null", "rsa", "dsa", "fortezza", "dh", "kea", "ec", "rsaPss"
+    "null", "rsa", "dsa", "fortezza", "dh", "kea", "ec", "rsaPss", "rsaOaep"
 };
 
 #define MAX_CKA_ID_BIN_LEN 20
@@ -869,6 +869,8 @@ PrintKey(PRFileDesc *out, const char *nickName, int count,
 {
     SECItem *ckaID;
     char ckaIDbuf[MAX_CKA_ID_STR_LEN + 4];
+    CERTCertificate *cert;
+    KeyType keyType;
 
     pwarg = NULL;
     ckaID = PK11_GetLowLevelKeyIDForPrivateKey(key);
@@ -888,8 +890,15 @@ PrintKey(PRFileDesc *out, const char *nickName, int count,
         SECItemToHex(&idItem, ckaIDbuf);
     }
 
+    cert = PK11_GetCertFromPrivateKey(key);
+    if (cert) {
+        keyType = CERT_GetCertKeyType(&cert->subjectPublicKeyInfo);
+        CERT_DestroyCertificate(cert);
+    } else {
+        keyType = key->keyType;
+    }
     PR_fprintf(out, "<%2d> %-8.8s %-42.42s %s\n", count,
-               keyTypeName[key->keyType], ckaIDbuf, nickName);
+               keyTypeName[keyType], ckaIDbuf, nickName);
     SECITEM_ZfreeItem(ckaID, PR_TRUE);
 
     return SECSuccess;
