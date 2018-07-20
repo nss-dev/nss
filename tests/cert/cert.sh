@@ -2496,6 +2496,29 @@ EOF
   RETEXPECTED=0
 }
 
+cert_test_orphan_key_delete()
+{
+  CU_ACTION="Create orphan key in serverdir"
+  certu -G -k ec -q nistp256 -f "${R_PWFILE}" -z ${R_NOISE_FILE} -d ${PROFILEDIR}
+  # Let's get the key ID of the first orphan key.
+  # The output of certutil -K (list keys) isn't well formatted.
+  # The initial <key-number> part may or may not contain white space, which
+  # makes the use of awk to filter the column unreliable.
+  # To fix that, we remove the initial <number> field using sed, then select the
+  # column that contains the key ID.
+  ORPHAN=`${BINDIR}/certutil -d ${PROFILEDIR} -K -f ${R_PWFILE} | \
+          sed 's/^<.*>//g' | grep -w orphan | head -1 | awk '{print $2}'`
+  CU_ACTION="Delete orphan key"
+  certu -F -f "${R_PWFILE}" -k ${ORPHAN} -d ${PROFILEDIR}
+  # Ensure that the key is removed
+  certu -K -f "${R_PWFILE}" -d ${PROFILEDIR} | grep ${ORPHAN}
+  RET=$?
+  if [ "$RET" -eq 0 ]; then
+    html_failed "Deleting orphan key ($RET)"
+    cert_log "ERROR: Deleting orphan key failed $RET"
+  fi
+}
+
 cert_test_orphan_key_reuse()
 {
   CU_ACTION="Create orphan key in serverdir"
@@ -2540,6 +2563,7 @@ cert_all_CA
 cert_test_implicit_db_init
 cert_extended_ssl
 cert_ssl
+cert_test_orphan_key_delete
 cert_test_orphan_key_reuse
 cert_smime_client
 IS_FIPS_DISABLED=`certutil --build-flags |grep -cw NSS_FIPS_DISABLED`
