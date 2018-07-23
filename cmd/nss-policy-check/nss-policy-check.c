@@ -85,7 +85,7 @@ main(int argc, char **argv)
     if (argc != 2) {
         fprintf(stderr, "Syntax: nss-policy-check <path-to-policy-file>\n");
         result = 2;
-        goto loser;
+        goto loser_no_shutdown;
     }
 
     fullPathLen = strlen(argv[1]);
@@ -93,13 +93,13 @@ main(int argc, char **argv)
     if (!fullPathLen || PR_Access(argv[1], PR_ACCESS_READ_OK) != PR_SUCCESS) {
         fprintf(stderr, "Error: cannot read file %s\n", argv[1]);
         result = 2;
-        goto loser;
+        goto loser_no_shutdown;
     }
 
     if (fullPathLen >= PATH_MAX) {
         fprintf(stderr, "Error: filename parameter is too long\n");
         result = 2;
-        goto loser;
+        goto loser_no_shutdown;
     }
 
     path[0] = 0;
@@ -120,7 +120,7 @@ main(int argc, char **argv)
     if (rv != SECSuccess) {
         fprintf(stderr, "NSS_Init failed: %s\n", PORT_ErrorToString(PR_GetError()));
         result = 2;
-        goto loser;
+        goto loser_no_shutdown;
     }
 
     PR_SetEnv("NSS_POLICY_LOADED=0");
@@ -196,6 +196,7 @@ loser:
         fprintf(stderr, "NSS_Shutdown failed: %s\n", PORT_ErrorToString(PR_GetError()));
         result = 2;
     }
+loser_no_shutdown:
     if (result == 2) {
         fprintf(stderr, "NSS-POLICY-FAIL\n");
     } else if (result == 1) {
