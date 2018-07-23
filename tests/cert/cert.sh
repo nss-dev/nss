@@ -2124,6 +2124,23 @@ cert_test_implicit_db_init()
   certu -A -n ca -t 'C,C,C' -d ${P_R_IMPLICIT_INIT_DIR} -i "${SERVER_CADIR}/serverCA.ca.cert"
 }
 
+cert_test_token_uri()
+{
+  echo "$SCRIPTNAME: specify token with PKCS#11 URI"
+
+  CERTIFICATE_DB_URI=`${BINDIR}/certutil -U -f "${R_PWFILE}" -d ${P_R_SERVERDIR} | sed -n 's/^ *uri: \(.*NSS%20Certificate%20DB.*\)/\1/p'`
+  BUILTIN_OBJECTS_URI=`${BINDIR}/certutil -U -f "${R_PWFILE}" -d ${P_R_SERVERDIR} | sed -n 's/^ *uri: \(.*Builtin%20Object%20Token.*\)/\1/p'`
+
+  CU_ACTION="List keys in NSS Certificate DB"
+  certu -K -f "${R_PWFILE}" -d ${P_R_SERVERDIR} -h ${CERTIFICATE_DB_URI}
+
+  # This token shouldn't have any keys
+  CU_ACTION="List keys in NSS Builtin Objects"
+  RETEXPECTED=255
+  certu -K -f "${R_PWFILE}" -d ${P_R_SERVERDIR} -h ${BUILTIN_OBJECTS_URI}
+  RETEXPECTED=0
+}
+
 check_sign_algo()
 {
   certu -L -n "$CERTNAME" -d "${PROFILEDIR}" -f "${R_PWFILE}" | \
@@ -2579,6 +2596,7 @@ cert_test_password
 cert_test_distrust
 cert_test_ocspresp
 cert_test_rsapss
+cert_test_token_uri
 
 if [ -z "$NSS_TEST_DISABLE_CRL" ] ; then
     cert_crl_ssl
