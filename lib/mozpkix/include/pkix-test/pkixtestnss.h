@@ -31,15 +31,18 @@
 
 #include <keyhi.h>
 #include <keythi.h>
-#include "mozpkix/test/pkixtestutil.h"
 #include "mozpkix/nss_scoped_ptrs.h"
+#include "mozpkix/test/pkixtestutil.h"
 
-namespace mozilla { namespace pkix { namespace test {
+namespace mozilla {
+namespace pkix {
+namespace test {
 
 TestKeyPair* CreateTestKeyPair(const TestPublicKeyAlgorithm publicKeyAlg,
                                const ScopedSECKEYPublicKey& publicKey,
                                const ScopedSECKEYPrivateKey& privateKey);
+}
+}
+}  // namespace mozilla::pkix::test
 
-} } } // namespace mozilla::pkix::test
-
-#endif // mozilla_pkix_test_pkixtestnss_h
+#endif  // mozilla_pkix_test_pkixtestnss_h
