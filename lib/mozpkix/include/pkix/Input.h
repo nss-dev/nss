@@ -27,7 +27,7 @@
 
 #include <algorithm>
 
-#include "pkix/Result.h"
+#include "mozpkix/Result.h"
 #include "stdint.h"
 
 namespace mozilla { namespace pkix {

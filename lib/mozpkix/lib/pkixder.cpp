@@ -22,9 +22,9 @@
  * limitations under the License.
  */
 
-#include "pkixder.h"
+#include "mozpkix/pkixder.h"
 
-#include "pkixutil.h"
+#include "mozpkix/pkixutil.h"
 
 namespace mozilla { namespace pkix { namespace der {
 

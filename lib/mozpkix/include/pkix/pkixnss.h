@@ -25,9 +25,9 @@
 #ifndef mozilla_pkix_pkixnss_h
 #define mozilla_pkix_pkixnss_h
 
-#include "pkixtypes.h"
+#include <seccomon.h>
+#include "mozpkix/pkixtypes.h"
 #include "prerror.h"
-#include "seccomon.h"
 
 namespace mozilla { namespace pkix {
 

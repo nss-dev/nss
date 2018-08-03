@@ -24,9 +24,9 @@
 
 #include <limits>
 
-#include "pkix/pkix.h"
-#include "pkixcheck.h"
-#include "pkixutil.h"
+#include "mozpkix/pkix.h"
+#include "mozpkix/pkixcheck.h"
+#include "mozpkix/pkixutil.h"
 
 namespace {
 

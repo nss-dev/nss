@@ -9,7 +9,7 @@
 #include <vector>
 #include "argparse.h"
 #include "prerror.h"
-#include "scoped_ptrs.h"
+#include "nss_scoped_ptrs.h"
 #include "tool.h"
 
 class EncTool : public Tool {

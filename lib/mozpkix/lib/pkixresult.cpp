@@ -22,8 +22,8 @@
  * limitations under the License.
  */
 
-#include "pkix/Result.h"
-#include "pkixutil.h"
+#include "mozpkix/Result.h"
+#include "mozpkix/pkixutil.h"
 
 namespace mozilla { namespace pkix {
 

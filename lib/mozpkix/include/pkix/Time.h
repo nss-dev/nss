@@ -29,7 +29,7 @@
 #include <limits>
 #include <stdint.h>
 
-#include "pkix/Result.h"
+#include "mozpkix/Result.h"
 
 namespace mozilla { namespace pkix {
 

@@ -25,7 +25,7 @@
 #ifndef mozilla_pkix_pkix_h
 #define mozilla_pkix_pkix_h
 
-#include "pkixtypes.h"
+#include "mozpkix/pkixtypes.h"
 
 namespace mozilla { namespace pkix {
 
