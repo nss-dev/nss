@@ -27,19 +27,18 @@
 
 #include "mozpkix/pkixtypes.h"
 
-namespace mozilla { namespace pkix {
+namespace mozilla {
+namespace pkix {
 
 class BackCert;
 
-Result CheckIssuerIndependentProperties(
-          TrustDomain& trustDomain,
-          const BackCert& cert,
-          Time time,
-          KeyUsage requiredKeyUsageIfPresent,
-          KeyPurposeId requiredEKUIfPresent,
-          const CertPolicyId& requiredPolicy,
-          unsigned int subCACount,
-          /*out*/ TrustLevel& trustLevel);
+Result CheckIssuerIndependentProperties(TrustDomain& trustDomain,
+                                        const BackCert& cert, Time time,
+                                        KeyUsage requiredKeyUsageIfPresent,
+                                        KeyPurposeId requiredEKUIfPresent,
+                                        const CertPolicyId& requiredPolicy,
+                                        unsigned int subCACount,
+                                        /*out*/ TrustLevel& trustLevel);
 
 Result CheckNameConstraints(Input encodedNameConstraints,
                             const BackCert& firstChild,
@@ -60,7 +59,7 @@ Result CheckValidity(Time time, Time notBefore, Time notAfter);
 // Check that a subject has TLS Feature (rfc7633) requirements that match its
 // potential issuer
 Result CheckTLSFeatures(const BackCert& subject, BackCert& potentialIssuer);
+}
+}  // namespace mozilla::pkix
 
-} } // namespace mozilla::pkix
-
-#endif // mozilla_pkix_pkixcheck_h
+#endif  // mozilla_pkix_pkixcheck_h

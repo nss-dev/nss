@@ -25,23 +25,23 @@
 #ifndef mozilla_pkix_test_pkixtestutil_h
 #define mozilla_pkix_test_pkixtestutil_h
 
-#include <ctime>
 #include <cstdint>
-#include <string>
 #include <cstring>
+#include <ctime>
+#include <string>
 
 #include "mozpkix/pkixtypes.h"
 
-namespace mozilla { namespace pkix { namespace test {
+namespace mozilla {
+namespace pkix {
+namespace test {
 
 typedef std::basic_string<uint8_t> ByteString;
 
 inline bool ENCODING_FAILED(const ByteString& bs) { return bs.empty(); }
 
 template <size_t L>
-inline ByteString
-BytesToByteString(const uint8_t (&bytes)[L])
-{
+inline ByteString BytesToByteString(const uint8_t (&bytes)[L]) {
   return ByteString(bytes, L);
 }
 
@@ -64,17 +64,14 @@ bool InputEqualsByteString(Input input, const ByteString& bs);
 ByteString InputToByteString(Input input);
 
 // python DottedOIDToCode.py --tlv id-kp-OCSPSigning 1.3.6.1.5.5.7.3.9
-static const uint8_t tlv_id_kp_OCSPSigning[] = {
-  0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x09
-};
+static const uint8_t tlv_id_kp_OCSPSigning[] = {0x06, 0x08, 0x2b, 0x06, 0x01,
+                                                0x05, 0x05, 0x07, 0x03, 0x09};
 
 // python DottedOIDToCode.py --tlv id-kp-serverAuth 1.3.6.1.5.5.7.3.1
-static const uint8_t tlv_id_kp_serverAuth[] = {
-  0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x01
-};
+static const uint8_t tlv_id_kp_serverAuth[] = {0x06, 0x08, 0x2b, 0x06, 0x01,
+                                               0x05, 0x05, 0x07, 0x03, 0x01};
 
-enum class TestDigestAlgorithmID
-{
+enum class TestDigestAlgorithmID {
   MD2,
   MD5,
   SHA1,
@@ -84,12 +81,10 @@ enum class TestDigestAlgorithmID
   SHA512,
 };
 
-struct TestPublicKeyAlgorithm
-{
+struct TestPublicKeyAlgorithm {
   explicit TestPublicKeyAlgorithm(const ByteString& aAlgorithmIdentifier)
-    : algorithmIdentifier(aAlgorithmIdentifier) { }
-  bool operator==(const TestPublicKeyAlgorithm& other) const
-  {
+      : algorithmIdentifier(aAlgorithmIdentifier) {}
+  bool operator==(const TestPublicKeyAlgorithm& other) const {
     return algorithmIdentifier == other.algorithmIdentifier;
   }
   ByteString algorithmIdentifier;
@@ -102,12 +97,10 @@ ByteString DSS_G();
 TestPublicKeyAlgorithm DSS();
 TestPublicKeyAlgorithm RSA_PKCS1();
 
-struct TestSignatureAlgorithm
-{
+struct TestSignatureAlgorithm {
   TestSignatureAlgorithm(const TestPublicKeyAlgorithm& publicKeyAlg,
                          TestDigestAlgorithmID digestAlg,
-                         const ByteString& algorithmIdentifier,
-                         bool accepted);
+                         const ByteString& algorithmIdentifier, bool accepted);
 
   TestPublicKeyAlgorithm publicKeyAlg;
   TestDigestAlgorithmID digestAlg;
@@ -126,9 +119,7 @@ mozilla::pkix::Time YMDHMS(uint16_t year, uint16_t month, uint16_t day,
 
 ByteString TLV(uint8_t tag, size_t length, const ByteString& value);
 
-inline ByteString
-TLV(uint8_t tag, const ByteString& value)
-{
+inline ByteString TLV(uint8_t tag, const ByteString& value) {
   return TLV(tag, value.length(), value);
 }
 
@@ -137,18 +128,14 @@ TLV(uint8_t tag, const ByteString& value)
 // string literals as the last parameter to the following two functions.
 
 template <size_t N>
-inline ByteString
-TLV(uint8_t tag, const char(&value)[N])
-{
+inline ByteString TLV(uint8_t tag, const char (&value)[N]) {
   static_assert(N > 0, "cannot have string literal of size 0");
   assert(value[N - 1] == 0);
   return TLV(tag, ByteString(reinterpret_cast<const uint8_t*>(&value), N - 1));
 }
 
 template <size_t N>
-inline ByteString
-TLV(uint8_t tag, size_t length, const char(&value)[N])
-{
+inline ByteString TLV(uint8_t tag, size_t length, const char (&value)[N]) {
   static_assert(N > 0, "cannot have string literal of size 0");
   assert(value[N - 1] == 0);
   return TLV(tag, length,
@@ -160,29 +147,27 @@ ByteString Integer(long value);
 
 ByteString CN(const ByteString&, uint8_t encodingTag = 0x0c /*UTF8String*/);
 
-inline ByteString
-CN(const char* value, uint8_t encodingTag = 0x0c /*UTF8String*/)
-{
-  return CN(ByteString(reinterpret_cast<const uint8_t*>(value),
-                       std::strlen(value)), encodingTag);
+inline ByteString CN(const char* value,
+                     uint8_t encodingTag = 0x0c /*UTF8String*/) {
+  return CN(
+      ByteString(reinterpret_cast<const uint8_t*>(value), std::strlen(value)),
+      encodingTag);
 }
 
 ByteString OU(const ByteString&, uint8_t encodingTag = 0x0c /*UTF8String*/);
 
-inline ByteString
-OU(const char* value, uint8_t encodingTag = 0x0c /*UTF8String*/)
-{
-  return OU(ByteString(reinterpret_cast<const uint8_t*>(value),
-                       std::strlen(value)), encodingTag);
+inline ByteString OU(const char* value,
+                     uint8_t encodingTag = 0x0c /*UTF8String*/) {
+  return OU(
+      ByteString(reinterpret_cast<const uint8_t*>(value), std::strlen(value)),
+      encodingTag);
 }
 
 ByteString emailAddress(const ByteString&);
 
-inline ByteString
-emailAddress(const char* value)
-{
-  return emailAddress(ByteString(reinterpret_cast<const uint8_t*>(value),
-                                 std::strlen(value)));
+inline ByteString emailAddress(const char* value) {
+  return emailAddress(
+      ByteString(reinterpret_cast<const uint8_t*>(value), std::strlen(value)));
 }
 
 // RelativeDistinguishedName ::=
@@ -197,17 +182,11 @@ ByteString RDN(const ByteString& avas);
 //
 ByteString Name(const ByteString& rdns);
 
-inline ByteString
-CNToDERName(const ByteString& cn)
-{
+inline ByteString CNToDERName(const ByteString& cn) {
   return Name(RDN(CN(cn)));
 }
 
-inline ByteString
-CNToDERName(const char* cn)
-{
-  return Name(RDN(CN(cn)));
-}
+inline ByteString CNToDERName(const char* cn) { return Name(RDN(CN(cn))); }
 
 // GeneralName ::= CHOICE {
 //      otherName                       [0]     OtherName,
@@ -220,55 +199,40 @@ CNToDERName(const char* cn)
 //      iPAddress                       [7]     OCTET STRING,
 //      registeredID                    [8]     OBJECT IDENTIFIER }
 
-inline ByteString
-RFC822Name(const ByteString& name)
-{
+inline ByteString RFC822Name(const ByteString& name) {
   // (2 << 6) means "context-specific", 1 is the GeneralName tag.
   return TLV((2 << 6) | 1, name);
 }
 
 template <size_t L>
-inline ByteString
-RFC822Name(const char (&bytes)[L])
-{
-  return RFC822Name(ByteString(reinterpret_cast<const uint8_t*>(&bytes),
-                               L - 1));
+inline ByteString RFC822Name(const char (&bytes)[L]) {
+  return RFC822Name(
+      ByteString(reinterpret_cast<const uint8_t*>(&bytes), L - 1));
 }
 
-inline ByteString
-DNSName(const ByteString& name)
-{
+inline ByteString DNSName(const ByteString& name) {
   // (2 << 6) means "context-specific", 2 is the GeneralName tag.
   return TLV((2 << 6) | 2, name);
 }
 
 template <size_t L>
-inline ByteString
-DNSName(const char (&bytes)[L])
-{
-  return DNSName(ByteString(reinterpret_cast<const uint8_t*>(&bytes),
-                            L - 1));
+inline ByteString DNSName(const char (&bytes)[L]) {
+  return DNSName(ByteString(reinterpret_cast<const uint8_t*>(&bytes), L - 1));
 }
 
-inline ByteString
-DirectoryName(const ByteString& name)
-{
+inline ByteString DirectoryName(const ByteString& name) {
   // (2 << 6) means "context-specific", (1 << 5) means "constructed", and 4 is
   // the DirectoryName tag.
   return TLV((2 << 6) | (1 << 5) | 4, name);
 }
 
-inline ByteString
-IPAddress()
-{
+inline ByteString IPAddress() {
   // (2 << 6) means "context-specific", 7 is the GeneralName tag.
   return TLV((2 << 6) | 7, ByteString());
 }
 
 template <size_t L>
-inline ByteString
-IPAddress(const uint8_t (&bytes)[L])
-{
+inline ByteString IPAddress(const uint8_t (&bytes)[L]) {
   // (2 << 6) means "context-specific", 7 is the GeneralName tag.
   return TLV((2 << 6) | 7, ByteString(bytes, L));
 }
@@ -282,10 +246,9 @@ IPAddress(const uint8_t (&bytes)[L])
 ByteString CreateEncodedSubjectAltName(const ByteString& names);
 ByteString CreateEncodedEmptySubjectAltName();
 
-class TestKeyPair
-{
-public:
-  virtual ~TestKeyPair() { }
+class TestKeyPair {
+ public:
+  virtual ~TestKeyPair() {}
 
   const TestPublicKeyAlgorithm publicKeyAlg;
 
@@ -302,8 +265,10 @@ public:
                           /*out*/ ByteString& signature) const = 0;
 
   virtual TestKeyPair* Clone() const = 0;
-protected:
-  TestKeyPair(const TestPublicKeyAlgorithm& publicKeyAlg, const ByteString& spk);
+
+ protected:
+  TestKeyPair(const TestPublicKeyAlgorithm& publicKeyAlg,
+              const ByteString& spk);
   TestKeyPair(const TestKeyPair&) = delete;
   void operator=(const TestKeyPair&) = delete;
 };
@@ -347,24 +312,21 @@ enum Version { v1 = 0, v2 = 1, v3 = 2 };
 // extensions must point to an array of ByteStrings, terminated with an empty
 // ByteString. (If the first item of the array is empty then an empty
 // Extensions sequence will be encoded.)
-ByteString CreateEncodedCertificate(long version,
-                                    const TestSignatureAlgorithm& signature,
-                                    const ByteString& serialNumber,
-                                    const ByteString& issuerNameDER,
-                                    time_t notBefore, time_t notAfter,
-                                    const ByteString& subjectNameDER,
-                                    const TestKeyPair& subjectKeyPair,
-                                    /*optional*/ const ByteString* extensions,
-                                    const TestKeyPair& issuerKeyPair,
-                                    const TestSignatureAlgorithm& signatureAlgorithm);
+ByteString CreateEncodedCertificate(
+    long version, const TestSignatureAlgorithm& signature,
+    const ByteString& serialNumber, const ByteString& issuerNameDER,
+    time_t notBefore, time_t notAfter, const ByteString& subjectNameDER,
+    const TestKeyPair& subjectKeyPair,
+    /*optional*/ const ByteString* extensions, const TestKeyPair& issuerKeyPair,
+    const TestSignatureAlgorithm& signatureAlgorithm);
 
 ByteString CreateEncodedSerialNumber(long value);
 
 enum class Critical { No = 0, Yes = 1 };
 
-ByteString CreateEncodedBasicConstraints(bool isCA,
-                                         /*optional in*/ const long* pathLenConstraint,
-                                         Critical critical);
+ByteString CreateEncodedBasicConstraints(
+    bool isCA,
+    /*optional in*/ const long* pathLenConstraint, Critical critical);
 
 // Creates a DER-encoded extKeyUsage extension with one EKU OID.
 ByteString CreateEncodedEKUExtension(Input eku, Critical critical);
@@ -372,9 +334,8 @@ ByteString CreateEncodedEKUExtension(Input eku, Critical critical);
 ///////////////////////////////////////////////////////////////////////////////
 // Encode OCSP responses
 
-class OCSPResponseExtension final
-{
-public:
+class OCSPResponseExtension final {
+ public:
   OCSPResponseExtension();
 
   ByteString id;
@@ -383,9 +344,8 @@ public:
   OCSPResponseExtension* next;
 };
 
-class OCSPResponseContext final
-{
-public:
+class OCSPResponseContext final {
+ public:
   OCSPResponseContext(const CertID& certID, std::time_t time);
 
   const CertID& certID;
@@ -393,8 +353,7 @@ public:
 
   // The fields below are in the order that they appear in an OCSP response.
 
-  enum OCSPResponseStatus
-  {
+  enum OCSPResponseStatus {
     successful = 0,
     malformedRequest = 1,
     internalError = 2,
@@ -403,13 +362,13 @@ public:
     sigRequired = 5,
     unauthorized = 6,
   };
-  uint8_t responseStatus; // an OCSPResponseStatus or an invalid value
-  bool skipResponseBytes; // If true, don't include responseBytes
+  uint8_t responseStatus;  // an OCSPResponseStatus or an invalid value
+  bool skipResponseBytes;  // If true, don't include responseBytes
 
   // responderID
-  ByteString signerNameDER; // If set, responderID will use the byName
-                            // form; otherwise responderID will use the
-                            // byKeyHash form.
+  ByteString signerNameDER;  // If set, responderID will use the byName
+                             // form; otherwise responderID will use the
+                             // byKeyHash form.
 
   std::time_t producedAt;
 
@@ -417,31 +376,31 @@ public:
   OCSPResponseExtension* singleExtensions;
   // ResponseData extensions.
   OCSPResponseExtension* responseExtensions;
-  bool includeEmptyExtensions; // If true, include the extension wrapper
-                               // regardless of if there are any actual
-                               // extensions.
+  bool includeEmptyExtensions;  // If true, include the extension wrapper
+                                // regardless of if there are any actual
+                                // extensions.
   ScopedTestKeyPair signerKeyPair;
   TestSignatureAlgorithm signatureAlgorithm;
-  bool badSignature; // If true, alter the signature to fail verification
-  const ByteString* certs; // optional; array terminated by an empty string
+  bool badSignature;        // If true, alter the signature to fail verification
+  const ByteString* certs;  // optional; array terminated by an empty string
 
   // The following fields are on a per-SingleResponse basis. In the future we
   // may support including multiple SingleResponses per response.
-  enum CertStatus
-  {
+  enum CertStatus {
     good = 0,
     revoked = 1,
     unknown = 2,
   };
-  uint8_t certStatus; // CertStatus or an invalid value
-  std::time_t revocationTime; // For certStatus == revoked
+  uint8_t certStatus;          // CertStatus or an invalid value
+  std::time_t revocationTime;  // For certStatus == revoked
   std::time_t thisUpdate;
   std::time_t nextUpdate;
   bool includeNextUpdate;
 };
 
 ByteString CreateEncodedOCSPResponse(OCSPResponseContext& context);
+}
+}
+}  // namespace mozilla::pkix::test
 
-} } } // namespace mozilla::pkix::test
-
-#endif // mozilla_pkix_test_pkixtestutil_h
+#endif  // mozilla_pkix_test_pkixtestutil_h
