@@ -36,8 +36,8 @@
 
 #include <algorithm>
 
-#include "pkixcheck.h"
-#include "pkixutil.h"
+#include "mozpkix/pkixcheck.h"
+#include "mozpkix/pkixutil.h"
 
 namespace mozilla { namespace pkix {
 

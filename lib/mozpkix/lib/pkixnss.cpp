@@ -22,16 +22,16 @@
  * limitations under the License.
  */
 
-#include "pkix/pkixnss.h"
+#include "mozpkix/pkixnss.h"
 
 #include <limits>
 
 #include "cryptohi.h"
 #include "keyhi.h"
 #include "pk11pub.h"
-#include "pkix/pkix.h"
-#include "pkixutil.h"
-#include "ScopedPtr.h"
+#include "mozpkix/nss_scoped_ptrs.h"
+#include "mozpkix/pkix.h"
+#include "mozpkix/pkixutil.h"
 #include "secerr.h"
 #include "sslerr.h"
 
@@ -56,12 +56,12 @@ VerifySignedDigest(const SignedDigest& sd,
 
   SECItem subjectPublicKeyInfoSECItem =
     UnsafeMapInputToSECItem(subjectPublicKeyInfo);
-  ScopedPtr<CERTSubjectPublicKeyInfo, SECKEY_DestroySubjectPublicKeyInfo>
+  ScopedCERTSubjectPublicKeyInfo
     spki(SECKEY_DecodeDERSubjectPublicKeyInfo(&subjectPublicKeyInfoSECItem));
   if (!spki) {
     return MapPRErrorCodeToResult(PR_GetError());
   }
-  ScopedPtr<SECKEYPublicKey, SECKEY_DestroyPublicKey>
+  ScopedSECKEYPublicKey
     pubKey(SECKEY_ExtractPublicKey(spki.get()));
   if (!pubKey) {
     return MapPRErrorCodeToResult(PR_GetError());

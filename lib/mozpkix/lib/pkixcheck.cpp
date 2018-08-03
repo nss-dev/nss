@@ -22,10 +22,10 @@
  * limitations under the License.
  */
 
-#include "pkixcheck.h"
+#include "mozpkix/pkixcheck.h"
 
-#include "pkixder.h"
-#include "pkixutil.h"
+#include "mozpkix/pkixder.h"
+#include "mozpkix/pkixutil.h"
 
 namespace mozilla { namespace pkix {
 

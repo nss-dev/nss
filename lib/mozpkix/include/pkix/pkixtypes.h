@@ -25,8 +25,10 @@
 #ifndef mozilla_pkix_pkixtypes_h
 #define mozilla_pkix_pkixtypes_h
 
-#include "pkix/Input.h"
-#include "pkix/Time.h"
+#include <memory>
+
+#include "mozpkix/Input.h"
+#include "mozpkix/Time.h"
 #include "stdint.h"
 
 namespace mozilla { namespace pkix {
@@ -147,6 +149,7 @@ public:
 
   void operator=(const CertID&) = delete;
 };
+typedef std::unique_ptr<CertID> ScopedCertID;
 
 class DERArray
 {
