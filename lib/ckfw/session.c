@@ -907,7 +907,7 @@ nssCKFWSession_SetPIN(
 
     error = fwSession->mdSession->SetPIN(fwSession->mdSession, fwSession,
                                          fwSession->mdToken, fwSession->fwToken, fwSession->mdInstance,
-                                         fwSession->fwInstance, oldPin, newPin);
+                                         fwSession->fwInstance, (NSSItem *)oldPin, newPin);
 
     return error;
 }
