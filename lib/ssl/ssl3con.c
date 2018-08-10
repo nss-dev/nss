@@ -7190,7 +7190,8 @@ ssl_ParseSignatureSchemes(const sslSocket *ss, PLArenaPool *arena,
     SECStatus rv;
     SECItem buf;
     SSLSignatureScheme *schemes = NULL;
-    unsigned int numSchemes = 0;
+    unsigned int numSupported = 0;
+    unsigned int numRemaining = 0;
     unsigned int max;
 
     rv = ssl3_ExtConsumeHandshakeVariable(ss, &buf, 2, b, len);
@@ -7209,7 +7210,8 @@ ssl_ParseSignatureSchemes(const sslSocket *ss, PLArenaPool *arena,
     }
 
     /* Limit the number of schemes we read. */
-    max = PR_MIN(buf.len / 2, MAX_SIGNATURE_SCHEMES);
+    numRemaining = buf.len / 2;
+    max = PR_MIN(numRemaining, MAX_SIGNATURE_SCHEMES);
 
     if (arena) {
         schemes = PORT_ArenaZNewArray(arena, SSLSignatureScheme, max);
@@ -7221,7 +7223,7 @@ ssl_ParseSignatureSchemes(const sslSocket *ss, PLArenaPool *arena,
         return SECFailure;
     }
 
-    for (; max; --max) {
+    for (; numRemaining && numSupported < MAX_SIGNATURE_SCHEMES; --numRemaining) {
         PRUint32 tmp;
         rv = ssl3_ExtConsumeHandshakeNumber(ss, &tmp, 2, &buf.data, &buf.len);
         if (rv != SECSuccess) {
@@ -7230,11 +7232,11 @@ ssl_ParseSignatureSchemes(const sslSocket *ss, PLArenaPool *arena,
             return SECFailure;
         }
         if (ssl_IsSupportedSignatureScheme((SSLSignatureScheme)tmp)) {
-            schemes[numSchemes++] = (SSLSignatureScheme)tmp;
+            schemes[numSupported++] = (SSLSignatureScheme)tmp;
         }
     }
 
-    if (!numSchemes) {
+    if (!numSupported) {
         if (!arena) {
             PORT_Free(schemes);
         }
@@ -7243,7 +7245,7 @@ ssl_ParseSignatureSchemes(const sslSocket *ss, PLArenaPool *arena,
 
 done:
     *schemesOut = schemes;
-    *numSchemesOut = numSchemes;
+    *numSchemesOut = numSupported;
     return SECSuccess;
 }
 
