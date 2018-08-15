@@ -126,6 +126,34 @@ TEST_F(TlsConnectTest, TestFallbackFromTls12) {
   server_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
 }
 
+static SECStatus AllowFalseStart(PRFileDesc* fd, void* arg,
+                                 PRBool* can_false_start) {
+  bool* false_start_attempted = reinterpret_cast<bool*>(arg);
+  *false_start_attempted = true;
+  *can_false_start = PR_TRUE;
+  return SECSuccess;
+}
+
+// If we disable the downgrade check, the sentinel is still generated, and we
+// disable false start instead.
+TEST_F(TlsConnectTest, DisableFalseStartOnFallback) {
+  // Don't call client_->EnableFalseStart(), because that sets the client up for
+  // success, and we want false start to fail.
+  client_->SetOption(SSL_ENABLE_FALSE_START, PR_TRUE);
+  bool false_start_attempted = false;
+  EXPECT_EQ(SECSuccess,
+            SSL_SetCanFalseStartCallback(client_->ssl_fd(), AllowFalseStart,
+                                         &false_start_attempted));
+
+  client_->SetDowngradeCheckVersion(SSL_LIBRARY_VERSION_TLS_1_3);
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
+                           SSL_LIBRARY_VERSION_TLS_1_2);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_2,
+                           SSL_LIBRARY_VERSION_TLS_1_3);
+  Connect();
+  EXPECT_FALSE(false_start_attempted);
+}
+
 TEST_F(TlsConnectTest, TestFallbackFromTls13) {
   client_->SetOption(SSL_ENABLE_HELLO_DOWNGRADE_CHECK, PR_TRUE);
   client_->SetDowngradeCheckVersion(SSL_LIBRARY_VERSION_TLS_1_3);
