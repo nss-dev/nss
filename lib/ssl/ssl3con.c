@@ -6961,12 +6961,12 @@ ssl_HandleDHServerKeyExchange(sslSocket *ss, PRUint8 *b, PRUint32 length)
     if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_2) {
         rv = ssl_ConsumeSignatureScheme(ss, &b, &length, &sigScheme);
         if (rv != SECSuccess) {
-            goto loser; /* malformed or unsupported. */
+            goto alert_loser; /* malformed or unsupported. */
         }
         rv = ssl_CheckSignatureSchemeConsistency(ss, sigScheme,
                                                  ss->sec.peerCert);
         if (rv != SECSuccess) {
-            goto loser;
+            goto alert_loser;
         }
         hashAlg = ssl_SignatureSchemeToHashType(sigScheme);
     } else {
@@ -9572,7 +9572,7 @@ ssl3_HandleCertificateVerify(sslSocket *ss, PRUint8 *b, PRUint32 length)
                                                  ss->sec.peerCert);
         if (rv != SECSuccess) {
             errCode = PORT_GetError();
-            desc = decrypt_error;
+            desc = illegal_parameter;
             goto alert_loser;
         }
 
