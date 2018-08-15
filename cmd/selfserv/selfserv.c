@@ -194,7 +194,6 @@ PrintParameterUsage()
         "-s means disable SSL socket locking for performance\n"
         "-u means enable Session Ticket extension for TLS.\n"
         "-v means verbose output\n"
-        "-z means enable compression.\n"
         "-L seconds means log statistics every 'seconds' seconds (default=30).\n"
         "-M maxProcs tells how many processes to run in a multi-process server\n"
         "-N means do NOT use the server session cache.  Incompatible with -M.\n"
@@ -801,7 +800,6 @@ PRBool NoReuse = PR_FALSE;
 PRBool hasSidCache = PR_FALSE;
 PRBool disableLocking = PR_FALSE;
 PRBool enableSessionTickets = PR_FALSE;
-PRBool enableCompression = PR_FALSE;
 PRBool failedToNegotiateName = PR_FALSE;
 PRBool enableExtendedMasterSecret = PR_FALSE;
 PRBool zeroRTT = PR_FALSE;
@@ -1865,13 +1863,6 @@ server_main(
         }
     }
 
-    if (enableCompression) {
-        rv = SSL_OptionSet(model_sock, SSL_ENABLE_DEFLATE, PR_TRUE);
-        if (rv != SECSuccess) {
-            errExit("error enabling compression ");
-        }
-    }
-
     if (virtServerNameIndex > 1) {
         rv = SSL_SNISocketConfigHook(model_sock, mySSLSNISocketConfig,
                                      (void *)&virtServerNameArray);
@@ -2229,9 +2220,10 @@ main(int argc, char **argv)
     /* please keep this list of options in ASCII collating sequence.
     ** numbers, then capital letters, then lower case, alphabetical.
     ** XXX: 'B', 'E', 'q', and 'x' were used in the past but removed
-    **      in 3.28, please leave some time before resuing those. */
+    **      in 3.28, please leave some time before resuing those.
+    **      'z' was removed in 3.39. */
     optstate = PL_CreateOptState(argc, argv,
-                                 "2:A:C:DGH:I:J:L:M:NP:QRS:T:U:V:W:YZa:bc:d:e:f:g:hi:jk:lmn:op:rst:uvw:yz");
+                                 "2:A:C:DGH:I:J:L:M:NP:QRS:T:U:V:W:YZa:bc:d:e:f:g:hi:jk:lmn:op:rst:uvw:y");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         ++optionsFound;
         switch (optstate->option) {
@@ -2442,10 +2434,6 @@ main(int argc, char **argv)
 
             case 'y':
                 debugCache = PR_TRUE;
-                break;
-
-            case 'z':
-                enableCompression = PR_TRUE;
                 break;
 
             case 'Z':

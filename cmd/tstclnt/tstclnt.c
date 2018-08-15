@@ -267,7 +267,6 @@ PrintParameterUsage()
     fprintf(stderr, "%-20s Timeout for server ping (default: no timeout).\n", "-t seconds");
     fprintf(stderr, "%-20s Renegotiate N times (resuming session if N>1).\n", "-r N");
     fprintf(stderr, "%-20s Enable the session ticket extension.\n", "-u");
-    fprintf(stderr, "%-20s Enable compression.\n", "-z");
     fprintf(stderr, "%-20s Enable false start.\n", "-g");
     fprintf(stderr, "%-20s Enable the cert_status extension (OCSP stapling).\n", "-T");
     fprintf(stderr, "%-20s Enable the signed_certificate_timestamp extension.\n", "-U");
@@ -957,7 +956,6 @@ int multiplier = 0;
 SSLVersionRange enabledVersions;
 int disableLocking = 0;
 int enableSessionTickets = 0;
-int enableCompression = 0;
 int enableFalseStart = 0;
 int enableCertStatus = 0;
 int enableSignedCertTimestamps = 0;
@@ -1334,14 +1332,6 @@ run()
         goto done;
     }
 
-    /* enable compression. */
-    rv = SSL_OptionSet(s, SSL_ENABLE_DEFLATE, enableCompression);
-    if (rv != SECSuccess) {
-        SECU_PrintError(progName, "error enabling compression");
-        error = 1;
-        goto done;
-    }
-
     /* enable false start. */
     rv = SSL_OptionSet(s, SSL_ENABLE_FALSE_START, enableFalseStart);
     if (rv != SECSuccess) {
@@ -1688,10 +1678,12 @@ main(int argc, char **argv)
         }
     }
 
-    /* XXX: 'B' was used in the past but removed in 3.28,
-     *      please leave some time before resuing it. */
+    /* Note: 'B' was used in the past but removed in 3.28
+     *       'z' was removed in 3.39
+     * Please leave some time before reusing these.
+     */
     optstate = PL_CreateOptState(argc, argv,
-                                 "46A:CDFGHI:J:KL:M:OP:QR:STUV:W:X:YZa:bc:d:fgh:m:n:op:qr:st:uvw:z");
+                                 "46A:CDFGHI:J:KL:M:OP:QR:STUV:W:X:YZa:bc:d:fgh:m:n:op:qr:st:uvw:");
     while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
@@ -1908,10 +1900,6 @@ main(int argc, char **argv)
             case 'W':
                 pwdata.source = PW_FROMFILE;
                 pwdata.data = PORT_Strdup(optstate->value);
-                break;
-
-            case 'z':
-                enableCompression = 1;
                 break;
 
             case 'I':
