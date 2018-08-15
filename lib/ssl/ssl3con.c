@@ -6398,6 +6398,41 @@ ssl_CheckServerSessionIdCorrectness(sslSocket *ss, SECItem *sidBytes)
     return sidBytes->len == 0;
 }
 
+static SECStatus
+ssl_CheckServerRandom(sslSocket *ss)
+{
+    /* Check the ServerHello.random per [RFC 8446 Section 4.1.3].
+     *
+     * TLS 1.3 clients receiving a ServerHello indicating TLS 1.2 or below
+     * MUST check that the last 8 bytes are not equal to either of these
+     * values.  TLS 1.2 clients SHOULD also check that the last 8 bytes are
+     * not equal to the second value if the ServerHello indicates TLS 1.1 or
+     * below.  If a match is found, the client MUST abort the handshake with
+     * an "illegal_parameter" alert.
+     */
+    SSL3ProtocolVersion checkVersion =
+        ss->ssl3.downgradeCheckVersion ? ss->ssl3.downgradeCheckVersion
+                                       : ss->vrange.max;
+
+    if (checkVersion >= SSL_LIBRARY_VERSION_TLS_1_2 &&
+        checkVersion > ss->version) {
+        /* Both sections use the same sentinel region. */
+        PRUint8 *downgrade_sentinel =
+            ss->ssl3.hs.server_random +
+            SSL3_RANDOM_LENGTH - sizeof(tls13_downgrade_random);
+        if (!PORT_Memcmp(downgrade_sentinel,
+                         tls13_downgrade_random,
+                         sizeof(tls13_downgrade_random)) ||
+            !PORT_Memcmp(downgrade_sentinel,
+                         tls12_downgrade_random,
+                         sizeof(tls12_downgrade_random))) {
+            return SECFailure;
+        }
+    }
+
+    return SECSuccess;
+}
+
 /* Called from ssl3_HandleHandshakeMessage() when it has deciphered a complete
  * ssl3 ServerHello message.
  * Caller must hold Handshake and RecvBuf locks.
@@ -6550,41 +6585,17 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
         goto alert_loser;
     }
 
-    /* Disable this check for DTLS while we're on draft versions. */
     if (ss->opt.enableHelloDowngradeCheck
 #ifdef DTLS_1_3_DRAFT_VERSION
+        /* Disable this check while we are on draft DTLS 1.3 versions. */
         && !IS_DTLS(ss)
 #endif
             ) {
-        /* Check the ServerHello.random per [RFC 8446 Section 4.1.3].
-         *
-         * TLS 1.3 clients receiving a ServerHello indicating TLS 1.2 or below
-         * MUST check that the last 8 bytes are not equal to either of these
-         * values.  TLS 1.2 clients SHOULD also check that the last 8 bytes are
-         * not equal to the second value if the ServerHello indicates TLS 1.1 or
-         * below.  If a match is found, the client MUST abort the handshake with
-         * an "illegal_parameter" alert.
-         */
-        SSL3ProtocolVersion checkVersion =
-            ss->ssl3.downgradeCheckVersion ? ss->ssl3.downgradeCheckVersion
-                                           : ss->vrange.max;
-
-        if (checkVersion >= SSL_LIBRARY_VERSION_TLS_1_2 &&
-            checkVersion > ss->version) {
-            /* Both sections use the same sentinel region. */
-            PRUint8 *downgrade_sentinel =
-                ss->ssl3.hs.server_random +
-                SSL3_RANDOM_LENGTH - sizeof(tls13_downgrade_random);
-            if (!PORT_Memcmp(downgrade_sentinel,
-                             tls13_downgrade_random,
-                             sizeof(tls13_downgrade_random)) ||
-                !PORT_Memcmp(downgrade_sentinel,
-                             tls12_downgrade_random,
-                             sizeof(tls12_downgrade_random))) {
-                desc = illegal_parameter;
-                errCode = SSL_ERROR_RX_MALFORMED_SERVER_HELLO;
-                goto alert_loser;
-            }
+        rv = ssl_CheckServerRandom(ss);
+        if (rv != SECSuccess) {
+            desc = illegal_parameter;
+            errCode = SSL_ERROR_RX_MALFORMED_SERVER_HELLO;
+            goto alert_loser;
         }
     }
 
@@ -7427,16 +7438,25 @@ ssl3_CheckFalseStart(sslSocket *ss)
         SSL_TRC(3, ("%d: SSL[%d]: no false start callback so no false start",
                     SSL_GETPID(), ss->fd));
     } else {
-        PRBool maybeFalseStart;
+        PRBool maybeFalseStart = PR_TRUE;
         SECStatus rv;
+
+        rv = ssl_CheckServerRandom(ss);
+        if (rv != SECSuccess) {
+            SSL_TRC(3, ("%d: SSL[%d]: no false start due to possible downgrade",
+                        SSL_GETPID(), ss->fd));
+            maybeFalseStart = PR_FALSE;
+        }
 
         /* An attacker can control the selected ciphersuite so we only wish to
          * do False Start in the case that the selected ciphersuite is
          * sufficiently strong that the attack can gain no advantage.
          * Therefore we always require an 80-bit cipher. */
-        ssl_GetSpecReadLock(ss);
-        maybeFalseStart = ss->ssl3.cwSpec->cipherDef->secret_key_size >= 10;
-        ssl_ReleaseSpecReadLock(ss);
+        if (maybeFalseStart) {
+            ssl_GetSpecReadLock(ss);
+            maybeFalseStart = ss->ssl3.cwSpec->cipherDef->secret_key_size >= 10;
+            ssl_ReleaseSpecReadLock(ss);
+        }
 
         if (!maybeFalseStart) {
             SSL_TRC(3, ("%d: SSL[%d]: no false start due to weak cipher",
