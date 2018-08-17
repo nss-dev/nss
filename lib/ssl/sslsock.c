@@ -83,7 +83,8 @@ static sslOptions ssl_defaults = {
     .enable0RttData = PR_FALSE,
     .enableTls13CompatMode = PR_FALSE,
     .enableDtlsShortHeader = PR_FALSE,
-    .enableHelloDowngradeCheck = PR_FALSE
+    .enableHelloDowngradeCheck = PR_FALSE,
+    .enableV2CompatibleHello = PR_FALSE
 };
 
 /*
@@ -826,6 +827,10 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
             ss->opt.enableHelloDowngradeCheck = val;
             break;
 
+        case SSL_ENABLE_V2_COMPATIBLE_HELLO:
+            ss->opt.enableV2CompatibleHello = val;
+            break;
+
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             rv = SECFailure;
@@ -971,6 +976,9 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRIntn *pVal)
         case SSL_ENABLE_HELLO_DOWNGRADE_CHECK:
             val = ss->opt.enableHelloDowngradeCheck;
             break;
+        case SSL_ENABLE_V2_COMPATIBLE_HELLO:
+            val = ss->opt.enableV2CompatibleHello;
+            break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             rv = SECFailure;
@@ -1099,6 +1107,9 @@ SSL_OptionGetDefault(PRInt32 which, PRIntn *pVal)
             break;
         case SSL_ENABLE_HELLO_DOWNGRADE_CHECK:
             val = ssl_defaults.enableHelloDowngradeCheck;
+            break;
+        case SSL_ENABLE_V2_COMPATIBLE_HELLO:
+            val = ssl_defaults.enableV2CompatibleHello;
             break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -1297,6 +1308,10 @@ SSL_OptionSetDefault(PRInt32 which, PRIntn val)
 
         case SSL_ENABLE_HELLO_DOWNGRADE_CHECK:
             ssl_defaults.enableHelloDowngradeCheck = val;
+            break;
+
+        case SSL_ENABLE_V2_COMPATIBLE_HELLO:
+            ssl_defaults.enableV2CompatibleHello = val;
             break;
 
         default:
