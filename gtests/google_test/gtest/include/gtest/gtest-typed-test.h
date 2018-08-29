@@ -26,9 +26,8 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
-// GOOGLETEST_CM0001 DO NOT DELETE
+//
+// Author: wan@google.com (Zhanyong Wan)
 
 #ifndef GTEST_INCLUDE_GTEST_GTEST_TYPED_TEST_H_
 #define GTEST_INCLUDE_GTEST_GTEST_TYPED_TEST_H_
@@ -182,8 +181,7 @@ INSTANTIATE_TYPED_TEST_CASE_P(My, FooTest, MyTypes);
           ::testing::internal::TemplateSel< \
               GTEST_TEST_CLASS_NAME_(CaseName, TestName)>, \
           GTEST_TYPE_PARAMS_(CaseName)>::Register(\
-              "", ::testing::internal::CodeLocation(__FILE__, __LINE__), \
-              #CaseName, #TestName, 0); \
+              "", #CaseName, #TestName, 0); \
   template <typename gtest_TypeParam_> \
   void GTEST_TEST_CLASS_NAME_(CaseName, TestName)<gtest_TypeParam_>::TestBody()
 
@@ -242,10 +240,9 @@ INSTANTIATE_TYPED_TEST_CASE_P(My, FooTest, MyTypes);
   namespace GTEST_CASE_NAMESPACE_(CaseName) { \
   typedef ::testing::internal::Templates<__VA_ARGS__>::type gtest_AllTests_; \
   } \
-  static const char* const GTEST_REGISTERED_TEST_NAMES_(CaseName) \
-      GTEST_ATTRIBUTE_UNUSED_ = \
-          GTEST_TYPED_TEST_CASE_P_STATE_(CaseName).VerifyRegisteredTestNames( \
-              __FILE__, __LINE__, #__VA_ARGS__)
+  static const char* const GTEST_REGISTERED_TEST_NAMES_(CaseName) = \
+      GTEST_TYPED_TEST_CASE_P_STATE_(CaseName).VerifyRegisteredTestNames(\
+          __FILE__, __LINE__, #__VA_ARGS__)
 
 // The 'Types' template argument below must have spaces around it
 // since some compilers may choke on '>>' when passing a template
@@ -255,10 +252,7 @@ INSTANTIATE_TYPED_TEST_CASE_P(My, FooTest, MyTypes);
       ::testing::internal::TypeParameterizedTestCase<CaseName, \
           GTEST_CASE_NAMESPACE_(CaseName)::gtest_AllTests_, \
           ::testing::internal::TypeList< Types >::type>::Register(\
-              #Prefix, \
-              ::testing::internal::CodeLocation(__FILE__, __LINE__), \
-              &GTEST_TYPED_TEST_CASE_P_STATE_(CaseName), \
-              #CaseName, GTEST_REGISTERED_TEST_NAMES_(CaseName))
+              #Prefix, #CaseName, GTEST_REGISTERED_TEST_NAMES_(CaseName))
 
 #endif  // GTEST_HAS_TYPED_TEST_P
 
