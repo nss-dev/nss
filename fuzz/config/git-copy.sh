@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -ex
 
 if [ $# -lt 3 ]; then
   echo "Usage: $0 <repo> <branch> <directory>" 1>&2
@@ -15,6 +15,7 @@ echo "Copy '$COMMIT' from '$REPO' to '$DIR'"
 if [ $(echo -n "$COMMIT" | wc -c) != "40" ]; then
   # On the off chance that $COMMIT is a remote head.
   ACTUAL=$(git ls-remote "$REPO" "$COMMIT" | cut -c 1-40 -)
+  echo "Using commit hash '$ACTUAL'"
 else
   ACTUAL="$COMMIT"
 fi
