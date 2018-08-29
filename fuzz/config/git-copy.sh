@@ -27,6 +27,7 @@ if [ -f "$DIR"/.git-copy ]; then
 fi
 
 rm -rf "$DIR"
+git --version
 git init -q "$DIR"
 git -C "$DIR" pull -q --depth=1 "$REPO" "$ACTUAL"
 git -C "$DIR" rev-parse --verify HEAD > "$DIR"/.git-copy
