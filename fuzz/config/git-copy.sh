@@ -28,7 +28,6 @@ fi
 
 rm -rf "$DIR"
 git init -q "$DIR"
-git -C "$DIR" fetch -q --depth=1 "$REPO" "$ACTUAL"
-git -C "$DIR" checkout "$ACTUAL"
+git -C "$DIR" pull -q --depth=1 "$REPO" "$ACTUAL"
 git -C "$DIR" rev-parse --verify HEAD > "$DIR"/.git-copy
 rm -rf "$DIR"/.git
