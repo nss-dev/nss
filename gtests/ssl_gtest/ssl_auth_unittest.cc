@@ -137,8 +137,10 @@ static void SetDeferredAuthCertificateCallback(std::shared_ptr<TlsAgent> agent,
   auto args = new AuthCompleteArgs(agent, code);
   agent->SetAuthCertificateCallback(
       [args](TlsAgent*, PRBool, PRBool) -> SECStatus {
+        // This can't be 0 or we race the message from the client to the server,
+        // and tests assume that we lose that race.
         std::shared_ptr<Poller::Timer> timer_handle;
-        Poller::Instance()->SetTimer(0U, args, CallAuthComplete, &timer_handle);
+        Poller::Instance()->SetTimer(1U, args, CallAuthComplete, &timer_handle);
         return SECWouldBlock;
       });
 }
@@ -158,8 +160,13 @@ TEST_P(TlsConnectTls13, ServerAuthRejectAsync) {
 TEST_P(TlsConnectGenericPre13, ServerAuthRejectAsync) {
   SetDeferredAuthCertificateCallback(client_, SEC_ERROR_EXPIRED_CERTIFICATE);
   client_->ExpectSendAlert(kTlsAlertCertificateExpired);
+  server_->ExpectReceiveAlert(kTlsAlertCertificateExpired);
   ConnectExpectFailOneSide(TlsAgent::CLIENT);
   client_->CheckErrorCode(SSL_ERROR_HANDSHAKE_FAILED);
+
+  // The server might not receive the alert that the client sends, which would
+  // cause the test to fail when it cleans up.  Reset expectations.
+  server_->ExpectReceiveAlert(kTlsAlertCloseNotify, kTlsAlertWarning);
 }
 
 TEST_P(TlsConnectGeneric, ClientAuth) {
