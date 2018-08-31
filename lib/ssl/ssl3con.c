@@ -8082,14 +8082,6 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
         }
     }
 
-    /* Generate the Server Random now so it is available
-     * when we process the ClientKeyShare in TLS 1.3 */
-    rv = ssl3_GetNewRandom(ss->ssl3.hs.server_random);
-    if (rv != SECSuccess) {
-        errCode = SSL_ERROR_GENERATE_RANDOM_FAILURE;
-        goto loser;
-    }
-
 #ifndef TLS_1_3_DRAFT_VERSION
     /*
      * [draft-ietf-tls-tls13-11 Section 6.3.1.1].
@@ -8878,6 +8870,7 @@ ssl_ConstructServerHello(sslSocket *ss, PRBool helloRetry,
     SECStatus rv;
     SSL3ProtocolVersion version;
     sslSessionID *sid = ss->sec.ci.sid;
+    const PRUint8 *random;
 
     if (IS_DTLS(ss) && ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
         version = dtls_TLSVersionToDTLSVersion(ss->version);
@@ -8889,9 +8882,17 @@ ssl_ConstructServerHello(sslSocket *ss, PRBool helloRetry,
     if (rv != SECSuccess) {
         return SECFailure;
     }
-    /* Random already generated in ssl3_HandleClientHello */
-    rv = sslBuffer_Append(messageBuf, helloRetry ? ssl_hello_retry_random : ss->ssl3.hs.server_random,
-                          SSL3_RANDOM_LENGTH);
+
+    if (helloRetry) {
+        random = ssl_hello_retry_random;
+    } else {
+        rv = ssl3_GetNewRandom(ss->ssl3.hs.server_random);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+        random = ss->ssl3.hs.server_random;
+    }
+    rv = sslBuffer_Append(messageBuf, random, SSL3_RANDOM_LENGTH);
     if (rv != SECSuccess) {
         return SECFailure;
     }
