@@ -649,6 +649,39 @@ TEST_P(TlsConnectTls13, ZeroRttOrdering) {
   EXPECT_EQ(2U, step);
 }
 
+TEST_P(TlsConnectTls13, ZeroRttLateDelivery) {
+  SetupForZeroRtt();
+  client_->Set0RttEnabled(true);
+  server_->Set0RttEnabled(true);
+  ExpectResumption(RESUME_TICKET);
+  client_->Handshake();  // ClientHello
+
+  // Write two packets out (note that DTLS won't deliver a partial packet on a
+  // read, so we need two writes for the DTLS test).
+  const uint8_t data[] = {1, 2, 3, 4};
+  PRInt32 rv = PR_Write(client_->ssl_fd(), data, sizeof(data));
+  EXPECT_EQ(static_cast<PRInt32>(sizeof(data)), rv);
+  rv = PR_Write(client_->ssl_fd(), data, sizeof(data));
+  EXPECT_EQ(static_cast<PRInt32>(sizeof(data)), rv);
+
+  // Consume the ClientHello and generate ServerHello..Finished.
+  server_->Handshake();
+
+  // Read the first 0-RTT record at the server, leave the second.
+  std::vector<uint8_t> small_buffer(sizeof(data));
+  rv = PR_Read(server_->ssl_fd(), small_buffer.data(), small_buffer.size());
+  EXPECT_EQ(static_cast<PRInt32>(small_buffer.size()), rv);
+  EXPECT_EQ(0, memcmp(data, small_buffer.data(), small_buffer.size()));
+
+  Handshake();  // Complete the handshake.
+  ExpectEarlyDataAccepted(true);
+  CheckConnected();
+
+  rv = PR_Read(server_->ssl_fd(), small_buffer.data(), small_buffer.size());
+  EXPECT_GT(0, rv) << "shouldn't have anything to read";
+  EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
+}
+
 #ifndef NSS_DISABLE_TLS_1_3
 INSTANTIATE_TEST_CASE_P(Tls13ZeroRttReplayTest, TlsZeroRttReplayTest,
                         TlsConnectTestBase::kTlsVariantsAll);

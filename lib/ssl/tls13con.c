@@ -5229,6 +5229,7 @@ tls13_HandleEndOfEarlyData(sslSocket *ss, PRUint8 *b, PRUint32 length)
         return SECFailure;
     }
 
+    tls13_DestroyEarlyData(&ss->ssl3.hs.bufferedEarlyData);
     ss->ssl3.hs.zeroRttState = ssl_0rtt_done;
     if (tls13_CanRequestClientAuth(ss)) {
         TLS13_SET_HS_STATE(ss, wait_client_cert);
