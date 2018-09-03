@@ -1,10 +1,10 @@
-# Dockerfile for running fuzzing tests.
+# Dockerfile for running fuzzing tests on linux32.
 #
-# Note that when running this, you need to add `--cap-add SYS_PTRACE` to the
-# docker invocation or ASAN won't work.
-# On taskcluster use `features: ["allowPtrace"]`.
-# See https://github.com/google/sanitizers/issues/764#issuecomment-276700920
-FROM ubuntu:18.04
+# This is a temporary workaround for bugs in clang that make it incompatible
+# with Ubuntu 18.04 (see bug 1488148). This image can be removed once a new
+# release of LLVM includes the necessary fixes.
+
+FROM ubuntu:16.04
 LABEL maintainer="Martin Thomson <martin.thomson@gmail.com>"
 
 RUN dpkg --add-architecture i386
@@ -12,8 +12,6 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
     build-essential \
     ca-certificates \
-    clang \
-    clang-tools \
     curl \
     g++-multilib \
     git \
@@ -23,15 +21,31 @@ RUN apt-get update \
     libxml2-utils \
     lib32z1-dev \
     linux-libc-dev:i386 \
-    llvm-dev \
     locales \
     mercurial \
     ninja-build \
     pkg-config \
+    software-properties-common \
     valgrind \
     zlib1g-dev \
  && rm -rf /var/lib/apt/lists/* \
  && apt-get autoremove -y && apt-get clean -y
+
+# Install clang and tools from the LLVM PPA.
+RUN curl -sf https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - \
+ && apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main" \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends \
+    clang-6.0 \
+    clang-tools-6.0 \
+    llvm-6.0-dev \
+ && rm -rf /var/lib/apt/lists/* \
+ && apt-get autoremove -y && apt-get clean -y
+
+# Alias all the clang commands.
+RUN for i in $(dpkg -L clang-6.0 clang-tools-6.0 | grep '^/usr/bin/' | xargs -i basename {} -6.0); do \
+      update-alternatives --install "/usr/bin/$i" "$i" "/usr/bin/${i}-6.0" 10; \
+    done
 
 ENV SHELL /bin/bash
 ENV USER worker

@@ -1,9 +1,5 @@
-# Dockerfile for running fuzzing tests.
-#
-# Note that when running this, you need to add `--cap-add SYS_PTRACE` to the
-# docker invocation or ASAN won't work.
-# On taskcluster use `features: ["allowPtrace"]`.
-# See https://github.com/google/sanitizers/issues/764#issuecomment-276700920
+# Dockerfile for running interop tests.
+# This includes Rust, golang, and nodejs.
 FROM ubuntu:18.04
 LABEL maintainer="Martin Thomson <martin.thomson@gmail.com>"
 
@@ -13,13 +9,12 @@ RUN apt-get update \
     build-essential \
     ca-certificates \
     clang \
-    clang-tools \
+    cmake \
     curl \
     g++-multilib \
     git \
+    golang \
     gyp \
-    libssl-dev \
-    libssl-dev:i386 \
     libxml2-utils \
     lib32z1-dev \
     linux-libc-dev:i386 \
@@ -27,8 +22,8 @@ RUN apt-get update \
     locales \
     mercurial \
     ninja-build \
+    npm \
     pkg-config \
-    valgrind \
     zlib1g-dev \
  && rm -rf /var/lib/apt/lists/* \
  && apt-get autoremove -y && apt-get clean -y
@@ -52,8 +47,10 @@ WORKDIR $HOME
 ADD bin $HOME/bin
 RUN chmod +x $HOME/bin/*
 
-# Change user.
 USER $USER
+
+# Install Rust stable as $USER.
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 # Set a default command for debugging.
 CMD ["/bin/bash", "--login"]
