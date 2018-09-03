@@ -1,37 +1,18 @@
-# Dockerfile for running fuzzing tests.
-#
-# Note that when running this, you need to add `--cap-add SYS_PTRACE` to the
-# docker invocation or ASAN won't work.
-# On taskcluster use `features: ["allowPtrace"]`.
-# See https://github.com/google/sanitizers/issues/764#issuecomment-276700920
+# Minimal image with clang-format 3.9.
 FROM ubuntu:18.04
 LABEL maintainer="Martin Thomson <martin.thomson@gmail.com>"
 
-RUN dpkg --add-architecture i386
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-    build-essential \
     ca-certificates \
-    clang \
-    clang-tools \
-    curl \
-    g++-multilib \
-    git \
-    gyp \
-    libssl-dev \
-    libssl-dev:i386 \
-    libxml2-utils \
-    lib32z1-dev \
-    linux-libc-dev:i386 \
-    llvm-dev \
+    clang-format-3.9 \
     locales \
     mercurial \
-    ninja-build \
-    pkg-config \
-    valgrind \
-    zlib1g-dev \
  && rm -rf /var/lib/apt/lists/* \
  && apt-get autoremove -y && apt-get clean -y
+
+RUN update-alternatives --install /usr/bin/clang-format \
+    clang-format $(which clang-format-3.9) 10
 
 ENV SHELL /bin/bash
 ENV USER worker
@@ -48,11 +29,9 @@ RUN locale-gen $LANG \
 RUN useradd -d $HOME -s $SHELL -m $USER
 WORKDIR $HOME
 
-# Add build and test scripts.
 ADD bin $HOME/bin
 RUN chmod +x $HOME/bin/*
 
-# Change user.
 USER $USER
 
 # Set a default command for debugging.

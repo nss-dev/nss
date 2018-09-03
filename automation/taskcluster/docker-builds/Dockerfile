@@ -1,9 +1,7 @@
-# Dockerfile for running fuzzing tests.
-#
-# Note that when running this, you need to add `--cap-add SYS_PTRACE` to the
-# docker invocation or ASAN won't work.
-# On taskcluster use `features: ["allowPtrace"]`.
-# See https://github.com/google/sanitizers/issues/764#issuecomment-276700920
+# Dockerfile for building extra builds.  This includes more tools than the
+# default image, so it's a fair bit bigger.  Only use this for builds where
+# the smaller docker image is missing something.  These builds will run on
+# the leaner configuration.
 FROM ubuntu:18.04
 LABEL maintainer="Martin Thomson <martin.thomson@gmail.com>"
 
@@ -12,12 +10,18 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
     build-essential \
     ca-certificates \
+    clang-4.0 \
     clang \
-    clang-tools \
+    cmake \
     curl \
+    g++-4.8-multilib \
+    g++-5-multilib \
+    g++-6-multilib \
     g++-multilib \
     git \
     gyp \
+    libelf-dev \
+    libdw-dev \
     libssl-dev \
     libssl-dev:i386 \
     libxml2-utils \
@@ -30,6 +34,19 @@ RUN apt-get update \
     pkg-config \
     valgrind \
     zlib1g-dev \
+ && rm -rf /var/lib/apt/lists/* \
+ && apt-get autoremove -y && apt-get clean -y
+
+# Latest version of abigail-tools
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends automake libtool libxml2-dev \
+ && git clone git://sourceware.org/git/libabigail.git /tmp/libabigail \
+ && cd /tmp/libabigail \
+ && autoreconf -fi \
+ && ./configure --prefix=/usr --disable-static --disable-apidoc --disable-manual \
+ && make && make install \
+ && rm -rf /tmp/libabigail \
+ && apt-get remove -y automake libtool libxml2-dev \
  && rm -rf /var/lib/apt/lists/* \
  && apt-get autoremove -y && apt-get clean -y
 
@@ -52,7 +69,6 @@ WORKDIR $HOME
 ADD bin $HOME/bin
 RUN chmod +x $HOME/bin/*
 
-# Change user.
 USER $USER
 
 # Set a default command for debugging.
