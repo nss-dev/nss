@@ -463,8 +463,8 @@ async function scheduleLinux(name, overrides, args = "") {
   queue.scheduleTask(merge(extra_base, {
     name: `${name} w/ clang-4`,
     env: {
-      CC: "clang-4",
-      CCC: "clang++-4",
+      CC: "clang-4.0",
+      CCC: "clang++-4.0",
     },
     symbol: "clang-4"
   }));
