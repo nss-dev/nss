@@ -75,7 +75,7 @@ queue.filter(task => {
     }
   }
 
-  if (task.tests == "bogo" || task.tests == "interop") {
+  if (task.tests == "bogo" || task.tests == "interop" || task.tests == "tlsfuzzer") {
     // No windows
     if (task.platform == "windows2012-64" ||
         task.platform == "windows2012-32") {
@@ -943,6 +943,9 @@ function scheduleTests(task_build, task_cert, test_base) {
     tests: "interop",
     cycle: "standard",
     image: LINUX_INTEROP_IMAGE,
+  }));
+  queue.scheduleTask(merge(no_cert_base, {
+    name: "tlsfuzzer tests", symbol: "tlsfuzzer", tests: "tlsfuzzer", cycle: "standard"
   }));
   queue.scheduleTask(merge(no_cert_base, {
     name: "Chains tests", symbol: "Chains", tests: "chains"
