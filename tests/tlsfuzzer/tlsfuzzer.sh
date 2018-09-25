@@ -44,7 +44,7 @@ tlsfuzzer_init()
   if [ ! -d "$TLSFUZZER" ]; then
     # Can't use git-copy.sh here, as tlsfuzzer doesn't have any tags
     git clone -q https://github.com/tomato42/tlsfuzzer/ "$TLSFUZZER"
-    git -C "$TLSFUZZER" checkout fc8fd0128643d6b2bcba344e276ba5f902445913
+    git -C "$TLSFUZZER" checkout a40ce4085052a4da9a05f9149b835a76c194a0c6
 
     # We could use tlslite-ng from pip, but the pip command installed
     # on TC is too old to support --pre
