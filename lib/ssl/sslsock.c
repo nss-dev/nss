@@ -130,7 +130,17 @@ char lockStatus[] = "Locks are ENABLED.  ";
 static const PRUint16 srtpCiphers[] = {
     SRTP_AES128_CM_HMAC_SHA1_80,
     SRTP_AES128_CM_HMAC_SHA1_32,
+    SRTP_AEAD_AES_128_GCM,
+    SRTP_AEAD_AES_256_GCM,
+    SRTP_AEAD_AES_128_GCM_DOUBLE,
+    SRTP_AEAD_AES_256_GCM_DOUBLE,
     0
+};
+
+static const PRUint8 ektCiphers[] = {
+    EKT_AESKW_128,
+    EKT_AESKW_256,
+    0,
 };
 
 /* This list is in preference order.  Note that while some smaller groups appear
@@ -289,6 +299,9 @@ ssl_DupSocket(sslSocket *os)
     PORT_Memcpy(ss->ssl3.dtlsSRTPCiphers, os->ssl3.dtlsSRTPCiphers,
                 sizeof(PRUint16) * os->ssl3.dtlsSRTPCipherCount);
     ss->ssl3.dtlsSRTPCipherCount = os->ssl3.dtlsSRTPCipherCount;
+    PORT_Memcpy(ss->ssl3.ektCiphers, os->ssl3.ektCiphers,
+                sizeof(PRUint16) * os->ssl3.ektCipherCount);
+    ss->ssl3.ektCipherCount = os->ssl3.ektCipherCount;
     PORT_Memcpy(ss->ssl3.signatureSchemes, os->ssl3.signatureSchemes,
                 sizeof(ss->ssl3.signatureSchemes[0]) *
                     os->ssl3.signatureSchemeCount);
@@ -2164,6 +2177,131 @@ SSL_GetSRTPCipher(PRFileDesc *fd, PRUint16 *cipher)
     return SECSuccess;
 }
 
+SECStatus
+SSL_SetEKTCiphers(PRFileDesc *fd,
+                  const PRUint8 *ciphers,
+                  unsigned int numCiphers)
+{
+    sslSocket *ss;
+    unsigned int i;
+
+    ss = ssl_FindSocket(fd);
+    if (!ss || !IS_DTLS(ss)) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_SetEKTCiphers",
+                 SSL_GETPID(), fd));
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (numCiphers > MAX_EKT_CIPHERS) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    ss->ssl3.ektCipherCount = 0;
+    for (i = 0; i < numCiphers; i++) {
+        const PRUint8 *ektCipher = ektCiphers;
+
+        while (*ektCipher) {
+            if (ciphers[i] == *ektCipher)
+                break;
+            ektCipher++;
+        }
+        if (*ektCipher) {
+            ss->ssl3.ektCiphers[ss->ssl3.ektCipherCount++] =
+                ciphers[i];
+        } else {
+            SSL_DBG(("%d: SSL[%d]: invalid or unimplemented EKT cipher "
+                     "suite specified: 0x%04hx",
+                     SSL_GETPID(), fd,
+                     ciphers[i]));
+        }
+    }
+
+    if (ss->ssl3.ektCipherCount == 0) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    return SECSuccess;
+}
+
+SECStatus
+SSL_GetEKTCipher(PRFileDesc *fd, PRUint8 *cipher)
+{
+    sslSocket *ss;
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_GetEKTCipher",
+                 SSL_GETPID(), fd));
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (!ss->xtnData.ektCipher) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    *cipher = ss->xtnData.ektCipher;
+    return SECSuccess;
+}
+
+SECStatus
+ssl_CopyEKTKey(SSLEKTKey *dst, const SSLEKTKey *src) {
+    if (src->ektTTL >= 1 << 24) {
+        return SECFailure;
+    }
+
+    dst->ektKeyLength = src->ektKeyLength;
+    dst->srtpMasterSaltLength = src->srtpMasterSaltLength;
+    PORT_Memcpy(dst->ektKeyValue, src->ektKeyValue, src->ektKeyLength);
+    PORT_Memcpy(dst->srtpMasterSalt, src->srtpMasterSalt, src->srtpMasterSaltLength);
+    dst->ektSPI = src->ektSPI;
+    dst->ektTTL = src->ektTTL;
+    return SECSuccess;
+}
+
+SECStatus
+SSL_SetEKTKey(PRFileDesc *fd,
+              const SSLEKTKey *key)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+    if (!ss || !IS_DTLS(ss)) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_SetEKTKey",
+                 SSL_GETPID(), fd));
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    SECStatus rv = ssl_CopyEKTKey(&ss->ssl3.ektKey, key);
+    if (rv != SECSuccess) {
+      return rv;
+    }
+
+    ss->ssl3.ektKeyReceived = PR_TRUE;
+    return SECSuccess;
+}
+
+SECStatus
+SSL_GetEKTKey(PRFileDesc *fd, SSLEKTKey *key)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+    if (!ss) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_GetEKTKey",
+                 SSL_GETPID(), fd));
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (!ss->ssl3.ektKeyReceived) {
+        return SECFailure;
+    }
+
+    return ssl_CopyEKTKey(key, &ss->ssl3.ektKey);
+}
+
 PRFileDesc *
 SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
 {
@@ -2193,6 +2331,9 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
     PORT_Memcpy(ss->ssl3.dtlsSRTPCiphers, sm->ssl3.dtlsSRTPCiphers,
                 sizeof(PRUint16) * sm->ssl3.dtlsSRTPCipherCount);
     ss->ssl3.dtlsSRTPCipherCount = sm->ssl3.dtlsSRTPCipherCount;
+    PORT_Memcpy(ss->ssl3.ektCiphers, sm->ssl3.ektCiphers,
+                sizeof(PRUint16) * sm->ssl3.ektCipherCount);
+    ss->ssl3.ektCipherCount = sm->ssl3.ektCipherCount;
     PORT_Memcpy(ss->ssl3.signatureSchemes, sm->ssl3.signatureSchemes,
                 sizeof(ss->ssl3.signatureSchemes[0]) *
                     sm->ssl3.signatureSchemeCount);

@@ -51,6 +51,7 @@ static const ssl3ExtensionHandler clientHelloHandlers[] = {
     { ssl_tls13_psk_key_exchange_modes_xtn, &tls13_ServerHandlePskModesXtn },
     { ssl_tls13_cookie_xtn, &tls13_ServerHandleCookieXtn },
     { ssl_record_size_limit_xtn, &ssl_HandleRecordSizeLimitXtn },
+    { ssl_supported_ekt_ciphers_xtn, &ssl_ServerHandleSupportedEKTCiphersXtn },
     { 0, NULL }
 };
 
@@ -70,6 +71,7 @@ static const ssl3ExtensionHandler serverHelloHandlersTLS[] = {
     { ssl_tls13_pre_shared_key_xtn, &tls13_ClientHandlePreSharedKeyXtn },
     { ssl_tls13_early_data_xtn, &tls13_ClientHandleEarlyDataXtn },
     { ssl_record_size_limit_xtn, &ssl_HandleRecordSizeLimitXtn },
+    { ssl_supported_ekt_ciphers_xtn, &ssl_ClientHandleSupportedEKTCiphersXtn },
     { 0, NULL }
 };
 
@@ -139,6 +141,7 @@ static const sslExtensionBuilder clientHelloSendersTLS[] =
       { ssl_record_size_limit_xtn, &ssl_SendRecordSizeLimitXtn },
       /* The pre_shared_key extension MUST be last. */
       { ssl_tls13_pre_shared_key_xtn, &tls13_ClientSendPreSharedKeyXtn },
+      { ssl_supported_ekt_ciphers_xtn, &ssl_ClientSendSupportedEKTCiphersXtn },
       { 0, NULL }
     };
 
@@ -183,7 +186,8 @@ static const struct {
     { ssl_tls13_psk_key_exchange_modes_xtn, ssl_ext_native_only },
     { ssl_tls13_ticket_early_data_info_xtn, ssl_ext_native_only },
     { ssl_tls13_certificate_authorities_xtn, ssl_ext_native },
-    { ssl_renegotiation_info_xtn, ssl_ext_native }
+    { ssl_renegotiation_info_xtn, ssl_ext_native },
+    { ssl_supported_ekt_ciphers_xtn, ssl_ext_native }
 };
 
 static SSLExtensionSupport

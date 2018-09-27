@@ -117,6 +117,8 @@ class TlsConnectTestBase : public ::testing::Test {
   void CheckAlpn(const std::string& val);
   void EnableSrtp();
   void CheckSrtp() const;
+  void EnableEkt();
+  void CheckEkt() const;
   void SendReceive(size_t total = 50);
   void SetupForZeroRtt();
   void SetupForResume();

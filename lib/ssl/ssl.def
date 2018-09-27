@@ -240,3 +240,10 @@ SSL_GetExperimentalAPI;
 ;+    local:
 ;+*;
 ;+};
+;+NSS_3.34 {    # NSS 3.34 release
+;+    global:
+SSL_GetSRTPCipher;
+SSL_SetSRTPCiphers;
+;+    local:
+;+*;
+;+};

@@ -1228,6 +1228,56 @@ SSL_IMPORT SECStatus SSL_GetSRTPCipher(PRFileDesc *fd,
                                        PRUint16 *cipher);
 
 /*
+** Configure EKT (draft-ietf-perc-srtp-ekt-diet) cipher preferences.
+** Input is a list of ciphers in descending preference order and a length
+** of the list. As a side effect, this causes the supported_ekt_ciphers
+** extension to be negotiated.
+**
+** Invalid or unimplemented cipher suites in |ciphers| are ignored. If at
+** least one cipher suite in |ciphers| is implemented, returns SECSuccess.
+** Otherwise returns SECFailure.
+*/
+SSL_IMPORT SECStatus SSL_SetEKTCiphers(PRFileDesc *fd,
+                                       const PRUint8 *ciphers,
+                                       unsigned int numCiphers);
+
+/*
+** Get the selected EKT cipher suite (if any).
+** To be called after the handshake completes.
+** Returns SECFailure if not negotiated.
+*/
+SSL_IMPORT SECStatus SSL_GetEKTCipher(PRFileDesc *fd,
+                                      PRUint8 *cipher);
+
+#define EKT_MAX_KEY_SIZE  256
+#define EKT_MAX_SALT_SIZE 256
+typedef struct SSLEKTKey {
+    PRUint8 ektKeyValue[EKT_MAX_KEY_SIZE];
+    PRUint8 ektKeyLength;
+    PRUint8 srtpMasterSalt[EKT_MAX_SALT_SIZE];
+    PRUint8 srtpMasterSaltLength;
+    PRUint16 ektSPI;
+    PRUint32 ektTTL;
+} SSLEKTKey;
+
+/*
+** Configure EKT (draft-ietf-perc-srtp-ekt-diet) key data.
+** The SSLEKTKey struct provided as input is copied into the session.
+*/
+SSL_IMPORT SECStatus SSL_SetEKTKey(PRFileDesc *fd,
+                                   const SSLEKTKey *key);
+
+/*
+** Get the EKTKey information provided by the server.
+** To be called after the handshake completes.
+** The input key should point to a valid SSLEKTKey struct, into which
+** the values sent by the server will be copied.
+** Returns SECFailure if not received.
+*/
+SSL_IMPORT SECStatus SSL_GetEKTKey(PRFileDesc *fd,
+                                   SSLEKTKey *key);
+
+/*
  * Look to see if any of the signers in the cert chain for "cert" are found
  * in the list of caNames.
  * Returns SECSuccess if so, SECFailure if not.

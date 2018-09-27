@@ -85,6 +85,7 @@ struct TLSExtensionDataStr {
     SSLNextProtoState nextProtoState;
 
     PRUint16 dtlsSRTPCipherSuite; /* 0 if not selected */
+    PRUint8 ektCipher; /* 0 if not selected */
 
     unsigned int lastXtnOffset; /* Where to insert padding. 0 = end. */
     PRCList remoteKeyShares;    /* The other side's public keys (TLS 1.3) */

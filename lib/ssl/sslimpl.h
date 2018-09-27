@@ -227,7 +227,9 @@ typedef struct {
 
 #define ssl_V3_SUITES_IMPLEMENTED 71
 
-#define MAX_DTLS_SRTP_CIPHER_SUITES 4
+#define MAX_DTLS_SRTP_CIPHER_SUITES 7
+
+#define MAX_EKT_CIPHERS 2
 
 /* MAX_SIGNATURE_SCHEMES allows for all the values we support. */
 #define MAX_SIGNATURE_SCHEMES 18
@@ -534,6 +536,7 @@ typedef enum {
     wait_hello_done,
     wait_new_session_ticket,
     wait_encrypted_extensions,
+    wait_ekt_key,
     wait_invalid /* Invalid value. There is no handshake message "invalid". */
 } SSL3WaitState;
 
@@ -770,6 +773,12 @@ struct ssl3StateStr {
     PRBool fatalAlertSent;
     PRBool dheWeakGroupEnabled; /* used by server */
     const sslNamedGroupDef *dhePreferredGroup;
+
+    /* EKT cipher preferences (if any) */
+    PRUint8 ektCiphers[MAX_EKT_CIPHERS];
+    PRUint16 ektCipherCount;
+    SSLEKTKey ektKey;
+    PRBool ektKeyReceived;
 
     /* TLS 1.2 introduces separate signature algorithm negotiation.
      * TLS 1.3 combined signature and hash into a single enum.
