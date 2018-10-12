@@ -229,6 +229,7 @@ bool TlsAgent::EnsureTlsSetup(PRFileDesc* modelSocket) {
 
 bool TlsAgent::MaybeSetResumptionToken() {
   if (!resumption_token_.empty()) {
+    LOG("setting external resumption token");
     SECStatus rv = SSL_SetResumptionToken(ssl_fd(), resumption_token_.data(),
                                           resumption_token_.size());
 
