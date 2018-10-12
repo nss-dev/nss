@@ -1126,6 +1126,34 @@ void CheckGetInfoResult(uint32_t alpnSize, uint32_t earlyDataSize,
   ASSERT_EQ(earlyDataSize, token->maxEarlyDataSize);
 }
 
+// The client should generate a new, randomized session_id
+// when resuming using an external token.
+TEST_P(TlsConnectGenericResumptionToken, CheckSessionId) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  auto original_sid = MakeTlsFilter<CaptureSessionId>(client_);
+  Connect();
+  SendReceive();
+
+  Reset();
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  ExpectResumption(RESUME_TICKET);
+
+  StartConnect();
+  ASSERT_TRUE(client_->MaybeSetResumptionToken());
+  auto resumed_sid = MakeTlsFilter<CaptureSessionId>(client_);
+
+  Handshake();
+  CheckConnected();
+  SendReceive();
+
+  if (version_ < SSL_LIBRARY_VERSION_TLS_1_3) {
+    EXPECT_NE(resumed_sid->sid(), original_sid->sid());
+    EXPECT_EQ(32U, resumed_sid->sid().len());
+  } else {
+    EXPECT_EQ(0U, resumed_sid->sid().len());
+  }
+}
+
 TEST_P(TlsConnectGenericResumptionToken, ConnectResumeGetInfo) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
   Connect();
