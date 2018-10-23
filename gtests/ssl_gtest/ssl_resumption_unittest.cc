@@ -1124,6 +1124,8 @@ void CheckGetInfoResult(uint32_t alpnSize, uint32_t earlyDataSize,
   EXPECT_EQ(0, memcmp("a", token->alpnSelection, token->alpnSelectionLen));
 
   ASSERT_EQ(earlyDataSize, token->maxEarlyDataSize);
+
+  ASSERT_LT(ssl_TimeUsec(), token->expirationTime);
 }
 
 // The client should generate a new, randomized session_id

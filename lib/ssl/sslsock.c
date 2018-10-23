@@ -4222,6 +4222,7 @@ SSLExp_GetResumptionTokenInfo(const PRUint8 *tokenData, unsigned int tokenLen,
     } else {
         token.maxEarlyDataSize = 0;
     }
+    token.expirationTime = sid.expirationTime;
 
     token.length = PR_MIN(sizeof(SSLResumptionTokenInfo), len);
     PORT_Memcpy(tokenOut, &token, token.length);
