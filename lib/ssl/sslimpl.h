@@ -742,11 +742,6 @@ struct ssl3StateStr {
      * update is initiated locally. */
     PRBool peerRequestedKeyUpdate;
 
-    /* Internal callback for when we do a cipher suite change. Used for
-     * debugging in TLS 1.3. This can only be set by non-public functions. */
-    sslCipherSpecChangedFunc changedCipherSpecFunc;
-    void *changedCipherSpecArg;
-
     CERTCertificate *clientCertificate;   /* used by client */
     SECKEYPrivateKey *clientPrivateKey;   /* used by client */
     CERTCertificateList *clientCertChain; /* used by client */
@@ -1752,6 +1747,8 @@ SECStatus SSLExp_RecordLayerWriteCallback(PRFileDesc *fd,
 SECStatus SSLExp_RecordLayerData(PRFileDesc *fd, PRUint16 epoch,
                                  SSLContentType contentType,
                                  const PRUint8 *data, unsigned int len);
+SECStatus SSLExp_GetCurrentEpoch(PRFileDesc *fd, PRUint16 *readEpoch,
+                                 PRUint16 *writeEpoch);
 
 #define SSLResumptionTokenVersion 2
 

@@ -680,3 +680,23 @@ early_loser:
     ssl_Release1stHandshakeLock(ss);
     return SECFailure;
 }
+
+SECStatus
+SSLExp_GetCurrentEpoch(PRFileDesc *fd, PRUint16 *readEpoch,
+                       PRUint16 *writeEpoch)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+    if (!ss) {
+        return SECFailure;
+    }
+
+    ssl_GetSpecReadLock(ss);
+    if (readEpoch) {
+        *readEpoch = ss->ssl3.crSpec->epoch;
+    }
+    if (writeEpoch) {
+        *writeEpoch = ss->ssl3.cwSpec->epoch;
+    }
+    ssl_ReleaseSpecReadLock(ss);
+    return SECSuccess;
+}

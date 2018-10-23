@@ -4029,6 +4029,7 @@ struct {
     EXP(DestroyResumptionTokenInfo),
     EXP(EnableESNI),
     EXP(EncodeESNIKeys),
+    EXP(GetCurrentEpoch),
     EXP(GetExtensionSupport),
     EXP(GetResumptionTokenInfo),
     EXP(HelloRetryRequestCallback),

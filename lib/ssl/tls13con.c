@@ -1112,7 +1112,7 @@ tls13_ComputeHandshakeSecrets(sslSocket *ss)
 
     if (ss->secretCallback) {
         SSLSecretDirection dir =
-                ss->sec.isServer ? ssl_secret_read : ssl_secret_write;
+            ss->sec.isServer ? ssl_secret_read : ssl_secret_write;
         ss->secretCallback(ss->fd, (PRUint16)TrafficKeyHandshake, dir,
                            ss->ssl3.hs.clientHsTrafficSecret,
                            ss->secretCallbackArg);
@@ -1174,7 +1174,7 @@ tls13_ComputeApplicationSecrets(sslSocket *ss)
 
     if (ss->secretCallback) {
         SSLSecretDirection dir =
-                ss->sec.isServer ? ssl_secret_read : ssl_secret_write;
+            ss->sec.isServer ? ssl_secret_read : ssl_secret_write;
         ss->secretCallback(ss->fd, (PRUint16)TrafficKeyApplicationData,
                            dir, ss->ssl3.hs.clientTrafficSecret,
                            ss->secretCallbackArg);
@@ -1330,6 +1330,8 @@ tls13_NegotiateZeroRtt(sslSocket *ss, const sslSessionID *sid)
     PORT_Assert(ss->statelessResume);
     ss->ssl3.hs.zeroRttState = ssl_0rtt_accepted;
     ss->ssl3.hs.zeroRttIgnore = ssl_0rtt_ignore_none;
+    ss->ssl3.hs.zeroRttSuite = ss->ssl3.hs.cipher_suite;
+    ss->ssl3.hs.preliminaryInfo |= ssl_preinfo_0rtt_cipher_suite;
 }
 
 /* Check if the offered group is acceptable. */
@@ -3428,11 +3430,6 @@ tls13_SetCipherSpec(sslSocket *ss, PRUint16 epoch,
     SSL_TRC(3, ("%d: TLS13[%d]: %s installed key for epoch=%d (%s) dir=%s",
                 SSL_GETPID(), ss->fd, SSL_ROLE(ss), spec->epoch,
                 spec->phase, SPEC_DIR(spec)));
-
-    if (ss->ssl3.changedCipherSpecFunc) {
-        ss->ssl3.changedCipherSpecFunc(ss->ssl3.changedCipherSpecArg,
-                                       direction == ssl_secret_write, spec);
-    }
     return SECSuccess;
 
 loser:
@@ -5231,6 +5228,9 @@ tls13_MaybeDo0RTTHandshake(sslSocket *ss)
 
     ss->ssl3.hs.zeroRttState = ssl_0rtt_sent;
     ss->ssl3.hs.zeroRttSuite = ss->ssl3.hs.cipher_suite;
+    /* Note: Reset the preliminary info here rather than just add 0-RTT.  We are
+     * only guessing what might happen at this point.*/
+    ss->ssl3.hs.preliminaryInfo = ssl_preinfo_0rtt_cipher_suite;
 
     SSL_TRC(3, ("%d: TLS13[%d]: in 0-RTT mode", SSL_GETPID(), ss->fd));
 
@@ -5258,9 +5258,6 @@ tls13_MaybeDo0RTTHandshake(sslSocket *ss)
             return SECFailure;
         }
     }
-
-    /* Cipher suite already set in tls13_SetupClientHello. */
-    ss->ssl3.hs.preliminaryInfo = 0;
 
     rv = tls13_DeriveEarlySecrets(ss);
     if (rv != SECSuccess) {
