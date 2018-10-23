@@ -139,19 +139,18 @@ int32_t DummyPrSocket::Write(PRFileDesc *f, const void *buf, int32_t length) {
   DataBuffer filtered;
   PacketFilter::Action action = PacketFilter::KEEP;
   if (filter_) {
+    LOGV("Original packet: " << packet);
     action = filter_->Process(packet, &filtered);
   }
   switch (action) {
     case PacketFilter::CHANGE:
-      LOG("Original packet: " << packet);
       LOG("Filtered packet: " << filtered);
       dst->PacketReceived(filtered);
       break;
     case PacketFilter::DROP:
-      LOG("Droppped packet: " << packet);
+      LOG("Drop packet");
       break;
     case PacketFilter::KEEP:
-      LOGV("Packet: " << packet);
       dst->PacketReceived(packet);
       break;
   }

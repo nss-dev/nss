@@ -561,7 +561,7 @@ typedef void(PR_CALLBACK *SSLSecretCallback)(
  *
  * Prior versions of TLS use epoch 1 and higher for application data.
  *
- * This API is not supported for DTLS sockets.
+ * This API is not supported for DTLS.
  */
 typedef SECStatus(PR_CALLBACK *SSLRecordWriteCallback)(
     PRFileDesc *fd, PRUint16 epoch, SSLContentType contentType,
@@ -592,6 +592,18 @@ typedef SECStatus(PR_CALLBACK *SSLRecordWriteCallback)(
                           SSLContentType _contentType,              \
                           const PRUint8 *_data, unsigned int _len), \
                          (fd, epoch, ct, data, len))
+
+/*
+ * SSL_GetCurrentEpoch() returns the read and write epochs that the socket is
+ * currently using.  NULL values for readEpoch or writeEpoch are ignored.
+ *
+ * See SSL_RecordLayerWriteCallback() for details on epochs.
+ */
+#define SSL_GetCurrentEpoch(fd, readEpoch, writeEpoch)             \
+    SSL_EXPERIMENTAL_API("SSL_GetCurrentEpoch",                    \
+                         (PRFileDesc * _fd, PRUint16 * _readEpoch, \
+                          PRUint16 * _writeEpoch),                 \
+                         (fd, readEpoch, writeEpoch))
 
 /* Deprecated experimental APIs */
 #define SSL_UseAltServerHelloType(fd, enable) SSL_DEPRECATED_EXPERIMENTAL_API

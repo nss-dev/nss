@@ -50,8 +50,8 @@ class HandshakeSecretTracker {
   void SecretUpdated(PRUint16 epoch, SSLSecretDirection dir,
                      PK11SymKey* secret) {
     if (g_ssl_gtest_verbose) {
-      std::cerr << agent_->role_str() << ": secret callback for "
-                << dir << " epoch " << epoch << std::endl;
+      std::cerr << agent_->role_str() << ": secret callback for " << dir
+                << " epoch " << epoch << std::endl;
     }
 
     EXPECT_TRUE(secret);
@@ -493,30 +493,25 @@ TEST_P(TlsConnectStream, ForwardDataFromWrongEpoch) {
 TEST_F(TlsConnectStreamTls13, ForwardInvalidData) {
   const uint8_t data[1] = {0};
 
-  // NULL fd.
-  EXPECT_EQ(SECFailure,
-            SSL_RecordLayerData(nullptr, 0,
-                                ssl_ct_application_data, nullptr, 1));
-  EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
-
+  EnsureTlsSetup();
   // Zero-length data.
-  EXPECT_EQ(SECFailure,
-            SSL_RecordLayerData(client_->ssl_fd(), 0,
-                                ssl_ct_application_data, data, 0));
+  EXPECT_EQ(SECFailure, SSL_RecordLayerData(client_->ssl_fd(), 0,
+                                            ssl_ct_application_data, data, 0));
   EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
 
   // NULL data.
   EXPECT_EQ(SECFailure,
-            SSL_RecordLayerData(client_->ssl_fd(), 0,
-                                ssl_ct_application_data, nullptr, 1));
+            SSL_RecordLayerData(client_->ssl_fd(), 0, ssl_ct_application_data,
+                                nullptr, 1));
   EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
 }
 
 TEST_F(TlsConnectDatagram13, ForwardDataDtls) {
+  EnsureTlsSetup();
   const uint8_t data[1] = {0};
   EXPECT_EQ(SECFailure,
-            SSL_RecordLayerData(client_->ssl_fd(), 0,
-                                ssl_ct_application_data, data, sizeof(data)));
+            SSL_RecordLayerData(client_->ssl_fd(), 0, ssl_ct_application_data,
+                                data, sizeof(data)));
   EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
 }
 

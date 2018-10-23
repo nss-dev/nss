@@ -273,9 +273,7 @@ class TlsReplaceSignatureSchemeFilter : public TlsHandshakeFilter {
   TlsReplaceSignatureSchemeFilter(const std::shared_ptr<TlsAgent>& a,
                                   SSLSignatureScheme scheme)
       : TlsHandshakeFilter(a, {kTlsHandshakeCertificateVerify}),
-        scheme_(scheme) {
-    EnableDecryption();
-  }
+        scheme_(scheme) {}
 
  protected:
   virtual PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
@@ -552,7 +550,9 @@ TEST_P(TlsConnectTls12, SignatureAlgorithmDrop) {
 
 TEST_P(TlsConnectTls13, UnsupportedSignatureSchemeAlert) {
   EnsureTlsSetup();
-  MakeTlsFilter<TlsReplaceSignatureSchemeFilter>(server_, ssl_sig_none);
+  auto filter =
+      MakeTlsFilter<TlsReplaceSignatureSchemeFilter>(server_, ssl_sig_none);
+  filter->EnableDecryption();
 
   ConnectExpectAlert(client_, kTlsAlertIllegalParameter);
   server_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
@@ -563,8 +563,9 @@ TEST_P(TlsConnectTls13, InconsistentSignatureSchemeAlert) {
   EnsureTlsSetup();
 
   // This won't work because we use an RSA cert by default.
-  MakeTlsFilter<TlsReplaceSignatureSchemeFilter>(
+  auto filter = MakeTlsFilter<TlsReplaceSignatureSchemeFilter>(
       server_, ssl_sig_ecdsa_secp256r1_sha256);
+  filter->EnableDecryption();
 
   ConnectExpectAlert(client_, kTlsAlertIllegalParameter);
   server_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
