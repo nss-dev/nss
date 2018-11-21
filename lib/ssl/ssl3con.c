@@ -4774,6 +4774,10 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
         sid = ssl_ReferenceSID(ss->sec.ci.sid);
         SSL_TRC(3, ("%d: SSL3[%d]: using external resumption token in ClientHello",
                     SSL_GETPID(), ss->fd));
+    } else if (ss->sec.ci.sid && ss->statelessResume && type == client_hello_retry) {
+        /* If we are sending a second ClientHello, reuse the same SID
+         * as the original one. */
+        sid = ssl_ReferenceSID(ss->sec.ci.sid);
     } else if (!ss->opt.noCache) {
         /* We ignore ss->sec.ci.sid here, and use ssl_Lookup because Lookup
          * handles expired entries and other details.
