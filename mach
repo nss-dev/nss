@@ -17,7 +17,7 @@ import platform
 import tempfile
 
 from hashlib import sha256
-from gtests.common.wycheproof.genaesgcm import generate_aes_gcm
+from gtests.common.wycheproof.genTestVectors import generate_test_vectors
 
 DEVNULL = open(os.devnull, 'wb')
 cwd = os.path.dirname(os.path.abspath(__file__))
@@ -214,11 +214,11 @@ class commandsAction(argparse.Action):
             print(c)
 
 class wycheproofAction(argparse.Action):
-    tests = ['aes_gcm_test.json']
+    tests = ['aes_gcm_test.json', 'chacha20_poly1305_test.json']
 
     def __call__(self, parser, args, values, option_string=None):
         self.update_tests()
-        generate_aes_gcm()
+        generate_test_vectors()
         clangFormat = cfAction(None, None, None)
         clangFormat(None, args, None)
 
