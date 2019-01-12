@@ -96,6 +96,9 @@ NSS_CMSMessage_SetEncodingParams(NSSCMSMessage *cmsg,
 void
 NSS_CMSMessage_Destroy(NSSCMSMessage *cmsg)
 {
+    if (cmsg == NULL)
+        return;
+
     PORT_Assert(cmsg->refCount > 0);
     if (cmsg->refCount <= 0) { /* oops */
         return;
