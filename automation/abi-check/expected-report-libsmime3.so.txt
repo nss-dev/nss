@@ -1,7 +1,7 @@
 
 1 function with some indirect sub-type change:
 
-  [C]'function PK11SymKey* NSS_CMSContentInfo_GetBulkKey(NSSCMSContentInfo*)' at cmscinfo.c:363:1 has some indirect sub-type changes:
+  [C]'function PK11SymKey* NSS_CMSContentInfo_GetBulkKey(NSSCMSContentInfo*)' at cmscinfo.c:426:1 has some indirect sub-type changes:
     parameter 1 of type 'NSSCMSContentInfo*' has sub-type changes:
       in pointed to type 'typedef NSSCMSContentInfo' at cmst.h:54:1:
         underlying type 'struct NSSCMSContentInfoStr' at cmst.h:126:1 changed:
