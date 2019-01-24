@@ -33,7 +33,6 @@
         'ssl_gather_unittest.cc',
         'ssl_gtest.cc',
         'ssl_hrr_unittest.cc',
-        'ssl_keylog_unittest.cc',
         'ssl_keyupdate_unittest.cc',
         'ssl_loopback_unittest.cc',
         'ssl_misc_unittest.cc',
@@ -92,6 +91,14 @@
             '<(DEPTH)/lib/dbm/src/src.gyp:dbm',
           ],
         }],
+        [ 'enable_sslkeylogfile==1', {
+          'sources': [
+            'ssl_keylog_unittest.cc',
+          ],
+          'defines': [
+            'NSS_ALLOW_SSLKEYLOGFILE',
+          ],
+        }],
       ],
     }
   ],
@@ -101,7 +108,6 @@
     ],
     'defines': [
       'NSS_USE_STATIC_LIBS',
-      'NSS_ALLOW_SSLKEYLOGFILE=1',
     ],
   },
   'variables': {
