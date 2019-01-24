@@ -21,6 +21,7 @@
         'ssl_ciphersuite_unittest.cc',
         'ssl_custext_unittest.cc',
         'ssl_damage_unittest.cc',
+        'ssl_debug_env_unittest.cc',
         'ssl_dhe_unittest.cc',
         'ssl_drop_unittest.cc',
         'ssl_ecdh_unittest.cc',
@@ -99,7 +100,8 @@
       '../../lib/ssl'
     ],
     'defines': [
-      'NSS_USE_STATIC_LIBS'
+      'NSS_USE_STATIC_LIBS',
+      'NSS_ALLOW_SSLKEYLOGFILE=1',
     ],
   },
   'variables': {
