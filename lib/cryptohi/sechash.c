@@ -208,6 +208,7 @@ HASH_GetHashTypeByOidTag(SECOidTag hashOid)
     return ht;
 }
 
+SECOidTag
 HASH_GetHashOidTagByHashType(HASH_HashType type)
 {
     SECOidTag oid = SEC_OID_UNKNOWN;
