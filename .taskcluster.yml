@@ -6,14 +6,21 @@
 #     now,
 #     ownTaskId: // taskId of the task that will be created
 #   }
-
+---
 version: 1
 tasks:
   - $let:
-      # sometimes the push user is just `ffxbld` or the like, but we want an email-like field..
-      ownerEmail: {$if: '"@" in push.owner', then: '${push.owner}', else: '${push.owner}@noreply.mozilla.org'}
+      # sometimes the push user is just `ffxbld` or the like, but we want an
+      # email-like field..
+      ownerEmail:
+        $if: '"@" in push.owner'
+        then: '${push.owner}'
+        else: '${push.owner}@noreply.mozilla.org'
       # ensure there's no trailing `/` on the repo URL
-      repoUrl: {$if: 'repository.url[-1] == "/"', then: {$eval: 'repository.url[:-1]'}, else: {$eval: 'repository.url'}}
+      repoUrl:
+        $if: 'repository.url[-1] == "/"'
+        then: {$eval: 'repository.url[:-1]'}
+        else: {$eval: 'repository.url'}
     in:
       taskId: '${ownTaskId}'
       taskGroupId: '${ownTaskId}'
@@ -43,7 +50,8 @@ tasks:
         - "tc-treeherder.v2.${repository.project}.${push.revision}.${push.pushlog_id}"
 
       payload:
-        image: djmitche/nss-decision:0.0.3  # TODO: nssdev, not djmitche, once the image is pushed there
+        # TODO: use nssdev org , not djmitche, once the image is pushed there
+        image: djmitche/nss-decision:0.0.3
 
         env:
           TC_OWNER: "${push.owner}"
