@@ -626,6 +626,57 @@ typedef SECStatus(PR_CALLBACK *SSLRecordWriteCallback)(
                           PRUint16 * _writeEpoch),                 \
                          (fd, readEpoch, writeEpoch))
 
+/*
+ * The following AEAD functions expose an AEAD primitive that uses a ciphersuite
+ * to set parameters.  The ciphersuite determines the Hash function used by
+ * HKDF, the AEAD function, and the size of key and IV.  Only TLS 1.3
+ * ciphersuites can be used.
+ *
+ * The key and IV are generated using the TLS KDF with a custom label.  That is
+ * HKDF-Expand-Label(secret, labelPrefix + " key" or " iv", "", L).
+ *
+ * The encrypt and decrypt functions use a nonce construction identical to that
+ * used in TLS.  The lower bits of the IV are XORed with the 64-bit counter to
+ * produce the nonce.  Otherwise, this is an AEAD interface similar to that
+ * described in RFC 5116.
+ */
+typedef struct SSLAeadContextStr SSLAeadContext;
+
+#define SSL_MakeAead(secret, cipherSuite, labelPrefix, labelPrefixLen, ctx) \
+    SSL_EXPERIMENTAL_API("SSL_MakeAead",                                    \
+                         (PK11SymKey * _secret, PRUint16 _cipherSuite,      \
+                          const char *_labelPrefix,                         \
+                          unsigned int _labelPrefixLen,                     \
+                          SSLAeadContext **_ctx),                           \
+                         (secret, cipherSuite, labelPrefix, labelPrefixLen, ctx))
+
+#define SSL_AeadEncrypt(ctx, counter, aad, aadLen, in, inLen,            \
+                        output, outputLen, maxOutputLen)                 \
+    SSL_EXPERIMENTAL_API("SSL_AeadEncrypt",                              \
+                         (const SSLAeadContext *_ctx, PRUint64 _counter, \
+                          const PRUint8 *_aad, unsigned int _aadLen,     \
+                          const PRUint8 *_in, unsigned int _inLen,       \
+                          PRUint8 *_out, unsigned int *_outLen,          \
+                          unsigned int _maxOut),                         \
+                         (ctx, counter, aad, aadLen, in, inLen,          \
+                          output, outputLen, maxOutputLen))
+
+#define SSL_AeadDecrypt(ctx, counter, aad, aadLen, in, inLen,            \
+                        output, outputLen, maxOutputLen)                 \
+    SSL_EXPERIMENTAL_API("SSL_AeadDecrypt",                              \
+                         (const SSLAeadContext *_ctx, PRUint64 _counter, \
+                          const PRUint8 *_aad, unsigned int _aadLen,     \
+                          const PRUint8 *_in, unsigned int _inLen,       \
+                          PRUint8 *_output, unsigned int *_outLen,       \
+                          unsigned int _maxOut),                         \
+                         (ctx, counter, aad, aadLen, in, inLen,          \
+                          output, outputLen, maxOutputLen))
+
+#define SSL_DestroyAead(ctx)                      \
+    SSL_EXPERIMENTAL_API("SSL_DestroyAead",       \
+                         (SSLAeadContext * _ctx), \
+                         (ctx))
+
 /* Deprecated experimental APIs */
 #define SSL_UseAltServerHelloType(fd, enable) SSL_DEPRECATED_EXPERIMENTAL_API
 
