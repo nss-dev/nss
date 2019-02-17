@@ -536,6 +536,63 @@ typedef void(PR_CALLBACK *SSLSecretCallback)(
                          (PRFileDesc * _fd, SSLSecretCallback _cb, void *_arg), \
                          (fd, cb, arg))
 
+/* SSL_RecordLayerWriteCallback() is used to replace the TLS record layer.  This
+ * function installs a callback that TLS calls when it would otherwise encrypt
+ * and write a record to the underlying NSPR IO layer.  The application is
+ * responsible for ensuring that these records are encrypted and written.
+ *
+ * Calling this API also disables reads from the underlying NSPR layer.  The
+ * application is expected to push data when it is available using
+ * SSL_RecordLayerData().
+ *
+ * When data would be written, the provided SSLRecordWriteCallback with the
+ * epoch, TLS content type, and the data. The data provided to the callback is
+ * not split into record-sized writes.  If the callback returns SECFailure, the
+ * write will be considered to have failed; in particular, PR_WOULD_BLOCK_ERROR
+ * is not handled specially.
+ *
+ * If TLS 1.3 is in use, the epoch indicates the expected level of protection
+ * that the record would receive, this matches that used in DTLS 1.3:
+ *
+ * - epoch 0 corresponds to no record protection
+ * - epoch 1 corresponds to 0-RTT
+ * - epoch 2 corresponds to TLS handshake
+ * - epoch 3 and higher are application data
+ *
+ * Prior versions of TLS use epoch 1 and higher for application data.
+ *
+ * This API is not supported for DTLS sockets.
+ */
+typedef SECStatus(PR_CALLBACK *SSLRecordWriteCallback)(
+    PRFileDesc *fd, PRUint16 epoch, SSLContentType contentType,
+    const PRUint8 *data, unsigned int len, void *arg);
+
+#define SSL_RecordLayerWriteCallback(fd, writeCb, arg)                   \
+    SSL_EXPERIMENTAL_API("SSL_RecordLayerWriteCallback",                 \
+                         (PRFileDesc * _fd, SSLRecordWriteCallback _wCb, \
+                          void *_arg),                                   \
+                         (fd, writeCb, arg))
+
+/* SSL_RecordLayerData() is used to provide new data to TLS.  The application
+ * indicates the epoch (see the description of SSL_RecordLayerWriteCallback()),
+ * content type, and the data that was received.  The application is responsible
+ * for removing any encryption or other protection before passing data to this
+ * function.
+ *
+ * This returns SECSuccess if the data was successfully processed.  If this
+ * function is used to drive the handshake and the caller needs to know when the
+ * handshake is complete, a call to SSL_ForceHandshake will return SECSuccess
+ * when the handshake is complete.
+ *
+ * This API is not supported for DTLS sockets.
+ */
+#define SSL_RecordLayerData(fd, epoch, ct, data, len)               \
+    SSL_EXPERIMENTAL_API("SSL_RecordLayerData",                     \
+                         (PRFileDesc * _fd, PRUint16 _epoch,        \
+                          SSLContentType _contentType,              \
+                          const PRUint8 *_data, unsigned int _len), \
+                         (fd, epoch, ct, data, len))
+
 /* Deprecated experimental APIs */
 #define SSL_UseAltServerHelloType(fd, enable) SSL_DEPRECATED_EXPERIMENTAL_API
 

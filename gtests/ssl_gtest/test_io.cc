@@ -25,10 +25,13 @@ namespace nss_test {
     if (g_ssl_gtest_verbose) LOG(a); \
   } while (false)
 
+PRDescIdentity DummyPrSocket::LayerId() {
+  static PRDescIdentity id = PR_GetUniqueIdentity("dummysocket");
+  return id;
+}
+
 ScopedPRFileDesc DummyPrSocket::CreateFD() {
-  static PRDescIdentity test_fd_identity =
-      PR_GetUniqueIdentity("testtransportadapter");
-  return DummyIOLayerMethods::CreateFD(test_fd_identity, this);
+  return DummyIOLayerMethods::CreateFD(DummyPrSocket::LayerId(), this);
 }
 
 void DummyPrSocket::Reset() {
