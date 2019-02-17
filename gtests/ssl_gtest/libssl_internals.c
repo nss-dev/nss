@@ -373,3 +373,15 @@ SECStatus SSLInt_GetEpochs(PRFileDesc *fd, PRUint16 *readEpoch,
   ssl_ReleaseSpecReadLock(ss);
   return SECSuccess;
 }
+
+SECStatus SSLInt_HasPendingHandshakeData(PRFileDesc *fd, PRBool *pending) {
+  sslSocket *ss = ssl_FindSocket(fd);
+  if (!ss) {
+    return SECFailure;
+  }
+
+  ssl_GetSSL3HandshakeLock(ss);
+  *pending = ss->ssl3.hs.msg_body.len > 0;
+  ssl_ReleaseSSL3HandshakeLock(ss);
+  return SECSuccess;
+}

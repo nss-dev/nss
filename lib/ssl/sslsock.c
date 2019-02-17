@@ -4034,6 +4034,8 @@ struct {
     EXP(HelloRetryRequestCallback),
     EXP(InstallExtensionHooks),
     EXP(KeyUpdate),
+    EXP(RecordLayerData),
+    EXP(RecordLayerWriteCallback),
     EXP(SecretCallback),
     EXP(SendSessionTicket),
     EXP(SetESNIKeyPair),
