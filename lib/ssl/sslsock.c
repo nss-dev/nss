@@ -4041,6 +4041,9 @@ struct {
     void *function;
 } ssl_experimental_functions[] = {
 #ifndef SSL_DISABLE_EXPERIMENTAL_API
+    EXP(AeadDecrypt),
+    EXP(AeadEncrypt),
+    EXP(DestroyAead),
     EXP(DestroyResumptionTokenInfo),
     EXP(EnableESNI),
     EXP(EncodeESNIKeys),
@@ -4050,6 +4053,7 @@ struct {
     EXP(HelloRetryRequestCallback),
     EXP(InstallExtensionHooks),
     EXP(KeyUpdate),
+    EXP(MakeAead),
     EXP(RecordLayerData),
     EXP(RecordLayerWriteCallback),
     EXP(SecretCallback),

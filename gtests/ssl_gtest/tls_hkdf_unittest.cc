@@ -56,6 +56,15 @@ const size_t kHashLength[] = {
     64, /* ssl_hash_sha512 */
 };
 
+size_t GetHashLength(SSLHashType hash) {
+  size_t i = static_cast<size_t>(hash);
+  if (i >= 0 && i < PR_ARRAY_SIZE(kHashLength)) {
+    return kHashLength[i];
+  }
+  ADD_FAILURE() << "Unknown hash: " << hash;
+  return 0;
+}
+
 const std::string kHashName[] = {"None",    "MD5",     "SHA-1",  "SHA-224",
                                  "SHA-256", "SHA-384", "SHA-512"};
 
@@ -64,7 +73,7 @@ static void ImportKey(ScopedPK11SymKey* to, const DataBuffer& key,
   ASSERT_LT(hash_type, sizeof(kHashLength));
   ASSERT_LE(kHashLength[hash_type], key.len());
   SECItem key_item = {siBuffer, const_cast<uint8_t*>(key.data()),
-                      static_cast<unsigned int>(kHashLength[hash_type])};
+                      static_cast<unsigned int>(GetHashLength(hash_type))};
 
   PK11SymKey* inner =
       PK11_ImportSymKey(slot, CKM_SSL3_MASTER_KEY_DERIVE, PK11_OriginUnwrap,
@@ -175,7 +184,7 @@ TEST_P(TlsHkdfTest, HkdfNullNull) {
        0x10, 0xba, 0x18, 0xe2, 0x35, 0x7e, 0x71, 0x69, 0x71, 0xf9, 0x36, 0x2f,
        0x2c, 0x2f, 0xe2, 0xa7, 0x6b, 0xfd, 0x78, 0xdf, 0xec, 0x4e, 0xa9, 0xb5}};
 
-  const DataBuffer expected_data(tv[hash_type_], kHashLength[hash_type_]);
+  const DataBuffer expected_data(tv[hash_type_], GetHashLength(hash_type_));
   HkdfExtract(nullptr, nullptr, hash_type_, expected_data);
 }
 
@@ -193,7 +202,7 @@ TEST_P(TlsHkdfTest, HkdfKey1Only) {
        0x57, 0xc2, 0x76, 0x9f, 0x3f, 0x83, 0x45, 0x2f, 0xf6, 0xf3, 0x56, 0x1f,
        0x58, 0x63, 0xdb, 0x88, 0xda, 0x40, 0xce, 0x63, 0x7d, 0x24, 0x37, 0xf3}};
 
-  const DataBuffer expected_data(tv[hash_type_], kHashLength[hash_type_]);
+  const DataBuffer expected_data(tv[hash_type_], GetHashLength(hash_type_));
   HkdfExtract(k1_, nullptr, hash_type_, expected_data);
 }
 
@@ -211,7 +220,7 @@ TEST_P(TlsHkdfTest, HkdfKey2Only) {
        0xd4, 0x6a, 0xf6, 0xe5, 0xec, 0xea, 0xf8, 0x7d, 0x91, 0x71, 0x81, 0xf1,
        0xdb, 0x3b, 0xaf, 0xbf, 0xde, 0x71, 0x61, 0x15, 0xeb, 0xb5, 0x5f, 0x68}};
 
-  const DataBuffer expected_data(tv[hash_type_], kHashLength[hash_type_]);
+  const DataBuffer expected_data(tv[hash_type_], GetHashLength(hash_type_));
   HkdfExtract(nullptr, k2_, hash_type_, expected_data);
 }
 
@@ -229,7 +238,7 @@ TEST_P(TlsHkdfTest, HkdfKey1Key2) {
        0x1c, 0x5b, 0x98, 0x0b, 0x02, 0x92, 0x3f, 0xfd, 0x73, 0x5a, 0x6f, 0x2a,
        0x95, 0xa3, 0xee, 0xf6, 0xd6, 0x8e, 0x6f, 0x86, 0xea, 0x63, 0xf8, 0x33}};
 
-  const DataBuffer expected_data(tv[hash_type_], kHashLength[hash_type_]);
+  const DataBuffer expected_data(tv[hash_type_], GetHashLength(hash_type_));
   HkdfExtract(k1_, k2_, hash_type_, expected_data);
 }
 
@@ -247,8 +256,8 @@ TEST_P(TlsHkdfTest, HkdfExpandLabel) {
        0x74, 0xf7, 0x8b, 0x06, 0x38, 0x28, 0x06, 0x37, 0x75, 0x23, 0xa2, 0xb7,
        0x34, 0xb1, 0x72, 0x2e, 0x59, 0x6d, 0x5a, 0x31, 0xf5, 0x53, 0xab, 0x99}};
 
-  const DataBuffer expected_data(tv[hash_type_], kHashLength[hash_type_]);
-  HkdfExpandLabel(&k1_, hash_type_, kSessionHash, kHashLength[hash_type_],
+  const DataBuffer expected_data(tv[hash_type_], GetHashLength(hash_type_));
+  HkdfExpandLabel(&k1_, hash_type_, kSessionHash, GetHashLength(hash_type_),
                   kLabelMasterSecret, strlen(kLabelMasterSecret),
                   expected_data);
 }

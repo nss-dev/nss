@@ -553,10 +553,9 @@ SSL_AtomicIncrementLong(long *x)
     }
 }
 
-static PRBool
-ssl3_CipherSuiteAllowedForVersionRange(
-    ssl3CipherSuite cipherSuite,
-    const SSLVersionRange *vrange)
+PRBool
+ssl3_CipherSuiteAllowedForVersionRange(ssl3CipherSuite cipherSuite,
+                                       const SSLVersionRange *vrange)
 {
     switch (cipherSuite) {
         case TLS_DHE_RSA_WITH_AES_256_CBC_SHA256:
@@ -912,8 +911,8 @@ count_cipher_suites(sslSocket *ss, PRUint8 policy)
  * Null compression, mac and encryption functions
  */
 SECStatus
-Null_Cipher(void *ctx, unsigned char *output, int *outputLen, int maxOutputLen,
-            const unsigned char *input, int inputLen)
+Null_Cipher(void *ctx, unsigned char *output, unsigned int *outputLen, unsigned int maxOutputLen,
+            const unsigned char *input, unsigned int inputLen)
 {
     if (inputLen > maxOutputLen) {
         *outputLen = 0; /* Match PK11_CipherOp in setting outputLen */
@@ -1554,15 +1553,15 @@ ssl3_BuildRecordPseudoHeader(DTLSEpoch epoch,
 }
 
 static SECStatus
-ssl3_AESGCM(ssl3KeyMaterial *keys,
+ssl3_AESGCM(const ssl3KeyMaterial *keys,
             PRBool doDecrypt,
             unsigned char *out,
-            int *outlen,
-            int maxout,
+            unsigned int *outlen,
+            unsigned int maxout,
             const unsigned char *in,
-            int inlen,
+            unsigned int inlen,
             const unsigned char *additionalData,
-            int additionalDataLen)
+            unsigned int additionalDataLen)
 {
     SECItem param;
     SECStatus rv = SECFailure;
@@ -1616,11 +1615,11 @@ ssl3_AESGCM(ssl3KeyMaterial *keys,
 }
 
 static SECStatus
-ssl3_ChaCha20Poly1305(ssl3KeyMaterial *keys, PRBool doDecrypt,
-                      unsigned char *out, int *outlen, int maxout,
-                      const unsigned char *in, int inlen,
+ssl3_ChaCha20Poly1305(const ssl3KeyMaterial *keys, PRBool doDecrypt,
+                      unsigned char *out, unsigned int *outlen, unsigned int maxout,
+                      const unsigned char *in, unsigned int inlen,
                       const unsigned char *additionalData,
-                      int additionalDataLen)
+                      unsigned int additionalDataLen)
 {
     size_t i;
     SECItem param;
@@ -2012,7 +2011,7 @@ ssl3_MACEncryptRecord(ssl3CipherSpec *cwSpec,
     unsigned int ivLen = 0;
     unsigned char pseudoHeaderBuf[13];
     sslBuffer pseudoHeader = SSL_BUFFER(pseudoHeaderBuf);
-    int len;
+    unsigned int len;
 
     if (cwSpec->cipherDef->type == type_block &&
         cwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_1) {
@@ -2130,15 +2129,15 @@ ssl3_MACEncryptRecord(ssl3CipherSpec *cwSpec,
             memmove(SSL_BUFFER_NEXT(wrBuf) + p1Len, pIn + p1Len, oddLen);
         }
         if (p1Len > 0) {
-            int cipherBytesPart1 = -1;
+            unsigned int cipherBytesPart1 = 0;
             rv = cwSpec->cipher(cwSpec->cipherContext,
                                 SSL_BUFFER_NEXT(wrBuf), /* output */
                                 &cipherBytesPart1,      /* actual outlen */
                                 p1Len,                  /* max outlen */
                                 pIn,
                                 p1Len); /* input, and inputlen */
-            PORT_Assert(rv == SECSuccess && cipherBytesPart1 == (int)p1Len);
-            if (rv != SECSuccess || cipherBytesPart1 != (int)p1Len) {
+            PORT_Assert(rv == SECSuccess && cipherBytesPart1 == p1Len);
+            if (rv != SECSuccess || cipherBytesPart1 != p1Len) {
                 PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
                 return SECFailure;
             }
@@ -2146,15 +2145,15 @@ ssl3_MACEncryptRecord(ssl3CipherSpec *cwSpec,
             PORT_Assert(rv == SECSuccess);
         }
         if (p2Len > 0) {
-            int cipherBytesPart2 = -1;
+            unsigned int cipherBytesPart2 = 0;
             rv = cwSpec->cipher(cwSpec->cipherContext,
                                 SSL_BUFFER_NEXT(wrBuf),
                                 &cipherBytesPart2, /* output and actual outLen */
                                 p2Len,             /* max outlen */
                                 SSL_BUFFER_NEXT(wrBuf),
                                 p2Len); /* input and inputLen*/
-            PORT_Assert(rv == SECSuccess && cipherBytesPart2 == (int)p2Len);
-            if (rv != SECSuccess || cipherBytesPart2 != (int)p2Len) {
+            PORT_Assert(rv == SECSuccess && cipherBytesPart2 == p2Len);
+            if (rv != SECSuccess || cipherBytesPart2 != p2Len) {
                 PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
                 return SECFailure;
             }
@@ -2241,7 +2240,7 @@ ssl_ProtectRecord(sslSocket *ss, ssl3CipherSpec *cwSpec, SSLContentType ct,
 
 #ifdef UNSAFE_FUZZER_MODE
     {
-        int len;
+        unsigned int len;
         rv = Null_Cipher(NULL, SSL_BUFFER_NEXT(wrBuf), &len,
                          SSL_BUFFER_SPACE(wrBuf), pIn, contentLen);
         if (rv != SECSuccess) {
@@ -12200,7 +12199,7 @@ ssl3_UnprotectRecord(sslSocket *ss,
          * discard it before decrypting the rest.
          */
         PRUint8 iv[MAX_IV_LENGTH];
-        int decoded;
+        unsigned int decoded;
 
         ivLen = cipher_def->iv_size;
         if (ivLen < 8 || ivLen > sizeof(iv)) {
@@ -12248,12 +12247,12 @@ ssl3_UnprotectRecord(sslSocket *ss,
             rType, isTLS, rVersion, IS_DTLS(ss), decryptedLen, &header);
         PORT_Assert(rv == SECSuccess);
         rv = spec->aead(&spec->keyMaterial,
-                        PR_TRUE,                /* do decrypt */
-                        plaintext->buf,         /* out */
-                        (int *)&plaintext->len, /* outlen */
-                        plaintext->space,       /* maxout */
-                        cText->buf->buf,        /* in */
-                        cText->buf->len,        /* inlen */
+                        PR_TRUE,          /* do decrypt */
+                        plaintext->buf,   /* out */
+                        &plaintext->len,  /* outlen */
+                        plaintext->space, /* maxout */
+                        cText->buf->buf,  /* in */
+                        cText->buf->len,  /* inlen */
                         SSL_BUFFER_BASE(&header), SSL_BUFFER_LEN(&header));
         if (rv != SECSuccess) {
             good = 0;
@@ -12266,7 +12265,7 @@ ssl3_UnprotectRecord(sslSocket *ss,
 
         /* decrypt from cText buf to plaintext. */
         rv = spec->cipher(
-            spec->cipherContext, plaintext->buf, (int *)&plaintext->len,
+            spec->cipherContext, plaintext->buf, &plaintext->len,
             plaintext->space, cText->buf->buf + ivLen, cText->buf->len - ivLen);
         if (rv != SECSuccess) {
             goto decrypt_loser;
@@ -12548,7 +12547,7 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText)
         rv = SECFailure;
     } else {
 #ifdef UNSAFE_FUZZER_MODE
-        rv = Null_Cipher(NULL, plaintext->buf, (int *)&plaintext->len,
+        rv = Null_Cipher(NULL, plaintext->buf, &plaintext->len,
                          plaintext->space, cText->buf->buf, cText->buf->len);
 #else
         /* IMPORTANT: Unprotect functions MUST NOT send alerts
