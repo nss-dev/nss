@@ -511,6 +511,31 @@ typedef SECStatus(PR_CALLBACK *SSLResumptionTokenCallback)(
                           group, pubKey, pad, notBefore, notAfter,  \
                           out, outlen, maxlen))
 
+/* SSL_SetSecretCallback installs a callback that TLS calls when it installs new
+ * traffic secrets.
+ *
+ * SSLSecretCallback is called with the current epoch and the corresponding
+ * secret; this matches the epoch used in DTLS 1.3, even if the socket is
+ * operating in stream mode:
+ *
+ * - client_early_traffic_secret corresponds to epoch 1
+ * - {client|server}_handshake_traffic_secret is epoch 2
+ * - {client|server}_application_traffic_secret_{N} is epoch 3+N
+ *
+ * The callback is invoked separately for read secrets (client secrets on the
+ * server; server secrets on the client), and write secrets.
+ *
+ * This callback is only called if (D)TLS 1.3 is negotiated.
+ */
+typedef void(PR_CALLBACK *SSLSecretCallback)(
+    PRFileDesc *fd, PRUint16 epoch, SSLSecretDirection dir, PK11SymKey *secret,
+    void *arg);
+
+#define SSL_SecretCallback(fd, cb, arg)                                         \
+    SSL_EXPERIMENTAL_API("SSL_SecretCallback",                                  \
+                         (PRFileDesc * _fd, SSLSecretCallback _cb, void *_arg), \
+                         (fd, cb, arg))
+
 /* Deprecated experimental APIs */
 #define SSL_UseAltServerHelloType(fd, enable) SSL_DEPRECATED_EXPERIMENTAL_API
 

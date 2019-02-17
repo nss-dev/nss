@@ -1394,14 +1394,14 @@ loser:
 }
 
 static SECStatus
-ssl3_SetupPendingCipherSpec(sslSocket *ss, CipherSpecDirection direction,
+ssl3_SetupPendingCipherSpec(sslSocket *ss, SSLSecretDirection direction,
                             const ssl3CipherSuiteDef *suiteDef,
                             ssl3CipherSpec **specp)
 {
     ssl3CipherSpec *spec;
     const ssl3CipherSpec *prev;
 
-    prev = (direction == CipherSpecWrite) ? ss->ssl3.cwSpec : ss->ssl3.crSpec;
+    prev = (direction == ssl_secret_write) ? ss->ssl3.cwSpec : ss->ssl3.crSpec;
     if (prev->epoch == PR_UINT16_MAX) {
         PORT_SetError(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED);
         return SECFailure;
@@ -1417,7 +1417,7 @@ ssl3_SetupPendingCipherSpec(sslSocket *ss, CipherSpecDirection direction,
 
     spec->epoch = prev->epoch + 1;
     spec->nextSeqNum = 0;
-    if (IS_DTLS(ss) && direction == CipherSpecRead) {
+    if (IS_DTLS(ss) && direction == ssl_secret_read) {
         dtls_InitRecvdRecords(&spec->recvdRecords);
     }
     ssl_SetSpecVersions(ss, spec);
@@ -1471,12 +1471,12 @@ ssl3_SetupBothPendingCipherSpecs(sslSocket *ss)
     ss->ssl3.hs.kea_def = &kea_defs[kea];
     PORT_Assert(ss->ssl3.hs.kea_def->kea == kea);
 
-    rv = ssl3_SetupPendingCipherSpec(ss, CipherSpecRead, suiteDef,
+    rv = ssl3_SetupPendingCipherSpec(ss, ssl_secret_read, suiteDef,
                                      &ss->ssl3.prSpec);
     if (rv != SECSuccess) {
         goto loser;
     }
-    rv = ssl3_SetupPendingCipherSpec(ss, CipherSpecWrite, suiteDef,
+    rv = ssl3_SetupPendingCipherSpec(ss, ssl_secret_write, suiteDef,
                                      &ss->ssl3.pwSpec);
     if (rv != SECSuccess) {
         goto loser;
@@ -1727,7 +1727,7 @@ ssl3_InitPendingContexts(sslSocket *ss, ssl3CipherSpec *spec)
 
     spec->cipher = (SSLCipher)PK11_CipherOp;
     encMechanism = ssl3_Alg2Mech(calg);
-    encMode = (spec->direction == CipherSpecWrite) ? CKA_ENCRYPT : CKA_DECRYPT;
+    encMode = (spec->direction == ssl_secret_write) ? CKA_ENCRYPT : CKA_DECRYPT;
 
     /*
      * build the context
@@ -2215,7 +2215,7 @@ ssl_ProtectRecord(sslSocket *ss, ssl3CipherSpec *cwSpec, SSLContentType ct,
     unsigned int lenOffset;
     SECStatus rv;
 
-    PORT_Assert(cwSpec->direction == CipherSpecWrite);
+    PORT_Assert(cwSpec->direction == ssl_secret_write);
     PORT_Assert(SSL_BUFFER_LEN(wrBuf) == 0);
     PORT_Assert(cwSpec->cipherDef->max_records <= RECORD_SEQ_MAX);
 
@@ -12183,7 +12183,7 @@ ssl3_UnprotectRecord(sslSocket *ss,
     unsigned int hashBytes = MAX_MAC_LENGTH + 1;
     SECStatus rv;
 
-    PORT_Assert(spec->direction == CipherSpecRead);
+    PORT_Assert(spec->direction == ssl_secret_read);
 
     good = ~0U;
     minLength = spec->macDef->mac_size;
@@ -12429,7 +12429,7 @@ ssl3_GetCipherSpec(sslSocket *ss, SSL3Ciphertext *cText)
     }
     if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
         /* Try to find the cipher spec. */
-        newSpec = ssl_FindCipherSpecByEpoch(ss, CipherSpecRead,
+        newSpec = ssl_FindCipherSpecByEpoch(ss, ssl_secret_read,
                                             epoch);
         if (newSpec != NULL) {
             return newSpec;
@@ -12694,8 +12694,8 @@ ssl3_InitState(sslSocket *ss)
 
     ssl_GetSpecWriteLock(ss);
     PR_INIT_CLIST(&ss->ssl3.hs.cipherSpecs);
-    rv = ssl_SetupNullCipherSpec(ss, CipherSpecRead);
-    rv |= ssl_SetupNullCipherSpec(ss, CipherSpecWrite);
+    rv = ssl_SetupNullCipherSpec(ss, ssl_secret_read);
+    rv |= ssl_SetupNullCipherSpec(ss, ssl_secret_write);
     ss->ssl3.pwSpec = ss->ssl3.prSpec = NULL;
     ssl_ReleaseSpecWriteLock(ss);
     if (rv != SECSuccess) {

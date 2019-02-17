@@ -741,7 +741,7 @@ ssl_SecureShutdown(sslSocket *ss, int nsprHow)
 /************************************************************************/
 
 static SECStatus
-tls13_CheckKeyUpdate(sslSocket *ss, CipherSpecDirection dir)
+tls13_CheckKeyUpdate(sslSocket *ss, SSLSecretDirection dir)
 {
     PRBool keyUpdate;
     ssl3CipherSpec *spec;
@@ -765,7 +765,7 @@ tls13_CheckKeyUpdate(sslSocket *ss, CipherSpecDirection dir)
      * having the write margin larger reduces the number of times that a
      * KeyUpdate is sent by a reader. */
     ssl_GetSpecReadLock(ss);
-    if (dir == CipherSpecRead) {
+    if (dir == ssl_secret_read) {
         spec = ss->ssl3.crSpec;
         margin = spec->cipherDef->max_records / 8;
     } else {
@@ -781,10 +781,10 @@ tls13_CheckKeyUpdate(sslSocket *ss, CipherSpecDirection dir)
 
     SSL_TRC(5, ("%d: SSL[%d]: automatic key update at %llx for %s cipher spec",
                 SSL_GETPID(), ss->fd, seqNum,
-                (dir == CipherSpecRead) ? "read" : "write"));
+                (dir == ssl_secret_read) ? "read" : "write"));
     ssl_GetSSL3HandshakeLock(ss);
-    rv = tls13_SendKeyUpdate(ss, (dir == CipherSpecRead) ? update_requested : update_not_requested,
-                             dir == CipherSpecWrite /* buffer */);
+    rv = tls13_SendKeyUpdate(ss, (dir == ssl_secret_read) ? update_requested : update_not_requested,
+                             dir == ssl_secret_write /* buffer */);
     ssl_ReleaseSSL3HandshakeLock(ss);
     return rv;
 }
@@ -829,7 +829,7 @@ ssl_SecureRecv(sslSocket *ss, unsigned char *buf, int len, int flags)
         }
         ssl_Release1stHandshakeLock(ss);
     } else {
-        if (tls13_CheckKeyUpdate(ss, CipherSpecRead) != SECSuccess) {
+        if (tls13_CheckKeyUpdate(ss, ssl_secret_read) != SECSuccess) {
             rv = PR_FAILURE;
         }
     }
@@ -955,7 +955,7 @@ ssl_SecureSend(sslSocket *ss, const unsigned char *buf, int len, int flags)
     }
 
     if (ss->firstHsDone) {
-        if (tls13_CheckKeyUpdate(ss, CipherSpecWrite) != SECSuccess) {
+        if (tls13_CheckKeyUpdate(ss, ssl_secret_write) != SECSuccess) {
             rv = PR_FAILURE;
             goto done;
         }

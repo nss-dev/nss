@@ -4026,20 +4026,21 @@ struct {
     void *function;
 } ssl_experimental_functions[] = {
 #ifndef SSL_DISABLE_EXPERIMENTAL_API
+    EXP(DestroyResumptionTokenInfo),
+    EXP(EnableESNI),
+    EXP(EncodeESNIKeys),
     EXP(GetExtensionSupport),
+    EXP(GetResumptionTokenInfo),
     EXP(HelloRetryRequestCallback),
     EXP(InstallExtensionHooks),
     EXP(KeyUpdate),
+    EXP(SecretCallback),
     EXP(SendSessionTicket),
+    EXP(SetESNIKeyPair),
     EXP(SetMaxEarlyDataSize),
-    EXP(SetupAntiReplay),
     EXP(SetResumptionTokenCallback),
     EXP(SetResumptionToken),
-    EXP(GetResumptionTokenInfo),
-    EXP(DestroyResumptionTokenInfo),
-    EXP(SetESNIKeyPair),
-    EXP(EncodeESNIKeys),
-    EXP(EnableESNI),
+    EXP(SetupAntiReplay),
 #endif
     { "", NULL }
 };
