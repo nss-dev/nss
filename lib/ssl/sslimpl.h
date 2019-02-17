@@ -994,6 +994,8 @@ struct sslSocketStr {
     PRCList extensionHooks;
     SSLResumptionTokenCallback resumptionTokenCallback;
     void *resumptionTokenContext;
+    SSLSecretCallback secretCallback;
+    void *secretCallbackArg;
 
     PRIntervalTime rTimeout; /* timeout for NSPR I/O */
     PRIntervalTime wTimeout; /* timeout for NSPR I/O */
@@ -1741,6 +1743,8 @@ SECStatus SSLExp_GetResumptionTokenInfo(const PRUint8 *tokenData, unsigned int t
                                         SSLResumptionTokenInfo *token, unsigned int version);
 
 SECStatus SSLExp_DestroyResumptionTokenInfo(SSLResumptionTokenInfo *token);
+
+SECStatus SSLExp_SecretCallback(PRFileDesc *fd, SSLSecretCallback cb, void *arg);
 
 #define SSLResumptionTokenVersion 2
 

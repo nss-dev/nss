@@ -43,6 +43,11 @@ typedef enum {
     ssl_ct_ack = 25
 } SSLContentType;
 
+typedef enum {
+    ssl_secret_read = 1,
+    ssl_secret_write = 2,
+} SSLSecretDirection;
+
 typedef struct SSL3StatisticsStr {
     /* statistics from ssl3_SendClientHello (sch) */
     long sch_sid_cache_hits;
