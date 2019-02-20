@@ -272,6 +272,7 @@ typedef struct sslOptionsStr {
     unsigned int enableDtlsShortHeader : 1;
     unsigned int enableHelloDowngradeCheck : 1;
     unsigned int enableV2CompatibleHello : 1;
+    unsigned int enablePostHandshakeAuth : 1;
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -741,6 +742,11 @@ struct ssl3StateStr {
     /* This is true after the peer requests a key update; false after a key
      * update is initiated locally. */
     PRBool peerRequestedKeyUpdate;
+
+    /* This is true after the server requests client certificate;
+     * false after the client certificate is received.  Used by the
+     * server. */
+    PRBool clientCertRequested;
 
     CERTCertificate *clientCertificate;   /* used by client */
     SECKEYPrivateKey *clientPrivateKey;   /* used by client */

@@ -7393,6 +7393,9 @@ ssl3_CompleteHandleCertificateRequest(sslSocket *ss,
     if (ss->getClientAuthData != NULL) {
         PORT_Assert((ss->ssl3.hs.preliminaryInfo & ssl_preinfo_all) ==
                     ssl_preinfo_all);
+        PORT_Assert(ss->ssl3.clientPrivateKey == NULL);
+        PORT_Assert(ss->ssl3.clientCertificate == NULL);
+        PORT_Assert(ss->ssl3.clientCertChain == NULL);
         /* XXX Should pass cert_types and algorithms in this call!! */
         rv = (SECStatus)(*ss->getClientAuthData)(ss->getClientAuthDataArg,
                                                  ss->fd, ca_list,
@@ -10749,6 +10752,9 @@ ssl3_AuthCertificate(sslSocket *ss)
         }
     }
 
+    if (ss->sec.ci.sid->peerCert) {
+        CERT_DestroyCertificate(ss->sec.ci.sid->peerCert);
+    }
     ss->sec.ci.sid->peerCert = CERT_DupCertificate(ss->sec.peerCert);
 
     if (!ss->sec.isServer) {

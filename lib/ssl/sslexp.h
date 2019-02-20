@@ -350,6 +350,27 @@ typedef SSLHelloRetryRequestAction(PR_CALLBACK *SSLHelloRetryRequestCallback)(
                          (PRFileDesc * _fd, PRBool _requestUpdate), \
                          (fd, requestUpdate))
 
+/* This function allows a server application to trigger
+ * re-authentication (TLS 1.3 only) after handshake.
+ *
+ * This function will cause a CertificateRequest message to be sent by
+ * a server.  This can be called once at a time, and is not allowed
+ * until an answer is received.
+ *
+ * The AuthCertificateCallback is called when the answer is received.
+ * If the answer is accepted by the server, the value returned by
+ * SSL_PeerCertificate() is replaced.  If you need to remember all the
+ * certificates, you will need to call SSL_PeerCertificate() and save
+ * what you get before calling this.
+ *
+ * If the AuthCertificateCallback returns SECFailure, the connection
+ * is aborted.
+ */
+#define SSL_SendCertificateRequest(fd)                 \
+    SSL_EXPERIMENTAL_API("SSL_SendCertificateRequest", \
+                         (PRFileDesc * _fd),           \
+                         (fd))
+
 /*
  * Session cache API.
  */
