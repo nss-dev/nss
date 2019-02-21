@@ -64,6 +64,7 @@ static SECStatus ssl3_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags);
 static CK_MECHANISM_TYPE ssl3_GetHashMechanismByHashType(SSLHashType hashType);
 static CK_MECHANISM_TYPE ssl3_GetMgfMechanismByHashType(SSLHashType hash);
 PRBool ssl_IsRsaPssSignatureScheme(SSLSignatureScheme scheme);
+PRBool ssl_IsDsaSignatureScheme(SSLSignatureScheme scheme);
 
 const PRUint8 ssl_hello_retry_random[] = {
     0xCF, 0x21, 0xAD, 0x74, 0xE5, 0x9A, 0x61, 0x11,
@@ -4319,6 +4320,22 @@ ssl_IsRsaPssSignatureScheme(SSLSignatureScheme scheme)
     return PR_FALSE;
 }
 
+PRBool
+ssl_IsDsaSignatureScheme(SSLSignatureScheme scheme)
+{
+    switch (scheme) {
+        case ssl_sig_dsa_sha256:
+        case ssl_sig_dsa_sha384:
+        case ssl_sig_dsa_sha512:
+        case ssl_sig_dsa_sha1:
+            return PR_TRUE;
+
+        default:
+            return PR_FALSE;
+    }
+    return PR_FALSE;
+}
+
 SSLAuthType
 ssl_SignatureSchemeToAuthType(SSLSignatureScheme scheme)
 {
@@ -6028,6 +6045,13 @@ ssl_CanUseSignatureScheme(SSLSignatureScheme scheme,
     /* Skip RSA-PSS schemes when the certificate's private key slot does
      * not support this signature mechanism. */
     if (ssl_IsRsaPssSignatureScheme(scheme) && !slotDoesPss) {
+        return PR_FALSE;
+    }
+
+    if (ssl_IsDsaSignatureScheme(scheme) &&
+        (NSS_GetAlgorithmPolicy(SEC_OID_ANSIX9_DSA_SIGNATURE, &policy) ==
+         SECSuccess) &&
+        !(policy & NSS_USE_ALG_IN_SSL_KX)) {
         return PR_FALSE;
     }
 
@@ -9506,6 +9530,14 @@ ssl3_EncodeSigAlgs(const sslSocket *ss, sslBuffer *buf)
         /* Skip RSA-PSS schemes if there are no tokens to verify them. */
         if (ssl_IsRsaPssSignatureScheme(ss->ssl3.signatureSchemes[i]) &&
             !PK11_TokenExists(auth_alg_defs[ssl_auth_rsa_pss])) {
+            continue;
+        }
+
+        /* Skip DSA scheme if it is disabled by policy. */
+        if (ssl_IsDsaSignatureScheme(ss->ssl3.signatureSchemes[i]) &&
+            (NSS_GetAlgorithmPolicy(SEC_OID_ANSIX9_DSA_SIGNATURE, &policy) ==
+             SECSuccess) &&
+            !(policy & NSS_USE_ALG_IN_SSL_KX)) {
             continue;
         }
 
