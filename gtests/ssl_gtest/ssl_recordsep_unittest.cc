@@ -278,9 +278,10 @@ class StagedRecords {
       if (g_ssl_gtest_verbose) {
         std::cerr << role_ << ": forward " << data_ << std::endl;
       }
-      EXPECT_EQ(SECSuccess, SSL_RecordLayerData(
-          peer->ssl_fd(), epoch_, content_type_, data_.data(),
-          static_cast<unsigned int>(data_.len())));
+      EXPECT_EQ(SECSuccess,
+                SSL_RecordLayerData(peer->ssl_fd(), epoch_, content_type_,
+                                    data_.data(),
+                                    static_cast<unsigned int>(data_.len())));
     }
 
     // Slices the tail off this record and returns it.
