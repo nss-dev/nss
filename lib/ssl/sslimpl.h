@@ -1773,6 +1773,12 @@ SECStatus SSLExp_AeadDecrypt(const SSLAeadContext *ctx, PRUint64 counter,
                              const PRUint8 *plaintext, unsigned int plaintextLen,
                              PRUint8 *out, unsigned int *outLen, unsigned int maxOut);
 
+SECStatus SSLExp_HkdfExtract(PRUint16 version, PRUint16 cipherSuite,
+                             PK11SymKey *salt, PK11SymKey *ikm, PK11SymKey **keyp);
+SECStatus SSLExp_HkdfDeriveSecret(PRUint16 version, PRUint16 cipherSuite, PK11SymKey *prk,
+                                  const char *label, unsigned int labelLen,
+                                  PK11SymKey **key);
+
 SEC_END_PROTOS
 
 #if defined(XP_UNIX) || defined(XP_OS2) || defined(XP_BEOS)

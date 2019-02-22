@@ -205,3 +205,45 @@ SSLExp_AeadDecrypt(const SSLAeadContext *ctx, PRUint64 counter,
     return ssl_AeadInner(ctx, PR_TRUE, counter, aad, aadLen,
                          plaintext, plaintextLen, out, outLen, maxOut);
 }
+
+SECStatus
+SSLExp_HkdfExtract(PRUint16 version, PRUint16 cipherSuite,
+                   PK11SymKey *salt, PK11SymKey *ikm, PK11SymKey **keyp)
+{
+    if (keyp == NULL) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    SSLHashType hash;
+    const ssl3BulkCipherDef *cipher; /* Unused here. */
+    SECStatus rv = tls13_GetHashAndCipher(version, cipherSuite,
+                                          &hash, &cipher);
+    if (rv != SECSuccess) {
+        return SECFailure; /* Code already set. */
+    }
+    return tls13_HkdfExtract(salt, ikm, hash, keyp);
+}
+
+SECStatus
+SSLExp_HkdfDeriveSecret(PRUint16 version, PRUint16 cipherSuite, PK11SymKey *prk,
+                        const char *label, unsigned int labelLen,
+                        PK11SymKey **keyp)
+{
+    if (prk == NULL || keyp == NULL ||
+        label == NULL || labelLen == 0) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    SSLHashType hash;
+    const ssl3BulkCipherDef *cipher; /* Unused here. */
+    SECStatus rv = tls13_GetHashAndCipher(version, cipherSuite,
+                                          &hash, &cipher);
+    if (rv != SECSuccess) {
+        return SECFailure; /* Code already set. */
+    }
+    return tls13_HkdfExpandLabel(prk, hash, NULL, 0, label, labelLen,
+                                 tls13_GetHkdfMechanismForHash(hash),
+                                 tls13_GetHashSizeForHash(hash), keyp);
+}
