@@ -58,7 +58,7 @@ const size_t kHashLength[] = {
 
 size_t GetHashLength(SSLHashType hash) {
   size_t i = static_cast<size_t>(hash);
-  if (i >= 0 && i < PR_ARRAY_SIZE(kHashLength)) {
+  if (i < PR_ARRAY_SIZE(kHashLength)) {
     return kHashLength[i];
   }
   ADD_FAILURE() << "Unknown hash: " << hash;

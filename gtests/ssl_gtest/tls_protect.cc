@@ -5,6 +5,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "tls_protect.h"
+#include "sslproto.h"
 #include "tls_filter.h"
 
 namespace nss_test {
@@ -25,7 +26,8 @@ TlsCipherSpec::TlsCipherSpec(bool dtls, uint16_t epoc)
 bool TlsCipherSpec::SetKeys(SSLCipherSuiteInfo* cipherinfo,
                             PK11SymKey* secret) {
   SSLAeadContext* ctx;
-  SECStatus rv = SSL_MakeAead(secret, cipherinfo->cipherSuite, "",
+  SECStatus rv = SSL_MakeAead(SSL_LIBRARY_VERSION_TLS_1_3,
+                              cipherinfo->cipherSuite, secret, "",
                               0,  // Use the default labels.
                               &ctx);
   if (rv != SECSuccess) {

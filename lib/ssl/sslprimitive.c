@@ -23,8 +23,34 @@ struct SSLAeadContextStr {
     ssl3KeyMaterial keys;
 };
 
+static SECStatus
+tls13_GetHashAndCipher(PRUint16 version, PRUint16 cipherSuite,
+                       SSLHashType *hash, const ssl3BulkCipherDef **cipher)
+{
+    if (version < SSL_LIBRARY_VERSION_TLS_1_3) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    // Lookup and check the suite.
+    SSLVersionRange vrange = { version, version };
+    if (!ssl3_CipherSuiteAllowedForVersionRange(cipherSuite, &vrange)) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+    const ssl3CipherSuiteDef *suiteDef = ssl_LookupCipherSuiteDef(cipherSuite);
+    const ssl3BulkCipherDef *cipherDef = ssl_GetBulkCipherDef(suiteDef);
+    if (cipherDef->type != type_aead) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+    *hash = suiteDef->prf_hash;
+    *cipher = cipherDef;
+    return SECSuccess;
+}
+
 SECStatus
-SSLExp_MakeAead(PK11SymKey *secret, PRUint16 cipherSuite,
+SSLExp_MakeAead(PRUint16 version, PRUint16 cipherSuite, PK11SymKey *secret,
                 const char *labelPrefix, unsigned int labelPrefixLen,
                 SSLAeadContext **ctx)
 {
@@ -41,20 +67,13 @@ SSLExp_MakeAead(PK11SymKey *secret, PRUint16 cipherSuite,
         goto loser;
     }
 
-    // Lookup and check the suite.
-    SSLVersionRange tls13 = { SSL_LIBRARY_VERSION_TLS_1_3,
-                              SSL_LIBRARY_VERSION_TLS_1_3 };
-    if (!ssl3_CipherSuiteAllowedForVersionRange(cipherSuite, &tls13)) {
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        goto loser;
+    SSLHashType hash;
+    const ssl3BulkCipherDef *cipher;
+    SECStatus rv = tls13_GetHashAndCipher(version, cipherSuite,
+                                          &hash, &cipher);
+    if (rv != SECSuccess) {
+        goto loser; /* Code already set. */
     }
-    const ssl3CipherSuiteDef *suiteDef = ssl_LookupCipherSuiteDef(cipherSuite);
-    const ssl3BulkCipherDef *cipher = ssl_GetBulkCipherDef(suiteDef);
-    if (cipher->type != type_aead) {
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        goto loser;
-    }
-    SSLHashType hash = suiteDef->prf_hash;
 
     out = PORT_ZNew(SSLAeadContext);
     if (out == NULL) {
@@ -66,10 +85,10 @@ SSLExp_MakeAead(PK11SymKey *secret, PRUint16 cipherSuite,
     memcpy(label + labelPrefixLen, ivSuffix, strlen(ivSuffix));
     unsigned int labelLen = labelPrefixLen + strlen(ivSuffix);
     unsigned int ivLen = cipher->iv_size + cipher->explicit_nonce_size;
-    SECStatus rv = tls13_HkdfExpandLabelRaw(secret, hash,
-                                            NULL, 0, // Handshake hash.
-                                            label, labelLen,
-                                            out->keys.iv, ivLen);
+    rv = tls13_HkdfExpandLabelRaw(secret, hash,
+                                  NULL, 0, // Handshake hash.
+                                  label, labelLen,
+                                  out->keys.iv, ivLen);
     if (rv != SECSuccess) {
         goto loser;
     }

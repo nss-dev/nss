@@ -1760,7 +1760,7 @@ SECStatus SSLExp_GetCurrentEpoch(PRFileDesc *fd, PRUint16 *readEpoch,
 
 #define SSLResumptionTokenVersion 2
 
-SECStatus SSLExp_MakeAead(PK11SymKey *secret, PRUint16 cipherSuite,
+SECStatus SSLExp_MakeAead(PRUint16 version, PRUint16 cipherSuite, PK11SymKey *secret,
                           const char *labelPrefix, unsigned int labelPrefixLen,
                           SSLAeadContext **ctx);
 SECStatus SSLExp_DestroyAead(SSLAeadContext *ctx);
