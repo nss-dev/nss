@@ -4052,6 +4052,8 @@ struct {
     EXP(GetResumptionTokenInfo),
     EXP(HelloRetryRequestCallback),
     EXP(InstallExtensionHooks),
+    EXP(HkdfExtract),
+    EXP(HkdfDeriveSecret),
     EXP(KeyUpdate),
     EXP(MakeAead),
     EXP(RecordLayerData),

@@ -629,8 +629,8 @@ typedef SECStatus(PR_CALLBACK *SSLRecordWriteCallback)(
 /*
  * The following AEAD functions expose an AEAD primitive that uses a ciphersuite
  * to set parameters.  The ciphersuite determines the Hash function used by
- * HKDF, the AEAD function, and the size of key and IV.  Only TLS 1.3
- * ciphersuites can be used.
+ * HKDF, the AEAD function, and the size of key and IV.  This is only supported
+ * for TLS 1.3.
  *
  * The key and IV are generated using the TLS KDF with a custom label.  That is
  * HKDF-Expand-Label(secret, labelPrefix + " key" or " iv", "", L).
@@ -679,6 +679,26 @@ typedef struct SSLAeadContextStr SSLAeadContext;
     SSL_EXPERIMENTAL_API("SSL_DestroyAead",       \
                          (SSLAeadContext * _ctx), \
                          (ctx))
+
+/* SSL_HkdfExtract and SSL_HkdfExpandLabel implement the functions from TLS,
+ * using the version and ciphersuite to set parameters. This allows callers to
+ * use these TLS functions as a KDF. This is only supported for TLS 1.3. */
+#define SSL_HkdfExtract(version, cipherSuite, salt, ikm, keyp)      \
+    SSL_EXPERIMENTAL_API("SSL_HkdfExtract",                         \
+                         (PRUint16 _version, PRUint16 _cipherSuite, \
+                          PK11SymKey * _salt, PK11SymKey * _ikm,    \
+                          PK11SymKey * *_keyp),                     \
+                         (version, cipherSuite, salt, ikm, keyp))
+
+#define SSL_HkdfDeriveSecret(version, cipherSuite, prk,               \
+                             label, labelLen, keyp)                   \
+    SSL_EXPERIMENTAL_API("SSL_HkdfDeriveSecret",                      \
+                         (PRUint16 _version, PRUint16 _cipherSuite,   \
+                          PK11SymKey * _prk,                          \
+                          const char *_label, unsigned int _labelLen, \
+                          PK11SymKey **_keyp),                        \
+                         (version, cipherSuite, prk,                  \
+                          label, labelLen, keyp))
 
 /* Deprecated experimental APIs */
 #define SSL_UseAltServerHelloType(fd, enable) SSL_DEPRECATED_EXPERIMENTAL_API
