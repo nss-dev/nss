@@ -128,33 +128,62 @@ static const uint8_t kCiphertextChaCha20Poly1305[] = {
     0x4e, 0x89, 0x2c, 0xfa, 0xfc, 0x8c, 0x40, 0x55, 0x6d, 0x7e,
     0x99, 0xac, 0x8e, 0x54, 0x58, 0xb1, 0x18, 0xd2, 0x66, 0x22};
 
+TEST_F(AeadTest, AeadBadVersion) {
+  SSLAeadContext *ctx = nullptr;
+  ASSERT_EQ(SECFailure,
+            SSL_MakeAead(SSL_LIBRARY_VERSION_TLS_1_2, TLS_AES_128_GCM_SHA256,
+                         secret_.get(), kLabel, strlen(kLabel), &ctx));
+  EXPECT_EQ(nullptr, ctx);
+}
+
+TEST_F(AeadTest, AeadUnsupportedCipher) {
+  SSLAeadContext *ctx = nullptr;
+  ASSERT_EQ(SECFailure,
+            SSL_MakeAead(SSL_LIBRARY_VERSION_TLS_1_3, TLS_RSA_WITH_NULL_MD5,
+                         secret_.get(), kLabel, strlen(kLabel), &ctx));
+  EXPECT_EQ(nullptr, ctx);
+}
+
+TEST_F(AeadTest, AeadOlderCipher) {
+  SSLAeadContext *ctx = nullptr;
+  ASSERT_EQ(
+      SECFailure,
+      SSL_MakeAead(SSL_LIBRARY_VERSION_TLS_1_3, TLS_RSA_WITH_AES_128_CBC_SHA,
+                   secret_.get(), kLabel, strlen(kLabel), &ctx));
+  EXPECT_EQ(nullptr, ctx);
+}
+
 TEST_F(AeadTest, AeadNoLabel) {
   SSLAeadContext *ctx = nullptr;
-  ASSERT_EQ(SECFailure, SSL_MakeAead(secret_.get(), TLS_AES_128_GCM_SHA256,
-                                     nullptr, 12, &ctx));
+  ASSERT_EQ(SECFailure,
+            SSL_MakeAead(SSL_LIBRARY_VERSION_TLS_1_3, TLS_AES_128_GCM_SHA256,
+                         secret_.get(), nullptr, 12, &ctx));
   EXPECT_EQ(nullptr, ctx);
 }
 
 TEST_F(AeadTest, AeadLongLabel) {
   SSLAeadContext *ctx = nullptr;
   ASSERT_EQ(SECFailure,
-            SSL_MakeAead(secret_.get(), TLS_AES_128_GCM_SHA256, "", 254, &ctx));
+            SSL_MakeAead(SSL_LIBRARY_VERSION_TLS_1_3, TLS_AES_128_GCM_SHA256,
+                         secret_.get(), "", 254, &ctx));
   EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
   EXPECT_EQ(nullptr, ctx);
 }
 
 TEST_F(AeadTest, AeadNoPointer) {
   SSLAeadContext *ctx = nullptr;
-  ASSERT_EQ(SECFailure, SSL_MakeAead(secret_.get(), TLS_AES_128_GCM_SHA256,
-                                     kLabel, strlen(kLabel), nullptr));
+  ASSERT_EQ(SECFailure,
+            SSL_MakeAead(SSL_LIBRARY_VERSION_TLS_1_3, TLS_AES_128_GCM_SHA256,
+                         secret_.get(), kLabel, strlen(kLabel), nullptr));
   EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
   EXPECT_EQ(nullptr, ctx);
 }
 
 TEST_F(AeadTest, AeadAes128Gcm) {
   SSLAeadContext *ctxInit;
-  ASSERT_EQ(SECSuccess, SSL_MakeAead(secret_.get(), TLS_AES_128_GCM_SHA256,
-                                     kLabel, strlen(kLabel), &ctxInit));
+  ASSERT_EQ(SECSuccess,
+            SSL_MakeAead(SSL_LIBRARY_VERSION_TLS_1_3, TLS_AES_128_GCM_SHA256,
+                         secret_.get(), kLabel, strlen(kLabel), &ctxInit));
   ScopedSSLAeadContext ctx(ctxInit);
   EXPECT_NE(nullptr, ctx);
 
@@ -163,8 +192,9 @@ TEST_F(AeadTest, AeadAes128Gcm) {
 
 TEST_F(AeadTest, AeadAes256Gcm) {
   SSLAeadContext *ctxInit;
-  ASSERT_EQ(SECSuccess, SSL_MakeAead(secret_.get(), TLS_AES_256_GCM_SHA384,
-                                     kLabel, strlen(kLabel), &ctxInit));
+  ASSERT_EQ(SECSuccess,
+            SSL_MakeAead(SSL_LIBRARY_VERSION_TLS_1_3, TLS_AES_256_GCM_SHA384,
+                         secret_.get(), kLabel, strlen(kLabel), &ctxInit));
   ScopedSSLAeadContext ctx(ctxInit);
   EXPECT_NE(nullptr, ctx);
 
@@ -173,9 +203,10 @@ TEST_F(AeadTest, AeadAes256Gcm) {
 
 TEST_F(AeadTest, AeadChaCha20Poly1305) {
   SSLAeadContext *ctxInit;
-  ASSERT_EQ(SECSuccess,
-            SSL_MakeAead(secret_.get(), TLS_CHACHA20_POLY1305_SHA256, kLabel,
-                         strlen(kLabel), &ctxInit));
+  ASSERT_EQ(
+      SECSuccess,
+      SSL_MakeAead(SSL_LIBRARY_VERSION_TLS_1_3, TLS_CHACHA20_POLY1305_SHA256,
+                   secret_.get(), kLabel, strlen(kLabel), &ctxInit));
   ScopedSSLAeadContext ctx(ctxInit);
   EXPECT_NE(nullptr, ctx);
 

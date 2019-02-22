@@ -642,13 +642,16 @@ typedef SECStatus(PR_CALLBACK *SSLRecordWriteCallback)(
  */
 typedef struct SSLAeadContextStr SSLAeadContext;
 
-#define SSL_MakeAead(secret, cipherSuite, labelPrefix, labelPrefixLen, ctx) \
-    SSL_EXPERIMENTAL_API("SSL_MakeAead",                                    \
-                         (PK11SymKey * _secret, PRUint16 _cipherSuite,      \
-                          const char *_labelPrefix,                         \
-                          unsigned int _labelPrefixLen,                     \
-                          SSLAeadContext **_ctx),                           \
-                         (secret, cipherSuite, labelPrefix, labelPrefixLen, ctx))
+#define SSL_MakeAead(version, cipherSuite, secret,                  \
+                     labelPrefix, labelPrefixLen, ctx)              \
+    SSL_EXPERIMENTAL_API("SSL_MakeAead",                            \
+                         (PRUint16 _version, PRUint16 _cipherSuite, \
+                          PK11SymKey * _secret,                     \
+                          const char *_labelPrefix,                 \
+                          unsigned int _labelPrefixLen,             \
+                          SSLAeadContext **_ctx),                   \
+                         (version, cipherSuite, secret,             \
+                          labelPrefix, labelPrefixLen, ctx))
 
 #define SSL_AeadEncrypt(ctx, counter, aad, aadLen, in, inLen,            \
                         output, outputLen, maxOutputLen)                 \
