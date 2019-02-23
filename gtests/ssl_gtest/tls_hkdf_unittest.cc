@@ -321,29 +321,27 @@ TEST_P(TlsHkdfTest, BadExtractWrapperInput) {
   PK11SymKey* key = nullptr;
 
   // Bad version.
-  EXPECT_EQ(SECFailure, SSL_HkdfExtract(SSL_LIBRARY_VERSION_TLS_1_2,
-                                        TLS_AES_128_GCM_SHA256, k1_.get(),
-                                        k2_.get(), &key));
+  EXPECT_EQ(SECFailure,
+            SSL_HkdfExtract(SSL_LIBRARY_VERSION_TLS_1_2, TLS_AES_128_GCM_SHA256,
+                            k1_.get(), k2_.get(), &key));
   EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
 
   // Bad ciphersuite.
-  EXPECT_EQ(SECFailure, SSL_HkdfExtract(SSL_LIBRARY_VERSION_TLS_1_3,
-                                             TLS_RSA_WITH_NULL_SHA, k1_.get(),
-                                             k2_.get(), &key));
+  EXPECT_EQ(SECFailure,
+            SSL_HkdfExtract(SSL_LIBRARY_VERSION_TLS_1_3, TLS_RSA_WITH_NULL_SHA,
+                            k1_.get(), k2_.get(), &key));
   EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
 
   // Old ciphersuite.
-  EXPECT_EQ(SECFailure,
-            SSL_HkdfExtract(SSL_LIBRARY_VERSION_TLS_1_3,
-                                 TLS_RSA_WITH_AES_128_CBC_SHA, k1_.get(),
-                                 k2_.get(), &key));
+  EXPECT_EQ(SECFailure, SSL_HkdfExtract(SSL_LIBRARY_VERSION_TLS_1_3,
+                                        TLS_RSA_WITH_AES_128_CBC_SHA, k1_.get(),
+                                        k2_.get(), &key));
   EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
 
   // NULL outparam..
-  EXPECT_EQ(SECFailure,
-            SSL_HkdfExtract(SSL_LIBRARY_VERSION_TLS_1_3,
-                                 TLS_RSA_WITH_AES_128_CBC_SHA, k1_.get(),
-                                 k2_.get(), nullptr));
+  EXPECT_EQ(SECFailure, SSL_HkdfExtract(SSL_LIBRARY_VERSION_TLS_1_3,
+                                        TLS_RSA_WITH_AES_128_CBC_SHA, k1_.get(),
+                                        k2_.get(), nullptr));
   EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
 
   EXPECT_EQ(nullptr, key);
