@@ -104,7 +104,6 @@
             'cmd/modutil/modutil.gyp:modutil',
             'cmd/pk12util/pk12util.gyp:pk12util',
             'cmd/shlibsign/shlibsign.gyp:shlibsign',
-            'cmd/smimetools/smimetools.gyp:cmsutil',
           ],
           'conditions': [
             [ 'mozilla_client==0', {
@@ -113,6 +112,7 @@
                 'cmd/pwdecrypt/pwdecrypt.gyp:pwdecrypt',
                 'cmd/signtool/signtool.gyp:signtool',
                 'cmd/signver/signver.gyp:signver',
+                'cmd/smimetools/smimetools.gyp:cmsutil',
                 'cmd/ssltap/ssltap.gyp:ssltap',
                 'cmd/symkeyutil/symkeyutil.gyp:symkeyutil',
                 'nss-tool/nss_tool.gyp:nss',
