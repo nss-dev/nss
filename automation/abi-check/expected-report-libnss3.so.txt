@@ -1,0 +1,5 @@
+
+1 Added function:
+
+  'function SECStatus CERT_GetCertificateDer(const CERTCertificate*, SECItem*)'    {CERT_GetCertificateDer@@NSS_3.44}
+
