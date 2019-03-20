@@ -34,6 +34,7 @@
 /*
  * FREEBL_HTONLL(x): swap bytes in a 64-bit integer.
  */
+#if defined(IS_LITTLE_ENDIAN)
 #if defined(_MSC_VER)
 
 #pragma intrinsic(_byteswap_uint64)
@@ -56,5 +57,9 @@ PRUint64 swap8b(PRUint64 x);
 #define FREEBL_HTONLL(x) swap8b(x)
 
 #endif /* _MSC_VER */
+
+#else /* IS_LITTLE_ENDIAN */
+#define FREEBL_HTONLL(x) (x)
+#endif
 
 #endif /* HAVE_LONG_LONG */
