@@ -11,6 +11,11 @@
 #include <stdlib.h>
 #include "prtypes.h"
 
+/* For non-clang platform */
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
 /* Unfortunately this isn't always set when it should be. */
 #if defined(HAVE_LONG_LONG)
 
@@ -33,6 +38,10 @@
 
 #pragma intrinsic(_byteswap_uint64)
 #define FREEBL_HTONLL(x) _byteswap_uint64(x)
+
+#elif __has_builtin(__builtin_bswap64)
+
+#define FREEBL_HTONLL(x) __builtin_bswap64(x)
 
 #elif defined(__GNUC__) && (defined(__x86_64__) || defined(__x86_64))
 
