@@ -41,7 +41,6 @@ tasks:
 
       scopes:
         - 'assume:repo:${repoUrl[8:]}:branch:default'
-        - 'queue:route:notify.email.${ownerEmail}.*'
       tags:
         createdForUser: "${ownerEmail}"
 
