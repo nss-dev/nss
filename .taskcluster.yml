@@ -24,7 +24,7 @@ tasks:
     in:
       taskId: '${ownTaskId}'
       taskGroupId: '${ownTaskId}'
-      schedulerId: 'gecko-level-nss'
+      schedulerId: 'nss-level-${repository.level}'
       created: {$fromNow: ''}
       deadline: {$fromNow: '1 day'}
       expires: {$fromNow: '14 days'}
