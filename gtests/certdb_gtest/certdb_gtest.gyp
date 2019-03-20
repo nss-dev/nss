@@ -12,6 +12,7 @@
       'type': 'executable',
       'sources': [
         'alg1485_unittest.cc',
+        'decode_certs_unittest.cc',
         '<(DEPTH)/gtests/common/gtests.cc'
       ],
       'dependencies': [
@@ -20,6 +21,7 @@
         '<(DEPTH)/lib/util/util.gyp:nssutil3',
         '<(DEPTH)/lib/ssl/ssl.gyp:ssl3',
         '<(DEPTH)/lib/nss/nss.gyp:nss3',
+        '<(DEPTH)/lib/smime/smime.gyp:smime3',
       ]
     }
   ],
