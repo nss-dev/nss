@@ -61,7 +61,7 @@ gtest_start()
 
       PROFILEDIR="$DIR" make_cert dummy p256 sign
     fi
-    cd "$DIR"
+    pushd "$DIR"
     GTESTREPORT="$DIR/report.xml"
     PARSED_REPORT="$DIR/report.parsed"
     echo "executing $i"
@@ -82,6 +82,7 @@ gtest_start()
         html_failed_ignore_core "$name"
       fi
     done
+    popd
   done
 }
 
