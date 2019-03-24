@@ -11985,16 +11985,15 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
     origBuf->len = 0; /* So ssl3_GatherAppDataRecord will keep looping. */
     return SECSuccess;
 
-loser:
-    {
-        /* Make sure to remove any data that was consumed. */
-        unsigned int consumed = origBuf->len - buf.len;
-        PORT_Assert(consumed == buf.buf - origBuf->buf);
-        if (consumed > 0) {
-            memmove(origBuf->buf, origBuf->buf + consumed, buf.len);
-            origBuf->len = buf.len;
-        }
+loser : {
+    /* Make sure to remove any data that was consumed. */
+    unsigned int consumed = origBuf->len - buf.len;
+    PORT_Assert(consumed == buf.buf - origBuf->buf);
+    if (consumed > 0) {
+        memmove(origBuf->buf, origBuf->buf + consumed, buf.len);
+        origBuf->len = buf.len;
     }
+}
     return SECFailure;
 }
 
