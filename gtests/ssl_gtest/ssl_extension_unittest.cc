@@ -502,19 +502,19 @@ TEST_P(TlsExtensionTest12, SupportedCurvesDisableX25519) {
   const DataBuffer& ext1 = capture1->extension();
 
   uint32_t count;
-  ASSERT_EQ(true, ext1.Read(0, 2, &count));
+  ASSERT_TRUE(ext1.Read(0, 2, &count));
 
   // Whether or not we've seen x25519 offered in this handshake.
   bool seen1_x25519 = false;
   for (size_t offset = 2; offset <= count; offset++) {
     uint32_t val;
-    ASSERT_EQ(true, ext1.Read(offset, 2, &val));
+    ASSERT_TRUE(ext1.Read(offset, 2, &val));
     if (val == ssl_grp_ec_curve25519) {
       seen1_x25519 = true;
       break;
     }
   }
-  ASSERT_EQ(true, seen1_x25519);
+  ASSERT_TRUE(seen1_x25519);
 
   // Ensure that we can disable its use in the key exchange.
   rv = NSS_SetAlgorithmPolicy(SEC_OID_CURVE25519, 0, NSS_USE_ALG_IN_SSL_KX);
@@ -532,13 +532,13 @@ TEST_P(TlsExtensionTest12, SupportedCurvesDisableX25519) {
   EXPECT_TRUE(capture2->captured());
   const DataBuffer& ext2 = capture2->extension();
 
-  ASSERT_EQ(true, ext2.Read(0, 2, &count));
+  ASSERT_TRUE(ext2.Read(0, 2, &count));
 
   // Whether or not we've seen x25519 offered in this handshake.
   bool seen2_x25519 = false;
   for (size_t offset = 2; offset <= count; offset++) {
     uint32_t val;
-    ASSERT_EQ(true, ext2.Read(offset, 2, &val));
+    ASSERT_TRUE(ext2.Read(offset, 2, &val));
 
     if (val == ssl_grp_ec_curve25519) {
       seen2_x25519 = true;
@@ -546,7 +546,7 @@ TEST_P(TlsExtensionTest12, SupportedCurvesDisableX25519) {
     }
   }
 
-  ASSERT_EQ(false, seen2_x25519);
+  ASSERT_FALSE(seen2_x25519);
 }
 
 TEST_P(TlsExtensionTestPre13, SupportedPointsEmpty) {
