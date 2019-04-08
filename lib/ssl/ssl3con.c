@@ -3719,6 +3719,10 @@ ssl3_RestartHandshakeHashes(sslSocket *ss)
         PK11_DestroyContext(ss->ssl3.hs.sha, PR_TRUE);
         ss->ssl3.hs.sha = NULL;
     }
+    if (ss->ssl3.hs.shaPostHandshake) {
+        PK11_DestroyContext(ss->ssl3.hs.shaPostHandshake, PR_TRUE);
+        ss->ssl3.hs.shaPostHandshake = NULL;
+    }
 }
 
 /*
@@ -3774,6 +3778,24 @@ ssl3_UpdateHandshakeHashes(sslSocket *ss, const unsigned char *b, unsigned int l
             ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
             return rv;
         }
+    }
+    return rv;
+}
+
+SECStatus
+ssl3_UpdatePostHandshakeHashes(sslSocket *ss, const unsigned char *b, unsigned int l)
+{
+    SECStatus rv = SECSuccess;
+
+    PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
+
+    PRINT_BUF(90, (ss, "post handshake hash input:", b, l));
+
+    PORT_Assert(ss->ssl3.hs.hashType == handshake_hash_single);
+    PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+    rv = PK11_DigestOp(ss->ssl3.hs.shaPostHandshake, b, l);
+    if (rv != SECSuccess) {
+        PORT_SetError(SSL_ERROR_DIGEST_FAILURE);
     }
     return rv;
 }
@@ -11623,7 +11645,8 @@ ssl3_FinishHandshake(sslSocket *ss)
 SECStatus
 ssl_HashHandshakeMessageInt(sslSocket *ss, SSLHandshakeType ct,
                             PRUint32 dtlsSeq,
-                            const PRUint8 *b, PRUint32 length)
+                            const PRUint8 *b, PRUint32 length,
+                            sslUpdateHandshakeHashes updateHashes)
 {
     PRUint8 hdr[4];
     PRUint8 dtlsData[8];
@@ -11636,7 +11659,7 @@ ssl_HashHandshakeMessageInt(sslSocket *ss, SSLHandshakeType ct,
     hdr[2] = (PRUint8)(length >> 8);
     hdr[3] = (PRUint8)(length);
 
-    rv = ssl3_UpdateHandshakeHashes(ss, (unsigned char *)hdr, 4);
+    rv = updateHashes(ss, (unsigned char *)hdr, 4);
     if (rv != SECSuccess)
         return rv; /* err code already set. */
 
@@ -11656,14 +11679,13 @@ ssl_HashHandshakeMessageInt(sslSocket *ss, SSLHandshakeType ct,
         dtlsData[6] = (PRUint8)(length >> 8);
         dtlsData[7] = (PRUint8)(length);
 
-        rv = ssl3_UpdateHandshakeHashes(ss, (unsigned char *)dtlsData,
-                                        sizeof(dtlsData));
+        rv = updateHashes(ss, (unsigned char *)dtlsData, sizeof(dtlsData));
         if (rv != SECSuccess)
             return rv; /* err code already set. */
     }
 
     /* The message body */
-    rv = ssl3_UpdateHandshakeHashes(ss, b, length);
+    rv = updateHashes(ss, b, length);
     if (rv != SECSuccess)
         return rv; /* err code already set. */
 
@@ -11675,7 +11697,15 @@ ssl_HashHandshakeMessage(sslSocket *ss, SSLHandshakeType ct,
                          const PRUint8 *b, PRUint32 length)
 {
     return ssl_HashHandshakeMessageInt(ss, ct, ss->ssl3.hs.recvMessageSeq,
-                                       b, length);
+                                       b, length, ssl3_UpdateHandshakeHashes);
+}
+
+SECStatus
+ssl_HashPostHandshakeMessage(sslSocket *ss, SSLHandshakeType ct,
+                             const PRUint8 *b, PRUint32 length)
+{
+    return ssl_HashHandshakeMessageInt(ss, ct, ss->ssl3.hs.recvMessageSeq,
+                                       b, length, ssl3_UpdatePostHandshakeHashes);
 }
 
 /* Called from ssl3_HandleHandshake() when it has gathered a complete ssl3
@@ -11714,9 +11744,11 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, PRUint8 *b, PRUint32 length,
             break;
 
         default:
-            rv = ssl_HashHandshakeMessage(ss, ss->ssl3.hs.msg_type, b, length);
-            if (rv != SECSuccess) {
-                return SECFailure;
+            if (!tls13_IsPostHandshake(ss)) {
+                rv = ssl_HashHandshakeMessage(ss, ss->ssl3.hs.msg_type, b, length);
+                if (rv != SECSuccess) {
+                    return SECFailure;
+                }
             }
     }
 
@@ -13128,6 +13160,9 @@ ssl3_DestroySSL3Info(sslSocket *ss)
     }
     if (ss->ssl3.hs.sha) {
         PK11_DestroyContext(ss->ssl3.hs.sha, PR_TRUE);
+    }
+    if (ss->ssl3.hs.shaPostHandshake) {
+        PK11_DestroyContext(ss->ssl3.hs.shaPostHandshake, PR_TRUE);
     }
     if (ss->ssl3.hs.messages.buf) {
         sslBuffer_Clear(&ss->ssl3.hs.messages);
