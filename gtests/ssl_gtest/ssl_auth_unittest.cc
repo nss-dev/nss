@@ -522,8 +522,6 @@ TEST_F(TlsConnectStreamTls13, PostHandshakeAuthDecline) {
   server_->ReadBytes(50);  // read empty Certificate+Finished
   server_->ExpectReadWriteError();
   server_->SendData(50);  // send alert
-  client_->ExpectReceiveAlert(kTlsAlertCertificateRequired);
-  client_->ReadBytes(50);  // read alert
   // AuthCertificateCallback is not called, because the client sends
   // an empty certificate_list.
   EXPECT_EQ(0U, called);
