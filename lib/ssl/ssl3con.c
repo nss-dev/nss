@@ -2683,7 +2683,12 @@ ssl3_HandleNoCertificate(sslSocket *ss)
         PRFileDesc *lower;
 
         ssl_UncacheSessionID(ss);
-        SSL3_SendAlert(ss, alert_fatal, bad_certificate);
+
+        if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
+            SSL3_SendAlert(ss, alert_fatal, certificate_required);
+        } else {
+            SSL3_SendAlert(ss, alert_fatal, bad_certificate);
+        }
 
         lower = ss->fd->lower;
 #ifdef _WIN32
@@ -2918,6 +2923,9 @@ ssl3_HandleAlert(sslSocket *ss, sslBuffer *buf)
             break;
         case no_certificate:
             error = SSL_ERROR_NO_CERTIFICATE;
+            break;
+        case certificate_required:
+            error = SSL_ERROR_RX_CERTIFICATE_REQUIRED_ALERT;
             break;
         case bad_certificate:
             error = SSL_ERROR_BAD_CERT_ALERT;

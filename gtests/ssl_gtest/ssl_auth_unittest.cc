@@ -494,6 +494,9 @@ TEST_F(TlsConnectStreamTls13, PostHandshakeAuthDecline) {
   client_->SetupClientAuth();
   EXPECT_EQ(SECSuccess, SSL_OptionSet(client_->ssl_fd(),
                                       SSL_ENABLE_POST_HANDSHAKE_AUTH, PR_TRUE));
+  EXPECT_EQ(SECSuccess,
+            SSL_OptionSet(server_->ssl_fd(), SSL_REQUIRE_CERTIFICATE,
+                          SSL_REQUIRE_ALWAYS));
   // Client to decline the certificate request.
   EXPECT_EQ(SECSuccess,
             SSL_GetClientAuthDataHook(
@@ -512,10 +515,15 @@ TEST_F(TlsConnectStreamTls13, PostHandshakeAuthDecline) {
   // Send CertificateRequest.
   EXPECT_EQ(SECSuccess, SSL_SendCertificateRequest(server_->ssl_fd()))
       << "Unexpected error: " << PORT_ErrorToName(PORT_GetError());
-  server_->SendData(50);
-  client_->ReadBytes(50);
-  client_->SendData(50);
-  server_->ReadBytes(50);
+  server_->SendData(50);   // send Certificate Request
+  client_->ReadBytes(50);  // read Certificate Request
+  client_->SendData(50);   // send empty Certificate+Finished
+  server_->ExpectSendAlert(kTlsAlertCertificateRequired);
+  server_->ReadBytes(50);  // read empty Certificate+Finished
+  server_->ExpectReadWriteError();
+  server_->SendData(50);  // send alert
+  client_->ExpectReceiveAlert(kTlsAlertCertificateRequired);
+  client_->ReadBytes(50);  // read alert
   // AuthCertificateCallback is not called, because the client sends
   // an empty certificate_list.
   EXPECT_EQ(0U, called);
