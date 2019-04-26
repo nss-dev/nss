@@ -1237,7 +1237,8 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 
             /* The counter is little endian. */
             PRUint8 *param = pMechanism->pParameter;
-            for (int i = 0; i < 4; ++i) {
+            int i = 0;
+            for (; i < 4; ++i) {
                 ctx->counter |= param[i] << (i * 8);
             }
             memcpy(ctx->nonce, param + 4, 12);
