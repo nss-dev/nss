@@ -178,7 +178,7 @@ ChaCha20_Xor(unsigned char *output, const unsigned char *block, unsigned int len
     return SECFailure;
 #else
     // ChaCha has a 64 octet block, with a 32-bit block counter.
-    if (len >= (1ULL << (6 + 32))) {
+    if (sizeof(len) > 4 && len >= (1ULL << (6 + 32))) {
         PORT_SetError(SEC_ERROR_INPUT_LEN);
         return SECFailure;
     }
@@ -206,7 +206,7 @@ ChaCha20Poly1305_Seal(const ChaCha20Poly1305Context *ctx, unsigned char *output,
         return SECFailure;
     }
     // ChaCha has a 64 octet block, with a 32-bit block counter.
-    if (inputLen >= (1ULL << (6 + 32))) {
+    if (sizeof(inputLen) > 4 && inputLen >= (1ULL << (6 + 32))) {
         PORT_SetError(SEC_ERROR_INPUT_LEN);
         return SECFailure;
     }
