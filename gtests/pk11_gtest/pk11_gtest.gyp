@@ -31,6 +31,7 @@
         '<(DEPTH)/exports.gyp:nss_exports',
         '<(DEPTH)/cpputil/cpputil.gyp:cpputil',
         '<(DEPTH)/gtests/google_test/google_test.gyp:gtest',
+        '<(DEPTH)/lib/util/util.gyp:nssutil3',
       ],
       'conditions': [
         [ 'static_libs==1', {
@@ -40,18 +41,15 @@
             '<(DEPTH)/lib/certhigh/certhigh.gyp:certhi',
             '<(DEPTH)/lib/cryptohi/cryptohi.gyp:cryptohi',
             '<(DEPTH)/lib/dev/dev.gyp:nssdev',
-            '<(DEPTH)/lib/freebl/freebl.gyp:freebl_static',
             '<(DEPTH)/lib/nss/nss.gyp:nss_static',
             '<(DEPTH)/lib/pk11wrap/pk11wrap.gyp:pk11wrap_static',
             '<(DEPTH)/lib/pki/pki.gyp:nsspki',
             '<(DEPTH)/lib/ssl/ssl.gyp:ssl',
-            '<(DEPTH)/lib/util/util.gyp:nssutil',
           ],
         }, {
           'dependencies': [
             '<(DEPTH)/lib/nss/nss.gyp:nss3',
             '<(DEPTH)/lib/ssl/ssl.gyp:ssl3',
-            '<(DEPTH)/lib/util/util.gyp:nssutil3',
           ],
         }],
       ],
