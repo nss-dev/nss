@@ -5,7 +5,6 @@
 #include "gtest/gtest.h"
 
 #include <stdint.h>
-#include <memory>
 
 #include "blapi.h"
 #include "secitem.h"
