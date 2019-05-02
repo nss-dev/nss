@@ -5542,7 +5542,7 @@ tls13_MaybeDo0RTTHandshake(sslSocket *ss)
 }
 
 PRInt32
-tls13_Read0RttData(sslSocket *ss, void *buf, PRInt32 len)
+tls13_Read0RttData(sslSocket *ss, PRUint8 *buf, PRInt32 len)
 {
     PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->ssl3.hs.bufferedEarlyData));
     PRInt32 offset = 0;
