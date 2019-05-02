@@ -33,7 +33,7 @@ class PacketFilter {
     CHANGE,  // change the packet to a different value
     DROP     // drop the packet
   };
-  explicit PacketFilter(bool enabled = true) : enabled_(enabled) {}
+  explicit PacketFilter(bool on = true) : enabled_(on) {}
   virtual ~PacketFilter() {}
 
   bool enabled() const { return enabled_; }
