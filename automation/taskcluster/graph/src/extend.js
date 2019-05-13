@@ -316,7 +316,7 @@ async function scheduleMac(name, base, args = "") {
     command: [
       MAC_CHECKOUT_CMD,
       ["bash", "-c",
-       "nss/automation/taskcluster/scripts/build_gyp.sh", args]
+       "nss/automation/taskcluster/scripts/build_gyp.sh " + args]
     ],
     provisioner: "localprovisioner",
     workerType: "nss-macos-10-12",
