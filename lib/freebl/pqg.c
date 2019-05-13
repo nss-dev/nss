@@ -1015,6 +1015,8 @@ makePfromQandSeed(
     hashlen = HASH_ResultLen(hashtype);
     outlen = hashlen * PR_BITS_PER_BYTE;
 
+    PORT_Assert(outlen > 0);
+
     /* L - 1 = n*outlen + b */
     n = (L - 1) / outlen;
     b = (L - 1) % outlen;
