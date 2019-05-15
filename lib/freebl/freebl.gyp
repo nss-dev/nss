@@ -126,9 +126,9 @@
         '<(DEPTH)/exports.gyp:nss_exports'
       ]
     },
-    # For test builds, build a static freebl library so we can statically
-    # link it into the test build binary. This way we don't have to
-    # dlopen() the shared lib but can directly call freebl functions.
+    # Build a static freebl library so we can statically link it into
+    # the binary. This way we don't have to dlopen() the shared lib
+    # but can directly call freebl functions.
     {
       'target_name': 'freebl_static',
       'type': 'static_library',
@@ -154,7 +154,7 @@
           ],
           'conditions': [
             [ 'target_arch=="x64"', {
-              # The AES assembler code doesn't work in static test builds.
+              # The AES assembler code doesn't work in static builds.
               # The linker complains about non-relocatable code, and I
               # currently don't know how to fix this properly.
               'sources!': [
