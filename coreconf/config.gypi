@@ -106,7 +106,6 @@
     'moz_fold_libs%': 0,
     'moz_folded_library_name%': '',
     'sanitizer_flags%': 0,
-    'test_build%': 0,
     'static_libs%': 0,
     'no_zdefs%': 0,
     'fuzz%': 0,
@@ -130,7 +129,6 @@
     # This is mostly for linking to libraries.
     'variables': {
       'mapfile%': '',
-      'test_build%': 0,
       'static_libs%': 0,
       'debug_optimization_level%': '0',
       'release_optimization_level%': '2',
