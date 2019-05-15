@@ -182,7 +182,7 @@
             'gcm-aes-x86_c_lib',
           ]
         }],
-        [ 'OS!="linux" and OS!="android"', {
+        [ 'OS!="linux"', {
           'conditions': [
             [ 'moz_fold_libs==0', {
               'dependencies': [
@@ -194,7 +194,8 @@
               ],
             }],
           ],
-        }, 'target_arch=="x64"', {
+        }],
+        [ '(OS=="linux" or OS=="android") and target_arch=="x64"', {
           'dependencies': [
             'intel-gcm-wrap_c_lib',
           ],
