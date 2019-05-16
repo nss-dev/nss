@@ -28,119 +28,142 @@ static const uint8_t kData[16] = {'d'};
 class Pkcs11ChaCha20Poly1305Test
     : public ::testing::TestWithParam<chaChaTestVector> {
  public:
-  void EncryptDecrypt(const ScopedPK11SymKey& key, const bool invalidIV,
-                      const bool invalidTag, const uint8_t* pt, size_t ptLen,
-                      const uint8_t* aad, size_t aadLen, const uint8_t* iv,
-                      size_t ivLen, const uint8_t* ct = nullptr,
-                      size_t ctLen = 0) {
+  void EncryptDecrypt(const ScopedPK11SymKey& key, const bool invalid_iv,
+                      const bool invalid_tag, const uint8_t* data,
+                      size_t data_len, const uint8_t* aad, size_t aad_len,
+                      const uint8_t* iv, size_t iv_len,
+                      const uint8_t* ct = nullptr, size_t ct_len = 0) {
     // Prepare AEAD params.
-    CK_NSS_AEAD_PARAMS aeadParams;
-    aeadParams.pNonce = toUcharPtr(iv);
-    aeadParams.ulNonceLen = ivLen;
-    aeadParams.pAAD = toUcharPtr(aad);
-    aeadParams.ulAADLen = aadLen;
-    aeadParams.ulTagLen = 16;
+    CK_NSS_AEAD_PARAMS aead_params;
+    aead_params.pNonce = toUcharPtr(iv);
+    aead_params.ulNonceLen = iv_len;
+    aead_params.pAAD = toUcharPtr(aad);
+    aead_params.ulAADLen = aad_len;
+    aead_params.ulTagLen = 16;
 
-    SECItem params = {siBuffer, reinterpret_cast<unsigned char*>(&aeadParams),
-                      sizeof(aeadParams)};
+    SECItem params = {siBuffer, reinterpret_cast<unsigned char*>(&aead_params),
+                      sizeof(aead_params)};
+
+    // Encrypt with bad parameters.
+    unsigned int encrypted_len = 0;
+    std::vector<uint8_t> encrypted(data_len + aead_params.ulTagLen);
+    aead_params.ulTagLen = 158072;
+    SECStatus rv =
+        PK11_Encrypt(key.get(), kMech, &params, encrypted.data(),
+                     &encrypted_len, encrypted.size(), data, data_len);
+    EXPECT_EQ(SECFailure, rv);
+    EXPECT_EQ(0U, encrypted_len);
+    aead_params.ulTagLen = 16;
 
     // Encrypt.
-    unsigned int encryptedLen = 0;
-    std::vector<uint8_t> encrypted(ptLen + aeadParams.ulTagLen);
-    SECStatus rv = PK11_Encrypt(key.get(), kMech, &params, encrypted.data(),
-                                &encryptedLen, encrypted.size(), pt, ptLen);
+    rv = PK11_Encrypt(key.get(), kMech, &params, encrypted.data(),
+                      &encrypted_len, encrypted.size(), data, data_len);
 
     // Return if encryption failure was expected due to invalid IV.
     // Without valid ciphertext, all further tests can be skipped.
-    if (invalidIV) {
+    if (invalid_iv) {
       EXPECT_EQ(rv, SECFailure);
+      EXPECT_EQ(0U, encrypted_len)
+          << "encrypted_len is unmodified after failure";
       return;
-    } else {
-      EXPECT_EQ(rv, SECSuccess);
     }
+
+    EXPECT_EQ(rv, SECSuccess);
+    EXPECT_EQ(encrypted.size(), static_cast<size_t>(encrypted_len));
 
     // Check ciphertext and tag.
     if (ct) {
-      ASSERT_EQ(ctLen, encryptedLen);
-      EXPECT_TRUE(!memcmp(ct, encrypted.data(), encryptedLen) != invalidTag);
+      ASSERT_EQ(ct_len, encrypted_len);
+      EXPECT_TRUE(!memcmp(ct, encrypted.data(), encrypted.size()) !=
+                  invalid_tag);
     }
 
     // Get the *estimated* plaintext length. This value should
     // never be zero as it could lead to a NULL outPtr being
     // passed to a subsequent decryption call (for AEAD we
     // must authenticate even when the pt is zero-length).
-    unsigned int decryptBytesNeeded = 0;
-    rv = PK11_Decrypt(key.get(), kMech, &params, nullptr, &decryptBytesNeeded,
-                      0, encrypted.data(), encryptedLen);
+    unsigned int decrypt_bytes_needed = 0;
+    rv = PK11_Decrypt(key.get(), kMech, &params, nullptr, &decrypt_bytes_needed,
+                      0, encrypted.data(), encrypted_len);
     EXPECT_EQ(rv, SECSuccess);
-    EXPECT_GT(decryptBytesNeeded, ptLen);
+    EXPECT_GT(decrypt_bytes_needed, data_len);
 
     // Now decrypt it
-    std::vector<uint8_t> decrypted(decryptBytesNeeded);
-    unsigned int decryptedLen = 0;
-    rv =
-        PK11_Decrypt(key.get(), kMech, &params, decrypted.data(), &decryptedLen,
-                     decrypted.size(), encrypted.data(), encryptedLen);
+    std::vector<uint8_t> decrypted(decrypt_bytes_needed);
+    unsigned int decrypted_len = 0;
+    rv = PK11_Decrypt(key.get(), kMech, &params, decrypted.data(),
+                      &decrypted_len, decrypted.size(), encrypted.data(),
+                      encrypted.size());
     EXPECT_EQ(rv, SECSuccess);
 
     // Check the plaintext.
-    ASSERT_EQ(ptLen, decryptedLen);
-    EXPECT_TRUE(!memcmp(pt, decrypted.data(), decryptedLen));
+    ASSERT_EQ(data_len, decrypted_len);
+    EXPECT_TRUE(!memcmp(data, decrypted.data(), decrypted_len));
 
     // Decrypt with bogus data.
     // Skip if there's no data to modify.
-    if (encryptedLen != 0) {
-      std::vector<uint8_t> bogusCiphertext(encrypted);
-      bogusCiphertext[0] ^= 0xff;
+    if (encrypted_len > 0) {
+      decrypted_len = 0;
+      std::vector<uint8_t> bogus_ciphertext(encrypted);
+      bogus_ciphertext[0] ^= 0xff;
       rv = PK11_Decrypt(key.get(), kMech, &params, decrypted.data(),
-                        &decryptedLen, decrypted.size(), bogusCiphertext.data(),
-                        encryptedLen);
-      EXPECT_NE(rv, SECSuccess);
+                        &decrypted_len, decrypted.size(),
+                        bogus_ciphertext.data(), encrypted_len);
+      EXPECT_EQ(rv, SECFailure);
+      EXPECT_EQ(0U, decrypted_len);
     }
 
     // Decrypt with bogus tag.
     // Skip if there's no tag to modify.
-    if (encryptedLen != 0) {
-      std::vector<uint8_t> bogusTag(encrypted);
-      bogusTag[encryptedLen - 1] ^= 0xff;
+    if (encrypted_len > 0) {
+      decrypted_len = 0;
+      std::vector<uint8_t> bogus_tag(encrypted);
+      bogus_tag[encrypted_len - 1] ^= 0xff;
       rv = PK11_Decrypt(key.get(), kMech, &params, decrypted.data(),
-                        &decryptedLen, decrypted.size(), bogusTag.data(),
-                        encryptedLen);
-      EXPECT_NE(rv, SECSuccess);
+                        &decrypted_len, decrypted.size(), bogus_tag.data(),
+                        encrypted_len);
+      EXPECT_EQ(rv, SECFailure);
+      EXPECT_EQ(0U, decrypted_len);
     }
 
     // Decrypt with bogus IV.
-    // ivLen == 0 is invalid and should be caught earlier.
+    // iv_len == 0 is invalid and should be caught earlier.
     // Still skip, if there's no IV to modify.
-    if (ivLen != 0) {
-      SECItem bogusParams(params);
-      CK_NSS_AEAD_PARAMS bogusAeadParams(aeadParams);
-      bogusParams.data = reinterpret_cast<unsigned char*>(&bogusAeadParams);
+    if (iv_len != 0) {
+      decrypted_len = 0;
+      SECItem bogus_params(params);
+      CK_NSS_AEAD_PARAMS bogusAeadParams(aead_params);
+      bogus_params.data = reinterpret_cast<unsigned char*>(&bogusAeadParams);
 
-      std::vector<uint8_t> bogusIV(iv, iv + ivLen);
+      std::vector<uint8_t> bogusIV(iv, iv + iv_len);
       bogusAeadParams.pNonce = toUcharPtr(bogusIV.data());
       bogusIV[0] ^= 0xff;
 
-      rv = PK11_Decrypt(key.get(), kMech, &bogusParams, decrypted.data(),
-                        &decryptedLen, ptLen, encrypted.data(), encryptedLen);
-      EXPECT_NE(rv, SECSuccess);
+      rv = PK11_Decrypt(key.get(), kMech, &bogus_params, decrypted.data(),
+                        &decrypted_len, data_len, encrypted.data(),
+                        encrypted.size());
+      EXPECT_EQ(rv, SECFailure);
+      EXPECT_EQ(0U, decrypted_len);
     }
 
     // Decrypt with bogus additional data.
     // Skip when AAD was empty and can't be modified.
     // Alternatively we could generate random aad.
-    if (aadLen != 0) {
-      SECItem bogusParams(params);
-      CK_NSS_AEAD_PARAMS bogusAeadParams(aeadParams);
-      bogusParams.data = reinterpret_cast<unsigned char*>(&bogusAeadParams);
+    if (aad_len != 0) {
+      decrypted_len = 0;
+      SECItem bogus_params(params);
+      CK_NSS_AEAD_PARAMS bogus_aead_params(aead_params);
+      bogus_params.data = reinterpret_cast<unsigned char*>(&bogus_aead_params);
 
-      std::vector<uint8_t> bogusAAD(aad, aad + aadLen);
-      bogusAeadParams.pAAD = toUcharPtr(bogusAAD.data());
-      bogusAAD[0] ^= 0xff;
+      std::vector<uint8_t> bogus_aad(aad, aad + aad_len);
+      bogus_aead_params.pAAD = toUcharPtr(bogus_aad.data());
+      bogus_aad[0] ^= 0xff;
 
-      rv = PK11_Decrypt(key.get(), kMech, &bogusParams, decrypted.data(),
-                        &decryptedLen, ptLen, encrypted.data(), encryptedLen);
-      EXPECT_NE(rv, SECSuccess);
+      rv = PK11_Decrypt(key.get(), kMech, &bogus_params, decrypted.data(),
+                        &decrypted_len, data_len, encrypted.data(),
+                        encrypted.size());
+      EXPECT_EQ(rv, SECFailure);
+      EXPECT_EQ(0U, decrypted_len);
     }
   }
 
@@ -206,27 +229,29 @@ TEST_F(Pkcs11ChaCha20Poly1305Test, Xor) {
 
   SECItem ctrNonceItem = {siBuffer, toUcharPtr(kCtrNonce),
                           static_cast<unsigned int>(sizeof(kCtrNonce))};
-  uint8_t output[sizeof(kData)];
-  unsigned int outputLen = 88;  // This should be overwritten.
-  SECStatus rv = PK11_Encrypt(key.get(), kMechXor, &ctrNonceItem, output,
-                              &outputLen, sizeof(output), kData, sizeof(kData));
+  uint8_t encrypted[sizeof(kData)];
+  unsigned int encrypted_len = 88;  // This should be overwritten.
+  SECStatus rv =
+      PK11_Encrypt(key.get(), kMechXor, &ctrNonceItem, encrypted,
+                   &encrypted_len, sizeof(encrypted), kData, sizeof(kData));
   ASSERT_EQ(SECSuccess, rv);
-  ASSERT_EQ(sizeof(kExpected), static_cast<size_t>(outputLen));
-  EXPECT_EQ(0, memcmp(kExpected, output, sizeof(kExpected)));
+  ASSERT_EQ(sizeof(kExpected), static_cast<size_t>(encrypted_len));
+  EXPECT_EQ(0, memcmp(kExpected, encrypted, sizeof(kExpected)));
 
   // Decrypting has the same effect.
-  rv = PK11_Decrypt(key.get(), kMechXor, &ctrNonceItem, output, &outputLen,
-                    sizeof(output), kData, sizeof(kData));
+  rv = PK11_Decrypt(key.get(), kMechXor, &ctrNonceItem, encrypted,
+                    &encrypted_len, sizeof(encrypted), kData, sizeof(kData));
   ASSERT_EQ(SECSuccess, rv);
-  ASSERT_EQ(sizeof(kData), static_cast<size_t>(outputLen));
-  EXPECT_EQ(0, memcmp(kExpected, output, sizeof(kExpected)));
+  ASSERT_EQ(sizeof(kData), static_cast<size_t>(encrypted_len));
+  EXPECT_EQ(0, memcmp(kExpected, encrypted, sizeof(kExpected)));
 
   // Operating in reverse too.
-  rv = PK11_Encrypt(key.get(), kMechXor, &ctrNonceItem, output, &outputLen,
-                    sizeof(output), kExpected, sizeof(kExpected));
+  rv = PK11_Encrypt(key.get(), kMechXor, &ctrNonceItem, encrypted,
+                    &encrypted_len, sizeof(encrypted), kExpected,
+                    sizeof(kExpected));
   ASSERT_EQ(SECSuccess, rv);
-  ASSERT_EQ(sizeof(kExpected), static_cast<size_t>(outputLen));
-  EXPECT_EQ(0, memcmp(kData, output, sizeof(kData)));
+  ASSERT_EQ(sizeof(kExpected), static_cast<size_t>(encrypted_len));
+  EXPECT_EQ(0, memcmp(kData, encrypted, sizeof(kData)));
 }
 
 // This test just ensures that a key can be generated for use with the XOR
@@ -238,12 +263,13 @@ TEST_F(Pkcs11ChaCha20Poly1305Test, GenerateXor) {
 
   SECItem ctrNonceItem = {siBuffer, toUcharPtr(kCtrNonce),
                           static_cast<unsigned int>(sizeof(kCtrNonce))};
-  uint8_t output[sizeof(kData)];
-  unsigned int outputLen = 88;  // This should be overwritten.
-  SECStatus rv = PK11_Encrypt(key.get(), kMechXor, &ctrNonceItem, output,
-                              &outputLen, sizeof(output), kData, sizeof(kData));
+  uint8_t encrypted[sizeof(kData)];
+  unsigned int encrypted_len = 88;  // This should be overwritten.
+  SECStatus rv =
+      PK11_Encrypt(key.get(), kMechXor, &ctrNonceItem, encrypted,
+                   &encrypted_len, sizeof(encrypted), kData, sizeof(kData));
   ASSERT_EQ(SECSuccess, rv);
-  ASSERT_EQ(sizeof(kData), static_cast<size_t>(outputLen));
+  ASSERT_EQ(sizeof(kData), static_cast<size_t>(encrypted_len));
 }
 
 TEST_F(Pkcs11ChaCha20Poly1305Test, XorInvalidParams) {
@@ -253,15 +279,16 @@ TEST_F(Pkcs11ChaCha20Poly1305Test, XorInvalidParams) {
 
   SECItem ctrNonceItem = {siBuffer, toUcharPtr(kCtrNonce),
                           static_cast<unsigned int>(sizeof(kCtrNonce)) - 1};
-  uint8_t output[sizeof(kData)];
-  unsigned int outputLen = 88;
-  SECStatus rv = PK11_Encrypt(key.get(), kMechXor, &ctrNonceItem, output,
-                              &outputLen, sizeof(output), kData, sizeof(kData));
+  uint8_t encrypted[sizeof(kData)];
+  unsigned int encrypted_len = 88;
+  SECStatus rv =
+      PK11_Encrypt(key.get(), kMechXor, &ctrNonceItem, encrypted,
+                   &encrypted_len, sizeof(encrypted), kData, sizeof(kData));
   EXPECT_EQ(SECFailure, rv);
 
   ctrNonceItem.data = nullptr;
-  rv = PK11_Encrypt(key.get(), kMechXor, &ctrNonceItem, output, &outputLen,
-                    sizeof(output), kData, sizeof(kData));
+  rv = PK11_Encrypt(key.get(), kMechXor, &ctrNonceItem, encrypted,
+                    &encrypted_len, sizeof(encrypted), kData, sizeof(kData));
   EXPECT_EQ(SECFailure, rv);
   EXPECT_EQ(SEC_ERROR_BAD_DATA, PORT_GetError());
 }
