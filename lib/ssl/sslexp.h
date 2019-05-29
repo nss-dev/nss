@@ -308,6 +308,10 @@ typedef SECStatus(PR_CALLBACK *SSLExtensionHandler)(
  *   reject a second ClientHello (i.e., when firstHello is PR_FALSE); NSS will
  *   abort the handshake if this value is returned from a second call.
  *
+ * - Returning ssl_hello_retry_reject_0rtt causes NSS to proceed normally, but
+ *   to reject 0-RTT.  Use this if there is something in the token that
+ *   indicates that 0-RTT might be unsafe.
+ *
  * An application that chooses to perform a stateless retry can discard the
  * server socket.  All necessary state to continue the TLS handshake will be
  * included in the cookie extension.  This makes it possible to use a new socket
@@ -327,7 +331,8 @@ typedef SECStatus(PR_CALLBACK *SSLExtensionHandler)(
 typedef enum {
     ssl_hello_retry_fail,
     ssl_hello_retry_accept,
-    ssl_hello_retry_request
+    ssl_hello_retry_request,
+    ssl_hello_retry_reject_0rtt
 } SSLHelloRetryRequestAction;
 
 typedef SSLHelloRetryRequestAction(PR_CALLBACK *SSLHelloRetryRequestCallback)(

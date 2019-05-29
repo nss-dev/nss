@@ -45,6 +45,34 @@ TEST_P(TlsConnectTls13, ZeroRttServerRejectByOption) {
   SendReceive();
 }
 
+TEST_P(TlsConnectTls13, ZeroRttApplicationReject) {
+  SetupForZeroRtt();
+  client_->Set0RttEnabled(true);
+  server_->Set0RttEnabled(true);
+  ExpectResumption(RESUME_TICKET);
+
+  auto reject_0rtt = [](PRBool firstHello, const PRUint8* clientToken,
+                        unsigned int clientTokenLen, PRUint8* appToken,
+                        unsigned int* appTokenLen, unsigned int appTokenMax,
+                        void* arg) {
+    auto* called = reinterpret_cast<bool*>(arg);
+    *called = true;
+
+    EXPECT_TRUE(firstHello);
+    EXPECT_EQ(0U, clientTokenLen);
+    return ssl_hello_retry_reject_0rtt;
+  };
+
+  bool cb_run = false;
+  EXPECT_EQ(SECSuccess, SSL_HelloRetryRequestCallback(server_->ssl_fd(),
+                                                      reject_0rtt, &cb_run));
+  ZeroRttSendReceive(true, false);
+  Handshake();
+  EXPECT_TRUE(cb_run);
+  CheckConnected();
+  SendReceive();
+}
+
 TEST_P(TlsConnectTls13, ZeroRttApparentReplayAfterRestart) {
   // The test fixtures call SSL_InitAntiReplay() in SetUp().  This results in
   // 0-RTT being rejected until at least one window passes.  SetupFor0Rtt()
