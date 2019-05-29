@@ -537,6 +537,40 @@ TEST_F(TlsConnectStreamTls13, PostHandshakeAuthDecline) {
                       capture_cert_req->buffer().len()));
 }
 
+// Check if post-handshake auth still works when session tickets are enabled:
+// https://bugzilla.mozilla.org/show_bug.cgi?id=1553443
+TEST_F(TlsConnectStreamTls13, PostHandshakeAuthWithSessionTicketsEnabled) {
+  EnsureTlsSetup();
+  client_->SetupClientAuth();
+  EXPECT_EQ(SECSuccess, SSL_OptionSet(client_->ssl_fd(),
+                                      SSL_ENABLE_POST_HANDSHAKE_AUTH, PR_TRUE));
+  EXPECT_EQ(SECSuccess, SSL_OptionSet(client_->ssl_fd(),
+                                      SSL_ENABLE_SESSION_TICKETS, PR_TRUE));
+  EXPECT_EQ(SECSuccess, SSL_OptionSet(server_->ssl_fd(),
+                                      SSL_ENABLE_SESSION_TICKETS, PR_TRUE));
+  size_t called = 0;
+  server_->SetAuthCertificateCallback(
+      [&called](TlsAgent*, PRBool, PRBool) -> SECStatus {
+        called++;
+        return SECSuccess;
+      });
+  Connect();
+  EXPECT_EQ(0U, called);
+  // Send CertificateRequest.
+  EXPECT_EQ(SECSuccess, SSL_GetClientAuthDataHook(
+                            client_->ssl_fd(), GetClientAuthDataHook, nullptr));
+  EXPECT_EQ(SECSuccess, SSL_SendCertificateRequest(server_->ssl_fd()))
+      << "Unexpected error: " << PORT_ErrorToName(PORT_GetError());
+  server_->SendData(50);
+  client_->ReadBytes(50);
+  client_->SendData(50);
+  server_->ReadBytes(50);
+  EXPECT_EQ(1U, called);
+  ScopedCERTCertificate cert1(SSL_PeerCertificate(server_->ssl_fd()));
+  ScopedCERTCertificate cert2(SSL_LocalCertificate(client_->ssl_fd()));
+  EXPECT_TRUE(SECITEM_ItemsAreEqual(&cert1->derCert, &cert2->derCert));
+}
+
 // In TLS 1.3, the client sends its cert rejection on the
 // second flight, and since it has already received the
 // server's Finished, it transitions to complete and
