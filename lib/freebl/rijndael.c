@@ -1041,6 +1041,10 @@ AES_DestroyContext(AESContext *cx, PRBool freeit)
     PORT_Memset(cx, 0, sizeof(AESContext));
     if (freeit) {
         PORT_Free(mem);
+    } else {
+	/* if we are not freeing the context, restore mem, We may get called
+         * again to actually free the context */
+	cx->mem = mem;
     }
 }
 
