@@ -1,11 +1,6 @@
 
 1 Added function:
 
-  'function SECStatus PK11_FindRawCertsWithSubject(PK11SlotInfo*, SECItem*, CERTCertificateList**)'    {PK11_FindRawCertsWithSubject@@NSS_3.45}
-
-
-1 Added function:
-
   'function SECStatus CERT_GetCertificateDer(const CERTCertificate*, SECItem*)'    {CERT_GetCertificateDer@@NSS_3.44}
 
 1 function with some indirect sub-type change:
