@@ -1840,6 +1840,35 @@ loser:
 }
 
 /*
+ * This regenerate a public key from a private key. This function is currently
+ * NSS private. If we want to make it public, we need to add and optional
+ * template or at least flags (a.la. PK11_DeriveWithFlags).
+ */
+CK_OBJECT_HANDLE
+PK11_DerivePubKeyFromPrivKey(SECKEYPrivateKey *privKey)
+{
+    PK11SlotInfo *slot = privKey->pkcs11Slot;
+    CK_MECHANISM mechanism;
+    CK_OBJECT_HANDLE objectID = CK_INVALID_HANDLE;
+    CK_RV crv;
+
+    mechanism.mechanism = CKM_NSS_PUB_FROM_PRIV;
+    mechanism.pParameter = NULL;
+    mechanism.ulParameterLen = 0;
+
+    PK11_EnterSlotMonitor(slot);
+    crv = PK11_GETTAB(slot)->C_DeriveKey(slot->session, &mechanism,
+                                         privKey->pkcs11ID, NULL, 0,
+                                         &objectID);
+    PK11_ExitSlotMonitor(slot);
+    if (crv != CKR_OK) {
+        PORT_SetError(PK11_MapError(crv));
+        return CK_INVALID_HANDLE;
+    }
+    return objectID;
+}
+
+/*
  * This Generates a wrapping key based on a privateKey, publicKey, and two
  * random numbers. For Mail usage RandomB should be NULL. In the Sender's
  * case RandomA is generate, outherwize it is passed.

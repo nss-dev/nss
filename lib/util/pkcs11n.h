@@ -232,6 +232,9 @@
 
 #define CKM_NSS_CHACHA20_CTR (CKM_NSS + 33)
 
+/* IKE is here, skip those entries */
+#define CKM_NSS_PUB_FROM_PRIV (CKM_NSS + 40)
+
 /*
  * HISTORICAL:
  * Do not attempt to use these. They are only used by NETSCAPE's internal
