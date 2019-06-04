@@ -6552,6 +6552,10 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             extractValue = PR_FALSE;
             classType = CKO_PRIVATE_KEY;
             break;
+        case CKM_NSS_PUB_FROM_PRIV:
+            extractValue = PR_FALSE;
+            classType = CKO_PUBLIC_KEY;
+            break;
         case CKM_NSS_JPAKE_FINAL_SHA1:   /* fall through */
         case CKM_NSS_JPAKE_FINAL_SHA256: /* fall through */
         case CKM_NSS_JPAKE_FINAL_SHA384: /* fall through */
@@ -6593,6 +6597,35 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
     }
 
     switch (mechanism) {
+        /* get a public key from a private key. nsslowkey_ConvertToPublickey()
+         * will generate the public portion if it doesn't already exist. */
+        case CKM_NSS_PUB_FROM_PRIV: {
+            NSSLOWKEYPrivateKey *privKey;
+            NSSLOWKEYPublicKey *pubKey;
+            int error;
+
+            crv = sftk_GetULongAttribute(sourceKey, CKA_KEY_TYPE, &keyType);
+            if (crv != CKR_OK) {
+                break;
+            }
+
+            /* privKey is stored in sourceKey and will be destroyed when
+             * the sourceKey is freed. */
+            privKey = sftk_GetPrivKey(sourceKey, keyType, &crv);
+            if (privKey == NULL) {
+                break;
+            }
+            pubKey = nsslowkey_ConvertToPublicKey(privKey);
+            if (pubKey == NULL) {
+                error = PORT_GetError();
+                crv = sftk_MapCryptError(error);
+                break;
+            }
+            crv = sftk_PutPubKey(key, sourceKey, keyType, pubKey);
+            nsslowkey_DestroyPublicKey(pubKey);
+            break;
+        }
+
         /*
          * generate the master secret
          */
