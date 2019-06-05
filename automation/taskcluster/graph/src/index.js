@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import * as try_syntax from "./try_syntax";
+import * as queue from "./queue";
 import extend from "./extend";
 
 const main = async () => {
