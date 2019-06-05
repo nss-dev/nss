@@ -43,40 +43,10 @@ def run_tests(test, cycles="standard", env={}, silent=False):
 
 
 class coverityAction(argparse.Action):
-    production_tc_url = 'https://taskcluster.net'
-
-    def get_root_url(self, use_proxy):
-        """Get the current TASKCLUSTER_ROOT_URL.  When running in a task, this must
-        come from $TASKCLUSTER_ROOT_URL; when run on the command line, we apply a
-        defualt that points to the production deployment of Taskcluster.  If use_proxy
-        is set, this attempts to get TASKCLUSTER_PROXY_URL instead, failing if it
-        is not set."""
-        if use_proxy:
-            try:
-                return os.environ['TASKCLUSTER_PROXY_URL']
-            except KeyError:
-                if 'TASK_ID' not in os.environ:
-                    raise RuntimeError(
-                        'taskcluster-proxy is not available when not executing in a task')
-                else:
-                    raise RuntimeError(
-                        'taskcluster-proxy is not enabled for this task')
-
-        if 'TASKCLUSTER_ROOT_URL' not in os.environ:
-            if 'TASK_ID' in os.environ:
-                raise RuntimeError('$TASKCLUSTER_ROOT_URL must be set when running in a task')
-            else:
-                print('Using default TASKCLUSTER_ROOT_URL (Firefox CI production)')
-                return self.production_tc_url
-        print('Running in Taskcluster instance {}{}'.format(
-            os.environ['TASKCLUSTER_ROOT_URL'],
-            ' with taskcluster-proxy' if 'TASKCLUSTER_PROXY_URL' in os.environ else ''))
-        return os.environ['TASKCLUSTER_ROOT_URL']
 
     def get_coverity_remote_cfg(self):
-        secret_name = 'project/relman/coverity'
-        secrets_url = '{}/secrets/v1/secret/{}'.format(self.get_root_url(True),
-                                                       secret_name)
+        secret_name = 'project/relman/coverity-nss'
+        secrets_url = 'http://taskcluster/secrets/v1/secret/{}'.format(secret_name)
 
         print('Using symbol upload token from the secrets service: "{}"'.
               format(secrets_url))
@@ -218,16 +188,10 @@ class coverityAction(argparse.Action):
                 pass
         return status
 
-    def cov_is_file_in_source(self, abs_path, source):
-        # We have as an input an absolute path for whom we verify if it's a symlink,
-        # if so, we follow that symlink and we match it with elements from source.
-        # If the match is done we return abs_path, otherwise None
-        assert isinstance(source, list)
+    def cov_is_file_in_source(self, abs_path):
         if os.path.islink(abs_path):
             abs_path = os.path.realpath(abs_path)
-        if abs_path in source:
-            return abs_path
-        return None
+        return abs_path
 
     def dump_cov_artifact(self, cov_results, source, output):
         import json
@@ -265,7 +229,7 @@ class coverityAction(argparse.Action):
                 return dict_issue
 
             for issue in result['issues']:
-                path = self.cov_is_file_in_source(issue['strippedMainEventFilePathname'], source)
+                path = self.cov_is_file_in_source(issue['strippedMainEventFilePathname'])
                 if path is None:
                     # Since we skip a result we should log it
                     print('Skipping CID: {0} from file: {1} since it\'s not related with the current patch.'.format(
@@ -298,7 +262,7 @@ class coverityAction(argparse.Action):
         if config_path is None:
             self.local_config = False
             print('No coverity config path has been specified, so running in automation.')
-            if 'MOZ_AUTOMATION' not in os.environ:
+            if 'NSS_AUTOMATION' not in os.environ:
                 print('Coverity based static-analysis cannot be ran outside automation.')
                 return 1
 
@@ -332,9 +296,8 @@ class coverityAction(argparse.Action):
             print('Coverity Analysis failed!')
 
         # On automation, like try, we want to build an artifact with the results.
-        output = os.path.join(self.cov_state_path, 'result.json')
-        if 'MOZ_AUTOMATION' in os.environ:
-            self.dump_cov_artifact(cov_result, cov_result, output)
+        if 'NSS_AUTOMATION' in os.environ:
+            self.dump_cov_artifact(cov_result, cov_result, "/home/worker/nss/coverity/coverity.json")
 
 
 class cfAction(argparse.Action):

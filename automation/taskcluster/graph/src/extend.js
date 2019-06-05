@@ -460,7 +460,6 @@ async function scheduleLinux(name, overrides, args = "") {
     },
     symbol: "clang-4"
   }));
-
   queue.scheduleTask(merge(extra_base, {
     name: `${name} w/ gcc-4.4`,
     image: LINUX_GCC44_IMAGE,
@@ -1001,6 +1000,32 @@ async function scheduleTools() {
       "/bin/bash",
       "-c",
       "bin/checkout.sh && nss/automation/taskcluster/scripts/run_scan_build.sh"
+    ]
+  }));
+
+  queue.scheduleTask(merge(base, {
+    symbol: "coverity",
+    name: "coverity",
+    image: FUZZ_IMAGE,
+    env: {
+      USE_64: "1",
+      CC: "clang",
+      CCC: "clang++",
+      NSS_AUTOMATION: "1"
+    },
+    features: ["taskclusterProxy"],
+    scopes: ["secrets:get:project/relman/coverity-nss"],
+    artifacts: {
+      "public/code-review/coverity.json": {
+        expires: 24 * 7,
+        type: "file",
+        path: "/home/worker/nss/coverity/coverity.json"
+      }
+    },
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/run_coverity.sh"
     ]
   }));
 
