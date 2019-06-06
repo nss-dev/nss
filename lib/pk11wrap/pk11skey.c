@@ -1598,6 +1598,7 @@ PK11_DeriveWithTemplate(PK11SymKey *baseKey, CK_MECHANISM_TYPE derive,
         PK11_FreeSymKey(newBaseKey);
     if (crv != CKR_OK) {
         PK11_FreeSymKey(symKey);
+        PORT_SetError(PK11_MapError(crv));
         return NULL;
     }
     return symKey;
