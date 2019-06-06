@@ -691,6 +691,8 @@ extern NSSLOWKEYPublicKey *sftk_GetPubKey(SFTKObject *object,
                                           CK_KEY_TYPE key_type, CK_RV *crvp);
 extern NSSLOWKEYPrivateKey *sftk_GetPrivKey(SFTKObject *object,
                                             CK_KEY_TYPE key_type, CK_RV *crvp);
+extern CK_RV sftk_PutPubKey(SFTKObject *publicKey, SFTKObject *privKey, CK_KEY_TYPE keyType,
+                            NSSLOWKEYPublicKey *pubKey);
 extern void sftk_FormatDESKey(unsigned char *key, int length);
 extern PRBool sftk_CheckDESKey(unsigned char *key);
 extern PRBool sftk_IsWeakKey(unsigned char *key, CK_KEY_TYPE key_type);
