@@ -12,6 +12,7 @@ let maps = [];
 let filters = [];
 
 let tasks = new Map();
+let tags = new Map();
 let image_tasks = new Map();
 
 let queue = new taskcluster.Queue({
@@ -101,6 +102,9 @@ function convertTask(def) {
     dependencies.push(def.parent);
     env.TC_PARENT_TASK_ID = def.parent;
   }
+  if (def.parents) {
+    dependencies = dependencies.concat(def.parents);
+  }
 
   if (def.tests) {
     env.NSS_TESTS = def.tests;
@@ -148,6 +152,7 @@ function convertTask(def) {
     deadline: fromNow(24),
 
     dependencies,
+    requires: def.requires || "all-completed",
     routes: parseRoutes(def.routes || []),
 
     metadata: {
@@ -173,6 +178,14 @@ export function filter(fun) {
   filters.push(fun);
 }
 
+export function clearFilters(fun) {
+  filters = [];
+}
+
+export function taggedTasks(tag) {
+  return tags[tag];
+}
+
 export function scheduleTask(def) {
   let taskId = slugid.v4();
   tasks.set(taskId, merge({}, def));
@@ -193,6 +206,16 @@ export async function submit() {
 
     let log_id = `${task.name} @ ${task.platform}[${task.collection || "opt"}]`;
     console.log(`+ Submitting ${log_id}.`);
+
+    // Index that task for each tag specified
+    if(task.tags) {
+      task.tags.map(tag => {
+        if(!tags[tag]) {
+          tags[tag] = [];
+        }
+        tags[tag].push(taskId);
+      });
+    }
 
     let parent = task.parent;
 
