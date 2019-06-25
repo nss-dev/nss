@@ -159,11 +159,16 @@ typedef SECStatus(PR_CALLBACK *SSLExtensionHandler)(
                           handler, handlerArg))
 
 /*
- * Initialize the anti-replay buffer for supporting 0-RTT in TLS 1.3 on servers.
+ * Create an anti-replay context for supporting 0-RTT in TLS 1.3 on servers.
  *
- * To use 0-RTT on a server, you must call this function.  Failing to call this
- * function will result in all 0-RTT being rejected.  Connections will complete,
- * but early data will be rejected.
+ * To use 0-RTT on a server, you must create an anti-replay context using
+ * SSL_CreateAntiReplayContext and set that on the socket with
+ * SSL_SetAntiReplayContext.  Failing to set a context on the server will result
+ * in all 0-RTT being rejected.  Connections will complete, but early data will
+ * be rejected.
+ *
+ * Anti-replay contexts are reference counted and are released with
+ * SSL_ReleaseAntiReplayContext.
  *
  * NSS uses a Bloom filter to track the ClientHello messages that it receives
  * (specifically, it uses the PSK binder).  This function initializes a pair of
@@ -219,11 +224,23 @@ typedef SECStatus(PR_CALLBACK *SSLExtensionHandler)(
  * Early data can be replayed at least once with every server instance that will
  * accept tickets that are encrypted with the same key.
  */
-#define SSL_InitAntiReplay(now, window, k, bits)                \
-    SSL_EXPERIMENTAL_API("SSL_InitAntiReplay",                  \
-                         (PRTime _now, PRTime _window,          \
-                          unsigned int _k, unsigned int _bits), \
-                         (now, window, k, bits))
+typedef struct SSLAntiReplayContextStr SSLAntiReplayContext;
+#define SSL_CreateAntiReplayContext(now, window, k, bits, ctx) \
+    SSL_EXPERIMENTAL_API("SSL_CreateAntiReplayContext",        \
+                         (PRTime _now, PRTime _window,         \
+                          unsigned int _k, unsigned int _bits, \
+                          SSLAntiReplayContext **_ctx),        \
+                         (now, window, k, bits, ctx))
+
+#define SSL_SetAntiReplayContext(fd, ctx)                                 \
+    SSL_EXPERIMENTAL_API("SSL_SetAntiReplayContext",                      \
+                         (PRFileDesc * _fd, SSLAntiReplayContext * _ctx), \
+                         (fd, ctx))
+
+#define SSL_ReleaseAntiReplayContext(ctx)                \
+    SSL_EXPERIMENTAL_API("SSL_ReleaseAntiReplayContext", \
+                         (SSLAntiReplayContext * _ctx),  \
+                         (ctx))
 
 /*
  * This function allows a server application to generate a session ticket that
@@ -743,6 +760,7 @@ typedef PRTime(PR_CALLBACK *SSLTimeFunc)(void *arg);
 /* Deprecated experimental APIs */
 #define SSL_UseAltServerHelloType(fd, enable) SSL_DEPRECATED_EXPERIMENTAL_API
 #define SSL_SetupAntiReplay(a, b, c) SSL_DEPRECATED_EXPERIMENTAL_API
+#define SSL_InitAntiReplay(a, b, c) SSL_DEPRECATED_EXPERIMENTAL_API
 
 SEC_END_PROTOS
 
