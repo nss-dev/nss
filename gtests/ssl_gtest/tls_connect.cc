@@ -241,7 +241,7 @@ void TlsConnectTestBase::Init() {
 }
 
 void TlsConnectTestBase::ResetAntiReplay(PRTime window) {
-  SSLAntiReplayContext* p_anti_replay;
+  SSLAntiReplayContext* p_anti_replay = nullptr;
   EXPECT_EQ(SECSuccess,
             SSL_CreateAntiReplayContext(now_, window, 1, 3, &p_anti_replay));
   EXPECT_NE(nullptr, p_anti_replay);
