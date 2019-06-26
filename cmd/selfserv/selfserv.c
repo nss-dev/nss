@@ -2470,12 +2470,6 @@ main(int argc, char **argv)
 
             case 'Z':
                 zeroRTT = PR_TRUE;
-                rv = SSL_CreateAntiReplayContext(PR_Now(), 10L * PR_USEC_PER_SEC, 7, 14, &antiReplay);
-                if (rv != SECSuccess) {
-                    PL_DestroyOptState(optstate);
-                    fprintf(stderr, "Unable to create anti-replay context for 0-RTT.\n");
-                    exit(1);
-                }
                 break;
 
             case 'Q':
@@ -2729,6 +2723,12 @@ main(int argc, char **argv)
             goto cleanup;
         }
         fprintf(stderr, "selfserv: Done creating dynamic weak DH parameters\n");
+    }
+    if (zeroRTT) {
+        rv = SSL_CreateAntiReplayContext(PR_Now(), 10L * PR_USEC_PER_SEC, 7, 14, &antiReplay);
+        if (rv != SECSuccess) {
+            errExit("Unable to create anti-replay context for 0-RTT.");
+        }
     }
 
     /* allocate the array of thread slots, and launch the worker threads. */
