@@ -52,6 +52,7 @@ tls13_ReleaseAntiReplayContext(SSLAntiReplayContext *ctx)
     ctx->key = NULL;
     sslBloom_Destroy(&ctx->filters[0]);
     sslBloom_Destroy(&ctx->filters[1]);
+    PORT_Free(ctx);
 }
 
 /* Clear the current state and free any resources we allocated. The signature
