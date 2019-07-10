@@ -6,6 +6,7 @@
 
 #include <ctime>
 
+#include "prtime.h"
 #include "secerr.h"
 #include "ssl.h"
 
@@ -58,7 +59,9 @@ TEST_P(TlsConnectTls13, DCNotConfigured) {
 TEST_P(TlsConnectTls13, DCConnectEcdsaP256) {
   Reset(kDelegatorId);
   client_->EnableDelegatedCredentials();
-  server_->AddDelegatedCredential(kDCId, kDCScheme, kDCValidFor, now());
+  server_->AddDelegatedCredential(TlsAgent::kServerEcdsa256,
+                                  ssl_sig_ecdsa_secp256r1_sha256, kDCValidFor,
+                                  now());
 
   auto cfilter = MakeTlsFilter<TlsExtensionCapture>(
       client_, ssl_delegated_credentials_xtn);
@@ -66,6 +69,7 @@ TEST_P(TlsConnectTls13, DCConnectEcdsaP256) {
 
   EXPECT_TRUE(cfilter->captured());
   CheckPeerDelegCred(client_, true, 256);
+  EXPECT_EQ(ssl_sig_ecdsa_secp256r1_sha256, client_->info().signatureScheme);
 }
 
 // Connected with ECDSA-P521.
@@ -83,10 +87,11 @@ TEST_P(TlsConnectTls13, DCConnectEcdsaP521) {
 
   EXPECT_TRUE(cfilter->captured());
   CheckPeerDelegCred(client_, true, 521);
+  EXPECT_EQ(ssl_sig_ecdsa_secp521r1_sha512, client_->info().signatureScheme);
 }
 
-// Connected with RSA-PSS.
-TEST_P(TlsConnectTls13, DCConnectRsaPss) {
+// Connected with RSA-PSS, using an RSAE SPKI.
+TEST_P(TlsConnectTls13, DCConnectRsaPssRsae) {
   Reset(kDelegatorId);
   client_->EnableDelegatedCredentials();
   server_->AddDelegatedCredential(
@@ -98,6 +103,30 @@ TEST_P(TlsConnectTls13, DCConnectRsaPss) {
 
   EXPECT_TRUE(cfilter->captured());
   CheckPeerDelegCred(client_, true, 1024);
+  EXPECT_EQ(ssl_sig_rsa_pss_rsae_sha256, client_->info().signatureScheme);
+}
+
+// Connected with RSA-PSS, using a PSS SPKI.
+TEST_P(TlsConnectTls13, DCConnectRsaPssPss) {
+  Reset(kDelegatorId);
+
+  // Need to enable PSS-PSS, which is not on by default.
+  static const SSLSignatureScheme kSchemes[] = {ssl_sig_ecdsa_secp256r1_sha256,
+                                                ssl_sig_rsa_pss_pss_sha256};
+  client_->SetSignatureSchemes(kSchemes, PR_ARRAY_SIZE(kSchemes));
+  server_->SetSignatureSchemes(kSchemes, PR_ARRAY_SIZE(kSchemes));
+
+  client_->EnableDelegatedCredentials();
+  server_->AddDelegatedCredential(
+      TlsAgent::kServerRsaPss, ssl_sig_rsa_pss_pss_sha256, kDCValidFor, now());
+
+  auto cfilter = MakeTlsFilter<TlsExtensionCapture>(
+      client_, ssl_delegated_credentials_xtn);
+  Connect();
+
+  EXPECT_TRUE(cfilter->captured());
+  CheckPeerDelegCred(client_, true, 1024);
+  EXPECT_EQ(ssl_sig_rsa_pss_pss_sha256, client_->info().signatureScheme);
 }
 
 // Generate a weak key.  We can't do this in the fixture because certutil
@@ -133,7 +162,7 @@ static void GenerateWeakRsaKey(ScopedSECKEYPrivateKey& priv,
     ASSERT_EQ(
         SECSuccess,
         PK11_RandomUpdate(
-            const_cast<void*>(reinterpret_cast<const void*>(&FRESH_ENTROPY)),
+            const_cast<void*>(reinterpret_cast<const void*>(FRESH_ENTROPY)),
             sizeof(FRESH_ENTROPY)));
     break;
   }
@@ -169,18 +198,37 @@ TEST_P(TlsConnectTls13, DCWeakKey) {
   ConnectExpectAlert(client_, kTlsAlertInsufficientSecurity);
 }
 
+class ReplaceDCSigScheme : public TlsHandshakeFilter {
+ public:
+  ReplaceDCSigScheme(const std::shared_ptr<TlsAgent>& a)
+      : TlsHandshakeFilter(a, {ssl_hs_certificate_verify}) {}
+
+ protected:
+  PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
+                                       const DataBuffer& input,
+                                       DataBuffer* output) override {
+    *output = input;
+    output->Write(0, ssl_sig_ecdsa_secp384r1_sha384, 2);
+    return CHANGE;
+  }
+};
+
 // Aborted because of incorrect DC signature algorithm indication.
 TEST_P(TlsConnectTls13, DCAbortBadExpectedCertVerifyAlg) {
   Reset(kDelegatorId);
   client_->EnableDelegatedCredentials();
   server_->AddDelegatedCredential(TlsAgent::kServerEcdsa256,
-                                  ssl_sig_ecdsa_secp521r1_sha512, kDCValidFor,
+                                  ssl_sig_ecdsa_secp256r1_sha256, kDCValidFor,
                                   now());
+  auto filter = MakeTlsFilter<ReplaceDCSigScheme>(server_);
+  filter->EnableDecryption();
   ConnectExpectAlert(client_, kTlsAlertIllegalParameter);
+  client_->CheckErrorCode(SSL_ERROR_DC_CERT_VERIFY_ALG_MISMATCH);
+  server_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
 }
 
 // Aborted because of invalid DC signature.
-TEST_P(TlsConnectTls13, DCABortBadSignature) {
+TEST_P(TlsConnectTls13, DCAbortBadSignature) {
   Reset(kDelegatorId);
   EnsureTlsSetup();
   client_->EnableDelegatedCredentials();
@@ -201,6 +249,8 @@ TEST_P(TlsConnectTls13, DCABortBadSignature) {
   EXPECT_TRUE(server_->ConfigServerCert(kDelegatorId, true, &extra_data));
 
   ConnectExpectAlert(client_, kTlsAlertIllegalParameter);
+  client_->CheckErrorCode(SSL_ERROR_DC_BAD_SIGNATURE);
+  server_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
 }
 
 // Aborted because of expired DC.
@@ -212,6 +262,8 @@ TEST_P(TlsConnectTls13, DCAbortExpired) {
   // DC expired.
   AdvanceTime((static_cast<PRTime>(kDCValidFor) + 1) * PR_USEC_PER_SEC);
   ConnectExpectAlert(client_, kTlsAlertIllegalParameter);
+  client_->CheckErrorCode(SSL_ERROR_DC_EXPIRED);
+  server_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
 }
 
 // Aborted because of invalid key usage.
@@ -310,6 +362,63 @@ TEST_P(TlsConnectTls13, DCConnectExpectedCertVerifyAlgNotSupported) {
   // Client sends indication, but the server doesn't send a DC.
   EXPECT_TRUE(cfilter->captured());
   CheckPeerDelegCred(client_, false);
+}
+
+class DCDelegation : public ::testing::Test {};
+
+TEST_F(DCDelegation, DCDelegations) {
+  PRTime now = PR_Now();
+  ScopedCERTCertificate cert;
+  ScopedSECKEYPrivateKey priv;
+  ASSERT_TRUE(TlsAgent::LoadCertificate(kDelegatorId, &cert, &priv));
+
+  ScopedSECKEYPublicKey pub_rsa;
+  ScopedSECKEYPrivateKey priv_rsa;
+  ASSERT_TRUE(
+      TlsAgent::LoadKeyPairFromCert(TlsAgent::kServerRsa, &pub_rsa, &priv_rsa));
+
+  StackSECItem dc;
+  EXPECT_EQ(SECFailure,
+            SSL_DelegateCredential(cert.get(), priv.get(), pub_rsa.get(),
+                                   ssl_sig_ecdsa_secp256r1_sha256, kDCValidFor,
+                                   now, &dc));
+  EXPECT_EQ(SSL_ERROR_INCORRECT_SIGNATURE_ALGORITHM, PORT_GetError());
+
+  // Using different PSS hashes should be OK.
+  EXPECT_EQ(SECSuccess,
+            SSL_DelegateCredential(cert.get(), priv.get(), pub_rsa.get(),
+                                   ssl_sig_rsa_pss_rsae_sha256, kDCValidFor,
+                                   now, &dc));
+  // Make sure to reset |dc| after each success.
+  dc.Reset();
+  EXPECT_EQ(SECSuccess, SSL_DelegateCredential(
+                            cert.get(), priv.get(), pub_rsa.get(),
+                            ssl_sig_rsa_pss_pss_sha256, kDCValidFor, now, &dc));
+  dc.Reset();
+  EXPECT_EQ(SECSuccess, SSL_DelegateCredential(
+                            cert.get(), priv.get(), pub_rsa.get(),
+                            ssl_sig_rsa_pss_pss_sha384, kDCValidFor, now, &dc));
+  dc.Reset();
+
+  ScopedSECKEYPublicKey pub_ecdsa;
+  ScopedSECKEYPrivateKey priv_ecdsa;
+  ASSERT_TRUE(TlsAgent::LoadKeyPairFromCert(TlsAgent::kServerEcdsa256,
+                                            &pub_ecdsa, &priv_ecdsa));
+
+  EXPECT_EQ(SECFailure,
+            SSL_DelegateCredential(cert.get(), priv.get(), pub_ecdsa.get(),
+                                   ssl_sig_rsa_pss_rsae_sha256, kDCValidFor,
+                                   now, &dc));
+  EXPECT_EQ(SSL_ERROR_INCORRECT_SIGNATURE_ALGORITHM, PORT_GetError());
+  EXPECT_EQ(SECFailure, SSL_DelegateCredential(
+                            cert.get(), priv.get(), pub_ecdsa.get(),
+                            ssl_sig_rsa_pss_pss_sha256, kDCValidFor, now, &dc));
+  EXPECT_EQ(SSL_ERROR_INCORRECT_SIGNATURE_ALGORITHM, PORT_GetError());
+  EXPECT_EQ(SECFailure,
+            SSL_DelegateCredential(cert.get(), priv.get(), pub_ecdsa.get(),
+                                   ssl_sig_ecdsa_secp384r1_sha384, kDCValidFor,
+                                   now, &dc));
+  EXPECT_EQ(SSL_ERROR_INCORRECT_SIGNATURE_ALGORITHM, PORT_GetError());
 }
 
 }  // namespace nss_test
