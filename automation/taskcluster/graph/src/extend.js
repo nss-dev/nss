@@ -139,9 +139,8 @@ queue.map(task => {
     task.maxRunTime = 7200;
   }
 
-  if (task.platform == "mac" && task.tests == "tools" && task.collection == "opt") {
-      // PBE iteration count is 600k on opt builds. Bump to prevent timeouts
-      task.MaxRunTime = 7200;
+  if (task.platform == "mac" && task.tests == "tools") {
+      task.maxRunTime = 7200;
   }
   return task;
 });
