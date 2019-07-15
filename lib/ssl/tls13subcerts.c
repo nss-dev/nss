@@ -350,6 +350,7 @@ tls13_VerifyCredentialSignature(sslSocket *ss, sslDelegatedCredential *dc)
     SSL3Hashes hash;
     sslBuffer dcBuf = SSL_BUFFER_EMPTY;
     CERTCertificate *cert = ss->sec.peerCert;
+    SECKEYPublicKey *pubKey = NULL;
 
     /* Serialize the DC parameters. */
     rv = tls13_AppendCredentialParams(&dcBuf, dc);
@@ -364,18 +365,26 @@ tls13_VerifyCredentialSignature(sslSocket *ss, sslDelegatedCredential *dc)
         goto loser;
     }
 
+    pubKey = SECKEY_ExtractPublicKey(&cert->subjectPublicKeyInfo);
+    if (pubKey == NULL) {
+        FATAL_ERROR(ss, SSL_ERROR_EXTRACT_PUBLIC_KEY_FAILURE, internal_error);
+        goto loser;
+    }
+
     /* Verify the signature of the message. */
-    rv = ssl3_VerifySignedHashesWithSpki(
-        ss, &cert->subjectPublicKeyInfo, dc->alg, &hash, &dc->signature);
+    rv = ssl_VerifySignedHashesWithPubKey(ss, pubKey, dc->alg,
+                                          &hash, &dc->signature);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SSL_ERROR_DC_BAD_SIGNATURE, illegal_parameter);
         goto loser;
     }
 
+    SECKEY_DestroyPublicKey(pubKey);
     sslBuffer_Clear(&dcBuf);
     return SECSuccess;
 
 loser:
+    SECKEY_DestroyPublicKey(pubKey);
     sslBuffer_Clear(&dcBuf);
     return SECFailure;
 }
