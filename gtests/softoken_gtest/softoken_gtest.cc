@@ -120,6 +120,27 @@ TEST_F(SoftokenTest, CreateObjectChangePassword) {
   EXPECT_EQ(nullptr, obj);
 }
 
+/* The size limit for a password is 500 characters as defined in pkcs11i.h */
+TEST_F(SoftokenTest, CreateObjectChangeToBigPassword) {
+  ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
+  ASSERT_TRUE(slot);
+  EXPECT_EQ(SECSuccess, PK11_InitPin(slot.get(), nullptr, nullptr));
+  EXPECT_EQ(
+      SECSuccess,
+      PK11_ChangePW(slot.get(), "",
+                    "rUIFIFr2bxKnbJbitsfkyqttpk6vCJzlYMNxcxXcaN37gSZKbLk763X7iR"
+                    "yeVNWZHQ02lSF69HYjzTyPW3318ZD0DBFMMbALZ8ZPZP73CIo5uIQlaowV"
+                    "IbP8eOhRYtGUqoLGlcIFNEYogV8Q3GN58VeBMs0KxrIOvPQ9s8SnYYkqvt"
+                    "zzgntmAvCgvk64x6eQf0okHwegd5wi6m0WVJytEepWXkP9J629FSa5kNT8"
+                    "FvL3jvslkiImzTNuTvl32fQDXXMSc8vVk5Q3mH7trMZM0VDdwHWYERjHbz"
+                    "kGxFgp0VhediHx7p9kkz6H6ac4et9sW4UkTnN7xhYc1Zr17wRSk2heQtcX"
+                    "oZJGwuzhiKm8A8wkuVxms6zO56P4JORIk8oaUW6lyNTLo2kWWnTA"));
+  EXPECT_EQ(SECSuccess, PK11_Logout(slot.get()));
+  ScopedPK11GenericObject obj(PK11_CreateGenericObject(
+      slot.get(), attributes, PR_ARRAY_SIZE(attributes), true));
+  EXPECT_EQ(nullptr, obj);
+}
+
 TEST_F(SoftokenTest, CreateObjectChangeToEmptyPassword) {
   ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
   ASSERT_TRUE(slot);
