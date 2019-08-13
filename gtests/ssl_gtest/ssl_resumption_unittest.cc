@@ -1301,7 +1301,7 @@ TEST_P(TlsConnectTls13ResumptionToken, ConnectResumeGetInfoZeroRtt) {
   client_->GetTokenInfo(token);
   ScopedCERTCertificate cert(
       PK11_FindCertFromNickname(server_->name().c_str(), nullptr));
-  ASSERT_NE(nullptr, cert.get());  
+  ASSERT_NE(nullptr, cert.get());
   CheckGetInfoResult(now(), 1, 1024, cert, token);
 
   ZeroRttSendReceive(true, true);
