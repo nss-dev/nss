@@ -128,10 +128,14 @@ void TlsAgent::SetState(State s) {
                                           ScopedCERTCertificate* cert,
                                           ScopedSECKEYPrivateKey* priv) {
   cert->reset(PK11_FindCertFromNickname(name.c_str(), nullptr));
+  EXPECT_NE(nullptr, cert);
+  if(!cert) return false;
   EXPECT_NE(nullptr, cert->get());
   if (!cert->get()) return false;
 
   priv->reset(PK11_FindKeyByAnyCert(cert->get(), nullptr));
+  EXPECT_NE(nullptr, priv);
+  if(!priv) return false;
   EXPECT_NE(nullptr, priv->get());
   if (!priv->get()) return false;
 
