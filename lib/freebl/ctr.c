@@ -128,6 +128,11 @@ CTR_Update(CTRContext *ctr, unsigned char *outbuf,
     unsigned int tmp;
     SECStatus rv;
 
+    // Limit block count to 2^counterBits - 2
+    if (inlen > ((1ULL << ctr->counterBits) - 2) * AES_BLOCK_SIZE) {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        return SECFailure;
+    }
     if (maxout < inlen) {
         *outlen = inlen;
         PORT_SetError(SEC_ERROR_OUTPUT_LEN);
@@ -199,6 +204,11 @@ CTR_Update_HW_AES(CTRContext *ctr, unsigned char *outbuf,
     unsigned int tmp;
     SECStatus rv;
 
+    // Limit block count to 2^counterBits - 2
+    if (inlen > ((1ULL << ctr->counterBits) - 2) * AES_BLOCK_SIZE) {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        return SECFailure;
+    }
     if (maxout < inlen) {
         *outlen = inlen;
         PORT_SetError(SEC_ERROR_OUTPUT_LEN);
