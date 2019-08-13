@@ -129,13 +129,13 @@ void TlsAgent::SetState(State s) {
                                           ScopedSECKEYPrivateKey* priv) {
   cert->reset(PK11_FindCertFromNickname(name.c_str(), nullptr));
   EXPECT_NE(nullptr, cert);
-  if(!cert) return false;
+  if (!cert) return false;
   EXPECT_NE(nullptr, cert->get());
   if (!cert->get()) return false;
 
   priv->reset(PK11_FindKeyByAnyCert(cert->get(), nullptr));
   EXPECT_NE(nullptr, priv);
-  if(!priv) return false;
+  if (!priv) return false;
   EXPECT_NE(nullptr, priv->get());
   if (!priv->get()) return false;
 
@@ -167,7 +167,8 @@ void TlsAgent::DelegateCredential(const std::string& name,
   ScopedCERTCertificate cert;
   ScopedSECKEYPrivateKey cert_priv;
   EXPECT_TRUE(TlsAgent::LoadCertificate(name, &cert, &cert_priv))
-    << "Could not load delegate certificate: " << name << "; test db corrupt?";
+      << "Could not load delegate certificate: " << name
+      << "; test db corrupt?";
 
   EXPECT_EQ(SECSuccess,
             SSL_DelegateCredential(cert.get(), cert_priv.get(), dc_pub.get(),
