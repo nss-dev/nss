@@ -166,7 +166,9 @@ void TlsAgent::DelegateCredential(const std::string& name,
                                   SECItem* dc) {
   ScopedCERTCertificate cert;
   ScopedSECKEYPrivateKey cert_priv;
-  EXPECT_TRUE(TlsAgent::LoadCertificate(name, &cert, &cert_priv));
+  EXPECT_TRUE(TlsAgent::LoadCertificate(name, &cert, &cert_priv))
+    << "Could not load delegate certificate: " << name << "; test db corrupt?";
+
   EXPECT_EQ(SECSuccess,
             SSL_DelegateCredential(cert.get(), cert_priv.get(), dc_pub.get(),
                                    dc_cert_verify_alg, dc_valid_for, now, dc));
