@@ -249,10 +249,6 @@ bool TlsAgent::EnsureTlsSetup(PRFileDesc* modelSocket) {
     if (rv != SECSuccess) return false;
   }
 
-  ScopedCERTCertList anchors(CERT_NewCertList());
-  rv = SSL_SetTrustAnchors(ssl_fd(), anchors.get());
-  if (rv != SECSuccess) return false;
-
   if (role_ == SERVER) {
     EXPECT_TRUE(ConfigServerCert(name_, true));
 
@@ -325,7 +321,7 @@ void TlsAgent::SetupClientAuth() {
                                       reinterpret_cast<void*>(this)));
 }
 
-void CheckCertReqAgainstDefaultCAs(const CERTDistNames* caNames) {
+static void CheckCertReqAgainstDefaultCAs(const CERTDistNames* caNames) {
   ScopedCERTDistNames expected(CERT_GetSSLCACerts(nullptr));
 
   ASSERT_EQ(expected->nnames, caNames->nnames);
@@ -344,8 +340,7 @@ SECStatus TlsAgent::GetClientAuthDataHook(void* self, PRFileDesc* fd,
   ScopedCERTCertificate peerCert(SSL_PeerCertificate(agent->ssl_fd()));
   EXPECT_TRUE(peerCert) << "Client should be able to see the server cert";
 
-  // See bug 1457716
-  // CheckCertReqAgainstDefaultCAs(caNames);
+  CheckCertReqAgainstDefaultCAs(caNames);
 
   ScopedCERTCertificate cert;
   ScopedSECKEYPrivateKey priv;
