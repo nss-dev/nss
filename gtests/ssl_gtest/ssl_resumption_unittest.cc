@@ -1334,6 +1334,54 @@ TEST_P(TlsConnectGenericResumption, ConnectResumeClientAuth) {
   SendReceive();
 }
 
+// Check that resumption is blocked if the server requires client auth.
+TEST_P(TlsConnectGenericResumption, ClientAuthRequiredOnResumption) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  server_->RequestClientAuth(false);
+  Connect();
+  SendReceive();
+
+  Reset();
+  client_->SetupClientAuth();
+  server_->RequestClientAuth(true);
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  ExpectResumption(RESUME_NONE);
+  Connect();
+  SendReceive();
+}
+
+// Check that resumption is blocked if the server requires client auth and
+// the client fails to provide a certificate.
+TEST_P(TlsConnectGenericResumption, ClientAuthRequiredOnResumptionNoCert) {
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  server_->RequestClientAuth(false);
+  Connect();
+  SendReceive();
+
+  Reset();
+  server_->RequestClientAuth(true);
+  ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
+  // Drive handshake manually because TLS 1.3 needs it.
+  StartConnect();
+  client_->Handshake();  // CH
+  server_->Handshake();  // SH.. (no resumption)
+  client_->Handshake();  // ...
+  if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    // In TLS 1.3, the client thinks that everything is OK here.
+    ASSERT_EQ(TlsAgent::STATE_CONNECTED, client_->state());
+    ExpectAlert(server_, kTlsAlertCertificateRequired);
+    server_->Handshake();  // Alert
+    client_->Handshake();  // Receive Alert
+    client_->CheckErrorCode(SSL_ERROR_RX_CERTIFICATE_REQUIRED_ALERT);
+  } else {
+    ExpectAlert(server_, kTlsAlertBadCertificate);
+    server_->Handshake();  // Alert
+    client_->Handshake();  // Receive Alert
+    client_->CheckErrorCode(SSL_ERROR_BAD_CERT_ALERT);
+  }
+  server_->CheckErrorCode(SSL_ERROR_NO_CERTIFICATE);
+}
+
 TEST_F(TlsConnectStreamTls13, ExternalTokenAfterHrr) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_BOTH);
   Connect();
