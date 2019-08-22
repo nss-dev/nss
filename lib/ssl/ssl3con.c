@@ -8680,9 +8680,9 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
               !ss->firstHsDone))) {
 
             SSL_AtomicIncrementLong(&ssl3stats.hch_sid_cache_not_ok);
-            ssl_UncacheSessionID(ss);
             ssl_FreeSID(sid);
             sid = NULL;
+            ss->statelessResume = PR_FALSE;
         }
     }
 
