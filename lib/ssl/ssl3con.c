@@ -917,15 +917,16 @@ count_cipher_suites(sslSocket *ss, PRUint8 policy)
 /* For TLS 1.3, when resuming, check for a ciphersuite that is both compatible
  * with the identified ciphersuite and enabled. */
 static PRBool
-tls13_ResumptionCompatible(sslSocket *ss, ssl3CipherSuite suite) {
+tls13_ResumptionCompatible(sslSocket *ss, ssl3CipherSuite suite)
+{
     SSLVersionRange vrange = { SSL_LIBRARY_VERSION_TLS_1_3,
                                SSL_LIBRARY_VERSION_TLS_1_3 };
     SSLHashType hash = tls13_GetHashForCipherSuite(suite);
     for (unsigned int i = 0; i < PR_ARRAY_SIZE(cipher_suite_defs); i++) {
         if (cipher_suite_defs[i].prf_hash == hash) {
             const ssl3CipherSuiteCfg *suiteCfg =
-                    ssl_LookupCipherSuiteCfg(cipher_suite_defs[i].cipher_suite,
-                                             ss->cipherSuites);
+                ssl_LookupCipherSuiteCfg(cipher_suite_defs[i].cipher_suite,
+                                         ss->cipherSuites);
             if (suite && ssl3_config_match(suiteCfg, ss->ssl3.policy, &vrange, ss)) {
                 return PR_TRUE;
             }
@@ -4930,8 +4931,8 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
         } else {
             /* Check that the cipher suite we need is enabled. */
             const ssl3CipherSuiteCfg *suite =
-                    ssl_LookupCipherSuiteCfg(sid->u.ssl3.cipherSuite,
-                                             ss->cipherSuites);
+                ssl_LookupCipherSuiteCfg(sid->u.ssl3.cipherSuite,
+                                         ss->cipherSuites);
             SSLVersionRange vrange = { sid->version, sid->version };
             if (!suite || !ssl3_config_match(suite, ss->ssl3.policy, &vrange, ss)) {
                 sidOK = PR_FALSE;
