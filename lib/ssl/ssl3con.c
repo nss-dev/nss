@@ -12658,8 +12658,9 @@ ssl3_GetCipherSpec(sslSocket *ss, SSL3Ciphertext *cText)
 
 /* MAX_EXPANSION is the amount by which a record might plausibly be expanded
  * when protected.  It's the worst case estimate, so the sum of block cipher
- * padding (up to 256 octets) and HMAC (48 octets for SHA-384). */
-#define MAX_EXPANSION (256 + 48)
+ * padding (up to 256 octets), HMAC (48 octets for SHA-384), and IV (16
+ * octets for AES). */
+#define MAX_EXPANSION (256 + 48 + 16)
 
 /* if cText is non-null, then decipher and check the MAC of the
  * SSL record from cText->buf (typically gs->inbuf)
