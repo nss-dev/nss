@@ -27,6 +27,7 @@
         'pk11_prng_unittest.cc',
         'pk11_rsapkcs1_unittest.cc',
         'pk11_rsapss_unittest.cc',
+        'pk11_seed_cbc_unittest.cc',
         'pk11_der_private_key_import_unittest.cc',
         '<(DEPTH)/gtests/common/gtests.cc'
       ],
