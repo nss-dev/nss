@@ -283,7 +283,7 @@ TEST_F(Pkcs11CbcPadTest, FailEncryptShortParam) {
                     sizeof(encrypted), kInput, input_len);
   EXPECT_EQ(SECSuccess, rv);
 
-  // CBC (and the below modes) should have a 16B IV
+  // CBC should have a 16B IV
   param.len = AES_BLOCK_SIZE - 1;
   rv = PK11_Encrypt(key.get(), CKM_AES_CBC, &param, encrypted, &encrypted_len,
                     sizeof(encrypted), kInput, input_len);
@@ -291,23 +291,12 @@ TEST_F(Pkcs11CbcPadTest, FailEncryptShortParam) {
 
   param.len++;
   rv = PK11_Encrypt(key.get(), CKM_AES_CBC, &param, encrypted, &encrypted_len,
-                    sizeof(encrypted), kInput, input_len);
-  EXPECT_EQ(SECSuccess, rv);
-
-  // ECB
-  param.len = AES_BLOCK_SIZE - 1;
-  rv = PK11_Encrypt(key.get(), CKM_AES_CBC, &param, encrypted, &encrypted_len,
-                    sizeof(encrypted), kInput, input_len);
-  EXPECT_EQ(SECFailure, rv);
-
-  param.len++;
-  rv = PK11_Encrypt(key.get(), CKM_AES_ECB, &param, encrypted, &encrypted_len,
                     sizeof(encrypted), kInput, input_len);
   EXPECT_EQ(SECSuccess, rv);
 
   // CTS
   param.len = AES_BLOCK_SIZE - 1;
-  rv = PK11_Encrypt(key.get(), CKM_AES_CBC, &param, encrypted, &encrypted_len,
+  rv = PK11_Encrypt(key.get(), CKM_AES_CTS, &param, encrypted, &encrypted_len,
                     sizeof(encrypted), kInput, input_len);
   EXPECT_EQ(SECFailure, rv);
 
