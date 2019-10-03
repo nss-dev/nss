@@ -1136,10 +1136,9 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
         case CKM_AES_CTS:
         case CKM_AES_CTR:
         case CKM_AES_GCM:
-            /* Note the catch-all only applies to the above cases */
             if ((pMechanism->mechanism == CKM_AES_GCM && BAD_PARAM_CAST(pMechanism, sizeof(CK_GCM_PARAMS))) ||
                 (pMechanism->mechanism == CKM_AES_CTR && BAD_PARAM_CAST(pMechanism, sizeof(CK_AES_CTR_PARAMS))) ||
-                BAD_PARAM_CAST(pMechanism, AES_BLOCK_SIZE) /* Cast target is an IV */) {
+                ((pMechanism->mechanism == CKM_AES_CBC || pMechanism->mechanism == CKM_AES_CTS) && BAD_PARAM_CAST(pMechanism, AES_BLOCK_SIZE))) {
                 crv = CKR_MECHANISM_PARAM_INVALID;
                 break;
             }
