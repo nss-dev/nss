@@ -34,17 +34,17 @@ arm_aes_encrypt_ecb_128(AESContext *cx, unsigned char *output,
         return SECSuccess;
     }
 
-    key1 = vld1q_u8(__builtin_assume_aligned(key, 16));
-    key2 = vld1q_u8(__builtin_assume_aligned(key + 16, 16));
-    key3 = vld1q_u8(__builtin_assume_aligned(key + 32, 16));
-    key4 = vld1q_u8(__builtin_assume_aligned(key + 48, 16));
-    key5 = vld1q_u8(__builtin_assume_aligned(key + 64, 16));
-    key6 = vld1q_u8(__builtin_assume_aligned(key + 80, 16));
-    key7 = vld1q_u8(__builtin_assume_aligned(key + 96, 16));
-    key8 = vld1q_u8(__builtin_assume_aligned(key + 112, 16));
-    key9 = vld1q_u8(__builtin_assume_aligned(key + 128, 16));
-    key10 = vld1q_u8(__builtin_assume_aligned(key + 144, 16));
-    key11 = vld1q_u8(__builtin_assume_aligned(key + 160, 16));
+    key1 = vld1q_u8(key);
+    key2 = vld1q_u8(key + 16);
+    key3 = vld1q_u8(key + 32);
+    key4 = vld1q_u8(key + 48);
+    key5 = vld1q_u8(key + 64);
+    key6 = vld1q_u8(key + 80);
+    key7 = vld1q_u8(key + 96);
+    key8 = vld1q_u8(key + 112);
+    key9 = vld1q_u8(key + 128);
+    key10 = vld1q_u8(key + 144);
+    key11 = vld1q_u8(key + 160);
 
     while (inputLen > 0) {
         uint8x16_t state;
@@ -119,17 +119,17 @@ arm_aes_decrypt_ecb_128(AESContext *cx, unsigned char *output,
         return SECSuccess;
     }
 
-    key1 = vld1q_u8(__builtin_assume_aligned(key, 16));
-    key2 = vld1q_u8(__builtin_assume_aligned(key + 16, 16));
-    key3 = vld1q_u8(__builtin_assume_aligned(key + 32, 16));
-    key4 = vld1q_u8(__builtin_assume_aligned(key + 48, 16));
-    key5 = vld1q_u8(__builtin_assume_aligned(key + 64, 16));
-    key6 = vld1q_u8(__builtin_assume_aligned(key + 80, 16));
-    key7 = vld1q_u8(__builtin_assume_aligned(key + 96, 16));
-    key8 = vld1q_u8(__builtin_assume_aligned(key + 112, 16));
-    key9 = vld1q_u8(__builtin_assume_aligned(key + 128, 16));
-    key10 = vld1q_u8(__builtin_assume_aligned(key + 144, 16));
-    key11 = vld1q_u8(__builtin_assume_aligned(key + 160, 16));
+    key1 = vld1q_u8(key);
+    key2 = vld1q_u8(key + 16);
+    key3 = vld1q_u8(key + 32);
+    key4 = vld1q_u8(key + 48);
+    key5 = vld1q_u8(key + 64);
+    key6 = vld1q_u8(key + 80);
+    key7 = vld1q_u8(key + 96);
+    key8 = vld1q_u8(key + 112);
+    key9 = vld1q_u8(key + 128);
+    key10 = vld1q_u8(key + 144);
+    key11 = vld1q_u8(key + 160);
 
     while (inputLen > 0) {
         uint8x16_t state;
@@ -206,20 +206,20 @@ arm_aes_encrypt_cbc_128(AESContext *cx, unsigned char *output,
     }
 
     /* iv */
-    iv = vld1q_u8(__builtin_assume_aligned(cx->iv, 16));
+    iv = vld1q_u8(cx->iv);
 
     /* expanedKey */
-    key1 = vld1q_u8(__builtin_assume_aligned(key, 16));
-    key2 = vld1q_u8(__builtin_assume_aligned(key + 16, 16));
-    key3 = vld1q_u8(__builtin_assume_aligned(key + 32, 16));
-    key4 = vld1q_u8(__builtin_assume_aligned(key + 48, 16));
-    key5 = vld1q_u8(__builtin_assume_aligned(key + 64, 16));
-    key6 = vld1q_u8(__builtin_assume_aligned(key + 80, 16));
-    key7 = vld1q_u8(__builtin_assume_aligned(key + 96, 16));
-    key8 = vld1q_u8(__builtin_assume_aligned(key + 112, 16));
-    key9 = vld1q_u8(__builtin_assume_aligned(key + 128, 16));
-    key10 = vld1q_u8(__builtin_assume_aligned(key + 144, 16));
-    key11 = vld1q_u8(__builtin_assume_aligned(key + 160, 16));
+    key1 = vld1q_u8(key);
+    key2 = vld1q_u8(key + 16);
+    key3 = vld1q_u8(key + 32);
+    key4 = vld1q_u8(key + 48);
+    key5 = vld1q_u8(key + 64);
+    key6 = vld1q_u8(key + 80);
+    key7 = vld1q_u8(key + 96);
+    key8 = vld1q_u8(key + 112);
+    key9 = vld1q_u8(key + 128);
+    key10 = vld1q_u8(key + 144);
+    key11 = vld1q_u8(key + 160);
 
     while (inputLen > 0) {
         uint8x16_t state;
@@ -274,7 +274,7 @@ arm_aes_encrypt_cbc_128(AESContext *cx, unsigned char *output,
         output += 16;
         iv = state;
     }
-    vst1q_u8(__builtin_assume_aligned(cx->iv, 16), iv);
+    vst1q_u8(cx->iv, iv);
 
     return SECSuccess;
 }
@@ -300,20 +300,20 @@ arm_aes_decrypt_cbc_128(AESContext *cx, unsigned char *output,
     }
 
     /* iv */
-    iv = vld1q_u8(__builtin_assume_aligned(cx->iv, 16));
+    iv = vld1q_u8(cx->iv);
 
     /* expanedKey */
-    key1 = vld1q_u8(__builtin_assume_aligned(key, 16));
-    key2 = vld1q_u8(__builtin_assume_aligned(key + 16, 16));
-    key3 = vld1q_u8(__builtin_assume_aligned(key + 32, 16));
-    key4 = vld1q_u8(__builtin_assume_aligned(key + 48, 16));
-    key5 = vld1q_u8(__builtin_assume_aligned(key + 64, 16));
-    key6 = vld1q_u8(__builtin_assume_aligned(key + 80, 16));
-    key7 = vld1q_u8(__builtin_assume_aligned(key + 96, 16));
-    key8 = vld1q_u8(__builtin_assume_aligned(key + 112, 16));
-    key9 = vld1q_u8(__builtin_assume_aligned(key + 128, 16));
-    key10 = vld1q_u8(__builtin_assume_aligned(key + 144, 16));
-    key11 = vld1q_u8(__builtin_assume_aligned(key + 160, 16));
+    key1 = vld1q_u8(key);
+    key2 = vld1q_u8(key + 16);
+    key3 = vld1q_u8(key + 32);
+    key4 = vld1q_u8(key + 48);
+    key5 = vld1q_u8(key + 64);
+    key6 = vld1q_u8(key + 80);
+    key7 = vld1q_u8(key + 96);
+    key8 = vld1q_u8(key + 112);
+    key9 = vld1q_u8(key + 128);
+    key10 = vld1q_u8(key + 144);
+    key11 = vld1q_u8(key + 160);
 
     while (inputLen > 0) {
         uint8x16_t state, old_state;
@@ -370,7 +370,7 @@ arm_aes_decrypt_cbc_128(AESContext *cx, unsigned char *output,
 
         iv = old_state;
     }
-    vst1q_u8(__builtin_assume_aligned(cx->iv, 16), iv);
+    vst1q_u8(cx->iv, iv);
 
     return SECSuccess;
 }
@@ -394,19 +394,19 @@ arm_aes_encrypt_ecb_192(AESContext *cx, unsigned char *output,
         return SECSuccess;
     }
 
-    key1 = vld1q_u8(__builtin_assume_aligned(key, 16));
-    key2 = vld1q_u8(__builtin_assume_aligned(key + 16, 16));
-    key3 = vld1q_u8(__builtin_assume_aligned(key + 32, 16));
-    key4 = vld1q_u8(__builtin_assume_aligned(key + 48, 16));
-    key5 = vld1q_u8(__builtin_assume_aligned(key + 64, 16));
-    key6 = vld1q_u8(__builtin_assume_aligned(key + 80, 16));
-    key7 = vld1q_u8(__builtin_assume_aligned(key + 96, 16));
-    key8 = vld1q_u8(__builtin_assume_aligned(key + 112, 16));
-    key9 = vld1q_u8(__builtin_assume_aligned(key + 128, 16));
-    key10 = vld1q_u8(__builtin_assume_aligned(key + 144, 16));
-    key11 = vld1q_u8(__builtin_assume_aligned(key + 160, 16));
-    key12 = vld1q_u8(__builtin_assume_aligned(key + 176, 16));
-    key13 = vld1q_u8(__builtin_assume_aligned(key + 192, 16));
+    key1 = vld1q_u8(key);
+    key2 = vld1q_u8(key + 16);
+    key3 = vld1q_u8(key + 32);
+    key4 = vld1q_u8(key + 48);
+    key5 = vld1q_u8(key + 64);
+    key6 = vld1q_u8(key + 80);
+    key7 = vld1q_u8(key + 96);
+    key8 = vld1q_u8(key + 112);
+    key9 = vld1q_u8(key + 128);
+    key10 = vld1q_u8(key + 144);
+    key11 = vld1q_u8(key + 160);
+    key12 = vld1q_u8(key + 176);
+    key13 = vld1q_u8(key + 192);
 
     while (inputLen > 0) {
         uint8x16_t state;
@@ -485,19 +485,19 @@ arm_aes_decrypt_ecb_192(AESContext *cx, unsigned char *output,
         return SECSuccess;
     }
 
-    key1 = vld1q_u8(__builtin_assume_aligned(key, 16));
-    key2 = vld1q_u8(__builtin_assume_aligned(key + 16, 16));
-    key3 = vld1q_u8(__builtin_assume_aligned(key + 32, 16));
-    key4 = vld1q_u8(__builtin_assume_aligned(key + 48, 16));
-    key5 = vld1q_u8(__builtin_assume_aligned(key + 64, 16));
-    key6 = vld1q_u8(__builtin_assume_aligned(key + 80, 16));
-    key7 = vld1q_u8(__builtin_assume_aligned(key + 96, 16));
-    key8 = vld1q_u8(__builtin_assume_aligned(key + 112, 16));
-    key9 = vld1q_u8(__builtin_assume_aligned(key + 128, 16));
-    key10 = vld1q_u8(__builtin_assume_aligned(key + 144, 16));
-    key11 = vld1q_u8(__builtin_assume_aligned(key + 160, 16));
-    key12 = vld1q_u8(__builtin_assume_aligned(key + 176, 16));
-    key13 = vld1q_u8(__builtin_assume_aligned(key + 192, 16));
+    key1 = vld1q_u8(key);
+    key2 = vld1q_u8(key + 16);
+    key3 = vld1q_u8(key + 32);
+    key4 = vld1q_u8(key + 48);
+    key5 = vld1q_u8(key + 64);
+    key6 = vld1q_u8(key + 80);
+    key7 = vld1q_u8(key + 96);
+    key8 = vld1q_u8(key + 112);
+    key9 = vld1q_u8(key + 128);
+    key10 = vld1q_u8(key + 144);
+    key11 = vld1q_u8(key + 160);
+    key12 = vld1q_u8(key + 176);
+    key13 = vld1q_u8(key + 192);
 
     while (inputLen > 0) {
         uint8x16_t state;
@@ -581,19 +581,19 @@ arm_aes_encrypt_cbc_192(AESContext *cx, unsigned char *output,
     iv = vld1q_u8(cx->iv);
 
     /* expanedKey */
-    key1 = vld1q_u8(__builtin_assume_aligned(key, 16));
-    key2 = vld1q_u8(__builtin_assume_aligned(key + 16, 16));
-    key3 = vld1q_u8(__builtin_assume_aligned(key + 32, 16));
-    key4 = vld1q_u8(__builtin_assume_aligned(key + 48, 16));
-    key5 = vld1q_u8(__builtin_assume_aligned(key + 64, 16));
-    key6 = vld1q_u8(__builtin_assume_aligned(key + 80, 16));
-    key7 = vld1q_u8(__builtin_assume_aligned(key + 96, 16));
-    key8 = vld1q_u8(__builtin_assume_aligned(key + 112, 16));
-    key9 = vld1q_u8(__builtin_assume_aligned(key + 128, 16));
-    key10 = vld1q_u8(__builtin_assume_aligned(key + 144, 16));
-    key11 = vld1q_u8(__builtin_assume_aligned(key + 160, 16));
-    key12 = vld1q_u8(__builtin_assume_aligned(key + 176, 16));
-    key13 = vld1q_u8(__builtin_assume_aligned(key + 192, 16));
+    key1 = vld1q_u8(key);
+    key2 = vld1q_u8(key + 16);
+    key3 = vld1q_u8(key + 32);
+    key4 = vld1q_u8(key + 48);
+    key5 = vld1q_u8(key + 64);
+    key6 = vld1q_u8(key + 80);
+    key7 = vld1q_u8(key + 96);
+    key8 = vld1q_u8(key + 112);
+    key9 = vld1q_u8(key + 128);
+    key10 = vld1q_u8(key + 144);
+    key11 = vld1q_u8(key + 160);
+    key12 = vld1q_u8(key + 176);
+    key13 = vld1q_u8(key + 192);
 
     while (inputLen > 0) {
         uint8x16_t state;
@@ -651,7 +651,7 @@ arm_aes_encrypt_cbc_192(AESContext *cx, unsigned char *output,
         output += 16;
         iv = state;
     }
-    vst1q_u8(__builtin_assume_aligned(cx->iv, 16), iv);
+    vst1q_u8(cx->iv, iv);
 
     return SECSuccess;
 }
@@ -677,22 +677,22 @@ arm_aes_decrypt_cbc_192(AESContext *cx, unsigned char *output,
     }
 
     /* iv */
-    iv = vld1q_u8(__builtin_assume_aligned(cx->iv, 16));
+    iv = vld1q_u8(cx->iv);
 
     /* expanedKey */
-    key1 = vld1q_u8(__builtin_assume_aligned(key, 16));
-    key2 = vld1q_u8(__builtin_assume_aligned(key + 16, 16));
-    key3 = vld1q_u8(__builtin_assume_aligned(key + 32, 16));
-    key4 = vld1q_u8(__builtin_assume_aligned(key + 48, 16));
-    key5 = vld1q_u8(__builtin_assume_aligned(key + 64, 16));
-    key6 = vld1q_u8(__builtin_assume_aligned(key + 80, 16));
-    key7 = vld1q_u8(__builtin_assume_aligned(key + 96, 16));
-    key8 = vld1q_u8(__builtin_assume_aligned(key + 112, 16));
-    key9 = vld1q_u8(__builtin_assume_aligned(key + 128, 16));
-    key10 = vld1q_u8(__builtin_assume_aligned(key + 144, 16));
-    key11 = vld1q_u8(__builtin_assume_aligned(key + 160, 16));
-    key12 = vld1q_u8(__builtin_assume_aligned(key + 176, 16));
-    key13 = vld1q_u8(__builtin_assume_aligned(key + 192, 16));
+    key1 = vld1q_u8(key);
+    key2 = vld1q_u8(key + 16);
+    key3 = vld1q_u8(key + 32);
+    key4 = vld1q_u8(key + 48);
+    key5 = vld1q_u8(key + 64);
+    key6 = vld1q_u8(key + 80);
+    key7 = vld1q_u8(key + 96);
+    key8 = vld1q_u8(key + 112);
+    key9 = vld1q_u8(key + 128);
+    key10 = vld1q_u8(key + 144);
+    key11 = vld1q_u8(key + 160);
+    key12 = vld1q_u8(key + 176);
+    key13 = vld1q_u8(key + 192);
 
     while (inputLen > 0) {
         uint8x16_t state, old_state;
@@ -753,7 +753,7 @@ arm_aes_decrypt_cbc_192(AESContext *cx, unsigned char *output,
 
         iv = old_state;
     }
-    vst1q_u8(__builtin_assume_aligned(cx->iv, 16), iv);
+    vst1q_u8(cx->iv, iv);
 
     return SECSuccess;
 }
@@ -777,21 +777,21 @@ arm_aes_encrypt_ecb_256(AESContext *cx, unsigned char *output,
         return SECSuccess;
     }
 
-    key1 = vld1q_u8(__builtin_assume_aligned(key, 16));
-    key2 = vld1q_u8(__builtin_assume_aligned(key + 16, 16));
-    key3 = vld1q_u8(__builtin_assume_aligned(key + 32, 16));
-    key4 = vld1q_u8(__builtin_assume_aligned(key + 48, 16));
-    key5 = vld1q_u8(__builtin_assume_aligned(key + 64, 16));
-    key6 = vld1q_u8(__builtin_assume_aligned(key + 80, 16));
-    key7 = vld1q_u8(__builtin_assume_aligned(key + 96, 16));
-    key8 = vld1q_u8(__builtin_assume_aligned(key + 112, 16));
-    key9 = vld1q_u8(__builtin_assume_aligned(key + 128, 16));
-    key10 = vld1q_u8(__builtin_assume_aligned(key + 144, 16));
-    key11 = vld1q_u8(__builtin_assume_aligned(key + 160, 16));
-    key12 = vld1q_u8(__builtin_assume_aligned(key + 176, 16));
-    key13 = vld1q_u8(__builtin_assume_aligned(key + 192, 16));
-    key14 = vld1q_u8(__builtin_assume_aligned(key + 208, 16));
-    key15 = vld1q_u8(__builtin_assume_aligned(key + 224, 16));
+    key1 = vld1q_u8(key);
+    key2 = vld1q_u8(key + 16);
+    key3 = vld1q_u8(key + 32);
+    key4 = vld1q_u8(key + 48);
+    key5 = vld1q_u8(key + 64);
+    key6 = vld1q_u8(key + 80);
+    key7 = vld1q_u8(key + 96);
+    key8 = vld1q_u8(key + 112);
+    key9 = vld1q_u8(key + 128);
+    key10 = vld1q_u8(key + 144);
+    key11 = vld1q_u8(key + 160);
+    key12 = vld1q_u8(key + 176);
+    key13 = vld1q_u8(key + 192);
+    key14 = vld1q_u8(key + 208);
+    key15 = vld1q_u8(key + 224);
 
     while (inputLen > 0) {
         uint8x16_t state;
@@ -873,21 +873,21 @@ arm_aes_decrypt_ecb_256(AESContext *cx, unsigned char *output,
         return SECSuccess;
     }
 
-    key1 = vld1q_u8(__builtin_assume_aligned(key, 16));
-    key2 = vld1q_u8(__builtin_assume_aligned(key + 16, 16));
-    key3 = vld1q_u8(__builtin_assume_aligned(key + 32, 16));
-    key4 = vld1q_u8(__builtin_assume_aligned(key + 48, 16));
-    key5 = vld1q_u8(__builtin_assume_aligned(key + 64, 16));
-    key6 = vld1q_u8(__builtin_assume_aligned(key + 80, 16));
-    key7 = vld1q_u8(__builtin_assume_aligned(key + 96, 16));
-    key8 = vld1q_u8(__builtin_assume_aligned(key + 112, 16));
-    key9 = vld1q_u8(__builtin_assume_aligned(key + 128, 16));
-    key10 = vld1q_u8(__builtin_assume_aligned(key + 144, 16));
-    key11 = vld1q_u8(__builtin_assume_aligned(key + 160, 16));
-    key12 = vld1q_u8(__builtin_assume_aligned(key + 176, 16));
-    key13 = vld1q_u8(__builtin_assume_aligned(key + 192, 16));
-    key14 = vld1q_u8(__builtin_assume_aligned(key + 208, 16));
-    key15 = vld1q_u8(__builtin_assume_aligned(key + 224, 16));
+    key1 = vld1q_u8(key);
+    key2 = vld1q_u8(key + 16);
+    key3 = vld1q_u8(key + 32);
+    key4 = vld1q_u8(key + 48);
+    key5 = vld1q_u8(key + 64);
+    key6 = vld1q_u8(key + 80);
+    key7 = vld1q_u8(key + 96);
+    key8 = vld1q_u8(key + 112);
+    key9 = vld1q_u8(key + 128);
+    key10 = vld1q_u8(key + 144);
+    key11 = vld1q_u8(key + 160);
+    key12 = vld1q_u8(key + 176);
+    key13 = vld1q_u8(key + 192);
+    key14 = vld1q_u8(key + 208);
+    key15 = vld1q_u8(key + 224);
 
     while (inputLen > 0) {
         uint8x16_t state;
@@ -975,21 +975,21 @@ arm_aes_encrypt_cbc_256(AESContext *cx, unsigned char *output,
     iv = vld1q_u8(cx->iv);
 
     /* expanedKey */
-    key1 = vld1q_u8(__builtin_assume_aligned(key, 16));
-    key2 = vld1q_u8(__builtin_assume_aligned(key + 16, 16));
-    key3 = vld1q_u8(__builtin_assume_aligned(key + 32, 16));
-    key4 = vld1q_u8(__builtin_assume_aligned(key + 48, 16));
-    key5 = vld1q_u8(__builtin_assume_aligned(key + 64, 16));
-    key6 = vld1q_u8(__builtin_assume_aligned(key + 80, 16));
-    key7 = vld1q_u8(__builtin_assume_aligned(key + 96, 16));
-    key8 = vld1q_u8(__builtin_assume_aligned(key + 112, 16));
-    key9 = vld1q_u8(__builtin_assume_aligned(key + 128, 16));
-    key10 = vld1q_u8(__builtin_assume_aligned(key + 144, 16));
-    key11 = vld1q_u8(__builtin_assume_aligned(key + 160, 16));
-    key12 = vld1q_u8(__builtin_assume_aligned(key + 176, 16));
-    key13 = vld1q_u8(__builtin_assume_aligned(key + 192, 16));
-    key14 = vld1q_u8(__builtin_assume_aligned(key + 208, 16));
-    key15 = vld1q_u8(__builtin_assume_aligned(key + 224, 16));
+    key1 = vld1q_u8(key);
+    key2 = vld1q_u8(key + 16);
+    key3 = vld1q_u8(key + 32);
+    key4 = vld1q_u8(key + 48);
+    key5 = vld1q_u8(key + 64);
+    key6 = vld1q_u8(key + 80);
+    key7 = vld1q_u8(key + 96);
+    key8 = vld1q_u8(key + 112);
+    key9 = vld1q_u8(key + 128);
+    key10 = vld1q_u8(key + 144);
+    key11 = vld1q_u8(key + 160);
+    key12 = vld1q_u8(key + 176);
+    key13 = vld1q_u8(key + 192);
+    key14 = vld1q_u8(key + 208);
+    key15 = vld1q_u8(key + 224);
 
     while (inputLen > 0) {
         uint8x16_t state;
@@ -1052,7 +1052,7 @@ arm_aes_encrypt_cbc_256(AESContext *cx, unsigned char *output,
         output += 16;
         iv = state;
     }
-    vst1q_u8(__builtin_assume_aligned(cx->iv, 16), iv);
+    vst1q_u8(cx->iv, iv);
 
     return SECSuccess;
 }
@@ -1081,21 +1081,21 @@ arm_aes_decrypt_cbc_256(AESContext *cx, unsigned char *output,
     iv = vld1q_u8(cx->iv);
 
     /* expanedKey */
-    key1 = vld1q_u8(__builtin_assume_aligned(key, 16));
-    key2 = vld1q_u8(__builtin_assume_aligned(key + 16, 16));
-    key3 = vld1q_u8(__builtin_assume_aligned(key + 32, 16));
-    key4 = vld1q_u8(__builtin_assume_aligned(key + 48, 16));
-    key5 = vld1q_u8(__builtin_assume_aligned(key + 64, 16));
-    key6 = vld1q_u8(__builtin_assume_aligned(key + 80, 16));
-    key7 = vld1q_u8(__builtin_assume_aligned(key + 96, 16));
-    key8 = vld1q_u8(__builtin_assume_aligned(key + 112, 16));
-    key9 = vld1q_u8(__builtin_assume_aligned(key + 128, 16));
-    key10 = vld1q_u8(__builtin_assume_aligned(key + 144, 16));
-    key11 = vld1q_u8(__builtin_assume_aligned(key + 160, 16));
-    key12 = vld1q_u8(__builtin_assume_aligned(key + 176, 16));
-    key13 = vld1q_u8(__builtin_assume_aligned(key + 192, 16));
-    key14 = vld1q_u8(__builtin_assume_aligned(key + 208, 16));
-    key15 = vld1q_u8(__builtin_assume_aligned(key + 224, 16));
+    key1 = vld1q_u8(key);
+    key2 = vld1q_u8(key + 16);
+    key3 = vld1q_u8(key + 32);
+    key4 = vld1q_u8(key + 48);
+    key5 = vld1q_u8(key + 64);
+    key6 = vld1q_u8(key + 80);
+    key7 = vld1q_u8(key + 96);
+    key8 = vld1q_u8(key + 112);
+    key9 = vld1q_u8(key + 128);
+    key10 = vld1q_u8(key + 144);
+    key11 = vld1q_u8(key + 160);
+    key12 = vld1q_u8(key + 176);
+    key13 = vld1q_u8(key + 192);
+    key14 = vld1q_u8(key + 208);
+    key15 = vld1q_u8(key + 224);
 
     while (inputLen > 0) {
         uint8x16_t state, old_state;
@@ -1160,7 +1160,7 @@ arm_aes_decrypt_cbc_256(AESContext *cx, unsigned char *output,
 
         iv = old_state;
     }
-    vst1q_u8(__builtin_assume_aligned(cx->iv, 16), iv);
+    vst1q_u8(cx->iv, iv);
 
     return SECSuccess;
 }
