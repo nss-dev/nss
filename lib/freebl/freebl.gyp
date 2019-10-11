@@ -189,7 +189,7 @@
           'dependencies': [
             'gcm-aes-x86_c_lib',
           ],
-        }, 'target_arch=="arm" or target_arch=="arm64" or target_arch=="aarch64"', {
+        }, 'disable_arm_hw_aes==0 and (target_arch=="arm" or target_arch=="arm64" or target_arch=="aarch64")', {
           'dependencies': [
             'armv8_c_lib'
           ],
@@ -466,10 +466,9 @@
               'MP_USE_UINT_DIGIT',
               'SHA_NO_LONG_LONG',
               'ARMHF',
-              'USE_HW_AES',
             ],
           }],
-          [ 'target_arch=="arm64" or target_arch=="aarch64"', {
+          [ 'disable_arm_hw_aes==0 and (target_arch=="arm" or target_arch=="arm64" or target_arch=="aarch64")', {
             'defines': [
               'USE_HW_AES',
             ],
