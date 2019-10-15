@@ -456,7 +456,7 @@ main(int argc, char **argv)
         Usage(progName);
 
     if (addbuiltin.options[opt_ConvertDate].activated) {
-        char* endPtr;
+        char *endPtr;
         PRTime distrustTimestamp = strtol(addbuiltin.options[opt_ConvertDate].arg, &endPtr, 0) * PR_USEC_PER_SEC;
         if (*endPtr != '\0' && distrustTimestamp > 0) {
             Usage(progName);
