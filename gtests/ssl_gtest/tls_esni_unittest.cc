@@ -386,7 +386,8 @@ TEST_P(TlsConnectTls13, ConnectEsniCSMismatch) {
 
   SECStatus rv = SSL_EncodeESNIKeys(
       &kChaChaSuite[0], kChaChaSuite.size(), ssl_grp_ec_curve25519, pub.get(),
-      100, (now() / PR_USEC_PER_SEC) - 1, (now() / PR_USEC_PER_SEC) + 10, encoded, &encoded_len, sizeof(encoded));
+      100, (now() / PR_USEC_PER_SEC) - 1, (now() / PR_USEC_PER_SEC) + 10,
+      encoded, &encoded_len, sizeof(encoded));
   ASSERT_EQ(SECSuccess, rv);
   ASSERT_LT(0U, encoded_len);
   rv = SSL_SetESNIKeyPair(server_->ssl_fd(), priv.get(), encoded, encoded_len);
