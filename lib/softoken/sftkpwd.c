@@ -34,6 +34,41 @@
 #include "secerr.h"
 #include "softoken.h"
 
+static const int NSS_MP_PBE_ITERATION_COUNT = 10000;
+
+static int
+getPBEIterationCount(void)
+{
+    int c = NSS_MP_PBE_ITERATION_COUNT;
+
+    char *val = getenv("NSS_MIN_MP_PBE_ITERATION_COUNT");
+    if (val) {
+        int minimum = atoi(val);
+        if (c < minimum) {
+            c = minimum;
+        }
+    }
+
+    val = getenv("NSS_MAX_MP_PBE_ITERATION_COUNT");
+    if (val) {
+        int maximum = atoi(val);
+        if (c > maximum) {
+            c = maximum;
+        }
+    }
+
+    return c;
+}
+
+PRBool
+sftk_isLegacyIterationCountAllowed(void)
+{
+    static const char *legacyCountEnvVar =
+        "NSS_ALLOW_LEGACY_DBM_ITERATION_COUNT";
+    char *iterEnv = getenv(legacyCountEnvVar);
+    return (iterEnv && strcmp("0", iterEnv) != 0);
+}
+
 /******************************************************************
  *
  * Key DB password handling functions
@@ -236,6 +271,7 @@ sftkdb_DecryptAttribute(SECItem *passKey, SECItem *cipherText,
     if (rv != SECSuccess) {
         goto loser;
     }
+    /* fprintf(stderr, "sftkdb_DecryptAttribute iteration: %d\n", cipherValue.param->iter); */
 
     *plain = nsspkcs5_CipherData(cipherValue.param, passKey, &cipherValue.value,
                                  PR_FALSE, NULL);
@@ -674,7 +710,7 @@ sftkdb_finishPasswordCheck(SFTKDBHandle *keydb, SECItem *key,
 /*
  * check to see if we have the NULL password set.
  * We special case the NULL password so that if you have no password set, you
- * don't do thousands of hash rounds. This allows us to startup and get 
+ * don't do thousands of hash rounds. This allows us to startup and get
  * webpages without slowdown in normal mode.
  */
 SECStatus
@@ -815,11 +851,14 @@ sftkdb_finishPasswordCheck(SFTKDBHandle *keydb, SECItem *key, const char *pw,
 {
     SECItem *result = NULL;
     SECStatus rv;
-    int iterationCount = NSS_DEFAULT_ITERATION_COUNT;
+    int iterationCount = getPBEIterationCount();
 
     if (*pw == 0) {
         iterationCount = 1;
+    } else if (keydb->usesLegacyStorage && !sftk_isLegacyIterationCountAllowed()) {
+        iterationCount = 1;
     }
+
     /* decrypt the entry value */
     rv = sftkdb_DecryptAttribute(key, value, &result);
     if (rv != SECSuccess) {
@@ -1198,7 +1237,7 @@ sftkdb_ChangePassword(SFTKDBHandle *keydb,
     SFTKDBHandle *certdb;
     unsigned char saltData[SDB_MAX_META_DATA_LEN];
     unsigned char valueData[SDB_MAX_META_DATA_LEN];
-    int iterationCount = NSS_DEFAULT_ITERATION_COUNT;
+    int iterationCount = getPBEIterationCount();
     CK_RV crv;
     SDB *db;
 
@@ -1235,6 +1274,8 @@ sftkdb_ChangePassword(SFTKDBHandle *keydb,
     }
 
     if (newPin && *newPin == 0) {
+        iterationCount = 1;
+    } else if (keydb->usesLegacyStorage && !sftk_isLegacyIterationCountAllowed()) {
         iterationCount = 1;
     }
 

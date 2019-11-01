@@ -23,6 +23,7 @@ struct SFTKDBHandleStr {
     SDB *update;
     char *updateID;
     PRBool updateDBIsInit;
+    PRBool usesLegacyStorage;
 };
 
 #define SFTK_KEYDB_TYPE 0x40000000
