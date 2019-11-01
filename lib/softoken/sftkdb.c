@@ -2451,7 +2451,7 @@ sftk_getDBForTokenObject(SFTKSlot *slot, CK_OBJECT_HANDLE objectID)
  * initialize a new database handle
  */
 static SFTKDBHandle *
-sftk_NewDBHandle(SDB *sdb, int type)
+sftk_NewDBHandle(SDB *sdb, int type, PRBool legacy)
 {
     SFTKDBHandle *handle = PORT_New(SFTKDBHandle);
     handle->ref = 1;
@@ -2463,6 +2463,7 @@ sftk_NewDBHandle(SDB *sdb, int type)
     handle->updatePasswordKey = NULL;
     handle->updateID = NULL;
     handle->type = type;
+    handle->usesLegacyStorage = legacy;
     handle->passwordKey.data = NULL;
     handle->passwordKey.len = 0;
     handle->passwordLock = NULL;
@@ -2622,6 +2623,7 @@ sftk_DBInit(const char *configdir, const char *certPrefix,
     PRBool newInit = PR_FALSE;
     PRBool needUpdate = PR_FALSE;
     char *nconfdir = NULL;
+    PRBool legacy = PR_TRUE;
 
     if (!readOnly) {
         flags = SDB_CREATE;
@@ -2654,12 +2656,14 @@ sftk_DBInit(const char *configdir, const char *certPrefix,
         case NSS_DB_TYPE_EXTERN: /* SHOULD open a loadable db */
             crv = s_open(confdir, certPrefix, keyPrefix, 9, 4, flags,
                          noCertDB ? NULL : &certSDB, noKeyDB ? NULL : &keySDB, &newInit);
+            legacy = PR_FALSE;
 
             /*
              * if we failed to open the DB's read only, use the old ones if
              * the exists.
              */
             if (crv != CKR_OK) {
+                legacy = PR_TRUE;
                 if ((flags & SDB_RDONLY) == SDB_RDONLY) {
                     nconfdir = sftk_legacyPathFromSDBPath(confdir);
                 }
@@ -2713,12 +2717,12 @@ sftk_DBInit(const char *configdir, const char *certPrefix,
         goto done;
     }
     if (!noCertDB) {
-        *certDB = sftk_NewDBHandle(certSDB, SFTK_CERTDB_TYPE);
+        *certDB = sftk_NewDBHandle(certSDB, SFTK_CERTDB_TYPE, legacy);
     } else {
         *certDB = NULL;
     }
     if (!noKeyDB) {
-        *keyDB = sftk_NewDBHandle(keySDB, SFTK_KEYDB_TYPE);
+        *keyDB = sftk_NewDBHandle(keySDB, SFTK_KEYDB_TYPE, legacy);
     } else {
         *keyDB = NULL;
     }

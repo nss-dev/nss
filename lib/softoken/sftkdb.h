@@ -70,3 +70,5 @@ SFTKDBHandle *sftk_getKeyDB(SFTKSlot *slot);
 SFTKDBHandle *sftk_getDBForTokenObject(SFTKSlot *slot,
                                        CK_OBJECT_HANDLE objectID);
 void sftk_freeDB(SFTKDBHandle *certHandle);
+
+PRBool sftk_isLegacyIterationCountAllowed(void);
