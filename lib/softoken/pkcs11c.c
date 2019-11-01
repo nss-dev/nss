@@ -1759,10 +1759,12 @@ NSC_Decrypt(CK_SESSION_HANDLE hSession,
         }
         finalLen = maxoutlen;
         crv2 = NSC_DecryptFinal(hSession, pData, &finalLen);
-        if (crv == CKR_OK && crv2 == CKR_OK) {
-            *pulDataLen = updateLen + finalLen;
+        if (crv == CKR_OK) {
+            *pulDataLen = CT_SEL(CK_RVToMask(crv2), updateLen + finalLen, *pulDataLen);
+            return crv2;
+        } else {
+            return crv;
         }
-        return crv == CKR_OK ? crv2 : crv;
     }
 
     rv = (*context->update)(context->cipherInfo, pData, &outlen, maxoutlen,
