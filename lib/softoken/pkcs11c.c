@@ -1002,6 +1002,10 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                 crv = CKR_KEY_TYPE_INCONSISTENT;
                 break;
             }
+            if (pMechanism->ulParameterLen < 8) {
+                crv = CKR_DOMAIN_PARAMS_INVALID;
+                break;
+            }
             t = NSS_DES_CBC;
             goto finish_des;
         case CKM_DES3_ECB:
@@ -1017,6 +1021,10 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
         case CKM_DES3_CBC:
             if ((key_type != CKK_DES2) && (key_type != CKK_DES3)) {
                 crv = CKR_KEY_TYPE_INCONSISTENT;
+                break;
+            }
+            if (pMechanism->ulParameterLen < 8) {
+                crv = CKR_DOMAIN_PARAMS_INVALID;
                 break;
             }
             t = NSS_DES_EDE3_CBC;
