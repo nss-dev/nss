@@ -76,17 +76,25 @@ CK_RV Test_C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR) { return CKR_OK; }
 
 static int tokenPresent = 0;
 
+// The token in slot 4 has 2 objects. Both of them are profile object
+// and identified by object ID 1 or 2.
+static bool readingProfile = false;
+static const CK_PROFILE_ID profiles[] = {CKP_PUBLIC_CERTIFICATES_TOKEN,
+                                         CKP_BASELINE_PROVIDER};
+static int profileIndex = 0;
+
 CK_RV Test_C_GetSlotList(CK_BBOOL limitToTokensPresent,
                          CK_SLOT_ID_PTR pSlotList, CK_ULONG_PTR pulCount) {
   if (!pulCount) {
     return CKR_ARGUMENTS_BAD;
   }
 
-  CK_SLOT_ID slots[3];
+  CK_SLOT_ID slots[4];
   CK_ULONG slotCount = 0;
 
-  // We always return slot 2.
+  // We always return slot 2 and 4.
   slots[slotCount++] = 2;
+  slots[slotCount++] = 4;
 
   // Slot 1 is a removable slot where a token is present if
   // tokenPresent = CK_TRUE.
@@ -103,7 +111,7 @@ CK_RV Test_C_GetSlotList(CK_BBOOL limitToTokensPresent,
     if (*pulCount < slotCount) {
       return CKR_BUFFER_TOO_SMALL;
     }
-    memcpy(pSlotList, slots, sizeof(CK_ULONG) * slotCount);
+    memcpy(pSlotList, slots, sizeof(CK_SLOT_ID) * slotCount);
   }
 
   *pulCount = slotCount;
@@ -113,6 +121,7 @@ CK_RV Test_C_GetSlotList(CK_BBOOL limitToTokensPresent,
 static const char TestSlotDescription[] = "Test PKCS11 Slot";
 static const char TestSlot2Description[] = "Test PKCS11 Slot 二";
 static const char TestSlot3Description[] = "Empty PKCS11 Slot";
+static const char TestSlot4Description[] = "Test PKCS11 Public Certs Slot";
 
 CK_RV Test_C_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
   if (!pInfo) {
@@ -133,6 +142,10 @@ CK_RV Test_C_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
       CopyString(pInfo->slotDescription, TestSlot3Description);
       pInfo->flags = CKF_REMOVABLE_DEVICE;
       break;
+    case 4:
+      CopyString(pInfo->slotDescription, TestSlot4Description);
+      pInfo->flags = CKF_TOKEN_PRESENT | CKF_REMOVABLE_DEVICE;
+      break;
     default:
       return CKR_ARGUMENTS_BAD;
   }
@@ -148,6 +161,7 @@ CK_RV Test_C_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
 // as UTF-8.
 static const char TestTokenLabel[] = "Test PKCS11 Tokeñ Label";
 static const char TestToken2Label[] = "Test PKCS11 Tokeñ 2 Label";
+static const char TestToken4Label[] = "Test PKCS11 Public Certs Token";
 static const char TestTokenModel[] = "Test Model";
 
 CK_RV Test_C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
@@ -161,6 +175,9 @@ CK_RV Test_C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
       break;
     case 2:
       CopyString(pInfo->label, TestToken2Label);
+      break;
+    case 4:
+      CopyString(pInfo->label, TestToken4Label);
       break;
     default:
       return CKR_ARGUMENTS_BAD;
@@ -223,6 +240,9 @@ CK_RV Test_C_OpenSession(CK_SLOT_ID slotID, CK_FLAGS, CK_VOID_PTR, CK_NOTIFY,
     case 2:
       *phSession = 2;
       break;
+    case 4:
+      *phSession = 4;
+      break;
     default:
       return CKR_ARGUMENTS_BAD;
   }
@@ -246,6 +266,9 @@ CK_RV Test_C_GetSessionInfo(CK_SESSION_HANDLE hSession,
       break;
     case 2:
       pInfo->slotID = 2;
+      break;
+    case 4:
+      pInfo->slotID = 4;
       break;
     default:
       return CKR_ARGUMENTS_BAD;
@@ -289,8 +312,27 @@ CK_RV Test_C_GetObjectSize(CK_SESSION_HANDLE, CK_OBJECT_HANDLE, CK_ULONG_PTR) {
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV Test_C_GetAttributeValue(CK_SESSION_HANDLE, CK_OBJECT_HANDLE,
-                               CK_ATTRIBUTE_PTR, CK_ULONG) {
+CK_RV Test_C_GetAttributeValue(CK_SESSION_HANDLE hSession,
+                               CK_OBJECT_HANDLE hObject,
+                               CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+  if (hSession == 4) {
+    assert(hObject >= 1 &&
+           hObject - 1 < sizeof(profiles) / sizeof(profiles[0]));
+    for (CK_ULONG count = 0; count < ulCount; count++) {
+      if (pTemplate[count].type == CKA_PROFILE_ID) {
+        if (pTemplate[count].pValue) {
+          assert(pTemplate[count].ulValueLen == sizeof(CK_ULONG));
+          CK_ULONG value = profiles[hObject - 1];
+          memcpy(pTemplate[count].pValue, &value, sizeof(value));
+        } else {
+          pTemplate[count].ulValueLen = sizeof(CK_ULONG);
+        }
+      } else {
+        pTemplate[count].ulValueLen = (CK_ULONG)-1;
+      }
+    }
+    return CKR_OK;
+  }
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -299,17 +341,54 @@ CK_RV Test_C_SetAttributeValue(CK_SESSION_HANDLE, CK_OBJECT_HANDLE,
   return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV Test_C_FindObjectsInit(CK_SESSION_HANDLE, CK_ATTRIBUTE_PTR, CK_ULONG) {
+CK_RV Test_C_FindObjectsInit(CK_SESSION_HANDLE hSession,
+                             CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
+  // Slot 4
+  if (hSession == 4) {
+    for (CK_ULONG count = 0; count < ulCount; count++) {
+      CK_ATTRIBUTE attribute = pTemplate[count];
+      if (attribute.type == CKA_CLASS) {
+        assert(attribute.ulValueLen == sizeof(CK_ULONG));
+
+        CK_ULONG value;
+        memcpy(&value, attribute.pValue, attribute.ulValueLen);
+        if (value == CKO_PROFILE) {
+          readingProfile = true;
+          profileIndex = 0;
+          break;
+        }
+      }
+    }
+  }
   return CKR_OK;
 }
 
-CK_RV Test_C_FindObjects(CK_SESSION_HANDLE, CK_OBJECT_HANDLE_PTR, CK_ULONG,
+CK_RV Test_C_FindObjects(CK_SESSION_HANDLE hSession,
+                         CK_OBJECT_HANDLE_PTR phObject,
+                         CK_ULONG ulMaxObjectCount,
                          CK_ULONG_PTR pulObjectCount) {
-  *pulObjectCount = 0;
+  if (readingProfile) {
+    assert(hSession == 4);
+    CK_ULONG count = ulMaxObjectCount;
+    size_t remaining = sizeof(profiles) / sizeof(profiles[0]) - profileIndex;
+    if (count > remaining) {
+      count = remaining;
+    }
+    for (CK_ULONG i = 0; i < count; i++) {
+      phObject[i] = i + 1;
+    }
+    profileIndex += count;
+    *pulObjectCount = count;
+  } else {
+    *pulObjectCount = 0;
+  }
   return CKR_OK;
 }
 
-CK_RV Test_C_FindObjectsFinal(CK_SESSION_HANDLE) { return CKR_OK; }
+CK_RV Test_C_FindObjectsFinal(CK_SESSION_HANDLE hSession) {
+  readingProfile = false;
+  return CKR_OK;
+}
 
 CK_RV Test_C_EncryptInit(CK_SESSION_HANDLE, CK_MECHANISM_PTR,
                          CK_OBJECT_HANDLE) {

@@ -51,7 +51,9 @@ TEST_F(Pkcs11ModuleTest, ListSlots) {
   // These tokens are always present.
   const std::vector<std::string> kSlotsWithToken = {
       "NSS Internal Cryptographic Services",
-      "NSS User Private Key and Certificate Services", "Test PKCS11 Slot 二"};
+      "NSS User Private Key and Certificate Services",
+      "Test PKCS11 Public Certs Slot",
+      "Test PKCS11 Slot 二"};
   std::vector<std::string> foundSlots;
 
   do {
@@ -64,6 +66,19 @@ TEST_F(Pkcs11ModuleTest, ListSlots) {
   std::sort(foundSlots.begin(), foundSlots.end());
   EXPECT_TRUE(std::equal(kSlotsWithToken.begin(), kSlotsWithToken.end(),
                          foundSlots.begin()));
+}
+
+TEST_F(Pkcs11ModuleTest, PublicCertificatesToken) {
+  const std::string kRegularToken = "Test PKCS11 Tokeñ 2 Label";
+  const std::string kPublicCertificatesToken = "Test PKCS11 Public Certs Token";
+
+  ScopedPK11SlotInfo slot1(PK11_FindSlotByName(kRegularToken.c_str()));
+  EXPECT_NE(nullptr, slot1);
+  EXPECT_FALSE(PK11_IsFriendly(slot1.get()));
+
+  ScopedPK11SlotInfo slot2(PK11_FindSlotByName(kPublicCertificatesToken.c_str()));
+  EXPECT_NE(nullptr, slot2);
+  EXPECT_TRUE(PK11_IsFriendly(slot2.get()));
 }
 
 }  // namespace nss_test
