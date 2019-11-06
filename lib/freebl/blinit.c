@@ -361,7 +361,7 @@ ppc_crypto_support()
 
 // Defines from cputable.h in Linux kernel - PPC, letting us build on older kernels
 #ifndef PPC_FEATURE2_VEC_CRYPTO
-#define PPC_FEATURE2_VEC_CRYPTO         0x02000000
+#define PPC_FEATURE2_VEC_CRYPTO 0x02000000
 #endif
 
 static void
