@@ -52,8 +52,7 @@ TEST_F(Pkcs11ModuleTest, ListSlots) {
   const std::vector<std::string> kSlotsWithToken = {
       "NSS Internal Cryptographic Services",
       "NSS User Private Key and Certificate Services",
-      "Test PKCS11 Public Certs Slot",
-      "Test PKCS11 Slot 二"};
+      "Test PKCS11 Public Certs Slot", "Test PKCS11 Slot 二"};
   std::vector<std::string> foundSlots;
 
   do {
@@ -76,7 +75,8 @@ TEST_F(Pkcs11ModuleTest, PublicCertificatesToken) {
   EXPECT_NE(nullptr, slot1);
   EXPECT_FALSE(PK11_IsFriendly(slot1.get()));
 
-  ScopedPK11SlotInfo slot2(PK11_FindSlotByName(kPublicCertificatesToken.c_str()));
+  ScopedPK11SlotInfo slot2(
+      PK11_FindSlotByName(kPublicCertificatesToken.c_str()));
   EXPECT_NE(nullptr, slot2);
   EXPECT_TRUE(PK11_IsFriendly(slot2.get()));
 }
