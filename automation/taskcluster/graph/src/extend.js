@@ -831,7 +831,7 @@ async function scheduleTestBuilds(name, base, args = "") {
 
 async function scheduleWindows(name, base, build_script) {
   base = merge(base, {
-    workerType: "nss-win2012r2",
+    workerType: "win2012r2",
     env: {
       PATH: "c:\\mozilla-build\\bin;c:\\mozilla-build\\python;" +
 	    "c:\\mozilla-build\\msys\\local\\bin;c:\\mozilla-build\\7zip;" +

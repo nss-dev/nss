@@ -133,8 +133,8 @@ function convertTask(def) {
   }
 
   return {
-    provisionerId: def.provisioner || "aws-provisioner-v1",
-    workerType: def.workerType || "hg-worker",
+    provisionerId: def.provisioner || `nss-${process.env.MOZ_SCM_LEVEL}`,
+    workerType: def.workerType || "linux",
     schedulerId: process.env.TC_SCHEDULER_ID,
     taskGroupId: process.env.TASK_ID,
 
