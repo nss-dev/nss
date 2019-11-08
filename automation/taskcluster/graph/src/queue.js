@@ -15,7 +15,7 @@ let tasks = new Map();
 let image_tasks = new Map();
 
 let queue = new taskcluster.Queue({
-  baseUrl: "http://taskcluster/queue/v1"
+  rootUrl: process.env.TASKCLUSTER_PROXY_URL,
 });
 
 function fromNow(hours) {
