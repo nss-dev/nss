@@ -839,7 +839,9 @@ async function scheduleWindows(name, base, build_script) {
 	    "c:\\mozilla-build\\moztools-x64\\bin;c:\\mozilla-build\\wget",
       DOMSUF: "localdomain",
       HOST: "localhost",
-    }
+    },
+    features: ["taskclusterProxy"],
+    scopes: ["project:releng:services/tooltool/api/download/internal"],
   });
 
   let artifacts_and_kind = {
