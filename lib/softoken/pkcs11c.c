@@ -4403,6 +4403,8 @@ nsc_SetupPBEKeyGen(CK_MECHANISM_PTR pMechanism, NSSPKCS5PBEParameter **pbe,
     }
     if (crv == CKR_OK) {
         *pbe = params;
+    } else {
+        nsspkcs5_DestroyPBEParameter(params);
     }
     return crv;
 }
@@ -4467,8 +4469,9 @@ NSC_GenerateKey(CK_SESSION_HANDLE hSession,
         }
 
         crv = sftk_AddAttributeType(key, sftk_attr_expand(&pTemplate[i]));
-        if (crv != CKR_OK)
+        if (crv != CKR_OK) {
             break;
+        }
     }
     if (crv != CKR_OK) {
         goto loser;
@@ -4584,6 +4587,9 @@ NSC_GenerateKey(CK_SESSION_HANDLE hSession,
     }
 
     if (crv != CKR_OK) {
+        if (pbe_param) {
+            nsspkcs5_DestroyPBEParameter(pbe_param);
+        }
         goto loser;
     }
 
