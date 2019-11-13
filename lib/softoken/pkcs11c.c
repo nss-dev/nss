@@ -4398,7 +4398,6 @@ nsc_SetupPBEKeyGen(CK_MECHANISM_PTR pMechanism, NSSPKCS5PBEParameter **pbe,
             break;
         default:
             crv = CKR_MECHANISM_INVALID;
-            nsspkcs5_DestroyPBEParameter(params);
             break;
     }
     if (crv == CKR_OK) {
