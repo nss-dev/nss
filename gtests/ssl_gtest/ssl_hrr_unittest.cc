@@ -1055,6 +1055,39 @@ TEST_F(TlsConnectTest, Select12AfterHelloRetryRequest) {
   EXPECT_EQ(SSL_ERROR_RX_MALFORMED_SERVER_HELLO, client_->error_code());
 }
 
+// This class increments the low byte of the first Handshake.message_seq
+// field in every handshake record.
+class MessageSeqIncrementer : public TlsRecordFilter {
+ public:
+  MessageSeqIncrementer(const std::shared_ptr<TlsAgent>& a) : TlsRecordFilter(a) {}
+
+ protected:
+  PacketFilter::Action FilterRecord(const TlsRecordHeader& header,
+                                        const DataBuffer& data,
+                                            DataBuffer* changed) override {
+    if (header.content_type() != ssl_ct_handshake) {
+      return KEEP;
+    }
+
+    *changed = data;
+    // struct { uint8 msg_type; uint24 length; uint16 message_seq; ... } Handshake;
+    changed->data()[5]++;
+    EXPECT_NE(0, changed->data()[5]); // Check for overflow.
+    return CHANGE;
+  }
+};
+
+// A server that receives a ClientHello with message_seq == 1
+// assumes that this is after a stateless HelloRetryRequest.
+// However, it should reject the ClientHello if it lacks a cookie.
+TEST_F(TlsConnectDatagram13, MessageSeq1ClientHello) {
+  EnsureTlsSetup();
+  MakeTlsFilter<MessageSeqIncrementer>(client_);
+  ConnectExpectAlert(server_, kTlsAlertMissingExtension);
+  EXPECT_EQ(SSL_ERROR_MISSING_COOKIE_EXTENSION, server_->error_code());
+  EXPECT_EQ(SSL_ERROR_MISSING_EXTENSION_ALERT, client_->error_code());
+}
+
 class HelloRetryRequestAgentTest : public TlsAgentTestClient {
  protected:
   void SetUp() override {
