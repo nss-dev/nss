@@ -483,7 +483,7 @@ class TlsEncryptedHandshakeMessageReplacer : public TlsRecordFilter {
 
     size_t off = 0;
     uint32_t msg_len = 0;
-    uint32_t msg_type = 255; // Not a real message
+    uint32_t msg_type = 255;  // Not a real message
     do {
       if (!plaintext.Read(off, 1, &msg_type) || msg_type == old_ct_) {
         break;
