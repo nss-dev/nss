@@ -8,6 +8,8 @@ import sys
 import datetime
 import shutil
 import glob
+import re
+import tempfile
 from optparse import OptionParser
 from subprocess import check_call
 from subprocess import check_output
@@ -54,29 +56,77 @@ def check_files_exist():
         or not os.path.exists(nss_h) or not os.path.exists(nssckbi_h)):
         exit_with_failure("cannot find expected header files, must run from inside NSS hg directory")
 
-def sed_inplace(sed_expression, filename):
-    backup_file = filename + '.tmp'
-    check_call_noisy(["sed", "-i.tmp", sed_expression, filename])
-    os.remove(backup_file)
+def inplace_replace(cmds=[], filename=""):
+    for c in cmds:
+        if not "regex" in c or not "repl" in c:
+            raise Exception("Expecting a list of dicts with 'regex' and 'repl' as members")
+        c["matcher"] = re.compile(c["regex"])
+
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
+        with open(filename) as in_file:
+            for line in in_file:
+                for c in cmds:
+                    line = c["matcher"].sub(c["repl"], line)
+                tmp_file.write(line)
+
+        shutil.copystat(filename, tmp_file.name)
+        shutil.move(tmp_file.name, filename)
 
 def toggle_beta_status(is_beta):
     check_files_exist()
     if (is_beta):
         print "adding Beta status to version numbers"
-        sed_inplace('s/^\(#define *NSSUTIL_VERSION *\"[0-9.]\+\)\" *$/\\1 Beta\"/', nssutil_h)
-        sed_inplace('s/^\(#define *NSSUTIL_BETA *\)PR_FALSE *$/\\1PR_TRUE/', nssutil_h)
-        sed_inplace('s/^\(#define *SOFTOKEN_VERSION *\"[0-9.]\+\" *SOFTOKEN_ECC_STRING\) *$/\\1 \" Beta"/', softkver_h)
-        sed_inplace('s/^\(#define *SOFTOKEN_BETA *\)PR_FALSE *$/\\1PR_TRUE/', softkver_h)
-        sed_inplace('s/^\(#define *NSS_VERSION *\"[0-9.]\+\" *_NSS_CUSTOMIZED\) *$/\\1 \" Beta"/', nss_h)
-        sed_inplace('s/^\(#define *NSS_BETA *\)PR_FALSE *$/\\1PR_TRUE/', nss_h)
+        inplace_replace(filename=nssutil_h, cmds=[
+            {
+                "regex": r'^(#define *NSSUTIL_VERSION *\"[0-9.]+)\" *$',
+                "repl": r'\g<1> Beta"'
+            },{
+                "regex": r'^(#define *NSSUTIL_BETA *)PR_FALSE *$',
+                "repl": r'\g<1>PR_TRUE'
+            }])
+        inplace_replace(filename=softkver_h, cmds=[
+            {
+                "regex": r'^(#define *SOFTOKEN_VERSION *\"[0-9.]+\" *SOFTOKEN_ECC_STRING) *$',
+                "repl": r'\g<1> " Beta"'
+            },{
+                "regex": r'^(#define *SOFTOKEN_BETA *)PR_FALSE *$',
+                "repl": r'\g<1>PR_TRUE'
+            }])
+        inplace_replace(filename=nss_h, cmds=[
+            {
+                "regex": r'^(#define *NSS_VERSION *\"[0-9.]+\" *_NSS_CUSTOMIZED) *$',
+                "repl": r'\g<1> " Beta"'
+            },{
+                "regex": r'^(#define *NSS_BETA *)PR_FALSE *$',
+                "repl": r'\g<1>PR_TRUE'
+            }])
     else:
         print "removing Beta status from version numbers"
-        sed_inplace('s/^\(#define *NSSUTIL_VERSION *\"[0-9.]\+\) *Beta\" *$/\\1\"/', nssutil_h)
-        sed_inplace('s/^\(#define *NSSUTIL_BETA *\)PR_TRUE *$/\\1PR_FALSE/', nssutil_h)
-        sed_inplace('s/^\(#define *SOFTOKEN_VERSION *\"[0-9.]\+\" *SOFTOKEN_ECC_STRING\) *\" *Beta\" *$/\\1/', softkver_h)
-        sed_inplace('s/^\(#define *SOFTOKEN_BETA *\)PR_TRUE *$/\\1PR_FALSE/', softkver_h)
-        sed_inplace('s/^\(#define *NSS_VERSION *\"[0-9.]\+\" *_NSS_CUSTOMIZED\) *\" *Beta\" *$/\\1/', nss_h)
-        sed_inplace('s/^\(#define *NSS_BETA *\)PR_TRUE *$/\\1PR_FALSE/', nss_h)
+        inplace_replace(filename=nssutil_h, cmds=[
+            {
+                "regex": r'^(#define *NSSUTIL_VERSION *\"[0-9.]+) *Beta\" *$',
+                "repl": r'\g<1>"'
+            },{
+                "regex": r'^(#define *NSSUTIL_BETA *)PR_TRUE *$',
+                "repl": r'\g<1>PR_FALSE'
+            }])
+        inplace_replace(filename=softkver_h, cmds=[
+            {
+                "regex": r'^(#define *SOFTOKEN_VERSION *\"[0-9.]+\" *SOFTOKEN_ECC_STRING) *\" *Beta\" *$',
+                "repl": r'\g<1>'
+            },{
+                "regex": r'^(#define *SOFTOKEN_BETA *)PR_TRUE *$',
+                "repl": r'\g<1>PR_FALSE'
+            }])
+        inplace_replace(filename=nss_h, cmds=[
+            {
+                "regex": r'^(#define *NSS_VERSION *\"[0-9.]+\" *_NSS_CUSTOMIZED) *\" *Beta\" *$',
+                "repl": r'\g<1>'
+            },{
+                "regex": r'^(#define *NSS_BETA *)PR_TRUE *$',
+                "repl": r'\g<1>PR_FALSE'
+            }])
+
     print "please run 'hg stat' and 'hg diff' to verify the files have been verified correctly"
 
 def print_beta_versions():
@@ -114,38 +164,67 @@ def ensure_arguments_after_action(how_many, usage):
         exit_with_failure("incorrect number of arguments, expected parameters are:\n" + usage)
 
 def set_major_versions(major):
-    sed_inplace('s/^\(#define *NSSUTIL_VMAJOR *\).*$/\\1' + major + '/', nssutil_h)
-    sed_inplace('s/^\(#define *SOFTOKEN_VMAJOR *\).*$/\\1' + major + '/', softkver_h)
-    sed_inplace('s/^\(#define *NSS_VMAJOR *\).*$/\\1' + major + '/', nss_h)
+    for name, file in [["NSSUTIL_VMAJOR", nssutil_h],
+                       ["SOFTOKEN_VMAJOR", softkver_h],
+                       ["NSS_VMAJOR", nss_h]]:
+        inplace_replace(filename=file, cmds=[{
+            "regex": r'^(#define *{} ?).*$'.format(name),
+            "repl": r'\g<1>{}'.format(major),
+        }])
 
 def set_minor_versions(minor):
-    sed_inplace('s/^\(#define *NSSUTIL_VMINOR *\).*$/\\1' + minor + '/', nssutil_h)
-    sed_inplace('s/^\(#define *SOFTOKEN_VMINOR *\).*$/\\1' + minor + '/', softkver_h)
-    sed_inplace('s/^\(#define *NSS_VMINOR *\).*$/\\1' + minor + '/', nss_h)
+    for name, file in [["NSSUTIL_VMINOR", nssutil_h],
+                       ["SOFTOKEN_VMINOR", softkver_h],
+                       ["NSS_VMINOR", nss_h]]:
+        inplace_replace(filename=file, cmds=[{
+            "regex": r'^(#define *{} ?).*$'.format(name),
+            "repl": r'\g<1>{}'.format(minor),
+        }])
 
 def set_patch_versions(patch):
-    sed_inplace('s/^\(#define *NSSUTIL_VPATCH *\).*$/\\1' + patch + '/', nssutil_h)
-    sed_inplace('s/^\(#define *SOFTOKEN_VPATCH *\).*$/\\1' + patch + '/', softkver_h)
-    sed_inplace('s/^\(#define *NSS_VPATCH *\).*$/\\1' + patch + '/', nss_h)
+    for name, file in [["NSSUTIL_VPATCH", nssutil_h],
+                       ["SOFTOKEN_VPATCH", softkver_h],
+                       ["NSS_VPATCH", nss_h]]:
+        inplace_replace(filename=file, cmds=[{
+            "regex": r'^(#define *{} ?).*$'.format(name),
+            "repl": r'\g<1>{}'.format(patch),
+        }])
 
 def set_build_versions(build):
-    sed_inplace('s/^\(#define *NSSUTIL_VBUILD *\).*$/\\1' + build + '/', nssutil_h)
-    sed_inplace('s/^\(#define *SOFTOKEN_VBUILD *\).*$/\\1' + build + '/', softkver_h)
-    sed_inplace('s/^\(#define *NSS_VBUILD *\).*$/\\1' + build + '/', nss_h)
+    for name, file in [["NSSUTIL_VBUILD", nssutil_h],
+                       ["SOFTOKEN_VBUILD", softkver_h],
+                       ["NSS_VBUILD", nss_h]]:
+        inplace_replace(filename=file, cmds=[{
+            "regex": r'^(#define *{} ?).*$'.format(name),
+            "repl": r'\g<1>{}'.format(build),
+        }])
 
 def set_full_lib_versions(version):
-    sed_inplace('s/^\(#define *NSSUTIL_VERSION *\"\)\([0-9.]\+\)\(.*\)$/\\1' + version + '\\3/', nssutil_h)
-    sed_inplace('s/^\(#define *SOFTOKEN_VERSION *\"\)\([0-9.]\+\)\(.*\)$/\\1' + version + '\\3/', softkver_h)
-    sed_inplace('s/^\(#define *NSS_VERSION *\"\)\([0-9.]\+\)\(.*\)$/\\1' + version + '\\3/', nss_h)
+    for name, file in [["NSSUTIL_VERSION", nssutil_h],
+                       ["SOFTOKEN_VERSION", softkver_h],
+                       ["NSS_VERSION", nss_h]]:
+        inplace_replace(filename=file, cmds=[{
+            "regex": r'^(#define *{} *\")([0-9.]+)(.*)$'.format(name),
+            "repl": r'\g<1>{}\g<3>'.format(version),
+        }])
 
 def set_root_ca_version():
     ensure_arguments_after_action(2, "major_version  minor_version")
     major = args[1].strip()
     minor = args[2].strip()
     version = major + '.' + minor
-    sed_inplace('s/^\(#define *NSS_BUILTINS_LIBRARY_VERSION *\"\).*$/\\1' + version + '/', nssckbi_h)
-    sed_inplace('s/^\(#define *NSS_BUILTINS_LIBRARY_VERSION_MAJOR *\).*$/\\1' + major + '/', nssckbi_h)
-    sed_inplace('s/^\(#define *NSS_BUILTINS_LIBRARY_VERSION_MINOR *\).*$/\\1' + minor + '/', nssckbi_h)
+
+    inplace_replace(filename=nssckbi_h, cmds=[
+        {
+            "regex": r'^(#define *NSS_BUILTINS_LIBRARY_VERSION *\").*$',
+            "repl": r'\g<1>{}"'.format(version)
+        },{
+            "regex": r'^(#define *NSS_BUILTINS_LIBRARY_VERSION_MAJOR ?).*$',
+            "repl": r'\g<1>{}'.format(major)
+        },{
+            "regex": r'^(#define *NSS_BUILTINS_LIBRARY_VERSION_MINOR ?).*$',
+            "repl": r'\g<1>{}'.format(minor)
+        }])
 
 def set_all_lib_versions(version, major, minor, patch, build):
     grep_major = check_output(['grep', 'define.*NSS_VMAJOR', nss_h])
