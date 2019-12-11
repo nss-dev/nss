@@ -316,9 +316,8 @@ TEST_P(TlsConnectTls13, ConnectEsniHrr) {
       MakeTlsFilter<TlsExtensionCapture>(client_, ssl_server_name_xtn, true);
   auto efilter =
       MakeTlsFilter<TlsExtensionCapture>(client_, ssl_tls13_encrypted_sni_xtn);
-  auto efilter2 =
-      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_tls13_encrypted_sni_xtn, true);
-
+  auto efilter2 = MakeTlsFilter<TlsExtensionCapture>(
+      client_, ssl_tls13_encrypted_sni_xtn, true);
 
   client_->SetFilter(std::make_shared<ChainedPacketFilter>(
       ChainedPacketFilterInit({filter, filter2, efilter, efilter2})));
