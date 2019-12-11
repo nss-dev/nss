@@ -1059,20 +1059,22 @@ TEST_F(TlsConnectTest, Select12AfterHelloRetryRequest) {
 // field in every handshake record.
 class MessageSeqIncrementer : public TlsRecordFilter {
  public:
-  MessageSeqIncrementer(const std::shared_ptr<TlsAgent>& a) : TlsRecordFilter(a) {}
+  MessageSeqIncrementer(const std::shared_ptr<TlsAgent>& a)
+      : TlsRecordFilter(a) {}
 
  protected:
   PacketFilter::Action FilterRecord(const TlsRecordHeader& header,
-                                        const DataBuffer& data,
-                                            DataBuffer* changed) override {
+                                    const DataBuffer& data,
+                                    DataBuffer* changed) override {
     if (header.content_type() != ssl_ct_handshake) {
       return KEEP;
     }
 
     *changed = data;
-    // struct { uint8 msg_type; uint24 length; uint16 message_seq; ... } Handshake;
+    // struct { uint8 msg_type; uint24 length; uint16 message_seq; ... }
+    // Handshake;
     changed->data()[5]++;
-    EXPECT_NE(0, changed->data()[5]); // Check for overflow.
+    EXPECT_NE(0, changed->data()[5]);  // Check for overflow.
     return CHANGE;
   }
 };
