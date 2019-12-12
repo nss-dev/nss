@@ -1238,7 +1238,7 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
             PRUint8 *param = pMechanism->pParameter;
             int i = 0;
             for (; i < 4; ++i) {
-                ctx->counter |= param[i] << (i * 8);
+                ctx->counter |= (PRUint32)param[i] << (i * 8);
             }
             memcpy(ctx->nonce, param + 4, 12);
             context->cipherInfo = ctx;
