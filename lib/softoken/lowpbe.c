@@ -18,6 +18,7 @@
 #include "alghmac.h"
 #include "softoken.h"
 #include "secerr.h"
+#include "pkcs11i.h"
 
 SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
 
