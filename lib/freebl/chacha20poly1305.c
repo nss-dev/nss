@@ -216,7 +216,7 @@ ChaCha20Poly1305_Open(const ChaCha20Poly1305Context *ctx, unsigned char *output,
 
     uint32_t res = 1;
 #ifdef NSS_X64
-    if (ssse3_support() && sse4_1_support()) {
+    if (ssse3_support() && sse4_1_support() && avx_support()) {
         res = Hacl_Chacha20Poly1305_128_aead_decrypt(
             (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, ciphertextLen,
             (uint8_t *)output, (uint8_t *)input, (uint8_t *)input + ciphertextLen);
