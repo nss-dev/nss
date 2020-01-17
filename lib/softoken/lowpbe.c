@@ -561,13 +561,13 @@ loser:
  * asked to repeatedly compute the key for the same password item,
  * hash, iterations and salt. */
 static struct {
-  PZLock *lock;
-  SECItem *hashPBKDF2;
-  SECItem *salt;
-  SECItem *pwItem;
-  HASH_HashType hashType;
-  int iterations;
-  int keyLen;
+    PZLock *lock;
+    SECItem *hashPBKDF2;
+    SECItem *salt;
+    SECItem *pwItem;
+    HASH_HashType hashType;
+    int iterations;
+    int keyLen;
 } PBECache = { NULL, NULL, NULL, NULL };
 
 void
