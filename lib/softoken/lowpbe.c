@@ -573,8 +573,9 @@ static struct {
 void
 sftk_PBELockInit(void)
 {
-    PORT_Assert(!PBECache.lock);
-    PBECache.lock = PZ_NewLock(nssIPBECacheLock);
+    if (!PBECache.lock) {
+        PBECache.lock = PZ_NewLock(nssIPBECacheLock);
+    }
 }
 
 static void
