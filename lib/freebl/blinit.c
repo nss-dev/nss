@@ -451,12 +451,12 @@ CheckPPCSupport()
 #if defined(__linux__)
     hwcaps = getauxval(AT_HWCAP2);
 #elif defined(__FreeBSD__)
-#  if __FreeBSD__ >= 12
+#if __FreeBSD__ >= 12
     elf_aux_info(AT_HWCAP2, &hwcaps, sizeof(hwcaps));
-#  else
+#else
     size_t len = sizeof(hwcaps);
     sysctlbyname("hw.cpu_features2", &hwcaps, &len, NULL, 0);
-#  endif
+#endif
 #endif
 
     ppc_crypto_support_ = hwcaps & PPC_FEATURE2_VEC_CRYPTO && disable_hw_crypto == NULL;
