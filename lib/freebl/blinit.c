@@ -431,7 +431,11 @@ ppc_crypto_support()
 
 #if defined(__powerpc__)
 
+#if defined(__linux__) || (defined(__FreeBSD__) && __FreeBSD__ >= 12)
 #include <sys/auxv.h>
+#elif (defined(__FreeBSD__) && __FreeBSD__ < 12)
+#include <sys/sysctl.h>
+#endif
 
 // Defines from cputable.h in Linux kernel - PPC, letting us build on older kernels
 #ifndef PPC_FEATURE2_VEC_CRYPTO
@@ -443,7 +447,17 @@ CheckPPCSupport()
 {
     char *disable_hw_crypto = PR_GetEnvSecure("NSS_DISABLE_PPC_GHASH");
 
-    long hwcaps = getauxval(AT_HWCAP2);
+    unsigned long hwcaps = 0;
+#if defined(__linux__)
+    hwcaps = getauxval(AT_HWCAP2);
+#elif defined(__FreeBSD__)
+#  if __FreeBSD__ >= 12
+    elf_aux_info(AT_HWCAP2, &hwcaps, sizeof(hwcaps));
+#  else
+    size_t len = sizeof(hwcaps);
+    sysctlbyname("hw.cpu_features2", &hwcaps, &len, NULL, 0);
+#  endif
+#endif
 
     ppc_crypto_support_ = hwcaps & PPC_FEATURE2_VEC_CRYPTO && disable_hw_crypto == NULL;
 }
