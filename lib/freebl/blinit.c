@@ -122,6 +122,22 @@ extern unsigned long getauxval(unsigned long type) __attribute__((weak));
 static unsigned long (*getauxval)(unsigned long) = NULL;
 #endif /* defined(__GNUC__) && __GNUC__ >= 2 && defined(__ELF__)*/
 
+#if defined(__FreeBSD__) && !defined(__aarch64__) && __has_include(<sys/auxv.h>)
+/* Avoid conflict with static declaration above */
+#define getauxval freebl_getauxval
+static unsigned long getauxval(unsigned long type)
+{
+    /* Only AT_HWCAP* return unsigned long */
+    if (type != AT_HWCAP && type != AT_HWCAP2) {
+        return 0;
+    }
+
+    unsigned long ret = 0;
+    elf_aux_info(type, &ret, sizeof(ret));
+    return ret;
+}
+#endif
+
 #ifndef AT_HWCAP2
 #define AT_HWCAP2 26
 #endif
