@@ -275,8 +275,8 @@ secmod_ModuleInit(SECMODModule *mod, SECMODModule **reload,
     }
     if (crv != CKR_OK) {
         if (!mod->isThreadSafe ||
-            crv == CKR_NETSCAPE_CERTDB_FAILED ||
-            crv == CKR_NETSCAPE_KEYDB_FAILED) {
+            crv == CKR_NSS_CERTDB_FAILED ||
+            crv == CKR_NSS_KEYDB_FAILED) {
             PORT_SetError(PK11_MapError(crv));
             return SECFailure;
         }

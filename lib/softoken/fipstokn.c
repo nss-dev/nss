@@ -815,7 +815,7 @@ FC_CreateObject(CK_SESSION_HANDLE hSession,
     if (classptr == NULL)
         return CKR_TEMPLATE_INCOMPLETE;
 
-    if (*classptr == CKO_NETSCAPE_NEWSLOT || *classptr == CKO_NETSCAPE_DELSLOT) {
+    if (*classptr == CKO_NSS_NEWSLOT || *classptr == CKO_NSS_DELSLOT) {
         if (sftk_fatalError)
             return CKR_DEVICE_ERROR;
     } else {
