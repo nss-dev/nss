@@ -456,6 +456,7 @@ ppc_crypto_support()
 #define __has_include(x) 0
 #endif
 
+/* clang-format off */
 #if defined(__linux__) || (defined(__FreeBSD__) && __FreeBSD__ >= 12)
 #if __has_include(<sys/auxv.h>)
 #include <sys/auxv.h>
@@ -492,6 +493,7 @@ CheckPPCSupport()
 
     ppc_crypto_support_ = hwcaps & PPC_FEATURE2_VEC_CRYPTO && disable_hw_crypto == NULL;
 }
+/* clang-format on */
 
 #endif /* __powerpc__ */
 
