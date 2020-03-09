@@ -13,7 +13,7 @@ set -e -x -v
 # HACL CI.
 # When bug 1593647 is resolved, extract the code on CI again.
 git clone -q "https://github.com/project-everest/hacl-star" ~/hacl-star
-git -C ~/hacl-star checkout -q 4faa2f0e26b544c81e5d2e0af773cc8008863470
+git -C ~/hacl-star checkout -q 079854e0072041d60859b6d8af2743bc6a37dc05
 
 # Format the C snapshot.
 cd ~/hacl-star/dist/mozilla
