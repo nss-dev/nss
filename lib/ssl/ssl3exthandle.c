@@ -1034,7 +1034,9 @@ ssl_ParseSessionTicket(sslSocket *ss, const SECItem *decryptedTicket,
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
     }
-    parsedTicket->timestamp = (PRTime)temp << 32;
+
+    /* Cast to avoid undefined behavior if the top bit is set. */
+    parsedTicket->timestamp = (PRTime)((PRUint64)temp << 32);
     rv = ssl3_ExtConsumeHandshakeNumber(ss, &temp, 4, &buffer, &len);
     if (rv != SECSuccess) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
