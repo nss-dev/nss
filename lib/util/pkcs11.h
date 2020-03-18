@@ -179,10 +179,10 @@ extern "C" {
 
 #define __PASTE(x, y) x##y
 
-#ifndef CK_PKCS11_3
+#ifndef CK_PKCS11_3_0
 /* remember that we set it so we can unset it at the end */
 #define __NSS_CK_PKCS11_3_IMPLICIT 1
-#define CK_PKCS11_3 1
+#define CK_PKCS11_3_0 1
 #endif
 
 /* ==============================================================
@@ -259,7 +259,7 @@ struct CK_FUNCTION_LIST {
 #undef CK_PKCS11_2_0_ONLY
 
 #ifdef __NSS_CK_PKCS11_3_IMPLICIT
-#undef CK_PKCS11_3
+#undef CK_PKCS11_3_0
 #undef __NSS_CK_PKCS11_3_IMPLICIT
 #endif
 
