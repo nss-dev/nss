@@ -86,6 +86,7 @@ static PRUint32 minSessionObjectHandle = 1U;
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_NEED_ARG_LIST
 
+#define CK_PKCS11_3_0 1
 #define CK_EXTERN extern
 #define CK_PKCS11_FUNCTION_INFO(func) \
     CK_RV __PASTE(NS, func)
@@ -94,8 +95,8 @@ static PRUint32 minSessionObjectHandle = 1U;
 #include "pkcs11f.h"
 
 /* build the crypto module table */
-static const CK_FUNCTION_LIST sftk_funcList = {
-    { 1, 10 },
+static CK_FUNCTION_LIST_3_0 sftk_funcList = {
+    { CRYPTOKI_VERSION_MAJOR, CRYPTOKI_VERSION_MINOR },
 
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_NEED_ARG_LIST
@@ -107,10 +108,49 @@ static const CK_FUNCTION_LIST sftk_funcList = {
 
 };
 
+/* need a special version of get info for version 2 which returns the version
+ * 2.4 version number */
+CK_RV NSC_GetInfoV2(CK_INFO_PTR pInfo);
+
+/* build the crypto module table */
+static CK_FUNCTION_LIST sftk_funcList_v2 = {
+    { 2, 40 },
+
+#undef CK_PKCS11_3_0
+#define CK_PKCS_11_2_0_ONLY 1
+#undef CK_PKCS11_FUNCTION_INFO
+#undef CK_NEED_ARG_LIST
+#define C_GetInfo C_GetInfoV2
+
+#define CK_PKCS11_FUNCTION_INFO(func) \
+    __PASTE(NS, func)                 \
+    ,
+#include "pkcs11f.h"
+
+};
+
+#undef C_GetInfo
+#undef CK_PKCS_11_2_0_ONLY
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_NEED_ARG_LIST
 
 #undef __PASTE
+
+CK_NSS_MODULE_FUNCTIONS sftk_module_funcList = {
+    { 1, 0 },
+    NSC_ModuleDBFunc
+};
+
+/*
+ * Array is orderd by default first
+ */
+static CK_INTERFACE nss_interfaces[] = {
+    { (CK_UTF8CHAR_PTR) "PKCS 11", &sftk_funcList, NSS_INTERFACE_FLAGS },
+    { (CK_UTF8CHAR_PTR) "PKCS 11", &sftk_funcList_v2, NSS_INTERFACE_FLAGS },
+    { (CK_UTF8CHAR_PTR) "Vendor NSS Module Interface", &sftk_module_funcList, NSS_INTERFACE_FLAGS }
+};
+/* must match the count of interfaces in nss_interfaces above */
+#define NSS_INTERFACE_COUNT 3
 
 /* List of DES Weak Keys */
 typedef unsigned char desKey[8];
@@ -2405,7 +2445,7 @@ sftk_IsWeakKey(unsigned char *key, CK_KEY_TYPE key_type)
 CK_RV
 NSC_GetFunctionList(CK_FUNCTION_LIST_PTR *pFunctionList)
 {
-    *pFunctionList = (CK_FUNCTION_LIST_PTR)&sftk_funcList;
+    *pFunctionList = (CK_FUNCTION_LIST_PTR)&sftk_funcList_v2;
     return CKR_OK;
 }
 
@@ -2414,6 +2454,60 @@ CK_RV
 C_GetFunctionList(CK_FUNCTION_LIST_PTR *pFunctionList)
 {
     return NSC_GetFunctionList(pFunctionList);
+}
+
+CK_RV
+NSC_GetInterfaceList(CK_INTERFACE_PTR interfaces, CK_ULONG_PTR pulCount)
+{
+    CK_ULONG count = *pulCount;
+    *pulCount = NSS_INTERFACE_COUNT;
+    if (interfaces == NULL) {
+        return CKR_OK;
+    }
+    if (count < NSS_INTERFACE_COUNT) {
+        return CKR_BUFFER_TOO_SMALL;
+    }
+    PORT_Memcpy(interfaces, nss_interfaces, sizeof(nss_interfaces));
+    return CKR_OK;
+}
+
+CK_RV
+C_GetInterfaceList(CK_INTERFACE_PTR interfaces, CK_ULONG_PTR pulCount)
+{
+    return NSC_GetInterfaceList(interfaces, pulCount);
+}
+
+/*
+ * Get the requested interface, use the nss_interfaces array so we can
+ * easily add new interfaces as they occur.
+ */
+CK_RV
+NSC_GetInterface(CK_UTF8CHAR_PTR pInterfaceName, CK_VERSION_PTR pVersion,
+                 CK_INTERFACE_PTR_PTR ppInterface, CK_FLAGS flags)
+{
+    int i;
+    for (i = 0; i < NSS_INTERFACE_COUNT; i++) {
+        CK_INTERFACE_PTR interface = &nss_interfaces[i];
+        if (pInterfaceName && PORT_Strcmp((char *)pInterfaceName, (char *)interface->pInterfaceName) != 0) {
+            continue;
+        }
+        if (pVersion && PORT_Memcmp(pVersion, (CK_VERSION *)interface->pFunctionList, sizeof(CK_VERSION)) != 0) {
+            continue;
+        }
+        if (flags & ((interface->flags & flags) != flags)) {
+            continue;
+        }
+        *ppInterface = interface;
+        return CKR_OK;
+    }
+    return CKR_ARGUMENTS_BAD;
+}
+
+CK_RV
+C_GetInterface(CK_UTF8CHAR_PTR pInterfaceName, CK_VERSION_PTR pVersion,
+               CK_INTERFACE_PTR_PTR ppInterface, CK_FLAGS flags)
+{
+    return NSC_GetInterface(pInterfaceName, pVersion, ppInterface, flags);
 }
 
 static PLHashNumber
@@ -3392,8 +3486,24 @@ NSC_GetInfo(CK_INFO_PTR pInfo)
 
     CHECK_FORK();
 
+    pInfo->cryptokiVersion.major = CRYPTOKI_VERSION_MAJOR;
+    pInfo->cryptokiVersion.minor = CRYPTOKI_VERSION_MINOR;
+    PORT_Memcpy(pInfo->manufacturerID, manufacturerID, 32);
+    pInfo->libraryVersion.major = SOFTOKEN_VMAJOR;
+    pInfo->libraryVersion.minor = SOFTOKEN_VMINOR;
+    PORT_Memcpy(pInfo->libraryDescription, libraryDescription, 32);
+    pInfo->flags = 0;
+    return CKR_OK;
+}
+
+/* NSC_GetInfo returns general information about Cryptoki. */
+CK_RV
+NSC_GetInfoV2(CK_INFO_PTR pInfo)
+{
+    CHECK_FORK();
+
     pInfo->cryptokiVersion.major = 2;
-    pInfo->cryptokiVersion.minor = 20;
+    pInfo->cryptokiVersion.minor = 40;
     PORT_Memcpy(pInfo->manufacturerID, manufacturerID, 32);
     pInfo->libraryVersion.major = SOFTOKEN_VMAJOR;
     pInfo->libraryVersion.minor = SOFTOKEN_VMINOR;
@@ -4252,6 +4362,15 @@ done:
         sftk_freeDB(handle);
     }
     return crv;
+}
+
+CK_RV
+NSC_LoginUser(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
+              CK_CHAR_PTR pPin, CK_ULONG ulPinLen, CK_UTF8CHAR_PTR pUsername,
+              CK_ULONG ulUsernameLen)
+{
+    /* softoken currently does not support additional users */
+    return CKR_OPERATION_NOT_INITIALIZED;
 }
 
 /* NSC_Logout logs a user out from a token. */

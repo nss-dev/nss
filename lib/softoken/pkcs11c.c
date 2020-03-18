@@ -48,6 +48,8 @@
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_NEED_ARG_LIST
 
+#define CK_PKCS11_3_0 1
+
 #define CK_EXTERN extern
 #define CK_PKCS11_FUNCTION_INFO(func) \
     CK_RV __PASTE(NS, func)
@@ -3088,6 +3090,59 @@ NSC_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart,
 {
     CHECK_FORK();
     return sftk_MACUpdate(hSession, pPart, ulPartLen, SFTK_SIGN);
+}
+
+struct SFTK_SESSION_FLAGS {
+    CK_FLAGS flag;
+    SFTKContextType type;
+};
+
+const static struct SFTK_SESSION_FLAGS sftk_session_flags[] = {
+    { CKF_ENCRYPT, SFTK_ENCRYPT },
+    { CKF_DECRYPT, SFTK_DECRYPT },
+    { CKF_DIGEST, SFTK_HASH },
+    { CKF_SIGN, SFTK_SIGN },
+    { CKF_SIGN_RECOVER, SFTK_SIGN_RECOVER },
+    { CKF_VERIFY, SFTK_VERIFY },
+    { CKF_VERIFY_RECOVER, SFTK_VERIFY_RECOVER }
+
+};
+const static int sftk_flag_count = PR_ARRAY_SIZE(sftk_session_flags);
+
+/*
+ * Cancel one or more operations running on the existing session.
+ */
+CK_RV
+NSC_SessionCancel(CK_SESSION_HANDLE hSession, CK_FLAGS flags)
+{
+    SFTKSession *session;
+    SFTKSessionContext *context;
+    CK_RV gcrv = CKR_OK;
+    CK_RV crv;
+    int i;
+
+    for (i = 0; i < sftk_flag_count; i++) {
+        if (flags & sftk_session_flags[i].flag) {
+            flags &= ~sftk_session_flags[i].flag;
+            crv = sftk_GetContext(hSession, &context, sftk_session_flags[i].type, PR_TRUE, &session);
+            if (crv != CKR_OK) {
+                gcrv = CKR_OPERATION_CANCEL_FAILED;
+                continue;
+            }
+            sftk_TerminateOp(session, sftk_session_flags[i].type, context);
+        }
+    }
+    if (flags & CKF_FIND_OBJECTS) {
+        flags &= ~CKF_FIND_OBJECTS;
+        crv = NSC_FindObjectsFinal(hSession);
+        if (crv != CKR_OK) {
+            gcrv = CKR_OPERATION_CANCEL_FAILED;
+        }
+    }
+    if (flags) {
+        gcrv = CKR_OPERATION_CANCEL_FAILED;
+    }
+    return gcrv;
 }
 
 /* NSC_SignFinal finishes a multiple-part signature operation,

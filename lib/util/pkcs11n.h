@@ -555,6 +555,16 @@ typedef char **(PR_CALLBACK *SECMODModuleDBFunc)(unsigned long function,
 #define SFTK_MIN_FIPS_USER_SLOT_ID 101
 #define SFTK_MAX_FIPS_USER_SLOT_ID 127
 
+/* Module Interface. This is the old NSS private module interface, now exported
+ * as a PKCS #11 v3 interface. It's interface name is
+ * "Vendor NSS Module Interface" */
+typedef char **(*CK_NSS_ModuleDBFunc)(unsigned long function,
+                                      char *parameters, void *args);
+typedef struct CK_NSS_MODULE_FUNCTIONS {
+    CK_VERSION version;
+    CK_NSS_ModuleDBFunc NSC_ModuleDBFunc;
+} CK_NSS_MODULE_FUNCTIONS;
+
 /* There was an inconsistency between the spec and the header file in defining
  * the CK_GCM_PARAMS structure. The authoritative reference is the header file,
  * but NSS used the spec when adding it to its own header. In V3 we've

@@ -813,14 +813,14 @@ CK_PKCS11_FUNCTION_INFO(C_WaitForSlotEvent)
 
 #if defined(CK_PKCS11_3_0) && !defined(CK_PKCS11_2_0_ONLY)
 CK_PKCS11_FUNCTION_INFO(C_GetInterfaceList)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_INTERFACE_PTR interfaces,
     CK_ULONG_PTR pulCount);
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_GetInterface)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_UTF8CHAR_PTR pInterfaceName,
     CK_VERSION_PTR pVersion,
@@ -829,7 +829,7 @@ CK_PKCS11_FUNCTION_INFO(C_GetInterface)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_LoginUser)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_USER_TYPE userType,
@@ -840,14 +840,14 @@ CK_PKCS11_FUNCTION_INFO(C_LoginUser)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_SessionCancel)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_FLAGS flags);
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_MessageEncryptInit)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_MECHANISM_PTR pMechanism,
@@ -855,7 +855,7 @@ CK_PKCS11_FUNCTION_INFO(C_MessageEncryptInit)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_EncryptMessage)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_VOID_PTR pParameter,
@@ -869,7 +869,7 @@ CK_PKCS11_FUNCTION_INFO(C_EncryptMessage)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_EncryptMessageBegin)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_VOID_PTR pParameter,
@@ -879,7 +879,7 @@ CK_PKCS11_FUNCTION_INFO(C_EncryptMessageBegin)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_EncryptMessageNext)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_VOID_PTR pParameter,
@@ -892,13 +892,13 @@ CK_PKCS11_FUNCTION_INFO(C_EncryptMessageNext)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_MessageEncryptFinal)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession);
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_MessageDecryptInit)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_MECHANISM_PTR pMechanism,
@@ -906,7 +906,7 @@ CK_PKCS11_FUNCTION_INFO(C_MessageDecryptInit)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_DecryptMessage)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_VOID_PTR pParameter,
@@ -920,7 +920,7 @@ CK_PKCS11_FUNCTION_INFO(C_DecryptMessage)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_DecryptMessageBegin)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_VOID_PTR pParameter,
@@ -930,7 +930,7 @@ CK_PKCS11_FUNCTION_INFO(C_DecryptMessageBegin)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_DecryptMessageNext)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_VOID_PTR pParameter,
@@ -943,13 +943,13 @@ CK_PKCS11_FUNCTION_INFO(C_DecryptMessageNext)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_MessageDecryptFinal)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession);
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_MessageSignInit)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_MECHANISM_PTR pMechanism,
@@ -957,7 +957,7 @@ CK_PKCS11_FUNCTION_INFO(C_MessageSignInit)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_SignMessage)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_VOID_PTR pParameter,
@@ -970,7 +970,7 @@ CK_PKCS11_FUNCTION_INFO(C_SignMessage)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_SignMessageBegin)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_VOID_PTR pParameter,
@@ -978,7 +978,7 @@ CK_PKCS11_FUNCTION_INFO(C_SignMessageBegin)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_SignMessageNext)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_VOID_PTR pParameter,
@@ -990,13 +990,13 @@ CK_PKCS11_FUNCTION_INFO(C_SignMessageNext)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_MessageSignFinal)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession);
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_MessageVerifyInit)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_MECHANISM_PTR pMechanism,
@@ -1004,7 +1004,7 @@ CK_PKCS11_FUNCTION_INFO(C_MessageVerifyInit)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_VerifyMessage)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_VOID_PTR pParameter,
@@ -1016,7 +1016,7 @@ CK_PKCS11_FUNCTION_INFO(C_VerifyMessage)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_VerifyMessageBegin)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_VOID_PTR pParameter,
@@ -1024,7 +1024,7 @@ CK_PKCS11_FUNCTION_INFO(C_VerifyMessageBegin)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_VerifyMessageNext)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession,
     CK_VOID_PTR pParameter,
@@ -1036,7 +1036,7 @@ CK_PKCS11_FUNCTION_INFO(C_VerifyMessageNext)
 #endif
 
 CK_PKCS11_FUNCTION_INFO(C_MessageVerifyFinal)
-#ifdef CK_NEED_ARGLIST
+#ifdef CK_NEED_ARG_LIST
 (
     CK_SESSION_HANDLE hSession);
 #endif
