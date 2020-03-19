@@ -111,6 +111,8 @@ static CK_FUNCTION_LIST_3_0 sftk_funcList = {
 /* need a special version of get info for version 2 which returns the version
  * 2.4 version number */
 CK_RV NSC_GetInfoV2(CK_INFO_PTR pInfo);
+CK_RV NSC_GetMechanismInfoV2(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type,
+                             CK_MECHANISM_INFO_PTR pInfo);
 
 /* build the crypto module table */
 static CK_FUNCTION_LIST sftk_funcList_v2 = {
@@ -121,6 +123,7 @@ static CK_FUNCTION_LIST sftk_funcList_v2 = {
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_NEED_ARG_LIST
 #define C_GetInfo C_GetInfoV2
+#define C_GetMechanismInfo C_GetMechanismInfoV2
 
 #define CK_PKCS11_FUNCTION_INFO(func) \
     __PASTE(NS, func)                 \
@@ -130,6 +133,7 @@ static CK_FUNCTION_LIST sftk_funcList_v2 = {
 };
 
 #undef C_GetInfo
+#undef C_GetMechanismInfo
 #undef CK_PKCS_11_2_0_ONLY
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_NEED_ARG_LIST
@@ -263,6 +267,7 @@ struct mechanismList {
 #define CKF_WR_UN CKF_WRAP | CKF_UNWRAP
 #define CKF_SN_VR CKF_SIGN | CKF_VERIFY
 #define CKF_SN_RE CKF_SIGN_RECOVER | CKF_VERIFY_RECOVER
+#define CKF_EN_DE_MSG CKF_ENCRYPT | CKF_DECRYPT | CKF_MESSAGE_ENCRYPT | CKF_MESSAGE_DECRYPT
 
 #define CKF_EN_DE_WR_UN CKF_EN_DE | CKF_WR_UN
 #define CKF_SN_VR_RE CKF_SN_VR | CKF_SN_RE
@@ -369,7 +374,7 @@ static const struct mechanismList mechanisms[] = {
     { CKM_AES_CBC_PAD, { 16, 32, CKF_EN_DE_WR_UN }, PR_TRUE },
     { CKM_AES_CTS, { 16, 32, CKF_EN_DE }, PR_TRUE },
     { CKM_AES_CTR, { 16, 32, CKF_EN_DE }, PR_TRUE },
-    { CKM_AES_GCM, { 16, 32, CKF_EN_DE }, PR_TRUE },
+    { CKM_AES_GCM, { 16, 32, CKF_EN_DE_MSG }, PR_TRUE },
     { CKM_AES_XCBC_MAC_96, { 16, 16, CKF_SN_VR }, PR_TRUE },
     { CKM_AES_XCBC_MAC, { 16, 16, CKF_SN_VR }, PR_TRUE },
     /* ------------------------- Camellia Operations --------------------- */
@@ -391,6 +396,8 @@ static const struct mechanismList mechanisms[] = {
     { CKM_NSS_CHACHA20_KEY_GEN, { 32, 32, CKF_GENERATE }, PR_TRUE },
     { CKM_NSS_CHACHA20_POLY1305, { 32, 32, CKF_EN_DE }, PR_TRUE },
     { CKM_NSS_CHACHA20_CTR, { 32, 32, CKF_EN_DE }, PR_TRUE },
+    { CKM_CHACHA20_KEY_GEN, { 32, 32, CKF_GENERATE }, PR_TRUE },
+    { CKM_CHACHA20_POLY1305, { 32, 32, CKF_EN_DE_MSG }, PR_TRUE },
 #endif /* NSS_DISABLE_CHACHAPOLY */
     /* ------------------------- Hashing Operations ----------------------- */
     { CKM_MD2, { 0, 0, CKF_DIGEST }, PR_FALSE },
@@ -3787,6 +3794,22 @@ NSC_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type,
     return CKR_MECHANISM_INVALID;
 }
 
+/*
+ * If we are using the V2 interface, strip out the message flags
+ */
+#define SFTK_MESSAGE_FLAGS (CKF_MESSAGE_ENCRYPT | CKF_MESSAGE_DECRYPT | CKF_MESSAGE_SIGN | CKF_MESSAGE_VERIFY)
+CK_RV
+NSC_GetMechanismInfoV2(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type,
+                       CK_MECHANISM_INFO_PTR pInfo)
+{
+    CK_RV crv;
+    crv = NSC_GetMechanismInfo(slotID, type, pInfo);
+    if (crv == CKR_OK) {
+        pInfo->flags = pInfo->flags & ~SFTK_MESSAGE_FLAGS;
+    }
+    return crv;
+}
+
 CK_RV
 sftk_MechAllowsOperation(CK_MECHANISM_TYPE type, CK_ATTRIBUTE_TYPE op)
 {
@@ -3820,6 +3843,18 @@ sftk_MechAllowsOperation(CK_MECHANISM_TYPE type, CK_ATTRIBUTE_TYPE op)
             break;
         case CKA_DERIVE:
             flags = CKF_DERIVE;
+            break;
+        case CKA_NSS_MESSAGE | CKA_ENCRYPT:
+            flags = CKF_MESSAGE_ENCRYPT;
+            break;
+        case CKA_NSS_MESSAGE | CKA_DECRYPT:
+            flags = CKF_MESSAGE_DECRYPT;
+            break;
+        case CKA_NSS_MESSAGE | CKA_SIGN:
+            flags = CKF_MESSAGE_SIGN;
+            break;
+        case CKA_NSS_MESSAGE | CKA_VERIFY:
+            flags = CKF_MESSAGE_VERIFY;
             break;
         default:
             return CKR_ARGUMENTS_BAD;

@@ -98,38 +98,6 @@ sftk_Space(void *data, PRBool freeit)
 }
 
 /*
- * map all the SEC_ERROR_xxx error codes that may be returned by freebl
- * functions to CKR_xxx.  Most of the mapping is done in
- * sftk_mapCryptError (now in pkcs11u.c). The next two functions adjust
- * that mapping based for different contexts (Decrypt or Verify).
- */
-
-/* used by Decrypt and UnwrapKey (indirectly) */
-static CK_RV
-sftk_MapDecryptError(int error)
-{
-    switch (error) {
-        case SEC_ERROR_BAD_DATA:
-            return CKR_ENCRYPTED_DATA_INVALID;
-        default:
-            return sftk_MapCryptError(error);
-    }
-}
-
-/*
- * return CKR_SIGNATURE_INVALID instead of CKR_DEVICE_ERROR by default for
- * backward compatibilty.
- */
-static CK_RV
-sftk_MapVerifyError(int error)
-{
-    CK_RV crv = sftk_MapCryptError(error);
-    if (crv == CKR_DEVICE_ERROR)
-        crv = CKR_SIGNATURE_INVALID;
-    return crv;
-}
-
-/*
  * turn a CDMF key into a des key. CDMF is an old IBM scheme to export DES by
  * Deprecating a full des key to 40 bit key strenth.
  */
@@ -323,6 +291,8 @@ sftk_ReturnContextByType(SFTKSession *session, SFTKContextType type)
     switch (type) {
         case SFTK_ENCRYPT:
         case SFTK_DECRYPT:
+        case SFTK_MESSAGE_ENCRYPT:
+        case SFTK_MESSAGE_DECRYPT:
             return session->enc_context;
         case SFTK_HASH:
             return session->hash_context;
@@ -330,6 +300,8 @@ sftk_ReturnContextByType(SFTKSession *session, SFTKContextType type)
         case SFTK_SIGN_RECOVER:
         case SFTK_VERIFY:
         case SFTK_VERIFY_RECOVER:
+        case SFTK_MESSAGE_SIGN:
+        case SFTK_MESSAGE_VERIFY:
             return session->hash_context;
     }
     return NULL;
@@ -345,6 +317,8 @@ sftk_SetContextByType(SFTKSession *session, SFTKContextType type,
     switch (type) {
         case SFTK_ENCRYPT:
         case SFTK_DECRYPT:
+        case SFTK_MESSAGE_ENCRYPT:
+        case SFTK_MESSAGE_DECRYPT:
             session->enc_context = context;
             break;
         case SFTK_HASH:
@@ -354,6 +328,8 @@ sftk_SetContextByType(SFTKSession *session, SFTKContextType type,
         case SFTK_SIGN_RECOVER:
         case SFTK_VERIFY:
         case SFTK_VERIFY_RECOVER:
+        case SFTK_MESSAGE_SIGN:
+        case SFTK_MESSAGE_VERIFY:
             session->hash_context = context;
             break;
     }
@@ -367,7 +343,7 @@ sftk_SetContextByType(SFTKSession *session, SFTKContextType type,
  * and optionally returns the session pointer (if sessionPtr != NULL) if session
  * pointer is returned, the caller is responsible for freeing it.
  */
-static CK_RV
+CK_RV
 sftk_GetContext(CK_SESSION_HANDLE handle, SFTKSessionContext **contextPtr,
                 SFTKContextType type, PRBool needMulti, SFTKSession **sessionPtr)
 {
@@ -395,7 +371,7 @@ sftk_GetContext(CK_SESSION_HANDLE handle, SFTKSessionContext **contextPtr,
 /** Terminate operation (in the PKCS#11 spec sense).
  *  Intuitive name for FreeContext/SetNullContext pair.
  */
-static void
+void
 sftk_TerminateOp(SFTKSession *session, SFTKContextType ctype,
                  SFTKSessionContext *context)
 {
@@ -411,7 +387,7 @@ sftk_TerminateOp(SFTKSession *session, SFTKContextType ctype,
  * All the NSC_InitXXX functions have a set of common checks and processing they
  * all need to do at the beginning. This is done here.
  */
-static CK_RV
+CK_RV
 sftk_InitGeneric(SFTKSession *session, SFTKSessionContext **contextPtr,
                  SFTKContextType ctype, SFTKObject **keyPtr,
                  CK_OBJECT_HANDLE hKey, CK_KEY_TYPE *keyTypePtr,
@@ -763,7 +739,7 @@ sftk_ChaCha20Ctr_DestroyContext(SFTKChaCha20CtrInfo *ctx,
  * Called by NSC_SignInit, NSC_VerifyInit (via sftk_InitCBCMac) only for block
  *  ciphers MAC'ing.
  */
-static CK_RV
+CK_RV
 sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                CK_OBJECT_HANDLE hKey,
                CK_ATTRIBUTE_TYPE mechUsage, CK_ATTRIBUTE_TYPE keyUsage,
@@ -780,6 +756,8 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 #endif
     CK_NSS_GCM_PARAMS nss_gcm_param;
     void *aes_param;
+    CK_NSS_AEAD_PARAMS nss_aead_params;
+    CK_NSS_AEAD_PARAMS *nss_aead_params_ptr = NULL;
     CK_KEY_TYPE key_type;
     CK_RV crv = CKR_OK;
     unsigned effectiveKeyLength;
@@ -1225,12 +1203,34 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
             break;
 
         case CKM_NSS_CHACHA20_POLY1305:
-            if (pMechanism->ulParameterLen != sizeof(CK_NSS_AEAD_PARAMS)) {
-                crv = CKR_MECHANISM_PARAM_INVALID;
-                break;
+        case CKM_CHACHA20_POLY1305:
+            if (pMechanism->mechanism == CKM_NSS_CHACHA20_POLY1305) {
+                if ((pMechanism->pParameter == NULL) ||
+                    (pMechanism->ulParameterLen != sizeof(CK_NSS_AEAD_PARAMS))) {
+                    crv = CKR_MECHANISM_PARAM_INVALID;
+                    break;
+                }
+                nss_aead_params_ptr = (CK_NSS_AEAD_PARAMS *)pMechanism->pParameter;
+            } else {
+                CK_SALSA20_CHACHA20_POLY1305_PARAMS_PTR chacha_poly_params;
+                if ((pMechanism->pParameter == NULL) ||
+                    (pMechanism->ulParameterLen !=
+                     sizeof(CK_SALSA20_CHACHA20_POLY1305_PARAMS))) {
+                    crv = CKR_MECHANISM_PARAM_INVALID;
+                    break;
+                }
+                chacha_poly_params = (CK_SALSA20_CHACHA20_POLY1305_PARAMS_PTR)
+                                         pMechanism->pParameter;
+                nss_aead_params_ptr = &nss_aead_params;
+                nss_aead_params.pNonce = chacha_poly_params->pNonce;
+                nss_aead_params.ulNonceLen = chacha_poly_params->ulNonceLen;
+                nss_aead_params.pAAD = chacha_poly_params->pAAD;
+                nss_aead_params.ulAADLen = chacha_poly_params->ulAADLen;
+                nss_aead_params.ulTagLen = 16; /* Poly1305 is always 16 */
             }
+
             context->multi = PR_FALSE;
-            if (key_type != CKK_NSS_CHACHA20) {
+            if ((key_type != CKK_NSS_CHACHA20) && (key_type != CKK_CHACHA20)) {
                 crv = CKR_KEY_TYPE_INCONSISTENT;
                 break;
             }
@@ -1241,7 +1241,7 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
             }
             context->cipherInfo = sftk_ChaCha20Poly1305_CreateContext(
                 (unsigned char *)att->attrib.pValue, att->attrib.ulValueLen,
-                (CK_NSS_AEAD_PARAMS *)pMechanism->pParameter);
+                nss_aead_params_ptr);
             sftk_FreeAttribute(att);
             if (context->cipherInfo == NULL) {
                 crv = sftk_MapCryptError(PORT_GetError());
@@ -1251,14 +1251,46 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
             context->destroy = (SFTKDestroy)sftk_ChaCha20Poly1305_DestroyContext;
             break;
 
-        case CKM_NSS_CHACHA20_CTR:
-            if (key_type != CKK_NSS_CHACHA20) {
-                crv = CKR_KEY_TYPE_INCONSISTENT;
-                break;
-            }
-            if (pMechanism->pParameter == NULL || pMechanism->ulParameterLen != 16) {
-                crv = CKR_MECHANISM_PARAM_INVALID;
-                break;
+        case CKM_NSS_CHACHA20_CTR: /* old NSS private version */
+        case CKM_CHACHA20:         /* PKCS #11 v3 version */
+        {
+            unsigned char *counter;
+            unsigned char *nonce;
+            unsigned long counter_len;
+            unsigned long nonce_len;
+            if (pMechanism->mechanism == CKM_NSS_CHACHA20_CTR) {
+                if (key_type != CKK_NSS_CHACHA20) {
+                    crv = CKR_KEY_TYPE_INCONSISTENT;
+                    break;
+                }
+                if (pMechanism->pParameter == NULL || pMechanism->ulParameterLen != 16) {
+                    crv = CKR_MECHANISM_PARAM_INVALID;
+                    break;
+                }
+                counter_len = 4;
+                counter = pMechanism->pParameter;
+                nonce = counter + 4;
+                nonce_len = 12;
+            } else {
+                CK_CHACHA20_PARAMS_PTR chacha20_param_ptr;
+                if (key_type != CKK_CHACHA20) {
+                    crv = CKR_KEY_TYPE_INCONSISTENT;
+                    break;
+                }
+                if (pMechanism->pParameter == NULL || pMechanism->ulParameterLen != sizeof(CK_CHACHA20_PARAMS)) {
+                    crv = CKR_MECHANISM_PARAM_INVALID;
+                    break;
+                }
+                chacha20_param_ptr = (CK_CHACHA20_PARAMS_PTR)pMechanism->pParameter;
+                if ((chacha20_param_ptr->blockCounterBits != 32) &&
+                    (chacha20_param_ptr->blockCounterBits != 64)) {
+                    crv = CKR_MECHANISM_PARAM_INVALID;
+                    break;
+                }
+                counter_len = chacha20_param_ptr->blockCounterBits / PR_BITS_PER_BYTE;
+                counter = chacha20_param_ptr->pBlockCounter;
+                nonce = chacha20_param_ptr->pNonce;
+                nonce_len = chacha20_param_ptr->ulNonceBits / PR_BITS_PER_BYTE;
             }
 
             att = sftk_FindAttribute(key, CKA_VALUE);
@@ -1281,17 +1313,25 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
             memcpy(ctx->key, att->attrib.pValue, att->attrib.ulValueLen);
             sftk_FreeAttribute(att);
 
-            /* The counter is little endian. */
-            PRUint8 *param = pMechanism->pParameter;
-            int i = 0;
-            for (; i < 4; ++i) {
-                ctx->counter |= (PRUint32)param[i] << (i * 8);
+            /* make sure we don't overflow our parameters */
+            if ((sizeof(ctx->counter) < counter_len) ||
+                (sizeof(ctx->nonce) < nonce_len)) {
+                PORT_Free(ctx);
+                crv = CKR_MECHANISM_PARAM_INVALID;
+                break;
             }
-            memcpy(ctx->nonce, param + 4, 12);
+
+            /* The counter is little endian. */
+            int i = 0;
+            for (; i < counter_len; ++i) {
+                ctx->counter |= (PRUint32)counter[i] << (i * 8);
+            }
+            memcpy(ctx->nonce, nonce, nonce_len);
             context->cipherInfo = ctx;
             context->update = (SFTKCipher)sftk_ChaCha20Ctr;
             context->destroy = (SFTKDestroy)sftk_ChaCha20Ctr_DestroyContext;
             break;
+        }
 
         case CKM_NSS_AES_KEY_WRAP_PAD:
             context->doPad = PR_TRUE;
@@ -3104,8 +3144,11 @@ const static struct SFTK_SESSION_FLAGS sftk_session_flags[] = {
     { CKF_SIGN, SFTK_SIGN },
     { CKF_SIGN_RECOVER, SFTK_SIGN_RECOVER },
     { CKF_VERIFY, SFTK_VERIFY },
-    { CKF_VERIFY_RECOVER, SFTK_VERIFY_RECOVER }
-
+    { CKF_VERIFY_RECOVER, SFTK_VERIFY_RECOVER },
+    { CKF_MESSAGE_ENCRYPT, SFTK_MESSAGE_ENCRYPT },
+    { CKF_MESSAGE_DECRYPT, SFTK_MESSAGE_DECRYPT },
+    { CKF_MESSAGE_SIGN, SFTK_MESSAGE_SIGN },
+    { CKF_MESSAGE_VERIFY, SFTK_MESSAGE_VERIFY },
 };
 const static int sftk_flag_count = PR_ARRAY_SIZE(sftk_session_flags);
 
@@ -4166,8 +4209,11 @@ nsc_SetupBulkKeyGen(CK_MECHANISM_TYPE mechanism, CK_KEY_TYPE *key_type,
             break;
         case CKM_NSS_CHACHA20_KEY_GEN:
             *key_type = CKK_NSS_CHACHA20;
-            if (*key_length == 0)
-                crv = CKR_TEMPLATE_INCOMPLETE;
+            *key_length = 32;
+            break;
+        case CKM_CHACHA20_KEY_GEN:
+            *key_type = CKK_CHACHA20;
+            *key_length = 32;
             break;
         default:
             PORT_Assert(0);
@@ -4461,6 +4507,7 @@ NSC_GenerateKey(CK_SESSION_HANDLE hSession,
         case CKM_CAMELLIA_KEY_GEN:
         case CKM_AES_KEY_GEN:
         case CKM_NSS_CHACHA20_KEY_GEN:
+        case CKM_CHACHA20_KEY_GEN:
 #if NSS_SOFTOKEN_DOES_RC5
         case CKM_RC5_KEY_GEN:
 #endif

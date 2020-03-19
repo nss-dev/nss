@@ -55,6 +55,38 @@ sftk_MapCryptError(int error)
     }
     return CKR_DEVICE_ERROR;
 }
+
+/*
+ * functions which adjust the mapping based on different contexts
+ * (Decrypt or Verify).
+ */
+
+/* used by Decrypt and UnwrapKey (indirectly) and Decrypt message */
+CK_RV
+sftk_MapDecryptError(int error)
+{
+    switch (error) {
+        /* usually a padding error, or aead tag mismatch */
+        case SEC_ERROR_BAD_DATA:
+            return CKR_ENCRYPTED_DATA_INVALID;
+        default:
+            return sftk_MapCryptError(error);
+    }
+}
+
+/*
+ * return CKR_SIGNATURE_INVALID instead of CKR_DEVICE_ERROR by default for
+ * backward compatibilty.
+ */
+CK_RV
+sftk_MapVerifyError(int error)
+{
+    CK_RV crv = sftk_MapCryptError(error);
+    if (crv == CKR_DEVICE_ERROR)
+        crv = CKR_SIGNATURE_INVALID;
+    return crv;
+}
+
 /*
  * ******************** Attribute Utilities *******************************
  */

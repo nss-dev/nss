@@ -477,6 +477,15 @@ PK11_ImportSymKey(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     CK_ATTRIBUTE keyTemplate[5];
     CK_ATTRIBUTE *attrs = keyTemplate;
 
+    /* CKA_NSS_MESSAGE is a fake operation to distinguish between
+     * Normal Encrypt/Decrypt and MessageEncrypt/Decrypt. Don't try to set
+     * it as a real attribute */
+    if ((operation & CKA_NSS_MESSAGE_MASK) == CKA_NSS_MESSAGE) {
+        /* Message is or'd with a real Attribute (CKA_ENCRYPT, CKA_DECRYPT),
+         * etc. Strip out the real attribute here */
+        operation &= ~CKA_NSS_MESSAGE_MASK;
+    }
+
     PK11_SETATTRS(attrs, CKA_CLASS, &keyClass, sizeof(keyClass));
     attrs++;
     PK11_SETATTRS(attrs, CKA_KEY_TYPE, &keyType, sizeof(keyType));
@@ -507,6 +516,15 @@ PK11_ImportSymKeyWithFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     CK_BBOOL cktrue = CK_TRUE; /* sigh */
     CK_ATTRIBUTE keyTemplate[MAX_TEMPL_ATTRS];
     CK_ATTRIBUTE *attrs = keyTemplate;
+
+    /* CKA_NSS_MESSAGE is a fake operation to distinguish between
+     * Normal Encrypt/Decrypt and MessageEncrypt/Decrypt. Don't try to set
+     * it as a real attribute */
+    if ((operation & CKA_NSS_MESSAGE_MASK) == CKA_NSS_MESSAGE) {
+        /* Message is or'd with a real Attribute (CKA_ENCRYPT, CKA_DECRYPT),
+         * etc. Strip out the real attribute here */
+        operation &= ~CKA_NSS_MESSAGE_MASK;
+    }
 
     PK11_SETATTRS(attrs, CKA_CLASS, &keyClass, sizeof(keyClass));
     attrs++;
@@ -1532,6 +1550,14 @@ PK11_DeriveWithTemplate(PK11SymKey *baseKey, CK_MECHANISM_TYPE derive,
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return NULL;
     }
+    /* CKA_NSS_MESSAGE is a fake operation to distinguish between
+     * Normal Encrypt/Decrypt and MessageEncrypt/Decrypt. Don't try to set
+     * it as a real attribute */
+    if ((operation & CKA_NSS_MESSAGE_MASK) == CKA_NSS_MESSAGE) {
+        /* Message is or'd with a real Attribute (CKA_ENCRYPT, CKA_DECRYPT),
+         * etc. Strip out the real attribute here */
+        operation &= ~CKA_NSS_MESSAGE_MASK;
+    }
 
     /* first copy caller attributes in. */
     for (templateCount = 0; templateCount < numAttrs; ++templateCount) {
@@ -1916,6 +1942,15 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
         return NULL;
     }
 
+    /* CKA_NSS_MESSAGE is a fake operation to distinguish between
+     * Normal Encrypt/Decrypt and MessageEncrypt/Decrypt. Don't try to set
+     * it as a real attribute */
+    if ((operation & CKA_NSS_MESSAGE_MASK) == CKA_NSS_MESSAGE) {
+        /* Message is or'd with a real Attribute (CKA_ENCRYPT, CKA_DECRYPT),
+         * etc. Strip out the real attribute here */
+        operation &= ~CKA_NSS_MESSAGE_MASK;
+    }
+
     symKey->origin = PK11_OriginDerive;
 
     switch (privKey->keyType) {
@@ -2188,6 +2223,14 @@ pk11_PubDeriveECKeyWithKDF(
     symKey = pk11_CreateSymKey(slot, target, PR_TRUE, PR_TRUE, wincx);
     if (symKey == NULL) {
         return NULL;
+    }
+    /* CKA_NSS_MESSAGE is a fake operation to distinguish between
+     * Normal Encrypt/Decrypt and MessageEncrypt/Decrypt. Don't try to set
+     * it as a real attribute */
+    if ((operation & CKA_NSS_MESSAGE_MASK) == CKA_NSS_MESSAGE) {
+        /* Message is or'd with a real Attribute (CKA_ENCRYPT, CKA_DECRYPT),
+         * etc. Strip out the real attribute here */
+        operation &= ~CKA_NSS_MESSAGE_MASK;
     }
 
     symKey->origin = PK11_OriginDerive;
@@ -2510,6 +2553,14 @@ pk11_AnyUnwrapKey(PK11SlotInfo *slot, CK_OBJECT_HANDLE wrappingKey,
     if (numAttrs > MAX_TEMPL_ATTRS) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return NULL;
+    }
+    /* CKA_NSS_MESSAGE is a fake operation to distinguish between
+     * Normal Encrypt/Decrypt and MessageEncrypt/Decrypt. Don't try to set
+     * it as a real attribute */
+    if ((operation & CKA_NSS_MESSAGE_MASK) == CKA_NSS_MESSAGE) {
+        /* Message is or'd with a real Attribute (CKA_ENCRYPT, CKA_DECRYPT),
+         * etc. Strip out the real attribute here */
+        operation &= ~CKA_NSS_MESSAGE_MASK;
     }
 
     /* first copy caller attributes in. */
