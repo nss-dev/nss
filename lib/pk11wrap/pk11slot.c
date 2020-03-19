@@ -2113,6 +2113,19 @@ PK11_DoesMechanism(PK11SlotInfo *slot, CK_MECHANISM_TYPE type)
     return PR_FALSE;
 }
 
+PRBool pk11_filterSlot(PK11SlotInfo *slot, CK_MECHANISM_TYPE mechanism,
+                       CK_FLAGS mechanismInfoFlags, unsigned int keySize);
+/*
+ * Check that the given mechanism has the appropriate flags. This function
+ * presumes that slot can already do the given mechanism.
+ */
+PRBool
+PK11_DoesMechanismFlag(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
+                       CK_FLAGS flags)
+{
+    return !pk11_filterSlot(slot, type, flags, 0);
+}
+
 /*
  * Return true if a token that can do the desired mechanism exists.
  * This allows us to have hardware tokens that can do function XYZ magically

@@ -18,6 +18,12 @@ typedef SECStatus (*freeblCipherFunc)(void *cx, unsigned char *output,
                                       unsigned int *outputLen, unsigned int maxOutputLen,
                                       const unsigned char *input, unsigned int inputLen,
                                       unsigned int blocksize);
+typedef SECStatus (*freeblAeadFunc)(void *cx, unsigned char *output,
+                                    unsigned int *outputLen, unsigned int maxOutputLen,
+                                    const unsigned char *input, unsigned int inputLen,
+                                    void *params, unsigned int paramsLen,
+                                    const unsigned char *aad, unsigned int aadLen,
+                                    unsigned int blocksize);
 typedef void (*freeblDestroyFunc)(void *cx, PRBool freeit);
 
 SEC_BEGIN_PROTOS

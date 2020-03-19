@@ -264,6 +264,10 @@ static CK_FUNCTION_LIST_3_0 sftk_fipsTable = {
 /* forward declaration of special GetInfo functions */
 CK_RV FC_GetInfoV2(CK_INFO_PTR pInfo);
 CK_RV NSC_GetInfoV2(CK_INFO_PTR pInfo);
+CK_RV FC_GetMechanismInfoV2(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type,
+                            CK_MECHANISM_INFO_PTR pInfo);
+CK_RV NSC_GetMechanismInfoV2(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type,
+                             CK_MECHANISM_INFO_PTR pInfo);
 
 static CK_FUNCTION_LIST sftk_fipsTable_v2 = {
     { 2, 40 },
@@ -273,6 +277,7 @@ static CK_FUNCTION_LIST sftk_fipsTable_v2 = {
 #undef CK_NEED_ARG_LIST
 #undef CK_PKCS11_FUNCTION_INFO
 #define C_GetInfo C_GetInfoV2
+#define C_GetMechanismInfo C_GetMechanismInfoV2
 
 #define CK_PKCS11_FUNCTION_INFO(name) \
     __PASTE(F, name)                  \
@@ -283,6 +288,7 @@ static CK_FUNCTION_LIST sftk_fipsTable_v2 = {
 };
 
 #undef C_GetInfo
+#undef C_GetMechanismInfo
 #undef CK_NEED_ARG_LIST
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_PKCS11_2_0_ONLY
@@ -665,6 +671,22 @@ FC_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type,
     }
     /* FIPS Slots support all functions */
     return NSC_GetMechanismInfo(slotID, type, pInfo);
+}
+
+/* FC_GetMechanismInfoV2 same as FC_GetMechanismInfo except the Message
+ * flags have been stripped out */
+CK_RV
+FC_GetMechanismInfoV2(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type,
+                      CK_MECHANISM_INFO_PTR pInfo)
+{
+    CHECK_FORK();
+
+    SFTK_FIPSFATALCHECK();
+    if ((slotID == FIPS_SLOT_ID) || (slotID >= SFTK_MIN_FIPS_USER_SLOT_ID)) {
+        slotID = NETSCAPE_SLOT_ID;
+    }
+    /* FIPS Slots support all functions */
+    return NSC_GetMechanismInfoV2(slotID, type, pInfo);
 }
 
 /* FC_InitToken initializes a token. */

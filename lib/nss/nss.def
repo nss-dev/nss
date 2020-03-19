@@ -1163,3 +1163,12 @@ PK11_GetCertsMatchingPrivateKey;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.52 { 	# NSS 3.52 release
+;+    global:
+_PK11_ContextGetAEADSimulation;
+_PK11_ContextSetAEADSimulation;
+PK11_AEADOp;
+PK11_AEADRawOp;
+;+    local:
+;+       *;
+;+};

@@ -290,3 +290,99 @@ ChaCha20Poly1305_Open(const ChaCha20Poly1305Context *ctx, unsigned char *output,
     return SECSuccess;
 #endif
 }
+
+SECStatus
+ChaCha20Poly1305_Encrypt(const ChaCha20Poly1305Context *ctx,
+                         unsigned char *output, unsigned int *outputLen,
+                         unsigned int maxOutputLen, const unsigned char *input,
+                         unsigned int inputLen, const unsigned char *nonce,
+                         unsigned int nonceLen, const unsigned char *ad,
+                         unsigned int adLen, unsigned char *outTag)
+{
+#ifdef NSS_DISABLE_CHACHAPOLY
+    return SECFailure;
+#else
+
+    if (nonceLen != 12) {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        return SECFailure;
+    }
+    // ChaCha has a 64 octet block, with a 32-bit block counter.
+    if (sizeof(inputLen) > 4 && inputLen >= (1ULL << (6 + 32))) {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        return SECFailure;
+    }
+    if (maxOutputLen < inputLen) {
+        PORT_SetError(SEC_ERROR_OUTPUT_LEN);
+        return SECFailure;
+    }
+
+#ifdef NSS_X64
+    if (ssse3_support() && sse4_1_support() && avx_support()) {
+        Hacl_Chacha20Poly1305_128_aead_encrypt(
+            (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, inputLen,
+            (uint8_t *)input, output, outTag);
+    } else
+#endif
+    {
+        Hacl_Chacha20Poly1305_32_aead_encrypt(
+            (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, inputLen,
+            (uint8_t *)input, output, outTag);
+    }
+
+    *outputLen = inputLen;
+    return SECSuccess;
+#endif
+}
+
+SECStatus
+ChaCha20Poly1305_Decrypt(const ChaCha20Poly1305Context *ctx,
+                         unsigned char *output, unsigned int *outputLen,
+                         unsigned int maxOutputLen, const unsigned char *input,
+                         unsigned int inputLen, const unsigned char *nonce,
+                         unsigned int nonceLen, const unsigned char *ad,
+                         unsigned int adLen, const unsigned char *tagIn)
+{
+#ifdef NSS_DISABLE_CHACHAPOLY
+    return SECFailure;
+#else
+    unsigned int ciphertextLen;
+
+    if (nonceLen != 12) {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        return SECFailure;
+    }
+    ciphertextLen = inputLen;
+    if (maxOutputLen < ciphertextLen) {
+        PORT_SetError(SEC_ERROR_OUTPUT_LEN);
+        return SECFailure;
+    }
+    // ChaCha has a 64 octet block, with a 32-bit block counter.
+    if (sizeof(inputLen) > 4 && inputLen >= (1ULL << (6 + 32))) {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        return SECFailure;
+    }
+
+    uint32_t res = 1;
+#ifdef NSS_X64
+    if (ssse3_support() && sse4_1_support() && avx_support()) {
+        res = Hacl_Chacha20Poly1305_128_aead_decrypt(
+            (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, ciphertextLen,
+            (uint8_t *)output, (uint8_t *)input, (uint8_t *)tagIn);
+    } else
+#endif
+    {
+        res = Hacl_Chacha20Poly1305_32_aead_decrypt(
+            (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, ciphertextLen,
+            (uint8_t *)output, (uint8_t *)input, (uint8_t *)tagIn);
+    }
+
+    if (res) {
+        PORT_SetError(SEC_ERROR_BAD_DATA);
+        return SECFailure;
+    }
+
+    *outputLen = ciphertextLen;
+    return SECSuccess;
+#endif
+}

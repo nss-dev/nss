@@ -128,6 +128,9 @@ typedef void (*SFTKDestroy)(void *, PRBool);
 typedef void (*SFTKBegin)(void *);
 typedef SECStatus (*SFTKCipher)(void *, void *, unsigned int *, unsigned int,
                                 void *, unsigned int);
+typedef SECStatus (*SFTKAEADCipher)(void *, void *, unsigned int *,
+                                    unsigned int, void *, unsigned int,
+                                    void *, unsigned int, void *, unsigned int);
 typedef SECStatus (*SFTKVerify)(void *, void *, unsigned int, void *, unsigned int);
 typedef void (*SFTKHash)(void *, const void *, unsigned int);
 typedef void (*SFTKEnd)(void *, void *, unsigned int *, unsigned int);
@@ -246,7 +249,11 @@ typedef enum {
     SFTK_SIGN,
     SFTK_SIGN_RECOVER,
     SFTK_VERIFY,
-    SFTK_VERIFY_RECOVER
+    SFTK_VERIFY_RECOVER,
+    SFTK_MESSAGE_ENCRYPT,
+    SFTK_MESSAGE_DECRYPT,
+    SFTK_MESSAGE_SIGN,
+    SFTK_MESSAGE_VERIFY
 } SFTKContextType;
 
 /** max block size of supported block ciphers */
@@ -283,6 +290,7 @@ struct SFTKSessionContextStr {
     unsigned int cipherInfoLen;
     CK_MECHANISM_TYPE currentMech;
     SFTKCipher update;
+    SFTKAEADCipher aeadUpdate;
     SFTKHash hashUpdate;
     SFTKEnd end;
     SFTKDestroy destroy;
@@ -700,6 +708,8 @@ extern CK_RV sftk_CloseAllSessions(SFTKSlot *slot, PRBool logout);
 
 /* internal utility functions used by pkcs11.c */
 extern CK_RV sftk_MapCryptError(int error);
+extern CK_RV sftk_MapDecryptError(int error);
+extern CK_RV sftk_MapVerifyError(int error);
 extern SFTKAttribute *sftk_FindAttribute(SFTKObject *object,
                                          CK_ATTRIBUTE_TYPE type);
 extern void sftk_FreeAttribute(SFTKAttribute *attribute);
@@ -770,9 +780,27 @@ extern SFTKSession *sftk_NewSession(CK_SLOT_ID slotID, CK_NOTIFY notify,
                                     CK_VOID_PTR pApplication, CK_FLAGS flags);
 extern void sftk_update_state(SFTKSlot *slot, SFTKSession *session);
 extern void sftk_update_all_states(SFTKSlot *slot);
-extern void sftk_FreeContext(SFTKSessionContext *context);
 extern void sftk_InitFreeLists(void);
 extern void sftk_CleanupFreeLists(void);
+
+/*
+ * Helper functions to handle the session crypto contexts
+ */
+extern CK_RV sftk_InitGeneric(SFTKSession *session,
+                              SFTKSessionContext **contextPtr,
+                              SFTKContextType ctype, SFTKObject **keyPtr,
+                              CK_OBJECT_HANDLE hKey, CK_KEY_TYPE *keyTypePtr,
+                              CK_OBJECT_CLASS pubKeyType,
+                              CK_ATTRIBUTE_TYPE operation);
+void sftk_SetContextByType(SFTKSession *session, SFTKContextType type,
+                           SFTKSessionContext *context);
+extern CK_RV sftk_GetContext(CK_SESSION_HANDLE handle,
+                             SFTKSessionContext **contextPtr,
+                             SFTKContextType type, PRBool needMulti,
+                             SFTKSession **sessionPtr);
+extern void sftk_TerminateOp(SFTKSession *session, SFTKContextType ctype,
+                             SFTKSessionContext *context);
+extern void sftk_FreeContext(SFTKSessionContext *context);
 
 extern NSSLOWKEYPublicKey *sftk_GetPubKey(SFTKObject *object,
                                           CK_KEY_TYPE key_type, CK_RV *crvp);

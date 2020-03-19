@@ -60,6 +60,8 @@
 
 /* FAKE PKCS #11 defines */
 #define CKA_DIGEST 0x81000000L
+#define CKA_NSS_MESSAGE 0x82000000L
+#define CKA_NSS_MESSAGE_MASK 0xff000000L
 #define CKA_FLAGS_ONLY 0 /* CKA_CLASS */
 
 /*
