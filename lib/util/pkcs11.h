@@ -232,6 +232,7 @@ extern "C" {
     __PASTE(CK_, name)                \
     name;
 
+#include "pkcs11p.h"
 struct CK_FUNCTION_LIST_3_0 {
 
     CK_VERSION version; /* PKCS #11 version */
@@ -254,6 +255,7 @@ struct CK_FUNCTION_LIST {
  * function prototypes. */
 #include "pkcs11f.h"
 };
+#include "pkcs11u.h"
 
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_PKCS11_2_0_ONLY
