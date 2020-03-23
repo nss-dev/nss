@@ -3410,6 +3410,7 @@ nsc_CommonFinalize(CK_VOID_PTR pReserved, PRBool isFIPS)
 
     nsc_init = PR_FALSE;
 
+#ifndef NO_FORK_CHECK
 #ifdef CHECK_FORK_MIXED
     if (!usePthread_atfork) {
         myPid = 0; /* allow CHECK_FORK in the next softoken initialization to
@@ -3421,6 +3422,7 @@ nsc_CommonFinalize(CK_VOID_PTR pReserved, PRBool isFIPS)
     myPid = 0; /* allow reinitialization */
 #elif defined(CHECK_FORK_PTHREAD)
     forked = PR_FALSE; /* allow reinitialization */
+#endif
 #endif
     return CKR_OK;
 }
