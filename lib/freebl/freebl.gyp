@@ -66,11 +66,13 @@
         [ 'target_arch=="x64"', {
           'cflags': [
             '-mssse3',
-            '-msse4'
+            '-msse4.1',
+            '-msse4.2'
           ],
           'cflags_mozilla': [
             '-mssse3',
-            '-msse4',
+            '-msse4.1',
+            '-msse4.2',
             '-mpclmul',
             '-maes',
             '-mavx',
@@ -93,7 +95,8 @@
           'xcode_settings': {
             'OTHER_CFLAGS': [
               '-mssse3',
-              '-msse4',
+              '-msse4.1',
+              '-msse4.2',
               '-mpclmul',
               '-maes',
               '-mavx',
@@ -129,11 +132,13 @@
         [ 'target_arch=="x64"', {
           'cflags': [
             '-mssse3',
-            '-msse4'
+            '-msse4.1',
+            '-msse4.2'
           ],
           'cflags_mozilla': [
             '-mssse3',
-            '-msse4',
+            '-msse4.1',
+            '-msse4.2',
             '-mpclmul',
             '-maes',
             '-mavx',
@@ -158,7 +163,8 @@
           'xcode_settings': {
             'OTHER_CFLAGS': [
               '-mssse3',
-              '-msse4',
+              '-msse4.1',
+              '-msse4.2',
               '-mpclmul',
               '-maes',
               '-mavx',

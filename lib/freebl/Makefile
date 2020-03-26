@@ -793,12 +793,12 @@ $(OBJDIR)/$(PROG_PREFIX)rijndael$(OBJ_SUFFIX): CFLAGS += -mcrypto -maltivec -mvs
 endif
 endif
 
-$(OBJDIR)/$(PROG_PREFIX)Hacl_Chacha20_Vec128$(OBJ_SUFFIX): CFLAGS += -mssse3 -msse4 -mavx -maes
-$(OBJDIR)/$(PROG_PREFIX)Hacl_Chacha20Poly1305_128$(OBJ_SUFFIX): CFLAGS += -mssse3 -msse4 -mavx -maes
-$(OBJDIR)/$(PROG_PREFIX)Hacl_Poly1305_128$(OBJ_SUFFIX): CFLAGS += -mssse3 -msse4 -mavx -maes -mpclmul
+$(OBJDIR)/$(PROG_PREFIX)Hacl_Chacha20_Vec128$(OBJ_SUFFIX): CFLAGS += -mssse3 -msse4.1 -msse4.2 -mavx -maes
+$(OBJDIR)/$(PROG_PREFIX)Hacl_Chacha20Poly1305_128$(OBJ_SUFFIX): CFLAGS += -mssse3 -msse4.1 -msse4.2 -mavx -maes
+$(OBJDIR)/$(PROG_PREFIX)Hacl_Poly1305_128$(OBJ_SUFFIX): CFLAGS += -mssse3 -msse4.1 -msse4.2 -mavx -maes -mpclmul
 
 ifndef NSS_DISABLE_AVX2
-$(OBJDIR)/$(PROG_PREFIX)Hacl_Chacha20Poly1305_256$(OBJ_SUFFIX): CFLAGS += -mssse3 -msse4 -mavx2 -maes
-$(OBJDIR)/$(PROG_PREFIX)Hacl_Chacha20_Vec256$(OBJ_SUFFIX): CFLAGS += -mssse3 -msse4 -mavx -mavx2 -maes
-$(OBJDIR)/$(PROG_PREFIX)Hacl_Poly1305_256$(OBJ_SUFFIX): CFLAGS += -mssse3 -msse4 -mavx -mavx2 -maes -mpclmul
+$(OBJDIR)/$(PROG_PREFIX)Hacl_Chacha20Poly1305_256$(OBJ_SUFFIX): CFLAGS += -mssse3 -msse4.1 -msse4.2 -mavx2 -maes
+$(OBJDIR)/$(PROG_PREFIX)Hacl_Chacha20_Vec256$(OBJ_SUFFIX): CFLAGS += -mssse3 -msse4.1 -msse4.2 -mavx -mavx2 -maes
+$(OBJDIR)/$(PROG_PREFIX)Hacl_Poly1305_256$(OBJ_SUFFIX): CFLAGS += -mssse3 -msse4.1 -msse4.2 -mavx -mavx2 -maes -mpclmul
 endif
