@@ -427,6 +427,9 @@ static const struct mechanismList mechanisms[] = {
       { 0, 512, CKF_SN_VR },
       PR_FALSE },
     /* ------------------------- HKDF Operations -------------------------- */
+    { CKM_HKDF_DERIVE, { 1, 255 * 64, CKF_DERIVE }, PR_TRUE },
+    { CKM_HKDF_DATA, { 1, 255 * 64, CKF_DERIVE }, PR_TRUE },
+    { CKM_HKDF_KEY_GEN, { 20, 64, CKF_GENERATE }, PR_TRUE },
     { CKM_NSS_HKDF_SHA1, { 1, 128, CKF_DERIVE }, PR_TRUE },
     { CKM_NSS_HKDF_SHA256, { 1, 128, CKF_DERIVE }, PR_TRUE },
     { CKM_NSS_HKDF_SHA384, { 1, 128, CKF_DERIVE }, PR_TRUE },

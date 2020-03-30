@@ -1692,18 +1692,12 @@ PK11_CreateManagedGenericObject(PK11SlotInfo *slot,
                                           !token);
 }
 
-/*
- * Change an attribute on a raw object
- */
-SECStatus
-PK11_WriteRawAttribute(PK11ObjectType objType, void *objSpec,
-                       CK_ATTRIBUTE_TYPE attrType, SECItem *item)
+CK_OBJECT_HANDLE
+PK11_GetObjectHandle(PK11ObjectType objType, void *objSpec,
+                     PK11SlotInfo **slotp)
 {
+    CK_OBJECT_HANDLE handle = CK_INVALID_HANDLE;
     PK11SlotInfo *slot = NULL;
-    CK_OBJECT_HANDLE handle = 0;
-    CK_ATTRIBUTE setTemplate;
-    CK_RV crv;
-    CK_SESSION_HANDLE rwsession;
 
     switch (objType) {
         case PK11_TypeGeneric:
@@ -1724,9 +1718,35 @@ PK11_WriteRawAttribute(PK11ObjectType objType, void *objSpec,
             break;
         case PK11_TypeCert: /* don't handle cert case for now */
         default:
+            PORT_SetError(SEC_ERROR_UNKNOWN_OBJECT_TYPE);
             break;
     }
+    if (slotp) {
+        *slotp = slot;
+    }
+    /* paranoia. If the object doesn't have a slot, then it's handle isn't
+     * valid either */
     if (slot == NULL) {
+        handle = CK_INVALID_HANDLE;
+    }
+    return handle;
+}
+
+/*
+ * Change an attribute on a raw object
+ */
+SECStatus
+PK11_WriteRawAttribute(PK11ObjectType objType, void *objSpec,
+                       CK_ATTRIBUTE_TYPE attrType, SECItem *item)
+{
+    PK11SlotInfo *slot = NULL;
+    CK_OBJECT_HANDLE handle = 0;
+    CK_ATTRIBUTE setTemplate;
+    CK_RV crv;
+    CK_SESSION_HANDLE rwsession;
+
+    handle = PK11_GetObjectHandle(objType, objSpec, &slot);
+    if (handle == CK_INVALID_HANDLE) {
         PORT_SetError(SEC_ERROR_UNKNOWN_OBJECT_TYPE);
         return SECFailure;
     }
@@ -1754,28 +1774,8 @@ PK11_ReadRawAttribute(PK11ObjectType objType, void *objSpec,
     PK11SlotInfo *slot = NULL;
     CK_OBJECT_HANDLE handle = 0;
 
-    switch (objType) {
-        case PK11_TypeGeneric:
-            slot = ((PK11GenericObject *)objSpec)->slot;
-            handle = ((PK11GenericObject *)objSpec)->objectID;
-            break;
-        case PK11_TypePrivKey:
-            slot = ((SECKEYPrivateKey *)objSpec)->pkcs11Slot;
-            handle = ((SECKEYPrivateKey *)objSpec)->pkcs11ID;
-            break;
-        case PK11_TypePubKey:
-            slot = ((SECKEYPublicKey *)objSpec)->pkcs11Slot;
-            handle = ((SECKEYPublicKey *)objSpec)->pkcs11ID;
-            break;
-        case PK11_TypeSymKey:
-            slot = ((PK11SymKey *)objSpec)->slot;
-            handle = ((PK11SymKey *)objSpec)->objectID;
-            break;
-        case PK11_TypeCert: /* don't handle cert case for now */
-        default:
-            break;
-    }
-    if (slot == NULL) {
+    handle = PK11_GetObjectHandle(objType, objSpec, &slot);
+    if (handle == CK_INVALID_HANDLE) {
         PORT_SetError(SEC_ERROR_UNKNOWN_OBJECT_TYPE);
         return SECFailure;
     }

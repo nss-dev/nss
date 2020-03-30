@@ -1169,6 +1169,7 @@ _PK11_ContextGetAEADSimulation;
 _PK11_ContextSetAEADSimulation;
 PK11_AEADOp;
 PK11_AEADRawOp;
+PK11_GetObjectHandle;
 ;+    local:
 ;+       *;
 ;+};
