@@ -876,6 +876,9 @@ SECStatus PK11_ReadRawAttribute(PK11ObjectType type, void *object,
                                 CK_ATTRIBUTE_TYPE attr, SECItem *item);
 SECStatus PK11_WriteRawAttribute(PK11ObjectType type, void *object,
                                  CK_ATTRIBUTE_TYPE attr, SECItem *item);
+/* get the PKCS #11 handle and slot for a generic object */
+CK_OBJECT_HANDLE PK11_GetObjectHandle(PK11ObjectType objType, void *objSpec,
+                                      PK11SlotInfo **slotp);
 
 /*
  * PK11_GetAllSlotsForCert returns all the slots that a given certificate

@@ -199,6 +199,8 @@ PK11_GetKeyMechanism(CK_KEY_TYPE type)
             return CKM_KEA_KEY_DERIVE;
         case CKK_EC: /* CKK_ECDSA is deprecated */
             return CKM_ECDSA;
+        case CKK_HKDF:
+            return CKM_HKDF_DERIVE;
         case CKK_GENERIC_SECRET:
         default:
             return CKM_SHA_1_HMAC;
@@ -385,6 +387,10 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type, unsigned long len)
         case CKM_EC_KEY_PAIR_GEN: /* aka CKM_ECDSA_KEY_PAIR_GEN */
         case CKM_ECDH1_DERIVE:
             return CKK_EC; /* CKK_ECDSA is deprecated */
+        case CKM_HKDF_KEY_GEN:
+        case CKM_HKDF_DERIVE:
+        case CKM_HKDF_DATA:
+            return CKK_HKDF;
         case CKM_SSL3_PRE_MASTER_KEY_GEN:
         case CKM_GENERIC_SECRET_KEY_GEN:
         case CKM_SSL3_MASTER_KEY_DERIVE:

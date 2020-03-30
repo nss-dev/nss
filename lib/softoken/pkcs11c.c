@@ -4215,6 +4215,11 @@ nsc_SetupBulkKeyGen(CK_MECHANISM_TYPE mechanism, CK_KEY_TYPE *key_type,
             *key_type = CKK_CHACHA20;
             *key_length = 32;
             break;
+        case CKM_HKDF_KEY_GEN:
+            *key_type = CKK_HKDF;
+            if (*key_length == 0)
+                crv = CKR_TEMPLATE_INCOMPLETE;
+            break;
         default:
             PORT_Assert(0);
             crv = CKR_MECHANISM_INVALID;
@@ -6443,14 +6448,42 @@ sftk_freeSSLKeys(CK_SESSION_HANDLE session,
  * semantics.
  */
 static CK_RV
-sftk_DeriveSensitiveCheck(SFTKObject *baseKey, SFTKObject *destKey)
+sftk_DeriveSensitiveCheck(SFTKObject *baseKey, SFTKObject *destKey,
+                          PRBool canBeData)
 {
     PRBool hasSensitive;
     PRBool sensitive = PR_FALSE;
+    CK_BBOOL bFalse = CK_FALSE;
     PRBool hasExtractable;
     PRBool extractable = PR_TRUE;
+    CK_BBOOL bTrue = CK_TRUE;
     CK_RV crv = CKR_OK;
     SFTKAttribute *att;
+    PRBool isData = PR_TRUE;
+
+    if (canBeData) {
+        CK_OBJECT_CLASS objClass;
+
+        /* if the target key is actually data, don't set the unexpected
+         * attributes */
+        crv = sftk_GetULongAttribute(destKey, CKA_CLASS, &objClass);
+        if (crv != CKR_OK) {
+            return crv;
+        }
+        if (objClass == CKO_DATA) {
+            return CKR_OK;
+        }
+
+        /* if the base key is data, it doesn't have sensitive attributes,
+         * allow the destKey to get it's own */
+        crv = sftk_GetULongAttribute(baseKey, CKA_CLASS, &objClass);
+        if (crv != CKR_OK) {
+            return crv;
+        }
+        if (objClass == CKO_DATA) {
+            isData = PR_TRUE;
+        }
+    }
 
     hasSensitive = PR_FALSE;
     att = sftk_FindAttribute(destKey, CKA_SENSITIVE);
@@ -6481,19 +6514,31 @@ sftk_DeriveSensitiveCheck(SFTKObject *baseKey, SFTKObject *destKey)
     /* inherit parent's sensitivity */
     if (!hasSensitive) {
         att = sftk_FindAttribute(baseKey, CKA_SENSITIVE);
-        if (att == NULL)
+        if (att != NULL) {
+            crv = sftk_defaultAttribute(destKey,
+                                        sftk_attr_expand(&att->attrib));
+            sftk_FreeAttribute(att);
+        } else if (isData) {
+            crv = sftk_defaultAttribute(destKey, CKA_SENSITIVE,
+                                        &bFalse, sizeof(bFalse));
+        } else {
             return CKR_KEY_TYPE_INCONSISTENT;
-        crv = sftk_defaultAttribute(destKey, sftk_attr_expand(&att->attrib));
-        sftk_FreeAttribute(att);
+        }
         if (crv != CKR_OK)
             return crv;
     }
     if (!hasExtractable) {
         att = sftk_FindAttribute(baseKey, CKA_EXTRACTABLE);
-        if (att == NULL)
+        if (att != NULL) {
+            crv = sftk_defaultAttribute(destKey,
+                                        sftk_attr_expand(&att->attrib));
+            sftk_FreeAttribute(att);
+        } else if (isData) {
+            crv = sftk_defaultAttribute(destKey, CKA_EXTRACTABLE,
+                                        &bTrue, sizeof(bTrue));
+        } else {
             return CKR_KEY_TYPE_INCONSISTENT;
-        crv = sftk_defaultAttribute(destKey, sftk_attr_expand(&att->attrib));
-        sftk_FreeAttribute(att);
+        }
         if (crv != CKR_OK)
             return crv;
     }
@@ -6676,6 +6721,174 @@ sftk_DeriveEncrypt(SFTKCipher encrypt, void *cipherInfo,
     return crv;
 }
 
+CK_RV
+sftk_HKDF(CK_HKDF_PARAMS_PTR params, CK_SESSION_HANDLE hSession,
+          SFTKObject *sourceKey, unsigned char *sourceKeyBytes,
+          int sourceKeyLen, SFTKObject *key, int keySize,
+          PRBool canBeData, PRBool isFIPS)
+{
+    SFTKSession *session;
+    SFTKAttribute *saltKey_att = NULL;
+    const SECHashObject *rawHash;
+    unsigned hashLen;
+    unsigned genLen = 0;
+    unsigned char hashbuf[HASH_LENGTH_MAX];
+    unsigned char keyBlock[9 * SFTK_MAX_MAC_LENGTH];
+    unsigned char *keyBlockAlloc = NULL;    /* allocated keyBlock */
+    unsigned char *keyBlockData = keyBlock; /* pointer to current keyBlock */
+    unsigned char *prk;                     /* psuedo-random key */
+    CK_ULONG prkLen;
+    unsigned char *okm; /* output keying material */
+    HASH_HashType hashType = GetHashTypeFromMechanism(params->prfHashMechanism);
+    SFTKObject *saltKey = NULL;
+    CK_RV crv = CKR_OK;
+
+    /* Spec says it should be the base hash, but also accept the HMAC */
+    if (hashType == HASH_AlgNULL) {
+        hashType = sftk_HMACMechanismToHash(params->prfHashMechanism);
+    }
+    rawHash = HASH_GetRawHashObject(hashType);
+    if (rawHash == NULL || rawHash->length > sizeof(hashbuf)) {
+        return CKR_MECHANISM_INVALID;
+    }
+    hashLen = rawHash->length;
+
+    if ((!params->bExpand && !params->bExtract) ||
+        (params->bExtract && params->ulSaltLen > 0 && !params->pSalt) ||
+        (params->bExpand && params->ulInfoLen > 0 && !params->pInfo)) {
+        return CKR_MECHANISM_PARAM_INVALID;
+    }
+    if ((params->bExpand && keySize == 0) ||
+        (!params->bExpand && keySize > hashLen) ||
+        (params->bExpand && keySize > 255 * hashLen)) {
+        return CKR_TEMPLATE_INCONSISTENT;
+    }
+    crv = sftk_DeriveSensitiveCheck(sourceKey, key, canBeData);
+    if (crv != CKR_OK)
+        return crv;
+
+    /* HKDF-Extract(salt, base key value) */
+    if (params->bExtract) {
+        CK_BYTE *salt;
+        CK_ULONG saltLen;
+        HMACContext *hmac;
+        unsigned int bufLen;
+
+        switch (params->ulSaltType) {
+            case CKF_HKDF_SALT_NULL:
+                saltLen = hashLen;
+                salt = hashbuf;
+                memset(salt, 0, saltLen);
+                break;
+            case CKF_HKDF_SALT_DATA:
+                salt = params->pSalt;
+                saltLen = params->ulSaltLen;
+                if ((salt == NULL) || (params->ulSaltLen == 0)) {
+                    return CKR_MECHANISM_PARAM_INVALID;
+                }
+                break;
+            case CKF_HKDF_SALT_KEY:
+                /* lookup key */
+                session = sftk_SessionFromHandle(hSession);
+                if (session == NULL) {
+                    return CKR_SESSION_HANDLE_INVALID;
+                }
+
+                saltKey = sftk_ObjectFromHandle(params->hSaltKey, session);
+                sftk_FreeSession(session);
+                if (saltKey == NULL) {
+                    return CKR_KEY_HANDLE_INVALID;
+                }
+                saltKey_att = sftk_FindAttribute(saltKey, CKA_VALUE);
+                if (saltKey_att == NULL) {
+                    sftk_FreeObject(saltKey);
+                    return CKR_KEY_HANDLE_INVALID;
+                }
+                /* save the resulting salt */
+                salt = saltKey_att->attrib.pValue;
+                saltLen = saltKey_att->attrib.ulValueLen;
+                break;
+            default:
+                return CKR_MECHANISM_PARAM_INVALID;
+                break;
+        }
+
+        hmac = HMAC_Create(rawHash, salt, saltLen, isFIPS);
+        if (saltKey_att) {
+            sftk_FreeAttribute(saltKey_att);
+        }
+        if (saltKey) {
+            sftk_FreeObject(saltKey);
+        }
+        if (!hmac) {
+            return CKR_HOST_MEMORY;
+        }
+        HMAC_Begin(hmac);
+        HMAC_Update(hmac, sourceKeyBytes, sourceKeyLen);
+        HMAC_Finish(hmac, hashbuf, &bufLen, sizeof(hashbuf));
+        HMAC_Destroy(hmac, PR_TRUE);
+        PORT_Assert(bufLen == rawHash->length);
+        prk = hashbuf;
+        prkLen = bufLen;
+    } else {
+        /* PRK = base key value */
+        prk = sourceKeyBytes;
+        prkLen = sourceKeyLen;
+    }
+
+    /* HKDF-Expand */
+    if (!params->bExpand) {
+        okm = prk;
+        keySize = genLen = hashLen;
+    } else {
+        /* T(1) = HMAC-Hash(prk, "" | info | 0x01)
+         * T(n) = HMAC-Hash(prk, T(n-1) | info | n
+         * key material = T(1) | ... | T(n)
+         */
+        HMACContext *hmac;
+        CK_BYTE bi;
+        unsigned iterations;
+
+        genLen = PR_ROUNDUP(keySize, hashLen);
+        iterations = genLen / hashLen;
+
+        if (genLen > sizeof(keyBlock)) {
+            keyBlockAlloc = PORT_Alloc(genLen);
+            if (keyBlockAlloc == NULL) {
+                return CKR_HOST_MEMORY;
+            }
+            keyBlockData = keyBlockAlloc;
+        }
+        hmac = HMAC_Create(rawHash, prk, prkLen, isFIPS);
+        if (hmac == NULL) {
+            PORT_Free(keyBlockAlloc);
+            return CKR_HOST_MEMORY;
+        }
+        for (bi = 1; bi <= iterations && bi > 0; ++bi) {
+            unsigned len;
+            HMAC_Begin(hmac);
+            if (bi > 1) {
+                HMAC_Update(hmac, &keyBlockData[(bi - 2) * hashLen], hashLen);
+            }
+            if (params->ulInfoLen != 0) {
+                HMAC_Update(hmac, params->pInfo, params->ulInfoLen);
+            }
+            HMAC_Update(hmac, &bi, 1);
+            HMAC_Finish(hmac, &keyBlockData[(bi - 1) * hashLen], &len,
+                        hashLen);
+            PORT_Assert(len == hashLen);
+        }
+        HMAC_Destroy(hmac, PR_TRUE);
+        okm = &keyBlockData[0];
+    }
+    /* key material = prk */
+    crv = sftk_forceAttribute(key, CKA_VALUE, okm, keySize);
+    PORT_Memset(okm, 0, genLen);
+    PORT_Memset(hashbuf, 0, sizeof(hashbuf));
+    PORT_Free(keyBlockAlloc);
+    return CKR_OK;
+}
+
 /*
  * SSL Key generation given pre master secret
  */
@@ -6731,6 +6944,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
     unsigned char key_block[NUM_MIXERS * SFTK_MAX_MAC_LENGTH];
     PRBool isFIPS;
     HASH_HashType hashType;
+    CK_MECHANISM_TYPE hashMech;
     PRBool extractValue = PR_TRUE;
 
     CHECK_FORK();
@@ -6791,6 +7005,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             extractValue = PR_FALSE;
             classType = CKO_PUBLIC_KEY;
             break;
+        case CKM_HKDF_DATA:                              /* fall through */
         case CKM_NSS_SP800_108_COUNTER_KDF_DERIVE_DATA:  /* fall through */
         case CKM_NSS_SP800_108_FEEDBACK_KDF_DERIVE_DATA: /* fall through */
         case CKM_NSS_SP800_108_DOUBLE_PIPELINE_KDF_DERIVE_DATA:
@@ -7211,7 +7426,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                 isTLS = PR_TRUE;
             }
 
-            crv = sftk_DeriveSensitiveCheck(sourceKey, key);
+            crv = sftk_DeriveSensitiveCheck(sourceKey, key, PR_FALSE);
             if (crv != CKR_OK)
                 break;
 
@@ -7626,7 +7841,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
         case CKM_CONCATENATE_BASE_AND_KEY: {
             SFTKObject *newKey;
 
-            crv = sftk_DeriveSensitiveCheck(sourceKey, key);
+            crv = sftk_DeriveSensitiveCheck(sourceKey, key, PR_FALSE);
             if (crv != CKR_OK)
                 break;
 
@@ -7689,7 +7904,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
         }
 
         case CKM_CONCATENATE_BASE_AND_DATA:
-            crv = sftk_DeriveSensitiveCheck(sourceKey, key);
+            crv = sftk_DeriveSensitiveCheck(sourceKey, key, PR_FALSE);
             if (crv != CKR_OK)
                 break;
 
@@ -7719,7 +7934,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             PORT_ZFree(buf, tmpKeySize);
             break;
         case CKM_CONCATENATE_DATA_AND_BASE:
-            crv = sftk_DeriveSensitiveCheck(sourceKey, key);
+            crv = sftk_DeriveSensitiveCheck(sourceKey, key, PR_FALSE);
             if (crv != CKR_OK)
                 break;
 
@@ -7749,7 +7964,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             PORT_ZFree(buf, tmpKeySize);
             break;
         case CKM_XOR_BASE_AND_DATA:
-            crv = sftk_DeriveSensitiveCheck(sourceKey, key);
+            crv = sftk_DeriveSensitiveCheck(sourceKey, key, PR_FALSE);
             if (crv != CKR_OK)
                 break;
 
@@ -7790,7 +8005,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             CK_ULONG shift = extract & 0x7; /* extract mod 8 the fast way */
             CK_ULONG offset = extract >> 3; /* extract div 8 the fast way */
 
-            crv = sftk_DeriveSensitiveCheck(sourceKey, key);
+            crv = sftk_DeriveSensitiveCheck(sourceKey, key, PR_FALSE);
             if (crv != CKR_OK)
                 break;
 
@@ -8109,142 +8324,58 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             }
             break;
         }
-
         /* See RFC 5869 and CK_NSS_HKDFParams for documentation. */
         case CKM_NSS_HKDF_SHA1:
-            hashType = HASH_AlgSHA1;
+            hashMech = CKM_SHA_1;
             goto hkdf;
         case CKM_NSS_HKDF_SHA256:
-            hashType = HASH_AlgSHA256;
+            hashMech = CKM_SHA256;
             goto hkdf;
         case CKM_NSS_HKDF_SHA384:
-            hashType = HASH_AlgSHA384;
+            hashMech = CKM_SHA384;
             goto hkdf;
         case CKM_NSS_HKDF_SHA512:
-            hashType = HASH_AlgSHA512;
+            hashMech = CKM_SHA512;
             goto hkdf;
         hkdf : {
             const CK_NSS_HKDFParams *params =
                 (const CK_NSS_HKDFParams *)pMechanism->pParameter;
-            const SECHashObject *rawHash;
-            unsigned hashLen;
-            CK_BYTE hashbuf[HASH_LENGTH_MAX];
-            CK_BYTE *prk; /* psuedo-random key */
-            CK_ULONG prkLen;
-            CK_BYTE *okm;                 /* output keying material */
-            unsigned allocated_space = 0; /* If we need more work space, track it */
-            unsigned char *key_buf = &key_block[0];
+            CK_HKDF_PARAMS hkdfParams;
 
-            rawHash = HASH_GetRawHashObject(hashType);
-            if (rawHash == NULL || rawHash->length > sizeof(hashbuf)) {
-                crv = CKR_FUNCTION_FAILED;
-                break;
-            }
-            hashLen = rawHash->length;
-
-            if (pMechanism->ulParameterLen != sizeof(CK_NSS_HKDFParams) ||
-                !params || (!params->bExpand && !params->bExtract) ||
-                (params->bExtract && params->ulSaltLen > 0 && !params->pSalt) ||
-                (params->bExpand && params->ulInfoLen > 0 && !params->pInfo)) {
+            if (pMechanism->ulParameterLen != sizeof(CK_NSS_HKDFParams)) {
                 crv = CKR_MECHANISM_PARAM_INVALID;
                 break;
             }
-            if (keySize == 0 ||
-                (!params->bExpand && keySize > hashLen) ||
-                (params->bExpand && keySize > 255 * hashLen)) {
-                crv = CKR_TEMPLATE_INCONSISTENT;
+            hkdfParams.bExtract = params->bExtract;
+            hkdfParams.bExpand = params->bExpand;
+            if (params->pSalt) {
+                hkdfParams.ulSaltType = CKF_HKDF_SALT_DATA;
+            } else {
+                hkdfParams.ulSaltType = CKF_HKDF_SALT_NULL;
+            }
+            hkdfParams.pSalt = params->pSalt;
+            hkdfParams.ulSaltLen = params->ulSaltLen;
+            hkdfParams.hSaltKey = CK_INVALID_HANDLE;
+            hkdfParams.pInfo = params->pInfo;
+            hkdfParams.ulInfoLen = params->ulInfoLen;
+            hkdfParams.prfHashMechanism = hashMech;
+
+            crv = sftk_HKDF(&hkdfParams, hSession, sourceKey,
+                            att->attrib.pValue, att->attrib.ulValueLen,
+                            key, keySize, PR_FALSE, isFIPS);
+        } break;
+        case CKM_HKDF_DERIVE:
+        case CKM_HKDF_DATA: /* only difference is the class of key */
+            if ((pMechanism->pParameter == NULL) ||
+                (pMechanism->ulParameterLen != sizeof(CK_HKDF_PARAMS))) {
+                crv = CKR_MECHANISM_PARAM_INVALID;
                 break;
             }
-            crv = sftk_DeriveSensitiveCheck(sourceKey, key);
-            if (crv != CKR_OK)
-                break;
-
-            /* HKDF-Extract(salt, base key value) */
-            if (params->bExtract) {
-                CK_BYTE *salt;
-                CK_ULONG saltLen;
-                HMACContext *hmac;
-                unsigned int bufLen;
-
-                salt = params->pSalt;
-                saltLen = params->ulSaltLen;
-                if (salt == NULL) {
-                    saltLen = hashLen;
-                    salt = hashbuf;
-                    memset(salt, 0, saltLen);
-                }
-                hmac = HMAC_Create(rawHash, salt, saltLen, isFIPS);
-                if (!hmac) {
-                    crv = CKR_HOST_MEMORY;
-                    break;
-                }
-                HMAC_Begin(hmac);
-                HMAC_Update(hmac, (const unsigned char *)att->attrib.pValue,
-                            att->attrib.ulValueLen);
-                HMAC_Finish(hmac, hashbuf, &bufLen, sizeof(hashbuf));
-                HMAC_Destroy(hmac, PR_TRUE);
-                PORT_Assert(bufLen == rawHash->length);
-                prk = hashbuf;
-                prkLen = bufLen;
-            } else {
-                /* PRK = base key value */
-                prk = (CK_BYTE *)att->attrib.pValue;
-                prkLen = att->attrib.ulValueLen;
-            }
-
-            /* HKDF-Expand */
-            if (!params->bExpand) {
-                okm = prk;
-            } else {
-                /* T(1) = HMAC-Hash(prk, "" | info | 0x01)
-                 * T(n) = HMAC-Hash(prk, T(n-1) | info | n
-                 * key material = T(1) | ... | T(n)
-                 *
-                 * If the requested output length does not fit
-                 * within |key_block|, allocate space for expansion.
-                 */
-                HMACContext *hmac;
-                CK_BYTE bi;
-                unsigned n_bytes = PR_ROUNDUP(keySize, hashLen);
-                unsigned iterations = n_bytes / hashLen;
-                hmac = HMAC_Create(rawHash, prk, prkLen, isFIPS);
-                if (hmac == NULL) {
-                    crv = CKR_HOST_MEMORY;
-                    break;
-                }
-                if (n_bytes > sizeof(key_block)) {
-                    key_buf = PORT_Alloc(n_bytes);
-                    if (key_buf == NULL) {
-                        crv = CKR_HOST_MEMORY;
-                        break;
-                    }
-                    allocated_space = n_bytes;
-                }
-                for (bi = 1; bi <= iterations && bi > 0; ++bi) {
-                    unsigned len;
-                    HMAC_Begin(hmac);
-                    if (bi > 1) {
-                        HMAC_Update(hmac, key_buf + ((bi - 2) * hashLen), hashLen);
-                    }
-                    if (params->ulInfoLen != 0) {
-                        HMAC_Update(hmac, params->pInfo, params->ulInfoLen);
-                    }
-                    HMAC_Update(hmac, &bi, 1);
-                    HMAC_Finish(hmac, key_buf + ((bi - 1) * hashLen), &len,
-                                hashLen);
-                    PORT_Assert(len == hashLen);
-                }
-                HMAC_Destroy(hmac, PR_TRUE);
-                okm = key_buf;
-            }
-            /* key material = prk */
-            crv = sftk_forceAttribute(key, CKA_VALUE, okm, keySize);
-            if (allocated_space) {
-                PORT_ZFree(key_buf, allocated_space);
-            }
+            crv = sftk_HKDF((CK_HKDF_PARAMS_PTR)pMechanism->pParameter,
+                            hSession, sourceKey, att->attrib.pValue,
+                            att->attrib.ulValueLen, key, keySize, PR_TRUE,
+                            isFIPS);
             break;
-        } /* end of CKM_NSS_HKDF_* */
-
         case CKM_NSS_JPAKE_ROUND2_SHA1:
             hashType = HASH_AlgSHA1;
             goto jpake2;
@@ -8264,7 +8395,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             if (crv == CKR_OK && sftk_isTrue(key, CKA_TOKEN))
                 crv = CKR_TEMPLATE_INCONSISTENT;
             if (crv == CKR_OK)
-                crv = sftk_DeriveSensitiveCheck(sourceKey, key);
+                crv = sftk_DeriveSensitiveCheck(sourceKey, key, PR_FALSE);
             if (crv == CKR_OK)
                 crv = jpake_Round2(hashType,
                                    (CK_NSS_JPAKERound2Params *)pMechanism->pParameter,
@@ -8306,7 +8437,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
         case CKM_SP800_108_COUNTER_KDF:                         /* fall through */
         case CKM_SP800_108_FEEDBACK_KDF:                        /* fall through */
         case CKM_SP800_108_DOUBLE_PIPELINE_KDF:
-            crv = sftk_DeriveSensitiveCheck(sourceKey, key);
+            crv = sftk_DeriveSensitiveCheck(sourceKey, key, PR_FALSE);
             if (crv != CKR_OK) {
                 break;
             }
