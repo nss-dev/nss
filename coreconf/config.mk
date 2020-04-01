@@ -200,6 +200,11 @@ DEFINES += -DPKIX_OBJECT_LEAK_TEST
 endif
 endif
 
+# Avoid building with Neon acceleration on Arm32
+ifdef NSS_DISABLE_ARM32_NEON
+DEFINES += -DNSS_DISABLE_ARM32_NEON
+endif
+
 # Avoid building with PowerPC's Altivec acceleration
 ifdef NSS_DISABLE_ALTIVEC
 DEFINES += -DNSS_DISABLE_ALTIVEC
