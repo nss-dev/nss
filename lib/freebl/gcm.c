@@ -23,7 +23,7 @@
     (defined(__clang__) || defined(__GNUC__) && __GNUC__ > 6)
 #define USE_ARM_GCM
 #elif defined(__arm__) && defined(IS_LITTLE_ENDIAN) && \
-      !defined(NSS_DISABLE_ARM32_NEON)
+    !defined(NSS_DISABLE_ARM32_NEON)
 /* We don't test on big endian platform, so disable this on big endian. */
 #define USE_ARM_GCM
 #endif
