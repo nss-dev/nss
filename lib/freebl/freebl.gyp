@@ -337,9 +337,14 @@
             'armv8_c_lib'
           ],
         }],
-        [ 'target_arch=="arm"', {
+        [ 'disable_arm32_neon==0 and target_arch=="arm"', {
           'dependencies': [
             'gcm-aes-arm32-neon_c_lib',
+          ],
+        }],
+        [ 'disable_arm32_neon==1 and target_arch=="arm"', {
+          'defines!': [
+            'NSS_DISABLE_ARM32_NEON',
           ],
         }],
         [ 'target_arch=="arm64" or target_arch=="aarch64"', {
@@ -399,9 +404,14 @@
             'armv8_c_lib',
           ],
         }],
-        [ 'target_arch=="arm"', {
+        [ 'disable_arm32_neon==0 and target_arch=="arm"', {
           'dependencies': [
             'gcm-aes-arm32-neon_c_lib',
+          ],
+        }],
+        [ 'disable_arm32_neon==1 and target_arch=="arm"', {
+          'defines!': [
+            'NSS_DISABLE_ARM32_NEON',
           ],
         }],
         [ 'target_arch=="arm64" or target_arch=="aarch64"', {

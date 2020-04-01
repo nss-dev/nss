@@ -124,7 +124,9 @@ ifeq ($(CPU_ARCH),aarch64)
     EXTRA_SRCS += aes-armv8.c gcm-aarch64.c
 endif
 ifeq ($(CPU_ARCH),arm)
+ifndef NSS_DISABLE_ARM32_NEON
     EXTRA_SRCS += gcm-arm32-neon.c
+endif
     ifdef CC_IS_CLANG
         DEFINES += -DUSE_HW_AES
         EXTRA_SRCS += aes-armv8.c
@@ -778,7 +780,9 @@ ifeq ($(CPU_ARCH),arm)
 # Confusingly, __SOFTFP__ is the name of the define for the softfloat ABI, not for the softfp ABI.
 USES_SOFTFLOAT_ABI := $(shell $(CC) -o - -E -dM - $(CFLAGS) < /dev/null | grep __SOFTFP__ > /dev/null && echo 1)
 $(OBJDIR)/$(PROG_PREFIX)aes-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a -mfpu=crypto-neon-fp-armv8$(if $(USES_SOFTFLOAT_ABI), -mfloat-abi=softfp)
+ifndef NSS_DISABLE_ARM32_NEON
 $(OBJDIR)/$(PROG_PREFIX)gcm-arm32-neon$(OBJ_SUFFIX): CFLAGS += -march=armv7 -mfpu=neon$(if $(USES_SOFTFLOAT_ABI), -mfloat-abi=softfp)
+endif
 endif
 ifeq ($(CPU_ARCH),aarch64)
 $(OBJDIR)/$(PROG_PREFIX)aes-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a+crypto
