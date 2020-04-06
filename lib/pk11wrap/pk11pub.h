@@ -363,6 +363,25 @@ SECStatus PK11_WrapSymKey(CK_MECHANISM_TYPE type, SECItem *params,
 PK11SymKey *PK11_MoveSymKey(PK11SlotInfo *slot, CK_ATTRIBUTE_TYPE operation,
                             CK_FLAGS flags, PRBool perm, PK11SymKey *symKey);
 /*
+ * To do joint operations, we often need two keys in the same slot.
+ * Usually the PKCS #11 wrappers handle this correctly (like for PK11_WrapKey),
+ * but sometimes the wrappers don't know about mechanism specific keys in
+ * the Mechanism params. This function makes sure the two keys are in the
+ * same slot by copying one or both of the keys into a common slot. This
+ * functions makes sure the slot can handle the target mechanism. If the copy
+ * is warranted, this function will prefer to move the movingKey first, then
+ * the preferedKey. If the keys are moved, the new keys are returned in
+ * newMovingKey and/or newPreferedKey. The application is responsible
+ * for freeing those keys one the operation is complete.
+ */
+SECStatus PK11_SymKeysToSameSlot(CK_MECHANISM_TYPE mech,
+                                 CK_ATTRIBUTE_TYPE preferedOperation,
+                                 CK_ATTRIBUTE_TYPE movingOperation,
+                                 PK11SymKey *preferedKey, PK11SymKey *movingKey,
+                                 PK11SymKey **newPreferedKey,
+                                 PK11SymKey **newMovingKey);
+
+/*
  * derive a new key from the base key.
  *  PK11_Derive returns a key which can do exactly one operation, and is
  * ephemeral (session key).

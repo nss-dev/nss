@@ -335,26 +335,6 @@ tls13_GetHashSize(const sslSocket *ss)
     return tls13_GetHashSizeForHash(tls13_GetHash(ss));
 }
 
-CK_MECHANISM_TYPE
-tls13_GetHkdfMechanismForHash(SSLHashType hash)
-{
-    switch (hash) {
-        case ssl_hash_sha256:
-            return CKM_NSS_HKDF_SHA256;
-        case ssl_hash_sha384:
-            return CKM_NSS_HKDF_SHA384;
-        default:
-            PORT_Assert(0);
-    }
-    return CKM_NSS_HKDF_SHA256;
-}
-
-CK_MECHANISM_TYPE
-tls13_GetHkdfMechanism(sslSocket *ss)
-{
-    return tls13_GetHkdfMechanismForHash(tls13_GetHash(ss));
-}
-
 static CK_MECHANISM_TYPE
 tls13_GetHmacMechanism(sslSocket *ss)
 {
@@ -624,7 +604,7 @@ tls13_HandleKeyShare(sslSocket *ss,
 
     key = PK11_PubDeriveWithKDF(
         keyPair->privKey, peerKey, PR_FALSE, NULL, NULL, mechanism,
-        tls13_GetHkdfMechanismForHash(hash), CKA_DERIVE, keySize, CKD_NULL, NULL, NULL);
+        CKM_HKDF_DERIVE, CKA_DERIVE, keySize, CKD_NULL, NULL, NULL);
     if (!key) {
         ssl_MapLowLevelError(SSL_ERROR_KEY_EXCHANGE_FAILURE);
         goto loser;
@@ -3347,7 +3327,7 @@ tls13_DeriveSecret(sslSocket *ss, PK11SymKey *key,
     rv = tls13_HkdfExpandLabel(key, tls13_GetHash(ss),
                                hashes->u.raw, hashes->len,
                                label, labelLen,
-                               tls13_GetHkdfMechanism(ss),
+                               CKM_HKDF_DERIVE,
                                tls13_GetHashSize(ss),
                                ss->protocolVariant, dest);
     if (rv != SECSuccess) {
@@ -4974,7 +4954,7 @@ tls13_SendNewSessionTicket(sslSocket *ss, const PRUint8 *appToken,
                                ticketNonce, sizeof(ticketNonce),
                                kHkdfLabelResumption,
                                strlen(kHkdfLabelResumption),
-                               tls13_GetHkdfMechanism(ss),
+                               CKM_HKDF_DERIVE,
                                tls13_GetHashSize(ss),
                                ss->protocolVariant, &secret);
     if (rv != SECSuccess) {
@@ -5209,7 +5189,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
                                    ticket_nonce.data, ticket_nonce.len,
                                    kHkdfLabelResumption,
                                    strlen(kHkdfLabelResumption),
-                                   tls13_GetHkdfMechanism(ss),
+                                   CKM_HKDF_DERIVE,
                                    tls13_GetHashSize(ss),
                                    ss->protocolVariant, &secret);
         if (rv != SECSuccess) {

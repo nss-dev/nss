@@ -235,7 +235,7 @@ SSLExp_HkdfVariantExpandLabel(PRUint16 version, PRUint16 cipherSuite, PK11SymKey
         return SECFailure; /* Code already set. */
     }
     return tls13_HkdfExpandLabel(prk, hash, hsHash, hsHashLen, label, labelLen,
-                                 tls13_GetHkdfMechanismForHash(hash),
+                                 CKM_HKDF_DERIVE,
                                  tls13_GetHashSizeForHash(hash), variant, keyp);
 }
 
