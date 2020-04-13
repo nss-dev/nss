@@ -524,7 +524,7 @@ secmod_LoadPKCS11Module(SECMODModule *mod, SECMODModule **oldModule)
     modToDBG = PR_GetEnvSecure("NSS_DEBUG_PKCS11_MODULE");
     if (modToDBG && strcmp(mod->commonName, modToDBG) == 0) {
         mod->functionList = (void *)nss_InsertDeviceLog(
-            (CK_FUNCTION_LIST_PTR)mod->functionList);
+            (CK_FUNCTION_LIST_3_0_PTR)mod->functionList);
     }
 #endif
 
