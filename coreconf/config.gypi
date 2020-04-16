@@ -594,9 +594,11 @@
             'Optimization': '<(debug_optimization_level)',
             'BasicRuntimeChecks': '3',
             'RuntimeLibrary': '2', # /MD
+            'DebugInformationFormat': '3',
           },
           'VCLinkerTool': {
             'LinkIncremental': '1',
+            'GenerateDebugInformation' : 'true',
           },
           'VCResourceCompilerTool': {
             'PreprocessorDefinitions': ['DEBUG'],
