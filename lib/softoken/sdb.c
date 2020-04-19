@@ -400,8 +400,20 @@ sdb_measureAccess(const char *directory)
     PRIntervalTime duration = PR_MillisecondsToInterval(33);
     const char *doesntExistName = "_dOeSnotExist_.db";
     char *temp, *tempStartOfFilename;
-    size_t maxTempLen, maxFileNameLen, directoryLength;
-
+    size_t maxTempLen, maxFileNameLen, directoryLength, tmpdirLength = 0;
+#ifdef SDB_MEASURE_USE_TEMP_DIR
+    /*
+     * on some OS's and Filesystems, creating a bunch of files and deleting
+     * them messes up the systems's caching, but if we create the files in
+     * a temp directory which we later delete, then the cache gets cleared
+     * up. This code uses several OS dependent calls, and it's not clear
+     * that temp directory use won't mess up other filesystems and OS caching,
+     * so if you need this for your OS, you can turn on the
+     * 'SDB_MEASURE_USE_TEMP_DIR' define in coreconf
+     */
+    const char template[] = "dbTemp.XXXXXX";
+    tmpdirLength = sizeof(template);
+#endif
     /* no directory, just return one */
     if (directory == NULL) {
         return 1;
@@ -412,24 +424,39 @@ sdb_measureAccess(const char *directory)
 
     directoryLength = strlen(directory);
 
-    maxTempLen = directoryLength + strlen(doesntExistName) + 1 /* potential additional separator char */
-                 + 11                                          /* max chars for 32 bit int plus potential sign */
-                 + 1;                                          /* zero terminator */
+    maxTempLen = directoryLength + 1       /* dirname + / */
+                 + tmpdirLength            /* tmpdirname includes / */
+                 + strlen(doesntExistName) /* filename base */
+                 + 11                      /* max chars for 32 bit int plus potential sign */
+                 + 1;                      /* zero terminator */
 
-    temp = PORT_Alloc(maxTempLen);
+    temp = PORT_ZAlloc(maxTempLen);
     if (!temp) {
         return 1;
     }
 
     /* We'll copy directory into temp just once, then ensure it ends
-     * with the directory separator, then remember the position after
-     * the separator, and calculate the number of remaining bytes. */
+     * with the directory separator. */
 
     strcpy(temp, directory);
     if (directory[directoryLength - 1] != PR_GetDirectorySeparator()) {
         temp[directoryLength++] = PR_GetDirectorySeparator();
     }
-    tempStartOfFilename = temp + directoryLength;
+
+#ifdef SDB_MEASURE_USE_TEMP_DIR
+    /* add the template for a temporary subdir, and create it */
+    strcat(temp, template);
+    if (!mkdtemp(temp)) {
+        PORT_Free(temp);
+        return 1;
+    }
+    /* and terminate that tmp subdir with a / */
+    strcat(temp, "/");
+#endif
+
+    /* Remember the position after the last separator, and calculate the
+     * number of remaining bytes. */
+    tempStartOfFilename = temp + directoryLength + tmpdirLength;
     maxFileNameLen = maxTempLen - directoryLength;
 
     /* measure number of Access operations that can be done in 33 milliseconds
@@ -453,6 +480,12 @@ sdb_measureAccess(const char *directory)
             break;
     }
 
+#ifdef SDB_MEASURE_USE_TEMP_DIR
+    /* turn temp back into our tmpdir path by removing doesntExistName, and
+     * remove the tmp dir */
+    *tempStartOfFilename = '\0';
+    (void)rmdir(temp);
+#endif
     PORT_Free(temp);
 
     /* always return 1 or greater */
