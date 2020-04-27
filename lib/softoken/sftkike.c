@@ -725,6 +725,11 @@ sftk_ike1_appendix_b_prf(CK_SESSION_HANDLE hSession, const SFTKAttribute *inKey,
     if ((params->ulExtraDataLen != 0) && (params->pExtraData == NULL)) {
         return CKR_ARGUMENTS_BAD;
     }
+    crv = prf_setup(&context, params->prfMechanism);
+    if (crv != CKR_OK) {
+        return crv;
+    }
+
     if (params->bHasKeygxy) {
         SFTKSession *session;
         session = sftk_SessionFromHandle(hSession);
@@ -742,10 +747,6 @@ sftk_ike1_appendix_b_prf(CK_SESSION_HANDLE hSession, const SFTKAttribute *inKey,
             crv = CKR_KEY_HANDLE_INVALID;
             goto fail;
         }
-    }
-    crv = prf_setup(&context, params->prfMechanism);
-    if (crv != CKR_OK) {
-        return crv;
     }
 
     macSize = prf_length(&context);
