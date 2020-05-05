@@ -436,44 +436,29 @@ else
 endif
 endif
 
-#
-# Please keep the next two rules in sync.
-#
-$(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.cc
-	$(MAKE_OBJDIR)
-ifdef STRICT_CPLUSPLUS_SUFFIX
-	echo "#line 1 \"$<\"" | cat - $< > $(OBJDIR)/t_$*.cc
-	$(CCC) -o $@ -c $(CXXSTD) $(CFLAGS) $(CXXFLAGS) $(OBJDIR)/t_$*.cc
-	rm -f $(OBJDIR)/t_$*.cc
-else
-ifdef USE_NT_C_SYNTAX
-	$(CCC) -Fo$@ -c $(CXXSTD) $(CFLAGS) $(CXXFLAGS) $(call core_abspath,$<)
-else
-ifdef NEED_ABSOLUTE_PATH
-	$(CCC) -o $@ -c $(CXXSTD) $(CFLAGS) $(CXXFLAGS) $(call core_abspath,$<)
-else
-	$(CCC) -o $@ -c $(CXXSTD) $(CFLAGS) $(CXXFLAGS) $<
-endif
-endif
-endif #STRICT_CPLUSPLUS_SUFFIX
+define compile_ccc_pattern_RULE
 
-$(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.cpp
-	@$(MAKE_OBJDIR)
+$$(OBJDIR)/$$(PROG_PREFIX)%$$(OBJ_SUFFIX): %.$(1)
+	$$(MAKE_OBJDIR)
 ifdef STRICT_CPLUSPLUS_SUFFIX
-	echo "#line 1 \"$<\"" | cat - $< > $(OBJDIR)/t_$*.cc
-	$(CCC) -o $@ -c $(CXXSTD) $(CFLAGS) $(CXXFLAGS) $(OBJDIR)/t_$*.cc
-	rm -f $(OBJDIR)/t_$*.cc
+	echo "#line 1 \"$$<\"" | cat - $$< > $$(OBJDIR)/t_$$*.cc
+	$$(CCC) -o $$@ -c $$(CXXSTD) $$(CFLAGS) $$(CXXFLAGS) $$(OBJDIR)/t_$$*.cc
+	rm -f $$(OBJDIR)/t_$$*.cc
 else
 ifdef USE_NT_C_SYNTAX
-	$(CCC) -Fo$@ -c $(CXXSTD) $(CFLAGS) $(CXXFLAGS) $(call core_abspath,$<)
+	$$(CCC) -Fo$$@ -c $$(CXXSTD) $$(CFLAGS) $$(CXXFLAGS) $$(call core_abspath,$$<)
 else
 ifdef NEED_ABSOLUTE_PATH
-	$(CCC) -o $@ -c $(CXXSTD) $(CFLAGS) $(CXXFLAGS) $(call core_abspath,$<)
+	$$(CCC) -o $$@ -c $$(CXXSTD) $$(CFLAGS) $$(CXXFLAGS) $$(call core_abspath,$$<)
 else
-	$(CCC) -o $@ -c $(CXXSTD) $(CFLAGS) $(CXXFLAGS) $<
+	$$(CCC) -o $$@ -c $$(CXXSTD) $$(CFLAGS) $$(CXXFLAGS) $$<
 endif
 endif
 endif #STRICT_CPLUSPLUS_SUFFIX
+endef # compile_ccc_pattern_RULE
+
+$(eval $(call compile_ccc_pattern_RULE,cc))
+$(eval $(call compile_ccc_pattern_RULE,cpp))
 
 %.i: %.cpp
 	$(CCC) -C -E $(CFLAGS) $(CXXFLAGS) $< > $@
