@@ -96,10 +96,6 @@ endif
 NSINSTALL 	= nsinstall             # HCT4OS2
 INSTALL		= $(NSINSTALL)
 
-MKDEPEND_DIR    = $(CORE_DEPTH)/coreconf/mkdepend
-MKDEPEND        = $(MKDEPEND_DIR)/$(OBJDIR_NAME)/mkdepend
-MKDEPENDENCIES  = $(OBJDIR_NAME)/depend.mk
-
 ####################################################################
 #
 # One can define the makefile variable NSDISTMODE to control
