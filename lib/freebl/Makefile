@@ -640,117 +640,37 @@ ifndef FREEBL_CHILD_BUILD
 
 # Parent build. This is where we decide which shared libraries to build
 
-ifdef FREEBL_BUILD_SINGLE_SHLIB
+# too suppress the SINGLE_SHLIB override warning
+FREEBL_OBJDIRS :=
 
-################### Single shared lib stuff #########################
-SINGLE_SHLIB_DIR = $(OBJDIR)/$(OS_TARGET)_SINGLE_SHLIB
-ALL_TRASH += $(SINGLE_SHLIB_DIR)
+define target_freebl_SHLIB
+ifdef $(2)
+$(1)_DIR = $$(OBJDIR)/$$(OS_TARGET)_$(1)
+ALL_TRASH += $$($(1)_DIR)
 
-$(SINGLE_SHLIB_DIR):
-	-mkdir -p $(SINGLE_SHLIB_DIR)
-
-release_md:: freebl_single_shlib
-libs: freebl_single_shlib
-freebl_single_shlib: | $(SINGLE_SHLIB_DIR)
-	$(MAKE) FREEBL_CHILD_BUILD=1 \
- OBJDIR=$(SINGLE_SHLIB_DIR) libs
-######################## common stuff #########################
-
+ifeq (,$$(filter $$($(1)_DIR)/d,$$(FREEBL_OBJDIRS)))
+FREEBL_OBJDIRS += $$($(1)_DIR)/d
+$$($(1)_DIR)/d:
+	@$(MAKE_OBJDIR)
 endif
 
-ifdef NEED_STUB_BUILD
-SINGLE_SHLIB_DIR = $(OBJDIR)/$(OS_TARGET)_SINGLE_SHLIB
-ALL_TRASH += $(SINGLE_SHLIB_DIR)
-$(SINGLE_SHLIB_DIR):
-	-mkdir $(SINGLE_SHLIB_DIR)
-
-release_md:: freebl_stub_build
-libs: freebl_stub_build
-freebl_stub_build: | $(SINGLE_SHLIB_DIR)
-	$(MAKE) FREEBL_CHILD_BUILD=1 USE_STUB_BUILD=1 \
- OBJDIR=$(SINGLE_SHLIB_DIR) libs
+release_md:: freebl_$(2)
+libs: freebl_$(2)
+freebl_$(2): | $$($(1)_DIR)/d
+	$$(MAKE) FREEBL_CHILD_BUILD=1 $(3)=1 OBJDIR=$$($(1)_DIR) libs
 endif
+endef # target_freebl_SHLIB
 
-# multiple shared libraries
+target_freebl_ABI = $(call target_freebl_SHLIB,$(1),HAVE_$(1),USE_$(1))
 
-######################## ABI32_FPU stuff #########################
-ifdef HAVE_ABI32_FPU
-ABI32_FPU_DIR = $(OBJDIR)/$(OS_TARGET)_ABI32_FPU
-ALL_TRASH += $(ABI32_FPU_DIR)
+$(eval $(call target_freebl_SHLIB,SINGLE_SHLIB,FREEBL_BUILD_SINGLE_SHLIB,NEEDED_DUMMY))
+$(eval $(call target_freebl_SHLIB,SINGLE_SHLIB,NEED_STUB_BUILD,USE_STUB_BUILD))
 
-$(ABI32_FPU_DIR):
-	-mkdir $(ABI32_FPU_DIR)
-
-release_md:: freebl_ABI32_FPU
-libs: freebl_ABI32_FPU
-freebl_ABI32_FPU: | $(ABI32_FPU_DIR)
-	$(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI32_FPU=1 \
- OBJDIR=$(ABI32_FPU_DIR) libs
-endif
-
-######################## ABI32_INT32 stuff #########################
-ifdef HAVE_ABI32_INT32
-ABI32_INT32_DIR = $(OBJDIR)/$(OS_TARGET)_ABI32_INT32
-ALL_TRASH += $(ABI32_INT32_DIR)
-
-$(ABI32_INT32_DIR):
-	-mkdir $(ABI32_INT32_DIR)
-
-release_md:: freebl_ABI32_INT32
-libs: freebl_ABI32_INT32
-freebl_ABI32_INT32: | $(ABI32_INT32_DIR)
-	$(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI32_INT32=1 \
- OBJDIR=$(ABI32_INT32_DIR) libs
-endif
-
-######################## ABI32_INT64 stuff #########################
-ifdef HAVE_ABI32_INT64
-ABI32_INT64_DIR = $(OBJDIR)/$(OS_TARGET)_ABI32_INT64
-ALL_TRASH += $(ABI32_INT64_DIR)
-
-$(ABI32_INT64_DIR):
-	-mkdir $(ABI32_INT64_DIR)
-
-release_md:: freebl_ABI32_INT64
-libs: freebl_ABI32_INT64
-freebl_ABI32_INT64: | $(ABI32_INT64_DIR)
-	$(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI32_INT64=1\
- OBJDIR=$(ABI32_INT64_DIR) libs
-endif
-
-######################## END of 32-bit stuff #########################
-
-# above is 32-bit builds, below is 64-bit builds
-
-######################## ABI64_FPU stuff #########################
-ifdef HAVE_ABI64_FPU
-ABI64_FPU_DIR = $(OBJDIR)/$(OS_TARGET)_ABI64_FPU
-ALL_TRASH += $(ABI64_FPU_DIR)
-
-$(ABI64_FPU_DIR):
-	-mkdir $(ABI64_FPU_DIR)
-
-release_md:: freebl_ABI64_FPU
-libs: freebl_ABI64_FPU
-freebl_ABI64_FPU: | $(ABI64_FPU_DIR)
-	$(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI64_FPU=1 \
- OBJDIR=$(ABI64_FPU_DIR) libs
-endif
-
-######################## ABI64_INT stuff #########################
-ifdef HAVE_ABI64_INT
-ABI64_INT_DIR = $(OBJDIR)/$(OS_TARGET)_ABI64_INT
-ALL_TRASH += $(ABI64_INT_DIR)
-
-$(ABI64_INT_DIR):
-	-mkdir $(ABI64_INT_DIR)
-
-release_md:: freebl_ABI64_INT
-libs: freebl_ABI64_INT
-freebl_ABI64_INT: | $(ABI64_INT_DIR)
-	$(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI64_INT=1 \
- OBJDIR=$(ABI64_INT_DIR) libs
-endif
+$(eval $(call target_freebl_ABI,ABI32_FPU))
+$(eval $(call target_freebl_ABI,ABI32_INT32))
+$(eval $(call target_freebl_ABI,ABI32_INT64))
+$(eval $(call target_freebl_ABI,ABI64_FPU))
+$(eval $(call target_freebl_ABI,ABI64_INT))
 
 endif  # FREEBL_CHILD_BUILD
 
