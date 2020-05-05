@@ -15,4 +15,4 @@ CSRCS = \
 	$(NULL)
 
 LIBRARY_NAME = pkixstore
-
+SHARED_LIBRARY = $(NULL)

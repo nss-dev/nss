@@ -22,4 +22,4 @@ CSRCS = \
 	$(NULL)
 
 LIBRARY_NAME = pkixutil
-
+SHARED_LIBRARY = $(NULL)

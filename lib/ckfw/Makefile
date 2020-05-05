@@ -4,8 +4,12 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 include manifest.mn
+
 include $(CORE_DEPTH)/coreconf/config.mk
-include config.mk
+
+ifdef BUILD_IDG
+DEFINES += -DNSSDEBUG
+endif
 
 ifdef NOTDEF # was ifdef MOZILLA_CLIENT
 NSS_BUILD_CAPI = 1

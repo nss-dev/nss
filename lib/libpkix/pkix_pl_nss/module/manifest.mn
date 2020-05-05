@@ -31,4 +31,4 @@ CSRCS = \
 	$(NULL)
 
 LIBRARY_NAME = pkixmodule
-
+SHARED_LIBRARY = $(NULL)

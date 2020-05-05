@@ -17,4 +17,4 @@ CSRCS = \
 	$(NULL)
 
 LIBRARY_NAME = pkixcrlsel
-
+SHARED_LIBRARY = $(NULL)

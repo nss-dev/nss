@@ -29,5 +29,7 @@ REQUIRES = nspr
 
 LIBRARY_NAME = nsscapi
 MAPFILE = $(OBJDIR)/$(LIBRARY_NAME).def
+LIBRARY = $(NULL)
+IMPORT_LIBRARY = $(NULL)
 
 #EXTRA_SHARED_LIBS = -L$(DIST)/lib -lnssckfw -lnssb -lplc4 -lplds4
