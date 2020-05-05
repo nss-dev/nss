@@ -22,29 +22,6 @@
 # e)                                                                  #
 #	LIBRARY	-- the target library name to create from $OBJS       #
 #			($OBJDIR automatically prepended to it)       #
-# f)                                                                  #
-#	JSRCS	-- java source files to compile into class files      #
-#			(if you don't specify this it will default    #
-#			 to *.java)                                   #
-# g)                                                                  #
-#	PACKAGE	-- the package to put the .class files into           #
-#			(e.g. netscape/applet)                        #
-#			(NOTE: the default definition for this may be #
-#                              overridden if "jdk.mk" is included)    #
-# h)                                                                  #
-#	JMC_EXPORT -- java files to be exported for use by JMC_GEN    #
-#			(this is a list of Class names)               #
-# i)                                                                  #
-#	JRI_GEN	-- files to run through javah to generate headers     #
-#                  and stubs                                          #
-#			(output goes into the _jri sub-dir)           #
-# j)                                                                  #
-#	JMC_GEN	-- files to run through jmc to generate headers       #
-#                  and stubs                                          #
-#			(output goes into the _jmc sub-dir)           #
-# k)                                                                  #
-#	JNI_GEN	-- files to run through javah to generate headers     #
-#			(output goes into the _jni sub-dir)           #
 #                                                                     #
 #######################################################################
 
@@ -101,7 +78,7 @@ ifdef LIBRARY_NAME
 	LIBRARY := $(OBJDIR)/$(LIB_PREFIX)$(LIBRARY_NAME).$(LIB_SUFFIX)
     endif
     ifndef SHARED_LIBRARY
-	SHARED_LIBRARY := $(OBJDIR)/$(DLL_PREFIX)$(LIBRARY_NAME)$(LIBRARY_VERSION)$(JDK_DEBUG_SUFFIX).$(DLL_SUFFIX)
+	SHARED_LIBRARY := $(OBJDIR)/$(DLL_PREFIX)$(LIBRARY_NAME)$(LIBRARY_VERSION).$(DLL_SUFFIX)
     endif
 
     ifneq ($(SHARED_LIBRARY),)
@@ -109,7 +86,7 @@ ifdef LIBRARY_NAME
     ifdef IMPORT_LIB_SUFFIX
     ifdef MAPFILE
     ifndef IMPORT_LIBRARY
-	IMPORT_LIBRARY := $(OBJDIR)/$(IMPORT_LIB_PREFIX)$(LIBRARY_NAME)$(LIBRARY_VERSION)$(JDK_DEBUG_SUFFIX)$(IMPORT_LIB_SUFFIX)
+	IMPORT_LIBRARY := $(OBJDIR)/$(IMPORT_LIB_PREFIX)$(LIBRARY_NAME)$(LIBRARY_VERSION)$(IMPORT_LIB_SUFFIX)
     endif
     endif
     endif
@@ -135,11 +112,11 @@ endif
 #
 
 ifdef PROGRAM
-    PROGRAM := $(addprefix $(OBJDIR)/, $(PROGRAM)$(JDK_DEBUG_SUFFIX)$(PROG_SUFFIX))
+    PROGRAM := $(addprefix $(OBJDIR)/, $(PROGRAM)$(PROG_SUFFIX))
 endif
 
 ifdef PROGRAMS
-    PROGRAMS := $(addprefix $(OBJDIR)/, $(PROGRAMS:%=%$(JDK_DEBUG_SUFFIX)$(PROG_SUFFIX)))
+    PROGRAMS := $(addprefix $(OBJDIR)/, $(PROGRAMS:%=%$(PROG_SUFFIX)))
 endif
 
 ifndef TARGETS
@@ -151,8 +128,7 @@ CPPSRCS1 = $(CPPSRCS:.cpp=$(OBJ_SUFFIX))
 CPPSRCS2 = $(CPPSRCS1:.cc=$(OBJ_SUFFIX))
 
 ifndef OBJS
-    SIMPLE_OBJS = $(JRI_STUB_CFILES) \
-		$(addsuffix $(OBJ_SUFFIX), $(JMC_GEN)) \
+    SIMPLE_OBJS = \
 		$(CSRCS:.c=$(OBJ_SUFFIX)) \
 		$(CPPSRCS2) \
 		$(ASFILES:$(ASM_SUFFIX)=$(OBJ_SUFFIX)) \
@@ -173,45 +149,8 @@ if test ! -d $(@D); then $(NSINSTALL) -D $(@D); fi
 endef
 endif
 
-ifndef PACKAGE
-    PACKAGE = .
-endif
-
-ifdef NSBUILDROOT
-    JDK_GEN_DIR  = $(SOURCE_XP_DIR)/_gen
-    JMC_GEN_DIR  = $(SOURCE_XP_DIR)/_jmc
-    JNI_GEN_DIR  = $(SOURCE_XP_DIR)/_jni
-    JRI_GEN_DIR  = $(SOURCE_XP_DIR)/_jri
-    JDK_STUB_DIR = $(SOURCE_XP_DIR)/_stubs
-else
-    JDK_GEN_DIR  = _gen
-    JMC_GEN_DIR  = _jmc
-    JNI_GEN_DIR  = _jni
-    JRI_GEN_DIR  = _jri
-    JDK_STUB_DIR = _stubs
-endif
-
 ALL_TRASH =	$(TARGETS) $(OBJS) $(OBJDIR) LOGS TAGS $(GARBAGE) \
 		so_locations $(BUILT_SRCS) $(NOSUCHFILE)
-
-ifdef NS_USE_JDK
-    ALL_TRASH += $(JDK_HEADER_CFILES) $(JDK_STUB_CFILES) \
-		 $(JMC_HEADERS) $(JMC_STUBS) $(JMC_EXPORT_FILES) \
-		 $(JNI_HEADERS) \
-		 $(JRI_HEADER_CFILES) $(JRI_STUB_CFILES) \
-		 $(JDK_GEN_DIR) $(JMC_GEN_DIR) $(JNI_GEN_DIR) \
-		 $(JRI_GEN_DIR) $(JDK_STUB_DIR)
-
-ifdef JAVA_DESTPATH
-    ALL_TRASH += $(wildcard $(JAVA_DESTPATH)/$(PACKAGE)/*.class)
-ifdef JDIRS
-    ALL_TRASH += $(addprefix $(JAVA_DESTPATH)/,$(JDIRS))
-endif
-else # !JAVA_DESTPATH
-    ALL_TRASH += $(wildcard $(PACKAGE)/*.class) $(JDIRS)
-endif
-
-endif #NS_USE_JDK
 
 ifdef NSS_BUILD_CONTINUE_ON_ERROR
 # Try to build everything. I.e., don't exit on errors.
