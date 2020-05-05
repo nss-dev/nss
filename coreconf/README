@@ -500,22 +500,6 @@ OVERVIEW of "rules.mk":
                                           house "C" header files
                                           contained in a release
 
-        $(MKDEPENDENCIES)::               for UNIX systems, create
-                                          a directory used to house
-                                          dependencies and utilize
-                                          the $(MKDEPEND) rule to
-                                          create them
-
-        $(MKDEPEND)::                     cd to the dependency
-                                          directory and create them
-
-        depend::                          if $(OBJS) exist, perform the
-                                          $(MKDEPEND) rule followed by
-                                          the $(MKDEPENDENCIES) rule
-
-        dependclean::                     remove all files contained
-                                          in the dependency repository
-
         .DEFAULT:                         standard gmake rule
 
         .SUFFIXES:                        standard gmake rule

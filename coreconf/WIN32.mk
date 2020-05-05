@@ -85,12 +85,6 @@ NSINSTALL_DIR  = $(CORE_DEPTH)/coreconf/nsinstall
 endif
 NSINSTALL      = nsinstall
 
-MKDEPEND_DIR    = $(CORE_DEPTH)/coreconf/mkdepend
-MKDEPEND        = $(MKDEPEND_DIR)/$(OBJDIR_NAME)/mkdepend.exe
-# Note: MKDEPENDENCIES __MUST__ be a relative pathname, not absolute.
-# If it is absolute, gmake will crash unless the named file exists.
-MKDEPENDENCIES  = $(OBJDIR_NAME)/depend.mk
-
 INSTALL      = $(NSINSTALL)
 GARBAGE     += $(OBJDIR)/vc20.pdb $(OBJDIR)/vc40.pdb
 XP_DEFINE   += -DXP_PC
