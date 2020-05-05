@@ -381,12 +381,10 @@ endif
 endef # copy_varlist_into_dir_RULE
 
 # export rule
-PUBLIC_EXPORT_DIR = $(SOURCE_XP_DIR)/public/$(MODULE)
-$(eval $(call copy_varlist_into_dir_RULE,export,EXPORTS,$(PUBLIC_EXPORT_DIR)))
+$(eval $(call copy_varlist_into_dir_RULE,export,EXPORTS,$(SOURCE_XPHEADERS_DIR)))
 
 # private_export rule
-PRIVATE_EXPORT_DIR = $(SOURCE_XP_DIR)/private/$(MODULE)
-$(eval $(call copy_varlist_into_dir_RULE,private_export,PRIVATE_EXPORTS,$(PRIVATE_EXPORT_DIR)))
+$(eval $(call copy_varlist_into_dir_RULE,private_export,PRIVATE_EXPORTS,$(SOURCE_XPPRIVATE_DIR)))
 
 ##########################################################################
 ###   RULES FOR RUNNING REGRESSION SUITE TESTS
