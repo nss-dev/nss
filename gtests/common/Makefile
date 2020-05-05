@@ -20,6 +20,9 @@ include $(CORE_DEPTH)/coreconf/config.mk
 # (3) Include "component" configuration information. (OPTIONAL)       #
 #######################################################################
 
+SHARED_LIBRARY = $(NULL)
+IMPORT_LIBRARY = $(NULL)
+
 #######################################################################
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
 #######################################################################

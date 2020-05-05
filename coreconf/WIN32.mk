@@ -187,6 +187,8 @@ endif
 endif
 	# Purify requires /FIXED:NO when linking EXEs.
 	LDFLAGS    += /FIXED:NO
+	# So the linker will find main in the gtestutil library
+	LDFLAGS    += -SUBSYSTEM:CONSOLE
     endif
 ifneq ($(_MSC_VER),$(_MSC_VER_6))
     # NSS has too many of these to fix, downgrade the warning
