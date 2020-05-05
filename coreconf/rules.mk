@@ -238,18 +238,42 @@ alltags:
 	find . -name dist -prune -o \( -name '*.[hc]' -o -name '*.cp' -o -name '*.cpp' \) -print | xargs etags -a
 	find . -name dist -prune -o \( -name '*.[hc]' -o -name '*.cp' -o -name '*.cpp' \) -print | xargs ctags -a
 
-$(PROGRAM): $(OBJS) $(EXTRA_LIBS)
-	@$(MAKE_OBJDIR)
-ifeq (,$(filter-out _WIN%,$(NS_USE_GCC)_$(OS_TARGET)))
-	$(MKPROG) $(subst /,\\,$(OBJS)) -Fe$@ -link $(LDFLAGS) $(XLDFLAGS) $(subst /,\\,$(EXTRA_LIBS) $(EXTRA_SHARED_LIBS) $(OS_LIBS))
+define PROGRAM_template
+
+ifndef $(1)_OBJS
+ifdef LIBRARY_NAME
+	$(1)_OBJS := $$(patsubst $$(PROG_PREFIX)%,%,$$(patsubst %$$(PROG_SUFFIX),%,$(1)))$$(OBJ_SUFFIX)
+endif
+ifdef PROGRAMS
+	$(1)_OBJS := $$(patsubst $$(PROG_PREFIX)%,%,$$(patsubst %$$(PROG_SUFFIX),%,$(1)))$$(OBJ_SUFFIX)
+endif
+ifndef $(1)_OBJS
+	$(1)_OBJS := $$(OBJS)
+endif
+endif
+
+$(1): $$($(1)_OBJS) $$(EXTRA_LIBS)
+	@$$(MAKE_OBJDIR)
+	rm -f $$@
+ifeq (,$$(filter-out _WIN%,$$(NS_USE_GCC)_$$(OS_TARGET)))
+	$$(MKPROG) $$($(1)_OBJS) -Fe$$@ -link $$(LDFLAGS) $$(XLDFLAGS) $$(EXTRA_LIBS) $$(EXTRA_SHARED_LIBS) $$(OS_LIBS)
 ifdef MT
-	if test -f $@.manifest; then \
-		$(MT) -NOLOGO -MANIFEST $@.manifest -OUTPUTRESOURCE:$@\;1; \
-		rm -f $@.manifest; \
+	if test -f $$@.manifest; then \
+		$$(MT) -NOLOGO -MANIFEST $$@.manifest -OUTPUTRESOURCE:$$@\;1; \
+		rm -f $$@.manifest; \
 	fi
 endif	# MSVC with manifest tool
 else
-	$(MKPROG) -o $@ $(CFLAGS) $(OBJS) $(LDFLAGS) $(EXTRA_LIBS) $(EXTRA_SHARED_LIBS) $(OS_LIBS)
+	$$(MKPROG) -o $$@ $$(CFLAGS) $$($(1)_OBJS) $$(LDFLAGS) $$(EXTRA_LIBS) $$(EXTRA_SHARED_LIBS) $$(OS_LIBS)
+endif
+endef # PROGRAM_template
+
+ifdef PROGRAM
+$(eval $(call PROGRAM_template,$(PROGRAM)))
+else
+ifdef PROGRAMS
+$(foreach prog,$(PROGRAMS),$(eval $(call PROGRAM_template,$(prog))))
+endif
 endif
 
 get_objs:
@@ -330,23 +354,6 @@ endif
 $(MAPFILE): $(MAPFILE_SOURCE)
 	@$(MAKE_OBJDIR)
 	$(PROCESS_MAP_FILE)
-
-
-$(OBJDIR)/$(PROG_PREFIX)%$(PROG_SUFFIX): $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX)
-	@$(MAKE_OBJDIR)
-ifeq (,$(filter-out _WIN%,$(NS_USE_GCC)_$(OS_TARGET)))
-	$(MKPROG) $< -Fe$@ -link \
-	$(LDFLAGS) $(XLDFLAGS) $(EXTRA_LIBS) $(EXTRA_SHARED_LIBS) $(OS_LIBS)
-ifdef MT
-	if test -f $@.manifest; then \
-		$(MT) -NOLOGO -MANIFEST $@.manifest -OUTPUTRESOURCE:$@\;1; \
-		rm -f $@.manifest; \
-	fi
-endif	# MSVC with manifest tool
-else
-	$(MKPROG) -o $@ $(CFLAGS) $< \
-	$(LDFLAGS) $(EXTRA_LIBS) $(EXTRA_SHARED_LIBS) $(OS_LIBS)
-endif
 
 WCCFLAGS1 := $(subst /,\\,$(CFLAGS))
 WCCFLAGS2 := $(subst -I,-i=,$(WCCFLAGS1))
