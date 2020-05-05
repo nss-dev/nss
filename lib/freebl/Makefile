@@ -649,9 +649,11 @@ ALL_TRASH += $(SINGLE_SHLIB_DIR)
 $(SINGLE_SHLIB_DIR):
 	-mkdir -p $(SINGLE_SHLIB_DIR)
 
-release_md libs:: $(SINGLE_SHLIB_DIR)
+release_md:: freebl_single_shlib
+libs: freebl_single_shlib
+freebl_single_shlib: | $(SINGLE_SHLIB_DIR)
 	$(MAKE) FREEBL_CHILD_BUILD=1 \
- OBJDIR=$(SINGLE_SHLIB_DIR) $@
+ OBJDIR=$(SINGLE_SHLIB_DIR) libs
 ######################## common stuff #########################
 
 endif
@@ -662,9 +664,11 @@ ALL_TRASH += $(SINGLE_SHLIB_DIR)
 $(SINGLE_SHLIB_DIR):
 	-mkdir $(SINGLE_SHLIB_DIR)
 
-release_md libs:: $(SINGLE_SHLIB_DIR)
+release_md:: freebl_stub_build
+libs: freebl_stub_build
+freebl_stub_build: | $(SINGLE_SHLIB_DIR)
 	$(MAKE) FREEBL_CHILD_BUILD=1 USE_STUB_BUILD=1 \
- OBJDIR=$(SINGLE_SHLIB_DIR) $@
+ OBJDIR=$(SINGLE_SHLIB_DIR) libs
 endif
 
 # multiple shared libraries
@@ -677,9 +681,11 @@ ALL_TRASH += $(ABI32_FPU_DIR)
 $(ABI32_FPU_DIR):
 	-mkdir $(ABI32_FPU_DIR)
 
-release_md libs:: $(ABI32_FPU_DIR)
+release_md:: freebl_ABI32_FPU
+libs: freebl_ABI32_FPU
+freebl_ABI32_FPU: | $(ABI32_FPU_DIR)
 	$(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI32_FPU=1 \
- OBJDIR=$(ABI32_FPU_DIR) $@
+ OBJDIR=$(ABI32_FPU_DIR) libs
 endif
 
 ######################## ABI32_INT32 stuff #########################
@@ -690,9 +696,11 @@ ALL_TRASH += $(ABI32_INT32_DIR)
 $(ABI32_INT32_DIR):
 	-mkdir $(ABI32_INT32_DIR)
 
-release_md libs:: $(ABI32_INT32_DIR)
+release_md:: freebl_ABI32_INT32
+libs: freebl_ABI32_INT32
+freebl_ABI32_INT32: | $(ABI32_INT32_DIR)
 	$(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI32_INT32=1 \
- OBJDIR=$(ABI32_INT32_DIR) $@
+ OBJDIR=$(ABI32_INT32_DIR) libs
 endif
 
 ######################## ABI32_INT64 stuff #########################
@@ -703,9 +711,11 @@ ALL_TRASH += $(ABI32_INT64_DIR)
 $(ABI32_INT64_DIR):
 	-mkdir $(ABI32_INT64_DIR)
 
-release_md libs:: $(ABI32_INT64_DIR)
+release_md:: freebl_ABI32_INT64
+libs: freebl_ABI32_INT64
+freebl_ABI32_INT64: | $(ABI32_INT64_DIR)
 	$(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI32_INT64=1\
- OBJDIR=$(ABI32_INT64_DIR) $@
+ OBJDIR=$(ABI32_INT64_DIR) libs
 endif
 
 ######################## END of 32-bit stuff #########################
@@ -720,9 +730,11 @@ ALL_TRASH += $(ABI64_FPU_DIR)
 $(ABI64_FPU_DIR):
 	-mkdir $(ABI64_FPU_DIR)
 
-release_md libs:: $(ABI64_FPU_DIR)
+release_md:: freebl_ABI64_FPU
+libs: freebl_ABI64_FPU
+freebl_ABI64_FPU: | $(ABI64_FPU_DIR)
 	$(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI64_FPU=1 \
- OBJDIR=$(ABI64_FPU_DIR) $@
+ OBJDIR=$(ABI64_FPU_DIR) libs
 endif
 
 ######################## ABI64_INT stuff #########################
@@ -733,9 +745,11 @@ ALL_TRASH += $(ABI64_INT_DIR)
 $(ABI64_INT_DIR):
 	-mkdir $(ABI64_INT_DIR)
 
-release_md libs:: $(ABI64_INT_DIR)
+release_md:: freebl_ABI64_INT
+libs: freebl_ABI64_INT
+freebl_ABI64_INT: | $(ABI64_INT_DIR)
 	$(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI64_INT=1 \
- OBJDIR=$(ABI64_INT_DIR) $@
+ OBJDIR=$(ABI64_INT_DIR) libs
 endif
 
 endif  # FREEBL_CHILD_BUILD
