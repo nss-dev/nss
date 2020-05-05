@@ -73,10 +73,10 @@ release_classes::
 	+$(LOOP_OVER_DIRS)
 
 libs program install:: $(TARGETS)
-ifdef LIBRARY
+ifneq ($(LIBRARY),)
 	$(INSTALL) -m 664 $(LIBRARY) $(SOURCE_LIB_DIR)
 endif
-ifdef SHARED_LIBRARY
+ifneq ($(SHARED_LIBRARY),)
 	$(INSTALL) -m 775 $(SHARED_LIBRARY) $(SOURCE_LIB_DIR)
 ifdef MOZ_DEBUG_SYMBOLS
 ifeq (,$(filter-out _WIN%,$(NS_USE_GCC)_$(OS_TARGET)))
@@ -84,10 +84,10 @@ ifeq (,$(filter-out _WIN%,$(NS_USE_GCC)_$(OS_TARGET)))
 endif
 endif
 endif
-ifdef IMPORT_LIBRARY
+ifneq ($(IMPORT_LIBRARY),)
 	$(INSTALL) -m 775 $(IMPORT_LIBRARY) $(SOURCE_LIB_DIR)
 endif
-ifdef PROGRAM
+ifneq ($(PROGRAM),)
 	$(INSTALL) -m 775 $(PROGRAM) $(SOURCE_BIN_DIR)
 ifdef MOZ_DEBUG_SYMBOLS
 ifeq (,$(filter-out _WIN%,$(NS_USE_GCC)_$(OS_TARGET)))
@@ -95,7 +95,7 @@ ifeq (,$(filter-out _WIN%,$(NS_USE_GCC)_$(OS_TARGET)))
 endif
 endif
 endif
-ifdef PROGRAMS
+ifneq ($(PROGRAMS),)
 	$(INSTALL) -m 775 $(PROGRAMS) $(SOURCE_BIN_DIR)
 endif
 	+$(LOOP_OVER_DIRS)
@@ -297,8 +297,7 @@ $(IMPORT_LIBRARY): $(MAPFILE)
 	$(RANLIB) $@
 endif
 ifeq ($(OS_ARCH),WINNT)
-$(IMPORT_LIBRARY): $(LIBRARY)
-	cp -f $< $@
+$(IMPORT_LIBRARY): $(SHARED_LIBRARY)
 endif
 
 ifdef SHARED_LIBRARY_LIBS
