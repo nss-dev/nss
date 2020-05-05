@@ -495,13 +495,6 @@ OVERVIEW of "rules.mk":
         CATEGORY/rule::                   Purpose
         ===================               =============================
 
-        $(PUBLIC_EXPORT_DIR)::            create directory used to
-                                          house public "C" header files
-
-        $(PRIVATE_EXPORT_DIR)::           create directory used to
-                                          house private "C" header
-                                          files
-
         $(SOURCE_XP_DIR)/
         release/include::                 create directory used to
                                           house "C" header files
