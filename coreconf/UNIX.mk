@@ -58,7 +58,7 @@ else
 endif
 
 define MAKE_OBJDIR
-if test ! -d $(@D); then rm -rf $(@D); $(NSINSTALL) -D $(@D); fi
+if test ! -d $(@D); then $(NSINSTALL) -D $(@D); fi
 endef
 
 include $(CORE_DEPTH)/coreconf/Werror.mk

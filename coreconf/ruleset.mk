@@ -133,13 +133,10 @@ ifndef BUILT_SRCS
 		 $(BUILT_CSRCS) $(BUILT_CPPSRCS) $(BUILT_ASFILES))
 endif
 
-
-ifeq (,$(filter-out WIN%,$(OS_TARGET)))
-    MAKE_OBJDIR = $(INSTALL) -D $(OBJDIR)
-else
-    define MAKE_OBJDIR
-	if test ! -d $(@D); then rm -rf $(@D); $(NSINSTALL) -D $(@D); fi
-    endef
+ifndef MAKE_OBJDIR
+define MAKE_OBJDIR
+if test ! -d $(@D); then $(NSINSTALL) -D $(@D); fi
+endef
 endif
 
 ifndef PACKAGE
