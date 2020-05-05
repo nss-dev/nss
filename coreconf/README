@@ -337,12 +337,6 @@ OVERVIEW of "rules.mk":
         clobber_all::           synonym for "realclean::" rule
 
 
-        IMPORT
-        ------
-        import::                uses perl script to retrieve specified
-                                VERSION of the binary release from
-                                $(RELEASE_TREE)
-
         RELEASE
         -------
         release_clean::         remove all files from the
@@ -363,18 +357,6 @@ OVERVIEW of "rules.mk":
                                 recursively copy all executables to
                                 $(SOURCE_RELEASE_PREFIX)/
                                 $(SOURCE_RELEASE_BIN_DIR) directory
-
-        release_jars::          use perl script to package appropriate
-                                files in the $(XPCLASS_JAR),
-                                $(XPHEADER_JAR), $(MDHEADER_JAR), and
-                                $(MDBINARY_JAR) jar files
-
-        release_cpdistdir::     use perl script to copy the
-                                $(XPCLASS_JAR), $(XPHEADER_JAR),
-                                $(MDHEADER_JAR), and $(MDBINARY_JAR)
-                                jar files to the specified VERSION
-                                of the $(RELEASE_TREE) directory
-
 
 
         TOOLS and AUTOMATION

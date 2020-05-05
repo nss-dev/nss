@@ -122,14 +122,6 @@ include $(CORE_DEPTH)/coreconf/suffix.mk
 endif
 
 #######################################################################
-# [13.0] Master "Core Components" for defining JDK                    #
-#        (dependent upon <architecture>, <source>, and <suffix>  tags)#
-#######################################################################
-ifdef NS_USE_JDK
-include $(CORE_DEPTH)/coreconf/jdk.mk
-endif
-
-#######################################################################
 # [14.0] Master "Core Components" rule set                            #
 #######################################################################
 ifndef MK_RULESET
