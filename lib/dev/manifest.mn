@@ -15,9 +15,6 @@ PRIVATE_EXPORTS = \
 	nssdev.h   \
 	$(NULL)
 
-EXPORTS =	   \
-	$(NULL)
-
 MODULE = nss
 
 CSRCS =		        \

@@ -56,7 +56,6 @@ endif
 # (7) Execute "local" rules. (OPTIONAL).                              #
 #######################################################################
 
-export:: private_export
 
 # indicates dependency on freebl static lib
 $(SHARED_LIBRARY): $(CRYPTOLIB)

@@ -586,7 +586,6 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 # (7) Execute "local" rules. (OPTIONAL).                              #
 #######################################################################
 
-export:: private_export
 
 rijndael_tables:
 	$(CC) -o $(OBJDIR)/make_rijndael_tab rijndael_tables.c \

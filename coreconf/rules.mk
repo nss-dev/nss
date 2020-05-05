@@ -47,9 +47,9 @@ all::
 	$(MAKE) libs
 
 ifeq ($(AUTOCLEAN),1)
-autobuild:: clean export private_export libs program install
+autobuild:: clean export libs program install
 else
-autobuild:: export private_export libs program install
+autobuild:: export libs program install
 endif
 
 platform::
@@ -99,9 +99,7 @@ ifeq ($(OS_TARGET),Darwin)
 	find $(SOURCE_MD_DIR)/lib -name "*.a" -exec $(RANLIB) {} \;
 endif
 
-export:: $(DIRS)
-
-private_export:: $(DIRS)
+export:: $(DIRS) private_export
 
 release_export:: $(DIRS)
 

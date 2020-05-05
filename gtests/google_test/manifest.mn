@@ -14,10 +14,3 @@ INCLUDES += -Igtest/include/ -Igtest
 CPPSRCS = \
 	gtest/src/gtest-all.cc \
 	$(NULL)
-
-
-EXPORTS = \
-	$(NULL)
-
-
-

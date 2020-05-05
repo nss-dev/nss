@@ -4,9 +4,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 CORE_DEPTH = ../../../..
 
-EXPORTS = \
-	$(NULL)
-
 PRIVATE_EXPORTS = \
 	pkix_pl_aiamgr.h \
 	pkix_pl_colcertstore.h \
@@ -21,7 +18,6 @@ PRIVATE_EXPORTS = \
 MODULE = nss
 
 DEFINES += -DSHLIB_SUFFIX=\"$(DLL_SUFFIX)\" -DSHLIB_PREFIX=\"$(DLL_PREFIX)\" -DSHLIB_VERSION=\"$(LIBRARY_VERSION)\"
-
 
 CSRCS = \
 	pkix_pl_aiamgr.c \
