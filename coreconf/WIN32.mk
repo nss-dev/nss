@@ -365,15 +365,6 @@ ifneq ($(CPU_ARCH),x386)
 endif
 
 #
-# override ruleset.mk, removing the "lib" prefix for library names, and
-# adding the "32" after the LIBRARY_VERSION.
-#
-ifdef LIBRARY_NAME
-    SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION)32$(JDK_DEBUG_SUFFIX).dll
-    IMPORT_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION)32$(JDK_DEBUG_SUFFIX).lib
-endif
-
-#
 # override the TARGETS defined in ruleset.mk, adding IMPORT_LIBRARY
 #
 ifndef TARGETS
