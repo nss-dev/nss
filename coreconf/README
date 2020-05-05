@@ -336,10 +336,6 @@ OVERVIEW of "rules.mk":
 
         clobber_all::           synonym for "realclean::" rule
 
-        private_export::        recursively copy specified
-                                cross-platform header files to the
-                                $(SOURCE_XPPRIVATE_DIR) directory
-
 
         IMPORT
         ------

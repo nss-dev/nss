@@ -19,6 +19,3 @@ CPPSRCS = \
       tls_parser.cc \
       $(NULL)
 endif
-
-EXPORTS = \
-      $(NULL)

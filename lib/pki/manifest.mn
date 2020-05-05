@@ -16,9 +16,6 @@ PRIVATE_EXPORTS = \
 	pkim.h     \
 	$(NULL)
 
-EXPORTS =	   \
-	$(NULL)
-
 MODULE = nss
 
 CSRCS =		        \

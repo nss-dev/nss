@@ -45,5 +45,4 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 #######################################################################
 
 
-export:: private_export
 

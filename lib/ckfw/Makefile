@@ -24,7 +24,6 @@ endif
 # nssck.api: ck.api ckapi.perl
 # 	$(PERL) ckapi.perl ck.api
 
-export:: private_export
 
 # can't do this in manifest.mn because OS_TARGET isn't defined there.
 ifeq (,$(filter-out WINNT WIN95,$(OS_TARGET)))
