@@ -47,12 +47,12 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 # (7) Execute "local" rules. (OPTIONAL).                              #
 #######################################################################
 
-nss_build_all::
+nss_build_all:
 	$(MAKE) build_nspr
 	$(MAKE) all
 	$(MAKE) latest
 
-nss_clean_all::
+nss_clean_all:
 	$(MAKE) clobber_nspr
 	$(MAKE) clobber
 

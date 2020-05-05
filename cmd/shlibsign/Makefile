@@ -95,6 +95,5 @@ else
     endif
 endif
 
-libs::
-	$(MAKE) install
+libs: install
 	$(MAKE) $(CHECKLOC)

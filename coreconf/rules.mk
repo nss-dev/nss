@@ -10,49 +10,21 @@
 #######################################################################
 
 #######################################################################
-# Double-Colon rules for utilizing the binary release model.          #
+# Dont't use double-colon rules!                                      #
 #######################################################################
 
-all::
-	$(MAKE) -C coreconf/nsinstall program
-	$(MAKE) export
-	# pre-build child dir -> parent dir dependencies
-	# ckfw/builtins -> ckfw
-	IGNORE_DIRS=1 $(MAKE) -C lib/ckfw libs
-	# ckfw/builtins/testlib -> ckfw/builtins + base
-	$(MAKE) -C lib/base libs
-	IGNORE_DIRS=1 $(MAKE) -C lib/ckfw/builtins libs
-	$(MAKE) -C lib/util libs
-	# softoken + legacydb -> util + sqlite + freebl + dbm
-	$(MAKE) -C lib/dbm libs
-	$(MAKE) -C lib/sqlite libs
-	$(MAKE) -C lib/freebl libs
-	# nss -> util + certhi + cryptohi + pk11wrap + certdb + pki + dev (+ base) + pkix
-	$(MAKE) -C lib/certhigh libs
-	$(MAKE) -C lib/cryptohi libs
-	$(MAKE) -C lib/pk11wrap libs
-	$(MAKE) -C lib/certdb libs
-	$(MAKE) -C lib/pki libs
-	$(MAKE) -C lib/dev libs
-	$(MAKE) -C lib/libpkix libs
-	$(MAKE) -C lib/nss libs
-	# smime -> nss + pkcs12 + pkcs7
-	$(MAKE) -C lib/pkcs7 libs
-	$(MAKE) -C lib/pkcs12 libs
-	# all dependencies done -> finish libraries
-	$(MAKE) -C lib libs
-	# cmd library sectool
-	$(MAKE) -C cmd/lib libs
-	# everything still missing
-	$(MAKE) libs
-
-ifeq ($(AUTOCLEAN),1)
-autobuild:: clean export libs program install
-else
-autobuild:: export libs program install
+ifndef HAVE_ALL_TARGET
+all: libs
 endif
 
-platform::
+autobuild:
+ifeq ($(AUTOCLEAN),1)
+	$(MAKE) clean
+endif
+	$(MAKE) all
+	$(MAKE) install
+
+platform:
 	@echo $(OBJDIR_NAME)
 
 ifeq (,$(filter-out _WIN%,$(NS_USE_GCC)_$(OS_TARGET)))
@@ -61,7 +33,7 @@ endif
 
 ifdef DIRS
 ifndef IGNORE_DIRS
-$(DIRS)::
+$(DIRS):
 	$(IGNORE_ERROR)@$(MAKE) -C $@ $(MAKECMDGOALS)
 	@$(CLICK_STOPWATCH)
 endif
@@ -76,7 +48,7 @@ endif
 # note: if there is a trailing slash, the component will be appended
 #       (see import.pl - only used for xpheader.jar)
 
-import::
+import:
 	@echo "== import.pl =="
 	@$(PERL) -I$(CORE_DEPTH)/coreconf $(CORE_DEPTH)/coreconf/import.pl \
 		"RELEASE_TREE=$(RELEASE_TREE)"   \
@@ -99,13 +71,13 @@ ifeq ($(OS_TARGET),Darwin)
 	find $(SOURCE_MD_DIR)/lib -name "*.a" -exec $(RANLIB) {} \;
 endif
 
-export:: $(DIRS) private_export
+export: $(DIRS) private_export
 
-release_export:: $(DIRS)
+release_export: $(DIRS)
 
-release_classes:: $(DIRS)
+release_classes: $(DIRS)
 
-libs program install:: $(DIRS) $(TARGETS)
+libs program install: $(DIRS) $(TARGETS)
 ifneq ($(LIBRARY),)
 	$(INSTALL) -m 664 $(LIBRARY) $(SOURCE_LIB_DIR)
 endif
@@ -132,25 +104,20 @@ ifneq ($(PROGRAMS),)
 	$(INSTALL) -m 775 $(PROGRAMS) $(SOURCE_BIN_DIR)
 endif
 
-check:: $(DIRS)
+check: $(DIRS)
 
-clean clobber:: $(DIRS)
+clean clobber: $(DIRS)
 	rm -rf $(ALL_TRASH)
 
-realclean clobber_all:: $(DIRS)
+realclean clobber_all: $(DIRS)
 	rm -rf $(wildcard *.OBJ) dist $(ALL_TRASH)
 
-#######################################################################
-# Double-Colon rules for populating the binary release model.         #
-#######################################################################
-
-
-release_clean::
+release_clean:
 	rm -rf $(SOURCE_XP_DIR)/release/$(RELEASE_MD_DIR)
 
-release:: release_clean release_export release_classes release_policy release_md release_jars release_cpdistdir
+release: release_clean release_export release_classes release_policy release_md release_jars release_cpdistdir
 
-release_cpdistdir::
+release_cpdistdir:
 	@echo "== cpdist.pl =="
 	@$(PERL) -I$(CORE_DEPTH)/coreconf $(CORE_DEPTH)/coreconf/cpdist.pl \
 		"RELEASE_TREE=$(RELEASE_TREE)" \
@@ -176,7 +143,7 @@ release_cpdistdir::
 # $(SOURCE_RELEASE_xxx_JAR) is a name like yyy.jar
 # $(SOURCE_RELEASE_xx_DIR)  is a name like 
 
-release_jars::
+release_jars:
 	@echo "== release.pl =="
 	@$(PERL) -I$(CORE_DEPTH)/coreconf $(CORE_DEPTH)/coreconf/release.pl \
 		"RELEASE_TREE=$(RELEASE_TREE)" \
@@ -222,16 +189,16 @@ endif
 
 # Substitute \$ for $ so the shell doesn't choke
 ifdef BUILD_OPT
-release_classes::
+release_classes:
 	$(INSTALL) -m 444 $(subst $$,\$$,$(RELEASE_FILES)) $(SOURCE_RELEASE_PREFIX)/$(SOURCE_RELEASE_CLASSES_DIR)/$(PACKAGE)
 else
-release_classes::
+release_classes:
 	$(INSTALL) -m 444 $(subst $$,\$$,$(RELEASE_DBG_FILES)) $(SOURCE_RELEASE_PREFIX)/$(SOURCE_RELEASE_CLASSES_DBG_DIR)/$(PACKAGE)
 endif
 
 endif
 
-release_policy:: $(DIRS)
+release_policy: $(DIRS)
 
 ifndef NO_MD_RELEASE
     ifdef LIBRARY
@@ -533,7 +500,7 @@ endif
 # Bunch of things that extend the 'export' rule (in order):
 ################################################################################
 
-$(JAVA_DESTPATH) $(JAVA_DESTPATH)/$(PACKAGE) $(JMCSRCDIR)::
+$(JAVA_DESTPATH) $(JAVA_DESTPATH)/$(PACKAGE) $(JMCSRCDIR):
 	@if test ! -d $@; then	    \
 		echo Creating $@;   \
 		rm -rf $@;	    \
@@ -545,12 +512,12 @@ $(JAVA_DESTPATH) $(JAVA_DESTPATH)/$(PACKAGE) $(JMCSRCDIR)::
 
 ifneq ($(IDL_GEN),)
 
-#export::
+#export:
 #	$(IDL2JAVA) $(IDL_GEN)
 
-#all:: export
+#all: export
 
-#clobber::
+#clobber:
 #	rm -f $(IDL_GEN:.idl=.class)	# XXX wrong!
 
 endif
@@ -570,14 +537,14 @@ endif
 
 JAVA_EXPORT_SRCS=$(shell $(PERL) $(CORE_DEPTH)/coreconf/outofdate.pl $(PERLARG)	-d $(JAVA_DESTPATH)/$(PACKAGE) $(JSRCS) $(PRIVATE_JSRCS))
 
-export:: $(JAVA_DESTPATH) $(JAVA_DESTPATH)/$(PACKAGE)
+export: $(JAVA_DESTPATH) $(JAVA_DESTPATH)/$(PACKAGE)
 ifneq ($(JAVA_EXPORT_SRCS),)
 	$(JAVAC) $(JAVA_EXPORT_SRCS)
 endif
 
-all:: export
+all: export
 
-clobber::
+clobber:
 	rm -f $(SOURCE_XP_DIR)/classes/$(PACKAGE)/*.class
 
 endif
@@ -604,7 +571,7 @@ endif
 # to parse the '=' character. A solution is to rewrite outofdate.pl so it
 # takes the Javac command as an argument and executes the command itself,
 # instead of returning a list of files.
-export:: $(JAVA_DESTPATH) $(JAVA_DESTPATH)/$(PACKAGE)
+export: $(JAVA_DESTPATH) $(JAVA_DESTPATH)/$(PACKAGE)
 	@echo "!!! THIS COMMAND IS BROKEN ON WINDOWS--SEE rules.mk FOR DETAILS !!!"
 	return -1
 	@for d in $(JDIRS); do							\
@@ -657,7 +624,7 @@ JDK_STUB_CFILES		:= $(patsubst %,$(JDK_STUB_DIR)/%.c,$(JDK_GEN))
 $(JDK_HEADER_CFILES): $(JDK_HEADER_CLASSFILES)
 $(JDK_STUB_CFILES): $(JDK_STUB_CLASSFILES)
 
-export::
+export:
 	@echo Generating/Updating JDK headers 
 	$(JAVAH) -d $(JDK_GEN_DIR) $(JDK_PACKAGE_CLASSES)
 	@echo Generating/Updating JDK stubs
@@ -706,7 +673,7 @@ JRI_STUB_CFILES		:= $(patsubst %,$(JRI_GEN_DIR)/%.c,$(JRI_GEN))
 $(JRI_HEADER_CFILES): $(JRI_HEADER_CLASSFILES)
 $(JRI_STUB_CFILES): $(JRI_STUB_CLASSFILES)
 
-export::
+export:
 	@echo Generating/Updating JRI headers 
 	$(JAVAH) -jri -d $(JRI_GEN_DIR) $(JRI_PACKAGE_CLASSES)
 	@echo Generating/Updating JRI stubs
@@ -734,7 +701,7 @@ ifneq ($(JNI_GEN),)
 ifneq ($(JAVAH),)
 JNI_HEADERS		:= $(patsubst %,$(JNI_GEN_DIR)/%.h,$(JNI_GEN))
 
-export::
+export:
 	@if test ! -d $(JNI_GEN_DIR); then						\
 		echo $(JAVAH) -jni -d $(JNI_GEN_DIR) $(JNI_GEN);			\
 		$(JAVAH) -jni -d $(JNI_GEN_DIR) $(JNI_GEN);				\
@@ -758,7 +725,7 @@ JMC_EXPORT_FILES	:= $(patsubst %,$(JAVA_DESTPATH)/$(PACKAGE)/%.class,$(JMC_EXPOR
 # your NSDISTMODE and make links relative to the current directory. This is a
 # problem because the source isn't in the current directory:
 #
-export:: $(JMC_EXPORT_FILES) $(JMCSRCDIR)
+export: $(JMC_EXPORT_FILES) $(JMCSRCDIR)
 	$(NSINSTALL) -t -m 444 $(JMC_EXPORT_FILES) $(JMCSRCDIR)
 endif
 
@@ -784,7 +751,7 @@ $(OBJDIR)/M%$(OBJ_SUFFIX): $(JMC_GEN_DIR)/M%.c $(JMC_GEN_DIR)/M%.h
 	@$(MAKE_OBJDIR)
 	$(CC) -o $@ -c $(CFLAGS) $<
 
-export:: $(JMC_HEADERS) $(JMC_STUBS)
+export: $(JMC_HEADERS) $(JMC_STUBS)
 endif
 endif
 
@@ -800,7 +767,7 @@ $(PUBLIC_EXPORT_DIR)/d:
 $(PUBLIC_EXPORT_DIR)/%: %
 	$(INSTALL) -m 444 $^ $(PUBLIC_EXPORT_DIR)
 
-export:: $(addprefix $(PUBLIC_EXPORT_DIR)/,$(EXPORTS)) | $(PUBLIC_EXPORT_DIR)/d
+export: $(addprefix $(PUBLIC_EXPORT_DIR)/,$(EXPORTS)) | $(PUBLIC_EXPORT_DIR)/d
 endif
 
 # Duplicate export rule for private exports, with different directories
@@ -814,9 +781,9 @@ $(PRIVATE_EXPORT_DIR)/d:
 $(PRIVATE_EXPORT_DIR)/%: %
 	$(INSTALL) -m 444 $^ $(PRIVATE_EXPORT_DIR)
 
-private_export:: $(addprefix $(PRIVATE_EXPORT_DIR)/,$(PRIVATE_EXPORTS)) | $(PRIVATE_EXPORT_DIR)/d
+private_export: $(addprefix $(PRIVATE_EXPORT_DIR)/,$(PRIVATE_EXPORTS)) | $(PRIVATE_EXPORT_DIR)/d
 else
-private_export:: 
+private_export:
 	@echo "There are no private exports."
 endif
 
@@ -834,7 +801,7 @@ ifneq ($(BUILD_OPT),)
 REGDATE = $(subst \ ,, $(shell $(PERL)  $(CORE_DEPTH)/$(MODULE)/scripts/now))
 endif
 
-check:: $(REGRESSION_SPEC)
+check: $(REGRESSION_SPEC)
 	cd $(PLATFORM); \
 	../$(SOURCE_MD_DIR)/bin/regress$(PROG_SUFFIX) specfile=../$(REGRESSION_SPEC) progress $(EXTRA_REGRESS_OPTIONS); \
 	if test ! -d $(TESTS_DIR); then \
@@ -848,7 +815,7 @@ ifneq ($(BUILD_OPT),)
 	echo "then run 'reporter specfile=$(RESULTS_DIR)/rptspec'"
 endif
 else
-check::
+check:
 	@echo "Error: you didn't specify REGRESSION_SPEC in your manifest.mn file!"
 endif
 
@@ -856,15 +823,15 @@ endif
 # Duplicate export rule for releases, with different directories
 
 ifneq ($(EXPORTS),)
-$(SOURCE_RELEASE_XP_DIR)/include::
+$(SOURCE_RELEASE_XP_DIR)/include:
 	@if test ! -d $@; then	    \
 		echo Creating $@;   \
 		$(NSINSTALL) -D $@; \
 	fi
 
-release_export:: $(SOURCE_RELEASE_XP_DIR)/include
+release_export: $(SOURCE_RELEASE_XP_DIR)/include
 
-release_export:: $(EXPORTS)
+release_export: $(EXPORTS)
 	$(INSTALL) -m 444 $^ $(SOURCE_RELEASE_XP_DIR)/include
 endif
 
@@ -919,7 +886,7 @@ ifdef MKDEPENDENCIES
 
 # For Windows, $(MKDEPENDENCIES) must be -included before including rules.mk
 
-$(MKDEPENDENCIES)::
+$(MKDEPENDENCIES):
 	@$(MAKE_OBJDIR)
 	touch $(MKDEPENDENCIES) 
 	chmod u+w $(MKDEPENDENCIES) 
@@ -928,22 +895,22 @@ $(MKDEPENDENCIES)::
 	$(MKDEPEND) -p$(OBJDIR_NAME)/ -o'$(OBJ_SUFFIX)' -f$(MKDEPENDENCIES) \
 $(NOMD_CFLAGS) $(YOPT) $(CSRCS) $(CPPSRCS) $(ASFILES)
 
-$(MKDEPEND):: $(MKDEPEND_DIR)/*.c $(MKDEPEND_DIR)/*.h
+$(MKDEPEND): $(MKDEPEND_DIR)/*.c $(MKDEPEND_DIR)/*.h
 	$(MAKE) -C $(MKDEPEND_DIR)
 
 ifdef OBJS
-depend:: $(DIRS) $(MKDEPEND) $(MKDEPENDENCIES)
+depend: $(DIRS) $(MKDEPEND) $(MKDEPENDENCIES)
 else
-depend:: $(DIRS)
+depend: $(DIRS)
 endif
 
-dependclean:: $(DIRS)
+dependclean: $(DIRS)
 	rm -f $(MKDEPENDENCIES)
 
 #-include $(NSINSTALL_DIR)/$(OBJDIR)/depend.mk
 
 else
-depend::
+depend:
 endif
 endif
 
@@ -990,5 +957,5 @@ $(filter $(OBJDIR)/%$(OBJ_SUFFIX),$(OBJS)): $(OBJDIR)/%$(OBJ_SUFFIX): $(DUMMY_DE
 # Fake targets.  Always run these rules, even if a file/directory with that
 # name already exists.
 #
-.PHONY: all all_platforms alltags boot clean clobber clobber_all export install libs program realclean release
+.PHONY: all all_platforms alltags boot clean clobber clobber_all export install libs program realclean release $(DIRS)
 

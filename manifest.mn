@@ -11,3 +11,24 @@ IMPORTS =	nspr20/v4.8 \
 RELEASE = nss
 
 DIRS = coreconf lib cmd cpputil gtests
+
+lib: coreconf
+cmd: lib
+cpputil: lib
+gtests: cmd cpputil
+
+HAVE_ALL_TARGET := 1
+
+prepare_build:
+	# no real way to encode these in any sensible way
+	$(MAKE) -C coreconf/nsinstall program
+	$(MAKE) export
+	# pre-build child dir -> parent dir dependencies
+	# ckfw/builtins -> ckfw
+	IGNORE_DIRS=1 $(MAKE) -C lib/ckfw libs
+	# ckfw/builtins/testlib -> ckfw/builtins + base
+	$(MAKE) -C lib/base libs
+	IGNORE_DIRS=1 $(MAKE) -C lib/ckfw/builtins libs
+
+all: prepare_build
+	$(MAKE) libs

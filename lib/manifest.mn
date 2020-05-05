@@ -37,6 +37,14 @@ NSS_SRCDIRS = \
 endif
 endif
 
+freebl: util
+sysinit: util
+softoken: util dbm sqlite freebl
+nss: certhigh cryptohi pk11wrap certdb pki dev base libpkix util
+smime: nss pkcs12 pkcs7
+ssl: nss freebl
+ckfw: nss
+
 #
 # organized by DLL
 #
