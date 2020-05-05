@@ -140,15 +140,14 @@ ifndef DLL_PREFIX
     DLL_PREFIX = $(NULL)
 endif
 
+ifndef IMPORT_LIB_SUFFIX
+    IMPORT_LIB_SUFFIX = .$(LIB_SUFFIX)
+endif
+
 #
 # override the TARGETS defined in ruleset.mk, adding IMPORT_LIBRARY
 #
 ifndef TARGETS
     TARGETS = $(LIBRARY) $(SHARED_LIBRARY) $(IMPORT_LIBRARY) $(PROGRAM)
-endif
-
-
-ifdef LIBRARY_NAME
-    IMPORT_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION)$(JDK_DEBUG_SUFFIX).lib
 endif
 
