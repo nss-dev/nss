@@ -21,4 +21,4 @@ CSRCS = \
 	$(NULL)
 
 LIBRARY_NAME = pkixparams
-
+SHARED_LIBRARY = $(NULL)
