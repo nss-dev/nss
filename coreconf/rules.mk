@@ -13,7 +13,38 @@
 # Double-Colon rules for utilizing the binary release model.          #
 #######################################################################
 
-all:: export libs 
+all::
+	$(MAKE) -C coreconf/nsinstall program
+	$(MAKE) export
+	# pre-build child dir -> parent dir dependencies
+	# ckfw/builtins -> ckfw
+	IGNORE_DIRS=1 $(MAKE) -C lib/ckfw libs
+	# ckfw/builtins/testlib -> ckfw/builtins + base
+	$(MAKE) -C lib/base libs
+	IGNORE_DIRS=1 $(MAKE) -C lib/ckfw/builtins libs
+	$(MAKE) -C lib/util libs
+	# softoken + legacydb -> util + sqlite + freebl + dbm
+	$(MAKE) -C lib/dbm libs
+	$(MAKE) -C lib/sqlite libs
+	$(MAKE) -C lib/freebl libs
+	# nss -> util + certhi + cryptohi + pk11wrap + certdb + pki + dev (+ base) + pkix
+	$(MAKE) -C lib/certhigh libs
+	$(MAKE) -C lib/cryptohi libs
+	$(MAKE) -C lib/pk11wrap libs
+	$(MAKE) -C lib/certdb libs
+	$(MAKE) -C lib/pki libs
+	$(MAKE) -C lib/dev libs
+	$(MAKE) -C lib/libpkix libs
+	$(MAKE) -C lib/nss libs
+	# smime -> nss + pkcs12 + pkcs7
+	$(MAKE) -C lib/pkcs7 libs
+	$(MAKE) -C lib/pkcs12 libs
+	# all dependencies done -> finish libraries
+	$(MAKE) -C lib libs
+	# cmd library sectool
+	$(MAKE) -C cmd/lib libs
+	# everything still missing
+	$(MAKE) libs
 
 ifeq ($(AUTOCLEAN),1)
 autobuild:: clean export private_export libs program install
@@ -26,6 +57,14 @@ platform::
 
 ifeq (,$(filter-out _WIN%,$(NS_USE_GCC)_$(OS_TARGET)))
 USE_NT_C_SYNTAX=1
+endif
+
+ifdef DIRS
+ifndef IGNORE_DIRS
+$(DIRS)::
+	$(IGNORE_ERROR)@$(MAKE) -C $@ $(MAKECMDGOALS)
+	@$(CLICK_STOPWATCH)
+endif
 endif
 
 #
@@ -60,19 +99,15 @@ ifeq ($(OS_TARGET),Darwin)
 	find $(SOURCE_MD_DIR)/lib -name "*.a" -exec $(RANLIB) {} \;
 endif
 
-export:: 
-	+$(LOOP_OVER_DIRS)
+export:: $(DIRS)
 
-private_export::
-	+$(LOOP_OVER_DIRS)
+private_export:: $(DIRS)
 
-release_export::
-	+$(LOOP_OVER_DIRS)
+release_export:: $(DIRS)
 
-release_classes::
-	+$(LOOP_OVER_DIRS)
+release_classes:: $(DIRS)
 
-libs program install:: $(TARGETS)
+libs program install:: $(DIRS) $(TARGETS)
 ifneq ($(LIBRARY),)
 	$(INSTALL) -m 664 $(LIBRARY) $(SOURCE_LIB_DIR)
 endif
@@ -98,18 +133,14 @@ endif
 ifneq ($(PROGRAMS),)
 	$(INSTALL) -m 775 $(PROGRAMS) $(SOURCE_BIN_DIR)
 endif
-	+$(LOOP_OVER_DIRS)
 
-tests::
-	+$(LOOP_OVER_DIRS)
+check:: $(DIRS)
 
-clean clobber::
+clean clobber:: $(DIRS)
 	rm -rf $(ALL_TRASH)
-	+$(LOOP_OVER_DIRS)
 
-realclean clobber_all::
+realclean clobber_all:: $(DIRS)
 	rm -rf $(wildcard *.OBJ) dist $(ALL_TRASH)
-	+$(LOOP_OVER_DIRS)
 
 #######################################################################
 # Double-Colon rules for populating the binary release model.         #
@@ -202,8 +233,7 @@ endif
 
 endif
 
-release_policy::
-	+$(LOOP_OVER_DIRS)
+release_policy:: $(DIRS)
 
 ifndef NO_MD_RELEASE
     ifdef LIBRARY
@@ -223,15 +253,13 @@ ifndef NO_MD_RELEASE
     endif
 endif
 
-release_md::
+release_md:: $(DIRS)
 ifneq ($(MD_LIB_RELEASE_FILES),)
 	$(INSTALL) -m 444 $(MD_LIB_RELEASE_FILES) $(SOURCE_RELEASE_PREFIX)/$(SOURCE_RELEASE_LIB_DIR)
 endif
 ifneq ($(MD_BIN_RELEASE_FILES),)
 	$(INSTALL) -m 555 $(MD_BIN_RELEASE_FILES) $(SOURCE_RELEASE_PREFIX)/$(SOURCE_RELEASE_BIN_DIR)
 endif
-	+$(LOOP_OVER_DIRS)
-
 
 alltags:
 	rm -f TAGS
@@ -768,18 +796,13 @@ endif
 PUBLIC_EXPORT_DIR = $(SOURCE_XP_DIR)/public/$(MODULE)
 
 ifneq ($(EXPORTS),)
-$(PUBLIC_EXPORT_DIR)::
-	@if test ! -d $@; then	    \
-		echo Creating $@;   \
-		$(NSINSTALL) -D $@; \
-	fi
+$(PUBLIC_EXPORT_DIR)/d:
+	@$(MAKE_OBJDIR)
 
-export:: $(PUBLIC_EXPORT_DIR) 
-
-export:: $(EXPORTS) 
+$(PUBLIC_EXPORT_DIR)/%: %
 	$(INSTALL) -m 444 $^ $(PUBLIC_EXPORT_DIR)
 
-export:: $(BUILT_SRCS)
+export:: $(addprefix $(PUBLIC_EXPORT_DIR)/,$(EXPORTS)) | $(PUBLIC_EXPORT_DIR)/d
 endif
 
 # Duplicate export rule for private exports, with different directories
@@ -787,19 +810,16 @@ endif
 PRIVATE_EXPORT_DIR = $(SOURCE_XP_DIR)/private/$(MODULE)
 
 ifneq ($(PRIVATE_EXPORTS),)
-$(PRIVATE_EXPORT_DIR)::
-	@if test ! -d $@; then	    \
-		echo Creating $@;   \
-		$(NSINSTALL) -D $@; \
-	fi
+$(PRIVATE_EXPORT_DIR)/d:
+	@$(MAKE_OBJDIR)
 
-private_export:: $(PRIVATE_EXPORT_DIR)
-
-private_export:: $(PRIVATE_EXPORTS) 
+$(PRIVATE_EXPORT_DIR)/%: %
 	$(INSTALL) -m 444 $^ $(PRIVATE_EXPORT_DIR)
+
+private_export:: $(addprefix $(PRIVATE_EXPORT_DIR)/,$(PRIVATE_EXPORTS)) | $(PRIVATE_EXPORT_DIR)/d
 else
 private_export:: 
-	@echo There are no private exports.;
+	@echo "There are no private exports."
 endif
 
 ##########################################################################
@@ -816,7 +836,7 @@ ifneq ($(BUILD_OPT),)
 REGDATE = $(subst \ ,, $(shell $(PERL)  $(CORE_DEPTH)/$(MODULE)/scripts/now))
 endif
 
-tests:: $(REGRESSION_SPEC) 
+check:: $(REGRESSION_SPEC)
 	cd $(PLATFORM); \
 	../$(SOURCE_MD_DIR)/bin/regress$(PROG_SUFFIX) specfile=../$(REGRESSION_SPEC) progress $(EXTRA_REGRESS_OPTIONS); \
 	if test ! -d $(TESTS_DIR); then \
@@ -830,8 +850,8 @@ ifneq ($(BUILD_OPT),)
 	echo "then run 'reporter specfile=$(RESULTS_DIR)/rptspec'"
 endif
 else
-tests:: 
-	@echo Error: you didn't specify REGRESSION_SPEC in your manifest.mn file!;
+check::
+	@echo "Error: you didn't specify REGRESSION_SPEC in your manifest.mn file!"
 endif
 
 
@@ -855,6 +875,7 @@ endif
 
 ################################################################################
 
+ifeq ($(MAKECMDGOALS),clean)
 -include $(DEPENDENCIES)
 
 ifneq (,$(filter-out OS2 WIN%,$(OS_TARGET)))
@@ -913,20 +934,19 @@ $(MKDEPEND):: $(MKDEPEND_DIR)/*.c $(MKDEPEND_DIR)/*.h
 	$(MAKE) -C $(MKDEPEND_DIR)
 
 ifdef OBJS
-depend:: $(MKDEPEND) $(MKDEPENDENCIES)
+depend:: $(DIRS) $(MKDEPEND) $(MKDEPENDENCIES)
 else
-depend::
+depend:: $(DIRS)
 endif
-	+$(LOOP_OVER_DIRS)
 
-dependclean::
+dependclean:: $(DIRS)
 	rm -f $(MKDEPENDENCIES)
-	+$(LOOP_OVER_DIRS)
 
 #-include $(NSINSTALL_DIR)/$(OBJDIR)/depend.mk
 
 else
 depend::
+endif
 endif
 
 #
@@ -972,5 +992,5 @@ $(filter $(OBJDIR)/%$(OBJ_SUFFIX),$(OBJS)): $(OBJDIR)/%$(OBJ_SUFFIX): $(DUMMY_DE
 # Fake targets.  Always run these rules, even if a file/directory with that
 # name already exists.
 #
-.PHONY: all all_platforms alltags boot clean clobber clobber_all export install libs program realclean release $(OBJDIR)
+.PHONY: all all_platforms alltags boot clean clobber clobber_all export install libs program realclean release
 

@@ -390,7 +390,7 @@ OVERVIEW of "rules.mk":
                                 "Tinderbox" to automatically generate
                                 binary releases on various platforms
 
-        tests::                 automation tool used to run the
+        check::                 automation tool used to run the
                                 "regress" and "reporter" tools 
                                 on various regression test suites
 
