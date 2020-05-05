@@ -203,15 +203,4 @@ ifdef SYSTEM_INCL_DIR
     YOPT = -Y$(SYSTEM_INCL_DIR)
 endif
 
-ifdef DIRS
-define SUBMAKE
-+@echo "cd $2; $(MAKE) $1"
-$(IGNORE_ERROR)@$(MAKE) -C $(2) $(1)
-@$(CLICK_STOPWATCH)
-
-endef
-
-    LOOP_OVER_DIRS	= $(foreach dir,$(DIRS),$(call SUBMAKE,$@,$(dir)))
-endif
-
 MK_RULESET = included

@@ -20,6 +20,7 @@ include $(DEPTH)/coreconf/config.mk
 
 ifeq (,$(filter-out OS2 WIN%,$(OS_TARGET)))
 PROGRAM		=
+TARGETS		=
 else
 TARGETS		= $(PROGRAM)
 INSTALL		= true
