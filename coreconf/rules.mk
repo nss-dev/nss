@@ -755,37 +755,29 @@ export: $(JMC_HEADERS) $(JMC_STUBS)
 endif
 endif
 
-#
-# Copy each element of EXPORTS to $(SOURCE_XP_DIR)/public/$(MODULE)/
-#
-PUBLIC_EXPORT_DIR = $(SOURCE_XP_DIR)/public/$(MODULE)
+define copy_varlist_into_dir_RULE
+ifdef $(2)
+ifneq (,$$(strip $$($(2))))
+$(3)/d:
+	@$$(MAKE_OBJDIR)
 
-ifneq ($(EXPORTS),)
-$(PUBLIC_EXPORT_DIR)/d:
-	@$(MAKE_OBJDIR)
+$(3)/%: %
+	$$(INSTALL) -m 444 $$^ $(3)
 
-$(PUBLIC_EXPORT_DIR)/%: %
-	$(INSTALL) -m 444 $^ $(PUBLIC_EXPORT_DIR)
-
-export: $(addprefix $(PUBLIC_EXPORT_DIR)/,$(EXPORTS)) | $(PUBLIC_EXPORT_DIR)/d
+$(1): $$(addprefix $(3)/,$$($(2))) | $(3)/d
 endif
-
-# Duplicate export rule for private exports, with different directories
-
-PRIVATE_EXPORT_DIR = $(SOURCE_XP_DIR)/private/$(MODULE)
-
-ifneq ($(PRIVATE_EXPORTS),)
-$(PRIVATE_EXPORT_DIR)/d:
-	@$(MAKE_OBJDIR)
-
-$(PRIVATE_EXPORT_DIR)/%: %
-	$(INSTALL) -m 444 $^ $(PRIVATE_EXPORT_DIR)
-
-private_export: $(addprefix $(PRIVATE_EXPORT_DIR)/,$(PRIVATE_EXPORTS)) | $(PRIVATE_EXPORT_DIR)/d
 else
-private_export:
-	@echo "There are no private exports."
+$(1):
 endif
+endef # copy_varlist_into_dir_RULE
+
+# export rule
+PUBLIC_EXPORT_DIR = $(SOURCE_XP_DIR)/public/$(MODULE)
+$(eval $(call copy_varlist_into_dir_RULE,export,EXPORTS,$(PUBLIC_EXPORT_DIR)))
+
+# private_export rule
+PRIVATE_EXPORT_DIR = $(SOURCE_XP_DIR)/private/$(MODULE)
+$(eval $(call copy_varlist_into_dir_RULE,private_export,PRIVATE_EXPORTS,$(PRIVATE_EXPORT_DIR)))
 
 ##########################################################################
 ###   RULES FOR RUNNING REGRESSION SUITE TESTS
@@ -801,13 +793,12 @@ ifneq ($(BUILD_OPT),)
 REGDATE = $(subst \ ,, $(shell $(PERL)  $(CORE_DEPTH)/$(MODULE)/scripts/now))
 endif
 
-check: $(REGRESSION_SPEC)
+$(TESTS_DIR)/d:
+	@$(MAKE_OBJDIR)
+
+check: $(REGRESSION_SPEC) | $(TESTS_DIR)/d
 	cd $(PLATFORM); \
-	../$(SOURCE_MD_DIR)/bin/regress$(PROG_SUFFIX) specfile=../$(REGRESSION_SPEC) progress $(EXTRA_REGRESS_OPTIONS); \
-	if test ! -d $(TESTS_DIR); then \
-		echo Creating $(TESTS_DIR);   \
-		$(NSINSTALL) -D $(TESTS_DIR); \
-	fi
+	../$(SOURCE_MD_DIR)/bin/regress$(PROG_SUFFIX) specfile=../$(REGRESSION_SPEC) progress $(EXTRA_REGRESS_OPTIONS)
 ifneq ($(BUILD_OPT),)
 	$(NSINSTALL) -m 664 $(PLATFORM)/$(REGDATE).sum $(TESTS_DIR); \
 	$(NSINSTALL) -m 664 $(PLATFORM)/$(REGDATE).htm $(TESTS_DIR); \
@@ -819,23 +810,8 @@ check:
 	@echo "Error: you didn't specify REGRESSION_SPEC in your manifest.mn file!"
 endif
 
-
-# Duplicate export rule for releases, with different directories
-
-ifneq ($(EXPORTS),)
-$(SOURCE_RELEASE_XP_DIR)/include:
-	@if test ! -d $@; then	    \
-		echo Creating $@;   \
-		$(NSINSTALL) -D $@; \
-	fi
-
-release_export: $(SOURCE_RELEASE_XP_DIR)/include
-
-release_export: $(EXPORTS)
-	$(INSTALL) -m 444 $^ $(SOURCE_RELEASE_XP_DIR)/include
-endif
-
-
+# release_export rule
+$(eval $(call copy_varlist_into_dir_RULE,release_export,EXPORTS,$(SOURCE_RELEASE_XP_DIR)/include))
 
 
 ################################################################################
