@@ -19,8 +19,7 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 ifeq ($(OS_TARGET)$(OS_RELEASE),AIX4.3)
 ifeq ($(USE_64),1)
 ifndef BUILD_OPT
-$(OBJDIR)/ckhelper.o: ckhelper.c
-	@$(MAKE_OBJDIR)
+$(OBJDIR)/ckhelper.o: ckhelper.c | $$(@D)/d
 	$(CC) -o $@ -c -O2 $(CFLAGS) $<
 endif
 endif

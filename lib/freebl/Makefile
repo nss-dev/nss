@@ -624,12 +624,10 @@ $(OBJDIR)/ldvector$(OBJ_SUFFIX) $(OBJDIR)/loader$(OBJ_SUFFIX) : loader.h
 
 ifeq ($(SYSV_SPARC),1)
 
-$(OBJDIR)/mpv_sparcv8.o $(OBJDIR)/mpv_sparcv8x.o $(OBJDIR)/montmulfv8.o : $(OBJDIR)/%.o : %.s
-	@$(MAKE_OBJDIR)
+$(OBJDIR)/mpv_sparcv8.o $(OBJDIR)/mpv_sparcv8x.o $(OBJDIR)/montmulfv8.o : $(OBJDIR)/%.o : %.s | $$(@D)/d
 	$(SOLARIS_AS) -o $@ $(SOLARIS_AS_FLAGS) $<
 
-$(OBJDIR)/mpv_sparcv9.o $(OBJDIR)/montmulfv9.o : $(OBJDIR)/%.o : %.s
-	@$(MAKE_OBJDIR)
+$(OBJDIR)/mpv_sparcv9.o $(OBJDIR)/montmulfv9.o : $(OBJDIR)/%.o : %.s | $$(@D)/d
 	$(SOLARIS_AS) -o $@ $(SOLARIS_AS_FLAGS) $<
 
 $(OBJDIR)/mpmontg.o: mpmontg.c montmulf.h
@@ -650,8 +648,6 @@ ALL_TRASH += $$($(1)_DIR)
 
 ifeq (,$$(filter $$($(1)_DIR)/d,$$(FREEBL_OBJDIRS)))
 FREEBL_OBJDIRS += $$($(1)_DIR)/d
-$$($(1)_DIR)/d:
-	@$(MAKE_OBJDIR)
 endif
 
 release_md:: freebl_$(2)
@@ -679,8 +675,7 @@ endif  # FREEBL_CHILD_BUILD
 # ANSI C's strict aliasing rules.
 ifeq ($(OS_TARGET),Linux)
 ifneq ($(CPU_ARCH),x86)
-$(OBJDIR)/$(PROG_PREFIX)desblapi$(OBJ_SUFFIX): desblapi.c
-	@$(MAKE_OBJDIR)
+$(OBJDIR)/$(PROG_PREFIX)desblapi$(OBJ_SUFFIX): desblapi.c | $$(@D)/d
 ifdef NEED_ABSOLUTE_PATH
 	$(CC) -o $@ -c $(CFLAGS) -fno-strict-aliasing $(call core_abspath,$<)
 else

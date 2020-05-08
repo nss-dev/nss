@@ -70,7 +70,6 @@ ifndef NSS_CERTDATA-TESTLIB_TXT
 NSS_CERTDATA-TESTLIB_TXT = certdata-testlib.txt
 endif
 
-$(OBJDIR)/certdata-testlib.c: $(NSS_CERTDATA-TESTLIB_TXT)
-	@$(MAKE_OBJDIR)
+$(OBJDIR)/certdata-testlib.c: $(NSS_CERTDATA-TESTLIB_TXT) | $$(@D)/d
 	$(PERL) ../certdata.perl $(NSS_CERTDATA-TESTLIB_TXT) $@
 

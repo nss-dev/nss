@@ -70,8 +70,7 @@ DSO_LDOPTS              = -bM:SRE -bh:4 -bnoentry
 EXTRA_DSO_LDOPTS        = -lc
 MKSHLIB                 = xlC $(DSO_LDOPTS)
 
-$(SHARED_LIBRARY): $(OBJS)
-	@$(MAKE_OBJDIR)
+$(SHARED_LIBRARY): $(OBJS) | $$(@D)/d
 	rm -f $@
 	$(MKSHLIB) -o $@ $(OBJS) $(EXTRA_LIBS) $(EXTRA_DSO_LDOPTS)
 	chmod +x $@
