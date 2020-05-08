@@ -114,6 +114,10 @@ alltags:
 	find . -name dist -prune -o \( -name '*.[hc]' -o -name '*.cp' -o -name '*.cpp' \) -print | xargs etags -a
 	find . -name dist -prune -o \( -name '*.[hc]' -o -name '*.cp' -o -name '*.cpp' \) -print | xargs ctags -a
 
+.SECONDEXPANSION:
+%/d:
+	@$(MAKE_OBJDIR)
+
 define PROGRAM_template
 
 ifndef $(1)_OBJS
@@ -128,8 +132,7 @@ ifndef $(1)_OBJS
 endif
 endif
 
-$(1): $$($(1)_OBJS) $$(EXTRA_LIBS)
-	@$$(MAKE_OBJDIR)
+$(1): $$($(1)_OBJS) $$(EXTRA_LIBS) | $$$$(@D)/d
 	rm -f $$@
 ifeq (,$$(filter-out _WIN%,$$(NS_USE_GCC)_$$(OS_TARGET)))
 	$$(MKPROG) $$($(1)_OBJS) -Fe$$@ -link $$(LDFLAGS) $$(XLDFLAGS) $$(EXTRA_LIBS) $$(EXTRA_SHARED_LIBS) $$(OS_LIBS)
@@ -155,8 +158,7 @@ endif
 get_objs:
 	@echo $(OBJS)
 
-$(LIBRARY): $(OBJS)
-	@$(MAKE_OBJDIR)
+$(LIBRARY): $(OBJS) | $$(@D)/d
 	rm -f $@
 ifeq (,$(filter-out _WIN%,$(NS_USE_GCC)_$(OS_TARGET)))
 	$(AR) $(subst /,\\,$(OBJS))
@@ -184,8 +186,7 @@ SUB_SHLOBJS = $(foreach dir,$(SHARED_LIBRARY_DIRS),$(addprefix $(dir)/,$(shell $
 endif
 endif
 
-$(SHARED_LIBRARY): $(OBJS) $(RES) $(MAPFILE) $(SUB_SHLOBJS)
-	@$(MAKE_OBJDIR)
+$(SHARED_LIBRARY): $(OBJS) $(RES) $(MAPFILE) $(SUB_SHLOBJS) | $$(@D)/d
 	rm -f $@
 ifeq ($(OS_TARGET)$(OS_RELEASE), AIX4.1)
 	echo "#!" > $(OBJDIR)/lib$(LIBRARY_NAME)_syms
@@ -215,8 +216,7 @@ endif
 endif
 
 ifeq (,$(filter-out WIN%,$(OS_TARGET)))
-$(RES): $(RESNAME)
-	@$(MAKE_OBJDIR)
+$(RES): $(RESNAME) | $$(@D)/d
 # The resource compiler does not understand the -U option.
 ifdef NS_USE_GCC
 	$(RC) $(filter-out -U%,$(DEFINES)) $(INCLUDES:-I%=--include-dir %) -o $@ $<
@@ -226,8 +226,7 @@ endif
 	@echo $(RES) finished
 endif
 
-$(MAPFILE): $(MAPFILE_SOURCE)
-	@$(MAKE_OBJDIR)
+$(MAPFILE): $(MAPFILE_SOURCE) | $$(@D)/d
 	$(PROCESS_MAP_FILE)
 
 WCCFLAGS1 := $(subst /,\\,$(CFLAGS))
@@ -270,8 +269,7 @@ endif
 # The quotes allow absolute paths to contain spaces.
 core_abspath = '$(if $(findstring :,$(1)),$(1),$(if $(filter /%,$(1)),$(1),$(PWD)/$(1)))'
 
-$(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.c
-	@$(MAKE_OBJDIR)
+$(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.c | $$(@D)/d
 ifdef USE_NT_C_SYNTAX
 	$(CC) -Fo$@ -c $(CSTD) $(CFLAGS) $(call core_abspath,$<)
 else
@@ -282,7 +280,7 @@ else
 endif
 endif
 
-$(PROG_PREFIX)%$(OBJ_SUFFIX): %.c
+$(PROG_PREFIX)%$(OBJ_SUFFIX): %.c | $$(@D)/d
 ifdef USE_NT_C_SYNTAX
 	$(CC) -Fo$@ -c $(CSTD) $(CFLAGS) $(call core_abspath,$<)
 else
@@ -294,21 +292,17 @@ endif
 endif
 
 ifneq (,$(filter-out _WIN%,$(NS_USE_GCC)_$(OS_TARGET)))
-$(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.s
-	@$(MAKE_OBJDIR)
+$(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.s | $$(@D)/d
 	$(AS) -o $@ $(ASFLAGS) -c $<
 endif
 
-$(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.asm
-	@$(MAKE_OBJDIR)
+$(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.asm | $$(@D)/d
 	$(AS) -Fo$@ $(ASFLAGS) -c $<
 
-$(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.S
-	@$(MAKE_OBJDIR)
+$(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.S | $$(@D)/d
 	$(AS) -o $@ $(ASFLAGS) -c $<
 
-$(OBJDIR)/$(PROG_PREFIX)%: %.cpp
-	@$(MAKE_OBJDIR)
+$(OBJDIR)/$(PROG_PREFIX)%: %.cpp | $$(@D)/d
 ifdef USE_NT_C_SYNTAX
 	$(CCC) -Fo$@ -c $(CXXSTD) $(CFLAGS) $(CXXFLAGS) $(call core_abspath,$<)
 else
@@ -321,8 +315,7 @@ endif
 
 define compile_ccc_pattern_RULE
 
-$$(OBJDIR)/$$(PROG_PREFIX)%$$(OBJ_SUFFIX): %.$(1)
-	$$(MAKE_OBJDIR)
+$$(OBJDIR)/$$(PROG_PREFIX)%$$(OBJ_SUFFIX): %.$(1) | $$$$(@D)/d
 ifdef STRICT_CPLUSPLUS_SUFFIX
 	echo "#line 1 \"$$<\"" | cat - $$< > $$(OBJDIR)/t_$$*.cc
 	$$(CCC) -o $$@ -c $$(CXXSTD) $$(CFLAGS) $$(CXXFLAGS) $$(OBJDIR)/t_$$*.cc
@@ -367,9 +360,6 @@ endif
 define copy_varlist_into_dir_RULE
 ifdef $(2)
 ifneq (,$$(strip $$($(2))))
-$(3)/d:
-	@$$(MAKE_OBJDIR)
-
 $(3)/%: %
 	$$(INSTALL) -m 444 $$^ $(3)
 
@@ -399,9 +389,6 @@ ifneq ($(REGRESSION_SPEC),)
 ifneq ($(BUILD_OPT),)
 REGDATE = $(subst \ ,, $(shell $(PERL)  $(CORE_DEPTH)/$(MODULE)/scripts/now))
 endif
-
-$(TESTS_DIR)/d:
-	@$(MAKE_OBJDIR)
 
 check: $(REGRESSION_SPEC) | $(TESTS_DIR)/d
 	cd $(PLATFORM); \

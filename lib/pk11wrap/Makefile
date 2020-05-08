@@ -51,8 +51,7 @@ $(OBJDIR)/pk11load$(OBJ_SUFFIX): debug_module.c
 ifeq ($(OS_TARGET)$(OS_RELEASE),AIX4.3)
 ifeq ($(USE_64),1)
 ifndef BUILD_OPT
-$(OBJDIR)/pk11slot.o: pk11slot.c
-	@$(MAKE_OBJDIR)
+$(OBJDIR)/pk11slot.o: pk11slot.c | $$(@D)/d
 	$(CC) -o $@ -c -O2 $(CFLAGS) $<
 endif
 endif

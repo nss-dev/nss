@@ -66,6 +66,5 @@ ifndef NSS_CERTDATA_TXT
 NSS_CERTDATA_TXT = certdata.txt
 endif
 
-$(OBJDIR)/certdata.c: $(NSS_CERTDATA_TXT) certdata.perl
-	@$(MAKE_OBJDIR)
+$(OBJDIR)/certdata.c: $(NSS_CERTDATA_TXT) certdata.perl | $$(@D)/d
 	$(PERL) certdata.perl $(NSS_CERTDATA_TXT) $@
