@@ -5,7 +5,9 @@
 
 CORE_DEPTH = ../../..
 
-DIRS = testlib
+DIRS = . testlib
+
+testlib: .
 
 MODULE = nss
 
