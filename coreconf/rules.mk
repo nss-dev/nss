@@ -31,10 +31,21 @@ ifeq (,$(filter-out _WIN%,$(NS_USE_GCC)_$(OS_TARGET)))
 USE_NT_C_SYNTAX=1
 endif
 
+# For whatever reason, "." can't be handled using make conditionals.
+# Based on automake's SUBDIRS "." handling.
 ifdef DIRS
 ifndef IGNORE_DIRS
+ifneq (,$(filter .,$(DIRS)))
+TARGETS = $(NULL)
+ALL_TRASH = $(NULL)
+endif
+
 $(DIRS):
-	$(IGNORE_ERROR)@$(MAKE) -C $@ $(MAKECMDGOALS)
+	$(IGNORE_ERROR)@if [ "$@" != "." ]; then \
+		$(MAKE) -C $@ $(MAKECMDGOALS) ; \
+	else \
+		IGNORE_DIRS=1 $(MAKE) -C $@ $(MAKECMDGOALS) ; \
+	fi
 	@$(CLICK_STOPWATCH)
 endif
 endif
@@ -73,7 +84,9 @@ endif
 check: $(DIRS)
 
 clean clobber: $(DIRS)
+ifneq (,$(ALL_TRASH))
 	rm -rf $(ALL_TRASH)
+endif
 
 realclean clobber_all: $(DIRS)
 	rm -rf $(wildcard *.OBJ) dist $(ALL_TRASH)
