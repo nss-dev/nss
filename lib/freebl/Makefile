@@ -546,7 +546,7 @@ ifndef HAVE_INT128_SUPPORT
 endif
 
 ifndef NSS_DISABLE_DEPRECATED_SEED
-	CSRCS += seed.c
+	CSRCS += deprecated/seed.c
 endif
 
 ifndef NSS_DISABLE_CHACHAPOLY
@@ -592,12 +592,12 @@ rijndael_tables:
 	         $(DEFINES) $(INCLUDES) $(OBJDIR)/libfreebl.a
 	$(OBJDIR)/make_rijndael_tab
 
-vpath %.h mpi ecl verified
-vpath %.c mpi ecl verified
+vpath %.h mpi ecl verified deprecated
+vpath %.c mpi ecl verified deprecated
 vpath %.S mpi ecl
 vpath %.s mpi ecl
 vpath %.asm mpi ecl
-INCLUDES += -Impi -Iecl -Iverified -Iverified/kremlin/include -Iverified/kremlin/kremlib/dist/minimal
+INCLUDES += -Impi -Iecl -Iverified -Iverified/kremlin/include -Iverified/kremlin/kremlib/dist/minimal -Ideprecated
 
 
 DEFINES += -DMP_API_COMPATIBLE
