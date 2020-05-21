@@ -828,7 +828,7 @@ extern CK_RV sftk_aes_xcbc_new_keys(CK_SESSION_HANDLE hSession,
                                     CK_OBJECT_HANDLE hKey, CK_OBJECT_HANDLE_PTR phKey,
                                     unsigned char *k2, unsigned char *k3);
 extern CK_RV sftk_xcbc_mac_pad(unsigned char *padBuf, unsigned int bufLen,
-                               int blockSize, const unsigned char *k2,
+                               unsigned int blockSize, const unsigned char *k2,
                                const unsigned char *k3);
 extern SECStatus sftk_fips_IKE_PowerUpSelfTests(void);
 
