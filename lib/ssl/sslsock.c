@@ -90,7 +90,8 @@ static sslOptions ssl_defaults = {
     .enableDtlsShortHeader = PR_FALSE,
     .enableHelloDowngradeCheck = PR_FALSE,
     .enableV2CompatibleHello = PR_FALSE,
-    .enablePostHandshakeAuth = PR_FALSE
+    .enablePostHandshakeAuth = PR_FALSE,
+    .suppressEndOfEarlyData = PR_FALSE
 };
 
 /*
@@ -864,6 +865,10 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
             ss->opt.enablePostHandshakeAuth = val;
             break;
 
+        case SSL_SUPPRESS_END_OF_EARLY_DATA:
+            ss->opt.suppressEndOfEarlyData = val;
+            break;
+
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             rv = SECFailure;
@@ -1018,6 +1023,9 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRIntn *pVal)
         case SSL_ENABLE_POST_HANDSHAKE_AUTH:
             val = ss->opt.enablePostHandshakeAuth;
             break;
+        case SSL_SUPPRESS_END_OF_EARLY_DATA:
+            val = ss->opt.suppressEndOfEarlyData;
+            break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             rv = SECFailure;
@@ -1155,6 +1163,9 @@ SSL_OptionGetDefault(PRInt32 which, PRIntn *pVal)
             break;
         case SSL_ENABLE_POST_HANDSHAKE_AUTH:
             val = ssl_defaults.enablePostHandshakeAuth;
+            break;
+        case SSL_SUPPRESS_END_OF_EARLY_DATA:
+            val = ssl_defaults.suppressEndOfEarlyData;
             break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -1365,6 +1376,10 @@ SSL_OptionSetDefault(PRInt32 which, PRIntn val)
 
         case SSL_ENABLE_POST_HANDSHAKE_AUTH:
             ssl_defaults.enablePostHandshakeAuth = val;
+            break;
+
+        case SSL_SUPPRESS_END_OF_EARLY_DATA:
+            ssl_defaults.suppressEndOfEarlyData = val;
             break;
 
         default:
