@@ -4472,8 +4472,11 @@ SSLExp_GetResumptionTokenInfo(const PRUint8 *tokenData, unsigned int tokenLen,
     if (!token.alpnSelection) {
         return SECFailure;
     }
-    PORT_Memcpy(token.alpnSelection, sid.u.ssl3.alpnSelection.data,
-                token.alpnSelectionLen);
+    if (token.alpnSelectionLen > 0) {
+        PORT_Assert(sid.u.ssl3.alpnSelection.data);
+        PORT_Memcpy(token.alpnSelection, sid.u.ssl3.alpnSelection.data,
+                    token.alpnSelectionLen);
+    }
 
     if (sid.u.ssl3.locked.sessionTicket.flags & ticket_allow_early_data) {
         token.maxEarlyDataSize =
