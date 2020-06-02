@@ -2004,7 +2004,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
 
     if (ss->statelessResume) {
         PORT_Assert(ss->xtnData.selectedPsk);
-        PORT_Assert(ss->ssl3.hs.kea_def_mutable.authKeyType = ssl_auth_psk);
+        PORT_Assert(ss->ssl3.hs.kea_def_mutable.authKeyType == ssl_auth_psk);
     }
 
     /* Now that we have the binder key, check the binder. */
