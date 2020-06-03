@@ -900,7 +900,8 @@ SSLExp_SendCertificateRequest(PRFileDesc *fd)
         return SECFailure;
     }
 
-    if (ss->ssl3.hs.kea_def->authKeyType == ssl_auth_psk) {
+    /* Disallow a CertificateRequest if this connection uses an external PSK. */
+    if (ss->sec.authType == ssl_auth_psk) {
         PORT_SetError(SSL_ERROR_FEATURE_DISABLED);
         return SECFailure;
     }
@@ -2562,7 +2563,7 @@ tls13_HandleCertificateRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
     }
 
     /*  MUST NOT combine external PSKs with certificate authentication. */
-    if (ss->ssl3.hs.kea_def->authKeyType == ssl_auth_psk) {
+    if (ss->sec.authType == ssl_auth_psk) {
         FATAL_ERROR(ss, SSL_ERROR_RX_UNEXPECTED_CERT_REQUEST, unexpected_message);
         return SECFailure;
     }
@@ -2682,6 +2683,8 @@ tls13_HandleCertificateRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
 PRBool
 tls13_ShouldRequestClientAuth(sslSocket *ss)
 {
+    /* Even if we are configured to request a certificate, we can't
+     * if this handshake used a PSK, even when we are resuming. */
     return ss->opt.requestCertificate &&
            ss->ssl3.hs.kea_def->authKeyType != ssl_auth_psk;
 }
@@ -5206,7 +5209,10 @@ SSLExp_SendSessionTicket(PRFileDesc *fd, const PRUint8 *token,
         return SECFailure;
     }
 
-    if (ss->ssl3.hs.kea_def->authKeyType == ssl_auth_psk) {
+    /* Disable tickets if we can trace this connection back to a PSK.
+     * We aren't able to issue tickets (currently) without a certificate.
+     * As PSK =~ resumption, there is no reason to do this. */
+    if (ss->sec.authType == ssl_auth_psk) {
         PORT_SetError(SSL_ERROR_FEATURE_DISABLED);
         return SECFailure;
     }
