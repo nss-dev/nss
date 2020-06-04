@@ -429,8 +429,20 @@ tls13_Exporter(sslSocket *ss, PK11SymKey *secret,
         return SECFailure;
     }
 
+    SSLHashType hashAlg;
+    /* Early export requires a PSK. As in 0-RTT, default
+     * to the first PSK if no suite is negotiated yet. */
+    if (secret == ss->ssl3.hs.earlyExporterSecret && !ss->ssl3.hs.suite_def) {
+        if (PR_CLIST_IS_EMPTY(&ss->ssl3.hs.psks)) {
+            PORT_SetError(SEC_ERROR_INVALID_ARGS);
+            return SECFailure;
+        }
+        hashAlg = ((sslPsk *)PR_LIST_HEAD(&ss->ssl3.hs.psks))->hash;
+    } else {
+        hashAlg = tls13_GetHash(ss);
+    }
+
     /* Pre-hash the context. */
-    SSLHashType hashAlg = tls13_GetHash(ss);
     rv = tls13_ComputeHash(ss, &contextHash, context, contextLen, hashAlg);
     if (rv != SECSuccess) {
         return rv;

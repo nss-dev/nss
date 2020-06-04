@@ -269,9 +269,15 @@ SSLHashType
 tls13_GetHash(const sslSocket *ss)
 {
     /* suite_def may not be set yet when doing EPSK 0-Rtt. */
-    if (!ss->ssl3.hs.suite_def && ss->xtnData.selectedPsk) {
-        return ss->xtnData.selectedPsk->hash;
+    if (!ss->ssl3.hs.suite_def) {
+        if (ss->xtnData.selectedPsk) {
+            return ss->xtnData.selectedPsk->hash;
+        }
+        /* This should never happen. */
+        PORT_Assert(0);
+        return ssl_hash_none;
     }
+
     /* All TLS 1.3 cipher suites must have an explict PRF hash. */
     PORT_Assert(ss->ssl3.hs.suite_def->prf_hash != ssl_hash_none);
     return ss->ssl3.hs.suite_def->prf_hash;
