@@ -1257,9 +1257,9 @@ PK11_ImportDERCert(PK11SlotInfo *slot, SECItem *derCert,
 /*
  * get a certificate handle, look at the cached handle first..
  */
-CK_OBJECT_HANDLE
+static CK_OBJECT_HANDLE
 pk11_getcerthandle(PK11SlotInfo *slot, CERTCertificate *cert,
-                   CK_ATTRIBUTE *theTemplate, int tsize)
+                   CK_ATTRIBUTE *theTemplate, size_t tsize)
 {
     CK_OBJECT_HANDLE certh;
 
@@ -1291,7 +1291,7 @@ PK11_FindPrivateKeyFromCert(PK11SlotInfo *slot, CERTCertificate *cert,
         { CKA_CLASS, NULL, 0 }
     };
     /* if you change the array, change the variable below as well */
-    int tsize = sizeof(theTemplate) / sizeof(theTemplate[0]);
+    const size_t tsize = sizeof(theTemplate) / sizeof(theTemplate[0]);
     CK_OBJECT_HANDLE certh;
     CK_OBJECT_HANDLE keyh;
     CK_ATTRIBUTE *attrs = theTemplate;
@@ -1461,7 +1461,7 @@ PK11_ImportDERCertForKey(SECItem *derCert, char *nickname, void *wincx)
 
 static CK_OBJECT_HANDLE
 pk11_FindCertObjectByTemplate(PK11SlotInfo **slotPtr,
-                              CK_ATTRIBUTE *searchTemplate, int count, void *wincx)
+                              CK_ATTRIBUTE *searchTemplate, size_t count, void *wincx)
 {
     PK11SlotList *list;
     PK11SlotListElement *le;
@@ -2043,7 +2043,7 @@ PK11_FindObjectForCert(CERTCertificate *cert, void *wincx, PK11SlotInfo **pSlot)
         { CKA_CLASS, NULL, 0 },
         { CKA_VALUE, NULL, 0 },
     };
-    int templateSize = sizeof(searchTemplate) / sizeof(searchTemplate[0]);
+    const size_t templateSize = sizeof(searchTemplate) / sizeof(searchTemplate[0]);
 
     attr = searchTemplate;
     PK11_SETATTRS(attr, CKA_CLASS, &certClass, sizeof(certClass));
@@ -2642,7 +2642,7 @@ PK11_FindCertInSlot(PK11SlotInfo *slot, CERTCertificate *cert, void *wincx)
         { CKA_CLASS, NULL, 0 }
     };
     /* if you change the array, change the variable below as well */
-    int tsize = sizeof(theTemplate) / sizeof(theTemplate[0]);
+    const size_t tsize = sizeof(theTemplate) / sizeof(theTemplate[0]);
     CK_ATTRIBUTE *attrs = theTemplate;
     SECStatus rv;
 
@@ -2793,7 +2793,7 @@ PK11_GetLowLevelKeyIDForCert(PK11SlotInfo *slot,
         { CKA_CLASS, NULL, 0 }
     };
     /* if you change the array, change the variable below as well */
-    int tsize = sizeof(theTemplate) / sizeof(theTemplate[0]);
+    const size_t tsize = sizeof(theTemplate) / sizeof(theTemplate[0]);
     CK_OBJECT_HANDLE certHandle;
     CK_ATTRIBUTE *attrs = theTemplate;
     PK11SlotInfo *slotRef = NULL;
