@@ -4,6 +4,9 @@
 /*
  * Deal with PKCS #11 Slots.
  */
+
+#include <stddef.h>
+
 #include "seccomon.h"
 #include "secmod.h"
 #include "nssilock.h"
@@ -1182,7 +1185,7 @@ pk11_ReadProfileList(PK11SlotInfo *slot)
     CK_ATTRIBUTE *attrs;
     CK_BBOOL cktrue = CK_TRUE;
     CK_OBJECT_CLASS oclass = CKO_PROFILE;
-    int tsize;
+    size_t tsize;
     int objCount;
     CK_OBJECT_HANDLE *handles = NULL;
     int i;
@@ -1484,7 +1487,7 @@ pk11_isRootSlot(PK11SlotInfo *slot)
     CK_ATTRIBUTE findTemp[1];
     CK_ATTRIBUTE *attrs;
     CK_OBJECT_CLASS oclass = CKO_NSS_BUILTIN_ROOT_LIST;
-    int tsize;
+    size_t tsize;
     CK_OBJECT_HANDLE handle;
 
     attrs = findTemp;
@@ -2613,7 +2616,7 @@ SECStatus
 PK11_ResetToken(PK11SlotInfo *slot, char *sso_pwd)
 {
     unsigned char tokenName[32];
-    int tokenNameLen;
+    size_t tokenNameLen;
     CK_RV crv;
 
     /* reconstruct the token name */
