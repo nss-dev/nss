@@ -7,6 +7,9 @@
  */
 #ifndef _SECMODI_H_
 #define _SECMODI_H_ 1
+
+#include <stddef.h>
+
 #include "pkcs11.h"
 #include "nssilock.h"
 #include "secoidt.h"
@@ -92,7 +95,7 @@ void pk11_SignedToUnsigned(CK_ATTRIBUTE *attrib);
 CK_OBJECT_HANDLE pk11_FindObjectByTemplate(PK11SlotInfo *slot,
                                            CK_ATTRIBUTE *inTemplate, int tsize);
 CK_OBJECT_HANDLE *pk11_FindObjectsByTemplate(PK11SlotInfo *slot,
-                                             CK_ATTRIBUTE *inTemplate, int tsize, int *objCount);
+                                             CK_ATTRIBUTE *inTemplate, size_t tsize, int *objCount);
 
 #define PK11_GETTAB(x) ((CK_FUNCTION_LIST_3_0_PTR)((x)->functionList))
 #define PK11_SETATTRS(x, id, v, l) \
