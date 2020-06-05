@@ -5,6 +5,8 @@
  * This file manages PKCS #11 instances of certificates.
  */
 
+#include <stddef.h>
+
 #include "secport.h"
 #include "seccomon.h"
 #include "secmod.h"
@@ -445,7 +447,7 @@ PK11_FindCertHandlesForKeyHandle(PK11SlotInfo *slot, CK_OBJECT_HANDLE keyHandle,
         idTemplate[0],
         { CKA_CLASS, &searchClass, sizeof(searchClass) }
     };
-    const int searchAttrCount = sizeof(searchTemplate) / sizeof(searchTemplate[0]);
+    const size_t searchAttrCount = sizeof(searchTemplate) / sizeof(searchTemplate[0]);
     CK_OBJECT_HANDLE *ids = pk11_FindObjectsByTemplate(slot, searchTemplate, searchAttrCount, certHandleCountOut);
 
     PORT_DestroyCheapArena(&arena);
