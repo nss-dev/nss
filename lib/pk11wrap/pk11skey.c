@@ -6,6 +6,8 @@
  * Interfaces.
  */
 
+#include <stddef.h>
+
 #include "seccomon.h"
 #include "secmod.h"
 #include "nssilock.h"
@@ -401,15 +403,19 @@ void
 PK11_SetWrapKey(PK11SlotInfo *slot, int wrap, PK11SymKey *wrapKey)
 {
     PK11_EnterSlotMonitor(slot);
-    if (wrap < PR_ARRAY_SIZE(slot->refKeys) &&
-        slot->refKeys[wrap] == CK_INVALID_HANDLE) {
-        /* save the handle and mechanism for the wrapping key */
-        /* mark the key and session as not owned by us so they don't get freed
-         * when the key goes way... that lets us reuse the key later */
-        slot->refKeys[wrap] = wrapKey->objectID;
-        wrapKey->owner = PR_FALSE;
-        wrapKey->sessionOwner = PR_FALSE;
-        slot->wrapMechanism = wrapKey->type;
+    if (wrap >= 0) {
+        size_t uwrap = (size_t)wrap;
+        if (uwrap < PR_ARRAY_SIZE(slot->refKeys) &&
+            slot->refKeys[uwrap] == CK_INVALID_HANDLE) {
+            /* save the handle and mechanism for the wrapping key */
+            /* mark the key and session as not owned by us so they don't get
+             * freed when the key goes way... that lets us reuse the key
+             * later */
+            slot->refKeys[uwrap] = wrapKey->objectID;
+            wrapKey->owner = PR_FALSE;
+            wrapKey->sessionOwner = PR_FALSE;
+            slot->wrapMechanism = wrapKey->type;
+        }
     }
     PK11_ExitSlotMonitor(slot);
 }
