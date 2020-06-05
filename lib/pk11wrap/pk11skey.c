@@ -2374,7 +2374,7 @@ pk11_PubDeriveECKeyWithKDF(
                     key_size = SHA512_LENGTH;
                     break;
                 default:
-                    PORT_Assert(!"Invalid CKD");
+                    PORT_AssertNotReached("Invalid CKD");
                     PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
                     return NULL;
             }
