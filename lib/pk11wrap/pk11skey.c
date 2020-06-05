@@ -570,7 +570,7 @@ PK11_FindFixedKey(PK11SlotInfo *slot, CK_MECHANISM_TYPE type, SECItem *keyID,
     CK_ATTRIBUTE *attrs;
     CK_BBOOL ckTrue = CK_TRUE;
     CK_OBJECT_CLASS keyclass = CKO_SECRET_KEY;
-    int tsize = 0;
+    size_t tsize = 0;
     CK_OBJECT_HANDLE key_id;
 
     attrs = findTemp;

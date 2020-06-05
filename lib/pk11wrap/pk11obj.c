@@ -1808,7 +1808,7 @@ PK11_ReadRawAttributes(PLArenaPool *arena, PK11ObjectType objType, void *objSpec
  * return the object handle that matches the template
  */
 CK_OBJECT_HANDLE
-pk11_FindObjectByTemplate(PK11SlotInfo *slot, CK_ATTRIBUTE *theTemplate, int tsize)
+pk11_FindObjectByTemplate(PK11SlotInfo *slot, CK_ATTRIBUTE *theTemplate, size_t tsize)
 {
     CK_OBJECT_HANDLE object;
     CK_RV crv = CKR_SESSION_HANDLE_INVALID;
@@ -2022,7 +2022,7 @@ PK11_MatchItem(PK11SlotInfo *slot, CK_OBJECT_HANDLE searchID,
     };
     /* if you change the array, change the variable below as well */
     CK_ATTRIBUTE *keyclass = &theTemplate[1];
-    int tsize = sizeof(theTemplate) / sizeof(theTemplate[0]);
+    const size_t tsize = sizeof(theTemplate) / sizeof(theTemplate[0]);
     /* if you change the array, change the variable below as well */
     CK_OBJECT_HANDLE peerID;
     PORTCheapArenaPool tmpArena;
