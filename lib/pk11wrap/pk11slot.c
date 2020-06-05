@@ -1102,16 +1102,16 @@ PK11_MakeString(PLArenaPool *arena, char *space,
  */
 PRBool
 pk11_MatchString(const char *string,
-                 const char *staticString, int staticStringLen)
+                 const char *staticString, size_t staticStringLen)
 {
-    int i;
+    size_t i = staticStringLen;
 
-    for (i = (staticStringLen - 1); i >= 0; i--) {
-        if (staticString[i] != ' ')
-            break;
-    }
     /* move i to point to the last space */
-    i++;
+    while (i > 0) {
+        if (staticString[i - 1] != ' ')
+            break;
+        i--;
+    }
 
     if (strlen(string) == i && memcmp(string, staticString, i) == 0) {
         return PR_TRUE;
