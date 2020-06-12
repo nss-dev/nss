@@ -4200,10 +4200,10 @@ readPSK(const char *arg, SECItem *psk, SECItem *label)
         }
         rv = SECSuccess;
     } else {
-        const PRUint8 defaultLabel[] = { 'C', 'l', 'i', 'e', 'n', 't', '_',
-                                         'i', 'd', 'e', 'n', 't', 'i', 't', 'y' };
-        rv = SECITEM_MakeItem(NULL, &labelItem, defaultLabel,
-                              sizeof(defaultLabel));
+        PRUint8 defaultLabel[] = { 'C', 'l', 'i', 'e', 'n', 't', '_',
+                                   'i', 'd', 'e', 'n', 't', 'i', 't', 'y' };
+        SECItem src = { siBuffer, defaultLabel, sizeof(defaultLabel) };
+        rv = SECITEM_CopyItem(NULL, &labelItem, &src);
     }
     if (rv == SECSuccess) {
         *label = labelItem;
