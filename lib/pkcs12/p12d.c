@@ -1349,6 +1349,9 @@ sec_pkcs12_decoder_verify_mac(SEC_PKCS12DecoderContext *p12dcx)
         iteration = 1;
     }
 
+    if (!p12dcx->pwitem->data) {
+        goto loser;
+    }
     params = PK11_CreatePBEParams(&p12dcx->macData.macSalt, p12dcx->pwitem,
                                   iteration);
 
