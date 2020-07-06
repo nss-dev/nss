@@ -544,4 +544,53 @@ TEST_F(PK11GetCertsMatchingPrivateKeyTest, TestTwoCertsForKey) {
   CheckCertListForSubjects(certs, {"CN=test cert", "CN=unrelated subject DN"});
 }
 
+class PK11FindEncodedCertInSlotTest : public PK11FindCertsTestBase {};
+
+TEST_F(PK11FindEncodedCertInSlotTest, TestFindEncodedCert) {
+  char cert_nickname[] = "Test Cert";
+  SECItem cert_item = {siBuffer,
+                       const_cast<unsigned char*>(kTestCert1DER.data()),
+                       (unsigned int)kTestCert1DER.size()};
+  ASSERT_EQ(PK11_ImportDERCert(m_slot, &cert_item, CK_INVALID_HANDLE,
+                               cert_nickname, false),
+            SECSuccess);
+
+  // This certificate was just imported, so finding it by its encoded value
+  // should succeed.
+  CK_OBJECT_HANDLE cert_handle_in_slot =
+      PK11_FindEncodedCertInSlot(m_slot, &cert_item, nullptr);
+  // CK_INVALID_HANDLE is #defined to be the literal 0, which the compiler
+  // interprets as a signed value, which then causes a warning-as-an-error
+  // about comparing values of different signs.
+  ASSERT_NE(cert_handle_in_slot, static_cast<CK_ULONG>(CK_INVALID_HANDLE));
+
+  // The certificate should not exist on the internal slot, so this should
+  // return CK_INVALID_HANDLE.
+  ScopedPK11SlotInfo internal_slot(PK11_GetInternalSlot());
+  ASSERT_NE(internal_slot, nullptr);
+  CK_OBJECT_HANDLE cert_handle_in_internal_slot =
+      PK11_FindEncodedCertInSlot(internal_slot.get(), &cert_item, nullptr);
+  ASSERT_EQ(cert_handle_in_internal_slot,
+            static_cast<CK_ULONG>(CK_INVALID_HANDLE));
+
+  // The certificate should not exist on the internal key slot, so this should
+  // return CK_INVALID_HANDLE.
+  ScopedPK11SlotInfo internal_key_slot(PK11_GetInternalKeySlot());
+  ASSERT_NE(internal_key_slot, nullptr);
+  CK_OBJECT_HANDLE cert_handle_in_internal_key_slot =
+      PK11_FindEncodedCertInSlot(internal_key_slot.get(), &cert_item, nullptr);
+  ASSERT_EQ(cert_handle_in_internal_key_slot,
+            static_cast<CK_ULONG>(CK_INVALID_HANDLE));
+
+  // This certificate hasn't been imported to any token, so looking for it
+  // should return CK_INVALID_HANDLE.
+  SECItem unknown_cert_item = {siBuffer,
+                               const_cast<unsigned char*>(kTestCert2DER.data()),
+                               (unsigned int)kTestCert2DER.size()};
+  CK_OBJECT_HANDLE unknown_cert_handle_in_slot =
+      PK11_FindEncodedCertInSlot(m_slot, &unknown_cert_item, nullptr);
+  ASSERT_EQ(unknown_cert_handle_in_slot,
+            static_cast<CK_ULONG>(CK_INVALID_HANDLE));
+}
+
 }  // namespace nss_test
