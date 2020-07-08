@@ -519,7 +519,7 @@ ssl3_DecodeContentType(int msgType)
             rv = "application_data (23)";
             break;
         case ssl_ct_ack:
-            rv = "ack (25)";
+            rv = "ack (26)";
             break;
         default:
             sprintf(line, "*UNKNOWN* record type! (%d)", msgType);
@@ -13024,8 +13024,8 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText)
             return SECSuccess;
         }
 
-        if (IS_DTLS(ss) ||
-            (ss->sec.isServer &&
+        if ((IS_DTLS(ss) && !dtls13_AeadLimitReached(spec)) ||
+            (!IS_DTLS(ss) && ss->sec.isServer &&
              ss->ssl3.hs.zeroRttIgnore == ssl_0rtt_ignore_trial)) {
             /* Silently drop the packet unless we sent a fatal alert. */
             if (ss->ssl3.fatalAlertSent) {
