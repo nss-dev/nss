@@ -164,6 +164,16 @@ construct_ecgroup(const ECCurveName name, mp_int irr, mp_int curvea,
                 MP_CHECKOK(ec_group_set_gfp256(group, name));
                 MP_CHECKOK(ec_group_set_gfp256_32(group, name));
                 break;
+            case ECCurve_SECG_PRIME_384R1:
+                group =
+                    ECGroup_consGFp(&irr, &curvea, &curveb, &genx, &geny,
+                                    &order, cofactor);
+                if (group == NULL) {
+                    res = MP_UNDEF;
+                    goto CLEANUP;
+                }
+                MP_CHECKOK(ec_group_set_secp384r1(group, name));
+                break;
             case ECCurve_SECG_PRIME_521R1:
                 group =
                     ECGroup_consGFp(&irr, &curvea, &curveb, &genx, &geny,
