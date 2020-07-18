@@ -1256,6 +1256,7 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
             unsigned char *nonce;
             unsigned long counter_len;
             unsigned long nonce_len;
+            context->multi = PR_FALSE;
             if (pMechanism->mechanism == CKM_NSS_CHACHA20_CTR) {
                 if (key_type != CKK_NSS_CHACHA20) {
                     crv = CKR_KEY_TYPE_INCONSISTENT;
