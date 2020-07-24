@@ -749,7 +749,10 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
     SFTKObject *key;
     SFTKSessionContext *context;
     SFTKAttribute *att;
+#ifndef NSS_DISABLE_DEPRECATED_RC2
     CK_RC2_CBC_PARAMS *rc2_param;
+    unsigned effectiveKeyLength;
+#endif
 #if NSS_SOFTOKEN_DOES_RC5
     CK_RC5_CBC_PARAMS *rc5_param;
     SECItem rc5Key;
@@ -760,7 +763,6 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
     CK_NSS_AEAD_PARAMS *nss_aead_params_ptr = NULL;
     CK_KEY_TYPE key_type;
     CK_RV crv = CKR_OK;
-    unsigned effectiveKeyLength;
     unsigned char newdeskey[24];
     PRBool useNewKey = PR_FALSE;
     int t;
@@ -867,6 +869,7 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
             }
             context->destroy = (SFTKDestroy)sftk_Space;
             break;
+#ifndef NSS_DISABLE_DEPRECATED_RC2
         case CKM_RC2_CBC_PAD:
             context->doPad = PR_TRUE;
         /* fall thru */
@@ -901,6 +904,8 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
             context->update = (SFTKCipher)(isEncrypt ? RC2_Encrypt : RC2_Decrypt);
             context->destroy = (SFTKDestroy)RC2_DestroyContext;
             break;
+#endif /* NSS_DISABLE_DEPRECATED_RC2 */
+
 #if NSS_SOFTOKEN_DOES_RC5
         case CKM_RC5_CBC_PAD:
             context->doPad = PR_TRUE;
@@ -2229,7 +2234,9 @@ sftk_InitCBCMac(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 {
     CK_MECHANISM cbc_mechanism;
     CK_ULONG mac_bytes = SFTK_INVALID_MAC_SIZE;
+#ifndef NSS_DISABLE_DEPRECATED_RC2
     CK_RC2_CBC_PARAMS rc2_params;
+#endif
 #if NSS_SOFTOKEN_DOES_RC5
     CK_RC5_CBC_PARAMS rc5_params;
     CK_RC5_MAC_GENERAL_PARAMS *rc5_mac;
@@ -2247,6 +2254,7 @@ sftk_InitCBCMac(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
     }
 
     switch (pMechanism->mechanism) {
+#ifndef NSS_DISABLE_DEPRECATED_RC2
         case CKM_RC2_MAC_GENERAL:
             if (BAD_PARAM_CAST(pMechanism, sizeof(CK_RC2_MAC_GENERAL_PARAMS))) {
                 return CKR_MECHANISM_PARAM_INVALID;
@@ -2266,6 +2274,8 @@ sftk_InitCBCMac(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
             cbc_mechanism.ulParameterLen = sizeof(rc2_params);
             blockSize = 8;
             break;
+#endif /* NSS_DISABLE_DEPRECATED_RC2 */
+
 #if NSS_SOFTOKEN_DOES_RC5
         case CKM_RC5_MAC_GENERAL:
             if (BAD_PARAM_CAST(pMechanism, sizeof(CK_RC5_MAC_GENERAL_PARAMS))) {
@@ -4178,11 +4188,13 @@ nsc_SetupBulkKeyGen(CK_MECHANISM_TYPE mechanism, CK_KEY_TYPE *key_type,
     CK_RV crv = CKR_OK;
 
     switch (mechanism) {
+#ifndef NSS_DISABLE_DEPRECATED_RC2
         case CKM_RC2_KEY_GEN:
             *key_type = CKK_RC2;
             if (*key_length == 0)
                 crv = CKR_TEMPLATE_INCOMPLETE;
             break;
+#endif /* NSS_DISABLE_DEPRECATED_RC2 */
 #if NSS_SOFTOKEN_DOES_RC5
         case CKM_RC5_KEY_GEN:
             *key_type = CKK_RC5;
@@ -4411,10 +4423,12 @@ nsc_SetupPBEKeyGen(CK_MECHANISM_PTR pMechanism, NSSPKCS5PBEParameter **pbe,
             *key_type = params->is2KeyDES ? CKK_DES2 : CKK_DES3;
             *key_length = params->keyLen;
             break;
+#ifndef NSS_DISABLE_DEPRECATED_RC2
         case SEC_OID_RC2_CBC:
             *key_type = CKK_RC2;
             *key_length = params->keyLen;
             break;
+#endif /* NSS_DISABLE_DEPRECATED_RC2 */
         case SEC_OID_RC4:
             *key_type = CKK_RC4;
             *key_length = params->keyLen;
@@ -4529,8 +4543,10 @@ NSC_GenerateKey(CK_SESSION_HANDLE hSession,
         case CKM_DES2_KEY_GEN:
         case CKM_DES3_KEY_GEN:
             checkWeak = PR_TRUE;
-        /* fall through */
+/* fall through */
+#ifndef NSS_DISABLE_DEPRECATED_RC2
         case CKM_RC2_KEY_GEN:
+#endif
         case CKM_RC4_KEY_GEN:
         case CKM_GENERIC_SECRET_KEY_GEN:
 #ifndef NSS_DISABLE_DEPRECATED_SEED
@@ -4566,15 +4582,17 @@ NSC_GenerateKey(CK_SESSION_HANDLE hSession,
             faultyPBE3DES = PR_TRUE;
         /* fall through */
         case CKM_NSS_PBE_SHA1_TRIPLE_DES_CBC:
+#ifndef NSS_DISABLE_DEPRECATED_RC2
         case CKM_NSS_PBE_SHA1_40_BIT_RC2_CBC:
-        case CKM_NSS_PBE_SHA1_DES_CBC:
         case CKM_NSS_PBE_SHA1_128_BIT_RC2_CBC:
+        case CKM_PBE_SHA1_RC2_128_CBC:
+        case CKM_PBE_SHA1_RC2_40_CBC:
+#endif
+        case CKM_NSS_PBE_SHA1_DES_CBC:
         case CKM_NSS_PBE_SHA1_40_BIT_RC4:
         case CKM_NSS_PBE_SHA1_128_BIT_RC4:
         case CKM_PBE_SHA1_DES3_EDE_CBC:
         case CKM_PBE_SHA1_DES2_EDE_CBC:
-        case CKM_PBE_SHA1_RC2_128_CBC:
-        case CKM_PBE_SHA1_RC2_40_CBC:
         case CKM_PBE_SHA1_RC4_128:
         case CKM_PBE_SHA1_RC4_40:
         case CKM_PBE_MD5_DES_CBC:

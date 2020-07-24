@@ -280,7 +280,11 @@ RC2_CreateContext(const unsigned char *key, unsigned int len,
 {
     if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
         return NULL;
+#ifndef NSS_DISABLE_DEPRECATED_RC2
     return (vector->p_RC2_CreateContext)(key, len, iv, mode, effectiveKeyLen);
+#else
+    return NULL;
+#endif
 }
 
 void
@@ -288,7 +292,11 @@ RC2_DestroyContext(RC2Context *cx, PRBool freeit)
 {
     if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
         return;
+#ifndef NSS_DISABLE_DEPRECATED_RC2
     (vector->p_RC2_DestroyContext)(cx, freeit);
+#else
+    return;
+#endif
 }
 
 SECStatus
@@ -298,8 +306,12 @@ RC2_Encrypt(RC2Context *cx, unsigned char *output, unsigned int *outputLen,
 {
     if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
         return SECFailure;
+#ifndef NSS_DISABLE_DEPRECATED_RC2
     return (vector->p_RC2_Encrypt)(cx, output, outputLen, maxOutputLen, input,
                                    inputLen);
+#else
+    return SECFailure;
+#endif
 }
 
 SECStatus
@@ -309,8 +321,12 @@ RC2_Decrypt(RC2Context *cx, unsigned char *output, unsigned int *outputLen,
 {
     if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
         return SECFailure;
+#ifndef NSS_DISABLE_DEPRECATED_RC2
     return (vector->p_RC2_Decrypt)(cx, output, outputLen, maxOutputLen, input,
                                    inputLen);
+#else
+    return SECFailure;
+#endif
 }
 
 RC5Context *
@@ -1307,7 +1323,11 @@ RC2_AllocateContext(void)
 {
     if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
         return NULL;
+#ifndef NSS_DISABLE_DEPRECATED_RC2
     return (vector->p_RC2_AllocateContext)();
+#else
+    return NULL;
+#endif
 }
 
 RC4Context *
@@ -1371,8 +1391,12 @@ RC2_InitContext(RC2Context *cx, const unsigned char *key,
 {
     if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
         return SECFailure;
+#ifndef NSS_DISABLE_DEPRECATED_RC2
     return (vector->p_RC2_InitContext)(cx, key, keylen, iv, mode,
                                        effectiveKeyLen, xtra);
+#else
+    return SECFailure;
+#endif
 }
 
 SECStatus
