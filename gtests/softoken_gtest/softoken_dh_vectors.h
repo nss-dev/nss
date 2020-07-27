@@ -1033,10 +1033,12 @@ static const unsigned char prime_weak_4096[] = {
     0xe7, 0x98, 0x01, 0xa2, 0x2e, 0x0a, 0x33, 0x82, 0x9e, 0xb9, 0x24, 0xb7,
     0x80, 0xdf, 0xd3, 0xdf, 0x04, 0xe4, 0x50, 0x9d};
 
+#ifdef NSS_SOFTOKEN_DH_INCLUDE_SLOW
 static const unsigned char subprime_weak_4096[] = {
     0xcf, 0xd9, 0x38, 0x6d, 0x5b, 0x8d, 0x82, 0x9d, 0xa8, 0xe7, 0x9f,
     0x21, 0x46, 0xcc, 0x15, 0xea, 0x61, 0x31, 0x13, 0x5d, 0x50, 0xcd,
     0x99, 0x26, 0xf9, 0x44, 0x28, 0x44, 0xc8, 0xae, 0xb7, 0x8f};
+#endif
 
 static const unsigned char base_weak_4096[] = {
     0x55, 0xa1, 0x9d, 0x92, 0x16, 0x3d, 0x9c, 0xfa, 0xd7, 0x7c, 0x71, 0xea,
@@ -2042,6 +2044,7 @@ static const unsigned char sub2_prime_safe_3072[] = {
     0xe4, 0x21, 0x3e, 0x13, 0x77, 0xa6, 0x18, 0x46, 0xb0, 0x5b, 0x92, 0xfd,
 };
 
+#ifdef NSS_SOFTOKEN_DH_INCLUDE_SLOW
 /* q=(p-1)/2 for prime prime_safe_4096 */
 static const unsigned char sub2_prime_safe_4096[] = {
     0x45, 0xef, 0xe0, 0xd1, 0xf2, 0x5e, 0x8e, 0x58, 0xfa, 0x58, 0xa8, 0xe9,
@@ -2089,7 +2092,6 @@ static const unsigned char sub2_prime_safe_4096[] = {
     0xf9, 0xf5, 0x8a, 0xb1, 0x47, 0x1c, 0xbd, 0xb5,
 };
 
-#ifdef NSS_SOFTOKEN_DH_INCLUDE_SLOW
 /* q=(p-1)/2 for prime prime_safe_6144 */
 static const unsigned char sub2_prime_safe_6144[] = {
     0x5c, 0x87, 0xe0, 0xa0, 0xa5, 0x6f, 0x0d, 0x0e, 0x40, 0x50, 0x6b, 0x1c,
@@ -3102,6 +3104,7 @@ static const DhTestVector DH_TEST_VECTORS[] = {
      {siBuffer, NULL, 0},
      SAFE_PRIME_WITH_SUBPRIME,
      CLASS_3072},
+#ifdef NSS_SOFTOKEN_DH_INCLUDE_SLOW
     {"Safe Prime 4096 with Subprime",
      {siBuffer, (unsigned char *)prime_safe_4096, sizeof(prime_safe_4096)},
      {siBuffer, (unsigned char *)g2, sizeof(g2)},
@@ -3110,7 +3113,6 @@ static const DhTestVector DH_TEST_VECTORS[] = {
      {siBuffer, NULL, 0},
      SAFE_PRIME_WITH_SUBPRIME,
      CLASS_4096},
-#ifdef NSS_SOFTOKEN_DH_INCLUDE_SLOW
     {"Safe Prime 6144 with Subprime",
      {siBuffer, (unsigned char *)prime_safe_6144, sizeof(prime_safe_6144)},
      {siBuffer, (unsigned char *)g2, sizeof(g2)},
@@ -3201,6 +3203,7 @@ static const DhTestVector DH_TEST_VECTORS[] = {
      {siBuffer, NULL, 0},
      KNOWN_SUBPRIME,
      CLASS_3072},
+#ifdef NSS_SOFTOKEN_DH_INCLUDE_SLOW
     {"Weak Prime 4096 Known Subprime",
      {siBuffer, (unsigned char *)prime_weak_4096, sizeof(prime_weak_4096)},
      {siBuffer, (unsigned char *)base_weak_4096, sizeof(base_weak_4096)},
@@ -3209,7 +3212,6 @@ static const DhTestVector DH_TEST_VECTORS[] = {
      {siBuffer, NULL, 0},
      KNOWN_SUBPRIME,
      CLASS_4096},
-#ifdef NSS_SOFTOKEN_DH_INCLUDE_SLOW
     {"Weak Prime 6144 Known Subprime",
      {siBuffer, (unsigned char *)prime_weak_6144, sizeof(prime_weak_6144)},
      {siBuffer, (unsigned char *)base_weak_6144, sizeof(base_weak_6144)},
@@ -3253,6 +3255,7 @@ static const DhTestVector DH_TEST_VECTORS[] = {
      {siBuffer, NULL, 0},
      WRONG_SUBPRIME,
      CLASS_3072},
+#ifdef NSS_SOFTOKEN_DH_INCLUDE_SLOW
     {"Weak Prime 4096 Wrong Subprime",
      {siBuffer, (unsigned char *)prime_weak_4096, sizeof(prime_weak_4096)},
      {siBuffer, (unsigned char *)base_weak_4096, sizeof(base_weak_4096)},
@@ -3261,7 +3264,6 @@ static const DhTestVector DH_TEST_VECTORS[] = {
      {siBuffer, NULL, 0},
      WRONG_SUBPRIME,
      CLASS_4096},
-#ifdef NSS_SOFTOKEN_DH_INCLUDE_SLOW
     {"Weak Prime 6144 Wrong Subprime",
      {siBuffer, (unsigned char *)prime_weak_6144, sizeof(prime_weak_6144)},
      {siBuffer, (unsigned char *)base_weak_6144, sizeof(base_weak_6144)},
@@ -3376,6 +3378,7 @@ static const DhTestVector DH_TEST_VECTORS[] = {
       sizeof(pub_key_bad_weak_3072)},
      BAD_PUB_KEY,
      CLASS_3072},
+#ifdef NSS_SOFTOKEN_DH_INCLUDE_SLOW
     {"Pubkey small subgroup Weak 4096 prime",
      {siBuffer, (unsigned char *)prime_weak_4096, sizeof(prime_weak_4096)},
      {siBuffer, (unsigned char *)base_weak_4096, sizeof(base_weak_4096)},
@@ -3385,7 +3388,6 @@ static const DhTestVector DH_TEST_VECTORS[] = {
       sizeof(pub_key_bad_weak_4096)},
      BAD_PUB_KEY,
      CLASS_4096},
-#ifdef NSS_SOFTOKEN_DH_INCLUDE_SLOW
     {"Pubkey small subgroup Weak 6144 prime",
      {siBuffer, (unsigned char *)prime_weak_6144, sizeof(prime_weak_6144)},
      {siBuffer, (unsigned char *)base_weak_6144, sizeof(base_weak_6144)},
