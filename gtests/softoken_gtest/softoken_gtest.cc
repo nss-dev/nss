@@ -604,11 +604,14 @@ SECStatus test_dh_value(const PQGParams *params, const SECItem *pub_key_value,
 class SoftokenDhTest : public SoftokenTest {
  protected:
   SoftokenDhTest() : SoftokenTest("SoftokenDhTest.d-") {}
+#ifdef NSS_USE_TIMING_CODE
   time_t reference_time[CLASS_LAST] = {0};
+#endif
 
   virtual void SetUp() {
     SoftokenTest::SetUp();
 
+#ifdef NSS_USE_TIMING_CODE
     ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
     ASSERT_TRUE(slot);
 
@@ -624,6 +627,7 @@ class SoftokenDhTest : public SoftokenTest {
       ASSERT_EQ(SECSuccess, test_dh_value(&params, nullptr, PR_FALSE, &time));
       reference_time[i] = time / 2 + 3 * time;
     }
+#endif
   };
 };
 
@@ -707,12 +711,16 @@ TEST_P(SoftokenDhValidate, DhVectors) {
     case SAFE_PRIME:
     case UNKNOWN_SUBPRIME:
       EXPECT_EQ(SECSuccess, rv) << err;
+#ifdef NSS_USE_TIMING_CODE
       EXPECT_LE(time, reference_time[dhTestValues.key_class]) << err;
+#endif
       break;
     case KNOWN_SUBPRIME:
     case SAFE_PRIME_WITH_SUBPRIME:
       EXPECT_EQ(SECSuccess, rv) << err;
+#ifdef NSS_USE_TIMING_CODE
       EXPECT_GT(time, reference_time[dhTestValues.key_class]) << err;
+#endif
       break;
     case WRONG_SUBPRIME:
     case BAD_PUB_KEY:
@@ -748,7 +756,9 @@ class SoftokenFipsTest : public SoftokenTest {
 class SoftokenFipsDhTest : public SoftokenFipsTest {
  protected:
   SoftokenFipsDhTest() : SoftokenFipsTest("SoftokenFipsDhTest.d-") {}
+#ifdef NSS_USE_TIMING_CODE
   time_t reference_time[CLASS_LAST] = {0};
+#endif
 
   virtual void SetUp() {
     SoftokenFipsTest::SetUp();
@@ -759,6 +769,7 @@ class SoftokenFipsDhTest : public SoftokenFipsTest {
     ASSERT_EQ(SECSuccess, PK11_InitPin(slot.get(), nullptr, ""));
     ASSERT_EQ(SECSuccess, PK11_Authenticate(slot.get(), PR_FALSE, nullptr));
 
+#ifdef NSS_USE_TIMING_CODE
     time_t time;
     for (int i = CLASS_FIRST; i < CLASS_LAST; i++) {
       PQGParams params;
@@ -771,6 +782,7 @@ class SoftokenFipsDhTest : public SoftokenFipsTest {
       ASSERT_EQ(SECSuccess, test_dh_value(&params, nullptr, PR_FALSE, &time));
       reference_time[i] = time / 2 + 3 * time;
     }
+#endif
   };
 };
 
@@ -882,7 +894,9 @@ TEST_P(SoftokenFipsDhValidate, DhVectors) {
     case TLS_APPROVED:
     case IKE_APPROVED:
       EXPECT_EQ(SECSuccess, rv) << err;
+#ifdef NSS_USE_TIMING_CODE
       EXPECT_LE(time, reference_time[dhTestValues.key_class]) << err;
+#endif
       break;
     case SAFE_PRIME:
     case SAFE_PRIME_WITH_SUBPRIME:
