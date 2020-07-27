@@ -236,6 +236,14 @@ KEA_Verify(SECItem *Y, SECItem *prime, SECItem *subPrime)
     return (vector->p_KEA_Verify)(Y, prime, subPrime);
 }
 
+PRBool
+KEA_PrimeCheck(SECItem *prime)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return PR_FALSE;
+    return (vector->p_KEA_PrimeCheck)(prime);
+}
+
 RC4Context *
 RC4_CreateContext(const unsigned char *key, int len)
 {
