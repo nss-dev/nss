@@ -10,7 +10,7 @@
 
 #include "blapi.h"
 
-#define FREEBL_VERSION 0x0323
+#define FREEBL_VERSION 0x0324
 
 struct FREEBLVectorStr {
 
@@ -811,6 +811,9 @@ struct FREEBLVectorStr {
                                          unsigned int inputLen);
 
     /* Version 3.023 came to here */
+
+    PRBool (*p_KEA_PrimeCheck)(SECItem *prime);
+    /* Version 3.024 came to here */
 
     /* Add new function pointers at the end of this struct and bump
      * FREEBL_VERSION at the beginning of this file. */
