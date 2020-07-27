@@ -119,9 +119,11 @@ else
         DEFINES += -DNSS_X86
 endif
 endif
+ifdef NS_USE_GCC
 ifeq ($(CPU_ARCH),aarch64)
     DEFINES += -DUSE_HW_AES -DUSE_HW_SHA2
     EXTRA_SRCS += aes-armv8.c gcm-aarch64.c sha256-armv8.c
+endif
 endif
 ifeq ($(CPU_ARCH),arm)
 ifndef NSS_DISABLE_ARM32_NEON
@@ -198,6 +200,7 @@ else
     ifdef BUILD_OPT
 	OPTIMIZER += -Ox  # maximum optimization for freebl
     endif
+ifeq ($(CPU_ARCH),x86_64)
     ASFILES  = arcfour-amd64-masm.asm mpi_amd64_masm.asm mp_comba_amd64_masm.asm
     DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
     DEFINES += -DNSS_USE_COMBA
@@ -212,6 +215,7 @@ else
 	endif
     endif
     MPI_SRCS += mpi_amd64.c
+endif
 endif
 endif
 endif
@@ -716,10 +720,13 @@ ifndef NSS_DISABLE_ARM32_NEON
 $(OBJDIR)/$(PROG_PREFIX)gcm-arm32-neon$(OBJ_SUFFIX): CFLAGS += -mfpu=neon$(if $(USES_SOFTFLOAT_ABI), -mfloat-abi=softfp)
 endif
 endif
+
+ifdef NS_USE_GCC
 ifeq ($(CPU_ARCH),aarch64)
 $(OBJDIR)/$(PROG_PREFIX)aes-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a+crypto
 $(OBJDIR)/$(PROG_PREFIX)gcm-aarch64$(OBJ_SUFFIX): CFLAGS += -march=armv8-a+crypto
 $(OBJDIR)/$(PROG_PREFIX)sha256-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a+crypto
+endif
 endif
 
 ifeq ($(CPU_ARCH),ppc)
