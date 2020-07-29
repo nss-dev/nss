@@ -97,6 +97,7 @@
     'cc_use_gnu_ld%': '<(cc_use_gnu_ld)',
     # Some defaults
     'disable_arm_hw_aes%': 0,
+    'disable_arm_hw_sha1%': 0,
     'disable_arm_hw_sha2%': 0,
     'disable_tests%': 0,
     'disable_chachapoly%': 0,
