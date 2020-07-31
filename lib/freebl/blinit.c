@@ -30,6 +30,7 @@ static PRCallOnceType coFreeblInit;
 /* State variables. */
 static PRBool aesni_support_ = PR_FALSE;
 static PRBool clmul_support_ = PR_FALSE;
+static PRBool sha_support_ = PR_FALSE;
 static PRBool avx_support_ = PR_FALSE;
 static PRBool avx2_support_ = PR_FALSE;
 static PRBool ssse3_support_ = PR_FALSE;
@@ -83,6 +84,7 @@ check_xcr0_ymm()
 #define EBX_AVX2 (1 << 5)
 #define EBX_BMI1 (1 << 3)
 #define EBX_BMI2 (1 << 8)
+#define EBX_SHA (1 << 29)
 #define ECX_FMA (1 << 12)
 #define ECX_MOVBE (1 << 22)
 #define ECX_SSSE3 (1 << 9)
@@ -99,6 +101,7 @@ CheckX86CPUSupport()
     unsigned long eax7, ebx7, ecx7, edx7;
     char *disable_hw_aes = PR_GetEnvSecure("NSS_DISABLE_HW_AES");
     char *disable_pclmul = PR_GetEnvSecure("NSS_DISABLE_PCLMUL");
+    char *disable_hw_sha = PR_GetEnvSecure("NSS_DISABLE_HW_SHA");
     char *disable_avx = PR_GetEnvSecure("NSS_DISABLE_AVX");
     char *disable_avx2 = PR_GetEnvSecure("NSS_DISABLE_AVX2");
     char *disable_ssse3 = PR_GetEnvSecure("NSS_DISABLE_SSSE3");
@@ -108,6 +111,7 @@ CheckX86CPUSupport()
     freebl_cpuid(7, &eax7, &ebx7, &ecx7, &edx7);
     aesni_support_ = (PRBool)((ecx & ECX_AESNI) != 0 && disable_hw_aes == NULL);
     clmul_support_ = (PRBool)((ecx & ECX_CLMUL) != 0 && disable_pclmul == NULL);
+    sha_support_ = (PRBool)((ebx7 & EBX_SHA) != 0 && disable_hw_sha == NULL);
     /* For AVX we check AVX, OSXSAVE, and XSAVE
      * as well as XMM and YMM state. */
     avx_support_ = (PRBool)((ecx & AVX_BITS) == AVX_BITS) && check_xcr0_ymm() &&
@@ -401,6 +405,11 @@ PRBool
 clmul_support()
 {
     return clmul_support_;
+}
+PRBool
+sha_support()
+{
+    return sha_support_;
 }
 PRBool
 avx_support()
