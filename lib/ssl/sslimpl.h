@@ -730,7 +730,7 @@ typedef struct SSL3HandshakeStateStr {
     PRCList dtlsRcvdHandshake; /* Handshake records we have received
                                 * used to generate ACKs. */
 
-    PRCList psks;              /* A list of PSKs, resumption and/or external. */
+    PRCList psks; /* A list of PSKs, resumption and/or external. */
 } SSL3HandshakeState;
 
 #define SSL_ASSERT_HASHES_EMPTY(ss)                                  \
