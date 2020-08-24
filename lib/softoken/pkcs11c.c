@@ -7030,7 +7030,7 @@ sftk_HKDF(CK_HKDF_PARAMS_PTR params, CK_SESSION_HANDLE hSession,
     PORT_Memset(keyBlockData, 0, genLen);
     PORT_Memset(hashbuf, 0, sizeof(hashbuf));
     PORT_Free(keyBlockAlloc);
-    return CKR_OK;
+    return crv;
 }
 
 /*
