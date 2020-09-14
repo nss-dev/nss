@@ -10,7 +10,7 @@
 # OS_TEST	(from uname -m)
 # OS_RELEASE	(from uname -v and/or -r)
 # OS_TARGET	User defined, or set to OS_ARCH
-# CPU_ARCH  	(from unmame -m or -p, ONLY on WINNT)
+# CPU_ARCH  	(from uname -m or -p, ONLY on WINNT)
 # OS_CONFIG	OS_TARGET + OS_RELEASE
 # OBJDIR_TAG    (uses GCOV_TAG, 64BIT_TAG)
 # OBJDIR_NAME
