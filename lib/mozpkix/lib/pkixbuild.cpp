@@ -252,8 +252,7 @@ PathBuildingStep::Check(Input potentialIssuerDER,
     }
     Duration validityDuration(notAfter, notBefore);
     rv = trustDomain.CheckRevocation(subject.endEntityOrCA, certID, time,
-                                     notBefore, validityDuration,
-                                     stapledOCSPResponse,
+                                     validityDuration, stapledOCSPResponse,
                                      subject.GetAuthorityInfoAccess());
     if (rv != Success) {
       // Since this is actually a problem with the current subject certificate
