@@ -280,7 +280,8 @@ class TrustDomain {
                                  const CertID& certID, Time time,
                                  Duration validityDuration,
                                  /*optional*/ const Input* stapledOCSPresponse,
-                                 /*optional*/ const Input* aiaExtension) = 0;
+                                 /*optional*/ const Input* aiaExtension,
+                                 /*optional*/ const Input* sctExtension) = 0;
 
   // Check that the given digest algorithm is acceptable for use in signatures.
   //

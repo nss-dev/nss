@@ -102,6 +102,7 @@ class EverythingFailsByDefaultTrustDomain : public TrustDomain {
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
                          /*optional*/ const Input*,
+                         /*optional*/ const Input*,
                          /*optional*/ const Input*) override {
     ADD_FAILURE();
     return NotReached("CheckRevocation should not be called",
