@@ -334,3 +334,10 @@ NSSUTIL_AddNSSFlagToModuleSpec;
 ;+    local:
 ;+       *;
 ;+};
+;+NSSUTIL_3.58 {         # NSS Utilities 3.58 release
+;+    global:
+NSS_IsPolicyLocked;
+NSS_LockPolicy;
+;+    local:
+;+       *;
+;+};
