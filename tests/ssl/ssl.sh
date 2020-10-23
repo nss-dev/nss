@@ -886,6 +886,7 @@ ssl_policy_listsuites()
   cp ${P_R_CLIENTDIR}/pkcs11.txt ${P_R_CLIENTDIR}/pkcs11.txt.sav
 
   # Disallow all explicitly
+  testname="listsuites with all cipher disallowed by policy"
   setup_policy "disallow=all" ${P_R_CLIENTDIR}
   RET_EXP=1
   list_enabled_suites | grep '^TLS_'
@@ -894,9 +895,38 @@ ssl_policy_listsuites()
            "produced a returncode of $RET, expected is $RET_EXP"
 
   # Disallow RSA in key exchange explicitly
+  testname="listsuites with rsa cipher disallowed by policy"
   setup_policy "disallow=rsa/ssl-key-exchange" ${P_R_CLIENTDIR}
   RET_EXP=1
   list_enabled_suites | grep '^TLS_RSA_'
+  RET=$?
+  html_msg $RET $RET_EXP "${testname}" \
+           "produced a returncode of $RET, expected is $RET_EXP"
+
+  # allow by policy, but disable by default
+  testname="listsuites with all ciphers enabled by policy but disabled by default"
+  setup_policy "allow=all disable=all" ${P_R_CLIENTDIR}
+  RET_EXP=1
+  list_enabled_suites | grep '^TLS_'
+  RET=$?
+  html_msg $RET $RET_EXP "${testname}" \
+           "produced a returncode of $RET, expected is $RET_EXP"
+
+  # allow by policy, but disable by default just rsa-kea
+  testname="listsuites with all ciphers enabled by policy but rsa disabled by default"
+  setup_policy "allow=all disable=rsa/ssl-key-exchange" ${P_R_CLIENTDIR}
+  RET_EXP=1
+  list_enabled_suites | grep '^TLS_RSA_'
+  RET=$?
+  html_msg $RET $RET_EXP "${testname}" \
+           "produced a returncode of $RET, expected is $RET_EXP"
+
+  # list_enabled_suites tries to set a policy value explicitly, This will
+  # cause list_enabled_suites to fail if we lock the policy
+  testname="listsuites with policy locked"
+  setup_policy "allow=all flags=policy-lock" ${P_R_CLIENTDIR}
+  RET_EXP=1
+  SSL_DIR="${P_R_CLIENTDIR}" ${BINDIR}/listsuites
   RET=$?
   html_msg $RET $RET_EXP "${testname}" \
            "produced a returncode of $RET, expected is $RET_EXP"
@@ -925,6 +955,7 @@ ssl_policy_selfserv()
   cp ${P_R_SERVERDIR}/pkcs11.txt ${P_R_SERVERDIR}/pkcs11.txt.sav
 
   # Disallow RSA in key exchange explicitly
+  testname="Disallow RSA key exchange explicitly"
   setup_policy "disallow=rsa/ssl-key-exchange" ${P_R_SERVERDIR}
 
   SAVE_SERVER_OPTIONS=${SERVER_OPTIONS}
