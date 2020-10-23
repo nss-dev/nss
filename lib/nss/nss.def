@@ -1208,6 +1208,8 @@ PK11_ImportDataKey;
 ;+    global:
 CERT_AddCertToListHeadWithData;
 CERT_AddCertToListTailWithData;
+PK11_PubWrapSymKeyWithMechanism;
+PK11_PubUnwrapSymKeyWithMechanism;
 ;+    local:
 ;+       *;
 ;+};
