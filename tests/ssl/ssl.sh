@@ -936,6 +936,50 @@ ssl_policy_listsuites()
   html "</TABLE><BR>"
 }
 
+ssl_policy_pkix_ocsp()
+{
+  #verbose="-v"
+  html_head "Check that OCSP doesn't break if we disable sha1 $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE"
+
+  PKIX_SAVE=${NSS_ENABLE_PKIX_VERIFY-"unset"}
+  NSS_ENABLE_PKIX_VERIFY="1"
+  export NSS_ENABLE_PKIX_VERIFY
+
+  testname=""
+
+  if [ ! -f "${P_R_SERVERDIR}/pkcs11.txt" ] ; then
+      html_failed "${SCRIPTNAME}: ${P_R_SERVERDIR} is not initialized"
+      return 1;
+  fi
+
+  echo "Saving pkcs11.txt"
+  cp ${P_R_SERVERDIR}/pkcs11.txt ${P_R_SERVERDIR}/pkcs11.txt.sav
+
+  # Disallow sha1 explicitly. This will test if we are trying to verify the sha1 signature
+  # on the GlobalSign root during OCSP processing
+  setup_policy "disallow=sha1" ${P_R_SERVERDIR}
+  RET_EXP=0
+  echo " vfyserv -o wrong.host.badssl.com -d ${P_R_SERVERDIR} 2>&1 | tee ${P_R_SERVERDIR}/vfy.out"
+  vfyserv -o wrong.host.badssl.com -d ${P_R_SERVERDIR} 2>&1 | tee ${P_R_SERVERDIR}/vfy.out
+  # make sure we have the domain mismatch, not bad signature error
+  echo "grep 12276 ${P_R_SERVERDIR}/vfy.out"
+  grep 12276 ${P_R_SERVERDIR}/vfy.out
+  RET=$?
+  html_msg $RET $RET_EXP "${testname}" \
+           "produced a returncode of $RET, expected is $RET_EXP"
+
+  if [ "${PKIX_SAVE}" = "unset" ]; then
+      unset NSS_ENABLE_PKIX_VERIFY
+  else
+      NSS_ENABLE_PKIX_VERIFY=${PKIX_SAVE}
+      export NSS_ENABLE_PKIX_VERIFY
+  fi
+  cp ${P_R_SERVERDIR}/pkcs11.txt.sav ${P_R_SERVERDIR}/pkcs11.txt
+
+  html "</TABLE><BR>"
+
+}
+
 ############################## ssl_policy_selfserv #####################
 # local shell function to perform SSL Policy tests, using selfserv
 ########################################################################
@@ -1553,6 +1597,7 @@ ssl_run_tests()
             if [ "${TEST_MODE}" = "SHARED_DB" ] ; then
                 ssl_policy_listsuites
                 ssl_policy_selfserv
+                ssl_policy_pkix_ocsp
                 ssl_policy
             fi
             ;;
