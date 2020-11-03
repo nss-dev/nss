@@ -196,6 +196,19 @@ class ECDSA():
 
         return result
 
+class HKDF():
+    """Class that provides the generator function for a single HKDF test case."""
+
+    def format_testcase(self, vector):
+        """Format an HKDF testcase object. Return a string in C-header format."""
+        result = '{{ {},\n'.format(vector['tcId'])
+        for key in ['ikm', 'salt', 'info', "okm"]:
+            result += ' \"{}\",\n'.format(vector[key])
+        result += ' {},\n'.format(vector['size'])
+        result += ' {}}},\n\n'.format(str(vector['result'] == 'valid').lower())
+
+        return result
+
 class RSA_PKCS1_SIGNATURE():
     pub_keys = {}
 
@@ -477,6 +490,50 @@ dsa_params = {
     'formatter' : DSA(),
     'crop_size_end': -2,
     'section': 'dsa_vectors_h__',
+    'comment' : ''
+}
+
+hkdf_sha1_params = {
+    'source_dir': 'source_vectors/',
+    'source_file': 'hkdf_sha1_test.json',
+    'target': '../testvectors/hkdf-sha1-vectors.h',
+    'array_init': 'const HkdfTestVector kHkdfSha1WycheproofVectors[] = {\n',
+    'formatter' : HKDF(),
+    'crop_size_end': -3,
+    'section': 'hkdf_sha1_vectors_h__',
+    'comment' : ''
+}
+
+hkdf_sha256_params = {
+    'source_dir': 'source_vectors/',
+    'source_file': 'hkdf_sha256_test.json',
+    'target': '../testvectors/hkdf-sha256-vectors.h',
+    'array_init': 'const HkdfTestVector kHkdfSha256WycheproofVectors[] = {\n',
+    'formatter' : HKDF(),
+    'crop_size_end': -3,
+    'section': 'hkdf_sha256_vectors_h__',
+    'comment' : ''
+}
+
+hkdf_sha384_params = {
+    'source_dir': 'source_vectors/',
+    'source_file': 'hkdf_sha384_test.json',
+    'target': '../testvectors/hkdf-sha384-vectors.h',
+    'array_init': 'const HkdfTestVector kHkdfSha384WycheproofVectors[] = {\n',
+    'formatter' : HKDF(),
+    'crop_size_end': -3,
+    'section': 'hkdf_sha384_vectors_h__',
+    'comment' : ''
+}
+
+hkdf_sha512_params = {
+    'source_dir': 'source_vectors/',
+    'source_file': 'hkdf_sha512_test.json',
+    'target': '../testvectors/hkdf-sha512-vectors.h',
+    'array_init': 'const HkdfTestVector kHkdfSha512WycheproofVectors[] = {\n',
+    'formatter' : HKDF(),
+    'crop_size_end': -3,
+    'section': 'hkdf_sha512_vectors_h__',
     'comment' : ''
 }
 
@@ -863,6 +920,10 @@ def generate_test_vectors():
                  chacha_poly_params,
                  curve25519_params,
                  dsa_params,
+                 hkdf_sha1_params,
+                 hkdf_sha256_params,
+                 hkdf_sha384_params,
+                 hkdf_sha512_params,
                  p256ecdsa_sha256_params,
                  p384ecdsa_sha384_params,
                  p521ecdsa_sha512_params,
