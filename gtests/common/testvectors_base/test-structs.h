@@ -77,6 +77,16 @@ typedef struct EcdhTestVectorStr {
   bool valid;
 } EcdhTestVector;
 
+typedef struct HkdfTestVectorStr {
+  uint32_t id;
+  std::string ikm;
+  std::string salt;
+  std::string info;
+  std::string okm;
+  uint32_t size;
+  bool valid;
+} HkdfTestVector;
+
 typedef struct RsaSignatureTestVectorStr {
   SECOidTag hash_oid;
   uint32_t id;
