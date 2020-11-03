@@ -32,6 +32,7 @@ typedef struct AesCmacTestVectorStr {
   std::string tag;
   bool invalid;
 } AesCmacTestVector;
+typedef AesCmacTestVector HmacTestVector;
 
 typedef struct AesGcmKatValueStr {
   uint32_t id;
