@@ -28,6 +28,7 @@
         'pk11_encrypt_derive_unittest.cc',
         'pk11_find_certs_unittest.cc',
         'pk11_hkdf_unittest.cc',
+        'pk11_hmac_unittest.cc',
         'pk11_hpke_unittest.cc',
         'pk11_import_unittest.cc',
         'pk11_kbkdf.cc',
