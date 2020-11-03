@@ -158,10 +158,31 @@ class ECDH():
 
         return result
 
+class DSA():
+    pub_keys = {}
+    def format_testcase(self, testcase, key, hash_oid, keySize, out_defs):
+        key_name = "kPubKey"
+        if key in self.pub_keys:
+            key_name = self.pub_keys[key]
+        else:
+            key_name += str(len(self.pub_keys))
+            self.pub_keys[key] = key_name
+            out_defs.append('static const std::vector<uint8_t> ' + key_name + string_to_hex_array(key) + ';\n\n')
+        result = '\n// Comment: {}'.format(testcase['comment'])
+        result += '\n// tcID: {}\n'.format(testcase['tcId'])
+        result += '{{{}, {},\n'.format(hash_oid, testcase['tcId'])
+        result += '{},\n'.format(string_to_hex_array(testcase['sig']))
+        result += '{},\n'.format(key_name)
+        result += '{},\n'.format(string_to_hex_array(testcase['msg']))
+        valid = testcase['result'] == 'valid' or (testcase['result'] == 'acceptable' and 'NoLeadingZero' in testcase['flags'])
+        result += '{}}},\n'.format(str(valid).lower())
+
+        return result
+
 class ECDSA():
     """Class that provides the generator function for a single ECDSA test case."""
-    
-    def format_testcase(self, testcase, key, hash_oid, keySize):
+
+    def format_testcase(self, testcase, key, hash_oid, keySize, out_defs):
         result = '\n// Comment: {}'.format(testcase['comment'])
         result += '\n// tcID: {}\n'.format(testcase['tcId'])
         result += '{{{}, {},\n'.format(hash_oid, testcase['tcId'])
@@ -327,7 +348,7 @@ def generate_vectors_file(params):
             if 'key' in group:
                 if 'curve' in group['key'] and group['key']['curve'] not in ['secp256r1', 'secp384r1', 'secp521r1']:
                     continue
-                vectors_file += params['formatter'].format_testcase(test, group['keyDer'], getSha(group['sha']), group['key']['keySize'])
+                vectors_file += params['formatter'].format_testcase(test, group['keyDer'], getSha(group['sha']), group['key']['keySize'], shared_defs)
             elif 'type' in group and group['type'] == 'RsassaPssVerify':
                 sLen = group['sLen'] if 'sLen' in group else 0
                 vectors_file += params['formatter'].format_testcase(test, group['keyDer'], getSha(group['sha']), getMgfSha(group['mgfSha']), sLen, shared_defs)
@@ -446,6 +467,17 @@ curve25519_params = {
     'comment' : '// The public key section of the pkcs8 wrapped private key is\n\
     // filled up with 0\'s, which is not correct, but acceptable for the\n\
     // tests at this moment because validity of the public key is not checked.\n'
+}
+
+dsa_params = {
+    'source_dir': 'source_vectors/',
+    'source_file': 'dsa_test.json',
+    'target': '../testvectors/dsa-vectors.h',
+    'array_init': 'const DsaTestVector kDsaWycheproofVectors[] = {\n',
+    'formatter' : DSA(),
+    'crop_size_end': -2,
+    'section': 'dsa_vectors_h__',
+    'comment' : ''
 }
 
 p256ecdh_params = {
@@ -830,6 +862,7 @@ def generate_test_vectors():
                  aes_gcm_params,
                  chacha_poly_params,
                  curve25519_params,
+                 dsa_params,
                  p256ecdsa_sha256_params,
                  p384ecdsa_sha384_params,
                  p521ecdsa_sha512_params,
