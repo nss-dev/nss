@@ -311,9 +311,7 @@ __CERT_AddTempCertToPerm(CERTCertificate *cert, char *nickname,
     nssPKIObject_AddInstance(&c->object, permInstance);
     nssTrustDomain_AddCertsToCache(STAN_GetDefaultTrustDomain(), &c, 1);
     /* reset the CERTCertificate fields */
-    CERT_LockCertTempPerm(cert);
     cert->nssCertificate = NULL;
-    CERT_UnlockCertTempPerm(cert);
     cert = STAN_GetCERTCertificateOrRelease(c); /* should return same pointer */
     if (!cert) {
         CERT_MapStanError();
@@ -810,17 +808,9 @@ CERT_DestroyCertificate(CERTCertificate *cert)
         /* don't use STAN_GetNSSCertificate because we don't want to
          * go to the trouble of translating the CERTCertificate into
          * an NSSCertificate just to destroy it.  If it hasn't been done
-         * yet, don't do it at all
-         *
-         * cert->nssCertificate contains its own locks and refcount, but as it
-         * may be NULL, the pointer itself must be guarded by some other lock.
-         * Rather than creating a new global lock for only this purpose, share
-         * an existing global lock that happens to be taken near the write in
-         * fill_CERTCertificateFields(). The longer-term goal is to refactor
-         * all these global locks to be certificate-scoped. */
-        CERT_LockCertTempPerm(cert);
+         * yet, don't do it at all.
+         */
         NSSCertificate *tmp = cert->nssCertificate;
-        CERT_UnlockCertTempPerm(cert);
         if (tmp) {
             /* delete the NSSCertificate */
             NSSCertificate_Destroy(tmp);
