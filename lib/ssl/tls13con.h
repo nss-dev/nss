@@ -19,6 +19,7 @@ typedef enum {
 } tls13ExtensionStatus;
 
 #define TLS13_MAX_FINISHED_SIZE 64
+#define TLS13_COOKIE_SENTINEL 0xff
 
 SECStatus tls13_UnprotectRecord(
     sslSocket *ss, ssl3CipherSpec *spec,
