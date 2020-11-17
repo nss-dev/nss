@@ -73,7 +73,7 @@ static SECStatus tls13_HandleEndOfEarlyData(sslSocket *ss, const PRUint8 *b,
                                             PRUint32 length);
 static SECStatus tls13_MaybeHandleSuppressedEndOfEarlyData(sslSocket *ss);
 static SECStatus tls13_SendFinished(sslSocket *ss, PK11SymKey *baseKey);
-static SECStatus tls13_ComputePskBinderHash(sslSocket *ss, unsigned int prefix,
+static SECStatus tls13_ComputePskBinderHash(sslSocket *ss, PRUint8 *b, size_t length,
                                             SSL3Hashes *hashes, SSLHashType type);
 static SECStatus tls13_VerifyFinished(sslSocket *ss, SSLHandshakeType message,
                                       PK11SymKey *secret,
@@ -2027,6 +2027,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
         PORT_Assert(ss->ssl3.hs.messages.len > ss->xtnData.pskBindersLen);
         rv = tls13_ComputePskBinderHash(
             ss,
+            ss->ssl3.hs.messages.buf,
             ss->ssl3.hs.messages.len - ss->xtnData.pskBindersLen,
             &hashes, tls13_GetHash(ss));
         if (rv != SECSuccess) {
@@ -4470,28 +4471,59 @@ loser:
 }
 
 static SECStatus
-tls13_ComputePskBinderHash(sslSocket *ss, unsigned int prefixLength,
+tls13_ComputePskBinderHash(sslSocket *ss, PRUint8 *b, size_t length,
                            SSL3Hashes *hashes, SSLHashType hashType)
 {
     SECStatus rv;
-
+    PK11Context *ctx = NULL;
+    /* On the server, HRR residual is already buffered. */
+    sslBuffer *clientResidual = ss->sec.isServer ? NULL : &ss->ssl3.hs.messages;
     PORT_Assert(ss->ssl3.hs.hashType == handshake_hash_unknown);
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
-    PORT_Assert(prefixLength <= ss->ssl3.hs.messages.len);
 
-    PRINT_BUF(10, (NULL, "Handshake hash computed over ClientHello prefix",
-                   ss->ssl3.hs.messages.buf, prefixLength));
-    rv = PK11_HashBuf(ssl3_HashTypeToOID(hashType),
-                      hashes->u.raw, ss->ssl3.hs.messages.buf, prefixLength);
+    PRINT_BUF(10, (NULL, "Binder computed over ClientHello",
+                   b, length));
+
+    ctx = PK11_CreateDigestContext(ssl3_HashTypeToOID(hashType));
+    if (!ctx) {
+        goto loser;
+    }
+    rv = PK11_DigestBegin(ctx);
     if (rv != SECSuccess) {
         ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
-        return SECFailure;
+        goto loser;
     }
 
-    hashes->len = tls13_GetHashSizeForHash(hashType);
-    PRINT_BUF(10, (NULL, "PSK Binder hash", hashes->u.raw, hashes->len));
+    if (clientResidual && clientResidual->len) {
+        PRINT_BUF(10, (NULL, " with HRR prefix", clientResidual->buf,
+                       clientResidual->len));
+        rv = PK11_DigestOp(ctx, clientResidual->buf, clientResidual->len);
+        if (rv != SECSuccess) {
+            ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+            goto loser;
+        }
+    }
 
+    rv = PK11_DigestOp(ctx, b, length);
+    if (rv != SECSuccess) {
+        ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+        goto loser;
+    }
+    rv = PK11_DigestFinal(ctx, hashes->u.raw, &hashes->len, sizeof(hashes->u.raw));
+    if (rv != SECSuccess) {
+        ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+        goto loser;
+    }
+
+    PK11_DestroyContext(ctx, PR_TRUE);
+    PRINT_BUF(10, (NULL, "PSK Binder hash", hashes->u.raw, hashes->len));
     return SECSuccess;
+
+loser:
+    if (ctx) {
+        PK11_DestroyContext(ctx, PR_TRUE);
+    }
+    return SECFailure;
 }
 
 /* Compute and inject the PSK Binder for sending.
@@ -4502,7 +4534,7 @@ tls13_ComputePskBinderHash(sslSocket *ss, unsigned int prefixLength,
  * the saved message (in ss->ssl3.hs.messages).  This is written over the dummy
  * binder, after which we write the remainder of the binder extension. */
 SECStatus
-tls13_WriteExtensionsWithBinder(sslSocket *ss, sslBuffer *extensions)
+tls13_WriteExtensionsWithBinder(sslSocket *ss, sslBuffer *extensions, sslBuffer *chBuf)
 {
     SSL3Hashes hashes;
     SECStatus rv;
@@ -4515,7 +4547,7 @@ tls13_WriteExtensionsWithBinder(sslSocket *ss, sslBuffer *extensions)
 
     PORT_Assert(extensions->len >= size + 3);
 
-    rv = ssl3_AppendHandshakeNumber(ss, extensions->len, 2);
+    rv = sslBuffer_AppendNumber(chBuf, extensions->len, 2);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -4524,14 +4556,13 @@ tls13_WriteExtensionsWithBinder(sslSocket *ss, sslBuffer *extensions)
      * the pre_shared_key extension is at the end of the buffer.  Don't write
      * the binder, or the lengths that precede it (a 2 octet length for the list
      * of all binders, plus a 1 octet length for the binder length). */
-    rv = ssl3_AppendHandshake(ss, extensions->buf, prefixLen);
+    rv = sslBuffer_Append(chBuf, extensions->buf, prefixLen);
     if (rv != SECSuccess) {
         return SECFailure;
     }
 
     /* Calculate the binder based on what has been written out. */
-    rv = tls13_ComputePskBinderHash(ss, ss->ssl3.hs.messages.len,
-                                    &hashes, psk->hash);
+    rv = tls13_ComputePskBinderHash(ss, chBuf->buf, chBuf->len, &hashes, psk->hash);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -4550,8 +4581,8 @@ tls13_WriteExtensionsWithBinder(sslSocket *ss, sslBuffer *extensions)
     PORT_Assert(finishedLen == size);
 
     /* Write out the remainder of the extension. */
-    rv = ssl3_AppendHandshake(ss, extensions->buf + prefixLen,
-                              extensions->len - prefixLen);
+    rv = sslBuffer_Append(chBuf, extensions->buf + prefixLen,
+                          extensions->len - prefixLen);
     if (rv != SECSuccess) {
         return SECFailure;
     }

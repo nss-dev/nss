@@ -68,7 +68,8 @@ PRInt32 tls13_LimitEarlyData(sslSocket *ss, SSLContentType type, PRInt32 toSend)
 PRBool tls13_AllowPskCipher(const sslSocket *ss,
                             const ssl3CipherSuiteDef *cipher_def);
 PRBool tls13_PskSuiteEnabled(sslSocket *ss);
-SECStatus tls13_WriteExtensionsWithBinder(sslSocket *ss, sslBuffer *extensions);
+SECStatus tls13_WriteExtensionsWithBinder(sslSocket *ss, sslBuffer *extensions,
+                                          sslBuffer *chBuf);
 SECStatus tls13_HandleClientHelloPart2(sslSocket *ss,
                                        const SECItem *suites,
                                        sslSessionID *sid,

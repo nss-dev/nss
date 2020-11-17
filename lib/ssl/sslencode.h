@@ -45,6 +45,8 @@ SECStatus sslBuffer_Skip(sslBuffer *b, unsigned int size,
                          unsigned int *savedOffset);
 SECStatus sslBuffer_InsertLength(sslBuffer *b, unsigned int at,
                                  unsigned int size);
+SECStatus sslBuffer_InsertNumber(sslBuffer *b, unsigned int at,
+                                 PRUint64 v, unsigned int size);
 void sslBuffer_Clear(sslBuffer *b);
 
 SECStatus ssl3_AppendHandshake(sslSocket *ss, const void *void_src,
