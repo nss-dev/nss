@@ -165,6 +165,23 @@ sslBuffer_InsertLength(sslBuffer *b, unsigned int at, unsigned int size)
     return SECSuccess;
 }
 
+SECStatus
+sslBuffer_InsertNumber(sslBuffer *b, unsigned int at,
+                       PRUint64 v, unsigned int size)
+{
+    PORT_Assert(b->len >= at + size);
+    PORT_Assert(b->space >= at + size);
+
+    PORT_Assert(size <= 4 && size > 0);
+    if (v >= (1ULL << (8 * size))) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+
+    ssl_EncodeUintX(SSL_BUFFER_BASE(b) + at, v, size);
+    return SECSuccess;
+}
+
 void
 sslBuffer_Clear(sslBuffer *b)
 {
