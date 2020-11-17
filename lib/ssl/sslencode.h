@@ -27,6 +27,10 @@ typedef struct sslBufferStr {
     {                               \
         b, 0, maxlen, PR_TRUE       \
     }
+#define SSL_BUFFER_FIXED_LEN(b, len) \
+    {                                \
+        b, len, 0, PR_TRUE           \
+    }
 #define SSL_BUFFER(b) SSL_BUFFER_FIXED(b, sizeof(b))
 #define SSL_BUFFER_BASE(b) ((b)->buf)
 #define SSL_BUFFER_LEN(b) ((b)->len)
@@ -51,6 +55,8 @@ void sslBuffer_Clear(sslBuffer *b);
 
 SECStatus ssl3_AppendHandshake(sslSocket *ss, const void *void_src,
                                unsigned int bytes);
+SECStatus ssl3_AppendHandshakeSuppressHash(sslSocket *ss, const void *void_src,
+                                           unsigned int bytes);
 SECStatus ssl3_AppendHandshakeHeader(sslSocket *ss,
                                      SSLHandshakeType t, unsigned int length);
 SECStatus ssl3_AppendHandshakeNumber(sslSocket *ss, PRUint64 num,
