@@ -86,6 +86,7 @@ tls13_CopyEchConfigs(PRCList *oConfigs, PRCList *configs)
         newConfig->contents.kdfId = config->contents.kdfId;
         newConfig->contents.aeadId = config->contents.aeadId;
         newConfig->contents.maxNameLen = config->contents.maxNameLen;
+        PORT_Memcpy(newConfig->configId, config->configId, sizeof(newConfig->configId));
         PR_APPEND_LINK(&newConfig->link, configs);
     }
     return SECSuccess;
