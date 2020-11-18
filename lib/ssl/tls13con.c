@@ -1752,7 +1752,7 @@ tls13_MaybeSendHelloRetry(sslSocket *ss, const sslNamedGroupDef *requestedGroup,
         return SECFailure; /* Code already set. */
     }
 
-    /* We received ECH, but have to start over with CH2. */
+    /* We may have received ECH, but have to start over with CH2. */
     ss->ssl3.hs.echAccepted = PR_FALSE;
     PK11_HPKE_DestroyContext(ss->ssl3.hs.echHpkeCtx, PR_TRUE);
     ss->ssl3.hs.echHpkeCtx = NULL;

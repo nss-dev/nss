@@ -5521,7 +5521,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
         if (IS_DTLS(ss)) {
             rv = dtls_StageHandshakeMessage(ss);
             if (rv != SECSuccess) {
-                return rv;
+                goto loser;
             }
         }
         /* By default, all messagess are added to both the inner and
