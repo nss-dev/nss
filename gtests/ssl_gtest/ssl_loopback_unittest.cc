@@ -390,7 +390,7 @@ TEST_P(TlsConnectDatagram, ShortRead) {
 TEST_P(TlsConnectStream, ShortRead) {
   // This test behaves oddly with TLS 1.0 because of 1/n+1 splitting,
   // so skip in that case.
-  if (version_ < SSL_LIBRARY_VERSION_TLS_1_1) return;
+  if (version_ < SSL_LIBRARY_VERSION_TLS_1_1) GTEST_SKIP();
 
   Connect();
   server_->SendData(50, 50);

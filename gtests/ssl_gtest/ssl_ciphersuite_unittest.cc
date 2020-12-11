@@ -243,7 +243,7 @@ TEST_P(TlsCipherSuiteTest, SingleCipherSuite) {
 
 TEST_P(TlsCipherSuiteTest, ResumeCipherSuite) {
   if (SkipIfCipherSuiteIsDSA()) {
-    return;  // Tickets don't work with DSA (bug 1174677).
+    GTEST_SKIP() << "Tickets not supported with DSA (bug 1174677).";
   }
 
   SetupCertificate();  // This is only needed once.
@@ -330,7 +330,7 @@ TEST_P(TlsCipherSuiteTest, ReadLimit) {
 TEST_P(TlsCipherSuiteTest, WriteLimit) {
   // This asserts in TLS 1.3 because we expect an automatic update.
   if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
-    return;
+    GTEST_SKIP();
   }
   SetupCertificate();
   EnableSingleCipher();

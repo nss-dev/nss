@@ -1102,7 +1102,7 @@ TEST_P(TlsExtensionTest13, HrrThenRemoveSupportedGroups) {
 TEST_P(TlsExtensionTest13, HrrThenRemoveEch) {
   if (variant_ == ssl_variant_datagram) {
     // ECH not supported in DTLS.
-    return;
+    GTEST_SKIP();
   }
 
   EnsureTlsSetup();
