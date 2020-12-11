@@ -1577,9 +1577,9 @@ TEST_F(TlsConnectStreamTls13, EchOuterExtensionsInCHOuter) {
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
 }
 
-INSTANTIATE_TEST_CASE_P(EchAgentTest, TlsAgentEchTest,
-                        ::testing::Combine(TlsConnectTestBase::kTlsVariantsAll,
-                                           TlsConnectTestBase::kTlsV13));
+INSTANTIATE_TEST_SUITE_P(EchAgentTest, TlsAgentEchTest,
+                         ::testing::Combine(TlsConnectTestBase::kTlsVariantsAll,
+                                            TlsConnectTestBase::kTlsV13));
 #else
 
 TEST_P(TlsAgentEchTest, NoEchWithoutHpke) {
@@ -1596,9 +1596,9 @@ TEST_P(TlsAgentEchTest, NoEchWithoutHpke) {
   ASSERT_EQ(SSL_ERROR_FEATURE_DISABLED, PORT_GetError());
 }
 
-INSTANTIATE_TEST_CASE_P(EchAgentTest, TlsAgentEchTest,
-                        ::testing::Combine(TlsConnectTestBase::kTlsVariantsAll,
-                                           TlsConnectTestBase::kTlsV13));
+INSTANTIATE_TEST_SUITE_P(EchAgentTest, TlsAgentEchTest,
+                         ::testing::Combine(TlsConnectTestBase::kTlsVariantsAll,
+                                            TlsConnectTestBase::kTlsV13));
 
 #endif  // NSS_ENABLE_DRAFT_HPKE
 }  // namespace nss_test

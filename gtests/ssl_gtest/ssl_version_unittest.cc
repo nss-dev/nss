@@ -407,7 +407,7 @@ TEST_F(TlsConnectTest, TlsSupportedVersionsEncoding) {
   EXPECT_EQ(SSL_LIBRARY_VERSION_TLS_1_0, static_cast<int>(version));
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TlsDowngradeSentinelTest, TlsDowngradeTest,
     ::testing::Combine(TlsConnectTestBase::kTlsVariantsStream,
                        TlsConnectTestBase::kTlsVAll,
