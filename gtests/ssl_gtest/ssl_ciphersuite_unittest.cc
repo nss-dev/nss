@@ -348,7 +348,7 @@ TEST_P(TlsCipherSuiteTest, WriteLimit) {
   static const uint16_t k##name##CiphersArr[] = {__VA_ARGS__};                 \
   static const ::testing::internal::ParamGenerator<uint16_t>                   \
       k##name##Ciphers = ::testing::ValuesIn(k##name##CiphersArr);             \
-  INSTANTIATE_TEST_CASE_P(                                                     \
+  INSTANTIATE_TEST_SUITE_P(                                                    \
       CipherSuite##name, TlsCipherSuiteTest,                                   \
       ::testing::Combine(TlsConnectTestBase::kTlsVariants##modes,              \
                          TlsConnectTestBase::kTls##versions, k##name##Ciphers, \
@@ -525,7 +525,7 @@ static const SecStatusParams kSecStatusTestValuesArr[] = {
      "AES-256-GCM", 256},
     {SSL_LIBRARY_VERSION_TLS_1_2, TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
      "ChaCha20-Poly1305", 256}};
-INSTANTIATE_TEST_CASE_P(TestSecurityStatus, SecurityStatusTest,
-                        ::testing::ValuesIn(kSecStatusTestValuesArr));
+INSTANTIATE_TEST_SUITE_P(TestSecurityStatus, SecurityStatusTest,
+                         ::testing::ValuesIn(kSecStatusTestValuesArr));
 
 }  // namespace nss_test

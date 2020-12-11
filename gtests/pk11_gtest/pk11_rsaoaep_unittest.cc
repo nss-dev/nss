@@ -90,30 +90,31 @@ class RsaOaepWycheproofTest
 
 TEST_P(RsaOaepWycheproofTest, OaepDecrypt) { TestDecrypt(GetParam()); }
 
-INSTANTIATE_TEST_CASE_P(WycheproofRsa2048Sha1OaepTest, RsaOaepWycheproofTest,
-                        ::testing::ValuesIn(kRsaOaep2048Sha1WycheproofVectors));
+INSTANTIATE_TEST_SUITE_P(
+    WycheproofRsa2048Sha1OaepTest, RsaOaepWycheproofTest,
+    ::testing::ValuesIn(kRsaOaep2048Sha1WycheproofVectors));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WycheproofOaep2048Sha256Sha1Test, RsaOaepWycheproofTest,
     ::testing::ValuesIn(kRsaOaep2048Sha256Mgf1Sha1WycheproofVectors));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WycheproofOaep2048Sha256Sha256Test, RsaOaepWycheproofTest,
     ::testing::ValuesIn(kRsaOaep2048Sha256Mgf1Sha256WycheproofVectors));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WycheproofOaep2048Sha384Sha1Test, RsaOaepWycheproofTest,
     ::testing::ValuesIn(kRsaOaep2048Sha384Mgf1Sha1WycheproofVectors));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WycheproofOaep2048Sha384Sha384Test, RsaOaepWycheproofTest,
     ::testing::ValuesIn(kRsaOaep2048Sha384Mgf1Sha384WycheproofVectors));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WycheproofOaep2048Sha512Sha1Test, RsaOaepWycheproofTest,
     ::testing::ValuesIn(kRsaOaep2048Sha512Mgf1Sha1WycheproofVectors));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WycheproofOaep2048Sha512Sha512Test, RsaOaepWycheproofTest,
     ::testing::ValuesIn(kRsaOaep2048Sha512Mgf1Sha512WycheproofVectors));
 

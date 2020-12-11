@@ -57,14 +57,14 @@ class RsaDecryptWycheproofTest
 
 TEST_P(RsaDecryptWycheproofTest, Pkcs1Decrypt) { TestDecrypt(GetParam()); }
 
-INSTANTIATE_TEST_CASE_P(WycheproofRsa2048DecryptTest, RsaDecryptWycheproofTest,
-                        ::testing::ValuesIn(kRsa2048DecryptWycheproofVectors));
+INSTANTIATE_TEST_SUITE_P(WycheproofRsa2048DecryptTest, RsaDecryptWycheproofTest,
+                         ::testing::ValuesIn(kRsa2048DecryptWycheproofVectors));
 
-INSTANTIATE_TEST_CASE_P(WycheproofRsa3072DecryptTest, RsaDecryptWycheproofTest,
-                        ::testing::ValuesIn(kRsa3072DecryptWycheproofVectors));
+INSTANTIATE_TEST_SUITE_P(WycheproofRsa3072DecryptTest, RsaDecryptWycheproofTest,
+                         ::testing::ValuesIn(kRsa3072DecryptWycheproofVectors));
 
-INSTANTIATE_TEST_CASE_P(WycheproofRsa4096DecryptTest, RsaDecryptWycheproofTest,
-                        ::testing::ValuesIn(kRsa4096DecryptWycheproofVectors));
+INSTANTIATE_TEST_SUITE_P(WycheproofRsa4096DecryptTest, RsaDecryptWycheproofTest,
+                         ::testing::ValuesIn(kRsa4096DecryptWycheproofVectors));
 
 TEST(RsaEncryptTest, MessageLengths) {
   const uint8_t spki[] = {
