@@ -219,7 +219,7 @@ static SECStatus AuthCompleteFail(TlsAgent* agent, PRBool, PRBool) {
 
 TEST_P(TlsAgentEchTest, EchConfigsSupportedYesNo) {
   if (variant_ == ssl_variant_datagram) {
-    return;
+    GTEST_SKIP();
   }
 
   // ECHConfig 2 cipher_suites are unsupported.
@@ -244,7 +244,7 @@ TEST_P(TlsAgentEchTest, EchConfigsSupportedYesNo) {
 
 TEST_P(TlsAgentEchTest, EchConfigsSupportedNoYes) {
   if (variant_ == ssl_variant_datagram) {
-    return;
+    GTEST_SKIP();
   }
 
   // ECHConfig 1 cipher_suites are unsupported.
@@ -269,7 +269,7 @@ TEST_P(TlsAgentEchTest, EchConfigsSupportedNoYes) {
 
 TEST_P(TlsAgentEchTest, EchConfigsSupportedNoNo) {
   if (variant_ == ssl_variant_datagram) {
-    return;
+    GTEST_SKIP();
   }
 
   // ECHConfig 1 and 2 cipher_suites are unsupported.
