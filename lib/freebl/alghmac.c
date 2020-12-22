@@ -37,12 +37,10 @@ HMAC_Destroy(HMACContext *cx, PRBool freeit)
         PORT_Free(cx);
 }
 
-/* just setup the hmac key */
 static SECStatus
 hmac_initKey(HMACContext *cx, const unsigned char *secret,
              unsigned int secret_len, PRBool isFIPS)
 {
-
     unsigned int i;
     unsigned char hashed_secret[HASH_LENGTH_MAX];
 

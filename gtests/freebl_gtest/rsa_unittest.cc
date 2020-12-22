@@ -77,18 +77,18 @@ TEST_F(RSATest, DecryptBlockTestErrors) {
   EXPECT_EQ(SECFailure, rv);
 
   uint8_t in[256] = {0};
-  // This should fail because the padding checks will fail.
-  // however, Bleichenbacher preventions means that failure would be
-  // a different output.
+  // This should fail because the padding checks will fail,
+  // however, mitigations for Bleichenbacher attacks transform failures
+  // to a different output.
   rv = RSA_DecryptBlock(key.get(), out, &outputLen, maxOutputLen, in,
                         sizeof(in));
   EXPECT_EQ(SECSuccess, rv);
   // outputLen should <= 256-11=245.
   EXPECT_LE(outputLen, 245u);
 
-  // This should fail because the padding checks will fail.
-  // however, Bleichenbacher preventions means that failure would be
-  // a different output.
+  // This should fail because the padding checks will fail,
+  // however, mitigations for Bleichenbacher attacks transform failures
+  // to a different output.
   uint8_t out_long[260] = {0};
   maxOutputLen = sizeof(out_long);
   rv = RSA_DecryptBlock(key.get(), out_long, &outputLen, maxOutputLen, in,

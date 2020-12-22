@@ -166,14 +166,14 @@ TEST(Pkcs11RsaOaepTest, TestOaepWrapUnwrap) {
 
   // This assumes CKM_RSA_PKCS and doesn't understand OAEP.
   // CKM_RSA_PKCS cannot safely return errors, however, as it can lead
-  // to Blecheinbaucher-like attacks. To solve this there's a new definition
+  // to Bleichenbacher-like attacks. To solve this there's a new definition
   // that generates fake key material based on the message and private key.
   // This returned key material will not be the key we were expecting, so
   // make sure that's the case:
   p_unwrapped_tmp = PK11_PubUnwrapSymKey(priv.get(), wrapped.get(), CKM_AES_CBC,
                                          CKA_DECRYPT, 16);
-  // as long as the wrapped data is legal RSA length of the key
-  // (which is should be), then CKM_RSA_PKCS should not fail.
+  // As long as the wrapped data is the same length as the key
+  // (which it should be), then CKM_RSA_PKCS should not fail.
   ASSERT_NE(p_unwrapped_tmp, nullptr);
   ScopedPK11SymKey fakeUnwrapped;
   fakeUnwrapped.reset(p_unwrapped_tmp);
