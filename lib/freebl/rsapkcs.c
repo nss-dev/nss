@@ -1035,7 +1035,7 @@ rsa_HMACPrf(HMACContext *hmac, const char *label, int labelLen,
     return rv;
 }
 
-/* This function takes an input number and
+/* This function takes a 16-bit input number and
  * creates the smallest mask which covers
  * the whole number. Examples:
  *     0x81 -> 0xff
@@ -1082,8 +1082,9 @@ rsa_GetErrorLength(HMACContext *hmac, int hashLen, int maxLegalLen)
 /*
  * This function can only fail in environmental cases: Programming errors
  * and out of memory situations. It can't fail if the keys are valid and
- * the inputs are the proper size. If the actual RSA decryption fails, then
- * and generated return value is returned based on the key and input. 
+ * the inputs are the proper size. If the actual RSA decryption fails, a
+ * fake value and a fake length, both of which have already been generated
+ * based on the key and input, are returned.
  * Applications are expected to detect decryption failures based on the fact
  * that the decrypted value (usually a key) doesn't validate. The prevents
  * Blecheinbaucher style attacks against the key. */
@@ -1184,7 +1185,7 @@ RSA_DecryptBlock(RSAPrivateKey *key,
     ep = errorBuffer + modulusLen - outLen;
 
     /* at this point, outLen returns no information about decryption failures,
-     * no need to hide it's value. maxOutputLen is how much data the 
+     * no need to hide its value. maxOutputLen is how much data the
      * application is expecting, which is also not sensitive. */
     if (outLen > maxOutputLen) {
         outLen = maxOutputLen;
