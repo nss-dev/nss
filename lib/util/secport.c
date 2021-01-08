@@ -749,8 +749,12 @@ NSS_PutEnv(const char *envVarName, const char *envValue)
     strcpy(encoded, envVarName);
     strcat(encoded, "=");
     strcat(encoded, envValue);
+    #if __GNUC__ >= 7
+        putEnvFailed = setenv(envVarName, envValue, 1);
+    #else
+        putEnvFailed = putenv(encoded); /* adopt. */
+    #endif
 
-    putEnvFailed = putenv(encoded); /* adopt. */
     if (putEnvFailed) {
         SET_ERROR_CODE
         result = SECFailure;
