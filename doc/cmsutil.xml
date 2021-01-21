@@ -21,7 +21,7 @@
 
   <refnamediv>
     <refname>cmsutil</refname>
-    <refpurpose>Performs basic cryptograpic operations, such as encryption and decryption, on Cryptographic Message Syntax (CMS) messages.</refpurpose>
+    <refpurpose>Performs basic cryptographic operations, such as encryption and decryption, on Cryptographic Message Syntax (CMS) messages.</refpurpose>
   </refnamediv>
 
   <refsynopsisdiv>
