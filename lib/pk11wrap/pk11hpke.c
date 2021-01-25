@@ -1,5 +1,5 @@
 /*
- * draft-irtf-cfrg-hpke-05
+ * draft-irtf-cfrg-hpke-07
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -94,15 +94,15 @@ PK11_HPKE_SetupR(HpkeContext *cx, const SECKEYPublicKey *pkR, SECKEYPrivateKey *
 }
 
 #else
-static const char *DRAFT_LABEL = "HPKE-05 ";
+
+static const char *DRAFT_LABEL = "HPKE-07";
 static const char *EXP_LABEL = "exp";
 static const char *HPKE_LABEL = "HPKE";
 static const char *INFO_LABEL = "info_hash";
 static const char *KEM_LABEL = "KEM";
 static const char *KEY_LABEL = "key";
-static const char *NONCE_LABEL = "nonce";
+static const char *NONCE_LABEL = "base_nonce";
 static const char *PSK_ID_LABEL = "psk_id_hash";
-static const char *PSK_LABEL = "psk_hash";
 static const char *SECRET_LABEL = "secret";
 static const char *SEC_LABEL = "sec";
 static const char *EAE_PRK_LABEL = "eae_prk";
@@ -114,7 +114,7 @@ struct HpkeContextStr {
     const hpkeAeadParams *aeadParams;
     PRUint8 mode;               /* Base and PSK modes supported. */
     SECItem *encapPubKey;       /* Marshalled public key, sent to receiver. */
-    SECItem *nonce;             /* Deterministic nonce for AEAD. */
+    SECItem *baseNonce;         /* Deterministic nonce for AEAD. */
     SECItem *pskId;             /* PSK identifier (non-secret). */
     PK11Context *aeadContext;   /* AEAD context used by Seal/Open. */
     PRUint64 sequenceNumber;    /* seqNo for decrypt IV construction. */
@@ -132,6 +132,8 @@ static const hpkeKemParams kemParams[] = {
 static const hpkeKdfParams kdfParams[] = {
     /* KDF, Nh, mechanism  */
     { HpkeKdfHkdfSha256, SHA256_LENGTH, CKM_SHA256 },
+    { HpkeKdfHkdfSha384, SHA384_LENGTH, CKM_SHA384 },
+    { HpkeKdfHkdfSha512, SHA512_LENGTH, CKM_SHA512 },
 };
 static const hpkeAeadParams aeadParams[] = {
     /* AEAD, Nk, Nn, tagLen, mechanism  */
@@ -156,6 +158,10 @@ kdfId2Params(HpkeKdfId kdfId)
     switch (kdfId) {
         case HpkeKdfHkdfSha256:
             return &kdfParams[0];
+        case HpkeKdfHkdfSha384:
+            return &kdfParams[1];
+        case HpkeKdfHkdfSha512:
+            return &kdfParams[2];
         default:
             return NULL;
     }
@@ -174,16 +180,16 @@ aeadId2Params(HpkeAeadId aeadId)
     }
 }
 
-static SECStatus
-encodeShort(PRUint32 val, PRUint8 *b)
+static PRUint8 *
+encodeNumber(PRUint64 value, PRUint8 *b, size_t count)
 {
-    if (val > 0xFFFF || !b) {
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        return SECFailure;
-    }
-    b[0] = (val >> 8) & 0xff;
-    b[1] = val & 0xff;
-    return SECSuccess;
+    PRUint64 encoded;
+    PORT_Assert(b && count > 0 && count <= sizeof(encoded));
+
+    encoded = PR_htonll(value);
+    PORT_Memcpy(b, ((unsigned char *)(&encoded)) + (sizeof(encoded) - count),
+                count);
+    return b + count;
 }
 
 SECStatus
@@ -268,14 +274,14 @@ PK11_HPKE_DestroyContext(HpkeContext *cx, PRBool freeit)
     PK11_FreeSymKey(cx->key);
     PK11_FreeSymKey(cx->psk);
     SECITEM_FreeItem(cx->pskId, PR_TRUE);
-    SECITEM_FreeItem(cx->nonce, PR_TRUE);
+    SECITEM_FreeItem(cx->baseNonce, PR_TRUE);
     SECITEM_FreeItem(cx->encapPubKey, PR_TRUE);
     cx->exporterSecret = NULL;
     cx->sharedSecret = NULL;
     cx->key = NULL;
     cx->psk = NULL;
     cx->pskId = NULL;
-    cx->nonce = NULL;
+    cx->baseNonce = NULL;
     cx->encapPubKey = NULL;
     if (freeit) {
         PORT_ZFree(cx, sizeof(HpkeContext));
@@ -347,7 +353,7 @@ PK11_HPKE_Deserialize(const HpkeContext *cx, const PRUint8 *enc,
     // Set parameters.
     pubKey->u.ec.DEREncodedParams.data[0] = SEC_ASN1_OBJECT_ID;
     pubKey->u.ec.DEREncodedParams.data[1] = oidData->oid.len;
-    memcpy(pubKey->u.ec.DEREncodedParams.data + 2, oidData->oid.data, oidData->oid.len);
+    PORT_Memcpy(pubKey->u.ec.DEREncodedParams.data + 2, oidData->oid.data, oidData->oid.len);
     *outPubKey = pubKey;
 
 CLEANUP:
@@ -403,7 +409,7 @@ pk11_hpke_GenerateKeyPair(const HpkeContext *cx, SECKEYPublicKey **pkE,
     ecp.type = siDEROID;
     ecp.data[0] = SEC_ASN1_OBJECT_ID;
     ecp.data[1] = oidData->oid.len;
-    memcpy(&ecp.data[2], oidData->oid.data, oidData->oid.len);
+    PORT_Memcpy(&ecp.data[2], oidData->oid.data, oidData->oid.len);
 
     slot = PK11_GetBestSlot(CKM_EC_KEY_PAIR_GEN, NULL);
     CHECK_FAIL(!slot);
@@ -433,21 +439,21 @@ pk11_hpke_MakeExtractLabel(const char *prefix, unsigned int prefixLen,
                            const SECItem *suiteId, const SECItem *ikm)
 {
     SECItem *out = NULL;
-    size_t off = 0;
+    PRUint8 *walker;
     out = SECITEM_AllocItem(NULL, NULL, prefixLen + labelLen + suiteId->len + (ikm ? ikm->len : 0));
     if (!out) {
         return NULL;
     }
 
-    memcpy(&out->data[off], prefix, prefixLen);
-    off += prefixLen;
-    memcpy(&out->data[off], suiteId->data, suiteId->len);
-    off += suiteId->len;
-    memcpy(&out->data[off], label, labelLen);
-    off += labelLen;
+    walker = out->data;
+    PORT_Memcpy(walker, prefix, prefixLen);
+    walker += prefixLen;
+    PORT_Memcpy(walker, suiteId->data, suiteId->len);
+    walker += suiteId->len;
+    PORT_Memcpy(walker, label, labelLen);
+    walker += labelLen;
     if (ikm && ikm->data) {
-        memcpy(&out->data[off], ikm->data, ikm->len);
-        off += ikm->len;
+        PORT_Memcpy(walker, ikm->data, ikm->len);
     }
 
     return out;
@@ -474,7 +480,7 @@ pk11_hpke_LabeledExtractData(const HpkeContext *cx, SECItem *salt,
     CHECK_FAIL(!labeledIkm);
     params.bExtract = CK_TRUE;
     params.bExpand = CK_FALSE;
-    params.prfHashMechanism = cx->kemParams->hashMech;
+    params.prfHashMechanism = cx->kdfParams->mech;
     params.ulSaltType = salt ? CKF_HKDF_SALT_DATA : CKF_HKDF_SALT_NULL;
     params.pSalt = salt ? (CK_BYTE_PTR)salt->data : NULL;
     params.ulSaltLen = salt ? salt->len : 0;
@@ -511,7 +517,7 @@ CLEANUP:
 
 static SECStatus
 pk11_hpke_LabeledExtract(const HpkeContext *cx, PK11SymKey *salt,
-                         const SECItem *suiteId, const char *label,
+                         const SECItem *suiteId, const char *label, CK_MECHANISM_TYPE hashMech,
                          unsigned int labelLen, PK11SymKey *ikm, PK11SymKey **out)
 {
     SECStatus rv = SECSuccess;
@@ -537,7 +543,7 @@ pk11_hpke_LabeledExtract(const HpkeContext *cx, PK11SymKey *salt,
 
     params.bExtract = CK_TRUE;
     params.bExpand = CK_FALSE;
-    params.prfHashMechanism = cx->kemParams->hashMech;
+    params.prfHashMechanism = hashMech;
     params.ulSaltType = salt ? CKF_HKDF_SALT_KEY : CKF_HKDF_SALT_NULL;
     params.hSaltKey = salt ? PK11_GetSymKeyHandle(salt) : CK_INVALID_HANDLE;
 
@@ -555,9 +561,10 @@ CLEANUP:
 static SECStatus
 pk11_hpke_LabeledExpand(const HpkeContext *cx, PK11SymKey *prk, const SECItem *suiteId,
                         const char *label, unsigned int labelLen, const SECItem *info,
-                        unsigned int L, PK11SymKey **outKey, SECItem **outItem)
+                        unsigned int L, CK_MECHANISM_TYPE hashMech, PK11SymKey **outKey,
+                        SECItem **outItem)
 {
-    SECStatus rv;
+    SECStatus rv = SECSuccess;
     CK_MECHANISM_TYPE keyMech;
     CK_MECHANISM_TYPE deriveMech;
     CK_HKDF_PARAMS params = { 0 };
@@ -567,34 +574,32 @@ pk11_hpke_LabeledExpand(const HpkeContext *cx, PK11SymKey *prk, const SECItem *s
                            sizeof(params) };
     SECItem *derivedKeyData;
     PRUint8 encodedL[2];
-    size_t off = 0;
+    PRUint8 *walker = encodedL;
     size_t len;
     PORT_Assert(cx && prk && label && (!!outKey != !!outItem));
 
-    rv = encodeShort(L, encodedL);
-    CHECK_RV(rv);
-
+    walker = encodeNumber(L, walker, 2);
     len = info ? info->len : 0;
     len += sizeof(encodedL) + strlen(DRAFT_LABEL) + suiteId->len + labelLen;
     labeledInfoItem = SECITEM_AllocItem(NULL, NULL, len);
     CHECK_FAIL(!labeledInfoItem);
 
-    memcpy(&labeledInfoItem->data[off], encodedL, sizeof(encodedL));
-    off += sizeof(encodedL);
-    memcpy(&labeledInfoItem->data[off], DRAFT_LABEL, strlen(DRAFT_LABEL));
-    off += strlen(DRAFT_LABEL);
-    memcpy(&labeledInfoItem->data[off], suiteId->data, suiteId->len);
-    off += suiteId->len;
-    memcpy(&labeledInfoItem->data[off], label, labelLen);
-    off += labelLen;
+    walker = labeledInfoItem->data;
+    PORT_Memcpy(walker, encodedL, sizeof(encodedL));
+    walker += sizeof(encodedL);
+    PORT_Memcpy(walker, DRAFT_LABEL, strlen(DRAFT_LABEL));
+    walker += strlen(DRAFT_LABEL);
+    PORT_Memcpy(walker, suiteId->data, suiteId->len);
+    walker += suiteId->len;
+    PORT_Memcpy(walker, label, labelLen);
+    walker += labelLen;
     if (info) {
-        memcpy(&labeledInfoItem->data[off], info->data, info->len);
-        off += info->len;
+        PORT_Memcpy(walker, info->data, info->len);
     }
 
     params.bExtract = CK_FALSE;
     params.bExpand = CK_TRUE;
-    params.prfHashMechanism = cx->kemParams->hashMech;
+    params.prfHashMechanism = hashMech;
     params.ulSaltType = CKF_HKDF_SALT_NULL;
     params.pInfo = labeledInfoItem->data;
     params.ulInfoLen = labeledInfoItem->len;
@@ -635,19 +640,22 @@ pk11_hpke_ExtractAndExpand(const HpkeContext *cx, PK11SymKey *ikm,
     PK11SymKey *eaePrk = NULL;
     PK11SymKey *sharedSecret = NULL;
     PRUint8 suiteIdBuf[5];
+    PRUint8 *walker;
     PORT_Memcpy(suiteIdBuf, KEM_LABEL, strlen(KEM_LABEL));
     SECItem suiteIdItem = { siBuffer, suiteIdBuf, sizeof(suiteIdBuf) };
     PORT_Assert(cx && ikm && kemContext && out);
 
-    rv = encodeShort(cx->kemParams->id, &suiteIdBuf[3]);
-    CHECK_RV(rv);
+    walker = &suiteIdBuf[3];
+    walker = encodeNumber(cx->kemParams->id, walker, 2);
 
     rv = pk11_hpke_LabeledExtract(cx, NULL, &suiteIdItem, EAE_PRK_LABEL,
-                                  strlen(EAE_PRK_LABEL), ikm, &eaePrk);
+                                  cx->kemParams->hashMech, strlen(EAE_PRK_LABEL),
+                                  ikm, &eaePrk);
     CHECK_RV(rv);
 
     rv = pk11_hpke_LabeledExpand(cx, eaePrk, &suiteIdItem, SH_SEC_LABEL, strlen(SH_SEC_LABEL),
-                                 kemContext, cx->kemParams->Nsecret, &sharedSecret, NULL);
+                                 kemContext, cx->kemParams->Nsecret, cx->kemParams->hashMech,
+                                 &sharedSecret, NULL);
     CHECK_RV(rv);
     *out = sharedSecret;
 
@@ -698,7 +706,7 @@ pk11_hpke_Encap(HpkeContext *cx, const SECKEYPublicKey *pkE, SECKEYPrivateKey *s
     kemContext = SECITEM_AllocItem(NULL, NULL, cx->encapPubKey->len + tmpLen);
     CHECK_FAIL(!kemContext);
 
-    memcpy(kemContext->data, cx->encapPubKey->data, cx->encapPubKey->len);
+    PORT_Memcpy(kemContext->data, cx->encapPubKey->data, cx->encapPubKey->len);
     rv = PK11_HPKE_Serialize(pkR, &kemContext->data[cx->encapPubKey->len], &tmpLen, tmpLen);
     CHECK_RV(rv);
 
@@ -723,6 +731,7 @@ PK11_HPKE_ExportSecret(const HpkeContext *cx, const SECItem *info, unsigned int 
     SECStatus rv;
     PK11SymKey *exported;
     PRUint8 suiteIdBuf[10];
+    PRUint8 *walker;
     PORT_Memcpy(suiteIdBuf, HPKE_LABEL, strlen(HPKE_LABEL));
     SECItem suiteIdItem = { siBuffer, suiteIdBuf, sizeof(suiteIdBuf) };
 
@@ -733,15 +742,14 @@ PK11_HPKE_ExportSecret(const HpkeContext *cx, const SECItem *info, unsigned int 
         return SECFailure;
     }
 
-    rv = encodeShort(cx->kemParams->id, &suiteIdBuf[4]);
-    CHECK_RV(rv);
-    rv = encodeShort(cx->kdfParams->id, &suiteIdBuf[6]);
-    CHECK_RV(rv);
-    rv = encodeShort(cx->aeadParams->id, &suiteIdBuf[8]);
-    CHECK_RV(rv);
+    walker = &suiteIdBuf[4];
+    walker = encodeNumber(cx->kemParams->id, walker, 2);
+    walker = encodeNumber(cx->kdfParams->id, walker, 2);
+    walker = encodeNumber(cx->aeadParams->id, walker, 2);
 
     rv = pk11_hpke_LabeledExpand(cx, cx->exporterSecret, &suiteIdItem, SEC_LABEL,
-                                 strlen(SEC_LABEL), info, L, &exported, NULL);
+                                 strlen(SEC_LABEL), info, L, cx->kdfParams->mech,
+                                 &exported, NULL);
     CHECK_RV(rv);
     *out = exported;
 
@@ -785,7 +793,7 @@ pk11_hpke_Decap(HpkeContext *cx, const SECKEYPublicKey *pkR, SECKEYPrivateKey *s
     kemContext = SECITEM_AllocItem(NULL, NULL, encS->len + tmpLen);
     CHECK_FAIL(!kemContext);
 
-    memcpy(kemContext->data, encS->data, encS->len);
+    PORT_Memcpy(kemContext->data, encS->data, encS->len);
     rv = PK11_HPKE_Serialize(pkR, &kemContext->data[encS->len], &tmpLen,
                              kemContext->len - encS->len);
     CHECK_RV(rv);
@@ -820,21 +828,19 @@ pk11_hpke_KeySchedule(HpkeContext *cx, const SECItem *info)
     SECItem contextItem = { siBuffer, NULL, 0 };
     unsigned int len;
     unsigned int off;
-    PK11SymKey *pskHash = NULL;
     PK11SymKey *secret = NULL;
     SECItem *pskIdHash = NULL;
     SECItem *infoHash = NULL;
     PRUint8 suiteIdBuf[10];
+    PRUint8 *walker;
     PORT_Memcpy(suiteIdBuf, HPKE_LABEL, strlen(HPKE_LABEL));
     SECItem suiteIdItem = { siBuffer, suiteIdBuf, sizeof(suiteIdBuf) };
     PORT_Assert(cx && info && cx->psk && cx->pskId);
 
-    rv = encodeShort(cx->kemParams->id, &suiteIdBuf[4]);
-    CHECK_RV(rv);
-    rv = encodeShort(cx->kdfParams->id, &suiteIdBuf[6]);
-    CHECK_RV(rv);
-    rv = encodeShort(cx->aeadParams->id, &suiteIdBuf[8]);
-    CHECK_RV(rv);
+    walker = &suiteIdBuf[4];
+    walker = encodeNumber(cx->kemParams->id, walker, 2);
+    walker = encodeNumber(cx->kdfParams->id, walker, 2);
+    walker = encodeNumber(cx->aeadParams->id, walker, 2);
 
     rv = pk11_hpke_LabeledExtractData(cx, NULL, &suiteIdItem, PSK_ID_LABEL,
                                       strlen(PSK_ID_LABEL), cx->pskId, &pskIdHash);
@@ -847,33 +853,33 @@ pk11_hpke_KeySchedule(HpkeContext *cx, const SECItem *info)
     len = sizeof(cx->mode) + pskIdHash->len + infoHash->len;
     CHECK_FAIL(!SECITEM_AllocItem(NULL, &contextItem, len));
     off = 0;
-    memcpy(&contextItem.data[off], &cx->mode, sizeof(cx->mode));
+    PORT_Memcpy(&contextItem.data[off], &cx->mode, sizeof(cx->mode));
     off += sizeof(cx->mode);
-    memcpy(&contextItem.data[off], pskIdHash->data, pskIdHash->len);
+    PORT_Memcpy(&contextItem.data[off], pskIdHash->data, pskIdHash->len);
     off += pskIdHash->len;
-    memcpy(&contextItem.data[off], infoHash->data, infoHash->len);
+    PORT_Memcpy(&contextItem.data[off], infoHash->data, infoHash->len);
     off += infoHash->len;
 
     // Compute the keys
-    rv = pk11_hpke_LabeledExtract(cx, NULL, &suiteIdItem, PSK_LABEL,
-                                  strlen(PSK_LABEL), cx->psk, &pskHash);
-    CHECK_RV(rv);
-    rv = pk11_hpke_LabeledExtract(cx, pskHash, &suiteIdItem, SECRET_LABEL,
-                                  strlen(SECRET_LABEL), cx->sharedSecret, &secret);
+    rv = pk11_hpke_LabeledExtract(cx, cx->sharedSecret, &suiteIdItem, SECRET_LABEL,
+                                  cx->kdfParams->mech, strlen(SECRET_LABEL),
+                                  cx->psk, &secret);
     CHECK_RV(rv);
     rv = pk11_hpke_LabeledExpand(cx, secret, &suiteIdItem, KEY_LABEL, strlen(KEY_LABEL),
-                                 &contextItem, cx->aeadParams->Nk, &cx->key, NULL);
+                                 &contextItem, cx->aeadParams->Nk, cx->kdfParams->mech,
+                                 &cx->key, NULL);
     CHECK_RV(rv);
     rv = pk11_hpke_LabeledExpand(cx, secret, &suiteIdItem, NONCE_LABEL, strlen(NONCE_LABEL),
-                                 &contextItem, cx->aeadParams->Nn, NULL, &cx->nonce);
+                                 &contextItem, cx->aeadParams->Nn, cx->kdfParams->mech,
+                                 NULL, &cx->baseNonce);
     CHECK_RV(rv);
     rv = pk11_hpke_LabeledExpand(cx, secret, &suiteIdItem, EXP_LABEL, strlen(EXP_LABEL),
-                                 &contextItem, cx->kdfParams->Nh, &cx->exporterSecret, NULL);
+                                 &contextItem, cx->kdfParams->Nh, cx->kdfParams->mech,
+                                 &cx->exporterSecret, NULL);
     CHECK_RV(rv);
 
 CLEANUP:
     /* If !SECSuccess, callers will tear down the context. */
-    PK11_FreeSymKey(pskHash);
     PK11_FreeSymKey(secret);
     SECITEM_FreeItem(&contextItem, PR_FALSE);
     SECITEM_FreeItem(infoHash, PR_TRUE);
@@ -886,7 +892,7 @@ PK11_HPKE_SetupR(HpkeContext *cx, const SECKEYPublicKey *pkR, SECKEYPrivateKey *
                  const SECItem *enc, const SECItem *info)
 {
     SECStatus rv;
-    SECItem nullParams = { siBuffer, NULL, 0 };
+    SECItem empty = { siBuffer, NULL, 0 };
 
     CHECK_FAIL_ERR((!cx || !skR || !info || !enc || !enc->data || !enc->len),
                    SEC_ERROR_INVALID_ARGS);
@@ -903,7 +909,7 @@ PK11_HPKE_SetupR(HpkeContext *cx, const SECKEYPublicKey *pkR, SECKEYPrivateKey *
     PORT_Assert(cx->key);
     cx->aeadContext = PK11_CreateContextBySymKey(cx->aeadParams->mech,
                                                  CKA_NSS_MESSAGE | CKA_DECRYPT,
-                                                 cx->key, &nullParams);
+                                                 cx->key, &empty);
     CHECK_FAIL_ERR((!cx->aeadContext), SEC_ERROR_LIBRARY_FAILURE);
 
 CLEANUP:
@@ -973,8 +979,8 @@ PK11_HPKE_Seal(HpkeContext *cx, const SECItem *aad, const SECItem *pt,
     unsigned char tagBuf[HASH_LENGTH_MAX];
     size_t tagLen;
     unsigned int fixedBits;
-    PORT_Assert(cx->nonce->len == sizeof(ivOut));
-    memcpy(ivOut, cx->nonce->data, cx->nonce->len);
+    PORT_Assert(cx->baseNonce->len == sizeof(ivOut));
+    PORT_Memcpy(ivOut, cx->baseNonce->data, cx->baseNonce->len);
 
     /* aad may be NULL, PT may be zero-length but not NULL. */
     if (!cx || !cx->aeadContext ||
@@ -987,7 +993,7 @@ PK11_HPKE_Seal(HpkeContext *cx, const SECItem *aad, const SECItem *pt,
 
     tagLen = cx->aeadParams->tagLen;
     maxOut = pt->len + tagLen;
-    fixedBits = (cx->nonce->len - 8) * 8;
+    fixedBits = (cx->baseNonce->len - 8) * 8;
     ct = SECITEM_AllocItem(NULL, NULL, maxOut);
     CHECK_FAIL(!ct);
 
@@ -1003,7 +1009,7 @@ PK11_HPKE_Seal(HpkeContext *cx, const SECItem *aad, const SECItem *pt,
     CHECK_FAIL_ERR((ct->len > maxOut - tagLen), SEC_ERROR_LIBRARY_FAILURE);
 
     /* Append the tag to the ciphertext. */
-    memcpy(&ct->data[ct->len], tagBuf, tagLen);
+    PORT_Memcpy(&ct->data[ct->len], tagBuf, tagLen);
     ct->len += tagLen;
     *out = ct;
 
@@ -1023,7 +1029,7 @@ static SECStatus
 pk11_hpke_makeIv(HpkeContext *cx, PRUint8 *iv, size_t ivLen)
 {
     unsigned int counterLen = sizeof(cx->sequenceNumber);
-    PORT_Assert(cx->nonce->len == ivLen);
+    PORT_Assert(cx->baseNonce->len == ivLen);
     PORT_Assert(counterLen == 8);
     if (cx->sequenceNumber == PR_UINT64(0xffffffffffffffff)) {
         /* Overflow */
@@ -1031,9 +1037,9 @@ pk11_hpke_makeIv(HpkeContext *cx, PRUint8 *iv, size_t ivLen)
         return SECFailure;
     }
 
-    memcpy(iv, cx->nonce->data, cx->nonce->len);
+    PORT_Memcpy(iv, cx->baseNonce->data, cx->baseNonce->len);
     for (size_t i = 0; i < counterLen; i++) {
-        iv[cx->nonce->len - 1 - i] ^=
+        iv[cx->baseNonce->len - 1 - i] ^=
             PORT_GET_BYTE_BE(cx->sequenceNumber,
                              counterLen - 1 - i, counterLen);
     }
