@@ -116,6 +116,32 @@ class HpkeTest {
     EXPECT_EQ(msg, opened);
   }
 
+  void ExportSecret(const ScopedHpkeContext &receiver,
+                    ScopedPK11SymKey &exported) {
+    std::vector<uint8_t> context = {'c', 't', 'x', 't'};
+    SECItem context_item = {siBuffer, context.data(),
+                            static_cast<unsigned int>(context.size())};
+    PK11SymKey *tmp_exported = nullptr;
+    ASSERT_EQ(SECSuccess, PK11_HPKE_ExportSecret(receiver.get(), &context_item,
+                                                 64, &tmp_exported));
+    exported.reset(tmp_exported);
+  }
+
+  void ExportImportRecvContext(ScopedHpkeContext &scoped_cx,
+                               PK11SymKey *wrapping_key) {
+    SECItem *tmp_exported = nullptr;
+    EXPECT_EQ(SECSuccess, PK11_HPKE_ExportContext(scoped_cx.get(), wrapping_key,
+                                                  &tmp_exported));
+    EXPECT_NE(nullptr, tmp_exported);
+    ScopedSECItem context(tmp_exported);
+    scoped_cx.reset();
+
+    HpkeContext *tmp_imported =
+        PK11_HPKE_ImportContext(context.get(), wrapping_key);
+    EXPECT_NE(nullptr, tmp_imported);
+    scoped_cx.reset(tmp_imported);
+  }
+
   bool GenerateKeyPair(ScopedSECKEYPublicKey &pub_key,
                        ScopedSECKEYPrivateKey &priv_key) {
     ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
@@ -435,6 +461,105 @@ TEST_F(ModeParameterizedTest, BadEncapsulatedPubKey) {
   EXPECT_EQ(SECFailure, PK11_HPKE_SetupR(sender.get(), pub_key.get(),
                                          priv_key.get(), &long_encap, &empty));
   EXPECT_EQ(SEC_ERROR_INVALID_ARGS, PORT_GetError());
+}
+
+TEST_P(ModeParameterizedTest, ContextExportImportEncrypt) {
+  std::vector<uint8_t> msg = {'s', 'e', 'c', 'r', 'e', 't'};
+  std::vector<uint8_t> aad = {'a', 'a', 'd'};
+
+  ScopedHpkeContext sender;
+  ScopedHpkeContext receiver;
+  SetUpEphemeralContexts(sender, receiver, std::get<0>(GetParam()),
+                         std::get<1>(GetParam()), std::get<2>(GetParam()),
+                         std::get<3>(GetParam()));
+  SealOpen(sender, receiver, msg, aad, nullptr);
+  ExportImportRecvContext(receiver, nullptr);
+  SealOpen(sender, receiver, msg, aad, nullptr);
+}
+
+TEST_P(ModeParameterizedTest, ContextExportImportExport) {
+  ScopedHpkeContext sender;
+  ScopedHpkeContext receiver;
+  ScopedPK11SymKey sender_export;
+  ScopedPK11SymKey receiver_export;
+  ScopedPK11SymKey receiver_reexport;
+  SetUpEphemeralContexts(sender, receiver, std::get<0>(GetParam()),
+                         std::get<1>(GetParam()), std::get<2>(GetParam()),
+                         std::get<3>(GetParam()));
+  ExportSecret(sender, sender_export);
+  ExportSecret(receiver, receiver_export);
+  CheckEquality(sender_export.get(), receiver_export.get());
+  ExportImportRecvContext(receiver, nullptr);
+  ExportSecret(receiver, receiver_reexport);
+  CheckEquality(receiver_export.get(), receiver_reexport.get());
+}
+
+TEST_P(ModeParameterizedTest, ContextExportImportWithWrap) {
+  std::vector<uint8_t> msg = {'s', 'e', 'c', 'r', 'e', 't'};
+  std::vector<uint8_t> aad = {'a', 'a', 'd'};
+
+  // Generate a wrapping key, then use it for export.
+  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  ASSERT_TRUE(slot);
+  ScopedPK11SymKey kek(
+      PK11_KeyGen(slot.get(), CKM_AES_CBC, nullptr, 16, nullptr));
+  ASSERT_NE(nullptr, kek);
+
+  ScopedHpkeContext sender;
+  ScopedHpkeContext receiver;
+  SetUpEphemeralContexts(sender, receiver, std::get<0>(GetParam()),
+                         std::get<1>(GetParam()), std::get<2>(GetParam()),
+                         std::get<3>(GetParam()));
+  SealOpen(sender, receiver, msg, aad, nullptr);
+  ExportImportRecvContext(receiver, kek.get());
+  SealOpen(sender, receiver, msg, aad, nullptr);
+}
+
+TEST_P(ModeParameterizedTest, ExportSenderContext) {
+  std::vector<uint8_t> msg = {'s', 'e', 'c', 'r', 'e', 't'};
+  std::vector<uint8_t> aad = {'a', 'a', 'd'};
+
+  ScopedHpkeContext sender;
+  ScopedHpkeContext receiver;
+  SetUpEphemeralContexts(sender, receiver, std::get<0>(GetParam()),
+                         std::get<1>(GetParam()), std::get<2>(GetParam()),
+                         std::get<3>(GetParam()));
+
+  SECItem *tmp_exported = nullptr;
+  EXPECT_EQ(SECFailure,
+            PK11_HPKE_ExportContext(sender.get(), nullptr, &tmp_exported));
+  EXPECT_EQ(nullptr, tmp_exported);
+  EXPECT_EQ(SEC_ERROR_NOT_A_RECIPIENT, PORT_GetError());
+}
+
+TEST_P(ModeParameterizedTest, ContextUnwrapBadKey) {
+  std::vector<uint8_t> msg = {'s', 'e', 'c', 'r', 'e', 't'};
+  std::vector<uint8_t> aad = {'a', 'a', 'd'};
+
+  // Generate a wrapping key, then use it for export.
+  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  ASSERT_TRUE(slot);
+  ScopedPK11SymKey kek(
+      PK11_KeyGen(slot.get(), CKM_AES_CBC, nullptr, 16, nullptr));
+  ASSERT_NE(nullptr, kek);
+  ScopedPK11SymKey not_kek(
+      PK11_KeyGen(slot.get(), CKM_AES_CBC, nullptr, 16, nullptr));
+  ASSERT_NE(nullptr, not_kek);
+  ScopedHpkeContext sender;
+  ScopedHpkeContext receiver;
+
+  SetUpEphemeralContexts(sender, receiver, std::get<0>(GetParam()),
+                         std::get<1>(GetParam()), std::get<2>(GetParam()),
+                         std::get<3>(GetParam()));
+
+  SECItem *tmp_exported = nullptr;
+  EXPECT_EQ(SECSuccess,
+            PK11_HPKE_ExportContext(receiver.get(), kek.get(), &tmp_exported));
+  EXPECT_NE(nullptr, tmp_exported);
+  ScopedSECItem context(tmp_exported);
+
+  EXPECT_EQ(nullptr, PK11_HPKE_ImportContext(context.get(), not_kek.get()));
+  EXPECT_EQ(SEC_ERROR_BAD_DATA, PORT_GetError());
 }
 
 TEST_P(ModeParameterizedTest, EphemeralKeys) {

@@ -53,11 +53,23 @@ PK11_HPKE_GetEncapPubKey(const HpkeContext *cx)
     return NULL;
 }
 SECStatus
+PK11_HPKE_ExportContext(const HpkeContext *cx, PK11SymKey *wrapKey, SECItem **serialized)
+{
+    PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+    return SECFailure;
+}
+SECStatus
 PK11_HPKE_ExportSecret(const HpkeContext *cx, const SECItem *info,
                        unsigned int L, PK11SymKey **outKey)
 {
     PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
     return SECFailure;
+}
+HpkeContext *
+PK11_HPKE_ImportContext(const SECItem *serialized, PK11SymKey *wrapKey)
+{
+    PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+    return NULL;
 }
 SECStatus
 PK11_HPKE_Open(HpkeContext *cx, const SECItem *aad, const SECItem *ct,
@@ -94,6 +106,7 @@ PK11_HPKE_SetupR(HpkeContext *cx, const SECKEYPublicKey *pkR, SECKEYPrivateKey *
 }
 
 #else
+#define SERIALIZATION_VERSION 1
 
 static const char *DRAFT_LABEL = "HPKE-07";
 static const char *EXP_LABEL = "exp";
@@ -129,12 +142,14 @@ static const hpkeKemParams kemParams[] = {
     { HpkeDhKemX25519Sha256, 32, 32, 32, SEC_OID_CURVE25519, CKM_SHA256 },
 };
 
+#define MAX_WRAPPED_EXP_LEN 72   // Largest kdfParams->Nh + 8
 static const hpkeKdfParams kdfParams[] = {
     /* KDF, Nh, mechanism  */
     { HpkeKdfHkdfSha256, SHA256_LENGTH, CKM_SHA256 },
     { HpkeKdfHkdfSha384, SHA384_LENGTH, CKM_SHA384 },
     { HpkeKdfHkdfSha512, SHA512_LENGTH, CKM_SHA512 },
 };
+#define MAX_WRAPPED_KEY_LEN 40   // Largest aeadParams->Nk + 8
 static const hpkeAeadParams aeadParams[] = {
     /* AEAD, Nk, Nn, tagLen, mechanism  */
     { HpkeAeadAes128Gcm, 16, 12, 16, CKM_AES_GCM },
@@ -189,6 +204,20 @@ encodeNumber(PRUint64 value, PRUint8 *b, size_t count)
     encoded = PR_htonll(value);
     PORT_Memcpy(b, ((unsigned char *)(&encoded)) + (sizeof(encoded) - count),
                 count);
+    return b + count;
+}
+
+static PRUint8 *
+decodeNumber(PRUint64 *value, PRUint8 *b, size_t count)
+{
+    unsigned int i;
+    PRUint64 number = 0;
+    PORT_Assert(b && value && count <= sizeof(*value));
+
+    for (i = 0; i < count; i++) {
+        number = (number << 8) + b[i];
+    }
+    *value = number;
     return b + count;
 }
 
@@ -286,6 +315,246 @@ PK11_HPKE_DestroyContext(HpkeContext *cx, PRBool freeit)
     if (freeit) {
         PORT_ZFree(cx, sizeof(HpkeContext));
     }
+}
+
+/* Export Format:
+    struct {
+        uint8 serilizationVersion;
+        uint8 hpkeVersion;
+        uint16 kemId;
+        uint16 kdfId;
+        uint16 aeadId;
+        uint16 modeId;
+        uint64 sequenceNumber;
+        opaque senderPubKey<1..2^16-1>;
+        opaque baseNonce<1..2^16-1>;
+        opaque key<1..2^16-1>;
+        opaque exporterSecret<1..2^16-1>;
+    } HpkeSerializedContext
+*/
+#define EXPORTED_CTX_BASE_LEN 26 /* Fixed size plus 2B for each variable. */
+#define REMAINING_BYTES(walker, buf) \
+    buf->len - (walker - buf->data)
+SECStatus
+PK11_HPKE_ExportContext(const HpkeContext *cx, PK11SymKey *wrapKey, SECItem **serialized)
+{
+    SECStatus rv;
+    size_t allocLen;
+    PRUint8 *walker;
+    SECItem *keyBytes = NULL;      // Maybe wrapped
+    SECItem *exporterBytes = NULL; // Maybe wrapped
+    SECItem *serializedCx = NULL;
+    PRUint8 wrappedKeyBytes[MAX_WRAPPED_KEY_LEN] = { 0 };
+    PRUint8 wrappedExpBytes[MAX_WRAPPED_EXP_LEN] = { 0 };
+    SECItem wrappedKey = { siBuffer, wrappedKeyBytes, sizeof(wrappedKeyBytes) };
+    SECItem wrappedExp = { siBuffer, wrappedExpBytes, sizeof(wrappedExpBytes) };
+
+    CHECK_FAIL_ERR((!cx || !cx->aeadContext || !serialized), SEC_ERROR_INVALID_ARGS);
+    CHECK_FAIL_ERR((cx->aeadContext->operation != (CKA_NSS_MESSAGE | CKA_DECRYPT)),
+                   SEC_ERROR_NOT_A_RECIPIENT);
+
+    /* If a wrapping key was provided, do the wrap first
+     * so that we know what size to allocate. */
+    if (wrapKey) {
+        rv = PK11_WrapSymKey(CKM_AES_KEY_WRAP_KWP, NULL, wrapKey,
+                             cx->key, &wrappedKey);
+        CHECK_RV(rv);
+        rv = PK11_WrapSymKey(CKM_AES_KEY_WRAP_KWP, NULL, wrapKey,
+                             cx->exporterSecret, &wrappedExp);
+        CHECK_RV(rv);
+
+        keyBytes = &wrappedKey;
+        exporterBytes = &wrappedExp;
+    } else {
+        rv = PK11_ExtractKeyValue(cx->key);
+        CHECK_RV(rv);
+        keyBytes = PK11_GetKeyData(cx->key);
+        CHECK_FAIL(!keyBytes);
+        PORT_Assert(keyBytes->len == cx->aeadParams->Nk);
+
+        rv = PK11_ExtractKeyValue(cx->exporterSecret);
+        CHECK_RV(rv);
+        exporterBytes = PK11_GetKeyData(cx->exporterSecret);
+        CHECK_FAIL(!exporterBytes);
+        PORT_Assert(exporterBytes->len == cx->kdfParams->Nh);
+    }
+
+    allocLen = EXPORTED_CTX_BASE_LEN + cx->baseNonce->len + cx->encapPubKey->len;
+    allocLen += wrapKey ? wrappedKey.len : cx->aeadParams->Nk;
+    allocLen += wrapKey ? wrappedExp.len : cx->kdfParams->Nh;
+
+    serializedCx = SECITEM_AllocItem(NULL, NULL, allocLen);
+    CHECK_FAIL(!serializedCx);
+
+    walker = &serializedCx->data[0];
+    *(walker)++ = (PRUint8)SERIALIZATION_VERSION;
+    *(walker)++ = (PRUint8)HPKE_DRAFT_VERSION;
+
+    walker = encodeNumber(cx->kemParams->id, walker, 2);
+    walker = encodeNumber(cx->kdfParams->id, walker, 2);
+    walker = encodeNumber(cx->aeadParams->id, walker, 2);
+    walker = encodeNumber(cx->mode, walker, 2);
+    walker = encodeNumber(cx->sequenceNumber, walker, 8);
+
+    /* sender public key, serialized. */
+    walker = encodeNumber(cx->encapPubKey->len, walker, 2);
+    PORT_Memcpy(walker, cx->encapPubKey->data, cx->encapPubKey->len);
+    walker += cx->encapPubKey->len;
+
+    /* base nonce */
+    walker = encodeNumber(cx->baseNonce->len, walker, 2);
+    PORT_Memcpy(walker, cx->baseNonce->data, cx->baseNonce->len);
+    walker += cx->baseNonce->len;
+
+    /* key. */
+    walker = encodeNumber(keyBytes->len, walker, 2);
+    PORT_Memcpy(walker, keyBytes->data, keyBytes->len);
+    walker += keyBytes->len;
+
+    /* exporter_secret. */
+    walker = encodeNumber(exporterBytes->len, walker, 2);
+    PORT_Memcpy(walker, exporterBytes->data, exporterBytes->len);
+    walker += exporterBytes->len;
+
+    CHECK_FAIL_ERR(REMAINING_BYTES(walker, serializedCx) != 0,
+                   SEC_ERROR_LIBRARY_FAILURE);
+    *serialized = serializedCx;
+
+CLEANUP:
+    if (rv != SECSuccess) {
+        SECITEM_ZfreeItem(serializedCx, PR_TRUE);
+    }
+    return rv;
+}
+
+HpkeContext *
+PK11_HPKE_ImportContext(const SECItem *serialized, PK11SymKey *wrapKey)
+{
+    SECStatus rv = SECSuccess;
+    HpkeContext *cx = NULL;
+    PRUint8 *walker;
+    PRUint64 tmpn;
+    PRUint8 tmp8;
+    HpkeKemId kem;
+    HpkeKdfId kdf;
+    HpkeAeadId aead;
+    PK11SlotInfo *slot = NULL;
+    PK11SymKey *tmpKey = NULL;
+    SECItem tmpItem = { siBuffer, NULL, 0 };
+    SECItem emptyItem = { siBuffer, NULL, 0 };
+
+    CHECK_FAIL_ERR((!serialized || !serialized->data || serialized->len == 0),
+                   SEC_ERROR_INVALID_ARGS);
+    CHECK_FAIL_ERR((serialized->len < EXPORTED_CTX_BASE_LEN), SEC_ERROR_BAD_DATA);
+
+    walker = serialized->data;
+
+    tmp8 = *(walker++);
+    CHECK_FAIL_ERR((tmp8 != SERIALIZATION_VERSION), SEC_ERROR_BAD_DATA);
+    tmp8 = *(walker++);
+    CHECK_FAIL_ERR((tmp8 != HPKE_DRAFT_VERSION), SEC_ERROR_INVALID_ALGORITHM);
+
+    walker = decodeNumber(&tmpn, walker, 2);
+    kem = (HpkeKemId)tmpn;
+
+    walker = decodeNumber(&tmpn, walker, 2);
+    kdf = (HpkeKdfId)tmpn;
+
+    walker = decodeNumber(&tmpn, walker, 2);
+    aead = (HpkeAeadId)tmpn;
+
+    /* Create context. We'll manually set the mode, though we
+     * no longer have the PSK and have no need for it. */
+    cx = PK11_HPKE_NewContext(kem, kdf, aead, NULL, NULL);
+    CHECK_FAIL(!cx);
+
+    walker = decodeNumber(&tmpn, walker, 2);
+    CHECK_FAIL_ERR((tmpn != HpkeModeBase && tmpn != HpkeModePsk),
+                   SEC_ERROR_BAD_DATA);
+    cx->mode = (HpkeModeId)tmpn;
+
+    walker = decodeNumber(&cx->sequenceNumber, walker, 8);
+    slot = PK11_GetBestSlot(CKM_HKDF_DERIVE, NULL);
+    CHECK_FAIL(!slot);
+
+    /* Import sender public key (serialized). */
+    walker = decodeNumber(&tmpn, walker, 2);
+    CHECK_FAIL_ERR(tmpn >= REMAINING_BYTES(walker, serialized),
+                   SEC_ERROR_BAD_DATA);
+    tmpItem.data = walker;
+    tmpItem.len = tmpn;
+    cx->encapPubKey = SECITEM_DupItem(&tmpItem);
+    CHECK_FAIL(!cx->encapPubKey);
+    walker += tmpItem.len;
+
+    /* Import base_nonce. */
+    walker = decodeNumber(&tmpn, walker, 2);
+    CHECK_FAIL_ERR(tmpn != cx->aeadParams->Nn, SEC_ERROR_BAD_DATA);
+    CHECK_FAIL_ERR(tmpn >= REMAINING_BYTES(walker, serialized),
+                   SEC_ERROR_BAD_DATA);
+    tmpItem.data = walker;
+    tmpItem.len = tmpn;
+    cx->baseNonce = SECITEM_DupItem(&tmpItem);
+    CHECK_FAIL(!cx->baseNonce);
+    walker += tmpItem.len;
+
+    /* Import key */
+    walker = decodeNumber(&tmpn, walker, 2);
+    CHECK_FAIL_ERR(tmpn >= REMAINING_BYTES(walker, serialized),
+                   SEC_ERROR_BAD_DATA);
+    tmpItem.data = walker;
+    tmpItem.len = tmpn;
+    walker += tmpItem.len;
+    if (wrapKey) {
+        cx->key = PK11_UnwrapSymKey(wrapKey, CKM_AES_KEY_WRAP_KWP,
+                                    NULL, &tmpItem, cx->aeadParams->mech,
+                                    CKA_NSS_MESSAGE | CKA_DECRYPT, 0);
+        CHECK_FAIL(!cx->key);
+    } else {
+        CHECK_FAIL_ERR(tmpn != cx->aeadParams->Nk, SEC_ERROR_BAD_DATA);
+        tmpKey = PK11_ImportSymKey(slot, cx->aeadParams->mech,
+                                   PK11_OriginUnwrap, CKA_NSS_MESSAGE | CKA_DECRYPT,
+                                   &tmpItem, NULL);
+        CHECK_FAIL(!tmpKey);
+        cx->key = tmpKey;
+    }
+
+    /* Import exporter_secret. */
+    walker = decodeNumber(&tmpn, walker, 2);
+    CHECK_FAIL_ERR(tmpn != REMAINING_BYTES(walker, serialized),
+                   SEC_ERROR_BAD_DATA);
+    tmpItem.data = walker;
+    tmpItem.len = tmpn;
+    walker += tmpItem.len;
+
+    if (wrapKey) {
+        cx->exporterSecret = PK11_UnwrapSymKey(wrapKey, CKM_AES_KEY_WRAP_KWP,
+                                               NULL, &tmpItem, cx->kdfParams->mech,
+                                               CKM_HKDF_DERIVE, 0);
+        CHECK_FAIL(!cx->exporterSecret);
+    } else {
+        CHECK_FAIL_ERR(tmpn != cx->kdfParams->Nh, SEC_ERROR_BAD_DATA);
+        tmpKey = PK11_ImportSymKey(slot, CKM_HKDF_DERIVE, PK11_OriginUnwrap,
+                                   CKA_DERIVE, &tmpItem, NULL);
+        CHECK_FAIL(!tmpKey);
+        cx->exporterSecret = tmpKey;
+    }
+
+    cx->aeadContext = PK11_CreateContextBySymKey(cx->aeadParams->mech,
+                                                 CKA_NSS_MESSAGE | CKA_DECRYPT,
+                                                 cx->key, &emptyItem);
+
+CLEANUP:
+    if (rv != SECSuccess) {
+        PK11_FreeSymKey(tmpKey);
+        PK11_HPKE_DestroyContext(cx, PR_TRUE);
+        cx = NULL;
+    }
+    if (slot) {
+        PK11_FreeSlot(slot);
+    }
+
+    return cx;
 }
 
 SECStatus
@@ -799,6 +1068,12 @@ pk11_hpke_Decap(HpkeContext *cx, const SECKEYPublicKey *pkR, SECKEYPrivateKey *s
     CHECK_RV(rv);
     rv = pk11_hpke_ExtractAndExpand(cx, dh, kemContext, &cx->sharedSecret);
     CHECK_RV(rv);
+
+    /* Store the sender serialized public key, which
+     * may be required by application use cases. */
+    cx->encapPubKey = SECITEM_DupItem(encS);
+    CHECK_FAIL(!cx->encapPubKey);
+
 CLEANUP:
     if (rv != SECSuccess) {
         PK11_FreeSymKey(cx->sharedSecret);
@@ -817,7 +1092,6 @@ PK11_HPKE_GetEncapPubKey(const HpkeContext *cx)
     if (!cx) {
         return NULL;
     }
-    /* Will be NULL on receiver. */
     return cx->encapPubKey;
 }
 
@@ -1088,4 +1362,5 @@ CLEANUP:
     }
     return rv;
 }
+
 #endif // NSS_ENABLE_DRAFT_HPKE
