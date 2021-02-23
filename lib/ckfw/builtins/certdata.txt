@@ -461,7 +461,10 @@ CKA_VALUE MULTILINE_OCTAL
 END
 CKA_NSS_MOZILLA_CA_POLICY CK_BBOOL CK_TRUE
 CKA_NSS_SERVER_DISTRUST_AFTER CK_BBOOL CK_FALSE
-CKA_NSS_EMAIL_DISTRUST_AFTER CK_BBOOL CK_FALSE
+# For Email Distrust After: Wed Aug 31 00:00:00 2022
+CKA_NSS_EMAIL_DISTRUST_AFTER MULTILINE_OCTAL
+\062\062\060\070\063\061\060\060\060\060\060\060\132
+END
 
 # Trust for Certificate "Verisign Class 1 Public Primary Certification Authority - G3"
 # Issuer: CN=VeriSign Class 1 Public Primary Certification Authority - G3,OU="(c) 1999 VeriSign, Inc. - For authorized use only",OU=VeriSign Trust Network,O="VeriSign, Inc.",C=US
@@ -628,7 +631,10 @@ CKA_VALUE MULTILINE_OCTAL
 END
 CKA_NSS_MOZILLA_CA_POLICY CK_BBOOL CK_TRUE
 CKA_NSS_SERVER_DISTRUST_AFTER CK_BBOOL CK_FALSE
-CKA_NSS_EMAIL_DISTRUST_AFTER CK_BBOOL CK_FALSE
+# For Email Distrust After: Wed Aug 31 00:00:00 2022
+CKA_NSS_EMAIL_DISTRUST_AFTER MULTILINE_OCTAL
+\062\062\060\070\063\061\060\060\060\060\060\060\132
+END
 
 # Trust for Certificate "Verisign Class 2 Public Primary Certification Authority - G3"
 # Issuer: CN=VeriSign Class 2 Public Primary Certification Authority - G3,OU="(c) 1999 VeriSign, Inc. - For authorized use only",OU=VeriSign Trust Network,O="VeriSign, Inc.",C=US
@@ -8820,7 +8826,10 @@ CKA_NSS_MOZILLA_CA_POLICY CK_BBOOL CK_TRUE
 CKA_NSS_SERVER_DISTRUST_AFTER MULTILINE_OCTAL
 \061\071\061\062\062\070\060\060\060\060\060\060\132
 END
-CKA_NSS_EMAIL_DISTRUST_AFTER CK_BBOOL CK_FALSE
+# For Email Distrust After: Wed Aug 31 00:00:00 2022
+CKA_NSS_EMAIL_DISTRUST_AFTER MULTILINE_OCTAL
+\062\062\060\070\063\061\060\060\060\060\060\060\132
+END
 
 # Trust for Certificate "EC-ACC"
 # Issuer: CN=EC-ACC,OU=Jerarquia Entitats de Certificacio Catalanes,OU=Vegeu https://www.catcert.net/verarrel (c)03,OU=Serveis Publics de Certificacio,O=Agencia Catalana de Certificacio (NIF Q-0801176-I),C=ES
@@ -16165,7 +16174,10 @@ CKA_VALUE MULTILINE_OCTAL
 END
 CKA_NSS_MOZILLA_CA_POLICY CK_BBOOL CK_TRUE
 CKA_NSS_SERVER_DISTRUST_AFTER CK_BBOOL CK_FALSE
-CKA_NSS_EMAIL_DISTRUST_AFTER CK_BBOOL CK_FALSE
+# For Email Distrust After: Wed Aug 31 00:00:00 2022
+CKA_NSS_EMAIL_DISTRUST_AFTER MULTILINE_OCTAL
+\062\062\060\070\063\061\060\060\060\060\060\060\132
+END
 
 # Trust for "Symantec Class 1 Public Primary Certification Authority - G6"
 # Issuer: CN=Symantec Class 1 Public Primary Certification Authority - G6,OU=Symantec Trust Network,O=Symantec Corporation,C=US
@@ -16321,7 +16333,10 @@ CKA_VALUE MULTILINE_OCTAL
 END
 CKA_NSS_MOZILLA_CA_POLICY CK_BBOOL CK_TRUE
 CKA_NSS_SERVER_DISTRUST_AFTER CK_BBOOL CK_FALSE
-CKA_NSS_EMAIL_DISTRUST_AFTER CK_BBOOL CK_FALSE
+# For Email Distrust After: Wed Aug 31 00:00:00 2022
+CKA_NSS_EMAIL_DISTRUST_AFTER MULTILINE_OCTAL
+\062\062\060\070\063\061\060\060\060\060\060\060\132
+END
 
 # Trust for "Symantec Class 2 Public Primary Certification Authority - G6"
 # Issuer: CN=Symantec Class 2 Public Primary Certification Authority - G6,OU=Symantec Trust Network,O=Symantec Corporation,C=US
