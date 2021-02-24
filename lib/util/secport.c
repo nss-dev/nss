@@ -740,8 +740,14 @@ NSS_PutEnv(const char *envVarName, const char *envValue)
         SET_ERROR_CODE
         return SECFailure;
     }
-#endif
-
+#elif defined(__GNUC__) && __GNUC__ >= 7
+    int setEnvFailed;
+    setEnvFailed = setenv(envVarName, envValue, 1);
+    if (setEnvFailed) {
+        SET_ERROR_CODE
+        return SECFailure;
+    }
+#else
     encoded = (char *)PORT_ZAlloc(strlen(envVarName) + 2 + strlen(envValue));
     if (!encoded) {
         return SECFailure;
@@ -749,13 +755,14 @@ NSS_PutEnv(const char *envVarName, const char *envValue)
     strcpy(encoded, envVarName);
     strcat(encoded, "=");
     strcat(encoded, envValue);
-
     putEnvFailed = putenv(encoded); /* adopt. */
+
     if (putEnvFailed) {
         SET_ERROR_CODE
         result = SECFailure;
         PORT_Free(encoded);
     }
+#endif
     return result;
 }
 
