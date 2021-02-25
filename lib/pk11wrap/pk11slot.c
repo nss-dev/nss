@@ -1371,7 +1371,7 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
 
     /* Not all tokens have profile objects or even recognize what profile
      * objects are it's OK for pk11_ReadProfileList to fail */
-    (void) pk11_ReadProfileList(slot);
+    (void)pk11_ReadProfileList(slot);
 
     if (!(slot->isInternal) && (slot->hasRandom)) {
         /* if this slot has a random number generater, use it to add entropy
