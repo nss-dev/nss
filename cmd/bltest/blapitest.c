@@ -803,7 +803,7 @@ struct bltestCipherInfoStr {
 PRBool
 is_symmkeyCipher(bltestCipherMode mode)
 {
-/* change as needed! */
+    /* change as needed! */
     if (mode >= bltestDES_ECB && mode <= bltestCHACHA20_CTR)
         return PR_TRUE;
     return PR_FALSE;
@@ -1153,8 +1153,8 @@ aes_Decrypt(void *cx, unsigned char *output, unsigned int *outputLen,
 
 SECStatus
 chacha20_Encrypt(void *cx, unsigned char *output, unsigned int *outputLen,
-            unsigned int maxOutputLen, const unsigned char *input,
-            unsigned int inputLen)
+                 unsigned int maxOutputLen, const unsigned char *input,
+                 unsigned int inputLen)
 {
     if (maxOutputLen < inputLen) {
         PORT_SetError(SEC_ERROR_OUTPUT_LEN);
@@ -1164,7 +1164,6 @@ chacha20_Encrypt(void *cx, unsigned char *output, unsigned int *outputLen,
     *outputLen = inputLen;
     return ChaCha20_Xor(output, input, inputLen, ctx->key, ctx->nonce,
                         ctx->counter);
-
 }
 
 SECStatus
@@ -1681,7 +1680,7 @@ bltest_chacha20_ctr_init(bltestCipherInfo *cipherInfo, PRBool encrypt)
                                             sk->iv.buf.data, sk->iv.buf.len,
                                             counter);
 
-    if (cipherInfo->cx == NULL){
+    if (cipherInfo->cx == NULL) {
         PR_fprintf(PR_STDERR, "ChaCha20_CreateContext() returned NULL\n"
                               "key must be 32 bytes, iv must be 12 bytes\n");
         return SECFailure;
@@ -2749,10 +2748,10 @@ getHighUnitBytes(PRInt64 res)
         }
     }
 
-    if (i==0)
+    if (i == 0)
         return PR_smprintf("%d%s", spl[i], marks[i]);
     else
-        return PR_smprintf("%d%s %d%s", spl[i], marks[i], spl[i-1], marks[i-1]);
+        return PR_smprintf("%d%s %d%s", spl[i], marks[i], spl[i - 1], marks[i - 1]);
 }
 
 static void

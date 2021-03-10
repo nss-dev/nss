@@ -2160,10 +2160,10 @@ ChaCha20_Xor(unsigned char *output, const unsigned char *block, unsigned int len
 
 SECStatus
 ChaCha20_InitContext(ChaCha20Context *ctx, const unsigned char *key,
-                                           unsigned int keyLen,
-                                           const unsigned char *nonce,
-                                           unsigned int nonceLen,
-                                           PRUint32 ctr)
+                     unsigned int keyLen,
+                     const unsigned char *nonce,
+                     unsigned int nonceLen,
+                     PRUint32 ctr)
 {
     if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
         return SECFailure;

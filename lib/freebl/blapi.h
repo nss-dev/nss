@@ -1061,7 +1061,6 @@ extern ChaCha20Context *ChaCha20_CreateContext(const unsigned char *key,
 
 extern void ChaCha20_DestroyContext(ChaCha20Context *ctx, PRBool freeit);
 
-
 /******************************************/
 /*
 ** ChaCha20+Poly1305 AEAD
