@@ -69,6 +69,20 @@ Hacl_Chacha20Poly1305_32_aead_decrypt(uint8_t *k, uint8_t *n1, uint32_t aadlen,
                                       uint8_t *aad, uint32_t mlen, uint8_t *m,
                                       uint8_t *cipher, uint8_t *mac);
 
+// Forward declaration from chacha20-ppc64le.S
+void chacha20vsx(uint32_t len, uint8_t *output, uint8_t *block, uint8_t *k,
+                               uint8_t *nonce, uint32_t ctr);
+
+// Forward declaration from chacha20poly1305-ppc.c
+extern void
+Chacha20Poly1305_vsx_aead_encrypt(uint8_t *k, uint8_t *n1, uint32_t aadlen,
+                                  uint8_t *aad, uint32_t mlen, uint8_t *m,
+                                  uint8_t *cipher, uint8_t *mac);
+extern uint32_t
+Chacha20Poly1305_vsx_aead_decrypt(uint8_t *k, uint8_t *n1, uint32_t aadlen,
+                                  uint8_t *aad, uint32_t mlen, uint8_t *m,
+                                  uint8_t *cipher, uint8_t *mac);
+
 SECStatus
 ChaCha20Poly1305_InitContext(ChaCha20Poly1305Context *ctx,
                              const unsigned char *key, unsigned int keyLen,
@@ -144,6 +158,11 @@ ChaCha20Xor(uint8_t *output, uint8_t *block, uint32_t len, uint8_t *k,
         }
 #endif
     } else
+#elif defined(__powerpc64__) && defined(__LITTLE_ENDIAN__) && \
+     !defined(NSS_DISABLE_ALTIVEC) && !defined(NSS_DISABLE_CRYPTO_VSX)
+    if (__builtin_cpu_supports ("vsx")) {
+        chacha20vsx(len, output, block, k, nonce, ctr);
+    } else
 #endif
     {
         Hacl_Chacha20_chacha20_encrypt(len, output, block, k, nonce, ctr);
@@ -212,6 +231,13 @@ ChaCha20Poly1305_Seal(const ChaCha20Poly1305Context *ctx, unsigned char *output,
         }
 #endif
     } else
+#elif defined(__powerpc64__) && defined(__LITTLE_ENDIAN__) && \
+     !defined(NSS_DISABLE_ALTIVEC) && !defined(NSS_DISABLE_CRYPTO_VSX)
+    if (__builtin_cpu_supports ("vsx")) {
+        Chacha20Poly1305_vsx_aead_encrypt(
+            (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, inputLen,
+            (uint8_t *)input, output, output + inputLen);
+    } else
 #endif
     {
         Hacl_Chacha20Poly1305_32_aead_encrypt(
@@ -274,6 +300,13 @@ ChaCha20Poly1305_Open(const ChaCha20Poly1305Context *ctx, unsigned char *output,
         }
 #endif
     } else
+#elif defined(__powerpc64__) && defined(__LITTLE_ENDIAN__) && \
+     !defined(NSS_DISABLE_ALTIVEC) && !defined(NSS_DISABLE_CRYPTO_VSX)
+    if (__builtin_cpu_supports ("vsx")) {
+        res = Chacha20Poly1305_vsx_aead_decrypt(
+            (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, ciphertextLen,
+            (uint8_t *)output, (uint8_t *)input, (uint8_t *)input + ciphertextLen);
+    } else
 #endif
     {
         res = Hacl_Chacha20Poly1305_32_aead_decrypt(
@@ -323,6 +356,13 @@ ChaCha20Poly1305_Encrypt(const ChaCha20Poly1305Context *ctx,
             (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, inputLen,
             (uint8_t *)input, output, outTag);
     } else
+#elif defined(__powerpc64__) && defined(__LITTLE_ENDIAN__) && \
+     !defined(NSS_DISABLE_ALTIVEC) && !defined(NSS_DISABLE_CRYPTO_VSX)
+    if (__builtin_cpu_supports ("vsx")) {
+        Chacha20Poly1305_vsx_aead_encrypt(
+            (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, inputLen,
+            (uint8_t *)input, output, outTag);
+    } else
 #endif
     {
         Hacl_Chacha20Poly1305_32_aead_encrypt(
@@ -367,6 +407,13 @@ ChaCha20Poly1305_Decrypt(const ChaCha20Poly1305Context *ctx,
 #ifdef NSS_X64
     if (ssse3_support() && sse4_1_support() && avx_support()) {
         res = Hacl_Chacha20Poly1305_128_aead_decrypt(
+            (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, ciphertextLen,
+            (uint8_t *)output, (uint8_t *)input, (uint8_t *)tagIn);
+    } else
+#elif defined(__powerpc64__) && defined(__LITTLE_ENDIAN__) && \
+     !defined(NSS_DISABLE_ALTIVEC) && !defined(NSS_DISABLE_CRYPTO_VSX)
+    if (__builtin_cpu_supports ("vsx")) {
+        res = Chacha20Poly1305_vsx_aead_decrypt(
             (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, ciphertextLen,
             (uint8_t *)output, (uint8_t *)input, (uint8_t *)tagIn);
     } else
