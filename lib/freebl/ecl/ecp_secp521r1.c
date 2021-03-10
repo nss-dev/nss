@@ -4261,7 +4261,7 @@ var_smul_wnaf_two(pt_aff_t *out, const unsigned char a[66],
     int i, d, is_neg, is_inf = 1, flipped = 0;
     int8_t anaf[529] = { 0 };
     int8_t bnaf[529] = { 0 };
-    pt_prj_t Q = { 0 };
+    pt_prj_t Q = {{ 0 }};
     pt_prj_t precomp[DRADIX / 2];
 
     precomp_wnaf(precomp, P);
@@ -4330,7 +4330,7 @@ var_smul_rwnaf(pt_aff_t *out, const unsigned char scalar[66],
 {
     int i, j, d, diff, is_neg;
     int8_t rnaf[106] = { 0 };
-    pt_prj_t Q = { 0 }, lut = { 0 };
+    pt_prj_t Q = {{ 0 }}, lut = {{ 0 }};
     pt_prj_t precomp[DRADIX / 2];
 
     precomp_wnaf(precomp, P);
@@ -4399,8 +4399,8 @@ fixed_smul_cmb(pt_aff_t *out, const unsigned char scalar[66])
 {
     int i, j, k, d, diff, is_neg = 0;
     int8_t rnaf[106] = { 0 };
-    pt_prj_t Q = { 0 }, R = { 0 };
-    pt_aff_t lut = { 0 };
+    pt_prj_t Q = {{ 0 }}, R = {{ 0 }};
+    pt_aff_t lut = {{ 0 }};
 
     scalar_rwnaf(rnaf, scalar);
 
@@ -11533,7 +11533,7 @@ var_smul_wnaf_two(pt_aff_t *out, const unsigned char a[66],
     int i, d, is_neg, is_inf = 1, flipped = 0;
     int8_t anaf[529] = { 0 };
     int8_t bnaf[529] = { 0 };
-    pt_prj_t Q = { 0 };
+    pt_prj_t Q = {{ 0 }};
     pt_prj_t precomp[DRADIX / 2];
 
     precomp_wnaf(precomp, P);
@@ -11602,7 +11602,7 @@ var_smul_rwnaf(pt_aff_t *out, const unsigned char scalar[66],
 {
     int i, j, d, diff, is_neg;
     int8_t rnaf[106] = { 0 };
-    pt_prj_t Q = { 0 }, lut = { 0 };
+    pt_prj_t Q = {{ 0 }}, lut = {{ 0 }};
     pt_prj_t precomp[DRADIX / 2];
 
     precomp_wnaf(precomp, P);
@@ -11671,8 +11671,8 @@ fixed_smul_cmb(pt_aff_t *out, const unsigned char scalar[66])
 {
     int i, j, k, d, diff, is_neg = 0;
     int8_t rnaf[106] = { 0 };
-    pt_prj_t Q = { 0 }, R = { 0 };
-    pt_aff_t lut = { 0 };
+    pt_prj_t Q = {{ 0 }}, R = {{ 0 }};
+    pt_aff_t lut = {{ 0 }};
 
     scalar_rwnaf(rnaf, scalar);
 
