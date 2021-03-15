@@ -19,7 +19,6 @@
 namespace nss_test {
 
 /* See note in pk11pub.h. */
-#ifdef NSS_ENABLE_DRAFT_HPKE
 #include "cpputil.h"
 
 class HpkeTest {
@@ -682,14 +681,5 @@ TEST_F(ModeParameterizedTest, InvalidReceiverKeyType) {
                                          pub_key.get(), &info_item));
   EXPECT_EQ(SEC_ERROR_BAD_KEY, PORT_GetError());
 }
-#else
-TEST(HpkeTest, EnsureNotImplemented) {
-  ScopedHpkeContext cx(
-      PK11_HPKE_NewContext(HpkeDhKemX25519Sha256, HpkeKdfHkdfSha256,
-                           HpkeAeadChaCha20Poly1305, nullptr, nullptr));
-  EXPECT_FALSE(cx.get());
-  EXPECT_EQ(SEC_ERROR_INVALID_ALGORITHM, PORT_GetError());
-}
-#endif  // NSS_ENABLE_DRAFT_HPKE
 
 }  // namespace nss_test

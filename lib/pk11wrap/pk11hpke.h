@@ -8,9 +8,6 @@
 #include "blapit.h"
 #include "seccomon.h"
 
-#ifdef NSS_ENABLE_DRAFT_HPKE
-#define HPKE_DRAFT_VERSION 7
-
 #define CLEANUP                    \
     PORT_Assert(rv == SECSuccess); \
     cleanup
@@ -34,8 +31,6 @@
         rv = SECFailure;          \
         goto cleanup;             \
     }
-
-#endif /* NSS_ENABLE_DRAFT_HPKE */
 
 typedef enum {
     HpkeModeBase = 0,

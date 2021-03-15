@@ -31,7 +31,6 @@ class TlsAgentEchTest : public TlsAgentTestClient13 {
   }
 };
 
-#ifdef NSS_ENABLE_DRAFT_HPKE
 #include "cpputil.h"  // Unused function error if included without HPKE.
 
 static std::string kPublicName("public.name");
@@ -1755,25 +1754,5 @@ TEST_F(TlsConnectStreamTls13, EchBackendAcceptance) {
 INSTANTIATE_TEST_SUITE_P(EchAgentTest, TlsAgentEchTest,
                          ::testing::Combine(TlsConnectTestBase::kTlsVariantsAll,
                                             TlsConnectTestBase::kTlsV13));
-#else
 
-TEST_P(TlsAgentEchTest, NoEchWithoutHpke) {
-  EnsureInit();
-  uint8_t non_null[1];
-  SECKEYPublicKey pub;
-  SECKEYPrivateKey priv;
-  ASSERT_EQ(SECFailure, SSL_SetClientEchConfigs(agent_->ssl_fd(), non_null,
-                                                sizeof(non_null)));
-  ASSERT_EQ(SSL_ERROR_FEATURE_DISABLED, PORT_GetError());
-
-  ASSERT_EQ(SECFailure, SSL_SetServerEchConfigs(agent_->ssl_fd(), &pub, &priv,
-                                                non_null, sizeof(non_null)));
-  ASSERT_EQ(SSL_ERROR_FEATURE_DISABLED, PORT_GetError());
-}
-
-INSTANTIATE_TEST_SUITE_P(EchAgentTest, TlsAgentEchTest,
-                         ::testing::Combine(TlsConnectTestBase::kTlsVariantsAll,
-                                            TlsConnectTestBase::kTlsV13));
-
-#endif  // NSS_ENABLE_DRAFT_HPKE
 }  // namespace nss_test
