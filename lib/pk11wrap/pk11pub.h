@@ -738,14 +738,8 @@ CK_BBOOL PK11_HasAttributeSet(PK11SlotInfo *slot,
                               PRBool haslock /* must be set to PR_FALSE */);
 
 /**********************************************************************
- *                   Hybrid Public Key Encryption  (draft-07)
+ *                   Hybrid Public Key Encryption
  **********************************************************************/
-/*
- * NOTE: All HPKE functions will fail with SEC_ERROR_INVALID_ALGORITHM
- * unless NSS is compiled with NSS_ENABLE_DRAFT_HPKE while spec (and
- * implementation) is in draft. The eventual RFC number is an input to
- * the key schedule, so applications opting into this MUST be prepared for
- * outputs to change when the implementation is updated or finalized. */
 
 /* Some of the various HPKE arguments would ideally be const, but the
  * underlying PK11 functions take them as non-const. To avoid lying to

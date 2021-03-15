@@ -622,10 +622,6 @@ SSLExp_SetServerEchConfigs(PRFileDesc *fd,
                            const SECKEYPublicKey *pubKey, const SECKEYPrivateKey *privKey,
                            const PRUint8 *echConfigs, unsigned int echConfigsLen)
 {
-#ifndef NSS_ENABLE_DRAFT_HPKE
-    PORT_SetError(SSL_ERROR_FEATURE_DISABLED);
-    return SECFailure;
-#else
     sslSocket *ss;
     SECStatus rv;
     SECItem data = { siBuffer, CONST_CAST(PRUint8, echConfigs), echConfigsLen };
@@ -675,7 +671,6 @@ loser:
     ss->echPubKey = NULL;
     ss->echPrivKey = NULL;
     return SECFailure;
-#endif
 }
 
 /* Client enable. For now, we'll use the first
@@ -685,10 +680,6 @@ SSLExp_SetClientEchConfigs(PRFileDesc *fd,
                            const PRUint8 *echConfigs,
                            unsigned int echConfigsLen)
 {
-#ifndef NSS_ENABLE_DRAFT_HPKE
-    PORT_SetError(SSL_ERROR_FEATURE_DISABLED);
-    return SECFailure;
-#else
     SECStatus rv;
     sslSocket *ss;
     SECItem data = { siBuffer, CONST_CAST(PRUint8, echConfigs), echConfigsLen };
@@ -722,7 +713,6 @@ SSLExp_SetClientEchConfigs(PRFileDesc *fd,
     }
 
     return SECSuccess;
-#endif
 }
 
 /* Set up ECH. This generates an ephemeral sender
