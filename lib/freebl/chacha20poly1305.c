@@ -84,66 +84,6 @@ Chacha20Poly1305_vsx_aead_decrypt(uint8_t *k, uint8_t *n1, uint32_t aadlen,
                                   uint8_t *cipher, uint8_t *mac);
 
 SECStatus
-ChaCha20_InitContext(ChaCha20Context *ctx, const unsigned char *key,
-                     unsigned int keyLen, const unsigned char *nonce,
-                     unsigned int nonceLen, PRUint32 ctr)
-{
-#ifdef NSS_DISABLE_CHACHAPOLY
-    return SECFailure;
-#else
-    if (keyLen != 32) {
-        PORT_SetError(SEC_ERROR_BAD_KEY);
-        return SECFailure;
-    }
-    if (nonceLen != 12) {
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        return SECFailure;
-    }
-
-    ctx->counter = ctr;
-    PORT_Memcpy(ctx->key, key, sizeof(ctx->key));
-    PORT_Memcpy(ctx->nonce, nonce, sizeof(ctx->nonce));
-
-    return SECSuccess;
-#endif
-}
-
-ChaCha20Context *
-ChaCha20_CreateContext(const unsigned char *key, unsigned int keyLen,
-                       const unsigned char *nonce, unsigned int nonceLen,
-                       PRUint32 ctr)
-{
-#ifdef NSS_DISABLE_CHACHAPOLY
-    return NULL;
-#else
-    ChaCha20Context *ctx;
-
-    ctx = PORT_New(ChaCha20Context);
-    if (ctx == NULL) {
-        return NULL;
-    }
-
-    if (ChaCha20_InitContext(ctx, key, keyLen, nonce, nonceLen, ctr) != SECSuccess) {
-        PORT_Free(ctx);
-        ctx = NULL;
-    }
-
-    return ctx;
-#endif
-}
-
-void
-ChaCha20_DestroyContext(ChaCha20Context *ctx, PRBool freeit)
-{
-#ifndef NSS_DISABLE_CHACHAPOLY
-    PORT_Memset(ctx, 0, sizeof(*ctx));
-    if (freeit) {
-        PORT_Free(ctx);
-    }
-#endif
-}
-
-SECStatus
 ChaCha20Poly1305_InitContext(ChaCha20Poly1305Context *ctx,
                              const unsigned char *key, unsigned int keyLen,
                              unsigned int tagLen)
