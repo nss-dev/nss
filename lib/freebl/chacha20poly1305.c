@@ -220,7 +220,7 @@ ChaCha20Xor(uint8_t *output, uint8_t *block, uint32_t len, uint8_t *k,
     } else
 #elif defined(__powerpc64__) && defined(__LITTLE_ENDIAN__) && \
     !defined(NSS_DISABLE_ALTIVEC) && !defined(NSS_DISABLE_CRYPTO_VSX)
-    if (__builtin_cpu_supports("vsx")) {
+    if (ppc_crypto_support()) {
         chacha20vsx(len, output, block, k, nonce, ctr);
     } else
 #endif
@@ -293,7 +293,7 @@ ChaCha20Poly1305_Seal(const ChaCha20Poly1305Context *ctx, unsigned char *output,
     } else
 #elif defined(__powerpc64__) && defined(__LITTLE_ENDIAN__) && \
     !defined(NSS_DISABLE_ALTIVEC) && !defined(NSS_DISABLE_CRYPTO_VSX)
-    if (__builtin_cpu_supports("vsx")) {
+    if (ppc_crypto_support()) {
         Chacha20Poly1305_vsx_aead_encrypt(
             (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, inputLen,
             (uint8_t *)input, output, output + inputLen);
@@ -362,7 +362,7 @@ ChaCha20Poly1305_Open(const ChaCha20Poly1305Context *ctx, unsigned char *output,
     } else
 #elif defined(__powerpc64__) && defined(__LITTLE_ENDIAN__) && \
     !defined(NSS_DISABLE_ALTIVEC) && !defined(NSS_DISABLE_CRYPTO_VSX)
-    if (__builtin_cpu_supports("vsx")) {
+    if (ppc_crypto_support()) {
         res = Chacha20Poly1305_vsx_aead_decrypt(
             (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, ciphertextLen,
             (uint8_t *)output, (uint8_t *)input, (uint8_t *)input + ciphertextLen);
@@ -418,7 +418,7 @@ ChaCha20Poly1305_Encrypt(const ChaCha20Poly1305Context *ctx,
     } else
 #elif defined(__powerpc64__) && defined(__LITTLE_ENDIAN__) && \
     !defined(NSS_DISABLE_ALTIVEC) && !defined(NSS_DISABLE_CRYPTO_VSX)
-    if (__builtin_cpu_supports("vsx")) {
+    if (ppc_crypto_support()) {
         Chacha20Poly1305_vsx_aead_encrypt(
             (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, inputLen,
             (uint8_t *)input, output, outTag);
@@ -472,7 +472,7 @@ ChaCha20Poly1305_Decrypt(const ChaCha20Poly1305Context *ctx,
     } else
 #elif defined(__powerpc64__) && defined(__LITTLE_ENDIAN__) && \
     !defined(NSS_DISABLE_ALTIVEC) && !defined(NSS_DISABLE_CRYPTO_VSX)
-    if (__builtin_cpu_supports("vsx")) {
+    if (ppc_crypto_support()) {
         res = Chacha20Poly1305_vsx_aead_decrypt(
             (uint8_t *)ctx->key, (uint8_t *)nonce, adLen, (uint8_t *)ad, ciphertextLen,
             (uint8_t *)output, (uint8_t *)input, (uint8_t *)tagIn);

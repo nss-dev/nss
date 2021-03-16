@@ -414,7 +414,13 @@
             'gcm-aes-aarch64_c_lib',
           ],
         }],
-        [ 'disable_altivec==0 and (target_arch=="ppc64" or target_arch=="ppc64le")', {
+        [ 'disable_altivec==0 and target_arch=="ppc64"', {
+          'dependencies': [
+            'gcm-aes-ppc_c_lib',
+            'gcm-sha512-ppc_c_lib',
+          ],
+        }],
+        [ 'disable_altivec==0 and target_arch=="ppc64le"', {
           'dependencies': [
             'gcm-aes-ppc_c_lib',
             'gcm-sha512-ppc_c_lib',
