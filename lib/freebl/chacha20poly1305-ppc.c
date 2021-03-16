@@ -25,7 +25,7 @@
 
 /* Forward declaration from chacha20-ppc64le.S */
 void chacha20vsx(uint32_t len, uint8_t *output, uint8_t *block, uint8_t *k,
-                 uint8_t *nonce, uint32_t ctr);
+                               uint8_t *nonce, uint32_t ctr);
 
 static inline void
 poly1305_padded_32(uint64_t *ctx, uint32_t len, uint8_t *text)
