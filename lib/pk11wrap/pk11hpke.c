@@ -65,6 +65,7 @@ static const hpkeKdfParams kdfParams[] = {
 static const hpkeAeadParams aeadParams[] = {
     /* AEAD, Nk, Nn, tagLen, mechanism  */
     { HpkeAeadAes128Gcm, 16, 12, 16, CKM_AES_GCM },
+    { HpkeAeadAes256Gcm, 32, 12, 16, CKM_AES_GCM },
     { HpkeAeadChaCha20Poly1305, 32, 12, 16, CKM_CHACHA20_POLY1305 },
 };
 
@@ -100,8 +101,10 @@ aeadId2Params(HpkeAeadId aeadId)
     switch (aeadId) {
         case HpkeAeadAes128Gcm:
             return &aeadParams[0];
-        case HpkeAeadChaCha20Poly1305:
+        case HpkeAeadAes256Gcm:
             return &aeadParams[1];
+        case HpkeAeadChaCha20Poly1305:
+            return &aeadParams[2];
         default:
             return NULL;
     }

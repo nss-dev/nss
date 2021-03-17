@@ -20,11 +20,11 @@ for tc in json.load(sys.stdin):
     # X25519
     if tc["kem_id"] != 32:
         continue
-    # SHA-2 256, 384, and 512
-    if tc["kdf_id"] != 1 and tc["kdf_id"] != 2 and tc["kdf_id"] != 3:
+    # SHA-2 256, 384, and 512 (1..3)
+    if not tc["kdf_id"] in [1, 2, 3]:
         continue
-    # AES-128-GCM and ChaCha20Poly1305
-    if tc["aead_id"] != 1 and tc["aead_id"] != 3:
+    # AES-128-GCM, AES-256-GCM, and ChaCha20Poly1305 (1..3 also)
+    if not tc["aead_id"] in [1, 2, 3]:
         continue
 
     print(f"{{{i},")
