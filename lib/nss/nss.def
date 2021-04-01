@@ -1220,3 +1220,10 @@ PK11_HPKE_ImportContext;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.64 { 	# NSS 3.64 release
+;+    global:
+PK11_CreateContextByPubKey;
+PK11_CreateContextByPrivKey;
+;+    local:
+;+       *;
+;+};
