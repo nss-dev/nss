@@ -57,6 +57,12 @@
 
 #include "pkcs11f.h"
 
+/* create a definition of SHA1 that's consistent
+ * with the rest of the CKM_SHAxxx hashes*/
+#define CKM_SHA1 CKM_SHA_1
+#define CKM_SHA1_HMAC CKM_SHA_1_HMAC
+#define CKM_SHA1_HMAC_GENERAL CKM_SHA_1_HMAC_GENERAL
+
 typedef struct {
     PRUint8 client_version[2];
     PRUint8 random[46];
@@ -1858,12 +1864,12 @@ NSC_DigestInit(CK_SESSION_HANDLE hSession,
         return crv;
     }
 
-#define INIT_MECH(mech, mmm)                                   \
-    case mech: {                                               \
+#define INIT_MECH(mmm)                                         \
+    case CKM_##mmm: {                                          \
         mmm##Context *mmm##_ctx = mmm##_NewContext();          \
         context->cipherInfo = (void *)mmm##_ctx;               \
         context->cipherInfoLen = mmm##_FlattenSize(mmm##_ctx); \
-        context->currentMech = mech;                           \
+        context->currentMech = CKM_##mmm;                      \
         context->hashUpdate = (SFTKHash)mmm##_Update;          \
         context->end = (SFTKEnd)mmm##_End;                     \
         context->destroy = (SFTKDestroy)mmm##_DestroyContext;  \
@@ -1876,13 +1882,13 @@ NSC_DigestInit(CK_SESSION_HANDLE hSession,
     }
 
     switch (pMechanism->mechanism) {
-        INIT_MECH(CKM_MD2, MD2)
-        INIT_MECH(CKM_MD5, MD5)
-        INIT_MECH(CKM_SHA_1, SHA1)
-        INIT_MECH(CKM_SHA224, SHA224)
-        INIT_MECH(CKM_SHA256, SHA256)
-        INIT_MECH(CKM_SHA384, SHA384)
-        INIT_MECH(CKM_SHA512, SHA512)
+        INIT_MECH(MD2)
+        INIT_MECH(MD5)
+        INIT_MECH(SHA1)
+        INIT_MECH(SHA224)
+        INIT_MECH(SHA256)
+        INIT_MECH(SHA384)
+        INIT_MECH(SHA512)
 
         default:
             crv = CKR_MECHANISM_INVALID;
@@ -2775,7 +2781,29 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
             }
             context->maxLen = nsslowkey_PrivateModulusLen(privKey);
             break;
+
+#define INIT_RSA_PSS_SIG_MECH(mmm)                                                            \
+    case CKM_##mmm##_RSA_PKCS_PSS:                                                            \
+        context->multi = PR_TRUE;                                                             \
+        crv = sftk_doSub##mmm(context);                                                       \
+        if (crv != CKR_OK)                                                                    \
+            break;                                                                            \
+        if (pMechanism->ulParameterLen != sizeof(CK_RSA_PKCS_PSS_PARAMS)) {                   \
+            crv = CKR_MECHANISM_PARAM_INVALID;                                                \
+            break;                                                                            \
+        }                                                                                     \
+        if (((const CK_RSA_PKCS_PSS_PARAMS *)pMechanism->pParameter)->hashAlg != CKM_##mmm) { \
+            crv = CKR_MECHANISM_PARAM_INVALID;                                                \
+            break;                                                                            \
+        }                                                                                     \
+        goto finish_rsa_pss;
+            INIT_RSA_PSS_SIG_MECH(SHA1)
+            INIT_RSA_PSS_SIG_MECH(SHA224)
+            INIT_RSA_PSS_SIG_MECH(SHA256)
+            INIT_RSA_PSS_SIG_MECH(SHA384)
+            INIT_RSA_PSS_SIG_MECH(SHA512)
         case CKM_RSA_PKCS_PSS:
+        finish_rsa_pss:
             if (key_type != CKK_RSA) {
                 crv = CKR_KEY_TYPE_INCONSISTENT;
                 break;
@@ -2803,18 +2831,18 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
             context->maxLen = nsslowkey_PrivateModulusLen(info->key);
             break;
 
-#define INIT_DSA_SIGN_MECH(mmm)         \
+#define INIT_DSA_SIG_MECH(mmm)          \
     case CKM_DSA_##mmm:                 \
         context->multi = PR_TRUE;       \
         crv = sftk_doSub##mmm(context); \
         if (crv != CKR_OK)              \
             break;                      \
         goto finish_dsa;
-            INIT_DSA_SIGN_MECH(SHA1)
-            INIT_DSA_SIGN_MECH(SHA224)
-            INIT_DSA_SIGN_MECH(SHA256)
-            INIT_DSA_SIGN_MECH(SHA384)
-            INIT_DSA_SIGN_MECH(SHA512)
+            INIT_DSA_SIG_MECH(SHA1)
+            INIT_DSA_SIG_MECH(SHA224)
+            INIT_DSA_SIG_MECH(SHA256)
+            INIT_DSA_SIG_MECH(SHA384)
+            INIT_DSA_SIG_MECH(SHA512)
         case CKM_DSA:
         finish_dsa:
             if (key_type != CKK_DSA) {
@@ -2832,18 +2860,18 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
 
             break;
 
-#define INIT_ECDSA_SIGN_MECH(mmm)       \
+#define INIT_ECDSA_SIG_MECH(mmm)        \
     case CKM_ECDSA_##mmm:               \
         context->multi = PR_TRUE;       \
         crv = sftk_doSub##mmm(context); \
         if (crv != CKR_OK)              \
             break;                      \
         goto finish_ecdsa;
-            INIT_ECDSA_SIGN_MECH(SHA1)
-            INIT_ECDSA_SIGN_MECH(SHA224)
-            INIT_ECDSA_SIGN_MECH(SHA256)
-            INIT_ECDSA_SIGN_MECH(SHA384)
-            INIT_ECDSA_SIGN_MECH(SHA512)
+            INIT_ECDSA_SIG_MECH(SHA1)
+            INIT_ECDSA_SIG_MECH(SHA224)
+            INIT_ECDSA_SIG_MECH(SHA256)
+            INIT_ECDSA_SIG_MECH(SHA384)
+            INIT_ECDSA_SIG_MECH(SHA512)
         case CKM_ECDSA:
         finish_ecdsa:
             if (key_type != CKK_EC) {
@@ -2879,23 +2907,12 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
 
             INIT_HMAC_MECH(MD2)
             INIT_HMAC_MECH(MD5)
+            INIT_HMAC_MECH(SHA1)
             INIT_HMAC_MECH(SHA224)
             INIT_HMAC_MECH(SHA256)
             INIT_HMAC_MECH(SHA384)
             INIT_HMAC_MECH(SHA512)
 
-        case CKM_SHA_1_HMAC_GENERAL:
-            PORT_Assert(pMechanism->pParameter);
-            if (!pMechanism->pParameter || pMechanism->ulParameterLen != sizeof(CK_MAC_GENERAL_PARAMS)) {
-                crv = CKR_MECHANISM_PARAM_INVALID;
-                break;
-            }
-            crv = sftk_doMACInit(pMechanism->mechanism, context, key,
-                                 *(CK_ULONG *)pMechanism->pParameter);
-            break;
-        case CKM_SHA_1_HMAC:
-            crv = sftk_doMACInit(pMechanism->mechanism, context, key, SHA1_LENGTH);
-            break;
         case CKM_AES_CMAC_GENERAL:
             PORT_Assert(pMechanism->pParameter);
             if (!pMechanism->pParameter || pMechanism->ulParameterLen != sizeof(CK_MAC_GENERAL_PARAMS)) {
@@ -3557,7 +3574,14 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
                 context->destroy = sftk_Null;
             }
             break;
+
+            INIT_RSA_PSS_SIG_MECH(SHA1)
+            INIT_RSA_PSS_SIG_MECH(SHA224)
+            INIT_RSA_PSS_SIG_MECH(SHA256)
+            INIT_RSA_PSS_SIG_MECH(SHA384)
+            INIT_RSA_PSS_SIG_MECH(SHA512)
         case CKM_RSA_PKCS_PSS:
+        finish_rsa_pss:
             if (key_type != CKK_RSA) {
                 crv = CKR_KEY_TYPE_INCONSISTENT;
                 break;
@@ -3583,13 +3607,14 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
             context->destroy = (SFTKDestroy)sftk_Space;
             context->verify = (SFTKVerify)sftk_RSACheckSignPSS;
             break;
-        case CKM_DSA_SHA1:
-            context->multi = PR_TRUE;
-            crv = sftk_doSubSHA1(context);
-            if (crv != CKR_OK)
-                break;
-        /* fall through */
+
+            INIT_DSA_SIG_MECH(SHA1)
+            INIT_DSA_SIG_MECH(SHA224)
+            INIT_DSA_SIG_MECH(SHA256)
+            INIT_DSA_SIG_MECH(SHA384)
+            INIT_DSA_SIG_MECH(SHA512)
         case CKM_DSA:
+        finish_dsa:
             if (key_type != CKK_DSA) {
                 crv = CKR_KEY_TYPE_INCONSISTENT;
                 break;
@@ -3602,13 +3627,14 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
             context->verify = (SFTKVerify)nsc_DSA_Verify_Stub;
             context->destroy = sftk_Null;
             break;
-        case CKM_ECDSA_SHA1:
-            context->multi = PR_TRUE;
-            crv = sftk_doSubSHA1(context);
-            if (crv != CKR_OK)
-                break;
-        /* fall through */
+
+            INIT_ECDSA_SIG_MECH(SHA1)
+            INIT_ECDSA_SIG_MECH(SHA224)
+            INIT_ECDSA_SIG_MECH(SHA256)
+            INIT_ECDSA_SIG_MECH(SHA384)
+            INIT_ECDSA_SIG_MECH(SHA512)
         case CKM_ECDSA:
+        finish_ecdsa:
             if (key_type != CKK_EC) {
                 crv = CKR_KEY_TYPE_INCONSISTENT;
                 break;
@@ -3625,23 +3651,11 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
 
             INIT_HMAC_MECH(MD2)
             INIT_HMAC_MECH(MD5)
+            INIT_HMAC_MECH(SHA1)
             INIT_HMAC_MECH(SHA224)
             INIT_HMAC_MECH(SHA256)
             INIT_HMAC_MECH(SHA384)
             INIT_HMAC_MECH(SHA512)
-
-        case CKM_SHA_1_HMAC_GENERAL:
-            PORT_Assert(pMechanism->pParameter);
-            if (!pMechanism->pParameter) {
-                crv = CKR_MECHANISM_PARAM_INVALID;
-                break;
-            }
-            crv = sftk_doMACInit(pMechanism->mechanism, context, key,
-                                 *(CK_ULONG *)pMechanism->pParameter);
-            break;
-        case CKM_SHA_1_HMAC:
-            crv = sftk_doMACInit(pMechanism->mechanism, context, key, SHA1_LENGTH);
-            break;
 
         case CKM_SSL3_MD5_MAC:
             PORT_Assert(pMechanism->pParameter);

@@ -125,7 +125,7 @@ SECStatus
 pk11_restoreContext(PK11Context *context, void *space, unsigned long savedLength)
 {
     CK_RV crv;
-    CK_OBJECT_HANDLE objectID = (context->key) ? context->key->objectID : CK_INVALID_HANDLE;
+    CK_OBJECT_HANDLE objectID = context->objectID;
 
     PORT_Assert(space != NULL);
     if (space == NULL) {
@@ -150,7 +150,7 @@ SECStatus pk11_Finalize(PK11Context *context);
  */
 static CK_RV
 pk11_contextInitMessage(PK11Context *context, CK_MECHANISM_PTR mech,
-                        PK11SymKey *key, CK_C_MessageEncryptInit initFunc,
+                        CK_C_MessageEncryptInit initFunc,
                         CK_FLAGS flags, CK_RV scrv)
 {
     PK11SlotInfo *slot = context->slot;
@@ -197,7 +197,6 @@ static SECStatus
 pk11_context_init(PK11Context *context, CK_MECHANISM *mech_info)
 {
     CK_RV crv;
-    PK11SymKey *symKey = context->key;
     SECStatus rv = SECSuccess;
 
     context->simulate_message = PR_FALSE;
@@ -212,7 +211,7 @@ pk11_context_init(PK11Context *context, CK_MECHANISM *mech_info)
             if (context->fortezzaHack) {
                 CK_ULONG count = 0;
                 /* generate the IV for fortezza */
-                crv = PK11_GETTAB(context->slot)->C_EncryptInit(context->session, mech_info, symKey->objectID);
+                crv = PK11_GETTAB(context->slot)->C_EncryptInit(context->session, mech_info, context->objectID);
                 if (crv != CKR_OK) {
                     PK11_ExitContextMonitor(context);
                     break;
@@ -221,7 +220,7 @@ pk11_context_init(PK11Context *context, CK_MECHANISM *mech_info)
                     ->C_EncryptFinal(context->session,
                                      NULL, &count);
             }
-            crv = PK11_GETTAB(context->slot)->C_DecryptInit(context->session, mech_info, symKey->objectID);
+            crv = PK11_GETTAB(context->slot)->C_DecryptInit(context->session, mech_info, context->objectID);
             PK11_ExitContextMonitor(context);
             break;
         case CKA_SIGN:
@@ -230,8 +229,15 @@ pk11_context_init(PK11Context *context, CK_MECHANISM *mech_info)
             PK11_ExitContextMonitor(context);
             break;
         case CKA_VERIFY:
+            /* NOTE: we previously has this set to C_SignInit for Macing.
+             * It turns out now one could possibly use it that way, though,
+             * because PK11_HashOp() always called C_VerifyUpdate on CKA_VERIFY,
+             * which would have failed. So everyone just calls us with CKA_SIGN
+             * when Macing even when they are verifying, no need to 'do it
+             * for them'. It needs to be VerifyInit now so that we can do
+             * PKCS #11 hash/Verify combo operations. */
             PK11_EnterContextMonitor(context);
-            crv = PK11_GETTAB(context->slot)->C_SignInit(context->session, mech_info, symKey->objectID);
+            crv = PK11_GETTAB(context->slot)->C_VerifyInit(context->session, mech_info, context->objectID);
             PK11_ExitContextMonitor(context);
             break;
         case CKA_DIGEST:
@@ -241,22 +247,22 @@ pk11_context_init(PK11Context *context, CK_MECHANISM *mech_info)
             break;
 
         case CKA_NSS_MESSAGE | CKA_ENCRYPT:
-            crv = pk11_contextInitMessage(context, mech_info, symKey,
+            crv = pk11_contextInitMessage(context, mech_info,
                                           PK11_GETTAB(context->slot)->C_MessageEncryptInit,
                                           CKF_MESSAGE_ENCRYPT, CKR_OK);
             break;
         case CKA_NSS_MESSAGE | CKA_DECRYPT:
-            crv = pk11_contextInitMessage(context, mech_info, symKey,
+            crv = pk11_contextInitMessage(context, mech_info,
                                           PK11_GETTAB(context->slot)->C_MessageDecryptInit,
                                           CKF_MESSAGE_DECRYPT, CKR_OK);
             break;
         case CKA_NSS_MESSAGE | CKA_SIGN:
-            crv = pk11_contextInitMessage(context, mech_info, symKey,
+            crv = pk11_contextInitMessage(context, mech_info,
                                           PK11_GETTAB(context->slot)->C_MessageSignInit,
                                           CKF_MESSAGE_SIGN, CKR_FUNCTION_NOT_SUPPORTED);
             break;
         case CKA_NSS_MESSAGE | CKA_VERIFY:
-            crv = pk11_contextInitMessage(context, mech_info, symKey,
+            crv = pk11_contextInitMessage(context, mech_info,
                                           PK11_GETTAB(context->slot)->C_MessageVerifyInit,
                                           CKF_MESSAGE_VERIFY, CKR_FUNCTION_NOT_SUPPORTED);
             break;
@@ -348,16 +354,17 @@ _PK11_ContextGetAEADSimulation(PK11Context *context)
  */
 static PK11Context *
 pk11_CreateNewContextInSlot(CK_MECHANISM_TYPE type,
-                            PK11SlotInfo *slot, CK_ATTRIBUTE_TYPE operation, PK11SymKey *symKey,
-                            SECItem *param)
+                            PK11SlotInfo *slot, CK_ATTRIBUTE_TYPE operation,
+                            PK11SymKey *symKey, CK_OBJECT_HANDLE objectID,
+                            const SECItem *param, void *pwArg)
 {
     CK_MECHANISM mech_info;
     PK11Context *context;
     SECStatus rv;
 
     PORT_Assert(slot != NULL);
-    if (!slot || (!symKey && ((operation != CKA_DIGEST) ||
-                              (type == CKM_SKIPJACK_CBC64)))) {
+    if (!slot || ((objectID == CK_INVALID_HANDLE) && ((operation != CKA_DIGEST) ||
+                                                      (type == CKM_SKIPJACK_CBC64)))) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return NULL;
     }
@@ -382,10 +389,16 @@ pk11_CreateNewContextInSlot(CK_MECHANISM_TYPE type,
 
     /* initialize the critical fields of the context */
     context->operation = operation;
+    /* If we were given a symKey, keep our own reference to it so
+     * that the key doesn't disappear in the middle of the operation
+     * if the caller frees it. Public and Private keys are not reference
+     * counted, so the caller just has to keep his copies around until
+     * the operation completes */
     context->key = symKey ? PK11_ReferenceSymKey(symKey) : NULL;
+    context->objectID = objectID;
     context->slot = PK11_ReferenceSlot(slot);
     context->session = pk11_GetNewSession(slot, &context->ownSession);
-    context->cx = symKey ? symKey->cx : NULL;
+    context->pwArg = pwArg;
     /* get our session */
     context->savedData = NULL;
 
@@ -474,11 +487,11 @@ PK11_CreateContextByRawKey(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
 
 /*
  * Create a context from a key. We really should make sure we aren't using
- * the same key in multiple session!
+ * the same key in multiple sessions!
  */
 PK11Context *
 PK11_CreateContextBySymKey(CK_MECHANISM_TYPE type, CK_ATTRIBUTE_TYPE operation,
-                           PK11SymKey *symKey, SECItem *param)
+                           PK11SymKey *symKey, const SECItem *param)
 {
     PK11SymKey *newKey;
     PK11Context *context;
@@ -491,11 +504,70 @@ PK11_CreateContextBySymKey(CK_MECHANISM_TYPE type, CK_ATTRIBUTE_TYPE operation,
         symKey = newKey;
     }
 
-    /* Context Adopts the symKey.... */
+    /* Context keeps its reference to the symKey, so it's safe to
+     * free our reference we we are through, even though we may have
+     * created the key using pk11_ForceSlot. */
     context = pk11_CreateNewContextInSlot(type, symKey->slot, operation, symKey,
-                                          param);
+                                          symKey->objectID, param, symKey->cx);
     PK11_FreeSymKey(symKey);
     return context;
+}
+
+/* To support multipart public key operations (like hash/verify operations),
+ * we need to create contexts with public keys. */
+PK11Context *
+PK11_CreateContextByPubKey(CK_MECHANISM_TYPE type, CK_ATTRIBUTE_TYPE operation,
+                           SECKEYPublicKey *pubKey, const SECItem *param,
+                           void *pwArg)
+{
+    PK11SlotInfo *slot = pubKey->pkcs11Slot;
+    SECItem nullparam = { 0, 0, 0 };
+
+    /* if this slot doesn't support the mechanism, go to a slot that does */
+    /* public keys have all their data in the public key data structure,
+     * so there's no need to export the old key, just  import this one. The
+     * import manages consistancy of the public key data structure */
+    if (slot == NULL || !PK11_DoesMechanism(slot, type)) {
+        CK_OBJECT_HANDLE objectID;
+        slot = PK11_GetBestSlot(type, NULL);
+        if (slot == NULL) {
+            return NULL;
+        }
+        objectID = PK11_ImportPublicKey(slot, pubKey, PR_FALSE);
+        PK11_FreeSlot(slot);
+        if (objectID == CK_INVALID_HANDLE) {
+            return NULL;
+        }
+    }
+
+    /* unlike symkeys, we accept a NULL parameter. map a null parameter
+     * to the empty parameter. This matches the semantics of
+     * PK11_VerifyWithMechanism */
+    return pk11_CreateNewContextInSlot(type, pubKey->pkcs11Slot, operation,
+                                       NULL, pubKey->pkcs11ID,
+                                       param ? param : &nullparam, pwArg);
+}
+
+/* To support multipart private key operations (like hash/sign operations),
+ * we need to create contexts with private keys. */
+PK11Context *
+PK11_CreateContextByPrivKey(CK_MECHANISM_TYPE type, CK_ATTRIBUTE_TYPE operation,
+                            SECKEYPrivateKey *privKey, const SECItem *param)
+{
+    SECItem nullparam = { 0, 0, 0 };
+    /* Private keys are generally not movable. If the token the
+     * private key lives on can't do the operation, generally we are 
+     * stuck anyway. So no need to try to manipulate the key into
+     * another token */
+
+    /* if this slot doesn't support the mechanism, go to a slot that does */
+    /* unlike symkeys, we accept a NULL parameter. map a null parameter
+     * to the empty parameter. This matches the semantics of
+     * PK11_SignWithMechanism */
+    return pk11_CreateNewContextInSlot(type, privKey->pkcs11Slot, operation,
+                                       NULL, privKey->pkcs11ID,
+                                       param ? param : &nullparam,
+                                       privKey->wincx);
 }
 
 /*
@@ -523,7 +595,8 @@ PK11_CreateDigestContext(SECOidTag hashAlg)
     param.len = 0;
     param.type = 0;
 
-    context = pk11_CreateNewContextInSlot(type, slot, CKA_DIGEST, NULL, &param);
+    context = pk11_CreateNewContextInSlot(type, slot, CKA_DIGEST, NULL,
+                                          CK_INVALID_HANDLE, &param, NULL);
     PK11_FreeSlot(slot);
     return context;
 }
@@ -541,7 +614,8 @@ PK11_CloneContext(PK11Context *old)
     unsigned long len;
 
     newcx = pk11_CreateNewContextInSlot(old->type, old->slot, old->operation,
-                                        old->key, old->param);
+                                        old->key, old->objectID, old->param,
+                                        old->pwArg);
     if (newcx == NULL)
         return NULL;
 
