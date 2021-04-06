@@ -264,14 +264,25 @@
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports'
       ],
-      'cflags': [
-        '-mcrypto',
-        '-maltivec'
-      ],
-      'cflags_mozilla': [
-        '-mcrypto',
-        '-maltivec'
-      ],
+      'conditions': [
+        [ 'disable_crypto_vsx==0', {
+          'cflags': [
+            '-mcrypto',
+            '-maltivec'
+           ],
+           'cflags_mozilla': [
+             '-mcrypto',
+             '-maltivec'
+           ],
+        }, 'disable_crypto_vsx==1', {
+          'cflags': [
+            '-maltivec'
+          ],
+          'cflags_mozilla': [
+            '-maltivec'
+          ],
+        }]
+      ]
     },
     {
       'target_name': 'gcm-sha512-nodepend-ppc_c_lib',
@@ -282,20 +293,35 @@
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports'
       ],
-      'cflags': [
-        '-mcrypto',
-        '-maltivec',
-        '-mvsx',
-        '-funroll-loops',
-        '-fpeel-loops',
-      ],
-      'cflags_mozilla': [
-        '-mcrypto',
-        '-maltivec',
-        '-mvsx',
-        '-funroll-loops',
-        '-fpeel-loops',
-      ],
+      'conditions': [
+        [ 'disable_crypto_vsx==0', {
+          'cflags': [
+            '-mcrypto',
+            '-maltivec',
+            '-mvsx',
+            '-funroll-loops',
+            '-fpeel-loops'
+           ],
+           'cflags_mozilla': [
+            '-mcrypto',
+            '-maltivec',
+            '-mvsx',
+            '-funroll-loops',
+            '-fpeel-loops'
+           ],
+        }, 'disable_crypto_vsx==1', {
+          'cflags': [
+            '-maltivec',
+            '-funroll-loops',
+            '-fpeel-loops'
+          ],
+          'cflags_mozilla': [
+            '-maltivec',
+            '-funroll-loops',
+            '-fpeel-loops'
+          ],
+        }]
+      ]
     },
     {
       'target_name': 'gcm-sha512-ppc_c_lib',
@@ -306,19 +332,34 @@
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports'
       ],
-      'cflags': [
-        '-mcrypto',
-        '-maltivec',
-        '-mvsx',
-        '-funroll-loops',
-        '-fpeel-loops',
-      ],
-      'cflags_mozilla': [
-        '-mcrypto',
-        '-maltivec',
-        '-mvsx',
-        '-funroll-loops',
-        '-fpeel-loops',
+      'conditions': [
+        [ 'disable_crypto_vsx==0', {
+          'cflags': [
+            '-mcrypto',
+            '-maltivec',
+            '-mvsx',
+            '-funroll-loops',
+            '-fpeel-loops'
+           ],
+           'cflags_mozilla': [
+            '-mcrypto',
+            '-maltivec',
+            '-mvsx',
+            '-funroll-loops',
+            '-fpeel-loops'
+           ],
+        }, 'disable_crypto_vsx==1', {
+          'cflags': [
+            '-maltivec',
+            '-funroll-loops',
+            '-fpeel-loops'
+          ],
+          'cflags_mozilla': [
+            '-maltivec',
+            '-funroll-loops',
+            '-fpeel-loops'
+          ],
+        }]
       ],
       'defines!': [
         'FREEBL_NO_DEPEND',
@@ -432,6 +473,11 @@
             'NSS_DISABLE_ALTIVEC',
           ],
         }],
+        [ 'disable_crypto_vsx==1 and (target_arch=="ppc" or target_arch=="ppc64" or target_arch=="ppc64le")', {
+          'defines!': [
+            'NSS_DISABLE_CRYPTO_VSX',
+          ],
+        }],
         [ 'OS=="linux"', {
           'defines!': [
             'FREEBL_NO_DEPEND',
@@ -498,6 +544,11 @@
         [ 'disable_altivec==1 and (target_arch=="ppc64" or target_arch=="ppc64le")', {
           'defines!': [
             'NSS_DISABLE_ALTIVEC',
+          ],
+        }],
+        [ 'disable_crypto_vsx==1 and (target_arch=="ppc" or target_arch=="ppc64" or target_arch=="ppc64le")', {
+          'defines!': [
+            'NSS_DISABLE_CRYPTO_VSX',
           ],
         }],
         [ 'OS!="linux"', {
