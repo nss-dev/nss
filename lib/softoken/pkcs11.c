@@ -2676,6 +2676,9 @@ sftk_RegisterSlot(SFTKSlot *slot, unsigned int moduleIndex)
         nscSlotList[index] = (CK_SLOT_ID *)PORT_Realloc(oldNscSlotList,
                                                         nscSlotListSize[index] * sizeof(CK_SLOT_ID));
         if (nscSlotList[index] == NULL) {
+            /* evidently coverity doesn't know realloc does not
+             * free var if it fails ! */
+            /* coverity [use_after_free : FALSE] */
             nscSlotList[index] = oldNscSlotList;
             nscSlotListSize[index] = oldNscSlotListSize;
             return CKR_HOST_MEMORY;
