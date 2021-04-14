@@ -173,7 +173,9 @@ pk11_contextInitMessage(PK11Context *context, CK_MECHANISM_PTR mech,
      * if those cases */
     if ((version.major >= 3) &&
         PK11_DoesMechanismFlag(slot, (mech)->mechanism, flags)) {
+        PK11_EnterContextMonitor(context);
         crv = (*initFunc)((context)->session, (mech), (key)->objectID);
+        PK11_ExitContextMonitor(context);
         if ((crv == CKR_FUNCTION_NOT_SUPPORTED) ||
             (crv == CKR_MECHANISM_INVALID)) {
             /* we have a 3.0 interface, and the flag was set (or ignored)
@@ -201,29 +203,41 @@ pk11_context_init(PK11Context *context, CK_MECHANISM *mech_info)
     context->simulate_message = PR_FALSE;
     switch (context->operation) {
         case CKA_ENCRYPT:
+            PK11_EnterContextMonitor(context);
             crv = PK11_GETTAB(context->slot)->C_EncryptInit(context->session, mech_info, symKey->objectID);
+            PK11_ExitContextMonitor(context);
             break;
         case CKA_DECRYPT:
+            PK11_EnterContextMonitor(context);
             if (context->fortezzaHack) {
                 CK_ULONG count = 0;
                 /* generate the IV for fortezza */
                 crv = PK11_GETTAB(context->slot)->C_EncryptInit(context->session, mech_info, symKey->objectID);
-                if (crv != CKR_OK)
+                if (crv != CKR_OK) {
+                    PK11_ExitContextMonitor(context);
                     break;
+                }
                 PK11_GETTAB(context->slot)
                     ->C_EncryptFinal(context->session,
                                      NULL, &count);
             }
             crv = PK11_GETTAB(context->slot)->C_DecryptInit(context->session, mech_info, symKey->objectID);
+            PK11_ExitContextMonitor(context);
             break;
         case CKA_SIGN:
+            PK11_EnterContextMonitor(context);
             crv = PK11_GETTAB(context->slot)->C_SignInit(context->session, mech_info, symKey->objectID);
+            PK11_ExitContextMonitor(context);
             break;
         case CKA_VERIFY:
+            PK11_EnterContextMonitor(context);
             crv = PK11_GETTAB(context->slot)->C_SignInit(context->session, mech_info, symKey->objectID);
+            PK11_ExitContextMonitor(context);
             break;
         case CKA_DIGEST:
+            PK11_EnterContextMonitor(context);
             crv = PK11_GETTAB(context->slot)->C_DigestInit(context->session, mech_info);
+            PK11_ExitContextMonitor(context);
             break;
 
         case CKA_NSS_MESSAGE | CKA_ENCRYPT:
@@ -272,12 +286,14 @@ pk11_context_init(PK11Context *context, CK_MECHANISM *mech_info)
      * handle session starvation case.. use our last session to multiplex
      */
     if (!context->ownSession) {
+        PK11_EnterContextMonitor(context);
         context->savedData = pk11_saveContext(context, context->savedData,
                                               &context->savedLength);
         if (context->savedData == NULL)
             rv = SECFailure;
         /* clear out out session for others to use */
         pk11_Finalize(context);
+        PK11_ExitContextMonitor(context);
     }
     return rv;
 }
@@ -396,9 +412,7 @@ pk11_CreateNewContextInSlot(CK_MECHANISM_TYPE type,
     mech_info.mechanism = type;
     mech_info.pParameter = param->data;
     mech_info.ulParameterLen = param->len;
-    PK11_EnterContextMonitor(context);
     rv = pk11_context_init(context, &mech_info);
-    PK11_ExitContextMonitor(context);
 
     if (rv != SECSuccess) {
         PK11_DestroyContext(context, PR_TRUE);
@@ -703,12 +717,12 @@ PK11_DigestBegin(PK11Context *cx)
      */
     PK11_EnterContextMonitor(cx);
     pk11_Finalize(cx);
+    PK11_ExitContextMonitor(cx);
 
     mech_info.mechanism = cx->type;
     mech_info.pParameter = cx->param->data;
     mech_info.ulParameterLen = cx->param->len;
     rv = pk11_context_init(cx, &mech_info);
-    PK11_ExitContextMonitor(cx);
 
     if (rv != SECSuccess) {
         return SECFailure;
