@@ -174,7 +174,7 @@ pk11_contextInitMessage(PK11Context *context, CK_MECHANISM_PTR mech,
     if ((version.major >= 3) &&
         PK11_DoesMechanismFlag(slot, (mech)->mechanism, flags)) {
         PK11_EnterContextMonitor(context);
-        crv = (*initFunc)((context)->session, (mech), (key)->objectID);
+        crv = (*initFunc)((context)->session, (mech), (context)->objectID);
         PK11_ExitContextMonitor(context);
         if ((crv == CKR_FUNCTION_NOT_SUPPORTED) ||
             (crv == CKR_MECHANISM_INVALID)) {
@@ -203,7 +203,7 @@ pk11_context_init(PK11Context *context, CK_MECHANISM *mech_info)
     switch (context->operation) {
         case CKA_ENCRYPT:
             PK11_EnterContextMonitor(context);
-            crv = PK11_GETTAB(context->slot)->C_EncryptInit(context->session, mech_info, symKey->objectID);
+            crv = PK11_GETTAB(context->slot)->C_EncryptInit(context->session, mech_info, context->objectID);
             PK11_ExitContextMonitor(context);
             break;
         case CKA_DECRYPT:
@@ -225,7 +225,7 @@ pk11_context_init(PK11Context *context, CK_MECHANISM *mech_info)
             break;
         case CKA_SIGN:
             PK11_EnterContextMonitor(context);
-            crv = PK11_GETTAB(context->slot)->C_SignInit(context->session, mech_info, symKey->objectID);
+            crv = PK11_GETTAB(context->slot)->C_SignInit(context->session, mech_info, context->objectID);
             PK11_ExitContextMonitor(context);
             break;
         case CKA_VERIFY:
