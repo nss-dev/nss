@@ -6,7 +6,7 @@
 
 1 function with some indirect sub-type change:
 
-  [C]'function PK11Context* PK11_CreateContextBySymKey(CK_MECHANISM_TYPE, CK_ATTRIBUTE_TYPE, PK11SymKey*, SECItem*)' at pk11cxt.c:479:1 has some indirect sub-type changes:
+  [C]'function PK11Context* PK11_CreateContextBySymKey(CK_MECHANISM_TYPE, CK_ATTRIBUTE_TYPE, PK11SymKey*, SECItem*)' at pk11cxt.c:493:1 has some indirect sub-type changes:
     parameter 4 of type 'SECItem*' changed:
       in pointed to type 'typedef SECItem':
         entity changed from 'typedef SECItem' to 'const SECItem'
