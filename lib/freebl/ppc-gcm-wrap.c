@@ -38,14 +38,14 @@ struct ppc_AES_GCMContextStr {
 };
 
 SECStatus ppc_aes_gcmInitCounter(ppc_AES_GCMContext *gcm,
-                                   const unsigned char *iv,
-                                   unsigned long ivLen, unsigned long tagBits,
-                                   const unsigned char *aad, unsigned long aadLen);
+                                 const unsigned char *iv,
+                                 unsigned long ivLen, unsigned long tagBits,
+                                 const unsigned char *aad, unsigned long aadLen);
 
 ppc_AES_GCMContext *
 ppc_AES_GCM_CreateContext(void *context,
-                            freeblCipherFunc cipher,
-                            const unsigned char *params)
+                          freeblCipherFunc cipher,
+                          const unsigned char *params)
 {
     ppc_AES_GCMContext *gcm = NULL;
     AESContext *aes = (AESContext *)context;
@@ -79,8 +79,8 @@ ppc_AES_GCM_CreateContext(void *context,
     }
 
     rv = ppc_aes_gcmInitCounter(gcm, gcmParams->pIv,
-                                  gcmParams->ulIvLen, gcmParams->ulTagBits,
-                                  gcmParams->pAAD, gcmParams->ulAADLen);
+                                gcmParams->ulIvLen, gcmParams->ulTagBits,
+                                gcmParams->pAAD, gcmParams->ulAADLen);
     if (rv != SECSuccess) {
         PORT_Free(gcm);
         return NULL;
@@ -92,9 +92,9 @@ ppc_AES_GCM_CreateContext(void *context,
 
 SECStatus
 ppc_aes_gcmInitCounter(ppc_AES_GCMContext *gcm,
-                         const unsigned char *iv, unsigned long ivLen,
-                         unsigned long tagBits,
-                         const unsigned char *aad, unsigned long aadLen)
+                       const unsigned char *iv, unsigned long ivLen,
+                       unsigned long tagBits,
+                       const unsigned char *aad, unsigned long aadLen)
 {
     unsigned int j;
     SECStatus rv;
@@ -177,10 +177,10 @@ ppc_AES_GCM_DestroyContext(ppc_AES_GCMContext *gcm, PRBool freeit)
 
 SECStatus
 ppc_AES_GCM_EncryptUpdate(ppc_AES_GCMContext *gcm,
-                            unsigned char *outbuf,
-                            unsigned int *outlen, unsigned int maxout,
-                            const unsigned char *inbuf, unsigned int inlen,
-                            unsigned int blocksize)
+                          unsigned char *outbuf,
+                          unsigned int *outlen, unsigned int maxout,
+                          const unsigned char *inbuf, unsigned int inlen,
+                          unsigned int blocksize)
 {
     unsigned int tagBytes;
     unsigned char T[AES_BLOCK_SIZE];
@@ -243,10 +243,10 @@ ppc_AES_GCM_EncryptUpdate(ppc_AES_GCMContext *gcm,
 
 SECStatus
 ppc_AES_GCM_DecryptUpdate(ppc_AES_GCMContext *gcm,
-                            unsigned char *outbuf,
-                            unsigned int *outlen, unsigned int maxout,
-                            const unsigned char *inbuf, unsigned int inlen,
-                            unsigned int blocksize)
+                          unsigned char *outbuf,
+                          unsigned int *outlen, unsigned int maxout,
+                          const unsigned char *inbuf, unsigned int inlen,
+                          unsigned int blocksize)
 {
     unsigned int tagBytes;
     unsigned char T[AES_BLOCK_SIZE];
@@ -318,12 +318,12 @@ ppc_AES_GCM_DecryptUpdate(ppc_AES_GCMContext *gcm,
 
 SECStatus
 ppc_AES_GCM_EncryptAEAD(ppc_AES_GCMContext *gcm,
-                          unsigned char *outbuf,
-                          unsigned int *outlen, unsigned int maxout,
-                          const unsigned char *inbuf, unsigned int inlen,
-                          void *params, unsigned int paramLen,
-                          const unsigned char *aad, unsigned int aadLen,
-                          unsigned int blocksize)
+                        unsigned char *outbuf,
+                        unsigned int *outlen, unsigned int maxout,
+                        const unsigned char *inbuf, unsigned int inlen,
+                        void *params, unsigned int paramLen,
+                        const unsigned char *aad, unsigned int aadLen,
+                        unsigned int blocksize)
 {
     unsigned int tagBytes;
     unsigned char T[AES_BLOCK_SIZE];
@@ -365,7 +365,7 @@ ppc_AES_GCM_EncryptAEAD(ppc_AES_GCMContext *gcm,
     }
 
     rv = ppc_aes_gcmInitCounter(gcm, gcmParams->pIv, gcmParams->ulIvLen,
-                                  gcmParams->ulTagBits, aad, aadLen);
+                                gcmParams->ulTagBits, aad, aadLen);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -373,7 +373,7 @@ ppc_AES_GCM_EncryptAEAD(ppc_AES_GCMContext *gcm,
     tagBytes = (gcm->tagBits + (PR_BITS_PER_BYTE - 1)) / PR_BITS_PER_BYTE;
 
     ppc_aes_gcmCRYPT(inbuf, outbuf, inlen, gcm->CTR, gcm->aes_context->k.expandedKey,
-                   gcm->aes_context->Nr);
+                     gcm->aes_context->Nr);
     ppc_aes_gcmHASH(gcm->Htbl, outbuf, inlen, gcm->T);
 
     gcm->Mlen += inlen;
@@ -387,12 +387,12 @@ ppc_AES_GCM_EncryptAEAD(ppc_AES_GCMContext *gcm,
 
 SECStatus
 ppc_AES_GCM_DecryptAEAD(ppc_AES_GCMContext *gcm,
-                          unsigned char *outbuf,
-                          unsigned int *outlen, unsigned int maxout,
-                          const unsigned char *inbuf, unsigned int inlen,
-                          void *params, unsigned int paramLen,
-                          const unsigned char *aad, unsigned int aadLen,
-                          unsigned int blocksize)
+                        unsigned char *outbuf,
+                        unsigned int *outlen, unsigned int maxout,
+                        const unsigned char *inbuf, unsigned int inlen,
+                        void *params, unsigned int paramLen,
+                        const unsigned char *aad, unsigned int aadLen,
+                        unsigned int blocksize)
 {
     unsigned int tagBytes;
     unsigned char T[AES_BLOCK_SIZE];
@@ -429,7 +429,7 @@ ppc_AES_GCM_DecryptAEAD(ppc_AES_GCMContext *gcm,
     }
 
     rv = ppc_aes_gcmInitCounter(gcm, gcmParams->pIv, gcmParams->ulIvLen,
-                                  gcmParams->ulTagBits, aad, aadLen);
+                                gcmParams->ulTagBits, aad, aadLen);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -440,7 +440,7 @@ ppc_AES_GCM_DecryptAEAD(ppc_AES_GCMContext *gcm,
 
     ppc_aes_gcmHASH(gcm->Htbl, inbuf, inlen, gcm->T);
     ppc_aes_gcmCRYPT(inbuf, outbuf, inlen, gcm->CTR, gcm->aes_context->k.expandedKey,
-                   gcm->aes_context->Nr);
+                     gcm->aes_context->Nr);
 
     gcm->Mlen += inlen;
     ppc_aes_gcmTAG(gcm->Htbl, gcm->T, gcm->Mlen, gcm->Alen, gcm->X0, T);
