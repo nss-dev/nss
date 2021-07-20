@@ -690,6 +690,11 @@ sdb_openDB(const char *name, sqlite3 **sqlDB, int flags)
         openFlags = SQLITE_OPEN_READONLY;
     } else {
         openFlags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+        /* sqlite 3.34 seem to incorrectly open readwrite.
+        * when the file is readonly. Explicitly reject that issue here */
+        if ((_NSSUTIL_Access(name, PR_ACCESS_EXISTS) == PR_SUCCESS) && (_NSSUTIL_Access(name, PR_ACCESS_WRITE_OK) != PR_SUCCESS)) {
+            return SQLITE_READONLY;
+        }
     }
 
     /* Requires SQLite 3.5.0 or newer. */
