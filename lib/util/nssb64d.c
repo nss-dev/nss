@@ -110,7 +110,7 @@ ct_u8_in_range(unsigned char x, unsigned char a, unsigned char b)
      *  The same is true if we perform the shift after the AND
      *      ((a - x - 1) & (x - b - 1)) >> 8.
      */
-    return (unsigned char) (((a - x - 1) & (x - b - 1)) >> 8);
+    return (unsigned char)(((a - x - 1) & (x - b - 1)) >> 8);
 }
 
 /* Convert a base64 code [A-Za-z0-9+/] to its value in {1, 2, ..., 64}.
