@@ -11,7 +11,6 @@ RUN apt-get update \
     make \
     patch \
     mercurial \
-    sqlite3 \
     zlib1g-dev \
  && rm -rf /var/lib/apt/lists/* \
  && apt-get autoremove -y && apt-get clean -y

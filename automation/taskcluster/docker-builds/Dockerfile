@@ -35,7 +35,6 @@ RUN apt-get update \
     valgrind \
     zlib1g-dev \
     clang-format-3.9 \
-    sqlite3 \
  && rm -rf /var/lib/apt/lists/* \
  && apt-get autoremove -y && apt-get clean -y
 
