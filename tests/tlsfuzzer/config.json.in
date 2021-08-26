@@ -158,13 +158,6 @@
                     "-e", "Protocol (3, 3) in SSLv2 compatible ClientHello",
                     "-e", "Protocol (3, 0)"
                 ]
-            },
-            {
-                "name" : "test-tls13-zero-content-type.py",
-                "comment": "https://bugzilla.mozilla.org/show_bug.cgi?id=1662515",
-                "arguments": [
-                    "-p", "@PORT@"
-                ]
             }
         ]
     },
