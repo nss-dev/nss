@@ -503,9 +503,16 @@ typedef SECStatus(PR_CALLBACK *SSLResumptionTokenCallback)(
                          (PRFileDesc * _fd, PRUint32 _size), \
                          (fd, size))
 
-/* If |enabled|, a GREASE ECH extension will be sent in every ClientHello,
+/* Client:
+ * If |enabled|, a GREASE ECH extension will be sent in every ClientHello,
  * unless a valid and supported ECHConfig is configured to the socket
- * (in which case real ECH takes precedence). If |!enabled|, it is not sent.*/
+ * (in which case real ECH takes precedence). If |!enabled|, it is not sent.
+ *
+ * Server:
+ * If |enabled|, a GREASE ECH extensions will be sent in every HelloRetryRequest,
+ * provided that the corresponding ClientHello contained an ECH extension. If ECH
+ * is enabled, the real ECH HRR extension takes precedence.
+ */
 #define SSL_EnableTls13GreaseEch(fd, enabled)        \
     SSL_EXPERIMENTAL_API("SSL_EnableTls13GreaseEch", \
                          (PRFileDesc * _fd, PRBool _enabled), (fd, enabled))
