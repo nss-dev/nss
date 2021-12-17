@@ -289,6 +289,7 @@ typedef struct sslOptionsStr {
     unsigned int suppressEndOfEarlyData : 1;
     unsigned int enableTls13GreaseEch : 1;
     unsigned int enableTls13BackendEch : 1;
+    unsigned int callExtensionWriterOnEchInner : 1;
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -1958,6 +1959,7 @@ SECStatus SSLExp_DestroyMaskingContext(SSLMaskingContext *ctx);
 SECStatus SSLExp_EnableTls13GreaseEch(PRFileDesc *fd, PRBool enabled);
 
 SECStatus SSLExp_EnableTls13BackendEch(PRFileDesc *fd, PRBool enabled);
+SECStatus SSLExp_CallExtensionWriterOnEchInner(PRFileDesc *fd, PRBool enabled);
 
 SEC_END_PROTOS
 

@@ -278,7 +278,7 @@ SSLExp_InstallExtensionHooks(PRFileDesc *fd, PRUint16 extension,
     return SECSuccess;
 }
 
-static sslCustomExtensionHooks *
+sslCustomExtensionHooks *
 ssl_FindCustomExtensionHooks(sslSocket *ss, PRUint16 extension)
 {
     PRCList *cursor;
@@ -632,7 +632,7 @@ ssl3_RegisterExtensionSender(const sslSocket *ss,
     return SECFailure;
 }
 
-static SECStatus
+SECStatus
 ssl_CallCustomExtensionSenders(sslSocket *ss, sslBuffer *buf,
                                SSLHandshakeType message)
 {
@@ -804,6 +804,9 @@ ssl_ConstructExtensions(sslSocket *ss, sslBuffer *buf, SSLHandshakeType message)
     }
 
     if (!PR_CLIST_IS_EMPTY(&ss->extensionHooks)) {
+        if (message == ssl_hs_client_hello && ss->opt.callExtensionWriterOnEchInner) {
+            message = ssl_hs_ech_outer_client_hello;
+        }
         rv = ssl_CallCustomExtensionSenders(ss, buf, message);
         if (rv != SECSuccess) {
             goto loser;

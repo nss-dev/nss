@@ -40,6 +40,9 @@ sslBuffer_Grow(sslBuffer *b, unsigned int newLen)
         return SECSuccess;
     }
 
+    /* If buf is non-NULL, space must be non-zero;
+     * if buf is NULL, space must be zero. */
+    PORT_Assert((b->buf && b->space) || (!b->buf && !b->space));
     newLen = PR_MAX(newLen, b->len + 1024);
     if (newLen > b->space) {
         unsigned char *newBuf;
