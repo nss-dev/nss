@@ -510,8 +510,8 @@ typedef SECStatus(PR_CALLBACK *SSLResumptionTokenCallback)(
     SSL_EXPERIMENTAL_API("SSL_EnableTls13GreaseEch", \
                          (PRFileDesc * _fd, PRBool _enabled), (fd, enabled))
 
-/* If |enabled|, a server receiving a Client Hello containing the ech_is_inner
- * (and not encrypted_client_hello) extension will respond with the ECH
+/* If |enabled|, a server receiving a Client Hello containing an encrypted_client_hello
+ * of type inner will respond with the ECH
  * acceptance signal. This signals the client to continue with the inner
  * transcript rather than outer. */
 #define SSL_EnableTls13BackendEch(fd, enabled)        \

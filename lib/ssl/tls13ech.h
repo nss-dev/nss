@@ -28,6 +28,11 @@ static const char kHpkeInfoEch[] = "tls ech";
 static const char hHkdfInfoEchConfigID[] = "tls ech config id";
 static const char kHkdfInfoEchConfirm[] = "ech accept confirmation";
 
+typedef enum {
+    ech_xtn_type_outer = 0,
+    ech_xtn_type_inner = 1,
+} EchXtnType;
+
 struct sslEchConfigContentsStr {
     PRUint8 configId;
     HpkeKemId kemId;
@@ -58,6 +63,7 @@ struct sslEchXtnStateStr {
     PRBool retryConfigsValid; /* Client: Extraction of retry_configss is allowed.
                                *  This is set once the handshake completes (having
                                *  verified to the ECHConfig public name). */
+    PRBool receivedInnerXtn;  /* Server: Handled ECH Xtn with Inner Enum */
 };
 
 SECStatus SSLExp_EncodeEchConfigId(PRUint8 configId, const char *publicName, unsigned int maxNameLen,
