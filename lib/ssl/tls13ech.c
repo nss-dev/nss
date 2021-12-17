@@ -1313,7 +1313,11 @@ tls13_ChInnerAppendExtension(sslSocket *ss, PRUint16 extensionType,
             return SECFailure;
         }
     }
-
+    /* As this function is called twice, we only want to update our state the second time. */
+    if (compressing) {
+        ss->xtnData.echAdvertised[ss->xtnData.echNumAdvertised++] = extensionType;
+        SSL_TRC(50, ("Appending extension=%d to the Client Hello Inner. Compressed?=%d", extensionType, willCompress));
+    }
     return SECSuccess;
 }
 
@@ -1360,7 +1364,7 @@ tls13_ChInnerAdditionalExtensionWriters(sslSocket *ss, const PRUint16 *called,
         if (rv != SECSuccess) {
             return SECFailure;
         }
-        ss->xtnData.advertised[ss->xtnData.numAdvertised++] = hook->type;
+        ss->xtnData.echAdvertised[ss->xtnData.echNumAdvertised++] = hook->type;
     }
     return SECSuccess;
 }
@@ -1512,6 +1516,10 @@ tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf
                 if (rv != SECSuccess) {
                     goto loser;
                 }
+                /* Only update state on second invocation of this function */
+                if (shouldCompress) {
+                    ss->xtnData.echAdvertised[ss->xtnData.echNumAdvertised++] = extensionType;
+                }
                 break;
             case ssl_tls13_supported_versions_xtn:
                 /* Only TLS 1.3 on CHInner. */
@@ -1530,6 +1538,10 @@ tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf
                 rv = sslBuffer_AppendNumber(chInnerXtns, SSL_LIBRARY_VERSION_TLS_1_3, 2);
                 if (rv != SECSuccess) {
                     goto loser;
+                }
+                /* Only update state on second invocation of this function */
+                if (shouldCompress) {
+                    ss->xtnData.echAdvertised[ss->xtnData.echNumAdvertised++] = extensionType;
                 }
                 break;
             case ssl_tls13_pre_shared_key_xtn:
@@ -1563,6 +1575,10 @@ tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf
                     if (rv != SECSuccess) {
                         goto loser;
                     }
+                }
+                /* Only update state on second invocation of this function */
+                if (shouldCompress) {
+                    ss->xtnData.echAdvertised[ss->xtnData.echNumAdvertised++] = extensionType;
                 }
                 break;
             default: {
@@ -1858,7 +1874,7 @@ tls13_ConstructClientHelloWithEch(sslSocket *ss, const sslSessionID *sid, PRBool
         goto loser;
     }
     PORT_Assert(encodedChLen == encodedChInner.len);
-
+    ss->xtnData.echAdvertised[ss->xtnData.echNumAdvertised++] = ssl_tls13_encrypted_client_hello_xtn;
     rv = ssl3_EmplaceExtension(ss, chOuterXtnsBuf, ssl_tls13_encrypted_client_hello_xtn,
                                encodedChInner.buf, encodedChInner.len, PR_TRUE);
     if (rv != SECSuccess) {
@@ -2428,6 +2444,23 @@ tls13_MaybeHandleEchSignal(sslSocket *ss, const PRUint8 *sh, PRUint32 shLen, PRB
             FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_SERVER_HELLO, illegal_parameter);
             return SECFailure;
         }
+        /* Server accepted, but sent an extension which was only advertised in the ClientHelloOuter */
+        if (ss->ssl3.hs.echInvalidExtension) {
+            (void)SSL3_SendAlert(ss, alert_fatal, unsupported_extension);
+            PORT_SetError(SSL_ERROR_RX_UNEXPECTED_EXTENSION);
+            return SECFailure;
+        }
+
+        /* Swap the advertised lists as we've accepted ECH. */
+        PRUint16 *tempArray = ss->xtnData.advertised;
+        PRUint16 tempNum = ss->xtnData.numAdvertised;
+
+        ss->xtnData.advertised = ss->xtnData.echAdvertised;
+        ss->xtnData.numAdvertised = ss->xtnData.echNumAdvertised;
+
+        ss->xtnData.echAdvertised = tempArray;
+        ss->xtnData.echNumAdvertised = tempNum;
+
         /* |enc| must not be included in CH2.ClientECH. */
         if (ss->ssl3.hs.helloRetry && ss->sec.isServer &&
             ss->xtnData.ech->senderPubKey.len) {
