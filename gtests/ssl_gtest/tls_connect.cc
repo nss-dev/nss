@@ -323,7 +323,7 @@ void TlsConnectTestBase::SetupEch(std::shared_ptr<TlsAgent>& client,
       {HpkeKdfHkdfSha256, HpkeAeadAes128Gcm}};
 
   GenerateEchConfig(kem_id, kDefaultSuites, "public.name", maxConfigSize,
-                    record, priv);
+                    record, pub, priv);
   ASSERT_NE(0U, record.len());
   SECStatus rv;
   if (set_server_config) {

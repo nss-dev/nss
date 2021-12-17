@@ -1249,13 +1249,6 @@ tls13_WriteDupXtnsToChInner(PRBool compressing, sslBuffer *dupXtns, sslBuffer *c
  * If the value is to be compressed, it is written to |dupXtns|.
  * Otherwise, a full extension is written to |chInnerXtns|.
  *
- * This is a little complicated because we need to comply with ECH
- * extension construction rules.  These require that compressed
- * extensions are contiguous.
- * |compressing| is true if compression is occurring.
- * |canCompress| is true if compression hasn't stopped.
- * Outparam |compressed| indicates whether the value was compressed.
- *
  * This function is always called twice:
  * once without compression and once with compression if possible.
  *
@@ -1267,12 +1260,13 @@ static SECStatus
 tls13_ChInnerAppendExtension(sslSocket *ss, PRUint16 extensionType,
                              const sslReadBuffer *extensionData,
                              sslBuffer *dupXtns, sslBuffer *chInnerXtns,
-                             PRBool compressing, PRBool canCompress, PRBool *compressed,
+                             PRBool compressing,
                              PRUint16 *called, unsigned int *nCalled)
 {
     PRUint8 buf[1024] = { 0 };
     const PRUint8 *p;
     unsigned int len = 0;
+    PRBool willCompress;
 
     PORT_Assert(extensionType != ssl_tls13_encrypted_client_hello_xtn);
     sslCustomExtensionHooks *hook = ss->opt.callExtensionWriterOnEchInner
@@ -1294,28 +1288,26 @@ tls13_ChInnerAppendExtension(sslSocket *ss, PRUint16 extensionType,
              * if the server accepts ECH and then includes this extension.
              * The cost is a complete reworking of ss->xtnData.advertised.
              */
-            *compressed = PR_FALSE;
             return SECSuccess;
         }
-        /* It can be compressed if it is the same as the outer value.
-         * But only if compression hasn't stopped. */
-        *compressed = (canCompress && len == extensionData->len &&
-                       PORT_Memcmp(buf, extensionData->buf, len) == 0);
+        /* It can be compressed if it is the same as the outer value. */
+        willCompress = (len == extensionData->len &&
+                        NSS_SecureMemcmp(buf, extensionData->buf, len) == 0);
         p = buf;
     } else {
         /* Non-custom extensions are duplicated when compressing. */
-        *compressed = canCompress;
+        willCompress = PR_TRUE;
         p = extensionData->buf;
         len = extensionData->len;
     }
 
     /* Duplicated extensions all need to go together. */
-    sslBuffer *dst = *compressed ? dupXtns : chInnerXtns;
+    sslBuffer *dst = willCompress ? dupXtns : chInnerXtns;
     SECStatus rv = sslBuffer_AppendNumber(dst, extensionType, 2);
     if (rv != SECSuccess) {
         return SECFailure;
     }
-    if (!compressing || !*compressed) {
+    if (!willCompress || !compressing) {
         rv = sslBuffer_AppendVariable(dst, p, len, 2);
         if (rv != SECSuccess) {
             return SECFailure;
@@ -1430,18 +1422,27 @@ tls13_RandomizePsk(PRUint8 *buf, unsigned int len)
 /* Given a buffer of extensions prepared for CHOuter, translate those extensions to a
  * buffer suitable for CHInner. This is intended to be called twice: once without
  * compression for the transcript hash and binders, and once with compression for
- * encoding the actual CHInner value. On the first run, if |inOutPskXtn| and
- * chOuterXtnsBuf contains a PSK extension, remove it and return in the outparam.
- * The caller will compute the binder value based on the uncompressed output. Next,
- * if |compress|, consolidate duplicated extensions (that would otherwise be copied)
- * into a single outer_extensions extension. If |inOutPskXtn|, the extension contains
- * a binder, it is appended after the deduplicated outer_extensions. In the case of
- * GREASE ECH, one call is made to estimate size (wiith compression, null inOutPskXtn).
+ * encoding the actual CHInner value.
+ *
+ * Compressed extensions are moved in both runs.  When compressing, they are moved
+ * to a single outer_extensions extension, which lists extensions from CHOuter.
+ * When not compressing, this produces the ClientHello that will be reconstructed
+ * from the compressed ClientHello (that is, what goes into the handshake transcript),
+ * so all the compressed extensions need to appear in the same place that the
+ * outer_extensions extension appears.
+ *
+ * On the first run, if |inOutPskXtn| and OuterXtnsBuf contains a PSK extension,
+ * remove it and return in the outparam.he caller will compute the binder value
+ * based on the uncompressed output. Next, if |compress|, consolidate duplicated
+ * extensions (that would otherwise be copied) into a single outer_extensions
+ * extension. If |inOutPskXtn|, the extension contains a binder, it is appended
+ * after the deduplicated outer_extensions. In the case of GREASE ECH, one call
+ * is made to estimate size (wiith compression, null inOutPskXtn).
  */
 SECStatus
 tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf,
                                         sslBuffer *chInnerXtns, sslBuffer *inOutPskXtn,
-                                        PRBool compress)
+                                        PRBool shouldCompress)
 {
     SECStatus rv;
     PRUint64 extensionType;
@@ -1454,10 +1455,9 @@ tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf
 
     PRUint16 called[MAX_EXTENSION_WRITERS] = { 0 }; /* For tracking which has been called. */
     unsigned int nCalled = 0;
-    PRBool canCompress = PR_TRUE;
 
     SSL_TRC(50, ("%d: TLS13[%d]: Constructing ECH inner extensions %s compression",
-                 SSL_GETPID(), ss->fd, compress ? "with" : "without"));
+                 SSL_GETPID(), ss->fd, shouldCompress ? "with" : "without"));
 
     /* When offering the "encrypted_client_hello" extension in its
      * ClientHelloOuter, the client MUST also offer an empty
@@ -1533,7 +1533,7 @@ tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf
                 }
                 break;
             case ssl_tls13_pre_shared_key_xtn:
-                if (inOutPskXtn && !compress) {
+                if (inOutPskXtn && !shouldCompress) {
                     rv = sslBuffer_AppendNumber(&pskXtn, extensionType, 2);
                     if (rv != SECSuccess) {
                         goto loser;
@@ -1567,25 +1567,20 @@ tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf
                 break;
             default: {
                 /* This is a regular extension.  We can maybe compress these. */
-                PRBool compressed;
                 rv = tls13_ChInnerAppendExtension(ss, extensionType,
                                                   &extensionData,
                                                   &dupXtns, chInnerXtns,
-                                                  compress, canCompress, &compressed,
+                                                  shouldCompress,
                                                   called, &nCalled);
                 if (rv != SECSuccess) {
                     goto loser;
                 }
-
-                /* Once an extension doesn't compress, all later extensions
-                 * can't be compressed either. */
-                canCompress = canCompress && compressed;
                 break;
             }
         }
     }
 
-    rv = tls13_WriteDupXtnsToChInner(compress, &dupXtns, chInnerXtns);
+    rv = tls13_WriteDupXtnsToChInner(shouldCompress, &dupXtns, chInnerXtns);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -1601,7 +1596,7 @@ tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf
         /* On the first, non-compress run, append the (bad) PSK binder.
          * On the second compression run, the caller is responsible for
          * providing an extension with a valid binder, so append that. */
-        if (compress) {
+        if (shouldCompress) {
             rv = sslBuffer_AppendBuffer(chInnerXtns, inOutPskXtn);
         } else {
             rv = sslBuffer_AppendBuffer(chInnerXtns, &pskXtn);
