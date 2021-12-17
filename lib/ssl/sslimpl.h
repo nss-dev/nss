@@ -38,6 +38,7 @@ typedef struct sslSocketStr sslSocket;
 typedef struct sslNamedGroupDefStr sslNamedGroupDef;
 typedef struct sslEchConfigStr sslEchConfig;
 typedef struct sslEchConfigContentsStr sslEchConfigContents;
+typedef struct sslEchCookieDataStr sslEchCookieData;
 typedef struct sslEchXtnStateStr sslEchXtnState;
 typedef struct sslPskStr sslPsk;
 typedef struct sslDelegatedCredentialStr sslDelegatedCredential;
@@ -745,12 +746,13 @@ typedef struct SSL3HandshakeStateStr {
                                 * used to generate ACKs. */
 
     /* TLS 1.3 ECH state. */
-    PRBool echAccepted;        /* Client/Server: True if we've commited to using CHInner. */
+    PRBool echAccepted; /* Client/Server: True if we've commited to using CHInner. */
+    PRBool echDecided;
     HpkeContext *echHpkeCtx;   /* Client/Server: HPKE context for ECH. */
     const char *echPublicName; /* Client: If rejected, the ECHConfig.publicName to
                                 * use for certificate verification. */
-    sslBuffer greaseEchBuf;    /* Client: Remember GREASE ECH, as advertised, for CH2 (HRR case). */
-
+    sslBuffer greaseEchBuf;    /* Client: Remember GREASE ECH, as advertised, for CH2 (HRR case).
+                                  Server: Remember HRR Grease Value, for transcript calculations */
 } SSL3HandshakeState;
 
 #define SSL_ASSERT_HASHES_EMPTY(ss)                                  \

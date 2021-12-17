@@ -1204,6 +1204,36 @@ tls13_ServerSendHrrCookieXtn(const sslSocket *ss, TLSExtensionData *xtnData,
 }
 
 SECStatus
+tls13_ClientHandleHrrEchXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                            SECItem *data)
+{
+    if (data->len != TLS13_ECH_SIGNAL_LEN) {
+        ssl3_ExtSendAlert(ss, alert_fatal, decode_error);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_ECH_EXTENSION);
+        return SECFailure;
+    }
+    if (!ssl3_ExtensionAdvertised(ss, ssl_tls13_encrypted_client_hello_xtn)) {
+        ssl3_ExtSendAlert(ss, alert_fatal, illegal_parameter);
+        PORT_SetError(SSL_ERROR_RX_UNEXPECTED_EXTENSION);
+        return SECFailure;
+    }
+    if (!ss->ssl3.hs.echHpkeCtx) {
+        SSL_TRC(50, ("%d: TLS13[%d]: client received GREASEd ECH confirmation",
+                     SSL_GETPID(), ss->fd));
+        return SECSuccess;
+    }
+    SSL_TRC(50, ("%d: TLS13[%d]: client received HRR ECH confirmation",
+                 SSL_GETPID(), ss->fd));
+    PORT_Assert(!xtnData->ech);
+    xtnData->ech = PORT_ZNew(sslEchXtnState);
+    if (!xtnData->ech) {
+        return SECFailure;
+    }
+    xtnData->ech->hrrConfirmation = data->data;
+    return SECSuccess;
+}
+
+SECStatus
 tls13_ClientHandleEchXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                          SECItem *data)
 {
@@ -1448,6 +1478,29 @@ tls13_ServerSendEchXtn(const sslSocket *ss,
         return SECFailure;
     }
 
+    *added = PR_TRUE;
+    return SECSuccess;
+}
+
+/* If filled in, we overwrite the placeholder in tls13_WriteExtensionsWithHrrEchConfirmation*/
+SECStatus
+tls13_ServerSendHrrEchXtn(const sslSocket *ss, TLSExtensionData *xtnData,
+                          sslBuffer *buf, PRBool *added)
+{
+    SECStatus rv;
+    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3 || !xtnData->ech) {
+        SSL_TRC(100, ("%d: TLS13[%d]: server not sending HRR ECH Xtn",
+                      SSL_GETPID(), ss->fd));
+        return SECSuccess;
+    }
+    SSL_TRC(100, ("%d: TLS13[%d]: server sending HRR ECH Xtn",
+                  SSL_GETPID(), ss->fd));
+    PR_ASSERT(SSL_BUFFER_LEN(&ss->ssl3.hs.greaseEchBuf) == TLS13_ECH_SIGNAL_LEN);
+    PRINT_BUF(100, (ss, "grease_ech_confirmation", ss->ssl3.hs.greaseEchBuf.buf, TLS13_ECH_SIGNAL_LEN));
+    rv = sslBuffer_AppendBuffer(buf, &ss->ssl3.hs.greaseEchBuf);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
     *added = PR_TRUE;
     return SECSuccess;
 }

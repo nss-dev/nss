@@ -82,6 +82,7 @@ static const ssl3ExtensionHandler serverHelloHandlersTLS[] = {
 static const ssl3ExtensionHandler helloRetryRequestHandlers[] = {
     { ssl_tls13_key_share_xtn, tls13_ClientHandleKeyShareXtnHrr },
     { ssl_tls13_cookie_xtn, tls13_ClientHandleHrrCookie },
+    { ssl_tls13_encrypted_client_hello_xtn, tls13_ClientHandleHrrEchXtn },
     { 0, NULL }
 };
 
@@ -166,6 +167,7 @@ static const sslExtensionBuilder tls13_hrr_senders[] = {
     { ssl_tls13_key_share_xtn, &tls13_ServerSendHrrKeyShareXtn },
     { ssl_tls13_cookie_xtn, &tls13_ServerSendHrrCookieXtn },
     { ssl_tls13_supported_versions_xtn, &tls13_ServerSendSupportedVersionsXtn },
+    { ssl_tls13_encrypted_client_hello_xtn, &tls13_ServerSendHrrEchXtn },
     { 0, NULL }
 };
 
