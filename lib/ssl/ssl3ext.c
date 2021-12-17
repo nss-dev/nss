@@ -55,7 +55,6 @@ static const ssl3ExtensionHandler clientHelloHandlers[] = {
     { ssl_tls13_psk_key_exchange_modes_xtn, &tls13_ServerHandlePskModesXtn },
     { ssl_tls13_cookie_xtn, &tls13_ServerHandleCookieXtn },
     { ssl_tls13_post_handshake_auth_xtn, &tls13_ServerHandlePostHandshakeAuthXtn },
-    { ssl_tls13_ech_is_inner_xtn, &tls13_ServerHandleEchIsInnerXtn },
     { ssl_record_size_limit_xtn, &ssl_HandleRecordSizeLimitXtn },
     { 0, NULL }
 };

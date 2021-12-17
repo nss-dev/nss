@@ -763,14 +763,15 @@ TEST_F(TlsConnectStreamTls13Ech, DISABLED_InnerWithEchAndEchIsInner) {
                              SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
 }
 
-TEST_F(TlsConnectStreamTls13, OuterWithEchAndEchIsInner) {
-  static uint8_t empty_buf[1] = {0};
-  DataBuffer empty(empty_buf, 0);
+TEST_F(TlsConnectStreamTls13, EchWithInnerExtNotSplit) {
+  static uint8_t type_val[1] = {1};
+  DataBuffer type_buffer(type_val, sizeof(type_val));
 
   EnsureTlsSetup();
-  EXPECT_EQ(SECSuccess, SSL_EnableTls13GreaseEch(client_->ssl_fd(), PR_TRUE));
+  EXPECT_EQ(SECSuccess, SSL_EnableTls13GreaseEch(client_->ssl_fd(), PR_FALSE));
   MakeTlsFilter<TlsExtensionAppender>(client_, kTlsHandshakeClientHello,
-                                      ssl_tls13_ech_is_inner_xtn, empty);
+                                      ssl_tls13_encrypted_client_hello_xtn,
+                                      type_buffer);
   ConnectExpectAlert(server_, kTlsAlertIllegalParameter);
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_UNEXPECTED_EXTENSION);
@@ -1071,9 +1072,9 @@ TEST_F(TlsConnectStreamTls13, EchHrrChangeCipherSuite) {
   server_->Handshake();
   MakeNewServer();
 
-  // Damage the first byte of the ciphersuite (offset 0)
+  // Damage the first byte of the ciphersuite (offset 1)
   MakeTlsFilter<TlsExtensionDamager>(client_,
-                                     ssl_tls13_encrypted_client_hello_xtn, 0);
+                                     ssl_tls13_encrypted_client_hello_xtn, 1);
 
   ExpectAlert(server_, kTlsAlertIllegalParameter);
   Handshake();
@@ -1697,7 +1698,7 @@ TEST_F(TlsConnectStreamTls13, EchBadCiphersuite) {
   SetupEch(client_, server_);
   /* Make KDF unknown */
   MakeTlsFilter<TlsExtensionDamager>(client_,
-                                     ssl_tls13_encrypted_client_hello_xtn, 0);
+                                     ssl_tls13_encrypted_client_hello_xtn, 1);
   client_->ExpectSendAlert(kTlsAlertBadRecordMac);
   server_->ExpectSendAlert(kTlsAlertBadRecordMac);
   ConnectExpectFail();
@@ -1707,7 +1708,7 @@ TEST_F(TlsConnectStreamTls13, EchBadCiphersuite) {
   SetupEch(client_, server_);
   /* Make AEAD unknown */
   MakeTlsFilter<TlsExtensionDamager>(client_,
-                                     ssl_tls13_encrypted_client_hello_xtn, 3);
+                                     ssl_tls13_encrypted_client_hello_xtn, 4);
   client_->ExpectSendAlert(kTlsAlertBadRecordMac);
   server_->ExpectSendAlert(kTlsAlertBadRecordMac);
   ConnectExpectFail();
@@ -1794,14 +1795,15 @@ TEST_F(TlsConnectStreamTls13, EchOuterExtensionsInCHOuter) {
 // server negotiates ech_is_inner (which is what triggers sending the signal).
 TEST_F(TlsConnectStreamTls13, EchBackendAcceptance) {
   DataBuffer ch_buf;
-  static uint8_t empty_buf[1] = {0};
-  DataBuffer empty(empty_buf, 0);
+  static uint8_t inner_value[1] = {1};
+  DataBuffer inner_buffer(inner_value, sizeof(inner_value));
 
   EnsureTlsSetup();
   StartConnect();
   EXPECT_EQ(SECSuccess, SSL_EnableTls13GreaseEch(client_->ssl_fd(), PR_FALSE));
   MakeTlsFilter<TlsExtensionAppender>(client_, kTlsHandshakeClientHello,
-                                      ssl_tls13_ech_is_inner_xtn, empty);
+                                      ssl_tls13_encrypted_client_hello_xtn,
+                                      inner_buffer);
 
   EXPECT_EQ(SECSuccess, SSL_EnableTls13BackendEch(server_->ssl_fd(), PR_TRUE));
   client_->Handshake();
@@ -1810,8 +1812,9 @@ TEST_F(TlsConnectStreamTls13, EchBackendAcceptance) {
   ExpectAlert(client_, kTlsAlertBadRecordMac);
   client_->Handshake();
   EXPECT_EQ(TlsAgent::STATE_ERROR, client_->state());
-  EXPECT_EQ(PR_TRUE, SSLInt_ExtensionNegotiated(server_->ssl_fd(),
-                                                ssl_tls13_ech_is_inner_xtn));
+  EXPECT_EQ(PR_TRUE,
+            SSLInt_ExtensionNegotiated(server_->ssl_fd(),
+                                       ssl_tls13_encrypted_client_hello_xtn));
   server_->ExpectReceiveAlert(kTlsAlertCloseNotify, kTlsAlertWarning);
 }
 

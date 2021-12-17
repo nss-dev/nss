@@ -5551,7 +5551,6 @@ static const struct {
                                             hello_retry_request) },
     { ssl_record_size_limit_xtn, _M2(client_hello, encrypted_extensions) },
     { ssl_tls13_encrypted_client_hello_xtn, _M2(client_hello, encrypted_extensions) },
-    { ssl_tls13_ech_is_inner_xtn, _M1(client_hello) },
     { ssl_tls13_outer_extensions_xtn, _M_NONE /* Encoding/decoding only */ },
     { ssl_tls13_post_handshake_auth_xtn, _M1(client_hello) }
 };
@@ -6251,9 +6250,12 @@ tls13_NegotiateVersion(sslSocket *ss, const TLSExtension *supportedVersions)
     for (version = ss->vrange.max; version >= ss->vrange.min; --version) {
         if (version < SSL_LIBRARY_VERSION_TLS_1_3 &&
             (ss->ssl3.hs.helloRetry || ss->ssl3.hs.echAccepted)) {
-            /* Prevent negotiating to a lower version after 1.3 HRR or ECH */
+            /* Prevent negotiating to a lower version after 1.3 HRR or ECH
+             * When accepting ECH, a different alert is generated.
+             */
+            SSL3AlertDescription alert = ss->ssl3.hs.echAccepted ? illegal_parameter : protocol_version;
             PORT_SetError(SSL_ERROR_UNSUPPORTED_VERSION);
-            FATAL_ERROR(ss, SSL_ERROR_UNSUPPORTED_VERSION, protocol_version);
+            FATAL_ERROR(ss, SSL_ERROR_UNSUPPORTED_VERSION, alert);
             return SECFailure;
         }
 

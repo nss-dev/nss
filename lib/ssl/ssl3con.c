@@ -9815,7 +9815,7 @@ ssl_ConstructServerHello(sslSocket *ss, PRBool helloRetry,
         }
     }
 
-    if (!helloRetry && ssl3_ExtensionNegotiated(ss, ssl_tls13_ech_is_inner_xtn)) {
+    if (!helloRetry && ss->xtnData.ech && ss->xtnData.ech->receivedInnerXtn) {
         /* Signal ECH acceptance if we handled handled both CHOuter/CHInner (i.e.
          * in shared mode), or if we received a CHInner in split/backend mode. */
         if (ss->ssl3.hs.echAccepted || ss->opt.enableTls13BackendEch) {

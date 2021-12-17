@@ -878,6 +878,10 @@ tls13_EncryptClientHello(sslSocket *ss, sslBuffer *outerAAD, sslBuffer *chInner)
 
     /* Format the encrypted_client_hello extension. */
     sslBuffer_Clear(chInner);
+    rv = sslBuffer_AppendNumber(chInner, ech_xtn_type_outer, 1);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
     rv = sslBuffer_AppendNumber(chInner, cfg->contents.kdfId, 2);
     if (rv != SECSuccess) {
         goto loser;
@@ -1029,7 +1033,10 @@ tls13_MakeChOuterAAD(sslSocket *ss, const SECItem *outer, SECItem *outerAAD)
     unsigned int offset;
     unsigned int savedOffset;
     PORT_Assert(ss->xtnData.ech);
-
+    rv = sslBuffer_AppendNumber(&aad, ech_xtn_type_outer, 1);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
     rv = sslBuffer_AppendNumber(&aad, ss->xtnData.ech->kdfId, 2);
     if (rv != SECSuccess) {
         goto loser;
@@ -1167,6 +1174,7 @@ tls13_OpenClientHelloInner(sslSocket *ss, const SECItem *outer, const SECItem *o
     /* Stash the context, we may need it for HRR. */
     ss->ssl3.hs.echHpkeCtx = cx;
     *chInner = decryptedChInner;
+    PRINT_BUF(100, (ss, "Decrypted ECH Inner", decryptedChInner->data, decryptedChInner->len));
     SECITEM_FreeItem(&hpkeInfo, PR_FALSE);
     return SECSuccess;
 
@@ -1210,11 +1218,15 @@ tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf
     /* When offering the "encrypted_client_hello" extension in its
      * ClientHelloOuter, the client MUST also offer an empty
      * "encrypted_client_hello" extension in its ClientHelloInner. */
-    rv = sslBuffer_AppendNumber(chInnerXtns, ssl_tls13_ech_is_inner_xtn, 2);
+    rv = sslBuffer_AppendNumber(chInnerXtns, ssl_tls13_encrypted_client_hello_xtn, 2);
     if (rv != SECSuccess) {
         goto loser;
     }
-    rv = sslBuffer_AppendNumber(chInnerXtns, 0, 2);
+    rv = sslBuffer_AppendNumber(chInnerXtns, 1, 2);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    rv = sslBuffer_AppendNumber(chInnerXtns, ech_xtn_type_inner, 1);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -1496,9 +1508,9 @@ tls13_ConstructClientHelloWithEch(sslSocket *ss, const sslSessionID *sid, PRBool
     }
 
     /* Pad the outer prior to appending ECH (for the AAD).
-     * Encoded extension size is (echCipherSuite + enc + configId + payload + tag).
+     * Encoded extension size is (xtnType + echCipherSuite + enc + configId + payload + tag).
      * Post-encryption, we'll assert that this was correct. */
-    encodedChLen = 4 + 1 + 2 + 2 + encodedChInner.len + 16;
+    encodedChLen = 1 + 4 + 1 + 2 + 2 + encodedChInner.len + 16;
     if (!ss->ssl3.hs.helloRetry) {
         encodedChLen += 32; /* enc */
     }
@@ -1506,7 +1518,10 @@ tls13_ConstructClientHelloWithEch(sslSocket *ss, const sslSessionID *sid, PRBool
     if (rv != SECSuccess) {
         goto loser;
     }
-
+    rv = sslBuffer_AppendNumber(&aad, ech_xtn_type_outer, 1);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
     PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->echConfigs));
     sslEchConfig *cfg = (sslEchConfig *)PR_LIST_HEAD(&ss->echConfigs);
     rv = sslBuffer_AppendNumber(&aad, cfg->contents.kdfId, 2);
@@ -1613,6 +1628,8 @@ tls13_ComputeEchSignal(sslSocket *ss, const PRUint8 *sh, unsigned int shLen, PRU
                           SSL3_RANDOM_LENGTH - TLS13_ECH_SIGNAL_LEN;
     PORT_Assert(sh && shLen > offset);
     PORT_Assert(TLS13_ECH_SIGNAL_LEN <= SSL3_RANDOM_LENGTH);
+
+    PRINT_BUF(100, (ss, "Client Hello Transcript", chSource->buf, chSource->len));
 
     rv = sslBuffer_AppendBuffer(&confMsgs, chSource);
     if (rv != SECSuccess) {
@@ -1787,6 +1804,10 @@ tls13_MaybeGreaseEch(sslSocket *ss, unsigned int preambleLen, sslBuffer *buf)
        opaque payload<1..2^16-1>;
     } ClientECH; */
 
+    rv = sslBuffer_AppendNumber(&greaseBuf, ech_xtn_type_outer, 1);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
     /* Only support SHA256. */
     rv = sslBuffer_AppendNumber(&greaseBuf, HpkeKdfHkdfSha256, 2);
     if (rv != SECSuccess) {
@@ -1849,8 +1870,6 @@ tls13_MaybeHandleEch(sslSocket *ss, const PRUint8 *msg, PRUint32 msgLen, SECItem
                      SECItem *comps, SECItem *cookieBytes, SECItem *suites, SECItem **echInner)
 {
     SECStatus rv;
-    int error;
-    SSL3AlertDescription desc;
     SECItem *tmpEchInner = NULL;
     PRUint8 *b;
     PRUint32 length;
@@ -1864,7 +1883,7 @@ tls13_MaybeHandleEch(sslSocket *ss, const PRUint8 *msg, PRUint32 msgLen, SECItem
 
     echExtension = ssl3_FindExtension(ss, ssl_tls13_encrypted_client_hello_xtn);
     if (echExtension) {
-        rv = tls13_ServerHandleEchXtn(ss, &ss->xtnData, &echExtension->data);
+        rv = tls13_ServerHandleOuterEchXtn(ss, &ss->xtnData, &echExtension->data);
         if (rv != SECSuccess) {
             goto loser; /* code set, alert sent. */
         }
@@ -1888,25 +1907,15 @@ tls13_MaybeHandleEch(sslSocket *ss, const PRUint8 *msg, PRUint32 msgLen, SECItem
             goto loser; /* code set, alert sent. */
         }
 
-        /* Since in Outer we explicitly call the ECH handler, do the same on Inner.
-         * Extensions are already parsed in tls13_MaybeAcceptEch. */
-        echExtension = ssl3_FindExtension(ss, ssl_tls13_ech_is_inner_xtn);
-        if (!echExtension) {
-            FATAL_ERROR(ss, SSL_ERROR_MISSING_ECH_EXTENSION, illegal_parameter);
-            goto loser;
-        }
-
+        /* ECH Inners must negotiate TLSv1.3 or higher otherwise send illegal_parameter alert */
         versionExtension = ssl3_FindExtension(ss, ssl_tls13_supported_versions_xtn);
         if (!versionExtension) {
-            FATAL_ERROR(ss, SSL_ERROR_UNSUPPORTED_VERSION, protocol_version);
+            FATAL_ERROR(ss, SSL_ERROR_UNSUPPORTED_VERSION, illegal_parameter);
             goto loser;
         }
         rv = tls13_NegotiateVersion(ss, versionExtension);
         if (rv != SECSuccess) {
-            /* Could be malformed or not allowed in ECH. */
-            error = PORT_GetError();
-            desc = (error == SSL_ERROR_UNSUPPORTED_VERSION) ? protocol_version : illegal_parameter;
-            FATAL_ERROR(ss, error, desc);
+            /* code and alert set by tls13_NegotiateVersion */
             goto loser;
         }
 
@@ -1986,6 +1995,9 @@ tls13_UnencodeChInner(sslSocket *ss, const SECItem *sidBytes, SECItem **echInner
     sslReader chReader = SSL_READER((*echInner)->data, (*echInner)->len);
     PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->ssl3.hs.echOuterExtensions));
     PORT_Assert(PR_CLIST_IS_EMPTY(&ss->ssl3.hs.remoteExtensions));
+    TLSExtension *echExtension;
+
+    PRINT_BUF(100, (ss, "ECH Inner", chReader.buf.buf, chReader.buf.len));
 
     /* unencodedChInner := preamble, tmpReadBuf := encoded extensions. */
     rv = tls13_CopyChPreamble(&chReader, sidBytes, &unencodedChInner, &tmpReadBuf);
@@ -1998,6 +2010,16 @@ tls13_UnencodeChInner(sslSocket *ss, const SECItem *sidBytes, SECItem **echInner
     rv = ssl3_ParseExtensions(ss, &tmpB, &tmpReadBuf.len);
     if (rv != SECSuccess) {
         goto loser; /* malformed, alert sent. */
+    }
+
+    echExtension = ssl3_FindExtension(ss, ssl_tls13_encrypted_client_hello_xtn);
+    if (!echExtension) {
+        FATAL_ERROR(ss, SSL_ERROR_MISSING_ECH_EXTENSION, illegal_parameter);
+        goto loser; /* Must have an inner Extension */
+    }
+    rv = tls13_ServerHandleInnerEchXtn(ss, &ss->xtnData, &echExtension->data);
+    if (rv != SECSuccess) {
+        goto loser; /* code set, alert sent. */
     }
 
     /* Exit early if there are no outer_extensions to decompress. */
@@ -2025,6 +2047,8 @@ tls13_UnencodeChInner(sslSocket *ss, const SECItem *sidBytes, SECItem **echInner
          innerCursor = PR_NEXT_LINK(innerCursor)) {
         TLSExtension *innerExtension = (TLSExtension *)innerCursor;
         if (innerExtension->type != ssl_tls13_outer_extensions_xtn) {
+            SSL_TRC(10, ("%d: SSL3[%d]: copying inner extension of type %d and size %d directly", SSL_GETPID(),
+                         ss->fd, innerExtension->type, innerExtension->data.len));
             rv = sslBuffer_AppendNumber(&unencodedChInner,
                                         innerExtension->type, 2);
             if (rv != SECSuccess) {
@@ -2133,7 +2157,7 @@ tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOu
     sslEchConfig *candidate = NULL; /* non-owning */
     TLSExtension *hrrXtn;
 
-    if (!ss->xtnData.ech) {
+    if (!ss->xtnData.ech || ss->xtnData.ech->receivedInnerXtn) {
         return SECSuccess;
     }
 
