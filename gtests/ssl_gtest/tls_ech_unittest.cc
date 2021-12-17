@@ -2416,16 +2416,55 @@ TEST_F(TlsConnectStreamTls13, EchOuterExtensionsInCHOuter) {
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
 }
 
+static SECStatus NoopExtensionHandler(PRFileDesc* fd, SSLHandshakeType message,
+                                      const PRUint8* data, unsigned int len,
+                                      SSLAlertDescription* alert, void* arg) {
+  return SECSuccess;
+}
+
 static PRBool EmptyExtensionWriter(PRFileDesc* fd, SSLHandshakeType message,
                                    PRUint8* data, unsigned int* len,
                                    unsigned int maxLen, void* arg) {
   return true;
 }
 
-static SECStatus NoopExtensionHandler(PRFileDesc* fd, SSLHandshakeType message,
-                                      const PRUint8* data, unsigned int len,
-                                      SSLAlertDescription* alert, void* arg) {
-  return SECSuccess;
+static PRBool LargeExtensionWriter(PRFileDesc* fd, SSLHandshakeType message,
+                                   PRUint8* data, unsigned int* len,
+                                   unsigned int maxLen, void* arg) {
+  unsigned int length = 1024;
+  PR_ASSERT(length <= maxLen);
+  memset(data, 0, length);
+  *len = length;
+  return true;
+}
+
+static PRBool OuterOnlyExtensionWriter(PRFileDesc* fd, SSLHandshakeType message,
+                                       PRUint8* data, unsigned int* len,
+                                       unsigned int maxLen, void* arg) {
+  if (message == ssl_hs_ech_outer_client_hello) {
+    return LargeExtensionWriter(fd, message, data, len, maxLen, arg);
+  }
+  return false;
+}
+
+static PRBool InnerOnlyExtensionWriter(PRFileDesc* fd, SSLHandshakeType message,
+                                       PRUint8* data, unsigned int* len,
+                                       unsigned int maxLen, void* arg) {
+  if (message == ssl_hs_client_hello) {
+    return LargeExtensionWriter(fd, message, data, len, maxLen, arg);
+  }
+  return false;
+}
+
+static PRBool InnerOuterDiffExtensionWriter(PRFileDesc* fd,
+                                            SSLHandshakeType message,
+                                            PRUint8* data, unsigned int* len,
+                                            unsigned int maxLen, void* arg) {
+  unsigned int length = 1024;
+  PR_ASSERT(length <= maxLen);
+  memset(data, (message == ssl_hs_client_hello) ? 1 : 0, length);
+  *len = length;
+  return true;
 }
 
 TEST_F(TlsConnectStreamTls13Ech, EchCustomExtensionWriter) {
@@ -2439,12 +2478,6 @@ TEST_F(TlsConnectStreamTls13Ech, EchCustomExtensionWriter) {
   client_->ExpectEch();
   server_->ExpectEch();
   Connect();
-}
-
-static PRBool OuterOnlyExtensionWriter(PRFileDesc* fd, SSLHandshakeType message,
-                                       PRUint8* data, unsigned int* len,
-                                       unsigned int maxLen, void* arg) {
-  return message == ssl_hs_ech_outer_client_hello;
 }
 
 TEST_F(TlsConnectStreamTls13Ech, EchCustomExtensionWriterOuterOnly) {
@@ -2462,12 +2495,6 @@ TEST_F(TlsConnectStreamTls13Ech, EchCustomExtensionWriterOuterOnly) {
   Connect();
 }
 
-static PRBool InnerOnlyExtensionWriter(PRFileDesc* fd, SSLHandshakeType message,
-                                       PRUint8* data, unsigned int* len,
-                                       unsigned int maxLen, void* arg) {
-  return message == ssl_hs_client_hello;
-}
-
 TEST_F(TlsConnectStreamTls13Ech, EchCustomExtensionWriterInnerOnly) {
   EnsureTlsSetup();
   SetupEch(client_, server_);
@@ -2483,28 +2510,43 @@ TEST_F(TlsConnectStreamTls13Ech, EchCustomExtensionWriterInnerOnly) {
   Connect();
 }
 
-static PRBool InnerOuterExtensionWriter(PRFileDesc* fd,
-                                        SSLHandshakeType message, PRUint8* data,
-                                        unsigned int* len, unsigned int maxLen,
-                                        void* arg) {
-  *data = (message == ssl_hs_client_hello) ? 'i' : 'O';
-  return true;
-}
-
 // Write different values to inner and outer CH.
 TEST_F(TlsConnectStreamTls13Ech, EchCustomExtensionWriterDifferent) {
   EnsureTlsSetup();
   SetupEch(client_, server_);
 
-  EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
-                            client_->ssl_fd(), 62028, InnerOuterExtensionWriter,
-                            nullptr, NoopExtensionHandler, nullptr));
+  EXPECT_EQ(SECSuccess,
+            SSL_InstallExtensionHooks(client_->ssl_fd(), 62028,
+                                      InnerOuterDiffExtensionWriter, nullptr,
+                                      NoopExtensionHandler, nullptr));
   EXPECT_EQ(SECSuccess,
             SSL_CallExtensionWriterOnEchInner(client_->ssl_fd(), true));
-
+  auto filter = MakeTlsFilter<TlsExtensionCapture>(
+      client_, ssl_tls13_encrypted_client_hello_xtn);
   client_->ExpectEch();
   server_->ExpectEch();
   Connect();
+  ASSERT_TRUE(filter->extension().len() > 1024);
+}
+
+// Test that basic compression works
+TEST_F(TlsConnectStreamTls13Ech, EchCustomExtensionWriterCompressionBasic) {
+  EnsureTlsSetup();
+  SetupEch(client_, server_);
+
+  // This will be compressed.
+  EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
+                            client_->ssl_fd(), 62028, LargeExtensionWriter,
+                            nullptr, NoopExtensionHandler, nullptr));
+  EXPECT_EQ(SECSuccess,
+            SSL_CallExtensionWriterOnEchInner(client_->ssl_fd(), true));
+  auto filter = MakeTlsFilter<TlsExtensionCapture>(
+      client_, ssl_tls13_encrypted_client_hello_xtn);
+  client_->ExpectEch();
+  server_->ExpectEch();
+  Connect();
+  size_t echXtnLen = filter->extension().len();
+  ASSERT_TRUE(echXtnLen > 0 && echXtnLen < 1024);
 }
 
 // Test that compression works when things change.
@@ -2515,23 +2557,27 @@ TEST_F(TlsConnectStreamTls13Ech,
 
   // This will be compressed.
   EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
-                            client_->ssl_fd(), 62028, EmptyExtensionWriter,
+                            client_->ssl_fd(), 62028, LargeExtensionWriter,
                             nullptr, NoopExtensionHandler, nullptr));
   // This can't be.
+  EXPECT_EQ(SECSuccess,
+            SSL_InstallExtensionHooks(client_->ssl_fd(), 62029,
+                                      InnerOuterDiffExtensionWriter, nullptr,
+                                      NoopExtensionHandler, nullptr));
+  // This will be compressed.
   EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
-                            client_->ssl_fd(), 62029, InnerOuterExtensionWriter,
-                            nullptr, NoopExtensionHandler, nullptr));
-  // This could be, but as it appears after an extension that cannot be
-  // compressed, it will be added.
-  EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
-                            client_->ssl_fd(), 62030, EmptyExtensionWriter,
+                            client_->ssl_fd(), 62030, LargeExtensionWriter,
                             nullptr, NoopExtensionHandler, nullptr));
   EXPECT_EQ(SECSuccess,
             SSL_CallExtensionWriterOnEchInner(client_->ssl_fd(), true));
-
+  auto filter = MakeTlsFilter<TlsExtensionCapture>(
+      client_, ssl_tls13_encrypted_client_hello_xtn);
   client_->ExpectEch();
   server_->ExpectEch();
   Connect();
+  auto echXtnLen = filter->extension().len();
+  /* Exactly one custom xtn plus change */
+  ASSERT_TRUE(echXtnLen > 1024 && echXtnLen < 2048);
 }
 
 // An outer-only extension stops compression.
@@ -2542,23 +2588,25 @@ TEST_F(TlsConnectStreamTls13Ech,
 
   // This will be compressed.
   EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
-                            client_->ssl_fd(), 62028, EmptyExtensionWriter,
+                            client_->ssl_fd(), 62028, LargeExtensionWriter,
                             nullptr, NoopExtensionHandler, nullptr));
   // This can't be as it appears in the outer only.
   EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
                             client_->ssl_fd(), 62029, OuterOnlyExtensionWriter,
                             nullptr, NoopExtensionHandler, nullptr));
-  // This could be, but as it appears after an extension that cannot be
-  // compressed, it will be added.
+  // This will be compressed
   EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
-                            client_->ssl_fd(), 62030, EmptyExtensionWriter,
+                            client_->ssl_fd(), 62030, LargeExtensionWriter,
                             nullptr, NoopExtensionHandler, nullptr));
   EXPECT_EQ(SECSuccess,
             SSL_CallExtensionWriterOnEchInner(client_->ssl_fd(), true));
-
+  auto filter = MakeTlsFilter<TlsExtensionCapture>(
+      client_, ssl_tls13_encrypted_client_hello_xtn);
   client_->ExpectEch();
   server_->ExpectEch();
   Connect();
+  size_t echXtnLen = filter->extension().len();
+  ASSERT_TRUE(echXtnLen > 0 && echXtnLen < 1024);
 }
 
 // An inner only extension does not stop compression.
@@ -2568,23 +2616,131 @@ TEST_F(TlsConnectStreamTls13Ech, EchCustomExtensionWriterCompressAllInnerOnly) {
 
   // This will be compressed.
   EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
-                            client_->ssl_fd(), 62028, EmptyExtensionWriter,
+                            client_->ssl_fd(), 62028, LargeExtensionWriter,
                             nullptr, NoopExtensionHandler, nullptr));
-  // This can't be as it appears in the outer only.
+  // This can't be as it appears in the inner only.
   EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
                             client_->ssl_fd(), 62029, InnerOnlyExtensionWriter,
                             nullptr, NoopExtensionHandler, nullptr));
-  // This could be, but as it appears after an extension that cannot be
-  // compressed, it will be added.
+  // This will be compressed.
   EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
-                            client_->ssl_fd(), 62030, EmptyExtensionWriter,
+                            client_->ssl_fd(), 62030, LargeExtensionWriter,
                             nullptr, NoopExtensionHandler, nullptr));
   EXPECT_EQ(SECSuccess,
             SSL_CallExtensionWriterOnEchInner(client_->ssl_fd(), true));
-
+  auto filter = MakeTlsFilter<TlsExtensionCapture>(
+      client_, ssl_tls13_encrypted_client_hello_xtn);
   client_->ExpectEch();
   server_->ExpectEch();
   Connect();
+  size_t echXtnLen = filter->extension().len();
+  ASSERT_TRUE(echXtnLen > 1024 && echXtnLen < 2048);
+}
+
+TEST_F(TlsConnectStreamTls13Ech, EchAcceptCustomXtn) {
+  EnsureTlsSetup();
+  SetupEch(client_, server_);
+
+  EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
+                            client_->ssl_fd(), 62028, LargeExtensionWriter,
+                            nullptr, NoopExtensionHandler, nullptr));
+
+  EXPECT_EQ(SECSuccess,
+            SSL_CallExtensionWriterOnEchInner(client_->ssl_fd(), true));
+
+  EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
+                            server_->ssl_fd(), 62028, LargeExtensionWriter,
+                            nullptr, NoopExtensionHandler, nullptr));
+  auto filter = MakeTlsFilter<TlsExtensionCapture>(server_, 62028);
+  client_->ExpectEch();
+  server_->ExpectEch();
+  Connect();
+}
+
+// Test that we reject Outer Xtn in SH if accepting ECH Inner
+TEST_F(TlsConnectStreamTls13Ech, EchRejectOuterXtnOnInner) {
+  EnsureTlsSetup();
+  SetupEch(client_, server_);
+
+  EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
+                            client_->ssl_fd(), 62028, OuterOnlyExtensionWriter,
+                            nullptr, NoopExtensionHandler, nullptr));
+
+  EXPECT_EQ(SECSuccess,
+            SSL_CallExtensionWriterOnEchInner(client_->ssl_fd(), true));
+
+  // Put the same extension on the Server Hello
+  EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
+                            server_->ssl_fd(), 62028, LargeExtensionWriter,
+                            nullptr, NoopExtensionHandler, nullptr));
+  auto filter = MakeTlsFilter<TlsExtensionCapture>(server_, 62028);
+  client_->ExpectEch(false);
+  server_->ExpectEch(false);
+  client_->ExpectSendAlert(kTlsAlertUnsupportedExtension);
+  // The server will be expecting an alert encrypted under a different key.
+  server_->ExpectSendAlert(kTlsAlertUnexpectedMessage);
+  ConnectExpectFail();
+  ASSERT_TRUE(filter->captured());
+  client_->CheckErrorCode(SSL_ERROR_RX_UNEXPECTED_EXTENSION);
+}
+
+// Test that we reject Inner Xtn in SH if accepting ECH Outer
+TEST_F(TlsConnectStreamTls13Ech, EchRejectInnerXtnOnOuter) {
+  EnsureTlsSetup();
+
+  // Setup ECH only on the client
+  SetupEch(client_, server_, HpkeDhKemX25519Sha256, false, true, false);
+
+  EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
+                            client_->ssl_fd(), 62028, InnerOnlyExtensionWriter,
+                            nullptr, NoopExtensionHandler, nullptr));
+
+  EXPECT_EQ(SECSuccess,
+            SSL_CallExtensionWriterOnEchInner(client_->ssl_fd(), true));
+
+  // Put the same extension on the Server Hello
+  EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
+                            server_->ssl_fd(), 62028, LargeExtensionWriter,
+                            nullptr, NoopExtensionHandler, nullptr));
+  auto filter = MakeTlsFilter<TlsExtensionCapture>(server_, 62028);
+  client_->ExpectEch(false);
+  server_->ExpectEch(false);
+  client_->ExpectSendAlert(kTlsAlertUnsupportedExtension);
+  // The server will be expecting an alert encrypted under a different key.
+  server_->ExpectSendAlert(kTlsAlertUnexpectedMessage);
+  ConnectExpectFail();
+  ASSERT_TRUE(filter->captured());
+  client_->CheckErrorCode(SSL_ERROR_RX_UNEXPECTED_EXTENSION);
+}
+
+// Test that we reject an Inner Xtn in SH, if accepting Ech Inner and
+// we didn't advertise it on SH Outer.
+TEST_F(TlsConnectStreamTls13Ech, EchRejectInnerXtnNotOnOuter) {
+  EnsureTlsSetup();
+
+  // Setup ECH only on the client
+  SetupEch(client_, server_);
+
+  EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
+                            client_->ssl_fd(), 62028, InnerOnlyExtensionWriter,
+                            nullptr, NoopExtensionHandler, nullptr));
+
+  EXPECT_EQ(SECSuccess,
+            SSL_CallExtensionWriterOnEchInner(client_->ssl_fd(), true));
+
+  // Put the same extension on the Server Hello
+  EXPECT_EQ(SECSuccess, SSL_InstallExtensionHooks(
+                            server_->ssl_fd(), 62028, LargeExtensionWriter,
+                            nullptr, NoopExtensionHandler, nullptr));
+  auto filter = MakeTlsFilter<TlsExtensionCapture>(server_, 62028);
+  client_->ExpectEch(false);
+  server_->ExpectEch(false);
+  client_->ExpectSendAlert(kTlsAlertUnsupportedExtension);
+  // The server will be expecting an alert encrypted under a different key.
+  server_->ExpectSendAlert(kTlsAlertUnexpectedMessage);
+  ConnectExpectFail();
+  ASSERT_TRUE(filter->captured());
+  client_->CheckErrorCode(SSL_ERROR_RX_UNEXPECTED_EXTENSION);
 }
 
 // At draft-09: If a CH containing the ech_is_inner extension is received, the
