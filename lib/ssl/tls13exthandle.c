@@ -1482,13 +1482,13 @@ tls13_ServerSendEchXtn(const sslSocket *ss,
     return SECSuccess;
 }
 
-/* If filled in, we overwrite the placeholder in tls13_WriteExtensionsWithHrrEchConfirmation*/
+/* If ECH is accepted, this value will be a placeholder and overwritten later. */
 SECStatus
 tls13_ServerSendHrrEchXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                           sslBuffer *buf, PRBool *added)
 {
     SECStatus rv;
-    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3 || !xtnData->ech) {
+    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3 || !xtnData->ech || (!ss->echPubKey && !ss->opt.enableTls13GreaseEch)) {
         SSL_TRC(100, ("%d: TLS13[%d]: server not sending HRR ECH Xtn",
                       SSL_GETPID(), ss->fd));
         return SECSuccess;
