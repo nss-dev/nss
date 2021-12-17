@@ -99,6 +99,7 @@ struct TLSExtensionDataStr {
 
     PRUint16 dtlsSRTPCipherSuite; /* 0 if not selected */
 
+    unsigned int echXtnOffset;  /* The start of the ECH Xtn (if any) */
     unsigned int lastXtnOffset; /* Where to insert any other extensions.
                                  * 0 = end, otherwise base of PSK xtn. */
     PRCList remoteKeyShares;    /* The other side's public keys (TLS 1.3) */

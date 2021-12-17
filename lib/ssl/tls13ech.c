@@ -834,97 +834,48 @@ loser:
 }
 
 /*
- *  enum {
- *     encrypted_client_hello(0xfe0d), (65537)
- *  } ExtensionType;
+ * outerAAD - The associated data for the AEAD (the entire client hello with the ECH payload zeroed)
+ * chInner - The plaintext which will be encrypted (the ClientHelloInner plus padding)
+ * echPayload - Output location. A buffer containing all-zeroes of at least chInner->len + TLS13_ECH_AEAD_TAG_LEN bytes.
  *
- *  struct {
- *      HpkeKdfId kdf_id;
- *      HpkeAeadId aead_id;
- *  } HpkeSymmetricCipherSuite;
- *  struct {
- *     HpkeSymmetricCipherSuite cipher_suite;
- *     uint8 config_id;
- *     opaque enc<1..2^16-1>;
- *     opaque payload<1..2^16-1>;
- *  } ClientECH;
- *
- * Takes as input the constructed ClientHelloInner and
- * returns a constructed encrypted_client_hello extension
- * (replacing the contents of |chInner|).
+ * echPayload may point into outerAAD to avoid the need to duplicate the ClientHelloOuter buffer.
  */
 static SECStatus
-tls13_EncryptClientHello(sslSocket *ss, sslBuffer *outerAAD, sslBuffer *chInner)
+tls13_EncryptClientHello(sslSocket *ss, SECItem *aadItem, const sslBuffer *chInner, PRUint8 *echPayload)
 {
     SECStatus rv;
     SECItem chPt = { siBuffer, chInner->buf, chInner->len };
     SECItem *chCt = NULL;
-    SECItem aadItem = { siBuffer, outerAAD ? outerAAD->buf : NULL, outerAAD ? outerAAD->len : 0 };
-    const SECItem *hpkeEnc = NULL;
-    const sslEchConfig *cfg = (sslEchConfig *)PR_LIST_HEAD(&ss->echConfigs);
-    PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->echConfigs));
 
-    SSL_TRC(50, ("%d: TLS13[%d]: Encrypting Client Hello Inner",
-                 SSL_GETPID(), ss->fd));
-    PRINT_BUF(50, (ss, "aad", outerAAD->buf, outerAAD->len));
-    PRINT_BUF(50, (ss, "inner", chInner->buf, chInner->len));
-
-    hpkeEnc = PK11_HPKE_GetEncapPubKey(ss->ssl3.hs.echHpkeCtx);
-    if (!hpkeEnc) {
-        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-        goto loser;
-    }
+    PRINT_BUF(50, (ss, "aad for ECH Encrypt", aadItem->data, aadItem->len));
+    PRINT_BUF(50, (ss, "plaintext for ECH Encrypt", chInner->buf, chInner->len));
 
 #ifndef UNSAFE_FUZZER_MODE
-    rv = PK11_HPKE_Seal(ss->ssl3.hs.echHpkeCtx, &aadItem, &chPt, &chCt);
+    rv = PK11_HPKE_Seal(ss->ssl3.hs.echHpkeCtx, aadItem, &chPt, &chCt);
     if (rv != SECSuccess) {
         goto loser;
     }
-    PRINT_BUF(50, (ss, "cipher", chCt->data, chCt->len));
+    PRINT_BUF(50, (ss, "ciphertext from ECH Encrypt", chCt->data, chCt->len));
 #else
     /* Fake a tag. */
-    SECITEM_AllocItem(NULL, chCt, chPt.len + 16);
+    SECITEM_AllocItem(NULL, chCt, chPt.len + TLS13_ECH_AEAD_TAG_LEN);
     if (!chCt) {
         goto loser;
     }
     PORT_Memcpy(chCt->data, chPt.data, chPt.len);
 #endif
 
-    /* Format the encrypted_client_hello extension. */
-    sslBuffer_Clear(chInner);
-    rv = sslBuffer_AppendNumber(chInner, ech_xtn_type_outer, 1);
-    if (rv != SECSuccess) {
-        goto loser;
+#ifdef DEBUG
+    /* When encrypting in-place, the payload is part of the AAD and must be zeroed. */
+    PRUint8 val = 0;
+    for (int i = 0; i < chCt->len; i++) {
+        val |= *(echPayload + i);
     }
-    rv = sslBuffer_AppendNumber(chInner, cfg->contents.kdfId, 2);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-    rv = sslBuffer_AppendNumber(chInner, cfg->contents.aeadId, 2);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
+    PRINT_BUF(100, (ss, "Empty Placeholder for output of ECH Encryption", echPayload, chCt->len));
+    PR_ASSERT(val == 0);
+#endif
 
-    rv = sslBuffer_AppendNumber(chInner, cfg->contents.configId, 1);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-    if (!ss->ssl3.hs.helloRetry) {
-        rv = sslBuffer_AppendVariable(chInner, hpkeEnc->data, hpkeEnc->len, 2);
-        if (rv != SECSuccess) {
-            goto loser;
-        }
-    } else {
-        /* |enc| is empty. */
-        rv = sslBuffer_AppendNumber(chInner, 0, 2);
-        if (rv != SECSuccess) {
-            goto loser;
-        }
-    }
-    rv = sslBuffer_AppendVariable(chInner, chCt->data, chCt->len, 2);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
+    PORT_Memcpy(echPayload, chCt->data, chCt->len);
     SECITEM_FreeItem(chCt, PR_TRUE);
     return SECSuccess;
 
@@ -1038,105 +989,41 @@ tls13_CopyChPreamble(sslSocket *ss, sslReader *reader, const SECItem *explicitSi
 }
 
 /*
- *   struct {
- *      HpkeSymmetricCipherSuite cipher_suite;  // kdfid_, aead_id
- *      uint8 config_id;
- *      opaque enc<1..2^16-1>;
- *      opaque outer_hello<1..2^24-1>;
- *   } ClientHelloOuterAAD;
+ * The ClientHelloOuterAAD is a serialized ClientHello structure, defined in
+ * Section 4.1.2 of [RFC8446], which matches the ClientHelloOuter except the
+ * payload field of the "encrypted_client_hello" is replaced with a byte
+ * string of the same length but whose contents are zeros. This value does
+ * not include the four-byte header from the Handshake structure.
  */
 static SECStatus
-tls13_MakeChOuterAAD(sslSocket *ss, const SECItem *outer, SECItem *outerAAD)
+tls13_ServerMakeChOuterAAD(sslSocket *ss, const PRUint8 *outerCh, unsigned int outerChLen, SECItem *outerAAD)
 {
     SECStatus rv;
     sslBuffer aad = SSL_BUFFER_EMPTY;
-    sslReadBuffer aadXtns = { 0 };
-    sslReader chReader = SSL_READER(outer->data, outer->len);
-    PRUint64 tmpn;
-    sslReadBuffer tmpvar = { 0 };
-    unsigned int offset;
-    unsigned int savedOffset;
+    const unsigned int echPayloadLen = ss->xtnData.ech->innerCh.len;               /* Length of incoming payload */
+    const unsigned int echPayloadOffset = ss->xtnData.ech->payloadStart - outerCh; /* Offset from start of CHO */
+
+    PORT_Assert(outerChLen > echPayloadLen);
+    PORT_Assert(echPayloadOffset + echPayloadLen <= outerChLen);
+    PORT_Assert(ss->sec.isServer);
     PORT_Assert(ss->xtnData.ech);
-    rv = sslBuffer_AppendNumber(&aad, ech_xtn_type_outer, 1);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-    rv = sslBuffer_AppendNumber(&aad, ss->xtnData.ech->kdfId, 2);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-    rv = sslBuffer_AppendNumber(&aad, ss->xtnData.ech->aeadId, 2);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
 
-    rv = sslBuffer_AppendNumber(&aad, ss->xtnData.ech->configId, 1);
+#ifdef DEBUG
+    /* Safety check that payload length pointed to by offset matches expected length */
+    sslReader echXtnReader = SSL_READER(outerCh + echPayloadOffset - 2, 2);
+    PRUint64 parsedXtnSize;
+    rv = sslRead_ReadNumber(&echXtnReader, 2, &parsedXtnSize);
+    PR_ASSERT(rv == SECSuccess);
+    PR_ASSERT(parsedXtnSize == echPayloadLen);
+#endif
+
+    rv = sslBuffer_Append(&aad, outerCh, outerChLen);
     if (rv != SECSuccess) {
         goto loser;
     }
+    PORT_Memset(aad.buf + echPayloadOffset, 0, echPayloadLen);
 
-    if (!ss->ssl3.hs.helloRetry) {
-        rv = sslBuffer_AppendVariable(&aad, ss->xtnData.ech->senderPubKey.data,
-                                      ss->xtnData.ech->senderPubKey.len, 2);
-    } else {
-        /* |enc| is empty for HelloRetryRequest. */
-        rv = sslBuffer_AppendNumber(&aad, 0, 2);
-    }
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-
-    /* Skip 3 bytes for the CHOuter length. */
-    rv = sslBuffer_Skip(&aad, 3, &savedOffset);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-
-    /* aad := preamble, aadXtn := extensions */
-    rv = tls13_CopyChPreamble(ss, &chReader, NULL, &aad, &aadXtns);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-    sslReader xtnsReader = SSL_READER(aadXtns.buf, aadXtns.len);
-
-    /* Save room for extensions length. */
-    rv = sslBuffer_Skip(&aad, 2, &offset);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-
-    /* Append each extension, minus encrypted_client_hello_xtn. */
-    while (SSL_READER_REMAINING(&xtnsReader)) {
-        rv = sslRead_ReadNumber(&xtnsReader, 2, &tmpn);
-        if (rv != SECSuccess) {
-            goto loser;
-        }
-        rv = sslRead_ReadVariable(&xtnsReader, 2, &tmpvar);
-        if (rv != SECSuccess) {
-            goto loser;
-        }
-
-        if (tmpn != ssl_tls13_encrypted_client_hello_xtn) {
-            rv = sslBuffer_AppendNumber(&aad, tmpn, 2);
-            if (rv != SECSuccess) {
-                goto loser;
-            }
-            rv = sslBuffer_AppendVariable(&aad, tmpvar.buf, tmpvar.len, 2);
-            if (rv != SECSuccess) {
-                goto loser;
-            }
-        }
-    }
-
-    rv = sslBuffer_InsertLength(&aad, offset, 2);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-
-    rv = sslBuffer_InsertLength(&aad, savedOffset, 3);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
+    PRINT_BUF(50, (ss, "AAD for ECH Decryption", aad.buf, aad.len));
 
     outerAAD->data = aad.buf;
     outerAAD->len = aad.len;
@@ -1185,6 +1072,8 @@ tls13_OpenClientHelloInner(sslSocket *ss, const SECItem *outer, const SECItem *o
 #ifndef UNSAFE_FUZZER_MODE
     rv = PK11_HPKE_Open(cx, outerAAD, &ss->xtnData.ech->innerCh, &decryptedChInner);
     if (rv != SECSuccess) {
+        SSL_TRC(10, ("%d: SSL3[%d]: Failed to decrypt inner CH with this candidate",
+                     SSL_GETPID(), ss->fd));
         goto loser; /* code set */
     }
 #else
@@ -1192,7 +1081,7 @@ tls13_OpenClientHelloInner(sslSocket *ss, const SECItem *outer, const SECItem *o
     if (rv != SECSuccess) {
         goto loser;
     }
-    decryptedChInner->len -= 16; /* Fake tag */
+    decryptedChInner->len -= TLS13_ECH_AEAD_TAG_LEN; /* Fake tag */
 #endif
 
     /* Stash the context, we may need it for HRR. */
@@ -1632,7 +1521,7 @@ loser:
 }
 
 static SECStatus
-tls13_EncodeClientHelloInner(sslSocket *ss, sslBuffer *chInner, sslBuffer *chInnerXtns, sslBuffer *out)
+tls13_EncodeClientHelloInner(sslSocket *ss, const sslBuffer *chInner, const sslBuffer *chInnerXtns, sslBuffer *out)
 {
     PORT_Assert(ss && chInner && chInnerXtns && out);
     SECStatus rv;
@@ -1718,6 +1607,79 @@ tls13_PadChInner(sslBuffer *chInner, uint8_t maxNameLen, uint8_t serverNameLen)
     return SECSuccess;
 }
 
+/* Build an ECH Xtn body with a zeroed payload for the client hello inner
+ *
+ *   enum { outer(0), inner(1) } ECHClientHelloType;
+ *
+ *   struct {
+ *      ECHClientHelloType type;
+ *      select (ECHClientHello.type) {
+ *          case outer:
+ *              HpkeSymmetricCipherSuite cipher_suite;
+ *              uint8 config_id;
+ *              opaque enc<0..2^16-1>;
+ *              opaque payload<1..2^16-1>;
+ *          case inner:
+ *              Empty;
+ *      };
+ *  } ECHClientHello;
+ *
+ * payloadLen = Size of zeroed placeholder field for payload.
+ * payloadOffset = Out parameter, start of payload field
+ * echXtn = Out parameter, constructed ECH Xtn with zeroed placeholder field.
+*/
+SECStatus
+tls13_BuildEchXtn(sslEchConfig *cfg, const SECItem *hpkeEnc, unsigned int payloadLen, PRUint16 *payloadOffset, sslBuffer *echXtn)
+{
+    SECStatus rv;
+    /* Format the encrypted_client_hello extension. */
+    rv = sslBuffer_AppendNumber(echXtn, ech_xtn_type_outer, 1);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    rv = sslBuffer_AppendNumber(echXtn, cfg->contents.kdfId, 2);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    rv = sslBuffer_AppendNumber(echXtn, cfg->contents.aeadId, 2);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+
+    rv = sslBuffer_AppendNumber(echXtn, cfg->contents.configId, 1);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    if (hpkeEnc) {
+        /* Public Key */
+        rv = sslBuffer_AppendVariable(echXtn, hpkeEnc->data, hpkeEnc->len, 2);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+    } else {
+        /* |enc| is empty. */
+        rv = sslBuffer_AppendNumber(echXtn, 0, 2);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+    }
+    payloadLen += TLS13_ECH_AEAD_TAG_LEN;
+    rv = sslBuffer_AppendNumber(echXtn, payloadLen, 2);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    *payloadOffset = echXtn->len;
+    rv = sslBuffer_Fill(echXtn, 0, payloadLen);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    PRINT_BUF(100, (NULL, "ECH Xtn with Placeholder:", echXtn->buf, echXtn->len));
+    return SECSuccess;
+loser:
+    sslBuffer_Clear(echXtn);
+    return SECFailure;
+}
+
 SECStatus
 tls13_ConstructClientHelloWithEch(sslSocket *ss, const sslSessionID *sid, PRBool freshSid,
                                   sslBuffer *chOuter, sslBuffer *chOuterXtnsBuf)
@@ -1728,11 +1690,7 @@ tls13_ConstructClientHelloWithEch(sslSocket *ss, const sslSessionID *sid, PRBool
     sslBuffer paddingChInner = SSL_BUFFER_EMPTY;
     sslBuffer chInnerXtns = SSL_BUFFER_EMPTY;
     sslBuffer pskXtn = SSL_BUFFER_EMPTY;
-    sslBuffer aad = SSL_BUFFER_EMPTY;
-    unsigned int encodedChLen;
     unsigned int preambleLen;
-    const SECItem *hpkeEnc = NULL;
-    unsigned int savedOffset;
 
     SSL_TRC(50, ("%d: TLS13[%d]: Constructing ECH inner", SSL_GETPID(), ss->fd));
 
@@ -1804,98 +1762,61 @@ tls13_ConstructClientHelloWithEch(sslSocket *ss, const sslSessionID *sid, PRBool
         goto loser;
     }
 
-    /* Pad the outer prior to appending ECH (for the AAD).
-     * Encoded extension size is (echCipherSuite + enc + configId + payload + tag).
-     * Post-encryption, we'll assert that this was correct. */
-    encodedChLen = 1 + 4 + 1 + 2 + 2 + encodedChInner.len + 16;
-    if (!ss->ssl3.hs.helloRetry) {
-        encodedChLen += 32; /* enc */
-    }
-    rv = ssl_InsertPaddingExtension(ss, chOuter->len + encodedChLen, chOuterXtnsBuf);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-    rv = sslBuffer_AppendNumber(&aad, ech_xtn_type_outer, 1);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-
-    rv = sslBuffer_AppendNumber(&aad, cfg->contents.kdfId, 2);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-    rv = sslBuffer_AppendNumber(&aad, cfg->contents.aeadId, 2);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-    rv = sslBuffer_AppendNumber(&aad, cfg->contents.configId, 1);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-
+    /* Build the ECH Xtn with placeholder and put it in chOuterXtnsBuf */
+    sslBuffer echXtn = SSL_BUFFER_EMPTY;
+    const SECItem *hpkeEnc = NULL;
     if (!ss->ssl3.hs.helloRetry) {
         hpkeEnc = PK11_HPKE_GetEncapPubKey(ss->ssl3.hs.echHpkeCtx);
         if (!hpkeEnc) {
             FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
             goto loser;
         }
-        rv = sslBuffer_AppendVariable(&aad, hpkeEnc->data, hpkeEnc->len, 2);
-    } else {
-        /* 2B for empty enc length. */
-        rv = sslBuffer_AppendNumber(&aad, 0, 2);
     }
+    PRUint16 echXtnPayloadOffset; /* Offset from start of ECH Xtn to ECH Payload */
+    rv = tls13_BuildEchXtn(cfg, hpkeEnc, encodedChInner.len, &echXtnPayloadOffset, &echXtn);
     if (rv != SECSuccess) {
         goto loser;
     }
-
-    rv = sslBuffer_Skip(&aad, 3, &savedOffset);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-
-    /* Skip the handshake header. */
-    PORT_Assert(chOuter->len > 4);
-    rv = sslBuffer_Append(&aad, &chOuter->buf[4], chOuter->len - 4);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-    rv = sslBuffer_AppendBufferVariable(&aad, chOuterXtnsBuf, 2);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-    rv = sslBuffer_InsertLength(&aad, savedOffset, 3);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-
-    /* Insert the encrypted_client_hello xtn and coalesce. */
-    rv = tls13_EncryptClientHello(ss, &aad, &encodedChInner);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-    PORT_Assert(encodedChLen == encodedChInner.len);
     ss->xtnData.echAdvertised[ss->xtnData.echNumAdvertised++] = ssl_tls13_encrypted_client_hello_xtn;
     rv = ssl3_EmplaceExtension(ss, chOuterXtnsBuf, ssl_tls13_encrypted_client_hello_xtn,
-                               encodedChInner.buf, encodedChInner.len, PR_TRUE);
+                               echXtn.buf, echXtn.len, PR_TRUE);
     if (rv != SECSuccess) {
         goto loser;
     }
 
+    /* Add the padding */
+    rv = ssl_InsertPaddingExtension(ss, chOuter->len, chOuterXtnsBuf);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+
+    /* Finish the CHO with the ECH Xtn payload zeroed */
     rv = ssl3_InsertChHeaderSize(ss, chOuter, chOuterXtnsBuf);
     if (rv != SECSuccess) {
         goto loser;
     }
-
+    unsigned int chOuterXtnsOffset = chOuter->len + 2; /* From Start of CHO to Extensions list */
     rv = sslBuffer_AppendBufferVariable(chOuter, chOuterXtnsBuf, 2);
     if (rv != SECSuccess) {
         goto loser;
     }
+
+    /* AAD consists of entire CHO, minus the 4 byte handshake header */
+    SECItem aadItem = { siBuffer, chOuter->buf + 4, chOuter->len - 4 };
+    /* ECH Payload begins after CHO Header, after ECH Xtn start, after ECH Xtn header */
+    PRUint8 *echPayload = chOuter->buf + chOuterXtnsOffset + ss->xtnData.echXtnOffset + 4 + echXtnPayloadOffset;
+    /* Insert the encrypted_client_hello xtn and coalesce. */
+    rv = tls13_EncryptClientHello(ss, &aadItem, &encodedChInner, echPayload);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+
+    sslBuffer_Clear(&echXtn);
     sslBuffer_Clear(&chInner);
     sslBuffer_Clear(&encodedChInner);
     sslBuffer_Clear(&paddingChInner);
     sslBuffer_Clear(&chInnerXtns);
     sslBuffer_Clear(&pskXtn);
-    sslBuffer_Clear(&aad);
     return SECSuccess;
 
 loser:
@@ -1904,7 +1825,6 @@ loser:
     sslBuffer_Clear(&paddingChInner);
     sslBuffer_Clear(&chInnerXtns);
     sslBuffer_Clear(&pskXtn);
-    sslBuffer_Clear(&aad);
     PORT_Assert(PORT_GetError() != 0);
     return SECFailure;
 }
@@ -2174,10 +2094,11 @@ cleanup:
 /* Called just prior to padding the CH. Use the size of the CH to estimate
  * the size of a corresponding ECH extension, then add it to the buffer. */
 SECStatus
-tls13_MaybeGreaseEch(sslSocket *ss, unsigned int preambleLen, sslBuffer *buf)
+tls13_MaybeGreaseEch(sslSocket *ss, const sslBuffer *preamble, sslBuffer *buf)
 {
     SECStatus rv;
     sslBuffer chInnerXtns = SSL_BUFFER_EMPTY;
+    sslBuffer encodedCh = SSL_BUFFER_EMPTY;
     sslBuffer greaseBuf = SSL_BUFFER_EMPTY;
     unsigned int payloadLen;
     HpkeAeadId aead;
@@ -2213,8 +2134,14 @@ tls13_MaybeGreaseEch(sslSocket *ss, unsigned int preambleLen, sslBuffer *buf)
     if (rv != SECSuccess) {
         goto loser; /* Code set */
     }
-    payloadLen = preambleLen + 2 /* Xtns len */ + chInnerXtns.len - 4 /* msg header */;
-    payloadLen += 16; /* Aead tag */
+    rv = tls13_EncodeClientHelloInner(ss, preamble, &chInnerXtns, &encodedCh);
+    if (rv != SECSuccess) {
+        goto loser; /* Code set */
+    }
+    rv = tls13_PadChInner(&encodedCh, TLS13_ECH_GREASE_SNI_LEN, strlen(ss->url));
+
+    payloadLen = encodedCh.len;
+    payloadLen += TLS13_ECH_AEAD_TAG_LEN; /* Aead tag */
 
     /* HMAC-Expand to get something that will pass for ciphertext. */
     slot = PK11_GetBestSlot(CKM_HKDF_DERIVE, NULL);
@@ -2306,6 +2233,7 @@ tls13_MaybeGreaseEch(sslSocket *ss, unsigned int preambleLen, sslBuffer *buf)
     ss->ssl3.hs.greaseEchBuf = greaseBuf;
 
     sslBuffer_Clear(&chInnerXtns);
+    sslBuffer_Clear(&encodedCh);
     PK11_FreeSymKey(hmacPrk);
     PK11_FreeSymKey(derivedData);
     PK11_FreeSlot(slot);
@@ -2313,6 +2241,7 @@ tls13_MaybeGreaseEch(sslSocket *ss, unsigned int preambleLen, sslBuffer *buf)
 
 loser:
     sslBuffer_Clear(&chInnerXtns);
+    sslBuffer_Clear(&encodedCh);
     PK11_FreeSymKey(hmacPrk);
     PK11_FreeSymKey(derivedData);
     if (slot) {
@@ -2363,7 +2292,6 @@ tls13_MaybeHandleEch(sslSocket *ss, const PRUint8 *msg, PRUint32 msgLen, SECItem
             goto loser; /* code set, alert sent. */
         }
 
-        /* ECH Inners must negotiate TLSv1.3 or higher otherwise send illegal_parameter alert */
         versionExtension = ssl3_FindExtension(ss, ssl_tls13_supported_versions_xtn);
         if (!versionExtension) {
             FATAL_ERROR(ss, SSL_ERROR_UNSUPPORTED_VERSION, illegal_parameter);
@@ -2732,7 +2660,7 @@ tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOu
     }
 
     if (candidate) {
-        rv = tls13_MakeChOuterAAD(ss, &outer, &outerAAD);
+        rv = tls13_ServerMakeChOuterAAD(ss, chOuter, chOuterLen, &outerAAD);
         if (rv != SECSuccess) {
             return SECFailure;
         }
