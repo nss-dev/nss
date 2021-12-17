@@ -142,7 +142,7 @@ loser:
  *     uint16 version;
  *     uint16 length;
  *     select (ECHConfig.version) {
- *       case 0xfe0a: ECHConfigContents contents;
+ *       case 0xfe0d: ECHConfigContents contents;
  *     }
  * } ECHConfig;
  */
@@ -226,15 +226,15 @@ tls13_DecodeEchConfigContents(const sslReadBuffer *rawConfig,
         goto loser;
     }
 
-    /* uint16 maximum_name_length */
-    rv = sslRead_ReadNumber(&configReader, 2, &tmpn);
+    /* uint8 maximum_name_length */
+    rv = sslRead_ReadNumber(&configReader, 1, &tmpn);
     if (rv != SECSuccess) {
         goto loser;
     }
-    contents.maxNameLen = (PRUint16)tmpn;
+    contents.maxNameLen = (PRUint8)tmpn;
 
     /* opaque public_name<1..2^16-1> */
-    rv = sslRead_ReadVariable(&configReader, 2, &tmpBuf);
+    rv = sslRead_ReadVariable(&configReader, 1, &tmpBuf);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -346,7 +346,7 @@ tls13_DecodeEchConfigs(const SECItem *data, PRCList *configs)
     if (rv != SECSuccess) {
         return SECFailure;
     }
-
+    SSL_TRC(100, ("Read EchConfig list of size %u", SSL_READER_REMAINING(&rdr)));
     if (SSL_READER_REMAINING(&rdr)) {
         PORT_SetError(SEC_ERROR_BAD_DATA);
         return SECFailure;
@@ -438,7 +438,7 @@ SSLExp_EncodeEchConfigId(PRUint8 configId, const char *publicName, unsigned int 
      *     uint16 version;
      *     uint16 length;
      *     select (ECHConfig.version) {
-     *       case 0xfe0a: ECHConfigContents contents;
+     *       case 0xfe0d: ECHConfigContents contents;
      *     }
      * } ECHConfig;
     */
@@ -497,22 +497,22 @@ SSLExp_EncodeEchConfigId(PRUint8 configId, const char *publicName, unsigned int 
     /*
      * struct {
      *     HpkeKeyConfig key_config;
-     *     uint16 maximum_name_length;
-     *     opaque public_name<1..2^16-1>;
+     *     uint8 maximum_name_length;
+     *     opaque public_name<1..255>;
      *     Extension extensions<0..2^16-1>;
      * } ECHConfigContents;
      */
-    rv = sslBuffer_AppendNumber(&b, maxNameLen, 2);
+    rv = sslBuffer_AppendNumber(&b, maxNameLen, 1);
     if (rv != SECSuccess) {
         goto loser;
     }
 
     len = PORT_Strlen(publicName);
-    if (len > 0xffff) {
+    if (len > 0xff) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         goto loser;
     }
-    rv = sslBuffer_AppendVariable(&b, (const PRUint8 *)publicName, len, 2);
+    rv = sslBuffer_AppendVariable(&b, (const PRUint8 *)publicName, len, 1);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -821,7 +821,7 @@ loser:
 
 /*
  *  enum {
- *     encrypted_client_hello(0xfe0a), (65535)
+ *     encrypted_client_hello(0xfe0d), (65537)
  *  } ExtensionType;
  *
  *  struct {

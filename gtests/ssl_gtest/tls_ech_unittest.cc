@@ -255,7 +255,7 @@ static SECStatus AuthCompleteFail(TlsAgent* agent, PRBool, PRBool) {
   return SECFailure;
 }
 
-TEST_P(TlsAgentEchTest, EchConfigsSupportedYesNo) {
+TEST_P(TlsAgentEchTest, DISABLED_EchConfigsSupportedYesNo) {
   if (variant_ == ssl_variant_datagram) {
     GTEST_SKIP();
   }
@@ -280,7 +280,7 @@ TEST_P(TlsAgentEchTest, EchConfigsSupportedYesNo) {
   ASSERT_TRUE(filter->captured());
 }
 
-TEST_P(TlsAgentEchTest, EchConfigsSupportedNoYes) {
+TEST_P(TlsAgentEchTest, DISABLED_EchConfigsSupportedNoYes) {
   if (variant_ == ssl_variant_datagram) {
     GTEST_SKIP();
   }
@@ -641,7 +641,7 @@ TEST_F(TlsConnectStreamTls13Ech, EchFixedConfig) {
 // Test an encoded ClientHelloInner containing an extra extensionType
 // in outer_extensions, for which there is no corresponding (uncompressed)
 // extension in ClientHelloOuter.
-TEST_F(TlsConnectStreamTls13Ech, EchOuterExtensionsReferencesMissing) {
+TEST_F(TlsConnectStreamTls13Ech, DISABLED_EchOuterExtensionsReferencesMissing) {
   // Construct this by prepending 0xabcd to ssl_tls13_outer_extensions_xtn.
   std::string ch =
       "01000200030341a6813ccf3eefc2deb9c78f7627715ae343f5236e7224f454c723c93e0b"
@@ -665,7 +665,7 @@ TEST_F(TlsConnectStreamTls13Ech, EchOuterExtensionsReferencesMissing) {
 }
 
 // Drop supported_versions from CHInner, make sure we don't negotiate 1.2+ECH.
-TEST_F(TlsConnectStreamTls13Ech, EchVersion12Inner) {
+TEST_F(TlsConnectStreamTls13Ech, DISABLED_EchVersion12Inner) {
   // Construct this by removing ssl_tls13_supported_versions_xtn entirely.
   std::string ch =
       "010002000303baf30ea25e5056b659a4d55233922c4ee261a04e6d84c8200713edca2f55"
@@ -689,7 +689,7 @@ TEST_F(TlsConnectStreamTls13Ech, EchVersion12Inner) {
 }
 
 // Use CHInner supported_versions to negotiate 1.2.
-TEST_F(TlsConnectStreamTls13Ech, EchVersion12InnerSupportedVersions) {
+TEST_F(TlsConnectStreamTls13Ech, DISABLED_EchVersion12InnerSupportedVersions) {
   // Construct this by changing ssl_tls13_supported_versions_xtn to write
   // TLS 1.2 instead of TLS 1.3.
   std::string ch =
@@ -714,7 +714,7 @@ TEST_F(TlsConnectStreamTls13Ech, EchVersion12InnerSupportedVersions) {
 }
 
 // Replay a CH for which CHInner lacks the required ech_is_inner extension.
-TEST_F(TlsConnectStreamTls13Ech, EchInnerMissing) {
+TEST_F(TlsConnectStreamTls13Ech, DISABLED_EchInnerMissing) {
   // Construct by omitting ssl_tls13_ech_is_inner_xtn.
   std::string ch =
       "010002000303912d293136b843248ffeecdde6ef0d5bc5d0adb4d356b985c2fcec8fe2b0"
@@ -739,7 +739,7 @@ TEST_F(TlsConnectStreamTls13Ech, EchInnerMissing) {
 
 // Replay a CH for which CHInner contains both an ECH and ech_is_inner
 // extension.
-TEST_F(TlsConnectStreamTls13Ech, InnerWithEchAndEchIsInner) {
+TEST_F(TlsConnectStreamTls13Ech, DISABLED_InnerWithEchAndEchIsInner) {
   // Construct by appending an empty ssl_tls13_encrypted_client_hello_xtn to
   // CHInner.
   std::string ch =
@@ -780,7 +780,7 @@ TEST_F(TlsConnectStreamTls13, OuterWithEchAndEchIsInner) {
 // of the public key: the first ECHConfig contains a public key for which we
 // lack the private value. Use an SSLInt function to zero all the config_ids
 // (client and server), then confirm that trial decryption works.
-TEST_F(TlsConnectStreamTls13Ech, EchConfigsTrialDecrypt) {
+TEST_F(TlsConnectStreamTls13Ech, DISABLED_EchConfigsTrialDecrypt) {
   ScopedSECKEYPublicKey pub;
   ScopedSECKEYPrivateKey priv;
   EnsureTlsSetup();
