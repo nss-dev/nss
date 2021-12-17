@@ -948,7 +948,7 @@ tls13_GetMatchingEchConfigs(const sslSocket *ss, HpkeKdfId kdf, HpkeAeadId aead,
  * If |explicitSid|, place this value into |writer| as the SID. Else,
  * the sid is copied from |reader| to |writer|. */
 static SECStatus
-tls13_CopyChPreamble(sslReader *reader, const SECItem *explicitSid, sslBuffer *writer, sslReadBuffer *extensions)
+tls13_CopyChPreamble(sslSocket *ss, sslReader *reader, const SECItem *explicitSid, sslBuffer *writer, sslReadBuffer *extensions)
 {
     SECStatus rv;
     sslReadBuffer tmpReadBuf;
@@ -1005,11 +1005,21 @@ tls13_CopyChPreamble(sslReader *reader, const SECItem *explicitSid, sslBuffer *w
         return SECFailure;
     }
 
-    if (SSL_READER_REMAINING(reader) != 0) {
-        PORT_SetError(SSL_ERROR_RX_MALFORMED_ECH_EXTENSION);
+    /* padding (optional) */
+    sslReadBuffer padding;
+    rv = sslRead_Read(reader, SSL_READER_REMAINING(reader), &padding);
+    if (rv != SECSuccess) {
         return SECFailure;
     }
-
+    PRUint8 result = 0;
+    for (int i = 0; i < padding.len; i++) {
+        result |= padding.buf[i];
+    }
+    if (result) {
+        SSL_TRC(50, ("%d: TLS13: Invalid ECH ClientHelloInner padding decoded", SSL_GETPID()));
+        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_ECH_EXTENSION, illegal_parameter);
+        return SECFailure;
+    }
     return SECSuccess;
 }
 
@@ -1069,7 +1079,7 @@ tls13_MakeChOuterAAD(sslSocket *ss, const SECItem *outer, SECItem *outerAAD)
     }
 
     /* aad := preamble, aadXtn := extensions */
-    rv = tls13_CopyChPreamble(&chReader, NULL, &aad, &aadXtns);
+    rv = tls13_CopyChPreamble(ss, &chReader, NULL, &aad, &aadXtns);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -1433,12 +1443,36 @@ loser:
 }
 
 SECStatus
+tls13_PadChInner(sslBuffer *chInner, uint8_t maxNameLen, uint8_t serverNameLen)
+{
+    SECStatus rv;
+    PORT_Assert(chInner);
+    PORT_Assert(serverNameLen > 0);
+    static unsigned char padding[256+32] = { 0 };
+    int16_t name_padding = (int16_t)maxNameLen - (int16_t)serverNameLen;
+    if (name_padding < 0) {
+        name_padding = 0;
+    }
+    unsigned int rounding_padding = 31 - ((SSL_BUFFER_LEN(chInner) + name_padding) % 32);
+    unsigned int total_padding = name_padding + rounding_padding;
+    PORT_Assert(total_padding < sizeof(padding));
+    SSL_TRC(100, ("computed ECH Inner Client Hello padding of size %u", total_padding));
+    rv = sslBuffer_Append(chInner, padding, total_padding);
+    if (rv != SECSuccess) {
+        sslBuffer_Clear(chInner);
+        return SECFailure;
+    }
+    return SECSuccess;
+}
+
+SECStatus
 tls13_ConstructClientHelloWithEch(sslSocket *ss, const sslSessionID *sid, PRBool freshSid,
                                   sslBuffer *chOuter, sslBuffer *chOuterXtnsBuf)
 {
     SECStatus rv;
     sslBuffer chInner = SSL_BUFFER_EMPTY;
     sslBuffer encodedChInner = SSL_BUFFER_EMPTY;
+    sslBuffer paddingChInner = SSL_BUFFER_EMPTY;
     sslBuffer chInnerXtns = SSL_BUFFER_EMPTY;
     sslBuffer pskXtn = SSL_BUFFER_EMPTY;
     sslBuffer aad = SSL_BUFFER_EMPTY;
@@ -1507,8 +1541,17 @@ tls13_ConstructClientHelloWithEch(sslSocket *ss, const sslSessionID *sid, PRBool
         goto loser;
     }
 
+    PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->echConfigs));
+    sslEchConfig *cfg = (sslEchConfig *)PR_LIST_HEAD(&ss->echConfigs);
+
+    /* We are using ECH so SNI must have been included */
+    rv = tls13_PadChInner(&encodedChInner, cfg->contents.maxNameLen, strlen(ss->url));
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+
     /* Pad the outer prior to appending ECH (for the AAD).
-     * Encoded extension size is (xtnType + echCipherSuite + enc + configId + payload + tag).
+     * Encoded extension size is (echCipherSuite + enc + configId + payload + tag).
      * Post-encryption, we'll assert that this was correct. */
     encodedChLen = 1 + 4 + 1 + 2 + 2 + encodedChInner.len + 16;
     if (!ss->ssl3.hs.helloRetry) {
@@ -1522,8 +1565,7 @@ tls13_ConstructClientHelloWithEch(sslSocket *ss, const sslSessionID *sid, PRBool
     if (rv != SECSuccess) {
         goto loser;
     }
-    PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->echConfigs));
-    sslEchConfig *cfg = (sslEchConfig *)PR_LIST_HEAD(&ss->echConfigs);
+
     rv = sslBuffer_AppendNumber(&aad, cfg->contents.kdfId, 2);
     if (rv != SECSuccess) {
         goto loser;
@@ -1596,6 +1638,7 @@ tls13_ConstructClientHelloWithEch(sslSocket *ss, const sslSessionID *sid, PRBool
     }
     sslBuffer_Clear(&chInner);
     sslBuffer_Clear(&encodedChInner);
+    sslBuffer_Clear(&paddingChInner);
     sslBuffer_Clear(&chInnerXtns);
     sslBuffer_Clear(&pskXtn);
     sslBuffer_Clear(&aad);
@@ -1604,6 +1647,7 @@ tls13_ConstructClientHelloWithEch(sslSocket *ss, const sslSessionID *sid, PRBool
 loser:
     sslBuffer_Clear(&chInner);
     sslBuffer_Clear(&encodedChInner);
+    sslBuffer_Clear(&paddingChInner);
     sslBuffer_Clear(&chInnerXtns);
     sslBuffer_Clear(&pskXtn);
     sslBuffer_Clear(&aad);
@@ -2000,7 +2044,7 @@ tls13_UnencodeChInner(sslSocket *ss, const SECItem *sidBytes, SECItem **echInner
     PRINT_BUF(100, (ss, "ECH Inner", chReader.buf.buf, chReader.buf.len));
 
     /* unencodedChInner := preamble, tmpReadBuf := encoded extensions. */
-    rv = tls13_CopyChPreamble(&chReader, sidBytes, &unencodedChInner, &tmpReadBuf);
+    rv = tls13_CopyChPreamble(ss, &chReader, sidBytes, &unencodedChInner, &tmpReadBuf);
     if (rv != SECSuccess) {
         goto loser; /* code set */
     }
