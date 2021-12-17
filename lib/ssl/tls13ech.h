@@ -27,6 +27,7 @@
 static const char kHpkeInfoEch[] = "tls ech";
 static const char hHkdfInfoEchConfigID[] = "tls ech config id";
 static const char kHkdfInfoEchConfirm[] = "ech accept confirmation";
+static const char kHkdfInfoEchHrrConfirm[] = "hrr ech accept confirmation";
 
 typedef enum {
     ech_xtn_type_outer = 0,
@@ -46,6 +47,18 @@ struct sslEchConfigContentsStr {
     /* No supported extensions. */
 };
 
+/* ECH Information needed by a server to process a second CH after a
+ * HelloRetryRequest is sent. This data is stored in the cookie. 
+ */
+struct sslEchCookieDataStr {
+    PRBool previouslyOffered;
+    PRUint8 configId;
+    HpkeKdfId kdfId;
+    HpkeAeadId aeadId;
+    HpkeContext *hpkeCtx;
+    sslBuffer signal;
+};
+
 struct sslEchConfigStr {
     PRCList link;
     SECItem raw;
@@ -63,6 +76,7 @@ struct sslEchXtnStateStr {
     PRBool retryConfigsValid; /* Client: Extraction of retry_configss is allowed.
                                *  This is set once the handshake completes (having
                                *  verified to the ECHConfig public name). */
+    PRUint8 *hrrConfirmation; /* Client/Server: HRR Confirmation Location */
     PRBool receivedInnerXtn;  /* Server: Handled ECH Xtn with Inner Enum */
 };
 
@@ -90,11 +104,14 @@ SECStatus tls13_GetMatchingEchConfig(const sslSocket *ss, HpkeKdfId kdf, HpkeAea
                                      const SECItem *configId, sslEchConfig **cfg);
 SECStatus tls13_MaybeHandleEch(sslSocket *ss, const PRUint8 *msg, PRUint32 msgLen, SECItem *sidBytes,
                                SECItem *comps, SECItem *cookieBytes, SECItem *suites, SECItem **echInner);
-SECStatus tls13_MaybeHandleEchSignal(sslSocket *ss, const PRUint8 *savedMsg, PRUint32 savedLength);
+SECStatus tls13_MaybeHandleEchSignal(sslSocket *ss, const PRUint8 *savedMsg, PRUint32 savedLength, PRBool isHrr);
 SECStatus tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOuter,
                                unsigned int chOuterLen, SECItem **chInner);
 SECStatus tls13_MaybeGreaseEch(sslSocket *ss, unsigned int prefixLen, sslBuffer *buf);
 SECStatus tls13_WriteServerEchSignal(sslSocket *ss, PRUint8 *sh, unsigned int shLen);
+SECStatus tls13_WriteServerEchHrrSignal(sslSocket *ss, PRUint8 *sh, unsigned int shLen);
+SECStatus tls13_DeriveEchSecret(const sslSocket *ss, PK11SymKey **output);
+SECStatus tls13_ComputeEchSignal(sslSocket *ss, PRBool isHrr, const PRUint8 *sh, unsigned int shLen, PRUint8 *out);
 
 PRBool tls13_IsIp(const PRUint8 *str, unsigned int len);
 PRBool tls13_IsLDH(const PRUint8 *str, unsigned int len);

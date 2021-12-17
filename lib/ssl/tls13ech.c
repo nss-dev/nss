@@ -31,6 +31,20 @@ tls13_DeriveSecret(sslSocket *ss, PK11SymKey *key,
                    PK11SymKey **dest,
                    SSLHashType hash);
 
+PRBool
+tls13_Debug_CheckXtnBegins(const PRUint8 *start, const PRUint16 xtnType)
+{
+#ifdef DEBUG
+    SECStatus rv;
+    sslReader ext_reader = SSL_READER(start, 2);
+    PRUint64 extension_number;
+    rv = sslRead_ReadNumber(&ext_reader, 2, &extension_number);
+    return ((rv == SECSuccess) && (extension_number == xtnType));
+#else
+    return PR_TRUE;
+#endif
+}
+
 void
 tls13_DestroyEchConfig(sslEchConfig *config)
 {
@@ -1448,7 +1462,7 @@ tls13_PadChInner(sslBuffer *chInner, uint8_t maxNameLen, uint8_t serverNameLen)
     SECStatus rv;
     PORT_Assert(chInner);
     PORT_Assert(serverNameLen > 0);
-    static unsigned char padding[256+32] = { 0 };
+    static unsigned char padding[256 + 32] = { 0 };
     int16_t name_padding = (int16_t)maxNameLen - (int16_t)serverNameLen;
     if (name_padding < 0) {
         name_padding = 0;
@@ -1655,109 +1669,266 @@ loser:
     return SECFailure;
 }
 
-/* Compute the ECH signal using the transcript (up to, excluding) Server Hello.
- * We'll append an artificial SH (ServerHelloECHConf). The server sources
- * this transcript prefix from ss->ssl3.hs.messages, as it never uses
- * ss->ssl3.hs.echInnerMessages. The client uses the inner transcript, echInnerMessages. */
 static SECStatus
-tls13_ComputeEchSignal(sslSocket *ss, const PRUint8 *sh, unsigned int shLen, PRUint8 *out)
+tls13_ComputeEchHelloRetryTranscript(sslSocket *ss, const PRUint8 *sh, unsigned int shLen, sslBuffer *out)
 {
     SECStatus rv;
-    PK11SymKey *confirmationKey = NULL;
-    sslBuffer confMsgs = SSL_BUFFER_EMPTY;
+    PRUint8 zeroedEchSignal[TLS13_ECH_SIGNAL_LEN] = { 0 };
+    sslBuffer *previousTranscript;
+
+    if (ss->sec.isServer) {
+        previousTranscript = &(ss->ssl3.hs.messages);
+    } else {
+        previousTranscript = &(ss->ssl3.hs.echInnerMessages);
+    }
+    /*
+     *  This segment calculates the hash of the Client Hello
+     *  TODO(djackson@mozilla.com) - Replace with existing function?
+     *  e.g. tls13_ReinjectHandshakeTranscript
+     */
+    if (!ss->ssl3.hs.helloRetry || !ss->sec.isServer) {
+        /*
+        * This function can be called in three situations:
+        *    - By the server, prior to sending the HRR, when ECH was accepted
+        *    - By the client, after receiving the HRR, but before it knows whether ECH was accepted
+        *    - By the server, after accepting ECH and receiving CH2 when it needs to reconstruct the HRR
+        * In the first two situations, we need to include the message hash of inner ClientHello1 but don't
+        * want to alter the buffer containing the current transcript.
+        * In the last, the buffer already contains the message hash of inner ClientHello1.
+        */
+        SSL3Hashes hashes;
+        rv = tls13_ComputeHash(ss, &hashes, previousTranscript->buf, previousTranscript->len, tls13_GetHash(ss));
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+        rv = sslBuffer_AppendNumber(out, ssl_hs_message_hash, 1);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+        rv = sslBuffer_AppendNumber(out, hashes.len, 3);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+        rv = sslBuffer_Append(out, hashes.u.raw, hashes.len);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+    } else {
+        rv = sslBuffer_AppendBuffer(out, previousTranscript);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+    }
+    /* Ensure the first ClientHello has been hashed. */
+    PR_ASSERT(out->len == tls13_GetHashSize(ss) + 4);
+    PRINT_BUF(100, (ss, "ECH Client Hello Message Hash", out->buf, out->len));
+    /* Message Header */
+    rv = sslBuffer_AppendNumber(out, ssl_hs_server_hello, 1);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    /* Message Size */
+    rv = sslBuffer_AppendNumber(out, shLen, 3);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    /* Calculate where the HRR ECH Xtn Signal begins */
+    unsigned int absEchOffset;
+    if (ss->sec.isServer) {
+        /* We know the ECH HRR Xtn is last */
+        PORT_Assert(shLen >= TLS13_ECH_SIGNAL_LEN);
+        absEchOffset = shLen - TLS13_ECH_SIGNAL_LEN;
+    } else {
+        /* We parsed the offset earlier */
+        /* The result of pointer comparision is unspecified
+         * (and pointer arithemtic is undefined) if the pointers
+         * do not point to the same array or struct. That means these
+         * asserts cannot be relied on for correctness in compiled code,
+         * but may help the reader understand the requirements.
+         */
+        PORT_Assert(ss->xtnData.ech->hrrConfirmation > sh);
+        PORT_Assert(ss->xtnData.ech->hrrConfirmation < sh + shLen);
+        absEchOffset = ss->xtnData.ech->hrrConfirmation - sh;
+    }
+    PR_ASSERT(tls13_Debug_CheckXtnBegins(sh + absEchOffset - 4, ssl_tls13_encrypted_client_hello_xtn));
+    /* The HRR up to the ECH Xtn signal */
+    rv = sslBuffer_Append(out, sh, shLen - absEchOffset);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    rv = sslBuffer_Append(out, zeroedEchSignal, sizeof(zeroedEchSignal));
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    PR_ASSERT(absEchOffset + TLS13_ECH_SIGNAL_LEN <= shLen);
+    /* The remainder of the HRR */
+    rv = sslBuffer_Append(out, sh + absEchOffset + TLS13_ECH_SIGNAL_LEN, shLen - absEchOffset - TLS13_ECH_SIGNAL_LEN);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    return SECSuccess;
+loser:
+    sslBuffer_Clear(out);
+    return SECFailure;
+}
+
+static SECStatus
+tls13_ComputeEchServerHelloTranscript(sslSocket *ss, const PRUint8 *sh, unsigned int shLen, sslBuffer *out)
+{
+    SECStatus rv;
     sslBuffer *chSource = ss->sec.isServer ? &ss->ssl3.hs.messages : &ss->ssl3.hs.echInnerMessages;
-    SSL3Hashes hashes;
-    SECItem *confirmationBytes;
     unsigned int offset = sizeof(SSL3ProtocolVersion) +
                           SSL3_RANDOM_LENGTH - TLS13_ECH_SIGNAL_LEN;
     PORT_Assert(sh && shLen > offset);
     PORT_Assert(TLS13_ECH_SIGNAL_LEN <= SSL3_RANDOM_LENGTH);
-
-    PRINT_BUF(100, (ss, "Client Hello Transcript", chSource->buf, chSource->len));
-
-    rv = sslBuffer_AppendBuffer(&confMsgs, chSource);
+    rv = sslBuffer_AppendBuffer(out, chSource);
     if (rv != SECSuccess) {
         goto loser;
     }
 
     /* Re-create the message header. */
-    rv = sslBuffer_AppendNumber(&confMsgs, ssl_hs_server_hello, 1);
+    rv = sslBuffer_AppendNumber(out, ssl_hs_server_hello, 1);
     if (rv != SECSuccess) {
         goto loser;
     }
 
-    rv = sslBuffer_AppendNumber(&confMsgs, shLen, 3);
+    rv = sslBuffer_AppendNumber(out, shLen, 3);
     if (rv != SECSuccess) {
         goto loser;
     }
 
     /* Copy the version and 24B of server_random. */
-    rv = sslBuffer_Append(&confMsgs, sh, offset);
+    rv = sslBuffer_Append(out, sh, offset);
     if (rv != SECSuccess) {
         goto loser;
     }
 
     /* Zero the signal placeholder. */
-    rv = sslBuffer_AppendNumber(&confMsgs, 0, TLS13_ECH_SIGNAL_LEN);
+    rv = sslBuffer_AppendNumber(out, 0, TLS13_ECH_SIGNAL_LEN);
     if (rv != SECSuccess) {
         goto loser;
     }
     offset += TLS13_ECH_SIGNAL_LEN;
 
     /* Use the remainder of SH. */
-    rv = sslBuffer_Append(&confMsgs, &sh[offset], shLen - offset);
+    rv = sslBuffer_Append(out, &sh[offset], shLen - offset);
     if (rv != SECSuccess) {
         goto loser;
     }
+    sslBuffer_Clear(&ss->ssl3.hs.messages);
+    sslBuffer_Clear(&ss->ssl3.hs.echInnerMessages);
+    return SECSuccess;
+loser:
+    sslBuffer_Clear(&ss->ssl3.hs.messages);
+    sslBuffer_Clear(&ss->ssl3.hs.echInnerMessages);
+    sslBuffer_Clear(out);
+    return SECFailure;
+}
 
+/* Compute the ECH signal using the transcript (up to, excluding) Server Hello.
+ * We'll append an artificial SH (ServerHelloECHConf). The server sources
+ * this transcript prefix from ss->ssl3.hs.messages, as it never uses
+ * ss->ssl3.hs.echInnerMessages. The client uses the inner transcript, echInnerMessages. */
+SECStatus
+tls13_ComputeEchSignal(sslSocket *ss, PRBool isHrr, const PRUint8 *sh, unsigned int shLen, PRUint8 *out)
+{
+    SECStatus rv;
+    sslBuffer confMsgs = SSL_BUFFER_EMPTY;
+    SSL3Hashes hashes;
+    PK11SymKey *echSecret = NULL;
+
+    const char *hkdfInfo = isHrr ? kHkdfInfoEchHrrConfirm : kHkdfInfoEchConfirm;
+    const size_t hkdfInfoLen = strlen(hkdfInfo);
+
+    PRINT_BUF(100, (ss, "ECH Server Hello", sh, shLen));
+
+    if (isHrr) {
+        rv = tls13_ComputeEchHelloRetryTranscript(ss, sh, shLen, &confMsgs);
+    } else {
+        rv = tls13_ComputeEchServerHelloTranscript(ss, sh, shLen, &confMsgs);
+    }
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    PRINT_BUF(100, (ss, "ECH Transcript", confMsgs.buf, confMsgs.len));
     rv = tls13_ComputeHash(ss, &hashes, confMsgs.buf, confMsgs.len,
                            tls13_GetHash(ss));
     if (rv != SECSuccess) {
         goto loser;
     }
-
-    /*  accept_confirmation =
-     *          Derive-Secret(Handshake Secret,
-     *                        "ech accept confirmation",
-     *                        ClientHelloInner...ServerHelloECHConf)
-     */
-    rv = tls13_DeriveSecret(ss, ss->ssl3.hs.currentSecret,
-                            kHkdfInfoEchConfirm, strlen(kHkdfInfoEchConfirm),
-                            &hashes, &confirmationKey, tls13_GetHash(ss));
+    PRINT_BUF(100, (ss, "ECH Transcript Hash", &hashes.u, hashes.len));
+    rv = tls13_DeriveEchSecret(ss, &echSecret);
     if (rv != SECSuccess) {
         return SECFailure;
     }
-
-    rv = PK11_ExtractKeyValue(confirmationKey);
+    rv = tls13_HkdfExpandLabelRaw(echSecret, tls13_GetHash(ss), hashes.u.raw,
+                                  hashes.len, hkdfInfo, hkdfInfoLen, ss->protocolVariant,
+                                  out, TLS13_ECH_SIGNAL_LEN);
     if (rv != SECSuccess) {
-        goto loser;
-    }
-    confirmationBytes = PK11_GetKeyData(confirmationKey);
-    if (!confirmationBytes) {
-        rv = SECFailure;
-        PORT_SetError(SSL_ERROR_ECH_FAILED);
-        goto loser;
-    }
-    if (confirmationBytes->len < TLS13_ECH_SIGNAL_LEN) {
-        FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
-        goto loser;
+        return SECFailure;
     }
     SSL_TRC(50, ("%d: TLS13[%d]: %s computed ECH signal", SSL_GETPID(), ss->fd, SSL_ROLE(ss)));
-    PRINT_BUF(50, (ss, "", out, TLS13_ECH_SIGNAL_LEN));
-
-    PORT_Memcpy(out, confirmationBytes->data, TLS13_ECH_SIGNAL_LEN);
-    PK11_FreeSymKey(confirmationKey);
+    PRINT_BUF(50, (ss, "Computed ECH Signal", out, TLS13_ECH_SIGNAL_LEN));
+    PK11_FreeSymKey(echSecret);
     sslBuffer_Clear(&confMsgs);
-    sslBuffer_Clear(&ss->ssl3.hs.messages);
-    sslBuffer_Clear(&ss->ssl3.hs.echInnerMessages);
     return SECSuccess;
 
 loser:
-    PK11_FreeSymKey(confirmationKey);
+    PK11_FreeSymKey(echSecret);
     sslBuffer_Clear(&confMsgs);
-    sslBuffer_Clear(&ss->ssl3.hs.messages);
-    sslBuffer_Clear(&ss->ssl3.hs.echInnerMessages);
     return SECFailure;
+}
+
+/* Ech Secret is HKDF-Extract(0, ClientHelloInner.random) where 
+   "0" is a string of Hash.len bytes of value 0. */
+SECStatus
+tls13_DeriveEchSecret(const sslSocket *ss, PK11SymKey **output)
+{
+    SECStatus rv;
+    PK11SlotInfo *slot = NULL;
+    PK11SymKey *crKey = NULL;
+    SECItem rawKey;
+    const unsigned char *client_random = ss->sec.isServer ? ss->ssl3.hs.client_random : ss->ssl3.hs.client_inner_random;
+    PRINT_BUF(50, (ss, "Client Random for ECH", client_random, SSL3_RANDOM_LENGTH));
+    /* We need a SECItem */
+    rv = SECITEM_MakeItem(NULL, &rawKey, client_random, SSL3_RANDOM_LENGTH);
+    if (rv != SECSuccess) {
+        goto cleanup;
+    }
+    /* We need a slot*/
+    slot = PK11_GetBestSlot(CKM_HKDF_DERIVE, NULL);
+    if (!slot) {
+        rv = SECFailure;
+        goto cleanup;
+    }
+    /* We import the key */
+    crKey = PK11_ImportDataKey(slot, CKM_HKDF_DERIVE, PK11_OriginUnwrap,
+                               CKA_DERIVE, &rawKey, NULL);
+    if (crKey == NULL) {
+        rv = SECFailure;
+        goto cleanup;
+    }
+    /* NULL will be expanded to 0s of hash length */
+    rv = tls13_HkdfExtract(NULL, crKey, tls13_GetHash(ss), output);
+    if (rv != SECSuccess) {
+        goto cleanup;
+    }
+    SSL_TRC(50, ("%d: TLS13[%d]: ECH Confirmation Key Derived.",
+                 SSL_GETPID(), ss->fd));
+    PRINT_KEY(50, (NULL, "ECH Confirmation Key", *output));
+cleanup:
+    SECITEM_ZfreeItem(&rawKey, PR_FALSE);
+    if (slot) {
+        PK11_FreeSlot(slot);
+    }
+    if (crKey) {
+        PK11_FreeSymKey(crKey);
+    }
+    if (rv != SECSuccess && *output) {
+        PK11_FreeSymKey(*output);
+        *output = NULL;
+    }
+    return rv;
 }
 
 /* Called just prior to padding the CH. Use the size of the CH to estimate
@@ -1777,6 +1948,7 @@ tls13_MaybeGreaseEch(sslSocket *ss, unsigned int preambleLen, sslBuffer *buf)
     CK_HKDF_PARAMS params;
     SECItem paramsi;
     /* 1B aead determinant (don't send), 1B config_id, 32B enc, payload */
+    PR_ASSERT(!ss->sec.isServer);
     const int kNonPayloadLen = 34;
 
     if (!ss->opt.enableTls13GreaseEch || ss->ssl3.hs.echHpkeCtx) {
@@ -1978,26 +2150,54 @@ loser:
 }
 
 SECStatus
-tls13_MaybeHandleEchSignal(sslSocket *ss, const PRUint8 *sh, PRUint32 shLen)
+tls13_MaybeHandleEchSignal(sslSocket *ss, const PRUint8 *sh, PRUint32 shLen, PRBool isHrr)
 {
     SECStatus rv;
     PRUint8 computed[TLS13_ECH_SIGNAL_LEN];
-    const PRUint8 *signal = &ss->ssl3.hs.server_random[SSL3_RANDOM_LENGTH - TLS13_ECH_SIGNAL_LEN];
+    const PRUint8 *signal;
     PORT_Assert(!ss->sec.isServer);
 
     /* If !echHpkeCtx, we either didn't advertise or sent GREASE ECH. */
     if (!ss->ssl3.hs.echHpkeCtx) {
+        SSL_TRC(50, ("%d: TLS13[%d]: client only sent GREASE ECH",
+                     SSL_GETPID(), ss->fd));
         ss->ssl3.hs.preliminaryInfo |= ssl_preinfo_ech;
         return SECSuccess;
     }
 
-    PORT_Assert(ssl3_ExtensionAdvertised(ss, ssl_tls13_encrypted_client_hello_xtn));
-    rv = tls13_ComputeEchSignal(ss, sh, shLen, computed);
-    if (rv != SECSuccess) {
-        return SECFailure;
+    if (isHrr) {
+        if (ss->xtnData.ech) {
+            signal = ss->xtnData.ech->hrrConfirmation;
+        } else {
+            SSL_TRC(50, ("%d: TLS13[%d]: client did not receive ECH Xtn from Server HRR",
+                         SSL_GETPID(), ss->fd));
+            signal = NULL;
+            ss->ssl3.hs.echAccepted = PR_FALSE;
+            ss->ssl3.hs.echDecided = PR_TRUE;
+        }
+    } else {
+        signal = &ss->ssl3.hs.server_random[SSL3_RANDOM_LENGTH - TLS13_ECH_SIGNAL_LEN];
     }
 
-    ss->ssl3.hs.echAccepted = !PORT_Memcmp(computed, signal, TLS13_ECH_SIGNAL_LEN);
+    PORT_Assert(ssl3_ExtensionAdvertised(ss, ssl_tls13_encrypted_client_hello_xtn));
+
+    /* Check ECH Confirmation for HRR ECH Xtn or ServerHello Random */
+    if (signal) {
+        rv = tls13_ComputeEchSignal(ss, isHrr, sh, shLen, computed);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+        PRINT_BUF(100, (ss, "Server Signal", signal, TLS13_ECH_SIGNAL_LEN));
+        PRBool new_decision = !NSS_SecureMemcmp(computed, signal, TLS13_ECH_SIGNAL_LEN);
+        /* Server can't change its mind on whether to accept ECH */
+        if (ss->ssl3.hs.echDecided && new_decision != ss->ssl3.hs.echAccepted) {
+            FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_SERVER_HELLO, illegal_parameter);
+            return SECFailure;
+        }
+        ss->ssl3.hs.echAccepted = new_decision;
+        ss->ssl3.hs.echDecided = PR_TRUE;
+    }
+
     ss->ssl3.hs.preliminaryInfo |= ssl_preinfo_ech;
     if (ss->ssl3.hs.echAccepted) {
         if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
@@ -2011,14 +2211,13 @@ tls13_MaybeHandleEchSignal(sslSocket *ss, const PRUint8 *sh, PRUint32 shLen)
             PORT_SetError(SSL_ERROR_BAD_2ND_CLIENT_HELLO);
             return SECFailure;
         }
-
         ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ssl_tls13_encrypted_client_hello_xtn;
         PORT_Memcpy(ss->ssl3.hs.client_random, ss->ssl3.hs.client_inner_random, SSL3_RANDOM_LENGTH);
     }
     /* If rejected, leave echHpkeCtx and echPublicName for rejection paths. */
     ssl3_CoalesceEchHandshakeHashes(ss);
-    SSL_TRC(50, ("%d: TLS13[%d]: ECH %s accepted by server",
-                 SSL_GETPID(), ss->fd, ss->ssl3.hs.echAccepted ? "is" : "is not"));
+    SSL_TRC(3, ("%d: TLS13[%d]: ECH %s accepted by server",
+                SSL_GETPID(), ss->fd, ss->ssl3.hs.echAccepted ? "is" : "is not"));
     return SECSuccess;
 }
 
@@ -2200,16 +2399,20 @@ tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOu
     SECItem *decryptedChInner = NULL;
     SECItem outerAAD = { siBuffer, NULL, 0 };
     SECItem cookieData = { siBuffer, NULL, 0 };
+    sslEchCookieData echData;
     sslEchConfig *candidate = NULL; /* non-owning */
     TLSExtension *hrrXtn;
+    PRBool previouslyOfferedEch;
 
     if (!ss->xtnData.ech || ss->xtnData.ech->receivedInnerXtn) {
+        ss->ssl3.hs.echDecided = PR_TRUE;
         return SECSuccess;
     }
 
     PORT_Assert(ss->xtnData.ech->innerCh.data);
 
     if (ss->ssl3.hs.helloRetry) {
+        ss->ssl3.hs.echDecided = PR_TRUE;
         PORT_Assert(!ss->ssl3.hs.echHpkeCtx);
         hrrXtn = ssl3_FindExtension(ss, ssl_tls13_cookie_xtn);
         if (!hrrXtn) {
@@ -2230,22 +2433,22 @@ tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOu
         /* Extract ECH info without restoring hash state. If there's
          * something wrong with the cookie, continue without ECH
          * and let HRR code handle the problem. */
-        HpkeContext *ch1EchHpkeCtx = NULL;
-        PRUint8 echConfigId;
-        HpkeKdfId echKdfId;
-        HpkeAeadId echAeadId;
         rv = tls13_HandleHrrCookie(ss, cookieData.data, cookieData.len,
-                                   NULL, NULL, NULL, &echKdfId, &echAeadId,
-                                   &echConfigId, &ch1EchHpkeCtx, PR_FALSE);
+                                   NULL, NULL, &previouslyOfferedEch, &echData, PR_FALSE);
         if (rv != SECSuccess) {
             return SECSuccess;
         }
 
-        ss->ssl3.hs.echHpkeCtx = ch1EchHpkeCtx;
+        ss->ssl3.hs.echHpkeCtx = echData.hpkeCtx;
+        ss->ssl3.hs.greaseEchBuf = echData.signal;
 
-        if (echConfigId != ss->xtnData.ech->configId ||
-            echKdfId != ss->xtnData.ech->kdfId ||
-            echAeadId != ss->xtnData.ech->aeadId) {
+        const PRUint8 greaseConstant[TLS13_ECH_SIGNAL_LEN] = { 0 };
+        ss->ssl3.hs.echAccepted = previouslyOfferedEch &&
+                                  !NSS_SecureMemcmp(greaseConstant, ss->ssl3.hs.greaseEchBuf.buf, TLS13_ECH_SIGNAL_LEN);
+
+        if (echData.configId != ss->xtnData.ech->configId ||
+            echData.kdfId != ss->xtnData.ech->kdfId ||
+            echData.aeadId != ss->xtnData.ech->aeadId) {
             FATAL_ERROR(ss, SSL_ERROR_BAD_2ND_CLIENT_HELLO,
                         illegal_parameter);
             return SECFailure;
@@ -2255,6 +2458,13 @@ tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOu
             return SECSuccess;
         }
     }
+
+    if (ss->ssl3.hs.echDecided && !ss->ssl3.hs.echAccepted) {
+        /* We don't change our mind */
+        return SECSuccess;
+    }
+    /* Regardless of where we return, the outcome is decided */
+    ss->ssl3.hs.echDecided = PR_TRUE;
 
     /* Cookie data was good, proceed with ECH. */
     rv = tls13_GetMatchingEchConfigs(ss, ss->xtnData.ech->kdfId, ss->xtnData.ech->aeadId,
@@ -2328,7 +2538,7 @@ tls13_WriteServerEchSignal(sslSocket *ss, PRUint8 *sh, unsigned int shLen)
     PORT_Assert(shLen > sizeof(SSL3ProtocolVersion) + SSL3_RANDOM_LENGTH);
     PORT_Assert(ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
 
-    rv = tls13_ComputeEchSignal(ss, sh, shLen, signal);
+    rv = tls13_ComputeEchSignal(ss, PR_FALSE, sh, shLen, signal);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -2340,5 +2550,24 @@ tls13_WriteServerEchSignal(sslSocket *ss, PRUint8 *sh, unsigned int shLen)
     dest = &ss->ssl3.hs.server_random[SSL3_RANDOM_LENGTH - TLS13_ECH_SIGNAL_LEN];
     PORT_Memcpy(dest, signal, TLS13_ECH_SIGNAL_LEN);
 
+    return SECSuccess;
+}
+
+SECStatus
+tls13_WriteServerEchHrrSignal(sslSocket *ss, PRUint8 *sh, unsigned int shLen)
+{
+    SECStatus rv;
+    PR_ASSERT(shLen >= 4 + TLS13_ECH_SIGNAL_LEN);
+    /* We put the HRR ECH extension last. */
+    PRUint8 *placeholder_location = sh + shLen - TLS13_ECH_SIGNAL_LEN;
+    /* Defensive check that we are overwriting the contents of the right extension */
+    PR_ASSERT(tls13_Debug_CheckXtnBegins(placeholder_location - 4, ssl_tls13_encrypted_client_hello_xtn));
+    /* Calculate signal and overwrite */
+    rv = tls13_ComputeEchSignal(ss, PR_TRUE, sh, shLen, placeholder_location);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    /* We extract this value from the HRR Cookie later when we need it. */
+    sslBuffer_Clear(&ss->ssl3.hs.greaseEchBuf);
     return SECSuccess;
 }
