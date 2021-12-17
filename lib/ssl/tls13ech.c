@@ -2424,6 +2424,8 @@ tls13_UnencodeChInner(sslSocket *ss, const SECItem *sidBytes, SECItem **echInner
     PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->ssl3.hs.echOuterExtensions));
     PORT_Assert(PR_CLIST_IS_EMPTY(&ss->ssl3.hs.remoteExtensions));
     TLSExtension *echExtension;
+    int error = SSL_ERROR_INTERNAL_ERROR_ALERT;
+    int errDesc = internal_error;
 
     PRINT_BUF(100, (ss, "ECH Inner", chReader.buf.buf, chReader.buf.len));
 
@@ -2442,8 +2444,9 @@ tls13_UnencodeChInner(sslSocket *ss, const SECItem *sidBytes, SECItem **echInner
 
     echExtension = ssl3_FindExtension(ss, ssl_tls13_encrypted_client_hello_xtn);
     if (!echExtension) {
-        FATAL_ERROR(ss, SSL_ERROR_MISSING_ECH_EXTENSION, illegal_parameter);
-        goto loser; /* Must have an inner Extension */
+        error = SSL_ERROR_MISSING_ECH_EXTENSION;
+        errDesc = illegal_parameter;
+        goto alert_loser; /* Must have an inner Extension */
     }
     rv = tls13_ServerHandleInnerEchXtn(ss, &ss->xtnData, &echExtension->data);
     if (rv != SECSuccess) {
@@ -2496,11 +2499,18 @@ tls13_UnencodeChInner(sslSocket *ss, const SECItem *sidBytes, SECItem **echInner
                                             innerExtension->data.len);
         rv = sslRead_ReadVariable(&extensionRdr, 1, &outerExtensionsList);
         if (rv != SECSuccess) {
-            goto loser;
+            SSL_TRC(10, ("%d: SSL3[%d]: ECH Outer Extensions has invalid size.",
+                         SSL_GETPID(), ss->fd));
+            error = SSL_ERROR_RX_MALFORMED_ECH_EXTENSION;
+            errDesc = illegal_parameter;
+            goto alert_loser;
         }
-        if (SSL_READER_REMAINING(&extensionRdr) || (outerExtensionsList.len % 2) != 0) {
-            PORT_SetError(SSL_ERROR_RX_MALFORMED_ECH_EXTENSION);
-            goto loser;
+        if (SSL_READER_REMAINING(&extensionRdr) || (outerExtensionsList.len % 2) != 0 || !outerExtensionsList.len) {
+            SSL_TRC(10, ("%d: SSL3[%d]: ECH Outer Extensions has invalid size.",
+                         SSL_GETPID(), ss->fd));
+            error = SSL_ERROR_RX_MALFORMED_ECH_EXTENSION;
+            errDesc = illegal_parameter;
+            goto alert_loser;
         }
 
         outerCursor = &ss->ssl3.hs.echOuterExtensions;
@@ -2509,12 +2519,19 @@ tls13_UnencodeChInner(sslSocket *ss, const SECItem *sidBytes, SECItem **echInner
             outerFound = PR_FALSE;
             rv = sslRead_ReadNumber(&compressedTypes, 2, &tmp);
             if (rv != SECSuccess) {
-                goto loser;
+                SSL_TRC(10, ("%d: SSL3[%d]: ECH Outer Extensions has invalid contents.",
+                             SSL_GETPID(), ss->fd));
+                error = SSL_ERROR_RX_MALFORMED_ECH_EXTENSION;
+                errDesc = illegal_parameter;
+                goto alert_loser;
             }
             if (tmp == ssl_tls13_encrypted_client_hello_xtn ||
                 tmp == ssl_tls13_outer_extensions_xtn) {
-                FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_ECH_EXTENSION, illegal_parameter);
-                goto loser;
+                SSL_TRC(10, ("%d: SSL3[%d]: ECH Outer Extensions contains an invalid reference.",
+                             SSL_GETPID(), ss->fd));
+                error = SSL_ERROR_RX_MALFORMED_ECH_EXTENSION;
+                errDesc = illegal_parameter;
+                goto alert_loser;
             }
             do {
                 const TLSExtension *candidate = (TLSExtension *)outerCursor;
@@ -2522,6 +2539,8 @@ tls13_UnencodeChInner(sslSocket *ss, const SECItem *sidBytes, SECItem **echInner
                 outerCursor = PR_NEXT_LINK(outerCursor);
                 if (candidate->type == tmp) {
                     outerFound = PR_TRUE;
+                    SSL_TRC(100, ("%d: SSL3[%d]: Decompressing ECH Inner Extension of type %d",
+                                  SSL_GETPID(), ss->fd, tmp));
                     rv = sslBuffer_AppendNumber(&unencodedChInner,
                                                 candidate->type, 2);
                     if (rv != SECSuccess) {
@@ -2537,8 +2556,12 @@ tls13_UnencodeChInner(sslSocket *ss, const SECItem *sidBytes, SECItem **echInner
                 }
             } while (outerCursor != &ss->ssl3.hs.echOuterExtensions);
             if (!outerFound) {
-                FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_ECH_EXTENSION, illegal_parameter);
-                goto loser;
+                SSL_TRC(10, ("%d: SSL3[%d]: ECH Outer Extensions has missing,"
+                             " out of order or duplicate references.",
+                             SSL_GETPID(), ss->fd));
+                error = SSL_ERROR_RX_MALFORMED_ECH_EXTENSION;
+                errDesc = illegal_parameter;
+                goto alert_loser;
             }
         }
     }
@@ -2556,20 +2579,22 @@ tls13_UnencodeChInner(sslSocket *ss, const SECItem *sidBytes, SECItem **echInner
     tmpLength = unencodedChInner.len - xtnsOffset;
     rv = ssl3_ConsumeHandshakeNumber64(ss, &tmp, 2, &tmpB, &tmpLength);
     if (rv != SECSuccess || tmpLength != tmp) {
-        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CLIENT_HELLO, internal_error);
-        goto loser;
+        error = SSL_ERROR_RX_MALFORMED_CLIENT_HELLO;
+        errDesc = internal_error;
+        goto alert_loser;
     }
 
     rv = ssl3_ParseExtensions(ss, &tmpB, &tmpLength);
     if (rv != SECSuccess) {
-        goto loser;
+        goto loser; /* Error set and alert already sent */
     }
 
     SECITEM_FreeItem(*echInner, PR_FALSE);
     (*echInner)->data = unencodedChInner.buf;
     (*echInner)->len = unencodedChInner.len;
     return SECSuccess;
-
+alert_loser:
+    FATAL_ERROR(ss, error, errDesc);
 loser:
     sslBuffer_Clear(&unencodedChInner);
     return SECFailure;
