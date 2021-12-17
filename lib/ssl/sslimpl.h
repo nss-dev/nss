@@ -749,11 +749,12 @@ typedef struct SSL3HandshakeStateStr {
     /* TLS 1.3 ECH state. */
     PRBool echAccepted; /* Client/Server: True if we've commited to using CHInner. */
     PRBool echDecided;
-    HpkeContext *echHpkeCtx;   /* Client/Server: HPKE context for ECH. */
-    const char *echPublicName; /* Client: If rejected, the ECHConfig.publicName to
+    HpkeContext *echHpkeCtx;    /* Client/Server: HPKE context for ECH. */
+    const char *echPublicName;  /* Client: If rejected, the ECHConfig.publicName to
                                 * use for certificate verification. */
-    sslBuffer greaseEchBuf;    /* Client: Remember GREASE ECH, as advertised, for CH2 (HRR case).
+    sslBuffer greaseEchBuf;     /* Client: Remember GREASE ECH, as advertised, for CH2 (HRR case).
                                   Server: Remember HRR Grease Value, for transcript calculations */
+    PRBool echInvalidExtension; /* Client: True if the server offered an invalid extension for the ClientHelloInner */
 } SSL3HandshakeState;
 
 #define SSL_ASSERT_HASHES_EMPTY(ss)                                  \

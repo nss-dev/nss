@@ -38,7 +38,9 @@ struct TLSExtensionDataStr {
 
     /* Keep track of the extensions that are advertised or negotiated. */
     PRUint16 numAdvertised;
-    PRUint16 *advertised; /* Allocated dynamically. */
+    PRUint16 *advertised;      /* Allocated dynamically. */
+    PRUint16 echNumAdvertised; /* Tracks Xtns offered in ClientHelloInner. */
+    PRUint16 *echAdvertised;
     PRUint16 numNegotiated;
     PRUint16 negotiated[SSL_MAX_EXTENSIONS];
 
