@@ -1621,6 +1621,7 @@ tls13_ServerHandleOuterEchXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     }
 
     /* payload, which must be final and non-empty. */
+    xtnData->ech->payloadStart = data->data + 2; /* Move past length */
     rv = ssl3_ExtConsumeHandshakeVariable(ss, &encryptedCh, 2,
                                           &data->data, &data->len);
     if (rv != SECSuccess) {

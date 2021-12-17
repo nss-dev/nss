@@ -5525,7 +5525,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
 
     if (!ss->ssl3.hs.echHpkeCtx) {
         if (extensionBuf.len) {
-            rv = tls13_MaybeGreaseEch(ss, chBuf.len, &extensionBuf);
+            rv = tls13_MaybeGreaseEch(ss, &chBuf, &extensionBuf);
             if (rv != SECSuccess) {
                 goto loser; /* err set by tls13_MaybeGreaseEch. */
             }

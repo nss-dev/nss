@@ -23,6 +23,8 @@
  */
 #define TLS13_ECH_VERSION 0xfe0d
 #define TLS13_ECH_SIGNAL_LEN 8
+#define TLS13_ECH_AEAD_TAG_LEN 16
+#define TLS13_ECH_GREASE_SNI_LEN 100
 
 static const char kHpkeInfoEch[] = "tls ech";
 static const char hHkdfInfoEchConfigID[] = "tls ech config id";
@@ -78,6 +80,7 @@ struct sslEchXtnStateStr {
                                *  verified to the ECHConfig public name). */
     PRUint8 *hrrConfirmation; /* Client/Server: HRR Confirmation Location */
     PRBool receivedInnerXtn;  /* Server: Handled ECH Xtn with Inner Enum */
+    PRUint8 *payloadStart;    /* Server: Start of ECH Payload*/
 };
 
 SECStatus SSLExp_EncodeEchConfigId(PRUint8 configId, const char *publicName, unsigned int maxNameLen,
@@ -107,7 +110,7 @@ SECStatus tls13_MaybeHandleEch(sslSocket *ss, const PRUint8 *msg, PRUint32 msgLe
 SECStatus tls13_MaybeHandleEchSignal(sslSocket *ss, const PRUint8 *savedMsg, PRUint32 savedLength, PRBool isHrr);
 SECStatus tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOuter,
                                unsigned int chOuterLen, SECItem **chInner);
-SECStatus tls13_MaybeGreaseEch(sslSocket *ss, unsigned int prefixLen, sslBuffer *buf);
+SECStatus tls13_MaybeGreaseEch(sslSocket *ss, const sslBuffer *preamble, sslBuffer *buf);
 SECStatus tls13_WriteServerEchSignal(sslSocket *ss, PRUint8 *sh, unsigned int shLen);
 SECStatus tls13_WriteServerEchHrrSignal(sslSocket *ss, PRUint8 *sh, unsigned int shLen);
 SECStatus tls13_DeriveEchSecret(const sslSocket *ss, PK11SymKey **output);

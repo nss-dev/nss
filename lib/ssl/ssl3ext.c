@@ -914,7 +914,9 @@ ssl3_EmplaceExtension(sslSocket *ss, sslBuffer *buf, PRUint16 exType,
     } else {
         tailLen = 0;
     }
-
+    if (exType == ssl_tls13_encrypted_client_hello_xtn) {
+        ss->xtnData.echXtnOffset = buf->len;
+    }
     rv = sslBuffer_AppendNumber(buf, exType, 2);
     if (rv != SECSuccess) {
         return SECFailure; /* Code already set. */
