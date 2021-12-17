@@ -518,6 +518,27 @@ typedef SECStatus(PR_CALLBACK *SSLResumptionTokenCallback)(
     SSL_EXPERIMENTAL_API("SSL_EnableTls13BackendEch", \
                          (PRFileDesc * _fd, PRBool _enabled), (fd, enabled))
 
+/* This allows an extension writer to supply different values for inner and
+ * outer ClientHello when using encrypted ClientHello.
+ *
+ * When enabled, each extension writer can be called more than once for the same
+ * message; it must provide the same response when called for the same message
+ * type.  When calling the writer to construct the outer ClientHello, the
+ * function will be called with ssl_hs_ech_outer_client_hello as the message
+ * type (a value from outside the range of valid TLS handshake messages).
+ *
+ * When disabled, the extension writer is called once for the outer ClientHello
+ * and the value is copied to the inner ClientHello.
+ *
+ * Enabling this affects all extension writers.  The order in which extension
+ * writers are added is also important.  Any extension writer that writes
+ * different values for inner and outer ClientHello will prevent later
+ * extensions from being compressed.
+ */
+#define SSL_CallExtensionWriterOnEchInner(fd, enabled)        \
+    SSL_EXPERIMENTAL_API("SSL_CallExtensionWriterOnEchInner", \
+                         (PRFileDesc * _fd, PRBool _enabled), (fd, enabled))
+
 /* Called by the client after an initial ECH connection fails with
  * SSL_ERROR_ECH_RETRY_WITH_ECH. Returns compatible ECHConfigs, which
  * are configured via SetClientEchConfigs for an ECH retry attempt.

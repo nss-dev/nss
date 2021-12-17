@@ -1212,6 +1212,167 @@ loser:
     return SECFailure;
 }
 
+/* This is the maximum number of extension hooks that the following functions can handle. */
+#define MAX_EXTENSION_WRITERS 32
+
+static SECStatus
+tls13_WriteDupXtnsToChInner(PRBool compressing, sslBuffer *dupXtns, sslBuffer *chInnerXtns)
+{
+    SECStatus rv;
+    if (compressing && SSL_BUFFER_LEN(dupXtns) > 0) {
+        rv = sslBuffer_AppendNumber(chInnerXtns, ssl_tls13_outer_extensions_xtn, 2);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+        rv = sslBuffer_AppendNumber(chInnerXtns, dupXtns->len + 1, 2);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+        rv = sslBuffer_AppendBufferVariable(chInnerXtns, dupXtns, 1);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+    } else {
+        /* dupXtns carries whole extensions with lengths on each. */
+        rv = sslBuffer_AppendBuffer(chInnerXtns, dupXtns);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+    }
+    sslBuffer_Clear(dupXtns);
+    return SECSuccess;
+}
+
+/* Add ordinary extensions to CHInner.
+ * The value of the extension from CHOuter is in |extensionData|.
+ *
+ * If the value is to be compressed, it is written to |dupXtns|.
+ * Otherwise, a full extension is written to |chInnerXtns|.
+ *
+ * This is a little complicated because we need to comply with ECH
+ * extension construction rules.  These require that compressed
+ * extensions are contiguous.
+ * |compressing| is true if compression is occurring.
+ * |canCompress| is true if compression hasn't stopped.
+ * Outparam |compressed| indicates whether the value was compressed.
+ *
+ * This function is always called twice:
+ * once without compression and once with compression if possible.
+ *
+ * Because we want to allow extensions that did not appear in CHOuter
+ * to be included in CHInner, we also need to track which extensions
+ * have been included.  This is what |called| and |nCalled| track.
+ */
+static SECStatus
+tls13_ChInnerAppendExtension(sslSocket *ss, PRUint16 extensionType,
+                             const sslReadBuffer *extensionData,
+                             sslBuffer *dupXtns, sslBuffer *chInnerXtns,
+                             PRBool compressing, PRBool canCompress, PRBool *compressed,
+                             PRUint16 *called, unsigned int *nCalled)
+{
+    PRUint8 buf[1024] = { 0 };
+    const PRUint8 *p;
+    unsigned int len = 0;
+
+    PORT_Assert(extensionType != ssl_tls13_encrypted_client_hello_xtn);
+    sslCustomExtensionHooks *hook = ss->opt.callExtensionWriterOnEchInner
+                                        ? ssl_FindCustomExtensionHooks(ss, extensionType)
+                                        : NULL;
+    if (hook && hook->writer) {
+        if (*nCalled >= MAX_EXTENSION_WRITERS) {
+            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE); /* TODO new code? */
+            return SECFailure;
+        }
+
+        PRBool append = (*hook->writer)(ss->fd, ssl_hs_client_hello,
+                                        buf, &len, sizeof(buf), hook->writerArg);
+        called[(*nCalled)++] = extensionType;
+        if (!append) {
+            /* This extension is not going to appear in CHInner. */
+            /* TODO: consider removing this extension from ss->xtnData.advertised.
+             * The consequence of not removing it is that we won't complain
+             * if the server accepts ECH and then includes this extension.
+             * The cost is a complete reworking of ss->xtnData.advertised.
+             */
+            *compressed = PR_FALSE;
+            return SECSuccess;
+        }
+        /* It can be compressed if it is the same as the outer value.
+         * But only if compression hasn't stopped. */
+        *compressed = (canCompress && len == extensionData->len &&
+                       PORT_Memcmp(buf, extensionData->buf, len) == 0);
+        p = buf;
+    } else {
+        /* Non-custom extensions are duplicated when compressing. */
+        *compressed = canCompress;
+        p = extensionData->buf;
+        len = extensionData->len;
+    }
+
+    /* Duplicated extensions all need to go together. */
+    sslBuffer *dst = *compressed ? dupXtns : chInnerXtns;
+    SECStatus rv = sslBuffer_AppendNumber(dst, extensionType, 2);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    if (!compressing || !*compressed) {
+        rv = sslBuffer_AppendVariable(dst, p, len, 2);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+    }
+
+    return SECSuccess;
+}
+
+/* Call any custom extension handlers that didn't want to be added to CHOuter. */
+static SECStatus
+tls13_ChInnerAdditionalExtensionWriters(sslSocket *ss, const PRUint16 *called,
+                                        unsigned int nCalled, sslBuffer *chInnerXtns)
+{
+    if (!ss->opt.callExtensionWriterOnEchInner) {
+        return SECSuccess;
+    }
+
+    for (PRCList *cursor = PR_NEXT_LINK(&ss->extensionHooks);
+         cursor != &ss->extensionHooks;
+         cursor = PR_NEXT_LINK(cursor)) {
+        sslCustomExtensionHooks *hook = (sslCustomExtensionHooks *)cursor;
+
+        /* Skip if this hook was already called. */
+        PRBool hookCalled = PR_FALSE;
+        for (unsigned int i = 0; i < nCalled; ++i) {
+            if (called[i] == hook->type) {
+                hookCalled = PR_TRUE;
+                break;
+            }
+        }
+        if (hookCalled) {
+            continue;
+        }
+
+        /* This is a cut-down version of ssl_CallCustomExtensionSenders(). */
+        PRUint8 buf[1024];
+        unsigned int len = 0;
+        PRBool append = (*hook->writer)(ss->fd, ssl_hs_client_hello,
+                                        buf, &len, sizeof(buf), hook->writerArg);
+        if (!append) {
+            continue;
+        }
+
+        SECStatus rv = sslBuffer_AppendNumber(chInnerXtns, hook->type, 2);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+        rv = sslBuffer_AppendVariable(chInnerXtns, buf, len, 2);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+        ss->xtnData.advertised[ss->xtnData.numAdvertised++] = hook->type;
+    }
+    return SECSuccess;
+}
+
 /* Given a buffer of extensions prepared for CHOuter, translate those extensions to a
  * buffer suitable for CHInner. This is intended to be called twice: once without
  * compression for the transcript hash and binders, and once with compression for
@@ -1232,10 +1393,15 @@ tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf
     PRUint64 extensionType;
     sslReadBuffer extensionData;
     sslBuffer pskXtn = SSL_BUFFER_EMPTY;
-    sslBuffer dupXtns = SSL_BUFFER_EMPTY; /* Dupcliated extensions, types-only if |compress|. */
+    sslBuffer dupXtns = SSL_BUFFER_EMPTY; /* Duplicated extensions, types-only if |compress|. */
     unsigned int tmpOffset;
     unsigned int tmpLen;
     unsigned int srcXtnBase; /* To truncate CHOuter and remove the PSK extension. */
+
+    PRUint16 called[MAX_EXTENSION_WRITERS] = { 0 }; /* For tracking which has been called. */
+    unsigned int nCalled = 0;
+    PRBool canCompress = PR_TRUE;
+
     SSL_TRC(50, ("%d: TLS13[%d]: Constructing ECH inner extensions %s compression",
                  SSL_GETPID(), ss->fd, compress ? "with" : "without"));
 
@@ -1316,7 +1482,7 @@ tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf
                 /* If GREASEing, the estimated internal length
                  * will be short. However, the presence of a PSK extension in
                  * CHOuter is already a distinguisher. */
-                if (inOutPskXtn) {
+                if (inOutPskXtn && !compress) {
                     rv = sslBuffer_AppendNumber(&pskXtn, extensionType, 2);
                     if (rv != SECSuccess) {
                         goto loser;
@@ -1332,58 +1498,53 @@ tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf
                     ss->xtnData.lastXtnOffset = 0;
                 }
                 break;
-            default:
-                PORT_Assert(extensionType != ssl_tls13_encrypted_client_hello_xtn);
-                rv = sslBuffer_AppendNumber(&dupXtns, extensionType, 2);
+            default: {
+                /* This is a regular extension.  We can maybe compress these. */
+                PRBool compressed;
+                rv = tls13_ChInnerAppendExtension(ss, extensionType,
+                                                  &extensionData,
+                                                  &dupXtns, chInnerXtns,
+                                                  compress, canCompress, &compressed,
+                                                  called, &nCalled);
                 if (rv != SECSuccess) {
                     goto loser;
                 }
-                if (!compress) {
-                    rv = sslBuffer_AppendVariable(&dupXtns, extensionData.buf,
-                                                  extensionData.len, 2);
-                    if (rv != SECSuccess) {
-                        goto loser;
-                    }
-                }
+
+                /* Once an extension doesn't compress, all later extensions
+                 * can't be compressed either. */
+                canCompress = canCompress && compressed;
                 break;
+            }
         }
     }
 
-    /* Append duplicated extensions, compressing or not. */
-    if (SSL_BUFFER_LEN(&dupXtns) && compress) {
-        rv = sslBuffer_AppendNumber(chInnerXtns, ssl_tls13_outer_extensions_xtn, 2);
-        if (rv != SECSuccess) {
-            goto loser;
-        }
-        rv = sslBuffer_AppendNumber(chInnerXtns, dupXtns.len + 1, 2);
-        if (rv != SECSuccess) {
-            goto loser;
-        }
-        rv = sslBuffer_AppendBufferVariable(chInnerXtns, &dupXtns, 1);
-    } else if (SSL_BUFFER_LEN(&dupXtns)) {
-        /* Each duplicated extension has its own length. */
-        rv = sslBuffer_AppendBuffer(chInnerXtns, &dupXtns);
-    }
+    rv = tls13_WriteDupXtnsToChInner(compress, &dupXtns, chInnerXtns);
     if (rv != SECSuccess) {
         goto loser;
     }
 
-    /* On the compression run, append the completed PSK extension (if
-     * provided). Else an incomplete (no binder) extension; the caller
-     * will compute the binder and call again. */
-    if (compress && inOutPskXtn) {
-        rv = sslBuffer_AppendBuffer(chInnerXtns, inOutPskXtn);
-    } else if (pskXtn.len) {
-        rv = sslBuffer_AppendBuffer(chInnerXtns, &pskXtn);
-        if (inOutPskXtn) {
+    /* Now call custom extension handlers that didn't choose to append anything to
+     * the outer ClientHello. */
+    rv = tls13_ChInnerAdditionalExtensionWriters(ss, called, nCalled, chInnerXtns);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+
+    if (inOutPskXtn) {
+        /* On the first, non-compress run, append the (bad) PSK binder.
+         * On the second compression run, the caller is responsible for
+         * providing an extension with a valid binder, so append that. */
+        if (compress) {
+            rv = sslBuffer_AppendBuffer(chInnerXtns, inOutPskXtn);
+        } else {
+            rv = sslBuffer_AppendBuffer(chInnerXtns, &pskXtn);
             *inOutPskXtn = pskXtn;
         }
-    }
-    if (rv != SECSuccess) {
-        goto loser;
+        if (rv != SECSuccess) {
+            goto loser;
+        }
     }
 
-    sslBuffer_Clear(&dupXtns);
     return SECSuccess;
 
 loser:
@@ -1535,6 +1696,7 @@ tls13_ConstructClientHelloWithEch(sslSocket *ss, const sslSessionID *sid, PRBool
         goto loser;
     }
 
+    PRINT_BUF(50, (ss, "Uncompressed CHInner", chInner.buf, chInner.len));
     rv = ssl3_UpdateHandshakeHashesInt(ss, chInner.buf, chInner.len,
                                        &ss->ssl3.hs.echInnerMessages);
     if (rv != SECSuccess) {
@@ -1554,6 +1716,7 @@ tls13_ConstructClientHelloWithEch(sslSocket *ss, const sslSessionID *sid, PRBool
     if (rv != SECSuccess) {
         goto loser;
     }
+    PRINT_BUF(50, (ss, "Compressed CHInner", encodedChInner.buf, encodedChInner.len));
 
     PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->echConfigs));
     sslEchConfig *cfg = (sslEchConfig *)PR_LIST_HEAD(&ss->echConfigs);
@@ -2513,6 +2676,9 @@ tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOu
 
     SSL_TRC(20, ("%d: TLS13[%d]: Successfully opened ECH inner CH",
                  SSL_GETPID(), ss->fd));
+    PRINT_BUF(50, (ss, "Compressed CHInner", decryptedChInner->data,
+                   decryptedChInner->len));
+
     ss->ssl3.hs.echAccepted = PR_TRUE;
 
     /* Stash the CHOuter extensions. They're not yet handled (only parsed). If
@@ -2524,6 +2690,8 @@ tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOu
         SECITEM_FreeItem(decryptedChInner, PR_TRUE);
         return SECFailure; /* code set */
     }
+    PRINT_BUF(50, (ss, "Uncompressed CHInner", decryptedChInner->data,
+                   decryptedChInner->len));
     *chInner = decryptedChInner;
     return SECSuccess;
 }

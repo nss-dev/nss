@@ -200,5 +200,8 @@ SECStatus SSLExp_GetExtensionSupport(PRUint16 type,
 SECStatus SSLExp_InstallExtensionHooks(
     PRFileDesc *fd, PRUint16 extension, SSLExtensionWriter writer,
     void *writerArg, SSLExtensionHandler handler, void *handlerArg);
+sslCustomExtensionHooks *ssl_FindCustomExtensionHooks(sslSocket *ss, PRUint16 extension);
+SECStatus ssl_CallCustomExtensionSenders(sslSocket *ss, sslBuffer *buf,
+                                         SSLHandshakeType message);
 
 #endif
