@@ -21,7 +21,7 @@
  * - Some of the buffering (construction/compression/decompression) could likely
  *   be optimized, but the spec is still evolving so that work is deferred.
  */
-#define TLS13_ECH_VERSION 0xfe0a
+#define TLS13_ECH_VERSION 0xfe0d
 #define TLS13_ECH_SIGNAL_LEN 8
 
 static const char kHpkeInfoEch[] = "tls ech";
@@ -36,7 +36,7 @@ struct sslEchConfigContentsStr {
     HpkeAeadId aeadId;
     SECItem suites; /* One or more HpkeCipherSuites. The selected s
                      * suite is placed in kdfId and aeadId. */
-    PRUint16 maxNameLen;
+    PRUint8 maxNameLen;
     char *publicName;
     /* No supported extensions. */
 };
