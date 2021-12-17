@@ -1373,6 +1373,60 @@ tls13_ChInnerAdditionalExtensionWriters(sslSocket *ss, const PRUint16 *called,
     return SECSuccess;
 }
 
+/* Take the PSK extension CHOuter and fill it with junk. */
+static SECStatus
+tls13_RandomizePsk(PRUint8 *buf, unsigned int len)
+{
+    sslReader rdr = SSL_READER(buf, len);
+
+    /* Read the length of identities. */
+    PRUint64 outerLen = 0;
+    SECStatus rv = sslRead_ReadNumber(&rdr, 2, &outerLen);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    PORT_Assert(outerLen < len + 2);
+
+    /* Read the length of PskIdentity.identity */
+    PRUint64 innerLen = 0;
+    rv = sslRead_ReadNumber(&rdr, 2, &innerLen);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    /* identities should contain just one identity. */
+    PORT_Assert(outerLen == innerLen + 6);
+
+    /* Randomize PskIdentity.{identity,obfuscated_ticket_age}. */
+    rv = PK11_GenerateRandom(buf + rdr.offset, innerLen + 4);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    rdr.offset += innerLen + 4;
+
+    /* Read the length of binders. */
+    rv = sslRead_ReadNumber(&rdr, 2, &outerLen);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    PORT_Assert(outerLen + rdr.offset == len);
+
+    /* Read the length of the binder. */
+    rv = sslRead_ReadNumber(&rdr, 1, &innerLen);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    /* binders should contain just one binder. */
+    PORT_Assert(outerLen == innerLen + 1);
+
+    /* Randomize the binder. */
+    rv = PK11_GenerateRandom(buf + rdr.offset, innerLen);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    return SECSuccess;
+}
+
 /* Given a buffer of extensions prepared for CHOuter, translate those extensions to a
  * buffer suitable for CHInner. This is intended to be called twice: once without
  * compression for the transcript hash and binders, and once with compression for
@@ -1479,9 +1533,6 @@ tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf
                 }
                 break;
             case ssl_tls13_pre_shared_key_xtn:
-                /* If GREASEing, the estimated internal length
-                 * will be short. However, the presence of a PSK extension in
-                 * CHOuter is already a distinguisher. */
                 if (inOutPskXtn && !compress) {
                     rv = sslBuffer_AppendNumber(&pskXtn, extensionType, 2);
                     if (rv != SECSuccess) {
@@ -1492,10 +1543,26 @@ tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf
                     if (rv != SECSuccess) {
                         goto loser;
                     }
-                    /* In terms of CHOuter, the PSK extension no longer exists.
-                     * 0 lastXtnOffset means insert padding at the end. */
-                    SSL_BUFFER_LEN(chOuterXtnsBuf) = srcXtnBase;
-                    ss->xtnData.lastXtnOffset = 0;
+                    /* This should be the last extension. */
+                    PORT_Assert(srcXtnBase == ss->xtnData.lastXtnOffset);
+                    PORT_Assert(chOuterXtnsBuf->len - srcXtnBase == extensionData.len + 4);
+                    rv = tls13_RandomizePsk(chOuterXtnsBuf->buf + srcXtnBase + 4,
+                                            chOuterXtnsBuf->len - srcXtnBase - 4);
+                    if (rv != SECSuccess) {
+                        goto loser;
+                    }
+                } else if (!inOutPskXtn) {
+                    /* When GREASEing, only the length is used.
+                     * Order doesn't matter, so just copy the extension. */
+                    rv = sslBuffer_AppendNumber(chInnerXtns, extensionType, 2);
+                    if (rv != SECSuccess) {
+                        goto loser;
+                    }
+                    rv = sslBuffer_AppendVariable(chInnerXtns, extensionData.buf,
+                                                  extensionData.len, 2);
+                    if (rv != SECSuccess) {
+                        goto loser;
+                    }
                 }
                 break;
             default: {
@@ -1685,7 +1752,6 @@ tls13_ConstructClientHelloWithEch(sslSocket *ss, const sslSessionID *sid, PRBool
 
     if (pskXtn.len) {
         PORT_Assert(ssl3_ExtensionAdvertised(ss, ssl_tls13_pre_shared_key_xtn));
-        PORT_Assert(ss->xtnData.lastXtnOffset == 0); /* stolen from outer */
         rv = tls13_WriteExtensionsWithBinder(ss, &chInnerXtns, &chInner);
         /* Update the stolen PSK extension with the binder value. */
         PORT_Memcpy(pskXtn.buf, &chInnerXtns.buf[chInnerXtns.len - pskXtn.len], pskXtn.len);
