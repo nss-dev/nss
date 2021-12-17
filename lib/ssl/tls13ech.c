@@ -2075,6 +2075,7 @@ tls13_UnencodeChInner(sslSocket *ss, const SECItem *sidBytes, SECItem **echInner
             goto loser;
         }
 
+        outerCursor = &ss->ssl3.hs.echOuterExtensions;
         sslReader compressedTypes = SSL_READER(outerExtensionsList.buf, outerExtensionsList.len);
         while (SSL_READER_REMAINING(&compressedTypes)) {
             outerFound = PR_FALSE;
@@ -2087,25 +2088,26 @@ tls13_UnencodeChInner(sslSocket *ss, const SECItem *sidBytes, SECItem **echInner
                 FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_ECH_EXTENSION, illegal_parameter);
                 goto loser;
             }
-            for (outerCursor = PR_NEXT_LINK(&ss->ssl3.hs.echOuterExtensions);
-                 outerCursor != &ss->ssl3.hs.echOuterExtensions;
-                 outerCursor = PR_NEXT_LINK(outerCursor)) {
-                if (((TLSExtension *)outerCursor)->type == tmp) {
+            do {
+                const TLSExtension *candidate = (TLSExtension *)outerCursor;
+                /* Advance the outerCursor, we never consider the same xtn twice. */
+                outerCursor = PR_NEXT_LINK(outerCursor);
+                if (candidate->type == tmp) {
                     outerFound = PR_TRUE;
                     rv = sslBuffer_AppendNumber(&unencodedChInner,
-                                                ((TLSExtension *)outerCursor)->type, 2);
+                                                candidate->type, 2);
                     if (rv != SECSuccess) {
                         goto loser;
                     }
                     rv = sslBuffer_AppendVariable(&unencodedChInner,
-                                                  ((TLSExtension *)outerCursor)->data.data,
-                                                  ((TLSExtension *)outerCursor)->data.len, 2);
+                                                  candidate->data.data,
+                                                  candidate->data.len, 2);
                     if (rv != SECSuccess) {
                         goto loser;
                     }
                     break;
                 }
-            }
+            } while (outerCursor != &ss->ssl3.hs.echOuterExtensions);
             if (!outerFound) {
                 FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_ECH_EXTENSION, illegal_parameter);
                 goto loser;

@@ -951,7 +951,7 @@ ssl3_MoveRemoteExtensions(PRCList *dst, PRCList *src)
     while (!PR_CLIST_IS_EMPTY(src)) {
         cur_p = PR_LIST_TAIL(src);
         PR_REMOVE_LINK(cur_p);
-        PR_APPEND_LINK(cur_p, dst);
+        PR_INSERT_LINK(cur_p, dst);
     }
 }
 
