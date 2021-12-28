@@ -32,6 +32,7 @@ class DataBuffer {
     }
     return *this;
   }
+  DataBuffer& operator=(DataBuffer&&) = default;
 
   void Allocate(size_t l) {
     delete[] data_;
