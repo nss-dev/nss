@@ -1257,7 +1257,7 @@ PacketFilter::Action ClientHelloPreambleCapture::FilterHandshake(
   EXPECT_TRUE(parser.ReadVariable(&temp, 1));  // Compression
 
   // Copy the preamble into a new buffer
-  data_ = DataBuffer(input);
+  data_ = input;
   data_.Truncate(parser.consumed());
 
   return KEEP;
