@@ -1235,7 +1235,6 @@ PacketFilter::Action ServerHelloRandomChanger::FilterHandshake(
   return CHANGE;
 }
 
-
 PacketFilter::Action ClientHelloPreambleCapture::FilterHandshake(
     const HandshakeHeader& header, const DataBuffer& input,
     DataBuffer* output) {
