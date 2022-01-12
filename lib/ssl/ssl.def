@@ -240,3 +240,10 @@ SSL_GetExperimentalAPI;
 ;+    local:
 ;+*;
 ;+};
+;+NSS_3.76 {    # NSS 3.76 release
+;+    global:
+SSL_CertIsUsable;
+SSL_FilterClientCertListBySocket;
+;+    local:
+;+*;
+;+};
