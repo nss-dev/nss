@@ -12,9 +12,7 @@ Network Security Services (NSS)
    build_artifacts.rst
    releases/index.rst
    community.rst
-   more.rst
-   More documentation <more_docs>
-
+   legacy/index.rst
 
 .. warning::
    This NSS documentation was just imported from our legacy MDN repository. It currently is very deprecated and likely incorrect or broken in many places.
