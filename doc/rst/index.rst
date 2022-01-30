@@ -8,12 +8,13 @@ Network Security Services (NSS)
    :glob:
    :hidden:
 
-   getting_started.rst
+   build.rst
    build_artifacts.rst
    releases/index.rst
    community.rst
    legacy/index.rst
 
 .. warning::
-   This NSS documentation was just imported from our legacy MDN repository. It currently is very deprecated and likely incorrect or broken in many places.
+   This NSS documentation was just imported from our legacy MDN repository. It
+   currently is very deprecated and likely incorrect or broken in many places.
 

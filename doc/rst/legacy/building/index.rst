@@ -1,4 +1,4 @@
-.. _mozilla_projects_nss_building:
+.. _mozilla_projects_nss_building_ported:
 
 Building NSS
 ============
