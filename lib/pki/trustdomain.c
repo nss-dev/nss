@@ -131,7 +131,6 @@ nssTrustDomain_GetActiveSlots(
         return NULL;
     }
     nssList_GetArray(td->tokenList, (void **)tokens, count);
-    NSSRWLock_UnlockRead(td->tokensLock);
     count = 0;
     for (tp = tokens; *tp; tp++) {
         NSSSlot *slot = nssToken_GetSlot(*tp);
@@ -141,6 +140,7 @@ nssTrustDomain_GetActiveSlots(
             nssSlot_Destroy(slot);
         }
     }
+    NSSRWLock_UnlockRead(td->tokensLock);
     nss_ZFreeIf(tokens);
     if (!count) {
         nss_ZFreeIf(slots);
