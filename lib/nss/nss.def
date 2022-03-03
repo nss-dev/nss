@@ -1238,12 +1238,3 @@ PK11_SlotGetLastFIPSStatus;
 ;+    local:
 ;+       *;
 ;+};
-;+NSS_3.76 { 	# NSS 3.76 release
-;+    global:
-CERT_FilterCertListByCertList;
-CERT_FilterCertListByNickname;
-CERT_IsInList;
-PK11_FindObjectForCert;
-;+    local:
-;+       *;
-;+};

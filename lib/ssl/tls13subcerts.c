@@ -220,7 +220,7 @@ tls13_MaybeSetDelegatedCredential(sslSocket *ss)
     }
 
     priv = ss->sec.serverCert->delegCredKeyPair->privKey;
-    rv = ssl_PrivateKeySupportsRsaPss(priv, NULL, NULL, &doesRsaPss);
+    rv = ssl_PrivateKeySupportsRsaPss(priv, &doesRsaPss);
     if (rv != SECSuccess) {
         return SECFailure;
     }
