@@ -1678,7 +1678,8 @@ tls13_SelectServerCert(sslSocket *ss)
                                      cert->serverKeyPair->privKey,
                                      ss->xtnData.sigSchemes,
                                      ss->xtnData.numSigSchemes,
-                                     PR_FALSE);
+                                     PR_FALSE,
+                                     &ss->ssl3.hs.signatureScheme);
         if (rv == SECSuccess) {
             /* Found one. */
             ss->sec.serverCert = cert;
