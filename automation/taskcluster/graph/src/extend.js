@@ -617,6 +617,15 @@ async function scheduleLinux(name, overrides, args = "") {
   }));
 
   queue.scheduleTask(merge(extra_base, {
+    name: `${name} w/ gcc-11`,
+    env: {
+      CC: "gcc-11",
+      CCC: "g++-11",
+    },
+    symbol: "gcc-11"
+  }));
+
+  queue.scheduleTask(merge(extra_base, {
     name: `${name} w/ modular builds`,
     image: LINUX_IMAGE,
     env: {NSS_BUILD_MODULAR: "1"},
