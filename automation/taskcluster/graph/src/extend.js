@@ -566,7 +566,9 @@ async function scheduleLinux(name, overrides, args = "") {
     name: `${name} w/ gcc-4.8`,
     env: {
       CC: "gcc-4.8",
-      CCC: "g++-4.8"
+      CCC: "g++-4.8",
+      // gcc-4.8 has incomplete c++11 support
+      NSS_DISABLE_GTESTS: "1",
     },
     // Use -Ddisable-intelhw_sha=1, GYP doesn't have a proper GCC version
     // check for Intel SHA support.
