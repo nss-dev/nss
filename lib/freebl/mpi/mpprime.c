@@ -126,8 +126,6 @@ mpp_random(mp_int *a)
 
 /* }}} */
 
-static mpp_random_fn mpp_random_insecure = &mpp_random;
-
 /* {{{ mpp_random_size(a, prec) */
 
 mp_err
@@ -140,7 +138,7 @@ mpp_random_size(mp_int *a, mp_size prec)
     if ((res = s_mp_pad(a, prec)) != MP_OKAY)
         return res;
 
-    return (*mpp_random_insecure)(a);
+    return mpp_random(a);
 
 } /* end mpp_random_size() */
 
@@ -274,12 +272,6 @@ mpp_fermat_list(mp_int *a, const mp_digit *primes, mp_size nPrimes)
 mp_err
 mpp_pprime(mp_int *a, int nt)
 {
-    return mpp_pprime_ext_random(a, nt, mpp_random_insecure);
-}
-
-mp_err
-mpp_pprime_ext_random(mp_int *a, int nt, mpp_random_fn random)
-{
     mp_err res;
     mp_int x, amo, m, z; /* "amo" = "a minus one" */
     int iter;
@@ -314,7 +306,7 @@ mpp_pprime_ext_random(mp_int *a, int nt, mpp_random_fn random)
 
         /* Choose a random value for 1 < x < a      */
         MP_CHECKOK(s_mp_pad(&x, USED(a)));
-        MP_CHECKOK((*random)(&x));
+        mpp_random(&x);
         MP_CHECKOK(mp_mod(&x, a, &x));
         if (mp_cmp_d(&x, 1) <= 0) {
             iter--;   /* don't count this iteration */
@@ -412,12 +404,6 @@ mpp_sieve(mp_int *trial, const mp_digit *primes, mp_size nPrimes,
 mp_err
 mpp_make_prime(mp_int *start, mp_size nBits, mp_size strong)
 {
-    return mpp_make_prime_ext_random(start, nBits, strong, mpp_random_insecure);
-}
-
-mp_err
-mpp_make_prime_ext_random(mp_int *start, mp_size nBits, mp_size strong, mpp_random_fn random)
-{
     mp_digit np;
     mp_err res;
     unsigned int i = 0;
@@ -504,7 +490,7 @@ mpp_make_prime_ext_random(mp_int *start, mp_size nBits, mp_size strong, mpp_rand
 
         FPUTC('+', stderr);
         /* If that passed, run some Miller-Rabin tests  */
-        res = mpp_pprime_ext_random(&trial, num_tests, random);
+        res = mpp_pprime(&trial, num_tests);
         if (res != MP_OKAY) {
             if (res == MP_NO)
                 continue; /* was composite */
@@ -542,7 +528,7 @@ mpp_make_prime_ext_random(mp_int *start, mp_size nBits, mp_size strong, mpp_rand
         }
 
         /* And test with Miller-Rabin, as with its parent ... */
-        res = mpp_pprime_ext_random(&q, num_tests, random);
+        res = mpp_pprime(&q, num_tests);
         if (res != MP_YES) {
             mp_clear(&q);
             if (res == MP_NO)
