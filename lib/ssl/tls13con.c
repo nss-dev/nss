@@ -6262,6 +6262,17 @@ tls13_ClientReadSupportedVersion(sslSocket *ss)
         return SECFailure;
     }
 
+    /* Any endpoint receiving a Hello message with...ServerHello.legacy_version
+     * set to 0x0300 (SSL3) MUST abort the handshake with a "protocol_version"
+     * alert. [RFC8446, Section D.5]
+     *
+     * The ServerHello.legacy_version is read into the ss->version field by
+     * ssl_ClientReadVersion(). */
+    if (ss->version == SSL_LIBRARY_VERSION_3_0) {
+        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_SERVER_HELLO, protocol_version);
+        return SECFailure;
+    }
+
     ss->version = SSL_LIBRARY_VERSION_TLS_1_3;
     return SECSuccess;
 }
