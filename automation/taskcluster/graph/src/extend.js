@@ -575,7 +575,7 @@ async function scheduleLinux(name, overrides, args = "") {
     command: [
       "/bin/bash",
       "-c",
-      "bin/checkout.sh && nss/automation/taskcluster/scripts/build_gyp.sh -Ddisable_intel_hw_sha=1"
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/build.sh",
     ],
     symbol: "gcc-4.8"
   }));
