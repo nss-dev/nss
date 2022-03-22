@@ -747,6 +747,7 @@ typedef struct SSL3HandshakeStateStr {
                                 * used to generate ACKs. */
 
     /* TLS 1.3 ECH state. */
+    PRUint8 greaseEchSize;
     PRBool echAccepted; /* Client/Server: True if we've commited to using CHInner. */
     PRBool echDecided;
     HpkeContext *echHpkeCtx;    /* Client/Server: HPKE context for ECH. */
@@ -1971,6 +1972,7 @@ SECStatus SSLExp_CreateMask(SSLMaskingContext *ctx, const PRUint8 *sample,
 SECStatus SSLExp_DestroyMaskingContext(SSLMaskingContext *ctx);
 
 SECStatus SSLExp_EnableTls13GreaseEch(PRFileDesc *fd, PRBool enabled);
+SECStatus SSLExp_SetTls13GreaseEchSize(PRFileDesc *fd, PRUint8 size);
 
 SECStatus SSLExp_EnableTls13BackendEch(PRFileDesc *fd, PRBool enabled);
 SECStatus SSLExp_CallExtensionWriterOnEchInner(PRFileDesc *fd, PRBool enabled);

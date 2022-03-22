@@ -2143,7 +2143,7 @@ tls13_MaybeGreaseEch(sslSocket *ss, const sslBuffer *preamble, sslBuffer *buf)
     if (rv != SECSuccess) {
         goto loser; /* Code set */
     }
-    rv = tls13_PadChInner(&encodedCh, TLS13_ECH_GREASE_SNI_LEN, strlen(ss->url));
+    rv = tls13_PadChInner(&encodedCh, ss->ssl3.hs.greaseEchSize, strlen(ss->url));
 
     payloadLen = encodedCh.len;
     payloadLen += TLS13_ECH_AEAD_TAG_LEN; /* Aead tag */
