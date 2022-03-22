@@ -13531,6 +13531,7 @@ ssl3_InitState(sslSocket *ss)
     ss->ssl3.hs.clientTrafficSecret = NULL;
     ss->ssl3.hs.serverTrafficSecret = NULL;
     ss->ssl3.hs.echHpkeCtx = NULL;
+    ss->ssl3.hs.greaseEchSize = 100;
     ss->ssl3.hs.echAccepted = PR_FALSE;
     ss->ssl3.hs.echDecided = PR_FALSE;
 

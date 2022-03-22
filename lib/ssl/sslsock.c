@@ -4330,6 +4330,7 @@ struct {
     EXP(DestroyResumptionTokenInfo),
     EXP(EnableTls13BackendEch),
     EXP(EnableTls13GreaseEch),
+    EXP(SetTls13GreaseEchSize),
     EXP(EncodeEchConfigId),
     EXP(GetCurrentEpoch),
     EXP(GetEchRetryConfigs),
@@ -4404,6 +4405,25 @@ SSLExp_EnableTls13GreaseEch(PRFileDesc *fd, PRBool enabled)
         return SECFailure;
     }
     ss->opt.enableTls13GreaseEch = enabled;
+    return SECSuccess;
+}
+
+SECStatus
+SSLExp_SetTls13GreaseEchSize(PRFileDesc *fd, PRUint8 size)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+    if (!ss || size == 0) {
+        exit(-1);
+        return SECFailure;
+    }
+    ssl_Get1stHandshakeLock(ss);
+    ssl_GetSSL3HandshakeLock(ss);
+
+    ss->ssl3.hs.greaseEchSize = size;
+
+    ssl_ReleaseSSL3HandshakeLock(ss);
+    ssl_Release1stHandshakeLock(ss);
+
     return SECSuccess;
 }
 
