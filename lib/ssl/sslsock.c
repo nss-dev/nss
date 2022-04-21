@@ -4413,7 +4413,6 @@ SSLExp_SetTls13GreaseEchSize(PRFileDesc *fd, PRUint8 size)
 {
     sslSocket *ss = ssl_FindSocket(fd);
     if (!ss || size == 0) {
-        exit(-1);
         return SECFailure;
     }
     ssl_Get1stHandshakeLock(ss);
