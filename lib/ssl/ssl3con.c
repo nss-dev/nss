@@ -13381,9 +13381,13 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText)
         rv = Null_Cipher(NULL, plaintext->buf, &plaintext->len,
                          plaintext->space, cText->buf->buf, cText->buf->len);
 #else
-        /* IMPORTANT: Unprotect functions MUST NOT send alerts
+        /* IMPORTANT:
+         * Unprotect functions MUST NOT send alerts
          * because we still hold the spec read lock. Instead, if they
-         * return SECFailure, they set *alert to the alert to be sent. */
+         * return SECFailure, they set *alert to the alert to be sent.
+         * Additionaly, this is used to silently drop DTLS encryption/record
+         * errors/alerts using the error handling below as suggested in the
+         * DTLS specification [RFC6347, Section 4.1.2.7]. */
         if (spec->version < SSL_LIBRARY_VERSION_TLS_1_3 ||
             spec->epoch == 0) {
             rv = ssl3_UnprotectRecord(ss, spec, cText, plaintext, &alert);
@@ -13394,6 +13398,7 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText)
 #endif
     }
 
+    /* Error/Alert handling for ssl3/tls13_UnprotectRecord */
     if (rv != SECSuccess) {
         ssl_ReleaseSpecReadLock(ss); /***************************/
 
@@ -13421,10 +13426,19 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText)
             }
         }
 
+        /* All errors/alerts that might occur during unprotection are related
+         * to invalid records (e.g. invalid formatting, length, MAC, ...).
+         * Following the DTLS specification such errors/alerts SHOULD be
+         * dropped silently [RFC6347, Section 4.1.2.7].
+         * This is done below. */
         if ((IS_DTLS(ss) && !dtls13_AeadLimitReached(spec)) ||
             (!IS_DTLS(ss) && ss->sec.isServer &&
              ss->ssl3.hs.zeroRttIgnore == ssl_0rtt_ignore_trial)) {
-            /* Silently drop the packet unless we sent a fatal alert. */
+            /* Silently drop the packet unless we set ss->ssl3.fatalAlertSent.
+             * (Manually or by using functions like
+             * SSL3_SendAlert(.., alert_fatal,..))
+             * This is not currently used in the unprotection functions since
+             * all TLS and DTLS errors are propagated to this handler. */
             if (ss->ssl3.fatalAlertSent) {
                 return SECFailure;
             }
