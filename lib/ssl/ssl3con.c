@@ -13197,10 +13197,25 @@ ssl3_HandleNonApplicationData(sslSocket *ss, SSLContentType rType,
             }
         /* Fall through. */
         default:
+            /* If a TLS implementation receives an unexpected record type,
+             * it MUST terminate the connection with an "unexpected_message"
+             * alert [RFC8446, Section 5].
+             *
+             * For TLS 1.3 the outer content type is checked before in
+             * tls13con.c/tls13_UnprotectRecord(),
+             * For DTLS 1.3 the outer content type is checked before in
+             * ssl3gthr.c/dtls_GatherData.
+             * The inner content types will be checked here.
+             *
+             * In DTLS generally invalid records SHOULD be silently discarded,
+             * no alert is sent [RFC6347, Section 4.1.2.7].
+             */
+            if (!IS_DTLS(ss)) {
+                SSL3_SendAlert(ss, alert_fatal, unexpected_message);
+            }
+            PORT_SetError(SSL_ERROR_RX_UNKNOWN_RECORD_TYPE);
             SSL_DBG(("%d: SSL3[%d]: bogus content type=%d",
                      SSL_GETPID(), ss->fd, rType));
-            PORT_SetError(SSL_ERROR_RX_UNKNOWN_RECORD_TYPE);
-            ssl3_DecodeError(ss);
             rv = SECFailure;
             break;
     }
