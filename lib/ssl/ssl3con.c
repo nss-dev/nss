@@ -8991,9 +8991,15 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
                                    PR_MIN(ss->clientHelloVersion,
                                           SSL_LIBRARY_VERSION_TLS_1_2),
                                    PR_TRUE);
+        /* Send protocol version alert if the ClientHello.legacy_version is not
+         * supported by the server.
+         *
+         * If the "supported_versions" extension is absent and the server only
+         * supports versions greater than ClientHello.legacy_version, the
+         * server MUST abort the handshake with a "protocol_version" alert
+         * [RFC8446, Appendix D.2]. */
         if (rv != SECSuccess) {
-            desc = (ss->clientHelloVersion > SSL_LIBRARY_VERSION_3_0) ? protocol_version
-                                                                      : handshake_failure;
+            desc = protocol_version;
             errCode = SSL_ERROR_UNSUPPORTED_VERSION;
             goto alert_loser;
         }
