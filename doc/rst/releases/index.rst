@@ -39,8 +39,8 @@ Releases
    **NSS 3.79** is the latest version of NSS.
    Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_79_release_notes`
 
-   **NSS 3.68.4** is the latest LTS version of NSS.
-   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_68_4_release_notes`
+   **NSS 3.79** is the latest ESR version of NSS.
+   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_79_release_notes`
 
 
 .. container::
