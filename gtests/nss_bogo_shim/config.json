@@ -42,7 +42,7 @@
         "QUIC-ECH*":"NSS does not support QUIC.",
         "*ECH*SkipInvalidPublicName*":"NSS allows hostnames to include underscores in contrary to the spec. Bug 1136616",
         "*ECH*CompressSupportedVersions":"NSS never compresses supported versions, Bogo does if CHOuter is TLS 1.3 only (equal to CHInner).",
-        "*ECH*Config*":"TODO",
+        "*ECH*NoSupportedConfigs*":"NSS throws error if unsupported but well formed retry configs could not be set on client, Bogo just does not offer ECH.",
         "*ECH*ServerName*":"TODO",
         "*ECH*RandomHRRExtension*":"TODO",
 

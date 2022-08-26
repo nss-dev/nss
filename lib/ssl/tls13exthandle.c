@@ -1241,6 +1241,33 @@ tls13_ClientHandleEchXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     PRCList parsedConfigs;
     PR_INIT_CLIST(&parsedConfigs);
 
+    /* The [retry config] response is valid only when the server used the
+     * ClientHelloOuter. If the server sent this extension in response to the
+     * inner variant [ECH was accepted], then the client MUST abort with an
+     * "unsupported_extension" alert [draft-ietf-tls-esni-14, Section 5]. */
+    if (ss->ssl3.hs.echAccepted) {
+        PORT_SetError(SSL_ERROR_RX_UNEXPECTED_EXTENSION);
+        ssl3_ExtSendAlert(ss, alert_fatal, unsupported_extension);
+        return SECFailure;
+    }
+
+    /* If the server is configured with any ECHConfigs, it MUST include the
+     * "encrypted_client_hello" extension in its EncryptedExtensions with the
+     * "retry_configs" field set to one or more ECHConfig structures with
+     * up-to-date keys [draft-ietf-tls-esni-14, Section 7.1]. */
+    if (ss->ssl3.hs.msg_type != ssl_hs_encrypted_extensions) {
+        PORT_SetError(SSL_ERROR_RX_UNEXPECTED_EXTENSION);
+        if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {
+            /* For TLS < 1.3 the extension is unkown/unsupported. */
+            ssl3_ExtSendAlert(ss, alert_fatal, unsupported_extension);
+        } else {
+            /* For TLS 1.3 the extension is known but prohibited outside EE
+             * (see RFC8446, Section 4.2 for alert rationale). */
+            ssl3_ExtSendAlert(ss, alert_fatal, illegal_parameter);
+        }
+        return SECFailure;
+    }
+
     PORT_Assert(!xtnData->ech);
     xtnData->ech = PORT_ZNew(sslEchXtnState);
     if (!xtnData->ech) {
