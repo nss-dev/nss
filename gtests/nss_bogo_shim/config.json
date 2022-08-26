@@ -40,8 +40,11 @@
         "TrailingData*":"NSS does only check for trailing data on possible key change handshake messages in TLS 1.3",
         "Partial*":"See TrailingData* description.",
         "QUIC-ECH*":"NSS does not support QUIC.",
-
-        "TLS-ECH-*Client*":"TODO",
+        "*ECH*SkipInvalidPublicName*":"NSS allows hostnames to include underscores in contrary to the spec. Bug 1136616",
+        "*ECH*CompressSupportedVersions":"NSS never compresses supported versions, Bogo does if CHOuter is TLS 1.3 only (equal to CHInner).",
+        "*ECH*Config*":"TODO",
+        "*ECH*ServerName*":"TODO",
+        "*ECH*RandomHRRExtension*":"TODO",
 
         "####################":"####################",
         "### TLS1/11 failures due to unsupported signature algorithms":"",

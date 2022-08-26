@@ -1382,6 +1382,17 @@ tls13_ConstructInnerExtensionsFromOuter(sslSocket *ss, sslBuffer *chOuterXtnsBuf
             goto loser;
         }
 
+        /* Skip extensions that are TLS < 1.3 only, since CHInner MUST
+         * negotiate TLS 1.3 or above.
+         * If the extension is supported by default (sslSupported) but unknown
+         * to TLS 1.3 it must be a TLS < 1.3 only extension. */
+        SSLExtensionSupport sslSupported;
+        (void)SSLExp_GetExtensionSupport(extensionType, &sslSupported);
+        if (sslSupported != ssl_ext_none &&
+            tls13_ExtensionStatus(extensionType, ssl_hs_client_hello) == tls13_extension_unknown) {
+            continue;
+        }
+
         switch (extensionType) {
             case ssl_server_name_xtn:
                 /* Write the real (private) SNI value. */
