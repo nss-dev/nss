@@ -762,11 +762,6 @@ tls13_ClientSetupEch(sslSocket *ss, sslClientHelloType type)
      * KDF/AEADs, so just use the first. */
     cfg = (sslEchConfig *)PR_LIST_HEAD(&ss->echConfigs);
 
-    /* Skip ECH if the public name matches the private name. */
-    if (0 == PORT_Strcmp(cfg->contents.publicName, ss->url)) {
-        return SECSuccess;
-    }
-
     SSL_TRC(50, ("%d: TLS13[%d]: Setup client ECH",
                  SSL_GETPID(), ss->fd));
 
