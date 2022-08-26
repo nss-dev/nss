@@ -57,7 +57,7 @@ struct sslEchCookieDataStr {
     HpkeKdfId kdfId;
     HpkeAeadId aeadId;
     HpkeContext *hpkeCtx;
-    sslBuffer signal;
+    PRUint8 signal[TLS13_ECH_SIGNAL_LEN];
 };
 
 struct sslEchConfigStr {
