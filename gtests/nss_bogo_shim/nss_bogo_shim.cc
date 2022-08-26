@@ -590,6 +590,17 @@ class TestAgent {
       }
     }
 
+    if (cfg_.get<bool>("expect-hrr")) {
+      sslSocket* ss = ssl_FindSocket(ssl_fd_.get());
+      if (!ss) {
+        return SECFailure;
+      }
+      if (!ss->ssl3.hs.helloRetry) {
+        std::cerr << "Expected HRR" << std::endl;
+        return SECFailure;
+      }
+    }
+
     return SECSuccess;
   }
 
@@ -631,6 +642,7 @@ std::unique_ptr<const Config> ReadConfig(int argc, char** argv) {
   cfg->AddEntry<std::string>("host-name", "");
   cfg->AddEntry<std::string>("ech-config-list", "");
   cfg->AddEntry<bool>("expect-ech-accept", false);
+  cfg->AddEntry<bool>("expect-hrr", false);
   cfg->AddEntry<bool>("enable-ech-grease", false);
 
   auto rv = cfg->ParseArgs(argc, argv);

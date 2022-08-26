@@ -2416,7 +2416,12 @@ tls13_MaybeHandleEchSignal(sslSocket *ss, const PRUint8 *sh, PRUint32 shLen, PRB
             return SECFailure;
         }
         ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ssl_tls13_encrypted_client_hello_xtn;
-        PORT_Memcpy(ss->ssl3.hs.client_random, ss->ssl3.hs.client_inner_random, SSL3_RANDOM_LENGTH);
+
+        /* Only overwrite client_random with client_inner_random if CHInner was
+         *  succesfully used for handshake (NOT if HRR is received). */
+        if (!isHrr) {
+            PORT_Memcpy(ss->ssl3.hs.client_random, ss->ssl3.hs.client_inner_random, SSL3_RANDOM_LENGTH);
+        }
     }
     /* If rejected, leave echHpkeCtx and echPublicName for rejection paths. */
     ssl3_CoalesceEchHandshakeHashes(ss);
