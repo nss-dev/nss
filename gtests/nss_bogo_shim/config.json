@@ -44,7 +44,7 @@
         "*ECH*CompressSupportedVersions":"NSS never compresses supported versions, Bogo does if CHOuter is TLS 1.3 only (equal to CHInner).",
         "*ECH*NoSupportedConfigs*":"NSS throws error if unsupported but well formed retry configs could not be set on client, Bogo just does not offer ECH.",
         "*ECH*RandomHRR*":"NSS sends real ECH in CH2 after receiving HRR rejcting ECH formally, Bogo expects instant ech_required alert. Bug 1779357",
-        "*ECH*UnsolicitedInnerServerNameAck*":"TODO",
+        "*ECH*UnsolicitedInnerServerNameAck":"NSS always sends SNI in CHInner, Bogo tests if the client detects an unsolicited SNI in SH if CHInner did not include it. Bug 1781224",
 
         "####################":"####################",
         "### TLS1/11 failures due to unsupported signature algorithms":"",
