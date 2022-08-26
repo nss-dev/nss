@@ -1990,10 +1990,10 @@ loser:
     return SECFailure;
 }
 
-/* Compute the ECH signal using the transcript (up to, excluding) Server Hello.
- * We'll append an artificial SH (ServerHelloECHConf). The server sources
- * this transcript prefix from ss->ssl3.hs.messages, as it never uses
- * ss->ssl3.hs.echInnerMessages. The client uses the inner transcript, echInnerMessages. */
+/* Compute the ECH signal using the transcript (up to, including)
+ * ServerHello. The server sources this transcript prefix from
+ * ss->ssl3.hs.messages, as it never uses ss->ssl3.hs.echInnerMessages.
+ * The client uses the inner transcript, echInnerMessages. */
 SECStatus
 tls13_ComputeEchSignal(sslSocket *ss, PRBool isHrr, const PRUint8 *sh, unsigned int shLen, PRUint8 *out)
 {
@@ -2655,11 +2655,10 @@ tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOu
         }
 
         ss->ssl3.hs.echHpkeCtx = echData.hpkeCtx;
-        ss->ssl3.hs.greaseEchBuf = echData.signal;
 
         const PRUint8 greaseConstant[TLS13_ECH_SIGNAL_LEN] = { 0 };
         ss->ssl3.hs.echAccepted = previouslyOfferedEch &&
-                                  !NSS_SecureMemcmp(greaseConstant, ss->ssl3.hs.greaseEchBuf.buf, TLS13_ECH_SIGNAL_LEN);
+                                  !NSS_SecureMemcmp(greaseConstant, echData.signal, TLS13_ECH_SIGNAL_LEN);
 
         if (echData.configId != ss->xtnData.ech->configId ||
             echData.kdfId != ss->xtnData.ech->kdfId ||
@@ -2787,7 +2786,8 @@ tls13_WriteServerEchHrrSignal(sslSocket *ss, PRUint8 *sh, unsigned int shLen)
     if (rv != SECSuccess) {
         return SECFailure;
     }
-    /* We extract this value from the HRR Cookie later when we need it. */
+    /* Free HRR GREASE/accept_confirmation value, it MUST be restored from
+     * cookie when handling CH2 after HRR. */
     sslBuffer_Clear(&ss->ssl3.hs.greaseEchBuf);
     return SECSuccess;
 }

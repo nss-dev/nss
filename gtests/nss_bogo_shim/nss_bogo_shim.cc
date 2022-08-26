@@ -19,6 +19,7 @@
 #include "sslerr.h"
 #include "sslproto.h"
 #include "nss_scoped_ptrs.h"
+#include "sslimpl.h"
 
 #include "nsskeys.h"
 
@@ -345,6 +346,12 @@ class TestAgent {
     rv = SSL_OptionSet(ssl_fd_.get(), SSL_ENABLE_EXTENDED_MASTER_SECRET,
                        PR_TRUE);
     if (rv != SECSuccess) return false;
+
+    if (cfg_.get<bool>("server")) {
+      // BoGo expects servers to enable ECH (backend) by default
+      rv = SSLExp_EnableTls13BackendEch(ssl_fd_.get(), true);
+      if (rv != SECSuccess) return false;
+    }
 
     if (!ConfigureCiphers()) return false;
 

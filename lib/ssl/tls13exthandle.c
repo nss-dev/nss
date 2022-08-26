@@ -1482,13 +1482,27 @@ tls13_ServerSendEchXtn(const sslSocket *ss,
     return SECSuccess;
 }
 
-/* If ECH is accepted, this value will be a placeholder and overwritten later. */
+/* If an ECH server sends the HRR ECH extension after it accepted ECH, the
+ * extension's payload must be set to 8 zero bytes, these are overwritten with
+ * the accept_confirmation value after the required transcript calculation.
+ * If a client-facing/shared-mode server did not accept ECH when offered in CH
+ * or if ECH GREASE is enabled on the server and a ECH extension was received,
+ * a 8 byte random value is set as the extension's payload
+ * [draft-ietf-tls-esni-14, Section 7].
+ *
+ * Depending on the acceptance of ECH, zero or random bytes are written to
+ * ss->ssl3.hs.greaseEchBuf.buf in tls13con.c/tls13_SendHelloRetryRequest(). */
 SECStatus
 tls13_ServerSendHrrEchXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                           sslBuffer *buf, PRBool *added)
 {
     SECStatus rv;
-    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3 || !xtnData->ech || (!ss->echPubKey && !ss->opt.enableTls13GreaseEch)) {
+    /* Do not send HRR ECH extension if TLS < 1.3 was negotiated OR no ECH
+     * extension was received OR the server is NOT in any ECH server mode AND
+     * ECH GREASE is NOT enabled. */
+    if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3 ||
+        !xtnData->ech ||
+        (!ss->echPubKey && !ss->opt.enableTls13BackendEch && !ss->opt.enableTls13GreaseEch)) {
         SSL_TRC(100, ("%d: TLS13[%d]: server not sending HRR ECH Xtn",
                       SSL_GETPID(), ss->fd));
         return SECSuccess;
