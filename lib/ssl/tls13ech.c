@@ -176,6 +176,7 @@ tls13_DecodeEchConfigContents(const sslReadBuffer *rawConfig,
     sslReader suiteReader;
     sslReader extensionReader;
     PRBool hasValidSuite = PR_FALSE;
+    PRBool unsupportedMandatoryXtn = PR_FALSE;
 
     /* HpkeKeyConfig key_config */
     /* uint8 config_id */
@@ -297,10 +298,12 @@ tls13_DecodeEchConfigContents(const sslReadBuffer *rawConfig,
         }
         extensionTypes[extensionIndex++] = (PRUint16)tmpn;
 
-        /* If it's mandatory, fail. */
+        /* Clients MUST parse the extension list and check for unsupported
+         * mandatory extensions.  If an unsupported mandatory extension is
+         * present, clients MUST ignore the ECHConfig
+         * [draft-ietf-tls-esni, Section 4.2]. */
         if (tmpn & (1 << 15)) {
-            PORT_SetError(SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION);
-            goto loser;
+            unsupportedMandatoryXtn = PR_TRUE;
         }
 
         /* Skip. */
@@ -316,10 +319,10 @@ tls13_DecodeEchConfigContents(const sslReadBuffer *rawConfig,
         goto loser;
     }
 
-    /* If the ciphersuites weren't compatible, don't
-     * set the outparam. Return success to indicate
-     * the config was well-formed. */
-    if (hasValidSuite) {
+    /* If the ciphersuites were compatible AND if NO unsupported mandatory
+     * extensions were found set the outparam. Return success either way if the
+     * config was well-formed. */
+    if (hasValidSuite && !unsupportedMandatoryXtn) {
         decodedConfig = PORT_ZNew(sslEchConfig);
         if (!decodedConfig) {
             goto loser;
