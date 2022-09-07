@@ -175,11 +175,6 @@ endif
     endif
 endif
 
-ifeq ($(OS_TARGET),OSF1)
-    DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_NO_MP_WORD
-    MPI_SRCS += mpvalpha.c
-endif
-
 ifeq (OS2,$(OS_TARGET))
     ASFILES  = mpi_x86_os2.s
     DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE

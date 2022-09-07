@@ -287,49 +287,6 @@ GiveSystemInfo(void)
 }
 #endif /* HPUX */
 
-#if defined(OSF1)
-#include <sys/types.h>
-#include <sys/sysinfo.h>
-#include <sys/systeminfo.h>
-#include <c_asm.h>
-
-static void
-GiveSystemInfo(void)
-{
-    char buf[BUFSIZ];
-    int rv;
-    int off = 0;
-
-    rv = sysinfo(SI_MACHINE, buf, sizeof(buf));
-    if (rv > 0) {
-        RNG_RandomUpdate(buf, rv);
-    }
-    rv = sysinfo(SI_RELEASE, buf, sizeof(buf));
-    if (rv > 0) {
-        RNG_RandomUpdate(buf, rv);
-    }
-    rv = sysinfo(SI_HW_SERIAL, buf, sizeof(buf));
-    if (rv > 0) {
-        RNG_RandomUpdate(buf, rv);
-    }
-}
-
-/*
- * Use the "get the cycle counter" instruction on the alpha.
- * The low 32 bits completely turn over in less than a minute.
- * The high 32 bits are some non-counter gunk that changes sometimes.
- */
-static size_t
-GetHighResClock(void *buf, size_t maxbytes)
-{
-    unsigned long t;
-
-    t = asm("rpcc %v0");
-    return CopyLowBits(buf, maxbytes, &t, sizeof(t));
-}
-
-#endif /* Alpha */
-
 #if defined(_IBMR2)
 static size_t
 GetHighResClock(void *buf, size_t maxbytes)

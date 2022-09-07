@@ -237,8 +237,6 @@ static PRBool isMultiProcess = PR_FALSE;
 
 #if defined(AIX) || defined(LINUX) || defined(NETBSD) || defined(OPENBSD)
 #define MAX_SID_CACHE_LOCKS 8 /* two FDs per lock */
-#elif defined(OSF1)
-#define MAX_SID_CACHE_LOCKS 16 /* one FD per lock */
 #else
 #define MAX_SID_CACHE_LOCKS 256
 #endif
