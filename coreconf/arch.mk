@@ -74,20 +74,6 @@ ifeq ($(OS_ARCH),AIX)
 endif
 
 #
-# Distinguish between OSF1 V4.0B and V4.0D
-#
-
-ifeq ($(OS_ARCH)$(OS_RELEASE),OSF1V4.0)
-    OS_VERSION := $(shell uname -v)
-    ifeq ($(OS_VERSION),564)
-	OS_RELEASE := V4.0B
-    endif
-    ifeq ($(OS_VERSION),878)
-	OS_RELEASE := V4.0D
-    endif
-endif
-
-#
 # SINIX changes name to ReliantUNIX with 5.43
 #
 

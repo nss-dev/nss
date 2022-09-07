@@ -121,11 +121,6 @@ then
     export TERM
     JAVA_HOME="/share/builds/components/cms_jdk/AIX/1.3.0"
     JAVA_HOME14=$JAVA_HOME
-elif [ "$os_name" = "OSF1" ]
-then
-    PATH=$PATH:/usr/local/bin
-    JAVA_HOME="/share/builds/components/jdk/1.2.2/OSF1"
-    JAVA_HOME14=$JAVA_HOME
 fi
 
 if [ "$os_name" = "IRIX" ]
