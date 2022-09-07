@@ -45,7 +45,7 @@
  */
 #include "seccomon.h"
 
-#if defined(XP_UNIX) || defined(XP_WIN32) || defined(XP_OS2) || defined(XP_BEOS)
+#if defined(XP_UNIX) || defined(XP_WIN32) || defined(XP_OS2)
 
 #include "cert.h"
 #include "ssl.h"
@@ -60,7 +60,7 @@
 #include "selfencrypt.h"
 #include <stdio.h>
 
-#if defined(XP_UNIX) || defined(XP_BEOS)
+#if defined(XP_UNIX)
 
 #include <syslog.h>
 #include <fcntl.h>
@@ -266,11 +266,11 @@ typedef struct inheritanceStr inheritance;
 
 #endif /* _win32 */
 
-#if defined(XP_UNIX) || defined(XP_BEOS)
+#if defined(XP_UNIX)
 
 #define DEFAULT_CACHE_DIRECTORY "/tmp"
 
-#endif /* XP_UNIX || XP_BEOS */
+#endif /* XP_UNIX */
 
 /************************************************************************/
 
@@ -1045,7 +1045,7 @@ InitCache(cacheDesc *cache, int maxCacheEntries, int maxCertCacheEntries,
 
     if (shared) {
 /* Create file names */
-#if defined(XP_UNIX) || defined(XP_BEOS)
+#if defined(XP_UNIX)
         /* there's some confusion here about whether PR_OpenAnonFileMap wants
         ** a directory name or a file name for its first argument.
         cfn = PR_smprintf("%s/.sslsvrcache.%d", directory, myPid);
@@ -1229,7 +1229,7 @@ SSL_ShutdownServerSessionIDCacheInstance(cacheDesc *cache)
 SECStatus
 SSL_ShutdownServerSessionIDCache(void)
 {
-#if defined(XP_UNIX) || defined(XP_BEOS)
+#if defined(XP_UNIX)
     /* Stop the thread that polls cache for expired locks on Unix */
     StopLockPoller(&globalCache);
 #endif
@@ -1293,7 +1293,7 @@ ssl_ConfigMPServerSIDCacheWithOpt(PRUint32 ssl3_timeout,
         result = SECFailure;
     }
 
-#if defined(XP_UNIX) || defined(XP_BEOS)
+#if defined(XP_UNIX)
     /* Launch thread to poll cache for expired locks on Unix */
     LaunchLockPoller(cache);
 #endif
@@ -1517,7 +1517,7 @@ SSL_InheritMPServerSIDCache(const char *envString)
     return SSL_InheritMPServerSIDCacheInstance(&globalCache, envString);
 }
 
-#if defined(XP_UNIX) || defined(XP_BEOS)
+#if defined(XP_UNIX)
 
 #define SID_LOCK_EXPIRATION_TIMEOUT 30 /* seconds */
 
