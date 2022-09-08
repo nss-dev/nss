@@ -4218,16 +4218,20 @@ NSC_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags,
         } while (sessionID == CK_INVALID_HANDLE);
         lock = SFTK_SESSION_LOCK(slot, sessionID);
         PZ_Lock(lock);
+        if (!slot->head) {
+            sessionID = CK_INVALID_HANDLE;
+            sftk_DestroySession(session);
+            PZ_Unlock(lock);
+            break;
+        }
         sameID = NULL;
-        if (slot->head) {
-            sftkqueue_find(sameID, sessionID, slot->head, slot->sessHashSize);
-            if (sameID == NULL) {
-                session->handle = sessionID;
-                sftk_update_state(slot, session);
-                sftkqueue_add(session, sessionID, slot->head, slot->sessHashSize);
-            } else {
-                slot->sessionIDConflict++; /* for debugging */
-            }
+        sftkqueue_find(sameID, sessionID, slot->head, slot->sessHashSize);
+        if (sameID == NULL) {
+            session->handle = sessionID;
+            sftk_update_state(slot, session);
+            sftkqueue_add(session, sessionID, slot->head, slot->sessHashSize);
+        } else {
+            slot->sessionIDConflict++; /* for debugging */
         }
         PZ_Unlock(lock);
     } while (sameID != NULL);
