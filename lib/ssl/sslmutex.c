@@ -350,8 +350,7 @@ sslMutex_Init(sslMutex *pMutex, int shared)
     SECStatus retvalue;
 #endif
     HANDLE hMutex;
-    SECURITY_ATTRIBUTES attributes =
-        { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
+    SECURITY_ATTRIBUTES attributes = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
 
     PR_ASSERT(pMutex != 0 && (pMutex->u.sslMutx == 0 ||
                               pMutex->u.sslMutx ==
