@@ -66,8 +66,7 @@ test_long_message_sha1(NSSLOWInitContext *initCtx)
     /* 34aa973c d4c4daa4 f61eeb2b dbad2731 6534016f. */
     static const PRUint8 expected[SHA256_LENGTH] = { 0x34, 0xaa, 0x97, 0x3c, 0xd4, 0xc4, 0xda, 0xa4, 0xf6, 0x1e, 0xeb, 0x2b,
                                                      0xdb, 0xad, 0x27, 0x31, 0x65, 0x34, 0x01, 0x6f };
-    unsigned char buf[1000];
-    (void)PORT_Memset(buf, 'a', sizeof(buf));
+
     return test_long_message(initCtx, HASH_AlgSHA1,
                              SHA1_LENGTH, &expected[0], results);
 }
@@ -79,8 +78,7 @@ test_long_message_sha256(NSSLOWInitContext *initCtx)
     /* cdc76e5c 9914fb92 81a1c7e2 84d73e67 f1809a48 a497200e 046d39cc c7112cd0. */
     static const PRUint8 expected[SHA256_LENGTH] = { 0xcd, 0xc7, 0x6e, 0x5c, 0x99, 0x14, 0xfb, 0x92, 0x81, 0xa1, 0xc7, 0xe2, 0x84, 0xd7, 0x3e, 0x67,
                                                      0xf1, 0x80, 0x9a, 0x48, 0xa4, 0x97, 0x20, 0x0e, 0x04, 0x6d, 0x39, 0xcc, 0xc7, 0x11, 0x2c, 0xd0 };
-    unsigned char buf[1000];
-    (void)PORT_Memset(buf, 'a', sizeof(buf));
+
     return test_long_message(initCtx, HASH_AlgSHA256,
                              SHA256_LENGTH, &expected[0], results);
 }
@@ -104,8 +102,6 @@ test_long_message_sha384(NSSLOWInitContext *initCtx)
                                                      0x79, 0x72, 0xce, 0xc5, 0x70, 0x4c, 0x2a, 0x5b,
                                                      0x07, 0xb8, 0xb3, 0xdc, 0x38, 0xec, 0xc4, 0xeb,
                                                      0xae, 0x97, 0xdd, 0xd8, 0x7f, 0x3d, 0x89, 0x85 };
-    unsigned char buf[1000];
-    (void)PORT_Memset(buf, 'a', sizeof(buf));
 
     return test_long_message(initCtx, HASH_AlgSHA384,
                              SHA384_LENGTH, &expected[0], results);
@@ -120,8 +116,6 @@ test_long_message_sha512(NSSLOWInitContext *initCtx)
                                                      0x8e, 0x1f, 0x98, 0xb1, 0x3b, 0x20, 0x44, 0x28, 0x56, 0x32, 0xa8, 0x03, 0xaf, 0xa9, 0x73, 0xeb,
                                                      0xde, 0x0f, 0xf2, 0x44, 0x87, 0x7e, 0xa6, 0x0a, 0x4c, 0xb0, 0x43, 0x2c, 0xe5, 0x77, 0xc3, 0x1b,
                                                      0xeb, 0x00, 0x9c, 0x5c, 0x2c, 0x49, 0xaa, 0x2e, 0x4e, 0xad, 0xb2, 0x17, 0xad, 0x8c, 0xc0, 0x9b };
-    unsigned char buf[1000];
-    (void)PORT_Memset(buf, 'a', sizeof(buf));
 
     return test_long_message(initCtx, HASH_AlgSHA512,
                              SHA512_LENGTH, &expected[0], results);
