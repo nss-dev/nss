@@ -900,8 +900,6 @@ PrintKey(PRFileDesc *out, const char *nickName, int count,
     CERTCertificate *cert;
     KeyType keyType;
 
-    pwarg = NULL;
-
     formatPrivateKeyID(key, ckaIDbuf);
     cert = PK11_GetCertFromPrivateKey(key);
     if (cert) {
