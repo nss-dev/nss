@@ -44,7 +44,9 @@ static int
 UpdateRNG(void)
 {
     char randbuf[RAND_BUF_SIZE];
+#ifdef XP_UNIX
     int fd;
+#endif
     int c;
     int rv = 0;
     size_t count;
@@ -72,10 +74,10 @@ UpdateRNG(void)
     FPS "%s", meter);
     FPS "\r|");
 
+#if defined(XP_UNIX)
     /* turn off echo on stdin & return on 1 char instead of NL */
     fd = fileno(stdin);
 
-#if defined(XP_UNIX)
     tcgetattr(fd, &tio);
     orig_lflag = tio.c_lflag;
     orig_cc_min = tio.c_cc[VMIN];
