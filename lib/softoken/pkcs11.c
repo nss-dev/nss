@@ -2620,7 +2620,7 @@ sftk_SlotFromID(CK_SLOT_ID slotID, PRBool all)
     if (nscSlotHashTable[index] == NULL)
         return NULL;
     slot = (SFTKSlot *)PL_HashTableLookupConst(nscSlotHashTable[index],
-                                               (void *)slotID);
+                                               (void *)(uintptr_t)slotID);
     /* cleared slots shouldn't 'show up' */
     if (slot && !all && !slot->present)
         slot = NULL;
@@ -2690,7 +2690,7 @@ sftk_RegisterSlot(SFTKSlot *slot, unsigned int moduleIndex)
         }
     }
 
-    entry = PL_HashTableAdd(nscSlotHashTable[index], (void *)slot->slotID, slot);
+    entry = PL_HashTableAdd(nscSlotHashTable[index], (void *)(uintptr_t)slot->slotID, slot);
     if (entry == NULL) {
         return CKR_HOST_MEMORY;
     }
@@ -3223,12 +3223,12 @@ nscFreeAllSlots(unsigned int moduleIndex)
         for (i = 0; i < (int)tmpSlotCount; i++) {
             slotID = tmpSlotList[i];
             slot = (SFTKSlot *)
-                PL_HashTableLookup(tmpSlotHashTable, (void *)slotID);
+                PL_HashTableLookup(tmpSlotHashTable, (void *)(uintptr_t)slotID);
             PORT_Assert(slot);
             if (!slot)
                 continue;
             SFTK_DestroySlotData(slot);
-            PL_HashTableRemove(tmpSlotHashTable, (void *)slotID);
+            PL_HashTableRemove(tmpSlotHashTable, (void *)(uintptr_t)slotID);
         }
         PORT_Free(tmpSlotList);
         PL_HashTableDestroy(tmpSlotHashTable);
@@ -3243,7 +3243,7 @@ sftk_closePeer(PRBool isFIPS)
     unsigned int moduleIndex = isFIPS ? NSC_NON_FIPS_MODULE : NSC_FIPS_MODULE;
     PLHashTable *tmpSlotHashTable = nscSlotHashTable[moduleIndex];
 
-    slot = (SFTKSlot *)PL_HashTableLookup(tmpSlotHashTable, (void *)slotID);
+    slot = (SFTKSlot *)PL_HashTableLookup(tmpSlotHashTable, (void *)(uintptr_t)slotID);
     if (slot == NULL) {
         return;
     }
