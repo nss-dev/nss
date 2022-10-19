@@ -284,6 +284,13 @@ PR_Free_stub(void *ptr)
     return free(ptr);
 }
 
+/* we have defensive returns after abort(), which is marked noreturn on some
+ * platforms, making the compiler legitimately complain. */
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunreachable-code-return"
+#endif
+
 /*
  * arenas
  *
@@ -630,6 +637,10 @@ SECOID_FindOIDTag_stub(const SECItem *oid)
     abort();
     return SEC_OID_UNKNOWN;
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 extern void
 SECITEM_ZfreeItem_stub(SECItem *zap, PRBool freeit)

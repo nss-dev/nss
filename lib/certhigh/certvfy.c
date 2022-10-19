@@ -65,14 +65,11 @@ checkKeyParams(const SECAlgorithmID *sigAlgorithm, const SECKEYPublicKey *key)
                     !(policyFlags & NSS_USE_ALG_IN_CERT_SIGNATURE)) {
                     PORT_SetError(SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED);
                     return SECFailure;
-                } else {
-                    return SECSuccess;
                 }
-            } else {
-                PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
-                return SECFailure;
+                return SECSuccess;
             }
-            return SECSuccess;
+            PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
+            return SECFailure;
 
         case SEC_OID_PKCS1_RSA_PSS_SIGNATURE: {
             PORTCheapArenaPool tmpArena;
