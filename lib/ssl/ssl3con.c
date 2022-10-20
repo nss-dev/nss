@@ -1001,7 +1001,7 @@ ssl3_config_match_init(sslSocket *ss)
             }
         }
     }
-    PORT_Assert(numPresent > 0 || numEnabled == 0);
+    PORT_AssertArg(numPresent > 0 || numEnabled == 0);
     if (numPresent == 0) {
         PORT_SetError(SSL_ERROR_NO_CIPHERS_SUPPORTED);
     }
