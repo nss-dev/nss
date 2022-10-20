@@ -12,6 +12,8 @@
 #include "ck.h"
 #endif /* CK_T */
 
+#include <stdint.h>
+
 /*
  * NSSCKFWInstance
  *
