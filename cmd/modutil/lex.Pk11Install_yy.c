@@ -49,12 +49,12 @@
 
 #else /* ! __cplusplus */
 
-#if __STDC__
+#if __STDC_VERSION__
 
 #define YY_USE_PROTOS
 #define YY_USE_CONST
 
-#endif /* __STDC__ */
+#endif /* __STDC_VERSION__ */
 #endif /* ! __cplusplus */
 
 #ifdef __TURBOC__
@@ -468,7 +468,7 @@ static int yy_top_state YY_PROTO((void));
 #ifdef YY_MALLOC_DECL
 YY_MALLOC_DECL
 #else
-#if __STDC__
+#if __STDC_VERSION__
 #ifndef __cplusplus
 #include <stdlib.h>
 #endif
