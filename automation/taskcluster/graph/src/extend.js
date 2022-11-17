@@ -257,6 +257,11 @@ export default async function main() {
     collection: "debug"
   }, "build_gyp.sh");
 
+  await scheduleWindows("Windows 2012 64 Static (opt)", {
+    platform: "windows2012-64",
+    collection: "opt-static"
+  }, "build_gyp.sh --opt --static");
+
   await scheduleWindows("Windows 2012 32 (opt)", {
     platform: "windows2012-32",
   }, "build_gyp.sh --opt -t ia32");
@@ -314,6 +319,7 @@ export default async function main() {
   );
 
   await scheduleMac("Mac (opt)", {collection: "opt"}, "--opt");
+  await scheduleMac("Mac Static (opt)", {collection: "opt-static"}, "--opt --static");
   await scheduleMac("Mac (debug)", {collection: "debug"});
 
   // Must be executed after all other tasks are scheduled
