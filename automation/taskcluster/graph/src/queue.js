@@ -157,7 +157,7 @@ function convertTask(def) {
 
   return {
     provisionerId: def.provisioner || `nss-${process.env.MOZ_SCM_LEVEL}`,
-    workerType: def.workerType || "linux",
+    workerType: def.workerType || "linux-gcp",
     schedulerId: process.env.TC_SCHEDULER_ID,
     taskGroupId: process.env.TASK_ID,
 
