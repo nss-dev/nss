@@ -277,7 +277,7 @@ export async function submit() {
       }
 
       task.payload.image = {
-        path: "public/image.tar",
+        path: "public/image.tar.zst",
         taskId: data.taskId,
         type: "task-image"
       };
