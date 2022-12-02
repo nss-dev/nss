@@ -319,7 +319,7 @@ export default async function main() {
   );
 
   await scheduleMac("Mac (opt)", {collection: "opt"}, "--opt");
-  await scheduleMac("Mac Static (opt)", {collection: "opt-static"}, "--opt --static");
+  await scheduleMac("Mac Static (opt)", {collection: "opt-static"}, "--opt --static -Ddisable_libpkix=1");
   await scheduleMac("Mac (debug)", {collection: "debug"});
 
   // Must be executed after all other tasks are scheduled
