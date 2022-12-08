@@ -75,6 +75,11 @@
         }, {
           'cc_is_gcc%': '0',
         }],
+        ['"<(GENERATOR)"=="ninja"', {
+          'cc_is_cc%': '<!("<(python)" <(DEPTH)/coreconf/check_cc.py cc)',
+        }, {
+          'cc_is_cc%': '0',
+        }],
       ],
     },
     # Copy conditionally-set variables out one scope.
