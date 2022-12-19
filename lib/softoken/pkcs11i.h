@@ -914,6 +914,9 @@ void sftk_MACConstantTime_EndHash(
     void *pctx, void *out, unsigned int *outLength, unsigned int maxLength);
 void sftk_MACConstantTime_DestroyContext(void *pctx, PRBool);
 
+/* Crypto Utilities */
+HASH_HashType sftk_GetHashTypeFromMechanism(CK_MECHANISM_TYPE mech);
+
 /****************************************
  * implement TLS Pseudo Random Function (PRF)
  */
