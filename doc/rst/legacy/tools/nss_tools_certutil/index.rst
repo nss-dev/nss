@@ -474,47 +474,47 @@ NSS Tools certutil
 
    .. code::
 
-      -N [-d certdir ] 
+      -N [-d certdir ]
 
    .. code::
 
       -S -k rsa|dsa -n certname -s subject
       [-c issuer |-x] -t trustargs [-h tokenname ]
       [-m serial-number ] [-v valid-months ] [-w offset-months ]
-      [-d certdir ] [-p phone ] [-f password-file ] [-1] [-2] [-3] [-4] 
+      [-d certdir ] [-p phone ] [-f password-file ] [-1] [-2] [-3] [-4]
 
    .. code::
 
       -R -k rsa|dsa -s subject [-h tokenname ]
-      [-d certdir ] [-p phone ] [-o output-file ] [-f password-file ] 
+      [-d certdir ] [-p phone ] [-o output-file ] [-f password-file ]
 
    .. code::
 
       -C -c issuer [-f password-file ]
       [-h tokenname ] -i cert-request-file -o output-file [-m serial-number ]
       [-v valid-months ] [-w offset-months ] [-d certdir ] [-1] [-2] [-3]
-      [-4] 
+      [-4]
 
    .. code::
 
       -A -n certname -t trustargs [-h tokenname ] [-d certdir ] [-a]
-      [-i cert-request-file ] 
+      [-i cert-request-file ]
 
    .. code::
 
-      -L [-n certname ] [-d certdir ] [-r] [-a] 
+      -L [-n certname ] [-d certdir ] [-r] [-a]
 
    .. code::
 
-      -V -n certname -b validity-time -u certusage [-e] [-l] [-d certdir ] 
+      -V -n certname -b validity-time -u certusage [-e] [-l] [-d certdir ]
 
    .. code::
 
-      -M -n certname -t trustargs [-d certdir ] 
+      -M -n certname -t trustargs [-d certdir ]
 
    .. code::
 
-      -H 
+      -H
 
    -  Creating a new ``cert8.db`` file:
    -  Creating a new certificate and adding it to the database with one command:
@@ -583,7 +583,7 @@ NSS Tools certutil
 
    .. code::
 
-      Enter Password or Pin for "Communicator Certificate DB": 
+      Enter Password or Pin for "Communicator Certificate DB":
 
 .. _creating_a_certificate:
 

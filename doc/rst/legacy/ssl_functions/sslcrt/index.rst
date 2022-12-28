@@ -58,7 +58,7 @@ sslcrt
 
    .. code::
 
-      #include <cert.h> 
+      #include <cert.h>
 
    .. code::
 

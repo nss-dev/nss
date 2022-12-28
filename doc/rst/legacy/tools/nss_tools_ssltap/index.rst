@@ -137,7 +137,7 @@ NSS Tools ssltap
    execute the following command from a command shell:
    .. code::
 
-      ssltap www.netscape.com:80 
+      ssltap www.netscape.com:80
 
    The program waits for an incoming connection on the default port 1924. In your browser window,
    enter the URL ``http://intercept:1924``. The browser retrieves the requested page from the server

@@ -257,7 +257,7 @@ ssltyp
 
    .. code::
 
-      #include <prtypes.h> 
+      #include <prtypes.h>
 
    .. code::
 
@@ -304,7 +304,7 @@ ssltyp
 
    .. code::
 
-      #include <prtypes.h> 
+      #include <prtypes.h>
 
    .. code::
 

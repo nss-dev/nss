@@ -67,7 +67,7 @@ NSS Config Options
    .. rubric::  ECC Curves
       :name: ecc_curves
 
-   | 
+   |
    | PRIME192V1
    | PRIME192V2
    | PRIME192V3
@@ -131,7 +131,7 @@ NSS Config Options
    .. rubric:: Hashes
       :name: hashes
 
-   | 
+   |
    | MD2
    | MD4
    | MD5

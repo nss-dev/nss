@@ -74,7 +74,7 @@ NSS Developer Tutorial
       /*
        * Line1
        * Line2
-       */ 
+       */
 
    or
 

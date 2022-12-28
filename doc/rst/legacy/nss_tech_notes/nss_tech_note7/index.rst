@@ -161,7 +161,7 @@ nss tech note7
       "PS is a string of strong pseudo-random octets [RANDOM] [...] long enough that the value of
       the quantity being CRYPTed is one octet shorter than the RSA modulus"
 
-   | 
+   |
    | The version with the initial 00 instead says to pad to the same length as the RSA modulus.
    | "The same length as the RSA modulus with an initial octet of 0" and "one octet shorter without
      that initial octet" are exactly the same thing because the formatted block is treated as a

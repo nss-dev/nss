@@ -73,7 +73,7 @@ sslfnc
 
    .. code::
 
-      #include "nss.h" 
+      #include "nss.h"
 
    .. code::
 
@@ -134,7 +134,7 @@ sslfnc
 
    .. code::
 
-      #include "nss.h" 
+      #include "nss.h"
 
    .. code::
 
@@ -187,7 +187,7 @@ sslfnc
 
    .. code::
 
-      #include "nss.h" 
+      #include "nss.h"
 
    .. code::
 
@@ -733,7 +733,7 @@ sslfnc
          int maxCacheEntries,
          PRUint32 timeout,
          PRUint32 ssl3_timeout,
-         const char *directory); 
+         const char *directory);
 
    .. rubric:: Parameters
       :name: parameters_5
@@ -840,7 +840,7 @@ sslfnc
          int maxCacheEntries,
          PRUint32 timeout,
          PRUint32 ssl3_timeout,
-         const char *directory); 
+         const char *directory);
 
    .. rubric:: Parameters
       :name: parameters_6
@@ -2041,7 +2041,7 @@ sslfnc
 
    .. code::
 
-      int SSL_SetPKCS11PinArg(PRFileDesc *fd, void *a); 
+      int SSL_SetPKCS11PinArg(PRFileDesc *fd, void *a);
 
    .. rubric:: Parameters
       :name: parameters_17
@@ -2974,7 +2974,7 @@ sslfnc
 
    .. code::
 
-      CERTCertificate *SSL_PeerCertificate(PRFileDesc *fd); 
+      CERTCertificate *SSL_PeerCertificate(PRFileDesc *fd);
 
    .. rubric:: Parameter
       :name: parameter_7
@@ -3021,7 +3021,7 @@ sslfnc
 
    .. code::
 
-      char *SSL_RevealURL(PRFileDesc *fd); 
+      char *SSL_RevealURL(PRFileDesc *fd);
 
    .. rubric:: Parameter
       :name: parameter_8
@@ -3064,7 +3064,7 @@ sslfnc
 
    .. code::
 
-      void *SSL_RevealPinArg(PRFileDesc *fd); 
+      void *SSL_RevealPinArg(PRFileDesc *fd);
 
    .. rubric:: Parameter
       :name: parameter_9

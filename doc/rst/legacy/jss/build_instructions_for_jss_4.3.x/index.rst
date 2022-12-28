@@ -69,7 +69,7 @@ Build instructions for JSS 4.3.x
          with your applet and the Firefox browser than you must build WIN95. (See JSS FAQ)
          The "WIN95" configuration supports all versions of Windows. The "WIN95" name is historical;
          it should have been named "WIN32".
-         To generate a "WINNT" configuration, set OS_TARGET=WINNT and build NSPR/NSS/JSS WIN95. 
+         To generate a "WINNT" configuration, set OS_TARGET=WINNT and build NSPR/NSS/JSS WIN95.
 
       | Mac OS X
       | It has been recently reported that special build instructions are necessary to succeed
@@ -90,7 +90,7 @@ Build instructions for JSS 4.3.x
          .. code::
 
             If you're intention is to modify and build the JSS source you
-            need to Apply for your own  JCE code-signing certificate 
+            need to Apply for your own  JCE code-signing certificate
 
             If you made no changes and your goal is to build JSS you can use the
             signed binary release of the jss4.jar from ftp.mozilla.org.

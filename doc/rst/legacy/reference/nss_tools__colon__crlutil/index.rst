@@ -302,37 +302,37 @@ NSS tools : crlutil
    crlutil -G|-M -c crl-gen-file -n nickname [-i crl] [-u url] [-d keydir] [-P dbprefix] [-l alg]
    [-a] [-B]
 
-   | 
+   |
    | \* Listing all CRls or a named CRL:
 
    crlutil -L [-n crl-name] [-d krydir]
 
-   | 
+   |
    | \* Deleting CRL from db:
 
    crlutil -D -n nickname [-d keydir] [-P dbprefix]
 
-   | 
+   |
    | \* Erasing CRLs from db:
 
    crlutil -E [-d keydir] [-P dbprefix]
 
-   | 
+   |
    | \* Deleting CRL from db:
 
    crlutil -D -n nickname [-d keydir] [-P dbprefix]
 
-   | 
+   |
    | \* Erasing CRLs from db:
 
    crlutil -E [-d keydir] [-P dbprefix]
 
-   | 
+   |
    | \* Import CRL from file:
 
    crlutil -I -i crl [-t crlType] [-u url] [-d keydir] [-P dbprefix] [-B]
 
-   | 
+   |
    | See also
 
    certutil(1)
