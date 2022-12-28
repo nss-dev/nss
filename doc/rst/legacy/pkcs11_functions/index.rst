@@ -511,7 +511,7 @@ NSS PKCS11 Functions
 
    The callback function set up by PK11_SetPasswordFunc has the following prototype:
 
-   .. code:: eval
+   .. code::
 
       typedef char *(*PK11PasswordFunc)(
         PK11SlotInfo *slot,

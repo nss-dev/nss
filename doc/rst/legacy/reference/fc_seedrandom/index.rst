@@ -15,7 +15,7 @@ FC_SeedRandom
 
 .. container::
 
-   .. code:: eval
+   .. code::
 
       CK_RV FC_SeedRandom(
         CK_SESSION_HANDLE hSession,
