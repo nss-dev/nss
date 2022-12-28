@@ -182,7 +182,7 @@ JSS FAQ
    **How do I convert org.mozilla.jss.crypto.X509Certificate to
    org.mozilla.jss.pkix.cert.Certificate?**
 
-   -  .. code:: notranslate
+   -  .. code::
 
          import java.io.ByteArrayInputStream;
 

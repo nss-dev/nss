@@ -135,7 +135,7 @@ NSS Tools ssltap
    *hostname:port*, the information you get in this way is not very useful. For example, assume your
    development machine is called ``intercept``. The simplest way to use the debugging tool is to
    execute the following command from a command shell:
-   .. code:: notranslate
+   .. code::
 
       ssltap www.netscape.com:80 
 
@@ -162,7 +162,7 @@ NSS Tools ssltap
    .. rubric:: Command
       :name: command
 
-   .. code:: notranslate
+   .. code::
 
       ssltap.exe -sx -p 444 interzone.mcom.com:443 > sx.txt
 
@@ -170,7 +170,7 @@ NSS Tools ssltap
       :name: output
 
    Output
-   .. code:: notranslate
+   .. code::
 
       Connected to interzone.mcom.com:443
       --> [
@@ -182,7 +182,7 @@ NSS Tools ssltap
                   challenge-length = 16 (0x10)
                   cipher-suites = {
 
-   .. code:: notranslate
+   .. code::
 
                       (0x010080) SSL2/RSA/RC4-128/MD5
                         (0x020080) SSL2/RSA/RC4-40/MD5
@@ -201,7 +201,7 @@ NSS Tools ssltap
                   session-id = { }
                   challenge = { 0xec5d 0x8edb 0x37c9 0xb5c9 0x7b70 0x8fe9 0xd1d3
 
-   .. code:: notranslate
+   .. code::
 
       0x2592 }
       }
@@ -223,13 +223,13 @@ NSS Tools ssltap
       wn&amp;l.ì..XOG.-.E
          10: 5c 17 75 43  a7 4c 88 c7  88 64 3c 50  41 48 4f 7f  |
 
-   .. code:: notranslate
+   .. code::
 
       \.uC§L.Ç.d&lt;PAHO.
                         session ID = {
                         length = 32
 
-   .. code:: notranslate
+   .. code::
 
                       contents = {..}
          0: 14 11 07 a8  2a 31 91 29  11 94 40 37  57 10 a7 32  | ...¨*1.)..@7W.§2
@@ -287,7 +287,7 @@ NSS Tools ssltap
          length  = 56 (0x38)
                      < encrypted >
 
-   .. code:: notranslate
+   .. code::
 
       }
       ]
@@ -308,7 +308,7 @@ NSS Tools ssltap
          length  = 56 (0x38)
                         < encrypted >
 
-   .. code:: notranslate
+   .. code::
 
       }
       ]
@@ -329,7 +329,7 @@ NSS Tools ssltap
          length  = 160 (0xa0)
                      < encrypted >
 
-   .. code:: notranslate
+   .. code::
 
       }
       ]
@@ -341,7 +341,7 @@ NSS Tools ssltap
          length  = 223 (0xdf)
                      < encrypted >
 
-   .. code:: notranslate
+   .. code::
 
       }
       SSLRecord {
@@ -362,14 +362,14 @@ NSS Tools ssltap
    .. rubric:: Command
       :name: command_2
 
-   .. code:: notranslate
+   .. code::
 
       ssltap.exe -s  -p 444 interzone.mcom.com:443 > s.txt
 
    .. rubric:: Output
       :name: output_2
 
-   .. code:: notranslate
+   .. code::
 
       Connected to interzone.mcom.com:443
       --> [
@@ -511,14 +511,14 @@ NSS Tools ssltap
    .. rubric:: Command
       :name: command_3
 
-   .. code:: notranslate
+   .. code::
 
       ssltap.exe -h  -p 444 interzone.mcom.com:443 > h.txt
 
    .. rubric:: Output
       :name: output_3
 
-   .. code:: notranslate
+   .. code::
 
       Connected to interzone.mcom.com:443
       --> [
@@ -558,14 +558,14 @@ NSS Tools ssltap
    .. rubric:: Command
       :name: command_4
 
-   .. code:: notranslate
+   .. code::
 
       ssltap.exe -hs -p 444 interzone.mcom.com:443 > hs.txt
 
    .. rubric:: Output
       :name: output_4
 
-   .. code:: notranslate
+   .. code::
 
       Connected to interzone.mcom.com:443
       --> [

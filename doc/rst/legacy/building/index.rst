@@ -50,7 +50,7 @@ Building NSS
    latest sources for NSS and NSPR--which may not be part of a stable release--use the following
    commands:
 
-   .. code:: notranslate
+   .. code::
 
       hg clone https://hg.mozilla.org/projects/nspr
       hg clone https://hg.mozilla.org/projects/nss
@@ -64,7 +64,7 @@ Building NSS
 
    Build NSS using our build script:
 
-   .. code:: notranslate
+   .. code::
 
       nss/build.sh
 
@@ -80,7 +80,7 @@ Building NSS
    Alternatively, there is a ``make`` target called "nss_build_all", which produces a similar
    result.  This supports some alternative options, but can be a lot slower.
 
-   .. code:: notranslate
+   .. code::
 
       make -C nss nss_build_all USE_64=1
 
@@ -116,7 +116,7 @@ Building NSS
    NSS contains extensive unit tests.  Scripts to run these are found in the ``tests`` directory. 
    Run the standard suite by:
 
-   .. code:: notranslate
+   .. code::
 
       HOST=localhost DOMSUF=localdomain USE_64=1 nss/tests/all.sh
 
@@ -135,7 +135,7 @@ Building NSS
    If you don't have a domain suffix you can add an entry to ``/etc/hosts`` (on
    Windows,\ ``c:\Windows\System32\drivers\etc\hosts``) as follows:
 
-   .. code:: notranslate
+   .. code::
 
       127.0.0.1 localhost.localdomain
 

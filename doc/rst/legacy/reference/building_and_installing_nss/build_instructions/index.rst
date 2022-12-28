@@ -56,14 +56,14 @@ Build instructions
    For RHEL-5, you need to use the new assembler. You can install the new assembler as root as
    follows:
 
-   .. code:: notranslate
+   .. code::
 
       yum install binutils220
 
    You can then use the new assembler by adding /usr/libexec/binutils220 to the beginning of your
    build path. This can be done in sh or bash as follows:
 
-   .. code:: notranslate
+   .. code::
 
       export PATH=/usr/libexec/binutils220:$PATH
 
@@ -79,7 +79,7 @@ Build instructions
 
    #. Clone the NSPR and NSS repositories.
 
-      .. code:: notranslate
+      .. code::
 
          hg clone https://hg.mozilla.org/projects/nspr
          hg clone https://hg.mozilla.org/projects/nss
@@ -87,7 +87,7 @@ Build instructions
    #. If you want to build a releases other than the tips of these repositories, then switch to the
       release tags:
 
-      .. code:: notranslate
+      .. code::
 
          cd nspr
          hg update NSPR_4_9_5_RTM
@@ -135,7 +135,7 @@ Build instructions
 
    #. Check out NSPR and NSS:
 
-      .. code:: notranslate
+      .. code::
 
          cvs co -r NSPR_4_9_5_RTM NSPR
          cvs co -r NSS_3_14_2_RTM NSS

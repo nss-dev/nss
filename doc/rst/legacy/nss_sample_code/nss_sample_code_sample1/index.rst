@@ -38,7 +38,7 @@ NSS Sample Code Sample1
 
 .. container::
 
-   .. code:: notranslate
+   .. code::
 
       #include <iostream.h>
       #include "pk11pub.h"

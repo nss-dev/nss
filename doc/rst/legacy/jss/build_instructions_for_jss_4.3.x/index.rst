@@ -27,13 +27,13 @@ Build instructions for JSS 4.3.x
 
    #. Switch to the appropriate directory and check out JSS from the root of your source tree.
 
-      .. code:: notranslate
+      .. code::
 
          cvs co -r JSS_4_3_1_RTM mozilla/security/jss
 
       or
 
-      .. code:: notranslate
+      .. code::
 
          cvs co -r JSS_4_3_RTM mozilla/security/jss
 
@@ -43,26 +43,26 @@ Build instructions for JSS 4.3.x
 
       **Unix**
 
-      .. code:: notranslate
+      .. code::
 
          setenv JAVA_HOME /usr/local/jdk1.5.0 (or wherever your JDK is installed)
 
       **Windows**
 
-      .. code:: notranslate
+      .. code::
 
          set JAVA_HOME=c:\programs\jdk1.5.0 (or wherever your JDK is installed)
 
       **Windows (Cygnus)**
 
-      .. code:: notranslate
+      .. code::
 
          JAVA_HOME=/cygdrive/c/programs/jdk1.5.0 (or wherever your JDK is installed)
          export JAVA_HOME
 
       | **Windows build Configurations WINNT vs WIN95**
 
-      .. code:: notranslate
+      .. code::
 
          As of NSS 3.15.4, NSPR/NSS/JSS build generates a "WIN95" configuration by default on Windows.
          We recommend most applications use the "WIN95" configuration. If you want JSS to be used
@@ -80,14 +80,14 @@ Build instructions for JSS 4.3.x
 
    #. Build JSS.
 
-         .. code:: notranslate
+         .. code::
 
             cd mozilla/security/jss
             gmake
 
    #. Sign the JSS jar.
 
-         .. code:: notranslate
+         .. code::
 
             If you're intention is to modify and build the JSS source you
             need to Apply for your own  JCE code-signing certificate 

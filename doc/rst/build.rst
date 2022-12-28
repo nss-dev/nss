@@ -34,14 +34,14 @@ Building NSS
 
    **On Linux:**
 
-   .. code:: notranslate
+   .. code::
 
       sudo apt install mercurial git ninja-build python3-pip
       python3 -m pip install gyp-next
 
    **On MacOS:**
 
-   .. code:: notranslate
+   .. code::
 
       brew install mercurial git ninja python3-pip
       python3 -m pip install gyp-next
@@ -51,13 +51,13 @@ Building NSS
    The Homebrew Python installation has the necessary symlink but may require
    explicit adding to the PATH variable, for example like this:
 
-   .. code:: notranslate
+   .. code::
 
       export PATH="/opt/homebrew/opt/python/libexec/bin:$PATH"
 
    **On Windows:**
 
-   .. code:: notranslate
+   .. code::
 
       <TODO>
 
@@ -96,7 +96,7 @@ Building NSS
    check out the latest sources for NSS and NSPR--which may not be part of a
    stable release--use the following commands:
 
-   .. code:: notranslate
+   .. code::
 
       hg clone https://hg.mozilla.org/projects/nspr
       hg clone https://hg.mozilla.org/projects/nss
@@ -107,7 +107,7 @@ Building NSS
 
    To download the source using ``git-cinnabar`` instead:
 
-   .. code:: notranslate
+   .. code::
 
       git clone hg::https://hg.mozilla.org/projects/nspr
       git clone hg::https://hg.mozilla.org/projects/nss
@@ -120,7 +120,7 @@ Building NSS
 
    Build NSS and NSPR using our build script from the ``nss`` directory:
 
-   .. code:: notranslate
+   .. code::
 
       cd nss
       ./build.sh
@@ -143,7 +143,7 @@ Building NSS
    Alternatively, there is a ``make`` target, which produces a similar
    result. This supports some alternative options, but can be a lot slower.
 
-   .. code:: notranslate
+   .. code::
 
       USE_64=1 make -j
 
@@ -184,7 +184,7 @@ Building NSS
    NSS contains extensive unit tests.  Scripts to run these are found in the ``tests`` directory. 
    Run the standard suite by:
 
-   .. code:: notranslate
+   .. code::
 
       HOST=localhost DOMSUF=localdomain USE_64=1 ./tests/all.sh
 
@@ -204,7 +204,7 @@ Building NSS
    If you don't have a domain suffix you can add an entry to ``/etc/hosts`` (on
    Windows,\ ``c:\Windows\System32\drivers\etc\hosts``) as follows:
 
-   .. code:: notranslate
+   .. code::
 
       127.0.0.1 localhost.localdomain
 

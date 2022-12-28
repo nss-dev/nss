@@ -70,7 +70,7 @@ PKCS #11 Module Specs
 
    A new ``CK_C_INITIALIZE_ARGS`` structure is defined as
 
-   .. code:: notranslate
+   .. code::
 
       typedef struct CK_C_INITIALIZE_ARGS {
         CK_CREATEMUTEX CreateMutex;
@@ -214,7 +214,7 @@ PKCS #11 Module Specs
 
    Sample file:
 
-   .. code:: notranslate
+   .. code::
 
       library= name="Netscape Internal Crypto Module"   parameters="configdir=/u/relyea/.netscape certprefix= secmod=secmod.db" NSS="Flags=internal,pkcs11module TrustOrder=1 CipherOrder=-1 ciphers= slotParams={0x1=[slotFlags='RSA,DSA,DH,RC4,RC2,DES,MD2,MD5,SHA1,SSL,TLS,PublicCerts,Random'] 0x2=[slotFlags='RSA' askpw=only]}"
       library=dkck32.dll name="DataKey SignaSURE 3600" NSS="TrustOrder=50 ciphers= "

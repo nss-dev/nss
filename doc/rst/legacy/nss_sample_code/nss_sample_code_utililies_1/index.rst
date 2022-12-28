@@ -25,7 +25,7 @@ NSS Sample Code Utilities_1
 
 .. container::
 
-   .. code:: notranslate
+   .. code::
 
       #include <prlog.h>
       #include <termios.h>
