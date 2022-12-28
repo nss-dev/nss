@@ -83,7 +83,7 @@ NSS 3.12.5 release_notes
             This default setting can also be changed within the application by using the following
             existing API functions:
 
-            -  
+            -
 
                -  SECStatus SSL_OptionSet(PRFileDesc \*fd, PRInt32 option, PRBool on)
                -  SECStatus SSL_OptionSetDefault(PRInt32 option, PRBool on)

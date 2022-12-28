@@ -47,7 +47,7 @@ NSS 3.12.6 release notes
          | You also need to download the NSPR 4.8.4 binary distributions to get the NSPR 4.8.4
            header files and shared libraries, which NSS 3.12.6 requires. NSPR 4.8.4 binary
            distributions are in https://ftp.mozilla.org/pub/mozilla.org/nspr/releases/v4.8.4/.
-         | 
+         |
 
       .. container::
          :name: section_3

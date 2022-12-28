@@ -71,7 +71,7 @@ NSS 3.40 release notes
 
 .. container::
 
-   -  
+   -
 
       .. container:: field indent
 

@@ -5,7 +5,7 @@ TLS Cipher Suite Discovery
 
 .. container::
 
-   | 
+   |
    | In order to communicate securely, an TLS client and TLS server must agree on the cryptographic
      algorithms and keys that they will both use on the secured connection. They must agree on these
      items:

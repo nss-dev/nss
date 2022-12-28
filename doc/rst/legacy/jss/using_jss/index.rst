@@ -87,7 +87,7 @@ Using JSS
       3.11.
 
       ================== ========= ==============
-      Component Versions           
+      Component Versions
       JSS Version        Component Tested Version
       JSS 4.2            NSPR      4.6.4
       \                  NSS       3.11.4

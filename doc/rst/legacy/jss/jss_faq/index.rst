@@ -160,7 +160,7 @@ JSS FAQ
          passed, and then can do anything extra that it wants to do before making a final decision.
       #. SSLClientCertificateSelectionCallback is analogous to SSL_GetClientAuthDataHook.
 
-   | 
+   |
    | **Can I have multiple JSS instances reading separate db's?**
 
    -  No, you can only have one initialized instance of JSS for each database.

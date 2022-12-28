@@ -43,7 +43,7 @@ NSS tools : certutil
    |   --rename
    |          Change the database nickname of a certificate.
 
-   | 
+   |
    |    -E
    |           Add an email certificate to the certificate database.
    |    -F
@@ -178,7 +178,7 @@ NSS tools : certutil
 
               ·   filename: full path to a file containing an encoded extension
 
-   | 
+   |
    |    -f password-file
    |           Specify a file that will automatically supply the
    |           password to include in a certificate or to access a
@@ -263,7 +263,7 @@ NSS tools : certutil
      secp128r2, sect113r1, sect113r2
    |            sect131r1, sect131r2
 
-   | 
+   |
    |    -r
    |           Display a certificate's binary DER encoding when listing
    |           information about that certificate with the -L option.
@@ -326,7 +326,7 @@ NSS tools : certutil
 
               ·   J (as an object signer)
 
-   | 
+   |
    |    -v valid-months
    |           Set the number of months a new certificate will be
    |           valid. The validity period begins at the current system

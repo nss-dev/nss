@@ -125,7 +125,7 @@ nss tech note5
    #. Clean up
       *PK11_DestroyContext(DigestContext, PR_TRUE);*
 
-   | 
+   |
    | You can also look at a `sample program <../sample-code/sample3.html>`__ illustrating this
 
    --------------
@@ -245,7 +245,7 @@ nss tech note5
       *PK11_FreeSymKey(SymKey);
       PK11_FreeSlot(slot);*
 
-   | 
+   |
    | You can also look at a `sample program <../sample-code/sample3.html>`__ illustrating this
 
    --------------

@@ -42,7 +42,7 @@ NSS 3.23 release notes
       917571 <https://bugzilla.mozilla.org/show_bug.cgi?id=917571>`__, `bug
       1227905 <https://bugzilla.mozilla.org/show_bug.cgi?id=1227905>`__)
 
-   -  
+   -
 
       .. container::
 

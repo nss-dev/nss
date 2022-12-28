@@ -132,7 +132,7 @@ NSS 3.45 release notes
    -  `Bug 1515342 <https://bugzilla.mozilla.org/show_bug.cgi?id=1515342>`__ - More thorough input
       checking (`CVE-2019-11729) <https://bugzilla.mozilla.org/show_bug.cgi?id=CVE-2019-11729>`__
 
-   -  
+   -
 
       .. container::
 
@@ -165,7 +165,7 @@ NSS 3.45 release notes
    -  `Bug 1551041 <https://bugzilla.mozilla.org/show_bug.cgi?id=1551041>`__ - Fix builds using GCC
       < 4.3 on big-endian architectures
 
-   -  
+   -
 
       .. container::
 

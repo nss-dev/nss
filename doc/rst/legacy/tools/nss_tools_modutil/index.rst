@@ -416,7 +416,7 @@ NSS Tools modutil
 
    .. code::
 
-      simple_string --> [^ \t\n\""{""}"]+ 
+      simple_string --> [^ \t\n\""{""}"]+
       (No whitespace, quotes, or braces.)
 
    .. code::
@@ -479,7 +479,7 @@ NSS Tools modutil
       IRIX:6.2:mips
       SUNOS:5.5.1:sparc
       Linux:2.0.32:x86
-      WIN95::x86. 
+      WIN95::x86.
 
    .. rubric:: Per-Platform Keys
       :name: per-platform_keys
@@ -601,14 +601,14 @@ NSS Tools modutil
       WARNING: Performing this operation while Communicator is running could
       cause corruption of your security databases. If Communicator is
       currently running, you should exit Communicator before continuing this
-      operation. Type 'q <enter>' to abort, or <enter> to continue: 
+      operation. Type 'q <enter>' to abort, or <enter> to continue:
 
    After you press Enter, the tool displays the following:
    .. code::
 
       Creating "c:\databases\key3.db"...done.
       Creating "c:\databases\cert8.db"...done.
-      Creating "c:\databases\secmod.db"...done. 
+      Creating "c:\databases\secmod.db"...done.
 
 .. _displaying_module_information:
 
@@ -620,7 +620,7 @@ NSS Tools modutil
    This example gives detailed information about the specified module:
    .. code::
 
-      modutil -list "Netscape Internal PKCS #11 Module" -dbdir c:\databases 
+      modutil -list "Netscape Internal PKCS #11 Module" -dbdir c:\databases
 
    The Security Module Database Tool displays information similar to this:
    .. code::
@@ -629,7 +629,7 @@ NSS Tools modutil
       --------------------------------------------------------
       Name: Netscape Internal PKCS #11 Module
       Library file: **Internal ONLY module**
-      Manufacturer: Netscape Communications Corp 
+      Manufacturer: Netscape Communications Corp
       Description: Communicator Internal Crypto Svc
       PKCS #11 Version 2.0
       Library Version: 4.0
@@ -639,14 +639,14 @@ NSS Tools modutil
    .. code::
 
       Slot: Communicator Internal Cryptographic Services Version 4.0
-      Manufacturer: Netscape Communications Corp 
+      Manufacturer: Netscape Communications Corp
       Type: Software
       Version Number: 4.1
       Firmware Version: 0.0
       Status: Enabled
       Token Name: Communicator Generic Crypto Svcs
-      Token Manufacturer: Netscape Communications Corp 
-      Token Model: Libsec 4.0 
+      Token Manufacturer: Netscape Communications Corp
+      Token Model: Libsec 4.0
       Token Serial Number: 0000000000000000
       Token Version: 4.0
       Token Firmware Version: 0.0
@@ -657,14 +657,14 @@ NSS Tools modutil
    .. code::
 
       Slot: Communicator User Private Key and Certificate Services
-      Manufacturer: Netscape Communications Corp 
+      Manufacturer: Netscape Communications Corp
       Type: Software
       Version Number: 3.0
       Firmware Version: 0.0
       Status: Enabled
-      Token Name: Communicator Certificate DB 
-      Token Manufacturer: Netscape Communications Corp 
-      Token Model: Libsec 4.0 
+      Token Name: Communicator Certificate DB
+      Token Manufacturer: Netscape Communications Corp
+      Token Model: Libsec 4.0
       Token Serial Number: 0000000000000000
       Token Version: 7.0
       Token Firmware Version: 0.0
@@ -683,8 +683,8 @@ NSS Tools modutil
    mechanisms:
    .. code::
 
-      modutil -default "Cryptographic Module" -dbdir 
-      c:\databases -mechanisms RSA:DSA:RC2 
+      modutil -default "Cryptographic Module" -dbdir
+      c:\databases -mechanisms RSA:DSA:RC2
 
    The Security Module Database Tool displays a warning:
    .. code::
@@ -692,7 +692,7 @@ NSS Tools modutil
       WARNING: Performing this operation while Communicator is running could
       cause corruption of your security databases. If Communicator is
       currently running, you should exit Communicator before continuing this
-      operation. Type 'q <enter>' to abort, or <enter> to continue: 
+      operation. Type 'q <enter>' to abort, or <enter> to continue:
 
    After you press Enter, the tool displays the following:
    .. code::
@@ -713,8 +713,8 @@ NSS Tools modutil
    This example enables a particular slot in the specified module:
    .. code::
 
-      modutil -enable "Cryptographic Module" -slot 
-      "Cryptographic Reader" -dbdir c:\databases 
+      modutil -enable "Cryptographic Module" -slot
+      "Cryptographic Reader" -dbdir c:\databases
 
    The Security Module Database Tool displays a warning:
    .. code::
@@ -722,7 +722,7 @@ NSS Tools modutil
       WARNING: Performing this operation while Communicator is running could
       cause corruption of your security databases. If Communicator is
       currently running, you should exit Communicator before continuing this
-      operation. Type 'q <enter>' to abort, or <enter> to continue: 
+      operation. Type 'q <enter>' to abort, or <enter> to continue:
 
    After you press Enter, the tool displays the following:
    .. code::
@@ -731,7 +731,7 @@ NSS Tools modutil
 
    .. code::
 
-      Slot "Cryptographic Reader" enabled. 
+      Slot "Cryptographic Reader" enabled.
 
 .. _enabling_fips_compliance:
 
@@ -743,7 +743,7 @@ NSS Tools modutil
    This example enables FIPS 140-2 compliance in Communicator's internal module:
    .. code::
 
-      modutil -dbdir "C:\databases" -fips true 
+      modutil -dbdir "C:\databases" -fips true
 
    The Security Module Database Tool displays a warning:
    .. code::
@@ -751,12 +751,12 @@ NSS Tools modutil
       WARNING: Performing this operation while the browser is running could cause
       corruption of your security databases. If the browser is currently running,
       you should exit browser before continuing this operation. Type
-      'q <enter>' to abort, or <enter> to continue: 
+      'q <enter>' to abort, or <enter> to continue:
 
    After you press Enter, the tool displays the following:
    .. code::
 
-      FIPS mode enabled. 
+      FIPS mode enabled.
 
 .. _adding_a_cryptographic_module:
 
@@ -769,7 +769,7 @@ NSS Tools modutil
    .. code::
 
       C:\modutil> modutil -dbdir "C:\databases" -add "Cryptorific Module" -
-      libfile "C:\winnt\system32\crypto.dll" -mechanisms RSA:DSA:RC2:RANDOM 
+      libfile "C:\winnt\system32\crypto.dll" -mechanisms RSA:DSA:RC2:RANDOM
 
    The Security Module Database Tool displays a warning:
    .. code::
@@ -777,14 +777,14 @@ NSS Tools modutil
       WARNING: Performing this operation while Communicator is running could
       cause corruption of your security databases. If Communicator is
       currently running, you should exit Communicator before continuing this
-      operation. Type 'q <enter>' to abort, or <enter> to continue: 
+      operation. Type 'q <enter>' to abort, or <enter> to continue:
 
    After you press Enter, the tool displays the following:
    .. code::
 
-      Using database directory C:\databases... 
-      Module "Cryptorific Module" added to database. 
-      C:\modutil> 
+      Using database directory C:\databases...
+      Module "Cryptorific Module" added to database.
+      C:\modutil>
 
 .. _installing_a_cryptographic_module_from_a_jar_file:
 
@@ -796,33 +796,33 @@ NSS Tools modutil
    This example installs a cryptographic module from the following sample installation script.
    .. code::
 
-      Platforms { 
-         WinNT::x86 { 
-            ModuleName { "Cryptorific Module" } 
-            ModuleFile { crypto.dll } 
-            DefaultMechanismFlags{0x0000} 
-            CipherEnableFlags{0x0000} 
-            Files { 
-               crypto.dll { 
-                  RelativePath{ %root%/system32/crypto.dll } 
-               } 
-               setup.exe { 
-                  Executable 
-                  RelativePath{ %temp%/setup.exe } 
-               } 
-            } 
-         } 
-         Win95::x86 { 
-            EquivalentPlatform { Winnt::x86 } 
-         } 
-      } 
+      Platforms {
+         WinNT::x86 {
+            ModuleName { "Cryptorific Module" }
+            ModuleFile { crypto.dll }
+            DefaultMechanismFlags{0x0000}
+            CipherEnableFlags{0x0000}
+            Files {
+               crypto.dll {
+                  RelativePath{ %root%/system32/crypto.dll }
+               }
+               setup.exe {
+                  Executable
+                  RelativePath{ %temp%/setup.exe }
+               }
+            }
+         }
+         Win95::x86 {
+            EquivalentPlatform { Winnt::x86 }
+         }
+      }
 
    To install from the script, use the following command. The root directory should be the Windows
    root directory (for example, ``c:\\windows``, or ``c:\\winnt``).
    .. code::
 
-      C:\modutil> modutil -dbdir "c:\databases" -jar 
-      install.jar -installdir "C:/winnt" 
+      C:\modutil> modutil -dbdir "c:\databases" -jar
+      install.jar -installdir "C:/winnt"
 
    The Security Module Database Tool displays a warning:
    .. code::
@@ -830,21 +830,21 @@ NSS Tools modutil
       WARNING: Performing this operation while Communicator is running could
       cause corruption of your security databases. If Communicator is
       currently running, you should exit Communicator before continuing this
-      operation. Type 'q <enter>' to abort, or <enter> to continue: 
+      operation. Type 'q <enter>' to abort, or <enter> to continue:
 
    After you press Enter, the tool displays the following:
    .. code::
 
-      Using database directory c:\databases... 
+      Using database directory c:\databases...
 
    .. code::
 
-      This installation JAR file was signed by: 
-      ---------------------------------------------- 
+      This installation JAR file was signed by:
+      ----------------------------------------------
 
    .. code::
 
-      **SUBJECT NAME** 
+      **SUBJECT NAME**
 
    .. code::
 
@@ -855,26 +855,26 @@ NSS Tools modutil
       Organization, OU="VeriSign, Inc.", O=VeriSign Trust Network **ISSUER
       NAME**, OU=www.verisign.com/CPS Incorp.by Ref. LIABILITY LTD.(c)97
       VeriSign, OU=VeriSign Object Signing CA - Class 3 Organization,
-      OU="VeriSign, Inc.", O=VeriSign Trust Network 
-      ---------------------------------------------- 
+      OU="VeriSign, Inc.", O=VeriSign Trust Network
+      ----------------------------------------------
 
    .. code::
 
-      Do you wish to continue this installation? (y/n) y 
-      Using installer script "installer_script" 
-      Successfully parsed installation script 
-      Current platform is WINNT::x86 
-      Using installation parameters for platform WinNT::x86 
-      Installed file crypto.dll to C:/winnt/system32/crypto.dll 
-      Installed file setup.exe to ./pk11inst.dir/setup.exe 
-      Executing "./pk11inst.dir/setup.exe"... 
-      "./pk11inst.dir/setup.exe" executed successfully 
-      Installed module "Cryptorific Module" into module database 
+      Do you wish to continue this installation? (y/n) y
+      Using installer script "installer_script"
+      Successfully parsed installation script
+      Current platform is WINNT::x86
+      Using installation parameters for platform WinNT::x86
+      Installed file crypto.dll to C:/winnt/system32/crypto.dll
+      Installed file setup.exe to ./pk11inst.dir/setup.exe
+      Executing "./pk11inst.dir/setup.exe"...
+      "./pk11inst.dir/setup.exe" executed successfully
+      Installed module "Cryptorific Module" into module database
 
    .. code::
 
-      Installation completed successfully 
-      C:\modutil> 
+      Installation completed successfully
+      C:\modutil>
 
 .. _changing_the_password_on_a_token:
 
@@ -886,8 +886,8 @@ NSS Tools modutil
    This example changes the password for a token on an existing module.
    .. code::
 
-      C:\modutil> modutil -dbdir "c:\databases" -changepw 
-      "Communicator Certificate DB" 
+      C:\modutil> modutil -dbdir "c:\databases" -changepw
+      "Communicator Certificate DB"
 
    The Security Module Database Tool displays a warning:
    .. code::
@@ -895,18 +895,18 @@ NSS Tools modutil
       WARNING: Performing this operation while Communicator is running could
       cause corruption of your security databases. If Communicator is
       currently running, you should exit Communicator before continuing this
-      operation. Type 'q <enter>' to abort, or <enter> to continue: 
+      operation. Type 'q <enter>' to abort, or <enter> to continue:
 
    After you press Enter, the tool displays the following:
    .. code::
 
-      Using database directory c:\databases... 
-      Enter old password: 
-      Incorrect password, try again... 
-      Enter old password: 
-      Enter new password: 
-      Re-enter new password: 
-      Token "Communicator Certificate DB" password changed successfully. 
-      C:\modutil> 
+      Using database directory c:\databases...
+      Enter old password:
+      Incorrect password, try again...
+      Enter old password:
+      Enter new password:
+      Re-enter new password:
+      Token "Communicator Certificate DB" password changed successfully.
+      C:\modutil>
 
    --------------
