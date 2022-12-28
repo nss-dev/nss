@@ -37,7 +37,7 @@ troubleshoot
 
    -  Building a 32-bit version on a 64-bit may fail with:
 
-      .. code:: notranslate
+      .. code::
 
          /usr/include/features.h:324:26: fatal error: bits/predefs.h: No such file or directory
 

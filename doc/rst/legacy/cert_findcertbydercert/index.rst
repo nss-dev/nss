@@ -12,7 +12,7 @@ CERT_FindCertByDERCert
 
 .. container::
 
-   .. code:: notranslate
+   .. code::
 
       #include <cert.h>
       CERTCertificate *CERT_FindCertByDERCert(

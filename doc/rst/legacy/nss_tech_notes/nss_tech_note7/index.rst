@@ -59,7 +59,7 @@ nss tech note7
       | PKCS #1 defines an RSA public key as a ``SEQUENCE`` of modulus and public exponent, both of
         which are ``INTEGER``\ s. Here is the ASN.1 type definition:
 
-      .. code:: notranslate
+      .. code::
 
          RSAPublicKey ::= SEQUENCE {
            modulus INTEGER, -- n
@@ -68,7 +68,7 @@ nss tech note7
       The following sample code (error handling omitted for brevity) encodes a ``RSAPublicKey`` from
       a modulus and a public exponent and imports the public key into NSS.
 
-      .. code:: notranslate
+      .. code::
 
          struct MyRSAPublicKey {
              SECItem m_modulus;

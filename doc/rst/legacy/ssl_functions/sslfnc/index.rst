@@ -71,11 +71,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax
 
-   .. code:: notranslate
+   .. code::
 
       #include "nss.h" 
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus NSS_Init(char *configdir);
 
@@ -132,11 +132,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_2
 
-   .. code:: notranslate
+   .. code::
 
       #include "nss.h" 
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus NSS_InitReadWrite(char *configdir);
 
@@ -185,11 +185,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_3
 
-   .. code:: notranslate
+   .. code::
 
       #include "nss.h" 
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus NSS_NoDB_Init(char *reserved);
 
@@ -237,11 +237,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_4
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_OptionSetDefault(PRInt32 option, PRBool on);
 
@@ -450,11 +450,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_5
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_OptionGetDefault(PRInt32 option, PRBool *on)
 
@@ -501,11 +501,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_6
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_CipherPrefSetDefault(PRInt32 cipher, PRBool enabled);
 
@@ -639,11 +639,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_7
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_CipherPrefSetDefault(PRInt32 cipher, PRBool *enabled);
 
@@ -687,11 +687,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_8
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       void SSL_ClearSessionCache(void);
 
@@ -723,11 +723,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_9
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_ConfigServerSessionIDCache(
          int maxCacheEntries,
@@ -830,11 +830,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_10
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_ConfigMPServerSIDCache(
          int maxCacheEntries,
@@ -911,11 +911,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_11
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_InheritMPServerSIDCache (const char *envString);
 
@@ -1015,11 +1015,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_12
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       extern SECStatus NSS_SetDomesticPolicy(void);
 
@@ -1073,11 +1073,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_13
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       extern SECStatus NSS_SetExportPolicy(void);
 
@@ -1140,11 +1140,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_14
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus NSS_SetFrancePolicy(void);
 
@@ -1204,12 +1204,12 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_15
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
       #include "proto.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_CipherPolicySet(PRInt32 cipher, PRInt32 policy);
 
@@ -1350,12 +1350,12 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_16
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
       #include "proto.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_CipherPolicyGet(PRInt32 cipher, PRInt32 *policy);
 
@@ -1422,11 +1422,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_17
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       PRFileDesc *SSL_ImportFD(
          PRFileDesc *model,
@@ -1482,11 +1482,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_18
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_OptionSet(
          PRFileDesc *fd,
@@ -1707,11 +1707,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_19
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_OptionGet(
          PRFileDesc *fd,
@@ -1758,12 +1758,12 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_20
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
       #include "proto.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_CipherPrefSet(
          PRFileDesc *fd,
@@ -1857,12 +1857,12 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_21
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
       #include "proto.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_CipherPrefGet(
          PRFileDesc *fd,
@@ -1903,11 +1903,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_22
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_ConfigSecureServer(
          PRFileDesc *fd,
@@ -1984,11 +1984,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_23
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       int SSL_SetURL(
          PRFileDesc *fd,
@@ -2035,11 +2035,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_24
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       int SSL_SetPKCS11PinArg(PRFileDesc *fd, void *a); 
 
@@ -2121,11 +2121,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_25
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_AuthCertificateHook(
          PRFileDesc *fd,
@@ -2170,7 +2170,7 @@ sslfnc
 
    The callback function has the following prototype:
 
-   .. code:: notranslate
+   .. code::
 
       typedef SECStatus (*SSLAuthCertificate) (
          void *arg,
@@ -2241,11 +2241,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_26
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_AuthCertificate(
          void *arg,
@@ -2310,11 +2310,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_27
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_BadCertHook(
          PRFileDesc *fd,
@@ -2355,7 +2355,7 @@ sslfnc
 
    The callback function set up by ``SSL_BadCertHook`` has the following prototype:
 
-   .. code:: notranslate
+   .. code::
 
       typedef SECStatus (*SSLBadCertHandler)(
          void *arg,
@@ -2402,11 +2402,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_28
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_GetClientAuthDataHook(
          PRFileDesc *fd,
@@ -2453,7 +2453,7 @@ sslfnc
 
    The callback function has the following prototype:
 
-   .. code:: notranslate
+   .. code::
 
       typedef SECStatus (*SSLGetClientAuthData)(
          void *arg,
@@ -2486,11 +2486,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_29
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus NSS_GetClientAuthData(
          void * arg,
@@ -2551,11 +2551,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_30
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_HandshakeCallback(
          PRFileDesc *fd,
@@ -2591,7 +2591,7 @@ sslfnc
 
    The callback function set by ``SSL_HandshakeCallback`` has the following prototype:
 
-   .. code:: notranslate
+   .. code::
 
       typedef void (*SSLHandshakeCallback)(
          PRFileDesc *fd,
@@ -2635,11 +2635,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_31
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       int SSL_InvalidateSession(PRFileDesc *fd);
 
@@ -2677,11 +2677,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_32
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       int SSL_DataPending(PRFileDesc *fd);
 
@@ -2724,11 +2724,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_33
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_SecurityStatus(
          PRFileDesc *fd,
@@ -2837,11 +2837,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_34
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECItem *SSL_GetSessionID(PRFileDesc *fd);
 
@@ -2878,11 +2878,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_35
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       int SSL_SetSockPeerID(PRFileDesc *fd, char *peerID);
 
@@ -2968,11 +2968,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_36
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       CERTCertificate *SSL_PeerCertificate(PRFileDesc *fd); 
 
@@ -3015,11 +3015,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_37
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       char *SSL_RevealURL(PRFileDesc *fd); 
 
@@ -3058,11 +3058,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_38
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       void *SSL_RevealPinArg(PRFileDesc *fd); 
 
@@ -3111,11 +3111,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_39
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_ForceHandshake(PRFileDesc *fd);
 
@@ -3179,11 +3179,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_40
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_RedoHandshake(PRFileDesc *fd, PRBool flushCache);
 
@@ -3242,11 +3242,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_41
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_ResetHandshake(
          PRFileDesc *fd,
@@ -3307,11 +3307,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_42
 
-   .. code:: notranslate
+   .. code::
 
       #include "nss.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus NSS_Shutdown(void);
 
@@ -3348,11 +3348,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_43
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_EnableDefault(int which, PRBool on);
 
@@ -3395,11 +3395,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_44
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_Enable(
          PRFileDesc *fd,
@@ -3449,12 +3449,12 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_45
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
       #include "sslproto.h"
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_EnableCipher(long which, PRBool enabled);
 
@@ -3498,12 +3498,12 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_46
 
-   .. code:: notranslate
+   .. code::
 
       #include <ssl.h>
       #include <sslproto.h>
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus SSL_SetPolicy(long which, int policy);
 
@@ -3553,11 +3553,11 @@ sslfnc
    .. rubric:: Syntax
       :name: syntax_47
 
-   .. code:: notranslate
+   .. code::
 
       #include "ssl.h"
 
-   .. code:: notranslate
+   .. code::
 
       int SSL_RedoHandshake(PRFileDesc *fd);
 

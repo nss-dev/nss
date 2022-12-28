@@ -40,7 +40,7 @@ NSS Tools certutil
 
    To run the Certificate Database Tool, type the command
 
-   .. code:: notranslate
+   .. code::
 
       certutil option [arguments ]
 
@@ -472,47 +472,47 @@ NSS Tools certutil
    options and arguments. Options and arguments in square brackets are optional, those without
    square brackets are required.
 
-   .. code:: notranslate
+   .. code::
 
       -N [-d certdir ] 
 
-   .. code:: notranslate
+   .. code::
 
       -S -k rsa|dsa -n certname -s subject
       [-c issuer |-x] -t trustargs [-h tokenname ]
       [-m serial-number ] [-v valid-months ] [-w offset-months ]
       [-d certdir ] [-p phone ] [-f password-file ] [-1] [-2] [-3] [-4] 
 
-   .. code:: notranslate
+   .. code::
 
       -R -k rsa|dsa -s subject [-h tokenname ]
       [-d certdir ] [-p phone ] [-o output-file ] [-f password-file ] 
 
-   .. code:: notranslate
+   .. code::
 
       -C -c issuer [-f password-file ]
       [-h tokenname ] -i cert-request-file -o output-file [-m serial-number ]
       [-v valid-months ] [-w offset-months ] [-d certdir ] [-1] [-2] [-3]
       [-4] 
 
-   .. code:: notranslate
+   .. code::
 
       -A -n certname -t trustargs [-h tokenname ] [-d certdir ] [-a]
       [-i cert-request-file ] 
 
-   .. code:: notranslate
+   .. code::
 
       -L [-n certname ] [-d certdir ] [-r] [-a] 
 
-   .. code:: notranslate
+   .. code::
 
       -V -n certname -b validity-time -u certusage [-e] [-l] [-d certdir ] 
 
-   .. code:: notranslate
+   .. code::
 
       -M -n certname -t trustargs [-d certdir ] 
 
-   .. code:: notranslate
+   .. code::
 
       -H 
 
@@ -540,7 +540,7 @@ NSS Tools certutil
 
    This example creates a new certificate database (``cert8.db`` file) in the specified directory:
 
-   .. code:: notranslate
+   .. code::
 
       certutil -N -d certdir
 
@@ -556,7 +556,7 @@ NSS Tools certutil
 
    This example lists all the certificates in the ``cert8.db`` file in the specified directory:
 
-   .. code:: notranslate
+   .. code::
 
       certutil -L -d certdir
 
@@ -575,13 +575,13 @@ NSS Tools certutil
    This example generates a binary certificate request file named ``e95c.req`` in the specified
    directory:
 
-   .. code:: notranslate
+   .. code::
 
       certutil -R -s "CN=John Smith, O=Netscape, L=Mountain View, ST=California, C=US" -p "650-555-8888" -o mycert.req -d certdir
 
    Before it creates the request file, the Certificate Database Tool prompts you for a password:
 
-   .. code:: notranslate
+   .. code::
 
       Enter Password or Pin for "Communicator Certificate DB": 
 
@@ -597,7 +597,7 @@ NSS Tools certutil
    example creates a new binary, self-signed CA certificate named ``myissuer``, in the specified
    directory.
 
-   .. code:: notranslate
+   .. code::
 
       certutil -S -s "CN=My Issuer" -n myissuer -x -t "C,C,C" -1 -2 -5 -m 1234 -f password-file -d certdir
 
@@ -605,7 +605,7 @@ NSS Tools certutil
    certificate request named ``mycert.req``, in the specified directory. It is issued by the
    self-signed certificate created above, ``myissuer``.
 
-   .. code:: notranslate
+   .. code::
 
       certutil -C -m 2345 -i mycert.req -o mycert.crt -c myissuer -d certdir
 
@@ -618,13 +618,13 @@ NSS Tools certutil
 
    This example adds a certificate to the certificate database:
 
-   .. code:: notranslate
+   .. code::
 
       certutil -A -n jsmith@netscape.com -t "p,p,p" -i mycert.crt -d certdir
 
    You can see this certificate in the database with this command:
 
-   .. code:: notranslate
+   .. code::
 
       certutil -L -n jsmith@netscape.com -d certdir
 
@@ -643,24 +643,24 @@ NSS Tools certutil
 
    This example validates a certificate:
 
-   .. code:: notranslate
+   .. code::
 
       certutil -V -n jsmith@netscape.com -b 9803201212Z -u SR -e -l -d certdir
 
    The Certificate Database Tool shows results similar to
 
-   .. code:: notranslate
+   .. code::
 
       Certificate:'jsmith@netscape.com' is valid.
 
    or
 
-   .. code:: notranslate
+   .. code::
 
       UID=jsmith, E=jsmith@netscape.com, CN=John Smith, O=Netscape Communications Corp., C=US : Expired certificate
 
    or
 
-   .. code:: notranslate
+   .. code::
 
       UID=jsmith, E=jsmith@netscape.com, CN=John Smith, O=Netscape Communications Corp., C=US : Certificate not approved for this operation

@@ -311,7 +311,7 @@ NSS API Guidelines
 
    Each file should include a CVS ID string for identification. The preferred format is:
 
-   .. code:: notranslate
+   .. code::
 
               "@(#) $RCSfile: nss-guidelines.html,
                   v $ $Revision: 48936 $ $Date: 2009-08-11 07:45:57 -0700 (Tue, 11 Aug 2009) $ $Name$"
@@ -324,7 +324,7 @@ NSS API Guidelines
 
    Here is an example from lib/base/baset.h:
 
-   .. code:: notranslate
+   .. code::
 
           #ifdef DEBUG
           static const char BASET_CVS_ID[] = "@(#) $RCSfile: nss-guidelines.html,
@@ -448,13 +448,13 @@ NSS API Guidelines
 
    For example, for the structure SECMyOpaqueData you would add:
 
-   .. code:: notranslate
+   .. code::
 
           typedef struct SECMyOpaqueDataStr SECMyOpaqueData;
 
    and add the actual structure definition to the private header file. In this same example:
 
-   .. code:: notranslate
+   .. code::
 
           struct SECMyOpaqueDataStr {
               unsigned long myPrivateData1;
@@ -559,7 +559,7 @@ NSS API Guidelines
    Usually, every public routine has a private counterpart, and the implementation of the public
    routine looks like this:
 
-   .. code:: notranslate
+   .. code::
 
           NSSImplement rv *
           NSSType_Method
@@ -842,7 +842,7 @@ NSS API Guidelines
 
    All encrypt and decrypt functions, which return data inline, should have a consistent signature:
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus MY_FunctionName(MyContext *context,
                             unsigned char *outBuf,
@@ -858,7 +858,7 @@ NSS API Guidelines
    All hashing update, MACing update, and encrypt/decrypt functions which act like filters should
    have a consistent signature:
 
-   .. code:: notranslate
+   .. code::
 
       SECStatus PK11_DigestOp(PK11Context *context,
                             unsigned char *inBuf,

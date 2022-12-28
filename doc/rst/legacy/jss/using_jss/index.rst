@@ -116,7 +116,7 @@ Using JSS
       You can put this directory in your classpath to run applications locally; or, you can package
       the class files into a JAR file for easier distribution:
 
-         .. code:: notranslate
+         .. code::
 
             cd mozilla/dist/classes[_dbg]
             zip -r ../jss42.jar .
