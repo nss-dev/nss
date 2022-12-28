@@ -20,7 +20,7 @@ Building NSS
 
 .. container::
 
-   NSS needs a C and C++ compiler.  It has minimal dependencies, including only
+   NSS needs a C and C++ compiler.  It has minimal dependencies, including only
    standard C and C++ libraries, plus `zlib <https://www.zlib.net/>`__.
    For building, you also need `make <https://www.gnu.org/software/make/>`__.
    Ideally, also install `gyp-next <https://github.com/nodejs/gyp-next>`__ and `ninja
@@ -181,7 +181,7 @@ Building NSS
 
 .. container::
 
-   NSS contains extensive unit tests.  Scripts to run these are found in the ``tests`` directory. 
+   NSS contains extensive unit tests.  Scripts to run these are found in the ``tests`` directory. 
    Run the standard suite by:
 
    .. code::
@@ -221,7 +221,7 @@ Building NSS
 
    Running all tests can take a considerable amount of time.
 
-   Test output is stored in ``tests_results/security/$HOST.$NUMBER/``.  The file
+   Test output is stored in ``tests_results/security/$HOST.$NUMBER/``.  The file
    ``results.html`` summarizes the results, ``output.log`` captures all the test
    output.
 

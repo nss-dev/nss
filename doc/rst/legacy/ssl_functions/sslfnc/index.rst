@@ -605,9 +605,9 @@ sslfnc
    16-bit integer named ``SSL_NumImplementedCiphers``. The macro ``SSL_IS_SSL2_CIPHER`` can be used
    to determine whether a particular value is an SSL2 or an SSL3 cipher.
 
-   **WARNING**: Using the external array ``SSL_ImplementedCiphers[]`` directly is deprecated.  It
+   **WARNING**: Using the external array ``SSL_ImplementedCiphers[]`` directly is deprecated.  It
    causes dynamic linking issues at run-time after an update of NSS because the actual size of the
-   array changes between releases.  The recommended way of accessing the array is through the
+   array changes between releases.  The recommended way of accessing the array is through the
    ``SSL_GetImplementedCiphers()`` and ``SSL_GetNumImplementedCiphers()`` accessors.
 
    By default, all SSL2 and 12 SSL3/TLS cipher suites are enabled. However, this does not
@@ -730,10 +730,10 @@ sslfnc
    .. code::
 
       SECStatus SSL_ConfigServerSessionIDCache(
-         int maxCacheEntries,
-         PRUint32 timeout,
-         PRUint32 ssl3_timeout,
-         const char *directory);
+         int maxCacheEntries,
+         PRUint32 timeout,
+         PRUint32 ssl3_timeout,
+         const char *directory);
 
    .. rubric:: Parameters
       :name: parameters_5
@@ -837,10 +837,10 @@ sslfnc
    .. code::
 
       SECStatus SSL_ConfigMPServerSIDCache(
-         int maxCacheEntries,
-         PRUint32 timeout,
-         PRUint32 ssl3_timeout,
-         const char *directory);
+         int maxCacheEntries,
+         PRUint32 timeout,
+         PRUint32 ssl3_timeout,
+         const char *directory);
 
    .. rubric:: Parameters
       :name: parameters_6
@@ -1429,8 +1429,8 @@ sslfnc
    .. code::
 
       PRFileDesc *SSL_ImportFD(
-         PRFileDesc *model,
-         PRFileDesc *fd);
+         PRFileDesc *model,
+         PRFileDesc *fd);
 
    .. rubric:: Parameters
       :name: parameters_10
@@ -1489,9 +1489,9 @@ sslfnc
    .. code::
 
       SECStatus SSL_OptionSet(
-         PRFileDesc *fd,
-         PRInt32 option,
-         PRBool on);
+         PRFileDesc *fd,
+         PRInt32 option,
+         PRBool on);
 
    .. rubric:: Parameters
       :name: parameters_11
@@ -1714,9 +1714,9 @@ sslfnc
    .. code::
 
       SECStatus SSL_OptionGet(
-         PRFileDesc *fd,
-         PRInt32 option,
-         PRBool *on);
+         PRFileDesc *fd,
+         PRInt32 option,
+         PRBool *on);
 
    .. rubric:: Parameters
       :name: parameters_12
@@ -1766,9 +1766,9 @@ sslfnc
    .. code::
 
       SECStatus SSL_CipherPrefSet(
-         PRFileDesc *fd,
-         PRInt32 cipher,
-         PRBool enabled);
+         PRFileDesc *fd,
+         PRInt32 cipher,
+         PRBool enabled);
 
    .. rubric:: Parameters
       :name: parameters_13
@@ -1865,9 +1865,9 @@ sslfnc
    .. code::
 
       SECStatus SSL_CipherPrefGet(
-         PRFileDesc *fd,
-         PRInt32 cipher,
-         PRBool *enabled);
+         PRFileDesc *fd,
+         PRInt32 cipher,
+         PRBool *enabled);
 
    .. rubric:: Parameters
       :name: parameters_14
@@ -1910,10 +1910,10 @@ sslfnc
    .. code::
 
       SECStatus SSL_ConfigSecureServer(
-         PRFileDesc *fd,
-         CERTCertificate *cert,
-         SECKEYPrivateKey *key,
-         SSLKEAType keaType);
+         PRFileDesc *fd,
+         CERTCertificate *cert,
+         SECKEYPrivateKey *key,
+         SSLKEAType keaType);
 
    .. rubric:: Parameters
       :name: parameters_15
@@ -1991,8 +1991,8 @@ sslfnc
    .. code::
 
       int SSL_SetURL(
-         PRFileDesc *fd,
-         char *url);
+         PRFileDesc *fd,
+         char *url);
 
    .. rubric:: Parameters
       :name: parameters_16
@@ -2109,7 +2109,7 @@ sslfnc
    ```PK11_SetPasswordFunc`` <pkfnc.html#1023128>`__ to set up the password callback function during
    NSS initialization.
 
-   For examples of the callback functions listed here, see `Chapter 2, "Getting Started With
+   For examples of the callback functions listed here, see `Chapter 2, "Getting Started With
    SSL." <gtstd.html#1005439>`__
 
    .. rubric:: SSL_AuthCertificateHook
@@ -2128,9 +2128,9 @@ sslfnc
    .. code::
 
       SECStatus SSL_AuthCertificateHook(
-         PRFileDesc *fd,
-         SSLAuthCertificate f,
-         void *arg);
+         PRFileDesc *fd,
+         SSLAuthCertificate f,
+         void *arg);
 
    .. rubric:: Parameters
       :name: parameters_18
@@ -2173,10 +2173,10 @@ sslfnc
    .. code::
 
       typedef SECStatus (*SSLAuthCertificate) (
-         void *arg,
-         PRFileDesc *fd,
-         PRBool checksig,
-         PRBool isServer);
+         void *arg,
+         PRFileDesc *fd,
+         PRBool checksig,
+         PRBool isServer);
 
    This callback function has the following parameters:
 
@@ -2228,7 +2228,7 @@ sslfnc
       :name: see_also_2
 
    For examples of certificate authentication callback functions, see the sample code referenced
-   from `Chapter 2, "Getting Started With SSL." <gtstd.html#1005439>`__
+   from `Chapter 2, "Getting Started With SSL." <gtstd.html#1005439>`__
 
    .. rubric:: SSL_AuthCertificate
       :name: ssl_authcertificate
@@ -2248,10 +2248,10 @@ sslfnc
    .. code::
 
       SECStatus SSL_AuthCertificate(
-         void *arg,
-         PRFileDesc *fd,
-         PRBool checksig,
-         PRBool isServer);
+         void *arg,
+         PRFileDesc *fd,
+         PRBool checksig,
+         PRBool isServer);
 
    .. rubric:: Parameters
       :name: parameters_19
@@ -2317,9 +2317,9 @@ sslfnc
    .. code::
 
       SECStatus SSL_BadCertHook(
-         PRFileDesc *fd,
-         SSLBadCertHandler f,
-         void *arg);
+         PRFileDesc *fd,
+         SSLBadCertHandler f,
+         void *arg);
 
    .. rubric:: Parameters
       :name: parameters_20
@@ -2358,8 +2358,8 @@ sslfnc
    .. code::
 
       typedef SECStatus (*SSLBadCertHandler)(
-         void *arg,
-         PRFileDesc *fd);
+         void *arg,
+         PRFileDesc *fd);
 
    This callback function has the following parameters:
 
@@ -2409,9 +2409,9 @@ sslfnc
    .. code::
 
       SECStatus SSL_GetClientAuthDataHook(
-         PRFileDesc *fd,
-         SSLGetClientAuthData f,
-         void *a);
+         PRFileDesc *fd,
+         SSLGetClientAuthData f,
+         void *a);
 
    .. rubric:: Parameters
       :name: parameters_21
@@ -2456,11 +2456,11 @@ sslfnc
    .. code::
 
       typedef SECStatus (*SSLGetClientAuthData)(
-         void *arg,
-         PRFileDesc *fd,
-         CertDistNames *caNames,
-         CERTCertificate **pRetCert,
-         SECKEYPrivateKey **pRetKey);
+         void *arg,
+         PRFileDesc *fd,
+         CertDistNames *caNames,
+         CERTCertificate **pRetCert,
+         SECKEYPrivateKey **pRetKey);
 
    This callback function has the following parameters:
 
@@ -2493,11 +2493,11 @@ sslfnc
    .. code::
 
       SECStatus NSS_GetClientAuthData(
-         void * arg,
-         PRFileDesc *socket,
-         struct CERTDistNamesStr *caNames,
-         struct CERTCertificateStr **pRetCert,
-         struct SECKEYPrivateKeyStr **pRetKey);
+         void * arg,
+         PRFileDesc *socket,
+         struct CERTDistNamesStr *caNames,
+         struct CERTCertificateStr **pRetCert,
+         struct SECKEYPrivateKeyStr **pRetKey);
 
    .. rubric:: Parameters
       :name: parameters_22
@@ -2558,9 +2558,9 @@ sslfnc
    .. code::
 
       SECStatus SSL_HandshakeCallback(
-         PRFileDesc *fd,
-         SSLHandshakeCallback cb,
-         void *client_data);
+         PRFileDesc *fd,
+         SSLHandshakeCallback cb,
+         void *client_data);
 
    .. rubric:: Parameters
       :name: parameters_23
@@ -2594,8 +2594,8 @@ sslfnc
    .. code::
 
       typedef void (*SSLHandshakeCallback)(
-         PRFileDesc *fd,
-         void *client_data);
+         PRFileDesc *fd,
+         void *client_data);
 
    This callback function has the following parameters:
 
@@ -2731,13 +2731,13 @@ sslfnc
    .. code::
 
       SECStatus SSL_SecurityStatus(
-         PRFileDesc *fd,
-         int *on,
-         char **cipher,
-         int *keysize,
-         int *secretKeySize,
-         char **issuer,
-         char **subject);
+         PRFileDesc *fd,
+         int *on,
+         char **cipher,
+         int *keysize,
+         int *secretKeySize,
+         char **issuer,
+         char **subject);
 
    .. rubric:: Parameters
       :name: parameters_24
@@ -3249,8 +3249,8 @@ sslfnc
    .. code::
 
       SECStatus SSL_ResetHandshake(
-         PRFileDesc *fd,
-         PRBool asServer);
+         PRFileDesc *fd,
+         PRBool asServer);
 
    .. rubric:: Parameters
       :name: parameters_27
@@ -3402,9 +3402,9 @@ sslfnc
    .. code::
 
       SECStatus SSL_Enable(
-         PRFileDesc *fd,
-         int which,
-         PRBool on);
+         PRFileDesc *fd,
+         int which,
+         PRBool on);
 
    .. rubric:: Parameters
       :name: parameters_29

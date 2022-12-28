@@ -63,11 +63,11 @@ sslcrt
    .. code::
 
       SECStatus CERT_VerifyCertNow(
-         CERTCertDBHandle *handle,
-         CERTCertificate *cert,
-         PRBool checkSig,
-         SECCertUsage certUsage,
-         void *wincx);
+         CERTCertDBHandle *handle,
+         CERTCertificate *cert,
+         PRBool checkSig,
+         SECCertUsage certUsage,
+         void *wincx);
 
    .. rubric:: Parameters
       :name: parameters
@@ -141,8 +141,8 @@ sslcrt
    .. code::
 
       SECStatus CERT_VerifyCertName(
-         CERTCertificate *cert,
-         char *hostname);
+         CERTCertificate *cert,
+         char *hostname);
 
    .. rubric:: Parameters
       :name: parameters_2
@@ -207,8 +207,8 @@ sslcrt
    .. code::
 
       SECCertTimeValidity CERT_CheckCertValidTimes(
-         CERTCertificate *cert,
-         int64 t);
+         CERTCertificate *cert,
+         int64 t);
 
    .. rubric:: Parameters
       :name: parameters_3
@@ -233,9 +233,9 @@ sslcrt
    .. code::
 
       typedef enum {
-         secCertTimeValid,
-         secCertTimeExpired,
-         secCertTimeNotValidYet
+         secCertTimeValid,
+         secCertTimeExpired,
+         secCertTimeNotValidYet
       } SECCertTimeValidity;
 
    .. rubric:: NSS_CmpCertChainWCANames
@@ -254,8 +254,8 @@ sslcrt
    .. code::
 
       SECStatus NSS_CmpCertChainWCANames(
-         CERTCertificate *cert,
-         CERTDistNames *caNames);
+         CERTCertificate *cert,
+         CERTDistNames *caNames);
 
    .. rubric:: Parameters
       :name: parameters_4
@@ -403,8 +403,8 @@ sslcrt
    .. code::
 
       CERTCertificate *CERT_FindCertByName (
-         CERTCertDBHandle *handle,
-         SECItem *name);
+         CERTCertDBHandle *handle,
+         SECItem *name);
 
    .. rubric:: Parameters
       :name: parameters_6
@@ -443,9 +443,9 @@ sslcrt
    .. code::
 
       CERTCertNicknames *CERT_GetCertNicknames (
-         CERTCertDBHandle *handle,
-         int what,
-         void *wincx);
+         CERTCertDBHandle *handle,
+         int what,
+         void *wincx);
 
    .. rubric:: Parameters
       :name: parameters_7
@@ -600,8 +600,8 @@ sslcrt
    .. code::
 
       SECComparison SECITEM_CompareItem(
-         SECItem *a,
-         SECItem *b);
+         SECItem *a,
+         SECItem *b);
 
    .. rubric:: Parameters
       :name: parameters_9
@@ -626,7 +626,7 @@ sslcrt
    .. code::
 
       typedef enum _SECComparison {
-         SECLessThan                = -1,
-         SECEqual                = 0,
-         SECGreaterThan = 1
+         SECLessThan                = -1,
+         SECEqual                = 0,
+         SECGreaterThan = 1
       } SECComparison;

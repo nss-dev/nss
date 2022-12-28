@@ -61,7 +61,7 @@ NSS 3.40.1 release notes
          .. container::
 
             `Bug 1485864 <https://bugzilla.mozilla.org/show_bug.cgi?id=1485864>`__ - Cache
-            side-channel variant of the Bleichenbacher attack (CVE-2018-12404)
+            side-channel variant of the Bleichenbacher attack (CVE-2018-12404)
 
 `Compatibility <#compatibility>`__
 ----------------------------------

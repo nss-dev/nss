@@ -208,7 +208,7 @@ JSS FAQ
       CryptoManager.getTokenByName(), but a better way is to call
       CryptoManager.getInternalKeyStorageToken(), which works no matter what the token is named. In
       general, a key is a handle to an underlying object on a PKCS #11 token, not merely a Java
-      object residing in memory. Symmetric Key usage:  basically encrypt/decrypt is for data and
+      object residing in memory. Symmetric Key usage:  basically encrypt/decrypt is for data and
       wrap/unwrap is for keys.
 
    J\ **SS 3.2 has JCA support. When will JSS have JSSE support?**

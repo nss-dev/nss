@@ -5,7 +5,7 @@ NSS Config Options
 
 .. _nss_config_options_format:
 
-` NSS Config Options Format <#nss_config_options_format>`__
+` NSS Config Options Format <#nss_config_options_format>`__
 -----------------------------------------------------------
 
 .. container::
@@ -64,7 +64,7 @@ NSS Config Options
            ssl-default-lock: turn off the ability for applications to change cipher
                      suite states with SSL_EnableCipher, SSL_DisableCipher.
 
-   .. rubric::  ECC Curves
+   .. rubric::  ECC Curves
       :name: ecc_curves
 
    |

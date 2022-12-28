@@ -45,7 +45,7 @@ NSS Certificate Download Specification
 
    .. code::
 
-         CertificateSequence ::= SEQUENCE OF Certificate
+         CertificateSequence ::= SEQUENCE OF Certificate
 
    See the section below on
    :ref:`mozilla_projects_nss_certificate_download_specification#importing_certificate_chains` for
@@ -170,7 +170,7 @@ NSS Certificate Download Specification
 
    .. code::
 
-         netscape OBJECT IDENTIFIER ::= { 2 16 840 1 113730 }
+         netscape OBJECT IDENTIFIER ::= { 2 16 840 1 113730 }
 
    The hexadecimal byte value of this OID when DER encoded is:
 
@@ -182,5 +182,5 @@ NSS Certificate Download Specification
 
    .. code::
 
-         netscape-data-type     OBJECT IDENTIFIER :: = { netscape 2 }
-         netscape-cert-sequence OBJECT IDENTIFIER :: = { netscape-data-type 5 }
+         netscape-data-type     OBJECT IDENTIFIER :: = { netscape 2 }
+         netscape-cert-sequence OBJECT IDENTIFIER :: = { netscape-data-type 5 }

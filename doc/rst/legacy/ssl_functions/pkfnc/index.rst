@@ -56,8 +56,8 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    .. code::
 
       CERTCertificate *PK11_FindCertFromNickname(
-         char *nickname,
-         void *wincx);
+         char *nickname,
+         void *wincx);
 
    .. rubric:: Parameters
       :name: parameters
@@ -117,8 +117,8 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    .. code::
 
       SECKEYPrivateKey *PK11_FindKeyByAnyCert(
-         CERTCertificate *cert,
-         void *wincx);
+         CERTCertificate *cert,
+         void *wincx);
 
    .. rubric:: Parameters
       :name: parameters_2
@@ -391,9 +391,9 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    .. code::
 
       typedef char *(*PK11PasswordFunc)(
-         PK11SlotInfo *slot,
-         PRBool retry,
-         void *arg);
+         PK11SlotInfo *slot,
+         PRBool retry,
+         void *arg);
 
    This callback function has the following parameters:
 

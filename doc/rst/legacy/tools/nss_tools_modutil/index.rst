@@ -335,48 +335,48 @@ NSS Tools modutil
 
       ForwardCompatible { IRIX:6.2:mips SUNOS:5.5.1:sparc }
       Platforms {
-         WINNT::x86 {
-            ModuleName { "Fortezza Module" }
-            ModuleFile { win32/fort32.dll }
-            DefaultMechanismFlags{0x0001}
-            DefaultCipherFlags{0x0001}
-            Files {
-               win32/setup.exe {
-                  Executable
-                  RelativePath { %temp%/setup.exe }
-               }
-               win32/setup.hlp {
-                  RelativePath { %temp%/setup.hlp }
-               }
-               win32/setup.cab {
-                  RelativePath { %temp%/setup.cab }
-               }
-            }
-         }
-         WIN95::x86 {
-            EquivalentPlatform {WINNT::x86}
-         }
-         SUNOS:5.5.1:sparc {
-            ModuleName { "Fortezza UNIX Module" }
-            ModuleFile { unix/fort.so }
-            DefaultMechanismFlags{0x0001}
-            CipherEnableFlags{0x0001}
-            Files {
-               unix/fort.so {
-                  RelativePath{%root%/lib/fort.so}
-                  AbsolutePath{/usr/local/netscape/lib/fort.so}
-                  FilePermissions{555}
-               }
-               xplat/instr.html {
-                  RelativePath{%root%/docs/inst.html}
-                  AbsolutePath{/usr/local/netscape/docs/inst.html}
-                  FilePermissions{555}
-               }
-            }
-         }
-         IRIX:6.2:mips {
-            EquivalentPlatform { SUNOS:5.5.1:sparc }
-         }
+         WINNT::x86 {
+            ModuleName { "Fortezza Module" }
+            ModuleFile { win32/fort32.dll }
+            DefaultMechanismFlags{0x0001}
+            DefaultCipherFlags{0x0001}
+            Files {
+               win32/setup.exe {
+                  Executable
+                  RelativePath { %temp%/setup.exe }
+               }
+               win32/setup.hlp {
+                  RelativePath { %temp%/setup.hlp }
+               }
+               win32/setup.cab {
+                  RelativePath { %temp%/setup.cab }
+               }
+            }
+         }
+         WIN95::x86 {
+            EquivalentPlatform {WINNT::x86}
+         }
+         SUNOS:5.5.1:sparc {
+            ModuleName { "Fortezza UNIX Module" }
+            ModuleFile { unix/fort.so }
+            DefaultMechanismFlags{0x0001}
+            CipherEnableFlags{0x0001}
+            Files {
+               unix/fort.so {
+                  RelativePath{%root%/lib/fort.so}
+                  AbsolutePath{/usr/local/netscape/lib/fort.so}
+                  FilePermissions{555}
+               }
+               xplat/instr.html {
+                  RelativePath{%root%/docs/inst.html}
+                  AbsolutePath{/usr/local/netscape/docs/inst.html}
+                  FilePermissions{555}
+               }
+            }
+         }
+         IRIX:6.2:mips {
+            EquivalentPlatform { SUNOS:5.5.1:sparc }
+         }
       }
 
 .. _script_grammar:
@@ -394,12 +394,12 @@ NSS Tools modutil
    .. code::
 
       valuelist --> value valuelist
-                     <null>
+                     <null>
 
    .. code::
 
       value ---> key_value_pair
-                  string
+                  string
 
    .. code::
 
@@ -412,7 +412,7 @@ NSS Tools modutil
    .. code::
 
       string --> simple_string
-                  "complex_string"
+                  "complex_string"
 
    .. code::
 
@@ -499,21 +499,21 @@ NSS Tools modutil
    value defaults to 0x0.
    .. code::
 
-         RSA:                   0x00000001
-         DSA:                   0x00000002
-         RC2:                   0x00000004
-         RC4:                   0x00000008
-         DES:                   0x00000010
-         DH:                    0x00000020
-         FORTEZZA:              0x00000040
-         RC5:                   0x00000080
-         SHA1:                  0x00000100
-         MD5:                   0x00000200
-         MD2:                   0x00000400
-         RANDOM:                0x08000000
-         FRIENDLY:              0x10000000
-         OWN_PW_DEFAULTS:       0x20000000
-         DISABLE:               0x40000000
+         RSA:                   0x00000001
+         DSA:                   0x00000002
+         RC2:                   0x00000004
+         RC4:                   0x00000008
+         DES:                   0x00000010
+         DH:                    0x00000020
+         FORTEZZA:              0x00000040
+         RC5:                   0x00000080
+         SHA1:                  0x00000100
+         MD5:                   0x00000200
+         MD2:                   0x00000400
+         RANDOM:                0x08000000
+         FRIENDLY:              0x10000000
+         OWN_PW_DEFAULTS:       0x20000000
+         DISABLE:               0x40000000
 
    ``CipherEnableFlags`` Specifies ciphers that this module provides but Netscape Communicator does
    not, so that Communicator can enable them. This key is a bitstring specified in hexadecimal (0x)
@@ -521,7 +521,7 @@ NSS Tools modutil
    ``CipherEnableFlags`` entry is omitted, the value defaults to 0x0.
    .. code::
 
-         FORTEZZA:               0x0000 0001
+         FORTEZZA:               0x0000 0001
 
    ``EquivalentPlatform`` Specifies that the attributes of the named platform should also be used
    for the current platform. Saves typing when there is more than one platform using the same
@@ -554,15 +554,15 @@ NSS Tools modutil
    following constants:
    .. code::
 
-         user read:                0400
-         user write:               0200
-         user execute:             0100
-         group read:               0040
-         group write:              0020
-         group execute:            0010
-         other read:               0004
-         other write:              0002
-         other execute:       0001
+         user read:                0400
+         user write:               0200
+         user execute:             0100
+         group read:               0040
+         group write:              0020
+         group execute:            0010
+         other read:               0004
+         other write:              0002
+         other execute:       0001
 
    Some platforms may not understand these permissions. They are applied only insofar as they make
    sense for the current platform. If this attribute is omitted, a default of 777 is assumed.
@@ -797,24 +797,24 @@ NSS Tools modutil
    .. code::
 
       Platforms {
-         WinNT::x86 {
-            ModuleName { "Cryptorific Module" }
-            ModuleFile { crypto.dll }
-            DefaultMechanismFlags{0x0000}
-            CipherEnableFlags{0x0000}
-            Files {
-               crypto.dll {
-                  RelativePath{ %root%/system32/crypto.dll }
-               }
-               setup.exe {
-                  Executable
-                  RelativePath{ %temp%/setup.exe }
-               }
-            }
-         }
-         Win95::x86 {
-            EquivalentPlatform { Winnt::x86 }
-         }
+         WinNT::x86 {
+            ModuleName { "Cryptorific Module" }
+            ModuleFile { crypto.dll }
+            DefaultMechanismFlags{0x0000}
+            CipherEnableFlags{0x0000}
+            Files {
+               crypto.dll {
+                  RelativePath{ %root%/system32/crypto.dll }
+               }
+               setup.exe {
+                  Executable
+                  RelativePath{ %temp%/setup.exe }
+               }
+            }
+         }
+         Win95::x86 {
+            EquivalentPlatform { Winnt::x86 }
+         }
       }
 
    To install from the script, use the following command. The root directory should be the Windows

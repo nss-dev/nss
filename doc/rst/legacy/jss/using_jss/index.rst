@@ -122,7 +122,7 @@ Using JSS
             zip -r ../jss42.jar .
 
       If you are downloading binaries, get jss42.jar
-      from http://ftp.mozilla.org/pub/mozilla.org/security/jss/releases/.
+      from http://ftp.mozilla.org/pub/mozilla.org/security/jss/releases/.
 
 .. _setup_your_runtime_environment:
 

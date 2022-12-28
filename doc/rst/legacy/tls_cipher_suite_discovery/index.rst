@@ -23,7 +23,7 @@ TLS Cipher Suite Discovery
    Each Cipher Suite is represented by a 16-bit number. The number of well-defined cipher suites
    grows with time, and no TLS implementation offers all known cipher suites at all times. An
    implementation that claimed to offer all defined Cipher Suites would only be able to make that
-   claim for a short time until another new Cipher Suite was defined. At any time, any real
+   claim for a short time until another new Cipher Suite was defined. At any time, any real
    implementation implements some subset of the complete set of well-defined cipher suites.
 
    Each new release of a TLS implementation may contain support for new Cipher Suites not supported
@@ -104,10 +104,10 @@ TLS Cipher Suite Discovery
            SSLMACAlgorithm      macAlgorithm;
            PRUint16             macBits;
 
-           PRUintn              isFIPS       : 1;
-           PRUintn              isExportable : 1;
-           PRUintn              nonStandard  : 1;
-           PRUintn              reservedBits :29;
+           PRUintn              isFIPS       : 1;
+           PRUintn              isExportable : 1;
+           PRUintn              nonStandard  : 1;
+           PRUintn              reservedBits :29;
 
        } SSLCipherSuiteInfo;
 

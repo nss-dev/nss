@@ -39,7 +39,7 @@ Build instructions for JSS 4.3.x
 
    #. Setup environment variables needed for compiling Java source. The ``JAVA_HOME`` variable
       indicates the directory containing your Java SDK installation. Note, on Windows platforms it
-      is best to have JAVA_HOME set to a directory path that doest not have spaces. 
+      is best to have JAVA_HOME set to a directory path that doest not have spaces. 
 
       **Unix**
 
@@ -74,9 +74,9 @@ Build instructions for JSS 4.3.x
       | Mac OS X
       | It has been recently reported that special build instructions are necessary to succeed
         building JSS on OSX. Please
-        see `HOWTO_successfully_compile_JSS_and_NSS_for_32_and_64_bits_on_OSX_10.6_(10.6.7) </HOWTO_successfully_compile_JSS_and_NSS_for_32_and_64_bits_on_OSX_10.6_(10.6.7)>`__
+        see `HOWTO_successfully_compile_JSS_and_NSS_for_32_and_64_bits_on_OSX_10.6_(10.6.7) </HOWTO_successfully_compile_JSS_and_NSS_for_32_and_64_bits_on_OSX_10.6_(10.6.7)>`__
         for contributed instructions.
-      |  
+      |  
 
    #. Build JSS.
 
