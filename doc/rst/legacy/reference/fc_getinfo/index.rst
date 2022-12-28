@@ -91,12 +91,12 @@ FC_GetInfo
       crv = pFunctionList->C_GetInfo(&info);
       assert(crv == CKR_OK);
       printf("General information about the PKCS #11 library:\n");
-      printf("    PKCS #11 version: %d.%d\n",
+      printf("    PKCS #11 version: %d.%d\n",
           (int)info.cryptokiVersion.major, (int)info.cryptokiVersion.minor);
-      printf("    manufacturer ID: %.32s\n", info.manufacturerID);
+      printf("    manufacturer ID: %.32s\n", info.manufacturerID);
       printf("    flags: 0x%08lx\n", info.flags);
-      printf("    library description: %.32s\n", info.libraryDescription);
-      printf("    library version: %d.%d\n",
+      printf("    library description: %.32s\n", info.libraryDescription);
+      printf("    library version: %d.%d\n",
           (int)info.libraryVersion.major, (int)info.libraryVersion.minor);
       printf("\n");
 

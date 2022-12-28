@@ -221,7 +221,7 @@ NSS Certificate Functions
    certificates:
 
    -  \* matches anything
-   -   ? matches one character
+   -   ? matches one character
    -  \\ escapes a special character
    -  $ matches the end of the string
    -  [abc] matches one occurrence of a, b, or c. The only character that needs to be escaped in

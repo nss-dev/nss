@@ -54,9 +54,9 @@ NSS 3.23 release notes
 
    -  *in ssl.h*
 
-      -  **SSL_SetDowngradeCheckVersion** - Set maximum version for new ServerRandom anti-downgrade
+      -  **SSL_SetDowngradeCheckVersion** - Set maximum version for new ServerRandom anti-downgrade
          mechanism. Clients that perform a version downgrade (which is a dangerous practice) call
-         this with the highest version number that they possibly support.  This gives them access to
+         this with the highest version number that they possibly support.  This gives them access to
          the `version downgrade protection from TLS
          1.3 <https://tlswg.github.io/tls13-spec/#client-hello>`__.
 

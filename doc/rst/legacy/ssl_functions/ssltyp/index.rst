@@ -262,8 +262,8 @@ ssltyp
    .. code::
 
       SECStatus SECItem_FreeItem (
-         SECItem *item,
-         PRBool freeItem)
+         SECItem *item,
+         PRBool freeItem)
 
    .. rubric:: Parameter
       :name: parameter
@@ -309,8 +309,8 @@ ssltyp
    .. code::
 
       SECStatus SECItem_ZfreeItem (
-         SECItem *item,
-         PRBool freeItem)
+         SECItem *item,
+         PRBool freeItem)
 
    .. rubric:: Parameter
       :name: parameter_2

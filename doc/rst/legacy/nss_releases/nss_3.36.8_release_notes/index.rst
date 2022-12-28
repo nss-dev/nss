@@ -54,7 +54,7 @@ NSS 3.36.8 release notes
 
       .. container::
 
-         `1554336 <https://bugzilla.mozilla.org/show_bug.cgi?id=1554336>`__ - Optimize away unneeded
+         `1554336 <https://bugzilla.mozilla.org/show_bug.cgi?id=1554336>`__ - Optimize away unneeded
          loop in mpi.c
 
    -
