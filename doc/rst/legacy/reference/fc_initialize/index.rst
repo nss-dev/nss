@@ -108,7 +108,7 @@ FC_Initialize
 
 .. container::
 
-   .. code:: eval
+   .. code::
 
       #include <assert.h>
 

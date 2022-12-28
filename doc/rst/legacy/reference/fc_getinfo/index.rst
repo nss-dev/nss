@@ -15,7 +15,7 @@ FC_GetInfo
 
 .. container::
 
-   .. code:: eval
+   .. code::
 
       CK_RV  FC_GetInfo(CK_INFO_PTR pInfo);
 
@@ -73,7 +73,7 @@ FC_GetInfo
    Note the use of the ``%.32s`` format string to print the ``manufacturerID`` and
    ``libraryDescription`` members of the ``CK_INFO`` structure.
 
-   .. code:: eval
+   .. code::
 
       #include <assert.h>
       #include <stdio.h>

@@ -97,7 +97,7 @@ PKCS #11 Module Specs
    ``secmod.db`` or pkcs11.txt. This isn't part of the generic spec (that is other applications need
    not parse it, nor pkcs #11 modules need supply them or use them).
 
-   .. code:: eval
+   .. code::
 
       NSS="nss_params"
 
@@ -313,13 +313,13 @@ PKCS #11 Module Specs
 
    In non-FIPS mode:
 
-   .. code:: eval
+   .. code::
 
       tokens=<0x01=[configDir=configDir tokenDescription=cryptoTokenDescription slotDescription=cryptoSlotDescription flags=noCertDB,noKeyDB,optimizeSpace] 0x02=[configDir=configDir tokenDescription=dbTokenDescription slotDescription=dbSlotDescription certPrefix=certPrefix keyPrefix=keyPrefix flags=flags minPWLen=minPWLen]>
 
    In FIPS mode:
 
-   .. code:: eval
+   .. code::
 
       tokens=<0x03=[configDir=configDir tokenDescription=FIPSTokenDescription slotDescription=FIPSSlotDescription certPrefix=certPrefix keyPrefix=keyPrefix flags=flags minPWLen=minPWLen]>
 

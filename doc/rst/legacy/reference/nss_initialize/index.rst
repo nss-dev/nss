@@ -15,7 +15,7 @@ NSS_Initialize
 
 .. container::
 
-   .. code:: eval
+   .. code::
 
       SECStatus NSS_Initialize(const char *configdir,
                                const char *certPrefix,
@@ -93,7 +93,7 @@ NSS_Initialize
 
 .. container::
 
-   .. code:: eval
+   .. code::
 
       #include <nss.h>
 

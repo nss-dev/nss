@@ -15,13 +15,13 @@ Build instructions
    gmake is GNU make, usually your Linux-distro-regular "make" binary file, unless maybe it is a BSD
    make. Make variables may be set on the gmake command line, e.g.,
 
-   .. code:: eval
+   .. code::
 
         gmake variable=value variable=value target1 target2
 
    or defined in the environment, e.g. (for POSIX shells),
 
-   .. code:: eval
+   .. code::
 
         variable=value; export variable
         gmake target1 target2
