@@ -55,6 +55,10 @@
               '-fsanitize=fuzzer',
              ],
           }
+        }, {
+          'all_dependent_settings': {
+            'libraries': ['-lFuzzingEngine'],
+          }
         }]
       ],
     },
