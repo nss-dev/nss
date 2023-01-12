@@ -91,38 +91,6 @@ class ChaChaPoly():
 
         return result
 
-class ECDH():
-    """Class that provides the generator function for a single ECDH test case."""
-
-    def format_testcase(self, testcase, curve):
-
-        result = '\n// Comment: {}'.format(testcase['comment'])
-        result += '\n// tcID: {}'.format(testcase['tcId'])
-        private_key = ec.derive_private_key(
-                int(testcase["private"], 16),
-                curve,
-                default_backend()
-            ).private_bytes(
-                encoding=serialization.Encoding.DER,
-                format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption()
-            )
-        result += '\n{{{},\n'.format(testcase['tcId'])
-        result += '{},\n'.format(string_to_hex_array(bytes.hex(private_key)))
-        result += '{},\n'.format(string_to_hex_array(testcase['public']))
-        result += '{},\n'.format(string_to_hex_array(testcase['shared']))
-        invalid_asn = 'InvalidAsn' in testcase['flags']
-
-        # Note: This classifies "Acceptable" tests cases as invalid.
-        # As this represents a gray area, manual adjustments may be
-        # necessary to match NSS' implementation.
-        valid = testcase['result'] == 'valid'
-
-        result += '{},\n'.format(str(invalid_asn).lower())
-        result += '{}}},\n'.format(str(valid).lower())
-
-        return result
-
 class DSA():
     pub_keys = {}
     def format_testcase(self, testcase, key, hash_oid, keySize, out_defs):
@@ -428,39 +396,6 @@ hkdf_sha512_params = {
     'comment' : ''
 }
 
-p256ecdh_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'ecdh_secp256r1_test.json',
-    'target': '../testvectors/p256ecdh-vectors.h',
-    'array_init': 'const EcdhTestVector kP256EcdhWycheproofVectors[] = {\n',
-    'formatter' : ECDH(),
-    'crop_size_end': -2,
-    'section': 'p256ecdh_vectors_h__',
-    'comment' : ''
-}
-
-p384ecdh_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'ecdh_secp384r1_test.json',
-    'target': '../testvectors/p384ecdh-vectors.h',
-    'array_init': 'const EcdhTestVector kP384EcdhWycheproofVectors[] = {\n',
-    'formatter' : ECDH(),
-    'crop_size_end': -2,
-    'section': 'p384ecdh_vectors_h__',
-    'comment' : ''
-}
-
-p521ecdh_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'ecdh_secp521r1_test.json',
-    'target': '../testvectors/p521ecdh-vectors.h',
-    'array_init': 'const EcdhTestVector kP521EcdhWycheproofVectors[] = {\n',
-    'formatter' : ECDH(),
-    'crop_size_end': -2,
-    'section': 'p521ecdh_vectors_h__',
-    'comment' : ''
-}
-
 p256ecdsa_sha256_params = {
     'source_dir': 'source_vectors/',
     'source_file': 'ecdsa_secp256r1_sha256_test.json',
@@ -627,9 +562,6 @@ def generate_test_vectors():
                  p256ecdsa_sha256_params,
                  p384ecdsa_sha384_params,
                  p521ecdsa_sha512_params,
-                 p256ecdh_params,
-                 p384ecdh_params,
-                 p521ecdh_params,
                  rsa_oaep_2048_sha1_mgf1sha1_params,
                  rsa_oaep_2048_sha256_mgf1sha1_params,
                  rsa_oaep_2048_sha256_mgf1sha256_params,
