@@ -91,41 +91,6 @@ class ChaChaPoly():
 
         return result
 
-# Writes one Curve25519 testvector into C-header format. (Not clang-format conform)
-class Curve25519():
-    """Class that provides the generator function for a single curve25519 test case."""
-
-    # Static pkcs8 and skpi wrappers for the raw keys from Wycheproof.
-    # The public key section of the pkcs8 wrapper is filled up with 0's, which is
-    # not correct, but acceptable for the tests at this moment because
-    # validity of the public key is not checked.
-    # It's still necessary because of
-    # https://searchfox.org/nss/rev/7bc70a3317b800aac07bad83e74b6c79a9ec5bff/lib/pk11wrap/pk11pk12.c#171
-    pkcs8WrapperStart = "3067020100301406072a8648ce3d020106092b06010401da470f01044c304a0201010420"
-    pkcs8WrapperEnd = "a1230321000000000000000000000000000000000000000000000000000000000000000000"
-    spkiWrapper = "3039301406072a8648ce3d020106092b06010401da470f01032100"
-
-    def format_testcase(self, testcase, curve):
-        result = '\n// Comment: {}'.format(testcase['comment'])
-        result += '\n{{{},\n'.format(testcase['tcId'])
-        result += '{},\n'.format(string_to_hex_array(self.pkcs8WrapperStart + testcase['private'] + self.pkcs8WrapperEnd))
-        result += '{},\n'.format(string_to_hex_array(self.spkiWrapper + testcase['public']))
-        result += '{},\n'.format(string_to_hex_array(testcase['shared']))
-
-        # Flag 'acceptable' cases with secret == 0 as invalid for NSS.
-        # Flag 'acceptable' cases with forbidden public key values as invalid for NSS.
-        # Flag 'acceptable' cases with small public key (0 or 1) as invalid for NSS.
-        valid = testcase['result'] in ['valid', 'acceptable'] \
-                and not testcase['shared'] == "0000000000000000000000000000000000000000000000000000000000000000" \
-                and not testcase["public"] == "daffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" \
-                and not testcase["public"] == "dbffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" \
-                and not 'Small public key' in testcase['flags']
-        # invalidASN is unused in Curve25519 tests, but this way we can use the ECDH struct
-        result += '{},\n'.format(str(False).lower())
-        result += '{}}},\n'.format(str(valid).lower())
-
-        return result
-
 class ECDH():
     """Class that provides the generator function for a single ECDH test case."""
 
@@ -336,9 +301,6 @@ def generate_vectors_file(params):
                 if 'curve' in group['key'] and group['key']['curve'] not in ['secp256r1', 'secp384r1', 'secp521r1']:
                     continue
                 vectors_file += params['formatter'].format_testcase(test, group['keyDer'], getSha(group['sha']), group['key']['keySize'], shared_defs)
-            elif 'type' in group and group['type'] == 'RsassaPssVerify':
-                sLen = group['sLen'] if 'sLen' in group else 0
-                vectors_file += params['formatter'].format_testcase(test, group['keyDer'], getSha(group['sha']), getMgfSha(group['mgfSha']), sLen, shared_defs)
             elif 'type' in group and group['type'] == 'RsaesOaepDecrypt':
                 vectors_file += params['formatter'].format_testcase(test, group['privateKeyPkcs8'], getSha(group['sha']), getMgfSha(group['mgfSha']), shared_defs)
             elif 'keyDer' in group:
@@ -352,8 +314,6 @@ def generate_vectors_file(params):
                     curve = ec.SECP384R1()
                 elif group['curve'] == 'secp521r1':
                     curve = ec.SECP521R1()
-                elif group['curve'] == 'curve25519':
-                    curve = "curve25519"
                 else:
                     continue
                 vectors_file += params['formatter'].format_testcase(test, curve)
@@ -440,20 +400,6 @@ chacha_poly_params = {
     'crop_size_end': -2,
     'section': 'chachapoly_vectors_h__',
     'comment' : ''
-}
-
-curve25519_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'x25519_test.json',
-    'base': '../testvectors_base/curve25519-vectors_base.h',
-    'target': '../testvectors/curve25519-vectors.h',
-    'array_init': 'const EcdhTestVector kCurve25519WycheproofVectors[] = {\n',
-    'formatter' : Curve25519(),
-    'crop_size_end': -2,
-    'section': 'curve25519_vectors_h__',
-    'comment' : '// The public key section of the pkcs8 wrapped private key is\n\
-    // filled up with 0\'s, which is not correct, but acceptable for the\n\
-    // tests at this moment because validity of the public key is not checked.\n'
 }
 
 dsa_params = {
@@ -813,7 +759,6 @@ def generate_test_vectors():
                  aes_cmac_params,
                  aes_gcm_params,
                  chacha_poly_params,
-                 curve25519_params,
                  dsa_params,
                  hkdf_sha1_params,
                  hkdf_sha256_params,
