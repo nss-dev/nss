@@ -174,35 +174,6 @@ class HKDF():
 
         return result
 
-class RSA_PKCS1_SIGNATURE():
-    pub_keys = {}
-
-    def format_testcase(self, testcase, key, keysize, hash_oid, out_defs):
-        # To avoid hundreds of copies of the same key, define it once and reuse.
-        key_name = "pub_key_"
-        if key in self.pub_keys:
-            key_name = self.pub_keys[key]
-        else:
-            key_name += str(len(self.pub_keys))
-            self.pub_keys[key] = key_name
-            out_defs.append('static const std::vector<uint8_t> ' + key_name + string_to_hex_array(key) + ';\n\n')
-
-        result = '\n// Comment: {}'.format(testcase['comment'])
-        result += '\n// tcID: {}\n'.format(testcase['tcId'])
-        result += '{{{}, {}, \n'.format(hash_oid, testcase['tcId'])
-        result += '{},\n'.format(string_to_hex_array(testcase['sig']))
-        result += '{},\n'.format(key_name)
-        result += '{},\n'.format(string_to_hex_array(testcase['msg']))
-
-        valid = testcase['result'] == 'valid'
-        if not valid and testcase['result'] == 'acceptable':
-            valid = keysize >= 1024 and ('SmallModulus' in testcase['flags'] or
-                                         'SmallPublicKey' in testcase['flags'])
-        result += '{}}},\n'.format(str(valid).lower())
-
-        return result
-
-
 class RSA_PKCS1_DECRYPT():
     priv_keys = {}
 
@@ -523,117 +494,6 @@ p521ecdsa_sha512_params = {
     'comment' : ''
 }
 
-rsa_signature_2048_sha224_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'rsa_signature_2048_sha224_test.json',
-    'target': '../testvectors/rsa_signature_2048_sha224-vectors.h',
-    'array_init': 'const RsaSignatureTestVector kRsaSignature2048Sha224WycheproofVectors[] = {\n',
-    'formatter' : RSA_PKCS1_SIGNATURE(),
-    'crop_size_end': -2,
-    'section': 'rsa_signature_2048_sha224_vectors_h__',
-    'comment' : ''
-}
-
-rsa_signature_2048_sha256_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'rsa_signature_2048_sha256_test.json',
-    'target': '../testvectors/rsa_signature_2048_sha256-vectors.h',
-    'array_init': 'const RsaSignatureTestVector kRsaSignature2048Sha256WycheproofVectors[] = {\n',
-    'formatter' : RSA_PKCS1_SIGNATURE(),
-    'crop_size_end': -2,
-    'section': 'rsa_signature_2048_sha256_vectors_h__',
-    'comment' : ''
-}
-
-rsa_signature_2048_sha512_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'rsa_signature_2048_sha512_test.json',
-    'target': '../testvectors/rsa_signature_2048_sha512-vectors.h',
-    'array_init': 'const RsaSignatureTestVector kRsaSignature2048Sha512WycheproofVectors[] = {\n',
-    'formatter' : RSA_PKCS1_SIGNATURE(),
-    'crop_size_end': -2,
-    'section': 'rsa_signature_2048_sha512_vectors_h__',
-    'comment' : ''
-}
-
-rsa_signature_3072_sha256_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'rsa_signature_3072_sha256_test.json',
-    'target': '../testvectors/rsa_signature_3072_sha256-vectors.h',
-    'array_init': 'const RsaSignatureTestVector kRsaSignature3072Sha256WycheproofVectors[] = {\n',
-    'formatter' : RSA_PKCS1_SIGNATURE(),
-    'crop_size_end': -2,
-    'section': 'rsa_signature_3072_sha256_vectors_h__',
-    'comment' : ''
-}
-
-rsa_signature_3072_sha256_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'rsa_signature_3072_sha256_test.json',
-    'target': '../testvectors/rsa_signature_3072_sha256-vectors.h',
-    'array_init': 'const RsaSignatureTestVector kRsaSignature3072Sha256WycheproofVectors[] = {\n',
-    'formatter' : RSA_PKCS1_SIGNATURE(),
-    'crop_size_end': -2,
-    'section': 'rsa_signature_3072_sha256_vectors_h__',
-    'comment' : ''
-}
-
-rsa_signature_3072_sha384_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'rsa_signature_3072_sha384_test.json',
-    'target': '../testvectors/rsa_signature_3072_sha384-vectors.h',
-    'array_init': 'const RsaSignatureTestVector kRsaSignature3072Sha384WycheproofVectors[] = {\n',
-    'formatter' : RSA_PKCS1_SIGNATURE(),
-    'crop_size_end': -2,
-    'section': 'rsa_signature_3072_sha384_vectors_h__',
-    'comment' : ''
-}
-
-rsa_signature_3072_sha512_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'rsa_signature_3072_sha512_test.json',
-    'target': '../testvectors/rsa_signature_3072_sha512-vectors.h',
-    'array_init': 'const RsaSignatureTestVector kRsaSignature3072Sha512WycheproofVectors[] = {\n',
-    'formatter' : RSA_PKCS1_SIGNATURE(),
-    'crop_size_end': -2,
-    'section': 'rsa_signature_3072_sha512_vectors_h__',
-    'comment' : ''
-}
-
-rsa_signature_4096_sha384_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'rsa_signature_4096_sha384_test.json',
-    'target': '../testvectors/rsa_signature_4096_sha384-vectors.h',
-    'array_init': 'const RsaSignatureTestVector kRsaSignature4096Sha384WycheproofVectors[] = {\n',
-    'formatter' : RSA_PKCS1_SIGNATURE(),
-    'crop_size_end': -2,
-    'section': 'rsa_signature_4096_sha384_vectors_h__',
-    'comment' : ''
-}
-
-rsa_signature_4096_sha512_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'rsa_signature_4096_sha512_test.json',
-    'target': '../testvectors/rsa_signature_4096_sha512-vectors.h',
-    'array_init': 'const RsaSignatureTestVector kRsaSignature4096Sha512WycheproofVectors[] = {\n',
-    'formatter' : RSA_PKCS1_SIGNATURE(),
-    'crop_size_end': -2,
-    'section': 'rsa_signature_4096_sha512_vectors_h__',
-    'comment' : ''
-}
-
-rsa_signature_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'rsa_signature_test.json',
-    'base': '../testvectors_base/rsa_signature-vectors_base.txt',
-    'target': '../testvectors/rsa_signature-vectors.h',
-    'array_init': 'const RsaSignatureTestVector kRsaSignatureWycheproofVectors[] = {\n',
-    'formatter' : RSA_PKCS1_SIGNATURE(),
-    'crop_size_end': -2,
-    'section': 'rsa_signature_vectors_h__',
-    'comment' : ''
-}
-
 rsa_pkcs1_dec_2048_params = {
     'source_dir': 'source_vectors/',
     'source_file': 'rsa_pkcs1_2048_test.json',
@@ -779,16 +639,7 @@ def generate_test_vectors():
                  rsa_oaep_2048_sha512_mgf1sha512_params,
                  rsa_pkcs1_dec_2048_params,
                  rsa_pkcs1_dec_3072_params,
-                 rsa_pkcs1_dec_4096_params,
-                 rsa_signature_2048_sha224_params,
-                 rsa_signature_2048_sha256_params,
-                 rsa_signature_2048_sha512_params,
-                 rsa_signature_3072_sha256_params,
-                 rsa_signature_3072_sha384_params,
-                 rsa_signature_3072_sha512_params,
-                 rsa_signature_4096_sha384_params,
-                 rsa_signature_4096_sha512_params,
-                 rsa_signature_params]
+                 rsa_pkcs1_dec_4096_params]
     update_tests(all_tests)
     for test in all_tests:
         generate_vectors_file(test)
