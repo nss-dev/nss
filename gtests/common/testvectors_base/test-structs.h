@@ -127,6 +127,7 @@ typedef struct RsaDecryptTestVectorStr {
   std::vector<uint8_t> msg;
   std::vector<uint8_t> ct;
   std::vector<uint8_t> priv_key;
+  bool invalid_padding;
   bool valid;
 } RsaDecryptTestVector;
 

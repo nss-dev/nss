@@ -125,29 +125,6 @@ class HKDF():
 
         return result
 
-class RSA_PKCS1_DECRYPT():
-    priv_keys = {}
-
-    def format_testcase(self, testcase, priv_key, key_size, out_defs):
-        key_name = "priv_key_"
-        if priv_key in self.priv_keys:
-            key_name = self.priv_keys[priv_key]
-        else:
-            key_name += str(len(self.priv_keys))
-            self.priv_keys[priv_key] = key_name
-            out_defs.append('static const std::vector<uint8_t> ' + key_name + string_to_hex_array(priv_key) + ';\n\n')
-
-        result = '\n// Comment: {}'.format(testcase['comment'])
-        result += '\n// tcID: {}'.format(testcase['tcId'])
-        result += '\n{{{},\n'.format(testcase['tcId'])
-        result += '{},\n'.format(string_to_hex_array(testcase['msg']))
-        result += '{},\n'.format(string_to_hex_array(testcase['ct']))
-        result += '{},\n'.format(key_name)
-        valid = testcase['result'] == 'valid'
-        result += '{}}},\n'.format(str(valid).lower())
-
-        return result
-
 class RSA_OAEP():
     priv_keys = {}
 
@@ -379,39 +356,6 @@ hkdf_sha512_params = {
     'comment' : ''
 }
 
-rsa_pkcs1_dec_2048_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'rsa_pkcs1_2048_test.json',
-    'target': '../testvectors/rsa_pkcs1_2048_test-vectors.h',
-    'array_init': 'const RsaDecryptTestVector kRsa2048DecryptWycheproofVectors[] = {\n',
-    'formatter' : RSA_PKCS1_DECRYPT(),
-    'crop_size_end': -2,
-    'section': 'rsa_pkcs1_2048_vectors_h__',
-    'comment' : ''
-}
-
-rsa_pkcs1_dec_3072_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'rsa_pkcs1_3072_test.json',
-    'target': '../testvectors/rsa_pkcs1_3072_test-vectors.h',
-    'array_init': 'const RsaDecryptTestVector kRsa3072DecryptWycheproofVectors[] = {\n',
-    'formatter' : RSA_PKCS1_DECRYPT(),
-    'crop_size_end': -2,
-    'section': 'rsa_pkcs1_3072_vectors_h__',
-    'comment' : ''
-}
-
-rsa_pkcs1_dec_4096_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'rsa_pkcs1_4096_test.json',
-    'target': '../testvectors/rsa_pkcs1_4096_test-vectors.h',
-    'array_init': 'const RsaDecryptTestVector kRsa4096DecryptWycheproofVectors[] = {\n',
-    'formatter' : RSA_PKCS1_DECRYPT(),
-    'crop_size_end': -2,
-    'section': 'rsa_pkcs1_4096_vectors_h__',
-    'comment' : ''
-}
-
 rsa_oaep_2048_sha1_mgf1sha1_params = {
     'source_dir': 'source_vectors/',
     'source_file': 'rsa_oaep_2048_sha1_mgf1sha1_test.json',
@@ -515,10 +459,7 @@ def generate_test_vectors():
                  rsa_oaep_2048_sha384_mgf1sha1_params,
                  rsa_oaep_2048_sha384_mgf1sha384_params,
                  rsa_oaep_2048_sha512_mgf1sha1_params,
-                 rsa_oaep_2048_sha512_mgf1sha512_params,
-                 rsa_pkcs1_dec_2048_params,
-                 rsa_pkcs1_dec_3072_params,
-                 rsa_pkcs1_dec_4096_params]
+                 rsa_oaep_2048_sha512_mgf1sha512_params]
     update_tests(all_tests)
     for test in all_tests:
         generate_vectors_file(test)
