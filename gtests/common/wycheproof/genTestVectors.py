@@ -112,23 +112,6 @@ class DSA():
 
         return result
 
-class ECDSA():
-    """Class that provides the generator function for a single ECDSA test case."""
-
-    def format_testcase(self, testcase, key, hash_oid, keySize, out_defs):
-        result = '\n// Comment: {}'.format(testcase['comment'])
-        result += '\n// tcID: {}\n'.format(testcase['tcId'])
-        result += '{{{}, {},\n'.format(hash_oid, testcase['tcId'])
-        result += '{},\n'.format(string_to_hex_array(testcase['sig']))
-        result += '{},\n'.format(string_to_hex_array(key))
-        result += '{},\n'.format(string_to_hex_array(testcase['msg']))
-        valid = testcase['result'] == 'valid'
-        if not valid and testcase['result'] == 'acceptable':
-            valid = 'MissingZero' in testcase['flags']
-        result += '{}}},\n'.format(str(valid).lower())
-
-        return result
-
 class HKDF():
     """Class that provides the generator function for a single HKDF test case."""
 
@@ -396,39 +379,6 @@ hkdf_sha512_params = {
     'comment' : ''
 }
 
-p256ecdsa_sha256_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'ecdsa_secp256r1_sha256_test.json',
-    'target': '../testvectors/p256ecdsa-sha256-vectors.h',
-    'array_init': 'const EcdsaTestVector kP256EcdsaSha256Vectors[] = {\n',
-    'formatter' : ECDSA(),
-    'crop_size_end': -2,
-    'section': 'p256ecdsa_sha256_vectors_h__',
-    'comment' : ''
-}
-
-p384ecdsa_sha384_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'ecdsa_secp384r1_sha384_test.json',
-    'target': '../testvectors/p384ecdsa-sha384-vectors.h',
-    'array_init': 'const EcdsaTestVector kP384EcdsaSha384Vectors[] = {\n',
-    'formatter' : ECDSA(),
-    'crop_size_end': -2,
-    'section': 'p384ecdsa_sha384_vectors_h__',
-    'comment' : ''
-}
-
-p521ecdsa_sha512_params = {
-    'source_dir': 'source_vectors/',
-    'source_file': 'ecdsa_secp521r1_sha512_test.json',
-    'target': '../testvectors/p521ecdsa-sha512-vectors.h',
-    'array_init': 'const EcdsaTestVector kP521EcdsaSha512Vectors[] = {\n',
-    'formatter' : ECDSA(),
-    'crop_size_end': -2,
-    'section': 'p521ecdsa_sha512_vectors_h__',
-    'comment' : ''
-}
-
 rsa_pkcs1_dec_2048_params = {
     'source_dir': 'source_vectors/',
     'source_file': 'rsa_pkcs1_2048_test.json',
@@ -559,9 +509,6 @@ def generate_test_vectors():
                  hkdf_sha256_params,
                  hkdf_sha384_params,
                  hkdf_sha512_params,
-                 p256ecdsa_sha256_params,
-                 p384ecdsa_sha384_params,
-                 p521ecdsa_sha512_params,
                  rsa_oaep_2048_sha1_mgf1sha1_params,
                  rsa_oaep_2048_sha256_mgf1sha1_params,
                  rsa_oaep_2048_sha256_mgf1sha256_params,
