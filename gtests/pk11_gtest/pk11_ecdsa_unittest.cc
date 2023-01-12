@@ -227,20 +227,7 @@ class Pkcs11EcdsaWycheproofTest : public ::testing::Test {
       } else if (n == "keyDer") {
         public_key = r.ReadHex();
       } else if (n == "sha") {
-        std::string s = r.ReadString();
-        if (s == "SHA-1") {
-          hash_oid = SEC_OID_SHA1;
-        } else if (s == "SHA-224") {
-          hash_oid = SEC_OID_SHA224;
-        } else if (s == "SHA-256") {
-          hash_oid = SEC_OID_SHA256;
-        } else if (s == "SHA-384") {
-          hash_oid = SEC_OID_SHA384;
-        } else if (s == "SHA-512") {
-          hash_oid = SEC_OID_SHA512;
-        } else {
-          FAIL() << "unsupported hash";
-        }
+        hash_oid = r.ReadHash();
       } else if (n == "type") {
         ASSERT_EQ("EcdsaVerify", r.ReadString());
       } else if (n == "tests") {
