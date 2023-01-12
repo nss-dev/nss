@@ -70,7 +70,7 @@ typedef struct EcdsaTestVectorStr {
 typedef EcdsaTestVector DsaTestVector;
 
 typedef struct EcdhTestVectorStr {
-  uint32_t id;
+  uint64_t id;
   std::vector<uint8_t> private_key;
   std::vector<uint8_t> public_key;
   std::vector<uint8_t> secret;
