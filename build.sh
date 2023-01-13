@@ -129,8 +129,8 @@ while [ $# -gt 0 ]; do
         --disable-keylog) sslkeylogfile=0 ;;
         --enable-legacy-db) gyp_params+=(-Ddisable_dbm=0) ;;
         --mozilla-central) gyp_params+=(-Dmozilla_central=1) ;;
-        --python) python="$2"; shift ;;
-        --python=*) python="${1#*=}" ;;
+	--python) python="$2"; shift ;;
+	--python=*) python="${1#*=}" ;;
         -D*) gyp_params+=("$1") ;;
         *) show_help; exit 2 ;;
     esac
@@ -143,7 +143,7 @@ fi
 
 if [ -z "$target_arch" ]; then
     # Assume that the target architecture is the same as the host by default.
-    host_arch=$(${python:-python3} "$cwd/coreconf/detect_host_arch.py")
+    host_arch=$(${python:-python} "$cwd/coreconf/detect_host_arch.py")
     target_arch=$host_arch
 fi
 
