@@ -529,9 +529,42 @@ class TestAgent {
     return SECSuccess;
   }
 
+  SECStatus CheckALPN(std::string expectedALPN) {
+    SECStatus rv;
+    SSLNextProtoState state;
+    char chosen[256];
+    unsigned int chosen_len;
+
+    rv = SSL_GetNextProto(ssl_fd_.get(), &state,
+                          reinterpret_cast<unsigned char*>(chosen), &chosen_len,
+                          sizeof(chosen));
+    if (rv != SECSuccess) {
+      PRErrorCode err = PR_GetError();
+      std::cerr << "SSL_GetNextProto failed with error=" << FormatError(err)
+                << std::endl;
+      return SECFailure;
+    }
+
+    assert(chosen_len <= sizeof(chosen));
+    if (std::string(chosen, chosen_len) != expectedALPN) {
+      std::cerr << "Expexted ALPN (" << expectedALPN << ") != Choosen ALPN ("
+                << std::string(chosen, chosen_len) << ")" << std::endl;
+      return SECFailure;
+    }
+
+    return SECSuccess;
+  }
+
+  SECStatus AdvertiseALPN(std::string alpn) {
+    return SSL_SetNextProtoNego(
+        ssl_fd_.get(), reinterpret_cast<const unsigned char*>(alpn.c_str()),
+        alpn.size());
+  }
+
   SECStatus DoExchange(bool resuming) {
     SECStatus rv;
     int earlyDataSent = 0;
+    std::string str;
     sslSocket* ss = ssl_FindSocket(ssl_fd_.get());
     if (!ss) {
       return SECFailure;
@@ -549,10 +582,32 @@ class TestAgent {
           rv = SSLExp_SetClientEchConfigs(ssl_fd_.get(), bin, binLen);
           if (rv != SECSuccess) {
             PRErrorCode err = PR_GetError();
-            std::cerr << "Setting up resuption ECH configs failed with error="
+            std::cerr << "Setting up resumption ECH configs failed with error="
                       << err << FormatError(err) << std::endl;
           }
           free(bin);
+        }
+
+        str = cfg_.get<std::string>("on-resume-advertise-alpn");
+        if (!str.empty()) {
+          if (AdvertiseALPN(str) != SECSuccess) {
+            PRErrorCode err = PR_GetError();
+            std::cerr << "Setting up resumption ALPN failed with error=" << err
+                      << FormatError(err) << std::endl;
+          }
+        }
+      }
+
+    } else { /* Explicitly not on resume (on initial) */
+      /* Client options */
+      if (!cfg_.get<bool>("server")) {
+        str = cfg_.get<std::string>("on-initial-advertise-alpn");
+        if (!str.empty()) {
+          if (AdvertiseALPN(str) != SECSuccess) {
+            PRErrorCode err = PR_GetError();
+            std::cerr << "Setting up initial ALPN failed with error=" << err
+                      << FormatError(err) << std::endl;
+          }
         }
       }
     }
@@ -571,6 +626,24 @@ class TestAgent {
 
       /* If the client is resuming. */
       if (ss->statelessResume) {
+        SSLPreliminaryChannelInfo pinfo;
+        rv = SSL_GetPreliminaryChannelInfo(ssl_fd_.get(), &pinfo,
+                                           sizeof(SSLPreliminaryChannelInfo));
+        if (rv != SECSuccess) {
+          PRErrorCode err = PR_GetError();
+          std::cerr << "SSL_GetPreliminaryChannelInfo failed with " << err
+                    << std::endl;
+          return SECFailure;
+        }
+
+        /* Check that the used ticket supports early data. */
+        if (cfg_.get<bool>("expect-ticket-supports-early-data")) {
+          if (!pinfo.ticketSupportsEarlyData) {
+            std::cerr << "Expected ticket to support EarlyData" << std::endl;
+            return SECFailure;
+          }
+        }
+
         /* If the client should send EarlyData. */
         if (cfg_.get<bool>("on-resume-shim-writes-first")) {
           earlyDataSent =
@@ -581,20 +654,10 @@ class TestAgent {
           }
         }
 
-        SSLPreliminaryChannelInfo pinfo;
-        rv = SSL_GetPreliminaryChannelInfo(ssl_fd_.get(), &pinfo,
-                                           sizeof(SSLPreliminaryChannelInfo));
-        if (rv != SECSuccess) {
-          PRErrorCode err = PR_GetError();
-          std::cerr << "SSL_GetPreliminaryChannelInfo failed with error="
-                    << FormatError(err) << std::endl;
-          return SECFailure;
-        }
-
-        /* Check that the used ticket supports early data. */
-        if (cfg_.get<bool>("expect-ticket-supports-early-data")) {
-          if (!pinfo.canSendEarlyData) {
-            std::cerr << "Expected ticket to support EarlyData" << std::endl;
+        if (cfg_.get<bool>("expect-no-offer-early-data")) {
+          if (earlyDataSent) {
+            std::cerr << "Unexpectedly offered EarlyData" << std::endl;
+            return SECFailure;
           }
         }
       }
@@ -679,28 +742,6 @@ class TestAgent {
       }
     }
 
-    auto alpn = cfg_.get<std::string>("expect-alpn");
-    if (!alpn.empty()) {
-      SSLNextProtoState state;
-      char chosen[256];
-      unsigned int chosen_len;
-      rv = SSL_GetNextProto(ssl_fd_.get(), &state,
-                            reinterpret_cast<unsigned char*>(chosen),
-                            &chosen_len, sizeof(chosen));
-      if (rv != SECSuccess) {
-        PRErrorCode err = PR_GetError();
-        std::cerr << "SSL_GetNextProto failed with error=" << FormatError(err)
-                  << std::endl;
-        return SECFailure;
-      }
-
-      assert(chosen_len <= sizeof(chosen));
-      if (std::string(chosen, chosen_len) != alpn) {
-        std::cerr << "Unexpected ALPN selection" << std::endl;
-        return SECFailure;
-      }
-    }
-
     SSLChannelInfo info;
     rv = SSL_GetChannelInfo(ssl_fd_.get(), &info, sizeof(info));
     if (rv != SECSuccess) {
@@ -722,6 +763,21 @@ class TestAgent {
     if (cfg_.get<bool>("expect-ech-accept")) {
       if (!info.echAccepted) {
         std::cerr << "Expected ECH" << std::endl;
+        return SECFailure;
+      }
+    }
+
+    if (cfg_.get<bool>("expect-hrr")) {
+      if (!ss->ssl3.hs.helloRetry) {
+        std::cerr << "Expected HRR" << std::endl;
+        return SECFailure;
+      }
+    }
+
+    str = cfg_.get<std::string>("expect-alpn");
+    if (!str.empty()) {
+      if (CheckALPN(str) != SECSuccess) {
+        std::cerr << "Unexpected ALPN" << std::endl;
         return SECFailure;
       }
     }
@@ -752,6 +808,27 @@ class TestAgent {
           return SECFailure;
         }
       }
+
+      /* On successfully resumed connection. */
+      if (info.earlyDataAccepted) {
+        str = cfg_.get<std::string>("on-resume-expect-alpn");
+        if (!str.empty()) {
+          if (CheckALPN(str) != SECSuccess) {
+            std::cerr << "Unexpected ALPN on Resume" << std::endl;
+            return SECFailure;
+          }
+        } else { /* No real resume but new handshake on EarlyData rejection. */
+          /* On Retry... */
+          str = cfg_.get<std::string>("on-retry-expect-alpn");
+          if (!str.empty()) {
+            if (CheckALPN(str) != SECSuccess) {
+              std::cerr << "Unexpected ALPN on HRR" << std::endl;
+              return SECFailure;
+            }
+          }
+        }
+      }
+
     } else { /* Explicitly not on resume */
       if (cfg_.get<bool>("on-initial-expect-ech-accept")) {
         if (!info.echAccepted) {
@@ -759,12 +836,13 @@ class TestAgent {
           return SECFailure;
         }
       }
-    }
 
-    if (cfg_.get<bool>("expect-hrr")) {
-      if (!ss->ssl3.hs.helloRetry) {
-        std::cerr << "Expected HRR" << std::endl;
-        return SECFailure;
+      str = cfg_.get<std::string>("on-initial-expect-alpn");
+      if (!str.empty()) {
+        if (CheckALPN(str) != SECSuccess) {
+          std::cerr << "Unexpected ALPN on Initial" << std::endl;
+          return SECFailure;
+        }
       }
     }
 
@@ -801,7 +879,12 @@ std::unique_ptr<const Config> ReadConfig(int argc, char** argv) {
   cfg->AddEntry<bool>("is-handshaker-supported", false);
   cfg->AddEntry<std::string>("handshaker-path", "");  // Ignore this
   cfg->AddEntry<std::string>("advertise-alpn", "");
+  cfg->AddEntry<std::string>("on-initial-advertise-alpn", "");
+  cfg->AddEntry<std::string>("on-resume-advertise-alpn", "");
   cfg->AddEntry<std::string>("expect-alpn", "");
+  cfg->AddEntry<std::string>("on-initial-expect-alpn", "");
+  cfg->AddEntry<std::string>("on-resume-expect-alpn", "");
+  cfg->AddEntry<std::string>("on-retry-expect-alpn", "");
   cfg->AddEntry<std::vector<int>>("signing-prefs", std::vector<int>());
   cfg->AddEntry<std::vector<int>>("verify-prefs", std::vector<int>());
   cfg->AddEntry<int>("expect-peer-signature-algorithm", 0);
@@ -825,6 +908,10 @@ std::unique_ptr<const Config> ReadConfig(int argc, char** argv) {
   cfg->AddEntry<bool>("expect-no-ech-retry-configs", false);
   cfg->AddEntry<bool>("on-initial-expect-ech-accept", false);
   cfg->AddEntry<bool>("on-resume-expect-ech-accept", false);
+  cfg->AddEntry<bool>("expect-no-offer-early-data", false);
+  /* NSS does not support earlydata rejection reason logging => Ignore. */
+  cfg->AddEntry<std::string>("on-resume-expect-early-data-reason", "none");
+  cfg->AddEntry<std::string>("on-retry-expect-early-data-reason", "none");
 
   auto rv = cfg->ParseArgs(argc, argv);
   switch (rv) {
