@@ -375,6 +375,11 @@ class TestAgent {
       if (rv != SECSuccess) return false;
     }
 
+    if (cfg_.get<bool>("enable-early-data")) {
+      rv = SSL_OptionSet(ssl_fd_.get(), SSL_ENABLE_0RTT_DATA, PR_TRUE);
+      if (rv != SECSuccess) return false;
+    }
+
     if (!ConfigureCiphers()) return false;
 
     return true;
@@ -517,12 +522,80 @@ class TestAgent {
   }
 
   SECStatus DoExchange() {
-    SECStatus rv = Handshake();
+    SECStatus rv;
+    sslSocket* ss = ssl_FindSocket(ssl_fd_.get());
+    if (!ss) {
+      return SECFailure;
+    }
+
+    /* Default EarlyData determined by Bogo implementation. */
+    const unsigned char earlyDataDefault[] = {'h', 'e', 'l', 'l', 'o'};
+    int earlyDataSent = 0;
+
+    /* As client send ClientHello. */
+    if (!cfg_.get<bool>("server")) {
+      ssl_Get1stHandshakeLock(ss);
+      rv = ssl_BeginClientHandshake(ss);
+      ssl_Release1stHandshakeLock(ss);
+      if (rv != SECSuccess) {
+        PRErrorCode err = PR_GetError();
+        std::cerr << "Handshake failed with error=" << err << FormatError(err)
+                  << std::endl;
+        return SECFailure;
+      }
+
+      /* If the client is resuming. */
+      if (ss->statelessResume) {
+        /* If the client should send EarlyData. */
+        if (cfg_.get<bool>("on-resume-shim-writes-first")) {
+          earlyDataSent =
+              ssl_SecureWrite(ss, earlyDataDefault, sizeof(earlyDataDefault));
+          if (earlyDataSent < 0) {
+            std::cerr << "Sending of EarlyData failed" << std::endl;
+            return SECFailure;
+          }
+        }
+
+        SSLPreliminaryChannelInfo pinfo;
+        rv = SSL_GetPreliminaryChannelInfo(ssl_fd_.get(), &pinfo,
+                                           sizeof(SSLPreliminaryChannelInfo));
+        if (rv != SECSuccess) {
+          PRErrorCode err = PR_GetError();
+          std::cerr << "SSL_GetPreliminaryChannelInfo failed with error="
+                    << FormatError(err) << std::endl;
+          return SECFailure;
+        }
+
+        /* Check that the used ticket supports early data. */
+        if (cfg_.get<bool>("expect-ticket-supports-early-data")) {
+          if (!pinfo.canSendEarlyData) {
+            std::cerr << "Expected ticket to support EarlyData" << std::endl;
+          }
+        }
+      }
+    }
+
+    /* As server start, as client continue handshake. */
+    rv = Handshake();
     if (rv != SECSuccess) {
       PRErrorCode err = PR_GetError();
       std::cerr << "Handshake failed with error=" << err << FormatError(err)
                 << std::endl;
       return SECFailure;
+    }
+
+    /* If parts of data was sent as EarlyData make sure to send possibly
+     * unsent rest. This is required to pass bogo resumption tests. */
+    if (earlyDataSent && earlyDataSent < int(sizeof(earlyDataDefault))) {
+      int toSend = sizeof(earlyDataDefault) - earlyDataSent;
+      earlyDataSent =
+          ssl_SecureWrite(ss, &earlyDataDefault[earlyDataSent], toSend);
+      if (earlyDataSent != toSend) {
+        std::cerr
+            << "Could not send rest of EarlyData after handshake completion"
+            << std::endl;
+        return SECFailure;
+      }
     }
 
     if (cfg_.get<bool>("write-then-read")) {
@@ -590,11 +663,27 @@ class TestAgent {
       }
     }
 
-    if (cfg_.get<bool>("expect-hrr")) {
-      sslSocket* ss = ssl_FindSocket(ssl_fd_.get());
-      if (!ss) {
+    if (info.resumed) {
+      if (cfg_.get<bool>("expect-session-miss")) {
+        std::cerr << "Expected reject Resume" << std::endl;
         return SECFailure;
       }
+
+      if (cfg_.get<bool>("on-resume-expect-reject-early-data")) {
+        if (info.earlyDataAccepted) {
+          std::cerr << "Expected reject EarlyData" << std::endl;
+          return SECFailure;
+        }
+      }
+      if (cfg_.get<bool>("on-resume-expect-accept-early-data")) {
+        if (!info.earlyDataAccepted) {
+          std::cerr << "Expected accept EarlyData" << std::endl;
+          return SECFailure;
+        }
+      }
+    }
+
+    if (cfg_.get<bool>("expect-hrr")) {
       if (!ss->ssl3.hs.helloRetry) {
         std::cerr << "Expected HRR" << std::endl;
         return SECFailure;
@@ -644,6 +733,13 @@ std::unique_ptr<const Config> ReadConfig(int argc, char** argv) {
   cfg->AddEntry<bool>("expect-ech-accept", false);
   cfg->AddEntry<bool>("expect-hrr", false);
   cfg->AddEntry<bool>("enable-ech-grease", false);
+  cfg->AddEntry<bool>("enable-early-data", false);
+  cfg->AddEntry<bool>("on-resume-expect-reject-early-data", false);
+  cfg->AddEntry<bool>("on-resume-expect-accept-early-data", false);
+  cfg->AddEntry<bool>("expect-ticket-supports-early-data", false);
+  cfg->AddEntry<bool>("on-resume-shim-writes-first",
+                      false);  // Always means 0Rtt write
+  cfg->AddEntry<bool>("expect-session-miss", false);
 
   auto rv = cfg->ParseArgs(argc, argv);
   switch (rv) {
