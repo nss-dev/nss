@@ -5352,6 +5352,14 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
             if (!suite || !ssl3_config_match(suite, ss->ssl3.policy, &vrange, ss)) {
                 sidOK = PR_FALSE;
             }
+
+            /* Check that no (valid) ECHConfigs are setup in combination with a
+             * (resumable) TLS < 1.3 session id. */
+            if (!PR_CLIST_IS_EMPTY(&ss->echConfigs)) {
+                /* If there are ECH configs, the client must not resume but
+                 * offer ECH. */
+                sidOK = PR_FALSE;
+            }
         }
 
         /* Check that we can recover the master secret. */

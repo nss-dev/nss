@@ -529,12 +529,32 @@ class TestAgent {
     return SECSuccess;
   }
 
-  SECStatus DoExchange() {
+  SECStatus DoExchange(bool resuming) {
     SECStatus rv;
     int earlyDataSent = 0;
     sslSocket* ss = ssl_FindSocket(ssl_fd_.get());
     if (!ss) {
       return SECFailure;
+    }
+
+    /* Apply resumption SSL options (if any). */
+    if (resuming) {
+      /* Client options */
+      if (!cfg_.get<bool>("server")) {
+        auto resumeEchConfigList =
+            cfg_.get<std::string>("on-resume-ech-config-list");
+        if (!resumeEchConfigList.empty()) {
+          unsigned int binLen;
+          auto bin = ATOB_AsciiToData(resumeEchConfigList.c_str(), &binLen);
+          rv = SSLExp_SetClientEchConfigs(ssl_fd_.get(), bin, binLen);
+          if (rv != SECSuccess) {
+            PRErrorCode err = PR_GetError();
+            std::cerr << "Setting up resuption ECH configs failed with error="
+                      << err << FormatError(err) << std::endl;
+          }
+          free(bin);
+        }
+      }
     }
 
     /* If client send ClientHello. */
@@ -713,6 +733,13 @@ class TestAgent {
         return SECFailure;
       }
 
+      if (cfg_.get<bool>("on-resume-expect-ech-accept")) {
+        if (!info.echAccepted) {
+          std::cerr << "Expected ECH on Resume" << std::endl;
+          return SECFailure;
+        }
+      }
+
       if (cfg_.get<bool>("on-resume-expect-reject-early-data")) {
         if (info.earlyDataAccepted) {
           std::cerr << "Expected reject EarlyData" << std::endl;
@@ -781,6 +808,7 @@ std::unique_ptr<const Config> ReadConfig(int argc, char** argv) {
   cfg->AddEntry<std::string>("nss-cipher", "");
   cfg->AddEntry<std::string>("host-name", "");
   cfg->AddEntry<std::string>("ech-config-list", "");
+  cfg->AddEntry<std::string>("on-resume-ech-config-list", "");
   cfg->AddEntry<bool>("expect-ech-accept", false);
   cfg->AddEntry<bool>("expect-hrr", false);
   cfg->AddEntry<bool>("enable-ech-grease", false);
@@ -796,6 +824,7 @@ std::unique_ptr<const Config> ReadConfig(int argc, char** argv) {
   cfg->AddEntry<std::string>("expect-ech-retry-configs", "");
   cfg->AddEntry<bool>("expect-no-ech-retry-configs", false);
   cfg->AddEntry<bool>("on-initial-expect-ech-accept", false);
+  cfg->AddEntry<bool>("on-resume-expect-ech-accept", false);
 
   auto rv = cfg->ParseArgs(argc, argv);
   switch (rv) {
@@ -811,9 +840,9 @@ std::unique_ptr<const Config> ReadConfig(int argc, char** argv) {
   return std::move(cfg);
 }
 
-bool RunCycle(std::unique_ptr<const Config>& cfg) {
+bool RunCycle(std::unique_ptr<const Config>& cfg, bool resuming = false) {
   std::unique_ptr<TestAgent> agent(TestAgent::Create(*cfg));
-  return agent && agent->DoExchange() == SECSuccess;
+  return agent && agent->DoExchange(resuming) == SECSuccess;
 }
 
 int GetExitCode(bool success) {
@@ -856,7 +885,7 @@ int main(int argc, char** argv) {
   int resume_count = cfg->get<int>("resume-count");
   while (success && resume_count-- > 0) {
     std::cout << "Resuming" << std::endl;
-    success = RunCycle(cfg);
+    success = RunCycle(cfg, true);
   }
 
   SSL_ClearSessionCache();
