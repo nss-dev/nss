@@ -20,6 +20,7 @@
         "V2ClientHello*":"Prefix data before V2 ClientHello leads to IO errors in NSS.",
         "Server-JDK11-NoWorkaround-3":"Unexpected Bogo crash.",
         "Resume-Server-UnofferedCipher-TLS13":"Bogo rejects resumption if client offers previously not used ciphersuites with equal hash algorithm (no 0Rtt).",
+        "EarlyData-FirstTicket-Server-TLS13":"Bogo provides specific early data logging which is the only check in this test but not supported by NSS.",
 
         "*Ed25519*":"Add Ed25519 support (Bug 1325335)",
         "*NoSSL3*":"Test passes but only because of handshake failure, NSS only rejects SSL3 immediately in TLS1.3 clients/servers.",
@@ -47,7 +48,8 @@
         "*ECH*RandomHRR*":"NSS sends real ECH in CH2 after receiving HRR rejcting ECH formally, Bogo expects instant ech_required alert. Bug 1779357",
         "*ECH*UnsolicitedInnerServerNameAck":"NSS always sends SNI in CHInner, Bogo tests if the client detects an unsolicited SNI in SH if CHInner did not include it. Bug 1781224",
         "CorruptTicket-TLS-TLS12":"NSS sends an alert on reception of a corrupted session ticket instead of falling back to full handshake. Bug 1783812",
-        "FalseStart-ALPN*":"TODO",
+
+        "FalseStart-ALPN*":"TODO - Implementing TLS 1.2 only FalseStart has low priority.",
 
         "####################":"####################",
         "### TLS1/11 failures due to unsupported signature algorithms":"",
