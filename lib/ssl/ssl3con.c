@@ -8852,7 +8852,9 @@ ssl3_HandleClientHelloPreamble(sslSocket *ss, PRUint8 **b, PRUint32 *length, SEC
 
     /* Grab the client's SID, if present. */
     rv = ssl3_ConsumeHandshakeVariable(ss, sidBytes, 1, b, length);
-    if (rv != SECSuccess) {
+    /* Check that the SID has the format: opaque legacy_session_id<0..32>, as
+     * specified in RFC8446, Section 4.1.2. */
+    if (rv != SECSuccess || sidBytes->len > SSL3_SESSIONID_BYTES) {
         return SECFailure; /* malformed */
     }
 
