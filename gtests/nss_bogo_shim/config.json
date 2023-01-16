@@ -47,7 +47,6 @@
         "*ECH*RandomHRR*":"NSS sends real ECH in CH2 after receiving HRR rejcting ECH formally, Bogo expects instant ech_required alert. Bug 1779357",
         "*ECH*UnsolicitedInnerServerNameAck":"NSS always sends SNI in CHInner, Bogo tests if the client detects an unsolicited SNI in SH if CHInner did not include it. Bug 1781224",
         "CorruptTicket-TLS-TLS12":"NSS sends an alert on reception of a corrupted session ticket instead of falling back to full handshake. Bug 1783812",
-        "HelloRetryRequest-NonResumableCipher-TLS13":"TODO",
         "FalseStart-ALPN*":"TODO",
 
         "####################":"####################",

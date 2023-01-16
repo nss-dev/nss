@@ -3035,7 +3035,10 @@ tls13_HandleServerHelloPart2(sslSocket *ss, const PRUint8 *savedMsg, PRUint32 sa
         /* We may have offered a PSK. If the server didn't negotiate
          * it, clear this state to re-extract the Early Secret. */
         if (ss->ssl3.hs.currentSecret) {
-            PORT_Assert(ssl3_ExtensionAdvertised(ss, ssl_tls13_pre_shared_key_xtn));
+            /* We might have dropped incompatible PSKs on HRR
+             * (see RFC8466, Section 4.1.4). */
+            PORT_Assert(ss->ssl3.hs.helloRetry ||
+                        ssl3_ExtensionAdvertised(ss, ssl_tls13_pre_shared_key_xtn));
             PK11_FreeSymKey(ss->ssl3.hs.currentSecret);
             ss->ssl3.hs.currentSecret = NULL;
         }
