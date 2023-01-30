@@ -201,7 +201,7 @@ ssl3_FreeSniNameArray(TLSExtensionData *xtnData)
  * Clients sends a filled in session ticket if one is available, and otherwise
  * sends an empty ticket.  Servers always send empty tickets.
  */
-PRInt32
+SECStatus
 ssl3_ClientSendSessionTicketXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                                 sslBuffer *buf, PRBool *added)
 {
