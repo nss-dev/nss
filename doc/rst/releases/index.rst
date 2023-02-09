@@ -58,9 +58,14 @@ Releases
 
    Changes in 3.88 included in this release:
 
+   - Bug 1815870 - use a different treeherder symbol for each docker image build task.
+   - Bug 1815868 - pin an older version of the ubuntu:18.04 and 20.04 docker images 
+   - Bug 1810702 - remove nested table in rst doc
+   - Bug 1815246 - Export NSS_CMSSignerInfo_GetDigestAlgTag. 
+   - Bug 1812671 - build failure while implicitly casting SECStatus to PRUInt32. r=nss-reviewers,mt
    - Bug 1212915 - Add check for ClientHello SID max length. This is tested by Bogo tests 
    - Bug 1771100 - Added EarlyData ALPN test support to BoGo shim. 
-   - Bug 1790357: ECH client - Discard resumption TLS < 1.3 Session(IDs|Tickets) if ECH configs are setup.
+   - Bug 1790357 - ECH client - Discard resumption TLS < 1.3 Session(IDs|Tickets) if ECH configs are setup.
    - Bug 1714245 - On HRR skip PSK incompatible with negotiated ciphersuites hash algorithm. 
    - Bug 1789410 - ECH client: Send ech_required alert on server negotiating TLS 1.2. Fixed misleading Gtest, enabled corresponding BoGo test.
    - Bug 1771100 - Added Bogo ECH rejection test support.
