@@ -369,6 +369,52 @@ TEST_P(TlsConnectGeneric, Grease) {
   Connect();
 }
 
+// Check that GREASE values can be correctly reconstructed after HRR.
+TEST_P(TlsConnectGeneric, GreaseHRR) {
+  EnsureTlsSetup();
+  const std::vector<SSLNamedGroup> client_groups = {
+      ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1};
+  const std::vector<SSLNamedGroup> server_groups = {
+      ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1, ssl_grp_ec_curve25519};
+  client_->ConfigNamedGroups(client_groups);
+  server_->ConfigNamedGroups(server_groups);
+  ASSERT_EQ(SSL_OptionSet(client_->ssl_fd(), SSL_ENABLE_GREASE, PR_TRUE),
+            SECSuccess);
+  ASSERT_EQ(SSL_OptionSet(server_->ssl_fd(), SSL_ENABLE_GREASE, PR_TRUE),
+            SECSuccess);
+  Connect();
+}
+
+// Check that GREASE additions interact correctly with psk-only handshake.
+TEST_F(TlsConnectStreamTls13, GreasePsk) {
+  EnsureTlsSetup();
+  ASSERT_EQ(SSL_OptionSet(client_->ssl_fd(), SSL_ENABLE_GREASE, PR_TRUE),
+            SECSuccess);
+  ASSERT_EQ(SSL_OptionSet(server_->ssl_fd(), SSL_ENABLE_GREASE, PR_TRUE),
+            SECSuccess);
+
+  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  const uint8_t kPskDummyVal_[16] = {0x01, 0x02, 0x03, 0x04, 0x05,
+                                     0x06, 0x07, 0x08, 0x09, 0x0a,
+                                     0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+  SECItem psk_item;
+  psk_item.type = siBuffer;
+  psk_item.len = sizeof(kPskDummyVal_);
+  psk_item.data = const_cast<uint8_t*>(kPskDummyVal_);
+  PK11SymKey* key =
+      PK11_ImportSymKey(slot.get(), CKM_HKDF_KEY_GEN, PK11_OriginUnwrap,
+                        CKA_DERIVE, &psk_item, NULL);
+
+  ScopedPK11SymKey scoped_psk_(key);
+  const std::string kPskDummyLabel_ = "NSS PSK GTEST label";
+  const SSLHashType kPskHash_ = ssl_hash_sha384;
+  AddPsk(scoped_psk_, kPskDummyLabel_, kPskHash_);
+
+  Connect();
+  SendReceive();
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_curve25519, ssl_auth_psk, ssl_sig_none);
+}
+
 // Test that ECH and GREASE work together successfully
 TEST_F(TlsConnectStreamTls13, GreaseAndECH) {
   EnsureTlsSetup();
