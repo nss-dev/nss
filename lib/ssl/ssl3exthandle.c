@@ -464,12 +464,35 @@ ssl3_ClientSendAppProtoXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     }
 
     if (len > 0) {
-        /* Each protocol string is prefixed with a single byte length. */
+        /* Each protocol string is prefixed with a single byte length.
+         *
+         * The comment correctly states that this should be a 1 byte length,
+         * see bug 1804688! */
         rv = sslBuffer_AppendNumber(buf, len, 2);
         if (rv != SECSuccess) {
             return SECFailure;
         }
         rv = sslBuffer_Append(buf, ss->opt.nextProtoNego.data, len);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+    }
+
+    /* GREASE ALPN:
+     * A client MAY select one or more GREASE ALPN identifiers and advertise
+     * them in the "application_layer_protocol_negotiation" extension, if sent
+     * [RFC8701, Section 3.1]. */
+    if (ss->opt.enableGrease && ss->vrange.max >= SSL_LIBRARY_VERSION_TLS_1_3) {
+        /* Each protocol string is prefixed with a single byte length.
+         *
+         * The comment correctly states that this should be a 1 byte length,
+         * see bug 1804688! We send a GREASE extension with incorrect length
+         * field for consistency with (incorrect) non-GREASE extensions. */
+        rv = sslBuffer_AppendNumber(buf, 2, 2);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+        rv = sslBuffer_AppendNumber(buf, ss->ssl3.hs.grease->idx[grease_alpn], 2);
         if (rv != SECSuccess) {
             return SECFailure;
         }
@@ -1648,7 +1671,8 @@ ssl3_SendSigAlgsXtn(const sslSocket *ss, TLSExtensionData *xtnData,
         minVersion = ss->vrange.min; /* ClientHello */
     }
 
-    SECStatus rv = ssl3_EncodeSigAlgs(ss, minVersion, PR_TRUE /* forCert */, buf);
+    SECStatus rv = ssl3_EncodeSigAlgs(ss, minVersion, PR_TRUE /* forCert */,
+                                      ss->opt.enableGrease, buf);
     if (rv != SECSuccess) {
         return SECFailure;
     }
