@@ -874,6 +874,26 @@ class ClientHelloPreambleCapture : public TlsHandshakeFilter {
   DataBuffer data_;
 };
 
+class ClientHelloCiphersuiteCapture : public TlsHandshakeFilter {
+ public:
+  ClientHelloCiphersuiteCapture(const std::shared_ptr<TlsAgent>& a)
+      : TlsHandshakeFilter(a, {kTlsHandshakeClientHello}),
+        captured_(false),
+        data_() {}
+
+  const DataBuffer& contents() const { return data_; }
+  bool captured() const { return captured_; }
+
+ protected:
+  PacketFilter::Action FilterHandshake(const HandshakeHeader& header,
+                                       const DataBuffer& input,
+                                       DataBuffer* output) override;
+
+ private:
+  bool captured_;
+  DataBuffer data_;
+};
+
 class ServerHelloRandomChanger : public TlsHandshakeFilter {
  public:
   ServerHelloRandomChanger(const std::shared_ptr<TlsAgent>& a)
