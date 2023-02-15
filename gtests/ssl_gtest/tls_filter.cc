@@ -1268,4 +1268,26 @@ PacketFilter::Action ClientHelloPreambleCapture::FilterHandshake(
   return KEEP;
 }
 
+PacketFilter::Action ClientHelloCiphersuiteCapture::FilterHandshake(
+    const HandshakeHeader& header, const DataBuffer& input,
+    DataBuffer* output) {
+  EXPECT_TRUE(header.handshake_type() == kTlsHandshakeClientHello);
+
+  if (captured_) {
+    return KEEP;
+  }
+  captured_ = true;
+
+  TlsParser parser(input);
+  EXPECT_TRUE(parser.Skip(2 + 32));     // Version + Random
+  EXPECT_TRUE(parser.SkipVariable(1));  // Session ID
+  if (is_dtls_agent()) {
+    EXPECT_TRUE(parser.SkipVariable(1));  // Cookie
+  }
+
+  EXPECT_TRUE(parser.ReadVariable(&data_, 2));  // Ciphersuites
+
+  return KEEP;
+}
+
 }  // namespace nss_test

@@ -13,6 +13,336 @@
 
 namespace nss_test {
 
+const uint8_t kTlsGreaseExtensionMessages[] = {kTlsHandshakeEncryptedExtensions,
+                                               kTlsHandshakeCertificate};
+
+const uint16_t kTlsGreaseValues[] = {
+    0x0a0a, 0x1a1a, 0x2a2a, 0x3a3a, 0x4a4a, 0x5a5a, 0x6a6a, 0x7a7a,
+    0x8a8a, 0x9a9a, 0xaaaa, 0xbaba, 0xcaca, 0xdada, 0xeaea, 0xfafa};
+
+const uint8_t kTlsGreasePskValues[] = {0x0B, 0x2A, 0x49, 0x68,
+                                       0x87, 0xA6, 0xC5, 0xE4};
+
+size_t countGreaseInBuffer(const DataBuffer& list) {
+  if (!list.len()) {
+    return 0;
+  }
+  size_t occurrence = 0;
+  for (uint16_t greaseVal : kTlsGreaseValues) {
+    for (size_t i = 0; i < (list.len() - 1); i += 2) {
+      uint16_t sample = list.data()[i + 1] + (list.data()[i] << 8);
+      if (greaseVal == sample) {
+        occurrence++;
+      }
+    }
+  }
+  return occurrence;
+}
+
+class GreasePresenceAbsenceTestBase : public TlsConnectTestBase {
+ public:
+  GreasePresenceAbsenceTestBase(SSLProtocolVariant variant, uint16_t version,
+                                bool shouldGrease)
+      : TlsConnectTestBase(variant, version), set_grease_(shouldGrease){};
+
+  void SetupGrease() {
+    EnsureTlsSetup();
+    ASSERT_EQ(SSL_OptionSet(client_->ssl_fd(), SSL_ENABLE_GREASE, set_grease_),
+              SECSuccess);
+    ASSERT_EQ(SSL_OptionSet(server_->ssl_fd(), SSL_ENABLE_GREASE, set_grease_),
+              SECSuccess);
+  }
+
+  bool expectGrease() {
+    return set_grease_ && version_ >= SSL_LIBRARY_VERSION_TLS_1_3;
+  }
+
+  void checkGreasePresence(const int ifEnabled, const int ifDisabled,
+                           const DataBuffer& buffer) {
+    size_t expected = expectGrease() ? size_t(ifEnabled) : size_t(ifDisabled);
+    EXPECT_EQ(expected, countGreaseInBuffer(buffer));
+  }
+
+ private:
+  bool set_grease_;
+};
+
+class GreasePresenceAbsenceTestAllVersions
+    : public GreasePresenceAbsenceTestBase,
+      public ::testing::WithParamInterface<
+          std::tuple<SSLProtocolVariant, uint16_t, bool>> {
+ public:
+  GreasePresenceAbsenceTestAllVersions()
+      : GreasePresenceAbsenceTestBase(std::get<0>(GetParam()),
+                                      std::get<1>(GetParam()),
+                                      std::get<2>(GetParam())){};
+};
+
+// Varies stream/datagram, TLS Version and whether GREASE is enabled
+INSTANTIATE_TEST_SUITE_P(GreaseTests, GreasePresenceAbsenceTestAllVersions,
+                         ::testing::Combine(TlsConnectTestBase::kTlsVariantsAll,
+                                            TlsConnectTestBase::kTlsV11Plus,
+                                            ::testing::Values(true, false)));
+
+// Varies whether GREASE is enabled for TLS13 only
+class GreasePresenceAbsenceTestTlsStream13
+    : public GreasePresenceAbsenceTestBase,
+      public ::testing::WithParamInterface<bool> {
+ public:
+  GreasePresenceAbsenceTestTlsStream13()
+      : GreasePresenceAbsenceTestBase(
+            ssl_variant_stream, SSL_LIBRARY_VERSION_TLS_1_3, GetParam()){};
+};
+
+INSTANTIATE_TEST_SUITE_P(GreaseTests, GreasePresenceAbsenceTestTlsStream13,
+                         ::testing::Values(true, false));
+
+// These tests check for the presence / absence of GREASE values in the various
+// positions that we are permitted to add them. For positions which existed in
+// prior versions of TLS, we check that enabling GREASE is only effective when
+// negotiating TLS1.3 or higher and that disabling GREASE results in the absence
+// of any GREASE values.
+// For positions that specific to TLS1.3, we only check that enabling/disabling
+// GREASE results in the correct presence/absence of the GREASE value.
+
+TEST_P(GreasePresenceAbsenceTestAllVersions, ClientGreaseCiphersuites) {
+  SetupGrease();
+
+  auto ch1 = MakeTlsFilter<ClientHelloCiphersuiteCapture>(client_);
+  Connect();
+  EXPECT_TRUE(ch1->captured());
+
+  checkGreasePresence(1, 0, ch1->contents());
+}
+
+TEST_P(GreasePresenceAbsenceTestAllVersions, ClientGreaseNamedGroups) {
+  SetupGrease();
+
+  auto ch1 =
+      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_supported_groups_xtn);
+  Connect();
+  EXPECT_TRUE(ch1->captured());
+
+  checkGreasePresence(1, 0, ch1->extension());
+}
+
+TEST_P(GreasePresenceAbsenceTestAllVersions, ClientGreaseKeyShare) {
+  SetupGrease();
+
+  auto ch1 =
+      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_tls13_key_share_xtn);
+  Connect();
+  EXPECT_TRUE((version_ >= SSL_LIBRARY_VERSION_TLS_1_3) == ch1->captured());
+
+  checkGreasePresence(1, 0, ch1->extension());
+}
+
+TEST_P(GreasePresenceAbsenceTestAllVersions, ClientGreaseSigAlg) {
+  SetupGrease();
+
+  auto ch1 =
+      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_signature_algorithms_xtn);
+  Connect();
+  EXPECT_TRUE((version_ >= SSL_LIBRARY_VERSION_TLS_1_2) == ch1->captured());
+
+  checkGreasePresence(1, 0, ch1->extension());
+}
+
+TEST_P(GreasePresenceAbsenceTestAllVersions, ClientGreaseSupportedVersions) {
+  SetupGrease();
+
+  auto ch1 = MakeTlsFilter<TlsExtensionCapture>(
+      client_, ssl_tls13_supported_versions_xtn);
+  Connect();
+  EXPECT_TRUE((version_ >= SSL_LIBRARY_VERSION_TLS_1_3) == ch1->captured());
+
+  // Supported Versions have a 1 byte length field.
+  TlsParser extParser(ch1->extension());
+  DataBuffer versions;
+  extParser.ReadVariable(&versions, 1);
+
+  checkGreasePresence(1, 0, versions);
+}
+
+TEST_P(GreasePresenceAbsenceTestTlsStream13, ClientGreasePskExchange) {
+  SetupGrease();
+
+  auto ch1 = MakeTlsFilter<TlsExtensionCapture>(
+      client_, ssl_tls13_psk_key_exchange_modes_xtn);
+  Connect();
+  EXPECT_TRUE(ch1->captured());
+
+  // PSK Exchange Modes have a 1 byte length field
+  TlsParser extParser(ch1->extension());
+  DataBuffer modes;
+  extParser.ReadVariable(&modes, 1);
+
+  // Scan for single byte GREASE PSK Values
+  size_t numGrease = 0;
+  for (uint8_t greaseVal : kTlsGreasePskValues) {
+    for (unsigned long i = 0; i < modes.len(); i++) {
+      if (greaseVal == modes.data()[i]) {
+        numGrease++;
+      }
+    }
+  }
+
+  EXPECT_EQ(expectGrease() ? size_t(1) : size_t(0), numGrease);
+}
+
+TEST_P(GreasePresenceAbsenceTestAllVersions, ClientGreaseAlpn) {
+  SetupGrease();
+  EnableAlpn();
+
+  auto ch1 =
+      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_app_layer_protocol_xtn);
+  Connect();
+  EXPECT_TRUE((version_ >= SSL_LIBRARY_VERSION_TLS_1_1) == ch1->captured());
+
+  // ALPN Xtns have a redundant two-byte length
+  TlsParser alpnParser(ch1->extension());
+  alpnParser.Skip(2);  // Skip the length
+  DataBuffer alpnEntry;
+
+  // Each ALPN entry has a single byte length prefixed.
+  size_t greaseAlpnEntrys = 0;
+  while (alpnParser.remaining()) {
+    alpnParser.ReadVariable(&alpnEntry, 1);
+    if (alpnEntry.len() == 2) {
+      greaseAlpnEntrys += countGreaseInBuffer(alpnEntry);
+    }
+  }
+
+  EXPECT_EQ(expectGrease() ? size_t(1) : size_t(0), greaseAlpnEntrys);
+}
+
+TEST_P(GreasePresenceAbsenceTestAllVersions, GreaseClientHelloExtension) {
+  SetupGrease();
+
+  auto ch1 =
+      MakeTlsFilter<TlsHandshakeRecorder>(client_, kTlsHandshakeClientHello);
+  Connect();
+  EXPECT_TRUE(ch1->buffer().len() > 0);
+
+  TlsParser extParser(ch1->buffer());
+  EXPECT_TRUE(extParser.Skip(2 + 32));     // Version + Random
+  EXPECT_TRUE(extParser.SkipVariable(1));  // Session ID
+  if (variant_ == ssl_variant_datagram) {
+    EXPECT_TRUE(extParser.SkipVariable(1));  // Cookie
+  }
+  EXPECT_TRUE(extParser.SkipVariable(2));  // Ciphersuites
+  EXPECT_TRUE(extParser.SkipVariable(1));  // Compression Methods
+  EXPECT_TRUE(extParser.Skip(2));          // Extension Lengths
+
+  // Scan for a 1-byte and a 0-byte extension.
+  uint32_t extType;
+  DataBuffer extBuf;
+  bool foundSmall = false;
+  bool foundLarge = false;
+  size_t numFound = 0;
+  while (extParser.remaining()) {
+    extParser.Read(&extType, 2);
+    extParser.ReadVariable(&extBuf, 2);
+    for (uint16_t greaseVal : kTlsGreaseValues) {
+      if (greaseVal == extType) {
+        numFound++;
+        foundSmall |= extBuf.len() == 0;
+        foundLarge |= extBuf.len() > 0;
+      }
+    }
+  }
+
+  EXPECT_EQ(foundSmall, expectGrease());
+  EXPECT_EQ(foundLarge, expectGrease());
+  EXPECT_EQ(numFound, expectGrease() ? size_t(2) : size_t(0));
+}
+
+TEST_P(GreasePresenceAbsenceTestTlsStream13, GreaseCertificateRequestSigAlg) {
+  SetupGrease();
+  client_->SetupClientAuth();
+  server_->RequestClientAuth(true);
+
+  auto cr =
+      MakeTlsFilter<TlsExtensionCapture>(server_, ssl_signature_algorithms_xtn);
+  cr->SetHandshakeTypes({kTlsHandshakeCertificateRequest});
+  cr->EnableDecryption();
+  Connect();
+  EXPECT_TRUE(cr->captured());
+
+  checkGreasePresence(1, 0, cr->extension());
+}
+
+TEST_P(GreasePresenceAbsenceTestTlsStream13,
+       GreaseCertificateRequestExtension) {
+  SetupGrease();
+  client_->SetupClientAuth();
+  server_->RequestClientAuth(true);
+
+  auto cr = MakeTlsFilter<TlsHandshakeRecorder>(
+      server_, kTlsHandshakeCertificateRequest);
+  cr->EnableDecryption();
+  Connect();
+  EXPECT_TRUE(cr->buffer().len() > 0);
+
+  TlsParser extParser(cr->buffer());
+  EXPECT_TRUE(extParser.SkipVariable(1));  // Context
+  EXPECT_TRUE(extParser.Skip(2));          // Extension Lengths
+
+  uint32_t extType;
+  DataBuffer extBuf;
+  bool found = false;
+  // Scan for a single, empty extension
+  while (extParser.remaining()) {
+    extParser.Read(&extType, 2);
+    extParser.ReadVariable(&extBuf, 2);
+    for (uint16_t greaseVal : kTlsGreaseValues) {
+      if (greaseVal == extType) {
+        EXPECT_TRUE(!found);
+        EXPECT_EQ(extBuf.len(), size_t(0));
+        found = true;
+      }
+    }
+  }
+
+  EXPECT_EQ(expectGrease(), found);
+}
+
+TEST_P(GreasePresenceAbsenceTestTlsStream13, GreaseNewSessionTicketExtension) {
+  SetupGrease();
+
+  auto nst = MakeTlsFilter<TlsHandshakeRecorder>(server_,
+                                                 kTlsHandshakeNewSessionTicket);
+  nst->EnableDecryption();
+  Connect();
+  EXPECT_EQ(SECSuccess, SSL_SendSessionTicket(server_->ssl_fd(), nullptr, 0));
+  EXPECT_TRUE(nst->buffer().len() > 0);
+
+  TlsParser extParser(nst->buffer());
+  EXPECT_TRUE(extParser.Skip(4));          // lifetime
+  EXPECT_TRUE(extParser.Skip(4));          // age
+  EXPECT_TRUE(extParser.SkipVariable(1));  // Nonce
+  EXPECT_TRUE(extParser.SkipVariable(2));  // Ticket
+  EXPECT_TRUE(extParser.Skip(2));          // Extension Length
+
+  uint32_t extType;
+  DataBuffer extBuf;
+  bool found = false;
+  // Scan for a single, empty extension
+  while (extParser.remaining()) {
+    extParser.Read(&extType, 2);
+    extParser.ReadVariable(&extBuf, 2);
+    for (uint16_t greaseVal : kTlsGreaseValues) {
+      if (greaseVal == extType) {
+        EXPECT_TRUE(!found);
+        EXPECT_EQ(extBuf.len(), size_t(0));
+        found = true;
+      }
+    }
+  }
+
+  EXPECT_EQ(expectGrease(), found);
+}
+
 // Generic Client GREASE test
 TEST_P(TlsConnectGeneric, ClientGrease) {
   EnsureTlsSetup();
@@ -482,13 +812,6 @@ TEST_F(TlsConnectStreamTls13, GreaseClientHelloExtensionPermutation) {
             SECSuccess);
   Connect();
 }
-
-const uint8_t kTlsGreaseExtensionMessages[] = {kTlsHandshakeEncryptedExtensions,
-                                               kTlsHandshakeCertificate};
-
-const uint16_t kTlsGreaseValues[] = {
-    0x0a0a, 0x1a1a, 0x2a2a, 0x3a3a, 0x4a4a, 0x5a5a, 0x6a6a, 0x7a7a,
-    0x8a8a, 0x9a9a, 0xaaaa, 0xbaba, 0xcaca, 0xdada, 0xeaea, 0xfafa};
 
 INSTANTIATE_TEST_SUITE_P(GreaseTestTls12, GreaseTestStreamTls12,
                          ::testing::ValuesIn(kTlsGreaseValues));
