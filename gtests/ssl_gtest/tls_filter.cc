@@ -1199,15 +1199,7 @@ PacketFilter::Action SelectiveRecordDropFilter::FilterRecord(
   return pattern;
 }
 
-PacketFilter::Action TlsClientHelloVersionSetter::FilterHandshake(
-    const HandshakeHeader& header, const DataBuffer& input,
-    DataBuffer* output) {
-  *output = input;
-  output->Write(0, version_, 2);
-  return CHANGE;
-}
-
-PacketFilter::Action TlsServerHelloVersionSetter::FilterHandshake(
+PacketFilter::Action TlsMessageVersionSetter::FilterHandshake(
     const HandshakeHeader& header, const DataBuffer& input,
     DataBuffer* output) {
   *output = input;

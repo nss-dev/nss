@@ -123,6 +123,8 @@ static const ssl3ExtensionHandler certificateRequestHandlers[] = {
  * extension, if it were listed last). See bug 1243641.
  */
 static const sslExtensionBuilder clientHelloSendersTLS[] = {
+    /* TLS 1.3 GREASE extensions - empty. */
+    { ssl_tls13_grease_xtn, &tls13_SendEmptyGreaseXtn },
     { ssl_server_name_xtn, &ssl3_ClientSendServerNameXtn },
     { ssl_extended_master_secret_xtn, &ssl3_SendExtendedMasterSecretXtn },
     { ssl_renegotiation_info_xtn, &ssl3_SendRenegotiationInfoXtn },
@@ -146,6 +148,8 @@ static const sslExtensionBuilder clientHelloSendersTLS[] = {
     { ssl_tls13_psk_key_exchange_modes_xtn, &tls13_ClientSendPskModesXtn },
     { ssl_tls13_post_handshake_auth_xtn, &tls13_ClientSendPostHandshakeAuthXtn },
     { ssl_record_size_limit_xtn, &ssl_SendRecordSizeLimitXtn },
+    /* TLS 1.3 GREASE extensions - 1 zero byte. */
+    { ssl_tls13_grease_xtn, &tls13_SendGreaseXtn },
     /* The pre_shared_key extension MUST be last. */
     { ssl_tls13_pre_shared_key_xtn, &tls13_ClientSendPreSharedKeyXtn },
     { 0, NULL }
@@ -159,6 +163,8 @@ static const sslExtensionBuilder clientHelloSendersSSL3[] = {
 static const sslExtensionBuilder tls13_cert_req_senders[] = {
     { ssl_signature_algorithms_xtn, &ssl3_SendSigAlgsXtn },
     { ssl_tls13_certificate_authorities_xtn, &tls13_SendCertAuthoritiesXtn },
+    /* TLS 1.3 GREASE extension. */
+    { ssl_tls13_grease_xtn, &tls13_SendEmptyGreaseXtn },
     { 0, NULL }
 };
 
@@ -791,6 +797,7 @@ ssl_ConstructExtensions(sslSocket *ss, sslBuffer *buf, SSLHandshakeType message)
     }
 
     for (; sender->ex_sender != NULL; ++sender) {
+        PRUint16 ex_type = sender->ex_type;
         PRBool append = PR_FALSE;
         unsigned int start = buf->len;
         unsigned int length;
@@ -814,8 +821,14 @@ ssl_ConstructExtensions(sslSocket *ss, sslBuffer *buf, SSLHandshakeType message)
             continue;
         }
 
-        buf->len = start;
-        rv = sslBuffer_AppendNumber(buf, sender->ex_type, 2);
+        /* If TLS 1.3 GREASE is enabled, replace ssl_tls13_grease_xtn dummy
+         * GREASE extension types with randomly generated GREASE value. */
+        rv = tls13_MaybeGreaseExtensionType(ss, message, &ex_type);
+        if (rv != SECSuccess) {
+            goto loser; /* Code already set. */
+        }
+
+        rv = sslBuffer_AppendNumber(buf, ex_type, 2);
         if (rv != SECSuccess) {
             goto loser; /* Code already set. */
         }
@@ -829,7 +842,7 @@ ssl_ConstructExtensions(sslSocket *ss, sslBuffer *buf, SSLHandshakeType message)
         if (message == ssl_hs_client_hello ||
             message == ssl_hs_certificate_request) {
             ss->xtnData.advertised[ss->xtnData.numAdvertised++] =
-                sender->ex_type;
+                ex_type;
         }
     }
 
