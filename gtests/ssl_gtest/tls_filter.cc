@@ -1015,6 +1015,12 @@ PacketFilter::Action TlsExtensionFilter::FilterExtensions(
   return KEEP;
 }
 
+PacketFilter::Action TlsExtensionOrderCapture::FilterExtension(
+    uint16_t extension_type, const DataBuffer& input, DataBuffer* output) {
+  order.push_back(extension_type);
+  return KEEP;
+}
+
 PacketFilter::Action TlsExtensionCapture::FilterExtension(
     uint16_t extension_type, const DataBuffer& input, DataBuffer* output) {
   if (extension_type == extension_ && (last_ || !captured_)) {

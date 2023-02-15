@@ -372,6 +372,12 @@ class TestAgent {
         if (rv != SECSuccess) return false;
       }
 
+      if (cfg_.get<bool>("permute-extensions")) {
+        rv = SSL_OptionSet(ssl_fd_.get(), SSL_ENABLE_CH_EXTENSION_PERMUTATION,
+                           PR_TRUE);
+        if (rv != SECSuccess) return false;
+      }
+
     } else {
       // GREASE - BoGo expects servers to enable GREASE by default
       rv = SSL_OptionSet(ssl_fd_.get(), SSL_ENABLE_GREASE, PR_TRUE);
@@ -907,6 +913,7 @@ std::unique_ptr<const Config> ReadConfig(int argc, char** argv) {
   cfg->AddEntry<bool>("enable-ech-grease", false);
   cfg->AddEntry<bool>("enable-early-data", false);
   cfg->AddEntry<bool>("enable-grease", false);
+  cfg->AddEntry<bool>("permute-extensions", false);
   cfg->AddEntry<bool>("on-resume-expect-reject-early-data", false);
   cfg->AddEntry<bool>("on-resume-expect-accept-early-data", false);
   cfg->AddEntry<bool>("expect-ticket-supports-early-data", false);

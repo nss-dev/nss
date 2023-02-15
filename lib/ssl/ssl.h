@@ -373,6 +373,13 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  */
 #define SSL_ENABLE_GREASE 42
 
+/* Enables TLS ClientHello Extension Permutation.
+ *
+ * On a TLS ClientHello all extensions but the Psk extension
+ * (which MUST be last) will be sent in randomly shuffeld order.
+ */
+#define SSL_ENABLE_CH_EXTENSION_PERMUTATION 43
+
 #ifdef SSL_DEPRECATED_FUNCTION
 /* Old deprecated function names */
 SSL_IMPORT SECStatus SSL_Enable(PRFileDesc *fd, int option, PRIntn on);

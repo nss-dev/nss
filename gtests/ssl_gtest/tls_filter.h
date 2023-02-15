@@ -488,6 +488,19 @@ class TlsExtensionFilter : public TlsHandshakeFilter {
                                         DataBuffer* output);
 };
 
+class TlsExtensionOrderCapture : public TlsExtensionFilter {
+ public:
+  TlsExtensionOrderCapture(const std::shared_ptr<TlsAgent>& a, uint8_t message)
+      : TlsExtensionFilter(a, {message}){};
+
+  std::vector<uint16_t> order;
+
+ protected:
+  PacketFilter::Action FilterExtension(uint16_t extension_type,
+                                       const DataBuffer& input,
+                                       DataBuffer* output) override;
+};
+
 class TlsExtensionCapture : public TlsExtensionFilter {
  public:
   TlsExtensionCapture(const std::shared_ptr<TlsAgent>& a, uint16_t ext,

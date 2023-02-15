@@ -1357,6 +1357,61 @@ TEST_F(TlsConnectDatagram13, Dtls13RejectLegacyCookie) {
   client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
 }
 
+TEST_P(TlsConnectGeneric, ClientHelloExtensionPermutation) {
+  EnsureTlsSetup();
+  PR_ASSERT(SSL_OptionSet(client_->ssl_fd(),
+                          SSL_ENABLE_CH_EXTENSION_PERMUTATION,
+                          PR_TRUE) == SECSuccess);
+  Connect();
+}
+
+/* This test checks that the ClientHello extension order is actually permuted
+ * if ss->opt.chXtnPermutation is set. It is asserted that at least one out of
+ * 10 extension orders differs from the others.
+ *
+ * This is a probabilistic test: The default TLS 1.3 ClientHello contains 8
+ * extensions, leading to a 1/8! probability for any extension order and the
+ * same probability for two drawn extension orders to coincide.
+ * Since all sequences are compared against each other this leads to a false
+ * positive rate of (1/8!)^(n^2-n).
+ * To achieve a spurious failure rate << 1/2^64, we compare n=10 drawn orders.
+ *
+ * This test assures that randomisation is happening but does not check quality
+ * of the used Fisher-Yates shuffle. */
+TEST_F(TlsConnectStreamTls13,
+       ClientHelloExtensionPermutationProbabilisticTest) {
+  std::vector<std::vector<uint16_t>> orders;
+
+  /* Capture the extension order of 10 ClientHello messages. */
+  for (size_t i = 0; i < 10; i++) {
+    client_->StartConnect();
+    /* Enable ClientHello extension permutation. */
+    PR_ASSERT(SSL_OptionSet(client_->ssl_fd(),
+                            SSL_ENABLE_CH_EXTENSION_PERMUTATION,
+                            PR_TRUE) == SECSuccess);
+    /* Capture extension order filter. */
+    auto filter = MakeTlsFilter<TlsExtensionOrderCapture>(
+        client_, kTlsHandshakeClientHello);
+    /* Send ClientHello. */
+    client_->Handshake();
+    /* Remember extension order. */
+    orders.push_back(filter->order);
+    /* Reset client / server state. */
+    Reset();
+  }
+
+  /* Check for extension order inequality. */
+  size_t inequal = 0;
+  for (auto& outerOrders : orders) {
+    for (auto& innerOrders : orders) {
+      if (outerOrders != innerOrders) {
+        inequal++;
+      }
+    }
+  }
+  PR_ASSERT(inequal >= 1);
+}
+
 INSTANTIATE_TEST_SUITE_P(
     ExtensionStream, TlsExtensionTestGeneric,
     ::testing::Combine(TlsConnectTestBase::kTlsVariantsStream,

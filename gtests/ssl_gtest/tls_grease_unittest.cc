@@ -473,6 +473,16 @@ TEST_P(GreaseTestStreamTls13, GreasedClientCertificateExtensions) {
   client_->CheckErrorCode(SSL_ERROR_DECRYPT_ERROR_ALERT);
 }
 
+TEST_F(TlsConnectStreamTls13, GreaseClientHelloExtensionPermutation) {
+  EnsureTlsSetup();
+  PR_ASSERT(SSL_OptionSet(client_->ssl_fd(),
+                          SSL_ENABLE_CH_EXTENSION_PERMUTATION,
+                          PR_TRUE) == SECSuccess);
+  PR_ASSERT(SSL_OptionSet(client_->ssl_fd(), SSL_ENABLE_GREASE, PR_TRUE) ==
+            SECSuccess);
+  Connect();
+}
+
 const uint8_t kTlsGreaseExtensionMessages[] = {kTlsHandshakeEncryptedExtensions,
                                                kTlsHandshakeCertificate};
 

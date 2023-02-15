@@ -760,7 +760,12 @@ ssl_ConstructExtensions(sslSocket *ss, sslBuffer *buf, SSLHandshakeType message)
     switch (message) {
         case ssl_hs_client_hello:
             if (ss->vrange.max > SSL_LIBRARY_VERSION_3_0) {
-                sender = clientHelloSendersTLS;
+                /* Use TLS ClientHello Extension Permutation? */
+                if (ss->opt.enableChXtnPermutation) {
+                    sender = ss->ssl3.hs.chExtensionPermutation;
+                } else {
+                    sender = clientHelloSendersTLS;
+                }
             } else {
                 sender = clientHelloSendersSSL3;
             }
@@ -1118,4 +1123,56 @@ ssl3_ExtConsumeHandshakeVariable(const sslSocket *ss, SECItem *i,
                                  PRUint32 *length)
 {
     return ssl3_ConsumeHandshakeVariable((sslSocket *)ss, i, bytes, b, length);
+}
+
+SECStatus
+tls_ClientHelloExtensionPermutationSetup(sslSocket *ss)
+{
+    const size_t buildersLen = PR_ARRAY_SIZE(clientHelloSendersTLS);
+    const size_t buildersSize = (sizeof(sslExtensionBuilder) * buildersLen);
+    /* Psk Extension and then NULL entry MUST be last. */
+    const size_t permutationLen = buildersLen - 2;
+
+    sslExtensionBuilder *builders = PORT_Alloc(buildersSize);
+    if (!builders) {
+        return SECFailure;
+    }
+
+    /* Get a working copy of default builders. */
+    PORT_Memcpy(builders, clientHelloSendersTLS, buildersSize);
+
+    /* Get permutation randoms. */
+    uint8_t random[permutationLen];
+    if (PK11_GenerateRandom(random, permutationLen) != SECSuccess) {
+        PORT_Free(builders);
+        return SECFailure;
+    }
+
+    /* Fisher-Yates Shuffle */
+    for (size_t i = permutationLen - 1; i > 0; i--) {
+        size_t idx = random[i - 1] % (i + 1);
+        sslExtensionBuilder tmp = builders[i];
+        builders[i] = builders[idx];
+        builders[idx] = tmp;
+    }
+
+    /* Make sure that Psk extension is penultimate (before NULL entry). */
+    PR_ASSERT(builders[buildersLen - 2].ex_type == ssl_tls13_pre_shared_key_xtn);
+
+    if (ss->ssl3.hs.chExtensionPermutation) {
+        PORT_Free(builders);
+        return SECFailure;
+    }
+    ss->ssl3.hs.chExtensionPermutation = builders;
+
+    return SECSuccess;
+}
+
+void
+tls_ClientHelloExtensionPermutationDestroy(sslSocket *ss)
+{
+    if (ss->ssl3.hs.chExtensionPermutation) {
+        PORT_Free(ss->ssl3.hs.chExtensionPermutation);
+        ss->ssl3.hs.chExtensionPermutation = NULL;
+    }
 }
