@@ -291,6 +291,7 @@ typedef struct sslOptionsStr {
     unsigned int enableTls13BackendEch : 1;
     unsigned int callExtensionWriterOnEchInner : 1;
     unsigned int enableGrease : 1;
+    unsigned int enableChXtnPermutation : 1;
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -784,6 +785,9 @@ typedef struct SSL3HandshakeStateStr {
 
     /* TLS 1.3 GREASE state. */
     tls13ClientGrease *grease;
+
+    /* ClientHello Extension Permutation state. */
+    sslExtensionBuilder *chExtensionPermutation;
 } SSL3HandshakeState;
 
 #define SSL_ASSERT_HASHES_EMPTY(ss)                                  \

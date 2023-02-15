@@ -5532,6 +5532,16 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
         }
     }
 
+    /* Setup TLS ClientHello Extension Permutation? */
+    if (type == client_hello_initial &&
+        ss->vrange.max > SSL_LIBRARY_VERSION_3_0 &&
+        ss->opt.enableChXtnPermutation) {
+        rv = tls_ClientHelloExtensionPermutationSetup(ss);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+    }
+
     if (isTLS || (ss->firstHsDone && ss->peerRequestedProtection)) {
         rv = ssl_ConstructExtensions(ss, &extensionBuf, ssl_hs_client_hello);
         if (rv != SECSuccess) {
@@ -14134,6 +14144,9 @@ ssl3_DestroySSL3Info(sslSocket *ss)
 
     /* TLS 1.3 GREASE (client) state. */
     tls13_ClientGreaseDestroy(ss);
+
+    /* TLS ClientHello Extension Permutation state. */
+    tls_ClientHelloExtensionPermutationDestroy(ss);
 }
 
 /* check if the current cipher spec is FIPS. We only need to
