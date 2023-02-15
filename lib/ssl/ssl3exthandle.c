@@ -456,39 +456,29 @@ ssl3_ClientSendAppProtoXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                            sslBuffer *buf, PRBool *added)
 {
     SECStatus rv;
-    const unsigned int len = ss->opt.nextProtoNego.len;
 
     /* Renegotiations do not send this extension. */
-    if (!ss->opt.enableALPN || !ss->opt.nextProtoNego.data || ss->firstHsDone) {
+    if (!ss->opt.enableALPN || !ss->opt.nextProtoNego.len || ss->firstHsDone) {
+        PR_ASSERT(!ss->opt.nextProtoNego.data);
         return SECSuccess;
     }
+    PRBool addGrease = ss->opt.enableGrease && ss->vrange.max >= SSL_LIBRARY_VERSION_TLS_1_3;
 
-    if (len > 0) {
-        /* Each protocol string is prefixed with a single byte length.
-         *
-         * The comment correctly states that this should be a 1 byte length,
-         * see bug 1804688! */
-        rv = sslBuffer_AppendNumber(buf, len, 2);
-        if (rv != SECSuccess) {
-            return SECFailure;
-        }
-        rv = sslBuffer_Append(buf, ss->opt.nextProtoNego.data, len);
-        if (rv != SECSuccess) {
-            return SECFailure;
-        }
+    /* The list of protocol strings is prefixed with a 2-byte length */
+    rv = sslBuffer_AppendNumber(buf, ss->opt.nextProtoNego.len + (addGrease ? 3 : 0), 2);
+    if (rv != SECSuccess) {
+        return SECFailure;
     }
-
-    /* GREASE ALPN:
-     * A client MAY select one or more GREASE ALPN identifiers and advertise
+    /* The list of protocol strings */
+    rv = sslBuffer_Append(buf, ss->opt.nextProtoNego.data, ss->opt.nextProtoNego.len);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    /* A client MAY select one or more GREASE ALPN identifiers and advertise
      * them in the "application_layer_protocol_negotiation" extension, if sent
      * [RFC8701, Section 3.1]. */
-    if (ss->opt.enableGrease && ss->vrange.max >= SSL_LIBRARY_VERSION_TLS_1_3) {
-        /* Each protocol string is prefixed with a single byte length.
-         *
-         * The comment correctly states that this should be a 1 byte length,
-         * see bug 1804688! We send a GREASE extension with incorrect length
-         * field for consistency with (incorrect) non-GREASE extensions. */
-        rv = sslBuffer_AppendNumber(buf, 2, 2);
+    if (addGrease) {
+        rv = sslBuffer_AppendNumber(buf, 2, 1);
         if (rv != SECSuccess) {
             return SECFailure;
         }
