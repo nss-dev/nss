@@ -1133,7 +1133,14 @@ tls_ClientHelloExtensionPermutationSetup(sslSocket *ss)
     /* Psk Extension and then NULL entry MUST be last. */
     const size_t permutationLen = buildersLen - 2;
 
-    sslExtensionBuilder *builders = PORT_Alloc(buildersSize);
+    /* There shouldn't already be a stored permutation. */
+    PR_ASSERT(!ss->ssl3.hs.chExtensionPermutation);
+
+    /* This shuffle handles up to 256 extensions. */
+    PR_ASSERT(buildersLen < 256);
+    uint8_t permutation[256] = { 0 };
+
+    sslExtensionBuilder *builders = PORT_ZAlloc(buildersSize);
     if (!builders) {
         return SECFailure;
     }
@@ -1142,15 +1149,14 @@ tls_ClientHelloExtensionPermutationSetup(sslSocket *ss)
     PORT_Memcpy(builders, clientHelloSendersTLS, buildersSize);
 
     /* Get permutation randoms. */
-    uint8_t random[permutationLen];
-    if (PK11_GenerateRandom(random, permutationLen) != SECSuccess) {
+    if (PK11_GenerateRandom(permutation, permutationLen) != SECSuccess) {
         PORT_Free(builders);
         return SECFailure;
     }
 
     /* Fisher-Yates Shuffle */
     for (size_t i = permutationLen - 1; i > 0; i--) {
-        size_t idx = random[i - 1] % (i + 1);
+        size_t idx = permutation[i - 1] % (i + 1);
         sslExtensionBuilder tmp = builders[i];
         builders[i] = builders[idx];
         builders[idx] = tmp;
@@ -1158,13 +1164,9 @@ tls_ClientHelloExtensionPermutationSetup(sslSocket *ss)
 
     /* Make sure that Psk extension is penultimate (before NULL entry). */
     PR_ASSERT(builders[buildersLen - 2].ex_type == ssl_tls13_pre_shared_key_xtn);
+    PR_ASSERT(builders[buildersLen - 2].ex_sender == clientHelloSendersTLS[buildersLen - 2].ex_sender);
 
-    if (ss->ssl3.hs.chExtensionPermutation) {
-        PORT_Free(builders);
-        return SECFailure;
-    }
     ss->ssl3.hs.chExtensionPermutation = builders;
-
     return SECSuccess;
 }
 
