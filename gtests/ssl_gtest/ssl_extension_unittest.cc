@@ -1365,6 +1365,34 @@ TEST_P(TlsConnectGeneric, ClientHelloExtensionPermutation) {
   Connect();
 }
 
+TEST_F(TlsConnectStreamTls13, ClientHelloExtensionPermutationWithPSK) {
+  EnsureTlsSetup();
+
+  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  const uint8_t kPskDummyVal_[16] = {0x01, 0x02, 0x03, 0x04, 0x05,
+                                     0x06, 0x07, 0x08, 0x09, 0x0a,
+                                     0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+  SECItem psk_item;
+  psk_item.type = siBuffer;
+  psk_item.len = sizeof(kPskDummyVal_);
+  psk_item.data = const_cast<uint8_t*>(kPskDummyVal_);
+  PK11SymKey* key =
+      PK11_ImportSymKey(slot.get(), CKM_HKDF_KEY_GEN, PK11_OriginUnwrap,
+                        CKA_DERIVE, &psk_item, NULL);
+
+  ScopedPK11SymKey scoped_psk_(key);
+  const std::string kPskDummyLabel_ = "NSS PSK GTEST label";
+  const SSLHashType kPskHash_ = ssl_hash_sha384;
+  AddPsk(scoped_psk_, kPskDummyLabel_, kPskHash_);
+
+  PR_ASSERT(SSL_OptionSet(client_->ssl_fd(),
+                          SSL_ENABLE_CH_EXTENSION_PERMUTATION,
+                          PR_TRUE) == SECSuccess);
+  Connect();
+  SendReceive();
+  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_curve25519, ssl_auth_psk, ssl_sig_none);
+}
+
 /* This test checks that the ClientHello extension order is actually permuted
  * if ss->opt.chXtnPermutation is set. It is asserted that at least one out of
  * 10 extension orders differs from the others.
