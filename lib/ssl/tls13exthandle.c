@@ -1217,6 +1217,15 @@ loser:
 }
 
 SECStatus
+tls13_ServerHandleCertAuthoritiesXtn(const sslSocket *ss, TLSExtensionData *xtnData, SECItem *data)
+{
+    SSL_TRC(3, ("%d: TLS13[%d]: ignore certificate_authorities extension",
+                SSL_GETPID(), ss->fd));
+    /* NSS ignores certificate_authorities in the ClientHello */
+    return SECSuccess;
+}
+
+SECStatus
 tls13_ServerSendHrrKeyShareXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                                sslBuffer *buf, PRBool *added)
 {

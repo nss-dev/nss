@@ -45,6 +45,7 @@ static const ssl3ExtensionHandler clientHelloHandlers[] = {
     { ssl_app_layer_protocol_xtn, &ssl3_ServerHandleAppProtoXtn },
     { ssl_use_srtp_xtn, &ssl3_ServerHandleUseSRTPXtn },
     { ssl_cert_status_xtn, &ssl3_ServerHandleStatusRequestXtn },
+    { ssl_tls13_certificate_authorities_xtn, &tls13_ServerHandleCertAuthoritiesXtn },
     { ssl_signature_algorithms_xtn, &ssl3_HandleSigAlgsXtn },
     { ssl_extended_master_secret_xtn, &ssl3_HandleExtendedMasterSecretXtn },
     { ssl_signed_cert_timestamp_xtn, &ssl3_ServerHandleSignedCertTimestampXtn },

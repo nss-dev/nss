@@ -5654,7 +5654,7 @@ static const struct {
                                certificate) },
     { ssl_delegated_credentials_xtn, _M2(client_hello, certificate) },
     { ssl_tls13_cookie_xtn, _M2(client_hello, hello_retry_request) },
-    { ssl_tls13_certificate_authorities_xtn, _M1(certificate_request) },
+    { ssl_tls13_certificate_authorities_xtn, _M2(client_hello, certificate_request) },
     { ssl_tls13_supported_versions_xtn, _M3(client_hello, server_hello,
                                             hello_retry_request) },
     { ssl_record_size_limit_xtn, _M2(client_hello, encrypted_extensions) },
