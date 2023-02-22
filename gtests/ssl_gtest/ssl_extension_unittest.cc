@@ -1440,6 +1440,24 @@ TEST_F(TlsConnectStreamTls13,
   PR_ASSERT(inequal >= 1);
 }
 
+// The certificate_authorities xtn can be included in a ClientHello [RFC 8446,
+// Section 4.2]
+TEST_F(TlsConnectStreamTls13, ClientHelloCertAuthXtnToleration) {
+  EnsureTlsSetup();
+  uint8_t bodyBuf[3] = {0x00,0x01,0xff};
+  DataBuffer body(bodyBuf,sizeof(bodyBuf));
+  auto ch = MakeTlsFilter<TlsExtensionAppender>(
+      client_, kTlsHandshakeClientHello, ssl_tls13_certificate_authorities_xtn,
+      body);
+  // The Connection will fail because the added extension isn't in the client's
+  // transcript  not because the extension is unsupported (Bug 1815167).
+  server_->ExpectSendAlert(bad_record_mac);
+  client_->ExpectSendAlert(bad_record_mac);
+  ConnectExpectFail();
+  server_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
+  client_->CheckErrorCode(SSL_ERROR_BAD_MAC_READ);
+}
+
 INSTANTIATE_TEST_SUITE_P(
     ExtensionStream, TlsExtensionTestGeneric,
     ::testing::Combine(TlsConnectTestBase::kTlsVariantsStream,
