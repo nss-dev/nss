@@ -1444,8 +1444,8 @@ TEST_F(TlsConnectStreamTls13,
 // Section 4.2]
 TEST_F(TlsConnectStreamTls13, ClientHelloCertAuthXtnToleration) {
   EnsureTlsSetup();
-  uint8_t bodyBuf[3] = {0x00,0x01,0xff};
-  DataBuffer body(bodyBuf,sizeof(bodyBuf));
+  uint8_t bodyBuf[3] = {0x00, 0x01, 0xff};
+  DataBuffer body(bodyBuf, sizeof(bodyBuf));
   auto ch = MakeTlsFilter<TlsExtensionAppender>(
       client_, kTlsHandshakeClientHello, ssl_tls13_certificate_authorities_xtn,
       body);
