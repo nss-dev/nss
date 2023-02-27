@@ -101,7 +101,6 @@
     'cc_is_gcc%': '<(cc_is_gcc)',
     'cc_use_gnu_ld%': '<(cc_use_gnu_ld)',
     # Some defaults
-    'use_system_liboqs%': 0,
     'disable_arm_hw_aes%': 0,
     'disable_arm_hw_sha1%': 0,
     'disable_arm_hw_sha2%': 0,
