@@ -1,0 +1,42 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+{
+  'includes': [
+    '../../coreconf/config.gypi'
+  ],
+  'conditions': [
+    ['use_system_liboqs==1', {
+      'targets': [{
+        'target_name': 'oqs',
+        'type': 'none',
+        'link_settings': {
+          'libraries': ['<(oqs_libs)'],
+        },
+      }],
+    }, {
+      'targets': [
+        {
+          'target_name': 'oqs_s',
+          'type': 'static_library',
+          'dependencies': [
+            '<(DEPTH)/exports.gyp:nss_exports',<DIR_FILES>
+          ]
+        },
+        {
+          'target_name': 'oqs',
+          'type': 'shared_library',
+          'dependencies': [
+            'oqs_s'
+          ],
+          'variables': {
+            'mapfile': 'oqs.def'
+          }
+        }
+      ],
+      'variables': {
+        'module': 'oqs'
+      }
+    }]
+  ],
+}

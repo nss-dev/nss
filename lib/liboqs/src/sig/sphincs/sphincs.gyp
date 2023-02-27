@@ -1,0 +1,43 @@
+# DO NOT EDIT: generated from  subdir.gyp.template
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+{
+  'includes': [
+    '../../../../../coreconf/config.gypi'
+  ],
+  'targets': [
+    {
+      'target_name': 'oqs_src_sig_sphincs',
+      'type': 'static_library',
+      'sources': [
+            'sig_sphincs_sha256_128f_simple.c',
+            'sig_sphincs_sha256_128s_simple.c',
+            'sig_sphincs_sha256_192f_simple.c',
+            'sig_sphincs_sha256_192s_simple.c',
+            'sig_sphincs_sha256_256f_simple.c',
+            'sig_sphincs_sha256_256s_simple.c',
+            'sig_sphincs_shake256_128f_simple.c',
+            'sig_sphincs_shake256_128s_simple.c',
+            'sig_sphincs_shake256_192f_simple.c',
+            'sig_sphincs_shake256_192s_simple.c',
+            'sig_sphincs_shake256_256f_simple.c',
+            'sig_sphincs_shake256_256s_simple.c',
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports'
+      ]
+    }
+  ],
+  'target_defaults': {
+    'defines': [
+    ],
+    'include_dirs': [
+      '<(DEPTH)/lib/liboqs/src/common/pqclean_shims',
+      '<(DEPTH)/lib/liboqs/src/common/sha3/xkcp_low/KeccakP-1600/plain-64bits',
+    ]
+  },
+  'variables': {
+    'module': 'oqs'
+  }
+}
