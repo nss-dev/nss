@@ -123,6 +123,7 @@ while [ $# -gt 0 ]; do
         --with-nspr=?*) set_nspr_path "${1#*=}"; no_local_nspr=1 ;;
         --system-nspr) set_nspr_path "/usr/include/nspr/:"; no_local_nspr=1 ;;
         --system-sqlite) gyp_params+=(-Duse_system_sqlite=1) ;;
+        --system-liboqs) gyp_params+=(-Duse_system_liboqs=1) ;;
         --enable-fips) gyp_params+=(-Ddisable_fips=0) ;;
         --enable-libpkix) gyp_params+=(-Ddisable_libpkix=0) ;;
         --mozpkix-only) gyp_params+=(-Dmozpkix_only=1 -Ddisable_tests=1 -Dsign_libs=0) ;;

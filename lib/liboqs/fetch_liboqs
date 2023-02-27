@@ -1,0 +1,302 @@
+#!/bin/sh
+#
+# fetch a new version of liboqs from upstream.
+# This idea is modelled after sqlite, which NSS requires, but usually gets
+# from the system. We want users and experimenters to be able to build NSS
+# without building these pre-req libraries, so we need a standalone version
+# of liboqs (also for testing). SQLite makes this easy by providing a single
+# large source file which includes the entire library. LibOQS doesn't do that,
+# so we used their cmake build system to copy the a proper subset of files
+# we need to build, and then query the resulting files to create our
+# manifest.mn (for gmake builds), and liboqs.gyp (for our gyp builds).
+# Automating this reduces the cost of updating the library.
+#
+# usage: ./fetch_liboqs command [libosq_release_tag}
+#        if liboqs_release_tag is not specified, main is used
+#    valid commands:
+#      clean: clean up the git pull as well as all the generated
+#             and intermediate files. All that should be left is our source
+#             templates and fetch_liboqs script
+#      hgprep: clean up all the files that should not be pushed to hg. This
+#              should be done after a checkout and config or checkout and
+#              configkeep
+#      checkout: clone a new version of liboqs from upstream,
+#                but don't process it. This is useful when updating
+#                fetch_liboqs or the templates so that you can issue
+#                multiple config  or configkeep commands without continually
+#                going to the internet for a fresh copy from git
+#      config: process a checked out version of liboqs into the nss build
+#              system. This requires checkout to be called first so that
+#              the source tree is in liboqs. If libosq_release_tag is not
+#              specified, the last tag requested is used.
+#      configkeep: same as config, but the intermediate files are not removed.
+#                  This is useful for debugging issues. It allows looking at
+#                  the intermediate CMakeFiles or build.ninja file.
+#      all: clone a new version of liboqs, process it and removed the
+#           intermediate files and the clones liboqs directory. This is the
+#           normal command to stage a new version of liboqs into NSS. It's
+#           probably a good idea to run ./fetch_liboqs clean before running
+#           this command in case there are files that were deleted from the
+#           previous release. hg status after this command completes will
+#           tell you what has changed.
+#      help: display the usage message
+
+# put variables here up front so we can change them easily
+GMAKE_SEP=$'\\\n\t'
+GYP_SEP=$'\\\n            '
+# warning header for generated .gyp, make
+FILE_HEADER="# DO NOT EDIT: generated from "
+# these are the files that cmake creates that we don't need in our build system
+CLEANUP_FILES="CMakeCache.txt build.ninja compile_commands.json CPackConfig.cmake CPackSourceConfig.cmake src/cmake ./src/liboqsConfig.cmake ./src/liboqsConfigVersion.cmake"
+# these are the files we generate from this script or with cmake that we need
+# to checkin, but should not be edited directly
+GENERATED_FILES="config.mk manifest.mn liboqs.gyp include src"
+# this is where we check out the upstream git repository
+GIT_FILES="liboqs"
+# this is the cmake options we use to get the local liboqs for NSS builds.
+# We want the most generic, easiest to build version. If we want platform
+# specific optimizations, we'll need to handle that explicity for each
+# platform since # cmake tries to optimize for the platform you are running on.
+# STD means build the approved NIST algs. If we ever want a different list
+# this is the line we would modify.
+CMAKE_OPTIONS="-DBUILD_SHARED_LIBS=ON -DOQS_ALGS_ENABLED=STD -DOQS_BUILD_ONLY_LIB=ON -DOQS_USE_OPENSSL=OFF -DOQS_DIST_BUILD=OFF -DOQS_OPT_TARGET=generic -DOQS_STRICT_WARNINGS=OFF -DOQS_USE_CPUFEATURE_INSTRUCTIONS=OFF"
+
+# cleanup the cmake generated files.
+cmake_cleanup() {
+  CMAKE_FILES=$(find . -name 'CMakeFiles' -print)
+  CMAKE_INSTALL=$(find . -name 'cmake_install.cmake' -print)
+  rm -rf ${CLEANUP_FILES} ${CMAKE_FILES} ${CMAKE_INSTALL}
+}
+
+# clean up the generated build tree and files
+generated_cleanup() {
+    rm -rf ${GENERATED_FILES}
+}
+
+# clean up the git repository
+git_cleanup() {
+  rm -rf liboqs
+}
+
+# fetch a new git repository
+git_fetch() {
+  # fetch the upstream source
+  git clone -b main https://github.com/open-quantum-safe/liboqs.git
+}
+
+#checkout a specific version of the git repository
+checkout() {
+  if [ -n "${1}" ]; then
+    # switch to the tag
+    (cd liboqs; git checkout ${1})
+  fi
+}
+
+# describe our command usage
+usage() {
+    echo "usage: fetch_git command [branch]"
+    echo " valid commands:"
+    echo "  clean: clean up the git pull as well as all the generated and intermediate files"
+    echo "  hgprep: clean all the files that should not be pushed to hg"
+    echo "  checkout: clone a new version of liboqs from upstream, but don't process it"
+    echo "  config: process a checked out version of liboqs into the nss build system"
+    echo "  configkeep: same as config, but the intermediate files are not removed"
+    echo "  all: clone a new version of liboqs, process it and removed the intermediate files and the clones liboqs directory"
+    echo "  help: display this message"
+    echo "branch is the liboqs tag to processed."
+}
+
+# find the file specific defines from build.ninja
+getdefines() {
+    local state="notfound"
+    local output=""
+    local dir=$1
+    while read line
+    do
+        case $state in
+        "notfound")
+            if [[ $line == build*liboqs/${dir}* ]]; then
+                state="found"
+            fi;;
+         "found")
+            line=${line%%[[:space:]]}
+            if [[ $line == FLAGS* ]]; then
+                readarray -d ' ' lflags <<< ${line}
+                for option in "${lflags[@]}"
+                do
+                    if [[ ${option} == -D* ]]; then
+                        output="$output $option"
+                    fi
+                done
+                echo -n $output
+                return;
+            fi
+            if [[ "$line" == "" ]]; then
+                return;
+            fi;;
+          esac
+    done < build.ninja
+}
+
+# build an NSS build environment friendly release of the liboqs source from
+# the upstream git repository.
+config() {
+  # build the cmake build directory.
+  echo "----- use cmake to get an appropriately configured version of liboqs"
+  cmake -GNinja ${CMAKE_OPTIONS} ./liboqs
+  # copy the current license file
+  cp ./liboqs/License.txt .
+  # create the list of header files to export
+  readarray HEADERS <<< $(cd include ;find . -name '*.h' -print)
+  # create the list of object files to build from build.nijna
+  readarray -d ' '  OBJECTS <<< $(grep "build lib/liboqs.so..*: C_SHARED_LIBRARY_LINKER__oqs_" build.ninja)
+  # handle the header files first...
+  echo "----- build the Makefile, manifest.mn, config.mk, and export.gyp files for include"
+  GMAKE_HEADERS=""
+  GYP_HEADERS=""
+  for (( i=0; i < ${#HEADERS[*]}; i++))
+  do
+      HEADER=${HEADERS[$i]%%[[:space:]]}
+      GMAKE_HEADERS="${GMAKE_HEADERS}${GMAKE_SEP}${HEADER} \\\\"
+      GYP_HEADERS="${GYP_HEADERS}${GYP_SEP}'${HEADER}',"
+  done
+  echo "${FILE_HEADER} manifest.mn.include.template" > include/manifest.mn
+  sed -e "s;<HEADER_FILES>;${GMAKE_HEADERS};" manifest.mn.include.template >> include/manifest.mn
+  cp Makefile include/Makefile
+  echo "$FILE_HEADER config.mk.include.template" > include/config.mk
+  cat config.mk.include.template >> include/config.mk
+  echo "${FILE_HEADER} exports.gyp.template" > include/exports.gyp
+  sed -e "s;<HEADER_FILES>;${GYP_HEADERS};" exports.gyp.template >> include/exports.gyp
+  echo "----- set liboqs sub directories from our Ninja build objects list"
+  declare -A SOURCES
+  SEP="|"
+  for (( i=0; i < ${#OBJECTS[*]}; i++))
+  do
+      SOURCE=${OBJECTS[$i]%%[[:space:]]}
+      SOURCE=${SOURCE/\/CMakeFiles\/*.dir\///}
+      if [[ ${SOURCE} == *.o ]]; then
+          SOURCE=${SOURCE%%.o}
+          dir=$(dirname $SOURCE)
+          SOURCES[$dir]="${SOURCES[$dir]}$(basename $SOURCE)${SEP}"
+      fi
+  done
+  echo "----- copy sources, update the config.mk, Makefile, manifest.nm, and gyp files"
+  GMAKE_DIRS="${GMAKE_SEP}include \\\\"
+  GYP_DIRS=""
+  for dir in "${!SOURCES[@]}"
+  do
+      # first copy any private headers
+      mkdir -p $dir
+      echo "  ... processing $dir source=${SOURCES[$dir]}"
+      privateIncludes=$(ls liboqs/$dir/*.{h,macros,inc} 2> /dev/null)
+      if [[ -n "${privateIncludes}" ]]; then
+          # echo "   privateIncludes=|${privateIncludes}|"
+          cp ${privateIncludes} ${dir}/
+      fi
+      GMAKE_SOURCES=""
+      GYP_SOURCES=""
+      GMAKE_DEFINES=$(getdefines $dir)
+      echo "    defines= $GMAKE_DEFINES"
+      ldefines=()
+      readarray -d ' ' ldefines <<< ${GMAKE_DEFINES}
+      GYP_DEFINES=""
+      for define in "${ldefines[@]}"
+      do
+         define=${define##[[:space:]]}
+         define=${define#-D}
+         define=${define%%[[:space:]]}
+         #define=$(sed -e 's/=\(.*\)/="\1"/' <<< ${define})
+         if [[ -n $define ]]; then
+              GYP_DEFINES="${GYP_DEFINES}${GYP_SEP}'${define}',"
+         fi
+      done
+
+      lsource=()
+      readarray -d '|' lsource <<< ${SOURCES[$dir]}
+      # now copy the source files
+      for source in "${lsource[@]}"
+      do
+          source=${source%'|'}
+          source=${source%%[[:space:]]}
+          if [[ -n $source ]]; then
+              cp liboqs/$dir/$source ${dir}/
+              GMAKE_SOURCES="${GMAKE_SOURCES}${GMAKE_SEP}${source} \\\\"
+              GYP_SOURCES="${GYP_SOURCES}${GYP_SEP}'${source}',"
+          fi
+      done
+      # finally copy the build files, editting appropriately
+      cp Makefile ${dir}/
+      libname=oqs_${dir//\//_}
+      # strip out the directory names. Add two levels
+      levels=${dir//[^\/]/}'//'
+      # insert the .. 's
+      levels=${levels//\//..\/}'..'
+      gyp_name=$(basename $dir)
+      echo "$FILE_HEADER manifest.mn.subdirs.template" > $dir/manifest.mn
+      sed -e "s;<SOURCE_FILES>;${GMAKE_SOURCES};" -e "s;<LIB_NAME>;${libname};" -e "s;<DEPTH>;${levels};" manifest.mn.subdirs.template >> $dir/manifest.mn
+      echo "$FILE_HEADER config.mk.subdirs.template" > $dir/config.mk
+      sed -e "s;<DEFINES>;${GMAKE_DEFINES};" config.mk.subdirs.template  >> $dir/config.mk
+      echo "$FILE_HEADER subdir.gyp.template" > $dir/${gyp_name}.gyp
+      sed -e "s;<SOURCE_FILES>;${GYP_SOURCES};" -e "s;<LIB_NAME>;${libname};" -e "s;<DEPTH>;${levels};" -e "s;<DEFINES>;${GYP_DEFINES};" subdir.gyp.template  >> $dir/${gyp_name}.gyp
+      GMAKE_DIRS="${GMAKE_DIRS}${GMAKE_SEP}$dir \\\\"
+      GMAKE_LIBS="${GMAKE_LIBS}${GMAKE_SEP}\$(DIST)/lib/\$(LIB_PREFIX)${libname}.\$(LIB_SUFFIX) \\\\"
+      GYP_DIRS="${GYP_DIRS}${GYP_SEP}'$dir/${gyp_name}.gyp:${libname}',"
+  done
+  echo "----- update manifest.mn, config.mk, and liboqs.gyp"
+  # insert the object files and headers files into manifest.mn
+  echo "$FILE_HEADER manifest.mn.template" > manifest.mn
+  sed -e "s;<DIR_FILES>;${GMAKE_DIRS};" -e "s;<HEADER_FILES>;${GMAKE_HEADERS};" manifest.mn.template  >> manifest.mn
+  echo "$FILE_HEADER config.mk.template" > config.mk
+  sed -e "s;<DIR_FILES>;${GMAKE_DIRS};" -e "s;<LIB_FILES>;${GMAKE_LIBS};" config.mk.template  >> config.mk
+  # insert the object files and liboqs.gyp
+  echo "$FILE_HEADER liboqs.gyp.template" > liboqs.gyp
+  sed -e "s;<DIR_FILES>;${GYP_DIRS};" liboqs.gyp.template >> liboqs.gyp
+}
+
+case ${1}x in
+cleanx)
+    echo "Cleaning up generated, intermediate and pulled files"
+    generated_cleanup
+    cmake_cleanup
+    git_cleanup;;
+
+hgprepx)
+    echo "Cleaning up intermediate and pulled files"
+    cmake_cleanup
+    git_cleanup;;
+
+checkoutx)
+    echo "fetching a new liboqs from git"
+    git_cleanup
+    git_fetch
+    checkout $2;;
+
+configx)
+    echo "configuring a new liboqs from the liboqs directory"
+    checkout $2
+    config
+    cmake_cleanup;;
+
+configkeepx)
+    echo "configuring a new liboqs from the liboqs directory.."
+    echo "...intermediate files will not be cleaned up"
+    checkout $2
+    config;;
+
+allx)
+   echo "fetching a new liboqs from git"
+   git_fetch
+   checkout $2
+   echo "configuring a new liboqs from the liboqs directory"
+   config
+   echo "Cleaning up all the intermediate files"
+   cmake_cleanup
+   git_cleanup;;
+
+helpx)
+    usage;;
+
+*)
+    usage;;
+esac
+
