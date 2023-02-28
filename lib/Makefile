@@ -43,10 +43,6 @@ ifndef NSS_USE_SYSTEM_SQLITE
 SQLITE_SRCDIR = sqlite
 endif
 
-ifndef NSS_USE_SYSTEM_LIBOQS
-LIBOQS_SRCDIR = liboqs
-endif
-
 ifeq ($(OS_ARCH),Linux)
 SYSINIT_SRCDIR = sysinit
 endif
@@ -80,7 +76,7 @@ else
 
   SOFTOKEN_SRCDIRS = \
 	$(DBM_SRCDIR) $(FREEBL_SRCDIR) $(SOFTOKEN_SRCDIR) \
-	$(SQLITE_SRCDIR) $(LIBOQS_SRCDIR) $(NULL)
+	$(SQLITE_SRCDIR) $(NULL)
 
   ifneq (,$(FREEBL_SRCDIR))
     $(FREEBL_SRCDIR): $(UTIL_SRCDIR)

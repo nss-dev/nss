@@ -30,7 +30,6 @@
                 'lib/nss/nss.gyp:nss3',
                 'lib/smime/smime.gyp:smime3',
                 'lib/sqlite/sqlite.gyp:sqlite3',
-                'lib/liboqs/liboqs.gyp:oqs',
                 'lib/ssl/ssl.gyp:ssl3',
                 'lib/util/util.gyp:nssutil3',
               ],
