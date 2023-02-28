@@ -1,0 +1,51 @@
+;+# This Source Code Form is subject to the terms of the Mozilla Public
+;+# License, v. 2.0. If a copy of the MPL was not distributed with this
+;+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+;+#
+;+#
+;+# OK, this file is meant to support SUN, LINUX, AIX and WINDOWS
+;+#   1. For all unix platforms, the string ";-"  means "remove this line"
+;+#   2. For all unix platforms, the string " DATA " will be removed from any 
+;+#	line on which it occurs.
+;+#   3. Lines containing ";+" will have ";+" removed on SUN and LINUX.
+;+#      On AIX, lines containing ";+" will be removed.  
+;+#   4. For all unix platforms, the string ";;" will thave the ";;" removed.
+;+#   5. For all unix platforms, after the above processing has taken place,
+;+#    all characters after the first ";" on the line will be removed.  
+;+#    And for AIX, the first ";" will also be removed.
+;+#  This file is passed directly to windows. Since ';' is a comment, all UNIX
+;+#   directives are hidden behind ";", ";+", and ";-"
+;+OQS_0.7.2 {       
+;+    global:
+LIBRARY oqs ;-
+EXPORTS ;-
+OQS_CPU_has_extension;
+OQS_init;
+OQS_version;
+OQS_MEM_secure_bcmp;
+OQS_MEM_cleanse;
+OQS_MEM_secure_free;
+OQS_MEM_insecure_free;
+OQS_KEM_alg_identifier;
+OQS_KEM_alg_count;
+OQS_KEM_alg_is_enabled;
+OQS_KEM_new;
+OQS_KEM_keypair;
+OQS_KEM_encaps;
+OQS_KEM_decaps;
+OQS_KEM_free;
+OQS_randombytes_switch_algorithm;
+OQS_randombytes_custom_algorithm;
+OQS_randombytes;
+OQS_randombytes_nist_kat_init_256bit;
+OQS_SIG_alg_identifier;
+OQS_SIG_alg_count;
+OQS_SIG_alg_is_enabled;
+OQS_SIG_new;
+OQS_SIG_keypair;
+OQS_SIG_sign;
+OQS_SIG_verify;
+OQS_SIG_free;
+;+    local:
+;+       *;
+;+};

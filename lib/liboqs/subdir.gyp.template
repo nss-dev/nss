@@ -1,0 +1,37 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+{
+  'includes': [
+    '<DEPTH>/coreconf/config.gypi'
+  ],
+  'targets': [
+    {
+      'target_name': '<LIB_NAME>',
+      'type': 'static_library',
+      'sources': [<SOURCE_FILES>
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports'
+      ]
+    }
+  ],
+  'target_defaults': {
+    'defines': [<DEFINES>
+    ],
+    'include_dirs': [
+      '<(DEPTH)/lib/liboqs/src/common/pqclean_shims',
+      '<(DEPTH)/lib/liboqs/src/common/sha3/xkcp_low/KeccakP-1600/plain-64bits',
+    ],
+    [ 'OS=="mac"', {
+        'defines': [
+            'OQS_HAVE_POSIX_MEMALIGN',
+            'OQS_HAVE_ALIGNED_ALLOC',
+            'OQS_HAVE_MEMALIGN'
+        ]
+    }]
+  },
+  'variables': {
+    'module': 'oqs'
+  }
+}
