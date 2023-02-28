@@ -55,6 +55,7 @@ split_softoken() {
   #   nss/lib/freebl              full directory
   #   nss/lib/softoken            full directory
   #   nss/lib/softoken/dbm        full directory
+  #   nss/lib/liboqs              full directory
 
   # Copy everything.
   cp -R $nssdir $dstdir
@@ -79,6 +80,7 @@ split_softoken() {
   cp -R $nssdir/lib/freebl $dstdir/lib/freebl
   cp -R $nssdir/lib/softoken $dstdir/lib/softoken
   cp -R $nssdir/lib/sqlite $dstdir/lib/sqlite
+  cp -R $nssdir/lib/liboqs $dstdir/lib/liboqs
 
   mkdir $dstdir/cmd
   copy_top $nssdir/cmd $dstdir/cmd

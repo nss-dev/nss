@@ -1,0 +1,32 @@
+# DO NOT EDIT: generated from  manifest.mn.subdirs.template
+# 
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+CORE_DEPTH = ../../../../../..
+
+MODULE = oqs
+
+LIBRARY_NAME = oqs_src_sig_falcon_pqclean_falcon-1024_clean
+SHARED_LIBRARY = $(NULL)
+
+CSRCS = \
+	codec.c \
+	common.c \
+	fft.c \
+	fpr.c \
+	inner.c \
+	keygen.c \
+	pqclean.c \
+	rng.c \
+	sign.c \
+	vrfy.c \
+	$(NULL)
+
+# only add module debugging in opt builds if DEBUG_PKCS11 is set
+ifdef DEBUG_PKCS11
+  DEFINES += -DDEBUG_MODULE
+endif
+
+# This part of the code, including all sub-dirs, can be optimized for size
+export ALLOW_OPT_CODE_SIZE = 1

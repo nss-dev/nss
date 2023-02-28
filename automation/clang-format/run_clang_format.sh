@@ -20,6 +20,7 @@ blocklist=(
      "./pkg" \
      "./tests" \
      "./lib/libpkix" \
+     "./lib/liboqs" \
      "./lib/zlib" \
      "./lib/sqlite" \
      "./gtests/google_test" \

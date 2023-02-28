@@ -36,6 +36,7 @@
             'lib/smime/exports.gyp:lib_smime_exports',
             'lib/softoken/exports.gyp:lib_softoken_exports',
             'lib/sqlite/exports.gyp:lib_sqlite_exports',
+	    'lib/liboqs/include/exports.gyp:lib_oqs_include_exports',
             'lib/ssl/exports.gyp:lib_ssl_exports',
             'lib/util/exports.gyp:lib_util_exports',
             'lib/zlib/exports.gyp:lib_zlib_exports',
