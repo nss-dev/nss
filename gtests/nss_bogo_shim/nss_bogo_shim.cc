@@ -502,7 +502,6 @@ class TestAgent {
         return SECFailure;
       }
     }
-    return SECSuccess;
   }
 
   // Write bytes to the other side then read them back and check

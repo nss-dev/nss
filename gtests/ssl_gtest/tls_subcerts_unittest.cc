@@ -353,33 +353,12 @@ static void GenerateWeakRsaKey(ScopedSECKEYPrivateKey& priv,
   rsaparams.keySizeInBits = 528;
   rsaparams.pe = 65537;
 
-  // Bug 1012786: PK11_GenerateKeyPair can fail if there is insufficient
-  // entropy to generate a random key. We can fake some.
-  for (int retry = 0; retry < 10; ++retry) {
-    SECKEYPublicKey* p_pub = nullptr;
-    priv.reset(PK11_GenerateKeyPair(slot.get(), CKM_RSA_PKCS_KEY_PAIR_GEN,
-                                    &rsaparams, &p_pub, false, false, nullptr));
-    pub.reset(p_pub);
-    if (priv) {
-      return;
-    }
-
-    ASSERT_FALSE(pub);
-    if (PORT_GetError() != SEC_ERROR_PKCS11_FUNCTION_FAILED) {
-      break;
-    }
-
-    // https://xkcd.com/221/
-    static const uint8_t FRESH_ENTROPY[16] = {4};
-    ASSERT_EQ(
-        SECSuccess,
-        PK11_RandomUpdate(
-            const_cast<void*>(reinterpret_cast<const void*>(FRESH_ENTROPY)),
-            sizeof(FRESH_ENTROPY)));
-    break;
-  }
-  ADD_FAILURE() << "Unable to generate an RSA key: "
-                << PORT_ErrorToName(PORT_GetError());
+  SECKEYPublicKey* p_pub = nullptr;
+  priv.reset(PK11_GenerateKeyPair(slot.get(), CKM_RSA_PKCS_KEY_PAIR_GEN,
+                                  &rsaparams, &p_pub, false, false, nullptr));
+  pub.reset(p_pub);
+  PR_ASSERT(priv);
+  return;
 }
 
 // Fail to connect with a weak RSA key.
