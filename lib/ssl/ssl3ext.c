@@ -1138,7 +1138,7 @@ tls_ClientHelloExtensionPermutationSetup(sslSocket *ss)
     PR_ASSERT(!ss->ssl3.hs.chExtensionPermutation);
 
     /* This shuffle handles up to 256 extensions. */
-    PR_ASSERT(buildersLen < 256);
+    PR_STATIC_ASSERT(buildersLen < 256);
     uint8_t permutation[256] = { 0 };
 
     sslExtensionBuilder *builders = PORT_ZAlloc(buildersSize);
