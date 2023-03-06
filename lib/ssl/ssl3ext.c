@@ -1129,7 +1129,7 @@ ssl3_ExtConsumeHandshakeVariable(const sslSocket *ss, SECItem *i,
 SECStatus
 tls_ClientHelloExtensionPermutationSetup(sslSocket *ss)
 {
-    const size_t buildersLen = PR_ARRAY_SIZE(clientHelloSendersTLS);
+    size_t buildersLen = PR_ARRAY_SIZE(clientHelloSendersTLS);
     const size_t buildersSize = (sizeof(sslExtensionBuilder) * buildersLen);
     /* Psk Extension and then NULL entry MUST be last. */
     const size_t permutationLen = buildersLen - 2;
@@ -1138,7 +1138,7 @@ tls_ClientHelloExtensionPermutationSetup(sslSocket *ss)
     PR_ASSERT(!ss->ssl3.hs.chExtensionPermutation);
 
     /* This shuffle handles up to 256 extensions. */
-    PR_STATIC_ASSERT(buildersLen < 256);
+    PR_ASSERT(buildersLen < 256);
     uint8_t permutation[256] = { 0 };
 
     sslExtensionBuilder *builders = PORT_ZAlloc(buildersSize);
