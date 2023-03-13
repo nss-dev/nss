@@ -8,8 +8,6 @@ NSS Developer Tutorial
 `NSS Coding Style <#nss_coding_style>`__
 ----------------------------------------
 
-.. container::
-
 `Formatting <#formatting>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -176,8 +174,6 @@ NSS Developer Tutorial
 `NSS C ABI backward compatibility <#nss_c_abi_backward_compatibility>`__
 ------------------------------------------------------------------------
 
-.. container::
-
 `Functions <#functions>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -195,8 +191,6 @@ NSS Developer Tutorial
 
 `Types <#types>`__
 ------------------
-
-.. container::
 
 `Structs <#structs>`__
 ~~~~~~~~~~~~~~~~~~~~~~
