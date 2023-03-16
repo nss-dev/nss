@@ -852,7 +852,7 @@ SECItemToHex(const SECItem *item, char *dst)
         unsigned char *src = item->data;
         unsigned int len = item->len;
         for (; len > 0; --len, dst += 2) {
-            sprintf(dst, "%02x", *src++);
+            snprintf(dst, 3, "%02x", *src++);
         }
         *dst = '\0';
     }
@@ -2344,7 +2344,7 @@ getObjectClass(CK_ULONG classType)
     if (classType >= CKO_NSS && classType <= CKO_NSS_BUILTIN_ROOT_LIST) {
         return objNSSClassArray[classType - CKO_NSS];
     }
-    sprintf(buf, "0x%lx", classType);
+    snprintf(buf, sizeof(buf), "0x%lx", classType);
     return buf;
 }
 
