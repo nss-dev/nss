@@ -255,7 +255,7 @@ sftkdb_getRawAttributeSignature(SFTKDBHandle *handle, SDB *db,
     char id[30];
     CK_RV crv;
 
-    sprintf(id, SFTKDB_META_SIG_TEMPLATE,
+    snprintf(id, sizeof(id), SFTKDB_META_SIG_TEMPLATE,
             sftkdb_TypeString(handle),
             (unsigned int)objectID, (unsigned int)type);
 
@@ -280,7 +280,7 @@ sftkdb_DestroyAttributeSignature(SFTKDBHandle *handle, SDB *db,
     char id[30];
     CK_RV crv;
 
-    sprintf(id, SFTKDB_META_SIG_TEMPLATE,
+    snprintf(id, sizeof(id), SFTKDB_META_SIG_TEMPLATE,
             sftkdb_TypeString(handle),
             (unsigned int)objectID, (unsigned int)type);
 
@@ -306,7 +306,7 @@ sftkdb_PutAttributeSignature(SFTKDBHandle *handle, SDB *keyTarget,
     char id[30];
     CK_RV crv;
 
-    sprintf(id, SFTKDB_META_SIG_TEMPLATE,
+    snprintf(id, sizeof(id), SFTKDB_META_SIG_TEMPLATE,
             sftkdb_TypeString(handle),
             (unsigned int)objectID, (unsigned int)type);
 
@@ -2325,7 +2325,7 @@ sftkdb_updateIntegrity(PLArenaPool *arena, SFTKDBHandle *handle,
             crv = sftkdb_getRawAttributeSignature(handle, source, sourceID, type,
                                                   &signature);
             if (crv != CKR_OK) {
-                /* old databases don't have signature IDs because they are 
+                /* old databases don't have signature IDs because they are
                  * 3DES encrypted. Since we know not to look for integrity
                  * for 3DES records it's OK not to find one here. A new record
                  * will be created when we reencrypt using AES CBC */

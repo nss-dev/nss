@@ -497,7 +497,7 @@ ssl3_DecodeHandshakeType(int msgType)
             rv = "key_update   (24)";
             break;
         default:
-            sprintf(line, "*UNKNOWN* handshake type! (%d)", msgType);
+            snprintf(line, sizeof(line), "*UNKNOWN* handshake type! (%d)", msgType);
             rv = line;
     }
     return rv;
@@ -526,7 +526,7 @@ ssl3_DecodeContentType(int msgType)
             rv = "ack (26)";
             break;
         default:
-            sprintf(line, "*UNKNOWN* record type! (%d)", msgType);
+            snprintf(line, sizeof(line), "*UNKNOWN* record type! (%d)", msgType);
             rv = line;
     }
     return rv;
@@ -11067,7 +11067,7 @@ get_fake_cert(SECItem *pCertItem, int *pIndex)
         *pIndex = -1;
         return SECSuccess;
     }
-    sprintf(cfn, "%s/%08d%s", testdir, fileNum, extension);
+    snprintf(cfn, sizeof(cfn), "%s/%08d%s", testdir, fileNum, extension);
     cf = PR_Open(cfn, PR_RDONLY, 0);
     if (!cf) {
         goto loser;

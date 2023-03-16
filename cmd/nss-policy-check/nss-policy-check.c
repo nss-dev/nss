@@ -220,7 +220,7 @@ breakout:
         PORT_Strcat(flags, ",policyCheckValue");
     }
 
-    sprintf(moduleSpec,
+    snprintf(moduleSpec, sizeof(moduleSpec),
             "name=\"Policy File\" "
             "parameters=\"configdir='sql:%s' "
             "secmod='%s' "
