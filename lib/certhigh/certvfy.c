@@ -162,6 +162,7 @@ CERT_VerifySignedDataWithPublicKey(const CERTSignedData *sd,
     SECOidTag sigAlg;
     SECOidTag encAlg;
     SECOidTag hashAlg;
+    CK_MECHANISM_TYPE mech;
     PRUint32 policyFlags;
 
     if (!pubKey || !sd) {
@@ -173,7 +174,7 @@ CERT_VerifySignedDataWithPublicKey(const CERTSignedData *sd,
     sigAlg = SECOID_GetAlgorithmTag(&sd->signatureAlgorithm);
     rv = sec_DecodeSigAlg(pubKey, sigAlg,
                           &sd->signatureAlgorithm.parameters,
-                          &encAlg, &hashAlg);
+                          &encAlg, &hashAlg, &mech, NULL);
     if (rv != SECSuccess) {
         return SECFailure; /* error is set */
     }

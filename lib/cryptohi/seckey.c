@@ -2423,7 +2423,8 @@ sec_DecodeRSAPSSParams(PLArenaPool *arena,
 SECStatus
 sec_DecodeRSAPSSParamsToMechanism(PLArenaPool *arena,
                                   const SECItem *params,
-                                  CK_RSA_PKCS_PSS_PARAMS *mech)
+                                  CK_RSA_PKCS_PSS_PARAMS *mech,
+                                  SECOidTag *hashAlgp)
 {
     SECOidTag hashAlg;
     SECOidTag maskHashAlg;
@@ -2435,6 +2436,7 @@ sec_DecodeRSAPSSParamsToMechanism(PLArenaPool *arena,
     if (rv != SECSuccess) {
         return SECFailure;
     }
+    *hashAlgp = hashAlg;
 
     mech->hashAlg = sec_GetHashMechanismByOidTag(hashAlg);
     if (mech->hashAlg == CKM_INVALID_MECHANISM) {
