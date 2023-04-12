@@ -2588,8 +2588,8 @@ sftk_getDefSlotName(CK_SLOT_ID slotID)
             break;
     }
     snprintf(buf, sizeof(buf),
-            "NSS Application Slot %08x                                   ",
-            (unsigned int)slotID);
+             "NSS Application Slot %08x                                   ",
+             (unsigned int)slotID);
     return buf;
 }
 

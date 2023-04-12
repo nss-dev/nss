@@ -234,14 +234,14 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
     switch (pwdata->source) {
         case PW_NONE:
             snprintf(prompt, sizeof(prompt), "Enter Password or Pin for \"%s\":",
-                    PK11_GetTokenName(slot));
+                     PK11_GetTokenName(slot));
             return SECU_GetPasswordString(NULL, prompt);
         case PW_FROMFILE:
             return SECU_FilePasswd(slot, retry, pwdata->data);
         case PW_EXTERNAL:
             snprintf(prompt, sizeof(prompt),
-                    "Press Enter, then enter PIN for \"%s\" on external device.\n",
-                    PK11_GetTokenName(slot));
+                     "Press Enter, then enter PIN for \"%s\" on external device.\n",
+                     PK11_GetTokenName(slot));
             char *pw = SECU_GetPasswordString(NULL, prompt);
             PORT_Free(pw);
         /* Fall Through */
