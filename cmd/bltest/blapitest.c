@@ -3047,7 +3047,7 @@ get_params(PLArenaPool *arena, bltestParams *params,
             snprintf(filename, sizeof(filename), "%s/tests/%s/%s%d", testdir, modestr, "key", j);
             load_file_data(arena, &params->sk.key, filename, bltestBinary);
             snprintf(filename, sizeof(filename), "%s/tests/%s/%s%d", testdir, modestr,
-                    "params", j);
+                     "params", j);
             file = fopen(filename, "r");
             if (!file)
                 return;
@@ -3255,12 +3255,12 @@ blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
         }
         for (j = 0; j < numtests; j++) {
             snprintf(filename, sizeof(filename), "%s/tests/%s/%s%d", testdir, modestr,
-                    "plaintext", j);
+                     "plaintext", j);
             load_file_data(arena, &pt, filename,
                            is_sigCipher(mode) ? bltestBase64Encoded
                                               : bltestBinary);
             snprintf(filename, sizeof(filename), "%s/tests/%s/%s%d", testdir, modestr,
-                    "ciphertext", j);
+                     "ciphertext", j);
             load_file_data(arena, &ct, filename, bltestBase64Encoded);
 
             get_params(arena, params, mode, j);
@@ -3871,7 +3871,7 @@ main(int argc, char **argv)
 
     /* Do FIPS self-test */
     if (bltest.commands[cmd_FIPS].activated) {
-        CK_RV ckrv = sftk_FIPSEntryOK();
+        CK_RV ckrv = sftk_FIPSEntryOK(PR_FALSE);
         fprintf(stdout, "CK_RV: %ld.\n", ckrv);
         PORT_Free(cipherInfo);
         if (ckrv == CKR_OK)

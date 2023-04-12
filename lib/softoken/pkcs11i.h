@@ -874,6 +874,7 @@ NSSLOWKEYPrivateKey *sftk_FindKeyByPublicKey(SFTKSlot *slot, SECItem *dbKey);
  */
 CK_RV sftk_parseParameters(char *param, sftk_parameters *parsed, PRBool isFIPS);
 void sftk_freeParams(sftk_parameters *params);
+PRBool sftk_RawArgHasFlag(const char *entry, const char *flag, const void *pReserved);
 
 /*
  * narrow objects

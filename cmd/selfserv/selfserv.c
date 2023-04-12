@@ -1532,14 +1532,14 @@ handle_connection(PRFileDesc *tcp_sock, PRFileDesc *model_sock)
                 }
             } else if (reqLen <= 0) { /* hit eof */
                 snprintf(msgBuf, sizeof(msgBuf), "Get or Post incomplete after %d bytes.\r\n",
-                             bufDat);
+                         bufDat);
 
                 iovs[numIOVs].iov_base = msgBuf;
                 iovs[numIOVs].iov_len = PORT_Strlen(msgBuf);
                 numIOVs++;
             } else if (reqLen < bufDat) {
                 snprintf(msgBuf, sizeof(msgBuf), "Discarded %d characters.\r\n",
-                             bufDat - reqLen);
+                         bufDat - reqLen);
 
                 iovs[numIOVs].iov_base = msgBuf;
                 iovs[numIOVs].iov_len = PORT_Strlen(msgBuf);

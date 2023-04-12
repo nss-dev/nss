@@ -256,8 +256,8 @@ sftkdb_getRawAttributeSignature(SFTKDBHandle *handle, SDB *db,
     CK_RV crv;
 
     snprintf(id, sizeof(id), SFTKDB_META_SIG_TEMPLATE,
-            sftkdb_TypeString(handle),
-            (unsigned int)objectID, (unsigned int)type);
+             sftkdb_TypeString(handle),
+             (unsigned int)objectID, (unsigned int)type);
 
     crv = (*db->sdb_GetMetaData)(db, id, signText, NULL);
     return crv;
@@ -281,8 +281,8 @@ sftkdb_DestroyAttributeSignature(SFTKDBHandle *handle, SDB *db,
     CK_RV crv;
 
     snprintf(id, sizeof(id), SFTKDB_META_SIG_TEMPLATE,
-            sftkdb_TypeString(handle),
-            (unsigned int)objectID, (unsigned int)type);
+             sftkdb_TypeString(handle),
+             (unsigned int)objectID, (unsigned int)type);
 
     crv = (*db->sdb_DestroyMetaData)(db, id);
     return crv;
@@ -307,8 +307,8 @@ sftkdb_PutAttributeSignature(SFTKDBHandle *handle, SDB *keyTarget,
     CK_RV crv;
 
     snprintf(id, sizeof(id), SFTKDB_META_SIG_TEMPLATE,
-            sftkdb_TypeString(handle),
-            (unsigned int)objectID, (unsigned int)type);
+             sftkdb_TypeString(handle),
+             (unsigned int)objectID, (unsigned int)type);
 
     crv = (*keyTarget->sdb_PutMetaData)(keyTarget, id, signText, NULL);
     return crv;

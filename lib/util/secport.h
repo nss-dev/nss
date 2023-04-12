@@ -197,7 +197,6 @@ SEC_END_PROTOS
 #define PORT_Strstr strstr
 #define PORT_Strtok strtok
 
-
 #define PORT_Tolower tolower
 
 typedef PRBool(PR_CALLBACK *PORTCharConversionWSwapFunc)(PRBool toUnicode,
