@@ -36,7 +36,7 @@ for f in "${files[@]}"; do
     diff $hacl_file $f
 done
 
-files=($(find ~/nss/lib/freebl/verified/ -type f -name '*.[ch]' -not -path "*/freebl/verified/internal/*"))
+files=($(find ~/nss/lib/freebl/verified/ -type f -name '*.[ch]' -not -path "*/freebl/verified/internal/*" -not -path "*/freebl/verified/config.h"))
 for f in "${files[@]}"; do
     file_name=$(basename "$f")
     hacl_file=($(find ~/hacl-star/dist/mozilla/ ~/hacl-star/dist/karamel/ -type f -name $file_name -not -path "*/hacl-star/dist/mozilla/internal/*"))
