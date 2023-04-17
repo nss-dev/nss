@@ -21,8 +21,8 @@
  * SOFTWARE.
  */
 
-#ifndef __Hacl_Chacha20Poly1305_128_H
-#define __Hacl_Chacha20Poly1305_128_H
+#ifndef __internal_Hacl_Chacha20_H
+#define __internal_Hacl_Chacha20_H
 
 #if defined(__cplusplus)
 extern "C" {
@@ -33,35 +33,18 @@ extern "C" {
 #include "krml/lowstar_endianness.h"
 #include "krml/internal/target.h"
 
-#include "Hacl_Poly1305_128.h"
-#include "Hacl_Krmllib.h"
-#include "Hacl_Chacha20_Vec128.h"
+#include "../Hacl_Chacha20.h"
+
+extern const uint32_t Hacl_Impl_Chacha20_Vec_chacha20_constants[4U];
+
+void Hacl_Impl_Chacha20_chacha20_init(uint32_t *ctx, uint8_t *k, uint8_t *n, uint32_t ctr);
 
 void
-Hacl_Chacha20Poly1305_128_aead_encrypt(
-    uint8_t *k,
-    uint8_t *n,
-    uint32_t aadlen,
-    uint8_t *aad,
-    uint32_t mlen,
-    uint8_t *m,
-    uint8_t *cipher,
-    uint8_t *mac);
-
-uint32_t
-Hacl_Chacha20Poly1305_128_aead_decrypt(
-    uint8_t *k,
-    uint8_t *n,
-    uint32_t aadlen,
-    uint8_t *aad,
-    uint32_t mlen,
-    uint8_t *m,
-    uint8_t *cipher,
-    uint8_t *mac);
+Hacl_Impl_Chacha20_chacha20_update(uint32_t *ctx, uint32_t len, uint8_t *out, uint8_t *text);
 
 #if defined(__cplusplus)
 }
 #endif
 
-#define __Hacl_Chacha20Poly1305_128_H_DEFINED
+#define __internal_Hacl_Chacha20_H_DEFINED
 #endif

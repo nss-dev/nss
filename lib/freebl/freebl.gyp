@@ -761,8 +761,9 @@
       'mpi',
       'ecl',
       'verified',
-      'verified/kremlin/include',
-      'verified/kremlin/kremlib/dist/minimal',
+      'verified/internal',
+      'verified/karamel/include',
+      'verified/karamel/krmllib/dist/minimal',
       'deprecated',
     ],
     'defines': [
@@ -832,6 +833,13 @@
         'defines': [
           'MP_IS_LITTLE_ENDIAN',
          ],
+      }],
+      # Poly1305_256 requires the flag to run
+      ['target_arch=="x64"', {
+        'defines':[
+          'HACL_CAN_COMPILE_VEC128',
+          'HACL_CAN_COMPILE_VEC256',
+        ],
       }],
       # MSVC has no __int128 type. Use emulated int128 and leave
       # have_int128_support as-is for Curve25519 impl. selection.

@@ -5,13 +5,13 @@
 
 #ifndef __FStar_UInt_8_16_32_64_H
 #define __FStar_UInt_8_16_32_64_H
+
 #include <inttypes.h>
 #include <stdbool.h>
-#include "kremlin/internal/compat.h"
-#include "kremlin/lowstar_endianness.h"
-#include "kremlin/internal/types.h"
-#include "kremlin/internal/target.h"
-
+#include "krml/internal/compat.h"
+#include "krml/lowstar_endianness.h"
+#include "krml/internal/types.h"
+#include "krml/internal/target.h"
 extern Prims_int FStar_UInt64_n;
 
 extern bool FStar_UInt64_uu___is_Mk(uint64_t projectee);
@@ -21,6 +21,10 @@ extern Prims_int FStar_UInt64___proj__Mk__item__v(uint64_t projectee);
 extern Prims_int FStar_UInt64_v(uint64_t x);
 
 extern uint64_t FStar_UInt64_uint_to_t(Prims_int x);
+
+extern uint64_t FStar_UInt64_zero;
+
+extern uint64_t FStar_UInt64_one;
 
 extern uint64_t FStar_UInt64_minus(uint64_t a);
 
@@ -68,6 +72,10 @@ extern Prims_int FStar_UInt32_v(uint32_t x);
 
 extern uint32_t FStar_UInt32_uint_to_t(Prims_int x);
 
+extern uint32_t FStar_UInt32_zero;
+
+extern uint32_t FStar_UInt32_one;
+
 extern uint32_t FStar_UInt32_minus(uint32_t a);
 
 extern uint32_t FStar_UInt32_n_minus_one;
@@ -114,6 +122,10 @@ extern Prims_int FStar_UInt16_v(uint16_t x);
 
 extern uint16_t FStar_UInt16_uint_to_t(Prims_int x);
 
+extern uint16_t FStar_UInt16_zero;
+
+extern uint16_t FStar_UInt16_one;
+
 extern uint16_t FStar_UInt16_minus(uint16_t a);
 
 extern uint32_t FStar_UInt16_n_minus_one;
@@ -159,6 +171,10 @@ extern Prims_int FStar_UInt8___proj__Mk__item__v(uint8_t projectee);
 extern Prims_int FStar_UInt8_v(uint8_t x);
 
 extern uint8_t FStar_UInt8_uint_to_t(Prims_int x);
+
+extern uint8_t FStar_UInt8_zero;
+
+extern uint8_t FStar_UInt8_one;
 
 extern uint8_t FStar_UInt8_minus(uint8_t a);
 
