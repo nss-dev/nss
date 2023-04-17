@@ -1,8 +1,8 @@
 /* Copyright (c) INRIA and Microsoft Corporation. All rights reserved.
    Licensed under the Apache 2.0 License. */
 
-#ifndef __KREMLIN_CALLCONV_H
-#define __KREMLIN_CALLCONV_H
+#ifndef __KRML_CALLCONV_H
+#define __KRML_CALLCONV_H
 
 /******************************************************************************/
 /* Some macros to ease compatibility                                          */
@@ -24,7 +24,7 @@
 #endif
 #endif
 
-/* Since KreMLin emits the inline keyword unconditionally, we follow the
+/* Since KaRaMeL emits the inline keyword unconditionally, we follow the
  * guidelines at https://gcc.gnu.org/onlinedocs/gcc/Inline.html and make this
  * __inline__ to ensure the code compiles with -std=c90 and earlier. */
 #ifdef __GNUC__

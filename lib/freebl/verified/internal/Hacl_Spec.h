@@ -21,8 +21,8 @@
  * SOFTWARE.
  */
 
-#ifndef __Hacl_Chacha20Poly1305_128_H
-#define __Hacl_Chacha20Poly1305_128_H
+#ifndef __internal_Hacl_Spec_H
+#define __internal_Hacl_Spec_H
 
 #if defined(__cplusplus)
 extern "C" {
@@ -33,35 +33,27 @@ extern "C" {
 #include "krml/lowstar_endianness.h"
 #include "krml/internal/target.h"
 
-#include "Hacl_Poly1305_128.h"
-#include "Hacl_Krmllib.h"
-#include "Hacl_Chacha20_Vec128.h"
+#include "../Hacl_Spec.h"
 
-void
-Hacl_Chacha20Poly1305_128_aead_encrypt(
-    uint8_t *k,
-    uint8_t *n,
-    uint32_t aadlen,
-    uint8_t *aad,
-    uint32_t mlen,
-    uint8_t *m,
-    uint8_t *cipher,
-    uint8_t *mac);
+#define Spec_ECDSA_NoHash 0
+#define Spec_ECDSA_Hash 1
 
-uint32_t
-Hacl_Chacha20Poly1305_128_aead_decrypt(
-    uint8_t *k,
-    uint8_t *n,
-    uint32_t aadlen,
-    uint8_t *aad,
-    uint32_t mlen,
-    uint8_t *m,
-    uint8_t *cipher,
-    uint8_t *mac);
+typedef uint8_t Spec_ECDSA_hash_alg_ecdsa_tags;
+
+typedef struct Spec_ECDSA_hash_alg_ecdsa_s {
+    Spec_ECDSA_hash_alg_ecdsa_tags tag;
+    Spec_Hash_Definitions_hash_alg _0;
+} Spec_ECDSA_hash_alg_ecdsa;
+
+#define Spec_Cipher_Expansion_Hacl_CHACHA20 0
+#define Spec_Cipher_Expansion_Vale_AES128 1
+#define Spec_Cipher_Expansion_Vale_AES256 2
+
+typedef uint8_t Spec_Cipher_Expansion_impl;
 
 #if defined(__cplusplus)
 }
 #endif
 
-#define __Hacl_Chacha20Poly1305_128_H_DEFINED
+#define __internal_Hacl_Spec_H_DEFINED
 #endif

@@ -21,8 +21,8 @@
  * SOFTWARE.
  */
 
-#ifndef __Hacl_Chacha20Poly1305_128_H
-#define __Hacl_Chacha20Poly1305_128_H
+#ifndef __Hacl_Curve25519_64_H
+#define __Hacl_Curve25519_64_H
 
 #if defined(__cplusplus)
 extern "C" {
@@ -33,35 +33,17 @@ extern "C" {
 #include "krml/lowstar_endianness.h"
 #include "krml/internal/target.h"
 
-#include "Hacl_Poly1305_128.h"
 #include "Hacl_Krmllib.h"
-#include "Hacl_Chacha20_Vec128.h"
 
-void
-Hacl_Chacha20Poly1305_128_aead_encrypt(
-    uint8_t *k,
-    uint8_t *n,
-    uint32_t aadlen,
-    uint8_t *aad,
-    uint32_t mlen,
-    uint8_t *m,
-    uint8_t *cipher,
-    uint8_t *mac);
+void Hacl_Curve25519_64_scalarmult(uint8_t *out, uint8_t *priv, uint8_t *pub);
 
-uint32_t
-Hacl_Chacha20Poly1305_128_aead_decrypt(
-    uint8_t *k,
-    uint8_t *n,
-    uint32_t aadlen,
-    uint8_t *aad,
-    uint32_t mlen,
-    uint8_t *m,
-    uint8_t *cipher,
-    uint8_t *mac);
+void Hacl_Curve25519_64_secret_to_public(uint8_t *pub, uint8_t *priv);
+
+bool Hacl_Curve25519_64_ecdh(uint8_t *out, uint8_t *priv, uint8_t *pub);
 
 #if defined(__cplusplus)
 }
 #endif
 
-#define __Hacl_Chacha20Poly1305_128_H_DEFINED
+#define __Hacl_Curve25519_64_H_DEFINED
 #endif

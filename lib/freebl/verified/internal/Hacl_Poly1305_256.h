@@ -21,8 +21,8 @@
  * SOFTWARE.
  */
 
-#ifndef __Hacl_Chacha20Poly1305_128_H
-#define __Hacl_Chacha20Poly1305_128_H
+#ifndef __internal_Hacl_Poly1305_256_H
+#define __internal_Hacl_Poly1305_256_H
 
 #if defined(__cplusplus)
 extern "C" {
@@ -33,35 +33,19 @@ extern "C" {
 #include "krml/lowstar_endianness.h"
 #include "krml/internal/target.h"
 
-#include "Hacl_Poly1305_128.h"
-#include "Hacl_Krmllib.h"
-#include "Hacl_Chacha20_Vec128.h"
+#include "../Hacl_Poly1305_256.h"
+#include "libintvector.h"
+void
+Hacl_Impl_Poly1305_Field32xN_256_load_acc4(Lib_IntVector_Intrinsics_vec256 *acc, uint8_t *b);
 
 void
-Hacl_Chacha20Poly1305_128_aead_encrypt(
-    uint8_t *k,
-    uint8_t *n,
-    uint32_t aadlen,
-    uint8_t *aad,
-    uint32_t mlen,
-    uint8_t *m,
-    uint8_t *cipher,
-    uint8_t *mac);
-
-uint32_t
-Hacl_Chacha20Poly1305_128_aead_decrypt(
-    uint8_t *k,
-    uint8_t *n,
-    uint32_t aadlen,
-    uint8_t *aad,
-    uint32_t mlen,
-    uint8_t *m,
-    uint8_t *cipher,
-    uint8_t *mac);
+Hacl_Impl_Poly1305_Field32xN_256_fmul_r4_normalize(
+    Lib_IntVector_Intrinsics_vec256 *out,
+    Lib_IntVector_Intrinsics_vec256 *p);
 
 #if defined(__cplusplus)
 }
 #endif
 
-#define __Hacl_Chacha20Poly1305_128_H_DEFINED
+#define __internal_Hacl_Poly1305_256_H_DEFINED
 #endif
