@@ -2011,9 +2011,11 @@ test_raw(void)
 {
     int len, out = 0;
     mp_int a;
+    mp_int b;
     char *buf;
 
     mp_init(&a);
+    mp_init(&b);
     mp_read_radix(&a, mp4, 16);
 
     len = mp_raw_size(&a);
@@ -2032,8 +2034,22 @@ test_raw(void)
         out = 1;
     }
 
+    // read the binary output back and compare with the original number
+    memcpy(buf, b_mp4, sizeof(b_mp4));
+    mp_err read_err = mp_read_raw(&b, buf, sizeof(b_mp4));
+    if (read_err != MP_OKAY) {
+        reason("error: reading raw mp_int failed: %d\n", read_err);
+        out = 1;
+    }
+
+    if (mp_cmp(&a, &b) != 0) {
+        reason("error: test_raw: mp_int from read_raw does not match the original number\n");
+        out = 1;
+    }
+
     free(buf);
     mp_clear(&a);
+    mp_clear(&b);
 
     return out;
 }
