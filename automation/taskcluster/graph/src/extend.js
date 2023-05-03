@@ -536,7 +536,9 @@ async function scheduleLinux(name, overrides, args = "") {
       "/bin/bash",
       "-c",
       "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
-    ]
+    ],
+    provisioner: "nss-t",
+    workerType: "t-linux-xlarge-gcp"
   }));
 
   // Extra builds.
@@ -665,6 +667,8 @@ function scheduleFuzzingRun(base, name, target, max_len, symbol = null, corpus =
         `-max_total_time=${MAX_FUZZ_TIME} ` +
         `-max_len=${max_len}`
     ],
+    provisioner: "nss-t",
+    workerType: "t-linux-xlarge-gcp",
     symbol: symbol || name
   }));
 }
