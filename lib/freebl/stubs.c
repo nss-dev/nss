@@ -87,7 +87,7 @@
         return ptr_##fn(a1, a2, a3, a4);    \
     }
 #define STUB_SAFE_CALL5(fn, a1, a2, a3, a4, a5) \
-    if (ptr_##fn) {                                 \
+    if (ptr_##fn) {                             \
         return ptr_##fn(a1, a2, a3, a4, a5);    \
     }
 #define STUB_SAFE_CALL6(fn, a1, a2, a3, a4, a5, a6) \
