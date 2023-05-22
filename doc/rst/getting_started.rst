@@ -21,10 +21,9 @@ Getting Started
    .. note::
 
       We have a large list of tasks waiting for attention, and we are happy to assist you in
-      identifying areas that match your interest or skills. You can find us on `Mozilla
-      IRC <https://developer.mozilla.org/en-US/docs/Mozilla/QA/Getting_Started_with_IRC>`__ in
-      channel `#nss <irc://irc.mozilla.org/#nss>`__ or you could ask your questions on the
-      `mozilla.dev.tech.crypto <https://lists.mozilla.org/listinfo/dev-tech-crypto/>`__ newsgroup.
+      identifying areas that match your interest or skills. You can find us on `chat.mozilla.org`
+      in channel `#nss <https://chat.mozilla.org/#/room/#nss:mozilla.org>`__ or you could ask your 
+      questions on the `mozilla.dev.tech.crypto <https://groups.google.com/a/mozilla.org/g/dev-tech-crypto>`__ newsgroup.
 
 
    The NSS library and its supporting command line tools are written in the C programming language.
