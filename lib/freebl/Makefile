@@ -568,7 +568,9 @@ ifneq ($(shell $(CC) -? 2>&1 >/dev/null </dev/null | sed -e 's/:.*//;1q'),lcc)
             HAVE_INT128_SUPPORT = 1
             DEFINES += -DHAVE_INT128_SUPPORT
     else ifeq (1,$(CC_IS_GCC))
-        SUPPORTS_VALE_CURVE25519 = 1
+        ifeq ($(CPU_ARCH),x86_64)
+            SUPPORTS_VALE_CURVE25519 = 1
+        endif
         ifneq (,$(filter 4.6 4.7 4.8 4.9,$(word 1,$(GCC_VERSION)).$(word 2,$(GCC_VERSION))))
             HAVE_INT128_SUPPORT = 1
             DEFINES += -DHAVE_INT128_SUPPORT
