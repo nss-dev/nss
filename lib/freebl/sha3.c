@@ -87,6 +87,30 @@ SHA3_512_DestroyContext(SHA3_512Context *ctx, PRBool freeit)
     }
 }
 
+unsigned int
+SHA3_224_FlattenSize(SHA3_224Context *ctx)
+{
+    return 0;
+}
+
+unsigned int
+SHA3_256_FlattenSize(SHA3_256Context *ctx)
+{
+    return 0;
+}
+
+unsigned int
+SHA3_384_FlattenSize(SHA3_384Context *ctx)
+{
+    return 0;
+}
+
+unsigned int
+SHA3_512_FlattenSize(SHA3_512Context *ctx)
+{
+    return 0;
+}
+
 void
 SHA3_224_Begin(SHA3_224Context *ctx)
 {

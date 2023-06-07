@@ -381,6 +381,7 @@ static const struct FREEBLVectorStr vector = {
 
     SHA3_224_NewContext,
     SHA3_224_DestroyContext,
+    SHA3_224_FlattenSize,
     SHA3_224_Begin,
     SHA3_224_Update,
     SHA3_224_End,
@@ -389,6 +390,7 @@ static const struct FREEBLVectorStr vector = {
 
     SHA3_256_NewContext,
     SHA3_256_DestroyContext,
+    SHA3_256_FlattenSize,
     SHA3_256_Begin,
     SHA3_256_Update,
     SHA3_256_End,
@@ -397,6 +399,7 @@ static const struct FREEBLVectorStr vector = {
 
     SHA3_384_NewContext,
     SHA3_384_DestroyContext,
+    SHA3_384_FlattenSize,
     SHA3_384_Begin,
     SHA3_384_Update,
     SHA3_384_End,
@@ -405,6 +408,7 @@ static const struct FREEBLVectorStr vector = {
 
     SHA3_512_NewContext,
     SHA3_512_DestroyContext,
+    SHA3_512_FlattenSize,
     SHA3_512_Begin,
     SHA3_512_Update,
     SHA3_512_End,

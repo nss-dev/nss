@@ -1498,6 +1498,7 @@ extern void SHA384_Clone(SHA384Context *dest, SHA384Context *src);
 
 extern SHA3_224Context *SHA3_224_NewContext(void);
 extern void SHA3_224_DestroyContext(SHA3_224Context *cx, PRBool freeit);
+extern unsigned int SHA3_224_FlattenSize(SHA3_224Context *cx);
 extern void SHA3_224_Begin(SHA3_224Context *cx);
 extern void SHA3_224_Update(SHA3_224Context *cx, const unsigned char *input,
                             unsigned int inputLen);
@@ -1512,6 +1513,7 @@ extern SECStatus SHA3_224_Hash(unsigned char *dest, const char *src);
 
 extern SHA3_256Context *SHA3_256_NewContext(void);
 extern void SHA3_256_DestroyContext(SHA3_256Context *cx, PRBool freeit);
+extern unsigned int SHA3_256_FlattenSize(SHA3_256Context *cx);
 extern void SHA3_256_Begin(SHA3_256Context *cx);
 extern void SHA3_256_Update(SHA3_256Context *cx, const unsigned char *input,
                             unsigned int inputLen);
@@ -1526,6 +1528,7 @@ extern SECStatus SHA3_256_Hash(unsigned char *dest, const char *src);
 
 extern SHA3_384Context *SHA3_384_NewContext(void);
 extern void SHA3_384_DestroyContext(SHA3_384Context *cx, PRBool freeit);
+extern unsigned int SHA3_384_FlattenSize(SHA3_384Context *cx);
 extern void SHA3_384_Begin(SHA3_384Context *cx);
 extern void SHA3_384_Update(SHA3_384Context *cx, const unsigned char *input,
                             unsigned int inputLen);
@@ -1540,6 +1543,7 @@ extern SECStatus SHA3_384_Hash(unsigned char *dest, const char *src);
 
 extern SHA3_512Context *SHA3_512_NewContext(void);
 extern void SHA3_512_DestroyContext(SHA3_512Context *cx, PRBool freeit);
+extern unsigned int SHA3_512_FlattenSize(SHA3_512Context *cx);
 extern void SHA3_512_Begin(SHA3_512Context *cx);
 extern void SHA3_512_Update(SHA3_512Context *cx, const unsigned char *input,
                             unsigned int inputLen);

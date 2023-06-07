@@ -834,6 +834,7 @@ struct FREEBLVectorStr {
 
     SHA3_224Context *(*p_SHA3_224_NewContext)(void);
     void (*p_SHA3_224_DestroyContext)(SHA3_224Context *cx, PRBool freeit);
+    unsigned int (*p_SHA3_224_FlattenSize)(SHA3_224Context *cx);
     void (*p_SHA3_224_Begin)(SHA3_224Context *cx);
     void (*p_SHA3_224_Update)(SHA3_224Context *cx, const unsigned char *input,
                               unsigned int inputLen);
@@ -846,6 +847,7 @@ struct FREEBLVectorStr {
 
     SHA3_256Context *(*p_SHA3_256_NewContext)(void);
     void (*p_SHA3_256_DestroyContext)(SHA3_256Context *cx, PRBool freeit);
+    unsigned int (*p_SHA3_256_FlattenSize)(SHA3_256Context *cx);
     void (*p_SHA3_256_Begin)(SHA3_256Context *cx);
     void (*p_SHA3_256_Update)(SHA3_256Context *cx, const unsigned char *input,
                               unsigned int inputLen);
@@ -858,6 +860,7 @@ struct FREEBLVectorStr {
 
     SHA3_384Context *(*p_SHA3_384_NewContext)(void);
     void (*p_SHA3_384_DestroyContext)(SHA3_384Context *cx, PRBool freeit);
+    unsigned int (*p_SHA3_384_FlattenSize)(SHA3_384Context *cx);
     void (*p_SHA3_384_Begin)(SHA3_384Context *cx);
     void (*p_SHA3_384_Update)(SHA3_384Context *cx, const unsigned char *input,
                               unsigned int inputLen);
@@ -870,6 +873,7 @@ struct FREEBLVectorStr {
 
     SHA3_512Context *(*p_SHA3_512_NewContext)(void);
     void (*p_SHA3_512_DestroyContext)(SHA3_512Context *cx, PRBool freeit);
+    unsigned int (*p_SHA3_512_FlattenSize)(SHA3_512Context *cx);
     void (*p_SHA3_512_Begin)(SHA3_512Context *cx);
     void (*p_SHA3_512_Update)(SHA3_512Context *cx, const unsigned char *input,
                               unsigned int inputLen);
