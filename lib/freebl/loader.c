@@ -2465,6 +2465,14 @@ SHA3_224_DestroyContext(SHA3_224Context *cx, PRBool freeit)
     (vector->p_SHA3_224_DestroyContext)(cx, freeit);
 }
 
+unsigned int
+SHA3_224_FlattenSize(SHA3_224Context *cx)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return 0;
+    return (vector->p_SHA3_224_FlattenSize)(cx);
+}
+
 void
 SHA3_224_Begin(SHA3_224Context *cx)
 {
@@ -2521,6 +2529,14 @@ SHA3_256_DestroyContext(SHA3_256Context *cx, PRBool freeit)
     if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
         return;
     (vector->p_SHA3_256_DestroyContext)(cx, freeit);
+}
+
+unsigned int
+SHA3_256_FlattenSize(SHA3_256Context *cx)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return 0;
+    return (vector->p_SHA3_256_FlattenSize)(cx);
 }
 
 void
@@ -2581,6 +2597,14 @@ SHA3_384_DestroyContext(SHA3_384Context *cx, PRBool freeit)
     (vector->p_SHA3_384_DestroyContext)(cx, freeit);
 }
 
+unsigned int
+SHA3_384_FlattenSize(SHA3_384Context *cx)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return 0;
+    return (vector->p_SHA3_384_FlattenSize)(cx);
+}
+
 void
 SHA3_384_Begin(SHA3_384Context *cx)
 {
@@ -2637,6 +2661,14 @@ SHA3_512_DestroyContext(SHA3_512Context *cx, PRBool freeit)
     if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
         return;
     (vector->p_SHA3_512_DestroyContext)(cx, freeit);
+}
+
+unsigned int
+SHA3_512_FlattenSize(SHA3_512Context *cx)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return 0;
+    return (vector->p_SHA3_512_FlattenSize)(cx);
 }
 
 void

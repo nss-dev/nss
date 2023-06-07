@@ -911,9 +911,13 @@ PK11_GetSlotList(CK_MECHANISM_TYPE type)
             return &pk11_sha1SlotList;
         case CKM_SHA224:
         case CKM_SHA256:
+        case CKM_SHA3_224:
+        case CKM_SHA3_256:
             return &pk11_sha256SlotList;
         case CKM_SHA384:
         case CKM_SHA512:
+        case CKM_SHA3_384:
+        case CKM_SHA3_512:
             return &pk11_sha512SlotList;
         case CKM_MD5:
             return &pk11_md5SlotList;
