@@ -61,6 +61,9 @@
     'sysrand.c',
     'tlsprfalg.c',
     'secmpi.c',
+    'verified/Hacl_Hash_SHA3.c',
+    'sha3.c',
+    'shake.c',
   ],
   'conditions': [
     [ 'OS=="linux" or OS=="android"', {
