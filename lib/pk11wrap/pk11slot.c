@@ -394,6 +394,8 @@ PK11_NewSlotInfo(SECMODModule *mod)
     slot->isThreadSafe = PR_FALSE;
     slot->disabled = PR_FALSE;
     slot->series = 1;
+    slot->flagSeries = 0;
+    slot->flagState = PR_FALSE;
     slot->wrapKey = 0;
     slot->wrapMechanism = CKM_INVALID_MECHANISM;
     slot->refKeys[0] = CK_INVALID_HANDLE;
