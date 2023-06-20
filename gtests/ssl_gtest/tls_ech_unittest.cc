@@ -2887,8 +2887,8 @@ TEST_F(TlsConnectStreamTls13Ech, EchPublicNameNotLdh) {
 TEST_F(TlsConnectStreamTls13, EchClientHelloExtensionPermutation) {
   EnsureTlsSetup();
   ASSERT_TRUE(SSL_OptionSet(client_->ssl_fd(),
-                          SSL_ENABLE_CH_EXTENSION_PERMUTATION,
-                          PR_TRUE) == SECSuccess);
+                            SSL_ENABLE_CH_EXTENSION_PERMUTATION,
+                            PR_TRUE) == SECSuccess);
   SetupEch(client_, server_);
 
   client_->ExpectEch();
@@ -2899,10 +2899,10 @@ TEST_F(TlsConnectStreamTls13, EchClientHelloExtensionPermutation) {
 TEST_F(TlsConnectStreamTls13, EchGreaseClientHelloExtensionPermutation) {
   EnsureTlsSetup();
   ASSERT_TRUE(SSL_OptionSet(client_->ssl_fd(),
-                          SSL_ENABLE_CH_EXTENSION_PERMUTATION,
-                          PR_TRUE) == SECSuccess);
+                            SSL_ENABLE_CH_EXTENSION_PERMUTATION,
+                            PR_TRUE) == SECSuccess);
   ASSERT_TRUE(SSL_EnableTls13GreaseEch(client_->ssl_fd(), PR_FALSE) ==
-            SECSuccess);
+              SECSuccess);
   Connect();
 }
 
