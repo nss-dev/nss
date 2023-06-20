@@ -1360,8 +1360,8 @@ TEST_F(TlsConnectDatagram13, Dtls13RejectLegacyCookie) {
 TEST_P(TlsConnectGeneric, ClientHelloExtensionPermutation) {
   EnsureTlsSetup();
   ASSERT_TRUE(SSL_OptionSet(client_->ssl_fd(),
-                          SSL_ENABLE_CH_EXTENSION_PERMUTATION,
-                          PR_TRUE) == SECSuccess);
+                            SSL_ENABLE_CH_EXTENSION_PERMUTATION,
+                            PR_TRUE) == SECSuccess);
   Connect();
 }
 
@@ -1386,8 +1386,8 @@ TEST_F(TlsConnectStreamTls13, ClientHelloExtensionPermutationWithPSK) {
   AddPsk(scoped_psk_, kPskDummyLabel_, kPskHash_);
 
   ASSERT_TRUE(SSL_OptionSet(client_->ssl_fd(),
-                          SSL_ENABLE_CH_EXTENSION_PERMUTATION,
-                          PR_TRUE) == SECSuccess);
+                            SSL_ENABLE_CH_EXTENSION_PERMUTATION,
+                            PR_TRUE) == SECSuccess);
   Connect();
   SendReceive();
   CheckKeys(ssl_kea_ecdh, ssl_grp_ec_curve25519, ssl_auth_psk, ssl_sig_none);
