@@ -843,6 +843,7 @@
         'defines':[
           'HACL_CAN_COMPILE_VEC128',
           'HACL_CAN_COMPILE_VEC256',
+          'HACL_CAN_COMPILE_INTRINSICS',
         ],
       }],
       # MSVC has no __int128 type. Use emulated int128 and leave
@@ -851,6 +852,7 @@
         'defines': [
           # The Makefile does version-tests on GCC, but we're not doing that here.
           'HAVE_INT128_SUPPORT',
+          'HACL_CAN_COMPILE_UINT128'
         ],
       }, {
         'defines': [
