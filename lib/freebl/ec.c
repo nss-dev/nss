@@ -1058,15 +1058,6 @@ ECDSA_VerifyDigest(ECPublicKey *key, const SECItem *signature,
     printf("ECDSA verification called\n");
 #endif
 
-    flen = (ecParams->fieldID.size + 7) >> 3;
-    olen = ecParams->order.len;
-    if (signature->len == 0 || signature->len % 2 != 0 ||
-        signature->len > 2 * olen) {
-        PORT_SetError(SEC_ERROR_INPUT_LEN);
-        goto cleanup;
-    }
-    slen = signature->len / 2;
-
     /* Initialize MPI integers. */
     /* must happen before the first potential call to cleanup */
     MP_DIGITS(&r_) = 0;
@@ -1078,15 +1069,6 @@ ECDSA_VerifyDigest(ECPublicKey *key, const SECItem *signature,
     MP_DIGITS(&v) = 0;
     MP_DIGITS(&n) = 0;
 
-    /*
-     * The incoming point has been verified in sftk_handlePublicKeyObject.
-     */
-
-    SECITEM_AllocItem(NULL, &pointC, EC_GetPointSize(ecParams));
-    if (pointC.data == NULL) {
-        goto cleanup;
-    }
-
     CHECK_MPI_OK(mp_init(&r_));
     CHECK_MPI_OK(mp_init(&s_));
     CHECK_MPI_OK(mp_init(&c));
@@ -1095,6 +1077,24 @@ ECDSA_VerifyDigest(ECPublicKey *key, const SECItem *signature,
     CHECK_MPI_OK(mp_init(&x1));
     CHECK_MPI_OK(mp_init(&v));
     CHECK_MPI_OK(mp_init(&n));
+
+    flen = (ecParams->fieldID.size + 7) >> 3;
+    olen = ecParams->order.len;
+    if (signature->len == 0 || signature->len % 2 != 0 ||
+        signature->len > 2 * olen) {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        goto cleanup;
+    }
+    slen = signature->len / 2;
+
+    /*
+     * The incoming point has been verified in sftk_handlePublicKeyObject.
+     */
+
+    SECITEM_AllocItem(NULL, &pointC, EC_GetPointSize(ecParams));
+    if (pointC.data == NULL) {
+        goto cleanup;
+    }
 
     /*
     ** Convert received signature (r', s') into MPI integers.

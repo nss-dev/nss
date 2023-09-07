@@ -278,13 +278,11 @@ bn_sqr4(uint64_t *res, uint64_t *x)
             uint64_t a_i2 = ab[(uint32_t)4U * i + (uint32_t)3U];
             uint64_t *res_i = res_j + (uint32_t)4U * i + (uint32_t)3U;
             c = Hacl_Bignum_Base_mul_wide_add2_u64(a_i2, a_j, c, res_i);
-        }
-	for (uint32_t i = i0 / (uint32_t)4U * (uint32_t)4U; i < i0; i++) {
+        } for (uint32_t i = i0 / (uint32_t)4U * (uint32_t)4U; i < i0; i++) {
             uint64_t a_i = ab[i];
             uint64_t *res_i = res_j + i;
             c = Hacl_Bignum_Base_mul_wide_add2_u64(a_i, a_j, c, res_i);
-        }
-	uint64_t r = c;
+        } uint64_t r = c;
         res[i0 + i0] = r;);
     uint64_t c0 = Hacl_Bignum_Addition_bn_add_eq_len_u64((uint32_t)8U, res, res, res);
     // TODO: remove unused variable
@@ -1829,4 +1827,3 @@ Hacl_P256_dh_responder(uint8_t *shared_secret, uint8_t *their_pubkey, uint8_t *p
 {
     return Hacl_Impl_P256_DH_ecp256dh_r(shared_secret, their_pubkey, private_key);
 }
-

@@ -59,9 +59,7 @@ class ByteString : public std::string {
   void append(const uint8_t* data, size_t length) {
     std::string::append(reinterpret_cast<const char*>(data), length);
   }
-  void push_back(uint8_t c) {
-    std::string::push_back(char(c));
-  }
+  void push_back(uint8_t c) { std::string::push_back(char(c)); }
 };
 
 inline bool ENCODING_FAILED(const ByteString& bs) { return bs.empty(); }
