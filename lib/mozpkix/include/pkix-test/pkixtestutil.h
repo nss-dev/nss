@@ -40,7 +40,7 @@ class ByteString : public std::string {
  public:
   ByteString() {}
   ByteString(size_t count, uint8_t value) : std::string(count, char(value)) {}
-  ByteString(const uint8_t* data)
+  explicit ByteString(const uint8_t* data)
       : std::string(reinterpret_cast<const char*>(data)) {}
   ByteString(const uint8_t* data, size_t length)
       : std::string(reinterpret_cast<const char*>(data), length) {}
