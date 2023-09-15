@@ -19,3 +19,4 @@ fuzz/libFuzzer/*
 fuzz/corpus
 fuzz/out
 .chk
+cmd/dbtool/sdb.c
