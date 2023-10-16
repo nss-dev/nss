@@ -344,7 +344,7 @@ ssl3_AppendHandshake(sslSocket *ss, const void *void_src, unsigned int bytes)
 SECStatus
 ssl3_AppendHandshakeNumber(sslSocket *ss, PRUint64 num, unsigned int lenSize)
 {
-    if ((lenSize > 8) || ((len < 8) && (num >= (1ULL << (8 * lenSize))))) {
+    if ((lenSize > 8) || ((lenSize < 8) && (num >= (1ULL << (8 * lenSize))))) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
