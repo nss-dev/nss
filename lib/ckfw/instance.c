@@ -513,17 +513,18 @@ nssCKFWInstance_GetInitArgs(
 
 #if defined(_MSC_VER)
 #pragma warning(push)
-#pragma warning(disable: 4312)
+#pragma warning(disable : 4312)
 #elif defined(__clang__) || defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
 #endif
 
-PR_STATIC_ASSERT(sizeof(CK_SESSION_HANDLE) <= sizeof(void*));
+PR_STATIC_ASSERT(sizeof(CK_SESSION_HANDLE) <= sizeof(void *));
 
-static inline void* CKSessionHandleToVoidPtr(CK_SESSION_HANDLE handle)
+static inline void *
+CKSessionHandleToVoidPtr(CK_SESSION_HANDLE handle)
 {
-    return (void*)(uintptr_t)handle;
+    return (void *)(uintptr_t)handle;
 }
 
 #if defined(_MSC_VER)
