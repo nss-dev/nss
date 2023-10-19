@@ -3316,7 +3316,8 @@ extern void sftk_PBELockShutdown(void);
  */
 static CK_RV
 sftk_getParameters(CK_C_INITIALIZE_ARGS *init_args, PRBool isFIPS,
-                    sftk_parameters *paramStrings) {
+                   sftk_parameters *paramStrings)
+{
     CK_RV crv;
     char *libParams;
     const char *filename;
@@ -3441,7 +3442,6 @@ nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
             return crv;
         }
     }
-
 
     sftk_parameters paramStrings;
 
