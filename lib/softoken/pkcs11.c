@@ -1925,8 +1925,8 @@ sftk_GetPubKey(SFTKObject *object, CK_KEY_TYPE key_type,
                 /* Handle the non-DER encoded case.
                  * Some curves are always pressumed to be non-DER.
                  */
-                if (pubKey->u.ec.publicValue.len == keyLen &&
-                    (pubKey->u.ec.ecParams.fieldID.type == ec_field_plain ||
+                if (pubKey->u.ec.ecParams.type != ec_params_named ||
+                    (pubKey->u.ec.publicValue.len == keyLen &&
                      pubKey->u.ec.publicValue.data[0] == EC_POINT_FORM_UNCOMPRESSED)) {
                     break; /* key was not DER encoded, no need to unwrap */
                 }
@@ -1946,8 +1946,7 @@ sftk_GetPubKey(SFTKObject *object, CK_KEY_TYPE key_type,
                         break;
                     }
                     /* we don't handle compressed points except in the case of ECCurve25519 */
-                    if ((pubKey->u.ec.ecParams.fieldID.type != ec_field_plain) &&
-                        (publicValue.data[0] != EC_POINT_FORM_UNCOMPRESSED)) {
+                    if (publicValue.data[0] != EC_POINT_FORM_UNCOMPRESSED) {
                         crv = CKR_ATTRIBUTE_VALUE_INVALID;
                         break;
                     }
