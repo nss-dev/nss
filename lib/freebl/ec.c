@@ -15,15 +15,62 @@
 #include "mplogic.h"
 #include "ec.h"
 #include "ecl.h"
+#include "verified/Hacl_P384.h"
+#include "verified/Hacl_P521.h"
 
 #define EC_DOUBLECHECK PR_FALSE
+
+SECStatus
+ec_secp384r1_scalar_validate(const SECItem *scalar)
+{
+    if (!scalar || !scalar->data) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (scalar->len != 48) {
+        PORT_SetError(SEC_ERROR_BAD_KEY);
+        return SECFailure;
+    }
+
+    bool b = Hacl_P384_validate_private_key(scalar->data);
+
+    if (!b) {
+        PORT_SetError(SEC_ERROR_BAD_KEY);
+        return SECFailure;
+    }
+    return SECSuccess;
+}
+
+SECStatus
+ec_secp521r1_scalar_validate(const SECItem *scalar)
+{
+    if (!scalar || !scalar->data) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (scalar->len != 66) {
+        PORT_SetError(SEC_ERROR_BAD_KEY);
+        return SECFailure;
+    }
+
+    bool b = Hacl_P521_validate_private_key(scalar->data);
+
+    if (!b) {
+        PORT_SetError(SEC_ERROR_BAD_KEY);
+        return SECFailure;
+    }
+    return SECSuccess;
+}
 
 static const ECMethod kMethods[] = {
     { ECCurve25519,
       ec_Curve25519_pt_mul,
       ec_Curve25519_pt_validate,
       ec_Curve25519_scalar_validate,
-      NULL, NULL },
+      NULL,
+      NULL },
     {
         ECCurve_NIST_P256,
         ec_secp256r1_pt_mul,
@@ -31,7 +78,23 @@ static const ECMethod kMethods[] = {
         ec_secp256r1_scalar_validate,
         ec_secp256r1_sign_digest,
         ec_secp256r1_verify_digest,
-    }
+    },
+    {
+        ECCurve_NIST_P384,
+        NULL,
+        NULL,
+        ec_secp384r1_scalar_validate,
+        NULL,
+        NULL,
+    },
+    {
+        ECCurve_NIST_P521,
+        NULL,
+        NULL,
+        ec_secp521r1_scalar_validate,
+        NULL,
+        NULL,
+    },
 };
 
 static const ECMethod *
@@ -352,8 +415,7 @@ EC_NewKeyFromSeed(ECParams *ecParams, ECPrivateKey **privKey,
 SECStatus
 ec_GenerateRandomPrivateKey(ECParams *ecParams, SECItem *privKey)
 {
-    SECStatus rv = SECSuccess;
-    mp_err err;
+    SECStatus rv = SECFailure;
 
     unsigned int len = EC_GetScalarSize(ecParams);
 
@@ -362,82 +424,43 @@ ec_GenerateRandomPrivateKey(ECParams *ecParams, SECItem *privKey)
         return SECFailure;
     }
 
-    /* For known curves, use rejection sampling A.4.2 */
-    if (ecParams->fieldID.type == ec_field_plain) {
-        const ECMethod *method = ec_get_method_from_name(ecParams->name);
-        rv = SECFailure;
-        if (method == NULL || method->scalar_validate == NULL) {
-            /* unknown curve */
-            PORT_SetError(SEC_ERROR_INVALID_ARGS);
-            goto done;
-        }
-        int count = 100;
-        while (rv != SECSuccess && count >= 0) {
-            rv = RNG_GenerateGlobalRandomBytes(privKey->data, len);
-            if (rv != SECSuccess) {
-                PORT_SetError(SEC_ERROR_NEED_RANDOM);
-                goto done;
-            }
-            rv = method->scalar_validate(privKey);
-            count--;
-        }
+    const ECMethod *method = ec_get_method_from_name(ecParams->name);
+    if (method == NULL || method->scalar_validate == NULL) {
+        PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
+        return SECFailure;
+    }
+
+    uint8_t leading_coeff_mask;
+    switch (ecParams->name) {
+        case ECCurve25519:
+        case ECCurve_NIST_P256:
+        case ECCurve_NIST_P384:
+            leading_coeff_mask = 0xff;
+            break;
+        case ECCurve_NIST_P521:
+            leading_coeff_mask = 0x01;
+            break;
+        default:
+            PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
+            return SECFailure;
+    }
+
+    /* The rejection sampling method from FIPS 186-5 A.4.2 */
+    int count = 100;
+    do {
+        rv = RNG_GenerateGlobalRandomBytes(privKey->data, len);
         if (rv != SECSuccess) {
-            PORT_SetError(SEC_ERROR_BAD_KEY);
+            PORT_SetError(SEC_ERROR_NEED_RANDOM);
+            return SECFailure;
         }
-        goto done;
+        privKey->data[0] &= leading_coeff_mask;
+        rv = method->scalar_validate(privKey);
+    } while (rv != SECSuccess && --count > 0);
+
+    if (rv != SECSuccess) { // implies count == 0
+        PORT_SetError(SEC_ERROR_BAD_KEY);
     }
 
-    /* For unknown curves, use algotithm A.4.1 */
-
-    unsigned char *order = ecParams->order.data;
-    mp_int privKeyVal, order_1, one;
-    unsigned char *privKeyBytes = NULL;
-
-    MP_DIGITS(&privKeyVal) = 0;
-    MP_DIGITS(&order_1) = 0;
-    MP_DIGITS(&one) = 0;
-    CHECK_MPI_OK(mp_init(&privKeyVal));
-    CHECK_MPI_OK(mp_init(&order_1));
-    CHECK_MPI_OK(mp_init(&one));
-
-    /* Generates 2*len random bytes using the global random bit generator
-     * (which implements Algorithm 1 of FIPS 186-2 Change Notice 1) then
-     * reduces modulo the group order.
-     */
-
-    if ((privKeyBytes = PORT_Alloc(2 * len)) == NULL) {
-        PORT_SetError(SEC_ERROR_NO_MEMORY);
-        rv = SECFailure;
-        goto cleanup;
-    }
-
-    CHECK_SEC_OK(RNG_GenerateGlobalRandomBytes(privKeyBytes, 2 * len));
-    CHECK_MPI_OK(mp_read_unsigned_octets(&privKeyVal, privKeyBytes, 2 * len));
-    CHECK_MPI_OK(mp_read_unsigned_octets(&order_1, order, len));
-    CHECK_MPI_OK(mp_set_int(&one, 1));
-    CHECK_MPI_OK(mp_sub(&order_1, &one, &order_1));
-    CHECK_MPI_OK(mp_mod(&privKeyVal, &order_1, &privKeyVal));
-    CHECK_MPI_OK(mp_add(&privKeyVal, &one, &privKeyVal));
-    CHECK_MPI_OK(mp_to_fixlen_octets(&privKeyVal, privKeyBytes, len));
-    memcpy(privKey->data, privKeyBytes, len);
-
-cleanup:
-    mp_clear(&privKeyVal);
-    mp_clear(&order_1);
-    mp_clear(&one);
-    if (privKeyBytes) {
-        PORT_ZFree(privKeyBytes, 2 * len);
-    }
-    if (err < MP_OKAY) {
-        MP_TO_SEC_ERROR(err);
-        rv = SECFailure;
-    }
-
-done:
-    if (rv != SECSuccess && privKey->data) {
-        SECITEM_ZfreeItem(privKey, PR_FALSE);
-        return rv;
-    }
     return rv;
 }
 

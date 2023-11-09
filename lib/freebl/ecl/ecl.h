@@ -57,4 +57,8 @@ SECStatus ec_secp256r1_sign_digest(ECPrivateKey *key, SECItem *signature,
 SECStatus ec_secp256r1_verify_digest(ECPublicKey *key, const SECItem *signature,
                                      const SECItem *digest);
 
+SECStatus ec_secp384r1_scalar_validate(const SECItem *scalar);
+
+SECStatus ec_secp521r1_scalar_validate(const SECItem *scalar);
+
 #endif /* __ecl_h_ */
