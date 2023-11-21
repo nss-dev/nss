@@ -19,6 +19,8 @@
 #
 ########################################################################
 
+EMAILDATE=`date --rfc-email --utc`
+
 # parameter: MIME part boundary
 make_multipart()
 {
@@ -92,8 +94,8 @@ cms_sign()
   SIG=sig.SHA${HASH}
 
   echo "$SCRIPTNAME: Signing Detached Message {$HASH} ------------------"
-  echo "cmsutil -S -T -N Alice ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice.d${SIG}"
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -T -N Alice ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice.d${SIG}
+  echo "cmsutil -S -G -T -N Alice ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice.d${SIG}"
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -T -N Alice ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice.d${SIG}
   html_msg $? 0 "Create Detached Signature Alice (${HASH})" "."
 
   echo "cmsutil -D -i alice.d${SIG} -c alice.txt -d ${P_R_BOBDIR} "
@@ -101,8 +103,8 @@ cms_sign()
   html_msg $? 0 "Verifying Alice's Detached Signature (${HASH})" "."
 
   echo "$SCRIPTNAME: Signing Attached Message (${HASH}) ------------------"
-  echo "cmsutil -S -N Alice ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice.${SIG}"
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -N Alice ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice.${SIG}
+  echo "cmsutil -S -G -N Alice ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice.${SIG}"
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -N Alice ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice.${SIG}
   html_msg $? 0 "Create Attached Signature Alice (${HASH})" "."
 
   echo "cmsutil -D -i alice.${SIG} -d ${P_R_BOBDIR} -o alice.data.${HASH}"
@@ -115,8 +117,8 @@ cms_sign()
 
 # Test ECDSA signing for all hash algorithms.
   echo "$SCRIPTNAME: Signing Detached Message ECDSA w/ {$HASH} ------------------"
-  echo "cmsutil -S -T -N Alice-ec ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice-ec.d${SIG}"
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -T -N Alice-ec ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice-ec.d${SIG}
+  echo "cmsutil -S -G -T -N Alice-ec ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice-ec.d${SIG}"
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -T -N Alice-ec ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice-ec.d${SIG}
   html_msg $? 0 "Create Detached Signature Alice (ECDSA w/ ${HASH})" "."
 
   echo "cmsutil -D -i alice-ec.d${SIG} -c alice.txt -d ${P_R_BOBDIR} "
@@ -124,8 +126,8 @@ cms_sign()
   html_msg $? 0 "Verifying Alice's Detached Signature (ECDSA w/ ${HASH})" "."
 
   echo "$SCRIPTNAME: Signing Attached Message (ECDSA w/ ${HASH}) ------------------"
-  echo "cmsutil -S -N Alice-ec ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice-ec.${SIG}"
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -N Alice-ec ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice-ec.${SIG}
+  echo "cmsutil -S -G -N Alice-ec ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice-ec.${SIG}"
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -N Alice-ec ${HASH_CMD} -i alice.txt -d ${P_R_ALICEDIR} -p nss -o alice-ec.${SIG}
   html_msg $? 0 "Create Attached Signature Alice (ECDSA w/ ${HASH})" "."
 
   echo "cmsutil -D -i alice-ec.${SIG} -d ${P_R_BOBDIR} -o alice-ec.data.${HASH}"
@@ -138,11 +140,13 @@ cms_sign()
 }
 
 header_mime_from_to_subject="MIME-Version: 1.0
+Date: ${EMAILDATE}
 From: Alice@example.com
 To: Bob@example.com
 Subject: "
 
 header_dave_mime_from_to_subject="MIME-Version: 1.0
+Date: ${EMAILDATE}
 From: Dave@example.com
 To: Bob@example.com
 Subject: "
@@ -204,7 +208,7 @@ smime_signed_enveloped()
 {
   SIG=sig.SHA${HASH}
 
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -T -N Alice ${HASH_CMD} -i tb/alice.mime -d ${P_R_ALICEDIR} -p nss -o tb/alice.mime.d${SIG}
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -T -N Alice ${HASH_CMD} -i tb/alice.mime -d ${P_R_ALICEDIR} -p nss -o tb/alice.mime.d${SIG}
 
   OUT="tb/alice.d${SIG}.multipart"
   echo "${multipart_start}" | sed "s/HASHHASH/${HASH}/" >>${OUT}
@@ -229,7 +233,7 @@ smime_signed_enveloped()
   echo >>${OUT}
   sed -i"" "s/\$/$CR/" ${OUT}
 
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -N Alice ${HASH_CMD} -i tb/alice.textplain -d ${P_R_ALICEDIR} -p nss -o tb/alice.textplain.${SIG}
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -N Alice ${HASH_CMD} -i tb/alice.textplain -d ${P_R_ALICEDIR} -p nss -o tb/alice.textplain.${SIG}
 
   OUT="tb/alice.${SIG}.opaque"
   echo "$header_opaque_signed" >>${OUT}
@@ -278,7 +282,7 @@ smime_plain_signed()
 {
   SIG=sig.SHA${HASH}
 
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -T -N Alice ${HASH_CMD} -i tb/alice.textplain -d ${P_R_ALICEDIR} -p nss -o tb/alice.plain.d${SIG}
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -T -N Alice ${HASH_CMD} -i tb/alice.textplain -d ${P_R_ALICEDIR} -p nss -o tb/alice.plain.d${SIG}
 
   OUT="tb/alice.plain.d${SIG}.multipart"
   echo "${multipart_start}" | sed "s/HASHHASH/${HASH}/" >>${OUT}
@@ -287,7 +291,7 @@ smime_plain_signed()
   cat tb/alice.plain.d${SIG} | ${BINDIR}/btoa | sed 's/\r$//' >>${OUT}
   echo "${multipart_end}" >>${OUT}
 
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -N Alice ${HASH_CMD} -i tb/alice.textplain -d ${P_R_ALICEDIR} -p nss -o tb/alice.plain.${SIG}
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -N Alice ${HASH_CMD} -i tb/alice.textplain -d ${P_R_ALICEDIR} -p nss -o tb/alice.plain.${SIG}
 
   OUT="tb/alice.plain.${SIG}.opaque"
   echo "$header_opaque_signed" >>${OUT}
@@ -297,7 +301,7 @@ smime_plain_signed()
 
   INPUT="tb/alice.plain.d${SIG}.multipart"
   OUT_SIG="${INPUT}.dave.${SIG}"
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -N Dave ${HASH_CMD} -i "$INPUT" -d ${P_R_DAVEDIR} -p nss -o "$OUT_SIG"
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -N Dave ${HASH_CMD} -i "$INPUT" -d ${P_R_DAVEDIR} -p nss -o "$OUT_SIG"
 
   OUT_MIME="${OUT_SIG}.opaque"
   echo "$header_opaque_signed" >>${OUT_MIME}
@@ -312,7 +316,7 @@ smime_plain_signed()
 
   INPUT="tb/alice.plain.${SIG}.opaque"
   OUT_SIG="${INPUT}.dave.${SIG}"
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -N Dave ${HASH_CMD} -i "$INPUT" -d ${P_R_DAVEDIR} -p nss -o "$OUT_SIG"
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -N Dave ${HASH_CMD} -i "$INPUT" -d ${P_R_DAVEDIR} -p nss -o "$OUT_SIG"
 
   OUT_MIME="${OUT_SIG}.opaque"
   echo "$header_opaque_signed" >>${OUT_MIME}
@@ -330,7 +334,7 @@ smime_plain_signed()
   INPUT="tb/alice.plain.d${SIG}.multipart"
   OUT_SIG="${INPUT}.dave.d${SIG}"
   cat "$INPUT" | sed "s/\$/$CR/" > "${INPUT}.cr"
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -T -N Dave ${HASH_CMD} -i "${INPUT}.cr" -d ${P_R_DAVEDIR} -p nss -o "$OUT_SIG"
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -T -N Dave ${HASH_CMD} -i "${INPUT}.cr" -d ${P_R_DAVEDIR} -p nss -o "$OUT_SIG"
 
   OUT_MIME="${OUT_SIG}.multipart"
   echo "${multipart_start_b2}" | sed "s/HASHHASH/${HASH}/" >>${OUT_MIME}
@@ -351,7 +355,7 @@ smime_plain_signed()
   INPUT="tb/alice.plain.${SIG}.opaque"
   OUT_SIG="${INPUT}.dave.d${SIG}"
   cat "$INPUT" | sed "s/\$/$CR/" > "${INPUT}.cr"
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -T -N Dave ${HASH_CMD} -i "${INPUT}.cr" -d ${P_R_DAVEDIR} -p nss -o "$OUT_SIG"
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -T -N Dave ${HASH_CMD} -i "${INPUT}.cr" -d ${P_R_DAVEDIR} -p nss -o "$OUT_SIG"
 
   OUT_MIME="${OUT_SIG}.multipart"
   echo "${multipart_start_b2}" | sed "s/HASHHASH/${HASH}/" >>${OUT_MIME}
@@ -374,7 +378,7 @@ smime_enveloped_signed()
 {
   SIG=sig.SHA${HASH}
 
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -T -N Alice ${HASH_CMD} -i tb/alice.env -d ${P_R_ALICEDIR} -p nss -o tb/alice.env.d${SIG}
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -T -N Alice ${HASH_CMD} -i tb/alice.env -d ${P_R_ALICEDIR} -p nss -o tb/alice.env.d${SIG}
 
   OUT="tb/alice.env.d${SIG}.multipart"
   echo "${multipart_start}" | sed "s/HASHHASH/${HASH}/" >>${OUT}
@@ -389,7 +393,7 @@ smime_enveloped_signed()
   cat "tb/alice.env.d${SIG}.multipart" >>${OUT}
   sed -i"" "s/\$/$CR/" ${OUT}
 
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -N Alice ${HASH_CMD} -i tb/alice.env -d ${P_R_ALICEDIR} -p nss -o tb/alice.env.${SIG}
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -N Alice ${HASH_CMD} -i tb/alice.env -d ${P_R_ALICEDIR} -p nss -o tb/alice.env.${SIG}
 
   OUT="tb/alice.env.${SIG}.opaque"
   echo "$header_opaque_signed" >>${OUT}
@@ -406,7 +410,7 @@ smime_enveloped_signed()
 
   INPUT="tb/alice.env.d${SIG}.multipart"
   OUT_SIG="${INPUT}.dave.${SIG}"
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -N Dave ${HASH_CMD} -i "$INPUT" -d ${P_R_DAVEDIR} -p nss -o "$OUT_SIG"
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -N Dave ${HASH_CMD} -i "$INPUT" -d ${P_R_DAVEDIR} -p nss -o "$OUT_SIG"
 
   OUT_MIME="${OUT_SIG}.opaque"
   echo "$header_opaque_signed" >>${OUT_MIME}
@@ -421,7 +425,7 @@ smime_enveloped_signed()
 
   INPUT="tb/alice.env.${SIG}.opaque"
   OUT_SIG="${INPUT}.dave.${SIG}"
-  ${PROFTOOL} ${BINDIR}/cmsutil -S -N Dave ${HASH_CMD} -i "$INPUT" -d ${P_R_DAVEDIR} -p nss -o "$OUT_SIG"
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -N Dave ${HASH_CMD} -i "$INPUT" -d ${P_R_DAVEDIR} -p nss -o "$OUT_SIG"
 
   OUT_MIME="${OUT_SIG}.opaque"
   echo "$header_opaque_signed" >>${OUT_MIME}
