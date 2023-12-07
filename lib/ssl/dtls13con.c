@@ -186,7 +186,12 @@ dtls13_SendAck(sslSocket *ss)
         SSL_TRC(10, ("%d: SSL3[%d]: ACK for record=%llx",
                      SSL_GETPID(), ss->fd, entry->record));
 
-        rv = sslBuffer_AppendNumber(&buf, entry->record, sizeof(entry->record));
+        /*See dtls_CombineSequenceNumber function */
+        PRUint64 epoch = entry->record >> 48;
+        PRUint64 seqNum = entry->record & 0xffffffffffff;
+
+        rv = sslBuffer_AppendNumber(&buf, epoch, 8);
+        rv = sslBuffer_AppendNumber(&buf, seqNum, 8);
         if (rv != SECSuccess) {
             goto loser;
         }
@@ -534,6 +539,7 @@ dtls13_HandleAck(sslSocket *ss, sslBuffer *databuf)
         return SECFailure;
     }
 
+    SSL_TRC(10, ("%d: SSL3[%d]: Handling ACK", SSL_GETPID(), ss->fd));
     rv = ssl3_ConsumeHandshakeNumber(ss, &length, 2, &b, &l);
     if (rv != SECSuccess) {
         goto loser;
@@ -544,12 +550,29 @@ dtls13_HandleAck(sslSocket *ss, sslBuffer *databuf)
 
     while (l > 0) {
         PRUint64 seq;
+        PRUint64 epoch;
         PRCList *cursor;
+
+        rv = ssl3_ConsumeHandshakeNumber64(ss, &epoch, 8, &b, &l);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
 
         rv = ssl3_ConsumeHandshakeNumber64(ss, &seq, 8, &b, &l);
         if (rv != SECSuccess) {
             goto loser;
         }
+
+        if (epoch > RECORD_EPOCH_MAX) {
+            SSL_TRC(50, ("%d: SSL3[%d]: ACK message was rejected: the epoch exceeds the limit", SSL_GETPID(), ss->fd));
+            continue;
+        }
+        if (seq > RECORD_SEQ_MAX) {
+            SSL_TRC(50, ("%d: SSL3[%d]: ACK message was rejected: the sequence number exceeds the limit", SSL_GETPID(), ss->fd));
+            continue;
+        }
+
+        seq = dtls_CombineSequenceNumber(epoch, seq);
 
         for (cursor = PR_LIST_HEAD(&ss->ssl3.hs.dtlsSentHandshake);
              cursor != &ss->ssl3.hs.dtlsSentHandshake;
