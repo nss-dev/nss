@@ -15,9 +15,6 @@
 #include "tls_filter.h"
 #include "tls_parser.h"
 
-// This is an internal header, used to get DTLS_1_3_DRAFT_VERSION.
-#include "ssl3prot.h"
-
 extern "C" {
 // This is not something that should make you happy.
 #include "libssl_internals.h"
@@ -1432,7 +1429,7 @@ DataBuffer TlsAgentTestBase::MakeCannedTls13ServerHello() {
     uint32_t v;
     EXPECT_TRUE(sh.Read(sh.len() - 2, 2, &v));
     EXPECT_EQ(static_cast<uint32_t>(SSL_LIBRARY_VERSION_TLS_1_3), v);
-    sh.Write(sh.len() - 2, 0x7f00 | DTLS_1_3_DRAFT_VERSION, 2);
+    sh.Write(sh.len() - 2, SSL_LIBRARY_VERSION_DTLS_1_3_WIRE, 2);
   }
   return sh;
 }

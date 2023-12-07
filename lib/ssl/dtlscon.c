@@ -53,7 +53,7 @@ static const ssl3CipherSuite nonDTLSSuites[] = {
  * TLS             DTLS
  * 1.1 (0302)      1.0 (feff)
  * 1.2 (0303)      1.2 (fefd)
- * 1.3 (0304)      1.3 (0304)
+ * 1.3 (0304)      1.3 (fefc)
  */
 SSL3ProtocolVersion
 dtls_TLSVersionToDTLSVersion(SSL3ProtocolVersion tlsv)
