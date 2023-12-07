@@ -60,6 +60,8 @@ SECStatus ssl3_AppendHandshakeSuppressHash(sslSocket *ss, const void *void_src,
                                            unsigned int bytes);
 SECStatus ssl3_AppendHandshakeHeader(sslSocket *ss,
                                      SSLHandshakeType t, unsigned int length);
+SECStatus ssl3_AppendHandshakeHeaderAndStashSeqNum(sslSocket *ss,
+                                                   SSLHandshakeType t, unsigned int length, PRUint64 *b);
 SECStatus ssl3_AppendHandshakeNumber(sslSocket *ss, PRUint64 num,
                                      unsigned int lenSize);
 SECStatus ssl3_AppendHandshakeVariable(sslSocket *ss, const PRUint8 *src,

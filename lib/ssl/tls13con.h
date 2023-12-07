@@ -159,6 +159,9 @@ SECStatus tls13_MaybeGreaseExtensionType(const sslSocket *ss,
                                          const SSLHandshakeType message,
                                          PRUint16 *exType);
 
+SECStatus
+tls13_UpdateTrafficKeys(sslSocket *ss, SSLSecretDirection direction);
+
 /* Use this instead of FATAL_ERROR when no alert shall be sent. */
 #define LOG_ERROR(ss, prError)                                                     \
     do {                                                                           \
