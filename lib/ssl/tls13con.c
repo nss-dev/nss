@@ -724,7 +724,6 @@ tls13_SendKeyUpdate(sslSocket *ss, tls13KeyUpdateRequest request, PRBool buffer)
         return SECFailure;
     }
 
-    /* Not supported. */
     if (IS_DTLS(ss)) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;

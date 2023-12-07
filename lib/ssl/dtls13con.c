@@ -13,6 +13,8 @@
 #include "keyhi.h"
 #include "pk11func.h"
 
+/*Figure 3: DTLS 1.3 Unified Header */
+
 /*
  * 0 1 2 3 4 5 6 7
  * +-+-+-+-+-+-+-+-+
@@ -30,32 +32,57 @@
  * | (if present)  |
  * +-+-+-+-+-+-+-+-+
  */
+
+// E:  The two low bits (0x03) include the low order two bits of the epoch.
+#define MASK_TWO_LOW_BITS 0x3
+// Fixed Bits:  The three high bits of the first byte of the unified header are set to 001. 
+// The C bit is set if the Connection ID is present.
+// The S bit (0x08) indicates the size of the sequence number, here 1 stands for 16 bits
+// The L bit (0x04) is set if the length is present.
+// The EE bits - mask of the epoch
+
+// 0x2c = 0b001-0-1-1-00
+//          001-C-S-L-EE
+#define UNIFIED_HEADER_LONG 0x2c
+// 0x20 = 0b001-0-0-1-00
+//          001-C-S-L-EE
+// The difference between the long and short header is in the S bit (1 for long, 0 for short).
+// The S bit (0x08) indicates the size of the sequence number, here 0 stands for 8 bits
+#define UNIFIED_HEADER_SHORT 0x20
+
+// The masks to get the 8 (MASK_SEQUENCE_NUMBER_SHORT) or 16 bits (MASK_SEQUENCE_NUMBER_LONG) of the record sequence number. 
+#define MASK_SEQUENCE_NUMBER_SHORT 0xff
+#define MASK_SEQUENCE_NUMBER_LONG 0xffff
+
+// The DTLS Record Layer - Figure 3 and further
 SECStatus
 dtls13_InsertCipherTextHeader(const sslSocket *ss, const ssl3CipherSpec *cwSpec,
                               sslBuffer *wrBuf, PRBool *needsLength)
 {
     /* Avoid using short records for the handshake.  We pack multiple records
      * into the one datagram for the handshake. */
+
+    /* The short header here means that the S bit is set to 0 (8-bit sequence number) */
     if (ss->opt.enableDtlsShortHeader &&
         cwSpec->epoch > TrafficKeyHandshake) {
         *needsLength = PR_FALSE;
         /* The short header is comprised of two octets in the form
          * 0b001000eessssssss where 'e' is the low two bits of the
          * epoch and 's' is the low 8 bits of the sequence number. */
-        PRUint8 ct = 0x20 | ((uint64_t)cwSpec->epoch & 0x3);
-        if (sslBuffer_AppendNumber(wrBuf, ct, 1) != SECSuccess) {
+        PRUint8 ct = UNIFIED_HEADER_SHORT | ((uint64_t)cwSpec->epoch & MASK_TWO_LOW_BITS);
+        if (sslBuffer_AppendNumber(wrBuf, ct, sizeof(ct)) != SECSuccess) {
             return SECFailure;
         }
-        PRUint8 seq = cwSpec->nextSeqNum & 0xff;
-        return sslBuffer_AppendNumber(wrBuf, seq, 1);
+        PRUint8 seq = cwSpec->nextSeqNum & MASK_SEQUENCE_NUMBER_SHORT;
+        return sslBuffer_AppendNumber(wrBuf, seq, sizeof(seq));
     }
 
-    PRUint8 ct = 0x2c | ((PRUint8)cwSpec->epoch & 0x3);
-    if (sslBuffer_AppendNumber(wrBuf, ct, 1) != SECSuccess) {
+    PRUint8 ct = UNIFIED_HEADER_LONG | ((PRUint8)cwSpec->epoch & MASK_TWO_LOW_BITS);
+    if (sslBuffer_AppendNumber(wrBuf, ct, sizeof(ct)) != SECSuccess) {
         return SECFailure;
     }
-    if (sslBuffer_AppendNumber(wrBuf,
-                               (cwSpec->nextSeqNum & 0xffff), 2) != SECSuccess) {
+    PRUint16 seq = cwSpec->nextSeqNum & MASK_SEQUENCE_NUMBER_LONG;
+    if (sslBuffer_AppendNumber(wrBuf, seq, sizeof(seq)) != SECSuccess) {
         return SECFailure;
     }
     *needsLength = PR_TRUE;
@@ -73,16 +100,22 @@ typedef struct DTLSHandshakeRecordEntryStr {
     PRUint16 messageSeq;      /* The handshake message sequence number. */
     PRUint32 offset;          /* The offset into the handshake message. */
     PRUint32 length;          /* The length of the fragment. */
+                              /* DTLS adds an epoch and sequence number to the TLS record header. */
     sslSequenceNumber record; /* The record (includes epoch). */
     PRBool acked;             /* Has this packet been acked. */
 } DTLSHandshakeRecordEntry;
+
+
+// The sequence number is set to be the low order 48
+//        bits of the 64 bit sequence number. 
+#define LENGTH_SEQ_NUMBER 48
 
 /* Combine the epoch and sequence number into a single value. */
 static inline sslSequenceNumber
 dtls_CombineSequenceNumber(DTLSEpoch epoch, sslSequenceNumber seqNum)
 {
     PORT_Assert(seqNum <= RECORD_SEQ_MAX);
-    return ((sslSequenceNumber)epoch << 48) | seqNum;
+    return ((sslSequenceNumber)epoch << LENGTH_SEQ_NUMBER) | seqNum;
 }
 
 SECStatus
@@ -126,6 +159,7 @@ dtls13_RememberFragment(sslSocket *ss,
     return SECSuccess;
 }
 
+/* RFC9147; section 7.1 */
 SECStatus
 dtls13_SendAck(sslSocket *ss)
 {
@@ -133,12 +167,15 @@ dtls13_SendAck(sslSocket *ss)
     SECStatus rv = SECSuccess;
     PRCList *cursor;
     PRInt32 sent;
-    unsigned int offset;
+    unsigned int offset = 0;
 
     SSL_TRC(10, ("%d: SSL3[%d]: Sending ACK",
                  SSL_GETPID(), ss->fd));
-
-    rv = sslBuffer_Skip(&buf, 2, &offset);
+    
+    // RecordNumber record_numbers<0..2^16-1>;
+    // 2 length bytes for the list of ACKS 
+    PRUint32 sizeOfListACK = 2; 
+    rv = sslBuffer_Skip(&buf, sizeOfListACK, &offset);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -149,13 +186,14 @@ dtls13_SendAck(sslSocket *ss)
 
         SSL_TRC(10, ("%d: SSL3[%d]: ACK for record=%llx",
                      SSL_GETPID(), ss->fd, entry->record));
-        rv = sslBuffer_AppendNumber(&buf, entry->record, 8);
+
+        rv = sslBuffer_AppendNumber(&buf, entry->record, sizeof(entry->record));
         if (rv != SECSuccess) {
             goto loser;
         }
     }
 
-    rv = sslBuffer_InsertLength(&buf, offset, 2);
+    rv = sslBuffer_InsertLength(&buf, offset, sizeOfListACK);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -185,7 +223,7 @@ dtls13_SendAckCb(sslSocket *ss)
     (void)dtls13_SendAck(ss);
 }
 
-/* Limits from draft-ietf-tls-dtls13-38; section 4.5.3. */
+/* Limits from RFC9147; section 4.5.3. */
 PRBool
 dtls13_AeadLimitReached(ssl3CipherSpec *spec)
 {
@@ -457,7 +495,7 @@ dtls13_HandleAck(sslSocket *ss, sslBuffer *databuf)
         return SECFailure;
     }
 
-    SSL_TRC(10, ("%d: SSL3[%d]: Handling ACK", SSL_GETPID(), ss->fd));
+    SSL_TRC(10, ("%d: SSL3[%x]: Handling ACK", SSL_GETPID(), ss->fd));
     rv = ssl3_ConsumeHandshakeNumber(ss, &length, 2, &b, &l);
     if (rv != SECSuccess) {
         goto loser;
@@ -482,7 +520,7 @@ dtls13_HandleAck(sslSocket *ss, sslBuffer *databuf)
 
             if (entry->record == seq) {
                 SSL_TRC(10, (
-                                "%d: SSL3[%d]: Marking record=%llx message %d offset %d length=%d as ACKed",
+                                "%d: SSL3[%x]: Marking record=%llx message %d offset %d length=%d as ACKed",
                                 SSL_GETPID(), ss->fd,
                                 seq, entry->messageSeq, entry->offset, entry->length));
                 entry->acked = PR_TRUE;
@@ -545,6 +583,8 @@ loser:
  * After the holddown period, the server assumes the client is happy
  * and discards the handshake read cipher suite.
  */
+
+
 void
 dtls13_HolddownTimerCb(sslSocket *ss)
 {
@@ -554,6 +594,7 @@ dtls13_HolddownTimerCb(sslSocket *ss)
     ssl_ClearPRCList(&ss->ssl3.hs.dtlsRcvdHandshake, NULL);
 }
 
+// RFC 9147. 4.2.3.  Record Number Encryption
 SECStatus
 dtls13_MaskSequenceNumber(sslSocket *ss, ssl3CipherSpec *spec,
                           PRUint8 *hdr, PRUint8 *cipherText, PRUint32 cipherTextLen)
@@ -585,10 +626,18 @@ dtls13_MaskSequenceNumber(sslSocket *ss, ssl3CipherSpec *spec,
         }
 #endif
 
+        /*
+        The encrypted sequence number is computed by XORing the leading bytes
+        of the mask with the on-the-wire representation of the sequence
+        number.  Decryption is accomplished by the same process.
+        */
+
+        PRUint32 maskSBitIsSet = 0x08;
         hdr[1] ^= mask[0];
-        if (hdr[0] & 0x08) {
+        if (hdr[0] & maskSBitIsSet) {
             hdr[2] ^= mask[1];
         }
+
     }
     return SECSuccess;
 }
@@ -596,6 +645,16 @@ dtls13_MaskSequenceNumber(sslSocket *ss, ssl3CipherSpec *spec,
 CK_MECHANISM_TYPE
 tls13_SequenceNumberEncryptionMechanism(SSLCipherAlgorithm bulkAlgorithm)
 {
+    /*
+    When the AEAD is based on AES, then the mask is generated by
+        computing AES-ECB on the first 16 bytes of the ciphertext:
+
+    When the AEAD is based on ChaCha20, then the mask is generated by
+    treating the first 4 bytes of the ciphertext as the block counter and
+    the next 12 bytes as the nonce, passing them to the ChaCha20 block
+    function.
+    */
+
     switch (bulkAlgorithm) {
         case ssl_calg_aes_gcm:
             return CKM_AES_ECB;
@@ -606,3 +665,4 @@ tls13_SequenceNumberEncryptionMechanism(SSLCipherAlgorithm bulkAlgorithm)
     }
     return CKM_INVALID_MECHANISM;
 }
+

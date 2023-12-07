@@ -525,6 +525,16 @@ ssl3_DecodeContentType(int msgType)
         case ssl_ct_ack:
             rv = "ack (26)";
             break;
+            /* 
+          AW: Not Implemented?  
+          RFC 9147. Figure 5: Demultiplexing DTLS 1.2 and DTLS 1.3 Records
+          Not implemented: 
+          31 < OCT < 64 -+--> |DTLSCiphertext  |
+                |                |    |(header bits    |
+                |      else      |    | start with 001)|
+                |       |        |   /+-------+--------+\
+                +-------+--------+            |    
+        */  
         default:
             snprintf(line, sizeof(line), "*UNKNOWN* record type! (%d)", msgType);
             rv = line;
@@ -13601,8 +13611,18 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText)
         /* All errors/alerts that might occur during unprotection are related
          * to invalid records (e.g. invalid formatting, length, MAC, ...).
          * Following the DTLS specification such errors/alerts SHOULD be
-         * dropped silently [RFC6347, Section 4.1.2.7].
+         * dropped silently [RFC9147, Section 4.5.2].
          * This is done below. */
+
+        /* TODO-AW: 
+            If DTLS is being carried over a transport that is resistant to
+            forgery (e.g., SCTP with SCTP-AUTH), then it is safer to send alerts
+            because an attacker will have difficulty forging a datagram that will
+            not be rejected by the transport layer. 
+                
+            Do we have a way to learn the transport?
+        */
+
         if ((IS_DTLS(ss) && !dtls13_AeadLimitReached(spec)) ||
             (!IS_DTLS(ss) && ss->sec.isServer &&
              ss->ssl3.hs.zeroRttIgnore == ssl_0rtt_ignore_trial)) {
