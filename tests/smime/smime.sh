@@ -1,4 +1,4 @@
-#! /bin/sh  
+#! /bin/bash
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -99,7 +99,7 @@ cms_sign()
   html_msg $? 0 "Create Detached Signature Alice (${HASH})" "."
 
   echo "cmsutil -D -i alice.d${SIG} -c alice.txt -d ${P_R_BOBDIR} "
-  ${PROFTOOL} ${BINDIR}/cmsutil -D -i alice.d${SIG} -c alice.txt -d ${P_R_BOBDIR} 
+  ${PROFTOOL} ${BINDIR}/cmsutil -D -i alice.d${SIG} -c alice.txt -d ${P_R_BOBDIR}
   html_msg $? 0 "Verifying Alice's Detached Signature (${HASH})" "."
 
   echo "$SCRIPTNAME: Signing Attached Message (${HASH}) ------------------"
@@ -122,7 +122,7 @@ cms_sign()
   html_msg $? 0 "Create Detached Signature Alice (ECDSA w/ ${HASH})" "."
 
   echo "cmsutil -D -i alice-ec.d${SIG} -c alice.txt -d ${P_R_BOBDIR} "
-  ${PROFTOOL} ${BINDIR}/cmsutil -D -i alice-ec.d${SIG} -c alice.txt -d ${P_R_BOBDIR} 
+  ${PROFTOOL} ${BINDIR}/cmsutil -D -i alice-ec.d${SIG} -c alice.txt -d ${P_R_BOBDIR}
   html_msg $? 0 "Verifying Alice's Detached Signature (ECDSA w/ ${HASH})" "."
 
   echo "$SCRIPTNAME: Signing Attached Message (ECDSA w/ ${HASH}) ------------------"
@@ -456,17 +456,33 @@ smime_p7()
   diff alice.txt alice_p7.data.sed
   html_msg $? 0 "Compare Decoded Enveloped Data and Original" "."
 
-  echo "p7sign -d ${P_R_ALICEDIR} -k Alice -i alice.txt -o alice.sig -p nss -e"
-  ${PROFTOOL} ${BINDIR}/p7sign -d ${P_R_ALICEDIR} -k Alice -i alice.txt -o alice.sig -p nss -e
-  html_msg $? 0 "Signing file for user Alice" "."
+  p7sig() {
+    echo "p7sign -d ${P_R_ALICEDIR} -k Alice -i alice.txt -o alice.sig -p nss -e $alg $usage"
+    ${PROFTOOL} ${BINDIR}/p7sign -d ${P_R_ALICEDIR} -k Alice -i alice.txt -o alice.sig -p nss -e $alg $usage
+    html_msg $? $1 "Signing file for user Alice $alg $usage$2" "."
+  }
+  p7sigver() {
+    p7sig 0 ''
 
-  echo "p7verify -d ${P_R_ALICEDIR} -c alice.txt -s alice.sig"
-  ${PROFTOOL} ${BINDIR}/p7verify -d ${P_R_ALICEDIR} -c alice.txt -s alice.sig
-  html_msg $? 0 "Verifying file delivered to user Alice" "."
+    echo "p7verify -d ${P_R_ALICEDIR} -c alice.txt -s alice.sig $usage"
+    ${PROFTOOL} ${BINDIR}/p7verify -d ${P_R_ALICEDIR} -c alice.txt -s alice.sig $usage
+    html_msg $? 0 "Verifying file delivered to user Alice $alg $usage" "."
+  }
+  # no md2 or md5 (SEC_ERROR_SIGNATURE_ALGORITHM_DISABLED)
+  for alg in "" "-a sha-1" "-a sha-256" "-a sha-384" "-a SHA-512" "-a SHA-224"; do
+    usage=; p7sigver
+    for usage in $(seq 0 12); do
+      case $usage in
+        2|3|6|10) usage="-u $usage"; p7sig 1 ' (inadequate)' ;; # SEC_ERROR_INADEQUATE_CERT_TYPE/SEC_ERROR_INADEQUATE_KEY_USAGE
+        7|9)                                                 ;; # not well-liked by cert_VerifyCertWithFlags() on debug builds
+        *)        usage="-u $usage"; p7sigver                ;;
+      esac
+    done
+  done
 }
 
 ############################## smime_main ##############################
-# local shell function to test basic signed and enveloped messages 
+# local shell function to test basic signed and enveloped messages
 # from 1 --> 2"
 ########################################################################
 smime_main()
@@ -552,7 +568,7 @@ smime_main()
 
   diff alice.txt alice.data4
   html_msg $? 0 "Compare Decoded with Multiple Email cert" "."
-  
+
   echo "$SCRIPTNAME: Sending CERTS-ONLY Message ------------------------------"
   echo "cmsutil -O -r \"Alice,bob@example.com,dave@example.com\" \\"
   echo "        -d ${P_R_ALICEDIR} > co.der"
@@ -588,7 +604,7 @@ smime_data_tb()
   CAOUT=tb/TestCA.pem
   cat ${P_R_CADIR}/TestCA.ca.cert | sed 's/\r$//' | ${BINDIR}/btoa -w c >> ${CAOUT}
 }
-  
+
 ############################## smime_cleanup ###########################
 # local shell function to finish this script (no exit since it might be
 # sourced)
