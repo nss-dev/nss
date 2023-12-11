@@ -16,17 +16,9 @@ fi
 # The setup is hardcoded and can't be changed easily.
 # This part is a helper We install dependencies manually to help.
 if [ "$(uname)" = "Darwin" ]; then
-    git clone https://chromium.googlesource.com/external/gyp
-    export PATH="${PATH}:${PWD}/gyp"
-    pip3 install --user six==1.15.0
-
-    mkdir ninja
-    cd ninja
-    curl -L -o ninja.zip https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-mac.zip
-    unzip ninja.zip
-    cd ..
-    export PATH="${PATH}:${PWD}/ninja"
-
+  python3 -m pip install --user gyp-next
+  python3 -m pip install --user ninja
+  export PATH="$(python3 -m site --user-base)/bin:${PATH}"
 fi
 
 # Build.
