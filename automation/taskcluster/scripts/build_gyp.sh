@@ -11,6 +11,24 @@ if [[ -f nss/nspr.patch && "$ALLOW_NSPR_PATCH" == "1" ]]; then
   popd
 fi
 
+# Dependencies
+# For MacOS we have hardware in the CI which doesn't allow us o deploy VMs.
+# The setup is hardcoded and can't be changed easily.
+# This part is a helper We install dependencies manually to help.
+if [ "$(uname)" = "Darwin" ]; then
+    git clone https://chromium.googlesource.com/external/gyp
+    export PATH="${PATH}:${PWD}/gyp"
+    pip3 install --user six==1.15.0
+
+    mkdir ninja
+    cd ninja
+    curl -L -o ninja.zip https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-mac.zip
+    unzip ninja.zip
+    cd ..
+    export PATH="${PATH}:${PWD}/ninja"
+
+fi
+
 # Build.
 nss/build.sh -g -v --enable-libpkix -Denable_draft_hpke=1 "$@"
 
