@@ -2588,7 +2588,7 @@ ssl_ListCount(PRCList *list)
  * to re-parsing the HelloRetryRequest message in order to create the transcript.
  *
  * Consequently, savedMsg should not be moved or mutated between these
- * function calls. 
+ * function calls.
  */
 SECStatus
 tls13_HandleHelloRetryRequest(sslSocket *ss, const PRUint8 *savedMsg,
@@ -4682,7 +4682,19 @@ tls13_ComputePskBinderHash(sslSocket *ss, PRUint8 *b, size_t length,
         }
     }
 
-    rv = PK11_DigestOp(ctx, b, length);
+    if (IS_DTLS(ss) && !ss->sec.isServer) {
+        /* Removing the unnecessary header fields.
+         * See ssl3_AppendHandshakeHeader.*/
+        PORT_Assert(length >= 12);
+        rv = PK11_DigestOp(ctx, b, 4);
+        if (rv != SECSuccess) {
+            ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+            goto loser;
+        }
+        rv = PK11_DigestOp(ctx, b + 12, length - 12);
+    } else {
+        rv = PK11_DigestOp(ctx, b, length);
+    }
     if (rv != SECSuccess) {
         ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
         goto loser;
@@ -6147,6 +6159,13 @@ tls13_MaybeDo0RTTHandshake(sslSocket *ss)
         if (rv != SECSuccess) {
             return SECFailure;
         }
+    }
+
+    /* If we have any message that was saved for later hashing.
+     * The updated hash is then used in tls13_DeriveEarlySecrets. */
+    rv = ssl3_MaybeUpdateHashWithSavedRecord(ss);
+    if (rv != SECSuccess) {
+        return SECFailure;
     }
 
     /* If we're trying 0-RTT, derive from the first PSK */
