@@ -5619,6 +5619,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
         }
         rv = ssl3_AppendHandshake(ss, chBuf.buf, chBuf.len);
     } else {
+        PORT_Assert(!IS_DTLS(ss));
         rv = tls13_ConstructClientHelloWithEch(ss, sid, !requestingResume, &chBuf, &extensionBuf);
         if (rv != SECSuccess) {
             goto loser; /* code set */
