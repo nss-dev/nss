@@ -49,6 +49,20 @@ TEST_P(TlsConnectGeneric, ServerNegotiateTls12) {
   Connect();
 }
 
+TEST_P(TlsConnectGeneric,
+       ClientOfferTls11_Tls13ServerNegotiateEachVersionOneByOne) {
+  // DTLS does not support 1.0
+  if (variant_ == ssl_variant_datagram) {
+    client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_1,
+                             SSL_LIBRARY_VERSION_TLS_1_3);
+  } else {
+    client_->SetVersionRange(SSL_LIBRARY_VERSION_TLS_1_0,
+                             SSL_LIBRARY_VERSION_TLS_1_3);
+  }
+  server_->SetVersionRange(version_, version_);
+  Connect();
+}
+
 // Test the ServerRandom version hack from
 // [draft-ietf-tls-tls13-11 Section 6.3.1.1].
 // The first three tests test for active tampering. The next
