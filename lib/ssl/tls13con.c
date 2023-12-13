@@ -4184,11 +4184,11 @@ tls13_WriteNonce(const unsigned char *ivIn, unsigned int ivInLen,
  * counter, but it doesn't know about the DTLS epic, so we add it here.
  */
 unsigned int
-tls13_SetupAeadIv(PRBool isDTLS, unsigned char *ivOut, unsigned char *ivIn,
+tls13_SetupAeadIv(PRBool isDTLS, SSL3ProtocolVersion v, unsigned char *ivOut, unsigned char *ivIn,
                   unsigned int offset, unsigned int ivLen, DTLSEpoch epoch)
 {
     PORT_Memcpy(ivOut, ivIn, ivLen);
-    if (isDTLS) {
+    if (isDTLS && v < SSL_LIBRARY_VERSION_TLS_1_3) {
         /* handle the tls 1.2 counter mode case, the epoc is copied
          * instead of xored. We accomplish this by clearing ivOut
          * before running xor. */
@@ -4199,6 +4199,7 @@ tls13_SetupAeadIv(PRBool isDTLS, unsigned char *ivOut, unsigned char *ivIn,
         ivOut[offset + 1] ^= (unsigned char)(epoch)&0xff;
         offset += 2;
     }
+
     return offset;
 }
 
@@ -5721,13 +5722,13 @@ tls13_FormatAdditionalData(
     SECStatus rv;
     sslBuffer buf = SSL_BUFFER_FIXED(aad, maxLength);
 
-    if (IS_DTLS(ss)) {
+    if (IS_DTLS_1_OR_12(ss)) {
         rv = sslBuffer_AppendNumber(&buf, epoch, 2);
         if (rv != SECSuccess) {
             return SECFailure;
         }
     }
-    rv = sslBuffer_AppendNumber(&buf, seqNum, IS_DTLS(ss) ? 6 : 8);
+    rv = sslBuffer_AppendNumber(&buf, seqNum, IS_DTLS_1_OR_12(ss) ? 6 : 8);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -5835,9 +5836,8 @@ tls13_ProtectRecord(sslSocket *ss,
             return SECFailure;
         }
         /* set up initial IV value */
-        ivOffset = tls13_SetupAeadIv(IS_DTLS(ss), ivOut, cwSpec->keyMaterial.iv,
+        ivOffset = tls13_SetupAeadIv(IS_DTLS(ss), cwSpec->version, ivOut, cwSpec->keyMaterial.iv,
                                      ivOffset, ivLen, cwSpec->epoch);
-
         rv = tls13_AEAD(cwSpec->cipherContext, PR_FALSE,
                         CKG_GENERATE_COUNTER_XOR, ivOffset * BPB,
                         ivOut, ivOut, ivLen,             /* iv */

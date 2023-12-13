@@ -408,8 +408,8 @@ SECStatus SSLInt_AdvanceWriteSeqNum(PRFileDesc *fd, PRUint64 to) {
       pk11ctxt->ivFixedBits = cipher_def->iv_size * BPB;
       pk11ctxt->ivGen = CKG_GENERATE_COUNTER;
     }
-    /* DTLS included the epoch in the fixed portion of the IV */
-    if (IS_DTLS(ss)) {
+    /* DTLS1.2 and below included the epoch in the fixed portion of the IV */
+    if (IS_DTLS_1_OR_12(ss)) {
       pk11ctxt->ivFixedBits += 2 * BPB;
     }
   }
