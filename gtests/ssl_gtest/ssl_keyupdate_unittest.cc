@@ -1097,19 +1097,17 @@ static const sslKeyUpdateReadEpochTV_t sslKeyUpdateReadEpochTV[26] = {
 };
 
 TEST_F(TlsConnectDatagram13, DTLS_EpochReconstruction) {
-  ssl3CipherSpec* current_spec =
-      (ssl3CipherSpec*)malloc(sizeof(ssl3CipherSpec));
-  current_spec->version = SSL_LIBRARY_VERSION_TLS_1_3;
-  PRUint8 header = 0x20;
+  PRUint8 header[5] = {0};
+  header[0] = 0x20;
+  DTLSEpoch epoch;
 
   for (size_t i = 0; i < 26; i++) {
-    current_spec->epoch = sslKeyUpdateReadEpochTV[i].epoch;
-    header = (header & 0xfc) | (sslKeyUpdateReadEpochTV[i].header & 0x3);
+    epoch = sslKeyUpdateReadEpochTV[i].epoch;
+    header[0] = (header[0] & 0xfc) | (sslKeyUpdateReadEpochTV[i].header & 0x3);
+    // ReadEpoch (dtlscon.c#1339) uses only spec->version and spec->epoch.
     ASSERT_EQ(sslKeyUpdateReadEpochTV[i].expected_reconstructed_epoch,
-              dtls_ReadEpoch(current_spec, &header));
+              dtls_ReadEpoch(SSL_LIBRARY_VERSION_TLS_1_3, epoch, header));
   }
-
-  free(current_spec);
 }
 
 // RFC 9147. A.2. Handshake Protocol
@@ -1262,6 +1260,10 @@ class TLSACKDamager : public TlsRecordFilter {
       return KEEP;
     }
 
+    if (plaintext.data() == NULL || plaintext.len() == 0) {
+      return KEEP;
+    }
+
     if (decrypting() && inner_content_type != ssl_ct_ack) {
       return KEEP;
     }
@@ -1275,6 +1277,11 @@ class TLSACKDamager : public TlsRecordFilter {
     uint64_t acks = plaintext.len() - ack_message_header_len;
     EXPECT_EQ((uint64_t)0, acks % ack_message_len_one_ACK);
     acks = acks / ack_message_len_one_ACK;
+
+    if (plaintext.len() <= ack_message_header_len + offset_ +
+                               (acks - 1) * ack_message_len_one_ACK) {
+      return KEEP;
+    }
 
     for (size_t i = 0; i < acks; i++) {
       // Here we replace the offset_-th byte after the header
