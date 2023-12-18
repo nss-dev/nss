@@ -612,7 +612,7 @@ dtls_RetransmitTimerExpiredCb(sslSocket *ss)
     if (!(ss->ssl3.hs.rtRetries % 3)) {
         /* If one of the messages was potentially greater than > MTU,
          * then downgrade. Do this every time we have retransmitted a
-         * message twice, per RFC 9147 Sec. 4.4 */
+         * message twice, per RFC 6347 Sec. 4.1.1 */
         dtls_SetMTU(ss, ss->ssl3.hs.maxMessageSent - 1);
     }
 
@@ -1124,7 +1124,7 @@ dtls_HandleHelloVerifyRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
      * match (Section 4.2.1) in the HelloVerifyRequest and the
      * ServerHello.
      *
-     * RFC 6347 (Section 4.2.1) suggests (SHOULD) that servers always use 1.0 in
+     * RFC 6347 suggests (SHOULD) that servers always use 1.0 in
      * HelloVerifyRequest and allows the versions not to match,
      * especially when 1.2 is being negotiated.
      *
