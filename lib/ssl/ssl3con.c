@@ -1991,7 +1991,7 @@ ssl3_ComputeRecordMAC(
  *
  * On entry:
  *   originalLen >= inputLen >= MAC size
- */
+*/
 static SECStatus
 ssl3_ComputeRecordMACConstantTime(
     ssl3CipherSpec *spec,
@@ -3253,9 +3253,9 @@ ssl3_SendChangeCipherSpecs(sslSocket *ss)
 
 /* Called from ssl3_HandleRecord.
 ** Caller must hold both RecvBuf and Handshake locks.
-*
-* Acquires and releases spec write lock, to protect switching the current
-* and pending write spec pointers.
+ *
+ * Acquires and releases spec write lock, to protect switching the current
+ * and pending write spec pointers.
 */
 static SECStatus
 ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
@@ -4068,7 +4068,6 @@ ssl3_UpdatePostHandshakeHashes(sslSocket *ss, const unsigned char *b, unsigned i
 SECStatus
 ssl3_AppendHandshakeHeaderAndStashSeqNum(sslSocket *ss, SSLHandshakeType t, PRUint32 length, PRUint64 *sendMessageSeqOut)
 {
-    PORT_Assert(t != ssl_hs_client_hello);
     SECStatus rv;
 
     /* If we already have a message in place, we need to enqueue it.
@@ -4095,16 +4094,9 @@ ssl3_AppendHandshakeHeaderAndStashSeqNum(sslSocket *ss, SSLHandshakeType t, PRUi
     }
 
     if (IS_DTLS(ss)) {
-        /* RFC 9147. 5.2.  DTLS Handshake Message Format.
-         * In DTLS 1.3, the message transcript is computed over the original TLS
-         * 1.3-style Handshake messages without the message_seq,
-         * fragment_offset, and fragment_length values.  Note that this is a
-         * change from DTLS 1.2 where those values were included in the transcript. */
-        PRBool suppressHash = ss->version == SSL_LIBRARY_VERSION_TLS_1_3 ? PR_TRUE : PR_FALSE;
-
         /* Note that we make an unfragmented message here. We fragment in the
          * transmission code, if necessary */
-        rv = ssl3_AppendHandshakeNumberSuppressHash(ss, ss->ssl3.hs.sendMessageSeq, 2, suppressHash);
+        rv = ssl3_AppendHandshakeNumber(ss, ss->ssl3.hs.sendMessageSeq, 2);
         if (rv != SECSuccess) {
             return rv; /* error code set by AppendHandshake, if applicable. */
         }
@@ -4116,13 +4108,13 @@ ssl3_AppendHandshakeHeaderAndStashSeqNum(sslSocket *ss, SSLHandshakeType t, PRUi
         ss->ssl3.hs.sendMessageSeq++;
 
         /* 0 is the fragment offset, because it's not fragmented yet */
-        rv = ssl3_AppendHandshakeNumberSuppressHash(ss, 0, 3, suppressHash);
+        rv = ssl3_AppendHandshakeNumber(ss, 0, 3);
         if (rv != SECSuccess) {
             return rv; /* error code set by AppendHandshake, if applicable. */
         }
 
         /* Fragment length -- set to the packet length because not fragmented */
-        rv = ssl3_AppendHandshakeNumberSuppressHash(ss, length, 3, suppressHash);
+        rv = ssl3_AppendHandshakeNumber(ss, length, 3);
         if (rv != SECSuccess) {
             return rv; /* error code set by AppendHandshake, if applicable. */
         }
@@ -5229,7 +5221,7 @@ ssl3_CreateClientHelloPreamble(sslSocket *ss, const sslSessionID *sid,
 
     if (IS_DTLS(ss)) {
         /* This cookieLen applies to the cookie that appears in the DTLS
-         * ClientHello, which isn't used in DTLS 1.3. */
+        * ClientHello, which isn't used in DTLS 1.3. */
         rv = sslBuffer_AppendVariable(&constructed, ss->ssl3.hs.cookie.data,
                                       ss->ssl3.hs.helloRetry ? 0 : ss->ssl3.hs.cookie.len,
                                       1);
@@ -5624,25 +5616,7 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
                 goto loser;
             }
         }
-
-        /* As here the function takes the full message and hashes it in one go,
-         * For DTLS1.3, we skip hashing the unnecessary header fields.
-         * See ssl3_AppendHandshakeHeader. */
-        if (IS_DTLS(ss) && ss->vrange.max >= SSL_LIBRARY_VERSION_TLS_1_3) {
-            rv = ssl3_AppendHandshakeSuppressHash(ss, chBuf.buf, chBuf.len);
-            if (rv != SECSuccess) {
-                goto loser; /* code set */
-            }
-            if (!ss->firstHsDone) {
-                PORT_Assert(ss->ssl3.hs.dtls13ClientMessageBuffer.len == 0);
-                sslBuffer_Clear(&ss->ssl3.hs.dtls13ClientMessageBuffer);
-                /* Here instead of computing the hash, we copy the data to a buffer.*/
-                rv = sslBuffer_Append(&ss->ssl3.hs.dtls13ClientMessageBuffer, chBuf.buf, chBuf.len);
-            }
-        } else {
-            rv = ssl3_AppendHandshake(ss, chBuf.buf, chBuf.len);
-        }
-
+        rv = ssl3_AppendHandshake(ss, chBuf.buf, chBuf.len);
     } else {
         PORT_Assert(!IS_DTLS(ss));
         rv = tls13_ConstructClientHelloWithEch(ss, sid, !requestingResume, &chBuf, &extensionBuf);
@@ -7102,17 +7076,6 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
 
     /* Read supported_versions if present. */
     rv = tls13_ClientReadSupportedVersion(ss);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
-
-    /* RFC 9147. 5.2. 
-     * DTLS Handshake Message Format states the difference between the computation
-     * of the transcript if the version is DTLS1.2 or DTLS1.3.
-     *
-     * At this moment we are sure which version
-     * we are planning to use during the connection, so we can compute the hash. */
-    rv = ssl3_MaybeUpdateHashWithSavedRecord(ss);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -11816,7 +11779,7 @@ ssl3_AlwaysFail(sslSocket *ss)
 }
 
 /* Caller must hold 1stHandshakeLock.
- */
+*/
 SECStatus
 ssl3_AuthCertificateComplete(sslSocket *ss, PRErrorCode error)
 {
@@ -12197,10 +12160,10 @@ ssl3_CacheWrappedSecret(sslSocket *ss, sslSessionID *sid,
                                       keyLength, pwArg);
             if (wrappingKey) {
                 /* The thread safety characteristics of PK11_[SG]etWrapKey is
-                 * abominable.  This protects against races in calling
-                 * PK11_SetWrapKey by dropping and re-acquiring the canonical
-                 * value once it is set.  The mutex in PK11_[SG]etWrapKey will
-                 * ensure that races produce the same value in the end. */
+                * abominable.  This protects against races in calling
+                * PK11_SetWrapKey by dropping and re-acquiring the canonical
+                * value once it is set.  The mutex in PK11_[SG]etWrapKey will
+                * ensure that races produce the same value in the end. */
                 PK11_SetWrapKey(symKeySlot, wrapKeyIndex, wrappingKey);
                 PK11_FreeSymKey(wrappingKey);
                 wrappingKey = PK11_GetWrapKey(symKeySlot, wrapKeyIndex,
@@ -12467,15 +12430,15 @@ ssl3_FinishHandshake(sslSocket *ss)
     }
 
     /* RFC 5077 Section 3.3: "The client MUST NOT treat the ticket as valid
-     * until it has verified the server's Finished message." When the server
-     * sends a NewSessionTicket in a resumption handshake, we must wait until
-     * the handshake is finished (we have verified the server's Finished
-     * AND the server's certificate) before we update the ticket in the sid.
-     *
-     * This must be done before we call ssl_CacheSessionID(ss)
-     * because CacheSID requires the session ticket to already be set, and also
-     * because of the lazy lock creation scheme used by CacheSID and
-     * ssl3_SetSIDSessionTicket. */
+    * until it has verified the server's Finished message." When the server
+    * sends a NewSessionTicket in a resumption handshake, we must wait until
+    * the handshake is finished (we have verified the server's Finished
+    * AND the server's certificate) before we update the ticket in the sid.
+    *
+    * This must be done before we call ssl_CacheSessionID(ss)
+    * because CacheSID requires the session ticket to already be set, and also
+    * because of the lazy lock creation scheme used by CacheSID and
+    * ssl3_SetSIDSessionTicket. */
     if (ss->ssl3.hs.receivedNewSessionTicket) {
         PORT_Assert(!ss->sec.isServer);
         if (sidRv == SECSuccess) {
@@ -12523,7 +12486,7 @@ ssl_HashHandshakeMessageInt(sslSocket *ss, SSLHandshakeType ct,
         return rv; /* err code already set. */
 
     /* Extra data to simulate a complete DTLS handshake fragment */
-    if (IS_DTLS_1_OR_12(ss)) {
+    if (IS_DTLS(ss)) {
         /* Sequence number */
         dtlsData[0] = MSB(dtlsSeq);
         dtlsData[1] = LSB(dtlsSeq);
@@ -13249,7 +13212,7 @@ ssl3_UnprotectRecord(sslSocket *ss,
         }
         rv = tls13_AEAD(spec->cipherContext, PR_TRUE,
                         CKG_NO_GENERATE, 0,       /* iv generator params
-                                                   * (not used in decrypt)*/
+                                                        * (not used in decrypt)*/
                         iv,                       /* iv in */
                         NULL,                     /* iv out */
                         ivLen + explicitNonceLen, /* full iv length */
@@ -14171,9 +14134,6 @@ ssl3_DestroySSL3Info(sslSocket *ss)
     }
     if (ss->ssl3.hs.echInnerMessages.buf) {
         sslBuffer_Clear(&ss->ssl3.hs.echInnerMessages);
-    }
-    if (ss->ssl3.hs.dtls13ClientMessageBuffer.buf) {
-        sslBuffer_Clear(&ss->ssl3.hs.dtls13ClientMessageBuffer);
     }
 
     /* free the SSL3Buffer (msg_body) */
