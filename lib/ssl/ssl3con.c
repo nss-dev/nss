@@ -7134,7 +7134,12 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
         goto alert_loser;
     }
 
-    if (ss->opt.enableHelloDowngradeCheck) {
+    if (ss->opt.enableHelloDowngradeCheck
+#ifdef DTLS_1_3_DRAFT_VERSION
+        /* Disable this check while we are on draft DTLS 1.3 versions. */
+        && !IS_DTLS(ss)
+#endif
+    ) {
         rv = ssl_CheckServerRandom(ss);
         if (rv != SECSuccess) {
             desc = illegal_parameter;
@@ -8816,6 +8821,11 @@ ssl_GenerateServerRandom(sslSocket *ss)
     if (ss->version == ss->vrange.max) {
         return SECSuccess;
     }
+#ifdef DTLS_1_3_DRAFT_VERSION
+    if (IS_DTLS(ss)) {
+        return SECSuccess;
+    }
+#endif
 
     /*
      * [RFC 8446 Section 4.1.3].

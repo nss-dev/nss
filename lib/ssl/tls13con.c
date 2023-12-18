@@ -6326,7 +6326,21 @@ PRUint16
 tls13_EncodeVersion(SSL3ProtocolVersion version, SSLProtocolVariant variant)
 {
     if (variant == ssl_variant_datagram) {
-        return dtls_TLSVersionToDTLSVersion(version);
+#ifdef DTLS_1_3_DRAFT_VERSION
+        switch (version) {
+            case SSL_LIBRARY_VERSION_TLS_1_3:
+                return 0x7f00 | DTLS_1_3_DRAFT_VERSION;
+            case SSL_LIBRARY_VERSION_TLS_1_2:
+                return SSL_LIBRARY_VERSION_DTLS_1_2_WIRE;
+            case SSL_LIBRARY_VERSION_TLS_1_1:
+                /* TLS_1_1 maps to DTLS_1_0, see sslproto.h. */
+                return SSL_LIBRARY_VERSION_DTLS_1_0_WIRE;
+            default:
+                PORT_Assert(0);
+        }
+#else
+        return dtls_TLSVersionToDTLSVersion();
+#endif
     }
     /* Stream-variant encodings do not change. */
     return (PRUint16)version;

@@ -361,7 +361,7 @@ TEST_F(DtlsConnectTest, DtlsSupportedVersionsEncoding) {
   ASSERT_EQ(7U, capture->extension().len());
   uint32_t version = 0;
   ASSERT_TRUE(capture->extension().Read(1, 2, &version));
-  EXPECT_EQ(SSL_LIBRARY_VERSION_DTLS_1_3_WIRE, static_cast<int>(version));
+  EXPECT_EQ(0x7f00 | DTLS_1_3_DRAFT_VERSION, static_cast<int>(version));
   ASSERT_TRUE(capture->extension().Read(3, 2, &version));
   EXPECT_EQ(SSL_LIBRARY_VERSION_DTLS_1_2_WIRE, static_cast<int>(version));
   ASSERT_TRUE(capture->extension().Read(5, 2, &version));
@@ -371,7 +371,7 @@ TEST_F(DtlsConnectTest, DtlsSupportedVersionsEncoding) {
 // Verify the DTLS 1.3 supported_versions interop workaround.
 TEST_F(DtlsConnectTest, Dtls13VersionWorkaround) {
   static const uint16_t kExpectVersionsWorkaround[] = {
-      SSL_LIBRARY_VERSION_DTLS_1_3_WIRE, SSL_LIBRARY_VERSION_DTLS_1_2_WIRE,
+      0x7f00 | DTLS_1_3_DRAFT_VERSION, SSL_LIBRARY_VERSION_DTLS_1_2_WIRE,
       SSL_LIBRARY_VERSION_TLS_1_2, SSL_LIBRARY_VERSION_DTLS_1_0_WIRE,
       SSL_LIBRARY_VERSION_TLS_1_1};
   const int min_ver = SSL_LIBRARY_VERSION_TLS_1_1,
