@@ -561,11 +561,6 @@ class TlsAgentTestClient : public TlsAgentTestBase,
 
 class TlsAgentTestClient13 : public TlsAgentTestClient {};
 
-class TlsAgentStreamTestClient13 : public TlsAgentTestClient {
- public:
-  TlsAgentStreamTestClient13() { variant_ = ssl_variant_stream; }
-};
-
 class TlsAgentStreamTestClient : public TlsAgentTestBase {
  public:
   TlsAgentStreamTestClient()
