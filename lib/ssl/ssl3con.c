@@ -13395,7 +13395,7 @@ ssl3_GetCipherSpec(sslSocket *ss, SSL3Ciphertext *cText)
     if (!IS_DTLS(ss)) {
         return crSpec;
     }
-    epoch = dtls_ReadEpoch(crSpec->version, crSpec->epoch, cText->hdr);
+    epoch = dtls_ReadEpoch(crSpec, cText->hdr);
     if (crSpec->epoch == epoch) {
         return crSpec;
     }

@@ -1335,16 +1335,16 @@ dtls_IsDtls13Ciphertext(SSL3ProtocolVersion version, PRUint8 firstOctet)
 }
 
 DTLSEpoch
-dtls_ReadEpoch(const SSL3ProtocolVersion version, const DTLSEpoch specEpoch, const PRUint8 *hdr)
+dtls_ReadEpoch(const ssl3CipherSpec *crSpec, const PRUint8 *hdr)
 {
-    if (dtls_IsLongHeader(version, hdr[0])) {
+    if (dtls_IsLongHeader(crSpec->version, hdr[0])) {
         return ((DTLSEpoch)hdr[3] << 8) | hdr[4];
     }
 
-    DTLSEpoch epoch = (specEpoch & ~3) | (hdr[0] & 3);
+    DTLSEpoch epoch = (crSpec->epoch & ~3) | (hdr[0] & 3);
     /* The epoch cannot be higher than the current read epoch,
         though guard against underflow. */
-    if (epoch > specEpoch && epoch > 4) {
+    if (epoch > crSpec->epoch && epoch > 4) {
         epoch -= 4;
     }
 
