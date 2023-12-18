@@ -690,11 +690,13 @@ tls13_UpdateTrafficKeys(sslSocket *ss, SSLSecretDirection direction)
         ss->secretCallback(ss->fd, epoch, direction, updatedSecret,
                            ss->secretCallbackArg);
     }
+
     rv = tls13_SetCipherSpec(ss, epoch, direction, PR_FALSE);
     if (rv != SECSuccess) {
         FATAL_ERROR(ss, SEC_ERROR_LIBRARY_FAILURE, internal_error);
         return SECFailure;
     }
+
     return SECSuccess;
 }
 
@@ -723,12 +725,8 @@ tls13_SendKeyUpdate(sslSocket *ss, tls13KeyUpdateRequest request, PRBool buffer)
     }
 
     if (IS_DTLS(ss)) {
-        rv = dtls13_MaybeSendKeyUpdate(ss, request, buffer);
-        if (rv != SECSuccess) {
-            /* Error code set already. */
-            return SECFailure;
-        }
-        return rv;
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
     }
 
     ssl_GetXmitBufLock(ss);
@@ -809,8 +807,6 @@ SSLExp_KeyUpdate(PRFileDesc *fd, PRBool requestUpdate)
  *     KeyUpdateRequest request_update;
  * } KeyUpdate;
  */
-
-/* If we're handing the DTLS1.3 message, we silently fail if there is a parsing problem. */
 static SECStatus
 tls13_HandleKeyUpdate(sslSocket *ss, PRUint8 *b, unsigned int length)
 {
@@ -850,10 +846,6 @@ tls13_HandleKeyUpdate(sslSocket *ss, PRUint8 *b, unsigned int length)
         return SECFailure;
     }
 
-    if (IS_DTLS(ss)) {
-        return dtls13_HandleKeyUpdate(ss, b, length, update);
-    }
-
     rv = tls13_UpdateTrafficKeys(ss, ssl_secret_read);
     if (rv != SECSuccess) {
         return SECFailure; /* Error code set by tls13_UpdateTrafficKeys. */
@@ -863,8 +855,8 @@ tls13_HandleKeyUpdate(sslSocket *ss, PRUint8 *b, unsigned int length)
         PRBool sendUpdate;
         if (ss->ssl3.clientCertRequested) {
             /* Post-handshake auth is in progress; defer sending a key update. */
-            ss->ssl3.hs.keyUpdateDeferred = PR_TRUE;
-            ss->ssl3.hs.deferredKeyUpdateRequest = update_not_requested;
+            ss->ssl3.keyUpdateDeferred = PR_TRUE;
+            ss->ssl3.deferredKeyUpdateRequest = update_not_requested;
             sendUpdate = PR_FALSE;
         } else if (ss->ssl3.peerRequestedKeyUpdate) {
             /* Only send an update if we have sent with the current spec.  This
@@ -5012,13 +5004,13 @@ tls13_ServerHandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
 
         ss->ssl3.clientCertRequested = PR_FALSE;
 
-        if (ss->ssl3.hs.keyUpdateDeferred) {
-            rv = tls13_SendKeyUpdate(ss, ss->ssl3.hs.deferredKeyUpdateRequest,
+        if (ss->ssl3.keyUpdateDeferred) {
+            rv = tls13_SendKeyUpdate(ss, ss->ssl3.deferredKeyUpdateRequest,
                                      PR_FALSE);
             if (rv != SECSuccess) {
                 return SECFailure; /* error is set. */
             }
-            ss->ssl3.hs.keyUpdateDeferred = PR_FALSE;
+            ss->ssl3.keyUpdateDeferred = PR_FALSE;
         }
 
         return SECSuccess;

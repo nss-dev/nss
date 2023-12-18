@@ -724,13 +724,8 @@ typedef struct SSL3HandshakeStateStr {
     dtlsTimer *rtTimer;        /* Retransmit timer. */
     dtlsTimer *ackTimer;       /* Ack timer (DTLS 1.3 only). */
     dtlsTimer *hdTimer;        /* Read cipher holddown timer (DLTS 1.3 only) */
-
-    /* KeyUpdate state machines */
-    PRBool isKeyUpdateInProgress; /* The status of KeyUpdate -: {true == started, false == finished}. */
-    PRBool allowPreviousEpoch;    /* The flag whether the previous epoch messages are allowed or not: {true == allowed, false == forbidden}. */
-
-    PRUint32 rtRetries;  /* The retry counter */
-    SECItem srvVirtName; /* for server: name that was negotiated
+    PRUint32 rtRetries;        /* The retry counter */
+    SECItem srvVirtName;       /* for server: name that was negotiated
                                     * with a client. For client - is
                                     * always set to NULL.*/
 
@@ -791,15 +786,6 @@ typedef struct SSL3HandshakeStateStr {
     /* TLS 1.3 GREASE state. */
     tls13ClientGrease *grease;
 
-    /*
-        KeyUpdate variables:
-        This is true if we deferred sending a key update as
-     * post-handshake auth is in progress. */
-    PRBool keyUpdateDeferred;
-    tls13KeyUpdateRequest deferredKeyUpdateRequest;
-    /* The identifier of the keyUpdate message that is sent but not yet acknowledged */
-    PRUint64 dtlsHandhakeKeyUpdateMessage;
-
     /* ClientHello Extension Permutation state. */
     sslExtensionBuilder *chExtensionPermutation;
 } SSL3HandshakeState;
@@ -833,6 +819,11 @@ struct ssl3StateStr {
     /* This is true after the peer requests a key update; false after a key
      * update is initiated locally. */
     PRBool peerRequestedKeyUpdate;
+
+    /* This is true if we deferred sending a key update as
+     * post-handshake auth is in progress. */
+    PRBool keyUpdateDeferred;
+    tls13KeyUpdateRequest deferredKeyUpdateRequest;
 
     /* This is true after the server requests client certificate;
      * false after the client certificate is received.  Used by the

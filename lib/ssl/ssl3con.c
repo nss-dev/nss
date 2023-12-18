@@ -525,6 +525,16 @@ ssl3_DecodeContentType(int msgType)
         case ssl_ct_ack:
             rv = "ack (26)";
             break;
+            /* 
+          AW: Not Implemented?  
+          RFC 9147. Figure 5: Demultiplexing DTLS 1.2 and DTLS 1.3 Records
+          Not implemented: 
+          31 < OCT < 64 -+--> |DTLSCiphertext  |
+                |                |    |(header bits    |
+                |      else      |    | start with 001)|
+                |       |        |   /+-------+--------+\
+                +-------+--------+            |    
+        */  
         default:
             snprintf(line, sizeof(line), "*UNKNOWN* record type! (%d)", msgType);
             rv = line;
@@ -2344,6 +2354,7 @@ ssl_ProtectRecord(sslSocket *ss, ssl3CipherSpec *cwSpec, SSLContentType ct,
     PORT_Assert(cwSpec->cipherDef->max_records <= RECORD_SEQ_MAX);
 
     if (cwSpec->nextSeqNum >= cwSpec->cipherDef->max_records) {
+        PORT_Assert(cwSpec->version < SSL_LIBRARY_VERSION_TLS_1_3);
         SSL_TRC(3, ("%d: SSL[-]: write sequence number at limit 0x%0llx",
                     SSL_GETPID(), cwSpec->nextSeqNum));
         PORT_SetError(SSL_ERROR_TOO_MANY_RECORDS);
@@ -4061,13 +4072,8 @@ ssl3_UpdatePostHandshakeHashes(sslSocket *ss, const unsigned char *b, unsigned i
     return rv;
 }
 
-/* The next two functions serve to append the handshake header.
-   The first one additionally writes to seqNumberBuffer
-   the sequence number of the message we are generating.
-   This function is used when generating the keyUpdate message in dtls13_enqueueKeyUpdateMessage.
-*/
 SECStatus
-ssl3_AppendHandshakeHeaderAndStashSeqNum(sslSocket *ss, SSLHandshakeType t, PRUint32 length, PRUint64 *sendMessageSeqOut)
+ssl3_AppendHandshakeHeader(sslSocket *ss, SSLHandshakeType t, PRUint32 length)
 {
     SECStatus rv;
 
@@ -4101,11 +4107,6 @@ ssl3_AppendHandshakeHeaderAndStashSeqNum(sslSocket *ss, SSLHandshakeType t, PRUi
         if (rv != SECSuccess) {
             return rv; /* error code set by AppendHandshake, if applicable. */
         }
-        /* In case if we provide a buffer for the sequence message,
-        we write down sendMessageSeq to the buffer. */
-        if (sendMessageSeqOut != NULL) {
-            *sendMessageSeqOut = ss->ssl3.hs.sendMessageSeq;
-        }
         ss->ssl3.hs.sendMessageSeq++;
 
         /* 0 is the fragment offset, because it's not fragmented yet */
@@ -4122,15 +4123,6 @@ ssl3_AppendHandshakeHeaderAndStashSeqNum(sslSocket *ss, SSLHandshakeType t, PRUi
     }
 
     return rv; /* error code set by AppendHandshake, if applicable. */
-}
-
-/* The function calls the ssl3_AppendHandshakeHeaderAndStashSeqNum implemented above.
-   As in the majority of the cases we do not need the last parameter,
-   we separate out this function. */
-SECStatus
-ssl3_AppendHandshakeHeader(sslSocket *ss, SSLHandshakeType t, PRUint32 length)
-{
-    return ssl3_AppendHandshakeHeaderAndStashSeqNum(ss, t, length, NULL);
 }
 
 /**************************************************************************
@@ -13417,8 +13409,8 @@ ssl3_GetCipherSpec(sslSocket *ss, SSL3Ciphertext *cText)
             return newSpec;
         }
     }
-    SSL_TRC(10, ("%d: DTLS[%d]: %s couldn't find cipherspec from epoch %d",
-                 SSL_GETPID(), ss->fd, SSL_ROLE(ss), epoch));
+    SSL_TRC(10, ("%d: DTLS[%d]: Couldn't find cipherspec from epoch %d",
+                 SSL_GETPID(), ss->fd, epoch));
     return NULL;
 }
 
@@ -13622,6 +13614,15 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText)
          * dropped silently [RFC9147, Section 4.5.2].
          * This is done below. */
 
+        /* TODO-AW: 
+            If DTLS is being carried over a transport that is resistant to
+            forgery (e.g., SCTP with SCTP-AUTH), then it is safer to send alerts
+            because an attacker will have difficulty forging a datagram that will
+            not be rejected by the transport layer. 
+                
+            Do we have a way to learn the transport?
+        */
+
         if ((IS_DTLS(ss) && !dtls13_AeadLimitReached(spec)) ||
             (!IS_DTLS(ss) && ss->sec.isServer &&
              ss->ssl3.hs.zeroRttIgnore == ssl_0rtt_ignore_trial)) {
@@ -13662,27 +13663,9 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText)
     /* IMPORTANT: We are in DTLS 1.3 mode and we have processed something
      * from the wrong epoch. Divert to a divert processing function to make
      * sure we don't accidentally use the data unsafely. */
-
-    /* We temporary allowed reading the records from the previous epoch n-1
-    until the moment we get a message from the new epoch n. */
-
     if (outOfOrderSpec) {
         PORT_Assert(IS_DTLS(ss) && ss->version >= SSL_LIBRARY_VERSION_TLS_1_3);
-        ssl_GetSSL3HandshakeLock(ss);
-        if (ss->ssl3.hs.allowPreviousEpoch && spec->epoch == ss->ssl3.crSpec->epoch - 1) {
-            SSL_TRC(30, ("%d: DTLS13[%d]: Out of order message %d is accepted",
-                         SSL_GETPID(), ss->fd, spec->epoch));
-            ssl_ReleaseSSL3HandshakeLock(ss);
-        } else {
-            ssl_ReleaseSSL3HandshakeLock(ss);
-            return dtls13_HandleOutOfEpochRecord(ss, spec, rType, plaintext);
-        }
-    } else {
-        ssl_GetSSL3HandshakeLock(ss);
-        /* Forbid (application) messages from the previous epoch.
-           From now, messages that arrive out of order will be discarded. */
-        ss->ssl3.hs.allowPreviousEpoch = PR_FALSE;
-        ssl_ReleaseSSL3HandshakeLock(ss);
+        return dtls13_HandleOutOfEpochRecord(ss, spec, rType, plaintext);
     }
 
     /* Check the length of the plaintext. */

@@ -495,6 +495,7 @@ dtls_HandleHandshake(sslSocket *ss, DTLSEpoch epoch, sslSequenceNumber seqNum,
     if (rv != SECSuccess) {
         goto loser;
     }
+
     rv = dtls13_SetupAcks(ss);
 
 loser:
@@ -576,9 +577,8 @@ dtls_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags)
     PORT_Assert(ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
 
     rv = dtls_StageHandshakeMessage(ss);
-    if (rv != SECSuccess) {
+    if (rv != SECSuccess)
         return rv;
-    }
 
     if (!(flags & ssl_SEND_FLAG_FORCE_INTO_BUFFER)) {
         rv = dtls_TransmitMessageFlight(ss);
@@ -839,6 +839,7 @@ dtls_TransmitMessageFlight(sslSocket *ss)
          * to full.  This produces fewer records, but it means that messages can
          * be quite fragmented.  Adding an extra flush here would push new
          * messages into new records and reduce fragmentation. */
+
         if (msg->type == ssl_ct_handshake) {
             rv = dtls_FragmentHandshake(ss, msg);
         } else {
@@ -1337,17 +1338,37 @@ dtls_IsDtls13Ciphertext(SSL3ProtocolVersion version, PRUint8 firstOctet)
 DTLSEpoch
 dtls_ReadEpoch(const ssl3CipherSpec *crSpec, const PRUint8 *hdr)
 {
+    DTLSEpoch epoch;
+    DTLSEpoch maxEpoch;
+    DTLSEpoch partial;
+
     if (dtls_IsLongHeader(crSpec->version, hdr[0])) {
         return ((DTLSEpoch)hdr[3] << 8) | hdr[4];
     }
 
-    DTLSEpoch epoch = (crSpec->epoch & ~3) | (hdr[0] & 3);
-    /* The epoch cannot be higher than the current read epoch,
-        though guard against underflow. */
-    if (epoch > crSpec->epoch && epoch > 4) {
-        epoch -= 4;
+    /* A lot of how we recover the epoch here will depend on how we plan to
+     * manage KeyUpdate.  In the case that we decide to install a new read spec
+     * as a KeyUpdate is handled, crSpec will always be the highest epoch we can
+     * possibly receive.  That makes this easier to manage.
+     */
+    if (dtls_IsDtls13Ciphertext(crSpec->version, hdr[0])) {
+        /* TODO(ekr@rtfm.com: do something with the two-bit epoch. */
+        /* Use crSpec->epoch, or crSpec->epoch - 1 if the last bit differs. */
+        return crSpec->epoch - ((hdr[0] ^ crSpec->epoch) & 0x3);
     }
 
+    /* dtls_GatherData should ensure that this works. */
+    PORT_Assert(hdr[0] == ssl_ct_application_data);
+
+    /* This uses the same method as is used to recover the sequence number in
+     * dtls_ReadSequenceNumber, except that the maximum value is set to the
+     * current epoch. */
+    partial = hdr[1] >> 6;
+    maxEpoch = PR_MAX(crSpec->epoch, 3);
+    epoch = (maxEpoch & 0xfffc) | partial;
+    if (partial > (maxEpoch & 0x03)) {
+        epoch -= 4;
+    }
     return epoch;
 }
 

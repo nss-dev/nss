@@ -1116,11 +1116,8 @@ void TlsAgent::Handshake() {
     return;
   }
 
-  if (err != 0) {
-    LOG("Handshake failed with error " << PORT_ErrorToName(err) << ": "
-                                       << PORT_ErrorToString(err));
-  }
-
+  LOG("Handshake failed with error " << PORT_ErrorToName(err) << ": "
+                                     << PORT_ErrorToString(err));
   error_code_ = err;
   SetState(STATE_ERROR);
 }
@@ -1239,14 +1236,9 @@ void TlsAgent::ReadBytes(size_t amount) {
       PRErrorCode err = 0;
       if (rv < 0) {
         err = PR_GetError();
-        if (err != 0) {
-          LOG("Read error " << PORT_ErrorToName(err) << ": "
-                            << PORT_ErrorToString(err));
-        }
+        LOG("Read error " << PORT_ErrorToName(err) << ": "
+                          << PORT_ErrorToString(err));
         if (err != PR_WOULD_BLOCK_ERROR && expect_readwrite_error_) {
-          if (ErrorIsFatal(err)) {
-            SetState(STATE_ERROR);
-          }
           error_code_ = err;
           expect_readwrite_error_ = false;
         }
