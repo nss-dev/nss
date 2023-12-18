@@ -1731,10 +1731,10 @@ ssl3_BuildRecordPseudoHeader(DTLSEpoch epoch,
                              SSL3ProtocolVersion version,
                              PRBool isDTLS,
                              int length,
-                             sslBuffer *buf, SSL3ProtocolVersion v)
+                             sslBuffer *buf)
 {
     SECStatus rv;
-    if (isDTLS && v < SSL_LIBRARY_VERSION_TLS_1_3) {
+    if (isDTLS) {
         rv = sslBuffer_AppendNumber(buf, epoch, 2);
         if (rv != SECSuccess) {
             return SECFailure;
@@ -2140,10 +2140,11 @@ ssl3_MACEncryptRecord(ssl3CipherSpec *cwSpec,
         rv = sslBuffer_Skip(wrBuf, len, NULL);
         PORT_Assert(rv == SECSuccess); /* Can't fail. */
     }
+
     rv = ssl3_BuildRecordPseudoHeader(
         cwSpec->epoch, cwSpec->nextSeqNum, ct,
         cwSpec->version >= SSL_LIBRARY_VERSION_TLS_1_0, cwSpec->recordVersion,
-        isDTLS, contentLen, &pseudoHeader, cwSpec->version);
+        isDTLS, contentLen, &pseudoHeader);
     PORT_Assert(rv == SECSuccess);
     if (cwSpec->cipherDef->type == type_aead) {
         const unsigned int nonceLen = cwSpec->cipherDef->explicit_nonce_size;
@@ -2170,7 +2171,7 @@ ssl3_MACEncryptRecord(ssl3CipherSpec *cwSpec,
             ivOffset = ivLen;
             gen = CKG_GENERATE_COUNTER;
         }
-        ivOffset = tls13_SetupAeadIv(isDTLS, cwSpec->version, ivOut, cwSpec->keyMaterial.iv,
+        ivOffset = tls13_SetupAeadIv(isDTLS, ivOut, cwSpec->keyMaterial.iv,
                                      ivOffset, ivLen, cwSpec->epoch);
         rv = tls13_AEAD(cwSpec->cipherContext,
                         PR_FALSE,
@@ -13195,7 +13196,7 @@ ssl3_UnprotectRecord(sslSocket *ss,
 
         rv = ssl3_BuildRecordPseudoHeader(
             spec->epoch, cText->seqNum,
-            rType, isTLS, rVersion, IS_DTLS(ss), decryptedLen, &header, spec->version);
+            rType, isTLS, rVersion, IS_DTLS(ss), decryptedLen, &header);
         PORT_Assert(rv == SECSuccess);
 
         /* build the iv */
@@ -13264,7 +13265,7 @@ ssl3_UnprotectRecord(sslSocket *ss,
         rv = ssl3_BuildRecordPseudoHeader(
             spec->epoch, cText->seqNum,
             rType, isTLS, rVersion, IS_DTLS(ss),
-            plaintext->len - spec->macDef->mac_size, &header, spec->version);
+            plaintext->len - spec->macDef->mac_size, &header);
         PORT_Assert(rv == SECSuccess);
         if (cipher_def->type == type_block) {
             rv = ssl3_ComputeRecordMACConstantTime(
