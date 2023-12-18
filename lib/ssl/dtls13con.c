@@ -191,10 +191,6 @@ dtls13_SendAck(sslSocket *ss)
         PRUint64 seqNum = entry->record & 0xffffffffffff;
 
         rv = sslBuffer_AppendNumber(&buf, epoch, 8);
-        if (rv != SECSuccess) {
-            goto loser;
-        }
-
         rv = sslBuffer_AppendNumber(&buf, seqNum, 8);
         if (rv != SECSuccess) {
             goto loser;
@@ -559,7 +555,7 @@ dtls13_HandleAck(sslSocket *ss, sslBuffer *databuf)
 
         rv = ssl3_ConsumeHandshakeNumber64(ss, &epoch, 8, &b, &l);
         if (rv != SECSuccess) {
-            goto loser;
+            return SECFailure;
         }
 
         rv = ssl3_ConsumeHandshakeNumber64(ss, &seq, 8, &b, &l);
