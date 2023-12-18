@@ -9,12 +9,6 @@
 #ifndef __dtls13con_h_
 #define __dtls13con_h_
 
-/*
-The structure ssl3CipherSpecStr represents epoch as uint16 (DTLSEpoch epoch),
-So the maximum epoch is 2 ^ 16 - 1
-See bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1809196 */
-#define RECORD_EPOCH_MAX UINT16_MAX
-
 SECStatus dtls13_InsertCipherTextHeader(const sslSocket *ss,
                                         const ssl3CipherSpec *cwSpec,
                                         sslBuffer *wrBuf,
