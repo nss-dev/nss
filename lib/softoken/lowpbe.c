@@ -878,15 +878,10 @@ nsspkcs5_FillInParam(SECOidTag algorithm, HASH_HashType hashType,
         /* DES3 Algorithms */
         case SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_2KEY_TRIPLE_DES_CBC:
             pbe_param->is2KeyDES = PR_TRUE;
-            pbe_param->pbeType = NSSPKCS5_PKCS12_V2;
-            pbe_param->keyLen = 16;
-            pbe_param->encAlg = SEC_OID_DES_EDE3_CBC;
-            break;
+        /* fall through */
         case SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_3KEY_TRIPLE_DES_CBC:
             pbe_param->pbeType = NSSPKCS5_PKCS12_V2;
-            pbe_param->keyLen = 24;
-            pbe_param->encAlg = SEC_OID_DES_EDE3_CBC;
-            break;
+        /* fall through */
         case SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC:
             pbe_param->keyLen = 24;
             pbe_param->encAlg = SEC_OID_DES_EDE3_CBC;
