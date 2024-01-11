@@ -909,20 +909,6 @@ struct FREEBLVectorStr {
     SECStatus (*p_SHAKE_256_Hash)(unsigned char *dest, PRUint32 dest_length, const char *src);
 
     /* Version 3.026 came to here */
-    SECStatus (*p_RSABlinding_Prepare)(PRUint8 *preparedMessage, size_t preparedMessageLen,
-                                       const PRUint8 *msg, size_t msgLen, PRBool isDeterministic);
-    SECStatus (*p_RSABlinding_Blind)(HASH_HashType hashAlg, PRUint8 *blindedMsg,
-                                     size_t blindedMsgLen, PRUint8 *inv, size_t invLen,
-                                     const PRUint8 *msg, size_t msgLen, const PRUint8 *salt, size_t saltLen,
-                                     RSAPublicKey *pkS, const PRUint8 *randomBuf, size_t randomBufLen);
-    SECStatus (*p_RSABlinding_BlindSign)(PRUint8 *blindSig, size_t blindSigLen,
-                                         const PRUint8 *blindedMsg, size_t blindedMsgLen,
-                                         RSAPrivateKey *skS, RSAPublicKey *pkS);
-    SECStatus (*p_RSABlinding_Finalize)(HASH_HashType hashAlg, PRUint8 *signature,
-                                        const PRUint8 *msg, PRUint32 msgLen,
-                                        const PRUint8 *blindSig, size_t blindSigLen,
-                                        const PRUint8 *inv, size_t invLen, RSAPublicKey *pkS, size_t saltLen);
-    /* Version 3.027 came to here */
 
     /* Add new function pointers at the end of this struct and bump
      * FREEBL_VERSION at the beginning of this file. */
