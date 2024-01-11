@@ -281,7 +281,7 @@ RSA_CheckSignRecover(RSAPublicKey *key,
 */
 
 /* Generate a new random value within the interval [2, q-1].
-*/
+ */
 extern SECStatus DSA_NewRandom(PLArenaPool *arena, const SECItem *q,
                                SECItem *random);
 
@@ -433,7 +433,7 @@ JPAKE_Verify(PLArenaPool *arena, const PQGParams *pqg,
  * base and x2s will be allocated in the arena. The arena is *not* optional so
  * do not pass NULL for the arena parameter. The arena should be zeroed when it
  * is freed.
-*/
+ */
 SECStatus
 JPAKE_Round2(PLArenaPool *arena, const SECItem *p, const SECItem *q,
              const SECItem *gx1, const SECItem *gx3, const SECItem *gx4,
@@ -1878,7 +1878,7 @@ extern void BL_SetForkState(PRBool forked);
 
 /*
 ** pepare an ECParam structure from DEREncoded params
- */
+*/
 extern SECStatus EC_FillParams(PLArenaPool *arena,
                                const SECItem *encodedParams, ECParams *params);
 extern SECStatus EC_DecodeParams(const SECItem *encodedParams,

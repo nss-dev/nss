@@ -2828,3 +2828,49 @@ SHAKE_256_Hash(unsigned char *dest, PRUint32 dest_length, const char *src)
         return SECFailure;
     return (vector->p_SHAKE_256_Hash)(dest, dest_length, src);
 }
+
+/* ============== New for 3.027 =============================== */
+
+SECStatus
+RSABlinding_Prepare(PRUint8 *preparedMessage, size_t preparedMessageLen,
+                    const PRUint8 *msg, size_t msgLen, PRBool isDeterministic)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return SECFailure;
+    return (vector->p_RSABlinding_Prepare(preparedMessage, preparedMessageLen,
+                                          msg, msgLen, isDeterministic));
+}
+
+SECStatus
+RSABlinding_Blind(HASH_HashType hashAlg, PRUint8 *blindedMsg,
+                  size_t blindedMsgLen, PRUint8 *inv, size_t invLen, const PRUint8 *msg, size_t msgLen,
+                  const PRUint8 *salt, size_t saltLen, RSAPublicKey *pkS,
+                  const PRUint8 *randomBuf, size_t randomBufLen)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return SECFailure;
+    return (vector->p_RSABlinding_Blind(hashAlg, blindedMsg, blindedMsgLen, inv, invLen,
+                                        msg, msgLen, salt, saltLen, pkS, randomBuf, randomBufLen));
+}
+
+SECStatus
+RSABlinding_BlindSign(PRUint8 *blindSig, size_t blindSigLen,
+                      const PRUint8 *blindedMsg, size_t blindedMsgLen,
+                      RSAPrivateKey *skS, RSAPublicKey *pkS)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return SECFailure;
+    return (vector->p_RSABlinding_BlindSign(blindSig, blindSigLen, blindedMsg, blindedMsgLen,
+                                            skS, pkS));
+}
+
+SECStatus
+RSABlinding_Finalize(HASH_HashType hashAlg, PRUint8 *signature, const PRUint8 *m, PRUint32 mLen,
+                     const PRUint8 *blindSig, size_t blindSigLen,
+                     const PRUint8 *inv, size_t invLen, RSAPublicKey *pkS, size_t saltLen)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return SECFailure;
+    return (vector->p_RSABlinding_Finalize(hashAlg, signature, m, mLen, blindSig, blindSigLen,
+                                           inv, invLen, pkS, saltLen));
+}
