@@ -1,0 +1,6 @@
+
+2 Added functions:
+
+  'function SECStatus PK11_Decapsulate(SECKEYPrivateKey*, const SECItem*, CK_MECHANISM_TYPE, PK11AttrFlags, CK_FLAGS, PK11SymKey**)'    {PK11_Decapsulate@@NSS_3.2}
+  'function SECStatus PK11_Encapsulate(SECKEYPublicKey*, CK_MECHANISM_TYPE, PK11AttrFlags, CK_FLAGS, PK11SymKey**, SECItem**)'    {PK11_Encapsulate@@NSS_3.2}
+

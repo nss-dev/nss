@@ -34,6 +34,7 @@
         'pk11_ike_unittest.cc',
         'pk11_import_unittest.cc',
         'pk11_kbkdf.cc',
+        'pk11_kem_unittest.cc',
         'pk11_keygen.cc',
         'pk11_key_unittest.cc',
         'pk11_module_unittest.cc',
