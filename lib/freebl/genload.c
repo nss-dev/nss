@@ -43,7 +43,7 @@ loader_GetOriginalPathname(const char* link)
     PRUint32 iterations = 0;
     PRInt32 len = 0, retlen = 0;
     if (!link) {
-        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
+        /*PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0); */
         return NULL;
     }
     len = PR_MAX(1024, strlen(link) + 1);
