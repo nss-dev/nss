@@ -425,6 +425,11 @@ PK11SymKey *PK11_PubDeriveWithKDF(SECKEYPrivateKey *privKey,
                                   CK_ULONG kdf, SECItem *sharedData, void *wincx);
 
 /*
+ * Concatenate a pair of symmetric keys.
+ */
+PK11SymKey *PK11_ConcatSymKeys(PK11SymKey *left, PK11SymKey *right, CK_MECHANISM_TYPE target, CK_ATTRIBUTE_TYPE operation);
+
+/*
  * unwrap a new key with a symetric key.
  *  PK11_Unwrap returns a key which can do exactly one operation, and is
  * ephemeral (session key).

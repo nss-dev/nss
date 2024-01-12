@@ -1848,6 +1848,32 @@ pk11_ConcatenateBaseAndKey(PK11SymKey *base,
                        &param, target, operation, keySize);
 }
 
+PK11SymKey *
+PK11_ConcatSymKeys(PK11SymKey *left, PK11SymKey *right, CK_MECHANISM_TYPE target, CK_ATTRIBUTE_TYPE operation)
+{
+    PK11SymKey *out = NULL;
+    PK11SymKey *copyOfLeft = NULL;
+    PK11SymKey *copyOfRight = NULL;
+
+    if ((left == NULL) || (right == NULL)) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return NULL;
+    }
+
+    SECStatus rv = PK11_SymKeysToSameSlot(target, operation, operation,
+                                          left, right,
+                                          &copyOfLeft, &copyOfRight);
+    if (rv != SECSuccess) {
+        /* error code already set */
+        return NULL;
+    }
+
+    out = pk11_ConcatenateBaseAndKey(copyOfLeft ? copyOfLeft : left, copyOfRight ? copyOfRight : right, target, operation, 0);
+    PK11_FreeSymKey(copyOfLeft);
+    PK11_FreeSymKey(copyOfRight);
+    return out;
+}
+
 /* Create a new key whose value is the hash of tobehashed.
  * type is the mechanism for the derived key.
  */

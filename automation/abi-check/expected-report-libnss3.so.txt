@@ -1,6 +1,7 @@
 
-2 Added functions:
+3 Added functions:
 
+  'function PK11SymKey* PK11_ConcatSymKeys(PK11SymKey*, PK11SymKey*, CK_MECHANISM_TYPE, CK_ATTRIBUTE_TYPE)'    {PK11_ConcatSymKeys@@NSS_3.2}
   'function SECStatus PK11_Decapsulate(SECKEYPrivateKey*, const SECItem*, CK_MECHANISM_TYPE, PK11AttrFlags, CK_FLAGS, PK11SymKey**)'    {PK11_Decapsulate@@NSS_3.2}
   'function SECStatus PK11_Encapsulate(SECKEYPublicKey*, CK_MECHANISM_TYPE, PK11AttrFlags, CK_FLAGS, PK11SymKey**, SECItem**)'    {PK11_Encapsulate@@NSS_3.2}
 

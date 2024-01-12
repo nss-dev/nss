@@ -46,6 +46,7 @@
         'pk11_rsapkcs1_unittest.cc',
         'pk11_rsapss_unittest.cc',
         'pk11_seed_cbc_unittest.cc',
+        'pk11_symkey_unittest.cc',
         'pk11_signature_test.cc',
         '<(DEPTH)/gtests/common/gtests.cc'
       ],

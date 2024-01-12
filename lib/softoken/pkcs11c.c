@@ -7241,6 +7241,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
     CK_ULONG keySize = 0;
     CK_RV crv = CKR_OK;
     CK_BBOOL cktrue = CK_TRUE;
+    CK_BBOOL ckfalse = CK_FALSE;
     CK_KEY_TYPE keyType = CKK_GENERIC_SECRET;
     CK_OBJECT_CLASS classType = CKO_SECRET_KEY;
     CK_KEY_DERIVATION_STRING_DATA *stringPtr;
@@ -8169,7 +8170,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
 #endif /* NSS_DISABLE_DEPRECATED_SEED */
 
         case CKM_CONCATENATE_BASE_AND_KEY: {
-            SFTKObject *newKey;
+            SFTKObject *paramKey;
 
             crv = sftk_DeriveSensitiveCheck(sourceKey, key, PR_FALSE);
             if (crv != CKR_OK)
@@ -8181,27 +8182,35 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                 break;
             }
 
-            newKey = sftk_ObjectFromHandle(*(CK_OBJECT_HANDLE *)
-                                                pMechanism->pParameter,
-                                           session);
+            paramKey = sftk_ObjectFromHandle(*(CK_OBJECT_HANDLE *)
+                                                  pMechanism->pParameter,
+                                             session);
             sftk_FreeSession(session);
-            if (newKey == NULL) {
+            if (paramKey == NULL) {
                 crv = CKR_KEY_HANDLE_INVALID;
                 break;
             }
 
-            if (sftk_isTrue(newKey, CKA_SENSITIVE)) {
-                crv = sftk_forceAttribute(newKey, CKA_SENSITIVE, &cktrue,
+            if (sftk_isTrue(paramKey, CKA_SENSITIVE)) {
+                crv = sftk_forceAttribute(key, CKA_SENSITIVE, &cktrue,
                                           sizeof(CK_BBOOL));
                 if (crv != CKR_OK) {
-                    sftk_FreeObject(newKey);
+                    sftk_FreeObject(paramKey);
                     break;
                 }
             }
 
-            att2 = sftk_FindAttribute(newKey, CKA_VALUE);
+            if (sftk_hasAttribute(paramKey, CKA_EXTRACTABLE) && !sftk_isTrue(paramKey, CKA_EXTRACTABLE)) {
+                crv = sftk_forceAttribute(key, CKA_EXTRACTABLE, &ckfalse, sizeof(CK_BBOOL));
+                if (crv != CKR_OK) {
+                    sftk_FreeObject(paramKey);
+                    break;
+                }
+            }
+
+            att2 = sftk_FindAttribute(paramKey, CKA_VALUE);
             if (att2 == NULL) {
-                sftk_FreeObject(newKey);
+                sftk_FreeObject(paramKey);
                 crv = CKR_KEY_HANDLE_INVALID;
                 break;
             }
@@ -8209,7 +8218,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             if (keySize == 0)
                 keySize = tmpKeySize;
             if (keySize > tmpKeySize) {
-                sftk_FreeObject(newKey);
+                sftk_FreeObject(paramKey);
                 sftk_FreeAttribute(att2);
                 crv = CKR_TEMPLATE_INCONSISTENT;
                 break;
@@ -8217,7 +8226,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             buf = (unsigned char *)PORT_Alloc(tmpKeySize);
             if (buf == NULL) {
                 sftk_FreeAttribute(att2);
-                sftk_FreeObject(newKey);
+                sftk_FreeObject(paramKey);
                 crv = CKR_HOST_MEMORY;
                 break;
             }
@@ -8229,7 +8238,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             crv = sftk_forceAttribute(key, CKA_VALUE, buf, keySize);
             PORT_ZFree(buf, tmpKeySize);
             sftk_FreeAttribute(att2);
-            sftk_FreeObject(newKey);
+            sftk_FreeObject(paramKey);
             break;
         }
 
