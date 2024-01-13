@@ -1721,7 +1721,7 @@ getBoundListenSocket(unsigned short port)
     prStatus = PR_GetPrefLoopbackAddrInfo(&addr, port);
     if (prStatus == PR_FAILURE) {
         addr.inet.family = PR_AF_INET;
-        addr.inet.ip = PR_INADDR_ANY;
+        addr.inet.ip = PR_htonl(PR_INADDR_ANY);
         addr.inet.port = PR_htons(port);
     }
 
