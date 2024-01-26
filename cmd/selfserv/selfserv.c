@@ -1937,7 +1937,7 @@ configureEchWithPublicName(PRFileDesc *model_sock, const char *public_name)
         goto loser;
     }
 
-    rv = SSL_EncodeEchConfigId(configId, echParamsStr, 100,
+    rv = SSL_EncodeEchConfigId(configId, public_name, 100,
                                HpkeDhKemX25519Sha256, pubKey,
                                &echCipherSuite, 1,
                                configBuf, &len, sizeof(configBuf));
