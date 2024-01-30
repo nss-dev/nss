@@ -34,6 +34,7 @@
         "SkipEarlyData-Interleaved-TLS13":"NSS ignores invalid early data records by default since ssl_0rtt_ignore_trial is default. Bug 1336916",
         "ECDSAKeyUsage*":"NSS only checks KeyUsage on server setup and with delegated credential verification. Bug 1338194",
         "RSAKeyUsage-*-WantSignature-GotEncipherment-*":"NSS only checks KeyUsage on server setup and with delegated credential verification. See Bug 1338194",
+        "RSAKeyUsage-*-WantEncipherment-GotSignature-*":"NSS only checks KeyUsage on server setup and with delegated credential verification. See Bug 1338194",
         "TLS13-ExpectNoSessionTicketOnBadKEMode-Server":"NSS Server side bug. Don't send ticket when not permitted by KE modes (Bug 1317635)",
         "Resume-Server-OmitPSKsOnSecondClientHello":"NSS Server side bug. It does not detect ClientHello dropping of PSK extension (after HRR).",
         "Renegotiate-Client-Forbidden-1":"By default NSS allows renegotiation with extension contrary to bogo.",
