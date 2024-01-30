@@ -79,8 +79,8 @@ class TestAgent {
   }
 
   bool ConnectTcp() {
-    // Try IPv6 first, then IPv4 in case of failure.
-    if (!OpenConnection("::1") && !OpenConnection("127.0.0.1")) {
+    if (!(cfg_.get<bool>("ipv6") && OpenConnection("::1")) &&
+        !OpenConnection("127.0.0.1")) {
       return false;
     }
 
@@ -112,6 +112,18 @@ class TestAgent {
     if (prv != PR_SUCCESS) {
       return false;
     }
+
+    uint64_t shim_id = cfg_.get<int>("shim-id");
+    uint8_t buf[8] = {0};
+    for (size_t i = 0; i < 8; i++) {
+      buf[i] = shim_id & 0xff;
+      shim_id >>= 8;
+    }
+    int sent = PR_Write(pr_fd_.get(), buf, sizeof(buf));
+    if (sent != sizeof(buf)) {
+      return false;
+    }
+
     return true;
   }
 
@@ -912,6 +924,8 @@ std::unique_ptr<const Config> ReadConfig(int argc, char** argv) {
   std::unique_ptr<Config> cfg(new Config());
 
   cfg->AddEntry<int>("port", 0);
+  cfg->AddEntry<bool>("ipv6", false);
+  cfg->AddEntry<int>("shim-id", 0);
   cfg->AddEntry<bool>("server", false);
   cfg->AddEntry<int>("resume-count", 0);
   cfg->AddEntry<std::string>("key-file", "");

@@ -1017,7 +1017,7 @@ function scheduleTests(task_build, task_cert, test_base) {
     symbol: "Bogo",
     tests: "bogo",
     cycle: "standard",
-    image: LINUX_INTEROP_IMAGE,
+    image: LINUX_BUILDS_IMAGE,
   }));
   queue.scheduleTask(merge(no_cert_base, {
     name: "Interop tests",
