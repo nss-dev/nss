@@ -404,7 +404,33 @@ class TestAgent {
       if (rv != SECSuccess) return false;
     }
 
+    if (!ConfigureGroups()) return false;
+
     if (!ConfigureCiphers()) return false;
+
+    return true;
+  }
+
+  bool ConfigureGroups() {
+    auto curves = cfg_.get<std::vector<int>>("curves");
+    if (curves.size() > 0) {
+      std::vector<SSLNamedGroup> groups;
+      std::transform(
+          curves.begin(), curves.end(), std::back_inserter(groups),
+          [](int curve) { return static_cast<SSLNamedGroup>(curve); });
+      SECStatus rv =
+          SSL_NamedGroupConfig(ssl_fd_.get(), &groups[0], groups.size());
+      if (rv != SECSuccess) {
+        return false;
+      }
+      // Xyber768 is disabled by policy by default, so if it's requested
+      // we need to update the policy flags as well.
+      for (auto group : groups) {
+        if (group == ssl_grp_kem_xyber768d00) {
+          NSS_SetAlgorithmPolicy(SEC_OID_XYBER768D00, NSS_USE_ALG_IN_SSL_KX, 0);
+        }
+      }
+    }
 
     return true;
   }
@@ -775,6 +801,16 @@ class TestAgent {
       }
     }
 
+    auto curve_id = cfg_.get<int>("expect-curve-id");
+    if (curve_id) {
+      auto expected = static_cast<SSLNamedGroup>(curve_id);
+      if (info.keaGroup != expected && !(info.keaGroup == ssl_grp_none &&
+                                         info.originalKeaGroup == expected)) {
+        std::cerr << "Unexpected named group" << std::endl;
+        return SECFailure;
+      }
+    }
+
     if (cfg_.get<bool>("expect-ech-accept")) {
       if (!info.echAccepted) {
         std::cerr << "Expected ECH" << std::endl;
@@ -929,6 +965,8 @@ std::unique_ptr<const Config> ReadConfig(int argc, char** argv) {
   /* NSS does not support earlydata rejection reason logging => Ignore. */
   cfg->AddEntry<std::string>("on-resume-expect-early-data-reason", "none");
   cfg->AddEntry<std::string>("on-retry-expect-early-data-reason", "none");
+  cfg->AddEntry<std::vector<int>>("curves", std::vector<int>());
+  cfg->AddEntry<int>("expect-curve-id", 0);
 
   auto rv = cfg->ParseArgs(argc, argv);
   switch (rv) {
