@@ -396,7 +396,8 @@ class NameMatchingPolicy {
       Time notBefore,
       /*out*/ FallBackToSearchWithinSubject& fallBackToCommonName) = 0;
 
-  virtual HandleInvalidSubjectAlternativeNamesBy HandleInvalidSubjectAlternativeNames() = 0;
+  virtual HandleInvalidSubjectAlternativeNamesBy
+  HandleInvalidSubjectAlternativeNames() = 0;
 
  protected:
   NameMatchingPolicy() {}
@@ -411,7 +412,8 @@ class StrictNameMatchingPolicy : public NameMatchingPolicy {
       Time notBefore,
       /*out*/ FallBackToSearchWithinSubject& fallBacktoCommonName) override;
 
-  virtual HandleInvalidSubjectAlternativeNamesBy HandleInvalidSubjectAlternativeNames() override;
+  virtual HandleInvalidSubjectAlternativeNamesBy
+  HandleInvalidSubjectAlternativeNames() override;
 };
 }  // namespace pkix
 }  // namespace mozilla
