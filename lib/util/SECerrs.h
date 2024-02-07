@@ -561,3 +561,6 @@ ER3(SEC_ERROR_SIGNATURE_ALGORITHM_DISABLED, (SEC_ERROR_BASE + 181),
 
 ER3(SEC_ERROR_ALGORITHM_MISMATCH, (SEC_ERROR_BASE + 182),
     "The signature algorithm in the signature field of the certificate does not match the algorithm in its signatureAlgorithm field.")
+
+ER3(SEC_ERROR_CERTIFICATE_COMPRESSION_ALGORITHM_NOT_SUPPORTED, (SEC_ERROR_BASE + 183),
+    "The certificate was encoded using an unsupported certificate compression algorithm.")
