@@ -942,7 +942,12 @@ PKCS12U_MapHashFromString(char *hashString)
     }
     /* make sure it's a hashing oid */
     if (HASH_GetHashTypeByOidTag(hashAlg) == HASH_AlgNULL) {
-        return SEC_OID_UNKNOWN;
+        /* allow HMAC here. HMAC implies PKCS 5 v2 pba */
+        SECOidTag baseHashAlg = HASH_GetHashOidTagByHMACOidTag(hashAlg);
+        if (baseHashAlg == SEC_OID_UNKNOWN) {
+            /* not an hmac either, reject the entry */
+            return SEC_OID_UNKNOWN;
+        }
     }
     return hashAlg;
 }
@@ -1173,6 +1178,10 @@ main(int argc, char **argv)
                 goto done;
             }
         }
+    }
+    /* in FIPS mode default to encoding with pkcs5v2 for the MAC */
+    if (PK11_IsFIPS()) {
+        hash = SEC_OID_HMAC_SHA256;
     }
     if (pk12util.options[opt_Mac].activated) {
         char *hashString = pk12util.options[opt_Mac].arg;
