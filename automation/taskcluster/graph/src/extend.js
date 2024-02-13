@@ -878,7 +878,7 @@ async function scheduleFuzzing32() {
 
 async function scheduleWindows(name, base, build_script) {
   base = merge(base, {
-    workerType: "nss-1/b-win2022-alpha",
+    workerType: "b-win2012-azure",
     env: {
       PATH: "c:\\mozilla-build\\bin;c:\\mozilla-build\\python;" +
            "c:\\mozilla-build\\msys\\local\\bin;c:\\mozilla-build\\7zip;" +
