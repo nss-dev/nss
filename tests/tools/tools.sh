@@ -64,7 +64,8 @@ AES-256-CBC,CAMELLIA-128-CBC,CAMELLIA-192-CBC,CAMELLIA-256-CBC"
   export PBE_CIPHERS="${PKCS5v1_PBE_CIPHERS},${PKCS12_PBE_CIPHERS},${PKCS5v2_PBE_CIPHERS}"
   export PBE_CIPHERS_CLASSES="${pkcs5pbeWithSha1AndDEScbc},\
 ${pkcs12v2pbeWithSha1AndTripleDESCBC},AES-256-CBC,default"
-  export PBE_HASH="SHA-1,SHA-224,SHA-256,SHA-384,SHA-512,default"
+  export PBE_HASH="SHA-1,SHA-256,SHA-512,HMAC SHA-256,HMAC SHA-512,default"
+  export PBE_HASH_CLASSES="SHA-1,SHA-256,SHA-384,HMAC SHA-256,default"
 
 ############################## tools_init ##############################
 # local shell function to initialize this script
@@ -117,6 +118,12 @@ tools_init()
   cp ${QADIR}/tools/TestOldCA.p12 ${TOOLSDIR}/data
   cp ${QADIR}/tools/TestOldAES128CA.p12 ${TOOLSDIR}/data
   cp ${QADIR}/tools/TestRSAPSS.p12 ${TOOLSDIR}/data
+  cp ${QADIR}/tools/pbmac1-valid-sha256.p12 ${TOOLSDIR}/data
+  cp ${QADIR}/tools/pbmac1-valid-sha256-sha512.p12 ${TOOLSDIR}/data
+  cp ${QADIR}/tools/pbmac1-valid-sha512.p12 ${TOOLSDIR}/data
+  cp ${QADIR}/tools/pbmac1-invalid-bad-iter.p12 ${TOOLSDIR}/data
+  cp ${QADIR}/tools/pbmac1-invalid-bad-salt.p12 ${TOOLSDIR}/data
+  cp ${QADIR}/tools/pbmac1-invalid-no-length.p12 ${TOOLSDIR}/data
 
   cd ${TOOLSDIR}
 }
@@ -287,10 +294,10 @@ tools_p12_export_list_import_most_ciphers()
       fi
     done
     export_list_import "${cipher}" "none" "SHA-224"
-    export_list_import "${cipher}" "${cipher}" "SHA-384"
+    export_list_import "${cipher}" "${cipher}" "HMAC SHA-512"
   done
   for class in ${PBE_CIPHERS_CLASSES}; do
-    for hash in ${PBE_HASH}; do
+    for hash in ${PBE_HASH_CLASSES}; do
       export_list_import "${class}" "${class}" "${hash}"
     done
   done
@@ -446,6 +453,48 @@ tools_p12_import_rsa_pss_private_key()
   return $ret
 }
 
+tools_p12_import_pbmac1_samples()
+{
+  echo "$SCRIPTNAME: Importing private key pbmac1 PKCS#12 file --------------"
+  echo "${BINDIR}/pk12util -i ${TOOLSDIR}/data/pbmac1-valid-sha256.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234'"
+  ${BINDIR}/pk12util -i ${TOOLSDIR}/data/pbmac1-valid-sha256.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' 2>&1
+  ret=$?
+  html_msg $ret 0 "Importing private key pbmac1 hmac-sha-256 from PKCS#12 file"
+  check_tmpfile
+
+  echo "${BINDIR}/pk12util -i ${TOOLSDIR}/data/pbmac1-valid-sha256-sha512.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234'"
+  ${BINDIR}/pk12util -i ${TOOLSDIR}/data/pbmac1-valid-sha256-sha512.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' 2>&1
+  ret=$?
+  html_msg $ret 0 "Importing private key pbmac1 hmac-sha-256 and hmac-sha-512 prf from PKCS#12 file"
+  check_tmpfile
+
+  echo "${BINDIR}/pk12util -i ${TOOLSDIR}/data/pbmac1-valid-sha512.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234'"
+  ${BINDIR}/pk12util -i ${TOOLSDIR}/data/pbmac1-valid-sha512.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' 2>&1
+  ret=$?
+  html_msg $ret 0 "Importing private key pbmac1 hmac-sha-512 from PKCS#12 file"
+  check_tmpfile
+
+  echo "${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-iter.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234'"
+  ${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-iter.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' 2>&1
+  ret=$?
+  html_msg $ret 19 "Fail to list private key with bad iterator"
+  check_tmpfile
+
+  echo "${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-salt.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234'"
+  ${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-salt.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' 2>&1
+  ret=$?
+  echo "Fail to list private key with bad salt val=$ret"
+  html_msg $ret 19 "Fail to import private key with bad salt"
+  check_tmpfile
+
+  echo "${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-no-length.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234'"
+  ${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-no-length.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' 2>&1
+  ret=$?
+  echo "Fail to import private key with no length val=$ret"
+  html_msg $ret 19 "Fail to import private key with no length"
+  check_tmpfile
+}
+
 ############################## tools_p12 ###############################
 # local shell function to test basic functionality of pk12util
 ########################################################################
@@ -467,6 +516,7 @@ tools_p12()
   tools_p12_export_with_none_ciphers
   tools_p12_export_with_invalid_ciphers
   tools_p12_import_old_files
+  tools_p12_import_pbmac1_samples
   if [ "${TEST_MODE}" = "SHARED_DB" ] ; then
     tools_p12_import_rsa_pss_private_key
   fi
@@ -548,8 +598,14 @@ verify_p12()
      fi
      # check the Mac
      if [[ "${line}" =~ "Mac Digest Algorithm ID: ".* ]]; then
+        STATE="MAC"
         MAC="${line##Mac Digest Algorithm ID: }"
-        if [ "${MAC}" != "${HASH}" ]; then
+        if [[ "${HASH}" =~ "HMAC ".* ]]; then
+            if [[ ! "${MAC}" =~ "PKCS #5 Password Based Authentication v1"\ * ]]; then
+                HASH_FAIL=1
+                echo "--MAC mismatch: expected \"PKCS #5 Password Based Authentication v1\" found \"${MAC}\""
+            fi
+        elif [ "${MAC}" != "${HASH}" ]; then
             HASH_FAIL=1
             echo "--Mac Hash mismatch: expected \"${HASH}\" found \"${MAC}\""
         fi
@@ -557,7 +613,7 @@ verify_p12()
      # check the KDF
      if [[ "${line}" =~ "KDF algorithm: ".* ]]; then
         KDF="${line##KDF algorithm: }"
-        if [ "${KDF}" != "HMAC ${HASH}" ]; then
+        if [ "${KDF}" != "HMAC ${HASH}" -a "${KDF}" != "${HASH}" ]; then
             HASH_FAIL=1
             echo "--KDF Hash mismatch: expected \"HMAC ${HASH}\" found \"${KDF}\""
         fi
@@ -567,7 +623,7 @@ verify_p12()
         # Strip the [Content ]EncryptionAlgorithm
         ENCRYPTION="${line##Content }"
         ENCRYPTION="${ENCRYPTION##Encryption Algorithm: }"
-        # If that algorithm id is PKCS #5 V2, then skip forward looking
+        # If that algorithm id is PKCS #5 v2, then skip forward looking
         # for the Cipher: field.
         if [[ "${ENCRYPTION}" =~ "PKCS #5 Password Based Encryption v2"\ * ]]; then
             continue;
@@ -587,9 +643,13 @@ verify_p12()
                 echo "--Cert encryption mismatch: expected \"${CERT_ENCRYPTION}\" found \"${ENCRYPTION}\""
             fi
             ;;
+        "MAC")
+            HASH_FAIL=1
+            echo "--unexpected encryption algorithm in MAC found \"${ENCRYPTION}\""
+            ;;
         esac
      fi
-     # handle the PKCS 5 case
+     # handle the PKCS 5 v2 case
      if [[ "${line}" =~ "Cipher: ".* ]]; then
         ENCRYPTION="${line#Cipher: }"
         case ${STATE} in
@@ -605,6 +665,13 @@ verify_p12()
             if [ "${CERT_ENCRYPTION}" != "${ENCRYPTION}" ]; then
                 CERT_ENCRYPTION_FAIL=1
                 echo "--Cert encryption mismatch: expected \"${CERT_ENCRYPTION}\" found \"${ENCRYPTION}\""
+            fi
+            ;;
+        "MAC")
+            # handle the PKCS 5 v2 MAC case
+            if [ "${HASH}" != "${ENCRYPTION}" ]; then
+                HASH_FAIL=1
+                echo "--MAC HMAC mismatch: expected \"${HASH}\" found \"${ENCRYPTION}\""
             fi
             ;;
         esac

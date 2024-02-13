@@ -1,0 +1,8 @@
+
+4 Added functions:
+
+  'function SECOidTag HASH_GetHMACOidTagByHashOidTag_Util(SECOidTag)'    {HASH_GetHMACOidTagByHashOidTag_Util@@NSSUTIL_3.101}
+  'function SECOidTag HASH_GetHashOidTagByHMACOidTag_Util(SECOidTag)'    {HASH_GetHashOidTagByHMACOidTag_Util@@NSSUTIL_3.101}
+  'function SECOidTag HASH_GetHashOidTagByHashType_Util(HASH_HashType)'    {HASH_GetHashOidTagByHashType_Util@@NSSUTIL_3.101}
+  'function HASH_HashType HASH_GetHashTypeByOidTag_Util(SECOidTag)'    {HASH_GetHashTypeByOidTag_Util@@NSSUTIL_3.101}
+
