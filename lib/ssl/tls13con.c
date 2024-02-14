@@ -3848,6 +3848,35 @@ tls13_HandleCertificateEntry(sslSocket *ss, SECItem *data, PRBool first,
     return SECSuccess;
 }
 
+static SECStatus
+tls13_EnsureCerticateExpected(sslSocket *ss)
+{
+    SECStatus rv = SECFailure;
+    PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
+    PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
+
+    if (ss->sec.isServer) {
+        /* Receiving this message might be the first sign we have that
+         * early data is over, so pretend we received EOED. */
+        rv = tls13_MaybeHandleSuppressedEndOfEarlyData(ss);
+        if (rv != SECSuccess) {
+            return SECFailure; /* Code already set. */
+        }
+
+        if (ss->ssl3.clientCertRequested) {
+            rv = TLS13_CHECK_HS_STATE(ss, SSL_ERROR_RX_UNEXPECTED_CERTIFICATE,
+                                      idle_handshake);
+        } else {
+            rv = TLS13_CHECK_HS_STATE(ss, SSL_ERROR_RX_UNEXPECTED_CERTIFICATE,
+                                      wait_client_cert);
+        }
+    } else {
+        rv = TLS13_CHECK_HS_STATE(ss, SSL_ERROR_RX_UNEXPECTED_CERTIFICATE,
+                                  wait_cert_request, wait_server_cert);
+    }
+    return rv;
+}
+
 /* RFC 8879 TLS Certificate Compression
  * struct {
  *  CertificateCompressionAlgorithm algorithm;
@@ -3862,6 +3891,17 @@ tls13_HandleCertificateDecode(sslSocket *ss, PRUint8 *b, PRUint32 length)
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     SECStatus rv = SECFailure;
+
+    if (!ss->xtnData.certificateCompressionAdvertised) {
+        FATAL_ERROR(ss, SEC_ERROR_UNEXPECTED_COMPRESSED_CERTIFICATE, decode_error);
+        return SECFailure;
+    }
+
+    rv = tls13_EnsureCerticateExpected(ss);
+    if (rv != SECSuccess) {
+        return SECFailure; /* Code already set. */
+    }
+
     if (ss->firstHsDone) {
         rv = ssl_HashPostHandshakeMessage(ss, ssl_hs_compressed_certificate, b, length);
         if (rv != SECSuccess) {
@@ -3983,7 +4023,10 @@ tls13_HandleCertificateDecode(sslSocket *ss, PRUint8 *b, PRUint32 length)
     if (rv != SECSuccess) {
         goto loser;
     }
-
+    /* We allow only one compressed certificate to be handled after each 
+       certificate compression advertisement. 
+       See test CertificateCompression_TwoEncodedCertificateRequests. */
+    ss->xtnData.certificateCompressionAdvertised = PR_FALSE;
     SECITEM_FreeItem(&decodedCertificate, PR_FALSE);
     return SECSuccess;
 
@@ -4010,27 +4053,9 @@ tls13_HandleCertificate(sslSocket *ss, PRUint8 *b, PRUint32 length, PRBool alrea
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
-    if (ss->sec.isServer) {
-        /* Receiving this message might be the first sign we have that
-         * early data is over, so pretend we received EOED. */
-        rv = tls13_MaybeHandleSuppressedEndOfEarlyData(ss);
-        if (rv != SECSuccess) {
-            return SECFailure; /* Code already set. */
-        }
-
-        if (ss->ssl3.clientCertRequested) {
-            rv = TLS13_CHECK_HS_STATE(ss, SSL_ERROR_RX_UNEXPECTED_CERTIFICATE,
-                                      idle_handshake);
-        } else {
-            rv = TLS13_CHECK_HS_STATE(ss, SSL_ERROR_RX_UNEXPECTED_CERTIFICATE,
-                                      wait_client_cert);
-        }
-    } else {
-        rv = TLS13_CHECK_HS_STATE(ss, SSL_ERROR_RX_UNEXPECTED_CERTIFICATE,
-                                  wait_cert_request, wait_server_cert);
-    }
+    rv = tls13_EnsureCerticateExpected(ss);
     if (rv != SECSuccess) {
-        return SECFailure;
+        return SECFailure; /* Code already set. */
     }
 
     /* We can ignore any other cleartext from the client. */

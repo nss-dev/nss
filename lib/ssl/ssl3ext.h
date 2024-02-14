@@ -150,6 +150,7 @@ struct TLSExtensionDataStr {
 
     /* The compression algorithm that will be used to encode certificates. */
     SSLCertificateCompressionAlgorithmID compressionAlg;
+    PRBool certificateCompressionAdvertised;
 };
 
 typedef struct TLSExtensionStr {

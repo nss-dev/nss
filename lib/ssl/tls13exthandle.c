@@ -1863,6 +1863,7 @@ ssl3_SendCertificateCompressionXtn(const sslSocket *ss,
         }
     }
 
+    xtnData->certificateCompressionAdvertised = PR_TRUE;
     *added = PR_TRUE;
     return SECSuccess;
 }
