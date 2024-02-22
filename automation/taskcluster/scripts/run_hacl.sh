@@ -12,7 +12,7 @@ set -e -x -v
 # Get the HACL* source, containing a snapshot of the C code, extracted on the
 # HACL CI.
 git clone -q "https://github.com/hacl-star/hacl-star" ~/hacl-star
-git -C ~/hacl-star checkout -q 72f9d0c783cb716add714344604d591106dfbf7f
+git -C ~/hacl-star checkout -q 0f136f28935822579c244f287e1d2a1908a7e552
 
 # Format the C snapshot.
 cd ~/hacl-star/dist/mozilla
