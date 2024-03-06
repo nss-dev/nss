@@ -66,6 +66,27 @@ ec_secp521r1_scalar_validate(const SECItem *scalar)
     return SECSuccess;
 }
 
+SECStatus
+ec_ED25519_pt_validate(const SECItem *px)
+{
+    if (!px || !px->data || px->len != Ed25519_PUBLIC_KEYLEN) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+    return SECSuccess;
+}
+
+SECStatus
+ec_ED25519_scalar_validate(const SECItem *scalar)
+{
+    if (!scalar || !scalar->data || scalar->len != Ed25519_PRIVATE_KEYLEN) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    return SECSuccess;
+}
+
 static const ECMethod kMethods[] = {
     { ECCurve25519,
       ec_Curve25519_pt_mul,
@@ -97,6 +118,12 @@ static const ECMethod kMethods[] = {
         NULL,
         NULL,
     },
+    { ECCurve_Ed25519,
+      NULL,
+      ec_ED25519_pt_validate,
+      ec_ED25519_scalar_validate,
+      NULL,
+      NULL },
 };
 
 static const ECMethod *
@@ -354,6 +381,16 @@ ec_NewKey(ECParams *ecParams, ECPrivateKey **privKey,
     /* Compute corresponding public key */
 
     /* Use curve specific code for point multiplication */
+
+    if (ecParams->name == ECCurve_Ed25519) {
+        rv = ED_DerivePublicKey(&key->privateValue, &key->publicValue);
+        if (rv != SECSuccess) {
+            goto cleanup;
+        }
+        NSS_DECLASSIFY(key->publicValue.data, key->publicValue.len); /* Declassifying public key to avoid false positive */
+        goto done;
+    }
+
     if (ecParams->fieldID.type == ec_field_plain) {
         const ECMethod *method = ec_get_method_from_name(ecParams->name);
         if (method == NULL || method->pt_mul == NULL) {
@@ -436,6 +473,7 @@ ec_GenerateRandomPrivateKey(ECParams *ecParams, SECItem *privKey)
 
     uint8_t leading_coeff_mask;
     switch (ecParams->name) {
+        case ECCurve_Ed25519:
         case ECCurve25519:
         case ECCurve_NIST_P256:
         case ECCurve_NIST_P384:
@@ -491,8 +529,9 @@ EC_NewKey(ECParams *ecParams, ECPrivateKey **privKey)
         goto cleanup;
     }
     rv = ec_GenerateRandomPrivateKey(ecParams, &privKeyRand);
-    if (rv != SECSuccess || privKeyRand.data == NULL)
+    if (rv != SECSuccess || privKeyRand.data == NULL) {
         goto cleanup;
+    }
     /* generate public key */
     CHECK_SEC_OK(ec_NewKey(ecParams, privKey, privKeyRand.data, privKeyRand.len));
 
@@ -1326,36 +1365,35 @@ done:
 */
 
 SECStatus
-ec_ED25519_pt_validate(const ECPublicKey *key)
+ec_ED25519_public_key_validate(const ECPublicKey *key)
 {
-    if (!key || !key->publicValue.data || !(key->ecParams.name == ECCurve25519)) {
+    if (!key || !(key->ecParams.name == ECCurve_Ed25519)) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
-    return SECSuccess;
+    return ec_ED25519_pt_validate(&key->publicValue);
 }
 
 SECStatus
-ec_ED25519_scalar_validate(const ECPrivateKey *key)
+ec_ED25519_private_key_validate(const ECPrivateKey *key)
 {
-    if (!key || !key->privateValue.data || key->privateValue.len != Ed25519_PRIVATE_KEYLEN ||
-        !(key->ecParams.name == ECCurve25519)) {
+    if (!key || !(key->ecParams.name == ECCurve_Ed25519)) {
+
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
-    return SECSuccess;
+    return ec_ED25519_scalar_validate(&key->privateValue);
 }
 
 SECStatus
 ED_SignMessage(ECPrivateKey *key, SECItem *signature, const SECItem *msg)
 {
-    if (!msg || !((uint64_t)msg->len < 1LL << 32) ||
-        !signature || signature->len != Ed25519_SIGN_LEN) {
+    if (!msg || !((uint64_t)msg->len < 1LL << 32) || !signature || signature->len != Ed25519_SIGN_LEN) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
 
-    if (ec_ED25519_scalar_validate(key) != SECSuccess) {
+    if (ec_ED25519_private_key_validate(key) != SECSuccess) {
         return SECFailure; /* error code set by ec_ED25519_scalar_validate. */
     }
 
@@ -1376,14 +1414,13 @@ SECStatus
 ED_VerifyMessage(ECPublicKey *key, const SECItem *signature,
                  const SECItem *msg)
 {
-    if (!key || !key->publicValue.data || !msg || !signature || !signature->data ||
-        signature->len != Ed25519_SIGN_LEN || !(key->ecParams.name == ECCurve25519) ||
+    if (!msg || !signature || !signature->data || signature->len != Ed25519_SIGN_LEN ||
         !msg || !((uint64_t)msg->len < 1LL << 32)) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
 
-    if (ec_ED25519_pt_validate(key) != SECSuccess) {
+    if (ec_ED25519_public_key_validate(key) != SECSuccess) {
         return SECFailure; /* error code set by ec_ED25519_pt_validate. */
     }
 

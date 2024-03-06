@@ -25,6 +25,7 @@
         'pk11_des_unittest.cc',
         'pk11_dsa_unittest.cc',
         'pk11_ecdsa_unittest.cc',
+        'pk11_eddsa_unittest.cc',
         'pk11_ecdh_unittest.cc',
         'pk11_encrypt_derive_unittest.cc',
         'pk11_find_certs_unittest.cc',

@@ -5807,6 +5807,61 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             SECITEM_FreeItem(&pubKey, PR_FALSE);
             break;
 
+        case CKM_EC_EDWARDS_KEY_PAIR_GEN:
+            sftk_DeleteAttributeType(privateKey, CKA_EC_PARAMS);
+            sftk_DeleteAttributeType(privateKey, CKA_VALUE);
+            sftk_DeleteAttributeType(privateKey, CKA_NSS_DB);
+            key_type = CKK_EC_EDWARDS;
+
+            /* extract the necessary parameters and copy them to private keys */
+            crv = sftk_Attribute2SSecItem(NULL, &ecEncodedParams, publicKey,
+                                          CKA_EC_PARAMS);
+            if (crv != CKR_OK) {
+                break;
+            }
+
+            crv = sftk_AddAttributeType(privateKey, CKA_EC_PARAMS,
+                                        sftk_item_expand(&ecEncodedParams));
+            if (crv != CKR_OK) {
+                SECITEM_ZfreeItem(&ecEncodedParams, PR_FALSE);
+                break;
+            }
+
+            /* Decode ec params before calling EC_NewKey */
+            rv = EC_DecodeParams(&ecEncodedParams, &ecParams);
+            SECITEM_ZfreeItem(&ecEncodedParams, PR_FALSE);
+            if (rv != SECSuccess) {
+                crv = sftk_MapCryptError(PORT_GetError());
+                break;
+            }
+
+            rv = EC_NewKey(ecParams, &ecPriv);
+            if (rv != SECSuccess) {
+                if (PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
+                    sftk_fatalError = PR_TRUE;
+                }
+                PORT_FreeArena(ecParams->arena, PR_TRUE);
+                crv = sftk_MapCryptError(PORT_GetError());
+                break;
+            }
+            PORT_FreeArena(ecParams->arena, PR_TRUE);
+            crv = sftk_AddAttributeType(publicKey, CKA_EC_POINT,
+                                        sftk_item_expand(&ecPriv->publicValue));
+            if (crv != CKR_OK)
+                goto edgn_done;
+
+            crv = sftk_AddAttributeType(privateKey, CKA_VALUE,
+                                        sftk_item_expand(&ecPriv->privateValue));
+            if (crv != CKR_OK)
+                goto edgn_done;
+
+            crv = sftk_AddAttributeType(privateKey, CKA_NSS_DB,
+                                        sftk_item_expand(&ecPriv->publicValue));
+        edgn_done:
+            /* should zeroize, since this function doesn't. */
+            PORT_FreeArena(ecPriv->ecParams.arena, PR_TRUE);
+            break;
+
         default:
             crv = CKR_MECHANISM_INVALID;
     }

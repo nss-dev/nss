@@ -83,6 +83,9 @@ typedef int __BLAPI_DEPRECATED __attribute__((deprecated));
 #define EC_MAX_KEY_BITS 521 /* in bits */
 #define EC_MIN_KEY_BITS 256 /* in bits */
 
+#define ECD_MAX_KEY_BITS 255 /* in bits */
+#define ECD_MIN_KEY_BITS 255 /* in bits */
+
 /* EC point compression format */
 #define EC_POINT_FORM_COMPRESSED_Y0 0x02
 #define EC_POINT_FORM_COMPRESSED_Y1 0x03

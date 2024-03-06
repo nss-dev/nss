@@ -58,7 +58,7 @@ class EDDSATest : public ::testing::Test {
     ScopedPLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
     ASSERT_TRUE(arena && ecEncodedParams);
 
-    ecParams.name = ECCurve25519;
+    ecParams.name = ECCurve_Ed25519;
     key.ecParams = ecParams;
 
     SECStatus rv = ED_SignMessage(&key, signature_item.get(), &msg_value);

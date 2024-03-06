@@ -310,6 +310,7 @@ struct mechanismList {
 #define CKF_EC_PNU CKF_EC_F_P | CKF_EC_NAMEDCURVE | CKF_EC_UNCOMPRESS
 
 #define CKF_EC_BPNU CKF_EC_F_2M | CKF_EC_PNU
+#define CKF_EC_POC CKF_EC_F_P | CKF_EC_OID | CKF_EC_COMPRESS
 
 #define CK_MAX 0xffffffff
 
@@ -379,7 +380,8 @@ static const struct mechanismList mechanisms[] = {
     { CKM_ECDSA_SHA256, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
     { CKM_ECDSA_SHA384, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
     { CKM_ECDSA_SHA512, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
-    { CKM_EDDSA, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
+    { CKM_EC_EDWARDS_KEY_PAIR_GEN, { ECD_MIN_KEY_BITS, ECD_MAX_KEY_BITS, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
+    { CKM_EDDSA, { ECD_MIN_KEY_BITS, ECD_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_POC }, PR_TRUE },
     /* ------------------------- RC2 Operations --------------------------- */
     { CKM_RC2_KEY_GEN, { 1, 128, CKF_GENERATE }, PR_TRUE },
     { CKM_RC2_ECB, { 1, 128, CKF_EN_DE_WR_UN }, PR_TRUE },
@@ -1963,7 +1965,7 @@ sftk_GetPubKey(SFTKObject *object, CK_KEY_TYPE key_type,
                 /* Handle the non-DER encoded case.
                  * Some curves are always pressumed to be non-DER.
                  */
-                if ((key_type != CKK_EC_EDWARDS && pubKey->u.ec.ecParams.type != ec_params_named) ||
+                if (pubKey->u.ec.ecParams.type != ec_params_named ||
                     (pubKey->u.ec.publicValue.len == keyLen &&
                      pubKey->u.ec.publicValue.data[0] == EC_POINT_FORM_UNCOMPRESSED)) {
                     break; /* key was not DER encoded, no need to unwrap */
@@ -2106,10 +2108,9 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
             /* privKey was zero'd so public value is already set to NULL, 0
              * if we don't set it explicitly */
             break;
-
-        case CKK_EC:
         case CKK_EC_EDWARDS:
         case CKK_EC_MONTGOMERY:
+        case CKK_EC:
             privKey->keyType = NSSLOWKEYECKey;
             crv = sftk_Attribute2SSecItem(arena,
                                           &privKey->u.ec.ecParams.DEREncoding,
