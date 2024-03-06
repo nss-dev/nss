@@ -8,8 +8,10 @@
 #include "sechash.h"
 #include "cryptohi.h"
 
-#include "gtest/gtest.h"
+#include "cpputil.h"
+#include "json_reader.h"
 #include "nss_scoped_ptrs.h"
+#include "testvectors_base/test-structs.h"
 
 #include "pk11_eddsa_vectors.h"
 #include "pk11_signature_test.h"
@@ -99,5 +101,77 @@ TEST_P(Pkcs11EddsaRoundtripTest, GenerateExportImportSignVerify) {
 
 INSTANTIATE_TEST_SUITE_P(EddsaRound, Pkcs11EddsaRoundtripTest,
                          ::testing::ValuesIn(kEddsaVectors));
+
+class Pkcs11EddsaWycheproofTest : public ::testing::Test {
+ protected:
+  void Run(const std::string& name) {
+    WycheproofHeader(name, "EDDSA", "eddsa_verify_schema.json",
+                     [this](JsonReader& r) { RunGroup(r); });
+  }
+
+ private:
+  void RunGroup(JsonReader& r) {
+    std::vector<EddsaTestVector> tests;
+    std::vector<uint8_t> public_key;
+
+    while (r.NextItem()) {
+      std::string n = r.ReadLabel();
+      if (n == "") {
+        break;
+      }
+
+      if (n == "jwk" || n == "key" || n == "keyPem") {
+        r.SkipValue();
+      } else if (n == "keyDer") {
+        public_key = r.ReadHex();
+      } else if (n == "type") {
+        ASSERT_EQ("EddsaVerify", r.ReadString());
+      } else if (n == "tests") {
+        WycheproofReadTests(r, &tests, ReadTestAttr);
+      } else {
+        FAIL() << "unknown label in group: " << n;
+      }
+    }
+
+    for (auto& t : tests) {
+      std::cout << "Running test " << t.id << std::endl;
+      t.public_key = public_key;
+      Derive(t);
+    }
+  }
+
+  static void ReadTestAttr(EddsaTestVector& t, const std::string& n,
+                           JsonReader& r) {
+    if (n == "msg") {
+      t.msg = r.ReadHex();
+    } else if (n == "sig") {
+      t.sig = r.ReadHex();
+    } else {
+      FAIL() << "unknown test key: " << n;
+    }
+  }
+
+  void Derive(const EddsaTestVector& vec) {
+    SECItem spki_item = {siBuffer, toUcharPtr(vec.public_key.data()),
+                         static_cast<unsigned int>(vec.public_key.size())};
+    SECItem sig_item = {siBuffer, toUcharPtr(vec.sig.data()),
+                        static_cast<unsigned int>(vec.sig.size())};
+    SECItem msg_item = {siBuffer, toUcharPtr(vec.msg.data()),
+                        static_cast<unsigned int>(vec.msg.size())};
+
+    ScopedCERTSubjectPublicKeyInfo cert_spki(
+        SECKEY_DecodeDERSubjectPublicKeyInfo(&spki_item));
+    ASSERT_TRUE(cert_spki);
+
+    ScopedSECKEYPublicKey pub_key(SECKEY_ExtractPublicKey(cert_spki.get()));
+    ASSERT_TRUE(pub_key);
+
+    SECStatus rv = PK11_VerifyWithMechanism(pub_key.get(), CKM_EDDSA, nullptr,
+                                            &sig_item, &msg_item, nullptr);
+    EXPECT_EQ(rv, vec.valid ? SECSuccess : SECFailure);
+  };
+};
+
+TEST_F(Pkcs11EddsaWycheproofTest, Ed25519) { Run("eddsa"); }
 
 }  // namespace nss_test
