@@ -733,8 +733,8 @@ typedef struct SSL3HandshakeStateStr {
 
     PRUint32 rtRetries;  /* The retry counter */
     SECItem srvVirtName; /* for server: name that was negotiated
-                                    * with a client. For client - is
-                                    * always set to NULL.*/
+                          * with a client. For client - is
+                          * always set to NULL.*/
 
     /* This group of values is used for TLS 1.3 and above */
     PK11SymKey *currentSecret;            /* The secret down the "left hand side"
@@ -815,14 +815,6 @@ typedef struct SSL3HandshakeStateStr {
         PORT_Assert(ss->ssl3.hs.messages.len == 0);                  \
         PORT_Assert(ss->ssl3.hs.echInnerMessages.len == 0);          \
     } while (0)
-
-typedef struct SSLCertificateCompressionAlgorithmStr {
-    SSLCertificateCompressionAlgorithmID id;
-    const char *name;
-    SECStatus (*encode)(const SECItem *input, SECItem *output);
-    SECStatus (*decode)(const SECItem *input, SECItem *output, size_t expectedLenDecodedCertificate);
-} SSLCertificateCompressionAlgorithm;
-
 /*
 ** This is the "ssl3" struct, as in "ss->ssl3".
 ** note:
