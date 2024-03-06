@@ -379,6 +379,7 @@ static const struct mechanismList mechanisms[] = {
     { CKM_ECDSA_SHA256, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
     { CKM_ECDSA_SHA384, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
     { CKM_ECDSA_SHA512, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
+    { CKM_EDDSA, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
     /* ------------------------- RC2 Operations --------------------------- */
     { CKM_RC2_KEY_GEN, { 1, 128, CKF_GENERATE }, PR_TRUE },
     { CKM_RC2_ECB, { 1, 128, CKF_EN_DE_WR_UN }, PR_TRUE },
@@ -1074,6 +1075,8 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
             recover = CK_FALSE;
             wrap = CK_FALSE;
             break;
+        case CKK_EC_MONTGOMERY:
+        case CKK_EC_EDWARDS:
         case CKK_EC:
             if (!sftk_hasAttribute(object, CKA_EC_PARAMS)) {
                 return CKR_TEMPLATE_INCOMPLETE;
@@ -1081,8 +1084,9 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
             if (!sftk_hasAttribute(object, CKA_EC_POINT)) {
                 return CKR_TEMPLATE_INCOMPLETE;
             }
-            derive = CK_TRUE; /* for ECDH */
-            verify = CK_TRUE; /* for ECDSA */
+            /* for ECDSA and EDDSA. Change if the structure of any of them is modified. */
+            derive = (key_type == CKK_EC_EDWARDS) ? CK_FALSE : CK_TRUE; /* CK_TRUE for ECDH */
+            verify = CK_TRUE;                                           /* for ECDSA */
             encrypt = CK_FALSE;
             recover = CK_FALSE;
             wrap = CK_FALSE;
@@ -1129,7 +1133,7 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
     object->infoFree = (SFTKFree)nsslowkey_DestroyPublicKey;
 
     /* Check that an imported EC key is valid */
-    if (key_type == CKK_EC) {
+    if (key_type == CKK_EC || key_type == CKK_EC_EDWARDS || key_type == CKK_EC_MONTGOMERY) {
         NSSLOWKEYPublicKey *pubKey = (NSSLOWKEYPublicKey *)object->objectInfo;
         SECStatus rv = EC_ValidatePublicKey(&pubKey->u.ec.ecParams,
                                             &pubKey->u.ec.publicValue);
@@ -1271,6 +1275,8 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
             wrap = CK_FALSE;
             break;
         case CKK_EC:
+        case CKK_EC_EDWARDS:
+        case CKK_EC_MONTGOMERY:
             if (!sftk_hasAttribute(object, CKA_EC_PARAMS)) {
                 return CKR_TEMPLATE_INCOMPLETE;
             }
@@ -1926,6 +1932,8 @@ sftk_GetPubKey(SFTKObject *object, CK_KEY_TYPE key_type,
             crv = sftk_Attribute2SSecItem(arena, &pubKey->u.dh.publicValue,
                                           object, CKA_VALUE);
             break;
+        case CKK_EC_EDWARDS:
+        case CKK_EC_MONTGOMERY:
         case CKK_EC:
             pubKey->keyType = NSSLOWKEYECKey;
             crv = sftk_Attribute2SSecItem(arena,
@@ -1955,7 +1963,7 @@ sftk_GetPubKey(SFTKObject *object, CK_KEY_TYPE key_type,
                 /* Handle the non-DER encoded case.
                  * Some curves are always pressumed to be non-DER.
                  */
-                if (pubKey->u.ec.ecParams.type != ec_params_named ||
+                if ((key_type != CKK_EC_EDWARDS && pubKey->u.ec.ecParams.type != ec_params_named) ||
                     (pubKey->u.ec.publicValue.len == keyLen &&
                      pubKey->u.ec.publicValue.data[0] == EC_POINT_FORM_UNCOMPRESSED)) {
                     break; /* key was not DER encoded, no need to unwrap */
@@ -2100,6 +2108,8 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
             break;
 
         case CKK_EC:
+        case CKK_EC_EDWARDS:
+        case CKK_EC_MONTGOMERY:
             privKey->keyType = NSSLOWKEYECKey;
             crv = sftk_Attribute2SSecItem(arena,
                                           &privKey->u.ec.ecParams.DEREncoding,
@@ -2414,6 +2424,8 @@ sftk_PutPubKey(SFTKObject *publicKey, SFTKObject *privateKey, CK_KEY_TYPE keyTyp
                                         sftk_item_expand(&pubKey->u.dh.publicValue));
             break;
         case CKK_EC:
+        case CKK_EC_MONTGOMERY:
+        case CKK_EC_EDWARDS:
             sftk_DeleteAttributeType(publicKey, CKA_EC_PARAMS);
             sftk_DeleteAttributeType(publicKey, CKA_EC_POINT);
             crv = sftk_AddAttributeType(publicKey, CKA_EC_PARAMS,

@@ -18,6 +18,7 @@
 #include "verified/Hacl_P384.h"
 #include "verified/Hacl_P521.h"
 #include "secport.h"
+#include "verified/Hacl_Ed25519.h"
 
 #define EC_DOUBLECHECK PR_FALSE
 
@@ -1316,4 +1317,107 @@ done:
 #endif
 
     return rv;
+}
+
+/*EdDSA: Currently only Ed22519 is implemented.*/
+
+/*
+** Computes the EdDSA signature on the message using the given key.
+*/
+
+SECStatus
+ec_ED25519_pt_validate(const ECPublicKey *key)
+{
+    if (!key || !key->publicValue.data || !(key->ecParams.name == ECCurve25519)) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+    return SECSuccess;
+}
+
+SECStatus
+ec_ED25519_scalar_validate(const ECPrivateKey *key)
+{
+    if (!key || !key->privateValue.data || key->privateValue.len != Ed25519_PRIVATE_KEYLEN ||
+        !(key->ecParams.name == ECCurve25519)) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+    return SECSuccess;
+}
+
+SECStatus
+ED_SignMessage(ECPrivateKey *key, SECItem *signature, const SECItem *msg)
+{
+    if (!msg || !((uint64_t)msg->len < 1LL << 32) ||
+        !signature || signature->len != Ed25519_SIGN_LEN) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (ec_ED25519_scalar_validate(key) != SECSuccess) {
+        return SECFailure; /* error code set by ec_ED25519_scalar_validate. */
+    }
+
+    if (signature->data) {
+        Hacl_Ed25519_sign(signature->data, key->privateValue.data, msg->len,
+                          msg->data);
+    }
+    signature->len = ED25519_SIGN_LEN;
+    BLAPI_CLEAR_STACK(2048);
+    return SECSuccess;
+}
+
+/*
+** Checks the signature on the given message using the key provided.
+*/
+
+SECStatus
+ED_VerifyMessage(ECPublicKey *key, const SECItem *signature,
+                 const SECItem *msg)
+{
+    if (!key || !key->publicValue.data || !msg || !signature || !signature->data ||
+        signature->len != Ed25519_SIGN_LEN || !(key->ecParams.name == ECCurve25519) ||
+        !msg || !((uint64_t)msg->len < 1LL << 32)) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (ec_ED25519_pt_validate(key) != SECSuccess) {
+        return SECFailure; /* error code set by ec_ED25519_pt_validate. */
+    }
+
+    bool rv = Hacl_Ed25519_verify(key->publicValue.data, msg->len, msg->data,
+                                  signature->data);
+    BLAPI_CLEAR_STACK(2048);
+
+#if EC_DEBUG
+    printf("ED_VerifyMessage returning %s\n",
+           (rv) ? "success" : "failure");
+#endif
+
+    if (rv) {
+        return SECSuccess;
+    }
+
+    PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
+    return SECFailure;
+}
+
+SECStatus
+ED_DerivePublicKey(const SECItem *privateKey, SECItem *publicKey)
+{
+    /* Currently supporting only Ed25519.*/
+    if (!privateKey || privateKey->len == 0 || !publicKey || publicKey->len != Ed25519_PUBLIC_KEYLEN) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (ec_ED25519_scalar_validate(privateKey) != SECSuccess) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    Hacl_Ed25519_secret_to_public(publicKey->data, privateKey->data);
+    return SECSuccess;
 }

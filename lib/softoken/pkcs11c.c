@@ -2668,13 +2668,9 @@ static SECStatus
 nsc_DSA_Verify_Stub(void *ctx, void *sigBuf, unsigned int sigLen,
                     void *dataBuf, unsigned int dataLen)
 {
-    SECItem signature, digest;
+    SECItem signature = { siBuffer, (unsigned char *)sigBuf, sigLen };
+    SECItem digest = { siBuffer, (unsigned char *)dataBuf, dataLen };
     NSSLOWKEYPublicKey *key = (NSSLOWKEYPublicKey *)ctx;
-
-    signature.data = (unsigned char *)sigBuf;
-    signature.len = sigLen;
-    digest.data = (unsigned char *)dataBuf;
-    digest.len = dataLen;
     return DSA_VerifyDigest(&(key->u.dsa), &signature, &digest);
 }
 
@@ -2683,15 +2679,10 @@ nsc_DSA_Sign_Stub(void *ctx, void *sigBuf,
                   unsigned int *sigLen, unsigned int maxSigLen,
                   void *dataBuf, unsigned int dataLen)
 {
-    SECItem signature, digest;
-    SECStatus rv;
     NSSLOWKEYPrivateKey *key = (NSSLOWKEYPrivateKey *)ctx;
-
-    signature.data = (unsigned char *)sigBuf;
-    signature.len = maxSigLen;
-    digest.data = (unsigned char *)dataBuf;
-    digest.len = dataLen;
-    rv = DSA_SignDigest(&(key->u.dsa), &signature, &digest);
+    SECItem signature = { siBuffer, (unsigned char *)sigBuf, maxSigLen };
+    SECItem digest = { siBuffer, (unsigned char *)dataBuf, dataLen };
+    SECStatus rv = DSA_SignDigest(&(key->u.dsa), &signature, &digest);
     if (rv != SECSuccess && PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
         sftk_fatalError = PR_TRUE;
     }
@@ -2703,13 +2694,9 @@ static SECStatus
 nsc_ECDSAVerifyStub(void *ctx, void *sigBuf, unsigned int sigLen,
                     void *dataBuf, unsigned int dataLen)
 {
-    SECItem signature, digest;
+    SECItem signature = { siBuffer, (unsigned char *)sigBuf, sigLen };
+    SECItem digest = { siBuffer, (unsigned char *)dataBuf, dataLen };
     NSSLOWKEYPublicKey *key = (NSSLOWKEYPublicKey *)ctx;
-
-    signature.data = (unsigned char *)sigBuf;
-    signature.len = sigLen;
-    digest.data = (unsigned char *)dataBuf;
-    digest.len = dataLen;
     return ECDSA_VerifyDigest(&(key->u.ec), &signature, &digest);
 }
 
@@ -2718,15 +2705,38 @@ nsc_ECDSASignStub(void *ctx, void *sigBuf,
                   unsigned int *sigLen, unsigned int maxSigLen,
                   void *dataBuf, unsigned int dataLen)
 {
-    SECItem signature, digest;
-    SECStatus rv;
     NSSLOWKEYPrivateKey *key = (NSSLOWKEYPrivateKey *)ctx;
+    SECItem signature = { siBuffer, (unsigned char *)sigBuf, maxSigLen };
+    SECItem digest = { siBuffer, (unsigned char *)dataBuf, dataLen };
 
-    signature.data = (unsigned char *)sigBuf;
-    signature.len = maxSigLen;
-    digest.data = (unsigned char *)dataBuf;
-    digest.len = dataLen;
-    rv = ECDSA_SignDigest(&(key->u.ec), &signature, &digest);
+    SECStatus rv = ECDSA_SignDigest(&(key->u.ec), &signature, &digest);
+    if (rv != SECSuccess && PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
+        sftk_fatalError = PR_TRUE;
+    }
+    *sigLen = signature.len;
+    return rv;
+}
+
+static SECStatus
+nsc_EDDSAVerifyStub(void *ctx, void *sigBuf, unsigned int sigLen,
+                    void *dataBuf, unsigned int dataLen)
+{
+    SECItem signature = { siBuffer, (unsigned char *)sigBuf, sigLen };
+    SECItem digest = { siBuffer, (unsigned char *)dataBuf, dataLen };
+    NSSLOWKEYPublicKey *key = (NSSLOWKEYPublicKey *)ctx;
+    return ED_VerifyMessage(&(key->u.ec), &signature, &digest);
+}
+
+static SECStatus
+nsc_EDDSASignStub(void *ctx, void *sigBuf,
+                  unsigned int *sigLen, unsigned int maxSigLen,
+                  void *dataBuf, unsigned int dataLen)
+{
+    NSSLOWKEYPrivateKey *key = (NSSLOWKEYPrivateKey *)ctx;
+    SECItem signature = { siBuffer, (unsigned char *)sigBuf, maxSigLen };
+    SECItem digest = { siBuffer, (unsigned char *)dataBuf, dataLen };
+
+    SECStatus rv = ED_SignMessage(&(key->u.ec), &signature, &digest);
     if (rv != SECSuccess && PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
         sftk_fatalError = PR_TRUE;
     }
@@ -2948,6 +2958,29 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
             }
             context->cipherInfo = privKey;
             context->update = (SFTKCipher)nsc_ECDSASignStub;
+            context->destroy = (privKey == key->objectInfo) ? (SFTKDestroy)sftk_Null : (SFTKDestroy)sftk_FreePrivKey;
+            context->maxLen = MAX_ECKEY_LEN * 2;
+
+            break;
+
+        case CKM_EDDSA:
+            if (key_type != CKK_EC_EDWARDS) {
+                crv = CKR_KEY_TYPE_INCONSISTENT;
+                break;
+            }
+
+            if (pMechanism->pParameter) {
+                crv = CKR_MECHANISM_PARAM_INVALID;
+                break;
+            }
+
+            privKey = sftk_GetPrivKey(key, CKK_EC_EDWARDS, &crv);
+            if (privKey == NULL) {
+                crv = CKR_HOST_MEMORY;
+                break;
+            }
+            context->cipherInfo = privKey;
+            context->update = (SFTKCipher)nsc_EDDSASignStub;
             context->destroy = (privKey == key->objectInfo) ? (SFTKDestroy)sftk_Null : (SFTKDestroy)sftk_FreePrivKey;
             context->maxLen = MAX_ECKEY_LEN * 2;
 
@@ -3735,6 +3768,27 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
             INIT_HMAC_MECH(SHA3_256)
             INIT_HMAC_MECH(SHA3_384)
             INIT_HMAC_MECH(SHA3_512)
+
+        case CKM_EDDSA:
+            if (key_type != CKK_EC_EDWARDS) {
+                crv = CKR_KEY_TYPE_INCONSISTENT;
+                break;
+            }
+            pubKey = sftk_GetPubKey(key, CKK_EC_EDWARDS, &crv);
+            if (pubKey == NULL) {
+                crv = CKR_HOST_MEMORY;
+                break;
+            }
+
+            if (pMechanism->pParameter) {
+                crv = CKR_FUNCTION_NOT_SUPPORTED;
+                break;
+            }
+
+            context->cipherInfo = pubKey;
+            context->verify = (SFTKVerify)nsc_EDDSAVerifyStub;
+            context->destroy = sftk_Null;
+            break;
 
         case CKM_SSL3_MD5_MAC:
             PORT_Assert(pMechanism->pParameter);
@@ -5069,6 +5123,10 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession, SFTKSlot *slot,
             case CKK_EC:
                 signature_length = MAX_ECKEY_LEN * 2;
                 mech.mechanism = CKM_ECDSA;
+                break;
+            case CKK_EC_EDWARDS:
+                signature_length = ED25519_SIGN_LEN;
+                mech.mechanism = CKM_EDDSA;
                 break;
             default:
                 return CKR_DEVICE_ERROR;

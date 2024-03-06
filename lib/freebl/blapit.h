@@ -29,6 +29,8 @@
 
 #define DES_KEY_LENGTH 8 /* Bytes */
 
+#define ED25519_SIGN_LEN 64U /* Bytes */
+
 /* AES operation modes */
 #define NSS_AES 0
 #define NSS_AES_CBC 1
