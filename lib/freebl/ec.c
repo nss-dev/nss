@@ -1388,7 +1388,7 @@ ec_ED25519_private_key_validate(const ECPrivateKey *key)
 SECStatus
 ED_SignMessage(ECPrivateKey *key, SECItem *signature, const SECItem *msg)
 {
-    if (!msg || !((uint64_t)msg->len < 1LL << 32) || !signature || signature->len != Ed25519_SIGN_LEN) {
+    if (!msg || !signature || signature->len != Ed25519_SIGN_LEN) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
@@ -1414,8 +1414,7 @@ SECStatus
 ED_VerifyMessage(ECPublicKey *key, const SECItem *signature,
                  const SECItem *msg)
 {
-    if (!msg || !signature || !signature->data || signature->len != Ed25519_SIGN_LEN ||
-        !msg || !((uint64_t)msg->len < 1LL << 32)) {
+    if (!msg || !signature || !signature->data || signature->len != Ed25519_SIGN_LEN) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
