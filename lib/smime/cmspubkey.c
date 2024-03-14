@@ -245,8 +245,16 @@ NSS_CMSUtil_EncryptSymKey_ESECDH(PLArenaPool *poolp, CERTCertificate *cert,
         goto loser;
     }
 
-    /* Parameters are absent for key wrap algorithms */
-    PORT_Memset(&keyWrapAlg_params, 0, sizeof(SECItem));
+    /* Parameters are supposed to be absent for AES key wrap algorithms.
+     * However, Microsoft Outlook cannot decrypt message unless
+     * parameters field is NULL. */
+    keyWrapAlg_params.len = 2;
+    keyWrapAlg_params.data = (unsigned char *)PORT_ArenaAlloc(poolp, keyWrapAlg_params.len);
+    if (keyWrapAlg_params.data == NULL)
+        goto loser;
+
+    keyWrapAlg_params.data[0] = SEC_ASN1_NULL;
+    keyWrapAlg_params.data[1] = 0;
 
     /* RFC5753 specifies id-aes128-wrap as the mandatory to support algorithm.
      * So, use id-aes128-wrap unless bulkkey provides more than 128 bits of
