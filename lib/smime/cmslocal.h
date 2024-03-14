@@ -173,6 +173,16 @@ extern PK11SymKey *
 NSS_CMSUtil_DecryptSymKey_ESDH(SECKEYPrivateKey *privkey, SECItem *encKey,
                                SECAlgorithmID *keyEncAlg, SECOidTag bulkalgtag, void *pwfn_arg);
 
+extern SECStatus
+NSS_CMSUtil_EncryptSymKey_ESECDH(PLArenaPool *poolp, CERTCertificate *cert, PK11SymKey *key,
+                                 SECItem *encKey, SECItem *ukm, SECAlgorithmID *keyEncAlg,
+                                 SECItem *originatorPubKey);
+
+PK11SymKey *
+NSS_CMSUtil_DecryptSymKey_ECDH(SECKEYPrivateKey *privkey, SECItem *encKey,
+                               SECAlgorithmID *keyEncAlg, SECOidTag bulkalgtag,
+                               SECItem *ukm, NSSCMSOriginatorIdentifierOrKey *oiok);
+
 /************************************************************************
  * cmsreclist.c - recipient list stuff
  ************************************************************************/
