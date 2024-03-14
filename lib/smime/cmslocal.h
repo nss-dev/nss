@@ -166,7 +166,7 @@ NSS_CMSUtil_DecryptSymKey_RSA(SECKEYPrivateKey *privkey, SECItem *encKey, SECOid
 
 extern SECStatus
 NSS_CMSUtil_EncryptSymKey_ESDH(PLArenaPool *poolp, CERTCertificate *cert, PK11SymKey *key,
-                               SECItem *encKey, SECItem **ukm, SECAlgorithmID *keyEncAlg,
+                               SECItem *encKey, SECItem *ukm, SECAlgorithmID *keyEncAlg,
                                SECItem *originatorPubKey);
 
 extern PK11SymKey *

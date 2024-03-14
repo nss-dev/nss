@@ -110,7 +110,7 @@ NSS_CMSUtil_DecryptSymKey_RSA(SECKEYPrivateKey *privkey, SECItem *encKey, SECOid
 
 SECStatus
 NSS_CMSUtil_EncryptSymKey_ESDH(PLArenaPool *poolp, CERTCertificate *cert, PK11SymKey *key,
-                               SECItem *encKey, SECItem **ukm, SECAlgorithmID *keyEncAlg,
+                               SECItem *encKey, SECItem *ukm, SECAlgorithmID *keyEncAlg,
                                SECItem *pubKey)
 {
 #if 0 /* not yet done */
