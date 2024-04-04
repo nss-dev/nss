@@ -149,10 +149,7 @@ Create_ECC_CMS_SharedInfo(PLArenaPool *poolp,
                           SECAlgorithmID *keyInfo, SECItem *ukm, unsigned int KEKsize)
 {
     ECC_CMS_SharedInfo SI;
-    enum { suppPubInfoSize = 4 };
-    unsigned char suppPubInfo[suppPubInfoSize];
-    SECItem encodedKEK;
-    unsigned int skipBytes;
+    unsigned char suppPubInfo[4] = { 0 };
 
     SI.keyInfo = keyInfo;
     SI.entityUInfo.type = ukm->type;
@@ -161,19 +158,16 @@ Create_ECC_CMS_SharedInfo(PLArenaPool *poolp,
 
     SI.suppPubInfo.type = siBuffer;
     SI.suppPubInfo.data = suppPubInfo;
-    SI.suppPubInfo.len = suppPubInfoSize;
+    SI.suppPubInfo.len = sizeof(suppPubInfo);
 
-    SEC_ASN1EncodeInteger(poolp, &encodedKEK, (KEKsize * 8));
-    if (encodedKEK.len > suppPubInfoSize) {
+    if (KEKsize > 0x1FFFFFFF) { // ensure KEKsize * 8 fits in 4 bytes.
         return NULL;
     }
-
-    /* The output of SEC_ASN1EncodeInteger is a variable number of
-     * bytes. We pad the output with additional zero bytes, because
-     * RFC 5753 requires that suppPubInfo uses exactly 4 bytes. */
-    memset(suppPubInfo, 0, suppPubInfoSize);
-    skipBytes = suppPubInfoSize - encodedKEK.len;
-    memcpy(suppPubInfo + skipBytes, encodedKEK.data, encodedKEK.len);
+    KEKsize *= 8;
+    suppPubInfo[0] = (KEKsize & 0xFF000000) >> 24;
+    suppPubInfo[1] = (KEKsize & 0xFF0000) >> 16;
+    suppPubInfo[2] = (KEKsize & 0xFF00) >> 8;
+    suppPubInfo[3] = KEKsize & 0xFF;
 
     return SEC_ASN1EncodeItem(poolp, NULL, &SI, ECC_CMS_SharedInfoTemplate);
 }
