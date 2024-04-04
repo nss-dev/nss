@@ -16,6 +16,7 @@
 #include "pk11func.h"
 #include "secerr.h"
 #include "secder.h"
+#include "prerr.h"
 
 /* ====== RSA ======================================================================= */
 
@@ -122,7 +123,7 @@ SEC_ASN1_MKSUB(SEC_OctetStringTemplate)
 static const SEC_ASN1Template ECC_CMS_SharedInfoTemplate[] = {
     { SEC_ASN1_SEQUENCE,
       0, NULL, sizeof(ECC_CMS_SharedInfo) },
-    { SEC_ASN1_INLINE | SEC_ASN1_POINTER,
+    { SEC_ASN1_XTRN | SEC_ASN1_POINTER,
       offsetof(ECC_CMS_SharedInfo, keyInfo),
       SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate) },
     { SEC_ASN1_OPTIONAL | SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED |
@@ -148,33 +149,48 @@ Create_ECC_CMS_SharedInfo(PLArenaPool *poolp,
                           SECAlgorithmID *keyInfo, SECItem *ukm, unsigned int KEKsize)
 {
     ECC_CMS_SharedInfo SI;
-    unsigned char suppPubInfo[4];
+    const unsigned int suppPubInfoSize = 4;
+    unsigned char suppPubInfo[suppPubInfoSize];
+    SECItem encodedKEK;
+    unsigned int skipBytes;
 
     SI.keyInfo = keyInfo;
     SI.entityUInfo.type = ukm->type;
     SI.entityUInfo.data = ukm->data;
     SI.entityUInfo.len = ukm->len;
 
-    KEKsize = KEKsize * 8;
-    suppPubInfo[0] = (KEKsize & 0xFF000000) >> 24;
-    suppPubInfo[1] = (KEKsize & 0xFF0000) >> 16;
-    suppPubInfo[2] = (KEKsize & 0xFF00) >> 8;
-    suppPubInfo[3] = KEKsize & 0xFF;
-
     SI.suppPubInfo.type = siBuffer;
     SI.suppPubInfo.data = suppPubInfo;
-    SI.suppPubInfo.len = 4;
+    SI.suppPubInfo.len = suppPubInfoSize;
+
+    SEC_ASN1EncodeInteger(poolp, &encodedKEK, (KEKsize * 8));
+    if (encodedKEK.len > suppPubInfoSize) {
+        return NULL;
+    }
+
+    /* The output of SEC_ASN1EncodeInteger is a variable number of
+     * bytes. We pad the output with additional zero bytes, because
+     * RFC 5753 requires that suppPubInfo uses exactly 4 bytes. */
+    memset(suppPubInfo, 0, suppPubInfoSize);
+    skipBytes = suppPubInfoSize - encodedKEK.len;
+    memcpy(suppPubInfo + skipBytes, encodedKEK.data, encodedKEK.len);
 
     return SEC_ASN1EncodeItem(poolp, NULL, &SI, ECC_CMS_SharedInfoTemplate);
 }
 
 /* this will generate a key pair, compute the shared secret, */
 /* derive a key and ukm for the keyEncAlg out of it, encrypt the bulk key with */
-/* the keyEncAlg, set encKey, keyEncAlg, publicKey etc. */
+/* the keyEncAlg, set encKey, keyEncAlg, publicKey etc.
+ * The ukm is optional per RFC 5753. Pass a NULL value to request an empty ukm.
+ * Pass a SECItem with the size set to zero, to request allocating a random
+ * ukm of a default size. Or provide an explicit ukm that was defined by the caller.
+ */
 SECStatus
 NSS_CMSUtil_EncryptSymKey_ESECDH(PLArenaPool *poolp, CERTCertificate *cert,
-                                 PK11SymKey *bulkkey, SECItem *encKey, SECItem *ukm,
-                                 SECAlgorithmID *keyEncAlg, SECItem *pubKey)
+                                 PK11SymKey *bulkkey, SECItem *encKey,
+                                 PRBool genUkm, SECItem *ukm,
+                                 SECAlgorithmID *keyEncAlg, SECItem *pubKey,
+                                 void *wincx)
 {
     SECOidTag certalgtag; /* the certificate's encryption algorithm */
     SECStatus rv;
@@ -190,15 +206,24 @@ NSS_CMSUtil_EncryptSymKey_ESECDH(PLArenaPool *poolp, CERTCertificate *cert,
     CK_MECHANISM_TYPE keyDerivationType, keyWrapMech;
     CK_ULONG kdf;
 
+    if (genUkm && (ukm->len != 0 || ukm->data != NULL)) {
+        PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
+        return SECFailure;
+    }
+
     certalgtag = SECOID_GetAlgorithmTag(&(cert->subjectPublicKeyInfo.algorithm));
     PORT_Assert(certalgtag == SEC_OID_ANSIX962_EC_PUBLIC_KEY);
+    if (certalgtag != SEC_OID_ANSIX962_EC_PUBLIC_KEY) {
+        return SECFailure;
+    }
 
     /* Get the public key of the recipient. */
     publickey = CERT_ExtractPublicKey(cert);
     if (publickey == NULL)
         goto loser;
 
-    ourPrivKey = SECKEY_CreateECPrivateKey(&publickey->u.ec.DEREncodedParams, &ourPubKey, NULL);
+    ourPrivKey = SECKEY_CreateECPrivateKey(&publickey->u.ec.DEREncodedParams,
+                                           &ourPubKey, wincx);
     if (!ourPrivKey || !ourPubKey) {
         goto loser;
     }
@@ -214,20 +239,6 @@ NSS_CMSUtil_EncryptSymKey_ESECDH(PLArenaPool *poolp, CERTCertificate *cert,
 
     SECKEY_DestroyPublicKey(ourPubKey); /* we only need the private key from now on */
     ourPubKey = NULL;
-
-    /* ukm is optional, but RFC 5753 says that originators SHOULD include the ukm.
-     * I made ukm 64 bytes, since RFC 2631 states that UserKeyingMaterial must
-     * contain 512 bits for Diffie-Hellman key agreement. */
-    ukm->type = siBuffer;
-    ukm->len = 64;
-    ukm->data = (unsigned char *)PORT_ArenaAlloc(poolp, ukm->len);
-    if (ukm->data == NULL) {
-        goto loser;
-    }
-    rv = PK11_GenerateRandom(ukm->data, ukm->len);
-    if (rv != SECSuccess) {
-        goto loser;
-    }
 
     bulkkey_size = PK11_GetKeyLength(bulkkey);
     if (bulkkey_size == 0) {
@@ -269,7 +280,27 @@ NSS_CMSUtil_EncryptSymKey_ESECDH(PLArenaPool *poolp, CERTCertificate *cert,
         goto loser;
     }
 
-    SharedInfo = Create_ECC_CMS_SharedInfo(poolp, &keyWrapAlg, ukm, kek_size);
+    /* ukm is optional, but RFC 5753 says that originators SHOULD include the ukm.
+     * I made ukm 64 bytes, since RFC 2631 states that UserKeyingMaterial must
+     * contain 512 bits for Diffie-Hellman key agreement. */
+
+    if (genUkm) {
+        ukm->type = siBuffer;
+        ukm->len = 64;
+        ukm->data = (unsigned char *)PORT_ArenaAlloc(poolp, ukm->len);
+
+        if (ukm->data == NULL) {
+            goto loser;
+        }
+        rv = PK11_GenerateRandom(ukm->data, ukm->len);
+        if (rv != SECSuccess) {
+            goto loser;
+        }
+    }
+
+    SharedInfo = Create_ECC_CMS_SharedInfo(poolp, &keyWrapAlg,
+                                           ukm,
+                                           kek_size);
     if (!SharedInfo) {
         goto loser;
     }
@@ -333,10 +364,54 @@ loser:
     return SECFailure;
 }
 
+/* TODO: Move to pk11wrap and export? */
+static int
+cms_GetKekSizeFromKeyWrapAlgTag(SECOidTag keyWrapAlgtag)
+{
+    switch (keyWrapAlgtag) {
+        case SEC_OID_AES_128_KEY_WRAP:
+            return 16;
+        case SEC_OID_AES_192_KEY_WRAP:
+            return 24;
+        case SEC_OID_AES_256_KEY_WRAP:
+            return 32;
+        default:
+            break;
+    }
+    return 0;
+}
+
+/* TODO: Move to smimeutil and export? */
+static CK_ULONG
+cms_GetKdfFromKeyEncAlgTag(SECOidTag keyEncAlgtag)
+{
+    switch (keyEncAlgtag) {
+        case SEC_OID_DHSINGLEPASS_STDDH_SHA1KDF_SCHEME:
+        case SEC_OID_DHSINGLEPASS_COFACTORDH_SHA1KDF_SCHEME:
+            return CKD_SHA1_KDF;
+        case SEC_OID_DHSINGLEPASS_STDDH_SHA224KDF_SCHEME:
+        case SEC_OID_DHSINGLEPASS_COFACTORDH_SHA224KDF_SCHEME:
+            return CKD_SHA224_KDF;
+        case SEC_OID_DHSINGLEPASS_STDDH_SHA256KDF_SCHEME:
+        case SEC_OID_DHSINGLEPASS_COFACTORDH_SHA256KDF_SCHEME:
+            return CKD_SHA256_KDF;
+        case SEC_OID_DHSINGLEPASS_STDDH_SHA384KDF_SCHEME:
+        case SEC_OID_DHSINGLEPASS_COFACTORDH_SHA384KDF_SCHEME:
+            return CKD_SHA384_KDF;
+        case SEC_OID_DHSINGLEPASS_STDDH_SHA512KDF_SCHEME:
+        case SEC_OID_DHSINGLEPASS_COFACTORDH_SHA512KDF_SCHEME:
+            return CKD_SHA512_KDF;
+        default:
+            break;
+    }
+    return 0;
+}
+
 PK11SymKey *
 NSS_CMSUtil_DecryptSymKey_ECDH(SECKEYPrivateKey *privkey, SECItem *encKey,
                                SECAlgorithmID *keyEncAlg, SECOidTag bulkalgtag,
-                               SECItem *ukm, NSSCMSOriginatorIdentifierOrKey *oiok)
+                               SECItem *ukm, NSSCMSOriginatorIdentifierOrKey *oiok,
+                               void *wincx)
 {
     SECAlgorithmID keyWrapAlg;
     SECOidTag keyEncAlgtag, keyWrapAlgtag;
@@ -379,41 +454,16 @@ NSS_CMSUtil_DecryptSymKey_ECDH(SECKEYPrivateKey *privkey, SECItem *encKey,
         goto loser;
     }
 
-    if (keyWrapAlgtag == SEC_OID_AES_128_KEY_WRAP) {
-        kek_size = 16;
-    } else if (keyWrapAlgtag == SEC_OID_AES_192_KEY_WRAP) {
-        kek_size = 24;
-    } else if (keyWrapAlgtag == SEC_OID_AES_256_KEY_WRAP) {
-        kek_size = 32;
-    } else {
+    kek_size = cms_GetKekSizeFromKeyWrapAlgTag(keyWrapAlgtag);
+    if (!kek_size) {
         PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
         goto loser;
     }
 
-    switch (keyEncAlgtag) {
-        case SEC_OID_DHSINGLEPASS_STDDH_SHA1KDF_SCHEME:
-        case SEC_OID_DHSINGLEPASS_COFACTORDH_SHA1KDF_SCHEME:
-            kdf = CKD_SHA1_KDF;
-            break;
-        case SEC_OID_DHSINGLEPASS_STDDH_SHA224KDF_SCHEME:
-        case SEC_OID_DHSINGLEPASS_COFACTORDH_SHA224KDF_SCHEME:
-            kdf = CKD_SHA224_KDF;
-            break;
-        case SEC_OID_DHSINGLEPASS_STDDH_SHA256KDF_SCHEME:
-        case SEC_OID_DHSINGLEPASS_COFACTORDH_SHA256KDF_SCHEME:
-            kdf = CKD_SHA256_KDF;
-            break;
-        case SEC_OID_DHSINGLEPASS_STDDH_SHA384KDF_SCHEME:
-        case SEC_OID_DHSINGLEPASS_COFACTORDH_SHA384KDF_SCHEME:
-            kdf = CKD_SHA384_KDF;
-            break;
-        case SEC_OID_DHSINGLEPASS_STDDH_SHA512KDF_SCHEME:
-        case SEC_OID_DHSINGLEPASS_COFACTORDH_SHA512KDF_SCHEME:
-            kdf = CKD_SHA512_KDF;
-            break;
-        default:
-            PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
-            goto loser;
+    kdf = cms_GetKdfFromKeyEncAlgTag(keyEncAlgtag);
+    if (!kdf) {
+        PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+        goto loser;
     }
 
     /* Get originator's public key */
@@ -440,7 +490,7 @@ NSS_CMSUtil_DecryptSymKey_ECDH(SECKEYPrivateKey *privkey, SECItem *encKey,
     kek = PK11_PubDeriveWithKDF(privkey, &originatorpublickey, PR_TRUE,
                                 NULL, NULL,
                                 keyDerivationType, keyWrapMech,
-                                CKA_WRAP, kek_size, kdf, SharedInfo, NULL);
+                                CKA_WRAP, kek_size, kdf, SharedInfo, wincx);
 
     SECITEM_FreeItem(SharedInfo, PR_TRUE);
 

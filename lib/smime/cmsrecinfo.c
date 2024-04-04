@@ -453,6 +453,7 @@ NSS_CMSRecipientInfo_WrapBulkKey(NSSCMSRecipientInfo *ri, PK11SymKey *bulkkey,
     PLArenaPool *poolp;
     NSSCMSKeyTransRecipientInfoEx *extra = NULL;
     PRBool usesSubjKeyID;
+    void *wincx = NULL;
 
     poolp = ri->cmsg->poolp;
     cert = ri->cert;
@@ -516,19 +517,35 @@ NSS_CMSRecipientInfo_WrapBulkKey(NSSCMSRecipientInfo *ri, PK11SymKey *bulkkey,
             /* this will generate a key pair, compute the shared secret, */
             /* derive a key and ukm for the keyEncAlg out of it, encrypt the bulk key with */
             /* the keyEncAlg, set encKey, keyEncAlg, publicKey etc. */
-            if (certalgtag == SEC_OID_X942_DIFFIE_HELMAN_KEY)
-                rv = NSS_CMSUtil_EncryptSymKey_ESDH(poolp, cert, bulkkey,
-                                                    &rek->encKey,
-                                                    &ri->ri.keyAgreeRecipientInfo.ukm,
-                                                    &ri->ri.keyAgreeRecipientInfo.keyEncAlg,
-                                                    &oiok->id.originatorPublicKey.publicKey);
-            else
-                rv = NSS_CMSUtil_EncryptSymKey_ESECDH(poolp, cert, bulkkey,
-                                                      &rek->encKey,
-                                                      &ri->ri.keyAgreeRecipientInfo.ukm,
-                                                      &ri->ri.keyAgreeRecipientInfo.keyEncAlg,
-                                                      &oiok->id.originatorPublicKey.publicKey);
+            switch (certalgtag) {
+                case SEC_OID_X942_DIFFIE_HELMAN_KEY:
+                    rv = NSS_CMSUtil_EncryptSymKey_ESDH(poolp, cert, bulkkey,
+                                                        &rek->encKey,
+                                                        &ri->ri.keyAgreeRecipientInfo.ukm,
+                                                        &ri->ri.keyAgreeRecipientInfo.keyEncAlg,
+                                                        &oiok->id.originatorPublicKey.publicKey);
+                    break;
 
+                case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
+                    if (ri->cmsg) {
+                        wincx = ri->cmsg->pwfn_arg;
+                    } else {
+                        wincx = PK11_GetWindow(bulkkey);
+                    }
+                    rv = NSS_CMSUtil_EncryptSymKey_ESECDH(poolp, cert, bulkkey,
+                                                          &rek->encKey,
+                                                          PR_TRUE,
+                                                          &ri->ri.keyAgreeRecipientInfo.ukm,
+                                                          &ri->ri.keyAgreeRecipientInfo.keyEncAlg,
+                                                          &oiok->id.originatorPublicKey.publicKey,
+                                                          wincx);
+                    break;
+
+                default:
+                    /* Not reached. Added to silence enum warnings. */
+                    PORT_Assert(0);
+                    break;
+            }
             break;
         default:
             /* other algorithms not supported yet */
@@ -551,6 +568,7 @@ NSS_CMSRecipientInfo_UnwrapBulkKey(NSSCMSRecipientInfo *ri, int subIndex,
     SECItem *enckey, *ukm;
     NSSCMSOriginatorIdentifierOrKey *oiok;
     int error;
+    void *wincx = NULL;
 
     ri->cert = CERT_DupCertificate(cert);
     /* mark the recipientInfo so we can find it later */
@@ -586,7 +604,12 @@ NSS_CMSRecipientInfo_UnwrapBulkKey(NSSCMSRecipientInfo *ri, int subIndex,
                 case SEC_OID_DHSINGLEPASS_COFACTORDH_SHA256KDF_SCHEME:
                 case SEC_OID_DHSINGLEPASS_COFACTORDH_SHA384KDF_SCHEME:
                 case SEC_OID_DHSINGLEPASS_COFACTORDH_SHA512KDF_SCHEME:
-                    bulkkey = NSS_CMSUtil_DecryptSymKey_ECDH(privkey, enckey, &(ri->ri.keyAgreeRecipientInfo.keyEncAlg), bulkalgtag, ukm, oiok);
+                    if (ri->cmsg) {
+                        wincx = ri->cmsg->pwfn_arg;
+                    }
+                    bulkkey = NSS_CMSUtil_DecryptSymKey_ECDH(privkey, enckey,
+                                                             &(ri->ri.keyAgreeRecipientInfo.keyEncAlg),
+                                                             bulkalgtag, ukm, oiok, wincx);
                     break;
 
                 case SEC_OID_X942_DIFFIE_HELMAN_KEY:

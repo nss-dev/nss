@@ -23,6 +23,7 @@ SEC_ASN1_MKSUB(CERT_SetOfSignedCrlTemplate)
 SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
 SEC_ASN1_MKSUB(SEC_BitStringTemplate)
 SEC_ASN1_MKSUB(SEC_OctetStringTemplate)
+SEC_ASN1_MKSUB(SEC_GeneralizedTimeTemplate)
 SEC_ASN1_MKSUB(SEC_PointerToOctetStringTemplate)
 SEC_ASN1_MKSUB(SEC_SetOfAnyTemplate)
 
