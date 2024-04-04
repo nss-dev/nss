@@ -272,6 +272,7 @@ NSS_CMSRecipient_IsSupported(CERTCertificate *cert)
     switch (certalgtag) {
         case SEC_OID_PKCS1_RSA_ENCRYPTION:
         case SEC_OID_X942_DIFFIE_HELMAN_KEY: /* dh-public-number */
+        case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
             return PR_TRUE;
         default:
             return PR_FALSE;
