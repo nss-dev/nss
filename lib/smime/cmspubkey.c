@@ -149,7 +149,7 @@ Create_ECC_CMS_SharedInfo(PLArenaPool *poolp,
                           SECAlgorithmID *keyInfo, SECItem *ukm, unsigned int KEKsize)
 {
     ECC_CMS_SharedInfo SI;
-    const unsigned int suppPubInfoSize = 4;
+    enum { suppPubInfoSize = 4 };
     unsigned char suppPubInfo[suppPubInfoSize];
     SECItem encodedKEK;
     unsigned int skipBytes;
@@ -346,7 +346,7 @@ NSS_CMSUtil_EncryptSymKey_ESECDH(PLArenaPool *poolp, CERTCertificate *cert,
         goto loser;
     }
 
-    keyEncAlg_params = SEC_ASN1EncodeItem(poolp, NULL, &keyWrapAlg, SECOID_AlgorithmIDTemplate);
+    keyEncAlg_params = SEC_ASN1EncodeItem(poolp, NULL, &keyWrapAlg, SEC_ASN1_GET(SECOID_AlgorithmIDTemplate));
     if (keyEncAlg_params == NULL)
         goto loser;
     keyEncAlg_params->type = siBuffer;
@@ -449,7 +449,7 @@ NSS_CMSUtil_DecryptSymKey_ECDH(SECKEYPrivateKey *privkey, SECItem *encKey,
     }
 
     rv = SEC_ASN1DecodeItem(NULL, &keyWrapAlg,
-                            SECOID_AlgorithmIDTemplate, &(keyEncAlg->parameters));
+                            SEC_ASN1_GET(SECOID_AlgorithmIDTemplate), &(keyEncAlg->parameters));
     if (rv != SECSuccess) {
         goto loser;
     }
