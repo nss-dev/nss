@@ -566,7 +566,7 @@ NSS_CMSRecipientInfo_UnwrapBulkKey(NSSCMSRecipientInfo *ri, int subIndex,
 {
     PK11SymKey *bulkkey = NULL;
     SECOidTag encalgtag;
-    SECItem *enckey, *ukm;
+    SECItem *enckey, *ukm, *parameters;
     NSSCMSOriginatorIdentifierOrKey *oiok;
     int error;
     void *wincx = NULL;
@@ -583,6 +583,12 @@ NSS_CMSRecipientInfo_UnwrapBulkKey(NSSCMSRecipientInfo *ri, int subIndex,
                     /* RSA encryption algorithm: */
                     /* get the symmetric (bulk) key by unwrapping it using our private key */
                     bulkkey = NSS_CMSUtil_DecryptSymKey_RSA(privkey, enckey, bulkalgtag);
+                    break;
+                case SEC_OID_PKCS1_RSA_OAEP_ENCRYPTION:
+                    /* RSA OAEP encryption algorithm: */
+                    /* get the symmetric (bulk) key by unwrapping it using our private key */
+                    parameters = &(ri->ri.keyTransRecipientInfo.keyEncAlg.parameters);
+                    bulkkey = NSS_CMSUtil_DecryptSymKey_RSA_OAEP(privkey, parameters, enckey, bulkalgtag);
                     break;
                 default:
                     error = SEC_ERROR_UNSUPPORTED_KEYALG;
