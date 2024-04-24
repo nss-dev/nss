@@ -1256,3 +1256,9 @@ SECMOD_LockedModuleHasRemovableSlots;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.100 { 	# NSS 3.100 release
+;+    global:
+SEC_GetMgfTypeByOidTag;
+;+    local:
+;+       *;
+;+};

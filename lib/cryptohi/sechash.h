@@ -8,6 +8,7 @@
 #include "seccomon.h"
 #include "hasht.h"
 #include "secoidt.h"
+#include "pkcs11t.h"
 
 SEC_BEGIN_PROTOS
 
@@ -54,6 +55,8 @@ extern SECOidTag HASH_GetHashOidTagByHMACOidTag(SECOidTag hmacOid);
 extern SECOidTag HASH_GetHMACOidTagByHashOidTag(SECOidTag hashOid);
 
 extern SECOidTag HASH_GetHashOidTagByHashType(HASH_HashType type);
+
+extern CK_RSA_PKCS_MGF_TYPE SEC_GetMgfTypeByOidTag(SECOidTag tag);
 
 SEC_END_PROTOS
 
