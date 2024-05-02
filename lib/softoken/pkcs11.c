@@ -4805,8 +4805,14 @@ NSC_CreateObject(CK_SESSION_HANDLE hSession,
     if (object == NULL) {
         return CKR_HOST_MEMORY;
     }
-    object->isFIPS = PR_FALSE; /* if we created the object on the fly,
-                                * it's not a FIPS object */
+
+    /*
+     * sftk_NewObject will set object->isFIPS to PR_TRUE if the slot is FIPS.
+     * We don't need to worry about that here, as FC_CreateObject will always
+     * disallow the import of secret and private keys, regardless of isFIPS
+     * approval status. Therefore, at this point we know that the key is a
+     * public key, which is acceptable to be imported in plaintext.
+     */
 
     /*
      * load the template values into the object
