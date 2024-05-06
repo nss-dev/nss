@@ -373,8 +373,7 @@ SEC_PKCS12CreatePasswordPrivSafe(SEC_PKCS12ExportContext *p12ctxt,
                                                       sizeof(SEC_PKCS12SafeInfo));
     if (!safeInfo) {
         PORT_SetError(SEC_ERROR_NO_MEMORY);
-        PORT_ArenaRelease(p12ctxt->arena, mark);
-        return NULL;
+        goto loser;
     }
 
     safeInfo->itemCount = 0;
@@ -396,6 +395,10 @@ SEC_PKCS12CreatePasswordPrivSafe(SEC_PKCS12ExportContext *p12ctxt,
                  * default to SEC_OID_HMAC_SHA1 in the low level pbe code. */
             }
         }
+        if (!SEC_PKCS12CipherAllowed(privAlg, prfAlg)) {
+            PORT_SetError(SEC_ERROR_BAD_EXPORT_ALGORITHM);
+            goto loser;
+        }
         safeInfo->cinfo = SEC_PKCS7CreateEncryptedDataWithPBEV2(SEC_OID_PKCS5_PBES2,
                                                                 privAlg,
                                                                 prfAlg,
@@ -403,6 +406,10 @@ SEC_PKCS12CreatePasswordPrivSafe(SEC_PKCS12ExportContext *p12ctxt,
                                                                 p12ctxt->pwfn,
                                                                 p12ctxt->pwfnarg);
     } else {
+        if (!SEC_PKCS12CipherAllowed(privAlg, SEC_OID_UNKNOWN)) {
+            PORT_SetError(SEC_ERROR_BAD_EXPORT_ALGORITHM);
+            goto loser;
+        }
         safeInfo->cinfo = SEC_PKCS7CreateEncryptedData(privAlg, 0, p12ctxt->pwfn,
                                                        p12ctxt->pwfnarg);
     }
@@ -1251,6 +1258,11 @@ SEC_PKCS12AddKeyForCert(SEC_PKCS12ExportContext *p12ctxt, SEC_PKCS12SafeInfo *sa
             }
         }
 
+        if (!SEC_PKCS12CipherAllowed(algorithm, prfAlg)) {
+            PORT_SetError(SEC_ERROR_BAD_EXPORT_ALGORITHM);
+            goto loser;
+        }
+
         /* we want to make sure to take the key out of the key slot */
         if (PK11_IsInternal(p12ctxt->slot)) {
             slot = PK11_GetInternalKeySlot();
@@ -1672,7 +1684,7 @@ sec_pkcs12_encoder_start_context(SEC_PKCS12ExportContext *p12exp)
             SECITEM_ZfreeItem(salt, PR_TRUE);
             salt = NULL;
             symKey = sec_pkcs12_integrity_key(p12exp->slot, &p12enc->mac,
-                                              &pwd, &hmacMechType,
+                                              &pwd, &hmacMechType, PR_FALSE,
                                               p12exp->wincx);
             SECITEM_ZfreeItem(&pwd, PR_FALSE);
 

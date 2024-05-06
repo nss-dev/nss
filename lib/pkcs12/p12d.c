@@ -241,6 +241,7 @@ sec_pkcs12_decoder_decryption_allowed(SECAlgorithmID *algid,
     PRBool decryptionAllowed = SEC_PKCS12DecryptionAllowed(algid);
 
     if (!decryptionAllowed) {
+        PORT_SetError(SEC_ERROR_BAD_EXPORT_ALGORITHM);
         return PR_FALSE;
     }
 
@@ -1348,7 +1349,8 @@ sec_pkcs12_decoder_verify_mac(SEC_PKCS12DecoderContext *p12dcx)
 
     /* generate hmac key */
     symKey = sec_pkcs12_integrity_key(p12dcx->slot, &p12dcx->macData,
-                                      p12dcx->pwitem, &hmacMech, p12dcx->wincx);
+                                      p12dcx->pwitem, &hmacMech, PR_TRUE,
+                                      p12dcx->wincx);
     if (symKey == NULL) {
         goto loser;
     }
@@ -2450,6 +2452,12 @@ sec_pkcs12_add_key(sec_PKCS12SafeBag *key, SECKEYPublicKey *pubKey,
             SECAlgorithmID *algid =
                 &key->safeBagContent.pkcs8ShroudedKeyBag->algorithm;
             SECOidTag algorithm = SECOID_GetAlgorithmTag(algid);
+
+            if (!SEC_PKCS12DecryptionAllowed(algid)) {
+                key->error = SEC_ERROR_BAD_EXPORT_ALGORITHM;
+                key->problem = PR_TRUE;
+                return SECFailure;
+            }
 
             if (forceUnicode) {
                 if (SECITEM_CopyItem(NULL, &pwitem, key->pwitem) != SECSuccess) {

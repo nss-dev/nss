@@ -98,6 +98,8 @@ tools_init()
   COPYDIR=${TOOLSDIR}/copydir
   SIGNDIR=${TOOLSDIR}/signdir
 
+  PKCS12POLICY=${QADIR}/tools/pkcs12policy.txt
+
   R_TOOLSDIR=../tools
   R_COPYDIR=../tools/copydir
   R_SIGNDIR=../tools/signdir
@@ -118,6 +120,7 @@ tools_init()
   cp ${QADIR}/tools/TestOldCA.p12 ${TOOLSDIR}/data
   cp ${QADIR}/tools/TestOldAES128CA.p12 ${TOOLSDIR}/data
   cp ${QADIR}/tools/TestRSAPSS.p12 ${TOOLSDIR}/data
+  cp ${QADIR}/tools/PKCS5WithImplicitKDF.p12 ${TOOLSDIR}/data
   cp ${QADIR}/tools/pbmac1-valid-sha256.p12 ${TOOLSDIR}/data
   cp ${QADIR}/tools/pbmac1-valid-sha256-sha512.p12 ${TOOLSDIR}/data
   cp ${QADIR}/tools/pbmac1-valid-sha512.p12 ${TOOLSDIR}/data
@@ -147,12 +150,16 @@ list_p12_file()
 ########################################################################
 import_p12_file()
 {
-  echo "$SCRIPTNAME: Importing Alice's pk12 ${1} file"
-  echo "pk12util -i ${1} -d ${P_R_COPYDIR} -k ${R_PWFILE} -w ${R_PWFILE}"
+  echo "$SCRIPTNAME: Importing Alice's pk12 ${1} file to ${3}"
+  # remove the previous key so we actually decrypt the new key
+  # without this, pkcs12 will skip the key import.
+  echo "certutil -F -d ${3} -n ${2} -f ${R_PWFILE}"
+  certutil -F -d ${3} -n ${2} -f ${R_PWFILE}
+  echo "pk12util -i ${1} -d ${3} -k ${R_PWFILE} -w ${R_PWFILE}"
 
-  ${BINDIR}/pk12util -i ${1} -d ${P_R_COPYDIR} -k ${R_PWFILE} -w ${R_PWFILE} 2>&1
+  ${BINDIR}/pk12util -i ${1} -d ${3} -k ${R_PWFILE} -w ${R_PWFILE} 2>&1
   ret=$?
-  html_msg $ret 0 "Importing ${1} (pk12util -i)"
+  html_msg $ret ${4} "Importing ${1} (pk12util -i)"
   check_tmpfile
 }
 
@@ -168,6 +175,7 @@ export_p12_file()
   # $4 key encryption cipher or "default"
   # $5 certificate encryption cipher or "default"
   # $6 hash algorithm or "default"
+  # $7 expected return value
   KEY_CIPHER_OPT="-c"
   KEY_CIPHER="${4}"
   CERT_CIPHER_OPT="-C"
@@ -199,9 +207,11 @@ export_p12_file()
                        ${CERT_CIPHER_OPT} "${CERT_CIPHER}" \
                        ${HASH_ALG_OPT} "${HASH_ALG}" 2>&1
   ret=$?
-  html_msg $ret 0 "Exporting with [${4}:${5}:${6}] (pk12util -o)"
+  html_msg $ret ${7} "Exporting with [${4}:${5}:${6}] (pk12util -o)"
   check_tmpfile
-  verify_p12 "${1}" "${4}" "${5}" "${6}"
+  if [ ${7} -eq 0 ]; then
+      verify_p12 "${1}" "${4}" "${5}" "${6}"
+  fi
   return $ret
 }
 
@@ -212,9 +222,55 @@ export_p12_file()
 ########################################################################
 export_list_import()
 {
-  export_p12_file Alice.p12 Alice "${P_R_ALICEDIR}" "${@}"
+  export_p12_file Alice.p12 Alice "${P_R_ALICEDIR}" "${@}" 0
   list_p12_file Alice.p12
-  import_p12_file Alice.p12
+  import_p12_file Alice.p12 Alice "${P_R_COPYDIR}" 0
+}
+
+########################################################################
+# Exports key and cert to a p12 file, the key encryption cipher,
+# the cert encryption cipher, and/or the hash algorithm are specified.
+# expected results as well. These may purposefully fail for unallowed
+# policies
+########################################################################
+export_import_policy()
+{
+  export_ret=${1}
+  import_ret=${2}
+  export_dir=${3}
+  import_dir=${4}
+  shift 4
+  export_p12_file Alice.p12 Alice "${export_dir}" "${@}" ${export_ret}
+  if [ ${export_ret} -eq 0 ]; then
+     import_p12_file Alice.p12 Alice "${import_dir}" ${import_ret}
+  fi
+}
+
+tools_p12_policy()
+{
+  export_dir=${P_R_ALICEDIR}
+  import_dir=${P_R_COPYDIR}
+  # make sure we are using generic default policy.
+  unset NSS_ALLOW_WEAK_SIGNATURE_ALG
+
+  save_pkcs11 ${export_dir}
+  save_pkcs11 ${import_dir}
+  ignore_blank_lines ${PKCS12POLICY} | \
+  while read export_ret import_ret export_policy import_policy key_cipher cert_cipher hash testname
+  do
+      echo "$SCRIPTNAME: PKCS12 Policy Test {${testname}} ---------------"
+      export_policy=`echo ${export_policy} | sed -e 's;_; ;g'`
+      import_policy=`echo ${import_policy} | sed -e 's;_; ;g'`
+      key_cipher=`echo ${key_cipher} | sed -e 's;_; ;g'`
+      cert_cipher=`echo ${cert_cipher} | sed -e 's;_; ;g'`
+      hash=`echo ${hash} | sed -e 's;_; ;g'`
+      setup_policy "${export_policy}" ${export_dir}
+      setup_policy "${import_policy}" ${import_dir}
+
+      export_import_policy ${export_ret} ${import_ret} ${export_dir} ${import_dir} "${key_cipher}" "${cert_cipher}" "${hash}"
+  done
+  restore_pkcs11 ${export_dir}
+  restore_pkcs11 ${import_dir}
 }
 
 ########################################################################
@@ -224,6 +280,7 @@ export_list_import()
 tools_p12_export_list_import_all_pkcs5pbe_ciphers()
 {
   local saveIFS="${IFS}"
+  export NSS_ALLOW_WEAK_SIGNATURE_ALG=1
   IFS=,
   for key_cipher in ${PKCS5v1_PBE_CIPHERS} default; do
       for cert_cipher in ${PKCS5v1_PBE_CIPHERS} default none; do
@@ -242,6 +299,7 @@ tools_p12_export_list_import_all_pkcs5pbe_ciphers()
 tools_p12_export_list_import_all_pkcs5v2_ciphers()
 {
   local saveIFS="${IFS}"
+  export NSS_ALLOW_WEAK_SIGNATURE_ALG=1
   IFS=,
   for key_cipher in ${PKCS5v2_PBE_CIPHERS} default; do
       for cert_cipher in ${PKCS5v2_PBE_CIPHERS} default none; do
@@ -434,6 +492,13 @@ tools_p12_import_old_files()
   ret=$?
   html_msg $ret 0 "Importing PKCS#12 file created with NSS 3.29.5 (PBES2 with incorrect AES-128-CBC algorithm ID)"
   check_tmpfile
+
+  echo "pk12util -i PKCS5WithImplicitKDF.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W pasword"
+  ${BINDIR}/pk12util -i ${TOOLSDIR}/data/PKCS5WithImplicitKDF.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W password 2>&1
+  ret=$?
+  html_msg $ret 0 "Importing PKCS#12 file with and implicit KDF value"
+  check_tmpfile
+
 }
 
 tools_p12_import_rsa_pss_private_key()
@@ -519,6 +584,7 @@ tools_p12()
   tools_p12_import_pbmac1_samples
   if [ "${TEST_MODE}" = "SHARED_DB" ] ; then
     tools_p12_import_rsa_pss_private_key
+    tools_p12_policy
   fi
 }
 

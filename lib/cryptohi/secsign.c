@@ -67,7 +67,7 @@ sgn_NewContext(SECOidTag alg, SECItem *params, SECKEYPrivateKey *key)
     }
     if (NSS_OptionGet(NSS_KEY_SIZE_POLICY_FLAGS, &optFlags) != SECFailure) {
         if (optFlags & NSS_KEY_SIZE_POLICY_SIGN_FLAG) {
-            rv = seckey_EnforceKeySize(key->keyType,
+            rv = SECKEY_EnforceKeySize(key->keyType,
                                        SECKEY_PrivateKeyStrengthInBits(key),
                                        SEC_ERROR_SIGNATURE_ALGORITHM_DISABLED);
             if (rv != SECSuccess) {
@@ -586,7 +586,7 @@ SGN_Digest(SECKEYPrivateKey *privKey,
 
     if (NSS_OptionGet(NSS_KEY_SIZE_POLICY_FLAGS, &optFlags) != SECFailure) {
         if (optFlags & NSS_KEY_SIZE_POLICY_SIGN_FLAG) {
-            rv = seckey_EnforceKeySize(privKey->keyType,
+            rv = SECKEY_EnforceKeySize(privKey->keyType,
                                        SECKEY_PrivateKeyStrengthInBits(privKey),
                                        SEC_ERROR_SIGNATURE_ALGORITHM_DISABLED);
             if (rv != SECSuccess) {

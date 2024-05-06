@@ -54,9 +54,6 @@ SECStatus sec_DecodeRSAPSSParamsToMechanism(PLArenaPool *arena,
                                             CK_RSA_PKCS_PSS_PARAMS *mech,
                                             SECOidTag *hashAlg);
 
-/* make sure the key length matches the policy for keyType */
-SECStatus seckey_EnforceKeySize(KeyType keyType, unsigned keyLength,
-                                SECErrorCodes error);
 SEC_END_PROTOS
 
 #endif /* _KEYHI_H_ */

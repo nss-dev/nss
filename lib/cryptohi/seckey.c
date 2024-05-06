@@ -1345,7 +1345,7 @@ SECKEY_CopyPublicKey(const SECKEYPublicKey *pubk)
  * size.
  */
 SECStatus
-seckey_EnforceKeySize(KeyType keyType, unsigned keyLength, SECErrorCodes error)
+SECKEY_EnforceKeySize(KeyType keyType, unsigned keyLength, SECErrorCodes error)
 {
     PRInt32 opt = -1;
     PRInt32 optVal;
