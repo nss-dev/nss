@@ -30,6 +30,7 @@ PK11SymKey *sec_pkcs12_integrity_key(PK11SlotInfo *slot,
                                      sec_PKCS12MacData *macData,
                                      SECItem *pwitem,
                                      CK_MECHANISM_TYPE *hmacMech,
+                                     PRBool isDecrypt,
                                      void *pwarg);
 extern SGNDigestInfo *sec_pkcs12_compute_thumbprint(SECItem *der_cert);
 extern SECItem *sec_pkcs12_create_virtual_password(SECItem *password,

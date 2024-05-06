@@ -16,6 +16,7 @@
 #include "p12.h"
 #include "nsshash.h"
 #include "secpkcs5.h"
+#include "p12plcy.h"
 
 #define SALT_LENGTH 16
 
@@ -63,7 +64,7 @@ sec_pkcs12_algtag_to_keygen_mech(SECOidTag algtag)
 PK11SymKey *
 sec_pkcs12_integrity_key(PK11SlotInfo *slot, sec_PKCS12MacData *macData,
                          SECItem *pwitem, CK_MECHANISM_TYPE *hmacMech,
-                         void *pwarg)
+                         PRBool isDecrypt, void *pwarg)
 {
     int iteration;
     CK_MECHANISM_TYPE integrityMech;
@@ -82,6 +83,10 @@ sec_pkcs12_integrity_key(PK11SlotInfo *slot, sec_PKCS12MacData *macData,
         /* make sure we are using an hmac */
         if (HASH_GetHashOidTagByHMACOidTag(hmacAlg) == SEC_OID_UNKNOWN) {
             PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+            return NULL;
+        }
+        if (!SEC_PKCS12IntegrityHashAllowed(hmacAlg, isDecrypt)) {
+            PORT_SetError(SEC_ERROR_BAD_EXPORT_ALGORITHM);
             return NULL;
         }
         /* make sure the length is valid, as well as decoding the length
@@ -106,6 +111,10 @@ sec_pkcs12_integrity_key(PK11SlotInfo *slot, sec_PKCS12MacData *macData,
     }
 
     /* handle Legacy case */
+    if (!SEC_PKCS12IntegrityHashAllowed(algtag, isDecrypt)) {
+        PORT_SetError(SEC_ERROR_BAD_EXPORT_ALGORITHM);
+        return NULL;
+    }
     integrityMech = sec_pkcs12_algtag_to_keygen_mech(algtag);
     *hmacMech = sec_pkcs12_algtag_to_mech(algtag);
     if (integrityMech == CKM_INVALID_MECHANISM) {

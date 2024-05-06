@@ -366,6 +366,9 @@ HASH_GetHashTypeByOidTag_Util;
 HASH_GetHashOidTagByHashType_Util;
 HASH_GetHashOidTagByHMACOidTag_Util;
 HASH_GetHMACOidTagByHashOidTag_Util;
+SECOID_GetTotalTags;
+NSS_GetAlgorithmPolicyAll;
+NSS_SetAlgorithmPolicyAll;
 ;+    local:
 ;+       *;
 ;+};

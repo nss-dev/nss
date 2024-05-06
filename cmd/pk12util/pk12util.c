@@ -952,21 +952,6 @@ PKCS12U_MapHashFromString(char *hashString)
     return hashAlg;
 }
 
-static void
-p12u_EnableAllCiphers()
-{
-    SEC_PKCS12EnableCipher(PKCS12_RC4_40, 1);
-    SEC_PKCS12EnableCipher(PKCS12_RC4_128, 1);
-    SEC_PKCS12EnableCipher(PKCS12_RC2_CBC_40, 1);
-    SEC_PKCS12EnableCipher(PKCS12_RC2_CBC_128, 1);
-    SEC_PKCS12EnableCipher(PKCS12_DES_56, 1);
-    SEC_PKCS12EnableCipher(PKCS12_DES_EDE3_168, 1);
-    SEC_PKCS12EnableCipher(PKCS12_AES_CBC_128, 1);
-    SEC_PKCS12EnableCipher(PKCS12_AES_CBC_192, 1);
-    SEC_PKCS12EnableCipher(PKCS12_AES_CBC_256, 1);
-    SEC_PKCS12SetPreferredCipher(PKCS12_AES_CBC_256, 1);
-}
-
 static PRUintn
 P12U_Init(char *dir, char *dbprefix, PRBool listonly)
 {
@@ -988,7 +973,8 @@ P12U_Init(char *dir, char *dbprefix, PRBool listonly)
     PORT_SetUCS2_ASCIIConversionFunction(p12u_ucs2_ascii_conversion_function);
     /* use the defaults for UCS4-UTF8 and UCS2-UTF8 */
 
-    p12u_EnableAllCiphers();
+    /* ciphers are already enabled by default, allow policy to work */
+    /* p12u_EnableAllCiphers(); */
 
     return 0;
 }
