@@ -3397,7 +3397,8 @@ sftk_getParameters(CK_C_INITIALIZE_ARGS *init_args, PRBool isFIPS,
                     if (libParams) {
                         /* memory allocated */
                         if (PR_Read(file_dc, libParams, len) == -1) {
-                            PR_Free(libParams);
+                            PORT_Free(libParams);
+                            libParams = NULL;
                         } else {
                             free_mem = PR_TRUE;
                             libParams[len] = '\0';
@@ -3409,7 +3410,7 @@ sftk_getParameters(CK_C_INITIALIZE_ARGS *init_args, PRBool isFIPS,
             }
         }
 
-        if (!libParams)
+        if (libParams == NULL)
             libParams = LIB_PARAM_DEFAULT;
 
     } else {
@@ -3426,7 +3427,7 @@ sftk_getParameters(CK_C_INITIALIZE_ARGS *init_args, PRBool isFIPS,
     crv = CKR_OK;
 loser:
     if (free_mem)
-        PR_Free(libParams);
+        PORT_Free(libParams);
 
     return crv;
 }
