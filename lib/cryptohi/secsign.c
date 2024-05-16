@@ -384,7 +384,7 @@ sgn_SingleShot(SGNContext *cx, const unsigned char *input,
      * version */
     if ((cx->mech != CKM_INVALID_MECHANISM) &&
         PK11_DoesMechanismFlag(cx->key->pkcs11Slot, cx->mech, CKF_SIGN)) {
-        SECItem data = {siBuffer, (unsigned char *)input, inputLen };
+        SECItem data = { siBuffer, (unsigned char *)input, inputLen };
         rv = sgn_allocateSignatureItem(cx->key, result);
         if (rv != SECSuccess) {
             return rv;

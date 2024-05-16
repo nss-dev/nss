@@ -1,0 +1,4 @@
+
+1 Added function:
+
+  'function CK_RSA_PKCS_MGF_TYPE SEC_GetMgfTypeByOidTag(SECOidTag)'    {SEC_GetMgfTypeByOidTag@@NSS_3.101}
