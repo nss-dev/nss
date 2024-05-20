@@ -1023,6 +1023,24 @@ SECStatus PK11_WriteRawAttribute(PK11ObjectType type, void *object,
 CK_OBJECT_HANDLE PK11_GetObjectHandle(PK11ObjectType objType, void *objSpec,
                                       PK11SlotInfo **slotp);
 
+/* PK11_ReadDistrustAfterAttribute reads either the
+ * CKA_NSS_SERVER_DISTRUST_AFTER or the CKA_NSS_EMAIL_DISTRUST_AFTER attribute
+ * from the specified object. The "CK_ATTRIBUTE_TYPE type" input must be one of
+ * these. If this function returns SECSuccess, then an attribute of the
+ * requested type was found and it was either:
+ *      (1) a single zero byte (indicating no distrust after date), or
+ *      (2) a valid 13 byte UTCTime.
+ * In case (1), the value *distrusted is set to PR_FALSE and the value *time
+ * is undefined. In case (2), the value *distrusted is set to PR_TRUE and the
+ * value *time is set by DER_UTCTimeToTime(). Neither *distrusted nor *time
+ * is defined if this function returns SECFailure.
+ */
+SECStatus PK11_ReadDistrustAfterAttribute(PK11SlotInfo *slot,
+                                          CK_OBJECT_HANDLE object,
+                                          CK_ATTRIBUTE_TYPE type,
+                                          /* out */ PRBool *distrusted,
+                                          /* out */ PRTime *time);
+
 /*
  * PK11_GetAllSlotsForCert returns all the slots that a given certificate
  * exists on, since it's possible for a cert to exist on more than one
