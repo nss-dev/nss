@@ -326,4 +326,27 @@ INSTANTIATE_TEST_SUITE_P(Pkcs11EcdsaRoundtripTest, Pkcs11EcdsaRoundtripTest,
                                            SEC_OID_SECG_EC_SECP521R1,
                                            SEC_OID_CURVE25519));
 
+class Pkcs11EcdsaUnpaddedSignatureTest
+    : public Pkcs11EcdsaTestBase,
+      public ::testing::WithParamInterface<Pkcs11EcdsaTestParams> {
+ public:
+  Pkcs11EcdsaUnpaddedSignatureTest() : Pkcs11EcdsaTestBase(GetParam().hash_oid_) {}
+};
+
+static const Pkcs11EcdsaTestParams kEcdsaUnpaddedSignaturesVectors[] = {
+    {SEC_OID_SHA512,
+     {DataBuffer(NULL, 0),
+      DataBuffer(kP256SpkiUnpaddedSig, sizeof(kP256SpkiUnpaddedSig)),
+      DataBuffer(kP256DataUnpaddedSigLong, sizeof(kP256DataUnpaddedSigLong)),
+      DataBuffer(kP256SignatureUnpaddedSigLong, sizeof(kP256SignatureUnpaddedSigLong))}},
+    {SEC_OID_SHA512,
+     {DataBuffer(NULL, 0),
+      DataBuffer(kP256SpkiUnpaddedSig, sizeof(kP256SpkiUnpaddedSig)),
+      DataBuffer(kP256DataUnpaddedSigShort, sizeof(kP256DataUnpaddedSigShort)),
+      DataBuffer(kP256SignatureUnpaddedSigShort, sizeof(kP256SignatureUnpaddedSigShort))}}
+};
+
+TEST_P(Pkcs11EcdsaUnpaddedSignatureTest, Verify) { Verify(GetParam().sig_params_); }
+INSTANTIATE_TEST_SUITE_P(EcdsaVerifyUnpaddedSignatures, Pkcs11EcdsaUnpaddedSignatureTest,
+                         ::testing::ValuesIn(kEcdsaUnpaddedSignaturesVectors));
 }  // namespace nss_test
