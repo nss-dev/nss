@@ -214,6 +214,9 @@ ec_secp256r1_verify_digest(ECPublicKey *key, const SECItem *signature,
 {
     SECStatus res = SECSuccess;
 
+    unsigned char _padded_sig_data[64] = { 0 };
+    unsigned char *sig_r, *sig_s;
+
     if (!key || !signature || !digest ||
         !key->publicValue.data ||
         !signature->data || !digest->data ||
@@ -223,9 +226,10 @@ ec_secp256r1_verify_digest(ECPublicKey *key, const SECItem *signature,
         return res;
     }
 
-    if (key->publicValue.len != 65 ||
-        digest->len == 0 ||
-        signature->len != 64) {
+    unsigned int olen = key->ecParams.order.len;
+    if (signature->len == 0 || signature->len % 2 != 0 ||
+        signature->len > 2 * olen ||
+        digest->len == 0 || key->publicValue.len != 65) {
         PORT_SetError(SEC_ERROR_INPUT_LEN);
         res = SECFailure;
         return res;
@@ -237,6 +241,25 @@ ec_secp256r1_verify_digest(ECPublicKey *key, const SECItem *signature,
         return res;
     }
 
+    /* P-256 signature has to be 64 bytes long, pad it with 0s if it isn't */
+    if (signature->len != 64) {
+        unsigned split = signature->len / 2;
+        unsigned pad = 32 - split;
+
+        unsigned char *o_sig = signature->data;
+        unsigned char *p_sig = _padded_sig_data;
+
+        memcpy(p_sig + pad, o_sig, split);
+        memcpy(p_sig + 32 + pad, o_sig + split, split);
+
+        sig_r = p_sig;
+        sig_s = p_sig + 32;
+    } else {
+        sig_r = signature->data;
+        sig_s = signature->data + 32;
+    }
+
+
     uint8_t hash[32] = { 0 };
     if (digest->len < 32) {
         memcpy(hash + 32 - digest->len, digest->data, digest->len);
@@ -247,7 +270,7 @@ ec_secp256r1_verify_digest(ECPublicKey *key, const SECItem *signature,
     bool b = Hacl_P256_ecdsa_verif_without_hash(
         32, hash,
         key->publicValue.data + 1,
-        signature->data, signature->data + 32);
+        sig_r, sig_s);
     if (!b) {
         PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
         res = SECFailure;
