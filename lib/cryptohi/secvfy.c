@@ -890,6 +890,10 @@ VFY_DestroyContext(VFYContext *cx, PRBool freeit)
             (*cx->hashobj->destroy)(cx->hashcx, PR_TRUE);
             cx->hashcx = NULL;
         }
+        if (cx->vfycx != NULL) {
+            (void)PK11_DestroyContext(cx->vfycx, PR_TRUE);
+            cx->vfycx = NULL;
+        }
         if (cx->key) {
             SECKEY_DestroyPublicKey(cx->key);
         }
