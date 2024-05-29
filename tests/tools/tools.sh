@@ -319,6 +319,7 @@ tools_p12_export_list_import_all_pkcs12v2pbe_ciphers()
 {
   local saveIFS="${IFS}"
   IFS=,
+  export NSS_ALLOW_WEAK_SIGNATURE_ALG=1
   for key_cipher in ${PKCS12_PBE_CIPHERS} ${PKCS5v1_PBE_CIPHERS} default; do
       for cert_cipher in ${PKCS12_PBE_CIPHERS} ${PKCS5v1_PBE_CIPHERS} default none; do
           for hash in ${PBE_HASH}; do
@@ -343,6 +344,7 @@ tools_p12_export_list_import_most_ciphers()
 {
   local saveIFS="${IFS}"
   IFS=,
+  export NSS_ALLOW_WEAK_SIGNATURE_ALG=1
   for cipher in ${PBE_CIPHERS}; do
     for class in ${PBE_CIPHERS_CLASSES}; do
       # we'll test the case of cipher == class below the for loop
