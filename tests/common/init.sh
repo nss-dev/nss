@@ -140,8 +140,8 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         echo "NSS_SSL_RUN=\"${NSS_SSL_RUN}\""
         echo "NSS_DEFAULT_DB_TYPE=${NSS_DEFAULT_DB_TYPE}"
         echo "export NSS_DEFAULT_DB_TYPE"
-        echo "NSS_ENABLE_PKIX_VERIFY=${NSS_ENABLE_PKIX_VERIFY}"
-        echo "export NSS_ENABLE_PKIX_VERIFY"
+        echo "NSS_DISABLE_PKIX_VERIFY=${NSS_DISABLE_PKIX_VERIFY}"
+        echo "export NSS_DISABLE_PKIX_VERIFY"
         echo "init_directories"
     }
 
