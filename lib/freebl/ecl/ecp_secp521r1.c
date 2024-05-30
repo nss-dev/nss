@@ -241,9 +241,9 @@ ec_secp521r1_verify_digest(ECPublicKey *key, const SECItem *signature,
         return res;
     }
 
-    if (key->publicValue.len != 133 ||
-        digest->len == 0 ||
-        signature->len != 132) {
+    if (signature->len == 0 || signature->len % 2 != 0 ||
+        signature->len > 132 || digest->len == 0 ||
+        key->publicValue.len != 133) {
         PORT_SetError(SEC_ERROR_INPUT_LEN);
         res = SECFailure;
         return res;
@@ -253,6 +253,21 @@ ec_secp521r1_verify_digest(ECPublicKey *key, const SECItem *signature,
         PORT_SetError(SEC_ERROR_UNSUPPORTED_EC_POINT_FORM);
         res = SECFailure;
         return res;
+    }
+
+    // Signatures should be 132 bytes, but some software produces short signatures.
+    // Pad components with zeros if necessary.
+    uint8_t paddedSigData[132] = { 0 };
+    uint8_t *sig;
+    if (signature->len != 132) {
+        size_t split = signature->len / 2;
+
+        memcpy(paddedSigData + 66 - split, signature->data, split);
+        memcpy(paddedSigData + 132 - split, signature->data + split, split);
+
+        sig = paddedSigData;
+    } else {
+        sig = signature->data;
     }
 
     uint8_t hash[66] = { 0 };
@@ -267,9 +282,7 @@ ec_secp521r1_verify_digest(ECPublicKey *key, const SECItem *signature,
     }
 
     bool b = Hacl_P521_ecdsa_verif_without_hash(
-        66, hash,
-        key->publicValue.data + 1,
-        signature->data, signature->data + 66);
+        66, hash, key->publicValue.data + 1, sig, sig + 66);
     if (!b) {
         PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
         res = SECFailure;
