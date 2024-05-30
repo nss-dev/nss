@@ -32,14 +32,8 @@ EC_CopyParams(PLArenaPool *arena, ECParams *dstParams,
     dstParams->type = srcParams->type;
     dstParams->fieldID.size = srcParams->fieldID.size;
     dstParams->fieldID.type = srcParams->fieldID.type;
-    if (srcParams->fieldID.type == ec_field_GFp ||
-        srcParams->fieldID.type == ec_field_plain) {
-        CHECK_SEC_OK(SECITEM_CopyItem(arena, &dstParams->fieldID.u.prime,
-                                      &srcParams->fieldID.u.prime));
-    } else {
-        CHECK_SEC_OK(SECITEM_CopyItem(arena, &dstParams->fieldID.u.poly,
-                                      &srcParams->fieldID.u.poly));
-    }
+    CHECK_SEC_OK(SECITEM_CopyItem(arena, &dstParams->fieldID.u.prime,
+                                  &srcParams->fieldID.u.prime));
     dstParams->fieldID.k1 = srcParams->fieldID.k1;
     dstParams->fieldID.k2 = srcParams->fieldID.k2;
     dstParams->fieldID.k3 = srcParams->fieldID.k3;
@@ -79,7 +73,7 @@ gf_populate_params_bytes(ECCurveName name, ECFieldType field_type, ECParams *par
     CHECK_OK(curveParams);
     params->fieldID.size = curveParams->size;
     params->fieldID.type = field_type;
-    if (field_type != ec_field_GFp && field_type != ec_field_plain) {
+    if (field_type != ec_field_plain) {
         return SECFailure;
     }
     params->fieldID.u.prime.len = curveParams->scalarSize;
