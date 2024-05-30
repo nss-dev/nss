@@ -23,28 +23,6 @@
 #define EC_DOUBLECHECK PR_FALSE
 
 SECStatus
-ec_secp521r1_scalar_validate(const SECItem *scalar)
-{
-    if (!scalar || !scalar->data) {
-        PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        return SECFailure;
-    }
-
-    if (scalar->len != 66) {
-        PORT_SetError(SEC_ERROR_BAD_KEY);
-        return SECFailure;
-    }
-
-    bool b = Hacl_P521_validate_private_key(scalar->data);
-
-    if (!b) {
-        PORT_SetError(SEC_ERROR_BAD_KEY);
-        return SECFailure;
-    }
-    return SECSuccess;
-}
-
-SECStatus
 ec_ED25519_pt_validate(const SECItem *px)
 {
     if (!px || !px->data || px->len != Ed25519_PUBLIC_KEYLEN) {
@@ -90,11 +68,11 @@ static const ECMethod kMethods[] = {
     },
     {
         ECCurve_NIST_P521,
-        NULL,
-        NULL,
+        ec_secp521r1_pt_mul,
+        ec_secp521r1_pt_validate,
         ec_secp521r1_scalar_validate,
-        NULL,
-        NULL,
+        ec_secp521r1_sign_digest,
+        ec_secp521r1_verify_digest,
     },
     { ECCurve_Ed25519,
       NULL,
