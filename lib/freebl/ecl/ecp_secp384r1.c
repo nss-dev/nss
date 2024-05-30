@@ -239,9 +239,9 @@ ec_secp384r1_verify_digest(ECPublicKey *key, const SECItem *signature,
         return res;
     }
 
-    if (key->publicValue.len != 97 ||
-        digest->len == 0 ||
-        signature->len != 96) {
+    if (signature->len == 0 || signature->len % 2 != 0 ||
+        signature->len > 96 || digest->len == 0 ||
+        key->publicValue.len != 97) {
         PORT_SetError(SEC_ERROR_INPUT_LEN);
         res = SECFailure;
         return res;
@@ -253,6 +253,21 @@ ec_secp384r1_verify_digest(ECPublicKey *key, const SECItem *signature,
         return res;
     }
 
+    // Signatures should be 96 bytes, but some software produces short signatures.
+    // Pad components with zeros if necessary.
+    uint8_t paddedSigData[96] = { 0 };
+    uint8_t *sig;
+    if (signature->len != 96) {
+        size_t split = signature->len / 2;
+
+        memcpy(paddedSigData + 48 - split, signature->data, split);
+        memcpy(paddedSigData + 96 - split, signature->data + split, split);
+
+        sig = paddedSigData;
+    } else {
+        sig = signature->data;
+    }
+
     uint8_t hash[48] = { 0 };
     if (digest->len < 48) {
         memcpy(hash + 48 - digest->len, digest->data, digest->len);
@@ -261,9 +276,7 @@ ec_secp384r1_verify_digest(ECPublicKey *key, const SECItem *signature,
     }
 
     bool b = Hacl_P384_ecdsa_verif_without_hash(
-        48, hash,
-        key->publicValue.data + 1,
-        signature->data, signature->data + 48);
+        48, hash, key->publicValue.data + 1, sig, sig + 48);
     if (!b) {
         PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
         res = SECFailure;
