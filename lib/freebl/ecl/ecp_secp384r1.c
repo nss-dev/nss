@@ -155,28 +155,43 @@ ec_secp384r1_pt_mul(SECItem *X, SECItem *k, SECItem *P)
  */
 
 SECStatus
-ec_secp384r1_sign_digest(ECPrivateKey *key, SECItem *signature,
+ec_secp384r1_sign_digest(ECPrivateKey *ecPrivKey, SECItem *signature,
                          const SECItem *digest, const unsigned char *kb,
                          const unsigned int kblen)
 {
     SECStatus res = SECSuccess;
 
-    if (!key || !signature || !digest || !kb ||
-        !key->privateValue.data ||
+    if (!ecPrivKey || !signature || !digest || !kb ||
+        !ecPrivKey->privateValue.data ||
         !signature->data || !digest->data ||
-        key->ecParams.name != ECCurve_NIST_P384) {
+        ecPrivKey->ecParams.name != ECCurve_NIST_P384) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         res = SECFailure;
         return res;
     }
 
-    if (key->privateValue.len != 48 ||
-        kblen == 0 ||
-        digest->len == 0 ||
-        signature->len < 96) {
+    if (kblen == 0 || digest->len == 0 || signature->len < 96) {
         PORT_SetError(SEC_ERROR_INPUT_LEN);
         res = SECFailure;
         return res;
+    }
+
+    // Private keys should be 48 bytes, but some software trims leading zeros,
+    // and some software produces 49 byte keys with a leading zero. We'll
+    // accept these variants.
+    uint8_t padded_key_data[48] = { 0 };
+    uint8_t *key;
+    SECItem *privKey = &ecPrivKey->privateValue;
+    if (privKey->len == 48) {
+        key = privKey->data;
+    } else if (privKey->len == 49 && privKey->data[0] == 0) {
+        key = privKey->data + 1;
+    } else if (privKey->len < 48) {
+        memcpy(padded_key_data + 48 - privKey->len, privKey->data, privKey->len);
+        key = padded_key_data;
+    } else {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        return SECFailure;
     }
 
     uint8_t hash[48] = { 0 };
@@ -194,8 +209,7 @@ ec_secp384r1_sign_digest(ECPrivateKey *key, SECItem *signature,
     }
 
     bool b = Hacl_P384_ecdsa_sign_p384_without_hash(
-        signature->data, 48, hash,
-        key->privateValue.data, nonce);
+        signature->data, 48, hash, key, nonce);
     if (!b) {
         PORT_SetError(SEC_ERROR_BAD_KEY);
         res = SECFailure;

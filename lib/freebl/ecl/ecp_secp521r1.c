@@ -155,28 +155,41 @@ ec_secp521r1_pt_mul(SECItem *X, SECItem *k, SECItem *P)
  */
 
 SECStatus
-ec_secp521r1_sign_digest(ECPrivateKey *key, SECItem *signature,
+ec_secp521r1_sign_digest(ECPrivateKey *ecPrivKey, SECItem *signature,
                          const SECItem *digest, const unsigned char *kb,
                          const unsigned int kblen)
 {
     SECStatus res = SECSuccess;
 
-    if (!key || !signature || !digest || !kb ||
-        !key->privateValue.data ||
+    if (!ecPrivKey || !signature || !digest || !kb ||
+        !ecPrivKey->privateValue.data ||
         !signature->data || !digest->data ||
-        key->ecParams.name != ECCurve_NIST_P521) {
+        ecPrivKey->ecParams.name != ECCurve_NIST_P521) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        res = SECFailure;
-        return res;
+        return SECFailure;
     }
 
-    if (key->privateValue.len != 66 ||
-        kblen == 0 ||
-        digest->len == 0 ||
-        signature->len < 132) {
+    if (kblen == 0 || digest->len == 0 || signature->len < 132) {
         PORT_SetError(SEC_ERROR_INPUT_LEN);
-        res = SECFailure;
-        return res;
+        return SECFailure;
+    }
+
+    // Private keys should be 66 bytes, but some software trims leading zeros,
+    // and some software produces 67 byte keys with a leading zero. We'll
+    // accept these variants.
+    uint8_t padded_key_data[66] = { 0 };
+    uint8_t *key;
+    SECItem *privKey = &ecPrivKey->privateValue;
+    if (privKey->len == 66) {
+        key = privKey->data;
+    } else if (privKey->len == 67 && privKey->data[0] == 0) {
+        key = privKey->data + 1;
+    } else if (privKey->len < 66) {
+        memcpy(padded_key_data + 66 - privKey->len, privKey->data, privKey->len);
+        key = padded_key_data;
+    } else {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        return SECFailure;
     }
 
     uint8_t hash[66] = { 0 };
@@ -198,8 +211,7 @@ ec_secp521r1_sign_digest(ECPrivateKey *key, SECItem *signature,
     }
 
     bool b = Hacl_P521_ecdsa_sign_p521_without_hash(
-        signature->data, 66, hash,
-        key->privateValue.data, nonce);
+        signature->data, 66, hash, key, nonce);
     if (!b) {
         PORT_SetError(SEC_ERROR_BAD_KEY);
         res = SECFailure;
