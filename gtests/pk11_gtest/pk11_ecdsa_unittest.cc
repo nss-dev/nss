@@ -371,7 +371,31 @@ static const Pkcs11EcdsaTestParams kEcdsaUnpaddedSignaturesVectors[] = {
       DataBuffer(kP256SpkiUnpaddedSig, sizeof(kP256SpkiUnpaddedSig)),
       DataBuffer(kP256DataUnpaddedSigShort, sizeof(kP256DataUnpaddedSigShort)),
       DataBuffer(kP256SignatureUnpaddedSigShort,
-                 sizeof(kP256SignatureUnpaddedSigShort))}}};
+                 sizeof(kP256SignatureUnpaddedSigShort))}},
+    {SEC_OID_SHA512,
+     {DataBuffer(NULL, 0),
+      DataBuffer(kP384SpkiUnpaddedSig, sizeof(kP384SpkiUnpaddedSig)),
+      DataBuffer(kP384DataUnpaddedSigLong, sizeof(kP384DataUnpaddedSigLong)),
+      DataBuffer(kP384SignatureUnpaddedSigLong,
+                 sizeof(kP384SignatureUnpaddedSigLong))}},
+    {SEC_OID_SHA512,
+     {DataBuffer(NULL, 0),
+      DataBuffer(kP384SpkiUnpaddedSig, sizeof(kP384SpkiUnpaddedSig)),
+      DataBuffer(kP384DataUnpaddedSigShort, sizeof(kP384DataUnpaddedSigShort)),
+      DataBuffer(kP384SignatureUnpaddedSigShort,
+                 sizeof(kP384SignatureUnpaddedSigShort))}},
+    {SEC_OID_SHA512,
+     {DataBuffer(NULL, 0),
+      DataBuffer(kP521SpkiUnpaddedSig, sizeof(kP521SpkiUnpaddedSig)),
+      DataBuffer(kP521DataUnpaddedSigLong, sizeof(kP521DataUnpaddedSigLong)),
+      DataBuffer(kP521SignatureUnpaddedSigLong,
+                 sizeof(kP521SignatureUnpaddedSigLong))}},
+    {SEC_OID_SHA512,
+     {DataBuffer(NULL, 0),
+      DataBuffer(kP521SpkiUnpaddedSig, sizeof(kP521SpkiUnpaddedSig)),
+      DataBuffer(kP521DataUnpaddedSigShort, sizeof(kP521DataUnpaddedSigShort)),
+      DataBuffer(kP521SignatureUnpaddedSigShort,
+                 sizeof(kP521SignatureUnpaddedSigShort))}}};
 
 TEST_P(Pkcs11EcdsaUnpaddedSignatureTest, Verify) {
   Verify(GetParam().sig_params_);
