@@ -184,7 +184,7 @@ construct_ecgroup(const ECCurveName name, mp_int irr, mp_int curvea,
                     goto CLEANUP;
                 }
                 MP_CHECKOK(ec_group_set_gfp521(group, name));
-                MP_CHECKOK(ec_group_set_secp521r1(group, name));
+                //MP_CHECKOK(ec_group_set_secp521r1(group, name));
                 break;
             default:
                 /* use generic arithmetic */
