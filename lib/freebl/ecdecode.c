@@ -164,7 +164,7 @@ EC_FillParams(PLArenaPool *arena, const SECItem *encodedParams,
              * (the NIST P-384 curve)
              */
             CHECK_SEC_OK(gf_populate_params_bytes(ECCurve_SECG_PRIME_384R1,
-                                                  ec_field_GFp, params));
+                                                  ec_field_plain, params));
             break;
 
         case SEC_OID_SECG_EC_SECP521R1:

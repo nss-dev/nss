@@ -172,7 +172,8 @@ construct_ecgroup(const ECCurveName name, mp_int irr, mp_int curvea,
                     res = MP_UNDEF;
                     goto CLEANUP;
                 }
-                MP_CHECKOK(ec_group_set_secp384r1(group, name));
+                MP_CHECKOK(ec_group_set_gfp384(group, name));
+                //MP_CHECKOK(ec_group_set_secp384r1(group, name));
                 break;
             case ECCurve_SECG_PRIME_521R1:
                 group =
