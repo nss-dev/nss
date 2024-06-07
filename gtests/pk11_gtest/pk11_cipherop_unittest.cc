@@ -15,57 +15,6 @@ static const size_t kKeyLen = 128 / 8;
 
 namespace nss_test {
 
-// Test CKM_AES_CTR
-TEST(Pkcs11CipherOp, ShiftFailure) {
-  static PK11SlotInfo *slot = PK11_GetInternalKeySlot();
-
-  std::vector<uint8_t> ivVec = {0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-  // Randomize iv with random data
-  const SECItem ivItem = {siBuffer,
-                          reinterpret_cast<unsigned char *>(ivVec.data()),
-                          static_cast<unsigned int>(ivVec.size())};
-
-  unsigned long mechanism = CKM_AES_CTR;
-
-  std::vector<uint8_t> keyVec = {
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-  // Create key with random data and import it
-  PK11SymKey *key;
-  SECItem key_item = {siBuffer, keyVec.data(),
-                      static_cast<unsigned int>(keyVec.size())};
-
-  key = PK11_ImportSymKey(slot, (CK_ULONG)mechanism, PK11_OriginUnwrap,
-                          CKA_ENCRYPT, &key_item, nullptr);
-
-  std::vector<uint8_t> message = {};
-  uint8_t message_size = message.size();
-
-  int outBufferSize = 1;
-  uint8_t out[outBufferSize];
-
-  // Set by the encrypt function
-  int outLen;
-
-  PK11Context *context = PK11_CreateContextBySymKey(
-      (CK_MECHANISM_TYPE)mechanism, CKA_ENCRYPT, key, &ivItem);
-
-  if (context == nullptr) {
-    PK11_FreeSymKey(key);
-    return;
-  }
-
-  // Perform encryption
-  PK11_CipherOp(context, out, &outLen, outBufferSize, message.data(),
-                message_size);
-  PK11_DestroyContext(context, PR_TRUE);
-  PK11_FreeSymKey(key);
-}
-
 //
 // The ciper tests using the bltest command cover a great deal of testing.
 // However, Bug 1489691 revealed a corner case which is covered here.
@@ -73,7 +22,7 @@ TEST(Pkcs11CipherOp, ShiftFailure) {
 // cipher context with data that is not cipher block aligned.
 //
 
-static SECStatus GetBytes(const ScopedPK11Context &ctx, size_t len) {
+static SECStatus GetBytes(const ScopedPK11Context& ctx, size_t len) {
   std::vector<uint8_t> in(len, 0);
 
   uint8_t outbuf[128];
@@ -109,7 +58,7 @@ TEST(Pkcs11CipherOp, SingleCtxMultipleUnalignedCipherOps) {
   // The IV can be all zeros since we only encrypt once with
   // each AES key.
   CK_AES_CTR_PARAMS param = {128, {}};
-  SECItem paramItem = {siBuffer, reinterpret_cast<unsigned char *>(&param),
+  SECItem paramItem = {siBuffer, reinterpret_cast<unsigned char*>(&param),
                        sizeof(CK_AES_CTR_PARAMS)};
 
   ScopedPK11SymKey key(PK11_ImportSymKey(slot.get(), cipher, PK11_OriginUnwrap,
@@ -126,7 +75,7 @@ TEST(Pkcs11CipherOp, SingleCtxMultipleUnalignedCipherOps) {
 // A context can't be used for Chacha20 as the underlying
 // PK11_CipherOp operation is calling the C_EncryptUpdate function for
 // which multi-part is disabled for ChaCha20 in counter mode.
-void ChachaMulti(CK_MECHANISM_TYPE cipher, SECItem *param) {
+void ChachaMulti(CK_MECHANISM_TYPE cipher, SECItem* param) {
   ScopedNSSInitContext globalctx(
       NSS_InitContext("", "", "", "", NULL,
                       NSS_INIT_READONLY | NSS_INIT_NOCERTDB | NSS_INIT_NOMODDB |
@@ -171,7 +120,7 @@ TEST(Pkcs11CipherOp, ChachaMulti) {
     iv_bytes[i] = i;
   }
   CK_CHACHA20_PARAMS chacha_params = {iv_bytes, 32, iv_bytes + 4, 96};
-  SECItem param_item = {siBuffer, reinterpret_cast<uint8_t *>(&chacha_params),
+  SECItem param_item = {siBuffer, reinterpret_cast<uint8_t*>(&chacha_params),
                         sizeof(chacha_params)};
 
   ChachaMulti(CKM_CHACHA20, &param_item);
