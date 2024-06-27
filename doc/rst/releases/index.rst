@@ -20,6 +20,9 @@ Releases
    nss_3_93.rst
    nss_3_92.rst
    nss_3_91_0.rst
+   nss_3_90_3.rst
+   nss_3_90_2.rst
+   nss_3_90_1.rst
    nss_3_90_0.rst
    nss_3_89_1.rst
    nss_3_89.rst
