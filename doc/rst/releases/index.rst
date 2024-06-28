@@ -8,6 +8,7 @@ Releases
    :glob:
    :hidden:
 
+   nss_3_101_1.rst
    nss_3_101.rst
    nss_3_100.rst
    nss_3_99.rst
@@ -69,13 +70,18 @@ Releases
 
 .. note::
 
-   **NSS 3.101** is the latest version of NSS.
+   **NSS 3.101.1** is the latest version of NSS.
    Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_101_release_notes`
 
-   **NSS 3.90.2 (ESR)** is the latest version of NSS.
+   **NSS 3.101.1 (ESR)** is the latest ESR version of NSS.
    Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_90_2_release_notes`
 
 .. container::
+
+   Changes in 3.101.1 included in this release:
+
+   - Bug 1901932 - missing sqlite header.
+   - Bug 1901080 - GLOBALTRUST 2020: Set Distrust After for TLS and S/MIME.
 
    Changes in 3.101 included in this release:
 
