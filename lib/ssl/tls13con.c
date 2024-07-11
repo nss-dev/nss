@@ -757,7 +757,7 @@ tls13_HandleKEMKey(sslSocket *ss,
     PK11_FreeSlot(peerKey->pkcs11Slot);
 
     PORT_DestroyCheapArena(&arena);
-    return SECSuccess;
+    return rv;
 
 loser:
     PORT_DestroyCheapArena(&arena);
@@ -2806,8 +2806,8 @@ loser:
 static SECStatus
 tls13_ReinjectHandshakeTranscript(sslSocket *ss)
 {
-    SSL3Hashes hashes;
-    SSL3Hashes echInnerHashes;
+    SSL3Hashes hashes = { 0 };
+    SSL3Hashes echInnerHashes = { 0 };
     SECStatus rv;
 
     /* First compute the hash. */
@@ -3125,6 +3125,9 @@ tls13_HandleCertificateRequest(sslSocket *ss, PRUint8 *b, PRUint32 length)
             return rv;
         }
         rv = tls13_SendPostHandshakeCertificate(ss);
+        if (rv != SECSuccess) {
+            return rv; /* error code is set. */
+        }
     } else {
         TLS13_SET_HS_STATE(ss, wait_server_cert);
     }

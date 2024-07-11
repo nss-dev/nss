@@ -2023,7 +2023,6 @@ SECOID_AddEntry(const SECOidData *src)
     dynXOid **table;
     SECOidTag ret = SEC_OID_UNKNOWN;
     SECStatus rv;
-    int tableEntries;
     int used;
 
     if (!src || !src->oid.data || !src->oid.len ||
@@ -2063,12 +2062,11 @@ SECOID_AddEntry(const SECOidData *src)
     }
 
     table = dynOidTable;
-    tableEntries = dynOidEntriesAllocated;
     used = dynOidEntriesUsed;
 
-    if (used + 1 > tableEntries) {
+    if (used + 1 > dynOidEntriesAllocated) {
         dynXOid **newTable;
-        int newTableEntries = tableEntries + 16;
+        int newTableEntries = dynOidEntriesAllocated + 16;
 
         newTable = (dynXOid **)PORT_Realloc(table,
                                             newTableEntries * sizeof(dynXOid *));
@@ -2076,7 +2074,7 @@ SECOID_AddEntry(const SECOidData *src)
             goto done;
         }
         dynOidTable = table = newTable;
-        dynOidEntriesAllocated = tableEntries = newTableEntries;
+        dynOidEntriesAllocated = newTableEntries;
     }
 
     /* copy oid structure */

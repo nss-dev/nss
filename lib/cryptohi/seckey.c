@@ -688,7 +688,6 @@ seckey_ExtractPublicKey(const CERTSubjectPublicKeyInfo *spki)
                 SECOidData *oidEd25519 = SECOID_FindOIDByTag(SEC_OID_ED25519_PUBLIC_KEY);
 
                 if (!SECITEM_AllocItem(arena, &pubk->u.ec.DEREncodedParams, oidEd25519->oid.len + 2)) {
-                    rv = SECFailure;
                     break;
                 }
                 pubk->u.ec.DEREncodedParams.data[0] = SEC_ASN1_OBJECT_ID;

@@ -4311,6 +4311,8 @@ nsc_parameter_gen(CK_KEY_TYPE key_type, SFTKObject *key)
     counter = vfy->counter;
     crv = sftk_AddAttributeType(key, CKA_NSS_PQG_COUNTER,
                                 &counter, sizeof(counter));
+    if (crv != CKR_OK)
+        goto loser;
     crv = sftk_AddAttributeType(key, CKA_NSS_PQG_SEED,
                                 vfy->seed.data, vfy->seed.len);
     if (crv != CKR_OK)
@@ -7386,8 +7388,8 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
     /*
      * now lets create an object to hang the attributes off of
      */
-    if (phKey)
-        *phKey = CK_INVALID_HANDLE;
+    PORT_Assert(phKey);
+    *phKey = CK_INVALID_HANDLE;
 
     key = sftk_NewObject(slot); /* fill in the handle later */
     if (key == NULL) {

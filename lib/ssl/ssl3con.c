@@ -8038,6 +8038,7 @@ ssl3_BeginHandleCertificateRequest(sslSocket *ss,
         PORT_Assert(ssl3_ExtensionAdvertised(ss, ssl_tls13_encrypted_client_hello_xtn));
         rv = SECFailure;
     } else if (ss->getClientAuthData != NULL) {
+        PORT_Assert(signatureSchemes || !signatureSchemeCount);
         PORT_Assert((ss->ssl3.hs.preliminaryInfo & ssl_preinfo_all) ==
                     ssl_preinfo_all);
         PORT_Assert(ss->ssl3.clientPrivateKey == NULL);
@@ -8055,7 +8056,9 @@ ssl3_BeginHandleCertificateRequest(sslSocket *ss,
          * callback will result in no filtering.*/
 
         ss->ssl3.hs.clientAuthSignatureSchemes = PORT_ZNewArray(SSLSignatureScheme, signatureSchemeCount);
-        PORT_Memcpy(ss->ssl3.hs.clientAuthSignatureSchemes, signatureSchemes, signatureSchemeCount * sizeof(SSLSignatureScheme));
+        if (signatureSchemes) {
+            PORT_Memcpy(ss->ssl3.hs.clientAuthSignatureSchemes, signatureSchemes, signatureSchemeCount * sizeof(SSLSignatureScheme));
+        }
         ss->ssl3.hs.clientAuthSignatureSchemesLen = signatureSchemeCount;
 
         rv = (SECStatus)(*ss->getClientAuthData)(ss->getClientAuthDataArg,
