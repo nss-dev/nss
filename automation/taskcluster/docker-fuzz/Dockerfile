@@ -45,6 +45,9 @@ ENV LC_ALL $LANG
 ENV HOST localhost
 ENV DOMSUF localdomain
 
+# Bug 1904395
+ENV NSS_DISABLE_NSPR_TESTS 1
+
 RUN locale-gen $LANG \
  && DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales
 
