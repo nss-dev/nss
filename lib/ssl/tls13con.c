@@ -445,16 +445,41 @@ tls13_CreateKeyShare(sslSocket *ss, const sslNamedGroupDef *groupDef,
                 PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
                 return SECFailure;
             }
-            rv = ssl_CreateECDHEphemeralKeyPair(ss, ssl_LookupNamedGroup(ssl_grp_ec_curve25519), &keyPair);
-            if (rv != SECSuccess) {
-                return SECFailure;
+            const sslNamedGroupDef *x25519 = ssl_LookupNamedGroup(ssl_grp_ec_curve25519);
+            sslEphemeralKeyPair *x25519Pair = ssl_LookupEphemeralKeyPair(ss, x25519);
+            if (x25519Pair) {
+                keyPair = ssl_CopyEphemeralKeyPair(x25519Pair);
+            }
+            if (!keyPair) {
+                rv = ssl_CreateECDHEphemeralKeyPair(ss, x25519, &keyPair);
+                if (rv != SECSuccess) {
+                    return SECFailure;
+                }
             }
             keyPair->group = groupDef;
             break;
         case ssl_kea_ecdh:
-            rv = ssl_CreateECDHEphemeralKeyPair(ss, groupDef, &keyPair);
-            if (rv != SECSuccess) {
-                return SECFailure;
+            if (groupDef->name == ssl_grp_ec_curve25519) {
+                const sslNamedGroupDef *xyber = ssl_LookupNamedGroup(ssl_grp_kem_xyber768d00);
+                sslEphemeralKeyPair *xyberPair = ssl_LookupEphemeralKeyPair(ss, xyber);
+                if (xyberPair) {
+                    // We could use ssl_CopyEphemeralKeyPair here, but we would need to free
+                    // the KEM components. We should pull this out into a utility function when
+                    // we refactor to support multiple hybrid mechanisms.
+                    keyPair = PORT_ZNew(sslEphemeralKeyPair);
+                    if (!keyPair) {
+                        return SECFailure;
+                    }
+                    PR_INIT_CLIST(&keyPair->link);
+                    keyPair->group = groupDef;
+                    keyPair->keys = ssl_GetKeyPairRef(xyberPair->keys);
+                }
+            }
+            if (!keyPair) {
+                rv = ssl_CreateECDHEphemeralKeyPair(ss, groupDef, &keyPair);
+                if (rv != SECSuccess) {
+                    return SECFailure;
+                }
             }
             break;
         case ssl_kea_dh:
