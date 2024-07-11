@@ -481,7 +481,7 @@ ChaCha20Poly1305_Decrypt(const ChaCha20Poly1305Context *ctx,
                          unsigned int maxOutputLen, const unsigned char *input,
                          unsigned int inputLen, const unsigned char *nonce,
                          unsigned int nonceLen, const unsigned char *ad,
-                         unsigned int adLen, const unsigned char *tagIn)
+                         unsigned int adLen, /* const */ unsigned char *tagIn)
 {
 #ifdef NSS_DISABLE_CHACHAPOLY
     return SECFailure;

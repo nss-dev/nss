@@ -37,6 +37,7 @@
 #include "secmod.h"
 #include "blapi.h"
 
+#include <limits.h>
 #include <stdio.h>
 
 static PK11SymKey *ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
@@ -1112,6 +1113,22 @@ Null_Cipher(void *ctx, unsigned char *output, unsigned int *outputLen, unsigned 
     return SECSuccess;
 }
 
+/* Wrapper around PK11_CipherOp to avoid undefined behavior due to incompatible
+ * function pointer type cast
+ */
+static SECStatus
+SSLCipher_PK11_CipherOp(void *ctx, unsigned char *output, unsigned int *outputLen, unsigned int maxOutputLen,
+                        const unsigned char *input, unsigned int inputLen)
+{
+    PK11Context *pctx = ctx;
+    PORT_Assert(maxOutputLen <= INT_MAX);
+    int signedOutputLen = maxOutputLen;
+    SECStatus rv = PK11_CipherOp(pctx, output, &signedOutputLen, maxOutputLen, input, inputLen);
+    PORT_Assert(signedOutputLen >= 0);
+    *outputLen = signedOutputLen;
+    return rv;
+}
+
 /*
  * SSL3 Utility functions
  */
@@ -1833,7 +1850,7 @@ ssl3_InitPendingContexts(sslSocket *ss, ssl3CipherSpec *spec)
         iv.data = NULL;
         iv.len = 0;
     } else {
-        spec->cipher = (SSLCipher)PK11_CipherOp;
+        spec->cipher = SSLCipher_PK11_CipherOp;
         iv.data = spec->keyMaterial.iv;
         iv.len = spec->cipherDef->iv_size;
     }

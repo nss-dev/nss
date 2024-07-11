@@ -669,6 +669,16 @@ ForkedChild(void)
 
 #endif
 
+#define SFTKFreeWrap(ctxtype, mmm) \
+    void SFTKFree_##mmm(void *vp)  \
+    {                              \
+        ctxtype *p = vp;           \
+        mmm(p);                    \
+    }
+
+SFTKFreeWrap(NSSLOWKEYPublicKey, nsslowkey_DestroyPublicKey);
+SFTKFreeWrap(NSSLOWKEYPrivateKey, nsslowkey_DestroyPrivateKey);
+
 static char *
 sftk_setStringName(const char *inString, char *buffer, int buffer_length, PRBool nullTerminate)
 {
@@ -1132,7 +1142,7 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
     if (object->objectInfo == NULL) {
         return crv;
     }
-    object->infoFree = (SFTKFree)nsslowkey_DestroyPublicKey;
+    object->infoFree = SFTKFree_nsslowkey_DestroyPublicKey;
 
     /* Check that an imported EC key is valid */
     if (key_type == CKK_EC || key_type == CKK_EC_EDWARDS || key_type == CKK_EC_MONTGOMERY) {
@@ -1370,7 +1380,7 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
         object->objectInfo = sftk_mkPrivKey(object, key_type, &crv);
         if (object->objectInfo == NULL)
             return crv;
-        object->infoFree = (SFTKFree)nsslowkey_DestroyPrivateKey;
+        object->infoFree = SFTKFree_nsslowkey_DestroyPrivateKey;
     }
     return CKR_OK;
 }
@@ -2013,7 +2023,7 @@ sftk_GetPubKey(SFTKObject *object, CK_KEY_TYPE key_type,
     }
 
     object->objectInfo = pubKey;
-    object->infoFree = (SFTKFree)nsslowkey_DestroyPublicKey;
+    object->infoFree = SFTKFree_nsslowkey_DestroyPublicKey;
     return pubKey;
 }
 
@@ -2359,7 +2369,7 @@ sftk_GetPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
 
     priv = sftk_mkPrivKey(object, key_type, crvp);
     object->objectInfo = priv;
-    object->infoFree = (SFTKFree)nsslowkey_DestroyPrivateKey;
+    object->infoFree = SFTKFree_nsslowkey_DestroyPrivateKey;
     return priv;
 }
 
