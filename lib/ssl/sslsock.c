@@ -4377,7 +4377,6 @@ struct {
     EXP(SetServerEchConfigs),
     EXP(SetTimeFunc),
     EXP(SetCertificateCompressionAlgorithm),
-    EXP(PeerCertificateChainDER),
 #endif
     { "", NULL }
 };

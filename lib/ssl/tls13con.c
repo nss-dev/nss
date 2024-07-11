@@ -3824,12 +3824,14 @@ loser:
 
 static SECStatus
 tls13_HandleCertificateEntry(sslSocket *ss, SECItem *data, PRBool first,
-                             SECItem *certData)
+                             CERTCertificate **certp)
 {
     SECStatus rv;
+    SECItem certData;
     SECItem extensionsData;
+    CERTCertificate *cert = NULL;
 
-    rv = ssl3_ConsumeHandshakeVariable(ss, certData,
+    rv = ssl3_ConsumeHandshakeVariable(ss, &certData,
                                        3, &data->data, &data->len);
     if (rv != SECSuccess) {
         return SECFailure;
@@ -3851,6 +3853,25 @@ tls13_HandleCertificateEntry(sslSocket *ss, SECItem *data, PRBool first,
         }
         /* TODO(ekr@rtfm.com): Copy out SCTs. Bug 1315727. */
     }
+
+    cert = CERT_NewTempCertificate(ss->dbHandle, &certData, NULL,
+                                   PR_FALSE, PR_TRUE);
+
+    if (!cert) {
+        PRErrorCode errCode = PORT_GetError();
+        switch (errCode) {
+            case PR_OUT_OF_MEMORY_ERROR:
+            case SEC_ERROR_BAD_DATABASE:
+            case SEC_ERROR_NO_MEMORY:
+                FATAL_ERROR(ss, errCode, internal_error);
+                return SECFailure;
+            default:
+                ssl3_SendAlertForCertError(ss, errCode);
+                return SECFailure;
+        }
+    }
+
+    *certp = cert;
 
     return SECSuccess;
 }
@@ -4139,30 +4160,17 @@ tls13_HandleCertificate(sslSocket *ss, PRUint8 *b, PRUint32 length, PRBool alrea
     }
 
     while (certList.len) {
-        SECItem derCert; // will hold a weak reference into certList
+        CERTCertificate *cert;
+
         rv = tls13_HandleCertificateEntry(ss, &certList, first,
-                                          &derCert);
+                                          &cert);
         if (rv != SECSuccess) {
             ss->xtnData.signedCertTimestamps.len = 0;
             return SECFailure;
         }
 
         if (first) {
-            ss->sec.peerCert = CERT_NewTempCertificate(ss->dbHandle, &derCert,
-                                                       NULL, PR_FALSE, PR_TRUE);
-            if (!ss->sec.peerCert) {
-                PRErrorCode errCode = PORT_GetError();
-                switch (errCode) {
-                    case PR_OUT_OF_MEMORY_ERROR:
-                    case SEC_ERROR_BAD_DATABASE:
-                    case SEC_ERROR_NO_MEMORY:
-                        FATAL_ERROR(ss, errCode, internal_error);
-                        return SECFailure;
-                    default:
-                        ssl3_SendAlertForCertError(ss, errCode);
-                        return SECFailure;
-                }
-            }
+            ss->sec.peerCert = cert;
 
             if (ss->xtnData.signedCertTimestamps.len) {
                 sslSessionID *sid = ss->sec.ci.sid;
@@ -4181,8 +4189,7 @@ tls13_HandleCertificate(sslSocket *ss, PRUint8 *b, PRUint32 length, PRBool alrea
                 FATAL_ERROR(ss, SEC_ERROR_NO_MEMORY, internal_error);
                 return SECFailure;
             }
-            c->derCert = SECITEM_ArenaDupItem(ss->ssl3.peerCertArena,
-                                              &derCert);
+            c->cert = cert;
             c->next = NULL;
 
             if (lastCert) {
