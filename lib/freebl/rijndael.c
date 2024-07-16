@@ -886,6 +886,7 @@ FREEBL_CIPHER_WRAP(ppc_AES_GCMContext, ppc_AES_GCM_EncryptUpdate);
 #endif
 
 #if defined(USE_HW_AES)
+#if defined(NSS_X86_OR_X64)
 FREEBL_CIPHER_WRAP(AESContext, intel_aes_encrypt_ecb_128);
 FREEBL_CIPHER_WRAP(AESContext, intel_aes_decrypt_ecb_128);
 FREEBL_CIPHER_WRAP(AESContext, intel_aes_encrypt_cbc_128);
@@ -916,6 +917,38 @@ FREEBL_CIPHER_WRAP(AESContext, intel_aes_decrypt_cbc_256);
          : ((keysize) == 16 ? freeblCipher_intel_aes_decrypt_cbc_128                    \
                             : (keysize) == 24 ? freeblCipher_intel_aes_decrypt_cbc_192  \
                                               : freeblCipher_intel_aes_decrypt_cbc_256))
+#else
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_encrypt_ecb_128);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_decrypt_ecb_128);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_encrypt_cbc_128);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_decrypt_cbc_128);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_encrypt_ecb_192);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_decrypt_ecb_192);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_encrypt_cbc_192);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_decrypt_cbc_192);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_encrypt_ecb_256);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_decrypt_ecb_256);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_encrypt_cbc_256);
+FREEBL_CIPHER_WRAP(AESContext, arm_aes_decrypt_cbc_256);
+
+#define freeblCipher_native_aes_ecb_worker(encrypt, keysize)                          \
+    ((encrypt)                                                                        \
+         ? ((keysize) == 16 ? freeblCipher_arm_aes_encrypt_ecb_128                    \
+                            : (keysize) == 24 ? freeblCipher_arm_aes_encrypt_ecb_192  \
+                                              : freeblCipher_arm_aes_encrypt_ecb_256) \
+         : ((keysize) == 16 ? freeblCipher_arm_aes_decrypt_ecb_128                    \
+                            : (keysize) == 24 ? freeblCipher_arm_aes_decrypt_ecb_192  \
+                                              : freeblCipher_arm_aes_decrypt_ecb_256))
+
+#define freeblCipher_native_aes_cbc_worker(encrypt, keysize)                          \
+    ((encrypt)                                                                        \
+         ? ((keysize) == 16 ? freeblCipher_arm_aes_encrypt_cbc_128                    \
+                            : (keysize) == 24 ? freeblCipher_arm_aes_encrypt_cbc_192  \
+                                              : freeblCipher_arm_aes_encrypt_cbc_256) \
+         : ((keysize) == 16 ? freeblCipher_arm_aes_decrypt_cbc_128                    \
+                            : (keysize) == 24 ? freeblCipher_arm_aes_decrypt_cbc_192  \
+                                              : freeblCipher_arm_aes_decrypt_cbc_256))
+#endif
 #endif
 
 #if defined(USE_HW_AES) && defined(_MSC_VER) && defined(NSS_X86_OR_X64)
