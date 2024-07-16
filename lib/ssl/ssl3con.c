@@ -11341,11 +11341,7 @@ void
 ssl3_CleanupPeerCerts(sslSocket *ss)
 {
     PLArenaPool *arena = ss->ssl3.peerCertArena;
-    ssl3CertNode *certs = (ssl3CertNode *)ss->ssl3.peerCertChain;
 
-    for (; certs; certs = certs->next) {
-        CERT_DestroyCertificate(certs->cert);
-    }
     if (arena)
         PORT_FreeArena(arena, PR_FALSE);
     ss->ssl3.peerCertArena = NULL;
@@ -11560,10 +11556,10 @@ ssl3_CompleteHandleCertificate(sslSocket *ss, PRUint8 *b, PRUint32 length)
             goto loser; /* don't send alerts on memory errors */
         }
 
-        c->cert = CERT_NewTempCertificate(ss->dbHandle, &certItem, NULL,
-                                          PR_FALSE, PR_TRUE);
-        if (c->cert == NULL) {
-            goto ambiguous_err;
+        c->derCert = SECITEM_ArenaDupItem(ss->ssl3.peerCertArena,
+                                          &certItem);
+        if (c->derCert == NULL) {
+            goto loser;
         }
 
         c->next = NULL;
