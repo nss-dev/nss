@@ -5040,6 +5040,7 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession, SFTKSlot *slot,
      *
      * For derive           CKK_DH   => CKM_DH_PKCS_DERIVE
      *                      CKK_EC   => CKM_ECDH1_DERIVE
+     *                      CKK_EC_MONTGOMERY   => CKM_ECDH1_DERIVE
      *                      others   => CKM_INVALID_MECHANISM
      *
      * The parameters for these mechanisms is the public key.
@@ -5338,6 +5339,7 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession, SFTKSlot *slot,
                 mech.pParameter = pubAttribute->attrib.pValue;
                 mech.ulParameterLen = pubAttribute->attrib.ulValueLen;
                 break;
+            case CKK_EC_MONTGOMERY:
             case CKK_EC:
                 mech.mechanism = CKM_ECDH1_DERIVE;
                 pubAttribute = sftk_FindAttribute(publicKey, CKA_EC_POINT);
@@ -5919,11 +5921,12 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             SECITEM_FreeItem(&pubKey, PR_FALSE);
             break;
 
+        case CKM_EC_MONTGOMERY_KEY_PAIR_GEN:
         case CKM_EC_EDWARDS_KEY_PAIR_GEN:
             sftk_DeleteAttributeType(privateKey, CKA_EC_PARAMS);
             sftk_DeleteAttributeType(privateKey, CKA_VALUE);
             sftk_DeleteAttributeType(privateKey, CKA_NSS_DB);
-            key_type = CKK_EC_EDWARDS;
+            key_type = (pMechanism->mechanism == CKM_EC_EDWARDS_KEY_PAIR_GEN) ? CKK_EC_EDWARDS : CKK_EC_MONTGOMERY;
 
             /* extract the necessary parameters and copy them to private keys */
             crv = sftk_Attribute2SSecItem(NULL, &ecEncodedParams, publicKey,
@@ -8678,9 +8681,9 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                 crv = sftk_Attribute2SecItem(NULL, &dhSubPrime,
                                              sourceKey, CKA_SUBPRIME);
                 /* we ignore the value of crv here, We treat a valid
-                * return of len = 0 and a failure to find a subrime the same
-                * NOTE: we free the subprime in both cases depending on
-                * PORT_Free of NULL to be a noop */
+                 * return of len = 0 and a failure to find a subrime the same
+                 * NOTE: we free the subprime in both cases depending on
+                 * PORT_Free of NULL to be a noop */
                 if (dhSubPrime.len != 0) {
                     PRBool isSafe = PR_FALSE;
 
@@ -8838,10 +8841,10 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
              */
             if (mechParams->kdf == CKD_NULL) {
                 /*
-             * tmp is the raw data created by ECDH_Derive,
-             * secret and secretlen are the values we will
-             * eventually pass as our generated key.
-             */
+                 * tmp is the raw data created by ECDH_Derive,
+                 * secret and secretlen are the values we will
+                 * eventually pass as our generated key.
+                 */
                 secret = tmp.data;
                 secretlen = tmp.len;
             } else {
