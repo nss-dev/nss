@@ -20,6 +20,8 @@ class ClientConfig {
   bool EnableCbcRandomIv();
   bool RequireSafeNegotiation();
   bool EnableCache();
+  bool EnableGrease();
+  bool EnableCHExtensionPermutation();
 
  private:
   uint64_t config_;

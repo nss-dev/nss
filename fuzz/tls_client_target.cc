@@ -63,6 +63,13 @@ static void SetSocketOptions(PRFileDesc* fd,
                      config->RequireSafeNegotiation());
   assert(rv == SECSuccess);
 
+  rv = SSL_OptionSet(fd, SSL_ENABLE_GREASE, config->EnableGrease());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_CH_EXTENSION_PERMUTATION,
+                     config->EnableCHExtensionPermutation());
+  assert(rv == SECSuccess);
+
 #ifndef IS_DTLS
   rv =
       SSL_OptionSet(fd, SSL_ENABLE_RENEGOTIATION, SSL_RENEGOTIATE_UNRESTRICTED);
