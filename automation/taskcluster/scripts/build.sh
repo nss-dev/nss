@@ -13,11 +13,12 @@ fi
 # Clone NSPR if needed.
 hg_clone https://hg.mozilla.org/projects/nspr ./nspr default
 
+pushd nspr
+hg revert --all
 if [[ -f nss/nspr.patch && "$ALLOW_NSPR_PATCH" == "1" ]]; then
-  pushd nspr
   cat ../nss/nspr.patch | patch -p1
-  popd
 fi
+popd
 
 # Build.
 make -C nss nss_build_all
