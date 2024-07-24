@@ -22,7 +22,7 @@ set_env()
 
   pushd nspr
   hg revert --all
-  if [[ -f nss/nspr.patch && "$ALLOW_NSPR_PATCH" == "1" ]]; then
+  if [[ -f ../nss/nspr.patch && "$ALLOW_NSPR_PATCH" == "1" ]]; then
     cat ../nss/nspr.patch | patch -p1
   fi
   popd
