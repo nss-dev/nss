@@ -31,6 +31,7 @@ class ClientConfig {
   bool SetClientEchConfigs();
   bool SetVersionRange();
   bool AddExternalPsk();
+  bool EnablePostHandshakeAuth();
 
   const SSLVersionRange& VersionRange();
 

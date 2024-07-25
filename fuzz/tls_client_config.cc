@@ -22,6 +22,7 @@ const uint32_t CONFIG_SET_CERTIFICATION_COMPRESSION_ALGORITHM = 1 << 10;
 const uint32_t CONFIG_SET_CLIENT_ECH_CONFIGS = 1 << 11;
 const uint32_t CONFIG_VERSION_RANGE_SET = 1 << 12;
 const uint32_t CONFIG_ADD_EXTERNAL_PSK = 1 << 13;
+const uint32_t CONFIG_ENABLE_POST_HANDSHAKE_AUTH = 1 << 14;
 
 // XOR 64-bit chunks of data to build a bitmap of config options derived from
 // the fuzzing input. This seems the only way to fuzz various options while
@@ -105,6 +106,10 @@ bool ClientConfig::SetVersionRange() {
 
 bool ClientConfig::AddExternalPsk() {
   return config_ & CONFIG_ADD_EXTERNAL_PSK;
+}
+
+bool ClientConfig::EnablePostHandshakeAuth() {
+  return config_ & CONFIG_ENABLE_POST_HANDSHAKE_AUTH;
 }
 
 const SSLVersionRange& ClientConfig::VersionRange() {

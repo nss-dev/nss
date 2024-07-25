@@ -181,6 +181,10 @@ static void SetSocketOptions(PRFileDesc* fd,
     PK11_FreeSlot(slot);
     PK11_FreeSymKey(key);
   }
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_POST_HANDSHAKE_AUTH,
+                     config->EnablePostHandshakeAuth());
+  assert(rv == SECSuccess);
 }
 
 // This is only called when we set SSL_ENABLE_FALSE_START=1,
