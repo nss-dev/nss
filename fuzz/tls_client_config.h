@@ -10,7 +10,11 @@
 
 #include "sslt.h"
 
+#ifdef IS_DTLS_FUZZ
+#define SSL_VERSION_RANGE_MIN_VALID 0x0302
+#else
 #define SSL_VERSION_RANGE_MIN_VALID 0x0301
+#endif
 #define SSL_VERSION_RANGE_MAX_VALID 0x0304
 
 class ClientConfig {
