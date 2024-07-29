@@ -462,13 +462,9 @@ NSS Tools modutil
    -  NCR (x86)
    -  NEC (mips)
    -  OSF (alpha)
-   -  ReliantUNIX (mips)
-   -  SCO (x86)
    -  SOLARIS (sparc)
    -  SONY (mips)
    -  SUNOS (sparc)
-   -  UnixWare (x86)
-   -  WIN95 (x86)
    -  WINNT (x86)
 
    Here are some examples of valid platform strings:

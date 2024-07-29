@@ -551,12 +551,6 @@ complex_string --> ([^\"\\\r\n]|(\\\")|(\\\\))+ </programlisting>
 	<para>OSF (alpha)</para>
 	</listitem>
 	<listitem>
-	<para>ReliantUNIX (mips)</para>
-	</listitem>
-	<listitem>
-	<para>SCO (x86)</para>
-	</listitem>
-	<listitem>
 	<para>SOLARIS (sparc)</para>
 	</listitem>
 	<listitem>

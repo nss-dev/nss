@@ -460,7 +460,6 @@ NSS tools : modutil
    |    these values from NSPR. OS release is an empty string on non-Unix
    |    operating systems. NSPR supports these platforms:
    |      o AIX (rs6000)
-   |      o BSDI (x86)
    |      o FREEBSD (x86)
    |      o HPUX (hppa1.1)
    |      o IRIX (mips)
@@ -469,12 +468,10 @@ NSS tools : modutil
    |      o NCR (x86)
    |      o NEC (mips)
    |      o OSF (alpha)
-   |      o ReliantUNIX (mips)
    |      o SCO (x86)
    |      o SOLARIS (sparc)
    |      o SONY (mips)
    |      o SUNOS (sparc)
-   |      o UnixWare (x86)
    |      o WINNT (x86)
    |    For example:
    |  IRIX:6.2:mips

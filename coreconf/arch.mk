@@ -38,46 +38,12 @@ endif
 # Force the older BSD/OS versions to use the new arch name.
 #
 
-ifeq ($(OS_ARCH),BSD_386)
-    OS_ARCH = BSD_OS
-endif
-
-#
-# Catch Deterim if SVR4 is NCR or UNIXWARE
-#
-
-ifeq ($(OS_ARCH),UNIX_SV)
-    ifneq ($(findstring NCR, $(shell grep NCR /etc/bcheckrc | head -1 )),)
-	OS_ARCH = NCR
-    else
-	# Make UnixWare something human readable
-	OS_ARCH = UNIXWARE
-    endif
-
-    # Get the OS release number, not 4.2
-    OS_RELEASE := $(shell uname -v)
-endif
-
 ifeq ($(OS_ARCH),UNIX_System_V)
     OS_ARCH	= NEC
 endif
 
 ifeq ($(OS_ARCH),AIX)
     OS_RELEASE := $(shell uname -v).$(shell uname -r)
-endif
-
-#
-# SINIX changes name to ReliantUNIX with 5.43
-#
-
-ifeq ($(OS_ARCH),ReliantUNIX-N)
-    OS_ARCH    = ReliantUNIX
-    OS_RELEASE = 5.4
-endif
-
-ifeq ($(OS_ARCH),SINIX-N)
-    OS_ARCH    = ReliantUNIX
-    OS_RELEASE = 5.4
 endif
 
 #

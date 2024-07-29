@@ -177,10 +177,6 @@ typedef PRUint32 uint32;
 
 #endif /* __DBINTERFACE_PRIVATE */
 
-#ifdef SCO
-#define MAXPATHLEN 1024
-#endif
-
 #include <fcntl.h>
 
 #if defined(_WINDOWS)

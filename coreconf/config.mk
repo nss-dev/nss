@@ -30,7 +30,7 @@ endif
 #       one for each OS release.                                      #
 #######################################################################
 
-TARGET_OSES = FreeBSD BSD_OS NetBSD OpenUNIX QNX Darwin OpenBSD \
+TARGET_OSES = FreeBSD NetBSD OpenUNIX QNX Darwin OpenBSD \
               AIX RISCOS WINNT Linux Android
 
 ifeq (,$(filter-out $(TARGET_OSES),$(OS_TARGET)))
