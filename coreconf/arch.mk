@@ -116,17 +116,6 @@ endif
 
 #
 # Note: OS_TARGET should be specified on the command line for gmake.
-# When OS_TARGET=WIN95 is specified, then a Windows 95 target is built.
-# The difference between the Win95 target and the WinNT target is that
-# the WinNT target uses Windows NT specific features not available
-# in Windows 95. The Win95 target will run on Windows NT, but (supposedly)
-# at lesser performance (the Win95 target uses threads; the WinNT target
-# uses fibers).
-#
-# If OS_TARGET is not specified, it defaults to $(OS_ARCH), i.e., no
-# cross-compilation, except on Windows, where it defaults to WIN95.
-#
-
 #
 # On WIN32, we also define the variable CPU_ARCH, if it isn't already.
 #
@@ -213,15 +202,7 @@ ifeq ($(OS_TARGET),Android)
 endif
 
 ifndef OS_TARGET
-ifeq ($(OS_ARCH), WINNT)
-    OS_TARGET = WIN95
-else
     OS_TARGET = $(OS_ARCH)
-endif
-endif
-
-ifeq ($(OS_TARGET), WIN95)
-    OS_RELEASE = 4.0
 endif
 
 ifdef OS_TARGET_RELEASE

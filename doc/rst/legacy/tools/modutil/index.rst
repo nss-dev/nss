@@ -405,9 +405,6 @@ NSS tools : modutil
    |           }
    |        }
    |     }
-   |     WIN95::x86 {
-   |        EquivalentPlatform {WINNT::x86}
-   |     }
    |     SUNOS:5.5.1:sparc {
    |        ModuleName { "Example UNIX Module" }
    |        ModuleFile { unix/fort.so }
@@ -478,7 +475,6 @@ NSS tools : modutil
    |      o SONY (mips)
    |      o SUNOS (sparc)
    |      o UnixWare (x86)
-   |      o WIN95 (x86)
    |      o WINNT (x86)
    |    For example:
    |  IRIX:6.2:mips

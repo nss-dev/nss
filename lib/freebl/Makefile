@@ -178,7 +178,7 @@ endif
     endif
 endif
 
-ifeq (,$(filter-out WINNT WIN95,$(OS_TARGET)))
+ifeq (,$(filter-out WINNT,$(OS_TARGET)))
 ifndef USE_64
 # 32-bit Windows
 ifdef NS_USE_GCC
