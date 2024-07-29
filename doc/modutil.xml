@@ -551,9 +551,6 @@ complex_string --> ([^\"\\\r\n]|(\\\")|(\\\\))+ </programlisting>
 	<para>NEC (mips)</para>
 	</listitem>
 	<listitem>
-	<para>OS2 (x86)</para>
-	</listitem>
-	<listitem>
 	<para>OSF (alpha)</para>
 	</listitem>
 	<listitem>

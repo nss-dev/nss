@@ -844,7 +844,7 @@ own_GetClientAuthData(void *arg,
     return NSS_GetClientAuthData(arg, socket, caNames, pRetCert, pRetKey);
 }
 
-#if defined(WIN32) || defined(OS2)
+#if defined(WIN32)
 void
 thread_main(void *arg)
 {
@@ -1723,7 +1723,7 @@ run()
     pollset[STDIN_FD].in_flags = PR_POLL_READ;
     std_out = PR_GetSpecialFD(PR_StandardOutput);
 
-#if defined(WIN32) || defined(OS2)
+#if defined(WIN32)
     /* PR_Poll cannot be used with stdin on Windows or OS/2.  (sigh).
     ** But use of PR_Poll and non-blocking sockets is a major feature
     ** of this program.  So, we simulate a pollable stdin with a

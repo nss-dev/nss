@@ -49,7 +49,7 @@ extern "C" {
 #endif
 
 struct dirent {
-#if defined(OS2) || defined(WIN32) /* use the layout of EMX to avoid trouble */
+#if defined(WIN32) /* use the layout of EMX to avoid trouble */
     int d_ino;                     /* Dummy */
     int d_reclen;                  /* Dummy, same as d_namlen */
     int d_namlen;                  /* length of name */

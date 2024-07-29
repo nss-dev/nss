@@ -660,8 +660,6 @@ NSS tools : modutil
 
    o NEC (mips)
 
-   o OS2 (x86)
-
    o OSF (alpha)
 
    o ReliantUNIX (mips)

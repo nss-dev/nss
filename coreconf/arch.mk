@@ -110,14 +110,6 @@ ifeq ($(OS_ARCH),GNU_kFreeBSD)
     KERNEL = FreeBSD
 endif
 
-#
-# For OS/2
-#
-ifeq ($(OS_ARCH),OS_2)
-    OS_ARCH = OS2
-    OS_RELEASE := $(shell uname -v)
-endif
-
 #######################################################################
 # Master "Core Components" macros for getting the OS target           #
 #######################################################################

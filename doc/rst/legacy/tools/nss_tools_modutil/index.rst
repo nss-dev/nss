@@ -461,7 +461,6 @@ NSS Tools modutil
    -  MacOS (PowerPC)
    -  NCR (x86)
    -  NEC (mips)
-   -  OS2 (x86)
    -  OSF (alpha)
    -  ReliantUNIX (mips)
    -  SCO (x86)
