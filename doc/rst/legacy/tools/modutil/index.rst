@@ -478,7 +478,6 @@ NSS tools : modutil
    |      o SONY (mips)
    |      o SUNOS (sparc)
    |      o UnixWare (x86)
-   |      o WIN16 (x86)
    |      o WIN95 (x86)
    |      o WINNT (x86)
    |    For example:

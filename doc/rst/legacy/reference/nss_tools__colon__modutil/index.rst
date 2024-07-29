@@ -674,8 +674,6 @@ NSS tools : modutil
 
    o UnixWare (x86)
 
-   o WIN16 (x86)
-
    o WIN95 (x86)
 
    o WINNT (x86)

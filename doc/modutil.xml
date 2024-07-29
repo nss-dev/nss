@@ -572,9 +572,6 @@ complex_string --> ([^\"\\\r\n]|(\\\")|(\\\\))+ </programlisting>
 	<para>UnixWare (x86)</para>
 	</listitem>
 	<listitem>
-	<para>WIN16 (x86)</para>
-	</listitem>
-	<listitem>
 	<para>WIN95 (x86)</para>
 	</listitem>
 	<listitem>
