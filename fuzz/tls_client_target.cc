@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <cassert>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 
 #include "blapi.h"
@@ -174,8 +174,8 @@ static void SetSocketOptions(PRFileDesc* fd,
         PK11_KeyGen(slot, CKM_NSS_CHACHA20_POLY1305, nullptr, 32, nullptr);
     assert(key);
 
-    rv = SSL_AddExternalPsk(fd, key, kDummyPskIdentity, sizeof(kDummyPskIdentity) - 1,
-                            ssl_hash_sha256);
+    rv = SSL_AddExternalPsk(fd, key, kDummyPskIdentity,
+                            sizeof(kDummyPskIdentity) - 1, ssl_hash_sha256);
     assert(rv == SECSuccess);
 
     PK11_FreeSlot(slot);

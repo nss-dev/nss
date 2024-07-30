@@ -50,9 +50,9 @@ extern "C" {
 
 struct dirent {
 #if defined(WIN32) /* use the layout of EMX to avoid trouble */
-    int d_ino;                     /* Dummy */
-    int d_reclen;                  /* Dummy, same as d_namlen */
-    int d_namlen;                  /* length of name */
+    int d_ino;     /* Dummy */
+    int d_reclen;  /* Dummy, same as d_namlen */
+    int d_namlen;  /* length of name */
     char d_name[MAXNAMLEN + 1];
     unsigned long d_size;
     unsigned short d_attribute; /* attributes (see above) */

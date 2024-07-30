@@ -1072,7 +1072,7 @@ shlibSignDSA(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
 
 CK_RV
 shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
-              CK_SESSION_HANDLE hRwSession, int keySize, char* key, PRFileDesc *ifd,
+              CK_SESSION_HANDLE hRwSession, int keySize, char *key, PRFileDesc *ifd,
               PRFileDesc *ofd, const HashTable *hash)
 {
     CK_MECHANISM hmacMech = { 0, NULL, 0 };
@@ -1165,9 +1165,9 @@ shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
         };
         logIt("Using static HMAC key ... \n");
         crv = pFunctionList->C_CreateObject(hRwSession,
-                                           hmacKeyObject,
-                                           PR_ARRAY_SIZE(hmacKeyObject),
-                                           &hHMACKey);
+                                            hmacKeyObject,
+                                            PR_ARRAY_SIZE(hmacKeyObject),
+                                            &hHMACKey);
     }
 
     if (crv != CKR_OK) {
