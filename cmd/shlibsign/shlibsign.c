@@ -58,7 +58,6 @@
 #include "basicutil.h"
 #include "secitem.h"
 
-
 CK_BBOOL cktrue = CK_TRUE;
 CK_BBOOL ckfalse = CK_FALSE;
 static PRBool verbose = PR_FALSE;
