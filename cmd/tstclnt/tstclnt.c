@@ -37,6 +37,7 @@
 #include "secmod.h"
 #include "plgetopt.h"
 #include "plstr.h"
+#include "zlib.h"
 
 #if defined(WIN32)
 #include <fcntl.h>
@@ -234,6 +235,8 @@ PrintUsageHeader()
             "  [-A requestfile] [-L totalconnections] [-P {client,server}]\n"
             "  [-N echConfigs] [-Q] [-z externalPsk]\n"
             "  [-i echGreaseSize]\n"
+            "  [--enable-rfc8701-grease] [--enable-ch-extension-permutation]\n"
+            "  [--zlib-certificate-compression] \n"
             "\n",
             progName);
 }
@@ -407,11 +410,11 @@ disableAllSSLCiphers()
 typedef struct
 {
     PRBool shouldPause; /* PR_TRUE if we should use asynchronous peer cert
-                        * authentication */
+                         * authentication */
     PRBool isPaused;    /* PR_TRUE if libssl is waiting for us to validate the
-                        * peer's certificate and restart the handshake. */
+                         * peer's certificate and restart the handshake. */
     void *dbHandle;     /* Certificate database handle to use while
-                        * authenticating the peer's certificate. */
+                         * authenticating the peer's certificate. */
     PRBool testFreshStatusFromSideChannel;
     PRErrorCode sideChannelRevocationTestResultCode;
     PRBool requireDataForIntermediates;
@@ -1078,6 +1081,9 @@ PRBool enablePostHandshakeAuth = PR_FALSE;
 PRBool enableDelegatedCredentials = PR_FALSE;
 const secuExporter *enabledExporters = NULL;
 unsigned int enabledExporterCount = 0;
+PRBool enableRfc8701Grease = PR_FALSE;
+PRBool enableCHExtensionPermuation = PR_FALSE;
+PRBool zlibCertificateCompression = PR_FALSE;
 
 static int
 writeBytesToServer(PRFileDesc *s, const PRUint8 *buf, int nb)
@@ -1360,6 +1366,46 @@ printEchRetryConfigs(PRFileDesc *s)
     return SECSuccess;
 }
 
+static SECStatus
+zlibCertificateEncode(const SECItem *input, SECItem *output)
+{
+    if (!input || !input->data || input->len == 0 || !output) {
+        PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+        return SECFailure;
+    }
+
+    unsigned long maxCompressedLen = compressBound(input->len);
+    SECITEM_AllocItem(NULL, output, maxCompressedLen);
+
+    int ret = compress(output->data, (unsigned long *)&output->len, input->data, input->len);
+    if (ret != Z_OK) {
+        PR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
+        return SECFailure;
+    }
+
+    return SECSuccess;
+}
+
+static SECStatus
+zlibCertificateDecode(const SECItem *input,
+                      unsigned char *output, size_t outputLen,
+                      size_t *usedLen)
+{
+    if (!input || !input->data || input->len == 0 || !output || outputLen == 0) {
+        PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+        return SECFailure;
+    }
+
+    *usedLen = outputLen;
+
+    if (uncompress(output, usedLen, input->data, input->len) != Z_OK) {
+        PR_SetError(SEC_ERROR_BAD_DATA, 0);
+        return SECFailure;
+    }
+
+    return SECSuccess;
+}
+
 static int
 run()
 {
@@ -1372,6 +1418,7 @@ run()
     PRFileDesc *std_out;
     PRPollDesc pollset[2] = { { 0 }, { 0 } };
     PRBool wrStarted = PR_FALSE;
+    SSLCertificateCompressionAlgorithm zlibCompressionAlg = { 1, "zlib", zlibCertificateEncode, zlibCertificateDecode };
 
     handshakeComplete = PR_FALSE;
 
@@ -1595,6 +1642,33 @@ run()
         rv = SSL_OptionSet(s, SSL_ENABLE_POST_HANDSHAKE_AUTH, PR_TRUE);
         if (rv != SECSuccess) {
             SECU_PrintError(progName, "error enabling post-handshake auth");
+            error = 1;
+            goto done;
+        }
+    }
+
+    if (enableRfc8701Grease) {
+        rv = SSL_OptionSet(s, SSL_ENABLE_GREASE, PR_TRUE);
+        if (rv != SECSuccess) {
+            SECU_PrintError(progName, "error enabling grease");
+            error = 1;
+            goto done;
+        }
+    }
+
+    if (enableCHExtensionPermuation) {
+        rv = SSL_OptionSet(s, SSL_ENABLE_CH_EXTENSION_PERMUTATION, PR_TRUE);
+        if (rv != SECSuccess) {
+            SECU_PrintError(progName, "error enabling ch extension permutation");
+            error = 1;
+            goto done;
+        }
+    }
+
+    if (zlibCertificateCompression) {
+        rv = SSL_SetCertificateCompressionAlgorithm(s, zlibCompressionAlg);
+        if (rv != SECSuccess) {
+            SECU_PrintError(progName, "error setting zlib certificate compression algorithm");
             error = 1;
             goto done;
         }
@@ -1884,6 +1958,14 @@ done:
     return error;
 }
 
+const char *cmdLineOptions = "46A:BCDEFGHI:J:KL:M:N:OP:QR:STUV:W:X:YZa:bc:d:efgh:i:m:n:op:qr:st:uvw:x:z:";
+const PLLongOpt cmdLineLongOpts[] = {
+    { .longOptName = "enable-rfc8701-grease", .longOption = 0, .valueRequired = PR_FALSE },
+    { .longOptName = "enable-ch-extension-permutation", .longOption = 1, .valueRequired = PR_FALSE },
+    { .longOptName = "zlib-certificate-compression", .longOption = 2, .valueRequired = PR_FALSE },
+    { .longOptName = NULL },
+};
+
 int
 main(int argc, char **argv)
 {
@@ -1923,13 +2005,24 @@ main(int argc, char **argv)
         }
     }
 
-    optstate = PL_CreateOptState(argc, argv,
-                                 "46A:BCDEFGHI:J:KL:M:N:OP:QR:STUV:W:X:YZa:bc:d:efgh:i:m:n:op:qr:st:uvw:x:z:");
+    optstate = PL_CreateLongOptState(argc, argv, cmdLineOptions, cmdLineLongOpts);
     while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
-        switch (optstate->option) {
+        switch (optstate->longOption) {
             case '?':
             default:
                 Usage();
+                break;
+
+            case 0:
+                enableRfc8701Grease = PR_TRUE;
+                break;
+
+            case 1:
+                enableCHExtensionPermuation = PR_TRUE;
+                break;
+
+            case 2:
+                zlibCertificateCompression = PR_TRUE;
                 break;
 
             case '4':
