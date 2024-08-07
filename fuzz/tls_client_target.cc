@@ -203,7 +203,7 @@ static void SetupCallbacks(PRFileDesc* fd,
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
-  std::unique_ptr<NSSDatabase> db(new NSSDatabase());
+  static std::unique_ptr<NSSDatabase> db(new NSSDatabase());
 
   EnableAllProtocolVersions();
   std::unique_ptr<ClientConfig> config(new ClientConfig(data, len));
