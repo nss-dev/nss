@@ -119,7 +119,7 @@ static void SetSocketOptions(PRFileDesc* fd,
     assert(key);
 
     rv = SSL_AddExternalPsk(fd, key, kPskIdentity, sizeof(kPskIdentity) - 1,
-                            ssl_hash_sha256);
+                            config->PskHashType());
     assert(rv == SECSuccess);
 
     PK11_FreeSlot(slot);
