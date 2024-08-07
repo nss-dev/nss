@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-#include "prtypes.h"
+#include "sslt.h"
 
 #include "tls_client_config.h"
 
@@ -32,8 +32,8 @@ ClientConfig::ClientConfig(const uint8_t* data, size_t len) {
     uint64_t bitmap;
     struct {
       uint32_t config;
-      PRUint16 ssl_version_range_min;
-      PRUint16 ssl_version_range_max;
+      uint16_t ssl_version_range_min;
+      uint16_t ssl_version_range_max;
     };
   };
 
@@ -110,6 +110,13 @@ bool ClientConfig::AddExternalPsk() {
 
 bool ClientConfig::EnablePostHandshakeAuth() {
   return config_ & CONFIG_ENABLE_POST_HANDSHAKE_AUTH;
+}
+
+SSLHashType ClientConfig::PskHashType() {
+  if (config_ % 2)
+    return ssl_hash_sha256;
+
+  return ssl_hash_sha384;
 }
 
 const SSLVersionRange& ClientConfig::VersionRange() {

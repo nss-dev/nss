@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef tls_client_config_h__
-#define tls_client_config_h__
+#ifndef TLS_CLIENT_CONFIG_H_
+#define TLS_CLIENT_CONFIG_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -37,6 +37,7 @@ class ClientConfig {
   bool AddExternalPsk();
   bool EnablePostHandshakeAuth();
 
+  SSLHashType PskHashType();
   const SSLVersionRange& VersionRange();
 
  private:
@@ -44,4 +45,4 @@ class ClientConfig {
   SSLVersionRange ssl_version_range_;
 };
 
-#endif  // tls_client_config_h__
+#endif  // TLS_CLIENT_CONFIG_H_
