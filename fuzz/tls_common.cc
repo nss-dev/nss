@@ -17,16 +17,23 @@ void FixTime(PRFileDesc* fd) {
   assert(rv == SECSuccess);
 }
 
-PRStatus EnableAllProtocolVersions() {
+void EnableAllProtocolVersions() {
   SSLVersionRange supported;
+  SECStatus rv;
 
-  SECStatus rv = SSL_VersionRangeGetSupported(ssl_variant_stream, &supported);
+  // Enable all supported versions for TCP.
+  rv = SSL_VersionRangeGetSupported(ssl_variant_stream, &supported);
   assert(rv == SECSuccess);
 
   rv = SSL_VersionRangeSetDefault(ssl_variant_stream, &supported);
   assert(rv == SECSuccess);
 
-  return PR_SUCCESS;
+  // Enable all supported versions for UDP.
+  rv = SSL_VersionRangeGetSupported(ssl_variant_datagram, &supported);
+  assert(rv == SECSuccess);
+
+  rv = SSL_VersionRangeSetDefault(ssl_variant_datagram, &supported);
+  assert(rv == SECSuccess);
 }
 
 void EnableAllCipherSuites(PRFileDesc* fd) {
