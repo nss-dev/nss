@@ -1398,7 +1398,8 @@ zlibCertificateDecode(const SECItem *input,
 
     *usedLen = outputLen;
 
-    if (uncompress(output, usedLen, input->data, input->len) != Z_OK) {
+    int ret = uncompress(output, (unsigned long *)usedLen, input->data, input->len);
+    if (ret != Z_OK) {
         PR_SetError(SEC_ERROR_BAD_DATA, 0);
         return SECFailure;
     }

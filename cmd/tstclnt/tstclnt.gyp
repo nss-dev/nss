@@ -21,7 +21,6 @@
       ],
       'include_dirs': [
         '<(DEPTH)/lib/ssl',
-        '<(DEPTH)/lib/zlib',
       ],
     }
   ],
