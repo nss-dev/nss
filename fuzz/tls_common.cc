@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <assert.h>
+#include "tls_common.h"
 
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+
+#include "prio.h"
 #include "ssl.h"
 #include "sslexp.h"
-
-#include "tls_common.h"
 
 static PRTime FixedTime(void*) { return 1234; }
 
@@ -61,4 +64,20 @@ void DoHandshake(PRFileDesc* fd, bool isServer) {
       PR_Write(fd, block, nb);
     }
   }
+}
+
+SECStatus DummyCompressionEncode(const SECItem* input, SECItem* output) {
+  SECITEM_CopyItem(nullptr, output, input);
+  PORT_Memcpy(output->data, input->data, output->len);
+
+  return SECSuccess;
+}
+
+SECStatus DummyCompressionDecode(const SECItem* input, unsigned char* output,
+                                 size_t outputLen, size_t* usedLen) {
+  assert(input->len == outputLen);
+  PORT_Memcpy(output, input->data, input->len);
+  *usedLen = outputLen;
+
+  return SECSuccess;
 }

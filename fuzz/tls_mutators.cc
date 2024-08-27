@@ -3,17 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <random>
 #include <vector>
 
-#include "shared.h"
 #include "tls_parser.h"
-
-#include "ssl.h"
-extern "C" {
-#include "sslimpl.h"
-}
 
 using namespace nss_test;
 

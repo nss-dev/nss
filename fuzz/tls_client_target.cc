@@ -12,6 +12,7 @@
 #include "ssl.h"
 #include "sslexp.h"
 #include "sslimpl.h"
+#include "sslt.h"
 #include "tls_client_config.h"
 #include "tls_common.h"
 #include "tls_mutators.h"
@@ -43,27 +44,9 @@ const HpkeSymmetricSuite kEchHpkeCipherSuites[] = {
     {HpkeKdfHkdfSha512, HpkeAeadChaCha20Poly1305},
 };
 #endif  // IS_DTLS_FUZZ
-const PRUint8 kPskIdentity[] = "fuzz-identity";
-
-static SECStatus DummyCompressionEncode(const SECItem* input, SECItem* output) {
-  SECITEM_CopyItem(NULL, output, input);
-  PORT_Memcpy(output->data, input->data, output->len);
-
-  return SECSuccess;
-}
-
-static SECStatus DummyCompressionDecode(const SECItem* input,
-                                        unsigned char* output, size_t outputLen,
-                                        size_t* usedLen) {
-  assert(input->len == outputLen);
-  PORT_Memcpy(output, input->data, input->len);
-  *usedLen = outputLen;
-
-  return SECSuccess;
-}
-
-const SSLCertificateCompressionAlgorithm kFuzzAlg = {
+const SSLCertificateCompressionAlgorithm kCompressionAlg = {
     0x1337, "fuzz", DummyCompressionEncode, DummyCompressionDecode};
+const PRUint8 kPskIdentity[] = "fuzz-identity";
 
 static void SetSocketOptions(PRFileDesc* fd,
                              std::unique_ptr<ClientConfig>& config) {
@@ -99,7 +82,7 @@ static void SetSocketOptions(PRFileDesc* fd,
   assert(rv == SECSuccess);
 
   if (config->SetCertificateCompressionAlgorithm()) {
-    rv = SSL_SetCertificateCompressionAlgorithm(fd, kFuzzAlg);
+    rv = SSL_SetCertificateCompressionAlgorithm(fd, kCompressionAlg);
     assert(rv == SECSuccess);
   }
 
