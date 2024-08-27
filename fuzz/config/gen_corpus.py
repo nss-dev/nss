@@ -84,12 +84,18 @@ def brrrrr(hosts, args):
             print("Failed to get handshake for:", host, file=sys.stderr)
             continue
 
+        # The data sent by the client is used as the corpus for the TLS
+        # server target as it simulates a server receiving client data.
         filename = hashlib.sha1(client_data).hexdigest()
-        with open(os.path.join(args.output, "client", filename), "wb") as f:
+        with open(os.path.join(args.output, "tls-server-corpus", filename),
+                  "wb") as f:
             f.write(client_data)
 
+        # The data sent by the server is used as the corpus for the TLS
+        # client target as it simulates a client receiving server data.
         filename = hashlib.sha1(server_data).hexdigest()
-        with open(os.path.join(args.output, "server", filename), "wb") as f:
+        with open(os.path.join(args.output, "tls-client-corpus", filename),
+                  "wb") as f:
             f.write(server_data)
 
 
