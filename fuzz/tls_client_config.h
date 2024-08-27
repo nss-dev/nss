@@ -28,7 +28,7 @@ class ClientConfig {
   bool EnableDeflate();
   bool EnableCbcRandomIv();
   bool RequireSafeNegotiation();
-  bool EnableCache();
+  bool NoCache();
   bool EnableGrease();
   bool EnableCHExtensionPermutation();
   bool SetCertificateCompressionAlgorithm();
@@ -36,6 +36,13 @@ class ClientConfig {
   bool SetVersionRange();
   bool AddExternalPsk();
   bool EnablePostHandshakeAuth();
+  bool EnableZeroRtt();
+  bool EnableAlpn();
+  bool EnableFallbackScsv();
+  bool EnableOcspStapling();
+  bool EnableSessionTickets();
+  bool EnableTls13CompatMode();
+  bool NoLocks();
 
   SSLHashType PskHashType();
   const SSLVersionRange& VersionRange();

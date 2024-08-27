@@ -10,6 +10,7 @@
 #include "blapi.h"
 #include "shared.h"
 #include "ssl.h"
+#include "sslexp.h"
 #include "sslimpl.h"
 #include "tls_client_config.h"
 #include "tls_common.h"
@@ -61,9 +62,12 @@ static SECStatus DummyCompressionDecode(const SECItem* input,
   return SECSuccess;
 }
 
+const SSLCertificateCompressionAlgorithm kFuzzAlg = {
+    0x1337, "fuzz", DummyCompressionEncode, DummyCompressionDecode};
+
 static void SetSocketOptions(PRFileDesc* fd,
                              std::unique_ptr<ClientConfig>& config) {
-  SECStatus rv = SSL_OptionSet(fd, SSL_NO_CACHE, config->EnableCache());
+  SECStatus rv = SSL_OptionSet(fd, SSL_NO_CACHE, config->NoCache());
   assert(rv == SECSuccess);
 
   rv = SSL_OptionSet(fd, SSL_ENABLE_EXTENDED_MASTER_SECRET,
@@ -95,13 +99,7 @@ static void SetSocketOptions(PRFileDesc* fd,
   assert(rv == SECSuccess);
 
   if (config->SetCertificateCompressionAlgorithm()) {
-    rv = SSLExp_SetCertificateCompressionAlgorithm(
-        fd, {
-                .id = 0x1337,
-                .name = "fuzz-compression",
-                .encode = DummyCompressionEncode,
-                .decode = DummyCompressionDecode,
-            });
+    rv = SSL_SetCertificateCompressionAlgorithm(fd, kFuzzAlg);
     assert(rv == SECSuccess);
   }
 
@@ -128,6 +126,31 @@ static void SetSocketOptions(PRFileDesc* fd,
 
   rv = SSL_OptionSet(fd, SSL_ENABLE_POST_HANDSHAKE_AUTH,
                      config->EnablePostHandshakeAuth());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_0RTT_DATA, config->EnableZeroRtt());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_ALPN, config->EnableAlpn());
+  assert(rv == SECSuccess);
+
+  rv =
+      SSL_OptionSet(fd, SSL_ENABLE_FALLBACK_SCSV, config->EnableFallbackScsv());
+  assert(rv == SECSuccess);
+
+  rv =
+      SSL_OptionSet(fd, SSL_ENABLE_OCSP_STAPLING, config->EnableOcspStapling());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_SESSION_TICKETS,
+                     config->EnableSessionTickets());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_TLS13_COMPAT_MODE,
+                     config->EnableTls13CompatMode());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_NO_LOCKS, config->NoLocks());
   assert(rv == SECSuccess);
 
 #ifndef IS_DTLS_FUZZ
