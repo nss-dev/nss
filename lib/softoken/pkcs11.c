@@ -5408,17 +5408,40 @@ NSC_FindObjectsInit(CK_SESSION_HANDLE hSession,
     isLoggedIn = (PRBool)((!slot->needLogin) || slot->isLoggedIn);
     PZ_Unlock(slot->slotLock);
 
-    crv = sftk_searchTokenList(slot, search, pTemplate, ulCount, isLoggedIn);
-    if (crv != CKR_OK) {
-        goto loser;
+    PRBool validTokenAttribute = PR_FALSE;
+    PRBool tokenAttributeValue = PR_FALSE;
+    for (CK_ULONG i = 0; i < ulCount; i++) {
+        CK_ATTRIBUTE_PTR attr = &pTemplate[i];
+        if (attr->type == CKA_TOKEN && attr->pValue && attr->ulValueLen == sizeof(CK_BBOOL)) {
+            if (*(CK_BBOOL *)attr->pValue == CK_TRUE) {
+                validTokenAttribute = PR_TRUE;
+                tokenAttributeValue = PR_TRUE;
+            } else if (*(CK_BBOOL *)attr->pValue == CK_FALSE) {
+                validTokenAttribute = PR_TRUE;
+                tokenAttributeValue = PR_FALSE;
+            }
+            break;
+        }
     }
 
-    /* build list of found objects in the session */
-    crv = sftk_searchObjectList(search, slot->sessObjHashTable,
-                                slot->sessObjHashSize, slot->objectLock,
-                                pTemplate, ulCount, isLoggedIn);
-    if (crv != CKR_OK) {
-        goto loser;
+    // Search over the token object list if the template's CKA_TOKEN attribute is set to
+    // CK_TRUE or if it is not set.
+    if (validTokenAttribute == PR_FALSE || tokenAttributeValue == PR_TRUE) {
+        crv = sftk_searchTokenList(slot, search, pTemplate, ulCount, isLoggedIn);
+        if (crv != CKR_OK) {
+            goto loser;
+        }
+    }
+
+    // Search over the session object list if the template's CKA_TOKEN attribute is set to
+    // CK_FALSE or if it is not set.
+    if (validTokenAttribute == PR_FALSE || tokenAttributeValue == PR_FALSE) {
+        crv = sftk_searchObjectList(search, slot->sessObjHashTable,
+                                    slot->sessObjHashSize, slot->objectLock,
+                                    pTemplate, ulCount, isLoggedIn);
+        if (crv != CKR_OK) {
+            goto loser;
+        }
     }
 
     if ((freeSearch = session->search) != NULL) {
