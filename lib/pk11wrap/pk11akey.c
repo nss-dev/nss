@@ -1511,6 +1511,7 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
             test_mech.mechanism = CKM_DH_PKCS_DERIVE;
             break;
         case CKM_EC_KEY_PAIR_GEN:
+        case CKM_NSS_ECDHE_NO_PAIRWISE_CHECK_KEY_PAIR_GEN:
             ecParams = (SECKEYECParams *)param;
             attrs = ecPubTemplate;
             PK11_SETATTRS(attrs, CKA_EC_PARAMS, ecParams->data,

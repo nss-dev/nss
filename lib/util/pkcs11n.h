@@ -266,6 +266,12 @@
 #define CKM_NSS_KYBER_KEY_PAIR_GEN (CKM_NSS + 45)
 #define CKM_NSS_KYBER (CKM_NSS + 46)
 
+/* TLS ECDHE key pair generation. This is used to indicate that a key pair is
+ * for use in a single TLS handshake, so NIST SP 800-56A pairwise consistency
+ * checks can be skipped. It is otherwise identical to CKM_EC_KEY_PAIR_GEN.
+ */
+#define CKM_NSS_ECDHE_NO_PAIRWISE_CHECK_KEY_PAIR_GEN (CKM_NSS + 47)
+
 /*
  * HISTORICAL:
  * Do not attempt to use these. They are only used by NSS's internal
