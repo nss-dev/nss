@@ -48,6 +48,7 @@ class ServerConfig {
   SSLVersionRange ssl_version_range_;
 };
 
-std::ostream& operator<<(std::ostream &out, std::unique_ptr<ServerConfig>& config);
+std::ostream& operator<<(std::ostream& out,
+                         std::unique_ptr<ServerConfig>& config);
 
 #endif  // TLS_SERVER_CONFIG_H_

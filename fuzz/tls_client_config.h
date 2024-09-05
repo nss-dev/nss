@@ -54,6 +54,7 @@ class ClientConfig {
   SSLVersionRange ssl_version_range_;
 };
 
-std::ostream& operator<<(std::ostream &out, std::unique_ptr<ClientConfig>& config);
+std::ostream& operator<<(std::ostream& out,
+                         std::unique_ptr<ClientConfig>& config);
 
 #endif  // TLS_CLIENT_CONFIG_H_
