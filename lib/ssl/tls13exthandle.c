@@ -475,7 +475,7 @@ tls13_ClientSendPreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     }
 
     /* Save where this extension starts so that if we have to add padding, it
-    * can be inserted before this extension. */
+     * can be inserted before this extension. */
     PORT_Assert(buf->len >= 4);
     xtnData->lastXtnOffset = buf->len - 4;
     PORT_Assert(psk->type == ssl_psk_resume || psk->type == ssl_psk_external);
@@ -620,26 +620,26 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
                 rv = ssl3_ProcessSessionTicketCommon(
                     CONST_CAST(sslSocket, ss), &label, appToken);
                 /* This only happens if we have an internal error, not
-                * a malformed ticket. Bogus tickets just don't resume
-                * and return SECSuccess. */
+                 * a malformed ticket. Bogus tickets just don't resume
+                 * and return SECSuccess. */
                 if (rv != SECSuccess) {
                     return SECFailure;
                 }
 
                 if (ss->sec.ci.sid) {
                     /* xtnData->ticketAge contains the baseline we use for
-                    * calculating the ticket age (i.e., our RTT estimate less the
-                    * value of ticket_age_add).
-                    *
-                    * Add that to the obfuscated ticket age to recover the client's
-                    * view of the ticket age plus the estimated RTT.
-                    *
-                    * See ssl3_EncodeSessionTicket() for details. */
+                     * calculating the ticket age (i.e., our RTT estimate less the
+                     * value of ticket_age_add).
+                     *
+                     * Add that to the obfuscated ticket age to recover the client's
+                     * view of the ticket age plus the estimated RTT.
+                     *
+                     * See ssl3_EncodeSessionTicket() for details. */
                     xtnData->ticketAge += obfuscatedAge;
 
                     /* We are not committed to resumption until after unwrapping the
-                    * RMS in tls13_HandleClientHelloPart2. The RPSK will be stored
-                    * in ss->xtnData.selectedPsk at that point, so continue. */
+                     * RMS in tls13_HandleClientHelloPart2. The RPSK will be stored
+                     * in ss->xtnData.selectedPsk at that point, so continue. */
                 }
             }
         }
@@ -1884,7 +1884,7 @@ ssl3_HandleCertificateCompressionXtn(const sslSocket *ss,
                                      TLSExtensionData *xtnData,
                                      SECItem *data)
 {
-    /* This extension is only supported with TLS 1.3 [RFC8446] and newer; 
+    /* This extension is only supported with TLS 1.3 [RFC8446] and newer;
      * if TLS 1.2 [RFC5246] or earlier is negotiated, the peers MUST ignore this extension.
      */
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {

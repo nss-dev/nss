@@ -3174,8 +3174,8 @@ secu_PrintPKCS12Bag(FILE *out, SECItem *item, const char *desc, int level)
     switch (bagTag) {
         case SEC_OID_PKCS12_V1_KEY_BAG_ID:
             /* Future we need to print out raw private keys. Not a priority since
-         * p12util can't create files with unencrypted private keys, but
-         * some tools can and do */
+             * p12util can't create files with unencrypted private keys, but
+             * some tools can and do */
             SECU_PrintAny(out, &bagValue, "Private Key", level);
             break;
         case SEC_OID_PKCS12_V1_PKCS8_SHROUDED_KEY_BAG_ID:

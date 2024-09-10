@@ -3275,7 +3275,7 @@ ssl_GetPeerName(PRFileDesc *fd, PRNetAddr *addr)
 }
 
 /*
-*/
+ */
 SECStatus
 ssl_GetPeerInfo(sslSocket *ss)
 {

@@ -1978,8 +1978,8 @@ SECStatus SSLExp_AeadDecrypt(const SSLAeadContext *ctx, PRUint64 counter,
  If encoding function fails, the function has the install the appropriate error code and return an error.
 
  Certificate Compression decoding function operates an output buffer allocated in NSS.
- The function returns success or an error code. 
- If successful, the function sets the number of bytes used to stored the decoded certificate 
+ The function returns success or an error code.
+ If successful, the function sets the number of bytes used to stored the decoded certificate
  in the outparam usedLen. If provided buffer is not enough to store the output (or any problem has occured during
  decoding of the buffer), the function has the install the appropriate error code and return an error.
  Note: usedLen is always <= outputLen.

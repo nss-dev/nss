@@ -93,7 +93,7 @@ typedef struct NSSInitParametersStr NSSInitParameters;
  */
 struct NSSInitParametersStr {
     unsigned int length; /* allow this structure to grow in the future,
-                                * must be set */
+                          * must be set */
     PRBool passwordRequired;
     int minPWLen;
     char *manufactureID;      /* variable names for strings match the */

@@ -1752,7 +1752,7 @@ getBoundListenSocket(unsigned short port)
 
     /* Set PR_SockOpt_Linger because it helps prevent a server bind issue
      * after clean shutdown . See bug 331413 .
-    */
+     */
     opt.option = PR_SockOpt_Linger;
     opt.value.linger.polarity = PR_TRUE;
     opt.value.linger.linger = PR_SecondsToInterval(1);

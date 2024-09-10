@@ -1654,9 +1654,9 @@ cert_GetDNSPatternsFromGeneralNames(CERTGeneralName *firstName,
         switch (currentInput->type) {
             case certDNSName:
                 /* DNS name currentInput->name.other.data is not null
-                *terminated.
-                ** so must copy it.
-                */
+                 *terminated.
+                 ** so must copy it.
+                 */
                 cn = (char *)PORT_ArenaAlloc(nickNames->arena,
                                              currentInput->name.other.len + 1);
                 if (!cn)

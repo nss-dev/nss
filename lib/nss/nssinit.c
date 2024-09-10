@@ -665,7 +665,7 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 
         /* If we're NSS_ContextInit, we're probably a library. It could be
          * possible that the application initialized NSS then forked(). The
-         * library would have no knowledge of that. If we call 
+         * library would have no knowledge of that. If we call
          * SECMOD_RestartModules() here, we will be able to continue on with
          * NSS as normal. SECMOD_RestartModules() does have the side affect
          * of losing all our PKCS #11 objects in the new process, but only if
@@ -746,7 +746,7 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
                     dbpath += 7;
                 } else if (strncmp(dbpath, "rdb:", 4) == 0) {
                     /* if rdb: is specified, the configdir isn't really a
-               * path. Skip it */
+                     * path. Skip it */
                     dbpath = NULL;
                 }
                 if (dbpath) {

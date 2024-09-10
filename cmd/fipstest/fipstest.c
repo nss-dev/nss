@@ -298,9 +298,9 @@ void
 tdea_kat_mmt(char *reqfn)
 {
     char buf[180]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "CIPHERTEXT = <180 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "CIPHERTEXT = <180 hex digits>\n".
+                    */
     FILE *req;     /* input stream from the REQUEST file */
     FILE *resp;    /* output stream to the RESPONSE file */
     int i, j;
@@ -491,8 +491,8 @@ loser:
 }
 
 /*
-* Set the parity bit for the given byte
-*/
+ * Set the parity bit for the given byte
+ */
 BYTE
 odd_parity(BYTE in)
 {
@@ -1009,9 +1009,9 @@ void
 aes_gcm(char *reqfn, int encrypt)
 {
     char buf[512]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "CIPHERTEXT = <320 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "CIPHERTEXT = <320 hex digits>\n".
+                    */
     FILE *aesreq;  /* input stream from the REQUEST file */
     FILE *aesresp; /* output stream to the RESPONSE file */
     int i, j;
@@ -1230,9 +1230,9 @@ void
 aes_kat_mmt(char *reqfn)
 {
     char buf[512]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "CIPHERTEXT = <320 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "CIPHERTEXT = <320 hex digits>\n".
+                    */
     FILE *aesreq;  /* input stream from the REQUEST file */
     FILE *aesresp; /* output stream to the RESPONSE file */
     int i, j;
@@ -1397,9 +1397,9 @@ aes_mct_next_key(unsigned char *key, unsigned int keysize,
             break;
         case 24: /* 192-bit key */
             /*
-         * Key[i+1] = Key[i] xor (last 64-bits of
-         *            CT[j-1] || CT[j])
-         */
+             * Key[i+1] = Key[i] xor (last 64-bits of
+             *            CT[j-1] || CT[j])
+             */
             for (k = 0; k < 8; k++) {
                 key[k] ^= ciphertext_1[k + 8];
             }
@@ -1434,9 +1434,9 @@ void
 aes_ecb_mct(char *reqfn)
 {
     char buf[80];  /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "KEY = <64 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "KEY = <64 hex digits>\n".
+                    */
     FILE *aesreq;  /* input stream from the REQUEST file */
     FILE *aesresp; /* output stream to the RESPONSE file */
     int i, j;
@@ -1451,8 +1451,8 @@ aes_ecb_mct(char *reqfn)
     unsigned int outputlen;
     AESContext *cx = NULL;  /* the operation being tested */
     AESContext *cx2 = NULL; /* the inverse operation done in parallel
-                                 * to doublecheck our result.
-                                 */
+                             * to doublecheck our result.
+                             */
     SECStatus rv;
 
     aesreq = fopen(reqfn, "r");
@@ -1717,9 +1717,9 @@ void
 aes_cbc_mct(char *reqfn)
 {
     char buf[80];  /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "KEY = <64 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "KEY = <64 hex digits>\n".
+                    */
     FILE *aesreq;  /* input stream from the REQUEST file */
     FILE *aesresp; /* output stream to the RESPONSE file */
     int i, j;
@@ -1735,8 +1735,8 @@ aes_cbc_mct(char *reqfn)
     unsigned int outputlen;
     AESContext *cx = NULL;  /* the operation being tested */
     AESContext *cx2 = NULL; /* the inverse operation done in parallel
-                                 * to doublecheck our result.
-                                 */
+                             * to doublecheck our result.
+                             */
     SECStatus rv;
 
     aesreq = fopen(reqfn, "r");
@@ -2378,10 +2378,10 @@ void
 ecdsa_keypair_test(char *reqfn)
 {
     char buf[256];   /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * needs to be large enough to hold the longest
-                         * line "Qx = <144 hex digits>\n".
-                         */
+                      * or to the output RESPONSE file.
+                      * needs to be large enough to hold the longest
+                      * line "Qx = <144 hex digits>\n".
+                      */
     FILE *ecdsareq;  /* input stream from the REQUEST file */
     FILE *ecdsaresp; /* output stream to the RESPONSE file */
     char curve[16];  /* "nistxddd" */
@@ -2497,9 +2497,9 @@ void
 ecdsa_pkv_test(char *reqfn)
 {
     char buf[256];   /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "Qx = <144 hex digits>\n".
-                         */
+                      * needs to be large enough to hold the longest
+                      * line "Qx = <144 hex digits>\n".
+                      */
     FILE *ecdsareq;  /* input stream from the REQUEST file */
     FILE *ecdsaresp; /* output stream to the RESPONSE file */
     char curve[16];  /* "nistxddd" */
@@ -2617,10 +2617,10 @@ void
 ecdsa_siggen_test(char *reqfn)
 {
     char buf[1024];  /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * needs to be large enough to hold the longest
-                         * line "Msg = <256 hex digits>\n".
-                         */
+                      * or to the output RESPONSE file.
+                      * needs to be large enough to hold the longest
+                      * line "Msg = <256 hex digits>\n".
+                      */
     FILE *ecdsareq;  /* input stream from the REQUEST file */
     FILE *ecdsaresp; /* output stream to the RESPONSE file */
     char curve[16];  /* "nistxddd" */
@@ -2774,9 +2774,9 @@ void
 ecdsa_sigver_test(char *reqfn)
 {
     char buf[1024];  /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "Msg = <256 hex digits>\n".
-                         */
+                      * needs to be large enough to hold the longest
+                      * line "Msg = <256 hex digits>\n".
+                      */
     FILE *ecdsareq;  /* input stream from the REQUEST file */
     FILE *ecdsaresp; /* output stream to the RESPONSE file */
     char curve[16];  /* "nistxddd" */
@@ -2982,9 +2982,9 @@ void
 ecdh_functional(char *reqfn, PRBool response)
 {
     char buf[256];  /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "Qx = <144 hex digits>\n".
-                         */
+                     * needs to be large enough to hold the longest
+                     * line "Qx = <144 hex digits>\n".
+                     */
     FILE *ecdhreq;  /* input stream from the REQUEST file */
     FILE *ecdhresp; /* output stream to the RESPONSE file */
     char curve[16]; /* "nistxddd" */
@@ -3234,9 +3234,9 @@ void
 ecdh_verify(char *reqfn, PRBool response)
 {
     char buf[256];  /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "Qx = <144 hex digits>\n".
-                         */
+                     * needs to be large enough to hold the longest
+                     * line "Qx = <144 hex digits>\n".
+                     */
     FILE *ecdhreq;  /* input stream from the REQUEST file */
     FILE *ecdhresp; /* output stream to the RESPONSE file */
     char curve[16]; /* "nistxddd" */
@@ -3506,9 +3506,9 @@ void
 dh_functional(char *reqfn, PRBool response)
 {
     char buf[1024]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "YephCAVS = <512 hex digits>\n".
-                         */
+                     * needs to be large enough to hold the longest
+                     * line "YephCAVS = <512 hex digits>\n".
+                     */
     FILE *dhreq;    /* input stream from the REQUEST file */
     FILE *dhresp;   /* output stream to the RESPONSE file */
     unsigned char hashBuf[HASH_LENGTH_MAX];
@@ -3698,9 +3698,9 @@ void
 dh_verify(char *reqfn, PRBool response)
 {
     char buf[1024]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "YephCAVS = <512 hex digits>\n".
-                         */
+                     * needs to be large enough to hold the longest
+                     * line "YephCAVS = <512 hex digits>\n".
+                     */
     FILE *dhreq;    /* input stream from the REQUEST file */
     FILE *dhresp;   /* output stream to the RESPONSE file */
     unsigned char hashBuf[HASH_LENGTH_MAX];
@@ -3928,8 +3928,8 @@ void
 drbg(char *reqfn)
 {
     char buf[2000]; /* test case has some very long lines, returned bits
-     * as high as 800 bytes (6400 bits). That 1600 byte
-     * plus a tag */
+                     * as high as 800 bytes (6400 bits). That 1600 byte
+                     * plus a tag */
     char buf2[2000];
     FILE *rngreq;  /* input stream from the REQUEST file */
     FILE *rngresp; /* output stream to the RESPONSE file */
@@ -4365,9 +4365,9 @@ void
 rng_vst(char *reqfn)
 {
     char buf[256]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "XSeed = <128 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "XSeed = <128 hex digits>\n".
+                    */
     FILE *rngreq;  /* input stream from the REQUEST file */
     FILE *rngresp; /* output stream to the RESPONSE file */
     unsigned int i, j;
@@ -4488,9 +4488,9 @@ void
 rng_mct(char *reqfn)
 {
     char buf[256]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "XSeed = <128 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "XSeed = <128 hex digits>\n".
+                    */
     FILE *rngreq;  /* input stream from the REQUEST file */
     FILE *rngresp; /* output stream to the RESPONSE file */
     unsigned int i, j;
@@ -5026,9 +5026,9 @@ void
 dsa_keypair_test(char *reqfn)
 {
     char buf[800]; /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * 800 to hold (384 public key (x2 for HEX) + 1'\n'
-                         */
+                    * or to the output RESPONSE file.
+                    * 800 to hold (384 public key (x2 for HEX) + 1'\n'
+                    */
     FILE *dsareq;  /* input stream from the REQUEST file */
     FILE *dsaresp; /* output stream to the RESPONSE file */
     int count;
@@ -5161,9 +5161,9 @@ void
 dsa_pqgver_test(char *reqfn)
 {
     char buf[800]; /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * 800 to hold (384 public key (x2 for HEX) + P = ...
-                         */
+                    * or to the output RESPONSE file.
+                    * 800 to hold (384 public key (x2 for HEX) + P = ...
+                    */
     FILE *dsareq;  /* input stream from the REQUEST file */
     FILE *dsaresp; /* output stream to the RESPONSE file */
     int N;
@@ -5489,9 +5489,9 @@ void
 dsa_pqggen_test(char *reqfn)
 {
     char buf[800]; /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * 800 to hold seed = (384 public key (x2 for HEX)
-                         */
+                    * or to the output RESPONSE file.
+                    * 800 to hold seed = (384 public key (x2 for HEX)
+                    */
     FILE *dsareq;  /* input stream from the REQUEST file */
     FILE *dsaresp; /* output stream to the RESPONSE file */
     int count;     /* number of times to generate parameters */
@@ -5660,9 +5660,9 @@ void
 dsa_siggen_test(char *reqfn)
 {
     char buf[800]; /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * max for Msg = ....
-                         */
+                    * or to the output RESPONSE file.
+                    * max for Msg = ....
+                    */
     FILE *dsareq;  /* input stream from the REQUEST file */
     FILE *dsaresp; /* output stream to the RESPONSE file */
     int modulus;
@@ -5717,9 +5717,9 @@ dsa_siggen_test(char *reqfn)
             fputc('\n', dsaresp);
 
             /****************************************************************
-            * PQG_ParamGenSeedLen doesn't take a key size, it takes an index
-            * that points to a valid key size.
-            */
+             * PQG_ParamGenSeedLen doesn't take a key size, it takes an index
+             * that points to a valid key size.
+             */
             if (use_dsa1) {
                 keySizeIndex = PQG_PBITS_TO_INDEX(modulus);
                 if (keySizeIndex == -1 || modulus < 512 || modulus > 1024) {
@@ -5847,9 +5847,9 @@ void
 dsa_sigver_test(char *reqfn)
 {
     char buf[800]; /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * max for Msg = ....
-                         */
+                    * or to the output RESPONSE file.
+                    * max for Msg = ....
+                    */
     FILE *dsareq;  /* input stream from the REQUEST file */
     FILE *dsaresp; /* output stream to the RESPONSE file */
     int L;
@@ -6098,9 +6098,9 @@ void
 rsa_keypair_test(char *reqfn)
 {
     char buf[800];           /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * 800 to hold (384 public key (x2 for HEX) + 1'\n'
-                         */
+                              * or to the output RESPONSE file.
+                              * 800 to hold (384 public key (x2 for HEX) + 1'\n'
+                              */
     unsigned char buf2[400]; /* can't need more then 1/2 buf length */
     FILE *rsareq;            /* input stream from the REQUEST file */
     FILE *rsaresp;           /* output stream to the RESPONSE file */
@@ -6193,9 +6193,9 @@ rsa_siggen_test(char *reqfn)
 {
     char buf[2 * RSA_MAX_TEST_MODULUS_BYTES + 1];
     /* buf holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * 2x for HEX output + 1 for \n
-                         */
+     * or to the output RESPONSE file.
+     * 2x for HEX output + 1 for \n
+     */
     FILE *rsareq;  /* input stream from the REQUEST file */
     FILE *rsaresp; /* output stream to the RESPONSE file */
     int i, j;
@@ -6210,7 +6210,7 @@ rsa_siggen_test(char *reqfn)
     int peCount = 0;
 
     RSAPrivateKey *rsaBlapiPrivKey = NULL;  /* holds RSA private and
-                                              * public keys */
+                                             * public keys */
     RSAPublicKey *rsaBlapiPublicKey = NULL; /* hold RSA public key */
 
     rsareq = fopen(reqfn, "r");
@@ -6396,9 +6396,9 @@ rsa_sigver_test(char *reqfn)
 {
     char buf[2 * RSA_MAX_TEST_MODULUS_BYTES + 7];
     /* buf holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * s = 2x for HEX output + 1 for \n
-                         */
+     * or to the output RESPONSE file.
+     * s = 2x for HEX output + 1 for \n
+     */
     FILE *rsareq;  /* input stream from the REQUEST file */
     FILE *rsaresp; /* output stream to the RESPONSE file */
     int i, j;
@@ -6616,9 +6616,9 @@ void
 tls(char *reqfn)
 {
     char buf[256]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "XSeed = <128 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "XSeed = <128 hex digits>\n".
+                    */
     unsigned char *pms = NULL;
     int pms_len;
     unsigned char *master_secret = NULL;
@@ -6941,9 +6941,9 @@ void
 ikev1(char *reqfn)
 {
     char buf[4096]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "g^xy = <2048 hex digits>\n".
-                         */
+                     * needs to be large enough to hold the longest
+                     * line "g^xy = <2048 hex digits>\n".
+                     */
     unsigned char *gxy = NULL;
     int gxy_len;
     unsigned char *Ni = NULL;
@@ -7321,9 +7321,9 @@ void
 ikev1_psk(char *reqfn)
 {
     char buf[4096]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "g^xy = <2048 hex digits>\n".
-                         */
+                     * needs to be large enough to hold the longest
+                     * line "g^xy = <2048 hex digits>\n".
+                     */
     unsigned char *gxy = NULL;
     int gxy_len;
     unsigned char *Ni = NULL;
@@ -7745,9 +7745,9 @@ void
 ikev2(char *reqfn)
 {
     char buf[4096]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "g^xy = <2048 hex digits>\n".
-                         */
+                     * needs to be large enough to hold the longest
+                     * line "g^xy = <2048 hex digits>\n".
+                     */
     unsigned char *gir = NULL;
     unsigned char *gir_new = NULL;
     int gir_len;

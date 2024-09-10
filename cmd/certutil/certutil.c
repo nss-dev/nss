@@ -2156,7 +2156,7 @@ SignCert(CERTCertDBHandle *handle, CERTCertificate *cert, PRBool selfsign,
     switch (certVersion) {
         case (SEC_CERTIFICATE_VERSION_1):
             /* The initial version for x509 certificates is version one
-         * and this default value must be an implicit DER encoding. */
+             * and this default value must be an implicit DER encoding. */
             cert->version.data = NULL;
             cert->version.len = 0;
             break;
@@ -3913,7 +3913,7 @@ shutdown:
      * double quote character cannot be escaped and quoting cannot
      * be nested in this version.
      * - each line in the batch file is limited to 512 characters
-    */
+     */
 
     if ((SECSuccess == rv) && certutil.commands[cmd_Batch].activated) {
         FILE *batchFile = NULL;

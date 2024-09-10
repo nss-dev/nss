@@ -842,7 +842,7 @@ InitCrypto(char *cert_dir, PRBool readOnly)
 
     if (prior == 0) {
         /* some functions such as OpenKeyDB expect this path to be
-     * implicitly set prior to calling */
+         * implicitly set prior to calling */
         if (readOnly) {
             rv = NSS_Init(cert_dir);
         } else {

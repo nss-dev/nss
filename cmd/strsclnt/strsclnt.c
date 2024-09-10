@@ -100,7 +100,7 @@ static PRTime lastConnectSuccess;
 static PRTime lastThrottleUp;
 static PRInt32 remaining_connections; /* number of connections left */
 static int active_threads = 8;        /* number of threads currently trying to
-                               ** connect */
+                                       ** connect */
 static PRInt32 numUsed;
 /* end of variables protected by threadLock */
 

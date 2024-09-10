@@ -160,9 +160,9 @@ static void
 aes_gcm_kat(const char *respfn)
 {
     char buf[512]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "CIPHERTEXT = <320 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "CIPHERTEXT = <320 hex digits>\n".
+                    */
     FILE *aesresp; /* input stream from the RESPONSE file */
     int i, j;
     unsigned int test_group = 0;
