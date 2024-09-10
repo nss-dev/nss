@@ -1130,8 +1130,8 @@ client_main(
                     return;
                 }
             } else {
-                if (isalpha(ndx)) {
-                    ndx = tolower(ndx) - 'a';
+                if (isalpha((unsigned char)ndx)) {
+                    ndx = tolower((unsigned char)ndx) - 'a';
                     if (ndx < PR_ARRAY_SIZE(ssl3CipherSuites)) {
                         cipher = ssl3CipherSuites[ndx];
                     }

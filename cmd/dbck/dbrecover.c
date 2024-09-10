@@ -216,7 +216,7 @@ userSaysDeleteCert(CERTCertificate **certs, int nCerts,
     nb = PR_Read(PR_STDIN, response, sizeof(response));
     PR_fprintf(PR_STDOUT, "\n\n");
     if (errtype == dbOlderCert) {
-        if (!isdigit(response[0])) {
+        if (!isdigit((unsigned char)response[0])) {
             info->promptUser[errtype] = PR_FALSE;
             info->removeType[errtype] = PR_TRUE;
             return PR_TRUE;

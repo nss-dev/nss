@@ -3553,7 +3553,7 @@ ocsp_UrlEncodeBase64Buf(const char *base64Buf, char *outputBuf)
 
     for (walkInput = base64Buf; *walkInput; ++walkInput) {
         char c = *walkInput;
-        if (isspace(c))
+        if (isspace((unsigned char)c))
             continue;
         switch (c) {
             case '+':

@@ -793,14 +793,14 @@ chop(char *str)
         start = str;
 
         /* Nip leading whitespace */
-        while (isspace(*start)) {
+        while (isspace((unsigned char)*start)) {
             start++;
         }
 
         /* Nip trailing whitespace */
         if (*start) {
             end = start + strlen(start) - 1;
-            while (isspace(*end) && end > start) {
+            while (isspace((unsigned char)*end) && end > start) {
                 end--;
             }
             *(end + 1) = '\0';

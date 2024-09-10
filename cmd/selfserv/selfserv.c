@@ -2991,12 +2991,12 @@ main(int argc, char **argv)
                 cipher |= ctmp;
                 cipherString++;
             } else {
-                if (!isalpha(ndx)) {
+                if (!isalpha((unsigned char)ndx)) {
                     fprintf(stderr,
                             "Non-alphabetic char in cipher string (-c arg).\n");
                     exit(9);
                 }
-                ndx = tolower(ndx) - 'a';
+                ndx = tolower((unsigned char)ndx) - 'a';
                 if (ndx < PR_ARRAY_SIZE(ssl3CipherSuites)) {
                     cipher = ssl3CipherSuites[ndx];
                 }

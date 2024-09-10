@@ -1503,9 +1503,9 @@ run()
                 cipher |= ctmp;
                 cipherString++;
             } else {
-                if (!isalpha(ndx))
+                if (!isalpha((unsigned char)ndx))
                     Usage();
-                ndx = tolower(ndx) - 'a';
+                ndx = tolower((unsigned char)ndx) - 'a';
                 if (ndx < PR_ARRAY_SIZE(ssl3CipherSuites)) {
                     cipher = ssl3CipherSuites[ndx];
                 }

@@ -3977,7 +3977,7 @@ shutdown:
             newargv[1] = nextcommand;
             nextarg = nextcommand;
             while ((space = PORT_Strpbrk(nextarg, " \f\n\r\t\v"))) {
-                while (isspace(*space)) {
+                while (isspace((unsigned char)*space)) {
                     *space = '\0';
                     space++;
                 }

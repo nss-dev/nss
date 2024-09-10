@@ -1314,7 +1314,7 @@ sec_lower_string(char *s)
     }
 
     while (*s) {
-        *s = PORT_Tolower(*s);
+        *s = PORT_Tolower((unsigned char)*s);
         s++;
     }
 
@@ -2305,7 +2305,7 @@ CERT_FixupEmailAddr(const char *emailAddr)
 
     /* make it lower case */
     while (*str) {
-        *str = tolower(*str);
+        *str = tolower((unsigned char)*str);
         str++;
     }
 
