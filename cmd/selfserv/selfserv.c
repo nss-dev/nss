@@ -226,7 +226,7 @@ PrintParameterUsage()
         "-I comma separated list of enabled groups for TLS key exchange.\n"
         "   The following values are valid:\n"
         "   P256, P384, P521, x25519, FF2048, FF3072, FF4096, FF6144, FF8192,\n"
-        "   xyber768d00\n"
+        "   xyber768d00, mlkem768x25519\n"
         "-J comma separated list of enabled signature schemes in preference order.\n"
         "   The following values are valid:\n"
         "     rsa_pkcs1_sha1, rsa_pkcs1_sha256, rsa_pkcs1_sha384, rsa_pkcs1_sha512,\n"

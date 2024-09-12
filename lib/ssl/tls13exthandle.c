@@ -12,6 +12,8 @@
 #include "pk11pub.h"
 #include "ssl3ext.h"
 #include "ssl3exthandle.h"
+#include "sslt.h"
+#include "tls13con.h"
 #include "tls13ech.h"
 #include "tls13exthandle.h"
 #include "tls13psk.h"
@@ -78,32 +80,77 @@ tls13_SizeOfKeyShareEntry(const sslEphemeralKeyPair *keyPair)
 
     if (keyPair->kemKeys) {
         PORT_Assert(!keyPair->kemCt);
-        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00);
+        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00 || keyPair->group->name == ssl_grp_kem_mlkem768x25519);
         pubKey = keyPair->kemKeys->pubKey;
         size += pubKey->u.kyber.publicValue.len;
     }
     if (keyPair->kemCt) {
         PORT_Assert(!keyPair->kemKeys);
-        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00);
+        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00 || keyPair->group->name == ssl_grp_kem_mlkem768x25519);
         size += keyPair->kemCt->len;
     }
 
     return size;
 }
 
-SECStatus
-tls13_EncodeKeyShareEntry(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
+static SECStatus
+tls13_WriteXyber768D00KeyExchangeInfo(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
+{
+    PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00);
+    PORT_Assert(keyPair->keys->pubKey->keyType == ecKey);
+
+    // Encode the X25519 share first, then the Kyber768 key or ciphertext.
+    SECStatus rv;
+    rv = sslBuffer_Append(buf, keyPair->keys->pubKey->u.ec.publicValue.data,
+                          keyPair->keys->pubKey->u.ec.publicValue.len);
+    if (rv != SECSuccess) {
+        return rv;
+    }
+
+    if (keyPair->kemKeys) {
+        PORT_Assert(!keyPair->kemCt);
+        rv = sslBuffer_Append(buf, keyPair->kemKeys->pubKey->u.kyber.publicValue.data, keyPair->kemKeys->pubKey->u.kyber.publicValue.len);
+    } else if (keyPair->kemCt) {
+        rv = sslBuffer_Append(buf, keyPair->kemCt->data, keyPair->kemCt->len);
+    } else {
+        PORT_Assert(0);
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        rv = SECFailure;
+    }
+    return rv;
+}
+
+static SECStatus
+tls13_WriteMLKEM768X25519KeyExchangeInfo(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
+{
+    PORT_Assert(keyPair->group->name == ssl_grp_kem_mlkem768x25519);
+    PORT_Assert(keyPair->keys->pubKey->keyType == ecKey);
+
+    // Encode the ML-KEM-768 key or ciphertext first, then the X25519 share.
+    SECStatus rv;
+    if (keyPair->kemKeys) {
+        PORT_Assert(!keyPair->kemCt);
+        rv = sslBuffer_Append(buf, keyPair->kemKeys->pubKey->u.kyber.publicValue.data, keyPair->kemKeys->pubKey->u.kyber.publicValue.len);
+    } else if (keyPair->kemCt) {
+        rv = sslBuffer_Append(buf, keyPair->kemCt->data, keyPair->kemCt->len);
+    } else {
+        PORT_Assert(0);
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        rv = SECFailure;
+    }
+    if (rv != SECSuccess) {
+        return rv;
+    }
+
+    rv = sslBuffer_Append(buf, keyPair->keys->pubKey->u.ec.publicValue.data,
+                          keyPair->keys->pubKey->u.ec.publicValue.len);
+    return rv;
+}
+
+static SECStatus
+tls13_WriteKeyExchangeInfo(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
 {
     SECStatus rv;
-    unsigned int size = tls13_SizeOfKeyShareEntry(keyPair);
-
-    rv = sslBuffer_AppendNumber(buf, keyPair->group->name, 2);
-    if (rv != SECSuccess)
-        return rv;
-    rv = sslBuffer_AppendNumber(buf, size - 4, 2);
-    if (rv != SECSuccess)
-        return rv;
-
     const SECKEYPublicKey *pubKey = keyPair->keys->pubKey;
     switch (pubKey->keyType) {
         case ecKey:
@@ -116,25 +163,40 @@ tls13_EncodeKeyShareEntry(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
         default:
             PORT_Assert(0);
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+            rv = SECFailure;
             break;
     }
 
+    return rv;
+}
+
+SECStatus
+tls13_EncodeKeyShareEntry(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
+{
+    SECStatus rv;
+    unsigned int size = tls13_SizeOfKeyShareEntry(keyPair);
+
+    rv = sslBuffer_AppendNumber(buf, keyPair->group->name, 2);
     if (rv != SECSuccess) {
         return rv;
     }
 
-    if (keyPair->kemKeys) {
-        PORT_Assert(!keyPair->kemCt);
-        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00);
-        pubKey = keyPair->kemKeys->pubKey;
-        rv = sslBuffer_Append(buf, pubKey->u.kyber.publicValue.data, pubKey->u.kyber.publicValue.len);
-    }
-    if (keyPair->kemCt) {
-        PORT_Assert(!keyPair->kemKeys);
-        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00);
-        rv = sslBuffer_Append(buf, keyPair->kemCt->data, keyPair->kemCt->len);
+    rv = sslBuffer_AppendNumber(buf, size - 4, 2);
+    if (rv != SECSuccess) {
+        return rv;
     }
 
+    switch (keyPair->group->name) {
+        case ssl_grp_kem_mlkem768x25519:
+            rv = tls13_WriteMLKEM768X25519KeyExchangeInfo(buf, keyPair);
+            break;
+        case ssl_grp_kem_xyber768d00:
+            rv = tls13_WriteXyber768D00KeyExchangeInfo(buf, keyPair);
+            break;
+        default:
+            rv = tls13_WriteKeyExchangeInfo(buf, keyPair);
+            break;
+    }
     return rv;
 }
 

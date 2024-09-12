@@ -4237,6 +4237,11 @@ groupNameToNamedGroup(char *name)
             return ssl_grp_kem_xyber768d00;
         }
     }
+    if (PL_strlen(name) == 14) {
+        if (!strncmp(name, "mlkem768x25519", 14)) {
+            return ssl_grp_kem_mlkem768x25519;
+        }
+    }
 
     return ssl_grp_none;
 }
