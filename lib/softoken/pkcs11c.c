@@ -5876,6 +5876,7 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             break;
 
         case CKM_NSS_KYBER_KEY_PAIR_GEN:
+        case CKM_NSS_ML_KEM_KEY_PAIR_GEN:
             sftk_DeleteAttributeType(privateKey, CKA_NSS_DB);
             key_type = CKK_NSS_KYBER;
 

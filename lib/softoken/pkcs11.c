@@ -651,6 +651,8 @@ static const struct mechanismList mechanisms[] = {
     /* -------------------- Kyber Operations ----------------------- */
     { CKM_NSS_KYBER_KEY_PAIR_GEN, { 0, 0, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
     { CKM_NSS_KYBER, { 0, 0, 0 }, PR_TRUE },
+    { CKM_NSS_ML_KEM_KEY_PAIR_GEN, { 0, 0, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
+    { CKM_NSS_ML_KEM, { 0, 0, 0 }, PR_TRUE },
 };
 static const CK_ULONG mechanismCount = sizeof(mechanisms) / sizeof(mechanisms[0]);
 
@@ -1106,6 +1108,7 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
             wrap = CK_FALSE;
             break;
         case CKK_NSS_KYBER:
+        case CKK_NSS_ML_KEM:
             if (!sftk_hasAttribute(object, CKA_NSS_PARAMETER_SET)) {
                 return CKR_TEMPLATE_INCOMPLETE;
             }
@@ -1319,6 +1322,7 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
             createObjectInfo = PR_FALSE;
             break;
         case CKK_NSS_KYBER:
+        case CKK_NSS_ML_KEM:
             if (!sftk_hasAttribute(object, CKA_KEY_TYPE)) {
                 return CKR_TEMPLATE_INCOMPLETE;
             }
@@ -2012,6 +2016,7 @@ sftk_GetPubKey(SFTKObject *object, CK_KEY_TYPE key_type,
             }
             break;
         case CKK_NSS_KYBER:
+        case CKK_NSS_ML_KEM:
             crv = CKR_OK;
             break;
         default:
@@ -2170,6 +2175,7 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
             break;
 
         case CKK_NSS_KYBER:
+        case CKK_NSS_ML_KEM:
             break;
 
         default:
