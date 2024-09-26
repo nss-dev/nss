@@ -3295,8 +3295,7 @@ s_mp_rshd(mp_int *mp, mp_size p)
 
     MP_USED(mp) -= p;
     /* Fill the top digits with zeroes */
-    while (p-- > 0)
-        *dst++ = 0;
+    s_mp_setz(MP_DIGITS(mp) + MP_USED(mp), p);
 
 } /* end s_mp_rshd() */
 
