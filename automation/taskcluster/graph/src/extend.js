@@ -726,6 +726,7 @@ async function scheduleFuzzing() {
   // Schedule fuzzing runs.
   let run_base = merge(base, {parent: task_build, kind: "test"});
   scheduleFuzzingRun(run_base, "CertDN", "certDN", 4096);
+  scheduleFuzzingRun(run_base, "PKCS12", "pkcs12", 16777215)
   scheduleFuzzingRun(run_base, "QuickDER", "quickder", 10000);
 
   // Schedule MPI fuzzing runs.
@@ -831,6 +832,7 @@ async function scheduleFuzzing32() {
   // Schedule fuzzing runs.
   let run_base = merge(base, {parent: task_build, kind: "test"});
   scheduleFuzzingRun(run_base, "CertDN", "certDN", 4096);
+  scheduleFuzzingRun(run_base, "PKCS12", "pkcs12", 16777215)
   scheduleFuzzingRun(run_base, "QuickDER", "quickder", 10000);
 
   // Schedule MPI fuzzing runs.

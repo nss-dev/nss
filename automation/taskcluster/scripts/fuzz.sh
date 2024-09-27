@@ -13,10 +13,13 @@ fetch_dist
 mkdir -p "nss/fuzz/corpus/$corpus"
 cd "nss/fuzz/corpus/$corpus"
 
-# Fetch and unzip the public OSS-Fuzz corpus.
-curl -O "https://storage.googleapis.com/nss-backup.clusterfuzz-external.appspot.com/corpus/libFuzzer/nss_$corpus/public.zip"
-unzip public.zip
-rm public.zip
+# Fetch and unzip the public OSS-Fuzz corpus. Handle the case that there
+# may be no corpus yet for new fuzz targets.
+code=$(curl -w "%{http_code}" -O "https://storage.googleapis.com/nss-backup.clusterfuzz-external.appspot.com/corpus/libFuzzer/nss_$corpus/public.zip")
+if [[ $code -eq 200 ]]; then
+    unzip public.zip
+fi
+rm -f public.zip
 
 # Change back to previous working directory.
 cd $OLDPWD
