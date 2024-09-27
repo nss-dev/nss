@@ -11,7 +11,7 @@ fetch_dist
 
 # Create and change to corpus directory.
 mkdir -p "nss/fuzz/corpus/$corpus"
-cd "nss/fuzz/corpus/$corpus"
+pushd "nss/fuzz/corpus/$corpus"
 
 # Fetch and unzip the public OSS-Fuzz corpus. Handle the case that there
 # may be no corpus yet for new fuzz targets.
@@ -22,10 +22,13 @@ fi
 rm -f public.zip
 
 # Change back to previous working directory.
-cd $OLDPWD
+popd
 
 # Fetch objdir name.
 objdir=$(cat dist/latest)
 
+# Get libFuzzer options.
+readarray -t options < <(python nss/fuzz/config/libfuzzer_options.py nss/fuzz/options/"$corpus".options)
+
 # Run nssfuzz.
-dist/"$objdir"/bin/nssfuzz-"$target" "nss/fuzz/corpus/$corpus" "$@"
+dist/"$objdir"/bin/nssfuzz-"$target" "nss/fuzz/corpus/$corpus" "${options[@]}" "$@"
