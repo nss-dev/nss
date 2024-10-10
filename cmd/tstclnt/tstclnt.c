@@ -608,9 +608,9 @@ dumpServerCertificateChain(PRFileDesc *fd)
     if (!dumpServerChain) {
         return;
     } else if (dumpServerChain == 1) {
-        dumpFunction = (SECU_PPFunc)SECU_PrintCertificateBasicInfo;
+        dumpFunction = SECU_PrintCertificateBasicInfo;
     } else {
-        dumpFunction = (SECU_PPFunc)SECU_PrintCertificate;
+        dumpFunction = SECU_PrintCertificate;
         if (dumpServerChain > 2) {
             dumpCertPEM = PR_TRUE;
         }
