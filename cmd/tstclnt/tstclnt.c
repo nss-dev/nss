@@ -588,11 +588,11 @@ verifyFromSideChannel(CERTCertificate *cert, ServerCertAuth *sca)
 static void
 dumpCertificatePEM(CERTCertificate *cert)
 {
-    SECItem data;
-    data.data = cert->derCert.data;
-    data.len = cert->derCert.len;
-    fprintf(stderr, "%s\n%s\n%s\n", NS_CERT_HEADER,
-            BTOA_DataToAscii(data.data, data.len), NS_CERT_TRAILER);
+    char *asciiDER = BTOA_DataToAscii(cert->derCert.data, cert->derCert.len);
+    if (asciiDER) {
+        fprintf(stderr, "%s\n%s\n%s\n", NS_CERT_HEADER, asciiDER, NS_CERT_TRAILER);
+        PORT_Free(asciiDER);
+    }
 }
 
 static void
