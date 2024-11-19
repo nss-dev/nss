@@ -14,11 +14,16 @@ RUN apt-get update \
     ca-certificates \
     clang \
     clang-tools \
+    cmake \
     curl \
     g++-multilib \
     git \
     gyp \
+    libboost-dev \
+    libboost-dev:i386 \
     libclang-rt-dev \
+    libsqlite3-dev \
+    libsqlite3-dev:i386 \
     libssl-dev \
     libssl-dev:i386 \
     libxml2-utils \
