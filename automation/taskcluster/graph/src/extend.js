@@ -727,6 +727,7 @@ async function scheduleFuzzing() {
   let run_base = merge(base, {parent: task_build, kind: "test"});
   scheduleFuzzingRun(run_base, "CertDN", "certDN");
   scheduleFuzzingRun(run_base, "PKCS7", "pkcs7");
+  scheduleFuzzingRun(run_base, "PKCS8", "pkcs8");
   scheduleFuzzingRun(run_base, "PKCS12", "pkcs12");
   scheduleFuzzingRun(run_base, "QuickDER", "quickder");
 
@@ -843,6 +844,7 @@ async function scheduleFuzzing32() {
   let run_base = merge(base, {parent: task_build, kind: "test"});
   scheduleFuzzingRun(run_base, "CertDN", "certDN");
   scheduleFuzzingRun(run_base, "PKCS7", "pkcs7");
+  scheduleFuzzingRun(run_base, "PKCS8", "pkcs8");
   scheduleFuzzingRun(run_base, "PKCS12", "pkcs12");
   scheduleFuzzingRun(run_base, "QuickDER", "quickder");
 
