@@ -750,16 +750,6 @@ async function scheduleFuzzing() {
     symbol: "Cryptofuzz",
   }));
 
-  // Schedule MPI fuzzing runs.
-  let mpi_base = merge(run_base, {group: "MPI"});
-  let mpi_names = ["add", "addmod", "div", "mod", "mulmod", "sqr",
-                   "sqrmod", "sub", "submod"];
-  for (let name of mpi_names) {
-    scheduleFuzzingRun(mpi_base, name, `mpi-${name}`, name);
-  }
-  scheduleFuzzingRun(mpi_base, "MPI invmod", "mpi-invmod");
-  scheduleFuzzingRun(mpi_base, "MPI expmod", "mpi-expmod");
-
   // Schedule TLS fuzzing runs (fuzzing mode).
   let tls_base = merge(run_base, {parent: task_build_tls, group: "TLS"});
   scheduleFuzzingRun(tls_base, "TLS Client", "tls-client");
@@ -866,15 +856,6 @@ async function scheduleFuzzing32() {
     workerType: "t-linux-xlarge-gcp",
     symbol: "Cryptofuzz",
   }));
-
-  // Schedule MPI fuzzing runs.
-  let mpi_base = merge(run_base, {group: "MPI"});
-  let mpi_names = ["add", "addmod", "div", "expmod", "mod", "mulmod", "sqr",
-                   "sqrmod", "sub", "submod"];
-  for (let name of mpi_names) {
-    scheduleFuzzingRun(mpi_base, `MPI (${name})`, `mpi-${name}`, name);
-  }
-  scheduleFuzzingRun(mpi_base, `MPI (invmod)`, `mpi-invmod`, "invmod");
 
   // Schedule TLS fuzzing runs (fuzzing mode).
   let tls_base = merge(run_base, {parent: task_build_tls, group: "TLS"});
