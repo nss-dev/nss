@@ -24,8 +24,6 @@ RUN apt-get update \
     libclang-rt-dev \
     libsqlite3-dev \
     libsqlite3-dev:i386 \
-    libssl-dev \
-    libssl-dev:i386 \
     libxml2-utils \
     lib32z1-dev \
     linux-libc-dev:i386 \
