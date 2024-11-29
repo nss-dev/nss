@@ -171,6 +171,12 @@ void Config::SetSocketOptions(PRFileDesc* fd) {
   rv = SSL_OptionSet(fd, SSL_NO_LOCKS, this->NoLocks());
   assert(rv == SECSuccess);
 
+  rv = SSL_EnableTls13GreaseEch(fd, this->EnableTls13GreaseEch());
+  assert(rv == SECSuccess);
+
+  rv = SSL_SetDtls13VersionWorkaround(fd, this->SetDtls13VersionWorkaround());
+  assert(rv == SECSuccess);
+
 #ifndef IS_DTLS_FUZZ
   rv =
       SSL_OptionSet(fd, SSL_ENABLE_RENEGOTIATION, SSL_RENEGOTIATE_UNRESTRICTED);
@@ -234,6 +240,10 @@ std::ostream& operator<<(std::ostream& out, Config& config) {
   out << "SSL_ENABLE_TLS13_COMPAT_MODE:           "
       << config.EnableTls13CompatMode() << "\n";
   out << "SSL_NO_LOCKS:                           " << config.NoLocks() << "\n";
+  out << "SSL_EnableTls13GreaseEch:               "
+      << config.EnableTls13GreaseEch() << "\n";
+  out << "SSL_SetDtls13VersionWorkaround:         "
+      << config.SetDtls13VersionWorkaround() << "\n";
   out << "SSL_SetClientEchConfigs:                "
       << config.SetClientEchConfigs() << "\n";
   out << "========================================";

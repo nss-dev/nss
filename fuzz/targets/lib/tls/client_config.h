@@ -59,6 +59,8 @@ class Config {
   bool EnableSessionTickets() { return config_ & (1 << 19); };
   bool EnableTls13CompatMode() { return config_ & (1 << 20); };
   bool NoLocks() { return config_ & (1 << 21); };
+  bool EnableTls13GreaseEch() { return config_ & (1 << 22); };
+  bool SetDtls13VersionWorkaround() { return config_ & (1 << 23); };
 
  private:
   uint32_t config_;
