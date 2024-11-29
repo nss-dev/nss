@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "tls_client_config.h"
+#include "client_config.h"
 
 #include <cassert>
 #include <cstddef>
@@ -16,23 +16,24 @@
 #include "ssl.h"
 #include "sslexp.h"
 
-#include "tls_common.h"
+#include "common.h"
 
+const SSLCertificateCompressionAlgorithm kCompressionAlg = {
+    0x1337, "fuzz", TlsCommon::DummyCompressionEncode,
+    TlsCommon::DummyCompressionDecode};
+const PRUint8 kPskIdentity[] = "fuzz-psk-identity";
 #ifndef IS_DTLS_FUZZ
 const char kEchConfigs[] =
     "AEX+"
     "DQBBcQAgACDh4IuiuhhInUcKZx5uYcehlG9PQ1ZlzhvVZyjJl7dscQAEAAEAAQASY2xvdWRmbG"
     "FyZS1lY2guY29tAAA=";
 #endif  // IS_DTLS_FUZZ
-const SSLCertificateCompressionAlgorithm kCompressionAlg = {
-    0x1337, "fuzz", DummyCompressionEncode, DummyCompressionDecode};
-const PRUint8 kPskIdentity[] = "fuzz-psk-identity";
 
 static SECStatus AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
                                      PRBool isServer) {
   assert(!isServer);
 
-  auto config = reinterpret_cast<ClientConfig*>(arg);
+  auto config = reinterpret_cast<TlsClient::Config*>(arg);
   if (config->FailCertificateAuthentication()) return SECFailure;
 
   return SECSuccess;
@@ -44,10 +45,12 @@ static SECStatus CanFalseStartCallback(PRFileDesc* fd, void* arg,
   return SECSuccess;
 }
 
+namespace TlsClient {
+
 // XOR 64-bit chunks of data to build a bitmap of config options derived from
 // the fuzzing input. This seems the only way to fuzz various options while
 // still maintaining compatibility with BoringSSL or OpenSSL fuzzers.
-ClientConfig::ClientConfig(const uint8_t* data, size_t len) {
+Config::Config(const uint8_t* data, size_t len) {
   union {
     uint64_t bitmap;
     struct {
@@ -78,7 +81,7 @@ ClientConfig::ClientConfig(const uint8_t* data, size_t len) {
   };
 }
 
-void ClientConfig::SetCallbacks(PRFileDesc* fd) {
+void Config::SetCallbacks(PRFileDesc* fd) {
   SECStatus rv = SSL_AuthCertificateHook(fd, AuthCertificateHook, this);
   assert(rv == SECSuccess);
 
@@ -86,7 +89,7 @@ void ClientConfig::SetCallbacks(PRFileDesc* fd) {
   assert(rv == SECSuccess);
 }
 
-void ClientConfig::SetSocketOptions(PRFileDesc* fd) {
+void Config::SetSocketOptions(PRFileDesc* fd) {
   SECStatus rv = SSL_OptionSet(fd, SSL_ENABLE_EXTENDED_MASTER_SECRET,
                                this->EnableExtendedMasterSecret());
   assert(rv == SECSuccess);
@@ -184,7 +187,7 @@ void ClientConfig::SetSocketOptions(PRFileDesc* fd) {
 #endif  // IS_DTLS_FUZZ
 }
 
-std::ostream& operator<<(std::ostream& out, ClientConfig& config) {
+std::ostream& operator<<(std::ostream& out, Config& config) {
   out << "============= ClientConfig ============="
       << "\n";
   out << "SSL_NO_CACHE:                           " << config.NoCache() << "\n";
@@ -237,3 +240,5 @@ std::ostream& operator<<(std::ostream& out, ClientConfig& config) {
 
   return out;
 }
+
+}  // namespace TlsClient

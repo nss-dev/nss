@@ -19,9 +19,11 @@
 #endif
 #define SSL_VERSION_RANGE_MAX_VALID 0x0304
 
-class ClientConfig {
+namespace TlsClient {
+
+class Config {
  public:
-  ClientConfig(const uint8_t* data, size_t len);
+  Config(const uint8_t* data, size_t len);
 
   void SetCallbacks(PRFileDesc* fd);
   void SetSocketOptions(PRFileDesc* fd);
@@ -33,6 +35,8 @@ class ClientConfig {
   };
   SSLVersionRange SslVersionRange() { return ssl_version_range_; };
 
+  // NOTE: When adding more config options here, don't forget to print
+  // them in the "<<"-overloaded operator.
   bool FailCertificateAuthentication() { return config_ & (1 << 0); };
   bool EnableExtendedMasterSecret() { return config_ & (1 << 1); };
   bool RequireDhNamedGroups() { return config_ & (1 << 2); };
@@ -61,6 +65,8 @@ class ClientConfig {
   SSLVersionRange ssl_version_range_;
 };
 
-std::ostream& operator<<(std::ostream& out, ClientConfig& config);
+std::ostream& operator<<(std::ostream& out, Config& config);
+
+}  // namespace TlsClient
 
 #endif  // TLS_CLIENT_CONFIG_H_

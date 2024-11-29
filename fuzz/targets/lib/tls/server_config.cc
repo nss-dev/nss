@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "tls_server_config.h"
+#include "server_config.h"
 
 #include <cassert>
 #include <cstddef>
@@ -16,16 +16,17 @@
 #include "sslexp.h"
 #include "sslt.h"
 
-#include "tls_common.h"
+#include "common.h"
 
 const SSLCertificateCompressionAlgorithm kCompressionAlg = {
-    0x1337, "fuzz", DummyCompressionEncode, DummyCompressionDecode};
+    0x1337, "fuzz", TlsCommon::DummyCompressionEncode,
+    TlsCommon::DummyCompressionDecode};
 const PRUint8 kPskIdentity[] = "fuzz-psk-identity";
 
 static SECStatus AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
                                      PRBool isServer) {
   assert(isServer);
-  auto config = reinterpret_cast<ServerConfig*>(arg);
+  auto config = reinterpret_cast<TlsServer::Config*>(arg);
   if (config->FailCertificateAuthentication()) return SECFailure;
 
   return SECSuccess;
@@ -37,10 +38,12 @@ static SECStatus CanFalseStartCallback(PRFileDesc* fd, void* arg,
   return SECSuccess;
 }
 
+namespace TlsServer {
+
 // XOR 64-bit chunks of data to build a bitmap of config options derived from
 // the fuzzing input. This seems the only way to fuzz various options while
 // still maintaining compatibility with BoringSSL or OpenSSL fuzzers.
-ServerConfig::ServerConfig(const uint8_t* data, size_t len) {
+Config::Config(const uint8_t* data, size_t len) {
   union {
     uint64_t bitmap;
     struct {
@@ -71,7 +74,7 @@ ServerConfig::ServerConfig(const uint8_t* data, size_t len) {
   };
 }
 
-void ServerConfig::SetCallbacks(PRFileDesc* fd) {
+void Config::SetCallbacks(PRFileDesc* fd) {
   SECStatus rv = SSL_AuthCertificateHook(fd, AuthCertificateHook, this);
   assert(rv == SECSuccess);
 
@@ -79,7 +82,7 @@ void ServerConfig::SetCallbacks(PRFileDesc* fd) {
   assert(rv == SECSuccess);
 }
 
-void ServerConfig::SetSocketOptions(PRFileDesc* fd) {
+void Config::SetSocketOptions(PRFileDesc* fd) {
   SECStatus rv = SSL_OptionSet(fd, SSL_ENABLE_EXTENDED_MASTER_SECRET,
                                this->EnableExtendedMasterSecret());
   assert(rv == SECSuccess);
@@ -152,7 +155,7 @@ void ServerConfig::SetSocketOptions(PRFileDesc* fd) {
 #endif
 }
 
-std::ostream& operator<<(std::ostream& out, ServerConfig& config) {
+std::ostream& operator<<(std::ostream& out, Config& config) {
   out << "============= ServerConfig ============="
       << "\n";
   out << "SSL_NO_CACHE:                           " << config.NoCache() << "\n";
@@ -195,3 +198,5 @@ std::ostream& operator<<(std::ostream& out, ServerConfig& config) {
 
   return out;
 }
+
+}  // namespace TlsServer
