@@ -177,6 +177,14 @@ void Config::SetSocketOptions(PRFileDesc* fd) {
   rv = SSL_SetDtls13VersionWorkaround(fd, this->SetDtls13VersionWorkaround());
   assert(rv == SECSuccess);
 
+  rv = SSL_OptionSet(fd, SSL_ENABLE_DELEGATED_CREDENTIALS,
+                     this->EnableDelegatedCredentials());
+  assert(rv == SECSuccess);
+
+  rv = SSL_OptionSet(fd, SSL_ENABLE_DTLS_SHORT_HEADER,
+                     this->EnableDtlsShortHeader());
+  assert(rv == SECSuccess);
+
 #ifndef IS_DTLS_FUZZ
   rv =
       SSL_OptionSet(fd, SSL_ENABLE_RENEGOTIATION, SSL_RENEGOTIATE_UNRESTRICTED);

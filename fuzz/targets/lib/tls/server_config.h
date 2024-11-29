@@ -54,6 +54,9 @@ class Config {
   bool EnableSessionTickets() { return config_ & (1 << 14); };
   bool NoLocks() { return config_ & (1 << 15); };
   bool FailCertificateAuthentication() { return config_ & (1 << 16); }
+  bool EnableTls13BackendEch() { return config_ & (1 << 17); }
+  bool EnableDelegatedCredentials() { return config_ & (1 << 18); };
+  bool EnableDtlsShortHeader() { return config_ & (1 << 19); };
 
  private:
   uint32_t config_;

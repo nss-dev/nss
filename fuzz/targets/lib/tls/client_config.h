@@ -61,6 +61,8 @@ class Config {
   bool NoLocks() { return config_ & (1 << 21); };
   bool EnableTls13GreaseEch() { return config_ & (1 << 22); };
   bool SetDtls13VersionWorkaround() { return config_ & (1 << 23); };
+  bool EnableDelegatedCredentials() { return config_ & (1 << 24); };
+  bool EnableDtlsShortHeader() { return config_ & (1 << 25); };
 
  private:
   uint32_t config_;
