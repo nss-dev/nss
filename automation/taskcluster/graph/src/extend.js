@@ -213,7 +213,6 @@ export default async function main() {
 
   await scheduleLinux("Linux 64 (ASan, debug)", {
     env: {
-      ASAN_OPTIONS: "detect_odr_violations=1",
       UBSAN_OPTIONS: "print_stacktrace=1",
       NSS_DISABLE_ARENA_FREE_LIST: "1",
       NSS_DISABLE_UNLOAD: "1",
