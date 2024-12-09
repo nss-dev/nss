@@ -15,9 +15,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   static NSSDatabase db = NSSDatabase();
 
   CERTCertificate *cert = CERT_DecodeCertFromPackage((char *)data, (int)size);
-  if (cert) {
-    free(cert);
-  }
+  CERT_DestroyCertificate(cert);
 
   return 0;
 }
