@@ -127,6 +127,7 @@ tools_init()
   cp ${QADIR}/tools/pbmac1-invalid-bad-iter.p12 ${TOOLSDIR}/data
   cp ${QADIR}/tools/pbmac1-invalid-bad-salt.p12 ${TOOLSDIR}/data
   cp ${QADIR}/tools/pbmac1-invalid-no-length.p12 ${TOOLSDIR}/data
+  cp ${QADIR}/tools/corrupted_cert_bag.p12 ${TOOLSDIR}/data
 
   cd ${TOOLSDIR}
 }
@@ -499,6 +500,12 @@ tools_p12_import_old_files()
   ${BINDIR}/pk12util -i ${TOOLSDIR}/data/PKCS5WithImplicitKDF.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W password 2>&1
   ret=$?
   html_msg $ret 0 "Importing PKCS#12 file with and implicit KDF value"
+  check_tmpfile
+
+  echo "pk12util -I -l corrupted_cert_bag.p12 -W start"
+  ${BINDIR}/pk12util -I -l ${TOOLSDIR}/data/corrupted_cert_bag.p12 -W start 2>&1
+  ret=$?
+  html_msg $ret 17 "Listing a PKCS#12 file with corrupted certificate bag"
   check_tmpfile
 
 }
