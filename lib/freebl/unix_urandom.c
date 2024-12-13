@@ -22,7 +22,7 @@ RNG_SystemInfoForRNG(void)
         return;
     }
     RNG_RandomUpdate(bytes, numBytes);
-    PORT_Memset(bytes, 0, sizeof bytes);
+    PORT_SafeZero(bytes, sizeof bytes);
 }
 
 size_t
