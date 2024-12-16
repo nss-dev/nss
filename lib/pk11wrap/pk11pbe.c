@@ -940,15 +940,15 @@ pbe_PK11AlgidToParam(SECAlgorithmID *algid, SECItem *mech)
      * based on the algorithm. */
     if (algorithm == SEC_OID_PKCS5_PBKDF2) {
         SECOidTag prfAlgTag;
-        CK_PKCS5_PBKD2_PARAMS *pbeV2_params =
-            (CK_PKCS5_PBKD2_PARAMS *)PORT_ZAlloc(
-                sizeof(CK_PKCS5_PBKD2_PARAMS) + salt->len);
+        CK_PKCS5_PBKD2_PARAMS2 *pbeV2_params =
+            (CK_PKCS5_PBKD2_PARAMS2 *)PORT_ZAlloc(
+                sizeof(CK_PKCS5_PBKD2_PARAMS2) + salt->len);
 
         if (pbeV2_params == NULL) {
             goto loser;
         }
         paramData = (unsigned char *)pbeV2_params;
-        paramLen = sizeof(CK_PKCS5_PBKD2_PARAMS);
+        paramLen = sizeof(CK_PKCS5_PBKD2_PARAMS2);
 
         /* set the prf */
         prfAlgTag = SEC_OID_HMAC_SHA1;
@@ -981,7 +981,7 @@ pbe_PK11AlgidToParam(SECAlgorithmID *algid, SECItem *mech)
         pbeV2_params->pPrfData = NULL;
         pbeV2_params->ulPrfDataLen = 0;
         pbeV2_params->saltSource = CKZ_SALT_SPECIFIED;
-        pSalt = ((CK_CHAR_PTR)pbeV2_params) + sizeof(CK_PKCS5_PBKD2_PARAMS);
+        pSalt = ((CK_CHAR_PTR)pbeV2_params) + sizeof(CK_PKCS5_PBKD2_PARAMS2);
         if (salt->data) {
             PORT_Memcpy(pSalt, salt->data, salt->len);
         }
@@ -1420,7 +1420,10 @@ pk11_RawPBEKeyGenWithKeyType(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                              SECItem *params, CK_KEY_TYPE keyType, int keyLen,
                              SECItem *pwitem, void *wincx)
 {
+    SECItem _params;
+    CK_PKCS5_PBKD2_PARAMS _pbev2_params;
     CK_ULONG pwLen;
+
     /* do some sanity checks */
     if ((params == NULL) || (params->data == NULL)) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -1434,15 +1437,34 @@ pk11_RawPBEKeyGenWithKeyType(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
 
     /* set the password pointer in the parameters... */
     if (type == CKM_PKCS5_PBKD2) {
-        CK_PKCS5_PBKD2_PARAMS *pbev2_params;
-        if (params->len < sizeof(CK_PKCS5_PBKD2_PARAMS)) {
+        CK_PKCS5_PBKD2_PARAMS2 *pbev2_params;
+
+        CK_VERSION cryptokiVersion = slot->module->cryptokiVersion;
+
+        int length_check = sizeof(CK_PKCS5_PBKD2_PARAMS2) <= sizeof(CK_PKCS5_PBKD2_PARAMS);
+        if (( length_check && params->len < sizeof(CK_PKCS5_PBKD2_PARAMS2)) ||
+            (!length_check && params->len < sizeof(CK_PKCS5_PBKD2_PARAMS))) {
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             return NULL;
         }
-        pbev2_params = (CK_PKCS5_PBKD2_PARAMS *)params->data;
+        pbev2_params = (CK_PKCS5_PBKD2_PARAMS2 *)params->data;
         pbev2_params->pPassword = pwitem->data;
-        pwLen = pwitem->len;
-        pbev2_params->ulPasswordLen = &pwLen;
+
+        if (cryptokiVersion.major < 3) {
+            /* CK_PKCS5_PBKD2_PARAMS */
+            params = &_params;
+            _params.type = params->type;
+            _params.data = (unsigned char *)&_pbev2_params;
+            _params.len = sizeof(CK_PKCS5_PBKD2_PARAMS);
+            memcpy(&_pbev2_params, pbev2_params, PR_MIN(sizeof(CK_PKCS5_PBKD2_PARAMS),
+                                                        sizeof(CK_PKCS5_PBKD2_PARAMS2)));
+            pwLen = pwitem->len;
+            _pbev2_params.ulPasswordLen = &pwLen;
+        } else {
+            /* CK_PKCS5_PBKD2_PARAMS2 */
+            pbev2_params->ulPasswordLen = pwitem->len;
+        }
+
     } else {
         CK_PBE_PARAMS *pbe_params;
         if (params->len < sizeof(CK_PBE_PARAMS)) {
