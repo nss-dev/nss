@@ -410,7 +410,7 @@ NSS=trustOrder=100
     if [ "${DLL_SUFFIX}" = "" ]; then
         DLL_SUFFIX=`(cd $COMMON; $MAKE dll_suffix)`
     fi
-    OS_NAME=`uname -s | sed -e "s/-[0-9]*\.[0-9]*//" | sed -e "s/-WOW64//"`
+    OS_NAME=`uname -s | sed -e "s/-[0-9.-]*//" | sed -e "s/-WOW64//"`
 
     BINDIR="${DIST}/${OBJDIR}/bin"
 
@@ -441,7 +441,7 @@ NSS=trustOrder=100
 #in case of backward comp. tests the calling scripts set the
 #PATH and LD_LIBRARY_PATH and do not want them to be changed
     if [ -z "${DON_T_SET_PATHS}" -o "${DON_T_SET_PATHS}" != "TRUE" ] ; then
-        if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME"  != "CYGWIN_NT" -a "$OS_NAME" != "MINGW32_NT" ]; then
+        if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME"  != "CYGWIN_NT" -a "$OS_NAME" != "MINGW32_NT" -a "$OS_NAME" != "MSYS_NT" ]; then
             PATH=.\;${DIST}/${OBJDIR}/bin\;${DIST}/${OBJDIR}/lib\;$PATH
             PATH=`perl ../path_uniq -d ';' "$PATH"`
         elif [ "${OS_ARCH}" = "Android" ]; then
