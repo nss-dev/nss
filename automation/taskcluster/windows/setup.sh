@@ -15,12 +15,9 @@ hg_clone() {
     exit 1
 }
 
-hg_clone https://hg.mozilla.org/build/tools tools b8d7c263dfc3
-tools/scripts/tooltool/tooltool_wrapper.sh \
-    $(dirname $0)/releng.manifest http://taskcluster/tooltool.mozilla-releng.net/ \
-    non-existant-file.sh /c/mozilla-build/python/python.exe \
-    /c/builds/tooltool.py \
-    -c /c/builds/tooltool_cache
+export SSL_CERT_FILE=/c/mozilla-build/python3/Lib/site-packages/certifi/cacert.pem
+
+/c/mozilla-build/python/python.exe /c/builds/tooltool.py -c /c/builds/tooltool_cache --url ${TASKCLUSTER_PROXY_URL}/tooltool.mozilla-releng.net/ --overwrite -m $(dirname $0)/releng.manifest fetch
 
 # This needs $m to be set.
 if [ -n "$m" ]; then
@@ -35,13 +32,13 @@ if [ -n "$m" ]; then
     export WIN_UCRT_REDIST_DIR="${VSPATH}/SDK/Redist/ucrt/DLLs/${m}"
 
     if [ "$m" == "x86" ]; then
-        PATH="${PATH}:${VSPATH}/VC/bin/Hostx64/x86"
-        PATH="${PATH}:${VSPATH}/VC/bin/Hostx64/x64"
+        PATH="${VSPATH}/VC/bin/Hostx64/x64:${PATH}"
+        PATH="${VSPATH}/VC/bin/Hostx64/x86:${PATH}"
     fi
-    PATH="${PATH}:${VSPATH}/VC/bin/Host${m}/${m}"
-    PATH="${PATH}:${WIN32_REDIST_DIR}"
-    PATH="${PATH}:${WIN_UCRT_REDIST_DIR}"
-    PATH="${PATH}:${VSPATH}/SDK/bin/${UCRTVersion}/x64"
+    PATH="${VSPATH}/VC/bin/Host${m}/${m}:${PATH}"
+    PATH="${WIN32_REDIST_DIR}:${PATH}"
+    PATH="${WIN_UCRT_REDIST_DIR}:${PATH}"
+    PATH="${VSPATH}/SDK/bin/${UCRTVersion}/x64:${PATH}"
     export PATH
 
     LIB="${LIB}:${VSPATH}/VC/lib/${m}"

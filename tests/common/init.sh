@@ -390,6 +390,7 @@ NSS=trustOrder=100
     if [ -z "${OBJDIR}" -o -z "${OS_ARCH}" -o -z "${DLL_PREFIX}" -o -z "${DLL_SUFFIX}" ]; then
         MAKE=gmake
         $MAKE -v >/dev/null 2>&1 || MAKE=make
+        $MAKE -v >/dev/null 2>&1 || MAKE=mozmake
         $MAKE -v >/dev/null 2>&1 || { echo "You are missing make."; exit 5; }
         MAKE="$MAKE --no-print-directory"
     fi
