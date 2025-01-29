@@ -2413,13 +2413,6 @@ typedef struct CK_PKCS5_PBKD2_PARAMS2 {
 
 typedef CK_PKCS5_PBKD2_PARAMS2 CK_PTR CK_PKCS5_PBKD2_PARAMS2_PTR;
 
-/* This following value is used to determines if a parameter is of type PARAMS or PARAMS2
- * based on the value of ulPasswordLen. If ulPasswordLen is greater than 2048,
- * it is most likely a memory address i.e. a pointer (PARAMS). Otherwise, it is considered
- * a length value (PARAMS2).
- */
-#define CK_PKCS5_PBKD2_PARAMS_MAX_PWD_LEN 2048
-
 /* OTP is new in v2.40 */
 typedef CK_ULONG CK_OTP_PARAM_TYPE;
 #define CK_OTP_VALUE 0UL

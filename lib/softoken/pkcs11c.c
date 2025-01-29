@@ -4219,38 +4219,20 @@ nsc_pbe_key_gen(NSSPKCS5PBEParameter *pkcs5_pbe, CK_MECHANISM_PTR pMechanism,
 {
     SECItem *pbe_key = NULL, iv, pwitem;
     CK_PBE_PARAMS *pbe_params = NULL;
-    CK_PKCS5_PBKD2_PARAMS2 *pbkd2_params = NULL;
+    CK_PKCS5_PBKD2_PARAMS *pbkd2_params = NULL;
 
     *key_length = 0;
     iv.data = NULL;
     iv.len = 0;
 
     if (pMechanism->mechanism == CKM_PKCS5_PBKD2) {
-        int v2 = 0;
-        pbkd2_params = (CK_PKCS5_PBKD2_PARAMS2 *)pMechanism->pParameter;
-        if (!pMechanism->pParameter) {
+        if (BAD_PARAM_CAST(pMechanism, sizeof(CK_PKCS5_PBKD2_PARAMS))) {
             return CKR_MECHANISM_PARAM_INVALID;
         }
-
-        if (sizeof(CK_PKCS5_PBKD2_PARAMS2) != sizeof(CK_PKCS5_PBKD2_PARAMS)) {
-            if (pMechanism->ulParameterLen == sizeof(CK_PKCS5_PBKD2_PARAMS)) {
-                v2 = 0;
-            } else if (pMechanism->ulParameterLen == sizeof(CK_PKCS5_PBKD2_PARAMS2)) {
-                v2 = 1;
-            } else {
-                return CKR_MECHANISM_PARAM_INVALID;
-            }
-        } else {
-            if (pMechanism->ulParameterLen < sizeof(CK_PKCS5_PBKD2_PARAMS2))
-                return CKR_MECHANISM_PARAM_INVALID;
-            /* it's unlikely that the password will be longer than 2048 bytes so it is most
-             * likely a pointer => CK_PKCS5_PBKD2_PARAMS */
-            v2 = (pbkd2_params->ulPasswordLen > CK_PKCS5_PBKD2_PARAMS_MAX_PWD_LEN) ? 1 : 0;
-        }
-
+        pbkd2_params = (CK_PKCS5_PBKD2_PARAMS *)pMechanism->pParameter;
         pwitem.data = (unsigned char *)pbkd2_params->pPassword;
-        pwitem.len = v2 ? pbkd2_params->ulPasswordLen :
-                          *((CK_PKCS5_PBKD2_PARAMS *)pMechanism->pParameter)->ulPasswordLen;
+        /* was this a typo in the PKCS #11 spec? */
+        pwitem.len = *pbkd2_params->ulPasswordLen;
     } else {
         if (BAD_PARAM_CAST(pMechanism, sizeof(CK_PBE_PARAMS))) {
             return CKR_MECHANISM_PARAM_INVALID;
@@ -4639,7 +4621,7 @@ nsc_SetupPBEKeyGen(CK_MECHANISM_PTR pMechanism, NSSPKCS5PBEParameter **pbe,
     CK_PBE_PARAMS *pbe_params = NULL;
     NSSPKCS5PBEParameter *params = NULL;
     HASH_HashType hashType = HASH_AlgSHA1;
-    CK_PKCS5_PBKD2_PARAMS2 *pbkd2_params = NULL;
+    CK_PKCS5_PBKD2_PARAMS *pbkd2_params = NULL;
     SECItem salt;
     CK_ULONG iteration = 0;
 
@@ -4651,10 +4633,10 @@ nsc_SetupPBEKeyGen(CK_MECHANISM_PTR pMechanism, NSSPKCS5PBEParameter **pbe,
     }
 
     if (pMechanism->mechanism == CKM_PKCS5_PBKD2) {
-        if (BAD_PARAM_CAST(pMechanism, sizeof(CK_PKCS5_PBKD2_PARAMS2))) {
+        if (BAD_PARAM_CAST(pMechanism, sizeof(CK_PKCS5_PBKD2_PARAMS))) {
             return CKR_MECHANISM_PARAM_INVALID;
         }
-        pbkd2_params = (CK_PKCS5_PBKD2_PARAMS2 *)pMechanism->pParameter;
+        pbkd2_params = (CK_PKCS5_PBKD2_PARAMS *)pMechanism->pParameter;
         switch (pbkd2_params->prf) {
             case CKP_PKCS5_PBKD2_HMAC_SHA1:
                 hashType = HASH_AlgSHA1;
