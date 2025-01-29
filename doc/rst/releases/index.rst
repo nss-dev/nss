@@ -16,7 +16,7 @@ Releases
    nss_3_103.rst
    nss_3_102_1.rst
    nss_3_102.rst
-   nss_3_101.2.rst
+   nss_3_101_2.rst
    nss_3_101_1.rst
    nss_3_101.rst
    nss_3_100.rst
