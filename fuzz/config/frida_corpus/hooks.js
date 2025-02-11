@@ -2,6 +2,25 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+// --- asn1 ---
+
+if (DebugSymbol.findFunctionsNamed("SEC_ASN1DecodeItem_Util").length) {
+  console.log("Attaching `SEC_ASN1DecodeItem_Util` interceptor...");
+  Interceptor.attach(DebugSymbol.fromName("SEC_ASN1DecodeItem_Util").address, {
+    onEnter: function (args) {
+      const secItem = args[3]; // { type(8), data(8), len(4) }
+
+      const len = secItem.add(8).add(8).readUInt();
+      const buf = secItem.add(8).readByteArray(len);
+
+      send({
+        func: "SEC_ASN1DecodeItem_Util",
+        data: new Uint8Array(buf),
+      });
+    },
+  });
+}
+
 // --- certDN ---
 
 if (DebugSymbol.findFunctionsNamed("CERT_AsciiToName").length) {

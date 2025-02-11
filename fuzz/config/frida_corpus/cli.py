@@ -25,6 +25,16 @@ def store_for_target(target, data):
         f.write(data)
 
 
+# --- asn1 ---
+
+
+def on_SEC_ASN1DecodeItem_Util(payload):
+    if not "data" in payload:
+        return
+
+    store_for_target("asn1", bytes(payload["data"].values()))
+
+
 # --- certDN ---
 
 

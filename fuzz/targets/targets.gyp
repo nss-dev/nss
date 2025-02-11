@@ -60,6 +60,19 @@
       ],
     },
     {
+      'target_name': 'nssfuzz-asn1',
+      'type': 'executable',
+      'sources': [
+        'asn1.cc',
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports',
+        '<(DEPTH)/fuzz/targets/lib/asn1/asn1.gyp:asn1',
+        '<(DEPTH)/fuzz/targets/lib/base/base.gyp:base',
+        'nssfuzz_base',
+      ],
+    },
+    {
       'target_name': 'nssfuzz-certDN',
       'type': 'executable',
       'sources': [
@@ -187,6 +200,7 @@
       'target_name': 'nssfuzz',
       'type': 'none',
       'dependencies': [
+        'nssfuzz-asn1',
         'nssfuzz-certDN',
         'nssfuzz-dtls-client',
         'nssfuzz-dtls-server',
