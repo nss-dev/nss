@@ -12,6 +12,12 @@ export RUSTFLAGS="-C instrument-coverage"
 
 cp -a "${VCS_PATH}/nss" "${VCS_PATH}/nspr" .
 
+if [[ -f nss/nspr.patch && "$ALLOW_NSPR_PATCH" == "1" ]]; then
+    cd nspr
+    patch -p1 < ../nss/nspr.patch
+    cd ..
+fi
+
 cd nss
 CC=clang-15 CXX=clang++-15 ./build.sh -g -v --sourcecov --static --disable-tests
 
