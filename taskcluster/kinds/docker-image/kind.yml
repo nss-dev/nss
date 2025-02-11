@@ -23,3 +23,5 @@ tasks:
     gcc-4.4:
         symbol: I(gcc-4.4)
         parent: base
+    fuzz:
+        symbol: I(fuzz)
