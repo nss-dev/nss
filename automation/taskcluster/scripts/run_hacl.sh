@@ -42,7 +42,7 @@ for f in "${files[@]}"; do
     then
         continue;
     fi
-    diff $hacl_file $f
+    diff -u $hacl_file $f
 done
 
 files=($(find ~/nss/lib/freebl/verified/ -type f -name '*.[ch]' -not -path "*/freebl/verified/internal/*" -not -path "*/freebl/verified/config.h"))
@@ -66,7 +66,7 @@ for f in "${files[@]}"; do
     then
         continue;
     fi
-    diff $hacl_file $f
+    diff -u $hacl_file $f
 done
 
 # Here we process the code that's not located in /hacl-star/dist/mozilla/ but
@@ -103,7 +103,7 @@ for f in "${files[@]}"; do
     then
         continue;
     fi  
-    diff $hacl_file $f
+    diff -u $hacl_file $f
 done
 
 files=($(find ~/nss/lib/freebl/verified/ -type f -name '*.[ch]' -not -path "*/freebl/verified/internal/*"))
@@ -115,5 +115,5 @@ for f in "${files[@]}"; do
     then
         continue;
     fi  
-    diff $hacl_file $f
+    diff -u $hacl_file $f
 done
