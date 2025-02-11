@@ -21,6 +21,15 @@ find . -type f -name '*.[ch]' -exec clang-format -i {} \+
 cd ~/hacl-star/dist/karamel
 cp ~/nss/.clang-format .
 find . -type f -name '*.[ch]' -exec clang-format -i {} \+
+cd ~/hacl-star/dist/gcc-compatible
+cp ~/nss/.clang-format .
+find . -type f -name '*.[ch]' -exec clang-format -i {} \+
+
+cd ~/hacl-star
+patches=(~/nss/automation/taskcluster/scripts/patches/*.patch)
+for f in "${patches[@]}"; do
+    git apply "$f"
+done
 
 # These diff commands will return 1 if there are differences and stop the script.
 
@@ -37,7 +46,7 @@ for f in "${files[@]}"; do
     if [ $file_name == "Hacl_Ed25519.h" \
         -o $file_name == "Hacl_Ed25519_PrecompTable.h" ]
     then
-        continue;
+        continue
     fi
     diff -u $hacl_file $f
 done
@@ -53,41 +62,19 @@ for f in "${files[@]}"; do
         -o $file_name == "eurydice_glue.h" \
         -o $file_name == "target.h" ]
     then
-        continue;
+        continue
     fi
 
     if [ $file_name == "Hacl_Ed25519.h"  \
         -o $file_name == "Hacl_Ed25519.c" ]
     then
-        continue;
+        continue
     fi
     diff -u $hacl_file $f
 done
 
 # Here we process the code that's not located in /hacl-star/dist/mozilla/ but
 # /hacl-star/dist/gcc-compatible. 
-
-cd ~/hacl-star/dist/gcc-compatible
-cp ~/nss/.clang-format .
-find . -type f -name '*.[ch]' -exec clang-format -i {} \+
-
-patches=($(find ~/nss/automation/taskcluster/scripts/patches/ -type f -name '*.patch'))
-for f in "${patches[@]}"; do
-    file_name=$(basename "$f")
-    file_name="${file_name%.*}"
-    if_internal="${file_name##*.}"
-    if [ $if_internal == "internal" ]
-    then
-        file_name="${file_name%.*}"
-        patch_file=($(find ~/hacl-star/dist/gcc-compatible/internal/ -type f -name $file_name))
-    else
-        patch_file=($(find ~/hacl-star/dist/gcc-compatible/ -type f -name $file_name -not -path "*/hacl-star/dist/gcc-compatible/internal/*"))
-    fi
-    if [ ! -z "$patch_file" ]
-    then
-        patch $patch_file $f
-    fi
-done
 
 files=($(find ~/nss/lib/freebl/verified/internal -type f -name '*.[ch]'))
 for f in "${files[@]}"; do
@@ -96,7 +83,7 @@ for f in "${files[@]}"; do
     if [ $file_name != "Hacl_Ed25519.h" \
         -a $file_name != "Hacl_Ed25519_PrecompTable.h" ]
     then
-        continue;
+        continue
     fi  
     diff -u $hacl_file $f
 done
@@ -108,7 +95,7 @@ for f in "${files[@]}"; do
     if [ $file_name != "Hacl_Ed25519.h" \
         -a $file_name != "Hacl_Ed25519.c" ]
     then
-        continue;
+        continue
     fi  
     diff -u $hacl_file $f
 done
