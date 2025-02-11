@@ -46,6 +46,9 @@ taskgraph:
             default-ref: default
             type: hg
 
+    decision-parameters: 'nss_taskgraph:decision_parameters'
+    register: 'nss_taskgraph:register'
+
 treeherder:
     group-names:
         I: Docker image builds
