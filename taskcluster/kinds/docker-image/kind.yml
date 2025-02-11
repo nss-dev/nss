@@ -16,3 +16,5 @@ tasks:
     builds:
         symbol: I(builds)
         parent: base
+    acvp:
+        symbol: I(acvp)
