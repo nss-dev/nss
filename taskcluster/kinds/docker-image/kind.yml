@@ -13,3 +13,6 @@ transforms:
 tasks:
     base:
         symbol: I(base)
+    builds:
+        symbol: I(builds)
+        parent: base
