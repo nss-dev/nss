@@ -49,3 +49,7 @@ taskgraph:
 treeherder:
     group-names:
         I: Docker image builds
+        Builds: Builds with alternative compilers
+        DBM: Legacy (DBM) database
+        FIPS: FIPS
+        TLS: TLS fuzzing
