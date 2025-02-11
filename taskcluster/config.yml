@@ -50,6 +50,8 @@ treeherder:
     group-names:
         I: Docker image builds
         Builds: Builds with alternative compilers
+        Cipher: Cipher tests
         DBM: Legacy (DBM) database
         FIPS: FIPS
+        SSL: SSL tests
         TLS: TLS fuzzing
