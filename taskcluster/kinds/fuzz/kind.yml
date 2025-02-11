@@ -113,6 +113,18 @@ tasks:
                 target: quickder
                 corpus: quickder
 
+    linux64-smime:
+        description: Linux x64 SMIME
+        dependencies:
+            build: build-linux64/debug-fuzz
+        treeherder:
+            symbol: SMIME
+            platform: linux64/debug-fuzz
+        task-context:
+            from-object:
+                target: smime
+                corpus: smime
+
     linux64-tls-client:
         description: Linux x64 TLS Client
         dependencies:
@@ -290,6 +302,18 @@ tasks:
             from-object:
                 target: quickder
                 corpus: quickder
+
+    linux32-smime:
+        description: Linux 32 SMIME
+        dependencies:
+            build: build-linux32/debug-fuzz
+        treeherder:
+            symbol: SMIME
+            platform: linux32/debug-fuzz
+        task-context:
+            from-object:
+                target: smime
+                corpus: smime
 
     linux32-tls-client:
         description: Linux 32 TLS Client

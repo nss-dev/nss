@@ -85,6 +85,16 @@ def on_SEC_QuickDERDecodeItem_Util(payload):
     store_for_target("quickder", bytes(payload["data"].values()))
 
 
+# --- smime ---
+
+
+def on_NSS_CMSDecoder_Update(payload):
+    if not "data" in payload:
+        return
+
+    store_for_target("smime", bytes(payload["data"].values()))
+
+
 # --- TLS ---
 
 

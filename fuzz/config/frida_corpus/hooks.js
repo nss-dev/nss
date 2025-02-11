@@ -115,6 +115,20 @@ if (DebugSymbol.findFunctionsNamed("SEC_QuickDERDecodeItem_Util").length) {
   );
 }
 
+// -- smime --
+
+if (DebugSymbol.findFunctionsNamed("NSS_CMSDecoder_Update").length) {
+  console.log("Attaching `NSS_CMSDecoder_Update` interceptor...");
+  Interceptor.attach(DebugSymbol.fromName("NSS_CMSDecoder_Update").address, {
+    onEnter: function (args) {
+      const len = args[2].toInt32();
+      const buf = args[1].readByteArray(len);
+
+      send({ func: "NSS_CMSDecoder_Update", data: new Uint8Array(buf) });
+    },
+  });
+}
+
 // --- TLS ---
 
 if (DebugSymbol.findFunctionsNamed("ssl_DefClose").length) {
