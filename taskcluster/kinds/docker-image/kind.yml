@@ -20,3 +20,6 @@ tasks:
         symbol: I(acvp)
     clang-format:
         symbol: I(clang-format)
+    gcc-4.4:
+        symbol: I(gcc-4.4)
+        parent: base
