@@ -18,3 +18,5 @@ tasks:
         parent: base
     acvp:
         symbol: I(acvp)
+    clang-format:
+        symbol: I(clang-format)
