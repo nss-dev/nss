@@ -1,3 +1,4 @@
+# yamllint disable rule:line-length
 # This file is rendered via JSON-e in a hook with context:
 #   {
 #     tasks_for: 'hg-push',
@@ -9,8 +10,8 @@
 ---
 version: 1
 tasks:
-    # NOTE: support for actions in ci-admin requires that the `tasks` property be an array *before* JSON-e rendering
-    # takes place.
+  # NOTE: support for actions in ci-admin requires that the `tasks` property be
+  # an array *before* JSON-e rendering takes place.
   - $if: 'tasks_for in ["hg-push", "action"]'
     then:
       $let:
@@ -117,7 +118,7 @@ tasks:
                   ACTION_CALLBACK: '${action.cb_name}'
 
           cache:
-              "${trustDomain}-level-${repository.level}-checkouts-sparse-v3": /builds/worker/checkouts
+            "${trustDomain}-level-${repository.level}-checkouts-sparse-v3": /builds/worker/checkouts
 
           maxRunTime: 1800
 
@@ -153,18 +154,18 @@ tasks:
             taskclusterProxy: true
 
           artifacts:
-              'public':
-                  type: 'directory'
-                  path: '/builds/worker/artifacts'
-                  expires: {$eval: expires}
-              'public/docker-contexts':
-                  type: 'directory'
-                  path: '/builds/worker/checkouts/nss/docker-contexts'
-                  # This needs to be at least the deadline of the
-                  # decision task + the docker-image task deadlines.
-                  # It is set to a week to allow for some time for
-                  # debugging, but they are not useful long-term.
-                  expires: {$fromNow: '7 day'}
+            'public':
+              type: 'directory'
+              path: '/builds/worker/artifacts'
+              expires: {$eval: expires}
+            'public/docker-contexts':
+              type: 'directory'
+              path: '/builds/worker/checkouts/nss/docker-contexts'
+              # This needs to be at least the deadline of the
+              # decision task + the docker-image task deadlines.
+              # It is set to a week to allow for some time for
+              # debugging, but they are not useful long-term.
+              expires: {$fromNow: '7 day'}
 
         extra:
           $merge:
