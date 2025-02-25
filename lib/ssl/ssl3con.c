@@ -9496,7 +9496,7 @@ ssl3_HandleClientHelloPart2(sslSocket *ss,
                 if (suite->cipher_suite == sid->u.ssl3.cipherSuite)
                     break;
             }
-            PORT_Assert(j > 0);
+
             if (j == 0)
                 break;
 
