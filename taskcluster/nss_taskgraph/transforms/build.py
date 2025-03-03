@@ -152,7 +152,7 @@ def set_gyp_command(config, jobs):
         command = script + " --python=python3"
         if "64" not in platform:
             command += " -t ia32"
-        if attributes["build_type"] == "opt":
+        if attributes["build_type"] in ("opt", "opt-static"):
             command += " --opt"
         if "fips" in attributes["build_type"]:
             command += " --enable-fips"
