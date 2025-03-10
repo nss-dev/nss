@@ -1,0 +1,7 @@
+
+3 Added functions:
+
+  'function const char* SECMOD_FlagsToPolicyString(PRUint32, PRBool)'    {SECMOD_FlagsToPolicyString@@NSS_3.110}
+  'function SECOidTag SECMOD_PolicyStringToOid(const char*, const char*)'    {SECMOD_PolicyStringToOid@@NSS_3.110}
+  'function PRUint32 SECMOD_PolicyStringToOpt(const char*)'    {SECMOD_PolicyStringToOpt@@NSS_3.110}
+
