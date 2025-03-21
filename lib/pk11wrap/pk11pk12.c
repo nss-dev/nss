@@ -150,9 +150,11 @@ const SEC_ASN1Template SECKEY_DSAPrivateKeyExportTemplate[] = {
 };
 
 const SEC_ASN1Template SECKEY_DHPrivateKeyExportTemplate[] = {
+    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(SECKEYRawPrivateKey) },
     { SEC_ASN1_INTEGER, offsetof(SECKEYRawPrivateKey, u.dh.privateValue) },
     { SEC_ASN1_INTEGER, offsetof(SECKEYRawPrivateKey, u.dh.base) },
     { SEC_ASN1_INTEGER, offsetof(SECKEYRawPrivateKey, u.dh.prime) },
+    { 0 }
 };
 
 SEC_ASN1_MKSUB(SEC_BitStringTemplate)
