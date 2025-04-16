@@ -251,7 +251,7 @@ nss_cms_before_data(NSSCMSDecoderContext *p7dcx)
     if ((template = NSS_CMSUtil_GetTemplateByTypeTag(childtype)) == NULL)
         return SECFailure;
 
-    childp7dcx = PORT_ZNew(NSSCMSDecoderContext);
+    childp7dcx = PORT_ArenaZNew(poolp, NSSCMSDecoderContext);
     if (childp7dcx == NULL)
         return SECFailure;
 
@@ -340,7 +340,6 @@ nss_cms_after_data(NSSCMSDecoderContext *p7dcx)
             if (rv != SECSuccess)
                 goto done;
         }
-        PORT_Free(p7dcx->childp7dcx);
         p7dcx->childp7dcx = NULL;
     }
 
