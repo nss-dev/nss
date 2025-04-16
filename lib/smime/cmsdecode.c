@@ -134,7 +134,10 @@ nss_cms_decoder_notify(void *arg, PRBool before, void *dest, int depth)
             /* get this data type's inner contentInfo */
             cinfo = NSS_CMSContent_GetContentInfo(p7dcx->content.pointer,
                                                   p7dcx->type);
-
+            if (cinfo == NULL) {
+                p7dcx->error = SEC_ERROR_BAD_DATA;
+                return;
+            }
             if (before && dest == &(cinfo->contentType)) {
                 /* at this point, set up the &%$&$ back pointer */
                 /* we cannot do it later, because the content itself
