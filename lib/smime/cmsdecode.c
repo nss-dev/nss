@@ -334,12 +334,7 @@ nss_cms_after_data(NSSCMSDecoderContext *p7dcx)
                 childp7dcx->need_indefinite_finish = PR_FALSE;
             }
 
-            if (SEC_ASN1DecoderFinish(childp7dcx->dcx) != SECSuccess) {
-                /* do what? free content? */
-                rv = SECFailure;
-            } else {
-                rv = nss_cms_after_end(childp7dcx);
-            }
+            rv = nss_cms_after_end(childp7dcx);
             if (rv != SECSuccess)
                 goto done;
         }
@@ -378,7 +373,21 @@ done:
 static SECStatus
 nss_cms_after_end(NSSCMSDecoderContext *p7dcx)
 {
-    SECStatus rv = SECSuccess;
+    SECStatus rv = SECSuccess, rv1 = SECSuccess, rv2 = SECSuccess;
+
+    /* Finish any child decoders */
+    if (p7dcx->childp7dcx) {
+        rv1 = nss_cms_after_end(p7dcx->childp7dcx) != SECSuccess;
+        p7dcx->childp7dcx = NULL;
+    }
+    /* Finish our asn1 decoder */
+    if (p7dcx->dcx) {
+        rv2 = SEC_ASN1DecoderFinish(p7dcx->dcx);
+        p7dcx->dcx = NULL;
+    }
+    if (rv1 != SECSuccess || rv2 != SECSuccess || p7dcx->error != 0) {
+        return SECFailure;
+    }
 
     switch (p7dcx->type) {
         case SEC_OID_PKCS7_SIGNED_DATA:
@@ -687,12 +696,8 @@ loser:
         return SECSuccess;
 
     /* there has been a problem, let's finish the decoder */
-    if (p7dcx->dcx != NULL) {
-        (void)SEC_ASN1DecoderFinish(p7dcx->dcx);
-        p7dcx->dcx = NULL;
-    }
+    nss_cms_after_end(p7dcx);
     PORT_SetError(p7dcx->error);
-
     return SECFailure;
 }
 
@@ -702,8 +707,7 @@ loser:
 void
 NSS_CMSDecoder_Cancel(NSSCMSDecoderContext *p7dcx)
 {
-    if (p7dcx->dcx != NULL)
-        (void)SEC_ASN1DecoderFinish(p7dcx->dcx);
+    nss_cms_after_end(p7dcx);
     NSS_CMSMessage_Destroy(p7dcx->cmsg);
     PORT_Free(p7dcx);
 }
@@ -718,9 +722,7 @@ NSS_CMSDecoder_Finish(NSSCMSDecoderContext *p7dcx)
 
     cmsg = p7dcx->cmsg;
 
-    if (p7dcx->dcx == NULL ||
-        SEC_ASN1DecoderFinish(p7dcx->dcx) != SECSuccess ||
-        nss_cms_after_end(p7dcx) != SECSuccess) {
+    if (nss_cms_after_end(p7dcx) != SECSuccess) {
         NSS_CMSMessage_Destroy(cmsg); /* get rid of pool if it's ours */
         cmsg = NULL;
     }
