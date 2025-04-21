@@ -28,6 +28,7 @@ struct NSSCMSDecoderContextStr {
     void *cb_arg;
     PRBool first_decoded;
     PRBool need_indefinite_finish;
+    unsigned int max_asn_len;
 };
 
 struct NSSCMSDecoderDataStr {
@@ -51,6 +52,15 @@ static void nss_cms_decoder_work_data(NSSCMSDecoderContext *p7dcx,
 static NSSCMSDecoderData *nss_cms_create_decoder_data(PLArenaPool *poolp);
 
 extern const SEC_ASN1Template NSSCMSMessageTemplate[];
+
+void
+nss_cms_set_max_asn_length(NSSCMSDecoderContext *p7dcx, unsigned int max_asn_len)
+{
+    p7dcx->max_asn_len = max_asn_len;
+    if (p7dcx->dcx && max_asn_len) {
+        SEC_ASN1DecoderSetMaximumElementSize(p7dcx->dcx, max_asn_len);
+    }
+}
 
 static NSSCMSDecoderData *
 nss_cms_create_decoder_data(PLArenaPool *poolp)
@@ -274,6 +284,10 @@ nss_cms_before_data(NSSCMSDecoderContext *p7dcx)
                                            template);
     if (childp7dcx->dcx == NULL)
         goto loser;
+
+    if (p7dcx->max_asn_len) {
+        nss_cms_set_max_asn_length(childp7dcx, p7dcx->max_asn_len);
+    }
 
     /* the new decoder needs to notify, too */
     SEC_ASN1DecoderSetNotifyProc(childp7dcx->dcx, nss_cms_decoder_notify,
@@ -743,8 +757,11 @@ NSS_CMSMessage_CreateFromDER(SECItem *DERmessage,
     /* first arg(poolp) == NULL => create our own pool */
     p7dcx = NSS_CMSDecoder_Start(NULL, cb, cb_arg, pwfn, pwfn_arg,
                                  decrypt_key_cb, decrypt_key_cb_arg);
-    if (p7dcx == NULL)
+    if (p7dcx == NULL) {
         return NULL;
+    }
+    nss_cms_set_max_asn_length(p7dcx, DERmessage->len);
+
     NSS_CMSDecoder_Update(p7dcx, (char *)DERmessage->data, DERmessage->len);
     return NSS_CMSDecoder_Finish(p7dcx);
 }
