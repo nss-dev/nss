@@ -58,4 +58,4 @@ done
 # targets, messing up the generated reports.
 # To avoid this, we clear the build directory at the end. NSS libraries
 # are statically linked to the fuzz targets.
-./build.sh -cc
+rm -rf out/
