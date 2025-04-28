@@ -2749,7 +2749,7 @@ dump_states(SEC_ASN1DecoderContext *cx)
         printf("%s: tmpl kind %s",
                (state == cx->current) ? "STATE" : "State",
                kindBuf);
-        printf(" %s", (state->place >= 0 && state->place <= notInUse) ? place_names[state->place] : "(undefined)");
+        printf(" %s", (state->place <= notInUse) ? place_names[state->place] : "(undefined)");
         if (!i)
             printf(", expect 0x%02lx",
                    state->expect_tag_number | state->expect_tag_modifiers);
@@ -2782,7 +2782,7 @@ SEC_ASN1DecoderUpdate(SEC_ASN1DecoderContext *cx,
         consumed = 0;
 #ifdef DEBUG_ASN1D_STATES
         printf("\nPLACE = %s, next byte = 0x%02x, %p[%lu]\n",
-               (state->place >= 0 && state->place <= notInUse) ? place_names[state->place] : "(undefined)",
+               (state->place <= notInUse) ? place_names[state->place] : "(undefined)",
                len ? (unsigned int)((unsigned char *)buf)[consumed] : 0,
                buf, consumed);
         dump_states(cx);
