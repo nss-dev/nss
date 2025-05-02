@@ -2946,9 +2946,8 @@ SEC_ASN1DecoderUpdate(SEC_ASN1DecoderContext *cx,
 
             depth = state->depth;
             if (what == SEC_ASN1_EndOfContents && !state->indefinite) {
-                PORT_Assert(state->parent != NULL && state->parent->indefinite);
                 depth--;
-                PORT_Assert(depth == state->parent->depth);
+                PORT_Assert(depth == sec_asn1d_get_enclosing_construct(state)->depth);
             }
             (*state->top->filter_proc)(state->top->filter_arg,
                                        buf, consumed, depth, what);
