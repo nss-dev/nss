@@ -1,0 +1,67 @@
+name: NSS Release
+
+on:
+  push:
+    tags:
+      - 'NSS_*_RTM'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-cloud-storage
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=$(echo $TAG_NAME | sed 's/NSS_\([0-9]_[0-9]_[0-9]\)_RTM/\1/' | tr '_' '.')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+
+      - name: Create stage directory
+        run: |
+          mkdir -p stage/${{ steps.version.outputs.tag }}/src
+
+      - name: Download NSPR
+        run: |
+          NSPR_VERSION=$(cat automation/release/nspr-version.txt)
+          mkdir -p stage/v$NSPR_VERSION/src
+          curl -L "https://ftp.mozilla.org/pub/nspr/releases/v$NSPR_VERSION/src/nspr-$NSPR_VERSION.tar.gz" -o stage/v$NSPR_VERSION/src/nspr-$NSPR_VERSION.tar.gz
+
+      - name: Create NSS release archive
+        run: |
+          python automation/release/nss-release-helper.py create_nss_release_archive ${{ steps.version.outputs.version }} ${{ steps.version.outputs.tag }} ../stage
+
+      - name: Verify release artifacts
+        run: |
+          cd stage/${{ steps.version.outputs.tag }}
+          if [ ! -f "src/nss-${{ steps.version.outputs.version }}.tar.gz" ] || \
+             [ ! -f "src/nss-${{ steps.version.outputs.version }}-with-nspr-$(cat ../../automation/release/nspr-version.txt).tar.gz" ] || \
+             [ ! -f "src/SHA256SUMS" ] || \
+             [ ! -f "src/SHA1SUMS" ]; then
+            echo "Missing required release artifacts"
+            exit 1
+          fi
+
+      - name: Upload NSS release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nss-release-artifacts
+          path: |
+            stage/${{ steps.version.outputs.tag }}/src/nss-${{ steps.version.outputs.version }}.tar.gz
+            stage/${{ steps.version.outputs.tag }}/src/nss-${{ steps.version.outputs.version }}-with-nspr-$(cat automation/release/nspr-version.txt).tar.gz
+          retention-days: 90
