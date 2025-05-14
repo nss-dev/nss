@@ -97,7 +97,8 @@ static sslOptions ssl_defaults = {
     .enableTls13BackendEch = PR_FALSE,
     .callExtensionWriterOnEchInner = PR_FALSE,
     .enableGrease = PR_FALSE,
-    .enableChXtnPermutation = PR_FALSE
+    .enableChXtnPermutation = PR_FALSE,
+    .dbLoadCertChain = PR_TRUE,
 };
 
 /*
@@ -904,6 +905,10 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
 
         case SSL_ENABLE_CH_EXTENSION_PERMUTATION:
             ss->opt.enableChXtnPermutation = val;
+            break;
+
+        case SSL_DB_LOAD_CERTIFICATE_CHAIN:
+            ss->opt.dbLoadCertChain = val;
             break;
 
         default:
