@@ -5,6 +5,93 @@
 #ifndef _PKCS11N_H_
 #define _PKCS11N_H_
 
+/* "friendly" macros to allow us to deprecate certain #defines */
+#if defined(__GNUC__) && (__GNUC__ > 3) && !defined(NSS_SKIP_DEPRECATION_WARNING)
+/* make GCC warn when we use these #defines */
+/*
+ *  This is really painful because GCC doesn't allow us to mark random
+ *  #defines as deprecated. We can only mark the following:
+ *      functions, variables, and types.
+ *  const variables will create extra storage for everyone including this
+ *       header file, so it's undesirable.
+ *  functions could be inlined to prevent storage creation, but will fail
+ *       when constant values are expected (like switch statements).
+ *  enum types do not seem to pay attention to the deprecated attribute.
+ *
+ *  That leaves typedefs. We declare new types that we then deprecate, then
+ *  cast the resulting value to the deprecated type in the #define, thus
+ *  producting the warning when the #define is used.
+ *
+ *  To make this work with the C preprocessor, we first include a
+ *  _NSS_DEPRECATE_DEFINE_TYPE(type, name, message) declaration in our code
+ *  with:
+ *      'type'    being the base type that the #define is for (CK_TRUST,
+ *                CK_MECHANISM_TTYPE, CK_KEY_TYPE etc.)
+ *      'name'    being a unique name for the type (usually the name of the
+ *                #define)
+ *      'message' is the string to print out when the compilier warns about
+ *                the deprecated object. This only works in GCC >= 4.5 and
+ *                is ignored on all other platforms.
+ *  We then do a normal #define with _NSS_DEPRECATED_DEFINE_TYPE(name, value)
+ *  as the value with:
+ *      'name'    the same unique name used in _NSS_DEPRECATE_DEFINE_TYPE
+ *      'value'   what you would normally place in the value.
+ *
+ * Just deprecating structs are easier, if the struct isn't already aliased
+ * to some other struct, make your own alias for it, then use
+ *
+ * _NSS_DEPRECATE_STRUCT(alias, name, message)
+ * with:
+ *    'alias'   the alias structure.
+ *    'name'    the name of the deprecated structure
+ *    'message' is the string to print out when the compilier warns about
+ *              the deprecated object. This only works in GCC >= 4.5 and
+ *              is ignored on all other platforms.
+ *
+ *
+ */
+#if (__GNUC__ == 4) && (__GNUC_MINOR__ < 5)
+/* The mac doesn't like the friendlier deprecate messages. I'm assuming this
+ * is a gcc version issue rather than mac or ppc specific */
+#define _NSS_DEPRECATE_DEFINE_TYPE(type, name, message) \
+    typedef type __deprecate_##name __attribute__((deprecated));
+#define _NSS_DEPRECATE_DEFINE_VALUE(name, value) ((__deprecate_##name)(value))
+
+#define _NSS_DEPRECATE_STRUCT(alias, name, message) \
+    typedef alias name __attribute__((deprecated));
+
+#else /*__GNUC__ >= 4.5 */
+
+#define _NSS_DEPRECATE_DEFINE_TYPE(type, name, message) \
+    typedef type __deprecate_##name __attribute__((deprecated(message)));
+#define _NSS_DEPRECATE_DEFINE_VALUE(name, value) ((__deprecate_##name)(value))
+
+#define _NSS_DEPRECATE_STRUCT(alias, name, message) \
+    typedef alias name __attribute__((deprecated(message)));
+
+#endif /* __GNUC__ < 4.5 */
+#else  /* !__GNUC__ */
+#if defined(_WIN32) && !defined(NSS_SKIP_DEPRECATION_WARNING)
+/* windows, we just use pragma deprecated(identifier) */
+
+#define _NSS_DEPRECATE_DEFINE_TYPE(type, name, message) \
+#pragma deprecated(name)
+#define _NSS_DEPRECATE_DEFINE_VALUE(name, value) (value)
+
+#define _NSS_DEPRECATE_STRUCT(alias, name, message) \
+#pragma deprecated(name) typedef alias name;
+
+#else /* not WIN or GNUC, just define the structure */
+
+/* fall back to just defining the thing we want without a deprecation warning */
+#define _NSS_DEPRECATE_DEFINE_TYPE(type, name, message)
+#define _NSS_DEPRECATE_DEFINE_VALUE(name, value) (value)
+#define _NSS_DEPRECATE_STRUCT(alias, name, message) \
+    typedef alias name;
+
+#endif /* !_WIN32 */
+#endif /*!__GNUC__ */
+
 /*
  * pkcs11n.h
  *
@@ -250,7 +337,7 @@
 
 #define CKM_NSS_CHACHA20_CTR (CKM_NSS + 33)
 
-/* IKE mechanism (to be proposed to PKCS #11 */
+/* IKE mechanisms now defined in PKCS #11, use those instead now */
 #define CKM_NSS_IKE_PRF_PLUS_DERIVE (CKM_NSS + 34)
 #define CKM_NSS_IKE_PRF_DERIVE (CKM_NSS + 35)
 #define CKM_NSS_IKE1_PRF_DERIVE (CKM_NSS + 36)
@@ -496,52 +583,18 @@ typedef CK_ULONG CK_TRUST;
  * labels have never been accurate to what was really implemented.
  * The new labels correctly reflect what the values effectively mean.
  */
-#if defined(__GNUC__) && (__GNUC__ > 3)
-/* make GCC warn when we use these #defines */
-/*
- *  This is really painful because GCC doesn't allow us to mark random
- *  #defines as deprecated. We can only mark the following:
- *      functions, variables, and types.
- *  const variables will create extra storage for everyone including this
- *       header file, so it's undesirable.
- *  functions could be inlined to prevent storage creation, but will fail
- *       when constant values are expected (like switch statements).
- *  enum types do not seem to pay attention to the deprecated attribute.
- *
- *  That leaves typedefs. We declare new types that we then deprecate, then
- *  cast the resulting value to the deprecated type in the #define, thus
- *  producting the warning when the #define is used.
- */
-#if (__GNUC__ == 4) && (__GNUC_MINOR__ < 5)
-/* The mac doesn't like the friendlier deprecate messages. I'm assuming this
- * is a gcc version issue rather than mac or ppc specific */
-typedef CK_TRUST __CKT_NSS_UNTRUSTED __attribute__((deprecated));
-typedef CK_TRUST __CKT_NSS_VALID __attribute__((deprecated));
-typedef CK_TRUST __CKT_NSS_MUST_VERIFY __attribute__((deprecated));
-#else
-/* when possible, get a full deprecation warning. This works on gcc 4.5
- * it may work on earlier versions of gcc */
-typedef CK_TRUST __CKT_NSS_UNTRUSTED __attribute__((deprecated("CKT_NSS_UNTRUSTED really means CKT_NSS_MUST_VERIFY_TRUST")));
-typedef CK_TRUST __CKT_NSS_VALID __attribute__((deprecated("CKT_NSS_VALID really means CKT_NSS_NOT_TRUSTED")));
-typedef CK_TRUST __CKT_NSS_MUST_VERIFY __attribute__((deprecated("CKT_NSS_MUST_VERIFY really functions as CKT_NSS_TRUST_UNKNOWN")));
-#endif
-#define CKT_NSS_UNTRUSTED ((__CKT_NSS_UNTRUSTED)CKT_NSS_MUST_VERIFY_TRUST)
-#define CKT_NSS_VALID ((__CKT_NSS_VALID)CKT_NSS_NOT_TRUSTED)
-/* keep the old value for compatibility reasons*/
-#define CKT_NSS_MUST_VERIFY ((__CKT_NSS_MUST_VERIFY)(CKT_NSS + 4))
-#else
-#ifdef _WIN32
-/* This magic gets the windows compiler to give us a deprecation
- * warning */
-#pragma deprecated(CKT_NSS_UNTRUSTED, CKT_NSS_MUST_VERIFY, CKT_NSS_VALID)
-#endif
-/* CKT_NSS_UNTRUSTED really means CKT_NSS_MUST_VERIFY_TRUST */
-#define CKT_NSS_UNTRUSTED CKT_NSS_MUST_VERIFY_TRUST
-/* CKT_NSS_VALID really means CKT_NSS_NOT_TRUSTED */
-#define CKT_NSS_VALID CKT_NSS_NOT_TRUSTED
-/* CKT_NSS_MUST_VERIFY was always treated as CKT_NSS_TRUST_UNKNOWN */
-#define CKT_NSS_MUST_VERIFY (CKT_NSS + 4) /*really means trust unknown*/
-#endif
+_NSS_DEPRECATE_DEFINE_TYPE(CK_TRUST, CKT_NSS_UNTRUSTED,
+                           "CKT_NSS_UNTRUSTED really means CKT_NSS_MUST_VERIFY_TRUST")
+#define CKT_NSS_UNTRUSTED \
+    _NSS_DEPRECATE_DEFINE_VALUE(CKT_NSS_UNTRUSTED, CKT_NSS_MUST_VERIFY_TRUST)
+_NSS_DEPRECATE_DEFINE_TYPE(CK_TRUST, CKT_NSS_VALID,
+                           "CKT_NSS_VALID really means CKT_NSS_NOT_TRUSTED")
+#define CKT_NSS_VALID \
+    _NSS_DEPRECATE_DEFINE_VALUE(CKT_NSS_VALID, CKT_NSS_NOT_TRUSTED)
+_NSS_DEPRECATE_DEFINE_TYPE(CK_TRUST, CKT_NSS_MUST_VERIFY,
+                           "CKT_NSS_MUST_VERIFY really functions as CKT_NSS_TRUST_UNKNOWN");
+#define CKT_NSS_MUST_VERIFY \
+    _NSS_DEPRECATE_DEFINE_VALUE(CKT_NSS_MUST_VERIFY, CKT_NSS_TRUST_UNKNOWN)
 
 /*
  * These are not really PKCS #11 values specifically. They are the 'loadable'
