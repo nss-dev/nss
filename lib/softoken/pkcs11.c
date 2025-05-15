@@ -113,7 +113,7 @@ static PRIntervalTime loginWaitTime;
 
 /* build the crypto module table */
 static CK_FUNCTION_LIST_3_0 sftk_funcList = {
-    { CRYPTOKI_VERSION_MAJOR, CRYPTOKI_VERSION_MINOR },
+    { 3, 0 },
 
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_NEED_ARG_LIST

@@ -202,34 +202,77 @@
 /*
  * Trust attributes:
  *
- * If trust goes standard, these probably will too.  So I'll
- * put them all in one place.
+ * If trust attributes are now standard, but we didn't use
+ * NSS specific names, so the CKA_ names collide with the standard
+ * names. We'll update NSS to use specific names, and applications
+ * can use The #NSS_USE_STANDARD_TRUST define to select which values
+ * the CKA_TRUST_XXX names should map to.
+ *
+ * In our code we'll expect CKA_NSS_TRUST_xxx attributes in
+ * CKO_NSS_TRUST objects and CKA_PKCS_TRUST attributes in
+ * CKO_TRUST objects.
  */
-
-#define CKA_TRUST (CKA_NSS + 0x2000)
+#define CKA_NSS_TRUST_BASE (CKA_NSS + 0x2000)
 
 /* "Usage" key information */
-#define CKA_TRUST_DIGITAL_SIGNATURE (CKA_TRUST + 1)
-#define CKA_TRUST_NON_REPUDIATION (CKA_TRUST + 2)
-#define CKA_TRUST_KEY_ENCIPHERMENT (CKA_TRUST + 3)
-#define CKA_TRUST_DATA_ENCIPHERMENT (CKA_TRUST + 4)
-#define CKA_TRUST_KEY_AGREEMENT (CKA_TRUST + 5)
-#define CKA_TRUST_KEY_CERT_SIGN (CKA_TRUST + 6)
-#define CKA_TRUST_CRL_SIGN (CKA_TRUST + 7)
+#define CKA_NSS_TRUST_DIGITAL_SIGNATURE (CKA_NSS_TRUST_BASE + 1)
+#define CKA_NSS_TRUST_NON_REPUDIATION (CKA_NSS_TRUST_BASE + 2)
+#define CKA_NSS_TRUST_KEY_ENCIPHERMENT (CKA_NSS_TRUST_BASE + 3)
+#define CKA_NSS_TRUST_DATA_ENCIPHERMENT (CKA_NSS_TRUST_BASE + 4)
+#define CKA_NSS_TRUST_KEY_AGREEMENT (CKA_NSS_TRUST_BASE + 5)
+#define CKA_NSS_TRUST_KEY_CERT_SIGN (CKA_NSS_TRUST_BASE + 6)
+#define CKA_NSS_TRUST_CRL_SIGN (CKA_NSS_TRUST_BASE + 7)
 
 /* "Purpose" trust information */
-#define CKA_TRUST_SERVER_AUTH (CKA_TRUST + 8)
-#define CKA_TRUST_CLIENT_AUTH (CKA_TRUST + 9)
-#define CKA_TRUST_CODE_SIGNING (CKA_TRUST + 10)
-#define CKA_TRUST_EMAIL_PROTECTION (CKA_TRUST + 11)
-#define CKA_TRUST_IPSEC_END_SYSTEM (CKA_TRUST + 12)
-#define CKA_TRUST_IPSEC_TUNNEL (CKA_TRUST + 13)
-#define CKA_TRUST_IPSEC_USER (CKA_TRUST + 14)
-#define CKA_TRUST_TIME_STAMPING (CKA_TRUST + 15)
-#define CKA_TRUST_STEP_UP_APPROVED (CKA_TRUST + 16)
+#define CKA_NSS_TRUST_SERVER_AUTH (CKA_NSS_TRUST_BASE + 8)
+#define CKA_NSS_TRUST_CLIENT_AUTH (CKA_NSS_TRUST_BASE + 9)
+#define CKA_NSS_TRUST_CODE_SIGNING (CKA_NSS_TRUST_BASE + 10)
+#define CKA_NSS_TRUST_EMAIL_PROTECTION (CKA_NSS_TRUST_BASE + 11)
+#define CKA_NSS_TRUST_IPSEC_END_SYSTEM (CKA_NSS_TRUST_BASE + 12)
+#define CKA_NSS_TRUST_IPSEC_TUNNEL (CKA_NSS_TRUST_BASE + 13)
+#define CKA_NSS_TRUST_IPSEC_USER (CKA_NSS_TRUST_BASE + 14)
+#define CKA_NSS_TRUST_TIME_STAMPING (CKA_NSS_TRUST_BASE + 15)
+#define CKA_NSS_TRUST_STEP_UP_APPROVED (CKA_NSS_TRUST_BASE + 16)
 
-#define CKA_CERT_SHA1_HASH (CKA_TRUST + 100)
-#define CKA_CERT_MD5_HASH (CKA_TRUST + 101)
+#define CKA_NSS_CERT_SHA1_HASH (CKA_NSS_TRUST_BASE + 100)
+#define CKA_NSS_CERT_MD5_HASH (CKA_NSS_TRUST_BASE + 101)
+
+#ifdef NSS_USE_STANDARD_TRUST
+/* Names take on the PKCS #11 standard values */
+#define CKA_TRUST_SERVER_AUTH CKA_PKCS_TRUST_SERVER_AUTH
+#define CKA_TRUST_CLIENT_AUTH CKA_PKCS_TRUST_CLIENT_AUTH
+#define CKA_TRUST_CODE_SIGNING CKA_PKCS_TRUST_CODE_SIGNING
+#define CKA_TRUST_EMAIL_PROTECTION CKA_PKCS_TRUST_EMAIL_PROTECTION
+#define CKA_TRUST_TIME_STAMPING CKA_PKCS_TRUST_TIME_STAMPING
+#define CKA_TRUST_OCSP_SIGNING CKA_PKCS_TRUST_OCSP_SIGNING
+#else
+/* Names take on the legacy NSS values */
+/* NOTE these don't actually colide with the PKCS #11 standard values
+ * but we want to rename to with the NSS in them anyway. When
+ * you set NSS_USE_STANDARD_TRUST, the non _NSS_ names will
+ * go away */
+#define CKA_TRUST CKA_NSS_TRUST_BASE
+#define CKA_TRUST_DIGITAL_SIGNATURE CKA_NSS_TRUST_DIGITAL_SIGNATURE
+#define CKA_TRUST_NON_REPUDIATION CKA_NSS_TRUST_NON_REPUDIATION
+#define CKA_TRUST_KEY_ENCIPHERMENT CKA_NSS_TRUST_KEY_ENCIPHERMENT
+#define CKA_TRUST_DATA_ENCIPHERMENT CKA_NSS_TRUST_DATA_ENCIPHERMENT
+#define CKA_TRUST_KEY_AGREEMENT CKA_NSS_TRUST_KEY_AGREEMENT
+#define CKA_TRUST_KEY_CERT_SIGN CKA_NSS_TRUST_KEY_CERT_SIGN
+#define CKA_TRUST_CRL_SIGN CKA_NSS_TRUST_CRL_SIGN
+#define CKA_TRUST_EMAIL_PROTECTION CKA_NSS_TRUST_EMAIL_PROTECTION
+#define CKA_TRUST_IPSEC_END_SYSTEM CKA_NSS_TRUST_IPSEC_END_SYSTEM
+#define CKA_TRUST_IPSEC_TUNNEL CKA_NSS_TRUST_IPSEC_TUNNEL
+#define CKA_TRUST_IPSEC_USER CKA_NSS_TRUST_IPSEC_USER
+#define CKA_TRUST_STEP_UP_APPROVED CKA_NSS_TRUST_STEP_UP_APPROVED
+#define CKA_CERT_SHA1_HASH CKA_NSS_CERT_SHA1_HASH
+#define CKA_CERT_MD5_HASH CKA_NSS_CERT_MD5_HASH
+
+/* These names collide with pkcs #11 standard names */
+#define CKA_TRUST_SERVER_AUTH CKA_NSS_TRUST_SERVER_AUTH
+#define CKA_TRUST_CLIENT_AUTH CKA_NSS_TRUST_CLIENT_AUTH
+#define CKA_TRUST_CODE_SIGNING CKA_NSS_TRUST_CODE_SIGNING
+#define CKA_TRUST_TIME_STAMPING CKA_NSS_TRUST_TIME_STAMPING
+#endif
 
 /* NSS trust stuff */
 
@@ -551,14 +594,9 @@ typedef struct CK_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE_PARAMS {
 /*
  * Trust info
  *
- * This isn't part of the Cryptoki standard (yet), so I'm putting
- * all the definitions here.  Some of this would move to nssckt.h
- * if trust info were made part of the standard.  In view of this
- * possibility, I'm putting my (NSS) values in the NSS
- * vendor space, like everything else.
+ * This now part of the Cryptoki standard , These are all the
+ * old vendor defined symbols.
  */
-
-typedef CK_ULONG CK_TRUST;
 
 /* The following trust types are defined: */
 #define CKT_VENDOR_DEFINED 0x80000000
