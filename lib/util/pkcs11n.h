@@ -74,12 +74,12 @@
 #if defined(_WIN32) && !defined(NSS_SKIP_DEPRECATION_WARNING)
 /* windows, we just use pragma deprecated(identifier) */
 
-#define _NSS_DEPRECATE_DEFINE_TYPE(type, name, message) \
-#pragma deprecated(name)
+#define _NSS_DEPRECATE_DEFINE_TYPE(type, name, message)
+/* #pragma deprecated(name) */
 #define _NSS_DEPRECATE_DEFINE_VALUE(name, value) (value)
 
 #define _NSS_DEPRECATE_STRUCT(alias, name, message) \
-#pragma deprecated(name) typedef alias name;
+    /* #pragma deprecated(name) */ typedef alias name;
 
 #else /* not WIN or GNUC, just define the structure */
 
