@@ -77,6 +77,7 @@ lg_DestroyObject(SDB *sdb, CK_OBJECT_HANDLE object_id)
                 crv = CKR_DEVICE_ERROR;
             break;
         case LG_TOKEN_TYPE_TRUST:
+        case LG_TOKEN_TYPE_NSS_TRUST:
             certHandle = lg_getCertDB(sdb);
             if (!certHandle) {
                 crv = CKR_TOKEN_WRITE_PROTECTED;

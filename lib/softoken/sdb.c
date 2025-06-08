@@ -92,45 +92,73 @@ typedef enum {
 /*
  * known attributes
  */
-static const CK_ATTRIBUTE_TYPE known_attributes[] = {
-    CKA_CLASS, CKA_TOKEN, CKA_PRIVATE, CKA_LABEL, CKA_APPLICATION,
-    CKA_VALUE, CKA_OBJECT_ID, CKA_CERTIFICATE_TYPE, CKA_ISSUER,
+// clang-format off
+const CK_ATTRIBUTE_TYPE sftkdb_known_attributes[] = {
+    CKA_CLASS, CKA_TOKEN, CKA_PRIVATE, CKA_LABEL, CKA_UNIQUE_ID,
+    CKA_APPLICATION, CKA_VALUE, CKA_OBJECT_ID, CKA_CERTIFICATE_TYPE, CKA_ISSUER,
     CKA_SERIAL_NUMBER, CKA_AC_ISSUER, CKA_OWNER, CKA_ATTR_TYPES, CKA_TRUSTED,
     CKA_CERTIFICATE_CATEGORY, CKA_JAVA_MIDP_SECURITY_DOMAIN, CKA_URL,
     CKA_HASH_OF_SUBJECT_PUBLIC_KEY, CKA_HASH_OF_ISSUER_PUBLIC_KEY,
-    CKA_CHECK_VALUE, CKA_KEY_TYPE, CKA_SUBJECT, CKA_ID, CKA_SENSITIVE,
-    CKA_ENCRYPT, CKA_DECRYPT, CKA_WRAP, CKA_UNWRAP, CKA_SIGN, CKA_SIGN_RECOVER,
-    CKA_VERIFY, CKA_VERIFY_RECOVER, CKA_DERIVE, CKA_START_DATE, CKA_END_DATE,
-    CKA_MODULUS, CKA_MODULUS_BITS, CKA_PUBLIC_EXPONENT, CKA_PRIVATE_EXPONENT,
-    CKA_PRIME_1, CKA_PRIME_2, CKA_EXPONENT_1, CKA_EXPONENT_2, CKA_COEFFICIENT,
-    CKA_PUBLIC_KEY_INFO, CKA_PRIME, CKA_SUBPRIME, CKA_BASE, CKA_PRIME_BITS,
-    CKA_SUB_PRIME_BITS, CKA_VALUE_BITS, CKA_VALUE_LEN, CKA_EXTRACTABLE,
-    CKA_LOCAL, CKA_NEVER_EXTRACTABLE, CKA_ALWAYS_SENSITIVE,
-    CKA_KEY_GEN_MECHANISM, CKA_MODIFIABLE, CKA_EC_PARAMS,
-    CKA_EC_POINT, CKA_SECONDARY_AUTH, CKA_AUTH_PIN_FLAGS,
-    CKA_ALWAYS_AUTHENTICATE, CKA_WRAP_WITH_TRUSTED, CKA_HW_FEATURE_TYPE,
-    CKA_RESET_ON_INIT, CKA_HAS_RESET, CKA_PIXEL_X, CKA_PIXEL_Y,
-    CKA_RESOLUTION, CKA_CHAR_ROWS, CKA_CHAR_COLUMNS, CKA_COLOR,
-    CKA_BITS_PER_PIXEL, CKA_CHAR_SETS, CKA_ENCODING_METHODS, CKA_MIME_TYPES,
-    CKA_MECHANISM_TYPE, CKA_REQUIRED_CMS_ATTRIBUTES,
-    CKA_DEFAULT_CMS_ATTRIBUTES, CKA_SUPPORTED_CMS_ATTRIBUTES,
-    CKA_WRAP_TEMPLATE, CKA_UNWRAP_TEMPLATE, CKA_NSS_TRUST, CKA_NSS_URL,
-    CKA_NSS_EMAIL, CKA_NSS_SMIME_INFO, CKA_NSS_SMIME_TIMESTAMP,
-    CKA_NSS_PKCS8_SALT, CKA_NSS_PASSWORD_CHECK, CKA_NSS_EXPIRES,
-    CKA_NSS_KRL, CKA_NSS_PQG_COUNTER, CKA_NSS_PQG_SEED,
+    CKA_NAME_HASH_ALGORITHM, CKA_CHECK_VALUE, CKA_KEY_TYPE, CKA_SUBJECT,
+    CKA_ID, CKA_SENSITIVE, CKA_ENCRYPT, CKA_DECRYPT, CKA_WRAP, CKA_UNWRAP,
+    CKA_SIGN, CKA_SIGN_RECOVER, CKA_VERIFY, CKA_VERIFY_RECOVER, CKA_DERIVE,
+    CKA_START_DATE, CKA_END_DATE, CKA_MODULUS, CKA_MODULUS_BITS,
+    CKA_PUBLIC_EXPONENT, CKA_PRIVATE_EXPONENT, CKA_PRIME_1, CKA_PRIME_2,
+    CKA_EXPONENT_1, CKA_EXPONENT_2, CKA_COEFFICIENT, CKA_PUBLIC_KEY_INFO,
+    CKA_PRIME, CKA_SUBPRIME, CKA_BASE, CKA_PRIME_BITS, CKA_SUB_PRIME_BITS,
+    CKA_VALUE_BITS, CKA_VALUE_LEN, CKA_EXTRACTABLE, CKA_LOCAL,
+    CKA_NEVER_EXTRACTABLE, CKA_ALWAYS_SENSITIVE, CKA_KEY_GEN_MECHANISM,
+    CKA_MODIFIABLE, CKA_COPYABLE, CKA_DESTROYABLE, CKA_EC_PARAMS, CKA_EC_POINT,
+    CKA_SECONDARY_AUTH, CKA_AUTH_PIN_FLAGS, CKA_ALWAYS_AUTHENTICATE,
+    CKA_WRAP_WITH_TRUSTED, CKA_WRAP_TEMPLATE, CKA_UNWRAP_TEMPLATE,
+    CKA_DERIVE_TEMPLATE, CKA_OTP_FORMAT, CKA_OTP_LENGTH, CKA_OTP_TIME_INTERVAL,
+    CKA_OTP_USER_FRIENDLY_MODE, CKA_OTP_CHALLENGE_REQUIREMENT,
+    CKA_OTP_TIME_REQUIREMENT, CKA_OTP_COUNTER_REQUIREMENT,
+    CKA_OTP_PIN_REQUIREMENT, CKA_OTP_COUNTER, CKA_OTP_TIME,
+    CKA_OTP_USER_IDENTIFIER, CKA_OTP_SERVICE_IDENTIFIER, CKA_OTP_SERVICE_LOGO,
+    CKA_OTP_SERVICE_LOGO_TYPE, CKA_GOSTR3410_PARAMS, CKA_GOSTR3411_PARAMS,
+    CKA_GOST28147_PARAMS, CKA_HW_FEATURE_TYPE, CKA_RESET_ON_INIT,
+    CKA_HAS_RESET, CKA_PIXEL_X, CKA_PIXEL_Y, CKA_RESOLUTION, CKA_CHAR_ROWS,
+    CKA_CHAR_COLUMNS, CKA_COLOR, CKA_BITS_PER_PIXEL, CKA_CHAR_SETS,
+    CKA_ENCODING_METHODS, CKA_MIME_TYPES, CKA_MECHANISM_TYPE,
+    CKA_REQUIRED_CMS_ATTRIBUTES, CKA_DEFAULT_CMS_ATTRIBUTES,
+    CKA_SUPPORTED_CMS_ATTRIBUTES, CKA_PROFILE_ID, CKA_X2RATCHET_BAG,
+    CKA_X2RATCHET_BAGSIZE, CKA_X2RATCHET_BOBS1STMSG, CKA_X2RATCHET_CKR,
+    CKA_X2RATCHET_CKS, CKA_X2RATCHET_DHP, CKA_X2RATCHET_DHR,
+    CKA_X2RATCHET_DHS, CKA_X2RATCHET_HKR, CKA_X2RATCHET_HKS,
+    CKA_X2RATCHET_ISALICE, CKA_X2RATCHET_NHKR, CKA_X2RATCHET_NHKS,
+    CKA_X2RATCHET_NR, CKA_X2RATCHET_NS, CKA_X2RATCHET_PNS, CKA_X2RATCHET_RK,
+    CKA_HSS_LEVELS, CKA_HSS_LMS_TYPE, CKA_HSS_LMOTS_TYPE, CKA_HSS_LMS_TYPES,
+    CKA_HSS_LMOTS_TYPES, CKA_HSS_KEYS_REMAINING, CKA_OBJECT_VALIDATION_FLAGS,
+    CKA_VALIDATION_TYPE, CKA_VALIDATION_VERSION, CKA_VALIDATION_LEVEL,
+    CKA_VALIDATION_MODULE_ID, CKA_VALIDATION_FLAG,
+    CKA_VALIDATION_AUTHORITY_TYPE, CKA_VALIDATION_COUNTRY,
+    CKA_VALIDATION_CERTIFICATE_IDENTIFIER, CKA_VALIDATION_CERTIFICATE_URI,
+    CKA_VALIDATION_PROFILE, CKA_VALIDATION_VENDOR_URI, CKA_ENCAPSULATE_TEMPLATE,
+    CKA_DECAPSULATE_TEMPLATE, CKA_PKCS_TRUST_SERVER_AUTH,
+    CKA_PKCS_TRUST_CLIENT_AUTH, CKA_PKCS_TRUST_CODE_SIGNING,
+    CKA_PKCS_TRUST_EMAIL_PROTECTION, CKA_TRUST_IPSEC_IKE,
+    CKA_PKCS_TRUST_TIME_STAMPING, CKA_PKCS_TRUST_OCSP_SIGNING, CKA_ENCAPSULATE,
+    CKA_DECAPSULATE, CKA_HASH_OF_CERTIFICATE, CKA_PUBLIC_CRC64_VALUE, CKA_SEED,
+    CKA_NSS_TRUST, CKA_NSS_URL, CKA_NSS_EMAIL, CKA_NSS_SMIME_INFO,
+    CKA_NSS_SMIME_TIMESTAMP, CKA_NSS_PKCS8_SALT, CKA_NSS_PASSWORD_CHECK,
+    CKA_NSS_EXPIRES, CKA_NSS_KRL, CKA_NSS_PQG_COUNTER, CKA_NSS_PQG_SEED,
     CKA_NSS_PQG_H, CKA_NSS_PQG_SEED_BITS, CKA_NSS_MODULE_SPEC,
     CKA_NSS_OVERRIDE_EXTENSIONS, CKA_NSS_SERVER_DISTRUST_AFTER,
-    CKA_NSS_EMAIL_DISTRUST_AFTER, CKA_TRUST_DIGITAL_SIGNATURE,
-    CKA_TRUST_NON_REPUDIATION, CKA_TRUST_KEY_ENCIPHERMENT,
-    CKA_TRUST_DATA_ENCIPHERMENT, CKA_TRUST_KEY_AGREEMENT,
-    CKA_TRUST_KEY_CERT_SIGN, CKA_TRUST_CRL_SIGN, CKA_TRUST_SERVER_AUTH,
-    CKA_TRUST_CLIENT_AUTH, CKA_TRUST_CODE_SIGNING, CKA_TRUST_EMAIL_PROTECTION,
-    CKA_TRUST_IPSEC_END_SYSTEM, CKA_TRUST_IPSEC_TUNNEL, CKA_TRUST_IPSEC_USER,
-    CKA_TRUST_TIME_STAMPING, CKA_TRUST_STEP_UP_APPROVED, CKA_CERT_SHA1_HASH,
-    CKA_CERT_MD5_HASH, CKA_NSS_DB
+    CKA_NSS_EMAIL_DISTRUST_AFTER, CKA_NSS_TRUST_DIGITAL_SIGNATURE,
+    CKA_NSS_TRUST_NON_REPUDIATION, CKA_NSS_TRUST_KEY_ENCIPHERMENT,
+    CKA_NSS_TRUST_DATA_ENCIPHERMENT, CKA_NSS_TRUST_KEY_AGREEMENT,
+    CKA_NSS_TRUST_KEY_CERT_SIGN, CKA_NSS_TRUST_CRL_SIGN,
+    CKA_NSS_TRUST_SERVER_AUTH, CKA_NSS_TRUST_CLIENT_AUTH,
+    CKA_NSS_TRUST_CODE_SIGNING, CKA_NSS_TRUST_EMAIL_PROTECTION,
+    CKA_NSS_TRUST_IPSEC_END_SYSTEM, CKA_NSS_TRUST_IPSEC_TUNNEL,
+    CKA_NSS_TRUST_IPSEC_USER, CKA_NSS_TRUST_TIME_STAMPING,
+    CKA_NSS_TRUST_STEP_UP_APPROVED, CKA_NSS_CERT_SHA1_HASH,
+    CKA_NSS_CERT_MD5_HASH, CKA_NSS_DB,
 };
+// clang-format on
 
-static const int known_attributes_size = PR_ARRAY_SIZE(known_attributes);
+const int sftkdb_known_attributes_size = PR_ARRAY_SIZE(sftkdb_known_attributes);
 
 /*
  * Note on use of sqlReadDB: Only one thread at a time may have an actual
@@ -1941,6 +1969,99 @@ sdb_attributeComparator(const void *a, const void *b)
     return 0;
 }
 
+static const char ADD_COLUMN_CMD[] = "ALTER TABLE %s ADD COLUMN %s";
+static CK_RV
+sdb_add_column(sqlite3 *sqlDB, const char *table, sdbDataType type,
+               const char *typeString)
+{
+    char *newStr = sqlite3_mprintf(ADD_COLUMN_CMD, table, typeString);
+    int sqlerr;
+
+    sqlerr = sqlite3_exec(sqlDB, newStr, NULL, 0, NULL);
+    sqlite3_free(newStr);
+    if (sqlerr != SQLITE_OK) {
+        return sdb_mapSQLError(type, sqlerr);
+    }
+    return CKR_OK;
+}
+
+static const char COLUMN_QUERY_CMD[] =
+    "SELECT * FROM %s";
+/*
+ * if our current database does not have all the attributes in the columns,
+ * we  need to add those columns or attempts to add objects with those
+ * attributes will fail. We only need this on R/W databases because we only
+ * add objects to R/W databases.
+ */
+static CK_RV
+sdb_update_column(sqlite3 *sqlDB, const char *table, sdbDataType type)
+{
+    char *newStr = sqlite3_mprintf(COLUMN_QUERY_CMD, table);
+    sqlite3_stmt *stmt;
+    int columnCount;
+    int sqlerr;
+    CK_RV error;
+
+    if (!newStr) {
+        return CKR_HOST_MEMORY;
+    }
+
+    sqlerr = sqlite3_prepare_v2(sqlDB, newStr, -1, &stmt, NULL);
+    sqlite3_free(newStr);
+    if (sqlerr != SQLITE_OK) {
+        return sdb_mapSQLError(type, sqlerr);
+    }
+
+    columnCount = sqlite3_column_count(stmt);
+    /* columns include the first  column, which is id, which is not
+     * and attribute. check to make sure we have at least as many attributes
+     * as there are id in out list. This assumes we never add some
+     * attributes in some NSS version and not others, which is generally
+     * true. */
+    if (columnCount >= sftkdb_known_attributes_size + 1) {
+        sqlite3_finalize(stmt);
+        return CKR_OK;
+    }
+    /* we have more attributes than in the database, so we know things
+     * are missing, find what was missing */
+    for (int i = 0; i < sftkdb_known_attributes_size; i++) {
+        char *typeString = sqlite3_mprintf("a%x", sftkdb_known_attributes[i]);
+        PRBool found = PR_FALSE;
+        /* this one index is important, we skip the first column (id), since
+         * it will never match, starting at zero isn't a bug,
+         * just inefficient */
+        for (int j = 1; j < columnCount; j++) {
+            const char *columnName = sqlite3_column_name(stmt, j);
+            if (columnName == NULL) {
+                sqlite3_free(typeString);
+                sqlite3_finalize(stmt);
+                /* if we couldnt' get the colmun name, it's only because
+                 * we couldn't get the memory */
+                return CKR_HOST_MEMORY;
+            }
+            if (PORT_Strcmp(typeString, columnName) == 0) {
+                /* we found this one, no need to add it */
+                found = PR_TRUE;
+                break;
+            }
+        }
+        if (found) {
+            sqlite3_free(typeString);
+            continue;
+        }
+        /* we didn't find the attribute, so now add it */
+        error = sdb_add_column(sqlDB, table, type, typeString);
+        if (error != CKR_OK) {
+            sqlite3_free(typeString);
+            sqlite3_finalize(stmt);
+            return error;
+        }
+        sqlite3_free(typeString);
+    }
+    sqlite3_finalize(stmt);
+    return CKR_OK;
+}
+
 /*
  * initialize a single database
  */
@@ -2015,8 +2136,8 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
             goto loser;
         }
         initStr = sqlite3_mprintf("");
-        for (i = 0; initStr && i < known_attributes_size; i++) {
-            newStr = sqlite3_mprintf("%s, a%x", initStr, known_attributes[i]);
+        for (i = 0; initStr && i < sftkdb_known_attributes_size; i++) {
+            newStr = sqlite3_mprintf("%s, a%x", initStr, sftkdb_known_attributes[i]);
             sqlite3_free(initStr);
             initStr = newStr;
         }
@@ -2085,7 +2206,16 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
             error = sdb_mapSQLError(type, sqlerr);
             goto loser;
         }
+    } else if (flags != SDB_RDONLY) {
+        /* check to see if we need to update the scheme, only need to
+         * do  this if we open r/w, since that's the only case where
+         * it's a problem if the attribute colmumn are missing */
+        error = sdb_update_column(sqlDB, table, type);
+        if (error != CKR_OK) {
+            goto loser;
+        }
     }
+
     /*
      * detect the case where we have created the database, but have
      * not yet updated it.
@@ -2220,7 +2350,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
 
     /* Cache the attributes that are held in the table, so we can later check
      * that queried attributes actually exist. We don't assume the schema
-     * to be exactly |known_attributes|, as it may change over time. */
+     * to be exactly |sftkdb_known_attributes|, as it may change over time. */
     sdb_p->schemaAttrs = NULL;
     if (!PORT_Strcmp("nssPublic", table) ||
         !PORT_Strcmp("nssPrivate", table)) {
@@ -2240,7 +2370,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
         if (sqlerr != SQLITE_OK) {
             goto loser;
         }
-        unsigned int schemaAttrsCapacity = known_attributes_size;
+        unsigned int schemaAttrsCapacity = sftkdb_known_attributes_size;
         sdb_p->schemaAttrs = malloc(schemaAttrsCapacity * sizeof(CK_ATTRIBUTE_TYPE));
         if (!sdb_p->schemaAttrs) {
             error = CKR_HOST_MEMORY;
@@ -2253,7 +2383,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
             }
             if (sqlerr == SQLITE_ROW) {
                 if (backedAttrs == schemaAttrsCapacity) {
-                    schemaAttrsCapacity += known_attributes_size;
+                    schemaAttrsCapacity += sftkdb_known_attributes_size;
                     sdb_p->schemaAttrs = realloc(sdb_p->schemaAttrs,
                                                  schemaAttrsCapacity * sizeof(CK_ATTRIBUTE_TYPE));
                     if (!sdb_p->schemaAttrs) {

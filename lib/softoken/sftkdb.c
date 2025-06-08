@@ -60,23 +60,31 @@ sftkdb_isULONGAttribute(CK_ATTRIBUTE_TYPE type)
         case CKA_VALUE_BITS:
         case CKA_VALUE_LEN:
 
-        case CKA_TRUST_DIGITAL_SIGNATURE:
-        case CKA_TRUST_NON_REPUDIATION:
-        case CKA_TRUST_KEY_ENCIPHERMENT:
-        case CKA_TRUST_DATA_ENCIPHERMENT:
-        case CKA_TRUST_KEY_AGREEMENT:
-        case CKA_TRUST_KEY_CERT_SIGN:
-        case CKA_TRUST_CRL_SIGN:
+        case CKA_PKCS_TRUST_SERVER_AUTH:
+        case CKA_PKCS_TRUST_CLIENT_AUTH:
+        case CKA_PKCS_TRUST_CODE_SIGNING:
+        case CKA_PKCS_TRUST_EMAIL_PROTECTION:
+        case CKA_TRUST_IPSEC_IKE:
+        case CKA_PKCS_TRUST_TIME_STAMPING:
+        case CKA_NAME_HASH_ALGORITHM:
 
-        case CKA_TRUST_SERVER_AUTH:
-        case CKA_TRUST_CLIENT_AUTH:
-        case CKA_TRUST_CODE_SIGNING:
-        case CKA_TRUST_EMAIL_PROTECTION:
-        case CKA_TRUST_IPSEC_END_SYSTEM:
-        case CKA_TRUST_IPSEC_TUNNEL:
-        case CKA_TRUST_IPSEC_USER:
-        case CKA_TRUST_TIME_STAMPING:
-        case CKA_TRUST_STEP_UP_APPROVED:
+        case CKA_NSS_TRUST_DIGITAL_SIGNATURE:
+        case CKA_NSS_TRUST_NON_REPUDIATION:
+        case CKA_NSS_TRUST_KEY_ENCIPHERMENT:
+        case CKA_NSS_TRUST_DATA_ENCIPHERMENT:
+        case CKA_NSS_TRUST_KEY_AGREEMENT:
+        case CKA_NSS_TRUST_KEY_CERT_SIGN:
+        case CKA_NSS_TRUST_CRL_SIGN:
+
+        case CKA_NSS_TRUST_SERVER_AUTH:
+        case CKA_NSS_TRUST_CLIENT_AUTH:
+        case CKA_NSS_TRUST_CODE_SIGNING:
+        case CKA_NSS_TRUST_EMAIL_PROTECTION:
+        case CKA_NSS_TRUST_IPSEC_END_SYSTEM:
+        case CKA_NSS_TRUST_IPSEC_TUNNEL:
+        case CKA_NSS_TRUST_IPSEC_USER:
+        case CKA_NSS_TRUST_TIME_STAMPING:
+        case CKA_NSS_TRUST_STEP_UP_APPROVED:
             return PR_TRUE;
         default:
             break;
@@ -110,13 +118,19 @@ sftkdb_isAuthenticatedAttribute(CK_ATTRIBUTE_TYPE type)
     switch (type) {
         case CKA_MODULUS:
         case CKA_PUBLIC_EXPONENT:
-        case CKA_CERT_SHA1_HASH:
-        case CKA_CERT_MD5_HASH:
-        case CKA_TRUST_SERVER_AUTH:
-        case CKA_TRUST_CLIENT_AUTH:
-        case CKA_TRUST_EMAIL_PROTECTION:
-        case CKA_TRUST_CODE_SIGNING:
-        case CKA_TRUST_STEP_UP_APPROVED:
+        case CKA_NSS_CERT_SHA1_HASH:
+        case CKA_NSS_CERT_MD5_HASH:
+        case CKA_NSS_TRUST_SERVER_AUTH:
+        case CKA_NSS_TRUST_CLIENT_AUTH:
+        case CKA_NSS_TRUST_EMAIL_PROTECTION:
+        case CKA_NSS_TRUST_CODE_SIGNING:
+        case CKA_NSS_TRUST_STEP_UP_APPROVED:
+        case CKA_HASH_OF_CERTIFICATE:
+        case CKA_NAME_HASH_ALGORITHM:
+        case CKA_PKCS_TRUST_SERVER_AUTH:
+        case CKA_PKCS_TRUST_CLIENT_AUTH:
+        case CKA_PKCS_TRUST_EMAIL_PROTECTION:
+        case CKA_PKCS_TRUST_CODE_SIGNING:
         case CKA_NSS_OVERRIDE_EXTENSIONS:
             return PR_TRUE;
         default:
@@ -161,10 +175,10 @@ PRBool
 sftkdb_isNullTrust(const CK_ATTRIBUTE *template)
 {
     switch (template->type) {
-        case CKA_TRUST_SERVER_AUTH:
-        case CKA_TRUST_CLIENT_AUTH:
-        case CKA_TRUST_EMAIL_PROTECTION:
-        case CKA_TRUST_CODE_SIGNING:
+        case CKA_NSS_TRUST_SERVER_AUTH:
+        case CKA_NSS_TRUST_CLIENT_AUTH:
+        case CKA_NSS_TRUST_EMAIL_PROTECTION:
+        case CKA_NSS_TRUST_CODE_SIGNING:
             if (template->ulValueLen != SDB_ULONG_SIZE) {
                 break;
             }
@@ -173,7 +187,19 @@ sftkdb_isNullTrust(const CK_ATTRIBUTE *template)
                 return PR_TRUE;
             }
             break;
-        case CKA_TRUST_STEP_UP_APPROVED:
+        case CKA_PKCS_TRUST_SERVER_AUTH:
+        case CKA_PKCS_TRUST_CLIENT_AUTH:
+        case CKA_PKCS_TRUST_EMAIL_PROTECTION:
+        case CKA_PKCS_TRUST_CODE_SIGNING:
+            if (template->ulValueLen != SDB_ULONG_SIZE) {
+                break;
+            }
+            if (sftk_SDBULong2ULong(template->pValue) ==
+                CKT_TRUST_UNKNOWN) {
+                return PR_TRUE;
+            }
+            break;
+        case CKA_NSS_TRUST_STEP_UP_APPROVED:
             if (template->ulValueLen != 1) {
                 break;
             }
@@ -859,6 +885,7 @@ sftkdb_getFindTemplate(CK_OBJECT_CLASS objectType, unsigned char *objTypeData,
     switch (objectType) {
         case CKO_CERTIFICATE:
         case CKO_NSS_TRUST:
+        case CKO_TRUST:
             attr = sftkdb_getAttributeFromTemplate(CKA_ISSUER, ptemplate, len);
             if (attr == NULL) {
                 return CKR_TEMPLATE_INCOMPLETE;
@@ -1593,19 +1620,31 @@ sftkdb_DestroyObject(SFTKDBHandle *handle, CK_OBJECT_HANDLE objectID,
         (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
                                                CKA_PUBLIC_EXPONENT);
         (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
-                                               CKA_CERT_SHA1_HASH);
+                                               CKA_NSS_CERT_SHA1_HASH);
         (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
-                                               CKA_CERT_MD5_HASH);
+                                               CKA_NSS_CERT_MD5_HASH);
         (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
-                                               CKA_TRUST_SERVER_AUTH);
+                                               CKA_HASH_OF_CERTIFICATE);
         (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
-                                               CKA_TRUST_CLIENT_AUTH);
+                                               CKA_NAME_HASH_ALGORITHM);
         (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
-                                               CKA_TRUST_EMAIL_PROTECTION);
+                                               CKA_NSS_TRUST_SERVER_AUTH);
         (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
-                                               CKA_TRUST_CODE_SIGNING);
+                                               CKA_NSS_TRUST_CLIENT_AUTH);
         (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
-                                               CKA_TRUST_STEP_UP_APPROVED);
+                                               CKA_NSS_TRUST_EMAIL_PROTECTION);
+        (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
+                                               CKA_NSS_TRUST_CODE_SIGNING);
+        (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
+                                               CKA_NSS_TRUST_STEP_UP_APPROVED);
+        (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
+                                               CKA_PKCS_TRUST_SERVER_AUTH);
+        (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
+                                               CKA_PKCS_TRUST_CLIENT_AUTH);
+        (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
+                                               CKA_PKCS_TRUST_EMAIL_PROTECTION);
+        (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
+                                               CKA_PKCS_TRUST_CODE_SIGNING);
         (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
                                                CKA_NSS_OVERRIDE_EXTENSIONS);
     }
@@ -1738,50 +1777,6 @@ sftkdb_Abort(SFTKDBHandle *handle)
  * functions to update the database from an old database
  */
 
-/*
- * known attributes
- */
-static const CK_ATTRIBUTE_TYPE known_attributes[] = {
-    CKA_CLASS, CKA_TOKEN, CKA_PRIVATE, CKA_LABEL, CKA_APPLICATION,
-    CKA_VALUE, CKA_OBJECT_ID, CKA_CERTIFICATE_TYPE, CKA_ISSUER,
-    CKA_SERIAL_NUMBER, CKA_AC_ISSUER, CKA_OWNER, CKA_ATTR_TYPES, CKA_TRUSTED,
-    CKA_CERTIFICATE_CATEGORY, CKA_JAVA_MIDP_SECURITY_DOMAIN, CKA_URL,
-    CKA_HASH_OF_SUBJECT_PUBLIC_KEY, CKA_HASH_OF_ISSUER_PUBLIC_KEY,
-    CKA_CHECK_VALUE, CKA_KEY_TYPE, CKA_SUBJECT, CKA_ID, CKA_SENSITIVE,
-    CKA_ENCRYPT, CKA_DECRYPT, CKA_WRAP, CKA_UNWRAP, CKA_SIGN, CKA_SIGN_RECOVER,
-    CKA_VERIFY, CKA_VERIFY_RECOVER, CKA_DERIVE, CKA_START_DATE, CKA_END_DATE,
-    CKA_MODULUS, CKA_MODULUS_BITS, CKA_PUBLIC_EXPONENT, CKA_PRIVATE_EXPONENT,
-    CKA_PRIME_1, CKA_PRIME_2, CKA_EXPONENT_1, CKA_EXPONENT_2, CKA_COEFFICIENT,
-    CKA_PRIME, CKA_SUBPRIME, CKA_BASE, CKA_PRIME_BITS,
-    CKA_SUB_PRIME_BITS, CKA_VALUE_BITS, CKA_VALUE_LEN, CKA_EXTRACTABLE,
-    CKA_LOCAL, CKA_NEVER_EXTRACTABLE, CKA_ALWAYS_SENSITIVE,
-    CKA_KEY_GEN_MECHANISM, CKA_MODIFIABLE, CKA_EC_PARAMS,
-    CKA_EC_POINT, CKA_SECONDARY_AUTH, CKA_AUTH_PIN_FLAGS,
-    CKA_ALWAYS_AUTHENTICATE, CKA_WRAP_WITH_TRUSTED, CKA_WRAP_TEMPLATE,
-    CKA_UNWRAP_TEMPLATE, CKA_HW_FEATURE_TYPE, CKA_RESET_ON_INIT,
-    CKA_HAS_RESET, CKA_PIXEL_X, CKA_PIXEL_Y, CKA_RESOLUTION, CKA_CHAR_ROWS,
-    CKA_CHAR_COLUMNS, CKA_COLOR, CKA_BITS_PER_PIXEL, CKA_CHAR_SETS,
-    CKA_ENCODING_METHODS, CKA_MIME_TYPES, CKA_MECHANISM_TYPE,
-    CKA_REQUIRED_CMS_ATTRIBUTES, CKA_DEFAULT_CMS_ATTRIBUTES,
-    CKA_SUPPORTED_CMS_ATTRIBUTES, CKA_NSS_URL, CKA_NSS_EMAIL,
-    CKA_NSS_SMIME_INFO, CKA_NSS_SMIME_TIMESTAMP,
-    CKA_NSS_PKCS8_SALT, CKA_NSS_PASSWORD_CHECK, CKA_NSS_EXPIRES,
-    CKA_NSS_KRL, CKA_NSS_PQG_COUNTER, CKA_NSS_PQG_SEED,
-    CKA_NSS_PQG_H, CKA_NSS_PQG_SEED_BITS, CKA_NSS_MODULE_SPEC,
-    CKA_TRUST_DIGITAL_SIGNATURE, CKA_TRUST_NON_REPUDIATION,
-    CKA_TRUST_KEY_ENCIPHERMENT, CKA_TRUST_DATA_ENCIPHERMENT,
-    CKA_TRUST_KEY_AGREEMENT, CKA_TRUST_KEY_CERT_SIGN, CKA_TRUST_CRL_SIGN,
-    CKA_TRUST_SERVER_AUTH, CKA_TRUST_CLIENT_AUTH, CKA_TRUST_CODE_SIGNING,
-    CKA_TRUST_EMAIL_PROTECTION, CKA_TRUST_IPSEC_END_SYSTEM,
-    CKA_TRUST_IPSEC_TUNNEL, CKA_TRUST_IPSEC_USER, CKA_TRUST_TIME_STAMPING,
-    CKA_TRUST_STEP_UP_APPROVED, CKA_CERT_SHA1_HASH, CKA_CERT_MD5_HASH,
-    CKA_NSS_DB, CKA_NSS_TRUST, CKA_NSS_OVERRIDE_EXTENSIONS,
-    CKA_PUBLIC_KEY_INFO
-};
-
-static unsigned int known_attributes_size = sizeof(known_attributes) /
-                                            sizeof(known_attributes[0]);
-
 static CK_RV
 sftkdb_GetObjectTemplate(SDB *source, CK_OBJECT_HANDLE id,
                          CK_ATTRIBUTE *ptemplate, CK_ULONG *max)
@@ -1789,28 +1784,28 @@ sftkdb_GetObjectTemplate(SDB *source, CK_OBJECT_HANDLE id,
     unsigned int i, j;
     CK_RV crv;
 
-    if (*max < known_attributes_size) {
-        *max = known_attributes_size;
+    if (*max < sftkdb_known_attributes_size) {
+        *max = sftkdb_known_attributes_size;
         return CKR_BUFFER_TOO_SMALL;
     }
-    for (i = 0; i < known_attributes_size; i++) {
-        ptemplate[i].type = known_attributes[i];
+    for (i = 0; i < sftkdb_known_attributes_size; i++) {
+        ptemplate[i].type = sftkdb_known_attributes[i];
         ptemplate[i].pValue = NULL;
         ptemplate[i].ulValueLen = 0;
     }
 
     crv = (*source->sdb_GetAttributeValue)(source, id,
-                                           ptemplate, known_attributes_size);
+                                           ptemplate, sftkdb_known_attributes_size);
 
     if ((crv != CKR_OK) && (crv != CKR_ATTRIBUTE_TYPE_INVALID)) {
         return crv;
     }
 
-    for (i = 0, j = 0; i < known_attributes_size; i++, j++) {
-        while (i < known_attributes_size && (ptemplate[i].ulValueLen == -1)) {
+    for (i = 0, j = 0; i < sftkdb_known_attributes_size; i++, j++) {
+        while (i < sftkdb_known_attributes_size && (ptemplate[i].ulValueLen == -1)) {
             i++;
         }
-        if (i >= known_attributes_size) {
+        if (i >= sftkdb_known_attributes_size) {
             break;
         }
         /* cheap optimization */
@@ -1899,6 +1894,17 @@ sftkdb_getULongFromTemplate(CK_ATTRIBUTE_TYPE type,
         return sftk_SDBULong2ULong(attr->pValue);
     }
     return (CK_ULONG)-1;
+}
+
+static CK_RV
+sftkdb_setULongInTemplate(CK_ATTRIBUTE *ptemplate, CK_ULONG value)
+{
+    if ((ptemplate->ulValueLen < SDB_ULONG_SIZE) || !ptemplate->pValue) {
+        return CKR_TEMPLATE_INCOMPLETE;
+    }
+    ptemplate->ulValueLen = SDB_ULONG_SIZE;
+    sftk_ULong2SDBULong(ptemplate->pValue, value);
+    return CKR_OK;
 }
 
 /*
@@ -2049,12 +2055,12 @@ sftkdb_reconcileTrustEntry(PLArenaPool *arena, CK_ATTRIBUTE *target,
      * appropriate length (SDB_ULONG_SIZE). We no longer need to check
      * ulValueLen for either attribute.
      */
-    if (sourceTrust == CKT_NSS_TRUST_UNKNOWN) {
+    if (sourceTrust == CKT_TRUST_UNKNOWN) {
         return SFTKDB_DROP_ATTRIBUTE;
     }
 
     /* target has no idea, use the source's idea of the trust value */
-    if (targetTrust == CKT_NSS_TRUST_UNKNOWN) {
+    if (targetTrust == CKT_TRUST_UNKNOWN) {
         /* overwriting the target in this case is OK */
         return SFTKDB_MODIFY_OBJECT;
     }
@@ -2062,15 +2068,14 @@ sftkdb_reconcileTrustEntry(PLArenaPool *arena, CK_ATTRIBUTE *target,
     /* so both the target and the source have some idea of what this
      * trust attribute should be, and neither agree exactly.
      * At this point, we prefer 'hard' attributes over 'soft' ones.
-     * 'hard' ones are CKT_NSS_TRUSTED, CKT_NSS_TRUSTED_DELEGATOR, and
+     * 'hard' ones are CKT_TRUSTED, CKT_TRUST_ANCHOR, and
      * CKT_NSS_NOT_TRUTED. Soft ones are ones which don't change the
-     * actual trust of the cert (CKT_MUST_VERIFY_TRUST,
-     * CKT_NSS_VALID_DELEGATOR).
+     * actual trust of the cert (CKT_TRUST_MUST_VERIFY_TRUST).
      */
-    if ((sourceTrust == CKT_NSS_MUST_VERIFY_TRUST) || (sourceTrust == CKT_NSS_VALID_DELEGATOR)) {
+    if (sourceTrust == CKT_TRUST_MUST_VERIFY_TRUST) {
         return SFTKDB_DROP_ATTRIBUTE;
     }
-    if ((targetTrust == CKT_NSS_MUST_VERIFY_TRUST) || (targetTrust == CKT_NSS_VALID_DELEGATOR)) {
+    if (targetTrust == CKT_TRUST_MUST_VERIFY_TRUST) {
         /* again, overwriting the target in this case is OK */
         return SFTKDB_MODIFY_OBJECT;
     }
@@ -2079,10 +2084,153 @@ sftkdb_reconcileTrustEntry(PLArenaPool *arena, CK_ATTRIBUTE *target,
     return SFTKDB_DROP_ATTRIBUTE;
 }
 
-const CK_ATTRIBUTE_TYPE sftkdb_trustList[] = { CKA_TRUST_SERVER_AUTH, CKA_TRUST_CLIENT_AUTH,
-                                               CKA_TRUST_CODE_SIGNING, CKA_TRUST_EMAIL_PROTECTION,
-                                               CKA_TRUST_IPSEC_TUNNEL, CKA_TRUST_IPSEC_USER,
-                                               CKA_TRUST_TIME_STAMPING };
+/* map the attribute types */
+CK_TRUST
+sftkdb_mapNSSTrustValueToPKCS11TrustValue(CK_TRUST trust)
+{
+    switch (trust) {
+        case CKT_NSS_TRUSTED:
+            return CKT_TRUSTED;
+        case CKT_NSS_TRUSTED_DELEGATOR:
+            return CKT_TRUST_ANCHOR;
+        case CKT_NSS_VALID_DELEGATOR:
+        case CKT_NSS_MUST_VERIFY_TRUST:
+            return CKT_TRUST_MUST_VERIFY_TRUST;
+        case CKT_NSS_NOT_TRUSTED:
+            return CKT_NOT_TRUSTED;
+        case CKT_NSS_TRUST_UNKNOWN:
+            return CKT_TRUST_UNKNOWN;
+        default:
+            break;
+    }
+    return CKT_TRUST_UNKNOWN; /* everything else, just copy */
+}
+
+/* map the attribute types */
+CK_ATTRIBUTE_TYPE
+sftkdb_mapNSSTrustAttributeTypeToTrustAttributeType(CK_ATTRIBUTE_TYPE type)
+{
+    switch (type) {
+        case CKA_NSS_CERT_SHA1_HASH:
+            return CKA_HASH_OF_CERTIFICATE;
+        case CKA_NSS_TRUST_SERVER_AUTH:
+            return CKA_PKCS_TRUST_SERVER_AUTH;
+        case CKA_NSS_TRUST_CLIENT_AUTH:
+            return CKA_PKCS_TRUST_CLIENT_AUTH;
+        case CKA_NSS_TRUST_CODE_SIGNING:
+            return CKA_PKCS_TRUST_CODE_SIGNING;
+        case CKA_NSS_TRUST_EMAIL_PROTECTION:
+            return CKA_PKCS_TRUST_EMAIL_PROTECTION;
+        case CKA_NSS_TRUST_IPSEC_TUNNEL:
+            return CKA_TRUST_IPSEC_IKE;
+        case CKA_NSS_TRUST_TIME_STAMPING:
+            return CKA_PKCS_TRUST_TIME_STAMPING;
+        default:
+            break;
+    }
+    return type; /* everything else, just copy */
+}
+
+/* these attributes have no mappings, just drop them */
+PRBool
+sftkdb_dropTrustAttribute(CK_ATTRIBUTE_TYPE type)
+{
+    switch (type) {
+        case CKA_NSS_CERT_MD5_HASH:
+        case CKA_NSS_TRUST_DIGITAL_SIGNATURE:
+        case CKA_NSS_TRUST_NON_REPUDIATION:
+        case CKA_NSS_TRUST_KEY_ENCIPHERMENT:
+        case CKA_NSS_TRUST_DATA_ENCIPHERMENT:
+        case CKA_NSS_TRUST_KEY_AGREEMENT:
+        case CKA_NSS_TRUST_KEY_CERT_SIGN:
+        case CKA_NSS_TRUST_CRL_SIGN:
+        case CKA_NSS_TRUST_IPSEC_END_SYSTEM:
+        case CKA_NSS_TRUST_IPSEC_USER:
+        case CKA_NSS_TRUST_STEP_UP_APPROVED:
+            return PR_TRUE;
+    }
+    return PR_FALSE;
+}
+
+CK_RV
+sftkdb_mapTrustAttribute(CK_ATTRIBUTE *attr)
+{
+    CK_ATTRIBUTE_TYPE oldType = attr->type;
+    attr->type = sftkdb_mapNSSTrustAttributeTypeToTrustAttributeType(attr->type);
+    if ((attr->type != oldType) && (attr->ulValueLen == SDB_ULONG_SIZE)) {
+        CK_TRUST oldTrust = sftkdb_getULongFromTemplate(attr->type, attr, 1);
+        CK_TRUST newTrust = sftkdb_mapNSSTrustValueToPKCS11TrustValue(oldTrust);
+        return sftkdb_setULongInTemplate(attr, newTrust);
+    }
+    return CKR_OK;
+}
+
+/*
+ * take an NSS vendor specific trust object and map it to the
+ * standard PKCS trust object. If the template includes attributes
+ * that have not be mapped to PKCS then those attributes may be dropped.
+ */
+CK_RV
+sftkdb_mapNSSTrustToPKCS11Trust(CK_ATTRIBUTE *trustTemplate,
+                                CK_ULONG *templateCountPtr)
+{
+    CK_ULONG i;
+    CK_ULONG originalCount = *templateCountPtr;
+    void *space = NULL;
+    int hasCertificateHash = 0;
+    CK_RV crv;
+
+    for (i = 0; i < *templateCountPtr; i++) {
+        CK_ATTRIBUTE *attr = &trustTemplate[i];
+        if (sftkdb_dropTrustAttribute(attr->type)) {
+            /* if there's a enough space to store a ulong, hang
+             * onto it. We will probably need it tostore
+             * CKA_NAME_HASH_ALGORITHM */
+            if (!space && attr->ulValueLen >= SDB_ULONG_SIZE) {
+                space = attr->pValue;
+            }
+            sftkdb_dropAttribute(attr, trustTemplate, templateCountPtr);
+            continue;
+        }
+        crv = sftkdb_mapTrustAttribute(attr);
+        if (crv != CKR_OK) {
+            return crv;
+        }
+        if (attr->type == CKA_HASH_OF_CERTIFICATE) {
+            hasCertificateHash++;
+        }
+    }
+    /* if we have CKA_HASH_OF_CERTIFICATE, then we need to add
+     * CKA_NAME_HASH_ALGORITHM. We can only do that if we have dropped
+     * an attribute because we can't expand the template. This shouldn't
+     * be a problem because in a normal template we'll have a CKA_CERT_HASH_MD5
+     * attribute and a CKA_NSS_TRUST_STEP_UP_APPROVED attribute */
+    if (hasCertificateHash) {
+        if ((*templateCountPtr >= originalCount) || !space) {
+            return CKR_TEMPLATE_INCOMPLETE;
+        }
+        i = (*templateCountPtr)++;
+        trustTemplate[i].type = CKA_NAME_HASH_ALGORITHM;
+        trustTemplate[i].pValue = space;
+        trustTemplate[i].ulValueLen = SDB_ULONG_SIZE;
+        return sftkdb_setULongInTemplate(&trustTemplate[i], CKM_SHA_1);
+    }
+    return CKR_OK;
+}
+
+const CK_ATTRIBUTE_TYPE sftkdb_nssTrustList[] = { CKA_NSS_TRUST_SERVER_AUTH,
+                                                  CKA_NSS_TRUST_CLIENT_AUTH,
+                                                  CKA_NSS_TRUST_CODE_SIGNING,
+                                                  CKA_NSS_TRUST_EMAIL_PROTECTION,
+                                                  CKA_NSS_TRUST_IPSEC_TUNNEL,
+                                                  CKA_NSS_TRUST_TIME_STAMPING };
+
+const CK_ATTRIBUTE_TYPE sftkdb_trustList[] = { CKA_PKCS_TRUST_SERVER_AUTH,
+                                               CKA_PKCS_TRUST_CLIENT_AUTH,
+                                               CKA_PKCS_TRUST_CODE_SIGNING,
+                                               CKA_PKCS_TRUST_EMAIL_PROTECTION,
+                                               CKA_TRUST_IPSEC_IKE,
+                                               CKA_PKCS_TRUST_TIME_STAMPING };
 
 #define SFTK_TRUST_TEMPLATE_COUNT \
     (sizeof(sftkdb_trustList) / sizeof(sftkdb_trustList[0]))
@@ -2093,28 +2241,43 @@ const CK_ATTRIBUTE_TYPE sftkdb_trustList[] = { CKA_TRUST_SERVER_AUTH, CKA_TRUST_
  */
 static sftkdbUpdateStatus
 sftkdb_reconcileTrust(PLArenaPool *arena, SDB *db, CK_OBJECT_HANDLE id,
-                      CK_ATTRIBUTE *ptemplate, CK_ULONG *plen)
+                      PRBool useLegacy, CK_ATTRIBUTE *ptemplate,
+                      CK_ULONG *plen)
 {
     CK_ATTRIBUTE trustTemplate[SFTK_TRUST_TEMPLATE_COUNT];
     unsigned char trustData[SFTK_TRUST_TEMPLATE_COUNT * SDB_ULONG_SIZE];
-    sftkdbUpdateStatus update = SFTKDB_DO_NOTHING;
+    sftkdbUpdateStatus update = useLegacy ? SFTKDB_DO_NOTHING
+                                          : SFTKDB_MODIFY_OBJECT;
+    const CK_ULONG templateCount = PR_ARRAY_SIZE(sftkdb_trustList);
     CK_ULONG i;
     CK_RV crv;
 
+    /* make sure the two arrays are the same size */
+    PR_STATIC_ASSERT(PR_ARRAY_SIZE(sftkdb_trustList) == PR_ARRAY_SIZE(sftkdb_nssTrustList));
     for (i = 0; i < SFTK_TRUST_TEMPLATE_COUNT; i++) {
-        trustTemplate[i].type = sftkdb_trustList[i];
+        trustTemplate[i].type = useLegacy ? sftkdb_nssTrustList[i]
+                                          : sftkdb_trustList[i];
         trustTemplate[i].pValue = &trustData[i * SDB_ULONG_SIZE];
         trustTemplate[i].ulValueLen = SDB_ULONG_SIZE;
     }
     crv = (*db->sdb_GetAttributeValue)(db, id,
-                                       trustTemplate, SFTK_TRUST_TEMPLATE_COUNT);
+                                       trustTemplate, templateCount);
     if ((crv != CKR_OK) && (crv != CKR_ATTRIBUTE_TYPE_INVALID)) {
         /* target trust has some problems, update it */
         update = SFTKDB_MODIFY_OBJECT;
         goto done;
     }
 
-    for (i = 0; i < SFTK_TRUST_TEMPLATE_COUNT; i++) {
+    if (useLegacy) {
+        CK_ULONG count = templateCount;
+        crv = sftkdb_mapNSSTrustToPKCS11Trust(trustTemplate, &count);
+        PORT_Assert((count == templateCount) && (crv != CKR_OK));
+        if ((count == templateCount) && (crv != CKR_OK)) {
+            return SFTKDB_DO_NOTHING;
+        }
+    }
+
+    for (i = 0; i < templateCount; i++) {
         CK_ATTRIBUTE *attr = sftkdb_getAttributeFromTemplate(
             trustTemplate[i].type, ptemplate, *plen);
         sftkdbUpdateStatus status;
@@ -2136,39 +2299,38 @@ sftkdb_reconcileTrust(PLArenaPool *arena, SDB *db, CK_OBJECT_HANDLE id,
             continue;
         }
         status = sftkdb_reconcileTrustEntry(arena, &trustTemplate[i], attr);
-        if (status == SFTKDB_MODIFY_OBJECT) {
-            update = SFTKDB_MODIFY_OBJECT;
-        } else if (status == SFTKDB_DROP_ATTRIBUTE) {
-            /* drop the source copy of the attribute, we are going with
-             * the target's version */
-            sftkdb_dropAttribute(attr, ptemplate, plen);
+        if (useLegacy) {
+            /* in the legacy case we are always modifying the object because
+             * we are updating to the new attribute type */
+            if (status == SFTKDB_DROP_ATTRIBUTE) {
+                /* rather than drop the attribute, we need to copy the
+                 * updated destination attribute */
+                *attr = trustTemplate[i];
+            }
+            /* SFTKDB_MODIFY_OBJECT - we are already modifying the object,
+             * do nothing */
+            /* SFTKDB_NO_NOTHING, both source and target already have the
+             * correct attribute, so no need to copy */
+        } else {
+            /* not legacy, so the target will be updated in place
+             * if necessary */
+            if (status == SFTKDB_MODIFY_OBJECT) {
+                /* we need to write the source version of this attribute
+                 * to the target, we need to modify the object */
+                update = SFTKDB_MODIFY_OBJECT;
+            } else if (status == SFTKDB_DROP_ATTRIBUTE) {
+                /* drop the source copy of the attribute, we are going with
+                 * the target's version. This allows us to modify other
+                 * attributes if we need to. */
+                sftkdb_dropAttribute(attr, ptemplate, plen);
+            }
+            /* SFTKDB_NO_NOTHING, both source and target already have the
+             * correct attribute, so no need to or drop anything */
         }
     }
 
-    /* finally manage stepup */
-    if (update == SFTKDB_MODIFY_OBJECT) {
-        CK_BBOOL stepUpBool = CK_FALSE;
-        /* if we are going to write from the source, make sure we don't
-         * overwrite the stepup bit if it's on*/
-        trustTemplate[0].type = CKA_TRUST_STEP_UP_APPROVED;
-        trustTemplate[0].pValue = &stepUpBool;
-        trustTemplate[0].ulValueLen = sizeof(stepUpBool);
-        crv = (*db->sdb_GetAttributeValue)(db, id, trustTemplate, 1);
-        if ((crv == CKR_OK) && (stepUpBool == CK_TRUE)) {
-            sftkdb_dropAttribute(trustTemplate, ptemplate, plen);
-        }
-    } else {
-        /* we currently aren't going to update. If the source stepup bit is
-         * on however, do an update so the target gets it as well */
-        CK_ATTRIBUTE *attr;
-
-        attr = sftkdb_getAttributeFromTemplate(CKA_TRUST_STEP_UP_APPROVED,
-                                               ptemplate, *plen);
-        if (attr && (attr->ulValueLen == sizeof(CK_BBOOL)) &&
-            (*(CK_BBOOL *)(attr->pValue) == CK_TRUE)) {
-            update = SFTKDB_MODIFY_OBJECT;
-        }
-    }
+    /* we don't support step-up in the PKCS version, so don't do anything with
+     * step-up */
 
 done:
     return update;
@@ -2272,11 +2434,25 @@ sftkdb_updateObjectTemplate(PLArenaPool *arena, SDB *db,
         return SFTKDB_DO_NOTHING;
     }
 
+    if (objectType == CKO_NSS_TRUST) {
+        sftkdb_mapNSSTrustToPKCS11Trust(ptemplate, plen);
+        objectType = CKO_TRUST;
+    }
+
     do {
         done = PR_TRUE;
         crv = sftkdb_lookupObject(db, objectType, &id, ptemplate, *plen);
         if (crv != CKR_OK) {
-            return SFTKDB_DO_NOTHING;
+            if (objectType == CKO_TRUST && id == CK_INVALID_HANDLE) {
+                objectType = CKO_NSS_TRUST;
+                /* didn't find a new PKCS #11 Trust object, look for
+                 * and NSS Vendor specific Trust Object */
+                crv = sftkdb_lookupObject(db, CKO_NSS_TRUST, &id,
+                                          ptemplate, *plen);
+            }
+            if (crv != CKR_OK) {
+                return SFTKDB_DO_NOTHING;
+            }
         }
 
         /* This object already exists, merge it, don't update */
@@ -2295,7 +2471,14 @@ sftkdb_updateObjectTemplate(PLArenaPool *arena, SDB *db,
                     /* if we have conflicting trust object types,
                      * we need to reconcile them */
                     *targetID = id;
-                    return sftkdb_reconcileTrust(arena, db, id, ptemplate, plen);
+                    return sftkdb_reconcileTrust(arena, db, id, PR_TRUE,
+                                                 ptemplate, plen);
+                case CKO_TRUST:
+                    /* if we have conflicting trust object types,
+                     * we need to reconcile them */
+                    *targetID = id;
+                    return sftkdb_reconcileTrust(arena, db, id, PR_FALSE,
+                                                 ptemplate, plen);
                 case CKO_SECRET_KEY:
                     /* secret keys in the old database are all sdr keys,
                      * unfortunately they all appear to have the same CKA_ID,

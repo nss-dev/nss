@@ -134,12 +134,16 @@ lg_MapTrust(CK_TRUST trust, PRBool clientAuth)
     unsigned int trustCA = clientAuth ? CERTDB_TRUSTED_CLIENT_CA : CERTDB_TRUSTED_CA;
     switch (trust) {
         case CKT_NSS_TRUSTED:
+        case CKT_TRUSTED:
             return CERTDB_TERMINAL_RECORD | CERTDB_TRUSTED;
         case CKT_NSS_TRUSTED_DELEGATOR:
+        case CKT_TRUST_ANCHOR:
             return CERTDB_VALID_CA | trustCA;
         case CKT_NSS_MUST_VERIFY_TRUST:
+        case CKT_TRUST_MUST_VERIFY_TRUST:
             return CERTDB_MUST_VERIFY;
         case CKT_NSS_NOT_TRUSTED:
+        case CKT_NOT_TRUSTED:
             return CERTDB_TERMINAL_RECORD;
         case CKT_NSS_VALID_DELEGATOR: /* implies must verify */
             return CERTDB_VALID_CA;
@@ -154,7 +158,8 @@ lg_MapTrust(CK_TRUST trust, PRBool clientAuth)
  */
 static CK_RV
 lg_createTrustObject(SDB *sdb, CK_OBJECT_HANDLE *handle,
-                     const CK_ATTRIBUTE *templ, CK_ULONG count)
+                     const CK_ATTRIBUTE *templ, CK_ULONG count,
+                     CK_OBJECT_HANDLE lgClass)
 {
     const CK_ATTRIBUTE *issuer = NULL;
     const CK_ATTRIBUTE *serial = NULL;
@@ -196,10 +201,14 @@ lg_createTrustObject(SDB *sdb, CK_OBJECT_HANDLE *handle,
         return CKR_ATTRIBUTE_VALUE_INVALID;
     }
 
-    lg_GetULongAttribute(CKA_TRUST_SERVER_AUTH, templ, count, &sslTrust);
-    lg_GetULongAttribute(CKA_TRUST_CLIENT_AUTH, templ, count, &clientTrust);
-    lg_GetULongAttribute(CKA_TRUST_EMAIL_PROTECTION, templ, count, &emailTrust);
-    lg_GetULongAttribute(CKA_TRUST_CODE_SIGNING, templ, count, &signTrust);
+    lg_GetULongAttribute(CKA_NSS_TRUST_SERVER_AUTH, templ, count, &sslTrust);
+    lg_GetULongAttribute(CKA_PKCS_TRUST_SERVER_AUTH, templ, count, &sslTrust);
+    lg_GetULongAttribute(CKA_NSS_TRUST_CLIENT_AUTH, templ, count, &clientTrust);
+    lg_GetULongAttribute(CKA_PKCS_TRUST_CLIENT_AUTH, templ, count, &clientTrust);
+    lg_GetULongAttribute(CKA_NSS_TRUST_EMAIL_PROTECTION, templ, count, &emailTrust);
+    lg_GetULongAttribute(CKA_PKCS_TRUST_EMAIL_PROTECTION, templ, count, &emailTrust);
+    lg_GetULongAttribute(CKA_NSS_TRUST_CODE_SIGNING, templ, count, &signTrust);
+    lg_GetULongAttribute(CKA_PKCS_TRUST_CODE_SIGNING, templ, count, &signTrust);
     stepUp = CK_FALSE;
     trust = lg_FindAttribute(CKA_TRUST_STEP_UP_APPROVED, templ, count);
     if (trust) {
@@ -226,7 +235,7 @@ lg_createTrustObject(SDB *sdb, CK_OBJECT_HANDLE *handle,
     }
 
     rv = nsslowcert_ChangeCertTrust(certHandle, cert, &dbTrust);
-    *handle = lg_mkHandle(sdb, &cert->certKey, LG_TOKEN_TYPE_TRUST);
+    *handle = lg_mkHandle(sdb, &cert->certKey, lgClass);
     nsslowcert_DestroyCertificate(cert);
     if (rv != SECSuccess) {
         return CKR_DEVICE_ERROR;
@@ -998,7 +1007,12 @@ lg_CreateObject(SDB *sdb, CK_OBJECT_HANDLE *handle,
             crv = lg_createCertObject(sdb, handle, templ, count);
             break;
         case CKO_NSS_TRUST:
-            crv = lg_createTrustObject(sdb, handle, templ, count);
+            crv = lg_createTrustObject(sdb, handle, templ, count,
+                                       LG_TOKEN_TYPE_NSS_TRUST);
+            break;
+        case CKO_TRUST:
+            crv = lg_createTrustObject(sdb, handle, templ, count,
+                                       LG_TOKEN_TYPE_TRUST);
             break;
         case CKO_NSS_CRL:
             crv = lg_createCrlObject(sdb, handle, templ, count);

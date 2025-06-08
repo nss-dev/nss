@@ -909,6 +909,48 @@ sftk_handleCertObject(SFTKSession *session, SFTKObject *object)
  * check the consistancy and initialize a Trust Object
  */
 static CK_RV
+sftk_handleNSSTrustObject(SFTKSession *session, SFTKObject *object)
+{
+    /* we can't store any certs private */
+    if (sftk_isTrue(object, CKA_PRIVATE)) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+    }
+
+    /* certificates must have a type */
+    if (!sftk_hasAttribute(object, CKA_ISSUER)) {
+        return CKR_TEMPLATE_INCOMPLETE;
+    }
+    if (!sftk_hasAttribute(object, CKA_SERIAL_NUMBER)) {
+        return CKR_TEMPLATE_INCOMPLETE;
+    }
+    if (!sftk_hasAttribute(object, CKA_NSS_CERT_SHA1_HASH)) {
+        return CKR_TEMPLATE_INCOMPLETE;
+    }
+    if (!sftk_hasAttribute(object, CKA_NSS_CERT_MD5_HASH)) {
+        return CKR_TEMPLATE_INCOMPLETE;
+    }
+
+    if (sftk_isTrue(object, CKA_TOKEN)) {
+        SFTKSlot *slot = session->slot;
+        SFTKDBHandle *certHandle = sftk_getCertDB(slot);
+        CK_RV crv;
+
+        if (certHandle == NULL) {
+            return CKR_TOKEN_WRITE_PROTECTED;
+        }
+
+        crv = sftkdb_write(certHandle, object, &object->handle);
+        sftk_freeDB(certHandle);
+        return crv;
+    }
+
+    return CKR_OK;
+}
+
+/*
+ * check the consistancy and initialize a Trust Object
+ */
+static CK_RV
 sftk_handleTrustObject(SFTKSession *session, SFTKObject *object)
 {
     /* we can't store any certs private */
@@ -923,10 +965,10 @@ sftk_handleTrustObject(SFTKSession *session, SFTKObject *object)
     if (!sftk_hasAttribute(object, CKA_SERIAL_NUMBER)) {
         return CKR_TEMPLATE_INCOMPLETE;
     }
-    if (!sftk_hasAttribute(object, CKA_CERT_SHA1_HASH)) {
+    if (!sftk_hasAttribute(object, CKA_HASH_OF_CERTIFICATE)) {
         return CKR_TEMPLATE_INCOMPLETE;
     }
-    if (!sftk_hasAttribute(object, CKA_CERT_MD5_HASH)) {
+    if (!sftk_hasAttribute(object, CKA_NAME_HASH_ALGORITHM)) {
         return CKR_TEMPLATE_INCOMPLETE;
     }
 
@@ -1831,6 +1873,9 @@ sftk_handleObject(SFTKObject *object, SFTKSession *session)
             crv = sftk_handleCertObject(session, object);
             break;
         case CKO_NSS_TRUST:
+            crv = sftk_handleNSSTrustObject(session, object);
+            break;
+        case CKO_TRUST:
             crv = sftk_handleTrustObject(session, object);
             break;
         case CKO_NSS_CRL:

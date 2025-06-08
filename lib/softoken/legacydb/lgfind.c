@@ -62,6 +62,7 @@ lg_addHandle(SDBFind *search, CK_OBJECT_HANDLE handle)
 #define LG_PRIVATE 0x00000010
 #define LG_PUBLIC 0x00000020
 #define LG_KEY 0x00000040
+#define LG_NSS_TRUST 0x00000080
 
 /*
  * structure to collect key handles.
@@ -359,6 +360,10 @@ lg_cert_collect(NSSLOWCERTCertificate *cert, void *arg)
             !lg_tokenMatch(cd->sdb, &cert->certKey, LG_TOKEN_TYPE_TRUST, cd->template, cd->templ_count)) {
             return SECSuccess;
         }
+        if ((cd->classFlags & LG_NSS_TRUST) &&
+            !lg_tokenMatch(cd->sdb, &cert->certKey, LG_TOKEN_TYPE_NSS_TRUST, cd->template, cd->templ_count)) {
+            return SECSuccess;
+        }
     }
 
     /* allocate more space if we need it. This should only happen in
@@ -490,6 +495,16 @@ lg_searchCertsAndTrust(SDB *sdb, SECItem *derCert, SECItem *name,
                 nsslowcert_DestroyTrust(trust);
             }
         }
+        if (classFlags & LG_NSS_TRUST) {
+            NSSLOWCERTTrust *trust =
+                nsslowcert_FindTrustByIssuerAndSN(certHandle, issuerSN);
+
+            if (trust) {
+                lg_addHandle(handles,
+                             lg_mkHandle(sdb, &trust->dbKey, LG_TOKEN_TYPE_NSS_TRUST));
+                nsslowcert_DestroyTrust(trust);
+            }
+        }
     } else if (email->data != NULL) {
         char *tmp_name = (char *)PORT_Alloc(email->len + 1);
         certDBEntrySMime *entry = NULL;
@@ -535,6 +550,10 @@ lg_searchCertsAndTrust(SDB *sdb, SECItem *derCert, SECItem *name,
         if ((classFlags & LG_TRUST) && nsslowcert_hasTrust(cert->trust)) {
             lg_addHandle(handles,
                          lg_mkHandle(sdb, &cert->certKey, LG_TOKEN_TYPE_TRUST));
+        }
+        if ((classFlags & LG_NSS_TRUST) && nsslowcert_hasTrust(cert->trust)) {
+            lg_addHandle(handles,
+                         lg_mkHandle(sdb, &cert->certKey, LG_TOKEN_TYPE_NSS_TRUST));
         }
         nsslowcert_DestroyCertificate(cert);
     }
@@ -634,7 +653,7 @@ lg_searchTokenList(SDB *sdb, SDBFind *search,
     if (lg_getCertDB(sdb) == NULL) {
         classFlags = LG_PRIVATE | LG_KEY;
     } else {
-        classFlags = LG_CERT | LG_TRUST | LG_PUBLIC | LG_SMIME | LG_CRL;
+        classFlags = LG_CERT | LG_TRUST | LG_NSS_TRUST | LG_PUBLIC | LG_SMIME | LG_CRL;
     }
 
     /*
@@ -653,11 +672,11 @@ lg_searchTokenList(SDB *sdb, SDBFind *search,
                 break;
             case CKA_ISSUER:
                 copy = &issuerSN.derIssuer;
-                classFlags &= (LG_CERT | LG_TRUST);
+                classFlags &= (LG_CERT | LG_NSS_TRUST | LG_TRUST);
                 break;
             case CKA_SERIAL_NUMBER:
                 copy = &issuerSN.serialNumber;
-                classFlags &= (LG_CERT | LG_TRUST);
+                classFlags &= (LG_CERT | LG_NSS_TRUST | LG_TRUST);
                 break;
             case CKA_VALUE:
                 copy = &derCert;
@@ -684,6 +703,9 @@ lg_searchTokenList(SDB *sdb, SDBFind *search,
                         classFlags &= LG_CERT;
                         break;
                     case CKO_NSS_TRUST:
+                        classFlags &= LG_NSS_TRUST;
+                        break;
+                    case CKO_TRUST:
                         classFlags &= LG_TRUST;
                         break;
                     case CKO_NSS_CRL:
@@ -737,12 +759,16 @@ lg_searchTokenList(SDB *sdb, SDBFind *search,
                     classFlags = 0;
                 }
                 break;
-            case CKA_CERT_SHA1_HASH:
-                classFlags &= LG_TRUST;
+            case CKA_NSS_CERT_SHA1_HASH:
+                classFlags &= LG_NSS_TRUST;
                 copy = &cert_sha1_hash;
                 break;
-            case CKA_CERT_MD5_HASH:
-                classFlags &= LG_TRUST;
+            case CKA_HASH_OF_CERTIFICATE:
+                classFlags &= LG_NSS_TRUST;
+                copy = &cert_sha1_hash;
+                break;
+            case CKA_NSS_CERT_MD5_HASH:
+                classFlags &= LG_NSS_TRUST;
                 copy = &cert_md5_hash;
                 break;
             case CKA_CERTIFICATE_TYPE:
@@ -808,7 +834,7 @@ lg_searchTokenList(SDB *sdb, SDBFind *search,
     }
 
     /* certs */
-    if (classFlags & (LG_CERT | LG_TRUST)) {
+    if (classFlags & (LG_CERT | LG_TRUST | LG_NSS_TRUST)) {
         lg_searchCertsAndTrust(sdb, &derCert, &name, &derSubject,
                                &issuerSN, &email, classFlags, search,
                                pTemplate, ulCount);

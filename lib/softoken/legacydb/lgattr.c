@@ -27,7 +27,7 @@ typedef struct LGObjectCacheStr {
 } LGObjectCache;
 
 static const CK_OBJECT_HANDLE lg_classArray[] = {
-    0, CKO_PRIVATE_KEY, CKO_PUBLIC_KEY, CKO_SECRET_KEY,
+    CKO_TRUST, CKO_PRIVATE_KEY, CKO_PUBLIC_KEY, CKO_SECRET_KEY,
     CKO_NSS_TRUST, CKO_NSS_CRL, CKO_NSS_SMIME,
     CKO_CERTIFICATE
 };
@@ -303,7 +303,8 @@ lg_getCert(LGObjectCache *obj, NSSLOWCERTCertDBHandle *certHandle)
     NSSLOWCERTCertificate *cert;
     CK_OBJECT_CLASS objClass = obj->objclass;
 
-    if ((objClass != CKO_CERTIFICATE) && (objClass != CKO_NSS_TRUST)) {
+    if ((objClass != CKO_CERTIFICATE) && (objClass != CKO_NSS_TRUST) &&
+        (objClass != CKO_TRUST)) {
         return NULL;
     }
     if (objClass == CKO_CERTIFICATE && obj->objectInfo) {
@@ -322,7 +323,7 @@ lg_getTrust(LGObjectCache *obj, NSSLOWCERTCertDBHandle *certHandle)
 {
     NSSLOWCERTTrust *trust;
 
-    if (obj->objclass != CKO_NSS_TRUST) {
+    if ((obj->objclass != CKO_NSS_TRUST) || (obj->objclass != CKO_TRUST)) {
         return NULL;
     }
     if (obj->objectInfo) {
@@ -1070,19 +1071,26 @@ lg_FindTrustAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type,
     unsigned char hash[SHA1_LENGTH];
     unsigned int trustFlags;
     CK_RV crv = CKR_CANCEL;
+    PRBool isPKCS;
 
     switch (type) {
         case CKA_PRIVATE:
             return LG_CLONE_ATTR(attribute, type, lg_StaticFalseAttr);
         case CKA_MODIFIABLE:
             return LG_CLONE_ATTR(attribute, type, lg_StaticTrueAttr);
-        case CKA_CERT_SHA1_HASH:
-        case CKA_CERT_MD5_HASH:
-        case CKA_TRUST_CLIENT_AUTH:
-        case CKA_TRUST_SERVER_AUTH:
-        case CKA_TRUST_EMAIL_PROTECTION:
-        case CKA_TRUST_CODE_SIGNING:
-        case CKA_TRUST_STEP_UP_APPROVED:
+        case CKA_NSS_CERT_SHA1_HASH:
+        case CKA_NSS_CERT_MD5_HASH:
+        case CKA_HASH_OF_CERTIFICATE:
+        case CKA_NAME_HASH_ALGORITHM:
+        case CKA_NSS_TRUST_CLIENT_AUTH:
+        case CKA_NSS_TRUST_SERVER_AUTH:
+        case CKA_NSS_TRUST_EMAIL_PROTECTION:
+        case CKA_NSS_TRUST_CODE_SIGNING:
+        case CKA_NSS_TRUST_STEP_UP_APPROVED:
+        case CKA_PKCS_TRUST_CLIENT_AUTH:
+        case CKA_PKCS_TRUST_SERVER_AUTH:
+        case CKA_PKCS_TRUST_EMAIL_PROTECTION:
+        case CKA_PKCS_TRUST_CODE_SIGNING:
         case CKA_ISSUER:
         case CKA_SERIAL_NUMBER:
             break;
@@ -1097,50 +1105,65 @@ lg_FindTrustAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type,
     if (trust == NULL) {
         return CKR_OBJECT_HANDLE_INVALID;
     }
+    isPKCS = PR_TRUE;
     switch (type) {
-        case CKA_CERT_SHA1_HASH:
+        case CKA_NAME_HASH_ALGORITHM:
+            return lg_ULongAttribute(attribute, type, CKM_SHA_1);
+        case CKA_NSS_CERT_SHA1_HASH:
+        case CKA_HASH_OF_CERTIFICATE:
             SHA1_HashBuf(hash, trust->derCert->data, trust->derCert->len);
             return lg_CopyAttribute(attribute, type, hash, SHA1_LENGTH);
-        case CKA_CERT_MD5_HASH:
+        case CKA_NSS_CERT_MD5_HASH:
             MD5_HashBuf(hash, trust->derCert->data, trust->derCert->len);
             return lg_CopyAttribute(attribute, type, hash, MD5_LENGTH);
-        case CKA_TRUST_CLIENT_AUTH:
+        case CKA_NSS_TRUST_CLIENT_AUTH:
+            isPKCS = PR_FALSE;
+        case CKA_PKCS_TRUST_CLIENT_AUTH:
             trustFlags = trust->trust->sslFlags &
                                  CERTDB_TRUSTED_CLIENT_CA
                              ? trust->trust->sslFlags | CERTDB_TRUSTED_CA
                              : 0;
             goto trust;
-        case CKA_TRUST_SERVER_AUTH:
+        case CKA_NSS_TRUST_SERVER_AUTH:
+            isPKCS = PR_FALSE;
+        case CKA_PKCS_TRUST_SERVER_AUTH:
             trustFlags = trust->trust->sslFlags;
             goto trust;
-        case CKA_TRUST_EMAIL_PROTECTION:
+        case CKA_NSS_TRUST_EMAIL_PROTECTION:
+            isPKCS = PR_FALSE;
+        case CKA_PKCS_TRUST_EMAIL_PROTECTION:
             trustFlags = trust->trust->emailFlags;
             goto trust;
-        case CKA_TRUST_CODE_SIGNING:
+        case CKA_NSS_TRUST_CODE_SIGNING:
+            isPKCS = PR_FALSE;
+        case CKA_PKCS_TRUST_CODE_SIGNING:
             trustFlags = trust->trust->objectSigningFlags;
         trust:
             if (trustFlags & CERTDB_TRUSTED_CA) {
                 return lg_ULongAttribute(attribute, type,
-                                         CKT_NSS_TRUSTED_DELEGATOR);
+                                         isPKCS ? CKT_TRUST_ANCHOR : CKT_NSS_TRUSTED_DELEGATOR);
             }
             if (trustFlags & CERTDB_TRUSTED) {
-                return lg_ULongAttribute(attribute, type, CKT_NSS_TRUSTED);
+                return lg_ULongAttribute(attribute, type, isPKCS ? CKT_TRUSTED : CKT_NSS_TRUSTED);
             }
             if (trustFlags & CERTDB_MUST_VERIFY) {
                 return lg_ULongAttribute(attribute, type,
-                                         CKT_NSS_MUST_VERIFY_TRUST);
+                                         isPKCS ? CKT_TRUST_MUST_VERIFY_TRUST : CKT_NSS_MUST_VERIFY_TRUST);
             }
             if (trustFlags & CERTDB_TRUSTED_UNKNOWN) {
-                return lg_ULongAttribute(attribute, type, CKT_NSS_TRUST_UNKNOWN);
+                return lg_ULongAttribute(attribute, type,
+                                         isPKCS ? CKT_TRUST_UNKNOWN : CKT_NSS_TRUST_UNKNOWN);
             }
             if (trustFlags & CERTDB_VALID_CA) {
-                return lg_ULongAttribute(attribute, type, CKT_NSS_VALID_DELEGATOR);
+                return lg_ULongAttribute(attribute, type,
+                                         isPKCS ? CKT_TRUST_MUST_VERIFY_TRUST : CKT_NSS_VALID_DELEGATOR);
             }
             if (trustFlags & CERTDB_TERMINAL_RECORD) {
-                return lg_ULongAttribute(attribute, type, CKT_NSS_NOT_TRUSTED);
+                return lg_ULongAttribute(attribute, type,
+                                         isPKCS ? CKT_NOT_TRUSTED : CKT_NSS_NOT_TRUSTED);
             }
-            return lg_ULongAttribute(attribute, type, CKT_NSS_TRUST_UNKNOWN);
-        case CKA_TRUST_STEP_UP_APPROVED:
+            return lg_ULongAttribute(attribute, type, isPKCS ? CKT_TRUST_UNKNOWN : CKT_NSS_TRUST_UNKNOWN);
+        case CKA_NSS_TRUST_STEP_UP_APPROVED:
             if (trust->trust->sslFlags & CERTDB_GOVT_APPROVED_CA) {
                 return LG_CLONE_ATTR(attribute, type, lg_StaticTrueAttr);
             } else {
@@ -1332,6 +1355,7 @@ lg_GetSingleAttribute(LGObjectCache *obj, CK_ATTRIBUTE *attribute)
         case CKO_NSS_CRL:
             return lg_FindCrlAttribute(obj, type, attribute);
         case CKO_NSS_TRUST:
+        case CKO_TRUST:
             return lg_FindTrustAttribute(obj, type, attribute);
         case CKO_NSS_SMIME:
             return lg_FindSMIMEAttribute(obj, type, attribute);
@@ -1635,7 +1659,8 @@ lg_SetTrustAttribute(LGObjectCache *obj, const CK_ATTRIBUTE *attr)
     if (crv != CKR_OK) {
         return crv;
     }
-    flags = lg_MapTrust(trust, (PRBool)(attr->type == CKA_TRUST_CLIENT_AUTH));
+    flags = lg_MapTrust(trust, (PRBool)((attr->type == CKA_NSS_TRUST_CLIENT_AUTH) ||
+                                        (attr->type == CKA_PKCS_TRUST_CLIENT_AUTH)));
 
     certHandle = lg_getCertDB(obj->sdb);
 
@@ -1723,6 +1748,7 @@ lg_SetSingleAttribute(LGObjectCache *obj, const CK_ATTRIBUTE *attr,
             /* change URL */
             break;
         case CKO_NSS_TRUST:
+        case CKO_TRUST:
             crv = lg_SetTrustAttribute(obj, attr);
             break;
         case CKO_PRIVATE_KEY:

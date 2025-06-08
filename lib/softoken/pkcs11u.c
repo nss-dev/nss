@@ -1437,10 +1437,20 @@ static const CK_ATTRIBUTE_TYPE certAttrs[] = {
 static const CK_ULONG certAttrsCount =
     sizeof(certAttrs) / sizeof(certAttrs[0]);
 
+static const CK_ATTRIBUTE_TYPE nssTrustAttrs[] = {
+    CKA_ISSUER, CKA_SERIAL_NUMBER, CKA_NSS_CERT_SHA1_HASH,
+    CKA_NSS_CERT_MD5_HASH, CKA_NSS_TRUST_SERVER_AUTH, CKA_NSS_TRUST_CLIENT_AUTH,
+    CKA_NSS_TRUST_EMAIL_PROTECTION, CKA_NSS_TRUST_CODE_SIGNING,
+    CKA_NSS_TRUST_STEP_UP_APPROVED
+};
+static const CK_ULONG nssTrustAttrsCount =
+    sizeof(nssTrustAttrs) / sizeof(nssTrustAttrs[0]);
+
 static const CK_ATTRIBUTE_TYPE trustAttrs[] = {
-    CKA_ISSUER, CKA_SERIAL_NUMBER, CKA_CERT_SHA1_HASH, CKA_CERT_MD5_HASH,
-    CKA_TRUST_SERVER_AUTH, CKA_TRUST_CLIENT_AUTH, CKA_TRUST_EMAIL_PROTECTION,
-    CKA_TRUST_CODE_SIGNING, CKA_TRUST_STEP_UP_APPROVED
+    CKA_ISSUER, CKA_SERIAL_NUMBER, CKA_HASH_OF_CERTIFICATE,
+    CKA_NAME_HASH_ALGORITHM, CKA_PKCS_TRUST_SERVER_AUTH,
+    CKA_PKCS_TRUST_CLIENT_AUTH, CKA_PKCS_TRUST_EMAIL_PROTECTION,
+    CKA_PKCS_TRUST_CODE_SIGNING
 };
 static const CK_ULONG trustAttrsCount =
     sizeof(trustAttrs) / sizeof(trustAttrs[0]);
@@ -1647,6 +1657,10 @@ sftk_CopyTokenObject(SFTKObject *destObject, SFTKObject *srcObject)
                                            certAttrsCount);
             break;
         case CKO_NSS_TRUST:
+            crv = stfk_CopyTokenAttributes(destObject, src_to, nssTrustAttrs,
+                                           nssTrustAttrsCount);
+            break;
+        case CKO_TRUST:
             crv = stfk_CopyTokenAttributes(destObject, src_to, trustAttrs,
                                            trustAttrsCount);
             break;
