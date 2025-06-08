@@ -539,6 +539,7 @@ sftk_InitGeneric(SFTKSession *session, CK_MECHANISM *pMechanism,
     context->key = key;
     context->blockSize = 0;
     context->maxLen = 0;
+    context->signature = NULL;
     context->isFIPS = sftk_operationIsFIPS(session->slot, pMechanism,
                                            operation, key);
     *contextPtr = context;
@@ -4036,6 +4037,123 @@ NSC_VerifyFinal(CK_SESSION_HANDLE hSession,
 }
 
 /*
+ ************** Crypto Functions:     Verify  Signature ************************
+ * some algorithms need the signature at the beginning of the verification,
+ * VerifySignature provides such and API. For algorithms that don't need
+ * the signature first, we stash the signature and just pass it to
+ * NSC_VerifyXXX.
+ */
+CK_RV
+NSC_VerifySignatureInit(CK_SESSION_HANDLE hSession,
+                        CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey,
+                        CK_BYTE_PTR pSignature, CK_ULONG ulSignatureLen)
+{
+    SFTKSession *session;
+    SFTKSessionContext *context;
+    CK_RV crv;
+    SECItem tmpItem;
+
+    crv = NSC_VerifyInit(hSession, pMechanism, hKey);
+    if (crv != CKR_OK) {
+        return crv;
+    }
+
+    CHECK_FORK();
+
+    crv = sftk_GetContext(hSession, &context, SFTK_VERIFY, PR_TRUE, &session);
+    if (crv != CKR_OK)
+        return crv;
+
+    tmpItem.type = siBuffer;
+    tmpItem.data = pSignature;
+    tmpItem.len = ulSignatureLen;
+    context->signature = SECITEM_DupItem(&tmpItem);
+    if (!context->signature) {
+        sftk_TerminateOp(session, SFTK_VERIFY, context);
+        sftk_FreeSession(session);
+        return CKR_HOST_MEMORY;
+    }
+    sftk_FreeSession(session);
+    return CKR_OK;
+}
+
+CK_RV
+NSC_VerifySignature(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData,
+                    CK_ULONG ulDataLen)
+{
+    SFTKSession *session;
+    SFTKSessionContext *context;
+    CK_RV crv;
+
+    crv = sftk_GetContext(hSession, &context, SFTK_VERIFY, PR_TRUE, &session);
+    if (crv != CKR_OK)
+        return crv;
+
+    /* make sure we're legal */
+    if (!context->signature) {
+        sftk_FreeSession(session);
+        return CKR_OPERATION_NOT_INITIALIZED;
+    }
+    crv = NSC_Verify(hSession, pData, ulDataLen,
+                     context->signature->data, context->signature->len);
+    /* we free the signature here because the context is part of the session and has
+     * a lifetime tied to the session. So we want to hold our reference to the
+     * session so it doesn't go away on us */
+    sftk_FreeSession(session);
+    return crv;
+}
+
+CK_RV
+NSC_VerifySignatureUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart,
+                          CK_ULONG ulPartLen)
+{
+    SFTKSession *session;
+    SFTKSessionContext *context;
+    CK_RV crv;
+
+    /* make sure we're legal */
+    crv = sftk_GetContext(hSession, &context, SFTK_VERIFY, PR_TRUE, &session);
+    if (crv != CKR_OK)
+        return crv;
+
+    /* like verify above, we bother keeping the session to make sure the context
+     * doesn't go way on use. there's little chance that it will since that application
+     * must protect against multiple threads calling the same same session at the same
+     * time (nss has session locks for this), but there are a couple of corner cases,
+     * (like close all sessions, or shutting down the whole module. Also if the
+     * application breaks the contract, we want to just fail rather than crash */
+    if (!context->signature) {
+        sftk_FreeSession(session);
+        return CKR_OPERATION_NOT_INITIALIZED;
+    }
+    sftk_FreeSession(session);
+    return NSC_VerifyUpdate(hSession, pPart, ulPartLen);
+}
+
+CK_RV
+NSC_VerifySignatureFinal(CK_SESSION_HANDLE hSession)
+{
+    SFTKSession *session;
+    SFTKSessionContext *context;
+    CK_RV crv;
+
+    /* make sure we're legal */
+    crv = sftk_GetContext(hSession, &context, SFTK_VERIFY, PR_TRUE, &session);
+    if (crv != CKR_OK)
+        return crv;
+
+    if (!context->signature) {
+        sftk_FreeSession(session);
+        return CKR_OPERATION_NOT_INITIALIZED;
+    }
+    crv = NSC_VerifyFinal(hSession, context->signature->data,
+                          context->signature->len);
+    /* see comment in NSC_VerifySignature() */
+    sftk_FreeSession(session);
+    return crv;
+}
+
+/*
  ************** Crypto Functions:     Verify  Recover ************************
  */
 static SECStatus
@@ -5540,8 +5658,8 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
     ECPrivateKey *ecPriv;
     ECParams *ecParams;
 
-    /* Kyber */
-    CK_NSS_KEM_PARAMETER_SET_TYPE ckKyberParamSet;
+    /* parameter set, mostly pq keys */
+    CK_ULONG genParamSet = 0;
 
     CHECK_FORK();
 
@@ -5565,8 +5683,9 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             continue;
         }
 
-        if (pPublicKeyTemplate[i].type == CKA_NSS_PARAMETER_SET) {
-            ckKyberParamSet = *(CK_NSS_KEM_PARAMETER_SET_TYPE *)pPublicKeyTemplate[i].pValue;
+        if ((pPublicKeyTemplate[i].type == CKA_PARAMETER_SET) ||
+            (pPublicKeyTemplate[i].type == CKA_NSS_PARAMETER_SET)) {
+            genParamSet = *(CK_ULONG *)pPublicKeyTemplate[i].pValue;
             continue;
         }
 
@@ -5963,14 +6082,21 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             PORT_FreeArena(ecPriv->ecParams.arena, PR_TRUE);
             break;
 
+#ifndef NSS_NO_KYBER_SUPPORT
         case CKM_NSS_KYBER_KEY_PAIR_GEN:
+#endif
         case CKM_NSS_ML_KEM_KEY_PAIR_GEN:
-            sftk_DeleteAttributeType(privateKey, CKA_NSS_DB);
             key_type = CKK_NSS_KYBER;
+            goto do_ml_kem;
 
+        case CKM_ML_KEM_KEY_PAIR_GEN:
+            key_type = CKK_ML_KEM;
+
+        do_ml_kem:
+            sftk_DeleteAttributeType(privateKey, CKA_NSS_DB);
             SECItem privKey = { siBuffer, NULL, 0 };
             SECItem pubKey = { siBuffer, NULL, 0 };
-            KyberParams kyberParams = sftk_kyber_PK11ParamToInternal(ckKyberParamSet);
+            KyberParams kyberParams = sftk_kyber_PK11ParamToInternal(genParamSet);
             if (!sftk_kyber_AllocPrivKeyItem(kyberParams, &privKey)) {
                 crv = CKR_HOST_MEMORY;
                 goto kyber_done;
@@ -5989,8 +6115,9 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             if (crv != CKR_OK) {
                 goto kyber_done;
             }
-            crv = sftk_AddAttributeType(publicKey, CKA_NSS_PARAMETER_SET,
-                                        &ckKyberParamSet, sizeof(CK_NSS_KEM_PARAMETER_SET_TYPE));
+            CK_ATTRIBUTE_TYPE param_set = (key_type == CKK_NSS_KYBER) ? CKA_NSS_PARAMETER_SET : CKA_PARAMETER_SET;
+            crv = sftk_AddAttributeType(publicKey, param_set, &genParamSet,
+                                        sizeof(CK_ML_KEM_PARAMETER_SET_TYPE));
             if (crv != CKR_OK) {
                 goto kyber_done;
             }
@@ -5999,8 +6126,8 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             if (crv != CKR_OK) {
                 goto kyber_done;
             }
-            crv = sftk_AddAttributeType(privateKey, CKA_NSS_PARAMETER_SET,
-                                        &ckKyberParamSet, sizeof(CK_NSS_KEM_PARAMETER_SET_TYPE));
+            crv = sftk_AddAttributeType(privateKey, param_set, &genParamSet,
+                                        sizeof(CK_ML_KEM_PARAMETER_SET_TYPE));
             if (crv != CKR_OK) {
                 goto kyber_done;
             }
@@ -6150,7 +6277,7 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
                                   &cktrue, sizeof(CK_BBOOL));
     }
 
-    if (crv == CKR_OK && pMechanism->mechanism != CKM_NSS_ECDHE_NO_PAIRWISE_CHECK_KEY_PAIR_GEN && key_type != CKK_NSS_KYBER) {
+    if (crv == CKR_OK && pMechanism->mechanism != CKM_NSS_ECDHE_NO_PAIRWISE_CHECK_KEY_PAIR_GEN && key_type != CKK_NSS_KYBER && key_type != CKK_ML_KEM) {
         /* Perform FIPS 140-2 pairwise consistency check. */
         crv = sftk_PairwiseConsistencyCheck(hSession, slot,
                                             publicKey, privateKey, key_type);
@@ -6949,6 +7076,38 @@ NSC_UnwrapKey(CK_SESSION_HANDLE hSession,
     sftk_FreeObject(key);
 
     return crv;
+}
+
+CK_RV
+NSC_WrapKeyAuthenticated(CK_SESSION_HANDLE hSession,
+                         CK_MECHANISM_PTR pMechanism,
+                         CK_OBJECT_HANDLE hWrappingKey,
+                         CK_OBJECT_HANDLE hKey,
+                         CK_BYTE_PTR pAssociatedData,
+                         CK_ULONG ulAssociatedDataLen,
+                         CK_BYTE_PTR pWrappedKey,
+                         CK_ULONG_PTR pulWrappedKeyLen)
+{
+    CHECK_FORK();
+
+    return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV
+NSC_UnwrapKeyAuthenticated(CK_SESSION_HANDLE hSession,
+                           CK_MECHANISM_PTR pMechanism,
+                           CK_OBJECT_HANDLE hUnwrappingKey,
+                           CK_BYTE_PTR pWrappedKey,
+                           CK_ULONG ulWrappedKeyLen,
+                           CK_ATTRIBUTE_PTR pTemplate,
+                           CK_ULONG ulAttributeCount,
+                           CK_BYTE_PTR pAssociatedData,
+                           CK_ULONG ulAssociatedDataLen,
+                           CK_OBJECT_HANDLE_PTR phKey)
+{
+    CHECK_FORK();
+
+    return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 /*

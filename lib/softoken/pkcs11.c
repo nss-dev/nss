@@ -83,6 +83,7 @@ static char libraryDescription_space[33];
  */
 static PRIntervalTime loginWaitTime;
 
+#undef __PASTE
 #define __PASTE(x, y) x##y
 
 /*
@@ -92,6 +93,7 @@ static PRIntervalTime loginWaitTime;
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_NEED_ARG_LIST
 
+#define CK_PKCS11_3_2 1
 #define CK_PKCS11_3_0 1
 #define CK_EXTERN extern
 #define CK_PKCS11_FUNCTION_INFO(func) \
@@ -112,18 +114,36 @@ static PRIntervalTime loginWaitTime;
 #endif
 
 /* build the crypto module table */
-static CK_FUNCTION_LIST_3_0 sftk_funcList = {
-    { 3, 0 },
+static CK_FUNCTION_LIST_3_2 sftk_funcList_v32 = {
+    { 3, 2 },
 
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_NEED_ARG_LIST
 
+#define CK_PKCS11_3_2_ONLY 1
 #define CK_PKCS11_FUNCTION_INFO(func) \
     __PASTE(NS, func)                 \
     ,
 #include "pkcs11f.h"
 
 };
+#undef CK_PKCS11_3_2_ONLY
+
+/* build the crypto module table */
+static CK_FUNCTION_LIST_3_0 sftk_funcList_v30 = {
+    { 3, 0 },
+
+#undef CK_PKCS11_FUNCTION_INFO
+#undef CK_NEED_ARG_LIST
+
+#define CK_PKCS11_3_0_ONLY 1
+#define CK_PKCS11_FUNCTION_INFO(func) \
+    __PASTE(NS, func)                 \
+    ,
+#include "pkcs11f.h"
+
+};
+#undef CK_PKCS11_3_0_ONLY
 
 /* need a special version of get info for version 2 which returns the version
  * 2.4 version number */
@@ -135,8 +155,7 @@ CK_RV NSC_GetMechanismInfoV2(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type,
 static CK_FUNCTION_LIST sftk_funcList_v2 = {
     { 2, 40 },
 
-#undef CK_PKCS11_3_0
-#define CK_PKCS_11_2_0_ONLY 1
+#define CK_PKCS11_2_0_ONLY 1
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_NEED_ARG_LIST
 #define C_GetInfo C_GetInfoV2
@@ -182,14 +201,15 @@ CK_NSS_KEM_FUNCTIONS sftk_kem_funcList = {
  * Array is orderd by default first
  */
 static CK_INTERFACE nss_interfaces[] = {
-    { (CK_UTF8CHAR_PTR) "PKCS 11", &sftk_funcList, NSS_INTERFACE_FLAGS },
+    { (CK_UTF8CHAR_PTR) "PKCS 11", &sftk_funcList_v32, NSS_INTERFACE_FLAGS },
+    { (CK_UTF8CHAR_PTR) "PKCS 11", &sftk_funcList_v30, NSS_INTERFACE_FLAGS },
     { (CK_UTF8CHAR_PTR) "PKCS 11", &sftk_funcList_v2, NSS_INTERFACE_FLAGS },
     { (CK_UTF8CHAR_PTR) "Vendor NSS Module Interface", &sftk_module_funcList, NSS_INTERFACE_FLAGS },
     { (CK_UTF8CHAR_PTR) "Vendor NSS FIPS Interface", &sftk_fips_funcList, NSS_INTERFACE_FLAGS },
     { (CK_UTF8CHAR_PTR) "Vendor NSS KEM Interface", &sftk_kem_funcList, NSS_INTERFACE_FLAGS }
 };
 /* must match the count of interfaces in nss_interfaces above */
-#define NSS_INTERFACE_COUNT 5
+#define NSS_INTERFACE_COUNT PR_ARRAY_SIZE(nss_interfaces)
 
 /* List of DES Weak Keys */
 typedef unsigned char desKey[8];
@@ -653,11 +673,15 @@ static const struct mechanismList mechanisms[] = {
     { CKM_NSS_IKE_PRF_DERIVE, { 8, 64, CKF_DERIVE }, PR_TRUE },
     { CKM_NSS_IKE1_PRF_DERIVE, { 8, 64, CKF_DERIVE }, PR_TRUE },
     { CKM_NSS_IKE1_APP_B_PRF_DERIVE, { 8, 255 * 64, CKF_DERIVE }, PR_TRUE },
-    /* -------------------- Kyber Operations ----------------------- */
+/* -------------------- Kyber Operations ----------------------- */
+#ifndef NSS_DISABLE_KYBER
     { CKM_NSS_KYBER_KEY_PAIR_GEN, { 0, 0, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
     { CKM_NSS_KYBER, { 0, 0, 0 }, PR_TRUE },
+#endif
     { CKM_NSS_ML_KEM_KEY_PAIR_GEN, { 0, 0, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
     { CKM_NSS_ML_KEM, { 0, 0, 0 }, PR_TRUE },
+    { CKM_ML_KEM_KEY_PAIR_GEN, { 0, 0, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
+    { CKM_ML_KEM, { 0, 0, 0 }, PR_TRUE },
 };
 static const CK_ULONG mechanismCount = sizeof(mechanisms) / sizeof(mechanisms[0]);
 
@@ -1154,9 +1178,21 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
             recover = CK_FALSE;
             wrap = CK_FALSE;
             break;
+#ifndef NSS_DISABLE_KYBER
         case CKK_NSS_KYBER:
+#endif
         case CKK_NSS_ML_KEM:
             if (!sftk_hasAttribute(object, CKA_NSS_PARAMETER_SET)) {
+                return CKR_TEMPLATE_INCOMPLETE;
+            }
+            derive = CK_FALSE;
+            verify = CK_FALSE;
+            encrypt = CK_FALSE;
+            recover = CK_FALSE;
+            wrap = CK_FALSE;
+            break;
+        case CKK_ML_KEM:
+            if (!sftk_hasAttribute(object, CKA_PARAMETER_SET)) {
                 return CKR_TEMPLATE_INCOMPLETE;
             }
             derive = CK_FALSE;
@@ -1368,8 +1404,11 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
             derive = CK_TRUE;
             createObjectInfo = PR_FALSE;
             break;
+#ifndef NSS_DISABLE_KYBER
         case CKK_NSS_KYBER:
+#endif
         case CKK_NSS_ML_KEM:
+        case CKK_ML_KEM:
             if (!sftk_hasAttribute(object, CKA_KEY_TYPE)) {
                 return CKR_TEMPLATE_INCOMPLETE;
             }
@@ -2065,8 +2104,11 @@ sftk_GetPubKey(SFTKObject *object, CK_KEY_TYPE key_type,
                 crv = CKR_ATTRIBUTE_VALUE_INVALID;
             }
             break;
+#ifndef NSS_DISABLE_KYBER
         case CKK_NSS_KYBER:
+#endif
         case CKK_NSS_ML_KEM:
+        case CKK_ML_KEM:
             crv = CKR_OK;
             break;
         default:
@@ -2235,8 +2277,11 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
             }
             break;
 
+#ifndef NSS_DISABLE_KYBER
         case CKK_NSS_KYBER:
+#endif
         case CKK_NSS_ML_KEM:
+        case CKK_ML_KEM:
             break;
 
         default:
@@ -5602,6 +5647,33 @@ NSC_WaitForSlotEvent(CK_FLAGS flags, CK_SLOT_ID_PTR pSlot,
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
+CK_RV
+NSC_AsyncComplete(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pFunctionName,
+                  CK_ASYNC_DATA_PTR pResult)
+{
+    CHECK_FORK();
+
+    return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV
+NSC_AsyncGetID(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pFunctionName,
+               CK_ULONG_PTR pulID)
+{
+    CHECK_FORK();
+
+    return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV
+NSC_AsyncJoin(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pFunctionName,
+              CK_ULONG ulID, CK_BYTE_PTR pData, CK_ULONG ulData)
+{
+    CHECK_FORK();
+
+    return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
 static CK_RV
 nsc_NSSGetFIPSStatus(CK_SESSION_HANDLE hSession,
                      CK_OBJECT_HANDLE hObject,
@@ -5702,5 +5774,34 @@ nsc_NSSGetFIPSStatus(CK_SESSION_HANDLE hSession,
 
     /* objectState and sessionState or the same, so we can return either */
     *pulFIPSStatus = sessionState;
+    return CKR_OK;
+}
+
+CK_RV
+NSC_GetSessionValidationFlags(CK_SESSION_HANDLE hSession,
+                              CK_SESSION_VALIDATION_FLAGS_TYPE type,
+                              CK_FLAGS_PTR pFlags)
+{
+    CK_RV crv;
+    CK_ULONG status = CKS_NSS_UNINITIALIZED;
+    CK_ULONG status1 = CKS_NSS_UNINITIALIZED;
+
+    *pFlags = 0;
+
+    crv = nsc_NSSGetFIPSStatus(hSession, CK_INVALID_HANDLE,
+                               CKT_NSS_SESSION_LAST_CHECK, &status);
+    if (crv != CKR_OK) {
+        return crv;
+    }
+    crv = nsc_NSSGetFIPSStatus(hSession, CK_INVALID_HANDLE,
+                               CKT_NSS_SESSION_CHECK, &status1);
+    if (crv != CKR_OK) {
+        return crv;
+    }
+    /* PCKS #11 only defines the last operation. For us this includes
+     * things in the CKT_NSS_SESSION_CHECK */
+    if ((status == CKS_NSS_FIPS_OK) || (status1 == CKS_NSS_FIPS_OK)) {
+        *pFlags = SFTK_VALIDATION_FIPS_FLAG;
+    }
     return CKR_OK;
 }

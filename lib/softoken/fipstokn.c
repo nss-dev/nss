@@ -230,6 +230,7 @@ fc_getAttribute(CK_ATTRIBUTE_PTR pTemplate,
 #undef CK_NEED_ARG_LIST
 #undef CK_PKCS11_FUNCTION_INFO
 
+#define CK_PKCS11_3_2 1
 #define CK_PKCS11_3_0 1
 
 #define CK_PKCS11_FUNCTION_INFO(name) CK_RV __PASTE(NS, name)
@@ -247,12 +248,13 @@ fc_getAttribute(CK_ATTRIBUTE_PTR pTemplate,
 #include "pkcs11f.h"
 
 /* ------------- build the CK_CRYPTO_TABLE ------------------------- */
-static CK_FUNCTION_LIST_3_0 sftk_fipsTable = {
-    { 3, 0 },
+static CK_FUNCTION_LIST_3_2 sftk_fipsTable_v32 = {
+    { 3, 2 },
 
 #undef CK_NEED_ARG_LIST
 #undef CK_PKCS11_FUNCTION_INFO
 
+#define CK_PKCS11_3_2_ONLY 1
 #define CK_PKCS11_FUNCTION_INFO(name) \
     __PASTE(F, name)                  \
     ,
@@ -260,6 +262,23 @@ static CK_FUNCTION_LIST_3_0 sftk_fipsTable = {
 #include "pkcs11f.h"
 
 };
+#undef CK_PKCS11_3_2_ONLY
+
+static CK_FUNCTION_LIST_3_0 sftk_fipsTable_v30 = {
+    { 3, 0 },
+
+#undef CK_NEED_ARG_LIST
+#undef CK_PKCS11_FUNCTION_INFO
+
+#define CK_PKCS11_3_0_ONLY 1
+#define CK_PKCS11_FUNCTION_INFO(name) \
+    __PASTE(F, name)                  \
+    ,
+
+#include "pkcs11f.h"
+
+};
+#undef CK_PKCS11_3_0_ONLY
 
 /* forward declaration of special GetInfo functions */
 CK_RV FC_GetInfoV2(CK_INFO_PTR pInfo);
@@ -299,7 +318,8 @@ static CK_FUNCTION_LIST sftk_fipsTable_v2 = {
  * Array is orderd by default first
  */
 static CK_INTERFACE fips_interfaces[] = {
-    { (CK_UTF8CHAR_PTR) "PKCS 11", &sftk_fipsTable, NSS_INTERFACE_FLAGS },
+    { (CK_UTF8CHAR_PTR) "PKCS 11", &sftk_fipsTable_v32, NSS_INTERFACE_FLAGS },
+    { (CK_UTF8CHAR_PTR) "PKCS 11", &sftk_fipsTable_v30, NSS_INTERFACE_FLAGS },
     { (CK_UTF8CHAR_PTR) "PKCS 11", &sftk_fipsTable_v2, NSS_INTERFACE_FLAGS },
     { (CK_UTF8CHAR_PTR) "Vendor NSS Module Interface", &sftk_module_funcList, NSS_INTERFACE_FLAGS },
     { (CK_UTF8CHAR_PTR) "Vendor NSS FIPS Interface", &sftk_fips_funcList, NSS_INTERFACE_FLAGS }
@@ -350,6 +370,8 @@ sftk_mapLinuxAuditType(NSSAuditSeverity severity, NSSAuditType auditType)
         case NSS_AUDIT_LOAD_KEY:
         case NSS_AUDIT_UNWRAP_KEY:
         case NSS_AUDIT_WRAP_KEY:
+        case NSS_AUDIT_ENCAPSULATE_KEY:
+        case NSS_AUDIT_DECAPSULATE_KEY:
             return AUDIT_CRYPTO_KEY_USER;
         case NSS_AUDIT_CRYPT:
             return (severity == NSS_AUDIT_ERROR) ? AUDIT_CRYPTO_FAILURE_USER : AUDIT_CRYPTO_KEY_USER;
@@ -1469,6 +1491,58 @@ FC_VerifyFinal(CK_SESSION_HANDLE hSession,
 }
 
 /*
+ ************** Crypto Functions:     Verify  Signature ************************
+ * some algorithms need the signature at the beginning of the verification,
+ * VerifySignature provides such and API. For algorithms that don't need
+ * the signature first, we stash the signature and just pass it to
+ * NSC_VerifyXXX.
+ */
+CK_RV
+FC_VerifySignatureInit(CK_SESSION_HANDLE hSession,
+                       CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey,
+                       CK_BYTE_PTR pSignature, CK_ULONG ulSignatureLen)
+{
+    SFTK_FIPSCHECK();
+    CHECK_FORK();
+
+    rv = NSC_VerifySignatureInit(hSession, pMechanism, hKey,
+                                 pSignature, ulSignatureLen);
+    if (sftk_audit_enabled) {
+        sftk_AuditCryptInit("VerifySignature", hSession, pMechanism, hKey, rv);
+    }
+    return rv;
+}
+
+CK_RV
+FC_VerifySignature(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData,
+                   CK_ULONG ulDataLen)
+{
+    SFTK_FIPSCHECK();
+    CHECK_FORK();
+
+    return NSC_VerifySignature(hSession, pData, ulDataLen);
+}
+
+CK_RV
+FC_VerifySignatureUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart,
+                         CK_ULONG ulPartLen)
+{
+    SFTK_FIPSCHECK();
+    CHECK_FORK();
+
+    return NSC_VerifySignatureUpdate(hSession, pPart, ulPartLen);
+}
+
+CK_RV
+FC_VerifySignatureFinal(CK_SESSION_HANDLE hSession)
+{
+    SFTK_FIPSCHECK();
+    CHECK_FORK();
+
+    return NSC_VerifySignatureFinal(hSession);
+}
+
+/*
  ************** Crypto Functions:     Verify  Recover ************************
  */
 
@@ -2077,4 +2151,143 @@ FC_MessageVerifyFinal(CK_SESSION_HANDLE hSession)
     SFTK_FIPSCHECK();
     CHECK_FORK();
     return NSC_MessageVerifyFinal(hSession);
+}
+
+CK_RV
+FC_EncapsulateKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
+                  CK_OBJECT_HANDLE hPublicKey, CK_ATTRIBUTE_PTR pTemplate,
+                  CK_ULONG ulAttributeCount, CK_BYTE_PTR pCiphertext,
+                  CK_ULONG_PTR pulCiphertextLen, CK_OBJECT_HANDLE_PTR phKey)
+{
+    CK_BBOOL *boolptr;
+
+    SFTK_FIPSCHECK();
+    CHECK_FORK();
+
+    /* all secret keys must be sensitive, if the upper level code tries to say
+     * otherwise, reject it. */
+    boolptr = (CK_BBOOL *)fc_getAttribute(pTemplate,
+                                          ulAttributeCount, CKA_SENSITIVE);
+    if (boolptr != NULL) {
+        if (!(*boolptr)) {
+            return CKR_ATTRIBUTE_VALUE_INVALID;
+        }
+    }
+    rv = NSC_EncapsulateKey(hSession, pMechanism, hPublicKey,
+                            pTemplate, ulAttributeCount,
+                            pCiphertext, pulCiphertextLen, phKey);
+    if (sftk_audit_enabled) {
+        sftk_AuditEncapsulateKey(hSession, pMechanism, hPublicKey,
+                                 pTemplate, ulAttributeCount,
+                                 pCiphertext, pulCiphertextLen, phKey, rv);
+    }
+    return rv;
+}
+
+CK_RV
+FC_DecapsulateKey(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
+                  CK_OBJECT_HANDLE hPrivateKey, CK_ATTRIBUTE_PTR pTemplate,
+                  CK_ULONG ulAttributeCount, CK_BYTE_PTR pCiphertext,
+                  CK_ULONG ulCiphertextLen, CK_OBJECT_HANDLE_PTR phKey)
+{
+    CK_BBOOL *boolptr;
+
+    SFTK_FIPSCHECK();
+    CHECK_FORK();
+
+    /* all secret keys must be sensitive, if the upper level code tries to say
+     * otherwise, reject it. */
+    boolptr = (CK_BBOOL *)fc_getAttribute(pTemplate,
+                                          ulAttributeCount, CKA_SENSITIVE);
+    if (boolptr != NULL) {
+        if (!(*boolptr)) {
+            return CKR_ATTRIBUTE_VALUE_INVALID;
+        }
+    }
+    rv = NSC_DecapsulateKey(hSession, pMechanism, hPrivateKey,
+                            pTemplate, ulAttributeCount,
+                            pCiphertext, ulCiphertextLen, phKey);
+    if (sftk_audit_enabled) {
+        sftk_AuditDecapsulateKey(hSession, pMechanism, hPrivateKey,
+                                 pTemplate, ulAttributeCount,
+                                 pCiphertext, ulCiphertextLen, phKey, rv);
+    }
+    return rv;
+}
+
+CK_RV
+FC_GetSessionValidationFlags(CK_SESSION_HANDLE hSession,
+                             CK_SESSION_VALIDATION_FLAGS_TYPE type,
+                             CK_FLAGS_PTR pFlags)
+{
+    SFTK_FIPSCHECK();
+    CHECK_FORK();
+
+    return NSC_GetSessionValidationFlags(hSession, type, pFlags);
+}
+
+CK_RV
+FC_AsyncComplete(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pFunctionName,
+                 CK_ASYNC_DATA_PTR pResult)
+{
+    SFTK_FIPSCHECK();
+    CHECK_FORK();
+
+    return NSC_AsyncComplete(hSession, pFunctionName, pResult);
+}
+
+CK_RV
+FC_AsyncGetID(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pFunctionName,
+              CK_ULONG_PTR pulID)
+{
+    SFTK_FIPSCHECK();
+    CHECK_FORK();
+
+    return NSC_AsyncGetID(hSession, pFunctionName, pulID);
+}
+
+CK_RV
+FC_AsyncJoin(CK_SESSION_HANDLE hSession, CK_UTF8CHAR_PTR pFunctionName,
+             CK_ULONG ulID, CK_BYTE_PTR pData, CK_ULONG ulData)
+{
+    SFTK_FIPSCHECK();
+    CHECK_FORK();
+
+    return FC_AsyncJoin(hSession, pFunctionName, ulID, pData, ulData);
+}
+
+CK_RV
+FC_WrapKeyAuthenticated(CK_SESSION_HANDLE hSession,
+                        CK_MECHANISM_PTR pMechanism,
+                        CK_OBJECT_HANDLE hWrappingKey, CK_OBJECT_HANDLE hKey,
+                        CK_BYTE_PTR pAssociatedData,
+                        CK_ULONG ulAssociatedDataLen,
+                        CK_BYTE_PTR pWrappedKey, CK_ULONG_PTR pulWrappedKeyLen)
+{
+    SFTK_FIPSCHECK();
+    CHECK_FORK();
+
+    /* Before we support FC_WrapKeyAuthenticated, we'll have to add
+     * logging here, so just return CKR_FUNCTION_NOT_SUPPORTED until logging
+     * is added */
+    return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV
+FC_UnwrapKeyAuthenticated(CK_SESSION_HANDLE hSession,
+                          CK_MECHANISM_PTR pMechanism,
+                          CK_OBJECT_HANDLE hUnwrappingKey,
+                          CK_BYTE_PTR pWrappedKey, CK_ULONG ulWrappedKeyLen,
+                          CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulAttributeCount,
+                          CK_BYTE_PTR pAssociatedData,
+                          CK_ULONG ulAssociatedDataLen,
+                          CK_OBJECT_HANDLE_PTR phKey)
+{
+    SFTK_FIPSCHECK();
+    CHECK_FORK();
+
+    /* Before we support FC_UnwrapKeyAuthenticated, we'll have to add
+     * logging here, so just return CKR_FUNCTION_NOT_SUPPORTED until logging
+     * is added */
+    return CKR_FUNCTION_NOT_SUPPORTED;
 }

@@ -42,7 +42,7 @@ getPBEIterationCount(void)
     int c = NSS_MP_PBE_ITERATION_COUNT;
 
     char *val = getenv("NSS_MIN_MP_PBE_ITERATION_COUNT");
-    if (val) {
+    if (val && *val) {
         int minimum = atoi(val);
         if (c < minimum) {
             c = minimum;
@@ -50,13 +50,17 @@ getPBEIterationCount(void)
     }
 
     val = getenv("NSS_MAX_MP_PBE_ITERATION_COUNT");
-    if (val) {
+    if (val && *val) {
         int maximum = atoi(val);
         if (c > maximum) {
             c = maximum;
         }
     }
-
+    /* never let c be less than one, no matter what the environment
+     * variable is set to */
+    if (c < 1) {
+        c = 1;
+    }
     return c;
 }
 
@@ -464,7 +468,6 @@ sftkdb_pbehash(SECOidTag sigOid, SECItem *passKey,
     HASH_HashType hashType = HASH_AlgNULL;
     const SECHashObject *hashObj;
     unsigned char addressData[SDB_ULONG_SIZE];
-
     hashType = HASH_FromHMACOid(param->encAlg);
     if (hashType == HASH_AlgNULL) {
         PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
@@ -1426,6 +1429,14 @@ sftkdb_ChangePassword(SFTKDBHandle *keydb,
             goto loser;
         }
         myClass = CKO_PUBLIC_KEY;
+        crv = sftkdb_convertObjects(certdb, &objectType, 1, &newKey,
+                                    iterationCount);
+        if (crv != CKR_OK) {
+            rv = SECFailure;
+            goto loser;
+        }
+
+        myClass = CKO_TRUST;
         crv = sftkdb_convertObjects(certdb, &objectType, 1, &newKey,
                                     iterationCount);
         if (crv != CKR_OK) {

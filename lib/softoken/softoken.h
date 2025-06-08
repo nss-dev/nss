@@ -137,6 +137,24 @@ extern void sftk_AuditDeriveKey(CK_SESSION_HANDLE hSession,
 extern void sftk_AuditDigestKey(CK_SESSION_HANDLE hSession,
                                 CK_OBJECT_HANDLE hKey, CK_RV rv);
 
+extern void sftk_AuditEncapsulateKey(CK_SESSION_HANDLE hSession,
+                                     CK_MECHANISM_PTR pMechanism,
+                                     CK_OBJECT_HANDLE hPublicKey,
+                                     CK_ATTRIBUTE_PTR pTemplate,
+                                     CK_ULONG ulAttributeCount,
+                                     CK_BYTE_PTR pCiphertext,
+                                     CK_ULONG_PTR pulCiphertextLen,
+                                     CK_OBJECT_HANDLE_PTR phKey, CK_RV rv);
+
+extern void sftk_AuditDecapsulateKey(CK_SESSION_HANDLE hSession,
+                                     CK_MECHANISM_PTR pMechanism,
+                                     CK_OBJECT_HANDLE hPrivateKey,
+                                     CK_ATTRIBUTE_PTR pTemplate,
+                                     CK_ULONG ulAttributeCount,
+                                     CK_BYTE_PTR pCiphertext,
+                                     CK_ULONG ulCiphertextLen,
+                                     CK_OBJECT_HANDLE_PTR phKey, CK_RV rv);
+
 /*
 ** FIPS 140-2 Error state
 */

@@ -269,6 +269,58 @@ sftk_AuditUnwrapKey(CK_SESSION_HANDLE hSession,
 }
 
 void
+sftk_AuditEncapsulateKey(CK_SESSION_HANDLE hSession,
+                         CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hPublicKey,
+                         CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulAttributeCount,
+                         CK_BYTE_PTR pCiphertext, CK_ULONG_PTR pulCiphertextLen,
+                         CK_OBJECT_HANDLE_PTR phKey, CK_RV rv)
+{
+    char msg[256];
+    char mech[MECHANISM_BUFSIZE];
+    char shKey[32];
+    NSSAuditSeverity severity = (rv == CKR_OK) ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
+
+    sftk_PrintMechanism(mech, sizeof mech, pMechanism);
+    sftk_PrintReturnedObjectHandle(shKey, sizeof shKey, "phKey", phKey, rv);
+    PR_snprintf(msg, sizeof msg,
+                "C_EncapsulateKey(hSession=0x%08lX, pMechanism=%s, "
+                "hPublicKey=0x%08lX, pTemplate=%p, ulAttributeCount=%lu, "
+                "pCiphertext=%p, ulCiphertestLen=%lu, "
+                " phKey=%p)=0x%08lX%s",
+                (PRUint32)hSession, mech, (PRUint32)hPublicKey,
+                pTemplate, (PRUint32)ulAttributeCount,
+                pCiphertext, (PRUint32)*pulCiphertextLen,
+                phKey, (PRUint32)rv, shKey);
+    sftk_LogAuditMessage(severity, NSS_AUDIT_ENCAPSULATE_KEY, msg);
+}
+
+void
+sftk_AuditDecapsulateKey(CK_SESSION_HANDLE hSession,
+                         CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hPrivateKey,
+                         CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulAttributeCount,
+                         CK_BYTE_PTR pCiphertext, CK_ULONG ulCiphertextLen,
+                         CK_OBJECT_HANDLE_PTR phKey, CK_RV rv)
+{
+    char msg[256];
+    char mech[MECHANISM_BUFSIZE];
+    char shKey[32];
+    NSSAuditSeverity severity = (rv == CKR_OK) ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
+
+    sftk_PrintMechanism(mech, sizeof mech, pMechanism);
+    sftk_PrintReturnedObjectHandle(shKey, sizeof shKey, "phKey", phKey, rv);
+    PR_snprintf(msg, sizeof msg,
+                "C_DecapsulateKey(hSession=0x%08lX, pMechanism=%s, "
+                "hPrivateKey=0x%08lX, pTemplate=%p, ulAttributeCount=%lu, "
+                "pCiphertext=%p, ulCiphertestLen=%lu, "
+                " phKey=%p)=0x%08lX%s",
+                (PRUint32)hSession, mech, (PRUint32)hPrivateKey,
+                pTemplate, (PRUint32)ulAttributeCount,
+                pCiphertext, (PRUint32)ulCiphertextLen,
+                phKey, (PRUint32)rv, shKey);
+    sftk_LogAuditMessage(severity, NSS_AUDIT_DECAPSULATE_KEY, msg);
+}
+
+void
 sftk_AuditDeriveKey(CK_SESSION_HANDLE hSession,
                     CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hBaseKey,
                     CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulAttributeCount,

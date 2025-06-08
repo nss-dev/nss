@@ -1898,6 +1898,10 @@ sftk_FreeContext(SFTKSessionContext *context)
         sftk_FreeObject(context->key);
         context->key = NULL;
     }
+    if (context->signature) {
+        SECITEM_FreeItem(context->signature, PR_TRUE);
+        context->signature = NULL;
+    }
     PORT_Free(context);
 }
 
@@ -2542,10 +2546,17 @@ sftk_CreateValidationObjects(SFTKSlot *slot)
     const char *module_id;
     int module_id_len;
     CK_RV crv = CKR_OK;
-    /* we currently use vendor specific values until the validation
-     * objects are approved for PKCS #11 v3.2. */
-    CK_OBJECT_CLASS cko_validation = CKO_NSS_VALIDATION;
+    /* we currently use both vendor specific values and PKCS #11 v3.2
+     * values for compatibility for a couple more ESR releases. Then we can
+     * drop the vendor specific ones */
+    CK_OBJECT_CLASS cko_nss_validation = CKO_NSS_VALIDATION;
+    CK_OBJECT_CLASS cko_validation = CKO_VALIDATION;
     CK_NSS_VALIDATION_TYPE ckv_fips = CKV_NSS_FIPS_140;
+    CK_FLAGS fipsFlag = SFTK_VALIDATION_FIPS_FLAG;
+    CK_VALIDATION_TYPE swValidationType = CKV_TYPE_SOFTWARE;
+    CK_VALIDATION_AUTHORITY_TYPE nistValidationAuthority =
+        CKV_AUTHORITY_TYPE_NIST_CMVP;
+    CK_UTF8CHAR us[] = { 'U', 'S' };
     CK_VERSION fips_version = { 3, 0 }; /* FIPS-140-3 */
     CK_ULONG fips_level = 1;            /* or 2 if you validated at level 2 */
 
@@ -2562,8 +2573,8 @@ sftk_CreateValidationObjects(SFTKSlot *slot)
     }
     object->isFIPS = PR_FALSE;
 
-    crv = sftk_AddAttributeType(object, CKA_CLASS,
-                                &cko_validation, sizeof(cko_validation));
+    crv = sftk_AddAttributeType(object, CKA_CLASS, &cko_nss_validation,
+                                sizeof(cko_nss_validation));
     if (crv != CKR_OK) {
         goto loser;
     }
@@ -2593,7 +2604,75 @@ sftk_CreateValidationObjects(SFTKSlot *slot)
     object->handle = sftk_getNextHandle(slot);
     object->slot = slot;
     sftk_AddObject(&slot->moduleObjects, object);
+    sftk_FreeObject(object);
+
+    object = sftk_NewObject(slot); /* fill in the handle later */
+    if (object == NULL) {
+        return CKR_HOST_MEMORY;
+    }
+    object->isFIPS = PR_FALSE;
+    crv = sftk_AddAttributeType(object, CKA_CLASS, &cko_validation,
+                                sizeof(cko_validation));
+    if (crv != CKR_OK) {
+        goto loser;
+    }
+    crv = sftk_AddAttributeType(object, CKA_VALIDATION_TYPE,
+                                &swValidationType, sizeof(swValidationType));
+    if (crv != CKR_OK) {
+        goto loser;
+    }
+    crv = sftk_AddAttributeType(object, CKA_VALIDATION_VERSION,
+                                &fips_version, sizeof(fips_version));
+    if (crv != CKR_OK) {
+        goto loser;
+    }
+    crv = sftk_AddAttributeType(object, CKA_VALIDATION_LEVEL,
+                                &fips_level, sizeof(fips_level));
+    if (crv != CKR_OK) {
+        goto loser;
+    }
+    crv = sftk_AddAttributeType(object, CKA_VALIDATION_MODULE_ID,
+                                module_id, module_id_len);
+    if (crv != CKR_OK) {
+        goto loser;
+    }
+    crv = sftk_AddAttributeType(object, CKA_VALIDATION_FLAG,
+                                &fipsFlag, sizeof(fipsFlag));
+    if (crv != CKR_OK) {
+        goto loser;
+    }
+    crv = sftk_AddAttributeType(object, CKA_VALIDATION_AUTHORITY_TYPE,
+                                &nistValidationAuthority,
+                                sizeof(nistValidationAuthority));
+    if (crv != CKR_OK) {
+        goto loser;
+    }
+    crv = sftk_AddAttributeType(object, CKA_VALIDATION_COUNTRY, us, sizeof(us));
+    if (crv != CKR_OK) {
+        goto loser;
+    }
+    crv = sftk_AddAttributeType(object, CKA_VALIDATION_CERTIFICATE_IDENTIFIER,
+                                NULL, 0);
+    if (crv != CKR_OK) {
+        goto loser;
+    }
+    crv = sftk_AddAttributeType(object, CKA_VALIDATION_CERTIFICATE_URI,
+                                NULL, 0);
+    if (crv != CKR_OK) {
+        goto loser;
+    }
+    crv = sftk_AddAttributeType(object, CKA_VALIDATION_PROFILE,
+                                NULL, 0);
+    if (crv != CKR_OK) {
+        goto loser;
+    }
+    crv = sftk_AddAttributeType(object, CKA_VALIDATION_VENDOR_URI,
+                                NULL, 0);
+    if (crv != CKR_OK) {
+        goto loser;
+    }
 loser:
     sftk_FreeObject(object);
+
     return crv;
 }
