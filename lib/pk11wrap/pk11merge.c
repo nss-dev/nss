@@ -106,6 +106,32 @@ pk11_copyAttributes(PLArenaPool *arena,
     return rv;
 }
 
+static CK_OBJECT_CLASS
+pk11_getClassFromTemplate(CK_ATTRIBUTE *template, CK_ULONG tsize)
+{
+    CK_ULONG i;
+    for (i = 0; i < tsize; i++) {
+        if ((template[i].type == CKA_CLASS) &&
+            template[i].ulValueLen == sizeof(CK_OBJECT_CLASS)) {
+            return *(CK_OBJECT_CLASS *)template[i].pValue;
+        }
+    }
+    return CK_INVALID_HANDLE;
+}
+
+static void
+pk11_setClassInTemplate(CK_ATTRIBUTE *template, CK_ULONG tsize,
+                        CK_OBJECT_CLASS objClass)
+{
+    CK_ULONG i;
+    for (i = 0; i < tsize; i++) {
+        if ((template[i].type == CKA_CLASS) &&
+            template[i].ulValueLen == sizeof(objClass)) {
+            PORT_Memcpy(template[i].pValue, &objClass, sizeof(objClass));
+        }
+    }
+}
+
 /*
  * look for a matching object across tokens.
  */
@@ -117,6 +143,7 @@ pk11_matchAcrossTokens(PLArenaPool *arena, PK11SlotInfo *targetSlot,
 {
 
     CK_RV crv;
+    CK_OBJECT_CLASS objclass = CK_INVALID_HANDLE;
     *peer = CK_INVALID_HANDLE;
 
     crv = PK11_GetAttributes(arena, sourceSlot, id, template, tsize);
@@ -131,7 +158,20 @@ pk11_matchAcrossTokens(PLArenaPool *arena, PK11SlotInfo *targetSlot,
         goto loser;
     }
 
+    /* if the source is a CKO_NSS_TRUST, first look to see if the target
+     * has a CKO_TRUST object */
+    objclass = pk11_getClassFromTemplate(template, tsize);
+    if (objclass == CKO_NSS_TRUST) {
+        pk11_setClassInTemplate(template, tsize, CKO_TRUST);
+        objclass = CKO_TRUST;
+    }
+
     *peer = pk11_FindObjectByTemplate(targetSlot, template, tsize);
+    /* if we coun't find a CKO_TRUST object, look for a CKO_NSS_TRUST object */
+    if ((*peer == CK_INVALID_HANDLE && objclass == CKO_TRUST)) {
+        pk11_setClassInTemplate(template, tsize, CKO_NSS_TRUST);
+        *peer = pk11_FindObjectByTemplate(targetSlot, template, tsize);
+    }
     return SECSuccess;
 
 loser:
@@ -1025,29 +1065,30 @@ done:
 PRBool
 pk11_mergeTrustEntry(CK_ATTRIBUTE *target, CK_ATTRIBUTE *source)
 {
-    CK_ULONG targetTrust = (target->ulValueLen == sizeof(CK_LONG)) ? *(CK_ULONG *)target->pValue
-                                                                   : CKT_NSS_TRUST_UNKNOWN;
-    CK_ULONG sourceTrust = (source->ulValueLen == sizeof(CK_LONG)) ? *(CK_ULONG *)source->pValue
-                                                                   : CKT_NSS_TRUST_UNKNOWN;
+    CK_TRUST targetTrust = (target->ulValueLen == sizeof(CK_TRUST)) ? *(CK_TRUST *)target->pValue : CKT_TRUST_UNKNOWN;
+    CK_TRUST sourceTrust = (source->ulValueLen == sizeof(CK_TRUST)) ? *(CK_TRUST *)source->pValue : CKT_TRUST_UNKNOWN;
 
     /*
      * Examine a single entry and deside if the source or target version
      * should win out. When all the entries have been checked, if there is
      * any case we need to update, we will write the whole source record
-     * to the target database. That means for each individual record, if the
-     * target wins, we need to update the source (in case later we have a
-     * case where the source wins). If the source wins, it already
+     * to the target database. That means for each individual record.
      */
+    /* if they are identical, short cut the rest of the tests. NOTE:
+     * if sourceTrust and targetTrust are different types, but 'identical'
+     * then we will continue down these lists, but always select the
+     * target anyway because we check the weak source versions first */
     if (sourceTrust == targetTrust) {
         return USE_TARGET; /* which equates to 'do nothing' */
     }
 
-    if (sourceTrust == CKT_NSS_TRUST_UNKNOWN) {
+    /* source has no idea, use the target's idea of the trust value */
+    if ((sourceTrust == CKT_TRUST_UNKNOWN) || (sourceTrust == CKT_NSS_TRUST_UNKNOWN)) {
         return USE_TARGET;
     }
 
     /* target has no idea, use the source's idea of the trust value */
-    if (targetTrust == CKT_NSS_TRUST_UNKNOWN) {
+    if ((targetTrust == CKT_TRUST_UNKNOWN) || (targetTrust == CKT_NSS_TRUST_UNKNOWN)) {
         /* source overwrites the target */
         return USE_SOURCE;
     }
@@ -1055,16 +1096,19 @@ pk11_mergeTrustEntry(CK_ATTRIBUTE *target, CK_ATTRIBUTE *source)
     /* so both the target and the source have some idea of what this
      * trust attribute should be, and neither agree exactly.
      * At this point, we prefer 'hard' attributes over 'soft' ones.
-     * 'hard' ones are CKT_NSS_TRUSTED, CKT_NSS_TRUSTED_DELEGATOR, and
-     * CKT_NSS_UNTRUTED. Soft ones are ones which don't change the
-     * actual trust of the cert (CKT_MUST_VERIFY, CKT_NSS_VALID,
-     * CKT_NSS_VALID_DELEGATOR).
+     * 'hard' ones are CKT_TRUSTED, CKT_TRUST_ANCHOR, CKT_UNTRUTED and
+     * their CKT_NSS equivalents. Soft ones are ones which don't change the
+     * actual trust of the cert (CKT_TRUST_MUST_VERIFY_TRUST,
+     * CKT_NSS_MUST_VERIFY_TRUST, and CKT_NSS_VALID_DELEGATOR).
      */
-    if ((sourceTrust == CKT_NSS_MUST_VERIFY_TRUST) ||
+    if ((sourceTrust == CKT_TRUST_MUST_VERIFY_TRUST) ||
+        (sourceTrust == CKT_NSS_MUST_VERIFY_TRUST) ||
         (sourceTrust == CKT_NSS_VALID_DELEGATOR)) {
+
         return USE_TARGET;
     }
-    if ((targetTrust == CKT_NSS_MUST_VERIFY_TRUST) ||
+    if ((targetTrust == CKT_TRUST_MUST_VERIFY_TRUST) ||
+        (targetTrust == CKT_NSS_MUST_VERIFY_TRUST) ||
         (targetTrust == CKT_NSS_VALID_DELEGATOR)) {
         /* source overrites the target */
         return USE_SOURCE;
@@ -1073,12 +1117,62 @@ pk11_mergeTrustEntry(CK_ATTRIBUTE *target, CK_ATTRIBUTE *source)
     /* both have hard attributes, we have a conflict, let the target win. */
     return USE_TARGET;
 }
+
+/*
+ * map the template trust value to the target class value.
+ */
+void
+pk11_map_trust_entry(CK_OBJECT_CLASS targetClass, CK_ATTRIBUTE *template)
+{
+    CK_TRUST trust;
+    CK_TRUST newTrust;
+
+    if (template->ulValueLen != sizeof(CK_TRUST)) {
+        return;
+    }
+    trust = *(CK_TRUST *)template->pValue;
+    newTrust = (targetClass == CKO_TRUST) ? CKT_TRUST_UNKNOWN
+                                          : CKT_NSS_TRUST_UNKNOWN;
+
+    switch (trust) {
+        case CKT_NSS_TRUSTED:
+        case CKT_TRUSTED:
+            newTrust = (targetClass == CKO_TRUST) ? CKT_TRUSTED
+                                                  : CKT_NSS_TRUSTED;
+            break;
+        case CKT_NSS_TRUSTED_DELEGATOR:
+        case CKT_TRUST_ANCHOR:
+            newTrust = (targetClass == CKO_TRUST) ? CKT_TRUST_ANCHOR
+                                                  : CKT_NSS_TRUSTED_DELEGATOR;
+            break;
+        case CKT_NSS_VALID_DELEGATOR:
+            newTrust = (targetClass == CKO_TRUST) ? CKT_TRUST_MUST_VERIFY_TRUST
+                                                  : CKT_NSS_VALID_DELEGATOR;
+            break;
+        case CKT_NSS_MUST_VERIFY_TRUST:
+        case CKT_TRUST_MUST_VERIFY_TRUST:
+            newTrust = (targetClass == CKO_TRUST) ? CKT_TRUST_MUST_VERIFY_TRUST
+                                                  : CKT_NSS_MUST_VERIFY_TRUST;
+            break;
+        case CKT_NSS_NOT_TRUSTED:
+        case CKT_NOT_TRUSTED:
+            newTrust = (targetClass == CKO_TRUST) ? CKT_NOT_TRUSTED
+                                                  : CKT_NSS_NOT_TRUSTED;
+            break;
+        default: /* everything else is trust unknown, which we've already set */
+            break;
+    }
+    PORT_Memcpy(template->pValue, &newTrust, sizeof(newTrust));
+    return;
+}
+
 /*
  * use the raw PKCS #11 interface to merge the S/MIME records
  */
 static SECStatus
 pk11_mergeTrust(PK11SlotInfo *targetSlot, PK11SlotInfo *sourceSlot,
-                CK_OBJECT_HANDLE id, void *targetPwArg, void *sourcePwArg)
+                CK_OBJECT_HANDLE id, CK_OBJECT_CLASS sourceClass,
+                void *targetPwArg, void *sourcePwArg)
 {
     CK_OBJECT_HANDLE targetTrustID;
     PLArenaPool *arena = NULL;
@@ -1091,7 +1185,9 @@ pk11_mergeTrust(PK11SlotInfo *targetSlot, PK11SlotInfo *sourceSlot,
     };
     CK_ULONG trustTemplateCount =
         sizeof(trustTemplate) / sizeof(trustTemplate[0]);
-    CK_ATTRIBUTE trustCopyTemplate[] = {
+    CK_ATTRIBUTE *trustCopyTemplate = NULL;
+    CK_ULONG trustCopyTemplateCount = 0;
+    CK_ATTRIBUTE nssTrustCopyTemplate[] = {
         { CKA_CLASS, NULL, 0 },
         { CKA_TOKEN, NULL, 0 },
         { CKA_LABEL, NULL, 0 },
@@ -1099,45 +1195,73 @@ pk11_mergeTrust(PK11SlotInfo *targetSlot, PK11SlotInfo *sourceSlot,
         { CKA_MODIFIABLE, NULL, 0 },
         { CKA_ISSUER, NULL, 0 },
         { CKA_SERIAL_NUMBER, NULL, 0 },
-        { CKA_CERT_SHA1_HASH, NULL, 0 },
-        { CKA_CERT_MD5_HASH, NULL, 0 },
-        { CKA_TRUST_SERVER_AUTH, NULL, 0 },
-        { CKA_TRUST_CLIENT_AUTH, NULL, 0 },
-        { CKA_TRUST_CODE_SIGNING, NULL, 0 },
-        { CKA_TRUST_EMAIL_PROTECTION, NULL, 0 },
-        { CKA_TRUST_STEP_UP_APPROVED, NULL, 0 }
+        { CKA_NSS_CERT_SHA1_HASH, NULL, 0 },
+        { CKA_NSS_CERT_MD5_HASH, NULL, 0 },
+        { CKA_NSS_TRUST_SERVER_AUTH, NULL, 0 },
+        { CKA_NSS_TRUST_CLIENT_AUTH, NULL, 0 },
+        { CKA_NSS_TRUST_CODE_SIGNING, NULL, 0 },
+        { CKA_NSS_TRUST_EMAIL_PROTECTION, NULL, 0 },
+        { CKA_NSS_TRUST_STEP_UP_APPROVED, NULL, 0 }
     };
-    CK_ULONG trustCopyTemplateCount =
-        sizeof(trustCopyTemplate) / sizeof(trustCopyTemplate[0]);
+    CK_ULONG nssTrustCopyTemplateCount = PR_ARRAY_SIZE(nssTrustCopyTemplate);
+    CK_ATTRIBUTE pkcsTrustCopyTemplate[] = {
+        { CKA_CLASS, NULL, 0 },
+        { CKA_TOKEN, NULL, 0 },
+        { CKA_LABEL, NULL, 0 },
+        { CKA_PRIVATE, NULL, 0 },
+        { CKA_MODIFIABLE, NULL, 0 },
+        { CKA_ISSUER, NULL, 0 },
+        { CKA_SERIAL_NUMBER, NULL, 0 },
+        { CKA_HASH_OF_CERTIFICATE, NULL, 0 },
+        { CKA_NAME_HASH_ALGORITHM, NULL, 0 },
+        { CKA_PKCS_TRUST_SERVER_AUTH, NULL, 0 },
+        { CKA_PKCS_TRUST_CLIENT_AUTH, NULL, 0 },
+        { CKA_PKCS_TRUST_CODE_SIGNING, NULL, 0 },
+        { CKA_PKCS_TRUST_EMAIL_PROTECTION, NULL, 0 },
+    };
+    CK_ULONG pkcsTrustCopyTemplateCount = PR_ARRAY_SIZE(pkcsTrustCopyTemplate);
+    CK_OBJECT_CLASS targetClass;
 
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if (arena == NULL) {
         rv = SECFailure;
         goto done;
     }
-    /* check to see if the crl is already in the target slot */
+    /* check to see if the trust object is already in the target slot */
     rv = pk11_matchAcrossTokens(arena, targetSlot, sourceSlot, trustTemplate,
                                 trustTemplateCount, id, &targetTrustID);
     if (rv != SECSuccess) {
         goto done;
     }
+    targetClass = pk11_getClassFromTemplate(trustTemplate, trustTemplateCount);
     if (targetTrustID != CK_INVALID_HANDLE) {
         /* a matching trust record already exists, merge it in */
-        CK_ATTRIBUTE_TYPE trustAttrs[] = {
-            CKA_TRUST_SERVER_AUTH, CKA_TRUST_CLIENT_AUTH,
-            CKA_TRUST_CODE_SIGNING, CKA_TRUST_EMAIL_PROTECTION,
-            CKA_TRUST_IPSEC_TUNNEL, CKA_TRUST_IPSEC_USER,
-            CKA_TRUST_TIME_STAMPING
+        CK_ATTRIBUTE_TYPE nssTrustAttrs[] = {
+            CKA_NSS_TRUST_SERVER_AUTH, CKA_NSS_TRUST_CLIENT_AUTH,
+            CKA_NSS_TRUST_CODE_SIGNING, CKA_NSS_TRUST_EMAIL_PROTECTION,
+            CKA_NSS_TRUST_IPSEC_TUNNEL, CKA_NSS_TRUST_TIME_STAMPING
         };
-        CK_ULONG trustAttrsCount =
-            sizeof(trustAttrs) / sizeof(trustAttrs[0]);
+        CK_ATTRIBUTE_TYPE pkcsTrustAttrs[] = {
+            CKA_PKCS_TRUST_SERVER_AUTH, CKA_PKCS_TRUST_CLIENT_AUTH,
+            CKA_PKCS_TRUST_CODE_SIGNING, CKA_PKCS_TRUST_EMAIL_PROTECTION,
+            CKA_TRUST_IPSEC_IKE, CKA_PKCS_TRUST_TIME_STAMPING
+        };
+        CK_ULONG trustAttrsCount = PR_ARRAY_SIZE(pkcsTrustAttrs);
 
         CK_ULONG i;
         CK_ATTRIBUTE targetTemplate, sourceTemplate;
 
+        PORT_Assert(trustAttrsCount == PR_ARRAY_SIZE(nssTrustAttrs));
+
         /* existing trust record, merge the two together */
         for (i = 0; i < trustAttrsCount; i++) {
-            targetTemplate.type = sourceTemplate.type = trustAttrs[i];
+            targetTemplate.type = (targetClass == CKO_TRUST)
+                                      ? nssTrustAttrs[i]
+                                      : pkcsTrustAttrs[i];
+            targetTemplate.type = (sourceClass == CKO_TRUST)
+                                      ? nssTrustAttrs[i]
+                                      : pkcsTrustAttrs[i];
+
             targetTemplate.pValue = sourceTemplate.pValue = NULL;
             targetTemplate.ulValueLen = sourceTemplate.ulValueLen = 0;
             PK11_GetAttributes(arena, sourceSlot, id, &sourceTemplate, 1);
@@ -1145,6 +1269,35 @@ pk11_mergeTrust(PK11SlotInfo *targetSlot, PK11SlotInfo *sourceSlot,
                                &targetTemplate, 1);
             if (pk11_mergeTrustEntry(&targetTemplate, &sourceTemplate)) {
                 /* source wins, write out the source attribute to the target */
+                SECStatus lrv;
+
+                /* store the trust value in the target's object format */
+                if (sourceClass != targetClass) {
+                    pk11_map_trust_entry(targetClass, &sourceTemplate);
+                }
+
+                lrv = pk11_setAttributes(targetSlot, targetTrustID,
+                                         &sourceTemplate, 1);
+                if (lrv != SECSuccess) {
+                    rv = SECFailure;
+                    error = PORT_GetError();
+                }
+            }
+        }
+
+        /* Only handle step up if both source and target are NSS Trust
+         * objects */
+        if ((sourceClass == CKO_NSS_TRUST) && (targetClass == CKO_NSS_TRUST)) {
+            /* handle step */
+            sourceTemplate.type = CKA_NSS_TRUST_STEP_UP_APPROVED;
+            sourceTemplate.pValue = NULL;
+            sourceTemplate.ulValueLen = 0;
+
+            /* if the source has steup set, then set it in the target */
+            PK11_GetAttributes(arena, sourceSlot, id, &sourceTemplate, 1);
+            if ((sourceTemplate.ulValueLen == sizeof(CK_BBOOL)) &&
+                (sourceTemplate.pValue) &&
+                (*(CK_BBOOL *)sourceTemplate.pValue == CK_TRUE)) {
                 SECStatus lrv = pk11_setAttributes(targetSlot, targetTrustID,
                                                    &sourceTemplate, 1);
                 if (lrv != SECSuccess) {
@@ -1154,28 +1307,15 @@ pk11_mergeTrust(PK11SlotInfo *targetSlot, PK11SlotInfo *sourceSlot,
             }
         }
 
-        /* handle step */
-        sourceTemplate.type = CKA_TRUST_STEP_UP_APPROVED;
-        sourceTemplate.pValue = NULL;
-        sourceTemplate.ulValueLen = 0;
-
-        /* if the source has steup set, then set it in the target */
-        PK11_GetAttributes(arena, sourceSlot, id, &sourceTemplate, 1);
-        if ((sourceTemplate.ulValueLen == sizeof(CK_BBOOL)) &&
-            (sourceTemplate.pValue) &&
-            (*(CK_BBOOL *)sourceTemplate.pValue == CK_TRUE)) {
-            SECStatus lrv = pk11_setAttributes(targetSlot, targetTrustID,
-                                               &sourceTemplate, 1);
-            if (lrv != SECSuccess) {
-                rv = SECFailure;
-                error = PORT_GetError();
-            }
-        }
-
         goto done;
     }
 
     /* load the new trust Record into the target token. */
+    trustCopyTemplate = (sourceClass == CKO_TRUST) ? pkcsTrustCopyTemplate
+                                                   : nssTrustCopyTemplate;
+    trustCopyTemplateCount = (sourceClass == CKO_TRUST)
+                                 ? pkcsTrustCopyTemplateCount
+                                 : nssTrustCopyTemplateCount;
     rv = pk11_copyAttributes(arena, targetSlot, targetTrustID, sourceSlot, id,
                              trustCopyTemplate, trustCopyTemplateCount);
 done:
@@ -1217,8 +1357,9 @@ pk11_mergeObject(PK11SlotInfo *targetSlot, PK11SlotInfo *sourceSlot,
             return pk11_mergeCert(targetSlot, sourceSlot, id,
                                   targetPwArg, sourcePwArg);
         case CKO_NSS_TRUST:
+        case CKO_TRUST:
             return pk11_mergeTrust(targetSlot, sourceSlot, id,
-                                   targetPwArg, sourcePwArg);
+                                   objClass, targetPwArg, sourcePwArg);
         case CKO_PUBLIC_KEY:
             return pk11_mergePublicKey(targetSlot, sourceSlot, id,
                                        targetPwArg, sourcePwArg);

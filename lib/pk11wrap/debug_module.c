@@ -162,24 +162,31 @@ get_attr_type_str(CK_ATTRIBUTE_TYPE atype, char *str, int len)
         CASE(CKA_NSS_PQG_SEED);
         CASE(CKA_NSS_PQG_H);
         CASE(CKA_NSS_PQG_SEED_BITS);
-        CASE(CKA_TRUST);
-        CASE(CKA_TRUST_DIGITAL_SIGNATURE);
-        CASE(CKA_TRUST_NON_REPUDIATION);
-        CASE(CKA_TRUST_KEY_ENCIPHERMENT);
-        CASE(CKA_TRUST_DATA_ENCIPHERMENT);
-        CASE(CKA_TRUST_KEY_AGREEMENT);
-        CASE(CKA_TRUST_KEY_CERT_SIGN);
-        CASE(CKA_TRUST_CRL_SIGN);
-        CASE(CKA_TRUST_SERVER_AUTH);
-        CASE(CKA_TRUST_CLIENT_AUTH);
-        CASE(CKA_TRUST_CODE_SIGNING);
-        CASE(CKA_TRUST_EMAIL_PROTECTION);
-        CASE(CKA_TRUST_IPSEC_END_SYSTEM);
-        CASE(CKA_TRUST_IPSEC_TUNNEL);
-        CASE(CKA_TRUST_IPSEC_USER);
-        CASE(CKA_TRUST_TIME_STAMPING);
-        CASE(CKA_CERT_SHA1_HASH);
-        CASE(CKA_CERT_MD5_HASH);
+        CASE(CKA_NSS_TRUST_DIGITAL_SIGNATURE);
+        CASE(CKA_NSS_TRUST_NON_REPUDIATION);
+        CASE(CKA_NSS_TRUST_KEY_ENCIPHERMENT);
+        CASE(CKA_NSS_TRUST_DATA_ENCIPHERMENT);
+        CASE(CKA_NSS_TRUST_KEY_AGREEMENT);
+        CASE(CKA_NSS_TRUST_KEY_CERT_SIGN);
+        CASE(CKA_NSS_TRUST_CRL_SIGN);
+        CASE(CKA_NSS_TRUST_SERVER_AUTH);
+        CASE(CKA_NSS_TRUST_CLIENT_AUTH);
+        CASE(CKA_NSS_TRUST_CODE_SIGNING);
+        CASE(CKA_NSS_TRUST_EMAIL_PROTECTION);
+        CASE(CKA_NSS_TRUST_IPSEC_END_SYSTEM);
+        CASE(CKA_NSS_TRUST_IPSEC_TUNNEL);
+        CASE(CKA_NSS_TRUST_IPSEC_USER);
+        CASE(CKA_NSS_TRUST_TIME_STAMPING);
+        CASE(CKA_PKCS_TRUST_SERVER_AUTH);
+        CASE(CKA_PKCS_TRUST_CLIENT_AUTH);
+        CASE(CKA_PKCS_TRUST_CODE_SIGNING);
+        CASE(CKA_PKCS_TRUST_EMAIL_PROTECTION);
+        CASE(CKA_PKCS_TRUST_TIME_STAMPING);
+        CASE(CKA_TRUST_IPSEC_IKE);
+        CASE(CKA_NSS_CERT_SHA1_HASH);
+        CASE(CKA_NSS_CERT_MD5_HASH);
+        CASE(CKA_HASH_OF_CERTIFICATE);
+        CASE(CKA_NAME_HASH_ALGORITHM);
         CASE(CKA_NSS_DB);
         CASE(CKA_NSS_TRUST);
         default:
@@ -206,6 +213,7 @@ get_obj_class(CK_OBJECT_CLASS objClass, char *str, int len)
         CASE(CKO_HW_FEATURE);
         CASE(CKO_DOMAIN_PARAMETERS);
         CASE(CKO_PROFILE);
+        CASE(CKO_TRUST);
         CASE(CKO_NSS_CRL);
         CASE(CKO_NSS_SMIME);
         CASE(CKO_NSS_TRUST);
@@ -252,6 +260,11 @@ get_trust_val(CK_TRUST trust, char *str, int len)
         CASE(CKT_NSS_MUST_VERIFY_TRUST);
         CASE(CKT_NSS_TRUST_UNKNOWN);
         CASE(CKT_NSS_VALID_DELEGATOR);
+        CASE(CKT_TRUSTED);
+        CASE(CKT_TRUST_ANCHOR);
+        CASE(CKT_NOT_TRUSTED);
+        CASE(CKT_TRUST_MUST_VERIFY_TRUST);
+        CASE(CKT_TRUST_UNKNOWN);
         default:
             break;
     }
@@ -724,10 +737,14 @@ print_attr_value(CK_ATTRIBUTE_PTR attr)
                 PR_LOG(modlog, 4, (fmt_s_s_d, atype, valstr, attr->ulValueLen));
                 break;
             }
-        case CKA_TRUST_CLIENT_AUTH:
-        case CKA_TRUST_CODE_SIGNING:
-        case CKA_TRUST_EMAIL_PROTECTION:
-        case CKA_TRUST_SERVER_AUTH:
+        case CKA_NSS_TRUST_CLIENT_AUTH:
+        case CKA_NSS_TRUST_CODE_SIGNING:
+        case CKA_NSS_TRUST_EMAIL_PROTECTION:
+        case CKA_NSS_TRUST_SERVER_AUTH:
+        case CKA_PKCS_TRUST_CLIENT_AUTH:
+        case CKA_PKCS_TRUST_CODE_SIGNING:
+        case CKA_PKCS_TRUST_EMAIL_PROTECTION:
+        case CKA_PKCS_TRUST_SERVER_AUTH:
             if (attr->ulValueLen > 0 && attr->pValue) {
                 CK_TRUST trust = *((CK_TRUST *)attr->pValue);
                 get_trust_val(trust, valstr, sizeof valstr);

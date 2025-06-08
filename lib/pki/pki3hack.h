@@ -70,6 +70,9 @@ STAN_GetNSSCertificate(CERTCertificate *c);
 NSS_EXTERN CERTCertTrust *
 nssTrust_GetCERTCertTrustForCert(NSSCertificate *c, CERTCertificate *cc);
 
+NSS_EXTERN PRBool
+nssTrust_HandleTrustForCERTCert(CERTCertificate *cert, CERTCertTrust *trustPtr);
+
 NSS_EXTERN PRStatus
 STAN_DeleteCertTrustMatchingSlot(NSSCertificate *c);
 

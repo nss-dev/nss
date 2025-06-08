@@ -560,6 +560,7 @@ nssCryptokiTrust_GetAttributes(
     nssCryptokiObject *trustObject,
     nssSession *sessionOpt,
     NSSItem *sha1_hash,
+    CK_MECHANISM_TYPE *hashMech,
     nssTrustLevel *serverAuth,
     nssTrustLevel *clientAuth,
     nssTrustLevel *codeSigning,

@@ -10,6 +10,10 @@
 #include "ckhelper.h"
 #endif /* CKHELPER_H */
 
+#include "pk11pub.h"
+#include "dev3hack.h"
+#include "secerr.h"
+
 NSS_IMPLEMENT nssCryptokiObject *
 nssCryptokiObject_Create(
     NSSToken *t,
@@ -46,6 +50,7 @@ nssCryptokiObject_Create(
     object->token = nssToken_AddRef(t);
     isTokenObject = (CK_BBOOL *)cert_template[0].pValue;
     object->isTokenObject = *isTokenObject;
+    object->trustType = CKM_INVALID_MECHANISM;
     nss_ZFreeIf(cert_template[0].pValue);
     NSS_CK_ATTRIBUTE_TO_UTF8(&cert_template[1], object->label);
     return object;
@@ -278,6 +283,7 @@ nssTokenObjectCache_HaveObjectClass(
             haveIt = cache->doObjectType[cachedCerts];
             break;
         case CKO_NSS_TRUST:
+        case CKO_TRUST:
             haveIt = cache->doObjectType[cachedTrust];
             break;
         case CKO_NSS_CRL:
@@ -476,20 +482,41 @@ create_trust(
     nssCryptokiObject *object,
     PRStatus *status)
 {
-    static const CK_ATTRIBUTE_TYPE trustAttr[] = {
+    static const CK_ATTRIBUTE_TYPE nssTrustAttr[] = {
         CKA_CLASS,
         CKA_TOKEN,
         CKA_LABEL,
-        CKA_CERT_SHA1_HASH,
-        CKA_CERT_MD5_HASH,
+        CKA_NSS_CERT_SHA1_HASH,
+        CKA_NSS_CERT_MD5_HASH,
         CKA_ISSUER,
         CKA_SUBJECT,
-        CKA_TRUST_SERVER_AUTH,
-        CKA_TRUST_CLIENT_AUTH,
-        CKA_TRUST_EMAIL_PROTECTION,
-        CKA_TRUST_CODE_SIGNING
+        CKA_NSS_TRUST_SERVER_AUTH,
+        CKA_NSS_TRUST_CLIENT_AUTH,
+        CKA_NSS_TRUST_EMAIL_PROTECTION,
+        CKA_NSS_TRUST_CODE_SIGNING
     };
-    static const PRUint32 numTrustAttr = sizeof(trustAttr) / sizeof(trustAttr[0]);
+    static const CK_ATTRIBUTE_TYPE pkcsTrustAttr[] = {
+        CKA_CLASS,
+        CKA_TOKEN,
+        CKA_LABEL,
+        CKA_HASH_OF_CERTIFICATE,
+        CKA_NAME_HASH_ALGORITHM,
+        CKA_ISSUER,
+        CKA_SUBJECT,
+        CKA_PKCS_TRUST_SERVER_AUTH,
+        CKA_PKCS_TRUST_CLIENT_AUTH,
+        CKA_PKCS_TRUST_EMAIL_PROTECTION,
+        CKA_PKCS_TRUST_CODE_SIGNING
+    };
+    static const PRUint32 numNSSTrustAttr = PR_ARRAY_SIZE(nssTrustAttr);
+    static const PRUint32 numPKCSTrustAttr = PR_ARRAY_SIZE(pkcsTrustAttr);
+    const CK_ATTRIBUTE_TYPE *trustAttr;
+    PRUint32 numTrustAttr;
+
+    trustAttr = (object->trustType == CKO_TRUST) ? pkcsTrustAttr
+                                                 : nssTrustAttr;
+    numTrustAttr = (object->trustType == CKO_TRUST) ? numPKCSTrustAttr
+                                                    : numNSSTrustAttr;
     return create_object(object, trustAttr, numTrustAttr, status);
 }
 
@@ -713,6 +740,7 @@ nssTokenObjectCache_FindObjectsByTemplate(
             objectType = cachedCerts;
             break;
         case CKO_NSS_TRUST:
+        case CKO_TRUST:
             objectType = cachedTrust;
             break;
         case CKO_NSS_CRL:
@@ -781,6 +809,7 @@ nssTokenObjectCache_GetObjectAttributes(
             objectType = cachedCerts;
             break;
         case CKO_NSS_TRUST:
+        case CKO_TRUST:
             objectType = cachedTrust;
             break;
         case CKO_NSS_CRL:
@@ -874,7 +903,9 @@ nssTokenObjectCache_ImportObject(
             objectType = cachedCerts;
             break;
         case CKO_NSS_TRUST:
+        case CKO_TRUST:
             objectType = cachedTrust;
+            object->trustType = objclass;
             break;
         case CKO_NSS_CRL:
             objectType = cachedCRLs;
@@ -965,36 +996,67 @@ nssTokenObjectCache_RemoveObject(
     PZ_Unlock(cache->lock);
 }
 
-/* These two hash algorithms are presently sufficient.
-** They are used for fingerprints of certs which are stored as the
+/* We need a general hash to support CKO_TRUST
+** Replace the algorithm specific version used for
 ** CKA_CERT_SHA1_HASH and CKA_CERT_MD5_HASH attributes.
-** We don't need to add SHAxxx to these now.
+** CKA_HASH_OF_CERTIFICATE uses the mechanism specified
+** in CKA_NAME_HASH_ALGORITHM, with can be passed to this
+** function.
 */
 /* XXX of course this doesn't belong here */
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateSHA1Digest(
-    NSSArena *arenaOpt)
+NSSAlgorithmAndParameters_CreateDigest(
+    NSSArena *arenaOpt, CK_MECHANISM_TYPE hashMech)
 {
     NSSAlgorithmAndParameters *rvAP = NULL;
     rvAP = nss_ZNEW(arenaOpt, NSSAlgorithmAndParameters);
     if (rvAP) {
-        rvAP->mechanism.mechanism = CKM_SHA_1;
+        rvAP->mechanism.mechanism = hashMech;
         rvAP->mechanism.pParameter = NULL;
         rvAP->mechanism.ulParameterLen = 0;
     }
     return rvAP;
 }
 
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateMD5Digest(
-    NSSArena *arenaOpt)
+/*
+ * we need a DigestBuf for both create and verify trust objects.
+ * So put it here for now. We don't have any Stan based crypto operations
+ * yet.
+ */
+NSS_IMPLEMENT PRStatus
+NSSAlgorithm_DigestBuf(CK_MECHANISM_TYPE type, NSSItem *input, NSSItem *output)
 {
-    NSSAlgorithmAndParameters *rvAP = NULL;
-    rvAP = nss_ZNEW(arenaOpt, NSSAlgorithmAndParameters);
-    if (rvAP) {
-        rvAP->mechanism.mechanism = CKM_MD5;
-        rvAP->mechanism.pParameter = NULL;
-        rvAP->mechanism.ulParameterLen = 0;
+    PRStatus ret = PR_FAILURE;
+    NSSAlgorithmAndParameters *ap = NULL;
+    PK11SlotInfo *internal = NULL;
+    NSSToken *token = NULL;
+    NSSItem *dummy = NULL;
+
+    internal = PK11_GetInternalSlot();
+    if (!internal) {
+        goto done;
     }
-    return rvAP;
+    token = PK11Slot_GetNSSToken(internal);
+    if (!token) {
+        goto done;
+    }
+    ap = NSSAlgorithmAndParameters_CreateDigest(NULL, type);
+    if (!token) {
+        goto done;
+    }
+
+    dummy = nssToken_Digest(token, NULL, ap, input, output, NULL);
+    if (dummy) {
+        ret = PR_SUCCESS;
+    }
+
+done:
+    nss_ZFreeIf(ap);
+    if (token) {
+        (void)nssToken_Destroy(token);
+    }
+    if (internal) {
+        PK11_FreeSlot(internal);
+    }
+    return ret;
 }

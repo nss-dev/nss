@@ -905,56 +905,49 @@ nssToken_FindPublicKeyByID(
     return rvKey;
 }
 
-static void
-sha1_hash(NSSItem *input, NSSItem *output)
+static PRBool
+nss_TokenUsePKCS11Trust(NSSToken *tok)
 {
-    NSSAlgorithmAndParameters *ap;
-    PK11SlotInfo *internal = PK11_GetInternalSlot();
-    NSSToken *token = PK11Slot_GetNSSToken(internal);
-    ap = NSSAlgorithmAndParameters_CreateSHA1Digest(NULL);
-    (void)nssToken_Digest(token, NULL, ap, input, output, NULL);
-    nss_ZFreeIf(ap);
-    (void)nssToken_Destroy(token);
-    PK11_FreeSlot(internal);
-}
+    void *evp = nssToken_GetCryptokiEPV(tok);
+    CK_VERSION vers;
 
-static void
-md5_hash(NSSItem *input, NSSItem *output)
-{
-    NSSAlgorithmAndParameters *ap;
-    PK11SlotInfo *internal = PK11_GetInternalSlot();
-    NSSToken *token = PK11Slot_GetNSSToken(internal);
-    ap = NSSAlgorithmAndParameters_CreateMD5Digest(NULL);
-    (void)nssToken_Digest(token, NULL, ap, input, output, NULL);
-    nss_ZFreeIf(ap);
-    (void)nssToken_Destroy(token);
-    PK11_FreeSlot(internal);
+    if (!evp) {
+        return PR_FALSE;
+    }
+    vers = CKAPI(evp)->version;
+    if (vers.major < 3) {
+        return PR_FALSE;
+    }
+    if ((vers.major == 3) && (vers.minor < 2)) {
+        return PR_FALSE;
+    }
+    return PR_TRUE;
 }
 
 static CK_TRUST
 get_ck_trust(
-    nssTrustLevel nssTrust)
+    nssTrustLevel nssTrust, PRBool isPKCSTrust)
 {
     CK_TRUST t;
     switch (nssTrust) {
         case nssTrustLevel_NotTrusted:
-            t = CKT_NSS_NOT_TRUSTED;
+            t = isPKCSTrust ? CKT_NOT_TRUSTED : CKT_NSS_NOT_TRUSTED;
             break;
         case nssTrustLevel_TrustedDelegator:
-            t = CKT_NSS_TRUSTED_DELEGATOR;
+            t = isPKCSTrust ? CKT_TRUST_ANCHOR : CKT_NSS_TRUSTED_DELEGATOR;
             break;
         case nssTrustLevel_ValidDelegator:
-            t = CKT_NSS_VALID_DELEGATOR;
+            t = isPKCSTrust ? CKT_TRUST_MUST_VERIFY_TRUST : CKT_NSS_VALID_DELEGATOR;
             break;
         case nssTrustLevel_Trusted:
-            t = CKT_NSS_TRUSTED;
+            t = isPKCSTrust ? CKT_TRUSTED : CKT_NSS_TRUSTED;
             break;
         case nssTrustLevel_MustVerify:
-            t = CKT_NSS_MUST_VERIFY_TRUST;
+            t = isPKCSTrust ? CKT_TRUST_MUST_VERIFY_TRUST : CKT_NSS_MUST_VERIFY_TRUST;
             break;
         case nssTrustLevel_Unknown:
         default:
-            t = CKT_NSS_TRUST_UNKNOWN;
+            t = isPKCSTrust ? CKT_TRUST_UNKNOWN : CKT_NSS_TRUST_UNKNOWN;
             break;
     }
     return t;
@@ -975,24 +968,33 @@ nssToken_ImportTrust(
     PRBool asTokenObject)
 {
     nssCryptokiObject *object;
-    CK_OBJECT_CLASS tobjc = CKO_NSS_TRUST;
+    CK_OBJECT_CLASS tobjc;
     CK_TRUST ckSA, ckCA, ckCS, ckEP;
     CK_ATTRIBUTE_PTR attr;
     CK_ATTRIBUTE trust_tmpl[11];
     CK_ULONG tsize;
-    PRUint8 sha1[20]; /* this is cheating... */
-    PRUint8 md5[16];
-    NSSItem sha1_result, md5_result;
-    sha1_result.data = sha1;
-    sha1_result.size = sizeof sha1;
-    md5_result.data = md5;
-    md5_result.size = sizeof md5;
-    sha1_hash(certEncoding, &sha1_result);
-    md5_hash(certEncoding, &md5_result);
-    ckSA = get_ck_trust(serverAuth);
-    ckCA = get_ck_trust(clientAuth);
-    ckCS = get_ck_trust(codeSigning);
-    ckEP = get_ck_trust(emailProtection);
+    PRBool usePKCS11TrustToken = nss_TokenUsePKCS11Trust(tok);
+    PRUint8 hashBuf[HASH_LENGTH_MAX];
+    PRUint8 hashBuf2[HASH_LENGTH_MAX];
+    CK_MECHANISM_TYPE hashMech;
+
+    tobjc = usePKCS11TrustToken ? CKO_TRUST : CKO_NSS_TRUST;
+    ckSA = get_ck_trust(serverAuth, usePKCS11TrustToken);
+    ckCA = get_ck_trust(clientAuth, usePKCS11TrustToken);
+    ckCS = get_ck_trust(codeSigning, usePKCS11TrustToken);
+    ckEP = get_ck_trust(emailProtection, usePKCS11TrustToken);
+    hashMech = usePKCS11TrustToken ? CKM_SHA256 : CKM_SHA_1;
+
+    NSSItem hash_result, hash2_result;
+    hash_result.data = hashBuf;
+    hash_result.size = sizeof(hashBuf);
+    NSSAlgorithm_DigestBuf(hashMech, certEncoding, &hash_result);
+    if (!usePKCS11TrustToken) {
+        hash2_result.data = hashBuf2;
+        hash2_result.size = sizeof(hashBuf2);
+        NSSAlgorithm_DigestBuf(CKM_MD5, certEncoding, &hash2_result);
+    }
+
     NSS_CK_TEMPLATE_START(trust_tmpl, attr, tsize);
     if (asTokenObject) {
         NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
@@ -1002,19 +1004,29 @@ nssToken_ImportTrust(
     NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_CLASS, tobjc);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ISSUER, certIssuer);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_SERIAL_NUMBER, certSerial);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CERT_SHA1_HASH, &sha1_result);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CERT_MD5_HASH, &md5_result);
-    /* now set the trust values */
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_SERVER_AUTH, ckSA);
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_CLIENT_AUTH, ckCA);
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_CODE_SIGNING, ckCS);
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_EMAIL_PROTECTION, ckEP);
-    if (stepUpApproved) {
-        NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TRUST_STEP_UP_APPROVED,
-                                  &g_ck_true);
+    if (usePKCS11TrustToken) {
+        NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_HASH_OF_CERTIFICATE, &hash_result);
+        NSS_CK_SET_ATTRIBUTE_FIXED_PTR(attr, CKA_NAME_HASH_ALGORITHM, &hashMech);
+        /* now set the trust values */
+        NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_PKCS_TRUST_SERVER_AUTH, ckSA);
+        NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_PKCS_TRUST_CLIENT_AUTH, ckCA);
+        NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_PKCS_TRUST_CODE_SIGNING, ckCS);
+        NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_PKCS_TRUST_EMAIL_PROTECTION, ckEP);
     } else {
-        NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TRUST_STEP_UP_APPROVED,
-                                  &g_ck_false);
+        NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_NSS_CERT_SHA1_HASH, &hash_result);
+        NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_NSS_CERT_MD5_HASH, &hash2_result);
+        /* now set the trust values */
+        NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_NSS_TRUST_SERVER_AUTH, ckSA);
+        NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_NSS_TRUST_CLIENT_AUTH, ckCA);
+        NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_NSS_TRUST_CODE_SIGNING, ckCS);
+        NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_NSS_TRUST_EMAIL_PROTECTION, ckEP);
+        if (stepUpApproved) {
+            NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_NSS_TRUST_STEP_UP_APPROVED,
+                                      &g_ck_true);
+        } else {
+            NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_NSS_TRUST_STEP_UP_APPROVED,
+                                      &g_ck_false);
+        }
     }
     NSS_CK_TEMPLATE_FINISH(trust_tmpl, attr, tsize);
     /* import the trust object onto the token */
@@ -1035,7 +1047,7 @@ nssToken_FindTrustForCertificate(
     NSSDER *certSerial,
     nssTokenSearchType searchType)
 {
-    CK_OBJECT_CLASS tobjc = CKO_NSS_TRUST;
+    CK_OBJECT_CLASS tobjc = CKO_TRUST;
     CK_ATTRIBUTE_PTR attr;
     CK_ATTRIBUTE tobj_template[5];
     CK_ULONG tobj_size;
@@ -1059,8 +1071,16 @@ nssToken_FindTrustForCertificate(
     objects = nssToken_FindObjectsByTemplate(token, session,
                                              tobj_template, tobj_size,
                                              1, NULL);
+    if (!objects) {
+        tobjc = CKO_NSS_TRUST;
+        objects = nssToken_FindObjectsByTemplate(token, session,
+                                                 tobj_template, tobj_size,
+                                                 1, NULL);
+    }
+
     if (objects) {
         object = objects[0];
+        object->trustType = tobjc;
         nss_ZFreeIf(objects);
     }
     return object;
@@ -1232,6 +1252,9 @@ nssToken_Digest(
     }
     if (!rvOpt) {
         rvItem = nssItem_Create(arenaOpt, NULL, digestLen, (void *)digest);
+    } else {
+        rvOpt->size = digestLen;
+        rvItem = rvOpt;
     }
     return rvItem;
 }

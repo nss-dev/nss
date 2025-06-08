@@ -126,6 +126,7 @@ struct nssCryptokiInstanceStr {
     NSSToken *token;
     PRBool isTokenObject;
     NSSUTF8 *label;
+    CK_MECHANISM_TYPE trustType;
 };
 
 typedef struct nssCryptokiInstanceStr nssCryptokiObject;
