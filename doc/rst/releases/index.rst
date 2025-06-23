@@ -1,7 +1,7 @@
 .. _mozilla_projects_nss_releases:
 
-Releases
-========
+Release Notes
+=============
 
 .. toctree::
    :maxdepth: 0
