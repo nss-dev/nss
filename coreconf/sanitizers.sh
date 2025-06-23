@@ -19,7 +19,7 @@ enable_sanitizer()
         gyp_params+=(-Dno_zdefs=1)
     fi
 
-    local cflags=$(python $cwd/coreconf/sanitizers.py "$@")
+    local cflags=$(${python:-python} $cwd/coreconf/sanitizers.py "$@")
     sanitizer_flags="$sanitizer_flags $cflags"
 }
 
