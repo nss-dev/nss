@@ -9,5 +9,3 @@ Runbooks
    :hidden:
 
    releasing.rst
-
-.. container::

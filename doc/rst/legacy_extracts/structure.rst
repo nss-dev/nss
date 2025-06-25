@@ -1,9 +1,7 @@
 .. _mozilla_projects_nss_nss_structure:
 
 `NSS API Structure <#api_structure>`__
-=======================
-
-.. container::
+======================================
 
 `Libraries <#libraries>`__
 --------------------------
@@ -240,7 +238,7 @@
 .. _naming_conventions:
 
 `Naming Conventions <#_naming_conventions>`__
---------------------------
+---------------------------------------------
 
 .. container::
 
@@ -341,7 +339,7 @@
 .. _opaque_data_structures:
 
 `Opaque Data Structures <#_opaque_data_structures>`__
---------------------------
+-----------------------------------------------------
 
 .. container::
 

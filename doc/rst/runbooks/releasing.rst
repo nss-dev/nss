@@ -1,16 +1,14 @@
 .. _mozilla_projects_nss_runbooks_releasing:
 
-.. container::
-
 Releasing NSS
 =============
 
 .. container::
 
-Stages of the NSS Release Cycle:
+   Stages of the NSS Release Cycle:
 
- * Normal development. This runs from the day after a Firefox merge until 2 weeks before the next Firefox merge. During this time, the version of NSS in mozilla-central and on NSS's development branch are kept in sync by `Updatebot <https://github.com/mozilla-services/updatebot>`_.
- * Freezing for release. This starts 2 weeks before the next Firefox merge. During this time, mozilla-central tracks a release branch. Commits can still land on NSS's development branch but they won't be uplifted to mozilla-central.
+   * Normal development. This runs from the day after a Firefox merge until 2 weeks before the next Firefox merge. During this time, the version of NSS in mozilla-central and on NSS's development branch are kept in sync by `Updatebot <https://github.com/mozilla-services/updatebot>`_.
+   * Freezing for release. This starts 2 weeks before the next Firefox merge. During this time, mozilla-central tracks a release branch. Commits can still land on NSS's development branch but they won't be uplifted to mozilla-central.
 
 Freezing a version for release
 ------------------------------
@@ -32,8 +30,8 @@ The NSS Release owner will:
 
 .. warning::
 
-It may be that issues are uncovered by users running Firefox Nightly.
-If so, the appropriate changes should be made to this branch and to the development branch, then a new beta tagged and uplifted.
+   It may be that issues are uncovered by users running Firefox Nightly.
+   If so, the appropriate changes should be made to this branch and to the development branch, then a new beta tagged and uplifted.
 
 .. warning::
 

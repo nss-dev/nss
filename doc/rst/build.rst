@@ -230,7 +230,7 @@ Building NSS
 .. _mozilla_projects_nss_build_artifacts:
 
 `Build artifacts <#build_artifacts>`__
---------------------------------
+--------------------------------------
 
 .. _shared_libraries:
 
@@ -239,18 +239,18 @@ Building NSS
 
 .. container::
 
-Network Security Services provides both static libraries and shared libraries. Applications that
-use the shared libraries must use only the APIs that they export. Three shared libraries export
-public functions:
+   Network Security Services provides both static libraries and shared libraries. Applications that
+   use the shared libraries must use only the APIs that they export. Three shared libraries export
+   public functions:
 
--  The SSL/TLS library supports core TLS operations.
--  The S/MIME library supports core S/MIME operations.
--  The freebl library supports core crypto operations.
+   -  The SSL/TLS library supports core TLS operations.
+   -  The S/MIME library supports core S/MIME operations.
+   -  The freebl library supports core crypto operations.
 
 .. note::
 
-We guarantee that applications using the exported APIs will remain compatible with future
-versions of those libraries until deprecated.
+   We guarantee that applications using the exported APIs will remain compatible with future
+   versions of those libraries until deprecated.
 
 .. _naming_conventions_and_special_libraries:
 
@@ -259,43 +259,43 @@ versions of those libraries until deprecated.
 
 .. container::
 
-Windows and Unix use different naming conventions for static and dynamic
-libraries:
+   Windows and Unix use different naming conventions for static and dynamic
+   libraries:
 
-======= ======== ===============================
-      Windows  Unix
-static  ``.lib`` ``.a``
-dynamic ``.dll`` ``.so`` or ``.dylib`` or ``.sl``
-======= ======== ===============================
+   ======= ======== ===============================
+           Windows  Unix
+   static  ``.lib`` ``.a``
+   dynamic ``.dll`` ``.so`` or ``.dylib`` or ``.sl``
+   ======= ======== ===============================
 
-In addition, Windows has "import" libraries that bind to dynamic
-libraries. So the NSS library has the following forms:
+   In addition, Windows has "import" libraries that bind to dynamic
+   libraries. So the NSS library has the following forms:
 
--  ``libnss3.so`` - Linux shared library
--  ``libnss3.dylib`` - MacOS shared library
--  ``libnss3.sl`` - HP-UX shared library
--  ``libnss.a`` - Unix static library
--  ``nss3.dll`` - Windows shared library
--  ``nss3.lib`` - Windows import library binding to ``nss3.dll``
--  ``nss.lib`` - Windows static library
+   -  ``libnss3.so`` - Linux shared library
+   -  ``libnss3.dylib`` - MacOS shared library
+   -  ``libnss3.sl`` - HP-UX shared library
+   -  ``libnss.a`` - Unix static library
+   -  ``nss3.dll`` - Windows shared library
+   -  ``nss3.lib`` - Windows import library binding to ``nss3.dll``
+   -  ``nss.lib`` - Windows static library
 
-NSS, SSL, and S/MIME have all of the above forms.
+   NSS, SSL, and S/MIME have all of the above forms.
 
-The following static libraries aren't included in any shared libraries
+   The following static libraries aren't included in any shared libraries
 
--  ``libcrmf.a``/``crmf.lib`` provides an API for CRMF operations.
--  ``libjar.a``/``jar.lib`` provides an API for creating JAR files.
+   -  ``libcrmf.a``/``crmf.lib`` provides an API for CRMF operations.
+   -  ``libjar.a``/``jar.lib`` provides an API for creating JAR files.
 
-The following static libraries are included only in external loadable PKCS
-#11 modules:
+   The following static libraries are included only in external loadable PKCS
+   #11 modules:
 
--  ``libnssckfw.a``/``nssckfw.lib`` provides an API for writing PKCS #11 modules.
--  ``libswfci.a``/``swfci.lib`` provides support for software FORTEZZA.
+   -  ``libnssckfw.a``/``nssckfw.lib`` provides an API for writing PKCS #11 modules.
+   -  ``libswfci.a``/``swfci.lib`` provides support for software FORTEZZA.
 
-The following shared libraries are standalone loadable modules, not meant to
-be linked with directly:
+   The following shared libraries are standalone loadable modules, not meant to
+   be linked with directly:
 
--  ``libfort.so``/``libfort.sl``/``fort32.dll`` provides support for hardware FORTEZZA.
--  ``libswft.so``/``libswft.sl``/``swft32.dll`` provides support for software FORTEZZA.
--  ``libnssckbi.so``/``libnssckbi.sl``/``nssckbi.dll`` defines the default set
-   of trusted root certificates.
+   -  ``libfort.so``/``libfort.sl``/``fort32.dll`` provides support for hardware FORTEZZA.
+   -  ``libswft.so``/``libswft.sl``/``swft32.dll`` provides support for software FORTEZZA.
+   -  ``libnssckbi.so``/``libnssckbi.sl``/``nssckbi.dll`` defines the default set
+      of trusted root certificates.

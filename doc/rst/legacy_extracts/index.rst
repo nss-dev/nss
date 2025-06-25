@@ -13,8 +13,6 @@ Legacy Docs
    pkcs11log.rst
    structure.rst
 
-.. container::
-
 .. warning::
    The NSS source includes a substantial amount of documentation that was imported from our legacy MDN repository.
    The full legacy documentation can be found in ``nss/doc/rst/legacy``.
