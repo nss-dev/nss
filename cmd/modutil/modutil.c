@@ -751,7 +751,7 @@ usage()
                "\n"
                "Cipher lists are colon-separated.  The following ciphers are recognized:\n"
                "\n"
-               "\nQuestions or bug reports should be sent to modutil-support@netscape.com.\n");
+               "\nQuestions or bug reports should be sent to dev-tech-crypto@mozilla.org.\n");
 }
 
 /*************************************************************************
