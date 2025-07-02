@@ -9857,9 +9857,7 @@ cipher_found:
                 goto loser;
             }
 
-            if (haveXmitBufLock) {
-                ssl_ReleaseXmitBufLock(ss);
-            }
+            ssl_ReleaseXmitBufLock(ss);
 
             return SECSuccess;
         } while (0);
@@ -9920,10 +9918,6 @@ cipher_found:
         errCode = PORT_GetError();
         desc = handshake_failure;
         goto alert_loser;
-    }
-
-    if (haveXmitBufLock) {
-        ssl_ReleaseXmitBufLock(ss);
     }
 
     return SECSuccess;
