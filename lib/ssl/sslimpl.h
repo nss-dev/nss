@@ -728,7 +728,7 @@ typedef struct SSL3HandshakeStateStr {
     dtlsTimer timers[3];       /* Holder for timers. */
     dtlsTimer *rtTimer;        /* Retransmit timer. */
     dtlsTimer *ackTimer;       /* Ack timer (DTLS 1.3 only). */
-    dtlsTimer *hdTimer;        /* Read cipher holddown timer (DLTS 1.3 only) */
+    dtlsTimer *hdTimer;        /* Read cipher holddown timer. */
 
     /* KeyUpdate state machines */
     PRBool isKeyUpdateInProgress; /* The status of KeyUpdate -: {true == started, false == finished}. */
