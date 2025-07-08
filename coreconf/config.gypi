@@ -145,6 +145,9 @@
     'force_integrated_as%': 0,
     'disable_ckbi%': 0,
     'ppc_abi%': 0,
+    'use_pkcs5_pbkd2_params2_only%': 0,
+    'nss_use_pkcs5_pbkd2_params2_only%': 0,
+    'softoken_use_pkcs5_pbkd2_params2_only%': 0,
   },
   'target_defaults': {
     # Settings specific to targets should go here.
@@ -605,6 +608,22 @@
           [ 'disable_deprecated_rc2==1', {
             'defines': [
               'NSS_DISABLE_DEPRECATED_RC2',
+            ],
+          }],
+          [ 'use_pkcs5_pbkd2_params2_only==1', {
+            'defines': [
+              'NSS_USE_PKCS5_PBKD2_PARAMS2_ONLY',
+              'SOFTOKEN_USE_PKCS5_PBKD2_PARAMS2_ONLY',
+            ],
+          }],
+          [ 'nss_use_pkcs5_pbkd2_params2_only==1', {
+            'defines': [
+              'NSS_USE_PKCS5_PBKD2_PARAMS2_ONLY',
+            ],
+          }],
+          [ 'softoken_use_pkcs5_pbkd2_params2_only==1', {
+            'defines': [
+              'SOFTOKEN_USE_PKCS5_PBKD2_PARAMS2_ONLY',
             ],
           }],
         ],
