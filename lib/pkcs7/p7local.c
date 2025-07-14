@@ -1294,7 +1294,6 @@ sec_pkcs7_choose_content_template(void *src_or_dest, PRBool encoding)
     SEC_PKCS7ContentInfo *cinfo;
     SECOidTag kind;
 
-    PORT_Assert(src_or_dest != NULL);
     if (src_or_dest == NULL)
         return NULL;
 
