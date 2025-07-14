@@ -826,6 +826,7 @@ sec_pkcs12_decoder_asafes_notify(void *arg, PRBool before, void *dest,
                 safeContentsCtx->safeContentsA1Dcx = NULL;
             }
             cinfo = SEC_PKCS7DecoderFinish(p12dcx->currentASafeP7Dcx);
+            SEC_ASN1DecoderClearFilterProc(p12dcx->aSafeA1Dcx);
             p12dcx->currentASafeP7Dcx = NULL;
             if (!cinfo) {
                 p12dcx->errorValue = PORT_GetError();
