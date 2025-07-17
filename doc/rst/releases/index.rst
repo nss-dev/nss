@@ -8,6 +8,7 @@ Release Notes
    :glob:
    :hidden:
 
+   nss_3_114.rst
    nss_3_113.rst
    nss_3_112.rst
    nss_3_111.rst
@@ -87,24 +88,42 @@ Release Notes
 
 .. note::
 
-   **NSS 3.113** is the latest version of NSS.
-   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_113_release_notes`
+   **NSS 3.114** is the latest version of NSS.
+   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_114_release_notes`
 
    **NSS 3.101.4 (ESR)** is the latest ESR version of NSS.
    Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_101_4_release_notes`
 
 .. container::
 
-   Changes in 3.113 included in this release:
+   Changes in 3.114 included in this release:
 
-   - Bug 1963792 - Fix alias for mac workers on try.
-   - Bug 198090  - Part 1: Use AES in the SDR (NSS) r=simonf,nss-reviewers,rrelyea
-   - Bug 1968764 - Bump nssckbi version to 2.78. 
-   - Bug 1967548 - Turn off Websites Trust Bit for Chunghwa Telecom ePKI Root in FF 141.
-   - Bug 1965556 - fix frame pointers in intel-gcm.s.
-   - Bug 1971510 - Typo in release notes for NSS 101.4.
-   - Bug 1968665 - Improve nss-release-helper.py.
-   - Bug 1930800 - shlibsign is broken in System FIPS mode.
-   - Bug 1954612 - Need up update NSS for PKCS 3.1: Move IPSEC to 3.1
-   - Bug 1965327 - PKCS #11 v3.2 header files.
-   - Bug 1954612 - Need up update NSS for PKCS 3.1: Move IPSEC to 3.1
+   - Bug 1977376 - NSS 3.114 source distribution should include NSPR 4.37.
+   - Bug 1970079 - Prevent leaks during pkcs12 decoding.
+   - Bug 1953731 - Remove redundant assert in p7local.c.
+   - Bug 1974515 - Bump nssckbi version to 2.80.
+   - Bug 1961848 - Remove expired Baltimore CyberTrust Root.
+   - Bug 1972391 - Add TrustAsia Dedicated Roots to NSS.
+   - Bug 1974511 - Add SwissSign 2022 Roots to NSS.
+   - Bug 1836559 - Add backwards compatibility for CK_PKCS5_PBKD2_PARAMS.
+   - Bug 1965328 - Implement PKCS #11 v3.2 trust objects in softoken.
+   - Bug 1965328 - Implement PKCS #11 v3.2 trust objects - nss proper.
+   - Bug 1974331 - remove dead code in ssl3con.c.
+   - Bug 1934867 - DTLS (excl DTLS1.3) Changing Holddown timer logic.
+   - Bug 1974299 - Bump nssckbi version to 2.79.
+   - Bug 1967826 - remove unneccessary assertion.
+   - Bug 1948485 - Update mechanisms for Softoken PCT.
+   - Bug 1974299 - convert Chunghwa Telecom ePKI Root removal to a distrust after.
+   - Bug 1973925 - Ensure ssl_HaveRecvBufLock and friends respect opt.noLocks.
+   - Bug 1973930 - use -O2 for asan build.
+   - Bug 1973187 - Fix leaking locks when toggling SSL_NO_LOCKS.
+   - Bug 1973105 - remove out-of-function semicolon.
+   - Bug 1963009 - Extend pkcs8 fuzz target.
+   - Bug 1963008 - Extend pkcs7 fuzz target.
+   - Bug 1908763 - Remove unused assignment to pageno.
+   - Bug 1908762 - Remove unused assignment to nextChunk.
+   - Bug 1973490 - don't run commands as part of shell `local` declarations.
+   - Bug 1973490 - fix sanitizer setup.
+   - Bug 1973187 - don't silence ssl_gtests output when running with code coverage.
+   - Bug 1967411 - Release docs and housekeeping.
+   - Bug 1972768 - migrate to new linux tester pool
