@@ -8,7 +8,7 @@ NSS 3.114 release notes
 
 .. container::
 
-   Network Security Services (NSS) 3.114 was released on *19 June 2025**.
+   Network Security Services (NSS) 3.114 was released on *17 July 2025**.
 
 `Distribution Information <#distribution_information>`__
 --------------------------------------------------------
