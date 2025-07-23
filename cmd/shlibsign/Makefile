@@ -24,7 +24,35 @@ include $(CORE_DEPTH)/coreconf/config.mk
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
 #######################################################################
 
-include ../platlibs.mk
+
+EXTRA_LIBS += \
+       $(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
+       $(NULL)
+
+# SHLIBSign cannot depend on freebl or above as it's used to sign them.
+# use a minimal set of required libraries to compile
+ifeq ($(OS_ARCH), WINNT)
+
+EXTRA_LIBS += \
+       $(NSSUTIL_LIB_DIR)/$(LIB_PREFIX)nssutil3.$(LIB_SUFFIX) \
+       $(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plc4.$(LIB_SUFFIX) \
+       $(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plds4.$(LIB_SUFFIX) \
+       $(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)nspr4.$(LIB_SUFFIX) \
+       $(NULL)
+
+else
+
+EXTRA_SHARED_LIBS += \
+       -L$(NSSUTIL_LIB_DIR) \
+       -lnssutil3 \
+       -L$(NSPR_LIB_DIR) \
+       -lplc4 \
+       -lplds4 \
+       -lnspr4 \
+       $(NULL)
+
+endif
+
 
 # sign any and all shared libraries that contain the word freebl
 ifeq ($(NSS_BUILD_WITHOUT_SOFTOKEN),1)

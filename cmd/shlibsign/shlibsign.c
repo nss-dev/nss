@@ -1398,6 +1398,7 @@ shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
 
         if (keyItem.len != hash->hashLength) {
             print_error("Supplied HMAC key does not match the HMAC hash length.");
+            SECITEM_FreeItem(&keyItem, PR_FALSE);
             return CKR_ATTRIBUTE_VALUE_INVALID;
         }
 
@@ -1406,6 +1407,7 @@ shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
                             hash->keyType, &keyItem);
         if (crv != CKR_OK) {
             pk11error("HMAC key import failed", crv);
+            SECITEM_FreeItem(&keyItem, PR_FALSE);
             return crv;
         }
         if (sizeof(keyBuf) < keyItem.len) {
@@ -1413,11 +1415,13 @@ shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
              * we already check for keyItem.len != hash->hashLength above,
              * and keyBuf should be big enough for the largest hash length */
             print_error("Input key is too large");
+            SECITEM_FreeItem(&keyItem, PR_FALSE);
             return CKR_HOST_MEMORY;
         }
         /* save the HMAC KeyValue */
         PORT_Memcpy(keyBuf, keyItem.data, keyItem.len);
         keyLen = keyItem.len;
+        SECITEM_FreeItem(&keyItem, PR_FALSE);
     }
 
     if (crv != CKR_OK) {
