@@ -154,7 +154,6 @@ pk11_contextInitMessage(PK11Context *context, CK_MECHANISM_PTR mech,
                         CK_FLAGS flags, CK_RV scrv)
 {
     PK11SlotInfo *slot = context->slot;
-    CK_VERSION version = slot->module->cryptokiVersion;
     CK_RV crv = CKR_OK;
 
     context->ivCounter = 0;
@@ -171,7 +170,7 @@ pk11_contextInitMessage(PK11Context *context, CK_MECHANISM_PTR mech,
      * PKCS #11 V2 interface.
      * Sign and verify do not have V2 interfaces, so we go ahead and fail
      * if those cases */
-    if ((version.major >= 3) &&
+    if ((PK11_CheckPKCS11Version(slot, 3, 0, PR_TRUE) >= 0) &&
         PK11_DoesMechanismFlag(slot, (mech)->mechanism, flags)) {
         PK11_EnterContextMonitor(context);
         crv = (*initFunc)((context)->session, (mech), (context)->objectID);

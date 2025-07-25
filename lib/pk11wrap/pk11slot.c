@@ -350,6 +350,31 @@ PK11_FindSlotElement(PK11SlotList *list, PK11SlotInfo *slot)
     return NULL;
 }
 
+/* like PORT_Memcmp, return -1 if the version is less then the
+ * passed in version, 0 if it's equal to and 1 if it's greater than
+ * the passed in version, PKCS #11 returns versions in 2 places,
+ * once in the function table and once in the module. the former
+ * is good to determine if it is safe to call a new function,
+ * the latter is good for module functionality */
+PRInt32
+PK11_CheckPKCS11Version(PK11SlotInfo *slot, CK_BYTE major, CK_BYTE minor,
+                        PRBool useFunctionTable)
+{
+    CK_VERSION version = useFunctionTable ? PK11_GETTAB(slot)->version : slot->module->cryptokiVersion;
+
+    if (version.major < major) {
+        return -1;
+    } else if (version.major > major) {
+        return 1;
+    } else if (version.minor < minor) {
+        return -1;
+    } else if (version.minor > minor) {
+        return 1;
+    }
+    /* if we get here, they must both be equal */
+    return 0;
+}
+
 /************************************************************
  * Generic Slot Utilities
  ************************************************************/
@@ -431,6 +456,7 @@ PK11_NewSlotInfo(SECMODModule *mod)
     slot->nssToken = NULL;
     slot->profileList = NULL;
     slot->profileCount = 0;
+    slot->validationFIPSFlags = 0;
     return slot;
 }
 
@@ -1270,6 +1296,51 @@ pk11_HasProfile(PK11SlotInfo *slot, CK_PROFILE_ID id)
     return PR_FALSE;
 }
 
+static CK_FLAGS
+pk11_GetValidationFlags(PK11SlotInfo *slot, CK_VALIDATION_AUTHORITY_TYPE auth)
+{
+    CK_ATTRIBUTE findTemp[2];
+    CK_ATTRIBUTE *attrs;
+    CK_OBJECT_CLASS oclass = CKO_VALIDATION;
+    size_t tsize;
+    int objCount;
+    CK_OBJECT_HANDLE *handles = NULL;
+    CK_FLAGS validation_flags = 0;
+    int i;
+
+    /* only used with tokens with verison >= 3.2 */
+    if (PK11_CheckPKCS11Version(slot, 3, 2, PR_FALSE) < 0) {
+        return validation_flags;
+    }
+
+    attrs = findTemp;
+    PK11_SETATTRS(attrs, CKA_CLASS, &oclass, sizeof(oclass));
+    attrs++;
+    PK11_SETATTRS(attrs, CKA_VALIDATION_AUTHORITY_TYPE, &auth, sizeof(auth));
+    attrs++;
+    tsize = attrs - findTemp;
+    PORT_Assert(tsize <= sizeof(findTemp) / sizeof(CK_ATTRIBUTE));
+
+    objCount = 0;
+    handles = pk11_FindObjectsByTemplate(slot, findTemp, tsize, &objCount);
+    if (handles == NULL) {
+        /* none found, return or empty flags */
+        return validation_flags;
+    }
+
+    for (i = 0; i < objCount; i++) {
+        CK_FLAGS value;
+        value = PK11_ReadULongAttribute(slot, handles[i], CKA_VALIDATION_FLAG);
+        if (value == CK_UNAVAILABLE_INFORMATION) {
+            continue;
+        }
+        validation_flags |= value;
+    }
+
+    PORT_Free(handles);
+    return validation_flags;
+}
+
 /*
  * initialize a new token
  * unlike initialize slot, this can be called multiple times in the lifetime
@@ -1399,6 +1470,8 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
     /* Not all tokens have profile objects or even recognize what profile
      * objects are it's OK for pk11_ReadProfileList to fail */
     (void)pk11_ReadProfileList(slot);
+    slot->validationFIPSFlags =
+        pk11_GetValidationFlags(slot, CKV_AUTHORITY_TYPE_NIST_CMVP);
 
     if (!(slot->isInternal) && (slot->hasRandom)) {
         /* if this slot has a random number generater, use it to add entropy
@@ -2728,6 +2801,36 @@ pk11slot_GetFIPSStatus(PK11SlotInfo *slot, CK_SESSION_HANDLE session,
     CK_RV crv;
     CK_ULONG fipsState = CKS_NSS_FIPS_NOT_OK;
 
+    if (PK11_CheckPKCS11Version(slot, 3, 2, PR_TRUE) >= 0) {
+        CK_FLAGS validationFlags = 0;
+
+        /* module isn't validated */
+        if (slot->validationFIPSFlags == 0) {
+            return PR_FALSE;
+        }
+        switch (operationType) {
+            /* in pkcs #11, these are equivalent */
+            case CKT_NSS_SESSION_LAST_CHECK:
+            case CKT_NSS_SESSION_CHECK:
+                crv = PK11_GETTAB(slot)->C_GetSessionValidationFlags(session,
+                                                                     CKS_LAST_VALIDATION_OK, &validationFlags);
+                if (crv != CKR_OK) {
+                    return PR_FALSE;
+                }
+                break;
+            case CKT_NSS_OBJECT_CHECK:
+                validationFlags = PK11_ReadULongAttribute(slot, object,
+                                                          CKA_OBJECT_VALIDATION_FLAGS);
+                if (validationFlags == CK_UNAVAILABLE_INFORMATION) {
+                    return PR_FALSE;
+                }
+                break;
+            default:
+                return PR_FALSE;
+        }
+        return (PRBool)(validationFlags & slot->validationFIPSFlags) != 0;
+    }
+    /* handle the NSS vendor specific indicators, for older modules */
     /* handle the obvious conditions:
      * 1) the module doesn't have a fipsIndicator - fips state must be false */
     if (mod->fipsIndicator == NULL) {

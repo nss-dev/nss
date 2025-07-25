@@ -4933,7 +4933,8 @@ NSC_CreateObject(CK_SESSION_HANDLE hSession,
     }
 
     /*
-     * sftk_NewObject will set object->isFIPS to PR_TRUE if the slot is FIPS.
+     * sftk_NewObject will set object->validation_value to
+     * SFTK_VALIDATION_FIPS_FLAG if the slot is FIPS.
      * We don't need to worry about that here, as FC_CreateObject will always
      * disallow the import of secret and private keys, regardless of isFIPS
      * approval status. Therefore, at this point we know that the key is a
@@ -5121,6 +5122,18 @@ nsc_GetTokenAttributeValue(SFTKSession *session, CK_OBJECT_HANDLE hObject,
     return crv;
 }
 
+PRBool
+sftk_template_hasAttribute(CK_ATTRIBUTE_TYPE type, CK_ATTRIBUTE *pTemplate,
+                           CK_ULONG ulCount)
+{
+    for (int i = 0; i < ulCount; i++) {
+        if (pTemplate[i].type == type) {
+            return PR_TRUE;
+        }
+    }
+    return PR_FALSE;
+}
+
 /* NSC_GetAttributeValue obtains the value of one or more object attributes. */
 CK_RV
 NSC_GetAttributeValue(CK_SESSION_HANDLE hSession,
@@ -5148,7 +5161,12 @@ NSC_GetAttributeValue(CK_SESSION_HANDLE hSession,
     }
 
     /* short circuit everything for token objects */
-    if (sftk_isToken(hObject)) {
+    if (sftk_isToken(hObject) &&
+        /* we we have a CKA_OBJECT_VALIDATION_FLAG, don't do the
+         * short circuit. the SDB code doesn't know how to process
+         * this attribute */
+        !sftk_template_hasAttribute(CKA_OBJECT_VALIDATION_FLAGS, pTemplate,
+                                    ulCount)) {
         crv = nsc_GetTokenAttributeValue(session, hObject, pTemplate, ulCount);
         sftk_FreeSession(session);
         return crv;
@@ -5735,7 +5753,7 @@ nsc_NSSGetFIPSStatus(CK_SESSION_HANDLE hSession,
             sftk_FreeSession(session);
             return CKR_OBJECT_HANDLE_INVALID;
         }
-        objectState = object->isFIPS ? CKS_NSS_FIPS_OK : CKS_NSS_FIPS_NOT_OK;
+        objectState = sftk_hasFIPS(object) ? CKS_NSS_FIPS_OK : CKS_NSS_FIPS_NOT_OK;
         sftk_FreeObject(object);
     }
 

@@ -1290,3 +1290,9 @@ PK11SDR_EncryptWithMechanism;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.115 { 	# NSS 3.115 release
+;+    global:
+PK11_CheckPKCS11Version;
+;+    local:
+;+       *;
+;+};

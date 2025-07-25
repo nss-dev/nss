@@ -114,6 +114,7 @@ struct PK11SlotInfoStr {
     char mechanismBits[256];
     CK_PROFILE_ID *profileList;
     int profileCount;
+    CK_FLAGS validationFIPSFlags;
 };
 
 /* Symetric Key structure. Reference Counted */

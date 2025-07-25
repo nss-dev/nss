@@ -1,0 +1,5 @@
+
+1 Added function:
+
+  'function PRInt32 PK11_CheckPKCS11Version(PK11SlotInfo*, CK_BYTE, CK_BYTE, PRBool)'    {PK11_CheckPKCS11Version@@NSS_3.115}
+

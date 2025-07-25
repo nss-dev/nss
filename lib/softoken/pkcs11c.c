@@ -7065,8 +7065,7 @@ NSC_UnwrapKey(CK_SESSION_HANDLE hSession,
     }
 
     /* mark the key as FIPS if the previous operation was all FIPS */
-    key->isFIPS = session->lastOpWasFIPS;
-
+    sftk_setFIPS(key, session->lastOpWasFIPS);
     /*
      * handle the base object stuff
      */
@@ -7571,13 +7570,14 @@ sftk_HKDF(CK_HKDF_PARAMS_PTR params, CK_SESSION_HANDLE hSession,
                 }
                 /* if the base key is not fips, but the salt key is, the
                  * resulting key can be fips */
-                if (isFIPS && (key->isFIPS == 0) && (saltKey->isFIPS == 1)) {
+                if (isFIPS && !sftk_hasFIPS(key) && sftk_hasFIPS(saltKey)) {
                     CK_MECHANISM mech;
                     mech.mechanism = CKM_HKDF_DERIVE;
                     mech.pParameter = params;
                     mech.ulParameterLen = sizeof(*params);
-                    key->isFIPS = sftk_operationIsFIPS(saltKey->slot, &mech,
-                                                       CKA_DERIVE, saltKey);
+                    sftk_setFIPS(key, sftk_operationIsFIPS(saltKey->slot,
+                                                           &mech, CKA_DERIVE,
+                                                           saltKey));
                 }
                 saltKey_att = sftk_FindAttribute(saltKey, CKA_VALUE);
                 if (saltKey_att == NULL) {
@@ -7843,7 +7843,8 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             return CKR_KEY_HANDLE_INVALID;
         }
     }
-    key->isFIPS = sftk_operationIsFIPS(slot, pMechanism, CKA_DERIVE, sourceKey);
+    sftk_setFIPS(key, sftk_operationIsFIPS(slot, pMechanism,
+                                           CKA_DERIVE, sourceKey));
 
     switch (mechanism) {
         /* get a public key from a private key. nsslowkey_ConvertToPublickey()
@@ -9299,7 +9300,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
         }
 
         crv = sftk_handleObject(key, session);
-        session->lastOpWasFIPS = key->isFIPS;
+        session->lastOpWasFIPS = sftk_hasFIPS(key);
         sftk_FreeSession(session);
         if (phKey) {
             *phKey = key->handle;

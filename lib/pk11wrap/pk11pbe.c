@@ -1451,9 +1451,7 @@ pk11_RawPBEKeyGenWithKeyType(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
         params->len = sizeof(CK_PKCS5_PBKD2_PARAMS2);
 
 #ifndef NSS_USE_PKCS5_PBKD2_PARAMS2_ONLY
-        CK_VERSION cryptokiVersion = slot->module->cryptokiVersion;
-        if (cryptokiVersion.major < 2 ||
-            (cryptokiVersion.major == 2 && cryptokiVersion.minor < 40)) {
+        if (PK11_CheckPKCS11Version(slot, 2, 40, PR_FALSE) < 0) {
             /* CK_PKCS5_PBKD2_PARAMS */
             _params.type = params->type;
             _params.data = (CK_CHAR_PTR)&pbev2_1_params;

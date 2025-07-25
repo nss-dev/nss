@@ -29,15 +29,18 @@ Usage()
 #define FPS PR_fprintf(PR_STDERR,
     FPS "Usage:	 %s [-d certdir] [-P dbprefix] [-h tokenname]\n",
 				 progName);
-    FPS "\t\t [-k slotpwfile | -K slotpw] [-v]\n");
+    FPS "\t\t [-k slotpwfile | -K slotpw] [-v][-o|-p]\n");
 
     exit(ERR_USAGE);
 }
 
 typedef enum {
     tagULong,
+    tagULongFlag,
     tagVersion,
-    tagUtf8
+    tagUtf8,
+    tagValidationAuthorityType,
+    tagValidationType,
 } tagType;
 
 typedef struct {
@@ -51,7 +54,12 @@ enum {
     opt_SlotPWFile,
     opt_SlotPW,
     opt_DBPrefix,
-    opt_Debug
+    opt_Debug,
+    /* we determine which validation objects we search for by
+     * whether or not pkcs 11 v3.2 is available, These options
+     * override the default */
+    opt_ForceVendor,
+    opt_ForcePKCS11,
 };
 
 static secuCommandFlag validation_options[] = {
@@ -60,8 +68,54 @@ static secuCommandFlag validation_options[] = {
     { /* opt_SlotPWFile     */ 'k', PR_TRUE, 0, PR_FALSE },
     { /* opt_SlotPW         */ 'K', PR_TRUE, 0, PR_FALSE },
     { /* opt_DBPrefix       */ 'P', PR_TRUE, 0, PR_FALSE },
-    { /* opt_Debug          */ 'v', PR_FALSE, 0, PR_FALSE }
+    { /* opt_Debug          */ 'v', PR_FALSE, 0, PR_FALSE },
+    { /* opt_ForceVendor    */ 'o', PR_FALSE, 0, PR_FALSE },
+    { /* opt_ForcePKCS11    */ 'p', PR_FALSE, 0, PR_FALSE }
 };
+
+const char *validationAuthorityTable[] = {
+    "Unspecified",
+    "NIST/CMVP",
+    "Common Criteria"
+};
+const size_t validationAuthorityTableSize = PR_ARRAY_SIZE(validationAuthorityTable);
+
+const char *validationTypeTable[] = {
+    "Unspecified",
+    "Software",
+    "Hardware",
+    "Firmware",
+    "Hybrid",
+};
+const size_t validationTypeTableSize = PR_ARRAY_SIZE(validationTypeTable);
+
+void
+printULongTag(tagType tag, CK_ULONG value)
+{
+    switch (tag) {
+        case tagULongFlag:
+            for (int i = 31; i >= 0; i--) {
+                printf("%u", (unsigned int)(value >> i) & 0x1);
+            }
+            printf("\n");
+            return; /* done */
+        case tagValidationAuthorityType:
+            if (value < validationAuthorityTableSize) {
+                printf("%s\n", validationAuthorityTable[value]);
+                return;
+            }
+            break; /* fall through to default */
+        case tagValidationType:
+            if (value < validationTypeTableSize) {
+                printf("%s\n", validationTypeTable[value]);
+                return;
+            }
+            break; /* fall through to default */
+        default:
+            break;
+    }
+    printf("%ld\n", value);
+}
 
 void
 dump_Raw(char *label, CK_ATTRIBUTE *attr)
@@ -98,13 +152,16 @@ dump_validations(CK_OBJECT_CLASS objc, CK_ATTRIBUTE *template, int count,
                 printf("<empty>\n");
             } else
                 switch (tags[i].attributeStorageType) {
+                    case tagULongFlag:
+                    case tagValidationAuthorityType:
+                    case tagValidationType:
                     case tagULong:
                         if (len != sizeof(CK_ULONG)) {
                             dump_Raw("bad ulong", &template[i]);
                             break;
                         }
                         ulong = *(CK_ULONG *)template[i].pValue;
-                        printf("%ld\n", ulong);
+                        printULongTag(tags[i].attributeStorageType, ulong);
                         break;
                     case tagVersion:
                         if (len != sizeof(CK_VERSION)) {
@@ -139,17 +196,44 @@ main(int argc, char **argv)
     char *slotname = NULL;
     char *dbprefix = "";
     char *nssdir = NULL;
-    SECStatus rv;
+    SECStatus rv = SECFailure;
     secuCommand validation;
     int local_errno = 0;
 
     CK_ATTRIBUTE validation_template[] = {
+        { CKA_VALIDATION_MODULE_ID, NULL, 0 },
+        { CKA_VALIDATION_AUTHORITY_TYPE, NULL, 0 },
+        { CKA_VALIDATION_TYPE, NULL, 0 },
+        { CKA_VALIDATION_VERSION, NULL, 0 },
+        { CKA_VALIDATION_LEVEL, NULL, 0 },
+        { CKA_VALIDATION_FLAG, NULL, 0 },
+        { CKA_VALIDATION_COUNTRY, NULL, 0 },
+        { CKA_VALIDATION_CERTIFICATE_IDENTIFIER, NULL, 0 },
+        { CKA_VALIDATION_CERTIFICATE_URI, NULL, 0 },
+        { CKA_VALIDATION_PROFILE, NULL, 0 },
+        { CKA_VALIDATION_VENDOR_URI, NULL, 0 },
+    };
+    attributeTag validation_tags[] = {
+        { "Validation Module ID", tagUtf8 },
+        { "Validation Authority Type", tagValidationAuthorityType },
+        { "Validation Type", tagValidationType },
+        { "Validation Version", tagVersion },
+        { "Validation Level", tagULong },
+        { "Validation Flag", tagULongFlag },
+        { "Validation Country", tagUtf8 },
+        { "Validation Certificate Identifier", tagUtf8 },
+        { "Validation Certificate URI", tagUtf8 },
+        { "Validation Certificate Profile", tagUtf8 },
+        { "Validation Vendor URI", tagUtf8 },
+    };
+
+    CK_ATTRIBUTE nss_validation_template[] = {
         { CKA_NSS_VALIDATION_TYPE, NULL, 0 },
         { CKA_NSS_VALIDATION_VERSION, NULL, 0 },
         { CKA_NSS_VALIDATION_LEVEL, NULL, 0 },
         { CKA_NSS_VALIDATION_MODULE_ID, NULL, 0 }
     };
-    attributeTag validation_tags[] = {
+    attributeTag nss_validation_tags[] = {
         { "Validation Type", tagULong },
         { "Validation Version", tagVersion },
         { "Validation Level", tagULong },
@@ -172,6 +256,12 @@ main(int argc, char **argv)
 
     if (rv != SECSuccess)
         Usage();
+
+    if (validation.options[opt_ForceVendor].activated &&
+        validation.options[opt_ForcePKCS11].activated) {
+        fprintf(stderr, "-o and -p are mutually exclusive\n");
+        Usage();
+    }
 
     debug = validation.options[opt_Debug].activated;
 
@@ -224,12 +314,36 @@ main(int argc, char **argv)
         local_errno = ERR_PK11GETSLOT;
         goto done;
     }
+    if (validation.options[opt_ForceVendor].activated) {
+        rv = dump_validations(CKO_NSS_VALIDATION,
+                              nss_validation_template,
+                              PR_ARRAY_SIZE(nss_validation_template),
+                              nss_validation_tags,
+                              slot);
+    } else if (validation.options[opt_ForcePKCS11].activated) {
+        rv = dump_validations(CKO_VALIDATION,
+                              validation_template,
+                              PR_ARRAY_SIZE(validation_template),
+                              validation_tags,
+                              slot);
+    } else if (PK11_CheckPKCS11Version(slot, 3, 2, PR_FALSE) >= 0) {
+        rv = dump_validations(CKO_VALIDATION,
+                              validation_template,
+                              PR_ARRAY_SIZE(validation_template),
+                              validation_tags,
+                              slot);
+    } else {
+        rv = dump_validations(CKO_NSS_VALIDATION,
+                              nss_validation_template,
+                              PR_ARRAY_SIZE(nss_validation_template),
+                              nss_validation_tags,
+                              slot);
+    }
 
-    rv = dump_validations(CKO_NSS_VALIDATION,
-                          validation_template,
-                          PR_ARRAY_SIZE(validation_template),
-                          validation_tags,
-                          slot);
+    if (rv != SECSuccess) {
+        SECU_PrintPRandOSError(progName);
+        local_errno = -1;
+    }
 
 done:
     if (slotPw.data != NULL)

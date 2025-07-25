@@ -30,7 +30,7 @@ RNG_SystemInfoForRNG(void)
         return;
     }
     RNG_RandomUpdate(bytes, numBytes);
-    PORT_SaveZero(bytes, sizeof(bytes));
+    PORT_SafeZero(bytes, sizeof(bytes));
 }
 
 static unsigned int rng_grndFlags = 0;

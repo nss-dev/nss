@@ -490,7 +490,7 @@ PORT_GetError_stub(void)
 }
 
 extern void
-PORT_SafeZero(void *p, size_t n)
+PORT_SafeZero_stub(void *p, size_t n)
 {
     STUB_SAFE_CALL2(PORT_SafeZero, p, n);
     /* just use a generic call in the case where we are running
