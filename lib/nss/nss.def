@@ -5,13 +5,13 @@
 ;+#
 ;+# OK, this file is meant to support SUN, LINUX, AIX and WINDOWS
 ;+#   1. For all unix platforms, the string ";-"  means "remove this line"
-;+#   2. For all unix platforms, the string " DATA " will be removed from any 
+;+#   2. For all unix platforms, the string " DATA " will be removed from any
 ;+#	line on which it occurs.
 ;+#   3. Lines containing ";+" will have ";+" removed on SUN and LINUX.
-;+#      On AIX, lines containing ";+" will be removed.  
+;+#      On AIX, lines containing ";+" will be removed.
 ;+#   4. For all unix platforms, the string ";;" will thave the ";;" removed.
 ;+#   5. For all unix platforms, after the above processing has taken place,
-;+#    all characters after the first ";" on the line will be removed.  
+;+#    all characters after the first ";" on the line will be removed.
 ;+#    And for AIX, the first ";" will also be removed.
 ;+#  This file is passed directly to windows. Since ';' is a comment, all UNIX
 ;+#   directives are hidden behind ";", ";+", and ";-"
@@ -145,7 +145,7 @@ SEC_FindCrlByName;
 SEC_LookupCrls;
 SEC_NewCrl;
 ;+#
-;+# The following symbols are exported only to make libssl3.so work. 
+;+# The following symbols are exported only to make libssl3.so work.
 ;+# These are still private!!!
 ;+#
 __CERT_NewTempCertificate;
@@ -240,7 +240,7 @@ PK11_Encapsulate;
 PK11_Decapsulate;
 PK11_ConcatSymKeys;
 ;+#
-;+# The following symbols are exported only to make libsmime3.so work. 
+;+# The following symbols are exported only to make libsmime3.so work.
 ;+# These are still private!!!
 ;+#
 __CERT_ClosePermCertDB;
@@ -1270,12 +1270,6 @@ SECKEY_PrivateKeyStrengthInBits;
 ;+    local:
 ;+       *;
 ;+};
-;+NSS_3.111 { 	# NSS 3.111 release
-;+    global:
-PK11_HPKE_GetSharedSecret;
-;+    local:
-;+       *;
-;+};
 ;+NSS_3.107 { 	# NSS 3.107 release
 ;+    global:
 SECMOD_LoadUserModuleWithFunction;
@@ -1299,6 +1293,7 @@ PK11SDR_EncryptWithMechanism;
 ;+NSS_3.115 { 	# NSS 3.115 release
 ;+    global:
 PK11_CheckPKCS11Version;
+PK11_HPKE_GetSharedSecret;
 ;+    local:
 ;+       *;
 ;+};
