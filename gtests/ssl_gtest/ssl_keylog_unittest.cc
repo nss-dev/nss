@@ -46,6 +46,7 @@ class KeyLogFileTestBase : public TlsConnectGeneric {
       SetupForZeroRtt();
       client_->Set0RttEnabled(true);
       server_->Set0RttEnabled(true);
+      SetupEch(client_, server_);
       ExpectResumption(RESUME_TICKET);
       ZeroRttSendReceive(true, true);
       Handshake();
@@ -85,8 +86,8 @@ class KeyLogFileTest : public KeyLogFileTestBase {
     if (version_ < SSL_LIBRARY_VERSION_TLS_1_3) {
       ASSERT_EQ(1U, client_randoms.size());
     } else {
-      /* two handshakes for 0-RTT */
-      ASSERT_EQ(2U, client_randoms.size());
+      /* two handshakes for 0-RTT and ClientRandom from Outer ClientHello */
+      ASSERT_EQ(3U, client_randoms.size());
     }
 
     // Every entry occurs twice (one log from server, one from client).
@@ -95,6 +96,8 @@ class KeyLogFileTest : public KeyLogFileTestBase {
     } else {
       ASSERT_EQ(2U, labels["CLIENT_EARLY_TRAFFIC_SECRET"]);
       ASSERT_EQ(2U, labels["EARLY_EXPORTER_SECRET"]);
+      ASSERT_EQ(2U, labels["ECH_SECRET"]);
+      ASSERT_EQ(2U, labels["ECH_CONFIG"]);
       ASSERT_EQ(4U, labels["CLIENT_HANDSHAKE_TRAFFIC_SECRET"]);
       ASSERT_EQ(4U, labels["SERVER_HANDSHAKE_TRAFFIC_SECRET"]);
       ASSERT_EQ(4U, labels["CLIENT_TRAFFIC_SECRET_0"]);

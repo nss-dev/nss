@@ -1270,6 +1270,12 @@ SECKEY_PrivateKeyStrengthInBits;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.111 { 	# NSS 3.111 release
+;+    global:
+PK11_HPKE_GetSharedSecret;
+;+    local:
+;+       *;
+;+};
 ;+NSS_3.107 { 	# NSS 3.107 release
 ;+    global:
 SECMOD_LoadUserModuleWithFunction;

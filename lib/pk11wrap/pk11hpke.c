@@ -937,6 +937,12 @@ CLEANUP:
     return rv;
 }
 
+PK11SymKey *
+PK11_HPKE_GetSharedSecret(const HpkeContext *cx)
+{
+    return cx->sharedSecret;
+}
+
 static SECStatus
 pk11_hpke_Decap(HpkeContext *cx, const SECKEYPublicKey *pkR, SECKEYPrivateKey *skR,
                 const SECItem *encS)

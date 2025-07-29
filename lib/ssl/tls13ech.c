@@ -31,6 +31,9 @@ tls13_DeriveSecret(sslSocket *ss, PK11SymKey *key,
                    PK11SymKey **dest,
                    SSLHashType hash);
 
+const char keylogLabelECHSecret[] = "ECH_SECRET";
+const char keylogLabelECHConfig[] = "ECH_CONFIG";
+
 PRBool
 tls13_Debug_CheckXtnBegins(const PRUint8 *start, const PRUint16 xtnType)
 {
@@ -2294,6 +2297,34 @@ loser:
     return SECFailure;
 }
 
+/*
+ * Logs ECH Secret for sslSocket into sslkeylogfile.
+ *
+ * Called from tls13_SetupClientHello and tls13_MaybeHandleEch.
+ *
+ * This function is simply a debugging aid and therefore does not return a
+ * SECStatus.
+ */
+void
+tls13_EchKeyLog(sslSocket *ss)
+{
+#ifdef NSS_ALLOW_SSLKEYLOGFILE
+    PK11SymKey *shared_secret;
+    HpkeContext *cx;
+    sslEchConfig *cfg = NULL;
+
+    cx = ss->ssl3.hs.echHpkeCtx;
+    if (cx && !PR_CLIST_IS_EMPTY(&ss->echConfigs)) {
+        shared_secret = PK11_HPKE_GetSharedSecret(cx);
+        if (shared_secret) {
+            cfg = (sslEchConfig *)PR_LIST_HEAD(&ss->echConfigs);
+            ssl3_RecordKeyLog(ss, keylogLabelECHSecret, shared_secret);
+            ssl3_WriteKeyLog(ss, keylogLabelECHConfig, &cfg->raw);
+        }
+    }
+#endif
+}
+
 SECStatus
 tls13_MaybeHandleEch(sslSocket *ss, const PRUint8 *msg, PRUint32 msgLen, SECItem *sidBytes,
                      SECItem *comps, SECItem *cookieBytes, SECItem *suites, SECItem **echInner)
@@ -2324,6 +2355,7 @@ tls13_MaybeHandleEch(sslSocket *ss, const PRUint8 *msg, PRUint32 msgLen, SECItem
     ss->ssl3.hs.preliminaryInfo |= ssl_preinfo_ech;
 
     if (ss->ssl3.hs.echAccepted) {
+        tls13_EchKeyLog(ss);
         PORT_Assert(tmpEchInner);
         PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->ssl3.hs.remoteExtensions));
 

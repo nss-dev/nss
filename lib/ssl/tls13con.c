@@ -663,6 +663,7 @@ tls13_SetupClientHello(sslSocket *ss, sslClientHelloType chType)
         }
     }
 
+    tls13_EchKeyLog(ss);
     return SECSuccess;
 }
 
