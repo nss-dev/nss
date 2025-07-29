@@ -7,6 +7,20 @@
   ],
   'targets': [
     {
+      'target_name': 'base',
+      'type': 'none',
+      'direct_dependent_settings': {
+        'sources': [
+          'common.cc',
+          'socket.cc'
+        ],
+        'include_dirs': [
+          '<(DEPTH)/lib/freebl',
+          '<(DEPTH)/lib/ssl',
+        ],
+      }
+    },
+    {
       'target_name': 'tls_client',
       'type': 'none',
       'direct_dependent_settings': {

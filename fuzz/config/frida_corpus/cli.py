@@ -45,6 +45,16 @@ def on_CERT_AsciiToName(payload):
     store_for_target("certDN", payload["data"].encode())
 
 
+# --- ech ----
+
+
+def on_tls13_DecodeEchConfigs(payload):
+    if not "data" in payload:
+        return
+
+    store_for_target("ech", bytes(payload["data"].values()))
+
+
 # --- pkcs7 ---
 
 

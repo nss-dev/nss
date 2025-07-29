@@ -65,6 +65,18 @@ tasks:
                 target: certDN
                 corpus: certDN
 
+    linux64-ech:
+        description: Linux x64 ECH
+        dependencies:
+            build: build-linux64/debug-fuzz
+        treeherder:
+            symbol: ECH
+            platform: linux64/debug-fuzz
+        task-context:
+            from-object:
+                target: ech
+                corpus: ech
+
     linux64-pkcs7:
         description: Linux x64 PKCS7
         dependencies:
@@ -254,6 +266,18 @@ tasks:
             from-object:
                 target: certDN
                 corpus: certDN
+
+    linux32-ech:
+        description: Linux 32 ECH
+        dependencies:
+            build: build-linux32/debug-fuzz
+        treeherder:
+            symbol: ECH
+            platform: linux32/debug-fuzz
+        task-context:
+            from-object:
+                target: ech
+                corpus: ech
 
     linux32-pkcs7:
         description: Linux 32 PKCS7
