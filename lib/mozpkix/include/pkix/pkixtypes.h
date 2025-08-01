@@ -343,15 +343,6 @@ class TrustDomain {
                                            EndEntityOrCA endEntityOrCA,
                                            KeyPurposeId keyPurpose) = 0;
 
-  // For compatibility, a CA certificate with an extended key usage that
-  // contains the id-Netscape-stepUp OID but does not contain the
-  // id-kp-serverAuth OID may be considered valid for issuing server auth
-  // certificates. This function allows TrustDomain implementations to control
-  // this setting based on the start of the validity period of the certificate
-  // in question.
-  virtual Result NetscapeStepUpMatchesServerAuth(Time notBefore,
-                                                 /*out*/ bool& matches) = 0;
-
   // Some certificate or OCSP response extensions do not directly participate
   // in the verification flow, but might still be of interest to the clients
   // (notably Certificate Transparency data, RFC 6962). Such extensions are

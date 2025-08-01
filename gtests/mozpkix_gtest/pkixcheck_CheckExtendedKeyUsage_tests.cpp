@@ -34,15 +34,12 @@ namespace mozilla { namespace pkix {
 
 extern Result CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA,
                                     const Input* encodedExtendedKeyUsage,
-                                    KeyPurposeId requiredEKU,
-                                    TrustDomain& trustDomain, Time notBefore);
+                                    KeyPurposeId requiredEKU);
 
 } } // namespace mozilla::pkix
 
 class pkixcheck_CheckExtendedKeyUsage : public ::testing::Test
 {
-protected:
-  DefaultCryptoTrustDomain mTrustDomain;
 };
 
 #define ASSERT_BAD(x) ASSERT_EQ(Result::ERROR_INADEQUATE_CERT_TYPE, x)
@@ -80,45 +77,33 @@ TEST_F(pkixcheck_CheckExtendedKeyUsage, none)
 
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity,
                                            nullptr,
-                                           KeyPurposeId::anyExtendedKeyUsage,
-                                           mTrustDomain, Now()));
+                                           KeyPurposeId::anyExtendedKeyUsage));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
-                                           KeyPurposeId::anyExtendedKeyUsage,
-                                           mTrustDomain, Now()));
+                                           KeyPurposeId::anyExtendedKeyUsage));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity,
                                            nullptr,
-                                           KeyPurposeId::id_kp_serverAuth,
-                                           mTrustDomain, Now()));
+                                           KeyPurposeId::id_kp_serverAuth));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
-                                           KeyPurposeId::id_kp_serverAuth,
-                                           mTrustDomain, Now()));
+                                           KeyPurposeId::id_kp_serverAuth));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity,
                                            nullptr,
-                                           KeyPurposeId::id_kp_clientAuth,
-                                           mTrustDomain, Now()));
+                                           KeyPurposeId::id_kp_clientAuth));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
-                                           KeyPurposeId::id_kp_clientAuth,
-                                           mTrustDomain, Now()));
+                                           KeyPurposeId::id_kp_clientAuth));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity,
                                            nullptr,
-                                           KeyPurposeId::id_kp_codeSigning,
-                                           mTrustDomain, Now()));
+                                           KeyPurposeId::id_kp_codeSigning));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
-                                           KeyPurposeId::id_kp_codeSigning,
-                                           mTrustDomain, Now()));
+                                           KeyPurposeId::id_kp_codeSigning));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity,
                                            nullptr,
-                                           KeyPurposeId::id_kp_emailProtection,
-                                           mTrustDomain, Now()));
+                                           KeyPurposeId::id_kp_emailProtection));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
-                                           KeyPurposeId::id_kp_emailProtection,
-                                           mTrustDomain, Now()));
+                                           KeyPurposeId::id_kp_emailProtection));
   ASSERT_BAD(CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
-                                   KeyPurposeId::id_kp_OCSPSigning,
-                                   mTrustDomain, Now()));
+                                   KeyPurposeId::id_kp_OCSPSigning));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
-                                           KeyPurposeId::id_kp_OCSPSigning,
-                                           mTrustDomain, Now()));
+                                           KeyPurposeId::id_kp_OCSPSigning));
 }
 
 static const Input empty_null;
@@ -128,21 +113,17 @@ TEST_F(pkixcheck_CheckExtendedKeyUsage, empty)
   // The input Input is empty. The cert has an empty extended key usage
   // extension, which is syntactically invalid.
   ASSERT_BAD(CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity, &empty_null,
-                                   KeyPurposeId::id_kp_serverAuth,
-                                   mTrustDomain, Now()));
+                                   KeyPurposeId::id_kp_serverAuth));
   ASSERT_BAD(CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, &empty_null,
-                                   KeyPurposeId::id_kp_serverAuth,
-                                   mTrustDomain, Now()));
+                                   KeyPurposeId::id_kp_serverAuth));
 
   static const uint8_t dummy = 0x00;
   Input empty_nonnull;
   ASSERT_EQ(Success, empty_nonnull.Init(&dummy, 0));
   ASSERT_BAD(CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity, &empty_nonnull,
-                                   KeyPurposeId::id_kp_serverAuth,
-                                   mTrustDomain, Now()));
+                                   KeyPurposeId::id_kp_serverAuth));
   ASSERT_BAD(CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, &empty_nonnull,
-                                   KeyPurposeId::id_kp_serverAuth,
-                                   mTrustDomain, Now()));
+                                   KeyPurposeId::id_kp_serverAuth));
 }
 
 struct EKUTestcase
@@ -162,8 +143,6 @@ class CheckExtendedKeyUsageTest
   : public ::testing::Test
   , public ::testing::WithParamInterface<EKUTestcase>
 {
-protected:
-  DefaultCryptoTrustDomain mTrustDomain;
 };
 
 TEST_P(CheckExtendedKeyUsageTest, EKUTestcase)
@@ -174,12 +153,10 @@ TEST_P(CheckExtendedKeyUsageTest, EKUTestcase)
                                      param.ekuSEQUENCE.length()));
   ASSERT_EQ(param.expectedResultEndEntity,
             CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity, &encodedEKU,
-                                  param.keyPurposeId,
-                                  mTrustDomain, Now()));
+                                  param.keyPurposeId));
   ASSERT_EQ(param.expectedResultCA,
             CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, &encodedEKU,
-                                  param.keyPurposeId,
-                                  mTrustDomain, Now()));
+                                  param.keyPurposeId));
 }
 
 #define SINGLE_EKU_SUCCESS(oidBytes, keyPurposeId) \
@@ -247,9 +224,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   SINGLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
 
   SINGLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
-  // For compatibility, id-Netscape-stepUp is treated as equivalent to
-  // id-kp-serverAuth for CAs.
-  SINGLE_EKU_SUCCESS_CA(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
+  SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
   SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_clientAuth),
   SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_codeSigning),
   SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
@@ -340,7 +315,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_clientAuth),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_codeSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
@@ -375,7 +350,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_clientAuth),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_codeSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
@@ -403,7 +378,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_clientAuth),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_codeSigning),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
@@ -424,7 +399,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
 
   DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_clientAuth),
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_codeSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
@@ -445,14 +420,14 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
 
   DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_clientAuth),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_codeSigning),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
 
   DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_clientAuth),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_codeSigning),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
@@ -653,11 +628,11 @@ static const EKUChainTestcase EKU_CHAIN_TESTCASES[] =
     Result::ERROR_INADEQUATE_CERT_TYPE
   },
   {
-    // CA has id-Netscape-stepUp => should succeed
+    // CA has id-Netscape-stepUp but not id-kp-serverAuth => should fail
     CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
     CreateEKUExtension(BytesToByteString(tlv_id_Netscape_stepUp)),
     KeyPurposeId::id_kp_serverAuth,
-    Success
+    Result::ERROR_INADEQUATE_CERT_TYPE
   },
   {
     // End-entity has id-Netscape-stepUp => should fail
