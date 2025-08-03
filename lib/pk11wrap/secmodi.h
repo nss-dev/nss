@@ -144,6 +144,7 @@ PRBool pk11_FindAttrInTemplate(CK_ATTRIBUTE *attr, unsigned int numAttrs,
                                CK_ATTRIBUTE_TYPE target);
 
 CK_MECHANISM_TYPE pk11_mapWrapKeyType(KeyType keyType);
+CK_MECHANISM_TYPE PK11_mapKemKeyType(KeyType keyType);
 PK11SymKey *pk11_KeyExchange(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                              CK_ATTRIBUTE_TYPE operation, CK_FLAGS flags, PRBool isPerm,
                              PK11SymKey *symKey);

@@ -387,8 +387,8 @@ tls13_CreateKEMKeyPair(sslSocket *ss, const sslNamedGroupDef *groupDef,
             paramSet = CKP_NSS_KYBER_768_ROUND3;
             break;
         case ssl_grp_kem_mlkem768x25519:
-            mechanism = CKM_NSS_ML_KEM_KEY_PAIR_GEN;
-            paramSet = CKP_NSS_ML_KEM_768;
+            mechanism = CKM_ML_KEM_KEY_PAIR_GEN;
+            paramSet = CKP_ML_KEM_768;
             break;
         default:
             PORT_Assert(0);
@@ -401,14 +401,29 @@ tls13_CreateKEMKeyPair(sslSocket *ss, const sslNamedGroupDef *groupDef,
         goto loser;
     }
 
+    /* avoid pairwise check in non-FIPS mode */
+    /* the only difference between CKM_ML_KEM_KEY_PAIR_GEN and
+     * CKM_NSS_ML_KEM_KEY_PAIR_GEN is the latter skips the pairwise consistency
+     * check and is only supported by softoken */
+    if ((mechanism == CKM_ML_KEM_KEY_PAIR_GEN) && !PK11_IsFIPS() &&
+        PK11_DoesMechanism(slot, CKM_NSS_ML_KEM_KEY_PAIR_GEN)) {
+        mechanism = CKM_NSS_ML_KEM_KEY_PAIR_GEN;
+    }
+
     privKey = PK11_GenerateKeyPairWithOpFlags(slot, mechanism,
-                                              &paramSet, &pubKey, PK11_ATTR_SESSION | PK11_ATTR_INSENSITIVE | PK11_ATTR_PUBLIC,
-                                              CKF_DERIVE, CKF_DERIVE, ss->pkcs11PinArg);
+                                              &paramSet, &pubKey,
+                                              PK11_ATTR_SESSION | PK11_ATTR_INSENSITIVE | PK11_ATTR_PUBLIC,
+                                              CKF_ENCAPSULATE | CKF_DECAPSULATE,
+                                              CKF_ENCAPSULATE | CKF_DECAPSULATE,
+                                              ss->pkcs11PinArg);
 
     if (!privKey) {
         privKey = PK11_GenerateKeyPairWithOpFlags(slot, mechanism,
-                                                  &paramSet, &pubKey, PK11_ATTR_SESSION | PK11_ATTR_SENSITIVE | PK11_ATTR_PRIVATE,
-                                                  CKF_DERIVE, CKF_DERIVE, ss->pkcs11PinArg);
+                                                  &paramSet, &pubKey,
+                                                  PK11_ATTR_SESSION | PK11_ATTR_SENSITIVE | PK11_ATTR_PRIVATE,
+                                                  CKF_ENCAPSULATE | CKF_DECAPSULATE,
+                                                  CKF_ENCAPSULATE | CKF_DECAPSULATE,
+                                                  ss->pkcs11PinArg);
     }
 
     PK11_FreeSlot(slot);
@@ -782,9 +797,16 @@ tls13_HandleKEMCiphertext(sslSocket *ss, TLS13KeyShareEntry *entry, sslKeyPair *
             return SECFailure;
     }
 
-    rv = PK11_Decapsulate(keyPair->privKey, &ct, CKM_HKDF_DERIVE, PK11_ATTR_SESSION | PK11_ATTR_INSENSITIVE, CKF_DERIVE, outKey);
+    rv = PK11_Decapsulate(keyPair->privKey, &ct, CKM_HKDF_DERIVE,
+                          PK11_ATTR_SESSION | PK11_ATTR_INSENSITIVE,
+                          CKF_DERIVE, outKey);
     if (rv != SECSuccess) {
-        ssl_MapLowLevelError(SSL_ERROR_KEY_EXCHANGE_FAILURE);
+        rv = PK11_Decapsulate(keyPair->privKey, &ct, CKM_HKDF_DERIVE,
+                              PK11_ATTR_SESSION | PK11_ATTR_SENSITIVE,
+                              CKF_DERIVE, outKey);
+        if (rv != SECSuccess) {
+            ssl_MapLowLevelError(SSL_ERROR_KEY_EXCHANGE_FAILURE);
+        }
     }
     return rv;
 }
@@ -825,9 +847,14 @@ tls13_HandleKEMKey(sslSocket *ss,
         goto loser;
     }
 
-    rv = PK11_Encapsulate(peerKey,
-                          CKM_HKDF_DERIVE, PK11_ATTR_SESSION | PK11_ATTR_INSENSITIVE | PK11_ATTR_PUBLIC,
+    rv = PK11_Encapsulate(peerKey, CKM_HKDF_DERIVE,
+                          PK11_ATTR_SESSION | PK11_ATTR_INSENSITIVE,
                           CKF_DERIVE, key, ciphertext);
+    if (rv != SECSuccess) {
+        rv = PK11_Encapsulate(peerKey, CKM_HKDF_DERIVE,
+                              PK11_ATTR_SESSION | PK11_ATTR_SENSITIVE,
+                              CKF_DERIVE, key, ciphertext);
+    }
 
     /* Destroy the imported public key */
     PORT_Assert(peerKey->pkcs11Slot);

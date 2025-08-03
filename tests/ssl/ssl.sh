@@ -122,7 +122,13 @@ ssl_init()
   TLS13_CIPHER_SUITES="-c ${TLS13_SUITES}${EC_SUITES}${NON_EC_SUITES}"
 
   # in fips mode, turn off curve25519 until it's NIST approved
-  FIPS_OPTIONS="-I P256,P384,P521,FF2048,FF3072,FF4096,FF6144,FF8192"
+  FIPS_OPTIONS=""
+  # in fips mode, turn off curve25519 until it's NIST approved
+  ALL_GROUPS="P256,P384,P521,x25519,FF2048,FF3072,FF4096,FF6144,FF8192,xyber768d00,mlkem768x25519"
+  NON_PQ_GROUPS="P256,P384,P521,x25519,FF2048,FF3072,FF4096,FF6144,FF8192"
+  FIPS_GROUPS="P256,P384,P521,FF2048,FF3072,FF4096,FF6144,FF8192,mlkem768x25519"
+  FIPS_NON_PQ_GROUPS="P256,P384,P521,FF2048,FF3072,FF4096,FF6144,FF8192"
+
 
   # in non-fips mode, tstclnt may run without the db password in some
   # cases, but in fips mode it's always needed
@@ -306,10 +312,12 @@ ssl_cov()
 
   SAVE_SERVER_OPTIONS=${SERVER_OPTIONS}
   if [ "${SERVER_MODE}" = "fips" ] ; then
-      SERVER_OPTIONS="${SERVER_OPTIONS} ${FIPS_OPTIONS}"
+      SERVER_OPTIONS="${SERVER_OPTIONS} -I ${FIPS_GROUPS} ${FIPS_OPTIONS}"
   fi
   SAVE_CLIENT_OPTIONS=${CLIENT_OPTIONS}
+  CLIENT_GROUPS=${NON_PQ_GROUPS}
   if [ "${CLIENT_MODE}" = "fips" ] ; then
+      CLIENT_GROUPS=${FIPS_NON_PQ_GROUPS}
       CLIENT_OPTIONS="${CLIENT_OPTIONS} ${FIPS_OPTIONS}"
   fi
 
@@ -369,13 +377,18 @@ ssl_cov()
               VMIN="ssl3"
       fi
 
+      TLS_GROUPS=${CLIENT_GROUPS}
+      if [ "$ectype" = "XYBER" ]; then
+          TLS_GROUPS="xyber768d00"
+      elif [ "$ectype" = "MLKEM219" ]; then
+          TLS_GROUPS="mlkem768x25519"
+      fi
 
-
-      echo "tstclnt -4 -p ${PORT} -h ${HOSTADDR} -c ${param} -V ${VMIN}:${VMAX} ${CLIENT_OPTIONS} \\"
+      echo "tstclnt -4 -p ${PORT} -h ${HOSTADDR} -c ${param} -I \"${TLS_GROUPS}\" -V ${VMIN}:${VMAX} ${CLIENT_OPTIONS} \\"
       echo "        -f -d ${P_R_CLIENTDIR} $verbose -w nss < ${REQUEST_FILE}"
 
       rm ${TMP}/$HOST.tmp.$$ 2>/dev/null
-      ${PROFTOOL} ${BINDIR}/tstclnt -4 -p ${PORT} -h ${HOSTADDR} -c ${param} -V ${VMIN}:${VMAX} ${CLIENT_OPTIONS} -f \
+      ${PROFTOOL} ${BINDIR}/tstclnt -4 -p ${PORT} -h ${HOSTADDR} -c ${param} -I "${TLS_GROUPS}" -V ${VMIN}:${VMAX} ${CLIENT_OPTIONS} -f \
               -d ${P_R_CLIENTDIR} $verbose -w nss < ${REQUEST_FILE} \
               >${TMP}/$HOST.tmp.$$  2>&1
       ret=$?

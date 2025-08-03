@@ -1947,6 +1947,18 @@ PK11_MapSignKeyType(KeyType keyType)
 }
 
 CK_MECHANISM_TYPE
+PK11_mapKemKeyType(KeyType keyType)
+{
+    switch (keyType) {
+        case kyberKey:
+            return CKM_ML_KEM;
+        default:
+            break;
+    }
+    return CKM_INVALID_MECHANISM;
+}
+
+CK_MECHANISM_TYPE
 pk11_mapWrapKeyType(KeyType keyType)
 {
     switch (keyType) {

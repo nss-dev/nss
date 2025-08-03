@@ -323,6 +323,7 @@ struct mechanismList {
 #define CKF_SN_VR CKF_SIGN | CKF_VERIFY
 #define CKF_SN_RE CKF_SIGN_RECOVER | CKF_VERIFY_RECOVER
 #define CKF_EN_DE_MSG CKF_ENCRYPT | CKF_DECRYPT | CKF_MESSAGE_ENCRYPT | CKF_MESSAGE_DECRYPT
+#define CKF_KEM CKF_ENCAPSULATE | CKF_DECAPSULATE
 
 #define CKF_EN_DE_WR_UN CKF_EN_DE | CKF_WR_UN
 #define CKF_SN_VR_RE CKF_SN_VR | CKF_SN_RE
@@ -676,12 +677,12 @@ static const struct mechanismList mechanisms[] = {
 /* -------------------- Kyber Operations ----------------------- */
 #ifndef NSS_DISABLE_KYBER
     { CKM_NSS_KYBER_KEY_PAIR_GEN, { 0, 0, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
-    { CKM_NSS_KYBER, { 0, 0, 0 }, PR_TRUE },
+    { CKM_NSS_KYBER, { 0, 0, CKF_KEM }, PR_TRUE },
 #endif
     { CKM_NSS_ML_KEM_KEY_PAIR_GEN, { 0, 0, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
-    { CKM_NSS_ML_KEM, { 0, 0, 0 }, PR_TRUE },
+    { CKM_NSS_ML_KEM, { 0, 0, CKF_KEM }, PR_TRUE },
     { CKM_ML_KEM_KEY_PAIR_GEN, { 0, 0, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
-    { CKM_ML_KEM, { 0, 0, 0 }, PR_TRUE },
+    { CKM_ML_KEM, { 0, 0, CKF_KEM }, PR_TRUE },
 };
 static const CK_ULONG mechanismCount = sizeof(mechanisms) / sizeof(mechanisms[0]);
 
@@ -1105,6 +1106,7 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
     CK_BBOOL wrap = CK_TRUE;
     CK_BBOOL derive = CK_FALSE;
     CK_BBOOL verify = CK_TRUE;
+    CK_BBOOL encapsulate = CK_FALSE;
     CK_RV crv;
 
     switch (key_type) {
@@ -1182,24 +1184,18 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
         case CKK_NSS_KYBER:
 #endif
         case CKK_NSS_ML_KEM:
-            if (!sftk_hasAttribute(object, CKA_NSS_PARAMETER_SET)) {
-                return CKR_TEMPLATE_INCOMPLETE;
-            }
-            derive = CK_FALSE;
-            verify = CK_FALSE;
-            encrypt = CK_FALSE;
-            recover = CK_FALSE;
-            wrap = CK_FALSE;
-            break;
         case CKK_ML_KEM:
             if (!sftk_hasAttribute(object, CKA_PARAMETER_SET)) {
-                return CKR_TEMPLATE_INCOMPLETE;
+                if (!sftk_hasAttribute(object, CKA_NSS_PARAMETER_SET)) {
+                    return CKR_TEMPLATE_INCOMPLETE;
+                }
             }
             derive = CK_FALSE;
             verify = CK_FALSE;
             encrypt = CK_FALSE;
             recover = CK_FALSE;
             wrap = CK_FALSE;
+            encapsulate = CK_TRUE;
             break;
         default:
             return CKR_ATTRIBUTE_VALUE_INVALID;
@@ -1223,6 +1219,10 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
     if (crv != CKR_OK)
         return crv;
     crv = sftk_defaultAttribute(object, CKA_DERIVE, &derive, sizeof(CK_BBOOL));
+    if (crv != CKR_OK)
+        return crv;
+    crv = sftk_defaultAttribute(object, CKA_ENCAPSULATE, &encapsulate,
+                                sizeof(CK_BBOOL));
     if (crv != CKR_OK)
         return crv;
 
@@ -1277,6 +1277,7 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
     CK_BBOOL recover = CK_TRUE;
     CK_BBOOL wrap = CK_TRUE;
     CK_BBOOL derive = CK_TRUE;
+    CK_BBOOL decapsulate = CK_FALSE;
     CK_BBOOL ckfalse = CK_FALSE;
     PRBool createObjectInfo = PR_TRUE;
     PRBool fillPrivateKey = PR_FALSE;
@@ -1415,7 +1416,13 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
             if (!sftk_hasAttribute(object, CKA_VALUE)) {
                 return CKR_TEMPLATE_INCOMPLETE;
             }
+            if (!sftk_hasAttribute(object, CKA_PARAMETER_SET)) {
+                if (!sftk_hasAttribute(object, CKA_NSS_PARAMETER_SET)) {
+                    return CKR_TEMPLATE_INCOMPLETE;
+                }
+            }
             encrypt = sign = recover = wrap = CK_FALSE;
+            decapsulate = CK_TRUE;
             break;
         default:
             return CKR_ATTRIBUTE_VALUE_INVALID;
@@ -1443,6 +1450,10 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
     if (crv != CKR_OK)
         return crv;
     crv = sftk_defaultAttribute(object, CKA_DERIVE, &derive, sizeof(CK_BBOOL));
+    if (crv != CKR_OK)
+        return crv;
+    crv = sftk_defaultAttribute(object, CKA_DECAPSULATE, &decapsulate,
+                                sizeof(CK_BBOOL));
     if (crv != CKR_OK)
         return crv;
     /* the next two bits get modified only in the key gen and token cases */

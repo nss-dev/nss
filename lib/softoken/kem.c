@@ -111,6 +111,9 @@ sftk_kem_getParamSet(CK_MECHANISM_PTR pMechanism, SFTKObject *key,
         case CKM_NSS_KYBER:
 #endif
         case CKM_NSS_ML_KEM:
+            /* CKM_NSS_KYBER and CKM_NSS_ML_KEM has cases were we were
+             * given parameters form the application. Retain that symantic for
+             * compatibility */
             if ((pMechanism->pParameter) &&
                 pMechanism->ulParameterLen == sizeof(CK_ML_KEM_PARAMETER_SET_TYPE)) {
                 PR_STATIC_ASSERT(sizeof(CK_ML_KEM_PARAMETER_SET_TYPE) == sizeof(CK_LONG));
@@ -118,10 +121,18 @@ sftk_kem_getParamSet(CK_MECHANISM_PTR pMechanism, SFTKObject *key,
                 crv = CKR_OK;
                 break;
             }
-            crv = sftk_GetULongAttribute(key, CKA_NSS_PARAMETER_SET, paramSet);
-            break;
+            /* fall through to the official PKCS #11 way of getting the
+             * parameter set */
         case CKM_ML_KEM:
             crv = sftk_GetULongAttribute(key, CKA_PARAMETER_SET, paramSet);
+            if (crv == CKR_OK) {
+                break;
+            }
+            /* we accept all key types a equivalent here, so the parameter
+             * set could be attached to the old vendor specific attribute.
+             * We might use the vendor specific key when bypassing pairwise
+             * consistency checks */
+            crv = sftk_GetULongAttribute(key, CKA_NSS_PARAMETER_SET, paramSet);
             break;
         default:
             break;
@@ -239,7 +250,7 @@ NSC_EncapsulateKey(CK_SESSION_HANDLE hSession,
     CK_ULONG ciphertextLen = sftk_kem_CiphertextLen(pMechanism, paramSet);
     if (!pCiphertext || *pulCiphertextLen < ciphertextLen || ciphertextLen == 0) {
         *pulCiphertextLen = ciphertextLen;
-        crv = CKR_KEY_SIZE_RANGE;
+        crv = CKR_BUFFER_TOO_SMALL;
         goto cleanup;
     }
 
