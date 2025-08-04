@@ -760,6 +760,7 @@ sftk_modifyType(CK_ATTRIBUTE_TYPE type, CK_OBJECT_CLASS inClass)
         case CKA_EXPONENT_1:
         case CKA_EXPONENT_2:
         case CKA_COEFFICIENT:
+        case CKA_SEED:
         case CKA_VALUE_LEN:
         case CKA_ALWAYS_SENSITIVE:
         case CKA_NEVER_EXTRACTABLE:
@@ -831,6 +832,7 @@ sftk_isSensitive(CK_ATTRIBUTE_TYPE type, CK_OBJECT_CLASS inClass)
         case CKA_EXPONENT_1:
         case CKA_EXPONENT_2:
         case CKA_COEFFICIENT:
+        case CKA_SEED:
             return PR_TRUE;
 
         /* DEPENDS ON CLASS */

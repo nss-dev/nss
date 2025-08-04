@@ -1213,6 +1213,7 @@ sftk_updateEncrypted(PLArenaPool *arena, SFTKDBHandle *keydb,
 {
     CK_ATTRIBUTE_TYPE privAttrTypes[] = {
         CKA_VALUE,
+        CKA_SEED,
         CKA_PRIVATE_EXPONENT,
         CKA_PRIME_1,
         CKA_PRIME_2,

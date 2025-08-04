@@ -98,6 +98,7 @@ sftkdb_isPrivateAttribute(CK_ATTRIBUTE_TYPE type)
 {
     switch (type) {
         case CKA_VALUE:
+        case CKA_SEED:
         case CKA_PRIVATE_EXPONENT:
         case CKA_PRIME_1:
         case CKA_PRIME_2:
