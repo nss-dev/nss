@@ -30,7 +30,7 @@ synopsis(char *program_name)
     PR_fprintf(pr_stderr,
                "Usage: %s [<common>] -i <input-file>\n"
                "       %s [<common>]  -o <output-file>\n"
-               "       <common> [-d dir] [-v] [-t text] [-a] [-f pwfile | -p pwd]\n",
+               "       <common> [-d dir] [-v] [-t text] [-a] [-f pwfile | -p pwd] [-m aes|des3]\n",
                program_name, program_name);
 }
 
@@ -66,6 +66,9 @@ long_usage(char *program_name)
     PR_fprintf(pr_stderr,
                "  %-13s supply \"password\" on the command line\n",
                "-p password");
+    PR_fprintf(pr_stderr,
+               "  %-13s Mechanism to use for encryption (aes or des3)\n",
+               "-m mechanism");
 }
 
 int
@@ -230,9 +233,9 @@ main(int argc, char **argv)
                 break;
 
             case 'm':
-                if (strcmp(optstate->value, "des3")) {
+                if (!strcmp(optstate->value, "des3")) {
                     mechanism = CKM_DES3_CBC;
-                } else if (!strcmp(optstate->value, "aes")) {
+                } else if (strcmp(optstate->value, "aes")) {
                     short_usage(program_name);
                     return -1;
                 }
