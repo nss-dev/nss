@@ -580,20 +580,10 @@ typedef struct CK_IKE1_EXTENDED_DERIVE_PARAMS CK_NSS_IKE1_APP_B_PRF_DERIVE_PARAM
  * For the TLS 1.2 PRF, the prfHashMechanism parameter determines the hash
  * function used. For earlier versions of the PRF, set the prfHashMechanism
  * value to CKM_TLS_PRF.
- *
- * The session hash input is expected to be the output of the same hash
- * function as the PRF uses (as required by draft-ietf-tls-session-hash).  So
- * the ulSessionHashLen member must be equal the output length of the hash
- * function specified by the prfHashMechanism member (or, for pre-TLS 1.2 PRF,
- * the length of concatenated MD5 and SHA-1 digests).
- *
- */
-typedef struct CK_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE_PARAMS {
-    CK_MECHANISM_TYPE prfHashMechanism;
-    CK_BYTE_PTR pSessionHash;
-    CK_ULONG ulSessionHashLen;
-    CK_VERSION_PTR pVersion;
-} CK_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE_PARAMS;
+ * It is now standardized, so The struct is just an alias for the standard
+ * struct in pkcs11t.h. */
+typedef struct CK_TLS12_EXTENDED_MASTER_KEY_DERIVE_PARAMS
+    CK_NSS_TLS_EXTENDED_MASTER_KEY_DERIVE_PARAMS;
 
 /*
  * Trust info
