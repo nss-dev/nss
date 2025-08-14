@@ -760,19 +760,35 @@ PK11_VerifyWithMechanism(SECKEYPublicKey *key, CK_MECHANISM_TYPE mechanism,
     session = pk11_GetNewSession(slot, &owner);
     if (!owner || !(slot->isThreadSafe))
         PK11_EnterSlotMonitor(slot);
-    crv = PK11_GETTAB(slot)->C_VerifyInit(session, &mech, id);
-    if (crv != CKR_OK) {
-        if (!owner || !(slot->isThreadSafe))
-            PK11_ExitSlotMonitor(slot);
-        pk11_CloseSession(slot, session, owner);
-        PK11_FreeSlot(slot);
-        PORT_SetError(PK11_MapError(crv));
-        return SECFailure;
+    if (PK11_CheckPKCS11Version(slot, 3, 2, PR_TRUE) >= 0) {
+        crv = PK11_GETTAB(slot)->C_VerifySignatureInit(session, &mech, id,
+                                                       sig->data, sig->len);
+        if (crv != CKR_OK) {
+            if (!owner || !(slot->isThreadSafe))
+                PK11_ExitSlotMonitor(slot);
+            pk11_CloseSession(slot, session, owner);
+            PK11_FreeSlot(slot);
+            PORT_SetError(PK11_MapError(crv));
+            return SECFailure;
+        }
+        crv = PK11_GETTAB(slot)->C_VerifySignature(session, hash->data,
+                                                   hash->len);
+    } else {
+        crv = PK11_GETTAB(slot)->C_VerifyInit(session, &mech, id);
+        if (crv != CKR_OK) {
+            if (!owner || !(slot->isThreadSafe))
+                PK11_ExitSlotMonitor(slot);
+            pk11_CloseSession(slot, session, owner);
+            PK11_FreeSlot(slot);
+            PORT_SetError(PK11_MapError(crv));
+            return SECFailure;
+        }
+        crv = PK11_GETTAB(slot)->C_Verify(session, hash->data,
+                                          hash->len, sig->data, sig->len);
     }
-    crv = PK11_GETTAB(slot)->C_Verify(session, hash->data,
-                                      hash->len, sig->data, sig->len);
     if (!owner || !(slot->isThreadSafe))
         PK11_ExitSlotMonitor(slot);
+
     pk11_CloseSession(slot, session, owner);
     PK11_FreeSlot(slot);
     if (crv != CKR_OK) {

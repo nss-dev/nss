@@ -876,6 +876,12 @@ PK11Context *PK11_CreateContextBySymKey(CK_MECHANISM_TYPE type,
                                         CK_ATTRIBUTE_TYPE operation,
                                         PK11SymKey *symKey,
                                         const SECItem *param);
+PK11Context *PK11_CreateSignatureContextByPubKey(CK_MECHANISM_TYPE type,
+                                                 CK_ATTRIBUTE_TYPE operation,
+                                                 SECKEYPublicKey *pubKey,
+                                                 const SECItem *param,
+                                                 const SECItem *sig,
+                                                 void *pwArg);
 PK11Context *PK11_CreateContextByPubKey(CK_MECHANISM_TYPE type,
                                         CK_ATTRIBUTE_TYPE operation,
                                         SECKEYPublicKey *pubKey,

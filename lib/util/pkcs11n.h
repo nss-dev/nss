@@ -152,10 +152,14 @@
 #define CKC_NSS (CKC_VENDOR_DEFINED | NSSCK_VENDOR_NSS)
 
 /* FAKE PKCS #11 defines */
+/* These are used internally in the pk11wrap layer as operations and should not
+ * be passed to softoken or any other PKCS#11 module as actual attributes */
 #define CKA_DIGEST 0x81000000L
 #define CKA_NSS_MESSAGE 0x82000000L
+#define CKA_NSS_SIGNATURE 0x83000000L
 #define CKA_NSS_MESSAGE_MASK 0xff000000L
 #define CKA_FLAGS_ONLY 0 /* CKA_CLASS */
+#define CKA_NSS_VERIFY_SIGNATURE (CKA_NSS_SIGNATURE | CKA_VERIFY)
 
 /*
  * NSS-defined object attributes

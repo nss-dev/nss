@@ -1,0 +1,5 @@
+
+1 Added function:
+
+  'function PK11Context* PK11_CreateSignatureContextByPubKey(CK_MECHANISM_TYPE, CK_ATTRIBUTE_TYPE, SECKEYPublicKey*, const SECItem*, const SECItem*, void*)'    {PK11_CreateSignatureContextByPubKey@@NSS_3.116}
+

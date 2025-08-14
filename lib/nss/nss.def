@@ -1297,3 +1297,9 @@ PK11_HPKE_GetSharedSecret;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.116 { 	# NSS 3.116 release
+;+    global:
+PK11_CreateSignatureContextByPubKey;
+;+    local:
+;+       *;
+;+};

@@ -4070,7 +4070,7 @@ NSC_VerifySignatureInit(CK_SESSION_HANDLE hSession,
 
     CHECK_FORK();
 
-    crv = sftk_GetContext(hSession, &context, SFTK_VERIFY, PR_TRUE, &session);
+    crv = sftk_GetContext(hSession, &context, SFTK_VERIFY, PR_FALSE, &session);
     if (crv != CKR_OK)
         return crv;
 
@@ -4095,7 +4095,7 @@ NSC_VerifySignature(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData,
     SFTKSessionContext *context;
     CK_RV crv;
 
-    crv = sftk_GetContext(hSession, &context, SFTK_VERIFY, PR_TRUE, &session);
+    crv = sftk_GetContext(hSession, &context, SFTK_VERIFY, PR_FALSE, &session);
     if (crv != CKR_OK)
         return crv;
 

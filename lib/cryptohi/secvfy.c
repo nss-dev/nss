@@ -917,8 +917,20 @@ VFY_Begin(VFYContext *cx)
         cx->vfycx = NULL;
     }
     if (cx->mech != CKM_INVALID_MECHANISM) {
-        cx->vfycx = PK11_CreateContextByPubKey(cx->mech, CKA_VERIFY, cx->key,
-                                               &cx->mechparams, cx->wincx);
+        PK11SlotInfo *slot = cx->key->pkcs11Slot;
+        if (cx->hasSignature &&
+            (PK11_CheckPKCS11Version(slot, 3, 2, PR_TRUE) >= 0)) {
+            SECItem sig = { siBuffer, cx->u.gensig, cx->signatureLen };
+            cx->vfycx = PK11_CreateSignatureContextByPubKey(cx->mech,
+                                                            CKA_NSS_VERIFY_SIGNATURE,
+                                                            cx->key,
+                                                            &cx->mechparams,
+                                                            &sig, cx->wincx);
+        } else {
+            cx->vfycx = PK11_CreateContextByPubKey(cx->mech, CKA_VERIFY,
+                                                   cx->key, &cx->mechparams,
+                                                   cx->wincx);
+        }
         if (!cx->vfycx)
             return SECFailure;
         return SECSuccess;
