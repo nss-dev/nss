@@ -1,6 +1,0 @@
-
-2 Added functions:
-
-  'function PRInt32 PK11_CheckPKCS11Version(PK11SlotInfo*, CK_BYTE, CK_BYTE, PRBool)'    {PK11_CheckPKCS11Version@@NSS_3.115}
-  'function PK11SymKey* PK11_HPKE_GetSharedSecret(const HpkeContext*)'    {PK11_HPKE_GetSharedSecret@@NSS_3.115}
-
