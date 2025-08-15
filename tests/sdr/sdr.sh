@@ -94,7 +94,7 @@ sdr_main()
   html_msg $? 0 "Encrypt - Value 3"
 
   echo "$SCRIPTNAME: Creating an DES3 SDR key/SDR Encrypt - Value 4"
-  echo "sdrtest -d ${PROFILE} -o ${VALUE4} -t \"${T4}\"  -f ${R_PWFILE}"
+  echo "sdrtest -d ${PROFILE} -o ${VALUE4} -t \"${T4}\"  -f ${R_PWFILE}" -m des3
   ${BINDIR}/sdrtest -d ${PROFILE} -o ${VALUE4} -t "${T4}" -f ${R_PWFILE} -m des3
   html_msg $? 0 "Creating an DES3 SDR key/Encrypt - Value 4"
 
