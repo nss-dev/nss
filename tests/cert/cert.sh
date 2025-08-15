@@ -8,7 +8,7 @@
 #
 # mozilla/security/nss/tests/cert/rcert.sh
 #
-# Certificate generating and handeling for NSS QA, can be included 
+# Certificate generating and handeling for NSS QA, can be included
 # multiple times from all.sh and the individual scripts
 #
 # needs to work on all Unix and Windows platforms
@@ -27,6 +27,47 @@
 #
 # FIXME - Netscape - NSS
 ########################################################################
+
+#
+# set up the arrays of supported keys. These arrays function like
+# a single array of a struct the contains the:
+#  keyType (all caps)
+#  keySuffix (that suffix to add to files and cert names)
+#  keyGenCmd (parameters to pass to certutil when generating a key)
+#  keyIsMixed (generate mixed RSA/keyType certchains with RSA as the root)
+#  keySerialOffset (serial offset used when generating mixed certs so
+#                   these certs don't colide with other mixed certs or
+#                   straight up RSA certs).
+declare -a keyType
+declare -a keySuffix
+declare -a keyGenCmd
+declare -a keyIsMixed
+declare -a keySerialOffset
+keyType=()
+keySuffix=()
+keyGenCmd=()
+keyIsMixed=()
+keySerialOffset=()
+
+# we use this function to set up the array programatically so that
+# 1) we can make sure each element matches it's peers in index, and
+# 2) the arrays sizes will all be the same, and
+# 3) we can add or subtract keys based on build flags (so if we don't
+#    support dsa, we can drop the dsa cert test)
+cert_add_algorithm()
+{
+    if [[ $# -ne 5 ]]; then
+        html_failed "Test case error, Not enough args in cert_add_algorithm"
+        cert_log "ERROR: Test case error, Not enough args in cert_add_algorithm"
+        Exit 5 "Fatal - Not enough args in cert_add_algorithm"
+    fi
+    keyType+=("$1")
+    keySuffix+=("$2")
+    keyGenCmd+=("$3")
+    keyIsMixed+=("$4")
+    keySerialOffset+=($5)
+}
+
 
 ############################## cert_init ###############################
 # local shell function to initialize this script
@@ -52,12 +93,24 @@ cert_init()
 
   ROOTCERTSFILE=`ls -1 ${LIBDIR}/*nssckbi.* | head -1`
   if [ ! "${ROOTCERTSFILE}" ] ; then
-      html_failed "Looking for root certs module." 
+      html_failed "Looking for root certs module."
       cert_log "ERROR: Root certs module not found."
       Exit 5 "Fatal - Root certs module not found."
   else
       html_passed "Looking for root certs module."
   fi
+
+  cert_add_algorithm "RSA" "" "" "false" 0
+  cert_add_algorithm "DSA" "-dsa" "-k dsa" "true" 20000
+  # NOTE: curve is added later, so the full command would be '-k ec -q curve'
+  cert_add_algorithm "ECC" "-ec" "-k ec -q" "true" 10000
+  # currently rsa-pss is only enabled for a subset of tests
+  # this will enable a full suite of RSA-PSS certs, and we would
+  # then remove the explicit ones
+  # ulike the other tests, we would need to change ssl tests as this
+  # will rename some of the RSA-PSS certificates.
+  #cert_add_algorithm "RSA-PSS" "-rsa-pss" "-k rsa -pss -Z sha256" "true"
+  #cert_add_algorithm "RSA-PSS-SHA1" "-rsa-pss-sha1" "-k rsa -pss -Z sha1" "true"
 
   if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "CYGWIN_NT" ]; then
 	ROOTCERTSFILE=`cygpath -m ${ROOTCERTSFILE}`
@@ -97,7 +150,7 @@ certu()
     EXPECTED=${RETEXPECTED-0}
 
     if [ -n "${CU_SUBJECT}" ]; then
-        #the subject of the cert contains blanks, and the shell 
+        #the subject of the cert contains blanks, and the shell
         #will strip the quotes off the string, if called otherwise...
         echo "certutil -s \"${CU_SUBJECT}\" $*"
         ${PROFTOOL} ${BINDIR}/certutil -s "${CU_SUBJECT}" $*
@@ -110,7 +163,7 @@ certu()
     fi
     if [ "$RET" -ne "$EXPECTED" ]; then
         CERTFAILED=$RET
-        html_failed "${CU_ACTION} ($RET=$EXPECTED) " 
+        html_failed "${CU_ACTION} ($RET=$EXPECTED) "
         cert_log "ERROR: ${CU_ACTION} failed $RET"
     else
         html_passed "${CU_ACTION}"
@@ -126,14 +179,14 @@ certu()
 crlu()
 {
     echo "$SCRIPTNAME: ${CU_ACTION} --------------------------"
-    
+
     CRLUTIL="crlutil -q"
     echo "$CRLUTIL $*"
     ${PROFTOOL} ${BINDIR}/$CRLUTIL $*
     RET=$?
     if [ "$RET" -ne 0 ]; then
         CRLFAILED=$RET
-        html_failed "${CU_ACTION} ($RET) " 
+        html_failed "${CU_ACTION} ($RET) "
         cert_log "ERROR: ${CU_ACTION} failed $RET"
     else
         html_passed "${CU_ACTION}"
@@ -176,7 +229,7 @@ modu()
     RET=$?
     if [ "$RET" -ne 0 ]; then
         MODFAILED=$RET
-        html_failed "${CU_ACTION} ($RET) " 
+        html_failed "${CU_ACTION} ($RET) "
         cert_log "ERROR: ${CU_ACTION} failed $RET"
     else
         html_passed "${CU_ACTION}"
@@ -229,26 +282,26 @@ hw_acc()
         echo "modutil -add rainbow -libfile /usr/lib/libcryptoki22.so "
         echo "         -dbdir ${PROFILEDIR} 2>&1 "
         echo | ${BINDIR}/modutil -add rainbow -libfile /usr/lib/libcryptoki22.so \
-            -dbdir ${PROFILEDIR} 2>&1 
+            -dbdir ${PROFILEDIR} 2>&1
         if [ "$?" -ne 0 ]; then
             echo "modutil -add rainbow failed in `pwd`"
             HW_ACC_RET=1
             HW_ACC_ERR="modutil -add rainbow"
         fi
-    
+
         echo "modutil -add ncipher "
         echo "         -libfile /opt/nfast/toolkits/pkcs11/libcknfast.so "
         echo "         -dbdir ${PROFILEDIR} 2>&1 "
         echo | ${BINDIR}/modutil -add ncipher \
             -libfile /opt/nfast/toolkits/pkcs11/libcknfast.so \
-            -dbdir ${PROFILEDIR} 2>&1 
+            -dbdir ${PROFILEDIR} 2>&1
         if [ "$?" -ne 0 ]; then
             echo "modutil -add ncipher failed in `pwd`"
             HW_ACC_RET=`expr $HW_ACC_RET + 2`
             HW_ACC_ERR="$HW_ACC_ERR,modutil -add ncipher"
         fi
         if [ "$HW_ACC_RET" -ne 0 ]; then
-            html_failed "Adding HW accelerators to certDB for ${CERTNAME} ($HW_ACC_RET) " 
+            html_failed "Adding HW accelerators to certDB for ${CERTNAME} ($HW_ACC_RET) "
         else
             html_passed "Adding HW accelerators to certDB for ${CERTNAME}"
         fi
@@ -258,7 +311,7 @@ hw_acc()
 }
 
 ############################# cert_create_cert #########################
-# local shell function to create client certs 
+# local shell function to create client certs
 #     initialize DB, import
 #     root cert
 #     add cert to DB
@@ -274,35 +327,23 @@ cert_create_cert()
     fi
 
     CU_ACTION="Loading root cert module to ${CERTNAME}'s Cert DB"
-    modu -add "RootCerts" -libfile "${ROOTCERTSFILE}" -dbdir "${PROFILEDIR}" 2>&1   
+    modu -add "RootCerts" -libfile "${ROOTCERTSFILE}" -dbdir "${PROFILEDIR}" 2>&1
     if [ "$RET" -ne 0 ]; then
         return $RET
     fi
 
     hw_acc
 
-    CU_ACTION="Import Root CA for $CERTNAME"
-    certu -A -n "TestCA" -t "TC,TC,TC" -f "${R_PWFILE}" -d "${PROFILEDIR}" \
-          -i "${R_CADIR}/TestCA.ca.cert" 2>&1
-    if [ "$RET" -ne 0 ]; then
-        return $RET
-    fi
-
-	CU_ACTION="Import DSA Root CA for $CERTNAME"
-	certu -A -n "TestCA-dsa" -t "TC,TC,TC" -f "${R_PWFILE}" \
-	    -d "${PROFILEDIR}" -i "${R_CADIR}/TestCA-dsa.ca.cert" 2>&1
-	if [ "$RET" -ne 0 ]; then
+    for i in ${!keyType[@]}
+    do
+        suffix=${keySuffix[$i]}
+        CU_ACTION="Import ${keyType[$i]} Root CA for ${CERTNAME}"
+        certu -A -n "TestCA${suffix}" -t "TC,TC,TC" -f "${R_PWFILE}" \
+              -d "${PROFILEDIR}" -i "${R_CADIR}/TestCA${suffix}.ca.cert" 2>&1
+        if [ "$RET" -ne 0 ]; then
             return $RET
-	fi
-
-
-	CU_ACTION="Import EC Root CA for $CERTNAME"
-	certu -A -n "TestCA-ec" -t "TC,TC,TC" -f "${R_PWFILE}" \
-	    -d "${PROFILEDIR}" -i "${R_CADIR}/TestCA-ec.ca.cert" 2>&1
-	if [ "$RET" -ne 0 ]; then
-            return $RET
-	fi
-
+        fi
+    done
     cert_add_cert "$5"
     return $?
 }
@@ -316,158 +357,91 @@ cert_create_cert()
 ########################################################################
 cert_add_cert()
 {
-    CU_ACTION="Generate Cert Request for $CERTNAME"
-    CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-    certu -R -d "${PROFILEDIR}" -f "${R_PWFILE}" -z "${R_NOISE_FILE}" -o req  2>&1
-    if [ "$RET" -ne 0 ]; then
-        return $RET
-    fi
-
-    CU_ACTION="Sign ${CERTNAME}'s Request"
-    certu -C -c "TestCA" -m "$CERTSERIAL" -v 60 -d "${P_R_CADIR}" \
-          -i req -o "${CERTNAME}.cert" -f "${R_PWFILE}" "$1" 2>&1
-    if [ "$RET" -ne 0 ]; then
-        return $RET
-    fi
-
-    CU_ACTION="Import $CERTNAME's Cert"
-    certu -A -n "$CERTNAME" -t "u,u,u" -d "${PROFILEDIR}" -f "${R_PWFILE}" \
-          -i "${CERTNAME}.cert" 2>&1
-    if [ "$RET" -ne 0 ]; then
-        return $RET
-    fi
-
-    cert_log "SUCCESS: $CERTNAME's Cert Created"
-
-#
-#   Generate and add DSA cert
-#
-	CU_ACTION="Generate DSA Cert Request for $CERTNAME"
-	CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-dsa@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-	certu -R -k dsa -d "${PROFILEDIR}" -f "${R_PWFILE}" \
-	    -z "${R_NOISE_FILE}" -o req  2>&1
-	if [ "$RET" -ne 0 ]; then
+    EC_CURVE=secp384r1
+    for i in ${!keyType[@]}
+    do
+        suffix=${keySuffix[$i]}
+        gencmd=${keyGenCmd[$i]}
+        key_type=${keyType[$i]}
+        if [ "$key_type" =  "ECC" ]; then
+            gencmd="$gencmd ${EC_CURVE}"
+        fi
+        CU_ACTION="Generate $key_type Cert Request for $CERTNAME"
+        CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}${suffix}@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
+        certu -R ${gencmd} -d "${PROFILEDIR}" -f "${R_PWFILE}" -z "${R_NOISE_FILE}" -o req  2>&1
+        if [ "$RET" -ne 0 ]; then
             return $RET
-	fi
+        fi
 
-	CU_ACTION="Sign ${CERTNAME}'s DSA Request"
-	certu -C -c "TestCA-dsa" -m "$CERTSERIAL" -v 60 -d "${P_R_CADIR}" \
-            -i req -o "${CERTNAME}-dsa.cert" -f "${R_PWFILE}" "$1" 2>&1
-	if [ "$RET" -ne 0 ]; then
+        CU_ACTION="Sign ${CERTNAME}'s $key_type Request"
+        certu -C -c "TestCA${suffix}" -m "$CERTSERIAL" -v 60 -d "${P_R_CADIR}" \
+          -i req -o "${CERTNAME}${suffix}.cert" -f "${R_PWFILE}" "$1" 2>&1
+        if [ "$RET" -ne 0 ]; then
             return $RET
-	fi
+        fi
 
-	CU_ACTION="Import $CERTNAME's DSA Cert"
-	certu -A -n "${CERTNAME}-dsa" -t "u,u,u" -d "${PROFILEDIR}" \
-	    -f "${R_PWFILE}" -i "${CERTNAME}-dsa.cert" 2>&1
-	if [ "$RET" -ne 0 ]; then
+        CU_ACTION="Import $CERTNAME's $key_type Cert"
+        certu -A -n "${CERTNAME}${suffix}" -t "u,u,u" -d "${PROFILEDIR}" \
+            -f "${R_PWFILE}" -i "${CERTNAME}${suffix}.cert" 2>&1
+        if [ "$RET" -ne 0 ]; then
             return $RET
-	fi
-	cert_log "SUCCESS: $CERTNAME's DSA Cert Created"
+        fi
 
-#    Generate DSA certificate signed with RSA
-	CU_ACTION="Generate mixed DSA Cert Request for $CERTNAME"
-	CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-dsamixed@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-	certu -R -k dsa -d "${PROFILEDIR}" -f "${R_PWFILE}" \
-	    -z "${R_NOISE_FILE}" -o req  2>&1
-	if [ "$RET" -ne 0 ]; then
-            return $RET
-	fi
+        cert_log "SUCCESS: $CERTNAME's $key_type Cert Created"
 
-	CU_ACTION="Sign ${CERTNAME}'s DSA Request with RSA"
+        #  Generate mixed certificate signed with RSA
+        if [ "${keyIsMixed[$i]}" = "true" ]; then
+	    CU_ACTION="Generate mixed $key_type Cert Request for $CERTNAME"
+	    CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}${suffix}mixed@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
+	    certu -R ${gencmd} -d "${PROFILEDIR}" -f "${R_PWFILE}" \
+	        -z "${R_NOISE_FILE}" -o req  2>&1
+	    if [ "$RET" -ne 0 ]; then
+                return $RET
+	    fi
+
+	    CU_ACTION="Sign ${CERTNAME}'s $key_type Request with RSA"
 # Avoid conflicting serial numbers with TestCA issuer by keeping
 # this set far away. A smaller number risks colliding with the
 # extended ssl user certificates.
-	NEWSERIAL=`expr ${CERTSERIAL} + 20000`
-        certu -C -c "TestCA" -m "$NEWSERIAL" -v 60 -d "${P_R_CADIR}" \
-            -i req -o "${CERTNAME}-dsamixed.cert" -f "${R_PWFILE}" "$1" 2>&1
-	if [ "$RET" -ne 0 ]; then
-            return $RET
-	fi
+	    NEWSERIAL=`expr ${CERTSERIAL} + ${keySerialOffset[$i]}`
+            certu -C -c "TestCA" -m "$NEWSERIAL" -v 60 -d "${P_R_CADIR}" \
+                -i req -o "${CERTNAME}${suffix}mixed.cert" -f "${R_PWFILE}" "$1" 2>&1
+	    if [ "$RET" -ne 0 ]; then
+                return $RET
+	    fi
 
-	CU_ACTION="Import $CERTNAME's mixed DSA Cert"
-	certu -A -n "${CERTNAME}-dsamixed" -t "u,u,u" -d "${PROFILEDIR}" \
-	    -f "${R_PWFILE}" -i "${CERTNAME}-dsamixed.cert" 2>&1
-	if [ "$RET" -ne 0 ]; then
-            return $RET
-	fi
-	cert_log "SUCCESS: $CERTNAME's mixed DSA Cert Created"
+	    CU_ACTION="Import $CERTNAME's mixed $key_type Cert"
+	    certu -A -n "${CERTNAME}${suffix}mixed" -t "u,u,u" -d "${PROFILEDIR}" \
+	        -f "${R_PWFILE}" -i "${CERTNAME}${suffix}mixed.cert" 2>&1
+	    if [ "$RET" -ne 0 ]; then
+                return $RET
+	    fi
+	    cert_log "SUCCESS: $CERTNAME's mixed $key_type Cert Created"
+        fi
+    done
 
-#
-#   Generate and add EC cert
-#
-	CURVE="secp384r1"
-	CU_ACTION="Generate EC Cert Request for $CERTNAME"
-	CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-ec@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-	certu -R -k ec -q "${CURVE}" -d "${PROFILEDIR}" -f "${R_PWFILE}" \
-	    -z "${R_NOISE_FILE}" -o req  2>&1
-	if [ "$RET" -ne 0 ]; then
-            return $RET
-	fi
+    # RSA PSS is only 'mixed' and is isn't generated by using from the certuil
+    # command line
+    echo "Importing RSA-PSS server certificate"
+    pk12u -i ${QADIR}/cert/TestUser-rsa-pss-interop.p12 -k ${R_PWFILE} -w ${R_PWFILE} -d ${PROFILEDIR}
+    # Let's get the key ID of the imported private key.
+    KEYID=`${BINDIR}/certutil -d ${PROFILEDIR} -K -f ${R_PWFILE} | \
+          grep 'TestUser-rsa-pss-interop$' | sed -n 's/^<.*> [^ ]\{1,\} *\([^ ]\{1,\}\).*/\1/p'`
 
-	CU_ACTION="Sign ${CERTNAME}'s EC Request"
-	certu -C -c "TestCA-ec" -m "$CERTSERIAL" -v 60 -d "${P_R_CADIR}" \
-            -i req -o "${CERTNAME}-ec.cert" -f "${R_PWFILE}" "$1" 2>&1
-	if [ "$RET" -ne 0 ]; then
-            return $RET
-	fi
+    CU_ACTION="Generate RSA-PSS Cert Request for $CERTNAME"
+    CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-rsa-pss@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
+    certu -R -d "${PROFILEDIR}" -k ${KEYID} -f "${R_PWFILE}" \
+          -z "${R_NOISE_FILE}" -o req 2>&1
 
-	CU_ACTION="Import $CERTNAME's EC Cert"
-	certu -A -n "${CERTNAME}-ec" -t "u,u,u" -d "${PROFILEDIR}" \
-	    -f "${R_PWFILE}" -i "${CERTNAME}-ec.cert" 2>&1
-	if [ "$RET" -ne 0 ]; then
-            return $RET
-	fi
-	cert_log "SUCCESS: $CERTNAME's EC Cert Created"
+    CU_ACTION="Sign ${CERTNAME}'s RSA-PSS Request"
+    NEWSERIAL=`expr ${CERTSERIAL} + 30000`
+    certu -C -c "TestCA" -m "$NEWSERIAL" -v 60 -d "${P_R_CADIR}" \
+        -i req -o "${CERTNAME}-rsa-pss.cert" -f "${R_PWFILE}" "$1" 2>&1
 
-#    Generate EC certificate signed with RSA
-	CU_ACTION="Generate mixed EC Cert Request for $CERTNAME"
-	CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-ecmixed@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-	certu -R -k ec -q "${CURVE}" -d "${PROFILEDIR}" -f "${R_PWFILE}" \
-	    -z "${R_NOISE_FILE}" -o req  2>&1
-	if [ "$RET" -ne 0 ]; then
-            return $RET
-	fi
-
-	CU_ACTION="Sign ${CERTNAME}'s EC Request with RSA"
-# Avoid conflicting serial numbers with TestCA issuer by keeping
-# this set far away. A smaller number risks colliding with the
-# extended ssl user certificates.
-	NEWSERIAL=`expr ${CERTSERIAL} + 10000`
-        certu -C -c "TestCA" -m "$NEWSERIAL" -v 60 -d "${P_R_CADIR}" \
-            -i req -o "${CERTNAME}-ecmixed.cert" -f "${R_PWFILE}" "$1" 2>&1
-	if [ "$RET" -ne 0 ]; then
-            return $RET
-	fi
-
-	CU_ACTION="Import $CERTNAME's mixed EC Cert"
-	certu -A -n "${CERTNAME}-ecmixed" -t "u,u,u" -d "${PROFILEDIR}" \
-	    -f "${R_PWFILE}" -i "${CERTNAME}-ecmixed.cert" 2>&1
-	if [ "$RET" -ne 0 ]; then
-            return $RET
-	fi
-	cert_log "SUCCESS: $CERTNAME's mixed EC Cert Created"
-
-	echo "Importing RSA-PSS server certificate"
-	pk12u -i ${QADIR}/cert/TestUser-rsa-pss-interop.p12 -k ${R_PWFILE} -w ${R_PWFILE} -d ${PROFILEDIR}
-	# Let's get the key ID of the imported private key.
-	KEYID=`${BINDIR}/certutil -d ${PROFILEDIR} -K -f ${R_PWFILE} | \
-		grep 'TestUser-rsa-pss-interop$' | sed -n 's/^<.*> [^ ]\{1,\} *\([^ ]\{1,\}\).*/\1/p'`
-
-	CU_ACTION="Generate RSA-PSS Cert Request for $CERTNAME"
-	CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-rsa-pss@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-	certu -R -d "${PROFILEDIR}" -k ${KEYID} -f "${R_PWFILE}" \
-	-z "${R_NOISE_FILE}" -o req 2>&1
-
-	CU_ACTION="Sign ${CERTNAME}'s RSA-PSS Request"
-	NEWSERIAL=`expr ${CERTSERIAL} + 30000`
-	certu -C -c "TestCA" -m "$NEWSERIAL" -v 60 -d "${P_R_CADIR}" \
-	      -i req -o "${CERTNAME}-rsa-pss.cert" -f "${R_PWFILE}" "$1" 2>&1
-
-	CU_ACTION="Import $CERTNAME's RSA-PSS Cert -t u,u,u"
-	certu -A -n "$CERTNAME-rsa-pss" -t "u,u,u" -d "${PROFILEDIR}" -f "${R_PWFILE}" \
-	      -i "${CERTNAME}-rsa-pss.cert" 2>&1
-	cert_log "SUCCESS: $CERTNAME's RSA-PSS Cert Created"
+    CU_ACTION="Import $CERTNAME's RSA-PSS Cert -t u,u,u"
+    certu -A -n "$CERTNAME-rsa-pss" -t "u,u,u" -d "${PROFILEDIR}" \
+        -f "${R_PWFILE}" -i "${CERTNAME}-rsa-pss.cert" 2>&1
+    cert_log "SUCCESS: $CERTNAME's RSA-PSS Cert Created"
 
     return 0
 }
@@ -479,96 +453,93 @@ cert_add_cert()
 ##########################################################################
 cert_all_CA()
 {
-    ALL_CU_SUBJECT="CN=NSS Test CA, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-    cert_CA $CADIR TestCA -x "CTu,CTu,CTu" ${D_CA} "1"
+    CA_CURVE="secp521r1"
+    for i in ${!keyType[@]}
+    do
+        suffix=${keySuffix[$i]}
+        key_type=${keyType[$i]}
+        cn_type=""
+        if [ "key_type" != "RSA" ]; then
+            cn_type=" (${key_type})"
+        fi
+        ALL_CU_SUBJECT="CN=NSS Test CA${cn_type}, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
+        cert_CA $key_type $CADIR TestCA${suffix} -x "CTu,CTu,CTu" ${D_CA} "1" ${CA_CURVE}
 
-    ALL_CU_SUBJECT="CN=NSS Server Test CA, O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-    cert_CA $SERVER_CADIR serverCA -x "Cu,Cu,Cu" ${D_SERVER_CA} "2"
-    ALL_CU_SUBJECT="CN=NSS Chain1 Server Test CA, O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-    cert_CA $SERVER_CADIR chain-1-serverCA "-c serverCA" "u,u,u" ${D_SERVER_CA} "3"
-    ALL_CU_SUBJECT="CN=NSS Chain2 Server Test CA, O=BOGUS NSS, L=Santa Clara, ST=California, C=US" 
-    cert_CA $SERVER_CADIR chain-2-serverCA "-c chain-1-serverCA" "u,u,u" ${D_SERVER_CA} "4"
+        ALL_CU_SUBJECT="CN=NSS Server Test CA${cn_type}, O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
+        cert_CA $key_type $SERVER_CADIR serverCA${suffix} -x "Cu,Cu,Cu" ${D_SERVER_CA} "2" ${CA_CURVE}
+        ALL_CU_SUBJECT="CN=NSS Chain1 Server Test CA${cn_type}, O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
+        cert_CA $key_type $SERVER_CADIR chain-1-serverCA${suffix} "-c serverCA${suffix}" "u,u,u" ${D_SERVER_CA} "3" ${CA_CURVE}
+        ALL_CU_SUBJECT="CN=NSS Chain2 Server Test CA${cn_type}, O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
+        cert_CA $key_type $SERVER_CADIR chain-2-serverCA${suffix} "-c chain-1-serverCA${suffix}" "u,u,u" ${D_SERVER_CA} "4" ${CA_CURVE}
 
+        ALL_CU_SUBJECT="CN=NSS Client Test CA${cn_type}, O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
+        cert_CA $key_type $CLIENT_CADIR clientCA${suffix} -x "Tu,Cu,Cu" ${D_CLIENT_CA} "5" ${CA_CURVE}
+        ALL_CU_SUBJECT="CN=NSS Chain1 Client Test CA${cn_type}, O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
+        cert_CA $key_type $CLIENT_CADIR chain-1-clientCA${suffix} "-c clientCA${suffix}" "u,u,u" ${D_CLIENT_CA} "6" ${CA_CURVE}
+        ALL_CU_SUBJECT="CN=NSS Chain2 Client Test CA${cn_type}, O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
+        cert_CA $key_type $CLIENT_CADIR chain-2-clientCA${suffix} "-c chain-1-clientCA${suffix}" "u,u,u" ${D_CLIENT_CA} "7" ${CA_CURVE}
 
+        # root.cert in $CLIENT_CADIR and in $SERVER_CADIR is one of the last
+        # in the chain
+        rm $CLIENT_CADIR/root${suffix}.cert $SERVER_CADIR/root${suffix}.cert
+    done
+    #
+    #  Create RSA-PSS version of TestCA
+    ALL_CU_SUBJECT="CN=NSS Test CA (RSA-PSS), O=BOGUS NSS, L=Mountain View, ST=California, C=US"
+    cert_CA RSA-PSS $CADIR TestCA-rsa-pss -x "CTu,CTu,CTu" ${D_CA} "1" SHA256
+    rm $CADIR/root-rsa-pss.cert
 
-    ALL_CU_SUBJECT="CN=NSS Client Test CA, O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-    cert_CA $CLIENT_CADIR clientCA -x "Tu,Cu,Cu" ${D_CLIENT_CA} "5"
-    ALL_CU_SUBJECT="CN=NSS Chain1 Client Test CA, O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-    cert_CA $CLIENT_CADIR chain-1-clientCA "-c clientCA" "u,u,u" ${D_CLIENT_CA} "6"
-    ALL_CU_SUBJECT="CN=NSS Chain2 Client Test CA, O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-    cert_CA $CLIENT_CADIR chain-2-clientCA "-c chain-1-clientCA" "u,u,u" ${D_CLIENT_CA} "7"
-
-    rm $CLIENT_CADIR/root.cert $SERVER_CADIR/root.cert
-
-    # root.cert in $CLIENT_CADIR and in $SERVER_CADIR is one of the last 
-    # in the chain
-
-
-#
-#       Create DSA version of TestCA
-	ALL_CU_SUBJECT="CN=NSS Test CA (DSA), O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-	cert_dsa_CA $CADIR TestCA-dsa -x "CTu,CTu,CTu" ${D_CA} "1"
-#
-#       Create DSA versions of the intermediate CA certs
-	ALL_CU_SUBJECT="CN=NSS Server Test CA (DSA), O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-	cert_dsa_CA $SERVER_CADIR serverCA-dsa -x "Cu,Cu,Cu" ${D_SERVER_CA} "2"
-	ALL_CU_SUBJECT="CN=NSS Chain1 Server Test CA (DSA), O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-	cert_dsa_CA $SERVER_CADIR chain-1-serverCA-dsa "-c serverCA-dsa" "u,u,u" ${D_SERVER_CA} "3"
-	ALL_CU_SUBJECT="CN=NSS Chain2 Server Test CA (DSA), O=BOGUS NSS, L=Santa Clara, ST=California, C=US" 
-	cert_dsa_CA $SERVER_CADIR chain-2-serverCA-dsa "-c chain-1-serverCA-dsa" "u,u,u" ${D_SERVER_CA} "4"
-
-	ALL_CU_SUBJECT="CN=NSS Client Test CA (DSA), O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-	cert_dsa_CA $CLIENT_CADIR clientCA-dsa -x "Tu,Cu,Cu" ${D_CLIENT_CA} "5"
-	ALL_CU_SUBJECT="CN=NSS Chain1 Client Test CA (DSA), O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-	cert_dsa_CA $CLIENT_CADIR chain-1-clientCA-dsa "-c clientCA-dsa" "u,u,u" ${D_CLIENT_CA} "6"
-	ALL_CU_SUBJECT="CN=NSS Chain2 Client Test CA (DSA), O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-	cert_dsa_CA $CLIENT_CADIR chain-2-clientCA-dsa "-c chain-1-clientCA-dsa" "u,u,u" ${D_CLIENT_CA} "7"
-
-	rm $CLIENT_CADIR/dsaroot.cert $SERVER_CADIR/dsaroot.cert
-#	dsaroot.cert in $CLIENT_CADIR and in $SERVER_CADIR is one of the last 
-#	in the chain
-
-#
-#       Create RSA-PSS version of TestCA
-	ALL_CU_SUBJECT="CN=NSS Test CA (RSA-PSS), O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-	cert_rsa_pss_CA $CADIR TestCA-rsa-pss -x "CTu,CTu,CTu" ${D_CA} "1" SHA256
-	rm $CADIR/rsapssroot.cert
-
-	ALL_CU_SUBJECT="CN=NSS Test CA (RSA-PSS-SHA1), O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-	cert_rsa_pss_CA $CADIR TestCA-rsa-pss-sha1 -x "CTu,CTu,CTu" ${D_CA} "1" SHA1
-	rm $CADIR/rsapssroot.cert
-
-#
-#       Create EC version of TestCA
-	CA_CURVE="secp521r1"
-	ALL_CU_SUBJECT="CN=NSS Test CA (ECC), O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-	cert_ec_CA $CADIR TestCA-ec -x "CTu,CTu,CTu" ${D_CA} "1" ${CA_CURVE}
-#
-#       Create EC versions of the intermediate CA certs
-	ALL_CU_SUBJECT="CN=NSS Server Test CA (ECC), O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-	cert_ec_CA $SERVER_CADIR serverCA-ec -x "Cu,Cu,Cu" ${D_SERVER_CA} "2" ${CA_CURVE}
-	ALL_CU_SUBJECT="CN=NSS Chain1 Server Test CA (ECC), O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-	cert_ec_CA $SERVER_CADIR chain-1-serverCA-ec "-c serverCA-ec" "u,u,u" ${D_SERVER_CA} "3" ${CA_CURVE}
-	ALL_CU_SUBJECT="CN=NSS Chain2 Server Test CA (ECC), O=BOGUS NSS, L=Santa Clara, ST=California, C=US" 
-	cert_ec_CA $SERVER_CADIR chain-2-serverCA-ec "-c chain-1-serverCA-ec" "u,u,u" ${D_SERVER_CA} "4" ${CA_CURVE}
-
-	ALL_CU_SUBJECT="CN=NSS Client Test CA (ECC), O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-	cert_ec_CA $CLIENT_CADIR clientCA-ec -x "Tu,Cu,Cu" ${D_CLIENT_CA} "5" ${CA_CURVE}
-	ALL_CU_SUBJECT="CN=NSS Chain1 Client Test CA (ECC), O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-	cert_ec_CA $CLIENT_CADIR chain-1-clientCA-ec "-c clientCA-ec" "u,u,u" ${D_CLIENT_CA} "6" ${CA_CURVE}
-	ALL_CU_SUBJECT="CN=NSS Chain2 Client Test CA (ECC), O=BOGUS NSS, L=Santa Clara, ST=California, C=US"
-	cert_ec_CA $CLIENT_CADIR chain-2-clientCA-ec "-c chain-1-clientCA-ec" "u,u,u" ${D_CLIENT_CA} "7" ${CA_CURVE}
-
-	rm $CLIENT_CADIR/ecroot.cert $SERVER_CADIR/ecroot.cert
-#	ecroot.cert in $CLIENT_CADIR and in $SERVER_CADIR is one of the last 
-#	in the chain
+    ALL_CU_SUBJECT="CN=NSS Test CA (RSA-PSS-SHA1), O=BOGUS NSS, L=Mountain View, ST=California, C=US"
+    cert_CA RSA-PSS $CADIR TestCA-rsa-pss-sha1 -x "CTu,CTu,CTu" ${D_CA} "1" SHA1
+    rm $CADIR/root-rsa-pss.cert
 }
 
 ################################# cert_CA ################################
 # local shell function to build the Temp. Certificate Authority (CA)
 # used for testing purposes, creating  a CA Certificate and a root cert
+# this function calls the key type specific keygen code
 ##########################################################################
 cert_CA()
+{
+  KEY_TYPE=$1
+  CUR_CADIR=$2
+  NICKNAME=$3
+  SIGNER=$4
+  TRUSTARG=$5
+  DOMAIN=$6
+  CERTSERIAL=$7
+  ALG=$8
+
+#echo "cert_CA: KEY_TYPE=\"$KEY_TYPE\" CUR_CADIR=\"$CUR_CADIR\""
+#  echo "         NICKNAME=\"$NICKNAME\" SIGNER=\"$SIGNER\" TRUSTARG=\"$TRUSTARG\""
+#  echo "         DOMAIN=\"$DOMAIN\" CERTSERIAL=\"$CERTSERIAL\" ALG=\"$ALG\""
+
+  case "$KEY_TYPE" in
+  RSA)
+      cert_rsa_CA "${CUR_CADIR}" "${NICKNAME}" "${SIGNER}" "${TRUSTARG}" "${DOMAIN}" "${CERTSERIAL}"
+      ;;
+  DSA)
+      cert_dsa_CA "${CUR_CADIR}" "${NICKNAME}" "${SIGNER}" "${TRUSTARG}" "${DOMAIN}" "${CERTSERIAL}"
+      ;;
+  ECC)
+      cert_ec_CA "${CUR_CADIR}" "${NICKNAME}" "${SIGNER}" "${TRUSTARG}" "${DOMAIN}" "${CERTSERIAL}" "${ALG}"
+      ;;
+  RSA-PSS)
+      cert_rsa_pss_CA "${CUR_CADIR}" "${NICKNAME}" "${SIGNER}" "${TRUSTARG}" "${DOMAIN}" "${CERTSERIAL}" "${ALG}"
+      ;;
+  *)
+      Exit 9 "Fatal - unknown key type ${KEY_TYPE}, failed to create CA cert"
+      ;;
+  esac
+}
+
+
+
+################################# cert_rsa_CA ############################
+# local shell function to build the Temp. Certificate Authority (CA)
+# used for testing purposes, creating  a CA Certificate and a root cert
+##########################################################################
+cert_rsa_CA()
 {
   CUR_CADIR=$1
   NICKNAME=$2
@@ -601,7 +572,7 @@ cert_CA()
       fi
 
       CU_ACTION="Loading root cert module to CA Cert DB"
-      modu -add "RootCerts" -libfile "${ROOTCERTSFILE}" -dbdir "${LPROFILE}" 2>&1   
+      modu -add "RootCerts" -libfile "${ROOTCERTSFILE}" -dbdir "${LPROFILE}" 2>&1
       if [ "$RET" -ne 0 ]; then
           return $RET
       fi
@@ -638,7 +609,7 @@ CERTSCRIPT
   ################# Exporting Root Cert ###################################
   #
   CU_ACTION="Exporting Root Cert"
-  certu -L -n  $NICKNAME -r -d ${LPROFILE} -o root.cert 
+  certu -L -n  $NICKNAME -r -d ${LPROFILE} -o root.cert
   if [ "$RET" -ne 0 ]; then
       Exit 7 "Fatal - failed to export root cert"
   fi
@@ -705,11 +676,11 @@ CERTSCRIPT
   ################# Exporting DSA Root Cert ###############################
   #
   CU_ACTION="Exporting DSA Root Cert"
-  certu -L -n  $NICKNAME -r -d ${LPROFILE} -o dsaroot.cert 
+  certu -L -n  $NICKNAME -r -d ${LPROFILE} -o root-dsa.cert
   if [ "$RET" -ne 0 ]; then
       Exit 7 "Fatal - failed to export dsa root cert"
   fi
-  cp dsaroot.cert ${NICKNAME}.ca.cert
+  cp root-dsa.cert ${NICKNAME}.ca.cert
 }
 
 
@@ -778,11 +749,11 @@ CERTSCRIPT
   ################# Exporting RSA-PSS Root Cert ###############################
   #
   CU_ACTION="Exporting RSA-PSS Root Cert"
-  certu -L -n  $NICKNAME -r -d ${LPROFILE} -o rsapssroot.cert
+  certu -L -n  $NICKNAME -r -d ${LPROFILE} -o root-rsa-pss.cert
   if [ "$RET" -ne 0 ]; then
       Exit 7 "Fatal - failed to export RSA-PSS root cert"
   fi
-  cp rsapssroot.cert ${NICKNAME}.ca.cert
+  cp root-rsa-pss.cert ${NICKNAME}.ca.cert
 }
 
 
@@ -845,15 +816,15 @@ CERTSCRIPT
   ################# Exporting EC Root Cert ################################
   #
   CU_ACTION="Exporting EC Root Cert"
-  certu -L -n  $NICKNAME -r -d ${LPROFILE} -o ecroot.cert 
+  certu -L -n  $NICKNAME -r -d ${LPROFILE} -o root-ec.cert
   if [ "$RET" -ne 0 ]; then
       Exit 7 "Fatal - failed to export ec root cert"
   fi
-  cp ecroot.cert ${NICKNAME}.ca.cert
+  cp root-ec.cert ${NICKNAME}.ca.cert
 }
 
 ############################## cert_smime_client #############################
-# local shell function to create client Certificates for S/MIME tests 
+# local shell function to create client Certificates for S/MIME tests
 ##############################################################################
 cert_smime_client()
 {
@@ -870,8 +841,8 @@ cert_smime_client()
 ## call to cert_create_cert ends up creating two separate certs
 ## one for Eve and another for Eve-ec but they both end up with
 ## the same Subject Alt Name Extension, i.e., both the cert for
-## Eve@example.com and the cert for Eve-ec@example.com end up 
-## listing eve@example.net in the Certificate Subject Alt Name extension. 
+## Eve@example.com and the cert for Eve-ec@example.com end up
+## listing eve@example.net in the Certificate Subject Alt Name extension.
 ## This can cause a problem later when cmsutil attempts to create
 ## enveloped data and accidently picks up the ECC cert (NSS currently
 ## does not support ECC for enveloped data creation). This script
@@ -933,7 +904,7 @@ cert_smime_client()
           -i ${R_DAVEDIR}/Dave-ec.cert 2>&1
 
 ## XXXX Do not import Eve's EC cert until we can make sure that
-## the email addresses listed in the Subject Alt Name Extension 
+## the email addresses listed in the Subject Alt Name Extension
 ## inside Eve's ECC and non-ECC certs are different.
 #     CU_ACTION="Import Eve's EC cert into Alice's DB"
 #     certu -E -t ",," -d ${P_R_ALICEDIR} -f ${R_PWFILE} \
@@ -971,112 +942,58 @@ cert_extended_ssl()
   CU_ACTION="Loading root cert module to ${CERTNAME}'s Cert DB (ext.)"
   modu -add "RootCerts" -libfile "${ROOTCERTSFILE}" -dbdir "${PROFILEDIR}" 2>&1
 
-  CU_ACTION="Generate Cert Request for $CERTNAME (ext)"
-  CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-  certu -R -d "${PROFILEDIR}" -f "${R_PWFILE}" -z "${R_NOISE_FILE}" -o req 2>&1
+  EC_CURVE="secp256r1"
+  for i in ${!keyType[@]}
+  do
+    suffix=${keySuffix[$i]}
+    gencmd=${keyGenCmd[$i]}
+    key_type=${keyType[$i]}
+    if [ "$key_type" =  "ECC" ]; then
+        gencmd="$gencmd ${EC_CURVE}"
+    fi
 
-  CU_ACTION="Sign ${CERTNAME}'s Request (ext)"
-  cp ${CERTDIR}/req ${SERVER_CADIR}
-  certu -C -c "chain-2-serverCA" -m 200 -v 60 -d "${P_SERVER_CADIR}" \
-        -i req -o "${CERTNAME}.cert" -f "${R_PWFILE}" 2>&1
+    CU_ACTION="Generate $key_type Cert Request for $CERTNAME (ext)"
+    CU_SUBJECT="CN=${CERTNAME}, E=${CERTNAME}${suffix}@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
+    certu -R -d "${PROFILEDIR}" $gencmd -f "${R_PWFILE}" \
+        -z "${R_NOISE_FILE}" -o req 2>&1
 
-  CU_ACTION="Import $CERTNAME's Cert  -t u,u,u (ext)"
-  certu -A -n "$CERTNAME" -t "u,u,u" -d "${PROFILEDIR}" -f "${R_PWFILE}" \
-        -i "${CERTNAME}.cert" 2>&1
+    CU_ACTION="Sign ${CERTNAME}'s $key_type Request (ext)"
+    cp ${CERTDIR}/req ${SERVER_CADIR}
+    certu -C -c "chain-2-serverCA${suffix}" -m 200 -v 60 \
+        -d "${P_SERVER_CADIR}" -i req -o "${CERTNAME}${suffix}.cert" \
+        -f "${R_PWFILE}" 2>&1
 
-  CU_ACTION="Import Client Root CA -t T,, for $CERTNAME (ext.)"
-  certu -A -n "clientCA" -t "T,," -f "${R_PWFILE}" -d "${PROFILEDIR}" \
-          -i "${CLIENT_CADIR}/clientCA.ca.cert" 2>&1
+    CU_ACTION="Import $CERTNAME's $key_type Cert  -t u,u,u (ext)"
+    certu -A -n "${CERTNAME}${suffix}" -t "u,u,u" -d "${PROFILEDIR}" \
+        -f "${R_PWFILE}" -i "${CERTNAME}${suffix}.cert" 2>&1
 
-#
-#     Repeat the above for DSA certs
-#
-      CU_ACTION="Generate DSA Cert Request for $CERTNAME (ext)"
-      CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-dsa@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-      certu -R -d "${PROFILEDIR}" -k dsa -f "${R_PWFILE}" \
+    CU_ACTION="Import Client $key_type Root CA -t T,, for $CERTNAME (ext.)"
+    certu -A -n "clientCA${suffix}" -t "T,," -f "${R_PWFILE}" \
+           -d "${PROFILEDIR}" -i "${CLIENT_CADIR}/clientCA${suffix}.ca.cert" 2>&1
+    #  Generate mixed certificate signed with RSA
+    if [ "${keyIsMixed[$i]}" = "true" ]; then
+      NEWSERIAL=`expr ${keySerialOffset[$i]} + 200`
+      CU_ACTION="Generate mixed $key_type Cert Request for $CERTNAME (ext)"
+      CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}${suffix}mixed@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
+      certu -R -d "${PROFILEDIR}" ${gencmd} -f "${R_PWFILE}" \
 	  -z "${R_NOISE_FILE}" -o req 2>&1
 
-      CU_ACTION="Sign ${CERTNAME}'s DSA Request (ext)"
+      CU_ACTION="Sign ${CERTNAME}'s mixed $key_type Request (ext)"
       cp ${CERTDIR}/req ${SERVER_CADIR}
-      certu -C -c "chain-2-serverCA-dsa" -m 200 -v 60 -d "${P_SERVER_CADIR}" \
-          -i req -o "${CERTNAME}-dsa.cert" -f "${R_PWFILE}" 2>&1
+      certu -C -c "chain-2-serverCA" -m ${NEWSERIAL} -v 60 \
+          -d "${P_SERVER_CADIR}" -i req -o "${CERTNAME}${suffix}mixed.cert" \
+          -f "${R_PWFILE}" 2>&1
 
-      CU_ACTION="Import $CERTNAME's DSA Cert  -t u,u,u (ext)"
-      certu -A -n "${CERTNAME}-dsa" -t "u,u,u" -d "${PROFILEDIR}" \
-	  -f "${R_PWFILE}" -i "${CERTNAME}-dsa.cert" 2>&1
+      CU_ACTION="Import $CERTNAME's mixed ${key_type} Cert  -t u,u,u (ext)"
+      certu -A -n "${CERTNAME}${suffix}mixed" -t "u,u,u" -d "${PROFILEDIR}" \
+	  -f "${R_PWFILE}" -i "${CERTNAME}${suffix}mixed.cert" 2>&1
 
-      CU_ACTION="Import Client DSA Root CA -t T,, for $CERTNAME (ext.)"
-      certu -A -n "clientCA-dsa" -t "T,," -f "${R_PWFILE}" -d "${PROFILEDIR}" \
-          -i "${CLIENT_CADIR}/clientCA-dsa.ca.cert" 2>&1
-#
-#     done with DSA certs
-#
-#     Repeat again for mixed DSA certs
-#
-      CU_ACTION="Generate mixed DSA Cert Request for $CERTNAME (ext)"
-      CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-dsamixed@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-      certu -R -d "${PROFILEDIR}" -k dsa -f "${R_PWFILE}" \
-	  -z "${R_NOISE_FILE}" -o req 2>&1
-
-      CU_ACTION="Sign ${CERTNAME}'s mixed DSA Request (ext)"
-      cp ${CERTDIR}/req ${SERVER_CADIR}
-      certu -C -c "chain-2-serverCA" -m 202 -v 60 -d "${P_SERVER_CADIR}" \
-          -i req -o "${CERTNAME}-dsamixed.cert" -f "${R_PWFILE}" 2>&1
-
-      CU_ACTION="Import $CERTNAME's mixed DSA Cert  -t u,u,u (ext)"
-      certu -A -n "${CERTNAME}-dsamixed" -t "u,u,u" -d "${PROFILEDIR}" \
-	  -f "${R_PWFILE}" -i "${CERTNAME}-dsamixed.cert" 2>&1
-
-#      CU_ACTION="Import Client mixed DSA Root CA -t T,, for $CERTNAME (ext.)"
-#      certu -A -n "clientCA-dsamixed" -t "T,," -f "${R_PWFILE}" \
-#	  -d "${PROFILEDIR}" -i "${CLIENT_CADIR}/clientCA-dsamixed.ca.cert" \
+#    CU_ACTION="Import Client mixed $key_type Root CA -t T,, for $CERTNAME (ext.)"
+#    certu -A -n "clientCA${suffix}mixed" -t "T,," -f "${R_PWFILE}" \
+#	  -d "${PROFILEDIR}" -i "${CLIENT_CADIR}/clientCA${suffix}mixed.ca.cert" \
 #	  2>&1
-
-#
-#     Repeat the above for EC certs
-#
-      EC_CURVE="secp256r1"
-      CU_ACTION="Generate EC Cert Request for $CERTNAME (ext)"
-      CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-ec@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-      certu -R -d "${PROFILEDIR}" -k ec -q "${EC_CURVE}" -f "${R_PWFILE}" \
-	  -z "${R_NOISE_FILE}" -o req 2>&1
-
-      CU_ACTION="Sign ${CERTNAME}'s EC Request (ext)"
-      cp ${CERTDIR}/req ${SERVER_CADIR}
-      certu -C -c "chain-2-serverCA-ec" -m 200 -v 60 -d "${P_SERVER_CADIR}" \
-          -i req -o "${CERTNAME}-ec.cert" -f "${R_PWFILE}" 2>&1
-
-      CU_ACTION="Import $CERTNAME's EC Cert  -t u,u,u (ext)"
-      certu -A -n "${CERTNAME}-ec" -t "u,u,u" -d "${PROFILEDIR}" \
-	  -f "${R_PWFILE}" -i "${CERTNAME}-ec.cert" 2>&1
-
-      CU_ACTION="Import Client EC Root CA -t T,, for $CERTNAME (ext.)"
-      certu -A -n "clientCA-ec" -t "T,," -f "${R_PWFILE}" -d "${PROFILEDIR}" \
-          -i "${CLIENT_CADIR}/clientCA-ec.ca.cert" 2>&1
-#
-#     done with EC certs
-#
-#     Repeat again for mixed EC certs
-#
-      EC_CURVE="secp256r1"
-      CU_ACTION="Generate mixed EC Cert Request for $CERTNAME (ext)"
-      CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-ecmixed@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-      certu -R -d "${PROFILEDIR}" -k ec -q "${EC_CURVE}" -f "${R_PWFILE}" \
-	  -z "${R_NOISE_FILE}" -o req 2>&1
-
-      CU_ACTION="Sign ${CERTNAME}'s mixed EC Request (ext)"
-      cp ${CERTDIR}/req ${SERVER_CADIR}
-      certu -C -c "chain-2-serverCA" -m 201 -v 60 -d "${P_SERVER_CADIR}" \
-          -i req -o "${CERTNAME}-ecmixed.cert" -f "${R_PWFILE}" 2>&1
-
-      CU_ACTION="Import $CERTNAME's mixed EC Cert  -t u,u,u (ext)"
-      certu -A -n "${CERTNAME}-ecmixed" -t "u,u,u" -d "${PROFILEDIR}" \
-	  -f "${R_PWFILE}" -i "${CERTNAME}-ecmixed.cert" 2>&1
-
-#      CU_ACTION="Import Client mixed EC Root CA -t T,, for $CERTNAME (ext.)"
-#      certu -A -n "clientCA-ecmixed" -t "T,," -f "${R_PWFILE}" \
-#	  -d "${PROFILEDIR}" -i "${CLIENT_CADIR}/clientCA-ecmixed.ca.cert" \
-#	  2>&1
+    fi
+  done
 
   # Check that a repeated import with a different nickname doesn't change the
   # nickname of the existing cert (bug 1458518).
@@ -1101,7 +1018,7 @@ cert_extended_ssl()
   for CA in `find ${SERVER_CADIR} -name "?*.ca.cert"` ;
   do
       N=`basename $CA | sed -e "s/.ca.cert//"`
-      if [ $N = "serverCA" -o $N = "serverCA-ec" -o $N = "serverCA-dsa" ] ; then
+      if [[ "$N" =~ ^serverCA(-.*)?$ ]]; then
           T="-t C,C,C"
       else
           T="-t u,u,u"
@@ -1120,126 +1037,66 @@ cert_extended_ssl()
   CU_ACTION="Loading root cert module to ${CERTNAME}'s Cert DB (ext.)"
   modu -add "RootCerts" -libfile "${ROOTCERTSFILE}" -dbdir "${PROFILEDIR}" 2>&1
 
-  CU_ACTION="Generate Cert Request for $CERTNAME (ext)"
-  CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-  certu -R -d "${PROFILEDIR}" -f "${R_PWFILE}" -z "${R_NOISE_FILE}" \
-      -o req 2>&1
+  for i in ${!keyType[@]}
+  do
+    suffix=${keySuffix[$i]}
+    gencmd=${keyGenCmd[$i]}
+    key_type=${keyType[$i]}
+    if [ "$key_type" =  "ECC" ]; then
+        gencmd="$gencmd ${EC_CURVE}"
+    fi
 
-  CU_ACTION="Sign ${CERTNAME}'s Request (ext)"
-  cp ${CERTDIR}/req ${CLIENT_CADIR}
-  certu -C -c "chain-2-clientCA" -m 300 -v 60 -d "${P_CLIENT_CADIR}" \
-        -i req -o "${CERTNAME}.cert" -f "${R_PWFILE}" 2>&1
+    CU_ACTION="Generate $key_type Cert Request for $CERTNAME (ext)"
+    CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}${suffix}@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
+    certu -R -d "${PROFILEDIR}" ${gencmd} -f "${R_PWFILE}" \
+        -z "${R_NOISE_FILE}" -o req 2>&1
 
-  CU_ACTION="Import $CERTNAME's Cert -t u,u,u (ext)"
-  certu -A -n "$CERTNAME" -t "u,u,u" -d "${PROFILEDIR}" -f "${R_PWFILE}" \
-        -i "${CERTNAME}.cert" 2>&1
-  CU_ACTION="Import Server Root CA -t C,C,C for $CERTNAME (ext.)"
-  certu -A -n "serverCA" -t "C,C,C" -f "${R_PWFILE}" -d "${PROFILEDIR}" \
-          -i "${SERVER_CADIR}/serverCA.ca.cert" 2>&1
+    CU_ACTION="Sign ${CERTNAME}'s $key_type Request (ext)"
+    cp ${CERTDIR}/req ${CLIENT_CADIR}
+    certu -C -c "chain-2-clientCA${suffix}" -m 300 -v 60 \
+        -d "${P_CLIENT_CADIR}" -i req -o "${CERTNAME}${suffix}.cert" \
+        -f "${R_PWFILE}" 2>&1
 
-#
-#     Repeat the above for DSA certs
-#
-      CU_ACTION="Generate DSA Cert Request for $CERTNAME (ext)"
-      CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-dsa@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-      certu -R -d "${PROFILEDIR}" -k dsa -f "${R_PWFILE}" \
-	  -z "${R_NOISE_FILE}" -o req 2>&1
-
-      CU_ACTION="Sign ${CERTNAME}'s DSA Request (ext)"
-      cp ${CERTDIR}/req ${CLIENT_CADIR}
-      certu -C -c "chain-2-clientCA-dsa" -m 300 -v 60 -d "${P_CLIENT_CADIR}" \
-          -i req -o "${CERTNAME}-dsa.cert" -f "${R_PWFILE}" 2>&1
-
-      CU_ACTION="Import $CERTNAME's DSA Cert -t u,u,u (ext)"
-      certu -A -n "${CERTNAME}-dsa" -t "u,u,u" -d "${PROFILEDIR}" \
-	  -f "${R_PWFILE}" -i "${CERTNAME}-dsa.cert" 2>&1
-
-      CU_ACTION="Import Server DSA Root CA -t C,C,C for $CERTNAME (ext.)"
-      certu -A -n "serverCA-dsa" -t "C,C,C" -f "${R_PWFILE}" \
-	  -d "${PROFILEDIR}" -i "${SERVER_CADIR}/serverCA-dsa.ca.cert" 2>&1
-#
-# done with DSA certs
-#
-#
-#     Repeat the above for mixed DSA certs
-#
-      CU_ACTION="Generate mixed DSA Cert Request for $CERTNAME (ext)"
+    CU_ACTION="Import $CERTNAME's $key_type Cert -t u,u,u (ext)"
+    certu -A -n "${CERTNAME}${suffix}" -t "u,u,u" -d "${PROFILEDIR}" \
+        -f "${R_PWFILE}" -i "${CERTNAME}${suffix}.cert" 2>&1
+    CU_ACTION="Import Server $key_type Root CA -t C,C,C for $CERTNAME (ext.)"
+    certu -A -n "serverCA${suffix}" -t "C,C,C" -f "${R_PWFILE}" \
+        -d "${PROFILEDIR}" -i "${SERVER_CADIR}/serverCA${suffix}.ca.cert" 2>&1
+    #  Generate mixed certificate signed with RSA
+    if [ "${keyIsMixed[$i]}" = "true" ]; then
+      NEWSERIAL=`expr ${keySerialOffset[$i]} + 300`
+      CU_ACTION="Generate mixed $key_type Cert Request for $CERTNAME (ext)"
       CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-dsamixed@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-      certu -R -d "${PROFILEDIR}" -k dsa -f "${R_PWFILE}" \
+      certu -R -d "${PROFILEDIR}" ${gencmd} -f "${R_PWFILE}" \
 	  -z "${R_NOISE_FILE}" -o req 2>&1
 
-      CU_ACTION="Sign ${CERTNAME}'s mixed DSA Request (ext)"
+      CU_ACTION="Sign ${CERTNAME}'s mixed ${key_type} Request (ext)"
       cp ${CERTDIR}/req ${CLIENT_CADIR}
-      certu -C -c "chain-2-clientCA" -m 302 -v 60 -d "${P_CLIENT_CADIR}" \
-          -i req -o "${CERTNAME}-dsamixed.cert" -f "${R_PWFILE}" 2>&1
+      certu -C -c "chain-2-clientCA" -m ${NEWSERIAL}-v 60 \
+          -d "${P_CLIENT_CADIR}" -i req -o "${CERTNAME}${suffix}mixed.cert" \
+         -f "${R_PWFILE}" 2>&1
 
-      CU_ACTION="Import $CERTNAME's mixed DSA Cert -t u,u,u (ext)"
-      certu -A -n "${CERTNAME}-dsamixed" -t "u,u,u" -d "${PROFILEDIR}" \
-	  -f "${R_PWFILE}" -i "${CERTNAME}-dsamixed.cert" 2>&1
+      CU_ACTION="Import $CERTNAME's mixed ${key_type} Cert -t u,u,u (ext)"
+      certu -A -n "${CERTNAME}${suffix}mixed" -t "u,u,u" -d "${PROFILEDIR}" \
+	  -f "${R_PWFILE}" -i "${CERTNAME}${suffix}mixed.cert" 2>&1
 
-#      CU_ACTION="Import Server DSA Root CA -t C,C,C for $CERTNAME (ext.)"
-#      certu -A -n "serverCA-dsa" -t "C,C,C" -f "${R_PWFILE}" \
-#	  -d "${PROFILEDIR}" -i "${SERVER_CADIR}/serverCA-dsa.ca.cert" 2>&1
-#
-# done with mixed DSA certs
-#
-
-#
-#     Repeat the above for EC certs
-#
-      CU_ACTION="Generate EC Cert Request for $CERTNAME (ext)"
-      CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-ec@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-      certu -R -d "${PROFILEDIR}" -k ec -q "${EC_CURVE}" -f "${R_PWFILE}" \
-	  -z "${R_NOISE_FILE}" -o req 2>&1
-
-      CU_ACTION="Sign ${CERTNAME}'s EC Request (ext)"
-      cp ${CERTDIR}/req ${CLIENT_CADIR}
-      certu -C -c "chain-2-clientCA-ec" -m 300 -v 60 -d "${P_CLIENT_CADIR}" \
-          -i req -o "${CERTNAME}-ec.cert" -f "${R_PWFILE}" 2>&1
-
-      CU_ACTION="Import $CERTNAME's EC Cert -t u,u,u (ext)"
-      certu -A -n "${CERTNAME}-ec" -t "u,u,u" -d "${PROFILEDIR}" \
-	  -f "${R_PWFILE}" -i "${CERTNAME}-ec.cert" 2>&1
-
-      CU_ACTION="Import Server EC Root CA -t C,C,C for $CERTNAME (ext.)"
-      certu -A -n "serverCA-ec" -t "C,C,C" -f "${R_PWFILE}" \
-	  -d "${PROFILEDIR}" -i "${SERVER_CADIR}/serverCA-ec.ca.cert" 2>&1
-#
-# done with EC certs
-#
-#
-#     Repeat the above for mixed EC certs
-#
-      CU_ACTION="Generate mixed EC Cert Request for $CERTNAME (ext)"
-      CU_SUBJECT="CN=$CERTNAME, E=${CERTNAME}-ecmixed@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-      certu -R -d "${PROFILEDIR}" -k ec -q "${EC_CURVE}" -f "${R_PWFILE}" \
-	  -z "${R_NOISE_FILE}" -o req 2>&1
-
-      CU_ACTION="Sign ${CERTNAME}'s mixed EC Request (ext)"
-      cp ${CERTDIR}/req ${CLIENT_CADIR}
-      certu -C -c "chain-2-clientCA" -m 301 -v 60 -d "${P_CLIENT_CADIR}" \
-          -i req -o "${CERTNAME}-ecmixed.cert" -f "${R_PWFILE}" 2>&1
-
-      CU_ACTION="Import $CERTNAME's mixed EC Cert -t u,u,u (ext)"
-      certu -A -n "${CERTNAME}-ecmixed" -t "u,u,u" -d "${PROFILEDIR}" \
-	  -f "${R_PWFILE}" -i "${CERTNAME}-ecmixed.cert" 2>&1
-
-#      CU_ACTION="Import Server EC Root CA -t C,C,C for $CERTNAME (ext.)"
-#      certu -A -n "serverCA-ec" -t "C,C,C" -f "${R_PWFILE}" \
-#	  -d "${PROFILEDIR}" -i "${SERVER_CADIR}/serverCA-ec.ca.cert" 2>&1
-#
-# done with mixed EC certs
-#
+#     CU_ACTION="Import Server ${key_type} Root CA -t C,C,C for $CERTNAME (ext.)"
+#     certu -A -n "serverCA${suffix}" -t "C,C,C" -f "${R_PWFILE}" \
+#         -d "${PROFILEDIR}" -i "${SERVER_CADIR}/serverCA${suffix}.ca.cert" 2>&1
+    fi
+  done
 
   echo "Importing all the client's own CA chain into the servers DB"
   for CA in `find ${CLIENT_CADIR} -name "?*.ca.cert"` ;
   do
       N=`basename $CA | sed -e "s/.ca.cert//"`
-      if [ $N = "clientCA" -o $N = "clientCA-ec" -o $N = "clientCA-dsa" ] ; then
+      if [[ "$N" =~ ^clientCA(-.*)?$ ]]; then
           T="-t T,C,C"
       else
           T="-t u,u,u"
       fi
+      echo " $T"
       CU_ACTION="Import $N CA $T for $CERTNAME (ext.)"
       certu -A -n $N  $T -f "${R_PWFILE}" -d "${PROFILEDIR}" \
           -i "${CA}" 2>&1
@@ -1269,15 +1126,15 @@ cert_ssl()
   echo "             ${HOSTADDR}-sni --------------------------------"
   CERTSERIAL=101
   CERTNAME="${HOST}-sni${sniCertCount}.${DOMSUF}"
-  cert_add_cert 
-  CU_ACTION="Modify trust attributes of Root CA -t TC,TC,TC"
-  certu -M -n "TestCA" -t "TC,TC,TC" -d ${PROFILEDIR} -f "${R_PWFILE}"
+  cert_add_cert
+  for i in ${!keyType[@]}
+  do
+    suffix=${keySuffix[$i]}
+    key_type=${keyType[$i]}
+    CU_ACTION="Modify trust attributes of $key_type Root CA -t TC,TC,TC"
+    certu -M -n "TestCA${suffix}" -t "TC,TC,TC" -d ${PROFILEDIR} -f "${R_PWFILE}"
+  done
 
-  CU_ACTION="Modify trust attributes of DSA Root CA -t TC,TC,TC"
-  certu -M -n "TestCA-dsa" -t "TC,TC,TC" -d ${PROFILEDIR} -f "${R_PWFILE}"
-
-  CU_ACTION="Modify trust attributes of EC Root CA -t TC,TC,TC"
-  certu -M -n "TestCA-ec" -t "TC,TC,TC" -d ${PROFILEDIR} -f "${R_PWFILE}"
 #  cert_init_cert ${SERVERDIR} "${HOSTADDR}" 1 ${D_SERVER}
 #  echo "************* Copying CA files to ${SERVERDIR}"
 #  cp ${CADIR}/*.db .
@@ -1320,7 +1177,7 @@ cert_stresscerts()
   PROFILEDIR=`cd ${CERTDIR}; pwd`
   if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "CYGWIN_NT" ]; then
      PROFILEDIR=`cygpath -m ${PROFILEDIR}`
-  fi  
+  fi
   if [ -n "${MULTIACCESS_DBM}" ]; then
      PROFILEDIR="multiaccess:${D_CLIENT}"
   fi
@@ -1334,7 +1191,7 @@ cert_stresscerts()
   do
       CERTNAME="TestUser$CONTINUE"
 #      cert_add_cert ${CLIENTDIR} "TestUser$CONTINUE" $CERTSERIAL
-      cert_add_cert 
+      cert_add_cert
       CERTSERIAL=`expr $CERTSERIAL + 1 `
       CONTINUE=`expr $CONTINUE - 1 `
   done
@@ -1346,7 +1203,7 @@ cert_stresscerts()
 }
 
 ############################## cert_fips #####################################
-# local shell function to create certificates for FIPS tests 
+# local shell function to create certificates for FIPS tests
 ##############################################################################
 cert_fips()
 {
@@ -1368,7 +1225,7 @@ y
 MODSCRIPT
   RET=$?
   if [ "$RET" -ne 0 ]; then
-    html_failed "${CU_ACTION} ($RET) " 
+    html_failed "${CU_ACTION} ($RET) "
     cert_log "ERROR: ${CU_ACTION} failed $RET"
   else
     html_passed "${CU_ACTION}"
@@ -1378,14 +1235,14 @@ MODSCRIPT
   RETEXPECTED=255
   certu -W -d "${PROFILEDIR}" -f "${R_FIPSPWFILE}" -@ "${R_FIPSBADPWFILE}" 2>&1
   CU_ACTION="Attempt to generate a key with exponent of 3 (too small)"
-  certu -G -k rsa -g 2048 -y 3 -d "${PROFILEDIR}" -z ${R_NOISE_FILE} -f "${R_FIPSPWFILE}" 
+  certu -G -k rsa -g 2048 -y 3 -d "${PROFILEDIR}" -z ${R_NOISE_FILE} -f "${R_FIPSPWFILE}"
   CU_ACTION="Attempt to generate a key with exponent of 17 (too small)"
-  certu -G -k rsa -g 2048 -y 17 -d "${PROFILEDIR}" -z ${R_NOISE_FILE} -f "${R_FIPSPWFILE}" 
+  certu -G -k rsa -g 2048 -y 17 -d "${PROFILEDIR}" -z ${R_NOISE_FILE} -f "${R_FIPSPWFILE}"
   RETEXPECTED=0
 
   CU_ACTION="Generate Certificate for ${CERTNAME}"
   CU_SUBJECT="CN=${CERTNAME}, E=fips@example.com, O=BOGUS NSS, OU=FIPS PUB 140, L=Mountain View, ST=California, C=US"
-  certu -S -n ${FIPSCERTNICK} -x -t "Cu,Cu,Cu" -d "${PROFILEDIR}" -f "${R_FIPSPWFILE}" -k dsa -v 600 -m 500 -z "${R_NOISE_FILE}" 2>&1
+  certu -S -n ${FIPSCERTNICK} -x -t "Cu,Cu,Cu" -d "${PROFILEDIR}" -f "${R_FIPSPWFILE}" -k ec -q nistp256  -v 600 -m 500 -z "${R_NOISE_FILE}" 2>&1
   if [ "$RET" -eq 0 ]; then
     cert_log "SUCCESS: FIPS passed"
   fi
@@ -1400,9 +1257,9 @@ cert_rsa_exponent_nonfips()
 {
   echo "$SCRIPTNAME: Verify that small RSA exponents still work  =============="
   CU_ACTION="Attempt to generate a key with exponent of 3"
-  certu -G -k rsa -g 2048 -y 3 -d "${CLIENTDIR}" -z ${R_NOISE_FILE} -f "${R_PWFILE}" 
+  certu -G -k rsa -g 2048 -y 3 -d "${CLIENTDIR}" -z ${R_NOISE_FILE} -f "${R_PWFILE}"
   CU_ACTION="Attempt to generate a key with exponent of 17"
-  certu -G -k rsa -g 2048 -y 17 -d "${CLIENTDIR}" -z ${R_NOISE_FILE} -f "${R_PWFILE}" 
+  certu -G -k rsa -g 2048 -y 17 -d "${CLIENTDIR}" -z ${R_NOISE_FILE} -f "${R_PWFILE}"
 }
 
 ############################## cert_eccurves ###########################
@@ -1475,19 +1332,19 @@ cert_extensions_test()
     RET=$?
     if [ "${RET}" -ne 0 ]; then
         CERTFAILED=1
-        html_failed "${TESTNAME} (${COUNT}) - Create and Add Certificate" 
-        cert_log "ERROR: ${TESTNAME} - Create and Add Certificate failed" 
+        html_failed "${TESTNAME} (${COUNT}) - Create and Add Certificate"
+        cert_log "ERROR: ${TESTNAME} - Create and Add Certificate failed"
         return 1
     fi
 
-    echo certutil -d ${CERT_EXTENSIONS_DIR} -L -n ${CERTNAME} 
+    echo certutil -d ${CERT_EXTENSIONS_DIR} -L -n ${CERTNAME}
     EXTLIST=`${BINDIR}/certutil -d ${CERT_EXTENSIONS_DIR} -L -n ${CERTNAME}`
     RET=$?
     echo "${EXTLIST}"
     if [ "${RET}" -ne 0 ]; then
         CERTFAILED=1
-        html_failed "${TESTNAME} (${COUNT}) - List Certificate" 
-        cert_log "ERROR: ${TESTNAME} - List Certificate failed" 
+        html_failed "${TESTNAME} (${COUNT}) - List Certificate"
+        cert_log "ERROR: ${TESTNAME} - List Certificate failed"
         return 1
     fi
 
@@ -1502,7 +1359,7 @@ cert_extensions_test()
         RET=$?
         if [ "${RET}" -ne "${EXPSTAT}" ]; then
             CERTFAILED=1
-            html_failed "${TESTNAME} (${COUNT}) - Looking for ${FL}" "returned ${RET}, expected is ${EXPSTAT}" 
+            html_failed "${TESTNAME} (${COUNT}) - Looking for ${FL}" "returned ${RET}, expected is ${EXPSTAT}"
             cert_log "ERROR: ${TESTNAME} - Looking for ${FL} failed"
             return 1
         fi
@@ -1551,16 +1408,16 @@ cert_make_with_param()
 
     echo certutil ${DIRPASS} -s "${SUBJ}" ${MAKE} ${CERTNAME} ${EXTRA}
     ${BINDIR}/certutil ${DIRPASS} -s "${SUBJ}" ${MAKE} ${CERTNAME} ${EXTRA}
-        
+
     RET=$?
     if [ "${RET}" -ne "${EXPECT}" ]; then
         # if we expected failure to create, then delete unexpected certificate
         if [ "${EXPECT}" -ne 0 ]; then
             ${BINDIR}/certutil ${DIRPASS} -D ${CERTNAME}
         fi
-    
+
         CERTFAILED=1
-        html_failed "${TESTNAME} (${COUNT}) - ${EXTRA}" 
+        html_failed "${TESTNAME} (${COUNT}) - ${EXTRA}"
         cert_log "ERROR: ${TESTNAME} - ${EXTRA} failed"
         return 1
     fi
@@ -1614,7 +1471,7 @@ cert_list_and_count_dns()
     RET=$?
     if [ "${RET}" -ne "${EXPECT}" ]; then
         CERTFAILED=1
-        html_failed "${TESTNAME} (${COUNT}) - list and count" 
+        html_failed "${TESTNAME} (${COUNT}) - list and count"
         cert_log "ERROR: ${TESTNAME} - list and count failed"
         return 1
     fi
@@ -1622,7 +1479,7 @@ cert_list_and_count_dns()
     LISTCOUNT=`${BINDIR}/certutil ${DIRPASS} -L ${CERTNAME} | grep -wc DNS`
     if [ "${LISTCOUNT}" -ne "${EXPECTCOUNT}" ]; then
         CERTFAILED=1
-        html_failed "${TESTNAME} (${COUNT}) - list and count" 
+        html_failed "${TESTNAME} (${COUNT}) - list and count"
         cert_log "ERROR: ${TESTNAME} - list and count failed"
         return 1
     fi
@@ -1643,7 +1500,7 @@ cert_dump_ext_to_file()
     echo certutil ${DIRPASS} -L ${CERTNAME} --dump-ext-val ${OID}
     echo "writing output to ${OUTFILE}"
     ${BINDIR}/certutil ${DIRPASS} -L ${CERTNAME} --dump-ext-val ${OID} > ${OUTFILE}
-        
+
     RET=$?
     if [ "${RET}" -ne "${EXPECT}" ]; then
         CERTFAILED=1
@@ -1665,11 +1522,11 @@ cert_delete()
 
     echo certutil ${DIRPASS} -D ${CERTNAME}
     ${BINDIR}/certutil ${DIRPASS} -D ${CERTNAME}
-        
+
     RET=$?
     if [ "${RET}" -ne "${EXPECT}" ]; then
         CERTFAILED=1
-        html_failed "${TESTNAME} (${COUNT}) - delete cert" 
+        html_failed "${TESTNAME} (${COUNT}) - delete cert"
         cert_log "ERROR: ${TESTNAME} - delete cert failed"
         return 1
     fi
@@ -1770,14 +1627,14 @@ cert_san_and_generic_extensions()
 ########################################################################
 cert_crl_ssl()
 {
-    
+
   ################# Creating Certs ###################################
   #
   CERTFAILED=0
   CERTSERIAL=${CRL_GRP_1_BEGIN}
 
   cd $CADIR
-  
+
   PROFILEDIR=`cd ${CLIENTDIR}; pwd`
   if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "CYGWIN_NT" ]; then
      PROFILEDIR=`cygpath -m ${PROFILEDIR}`
@@ -1789,7 +1646,7 @@ cert_crl_ssl()
   while [ $CERTSERIAL -le $CRL_GRPS_END ]
   do
       CERTNAME="TestUser$CERTSERIAL"
-      cert_add_cert 
+      cert_add_cert
       CERTSERIAL=`expr $CERTSERIAL + 1 `
   done
 
@@ -1800,54 +1657,27 @@ cert_crl_ssl()
   CRL_GRP_END=`expr ${CRL_GRP_1_BEGIN} + ${CRL_GRP_1_RANGE} - 1`
   CRL_FILE_GRP_1=${R_SERVERDIR}/root.crl_${CRL_GRP_1_BEGIN}-${CRL_GRP_END}
   CRL_FILE=${CRL_FILE_GRP_1}
-  
+
   CRLUPDATE=`date -u "+%Y%m%d%H%M%SZ"`
-  CU_ACTION="Generating CRL for range ${CRL_GRP_1_BEGIN}-${CRL_GRP_END} TestCA authority"
-  CRL_GRP_END_=`expr ${CRL_GRP_END} - 1`
-  crlu -d $CADIR -G -n "TestCA" -f ${R_PWFILE} \
-      -o ${CRL_FILE_GRP_1}_or <<EOF_CRLINI
+
+  for i in ${!keyType[@]}
+  do
+    suffix=${keySuffix[$i]}
+    key_type=${keyType[$i]}
+    CU_ACTION="Generating CRL ($key_type) for range ${CRL_GRP_1_BEGIN}-${CRL_GRP_END} TestCA${suffix} authority"
+    CRL_GRP_END_=`expr ${CRL_GRP_END} - 1`
+    crlu -d $CADIR -G -n "TestCA${suffix}" -f ${R_PWFILE} \
+        -o ${CRL_FILE_GRP_1}_or${suffix} <<EOF_CRLINI
 update=$CRLUPDATE
 addcert ${CRL_GRP_1_BEGIN}-${CRL_GRP_END_} $CRL_GRP_DATE
 addext reasonCode 0 4
-addext issuerAltNames 0 "rfc822Name:caemail@ca.com|dnsName:ca.com|directoryName:CN=NSS Test CA,O=BOGUS NSS,L=Mountain View,ST=California,C=US|URI:http://ca.com|ipAddress:192.168.0.1|registerID=reg CA"
+addext issuerAltNames 0 "rfc822Name:ca${suffix}email@ca.com|dnsName:ca${suffix}.com|directoryName:CN=NSS Test CA ($key_type),O=BOGUS NSS,L=Mountain View,ST=California,C=US|URI:http://ca${suffix}.com|ipAddress:192.168.0.1|registerID=reg CA ($key_type)"
 EOF_CRLINI
-# This extension should be added to the list, but currently nss has bug
-#addext authKeyId 0 "CN=NSS Test CA,O=BOGUS NSS,L=Mountain View,ST=California,C=US" 1
-  CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
-  chmod 600 ${CRL_FILE_GRP_1}_or
-
-
-      CU_ACTION="Generating CRL (DSA) for range ${CRL_GRP_1_BEGIN}-${CRL_GRP_END} TestCA-dsa authority"
-
-#     Until Bug 292285 is resolved, do not encode x400 Addresses. After
-#     the bug is resolved, reintroduce "x400Address:x400Address" within
-#     addext issuerAltNames ...
-      crlu -q -d $CADIR -G -n "TestCA-dsa" -f ${R_PWFILE} \
-	  -o ${CRL_FILE_GRP_1}_or-dsa <<EOF_CRLINI
-update=$CRLUPDATE
-addcert ${CRL_GRP_1_BEGIN}-${CRL_GRP_END_} $CRL_GRP_DATE
-addext reasonCode 0 4
-addext issuerAltNames 0 "rfc822Name:ca-dsaemail@ca.com|dnsName:ca-dsa.com|directoryName:CN=NSS Test CA (DSA),O=BOGUS NSS,L=Mountain View,ST=California,C=US|URI:http://ca-dsa.com|ipAddress:192.168.0.1|registerID=reg CA (DSA)"
-EOF_CRLINI
-      CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
-      chmod 600 ${CRL_FILE_GRP_1}_or-dsa
-
-
-
-      CU_ACTION="Generating CRL (ECC) for range ${CRL_GRP_1_BEGIN}-${CRL_GRP_END} TestCA-ec authority"
-
-#     Until Bug 292285 is resolved, do not encode x400 Addresses. After
-#     the bug is resolved, reintroduce "x400Address:x400Address" within
-#     addext issuerAltNames ...
-      crlu -q -d $CADIR -G -n "TestCA-ec" -f ${R_PWFILE} \
-	  -o ${CRL_FILE_GRP_1}_or-ec <<EOF_CRLINI
-update=$CRLUPDATE
-addcert ${CRL_GRP_1_BEGIN}-${CRL_GRP_END_} $CRL_GRP_DATE
-addext reasonCode 0 4
-addext issuerAltNames 0 "rfc822Name:ca-ecemail@ca.com|dnsName:ca-ec.com|directoryName:CN=NSS Test CA (ECC),O=BOGUS NSS,L=Mountain View,ST=California,C=US|URI:http://ca-ec.com|ipAddress:192.168.0.1|registerID=reg CA (ECC)"
-EOF_CRLINI
-      CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
-      chmod 600 ${CRL_FILE_GRP_1}_or-ec
+    # This extension should be added to the list, but currently nss has bug
+    #addext authKeyId 0 "CN=NSS Test CA,O=BOGUS NSS,L=Mountain View,ST=California,C=US" 1
+    CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
+    chmod 600 ${CRL_FILE_GRP_1}_or${suffix}
+  done
 
   echo test > file
   ############################# Modification ##################################
@@ -1856,73 +1686,40 @@ EOF_CRLINI
   sleep 2
   CRLUPDATE=`date -u "+%Y%m%d%H%M%SZ"`
   CRL_GRP_DATE=`date -u "+%Y%m%d%H%M%SZ"`
-  CU_ACTION="Modify CRL by adding one more cert"
-  crlu -d $CADIR -M -n "TestCA" -f ${R_PWFILE} -o ${CRL_FILE_GRP_1}_or1 \
-      -i ${CRL_FILE_GRP_1}_or <<EOF_CRLINI
+  for i in ${!keyType[@]}
+  do
+    suffix=${keySuffix[$i]}
+    key_type=${keyType[$i]}
+    CU_ACTION="Modify CRL ($key_type)by adding one more cert"
+    crlu -d $CADIR -M -n "TestCA${suffix}" -f ${R_PWFILE} \
+        -o ${CRL_FILE_GRP_1}_or1${suffix} \
+        -i ${CRL_FILE_GRP_1}_or${suffix} <<EOF_CRLINI
 update=$CRLUPDATE
 addcert ${CRL_GRP_END} $CRL_GRP_DATE
 EOF_CRLINI
-  CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
-  chmod 600 ${CRL_FILE_GRP_1}_or1
-  TEMPFILES="$TEMPFILES ${CRL_FILE_GRP_1}_or"
-
-
-  CU_ACTION="Modify CRL (DSA) by adding one more cert"
-  crlu -d $CADIR -M -n "TestCA-dsa" -f ${R_PWFILE} -o ${CRL_FILE_GRP_1}_or1-dsa \
-      -i ${CRL_FILE_GRP_1}_or-dsa <<EOF_CRLINI
-update=$CRLUPDATE
-addcert ${CRL_GRP_END} $CRL_GRP_DATE
-EOF_CRLINI
-  CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
-  chmod 600 ${CRL_FILE_GRP_1}_or1-dsa
-  TEMPFILES="$TEMPFILES ${CRL_FILE_GRP_1}_or-dsa"
-
-
-      CU_ACTION="Modify CRL (ECC) by adding one more cert"
-      crlu -d $CADIR -M -n "TestCA-ec" -f ${R_PWFILE} \
-	  -o ${CRL_FILE_GRP_1}_or1-ec -i ${CRL_FILE_GRP_1}_or-ec <<EOF_CRLINI
-update=$CRLUPDATE
-addcert ${CRL_GRP_END} $CRL_GRP_DATE
-EOF_CRLINI
-      CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
-      chmod 600 ${CRL_FILE_GRP_1}_or1-ec
-      TEMPFILES="$TEMPFILES ${CRL_FILE_GRP_1}_or-ec"
+    CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
+    chmod 600 ${CRL_FILE_GRP_1}_or1${suffix}
+    TEMPFILES="$TEMPFILES ${CRL_FILE_GRP_1}_or${suffix}"
+  done
 
   ########### Removing one cert ${UNREVOKED_CERT_GRP_1} #######################
-  echo "$SCRIPTNAME: Modifying CA CRL by removing one cert ==============="
-  CU_ACTION="Modify CRL by removing one cert"
   sleep 2
   CRLUPDATE=`date -u "+%Y%m%d%H%M%SZ"`
-  crlu -d $CADIR -M -n "TestCA" -f ${R_PWFILE} -o ${CRL_FILE_GRP_1} \
-      -i ${CRL_FILE_GRP_1}_or1 <<EOF_CRLINI
+  for i in ${!keyType[@]}
+  do
+    suffix=${keySuffix[$i]}
+    key_type=${keyType[$i]}
+    echo "$SCRIPTNAME: Modifying CA CRL by removing one cert ==============="
+    CU_ACTION="Modify CRL ($key_type) by removing one cert"
+    crlu -d $CADIR -M -n "TestCA${suffix}" -f ${R_PWFILE} \
+        -o ${CRL_FILE_GRP_1}${suffix} \
+        -i ${CRL_FILE_GRP_1}_or1${suffix} <<EOF_CRLINI
 update=$CRLUPDATE
 rmcert  ${UNREVOKED_CERT_GRP_1}
 EOF_CRLINI
-  chmod 600 ${CRL_FILE_GRP_1}
-  TEMPFILES="$TEMPFILES ${CRL_FILE_GRP_1}_or1"
-
-
-  CU_ACTION="Modify CRL (DSA) by removing one cert"
-  sleep 2
-  CRLUPDATE=`date -u "+%Y%m%d%H%M%SZ"`
-  crlu -d $CADIR -M -n "TestCA-dsa" -f ${R_PWFILE} -o ${CRL_FILE_GRP_1} \
-      -i ${CRL_FILE_GRP_1}_or1 <<EOF_CRLINI
-update=$CRLUPDATE
-rmcert  ${UNREVOKED_CERT_GRP_1}
-EOF_CRLINI
-  chmod 600 ${CRL_FILE_GRP_1}
-  TEMPFILES="$TEMPFILES ${CRL_FILE_GRP_1}_or1-dsa"
-
-
-
-      CU_ACTION="Modify CRL (ECC) by removing one cert"
-      crlu -d $CADIR -M -n "TestCA-ec" -f ${R_PWFILE} -o ${CRL_FILE_GRP_1}-ec \
-	  -i ${CRL_FILE_GRP_1}_or1-ec <<EOF_CRLINI
-update=$CRLUPDATE
-rmcert  ${UNREVOKED_CERT_GRP_1}
-EOF_CRLINI
-      chmod 600 ${CRL_FILE_GRP_1}-ec
-      TEMPFILES="$TEMPFILES ${CRL_FILE_GRP_1}_or1-ec"
+    chmod 600 ${CRL_FILE_GRP_1}${suffix}
+    TEMPFILES="$TEMPFILES ${CRL_FILE_GRP_1}_or1${suffix}"
+  done
 
   ########### Creating second CRL which includes groups 1 and 2 ##############
   CRL_GRP_END=`expr ${CRL_GRP_2_BEGIN} + ${CRL_GRP_2_RANGE} - 1`
@@ -1932,71 +1729,61 @@ EOF_CRLINI
   sleep 2
   CRLUPDATE=`date -u "+%Y%m%d%H%M%SZ"`
   CRL_GRP_DATE=`date -u "+%Y%m%d%H%M%SZ"`
-  CU_ACTION="Creating CRL for groups 1 and 2"
-  crlu -d $CADIR -M -n "TestCA" -f ${R_PWFILE} -o ${CRL_FILE_GRP_2} \
-          -i ${CRL_FILE_GRP_1} <<EOF_CRLINI
+
+  for i in ${!keyType[@]}
+  do
+    suffix=${keySuffix[$i]}
+    key_type=${keyType[$i]}
+    CU_ACTION="Creating CRL ($key_type} for groups 1 and 2"
+    crlu -d $CADIR -M -n "TestCA${suffix}" -f ${R_PWFILE} \
+            -o ${CRL_FILE_GRP_2}${suffix} \
+            -i ${CRL_FILE_GRP_1}${suffix} <<EOF_CRLINI
 update=$CRLUPDATE
 addcert ${CRL_GRP_2_BEGIN}-${CRL_GRP_END} $CRL_GRP_DATE
 addext invalidityDate 0 $CRLUPDATE
 rmcert  ${UNREVOKED_CERT_GRP_2}
 EOF_CRLINI
-  CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
-  chmod 600 ${CRL_FILE_GRP_2}
-      CU_ACTION="Creating CRL (ECC) for groups 1 and 2"
-      crlu -d $CADIR -M -n "TestCA-ec" -f ${R_PWFILE} -o ${CRL_FILE_GRP_2}-ec \
-          -i ${CRL_FILE_GRP_1}-ec <<EOF_CRLINI
-update=$CRLUPDATE
-addcert ${CRL_GRP_2_BEGIN}-${CRL_GRP_END} $CRL_GRP_DATE
-addext invalidityDate 0 $CRLUPDATE
-rmcert  ${UNREVOKED_CERT_GRP_2}
-EOF_CRLINI
-      CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
-      chmod 600 ${CRL_FILE_GRP_2}-ec
+    CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
+    chmod 600 ${CRL_FILE_GRP_2}${suffix}
+   done
 
   ########### Creating second CRL which includes groups 1, 2 and 3 ##############
   CRL_GRP_END=`expr ${CRL_GRP_3_BEGIN} + ${CRL_GRP_3_RANGE} - 1`
   CRL_FILE_GRP_3=${R_SERVERDIR}/root.crl_${CRL_GRP_3_BEGIN}-${CRL_GRP_END}
 
-
-
   echo "$SCRIPTNAME: Creating CA CRL for groups 1, 2 and 3  ==============="
   sleep 2
   CRLUPDATE=`date -u "+%Y%m%d%H%M%SZ"`
   CRL_GRP_DATE=`date -u "+%Y%m%d%H%M%SZ"`
-  CU_ACTION="Creating CRL for groups 1, 2 and 3"
-  crlu -d $CADIR -M -n "TestCA" -f ${R_PWFILE} -o ${CRL_FILE_GRP_3} \
-            -i ${CRL_FILE_GRP_2} <<EOF_CRLINI
+  for i in ${!keyType[@]}
+  do
+    suffix=${keySuffix[$i]}
+    key_type=${keyType[$i]}
+    CU_ACTION="Creating CRL ($key_type) for groups 1, 2 and 3"
+    crlu -d $CADIR -M -n "TestCA${suffix}" -f ${R_PWFILE} \
+       -o ${CRL_FILE_GRP_3}${suffix} \
+       -i ${CRL_FILE_GRP_2}${suffix} <<EOF_CRLINI
 update=$CRLUPDATE
 addcert ${CRL_GRP_3_BEGIN}-${CRL_GRP_END} $CRL_GRP_DATE
 rmcert  ${UNREVOKED_CERT_GRP_3}
 addext crlNumber 0 2
 EOF_CRLINI
-  CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
-  chmod 600 ${CRL_FILE_GRP_3}
-      CU_ACTION="Creating CRL (ECC) for groups 1, 2 and 3"
-      crlu -d $CADIR -M -n "TestCA-ec" -f ${R_PWFILE} -o ${CRL_FILE_GRP_3}-ec \
-          -i ${CRL_FILE_GRP_2}-ec <<EOF_CRLINI
-update=$CRLUPDATE
-addcert ${CRL_GRP_3_BEGIN}-${CRL_GRP_END} $CRL_GRP_DATE
-rmcert  ${UNREVOKED_CERT_GRP_3}
-addext crlNumber 0 2
-EOF_CRLINI
-      CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
-      chmod 600 ${CRL_FILE_GRP_3}-ec
+    CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
+    chmod 600 ${CRL_FILE_GRP_3}${suffix}
+  done
 
   ############ Importing Server CA Issued CRL for certs of first group #######
 
   echo "$SCRIPTNAME: Importing Server CA Issued CRL for certs ${CRL_GRP_BEGIN} trough ${CRL_GRP_END}"
-  CU_ACTION="Importing CRL for groups 1"
-  crlu -D -n TestCA  -f "${R_PWFILE}" -d "${R_SERVERDIR}"
-  crlu -I -i ${CRL_FILE} -n "TestCA" -f "${R_PWFILE}" -d "${R_SERVERDIR}"
-  CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
-      CU_ACTION="Importing CRL (ECC) for groups 1"
-      crlu -D -n TestCA-ec  -f "${R_PWFILE}" -d "${R_SERVERDIR}"
-      crlu -I -i ${CRL_FILE}-ec -n "TestCA-ec" -f "${R_PWFILE}" \
-	  -d "${R_SERVERDIR}"
-      CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
-
+  for i in ${!keyType[@]}
+  do
+    suffix=${keySuffix[$i]}
+    key_type=${keyType[$i]}
+    CU_ACTION="Importing CRL ($key_type) for groups 1"
+    crlu -D -n TestCA${suffix}  -f "${R_PWFILE}" -d "${R_SERVERDIR}"
+    crlu -I -i ${CRL_FILE}${suffix} -n "TestCA${suffix}" -f "${R_PWFILE}" -d "${R_SERVERDIR}"
+    CRL_GEN_RES=`expr $? + $CRL_GEN_RES`
+  done
   if [ "$CERTFAILED" != 0 -o "$CRL_GEN_RES" != 0 ] ; then
       cert_log "ERROR: SSL CRL prep failed $CERTFAILED : $CRL_GEN_RES"
   else
@@ -2015,7 +1802,7 @@ cert_test_password()
 
   echo "$SCRIPTNAME: Create A Password Test Ca  --------"
   ALL_CU_SUBJECT="CN=NSS Password Test CA, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-  cert_CA ${DBPASSDIR} PasswordCA -x "CTu,CTu,CTu" ${D_DBPASS} "1"
+  cert_CA RSA ${DBPASSDIR} PasswordCA -x "CTu,CTu,CTu" ${D_DBPASS} "1"
 
   # now change the password
   CU_ACTION="Changing password on ${CERTNAME}'s Cert DB"
@@ -2043,7 +1830,7 @@ cert_test_password()
 #  we mark the first leaf and the intermediate as explicitly untrusted.
 #  we then try to verify the two leaf certs for our possible usages.
 #  All verification should fail.
-# 
+#
 cert_test_distrust()
 {
   echo "$SCRIPTNAME: Creating Distrusted Certificate"
@@ -2053,7 +1840,7 @@ cert_test_distrust()
   echo "$SCRIPTNAME: Creating Distrusted Intermediate"
   CERTNAME="DistrustedCA"
   ALL_CU_SUBJECT="CN=${CERTNAME}, E=${CERTNAME}@example.com, O=BOGUS NSS, L=Mountain View, ST=California, C=US"
-  cert_CA ${CADIR} "${CERTNAME}" "-c TestCA" ",," ${D_CA} 2010 2>&1
+  cert_CA RSA ${CADIR} "${CERTNAME}" "-c TestCA" ",," ${D_CA} 2010 2>&1
   CU_ACTION="Import Distrusted Intermediate"
   certu -A -n "${CERTNAME}" -t "p,p,p" -f "${R_PWFILE}" -d "${PROFILEDIR}" \
           -i "${R_CADIR}/DistrustedCA.ca.cert" 2>&1
