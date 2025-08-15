@@ -1,0 +1,45 @@
+.. _mozilla_projects_nss_nss_3_115_release_notes:
+
+NSS 3.115 release notes
+========================
+
+`Introduction <#introduction>`__
+--------------------------------
+
+.. container::
+
+   Network Security Services (NSS) 3.115 was released on *15 August 2025**.
+
+`Distribution Information <#distribution_information>`__
+--------------------------------------------------------
+
+.. container::
+
+   The HG tag is NSS_3_115_RTM. NSS 3.115 requires NSPR 4.36 or newer. The latest version of NSPR is 4.37.
+
+   NSS 3.115 source distributions are available on ftp.mozilla.org for secure HTTPS download:
+
+   -  Source tarballs:
+      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_115_RTM/src/
+
+   Other releases are available :ref:`mozilla_projects_nss_releases`.
+
+.. _changes_in_nss_3.115:
+
+`Changes in NSS 3.115 <#changes_in_nss_3.115>`__
+------------------------------------------------------------------
+
+.. container::
+
+   - Bug 1970304 CID 1648399 - Resource leak in shlibsign.c.
+   - Bug 1981034 - CKA_SEED needs to be marked as a private attribute.
+   - Bug 1981518 - Fix bad syntax on Windows in softoken_gtest.cc.
+   - Bug 1974505 - Key private/public/secret keys by key type in softoken keydb.
+   - Bug 1980990 - add PK11_HPKE_GetSharedSecret to abi-check expected report.
+   - Bug 1980429 - remove NetscapeStepUpMatchesServerAuth from mozpkix TrustDomain.
+   - Bug 1927351 - Fixup ABI.
+   - Bug 1927351 - add ECH_SECRET and ECH_CONFIG to SSLKEYLOG for both client and server.
+   - Bug 1900841 - ECH fuzz target.
+   - Bug 1965331 - Implement PKCS #11 v3.2 FIPS indicator and validation objects.
+   - Bug 1978677 - remove expired explicitly distrusted DigiNotar lookalike root.
+   - Bug 1965329 - Implement PKCS #11 v3.2 functions.
