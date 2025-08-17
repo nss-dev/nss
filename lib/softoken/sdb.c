@@ -158,7 +158,7 @@ const CK_ATTRIBUTE_TYPE sftkdb_known_attributes[] = {
 };
 // clang-format on
 
-const int sftkdb_known_attributes_size = PR_ARRAY_SIZE(sftkdb_known_attributes);
+const size_t sftkdb_known_attributes_size = PR_ARRAY_SIZE(sftkdb_known_attributes);
 
 /*
  * Note on use of sqlReadDB: Only one thread at a time may have an actual

@@ -27,7 +27,7 @@ struct SFTKDBHandleStr {
 };
 
 extern const CK_ATTRIBUTE_TYPE sftkdb_known_attributes[];
-extern unsigned int sftkdb_known_attributes_size;
+extern size_t sftkdb_known_attributes_size;
 
 #define SFTK_KEYDB_TYPE 0x40000000
 #define SFTK_CERTDB_TYPE 0x00000000
