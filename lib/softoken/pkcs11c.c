@@ -167,10 +167,14 @@ SFTKCipherWrap(AESKeyWrapContext, AESKeyWrap_DecryptKWP);
         mmm##_DestroyContext(ctx, freeit);                                   \
     }
 
+#ifndef NSS_DISABLE_DEPRECATED_RC2
 SFTKCipherWrap2(RC2Context, RC2);
+#endif
 SFTKCipherWrap2(RC4Context, RC4);
 SFTKCipherWrap2(DESContext, DES);
+#ifndef NSS_DISABLE_DEPRECATED_SEED
 SFTKCipherWrap2(SEEDContext, SEED);
+#endif
 SFTKCipherWrap2(CamelliaContext, Camellia);
 SFTKCipherWrap2(AESContext, AES);
 SFTKCipherWrap2(AESKeyWrapContext, AESKeyWrap);
