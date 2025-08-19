@@ -107,6 +107,7 @@
     'disable_intel_hw_sha%': 0,
     'disable_tests%': 0,
     'disable_chachapoly%': 0,
+    'disable_dsa%': 0,
     'disable_deprecated_seed%': 0,
     'disable_deprecated_rc2%': 0,
     'disable_dbm%': 1,
@@ -598,6 +599,11 @@
           [ 'disable_libpkix==1', {
             'defines': [
               'NSS_DISABLE_LIBPKIX',
+            ],
+          }],
+          [ 'disable_dsa==1', {
+            'defines': [
+              'NSS_DISABLE_DSA',
             ],
           }],
           [ 'disable_deprecated_seed==1', {
