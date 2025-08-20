@@ -4198,51 +4198,43 @@ SECU_ParseSSLVersionRangeString(const char *input,
     return SECSuccess;
 }
 
+#define NAME_AND_LEN(s) sizeof(s) - 1, s
+static const struct SSLNamedGroupString {
+    int len;
+    char *name;
+    SSLNamedGroup grp;
+} sslNamedGroupStringArray[] = {
+    { NAME_AND_LEN("P256"), ssl_grp_ec_secp256r1 },
+    { NAME_AND_LEN("P384"), ssl_grp_ec_secp384r1 },
+    { NAME_AND_LEN("P521"), ssl_grp_ec_secp521r1 },
+    { NAME_AND_LEN("x25519"), ssl_grp_ec_curve25519 },
+    { NAME_AND_LEN("FF2048"), ssl_grp_ffdhe_2048 },
+    { NAME_AND_LEN("FF3072"), ssl_grp_ffdhe_3072 },
+    { NAME_AND_LEN("FF4096"), ssl_grp_ffdhe_4096 },
+    { NAME_AND_LEN("FF6144"), ssl_grp_ffdhe_6144 },
+    { NAME_AND_LEN("FF8192"), ssl_grp_ffdhe_8192 },
+#ifndef NSS_DISABLE_KYBER
+    { NAME_AND_LEN("xyber76800"), ssl_grp_kem_xyber768d00 },
+#endif
+    { NAME_AND_LEN("mlkem768x25519"), ssl_grp_kem_mlkem768x25519 },
+};
+
+static const size_t sslNamedGroupStringLen = PR_ARRAY_SIZE(sslNamedGroupStringArray);
+
 static SSLNamedGroup
 groupNameToNamedGroup(char *name)
 {
-    if (PL_strlen(name) == 4) {
-        if (!strncmp(name, "P256", 4)) {
-            return ssl_grp_ec_secp256r1;
-        }
-        if (!strncmp(name, "P384", 4)) {
-            return ssl_grp_ec_secp384r1;
-        }
-        if (!strncmp(name, "P521", 4)) {
-            return ssl_grp_ec_secp521r1;
-        }
-    }
-    if (PL_strlen(name) == 6) {
-        if (!strncmp(name, "x25519", 6)) {
-            return ssl_grp_ec_curve25519;
-        }
-        if (!strncmp(name, "FF2048", 6)) {
-            return ssl_grp_ffdhe_2048;
-        }
-        if (!strncmp(name, "FF3072", 6)) {
-            return ssl_grp_ffdhe_3072;
-        }
-        if (!strncmp(name, "FF4096", 6)) {
-            return ssl_grp_ffdhe_4096;
-        }
-        if (!strncmp(name, "FF6144", 6)) {
-            return ssl_grp_ffdhe_6144;
-        }
-        if (!strncmp(name, "FF8192", 6)) {
-            return ssl_grp_ffdhe_8192;
-        }
-    }
-    if (PL_strlen(name) == 11) {
-        if (!strncmp(name, "xyber768d00", 11)) {
-            return ssl_grp_kem_xyber768d00;
-        }
-    }
-    if (PL_strlen(name) == 14) {
-        if (!strncmp(name, "mlkem768x25519", 14)) {
-            return ssl_grp_kem_mlkem768x25519;
-        }
-    }
+    int len = PL_strlen(name);
+    int i;
 
+    for (i = 0; i < sslNamedGroupStringLen; i++) {
+        const struct SSLNamedGroupString *ngs = &sslNamedGroupStringArray[i];
+        if (len == ngs->len) {
+            if (!strncmp(name, ngs->name, len)) {
+                return ngs->grp;
+            }
+        }
+    }
     return ssl_grp_none;
 }
 
@@ -4309,39 +4301,126 @@ done:
     return SECSuccess;
 }
 
+const char *
+SECU_NamedGroupToGroupName(SSLNamedGroup grp)
+{
+    int i;
+    static char unknownBuf[32];
+
+    if (grp == ssl_grp_none) {
+        return "None";
+    }
+
+    for (i = 0; i < sslNamedGroupStringLen; i++) {
+        const struct SSLNamedGroupString *ngs = &sslNamedGroupStringArray[i];
+        if (grp == ngs->grp) {
+            return ngs->name;
+        }
+    }
+    snprintf(unknownBuf, sizeof(unknownBuf), "Unknown %04x\n", grp);
+
+    return unknownBuf;
+}
+
+const char *
+SECU_NamedGroupGetNextName(size_t i)
+{
+    if (i >= sslNamedGroupStringLen) {
+        return NULL;
+    }
+    return sslNamedGroupStringArray[i].name;
+}
+
+#define MAKE_SCHEME(x)                  \
+    {                                   \
+        sizeof(#x) - 1, #x, ssl_sig_##x \
+    }
+static const struct SSLSignatureSchemeString {
+    int len;
+    char *name;
+    SSLSignatureScheme scheme;
+} sslSignatureSchemeStringArray[] = {
+    MAKE_SCHEME(rsa_pkcs1_sha1),
+    MAKE_SCHEME(rsa_pkcs1_sha256),
+    MAKE_SCHEME(rsa_pkcs1_sha384),
+    MAKE_SCHEME(rsa_pkcs1_sha512),
+    MAKE_SCHEME(ecdsa_sha1),
+    MAKE_SCHEME(ecdsa_secp256r1_sha256),
+    MAKE_SCHEME(ecdsa_secp384r1_sha384),
+    MAKE_SCHEME(ecdsa_secp521r1_sha512),
+    MAKE_SCHEME(rsa_pss_rsae_sha256),
+    MAKE_SCHEME(rsa_pss_rsae_sha384),
+    MAKE_SCHEME(rsa_pss_rsae_sha512),
+    MAKE_SCHEME(ed25519),
+    MAKE_SCHEME(ed448),
+    MAKE_SCHEME(rsa_pss_pss_sha256),
+    MAKE_SCHEME(rsa_pss_pss_sha384),
+    MAKE_SCHEME(rsa_pss_pss_sha512),
+    MAKE_SCHEME(dsa_sha1),
+    MAKE_SCHEME(dsa_sha256),
+    MAKE_SCHEME(dsa_sha384),
+    MAKE_SCHEME(dsa_sha512),
+};
+
+static const size_t sslSignatureSchemeStringLen =
+    PR_ARRAY_SIZE(sslSignatureSchemeStringArray);
+
+const char *
+SECU_SignatureSchemeGetNextScheme(size_t i)
+{
+    if (i >= sslSignatureSchemeStringLen) {
+        return NULL;
+    }
+    return sslSignatureSchemeStringArray[i].name;
+}
+
+const char *
+SECU_SignatureSchemeName(SSLSignatureScheme scheme)
+{
+    int i;
+    static char unknownBuf[32];
+
+    if (scheme == ssl_sig_none) {
+        return "None";
+    }
+
+    for (i = 0; i < sslSignatureSchemeStringLen; i++) {
+        const struct SSLSignatureSchemeString *schemp =
+            &sslSignatureSchemeStringArray[i];
+        if (scheme == schemp->scheme) {
+            return schemp->name;
+        }
+    }
+
+    /* we don't include ssl_sig_rsa_pks1_sha1md5 in our list because we
+     * don't want to select it from the command line, but if you are using
+     * ssl3,  it's possible for this signataure scheme to pop out, so we
+     * want output it. The name is the same value tstclnt used for this
+     * scheme originally */
+    if (scheme == ssl_sig_rsa_pkcs1_sha1md5) {
+        return "RSA PKCS#1 SHA1+MD5";
+    }
+
+    snprintf(unknownBuf, sizeof(unknownBuf), "Unknown %04x\n", scheme);
+
+    return unknownBuf;
+}
+
 SSLSignatureScheme
 schemeNameToScheme(const char *name)
 {
-#define compareScheme(x)                                \
-    do {                                                \
-        if (!PORT_Strncmp(name, #x, PORT_Strlen(#x))) { \
-            return ssl_sig_##x;                         \
-        }                                               \
-    } while (0)
+    int len = PL_strlen(name);
+    int i;
 
-    compareScheme(rsa_pkcs1_sha1);
-    compareScheme(rsa_pkcs1_sha256);
-    compareScheme(rsa_pkcs1_sha384);
-    compareScheme(rsa_pkcs1_sha512);
-    compareScheme(ecdsa_sha1);
-    compareScheme(ecdsa_secp256r1_sha256);
-    compareScheme(ecdsa_secp384r1_sha384);
-    compareScheme(ecdsa_secp521r1_sha512);
-    compareScheme(rsa_pss_rsae_sha256);
-    compareScheme(rsa_pss_rsae_sha384);
-    compareScheme(rsa_pss_rsae_sha512);
-    compareScheme(ed25519);
-    compareScheme(ed448);
-    compareScheme(rsa_pss_pss_sha256);
-    compareScheme(rsa_pss_pss_sha384);
-    compareScheme(rsa_pss_pss_sha512);
-    compareScheme(dsa_sha1);
-    compareScheme(dsa_sha256);
-    compareScheme(dsa_sha384);
-    compareScheme(dsa_sha512);
-
-#undef compareScheme
-
+    for (i = 0; i < sslSignatureSchemeStringLen; i++) {
+        const struct SSLSignatureSchemeString *schemp =
+            &sslSignatureSchemeStringArray[i];
+        if (len == schemp->len) {
+            if (!strncmp(name, schemp->name, len)) {
+                return schemp->scheme;
+            }
+        }
+    }
     return ssl_sig_none;
 }
 

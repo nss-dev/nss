@@ -113,43 +113,6 @@ unsigned int enabledSigSchemeCount = 0;
 SECItem psk = { siBuffer, NULL, 0 };
 SECItem pskLabel = { siBuffer, NULL, 0 };
 
-const char *
-signatureSchemeName(SSLSignatureScheme scheme)
-{
-    switch (scheme) {
-#define strcase(x)    \
-    case ssl_sig_##x: \
-        return #x
-        strcase(none);
-        strcase(rsa_pkcs1_sha1);
-        strcase(rsa_pkcs1_sha256);
-        strcase(rsa_pkcs1_sha384);
-        strcase(rsa_pkcs1_sha512);
-        strcase(ecdsa_sha1);
-        strcase(ecdsa_secp256r1_sha256);
-        strcase(ecdsa_secp384r1_sha384);
-        strcase(ecdsa_secp521r1_sha512);
-        strcase(rsa_pss_rsae_sha256);
-        strcase(rsa_pss_rsae_sha384);
-        strcase(rsa_pss_rsae_sha512);
-        strcase(ed25519);
-        strcase(ed448);
-        strcase(rsa_pss_pss_sha256);
-        strcase(rsa_pss_pss_sha384);
-        strcase(rsa_pss_pss_sha512);
-        strcase(dsa_sha1);
-        strcase(dsa_sha256);
-        strcase(dsa_sha384);
-        strcase(dsa_sha512);
-#undef strcase
-        case ssl_sig_rsa_pkcs1_sha1md5:
-            return "RSA PKCS#1 SHA1+MD5";
-        default:
-            break;
-    }
-    return "Unknown Scheme";
-}
-
 void
 printSecurityInfo(PRFileDesc *fd)
 {
@@ -176,13 +139,15 @@ printSecurityInfo(PRFileDesc *fd)
                     channel.isFIPS ? " FIPS" : "");
             FPRINTF(stderr,
                     "tstclnt: Server Auth: %d-bit %s, Key Exchange: %d-bit %s\n"
+                    "         Key Exchange Group: %s\n"
                     "         Compression: %s, Extended Master Secret: %s\n"
                     "         Signature Scheme: %s\n",
                     channel.authKeyBits, suite.authAlgorithmName,
                     channel.keaKeyBits, suite.keaTypeName,
+                    SECU_NamedGroupToGroupName(channel.keaGroup),
                     channel.compressionMethodName,
                     channel.extendedMasterSecretUsed ? "Yes" : "No",
-                    signatureSchemeName(channel.signatureScheme));
+                    SECU_SignatureSchemeName(channel.signatureScheme));
         }
     }
     cert = SSL_RevealCert(fd);
@@ -306,19 +271,48 @@ PrintParameterUsage()
     fprintf(stderr, "%-20s Allow 0-RTT data (TLS 1.3 only)\n", "-Z");
     fprintf(stderr, "%-20s Disconnect and reconnect up to N times total\n", "-L");
     fprintf(stderr, "%-20s Comma separated list of enabled groups for TLS key exchange.\n"
-                    "%-20s The following values are valid:\n"
-                    "%-20s P256, P384, P521, x25519, FF2048, FF3072, FF4096, FF6144, FF8192\n"
-                    "%-20s xyber768d00, mlkem768x25519\n",
-            "-I", "", "", "");
+                    "%-20s The following values are valid",
+            "-I", "");
+    char comma = ':';
+    const char *groupName;
+    int total = SECU_MAX_COL_LEN;
+    for (size_t i = 0; (groupName = SECU_NamedGroupGetNextName(i)) != NULL; i++) {
+        int len = strlen(groupName);
+        /* 2 represents a comma and a space */
+        if ((total + len + 2) > SECU_MAX_COL_LEN) {
+            fprintf(stderr, "%c\n%-20s %s", comma, "", groupName);
+            /* 21 represents 21 spaces */
+            total = len + 21;
+        } else {
+            fprintf(stderr, "%c %s", comma, groupName);
+            /* 2 represents a comma and a space */
+            total += len + 2;
+        }
+        comma = ',';
+    }
+    fprintf(stderr, "\n");
     fprintf(stderr, "%-20s Comma separated list of signature schemes in preference order.\n"
-                    "%-20s The following values are valid:\n"
-                    "%-20s rsa_pkcs1_sha1, rsa_pkcs1_sha256, rsa_pkcs1_sha384, rsa_pkcs1_sha512,\n"
-                    "%-20s ecdsa_sha1, ecdsa_secp256r1_sha256, ecdsa_secp384r1_sha384,\n"
-                    "%-20s ecdsa_secp521r1_sha512,\n"
-                    "%-20s rsa_pss_rsae_sha256, rsa_pss_rsae_sha384, rsa_pss_rsae_sha512,\n"
-                    "%-20s rsa_pss_pss_sha256, rsa_pss_pss_sha384, rsa_pss_pss_sha512,\n"
-                    "%-20s dsa_sha1, dsa_sha256, dsa_sha384, dsa_sha512\n",
-            "-J", "", "", "", "", "", "", "");
+                    "%-20s The following values are valid",
+            "-J", "");
+
+    comma = ':';
+    const char *schemeName;
+    total = SECU_MAX_COL_LEN;
+    for (size_t i = 0; (schemeName = SECU_SignatureSchemeGetNextScheme(i)) != NULL; i++) {
+        int len = strlen(schemeName);
+        /* 2 represents a comma and a space */
+        if ((total + len + 2) > SECU_MAX_COL_LEN) {
+            fprintf(stderr, "%c\n%-20s %s", comma, "", schemeName);
+            /* 21 represents 21 spaces */
+            total = len + 21;
+        } else {
+            fprintf(stderr, "%c %s", comma, schemeName);
+            /* 2 represents a comma and a space */
+            total += len + 2;
+        }
+        comma = ',';
+    }
+    fprintf(stderr, "\n");
     fprintf(stderr, "%-20s Use DTLS\n", "-P {client, server}");
     fprintf(stderr, "%-20s Exit after handshake\n", "-Q");
     fprintf(stderr, "%-20s Use Encrypted Client Hello with the given Base64-encoded ECHConfigs\n", "-N");

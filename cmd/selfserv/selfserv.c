@@ -225,16 +225,49 @@ PrintParameterUsage()
         "-G enables the extended master secret extension [RFC7627]\n"
         "-Q enables ALPN for HTTP/1.1 [RFC7301]\n"
         "-I comma separated list of enabled groups for TLS key exchange.\n"
-        "   The following values are valid:\n"
-        "   P256, P384, P521, x25519, FF2048, FF3072, FF4096, FF6144, FF8192,\n"
-        "   xyber768d00, mlkem768x25519\n"
+        "   The following values are valid",
+        stderr);
+    char comma = ':';
+    const char *groupName;
+    int total = SECU_MAX_COL_LEN;
+    for (size_t i = 0; (groupName = SECU_NamedGroupGetNextName(i)) != NULL; i++) {
+        int len = strlen(groupName);
+        /* 2 represents a comma and a space */
+        if ((total + len + 2) > SECU_MAX_COL_LEN) {
+            fprintf(stderr, "%c\n     %s", comma, groupName);
+            /* 5 represents 5 spaces */
+            total = len + 5;
+        } else {
+            fprintf(stderr, "%c %s", comma, groupName);
+            /* 2 represents a comma and a space */
+            total += len + 2;
+        }
+        comma = ',';
+    }
+    fprintf(stderr, "\n");
+    fputs(
         "-J comma separated list of enabled signature schemes in preference order.\n"
-        "   The following values are valid:\n"
-        "     rsa_pkcs1_sha1, rsa_pkcs1_sha256, rsa_pkcs1_sha384, rsa_pkcs1_sha512,\n"
-        "     ecdsa_sha1, ecdsa_secp256r1_sha256, ecdsa_secp384r1_sha384,\n"
-        "     ecdsa_secp521r1_sha512,\n"
-        "     rsa_pss_rsae_sha256, rsa_pss_rsae_sha384, rsa_pss_rsae_sha512,\n"
-        "     rsa_pss_pss_sha256, rsa_pss_pss_sha384, rsa_pss_pss_sha512,\n"
+        "   The following values are valid",
+        stderr);
+    comma = ':';
+    const char *schemeName;
+    total = SECU_MAX_COL_LEN;
+    for (size_t i = 0; (schemeName = SECU_SignatureSchemeGetNextScheme(i)) != NULL; i++) {
+        int len = strlen(schemeName);
+        /* 2 represents a comma and a space */
+        if ((total + len + 2) > SECU_MAX_COL_LEN) {
+            fprintf(stderr, "%c\n     %s", comma, schemeName);
+            /* 5 represents 5 spaces */
+            total = len + 5;
+        } else {
+            fprintf(stderr, "%c %s", comma, schemeName);
+            /* 2 represents a comma and a space */
+            total += len + 2;
+        }
+        comma = ',';
+    }
+    fprintf(stderr, "\n");
+    fputs(
         "-Z enable 0-RTT (for TLS 1.3; also use -u)\n"
         "-E enable post-handshake authentication\n"
         "   (for TLS 1.3; only has an effect with 3 or more -r options)\n"
@@ -410,11 +443,15 @@ printSecurityInfo(PRFileDesc *fd)
                     channel.isFIPS ? " FIPS" : "");
             FPRINTF(stderr,
                     "selfserv: Server Auth: %d-bit %s, Key Exchange: %d-bit %s\n"
-                    "          Compression: %s, Extended Master Secret: %s\n",
+                    "          Key Exchange Group: %s\n"
+                    "          Compression: %s, Extended Master Secret: %s\n"
+                    "          Signature Scheme: %s\n",
                     channel.authKeyBits, suite.authAlgorithmName,
                     channel.keaKeyBits, suite.keaTypeName,
+                    SECU_NamedGroupToGroupName(channel.keaGroup),
                     channel.compressionMethodName,
-                    channel.extendedMasterSecretUsed ? "Yes" : "No");
+                    channel.extendedMasterSecretUsed ? "Yes" : "No",
+                    SECU_SignatureSchemeName(channel.signatureScheme));
         }
     }
     if (verbose) {

@@ -40,6 +40,8 @@
 #define NS_CRL_TRAILER "-----END CRL-----"
 
 #define SECU_Strerror PORT_ErrorToString
+/* where to wrap the columns when outputting Usage messages */
+#define SECU_MAX_COL_LEN 79
 
 typedef struct {
     enum {
@@ -425,6 +427,11 @@ SECStatus parseGroupList(const char *arg, SSLNamedGroup **enabledGroups,
 SECStatus parseSigSchemeList(const char *arg,
                              const SSLSignatureScheme **enabledSigSchemes,
                              unsigned int *enabledSigSchemeCount);
+const char *SECU_NamedGroupToGroupName(SSLNamedGroup grp);
+const char *SECU_SignatureSchemeName(SSLSignatureScheme schmeme);
+const char *SECU_NamedGroupGetNextName(size_t i);
+const char *SECU_SignatureSchemeGetNextScheme(size_t i);
+
 typedef struct {
     SECItem label;
     PRBool hasContext;

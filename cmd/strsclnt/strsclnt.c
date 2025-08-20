@@ -168,14 +168,27 @@ Usage(void)
             "       -J enable signature schemes\n"
             "          This takes a comma separated list of signature schemes in preference\n"
             "          order.\n"
-            "          Possible values are:\n"
-            "          rsa_pkcs1_sha1, rsa_pkcs1_sha256, rsa_pkcs1_sha384, rsa_pkcs1_sha512,\n"
-            "          ecdsa_sha1, ecdsa_secp256r1_sha256, ecdsa_secp384r1_sha384,\n"
-            "          ecdsa_secp521r1_sha512,\n"
-            "          rsa_pss_rsae_sha256, rsa_pss_rsae_sha384, rsa_pss_rsae_sha512,\n"
-            "          rsa_pss_pss_sha256, rsa_pss_pss_sha384, rsa_pss_pss_sha512,\n"
-            "          dsa_sha1, dsa_sha256, dsa_sha384, dsa_sha512\n",
+            "          Possible values are",
             progName);
+    char comma = ':';
+    const char *schemeName;
+    int total = SECU_MAX_COL_LEN;
+    for (size_t i = 0; (schemeName = SECU_SignatureSchemeGetNextScheme(i)) != NULL; i++) {
+        int len = strlen(schemeName);
+        /* 2 represents a comma and a space */
+        if ((total + len + 2) > SECU_MAX_COL_LEN) {
+            fprintf(stderr, "%c\n          %s", comma, schemeName);
+            /* 10 represents 10 spaces */
+            total = len + 10;
+        } else {
+            fprintf(stderr, "%c %s", comma, schemeName);
+            /* 2 represents a comma and a space */
+            total += len + 2;
+        }
+        comma = ',';
+    }
+    fprintf(stderr, "\n");
+
     exit(1);
 }
 
@@ -298,10 +311,14 @@ printSecurityInfo(PRFileDesc *fd)
                     channel.isFIPS ? " FIPS" : "");
             FPRINTF(stderr,
                     "strsclnt: Server Auth: %d-bit %s, Key Exchange: %d-bit %s\n"
-                    "          Compression: %s\n",
+                    "          Key Exchange Group:%s\n"
+                    "          Compression: %s\n"
+                    "          Signature Scheme: %s\n",
                     channel.authKeyBits, suite.authAlgorithmName,
                     channel.keaKeyBits, suite.keaTypeName,
-                    channel.compressionMethodName);
+                    SECU_NamedGroupToGroupName(channel.keaGroup),
+                    channel.compressionMethodName,
+                    SECU_SignatureSchemeName(channel.signatureScheme));
         }
     }
 
