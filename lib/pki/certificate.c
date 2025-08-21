@@ -945,10 +945,10 @@ nssTrust_Create(
     PRStatus status;
     PRUint32 i;
     PRUint32 lastTrustOrder, myTrustOrder;
-    unsigned char cache_buf[HASH_LENGTH_MAX];
-    unsigned char hashin_buf[HASH_LENGTH_MAX];
-    NSSItem hash;
-    NSSItem hashCache;
+    unsigned char hashCacheBuf[HASH_LENGTH_MAX];
+    unsigned char hashAttrBuf[HASH_LENGTH_MAX];
+    NSSItem hashAttr = { hashAttrBuf, sizeof(hashAttrBuf) };
+    NSSItem hashCache = { hashCacheBuf, sizeof(hashCacheBuf) };
     NSSTrust *rvt;
     CK_MECHANISM_TYPE hashMech = CKM_INVALID_MECHANISM;
     CK_MECHANISM_TYPE hashCacheMech = CKM_INVALID_MECHANISM;
@@ -964,17 +964,14 @@ nssTrust_Create(
     }
     rvt->object = *object;
 
-    hash.data = hashin_buf;
-    hash.size = sizeof(hashin_buf);
-    hashCache.data = cache_buf;
-    hashCache.size = sizeof(cache_buf);
     /* trust has to peek into the base object members */
     nssPKIObject_Lock(object);
     for (i = 0; i < object->numInstances; i++) {
+        hashAttr.size = sizeof(hashAttrBuf); /* reset to allocated size */
         instance = object->instances[i];
         myTrustOrder = nssToken_GetTrustOrder(instance->token);
         status = nssCryptokiTrust_GetAttributes(instance, NULL,
-                                                &hash,
+                                                &hashAttr,
                                                 &hashMech,
                                                 &serverAuth,
                                                 &clientAuth,
@@ -991,12 +988,12 @@ nssTrust_Create(
         if (!(
                 /* we continue if there is no hash, and the trust type is
                  * safe to accept without a hash ... or ... */
-                (((hash.size == 0) || (hashMech == CKM_INVALID_MECHANISM)) &&
+                (((hashAttr.size == 0) || (hashMech == CKM_INVALID_MECHANISM)) &&
                  nssTrust_IsSafeToIgnoreCertHash(serverAuth, clientAuth,
                                                  codeSigning, emailProtection,
                                                  stepUp)) ||
                 /* we have a hash of the correct size, and it matches */
-                nssTrust_isValidHash(&hash, hashMech, certData,
+                nssTrust_isValidHash(&hashAttr, hashMech, certData,
                                      &hashCache, &hashCacheMech))) {
 
             nssPKIObject_Unlock(object);
