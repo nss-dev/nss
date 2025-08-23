@@ -157,7 +157,7 @@ CSRCS = \
 	jpake.c \
 	secmpi.c \
 	kyber.c \
-	kyber-pqcrystals-ref.c \
+        $(KYBER_PQCRYSTALS) \
 	$(MPI_SRCS) \
 	$(MPCPU_SRCS) \
 	$(ECL_SRCS) \

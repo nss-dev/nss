@@ -519,15 +519,22 @@ void TlsAgent::DisableAllCiphers() {
 // Not actually all groups, just the ones that we are actually willing
 // to use.
 const std::vector<SSLNamedGroup> kAllDHEGroups = {
-    ssl_grp_ec_curve25519,   ssl_grp_ec_secp256r1,       ssl_grp_ec_secp384r1,
-    ssl_grp_ec_secp521r1,    ssl_grp_ffdhe_2048,         ssl_grp_ffdhe_3072,
-    ssl_grp_ffdhe_4096,      ssl_grp_ffdhe_6144,         ssl_grp_ffdhe_8192,
-    ssl_grp_kem_xyber768d00, ssl_grp_kem_mlkem768x25519,
+    ssl_grp_ec_curve25519,      ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1,
+    ssl_grp_ec_secp521r1,       ssl_grp_ffdhe_2048,   ssl_grp_ffdhe_3072,
+    ssl_grp_ffdhe_4096,         ssl_grp_ffdhe_6144,   ssl_grp_ffdhe_8192,
+#ifndef NSS_DISABLE_KYBER
+    ssl_grp_kem_xyber768d00,
+#endif
+    ssl_grp_kem_mlkem768x25519,
 };
 
 const std::vector<SSLNamedGroup> kECDHEGroups = {
-    ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1,    ssl_grp_ec_secp384r1,
-    ssl_grp_ec_secp521r1,  ssl_grp_kem_xyber768d00, ssl_grp_kem_mlkem768x25519,
+    ssl_grp_ec_curve25519,      ssl_grp_ec_secp256r1,
+    ssl_grp_ec_secp384r1,       ssl_grp_ec_secp521r1,
+#ifndef NSS_DISABLE_KYBER
+    ssl_grp_kem_xyber768d00,
+#endif
+    ssl_grp_kem_mlkem768x25519,
 };
 
 const std::vector<SSLNamedGroup> kFFDHEGroups = {
@@ -537,12 +544,17 @@ const std::vector<SSLNamedGroup> kFFDHEGroups = {
 // Defined because the big DHE groups are ridiculously slow.
 const std::vector<SSLNamedGroup> kFasterDHEGroups = {
     ssl_grp_ec_curve25519,      ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1,
-    ssl_grp_ffdhe_2048,         ssl_grp_ffdhe_3072,   ssl_grp_kem_xyber768d00,
+    ssl_grp_ffdhe_2048,         ssl_grp_ffdhe_3072,
+#ifndef NSS_DISABLE_KYBER
+    ssl_grp_kem_xyber768d00,
+#endif
     ssl_grp_kem_mlkem768x25519,
 };
 
 const std::vector<SSLNamedGroup> kEcdhHybridGroups = {
+#ifndef NSS_DISABLE_KYBER
     ssl_grp_kem_xyber768d00,
+#endif
     ssl_grp_kem_mlkem768x25519,
 };
 

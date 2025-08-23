@@ -104,6 +104,13 @@ ssl_FilterSupportedGroups(sslSocket *ss)
             continue;
         }
 
+        if (group->name == ssl_grp_kem_xyber768d00) {
+#ifdef NSS_DISABLE_KYBER
+            ss->namedGroupPreferences[i] = NULL;
+#endif
+            continue;
+        }
+
         /* For EC groups, we have to test that a key pair can be created. This
          * is gross, and expensive, so only do it once. */
         index = group - ssl_named_groups;
