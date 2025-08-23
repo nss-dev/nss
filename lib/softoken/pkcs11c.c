@@ -6229,7 +6229,7 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             PORT_FreeArena(ecPriv->ecParams.arena, PR_TRUE);
             break;
 
-#ifndef NSS_NO_KYBER_SUPPORT
+#ifndef NSS_DISABLE_KYBER
         case CKM_NSS_KYBER_KEY_PAIR_GEN:
             key_type = CKK_NSS_KYBER;
             goto do_ml_kem;

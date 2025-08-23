@@ -63,7 +63,6 @@
         'tls_protect.cc',
         'tls_psk_unittest.cc',
         'tls_subcerts_unittest.cc',
-        'tls_xyber_unittest.cc',
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',
@@ -99,6 +98,11 @@
         [ 'disable_dbm==0', {
           'dependencies': [
             '<(DEPTH)/lib/dbm/src/src.gyp:dbm',
+          ],
+        }],
+        [ 'disable_kyber==0', {
+          'sources': [
+             'tls_xyber_unittest.cc',
           ],
         }],
         [ 'enable_sslkeylogfile==1 and sanitizer_flags==0', {

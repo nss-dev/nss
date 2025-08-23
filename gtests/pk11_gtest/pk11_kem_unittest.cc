@@ -139,8 +139,13 @@ TEST_P(Pkcs11KEMTest, KemConsistencyTest) {
   EXPECT_EQ(0, SECITEM_CompareItem(item1, item2));
 }
 
+#ifndef NSS_DISABLE_KYBER
 INSTANTIATE_TEST_SUITE_P(Pkcs11KEMTest, Pkcs11KEMTest,
                          ::testing::Values(CKP_NSS_KYBER_768_ROUND3,
                                            CKP_NSS_ML_KEM_768));
+#else
+INSTANTIATE_TEST_SUITE_P(Pkcs11KEMTest, Pkcs11KEMTest,
+                         ::testing::Values(CKP_NSS_ML_KEM_768));
+#endif
 
 }  // namespace nss_test

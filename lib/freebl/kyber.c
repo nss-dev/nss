@@ -38,8 +38,10 @@ static bool
 valid_params(KyberParams params)
 {
     switch (params) {
+#ifndef NSS_DISABLE_KYBER
         case params_kyber768_round3:
         case params_kyber768_round3_test_mode:
+#endif
         case params_ml_kem768:
         case params_ml_kem768_test_mode:
             return true;
@@ -158,12 +160,17 @@ Kyber_NewKey(KyberParams params, const SECItem *keypair_seed, SECItem *privkey, 
         coins = randbuf;
     }
     NSS_CLASSIFY(coins, KYBER_KEYPAIR_COIN_BYTES);
-    if (params == params_kyber768_round3 || params == params_kyber768_round3_test_mode) {
-        pqcrystals_kyber768_ref_keypair_derand(pubkey->data, privkey->data, coins);
-    } else if (params == params_ml_kem768 || params == params_ml_kem768_test_mode) {
+    if (params == params_ml_kem768 || params == params_ml_kem768_test_mode) {
         libcrux_ml_kem_mlkem768_MlKem768KeyPair keys = libcrux_ml_kem_mlkem768_portable_generate_key_pair(coins);
         memcpy(pubkey->data, keys.pk.value, KYBER768_PUBLIC_KEY_BYTES);
         memcpy(privkey->data, keys.sk.value, KYBER768_PRIVATE_KEY_BYTES);
+    } else if (params == params_kyber768_round3 || params == params_kyber768_round3_test_mode) {
+#ifdef NSS_DISABLE_KYBER
+        PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+        return SECFailure;
+#else
+        pqcrystals_kyber768_ref_keypair_derand(pubkey->data, privkey->data, coins);
+#endif
     } else {
         /* unreachable */
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -198,9 +205,7 @@ Kyber_Encapsulate(KyberParams params, const SECItem *enc_seed, const SECItem *pu
         coins = randbuf;
     }
     NSS_CLASSIFY(coins, KYBER_ENC_COIN_BYTES);
-    if (params == params_kyber768_round3 || params == params_kyber768_round3_test_mode) {
-        pqcrystals_kyber768_ref_enc_derand(ciphertext->data, secret->data, pubkey->data, coins);
-    } else if (params == params_ml_kem768 || params == params_ml_kem768_test_mode) {
+    if (params == params_ml_kem768 || params == params_ml_kem768_test_mode) {
         libcrux_ml_kem_types_MlKemPublicKey_15 pk_value;
         memcpy(pk_value.value, pubkey->data, KYBER768_PUBLIC_KEY_BYTES);
 
@@ -213,6 +218,13 @@ Kyber_Encapsulate(KyberParams params, const SECItem *enc_seed, const SECItem *pu
         tuple_3c encap = libcrux_ml_kem_mlkem768_portable_encapsulate(&pk_value, coins);
         memcpy(ciphertext->data, encap.fst.value, KYBER768_CIPHERTEXT_BYTES);
         memcpy(secret->data, encap.snd, KYBER_SHARED_SECRET_BYTES);
+    } else if (params == params_kyber768_round3 || params == params_kyber768_round3_test_mode) {
+#ifdef NSS_DISABLE_KYBER
+        PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+        return SECFailure;
+#else
+        pqcrystals_kyber768_ref_enc_derand(ciphertext->data, secret->data, pubkey->data, coins);
+#endif
     } else {
         /* unreachable */
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -235,9 +247,7 @@ Kyber_Decapsulate(KyberParams params, const SECItem *privkey, const SECItem *cip
         return SECFailure;
     }
 
-    if (params == params_kyber768_round3 || params == params_kyber768_round3_test_mode) {
-        pqcrystals_kyber768_ref_dec(secret->data, ciphertext->data, privkey->data);
-    } else if (params == params_ml_kem768 || params == params_ml_kem768_test_mode) {
+    if (params == params_ml_kem768 || params == params_ml_kem768_test_mode) {
         libcrux_ml_kem_types_MlKemPrivateKey_55 private_key;
         memcpy(private_key.value, privkey->data, KYBER768_PRIVATE_KEY_BYTES);
 
@@ -251,6 +261,13 @@ Kyber_Decapsulate(KyberParams params, const SECItem *privkey, const SECItem *cip
         }
 
         libcrux_ml_kem_mlkem768_portable_decapsulate(&private_key, &cipher_text, secret->data);
+    } else if (params == params_kyber768_round3 || params == params_kyber768_round3_test_mode) {
+#ifdef NSS_DISABLE_KYBER
+        PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+        return SECFailure;
+#else
+        pqcrystals_kyber768_ref_dec(secret->data, ciphertext->data, privkey->data);
+#endif
     } else {
         // unreachable
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);

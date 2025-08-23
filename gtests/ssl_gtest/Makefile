@@ -42,6 +42,12 @@ else
 SSLKEYLOGFILE_FILES = $(NULL)
 endif
 
+ifndef NSS_DISABLE_KYBER
+XYBER_FILES = tls_xyber_unittest.cc
+else
+XYBER_FILES = $(NULL)
+endif
+
 #######################################################################
 # (5) Execute "global" rules. (OPTIONAL)                              #
 #######################################################################
