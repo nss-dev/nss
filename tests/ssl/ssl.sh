@@ -257,20 +257,26 @@ start_selfserv()
   else
       RSA_OPTIONS="-n ${HOSTADDR}-rsa-pss"
   fi
+  if [ -z "$NSS_DISABLE_DSA" ]; then
+      DSA_OPTIONS="-S ${HOSTADDR}-dsa"
+  else
+      DSA_OPTIONS=""
+  fi
+
   SERVER_VMIN=${SERVER_VMIN-ssl3}
   SERVER_VMAX=${SERVER_VMAX-tls1.2}
   echo "selfserv starting at `date`"
   echo "selfserv -D -p ${PORT} -d ${P_R_SERVERDIR} ${RSA_OPTIONS} ${SERVER_OPTIONS} \\"
-  echo "         ${ECC_OPTIONS} -S ${HOSTADDR}-dsa -w nss "$@" -i ${R_SERVERPID}\\"
+  echo "         ${ECC_OPTIONS} ${DSA_OPTIONS} -w nss "$@" -i ${R_SERVERPID}\\"
   echo "         -V ${SERVER_VMIN}:${SERVER_VMAX} $verbose -H 1 &"
   if [ ${fileout} -eq 1 ]; then
       ${PROFTOOL} ${BINDIR}/selfserv -D -p ${PORT} -d ${P_R_SERVERDIR} ${RSA_OPTIONS} ${SERVER_OPTIONS} \
-               ${ECC_OPTIONS} -S ${HOSTADDR}-dsa -w nss "$@" -i ${R_SERVERPID} -V ${SERVER_VMIN}:${SERVER_VMAX} $verbose -H 1 \
+               ${ECC_OPTIONS} ${DSA_OPTIONS} -w nss "$@" -i ${R_SERVERPID} -V ${SERVER_VMIN}:${SERVER_VMAX} $verbose -H 1 \
                > ${SERVEROUTFILE} 2>&1 &
       RET=$?
   else
       ${PROFTOOL} ${BINDIR}/selfserv -D -p ${PORT} -d ${P_R_SERVERDIR} ${RSA_OPTIONS} ${SERVER_OPTIONS} \
-               ${ECC_OPTIONS} -S ${HOSTADDR}-dsa -w nss "$@" -i ${R_SERVERPID} -V ${SERVER_VMIN}:${SERVER_VMAX} $verbose -H 1 &
+               ${ECC_OPTIONS} ${DSA_OPTIONS} -w nss "$@" -i ${R_SERVERPID} -V ${SERVER_VMIN}:${SERVER_VMAX} $verbose -H 1 &
       RET=$?
   fi
 
@@ -330,17 +336,17 @@ ssl_cov()
   # cygwin, which means we can't kill selfserv at the end here.
   SSL_COV_TMP=$(mktemp /tmp/ssl_cov.XXXXXX)
   ignore_blank_lines ${SSLCOV} > ${SSL_COV_TMP}
-  while read ectype testmax param testname
+  while read ectype testmax param sig testname
   do
-      echo "${testname}" | grep "EXPORT" > /dev/null
-      EXP=$?
-
       # RSA-PSS tests are handled in a separate function
-      case $testname in
-        *RSA-PSS)
+      if [ "$sig" = "RSA-PSS" ]; then
           continue
-          ;;
-      esac
+      fi
+
+      # skip DSA tests if they are disabled
+      if [ -n "$NSS_DISABLE_DSA" -a "$sig" = "DSA" ]; then
+          continue
+      fi
 
       echo "$SCRIPTNAME: running $testname ----------------------------"
       VMAX="ssl3"
@@ -428,15 +434,12 @@ ssl_cov_rsa_pss()
   VMAX="tls1.2"
 
   ignore_blank_lines ${SSLCOV} | \
-  while read ectype testmax param testname
+  while read ectype testmax param sig testname
   do
-      case $testname in
-        *RSA-PSS)
-          ;;
-        *)
+      # only PSS testa are handled here.
+      if [ "$sig" != "RSA-PSS" ]; then
           continue
-          ;;
-      esac
+      fi
 
       echo "$SCRIPTNAME: running $testname (RSA-PSS) ----------------------------"
 
@@ -682,6 +685,8 @@ ssl_stress()
       CAUTH=$?
       echo "${testname}" | grep "no login" > /dev/null
       NOLOGIN=$?
+      echo "${testname}" | grep "_DSS_" > /dev/null
+      IS_DSA=$?
 
       if [ "$ectype" = "SNI" -a "$NORM_EXT" = "Extended Test" ] ; then
           echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
@@ -690,6 +695,8 @@ ssl_stress()
       elif [ "${NOLOGIN}" -eq 0 ] && \
            [ "${CLIENT_MODE}" = "fips" -o "$NORM_EXT" = "Extended Test" ] ; then
           echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
+      elif [ -n "${NSS_DISABLE_DSA}" -a "$IS_DSA" -eq 0 ] ; then
+          echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT (DSA is disabled"
       else
           cparam=`echo $cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
           if [ "$ectype" = "SNI" ]; then

@@ -257,7 +257,13 @@ dbtest_main()
     fi
     # import a token private key and make sure the corresponding public key is
     # created
-    ${BINDIR}/pk11importtest -d ${CONFLICT_DIR} -f ${R_PWFILE}
+    IMPORT_OPTIONS=""
+    if [ -n "$NSS_DISABLE_DSA" ]; then
+        IMPORT_OPTIONS="-D noDSA"
+    fi
+    Echo "Importing Token Private Key"
+    echo "pk11importtest ${IMPORT_OPTIONS} -d ${CONFLICT_DIR} -f ${R_PWFILE}"
+    ${BINDIR}/pk11importtest ${IMPORT_OPTIONS} -d ${CONFLICT_DIR} -f ${R_PWFILE}
     ret=$?
     if [ $ret -ne 0 ]; then
       html_failed "Importing Token Private Key does not create the corrresponding Public Key"

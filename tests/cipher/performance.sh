@@ -95,6 +95,7 @@ done < ${RSAPERFOUT}
 echo "</TABLE><BR>" >> ${PERFRESULTS}
 fi
 
+if [ -z "${NSS_DISABLE_DSA}" ]; then
 if [ $TESTSET = "all" -o $TESTSET = "dsa" ]; then
 
 while read mode keysize bufsize reps cxreps
@@ -123,6 +124,7 @@ do
 done < ${DSAPERFOUT} 
 
 echo "</TABLE><BR>" >> ${PERFRESULTS}
+fi
 fi
 
 if [ $TESTSET = "all" -o $TESTSET = "hash" ]; then

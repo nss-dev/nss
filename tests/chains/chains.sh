@@ -1298,6 +1298,7 @@ chains_main()
 	[ ${LINE} != 'ipsec.cfg' ] || continue
 	[ ${LINE} != 'ocspd.cfg' ] || continue
 	[ ${LINE} != 'method.cfg' ] || continue
+        [ -z "$NSS_DISABLE_DSA" -o ${LINE} != 'dsa.cfg' ] || continue
 
 	process_scenario ${LINE}
     done < "${CHAINS_SCENARIOS}"
