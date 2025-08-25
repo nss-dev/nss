@@ -379,6 +379,8 @@ INSTANTIATE_CIPHER_TEST_P(RC4, Stream, V10ToV12, kDummyNamedGroupParams,
                           TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
                           TLS_ECDH_RSA_WITH_RC4_128_SHA,
                           TLS_ECDHE_RSA_WITH_RC4_128_SHA);
+#ifndef NSS_DISABLE_DSA
+/* sign windows chokes if we have 'DISABLE_DSA' insided this macro call */
 INSTANTIATE_CIPHER_TEST_P(AEAD12, All, V12, kDummyNamedGroupParams,
                           kDummySignatureSchemesParams,
                           TLS_RSA_WITH_AES_128_GCM_SHA256,
@@ -387,6 +389,14 @@ INSTANTIATE_CIPHER_TEST_P(AEAD12, All, V12, kDummyNamedGroupParams,
                           TLS_DHE_DSS_WITH_AES_256_GCM_SHA384,
                           TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,
                           TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384);
+#else
+INSTANTIATE_CIPHER_TEST_P(AEAD12, All, V12, kDummyNamedGroupParams,
+                          kDummySignatureSchemesParams,
+                          TLS_RSA_WITH_AES_128_GCM_SHA256,
+                          TLS_RSA_WITH_AES_256_GCM_SHA384,
+                          TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,
+                          TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384);
+#endif
 INSTANTIATE_CIPHER_TEST_P(AEAD, All, V12, kDummyNamedGroupParams,
                           kDummySignatureSchemesParams,
                           TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
@@ -398,6 +408,7 @@ INSTANTIATE_CIPHER_TEST_P(AEAD, All, V12, kDummyNamedGroupParams,
                           TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
                           TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
                           TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256);
+#ifndef NSS_DISABLE_DSA
 INSTANTIATE_CIPHER_TEST_P(
     CBC12, All, V12, kDummyNamedGroupParams, kDummySignatureSchemesParams,
     TLS_DHE_RSA_WITH_AES_256_CBC_SHA256, TLS_RSA_WITH_AES_256_CBC_SHA256,
@@ -405,6 +416,18 @@ INSTANTIATE_CIPHER_TEST_P(
     TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
     TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_DSS_WITH_AES_128_CBC_SHA256,
     TLS_DHE_DSS_WITH_AES_256_CBC_SHA256);
+#else
+// sigh, clang wants to reformat this because some threshold has been reached
+// but it is identical the the above line, so just tell clang to go away
+// clang-format off
+INSTANTIATE_CIPHER_TEST_P(
+    CBC12, All, V12, kDummyNamedGroupParams, kDummySignatureSchemesParams,
+    TLS_DHE_RSA_WITH_AES_256_CBC_SHA256, TLS_RSA_WITH_AES_256_CBC_SHA256,
+    TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
+    TLS_RSA_WITH_AES_128_CBC_SHA256);
+// clang-format on
+#endif
 INSTANTIATE_CIPHER_TEST_P(
     CBCStream, Stream, V10ToV12, kDummyNamedGroupParams,
     kDummySignatureSchemesParams, TLS_ECDH_ECDSA_WITH_NULL_SHA,
@@ -425,6 +448,7 @@ INSTANTIATE_CIPHER_TEST_P(
     TLS_ECDH_RSA_WITH_AES_128_CBC_SHA, TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,
     TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
     TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA);
+#ifndef NSS_DISABLE_DSA
 INSTANTIATE_CIPHER_TEST_P(
     TLS12SigSchemes, All, V12, ::testing::ValuesIn(kFasterDHEGroups),
     ::testing::ValuesIn(kSignatureSchemesParamsArr),
@@ -433,6 +457,18 @@ INSTANTIATE_CIPHER_TEST_P(
     TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
     TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_DSS_WITH_AES_128_CBC_SHA256,
     TLS_DHE_DSS_WITH_AES_256_CBC_SHA256);
+#else
+// see comment above
+// clang-format off
+INSTANTIATE_CIPHER_TEST_P(
+    TLS12SigSchemes, All, V12, ::testing::ValuesIn(kFasterDHEGroups),
+    ::testing::ValuesIn(kSignatureSchemesParamsArr),
+    TLS_DHE_RSA_WITH_AES_256_CBC_SHA256, TLS_RSA_WITH_AES_256_CBC_SHA256,
+    TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
+    TLS_RSA_WITH_AES_128_CBC_SHA256);
+// clang-format on
+#endif
 #ifndef NSS_DISABLE_TLS_1_3
 INSTANTIATE_CIPHER_TEST_P(TLS13, All, V13,
                           ::testing::ValuesIn(kFasterDHEGroups),

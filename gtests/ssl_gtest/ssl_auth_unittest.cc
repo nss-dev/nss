@@ -560,6 +560,7 @@ TEST_P(TlsConnectTls12, AutoClientSelectEcc) {
   EXPECT_TRUE(ecc.hookCalled);
 }
 
+#ifndef NSS_DISABLE_DSA
 TEST_P(TlsConnectTls12, AutoClientSelectDsa) {
   AutoClientResults dsa = {{SECFailure, TlsAgent::kClient},
                            {SECFailure, TlsAgent::kClient},
@@ -576,6 +577,7 @@ TEST_P(TlsConnectTls12, AutoClientSelectDsa) {
   Connect();
   EXPECT_TRUE(dsa.hookCalled);
 }
+#endif
 
 TEST_P(TlsConnectClientAuthStream13, PostHandshakeAuthMultiple) {
   client_->SetupClientAuth(std::get<2>(GetParam()), true);
@@ -1869,7 +1871,7 @@ TEST_F(TlsAgentStreamTestServer, ConfigureCertRsaPss) {
 // A server should refuse to even start a handshake with
 // misconfigured certificate and signature scheme.
 TEST_P(TlsConnectTls12Plus, MisconfiguredCertScheme) {
-  Reset(TlsAgent::kServerDsa);
+  Reset(TlsAgent::kServerRsaSign);
   static const SSLSignatureScheme kScheme[] = {ssl_sig_ecdsa_secp256r1_sha256};
   server_->SetSignatureSchemes(kScheme, PR_ARRAY_SIZE(kScheme));
   ConnectExpectAlert(server_, kTlsAlertHandshakeFailure);
@@ -1910,6 +1912,9 @@ TEST_P(TlsConnectTls13, Tls13DsaOnlyClient) {
   client_->CheckErrorCode(SSL_ERROR_NO_SUPPORTED_SIGNATURE_ALGORITHM);
 }
 
+#ifndef NSS_DISABLE_DSA
+// can't test a dsa only server becasue we can't generate a server
+// DSA certificate
 TEST_P(TlsConnectTls13, Tls13DsaOnlyServer) {
   Reset(TlsAgent::kServerDsa);
   static const SSLSignatureScheme kDsa[] = {ssl_sig_dsa_sha256};
@@ -1918,6 +1923,7 @@ TEST_P(TlsConnectTls13, Tls13DsaOnlyServer) {
   server_->CheckErrorCode(SSL_ERROR_NO_SUPPORTED_SIGNATURE_ALGORITHM);
   client_->CheckErrorCode(SSL_ERROR_NO_CYPHER_OVERLAP);
 }
+#endif
 
 TEST_P(TlsConnectTls13, Tls13Pkcs1OnlyClient) {
   static const SSLSignatureScheme kPkcs1[] = {ssl_sig_rsa_pkcs1_sha256};

@@ -622,6 +622,7 @@ class TlsDheSkeChangeSignature : public TlsHandshakeFilter {
   size_t len_;
 };
 
+#ifndef NSS_DISABLE_DSA
 TEST_P(TlsConnectGenericPre13, InvalidDERSignatureFfdhe) {
   const uint8_t kBogusDheSignature[] = {
       0x30, 0x69, 0x3c, 0x02, 0x1c, 0x7d, 0x0b, 0x2f, 0x64, 0x00, 0x27,
@@ -642,6 +643,7 @@ TEST_P(TlsConnectGenericPre13, InvalidDERSignatureFfdhe) {
   ConnectExpectAlert(client_, kTlsAlertDecryptError);
   client_->CheckErrorCode(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
 }
+#endif
 
 TEST_P(TlsConnectTls12, ConnectInconsistentSigAlgDHE) {
   EnableOnlyDheCiphers();

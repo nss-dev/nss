@@ -1435,7 +1435,9 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
         /* don't loop forever looking for a slot */
         if (slot == int_slot) {
             PK11_FreeSlot(int_slot);
-            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+            /* if we don't have support in softoken, then the mechanism
+             * just isnt' supported */
+            PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
             return NULL;
         }
 

@@ -55,6 +55,13 @@ class Pk11KeyImportTestBase : public ::testing::Test {
     if (key_type == dhKey) {
       return;
     }
+#ifdef NSS_DISABLE_DSA
+    // if DSA is disabled, we can't generate a key, Generated will
+    // have expected a failure, and checked the error codeso we are now.
+    if (generator.mechanism() == CKM_DSA_KEY_PAIR_GEN) {
+      return;
+    }
+#endif
     ASSERT_NE(nullptr, public_value);
     ASSERT_NE(nullptr, key_info);
 
@@ -202,9 +209,15 @@ class Pk11KeyImportTestBase : public ::testing::Test {
     ScopedSECKEYPrivateKey priv_key;
     ScopedSECKEYPublicKey pub_key;
     generator.GenerateKey(&priv_key, &pub_key);
+#ifdef NSS_DISABLE_DSA
+    if (generator.mechanism() == CKM_DSA_KEY_PAIR_GEN) {
+      ASSERT_FALSE(priv_key);
+      return;
+    }
+#endif
     ASSERT_TRUE(priv_key);
 
-    // Save the public value, which we will need on import */
+    // Save the public value, which we will need on import
     SECItem* pub_val;
     KeyType t = SECKEY_GetPublicKeyType(pub_key.get());
     switch (t) {
@@ -260,6 +273,8 @@ TEST_P(Pk11KeyImportTest, GenerateExportImport) {
   Test(Pkcs11KeyPairGenerator(GetParam()));
 }
 
+// we go ahead and test for DSA, this only trigger key gen, which will
+// check that we fail with a proper error code
 INSTANTIATE_TEST_SUITE_P(Pk11KeyImportTest, Pk11KeyImportTest,
                          ::testing::Values(CKM_RSA_PKCS_KEY_PAIR_GEN,
                                            CKM_DSA_KEY_PAIR_GEN,

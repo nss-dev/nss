@@ -35,10 +35,18 @@ void Pkcs11KeyPairGenerator::GenerateKey(ScopedSECKEYPrivateKey* priv_key,
   ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
   ASSERT_TRUE(slot);
 
-  SECKEYPublicKey* pub_tmp;
+  SECKEYPublicKey* pub_tmp = NULL;
   ScopedSECKEYPrivateKey priv_tmp(
       PK11_GenerateKeyPair(slot.get(), mech_, params->get(), &pub_tmp, PR_FALSE,
                            sensitive ? PR_TRUE : PR_FALSE, nullptr));
+#ifdef NSS_DISABLE_DSA
+  if (mech_ == CKM_DSA_KEY_PAIR_GEN) {
+    ASSERT_EQ(nullptr, priv_tmp);
+    ASSERT_EQ(nullptr, pub_tmp);
+    ASSERT_EQ(PORT_GetError(), SEC_ERROR_INVALID_ALGORITHM);
+    return;
+  }
+#endif
   ASSERT_NE(nullptr, priv_tmp)
       << "PK11_GenerateKeyPair failed: " << PORT_ErrorToName(PORT_GetError());
   ASSERT_NE(nullptr, pub_tmp);

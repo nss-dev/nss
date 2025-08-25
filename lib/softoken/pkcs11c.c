@@ -5272,7 +5272,9 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession, SFTKSlot *slot,
     CK_MECHANISM mech = { 0, NULL, 0 };
 
     CK_ULONG modulusLen = 0;
+#ifndef NSS_DISABLE_DSA
     CK_ULONG subPrimeLen = 0;
+#endif
     PRBool isEncryptable = PR_FALSE;
     PRBool canSignVerify = PR_FALSE;
     PRBool isDerivable = PR_FALSE;

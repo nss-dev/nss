@@ -651,7 +651,10 @@ TEST_P(TlsExtensionTest12, SignatureAlgorithmConfiguration) {
   }
 }
 
+#ifndef NSS_DISABLE_DSA
 // This only works on TLS 1.2, since it relies on DSA.
+// and doesn't work if we've disabled DSA (Reset(TlsAgent:kServerDSA) fail
+// because we don't have a DSA certificate)
 TEST_P(TlsExtensionTest12, SignatureAlgorithmDisableDSA) {
   const std::vector<SSLSignatureScheme> schemes = {
       ssl_sig_dsa_sha1, ssl_sig_dsa_sha256, ssl_sig_dsa_sha384,
@@ -700,6 +703,7 @@ TEST_P(TlsExtensionTest12, SignatureAlgorithmDisableDSA) {
   EXPECT_TRUE(ext2.Read(2, 2, &v));
   EXPECT_EQ(ssl_sig_rsa_pss_rsae_sha256, v);
 }
+#endif
 
 // Temporary test to verify that we choke on an empty ClientKeyShare.
 // This test will fail when we implement HelloRetryRequest.

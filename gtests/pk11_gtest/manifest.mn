@@ -6,6 +6,10 @@ CORE_DEPTH = ../..
 DEPTH      = ../..
 MODULE = nss
 
+ifndef NSS_DISABLE_DSA
+      DSA_UNIT_TESTS=pk11_dsa_unittest.cc
+endif
+
 CPPSRCS = \
       json_reader.cc \
       pk11_aes_gcm_unittest.cc \
@@ -17,7 +21,7 @@ CPPSRCS = \
       pk11_curve25519_unittest.cc \
       pk11_der_private_key_import_unittest.cc \
       pk11_des_unittest.cc \
-      pk11_dsa_unittest.cc \
+      ${DSA_UNIT_TESTS} \
       pk11_ecdsa_unittest.cc \
       pk11_eddsa_unittest.cc \
       pk11_ecdh_unittest.cc \
