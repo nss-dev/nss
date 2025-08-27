@@ -991,6 +991,18 @@ nss_TokenUsePKCS11Trust(NSSToken *tok)
     if ((vers.major == 3) && (vers.minor < 2)) {
         return PR_FALSE;
     }
+    /* force the use of either PKCS11 trust or NSS trust */
+    /* this only affects output, input always accepts both trust
+     * types */
+    char *envp = PR_GetEnvSecure("NSS_TRUST_TYPE");
+    if (envp) {
+        if (PORT_Strcasecmp(envp, "PKCS11") == 0) {
+            return PR_TRUE;
+        }
+        if (PORT_Strcasecmp(envp, "NSS") == 0) {
+            return PR_FALSE;
+        }
+    }
     return PR_TRUE;
 }
 

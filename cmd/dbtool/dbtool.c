@@ -602,7 +602,7 @@ void
 dumpObject(CK_OBJECT_HANDLE id, SDB *db, SDB *keydb, PRBool isKey)
 {
     CK_RV crv;
-    int i;
+    size_t i;
     CK_ATTRIBUTE template;
     char buffer[2048];
     char *alloc = NULL;

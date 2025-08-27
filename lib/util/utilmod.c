@@ -553,7 +553,7 @@ nssutil_ReadSecmodDB(const char *appName,
             }
         }
 
-        if (internal) {
+        if (internal && (moduleList[0] == NULL)) {
             moduleList[0] = moduleString;
         } else {
             moduleList[moduleCount] = moduleString;

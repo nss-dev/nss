@@ -46,12 +46,41 @@ dbtest_init()
       . ./cert.sh
   fi
 
+  # normally we inherit this environment variable from cert.sh, but in the CI
+  # tests, we run cert.sh once in a different test and then copy the results
+  # for dbtests, so we try to  get the ROOTCERTSFILE ourself if it doesn't exits
+  if [ ! "${ROOTCERTSFILE}" ] ; then
+    ROOTCERTSFILE=`ls -1 ${LIBDIR}/*nssckbi.* | head -1`
+  fi
+
   SCRIPTNAME="dbtests.sh"
   RONLY_DIR=${HOSTDIR}/ronlydir
   EMPTY_DIR=${HOSTDIR}/emptydir
   CONFLICT_DIR=${HOSTDIR}/conflictdir
   THREAD_DIR=${HOSTDIR}/threadir
   BIG_DIR=${HOSTDIR}/bigdir
+  TRUST1_DIR=${HOSTDIR}/trust1dir
+  R_TRUST1_DIR=../trust1dir
+  TRUST2_DIR=${HOSTDIR}/trust2dir
+  R_TRUST2_DIR=../trust2dir
+  TRUST3_DIR=${HOSTDIR}/trust3dir
+  R_TRUST3_DIR=../trust3dir
+  TRUST4_DIR=${HOSTDIR}/trust4dir
+  R_TRUST4_DIR=../trust4dir
+  TRUST5_DIR=${HOSTDIR}/trust5dir
+  R_TRUST5_DIR=../trust5dir
+  mkdir -p $TRUST1_DIR
+  mkdir -p $TRUST2_DIR
+  mkdir -p $TRUST3_DIR
+  mkdir -p $TRUST4_DIR
+  mkdir -p $TRUST5_DIR
+
+  cd ${TRUST1_DIR}
+  certutil -N -d ${R_TRUST1_DIR} -f ${R_PWFILE}
+  certutil -N -d ${R_TRUST2_DIR} -f ${R_PWFILE}
+  certutil -N -d ${R_TRUST3_DIR} -f ${R_PWFILE}
+  certutil -N -d ${R_TRUST4_DIR} -f ${R_PWFILE}
+  certutil -N -d ${R_TRUST5_DIR} -f ${R_PWFILE}
 
   html_head "CERT and Key DB Tests"
 
@@ -77,10 +106,160 @@ Echo()
     echo "---------------------------------------------------------------"
 }
 
+dbtest_trust()
+{
+    Echo "Create an old-style trust database"
+    cd ${TRUST1_DIR}
+    export NSS_TRUST_TYPE="NSS"
+    certutil -A -n "TestCA" -t "TC,C,C" -f "$R_PWFILE" -d ${R_TRUST1_DIR} -i ${R_CADIR}/TestCA.ca.cert
+    certutil -A -n "Alice" -t ",," -f "$R_PWFILE" -d ${R_TRUST1_DIR} -i ${R_ALICEDIR}/Alice.cert
+    unset NSS_TRUST_TYPE
+    dbtool -d ${R_TRUST1_DIR} | grep CKO_NSS_TRUST
+    ret=$?
+    html_msg $ret 0 "Create and old-style trust database"
+
+    # make sure we can verify an old-style database still
+    certutil -V -n "Alice" -u R -d ${R_TRUST1_DIR} -f "$R_PWFILE"
+    ret=$?
+    html_msg $ret 0 "Verify cert from and old-style DB"
+
+    # create an override record that will superceed the old style record
+    Echo "Create an new-style trust database"
+    export NSS_TRUST_TYPE="PKCS"
+    echo certutil -A -n "TestCA" -t "T,," -f "$R_PWFILE" -d ${R_TRUST2_DIR} -i ${R_CADIR}/TestCA.ca.cert
+    certutil -A -n "TestCA" -t "T,," -f "$R_PWFILE" -d ${R_TRUST2_DIR} -i ${R_CADIR}/TestCA.ca.cert
+    unset NSS_TRUST_TYPE
+    dbtool -d ${R_TRUST2_DIR} | grep CKO_TRUST
+    ret=$?
+    html_msg $ret 0 "Create and newstyle trust database"
+
+    # arrange to load both databases at the same time
+    cat >> ${R_TRUST2_DIR}/pkcs11.txt << __EOF__
+
+library=
+name="Alice lib"
+parameters="configdir='${R_TRUST1_DIR}'"
+NSS=flags=internal,readonly trustOrder=80
+__EOF__
+    cat ${R_TRUST2_DIR}/pkcs11.txt
+    # trust 1's token name once they are both loaded, use to to find the Alice cert to verify
+    Trust1_Token="NSS Application Token 00000004"
+    echo certutil -V -n "${Trust1_Token}:Alice" -u R -d ${R_TRUST2_DIR} -f "$R_PWFILE"
+    certutil -V -n "${Trust1_Token}:Alice" -u R -d ${R_TRUST2_DIR} -f "$R_PWFILE"
+    ret=$?
+    html_msg $ret 255 "Verify cert should fail from and old-style DB with new style override"
+
+    # modify the trust to the original db was untrusted and the new one is trusted
+    export NSS_TRUST_TYPE="NSS"
+    certutil -M -n "TestCA" -t "T,," -f "$R_PWFILE" -d ${R_TRUST1_DIR}
+    # make sure we don't have any new style records in this databse
+    dbtool -d ${R_TRUST1_DIR} | grep  CKO_TRUST
+    ret=$?
+    html_msg $ret 1 "Modify and old-style trust database"
+
+    export NSS_TRUST_TYPE="PKCS"
+    certutil -M -n "TestCA" -t "TC,C,C" -f "$R_PWFILE" -d ${R_TRUST2_DIR}
+    # make sure we don't have any old style records in this databse
+    dbtool -d ${R_TRUST2_DIR} | grep CKO_NSS_TRUST
+    ret=$?
+    html_msg $ret 1 "Modify and new-style trust database"
+    unset NSS_TRUST_TYPE
+
+    # now test the we now fail without the override
+    echo certutil -V -n "Alice" -u R -d ${R_TRUST1_DIR} -f "$R_PWFILE"
+    certutil -V -n "Alice" -u R -d ${R_TRUST1_DIR} -f "$R_PWFILE"
+    ret=$?
+    html_msg $ret 255 "Verify cert correctly fails from and old-style DB"
+
+    # and the we succeed with the override
+    echo certutil -V -n "${Trust1_Token}:Alice" -u R -d ${R_TRUST2_DIR} -f "$R_PWFILE"
+    certutil -V -n "${Trust1_Token}:Alice" -u R -d ${R_TRUST2_DIR} -f "$R_PWFILE"
+    ret=$?
+    html_msg $ret 0 "Verify cert succeeds with new style override"
+
+    # we can only run these tests if we have our builtins file
+    if [ -n "${ROOTCERTSFILE}" ] ; then
+        # Test overriding the built-ins
+        # built-ins still use NSS trust, so we will try to override them with
+        # PKCS trust we pick a cert we expect will be in builtins for a while.
+        # If it's ever removed,  pick a different one.
+        CATestCert="Amazon Root CA 1"
+        TestToken="Builtin Object Token"
+        OverrideTrust="T,,C"
+        CATestCertName="${TestToken}:${CATestCert}"
+        echo modutil -add "RootCerts" -libfile "${ROOTCERTSFILE}" -dbdir "${R_TRUST3_DIR}"
+        echo | modutil -add "RootCerts" -libfile "${ROOTCERTSFILE}" -dbdir "${R_TRUST3_DIR}"
+        certutil -L -h "$TestToken" -d "${R_TRUST3_DIR}" | grep "${CATestCert}"
+        ret=$?
+        html_msg $ret 0 "Load Builtins and list $CATestCert"
+
+        # create the override
+        export NSS_TRUST_TYPE="PKCS"
+        echo certutil -M -n "${CATestCertName}" -t "$OverrideTrust" -d "${R_TRUST3_DIR}" -f "$R_PWFILE"
+        certutil -M -n "${CATestCertName}" -t "$OverrideTrust" -d "${R_TRUST3_DIR}" -f "$R_PWFILE"
+        ret=$?
+        html_msg $ret 0 "Modify trust on $CATestCert to '$OverrideTrust'"
+        unset NSS_TRUST_TYPE
+
+        # verify the override
+        certutil -L -h all -d "${R_TRUST3_DIR}" -f "${R_PWFILE}" | grep "${CATestCert}"
+        cert=$(certutil -L -h "$TestToken" -d "${R_TRUST3_DIR}" -f "${R_PWFILE}" | grep "${CATestCert}")
+        cert="${cert%"${cert##*[![:space:]]}"}"
+        trust=${cert##* }
+        echo "cert = |$cert| trust = |$trust|"
+        test  "$trust" = "$OverrideTrust"
+        ret=$?
+        html_msg $ret 0 "Verify trust on $CATestCert is '$OverrideTrust'"
+
+        # finagle the token order so that the builtins are processed before
+        # the new token
+        echo modutil -add "RootCerts" -libfile "${ROOTCERTSFILE}" -dbdir "${R_TRUST4_DIR}"
+        echo | modutil -add "RootCerts" -libfile "${ROOTCERTSFILE}" -dbdir "${R_TRUST4_DIR}"
+        certutil -L -h "$TestToken" -d "${R_TRUST4_DIR}" | grep "${CATestCert}"
+        ret=$?
+        html_msg $ret 0 "Load Builtins for trust4 and list $CATestCert"
+
+        # use trust3 as an override
+        cat >> ${R_TRUST4_DIR}/pkcs11.txt << __EOF__
+
+library=
+name="external trust"
+parameters="configdir='${R_TRUST3_DIR}'"
+NSS=flags=internal,readonly trustOrder=80
+__EOF__
+        certutil -L -h all -d "${R_TRUST4_DIR}" -f "${R_PWFILE}" | grep "${CATestCert}"
+        cert=$(certutil -L -h "$TestToken" -d "${R_TRUST4_DIR}" -f "${R_PWFILE}" | grep "${CATestCert}")
+        cert="${cert%"${cert##*[![:space:]]}"}"
+        trust=${cert##* }
+        echo "cert = |$cert| trust = |$trust|"
+        test  "$trust" = "$OverrideTrust"
+        ret=$?
+        html_msg $ret 0 "Verify trust on $CATestCert is '$OverrideTrust' in trust4 db"
+
+        # reproduce the steps in Bug 1984165
+        export NSS_TRUST_TYPE="NSS"
+        echo modutil -add "RootCerts" -libfile "${ROOTCERTSFILE}" -dbdir "${R_TRUST5_DIR}"
+        echo | modutil -add "RootCerts" -libfile "${ROOTCERTSFILE}" -dbdir "${R_TRUST5_DIR}"
+
+        echo certutil -M -n "${CATestCertName}" -t "" -d "${R_TRUST5_DIR}" -f "$R_PWFILE"
+        certutil -M -n "${CATestCertName}" -t ",C," -d "${R_TRUST5_DIR}" -f "$R_PWFILE"
+        certutil -L -h "$TestToken" -d "${R_TRUST5_DIR}" | grep "${CATestCert}"
+        certutil -M -n "${CATestCertName}" -t "C,C," -d "${R_TRUST5_DIR}" -f "$R_PWFILE"
+        unset NSS_TRUST_TYPE
+        certutil -L -h "$TestToken" -d "${R_TRUST5_DIR}" | grep "${CATestCert}"
+        cert=$(certutil -L -h "$TestToken" -d "${R_TRUST5_DIR}" -f "${R_PWFILE}" | grep "${CATestCert}")
+        cert="${cert%"${cert##*[![:space:]]}"}"
+        trust=${cert##* }
+        echo "cert = |$cert| trust = |$trust|"
+        test  "$trust" = "C,C,"
+        ret=$?
+        html_msg $ret 0 "Verify trust on $CATestCert is 'C,C,'"
+    fi
+}
+
 dbtest_main()
 {
     cd ${HOSTDIR}
-
 
     Echo "test opening the database read/write in a nonexisting directory"
     ${BINDIR}/certutil -L -X -d ./non_existent_dir
@@ -303,7 +482,7 @@ dbtest_main()
         do
           # mangle the last byte of the hmac
           # The following increments the last nibble by 1 with both F and f
-          # mapping to 0. This mangles both upper and lower case results, so 
+          # mapping to 0. This mangles both upper and lower case results, so
           # it will work on the mac.
           last=$((${#data}-1))
           newbyte=$(echo "${data:${last}}" | tr A-Fa-f0-9 B-F0b-f0-9a)
@@ -382,4 +561,7 @@ dbtest_main()
 
 dbtest_init
 dbtest_main 2>&1
+if  using_sql; then
+  dbtest_trust
+fi
 dbtest_cleanup
