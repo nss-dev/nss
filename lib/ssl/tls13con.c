@@ -836,7 +836,7 @@ tls13_HandleKEMKey(sslSocket *ss,
         goto loser;
     }
 
-    PK11SlotInfo *slot = PK11_GetBestSlot(CKM_ML_KEM, ss->pkcs11PinArg);
+    PK11SlotInfo *slot = PK11_GetBestSlot(CKM_NSS_KYBER, ss->pkcs11PinArg);
     if (!slot) {
         goto loser;
     }

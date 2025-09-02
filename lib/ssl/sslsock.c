@@ -159,11 +159,6 @@ static const PRUint16 srtpCiphers[] = {
             SEC_OID_TLS_FFDHE_##size, PR_TRUE   \
     }
 
-#ifndef NSS_DISABLE_KYBER
-#define KYBER_SUPPORT PR_TRUE
-#else
-#define KYBER_SUPPORT PR_FALSE
-#endif
 const sslNamedGroupDef ssl_named_groups[] = {
     /* Note that 256 for 25519 is a lie, but we only use it for checking bit
      * security and expect 256 bits there (not 255). */
@@ -171,8 +166,7 @@ const sslNamedGroupDef ssl_named_groups[] = {
     ECGROUP(secp256r1, 256, SECP256R1, PR_TRUE),
     ECGROUP(secp384r1, 384, SECP384R1, PR_TRUE),
     ECGROUP(secp521r1, 521, SECP521R1, PR_TRUE),
-    { ssl_grp_kem_xyber768d00, 256, ssl_kea_ecdh_hybrid, SEC_OID_XYBER768D00,
-      KYBER_SUPPORT },
+    { ssl_grp_kem_xyber768d00, 256, ssl_kea_ecdh_hybrid, SEC_OID_XYBER768D00, PR_TRUE },
     { ssl_grp_kem_mlkem768x25519, 256, ssl_kea_ecdh_hybrid, SEC_OID_MLKEM768X25519, PR_TRUE },
     FFGROUP(2048),
     FFGROUP(3072),
