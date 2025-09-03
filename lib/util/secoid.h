@@ -31,6 +31,9 @@ extern SECOidData *SECOID_FindOID(const SECItem *oid);
 extern SECOidTag SECOID_FindOIDTag(const SECItem *oid);
 extern SECOidData *SECOID_FindOIDByTag(SECOidTag tagnum);
 extern SECOidData *SECOID_FindOIDByMechanism(unsigned long mechanism);
+extern SECOidTag SECOID_FindOIDTagFromDescripton(const char *string,
+                                                 size_t len,
+                                                 PRBool isCipher);
 
 /****************************************/
 /*

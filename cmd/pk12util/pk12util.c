@@ -880,22 +880,7 @@ loser:
 SECOidTag
 PKCS12U_FindTagFromString(char *cipherString)
 {
-    SECOidTag tag;
-    SECOidData *oid;
-
-    /* future enhancement: accept dotted oid spec? */
-
-    for (tag = 1; (oid = SECOID_FindOIDByTag(tag)) != NULL; tag++) {
-        /* only interested in oids that we actually understand */
-        if (oid->mechanism == CKM_INVALID_MECHANISM) {
-            continue;
-        }
-        if (PORT_Strcasecmp(oid->desc, cipherString) != 0) {
-            continue;
-        }
-        return tag;
-    }
-    return SEC_OID_UNKNOWN;
+    return SECOID_FindOIDTagFromDescripton(cipherString, (size_t)-1, PR_TRUE);
 }
 
 /*

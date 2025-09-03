@@ -1080,22 +1080,15 @@ SECOidTag
 CMSU_FindTagFromString(const char *cipherString)
 {
     SECOidTag tag;
-    SECOidData *oid;
     size_t slen;
 
     /* future enhancement: accept dotted oid spec? */
-
-    for (tag = 1; (oid = SECOID_FindOIDByTag(tag)) != NULL; tag++) {
-        /* only interested in oids that we actually understand */
-        if (oid->mechanism == CKM_INVALID_MECHANISM) {
-            continue;
-        }
-        if (PORT_Strcasecmp(oid->desc, cipherString) != 0) {
-            continue;
-        }
+    slen = PORT_Strlen(cipherString);
+    tag = SECOID_FindOIDTagFromDescripton(cipherString, slen, PR_TRUE);
+    if (tag != SEC_OID_UNKNOWN) {
         return tag;
     }
-    slen = PORT_Strlen(cipherString);
+
     if ((slen > 3) && (PORT_Strncasecmp(cipherString, "SHA", 3) == 0) &&
         (cipherString[3] != '-')) {
         int i;

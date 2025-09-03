@@ -1,0 +1,5 @@
+
+1 Added function:
+
+  'function SECOidTag SECOID_FindOIDTagFromDescripton(const char*, size_t, PRBool)'    {SECOID_FindOIDTagFromDescripton@@NSSUTIL_3.117}
+

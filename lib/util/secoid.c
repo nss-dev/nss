@@ -2348,6 +2348,35 @@ SECOID_FindOIDTagDescription(SECOidTag tagnum)
     return oidData ? oidData->desc : 0;
 }
 
+/*
+ * find an oidtag from a descriptive string. Our tools
+ * have implemented this several times, so it's time to make
+ * it available to everyone.
+ */
+SECOidTag
+SECOID_FindOIDTagFromDescripton(const char *cipherString, size_t len,
+                                PRBool isCipher)
+{
+    SECOidTag tag;
+    SECOidData *oid;
+
+    if (len == (size_t)-1) {
+        len = PORT_Strlen(cipherString);
+    }
+    /* future enhancement: accept dotted oid spec? */
+    for (tag = 1; (oid = SECOID_FindOIDByTag(tag)) != NULL; tag++) {
+        /* only interested in oids that we actually understand */
+        if (isCipher && oid->mechanism == CKM_INVALID_MECHANISM) {
+            continue;
+        }
+        if (PORT_Strncasecmp(oid->desc, cipherString, len) != 0) {
+            continue;
+        }
+        return tag;
+    }
+    return SEC_OID_UNKNOWN;
+}
+
 /* return the total tags, including dymamic tags. NOTE: there is
  * a race between getting this value and adding new tags, but that
  * race is only a race against seeing the newly added tags, total
