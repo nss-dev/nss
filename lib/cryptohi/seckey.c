@@ -141,6 +141,21 @@ prepare_dh_pub_key_for_asn1(SECKEYPublicKey *pubk)
     pubk->u.dh.publicValue.type = siUnsignedInteger;
 }
 
+static const char *const keyTypeName[] = {
+    "null", "rsa", "dsa", "fortezza", "dh", "kea", "ec", "rsaPss", "rsaOaep",
+    "mlkem", "ed", "ecMont", "mldsa"
+};
+static size_t keyTypeNameMax = PR_ARRAY_SIZE(keyTypeName);
+
+const char *
+SECKEY_GetKeyTypeString(KeyType keyType)
+{
+    if (keyType < keyTypeNameMax) {
+        return keyTypeName[keyType];
+    }
+    return "unknown";
+}
+
 /* Create an RSA key pair is any slot able to do so.
 ** The created keys are "session" (temporary), not "token" (permanent),
 ** and they are "sensitive", which makes them costly to move to another token.

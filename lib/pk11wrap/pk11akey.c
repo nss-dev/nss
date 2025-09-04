@@ -26,13 +26,15 @@
 #include "secpkcs5.h"
 #include "blapit.h"
 
-static SECItem *
-pk11_MakeIDFromPublicKey(SECKEYPublicKey *pubKey)
+const SECItem *
+PK11_GetPublicValueFromPublicKey(const SECKEYPublicKey *pubKey)
 {
     /* set the ID to the public key so we can find it again */
-    SECItem *pubKeyIndex = NULL;
+    const SECItem *pubKeyIndex = NULL;
     switch (pubKey->keyType) {
         case rsaKey:
+        case rsaPssKey:
+        case rsaOaepKey:
             pubKeyIndex = &pubKey->u.rsa.modulus;
             break;
         case dsaKey:
@@ -52,10 +54,107 @@ pk11_MakeIDFromPublicKey(SECKEYPublicKey *pubKey)
         case mldsaKey:
             pubKeyIndex = &pubKey->u.mldsa.publicValue;
             break;
-
-        default:
+        /* explicitly put unsupported keys here. The
+         * compiler will  tell you when you need to
+         * add switch statements */
+        case fortezzaKey:
+        case keaKey:
+        case nullKey:
             return NULL;
     }
+    PORT_Assert(pubKeyIndex != NULL);
+
+    return pubKeyIndex;
+}
+
+KeyType
+pk11_getKeyTypeFromPKCS11KeyType(CK_KEY_TYPE pk11KeyType)
+{
+    KeyType keyType = nullKey;
+    switch (pk11KeyType) {
+        case CKK_RSA:
+            keyType = rsaKey;
+            break;
+        case CKK_DSA:
+            keyType = dsaKey;
+            break;
+        case CKK_DH:
+            keyType = dhKey;
+            break;
+        case CKK_EC:
+            keyType = ecKey;
+            break;
+        case CKK_EC_MONTGOMERY:
+            keyType = ecMontKey;
+            break;
+        case CKK_EC_EDWARDS:
+            keyType = edKey;
+            break;
+        case CKK_NSS_KYBER:
+        case CKK_NSS_ML_KEM:
+        case CKK_ML_KEM:
+            keyType = kyberKey;
+            break;
+        case CKK_ML_DSA:
+            keyType = mldsaKey;
+            break;
+        default:
+            PORT_SetError(SEC_ERROR_BAD_KEY);
+            break;
+    }
+    return keyType;
+}
+
+CK_KEY_TYPE
+pk11_getPKCS11KeyTypeFromKeyType(KeyType keyType)
+{
+    CK_KEY_TYPE pk11KeyType = CKK_INVALID_KEY_TYPE;
+    switch (keyType) {
+        case rsaKey:
+        case rsaPssKey:
+        case rsaOaepKey:
+            pk11KeyType = CKK_RSA;
+            break;
+        case dsaKey:
+            pk11KeyType = CKK_DSA;
+            break;
+        case dhKey:
+            pk11KeyType = CKK_DH;
+            break;
+        case ecKey:
+            pk11KeyType = CKK_EC;
+            break;
+        case ecMontKey:
+            pk11KeyType = CKK_EC_MONTGOMERY;
+            break;
+        case edKey:
+            pk11KeyType = CKK_EC_EDWARDS;
+            break;
+        case kyberKey:
+            pk11KeyType = CKK_ML_KEM;
+            break;
+        case mldsaKey:
+            pk11KeyType = CKK_ML_DSA;
+            break;
+        /* explicitly put unsupported keys here. The
+         * compiler will  tell you when you need to
+         * add switch statements */
+        case fortezzaKey:
+        case keaKey:
+        case nullKey:
+            break;
+    }
+    if (pk11KeyType == CKK_INVALID_KEY_TYPE) {
+        PORT_SetError(SEC_ERROR_BAD_KEY);
+    }
+    return pk11KeyType;
+}
+
+SECItem *
+pk11_MakeIDFromPublicKey(const SECKEYPublicKey *pubKey)
+{
+    /* set the ID to the public key so we can find it again */
+    const SECItem *pubKeyIndex = PK11_GetPublicValueFromPublicKey(pubKey);
     PORT_Assert(pubKeyIndex != NULL);
 
     return PK11_MakeIDFromPubKey(pubKeyIndex);
@@ -304,9 +403,7 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
         }
         templateCount = attrs - theTemplate;
         PORT_Assert(templateCount <= (sizeof(theTemplate) / sizeof(CK_ATTRIBUTE)));
-        if (pubKey->keyType != ecKey && pubKey->keyType != kyberKey && pubKey->keyType != edKey &&
-            pubKey->keyType != ecMontKey && pubKey->keyType != mldsaKey) {
-            PORT_Assert(signedattr);
+        if (signedattr) {
             signedcount = attrs - signedattr;
             for (attrs = signedattr; signedcount; attrs++, signedcount--) {
                 pk11_SignedToUnsigned(attrs);
@@ -683,43 +780,13 @@ PK11_ExtractPublicKey(PK11SlotInfo *slot, KeyType keyType, CK_OBJECT_HANDLE id)
 
     /* if we didn't know the key type, get it */
     if (keyType == nullKey) {
-
         pk11KeyType = PK11_ReadULongAttribute(slot, id, CKA_KEY_TYPE);
         if (pk11KeyType == CK_UNAVAILABLE_INFORMATION) {
             return NULL;
         }
-        switch (pk11KeyType) {
-            case CKK_RSA:
-                keyType = rsaKey;
-                break;
-            case CKK_DSA:
-                keyType = dsaKey;
-                break;
-            case CKK_DH:
-                keyType = dhKey;
-                break;
-            case CKK_EC:
-                keyType = ecKey;
-                break;
-            case CKK_EC_MONTGOMERY:
-                keyType = ecMontKey;
-                break;
-            case CKK_EC_EDWARDS:
-                keyType = edKey;
-                break;
-#ifndef NSS_DISABLE_KYBER
-            case CKK_NSS_KYBER:
-#endif
-            case CKK_NSS_ML_KEM:
-            case CKK_ML_KEM:
-                keyType = kyberKey;
-                break;
-            case CKK_ML_DSA:
-                keyType = mldsaKey;
-                break;
-            default:
-                PORT_SetError(SEC_ERROR_BAD_KEY);
-                return NULL;
+        keyType = pk11_getKeyTypeFromPKCS11KeyType(pk11KeyType);
+        if (keyType == nullKey) {
+            return NULL;
         }
     }
 
@@ -1002,40 +1069,9 @@ PK11_MakePrivKey(PK11SlotInfo *slot, KeyType keyType,
 
         pk11Type = PK11_ReadULongAttribute(slot, privID, CKA_KEY_TYPE);
         isTemp = (PRBool)!PK11_HasAttributeSet(slot, privID, CKA_TOKEN, PR_FALSE);
-        switch (pk11Type) {
-            case CKK_RSA:
-                keyType = rsaKey;
-                break;
-            case CKK_DSA:
-                keyType = dsaKey;
-                break;
-            case CKK_DH:
-                keyType = dhKey;
-                break;
-            case CKK_KEA:
-                keyType = fortezzaKey;
-                break;
-            case CKK_EC:
-                keyType = ecKey;
-                break;
-            case CKK_EC_MONTGOMERY:
-                keyType = ecMontKey;
-                break;
-            case CKK_EC_EDWARDS:
-                keyType = edKey;
-                break;
-#ifndef NSS_DISABLE_KYBER
-            case CKK_NSS_KYBER:
-#endif
-            case CKK_NSS_ML_KEM:
-            case CKK_ML_KEM:
-                keyType = kyberKey;
-                break;
-            case CKK_ML_DSA:
-                keyType = mldsaKey;
-                break;
-            default:
-                break;
+        keyType = pk11_getKeyTypeFromPKCS11KeyType(pk11Type);
+        if (keyType == nullKey) {
+            return NULL;
         }
     }
 
@@ -1107,10 +1143,6 @@ PK11_GetPrivateModulusLen(SECKEYPrivateKey *key)
             }
             PORT_Free(theTemplate.pValue);
             return (int)length;
-
-        case fortezzaKey:
-        case dsaKey:
-        case dhKey:
         default:
             break;
     }
@@ -1170,7 +1202,7 @@ pk11_loadPrivKeyWithFlags(PK11SlotInfo *slot, SECKEYPrivateKey *privKey,
     PLArenaPool *arena;
     CK_OBJECT_HANDLE objectID;
     int i, count = 0;
-    int extra_count = 0;
+    int extra_count = 0; /* count of signed attributes */
     CK_RV crv;
     SECStatus rv;
     PRBool token = ((attrFlags & PK11_ATTR_TOKEN) != 0);
@@ -1244,19 +1276,15 @@ pk11_loadPrivKeyWithFlags(PK11SlotInfo *slot, SECKEYPrivateKey *privKey,
             ap->type = CKA_PARAMETER_SET;
             ap++;
             count++;
-            extra_count++;
             ap->type = CKA_SEED;
             ap++;
             count++;
-            extra_count++;
             ap->type = CKA_VALUE;
             ap++;
             count++;
-            extra_count++;
             ap->type = CKA_SIGN;
             ap++;
             count++;
-            extra_count++;
             break;
         case ecKey:
         case edKey:
@@ -1264,22 +1292,18 @@ pk11_loadPrivKeyWithFlags(PK11SlotInfo *slot, SECKEYPrivateKey *privKey,
             ap->type = CKA_EC_PARAMS;
             ap++;
             count++;
-            extra_count++;
             ap->type = CKA_VALUE;
             ap++;
             count++;
-            extra_count++;
             if (privKey->keyType == ecKey) {
                 ap->type = CKA_DERIVE;
                 ap++;
                 count++;
-                extra_count++;
             }
 
             ap->type = CKA_SIGN;
             ap++;
             count++;
-            extra_count++;
             break;
         default:
             count = 0;
@@ -1311,11 +1335,11 @@ pk11_loadPrivKeyWithFlags(PK11SlotInfo *slot, SECKEYPrivateKey *privKey,
                                         &cktrue, &ckfalse);
 
     /* Not everyone can handle zero padded key values, give
-     * them the raw data as unsigned. The exception is EC,
-     * where the values are encoded or zero-preserving
-     * per-RFC5915 */
-    if (privKey->keyType != ecKey && privKey->keyType != edKey &&
-        privKey->keyType != ecMontKey && privKey->keyType != mldsaKey) {
+     * them the raw data as unsigned. Where the values are encoded or
+     * zero-preserving per-RFC5915. NOTE Most new algorithms are
+     * OCTET strings, not signed integers, so this conversion
+     * isn't necessary for them. */
+    if (extra_count) {
         for (ap = attrs; extra_count; ap++, extra_count--) {
             pk11_SignedToUnsigned(ap);
         }
@@ -1770,6 +1794,9 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                                         CKF_WRAP | CKF_VERIFY_RECOVER | CKF_ENCRYPT | CKF_WRAP);
                 break;
             case CKM_DSA:
+            case CKM_ECDSA:
+            case CKM_EDDSA:
+            case CKM_ML_DSA:
                 mechanism_info.flags = CKF_SIGN | CKF_VERIFY;
                 break;
             case CKM_DH_PKCS_DERIVE:
@@ -1781,12 +1808,8 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                     mechanism_info.flags |= CKF_SIGN | CKF_VERIFY;
                 }
                 break;
-            case CKM_ECDSA:
-                mechanism_info.flags = CKF_SIGN | CKF_VERIFY;
-                break;
-            case CKM_EDDSA:
-                mechanism_info.flags = CKF_SIGN | CKF_VERIFY;
-                break;
+            case CKM_NSS_KYBER:
+            case CKM_NSS_ML_KEM:
             case CKM_ML_KEM:
                 mechanism_info.flags = CKF_ENCAPSULATE | CKF_DECAPSULATE;
                 break;
@@ -2018,7 +2041,7 @@ PK11_MakeKEAPubKey(unsigned char *keyData, int length)
 }
 
 SECStatus
-SECKEY_SetPublicValue(SECKEYPrivateKey *privKey, SECItem *publicValue)
+SECKEY_SetPublicValue(SECKEYPrivateKey *privKey, const SECItem *publicValue)
 {
     SECStatus rv;
     SECKEYPublicKey pubKey;
@@ -2122,7 +2145,7 @@ SECKEY_SetPublicValue(SECKEYPrivateKey *privKey, SECItem *publicValue)
 SECStatus
 PK11_ImportEncryptedPrivateKeyInfo(PK11SlotInfo *slot,
                                    SECKEYEncryptedPrivateKeyInfo *epki, SECItem *pwitem,
-                                   SECItem *nickname, SECItem *publicValue, PRBool isPerm,
+                                   SECItem *nickname, const SECItem *publicValue, PRBool isPerm,
                                    PRBool isPrivate, KeyType keyType,
                                    unsigned int keyUsage, void *wincx)
 {
@@ -2138,7 +2161,7 @@ PK11_ImportEncryptedPrivateKeyInfo(PK11SlotInfo *slot,
 SECStatus
 PK11_ImportEncryptedPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
                                                SECKEYEncryptedPrivateKeyInfo *epki, SECItem *pwitem,
-                                               SECItem *nickname, SECItem *publicValue, PRBool isPerm,
+                                               SECItem *nickname, const SECItem *publicValue, PRBool isPerm,
                                                PRBool isPrivate, KeyType keyType,
                                                unsigned int keyUsage, SECKEYPrivateKey **privk,
                                                void *wincx)
@@ -2150,87 +2173,11 @@ PK11_ImportEncryptedPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
     CK_MECHANISM_TYPE cryptoMechType;
     SECKEYPrivateKey *privKey = NULL;
     PRBool faulty3DES = PR_FALSE;
-    int usageCount = 0;
-    CK_KEY_TYPE key_type;
-    CK_ATTRIBUTE_TYPE *usage = NULL;
-    CK_ATTRIBUTE_TYPE rsaUsage[] = {
-        CKA_UNWRAP, CKA_DECRYPT, CKA_SIGN, CKA_SIGN_RECOVER
-    };
-    CK_ATTRIBUTE_TYPE dsaUsage[] = { CKA_SIGN };
-    CK_ATTRIBUTE_TYPE dhUsage[] = { CKA_DERIVE };
-    CK_ATTRIBUTE_TYPE ecUsage[] = { CKA_SIGN, CKA_DERIVE };
-    CK_ATTRIBUTE_TYPE edUsage[] = { CKA_SIGN };
-    CK_ATTRIBUTE_TYPE mldsaUsage[] = { CKA_SIGN };
     if ((epki == NULL) || (pwitem == NULL))
         return SECFailure;
 
     pbeMechType = PK11_AlgtagToMechanism(SECOID_FindOIDTag(
         &epki->algorithm.algorithm));
-
-    switch (keyType) {
-        default:
-        case rsaKey:
-            key_type = CKK_RSA;
-            switch (keyUsage & (KU_KEY_ENCIPHERMENT | KU_DIGITAL_SIGNATURE)) {
-                case KU_KEY_ENCIPHERMENT:
-                    usage = rsaUsage;
-                    usageCount = 2;
-                    break;
-                case KU_DIGITAL_SIGNATURE:
-                    usage = &rsaUsage[2];
-                    usageCount = 2;
-                    break;
-                case KU_KEY_ENCIPHERMENT | KU_DIGITAL_SIGNATURE:
-                case 0: /* default to everything */
-                    usage = rsaUsage;
-                    usageCount = 4;
-                    break;
-            }
-            break;
-        case dhKey:
-            key_type = CKK_DH;
-            usage = dhUsage;
-            usageCount = sizeof(dhUsage) / sizeof(dhUsage[0]);
-            break;
-        case dsaKey:
-            key_type = CKK_DSA;
-            usage = dsaUsage;
-            usageCount = sizeof(dsaUsage) / sizeof(dsaUsage[0]);
-            break;
-        case ecKey:
-            key_type = CKK_EC;
-            switch (keyUsage & (KU_DIGITAL_SIGNATURE | KU_KEY_AGREEMENT)) {
-                case KU_DIGITAL_SIGNATURE:
-                    usage = ecUsage;
-                    usageCount = 1;
-                    break;
-                case KU_KEY_AGREEMENT:
-                    usage = &ecUsage[1];
-                    usageCount = 1;
-                    break;
-                case KU_DIGITAL_SIGNATURE | KU_KEY_AGREEMENT:
-                default: /* default to everything */
-                    usage = ecUsage;
-                    usageCount = 2;
-                    break;
-            }
-            break;
-        case edKey:
-            key_type = CKK_EC_EDWARDS;
-            usage = edUsage;
-            usageCount = 1;
-            break;
-        case ecMontKey:
-            key_type = CKK_EC_MONTGOMERY;
-            usage = dhUsage;
-            usageCount = 1;
-            break;
-        case mldsaKey:
-            key_type = CKK_ML_DSA;
-            usage = mldsaUsage;
-            usageCount = 1;
-            break;
-    }
 
 try_faulty_3des:
 
@@ -2248,12 +2195,10 @@ try_faulty_3des:
 
     cryptoMechType = PK11_GetPadMechanism(cryptoMechType);
 
-    PORT_Assert(usage != NULL);
-    PORT_Assert(usageCount != 0);
-    privKey = PK11_UnwrapPrivKey(slot, key, cryptoMechType,
-                                 crypto_param, &epki->encryptedData,
-                                 nickname, publicValue, isPerm, isPrivate,
-                                 key_type, usage, usageCount, wincx);
+    privKey = PK11_UnwrapPrivKeyByKeyType(slot, key, cryptoMechType,
+                                          crypto_param, &epki->encryptedData,
+                                          nickname, publicValue, isPerm,
+                                          isPrivate, keyType, keyUsage, wincx);
     if (privKey) {
         rv = SECSuccess;
         goto done;
@@ -2849,7 +2794,7 @@ PK11_FindKeyByKeyID(PK11SlotInfo *slot, SECItem *keyID, void *wincx)
  * smart cards happy.
  */
 SECItem *
-PK11_MakeIDFromPubKey(SECItem *pubKeyData)
+PK11_MakeIDFromPubKey(const SECItem *pubKeyData)
 {
     PK11Context *context;
     SECItem *certCKA_ID;

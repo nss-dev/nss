@@ -275,6 +275,9 @@ SECOidTag SECKEY_GetECCOid(const SECKEYECParams *params);
 SECStatus SECKEY_EnforceKeySize(KeyType keyType, unsigned keyLength,
                                 SECErrorCodes error);
 
+/* get the descriptive string for a given key type */
+const char *SECKEY_GetKeyTypeString(KeyType keyType);
+
 /* Maps an ML-DSA OID tag to its corresponding PKCS#11's CKP_* parameter set */
 CK_ML_DSA_PARAMETER_SET_TYPE
 SECKEY_GetMLDSAPkcs11ParamSetByOidTag(SECOidTag tag);

@@ -8,8 +8,8 @@
 #include "blapi.h"
 #include "sechash.h" /* for HASH_GetHashObject() */
 
-static int create_pk7(char *dir, char *keyName, int *keyType);
-static int jar_find_key_type(CERTCertificate *cert);
+static int create_pk7(char *dir, char *keyName, KeyType *keyType);
+static KeyType jar_find_key_type(CERTCertificate *cert);
 static int manifesto(char *dirname, char *install_script, PRBool recurse);
 static int manifesto_fn(char *relpath, char *basedir, char *reldir,
                         char *filename, void *arg);
@@ -42,7 +42,7 @@ SignArchive(char *tree, char *keyName, char *zip_file, int javascript,
 {
     int status;
     char tempfn[FNSIZE], fullfn[FNSIZE];
-    int keyType = rsaKey;
+    KeyType keyType = rsaKey;
     int count;
 
     metafile = meta_file;
@@ -82,7 +82,8 @@ SignArchive(char *tree, char *keyName, char *zip_file, int javascript,
         }
 
         /* rsa/dsa to zip */
-        count = snprintf(tempfn, sizeof(tempfn), "META-INF/%s.%s", base, (keyType == dsaKey ? "dsa" : "rsa"));
+        count = snprintf(tempfn, sizeof(tempfn), "META-INF/%s.%s", base,
+                         SECKEY_GetKeyTypeString(keyType));
         if (count >= sizeof(tempfn)) {
             PR_fprintf(errorFD, "unable to write key metadata\n");
             errorCount++;
@@ -129,7 +130,8 @@ SignArchive(char *tree, char *keyName, char *zip_file, int javascript,
     /* Add the rsa/dsa file to the zip archive normally */
     if (!xpi_arc) {
         /* rsa/dsa to zip */
-        count = snprintf(tempfn, sizeof(tempfn), "META-INF/%s.%s", base, (keyType == dsaKey ? "dsa" : "rsa"));
+        count = snprintf(tempfn, sizeof(tempfn), "META-INF/%s.%s", base,
+                         SECKEY_GetKeyTypeString(keyType));
         if (count >= sizeof(tempfn)) {
             PR_fprintf(errorFD, "unable to write key metadata\n");
             errorCount++;
@@ -245,10 +247,10 @@ finish:
  * c r e a t e _ p k 7
  */
 static int
-create_pk7(char *dir, char *keyName, int *keyType)
+create_pk7(char *dir, char *keyName, KeyType *keyType)
 {
     int status = 0;
-    char *file_ext;
+    const char *file_ext;
 
     CERTCertificate *cert;
     CERTCertDBHandle *db;
@@ -277,7 +279,7 @@ create_pk7(char *dir, char *keyName, int *keyType)
     /* determine the key type, which sets the extension for pkcs7 object */
 
     *keyType = jar_find_key_type(cert);
-    file_ext = (*keyType == dsaKey) ? "dsa" : "rsa";
+    file_ext = SECKEY_GetKeyTypeString(*keyType);
 
     snprintf(sf_file, sizeof(sf_file), "%s/META-INF/%s.sf", dir, base);
     snprintf(pk7_file, sizeof(pk7_file), "%s/META-INF/%s.%s", dir, base, file_ext);
@@ -319,7 +321,7 @@ create_pk7(char *dir, char *keyName, int *keyType)
  * should be rsaKey or dsaKey. Any error return 0.
  *
  */
-static int
+static KeyType
 jar_find_key_type(CERTCertificate *cert)
 {
     SECKEYPrivateKey *privk = NULL;

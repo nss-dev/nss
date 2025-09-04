@@ -1209,7 +1209,7 @@ SECKEYPrivateKey *
 PK11_UnwrapPrivKey(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
                    CK_MECHANISM_TYPE wrapType, SECItem *param,
                    SECItem *wrappedKey, SECItem *label,
-                   SECItem *idValue, PRBool perm, PRBool sensitive,
+                   const SECItem *idValue, PRBool perm, PRBool sensitive,
                    CK_KEY_TYPE keyType, CK_ATTRIBUTE_TYPE *usage,
                    int usageCount, void *wincx)
 {
@@ -1228,7 +1228,7 @@ PK11_UnwrapPrivKey(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
     int i;
 
     if (!slot || !wrappedKey || !idValue) {
-        /* SET AN ERROR!!! */
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return NULL;
     }
 
@@ -1357,6 +1357,63 @@ loser:
     SECITEM_FreeItem(ck_id, PR_TRUE);
     SECITEM_FreeItem(param_free, PR_TRUE);
     return NULL;
+}
+
+/*
+ * PK11_UnwrapPrivKeyByKeyType is like PK11_UnwrapPrivKey but uses the
+ * keyType and the keyUsage to determine what usage attributes to set.
+ */
+#define _MAX_USAGE 6
+SECKEYPrivateKey *
+PK11_UnwrapPrivKeyByKeyType(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
+                            CK_MECHANISM_TYPE wrapType, SECItem *param,
+                            SECItem *wrappedKey, SECItem *label,
+                            const SECItem *idValue, PRBool perm, PRBool sensitive,
+                            KeyType keyType, unsigned int keyUsage, void *wincx)
+{
+    CK_KEY_TYPE pk11KeyType = pk11_getPKCS11KeyTypeFromKeyType(keyType);
+    CK_ATTRIBUTE_TYPE usage[_MAX_USAGE];
+    int usageCount = 0;
+    PRBool needKeyUsage = PR_FALSE;
+
+    /* RSA and ecKeys can be used in more than one usage, use the
+     * key usage to determine which usage to actual set */
+    if ((keyType == rsaKey) || (keyType == ecKey)) {
+        needKeyUsage = PR_TRUE;
+    }
+
+    /* use the pk11_mapXXXXKeyType functions to determine what kind
+     * of attributes to set on the key. Using these functions reduces
+     * the number of places we need to update to add new key types */
+    if ((pk11_mapWrapKeyType(keyType) != CKM_INVALID_MECHANISM) &&
+        (!needKeyUsage || keyUsage & KU_KEY_ENCIPHERMENT)) {
+        usage[usageCount++] = CKA_UNWRAP;
+        usage[usageCount++] = CKA_DECRYPT;
+    }
+    if ((pk11_mapKemKeyType(keyType) != CKM_INVALID_MECHANISM) &&
+        (!needKeyUsage || keyUsage & KU_KEY_AGREEMENT)) {
+        usage[usageCount++] = CKA_DECAPSULATE;
+    }
+    if ((PK11_MapSignKeyType(keyType) != CKM_INVALID_MECHANISM) &&
+        (!needKeyUsage || keyUsage & KU_DIGITAL_SIGNATURE)) {
+        usage[usageCount++] = CKA_SIGN;
+        if (keyType == rsaKey) {
+            usage[usageCount++] = CKA_SIGN_RECOVER;
+        }
+    }
+    if ((pk11_mapDeriveKeyType(keyType) != CKM_INVALID_MECHANISM) &&
+        (!needKeyUsage || keyUsage & KU_KEY_AGREEMENT)) {
+        usage[usageCount++] = CKA_DERIVE;
+    }
+
+    PORT_Assert(usageCount <= _MAX_USAGE);
+
+    if (usageCount == 0) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+    }
+    return PK11_UnwrapPrivKey(slot, wrappingKey, wrapType, param, wrappedKey,
+                              label, idValue, perm, sensitive, pk11KeyType,
+                              usage, usageCount, wincx);
 }
 
 /*

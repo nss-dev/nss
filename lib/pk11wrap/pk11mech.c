@@ -1956,7 +1956,7 @@ PK11_MapSignKeyType(KeyType keyType)
 }
 
 CK_MECHANISM_TYPE
-PK11_mapKemKeyType(KeyType keyType)
+pk11_mapKemKeyType(KeyType keyType)
 {
     switch (keyType) {
         case kyberKey:
@@ -1973,7 +1973,23 @@ pk11_mapWrapKeyType(KeyType keyType)
     switch (keyType) {
         case rsaKey:
             return CKM_RSA_PKCS;
-        /* Add fortezza?? */
+        default:
+            break;
+    }
+    return CKM_INVALID_MECHANISM;
+}
+
+CK_MECHANISM_TYPE
+pk11_mapDeriveKeyType(KeyType keyType)
+{
+    switch (keyType) {
+        case dhKey:
+            return CKM_DH_PKCS_DERIVE;
+        case ecMontKey:
+        case ecKey:
+            return CKM_ECDH1_DERIVE;
+        /* not adding fortezza here
+         * only because forezza is dead */
         default:
             break;
     }

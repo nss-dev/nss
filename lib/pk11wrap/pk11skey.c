@@ -2124,17 +2124,6 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
     symKey->origin = PK11_OriginDerive;
 
     switch (privKey->keyType) {
-        case rsaKey:
-        case rsaPssKey:
-        case rsaOaepKey:
-        case kyberKey:
-        case nullKey:
-        case edKey:
-        case ecMontKey:
-        case mldsaKey:
-            PORT_SetError(SEC_ERROR_BAD_KEY);
-            break;
-        case dsaKey:
         case keaKey:
         case fortezzaKey: {
             static unsigned char rb_email[128] = { 0 };
@@ -2301,6 +2290,11 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
                 return symKey;
             PORT_SetError(PK11_MapError(crv));
         }
+        /* most keys are not KEA keys, so assume they are bad if they
+         * are not handled explicitly */
+        default:
+            PORT_SetError(SEC_ERROR_BAD_KEY);
+            break;
     }
 
     PK11_FreeSymKey(symKey);
@@ -2588,9 +2582,6 @@ PK11_PubDeriveWithKDF(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
 {
 
     switch (privKey->keyType) {
-        case rsaKey:
-        case nullKey:
-        case dsaKey:
         case keaKey:
         case fortezzaKey:
         case dhKey:
@@ -3098,7 +3089,7 @@ PK11_Encapsulate(SECKEYPublicKey *pubKey, CK_MECHANISM_TYPE target,
     CK_BBOOL ckfalse = CK_FALSE;
     CK_OBJECT_CLASS keyClass = CKO_SECRET_KEY;
     CK_KEY_TYPE keyType = CKK_GENERIC_SECRET;
-    CK_MECHANISM_TYPE kemType = PK11_mapKemKeyType(pubKey->keyType);
+    CK_MECHANISM_TYPE kemType = pk11_mapKemKeyType(pubKey->keyType);
     CK_MECHANISM mech = { kemType, NULL, 0 };
     CK_ULONG ciphertextLen = 0;
     CK_RV crv;
@@ -3267,7 +3258,7 @@ PK11_Decapsulate(SECKEYPrivateKey *privKey, const SECItem *ciphertext,
     CK_BBOOL ckfalse = CK_FALSE;
     CK_OBJECT_CLASS keyClass = CKO_SECRET_KEY;
     CK_KEY_TYPE keyType = CKK_GENERIC_SECRET;
-    CK_MECHANISM_TYPE kemType = PK11_mapKemKeyType(privKey->keyType);
+    CK_MECHANISM_TYPE kemType = pk11_mapKemKeyType(privKey->keyType);
     CK_MECHANISM mech = { kemType, NULL, 0 };
 
     CK_RV crv;

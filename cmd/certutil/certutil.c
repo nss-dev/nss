@@ -837,10 +837,6 @@ SECItemToHex(const SECItem *item, char *dst)
     }
 }
 
-static const char *const keyTypeName[] = {
-    "null", "rsa", "dsa", "fortezza", "dh", "kea", "ec", "rsaPss", "rsaOaep"
-};
-
 #define MAX_CKA_ID_BIN_LEN 20
 #define MAX_CKA_ID_STR_LEN 40
 
@@ -888,7 +884,7 @@ PrintKey(PRFileDesc *out, const char *nickName, int count,
         keyType = key->keyType;
     }
     PR_fprintf(out, "<%2d> %-8.8s %-42.42s %s\n", count,
-               keyTypeName[keyType], ckaIDbuf, nickName);
+               SECKEY_GetKeyTypeString(keyType), ckaIDbuf, nickName);
 
     return SECSuccess;
 }

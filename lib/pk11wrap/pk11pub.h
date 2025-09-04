@@ -609,30 +609,32 @@ SECStatus PK11_PubEncrypt(SECKEYPublicKey *key,
                           const unsigned char *data, unsigned int dataLen,
                           void *wincx);
 
+const SECItem *PK11_GetPublicValueFromPublicKey(const SECKEYPublicKey *pubKey);
+
 SECStatus PK11_ImportPrivateKeyInfo(PK11SlotInfo *slot,
                                     SECKEYPrivateKeyInfo *pki, SECItem *nickname,
-                                    SECItem *publicValue, PRBool isPerm, PRBool isPrivate,
+                                    const SECItem *publicValue, PRBool isPerm, PRBool isPrivate,
                                     unsigned int usage, void *wincx);
 SECStatus PK11_ImportPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
                                                 SECKEYPrivateKeyInfo *pki, SECItem *nickname,
-                                                SECItem *publicValue, PRBool isPerm, PRBool isPrivate,
+                                                const SECItem *publicValue, PRBool isPerm, PRBool isPrivate,
                                                 unsigned int usage, SECKEYPrivateKey **privk, void *wincx);
 SECStatus PK11_ImportDERPrivateKeyInfo(PK11SlotInfo *slot,
                                        SECItem *derPKI, SECItem *nickname,
-                                       SECItem *publicValue, PRBool isPerm, PRBool isPrivate,
+                                       const SECItem *publicValue, PRBool isPerm, PRBool isPrivate,
                                        unsigned int usage, void *wincx);
 SECStatus PK11_ImportDERPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
                                                    SECItem *derPKI, SECItem *nickname,
-                                                   SECItem *publicValue, PRBool isPerm, PRBool isPrivate,
+                                                   const SECItem *publicValue, PRBool isPerm, PRBool isPrivate,
                                                    unsigned int usage, SECKEYPrivateKey **privk, void *wincx);
 SECStatus PK11_ImportEncryptedPrivateKeyInfo(PK11SlotInfo *slot,
                                              SECKEYEncryptedPrivateKeyInfo *epki, SECItem *pwitem,
-                                             SECItem *nickname, SECItem *publicValue, PRBool isPerm,
+                                             SECItem *nickname, const SECItem *publicValue, PRBool isPerm,
                                              PRBool isPrivate, KeyType type,
                                              unsigned int usage, void *wincx);
 SECStatus PK11_ImportEncryptedPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
                                                          SECKEYEncryptedPrivateKeyInfo *epki, SECItem *pwitem,
-                                                         SECItem *nickname, SECItem *publicValue, PRBool isPerm,
+                                                         SECItem *nickname, const SECItem *publicValue, PRBool isPerm,
                                                          PRBool isPrivate, KeyType type,
                                                          unsigned int usage, SECKEYPrivateKey **privk, void *wincx);
 SECItem *PK11_ExportDERPrivateKeyInfo(SECKEYPrivateKey *pk, void *wincx);
@@ -664,9 +666,15 @@ PRBool PK11_VerifyKeyOK(PK11SymKey *key);
 SECKEYPrivateKey *PK11_UnwrapPrivKey(PK11SlotInfo *slot,
                                      PK11SymKey *wrappingKey, CK_MECHANISM_TYPE wrapType,
                                      SECItem *param, SECItem *wrappedKey, SECItem *label,
-                                     SECItem *publicValue, PRBool token, PRBool sensitive,
+                                     const SECItem *publicValue, PRBool token, PRBool sensitive,
                                      CK_KEY_TYPE keyType, CK_ATTRIBUTE_TYPE *usage, int usageCount,
                                      void *wincx);
+SECKEYPrivateKey *PK11_UnwrapPrivKeyByKeyType(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
+                                              CK_MECHANISM_TYPE wrapType, SECItem *param,
+                                              SECItem *wrappedKey, SECItem *label,
+                                              const SECItem *idValue, PRBool perm, PRBool sensitive,
+                                              KeyType keyType, unsigned int keyUsage, void *wincx);
+
 SECStatus PK11_WrapPrivKey(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
                            SECKEYPrivateKey *privKey, CK_MECHANISM_TYPE wrapType,
                            SECItem *param, SECItem *wrappedKey, void *wincx);
@@ -695,7 +703,7 @@ SECKEYPrivateKey *PK11_CopyTokenPrivKeyToSessionPrivKey(PK11SlotInfo *destSlot,
 /**********************************************************************
  *                   Certs
  **********************************************************************/
-SECItem *PK11_MakeIDFromPubKey(SECItem *pubKeyData);
+SECItem *PK11_MakeIDFromPubKey(const SECItem *pubKeyData);
 SECStatus PK11_TraverseSlotCerts(
     SECStatus (*callback)(CERTCertificate *, SECItem *, void *),
     void *arg, void *wincx);

@@ -564,22 +564,8 @@ crmf_get_mechanism_from_public_key(SECKEYPublicKey *inPubKey)
 SECItem *
 crmf_get_public_value(SECKEYPublicKey *pubKey, SECItem *dest)
 {
-    SECItem *src;
+    const SECItem *src = PK11_GetPublicValueFromPublicKey(pubKey);
 
-    switch (pubKey->keyType) {
-        case dsaKey:
-            src = &pubKey->u.dsa.publicValue;
-            break;
-        case rsaKey:
-            src = &pubKey->u.rsa.modulus;
-            break;
-        case dhKey:
-            src = &pubKey->u.dh.publicValue;
-            break;
-        default:
-            src = NULL;
-            break;
-    }
     if (!src) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return NULL;
@@ -652,14 +638,6 @@ crmf_encrypted_value_unwrap_priv_key(PLArenaPool *poolp,
     SECOidTag oidTag;
     SECItem *params = NULL, *publicValue = NULL;
     int keySize, origLen;
-    CK_KEY_TYPE keyType;
-    CK_ATTRIBUTE_TYPE *usage = NULL;
-    CK_ATTRIBUTE_TYPE rsaUsage[] = {
-        CKA_UNWRAP, CKA_DECRYPT, CKA_SIGN, CKA_SIGN_RECOVER
-    };
-    CK_ATTRIBUTE_TYPE dsaUsage[] = { CKA_SIGN };
-    CK_ATTRIBUTE_TYPE dhUsage[] = { CKA_DERIVE };
-    int usageCount = 0;
 
     oidTag = SECOID_GetAlgorithmTag(encValue->symmAlg);
     wrapMechType = crmf_get_pad_mech_from_tag(oidTag);
@@ -674,44 +652,14 @@ crmf_encrypted_value_unwrap_priv_key(PLArenaPool *poolp,
     origLen = encValue->encValue.len;
     encValue->encValue.len = CRMF_BITS_TO_BYTES(origLen);
     publicValue = crmf_get_public_value(newPubKey, NULL);
-    switch (newPubKey->keyType) {
-        default:
-        case rsaKey:
-            keyType = CKK_RSA;
-            switch (keyUsage & (KU_KEY_ENCIPHERMENT | KU_DIGITAL_SIGNATURE)) {
-                case KU_KEY_ENCIPHERMENT:
-                    usage = rsaUsage;
-                    usageCount = 2;
-                    break;
-                case KU_DIGITAL_SIGNATURE:
-                    usage = &rsaUsage[2];
-                    usageCount = 2;
-                    break;
-                case KU_KEY_ENCIPHERMENT |
-                    KU_DIGITAL_SIGNATURE:
-                case 0: /* default to everything */
-                    usage = rsaUsage;
-                    usageCount = 4;
-                    break;
-            }
-            break;
-        case dhKey:
-            keyType = CKK_DH;
-            usage = dhUsage;
-            usageCount = sizeof(dhUsage) / sizeof(dhUsage[0]);
-            break;
-        case dsaKey:
-            keyType = CKK_DSA;
-            usage = dsaUsage;
-            usageCount = sizeof(dsaUsage) / sizeof(dsaUsage[0]);
-            break;
-    }
-    PORT_Assert(usage != NULL);
-    PORT_Assert(usageCount != 0);
-    *unWrappedKey = PK11_UnwrapPrivKey(slot, wrappingKey, wrapMechType, params,
-                                       &encValue->encValue, nickname,
-                                       publicValue, PR_TRUE, PR_TRUE,
-                                       keyType, usage, usageCount, wincx);
+
+    *unWrappedKey = PK11_UnwrapPrivKeyByKeyType(slot, wrappingKey,
+                                                wrapMechType, params,
+                                                &encValue->encValue,
+                                                nickname, publicValue,
+                                                PR_TRUE, PR_TRUE,
+                                                newPubKey->keyType,
+                                                keyUsage, wincx);
     encValue->encValue.len = origLen;
     if (*unWrappedKey == NULL) {
         goto loser;

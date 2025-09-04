@@ -1308,6 +1308,9 @@ PK11_CreateSignatureContextByPubKey;
 SEC_CreateSignatureAlgorithmID;
 SEC_CreateVerifyAlgorithmParameters;
 SEC_GetSignatureAlgorithmOidTagByKey;
+SECKEY_GetKeyTypeString;
+PK11_GetPublicValueFromPublicKey;
+PK11_UnwrapPrivKeyByKeyType;
 ;+    local:
 ;+       *;
 ;+};

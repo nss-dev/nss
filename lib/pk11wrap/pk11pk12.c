@@ -257,7 +257,7 @@ prepare_ec_priv_key_export_for_asn1(SECKEYRawPrivateKey *key)
 
 SECStatus
 PK11_ImportDERPrivateKeyInfo(PK11SlotInfo *slot, SECItem *derPKI,
-                             SECItem *nickname, SECItem *publicValue, PRBool isPerm,
+                             SECItem *nickname, const SECItem *publicValue, PRBool isPerm,
                              PRBool isPrivate, unsigned int keyUsage, void *wincx)
 {
     return PK11_ImportDERPrivateKeyInfoAndReturnKey(slot, derPKI,
@@ -268,7 +268,7 @@ PK11_ImportDERPrivateKeyInfo(PK11SlotInfo *slot, SECItem *derPKI,
 
 SECStatus
 PK11_ImportDERPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot, SECItem *derPKI,
-                                         SECItem *nickname, SECItem *publicValue,
+                                         SECItem *nickname, const SECItem *publicValue,
                                          PRBool isPerm, PRBool isPrivate, unsigned int keyUsage,
                                          SECKEYPrivateKey **privk, void *wincx)
 {
@@ -318,7 +318,7 @@ PK11_ImportDERPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot, SECItem *derPKI,
 
 SECStatus
 PK11_ImportAndReturnPrivateKey(PK11SlotInfo *slot, SECKEYRawPrivateKey *lpk,
-                               SECItem *nickname, SECItem *publicValue, PRBool isPerm,
+                               SECItem *nickname, const SECItem *publicValue, PRBool isPerm,
                                PRBool isPrivate, unsigned int keyUsage, SECKEYPrivateKey **privk,
                                void *wincx)
 {
@@ -577,8 +577,7 @@ PK11_ImportAndReturnPrivateKey(PK11SlotInfo *slot, SECKEYRawPrivateKey *lpk,
     }
     templateCount = attrs - theTemplate;
     PORT_Assert(templateCount <= sizeof(theTemplate) / sizeof(CK_ATTRIBUTE));
-    if (lpk->keyType != ecKey && lpk->keyType != edKey && lpk->keyType != ecMontKey) {
-        PORT_Assert(signedattr);
+    if (signedattr) {
         signedcount = attrs - signedattr;
         for (ap = signedattr; signedcount; ap++, signedcount--) {
             pk11_SignedToUnsigned(ap);
@@ -604,7 +603,7 @@ loser:
 
 SECStatus
 PK11_ImportPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
-                                      SECKEYPrivateKeyInfo *pki, SECItem *nickname, SECItem *publicValue,
+                                      SECKEYPrivateKeyInfo *pki, SECItem *nickname, const SECItem *publicValue,
                                       PRBool isPerm, PRBool isPrivate, unsigned int keyUsage,
                                       SECKEYPrivateKey **privk, void *wincx)
 {
@@ -743,7 +742,7 @@ loser:
 
 SECStatus
 PK11_ImportPrivateKeyInfo(PK11SlotInfo *slot, SECKEYPrivateKeyInfo *pki,
-                          SECItem *nickname, SECItem *publicValue, PRBool isPerm,
+                          SECItem *nickname, const SECItem *publicValue, PRBool isPerm,
                           PRBool isPrivate, unsigned int keyUsage, void *wincx)
 {
     return PK11_ImportPrivateKeyInfoAndReturnKey(slot, pki, nickname,
