@@ -204,8 +204,8 @@ NSS_CMSSignerInfo_Sign(NSSCMSSignerInfo *signerinfo, SECItem *digest,
         SECOID_DestroyAlgorithmID(&freeAlgID, PR_FALSE);
     }
 
-    signAlgTag = SEC_GetSignatureAlgorithmOidTag(SECKEY_GetPrivateKeyType(privkey),
-                                                 digestalgtag);
+    signAlgTag = SEC_GetSignatureAlgorithmOidTagByKey(privkey, NULL,
+                                                      digestalgtag);
     if (signAlgTag == SEC_OID_UNKNOWN) {
         PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
         goto loser;

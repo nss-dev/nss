@@ -127,7 +127,7 @@ SignFile(FILE *outFile, PRFileDesc *inFile, CERTCertificate *cert)
         goto loser;
     }
 
-    algID = SEC_GetSignatureAlgorithmOidTag(privKey->keyType, SEC_OID_SHA1);
+    algID = SEC_GetSignatureAlgorithmOidTagByKey(privKey, NULL, SEC_OID_UNKNOWN);
     if (algID == SEC_OID_UNKNOWN) {
         returnValue = -1;
         goto loser;

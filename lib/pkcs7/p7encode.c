@@ -786,8 +786,8 @@ sec_pkcs7_encoder_sig_and_certs(SEC_PKCS7ContentInfo *cinfo,
                     return SECFailure;
                 }
 
-                algid = SEC_GetSignatureAlgorithmOidTag(privkey->keyType,
-                                                        digestalgtag);
+                algid = SEC_GetSignatureAlgorithmOidTagByKey(privkey, NULL,
+                                                             digestalgtag);
                 if (algid == SEC_OID_UNKNOWN) {
                     PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
                     SECKEY_DestroyPrivateKey(privkey);

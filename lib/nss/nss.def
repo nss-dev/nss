@@ -1303,3 +1303,11 @@ PK11_CreateSignatureContextByPubKey;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.117 { 	# NSS 3.117 release
+;+    global:
+SEC_CreateSignatureAlgorithmID;
+SEC_CreateVerifyAlgorithmParameters;
+SEC_GetSignatureAlgorithmOidTagByKey;
+;+    local:
+;+       *;
+;+};

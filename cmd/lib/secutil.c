@@ -3886,7 +3886,7 @@ SECU_SignAndEncodeCRL(CERTCertificate *issuer, CERTSignedCrl *signCrl,
         return SECFailure;
     }
 
-    algID = SEC_GetSignatureAlgorithmOidTag(caPrivateKey->keyType, hashAlgTag);
+    algID = SEC_GetSignatureAlgorithmOidTagByKey(caPrivateKey, NULL, hashAlgTag);
     if (algID == SEC_OID_UNKNOWN) {
         *resCode = noSignatureMatch;
         rv = SECFailure;

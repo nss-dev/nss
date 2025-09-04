@@ -438,13 +438,8 @@ sign_cert(CERTCertificate *cert, SECKEYPrivateKey *privk)
 
     SECOidTag alg = SEC_OID_UNKNOWN;
 
-    alg = SEC_GetSignatureAlgorithmOidTag(privk->keyType, SEC_OID_UNKNOWN);
-    if (alg == SEC_OID_UNKNOWN) {
-        FatalError("Unknown key type");
-    }
-
-    rv = SECOID_SetAlgorithmID(cert->arena, &cert->signature, alg, 0);
-
+    rv = SEC_CreateSignatureAlgorithmID(cert->arena, &cert->signature, alg,
+                                        SEC_OID_UNKNOWN, NULL, privk, NULL);
     if (rv != SECSuccess) {
         PR_fprintf(errorFD, "%s: unable to set signature alg id\n",
                    PROGRAM_NAME);

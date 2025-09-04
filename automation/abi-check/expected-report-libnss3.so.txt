@@ -1,0 +1,7 @@
+
+3 Added functions:
+
+  'function SECStatus SEC_CreateSignatureAlgorithmID(PLArenaPool*, SECAlgorithmID*, SECOidTag, SECOidTag, const SECItem*, const SECKEYPrivateKey*, const SECKEYPublicKey*)'    {SEC_CreateSignatureAlgorithmID@@NSS_3.117}
+  'function SECItem* SEC_CreateVerifyAlgorithmParameters(PLArenaPool*, SECItem*, SECOidTag, SECOidTag, const SECItem*, const SECKEYPublicKey*)'    {SEC_CreateVerifyAlgorithmParameters@@NSS_3.117}
+  'function SECOidTag SEC_GetSignatureAlgorithmOidTagByKey(const SECKEYPrivateKey*, const SECKEYPublicKey*, SECOidTag)'    {SEC_GetSignatureAlgorithmOidTagByKey@@NSS_3.117}
+

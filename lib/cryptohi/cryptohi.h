@@ -191,6 +191,17 @@ extern SECOidTag SEC_GetSignatureAlgorithmOidTag(KeyType keyType,
                                                  SECOidTag hashAlgTag);
 
 /*
+** Get the signature algorithm tag for a given key. This works for both public
+** keys and private keys. You must supply one and only one key, The other
+** must be NULL. The private key is first and the public key is second. Doing
+** it this way let's the compiler help us make sure we have the right key
+** when we call the function.
+*/
+extern SECOidTag SEC_GetSignatureAlgorithmOidTagByKey(const SECKEYPrivateKey *privKey,
+                                                      const SECKEYPublicKey *pubKey,
+                                                      SECOidTag hashAlgTag);
+
+/*
 ** Create algorithm parameters for signing. Return a new item
 ** allocated from arena, or NULL on failure.
 **	"arena" is the memory arena to use to allocate data from
@@ -206,6 +217,42 @@ extern SECItem *SEC_CreateSignatureAlgorithmParameters(PLArenaPool *arena,
                                                        SECOidTag hashAlgTag,
                                                        const SECItem *params,
                                                        const SECKEYPrivateKey *key);
+
+/*
+** Create algorithm parameters for signing. Return a new item
+** allocated from arena, or NULL on failure.
+**	"arena" is the memory arena to use to allocate data from
+**	"result" the encoded parameters (memory is allocated)
+**	"signAlgTag" is the signing algorithm
+**	"hashAlgTag" is the preferred hash algorithm
+**	"params" is the default parameters
+**	"key" is the public key
+*/
+extern SECItem *SEC_CreateVerifyAlgorithmParameters(PLArenaPool *arena,
+                                                    SECItem *result,
+                                                    SECOidTag signAlgTag,
+                                                    SECOidTag hashAlgTag,
+                                                    const SECItem *params,
+                                                    const SECKEYPublicKey *key);
+/*
+** Create algorithm parameters for signing. Return a new item
+** allocated from arena, or NULL on failure.
+**	"arena" is the memory arena to use to allocate data from
+**	"sigAlgID" sigAlgID to use.
+**	"hashAlgTag" is the preferred hash algorithm
+**	"params" is the default parameters
+**	"privKey" is the private key
+**	"pubKey" is the public key
+** one and only one of privKey and pubKey should be supplied and the other
+** should be NULL.
+*/
+extern SECStatus SEC_CreateSignatureAlgorithmID(PLArenaPool *arena,
+                                                SECAlgorithmID *sigAlgID,
+                                                SECOidTag sigAlgTag,
+                                                SECOidTag hashAlgTag,
+                                                const SECItem *params,
+                                                const SECKEYPrivateKey *privKey,
+                                                const SECKEYPublicKey *pubKey);
 
 /****************************************/
 /*

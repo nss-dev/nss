@@ -382,14 +382,9 @@ createNewCert(CERTCertificate **issuedCert, CERTCertificateRequest *oldCertReq,
     if (issuerPrivKey == NULL) {
         rv = COULD_NOT_FIND_ISSUER_PRIVATE_KEY;
     }
-    signTag = SEC_GetSignatureAlgorithmOidTag(issuerPrivatekey->keytype,
-                                              SEC_OID_UNKNOWN);
-    if (signTag == SEC_OID_UNKNOWN) {
-        rv = UNSUPPORTED_SIGN_OPERATION_FOR_ISSUER;
-        goto loser;
-    }
-    srv = SECOID_SetAlgorithmID(newCert->arena, &newCert->signature,
-                                signTag, 0);
+    srv = SEC_CreateSignatureAlgorithmID(newCert->arena, &newcert->signature,
+                                         SEC_OID_UNKNOWN, SEC_OID_UNKNOWN,
+                                         NULL, issuerPrivatekey, NULL);
     if (srv != SECSuccess) {
         rv = ERROR_SETTING_SIGN_ALG;
         goto loser;

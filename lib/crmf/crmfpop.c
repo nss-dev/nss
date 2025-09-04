@@ -66,7 +66,7 @@ crmf_get_key_sign_tag(SECKEYPublicKey *inPubKey)
     if (inPubKey->keyType == rsaKey) {
         return SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION;
     }
-    return SEC_GetSignatureAlgorithmOidTag(inPubKey->keyType, SEC_OID_UNKNOWN);
+    return SEC_GetSignatureAlgorithmOidTagByKey(NULL, inPubKey, SEC_OID_UNKNOWN);
 }
 
 static SECAlgorithmID *

@@ -207,13 +207,12 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
     CERTSubjectPublicKeyInfo *spki;
     CERTCertificateRequest *cr;
     SECItem *encoding;
-    SECOidTag signAlgTag;
+    SECOidTag signAlgTag = SEC_OID_UNKNOWN;
     SECStatus rv;
     PLArenaPool *arena;
     void *extHandle;
     SECItem signedReq = { siBuffer, NULL, 0 };
     SECAlgorithmID signAlg;
-    SECItem *params = NULL;
 
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if (!arena) {
@@ -231,23 +230,13 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
 
     /* Change cert type to RSA-PSS, if desired. */
     if (pssCertificate) {
-        params = SEC_CreateSignatureAlgorithmParameters(arena,
-                                                        NULL,
-                                                        SEC_OID_PKCS1_RSA_PSS_SIGNATURE,
-                                                        hashAlgTag,
-                                                        NULL,
-                                                        privk);
-        if (!params) {
-            PORT_FreeArena(arena, PR_FALSE);
-            SECKEY_DestroySubjectPublicKeyInfo(spki);
-            SECU_PrintError(progName, "unable to create RSA-PSS parameters");
-            return SECFailure;
-        }
-
-        spki->algorithm.parameters.data = NULL;
-        rv = SECOID_SetAlgorithmID(arena, &spki->algorithm,
-                                   SEC_OID_PKCS1_RSA_PSS_SIGNATURE,
-                                   hashAlgTag == SEC_OID_UNKNOWN ? NULL : params);
+        /* force a PSS signature. We can do a PSS signature with an
+         * RSA key, this will force us to generate a PSS signature */
+        signAlgTag = SEC_OID_PKCS1_RSA_PSS_SIGNATURE;
+        /* override the SPKI algorithm id. */
+        rv = SEC_CreateSignatureAlgorithmID(arena, &spki->algorithm,
+                                            signAlgTag, hashAlgTag,
+                                            NULL, NULL, pubk);
         if (rv != SECSuccess) {
             PORT_FreeArena(arena, PR_FALSE);
             SECKEY_DestroySubjectPublicKeyInfo(spki);
@@ -292,27 +281,12 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
     }
 
     PORT_Memset(&signAlg, 0, sizeof(signAlg));
-    if (pssCertificate) {
-        rv = SECOID_SetAlgorithmID(arena, &signAlg,
-                                   SEC_OID_PKCS1_RSA_PSS_SIGNATURE, params);
-        if (rv != SECSuccess) {
-            PORT_FreeArena(arena, PR_FALSE);
-            SECU_PrintError(progName, "unable to set algorithm ID");
-            return SECFailure;
-        }
-    } else {
-        signAlgTag = SEC_GetSignatureAlgorithmOidTag(keyType, hashAlgTag);
-        if (signAlgTag == SEC_OID_UNKNOWN) {
-            PORT_FreeArena(arena, PR_FALSE);
-            SECU_PrintError(progName, "unknown Key or Hash type");
-            return SECFailure;
-        }
-        rv = SECOID_SetAlgorithmID(arena, &signAlg, signAlgTag, 0);
-        if (rv != SECSuccess) {
-            PORT_FreeArena(arena, PR_FALSE);
-            SECU_PrintError(progName, "unable to set algorithm ID");
-            return SECFailure;
-        }
+    rv = SEC_CreateSignatureAlgorithmID(arena, &signAlg, signAlgTag, hashAlgTag,
+                                        NULL, privk, NULL);
+    if (rv != SECSuccess) {
+        PORT_FreeArena(arena, PR_FALSE);
+        SECU_PrintError(progName, "can't create a signature algorithm id");
+        return SECFailure;
     }
 
     /* Sign the request */
@@ -2044,54 +2018,18 @@ SetSignatureAlgorithm(PLArenaPool *arena,
                       SECKEYPrivateKey *privKey,
                       PRBool pssSign)
 {
-    SECStatus rv;
+    SECOidTag signAlgTag = SEC_OID_UNKNOWN;
+    SECItem *params = NULL;
 
-    if (pssSign ||
-        SECOID_GetAlgorithmTag(spkiAlg) == SEC_OID_PKCS1_RSA_PSS_SIGNATURE) {
-        SECItem *srcParams;
-        SECItem *params;
-
-        if (SECOID_GetAlgorithmTag(spkiAlg) == SEC_OID_PKCS1_RSA_PSS_SIGNATURE) {
-            srcParams = &spkiAlg->parameters;
-        } else {
-            /* If the issuer's public key is RSA, the parameter field
-             * of the SPKI should be NULL, which can't be used as a
-             * basis of RSA-PSS parameters. */
-            srcParams = NULL;
-        }
-        params = SEC_CreateSignatureAlgorithmParameters(arena,
-                                                        NULL,
-                                                        SEC_OID_PKCS1_RSA_PSS_SIGNATURE,
-                                                        hashAlgTag,
-                                                        srcParams,
-                                                        privKey);
-        if (!params) {
-            SECU_PrintError(progName, "Could not create RSA-PSS parameters");
-            return SECFailure;
-        }
-        rv = SECOID_SetAlgorithmID(arena, signAlg,
-                                   SEC_OID_PKCS1_RSA_PSS_SIGNATURE,
-                                   params);
-        if (rv != SECSuccess) {
-            SECU_PrintError(progName, "Could not set signature algorithm id.");
-            return rv;
-        }
-    } else {
-        KeyType keyType = SECKEY_GetPrivateKeyType(privKey);
-        SECOidTag algID;
-
-        algID = SEC_GetSignatureAlgorithmOidTag(keyType, hashAlgTag);
-        if (algID == SEC_OID_UNKNOWN) {
-            SECU_PrintError(progName, "Unknown key or hash type for issuer.");
-            return SECFailure;
-        }
-        rv = SECOID_SetAlgorithmID(arena, signAlg, algID, 0);
-        if (rv != SECSuccess) {
-            SECU_PrintError(progName, "Could not set signature algorithm id.");
-            return rv;
-        }
+    if (pssSign) {
+        signAlgTag = SEC_OID_PKCS1_RSA_PSS_SIGNATURE;
     }
-    return SECSuccess;
+    if (SECOID_GetAlgorithmTag(spkiAlg) == SEC_OID_PKCS1_RSA_PSS_SIGNATURE) {
+        signAlgTag = SEC_OID_PKCS1_RSA_PSS_SIGNATURE;
+        params = &spkiAlg->parameters;
+    }
+    return SEC_CreateSignatureAlgorithmID(arena, signAlg, signAlgTag,
+                                          hashAlgTag, params, privKey, NULL);
 }
 
 static SECStatus
