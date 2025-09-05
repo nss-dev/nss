@@ -1110,28 +1110,11 @@ PK11_GetPubIndexKeyID(CERTCertificate *cert)
     if (pubk == NULL)
         return NULL;
 
-    switch (pubk->keyType) {
-        case rsaKey:
-            newItem = SECITEM_DupItem(&pubk->u.rsa.modulus);
-            break;
-        case dsaKey:
-            newItem = SECITEM_DupItem(&pubk->u.dsa.publicValue);
-            break;
-        case dhKey:
-            newItem = SECITEM_DupItem(&pubk->u.dh.publicValue);
-            break;
-        case ecKey:
-        case edKey:
-        case ecMontKey:
-            newItem = SECITEM_DupItem(&pubk->u.ec.publicValue);
-            break;
-        case mldsaKey:
-            newItem = SECITEM_DupItem(&pubk->u.mldsa.publicValue);
-            break;
-        case fortezzaKey:
-        default:
-            newItem = NULL; /* Fortezza Fix later... */
+    const SECItem *oldItem = PK11_GetPublicValueFromPublicKey(pubk);
+    if (oldItem) {
+        newItem = SECITEM_DupItem(oldItem);
     }
+
     SECKEY_DestroyPublicKey(pubk);
     /* make hash of it */
     return newItem;

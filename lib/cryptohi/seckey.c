@@ -690,6 +690,26 @@ SECKEY_MLDSAOidParamsToLen(SECOidTag oid, SECKEYSizeType type)
     return 0;
 }
 
+/* make this function generic. multiple key types will be able to use
+ * it (ml-kem, ml=dsa, shl-dsa, fn-dsa, etc. ) */
+SECOidTag
+seckey_GetParameterSet(const SECKEYPrivateKey *key)
+{
+    CK_ULONG paramSet = PK11_ReadULongAttribute(key->pkcs11Slot,
+                                                key->pkcs11ID,
+                                                CKA_PARAMETER_SET);
+    if (paramSet == CK_UNAVAILABLE_INFORMATION) {
+        return SEC_OID_UNKNOWN;
+    }
+    switch (key->keyType) {
+        case mldsaKey:
+            return SECKEY_GetMLDSAOidTagByPkcs11ParamSet(paramSet);
+        default:
+            break;
+    }
+    return SEC_OID_UNKNOWN;
+}
+
 SECOidTag
 SECKEY_MLDSAOidParamsFromLen(unsigned int len, SECKEYSizeType type)
 {
@@ -1291,8 +1311,7 @@ SECKEY_PrivateKeyStrengthInBits(const SECKEYPrivateKey *privk)
     unsigned bitSize = 0;
     SECItem params = { siBuffer, NULL, 0 };
     SECStatus rv;
-    SECOidTag mlDsaOidTag;
-    CK_ML_DSA_PARAMETER_SET_TYPE mlDsaPkcs11ParamSet;
+    SECOidTag paramSetOid;
 
     if (!privk) {
         PORT_SetError(SEC_ERROR_INVALID_KEY);
@@ -1343,17 +1362,11 @@ SECKEY_PrivateKeyStrengthInBits(const SECKEYPrivateKey *privk)
             PORT_Free(params.data);
             return bitSize;
         case mldsaKey:
-            mlDsaPkcs11ParamSet = PK11_ReadULongAttribute(privk->pkcs11Slot,
-                                                          privk->pkcs11ID,
-                                                          CKA_PARAMETER_SET);
-            if (mlDsaPkcs11ParamSet == CK_UNAVAILABLE_INFORMATION) {
+            paramSetOid = seckey_GetParameterSet(privk);
+            if (paramSetOid == SEC_OID_UNKNOWN) {
                 break;
             }
-            mlDsaOidTag = SECKEY_GetMLDSAOidTagByPkcs11ParamSet(mlDsaPkcs11ParamSet);
-            if (mlDsaOidTag == SEC_OID_UNKNOWN) {
-                break;
-            }
-            bitSize = SECKEY_MLDSAOidParamsToLen(mlDsaOidTag,
+            bitSize = SECKEY_MLDSAOidParamsToLen(paramSetOid,
                                                  SECKEYPrivKeyType) *
                       8;
             break;
@@ -1390,7 +1403,7 @@ SECKEY_SignatureLen(const SECKEYPublicKey *pubk)
                 &pubk->u.ec.DEREncodedParams);
             return ((size + 7) / 8) * 2;
         case mldsaKey:
-            size = SECKEY_MLDSAOidParamsToLen(pubk->u.mldsa.paramSet,
+            return SECKEY_MLDSAOidParamsToLen(pubk->u.mldsa.paramSet,
                                               SECKEYSignatureType);
             break;
         default:
@@ -1644,8 +1657,6 @@ SECKEY_ConvertToPublicKey(SECKEYPrivateKey *privk)
     SECStatus rv;
     CK_OBJECT_HANDLE pubKeyHandle;
     SECItem decodedPoint;
-    CK_ML_DSA_PARAMETER_SET_TYPE mlDsaPkcs11ParamSet;
-    SECOidTag mlDsaOidTag;
 
     /*
      * First try to look up the cert.
@@ -1784,17 +1795,10 @@ SECKEY_ConvertToPublicKey(SECKEYPrivateKey *privk)
             if (pubKeyHandle == CK_INVALID_HANDLE) {
                 break;
             }
-            mlDsaPkcs11ParamSet = PK11_ReadULongAttribute(privk->pkcs11Slot,
-                                                          privk->pkcs11ID,
-                                                          CKA_PARAMETER_SET);
-            if (mlDsaPkcs11ParamSet == CK_UNAVAILABLE_INFORMATION) {
+            pubk->u.mldsa.paramSet = seckey_GetParameterSet(privk);
+            if (pubk->u.mldsa.paramSet == SEC_OID_UNKNOWN) {
                 break;
             }
-            mlDsaOidTag = SECKEY_GetMLDSAOidTagByPkcs11ParamSet(mlDsaPkcs11ParamSet);
-            if (mlDsaOidTag == SEC_OID_UNKNOWN) {
-                break;
-            }
-            pubk->u.mldsa.paramSet = mlDsaOidTag;
             rv = PK11_ReadAttribute(privk->pkcs11Slot, pubKeyHandle,
                                     CKA_VALUE, arena, &pubk->u.mldsa.publicValue);
             if (rv != SECSuccess) {

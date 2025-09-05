@@ -1231,6 +1231,7 @@ CERT_CheckKeyUsage(CERTCertificate *cert, unsigned int requiredUsage)
                 break;
             case rsaPssKey:
             case dsaKey:
+            case mldsaKey:
                 requiredUsage |= KU_DIGITAL_SIGNATURE;
                 break;
             case dhKey:

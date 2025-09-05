@@ -54,6 +54,8 @@ SECStatus sec_DecodeRSAPSSParamsToMechanism(PLArenaPool *arena,
                                             CK_RSA_PKCS_PSS_PARAMS *mech,
                                             SECOidTag *hashAlg);
 
+/* get the parameter set, converted to a key oid, only for new keys like mldsa, mlkem, and shldsa */
+SECOidTag seckey_GetParameterSet(const SECKEYPrivateKey *key);
 SEC_END_PROTOS
 
 #endif /* _KEYHI_H_ */
