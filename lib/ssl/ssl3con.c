@@ -1389,7 +1389,8 @@ ssl3_GetNewRandom(SSL3Random random)
     return rv;
 }
 
-SECStatus
+/* this only implements TLS 1.2 and earlier signatures */
+static SECStatus
 ssl3_SignHashesWithPrivKey(SSL3Hashes *hash, SECKEYPrivateKey *key,
                            SSLSignatureScheme scheme, PRBool isTls, SECItem *buf)
 {
@@ -1450,8 +1451,9 @@ ssl3_SignHashesWithPrivKey(SSL3Hashes *hash, SECKEYPrivateKey *key,
             PORT_SetError(SEC_ERROR_INVALID_KEY);
             goto done;
         }
-        /* since we are calling PK11_SignWithMechanism directly, we need to check the
-         * key policy ourselves (which is already checked in SGN_Digest */
+        /* since we are calling PK11_SignWithMechanism directly, we need to
+         * check the key policy ourselves (which is already checked in
+         * SGN_Digest) */
         rv = NSS_OptionGet(NSS_KEY_SIZE_POLICY_FLAGS, &optval);
         if ((rv == SECSuccess) &&
             ((optval & NSS_KEY_SIZE_POLICY_SIGN_FLAG) == NSS_KEY_SIZE_POLICY_SIGN_FLAG)) {
@@ -1526,8 +1528,9 @@ ssl3_SignHashes(sslSocket *ss, SSL3Hashes *hash, SECKEYPrivateKey *key,
     return SECSuccess;
 }
 
-/* Called from ssl3_VerifySignedHashes and tls13_HandleCertificateVerify. */
-SECStatus
+/* Called from ssl3_VerifySignedHashes */
+/* this only implements TLS 1.2 and earlier signatures */
+static SECStatus
 ssl_VerifySignedHashesWithPubKey(sslSocket *ss, SECKEYPublicKey *key,
                                  SSLSignatureScheme scheme,
                                  SSL3Hashes *hash, SECItem *buf)

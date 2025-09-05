@@ -51,6 +51,7 @@
         'tls13hkdf.c',
         'tls13psk.c',
         'tls13replay.c',
+        'tls13signature.c',
         'tls13subcerts.c',
       ],
       'conditions': [
