@@ -647,6 +647,14 @@ CONST_OID ed25519Signature[] = { 0x2B, 0x65, 0x70 };
 /*https://www.rfc-editor.org/rfc/rfc8410#section-3*/
 CONST_OID x25519PublicKey[] = { 0x2b, 0x65, 0x6e };
 
+/*
+ * ML-DSA OIDs
+ * https://csrc.nist.gov/projects/computer-security-objects-register/algorithm-registration
+ */
+CONST_OID mlDsa44[] = { DSA2, 17 };
+CONST_OID mlDsa65[] = { DSA2, 18 };
+CONST_OID mlDsa87[] = { DSA2, 19 };
+
 #define OI(x)                                  \
     {                                          \
         siDEROID, (unsigned char *)x, sizeof x \
@@ -1901,6 +1909,9 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
     ODE(SEC_OID_TLS_REQUIRE_EMS,
         "TLS Require EMS", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION),
 
+    OD(mlDsa44, SEC_OID_ML_DSA_44, "ML-DSA-44", CKM_ML_DSA, INVALID_CERT_EXTENSION),
+    OD(mlDsa65, SEC_OID_ML_DSA_65, "ML-DSA-65", CKM_ML_DSA, INVALID_CERT_EXTENSION),
+    OD(mlDsa87, SEC_OID_ML_DSA_87, "ML-DSA-87", CKM_ML_DSA, INVALID_CERT_EXTENSION),
 };
 
 /* PRIVATE EXTENDED SECOID Table

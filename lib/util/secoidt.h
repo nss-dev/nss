@@ -536,6 +536,10 @@ typedef enum {
 
     SEC_OID_TLS_REQUIRE_EMS = 390,
 
+    SEC_OID_ML_DSA_44 = 391,
+    SEC_OID_ML_DSA_65 = 392,
+    SEC_OID_ML_DSA_87 = 393,
+
     SEC_OID_TOTAL
 } SECOidTag;
 
@@ -545,6 +549,14 @@ typedef enum {
 
 /* fake OID for DSS sign/verify */
 #define SEC_OID_SHA SEC_OID_MISS_DSS
+
+/* ML-DSA Public keys and signatures use the same identifier */
+#define SEC_OID_ML_DSA_44_SIGNATURE SEC_OID_ML_DSA_44
+#define SEC_OID_ML_DSA_44_PUBLIC_KEY SEC_OID_ML_DSA_44
+#define SEC_OID_ML_DSA_65_SIGNATURE SEC_OID_ML_DSA_65
+#define SEC_OID_ML_DSA_65_PUBLIC_KEY SEC_OID_ML_DSA_65
+#define SEC_OID_ML_DSA_87_SIGNATURE SEC_OID_ML_DSA_87
+#define SEC_OID_ML_DSA_87_PUBLIC_KEY SEC_OID_ML_DSA_87
 
 typedef enum {
     INVALID_CERT_EXTENSION = 0,
