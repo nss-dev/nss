@@ -2902,3 +2902,59 @@ EC_DerivePublicKey(const SECItem *privateKey, const ECParams *ecParams, SECItem 
         return SECFailure;
     return (vector->p_EC_DerivePublicKey)(privateKey, ecParams, publicKey);
 }
+
+/* ============== New for 3.0031 =============================== */
+
+SECStatus
+MLDSA_NewKey(CK_ML_DSA_PARAMETER_SET_TYPE paramSet, SECItem *seed,
+             MLDSAPrivateKey *privKey, MLDSAPublicKey *pubKey)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return SECFailure;
+    return (vector->p_MLDSA_NewKey)(paramSet, seed, privKey, pubKey);
+}
+SECStatus
+MLDSA_SignInit(MLDSAPrivateKey *key, CK_HEDGE_TYPE hedgeType,
+               const SECItem *sgnCtx, MLDSAContext **ctx)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return SECFailure;
+    return (vector->p_MLDSA_SignInit)(key, hedgeType, sgnCtx, ctx);
+}
+SECStatus
+MLDSA_SignUpdate(MLDSAContext *ctx, const SECItem *data)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return SECFailure;
+    return (vector->p_MLDSA_SignUpdate)(ctx, data);
+}
+SECStatus
+MLDSA_SignFinal(MLDSAContext *ctx, SECItem *signature)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return SECFailure;
+    return (vector->p_MLDSA_SignFinal)(ctx, signature);
+}
+
+SECStatus
+MLDSA_VerifyInit(MLDSAPublicKey *key, const SECItem *sgnCtx,
+                 MLDSAContext **ctx)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return SECFailure;
+    return (vector->p_MLDSA_VerifyInit)(key, sgnCtx, ctx);
+}
+SECStatus
+MLDSA_VerifyUpdate(MLDSAContext *ctx, const SECItem *data)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return SECFailure;
+    return (vector->p_MLDSA_VerifyUpdate)(ctx, data);
+}
+SECStatus
+MLDSA_VerifyFinal(MLDSAContext *ctx, const SECItem *signature)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return SECFailure;
+    return (vector->p_MLDSA_VerifyFinal)(ctx, signature);
+}

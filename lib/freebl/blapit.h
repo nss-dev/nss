@@ -12,6 +12,8 @@
 #include "prlink.h"
 #include "plarena.h"
 #include "ecl-exp.h"
+#include "pkcs11t.h"
+#include "ml_dsat.h"
 
 /* RC2 operation modes */
 #define NSS_RC2 0
@@ -155,8 +157,8 @@ typedef int __BLAPI_DEPRECATED __attribute__((deprecated));
 #define DH_MAX_P_BITS 16384
 
 /* max signature for all our supported signatures */
-/* currently RSA is the biggest */
-#define MAX_SIGNATURE_LEN ((RSA_MAX_MODULUS_BITS + 7) / 8)
+/* currently ML-DSA is the biggest */
+#define MAX_SIGNATURE_LEN MAX_ML_DSA_SIGNATURE_LEN
 
 /*
  * The FIPS 186-1 algorithm for generating primes P and Q allows only 9
@@ -360,6 +362,26 @@ struct DSAPrivateKeyStr {
     SECItem privateValue;
 };
 typedef struct DSAPrivateKeyStr DSAPrivateKey;
+
+/* ML DSA structures */
+typedef struct MLDSAPrivateKeyStr MLDSAPrivateKey;
+typedef struct MLDSAPublicKeyStr MLDSAPublicKey;
+typedef struct MLDSAContextStr MLDSAContext;
+
+/* MLDSA keys are 'public' to softoken, while MLDSAContexts are opaque */
+struct MLDSAPrivateKeyStr {
+    CK_ML_DSA_PARAMETER_SET_TYPE paramSet;
+    unsigned char keyVal[MAX_ML_DSA_PRIVATE_KEY_LEN];
+    unsigned int keyValLen;
+    unsigned char seed[ML_DSA_SEED_LEN];
+    unsigned int seedLen;
+};
+
+struct MLDSAPublicKeyStr {
+    CK_ML_DSA_PARAMETER_SET_TYPE paramSet;
+    unsigned char keyVal[MAX_ML_DSA_PUBLIC_KEY_LEN];
+    unsigned int keyValLen;
+};
 
 /***************************************************************************
 ** Diffie-Hellman Public and Private Key and related structures

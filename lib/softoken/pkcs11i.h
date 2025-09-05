@@ -765,6 +765,9 @@ extern char *sftk_getString(SFTKObject *object, CK_ATTRIBUTE_TYPE type);
 extern void sftk_nullAttribute(SFTKObject *object, CK_ATTRIBUTE_TYPE type);
 extern CK_RV sftk_GetULongAttribute(SFTKObject *object, CK_ATTRIBUTE_TYPE type,
                                     CK_ULONG *longData);
+extern CK_RV sftk_ReadAttribute(SFTKObject *object, CK_ATTRIBUTE_TYPE type,
+                                unsigned char *data, unsigned int maxlen,
+                                unsigned int *lenp);
 extern CK_RV sftk_forceAttribute(SFTKObject *object, CK_ATTRIBUTE_TYPE type,
                                  const void *value, unsigned int len);
 extern CK_RV sftk_defaultAttribute(SFTKObject *object, CK_ATTRIBUTE_TYPE type,
@@ -982,6 +985,9 @@ PRBool sftk_hasFIPS(SFTKObject *obj);
 
 /* add validation objects to the slot */
 CK_RV sftk_CreateValidationObjects(SFTKSlot *slot);
+
+/* get the length of an MLDSASignature based on the PKCS #11 parameter set */
+unsigned int sftk_MLDSAGetSigLen(CK_ML_DSA_PARAMETER_SET_TYPE paramSet);
 
 SEC_END_PROTOS
 

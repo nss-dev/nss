@@ -35,6 +35,7 @@
     'ldvector.c',
     'md2.c',
     'md5.c',
+    'ml_dsa.c',
     'mpi/mp_gf2m.c',
     'mpi/mpcpucache.c',
     'mpi/mpi.c',

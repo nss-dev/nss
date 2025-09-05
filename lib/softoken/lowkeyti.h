@@ -22,6 +22,9 @@ extern const SEC_ASN1Template nsslowkey_DHPrivateKeyTemplate[];
 extern const SEC_ASN1Template nsslowkey_DHPrivateKeyExportTemplate[];
 #define NSSLOWKEY_EC_PRIVATE_KEY_VERSION 1 /* as per SECG 1 C.4 */
 extern const SEC_ASN1Template nsslowkey_ECPrivateKeyTemplate[];
+extern const SEC_ASN1Template nsslowkey_PQBothSeedAndPrivateKeyTemplate[];
+extern const SEC_ASN1Template nsslowkey_PQSeedTemplate[];
+extern const SEC_ASN1Template nsslowkey_PQPrivateKeyTemplate[];
 
 extern const SEC_ASN1Template nsslowkey_PrivateKeyInfoTemplate[];
 extern const SEC_ASN1Template nsslowkey_EncryptedPrivateKeyInfoTemplate[];
@@ -62,7 +65,8 @@ typedef enum {
     NSSLOWKEYRSAKey = 1,
     NSSLOWKEYDSAKey = 2,
     NSSLOWKEYDHKey = 4,
-    NSSLOWKEYECKey = 5
+    NSSLOWKEYECKey = 5,
+    NSSLOWKEYMLDSAKey = 6,
 } NSSLOWKEYType;
 
 /*
@@ -76,9 +80,16 @@ struct NSSLOWKEYPublicKeyStr {
         DSAPublicKey dsa;
         DHPublicKey dh;
         ECPublicKey ec;
+        MLDSAPublicKey mldsa;
     } u;
 };
 typedef struct NSSLOWKEYPublicKeyStr NSSLOWKEYPublicKey;
+
+typedef struct GenPostQuantumPrivateKeyStr GenPostQuantumPrivateKey;
+struct GenPostQuantumPrivateKeyStr {
+    SECItem seedItem;
+    SECItem keyItem;
+};
 
 /*
 ** Low Level private key object
@@ -93,6 +104,8 @@ struct NSSLOWKEYPrivateKeyStr {
         DSAPrivateKey dsa;
         DHPrivateKey dh;
         ECPrivateKey ec;
+        GenPostQuantumPrivateKey genpq; /* used to decode post quantum keys */
+        MLDSAPrivateKey mldsa;
     } u;
 };
 typedef struct NSSLOWKEYPrivateKeyStr NSSLOWKEYPrivateKey;

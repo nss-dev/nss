@@ -202,6 +202,9 @@
 #define CKA_NSS_VALIDATION_MODULE_ID (CKA_NSS + 39)
 
 #define CKA_NSS_PARAMETER_SET (CKA_NSS + 40)
+/* this is an intern NSS signalling attribute, you'll
+ * never see it in an application accessible object */
+#define CKA_NSS_SEED_OK (CKA_NSS + 41)
 
 /*
  * Trust attributes:

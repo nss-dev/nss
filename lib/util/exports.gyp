@@ -16,6 +16,7 @@
             'ciferfam.h',
             'eccutil.h',
             'hasht.h',
+            'ml_dsat.h',
             'kyber.h',
             'ml_dsat.h',
             'nssb64.h',
