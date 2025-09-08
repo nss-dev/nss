@@ -1191,6 +1191,20 @@ SECU_PrintObjectID(FILE *out, const SECItem *oid, const char *m, int level)
     return SEC_OID_UNKNOWN;
 }
 
+void
+SECU_PrintOidTag(FILE *out, SECOidTag tag, const char *m, int level)
+{
+    const char *desc = SECOID_FindOIDTagDescription(tag);
+
+    if (desc == NULL) {
+        desc = SECOID_FindOIDTagDescription(SEC_OID_UNKNOWN);
+    }
+    SECU_Indent(out, level);
+    if (m != NULL)
+        fprintf(out, "%s\n", m);
+    fprintf(out, "%s\n", desc);
+}
+
 typedef struct secuPBEParamsStr {
     SECItem salt;
     SECItem iterationCount;
@@ -1509,6 +1523,17 @@ SECU_PrintDSAPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level)
     SECU_PrintInteger(out, &pk->u.dsa.publicValue, "PublicValue", level + 1);
 }
 
+void
+SECU_PrintMLDSAPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level)
+{
+
+    SECU_Indent(out, level);
+    fprintf(out, "%s:\n", m);
+
+    SECU_PrintOidTag(out, pk->u.mldsa.paramSet, "Parameter Set", level + 1);
+    SECU_PrintInteger(out, &pk->u.mldsa.publicValue, "PublicValue", level + 1);
+}
+
 static void
 secu_PrintSubjectPublicKeyInfo(FILE *out, PLArenaPool *arena,
                                CERTSubjectPublicKeyInfo *i, char *msg, int level)
@@ -1532,6 +1557,10 @@ secu_PrintSubjectPublicKeyInfo(FILE *out, PLArenaPool *arena,
 
             case ecKey:
                 secu_PrintECPublicKey(out, pk, "EC Public Key", level + 1);
+                break;
+
+            case mldsaKey:
+                SECU_PrintMLDSAPublicKey(out, pk, "ML-DSA Public Key", level + 1);
                 break;
 
             case dhKey:
