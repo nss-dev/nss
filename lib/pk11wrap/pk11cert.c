@@ -177,6 +177,11 @@ PK11_IsUserCert(PK11SlotInfo *slot, CERTCertificate *cert,
                               pubKey->u.ec.publicValue.data,
                               pubKey->u.ec.publicValue.len);
                 break;
+            case mldsaKey:
+                PK11_SETATTRS(&theTemplate, CKA_VALUE,
+                              pubKey->u.mldsa.publicValue.data,
+                              pubKey->u.mldsa.publicValue.len);
+                break;
             case keaKey:
             case fortezzaKey:
             case kyberKey:
@@ -189,7 +194,8 @@ PK11_IsUserCert(PK11SlotInfo *slot, CERTCertificate *cert,
             SECKEY_DestroyPublicKey(pubKey);
             return PR_FALSE;
         }
-        if (pubKey->keyType != ecKey && pubKey->keyType != edKey && pubKey->keyType != ecMontKey) {
+        if (pubKey->keyType != ecKey && pubKey->keyType != edKey &&
+            pubKey->keyType != ecMontKey && pubKey->keyType != mldsaKey) {
             pk11_SignedToUnsigned(&theTemplate);
         }
         if (pk11_FindObjectByTemplate(slot, &theTemplate, 1) != CK_INVALID_HANDLE) {
@@ -1118,6 +1124,9 @@ PK11_GetPubIndexKeyID(CERTCertificate *cert)
         case edKey:
         case ecMontKey:
             newItem = SECITEM_DupItem(&pubk->u.ec.publicValue);
+            break;
+        case mldsaKey:
+            newItem = SECITEM_DupItem(&pubk->u.mldsa.publicValue);
             break;
         case fortezzaKey:
         default:

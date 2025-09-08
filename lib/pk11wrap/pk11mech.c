@@ -202,6 +202,8 @@ PK11_GetKeyMechanism(CK_KEY_TYPE type)
             return CKM_EDDSA;
         case CKK_HKDF:
             return CKM_HKDF_DERIVE;
+        case CKK_ML_DSA:
+            return CKM_ML_DSA;
         case CKK_GENERIC_SECRET:
         default:
             return CKM_SHA_1_HMAC;
@@ -433,6 +435,9 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type, unsigned long len)
             return CKK_NSS_KYBER;
         case CKM_NSS_ML_KEM_KEY_PAIR_GEN:
             return CKK_NSS_ML_KEM;
+        case CKM_ML_DSA_KEY_PAIR_GEN:
+        case CKM_ML_DSA:
+            return CKK_ML_DSA;
         default:
             return pk11_lookup(type)->keyType;
     }
@@ -666,6 +671,8 @@ PK11_GetKeyGenWithSize(CK_MECHANISM_TYPE type, int size)
         case CKM_PBE_SHA1_DES2_EDE_CBC:
         case CKM_PKCS5_PBKD2:
             return type;
+        case CKM_ML_DSA:
+            return CKM_ML_DSA_KEY_PAIR_GEN;
         default:
             return pk11_lookup(type)->keyGen;
     }
@@ -1939,6 +1946,8 @@ PK11_MapSignKeyType(KeyType keyType)
             return CKM_ECDSA;
         case edKey:
             return CKM_EDDSA;
+        case mldsaKey:
+            return CKM_ML_DSA;
         case dhKey:
         default:
             break;

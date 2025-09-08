@@ -49,6 +49,10 @@ pk11_MakeIDFromPublicKey(SECKEYPublicKey *pubKey)
         case kyberKey:
             pubKeyIndex = &pubKey->u.kyber.publicValue;
             break;
+        case mldsaKey:
+            pubKeyIndex = &pubKey->u.mldsa.publicValue;
+            break;
+
         default:
             return NULL;
     }
@@ -84,6 +88,7 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
     int signedcount = 0;
     unsigned int templateCount = 0;
     SECStatus rv;
+    CK_ML_DSA_PARAMETER_SET_TYPE paramSet;
 
     /* if we already have an object in the desired slot, use it */
     if (!isToken && pubKey->pkcs11Slot == slot) {
@@ -274,6 +279,22 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
                               pubKey->u.kyber.publicValue.len);
                 attrs++;
                 break;
+            case mldsaKey:
+                keyType = CKK_ML_DSA;
+                PK11_SETATTRS(attrs, CKA_VERIFY, &cktrue, sizeof(CK_BBOOL));
+                attrs++;
+                paramSet = SECKEY_GetMLDSAPkcs11ParamSetByOidTag(pubKey->u.mldsa.paramSet);
+                if (paramSet == CKP_INVALID_ID) {
+                    PORT_SetError(SEC_ERROR_BAD_KEY);
+                    return CK_INVALID_HANDLE;
+                }
+                PK11_SETATTRS(attrs, CKA_PARAMETER_SET, &paramSet,
+                              sizeof(CK_ML_DSA_PARAMETER_SET_TYPE));
+                attrs++;
+                PK11_SETATTRS(attrs, CKA_VALUE, pubKey->u.mldsa.publicValue.data,
+                              pubKey->u.mldsa.publicValue.len);
+                attrs++;
+                break;
             default:
                 if (ckaId) {
                     SECITEM_FreeItem(ckaId, PR_TRUE);
@@ -284,7 +305,7 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
         templateCount = attrs - theTemplate;
         PORT_Assert(templateCount <= (sizeof(theTemplate) / sizeof(CK_ATTRIBUTE)));
         if (pubKey->keyType != ecKey && pubKey->keyType != kyberKey && pubKey->keyType != edKey &&
-            pubKey->keyType != ecMontKey) {
+            pubKey->keyType != ecMontKey && pubKey->keyType != mldsaKey) {
             PORT_Assert(signedattr);
             signedcount = attrs - signedattr;
             for (attrs = signedattr; signedcount; attrs++, signedcount--) {
@@ -658,7 +679,7 @@ PK11_ExtractPublicKey(PK11SlotInfo *slot, KeyType keyType, CK_OBJECT_HANDLE id)
     CK_ATTRIBUTE template[8];
     CK_ATTRIBUTE *attrs = template;
     CK_ATTRIBUTE *modulus, *exponent, *base, *prime, *subprime, *value;
-    CK_ATTRIBUTE *ecparams, *kemParams;
+    CK_ATTRIBUTE *ecparams, *kemParams, *mldsaParams;
 
     /* if we didn't know the key type, get it */
     if (keyType == nullKey) {
@@ -692,6 +713,9 @@ PK11_ExtractPublicKey(PK11SlotInfo *slot, KeyType keyType, CK_OBJECT_HANDLE id)
             case CKK_NSS_ML_KEM:
             case CKK_ML_KEM:
                 keyType = kyberKey;
+                break;
+            case CKK_ML_DSA:
+                keyType = mldsaKey;
                 break;
             default:
                 PORT_SetError(SEC_ERROR_BAD_KEY);
@@ -852,6 +876,35 @@ PK11_ExtractPublicKey(PK11SlotInfo *slot, KeyType keyType, CK_OBJECT_HANDLE id)
                                            &pubKey->u.ec.DEREncodedParams, value,
                                            &pubKey->u.ec.publicValue);
             break;
+        case mldsaKey:
+            value = attrs;
+            PK11_SETATTRS(attrs, CKA_VALUE, NULL, 0);
+            attrs++;
+            mldsaParams = attrs;
+            PK11_SETATTRS(attrs, CKA_PARAMETER_SET, NULL, 0);
+            attrs++;
+            templateCount = attrs - template;
+            PR_ASSERT(templateCount <= sizeof(template) / sizeof(CK_ATTRIBUTE));
+            crv = PK11_GetAttributes(tmp_arena, slot, id, template, templateCount);
+            if (crv != CKR_OK)
+                break;
+
+            if ((keyClass != CKO_PUBLIC_KEY) || (pk11KeyType != CKK_ML_DSA)) {
+                crv = CKR_OBJECT_HANDLE_INVALID;
+                break;
+            }
+
+            if (mldsaParams->ulValueLen != sizeof(CK_ML_DSA_PARAMETER_SET_TYPE)) {
+                crv = CKR_OBJECT_HANDLE_INVALID;
+                break;
+            }
+            pubKey->u.mldsa.paramSet = SECKEY_GetMLDSAOidTagByPkcs11ParamSet(
+                *(CK_ML_DSA_PARAMETER_SET_TYPE *)mldsaParams->pValue);
+
+            crv = pk11_Attr2SecItem(arena, value, &pubKey->u.mldsa.publicValue);
+            if (crv != CKR_OK)
+                break;
+            break;
         case kyberKey:
             value = attrs;
             PK11_SETATTRS(attrs, CKA_VALUE, NULL, 0);
@@ -978,6 +1031,9 @@ PK11_MakePrivKey(PK11SlotInfo *slot, KeyType keyType,
             case CKK_ML_KEM:
                 keyType = kyberKey;
                 break;
+            case CKK_ML_DSA:
+                keyType = mldsaKey;
+                break;
             default:
                 break;
         }
@@ -1103,6 +1159,8 @@ pk11_loadPrivKeyWithFlags(PK11SlotInfo *slot, SECKEYPrivateKey *privKey,
         { CKA_MODIFIABLE, NULL, 0 },
         { CKA_SENSITIVE, NULL, 0 },
         { CKA_EXTRACTABLE, NULL, 0 },
+        { CKA_PARAMETER_SET, NULL, 0 },
+        { CKA_SEED, NULL, 0 },
 #define NUM_RESERVED_ATTRS 5 /* number of reserved attributes above */
     };
     CK_BBOOL cktrue = CK_TRUE;
@@ -1182,6 +1240,24 @@ pk11_loadPrivKeyWithFlags(PK11SlotInfo *slot, SECKEYPrivateKey *privKey,
             count++;
             extra_count++;
             break;
+        case mldsaKey:
+            ap->type = CKA_PARAMETER_SET;
+            ap++;
+            count++;
+            extra_count++;
+            ap->type = CKA_SEED;
+            ap++;
+            count++;
+            extra_count++;
+            ap->type = CKA_VALUE;
+            ap++;
+            count++;
+            extra_count++;
+            ap->type = CKA_SIGN;
+            ap++;
+            count++;
+            extra_count++;
+            break;
         case ecKey:
         case edKey:
         case ecMontKey:
@@ -1238,7 +1314,8 @@ pk11_loadPrivKeyWithFlags(PK11SlotInfo *slot, SECKEYPrivateKey *privKey,
      * them the raw data as unsigned. The exception is EC,
      * where the values are encoded or zero-preserving
      * per-RFC5915 */
-    if (privKey->keyType != ecKey && privKey->keyType != edKey && privKey->keyType != ecMontKey) {
+    if (privKey->keyType != ecKey && privKey->keyType != edKey &&
+        privKey->keyType != ecMontKey && privKey->keyType != mldsaKey) {
         for (ap = attrs; extra_count; ap++, extra_count--) {
             pk11_SignedToUnsigned(ap);
         }
@@ -1372,6 +1449,17 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     };
     SECKEYECParams *ecParams;
 
+    CK_ATTRIBUTE mlDsaPubTemplate[] = {
+        { CKA_PARAMETER_SET, NULL, 0 },
+        { CKA_TOKEN, NULL, 0 },
+        { CKA_DERIVE, NULL, 0 },
+        { CKA_WRAP, NULL, 0 },
+        { CKA_VERIFY, NULL, 0 },
+        { CKA_VERIFY_RECOVER, NULL, 0 },
+        { CKA_ENCRYPT, NULL, 0 },
+        { CKA_MODIFIABLE, NULL, 0 },
+    };
+
     CK_ATTRIBUTE kyberPubTemplate[] = {
         { CKA_NSS_PARAMETER_SET, NULL, 0 },
         { CKA_TOKEN, NULL, 0 },
@@ -1392,6 +1480,7 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     SECKEYPQGParams *dsaParams;
     SECKEYDHParams *dhParams;
     CK_NSS_KEM_PARAMETER_SET_TYPE *kemParams;
+    CK_ML_DSA_PARAMETER_SET_TYPE *mldsaParams;
     CK_MECHANISM mechanism;
     CK_MECHANISM test_mech;
     CK_MECHANISM test_mech2;
@@ -1626,6 +1715,18 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
             pubTemplate = ecPubTemplate;
             keyType = edKey;
             test_mech.mechanism = CKM_EDDSA;
+            break;
+        case CKM_ML_DSA_KEY_PAIR_GEN:
+            mldsaParams = (CK_ML_DSA_PARAMETER_SET_TYPE *)param;
+            attrs = mlDsaPubTemplate;
+            PK11_SETATTRS(attrs,
+                          CKA_PARAMETER_SET,
+                          mldsaParams,
+                          sizeof(CK_ML_DSA_PARAMETER_SET_TYPE));
+            attrs++;
+            pubTemplate = mlDsaPubTemplate;
+            keyType = mldsaKey;
+            test_mech.mechanism = CKM_ML_DSA;
             break;
         default:
             PORT_SetError(SEC_ERROR_BAD_KEY);
@@ -1990,6 +2091,11 @@ SECKEY_SetPublicValue(SECKEYPrivateKey *privKey, SECItem *publicValue)
             rv = PK11_ReadAttribute(slot, privKeyID, CKA_EC_PARAMS,
                                     arena, &pubKey.u.ec.DEREncodedParams);
             break;
+        case mldsaKey:
+            pubKey.u.mldsa.publicValue = *publicValue;
+            rv = PK11_ReadAttribute(slot, privKeyID, CKA_VALUE,
+                                    arena, &pubKey.u.mldsa.publicValue);
+            break;
     }
     if (rv == SECSuccess) {
         rv = PK11_ImportPublicKey(slot, &pubKey, PR_TRUE);
@@ -2054,6 +2160,7 @@ PK11_ImportEncryptedPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
     CK_ATTRIBUTE_TYPE dhUsage[] = { CKA_DERIVE };
     CK_ATTRIBUTE_TYPE ecUsage[] = { CKA_SIGN, CKA_DERIVE };
     CK_ATTRIBUTE_TYPE edUsage[] = { CKA_SIGN };
+    CK_ATTRIBUTE_TYPE mldsaUsage[] = { CKA_SIGN };
     if ((epki == NULL) || (pwitem == NULL))
         return SECFailure;
 
@@ -2116,6 +2223,11 @@ PK11_ImportEncryptedPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
         case ecMontKey:
             key_type = CKK_EC_MONTGOMERY;
             usage = dhUsage;
+            usageCount = 1;
+            break;
+        case mldsaKey:
+            key_type = CKK_ML_DSA;
+            usage = mldsaUsage;
             usageCount = 1;
             break;
     }

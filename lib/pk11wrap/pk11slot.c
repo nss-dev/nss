@@ -57,6 +57,7 @@ const PK11DefaultArrayEntry PK11_DefaultArray[] = {
     { "SKIPJACK", SECMOD_FORTEZZA_FLAG, CKM_SKIPJACK_CBC64 },
     { "Publicly-readable certs", SECMOD_FRIENDLY_FLAG, CKM_INVALID_MECHANISM },
     { "Random Num Generator", SECMOD_RANDOM_FLAG, CKM_FAKE_RANDOM },
+    { "ML-DSA", SECMOD_MLDSA_FLAG, CKM_ML_DSA },
 };
 const int num_pk11_default_mechanisms =
     sizeof(PK11_DefaultArray) / sizeof(PK11_DefaultArray[0]);
@@ -94,7 +95,8 @@ static PK11SlotList
     pk11_tlsSlotList,
     pk11_randomSlotList,
     pk11_sha256SlotList,
-    pk11_sha512SlotList; /* slots do SHA512 and SHA384 */
+    pk11_sha512SlotList, /* slots do SHA512 and SHA384 */
+    pk11_mldsaSlotList;
 
 /************************************************************
  * Generic Slot List and Slot List element manipulations
@@ -875,6 +877,7 @@ PK11_InitSlotLists(void)
     pk11_InitSlotListStatic(&pk11_randomSlotList);
     pk11_InitSlotListStatic(&pk11_sha256SlotList);
     pk11_InitSlotListStatic(&pk11_sha512SlotList);
+    pk11_InitSlotListStatic(&pk11_mldsaSlotList);
     return SECSuccess;
 }
 
@@ -901,6 +904,7 @@ PK11_DestroySlotLists(void)
     pk11_FreeSlotListStatic(&pk11_randomSlotList);
     pk11_FreeSlotListStatic(&pk11_sha256SlotList);
     pk11_FreeSlotListStatic(&pk11_sha512SlotList);
+    pk11_FreeSlotListStatic(&pk11_mldsaSlotList);
     return;
 }
 
@@ -990,6 +994,8 @@ PK11_GetSlotList(CK_MECHANISM_TYPE type)
             return &pk11_ideaSlotList;
         case CKM_FAKE_RANDOM:
             return &pk11_randomSlotList;
+        case CKM_ML_DSA:
+            return &pk11_mldsaSlotList;
     }
     return NULL;
 }

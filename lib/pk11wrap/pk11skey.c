@@ -2131,6 +2131,7 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
         case nullKey:
         case edKey:
         case ecMontKey:
+        case mldsaKey:
             PORT_SetError(SEC_ERROR_BAD_KEY);
             break;
         case dsaKey:
