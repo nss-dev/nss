@@ -275,6 +275,22 @@ SECOidTag SECKEY_GetECCOid(const SECKEYECParams *params);
 SECStatus SECKEY_EnforceKeySize(KeyType keyType, unsigned keyLength,
                                 SECErrorCodes error);
 
+/* Maps an ML-DSA OID tag to its corresponding PKCS#11's CKP_* parameter set */
+CK_ML_DSA_PARAMETER_SET_TYPE
+SECKEY_GetMLDSAPkcs11ParamSetByOidTag(SECOidTag tag);
+
+/* Maps a PKCS#11's CKP_* parameter set to its corresponding ML-DSA OID tag */
+SECOidTag
+SECKEY_GetMLDSAOidTagByPkcs11ParamSet(CK_ML_DSA_PARAMETER_SET_TYPE paramSet);
+
+typedef enum {
+    SECKEYPubKeyType = 1,
+    SECKEYPrivKeyType,
+    SECKEYSignatureType,
+} SECKEYSizeType;
+
+unsigned int SECKEY_MLDSAOidParamsToLen(SECOidTag oid, SECKEYSizeType type);
+
 SEC_END_PROTOS
 
 #endif /* _KEYHI_H_ */

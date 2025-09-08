@@ -17,6 +17,7 @@
             'eccutil.h',
             'hasht.h',
             'kyber.h',
+            'ml_dsat.h',
             'nssb64.h',
             'nssb64t.h',
             'nssilckt.h',

@@ -6,6 +6,7 @@
 
 #include "eccutil.h"
 #include "kyber.h"
+#include "ml_dsat.h"
 #include "plarena.h"
 #include "pkcs11t.h"
 #include "secmodt.h"
@@ -38,6 +39,7 @@ typedef enum {
     kyberKey = 9,
     edKey = 10,
     ecMontKey = 11,
+    mldsaKey = 12
 } KeyType;
 
 /*
@@ -189,6 +191,15 @@ struct SECKEYKyberPublicKeyStr {
 typedef struct SECKEYKyberPublicKeyStr SECKEYKyberPublicKey;
 
 /*
+** ML-DSA Public Key structure
+*/
+struct SECKEYMLDSAPublicKeyStr {
+    SECOidTag paramSet;
+    SECItem publicValue;
+};
+typedef struct SECKEYMLDSAPublicKeyStr SECKEYMLDSAPublicKey;
+
+/*
 ** A Generic  public key object.
 */
 struct SECKEYPublicKeyStr {
@@ -204,6 +215,7 @@ struct SECKEYPublicKeyStr {
         SECKEYFortezzaPublicKey fortezza;
         SECKEYECPublicKey ec;
         SECKEYKyberPublicKey kyber;
+        SECKEYMLDSAPublicKey mldsa;
     } u;
 };
 typedef struct SECKEYPublicKeyStr SECKEYPublicKey;
