@@ -153,8 +153,7 @@ private:
   }
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
-                         /*optional*/ const Input*, /*optional*/ const Input*,
-                         /*optional*/ const Input*)
+                         /*optional*/ const Input*, /*optional*/ const Input*)
                          override
   {
     return Success;
@@ -303,8 +302,7 @@ public:
   }
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
-                         /*optional*/ const Input*, /*optional*/ const Input*,
-                         /*optional*/ const Input*)
+                         /*optional*/ const Input*, /*optional*/ const Input*)
                          override
   {
     return Success;
@@ -324,8 +322,7 @@ public:
   }
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
-                         /*optional*/ const Input*, /*optional*/ const Input*,
-                         /*optional*/ const Input*)
+                         /*optional*/ const Input*, /*optional*/ const Input*)
                          override
   {
     ADD_FAILURE();
@@ -446,8 +443,7 @@ public:
   }
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
-                         /*optional*/ const Input*, /*optional*/ const Input*,
-                         /*optional*/ const Input*)
+                         /*optional*/ const Input*, /*optional*/ const Input*)
                          override
   {
     return Success;
@@ -671,7 +667,6 @@ private:
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
                          /*optional*/ const Input*,
-                         /*optional*/ const Input*,
                          /*optional*/ const Input*) override
   {
     return Success;
@@ -729,7 +724,7 @@ class RevokedEndEntityTrustDomain final : public MultiplePathTrustDomain
 public:
   Result CheckRevocation(EndEntityOrCA endEntityOrCA, const CertID&, Time,
                          Duration, /*optional*/ const Input*,
-                         /*optional*/ const Input*, /*optional*/ const Input*) override
+                         /*optional*/ const Input*) override
   {
     if (endEntityOrCA == EndEntityOrCA::MustBeEndEntity) {
       return Result::ERROR_REVOKED_CERTIFICATE;
@@ -834,8 +829,7 @@ private:
   }
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
-                         /*optional*/ const Input*, /*optional*/ const Input*,
-                         /*optional*/ const Input*)
+                         /*optional*/ const Input*, /*optional*/ const Input*)
                          override
   {
     return Success;
