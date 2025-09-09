@@ -690,6 +690,52 @@ SECKEY_MLDSAOidParamsToLen(SECOidTag oid, SECKEYSizeType type)
     return 0;
 }
 
+SECOidTag
+SECKEY_MLDSAOidParamsFromLen(unsigned int len, SECKEYSizeType type)
+{
+    switch (type) {
+        case SECKEYPubKeyType:
+            switch (len) {
+                case ML_DSA_44_PUBLICKEY_LEN:
+                    return SEC_OID_ML_DSA_44;
+                case ML_DSA_65_PUBLICKEY_LEN:
+                    return SEC_OID_ML_DSA_65;
+                case ML_DSA_87_PUBLICKEY_LEN:
+                    return SEC_OID_ML_DSA_87;
+                default:
+                    break;
+            }
+            break;
+        case SECKEYPrivKeyType:
+            switch (len) {
+                case ML_DSA_44_PRIVATEKEY_LEN:
+                    return SEC_OID_ML_DSA_44;
+                case ML_DSA_65_PRIVATEKEY_LEN:
+                    return SEC_OID_ML_DSA_65;
+                case ML_DSA_87_PRIVATEKEY_LEN:
+                    return SEC_OID_ML_DSA_87;
+                default:
+                    break;
+            }
+            break;
+        case SECKEYSignatureType:
+            switch (len) {
+                case ML_DSA_44_SIGNATURE_LEN:
+                    return SEC_OID_ML_DSA_44;
+                case ML_DSA_65_SIGNATURE_LEN:
+                    return SEC_OID_ML_DSA_65;
+                case ML_DSA_87_SIGNATURE_LEN:
+                    return SEC_OID_ML_DSA_87;
+                default:
+                    break;
+            }
+            break;
+        default:
+            break;
+    }
+    return SEC_OID_UNKNOWN;
+}
+
 static SECKEYPublicKey *
 seckey_ExtractPublicKey(const CERTSubjectPublicKeyInfo *spki)
 {
@@ -778,10 +824,8 @@ seckey_ExtractPublicKey(const CERTSubjectPublicKeyInfo *spki)
                 pubk->keyType = mldsaKey;
                 pubk->u.mldsa.paramSet = tag;
 
-                rv = SECITEM_CopyItem(arena, &pubk->u.mldsa.publicValue, &newOs);
-                if (rv != SECSuccess) {
-                    break;
-                }
+                /* newOS is already in the arena, we can just copy the data */
+                pubk->u.mldsa.publicValue = newOs;
                 return pubk;
             case SEC_OID_X25519:
             case SEC_OID_ED25519_PUBLIC_KEY:
@@ -1539,6 +1583,10 @@ SECKEY_EnforceKeySize(KeyType keyType, unsigned keyLength, SECErrorCodes error)
         case ecKey:
             opt = NSS_ECC_MIN_KEY_SIZE;
             break;
+        case mldsaKey:
+            return SECSuccess; /* mldsa handles key size policy
+                                * by having separate controls on
+                                * key params */
         case nullKey:
         default:
             PORT_SetError(SEC_ERROR_INVALID_KEY);
@@ -1898,8 +1946,7 @@ seckey_CreateSubjectPublicKeyInfo_helper(SECKEYPublicKey *pubk)
             case mldsaKey:
                 tag = pubk->u.mldsa.paramSet;
                 rv = SECOID_SetAlgorithmID(arena, &spki->algorithm,
-                                           tag,
-                                           &params);
+                                           tag, NULL);
                 if (rv != SECSuccess) {
                     break;
                 }
@@ -2307,6 +2354,17 @@ SECKEY_ImportDERPublicKey(const SECItem *derKey, CK_KEY_TYPE type)
             prepare_dh_pub_key_for_asn1(pubk);
             rv = SEC_QuickDERDecodeItem(pubk->arena, pubk, SECKEY_DHPublicKeyTemplate, &newDerKey);
             pubk->keyType = dhKey;
+            break;
+        case CKK_ML_DSA:
+            pubk->keyType = mldsaKey;
+            /* ml_dsa has no derencoding */
+            pubk->u.mldsa.publicValue = newDerKey;
+            pubk->u.mldsa.paramSet = SECKEY_MLDSAOidParamsFromLen(newDerKey.len,
+                                                                  SECKEYPubKeyType);
+            if (pubk->u.mldsa.paramSet == SEC_OID_UNKNOWN) {
+                PORT_SetError(SEC_ERROR_BAD_KEY);
+                rv = SECFailure;
+            }
             break;
         default:
             rv = SECFailure;

@@ -552,6 +552,8 @@ PK11_SignatureLen(SECKEYPrivateKey *key)
     SECItem attributeItem = { siBuffer, NULL, 0 };
     SECStatus rv;
     int length;
+    SECOidTag paramOid;
+    CK_ULONG paramSet;
 
     switch (key->keyType) {
         case rsaKey:
@@ -590,6 +592,18 @@ PK11_SignatureLen(SECKEYPrivateKey *key)
                 }
             }
             return pk11_backupGetSignLength(key);
+        case mldsaKey:
+            paramSet = PK11_ReadULongAttribute(key->pkcs11Slot, key->pkcs11ID,
+                                               CKA_PARAMETER_SET);
+            if (paramSet == CK_UNAVAILABLE_INFORMATION) {
+                break;
+            }
+            paramOid = SECKEY_GetMLDSAOidTagByPkcs11ParamSet(paramSet);
+            if (paramOid == SEC_OID_UNKNOWN) {
+                break;
+            }
+
+            return SECKEY_MLDSAOidParamsToLen(paramOid, SECKEYSignatureType);
         default:
             break;
     }

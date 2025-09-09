@@ -2048,6 +2048,7 @@ SECKEY_SetPublicValue(SECKEYPrivateKey *privKey, const SECItem *publicValue)
     PLArenaPool *arena;
     PK11SlotInfo *slot;
     CK_OBJECT_HANDLE privKeyID;
+    CK_ULONG paramSet;
 
     if (privKey == NULL || publicValue == NULL ||
         publicValue->data == NULL || publicValue->len == 0) {
@@ -2116,8 +2117,18 @@ SECKEY_SetPublicValue(SECKEYPrivateKey *privKey, const SECItem *publicValue)
             break;
         case mldsaKey:
             pubKey.u.mldsa.publicValue = *publicValue;
-            rv = PK11_ReadAttribute(slot, privKeyID, CKA_VALUE,
-                                    arena, &pubKey.u.mldsa.publicValue);
+            paramSet = PK11_ReadULongAttribute(slot, privKeyID,
+                                               CKA_PARAMETER_SET);
+            if (paramSet == CK_UNAVAILABLE_INFORMATION) {
+                PORT_SetError(SEC_ERROR_BAD_KEY);
+                break;
+            }
+            pubKey.u.mldsa.paramSet = SECKEY_GetMLDSAPkcs11ParamSetByOidTag(paramSet);
+            if (pubKey.u.mldsa.paramSet == SEC_OID_UNKNOWN) {
+                PORT_SetError(SEC_ERROR_BAD_KEY);
+                break;
+            }
+            rv = SECSuccess;
             break;
     }
     if (rv == SECSuccess) {

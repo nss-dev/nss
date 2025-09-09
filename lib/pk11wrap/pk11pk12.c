@@ -17,6 +17,7 @@
 #include "pk11func.h"
 #include "secitem.h"
 #include "keyhi.h"
+#include "keyi.h"
 #include "secoid.h"
 #include "secasn1.h"
 #include "secerr.h"
@@ -79,6 +80,13 @@ struct SECKEYECPrivateKeyStr {
 };
 typedef struct SECKEYECPrivateKeyStr SECKEYECPrivateKey;
 
+struct SECKEYMLDSAPrivateKeyStr {
+    SECOidTag params;
+    SECItem privateValue;
+    SECItem seed;
+};
+typedef struct SECKEYMLDSAPrivateKeyStr SECKEYMLDSAPrivateKey;
+
 /*
 ** raw private key object
 */
@@ -90,12 +98,14 @@ struct SECKEYRawPrivateKeyStr {
         SECKEYDSAPrivateKey dsa;
         SECKEYDHPrivateKey dh;
         SECKEYECPrivateKey ec;
+        SECKEYMLDSAPrivateKey mldsa;
     } u;
 };
 typedef struct SECKEYRawPrivateKeyStr SECKEYRawPrivateKey;
 
 SEC_ASN1_MKSUB(SEC_AnyTemplate)
 SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
+SEC_ASN1_MKSUB(SEC_OctetStringTemplate)
 
 /* ASN1 Templates for new decoder/encoder */
 /*
@@ -153,6 +163,28 @@ const SEC_ASN1Template SECKEY_DHPrivateKeyExportTemplate[] = {
     { SEC_ASN1_INTEGER, offsetof(SECKEYRawPrivateKey, u.dh.privateValue) },
     { SEC_ASN1_INTEGER, offsetof(SECKEYRawPrivateKey, u.dh.base) },
     { SEC_ASN1_INTEGER, offsetof(SECKEYRawPrivateKey, u.dh.prime) },
+};
+
+const SEC_ASN1Template SECKEY_MLDSAPrivateKeyBothExportTemplate[] = {
+    { SEC_ASN1_CHOICE, 0, NULL, sizeof(SECKEYRawPrivateKey) },
+    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(SECKEYRawPrivateKey) },
+    { SEC_ASN1_OCTET_STRING, offsetof(SECKEYRawPrivateKey, u.mldsa.seed) },
+    { SEC_ASN1_OCTET_STRING, offsetof(SECKEYRawPrivateKey, u.mldsa.privateValue) },
+    { 0 }
+};
+
+const SEC_ASN1Template SECKEY_MLDSAPrivateKeySeedExportTemplate[] = {
+    { SEC_ASN1_CHOICE, 0, NULL, sizeof(SECKEYRawPrivateKey) },
+    { SEC_ASN1_CONTEXT_SPECIFIC | 0,
+      offsetof(SECKEYRawPrivateKey, u.mldsa.seed),
+      SEC_ASN1_SUB(SEC_OctetStringTemplate) },
+    { 0 }
+};
+
+const SEC_ASN1Template SECKEY_MLDSAPrivateKeyKeyExportTemplate[] = {
+    { SEC_ASN1_CHOICE, 0, NULL, sizeof(SECKEYRawPrivateKey) },
+    { SEC_ASN1_OCTET_STRING, offsetof(SECKEYRawPrivateKey, u.mldsa.privateValue) },
+    { 0 }
 };
 
 SEC_ASN1_MKSUB(SEC_BitStringTemplate)
@@ -335,6 +367,7 @@ PK11_ImportAndReturnPrivateKey(PK11SlotInfo *slot, SECKEYRawPrivateKey *lpk,
     int signedcount = 0;
     CK_ATTRIBUTE *ap;
     SECItem *ck_id = NULL;
+    CK_ULONG paramSet;
 
     attrs = theTemplate;
 
@@ -428,7 +461,7 @@ PK11_ImportAndReturnPrivateKey(PK11SlotInfo *slot, SECKEYRawPrivateKey *lpk,
             }
             PK11_SETATTRS(attrs, CKA_SIGN, &cktrue, sizeof(CK_BBOOL));
             attrs++;
-            PK11_SETATTRS(attrs, CKA_SIGN_RECOVER, &cktrue, sizeof(CK_BBOOL));
+            PK11_SETATTRS(attrs, CKA_SIGN_RECOVER, &ckfalse, sizeof(CK_BBOOL));
             attrs++;
             if (nickname) {
                 PK11_SETATTRS(attrs, CKA_LABEL, nickname->data, nickname->len);
@@ -502,9 +535,7 @@ PK11_ImportAndReturnPrivateKey(PK11SlotInfo *slot, SECKEYRawPrivateKey *lpk,
             PK11_SETATTRS(attrs, CKA_SIGN, (keyUsage & KU_DIGITAL_SIGNATURE) ? &cktrue : &ckfalse,
                           sizeof(CK_BBOOL));
             attrs++;
-            PK11_SETATTRS(attrs, CKA_SIGN_RECOVER,
-                          (keyUsage & KU_DIGITAL_SIGNATURE) ? &cktrue
-                                                            : &ckfalse,
+            PK11_SETATTRS(attrs, CKA_SIGN_RECOVER, &ckfalse,
                           sizeof(CK_BBOOL));
             attrs++;
             PK11_SETATTRS(attrs, CKA_DERIVE, (keyUsage & KU_KEY_AGREEMENT) ? &cktrue : &ckfalse,
@@ -571,12 +602,65 @@ PK11_ImportAndReturnPrivateKey(PK11SlotInfo *slot, SECKEYRawPrivateKey *lpk,
                           lpk->u.ec.privateValue.len);
             attrs++;
             break;
+        case mldsaKey:
+            keyType = CKK_ML_DSA;
+            /* we need at least one of these to import into PKCS #11.
+             * if we have only one, it may still fail, but that is up
+             * to the token */
+            if ((lpk->u.mldsa.seed.len == 0) &&
+                (lpk->u.mldsa.privateValue.len == 0)) {
+                PORT_SetError(SEC_ERROR_BAD_KEY);
+                goto loser;
+            }
+            PK11_SETATTRS(attrs, CKA_SIGN, &cktrue, sizeof(CK_BBOOL));
+            attrs++;
+            PK11_SETATTRS(attrs, CKA_SIGN_RECOVER, &ckfalse, sizeof(CK_BBOOL));
+            attrs++;
+            /* if we have the public value, we can do more, without it
+             * we won't be able to set the ck_id properly, which will make
+             * this key effectively invisible. The application will need
+             * to update the ID before it looses it's handle */
+            if (publicValue != NULL) {
+                if (PK11_IsInternal(slot)) {
+                    PK11_SETATTRS(attrs, CKA_NSS_DB,
+                                  publicValue->data, publicValue->len);
+                    attrs++;
+                }
+                ck_id = PK11_MakeIDFromPubKey(publicValue);
+                if (ck_id == NULL) {
+                    goto loser;
+                }
+                PK11_SETATTRS(attrs, CKA_ID, ck_id->data, ck_id->len);
+                attrs++;
+            }
+            if (nickname) {
+                PK11_SETATTRS(attrs, CKA_LABEL, nickname->data, nickname->len);
+                attrs++;
+            }
+            paramSet = SECKEY_GetMLDSAPkcs11ParamSetByOidTag(lpk->u.mldsa.params);
+            PK11_SETATTRS(attrs, CKA_PARAMETER_SET, (unsigned char *)&paramSet,
+                          sizeof(CK_ML_DSA_PARAMETER_SET_TYPE));
+            attrs++;
+            if (lpk->u.mldsa.seed.len) {
+                PK11_SETATTRS(attrs, CKA_SEED, lpk->u.mldsa.seed.data,
+                              lpk->u.mldsa.seed.len);
+                attrs++;
+            }
+            if (lpk->u.mldsa.privateValue.len) {
+                PK11_SETATTRS(attrs, CKA_VALUE, lpk->u.mldsa.privateValue.data,
+                              lpk->u.mldsa.privateValue.len);
+                attrs++;
+            }
+            break;
         default:
             PORT_SetError(SEC_ERROR_BAD_KEY);
             goto loser;
     }
     templateCount = attrs - theTemplate;
     PORT_Assert(templateCount <= sizeof(theTemplate) / sizeof(CK_ATTRIBUTE));
+    /* we used to assert unless the key didn't need signedattrs, but that's
+     * now true of almost all modern keys, so now if the key has signedattrs
+     * the just need to set the value */
     if (signedattr) {
         signedcount = attrs - signedattr;
         for (ap = signedattr; signedcount; ap++, signedcount--) {
@@ -612,6 +696,7 @@ PK11_ImportPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
     const SEC_ASN1Template *keyTemplate, *paramTemplate;
     void *paramDest = NULL;
     PLArenaPool *arena = NULL;
+    SECOidTag algTag;
 
     arena = PORT_NewArena(2048);
     if (!arena) {
@@ -626,7 +711,8 @@ PK11_ImportPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
     }
     lpk->arena = arena;
 
-    switch (SECOID_GetAlgorithmTag(&pki->algorithm)) {
+    algTag = SECOID_GetAlgorithmTag(&pki->algorithm);
+    switch (algTag) {
         case SEC_OID_PKCS1_RSA_ENCRYPTION:
             prepare_rsa_priv_key_export_for_asn1(lpk);
             keyTemplate = SECKEY_RSAPrivateKeyExportTemplate;
@@ -670,7 +756,30 @@ PK11_ImportPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
             paramDest = NULL;
             lpk->keyType = ecKey;
             break;
-
+        case SEC_OID_ML_DSA_44:
+        case SEC_OID_ML_DSA_65:
+        case SEC_OID_ML_DSA_87:
+            /* choice */
+            switch (pki->privateKey.data[0]) {
+                case SEC_ASN1_CONTEXT_SPECIFIC | 0:
+                    keyTemplate = SECKEY_MLDSAPrivateKeySeedExportTemplate;
+                    break;
+                case SEC_ASN1_OCTET_STRING:
+                    keyTemplate = SECKEY_MLDSAPrivateKeyKeyExportTemplate;
+                    break;
+                case SEC_ASN1_CONSTRUCTED | SEC_ASN1_SEQUENCE:
+                    keyTemplate = SECKEY_MLDSAPrivateKeyBothExportTemplate;
+                    break;
+                default:
+                    keyTemplate = NULL;
+                    PORT_SetError(SEC_ERROR_BAD_DER);
+                    break;
+            }
+            paramTemplate = NULL;
+            paramDest = NULL;
+            lpk->keyType = mldsaKey;
+            lpk->u.mldsa.params = algTag;
+            break;
         default:
             keyTemplate = NULL;
             paramTemplate = NULL;
