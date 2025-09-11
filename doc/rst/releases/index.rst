@@ -8,6 +8,7 @@ Release Notes
    :glob:
    :hidden:
 
+   nss_3_116.rst
    nss_3_115_1.rst
    nss_3_115.rst
    nss_3_114_1.rst
@@ -92,30 +93,33 @@ Release Notes
 
 .. note::
 
-   **NSS 3.115** is the latest version of NSS.
-   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_115_release_notes`
+   **NSS 3.116** is the latest version of NSS.
+   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_116_release_notes`
 
    **NSS 3.112.1 (ESR)** is the latest ESR version of NSS.
    Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_112_1_release_notes`
 
 .. container::
 
-   Changes in 3.115.1 included in this release:
+   Changes in 3.116 included in this release:
 
+   - Bug 1983308 - disable DSA in NSS script tests.
+   - Bug 1983308 - Disabling of some algorithms: generic cert.sh.
+   - Bug 1981046 - Need to update to new mechanisms.
+   - Bug 1983320 - Add ML-DSA public key printing support in NSS command-line utilities.
+   - Bug 1986802 - note embedded scts before revocation checks are performed.
+   - Bug 1983320 - Add support for ML-DSA keys and mechanisms in PKCS#11 interface.
+   - Bug 1983320 - Add support for ML-DSA key type and public key structure.
+   - Bug 1983320 - Enable ML-DSA integration via OIDs support and SECMOD flag.
+   - Bug 1983308 - disable kyber.
+   - Bug 1965329 - Implement PKCS #11 v3.2 PQ functions (use verify signature).
+   - Bug 1983308 - Disable dsa - gtests.
+   - Bug 1983313 - make group and scheme support in test tools generic.
+   - Bug 1983770 - Create GH workflow to automatically close PRs.
+   - Bug 1983308 - Disable dsa - base code.
+   - Bug 1983308 - Disabling of some algorithms: remove dsa from pk11_mode.
+   - Bug 1983308 - Disable seed and RC2 bug fixes.
    - Bug 1982742 - restore support for finding certificates by decoded serial number.
    - Bug 1984165 - avoid CKR_BUFFER_TO_SMALL error in trust lookups.
-
-   Changes in 3.115 included in this release:
-
-   - Bug 1970304 CID 1648399 - Resource leak in shlibsign.c.
-   - Bug 1981034 - CKA_SEED needs to be marked as a private attribute.
-   - Bug 1981518 - Fix bad syntax on Windows in softoken_gtest.cc.
-   - Bug 1974505 - Key private/public/secret keys by key type in softoken keydb.
-   - Bug 1980990 - add PK11_HPKE_GetSharedSecret to abi-check expected report.
-   - Bug 1980429 - remove NetscapeStepUpMatchesServerAuth from mozpkix TrustDomain.
-   - Bug 1927351 - Fixup ABI.
-   - Bug 1927351 - add ECH_SECRET and ECH_CONFIG to SSLKEYLOG for both client and server.
-   - Bug 1900841 - ECH fuzz target.
-   - Bug 1965331 - Implement PKCS #11 v3.2 FIPS indicator and validation objects.
-   - Bug 1978677 - remove expired explicitly distrusted DigiNotar lookalike root.
-   - Bug 1965329 - Implement PKCS #11 v3.2 functions.
+   - Bug 1983399 - lib/softtoken/{sdb.c,sftkdbti.h}: Align sftkdb_known_attributes_size type.
+   - Bug 1965329 - Use PKCS #11 v3.2 KEM mechanisms and functions.
