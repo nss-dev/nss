@@ -100,8 +100,10 @@ cert_init()
       html_passed "Looking for root certs module."
   fi
 
-  cert_add_algorithm "RSA" "" "" "false" 0
-  cert_add_algorithm "DSA" "-dsa" "-k dsa" "true" 20000
+  cert_add_algorithm "RSA" "" "" "false" 0 
+  if [ -z ${NSS_DISABLE_DSA} ]; then
+      cert_add_algorithm "DSA" "-dsa" "-k dsa" "true" 20000
+  fi
   # NOTE: curve is added later, so the full command would be '-k ec -q curve'
   cert_add_algorithm "ECC" "-ec" "-k ec -q" "true" 10000
   # currently rsa-pss is only enabled for a subset of tests
@@ -1001,18 +1003,18 @@ cert_extended_ssl()
   # we'll use one of the longer nicknames for testing.
   # (Because "grep -w hostname" matches "grep -w hostname-dsamixed")
   MYDBPASS="-d ${PROFILEDIR} -f ${R_PWFILE}"
-  TESTNAME="Ensure there's exactly one match for ${CERTNAME}-dsamixed"
-  cert_check_nickname_exists "$MYDBPASS" "${CERTNAME}-dsamixed" 0 1 "${TESTNAME}"
+  TESTNAME="Ensure there's exactly one match for ${CERTNAME}-ecmixed"
+  cert_check_nickname_exists "$MYDBPASS" "${CERTNAME}-ecmixed" 0 1 "${TESTNAME}"
 
-  CU_ACTION="Repeated import of $CERTNAME's mixed DSA Cert with different nickname"
-  certu -A -n "${CERTNAME}-repeated-dsamixed" -t "u,u,u" -d "${PROFILEDIR}" \
-        -f "${R_PWFILE}" -i "${CERTNAME}-dsamixed.cert" 2>&1
+  CU_ACTION="Repeated import of $CERTNAME's mixed EC Cert with different nickname"
+  certu -A -n "${CERTNAME}-repeated-ecmixed" -t "u,u,u" -d "${PROFILEDIR}" \
+        -f "${R_PWFILE}" -i "${CERTNAME}-ecmixed.cert" 2>&1
 
-  TESTNAME="Ensure there's still exactly one match for ${CERTNAME}-dsamixed"
-  cert_check_nickname_exists "$MYDBPASS" "${CERTNAME}-dsamixed" 0 1 "${TESTNAME}"
+  TESTNAME="Ensure there's still exactly one match for ${CERTNAME}-ecmixed"
+  cert_check_nickname_exists "$MYDBPASS" "${CERTNAME}-ecmixed" 0 1 "${TESTNAME}"
 
-  TESTNAME="Ensure there's zero matches for ${CERTNAME}-repeated-dsamixed"
-  cert_check_nickname_exists "$MYDBPASS" "${CERTNAME}-repeated-dsamixed" 0 0 "${TESTNAME}"
+  TESTNAME="Ensure there's zero matches for ${CERTNAME}-repeated-ecmixed"
+  cert_check_nickname_exists "$MYDBPASS" "${CERTNAME}-repeated-ecmixed" 0 0 "${TESTNAME}"
 
   echo "Importing all the server's own CA chain into the servers DB"
   for CA in `find ${SERVER_CADIR} -name "?*.ca.cert"` ;
