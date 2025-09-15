@@ -114,6 +114,9 @@ class Tls13SkipTest : public TlsConnectTestBase,
   void SetUp() override {
     TlsConnectTestBase::SetUp();
     EnsureTlsSetup();
+    // until we can fix filters to work with MLKEM
+    client_->ConfigNamedGroups(kNonPQDHEGroups);
+    server_->ConfigNamedGroups(kNonPQDHEGroups);
   }
 
   void ServerSkipTest(std::shared_ptr<TlsRecordFilter> filter, int32_t error) {

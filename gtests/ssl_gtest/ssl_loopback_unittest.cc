@@ -37,7 +37,7 @@ TEST_P(TlsConnectGeneric, ConnectEcdsa) {
   SetExpectedVersion(std::get<1>(GetParam()));
   Reset(TlsAgent::kServerEcdsa256);
   Connect();
-  CheckKeys(ssl_kea_ecdh, ssl_auth_ecdsa);
+  CheckKeys(ssl_auth_ecdsa);
 }
 
 TEST_P(TlsConnectGeneric, CipherSuiteMismatch) {

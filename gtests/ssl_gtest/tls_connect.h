@@ -83,12 +83,24 @@ class TlsConnectTestBase : public ::testing::Test {
   void ConnectWithCipherSuite(uint16_t cipher_suite);
   void CheckEarlyDataLimit(const std::shared_ptr<TlsAgent>& agent,
                            size_t expected_size);
+  // Get the default KEA for our tls version
+  SSLKEAType GetDefaultKEA(void) const;
+  // Get the default auth for our tls version
+  SSLAuthType GetDefaultAuth(void) const;
+  // Find the default group for a given KEA
+  SSLNamedGroup GetDefaultGroupFromKEA(SSLKEAType kea_type) const;
+  // Find the default scheam for a given auth
+  SSLSignatureScheme GetDefaultSchemeFromAuth(SSLAuthType auth_type) const;
+
   // Check that the keys used in the handshake match expectations.
   void CheckKeys(SSLKEAType kea_type, SSLNamedGroup kea_group,
                  SSLAuthType auth_type, SSLSignatureScheme sig_scheme) const;
-  // This version guesses some of the values.
+  // These version guesses some of the values based on defaults
+  void CheckKeys(SSLKEAType kea_type, SSLNamedGroup kea_group) const;
+  void CheckKeys(SSLAuthType auth_type, SSLSignatureScheme sig_scheme) const;
   void CheckKeys(SSLKEAType kea_type, SSLAuthType auth_type) const;
-  // This version assumes defaults.
+  void CheckKeys(SSLKEAType kea_type) const;
+  void CheckKeys(SSLAuthType auth_type) const;
   void CheckKeys() const;
   // Check that keys on resumed sessions.
   void CheckKeysResumption(SSLKEAType kea_type, SSLNamedGroup kea_group,
@@ -103,6 +115,7 @@ class TlsConnectTestBase : public ::testing::Test {
 
   void ConfigureVersion(uint16_t version);
   void SetExpectedVersion(uint16_t version);
+  uint16_t GetVersion(void) const { return version_; };
   // Expect resumption of a particular type.
   void ExpectResumption(SessionResumptionMode expected,
                         uint8_t num_resumed = 1);

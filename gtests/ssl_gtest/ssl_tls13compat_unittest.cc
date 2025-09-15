@@ -482,6 +482,9 @@ TEST_F(TlsConnectDatagram13, CompatModeDtlsClient) {
   client_->SetOption(SSL_ENABLE_TLS13_COMPAT_MODE, PR_TRUE);
   auto client_records = MakeTlsFilter<TlsRecordRecorder>(client_);
   auto server_records = MakeTlsFilter<TlsRecordRecorder>(server_);
+  // filters only work with particular groups
+  client_->ConfigNamedGroups(kNonPQDHEGroups);
+  server_->ConfigNamedGroups(kNonPQDHEGroups);
   Connect();
 
   ASSERT_EQ(2U, client_records->count());  // CH, Fin
@@ -531,6 +534,9 @@ TEST_F(TlsConnectDatagram13, CompatModeDtlsServer) {
   auto server_records = std::make_shared<TlsRecordRecorder>(server_);
   server_->SetFilter(std::make_shared<ChainedPacketFilter>(
       ChainedPacketFilterInit({server_records, server_hello})));
+  // filters only work with particular groups
+  server_->ConfigNamedGroups(kNonPQDHEGroups);
+  client_->ConfigNamedGroups(kNonPQDHEGroups);
   StartConnect();
   client_->Handshake();
   server_->Handshake();

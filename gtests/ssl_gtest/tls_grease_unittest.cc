@@ -131,6 +131,9 @@ TEST_P(GreasePresenceAbsenceTestAllVersions, ClientGreaseKeyShare) {
 
   auto ch1 =
       MakeTlsFilter<TlsExtensionCapture>(client_, ssl_tls13_key_share_xtn);
+  // filters only work with particular groups
+  server_->ConfigNamedGroups(kNonPQDHEGroups);
+  client_->ConfigNamedGroups(kNonPQDHEGroups);
   Connect();
   EXPECT_TRUE((version_ >= SSL_LIBRARY_VERSION_TLS_1_3) == ch1->captured());
 
@@ -412,7 +415,7 @@ TEST_F(TlsConnectStreamTls13, GreasePsk) {
 
   Connect();
   SendReceive();
-  CheckKeys(ssl_kea_ecdh, ssl_grp_ec_curve25519, ssl_auth_psk, ssl_sig_none);
+  CheckKeys(ssl_auth_psk, ssl_sig_none);
 }
 
 // Test that ECH and GREASE work together successfully

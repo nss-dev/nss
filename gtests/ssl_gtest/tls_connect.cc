@@ -505,21 +505,24 @@ void TlsConnectTestBase::CheckEarlyDataLimit(
   EXPECT_EQ(expected_size, static_cast<size_t>(preinfo.maxEarlyDataSize));
 }
 
-void TlsConnectTestBase::CheckKeys(SSLKEAType kea_type, SSLNamedGroup kea_group,
-                                   SSLAuthType auth_type,
-                                   SSLSignatureScheme sig_scheme) const {
-  if (kea_group != ssl_grp_none) {
-    client_->CheckKEA(kea_type, kea_group);
-    server_->CheckKEA(kea_type, kea_group);
+SSLKEAType TlsConnectTestBase::GetDefaultKEA(void) const {
+  if (version_ >= SSL_LIBRARY_VERSION_TLS_1_3) {
+    return ssl_kea_ecdh_hybrid;
   }
-  server_->CheckAuthType(auth_type, sig_scheme);
-  client_->CheckAuthType(auth_type, sig_scheme);
+  return ssl_kea_ecdh;
 }
 
-void TlsConnectTestBase::CheckKeys(SSLKEAType kea_type,
-                                   SSLAuthType auth_type) const {
+SSLAuthType TlsConnectTestBase::GetDefaultAuth(void) const {
+  return ssl_auth_rsa_sign;
+}
+
+SSLNamedGroup TlsConnectTestBase::GetDefaultGroupFromKEA(
+    SSLKEAType kea_type) const {
   SSLNamedGroup group;
   switch (kea_type) {
+    case ssl_kea_ecdh_hybrid:
+      group = ssl_grp_kem_mlkem768x25519;
+      break;
     case ssl_kea_ecdh:
       group = ssl_grp_ec_curve25519;
       break;
@@ -534,7 +537,11 @@ void TlsConnectTestBase::CheckKeys(SSLKEAType kea_type,
       group = ssl_grp_none;
       break;
   }
+  return group;
+}
 
+SSLSignatureScheme TlsConnectTestBase::GetDefaultSchemeFromAuth(
+    SSLAuthType auth_type) const {
   SSLSignatureScheme scheme;
   switch (auth_type) {
     case ssl_auth_rsa_decrypt:
@@ -561,11 +568,56 @@ void TlsConnectTestBase::CheckKeys(SSLKEAType kea_type,
       scheme = static_cast<SSLSignatureScheme>(0x0100);
       break;
   }
+  return scheme;
+}
+
+void TlsConnectTestBase::CheckKeys(SSLKEAType kea_type, SSLNamedGroup kea_group,
+                                   SSLAuthType auth_type,
+                                   SSLSignatureScheme sig_scheme) const {
+  if (kea_group != ssl_grp_none) {
+    client_->CheckKEA(kea_type, kea_group);
+    server_->CheckKEA(kea_type, kea_group);
+  }
+  server_->CheckAuthType(auth_type, sig_scheme);
+  client_->CheckAuthType(auth_type, sig_scheme);
+}
+
+void TlsConnectTestBase::CheckKeys(SSLKEAType kea_type,
+                                   SSLNamedGroup kea_group) const {
+  SSLAuthType auth_type = GetDefaultAuth();
+  SSLSignatureScheme scheme = GetDefaultSchemeFromAuth(auth_type);
+  CheckKeys(kea_type, kea_group, auth_type, scheme);
+}
+
+void TlsConnectTestBase::CheckKeys(SSLAuthType auth_type,
+                                   SSLSignatureScheme sig_scheme) const {
+  SSLKEAType kea_type = GetDefaultKEA();
+  SSLNamedGroup group = GetDefaultGroupFromKEA(kea_type);
+  CheckKeys(kea_type, group, auth_type, sig_scheme);
+}
+
+void TlsConnectTestBase::CheckKeys(SSLKEAType kea_type,
+                                   SSLAuthType auth_type) const {
+  SSLNamedGroup group = GetDefaultGroupFromKEA(kea_type);
+  SSLSignatureScheme scheme = GetDefaultSchemeFromAuth(auth_type);
+
   CheckKeys(kea_type, group, auth_type, scheme);
 }
 
+void TlsConnectTestBase::CheckKeys(SSLKEAType kea_type) const {
+  SSLAuthType auth_type = GetDefaultAuth();
+  CheckKeys(kea_type, auth_type);
+}
+
+void TlsConnectTestBase::CheckKeys(SSLAuthType auth_type) const {
+  SSLKEAType kea_type = GetDefaultKEA();
+  CheckKeys(kea_type, auth_type);
+}
+
 void TlsConnectTestBase::CheckKeys() const {
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+  SSLKEAType kea_type = GetDefaultKEA();
+  SSLAuthType auth_type = GetDefaultAuth();
+  CheckKeys(kea_type, auth_type);
 }
 
 void TlsConnectTestBase::CheckKeysResumption(SSLKEAType kea_type,

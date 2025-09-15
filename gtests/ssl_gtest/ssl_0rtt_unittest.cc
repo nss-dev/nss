@@ -198,7 +198,7 @@ TEST_P(TlsConnectTls13, ZeroRttOptionsSetLate) {
   ConfigureSessionCache(RESUME_BOTH, RESUME_TICKET);
   Connect();
   SendReceive();  // Need to read so that we absorb the session ticket.
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+  CheckKeys();
   Reset();
   StartConnect();
   // Now turn on 0-RTT but too late for the ticket.

@@ -490,7 +490,7 @@ TEST_P(TlsKeyExchangeTest13, EqualPriority13) {
 
   Connect();
 
-  CheckKeys();
+  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
   const std::vector<SSLNamedGroup> shares = {ssl_grp_ec_curve25519};
   CheckKEXDetails(client_groups, shares);
 }
