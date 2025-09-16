@@ -56,6 +56,7 @@
     'verified/Hacl_Hash_SHA3.c',
     'verified/libcrux_sha3_portable.c',
     'verified/libcrux_mlkem768_portable.c',
+    'verified/libcrux_mlkem1024_portable.c',
     'verified/libcrux_mlkem_portable.c',
     'verified/libcrux_core.c',
     'verified/Hacl_P256.c',
