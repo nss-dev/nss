@@ -4245,6 +4245,9 @@ static const struct SSLNamedGroupString {
 #ifndef NSS_DISABLE_KYBER
     { NAME_AND_LEN("xyber76800"), ssl_grp_kem_xyber768d00 },
 #endif
+    { NAME_AND_LEN("x25519mlkem768"), ssl_grp_kem_mlkem768x25519 },
+    { NAME_AND_LEN("secp256r1mlkem768"), ssl_grp_kem_secp256r1mlkem768 },
+    // keep for compatibility
     { NAME_AND_LEN("mlkem768x25519"), ssl_grp_kem_mlkem768x25519 },
 };
 

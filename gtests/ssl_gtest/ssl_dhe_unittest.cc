@@ -41,7 +41,7 @@ TEST_P(TlsConnectTls13, SharesForBothEcdheAndDhe) {
 
   Connect();
 
-  CheckKeys(ssl_kea_ecdh, ssl_auth_rsa_sign);
+  CheckKeys();
 
   bool ec, dh;
   auto track_group_type = [&ec, &dh](SSLNamedGroup group) {

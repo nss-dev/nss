@@ -124,9 +124,9 @@ ssl_init()
   # in fips mode, turn off curve25519 until it's NIST approved
   FIPS_OPTIONS=""
   # in fips mode, turn off curve25519 until it's NIST approved
-  ALL_GROUPS="P256,P384,P521,x25519,FF2048,FF3072,FF4096,FF6144,FF8192,xyber768d00,mlkem768x25519"
+  ALL_GROUPS="P256,P384,P521,x25519,FF2048,FF3072,FF4096,FF6144,FF8192,xyber768d00,x25519mlkem768,secp256r1mlkem768"
   NON_PQ_GROUPS="P256,P384,P521,x25519,FF2048,FF3072,FF4096,FF6144,FF8192"
-  FIPS_GROUPS="P256,P384,P521,FF2048,FF3072,FF4096,FF6144,FF8192,mlkem768x25519"
+  FIPS_GROUPS="P256,P384,P521,FF2048,FF3072,FF4096,FF6144,FF8192,mx25519mlkem768,secp256r1mlkem768"
   FIPS_NON_PQ_GROUPS="P256,P384,P521,FF2048,FF3072,FF4096,FF6144,FF8192"
 
 
@@ -387,7 +387,9 @@ ssl_cov()
       if [ "$ectype" = "XYBER" ]; then
           TLS_GROUPS="xyber768d00"
       elif [ "$ectype" = "MLKEM219" ]; then
-          TLS_GROUPS="mlkem768x25519"
+          TLS_GROUPS="x25519mlkem768"
+      elif [ "$ectype" = "MLKEM256" ]; then
+          TLS_GROUPS="secp256r1mlkem768"
       fi
 
       echo "tstclnt -4 -p ${PORT} -h ${HOSTADDR} -c ${param} -I \"${TLS_GROUPS}\" -V ${VMIN}:${VMAX} ${CLIENT_OPTIONS} \\"

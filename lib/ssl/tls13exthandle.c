@@ -80,13 +80,17 @@ tls13_SizeOfKeyShareEntry(const sslEphemeralKeyPair *keyPair)
 
     if (keyPair->kemKeys) {
         PORT_Assert(!keyPair->kemCt);
-        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00 || keyPair->group->name == ssl_grp_kem_mlkem768x25519);
+        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00 ||
+                    keyPair->group->name == ssl_grp_kem_mlkem768x25519 ||
+                    keyPair->group->name == ssl_grp_kem_secp256r1mlkem768);
         pubKey = keyPair->kemKeys->pubKey;
         size += pubKey->u.kyber.publicValue.len;
     }
     if (keyPair->kemCt) {
         PORT_Assert(!keyPair->kemKeys);
-        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00 || keyPair->group->name == ssl_grp_kem_mlkem768x25519);
+        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00 ||
+                    keyPair->group->name == ssl_grp_kem_mlkem768x25519 ||
+                    keyPair->group->name == ssl_grp_kem_secp256r1mlkem768);
         size += keyPair->kemCt->len;
     }
 
@@ -94,12 +98,13 @@ tls13_SizeOfKeyShareEntry(const sslEphemeralKeyPair *keyPair)
 }
 
 static SECStatus
-tls13_WriteXyber768D00KeyExchangeInfo(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
+tls13_WriteHybridECCKeyFirst(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
 {
-    PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00);
+    PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00 ||
+                keyPair->group->name == ssl_grp_kem_secp256r1mlkem768);
     PORT_Assert(keyPair->keys->pubKey->keyType == ecKey);
 
-    // Encode the X25519 share first, then the Kyber768 key or ciphertext.
+    // Encode the ecc share first, then the MLKEM key or ciphertext.
     SECStatus rv;
     rv = sslBuffer_Append(buf, keyPair->keys->pubKey->u.ec.publicValue.data,
                           keyPair->keys->pubKey->u.ec.publicValue.len);
@@ -121,7 +126,7 @@ tls13_WriteXyber768D00KeyExchangeInfo(sslBuffer *buf, sslEphemeralKeyPair *keyPa
 }
 
 static SECStatus
-tls13_WriteMLKEM768X25519KeyExchangeInfo(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
+tls13_WriteHybridHybridKeyFirst(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
 {
     PORT_Assert(keyPair->group->name == ssl_grp_kem_mlkem768x25519);
     PORT_Assert(keyPair->keys->pubKey->keyType == ecKey);
@@ -188,10 +193,11 @@ tls13_EncodeKeyShareEntry(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
 
     switch (keyPair->group->name) {
         case ssl_grp_kem_mlkem768x25519:
-            rv = tls13_WriteMLKEM768X25519KeyExchangeInfo(buf, keyPair);
+            rv = tls13_WriteHybridHybridKeyFirst(buf, keyPair);
             break;
+        case ssl_grp_kem_secp256r1mlkem768:
         case ssl_grp_kem_xyber768d00:
-            rv = tls13_WriteXyber768D00KeyExchangeInfo(buf, keyPair);
+            rv = tls13_WriteHybridECCKeyFirst(buf, keyPair);
             break;
         default:
             rv = tls13_WriteKeyExchangeInfo(buf, keyPair);
