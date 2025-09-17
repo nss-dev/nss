@@ -14,19 +14,22 @@ if [ ! -d "cryptofuzz" ]; then
     tar xvjf cryptofuzz.tar.bz2
 fi
 
-# Clone corpus.
+# Create and change to corpus directory.
 mkdir -p nss/fuzz/corpus/cryptofuzz
-
 pushd nss/fuzz/corpus/cryptofuzz
-curl -O "https://storage.googleapis.com/cryptofuzz-backup.clusterfuzz-external.appspot.com/corpus/libFuzzer/cryptofuzz_cryptofuzz-nss/public.zip"
-unzip public.zip
-rm -f public.zip
-popd
 
-# Generate dictionary
-./cryptofuzz/generate_dict
+# Fetch and unzip the public OSS-Fuzz corpus. Handle the case that the
+# corpus may be missing.
+code=$(curl -w "%{http_code}" -O "https://storage.googleapis.com/nss-backup.clusterfuzz-external.appspot.com/corpus/libFuzzer/nss_cryptofuzz/public.zip")
+if [[ $code -eq 200 ]]; then
+    unzip public.zip
+fi
+rm -f public.zip
+
+# Change back to previous working directory.
+popd
 
 # Run Cryptofuzz.
 # Decrease the default ASAN quarantine size of 256 MB as we tend to run
 # out of memory on 32-bit.
-ASAN_OPTIONS="quarantine_size_mb=64" ./cryptofuzz/cryptofuzz -dict="cryptofuzz-dict.txt" --force-module=nss "nss/fuzz/corpus/cryptofuzz" "$@"
+ASAN_OPTIONS="quarantine_size_mb=64" ./cryptofuzz/cryptofuzz -dict="./cryptofuzz/cryptofuzz-dict.txt" "nss/fuzz/corpus/cryptofuzz" "$@"

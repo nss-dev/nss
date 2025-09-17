@@ -43,6 +43,19 @@ for fuzzer in $(find ../dist/Debug/bin -name "nssfuzz-*" -printf "%f\n"); do
     fi
 done
 
+# Build Cryptofuzz.
+# We want to build with the non-TLS fuzzing mode version of NSS.
+./automation/taskcluster/scripts/build_cryptofuzz.sh
+
+# Copy dictionary and fuzz target.
+cp ./cryptofuzz/cryptofuzz-dict.txt $OUT/cryptofuzz.dict
+cp ./cryptofuzz/cryptofuzz $OUT/cryptofuzz
+
+# Zip and copy the corpus, if any.
+if [ -d "$SRC/nss-corpus/cryptofuzz" ]; then
+    zip $OUT/cryptofuzz_seed_corpus.zip $SRC/nss-corpus/cryptofuzz/*
+fi
+
 # Build the library again (TLS fuzzing mode).
 CXX="$CXX -stdlib=libc++" LDFLAGS="$CFLAGS" \
     ./build.sh -c -v --fuzz=oss --fuzz=tls --disable-tests
