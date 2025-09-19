@@ -1371,7 +1371,9 @@ zlibCertificateEncode(const SECItem *input, SECItem *output)
     unsigned long maxCompressedLen = compressBound(input->len);
     SECITEM_AllocItem(NULL, output, maxCompressedLen);
 
-    int ret = compress(output->data, (unsigned long *)&output->len, input->data, input->len);
+    unsigned long outputLenUL = output->len;
+    int ret = compress(output->data, &outputLenUL, input->data, input->len);
+    output->len = outputLenUL;
     if (ret != Z_OK) {
         PR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
         return SECFailure;
@@ -1390,9 +1392,9 @@ zlibCertificateDecode(const SECItem *input,
         return SECFailure;
     }
 
-    *usedLen = outputLen;
-
-    int ret = uncompress(output, (unsigned long *)usedLen, input->data, input->len);
+    unsigned long outputLenUL = outputLen;
+    int ret = uncompress(output, &outputLenUL, input->data, input->len);
+    *usedLen = outputLenUL;
     if (ret != Z_OK) {
         PR_SetError(SEC_ERROR_BAD_DATA, 0);
         return SECFailure;
