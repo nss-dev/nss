@@ -83,6 +83,7 @@ class BackCert final {
   const Input* GetNameConstraints() const {
     return MaybeInput(nameConstraints);
   }
+  const Input* GetQCStatements() const { return MaybeInput(qcStatements); }
   const Input* GetSubjectAltName() const { return MaybeInput(subjectAltName); }
   const Input* GetRequiredTLSFeatures() const {
     return MaybeInput(requiredTLSFeatures);
@@ -131,6 +132,7 @@ class BackCert final {
   Input nameConstraints;
   Input subjectAltName;
   Input criticalNetscapeCertificateType;
+  Input qcStatements;
   Input requiredTLSFeatures;
   Input signedCertificateTimestamps;  // RFC 6962 (Certificate Transparency)
 

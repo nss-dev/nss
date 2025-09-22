@@ -223,6 +223,10 @@ BackCert::RememberExtension(Reader& extnID, Input extnValue,
   static const uint8_t id_embeddedSctList[] = {
     0x2b, 0x06, 0x01, 0x04, 0x01, 0xd6, 0x79, 0x02, 0x04, 0x02
   };
+  // python DottedOIDToCode.py id-pe-qcStatements 1.3.6.1.5.5.7.1.3
+  static const uint8_t id_pe_qcStatements[] = {
+    0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x01, 0x03
+  };
 
   Input* out = nullptr;
 
@@ -271,6 +275,8 @@ BackCert::RememberExtension(Reader& extnID, Input extnValue,
     out = &requiredTLSFeatures;
   } else if (extnID.MatchRest(id_embeddedSctList)) {
     out = &signedCertificateTimestamps;
+  } else if (extnID.MatchRest(id_pe_qcStatements)) {
+    out = &qcStatements;
   } else if (extnID.MatchRest(id_pkix_ocsp_nocheck) && critical) {
     // We need to make sure we don't reject delegated OCSP response signing
     // certificates that contain the id-pkix-ocsp-nocheck extension marked as

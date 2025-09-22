@@ -25,6 +25,7 @@
 #include "pkixgtest.h"
 
 #include "mozpkix/pkixder.h"
+#include "mozpkix/pkixutil.h"
 #include "mozpkix/test/pkixtestutil.h"
 
 using namespace mozilla::pkix;
@@ -273,4 +274,29 @@ TEST_F(pkixcert_extension, DuplicateSubjectAltName)
                            KeyPurposeId::anyExtendedKeyUsage,
                            CertPolicyId::anyPolicy,
                            nullptr/*stapledOCSPResponse*/));
+}
+
+TEST_F(pkixcert_extension, QCStatements)
+{
+  // python DottedOIDToCode.py --tlv id-pe-qcStatements 1.3.6.1.5.5.7.1.3
+  const uint8_t tlv_id_pe_qcStatements[] = {
+    0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x01, 0x03
+  };
+
+  ByteString qcStatementsBytes(
+    TLV(der::SEQUENCE,
+        BytesToByteString(tlv_id_pe_qcStatements) +
+        TLV(der::OCTET_STRING, ByteString(reinterpret_cast<const uint8_t*>("qcStatements contents")))));
+  const ByteString extensions[] = { qcStatementsBytes, ByteString() };
+  const char* certCN = "Cert With qcStatements";
+  ByteString cert(CreateCertWithExtensions(certCN, extensions));
+  ASSERT_FALSE(ENCODING_FAILED(cert));
+  Input certInput;
+  ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
+  BackCert backCert(certInput, EndEntityOrCA::MustBeEndEntity, nullptr);
+  ASSERT_EQ(Success, backCert.Init());
+  const Input *qcStatements(backCert.GetQCStatements());
+  ASSERT_TRUE(qcStatements);
+  ByteString qcStatementsContents(qcStatements->UnsafeGetData(), qcStatements->GetLength());
+  ASSERT_EQ(ByteString(reinterpret_cast<const uint8_t*>("qcStatements contents")), qcStatementsContents);
 }
