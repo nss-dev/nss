@@ -61,6 +61,15 @@ TEST_F(B64EncodeDecodeTest, EncDecTest) {
   TestEncodeItem(&tmp);
 }
 
+TEST_F(B64EncodeDecodeTest, IncompleteData) {
+  NSSBase64Decoder *context = NSSBase64Decoder_Create(
+      [](void *, const unsigned char *, PRInt32) { return 0; }, nullptr);
+  EXPECT_TRUE(!!context);
+  char data = 'A';
+  EXPECT_EQ(SECSuccess, NSSBase64Decoder_Update(context, &data, 1));
+  EXPECT_EQ(SECFailure, NSSBase64Decoder_Destroy(context, false));
+}
+
 TEST_F(B64EncodeDecodeTest, FakeDecTest) { EXPECT_TRUE(TestFakeDecode(100)); }
 
 TEST_F(B64EncodeDecodeTest, FakeEncDecTest) {

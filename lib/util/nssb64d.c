@@ -357,6 +357,9 @@ pl_base64_decode_flush(PLBase64Decoder *data)
     if (data->token_size == 0 || data->token[0] == B64_PAD)
         return PR_SUCCESS;
 
+    if (!data->output_buffer)
+        return PR_FAILURE;
+
     /*
      * Assume we have all the interesting input except for some expected
      * padding characters.  Add them and decode the resulting token.
@@ -399,7 +402,7 @@ pl_base64_decode_flush(PLBase64Decoder *data)
 static PRUint32
 PL_Base64MaxDecodedLength(PRUint32 size)
 {
-    return size * 0.75;
+    return (((PRUint64)size) * 3) / 4;
 }
 
 /*
