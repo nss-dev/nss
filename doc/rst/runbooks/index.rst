@@ -9,3 +9,4 @@ Runbooks
    :hidden:
 
    releasing.rst
+   rootstore.rst
