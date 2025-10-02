@@ -59,6 +59,7 @@ TEST_F(SECASN1DecodeTest, EndOfContentsInDefiniteLengthContext) {
           sizeof(kEndOfContentsInDefiniteLengthContext)),
       SECFailure);
   ASSERT_EQ(PR_GetError(), SEC_ERROR_BAD_DER);
+  ASSERT_EQ(SECSuccess, SEC_ASN1DecoderFinish(ctx));
 }
 
 // clang-format off
@@ -76,11 +77,10 @@ TEST_F(SECASN1DecodeTest, ContentsTooShort) {
   SEC_ASN1DecoderContext* ctx =
       SEC_ASN1DecoderStart(pool.get(), decoded, ContainerTemplate);
   ASSERT_TRUE(ctx);
-  ASSERT_EQ(
-      SEC_ASN1DecoderUpdate(
-          ctx,
-          reinterpret_cast<const char*>(kContentsTooShort),
-          sizeof(kContentsTooShort)),
-      SECFailure);
+  ASSERT_EQ(SEC_ASN1DecoderUpdate(
+                ctx, reinterpret_cast<const char*>(kContentsTooShort),
+                sizeof(kContentsTooShort)),
+            SECFailure);
   ASSERT_EQ(PR_GetError(), SEC_ERROR_BAD_DER);
+  ASSERT_EQ(SECSuccess, SEC_ASN1DecoderFinish(ctx));
 }
