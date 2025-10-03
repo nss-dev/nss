@@ -153,8 +153,8 @@ def print_root_ca_version():
     check_call_noisy(["grep", "define *NSS_BUILTINS_LIBRARY_VERSION", nssckbi_h])
 
 
-def ensure_arguments_after_action(how_many, usage):
-    if (len(sys.argv) != (2 + how_many)):
+def ensure_arguments_count(args, how_many, usage):
+    if (len(args) != how_many):
         exit_with_failure("incorrect number of arguments, expected parameters are:\n" + usage)
 
 
@@ -203,10 +203,10 @@ def set_full_lib_versions(version):
                         repl=r'\g<1>{}\g<3>'.format(version))])
 
 
-def set_root_ca_version():
-    ensure_arguments_after_action(2, "major_version  minor_version")
-    major = args[1].strip()
-    minor = args[2].strip()
+def set_root_ca_version(args):
+    ensure_arguments_count(args, 2, "major_version  minor_version")
+    major = args[0].strip()
+    minor = args[1].strip()
     version = major + '.' + minor
 
     inplace_replace(filename=nssckbi_h, replacements=[
@@ -246,47 +246,46 @@ def set_all_lib_versions(version, major, minor, patch, build):
     set_build_versions(build)
 
 
-def set_version_to_minor_release():
-    ensure_arguments_after_action(2, "major_version  minor_version")
-    major = args[1].strip()
-    minor = args[2].strip()
+def set_version_to_minor_release(args):
+    ensure_arguments_count(args, 2, "major_version  minor_version")
+    major = args[0].strip()
+    minor = args[1].strip()
     version = major + '.' + minor
     patch = "0"
     build = "0"
     set_all_lib_versions(version, major, minor, patch, build)
 
 
-def set_version_to_patch_release():
-    ensure_arguments_after_action(3, "major_version  minor_version  patch_release")
-    major = args[1].strip()
-    minor = args[2].strip()
-    patch = args[3].strip()
+def set_version_to_patch_release(args):
+    ensure_arguments_count(args, 3, "major_version  minor_version  patch_release")
+    major = args[0].strip()
+    minor = args[1].strip()
+    patch = args[2].strip()
     version = major + '.' + minor + '.' + patch
     build = "0"
     set_all_lib_versions(version, major, minor, patch, build)
 
 
-def set_release_candidate_number():
-    ensure_arguments_after_action(1, "release_candidate_number")
-    build = args[1].strip()
+def set_release_candidate_number(args):
+    ensure_arguments_count(args, 1, "release_candidate_number")
+    build = args[0].strip()
     set_build_versions(build)
 
 
-def set_4_digit_release_number():
-    ensure_arguments_after_action(4, "major_version  minor_version  patch_release  4th_digit_release_number")
-    major = args[1].strip()
-    minor = args[2].strip()
-    patch = args[3].strip()
-    build = args[4].strip()
+def set_4_digit_release_number(args):
+    ensure_arguments_count(args, 4, "major_version  minor_version  patch_release  4th_digit_release_number")
+    major = args[0].strip()
+    minor = args[1].strip()
+    patch = args[2].strip()
+    build = args[3].strip()
     version = major + '.' + minor + '.' + patch + '.' + build
     set_all_lib_versions(version, major, minor, patch, build)
 
 
-def make_freeze_branch():
-    ensure_arguments_after_action(3, "major_version minor_version remote")
-    major = args[1].strip()
-    minor = args[2].strip()
-    remote = args[3].strip()
+def make_release_branch(args):
+    ensure_arguments_count(args, 2, "version_string remote")
+    version_string = args[0].strip()
+    remote = args[1].strip()
 
     major, minor, patch = parse_version_string(version_string)
     if patch is not None:
@@ -393,13 +392,13 @@ def version_string_to_underscore(version_string):
     return version_string.replace('.', '_')
 
 
-def generate_release_note():
-    ensure_arguments_after_action(2, "this_release_version_string previous_release_version_string")
+def generate_release_note(args):
+    ensure_arguments_count(args, 2, "this_release_version_string previous_release_version_string")
 
-    version = args[1].strip()
+    version = args[0].strip()
     version_underscore = version_string_to_underscore(version)
     this_tag = version_string_to_RTM_tag(version)
-    prev_tag = version_string_to_RTM_tag(args[2].strip())
+    prev_tag = version_string_to_RTM_tag(args[1].strip())
 
     # Get the NSPR version
     nspr_version = check_output(['hg', 'cat', '-r', this_tag, 'automation/release/nspr-version.txt']).decode('utf-8').split("\n")[0].strip()
@@ -472,13 +471,13 @@ NSS {version} release notes
 {changes_text}
 
 """
-    print(rst_content)
+    return rst_content
 
 
-def generate_release_notes_index():
-    ensure_arguments_after_action(2, "latest_release_version  latest_esr_version")
-    latest_version = args[1].strip()  # e.g. 3.116
-    esr_version = args[2].strip()  # e.g. 3.112.1
+def generate_release_notes_index(args):
+    ensure_arguments_count(args, 2, "latest_release_version  latest_esr_version")
+    latest_version = args[0].strip()  # e.g. 3.116
+    esr_version = args[1].strip()  # e.g. 3.112.1
 
     latest_underscore = version_string_to_underscore(latest_version)
     esr_underscore = version_string_to_underscore(esr_version)
@@ -542,11 +541,33 @@ Release Notes
     print(index_content)
 
 
-def create_nss_release_archive():
-    ensure_arguments_after_action(3, "nss_release_version  nss_hg_release_tag  path_to_stage_directory")
-    nssrel = args[1].strip()  # e.g. 3.19.3
-    nssreltag = args[2].strip()  # e.g. NSS_3_19_3_RTM
-    stagedir = args[3].strip()  # e.g. ../stage
+def create_nss_release_archive(args):
+    ensure_arguments_count(args, 2, "nss_release_version  path_to_stage_directory")
+    nssrel = args[0].strip()  # e.g. 3.19.3
+    stagedir = args[1].strip()  # e.g. ../stage
+
+    # Determine which tar command to use (prefer gtar if available)
+    tar_cmd = "gtar"
+    try:
+        check_call(["which", "gtar"], stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
+    except:
+        tar_cmd = "tar"
+
+    # Generate the release tag from the version
+    nssreltag = version_string_to_RTM_tag(nssrel)
+
+    print_separator()
+    print("CREATE NSS RELEASE ARCHIVE")
+    print_separator()
+    print(f"NSS release version: {nssrel}")
+    print(f"Stage directory: {stagedir}")
+    print_separator()
+
+    response = input('Are these parameters correct? [yN]: ')
+    if 'y' not in response.lower():
+        print("Aborted.")
+        sys.exit(0)
+    print_separator()
 
     with open('automation/release/nspr-version.txt') as nspr_version_file:
         nsprrel = next(nspr_version_file).strip()
@@ -620,6 +641,7 @@ o = OptionParser(usage="client.py [options] " + " | ".join([
 try:
     options, args = o.parse_args()
     action = args[0]
+    action_args = args[1:]  # Get all arguments after the action
 except IndexError:
     o.print_help()
     sys.exit(2)
@@ -637,40 +659,40 @@ elif action in ('print_root_ca_version'):
     print_root_ca_version()
 
 elif action in ('set_root_ca_version'):
-    set_root_ca_version()
+    set_root_ca_version(action_args)
 
 # x.y version number - 2 parameters
 elif action in ('set_version_to_minor_release'):
-    set_version_to_minor_release()
+    set_version_to_minor_release(action_args)
 
 # x.y.z version number - 3 parameters
 elif action in ('set_version_to_patch_release'):
-    set_version_to_patch_release()
+    set_version_to_patch_release(action_args)
 
 # change the release candidate number, usually increased by one,
 # usually if previous release candiate had a bug
 # 1 parameter
 elif action in ('set_release_candidate_number'):
-    set_release_candidate_number()
+    set_release_candidate_number(action_args)
 
 # use the build/release candiate number in the identifying version number
 # 4 parameters
 elif action in ('set_4_digit_release_number'):
-    set_4_digit_release_number()
+    set_4_digit_release_number(action_args)
 
 # create a freeze branch and beta tag for a new release
 # 2 parameters
 elif action in ('make_release_branch'):
-    make_freeze_branch()
+    make_release_branch(action_args)
 
 elif action in ('create_nss_release_archive'):
-    create_nss_release_archive()
+    create_nss_release_archive(action_args)
 
 elif action in ('generate_release_note'):
-    generate_release_note()
+    print(generate_release_note(action_args))
 
 elif action in ('generate_release_notes_index'):
-    generate_release_notes_index()
+    generate_release_notes_index(action_args)
 
 else:
     o.print_help()
