@@ -10,8 +10,8 @@ Releasing NSS
    * Normal development. This runs from the day after a Firefox merge until 2 weeks before the next Firefox merge. During this time, the version of NSS in mozilla-central and on NSS's development branch are kept in sync by `Updatebot <https://github.com/mozilla-services/updatebot>`_.
    * Freezing for release. This starts 2 weeks before the next Firefox merge. During this time, mozilla-central tracks a release branch. Commits can still land on NSS's development branch but they won't be uplifted to mozilla-central.
 
-Freezing a version for release
-------------------------------
+Make a release branch
+---------------------
 
 In the week prior to a NSS release, the version in mozilla-unified
 will be frozen. This is to ensure that new NSS versions have
@@ -22,9 +22,11 @@ The NSS Release owner will run the ``make_release_branch`` script:
 
       python3 automation/release/nss-release-helper.py make_release_branch <3.XXX> <remote>
 
-1. Run the freeze script `python3 ../nss-dev/automation/release/nss-release-helper.py make_freeze_branch 3 <version> <remote>` where ``<version>`` is the minor version number (e.g. 73 for 3.73) and ``<remote>`` is the name of the remote pointing to the NSS repository (e.g. ``default``).
-2. Wait for the changes to sync to Github (~15 minutes).
-3. Manually uplift this version into mozilla-unified by running ``./mach vendor security/nss/moz.yaml -r NSS_3_XXX_BETA1`` in mozilla-unified.
+This creates a new branch for the release and tags the first beta release as ``NSS_3_XXX_BETA1``. This can then be uplifted into mozilla-unified via:
+
+      ./mach nss-uplift {tag_name}
+
+You may need to wait a few minutes for Github to sync the new branch. If issues are discovered with this build, you can manually graft patches onto this branch and tag new beta versions, which then need to be uplifted.
 
 The equivalent manual process is described below.
 
@@ -35,28 +37,25 @@ The equivalent manual process is described below.
 
 .. warning::
 
-   After this point, further submissions by Updatebot SHOULD be ignored to ensure that the frozen branch is not overwritten by
+   After this point, automated submissions by UpdateBot SHOULD be ignored to ensure that the frozen branch is not overwritten by
    further changes to the development branch.
 
-Releasing NSS into Firefox
---------------------------
+Tagging NSS for Release
+-----------------------
 
-The NSS Release Owner will:
+The NSS Release Owner will run the release script:
 
-1. Make sure you're on the appropriate branch (``hg checkout NSS_3_XXX_BRANCH``).
-2. Update the NSS version numbers: ``python3 automation/release/nss-release-helper.py remove_beta``
-3. Commit the change: ``hg commit -m "Set version numbers to 3.XXX final``
-4. Generate a release note by running ``python3 automation/release/nss-release-helper.py generate_release_note 3.XXX 3.YYY > doc/rst/releases/nss_3_XXX.rst`` where ``3.YYY`` is the previous version.
-5. Generate a new release note index by running ``python3 automation/release/nss-release-helper.py generate_release_notes_index <latest_release> <latest_esr_release>``.
-6. Commit the release notes: ``hg commit -m "Release notes for NSS 3.XXX"`` The commit hash of this change will be needed later, so make a note of it (we'll refer to it as ``{DOCS_COMMIT}``).
-7. Tag the release version: ``hg tag NSS_3_XXX_RTM``
-8. Push the changes to the NSS repository. ``hg push``
-9. Switch the default branch and graft the release notes onto this branch: ``hg graft -r {DOCS_COMMIT}``.
-10. Manually uplift this version by running ``./mach vendor security/nss/moz.yaml -r NSS_3_XXX_RTM`` in mozilla-unified.
+      python3 automation/release/nss-release-helper.py release_nss <3.XXX or 3.XXX.YYY> <previous_version> <esr_version> <remote>
+
+``<previous_version>`` is the previous release version (e.g. ``3.YYY``) and ``<esr_version>`` is the current NSS ESR version (e.g. ``3.ZZZ.X``).
+
+Note that if you're making an ESR or patch release, you'll need to manually update ``index.rst`` when prompted by the script. You may also be asked to merge the changes to this file.
+
+This will update the version numbers, generate release notes and tag the release as ``NSS_3_XXX_RTM``. The release notes will be placed in ``doc/rst/releases/nss_3_XXX.rst`` and the index of release notes will be updated. After it syncs to Github, you can manually uplift the tagged release into mozilla-unified via ``./mach nss-uplift {tag_name}``.
 
 .. warning::
 
-   ./mach vendor does not currently update the root CA telemetry. This must be done manually.
+   The nss-uplift script does not currently update the root CA telemetry. This must be done manually.
 
 
 Releasing NSS to downstream
@@ -64,7 +63,7 @@ Releasing NSS to downstream
 
 You will need the ``gcloud`` tool installed from https://cloud.google.com/sdk/docs/install.
 
-1. Create the release archives with ``python automation/release/nss-release-helper.py create_nss_release_archive 3.XXX NSS_3_XXX_RTM ../stage``
+1. Create the release archives with ``python automation/release/nss-release-helper.py create_nss_release_archive 3.XXX ../stage``
 2. Announce the release on `dev-tech-crypto <https://groups.google.com/a/mozilla.org/g/dev-tech-crypto>`_.
 
 Preparing for the next release
@@ -110,3 +109,21 @@ Manually freezing a version for release
 5. Push this branch and tag to the NSS repository. ``hg push --new-branch``
 6. Wait for the changes to sync to Github (~15 minutes).
 7. Manually uplift this version into mozilla-unified by running ``./mach vendor security/nss/moz.yaml -r NSS_3_XXX_BETA1`` in mozilla-unified.
+
+Manually tagging NSS for release
+--------------------------------
+
+1. Make sure you're on the appropriate branch (``hg checkout NSS_3_XXX_BRANCH``).
+2. Update the NSS version numbers: ``python3 automation/release/nss-release-helper.py remove_beta``
+3. Commit the change: ``hg commit -m "Set version numbers to 3.XXX final``
+4. Generate a release note by running ``python3 automation/release/nss-release-helper.py generate_release_note 3.XXX 3.YYY > doc/rst/releases/nss_3_XXX.rst`` where ``3.YYY`` is the previous version.
+5. Generate a new release note index by running ``python3 automation/release/nss-release-helper.py generate_release_notes_index <latest_release> <latest_esr_release>``.
+6. Commit the release notes: ``hg commit -m "Release notes for NSS 3.XXX"`` The commit hash of this change will be needed later, so make a note of it (we'll refer to it as ``{DOCS_COMMIT}``).
+7. Tag the release version: ``hg tag NSS_3_XXX_RTM``
+8. Switch the default branch and graft the release notes onto this branch: ``hg graft -r {DOCS_COMMIT}``.
+9. Push the changes on both branches.
+
+Manually uplifting a release into mozilla-unified
+-------------------------------------------------
+
+``./mach nss-uplift {tag_name}`` is calling ``./mach vendor security/nss/moz.yaml -r NSS_3_XXX_BETA1`` behind the scenes and performing a few other tweaks. It relies on UpdateBot's tooling.

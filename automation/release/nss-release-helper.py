@@ -38,6 +38,10 @@ def check_call_noisy(cmd, *args, **kwargs):
     check_call(cmd, *args, **kwargs)
 
 
+def print_separator():
+    print("=" * 70)
+
+
 def exit_with_failure(what):
     print("failure: {}".format(what))
     sys.exit(2)
@@ -330,10 +334,9 @@ def make_release_branch(args):
 
     # Step 2: Verify version numbers are correct
     print("Step 2: Verifying version numbers are correct...")
-    check_call(["python3", "automation/release/nss-release-helper.py",
-                     "set_version_to_minor_release", major, minor])
+    set_version_to_minor_release([major, minor])
     print("=" * 70)
-    check_call(["python3", "automation/release/nss-release-helper.py", "set_beta"])
+    set_beta_status()
     print("=" * 70)
     # Check if there are any uncommitted changes
     hg_status = check_output(["hg", "status"]).decode('utf-8').strip()
@@ -384,6 +387,32 @@ def make_release_branch(args):
         print_separator()
 
 
+def parse_version_string(version_string):
+    """Parse a version string like '3.117' or '3.117.1' and return (major, minor, patch)
+
+    For versions like '3.117', patch will be None.
+    Returns: tuple of (major, minor, patch) where patch can be None
+    """
+    parts = version_string.split('.')
+    if len(parts) < 2:
+        exit_with_failure(f"Invalid version string '{version_string}'. Expected format: 'major.minor' or 'major.minor.patch'")
+
+    major = parts[0].strip()
+    minor = parts[1].strip()
+    patch = parts[2].strip() if len(parts) >= 3 else None
+
+    # Validate that they're numbers
+    try:
+        int(major)
+        int(minor)
+        if patch is not None:
+            int(patch)
+    except ValueError:
+        exit_with_failure(f"Invalid version string '{version_string}'. Version components must be numbers.")
+
+    return major, minor, patch
+
+
 def version_string_to_RTM_tag(version_string):
     parts = version_string.split('.')
     return "NSS_" + "_".join(parts) + "_RTM"
@@ -393,12 +422,12 @@ def version_string_to_underscore(version_string):
 
 
 def generate_release_note(args):
-    ensure_arguments_count(args, 2, "this_release_version_string previous_release_version_string")
+    ensure_arguments_count(args, 3, "this_release_version_string revision_or_tag previous_release_version_string ")
 
     version = args[0].strip()
+    this_tag = args[1].strip() # Typically going to be .
     version_underscore = version_string_to_underscore(version)
-    this_tag = version_string_to_RTM_tag(version)
-    prev_tag = version_string_to_RTM_tag(args[1].strip())
+    prev_tag = version_string_to_RTM_tag(args[2].strip())
 
     # Get the NSPR version
     nspr_version = check_output(['hg', 'cat', '-r', this_tag, 'automation/release/nspr-version.txt']).decode('utf-8').split("\n")[0].strip()
@@ -452,12 +481,12 @@ NSS {version} release notes
 
 .. container::
 
-   The HG tag is {this_tag}. NSS {version} requires NSPR {nspr_version} or newer.
+   The HG tag is NSS_{version_underscore}_RTM. NSS {version} requires NSPR {nspr_version} or newer.
 
    NSS {version} source distributions are available on ftp.mozilla.org for secure HTTPS download:
 
    -  Source tarballs:
-      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/{this_tag}/src/
+      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_{version_underscore}_RTM/src/
 
    Other releases are available :ref:`mozilla_projects_nss_releases`.
 
@@ -541,6 +570,171 @@ Release Notes
     print(index_content)
 
 
+def release_nss(args):
+    ensure_arguments_count(args, 4, "version_string  previous_version  esr_version  remote")
+    version_string = args[0].strip()
+    previous_version = args[1].strip()
+    esr_version = args[2].strip()
+    remote = args[3].strip()
+
+    major, minor, patch = parse_version_string(version_string)
+
+    # Build version string and related names
+    version = version_string
+    version_underscore = version_string_to_underscore(version_string)
+    branch_name = f"NSS_{major}_{minor}_BRANCH"
+    rtm_tag = f"NSS_{version_underscore}_RTM"
+    release_note_file = f"doc/rst/releases/nss_{version_underscore}.rst"
+
+    print_separator()
+    print("RELEASE NSS")
+    print_separator()
+    print(f"Release version: {version}")
+    print(f"Previous version: {previous_version}")
+    print(f"ESR version: {esr_version}")
+    print(f"Remote: {remote}")
+    print_separator()
+
+    response = input('Are these parameters correct? [yN]: ')
+    if 'y' not in response.lower():
+        print("Aborted.")
+        sys.exit(0)
+    print_separator()
+
+    print("=" * 70)
+    print(f"Starting NSS {version} release process")
+    print("=" * 70)
+    print()
+
+    # Step 1: Update local repo
+    print("Step 1: Updating local repository...")
+    check_call_noisy(["hg", "pull"])
+    print_separator()
+
+    # Step 2: Checking working directory is clean
+    print("Step 2: Checking working directory is clean...")
+    hg_status = check_output(["hg", "status"]).decode('utf-8').strip()
+    if hg_status:
+        print()
+        print("ERROR: Working directory is not clean")
+        print(hg_status)
+        print()
+        exit_with_failure("Please commit or revert changes then run this command again. You can reset your working directory with 'hg update -C' and 'hg purge if you want to discard all local changes.")
+    print_separator()
+
+    # Step 3: Make sure we're on the appropriate branch
+    print(f"Step 3: Checking out branch {branch_name}...")
+    try:
+        check_call_noisy(["hg", "checkout", branch_name])
+    except Exception as e:
+        exit_with_failure(f"Failed to checkout branch {branch_name}. Does it exist?")
+    print_separator()
+
+    # Step 4: Check for any existing commits or tags
+    print("Step 4: Checking for existing release commits or tags...")
+
+    # Check if RTM tag already exists
+    tags_output = check_output(["hg", "tags"]).decode('utf-8')
+    if rtm_tag in tags_output:
+        exit_with_failure(f"Tag {rtm_tag} already exists. Has this release already been made?")
+
+    # Check for recent commits with the same commit messages we're about to make
+    version_commit_message = f"Set version numbers to {version} final"
+    release_notes_commit_message = f"Release notes for NSS {version}"
+
+    recent_log = check_output(["hg", "log", "-l", "5", "--template", "{desc|firstline}\\n"]).decode('utf-8')
+
+    if version_commit_message in recent_log:
+        exit_with_failure(f"Found recent commit with message '{version_commit_message}'. Has this release already been started?")
+
+    if release_notes_commit_message in recent_log:
+        exit_with_failure(f"Found recent commit with message '{release_notes_commit_message}'. Has this release already been started?")
+
+    print("No existing release commits or tags found.")
+    print_separator()
+
+    # Step 5: Update the NSS version numbers (remove beta)
+    print("Step 5: Removing beta status from version numbers...")
+    if patch:
+        set_version_to_patch_release([major, minor, patch])
+    else:
+        set_version_to_minor_release([major, minor])
+    remove_beta_status()
+
+    print_separator()
+
+
+
+    # Step 6: Commit the change
+    print("Step 6: Committing version number changes...")
+    check_call_noisy(["hg", "commit", "-m", version_commit_message])
+    print_separator()
+
+    # Step 7: Generate release note
+    print("Step 7: Generating release notes...")
+    release_note_content = generate_release_note([version, ".", previous_version])
+
+    # Write release note to file
+    with open(release_note_file, "w") as f:
+        f.write(release_note_content)
+    print(f"Release note written to {release_note_file}")
+    print_separator()
+
+    # Step 8: Generate new release note index
+    print("Step 8: Generating release notes index...")
+    generate_release_notes_index([version, esr_version])
+    print_separator()
+
+    input("Are you making an ESR release? If so, please manually edit doc/rst/releases/index.rst to adjust the ESR / main version note. Press enter when done.")
+
+    # Step 9: Commit the release notes
+    print("Step 9: Committing release notes...")
+    check_call_noisy(["hg", "add", release_note_file])
+    check_call_noisy(["hg", "commit", "-m", release_notes_commit_message])
+
+    # Get the commit hash
+    docs_commit = check_output(["hg", "log", "-r", ".", "--template", "{node|short}"]).decode('utf-8').strip()
+    print(f"Release notes committed. Commit hash: {docs_commit}")
+    print_separator()
+
+    # Step 10: Tag the release version
+    print(f"Step 10: Tagging release version {rtm_tag}...")
+    check_call_noisy(["hg", "tag", rtm_tag])
+    print_separator()
+
+    # Step 11: Switch to default branch and graft the release notes
+    print("Step 11: Switching to default branch and grafting release notes...")
+    check_call_noisy(["hg", "checkout", "default"])
+    check_call_noisy(["hg", "graft", "-r", docs_commit])
+    print_separator()
+
+    response = input('Display the outgoing changes? [yN]: ')
+    if 'y' in response.lower():
+        check_call_noisy(["hg", "outgoing", "--graph", "-b", "default", "-b", branch_name, remote])
+    print_separator()
+
+    # Step 12: Push changes
+    response = input('Push these changes to the NSS repository? [yN]: ')
+    if 'y' in response.lower():
+        print("Pushing changes to default branch...")
+        check_call_noisy(["hg", "push", "-b", "default", remote])
+        print(f"Pushing changes to {branch_name} branch...")
+        check_call_noisy(["hg", "push", "-b", branch_name, remote])
+        print_separator()
+        print("SUCCESS: NSS release process completed!")
+        print_separator()
+        print()
+        print("NEXT STEPS:")
+        print(f"1. Wait for the changes to sync to Github")
+        print("2. In your mozilla-unified repository, run:")
+        print(f"   ./mach nss-uplift {rtm_tag}")
+        print()
+    else:
+        print("Changes have NOT been pushed to the repository.")
+        print("The local commits remain in your working directory.")
+        print_separator()
+
+
 def create_nss_release_archive(args):
     ensure_arguments_count(args, 2, "nss_release_version  path_to_stage_directory")
     nssrel = args[0].strip()  # e.g. 3.19.3
@@ -594,16 +788,16 @@ def create_nss_release_archive(args):
     check_call_noisy(["mkdir", "-p", nss_stagedir])
     check_call_noisy(["hg", "archive", "-r", nssreltag, "--prefix=nss-" + nssrel + "/nss",
                       stagedir + "/" + nssreltag + "/src/" + nss_tar, "-X", ".hgtags"])
-    check_call_noisy(["gtar", "-xz", "-C", nss_stagedir, "-f", nsprtar_with_path])
+    check_call_noisy([tar_cmd, "-xz", "-C", nss_stagedir, "-f", nsprtar_with_path])
     print("changing to directory " + nss_stagedir)
     os.chdir(nss_stagedir)
-    check_call_noisy(["gtar", "-xz", "-f", nss_tar])
+    check_call_noisy([tar_cmd, "-xz", "-f", nss_tar])
     check_call_noisy(["mv", "-i", "nspr-" + nsprrel + "/nspr", "nss-" + nssrel + "/"])
     check_call_noisy(["rmdir", "nspr-" + nsprrel])
 
     nss_nspr_tar = "nss-" + nssrel + "-with-nspr-" + nsprrel + ".tar.gz"
 
-    check_call_noisy(["gtar", "-cz", "--remove-files", "-f", nss_nspr_tar, "nss-" + nssrel])
+    check_call_noisy([tar_cmd, "-cz", "--remove-files", "-f", nss_nspr_tar, "nss-" + nssrel])
     check_call("sha1sum " + nss_tar + " " + nss_nspr_tar + " > SHA1SUMS", shell=True)
     check_call("sha256sum " + nss_tar + " " + nss_nspr_tar + " > SHA256SUMS", shell=True)
     print("created directory " + nss_stagedir + " with files:")
@@ -629,6 +823,9 @@ def create_nss_release_archive(args):
             f"gs://{gcp_proj}-productdelivery/pub/security/nss/releases/",
         ]
     )
+    print_separator()
+    print(f"Release tarballs have been uploaded to Google Cloud Storage. You can find them at https://ftp.mozilla.org/pub/security/nss/releases/{nssreltag}/")
+    print_separator()
 
 
 o = OptionParser(usage="client.py [options] " + " | ".join([
@@ -693,6 +890,10 @@ elif action in ('generate_release_note'):
 
 elif action in ('generate_release_notes_index'):
     generate_release_notes_index(action_args)
+
+
+elif action in ('release_nss'):
+    release_nss(action_args)
 
 else:
     o.print_help()
