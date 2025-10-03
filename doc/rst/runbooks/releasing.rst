@@ -18,15 +18,15 @@ will be frozen. This is to ensure that new NSS versions have
 adequate testing in Firefox Nightly before making their way to Beta
 and Release.
 
-The NSS Release owner will:
+The NSS Release owner will run the ``make_release_branch`` script:
 
-1. Make sure your local repo is up to date with ``hg pull`` and ``hg checkout default``.
-2. Make a branch for this NSS release. ``hg branch NSS_3_XXX_BRANCH``
-3. Tag a beta for this NSS release. ``hg tag NSS_3_XXX_BETA1``
-4. Inspect the outgoing changes with ``hg outgoing`` and verify they are correct.
-5. Push this branch and tag to the NSS repository. ``hg push --new-branch``
-6. Wait for the changes to sync to Github (~15 minutes).
-7. Manually uplift this version into mozilla-unified by running ``./mach vendor security/nss/moz.yaml -r NSS_3_XXX_BETA1`` in mozilla-unified.
+      python3 automation/release/nss-release-helper.py make_release_branch <3.XXX> <remote>
+
+1. Run the freeze script `python3 ../nss-dev/automation/release/nss-release-helper.py make_freeze_branch 3 <version> <remote>` where ``<version>`` is the minor version number (e.g. 73 for 3.73) and ``<remote>`` is the name of the remote pointing to the NSS repository (e.g. ``default``).
+2. Wait for the changes to sync to Github (~15 minutes).
+3. Manually uplift this version into mozilla-unified by running ``./mach vendor security/nss/moz.yaml -r NSS_3_XXX_BETA1`` in mozilla-unified.
+
+The equivalent manual process is described below.
 
 .. warning::
 
@@ -92,3 +92,20 @@ Updating NSPR
 -------------
 
 NSPR releases are infrequent, but require changing the NSPR version is listed in ``automation/release/nspr-version.txt``
+
+
+Making an ESR release
+---------------------
+
+For an ESR release, there will already be a release branch. You will need to manually graft any patches you're backporting from the main release branch onto the ESR branch. You can then run the release_nss and create_nss_release_archive commands with the usual parameters. Afterwards, you'll need to request them for uplift to mozilla-unified via the ESR option.
+
+Manually freezing a version for release
+---------------------------------------
+
+1. Make sure your local repo is up to date with ``hg pull`` and ``hg checkout default``.
+2. Make a branch for this NSS release. ``hg branch NSS_3_XXX_BRANCH``
+3. Tag a beta for this NSS release. ``hg tag NSS_3_XXX_BETA1``
+4. Inspect the outgoing changes with ``hg outgoing`` and verify they are correct.
+5. Push this branch and tag to the NSS repository. ``hg push --new-branch``
+6. Wait for the changes to sync to Github (~15 minutes).
+7. Manually uplift this version into mozilla-unified by running ``./mach vendor security/nss/moz.yaml -r NSS_3_XXX_BETA1`` in mozilla-unified.

@@ -127,7 +127,9 @@ def remove_beta_status():
     print("--- removing beta flags. Existing versions were:")
     print_beta_versions()
     toggle_beta_status(False)
+    print("=" * 70)
     print("--- finished modifications, new versions are:")
+    print("=" * 70)
     print_beta_versions()
 
 
@@ -280,6 +282,109 @@ def set_4_digit_release_number():
     set_all_lib_versions(version, major, minor, patch, build)
 
 
+def make_freeze_branch():
+    ensure_arguments_after_action(3, "major_version minor_version remote")
+    major = args[1].strip()
+    minor = args[2].strip()
+    remote = args[3].strip()
+
+    major, minor, patch = parse_version_string(version_string)
+    if patch is not None:
+        exit_with_failure("make_release_branch expects a minor version (e.g., '3.117'), not a patch version.")
+
+    version = f"{major}.{minor}"
+    branch_name = f"NSS_{major}_{minor}_BRANCH"
+    tag_name = f"NSS_{major}_{minor}_BETA1"
+
+    print_separator()
+    print("MAKE RELEASE BRANCH")
+    print_separator()
+    print(f"Version: {version}")
+    print(f"Remote: {remote}")
+    print_separator()
+
+    response = input('Are these parameters correct? [yN]: ')
+    if 'y' not in response.lower():
+        print("Aborted.")
+        sys.exit(0)
+    print_separator()
+
+    # Step 1: Update local repo
+    print("Step 1: Updating local repository...")
+    check_call_noisy(["hg", "pull"])
+    check_call_noisy(["hg", "checkout", "default"])
+    print_separator()
+
+    print("Step 2: Checking working directory is clean")
+    hg_status = check_output(["hg", "status"]).decode('utf-8').strip()
+    if hg_status:
+        print()
+        print("ERROR: Working directory is not clean")
+        print(hg_status)
+        print()
+        exit_with_failure("Please commit or revert changes then run this command again. You can reset your working directory with 'hg update -C' and 'hg purge if you want to discard all local changes.")
+
+    branches = check_output(["hg", "branches"]).decode('utf-8').strip()
+    if branch_name in branches:
+        exit_with_failure(f"Branch {branch_name} already exists.")
+    print_separator()
+
+    # Step 2: Verify version numbers are correct
+    print("Step 2: Verifying version numbers are correct...")
+    check_call(["python3", "automation/release/nss-release-helper.py",
+                     "set_version_to_minor_release", major, minor])
+    print("=" * 70)
+    check_call(["python3", "automation/release/nss-release-helper.py", "set_beta"])
+    print("=" * 70)
+    # Check if there are any uncommitted changes
+    hg_status = check_output(["hg", "status"]).decode('utf-8').strip()
+    if hg_status:
+        print()
+        print("ERROR: Version numbers are not correctly set")
+        print()
+        print()
+        exit_with_failure("Please check the correct version to freeze, or update the version numbers then run this command again.")
+
+    print("Version numbers verified - no changes needed.")
+    print_separator()
+
+    # Step 3: Create branch
+    print(f"Step 3: Creating branch {branch_name}...")
+    check_call_noisy(["hg", "branch", branch_name])
+    print_separator()
+
+    # Step 4: Create tag
+    print(f"Step 4: Creating tag {tag_name}...")
+    check_call_noisy(["hg", "tag", tag_name])
+    print_separator()
+
+    # Step 5: Show outgoing changes
+    response = input('Display outgoing changes? [yN]: ')
+    if 'y' in response.lower():
+        print()
+        check_call_noisy(["hg", "outgoing", "-p", remote])
+    print_separator()
+
+    # Step 6: Prompt user and push if confirmed
+    response = input('Push this branch and tag to the NSS repository? [yN]: ')
+    if 'y' in response.lower():
+        print("Pushing branch and tag...")
+        check_call_noisy(["hg", "push", "--new-branch", remote])
+        print_separator()
+        print("SUCCESS: Branch and tag have been pushed!")
+        print_separator()
+        print()
+        print("NEXT STEPS:")
+        print(f"1. Wait for the changes to sync to Github: https://github.com/nss-dev/nss/tree/{branch_name}")
+        print("2. In your mozilla-unified repository, run:")
+        print(f"   ./mach nss-uplift {tag_name}")
+        print()
+    else:
+        print("Branch and tag have NOT been pushed to the repository.")
+        print("The local branch and tag remain in your working directory.")
+        print_separator()
+
+
 def create_nss_release_archive():
     ensure_arguments_after_action(3, "nss_release_version  nss_hg_release_tag  path_to_stage_directory")
     nssrel = args[1].strip()  # e.g. 3.19.3
@@ -352,7 +457,7 @@ o = OptionParser(usage="client.py [options] " + " | ".join([
     "remove_beta", "set_beta", "print_library_versions", "print_root_ca_version",
     "set_root_ca_version", "set_version_to_minor_release",
     "set_version_to_patch_release", "set_release_candidate_number",
-    "set_4_digit_release_number", "create_nss_release_archive"]))
+    "set_4_digit_release_number", "make_freeze_branch", "create_nss_release_archive"]))
 
 try:
     options, args = o.parse_args()
@@ -394,6 +499,11 @@ elif action in ('set_release_candidate_number'):
 # 4 parameters
 elif action in ('set_4_digit_release_number'):
     set_4_digit_release_number()
+
+# create a freeze branch and beta tag for a new release
+# 2 parameters
+elif action in ('make_release_branch'):
+    make_freeze_branch()
 
 elif action in ('create_nss_release_archive'):
     create_nss_release_archive()
