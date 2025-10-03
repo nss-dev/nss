@@ -46,12 +46,13 @@ The NSS Release Owner will:
 1. Make sure you're on the appropriate branch (``hg checkout NSS_3_XXX_BRANCH``).
 2. Update the NSS version numbers: ``python3 automation/release/nss-release-helper.py remove_beta``
 3. Commit the change: ``hg commit -m "Set version numbers to 3.XXX final``
-4. Generate a release note by running ``python3 automation/release/nss-release-helper.py generate_release_note 3.XXX 3.YYY > doc/rst/releases/nss_3_XXX.rst`` where ``3.YYY`` is the previous version. Add a link to this file in ``doc/rst/releases/index.rst`` and update the text there.
-5. Commit the release notes: ``hg commit -m "Release notes for NSS 3.XXX"`` The commit hash of this change will be needed later, so make a note of it (we'll refer to it as ``{DOCS_COMMIT}``).
-6. Tag the release version: ``hg tag NSS_3_XXX_RTM``
-7. Push the changes to the NSS repository. ``hg push``
-8. Switch the default branch and graft the release notes onto this branch: ``hg graft -r {DOCS_COMMIT}``.
-9. Manually uplift this version by running ``./mach vendor security/nss/moz.yaml -r NSS_3_XXX_RTM`` in mozilla-unified.
+4. Generate a release note by running ``python3 automation/release/nss-release-helper.py generate_release_note 3.XXX 3.YYY > doc/rst/releases/nss_3_XXX.rst`` where ``3.YYY`` is the previous version.
+5. Generate a new release note index by running ``python3 automation/release/nss-release-helper.py generate_release_notes_index <latest_release> <latest_esr_release>``.
+6. Commit the release notes: ``hg commit -m "Release notes for NSS 3.XXX"`` The commit hash of this change will be needed later, so make a note of it (we'll refer to it as ``{DOCS_COMMIT}``).
+7. Tag the release version: ``hg tag NSS_3_XXX_RTM``
+8. Push the changes to the NSS repository. ``hg push``
+9. Switch the default branch and graft the release notes onto this branch: ``hg graft -r {DOCS_COMMIT}``.
+10. Manually uplift this version by running ``./mach vendor security/nss/moz.yaml -r NSS_3_XXX_RTM`` in mozilla-unified.
 
 .. warning::
 

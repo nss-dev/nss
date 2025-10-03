@@ -475,6 +475,73 @@ NSS {version} release notes
     print(rst_content)
 
 
+def generate_release_notes_index():
+    ensure_arguments_after_action(2, "latest_release_version  latest_esr_version")
+    latest_version = args[1].strip()  # e.g. 3.116
+    esr_version = args[2].strip()  # e.g. 3.112.1
+
+    latest_underscore = version_string_to_underscore(latest_version)
+    esr_underscore = version_string_to_underscore(esr_version)
+
+    # Read all release note files from doc/rst/releases/
+    release_dir = "doc/rst/releases"
+    if not os.path.exists(release_dir):
+        exit_with_failure(f"Release notes directory not found: {release_dir}")
+
+    # Get all nss_*.rst files (excluding index.rst)
+    release_files = []
+    for filename in os.listdir(release_dir):
+        if filename.startswith("nss_") and filename.endswith(".rst") and filename != "index.rst":
+            release_files.append(filename)
+
+    # Sort release files in reverse order (newest first)
+    # Extract version numbers for proper sorting
+    def version_key(filename):
+        # Extract version parts from filename like nss_3_116.rst
+        parts = filename.replace("nss_", "").replace(".rst", "").split("_")
+        # Convert to integers for proper numerical sorting
+        return [int(p) for p in parts]
+
+    release_files.sort(key=version_key, reverse=True)
+
+    # Build the toctree content
+    toctree_lines = "\n".join([f"   {f}" for f in release_files])
+
+    # Create the index.rst content
+    index_content = f""".. _mozilla_projects_nss_releases:
+
+Release Notes
+=============
+
+.. toctree::
+   :maxdepth: 0
+   :glob:
+   :hidden:
+
+{toctree_lines}
+
+.. note::
+
+   **NSS {latest_version}** is the latest version of NSS.
+   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_{latest_underscore}_release_notes`
+
+   **NSS {esr_version} (ESR)** is the latest ESR version of NSS.
+   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_{esr_underscore}_release_notes`
+
+"""
+
+    index_file = os.path.join(release_dir, "index.rst")
+    with open(index_file, "w") as f:
+        f.write(index_content)
+
+    print(f"Generated {index_file}")
+    print()
+    print("=" * 70)
+    print("Content:")
+    print("=" * 70)
+    print(index_content)
+
+
 def create_nss_release_archive():
     ensure_arguments_after_action(3, "nss_release_version  nss_hg_release_tag  path_to_stage_directory")
     nssrel = args[1].strip()  # e.g. 3.19.3
@@ -548,7 +615,7 @@ o = OptionParser(usage="client.py [options] " + " | ".join([
     "set_root_ca_version", "set_version_to_minor_release",
     "set_version_to_patch_release", "set_release_candidate_number",
     "set_4_digit_release_number", "make_release_branch", "create_nss_release_archive",
-    "generate_release_note"]))
+    "generate_release_note", "generate_release_notes_index"]))
 
 try:
     options, args = o.parse_args()
@@ -601,6 +668,9 @@ elif action in ('create_nss_release_archive'):
 
 elif action in ('generate_release_note'):
     generate_release_note()
+
+elif action in ('generate_release_notes_index'):
+    generate_release_notes_index()
 
 else:
     o.print_help()
