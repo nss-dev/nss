@@ -385,6 +385,96 @@ def make_freeze_branch():
         print_separator()
 
 
+def version_string_to_RTM_tag(version_string):
+    parts = version_string.split('.')
+    return "NSS_" + "_".join(parts) + "_RTM"
+
+def version_string_to_underscore(version_string):
+    return version_string.replace('.', '_')
+
+
+def generate_release_note():
+    ensure_arguments_after_action(2, "this_release_version_string previous_release_version_string")
+
+    version = args[1].strip()
+    version_underscore = version_string_to_underscore(version)
+    this_tag = version_string_to_RTM_tag(version)
+    prev_tag = version_string_to_RTM_tag(args[2].strip())
+
+    # Get the NSPR version
+    nspr_version = check_output(['hg', 'cat', '-r', this_tag, 'automation/release/nspr-version.txt']).decode('utf-8').split("\n")[0].strip()
+
+    # Get the current date
+    from datetime import datetime
+    current_date = datetime.now().strftime("%-d %B %Y")
+
+    # Get the list of bugs from hg log
+    # Get log entries between previous tag and current HEAD
+    command = ["hg", "log", "-r", f"{prev_tag}:{this_tag}", "--template", "{desc|firstline}\\n"]
+    log_output = check_output(command).decode('utf-8')
+
+    # Extract bug numbers and descriptions
+    bug_lines = []
+    for line in reversed(log_output.split('\n')):
+        if 'Bug' in line or 'bug' in line:
+            line = line.strip()
+            line = line.split("r=")[0].strip()
+
+            # Match patterns like "Bug 1234567 Something" and convert to "Bug 1234567 - Something"
+            line = re.sub(r'(Bug\s+\d+)\s+([^-])', r'\1 - \2', line, flags=re.IGNORECASE)
+
+            # Add a full stop at the end if there isn't one
+            if line:
+                line =  line.rstrip(',')
+
+            if line and not line.endswith('.'):
+                line = line + '.'
+
+            if line and line not in bug_lines:
+                bug_lines.append(line)
+
+    changes_text = "\n".join([f"   - {line}" for line in bug_lines])
+
+    # Create the release notes content
+    rst_content = f""".. _mozilla_projects_nss_nss_{version_underscore}_release_notes:
+
+NSS {version} release notes
+========================
+
+`Introduction <#introduction>`__
+--------------------------------
+
+.. container::
+
+   Network Security Services (NSS) {version} was released on *{current_date}**.
+
+`Distribution Information <#distribution_information>`__
+--------------------------------------------------------
+
+.. container::
+
+   The HG tag is {this_tag}. NSS {version} requires NSPR {nspr_version} or newer.
+
+   NSS {version} source distributions are available on ftp.mozilla.org for secure HTTPS download:
+
+   -  Source tarballs:
+      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/{this_tag}/src/
+
+   Other releases are available :ref:`mozilla_projects_nss_releases`.
+
+.. _changes_in_nss_{version}:
+
+`Changes in NSS {version} <#changes_in_nss_{version}>`__
+------------------------------------------------------------------
+
+.. container::
+
+{changes_text}
+
+"""
+    print(rst_content)
+
+
 def create_nss_release_archive():
     ensure_arguments_after_action(3, "nss_release_version  nss_hg_release_tag  path_to_stage_directory")
     nssrel = args[1].strip()  # e.g. 3.19.3
@@ -457,7 +547,8 @@ o = OptionParser(usage="client.py [options] " + " | ".join([
     "remove_beta", "set_beta", "print_library_versions", "print_root_ca_version",
     "set_root_ca_version", "set_version_to_minor_release",
     "set_version_to_patch_release", "set_release_candidate_number",
-    "set_4_digit_release_number", "make_freeze_branch", "create_nss_release_archive"]))
+    "set_4_digit_release_number", "make_release_branch", "create_nss_release_archive",
+    "generate_release_note"]))
 
 try:
     options, args = o.parse_args()
@@ -507,6 +598,9 @@ elif action in ('make_release_branch'):
 
 elif action in ('create_nss_release_archive'):
     create_nss_release_archive()
+
+elif action in ('generate_release_note'):
+    generate_release_note()
 
 else:
     o.print_help()
