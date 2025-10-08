@@ -325,7 +325,7 @@ static CK_INTERFACE fips_interfaces[] = {
     { (CK_UTF8CHAR_PTR) "Vendor NSS FIPS Interface", &sftk_fips_funcList, NSS_INTERFACE_FLAGS }
 };
 /* must match the count of interfaces in fips_interfaces above*/
-#define FIPS_INTERFACE_COUNT 4
+#define FIPS_INTERFACE_COUNT PR_ARRAY_SIZE(fips_interfaces)
 
 /* CKO_NOT_A_KEY can be any object class that's not a key object. */
 #define CKO_NOT_A_KEY CKO_DATA
