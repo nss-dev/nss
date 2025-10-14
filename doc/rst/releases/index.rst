@@ -101,4 +101,3 @@ Release Notes
    **NSS 3.112.2 (ESR)** is the latest ESR version of NSS.
    Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_112_1_release_notes`
 
-.. container::
