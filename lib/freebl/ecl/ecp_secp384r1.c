@@ -311,3 +311,52 @@ ec_secp384r1_verify_digest(ECPublicKey *key, const SECItem *signature,
 
     return res;
 }
+
+/*
+    Point decompression for P-384.
+
+    publicCompressed must be 49 bytes (1 byte for a sign and 48 bytes for the x coordinate.
+    publicUncompressed must be 96 bytes (48 * 2).
+    The function returns SECSuccess if the decompression was success and the decompresse
+    point is a valid P-384 curve point.
+*/
+
+SECStatus
+ec_secp384r1_decompress(const SECItem *publicCompressed, SECItem *publicUncompressed)
+{
+    if (!publicCompressed || !publicCompressed->data) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (publicCompressed->len != 49) {
+        PORT_SetError(SEC_ERROR_BAD_KEY);
+        return SECFailure;
+    }
+
+    if (!publicUncompressed || !publicUncompressed->data) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (publicUncompressed->len != 97) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (publicCompressed->data[0] != EC_POINT_FORM_COMPRESSED_Y0 &&
+        publicCompressed->data[0] != EC_POINT_FORM_COMPRESSED_Y1) {
+        PORT_SetError(SEC_ERROR_UNSUPPORTED_EC_POINT_FORM);
+        return SECFailure;
+    }
+
+    bool b = Hacl_P384_compressed_to_raw(publicCompressed->data, publicUncompressed->data + 1);
+
+    if (!b) {
+        PORT_SetError(SEC_ERROR_BAD_KEY);
+        return SECFailure;
+    }
+
+    publicUncompressed->data[0] = EC_POINT_FORM_UNCOMPRESSED;
+    return SECSuccess;
+}

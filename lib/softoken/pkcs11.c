@@ -1254,7 +1254,6 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
                                 sizeof(CK_BBOOL));
     if (crv != CKR_OK)
         return crv;
-
     object->objectInfo = sftk_GetPubKey(object, key_type, &crv);
     if (object->objectInfo == NULL) {
         return crv;
@@ -2186,7 +2185,6 @@ sftk_GetPubKey(SFTKObject *object, CK_KEY_TYPE key_type,
                                           object, CKA_EC_POINT);
             if (crv == CKR_OK) {
                 unsigned int keyLen = EC_GetPointSize(&pubKey->u.ec.ecParams);
-
                 /* special note: We can't just use the first byte to distinguish
                  * between EC_POINT_FORM_UNCOMPRESSED and SEC_ASN1_OCTET_STRING.
                  * Both are 0x04. */
@@ -2194,6 +2192,8 @@ sftk_GetPubKey(SFTKObject *object, CK_KEY_TYPE key_type,
                 /* Handle the non-DER encoded case.
                  * Some curves are always pressumed to be non-DER.
                  */
+
+                /* is the public key in uncompressed form? */
                 if (pubKey->u.ec.ecParams.type != ec_params_named ||
                     (pubKey->u.ec.publicValue.len == keyLen &&
                      pubKey->u.ec.publicValue.data[0] == EC_POINT_FORM_UNCOMPRESSED)) {
@@ -2201,8 +2201,7 @@ sftk_GetPubKey(SFTKObject *object, CK_KEY_TYPE key_type,
                 }
 
                 /* handle the encoded case */
-                if ((pubKey->u.ec.publicValue.data[0] == SEC_ASN1_OCTET_STRING) &&
-                    pubKey->u.ec.publicValue.len > keyLen) {
+                if (pubKey->u.ec.publicValue.data[0] == SEC_ASN1_OCTET_STRING) {
                     SECItem publicValue;
                     SECStatus rv;
 
@@ -2210,17 +2209,36 @@ sftk_GetPubKey(SFTKObject *object, CK_KEY_TYPE key_type,
                                                 SEC_ASN1_GET(SEC_OctetStringTemplate),
                                                 &pubKey->u.ec.publicValue);
                     /* nope, didn't decode correctly */
-                    if ((rv != SECSuccess) || (publicValue.len != keyLen)) {
+                    if (rv != SECSuccess) {
                         crv = CKR_ATTRIBUTE_VALUE_INVALID;
                         break;
                     }
-                    /* we don't handle compressed points except in the case of ECCurve25519 */
-                    if (publicValue.data[0] != EC_POINT_FORM_UNCOMPRESSED) {
+
+                    if (publicValue.len == keyLen && publicValue.data[0] == EC_POINT_FORM_UNCOMPRESSED) {
+                        /* Received uncompressed point */
+                        pubKey->u.ec.publicValue = publicValue;
+                        break;
+                    }
+
+                    /* Trying to decompress */
+                    SECItem publicDecompressed = { siBuffer, NULL, 0 };
+                    (void)SECITEM_AllocItem(arena, &publicDecompressed, keyLen);
+                    if (EC_DecompressPublicKey(&publicValue, &pubKey->u.ec.ecParams, &publicDecompressed) == SECFailure) {
                         crv = CKR_ATTRIBUTE_VALUE_INVALID;
                         break;
                     }
-                    /* replace our previous with the decoded key */
-                    pubKey->u.ec.publicValue = publicValue;
+
+                    /* replace our previous public key with the decoded decompressed key */
+                    pubKey->u.ec.publicValue = publicDecompressed;
+
+                    SECItem publicDecompressedEncoded = { siBuffer, NULL, 0 };
+                    (void)SEC_ASN1EncodeItem(arena, &publicDecompressedEncoded, &publicDecompressed,
+                                             SEC_ASN1_GET(SEC_OctetStringTemplate));
+                    if (CKR_OK != sftk_forceAttribute(object, CKA_EC_POINT, sftk_item_expand(&publicDecompressedEncoded))) {
+                        crv = CKR_ATTRIBUTE_VALUE_INVALID;
+                        break;
+                    }
+
                     break;
                 }
                 crv = CKR_ATTRIBUTE_VALUE_INVALID;

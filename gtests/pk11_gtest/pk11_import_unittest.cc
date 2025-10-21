@@ -15,6 +15,7 @@
 #include "nss_scoped_ptrs.h"
 #include "gtest/gtest.h"
 #include "databuffer.h"
+#include "pk11_import_vectors.h"
 #include "pk11_keygen.h"
 
 namespace nss_test {
@@ -297,5 +298,122 @@ INSTANTIATE_TEST_SUITE_P(Pk11KeyImportTestEC, Pk11KeyImportTestEC,
                                            SEC_OID_SECG_EC_SECP384R1,
                                            SEC_OID_SECG_EC_SECP521R1,
                                            SEC_OID_CURVE25519));
+
+struct Pkcs11CompressedECKeyTestParams {
+  DataBuffer compressedKey;
+  DataBuffer uncompressedKey;
+};
+
+class Pk11KeyImportTestECCompressed
+    : public Pk11KeyImportTestBase,
+      public ::testing::WithParamInterface<Pkcs11CompressedECKeyTestParams> {
+ public:
+  Pk11KeyImportTestECCompressed() = default;
+  virtual ~Pk11KeyImportTestECCompressed() = default;
+};
+
+// Importing a private key in PKCS#8 format with a point not on the curve will
+// succeed. Using the contained public key however will fail when trying to
+// import it before using it for any operation.
+TEST_P(Pk11KeyImportTestECCompressed, CompressedPointTest) {
+  DataBuffer spki(GetParam().compressedKey);
+  SECItem spki_item = {siBuffer, toUcharPtr(spki.data()),
+                       static_cast<unsigned int>(spki.len())};
+
+  ScopedCERTSubjectPublicKeyInfo cert_spki(
+      SECKEY_DecodeDERSubjectPublicKeyInfo(&spki_item));
+  ASSERT_TRUE(cert_spki);
+  ScopedSECKEYPublicKey pub_key(SECKEY_ExtractPublicKey(cert_spki.get()));
+  ASSERT_TRUE(pub_key);
+
+  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  ASSERT_TRUE(slot);
+
+  CK_OBJECT_HANDLE id =
+      PK11_ImportPublicKey(slot.get(), pub_key.get(), PR_FALSE);
+  ASSERT_NE(id, (unsigned int)CK_INVALID_HANDLE);
+
+  StackSECItem publicDecoded;
+  SECStatus rv = PK11_ReadRawAttribute(PK11_TypePubKey, pub_key.get(),
+                                       CKA_EC_POINT, &publicDecoded);
+  ASSERT_EQ(rv, SECSuccess);
+
+  ScopedPLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
+  ASSERT_TRUE(arena);
+
+  SECItem decodedItem;
+  rv = SEC_QuickDERDecodeItem(arena.get(), &decodedItem,
+                              SEC_ASN1_GET(SEC_OctetStringTemplate),
+                              &publicDecoded);
+
+  ASSERT_EQ(rv, SECSuccess);
+  ASSERT_EQ(decodedItem.len, GetParam().uncompressedKey.len());
+  ASSERT_EQ(0, PORT_Memcmp(decodedItem.data, GetParam().uncompressedKey.data(),
+                           decodedItem.len));
+};
+
+static const Pkcs11CompressedECKeyTestParams kCompressedVectors[] = {
+    {DataBuffer(kP256CompressedSpki, sizeof(kP256CompressedSpki)),
+     DataBuffer(kP256Uncompressed, sizeof(kP256Uncompressed))},
+    {DataBuffer(kP384CompressedSpki, sizeof(kP384CompressedSpki)),
+     DataBuffer(kP384Uncompressed, sizeof(kP384Uncompressed))},
+    {DataBuffer(kP521CompressedSpki, sizeof(kP521CompressedSpki)),
+     DataBuffer(kP521Uncompressed, sizeof(kP521Uncompressed))}};
+
+INSTANTIATE_TEST_SUITE_P(Pk11KeyImportTestECCompressed,
+                         Pk11KeyImportTestECCompressed,
+                         ::testing::ValuesIn(kCompressedVectors));
+
+// Importing a key with 0x7 sign value instead of 0x02/0x03
+TEST_F(Pk11KeyImportTestEC, CompressedPointWrongSign) {
+  DataBuffer spki(kP256CompressedSpkiWrongSign,
+                  sizeof(kP256CompressedSpkiWrongSign));
+  SECItem spki_item = {siBuffer, toUcharPtr(spki.data()),
+                       static_cast<unsigned int>(spki.len())};
+
+  ScopedCERTSubjectPublicKeyInfo cert_spki(
+      SECKEY_DecodeDERSubjectPublicKeyInfo(&spki_item));
+  ASSERT_TRUE(cert_spki);
+  ScopedSECKEYPublicKey pub_key(SECKEY_ExtractPublicKey(cert_spki.get()));
+  ASSERT_TRUE(pub_key);
+
+  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  ASSERT_TRUE(slot);
+
+  CK_OBJECT_HANDLE id =
+      PK11_ImportPublicKey(slot.get(), pub_key.get(), PR_FALSE);
+  ASSERT_EQ(id, (unsigned int)CK_INVALID_HANDLE);
+}
+
+TEST_F(Pk11KeyImportTestEC, CompressedPointWrongLen) {
+  DataBuffer spki(kP256CompressedSpkiWrongPointLength,
+                  sizeof(kP256CompressedSpkiWrongPointLength));
+  SECItem spki_item = {siBuffer, toUcharPtr(spki.data()),
+                       static_cast<unsigned int>(spki.len())};
+
+  ScopedCERTSubjectPublicKeyInfo cert_spki(
+      SECKEY_DecodeDERSubjectPublicKeyInfo(&spki_item));
+  ASSERT_FALSE(cert_spki);
+}
+
+TEST_F(Pk11KeyImportTestEC, CompressedPointNotOnCurve) {
+  DataBuffer spki(kP256CompressedSpkiNotOnCurve,
+                  sizeof(kP256CompressedSpkiNotOnCurve));
+  SECItem spki_item = {siBuffer, toUcharPtr(spki.data()),
+                       static_cast<unsigned int>(spki.len())};
+
+  ScopedCERTSubjectPublicKeyInfo cert_spki(
+      SECKEY_DecodeDERSubjectPublicKeyInfo(&spki_item));
+  ASSERT_TRUE(cert_spki);
+  ScopedSECKEYPublicKey pub_key(SECKEY_ExtractPublicKey(cert_spki.get()));
+  ASSERT_TRUE(pub_key);
+
+  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  ASSERT_TRUE(slot);
+
+  CK_OBJECT_HANDLE id =
+      PK11_ImportPublicKey(slot.get(), pub_key.get(), PR_FALSE);
+  ASSERT_NE(id, (unsigned int)CK_INVALID_HANDLE);
+}
 
 }  // namespace nss_test

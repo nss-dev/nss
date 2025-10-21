@@ -1962,6 +1962,13 @@ SECStatus MLDSA_VerifyInit(MLDSAPublicKey *key, const SECItem *sgnCtx,
 SECStatus MLDSA_VerifyUpdate(MLDSAContext *ctx, const SECItem *data);
 SECStatus MLDSA_VerifyFinal(MLDSAContext *ctx, const SECItem *signature);
 
+/* Decompress public key.
+ ** On input, publicCompressed == buffer containing compressed key
+ ** Output, publicRaw == decompressed public key. The function returns true iff the
+ ** decompressed key belongs to the appropriate curve.
+ */
+SECStatus EC_DecompressPublicKey(const SECItem *publicCompressed, const ECParams *params, SECItem *publicUncompressed);
+
 SEC_END_PROTOS
 
 #endif /* _BLAPI_H_ */

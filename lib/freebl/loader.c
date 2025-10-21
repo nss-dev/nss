@@ -2958,3 +2958,12 @@ MLDSA_VerifyFinal(MLDSAContext *ctx, const SECItem *signature)
         return SECFailure;
     return (vector->p_MLDSA_VerifyFinal)(ctx, signature);
 }
+
+/* ============== New for 3.0032 =============================== */
+SECStatus
+EC_DecompressPublicKey(const SECItem *publicCompressed, const ECParams *params, SECItem *publicUncompressed)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return SECFailure;
+    return (vector->p_EC_DecompressPublicKey)(publicCompressed, params, publicUncompressed);
+}

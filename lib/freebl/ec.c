@@ -710,3 +710,21 @@ EC_DerivePublicKey(const SECItem *privateKey, const ECParams *ecParams, SECItem 
 
     return method->pt_mul(publicKey, (SECItem *)privateKey, NULL);
 }
+
+/* Supported only for P-256, P-384 and P-521*/
+SECStatus
+EC_DecompressPublicKey(const SECItem *publicCompressed, const ECParams *ecParams, SECItem *publicUncompressed)
+{
+    /* I don't think that we need a special ECMethod extension for decompression. */
+    switch (ecParams->name) {
+        case ECCurve_NIST_P256:
+            return ec_secp256r1_decompress(publicCompressed, publicUncompressed);
+        case ECCurve_NIST_P384:
+            return ec_secp384r1_decompress(publicCompressed, publicUncompressed);
+        case ECCurve_NIST_P521:
+            return ec_secp521r1_decompress(publicCompressed, publicUncompressed);
+        default:
+            PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
+            return SECFailure;
+    }
+}
