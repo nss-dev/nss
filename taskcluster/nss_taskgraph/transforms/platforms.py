@@ -26,7 +26,7 @@ def add_env_vars(config, tasks):
         if task["attributes"]["build_platform"].startswith("mac"):
             env.update({"NSS_TASKCLUSTER_MAC": "1"})
 
-        if config.params["try_options"].get("allow_nspr_patch"):
+        if config.params["try_options"].get("nspr_patch"):
             env.update({"ALLOW_NSPR_PATCH": "1"})
 
         yield task
