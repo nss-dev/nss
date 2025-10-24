@@ -1,24 +1,25 @@
 /*
- * SPDX-FileCopyrightText: 2024 Cryspen Sarl <info@cryspen.com>
+ * SPDX-FileCopyrightText: 2025 Cryspen Sarl <info@cryspen.com>
  *
  * SPDX-License-Identifier: MIT or Apache-2.0
  *
  * This code was generated with the following revisions:
- * Charon: b351338f6a84c7a1afc27433eb0ffdc668b3581d
- * Eurydice: 7efec1624422fd5e94388ef06b9c76dfe7a48d46
- * Karamel: c96fb69d15693284644d6aecaa90afa37e4de8f0
- * F*: 58c915a86a2c07c8eca8d9deafd76cb7a91f0eb7
- * Libcrux: 6ff01fb3c57ff29ecb59bc62d9dc7fd231060cfb
+ * Charon: 667d2fc98984ff7f3df989c2367e6c1fa4a000e7
+ * Eurydice: 2381cbc416ef2ad0b561c362c500bc84f36b6785
+ * Karamel: 80f5435f2fc505973c469a4afcc8d875cddd0d8b
+ * F*: 71d8221589d4d438af3706d89cb653cf53e18aab
+ * Libcrux: 68dfed5a4a9e40277f62828471c029afed1ecdcc
  */
 
-#ifndef __libcrux_mlkem768_portable_H
-#define __libcrux_mlkem768_portable_H
+#ifndef libcrux_mlkem768_portable_H
+#define libcrux_mlkem768_portable_H
+
+#include "eurydice_glue.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-#include "eurydice_glue.h"
 #include "libcrux_core.h"
 
 /**
@@ -29,7 +30,7 @@ extern "C" {
  [`MlKem768Ciphertext`].
 */
 void libcrux_ml_kem_mlkem768_portable_decapsulate(
-    libcrux_ml_kem_types_MlKemPrivateKey_55 *private_key,
+    libcrux_ml_kem_types_MlKemPrivateKey_d9 *private_key,
     libcrux_ml_kem_mlkem768_MlKem768Ciphertext *ciphertext, uint8_t ret[32U]);
 
 /**
@@ -39,8 +40,8 @@ void libcrux_ml_kem_mlkem768_portable_decapsulate(
  The input is a reference to an [`MlKem768PublicKey`] and [`SHARED_SECRET_SIZE`]
  bytes of `randomness`.
 */
-tuple_3c libcrux_ml_kem_mlkem768_portable_encapsulate(
-    libcrux_ml_kem_types_MlKemPublicKey_15 *public_key,
+tuple_c2 libcrux_ml_kem_mlkem768_portable_encapsulate(
+    libcrux_ml_kem_types_MlKemPublicKey_30 *public_key,
     uint8_t randomness[32U]);
 
 /**
@@ -55,8 +56,16 @@ libcrux_ml_kem_mlkem768_portable_generate_key_pair(uint8_t randomness[64U]);
  Returns `true` if valid, and `false` otherwise.
 */
 bool libcrux_ml_kem_mlkem768_portable_validate_private_key(
-    libcrux_ml_kem_types_MlKemPrivateKey_55 *private_key,
+    libcrux_ml_kem_types_MlKemPrivateKey_d9 *private_key,
     libcrux_ml_kem_mlkem768_MlKem768Ciphertext *ciphertext);
+
+/**
+ Validate the private key only.
+
+ Returns `true` if valid, and `false` otherwise.
+*/
+bool libcrux_ml_kem_mlkem768_portable_validate_private_key_only(
+    libcrux_ml_kem_types_MlKemPrivateKey_d9 *private_key);
 
 /**
  Validate a public key.
@@ -64,11 +73,11 @@ bool libcrux_ml_kem_mlkem768_portable_validate_private_key(
  Returns `true` if valid, and `false` otherwise.
 */
 bool libcrux_ml_kem_mlkem768_portable_validate_public_key(
-    libcrux_ml_kem_types_MlKemPublicKey_15 *public_key);
+    libcrux_ml_kem_types_MlKemPublicKey_30 *public_key);
 
 #if defined(__cplusplus)
 }
 #endif
 
-#define __libcrux_mlkem768_portable_H_DEFINED
-#endif
+#define libcrux_mlkem768_portable_H_DEFINED
+#endif /* libcrux_mlkem768_portable_H */

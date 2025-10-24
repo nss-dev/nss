@@ -27,9 +27,9 @@ PR_STATIC_ASSERT(KYBER_KEYPAIR_COIN_BYTES == pqcrystals_kyber768_KEYPAIRCOINBYTE
 PR_STATIC_ASSERT(KYBER_ENC_COIN_BYTES == pqcrystals_kyber768_ENCCOINBYTES);
 
 /* Consistency check between libcrux_mlkem768_portable.h and kyber.h */
-PR_STATIC_ASSERT(KYBER768_PUBLIC_KEY_BYTES == LIBCRUX_ML_KEM_MLKEM768_CPA_PKE_PUBLIC_KEY_SIZE_768);
-PR_STATIC_ASSERT(KYBER768_PRIVATE_KEY_BYTES == LIBCRUX_ML_KEM_MLKEM768_SECRET_KEY_SIZE_768);
-PR_STATIC_ASSERT(KYBER768_CIPHERTEXT_BYTES == LIBCRUX_ML_KEM_MLKEM768_CPA_PKE_CIPHERTEXT_SIZE_768);
+PR_STATIC_ASSERT(KYBER768_PUBLIC_KEY_BYTES == LIBCRUX_ML_KEM_MLKEM768_CPA_PKE_PUBLIC_KEY_SIZE);
+PR_STATIC_ASSERT(KYBER768_PRIVATE_KEY_BYTES == LIBCRUX_ML_KEM_MLKEM768_SECRET_KEY_SIZE);
+PR_STATIC_ASSERT(KYBER768_CIPHERTEXT_BYTES == LIBCRUX_ML_KEM_MLKEM768_CPA_PKE_CIPHERTEXT_SIZE);
 PR_STATIC_ASSERT(KYBER_SHARED_SECRET_BYTES == LIBCRUX_ML_KEM_CONSTANTS_SHARED_SECRET_SIZE);
 PR_STATIC_ASSERT(KYBER_KEYPAIR_COIN_BYTES == 64);
 PR_STATIC_ASSERT(KYBER_ENC_COIN_BYTES == 32);
@@ -206,7 +206,7 @@ Kyber_Encapsulate(KyberParams params, const SECItem *enc_seed, const SECItem *pu
     }
     NSS_CLASSIFY(coins, KYBER_ENC_COIN_BYTES);
     if (params == params_ml_kem768 || params == params_ml_kem768_test_mode) {
-        libcrux_ml_kem_types_MlKemPublicKey_15 pk_value;
+        libcrux_ml_kem_types_MlKemPublicKey_30 pk_value;
         memcpy(pk_value.value, pubkey->data, KYBER768_PUBLIC_KEY_BYTES);
 
         bool valid_pk = libcrux_ml_kem_mlkem768_portable_validate_public_key(&pk_value);
@@ -215,7 +215,7 @@ Kyber_Encapsulate(KyberParams params, const SECItem *enc_seed, const SECItem *pu
             return SECFailure;
         }
 
-        tuple_3c encap = libcrux_ml_kem_mlkem768_portable_encapsulate(&pk_value, coins);
+        tuple_c2 encap = libcrux_ml_kem_mlkem768_portable_encapsulate(&pk_value, coins);
         memcpy(ciphertext->data, encap.fst.value, KYBER768_CIPHERTEXT_BYTES);
         memcpy(secret->data, encap.snd, KYBER_SHARED_SECRET_BYTES);
     } else if (params == params_kyber768_round3 || params == params_kyber768_round3_test_mode) {
@@ -248,7 +248,7 @@ Kyber_Decapsulate(KyberParams params, const SECItem *privkey, const SECItem *cip
     }
 
     if (params == params_ml_kem768 || params == params_ml_kem768_test_mode) {
-        libcrux_ml_kem_types_MlKemPrivateKey_55 private_key;
+        libcrux_ml_kem_types_MlKemPrivateKey_d9 private_key;
         memcpy(private_key.value, privkey->data, KYBER768_PRIVATE_KEY_BYTES);
 
         libcrux_ml_kem_mlkem768_MlKem768Ciphertext cipher_text;
