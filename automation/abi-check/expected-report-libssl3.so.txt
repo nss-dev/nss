@@ -9,7 +9,7 @@
           1 data member change:
            type of 'union {SECKEYRSAPublicKey rsa; SECKEYDSAPublicKey dsa; SECKEYDHPublicKey dh; SECKEYKEAPublicKey kea; SECKEYFortezzaPublicKey fortezza; SECKEYECPublicKey ec; SECKEYKyberPublicKey kyber; SECKEYMLDSAPublicKey mldsa;} SECKEYPublicKeyStr::u' changed:
              type size hasn't changed
-             1 data member changes (1 filtered):
+             1 data member change:
               type of 'SECKEYMLDSAPublicKey mldsa' changed:
                 underlying type 'struct SECKEYMLDSAPublicKeyStr' at keythi.h:196:1 changed:
                   type size hasn't changed

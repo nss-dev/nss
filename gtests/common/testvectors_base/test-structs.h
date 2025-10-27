@@ -14,7 +14,6 @@
 #include <vector>
 #include "secoidt.h"
 #include "pkcs11t.h"
-#include "kyber.h"
 
 typedef struct AesCbcTestVectorStr {
   uint32_t id;
@@ -58,33 +57,6 @@ typedef struct ChaChaTestVectorStr {
   bool invalid_tag;
   bool invalid_iv;
 } ChaChaTestVector;
-
-typedef struct MlKemKeyGenTestVectorStr {
-  uint32_t id;
-  KyberParams params;
-  std::vector<uint8_t> seed;
-  std::vector<uint8_t> publicKeyDigest;
-  std::vector<uint8_t> privateKeyDigest;
-} MlKemKeyGenTestVector;
-
-typedef struct MlKemEncapTestVectorStr {
-  uint32_t id;
-  KyberParams params;
-  std::vector<uint8_t> entropy;
-  std::vector<uint8_t> publicKey;
-  std::vector<uint8_t> cipherTextDigest;
-  std::vector<uint8_t> secret;
-  bool expectedResult;
-} MlKemEncapTestVector;
-
-typedef struct MlKemDecapTestVectorStr {
-  uint32_t id;
-  KyberParams params;
-  std::vector<uint8_t> privateKey;
-  std::vector<uint8_t> cipherText;
-  std::vector<uint8_t> secret;
-  bool expectedResult;
-} MlKemDecapTestVector;
 
 typedef struct EcdsaTestVectorStr {
   SECOidTag hash_oid;
