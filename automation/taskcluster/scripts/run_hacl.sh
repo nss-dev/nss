@@ -73,7 +73,7 @@ done
 files=($(find ${VCS_PATH}/nss/lib/freebl/verified/ -type f -name '*.[ch]' -not -path "*/freebl/verified/internal/*" -not -path "*/freebl/verified/config.h" -not -path "*/freebl/verified/libcrux*"))
 for f in "${files[@]}"; do
     file_name=$(basename "$f")
-    hacl_file=($(find ${HACL_STAR}/dist/mozilla/ ${KARAMEL}/include/ ${KARAMEL}/krmllib/dist/  ${LIBCRUX}/libcrux-ml-kem/extracts/c/generated/ -type f -name $file_name -not -path "*/hacl-star/dist/mozilla/internal/*"  -not -path "*/libcrux-ml-kem/extracts/c/generated/internal/*"))
+    hacl_file=($(find ${HACL_STAR}/dist/mozilla/ ${KARAMEL}/include/ ${KARAMEL}/krmllib/dist/minimal/  ${LIBCRUX}/libcrux-ml-kem/extracts/c/generated/ -type f -name $file_name -not -path "*/hacl-star/dist/mozilla/internal/*"  -not -path "*/libcrux-ml-kem/extracts/c/generated/internal/*"))
     if [ $file_name == "Hacl_P384.c"  \
         -o $file_name == "Hacl_P384.h" \
         -o $file_name == "Hacl_P521.c" \
