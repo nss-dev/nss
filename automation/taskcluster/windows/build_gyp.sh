@@ -18,9 +18,9 @@ git clone https://chromium.googlesource.com/external/gyp
 
 # Install GYP.
 pushd gyp
-python -m venv ./test-env
-test-env/Scripts/python setup.py install
-test-env/Scripts/python -m pip install --upgrade pip
+python3 -m venv ./test-env
+test-env/Scripts/python3 setup.py install
+test-env/Scripts/python3 -m pip install --upgrade pip
 test-env/Scripts/pip install --upgrade 'setuptools<45.0.0' six
 # Fool GYP.
 touch "${VSPATH}/VC/vcvarsall.bat"

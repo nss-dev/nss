@@ -7,7 +7,7 @@
     'variables': {
       'variables': {
         'variables': {
-          'python%': 'python',
+          'python%': 'python3',
         },
         # chromium uses pymod_do_main, but gyp doesn't set a sensible
         # Python sys.path (gyp_chromium does).

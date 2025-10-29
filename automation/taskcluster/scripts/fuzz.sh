@@ -32,7 +32,7 @@ popd
 objdir=$(cat dist/latest)
 
 # Get libFuzzer options.
-readarray -t options < <(python nss/fuzz/config/libfuzzer_options.py nss/fuzz/options/"$corpus".options)
+readarray -t options < <(python3 nss/fuzz/config/libfuzzer_options.py nss/fuzz/options/"$corpus".options)
 
 # Run nssfuzz.
 dist/"$objdir"/bin/nssfuzz-"$target" "nss/fuzz/corpus/$corpus" "${options[@]}" "$@"
