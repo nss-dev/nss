@@ -4247,6 +4247,7 @@ static const struct SSLNamedGroupString {
 #endif
     { NAME_AND_LEN("x25519mlkem768"), ssl_grp_kem_mlkem768x25519 },
     { NAME_AND_LEN("secp256r1mlkem768"), ssl_grp_kem_secp256r1mlkem768 },
+    { NAME_AND_LEN("secp384r1mlkem1024"), ssl_grp_kem_secp384r1mlkem1024 },
     // keep for compatibility
     { NAME_AND_LEN("mlkem768x25519"), ssl_grp_kem_mlkem768x25519 },
 };

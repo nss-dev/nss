@@ -82,7 +82,8 @@ tls13_SizeOfKeyShareEntry(const sslEphemeralKeyPair *keyPair)
         PORT_Assert(!keyPair->kemCt);
         PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00 ||
                     keyPair->group->name == ssl_grp_kem_mlkem768x25519 ||
-                    keyPair->group->name == ssl_grp_kem_secp256r1mlkem768);
+                    keyPair->group->name == ssl_grp_kem_secp256r1mlkem768 ||
+                    keyPair->group->name == ssl_grp_kem_secp384r1mlkem1024);
         pubKey = keyPair->kemKeys->pubKey;
         size += pubKey->u.kyber.publicValue.len;
     }
@@ -90,7 +91,8 @@ tls13_SizeOfKeyShareEntry(const sslEphemeralKeyPair *keyPair)
         PORT_Assert(!keyPair->kemKeys);
         PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00 ||
                     keyPair->group->name == ssl_grp_kem_mlkem768x25519 ||
-                    keyPair->group->name == ssl_grp_kem_secp256r1mlkem768);
+                    keyPair->group->name == ssl_grp_kem_secp256r1mlkem768 ||
+                    keyPair->group->name == ssl_grp_kem_secp384r1mlkem1024);
         size += keyPair->kemCt->len;
     }
 
@@ -101,7 +103,8 @@ static SECStatus
 tls13_WriteHybridECCKeyFirst(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
 {
     PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00 ||
-                keyPair->group->name == ssl_grp_kem_secp256r1mlkem768);
+                keyPair->group->name == ssl_grp_kem_secp256r1mlkem768 ||
+                keyPair->group->name == ssl_grp_kem_secp384r1mlkem1024);
     PORT_Assert(keyPair->keys->pubKey->keyType == ecKey);
 
     // Encode the ecc share first, then the MLKEM key or ciphertext.
@@ -196,6 +199,7 @@ tls13_EncodeKeyShareEntry(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
             rv = tls13_WriteHybridHybridKeyFirst(buf, keyPair);
             break;
         case ssl_grp_kem_secp256r1mlkem768:
+        case ssl_grp_kem_secp384r1mlkem1024:
         case ssl_grp_kem_xyber768d00:
             rv = tls13_WriteHybridECCKeyFirst(buf, keyPair);
             break;

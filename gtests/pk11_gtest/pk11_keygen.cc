@@ -172,8 +172,12 @@ std::unique_ptr<ParamHolder> Pkcs11KeyPairGenerator::MakeParams() const {
 
     case CKM_NSS_ML_KEM_KEY_PAIR_GEN:
       std::cerr << "Generate ML-KEM768 pair" << std::endl;
+      return std::unique_ptr<ParamHolder>(new KyberParamHolder(CKP_ML_KEM_768));
+
+    case CKM_ML_KEM_KEY_PAIR_GEN:
+      std::cerr << "Generate ML-KEM1024 pair" << std::endl;
       return std::unique_ptr<ParamHolder>(
-          new KyberParamHolder(CKP_NSS_ML_KEM_768));
+          new KyberParamHolder(CKP_ML_KEM_1024));
 
     default:
       ADD_FAILURE() << "unknown OID " << mech_;

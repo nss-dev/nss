@@ -363,8 +363,13 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
 #endif
                     case params_ml_kem768:
                     case params_ml_kem768_test_mode:
-                        keyType = CKK_NSS_ML_KEM;
-                        kemParams = CKP_NSS_ML_KEM_768;
+                        keyType = CKK_ML_KEM;
+                        kemParams = CKP_ML_KEM_768;
+                        break;
+                    case params_ml_kem1024:
+                    case params_ml_kem1024_test_mode:
+                        keyType = CKK_ML_KEM;
+                        kemParams = CKP_ML_KEM_1024;
                         break;
                     default:
                         kemParams = CKP_INVALID_ID;
@@ -1024,7 +1029,11 @@ PK11_ExtractPublicKey(PK11SlotInfo *slot, KeyType keyType, CK_OBJECT_HANDLE id)
                     break;
 #endif
                 case CKP_NSS_ML_KEM_768:
+                case CKP_ML_KEM_768:
                     pubKey->u.kyber.params = params_ml_kem768;
+                    break;
+                case CKP_ML_KEM_1024:
+                    pubKey->u.kyber.params = params_ml_kem1024;
                     break;
                 default:
                     pubKey->u.kyber.params = params_kyber_invalid;

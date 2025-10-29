@@ -391,6 +391,10 @@ tls13_CreateKEMKeyPair(sslSocket *ss, const sslNamedGroupDef *groupDef,
             mechanism = CKM_ML_KEM_KEY_PAIR_GEN;
             paramSet = CKP_ML_KEM_768;
             break;
+        case ssl_grp_kem_secp384r1mlkem1024:
+            mechanism = CKM_ML_KEM_KEY_PAIR_GEN;
+            paramSet = CKP_ML_KEM_1024;
+            break;
         default:
             PORT_Assert(0);
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -495,6 +499,10 @@ tls13_FindHybridKeyPair(sslSocket *ss, const sslNamedGroupDef *groupDef)
             hybridPair = ssl_LookupEphemeralKeyPair(ss,
                                                     ssl_LookupNamedGroup(ssl_grp_kem_secp256r1mlkem768));
             break;
+        case ssl_grp_ec_secp384r1:
+            hybridPair = ssl_LookupEphemeralKeyPair(ss,
+                                                    ssl_LookupNamedGroup(ssl_grp_kem_secp384r1mlkem1024));
+            break;
         case ssl_grp_ec_curve25519: {
             /* a loop to check multiple named groups */
             SSLNamedGroup gnames[] = { ssl_grp_kem_xyber768d00,
@@ -530,6 +538,9 @@ tls13_CreateKeyShare(sslSocket *ss, const sslNamedGroupDef *groupDef,
             switch (groupDef->name) {
                 case ssl_grp_kem_secp256r1mlkem768:
                     ecGroup = ssl_LookupNamedGroup(ssl_grp_ec_secp256r1);
+                    break;
+                case ssl_grp_kem_secp384r1mlkem1024:
+                    ecGroup = ssl_LookupNamedGroup(ssl_grp_ec_secp384r1);
                     break;
                 case ssl_grp_kem_xyber768d00:
                 case ssl_grp_kem_mlkem768x25519:
@@ -781,6 +792,9 @@ tls13_ImportKEMKeyShare(SECKEYPublicKey *peerKey, TLS13KeyShareEntry *entry)
         case ssl_grp_kem_secp256r1mlkem768:
             expected_len = SECP256_PUBLIC_KEY_BYTES + KYBER768_PUBLIC_KEY_BYTES;
             break;
+        case ssl_grp_kem_secp384r1mlkem1024:
+            expected_len = SECP384_PUBLIC_KEY_BYTES + MLKEM1024_PUBLIC_KEY_BYTES;
+            break;
         default:
             PORT_SetError(SEC_ERROR_UNSUPPORTED_KEYALG);
             return SECFailure;
@@ -812,6 +826,13 @@ tls13_ImportKEMKeyShare(SECKEYPublicKey *peerKey, TLS13KeyShareEntry *entry)
             /* key_exchange.data is `secp256 || mlkem768` */
             pk.data = entry->key_exchange.data + SECP256_PUBLIC_KEY_BYTES;
             pk.len = KYBER768_PUBLIC_KEY_BYTES;
+            break;
+        case ssl_grp_kem_secp384r1mlkem1024:
+            peerKey->keyType = kyberKey;
+            peerKey->u.kyber.params = params_ml_kem1024;
+            /* key_exchange.data is `secp384 || mlkem1024` */
+            pk.data = entry->key_exchange.data + SECP384_PUBLIC_KEY_BYTES;
+            pk.len = MLKEM1024_PUBLIC_KEY_BYTES;
             break;
         default:
             PORT_Assert(0);
@@ -858,6 +879,14 @@ tls13_HandleKEMCiphertext(sslSocket *ss, TLS13KeyShareEntry *entry, sslKeyPair *
             }
             ct.data = entry->key_exchange.data + SECP256_PUBLIC_KEY_BYTES;
             ct.len = KYBER768_CIPHERTEXT_BYTES;
+            break;
+        case ssl_grp_kem_secp384r1mlkem1024:
+            if (entry->key_exchange.len != SECP384_PUBLIC_KEY_BYTES + MLKEM1024_CIPHERTEXT_BYTES) {
+                ssl_MapLowLevelError(SSL_ERROR_RX_MALFORMED_HYBRID_KEY_SHARE);
+                return SECFailure;
+            }
+            ct.data = entry->key_exchange.data + SECP384_PUBLIC_KEY_BYTES;
+            ct.len = MLKEM1024_CIPHERTEXT_BYTES;
             break;
         default:
             PORT_Assert(0);
@@ -985,6 +1014,14 @@ tls13_HandleKeyShare(sslSocket *ss,
                 case ssl_grp_kem_secp256r1mlkem768:
                     ec_len = SECP256_PUBLIC_KEY_BYTES;
                     /* secp256 share is at the beginning */
+                    ec_data = entry->key_exchange.len < ec_len
+                                  ? NULL
+                                  : entry->key_exchange.data;
+                    ecGroup = ssl_LookupNamedGroup(ssl_grp_ec_secp256r1);
+                    break;
+                case ssl_grp_kem_secp384r1mlkem1024:
+                    ec_len = SECP384_PUBLIC_KEY_BYTES;
+                    /* secp384 share is at the beginning */
                     ec_data = entry->key_exchange.len < ec_len
                                   ? NULL
                                   : entry->key_exchange.data;
@@ -2869,6 +2906,7 @@ tls13_HandleClientKeyShare(sslSocket *ss, TLS13KeyShareEntry *peerShare)
             goto loser; /* Error set by tls13_HandleKEMKey */
         }
         switch (peerShare->group->name) {
+            case ssl_grp_kem_secp384r1mlkem1024:
             case ssl_grp_kem_secp256r1mlkem768:
             case ssl_grp_kem_xyber768d00:
                 ss->ssl3.hs.dheSecret = PK11_ConcatSymKeys(dheSecret, kemSecret, CKM_HKDF_DERIVE, CKA_DERIVE);
@@ -3729,6 +3767,7 @@ tls13_HandleServerKeyShare(sslSocket *ss)
             goto loser; /* Error set by tls13_HandleKEMCiphertext */
         }
         switch (entry->group->name) {
+            case ssl_grp_kem_secp384r1mlkem1024:
             case ssl_grp_kem_secp256r1mlkem768:
             case ssl_grp_kem_xyber768d00:
                 ss->ssl3.hs.dheSecret = PK11_ConcatSymKeys(dheSecret, kemSecret, CKM_HKDF_DERIVE, CKA_DERIVE);

@@ -256,6 +256,8 @@ static const oidValDef curveOptList[] = {
       NSS_USE_ALG_IN_SSL_KX },
     { CIPHER_NAME("SECP256R1MLKEM768"), SEC_OID_SECP256R1MLKEM768,
       NSS_USE_ALG_IN_SSL_KX },
+    { CIPHER_NAME("SECP384R1MLKEM1024"), SEC_OID_SECP384R1MLKEM1024,
+      NSS_USE_ALG_IN_SSL_KX },
     { CIPHER_NAME("MLKEM768X25519"), SEC_OID_MLKEM768X25519,
       NSS_USE_ALG_IN_SSL_KX },
     /* ANSI X9.62 named elliptic curves (characteristic two field) */
