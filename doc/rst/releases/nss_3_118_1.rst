@@ -1,0 +1,36 @@
+.. _mozilla_projects_nss_nss_3_118_1_release_notes:
+
+NSS 3.118.1 release notes
+==========================
+
+`Introduction <#introduction>`__
+--------------------------------
+
+.. container::
+
+   Network Security Services (NSS) 3.118.1 was released on *18 November 2025**.
+
+`Distribution Information <#distribution_information>`__
+--------------------------------------------------------
+
+.. container::
+
+   The HG tag is NSS_3_118_1_RTM. NSS 3.118.1 requires NSPR 4.37 or newer.
+
+   NSS 3.118.1 source distributions are available on ftp.mozilla.org for secure HTTPS download:
+
+   -  Source tarballs:
+      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_118_1_RTM/src/
+
+   Other releases are available :ref:`mozilla_projects_nss_releases`.
+
+.. _changes_in_nss_3.118.1:
+
+`Changes in NSS 3.118.1 <#changes_in_nss_3.118.1>`__
+------------------------------------------------------------------
+
+.. container::
+
+   - Bug 1999517 - pk11wrap selects incorrect slot for CKM_ML_KEM*.
+
+
