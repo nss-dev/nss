@@ -32,18 +32,26 @@ SECStatus EC_CopyParams(PLArenaPool *arena, ECParams *dstParams,
 
 char *progName;
 char *testdir = NULL;
+PRBool strictOAEP = PR_FALSE;
 
 #define BLTEST_DEFAULT_CHUNKSIZE 4096
 
 #define WORDSIZE sizeof(unsigned long)
 
-#define CHECKERROR(rv, ln)                                               \
-    if (rv) {                                                            \
-        PRErrorCode prerror = PR_GetError();                             \
-        PR_fprintf(PR_STDERR, "%s: ERR %d (%s) at line %d.\n", progName, \
-                   prerror, PORT_ErrorToString(prerror), ln);            \
-        exit(-1);                                                        \
-    }
+#define CHECKERROR(rv, erv, ln)                                              \
+    if (rv != erv) {                                                         \
+        if (rv == SECFailure) {                                              \
+            PRErrorCode prerror = PR_GetError();                             \
+            PR_fprintf(PR_STDERR, "%s: ERR %d (%s) at line %d.\n", progName, \
+                       prerror, PORT_ErrorToString(prerror), ln);            \
+        } else {                                                             \
+            PR_fprintf(PR_STDERR, "%s: expected failure and got success"     \
+                                  " at line %d.\n",                          \
+                       progName, ln);                                        \
+        }                                                                    \
+        exit(-1);                                                            \
+    }                                                                        \
+    rv = SECSuccess
 
 /* Macros for performance timing. */
 #define TIMESTART() \
@@ -117,6 +125,9 @@ Usage()
     PRINTUSAGE("", "-p", "do performance test");
     PRINTUSAGE("", "-4", "run test in multithread mode. th_num number of parallel threads");
     PRINTUSAGE("", "-5", "run test for specified time interval(in seconds)");
+    PRINTUSAGE("", "-6", "hash algorithm for RSA PSS or OAEP");
+    PRINTUSAGE("", "-7", "mask hash algorithm for RSA PSS or OAEP");
+    PRINTUSAGE("", "-8", "validate the public key for RSAOAEP Encrypt");
     PRINTUSAGE("", "--aad", "File with contains additional auth data");
     fprintf(stderr, "\n");
     PRINTUSAGE(progName, "-H -m mode", "Hash a buffer");
@@ -375,13 +386,13 @@ eckey_from_filedata(PLArenaPool *arena, SECItem *filedata)
     key->ecParams.arena = arena;
     key_from_filedata(arena, &key->ecParams.DEREncoding, 0, 1, filedata);
     rv = SECOID_Init();
-    CHECKERROR(rv, __LINE__);
+    CHECKERROR(rv, SECSuccess, __LINE__);
     rv = EC_DecodeParams(&key->ecParams.DEREncoding, &tmpECParams);
-    CHECKERROR(rv, __LINE__);
+    CHECKERROR(rv, SECSuccess, __LINE__);
     rv = EC_CopyParams(key->ecParams.arena, &key->ecParams, tmpECParams);
-    CHECKERROR(rv, __LINE__);
+    CHECKERROR(rv, SECSuccess, __LINE__);
     rv = SECOID_Shutdown();
-    CHECKERROR(rv, __LINE__);
+    CHECKERROR(rv, SECSuccess, __LINE__);
     PORT_FreeArena(tmpECParams->arena, PR_TRUE);
     /* read key */
     key_from_filedata(arena, &key->publicValue, 1, 3, filedata);
@@ -804,6 +815,7 @@ struct bltestCipherInfoStr {
     int cxreps;
     double cxtime;
     double optime;
+    SECStatus expect;
 };
 
 PRBool
@@ -834,6 +846,19 @@ is_authCipher(bltestCipherMode mode)
     switch (mode) {
         case bltestAES_GCM:
         case bltestCHACHA20:
+            return PR_TRUE;
+        default:
+            return PR_FALSE;
+    }
+}
+
+PRBool
+is_rsaV2(bltestCipherMode mode)
+{
+    /* change as needed! */
+    switch (mode) {
+        case bltestRSA_OAEP:
+        case bltestRSA_PSS:
             return PR_TRUE;
         default:
             return PR_FALSE;
@@ -1753,6 +1778,8 @@ bltest_rsa_init(bltestCipherInfo *cipherInfo, PRBool encrypt)
         pubKey->modulus.data = privKey->modulus.data;
         pubKey->publicExponent.len = privKey->publicExponent.len;
         pubKey->publicExponent.data = privKey->publicExponent.data;
+        /* if structOAEP is set, exercise the oaep verify tests  */
+        pubKey->needVerify = strictOAEP;
         asymk->pubKey = (void *)pubKey;
     }
     switch (cipherInfo->mode) {
@@ -1790,10 +1817,10 @@ bltest_pqg_init(bltestDSAParams *dsap)
     SECStatus rv, res;
     PQGVerify *vfy = NULL;
     rv = blapi_pqg_param_gen(dsap->keysize, &dsap->pqg, &vfy);
-    CHECKERROR(rv, __LINE__);
+    CHECKERROR(rv, SECSuccess, __LINE__);
     rv = PQG_VerifyParams(dsap->pqg, vfy, &res);
-    CHECKERROR(res, __LINE__);
-    CHECKERROR(rv, __LINE__);
+    CHECKERROR(res, SECSuccess, __LINE__);
+    CHECKERROR(rv, SECSuccess, __LINE__);
     return rv;
 }
 
@@ -2252,7 +2279,7 @@ pubkeyInitKey(bltestCipherInfo *cipherInfo, PRFileDesc *file,
                 if (!dsap->pqg)
                     bltest_pqg_init(dsap);
                 rv = DSA_NewKey(dsap->pqg, dsaKey);
-                CHECKERROR(rv, __LINE__);
+                CHECKERROR(rv, cipherInfo->expect, __LINE__);
                 serialize_key(&(*dsaKey)->params.prime, 5, file);
             } else {
                 setupIO(cipherInfo->arena, &asymk->key, file, NULL, 0);
@@ -2265,11 +2292,11 @@ pubkeyInitKey(bltestCipherInfo *cipherInfo, PRFileDesc *file,
             if (curveName != NULL) {
                 tmpECParamsDER = getECParams(curveName);
                 rv = SECOID_Init();
-                CHECKERROR(rv, __LINE__);
+                CHECKERROR(rv, SECSuccess, __LINE__);
                 rv = EC_DecodeParams(tmpECParamsDER, &tmpECParams) == SECFailure;
-                CHECKERROR(rv, __LINE__);
+                CHECKERROR(rv, SECSuccess, __LINE__);
                 rv = EC_NewKey(tmpECParams, ecKey);
-                CHECKERROR(rv, __LINE__);
+                CHECKERROR(rv, cipherInfo->expect, __LINE__);
                 ecSerialize[0].type = tmpECParamsDER->type;
                 ecSerialize[0].data = tmpECParamsDER->data;
                 ecSerialize[0].len = tmpECParamsDER->len;
@@ -2283,7 +2310,7 @@ pubkeyInitKey(bltestCipherInfo *cipherInfo, PRFileDesc *file,
                 SECITEM_FreeItem(tmpECParamsDER, PR_TRUE);
                 PORT_FreeArena(tmpECParams->arena, PR_TRUE);
                 rv = SECOID_Shutdown();
-                CHECKERROR(rv, __LINE__);
+                CHECKERROR(rv, SECSuccess, __LINE__);
             } else {
                 setupIO(cipherInfo->arena, &asymk->key, file, NULL, 0);
                 *ecKey = eckey_from_filedata(cipherInfo->arena, &asymk->key.buf);
@@ -2499,7 +2526,7 @@ cipherDoOp(bltestCipherInfo *cipherInfo)
         rv = (*cipherInfo->cipher.symmkeyCipher)(cipherInfo->cx,
                                                  output, &len, outputLen,
                                                  input, inputLen);
-        CHECKERROR(rv, __LINE__);
+        CHECKERROR(rv, cipherInfo->expect, __LINE__);
         totalOutputLen += len;
         if (cipherInfo->input.pBuf.len > inputLen) {
             input += inputLen;
@@ -2509,7 +2536,7 @@ cipherDoOp(bltestCipherInfo *cipherInfo)
             rv = (*cipherInfo->cipher.symmkeyCipher)(cipherInfo->cx,
                                                      output, &len, outputLen,
                                                      input, inputLen);
-            CHECKERROR(rv, __LINE__);
+            CHECKERROR(rv, cipherInfo->expect, __LINE__);
             totalOutputLen += len;
         }
         cipherInfo->output.pBuf.len = totalOutputLen;
@@ -2524,7 +2551,7 @@ cipherDoOp(bltestCipherInfo *cipherInfo)
                                                     cipherInfo->input.pBuf.data,
                                                     cipherInfo->input.pBuf.len);
 
-                CHECKERROR(rv, __LINE__);
+                CHECKERROR(rv, cipherInfo->expect, __LINE__);
             }
         } else {
             int opsBetweenChecks = 0;
@@ -2556,7 +2583,7 @@ cipherDoOp(bltestCipherInfo *cipherInfo)
             input, inputLen,
             sk->iv.buf.data, sk->iv.buf.len,
             ask->aad.buf.data, ask->aad.buf.len);
-        CHECKERROR(rv, __LINE__);
+        CHECKERROR(rv, cipherInfo->expect, __LINE__);
         cipherInfo->output.pBuf.len = outputLen;
         TIMEFINISH(cipherInfo->optime, 1.0);
 
@@ -2571,7 +2598,7 @@ cipherDoOp(bltestCipherInfo *cipherInfo)
                     input, inputLen,
                     sk->iv.buf.data, sk->iv.buf.len,
                     ask->aad.buf.data, ask->aad.buf.len);
-                CHECKERROR(rv, __LINE__);
+                CHECKERROR(rv, cipherInfo->expect, __LINE__);
             }
         } else {
             int opsBetweenChecks = 0;
@@ -2596,7 +2623,7 @@ cipherDoOp(bltestCipherInfo *cipherInfo)
                                                 &cipherInfo->output.pBuf,
                                                 &cipherInfo->input.pBuf);
         TIMEFINISH(cipherInfo->optime, 1.0);
-        CHECKERROR(rv, __LINE__);
+        CHECKERROR(rv, cipherInfo->expect, __LINE__);
         cipherInfo->repetitions = 0;
         if (cipherInfo->repetitionsToPerfom != 0) {
             TIMESTART();
@@ -2605,9 +2632,9 @@ cipherDoOp(bltestCipherInfo *cipherInfo)
                 SECItem dummy;
                 dummy.data = dummyOut;
                 dummy.len = maxLen;
-                (*cipherInfo->cipher.pubkeyCipher)(cipherInfo->cx, &dummy,
-                                                   &cipherInfo->input.pBuf);
-                CHECKERROR(rv, __LINE__);
+                rv = (*cipherInfo->cipher.pubkeyCipher)(cipherInfo->cx, &dummy,
+                                                        &cipherInfo->input.pBuf);
+                CHECKERROR(rv, cipherInfo->expect, __LINE__);
             }
         } else {
             int opsBetweenChecks = 0;
@@ -2618,9 +2645,9 @@ cipherDoOp(bltestCipherInfo *cipherInfo)
                     SECItem dummy;
                     dummy.data = dummyOut;
                     dummy.len = maxLen;
-                    (*cipherInfo->cipher.pubkeyCipher)(cipherInfo->cx, &dummy,
-                                                       &cipherInfo->input.pBuf);
-                    CHECKERROR(rv, __LINE__);
+                    rv = (*cipherInfo->cipher.pubkeyCipher)(cipherInfo->cx, &dummy,
+                                                            &cipherInfo->input.pBuf);
+                    CHECKERROR(rv, cipherInfo->expect, __LINE__);
                 }
                 cipherInfo->repetitions += j;
             }
@@ -2632,16 +2659,16 @@ cipherDoOp(bltestCipherInfo *cipherInfo)
                                               cipherInfo->input.pBuf.data,
                                               cipherInfo->input.pBuf.len);
         TIMEFINISH(cipherInfo->optime, 1.0);
-        CHECKERROR(rv, __LINE__);
+        CHECKERROR(rv, cipherInfo->expect, __LINE__);
         cipherInfo->repetitions = 0;
         if (cipherInfo->repetitionsToPerfom != 0) {
             TIMESTART();
             for (i = 0; i < cipherInfo->repetitionsToPerfom;
                  i++, cipherInfo->repetitions++) {
-                (*cipherInfo->cipher.hashCipher)(dummyOut,
-                                                 cipherInfo->input.pBuf.data,
-                                                 cipherInfo->input.pBuf.len);
-                CHECKERROR(rv, __LINE__);
+                rv = (*cipherInfo->cipher.hashCipher)(dummyOut,
+                                                      cipherInfo->input.pBuf.data,
+                                                      cipherInfo->input.pBuf.len);
+                CHECKERROR(rv, cipherInfo->expect, __LINE__);
             }
         } else {
             int opsBetweenChecks = 0;
@@ -2650,10 +2677,10 @@ cipherDoOp(bltestCipherInfo *cipherInfo)
                 int j = 0;
                 for (; j < opsBetweenChecks; j++) {
                     bltestIO *input = &cipherInfo->input;
-                    (*cipherInfo->cipher.hashCipher)(dummyOut,
-                                                     input->pBuf.data,
-                                                     input->pBuf.len);
-                    CHECKERROR(rv, __LINE__);
+                    rv = (*cipherInfo->cipher.hashCipher)(dummyOut,
+                                                          input->pBuf.data,
+                                                          input->pBuf.len);
+                    CHECKERROR(rv, cipherInfo->expect, __LINE__);
                 }
                 cipherInfo->repetitions += j;
             }
@@ -3001,19 +3028,10 @@ load_file_data(PLArenaPool *arena, bltestIO *data,
 }
 
 HASH_HashType
-mode_str_to_hash_alg(const SECItem *modeStr)
+mode_string_to_hash_alg(const char *modeString)
 {
     bltestCipherMode mode;
-    char *tempModeStr = NULL;
-    if (!modeStr || modeStr->len == 0)
-        return HASH_AlgNULL;
-    tempModeStr = PORT_Alloc(modeStr->len + 1);
-    if (!tempModeStr)
-        return HASH_AlgNULL;
-    memcpy(tempModeStr, modeStr->data, modeStr->len);
-    tempModeStr[modeStr->len] = '\0';
-    mode = get_mode(tempModeStr);
-    PORT_Free(tempModeStr);
+    mode = get_mode(modeString);
     switch (mode) {
         case bltestMD2:
             return HASH_AlgMD2;
@@ -3032,6 +3050,23 @@ mode_str_to_hash_alg(const SECItem *modeStr)
         default:
             return HASH_AlgNULL;
     }
+}
+
+HASH_HashType
+mode_str_to_hash_alg(const SECItem *modeStr)
+{
+    HASH_HashType hashType;
+    char *tempModeStr = NULL;
+    if (!modeStr || modeStr->len == 0)
+        return HASH_AlgNULL;
+    tempModeStr = PORT_Alloc(modeStr->len + 1);
+    if (!tempModeStr)
+        return HASH_AlgNULL;
+    memcpy(tempModeStr, modeStr->data, modeStr->len);
+    tempModeStr[modeStr->len] = '\0';
+    hashType = mode_string_to_hash_alg(tempModeStr);
+    PORT_Free(tempModeStr);
+    return hashType;
 }
 
 void
@@ -3264,6 +3299,7 @@ blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
     PORT_Memset(&cipherInfo, 0, sizeof(cipherInfo));
     arena = PORT_NewArena(BLTEST_DEFAULT_CHUNKSIZE);
     cipherInfo.arena = arena;
+    cipherInfo.expect = SECSuccess;
 
     nummodes = (numModes == 0) ? NUMMODES : numModes;
     for (i = 0; i < nummodes; i++) {
@@ -3304,6 +3340,14 @@ blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
                      "ciphertext", j);
             load_file_data(arena, &ct, filename, bltestBase64Encoded);
 
+            snprintf(filename, sizeof(filename), "%s/tests/%s/%s%s%s%d", testdir, modestr,
+                     "result", encrypt ? "-encrypt" : "-decrypt", strictOAEP ? "-strict" : "", j);
+
+            cipherInfo.expect = SECSuccess;
+            if (PR_Access(filename, PR_ACCESS_EXISTS) == PR_SUCCESS) {
+                cipherInfo.expect = SECFailure;
+            }
+
             get_params(arena, params, mode, j);
             /* Forward Operation (Encrypt/Sign/Hash)
             ** Align the input buffer (plaintext) according to request
@@ -3317,8 +3361,10 @@ blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
                 misalignBuffer(arena, &cipherInfo.output, outoff);
                 rv |= cipherDoOp(&cipherInfo);
                 rv |= cipherFinish(&cipherInfo);
-                rv |= verify_self_test(&cipherInfo.output,
-                                       &ct, mode, PR_TRUE, SECSuccess);
+                if (cipherInfo.expect == SECSuccess) {
+                    rv |= verify_self_test(&cipherInfo.output,
+                                           &ct, mode, PR_TRUE, SECSuccess);
+                }
                 /* If testing hash, only one op to test */
                 if (is_hashCipher(mode))
                     continue;
@@ -3337,6 +3383,12 @@ blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
             }
             if (!decrypt)
                 continue;
+
+            /* If we expect the encrypt to fail, then don't do the decrypt */
+            if (cipherInfo.expect == SECFailure) {
+                continue;
+            }
+
             /* Reverse Operation (Decrypt/Verify)
             ** Align the input buffer (ciphertext) according to request
             ** then perform operation and compare to plaintext
@@ -3697,6 +3749,9 @@ enum {
     opt_MonteCarlo,
     opt_ThreadNum,
     opt_SecondsToRun,
+    opt_RSAHash,
+    opt_MaskHash,
+    opt_OAEPStrict,
     opt_CmdLine
 };
 
@@ -3747,8 +3802,18 @@ static secuCommandFlag bltest_options[] = {
     { /* opt_MonteCarlo */ '3', PR_FALSE, 0, PR_FALSE },
     { /* opt_ThreadNum */ '4', PR_TRUE, 0, PR_FALSE },
     { /* opt_SecondsToRun */ '5', PR_TRUE, 0, PR_FALSE },
+    { /* opt_RSAHash */ '6', PR_TRUE, 0, PR_FALSE },
+    { /* opt_MaskHash */ '7', PR_TRUE, 0, PR_FALSE },
+    { /* opt_OAEPStrict */ '8', PR_FALSE, 0, PR_FALSE },
     { /* opt_CmdLine */ '-', PR_FALSE, 0, PR_FALSE }
 };
+
+unsigned int
+HashLen(HASH_HashType type)
+{
+    const SECHashObject *hashObj = HASH_GetRawHashObject(type);
+    return hashObj->length;
+}
 
 int
 main(int argc, char **argv)
@@ -3837,6 +3902,7 @@ main(int argc, char **argv)
     testdir = (bltest.options[opt_SelfTestDir].activated) ? strdup(bltest.options[opt_SelfTestDir].arg)
                                                           : ".";
 
+    strictOAEP = bltest.options[opt_OAEPStrict].activated;
     /*
      * Handle three simple cases first
      */
@@ -4149,6 +4215,72 @@ main(int argc, char **argv)
             if (file) {
                 PR_Close(file);
             }
+        }
+        /* set up rsaoaep and pss values */
+        if (is_rsaV2(cipherInfo->mode)) {
+            char *seedstr = NULL;
+            bltestRSAParams *rsakp;
+            bltestIO tempIO;
+            rsakp = &params->asymk.cipherParams.rsa;
+
+            /* hash  */
+            if (bltest.options[opt_RSAHash].activated) {
+                if (bltest.options[opt_CmdLine].activated) {
+                    rsakp->hashAlg = mode_string_to_hash_alg(
+                        bltest.options[opt_RSAHash].arg);
+                } else {
+                    load_file_data(arena, &tempIO,
+                                   bltest.options[opt_RSAHash].arg,
+                                   bltestBinary);
+                    rsakp->hashAlg = mode_str_to_hash_alg(&tempIO.buf);
+                }
+            } else {
+                /* save the random iv for reference */
+                file = PR_Open("tmp.hash", PR_WRONLY | PR_CREATE_FILE, 00660);
+                PR_Write(file, "sha256\n", sizeof("sha256\n") - 1);
+                rsakp->hashAlg = HASH_AlgSHA256;
+                PR_Close(file);
+            }
+            /* mask  */
+            if (bltest.options[opt_RSAHash].activated) {
+                if (bltest.options[opt_CmdLine].activated) {
+                    rsakp->maskHashAlg = mode_string_to_hash_alg(
+                        bltest.options[opt_MaskHash].arg);
+                } else {
+                    load_file_data(arena, &tempIO,
+                                   bltest.options[opt_MaskHash].arg,
+                                   bltestBinary);
+                    rsakp->maskHashAlg = mode_str_to_hash_alg(&tempIO.buf);
+                }
+            } else {
+                /* save the random iv for reference */
+                file = PR_Open("tmp.maskhash", PR_WRONLY | PR_CREATE_FILE,
+                               00660);
+                PR_Write(file, "sha256\n", sizeof("sha256\n") - 1);
+                rsakp->maskHashAlg = HASH_AlgSHA256;
+                PR_Close(file);
+            }
+            /* seed salt */
+            file = NULL;
+            if (bltest.options[opt_Seed].activated) {
+                if (bltest.options[opt_CmdLine].activated) {
+                    seedstr = bltest.options[opt_Seed].arg;
+                } else {
+                    file = PR_Open(bltest.options[opt_Seed].arg,
+                                   PR_RDONLY, 00660);
+                }
+            } else {
+                /* save the random seed for reference */
+                file = PR_Open("tmp.seed", PR_WRONLY | PR_CREATE_FILE, 00660);
+            }
+            memset(&rsakp->seed, 0, sizeof rsakp->seed);
+            rsakp->seed.mode = ioMode;
+            setupIO(cipherInfo->arena, &rsakp->seed, file, seedstr,
+                    HashLen(rsakp->hashAlg));
+            if (file) {
+                PR_Close(file);
+            }
+            file = NULL;
         }
 
         if (bltest.commands[cmd_Verify].activated) {

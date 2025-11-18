@@ -35,12 +35,14 @@ mp_err mpp_divis_primes(mp_int *a, mp_digit *np);
 mp_err mpp_fermat(mp_int *a, mp_digit w);
 mp_err mpp_fermat_list(mp_int *a, const mp_digit *primes, mp_size nPrimes);
 mp_err mpp_pprime(mp_int *a, int nt);
+mp_err mpp_pprime_or_power(mp_int *a, mp_int *factor, int nt);
 mp_err mpp_sieve(mp_int *trial, const mp_digit *primes, mp_size nPrimes,
                  unsigned char *sieve, mp_size nSieve);
 mp_err mpp_make_prime(mp_int *start, mp_size nBits, mp_size strong);
 
 /* Pseudo-primality tests using a user-provided mpp_random implementation */
 mp_err mpp_pprime_ext_random(mp_int *a, int nt, mpp_random_fn random);
+mp_err mpp_pprime_or_power_ext_random(mp_int *a, mp_int *f, int nt, mpp_random_fn random);
 mp_err mpp_make_prime_ext_random(mp_int *start, mp_size nBits, mp_size strong, mpp_random_fn random);
 
 SEC_END_PROTOS

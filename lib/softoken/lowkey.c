@@ -312,8 +312,12 @@ nsslowkey_ConvertToPublicKey(NSSLOWKEYPrivateKey *privk)
                 if (rv == SECSuccess) {
                     rv = SECITEM_CopyItem(arena, &pubk->u.rsa.publicExponent,
                                           &privk->u.rsa.publicExponent);
-                    if (rv == SECSuccess)
+                    if (rv == SECSuccess) {
+                        /* this key was already verified fully as
+                         * a private key */
+                        pubk->u.rsa.needVerify = PR_FALSE;
                         return pubk;
+                    }
                 }
             } else {
                 PORT_SetError(SEC_ERROR_NO_MEMORY);

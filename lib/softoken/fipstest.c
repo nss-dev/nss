@@ -475,7 +475,8 @@ sftk_fips_RSA_PowerUpSelfTest(void)
         { FIPS_RSA_TYPE, (unsigned char *)rsa_modulus,
           FIPS_RSA_MODULUS_LENGTH },
         { FIPS_RSA_TYPE, (unsigned char *)rsa_public_exponent,
-          FIPS_RSA_PUBLIC_EXPONENT_LENGTH }
+          FIPS_RSA_PUBLIC_EXPONENT_LENGTH },
+        PR_FALSE,
     };
     static const RSAPrivateKey bl_private_key = {
         NULL,

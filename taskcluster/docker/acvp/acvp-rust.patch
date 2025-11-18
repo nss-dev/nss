@@ -1,3 +1,5 @@
+diff --git a/acvp-runner-nss/build.rs b/acvp-runner-nss/build.rs
+index 53e1d88..92a2181 100644
 --- a/acvp-runner-nss/build.rs
 +++ b/acvp-runner-nss/build.rs
 @@ -26,7 +26,7 @@ fn main() {
@@ -9,3 +11,15 @@
  	let libraries: Vec<String> = glob::glob(&format!("{nss_path}/dist/Debug/lib/*.a"))
  		.unwrap()
  		.map(|path| a_regex.captures(&path.unwrap().to_string_lossy()).unwrap().get(1).unwrap().as_str().into())
+diff --git a/acvp-runner-nss/src/nss.rs b/acvp-runner-nss/src/nss.rs
+index 735155e..c310ffa 100644
+--- a/acvp-runner-nss/src/nss.rs
++++ b/acvp-runner-nss/src/nss.rs
+@@ -200,6 +200,7 @@ impl<'a> RSAPublicKey<'a> {
+ 				arena: arena.inner,
+ 				modulus: *modulus.inner,
+ 				publicExponent: *public_exponent.inner,
++                needVerify: 1,
+ 			}
+ 		};
+ 		RSAPublicKey { inner, arena }

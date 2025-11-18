@@ -362,6 +362,160 @@ CLEANUP:
 
 } /* end mpp_pprime() */
 
+/*
+  mpp_pprime_or_power(a, nt)
+
+  Performs nt iteration of the extended Miller-Rabin probabilistic
+  primality test on a.  Returns:
+       MP_PRIME if the tests indicates 'a' is probably prime,
+       MP_COMPOSITE if the test fails with a factor of 'a'
+       MP_NOT_POWER if the function return MP_COMPOSITE we have a
+  factor and the composite is probably a power of a prime.
+  If MP_NOT_POWER is returned the number is definately a composite and
+  definitely not a power of a prime. If MP_PRIME is returned, the number
+  is probably a prime (but not guaranteed).
+ */
+mp_err
+mpp_pprime_or_power(mp_int *a, mp_int *factor, int nt)
+{
+    return mpp_pprime_or_power_ext_random(a, factor, nt, mpp_random_insecure);
+}
+
+mp_err
+mpp_pprime_or_power_ext_random(mp_int *a, mp_int *factor, int nt, mpp_random_fn random)
+{
+    mp_err res;
+    mp_int x, a_minus_one, m, z, xp, g;
+    int iter;
+    unsigned int jx;
+    mp_size b;
+
+    ARGCHK(a != NULL, MP_BADARG);
+
+    MP_DIGITS(&x) = 0;
+    MP_DIGITS(&a_minus_one) = 0;
+    MP_DIGITS(&m) = 0;
+    MP_DIGITS(&z) = 0;
+    MP_DIGITS(&xp) = 0;
+    MP_DIGITS(&g) = 0;
+
+    /* Initialize temporaries... */
+    MP_CHECKOK(mp_init(&a_minus_one));
+    /* Compute a_minus_one = a - 1 for what follows...    */
+    MP_CHECKOK(mp_sub_d(a, 1, &a_minus_one));
+
+    b = mp_trailing_zeros(&a_minus_one);
+    if (!b) { /* a was even ? */
+        if (factor) {
+            mp_set_ulong(factor, 2UL);
+        }
+        res = MP_COMPOSITE;
+        goto CLEANUP;
+    }
+
+    MP_CHECKOK(mp_init_size(&x, MP_USED(a)));
+    MP_CHECKOK(mp_init(&z));
+    MP_CHECKOK(mp_init(&xp));
+    MP_CHECKOK(mp_init(&g));
+    MP_CHECKOK(mp_init(&m));
+    MP_CHECKOK(mp_div_2d(&a_minus_one, b, &m, 0));
+
+    /* Do the test nt times... */
+    for (iter = 0; iter < nt; iter++) {
+
+        /* Choose a random value for 1 < x < a      */
+        MP_CHECKOK(s_mp_pad(&x, USED(a)));
+        MP_CHECKOK((*random)(&x));
+        MP_CHECKOK(mp_mod(&x, a, &x));
+        if (mp_cmp_d(&x, 1) <= 0) {
+            iter--;   /* don't count this iteration */
+            continue; /* choose a new x */
+        }
+
+        /*  g = GCD(x,a) */
+        MP_CHECKOK(mp_gcd(&x, a, &g));
+        /* if g > 1 , copy g-> factor, return MP_COMPOSITE */
+        if (mp_cmp_d(&g, 1) > 0) {
+            if (factor) {
+                mp_copy(&g, factor);
+            }
+            res = MP_COMPOSITE;
+            goto CLEANUP;
+        }
+
+        /* Compute z = (x ** m) mod a               */
+        MP_CHECKOK(mp_exptmod(&x, &m, a, &z));
+
+        if (mp_cmp_d(&z, 1) == 0 || mp_cmp(&z, &a_minus_one) == 0) {
+            res = MP_PRIME;
+            continue;
+        }
+
+        res = MP_NOT_POWER; /* just in case the following for loop never executes. */
+        for (jx = 1; jx < b; jx++) {
+            /* xp = z */
+            MP_CHECKOK(mp_copy(&z, &xp));
+            /* z = z^2 (mod a) */
+            MP_CHECKOK(mp_sqrmod(&z, a, &z));
+            res = MP_NOT_POWER; /* previous line set res to MP_PRIME */
+
+            if (mp_cmp_d(&z, 1) == 0) {
+                res = MP_COMPOSITE;
+                break;
+            }
+            if (mp_cmp(&z, &a_minus_one) == 0) {
+                res = MP_PRIME;
+                break;
+            }
+        } /* end testing loop */
+
+        /* If the test passes, we will continue iterating, but a failed
+           test means the candidate is definitely NOT prime, so we will
+           immediately break out of this loop
+         */
+        if (res != MP_PRIME)
+            break;
+    } /* end iterations loop */
+
+    if (res == MP_PRIME) {
+        goto CLEANUP;
+    }
+
+    if (res == MP_NOT_POWER) {
+        /* xp = z */
+        MP_CHECKOK(mp_copy(&z, &xp));
+        /* z = z^2 (mod a) */
+        MP_CHECKOK(mp_sqrmod(&z, a, &z));
+        /* if z != 1 xp=z */
+        if (mp_cmp_d(&z, 1) != 0) {
+            MP_CHECKOK(mp_copy(&z, &xp));
+        }
+    }
+
+    /*  g = GCD(xp-1,a) */
+    MP_CHECKOK(mp_sub_d(&xp, 1, &xp));
+    MP_CHECKOK(mp_gcd(&xp, a, &g));
+    /* if g > 1 , copy g-> factor, return MP_COMPOSITE */
+    if (mp_cmp_d(&g, 1) > 0) {
+        if (factor) {
+            mp_copy(&g, factor);
+        }
+        res = MP_COMPOSITE;
+        goto CLEANUP;
+    }
+    res = MP_NOT_POWER;
+
+CLEANUP:
+    mp_clear(&m);
+    mp_clear(&z);
+    mp_clear(&g);
+    mp_clear(&xp);
+    mp_clear(&x);
+    mp_clear(&a_minus_one);
+    return res;
+
+} /* end mpp_pprime() */
+
 /* }}} */
 
 /* Produce table of composites from list of primes and trial value.

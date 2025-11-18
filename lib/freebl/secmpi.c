@@ -32,6 +32,12 @@ mpp_pprime_secure(mp_int *a, int nt)
 }
 
 mp_err
+mpp_pprime_or_power_secure(mp_int *a, mp_int *fact, int nt)
+{
+    return mpp_pprime_or_power_ext_random(a, fact, nt, &mpp_random_secure);
+}
+
+mp_err
 mpp_make_prime_secure(mp_int *start, mp_size nBits, mp_size strong)
 {
     return mpp_make_prime_ext_random(start, nBits, strong, &mpp_random_secure);

@@ -15,6 +15,7 @@
 #include "blapi.h"
 #include "secitem.h"
 #include "blapii.h"
+#include "secmpi.h"
 
 #define RSA_BLOCK_MIN_PAD_LEN 8
 #define RSA_BLOCK_FIRST_OCTET 0x00
@@ -800,6 +801,80 @@ eme_oaep_encode(unsigned char *em,
 }
 
 SECStatus
+RSA_PartialVerify(RSAPublicKey *key)
+{
+    mp_int n, e, fact;
+    mp_err err;
+    SECStatus rv = SECSuccess;
+    mp_int small_primes_product;
+    /* this string is the NIST string *751, since the requirement is to detect up to prime 751
+     * inclusive */
+    const char *primes_product_decimal_string = "1090367704589007566035202161494385722019383400119651874476478760664145697976533387343668263403266024900638505861980470638958322454581550203448421495842767449796261170069732921897400657944793163960886418313690808872680411646815934535605444102983629208422567461571568587963766123806881456648026733413053968363611105";
+
+    /* we only need to verify public keys once, and only in FIPS mode */
+    if (!key->needVerify) {
+        return SECSuccess;
+    }
+    /* modulus length is check done by the FIPS indicator code */
+    /* validate public exponent: this test only succeeds if the exponent e is
+     * 2^16 <= e < 2^256. e = 2^16 will be rejected below byte the iseven check */
+    if (!key->publicExponent.data[0] || (key->publicExponent.len < 3) || (key->publicExponent.len > 32)) {
+        PORT_SetError(SEC_ERROR_INVALID_KEY);
+        return SECFailure;
+    }
+    /* convert to mpi for more detailed tests */
+    MP_DIGITS(&n) = 0;
+    MP_DIGITS(&e) = 0;
+    MP_DIGITS(&fact) = 0;
+    MP_DIGITS(&small_primes_product) = 0;
+    CHECK_MPI_OK(mp_init(&n));
+    CHECK_MPI_OK(mp_init(&e));
+    CHECK_MPI_OK(mp_init(&small_primes_product));
+    CHECK_MPI_OK(mp_init(&fact));
+    SECITEM_TO_MPINT(key->modulus, &n);
+    SECITEM_TO_MPINT(key->publicExponent, &e);
+
+    /* reject even exponents and moduluses */
+    if (mp_iseven(&e) || mp_iseven(&n)) {
+        err = MP_BADARG;
+        goto cleanup;
+    }
+    /* check for componsite or power */
+    err = mpp_pprime_or_power_secure(&n, NULL, 4);
+    if (err != MP_NOT_POWER) {
+        /* prime check succeeded, therefore modulus is not composite */
+        /* or we found a factor, indicating that the modulus is probably
+         * a power of a prime */
+        err = MP_BADARG;
+        goto cleanup;
+    }
+    /* check for small factors using gcd */
+    CHECK_MPI_OK(mp_read_radix(&small_primes_product,
+                               primes_product_decimal_string, 10));
+    CHECK_MPI_OK(mp_gcd(&n, &small_primes_product, &fact));
+    if (mp_cmp_d(&fact, 1) != 0) {
+        /* factor found, not a good modulus */
+        err = MP_BADARG;
+        goto cleanup;
+    }
+
+cleanup:
+    mp_clear(&n);
+    mp_clear(&e);
+    mp_clear(&small_primes_product);
+    mp_clear(&fact);
+    if (err) {
+        PORT_SetError(SEC_ERROR_INVALID_KEY);
+        rv = SECFailure;
+    } else {
+        /* if we are called again with this key, no need to verify
+         * again */
+        key->needVerify = PR_FALSE;
+    }
+    return rv;
+}
+
+SECStatus
 RSA_EncryptOAEP(RSAPublicKey *key,
                 HASH_HashType hashAlg,
                 HASH_HashType maskHashAlg,
@@ -831,6 +906,12 @@ RSA_EncryptOAEP(RSAPublicKey *key,
         (labelLen > 0 && label == NULL)) {
         PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
         return SECFailure;
+    }
+
+    rv = RSA_PartialVerify(key);
+    if (rv != SECSuccess) {
+        /* error code set by RSA_PartialVerify() */
+        return rv;
     }
 
     oaepEncoded = (unsigned char *)PORT_Alloc(modulusLen);

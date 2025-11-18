@@ -7498,6 +7498,8 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
             crv = CKR_HOST_MEMORY;
             goto loser;
         }
+        pubk.u.rsa.needVerify = PR_FALSE; /* We're just encoding the key from the
+                                           * private key */
 
         if (SEC_ASN1EncodeItem(arena, &spki.subjectPublicKey,
                                &pubk, nsslowkey_RSAPublicKeyTemplate) == NULL) {

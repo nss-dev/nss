@@ -45,6 +45,10 @@ SEC_BEGIN_PROTOS
 #define MP_UNDEF -5  /* answer is undefined   */
 #define MP_LAST_CODE MP_UNDEF
 
+/* miller-rabin extended */
+#define MP_PRIME 0
+#define MP_COMPOSITE 1
+#define MP_NOT_POWER 2
 /* Comparison constants */
 #define MP_LT -1
 #define MP_EQ 0
