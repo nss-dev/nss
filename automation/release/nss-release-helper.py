@@ -797,7 +797,8 @@ def create_nss_release_archive(args):
 
     nss_nspr_tar = "nss-" + nssrel + "-with-nspr-" + nsprrel + ".tar.gz"
 
-    check_call_noisy([tar_cmd, "-cz", "--remove-files", "-f", nss_nspr_tar, "nss-" + nssrel])
+    check_call_noisy([tar_cmd, "-cz", "-f", nss_nspr_tar, "nss-" + nssrel])
+    check_call_noisy(["rm", "-rf", "nss-" + nssrel])
     check_call("sha1sum " + nss_tar + " " + nss_nspr_tar + " > SHA1SUMS", shell=True)
     check_call("sha256sum " + nss_tar + " " + nss_nspr_tar + " > SHA256SUMS", shell=True)
     print("created directory " + nss_stagedir + " with files:")
