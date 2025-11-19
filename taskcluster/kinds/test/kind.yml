@@ -139,6 +139,58 @@ tasks:
         treeherder:
             symbol: tlsfuzzer
 
+    tlsinterop-gnutls:
+        description: tlsinterop-gnutls tests
+        from-deps:
+            kinds:
+                - build
+            with-attributes:
+                build_platform:
+                    - linux64
+                    - linux64-make
+                build_type:
+                    - opt
+                    - opt-make
+                nspr: [false]
+                dbm: [false]
+                cc: [false]
+                modular: [false]
+                fuzz: [false]
+        worker:
+            docker-image: {in-tree: tlsinterop}
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<build>"}
+                NSS_CYCLES: standard
+                NSS_TESTS: tlsinterop-gnutls
+        treeherder:
+            symbol: tlsinterop-gnutls
+
+    tlsinterop-openssl:
+        description: tlsinterop-openssl tests
+        from-deps:
+            kinds:
+                - build
+            with-attributes:
+                build_platform:
+                    - linux64
+                    - linux64-make
+                build_type:
+                    - opt
+                    - opt-make
+                nspr: [false]
+                dbm: [false]
+                cc: [false]
+                modular: [false]
+                fuzz: [false]
+        worker:
+            docker-image: {in-tree: tlsinterop}
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<build>"}
+                NSS_CYCLES: standard
+                NSS_TESTS: tlsinterop-openssl
+        treeherder:
+            symbol: tlsinterop-openssl
+
     mpi:
         description: MPI tests
         treeherder:

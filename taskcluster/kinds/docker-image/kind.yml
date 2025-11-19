@@ -25,3 +25,6 @@ tasks:
         parent: base
     fuzz:
         symbol: I(fuzz)
+    tlsinterop:
+        symbol: I(tlsinterop)
+        parent: base
