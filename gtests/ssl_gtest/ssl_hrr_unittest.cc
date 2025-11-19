@@ -17,6 +17,69 @@
 
 namespace nss_test {
 
+// NSS doesn't support DTLS1.2 HelloVerifyRequest so we have to inject it
+// ourselves. Inject a DTLS 1.2 HelloVerifyRequest to the client, carrying a
+// simple cookie.
+static void SendHelloVerifyRequest(const std::shared_ptr<TlsAgent>& server,
+                                   uint8_t cookie_len = 8) {
+  // struct { ProtocolVersion server_version; opaque cookie<0..2^8-1>; } HVR;
+  DataBuffer hvr_body;
+  size_t off = 0;
+  off = hvr_body.Write(off, SSL_LIBRARY_VERSION_DTLS_1_0_WIRE, 2);
+
+  DataBuffer cookie;
+  cookie.Allocate(cookie_len);
+  for (uint8_t i = 0; i < cookie_len; ++i) {
+    cookie.Write(i, 0xA0 + i, 1);
+  }
+  WriteVariable(&hvr_body, off, cookie, 1);
+
+  // Handshake header (DTLS): type, length, message_seq, frag_off, frag_len
+  DataBuffer hvr;
+  off = 0;
+  off = hvr.Write(off, ssl_hs_hello_verify_request, 1);
+  off = hvr.Write(off, hvr_body.len(), 3);
+  off = hvr.Write(off, static_cast<uint32_t>(0), 2);
+  off = hvr.Write(off, static_cast<uint32_t>(0), 3);
+  off = hvr.Write(off, hvr_body.len(), 3);
+  off = hvr.Write(off, hvr_body);
+
+  // Send as a DTLS 1.2 handshake record.
+  TlsRecordHeader rec(ssl_variant_datagram, SSL_LIBRARY_VERSION_DTLS_1_0,
+                      ssl_ct_handshake, 0 /* epoch 0, seq 0 */);
+  DataBuffer record;
+  rec.Write(&record, 0, hvr);
+  server->SendDirect(record);
+}
+
+// After HelloVerifyRequest (DTLS 1.2), the client must not include the TLS 1.3
+// cookie extension in the second ClientHello. The cookie only belongs in the
+// DTLS ClientHello legacy cookie field in this case.
+TEST_F(DtlsConnectTest, NoTls13CookieExtensionAfterHelloVerifyRequest) {
+  EnsureTlsSetup();
+  client_->SetVersionRange(SSL_LIBRARY_VERSION_DTLS_1_0,
+                           SSL_LIBRARY_VERSION_DTLS_1_3);
+  server_->SetVersionRange(SSL_LIBRARY_VERSION_DTLS_1_0,
+                           SSL_LIBRARY_VERSION_DTLS_1_3);
+
+  auto cookie_xtn_capture =
+      MakeTlsFilter<TlsExtensionCapture>(client_, ssl_tls13_cookie_xtn, true);
+
+  StartConnect();
+  client_->Handshake();  // Send initial ClientHello.
+
+  // Inject HVR from server with a dummy cookie.
+  SendHelloVerifyRequest(server_);
+
+  // Client sends second ClientHello in response to HVR.
+  client_->Handshake();
+
+  // Ensure the TLS 1.3 cookie extension is absent in CH2.
+  EXPECT_FALSE(cookie_xtn_capture->captured())
+      << "TLS 1.3 cookie extension must NOT be included after "
+         "HelloVerifyRequest";
+}
+
 TEST_P(TlsConnectTls13, HelloRetryRequestAbortsZeroRtt) {
   const char* k0RttData = "Such is life";
   const PRInt32 k0RttDataLen = static_cast<PRInt32>(strlen(k0RttData));

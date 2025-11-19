@@ -1069,8 +1069,13 @@ tls13_ClientSendHrrCookieXtn(const sslSocket *ss, TLSExtensionData *xtnData,
 {
     SECStatus rv;
 
+    /* Only send the TLS 1.3 Cookie extension in response to a
+     * HelloRetryRequest. If we are replying to a DTLS 1.2
+     * HelloVerifyRequest, the cookie must be carried in the DTLS
+     * ClientHello cookie field, not as a TLS 1.3 extension.
+     */
     if (ss->vrange.max < SSL_LIBRARY_VERSION_TLS_1_3 ||
-        !ss->ssl3.hs.cookie.len) {
+        !ss->ssl3.hs.cookie.len || !ss->ssl3.hs.helloRetry) {
         return SECSuccess;
     }
 
