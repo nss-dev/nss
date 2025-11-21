@@ -808,7 +808,6 @@
             #TODO: -Ox optimize flags
             'PreprocessorDefinitions': [
               # Should be copied to mingw defines below
-              'MP_IS_LITTLE_ENDIAN',
               'NSS_BEVAND_ARCFOUR',
               'MPI_AMD64',
               'MP_ASSEMBLY_MULTIPLY',
@@ -838,12 +837,6 @@
         'defines': [
           'USE_HW_SHA2',
         ],
-      }],
-      [ 'cc_use_gnu_ld==1 and OS=="win" and target_arch=="x64"', {
-        # mingw x64
-        'defines': [
-          'MP_IS_LITTLE_ENDIAN',
-         ],
       }],
       # Poly1305_256 requires the flag to run
       ['target_arch=="x64"', {
@@ -883,7 +876,6 @@
         'conditions': [
           [ 'target_arch=="x64"', {
             'defines': [
-              'MP_IS_LITTLE_ENDIAN',
               'NSS_BEVAND_ARCFOUR',
               'MPI_AMD64',
               'MP_ASSEMBLY_MULTIPLY',
@@ -898,7 +890,6 @@
           }],
           [ 'target_arch=="ia32"', {
             'defines': [
-              'MP_IS_LITTLE_ENDIAN',
               'MP_ASSEMBLY_MULTIPLY',
               'MP_ASSEMBLY_SQUARE',
               'MP_ASSEMBLY_DIV_2DX1D',

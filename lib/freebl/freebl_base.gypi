@@ -232,7 +232,6 @@
             'mpi/mp_comba.c',
           ],
           'defines': [
-            'MP_IS_LITTLE_ENDIAN',
             'MPI_AMD64',
             'MP_ASSEMBLY_MULTIPLY',
             'NSS_USE_COMBA',

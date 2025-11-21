@@ -215,8 +215,6 @@ else
     endif
 endif
 else
-    # -DMP_NO_MP_WORD
-    DEFINES += -DMP_IS_LITTLE_ENDIAN
 ifdef NS_USE_GCC
 # Ideally, we should use amd64 assembly code, but it's not yet mingw-w64
 # compatible.
@@ -253,7 +251,7 @@ endif
 ifeq ($(OS_TARGET),Darwin)
 ifeq ($(CPU_ARCH),x86_64)
     ASFILES  = mpi_amd64_common.s
-    DEFINES += -DMPI_AMD64 -DMP_IS_LITTLE_ENDIAN
+    DEFINES += -DMPI_AMD64
     DEFINES += -DMP_ASSEMBLY_MULTIPLY -DNSS_USE_COMBA
     MPI_SRCS += mpi_amd64.c mp_comba.c
 else ifeq ($(CPU_ARCH),x86)
@@ -271,7 +269,6 @@ ifeq ($(CPU_ARCH),x86_64)
     ASFLAGS += -fPIC -Wa,--noexecstack
     DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
     DEFINES += -DNSS_USE_COMBA
-    DEFINES += -DMP_IS_LITTLE_ENDIAN
 #   DEFINES += -DMPI_AMD64_ADD
     # comment the next four lines to turn off Intel HW acceleration.
     DEFINES += -DUSE_HW_AES -DINTEL_GCM
@@ -284,7 +281,6 @@ ifeq ($(CPU_ARCH),x86)
     ASFILES  = mpi_x86.s
     DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE
     DEFINES += -DMP_ASSEMBLY_DIV_2DX1D -DMP_USE_UINT_DIGIT
-    DEFINES += -DMP_IS_LITTLE_ENDIAN
 endif
 ifeq ($(CPU_ARCH),arm)
     DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE
@@ -533,7 +529,7 @@ else
 	    # Intel acceleration for GCM does not build currently with Studio
 	endif
 	DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
-	DEFINES += -DNSS_USE_COMBA -DMP_IS_LITTLE_ENDIAN
+	DEFINES += -DNSS_USE_COMBA
 	# comment the next two lines to turn off Intel HW acceleration
 	DEFINES += -DUSE_HW_AES
 	ASFILES += intel-aes.s
