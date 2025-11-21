@@ -23,8 +23,14 @@
       'sources': [
         'intel-gcm-wrap.c',
       ],
+      'conditions': [
+        [ '(OS=="linux" or OS=="android") and target_arch=="x64"', {
+          'dependencies': [
+            'intel-gcm-s_lib',
+          ],
+        }],
+      ],
       'dependencies': [
-        'intel-gcm-s_lib',
         '<(DEPTH)/exports.gyp:nss_exports'
       ],
       'cflags': [
@@ -45,8 +51,14 @@
       'sources': [
         'intel-gcm-wrap.c',
       ],
+      'conditions': [
+        [ '(OS=="linux" or OS=="android") and target_arch=="x64"', {
+          'dependencies': [
+            'intel-gcm-s_lib',
+          ],
+        }],
+      ],
       'dependencies': [
-        'intel-gcm-s_lib',
         '<(DEPTH)/exports.gyp:nss_exports'
       ],
       'cflags': [
