@@ -559,12 +559,12 @@
           ],
         }],
         [ 'disable_altivec==1 and (target_arch=="ppc64" or target_arch=="ppc64le")', {
-          'defines!': [
+          'defines': [
             'NSS_DISABLE_ALTIVEC',
           ],
         }],
         [ 'disable_crypto_vsx==1 and (target_arch=="ppc" or target_arch=="ppc64" or target_arch=="ppc64le")', {
-          'defines!': [
+          'defines': [
             'NSS_DISABLE_CRYPTO_VSX',
           ],
         }],
@@ -648,12 +648,12 @@
           ],
         }],
         [ 'disable_altivec==1 and (target_arch=="ppc64" or target_arch=="ppc64le")', {
-          'defines!': [
+          'defines': [
             'NSS_DISABLE_ALTIVEC',
           ],
         }],
         [ 'disable_crypto_vsx==1 and (target_arch=="ppc" or target_arch=="ppc64" or target_arch=="ppc64le")', {
-          'defines!': [
+          'defines': [
             'NSS_DISABLE_CRYPTO_VSX',
           ],
         }],
