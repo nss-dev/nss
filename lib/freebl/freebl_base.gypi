@@ -83,19 +83,6 @@
             'mpi/mpi_amd64_common.S',
             'mpi/mp_comba.c',
           ],
-          'conditions': [
-            [ 'cc_is_clang==1 and fuzz!=1 and coverage!=1 and force_integrated_as!=1', {
-              'cflags': [
-                '-no-integrated-as',
-              ],
-              'cflags_mozilla': [
-                '-no-integrated-as',
-              ],
-              'asflags_mozilla': [
-                '-no-integrated-as',
-              ],
-            }],
-          ],
         }],
         [ 'target_arch=="ia32"', {
           'sources': [

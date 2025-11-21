@@ -737,15 +737,6 @@ ifdef INTEL_GCM
 # GCM binary needs -mssse3
 #
 $(OBJDIR)/$(PROG_PREFIX)intel-gcm-wrap$(OBJ_SUFFIX): CFLAGS += -mssse3
-
-# The integrated assembler in Clang 3.2 does not support % in the
-# expression of a .set directive. intel-gcm.s uses .set to give
-# symbolic names to registers, for example,
-#     .set  Htbl, %rdi
-# So we can't use Clang's integrated assembler with intel-gcm.s.
-ifdef CC_IS_CLANG
-$(OBJDIR)/$(PROG_PREFIX)intel-gcm$(OBJ_SUFFIX): CFLAGS += -no-integrated-as
-endif
 endif
 
 ifdef INTEL_GCM_CLANG_CL

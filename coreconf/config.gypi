@@ -144,7 +144,6 @@
     'coverage%': 0,
     'softfp_cflags%': '',
     'enable_draft_hpke%': 0,
-    'force_integrated_as%': 0,
     'disable_ckbi%': 0,
     'ppc_abi%': 0,
     'use_pkcs5_pbkd2_params2_only%': 0,

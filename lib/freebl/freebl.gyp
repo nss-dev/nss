@@ -16,19 +16,6 @@
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports'
       ],
-      'conditions': [
-        [ 'cc_is_clang==1 and force_integrated_as!=1', {
-          'cflags': [
-            '-no-integrated-as',
-          ],
-          'cflags_mozilla': [
-            '-no-integrated-as',
-          ],
-          'asflags_mozilla': [
-            '-no-integrated-as',
-          ],
-        }],
-      ],
     },
     {
       'target_name': 'intel-gcm-wrap_c_lib',
@@ -328,19 +315,6 @@
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports'
-      ],
-      'conditions': [
-        [ 'cc_is_clang==1 and force_integrated_as!=1', {
-          'cflags': [
-            '-no-integrated-as',
-          ],
-          'cflags_mozilla': [
-            '-no-integrated-as',
-          ],
-          'asflags_mozilla': [
-            '-no-integrated-as',
-          ],
-        }],
       ],
     },
     {

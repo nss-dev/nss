@@ -27,7 +27,6 @@ def set_build_attributes(config, jobs):
 
 
 EXTRA_COMPILERS = {
-    "clang-4": {"CC": "clang-4.0", "CCC": "clang++-4.0"},
     "clang-10": {"CC": "clang-10", "CCC": "clang++-10"},
     "clang-18": {"CC": "clang-18", "CCC": "clang++-18"},
     # gcc-4.6 introduced nullptr.

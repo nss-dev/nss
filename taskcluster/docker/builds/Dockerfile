@@ -11,7 +11,6 @@ VOLUME /builds/worker/.cache
 ADD bionic.list /etc/apt/sources.list.d/bionic.list
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-    clang-4.0 \
     clang-10 \
     clang-18 \
     cmake \
