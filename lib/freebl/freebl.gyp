@@ -24,14 +24,30 @@
         'intel-gcm-wrap.c',
       ],
       'dependencies': [
+        'intel-gcm-s_lib',
         '<(DEPTH)/exports.gyp:nss_exports'
       ],
-      'conditions': [
-        [ '(OS=="linux" or OS=="android") and target_arch=="x64"', {
-          'dependencies': [
-            'intel-gcm-s_lib',
-          ],
-        }],
+      'cflags': [
+        '-mssse3',
+      ],
+      'cflags_mozilla': [
+        '-mssse3'
+      ],
+      # Remove FREEBL_NO_DEPEND so intel-gcm-wrap.c uses real NSS utility
+      # functions instead of stubs. This is needed for static builds.
+      'defines!': [
+        'FREEBL_NO_DEPEND',
+      ],
+    },
+    {
+      'target_name': 'intel-gcm-wrap-nodepend_c_lib',
+      'type': 'static_library',
+      'sources': [
+        'intel-gcm-wrap.c',
+      ],
+      'dependencies': [
+        'intel-gcm-s_lib',
+        '<(DEPTH)/exports.gyp:nss_exports'
       ],
       'cflags': [
         '-mssse3',
@@ -497,8 +513,10 @@
         [ 'target_arch=="ia32" or target_arch=="x64"', {
           'dependencies': [
             'gcm-aes-x86_c_lib',
+            'intel-gcm-wrap_c_lib',
           ],
-        }, '(disable_arm_hw_aes==0 or disable_arm_hw_sha1==0 or disable_arm_hw_sha2==0) and (target_arch=="arm" or target_arch=="arm64" or target_arch=="aarch64")', {
+        }],
+        [ '(disable_arm_hw_aes==0 or disable_arm_hw_sha1==0 or disable_arm_hw_sha2==0) and (target_arch=="arm" or target_arch=="arm64" or target_arch=="aarch64")', {
           'dependencies': [
             'armv8_c_lib'
           ],
@@ -551,20 +569,6 @@
           'defines!': [
             'FREEBL_NO_DEPEND',
             'FREEBL_LOWHASH',
-            'USE_HW_AES',
-            'INTEL_GCM',
-            'PPC_GCM',
-          ],
-          'conditions': [
-            [ 'target_arch=="x64"', {
-              # The AES assembler code doesn't work in static builds.
-              # The linker complains about non-relocatable code, and I
-              # currently don't know how to fix this properly.
-              'sources!': [
-                'intel-aes.s',
-                'intel-gcm.s',
-              ],
-            }],
           ],
         }],
       ],
@@ -584,8 +588,10 @@
         [ 'target_arch=="ia32" or target_arch=="x64"', {
           'dependencies': [
             'gcm-aes-x86_c_lib',
+            'intel-gcm-wrap-nodepend_c_lib',
           ]
-        }, 'target_arch=="arm" or target_arch=="arm64" or target_arch=="aarch64"', {
+        }],
+        [ 'target_arch=="arm" or target_arch=="arm64" or target_arch=="aarch64"', {
           'dependencies': [
             'armv8_c_lib',
           ],
@@ -647,16 +653,6 @@
                 '<(moz_folded_library_name)',
               ],
             }],
-          ],
-        }],
-        [ '(OS=="linux" or OS=="android") and target_arch=="x64"', {
-          'dependencies': [
-            'intel-gcm-wrap_c_lib',
-          ],
-        }],
-        [ 'OS=="win" and (target_arch=="ia32" or target_arch=="x64") and cc_is_clang==1', {
-          'dependencies': [
-            'intel-gcm-wrap_c_lib',
           ],
         }],
         [ 'OS=="linux"', {
