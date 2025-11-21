@@ -95,6 +95,7 @@ while [ $# -gt 0 ]; do
         -m32|--m32) target_arch=ia32; echo 'Warning: use -t instead of -m32' 1>&2 ;;
         -t|--target) target_arch="$2"; shift ;;
         --target=*) target_arch="${1#*=}" ;;
+        --build-tools-cc=*) build_tools_cc="${1#*=}" ;;
         --clang) export CC=clang; export CCC=clang++; export CXX=clang++; msvc=0 ;;
         --gcc) export CC=gcc; export CCC=g++; export CXX=g++; msvc=0 ;;
         --msvc) msvc=1 ;;
@@ -168,6 +169,11 @@ if [ "$opt_build" = 1 ]; then
     target=Release
 else
     target=Debug
+fi
+
+# When cross-compiling, system zlib for the target architecture may not be available
+if [[ -n "$CC" && -n "$build_tools_cc" && "$CC" != "$build_tools_cc" ]]; then
+    gyp_params+=(-Duse_system_zlib=0 -Dsign_libs=0)
 fi
 
 gyp_params+=(-Denable_sslkeylogfile="$sslkeylogfile")

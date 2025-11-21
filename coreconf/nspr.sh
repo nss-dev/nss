@@ -36,10 +36,21 @@ nspr_build()
         extra_params+=(--enable-64bit)
     fi
 
+    if [[ -n "$CC" && -n "$build_tools_cc" && "$CC" != "$build_tools_cc" ]]; then
+        # If build_tools_cc is specified, we expect CC to include a target
+        # triple e.g. "CC=powerpc-linux-gnu-gcc". NSPR, confusingly, uses
+        # "HOST_CC" to build tools like nsinstall that are called during the
+        # build process and it uses the parameter "--host" to specify the
+        # target triple for the build.
+        HOST_CC="$build_tools_cc"
+        extra_params+=(--host="${CC%-*}")
+    fi
+
     echo "NSPR [1/5] configure ..."
     pushd "$nspr_dir" >/dev/null
+
     CFLAGS="$nspr_cflags" CXXFLAGS="$nspr_cxxflags" \
-          LDFLAGS="$nspr_ldflags" CC="$CC" CXX="$CCC" \
+          LDFLAGS="$nspr_ldflags" HOST_CC="$HOST_CC" CC="$CC" CXX="$CCC" \
           run_verbose ../configure "${extra_params[@]}" "$@"
     popd >/dev/null
     echo "NSPR [2/5] make ..."
