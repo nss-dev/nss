@@ -300,11 +300,6 @@
             '-maltivec'
           ],
         }],
-        [ 'ppc_abi==2', {
-          'sources': [
-            'sha512-p8.s',
-          ],
-        }],
       ]
     },
     {
@@ -343,7 +338,7 @@
       ],
     },
     {
-      'target_name': 'gcm-sha512-nodepend-ppc_c_lib',
+      'target_name': 'sha512-nodepend-ppc_c_lib',
       'type': 'static_library',
       'sources': [
         'sha512.c',
@@ -352,6 +347,11 @@
         '<(DEPTH)/exports.gyp:nss_exports'
       ],
       'conditions': [
+        [ 'ppc_abi==2', {
+          'sources': [
+            'sha512-p8.s',
+          ],
+        }],
         [ 'disable_crypto_vsx==0', {
           'cflags': [
             '-mcrypto',
@@ -382,7 +382,7 @@
       ]
     },
     {
-      'target_name': 'gcm-sha512-ppc_c_lib',
+      'target_name': 'sha512-ppc_c_lib',
       'type': 'static_library',
       'sources': [
         'sha512.c',
@@ -391,6 +391,11 @@
         '<(DEPTH)/exports.gyp:nss_exports'
       ],
       'conditions': [
+        [ 'ppc_abi==2', {
+          'sources': [
+            'sha512-p8.s',
+          ],
+        }],
         [ 'disable_crypto_vsx==0', {
           'cflags': [
             '-mcrypto',
@@ -521,13 +526,13 @@
         [ 'disable_altivec==0 and target_arch=="ppc64"', {
           'dependencies': [
             'gcm-aes-ppc_c_lib',
-            'gcm-sha512-ppc_c_lib',
+            'sha512-ppc_c_lib',
           ],
         }],
         [ 'disable_altivec==0 and target_arch=="ppc64le"', {
           'dependencies': [
             'gcm-aes-ppc_c_lib',
-            'gcm-sha512-ppc_c_lib',
+            'sha512-ppc_c_lib',
             'chacha20-ppc_lib',
             'ppc-gcm-wrap_c_lib',
           ],
@@ -610,12 +615,12 @@
             [ 'target_arch=="ppc64"', {
               'dependencies': [
                 'gcm-aes-ppc_c_lib',
-                'gcm-sha512-nodepend-ppc_c_lib',
+                'sha512-nodepend-ppc_c_lib',
               ],
             }, 'target_arch=="ppc64le"', {
                'dependencies': [
                  'gcm-aes-ppc_c_lib',
-                 'gcm-sha512-nodepend-ppc_c_lib',
+                 'sha512-nodepend-ppc_c_lib',
                  'ppc-gcm-wrap-nodepend_c_lib',
                ],
             }],
