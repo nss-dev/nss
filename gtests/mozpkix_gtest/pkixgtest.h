@@ -245,6 +245,11 @@ const uint8_t tlv_id_ce_extKeyUsage[] = {0x06, 0x03, 0x55, 0x1d, 0x25};
     0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x24
   };
 
+// python DottedOIDToCode.py --tlv id-kp-documentSigningAdobe 1.2.840.113583.1.1.5
+  static const uint8_t tlv_id_kp_documentSigningAdobe[] = {
+    0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x2f, 0x01, 0x01, 0x05
+  };
+
 inline ByteString CreateEKUExtension(ByteString ekuOIDs) {
   return TLV(der::SEQUENCE,
              BytesToByteString(tlv_id_ce_extKeyUsage) +

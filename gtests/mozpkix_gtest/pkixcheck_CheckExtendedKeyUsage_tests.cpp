@@ -46,7 +46,8 @@ class pkixcheck_CheckExtendedKeyUsage : public ::testing::Test
 
 // tlv_id_kp_OCSPSigning and tlv_id_kp_serverAuth are defined in pkixtestutil.h
 
-// tlv_id_kp_clientAuth, tlv_id_kp_codeSigning and tlv_id_kp_documentSigning are defined in pkixgtest.h
+// tlv_id_kp_clientAuth, tlv_id_kp_codeSigning, tlv_id_kp_documentSigning and tlv_id_kp_documentSigningAdobe
+// are defined in pkixgtest.h
 
 // python DottedOIDToCode.py --tlv id_kp_emailProtection 1.3.6.1.5.5.7.3.4
 static const uint8_t tlv_id_kp_emailProtection[] = {
@@ -109,6 +110,11 @@ TEST_F(pkixcheck_CheckExtendedKeyUsage, none)
                                            KeyPurposeId::id_kp_documentSigning));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
                                            KeyPurposeId::id_kp_documentSigning));
+  ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity,
+                                           nullptr,
+                                           KeyPurposeId::id_kp_documentSigningAdobe));
+  ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
+                                           KeyPurposeId::id_kp_documentSigningAdobe));
 }
 
 static const Input empty_null;
@@ -198,6 +204,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   SINGLE_EKU_FAILURE(tlv_id_kp_serverAuth, KeyPurposeId::id_kp_emailProtection),
   SINGLE_EKU_FAILURE(tlv_id_kp_serverAuth, KeyPurposeId::id_kp_OCSPSigning),
   SINGLE_EKU_FAILURE(tlv_id_kp_serverAuth, KeyPurposeId::id_kp_documentSigning),
+  SINGLE_EKU_FAILURE(tlv_id_kp_serverAuth, KeyPurposeId::id_kp_documentSigningAdobe),
 
   SINGLE_EKU_SUCCESS(tlv_id_kp_clientAuth, KeyPurposeId::anyExtendedKeyUsage),
   SINGLE_EKU_FAILURE(tlv_id_kp_clientAuth, KeyPurposeId::id_kp_serverAuth),
@@ -206,6 +213,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   SINGLE_EKU_FAILURE(tlv_id_kp_clientAuth, KeyPurposeId::id_kp_emailProtection),
   SINGLE_EKU_FAILURE(tlv_id_kp_clientAuth, KeyPurposeId::id_kp_OCSPSigning),
   SINGLE_EKU_FAILURE(tlv_id_kp_clientAuth, KeyPurposeId::id_kp_documentSigning),
+  SINGLE_EKU_FAILURE(tlv_id_kp_clientAuth, KeyPurposeId::id_kp_documentSigningAdobe),
 
   SINGLE_EKU_SUCCESS(tlv_id_kp_codeSigning, KeyPurposeId::anyExtendedKeyUsage),
   SINGLE_EKU_FAILURE(tlv_id_kp_codeSigning, KeyPurposeId::id_kp_serverAuth),
@@ -214,6 +222,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   SINGLE_EKU_FAILURE(tlv_id_kp_codeSigning, KeyPurposeId::id_kp_emailProtection),
   SINGLE_EKU_FAILURE(tlv_id_kp_codeSigning, KeyPurposeId::id_kp_OCSPSigning),
   SINGLE_EKU_FAILURE(tlv_id_kp_codeSigning, KeyPurposeId::id_kp_documentSigning),
+  SINGLE_EKU_FAILURE(tlv_id_kp_codeSigning, KeyPurposeId::id_kp_documentSigningAdobe),
 
   SINGLE_EKU_SUCCESS(tlv_id_kp_emailProtection, KeyPurposeId::anyExtendedKeyUsage),
   SINGLE_EKU_FAILURE(tlv_id_kp_emailProtection, KeyPurposeId::id_kp_serverAuth),
@@ -222,6 +231,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   SINGLE_EKU_SUCCESS(tlv_id_kp_emailProtection, KeyPurposeId::id_kp_emailProtection),
   SINGLE_EKU_FAILURE(tlv_id_kp_emailProtection, KeyPurposeId::id_kp_OCSPSigning),
   SINGLE_EKU_FAILURE(tlv_id_kp_emailProtection, KeyPurposeId::id_kp_documentSigning),
+  SINGLE_EKU_FAILURE(tlv_id_kp_emailProtection, KeyPurposeId::id_kp_documentSigningAdobe),
 
   // For end-entities, if id-kp-OCSPSigning is present, no usage is allowed
   // except OCSPSigning.
@@ -232,6 +242,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   SINGLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_emailProtection),
   SINGLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
   SINGLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_documentSigning),
+  SINGLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_documentSigningAdobe),
 
   SINGLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
   SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
@@ -240,6 +251,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
   SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_OCSPSigning),
   SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_documentSigning),
+  SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_documentSigningAdobe),
 
   SINGLE_EKU_SUCCESS(tlv_id_kp_documentSigning, KeyPurposeId::anyExtendedKeyUsage),
   SINGLE_EKU_FAILURE(tlv_id_kp_documentSigning, KeyPurposeId::id_kp_serverAuth),
@@ -248,6 +260,16 @@ static const EKUTestcase EKU_TESTCASES[] =
   SINGLE_EKU_FAILURE(tlv_id_kp_documentSigning, KeyPurposeId::id_kp_emailProtection),
   SINGLE_EKU_FAILURE(tlv_id_kp_documentSigning, KeyPurposeId::id_kp_OCSPSigning),
   SINGLE_EKU_SUCCESS(tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigning),
+  SINGLE_EKU_FAILURE(tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigningAdobe),
+
+  SINGLE_EKU_SUCCESS(tlv_id_kp_documentSigningAdobe, KeyPurposeId::anyExtendedKeyUsage),
+  SINGLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_serverAuth),
+  SINGLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_clientAuth),
+  SINGLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_codeSigning),
+  SINGLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_emailProtection),
+  SINGLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_OCSPSigning),
+  SINGLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigning),
+  SINGLE_EKU_SUCCESS(tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigningAdobe),
 
   SINGLE_EKU_SUCCESS(tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
   SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
@@ -256,6 +278,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
   SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
   SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_documentSigning),
+  SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_documentSigningAdobe),
 
   SINGLE_EKU_SUCCESS(tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
   SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
@@ -264,6 +287,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
   SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
   SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigning),
+  SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth, KeyPurposeId::id_kp_serverAuth),
@@ -272,6 +296,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_serverAuth),
@@ -280,6 +305,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_serverAuth),
@@ -288,6 +314,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_serverAuth),
@@ -296,6 +323,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
@@ -304,6 +332,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_documentSigning, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_serverAuth),
@@ -312,6 +341,16 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigningAdobe),
+
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::anyExtendedKeyUsage),
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_clientAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_codeSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_emailProtection),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_OCSPSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
@@ -320,6 +359,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_unknownOID, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_unknownOID, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
@@ -328,6 +368,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_serverAuth),
@@ -336,6 +377,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_serverAuth),
@@ -344,6 +386,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_serverAuth),
@@ -352,6 +395,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
@@ -360,6 +404,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_documentSigning, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_serverAuth),
@@ -368,6 +413,16 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigningAdobe),
+
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::anyExtendedKeyUsage),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_clientAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_codeSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_emailProtection),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_OCSPSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
@@ -376,6 +431,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_unknownOID, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_unknownOID, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
@@ -384,6 +440,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_serverAuth),
@@ -392,6 +449,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_serverAuth),
@@ -400,6 +458,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
@@ -408,6 +467,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_documentSigning, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_serverAuth),
@@ -416,6 +476,16 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigningAdobe),
+
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::anyExtendedKeyUsage),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_clientAuth),
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_codeSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_emailProtection),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_OCSPSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
@@ -424,6 +494,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_unknownOID, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_unknownOID, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
@@ -432,6 +503,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_serverAuth),
@@ -440,6 +512,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
@@ -448,6 +521,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_kp_documentSigning, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_serverAuth),
@@ -456,6 +530,16 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigningAdobe),
+
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_kp_documentSigningAdobe, KeyPurposeId::anyExtendedKeyUsage),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_clientAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_codeSigning),
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_emailProtection),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_OCSPSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
@@ -464,6 +548,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_unknownOID, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_unknownOID, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
@@ -472,6 +557,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
@@ -480,6 +566,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_id_kp_documentSigning, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_serverAuth),
@@ -488,6 +575,16 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigningAdobe),
+
+  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::anyExtendedKeyUsage),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_clientAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_codeSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_emailProtection),
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_OCSPSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
@@ -496,6 +593,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_unknownOID, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_unknownOID, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
@@ -504,6 +602,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigningAdobe),
   
   DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigning, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_SUCCESS_CA(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_serverAuth),
@@ -512,6 +611,16 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigningAdobe),
+
+  DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::anyExtendedKeyUsage),
+  DOUBLE_EKU_SUCCESS_CA(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_clientAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_codeSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_emailProtection),
+  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_OCSPSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
@@ -520,6 +629,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
@@ -528,6 +638,16 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigningAdobe),
+
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_documentSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::anyExtendedKeyUsage),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_clientAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_codeSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_emailProtection),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_OCSPSigning),
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_documentSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_documentSigning, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_documentSigning, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigning, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
@@ -536,6 +656,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigning, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigning, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_documentSigning, tlv_unknownOID, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigning, tlv_unknownOID, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_id_kp_documentSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
@@ -544,6 +665,25 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_SUCCESS(tlv_id_kp_documentSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigningAdobe),
+
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_documentSigningAdobe, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, tlv_unknownOID, KeyPurposeId::id_kp_clientAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, tlv_unknownOID, KeyPurposeId::id_kp_codeSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, tlv_unknownOID, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_documentSigningAdobe, tlv_unknownOID, KeyPurposeId::id_kp_documentSigningAdobe),
+
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_documentSigningAdobe, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_clientAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_codeSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
+  DOUBLE_EKU_FAILURE(tlv_id_kp_documentSigningAdobe, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_SUCCESS(tlv_id_kp_documentSigningAdobe, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigningAdobe),
 
   DOUBLE_EKU_SUCCESS(tlv_unknownOID, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
   DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
@@ -552,6 +692,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
   DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
   DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigning),
+  DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigningAdobe),
 };
 
 INSTANTIATE_TEST_SUITE_P(pkixcheck_CheckExtendedKeyUsage,

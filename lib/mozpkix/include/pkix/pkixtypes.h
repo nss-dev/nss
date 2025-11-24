@@ -77,6 +77,8 @@ enum class KeyPurposeId {
   // RFC 9336 - X.509 Certificate General-Purpose Extended Key Usage (EKU) for
   // Document Signing
   id_kp_documentSigning = 36,  // id-kp-documentSigning
+  // Adobe Authentic Documents Trust (1.2.840.113583.1.1.5)
+  id_kp_documentSigningAdobe = 37
 };
 
 struct CertPolicyId final {
