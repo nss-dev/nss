@@ -746,6 +746,9 @@ MatchEKU(Reader& value, KeyPurposeId requiredEKU,
   static const uint8_t code  [] = { (40*1)+3, 6, 1, 5, 5, 7, 3, 3 };
   static const uint8_t email [] = { (40*1)+3, 6, 1, 5, 5, 7, 3, 4 };
   static const uint8_t ocsp  [] = { (40*1)+3, 6, 1, 5, 5, 7, 3, 9 };
+  // RFC 9336 - X.509 Certificate General-Purpose Extended Key Usage (EKU) for
+  // Document Signing id-kp-documentSigning OBJECT IDENTIFIER ::= { id-kp 36 }
+  static const uint8_t documentSigning[] = { (40 * 1)+3, 6, 1, 5, 5, 7, 3, 36 };
 
   bool match = false;
 
@@ -769,6 +772,10 @@ MatchEKU(Reader& value, KeyPurposeId requiredEKU,
 
       case KeyPurposeId::id_kp_OCSPSigning:
         match = value.MatchRest(ocsp);
+        break;
+
+      case KeyPurposeId::id_kp_documentSigning:
+        match = value.MatchRest(documentSigning);
         break;
 
       case KeyPurposeId::anyExtendedKeyUsage:
