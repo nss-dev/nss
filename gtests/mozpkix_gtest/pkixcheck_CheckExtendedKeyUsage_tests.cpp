@@ -715,7 +715,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_documentSigningMicrosoft),
   
   DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigning, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_serverAuth),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_clientAuth),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_codeSigning),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_emailProtection),
@@ -725,7 +725,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigning, KeyPurposeId::id_kp_documentSigningMicrosoft),
 
   DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_serverAuth),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_clientAuth),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_codeSigning),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_emailProtection),
@@ -735,7 +735,7 @@ static const EKUTestcase EKU_TESTCASES[] =
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningAdobe, KeyPurposeId::id_kp_documentSigningMicrosoft),
 
   DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningMicrosoft, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningMicrosoft, KeyPurposeId::id_kp_serverAuth),
+  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningMicrosoft, KeyPurposeId::id_kp_serverAuth),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningMicrosoft, KeyPurposeId::id_kp_clientAuth),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningMicrosoft, KeyPurposeId::id_kp_codeSigning),
   DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_id_kp_documentSigningMicrosoft, KeyPurposeId::id_kp_emailProtection),
