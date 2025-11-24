@@ -748,10 +748,13 @@ MatchEKU(Reader& value, KeyPurposeId requiredEKU,
   static const uint8_t ocsp  [] = { (40*1)+3, 6, 1, 5, 5, 7, 3, 9 };
   // RFC 9336 - X.509 Certificate General-Purpose Extended Key Usage (EKU) for
   // Document Signing id-kp-documentSigning OBJECT IDENTIFIER ::= { id-kp 36 }
-  static const uint8_t documentSigning[] = { (40 * 1)+3, 6, 1, 5, 5, 7, 3, 36 };
+  static const uint8_t documentSigning[] = { (40*1)+3, 6, 1, 5, 5, 7, 3, 36 };
   // 1.2.840.113583.1.1.5 (Adobe Authentic Documents Trust)
   // {iso(1) member-body(2) us(840) adbe(113583) acrobat(1) security(1) 5}
-  static const uint8_t documentSigningAdobe[] = {(40*1)+2, 128+6, 72, 128+6, 128+119, 47, 1, 1, 5};
+  static const uint8_t documentSigningAdobe[] = { (40*1)+2, 128+6, 72, 128+6, 128+119, 47, 1, 1, 5 };
+  // 1.3.6.1.4.1.311.10.3.12 (Microsoft Document Signing OID)
+  // {iso(1) identified-organization(3) dod(6) internet(1) private(4) enterprise(1) 311 10 3 12}
+  static const uint8_t documentSigningMicrosoft[] = { (40*1)+3, 6, 1, 4, 1, 128+2, 55, 10, 3, 12 };
 
   bool match = false;
 
@@ -783,6 +786,10 @@ MatchEKU(Reader& value, KeyPurposeId requiredEKU,
 
       case KeyPurposeId::id_kp_documentSigningAdobe:
         match = value.MatchRest(documentSigningAdobe);
+        break;
+
+      case KeyPurposeId::id_kp_documentSigningMicrosoft:
+        match = value.MatchRest(documentSigningMicrosoft);
         break;
 
       case KeyPurposeId::anyExtendedKeyUsage:

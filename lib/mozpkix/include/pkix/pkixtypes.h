@@ -78,7 +78,8 @@ enum class KeyPurposeId {
   // Document Signing
   id_kp_documentSigning = 36,  // id-kp-documentSigning
   // Adobe Authentic Documents Trust (1.2.840.113583.1.1.5)
-  id_kp_documentSigningAdobe = 37
+  id_kp_documentSigningAdobe,
+  id_kp_documentSigningMicrosoft,
 };
 
 struct CertPolicyId final {
