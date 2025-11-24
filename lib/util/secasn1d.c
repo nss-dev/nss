@@ -2533,8 +2533,10 @@ sec_asn1d_before_choice(sec_asn1d_state *state)
         state->dest = (char *)dest + state->theTemplate->offset;
     }
 
+    char *dest = state->dest ? (char *)state->dest - state->theTemplate->offset : NULL;
+
     child = sec_asn1d_push_state(state->top, state->theTemplate + 1,
-                                 (char *)state->dest - state->theTemplate->offset,
+                                 dest,
                                  PR_FALSE);
     if ((sec_asn1d_state *)NULL == child) {
         return (sec_asn1d_state *)NULL;
@@ -2585,7 +2587,7 @@ sec_asn1d_during_choice(sec_asn1d_state *state)
             return NULL;
         }
 
-        dest = (char *)child->dest - child->theTemplate->offset;
+        dest = child->dest ? (char *)child->dest - child->theTemplate->offset : NULL;
         child->theTemplate++;
 
         if (0 == child->theTemplate->kind) {
@@ -2594,7 +2596,7 @@ sec_asn1d_during_choice(sec_asn1d_state *state)
             state->top->status = decodeError;
             return (sec_asn1d_state *)NULL;
         }
-        child->dest = (char *)dest + child->theTemplate->offset;
+        child->dest = dest ? (char *)dest + child->theTemplate->offset : NULL;
 
         /* cargo'd from next_in_sequence innards */
         if (state->pending) {

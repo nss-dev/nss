@@ -1518,11 +1518,19 @@ SEC_PKCS12DecoderFinish(SEC_PKCS12DecoderContext *p12dcx)
         if (safeContentsCtx) {
             nested = safeContentsCtx->nestedSafeContentsCtx;
             while (nested) {
+                if (nested->currentSafeBagA1Dcx) {
+                    SEC_ASN1DecoderFinish(nested->currentSafeBagA1Dcx);
+                    nested->currentSafeBagA1Dcx = NULL;
+                }
                 if (nested->safeContentsA1Dcx) {
                     SEC_ASN1DecoderFinish(nested->safeContentsA1Dcx);
                     nested->safeContentsA1Dcx = NULL;
                 }
                 nested = nested->nestedSafeContentsCtx;
+            }
+            if (safeContentsCtx->currentSafeBagA1Dcx) {
+                SEC_ASN1DecoderFinish(safeContentsCtx->currentSafeBagA1Dcx);
+                safeContentsCtx->currentSafeBagA1Dcx = NULL;
             }
             if (safeContentsCtx->safeContentsA1Dcx) {
                 SEC_ASN1DecoderFinish(safeContentsCtx->safeContentsA1Dcx);
