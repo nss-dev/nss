@@ -343,7 +343,6 @@ main(int argc, char **argv)
     int threadNum = DEFAULT_THREADS;
     ThreadRunData **runDataArr = NULL;
     PRThread **threadsArr = NULL;
-    int calcThreads = 0;
 
     progName = strrchr(argv[0], '/');
     if (!progName)
@@ -651,14 +650,12 @@ main(int argc, char **argv)
                             0);
     }
     iters = 0;
-    calcThreads = 0;
-    for (i = 0; i < threadNum; i++, calcThreads++) {
+    for (i = 0; i < threadNum; i++) {
         PR_JoinThread(threadsArr[i]);
         if (runDataArr[i]->status != SECSuccess) {
             const char *errStr = SECU_Strerror(runDataArr[i]->errNum);
             fprintf(stderr, "Thread %d: Error in RSA operation: %d : %s\n",
                     i, runDataArr[i]->errNum, errStr);
-            calcThreads -= 1;
         } else {
             iters += runDataArr[i]->iterRes;
         }
