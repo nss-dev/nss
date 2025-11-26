@@ -18,25 +18,26 @@ ifndef CPU_ARCH
 CPU_ARCH	:= $(shell uname -p)
 endif
 
-ifeq (,$(filter-out i%86,$(CPU_ARCH)))
-ifdef USE_64
+ifeq (x86_64,$(CPU_ARCH))
 CC              += -arch x86_64
 CCC             += -arch x86_64
 override CPU_ARCH	= x86_64
-else
+else ifeq (i386,$(CPU_ARCH))
 OS_REL_CFLAGS	= -Di386
 CC              += -arch i386
 CCC             += -arch i386
 override CPU_ARCH	= x86
-endif
-else
-ifeq (arm,$(CPU_ARCH))
-# Nothing set for arm currently.
-else
+else ifeq (,$(filter-out aarch64 arm,$(CPU_ARCH)))
+CC              += -arch arm64
+CCC             += -arch arm64
+override CPU_ARCH	= aarch64
+else ifeq (powerpc,$(CPU_ARCH))
 OS_REL_CFLAGS	= -Dppc
 CC              += -arch ppc
 CCC             += -arch ppc
-endif
+override CPU_ARCH	= ppc
+else
+   $(error Unknown CPU architecture)
 endif
 
 ifneq (,$(MACOS_SDK_DIR))

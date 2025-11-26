@@ -148,7 +148,6 @@ ifndef NSS_DISABLE_AVX2
     ifneq ($(CPU_ARCH),x86_64)
         # Disable AVX2 entirely on non-Intel platforms
         NSS_DISABLE_AVX2 = 1
-        $(warning CPU_ARCH is not x86_64, disabling -mavx2)
     else
         # Clang reports its version as an older gcc, but it's OK
         ifndef CC_IS_CLANG
