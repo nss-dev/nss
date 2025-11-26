@@ -11,7 +11,7 @@
         'target_name': 'sqlite3',
         'type': 'none',
         'link_settings': {
-          'libraries': ['<(sqlite_libs)'],
+          'libraries': ['<@(sqlite_libs)'],
         },
       }],
     }, {
