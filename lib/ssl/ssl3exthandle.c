@@ -80,8 +80,7 @@ ssl3_ClientSendServerNameXtn(const sslSocket *ss, TLSExtensionData *xtnData,
 
     /* If ECH, write the public name. The real server name
      * is emplaced while constructing CHInner extensions. */
-    sslEchConfig *cfg = (sslEchConfig *)PR_LIST_HEAD(&ss->echConfigs);
-    const char *sniContents = PR_CLIST_IS_EMPTY(&ss->echConfigs) ? url : cfg->contents.publicName;
+    const char *sniContents = ss->ssl3.hs.echHpkeCtx ? ss->ssl3.hs.echPublicName : url;
     rv = ssl3_ClientFormatServerNameXtn(ss, sniContents, strlen(sniContents), xtnData, buf);
     if (rv != SECSuccess) {
         return SECFailure;
