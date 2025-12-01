@@ -3,11 +3,15 @@
 # NOTE: This file is used to build Cryptofuzz both on CI and OSS-Fuzz.
 #
 
+set -e
+set -x
+set -o pipefail
+
 # Do differential fuzzing with Botan (and not OpenSSL) since NSS has
 # symbol collisions with OpenSSL and therefore they can't be used together
 # in Cryptofuzz.
-export CRYPTOFUZZ_VERSION="687d3064c5cef2b0fe1f30824065a2f2c9c0bbd8"
-export BOTAN_VERSION="3.6.1"
+export CRYPTOFUZZ_VERSION="3d2377257129fc5da6effb92b0736e31db147dee"
+export BOTAN_VERSION="3.10.0"
 
 git clone -q https://github.com/MozillaSecurity/cryptofuzz.git
 git -C cryptofuzz checkout "$CRYPTOFUZZ_VERSION"
