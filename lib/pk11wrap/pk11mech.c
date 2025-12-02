@@ -802,6 +802,11 @@ PK11_GetIVLength(CK_MECHANISM_TYPE type)
         case CKM_CAST_ECB:
         case CKM_CAST3_ECB:
         case CKM_CAST5_ECB:
+        case CKM_AES_KEY_WRAP:
+        case CKM_AES_KEY_WRAP_PAD:
+        case CKM_AES_KEY_WRAP_KWP:
+        case CKM_NSS_AES_KEY_WRAP:
+        case CKM_NSS_AES_KEY_WRAP_PAD:
             return 0;
         case CKM_RC2_CBC:
         case CKM_DES_CBC:
@@ -909,6 +914,11 @@ pk11_ParamFromIVWithLen(CK_MECHANISM_TYPE type, SECItem *iv, int keyLen)
         case CKM_CAST3_ECB:
         case CKM_CAST5_ECB:
         case CKM_RC4:
+        case CKM_AES_KEY_WRAP:
+        case CKM_AES_KEY_WRAP_PAD:
+        case CKM_AES_KEY_WRAP_KWP:
+        case CKM_NSS_AES_KEY_WRAP:
+        case CKM_NSS_AES_KEY_WRAP_PAD:
             break;
         case CKM_RC2_ECB:
             rc2_ecb_params = (CK_RC2_PARAMS *)PORT_Alloc(sizeof(CK_RC2_PARAMS));
