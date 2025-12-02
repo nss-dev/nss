@@ -20,7 +20,10 @@ enable_sanitizer()
     fi
 
     local cflags
-    cflags=$(${python:-python} $cwd/coreconf/sanitizers.py "$@")
+    cflags=$(${python:-python3} "${cwd}/coreconf/sanitizers.py" "$@")
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
     sanitizer_flags="$sanitizer_flags $cflags"
 }
 
