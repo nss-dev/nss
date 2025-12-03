@@ -1090,7 +1090,7 @@ tls13_OpenClientHelloInner(sslSocket *ss, const SECItem *outer, const SECItem *o
     }
 #else
     rv = SECITEM_CopyItem(NULL, decryptedChInner, &ss->xtnData.ech->innerCh);
-    if (rv != SECSuccess) {
+    if (rv != SECSuccess || decryptedChInner->len <= TLS13_ECH_AEAD_TAG_LEN) {
         goto loser;
     }
     decryptedChInner->len -= TLS13_ECH_AEAD_TAG_LEN; /* Fake tag */
@@ -2697,6 +2697,8 @@ tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOu
     TLSExtension *hrrXtn;
     PRBool previouslyOfferedEch;
 
+    PORT_Assert(!ss->ssl3.hs.echAccepted);
+
     if (!ss->xtnData.ech || ss->xtnData.ech->receivedInnerXtn || IS_DTLS(ss)) {
         ss->ssl3.hs.echDecided = PR_TRUE;
         return SECSuccess;
@@ -2707,13 +2709,12 @@ tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOu
     if (ss->ssl3.hs.helloRetry) {
         ss->ssl3.hs.echDecided = PR_TRUE;
         PORT_Assert(!ss->ssl3.hs.echHpkeCtx);
+
         hrrXtn = ssl3_FindExtension(ss, ssl_tls13_cookie_xtn);
         if (!hrrXtn) {
             /* If the client doesn't echo cookie, we can't decrypt. */
             return SECSuccess;
         }
-
-        PORT_Assert(!ss->ssl3.hs.echHpkeCtx);
 
         PRUint8 *tmp = hrrXtn->data.data;
         PRUint32 len = hrrXtn->data.len;
@@ -2735,8 +2736,8 @@ tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOu
         ss->ssl3.hs.echHpkeCtx = echData.hpkeCtx;
 
         const PRUint8 greaseConstant[TLS13_ECH_SIGNAL_LEN] = { 0 };
-        ss->ssl3.hs.echAccepted = previouslyOfferedEch &&
-                                  !NSS_SecureMemcmp(greaseConstant, echData.signal, TLS13_ECH_SIGNAL_LEN);
+        PRBool signal = previouslyOfferedEch &&
+                        !NSS_SecureMemcmp(greaseConstant, echData.signal, TLS13_ECH_SIGNAL_LEN);
 
         if (echData.configId != ss->xtnData.ech->configId ||
             echData.kdfId != ss->xtnData.ech->kdfId ||
@@ -2749,6 +2750,7 @@ tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOu
         if (!ss->ssl3.hs.echHpkeCtx) {
             return SECSuccess;
         }
+        ss->ssl3.hs.echAccepted = signal;
     }
 
     if (ss->ssl3.hs.echDecided && !ss->ssl3.hs.echAccepted) {
