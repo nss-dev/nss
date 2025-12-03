@@ -20,7 +20,14 @@
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports'
-      ]
+      ],
+      'conditions': [
+        [ 'fuzz_tls==1', {
+          'defines': [
+            'UNSAFE_FUZZER_MODE',
+          ],
+        }],
+      ],
     }
   ],
   'variables': {

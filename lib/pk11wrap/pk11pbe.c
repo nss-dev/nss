@@ -1425,6 +1425,18 @@ pk11_RawPBEKeyGenWithKeyType(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     CK_PKCS5_PBKD2_PARAMS pbev2_1_params;
     CK_ULONG pwLen;
 #endif
+#ifdef UNSAFE_FUZZER_MODE
+    PK11SymKey *zeroKey = NULL;
+    unsigned char zeroBuff[32] = { 0 };
+    SECItem zeroItem = { siBuffer, zeroBuff, sizeof zeroBuff };
+
+    zeroKey = PK11_ImportSymKeyWithFlags(slot, type, PK11_OriginUnwrap,
+                                         CKA_FLAGS_ONLY, &zeroItem,
+                                         CKF_SIGN | CKF_ENCRYPT | CKF_DECRYPT |
+                                             CKF_UNWRAP | CKF_WRAP,
+                                         PR_FALSE, wincx);
+    return zeroKey;
+#else /* UNSAFE_FUZZER_MODE */
 
     /* do some sanity checks */
     if ((params == NULL) || (params->data == NULL)) {
@@ -1481,6 +1493,7 @@ pk11_RawPBEKeyGenWithKeyType(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     return pk11_TokenKeyGenWithFlagsAndKeyType(slot, type, params, keyType, keyLen, NULL,
                                                CKF_SIGN | CKF_ENCRYPT | CKF_DECRYPT | CKF_UNWRAP | CKF_WRAP,
                                                0, wincx);
+#endif /* UNSAFE_FUZZER_MODE */
 }
 
 /*

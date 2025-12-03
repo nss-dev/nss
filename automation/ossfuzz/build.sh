@@ -9,9 +9,6 @@
 # List of targets disabled for oss-fuzz.
 declare -A disabled=()
 
-# List of targets we want to fuzz in TLS and non-TLS mode.
-declare -A tls_targets=([tls-client]=1 [tls-server]=1 [dtls-client]=1 [dtls-server]=1)
-
 # Helper function that copies a fuzzer binary and its seed corpus.
 copy_fuzzer()
 {
@@ -38,7 +35,7 @@ CXX="$CXX -stdlib=libc++" LDFLAGS="$CFLAGS" \
 for fuzzer in $(find ../dist/Debug/bin -name "nssfuzz-*" -printf "%f\n"); do
     name=${fuzzer:8}
     if [ -z "${disabled[$name]:-}" ]; then
-        [ -n "${tls_targets[$name]:-}" ] && name="${name}-no_fuzzer_mode"
+        [ -f "fuzz/options/${name}-no_fuzzer_mode.options" ] && name="${name}-no_fuzzer_mode"
         copy_fuzzer $fuzzer $name
     fi
 done
@@ -56,13 +53,16 @@ if [ -d "$SRC/nss-corpus/cryptofuzz" ]; then
     zip $OUT/cryptofuzz_seed_corpus.zip $SRC/nss-corpus/cryptofuzz/*
 fi
 
+# TLS Fuzzing mode: Totally Lacking Security
+# This mode disables a lot of cryptography to help the fuzzer.
+# It was originally used for the TLS-specific fuzzers but has been generalized.
 # Build the library again (TLS fuzzing mode).
 CXX="$CXX -stdlib=libc++" LDFLAGS="$CFLAGS" \
     ./build.sh -c -v --fuzz=oss --fuzz=tls --disable-tests
 
-# Copy dual mode targets in TLS mode.
-for name in "${!tls_targets[@]}"; do
-    if [ -z "${disabled[$name]:-}" ]; then
-        copy_fuzzer nssfuzz-$name $name
+for fuzzer in $(find ../dist/Debug/bin -name "nssfuzz-*" -printf "%f\n"); do
+     name=${fuzzer:8}
+     if [ -z "${disabled[$name]:-}" ] && [ -f "fuzz/options/${name}-no_fuzzer_mode.options" ]; then
+        copy_fuzzer "$fuzzer" "$name"
     fi
 done
