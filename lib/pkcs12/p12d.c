@@ -1498,7 +1498,7 @@ SEC_PKCS12DecoderVerify(SEC_PKCS12DecoderContext *p12dcx)
     }
 #ifdef UNSAFE_FUZZER_MODE
     return sec_pkcs12_decoder_unsafe_parity_outcome(p12dcx);
-#else /* UNSAFE_FUZZER_MODE */
+#else  /* UNSAFE_FUZZER_MODE */
     /* check the signature or the mac depending on the type of
      * integrity used.
      */
