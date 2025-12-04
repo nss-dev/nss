@@ -1366,9 +1366,8 @@ SECKEY_PrivateKeyStrengthInBits(const SECKEYPrivateKey *privk)
             if (paramSetOid == SEC_OID_UNKNOWN) {
                 break;
             }
-            bitSize = SECKEY_MLDSAOidParamsToLen(paramSetOid,
-                                                 SECKEYPrivKeyType) *
-                      8;
+            return SECKEY_MLDSAOidParamsToLen(paramSetOid, SECKEYPrivKeyType) *
+                   8;
             break;
         default:
             break;
