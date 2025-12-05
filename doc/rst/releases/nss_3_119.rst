@@ -1,0 +1,62 @@
+.. _mozilla_projects_nss_nss_3_119_release_notes:
+
+NSS 3.119 release notes
+========================
+
+`Introduction <#introduction>`__
+--------------------------------
+
+.. container::
+
+   Network Security Services (NSS) 3.119 was released on *4 December 2025**.
+
+`Distribution Information <#distribution_information>`__
+--------------------------------------------------------
+
+.. container::
+
+   The HG tag is NSS_3_119_RTM. NSS 3.119 requires NSPR 4.38.2 or newer.
+
+   NSS 3.119 source distributions are available on ftp.mozilla.org for secure HTTPS download:
+
+   -  Source tarballs:
+      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_119_RTM/src/
+
+   Other releases are available :ref:`mozilla_projects_nss_releases`.
+
+.. _changes_in_nss_3.119:
+
+`Changes in NSS 3.119 <#changes_in_nss_3.119>`__
+------------------------------------------------------------------
+
+.. container::
+
+   - Bug 1983320 - Fix ml-dsa return value for  SECKEY_PrivateKeyStrengthInBits.
+   - No bug - clang format.
+   - Bug 1986352 - Make sure we don't accept ECH if the HRR cookie is ill-formatted.
+   - Bug 2002246: Add a pkcs12 fuzzer with crypto stubbed out.
+   - Bug 2003314 - handle errors while setting sanitizers cflags in build.
+   - Bug 1986912 - Ignore IVs for AES KW.
+   - Bug 2003286: Update Cryptofuzz version.
+   - Bug 2001932 - Fix incorrect logic for SNI selection when ECH is available but disabled.
+   - Bug 1975855 - fix forwarding of sqlite_libs in sqlite.gyp.
+   - Bug 1999204 - fix CPU_ARCH setting for arm64 makefile builds.
+   - Bug 1998094 - remove unused calcThreads variable from cmd/rsaperf.
+   - Bug 1978348 - Solving the incorrect tests introduced by extending EKU.
+   - Bug 1972054: Memory leaks in pkcs12 and pkcs7 decoders.
+   - Bug 1978348 - Extending parsing with Microsoft Document Signing EKU.
+   - Bug 1978348 - Extending parsing with Adobe Document Signing EKU.
+   - Bug 1978348 - Extending pkix parsing with document signing EKUs.
+   - Bug 2000737 - fix compilation failure on ia32.
+   - Bug 2000737 - use hardware x64 GCM in static builds.
+   - Bug 2000737 - separate ppc sha512 library from ppc gcm library.
+   - Bug 2000737 - simplify cross-compilation from build.sh.
+   - Bug 1724353 - use clang's integrated assembler.
+   - Bug 2000737 - remove unused MP_IS_LITTLE_ENDIAN defines.
+   - Bug 2000737 - fix logic for disabling altivec in gyp builds.
+   - Bug 1964722 - free digest objects in SEC_PKCS7DecoderFinish if they haven't already been freed.
+   - Bug 1972825 - Add TLS interoperability tests with openssl and gnutls.
+   - Bug 1314849 - Ensure we don't send a DTLS1.3 cookie after DTLS1.2 HelloVerifyRequest.
+   - Bug 1965329 - add failure checks to pk11_mergeTrust() .
+   - Bug 1999517 - pk11wrap selects incorrect slot for CKM_ML_KEM*.
+
