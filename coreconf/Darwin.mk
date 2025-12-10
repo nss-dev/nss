@@ -18,15 +18,17 @@ ifndef CPU_ARCH
 CPU_ARCH	:= $(shell uname -p)
 endif
 
-ifeq (x86_64,$(CPU_ARCH))
+ifeq (,$(filter-out i%86,$(CPU_ARCH)))
+ifdef USE_64
 CC              += -arch x86_64
 CCC             += -arch x86_64
 override CPU_ARCH	= x86_64
-else ifeq (i386,$(CPU_ARCH))
+else
 OS_REL_CFLAGS	= -Di386
 CC              += -arch i386
 CCC             += -arch i386
 override CPU_ARCH	= x86
+endif
 else ifeq (,$(filter-out aarch64 arm,$(CPU_ARCH)))
 CC              += -arch arm64
 CCC             += -arch arm64
