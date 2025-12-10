@@ -31,14 +31,9 @@ fi
 nss/build.sh -g -v --enable-libpkix -Denable_draft_hpke=1 "$@"
 
 # Package.
-if [ "$(uname)" = "Darwin" ]; then
-  mkdir -p public
-  tar cvfjh public/dist.tar.bz2 dist
+if [ "$(uname)" = Linux ]; then
+  ln -s /builds/worker/artifacts artifacts
 else
-  if [ "$(uname)" = Linux ]; then
-    ln -s /builds/worker/artifacts artifacts
-  else
-    mkdir artifacts
-  fi
-  tar cvfjh artifacts/dist.tar.bz2 dist
+  mkdir -p artifacts
 fi
+tar cvfjh artifacts/dist.tar.bz2 dist

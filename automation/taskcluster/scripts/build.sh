@@ -4,8 +4,6 @@
 
 set -e
 
-test -v VCS_PATH
-
 # builds write to the source dir (and its parent), so move the source trees to
 # our workspace from the (cached) checkout dir
 cp -a "${VCS_PATH}/nss" "${VCS_PATH}/nspr" .
