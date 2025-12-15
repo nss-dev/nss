@@ -58,7 +58,7 @@ tasks:
                   Action triggered by clientID `${clientId}`
 
         provisionerId: "${trustDomain}-${repository.level}"
-        workerType: "decision-gcp"
+        workerType: "decision"
 
         tags:
           $if: 'tasks_for == "hg-push"'

@@ -12,12 +12,12 @@ workers:
             provisioner: 'nss-{level}'
             implementation: docker-worker
             os: linux
-            worker-type: linux-gcp
+            worker-type: linux-docker
         b-linux:
             provisioner: 'nss-{level}'
             implementation: docker-worker
             os: linux
-            worker-type: linux-gcp
+            worker-type: linux-docker
         b-win2022:
             provisioner: 'nss-{level}'
             implementation: generic-worker
