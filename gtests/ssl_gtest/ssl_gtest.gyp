@@ -48,6 +48,7 @@
         'ssl_resumption_unittest.cc',
         'ssl_skip_unittest.cc',
         'ssl_staticrsa_unittest.cc',
+        'ssl_timers_unittest.cc',
         'ssl_tls13compat_unittest.cc',
         'ssl_v2_client_hello_unittest.cc',
         'ssl_version_unittest.cc',
