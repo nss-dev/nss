@@ -111,7 +111,7 @@ tasks:
         task-context:
             from-object:
                 target: pkcs12
-                corpus: pkcs12
+                corpus: pkcs12-no_fuzzer_mode
 
     linux64-quickder:
         description: Linux x64 QuickDER
@@ -194,6 +194,18 @@ tasks:
         treeherder:
             symbol: Cryptofuzz
             platform: linux64/debug-fuzz
+
+    linux64-tlsfuzz-pkcs12:
+        description: Linux x64 PKCS12
+        dependencies:
+            build: build-linux64/debug-tlsfuzz
+        treeherder:
+            symbol: TLS(PKCS12)
+            platform: linux64/debug-fuzz
+        task-context:
+            from-object:
+                target: pkcs12
+                corpus: pkcs12
 
     linux64-tlsfuzz-tls-client:
         description: Linux x64 TLS Client
@@ -313,7 +325,7 @@ tasks:
         task-context:
             from-object:
                 target: pkcs12
-                corpus: pkcs12
+                corpus: pkcs12-no_fuzzer_mode
 
     linux32-quickder:
         description: Linux 32 QuickDER
@@ -396,6 +408,18 @@ tasks:
         treeherder:
             symbol: Cryptofuzz
             platform: linux32/debug-fuzz
+
+    linux32-tlsfuzz-pkcs12:
+        description: Linux 32 PKCS12
+        dependencies:
+            build: build-linux32/debug-tlsfuzz
+        treeherder:
+            symbol: TLS(PKCS12)
+            platform: linux32/debug-fuzz
+        task-context:
+            from-object:
+                target: pkcs12
+                corpus: pkcs12
 
     linux32-tlsfuzz-tls-client:
         description: Linux 32 TLS Client
