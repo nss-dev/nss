@@ -467,7 +467,7 @@ def generate_release_note(args):
     rst_content = f""".. _mozilla_projects_nss_nss_{version_underscore}_release_notes:
 
 NSS {version} release notes
-========================
+===============================
 
 `Introduction <#introduction>`__
 --------------------------------
