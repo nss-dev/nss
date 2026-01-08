@@ -73,6 +73,10 @@ class TLSSessionTicketAndKUDropper : public TlsRecordFilter {
       return KEEP;
     }
 
+    if (plaintext.data() == NULL || plaintext.len() == 0) {
+      return KEEP;
+    }
+
     if (plaintext.data()[0] == ssl_hs_new_session_ticket) {
       if (enabled_) {
         return DROP;
