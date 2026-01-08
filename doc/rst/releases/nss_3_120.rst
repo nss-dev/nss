@@ -1,0 +1,39 @@
+.. _mozilla_projects_nss_nss_3_120_release_notes:
+
+NSS 3.120 release notes
+===============================
+
+`Introduction <#introduction>`__
+--------------------------------
+
+.. container::
+
+   Network Security Services (NSS) 3.120 was released on *8 January 2026**.
+
+`Distribution Information <#distribution_information>`__
+--------------------------------------------------------
+
+.. container::
+
+   The HG tag is NSS_3_120_RTM. NSS 3.120 requires NSPR 4.38.2 or newer.
+
+   NSS 3.120 source distributions are available on ftp.mozilla.org for secure HTTPS download:
+
+   -  Source tarballs:
+      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_120_RTM/src/
+
+   Other releases are available :ref:`mozilla_projects_nss_releases`.
+
+.. _changes_in_nss_3.120:
+
+`Changes in NSS 3.120 <#changes_in_nss_3.120>`__
+------------------------------------------------------------------
+
+.. container::
+
+   - Bug 2008768 - Fix docs generation bug.
+   - Bug 2007908 - CID 1678226: Dereferencing null pointer plaintext.data().
+   - Bug 2004694 - Run PKCS12 fuzz target with --fuzz=tls in CI.
+   - Bug 1978603 - Allowing RT be started several times.
+   - Bug 2005751 - move linux decision and build tasks to d2g worker pools.
+
