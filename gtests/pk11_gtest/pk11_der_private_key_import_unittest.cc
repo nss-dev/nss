@@ -138,6 +138,59 @@ class DERPrivateKeyImportTest : public ::testing::Test {
 
     return rv == SECSuccess;
   }
+
+  SECStatus BuildPrivateKeyInfoAndImportIt(SECOidTag algTag) {
+    ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+    EXPECT_TRUE(slot);
+    if (!slot) {
+      return SECFailure;
+    }
+
+    ScopedPLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
+    EXPECT_TRUE(arena);
+    if (!arena) {
+      return SECFailure;
+    }
+
+    SECKEYPrivateKeyInfo* pki = (SECKEYPrivateKeyInfo*)PORT_ArenaZAlloc(
+        arena.get(), sizeof(SECKEYPrivateKeyInfo));
+    EXPECT_TRUE(pki);
+    if (!pki) {
+      return SECFailure;
+    }
+
+    pki->version.data = (unsigned char*)PORT_ArenaAlloc(arena.get(), 1);
+    EXPECT_TRUE(pki->version.data);
+    if (!pki->version.data) {
+      return SECFailure;
+    }
+
+    pki->version.data[0] = 0x00;
+    pki->version.len = 1;
+
+    EXPECT_EQ(
+        SECOID_SetAlgorithmID(arena.get(), &pki->algorithm, algTag, nullptr),
+        SECSuccess);
+
+    // Empty private key
+    pki->privateKey.data = (unsigned char*)PORT_ArenaAlloc(arena.get(), 1);
+    EXPECT_TRUE(pki->privateKey.data);
+    if (!pki->privateKey.data) {
+      return SECFailure;
+    }
+    pki->privateKey.len = 0;
+
+    SECKEYPrivateKey* privk = nullptr;
+    PORT_SetError(0);
+    SECStatus rv = PK11_ImportPrivateKeyInfoAndReturnKey(
+        slot.get(), pki, nullptr, nullptr, PR_FALSE, PR_FALSE, KU_ALL, &privk,
+        nullptr);
+
+    if (privk) {
+      SECKEY_DestroyPrivateKey(privk);
+    }
+    return rv;
+  }
 };
 
 TEST_F(DERPrivateKeyImportTest, ImportPrivateRSAKey) {
@@ -158,6 +211,12 @@ TEST_F(DERPrivateKeyImportTest, ImportInvalidPrivateKey) {
 TEST_F(DERPrivateKeyImportTest, ImportZeroLengthPrivateKey) {
   EXPECT_FALSE(ParsePrivateKey(kInvalidZeroLengthKey, false));
   EXPECT_EQ(PORT_GetError(), SEC_ERROR_BAD_KEY) << PORT_GetError();
+}
+
+TEST_F(DERPrivateKeyImportTest,
+       ImportZeroLengthMLDSAPrivateKey) {
+  EXPECT_EQ(BuildPrivateKeyInfoAndImportIt(SEC_OID_ML_DSA_44), SECFailure);
+  EXPECT_EQ(PORT_GetError(), SEC_ERROR_BAD_KEY);
 }
 
 }  // namespace nss_test

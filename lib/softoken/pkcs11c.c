@@ -7212,6 +7212,10 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
         case SEC_OID_ML_DSA_87_PUBLIC_KEY:
             paramSet = CKP_ML_DSA_87;
         mldsa_next:
+            if (pki->privateKey.data == NULL || pki->privateKey.len == 0) {
+                PORT_SetError(SEC_ERROR_BAD_KEY);
+                goto loser;
+            }
             switch (pki->privateKey.data[0]) {
                 case SEC_ASN1_CONTEXT_SPECIFIC | 0:
                     keyTemplate = nsslowkey_PQSeedTemplate;

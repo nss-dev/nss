@@ -329,7 +329,7 @@ PK11_ImportDERPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot, SECItem *derPKI,
         PORT_FreeArena(temparena, PR_TRUE);
         return rv;
     }
-    if (pki->privateKey.data == NULL) {
+    if (pki->privateKey.data == NULL || pki->privateKey.len == 0) {
         /* If SEC_ASN1DecodeItems succeeds but SECKEYPrivateKeyInfo.privateKey
          * is a zero-length octet string, free the arena and return a failure
          * to avoid trying to zero the corresponding SECItem in
@@ -759,6 +759,10 @@ PK11_ImportPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
         case SEC_OID_ML_DSA_44:
         case SEC_OID_ML_DSA_65:
         case SEC_OID_ML_DSA_87:
+            if (pki->privateKey.data == NULL || pki->privateKey.len == 0) {
+                PORT_SetError(SEC_ERROR_BAD_KEY);
+                goto loser;
+            }
             /* choice */
             switch (pki->privateKey.data[0]) {
                 case SEC_ASN1_CONTEXT_SPECIFIC | 0:
