@@ -307,7 +307,12 @@ sec_pkcs7_decoder_abort_digests(struct sec_pkcs7_decoder_worker *worker)
 {
     int i;
 
-    if (!worker || worker->digcnt <= 0 || !worker->digcxs || !worker->digobjs) {
+    PORT_Assert(worker);
+    if (!worker) {
+        return;
+    }
+
+    if (worker->digcnt <= 0 || !worker->digcxs || !worker->digobjs) {
         worker->digcnt = 0;
         return;
     }

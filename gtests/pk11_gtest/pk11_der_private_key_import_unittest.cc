@@ -213,8 +213,7 @@ TEST_F(DERPrivateKeyImportTest, ImportZeroLengthPrivateKey) {
   EXPECT_EQ(PORT_GetError(), SEC_ERROR_BAD_KEY) << PORT_GetError();
 }
 
-TEST_F(DERPrivateKeyImportTest,
-       ImportZeroLengthMLDSAPrivateKey) {
+TEST_F(DERPrivateKeyImportTest, ImportZeroLengthMLDSAPrivateKey) {
   EXPECT_EQ(BuildPrivateKeyInfoAndImportIt(SEC_OID_ML_DSA_44), SECFailure);
   EXPECT_EQ(PORT_GetError(), SEC_ERROR_BAD_KEY);
 }
