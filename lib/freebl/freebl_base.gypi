@@ -28,7 +28,6 @@
     'fipsfreebl.c',
     'blinit.c',
     'freeblver.c',
-    'gcm.c',
     'hmacct.c',
     'jpake.c',
     'kyber.c',
@@ -113,26 +112,11 @@
             'mpi/mpi_amd64.c',
             'mpi/mpi_amd64_masm.asm',
             'mpi/mp_comba_amd64_masm.asm',
-            'intel-aes-x64-masm.asm',
-            'intel-gcm-x64-masm.asm',
           ],
         }],
         [ 'cc_use_gnu_ld!=1 and target_arch=="ia32"', {
           'sources': [
             'mpi/mpi_x86_asm.c',
-            'intel-aes-x86-masm.asm',
-            'intel-gcm-x86-masm.asm',
-          ],
-        }],
-        [ 'cc_use_gnu_ld==1', {
-          # mingw
-          'sources': [
-          ],
-        }],
-        [ 'cc_is_clang!=1', {
-          # MSVC
-          'sources': [
-            'intel-gcm-wrap.c',
           ],
         }],
       ],

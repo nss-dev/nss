@@ -5,8 +5,6 @@
 
 /* Wrapper functions for Intel optimized implementation of AES-GCM */
 
-#ifdef USE_HW_AES
-
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
 #endif
@@ -21,13 +19,59 @@
 
 #include <limits.h>
 
-#include "intel-gcm.h"
 #include "rijndael.h"
 
 #include <emmintrin.h>
 #include <tmmintrin.h>
 
-struct intel_AES_GCMContextStr {
+typedef struct platform_AES_GCMContextStr platform_AES_GCMContext;
+
+PRBool
+platform_gcm_support()
+{
+    return aesni_support() && avx_support() && clmul_support();
+}
+
+/* Prototypes of functions in the assembler file for fast AES-GCM, using
+   Intel AES-NI and CLMUL-NI, as described in [1]
+   [1] Shay Gueron, Michael E. Kounavis: Intel(R) Carry-Less Multiplication
+       Instruction and its Usage for Computing the GCM Mode                */
+
+/* Prepares the constants used in the aggregated reduction method */
+void intel_aes_gcmINIT(unsigned char Htbl[16 * 16],
+                       unsigned char *KS,
+                       int NR);
+
+/* Produces the final GHASH value */
+void intel_aes_gcmTAG(unsigned char Htbl[16 * 16],
+                      unsigned char *Tp,
+                      unsigned long Mlen,
+                      unsigned long Alen,
+                      unsigned char *X0,
+                      unsigned char *TAG);
+
+/* Hashes the Additional Authenticated Data, should be used before enc/dec.
+   Operates on whole blocks only. Partial blocks should be padded externally. */
+void intel_aes_gcmAAD(unsigned char Htbl[16 * 16],
+                      unsigned char *AAD,
+                      unsigned long Alen,
+                      unsigned char *Tp);
+
+/* Encrypts and hashes the Plaintext.
+   Operates on any length of data, however partial block should only be encrypted
+   at the last call, otherwise the result will be incorrect. */
+void intel_aes_gcmENC(const unsigned char *PT,
+                      unsigned char *CT,
+                      void *Gctx,
+                      unsigned long len);
+
+/* Similar to ENC, but decrypts the Ciphertext. */
+void intel_aes_gcmDEC(const unsigned char *CT,
+                      unsigned char *PT,
+                      void *Gctx,
+                      unsigned long len);
+
+struct platform_AES_GCMContextStr {
     unsigned char Htbl[16 * AES_BLOCK_SIZE];
     unsigned char X0[AES_BLOCK_SIZE];
     unsigned char T[AES_BLOCK_SIZE];
@@ -41,22 +85,22 @@ struct intel_AES_GCMContextStr {
     gcmIVContext gcm_iv;
 };
 
-SECStatus intel_aes_gcmInitCounter(intel_AES_GCMContext *gcm,
-                                   const unsigned char *iv,
-                                   unsigned long ivLen, unsigned long tagBits,
-                                   const unsigned char *aad, unsigned long aadLen);
+SECStatus platform_aes_gcmInitCounter(platform_AES_GCMContext *gcm,
+                                      const unsigned char *iv,
+                                      unsigned long ivLen, unsigned long tagBits,
+                                      const unsigned char *aad, unsigned long aadLen);
 
-intel_AES_GCMContext *
-intel_AES_GCM_CreateContext(void *context,
-                            freeblCipherFunc cipher,
-                            const unsigned char *params)
+platform_AES_GCMContext *
+platform_AES_GCM_CreateContext(void *context,
+                               freeblCipherFunc cipher,
+                               const unsigned char *params)
 {
-    intel_AES_GCMContext *gcm = NULL;
+    platform_AES_GCMContext *gcm = NULL;
     AESContext *aes = (AESContext *)context;
     const CK_NSS_GCM_PARAMS *gcmParams = (const CK_NSS_GCM_PARAMS *)params;
     SECStatus rv;
 
-    gcm = PORT_ZNew(intel_AES_GCMContext);
+    gcm = PORT_ZNew(platform_AES_GCMContext);
     if (gcm == NULL) {
         return NULL;
     }
@@ -82,9 +126,9 @@ intel_AES_GCM_CreateContext(void *context,
         return gcm;
     }
 
-    rv = intel_aes_gcmInitCounter(gcm, gcmParams->pIv,
-                                  gcmParams->ulIvLen, gcmParams->ulTagBits,
-                                  gcmParams->pAAD, gcmParams->ulAADLen);
+    rv = platform_aes_gcmInitCounter(gcm, gcmParams->pIv,
+                                     gcmParams->ulIvLen, gcmParams->ulTagBits,
+                                     gcmParams->pAAD, gcmParams->ulAADLen);
     if (rv != SECSuccess) {
         PORT_Free(gcm);
         return NULL;
@@ -95,10 +139,10 @@ intel_AES_GCM_CreateContext(void *context,
 }
 
 SECStatus
-intel_aes_gcmInitCounter(intel_AES_GCMContext *gcm,
-                         const unsigned char *iv, unsigned long ivLen,
-                         unsigned long tagBits,
-                         const unsigned char *aad, unsigned long aadLen)
+platform_aes_gcmInitCounter(platform_AES_GCMContext *gcm,
+                            const unsigned char *iv, unsigned long ivLen,
+                            unsigned long tagBits,
+                            const unsigned char *aad, unsigned long aadLen)
 {
     unsigned char buff[AES_BLOCK_SIZE]; /* aux buffer */
     unsigned long IV_whole_len = ivLen & (~0xful);
@@ -193,20 +237,20 @@ intel_aes_gcmInitCounter(intel_AES_GCMContext *gcm,
 }
 
 void
-intel_AES_GCM_DestroyContext(intel_AES_GCMContext *gcm, PRBool freeit)
+platform_AES_GCM_DestroyContext(platform_AES_GCMContext *gcm, PRBool freeit)
 {
-    PORT_SafeZero(gcm, sizeof(intel_AES_GCMContext));
+    PORT_SafeZero(gcm, sizeof(platform_AES_GCMContext));
     if (freeit) {
         PORT_Free(gcm);
     }
 }
 
 SECStatus
-intel_AES_GCM_EncryptUpdate(intel_AES_GCMContext *gcm,
-                            unsigned char *outbuf,
-                            unsigned int *outlen, unsigned int maxout,
-                            const unsigned char *inbuf, unsigned int inlen,
-                            unsigned int blocksize)
+platform_AES_GCM_EncryptUpdate(platform_AES_GCMContext *gcm,
+                               unsigned char *outbuf,
+                               unsigned int *outlen, unsigned int maxout,
+                               const unsigned char *inbuf, unsigned int inlen,
+                               unsigned int blocksize)
 {
     unsigned int tagBytes;
     unsigned char T[AES_BLOCK_SIZE];
@@ -263,11 +307,11 @@ intel_AES_GCM_EncryptUpdate(intel_AES_GCMContext *gcm,
 }
 
 SECStatus
-intel_AES_GCM_DecryptUpdate(intel_AES_GCMContext *gcm,
-                            unsigned char *outbuf,
-                            unsigned int *outlen, unsigned int maxout,
-                            const unsigned char *inbuf, unsigned int inlen,
-                            unsigned int blocksize)
+platform_AES_GCM_DecryptUpdate(platform_AES_GCMContext *gcm,
+                               unsigned char *outbuf,
+                               unsigned int *outlen, unsigned int maxout,
+                               const unsigned char *inbuf, unsigned int inlen,
+                               unsigned int blocksize)
 {
     unsigned int tagBytes;
     unsigned char T[AES_BLOCK_SIZE];
@@ -333,13 +377,13 @@ intel_AES_GCM_DecryptUpdate(intel_AES_GCMContext *gcm,
 }
 
 SECStatus
-intel_AES_GCM_EncryptAEAD(intel_AES_GCMContext *gcm,
-                          unsigned char *outbuf,
-                          unsigned int *outlen, unsigned int maxout,
-                          const unsigned char *inbuf, unsigned int inlen,
-                          void *params, unsigned int paramLen,
-                          const unsigned char *aad, unsigned int aadLen,
-                          unsigned int blocksize)
+platform_AES_GCM_EncryptAEAD(platform_AES_GCMContext *gcm,
+                             unsigned char *outbuf,
+                             unsigned int *outlen, unsigned int maxout,
+                             const unsigned char *inbuf, unsigned int inlen,
+                             void *params, unsigned int paramLen,
+                             const unsigned char *aad, unsigned int aadLen,
+                             unsigned int blocksize)
 {
     unsigned int tagBytes;
     unsigned char T[AES_BLOCK_SIZE];
@@ -382,8 +426,8 @@ intel_AES_GCM_EncryptAEAD(intel_AES_GCMContext *gcm,
         return SECFailure;
     }
 
-    rv = intel_aes_gcmInitCounter(gcm, gcmParams->pIv, gcmParams->ulIvLen,
-                                  gcmParams->ulTagBits, aad, aadLen);
+    rv = platform_aes_gcmInitCounter(gcm, gcmParams->pIv, gcmParams->ulIvLen,
+                                     gcmParams->ulTagBits, aad, aadLen);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -402,13 +446,13 @@ intel_AES_GCM_EncryptAEAD(intel_AES_GCMContext *gcm,
 }
 
 SECStatus
-intel_AES_GCM_DecryptAEAD(intel_AES_GCMContext *gcm,
-                          unsigned char *outbuf,
-                          unsigned int *outlen, unsigned int maxout,
-                          const unsigned char *inbuf, unsigned int inlen,
-                          void *params, unsigned int paramLen,
-                          const unsigned char *aad, unsigned int aadLen,
-                          unsigned int blocksize)
+platform_AES_GCM_DecryptAEAD(platform_AES_GCMContext *gcm,
+                             unsigned char *outbuf,
+                             unsigned int *outlen, unsigned int maxout,
+                             const unsigned char *inbuf, unsigned int inlen,
+                             void *params, unsigned int paramLen,
+                             const unsigned char *aad, unsigned int aadLen,
+                             unsigned int blocksize)
 {
     unsigned int tagBytes;
     unsigned char T[AES_BLOCK_SIZE];
@@ -446,8 +490,8 @@ intel_AES_GCM_DecryptAEAD(intel_AES_GCMContext *gcm,
         return SECFailure;
     }
 
-    rv = intel_aes_gcmInitCounter(gcm, gcmParams->pIv, gcmParams->ulIvLen,
-                                  gcmParams->ulTagBits, aad, aadLen);
+    rv = platform_aes_gcmInitCounter(gcm, gcmParams->pIv, gcmParams->ulIvLen,
+                                     gcmParams->ulTagBits, aad, aadLen);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -472,4 +516,3 @@ intel_AES_GCM_DecryptAEAD(intel_AES_GCMContext *gcm,
 
     return SECSuccess;
 }
-#endif

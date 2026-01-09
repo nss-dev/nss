@@ -7,32 +7,25 @@
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
 #endif
+
+#include "blapi.h"
 #include "blapii.h"
 #include "blapit.h"
-#include "blapi.h"
-#include "gcm.h"
 #include "ctr.h"
-#include "secerr.h"
-#include "prtypes.h"
+#include "gcm.h"
 #include "pkcs11t.h"
+#include "platform-gcm.h"
+#include "prtypes.h"
+#include "secerr.h"
 
 #include <limits.h>
-
-/* old gcc doesn't support some poly64x2_t intrinsic */
-#if defined(__aarch64__) && defined(IS_LITTLE_ENDIAN) && \
-    (defined(__clang__) || defined(__GNUC__) && __GNUC__ > 6)
-#define USE_ARM_GCM
-#elif defined(__arm__) && defined(IS_LITTLE_ENDIAN) && \
-    !defined(NSS_DISABLE_ARM32_NEON)
-/* We don't test on big endian platform, so disable this on big endian. */
-#define USE_ARM_GCM
-#endif
 
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
 #include <arm_neon.h>
 #endif
 
-/* Forward declarations */
+/* Forward declarations for platform-specific implementation of GHASH. */
+PRBool platform_ghash_support();
 SECStatus gcm_HashInit_hw(gcmHashContext *ghash);
 SECStatus gcm_HashWrite_hw(gcmHashContext *ghash, unsigned char *outbuf);
 SECStatus gcm_HashMult_hw(gcmHashContext *ghash, const unsigned char *buf,
@@ -40,12 +33,15 @@ SECStatus gcm_HashMult_hw(gcmHashContext *ghash, const unsigned char *buf,
 SECStatus gcm_HashZeroX_hw(gcmHashContext *ghash);
 SECStatus gcm_HashMult_sftw(gcmHashContext *ghash, const unsigned char *buf,
                             unsigned int count);
-SECStatus gcm_HashMult_sftw32(gcmHashContext *ghash, const unsigned char *buf,
-                              unsigned int count);
 
-/* Stub definitions for the above *_hw functions, which shouldn't be
- * used unless NSS_X86_OR_X64 is defined */
-#if !defined(NSS_X86_OR_X64) && !defined(USE_ARM_GCM) && !defined(USE_PPC_CRYPTO)
+/* Stub definitions if we aren't linking a platform-specific ghash */
+#if !defined(HAVE_PLATFORM_GHASH)
+PRBool
+platform_ghash_support()
+{
+    return PR_FALSE;
+}
+
 SECStatus
 gcm_HashWrite_hw(gcmHashContext *ghash, unsigned char *outbuf)
 {
@@ -74,7 +70,103 @@ gcm_HashZeroX_hw(gcmHashContext *ghash)
     PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
     return SECFailure;
 }
-#endif /* !NSS_X86_OR_X64 && !USE_ARM_GCM && !USE_PPC_CRYPTO */
+#endif /* !HAVE_PLATFORM_GHASH */
+
+/* Stub definitions if we aren't linking a platform-specific GCM */
+#if !defined(HAVE_PLATFORM_GCM)
+PRBool
+platform_gcm_support()
+{
+    return PR_FALSE;
+}
+
+struct platform_AES_GCMContext;
+
+SECStatus platform_aes_gcmInitCounter(platform_AES_GCMContext *gcm,
+                                      const unsigned char *iv,
+                                      unsigned long ivLen, unsigned long tagBits,
+                                      const unsigned char *aad, unsigned long aadLen);
+
+platform_AES_GCMContext *
+platform_AES_GCM_CreateContext(void *context,
+                               freeblCipherFunc cipher,
+                               const unsigned char *params)
+{
+    PORT_Assert(0);
+    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    return NULL;
+}
+
+SECStatus
+platform_aes_gcmInitCounter(platform_AES_GCMContext *gcm,
+                            const unsigned char *iv, unsigned long ivLen,
+                            unsigned long tagBits,
+                            const unsigned char *aad, unsigned long aadLen)
+{
+    PORT_Assert(0);
+    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    return SECFailure;
+}
+
+void
+platform_AES_GCM_DestroyContext(platform_AES_GCMContext *gcm, PRBool freeit)
+{
+    PORT_Assert(0);
+    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+}
+
+SECStatus
+platform_AES_GCM_EncryptUpdate(platform_AES_GCMContext *gcm,
+                               unsigned char *outbuf,
+                               unsigned int *outlen, unsigned int maxout,
+                               const unsigned char *inbuf, unsigned int inlen,
+                               unsigned int blocksize)
+{
+    PORT_Assert(0);
+    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    return SECFailure;
+}
+
+SECStatus
+platform_AES_GCM_DecryptUpdate(platform_AES_GCMContext *gcm,
+                               unsigned char *outbuf,
+                               unsigned int *outlen, unsigned int maxout,
+                               const unsigned char *inbuf, unsigned int inlen,
+                               unsigned int blocksize)
+{
+    PORT_Assert(0);
+    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    return SECFailure;
+}
+
+SECStatus
+platform_AES_GCM_EncryptAEAD(platform_AES_GCMContext *gcm,
+                             unsigned char *outbuf,
+                             unsigned int *outlen, unsigned int maxout,
+                             const unsigned char *inbuf, unsigned int inlen,
+                             void *params, unsigned int paramLen,
+                             const unsigned char *aad, unsigned int aadLen,
+                             unsigned int blocksize)
+{
+    PORT_Assert(0);
+    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    return SECFailure;
+}
+
+SECStatus
+platform_AES_GCM_DecryptAEAD(platform_AES_GCMContext *gcm,
+                             unsigned char *outbuf,
+                             unsigned int *outlen, unsigned int maxout,
+                             const unsigned char *inbuf, unsigned int inlen,
+                             void *params, unsigned int paramLen,
+                             const unsigned char *aad, unsigned int aadLen,
+                             unsigned int blocksize)
+{
+    PORT_Assert(0);
+    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    return SECFailure;
+}
+#endif /* !HAVE_PLATFORM_GCM */
 
 uint64_t
 get64(const unsigned char *bytes)
@@ -101,26 +193,13 @@ gcmHash_InitContext(gcmHashContext *ghash, const unsigned char *H, PRBool sw)
 
     ghash->h_low = get64(H + 8);
     ghash->h_high = get64(H);
-#ifdef USE_ARM_GCM
-#if defined(__aarch64__)
-    if (arm_pmull_support() && !sw) {
-#else
-    if (arm_neon_support() && !sw) {
-#endif
-#elif defined(USE_PPC_CRYPTO)
-    if (ppc_crypto_support() && !sw) {
-#else
-    if (clmul_support() && !sw) {
-#endif
+
+    if (!sw && platform_ghash_support()) {
         rv = gcm_HashInit_hw(ghash);
     } else {
-/* We fall back to the software implementation if we can't use / don't
- * want to use pclmul. */
-#ifdef HAVE_INT128_SUPPORT
+        /* We fall back to the software implementation if we can't use / don't
+         * want to use pclmul. */
         ghash->ghash_mul = gcm_HashMult_sftw;
-#else
-        ghash->ghash_mul = gcm_HashMult_sftw32;
-#endif
         ghash->x_high = ghash->x_low = 0;
         ghash->hw = PR_FALSE;
     }
@@ -246,8 +325,8 @@ bmul32(uint32_t x, uint32_t y, uint32_t *r_high, uint32_t *r_low)
 }
 
 SECStatus
-gcm_HashMult_sftw32(gcmHashContext *ghash, const unsigned char *buf,
-                    unsigned int count)
+gcm_HashMult_sftw(gcmHashContext *ghash, const unsigned char *buf,
+                  unsigned int count)
 {
     size_t i;
     uint64_t ci_low, ci_high;

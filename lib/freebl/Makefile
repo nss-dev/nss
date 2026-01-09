@@ -112,7 +112,7 @@ endif
 # NSS_X64 means the target is a 64-bits 64 CPU architecture
 # NSS_X86_OR_X64 means the target is either x86 or x64
 ifeq (,$(filter-out i386 x386 x86 x86_64,$(CPU_ARCH)))
-        DEFINES += -DNSS_X86_OR_X64
+        DEFINES += -DNSS_X86_OR_X64 -DHAVE_PLATFORM_GHASH
         EXTRA_SRCS += gcm-x86.c aes-x86.c
 $(OBJDIR)/gcm-x86.o: CFLAGS += -mpclmul -maes
 $(OBJDIR)/aes-x86.o: CFLAGS += -mpclmul -maes
@@ -138,7 +138,7 @@ endif
 endif
 ifeq ($(CPU_ARCH),aarch64)
     ifdef CC_IS_CLANG
-        DEFINES += -DUSE_HW_AES -DUSE_HW_SHA1 -DUSE_HW_SHA2
+        DEFINES += -DUSE_HW_AES -DUSE_HW_SHA1 -DUSE_HW_SHA2 -DHAVE_PLATFORM_GHASH
         EXTRA_SRCS += aes-armv8.c gcm-aarch64.c sha1-armv8.c sha256-armv8.c
     else ifeq (1,$(CC_IS_GCC))
         # GCC versions older than 4.9 don't support ARM AES. The check
@@ -146,17 +146,18 @@ ifeq ($(CPU_ARCH),aarch64)
         # and then rejects any major versions prior to 5. Note that
         # there has been no GCC 4.10, as it was renamed to GCC 5.
         ifneq (,$(filter 4.9,$(word 1,$(GCC_VERSION)).$(word 2,$(GCC_VERSION))))
-            DEFINES += -DUSE_HW_AES -DUSE_HW_SHA1 -DUSE_HW_SHA2
+            DEFINES += -DUSE_HW_AES -DUSE_HW_SHA1 -DUSE_HW_SHA2 -DHAVE_PLATFORM_GHASH
             EXTRA_SRCS += aes-armv8.c gcm-aarch64.c sha1-armv8.c sha256-armv8.c
         endif
         ifeq (,$(filter 0 1 2 3 4,$(word 1,$(GCC_VERSION))))
-            DEFINES += -DUSE_HW_AES -DUSE_HW_SHA1 -DUSE_HW_SHA2
+            DEFINES += -DUSE_HW_AES -DUSE_HW_SHA1 -DUSE_HW_SHA2 -DHAVE_PLATFORM_GHASH
             EXTRA_SRCS += aes-armv8.c gcm-aarch64.c sha1-armv8.c sha256-armv8.c
         endif
     endif
 endif
 ifeq ($(CPU_ARCH),arm)
 ifndef NSS_DISABLE_ARM32_NEON
+    DEFINES += -DHAVE_PLATFORM_GHASH
     EXTRA_SRCS += gcm-arm32-neon.c
 endif
     ifdef CC_IS_CLANG
@@ -201,11 +202,11 @@ else
     # The Intel AES assembly code requires Visual C++ 2010.
     # if $(_MSC_VER) >= 1600 (Visual C++ 2010)
     ifeq ($(firstword $(sort $(_MSC_VER) 1600)),1600)
-	DEFINES += -DUSE_HW_AES -DINTEL_GCM
+	DEFINES += -DUSE_HW_AES -DHAVE_PLATFORM_GCM
 	ASFILES += intel-aes-x86-masm.asm intel-gcm-x86-masm.asm
 	EXTRA_SRCS += intel-gcm-wrap.c
 	ifeq ($(CLANG_CL),1)
-	    INTEL_GCM_CLANG_CL = 1
+	    INTEL_GCM = 1
 	endif
     endif
     # The Intel SHA extenstion requires Visual C++ 2015.
@@ -230,11 +231,11 @@ ifeq ($(CPU_ARCH),x86_64)
     # The Intel AES assembly code requires Visual C++ 2010 (10.0). The _xgetbv
     # compiler intrinsic function requires Visual C++ 2010 (10.0) SP1.
     ifeq ($(_MSC_VER_GE_10SP1),1)
-	DEFINES += -DUSE_HW_AES -DINTEL_GCM
+	DEFINES += -DUSE_HW_AES -DHAVE_PLATFORM_GCM
 	ASFILES += intel-aes-x64-masm.asm intel-gcm-x64-masm.asm
 	EXTRA_SRCS += intel-gcm-wrap.c
 	ifeq ($(CLANG_CL),1)
-	    INTEL_GCM_CLANG_CL = 1
+	    INTEL_GCM = 1
 	endif
     endif
     # The Intel SHA extenstion requires Visual C++ 2015.
@@ -271,7 +272,7 @@ ifeq ($(CPU_ARCH),x86_64)
     DEFINES += -DNSS_USE_COMBA
 #   DEFINES += -DMPI_AMD64_ADD
     # comment the next four lines to turn off Intel HW acceleration.
-    DEFINES += -DUSE_HW_AES -DINTEL_GCM
+    DEFINES += -DUSE_HW_AES -DHAVE_PLATFORM_GCM
     ASFILES += intel-aes.s intel-gcm.s
     EXTRA_SRCS += intel-gcm-wrap.c
     INTEL_GCM = 1
@@ -289,6 +290,7 @@ ifeq ($(CPU_ARCH),arm)
     MPI_SRCS += mpi_arm.c
 endif
 ifeq ($(CPU_ARCH),ppc)
+    DEFINES += -DHAVE_PLATFORM_GHASH
     EXTRA_SRCS += gcm-ppc.c
 ifdef USE_64
     DEFINES += -DNSS_NO_INIT_SUPPORT
@@ -296,9 +298,9 @@ ifdef USE_64
     ifeq ($(PPC_ABI),2)
         ASFILES += sha512-p8.s
     ifeq ($(OS_TEST),ppc64le)
-        DEFINES += -DPPC_GCM
         EXTRA_SRCS += chacha20poly1305-ppc.c ppc-gcm-wrap.c
         ASFILES += chacha20-ppc64le.s ppc-gcm.s
+        DEFINES += -DHAVE_PLATFORM_GCM
     endif # ppc64le
     endif
 endif # USE_64
@@ -515,10 +517,10 @@ else
 	    ASFLAGS += -march=opteron -m64 -fPIC
 	    MPI_SRCS += mp_comba.c
 	    # comment the next four lines to turn off Intel HW acceleration
-	    ASFILES += intel-gcm.s
+	    ASFILES += intel-gcm.S
 	    EXTRA_SRCS += intel-gcm-wrap.c
+	    DEFINES += -DHAVE_PLATFORM_GCM
 	    INTEL_GCM = 1
-	    DEFINES += -DINTEL_GCM
 	else
 	    ASFILES  = arcfour-amd64-sun.s mpi_amd64_sun.s sha-fast-amd64-sun.s
 		ASFILES += mp_comba_amd64_sun.s mpcpucache_amd64.s
@@ -735,13 +737,6 @@ endif
 ifdef INTEL_GCM
 #
 # GCM binary needs -mssse3
-#
-$(OBJDIR)/$(PROG_PREFIX)intel-gcm-wrap$(OBJ_SUFFIX): CFLAGS += -mssse3
-endif
-
-ifdef INTEL_GCM_CLANG_CL
-#
-# clang-cl needs -mssse3
 #
 $(OBJDIR)/$(PROG_PREFIX)intel-gcm-wrap$(OBJ_SUFFIX): CFLAGS += -mssse3
 endif

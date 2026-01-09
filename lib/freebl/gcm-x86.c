@@ -5,6 +5,7 @@
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
 #endif
+#include "blapii.h"
 #include "gcm.h"
 #include "secerr.h"
 
@@ -19,6 +20,12 @@
     (bytes)[5] = (x) >> 16; \
     (bytes)[6] = (x) >> 8;  \
     (bytes)[7] = (x);
+
+PRBool
+platform_ghash_support()
+{
+    return clmul_support();
+}
 
 SECStatus
 gcm_HashWrite_hw(gcmHashContext *ghash, unsigned char *outbuf)

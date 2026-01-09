@@ -37,12 +37,8 @@
 #include "aes-armv8.h"
 #endif
 #endif /* USE_HW_AES */
-#ifdef INTEL_GCM
-#include "intel-gcm.h"
-#endif /* INTEL_GCM */
-#if defined(USE_PPC_CRYPTO) && defined(PPC_GCM)
-#include "ppc-gcm.h"
-#endif
+
+#include "platform-gcm.h"
 
 /* Forward declarations */
 void rijndael_native_key_expansion(AESContext *cx, const unsigned char *key,
@@ -877,13 +873,8 @@ FREEBL_CIPHER_WRAP(AESContext, rijndael_decryptECB);
 FREEBL_CIPHER_WRAP(AESContext, rijndael_encryptCBC);
 FREEBL_CIPHER_WRAP(AESContext, rijndael_encryptECB);
 
-#if defined(INTEL_GCM) && defined(USE_HW_AES)
-FREEBL_CIPHER_WRAP(intel_AES_GCMContext, intel_AES_GCM_DecryptUpdate);
-FREEBL_CIPHER_WRAP(intel_AES_GCMContext, intel_AES_GCM_EncryptUpdate);
-#elif defined(USE_PPC_CRYPTO) && defined(PPC_GCM)
-FREEBL_CIPHER_WRAP(ppc_AES_GCMContext, ppc_AES_GCM_DecryptUpdate);
-FREEBL_CIPHER_WRAP(ppc_AES_GCMContext, ppc_AES_GCM_EncryptUpdate);
-#endif
+FREEBL_CIPHER_WRAP(platform_AES_GCMContext, platform_AES_GCM_DecryptUpdate);
+FREEBL_CIPHER_WRAP(platform_AES_GCMContext, platform_AES_GCM_EncryptUpdate);
 
 #if defined(USE_HW_AES)
 #if defined(NSS_X86_OR_X64)
@@ -970,13 +961,8 @@ FREEBL_CIPHER_WRAP(CTRContext, CTR_Update_HW_AES);
 FREEBL_AEAD_WRAP(GCMContext, GCM_EncryptAEAD);
 FREEBL_AEAD_WRAP(GCMContext, GCM_DecryptAEAD);
 
-#if defined(INTEL_GCM) && defined(USE_HW_AES)
-FREEBL_AEAD_WRAP(intel_AES_GCMContext, intel_AES_GCM_EncryptAEAD);
-FREEBL_AEAD_WRAP(intel_AES_GCMContext, intel_AES_GCM_DecryptAEAD);
-#elif defined(USE_PPC_CRYPTO) && defined(PPC_GCM)
-FREEBL_AEAD_WRAP(ppc_AES_GCMContext, ppc_AES_GCM_EncryptAEAD);
-FREEBL_AEAD_WRAP(ppc_AES_GCMContext, ppc_AES_GCM_DecryptAEAD);
-#endif
+FREEBL_AEAD_WRAP(platform_AES_GCMContext, platform_AES_GCM_EncryptAEAD);
+FREEBL_AEAD_WRAP(platform_AES_GCMContext, platform_AES_GCM_DecryptAEAD);
 
 #define FREEBL_DESTROY_WRAP(ctxtype, mmm)                      \
     static void freeblDestroy_##mmm(void *vctx, PRBool freeit) \
@@ -989,11 +975,7 @@ FREEBL_DESTROY_WRAP(CTRContext, CTR_DestroyContext);
 FREEBL_DESTROY_WRAP(CTSContext, CTS_DestroyContext);
 FREEBL_DESTROY_WRAP(GCMContext, GCM_DestroyContext);
 
-#if defined(INTEL_GCM) && defined(USE_HW_AES)
-FREEBL_DESTROY_WRAP(intel_AES_GCMContext, intel_AES_GCM_DestroyContext);
-#elif defined(USE_PPC_CRYPTO) && defined(PPC_GCM)
-FREEBL_DESTROY_WRAP(ppc_AES_GCMContext, ppc_AES_GCM_DestroyContext);
-#endif
+FREEBL_DESTROY_WRAP(platform_AES_GCMContext, platform_AES_GCM_DestroyContext);
 
 /************************************************************************
  *
@@ -1153,29 +1135,15 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
             cx->isBlock = PR_FALSE;
             break;
         case NSS_AES_GCM:
-#if defined(INTEL_GCM) && defined(USE_HW_AES)
-            if (aesni_support() && (keysize % 8) == 0 && avx_support() &&
-                clmul_support()) {
-                cx->worker_cx = intel_AES_GCM_CreateContext(cx, cx->worker, iv);
-                cx->worker = encrypt ? freeblCipher_intel_AES_GCM_EncryptUpdate
-                                     : freeblCipher_intel_AES_GCM_DecryptUpdate;
-                cx->worker_aead = encrypt ? freeblAead_intel_AES_GCM_EncryptAEAD
-                                          : freeblAead_intel_AES_GCM_DecryptAEAD;
-                cx->destroy = freeblDestroy_intel_AES_GCM_DestroyContext;
+            if (platform_gcm_support() && (keysize % 8) == 0) {
+                cx->worker_cx = platform_AES_GCM_CreateContext(cx, cx->worker, iv);
+                cx->worker = encrypt ? freeblCipher_platform_AES_GCM_EncryptUpdate
+                                     : freeblCipher_platform_AES_GCM_DecryptUpdate;
+                cx->worker_aead = encrypt ? freeblAead_platform_AES_GCM_EncryptAEAD
+                                          : freeblAead_platform_AES_GCM_DecryptAEAD;
+                cx->destroy = freeblDestroy_platform_AES_GCM_DestroyContext;
                 cx->isBlock = PR_FALSE;
-            } else
-#elif defined(USE_PPC_CRYPTO) && defined(PPC_GCM)
-            if (ppc_crypto_support() && (keysize % 8) == 0) {
-                cx->worker_cx = ppc_AES_GCM_CreateContext(cx, cx->worker, iv);
-                cx->worker = encrypt ? freeblCipher_ppc_AES_GCM_EncryptUpdate
-                                     : freeblCipher_ppc_AES_GCM_DecryptUpdate;
-                cx->worker_aead = encrypt ? freeblAead_ppc_AES_GCM_EncryptAEAD
-                                          : freeblAead_ppc_AES_GCM_DecryptAEAD;
-                cx->destroy = freeblDestroy_ppc_AES_GCM_DestroyContext;
-                cx->isBlock = PR_FALSE;
-            } else
-#endif
-            {
+            } else {
                 cx->worker_cx = GCM_CreateContext(cx, cx->worker, iv);
                 cx->worker = encrypt ? freeblCipher_GCM_EncryptUpdate
                                      : freeblCipher_GCM_DecryptUpdate;

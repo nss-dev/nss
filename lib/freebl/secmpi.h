@@ -61,3 +61,5 @@ mp_err mpp_pprime_secure(mp_int *a, int nt);
 
 /* Variant of `mpp_make_prime` using `mpp_random_secure` to choose Miller-Rabin base */
 mp_err mpp_make_prime_secure(mp_int *start, mp_size nBits, mp_size strong);
+
+SECStatus generate_prime(mp_int *prime, int primeLen);

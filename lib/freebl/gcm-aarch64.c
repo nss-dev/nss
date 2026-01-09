@@ -14,6 +14,12 @@
 
 #include <arm_neon.h>
 
+PRBool
+platform_ghash_support()
+{
+    return arm_pmull_support();
+}
+
 SECStatus
 gcm_HashWrite_hw(gcmHashContext *ghash, unsigned char *outbuf)
 {
