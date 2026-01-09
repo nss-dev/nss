@@ -5,8 +5,17 @@
 ################################################################################
 # Copyright(c) 2012, Intel Corp.
 
+#if defined(DARWIN)
+# define cdecl(s) _##s
+#else
+# define cdecl(s) s
+#endif
+
+#ifndef DARWIN
 .section .rodata
-.align  16
+#endif
+
+.balign  16
 .Lone:
 .quad 1,0
 .Ltwo:
@@ -18,15 +27,17 @@
 .Lpoly:
 .quad 0x1, 0xc200000000000000 
 
-.section .text
+.text
 
 ################################################################################
 # Generates the final GCM tag
 # void intel_aes_gcmTAG(uint8_t Htbl[16*16], uint8_t *Tp, uint64_t Mlen, uint64_t Alen, uint8_t* X0, uint8_t* TAG);
-.type intel_aes_gcmTAG,@function
-.globl intel_aes_gcmTAG
-.align 16
-intel_aes_gcmTAG:
+#ifndef DARWIN
+.type cdecl(intel_aes_gcmTAG),@function
+#endif
+.globl cdecl(intel_aes_gcmTAG)
+.balign 16
+cdecl(intel_aes_gcmTAG):
 
 .set  Htbl, %rdi
 .set  Tp, %rsi
@@ -47,20 +58,24 @@ intel_aes_gcmTAG:
    vpinsrq  $1, Alen, TMP0, TMP0
    vpxor    TMP0, T, T
    vmovdqu  (Htbl), TMP0
-   call     GFMUL
+   call     cdecl(GFMUL)
    vpshufb  .Lbswap_mask(%rip), T, T
    vpxor    (X0), T, T
    vmovdqu  T, (TAG)
    
 ret
-.size intel_aes_gcmTAG, .-intel_aes_gcmTAG
+#ifndef DARWIN
+.size cdecl(intel_aes_gcmTAG), .-cdecl(intel_aes_gcmTAG)
+#endif
 ################################################################################
 # Generates the H table
 # void intel_aes_gcmINIT(uint8_t Htbl[16*16], uint8_t *KS, int NR);
-.type intel_aes_gcmINIT,@function
-.globl intel_aes_gcmINIT
-.align 16
-intel_aes_gcmINIT:
+#ifndef DARWIN
+.type cdecl(intel_aes_gcmINIT),@function
+#endif
+.globl cdecl(intel_aes_gcmINIT)
+.balign 16
+cdecl(intel_aes_gcmINIT):
    
 .set  Htbl, %rdi
 .set  KS, %rsi
@@ -116,19 +131,19 @@ CALCULATE_POWERS_OF_H:
     vpxor     %xmm5, T , T
     vmovdqu   T, TMP0
     vmovdqu   T, (Htbl)     # H * 2
-    call  GFMUL
+    call  cdecl(GFMUL)
     vmovdqu  T, 16(Htbl)    # H^2 * 2
-    call  GFMUL
+    call  cdecl(GFMUL)
     vmovdqu  T, 32(Htbl)    # H^3 * 2
-    call  GFMUL
+    call  cdecl(GFMUL)
     vmovdqu  T, 48(Htbl)    # H^4 * 2
-    call  GFMUL
+    call  cdecl(GFMUL)
     vmovdqu  T, 64(Htbl)    # H^5 * 2
-    call  GFMUL
+    call  cdecl(GFMUL)
     vmovdqu  T, 80(Htbl)    # H^6 * 2
-    call  GFMUL
+    call  cdecl(GFMUL)
     vmovdqu  T, 96(Htbl)    # H^7 * 2
-    call  GFMUL
+    call  cdecl(GFMUL)
     vmovdqu  T, 112(Htbl)   # H^8 * 2  
 
     # Precalculations for the reduce 4 step
@@ -160,15 +175,19 @@ CALCULATE_POWERS_OF_H:
     vmovdqu   %xmm15, 240(Htbl)
 
     ret
-.size intel_aes_gcmINIT, .-intel_aes_gcmINIT
+#ifndef DARWIN
+.size cdecl(intel_aes_gcmINIT), .-cdecl(intel_aes_gcmINIT)
+#endif
 ################################################################################
 # Authenticate only
 # void intel_aes_gcmAAD(uint8_t Htbl[16*16], uint8_t *AAD, uint64_t Alen, uint8_t *Tp);
 
-.globl  intel_aes_gcmAAD
-.type   intel_aes_gcmAAD,@function
-.align  16
-intel_aes_gcmAAD:
+.globl  cdecl(intel_aes_gcmAAD)
+#ifndef DARWIN
+.type   cdecl(intel_aes_gcmAAD),@function
+#endif
+.balign  16
+cdecl(intel_aes_gcmAAD):
 
 .set DATA, %xmm0
 .set T, %xmm1
@@ -240,7 +259,7 @@ intel_aes_gcmAAD:
 	jmp	    .Lred1
 
     #hash remaining prefix bocks (up to 7 total prefix blocks)
-.align 64
+.balign 64
 .Lpre_loop:
 
     sub	$16, hlp0
@@ -272,7 +291,7 @@ intel_aes_gcmAAD:
     vpxor       TMP3, TMP1, Xhi
     vpxor       TMP2, TMP0, T
 	
-.align 64
+.balign 64
 .Lmod_loop:
     sub	$0x80, len
     jb	.Ldone
@@ -363,15 +382,19 @@ intel_aes_gcmAAD:
 
     pop hlp0
     ret
-.size   intel_aes_gcmAAD,.-intel_aes_gcmAAD
+#ifndef DARWIN
+.size   cdecl(intel_aes_gcmAAD),.-cdecl(intel_aes_gcmAAD)
+#endif
 
 ################################################################################
 # Encrypt and Authenticate
 # void intel_aes_gcmENC(uint8_t* PT, uint8_t* CT, void *Gctx,uint64_t len);
-.type intel_aes_gcmENC,@function
-.globl intel_aes_gcmENC
-.align 16
-intel_aes_gcmENC:
+#ifndef DARWIN
+.type cdecl(intel_aes_gcmENC),@function
+#endif
+.globl cdecl(intel_aes_gcmENC)
+.balign 16
+cdecl(intel_aes_gcmENC):
 
 .set PT,%rdi
 .set CT,%rsi
@@ -576,7 +599,7 @@ intel_aes_gcmENC:
     jmp .LDataOctets
 
 # Encrypt 8 blocks each time while hashing previous 8 blocks
-.align 64
+.balign 64
 .LDataOctets:
         cmp $128, len
         jb  .LEndOctets
@@ -844,7 +867,7 @@ intel_aes_gcmENC:
     vpshufb .Lbswap_mask(%rip), TMP1, TMP1
     vpxor   TMP1, T, T
     vmovdqu (Htbl), TMP0
-    call    GFMUL
+    call    cdecl(GFMUL)
 
     jmp .LDataSingles
 
@@ -920,7 +943,7 @@ intel_aes_gcmENC:
    vpshufb  .Lbswap_mask(%rip), TMP0, TMP0
    vpxor    TMP0, T, T
    vmovdqu  (Htbl), TMP0
-   call     GFMUL
+   call     cdecl(GFMUL)
 
 DATA_END:
 
@@ -932,15 +955,19 @@ DATA_END:
    movq %rbp, %rsp
    popq %rbp
    ret
-   .size intel_aes_gcmENC, .-intel_aes_gcmENC
+#ifndef DARWIN
+   .size cdecl(intel_aes_gcmENC), .-cdecl(intel_aes_gcmENC)
+#endif
   
 #########################
 # Decrypt and Authenticate
 # void intel_aes_gcmDEC(uint8_t* PT, uint8_t* CT, void *Gctx,uint64_t len);
-.type intel_aes_gcmDEC,@function
-.globl intel_aes_gcmDEC
-.align 16
-intel_aes_gcmDEC:
+#ifndef DARWIN
+.type cdecl(intel_aes_gcmDEC),@function
+#endif
+.globl cdecl(intel_aes_gcmDEC)
+.balign 16
+cdecl(intel_aes_gcmDEC):
 # parameter 1: CT    # input
 # parameter 2: PT    # output
 # parameter 3: %rdx  # Gctx
@@ -1009,7 +1036,7 @@ intel_aes_gcmDEC:
     jmp     .LDECOctets
       
 # Decrypt 8 blocks each time while hashing them at the same time
-.align 64
+.balign 64
 .LDECOctets:
    
         cmp $128, len
@@ -1178,7 +1205,7 @@ intel_aes_gcmDEC:
     vpshufb  .Lbswap_mask(%rip), TMP1, TMP1
     vpxor    TMP1, T, T
     vmovdqu  (Htbl), TMP0
-    call     GFMUL
+    call     cdecl(GFMUL)
 
 
     vpshufb  .Lbswap_mask(%rip), CTR, TMP1
@@ -1283,7 +1310,7 @@ intel_aes_gcmDEC:
    vpshufb  .Lbswap_mask(%rip), TMP0, TMP0
    vpxor    TMP0, T, T
    vmovdqu  (Htbl), TMP0
-   call     GFMUL
+   call     cdecl(GFMUL)
 .LDEC_END:
 
    vpshufb  .Lbswap_mask(%rip), T, T
@@ -1294,16 +1321,20 @@ intel_aes_gcmDEC:
    movq %rbp, %rsp
    popq %rbp
    ret
-  .size intel_aes_gcmDEC, .-intel_aes_gcmDEC
+#ifndef DARWIN
+  .size cdecl(intel_aes_gcmDEC), .-cdecl(intel_aes_gcmDEC)
+#endif
 #########################
 # a = T
 # b = TMP0 - remains unchanged
 # res = T
 # uses also TMP1,TMP2,TMP3,TMP4
 # __m128i GFMUL(__m128i A, __m128i B);
-.type GFMUL,@function
-.globl GFMUL
-GFMUL:  
+#ifndef DARWIN
+.type cdecl(GFMUL),@function
+#endif
+.globl cdecl(GFMUL)
+cdecl(GFMUL):  
     pushq   %rbp
     movq    %rsp, %rbp
     vpclmulqdq  $0x00, TMP0, T, TMP1
@@ -1336,5 +1367,7 @@ GFMUL:
     movq %rbp, %rsp
     popq %rbp
     ret
-.size GFMUL, .-GFMUL
+#ifndef DARWIN
+.size cdecl(GFMUL), .-cdecl(GFMUL)
+#endif
 

@@ -21,13 +21,21 @@
  * compactly encoded and preferred by compilers over a 32-bit address.
  */
 
+#if defined(DARWIN)
+# define cdecl(s) _##s
+#else
+# define cdecl(s) s
+#endif
+
 /* in %rdi : the key
    in %rsi : buffer for expanded key
 */
-	.type intel_aes_encrypt_init_128,@function
-	.globl intel_aes_encrypt_init_128
-	.align	16
-intel_aes_encrypt_init_128:
+#ifndef DARWIN
+	.type cdecl(intel_aes_encrypt_init_128),@function
+#endif
+	.globl cdecl(intel_aes_encrypt_init_128)
+	.balign	16
+cdecl(intel_aes_encrypt_init_128):
 	movups	(%rdi), %xmm1
 	movups	%xmm1, (%rsi)
 	leaq	16(%rsi), %rsi
@@ -55,16 +63,20 @@ intel_aes_encrypt_init_128:
 	call key_expansion128
 
 	ret
+#ifndef DARWIN
 	.size intel_aes_encrypt_init_128, .-intel_aes_encrypt_init_128
+#endif
 
 
 /* in %rdi : the key
    in %rsi : buffer for expanded key
 */
-	.type intel_aes_decrypt_init_128,@function
-	.globl intel_aes_decrypt_init_128
-	.align	16
-intel_aes_decrypt_init_128:
+#ifndef DARWIN
+	.type cdecl(intel_aes_decrypt_init_128),@function
+#endif
+	.globl cdecl(intel_aes_decrypt_init_128)
+	.balign	16
+cdecl(intel_aes_decrypt_init_128):
 	movups	(%rdi), %xmm1
 	movups	%xmm1, (%rsi)
 	leaq	16(%rsi), %rsi
@@ -110,11 +122,15 @@ intel_aes_decrypt_init_128:
 	call key_expansion128
 
 	ret
+#ifndef DARWIN
 	.size intel_aes_decrypt_init_128, .-intel_aes_decrypt_init_128
+#endif
 
 
+#ifndef DARWIN
 	.type key_expansion128,@function
-	.align	16
+#endif
+	.balign	16
 key_expansion128:
 	movd	%eax, %xmm3
 	pshufd	$0xff, %xmm2, %xmm2
@@ -126,7 +142,9 @@ key_expansion128:
 	movdqu	%xmm1, (%rsi)
 	addq	$16, %rsi
 	ret
+#ifndef DARWIN
 	.size key_expansion128, .-key_expansion128
+#endif
 
 
 /* in %rdi : cx - context
@@ -139,10 +157,12 @@ key_expansion128:
    in %r9d : inputLen - length of input buffer
    on stack: blocksize - AES blocksize (always 16, unused)
 */
-	.type intel_aes_encrypt_ecb_128,@function
-	.globl intel_aes_encrypt_ecb_128
-	.align	16
-intel_aes_encrypt_ecb_128:
+#ifndef DARWIN
+	.type cdecl(intel_aes_encrypt_ecb_128),@function
+#endif
+	.globl cdecl(intel_aes_encrypt_ecb_128)
+	.balign	16
+cdecl(intel_aes_encrypt_ecb_128):
 	movdqu	(%rdi), %xmm2
 	movdqu	160(%rdi), %xmm12
 	xor	%eax, %eax
@@ -307,7 +327,9 @@ intel_aes_encrypt_ecb_128:
 
 5:	xor	%eax, %eax
 	ret
+#ifndef DARWIN
 	.size intel_aes_encrypt_ecb_128, .-intel_aes_encrypt_ecb_128
+#endif
 
 
 /* in %rdi : cx - context
@@ -320,9 +342,11 @@ intel_aes_encrypt_ecb_128:
    in %r9d : inputLen - length of input buffer
    on stack: blocksize - AES blocksize (always 16, unused)
 */
-	.type intel_aes_decrypt_ecb_128,@function
+#ifndef DARWIN
+	.type cdecl(intel_aes_decrypt_ecb_128),@function
+#endif
 	.globl intel_aes_decrypt_ecb_128
-	.align	16
+	.balign	16
 intel_aes_decrypt_ecb_128:
 	movdqu	(%rdi), %xmm2
 	movdqu	160(%rdi), %xmm12
@@ -488,7 +512,9 @@ intel_aes_decrypt_ecb_128:
 
 5:	xor	%eax, %eax
 	ret
+#ifndef DARWIN
 	.size intel_aes_decrypt_ecb_128, .-intel_aes_decrypt_ecb_128
+#endif
 
 
 /* in %rdi : cx - context
@@ -501,10 +527,12 @@ intel_aes_decrypt_ecb_128:
    in %r9d : inputLen - length of input buffer
    on stack: blocksize - AES blocksize (always 16, unused)
 */
-	.type intel_aes_encrypt_cbc_128,@function
-	.globl intel_aes_encrypt_cbc_128
-	.align	16
-intel_aes_encrypt_cbc_128:
+#ifndef DARWIN
+	.type cdecl(intel_aes_encrypt_cbc_128),@function
+#endif
+	.globl cdecl(intel_aes_encrypt_cbc_128)
+	.balign	16
+cdecl(intel_aes_encrypt_cbc_128):
 	testl	%r9d, %r9d
 	je	2f
 
@@ -548,7 +576,9 @@ intel_aes_encrypt_cbc_128:
 
 2:	xor	%eax, %eax
 	ret
+#ifndef DARWIN
 	.size intel_aes_encrypt_cbc_128, .-intel_aes_encrypt_cbc_128
+#endif
 
 
 /* in %rdi : cx - context
@@ -561,10 +591,12 @@ intel_aes_encrypt_cbc_128:
    in %r9d : inputLen - length of input buffer
    on stack: blocksize - AES blocksize (always 16, unused)
 */
-	.type intel_aes_decrypt_cbc_128,@function
-	.globl intel_aes_decrypt_cbc_128
-	.align	16
-intel_aes_decrypt_cbc_128:
+#ifndef DARWIN
+	.type cdecl(intel_aes_decrypt_cbc_128),@function
+#endif
+	.globl cdecl(intel_aes_decrypt_cbc_128)
+	.balign	16
+cdecl(intel_aes_decrypt_cbc_128):
 //	leaq	IV_OFFSET(%rdi), %rdx
 	leaq	256(%rdi), %rdx
 
@@ -751,15 +783,19 @@ intel_aes_decrypt_cbc_128:
 
 	xor	%eax, %eax
 	ret
+#ifndef DARWIN
 	.size intel_aes_decrypt_cbc_128, .-intel_aes_decrypt_cbc_128
+#endif
         
 /* in %rdi : the key
    in %rsi : buffer for expanded key
 */
-	.type intel_aes_encrypt_init_192,@function
-	.globl intel_aes_encrypt_init_192
-	.align	16
-intel_aes_encrypt_init_192:
+#ifndef DARWIN
+	.type cdecl(intel_aes_encrypt_init_192),@function
+#endif
+	.globl cdecl(intel_aes_encrypt_init_192)
+	.balign	16
+cdecl(intel_aes_encrypt_init_192):
 	movdqu	(%rdi), %xmm1
 	movq	16(%rdi), %xmm3
 	movdqu	%xmm1, (%rsi)
@@ -784,16 +820,20 @@ intel_aes_encrypt_init_192:
 	call key_expansion192
 
 	ret
+#ifndef DARWIN
 	.size intel_aes_encrypt_init_192, .-intel_aes_encrypt_init_192
+#endif
 
 
 /* in %rdi : the key
    in %rsi : buffer for expanded key
 */
-	.type intel_aes_decrypt_init_192,@function
-	.globl intel_aes_decrypt_init_192
-	.align	16
-intel_aes_decrypt_init_192:
+#ifndef DARWIN
+	.type cdecl(intel_aes_decrypt_init_192),@function
+#endif
+	.globl cdecl(intel_aes_decrypt_init_192)
+	.balign	16
+cdecl(intel_aes_decrypt_init_192):
 	movdqu	(%rdi), %xmm1
 	movq	16(%rdi), %xmm3
 	movdqu	%xmm1, (%rsi)
@@ -848,11 +888,15 @@ intel_aes_decrypt_init_192:
 	call key_expansion192
 
 	ret
+#ifndef DARWIN
 	.size intel_aes_decrypt_init_192, .-intel_aes_decrypt_init_192
+#endif
 
 
+#ifndef DARWIN
 	.type key_expansion192,@function
-	.align	16
+#endif
+	.balign	16
 key_expansion192:
 	pshufd	$0x55, %xmm2, %xmm2
 	xor	%eax, %eax
@@ -874,7 +918,9 @@ key_expansion192:
 	movq	%xmm3, (%rsi)
 	addq	$8, %rsi
 	ret
+#ifndef DARWIN
 	.size key_expansion192, .-key_expansion192
+#endif
 
 
 /* in %rdi : cx - context
@@ -887,10 +933,12 @@ key_expansion192:
    in %r9d : inputLen - length of input buffer
    on stack: blocksize - AES blocksize (always 16, unused)
 */
-	.type intel_aes_encrypt_ecb_192,@function
-	.globl intel_aes_encrypt_ecb_192
-	.align	16
-intel_aes_encrypt_ecb_192:
+#ifndef DARWIN
+	.type cdecl(intel_aes_encrypt_ecb_192),@function
+#endif
+	.globl cdecl(intel_aes_encrypt_ecb_192)
+	.balign	16
+cdecl(intel_aes_encrypt_ecb_192):
 	movdqu	(%rdi), %xmm2
 	movdqu	192(%rdi), %xmm14
 	xorl	%eax, %eax
@@ -1078,7 +1126,9 @@ intel_aes_encrypt_ecb_192:
 
 5:	xor	%eax, %eax
 	ret
+#ifndef DARWIN
 	.size intel_aes_encrypt_ecb_192, .-intel_aes_encrypt_ecb_192
+#endif
 
 
 /* in %rdi : cx - context
@@ -1091,10 +1141,12 @@ intel_aes_encrypt_ecb_192:
    in %r9d : inputLen - length of input buffer
    on stack: blocksize - AES blocksize (always 16, unused)
 */
-	.type intel_aes_decrypt_ecb_192,@function
-	.globl intel_aes_decrypt_ecb_192
-	.align	16
-intel_aes_decrypt_ecb_192:
+#ifndef DARWIN
+	.type cdecl(intel_aes_decrypt_ecb_192),@function
+#endif
+	.globl cdecl(intel_aes_decrypt_ecb_192)
+	.balign	16
+cdecl(intel_aes_decrypt_ecb_192):
 	movdqu	(%rdi), %xmm2
 	movdqu	192(%rdi), %xmm14
 	xorl	%eax, %eax
@@ -1282,7 +1334,9 @@ intel_aes_decrypt_ecb_192:
 
 5:	xor	%eax, %eax
 	ret
+#ifndef DARWIN
 	.size intel_aes_decrypt_ecb_192, .-intel_aes_decrypt_ecb_192
+#endif
 
 
 /* in %rdi : cx - context
@@ -1295,10 +1349,12 @@ intel_aes_decrypt_ecb_192:
    in %r9d : inputLen - length of input buffer
    on stack: blocksize - AES blocksize (always 16, unused)
 */
-	.type intel_aes_encrypt_cbc_192,@function
-	.globl intel_aes_encrypt_cbc_192
-	.align	16
-intel_aes_encrypt_cbc_192:
+#ifndef DARWIN
+	.type cdecl(intel_aes_encrypt_cbc_192),@function
+#endif
+	.globl cdecl(intel_aes_encrypt_cbc_192)
+	.balign	16
+cdecl(intel_aes_encrypt_cbc_192):
 	testl	%r9d, %r9d
 	je	2f
 
@@ -1346,7 +1402,9 @@ intel_aes_encrypt_cbc_192:
 
 2:	xor	%eax, %eax
 	ret
+#ifndef DARWIN
 	.size intel_aes_encrypt_cbc_192, .-intel_aes_encrypt_cbc_192
+#endif
 
 
 /* in %rdi : cx - context
@@ -1359,10 +1417,12 @@ intel_aes_encrypt_cbc_192:
    in %r9d : inputLen - length of input buffer
    on stack: blocksize - AES blocksize (always 16, unused)
 */
-	.type intel_aes_decrypt_cbc_192,@function
-	.globl intel_aes_decrypt_cbc_192
-	.align	16
-intel_aes_decrypt_cbc_192:
+#ifndef DARWIN
+	.type cdecl(intel_aes_decrypt_cbc_192),@function
+#endif
+	.globl cdecl(intel_aes_decrypt_cbc_192)
+	.balign	16
+cdecl(intel_aes_decrypt_cbc_192):
 //	leaq	IV_OFFSET(%rdi), %rdx
 	leaq	256(%rdi), %rdx
 
@@ -1572,15 +1632,19 @@ intel_aes_decrypt_cbc_192:
 
 	xor	%eax, %eax
 	ret
+#ifndef DARWIN
 	.size intel_aes_decrypt_cbc_192, .-intel_aes_decrypt_cbc_192
+#endif
 
 /* in %rdi : the key
    in %rsi : buffer for expanded key
 */
-	.type intel_aes_encrypt_init_256,@function
-	.globl intel_aes_encrypt_init_256
-	.align	16
-intel_aes_encrypt_init_256:
+#ifndef DARWIN
+	.type cdecl(intel_aes_encrypt_init_256),@function
+#endif
+	.globl cdecl(intel_aes_encrypt_init_256)
+	.balign	16
+cdecl(intel_aes_encrypt_init_256):
 	movdqu	(%rdi), %xmm1
 	movdqu	16(%rdi), %xmm3
 	movdqu	%xmm1, (%rsi)
@@ -1611,16 +1675,20 @@ intel_aes_encrypt_init_256:
 	movdqu	%xmm1, (%rsi)
 
 	ret
+#ifndef DARWIN
 	.size intel_aes_encrypt_init_256, .-intel_aes_encrypt_init_256
+#endif
 
 
 /* in %rdi : the key
    in %rsi : buffer for expanded key
 */
-	.type intel_aes_decrypt_init_256,@function
-	.globl intel_aes_decrypt_init_256
-	.align	16
-intel_aes_decrypt_init_256:
+#ifndef DARWIN
+	.type cdecl(intel_aes_decrypt_init_256),@function
+#endif
+	.globl cdecl(intel_aes_decrypt_init_256)
+	.balign	16
+cdecl(intel_aes_decrypt_init_256):
 	movdqu	(%rdi), %xmm1
 	movdqu	16(%rdi), %xmm3
 	movdqu	%xmm1, (%rsi)
@@ -1676,11 +1744,15 @@ intel_aes_decrypt_init_256:
 	movdqu	%xmm1, (%rsi)
 
 	ret
+#ifndef DARWIN
 	.size intel_aes_decrypt_init_256, .-intel_aes_decrypt_init_256
+#endif
 
 
+#ifndef DARWIN
 	.type key_expansion256,@function
-	.align	16
+#endif
+	.balign	16
 key_expansion256:
 	movd	%eax, %xmm6
 	pshufd	$0xff, %xmm2, %xmm2
@@ -1702,7 +1774,9 @@ key_expansion256:
 	movdqu	%xmm3, (%rsi)
 	addq	$16, %rsi
 	ret
+#ifndef DARWIN
 	.size key_expansion256, .-key_expansion256
+#endif
 
 
 /* in %rdi : cx - context
@@ -1715,10 +1789,12 @@ key_expansion256:
    in %r9d : inputLen - length of input buffer
    on stack: blocksize - AES blocksize (always 16, unused)
 */
-	.type intel_aes_encrypt_ecb_256,@function
-	.globl intel_aes_encrypt_ecb_256
-	.align	16
-intel_aes_encrypt_ecb_256:
+#ifndef DARWIN
+	.type cdecl(intel_aes_encrypt_ecb_256),@function
+#endif
+	.globl cdecl(intel_aes_encrypt_ecb_256)
+	.balign	16
+cdecl(intel_aes_encrypt_ecb_256):
 	movdqu	(%rdi), %xmm2
 	movdqu	224(%rdi), %xmm15
 	xorl	%eax, %eax
@@ -1931,7 +2007,9 @@ intel_aes_encrypt_ecb_256:
 
 5:	xor	%eax, %eax
 	ret
+#ifndef DARWIN
 	.size intel_aes_encrypt_ecb_256, .-intel_aes_encrypt_ecb_256
+#endif
 
 
 /* in %rdi : cx - context
@@ -1944,10 +2022,12 @@ intel_aes_encrypt_ecb_256:
    in %r9d : inputLen - length of input buffer
    on stack: blocksize - AES blocksize (always 16, unused)
 */
-	.type intel_aes_decrypt_ecb_256,@function
-	.globl intel_aes_decrypt_ecb_256
-	.align	16
-intel_aes_decrypt_ecb_256:
+#ifndef DARWIN
+	.type cdecl(intel_aes_decrypt_ecb_256),@function
+#endif
+	.globl cdecl(intel_aes_decrypt_ecb_256)
+	.balign	16
+cdecl(intel_aes_decrypt_ecb_256):
 	movdqu	(%rdi), %xmm2
 	movdqu	224(%rdi), %xmm15
 	xorl	%eax, %eax
@@ -2160,7 +2240,9 @@ intel_aes_decrypt_ecb_256:
 
 5:	xor	%eax, %eax
 	ret
+#ifndef DARWIN
 	.size intel_aes_decrypt_ecb_256, .-intel_aes_decrypt_ecb_256
+#endif
 
 
 /* in %rdi : cx - context
@@ -2173,10 +2255,12 @@ intel_aes_decrypt_ecb_256:
    in %r9d : inputLen - length of input buffer
    on stack: blocksize - AES blocksize (always 16, unused)
 */
-	.type intel_aes_encrypt_cbc_256,@function
-	.globl intel_aes_encrypt_cbc_256
-	.align	16
-intel_aes_encrypt_cbc_256:
+#ifndef DARWIN
+	.type cdecl(intel_aes_encrypt_cbc_256),@function
+#endif
+	.globl cdecl(intel_aes_encrypt_cbc_256)
+	.balign	16
+cdecl(intel_aes_encrypt_cbc_256):
 	testl	%r9d, %r9d
 	je	2f
 
@@ -2229,7 +2313,9 @@ intel_aes_encrypt_cbc_256:
 
 2:	xor	%eax, %eax
 	ret
+#ifndef DARWIN
 	.size intel_aes_encrypt_cbc_256, .-intel_aes_encrypt_cbc_256
+#endif
 
 
 /* in %rdi : cx - context
@@ -2242,10 +2328,12 @@ intel_aes_encrypt_cbc_256:
    in %r9d : inputLen - length of input buffer
    on stack: blocksize - AES blocksize (always 16, unused)
 */
-	.type intel_aes_decrypt_cbc_256,@function
-	.globl intel_aes_decrypt_cbc_256
-	.align	16
-intel_aes_decrypt_cbc_256:
+#ifndef DARWIN
+	.type cdecl(intel_aes_decrypt_cbc_256),@function
+#endif
+	.globl cdecl(intel_aes_decrypt_cbc_256)
+	.balign	16
+cdecl(intel_aes_decrypt_cbc_256):
 //	leaq	IV_OFFSET(%rdi), %rdx
 	leaq	256(%rdi), %rdx
 
@@ -2482,4 +2570,6 @@ intel_aes_decrypt_cbc_256:
 
 	xor	%eax, %eax
 	ret
+#ifndef DARWIN
 	.size intel_aes_decrypt_cbc_256, .-intel_aes_decrypt_cbc_256
+#endif

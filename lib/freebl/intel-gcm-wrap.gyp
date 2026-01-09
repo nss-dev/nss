@@ -40,8 +40,8 @@
               ],
             }, {
               'sources': [
-                'intel-aes.s',
-                'intel-gcm.s',
+                'intel-aes.S',
+                'intel-gcm.S',
               ],
           }],
         ],
