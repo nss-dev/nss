@@ -7,10 +7,10 @@
   ],
   'targets': [
     {
-      'target_name': 'gcm-aes-x86_c_lib',
+      'target_name': 'ghash-aes-x86_c_lib',
       'type': 'static_library',
       'sources': [
-        'gcm-x86.c', 'aes-x86.c'
+        'ghash-x86.c', 'aes-x86.c'
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports'
@@ -38,10 +38,10 @@
       ]
     },
     {
-      'target_name': 'gcm-aes-arm32-neon_c_lib',
+      'target_name': 'ghash-aes-arm32-neon_c_lib',
       'type': 'static_library',
       'sources': [
-        'gcm-arm32-neon.c'
+        'ghash-arm32-neon.c'
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports'
@@ -57,10 +57,10 @@
       ]
     },
     {
-      'target_name': 'gcm-aes-aarch64_c_lib',
+      'target_name': 'ghash-aes-aarch64_c_lib',
       'type': 'static_library',
       'sources': [
-        'gcm-aarch64.c'
+        'ghash-aarch64.c'
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports'
@@ -73,10 +73,10 @@
       ]
     },
     {
-      'target_name': 'gcm-aes-ppc_c_lib',
+      'target_name': 'ghash-aes-ppc_c_lib',
       'type': 'static_library',
       'sources': [
-        'gcm-ppc.c',
+        'ghash-ppc.c',
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports'

@@ -113,8 +113,8 @@ endif
 # NSS_X86_OR_X64 means the target is either x86 or x64
 ifeq (,$(filter-out i386 x386 x86 x86_64,$(CPU_ARCH)))
         DEFINES += -DNSS_X86_OR_X64 -DHAVE_PLATFORM_GHASH
-        EXTRA_SRCS += gcm-x86.c aes-x86.c
-$(OBJDIR)/gcm-x86.o: CFLAGS += -mpclmul -maes
+        EXTRA_SRCS += ghash-x86.c aes-x86.c
+$(OBJDIR)/ghash-x86.o: CFLAGS += -mpclmul -maes
 $(OBJDIR)/aes-x86.o: CFLAGS += -mpclmul -maes
 ifneq (,$(USE_64)$(USE_X32))
         DEFINES += -DNSS_X64
@@ -139,7 +139,7 @@ endif
 ifeq ($(CPU_ARCH),aarch64)
     ifdef CC_IS_CLANG
         DEFINES += -DUSE_HW_AES -DUSE_HW_SHA1 -DUSE_HW_SHA2 -DHAVE_PLATFORM_GHASH
-        EXTRA_SRCS += aes-armv8.c gcm-aarch64.c sha1-armv8.c sha256-armv8.c
+        EXTRA_SRCS += aes-armv8.c ghash-aarch64.c sha1-armv8.c sha256-armv8.c
     else ifeq (1,$(CC_IS_GCC))
         # GCC versions older than 4.9 don't support ARM AES. The check
         # is done in two parts, first allows "major.minor" == "4.9",
@@ -147,18 +147,18 @@ ifeq ($(CPU_ARCH),aarch64)
         # there has been no GCC 4.10, as it was renamed to GCC 5.
         ifneq (,$(filter 4.9,$(word 1,$(GCC_VERSION)).$(word 2,$(GCC_VERSION))))
             DEFINES += -DUSE_HW_AES -DUSE_HW_SHA1 -DUSE_HW_SHA2 -DHAVE_PLATFORM_GHASH
-            EXTRA_SRCS += aes-armv8.c gcm-aarch64.c sha1-armv8.c sha256-armv8.c
+            EXTRA_SRCS += aes-armv8.c ghash-aarch64.c sha1-armv8.c sha256-armv8.c
         endif
         ifeq (,$(filter 0 1 2 3 4,$(word 1,$(GCC_VERSION))))
             DEFINES += -DUSE_HW_AES -DUSE_HW_SHA1 -DUSE_HW_SHA2 -DHAVE_PLATFORM_GHASH
-            EXTRA_SRCS += aes-armv8.c gcm-aarch64.c sha1-armv8.c sha256-armv8.c
+            EXTRA_SRCS += aes-armv8.c ghash-aarch64.c sha1-armv8.c sha256-armv8.c
         endif
     endif
 endif
 ifeq ($(CPU_ARCH),arm)
 ifndef NSS_DISABLE_ARM32_NEON
     DEFINES += -DHAVE_PLATFORM_GHASH
-    EXTRA_SRCS += gcm-arm32-neon.c
+    EXTRA_SRCS += ghash-arm32-neon.c
 endif
     ifdef CC_IS_CLANG
         DEFINES += -DUSE_HW_AES -DUSE_HW_SHA1 -DUSE_HW_SHA2
@@ -291,7 +291,7 @@ ifeq ($(CPU_ARCH),arm)
 endif
 ifeq ($(CPU_ARCH),ppc)
     DEFINES += -DHAVE_PLATFORM_GHASH
-    EXTRA_SRCS += gcm-ppc.c
+    EXTRA_SRCS += ghash-ppc.c
 ifdef USE_64
     DEFINES += -DNSS_NO_INIT_SUPPORT
     PPC_ABI := $(shell $(CC) -dM -E - < /dev/null | awk '$$2 == "_CALL_ELF" {print $$3}')
@@ -752,13 +752,13 @@ $(OBJDIR)/$(PROG_PREFIX)aes-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a -mfpu=c
 $(OBJDIR)/$(PROG_PREFIX)sha1-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a -mfpu=crypto-neon-fp-armv8$(if $(USES_SOFTFLOAT_ABI), -mfloat-abi=softfp)
 $(OBJDIR)/$(PROG_PREFIX)sha256-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a -mfpu=crypto-neon-fp-armv8$(if $(USES_SOFTFLOAT_ABI), -mfloat-abi=softfp)
 ifndef NSS_DISABLE_ARM32_NEON
-$(OBJDIR)/$(PROG_PREFIX)gcm-arm32-neon$(OBJ_SUFFIX): CFLAGS += -mfpu=neon$(if $(USES_SOFTFLOAT_ABI), -mfloat-abi=softfp)
+$(OBJDIR)/$(PROG_PREFIX)ghash-arm32-neon$(OBJ_SUFFIX): CFLAGS += -mfpu=neon$(if $(USES_SOFTFLOAT_ABI), -mfloat-abi=softfp)
 endif
 endif
 
 ifeq ($(CPU_ARCH),aarch64)
 $(OBJDIR)/$(PROG_PREFIX)aes-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a+crypto
-$(OBJDIR)/$(PROG_PREFIX)gcm-aarch64$(OBJ_SUFFIX): CFLAGS += -march=armv8-a+crypto
+$(OBJDIR)/$(PROG_PREFIX)ghash-aarch64$(OBJ_SUFFIX): CFLAGS += -march=armv8-a+crypto
 $(OBJDIR)/$(PROG_PREFIX)sha1-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a+crypto
 $(OBJDIR)/$(PROG_PREFIX)sha256-armv8$(OBJ_SUFFIX): CFLAGS += -march=armv8-a+crypto
 endif
@@ -766,14 +766,14 @@ endif
 ifeq ($(CPU_ARCH),ppc)
 $(OBJDIR)/$(PROG_PREFIX)sha512$(OBJ_SUFFIX): CFLAGS += -funroll-loops -fpeel-loops
 ifneq ($(NSS_DISABLE_ALTIVEC),1)
-$(OBJDIR)/$(PROG_PREFIX)gcm-ppc$(OBJ_SUFFIX): CFLAGS += -maltivec
+$(OBJDIR)/$(PROG_PREFIX)ghash-ppc$(OBJ_SUFFIX): CFLAGS += -maltivec
 $(OBJDIR)/$(PROG_PREFIX)gcm$(OBJ_SUFFIX): CFLAGS += -maltivec
 $(OBJDIR)/$(PROG_PREFIX)rijndael$(OBJ_SUFFIX): CFLAGS += -maltivec
 $(OBJDIR)/$(PROG_PREFIX)sha512$(OBJ_SUFFIX): CFLAGS += -maltivec
 $(OBJDIR)/$(PROG_PREFIX)chacha20poly1305-ppc$(OBJ_SUFFIX): CFLAGS += -maltivec
 endif
 ifneq ($(NSS_DISABLE_CRYPTO_VSX),1)
-$(OBJDIR)/$(PROG_PREFIX)gcm-ppc$(OBJ_SUFFIX): CFLAGS += -mcrypto -mvsx
+$(OBJDIR)/$(PROG_PREFIX)ghash-ppc$(OBJ_SUFFIX): CFLAGS += -mcrypto -mvsx
 $(OBJDIR)/$(PROG_PREFIX)gcm$(OBJ_SUFFIX): CFLAGS += -mcrypto -mvsx
 $(OBJDIR)/$(PROG_PREFIX)rijndael$(OBJ_SUFFIX): CFLAGS += -mcrypto -mvsx
 $(OBJDIR)/$(PROG_PREFIX)sha512$(OBJ_SUFFIX): CFLAGS += -mcrypto -mvsx

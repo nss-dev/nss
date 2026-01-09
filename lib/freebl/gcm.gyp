@@ -16,7 +16,7 @@
     'conditions': [
       [ 'target_arch=="ia32" or target_arch=="x64"', {
         'dependencies': [
-          'ghash.gyp:gcm-aes-x86_c_lib',
+          'ghash.gyp:ghash-aes-x86_c_lib',
         ],
         'defines': [
           'HAVE_PLATFORM_GHASH'
@@ -24,7 +24,7 @@
       }],
       [ 'disable_arm32_neon==0 and target_arch=="arm"', {
         'dependencies': [
-          'ghash.gyp:gcm-aes-arm32-neon_c_lib',
+          'ghash.gyp:ghash-aes-arm32-neon_c_lib',
         ],
         'defines': [
           'HAVE_PLATFORM_GHASH'
@@ -32,7 +32,7 @@
       }],
       [ 'target_arch=="arm64" or target_arch=="aarch64"', {
         'dependencies': [
-          'ghash.gyp:gcm-aes-aarch64_c_lib',
+          'ghash.gyp:ghash-aes-aarch64_c_lib',
         ],
         'defines': [
           'HAVE_PLATFORM_GHASH'
@@ -40,7 +40,7 @@
       }],
       [ 'target_arch=="ppc64" or target_arch=="ppc64le"', {
         'dependencies': [
-          'ghash.gyp:gcm-aes-ppc_c_lib',
+          'ghash.gyp:ghash-aes-ppc_c_lib',
         ],
         'defines': [
           'HAVE_PLATFORM_GHASH'
