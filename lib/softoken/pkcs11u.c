@@ -682,6 +682,7 @@ sftk_forceAttribute(SFTKObject *object, CK_ATTRIBUTE_TYPE type,
                         attribute->attrib.ulValueLen);
         }
         if (attribute->freeData) {
+            PORT_Assert(attribute->attrib.pValue != att_val);
             PORT_Free(attribute->attrib.pValue);
         }
         attribute->freeData = PR_FALSE;
