@@ -10,7 +10,7 @@ set -o pipefail
 # Do differential fuzzing with Botan (and not OpenSSL) since NSS has
 # symbol collisions with OpenSSL and therefore they can't be used together
 # in Cryptofuzz.
-export CRYPTOFUZZ_VERSION="3d2377257129fc5da6effb92b0736e31db147dee"
+export CRYPTOFUZZ_VERSION="a62fa42c0f1350203c182e88246292000c8f845b"
 export BOTAN_VERSION="3.10.0"
 
 git clone -q https://github.com/MozillaSecurity/cryptofuzz.git
