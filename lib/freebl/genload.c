@@ -85,7 +85,7 @@ loader_LoadLibInReferenceDir(const char* referencePath, const char* name)
 {
     PRLibrary* dlh = NULL;
     char* fullName = NULL;
-    char* c;
+    const char* c;
     PRLibSpec libSpec;
 
     /* Remove the trailing filename from referencePath and add the new one */
