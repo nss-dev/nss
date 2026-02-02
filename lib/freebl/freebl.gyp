@@ -483,6 +483,7 @@
         '<(DEPTH)/exports.gyp:nss_exports',
         'hw-acc-crypto-avx',
         'hw-acc-crypto-avx2',
+        'gcm.gyp:gcm',
       ],
       'asflags_mozilla': [
         '-mcpu=v9', '-Wa,-xarch=v9a'
