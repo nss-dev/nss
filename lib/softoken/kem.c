@@ -200,6 +200,8 @@ NSC_EncapsulateKey(CK_SESSION_HANDLE hSession,
     SFTKSlot *slot = NULL;
 
     SFTKObject *key = NULL;
+    CK_OBJECT_CLASS ckclass = CKO_SECRET_KEY;
+    CK_KEY_TYPE ckkeyType = CKK_GENERIC_SECRET;
 
     SFTKObject *encapsulationKeyObject = NULL;
     SFTKAttribute *encapsulationKey = NULL;
@@ -242,6 +244,15 @@ NSC_EncapsulateKey(CK_SESSION_HANDLE hSession,
         if (crv != CKR_OK) {
             goto cleanup;
         }
+    }
+
+    crv = sftk_defaultAttribute(key, CKA_CLASS, &ckclass, sizeof(ckclass));
+    if (crv != CKR_OK) {
+        goto cleanup;
+    }
+    crv = sftk_defaultAttribute(key, CKA_KEY_TYPE, &ckkeyType, sizeof(ckkeyType));
+    if (crv != CKR_OK) {
+        goto cleanup;
     }
 
     encapsulationKeyObject = sftk_ObjectFromHandle(hPublicKey, session);
@@ -345,6 +356,8 @@ NSC_DecapsulateKey(CK_SESSION_HANDLE hSession,
     SFTKSlot *slot = NULL;
 
     SFTKObject *key = NULL;
+    CK_OBJECT_CLASS ckclass = CKO_SECRET_KEY;
+    CK_KEY_TYPE ckkeyType = CKK_GENERIC_SECRET;
 
     SFTKObject *decapsulationKeyObject = NULL;
     SFTKAttribute *decapsulationKey = NULL;
@@ -387,6 +400,15 @@ NSC_DecapsulateKey(CK_SESSION_HANDLE hSession,
         if (crv != CKR_OK) {
             goto cleanup;
         }
+    }
+
+    crv = sftk_defaultAttribute(key, CKA_CLASS, &ckclass, sizeof(ckclass));
+    if (crv != CKR_OK) {
+        goto cleanup;
+    }
+    crv = sftk_defaultAttribute(key, CKA_KEY_TYPE, &ckkeyType, sizeof(ckkeyType));
+    if (crv != CKR_OK) {
+        goto cleanup;
     }
 
     decapsulationKeyObject = sftk_ObjectFromHandle(hPrivateKey, session);
