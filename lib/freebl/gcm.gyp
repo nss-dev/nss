@@ -57,7 +57,7 @@
     {
       'target_name': 'gcm-nodepend',
       'conditions': [
-        [ '(target_arch=="ia32" and OS=="win") or target_arch=="x64"', {
+        [ '(OS=="win" and cc_use_gnu_ld!=1 and (target_arch=="ia32" or target_arch=="x64")) or (target_arch=="x64" and OS!="win")', {
           'dependencies': [
             'intel-gcm-wrap.gyp:intel-gcm-wrap-nodepend_c_lib',
           ],
@@ -78,7 +78,7 @@
     {
       'target_name': 'gcm',
       'conditions': [
-        [ '(target_arch=="ia32" and OS=="win") or target_arch=="x64"', {
+        [ '(OS=="win" and cc_use_gnu_ld!=1 and (target_arch=="ia32" or target_arch=="x64")) or (target_arch=="x64" and OS!="win")', {
           'dependencies': [
             'intel-gcm-wrap.gyp:intel-gcm-wrap_c_lib',
           ],

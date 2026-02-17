@@ -25,25 +25,26 @@
           'FREEBL_NO_DEPEND',
         ],
       }],
-      [ 'target_arch=="ia32" and OS=="win"', {
-        'sources': [
-            'intel-aes-x86-masm.asm',
-            'intel-gcm-x86-masm.asm',
+      [ 'OS=="win" and cc_use_gnu_ld!=1', {
+        'conditions': [
+          [ 'target_arch=="ia32"', {
+            'sources': [
+              'intel-aes-x86-masm.asm',
+              'intel-gcm-x86-masm.asm',
+            ],
+          }],
+          [ 'target_arch=="x64"', {
+            'sources': [
+              'intel-aes-x64-masm.asm',
+              'intel-gcm-x64-masm.asm',
+            ],
+          }],
         ],
       }],
-      [ 'target_arch=="x64"', {
-        'conditions': [
-          [ 'OS=="win"', {
-              'sources': [
-                  'intel-aes-x64-masm.asm',
-                  'intel-gcm-x64-masm.asm',
-              ],
-            }, {
-              'sources': [
-                'intel-aes.S',
-                'intel-gcm.S',
-              ],
-          }],
+      [ 'target_arch=="x64" and OS!="win"', {
+        'sources': [
+          'intel-aes.S',
+          'intel-gcm.S',
         ],
       }],
     ],
