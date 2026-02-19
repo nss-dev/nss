@@ -19,15 +19,19 @@ fullversion="$version ("$(cat "$ztmp"/.git-copy)")"
 sed -i -e 's/^Version: .*/Version: '"$fullversion"'/' README.nss
 
 prune=(
+    .cmake-format.yaml
     .git-copy
     .github
     .gitignore
+    BUILD.bazel
     CMakeLists.txt
     ChangeLog
     FAQ
     INDEX
+    MODULE.bazel
     Makefile
     Makefile.in
+    README-cmake.md
     amiga
     configure
     contrib
@@ -53,6 +57,7 @@ prune=(
     zlib.pc.cmakein
     zlib.pc.in
     zlib2ansi
+    zlibConfig.cmake.in
 )
 for i in "${prune[@]}"; do rm -rf "$ztmp"/"$i"; done
 for i in "$ztmp"/*; do mv "$i" .; done
