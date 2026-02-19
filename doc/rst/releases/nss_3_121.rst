@@ -1,0 +1,54 @@
+.. _mozilla_projects_nss_nss_3_121_release_notes:
+
+NSS 3.121 release notes
+===============================
+
+`Introduction <#introduction>`__
+--------------------------------
+
+.. container::
+
+   Network Security Services (NSS) 3.121 was released on *19 February 2026**.
+
+`Distribution Information <#distribution_information>`__
+--------------------------------------------------------
+
+.. container::
+
+   The HG tag is NSS_3_121_RTM. NSS 3.121 requires NSPR 4.38.2 or newer.
+
+   NSS 3.121 source distributions are available on ftp.mozilla.org for secure HTTPS download:
+
+   -  Source tarballs:
+      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_121_RTM/src/
+
+   Other releases are available :ref:`mozilla_projects_nss_releases`.
+
+.. _changes_in_nss_3.121:
+
+`Changes in NSS 3.121 <#changes_in_nss_3.121>`__
+------------------------------------------------------------------
+
+.. container::
+
+   - Bug 2017366 - update vendored zlib to v1.3.2.
+   - Bug 2012645 - Revert the unnecessary changes to intel-gcm-wrap.gyp.
+   - Bug 2012645 - Use C fallback for AES-GCM on MinGW builds.
+   - Bug 2005669 - fix ML-KEM PCT.
+   - Bug 2017008 - Extend NSS Fuzzing docs.
+   - Bug 2009552 - avoid integer overflow in platform-independent ghash.
+   - Bug 2003189 - Fix errant whitespace in OISTE Server Root RSA G1 nickname.
+   - Bug 2012313 - fix build with glibc-2.43 assignment discards 'const' qualifier from pointer.
+   - Bug 2013188 - add gcm.gyp dependency for Solaris SPARC builds.
+   - Bug 2010389 - Set nssckbi version to 2.84.
+   - Bug 2010389 - Add e-Szigno TLS Root CA 2023 to NSS.
+   - Bug 2005516 - allow manual selection of CPU_ARCH=x86_64 and ppc64 in coreconf/Darwin.mk.
+   - Bug 2009998 - Update cryptofuzz version.
+   - Bug 2001167: Paranoia assert.
+   - Bug 2000737 - Darwin compatibility for intel-aes.S and intel-gcm.S.
+   - Bug 2000737 - rename intel-{aes,gcm}.s to .S.
+   - Bug 2000737 - rename C files for platform-specific ghash implementations.
+   - Bug 2000737 - simplify compilation of platform-specific GCM and GHASH.
+   - Bug 2007911 - FORWARD_NULL null deref of worker in p7decode.c (sec_pkcs7_decoder_abort_digests).
+   - Bug 2008112 - Out-of-Bounds Read in ML-DSA Private Key Parsing (zero-length privateKey).
+
