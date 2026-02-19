@@ -1111,11 +1111,11 @@ static CK_RV
 sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
                            CK_KEY_TYPE key_type)
 {
-    CK_BBOOL encrypt = CK_TRUE;
-    CK_BBOOL recover = CK_TRUE;
-    CK_BBOOL wrap = CK_TRUE;
+    CK_BBOOL encrypt = CK_FALSE;
+    CK_BBOOL recover = CK_FALSE;
+    CK_BBOOL wrap = CK_FALSE;
     CK_BBOOL derive = CK_FALSE;
-    CK_BBOOL verify = CK_TRUE;
+    CK_BBOOL verify = CK_FALSE;
     CK_BBOOL encapsulate = CK_FALSE;
     CK_ULONG paramSet = 0;
     CK_RV crv;
@@ -1131,6 +1131,10 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
             if (crv != CKR_OK) {
                 return crv;
             }
+            encrypt = CK_TRUE;
+            recover = CK_TRUE;
+            wrap = CK_TRUE;
+            verify = CK_TRUE;
             break;
         case CKK_DSA:
             crv = sftk_ConstrainAttribute(object, CKA_SUBPRIME,
@@ -1151,9 +1155,7 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
             if (crv != CKR_OK) {
                 return crv;
             }
-            encrypt = CK_FALSE;
-            recover = CK_FALSE;
-            wrap = CK_FALSE;
+            verify = CK_TRUE;
             break;
         case CKK_DH:
             crv = sftk_ConstrainAttribute(object, CKA_PRIME,
@@ -1169,11 +1171,7 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
             if (crv != CKR_OK) {
                 return crv;
             }
-            verify = CK_FALSE;
             derive = CK_TRUE;
-            encrypt = CK_FALSE;
-            recover = CK_FALSE;
-            wrap = CK_FALSE;
             break;
         case CKK_EC_MONTGOMERY:
         case CKK_EC_EDWARDS:
@@ -1187,9 +1185,6 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
             /* for ECDSA and EDDSA. Change if the structure of any of them is modified. */
             derive = (key_type == CKK_EC_EDWARDS) ? CK_FALSE : CK_TRUE;    /* CK_TRUE for ECDH */
             verify = (key_type == CKK_EC_MONTGOMERY) ? CK_FALSE : CK_TRUE; /* for ECDSA and EDDSA */
-            encrypt = CK_FALSE;
-            recover = CK_FALSE;
-            wrap = CK_FALSE;
             break;
 #ifndef NSS_DISABLE_KYBER
         case CKK_NSS_KYBER:
@@ -1201,11 +1196,6 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
                     return CKR_TEMPLATE_INCOMPLETE;
                 }
             }
-            derive = CK_FALSE;
-            verify = CK_FALSE;
-            encrypt = CK_FALSE;
-            recover = CK_FALSE;
-            wrap = CK_FALSE;
             encapsulate = CK_TRUE;
             break;
         case CKK_ML_DSA:
@@ -1220,12 +1210,7 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
             if (sftk_MLDSAGetSigLen(paramSet) == 0) {
                 return CKR_ATTRIBUTE_VALUE_INVALID;
             }
-            derive = CK_FALSE;
             verify = CK_TRUE;
-            encrypt = CK_FALSE;
-            recover = CK_FALSE;
-            wrap = CK_FALSE;
-            encapsulate = CK_FALSE;
             break;
         default:
             return CKR_ATTRIBUTE_VALUE_INVALID;
@@ -1301,11 +1286,11 @@ static CK_RV
 sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYPE key_type)
 {
     CK_BBOOL cktrue = CK_TRUE;
-    CK_BBOOL encrypt = CK_TRUE;
+    CK_BBOOL encrypt = CK_FALSE;
     CK_BBOOL sign = CK_FALSE;
-    CK_BBOOL recover = CK_TRUE;
-    CK_BBOOL wrap = CK_TRUE;
-    CK_BBOOL derive = CK_TRUE;
+    CK_BBOOL recover = CK_FALSE;
+    CK_BBOOL wrap = CK_FALSE;
+    CK_BBOOL derive = CK_FALSE;
     CK_BBOOL decapsulate = CK_FALSE;
     CK_BBOOL ckfalse = CK_FALSE;
     CK_ULONG paramSet = 0;
@@ -1377,15 +1362,24 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
                 return crv;
 
             sign = CK_TRUE;
-            derive = CK_FALSE;
+            wrap = CK_TRUE;
+            encrypt = CK_TRUE;
             break;
         case CKK_DSA:
             if (!sftk_hasAttribute(object, CKA_SUBPRIME)) {
                 return CKR_TEMPLATE_INCOMPLETE;
             }
+            if (!sftk_hasAttribute(object, CKA_PRIME)) {
+                return CKR_TEMPLATE_INCOMPLETE;
+            }
+            if (!sftk_hasAttribute(object, CKA_BASE)) {
+                return CKR_TEMPLATE_INCOMPLETE;
+            }
+            if (!sftk_hasAttribute(object, CKA_VALUE)) {
+                return CKR_TEMPLATE_INCOMPLETE;
+            }
             sign = CK_TRUE;
-            derive = CK_FALSE;
-        /* fall through */
+            break;
         case CKK_DH:
             if (!sftk_hasAttribute(object, CKA_PRIME)) {
                 return CKR_TEMPLATE_INCOMPLETE;
@@ -1401,9 +1395,7 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
             if (crv != CKR_OK) {
                 return crv;
             }
-            encrypt = CK_FALSE;
-            recover = CK_FALSE;
-            wrap = CK_FALSE;
+            derive = CK_TRUE;
             break;
         case CKK_EC:
         case CKK_EC_EDWARDS:
@@ -1417,9 +1409,6 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
             /* for ECDSA and EDDSA. Change if the structure of any of them is modified. */
             derive = (key_type == CKK_EC_EDWARDS) ? CK_FALSE : CK_TRUE;  /* CK_TRUE for ECDH */
             sign = (key_type == CKK_EC_MONTGOMERY) ? CK_FALSE : CK_TRUE; /* for ECDSA and EDDSA */
-            encrypt = CK_FALSE;
-            recover = CK_FALSE;
-            wrap = CK_FALSE;
             break;
         case CKK_NSS_JPAKE_ROUND1:
             if (!sftk_hasAttribute(object, CKA_PRIME) ||
@@ -1431,7 +1420,6 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
         case CKK_NSS_JPAKE_ROUND2:
             /* CKA_NSS_JPAKE_SIGNERID and CKA_NSS_JPAKE_PEERID are checked in
                the J-PAKE code. */
-            encrypt = sign = recover = wrap = CK_FALSE;
             derive = CK_TRUE;
             createObjectInfo = PR_FALSE;
             break;
@@ -1451,11 +1439,6 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
                     return CKR_TEMPLATE_INCOMPLETE;
                 }
             }
-            derive = CK_FALSE;
-            sign = CK_FALSE;
-            encrypt = CK_FALSE;
-            recover = CK_FALSE;
-            wrap = CK_FALSE;
             decapsulate = CK_TRUE;
             break;
         case CKK_ML_DSA:
@@ -1531,7 +1514,6 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
             if (!sftk_hasAttribute(object, CKA_VALUE)) {
                 return CKR_TEMPLATE_INCOMPLETE;
             }
-            encrypt = decapsulate = recover = wrap = CK_FALSE;
             sign = CK_TRUE;
             break;
 
