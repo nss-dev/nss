@@ -1,7 +1,7 @@
 zlib data compression library
 
 URL: http://zlib.net/
-Version: 1.3.1 (51b7f2abdade71cd9bb0e7a373ef2610ec6f9daf)
+Version: 1.3.2 (da607da739fa6047df13e66a2af6b8bec7c2a498)
 License: zlib License
 License File: http://zlib.net/zlib_license.html
 
