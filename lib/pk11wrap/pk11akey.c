@@ -1414,6 +1414,7 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     CK_BBOOL cktrue = CK_TRUE;
     CK_ULONG modulusBits;
     CK_BYTE publicExponent[4];
+    CK_ULONG pubTemplateSize = 0;
     CK_ATTRIBUTE privTemplate[] = {
         { CKA_SENSITIVE, NULL, 0 },
         { CKA_TOKEN, NULL, 0 },
@@ -1485,8 +1486,8 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
         { CKA_VERIFY_RECOVER, NULL, 0 },
         { CKA_ENCRYPT, NULL, 0 },
         { CKA_MODIFIABLE, NULL, 0 },
+        { CKA_ENCAPSULATE, NULL, 0 },
     };
-
     CK_ATTRIBUTE kyberPubTemplate[] = {
         { CKA_PARAMETER_SET, NULL, 0 },
         { CKA_TOKEN, NULL, 0 },
@@ -1644,6 +1645,7 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                           publicExponent, peCount);
             attrs++;
             pubTemplate = rsaPubTemplate;
+            pubTemplateSize = PR_ARRAY_SIZE(rsaPubTemplate);
             keyType = rsaKey;
             test_mech.mechanism = CKM_RSA_PKCS;
             break;
@@ -1660,6 +1662,7 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                           dsaParams->base.len);
             attrs++;
             pubTemplate = dsaPubTemplate;
+            pubTemplateSize = PR_ARRAY_SIZE(dsaPubTemplate);
             keyType = dsaKey;
             test_mech.mechanism = CKM_DSA;
             break;
@@ -1673,6 +1676,7 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                           dhParams->base.len);
             attrs++;
             pubTemplate = dhPubTemplate;
+            pubTemplateSize = PR_ARRAY_SIZE(dhPubTemplate);
             keyType = dhKey;
             test_mech.mechanism = CKM_DH_PKCS_DERIVE;
             break;
@@ -1684,6 +1688,7 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                           ecParams->len);
             attrs++;
             pubTemplate = ecPubTemplate;
+            pubTemplateSize = PR_ARRAY_SIZE(ecPubTemplate);
             keyType = ecKey;
             /*
              * ECC supports 2 different mechanism types (unlike RSA, which
@@ -1720,6 +1725,7 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                           sizeof(CK_NSS_KEM_PARAMETER_SET_TYPE));
             attrs++;
             pubTemplate = kyberPubTemplate;
+            pubTemplateSize = PR_ARRAY_SIZE(kyberPubTemplate);
             keyType = kyberKey;
             test_mech.mechanism = CKM_ML_KEM;
             break;
@@ -1730,6 +1736,7 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                           ecParams->len);
             attrs++;
             pubTemplate = ecPubTemplate;
+            pubTemplateSize = PR_ARRAY_SIZE(ecPubTemplate);
             keyType = ecMontKey;
             test_mech.mechanism = CKM_ECDH1_DERIVE;
             break;
@@ -1740,6 +1747,7 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                           ecParams->len);
             attrs++;
             pubTemplate = ecPubTemplate;
+            pubTemplateSize = PR_ARRAY_SIZE(ecPubTemplate);
             keyType = edKey;
             test_mech.mechanism = CKM_EDDSA;
             break;
@@ -1752,6 +1760,7 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                           sizeof(CK_ML_DSA_PARAMETER_SET_TYPE));
             attrs++;
             pubTemplate = mlDsaPubTemplate;
+            pubTemplateSize = PR_ARRAY_SIZE(mlDsaPubTemplate);
             keyType = mldsaKey;
             test_mech.mechanism = CKM_ML_DSA;
             break;
@@ -1892,7 +1901,17 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
         return NULL;
     }
     privCount = privattrs - privTemplate;
+    PORT_Assert(privCount <= PR_ARRAY_SIZE(privTemplate));
+    if (privCount > PR_ARRAY_SIZE(privTemplate)) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return NULL;
+    }
     pubCount = attrs - pubTemplate;
+    PORT_Assert(pubCount <= pubTemplateSize);
+    if (pubCount > pubTemplateSize) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return NULL;
+    }
     crv = PK11_GETTAB(slot)->C_GenerateKeyPair(session_handle, &mechanism,
                                                pubTemplate, pubCount, privTemplate, privCount, &pubID, &privID);
 
