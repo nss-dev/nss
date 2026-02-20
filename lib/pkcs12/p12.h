@@ -189,6 +189,9 @@ extern SECStatus
 SEC_PKCS12DecoderUpdate(SEC_PKCS12DecoderContext *p12dcx, unsigned char *data,
                         unsigned long len);
 
+extern SECStatus SEC_PKCS12DecoderSetMaxElementLen(SEC_PKCS12DecoderContext *p12dcx,
+                                                   unsigned long maxLen);
+
 extern void
 SEC_PKCS12DecoderFinish(SEC_PKCS12DecoderContext *p12dcx);
 

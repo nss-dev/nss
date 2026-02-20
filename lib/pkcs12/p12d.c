@@ -1265,6 +1265,17 @@ loser:
 }
 
 SECStatus
+SEC_PKCS12DecoderSetMaxElementLen(SEC_PKCS12DecoderContext *p12dcx,
+                                  unsigned long maxLen)
+{
+    if (!p12dcx || p12dcx->error) {
+        return SECFailure;
+    }
+    SEC_ASN1DecoderSetMaximumElementSize(p12dcx->pfxA1Dcx, maxLen);
+    return SECSuccess;
+}
+
+SECStatus
 SEC_PKCS12DecoderSetTargetTokenCAs(SEC_PKCS12DecoderContext *p12dcx,
                                    SECPKCS12TargetTokenCAs tokenCAs)
 {

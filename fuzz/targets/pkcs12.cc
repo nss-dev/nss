@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <algorithm>
 
 #include "nss_scoped_ptrs.h"
 #include "p12.h"
@@ -33,6 +34,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
       SEC_PKCS12DecoderStart(&pwItem, slot.get(), nullptr, nullptr, nullptr,
                              nullptr, nullptr, nullptr));
   assert(dcx);
+
+  SEC_PKCS12DecoderSetMaxElementLen(dcx.get(),
+                                    std::max(1024 * 1024, (int)size));  // 1 MB
 
   SECStatus rv = SEC_PKCS12DecoderUpdate(dcx.get(), (unsigned char*)data, size);
   if (rv != SECSuccess) {
