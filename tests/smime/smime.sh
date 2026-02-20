@@ -176,6 +176,9 @@ Content-Language: en-US
 header_plaintext="Content-Type: text/plain
 "
 
+header_html="Content-Type: text/html
+"
+
 CR=$(printf '\r')
 
 mime_init()
@@ -188,6 +191,15 @@ mime_init()
   OUT="tb/alice.textplain"
   echo "${header_plaintext}" >>${OUT}
   cat alice.txt >>${OUT}
+  sed -i"" "s/\$/${CR}/" ${OUT}
+
+  # We use a single line html payload, without trailing newline.
+  # That's allowed, and has sometimes caused trouble in the past
+  OUT="tb/alice.texthtml"
+  echo "${header_html}" >>${OUT}
+  echo -n "<html><body>" >>${OUT}
+  tr -d "\r\n" < alice.txt >>${OUT}
+  echo -n "</body></html>" >>${OUT}
   sed -i"" "s/\$/${CR}/" ${OUT}
 }
 
@@ -237,11 +249,15 @@ smime_signed_enveloped()
   sed -i"" "s/\$/$CR/" ${OUT}
 
   ${PROFTOOL} ${BINDIR}/cmsutil -S -G -N Alice ${HASH_CMD} -i tb/alice.textplain -d ${P_R_ALICEDIR} -p nss -o tb/alice.textplain.${SIG}
-
   OUT="tb/alice.${SIG}.opaque"
   echo "$header_opaque_signed" >>${OUT}
   cat tb/alice.textplain.${SIG} | ${BINDIR}/btoa | sed 's/\r$//' >>${OUT}
+  ${PROFTOOL} ${BINDIR}/cmsutil -E -r bob@example.com -i ${OUT} -d ${P_R_ALICEDIR} -p nss -o ${OUT}.env
 
+  ${PROFTOOL} ${BINDIR}/cmsutil -S -G -N Alice ${HASH_CMD} -i tb/alice.texthtml -d ${P_R_ALICEDIR} -p nss -o tb/alice.texthtml.${SIG}
+  OUT="tb/alice.html.${SIG}.opaque"
+  echo "$header_opaque_signed" >>${OUT}
+  cat tb/alice.texthtml.${SIG} | ${BINDIR}/btoa | sed 's/\r$//' >>${OUT}
   ${PROFTOOL} ${BINDIR}/cmsutil -E -r bob@example.com -i ${OUT} -d ${P_R_ALICEDIR} -p nss -o ${OUT}.env
 
   OUT="tb/alice.${SIG}.opaque.eml"
@@ -251,11 +267,26 @@ smime_signed_enveloped()
   echo >>${OUT}
   sed -i"" "s/\$/$CR/" ${OUT}
 
+  OUT="tb/alice.html.${SIG}.opaque.eml"
+  echo -n "${header_mime_from_to_subject}" >>${OUT}
+  echo "opaque-signed html $SIG" >>${OUT}
+  cat "tb/alice.html.${SIG}.opaque" >>${OUT}
+  echo >>${OUT}
+  sed -i"" "s/\$/$CR/" ${OUT}
+
   OUT="tb/alice.${SIG}.opaque.env.eml"
   echo -n "${header_mime_from_to_subject}" >>${OUT}
   echo "opaque-signed then enveloped $SIG" >>${OUT}
   echo "$header_enveloped" >>$OUT
   cat "tb/alice.${SIG}.opaque.env" | ${BINDIR}/btoa | sed 's/\r$//' >>${OUT}
+  echo >>${OUT}
+  sed -i"" "s/\$/$CR/" ${OUT}
+
+  OUT="tb/alice.html.${SIG}.opaque.env.eml"
+  echo -n "${header_mime_from_to_subject}" >>${OUT}
+  echo "opaque-signed html then enveloped $SIG" >>${OUT}
+  echo "$header_enveloped" >>$OUT
+  cat "tb/alice.html.${SIG}.opaque.env" | ${BINDIR}/btoa | sed 's/\r$//' >>${OUT}
   echo >>${OUT}
   sed -i"" "s/\$/$CR/" ${OUT}
 
