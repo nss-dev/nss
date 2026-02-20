@@ -1618,6 +1618,8 @@ sftkdb_DestroyObject(SFTKDBHandle *handle, CK_OBJECT_HANDLE objectID,
                                                    CKA_EXPONENT_2);
             (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
                                                    CKA_COEFFICIENT);
+            (void)sftkdb_DestroyAttributeSignature(handle, keydb, objectID,
+                                                   CKA_SEED);
         } else {
             keydb = SFTK_GET_SDB(handle->peerDB);
         }
