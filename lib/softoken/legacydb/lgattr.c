@@ -323,7 +323,7 @@ lg_getTrust(LGObjectCache *obj, NSSLOWCERTCertDBHandle *certHandle)
 {
     NSSLOWCERTTrust *trust;
 
-    if ((obj->objclass != CKO_NSS_TRUST) || (obj->objclass != CKO_TRUST)) {
+    if ((obj->objclass != CKO_NSS_TRUST) && (obj->objclass != CKO_TRUST)) {
         return NULL;
     }
     if (obj->objectInfo) {
