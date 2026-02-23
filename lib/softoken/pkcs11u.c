@@ -2473,10 +2473,10 @@ sftk_quickGetECCCurveOid(SFTKObject *source)
  * the sftk_handleSpecial. Since it's currently only used
  * in FIPS indicators, it's currently only compiled with
  * the FIPS indicator code */
-static int
+static CK_ULONG
 sftk_getKeyLength(SFTKObject *source)
 {
-    CK_KEY_TYPE keyType = CK_INVALID_HANDLE;
+    CK_KEY_TYPE keyType = CKK_INVALID_KEY_TYPE;
     CK_ATTRIBUTE_TYPE keyAttribute;
     CK_ULONG keyLength = 0;
     SFTKAttribute *attribute;
@@ -2496,7 +2496,8 @@ sftk_getKeyLength(SFTKObject *source)
          * key length is CKA_VALUE, which is the default */
         keyType = CKK_INVALID_KEY_TYPE;
     }
-    if (keyType == CKK_EC) {
+    if ((keyType == CKK_EC) || (keyType == CKK_EC_EDWARDS) ||
+        (keyType == CKK_EC_MONTGOMERY)) {
         SECOidTag curve = sftk_quickGetECCCurveOid(source);
         switch (curve) {
             case SEC_OID_CURVE25519:
