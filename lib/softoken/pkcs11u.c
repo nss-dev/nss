@@ -17,6 +17,23 @@
 #include "softkver.h"
 
 #if !defined(NSS_FIPS_DISABLED) && defined(NSS_ENABLE_FIPS_INDICATORS)
+/* handle special cases. Classes require existing code to already be
+ * in place for that class */
+typedef enum {
+    SFTKFIPSNone = 0,
+    SFTKFIPSDH,   /* allow only specific primes */
+    SFTKFIPSECC,  /* not just keys but specific curves */
+    SFTKFIPSAEAD, /* single shot AEAD functions not allowed in FIPS mode */
+    SFTKFIPSRSAPSS
+} SFTKFIPSSpecialClass;
+
+typedef struct SFTKFIPSAlgorithmListStr SFTKFIPSAlgorithmList;
+struct SFTKFIPSAlgorithmListStr {
+    CK_MECHANISM_TYPE type;
+    CK_MECHANISM_INFO info;
+    CK_ULONG step;
+    SFTKFIPSSpecialClass special;
+};
 /* this file should be supplied by the vendor and include all the
  * algorithms which have Algorithm certs and have been reviewed by
  * the lab. A blank file is included for the base so that FIPS mode

@@ -7,24 +7,6 @@
  * algorithms which have NIST algorithm Certificates.
  */
 
-/* handle special cases. Classes require existing code to already be
- * in place for that class */
-typedef enum {
-    SFTKFIPSNone = 0,
-    SFTKFIPSDH,   /* allow only specific primes */
-    SFTKFIPSECC,  /* not just keys but specific curves */
-    SFTKFIPSAEAD, /* single shot AEAD functions not allowed in FIPS mode */
-    SFTKFIPSRSAPSS
-} SFTKFIPSSpecialClass;
-
-typedef struct SFTKFIPSAlgorithmListStr SFTKFIPSAlgorithmList;
-struct SFTKFIPSAlgorithmListStr {
-    CK_MECHANISM_TYPE type;
-    CK_MECHANISM_INFO info;
-    CK_ULONG step;
-    SFTKFIPSSpecialClass special;
-};
-
 SFTKFIPSAlgorithmList sftk_fips_mechs[] = {
 /* A sample set of algorithms to allow basic testing in our continous
  * testing infrastructure. The vendor version should replace this with
