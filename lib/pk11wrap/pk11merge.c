@@ -302,7 +302,7 @@ pk11_mergePrivateKey(PK11SlotInfo *targetSlot, PK11SlotInfo *sourceSlot,
     }
 
     /* get an NSS representation of our source key */
-    sourceKey = PK11_MakePrivKey(sourceSlot, nullKey, PR_FALSE,
+    sourceKey = pk11_MakePrivKey(sourceSlot, nullKey, PR_FALSE,
                                  id, sourcePwArg);
     if (sourceKey == NULL) {
         rv = SECFailure;

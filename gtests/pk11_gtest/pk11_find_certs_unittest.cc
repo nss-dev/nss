@@ -627,4 +627,90 @@ TEST_F(PK11FindEncodedCertInSlotTest, TestFindEncodedCert) {
             unknown_cert_handle_in_slot);
 }
 
+class PK11FindRawPrivateKeys : public PK11FindCertsTestBase {
+ public:
+  PK11FindRawPrivateKeys() : m_priv(nullptr), m_pub(nullptr), m_cert(nullptr) {}
+
+ protected:
+  static const unsigned char data[SHA256_LENGTH];
+  static const unsigned int dataLen = SHA256_LENGTH;
+
+  virtual void SetUp() {
+    PK11FindCertsTestBase::SetUp();
+
+    /* import a private key and certificate */
+    SECItem private_key_info = {
+        siBuffer,
+        const_cast<unsigned char*>(kTestPrivateKeyInfoDER.data()),
+        (unsigned int)kTestPrivateKeyInfoDER.size(),
+    };
+    ASSERT_EQ(SECSuccess, PK11_ImportDERPrivateKeyInfoAndReturnKey(
+                              m_slot, &private_key_info, nullptr, nullptr,
+                              false, false, KU_ALL, &m_priv, nullptr));
+    ASSERT_NE(nullptr, m_priv);
+
+    char cert_nickname[] = "Test Cert 1";
+    SECItem cert_item = {siBuffer,
+                         const_cast<unsigned char*>(kTestCert1DER.data()),
+                         (unsigned int)kTestCert1DER.size()};
+    ASSERT_EQ(SECSuccess,
+              PK11_ImportDERCert(m_slot, &cert_item, CK_INVALID_HANDLE,
+                                 cert_nickname, false));
+
+    /* extract and save the certificate */
+    m_cert = CERT_FindCertByDERCert(CERT_GetDefaultCertDB(), &cert_item);
+    ASSERT_NE(nullptr, m_cert);
+
+    /* extract and save the  public key */
+    m_pub = CERT_ExtractPublicKey(m_cert);
+    ASSERT_NE(nullptr, m_pub);
+  }
+
+  virtual void TearDown() {
+    if (m_priv) SECKEY_DestroyPrivateKey(m_priv);
+    m_priv = nullptr;
+    if (m_pub) SECKEY_DestroyPrivateKey(m_priv);
+    m_pub = nullptr;
+    if (m_cert) CERT_DestroyCertificate(m_cert);
+    m_cert = nullptr;
+    PK11FindCertsTestBase::TearDown();
+  }
+
+  void VerifyPrivateKey(SECKEYPrivateKey* priv, const char* key_name) {
+    unsigned char signature[MAX_SIGNATURE_LEN];
+    SECItem sigItem = {siBuffer, signature, sizeof(signature)};
+    const SECItem hash = {siBuffer, (unsigned char*)data, sizeof(data)};
+    EXPECT_EQ(SECSuccess, PK11_Sign(priv, &sigItem, &hash)) << key_name;
+  }
+
+  SECKEYPrivateKey* m_priv;
+  SECKEYPublicKey* m_pub;
+  CERTCertificate* m_cert;
+};
+
+const unsigned char PK11FindRawPrivateKeys::data[SHA256_LENGTH] = {
+    0x4d, 0x79, 0x20, 0x64, 0x65, 0x63, 0x72, 0x79, 0x70, 0x74, 0x65,
+    0x64, 0x20, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x4d, 0x79,
+    0x20, 0x64, 0x65, 0x63, 0x72, 0x79, 0x70, 0x74, 0x65, 0x64};
+
+TEST_F(PK11FindRawPrivateKeys, VerifyPrivateKeyHandleLifetime) {
+  std::cout << "Verify on init" << std::endl;
+  std::cout << "m_priv"
+            << ": " << m_priv->pkcs11IsTemp << " pkcs11id: " << m_priv->pkcs11ID
+            << std::endl;
+  VerifyPrivateKey(m_priv, "m_priv-init");
+
+  SECKEYPrivateKey* fpriv = PK11_FindKeyByDERCert(m_slot, m_cert, NULL);
+  ASSERT_NE(nullptr, fpriv);
+  std::cout << "fpriv"
+            << ": " << fpriv->pkcs11IsTemp << " pkcs11id: " << fpriv->pkcs11ID
+            << std::endl;
+  VerifyPrivateKey(fpriv, "find-key-1");
+  SECKEY_DestroyPrivateKey(fpriv);
+  fpriv = nullptr;
+
+  /* make sure we haven't lost any keys */
+  VerifyPrivateKey(m_priv, "mpriv-post-find-key-1");
+}
+
 }  // namespace nss_test

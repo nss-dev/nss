@@ -90,7 +90,7 @@ pk11_KeyExchange(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                                            &rsaParams, &pubKey, PR_FALSE, PR_TRUE, symKey->cx);
         } else {
             /* if keys exist, build SECKEY data structures for them */
-            privKey = PK11_MakePrivKey(slot, nullKey, PR_TRUE, privKeyHandle,
+            privKey = pk11_MakePrivKey(slot, nullKey, PR_FALSE, privKeyHandle,
                                        symKey->cx);
             if (privKey != NULL) {
                 pubKey = PK11_ExtractPublicKey(slot, rsaKey, pubKeyHandle);

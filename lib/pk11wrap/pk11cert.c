@@ -1319,7 +1319,8 @@ PK11_FindPrivateKeyFromCert(PK11SlotInfo *slot, CERTCertificate *cert,
     if (keyh == CK_INVALID_HANDLE) {
         return NULL;
     }
-    return PK11_MakePrivKey(slot, nullKey, PR_TRUE, keyh, wincx);
+
+    return pk11_MakePrivKey(slot, nullKey, PR_FALSE, keyh, wincx);
 }
 
 /*
@@ -2091,7 +2092,7 @@ PK11_FindKeyByAnyCert(CERTCertificate *cert, void *wincx)
         }
     }
     if (keyHandle != CK_INVALID_HANDLE) {
-        privKey = PK11_MakePrivKey(slot, nullKey, PR_TRUE, keyHandle, wincx);
+        privKey = pk11_MakePrivKey(slot, nullKey, PR_FALSE, keyHandle, wincx);
     }
     if (slot) {
         PK11_FreeSlot(slot);
@@ -2498,7 +2499,7 @@ PK11_FindKeyByDERCert(PK11SlotInfo *slot, CERTCertificate *cert,
         return NULL;
     }
 
-    return PK11_MakePrivKey(slot, nullKey, PR_TRUE, keyHandle, wincx);
+    return pk11_MakePrivKey(slot, nullKey, PR_FALSE, keyHandle, wincx);
 }
 
 SECStatus

@@ -1359,7 +1359,7 @@ PK11_UnwrapPrivKey(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
         return NULL;
     }
     SECITEM_FreeItem(param_free, PR_TRUE);
-    return PK11_MakePrivKey(slot, nullKey, PR_FALSE, privKeyID, wincx);
+    return pk11_MakePrivKey(slot, nullKey, PR_FALSE, privKeyID, wincx);
 
 loser:
     PK11_FreeSymKey(newKey);

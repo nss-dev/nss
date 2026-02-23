@@ -283,7 +283,7 @@ SECKEY_DestroyPrivateKey(SECKEYPrivateKey *privk)
 {
     if (privk) {
         if (privk->pkcs11Slot) {
-            if (privk->pkcs11IsTemp) {
+            if (SECKEYPRIVATEKEY_IS_OWNED(privk)) {
                 PK11_DestroyObject(privk->pkcs11Slot, privk->pkcs11ID);
             }
             PK11_FreeSlot(privk->pkcs11Slot);
@@ -1436,17 +1436,21 @@ SECKEY_CopyPrivateKey(const SECKEYPrivateKey *privk)
         /* copy the PKCS #11 parameters */
         copyk->pkcs11Slot = PK11_ReferenceSlot(privk->pkcs11Slot);
         /* if the key we're referencing was a temparary key we have just
-         * created, that we want to go away when we're through, we need
+         * it may go away when we're through, we need
          * to make a copy of it */
-        if (privk->pkcs11IsTemp) {
+        copyk->pkcs11IsTemp = privk->pkcs11IsTemp;
+        if (SECKEYPRIVATEKEY_IS_TEMP(privk)) {
             copyk->pkcs11ID =
                 PK11_CopyKey(privk->pkcs11Slot, privk->pkcs11ID);
             if (copyk->pkcs11ID == CK_INVALID_HANDLE)
                 goto fail;
+            /* since we made a copy, we own that copy (even if we
+             * didn't own the original */
+            SECKEYPRIVATEKEY_SET_OWNED(copyk, PR_TRUE);
         } else {
             copyk->pkcs11ID = privk->pkcs11ID;
+            SECKEYPRIVATEKEY_SET_OWNED(copyk, PR_FALSE);
         }
-        copyk->pkcs11IsTemp = privk->pkcs11IsTemp;
         copyk->wincx = privk->wincx;
         copyk->staticflags = privk->staticflags;
         return copyk;

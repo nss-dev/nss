@@ -673,7 +673,7 @@ PK11_ImportAndReturnPrivateKey(PK11SlotInfo *slot, SECKEYRawPrivateKey *lpk,
 
     /* create and return a SECKEYPrivateKey */
     if (rv == SECSuccess && privk != NULL) {
-        *privk = PK11_MakePrivKey(slot, lpk->keyType, !isPerm, objectID, wincx);
+        *privk = pk11_MakePrivKey(slot, lpk->keyType, !isPerm, objectID, wincx);
         if (*privk == NULL) {
             rv = SECFailure;
         }

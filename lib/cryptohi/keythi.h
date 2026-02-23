@@ -252,6 +252,21 @@ struct SECKEYPrivateKeyStr {
 };
 typedef struct SECKEYPrivateKeyStr SECKEYPrivateKey;
 
+/* Because SECKEYPrivateKeys are public (sigh), we can't just add new fields
+ * to the structure. Fortunately if IsOwned is set, then isTemp must also be
+ * set, so we can overload the PRBool as bit flags. Old code testing for
+ * pkcs11IsTemp will still succeed.  See bug 2017945 for more info */
+#define SECKEYPRIVATEKEY_IS_TEMP_FLAG 0x01
+#define SECKEYPRIVATEKEY_IS_OWNED_FLAG 0x02
+#define SECKEYPRIVATEKEY_IS_TEMP(key) \
+    ((PRBool)((key)->pkcs11IsTemp & SECKEYPRIVATEKEY_IS_TEMP_FLAG) == SECKEYPRIVATEKEY_IS_TEMP_FLAG)
+#define SECKEYPRIVATEKEY_IS_OWNED(key) \
+    ((PRBool)((key)->pkcs11IsTemp & SECKEYPRIVATEKEY_IS_OWNED_FLAG) == SECKEYPRIVATEKEY_IS_OWNED_FLAG)
+#define SECKEYPRIVATEKEY_SET_TEMP(key, isTemp) (key)->pkcs11IsTemp = ((key)->pkcs11IsTemp & ~SECKEYPRIVATEKEY_IS_TEMP_FLAG) | \
+                                                                     ((isTemp) ? SECKEYPRIVATEKEY_IS_TEMP_FLAG : 0)
+#define SECKEYPRIVATEKEY_SET_OWNED(key, isOwned) (key)->pkcs11IsTemp = ((key)->pkcs11IsTemp & ~SECKEYPRIVATEKEY_IS_OWNED_FLAG) | \
+                                                                       ((isOwned) ? SECKEYPRIVATEKEY_IS_OWNED_FLAG : 0)
+
 typedef struct {
     PRCList links;
     SECKEYPrivateKey *key;
