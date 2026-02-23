@@ -192,6 +192,9 @@ CMMF_CertRepContentGetNumResponses(CMMFCertRepContent *inCertRepContent)
 SECStatus
 cmmf_DestroyCertOrEncCert(CMMFCertOrEncCert *certOrEncCert, PRBool freeit)
 {
+    if (certOrEncCert->derValue.data != NULL) {
+        SECITEM_FreeItem(&certOrEncCert->derValue, PR_FALSE);
+    }
     switch (certOrEncCert->choice) {
         case cmmfCertificate:
             CERT_DestroyCertificate(certOrEncCert->cert.certificate);

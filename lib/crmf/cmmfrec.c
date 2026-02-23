@@ -53,6 +53,10 @@ CMMF_DestroyKeyRecRepContent(CMMFKeyRecRepContent *inKeyRecRep)
                     cmmfCertificate) {
                     CERT_DestroyCertificate(inKeyRecRep->keyPairHist[i]->certOrEncCert.cert.certificate);
                 }
+                if (!inKeyRecRep->isDecoded &&
+                    inKeyRecRep->keyPairHist[i]->privateKey != NULL) {
+                    crmf_destroy_encrypted_value(inKeyRecRep->keyPairHist[i]->privateKey, PR_FALSE);
+                }
             }
         }
         PORT_FreeArena(inKeyRecRep->poolp, PR_TRUE);

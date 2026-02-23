@@ -50,31 +50,19 @@ cmmf_CertOrEncCertSetCertificate(CMMFCertOrEncCert *certOrEncCert,
         derDest = SEC_ASN1EncodeItem(NULL, NULL, inCert,
                                      CMMFCertOrEncCertCertificateTemplate);
         if (derDest == NULL) {
-            goto loser;
+            return SECFailure;
         }
     } else {
         derDest = SECITEM_DupItem(&inCert->derCert);
         if (derDest == NULL) {
-            goto loser;
+            return SECFailure;
         }
     }
     PORT_Assert(certOrEncCert->cert.certificate == NULL);
     certOrEncCert->cert.certificate = CERT_DupCertificate(inCert);
     certOrEncCert->choice = cmmfCertificate;
-    if (poolp != NULL) {
-        rv = SECITEM_CopyItem(poolp, &certOrEncCert->derValue, derDest);
-        if (rv != SECSuccess) {
-            goto loser;
-        }
-    } else {
-        certOrEncCert->derValue = *derDest;
-    }
-    PORT_Free(derDest);
-    return SECSuccess;
-loser:
-    if (derDest != NULL) {
-        SECITEM_FreeItem(derDest, PR_TRUE);
-    }
+    rv = SECITEM_CopyItem(poolp, &certOrEncCert->derValue, derDest);
+    SECITEM_FreeItem(derDest, PR_TRUE);
     return rv;
 }
 

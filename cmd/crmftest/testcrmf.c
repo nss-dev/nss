@@ -198,6 +198,7 @@ GetSubjectPubKeyInfo(TESTKeyPair *pair)
         privKey = PK11_GenerateKeyPair(keySlot, CKM_RSA_PKCS_KEY_PAIR_GEN,
                                        (void *)rsaParams, &pubKey, PR_FALSE,
                                        PR_FALSE, &pwdata);
+        PORT_Free(rsaParams);
     } else {
         PQGParams *dsaParams = GetDSAParams();
         if (dsaParams == NULL) {
