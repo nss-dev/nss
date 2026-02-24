@@ -516,6 +516,12 @@ sftk_ike_prf(CK_SESSION_HANDLE hSession, const SFTKAttribute *inKey,
             goto fail;
         }
     } else {
+        /* ikev1 isn't validated, if we use this function in ikev1 mode,
+         * mark the resulting key as not FIPS */
+        if (!params->bRekey) {
+            sftk_setFIPS(outKey, PR_FALSE);
+        }
+
         crv = prf_init(&context, inKey->attrib.pValue,
                        inKey->attrib.ulValueLen);
         if (crv != CKR_OK) {
