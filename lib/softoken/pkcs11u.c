@@ -2376,6 +2376,15 @@ sftk_AttributeToFlags(CK_ATTRIBUTE_TYPE op)
         case CKA_DIGEST:
             flags = CKF_DIGEST;
             break;
+        /* fake attribute to select key gen */
+        case CKA_NSS_GENERATE:
+            flags = CKF_GENERATE;
+            break;
+        /* fake attribute to select key pair gen */
+        case CKA_NSS_GENERATE_KEY_PAIR:
+            flags = CKF_GENERATE_KEY_PAIR;
+            break;
+        /* fake attributes to to handle MESSAGE* flags */
         case CKA_NSS_MESSAGE | CKA_ENCRYPT:
             flags = CKF_MESSAGE_ENCRYPT;
             break;

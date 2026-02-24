@@ -5344,6 +5344,11 @@ NSC_GenerateKey(CK_SESSION_HANDLE hSession,
      * handle the base object stuff
      */
     crv = sftk_handleObject(key, session);
+    /* we need to do this check at the end, so we can check the generated key
+     * length against fips requirements */
+    sftk_setFIPS(key, sftk_operationIsFIPS(slot, pMechanism, CKA_NSS_GENERATE,
+                                           key));
+    session->lastOpWasFIPS = sftk_hasFIPS(key);
     sftk_FreeSession(session);
     if (crv != CKR_OK) {
         goto loser;
@@ -6683,8 +6688,8 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
      * created and linked.
      */
     crv = sftk_handleObject(publicKey, session);
-    sftk_FreeSession(session);
     if (crv != CKR_OK) {
+        sftk_FreeSession(session);
         sftk_FreeObject(publicKey);
         NSC_DestroyObject(hSession, privateKey->handle);
         sftk_FreeObject(privateKey);
@@ -6727,12 +6732,21 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
     }
 
     if (crv != CKR_OK) {
+        sftk_FreeSession(session);
         NSC_DestroyObject(hSession, publicKey->handle);
         sftk_FreeObject(publicKey);
         NSC_DestroyObject(hSession, privateKey->handle);
         sftk_FreeObject(privateKey);
         return crv;
     }
+    /* we need to do this check at the end to make sure the generated key
+     * meets the key length requirements */
+    sftk_setFIPS(privateKey, sftk_operationIsFIPS(slot, pMechanism,
+                                                  CKA_NSS_GENERATE_KEY_PAIR,
+                                                  privateKey));
+    session->lastOpWasFIPS = sftk_hasFIPS(privateKey);
+    sftk_setFIPS(publicKey, session->lastOpWasFIPS);
+    sftk_FreeSession(session);
     *phPrivateKey = privateKey->handle;
     *phPublicKey = publicKey->handle;
     sftk_FreeObject(publicKey);
