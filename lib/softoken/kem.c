@@ -286,6 +286,9 @@ NSC_EncapsulateKey(CK_SESSION_HANDLE hSession,
     uint8_t secretBuf[MAX_SHARED_SECRET_BYTES] = { 0 };
     SECItem secret = { siBuffer, secretBuf, sizeof secretBuf };
 
+    sftk_setFIPS(key, sftk_operationIsFIPS(slot, pMechanism, CKA_ENCAPSULATE,
+                                           encapsulationKeyObject));
+    key->source = SFTK_SOURCE_KEA;
     switch (pMechanism->mechanism) {
 #ifndef NSS_DISABLE_KYBER
         case CKM_NSS_KYBER:
@@ -441,7 +444,9 @@ NSC_DecapsulateKey(CK_SESSION_HANDLE hSession,
      * by changing the define at the top of this file */
     uint8_t secretBuf[MAX_SHARED_SECRET_BYTES] = { 0 };
     SECItem secret = { siBuffer, secretBuf, sizeof secretBuf };
-
+    sftk_setFIPS(key, sftk_operationIsFIPS(slot, pMechanism, CKA_DECAPSULATE,
+                                           decapsulationKeyObject));
+    key->source = SFTK_SOURCE_KEA;
     switch (pMechanism->mechanism) {
 #ifndef NSS_DISABLE_KYBER
         case CKM_NSS_KYBER:

@@ -1185,6 +1185,7 @@ sftk_NewObject(SFTKSlot *slot)
     object->validation_attribute.attrib.ulValueLen = sizeof(object->validation_value);
     /* initialize the FIPS flag properly */
     sftk_setFIPS(object, sftk_isFIPS(slot->slotID));
+    object->source = SFTK_SOURCE_DEFAULT;
 
     object->refCount = 1;
     object->type = SFTK_SESSION_OBJECT_TYPE;
@@ -1803,6 +1804,7 @@ sftk_CopyObject(SFTKObject *destObject, SFTKObject *srcObject)
     unsigned int i;
 
     destObject->validation_value = srcObject->validation_value;
+    destObject->source = srcObject->source;
     if (src_so == NULL) {
         return sftk_CopyTokenObject(destObject, srcObject);
     }
@@ -2203,6 +2205,7 @@ sftk_NewTokenObject(SFTKSlot *slot, SECItem *dbKey, CK_OBJECT_HANDLE handle)
     object->validation_attribute.attrib.ulValueLen = sizeof(object->validation_value);
     /* initialize the FIPS flag properly */
     sftk_setFIPS(object, sftk_isFIPS(slot->slotID));
+    object->source = SFTK_SOURCE_DEFAULT;
     object->objectInfo = NULL;
     object->infoFree = NULL;
     if (!hasLocks) {
