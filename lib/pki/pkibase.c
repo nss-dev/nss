@@ -19,10 +19,10 @@ nssPKIObject_Lock(nssPKIObject *object)
 {
     switch (object->lockType) {
         case nssPKIMonitor:
-            PZ_EnterMonitor(object->sync.mlock);
+            PR_EnterMonitor(object->sync.mlock);
             break;
         case nssPKILock:
-            PZ_Lock(object->sync.lock);
+            PR_Lock(object->sync.lock);
             break;
         default:
             PORT_Assert(0);
@@ -34,10 +34,10 @@ nssPKIObject_Unlock(nssPKIObject *object)
 {
     switch (object->lockType) {
         case nssPKIMonitor:
-            PZ_ExitMonitor(object->sync.mlock);
+            PR_ExitMonitor(object->sync.mlock);
             break;
         case nssPKILock:
-            PZ_Unlock(object->sync.lock);
+            PR_Unlock(object->sync.lock);
             break;
         default:
             PORT_Assert(0);
@@ -50,10 +50,10 @@ nssPKIObject_NewLock(nssPKIObject *object, nssPKILockType lockType)
     object->lockType = lockType;
     switch (lockType) {
         case nssPKIMonitor:
-            object->sync.mlock = PZ_NewMonitor(nssILockSSL);
+            object->sync.mlock = PR_NewMonitor();
             return (object->sync.mlock ? PR_SUCCESS : PR_FAILURE);
         case nssPKILock:
-            object->sync.lock = PZ_NewLock(nssILockSSL);
+            object->sync.lock = PR_NewLock();
             return (object->sync.lock ? PR_SUCCESS : PR_FAILURE);
         default:
             PORT_Assert(0);
@@ -66,11 +66,11 @@ nssPKIObject_DestroyLock(nssPKIObject *object)
 {
     switch (object->lockType) {
         case nssPKIMonitor:
-            PZ_DestroyMonitor(object->sync.mlock);
+            PR_DestroyMonitor(object->sync.mlock);
             object->sync.mlock = NULL;
             break;
         case nssPKILock:
-            PZ_DestroyLock(object->sync.lock);
+            PR_DestroyLock(object->sync.lock);
             object->sync.lock = NULL;
             break;
         default:

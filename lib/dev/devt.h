@@ -36,7 +36,7 @@ typedef struct nssSessionStr nssSession;
 /* XXX until NSSTokenStr is moved */
 struct nssDeviceBaseStr {
     NSSArena *arena;
-    PZLock *lock;
+    PRLock *lock;
     PRInt32 refCount;
     NSSUTF8 *name;
     PRUint32 flags;
@@ -86,10 +86,10 @@ struct NSSSlotStr {
     struct nssSlotAuthInfoStr authInfo;
     PRIntervalTime lastTokenPingTime;
     nssSlotLastPingState lastTokenPingState;
-    PZLock *lock;
+    PRLock *lock;
     void *epv;
     PK11SlotInfo *pk11slot;
-    PZLock *isPresentLock;
+    PRLock *isPresentLock;
     PRCondVar *isPresentCondition;
     PRThread *isPresentThread;
 };
@@ -98,7 +98,7 @@ struct nssSessionStr {
     /* Must not hold slot->lock when taking lock.
      * See ordering in nssSlot_IsTokenPresent.
      */
-    PZLock *lock;
+    PRLock *lock;
     CK_SESSION_HANDLE handle;
     NSSSlot *slot;
     PRBool isRW;

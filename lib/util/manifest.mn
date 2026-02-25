@@ -64,7 +64,6 @@ CSRCS = \
 	nssb64e.c \
 	nsshash.c \
 	nssrwlk.c \
-	nssilock.c \
 	oidstring.c \
 	pkcs1sig.c \
 	portreg.c \

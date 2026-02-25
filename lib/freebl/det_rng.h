@@ -5,8 +5,8 @@
 #ifndef __det_rng_h_
 #define __det_rng_h_
 
-SECStatus prng_ResetForFuzzing(PZLock *rng_lock);
-SECStatus prng_GenerateDeterministicRandomBytes(PZLock *rng_lock, void *dest,
+SECStatus prng_ResetForFuzzing(PRLock *rng_lock);
+SECStatus prng_GenerateDeterministicRandomBytes(PRLock *rng_lock, void *dest,
                                                 size_t len);
 
 #endif /* __det_rng_h_ */

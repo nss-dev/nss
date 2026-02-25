@@ -10,7 +10,6 @@
 #define _SECMODTI_H_ 1
 #include "prmon.h"
 #include "prtypes.h"
-#include "nssilckt.h"
 #include "secmodt.h"
 #include "pkcs11t.h"
 
@@ -51,7 +50,7 @@ struct PK11SlotInfoStr {
     CK_FLAGS flags; /* flags from PKCS #11 token Info */
     /* a default session handle to do quick and dirty functions */
     CK_SESSION_HANDLE session;
-    PZLock *sessionLock; /* lock for this session */
+    PRLock *sessionLock; /* lock for this session */
     /* our ID */
     CK_SLOT_ID slotID;
     /* persistant flags saved from startup to startup */
@@ -59,7 +58,7 @@ struct PK11SlotInfoStr {
     /* keep track of who is using us so we don't accidently get freed while
      * still in use */
     PRInt32 refCount; /* to be in/decremented by atomic calls ONLY! */
-    PZLock *freeListLock;
+    PRLock *freeListLock;
     PK11SymKey *freeSymKeysWithSessionHead;
     PK11SymKey *freeSymKeysHead;
     int keyCount;
@@ -107,7 +106,7 @@ struct PK11SlotInfoStr {
     unsigned int lastState;
     /* for Stan */
     NSSToken *nssToken;
-    PZLock *nssTokenLock;
+    PRLock *nssTokenLock;
     /* the tokeninfo struct */
     CK_TOKEN_INFO tokenInfo;
     /* fast mechanism lookup */
@@ -154,7 +153,7 @@ struct PK11ContextStr {
     CK_OBJECT_HANDLE objectID;            /* object handle to key */
     PK11SlotInfo *slot;                   /* slot this context is using */
     CK_SESSION_HANDLE session;            /* session this context is using */
-    PZLock *sessionLock;                  /* lock before accessing a PKCS #11
+    PRLock *sessionLock;                  /* lock before accessing a PKCS #11
                                            * session */
     PRBool ownSession;                    /* do we own the session? */
     void *pwArg;                          /* applicaton specific passwd arg */

@@ -1983,10 +1983,10 @@ sftk_handleObject(SFTKObject *object, SFTKSession *session)
     if (crv != CKR_OK)
         return crv;
 
-    PZ_Lock(slot->slotLock);
+    PR_Lock(slot->slotLock);
     isLoggedIn = slot->isLoggedIn;
     needLogin = slot->needLogin;
-    PZ_Unlock(slot->slotLock);
+    PR_Unlock(slot->slotLock);
 
     /* don't create a private object if we aren't logged in */
     if (!isLoggedIn && needLogin && sftk_isTrue(object, CKA_PRIVATE)) {
@@ -3253,18 +3253,18 @@ SFTK_SlotInit(char *configdir, char *updatedir, char *updateID,
     }
     slot->sessionLockMask = slot->numSessionLocks - 1;
 
-    slot->slotLock = PZ_NewLock(nssILockSession);
+    slot->slotLock = PR_NewLock();
     if (slot->slotLock == NULL)
         goto mem_loser;
-    slot->sessionLock = PORT_ZNewArray(PZLock *, slot->numSessionLocks);
+    slot->sessionLock = PORT_ZNewArray(PRLock *, slot->numSessionLocks);
     if (slot->sessionLock == NULL)
         goto mem_loser;
     for (i = 0; i < slot->numSessionLocks; i++) {
-        slot->sessionLock[i] = PZ_NewLock(nssILockSession);
+        slot->sessionLock[i] = PR_NewLock();
         if (slot->sessionLock[i] == NULL)
             goto mem_loser;
     }
-    slot->objectLock = PZ_NewLock(nssILockObject);
+    slot->objectLock = PR_NewLock();
     if (slot->objectLock == NULL)
         goto mem_loser;
     slot->pwCheckLock = PR_NewLock();
@@ -3334,12 +3334,12 @@ sftk_CloseAllSessions(SFTKSlot *slot, PRBool logout)
      */
     if (logout) {
         handle = sftk_getKeyDB(slot);
-        SKIP_AFTER_FORK(PZ_Lock(slot->slotLock));
+        SKIP_AFTER_FORK(PR_Lock(slot->slotLock));
         slot->isLoggedIn = PR_FALSE;
         if (slot->needLogin && handle) {
             sftkdb_ClearPassword(handle);
         }
-        SKIP_AFTER_FORK(PZ_Unlock(slot->slotLock));
+        SKIP_AFTER_FORK(PR_Unlock(slot->slotLock));
         if (handle) {
             sftk_freeDB(handle);
         }
@@ -3351,9 +3351,9 @@ sftk_CloseAllSessions(SFTKSlot *slot, PRBool logout)
      * NSC_CloseAllSessions... but any session running when this code starts
      * will guarrenteed be close, and no session will be partially closed */
     for (i = 0; i < slot->sessHashSize; i++) {
-        PZLock *lock = SFTK_SESSION_LOCK(slot, i);
+        PRLock *lock = SFTK_SESSION_LOCK(slot, i);
         do {
-            SKIP_AFTER_FORK(PZ_Lock(lock));
+            SKIP_AFTER_FORK(PR_Lock(lock));
             session = slot->head[i];
             /* hand deque */
             /* this duplicates function of NSC_close session functions, but
@@ -3364,15 +3364,15 @@ sftk_CloseAllSessions(SFTKSlot *slot, PRBool logout)
                 if (session->next)
                     session->next->prev = NULL;
                 session->next = session->prev = NULL;
-                SKIP_AFTER_FORK(PZ_Unlock(lock));
-                SKIP_AFTER_FORK(PZ_Lock(slot->slotLock));
+                SKIP_AFTER_FORK(PR_Unlock(lock));
+                SKIP_AFTER_FORK(PR_Lock(slot->slotLock));
                 --slot->sessionCount;
-                SKIP_AFTER_FORK(PZ_Unlock(slot->slotLock));
+                SKIP_AFTER_FORK(PR_Unlock(slot->slotLock));
                 if (session->info.flags & CKF_RW_SESSION) {
                     (void)PR_ATOMIC_DECREMENT(&slot->rwSessionCount);
                 }
             } else {
-                SKIP_AFTER_FORK(PZ_Unlock(lock));
+                SKIP_AFTER_FORK(PR_Unlock(lock));
             }
             if (session) {
                 sftk_DestroySession(session);
@@ -3397,12 +3397,12 @@ sftk_DBShutdown(SFTKSlot *slot)
 {
     SFTKDBHandle *certHandle;
     SFTKDBHandle *keyHandle;
-    SKIP_AFTER_FORK(PZ_Lock(slot->slotLock));
+    SKIP_AFTER_FORK(PR_Lock(slot->slotLock));
     certHandle = slot->certDB;
     slot->certDB = NULL;
     keyHandle = slot->keyDB;
     slot->keyDB = NULL;
-    SKIP_AFTER_FORK(PZ_Unlock(slot->slotLock));
+    SKIP_AFTER_FORK(PR_Unlock(slot->slotLock));
     if (certHandle) {
         sftk_freeDB(certHandle);
     }
@@ -3471,12 +3471,12 @@ SFTK_DestroySlotData(SFTKSlot *slot)
 
     /* OK everything has been disassembled, now we can finally get rid
      * of the locks */
-    SKIP_AFTER_FORK(PZ_DestroyLock(slot->slotLock));
+    SKIP_AFTER_FORK(PR_DestroyLock(slot->slotLock));
     slot->slotLock = NULL;
     if (slot->sessionLock) {
         for (i = 0; i < slot->numSessionLocks; i++) {
             if (slot->sessionLock[i]) {
-                SKIP_AFTER_FORK(PZ_DestroyLock(slot->sessionLock[i]));
+                SKIP_AFTER_FORK(PR_DestroyLock(slot->sessionLock[i]));
                 slot->sessionLock[i] = NULL;
             }
         }
@@ -3484,7 +3484,7 @@ SFTK_DestroySlotData(SFTKSlot *slot)
         slot->sessionLock = NULL;
     }
     if (slot->objectLock) {
-        SKIP_AFTER_FORK(PZ_DestroyLock(slot->objectLock));
+        SKIP_AFTER_FORK(PR_DestroyLock(slot->objectLock));
         slot->objectLock = NULL;
     }
     if (slot->pwCheckLock) {
@@ -4157,14 +4157,14 @@ sftk_checkNeedLogin(SFTKSlot *slot, SFTKDBHandle *keyHandle)
 {
     PRBool needLogin;
     if (sftkdb_PWCached(keyHandle) == SECSuccess) {
-        PZ_Lock(slot->slotLock);
+        PR_Lock(slot->slotLock);
         needLogin = slot->needLogin;
-        PZ_Unlock(slot->slotLock);
+        PR_Unlock(slot->slotLock);
     } else {
         needLogin = (PRBool)!sftk_hasNullPassword(slot, keyHandle);
-        PZ_Lock(slot->slotLock);
+        PR_Lock(slot->slotLock);
         slot->needLogin = needLogin;
-        PZ_Unlock(slot->slotLock);
+        PR_Unlock(slot->slotLock);
     }
     return needLogin;
 }
@@ -4203,10 +4203,10 @@ NSC_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo)
     PORT_Memcpy(pInfo->utcTime, "0000000000000000", 16);
     pInfo->ulMaxSessionCount = 0;   /* arbitrarily large */
     pInfo->ulMaxRwSessionCount = 0; /* arbitarily large */
-    PZ_Lock(slot->slotLock);        /* Protect sessionCount / rwSessioncount */
+    PR_Lock(slot->slotLock);        /* Protect sessionCount / rwSessioncount */
     pInfo->ulSessionCount = slot->sessionCount;
     pInfo->ulRwSessionCount = slot->rwSessionCount;
-    PZ_Unlock(slot->slotLock); /* Unlock before sftk_getKeyDB */
+    PR_Unlock(slot->slotLock); /* Unlock before sftk_getKeyDB */
     pInfo->firmwareVersion.major = 0;
     pInfo->firmwareVersion.minor = 0;
     PORT_Memcpy(pInfo->label, slot->tokDescription, sizeof(pInfo->label));
@@ -4415,7 +4415,7 @@ NSC_InitToken(CK_SLOT_ID slotID, CK_CHAR_PTR pPin,
 
     /* first, delete all our loaded key and cert objects from our
      * internal list. */
-    PZ_Lock(slot->objectLock);
+    PR_Lock(slot->objectLock);
     for (i = 0; i < slot->sessObjHashSize; i++) {
         do {
             object = slot->sessObjHashTable[i];
@@ -4435,7 +4435,7 @@ NSC_InitToken(CK_SLOT_ID slotID, CK_CHAR_PTR pPin,
         } while (object != NULL);
     }
     slot->DB_loaded = PR_FALSE;
-    PZ_Unlock(slot->objectLock);
+    PR_Unlock(slot->objectLock);
 
     /* then clear out the key database */
     handle = sftk_getKeyDB(slot);
@@ -4528,9 +4528,9 @@ NSC_InitPIN(CK_SESSION_HANDLE hSession,
     /* Now update our local copy of the pin */
     if (rv == SECSuccess) {
         if (ulPinLen == 0) {
-            PZ_Lock(slot->slotLock);
+            PR_Lock(slot->slotLock);
             slot->needLogin = PR_FALSE;
-            PZ_Unlock(slot->slotLock);
+            PR_Unlock(slot->slotLock);
         }
         /* database has been initialized, now force min password in FIPS
          * mode. NOTE: if we are in level1, we may not have a password, but
@@ -4587,9 +4587,9 @@ NSC_SetPIN(CK_SESSION_HANDLE hSession, CK_CHAR_PTR pOldPin,
         return CKR_PIN_LEN_RANGE; /* XXX FIXME wrong return value */
     }
 
-    PZ_Lock(slot->slotLock);
+    PR_Lock(slot->slotLock);
     needLogin = slot->needLogin;
-    PZ_Unlock(slot->slotLock);
+    PR_Unlock(slot->slotLock);
     if (needLogin && sp->info.state != CKS_RW_USER_FUNCTIONS) {
         crv = CKR_USER_NOT_LOGGED_IN;
         goto loser;
@@ -4632,16 +4632,16 @@ NSC_SetPIN(CK_SESSION_HANDLE hSession, CK_CHAR_PTR pOldPin,
 
     /* Now update our local copy of the pin */
     if (rv == SECSuccess) {
-        PZ_Lock(slot->slotLock);
+        PR_Lock(slot->slotLock);
         slot->needLogin = (PRBool)(ulNewLen != 0);
         slot->isLoggedIn = (PRBool)(sftkdb_PWCached(handle) == SECSuccess);
-        PZ_Unlock(slot->slotLock);
+        PR_Unlock(slot->slotLock);
         /* Reset login flags. */
         if (ulNewLen == 0) {
-            PZ_Lock(slot->slotLock);
+            PR_Lock(slot->slotLock);
             slot->isLoggedIn = PR_FALSE;
             slot->ssoLoggedIn = PR_FALSE;
-            PZ_Unlock(slot->slotLock);
+            PR_Unlock(slot->slotLock);
 
             tokenRemoved = PR_FALSE;
             rv = sftkdb_CheckPasswordNull(handle, &tokenRemoved);
@@ -4690,20 +4690,20 @@ NSC_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags,
         /* NETSCAPE_SLOT_ID is Read ONLY */
         session->info.flags &= ~CKF_RW_SESSION;
     }
-    PZ_Lock(slot->slotLock);
+    PR_Lock(slot->slotLock);
     ++slot->sessionCount;
-    PZ_Unlock(slot->slotLock);
+    PR_Unlock(slot->slotLock);
     if (session->info.flags & CKF_RW_SESSION) {
         (void)PR_ATOMIC_INCREMENT(&slot->rwSessionCount);
     }
 
     do {
-        PZLock *lock;
+        PRLock *lock;
         do {
             sessionID = (PR_ATOMIC_INCREMENT(&slot->sessionIDCount) & 0xffffff) | (slot->index << 24);
         } while (sessionID == CK_INVALID_HANDLE);
         lock = SFTK_SESSION_LOCK(slot, sessionID);
-        PZ_Lock(lock);
+        PR_Lock(lock);
         sftkqueue_find(sameID, sessionID, slot->head, slot->sessHashSize);
         if (sameID == NULL) {
             session->handle = sessionID;
@@ -4712,7 +4712,7 @@ NSC_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags,
         } else {
             slot->sessionIDConflict++; /* for debugging */
         }
-        PZ_Unlock(lock);
+        PR_Unlock(lock);
     } while (sameID != NULL);
 
     *phSession = sessionID;
@@ -4726,7 +4726,7 @@ NSC_CloseSession(CK_SESSION_HANDLE hSession)
     SFTKSlot *slot;
     SFTKSession *session;
     PRBool sessionFound;
-    PZLock *lock;
+    PRLock *lock;
 
     CHECK_FORK();
 
@@ -4738,24 +4738,24 @@ NSC_CloseSession(CK_SESSION_HANDLE hSession)
 
     /* lock */
     lock = SFTK_SESSION_LOCK(slot, hSession);
-    PZ_Lock(lock);
+    PR_Lock(lock);
     if (sftkqueue_is_queued(session, hSession, slot->head, slot->sessHashSize)) {
         sessionFound = PR_TRUE;
         sftkqueue_delete(session, hSession, slot->head, slot->sessHashSize);
     }
-    PZ_Unlock(lock);
+    PR_Unlock(lock);
 
     if (sessionFound) {
         SFTKDBHandle *handle;
         handle = sftk_getKeyDB(slot);
-        PZ_Lock(slot->slotLock);
+        PR_Lock(slot->slotLock);
         if (--slot->sessionCount == 0) {
             slot->isLoggedIn = PR_FALSE;
             if (slot->needLogin && handle) {
                 sftkdb_ClearPassword(handle);
             }
         }
-        PZ_Unlock(slot->slotLock);
+        PR_Unlock(slot->slotLock);
         if (handle) {
             sftk_freeDB(handle);
         }
@@ -4845,10 +4845,10 @@ NSC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
         return CKR_USER_TYPE_INVALID;
     }
 
-    PZ_Lock(slot->slotLock);
+    PR_Lock(slot->slotLock);
     isLoggedIn = slot->isLoggedIn;
     needLogin = slot->needLogin;
-    PZ_Unlock(slot->slotLock);
+    PR_Unlock(slot->slotLock);
 
     if (isLoggedIn)
         return CKR_USER_ALREADY_LOGGED_IN;
@@ -4887,10 +4887,10 @@ NSC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
             /* should this be a fixed password? */
             if (ulPinLen == 0) {
                 sftkdb_ClearPassword(handle);
-                PZ_Lock(slot->slotLock);
+                PR_Lock(slot->slotLock);
                 slot->isLoggedIn = PR_TRUE;
                 slot->ssoLoggedIn = (PRBool)(userType == CKU_SO);
-                PZ_Unlock(slot->slotLock);
+                PR_Unlock(slot->slotLock);
                 sftk_update_all_states(slot);
                 crv = CKR_OK;
                 goto done;
@@ -4919,11 +4919,11 @@ NSC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
     }
     PR_Unlock(slot->pwCheckLock);
     if (rv == SECSuccess) {
-        PZ_Lock(slot->slotLock);
+        PR_Lock(slot->slotLock);
         /* make sure the login state matches the underlying
          * database state */
         slot->isLoggedIn = sftkdb_PWCached(handle) == SECSuccess ? PR_TRUE : PR_FALSE;
-        PZ_Unlock(slot->slotLock);
+        PR_Unlock(slot->slotLock);
 
         sftk_freeDB(handle);
         handle = NULL;
@@ -4974,13 +4974,13 @@ NSC_Logout(CK_SESSION_HANDLE hSession)
         return CKR_USER_NOT_LOGGED_IN;
 
     handle = sftk_getKeyDB(slot);
-    PZ_Lock(slot->slotLock);
+    PR_Lock(slot->slotLock);
     slot->isLoggedIn = PR_FALSE;
     slot->ssoLoggedIn = PR_FALSE;
     if (slot->needLogin && handle) {
         sftkdb_ClearPassword(handle);
     }
-    PZ_Unlock(slot->slotLock);
+    PR_Unlock(slot->slotLock);
     if (handle) {
         sftk_freeDB(handle);
     }
@@ -5374,10 +5374,10 @@ NSC_GetAttributeValue(CK_SESSION_HANDLE hSession,
         return CKR_OBJECT_HANDLE_INVALID;
     }
 
-    PZ_Lock(slot->slotLock);
+    PR_Lock(slot->slotLock);
     isLoggedIn = slot->isLoggedIn;
     needLogin = slot->needLogin;
-    PZ_Unlock(slot->slotLock);
+    PR_Unlock(slot->slotLock);
 
     /* don't read a private object if we aren't logged in */
     if (!isLoggedIn && needLogin && sftk_isTrue(object, CKA_PRIVATE)) {
@@ -5445,10 +5445,10 @@ NSC_SetAttributeValue(CK_SESSION_HANDLE hSession,
         return CKR_OBJECT_HANDLE_INVALID;
     }
 
-    PZ_Lock(slot->slotLock);
+    PR_Lock(slot->slotLock);
     isLoggedIn = slot->isLoggedIn;
     needLogin = slot->needLogin;
-    PZ_Unlock(slot->slotLock);
+    PR_Unlock(slot->slotLock);
 
     /* don't modify a private object if we aren't logged in */
     if (!isLoggedIn && needLogin && sftk_isTrue(object, CKA_PRIVATE)) {
@@ -5730,9 +5730,9 @@ NSC_FindObjectsInit(CK_SESSION_HANDLE hSession,
     search->size = 0;
     search->array_size = NSC_SEARCH_BLOCK_SIZE;
 
-    PZ_Lock(slot->slotLock);
+    PR_Lock(slot->slotLock);
     isLoggedIn = (PRBool)((!slot->needLogin) || slot->isLoggedIn);
-    PZ_Unlock(slot->slotLock);
+    PR_Unlock(slot->slotLock);
 
     PRBool validTokenAttribute = PR_FALSE;
     PRBool tokenAttributeValue = PR_FALSE;

@@ -18,7 +18,6 @@
         'nssb64d.c',
         'nssb64e.c',
         'nsshash.c',
-        'nssilock.c',
         'nssrwlk.c',
         'oidstring.c',
         'pkcs1sig.c',

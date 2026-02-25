@@ -102,8 +102,8 @@ nssHash_Create(NSSArena *arenaOpt, PRUint32 numBuckets, PLHashFunction keyHash,
         goto loser;
     }
 
-    rv->mutex = PZ_NewLock(nssILockOther);
-    if ((PZLock *)NULL == rv->mutex) {
+    rv->mutex = PR_NewLock();
+    if ((PRLock *)NULL == rv->mutex) {
         goto loser;
     }
 
@@ -111,7 +111,7 @@ nssHash_Create(NSSArena *arenaOpt, PRUint32 numBuckets, PLHashFunction keyHash,
         PL_NewHashTable(numBuckets, keyHash, keyCompare, valueCompare,
                         &nssArenaHashAllocOps, arena);
     if ((PLHashTable *)NULL == rv->plHashTable) {
-        (void)PZ_DestroyLock(rv->mutex);
+        (void)PR_DestroyLock(rv->mutex);
         goto loser;
     }
 
@@ -165,7 +165,7 @@ nssHash_CreateItem(NSSArena *arenaOpt, PRUint32 numBuckets)
 NSS_IMPLEMENT void
 nssHash_Destroy(nssHash *hash)
 {
-    (void)PZ_DestroyLock(hash->mutex);
+    (void)PR_DestroyLock(hash->mutex);
     PL_HashTableDestroy(hash->plHashTable);
     if (hash->i_alloced_arena) {
         nssArena_Destroy(hash->arena);
@@ -184,7 +184,7 @@ nssHash_Add(nssHash *hash, const void *key, const void *value)
     PRStatus error = PR_FAILURE;
     PLHashEntry *he;
 
-    PZ_Lock(hash->mutex);
+    PR_Lock(hash->mutex);
 
     he = PL_HashTableAdd(hash->plHashTable, key, (void *)value);
     if ((PLHashEntry *)NULL == he) {
@@ -196,7 +196,7 @@ nssHash_Add(nssHash *hash, const void *key, const void *value)
         error = PR_SUCCESS;
     }
 
-    (void)PZ_Unlock(hash->mutex);
+    (void)PR_Unlock(hash->mutex);
 
     return error;
 }
@@ -210,14 +210,14 @@ nssHash_Remove(nssHash *hash, const void *it)
 {
     PRBool found;
 
-    PZ_Lock(hash->mutex);
+    PR_Lock(hash->mutex);
 
     found = PL_HashTableRemove(hash->plHashTable, it);
     if (found) {
         hash->count--;
     }
 
-    (void)PZ_Unlock(hash->mutex);
+    (void)PR_Unlock(hash->mutex);
     return;
 }
 
@@ -230,11 +230,11 @@ nssHash_Count(nssHash *hash)
 {
     PRUint32 count;
 
-    PZ_Lock(hash->mutex);
+    PR_Lock(hash->mutex);
 
     count = hash->count;
 
-    (void)PZ_Unlock(hash->mutex);
+    (void)PR_Unlock(hash->mutex);
 
     return count;
 }
@@ -248,11 +248,11 @@ nssHash_Exists(nssHash *hash, const void *it)
 {
     void *value;
 
-    PZ_Lock(hash->mutex);
+    PR_Lock(hash->mutex);
 
     value = PL_HashTableLookup(hash->plHashTable, it);
 
-    (void)PZ_Unlock(hash->mutex);
+    (void)PR_Unlock(hash->mutex);
 
     if ((void *)NULL == value) {
         return PR_FALSE;
@@ -270,11 +270,11 @@ nssHash_Lookup(nssHash *hash, const void *it)
 {
     void *rv;
 
-    PZ_Lock(hash->mutex);
+    PR_Lock(hash->mutex);
 
     rv = PL_HashTableLookup(hash->plHashTable, it);
 
-    (void)PZ_Unlock(hash->mutex);
+    (void)PR_Unlock(hash->mutex);
 
     return rv;
 }
@@ -304,11 +304,11 @@ nssHash_Iterate(nssHash *hash, nssHashIterator fcn, void *closure)
     as.fcn = fcn;
     as.closure = closure;
 
-    PZ_Lock(hash->mutex);
+    PR_Lock(hash->mutex);
 
     PL_HashTableEnumerateEntries(hash->plHashTable, nss_hash_enumerator, &as);
 
-    (void)PZ_Unlock(hash->mutex);
+    (void)PR_Unlock(hash->mutex);
 
     return;
 }

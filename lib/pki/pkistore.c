@@ -39,7 +39,7 @@
 struct nssCertificateStoreStr {
     PRBool i_alloced_arena;
     NSSArena *arena;
-    PZLock *lock;
+    PRLock *lock;
     nssHash *subject;
     nssHash *issuer_and_serial;
 };
@@ -79,7 +79,7 @@ nssCertificateStore_Create(NSSArena *arenaOpt)
     if (!store) {
         goto loser;
     }
-    store->lock = PZ_NewLock(nssILockOther);
+    store->lock = PR_NewLock();
     if (!store->lock) {
         goto loser;
     }
@@ -99,7 +99,7 @@ nssCertificateStore_Create(NSSArena *arenaOpt)
 loser:
     if (store) {
         if (store->lock) {
-            PZ_DestroyLock(store->lock);
+            PR_DestroyLock(store->lock);
         }
         if (store->issuer_and_serial) {
             nssHash_Destroy(store->issuer_and_serial);
@@ -123,7 +123,7 @@ nssCertificateStore_Destroy(nssCertificateStore *store)
         nss_SetError(NSS_ERROR_BUSY);
         return PR_FAILURE;
     }
-    PZ_DestroyLock(store->lock);
+    PR_DestroyLock(store->lock);
     nssHash_Destroy(store->issuer_and_serial);
     nssHash_Destroy(store->subject);
     if (store->i_alloced_arena) {
@@ -212,7 +212,7 @@ nssCertificateStore_FindOrAdd(
     PRStatus nssrv;
     NSSCertificate *rvCert = NULL;
 
-    PZ_Lock(store->lock);
+    PR_Lock(store->lock);
     rvCert = nssCertStore_FindCertByIssuerAndSerialNumberLocked(
         store, &c->issuer, &c->serial);
     if (!rvCert) {
@@ -221,7 +221,7 @@ nssCertificateStore_FindOrAdd(
             rvCert = nssCertificate_AddRef(c);
         }
     }
-    PZ_Unlock(store->lock);
+    PR_Unlock(store->lock);
     return rvCert;
 }
 
@@ -293,9 +293,9 @@ nssCertificateStore_Lock(nssCertificateStore *store, nssCertificateStoreTrace *o
     out->store = store;
     out->lock = store->lock;
     out->locked = PR_TRUE;
-    PZ_Lock(out->lock);
+    PR_Lock(out->lock);
 #else
-    PZ_Lock(store->lock);
+    PR_Lock(store->lock);
 #endif
 }
 
@@ -317,9 +317,9 @@ nssCertificateStore_Unlock(
     PORT_Assert(in->locked);
     PORT_Assert(!in->unlocked);
 
-    PZ_Unlock(out->lock);
+    PR_Unlock(out->lock);
 #else
-    PZ_Unlock(store->lock);
+    PR_Unlock(store->lock);
 #endif
 }
 
@@ -360,14 +360,14 @@ nssCertificateStore_FindCertificatesBySubject(
 {
     NSSCertificate **rvArray = NULL;
     nssList *subjectList;
-    PZ_Lock(store->lock);
+    PR_Lock(store->lock);
     subjectList = (nssList *)nssHash_Lookup(store->subject, subject);
     if (subjectList) {
         nssCertificateList_AddReferences(subjectList);
         rvArray = get_array_from_list(subjectList,
                                       rvOpt, maximumOpt, arenaOpt);
     }
-    PZ_Unlock(store->lock);
+    PR_Unlock(store->lock);
     return rvArray;
 }
 
@@ -419,14 +419,14 @@ nssCertificateStore_FindCertificatesByNickname(
     struct nickname_template_str nt;
     nt.nickname = (char *)nickname;
     nt.subjectList = NULL;
-    PZ_Lock(store->lock);
+    PR_Lock(store->lock);
     nssHash_Iterate(store->subject, match_nickname, &nt);
     if (nt.subjectList) {
         nssCertificateList_AddReferences(nt.subjectList);
         rvArray = get_array_from_list(nt.subjectList,
                                       rvOpt, maximumOpt, arenaOpt);
     }
-    PZ_Unlock(store->lock);
+    PR_Unlock(store->lock);
     return rvArray;
 }
 
@@ -476,13 +476,13 @@ nssCertificateStore_FindCertificatesByEmail(
     if (!et.emailList) {
         return NULL;
     }
-    PZ_Lock(store->lock);
+    PR_Lock(store->lock);
     nssHash_Iterate(store->subject, match_email, &et);
     if (et.emailList) {
         /* get references before leaving the store's lock protection */
         nssCertificateList_AddReferences(et.emailList);
     }
-    PZ_Unlock(store->lock);
+    PR_Unlock(store->lock);
     if (et.emailList) {
         rvArray = get_array_from_list(et.emailList,
                                       rvOpt, maximumOpt, arenaOpt);
@@ -520,10 +520,10 @@ nssCertificateStore_FindCertificateByIssuerAndSerialNumber(
 {
     NSSCertificate *rvCert = NULL;
 
-    PZ_Lock(store->lock);
+    PR_Lock(store->lock);
     rvCert = nssCertStore_FindCertByIssuerAndSerialNumberLocked(
         store, issuer, serial);
-    PZ_Unlock(store->lock);
+    PR_Unlock(store->lock);
     return rvCert;
 }
 
@@ -555,7 +555,7 @@ nssCertificateStore_AddTrust(
     NSSCertificate *cert;
     certificate_hash_entry *entry;
     cert = trust->certificate;
-    PZ_Lock(store->lock);
+    PR_Lock(store->lock);
     entry = (certificate_hash_entry *)
         nssHash_Lookup(store->issuer_and_serial, cert);
     if (entry) {
@@ -565,7 +565,7 @@ nssCertificateStore_AddTrust(
         }
         entry->trust = newTrust;
     }
-    PZ_Unlock(store->lock);
+    PR_Unlock(store->lock);
     return (entry) ? PR_SUCCESS : PR_FAILURE;
 }
 
@@ -576,13 +576,13 @@ nssCertificateStore_FindTrustForCertificate(
 {
     certificate_hash_entry *entry;
     NSSTrust *rvTrust = NULL;
-    PZ_Lock(store->lock);
+    PR_Lock(store->lock);
     entry = (certificate_hash_entry *)
         nssHash_Lookup(store->issuer_and_serial, cert);
     if (entry && entry->trust) {
         rvTrust = nssTrust_AddRef(entry->trust);
     }
-    PZ_Unlock(store->lock);
+    PR_Unlock(store->lock);
     return rvTrust;
 }
 
@@ -594,7 +594,7 @@ nssCertificateStore_AddSMIMEProfile(
     NSSCertificate *cert;
     certificate_hash_entry *entry;
     cert = profile->certificate;
-    PZ_Lock(store->lock);
+    PR_Lock(store->lock);
     entry = (certificate_hash_entry *)
         nssHash_Lookup(store->issuer_and_serial, cert);
     if (entry) {
@@ -604,7 +604,7 @@ nssCertificateStore_AddSMIMEProfile(
         }
         entry->profile = newProfile;
     }
-    PZ_Unlock(store->lock);
+    PR_Unlock(store->lock);
     return (entry) ? PR_SUCCESS : PR_FAILURE;
 }
 
@@ -615,13 +615,13 @@ nssCertificateStore_FindSMIMEProfileForCertificate(
 {
     certificate_hash_entry *entry;
     nssSMIMEProfile *rvProfile = NULL;
-    PZ_Lock(store->lock);
+    PR_Lock(store->lock);
     entry = (certificate_hash_entry *)
         nssHash_Lookup(store->issuer_and_serial, cert);
     if (entry && entry->profile) {
         rvProfile = nssSMIMEProfile_AddRef(entry->profile);
     }
-    PZ_Unlock(store->lock);
+    PR_Unlock(store->lock);
     return rvProfile;
 }
 
@@ -669,7 +669,7 @@ nssCertificateStore_DumpStoreInfo(
     void (*cert_dump_iter)(const void *, void *, void *),
     void *arg)
 {
-    PZ_Lock(store->lock);
+    PR_Lock(store->lock);
     nssHash_Iterate(store->issuer_and_serial, cert_dump_iter, arg);
-    PZ_Unlock(store->lock);
+    PR_Unlock(store->lock);
 }

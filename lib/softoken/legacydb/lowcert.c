@@ -8,7 +8,6 @@
 
 #include "seccomon.h"
 #include "secder.h"
-#include "nssilock.h"
 #include "lowkeyi.h"
 #include "secasn1.h"
 #include "secoid.h"

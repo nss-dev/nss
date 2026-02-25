@@ -544,7 +544,7 @@ PRBool
 ssl_HaveRecvBufLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        return PZ_InMonitor(ss->recvBufLock);
+        return PR_InMonitor(ss->recvBufLock);
     } else {
         return PR_TRUE;
     }
@@ -554,7 +554,7 @@ PRBool
 ssl_HaveXmitBufLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        return PZ_InMonitor(ss->xmitBufLock);
+        return PR_InMonitor(ss->xmitBufLock);
     } else {
         return PR_TRUE;
     }
@@ -564,7 +564,7 @@ PRBool
 ssl_Have1stHandshakeLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        return PZ_InMonitor(ss->firstHandshakeLock);
+        return PR_InMonitor(ss->firstHandshakeLock);
     } else {
         return PR_TRUE;
     }
@@ -574,7 +574,7 @@ PRBool
 ssl_HaveSSL3HandshakeLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        return PZ_InMonitor(ss->ssl3HandshakeLock);
+        return PR_InMonitor(ss->ssl3HandshakeLock);
     } else {
         return PR_TRUE;
     }
@@ -595,9 +595,9 @@ void
 ssl_Get1stHandshakeLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        PORT_Assert(PZ_InMonitor(ss->firstHandshakeLock) ||
+        PORT_Assert(PR_InMonitor(ss->firstHandshakeLock) ||
                     !ssl_HaveRecvBufLock(ss));
-        PZ_EnterMonitor(ss->firstHandshakeLock);
+        PR_EnterMonitor(ss->firstHandshakeLock);
     }
 }
 
@@ -605,7 +605,7 @@ void
 ssl_Release1stHandshakeLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        PZ_ExitMonitor(ss->firstHandshakeLock);
+        PR_ExitMonitor(ss->firstHandshakeLock);
     }
 }
 
@@ -614,7 +614,7 @@ ssl_GetSSL3HandshakeLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
         PORT_Assert(!ssl_HaveXmitBufLock(ss));
-        PZ_EnterMonitor(ss->ssl3HandshakeLock);
+        PR_EnterMonitor(ss->ssl3HandshakeLock);
     }
 }
 
@@ -622,7 +622,7 @@ void
 ssl_ReleaseSSL3HandshakeLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        PZ_ExitMonitor(ss->ssl3HandshakeLock);
+        PR_ExitMonitor(ss->ssl3HandshakeLock);
     }
 }
 
@@ -667,7 +667,7 @@ ssl_GetRecvBufLock(sslSocket *ss)
     if (!ss->opt.noLocks) {
         PORT_Assert(!ssl_HaveSSL3HandshakeLock(ss));
         PORT_Assert(!ssl_HaveXmitBufLock(ss));
-        PZ_EnterMonitor(ss->recvBufLock);
+        PR_EnterMonitor(ss->recvBufLock);
     }
 }
 
@@ -675,7 +675,7 @@ void
 ssl_ReleaseRecvBufLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        PZ_ExitMonitor(ss->recvBufLock);
+        PR_ExitMonitor(ss->recvBufLock);
     }
 }
 
@@ -684,7 +684,7 @@ void
 ssl_GetXmitBufLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        PZ_EnterMonitor(ss->xmitBufLock);
+        PR_EnterMonitor(ss->xmitBufLock);
     }
 }
 
@@ -692,7 +692,7 @@ void
 ssl_ReleaseXmitBufLock(sslSocket *ss)
 {
     if (!ss->opt.noLocks) {
-        PZ_ExitMonitor(ss->xmitBufLock);
+        PR_ExitMonitor(ss->xmitBufLock);
     }
 }
 
@@ -6148,14 +6148,14 @@ typedef struct {
     PK11SymKey *symWrapKey[SSL_NUM_WRAP_KEYS];
 } ssl3SymWrapKey;
 
-static PZLock *symWrapKeysLock = NULL;
+static PRLock *symWrapKeysLock = NULL;
 static ssl3SymWrapKey symWrapKeys[SSL_NUM_WRAP_MECHS];
 
 SECStatus
 ssl_FreeSymWrapKeysLock(void)
 {
     if (symWrapKeysLock) {
-        PZ_DestroyLock(symWrapKeysLock);
+        PR_DestroyLock(symWrapKeysLock);
         symWrapKeysLock = NULL;
         return SECSuccess;
     }
@@ -6170,7 +6170,7 @@ SSL3_ShutdownServerCache(void)
 
     if (!symWrapKeysLock)
         return SECSuccess; /* lock was never initialized */
-    PZ_Lock(symWrapKeysLock);
+    PR_Lock(symWrapKeysLock);
     /* get rid of all symWrapKeys */
     for (i = 0; i < SSL_NUM_WRAP_MECHS; ++i) {
         for (j = 0; j < SSL_NUM_WRAP_KEYS; ++j) {
@@ -6183,7 +6183,7 @@ SSL3_ShutdownServerCache(void)
         }
     }
 
-    PZ_Unlock(symWrapKeysLock);
+    PR_Unlock(symWrapKeysLock);
     ssl_FreeSessionCacheLocks();
     return SECSuccess;
 }
@@ -6191,7 +6191,7 @@ SSL3_ShutdownServerCache(void)
 SECStatus
 ssl_InitSymWrapKeysLock(void)
 {
-    symWrapKeysLock = PZ_NewLock(nssILockOther);
+    symWrapKeysLock = PR_NewLock();
     return symWrapKeysLock ? SECSuccess : SECFailure;
 }
 
@@ -6253,7 +6253,7 @@ ssl3_GetWrappingKey(sslSocket *ss,
 
     ssl_InitSessionCacheLocks(PR_TRUE);
 
-    PZ_Lock(symWrapKeysLock);
+    PR_Lock(symWrapKeysLock);
 
     unwrappedWrappingKey = *pSymWrapKey;
     if (unwrappedWrappingKey != NULL) {
@@ -6452,7 +6452,7 @@ install:
 
 loser:
 done:
-    PZ_Unlock(symWrapKeysLock);
+    PR_Unlock(symWrapKeysLock);
     return unwrappedWrappingKey;
 }
 
@@ -12308,10 +12308,10 @@ ssl3_WriteKeyLog(sslSocket *ss, const char *label, const SECItem *item)
 
     PORT_Assert(offset == len);
 
-    PZ_Lock(ssl_keylog_lock);
+    PR_Lock(ssl_keylog_lock);
     if (fwrite(buf, len, 1, ssl_keylog_iob) == 1)
         fflush(ssl_keylog_iob);
-    PZ_Unlock(ssl_keylog_lock);
+    PR_Unlock(ssl_keylog_lock);
     PORT_Free(buf);
 #endif
 }

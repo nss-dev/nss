@@ -72,8 +72,8 @@ struct nssPKIObjectStr {
     PRInt32 refCount;
     /* lock protects the array of nssCryptokiInstance's of the object */
     union {
-        PZLock *lock;
-        PZMonitor *mlock;
+        PRLock *lock;
+        PRMonitor *mlock;
     } sync;
     nssPKILockType lockType;
     /* XXX with LRU cache, this cannot be guaranteed up-to-date.  It cannot

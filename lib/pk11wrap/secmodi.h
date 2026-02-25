@@ -11,7 +11,6 @@
 #include <stddef.h>
 
 #include "pkcs11.h"
-#include "nssilock.h"
 #include "secoidt.h"
 #include "secdert.h"
 #include "certt.h"

@@ -5,7 +5,7 @@
 #include "blapi.h"
 #include "blapit.h"
 #include "Hacl_Chacha20.h"
-#include "nssilock.h"
+#include "prlock.h"
 #include "seccomon.h"
 #include "secerr.h"
 #include "prinit.h"
@@ -13,22 +13,22 @@
 #define GLOBAL_BYTES_SIZE 100
 static PRUint8 globalBytes[GLOBAL_BYTES_SIZE];
 static unsigned long globalNumCalls = 0;
-static PZLock *rng_lock = NULL;
+static PRLock *rng_lock = NULL;
 static PRCallOnceType coRNGInit;
 static const PRCallOnceType pristineCallOnce;
 
 static PRStatus
 rng_init(void)
 {
-    rng_lock = PZ_NewLock(nssILockOther);
+    rng_lock = PR_NewLock();
     if (!rng_lock) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return PR_FAILURE;
     }
     /* --- LOCKED --- */
-    PZ_Lock(rng_lock);
+    PR_Lock(rng_lock);
     memset(globalBytes, 0, GLOBAL_BYTES_SIZE);
-    PZ_Unlock(rng_lock);
+    PR_Unlock(rng_lock);
     /* --- UNLOCKED --- */
 
     return PR_SUCCESS;
@@ -58,13 +58,13 @@ RNG_RandomUpdate(const void *data, size_t bytes)
     }
 
     /* --- LOCKED --- */
-    PZ_Lock(rng_lock);
+    PR_Lock(rng_lock);
     memset(globalBytes, 0, GLOBAL_BYTES_SIZE);
     globalNumCalls = 0;
     if (data) {
         memcpy(globalBytes, (PRUint8 *)data, PR_MIN(bytes, GLOBAL_BYTES_SIZE));
     }
-    PZ_Unlock(rng_lock);
+    PR_Unlock(rng_lock);
     /* --- UNLOCKED --- */
 
     return SECSuccess;
@@ -84,7 +84,7 @@ RNG_GenerateGlobalRandomBytes(void *dest, size_t len)
     }
 
     /* --- LOCKED --- */
-    PZ_Lock(rng_lock);
+    PR_Lock(rng_lock);
 
     memcpy(nonce, &globalNumCalls, sizeof(globalNumCalls));
     globalNumCalls++;
@@ -93,7 +93,7 @@ RNG_GenerateGlobalRandomBytes(void *dest, size_t len)
         ChaCha20Poly1305_CreateContext(key, sizeof(key), 16);
     if (!cx) {
         PORT_SetError(SEC_ERROR_NO_MEMORY);
-        PZ_Unlock(rng_lock);
+        PR_Unlock(rng_lock);
         return SECFailure;
     }
 
@@ -103,7 +103,7 @@ RNG_GenerateGlobalRandomBytes(void *dest, size_t len)
                                    (uint8_t *)key, nonce, 0);
     ChaCha20Poly1305_DestroyContext(cx, PR_TRUE);
 
-    PZ_Unlock(rng_lock);
+    PR_Unlock(rng_lock);
     /* --- UNLOCKED --- */
 
     return SECSuccess;
@@ -113,7 +113,7 @@ void
 RNG_RNGShutdown(void)
 {
     if (rng_lock) {
-        PZ_DestroyLock(rng_lock);
+        PR_DestroyLock(rng_lock);
         rng_lock = NULL;
     }
     coRNGInit = pristineCallOnce;

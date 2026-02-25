@@ -34,9 +34,9 @@ nssSlot_Destroy(
     if (slot) {
         if (PR_ATOMIC_DECREMENT(&slot->base.refCount) == 0) {
             PK11_FreeSlot(slot->pk11slot);
-            PZ_DestroyLock(slot->base.lock);
-            PZ_DestroyCondVar(slot->isPresentCondition);
-            PZ_DestroyLock(slot->isPresentLock);
+            PR_DestroyLock(slot->base.lock);
+            PR_DestroyCondVar(slot->isPresentCondition);
+            PR_DestroyLock(slot->isPresentLock);
             return nssArena_Destroy(slot->base.arena);
         }
     }
@@ -47,7 +47,7 @@ void
 nssSlot_EnterMonitor(NSSSlot *slot)
 {
     if (slot->lock) {
-        PZ_Lock(slot->lock);
+        PR_Lock(slot->lock);
     }
 }
 
@@ -55,7 +55,7 @@ void
 nssSlot_ExitMonitor(NSSSlot *slot)
 {
     if (slot->lock) {
-        PZ_Unlock(slot->lock);
+        PR_Unlock(slot->lock);
     }
 }
 
@@ -85,9 +85,9 @@ NSS_IMPLEMENT void
 nssSlot_ResetDelay(
     NSSSlot *slot)
 {
-    PZ_Lock(slot->isPresentLock);
+    PR_Lock(slot->isPresentLock);
     slot->lastTokenPingState = nssSlotLastPingState_Reset;
-    PZ_Unlock(slot->isPresentLock);
+    PR_Unlock(slot->isPresentLock);
 }
 
 static PRBool
@@ -132,13 +132,13 @@ nssSlot_IsTokenPresent(
     }
 
     /* avoid repeated calls to check token status within set interval */
-    PZ_Lock(slot->isPresentLock);
+    PR_Lock(slot->isPresentLock);
     if (token_status_checked(slot)) {
         CK_FLAGS ckFlags = slot->ckFlags;
-        PZ_Unlock(slot->isPresentLock);
+        PR_Unlock(slot->isPresentLock);
         return ((ckFlags & CKF_TOKEN_PRESENT) != 0);
     }
-    PZ_Unlock(slot->isPresentLock);
+    PR_Unlock(slot->isPresentLock);
 
     /* First obtain the slot epv before we set up the condition
      * variable, so we can just return if we couldn't get it. */
@@ -148,7 +148,7 @@ nssSlot_IsTokenPresent(
     }
 
     /* set up condition so only one thread is active in this part of the code at a time */
-    PZ_Lock(slot->isPresentLock);
+    PR_Lock(slot->isPresentLock);
     while (slot->isPresentThread) {
         PR_WaitCondVar(slot->isPresentCondition, PR_INTERVAL_NO_TIMEOUT);
     }
@@ -156,7 +156,7 @@ nssSlot_IsTokenPresent(
      * given us the answer, no need to make more queries of the token. */
     if (token_status_checked(slot)) {
         CK_FLAGS ckFlags = slot->ckFlags;
-        PZ_Unlock(slot->isPresentLock);
+        PR_Unlock(slot->isPresentLock);
         return ((ckFlags & CKF_TOKEN_PRESENT) != 0);
     }
     /* this is the winning thread, block all others until we've determined
@@ -164,7 +164,7 @@ nssSlot_IsTokenPresent(
     slot->lastTokenPingState = nssSlotLastPingState_Update;
     slot->isPresentThread = PR_GetCurrentThread();
 
-    PZ_Unlock(slot->isPresentLock);
+    PR_Unlock(slot->isPresentLock);
 
     nssToken = PK11Slot_GetNSSToken(slot->pk11slot);
     if (!nssToken) {
@@ -265,7 +265,7 @@ done:
      *  2) Indicate we're complete, waking up all other threads that may still
      *     be waiting on initialization can progress.
      */
-    PZ_Lock(slot->isPresentLock);
+    PR_Lock(slot->isPresentLock);
     /* don't update the time if we were reset while we were
      * getting the token state */
     if (slot->lastTokenPingState == nssSlotLastPingState_Update) {
@@ -274,7 +274,7 @@ done:
     }
     slot->isPresentThread = NULL;
     PR_NotifyAllCondVar(slot->isPresentCondition);
-    PZ_Unlock(slot->isPresentLock);
+    PR_Unlock(slot->isPresentLock);
     return isPresent;
 }
 
@@ -303,7 +303,7 @@ nssSession_EnterMonitor(
     nssSession *s)
 {
     if (s->lock)
-        PZ_Lock(s->lock);
+        PR_Lock(s->lock);
     return PR_SUCCESS;
 }
 
@@ -311,7 +311,7 @@ NSS_IMPLEMENT PRStatus
 nssSession_ExitMonitor(
     nssSession *s)
 {
-    return (s->lock) ? PZ_Unlock(s->lock) : PR_SUCCESS;
+    return (s->lock) ? PR_Unlock(s->lock) : PR_SUCCESS;
 }
 
 NSS_EXTERN PRBool

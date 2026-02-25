@@ -7,7 +7,7 @@
 #ifndef _PKCS11I_H_
 #define _PKCS11I_H_ 1
 
-#include "nssilock.h"
+#include "prlock.h"
 #include "seccomon.h"
 #include "secoidt.h"
 #include "lowkeyti.h"
@@ -176,7 +176,7 @@ struct SFTKObjectListStr {
 
 struct SFTKObjectFreeListStr {
     SFTKObject *head;
-    PZLock *lock;
+    PRLock *lock;
     int count;
 };
 
@@ -189,7 +189,7 @@ struct SFTKObjectStr {
     CK_OBJECT_CLASS objclass;
     CK_OBJECT_HANDLE handle;
     int refCount;
-    PZLock *refLock;
+    PRLock *refLock;
     SFTKSlot *slot;
     void *objectInfo;
     SFTKFree infoFree;
@@ -205,7 +205,7 @@ struct SFTKTokenObjectStr {
 struct SFTKSessionObjectStr {
     SFTKObject obj;
     SFTKObjectList sessionList;
-    PZLock *attributeLock;
+    PRLock *attributeLock;
     SFTKSession *session;
     PRBool wasDerived;
     int nextAttr;
@@ -303,7 +303,7 @@ struct SFTKSessionStr {
     SFTKSession *next;
     SFTKSession *prev;
     CK_SESSION_HANDLE handle;
-    PZLock *objectLock;
+    PRLock *objectLock;
     int objectIDCount;
     CK_SESSION_INFO info;
     CK_NOTIFY notify;
@@ -345,11 +345,11 @@ struct SFTKSessionStr {
  */
 struct SFTKSlotStr {
     CK_SLOT_ID slotID;             /* invariant */
-    PZLock *slotLock;              /* invariant */
-    PZLock **sessionLock;          /* invariant */
+    PRLock *slotLock;              /* invariant */
+    PRLock **sessionLock;          /* invariant */
     unsigned int numSessionLocks;  /* invariant */
     unsigned long sessionLockMask; /* invariant */
-    PZLock *objectLock;            /* invariant */
+    PRLock *objectLock;            /* invariant */
     PRLock *pwCheckLock;           /* invariant */
     PRBool present;                /* variable -set */
     PRBool hasTokens;              /* per load */
@@ -790,7 +790,7 @@ extern CK_RV SFTK_ClearTokenKeyHashTable(SFTKSlot *slot);
 
 extern CK_RV sftk_searchObjectList(SFTKSearchResults *search,
                                    SFTKObject **head, unsigned int size,
-                                   PZLock *lock, CK_ATTRIBUTE_PTR inTemplate,
+                                   PRLock *lock, CK_ATTRIBUTE_PTR inTemplate,
                                    int count, PRBool isLoggedIn);
 extern SFTKObjectListElement *sftk_FreeObjectListElement(
     SFTKObjectListElement *objectList);

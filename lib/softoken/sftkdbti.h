@@ -18,7 +18,7 @@ struct SFTKDBHandleStr {
     int newDefaultIterationCount;
     SECItem *oldKey;
     SECItem *updatePasswordKey;
-    PZLock *passwordLock;
+    PRLock *passwordLock;
     SFTKDBHandle *peerDB;
     SDB *update;
     char *updateID;

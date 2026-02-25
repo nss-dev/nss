@@ -7,7 +7,6 @@
  */
 
 #include "seccomon.h"
-#include "nssilock.h"
 #include "secmod.h"
 #include "secmodi.h"
 #include "secmodti.h"

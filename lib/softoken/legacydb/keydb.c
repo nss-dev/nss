@@ -921,7 +921,7 @@ nsslowkey_NewHandle(DB *dbHandle)
     handle->updatedb = NULL;
     handle->db = dbHandle;
     handle->ref = 1;
-    handle->lock = PZ_NewLock(nssILockKeyDB);
+    handle->lock = PR_NewLock();
 
     return handle;
 }
@@ -1011,7 +1011,7 @@ nsslowkey_CloseKeyDB(NSSLOWKEYDBHandle *handle)
             SECITEM_FreeItem(handle->global_salt, PR_TRUE);
         }
         if (handle->lock != NULL) {
-            SKIP_AFTER_FORK(PZ_DestroyLock(handle->lock));
+            SKIP_AFTER_FORK(PR_DestroyLock(handle->lock));
         }
 
         PORT_Free(handle);
@@ -2102,11 +2102,11 @@ keydb_Get(NSSLOWKEYDBHandle *kdb, DBT *key, DBT *data, unsigned int flags)
     DB *db = kdb->db;
 
     PORT_Assert(kdbLock != NULL);
-    PZ_Lock(kdbLock);
+    PR_Lock(kdbLock);
 
     ret = (*db->get)(db, key, data, flags);
 
-    (void)PZ_Unlock(kdbLock);
+    (void)PR_Unlock(kdbLock);
 
     return (ret);
 }
@@ -2119,11 +2119,11 @@ keydb_Put(NSSLOWKEYDBHandle *kdb, DBT *key, DBT *data, unsigned int flags)
     DB *db = kdb->db;
 
     PORT_Assert(kdbLock != NULL);
-    PZ_Lock(kdbLock);
+    PR_Lock(kdbLock);
 
     ret = (*db->put)(db, key, data, flags);
 
-    (void)PZ_Unlock(kdbLock);
+    (void)PR_Unlock(kdbLock);
 
     return (ret);
 }
@@ -2136,11 +2136,11 @@ keydb_Sync(NSSLOWKEYDBHandle *kdb, unsigned int flags)
     DB *db = kdb->db;
 
     PORT_Assert(kdbLock != NULL);
-    PZ_Lock(kdbLock);
+    PR_Lock(kdbLock);
 
     ret = (*db->sync)(db, flags);
 
-    (void)PZ_Unlock(kdbLock);
+    (void)PR_Unlock(kdbLock);
 
     return (ret);
 }
@@ -2153,11 +2153,11 @@ keydb_Del(NSSLOWKEYDBHandle *kdb, DBT *key, unsigned int flags)
     DB *db = kdb->db;
 
     PORT_Assert(kdbLock != NULL);
-    PZ_Lock(kdbLock);
+    PR_Lock(kdbLock);
 
     ret = (*db->del)(db, key, flags);
 
-    (void)PZ_Unlock(kdbLock);
+    (void)PR_Unlock(kdbLock);
 
     return (ret);
 }
@@ -2170,11 +2170,11 @@ keydb_Seq(NSSLOWKEYDBHandle *kdb, DBT *key, DBT *data, unsigned int flags)
     DB *db = kdb->db;
 
     PORT_Assert(kdbLock != NULL);
-    PZ_Lock(kdbLock);
+    PR_Lock(kdbLock);
 
     ret = (*db->seq)(db, key, data, flags);
 
-    (void)PZ_Unlock(kdbLock);
+    (void)PR_Unlock(kdbLock);
 
     return (ret);
 }
@@ -2186,11 +2186,11 @@ keydb_Close(NSSLOWKEYDBHandle *kdb)
     DB *db = kdb->db;
 
     PORT_Assert(kdbLock != NULL);
-    SKIP_AFTER_FORK(PZ_Lock(kdbLock));
+    SKIP_AFTER_FORK(PR_Lock(kdbLock));
 
     (*db->close)(db);
 
-    SKIP_AFTER_FORK(PZ_Unlock(kdbLock));
+    SKIP_AFTER_FORK(PR_Unlock(kdbLock));
 
     return;
 }

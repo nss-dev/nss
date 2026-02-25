@@ -7,7 +7,6 @@
 #ifndef _LGDB_H_
 #define _LGDB_H_ 1
 
-#include "nssilock.h"
 #include "seccomon.h"
 #include "secoidt.h"
 #include "lowkeyti.h"

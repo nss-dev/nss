@@ -5,7 +5,7 @@
 #define _SECMODT_H_ 1
 
 #include "nssrwlkt.h"
-#include "nssilckt.h"
+#include "prlock.h"
 #include "secoid.h"
 #include "secasn1.h"
 #include "pkcs11t.h"
@@ -53,7 +53,7 @@ struct SECMODModuleStr {
     void *library;             /* pointer to the library. opaque. used only by
                                 * pk11load.c */
     void *functionList;        /* The PKCS #11 function table */
-    PZLock *refLock;           /* only used pk11db.c */
+    PRLock *refLock;           /* only used pk11db.c */
     int refCount;              /* Module reference count */
     PK11SlotInfo **slots;      /* array of slot points attached to this mod*/
     int slotCount;             /* count of slot in above array */
@@ -103,7 +103,7 @@ struct SECMODModuleListStr {
 struct PK11SlotListStr {
     PK11SlotListElement *head;
     PK11SlotListElement *tail;
-    PZLock *lock;
+    PRLock *lock;
 };
 
 struct PK11SlotListElementStr {

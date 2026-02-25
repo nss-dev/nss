@@ -13,7 +13,6 @@
 #include "secoidt.h"
 #include "plarena.h"
 #include "prcvar.h"
-#include "nssilock.h"
 #include "prio.h"
 #include "prmon.h"
 

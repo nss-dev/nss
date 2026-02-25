@@ -14,14 +14,13 @@
 
 #include "sslimpl.h"
 #include "sslproto.h"
-#include "nssilock.h"
 #include "sslencode.h"
 #if defined(XP_UNIX) || defined(XP_WIN) || defined(_WINDOWS)
 #include <time.h>
 #endif
 
 static sslSessionID *cache = NULL;
-static PZLock *cacheLock = NULL;
+static PRLock *cacheLock = NULL;
 
 /* sids can be in one of 5 states:
  *
@@ -33,12 +32,12 @@ static PZLock *cacheLock = NULL;
  */
 
 #define LOCK_CACHE lock_cache()
-#define UNLOCK_CACHE PZ_Unlock(cacheLock)
+#define UNLOCK_CACHE PR_Unlock(cacheLock)
 
 static SECStatus
 ssl_InitClientSessionCacheLock(void)
 {
-    cacheLock = PZ_NewLock(nssILockCache);
+    cacheLock = PR_NewLock();
     return cacheLock ? SECSuccess : SECFailure;
 }
 
@@ -46,7 +45,7 @@ static SECStatus
 ssl_FreeClientSessionCacheLock(void)
 {
     if (cacheLock) {
-        PZ_DestroyLock(cacheLock);
+        PR_DestroyLock(cacheLock);
         cacheLock = NULL;
         return SECSuccess;
     }
@@ -158,7 +157,7 @@ static void
 lock_cache(void)
 {
     ssl_InitSessionCacheLocks(PR_TRUE);
-    PZ_Lock(cacheLock);
+    PR_Lock(cacheLock);
 }
 
 /* BEWARE: This function gets called for both client and server SIDs !!

@@ -9,7 +9,6 @@
 
 #include "seccomon.h"
 #include "secmod.h"
-#include "nssilock.h"
 #include "secmodi.h"
 #include "secmodti.h"
 #include "pkcs11t.h"
@@ -115,7 +114,7 @@ PK11_NewSlotList(void)
         return NULL;
     list->head = NULL;
     list->tail = NULL;
-    list->lock = PZ_NewLock(nssILockList);
+    list->lock = PR_NewLock();
     if (list->lock == NULL) {
         PORT_Free(list);
         return NULL;
@@ -137,11 +136,11 @@ PK11_FreeSlotListElement(PK11SlotList *list, PK11SlotListElement *le)
         return SECFailure;
     }
 
-    PZ_Lock(list->lock);
+    PR_Lock(list->lock);
     if (le->refCount-- == 1) {
         freeit = PR_TRUE;
     }
-    PZ_Unlock(list->lock);
+    PR_Unlock(list->lock);
     if (freeit) {
         PK11_FreeSlot(le->slot);
         PORT_Free(le);
@@ -161,7 +160,7 @@ pk11_FreeSlotListStatic(PK11SlotList *list)
         PK11_FreeSlotListElement(list, le);
     }
     if (list->lock) {
-        PZ_DestroyLock(list->lock);
+        PR_DestroyLock(list->lock);
     }
     list->lock = NULL;
     list->head = NULL;
@@ -198,7 +197,7 @@ PK11_AddSlotToList(PK11SlotList *list, PK11SlotInfo *slot, PRBool sorted)
     le->slot = PK11_ReferenceSlot(slot);
     le->prev = NULL;
     le->refCount = 1;
-    PZ_Lock(list->lock);
+    PR_Lock(list->lock);
     element = list->head;
     /* Insertion sort, with higher cipherOrders are sorted first in the list */
     while (element && sorted && (element->slot->module->cipherOrder > le->slot->module->cipherOrder)) {
@@ -217,7 +216,7 @@ PK11_AddSlotToList(PK11SlotList *list, PK11SlotInfo *slot, PRBool sorted)
         le->prev->next = le;
     if (list->head == element)
         list->head = le;
-    PZ_Unlock(list->lock);
+    PR_Unlock(list->lock);
 
     return SECSuccess;
 }
@@ -228,7 +227,7 @@ PK11_AddSlotToList(PK11SlotList *list, PK11SlotInfo *slot, PRBool sorted)
 SECStatus
 PK11_DeleteSlotFromList(PK11SlotList *list, PK11SlotListElement *le)
 {
-    PZ_Lock(list->lock);
+    PR_Lock(list->lock);
     if (le->prev)
         le->prev->next = le->next;
     else
@@ -238,7 +237,7 @@ PK11_DeleteSlotFromList(PK11SlotList *list, PK11SlotListElement *le)
     else
         list->tail = le->prev;
     le->next = le->prev = NULL;
-    PZ_Unlock(list->lock);
+    PR_Unlock(list->lock);
     PK11_FreeSlotListElement(list, le);
     return SECSuccess;
 }
@@ -302,11 +301,11 @@ PK11_GetFirstSafe(PK11SlotList *list)
 {
     PK11SlotListElement *le;
 
-    PZ_Lock(list->lock);
+    PR_Lock(list->lock);
     le = list->head;
     if (le != NULL)
         (le)->refCount++;
-    PZ_Unlock(list->lock);
+    PR_Unlock(list->lock);
     return le;
 }
 
@@ -319,7 +318,7 @@ PK11SlotListElement *
 PK11_GetNextSafe(PK11SlotList *list, PK11SlotListElement *le, PRBool restart)
 {
     PK11SlotListElement *new_le;
-    PZ_Lock(list->lock);
+    PR_Lock(list->lock);
     new_le = le->next;
     if (le->next == NULL) {
         /* if the prev and next fields are NULL then either this element
@@ -331,7 +330,7 @@ PK11_GetNextSafe(PK11SlotList *list, PK11SlotListElement *le, PRBool restart)
     }
     if (new_le)
         new_le->refCount++;
-    PZ_Unlock(list->lock);
+    PR_Unlock(list->lock);
     PK11_FreeSlotListElement(list, le);
     return new_le;
 }
@@ -392,21 +391,21 @@ PK11_NewSlotInfo(SECMODModule *mod)
     if (slot == NULL) {
         return slot;
     }
-    slot->freeListLock = PZ_NewLock(nssILockFreelist);
+    slot->freeListLock = PR_NewLock();
     if (slot->freeListLock == NULL) {
         PORT_Free(slot);
         return NULL;
     }
-    slot->nssTokenLock = PZ_NewLock(nssILockOther);
+    slot->nssTokenLock = PR_NewLock();
     if (slot->nssTokenLock == NULL) {
-        PZ_DestroyLock(slot->freeListLock);
+        PR_DestroyLock(slot->freeListLock);
         PORT_Free(slot);
         return NULL;
     }
-    slot->sessionLock = mod->isThreadSafe ? PZ_NewLock(nssILockSession) : mod->refLock;
+    slot->sessionLock = mod->isThreadSafe ? PR_NewLock() : mod->refLock;
     if (slot->sessionLock == NULL) {
-        PZ_DestroyLock(slot->nssTokenLock);
-        PZ_DestroyLock(slot->freeListLock);
+        PR_DestroyLock(slot->nssTokenLock);
+        PR_DestroyLock(slot->freeListLock);
         PORT_Free(slot);
         return NULL;
     }
@@ -490,15 +489,15 @@ PK11_DestroySlot(PK11SlotInfo *slot)
         PORT_Free(slot->profileList);
     }
     if (slot->isThreadSafe && slot->sessionLock) {
-        PZ_DestroyLock(slot->sessionLock);
+        PR_DestroyLock(slot->sessionLock);
     }
     slot->sessionLock = NULL;
     if (slot->freeListLock) {
-        PZ_DestroyLock(slot->freeListLock);
+        PR_DestroyLock(slot->freeListLock);
         slot->freeListLock = NULL;
     }
     if (slot->nssTokenLock) {
-        PZ_DestroyLock(slot->nssTokenLock);
+        PR_DestroyLock(slot->nssTokenLock);
         slot->nssTokenLock = NULL;
     }
 
@@ -523,13 +522,13 @@ PK11_FreeSlot(PK11SlotInfo *slot)
 void
 PK11_EnterSlotMonitor(PK11SlotInfo *slot)
 {
-    PZ_Lock(slot->sessionLock);
+    PR_Lock(slot->sessionLock);
 }
 
 void
 PK11_ExitSlotMonitor(PK11SlotInfo *slot)
 {
-    PZ_Unlock(slot->sessionLock);
+    PR_Unlock(slot->sessionLock);
 }
 
 /***********************************************************
@@ -849,7 +848,7 @@ PK11_RestoreROSession(PK11SlotInfo *slot, CK_SESSION_HANDLE rwsession)
 static void
 pk11_InitSlotListStatic(PK11SlotList *list)
 {
-    list->lock = PZ_NewLock(nssILockList);
+    list->lock = PR_NewLock();
     list->head = NULL;
 }
 
@@ -2777,10 +2776,10 @@ PK11Slot_SetNSSToken(PK11SlotInfo *sl, NSSToken *nsst)
         nsst = nssToken_AddRef(nsst);
     }
 
-    PZ_Lock(sl->nssTokenLock);
+    PR_Lock(sl->nssTokenLock);
     old = sl->nssToken;
     sl->nssToken = nsst;
-    PZ_Unlock(sl->nssTokenLock);
+    PR_Unlock(sl->nssTokenLock);
 
     if (old) {
         (void)nssToken_Destroy(old);
@@ -2792,11 +2791,11 @@ PK11Slot_GetNSSToken(PK11SlotInfo *sl)
 {
     NSSToken *rv = NULL;
 
-    PZ_Lock(sl->nssTokenLock);
+    PR_Lock(sl->nssTokenLock);
     if (sl->nssToken) {
         rv = nssToken_AddRef(sl->nssToken);
     }
-    PZ_Unlock(sl->nssTokenLock);
+    PR_Unlock(sl->nssTokenLock);
 
     return rv;
 }

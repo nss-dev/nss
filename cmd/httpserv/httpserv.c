@@ -133,11 +133,11 @@ typedef struct jobStr {
     int requestCert;
 } JOB;
 
-static PZLock *qLock;             /* this lock protects all data immediately below */
+static PRLock *qLock;             /* this lock protects all data immediately below */
 static PRLock *lastLoadedCrlLock; /* this lock protects lastLoadedCrl variable */
-static PZCondVar *jobQNotEmptyCv;
-static PZCondVar *freeListNotEmptyCv;
-static PZCondVar *threadCountChangeCv;
+static PRCondVar *jobQNotEmptyCv;
+static PRCondVar *freeListNotEmptyCv;
+static PRCondVar *threadCountChangeCv;
 static int threadCount;
 static PRCList jobQ;
 static PRCList freeJobs;
@@ -188,11 +188,11 @@ thread_wrapper(void *arg)
     slot->rv = (*slot->startFunc)(slot->a, slot->b, slot->c);
 
     /* notify the thread exit handler. */
-    PZ_Lock(qLock);
+    PR_Lock(qLock);
     slot->state = rs_zombie;
     --threadCount;
-    PZ_NotifyAllCondVar(threadCountChangeCv);
-    PZ_Unlock(qLock);
+    PR_NotifyAllCondVar(threadCountChangeCv);
+    PR_Unlock(qLock);
 }
 
 int
@@ -201,26 +201,26 @@ jobLoop(PRFileDesc *a, PRFileDesc *b, int c)
     PRCList *myLink = 0;
     JOB *myJob;
 
-    PZ_Lock(qLock);
+    PR_Lock(qLock);
     do {
         myLink = 0;
         while (PR_CLIST_IS_EMPTY(&jobQ) && !stopping) {
-            PZ_WaitCondVar(jobQNotEmptyCv, PR_INTERVAL_NO_TIMEOUT);
+            PR_WaitCondVar(jobQNotEmptyCv, PR_INTERVAL_NO_TIMEOUT);
         }
         if (!PR_CLIST_IS_EMPTY(&jobQ)) {
             myLink = PR_LIST_HEAD(&jobQ);
             PR_REMOVE_AND_INIT_LINK(myLink);
         }
-        PZ_Unlock(qLock);
+        PR_Unlock(qLock);
         myJob = (JOB *)myLink;
         /* myJob will be null when stopping is true and jobQ is empty */
         if (!myJob)
             break;
         handle_connection(myJob->tcp_sock, myJob->model_sock,
                           myJob->requestCert);
-        PZ_Lock(qLock);
+        PR_Lock(qLock);
         PR_APPEND_LINK(myLink, &freeJobs);
-        PZ_NotifyCondVar(freeListNotEmptyCv);
+        PR_NotifyCondVar(freeListNotEmptyCv);
     } while (PR_TRUE);
     return 0;
 }
@@ -237,10 +237,10 @@ launch_threads(
     SECStatus rv = SECSuccess;
 
     /* create the thread management serialization structs */
-    qLock = PZ_NewLock(nssILockSelfServ);
-    jobQNotEmptyCv = PZ_NewCondVar(qLock);
-    freeListNotEmptyCv = PZ_NewCondVar(qLock);
-    threadCountChangeCv = PZ_NewCondVar(qLock);
+    qLock = PR_NewLock();
+    jobQNotEmptyCv = PR_NewCondVar(qLock);
+    freeListNotEmptyCv = PR_NewCondVar(qLock);
+    threadCountChangeCv = PR_NewCondVar(qLock);
 
     /* create monitor for crl reload procedure */
     lastLoadedCrlLock = PR_NewLock();
@@ -259,7 +259,7 @@ launch_threads(
     if (rv != SECSuccess)
         return rv;
 
-    PZ_Lock(qLock);
+    PR_Lock(qLock);
     for (i = 0; i < maxThreads; ++i) {
         perThread *slot = threads + i;
 
@@ -284,19 +284,19 @@ launch_threads(
 
         ++threadCount;
     }
-    PZ_Unlock(qLock);
+    PR_Unlock(qLock);
 
     return rv;
 }
 
 #define DESTROY_CONDVAR(name)    \
     if (name) {                  \
-        PZ_DestroyCondVar(name); \
+        PR_DestroyCondVar(name); \
         name = NULL;             \
     }
 #define DESTROY_LOCK(name)    \
     if (name) {               \
-        PZ_DestroyLock(name); \
+        PR_DestroyLock(name); \
         name = NULL;          \
     }
 
@@ -306,9 +306,9 @@ terminateWorkerThreads(void)
     int i;
 
     VLOG(("httpserv: server_thread: waiting on stopping"));
-    PZ_Lock(qLock);
-    PZ_NotifyAllCondVar(jobQNotEmptyCv);
-    PZ_Unlock(qLock);
+    PR_Lock(qLock);
+    PR_NotifyAllCondVar(jobQNotEmptyCv);
+    PR_Unlock(qLock);
 
     /* Wait for worker threads to terminate. */
     for (i = 0; i < maxThreads; ++i) {
@@ -319,10 +319,10 @@ terminateWorkerThreads(void)
     }
 
     /* The worker threads empty the jobQ before they terminate. */
-    PZ_Lock(qLock);
+    PR_Lock(qLock);
     PORT_Assert(threadCount == 0);
     PORT_Assert(PR_CLIST_IS_EMPTY(&jobQ));
-    PZ_Unlock(qLock);
+    PR_Unlock(qLock);
 
     DESTROY_CONDVAR(jobQNotEmptyCv);
     DESTROY_CONDVAR(freeListNotEmptyCv);
@@ -389,7 +389,6 @@ stop_server()
 {
     stopping = 1;
     PR_Interrupt(acceptorThread);
-    PZ_TraceFlush();
 }
 
 /* Will only work if the original input to url encoding was
@@ -926,12 +925,12 @@ do_accepts(
 
         VLOG(("httpserv: do_accept: Got connection\n"));
 
-        PZ_Lock(qLock);
+        PR_Lock(qLock);
         while (PR_CLIST_IS_EMPTY(&freeJobs) && !stopping) {
-            PZ_WaitCondVar(freeListNotEmptyCv, PR_INTERVAL_NO_TIMEOUT);
+            PR_WaitCondVar(freeListNotEmptyCv, PR_INTERVAL_NO_TIMEOUT);
         }
         if (stopping) {
-            PZ_Unlock(qLock);
+            PR_Unlock(qLock);
             if (tcp_sock) {
                 PR_Close(tcp_sock);
             }
@@ -950,8 +949,8 @@ do_accepts(
         }
 
         PR_APPEND_LINK(myLink, &jobQ);
-        PZ_NotifyCondVar(jobQNotEmptyCv);
-        PZ_Unlock(qLock);
+        PR_NotifyCondVar(jobQNotEmptyCv);
+        PR_Unlock(qLock);
     }
 
     FPRINTF(stderr, "httpserv: Closing listen socket.\n");
