@@ -1,0 +1,8 @@
+
+1 function with some indirect sub-type change:
+
+  [C]'function SECStatus __nss_InitLock(PRLock**, nssILockType)' at utilwrap.c:846:1 has some indirect sub-type changes:
+    parameter 2 of type 'typedef nssILockType' was removed
+
+
+
