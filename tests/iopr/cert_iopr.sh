@@ -47,10 +47,7 @@ createDBDir() {
     trgDir=$1
 
     if [ -z "`ls $trgDir | grep db`" ]; then
-        trgDir=`cd ${trgDir}; pwd`
-        if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "CYGWIN_NT" ]; then
-			trgDir=`cygpath -m ${trgDir}`
-        fi
+        trgDir=`(cd "${trgDir}" && native_path)`
 
         CU_ACTION="Initializing DB at ${trgDir}"
         certu -N -d "${trgDir}" -f "${R_PWFILE}" 2>&1

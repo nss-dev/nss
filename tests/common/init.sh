@@ -375,6 +375,23 @@ NSS=trustOrder=100
         return 1; # fail case for bash
     }
 
+    # native_path converts a path to the native Windows format (with forward
+    # slashes) for tools like certutil that are native Windows binaries and
+    # cannot open MSYS/Cygwin Unix-style paths.
+    native_path() {
+        if [ "${OS_ARCH}" = "WINNT" ]; then
+            if [ $# -eq 0 ]; then
+                pwd -W
+            else
+                cygpath -m "$1"
+            fi
+        elif [ $# -eq 0 ]; then
+            pwd
+        else
+            echo "$1"
+        fi
+    }
+
 #directory name init
     SCRIPTNAME=init.sh
 
@@ -425,27 +442,9 @@ NSS=trustOrder=100
 
     BINDIR="${DIST}/${OBJDIR}/bin"
 
-    # Pathnames constructed from ${TESTDIR} are passed to NSS tools
-    # such as certutil, which don't understand Cygwin pathnames.
-    # So we need to convert ${TESTDIR} to a Windows pathname (with
-    # regular slashes).
-    if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "CYGWIN_NT" ]; then
-        TESTDIR=`cygpath -m ${TESTDIR}`
-        QADIR=`cygpath -m ${QADIR}`
-    fi
-
-    # Same problem with MSYS/Mingw, except we need to start over with pwd -W
-    if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "MINGW32_NT" ]; then
-                mingw_mozilla_root=`(cd ../../..; pwd -W)`
-                MINGW_MOZILLA_ROOT=${MINGW_MOZILLA_ROOT-$mingw_mozilla_root}
-                TESTDIR=${MINGW_TESTDIR-${MINGW_MOZILLA_ROOT}/tests_results/security}
-    fi
-
-    # Same problem with MSYS/Mingw, except we need to start over with pwd -W
-    if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "MINGW32_NT" ]; then
-                mingw_mozilla_root=`(cd ../../..; pwd -W)`
-                MINGW_MOZILLA_ROOT=${MINGW_MOZILLA_ROOT-$mingw_mozilla_root}
-                TESTDIR=${MINGW_TESTDIR-${MINGW_MOZILLA_ROOT}/tests_results/security}
+    if [ "${OS_ARCH}" = "WINNT" ]; then
+        TESTDIR=$(native_path "${TESTDIR}")
+        QADIR=$(native_path "${QADIR}")
     fi
     echo testdir is $TESTDIR
 

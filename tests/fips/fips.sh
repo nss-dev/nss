@@ -248,8 +248,8 @@ fips_140()
   if [ $? -eq 0 ]; then
     if [ "${OS_ARCH}" = "WINNT" ]; then
       DBTEST=`which dbtest`
-	  if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "CYGWIN_NT" ]; then
-		DBTEST=`cygpath -m ${DBTEST}`
+	  if [ "${OS_ARCH}" = "WINNT" ]; then
+		DBTEST=`native_path "${DBTEST}"`
 		MANGLEDIR=`cygpath -u ${MANGLEDIR}`
 	  fi
       echo "PATH=${MANGLEDIR} ${DBTEST} -r -d ${P_R_FIPSDIR}"

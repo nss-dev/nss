@@ -8,10 +8,7 @@
 # Longer term we need a scriptable test environment..
 #
 . ../common/init.sh
-CURDIR=`pwd`
-if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "CYGWIN_NT" ]; then
-	CURDIR=`cygpath -m ${CURDIR}`
-fi
+CURDIR=`native_path`
 
 CIPHERDIR=${HOSTDIR}/cipher
 SKTESTS=${CURDIR}/symmkey.txt

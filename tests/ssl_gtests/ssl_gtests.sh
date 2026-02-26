@@ -23,10 +23,7 @@ ssl_gtest_certs() {
   mkdir -p "${SSLGTESTDIR}"
   cd "${SSLGTESTDIR}"
 
-  PROFILEDIR=`pwd`
-  if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "CYGWIN_NT" ]; then
-    PROFILEDIR=`cygpath -m "${PROFILEDIR}"`
-  fi
+  PROFILEDIR=`native_path`
 
   ${BINDIR}/certutil -N -d "${PROFILEDIR}" --empty-password 2>&1
   html_msg $? 0 "create ssl_gtest database"
