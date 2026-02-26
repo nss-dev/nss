@@ -158,7 +158,7 @@ is_selfserv_alive()
   fi
 
   if [ "${OS_ARCH}" = "WINNT" ] && \
-     [ "$OS_NAME" = "CYGWIN_NT" -o "$OS_NAME" = "MINGW32_NT" ]; then
+     [ "$OS_NAME" = "CYGWIN_NT" -o "$OS_NAME" = "MINGW32_NT" -o "$OS_NAME" = "MSYS_NT" ]; then
       PID=${SHELL_SERVERPID}
   else
       PID=`cat ${SERVERPID}`
@@ -201,7 +201,7 @@ wait_for_selfserv()
 kill_selfserv()
 {
   if [ "${OS_ARCH}" = "WINNT" ] && \
-     [ "$OS_NAME" = "CYGWIN_NT" -o "$OS_NAME" = "MINGW32_NT" ]; then
+     [ "$OS_NAME" = "CYGWIN_NT" -o "$OS_NAME" = "MINGW32_NT" -o "$OS_NAME" = "MSYS_NT" ]; then
       PID=${SHELL_SERVERPID}
   else
       PID=`cat ${SERVERPID}`
@@ -211,12 +211,17 @@ kill_selfserv()
 
   if [ "${OS_ARCH}" = "WINNT" ]; then
       echo "${KILL} ${PID}"
-      ${KILL} ${PID}
+      ${KILL} ${PID} || true
   else
       echo "${KILL} -USR1 ${PID}"
-      ${KILL} -USR1 ${PID}
+      ${KILL} -USR1 ${PID} || true
   fi
-  wait ${PID}
+  # On Windows, kill sends SIGTERM which causes selfserv to exit with status
+  # 143 (128+SIGTERM). Use "|| ret=$?" on wait (not "; ret=$?") so set -e
+  # does not abort before ret is assigned. Then accept only exit code 143
+  # on WINNT to avoid masking unexpected crashes.
+  ret=0; wait ${PID} || ret=$?
+  [ $ret -eq 0 ] || [ "${OS_ARCH}" = "WINNT" -a $ret -eq 143 ]
   if [ ${fileout} -eq 1 ]; then
       cat ${SERVEROUTFILE}
   fi
@@ -296,7 +301,7 @@ start_selfserv()
   wait_for_selfserv
 
   if [ "${OS_ARCH}" = "WINNT" ] && \
-     [ "$OS_NAME" = "CYGWIN_NT" -o "$OS_NAME" = "MINGW32_NT" ]; then
+     [ "$OS_NAME" = "CYGWIN_NT" -o "$OS_NAME" = "MINGW32_NT" -o "$OS_NAME" = "MSYS_NT" ]; then
       PID=${SHELL_SERVERPID}
   else
       PID=`cat ${SERVERPID}`
