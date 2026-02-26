@@ -342,6 +342,10 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
       policy="$1"
       outdir="$2"
       OUTFILE="${outdir}/pkcs11.txt"
+      if [ -z "${ROOTCERTSFILE}" ]; then
+        ROOTCERTSFILE=`ls -1 ${DIST}/${OBJDIR}/lib/*nssckbi.* | head -1`
+        ROOTCERTSFILE=`native_path "${ROOTCERTSFILE}"`
+      fi
       cat > "$OUTFILE" << ++EOF++
 library=
 name=NSS Internal PKCS #11 Module
@@ -350,7 +354,7 @@ NSS=Flags=internal,critical trustOrder=75 cipherOrder=100 slotParams=(1={slotFla
 ++EOF++
       echo "config=${policy}" >> "$OUTFILE"
       echo "" >> "$OUTFILE"
-      echo "library=${DIST}/${OBJDIR}/lib/libnssckbi.so" >> "$OUTFILE"
+      echo "library=${ROOTCERTSFILE}" >> "$OUTFILE"
       cat >> "$OUTFILE" << ++EOF++
 name=RootCerts
 NSS=trustOrder=100
