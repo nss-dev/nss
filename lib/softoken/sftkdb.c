@@ -420,7 +420,7 @@ sftkdb_fixupTemplateOut(CK_ATTRIBUTE *template, CK_OBJECT_HANDLE objectID,
                     }
                     /* handle the case where the CKA_PARAMETER_SET was
                      * incorrectly encoded */
-                    if ((value > 0xff) && 
+                    if ((value > 0xff) &&
                         (template[i].type == CKA_PARAMETER_SET)) {
                         PORT_Memcpy(template[i].pValue, ntemplate[i].pValue,
                                     ntemplate[i].ulValueLen);
