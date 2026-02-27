@@ -21,10 +21,11 @@ fi
 cd nss
 CC=clang-19 CXX=clang++-19 ./build.sh -g -v --sourcecov --static --disable-tests
 
-TEST_DIRECTORY=$NSS_SOURCES_PATH/tests/acvp
+TEST_DIRECTORY=${NSS_SOURCES_PATH}/tests/acvp
 
 git clone --depth=1 https://gitlab.com/nisec/nss-project/acvp-rust.git
 cd acvp-rust
+patch -p1 < ${NSS_SOURCES_PATH}/taskcluster/docker/acvp/acvp-rust.patch
 cargo build
 TESTRUN="cargo run --bin test -- --profdata-command llvm-profdata-19"
 echo "Big Number (fuzzed):"

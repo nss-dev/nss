@@ -1,0 +1,11 @@
+--- a/acvp-runner-nss/build.rs
++++ b/acvp-runner-nss/build.rs
+@@ -26,7 +26,7 @@ fn main() {
+ 	println!("cargo:rustc-link-arg=-Wl,-Bstatic");
+ 	println!("cargo:rustc-link-search={nss_path}/dist/Debug/lib");
+ 	let a_regex = regex::Regex::new(r"lib([^/]+)\.a$").unwrap();
+-	let library_blocklist: std::collections::HashSet<String> = ["freebl", "pk11wrap", "softokn"].into_iter().map(Into::into).collect();
++	let library_blocklist: std::collections::HashSet<String> = ["freebl", "pk11wrap", "softokn", "gcm-nodepend", "intel-gcm-wrap-nodepend_c_lib"].into_iter().map(Into::into).collect();
+ 	let libraries: Vec<String> = glob::glob(&format!("{nss_path}/dist/Debug/lib/*.a"))
+ 		.unwrap()
+ 		.map(|path| a_regex.captures(&path.unwrap().to_string_lossy()).unwrap().get(1).unwrap().as_str().into())
