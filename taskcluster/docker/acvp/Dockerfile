@@ -1,42 +1,42 @@
-# Minimal image with clang-format 3.9.
-FROM rust:1.86
+FROM rust:1.90
 LABEL maintainer="iaroslav.gridin@tuni.fi"
 
 VOLUME /builds/worker/checkouts
 
 # %include-run-task
 
-# for new clang/llvm
-RUN echo "deb http://ftp.debian.org/debian/ sid main" > /etc/apt/sources.list.d/sid.list \
+# Install clang-19/llvm-19 from the official LLVM apt repository.
+# Using apt.llvm.org rather than the Debian sid repo gives us a stable,
+# versioned toolchain that tracks the Debian base image automatically.
+RUN DISTRO=$(. /etc/os-release && echo "$VERSION_CODENAME") \
+ && wget -qO /etc/apt/trusted.gpg.d/llvm.asc https://apt.llvm.org/llvm-snapshot.gpg.key \
+ && printf "deb http://apt.llvm.org/%s/ llvm-toolchain-%s-19 main\n" "$DISTRO" "$DISTRO" \
+      > /etc/apt/sources.list.d/llvm.list \
  && apt-get update \
  && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    locales \
-    python-dev-is-python3 \
-    mercurial \
-    python3-pip \
+    binutils \
     build-essential \
-    cargo \
-    rustc \
+    clang-19 \
     git \
     gyp \
-    clang-15 \
     libclang-rt-19-dev \
-    llvm-15 \
+    locales \
+    llvm-19 \
+    mercurial \
     ninja-build \
-    binutils \
- && rm -rf /var/lib/apt/lists/* \
- && apt-get autoremove -y && apt-get clean -y
+    python-dev-is-python3 \
+    python3-pip \
+ && rm -rf /var/lib/apt/lists/*
 
-ENV SHELL /bin/bash
-ENV USER worker
-ENV LOGNAME $USER
-ENV HOME /builds/$USER
-ENV HOSTNAME taskcluster-worker
-ENV LANG en_US.UTF-8
-ENV LC_ALL $LANG
-ENV HOST localhost
-ENV DOMSUF localdomain
+ENV SHELL=/bin/bash
+ENV USER=worker
+ENV LOGNAME=worker
+ENV HOME=/builds/worker
+ENV HOSTNAME=taskcluster-worker
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+ENV HOST=localhost
+ENV DOMSUF=localdomain
 
 RUN locale-gen $LANG \
  && DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales
