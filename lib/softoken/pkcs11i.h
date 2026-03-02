@@ -325,9 +325,9 @@ struct SFTKSessionStr {
  * (head[]->refCount),  objectLock protects all elements of the slot's
  * object hash tables (sessObjHashTable[] and tokObjHashTable), and
  * sessionObjectHandleCount.
- * slotLock protects the remaining protected elements:
- * password, needLogin, isLoggedIn, ssoLoggedIn, and sessionCount,
- * and pwCheckLock serializes the key database password checks in
+ * slotLock protects password, needLogin, isLoggedIn, ssoLoggedIn,
+ * sessionCount, and rwSessionCount.
+ * pwCheckLock serializes the key database password checks in
  * NSC_SetPIN and NSC_Login.
  *
  * Each of the fields below has the following lifetime as commented
@@ -367,8 +367,7 @@ struct SFTKSlotStr {
     int sessionIDConflict;         /* not protected by a lock */
                                    /* (preserved) */
     int sessionCount;              /* variable - reset */
-    PRInt32 rwSessionCount;        /* set by atomic operations */
-                                   /* (reset) */
+    int rwSessionCount;            /* variable - reset */
     int sessionObjectHandleCount;  /* variable - perserved */
     CK_ULONG index;                /* invariant */
     PLHashTable *tokObjHashTable;  /* invariant */
