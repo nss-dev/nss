@@ -410,4 +410,38 @@ TEST_F(DISABLED_MPITest, MpiCmpConstTest) {
   mp_clear(&c);
 }
 
+// Bug 2020188: mp_div_d with q=NULL dereferenced q unconditionally when the
+// quotient was zero, causing a crash.  Use a=5, d=1000 (non-power-of-2) so
+// that |a| < d and the zero-quotient branch is taken.
+TEST_F(MPITest, MpiDivRemOnly) {
+  mp_int a;
+  mp_digit rem;
+  MP_DIGITS(&a) = 0;
+  ASSERT_EQ(MP_OKAY, mp_init(&a));
+  mp_read_radix(&a, "5", 16);
+  EXPECT_EQ(MP_OKAY, mp_div_d(&a, 1000, nullptr, &rem));
+  EXPECT_EQ((mp_digit)5, rem);
+  mp_clear(&a);
+}
+
+// Bug 2020188: SIGN(q) was set before s_mp_exch, making the normalization a
+// no-op, so a zero quotient from a negative input would retain the NEG sign.
+// Use a=-5, d=1000 (non-power-of-2) so that |a| < d.
+TEST_F(MPITest, MpiDivSignNormalization) {
+  mp_int a, q;
+  mp_digit rem;
+  MP_DIGITS(&a) = 0;
+  MP_DIGITS(&q) = 0;
+  ASSERT_EQ(MP_OKAY, mp_init(&a));
+  ASSERT_EQ(MP_OKAY, mp_init(&q));
+  mp_read_radix(&a, "5", 16);
+  mp_neg(&a, &a);  // a = -5
+  EXPECT_EQ(MP_OKAY, mp_div_d(&a, 1000, &q, &rem));
+  EXPECT_EQ(MP_EQ, mp_cmp_z(&q));
+  EXPECT_EQ((mp_sign)ZPOS, MP_SIGN(&q));
+  EXPECT_EQ((mp_digit)5, rem);
+  mp_clear(&a);
+  mp_clear(&q);
+}
+
 }  // namespace nss_test
