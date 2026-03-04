@@ -669,7 +669,7 @@ class PK11FindRawPrivateKeys : public PK11FindCertsTestBase {
   virtual void TearDown() {
     if (m_priv) SECKEY_DestroyPrivateKey(m_priv);
     m_priv = nullptr;
-    if (m_pub) SECKEY_DestroyPrivateKey(m_priv);
+    if (m_pub) SECKEY_DestroyPublicKey(m_pub);
     m_pub = nullptr;
     if (m_cert) CERT_DestroyCertificate(m_cert);
     m_cert = nullptr;
@@ -681,6 +681,7 @@ class PK11FindRawPrivateKeys : public PK11FindCertsTestBase {
     SECItem sigItem = {siBuffer, signature, sizeof(signature)};
     const SECItem hash = {siBuffer, (unsigned char*)data, sizeof(data)};
     EXPECT_EQ(SECSuccess, PK11_Sign(priv, &sigItem, &hash)) << key_name;
+    EXPECT_EQ(SECSuccess, PK11_Verify(m_pub, &sigItem, &hash, NULL)) << key_name;
   }
 
   SECKEYPrivateKey* m_priv;
