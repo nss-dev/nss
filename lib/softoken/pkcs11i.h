@@ -189,6 +189,7 @@ struct SFTKObjectStr {
     CK_OBJECT_CLASS objclass;
     CK_OBJECT_HANDLE handle;
     int refCount;
+    PRUint32 type; /* SFTK_SESSION_OBJECT_TYPE or SFTK_TOKEN_OBJECT_TYPE */
     PRLock *refLock;
     SFTKSlot *slot;
     void *objectInfo;
@@ -503,6 +504,11 @@ struct SFTKItemTemplateStr {
 /* slot helper macros */
 #define sftk_SlotFromSession(sp) ((sp)->slot)
 #define sftk_isToken(id) (((id)&SFTK_TOKEN_MASK) == SFTK_TOKEN_MAGIC)
+
+/* Type tag values for SFTKObject.type */
+#define SFTK_SESSION_OBJECT_TYPE 0xFFFFFFFFU
+#define SFTK_TOKEN_OBJECT_TYPE 0x00000000U
+
 #define sftk_isFIPS(id) \
     (((id) == FIPS_SLOT_ID) || ((id) >= SFTK_MIN_FIPS_USER_SLOT_ID))
 
@@ -899,7 +905,7 @@ PRBool sftk_poisonHandle(SFTKSlot *slot, SECItem *dbkey,
                          CK_OBJECT_HANDLE handle);
 SFTKObject *sftk_NewTokenObject(SFTKSlot *slot, SECItem *dbKey,
                                 CK_OBJECT_HANDLE handle);
-SFTKTokenObject *sftk_convertSessionToToken(SFTKObject *so);
+CK_RV sftk_convertSessionToToken(SFTKObject *so);
 
 /* J-PAKE (jpakesftk.c) */
 extern CK_RV jpake_Round1(HASH_HashType hashType,

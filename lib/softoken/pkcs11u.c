@@ -219,6 +219,9 @@ sftk_FindTokenAttribute(SFTKTokenObject *object, CK_ATTRIBUTE_TYPE type)
     SFTKDBHandle *dbHandle = NULL;
     CK_RV crv = CKR_HOST_MEMORY;
 
+    if (object == NULL) {
+        return NULL;
+    }
     myattribute = (SFTKAttribute *)PORT_Alloc(sizeof(SFTKAttribute));
     if (myattribute == NULL) {
         goto loser;
@@ -369,6 +372,9 @@ sftk_hasAttributeToken(SFTKTokenObject *object, CK_ATTRIBUTE_TYPE type)
     CK_RV crv;
     SFTKDBHandle *dbHandle;
 
+    if (object == NULL) {
+        return PR_FALSE;
+    }
     dbHandle = sftk_getDBForTokenObject(object->obj.slot, object->obj.handle);
     template.type = type;
     template.pValue = NULL;
@@ -1181,6 +1187,7 @@ sftk_NewObject(SFTKSlot *slot)
     sftk_setFIPS(object, sftk_isFIPS(slot->slotID));
 
     object->refCount = 1;
+    object->type = SFTK_SESSION_OBJECT_TYPE;
     sessObject->sessionList.next = NULL;
     sessObject->sessionList.prev = NULL;
     sessObject->sessionList.parent = object;
@@ -2205,6 +2212,7 @@ sftk_NewTokenObject(SFTKSlot *slot, SECItem *dbKey, CK_OBJECT_HANDLE handle)
         goto loser;
     }
     object->refCount = 1;
+    object->type = SFTK_TOKEN_OBJECT_TYPE;
 
     return object;
 loser:
@@ -2212,44 +2220,50 @@ loser:
     return NULL;
 }
 
-SFTKTokenObject *
+CK_RV
 sftk_convertSessionToToken(SFTKObject *obj)
 {
-    SECItem *key;
+    SECItem *dbKey;
     SFTKSessionObject *so = (SFTKSessionObject *)obj;
     SFTKTokenObject *to = sftk_narrowToTokenObject(obj);
-    SECStatus rv;
+    CK_RV crv;
 
     sftk_DestroySessionObjectData(so);
     PR_DestroyLock(so->attributeLock);
-    if (to == NULL) {
-        return NULL;
-    }
-    sftk_tokenKeyLock(so->obj.slot);
-    key = sftk_lookupTokenKeyByHandle(so->obj.slot, so->obj.handle);
-    if (key == NULL) {
-        sftk_tokenKeyUnlock(so->obj.slot);
-        return NULL;
-    }
-    rv = SECITEM_CopyItem(NULL, &to->dbKey, key);
-    sftk_tokenKeyUnlock(so->obj.slot);
-    if (rv == SECFailure) {
-        return NULL;
-    }
 
-    return to;
+    sftk_tokenKeyLock(so->obj.slot);
+    dbKey = sftk_lookupTokenKeyByHandle(so->obj.slot, so->obj.handle);
+    if (dbKey && SECFailure == SECITEM_CopyItem(NULL, &to->dbKey, dbKey)) {
+        crv = CKR_HOST_MEMORY;
+    } else {
+        crv = CKR_OK;
+    }
+    sftk_tokenKeyUnlock(so->obj.slot);
+    return crv;
 }
 
 SFTKSessionObject *
 sftk_narrowToSessionObject(SFTKObject *obj)
 {
-    return !sftk_isToken(obj->handle) ? (SFTKSessionObject *)obj : NULL;
+    PRBool handleSaysSession = !sftk_isToken(obj->handle);
+    PRBool typeSaysSession = obj->type == SFTK_SESSION_OBJECT_TYPE;
+    if (handleSaysSession != typeSaysSession) {
+        PORT_Assert(0);
+        return NULL;
+    }
+    return handleSaysSession ? (SFTKSessionObject *)obj : NULL;
 }
 
 SFTKTokenObject *
 sftk_narrowToTokenObject(SFTKObject *obj)
 {
-    return sftk_isToken(obj->handle) ? (SFTKTokenObject *)obj : NULL;
+    PRBool handleSaysToken = sftk_isToken(obj->handle);
+    PRBool typeSaysToken = obj->type == SFTK_TOKEN_OBJECT_TYPE;
+    if (handleSaysToken != typeSaysToken) {
+        PORT_Assert(0);
+        return NULL;
+    }
+    return handleSaysToken ? (SFTKTokenObject *)obj : NULL;
 }
 
 /* Constant time helper functions */

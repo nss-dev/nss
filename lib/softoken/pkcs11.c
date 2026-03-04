@@ -2003,13 +2003,11 @@ sftk_handleObject(SFTKObject *object, SFTKSession *session)
      * At this point, all new objects are structured as session objects.
      * Objects with the CKA_TOKEN attribute true will be turned into
      * token objects and will have a token object handle assigned to
-     * them by a call to sftk_mkHandle in the handler for each object
-     * class, invoked below.
+     * them by the handler for each object class, invoked below.
      *
      * It may be helpful to note/remember that
-     * sftk_narrowToXxxObject uses sftk_isToken,
-     * sftk_isToken examines the sign bit of the object's handle, but
-     * sftk_isTrue(...,CKA_TOKEN) examines the CKA_TOKEN attribute.
+     * sftk_narrowToXxxObject uses the object's handle and type field,
+     * but sftk_isTrue(...,CKA_TOKEN) examines the CKA_TOKEN attribute.
      */
     object->handle = sftk_getNextHandle(slot);
 
@@ -2066,15 +2064,17 @@ sftk_handleObject(SFTKObject *object, SFTKSession *session)
     /* Now link the object into the slot and session structures.
      * If the object has a true CKA_TOKEN attribute, the above object
      * class handlers will have set the sign bit in the object handle,
-     * causing the following test to be true.
+     * causing the following test to be true. We still need to set the
+     * object type.
      */
     if (sftk_isToken(object->handle)) {
-        sftk_convertSessionToToken(object);
-    } else {
-        object->slot = slot;
-        sftk_AddObject(session, object);
+        object->type = SFTK_TOKEN_OBJECT_TYPE;
+        return sftk_convertSessionToToken(object);
     }
 
+    object->type = SFTK_SESSION_OBJECT_TYPE;
+    object->slot = slot;
+    sftk_AddObject(session, object);
     return CKR_OK;
 }
 

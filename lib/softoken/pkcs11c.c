@@ -7697,7 +7697,9 @@ sftk_buildSSLKey(CK_SESSION_HANDLE hSession, SFTKObject *baseKey,
     key = sftk_NewObject(baseKey->slot);
     if (key == NULL)
         return CKR_HOST_MEMORY;
-    sftk_narrowToSessionObject(key)->wasDerived = PR_TRUE;
+    SFTKSessionObject *sessKey = sftk_narrowToSessionObject(key);
+    PORT_Assert(sessKey);
+    sessKey->wasDerived = PR_TRUE;
 
     crv = sftk_CopyObject(key, baseKey);
     if (crv != CKR_OK)
@@ -9858,8 +9860,10 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
     /* link the key object into the list */
     if (key) {
         SFTKSessionObject *sessKey = sftk_narrowToSessionObject(key);
-        PORT_Assert(sessKey);
-        /* get the session */
+        if (sessKey == NULL) {
+            sftk_FreeObject(key);
+            return CKR_DEVICE_ERROR;
+        }
         sessKey->wasDerived = PR_TRUE;
         session = sftk_SessionFromHandle(hSession);
         if (session == NULL) {
