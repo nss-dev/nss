@@ -5229,6 +5229,7 @@ tls13_HandleEncryptedExtensions(sslSocket *ss, PRUint8 *b, PRUint32 length)
             /* Illegal to accept 0-RTT without also accepting PSK. */
             FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_ENCRYPTED_EXTENSIONS,
                         illegal_parameter);
+            return SECFailure;
         }
         ss->ssl3.hs.zeroRttState = ssl_0rtt_accepted;
 
