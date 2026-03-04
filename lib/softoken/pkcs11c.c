@@ -5345,15 +5345,20 @@ NSC_GenerateKey(CK_SESSION_HANDLE hSession,
      */
     crv = sftk_handleObject(key, session);
     sftk_FreeSession(session);
-    if (crv == CKR_OK && sftk_isTrue(key, CKA_SENSITIVE)) {
+    if (crv != CKR_OK) {
+        goto loser;
+    }
+    if (sftk_isTrue(key, CKA_SENSITIVE)) {
         crv = sftk_forceAttribute(key, CKA_ALWAYS_SENSITIVE, &cktrue, sizeof(CK_BBOOL));
     }
     if (crv == CKR_OK && !sftk_isTrue(key, CKA_EXTRACTABLE)) {
         crv = sftk_forceAttribute(key, CKA_NEVER_EXTRACTABLE, &cktrue, sizeof(CK_BBOOL));
     }
-    if (crv == CKR_OK) {
-        *phKey = key->handle;
+    if (crv != CKR_OK) {
+        NSC_DestroyObject(hSession, key->handle);
+        goto loser;
     }
+    *phKey = key->handle;
 loser:
     PORT_Memset(buf, 0, sizeof buf);
     sftk_FreeObject(key);
