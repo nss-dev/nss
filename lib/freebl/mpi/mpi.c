@@ -584,7 +584,7 @@ mp_div_d(const mp_int *a, mp_digit d, mp_int *q, mp_digit *r)
     res = s_mp_div_d(&qp, d, &rem);
 
     if (s_mp_cmp_d(&qp, 0) == 0)
-        SIGN(q) = ZPOS;
+        SIGN(&qp) = ZPOS;
 
     if (r) {
         *r = rem;
