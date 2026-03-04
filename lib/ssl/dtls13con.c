@@ -820,16 +820,17 @@ dtls13_MaybeSendKeyUpdate(sslSocket *ss, tls13KeyUpdateRequest request, PRBool b
     ssl_GetXmitBufLock(ss);
     rv = dtls13_EnqueueKeyUpdateMessage(ss, request);
     if (rv != SECSuccess) {
+        ssl_ReleaseXmitBufLock(ss);
         return rv; /* error code already set */
     }
 
     /* Trying to send the message - without buffering. */
     /* TODO[AW]: As I just emulated the API, I am not sure that it's necessary to buffer. */
     rv = ssl3_FlushHandshake(ss, 0);
+    ssl_ReleaseXmitBufLock(ss);
     if (rv != SECSuccess) {
         return SECFailure; /* error code set by ssl3_FlushHandshake */
     }
-    ssl_ReleaseXmitBufLock(ss);
 
     /* The keyUpdate is started. */
     PORT_Assert(ss->ssl3.hs.isKeyUpdateInProgress == PR_FALSE);
