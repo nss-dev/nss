@@ -681,7 +681,8 @@ class PK11FindRawPrivateKeys : public PK11FindCertsTestBase {
     SECItem sigItem = {siBuffer, signature, sizeof(signature)};
     const SECItem hash = {siBuffer, (unsigned char*)data, sizeof(data)};
     EXPECT_EQ(SECSuccess, PK11_Sign(priv, &sigItem, &hash)) << key_name;
-    EXPECT_EQ(SECSuccess, PK11_Verify(m_pub, &sigItem, &hash, NULL)) << key_name;
+    EXPECT_EQ(SECSuccess, PK11_Verify(m_pub, &sigItem, &hash, NULL))
+        << key_name;
   }
 
   SECKEYPrivateKey* m_priv;
