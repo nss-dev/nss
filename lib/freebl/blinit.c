@@ -156,11 +156,11 @@ CheckX86CPUSupport()
 #include <sys/auxv.h>
 #endif
 extern unsigned long getauxval(unsigned long type) __attribute__((weak));
-#elif defined(__arm__) || (!defined(__OpenBSD__) && !defined(_WIN64))
+#elif defined(__arm__) || !defined(_WIN64)
 static unsigned long (*getauxval)(unsigned long) = NULL;
 #endif /* defined(__GNUC__) && __GNUC__ >= 2 && defined(__ELF__)*/
 
-#if defined(__FreeBSD__) && !defined(__aarch64__) && __has_include(<sys/auxv.h>)
+#if (defined(__FreeBSD__) || defined(__OpenBSD__)) && __has_include(<sys/auxv.h>)
 /* Avoid conflict with static declaration above */
 #define getauxval freebl_getauxval
 static unsigned long getauxval(unsigned long type)
@@ -234,7 +234,8 @@ CheckARMSupport()
     arm_pmull_support_ = arm_crypto_support;
     arm_sha1_support_ = arm_crypto_support;
     arm_sha2_support_ = arm_crypto_support;
-#elif defined(__linux__)
+#elif (defined(__linux__) || defined(__FreeBSD__) || defined(__OpenBSD__)) && \
+    __has_include(<sys/auxv.h>)
     if (getauxval) {
         long hwcaps = getauxval(AT_HWCAP);
         arm_aes_support_ = (hwcaps & HWCAP_AES) == HWCAP_AES;
@@ -518,11 +519,10 @@ ppc_crypto_support()
 #endif
 
 /* clang-format off */
-#if defined(__linux__) || (defined(__FreeBSD__) && __FreeBSD__ >= 12)
-#if __has_include(<sys/auxv.h>)
+#if (defined(__linux__) || defined(__FreeBSD__) || defined(__OpenBSD__)) && \
+    __has_include(<sys/auxv.h>)
 #include <sys/auxv.h>
-#endif
-#elif (defined(__FreeBSD__) && __FreeBSD__ < 12)
+#elif defined(__FreeBSD__)
 #include <sys/sysctl.h>
 #endif
 
@@ -537,19 +537,13 @@ CheckPPCSupport()
     char *disable_hw_crypto = PR_GetEnvSecure("NSS_DISABLE_PPC_GHASH");
 
     unsigned long hwcaps = 0;
-#if defined(__linux__)
-#if __has_include(<sys/auxv.h>)
+#if defined(__linux__) && __has_include(<sys/auxv.h>)
     hwcaps = getauxval(AT_HWCAP2);
-#endif
-#elif defined(__FreeBSD__)
-#if __FreeBSD__ >= 12
-#if __has_include(<sys/auxv.h>)
+#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && __has_include(<sys/auxv.h>)
     elf_aux_info(AT_HWCAP2, &hwcaps, sizeof(hwcaps));
-#endif
-#else
+#elif defined(__FreeBSD__)
     size_t len = sizeof(hwcaps);
     sysctlbyname("hw.cpu_features2", &hwcaps, &len, NULL, 0);
-#endif
 #endif
 
     ppc_crypto_support_ = hwcaps & PPC_FEATURE2_VEC_CRYPTO && disable_hw_crypto == NULL;
