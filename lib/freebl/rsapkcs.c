@@ -1239,6 +1239,7 @@ RSA_EMSAEncodePSS(unsigned char *em,
                   unsigned int emLen,
                   unsigned int emBits,
                   const unsigned char *mHash,
+                  unsigned int mHashLen,
                   HASH_HashType hashAlg,
                   HASH_HashType maskHashAlg,
                   const unsigned char *salt,
@@ -1252,6 +1253,13 @@ RSA_EMSAEncodePSS(unsigned char *em,
     SECStatus rv;
 
     hash = HASH_GetRawHashObject(hashAlg);
+    PORT_Assert(hash);
+
+    if (mHashLen < hash->length) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
     dbMaskLen = emLen - hash->length - 1;
 
     /* Step 3 */
@@ -1458,7 +1466,7 @@ RSA_SignPSS(RSAPrivateKey *key,
         emLen--;
         em++;
     }
-    rv = RSA_EMSAEncodePSS(em, emLen, modulusBits - 1, input, hashAlg,
+    rv = RSA_EMSAEncodePSS(em, emLen, modulusBits - 1, input, inputLen, hashAlg,
                            maskHashAlg, salt, saltLength);
     if (rv != SECSuccess)
         goto done;
