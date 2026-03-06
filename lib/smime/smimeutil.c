@@ -352,7 +352,7 @@ smime_list_grow(SMIMEList **list)
         size_t new_len = (*list)->space_len + SMIME_CHUNK_COUNT;
         new_space = (SECOidTag *)PORT_Realloc((*list)->tags,
                                               new_len * sizeof(SECOidTag));
-        if (new_space) {
+        if (new_space == NULL) {
             return SECFailure;
         }
         (*list)->tags = new_space;
@@ -545,7 +545,7 @@ smime_init_once(void *arg)
         goto loser;
     }
     legacy_prefs = PORT_ZNewArray(int, tagCount);
-    if (lengths == NULL) {
+    if (legacy_prefs == NULL) {
         *error = PORT_GetError();
         goto loser;
     }
