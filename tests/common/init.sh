@@ -379,6 +379,34 @@ NSS=trustOrder=100
         return 1; # fail case for bash
     }
 
+    # safe_kill terminates a background server process and waits for it to exit.
+    #
+    # Usage: safe_kill <pid> <job_pid>
+    #   pid     - the process ID to terminate (written by the server to its PID
+    #             file; used by taskkill on Windows, kill on Unix)
+    #   job_pid - the bash job PID ($!) used for wait on Windows, where the
+    #             shell may assign a different PID than the native process
+    #
+    # On Windows, bash's built-in kill triggers MSYS2 signal emulation, which
+    # can intermittently propagate SIGTERM back to the shell or return the
+    # killed process's exit code, causing spurious exit code 143 failures.
+    # taskkill terminates the process directly via the Windows API instead.
+    safe_kill() {
+        local pid=$1
+        local job_pid=$2
+
+        if [ "${OS_ARCH}" = "WINNT" ]; then
+            echo "taskkill /F /PID ${pid}"
+            MSYS2_ARG_CONV_EXCL="*" taskkill /F /PID ${pid} || true
+            wait ${job_pid} || true
+        else
+            echo "${KILL} -USR1 ${pid}"
+            ${KILL} -USR1 ${pid} || true
+            local ret=0; wait ${pid} || ret=$?
+            [ $ret -eq 0 ]
+        fi
+    }
+
     # native_path converts a path to the native Windows format (with forward
     # slashes) for tools like certutil that are native Windows binaries and
     # cannot open MSYS/Cygwin Unix-style paths.

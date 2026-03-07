@@ -70,28 +70,11 @@ wait_for_httpserv()
 ########################################################################
 kill_httpserv()
 {
-  if [ "${OS_ARCH}" = "WINNT" ] && \
-     [ "$OS_NAME" = "CYGWIN_NT" -o "$OS_NAME" = "MINGW32_NT" -o "$OS_NAME" = "MSYS_NT" ]; then
-      PID=${SHELL_HTTPPID}
-  else
-      PID=`cat ${HTTPPID}`
-  fi
+  PID=`cat ${HTTPPID}`
 
   echo "trying to kill httpserv with PID ${PID} at `date`"
 
-  if [ "${OS_ARCH}" = "WINNT" ]; then
-      echo "${KILL} ${PID}"
-      ${KILL} ${PID} || true
-  else
-      echo "${KILL} -USR1 ${PID}"
-      ${KILL} -USR1 ${PID} || true
-  fi
-  # On Windows, kill sends SIGTERM which causes httpserv to exit with status
-  # 143 (128+SIGTERM). Use "|| ret=$?" on wait (not "; ret=$?") so set -e
-  # does not abort before ret is assigned.  Then accept only exit code 143
-  # on WINNT to avoid masking unexpected crashes.
-  ret=0; wait ${PID} || ret=$?
-  [ $ret -eq 0 ] || [ "${OS_ARCH}" = "WINNT" -a $ret -eq 143 ]
+  safe_kill ${PID} ${SHELL_HTTPPID}
 
   # On Linux httpserv needs up to 30 seconds to fully die and free
   # the port.  Wait until the port is free. (Bug 129701)
@@ -150,14 +133,7 @@ start_httpserv()
   SHELL_HTTPPID=$!
   wait_for_httpserv
 
-  if [ "${OS_ARCH}" = "WINNT" ] && \
-     [ "$OS_NAME" = "CYGWIN_NT" -o "$OS_NAME" = "MINGW32_NT" -o "$OS_NAME" = "MSYS_NT" ]; then
-      PID=${SHELL_HTTPPID}
-  else
-      PID=`cat ${HTTPPID}`
-  fi
-
-  echo "httpserv with PID ${PID} started at `date`"
+  echo "httpserv with PID `cat ${HTTPPID}` started at `date`"
 }
 
 ############################# chains_init ##############################
