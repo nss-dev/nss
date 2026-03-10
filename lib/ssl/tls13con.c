@@ -1025,7 +1025,7 @@ tls13_HandleKeyShare(sslSocket *ss,
                     ec_data = entry->key_exchange.len < ec_len
                                   ? NULL
                                   : entry->key_exchange.data;
-                    ecGroup = ssl_LookupNamedGroup(ssl_grp_ec_secp256r1);
+                    ecGroup = ssl_LookupNamedGroup(ssl_grp_ec_secp384r1);
                     break;
                 default:
                     ec_data = NULL;
