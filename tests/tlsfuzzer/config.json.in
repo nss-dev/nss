@@ -40,10 +40,14 @@
             {
                 "name" : "test-tls13-finished.py",
                 "arguments": [
-                    "-p", "@PORT@"
-                ],
-                "comment" : "https://bugzilla.mozilla.org/show_bug.cgi?id=1472747",
-                "exp_pass": false
+                    "-p", "@PORT@",
+                    "-e", "padding - cipher TLS_AES_128_GCM_SHA256, pad_byte 0, pad_left 0, pad_right 131072",
+                    "-e", "padding - cipher TLS_AES_128_GCM_SHA256, pad_byte 0, pad_left 0, pad_right 196608",
+                    "-e", "padding - cipher TLS_AES_128_GCM_SHA256, pad_byte 0, pad_left 0, pad_right 16777183",
+                    "-e", "padding - cipher TLS_AES_256_GCM_SHA384, pad_byte 0, pad_left 0, pad_right 131072",
+                    "-e", "padding - cipher TLS_AES_256_GCM_SHA384, pad_byte 0, pad_left 0, pad_right 196608",
+                    "-e", "padding - cipher TLS_AES_256_GCM_SHA384, pad_byte 0, pad_left 0, pad_right 16777167"
+                ]
             },
             {
                 "name" : "test-tls13-0rtt-garbage.py",

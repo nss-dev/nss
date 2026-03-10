@@ -957,8 +957,8 @@ TEST_F(TlsExtensionTest13Stream, ResumeIncorrectBinderLength) {
       client_, [](TlsPreSharedKeyReplacer* r) {
         r->binders_[0].Write(r->binders_[0].len(), 0xff, 1);
       });
-  ConnectExpectAlert(server_, kTlsAlertIllegalParameter);
-  client_->CheckErrorCode(SSL_ERROR_ILLEGAL_PARAMETER_ALERT);
+  ConnectExpectAlert(server_, kTlsAlertDecodeError);
+  client_->CheckErrorCode(SSL_ERROR_DECODE_ERROR_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
 }
 
