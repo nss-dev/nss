@@ -27,6 +27,7 @@ size_t get_ciphertext_length(KyberParams param) {
     case params_ml_kem1024_test_mode:
       len = MLKEM1024_CIPHERTEXT_BYTES;
       break;
+    case params_ml_kem512:
     case params_kyber_invalid:
       break;
   }
@@ -46,6 +47,7 @@ size_t get_private_key_length(KyberParams param) {
     case params_ml_kem1024_test_mode:
       len = MLKEM1024_PRIVATE_KEY_BYTES;
       break;
+    case params_ml_kem512:
     case params_kyber_invalid:
       break;
   }
@@ -65,6 +67,7 @@ size_t get_public_key_length(KyberParams param) {
     case params_ml_kem1024_test_mode:
       len = MLKEM1024_PUBLIC_KEY_BYTES;
       break;
+    case params_ml_kem512:
     case params_kyber_invalid:
       break;
   }

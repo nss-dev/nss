@@ -1200,8 +1200,9 @@ SECU_PrintOidTag(FILE *out, SECOidTag tag, const char *m, int level)
         desc = SECOID_FindOIDTagDescription(SEC_OID_UNKNOWN);
     }
     SECU_Indent(out, level);
-    if (m != NULL)
-        fprintf(out, "%s\n", m);
+    if (m != NULL) {
+        fprintf(out, "%s: ", m);
+    }
     fprintf(out, "%s\n", desc);
 }
 
@@ -1534,6 +1535,51 @@ SECU_PrintMLDSAPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level)
     SECU_PrintInteger(out, &pk->u.mldsa.publicValue, "PublicValue", level + 1);
 }
 
+void
+SECU_PrintMLKEMPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level)
+{
+
+    SECU_Indent(out, level);
+    fprintf(out, "%s:\n", m);
+
+    switch (pk->u.kyber.params) {
+        case params_kyber768_round3:
+            SECU_Indent(out, level);
+            fprintf(out, "Parameter Set: KYBER-768-ROUND3\n");
+            break;
+        case params_kyber768_round3_test_mode:
+            SECU_Indent(out, level);
+            fprintf(out, "Parameter Set (test mode): KYBER-768-ROUND3\n");
+            break;
+        case params_ml_kem768:
+            SECU_PrintOidTag(out, SEC_OID_ML_KEM_768, "Parameter Set", level + 1);
+            break;
+        case params_ml_kem768_test_mode:
+            SECU_PrintOidTag(out, SEC_OID_ML_KEM_768, "Parameter Set (test mode)",
+                             level + 1);
+            break;
+        case params_ml_kem1024:
+            SECU_PrintOidTag(out, SEC_OID_ML_KEM_1024, "Parameter Set", level + 1);
+            break;
+        case params_ml_kem1024_test_mode:
+            SECU_PrintOidTag(out, SEC_OID_ML_KEM_1024, "Parameter Set (test mode)",
+                             level + 1);
+            break;
+        case params_ml_kem512:
+            SECU_PrintOidTag(out, SEC_OID_ML_KEM_512, "Parameter Set", level + 1);
+            break;
+        case params_kyber_invalid:
+            SECU_Indent(out, level);
+            fprintf(out, "Parameter Set: Invalid Params\n");
+            break;
+        default:
+            SECU_Indent(out, level);
+            fprintf(out, "Parameter Set: Invalid Params %d\n", pk->u.kyber.params);
+            break;
+    }
+    SECU_PrintInteger(out, &pk->u.kyber.publicValue, "PublicValue", level + 1);
+}
+
 static void
 secu_PrintSubjectPublicKeyInfo(FILE *out, PLArenaPool *arena,
                                CERTSubjectPublicKeyInfo *i, char *msg, int level)
@@ -1563,6 +1609,10 @@ secu_PrintSubjectPublicKeyInfo(FILE *out, PLArenaPool *arena,
                 SECU_PrintMLDSAPublicKey(out, pk, "ML-DSA Public Key", level + 1);
                 break;
 
+            case kyberKey:
+                SECU_PrintMLKEMPublicKey(out, pk, "ML-KEM Public Key", level + 1);
+                break;
+
             case dhKey:
             case fortezzaKey:
             case keaKey:
@@ -1571,7 +1621,7 @@ secu_PrintSubjectPublicKeyInfo(FILE *out, PLArenaPool *arena,
                 goto loser;
             default:
                 SECU_Indent(out, level);
-                fprintf(out, "unknown SPKI algorithm type\n");
+                fprintf(out, "unknown SPKI algorithm type %d\n", pk->keyType);
                 goto loser;
         }
         PORT_FreeArena(pk->arena, PR_FALSE);

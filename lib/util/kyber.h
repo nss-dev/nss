@@ -5,6 +5,10 @@
 #ifndef KYBER_UTIL_H
 #define KYBER_UTIL_H
 
+#define MLKEM512_PUBLIC_KEY_BYTES 800U
+#define MLKEM512_PRIVATE_KEY_BYTES 1632U
+#define MLKEM512_CIPHERTEXT_BYTES 768U
+
 #define KYBER768_PUBLIC_KEY_BYTES 1184U
 #define KYBER768_PRIVATE_KEY_BYTES 2400U
 #define KYBER768_CIPHERTEXT_BYTES 1088U
@@ -59,6 +63,10 @@ typedef enum {
      * the use of a seed in `Kyber_Encapsulate` for testing.
      */
     params_ml_kem1024_test_mode,
+
+    /* not used by softoken/freebl. Used in NSS proper to handle kem 512 keys
+     * mechanically. Still need a separate module to actually use the keys */
+    params_ml_kem512,
 
 } KyberParams;
 

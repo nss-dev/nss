@@ -54,8 +54,22 @@ SECStatus sec_DecodeRSAPSSParamsToMechanism(PLArenaPool *arena,
                                             CK_RSA_PKCS_PSS_PARAMS *mech,
                                             SECOidTag *hashAlg);
 
-/* get the parameter set, converted to a key oid, only for new keys like mldsa, mlkem, and shldsa */
+/* get the parameter set, converted to a key oid, only for new keys
+ * like mldsa, mlkem, and shldsa */
 SECOidTag seckey_GetParameterSet(const SECKEYPrivateKey *key);
+
+/* map oid to KyberParam */
+KyberParams seckey_GetKyberParamsByOidTag(SECOidTag tag);
+
+/* map a ML-KEY PKCS #11 parameter set to an oid */
+SECOidTag seckey_GetMLKEMOidTagByPkcs11ParamSet(CK_ML_KEM_PARAMETER_SET_TYPE paramSet);
+
+/* map KyberParam to a ML-KEM PKCS #11 parameter set */
+CK_ML_KEM_PARAMETER_SET_TYPE seckey_GetMLKEMPkcs11ParamsByKyberParams(KyberParams kyberParams);
+
+/* map ML-KEM PKCS #11 param set to a KyberParam */
+KyberParams seckey_GetKyberParamsByPkcs11ParamSet(CK_ML_KEM_PARAMETER_SET_TYPE paramSet);
+
 SEC_END_PROTOS
 
 #endif /* _KEYHI_H_ */
