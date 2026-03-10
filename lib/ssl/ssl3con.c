@@ -11254,14 +11254,14 @@ ssl3_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
-    PORT_Assert(!ss->ssl3.hs.newSessionTicket.ticket.data);
-    PORT_Assert(!ss->ssl3.hs.receivedNewSessionTicket);
-
     if (ss->ssl3.hs.ws != wait_new_session_ticket) {
         SSL3_SendAlert(ss, alert_fatal, unexpected_message);
         PORT_SetError(SSL_ERROR_RX_UNEXPECTED_NEW_SESSION_TICKET);
         return SECFailure;
     }
+
+    PORT_Assert(!ss->ssl3.hs.newSessionTicket.ticket.data);
+    PORT_Assert(!ss->ssl3.hs.receivedNewSessionTicket);
 
     /* RFC5077 Section 3.3: "The client MUST NOT treat the ticket as valid
      * until it has verified the server's Finished message." See the comment in
