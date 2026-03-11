@@ -24,7 +24,8 @@ typedef enum {
     SFTKFIPSDH,   /* allow only specific primes */
     SFTKFIPSECC,  /* not just keys but specific curves */
     SFTKFIPSAEAD, /* single shot AEAD functions not allowed in FIPS mode */
-    SFTKFIPSRSAPSS
+    SFTKFIPSRSAPSS,
+    SFTKFIPSTlsKeyCheck
 } SFTKFIPSSpecialClass;
 
 typedef struct SFTKFIPSAlgorithmListStr SFTKFIPSAlgorithmList;
@@ -2541,13 +2542,33 @@ sftk_getKeyLength(SFTKObject *source)
     return keyLength;
 }
 
+static PRBool
+sftk_checkKeyLength(CK_ULONG keyLength, CK_ULONG min,
+                    CK_ULONG max, CK_ULONG step)
+{
+    if (keyLength > max) {
+        return PR_FALSE;
+    }
+    if (keyLength < min) {
+        return PR_FALSE;
+    }
+    if (step == 0) {
+        return PR_TRUE;
+    }
+    if (((keyLength - min) % step) != 0) {
+        return PR_FALSE;
+    }
+    return PR_TRUE;
+}
+
 /*
  * handle specialized FIPS semantics that are too complicated to
  * handle with just a table. NOTE: this means any additional semantics
  * would have to be coded here before they can be added to the table */
 static PRBool
 sftk_handleSpecial(SFTKSlot *slot, CK_MECHANISM *mech,
-                   SFTKFIPSAlgorithmList *mechInfo, SFTKObject *source)
+                   SFTKFIPSAlgorithmList *mechInfo, SFTKObject *source,
+                   CK_ULONG keyLength, CK_ULONG targetKeyLength)
 {
     switch (mechInfo->special) {
         case SFTKFIPSDH: {
@@ -2608,11 +2629,18 @@ sftk_handleSpecial(SFTKSlot *slot, CK_MECHANISM *mech,
             if (hashObj == NULL) {
                 return PR_FALSE;
             }
+            /* cap the salt for legacy keys */
+            if ((keyLength <= 1024) && (pss->sLen > 63)) {
+                return PR_FALSE;
+            }
+            /* cap the salt based on the hash */
             if (pss->sLen > hashObj->length) {
                 return PR_FALSE;
             }
             return PR_TRUE;
         }
+        case SFTKFIPSTlsKeyCheck:
+            return sftk_checkKeyLength(targetKeyLength, 112, 512, 1);
         default:
             break;
     }
@@ -2623,7 +2651,7 @@ sftk_handleSpecial(SFTKSlot *slot, CK_MECHANISM *mech,
 
 PRBool
 sftk_operationIsFIPS(SFTKSlot *slot, CK_MECHANISM *mech, CK_ATTRIBUTE_TYPE op,
-                     SFTKObject *source)
+                     SFTKObject *source, CK_ULONG targetKeyLength)
 {
 #ifndef NSS_HAS_FIPS_INDICATORS
     return PR_FALSE;
@@ -2655,13 +2683,13 @@ sftk_operationIsFIPS(SFTKSlot *slot, CK_MECHANISM *mech, CK_ATTRIBUTE_TYPE op,
         SFTKFIPSAlgorithmList *mechs = &sftk_fips_mechs[i];
         /* if we match the number of records exactly, then we are an
          * approved algorithm in the approved mode with an approved key */
-        if (((mech->mechanism == mechs->type) &&
-             (opFlags == (mechs->info.flags & opFlags)) &&
-             (keyLength <= mechs->info.ulMaxKeySize) &&
-             (keyLength >= mechs->info.ulMinKeySize) &&
-             ((keyLength - mechs->info.ulMinKeySize) % mechs->step) == 0) &&
+        if ((mech->mechanism == mechs->type) &&
+            (opFlags == (mechs->info.flags & opFlags)) &&
+            sftk_checkKeyLength(keyLength, mechs->info.ulMinKeySize,
+                                mechs->info.ulMaxKeySize, mechs->step) &&
+            ((targetKeyLength == 0) || (mechs->special == SFTKFIPSTlsKeyCheck) || sftk_checkKeyLength(targetKeyLength, mechs->info.ulMinKeySize, mechs->info.ulMaxKeySize, mechs->step)) &&
             ((mechs->special == SFTKFIPSNone) ||
-             sftk_handleSpecial(slot, mech, mechs, source))) {
+             sftk_handleSpecial(slot, mech, mechs, source, keyLength, targetKeyLength))) {
             return PR_TRUE;
         }
     }

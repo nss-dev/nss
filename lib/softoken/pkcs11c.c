@@ -556,7 +556,7 @@ sftk_InitGeneric(SFTKSession *session, CK_MECHANISM *pMechanism,
     context->maxLen = 0;
     context->signature = NULL;
     context->isFIPS = sftk_operationIsFIPS(session->slot, pMechanism,
-                                           operation, key);
+                                           operation, key, 0);
     *contextPtr = context;
     return CKR_OK;
 }
@@ -5349,7 +5349,7 @@ NSC_GenerateKey(CK_SESSION_HANDLE hSession,
     /* we need to do this check at the end, so we can check the generated key
      * length against fips requirements */
     sftk_setFIPS(key, sftk_operationIsFIPS(slot, pMechanism, CKA_NSS_GENERATE,
-                                           key));
+                                           key, 0));
     session->lastOpWasFIPS = sftk_hasFIPS(key);
     sftk_FreeSession(session);
     if (crv != CKR_OK) {
@@ -6745,7 +6745,7 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
      * meets the key length requirements */
     sftk_setFIPS(privateKey, sftk_operationIsFIPS(slot, pMechanism,
                                                   CKA_NSS_GENERATE_KEY_PAIR,
-                                                  privateKey));
+                                                  privateKey, 0));
     session->lastOpWasFIPS = sftk_hasFIPS(privateKey);
     sftk_setFIPS(publicKey, session->lastOpWasFIPS);
     sftk_FreeSession(session);
@@ -8172,7 +8172,8 @@ sftk_HKDF(CK_HKDF_PARAMS_PTR params, CK_SESSION_HANDLE hSession,
                     mech.ulParameterLen = sizeof(*params);
                     sftk_setFIPS(key, sftk_operationIsFIPS(saltKey->slot,
                                                            &mech, CKA_DERIVE,
-                                                           saltKey));
+                                                           saltKey,
+                                                           keySize * PR_BITS_PER_BYTE));
                 }
                 saltKeySource = saltKey->source;
                 saltKey_att = sftk_FindAttribute(saltKey, CKA_VALUE);
@@ -8489,7 +8490,8 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
         }
     }
     sftk_setFIPS(key, sftk_operationIsFIPS(slot, pMechanism,
-                                           CKA_DERIVE, sourceKey));
+                                           CKA_DERIVE, sourceKey,
+                                           keySize * PR_BITS_PER_BYTE));
 
     switch (mechanism) {
         /* get a public key from a private key. nsslowkey_ConvertToPublickey()

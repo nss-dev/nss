@@ -994,7 +994,8 @@ CK_FLAGS sftk_AttributeToFlags(CK_ATTRIBUTE_TYPE op);
 /* check the FIPS table to determine if this current operation is allowed by
  * FIPS security policy */
 PRBool sftk_operationIsFIPS(SFTKSlot *slot, CK_MECHANISM *mech,
-                            CK_ATTRIBUTE_TYPE op, SFTKObject *source);
+                            CK_ATTRIBUTE_TYPE op, SFTKObject *source,
+                            CK_ULONG targetKeySize);
 /* manage the fips flag on objects */
 void sftk_setFIPS(SFTKObject *obj, PRBool isFIPS);
 PRBool sftk_hasFIPS(SFTKObject *obj);
