@@ -1023,6 +1023,35 @@ TEST_F(TlsConnectStreamTls13Ech, EchConfigList) {
   ASSERT_EQ(rv, SECSuccess);
 }
 
+// Verify that ssl_DupSocket correctly copies each ECH config.
+TEST_F(TlsConnectStreamTls13Ech, EchDupSocketCopiesAllConfigs) {
+  ScopedSECKEYPublicKey pub1, pub2;
+  ScopedSECKEYPrivateKey priv1, priv2;
+  DataBuffer config1, config2;
+  EnsureTlsSetup();
+
+  std::string name1("first.name"), name2("second.name");
+  TlsConnectTestBase::GenerateEchConfig(HpkeDhKemX25519Sha256, kDefaultSuites,
+                                        name1, 100, config1, pub1, priv1);
+  TlsConnectTestBase::GenerateEchConfig(HpkeDhKemX25519Sha256, kDefaultSuites,
+                                        name2, 100, config2, pub2, priv2);
+  DataBuffer configList = MakeEchConfigList(config1, config2);
+  ASSERT_EQ(SECSuccess,
+            SSL_SetClientEchConfigs(client_->ssl_fd(), configList.data(),
+                                    configList.len()));
+
+  // Exercise ssl_DupSocket (and tls13_CopyEchConfigs) by importing the
+  // client as a model onto the server fd.
+  ASSERT_NE(nullptr, SSL_ImportFD(client_->ssl_fd(), server_->ssl_fd()));
+
+  // Bug 2020614: tls13_CopyEchConfigs used PR_LIST_TAIL instead of cur_p,
+  // so all entries in the copied list were copies of the last config.
+  EXPECT_STREQ(name1.c_str(),
+               SSLInt_GetEchConfigPublicName(server_->ssl_fd(), 0));
+  EXPECT_STREQ(name2.c_str(),
+               SSLInt_GetEchConfigPublicName(server_->ssl_fd(), 1));
+}
+
 TEST_F(TlsConnectStreamTls13Ech, EchConfigsTrialDecrypt) {
   // Apply two ECHConfigs on the server. They are identical with the exception
   // of the public key: the first ECHConfig contains a public key for which we

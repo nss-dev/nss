@@ -54,6 +54,7 @@ SECStatus SSLInt_SetDCAdvertisedSigSchemes(PRFileDesc *fd,
 SECStatus SSLInt_RemoveServerCertificates(PRFileDesc *fd);
 SECStatus SSLInt_SetRawEchConfigForRetry(PRFileDesc *fd, const uint8_t *buf,
                                          size_t len);
+const char *SSLInt_GetEchConfigPublicName(PRFileDesc *fd, unsigned int idx);
 PRBool SSLInt_IsIp(PRUint8 *s, unsigned int len);
 
 SECStatus SSLInt_GetCertificateCompressionAlgorithm(

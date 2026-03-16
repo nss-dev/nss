@@ -95,7 +95,7 @@ tls13_CopyEchConfigs(PRCList *oConfigs, PRCList *configs)
     for (PRCList *cur_p = PR_LIST_HEAD(oConfigs);
          cur_p != oConfigs;
          cur_p = PR_NEXT_LINK(cur_p)) {
-        config = (sslEchConfig *)PR_LIST_TAIL(oConfigs);
+        config = (sslEchConfig *)cur_p;
         newConfig = PORT_ZNew(sslEchConfig);
         if (!newConfig) {
             goto loser;
