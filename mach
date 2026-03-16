@@ -875,6 +875,18 @@ class fuzzCovAction(sourceCovAction):
 
         self.generateReports(outdir, profraw_dir, args)
 
+class docLintAction(argparse.Action):
+
+    def __call__(self, parser, args, values, option_string=None):
+        env = os.environ.copy()
+        env['VCS_PATH'] = os.path.dirname(cwd)
+        script = os.path.join(cwd, 'automation', 'taskcluster', 'scripts', 'check_doc_lint.sh')
+        try:
+            subprocess.check_call([script], env=env)
+        except subprocess.CalledProcessError as e:
+            print("doc-lint failed with exit status {}".format(e.returncode), file=sys.stderr)
+            sys.exit(e.returncode)
+
 
 class commandsAction(argparse.Action):
     commands = []
@@ -982,6 +994,11 @@ def parse_arguments():
         'action', nargs='?', default='run',
         help="Run fuzz coverage (default action)",
         action=fuzzCovAction)
+
+    parser_doc_lint = subparsers.add_parser(
+        'doc-lint', help='Check RST documentation for lint errors using sphinx-build.')
+    parser_doc_lint.add_argument(
+        'doc_lint', nargs='*', action=docLintAction)
 
     parser_commands = subparsers.add_parser(
         'mach-completion',

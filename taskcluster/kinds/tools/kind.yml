@@ -140,3 +140,11 @@ tasks:
             checkout:
                 nspr:
                     path: nspr
+    doc-lint:
+        description: Check RST documentation for lint errors
+        treeherder:
+            symbol: doc-lint
+        worker:
+            docker-image: {in-tree: docs}
+        run:
+            command: "${VCS_PATH}/nss/automation/taskcluster/scripts/check_doc_lint.sh"
