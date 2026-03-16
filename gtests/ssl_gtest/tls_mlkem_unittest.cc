@@ -416,8 +416,8 @@ class Mlkem768x25519ShareDamager : public TlsExtensionFilter {
             // Unpack them, change equivalence class if possible, and repack.
             uint16_t coeff0 =
                 mlkem_component[i] | ((mlkem_component[i + 1] & 0x0f) << 8);
-            uint16_t coeff1 = (mlkem_component[i + 1] >> 4) |
-                              ((mlkem_component[i + 2]) << 4);
+            uint16_t coeff1 =
+                (mlkem_component[i + 1] >> 4) | ((mlkem_component[i + 2]) << 4);
             if (coeff0 < 4096 - 3329) {
               coeff0 += 3329;
             }
