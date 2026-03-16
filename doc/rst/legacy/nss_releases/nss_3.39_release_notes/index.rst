@@ -29,7 +29,6 @@ NSS 3.39 release notes
 `New in NSS 3.39 <#new_in_nss_3.39>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,7 +49,6 @@ NSS 3.39 release notes
    -  A PKCS#11 URI can be used as an identifier for a PKCS#11 token.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  in cert.h
 

@@ -36,7 +36,6 @@ NSS 3.16.3 release notes
    with a recently added utility function.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in cert.h*
 

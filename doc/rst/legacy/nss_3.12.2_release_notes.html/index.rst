@@ -8,8 +8,6 @@ NSS_3.12.2_release_notes.html
 `NSS 3.12.2 Release Notes <#nss_3.12.2_release_notes>`__
 --------------------------------------------------------
 
-.. container::
-
 .. _2008-10-20:
 
 `2008-10-20 <#2008-10-20>`__
@@ -32,7 +30,6 @@ NSS_3.12.2_release_notes.html
    -  `Compatibility <#compatibility>`__
    -  `Feedback <#feedback>`__
 
-   --------------
 
 `Introduction <#introduction>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,7 +40,6 @@ NSS_3.12.2_release_notes.html
    3.12.2 are described in the "`Bugs Fixed <#bugs_fixed>`__" section below.
    NSS 3.12.2 is tri-licensed under the MPL 1.1/GPL 2.0/LGPL 2.1.
 
-   --------------
 
 
 
@@ -75,7 +71,6 @@ NSS_3.12.2_release_notes.html
    and shared libraries, which NSS 3.12.2 requires. NSPR 4.7.1 binary distributions are in
    https://ftp.mozilla.org/pub/mozilla.org/nspr/releases/v4.7.1/.
 
-   --------------
 
 .. _new_in_nss_3.12.2:
 
@@ -94,9 +89,7 @@ NSS_3.12.2_release_notes.html
       -  SEC_ERROR_PKCS11_FUNCTION_FAILED
       -  SEC_ERROR_PKCS11_DEVICE_ERROR
 
-   --------------
 
-.. _bugs_fixed:
 
 `Bugs Fixed <#bugs_fixed>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -179,7 +172,6 @@ NSS_3.12.2_release_notes.html
    -  `Bug 459481 <https://bugzilla.mozilla.org/show_bug.cgi?id=459481>`__: NSS build problem with
       GCC 3.4.6 on OS/2
 
-   --------------
 
 `Documentation <#documentation>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,7 +185,6 @@ NSS_3.12.2_release_notes.html
    -  `Build Instructions for NSS 3.11.4 and above <../nss-3.11.4/nss-3.11.4-build.html>`__
    -  `NSS Shared DB <http://wiki.mozilla.org/NSS_Shared_DB>`__
 
-   --------------
 
 `Compatibility <#compatibility>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -206,7 +197,6 @@ NSS_3.12.2_release_notes.html
    to the functions listed in `NSS Public Functions <../ref/nssfunctions.html>`__ will remain
    compatible with future versions of the NSS shared libraries.
 
-   --------------
 
 `Feedback <#feedback>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

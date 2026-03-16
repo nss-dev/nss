@@ -43,7 +43,6 @@ PKCS11 module installation
    Starting with Firefox 58, extensions can use the ``pkcs11`` browser extension API to enumerate
    PKCS #11 modules and make them accessible to the browser as sources of keys and certificates.
 
-.. _see_also:
 
 `See also <#see_also>`__
 ------------------------

@@ -32,7 +32,6 @@ NSS 3.42 release notes
 `New in NSS 3.42 <#new_in_nss_3.42>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,7 +42,6 @@ NSS 3.42 release notes
       specification
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  none
 

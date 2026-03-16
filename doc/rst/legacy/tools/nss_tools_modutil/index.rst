@@ -26,7 +26,6 @@ NSS Tools modutil
    information on certificate database and key database management, see `Using the Certificate
    Database Tool <certutil.html>`__.
 
-.. _availability_2:
 
 ` <#availability_2>`__ Availability
 -----------------------------------
@@ -35,7 +34,6 @@ NSS Tools modutil
 
    This tool is known to build on Solaris 2.5.1 (SunOS 5.5.1) and Windows NT 4.0.
 
-.. _syntax_2:
 
 ` <#syntax_2>`__ Syntax
 -----------------------
@@ -47,7 +45,6 @@ NSS Tools modutil
    of the options and arguments listed in the following section. Each command takes one option. Each
    option may take zero or more arguments. To see a usage string, issue the command without options.
 
-.. _options_and_arguments:
 
 `Options and Arguments <#options_and_arguments>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -232,7 +229,6 @@ NSS Tools modutil
    |                                                 |    stored in ``key3.db``.                       |
    +-------------------------------------------------+-------------------------------------------------+
 
-.. _usage_2:
 
 ` <#usage_2>`__ Usage
 ---------------------
@@ -437,6 +433,7 @@ NSS Tools modutil
    Keys <modutil.html#1042778>`__
    `Per-Platform Keys <modutil.html#1040459>`__
    `Per-File Keys <modutil.html#1040510>`__
+
    .. rubric:: Global Keys
       :name: global_keys
 
@@ -520,6 +517,7 @@ NSS Tools modutil
    ``EquivalentPlatform`` Specifies that the attributes of the named platform should also be used
    for the current platform. Saves typing when there is more than one platform using the same
    settings.
+
    .. rubric:: Per-File Keys
       :name: per-file_keys
 
@@ -561,7 +559,6 @@ NSS Tools modutil
    Some platforms may not understand these permissions. They are applied only insofar as they make
    sense for the current platform. If this attribute is omitted, a default of 777 is assumed.
 
-.. _examples_2:
 
 ` <#examples_2>`__ Examples
 ---------------------------
@@ -902,5 +899,3 @@ NSS Tools modutil
       Re-enter new password:
       Token "Communicator Certificate DB" password changed successfully.
       C:\modutil>
-
-   --------------

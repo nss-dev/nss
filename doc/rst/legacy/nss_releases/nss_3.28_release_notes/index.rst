@@ -29,7 +29,6 @@ NSS 3.28 release notes
 `New in NSS 3.28 <#new_in_nss_3.28>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -56,7 +55,6 @@ NSS 3.28 release notes
       enabled by default in all versions of TLS.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  in ssl.h
 

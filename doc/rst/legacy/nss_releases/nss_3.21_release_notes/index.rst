@@ -46,7 +46,6 @@ NSS 3.21 release notes
 `New in NSS 3.21 <#new_in_nss_3.21>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -62,7 +61,6 @@ NSS 3.21 release notes
       1084669 <https://bugzilla.mozilla.org/show_bug.cgi?id=1084669>`__)
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in nss.h*
 
@@ -98,7 +96,6 @@ NSS 3.21 release notes
          **NSS_MkModuleSpec** is the new function handles NSS configuration parameter strings.
 
    .. rubric:: New Types
-      :name: new_types
 
    -  *in pkcs11t.h*
 
@@ -117,7 +114,6 @@ NSS 3.21 release notes
          handshake completion
 
    .. rubric:: New Macros
-      :name: new_macros
 
    -  *in nss.h*
 

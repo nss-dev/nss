@@ -8,8 +8,6 @@ NSS_3.12_release_notes.html
 `NSS 3.12 Release Notes <#nss_3.12_release_notes>`__
 ----------------------------------------------------
 
-.. container::
-
 .. _17_june_2008:
 
 `17 June 2008 <#17_june_2008>`__
@@ -32,7 +30,6 @@ NSS_3.12_release_notes.html
    -  `Compatibility <#compatibility>`__
    -  `Feedback <#feedback>`__
 
-   --------------
 
 `Introduction <#introduction>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,7 +47,6 @@ NSS_3.12_release_notes.html
    Note: Firefox 3 uses NSS 3.12, but not the new SQLite-based shareable certificate and key
    databases. We missed the deadline to enable that feature in Firefox 3.
 
-   --------------
 
 
 
@@ -88,7 +84,6 @@ NSS_3.12_release_notes.html
    -  softokn3 and freebl3: 3.12.0.3
    -  other NSS libraries: 3.12.0.3
 
-   --------------
 
 .. _new_in_nss_3.12:
 
@@ -342,9 +337,7 @@ NSS_3.12_release_notes.html
       -  TLS_ECDH_anon_WITH_AES_128_CBC_SHA
       -  TLS_ECDH_anon_WITH_AES_256_CBC_SHA
 
-   --------------
 
-.. _bugs_fixed:
 
 `Bugs Fixed <#bugs_fixed>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -880,7 +873,6 @@ NSS_3.12_release_notes.html
    -  `Bug 417392 <https://bugzilla.mozilla.org/show_bug.cgi?id=417392>`__: certutil -L -n reports
       bogus trust flags
 
-   --------------
 
 `Documentation <#documentation>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -895,7 +887,6 @@ NSS_3.12_release_notes.html
    -  `NSS Shared DB <http://wiki.mozilla.org/NSS_Shared_DB>`__
    -  :ref:`mozilla_projects_nss_reference_nss_environment_variables`
 
-   --------------
 
 `Compatibility <#compatibility>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -908,7 +899,6 @@ NSS_3.12_release_notes.html
    to the functions listed in `NSS Public Functions <../ref/nssfunctions.html>`__ will remain
    compatible with future versions of the NSS shared libraries.
 
-   --------------
 
 `Feedback <#feedback>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

@@ -1,4 +1,3 @@
-.. _mozilla_projects_nss_nss_3_64_release_notes:
 
 NSS 3.64 release notes
 ======================
@@ -26,7 +25,6 @@ NSS 3.64 release notes
 
    Other releases are available :ref:`mozilla_projects_nss_nss_releases`.
 
-.. _bugs_fixed_in_nss_3.64:
 
 `Bugs fixed in NSS 3.64 <#bugs_fixed_in_nss_3.64>`__
 ----------------------------------------------------

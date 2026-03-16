@@ -62,7 +62,6 @@ FC_InitToken
       **Note:** The SO password should be the empty string, i.e., ``ulPinLen`` argument should be 0.
       ``FC_InitToken()`` ignores the ``pLabel`` argument.
 
-.. _return_value:
 
 `Return value <#return_value>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -80,7 +79,6 @@ FC_InitToken
 
    -  ``CKR_DEVICE_ERROR``: failed to reset the key database.
 
-.. _application_usage:
 
 `Application usage <#application_usage>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -100,7 +98,6 @@ FC_InitToken
       able to decrypt the data, such as Mozilla's stored passwords, that were encrypted using any of
       those keys.
 
-.. _see_also:
 
 `See also <#see_also>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

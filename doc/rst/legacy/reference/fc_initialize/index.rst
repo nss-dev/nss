@@ -74,7 +74,6 @@ FC_Initialize
    See :ref:`mozilla_projects_nss_pkcs11_module_specs` for complete documentation of the library
    parameters string.
 
-.. _return_value:
 
 `Return value <#return_value>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

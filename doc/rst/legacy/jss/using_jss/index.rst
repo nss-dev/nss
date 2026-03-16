@@ -67,7 +67,7 @@ Using JSS
       | nssckbi           |                                     | PKCS #11 module containing built-in  |
       |                   |                                     | root CA certificates. Optional.      |
       +-------------------+-------------------------------------+--------------------------------------+
-      | freebl_\*         |                                     | Processor-specific optimized         |
+      | freebl\_\*        |                                     | Processor-specific optimized         |
       |                   |                                     | big-number arithmetic library. Not   |
       |                   |                                     | present on all platforms.            |
       |                   |                                     | :ref:`mozilla_projects_nss_introd    |

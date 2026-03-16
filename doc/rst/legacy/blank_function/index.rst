@@ -58,7 +58,6 @@ Function_Name
    shallow copy, use `CERT_DestroyCertificate </en-US/NSS/CERT_DestroyCertificate>`__ to decrement
    the reference count on the certificate instance.
 
-.. _see_also:
 
 `See Also <#see_also>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

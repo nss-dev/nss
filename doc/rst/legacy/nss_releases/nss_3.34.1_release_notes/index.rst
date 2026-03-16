@@ -45,12 +45,10 @@ NSS 3.34.1 release notes
       1409872 <https://bugzilla.mozilla.org/show_bug.cgi?id=1409872>`__).
    -  The version of the CA list was set to 2.20.
 
-.. _new_in_nss_3.34:
 
 `New in NSS 3.34 <#new_in_nss_3.34>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -60,7 +58,6 @@ NSS 3.34.1 release notes
    -  None
 
    .. rubric:: New Functions
-      :name: new_functions
 
 .. _bugs_fixed_in_nss_3.34.1:
 

@@ -10,8 +10,8 @@ NSS 3.12.4 release notes
       2009-08-20
 
    *Newsgroup:*\ `mozilla.dev.tech.crypto <news://news.mozilla.org/mozilla.dev.tech.crypto>`__
+
    .. rubric:: Introduction
-      :name: Introduction
 
    Network Security Services (NSS) 3.12.4 is a patch release for NSS 3.12. The bug fixes in NSS
    3.12.4 are described in the "`Bugs Fixed <#bugsfixed>`__" section below.
@@ -19,7 +19,6 @@ NSS 3.12.4 release notes
    NSS 3.12.4 is tri-licensed under the MPL 1.1/GPL 2.0/LGPL 2.1.
 
    .. rubric:: Distribution Information
-      :name: Distribution_Information
 
    This release is built from the source, at the CVS repository rooted at cvs.mozilla.org:/cvsroot,
    with the CVS tag ``NSS_3_12_4_RTM``. 
@@ -120,7 +119,6 @@ NSS 3.12.4 release notes
    -  Support for OpenVMS has been removed.
 
    .. rubric:: Bugs Fixed
-      :name: Bugs_Fixed
 
    The following bugs have been fixed in NSS 3.12.4.
 
@@ -304,7 +302,6 @@ NSS 3.12.4 release notes
       in the nickname string for AC Raíz Certicamara S.A.
 
    .. rubric:: Documentation
-      :name: Documentation
 
    For a list of the primary NSS documentation pages on developer.mozilla.org, see NSS. New and
    revised documents available since the release of NSS 3.12 include the following:
@@ -312,7 +309,6 @@ NSS 3.12.4 release notes
    -  :ref:`mozilla_projects_nss_reference_building_and_installing_nss_build_instructions`
 
    .. rubric:: Compatibility
-      :name: Compatibility
 
    NSS 3.12.4 shared libraries are backward compatible with all older NSS 3.x shared libraries. A
    program linked with older NSS 3.x shared libraries will work with NSS 3.12.4 shared libraries
@@ -321,7 +317,6 @@ NSS 3.12.4 release notes
    compatible with future versions of the NSS shared libraries.
 
    .. rubric:: Feedback
-      :name: Feedback
 
    Bugs discovered should be reported by filing a bug report with `mozilla.org
    Bugzilla <https://bugzilla.mozilla.org/>`__ (product NSS).

@@ -29,7 +29,6 @@ NSS 3.35 release notes
 `New in NSS 3.35 <#new_in_nss_3.35>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,7 +39,6 @@ NSS 3.35 release notes
       3.34, which supported only draft -18. See below for details.
 
    .. rubric:: New Types
-      :name: new_types
 
    -  *in sslt.h*
 

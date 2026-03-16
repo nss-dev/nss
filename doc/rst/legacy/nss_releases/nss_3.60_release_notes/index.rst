@@ -42,7 +42,6 @@ NSS 3.60 release notes
       ESNI (draft-ietf-tls-esni-01). See `bug
       1654332 <https://bugzilla.mozilla.org/show_bug.cgi?id=1654332>`__ for more information.
 
-.. _certificate_authority_changes:
 
 `Certificate Authority Changes <#certificate_authority_changes>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

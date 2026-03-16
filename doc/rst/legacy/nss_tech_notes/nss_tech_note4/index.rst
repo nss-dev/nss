@@ -8,8 +8,6 @@ nss tech note4
 `Pulling certificate extension information out of SSL certificates <#pulling_certificate_extension_information_out_of_ssl_certificates>`__
 ------------------------------------------------------------------------------------------------------------------------------------------
 
-.. container::
-
 .. _nss_technical_note_4:
 
 `NSS Technical Note: 4 <#nss_technical_note_4>`__
@@ -21,11 +19,13 @@ nss tech note4
    often do not illustrate all the cleanup that needs to be done. Also, this document does not
    attempt to be an exhaustive survey of all possible ways to do a certain task; it merely tries to
    show a certain way.
+
    .. rubric:: Include these files
       :name: include_these_files
 
    #include "ssl.h"
    #include "cert.h"
+
    .. rubric:: Get the handle of the cert associated with an SSL connection
       :name: get_the_handle_of_the_cert_associated_with_an_ssl_connection
 
@@ -35,22 +35,28 @@ nss tech note4
    *CERTCertificate\* cert = SSL_LocalCertificate(PRFileDesc \*fd);*
            If SSL client, this will get you the client cert's handle, IF client auth happened
            If SSL server, this will get you the server's cert handle
+
    .. rubric:: Don't forget to clean up the cert handle when you're done with it
       :name: don't_forget_to_clean_up_the_cert_handle_when_you're_done_with_it
 
    *void CERT_DestroyCertificate(CERTCertificate \*cert);*
+
    .. rubric:: Some info is readily available 
       :name: some_info_is_readily_available
 
    cert->subjectName (char*)
    cert->issuerName (char*)
    cert->emailAddr (char*)
+
         OR char \*CERT_GetCertificateEmailAddress(CERTCertificate \*cert);
+
    cert->keyUsage (unsigned int)
+
    .. rubric:: To break the issuer and subject names into components
       :name: to_break_the_issuer_and_subject_names_into_components
 
    Pass  &(cert->issuer) or &(cert->subject) to the following functions
+
       *char \*CERT_GetCommonName(CERTName \*name);
       char \*CERT_GetCertEmailAddress(CERTName \*name);
       char \*CERT_GetCountryName(CERTName \*name);
@@ -62,6 +68,7 @@ nss tech note4
       char \*CERT_GetCertUid(CERTName \*name);*
 
    Example code to illustrate access to the info is given below.
+
    .. rubric:: Background on cert extensions
       :name: background_on_cert_extensions
 
@@ -79,100 +86,102 @@ nss tech note4
    .. rubric:: Looping through all extensions
       :name: looping_through_all_extensions
 
-      *CERTCertExtension*\* extensions =cert->extensions;*
-      *if (extensions)*
-      *{*
-      *    while (*extensions)*
-      *    {*
-      *        SECItem \*ext_oid = &(*extensions)->id;*
-      *        SECItem \*ext_critical = &(*extensions)->critical;*
-      *        SECItem \*ext_value = &(*extensions)->value;*
-      *        /\* id attribute of the extension \*/*
-      *        SECOidData \*oiddata = SECOID_FindOID(ext_oid);*
-      *        if (oiddata == NULL)*
-      *        {*
-      */\* OID not found \*/*
-      */\* SECItem ext_oid has type (SECItemType), data (unsigned char \*) and len (unsigned int)
-      fields*
-      *   - the application interprets these \*/*
-      *.......*
-      *        }*
-      *        else*
-      *        {*
-      *char \*name = oiddata->desc; /\* name of the extension \*/*
-      *.......*
-      *        }*
-      *        /\* critical attribute of the extension \*/*
-      *        if (ext_critical->len > 0)*
-      *        {*
-      *if (ext_critical->data[0])*
-      *    /\* the extension is critical \*/*
-      *else*
-      *    /\* the extension is not critical \*/*
-      *        }*
-      *        /\* value attribute of the extension \*/*
-      *        /\* SECItem ext_value has type (SECItemType), data (unsigned char \*) and len
-      (unsigned int) fields*
-      *- the application interprets these \*/*
-      *        SECOidTag oidtag = SECOID_FindOIDTag(ext_oid);*
-      *        switch (oidtag)*
-      *        {*
-      *case a_tag_that_app_recognizes:*
-      *    .....*
-      *case .....*
-      *    ......*
-      *        }*
-      *        extensions++;*
-      *    }*
-      *}*
+   *CERTCertExtension*\* extensions =cert->extensions;*
+   *if (extensions)*
+   *{*
+   *    while (*extensions)*
+   *    {*
+   *        SECItem \*ext_oid = &(*extensions)->id;*
+   *        SECItem \*ext_critical = &(*extensions)->critical;*
+   *        SECItem \*ext_value = &(*extensions)->value;*
+   *        /\* id attribute of the extension \*/*
+   *        SECOidData \*oiddata = SECOID_FindOID(ext_oid);*
+   *        if (oiddata == NULL)*
+   *        {*
+   */\* OID not found \*/*
+   */\* SECItem ext_oid has type (SECItemType), data (unsigned char \*) and len (unsigned int)
+   fields*
+   *   - the application interprets these \*/*
+   *.......*
+   *        }*
+   *        else*
+   *        {*
+   *char \*name = oiddata->desc; /\* name of the extension \*/*
+   *.......*
+   *        }*
+   *        /\* critical attribute of the extension \*/*
+   *        if (ext_critical->len > 0)*
+   *        {*
+   *if (ext_critical->data[0])*
+   *    /\* the extension is critical \*/*
+   *else*
+   *    /\* the extension is not critical \*/*
+   *        }*
+   *        /\* value attribute of the extension \*/*
+   *        /\* SECItem ext_value has type (SECItemType), data (unsigned char \*) and len
+   (unsigned int) fields*
+   *- the application interprets these \*/*
+   *        SECOidTag oidtag = SECOID_FindOIDTag(ext_oid);*
+   *        switch (oidtag)*
+   *        {*
+   *case a_tag_that_app_recognizes:*
+   *    .....*
+   *case .....*
+   *    ......*
+   *        }*
+   *        extensions++;*
+   *    }*
+   *}*
 
    .. rubric:: An example custom cert extension
       :name: an_example_custom_cert_extension
 
-      *struct \_myCertExtData*
-      *{*
-      *    SECItem version;*
-      *    SECItem streetaddress;*
-      *    SECItem phonenum;*
-      *    SECItem rfc822name;*
-      *    SECItem id;*
-      *    SECItem maxusers;*
-      *};*
-      *typedef struct \_myCertExtData myCertExtData;*
-      */\* template used for decoding the extension \*/*
-      *const SEC_ASN1Template myCertExtTemplate[] = {*
-      *    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof( myCertExtData ) },*
-      *    { SEC_ASN1_INTEGER, offsetof(myCertExtData, version) },*
-      *    { SEC_ASN1_OCTET_STRING, offsetof( myCertExtData, streetaddress ) },*
-      *    { SEC_ASN1_OCTET_STRING, offsetof( myCertExtData, phonenum ) },*
-      *    { SEC_ASN1_OCTET_STRING, offsetof( myCertExtData, rfc822name ) },*
-      *    { SEC_ASN1_OCTET_STRING, offsetof( myCertExtData, id ) },*
-      *    { SEC_ASN1_INTEGER, offsetof(myCertExtData, maxusers ) },*
-      *    { 0 }*
-      *};*
-      */\* OID for my cert extension - replace 0xff with appropriate values*/*
-      *static const unsigned char myoid[] = { 0xff, 0xff, 0xff, 0xff, .... };*
-      *static const SECItem myoidItem = { (SECItemType) 0, (unsigned char \*)myoid, sizeof(myoid)
-      };*
-      *SECItem myextvalue;
-      myCertExtData data;*
-      *SECStatus rv = CERT_FindCertExtensionByOID(cert, &myoidItem, &myextvalue);
+   .. code-block:: c
+
+      struct _myCertExtData
+      {
+          SECItem version;
+          SECItem streetaddress;
+          SECItem phonenum;
+          SECItem rfc822name;
+          SECItem id;
+          SECItem maxusers;
+      };
+      typedef struct _myCertExtData myCertExtData;
+      /* template used for decoding the extension */
+      const SEC_ASN1Template myCertExtTemplate[] = {
+          { SEC_ASN1_SEQUENCE, 0, NULL, sizeof( myCertExtData ) },
+          { SEC_ASN1_INTEGER, offsetof(myCertExtData, version) },
+          { SEC_ASN1_OCTET_STRING, offsetof( myCertExtData, streetaddress ) },
+          { SEC_ASN1_OCTET_STRING, offsetof( myCertExtData, phonenum ) },
+          { SEC_ASN1_OCTET_STRING, offsetof( myCertExtData, rfc822name ) },
+          { SEC_ASN1_OCTET_STRING, offsetof( myCertExtData, id ) },
+          { SEC_ASN1_INTEGER, offsetof(myCertExtData, maxusers ) },
+          { 0 }
+      };
+      /* OID for my cert extension - replace 0xff with appropriate values*/
+      static const unsigned char myoid[] = { 0xff, 0xff, 0xff, 0xff, .... };
+      static const SECItem myoidItem = { (SECItemType) 0, (unsigned char *)myoid, sizeof(myoid)
+      };
+      SECItem myextvalue;
+      myCertExtData data;
+      SECStatus rv = CERT_FindCertExtensionByOID(cert, &myoidItem, &myextvalue);
       if (rv == SECSuccess)
       {
-          SEC_ASN1DecoderContext \* context = SEC_ASN1DecoderStart(NULL, &data, myCertExtTemplate);
-          rv = SEC_ASN1DecoderUpdate( context, (const char \*)(myextvalue.data), myextvalue.len);
-          if (rv == SECSuccess)
-          {
-              /\* Now you can extract info from SECItem fields of your extension data structure \*/
-              /\* See "Misc helper functions" below \*/
-              .......
-              /\* free the SECItem fields \*/
-              SECITEM_FreeItem(&data.version, PR_FALSE);
-              SECITEM_FreeItem(&data.streetaddress, PR_FALSE);
-              ......
-              SECITEM_FreeItem(&data.maxusers, PR_FALSE);
-          }
-      }*
+      SEC_ASN1DecoderContext * context = SEC_ASN1DecoderStart(NULL, &data, myCertExtTemplate);
+      rv = SEC_ASN1DecoderUpdate( context, (const char *)(myextvalue.data), myextvalue.len);
+      if (rv == SECSuccess)
+      {
+      /* Now you can extract info from SECItem fields of your extension data structure */
+      /* See "Misc helper functions" below */
+      .......
+      /* free the SECItem fields */
+      SECITEM_FreeItem(&data.version, PR_FALSE);
+      SECITEM_FreeItem(&data.streetaddress, PR_FALSE);
+      ......
+      SECITEM_FreeItem(&data.maxusers, PR_FALSE);
+      }
+      }
 
    .. rubric:: Some miscellaneous helper functions
       :name: some_miscellaneous_helper_functions

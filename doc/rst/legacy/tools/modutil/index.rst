@@ -217,7 +217,7 @@ NSS tools : modutil
      sql:/home/my/sharednssdb
    |  This installation JAR file was signed by:
    |  ----------------------------------------------
-   |  **SUBJECT NAME*\*
+   |  **SUBJECT NAME**
    |  C=US, ST=California, L=Mountain View, CN=Cryptorific Inc., OU=Digital ID
    |  Class 3 - Netscape Object Signing, OU="www.verisign.com/repository/CPS
    |  Incorp. by Ref.,LIAB.LTD(c)9 6", OU=www.verisign.com/CPS Incorp.by Ref

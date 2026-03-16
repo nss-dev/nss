@@ -3,7 +3,6 @@
 modutil-tasks.html
 ==================
 
-.. _nss_security_tools_modutil_tasks:
 
 `NSS Security Tools: modutil Tasks <#nss_security_tools_modutil_tasks>`__
 -------------------------------------------------------------------------
@@ -12,7 +11,6 @@ modutil-tasks.html
 
    Newsgroup: `mozilla.dev.tech.crypto <news://news.mozilla.org/mozilla.dev.tech.crypto>`__
 
-.. _task_list:
 
 `Task List <#task_list>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

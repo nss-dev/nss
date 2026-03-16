@@ -53,19 +53,13 @@ FC_GetSessionInfo
       -  ``CKF_SERIAL_SESSION (0x00000004)``: this flag is provided for backward compatibility and
          is always set to true.
 
-.. _return_value:
 
 `Return value <#return_value>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. container::
-
 `Examples <#examples>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. container::
-
-.. _see_also:
 
 `See also <#see_also>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

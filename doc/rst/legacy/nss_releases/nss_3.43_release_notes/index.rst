@@ -32,7 +32,6 @@ NSS 3.43 release notes
 `New in NSS 3.43 <#new_in_nss_3.43>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,7 +39,6 @@ NSS 3.43 release notes
 .. container::
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in sechash.h*
 

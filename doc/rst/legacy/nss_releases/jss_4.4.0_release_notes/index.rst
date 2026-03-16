@@ -30,7 +30,6 @@ JSS 4.4.0 Release Notes
 `New in JSS 4.40 <#new_in_jss_4.40>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -38,7 +37,6 @@ JSS 4.4.0 Release Notes
 .. container::
 
    .. rubric:: New Functions
-      :name: new_functions
 
    New Macros
 
@@ -72,7 +70,6 @@ JSS 4.4.0 Release Notes
 
    Build instructions for JSS at https://hg.mozilla.org/projects/jss/file/tip/README
 
-.. _platform_information:
 
 `Platform Information <#platform_information>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

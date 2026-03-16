@@ -56,7 +56,6 @@ NSS 3.48 release notes
       or NSS_MAX_MP_PBE_ITERATION_COUNT to request a lower iteration count for test environments.
       See `Bug 1562671 <https://bugzilla.mozilla.org/show_bug.cgi?id=1562671>`__ for details.
 
-.. _certificate_authority_changes:
 
 `Certificate Authority Changes <#certificate_authority_changes>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

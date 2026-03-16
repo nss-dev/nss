@@ -30,7 +30,6 @@ NSS 3.14.3 release notes
 `New in NSS 3.14.3 <#new_in_nss_3.14.3>`__
 ------------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -41,7 +40,6 @@ NSS 3.14.3 release notes
       address `CVE-2013-1620 <http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2013-1620>`__.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in pk11pub.h*
 
@@ -50,13 +48,11 @@ NSS 3.14.3 release notes
          performs the signature using a symmetric key, such as commonly used for generating MACs.
 
    .. rubric:: New Types
-      :name: new_types
 
    -  *CK_NSS_MAC_CONSTANT_TIME_PARAMS* - Parameters for use with *CKM_NSS_HMAC_CONSTANT_TIME* and
       *CKM_NSS_SSL3_MAC_CONSTANT_TIME*.
 
    .. rubric:: New PKCS #11 Mechanisms
-      :name: new_pkcs_11_mechanisms
 
    -  *CKM_NSS_HMAC_CONSTANT_TIME* - Constant-time HMAC operation for use when verifying a padded,
       MAC-then-encrypted block of data.

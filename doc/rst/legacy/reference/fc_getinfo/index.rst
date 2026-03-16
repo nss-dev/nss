@@ -49,7 +49,6 @@ FC_GetInfo
 
    A user may call ``FC_GetInfo`` without logging into the token (to assume the NSS User role).
 
-.. _return_value:
 
 `Return value <#return_value>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -100,7 +99,6 @@ FC_GetInfo
           (int)info.libraryVersion.major, (int)info.libraryVersion.minor);
       printf("\n");
 
-.. _see_also:
 
 `See also <#see_also>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

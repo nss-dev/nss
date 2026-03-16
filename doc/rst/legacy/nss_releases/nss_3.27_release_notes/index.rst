@@ -29,7 +29,6 @@ NSS 3.27 release notes
 `New in NSS 3.27 <#new_in_nss_3.27>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,7 +39,6 @@ NSS 3.27 release notes
    -  Added support for RSA-PSS signatures in TLS 1.2 and TLS 1.3
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  in ssl.h
 

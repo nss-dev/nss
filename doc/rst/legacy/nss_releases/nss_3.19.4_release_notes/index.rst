@@ -27,7 +27,6 @@ NSS 3.19.4 release notes
       https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_19_4_RTM/src/
       https://ftp.mozilla.org/pub/nspr/releases/v4.10.10/src/
 
-.. _security_advisories:
 
 `Security Advisories <#security_advisories>`__
 ----------------------------------------------
@@ -58,7 +57,6 @@ NSS 3.19.4 release notes
 `New in NSS 3.19.4 <#new_in_nss_3.19.4>`__
 ------------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

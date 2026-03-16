@@ -150,12 +150,10 @@ NSS 3.34 release notes
 
    -  libfreebl no longer requires SSE2 instructions.
 
-.. _new_in_nss_3.34:
 
 `New in NSS 3.34 <#new_in_nss_3.34>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -181,7 +179,6 @@ NSS 3.34 release notes
       ``--pss-sign`` argument to ``certutil``.
 
    .. rubric:: New Functions
-      :name: new_functions
 
 .. _bugs_fixed_in_nss_3.34:
 

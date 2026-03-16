@@ -15,7 +15,6 @@ NSS Tools ssltap
    displays the data going by. If a connection is SSL, the data display includes interpreted SSL
    records and handshaking.
 
-.. _availability_2:
 
 ` <#availability_2>`__ Availability
 -----------------------------------
@@ -24,7 +23,6 @@ NSS Tools ssltap
 
    This tool is known to build on Solaris 2.5.1 (SunOS 5.5.1) and Windows NT 4.0.
 
-.. _description_2:
 
 ` <#description_2>`__ Description
 ---------------------------------
@@ -40,7 +38,6 @@ NSS Tools ssltap
    use the tool to look at the plain text and binary data that are part of the handshake procedure,
    before the secure connection is established.
 
-.. _syntax_2:
 
 ` <#syntax_2>`__ Syntax
 -----------------------
@@ -123,7 +120,6 @@ NSS Tools ssltap
    |                                                 | NNTPS   563 (NNTP over SSL)                     |
    +-------------------------------------------------+-------------------------------------------------+
 
-.. _examples_2:
 
 ` <#examples_2>`__ Examples
 ---------------------------
@@ -154,11 +150,13 @@ NSS Tools ssltap
    browser is not able to load images. To make the tool continue to accept connections, switch on
    looping mode with the ``-l`` option. The following examples show the output from commonly used
    combinations of options.
+
    .. rubric:: Example 1
       :name: example_1
 
    The ``s`` and ``x`` options in this example turn on SSL parsing and show undecoded values in
    hex/ASCII format. The output is routed to a text file.
+
    .. rubric:: Command
       :name: command
 
@@ -359,6 +357,7 @@ NSS Tools ssltap
 
    The ``-s`` option turns on SSL parsing. Because the ``-x`` option is not used in this example,
    undecoded values are output as raw data. The output is routed to a text file.
+
    .. rubric:: Command
       :name: command_2
 
@@ -508,6 +507,7 @@ NSS Tools ssltap
 
    In this example, the ``-h`` option turns hex/ASCII format. There is no SSL parsing or decoding.
    The output is routed to a text file.
+
    .. rubric:: Command
       :name: command_3
 
@@ -555,6 +555,7 @@ NSS Tools ssltap
 
    In this example, the ``-s`` option turns on SSL parsing, and the ``-h`` options turns on
    hex/ASCII format. Both formats are shown for each record. The output is routed to a text file.
+
    .. rubric:: Command
       :name: command_4
 
@@ -617,5 +618,3 @@ NSS Tools ssltap
       the certificate. If you are using the default BadCert callback, you can still connect through
       a dialog. If you are not using the default BadCert callback, the one you supply must allow for
       this possibility.
-
-   --------------

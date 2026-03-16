@@ -29,7 +29,6 @@ NSS 3.15 release notes
 `New in NSS 3.15 <#new_in_nss_3.15>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -47,7 +46,6 @@ NSS 3.15 release notes
    -  certutil has been updated to support creating name constraints extensions.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in ssl.h*
 
@@ -91,14 +89,12 @@ NSS 3.15 release notes
          This is necessary for AES-GCM.
 
    .. rubric:: New Types
-      :name: new_types
 
    -  *in secitem.h*
 
       -  **SECItemArray** - Represents a variable-length array of *SECItem*\ s.
 
    .. rubric:: New Macros
-      :name: new_macros
 
    -  *in ssl.h*
 

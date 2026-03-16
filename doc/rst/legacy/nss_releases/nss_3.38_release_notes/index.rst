@@ -29,7 +29,6 @@ NSS 3.38 release notes
 `New in NSS 3.38 <#new_in_nss_3.38>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -44,14 +43,12 @@ NSS 3.38 release notes
       --simple-self-signed may be provided, which can avoid ambiguous output in some scenarios.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in secitem.h*
 
       -  **SECITEM_MakeItem** - Allocate and make an item with the requested contents
 
    .. rubric:: New Macros
-      :name: new_macros
 
    -  *in ssl.h*
 

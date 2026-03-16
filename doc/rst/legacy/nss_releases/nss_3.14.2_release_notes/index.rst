@@ -30,7 +30,6 @@ NSS 3.14.2 release notes
       rendered as HTML and UNIX-style manual pages using an optional build target.
 
    .. rubric:: New Types:
-      :name: new_types
 
    -  in certt.h
 

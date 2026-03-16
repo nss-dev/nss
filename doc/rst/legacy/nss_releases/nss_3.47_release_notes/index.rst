@@ -33,7 +33,6 @@ NSS 3.47 release notes
 
    Other releases are available :ref:`mozilla_projects_nss_nss_releases`.
 
-.. _upcoming_changes_to_default_tls_configuration:
 
 `Upcoming changes to default TLS configuration <#upcoming_changes_to_default_tls_configuration>`__
 --------------------------------------------------------------------------------------------------

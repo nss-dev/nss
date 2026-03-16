@@ -36,19 +36,13 @@ FC_Logout
 
    Logs the current user out of a USER_FUNCTIONS session.
 
-.. _return_value:
 
 `Return value <#return_value>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. container::
-
 `Examples <#examples>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. container::
-
-.. _see_also:
 
 `See also <#see_also>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

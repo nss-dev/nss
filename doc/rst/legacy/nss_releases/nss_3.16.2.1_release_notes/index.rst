@@ -26,7 +26,6 @@ NSS 3.16.2.1 release notes
    -  Source tarballs:
       https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_16_2_1_RTM/src/
 
-.. _security_advisories:
 
 `Security Advisories <#security_advisories>`__
 ----------------------------------------------
@@ -45,7 +44,6 @@ NSS 3.16.2.1 release notes
 `New in NSS 3.16.2.1 <#new_in_nss_3.16.2.1>`__
 ----------------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -32,7 +32,6 @@ NSS 3.14.1 release notes
 `New in NSS 3.14.1 <#new_in_nss_3.14.1>`__
 ------------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -45,7 +44,6 @@ NSS 3.14.1 release notes
          code is used primarily for purposes of testing.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in ocspt.h*
 
@@ -56,7 +54,6 @@ NSS 3.14.1 release notes
       -  CERT_CreateEncodedOCSPErrorResponse
 
    .. rubric:: New Types
-      :name: new_types
 
    -  *in ocspt.h*
 

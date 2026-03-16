@@ -43,12 +43,6 @@ NSS API Guidelines
    opaque to higher level layers. That is, access to these functions should only be provided by the
    API directly above them. The NSS APIs are layered, as shown in this diagram:
 
-   .. image:: /en-US/docs/Mozilla/Projects/NSS/NSS_API_Guidelines/layer.gif
-      :alt: A diagram of the different layers that collectively make up "NSS". Dependencies are only
-      permitted between siblings and layers below them.
-      :width: 427px
-      :height: 507px
-
    The boxes in the gray section, towards the center, are exported only through PKCS #11. PKCS #11
    is only exported through the Wrappers. The areas which need the most work (both here and
    throughout the code) is:
@@ -292,7 +286,6 @@ NSS API Guidelines
    |          |                     |                     |               | watcomfx.h          |
    +----------+---------------------+---------------------+---------------+---------------------+
 
-.. _naming_conventions:
 
 `Naming Conventions <#naming_conventions>`__
 --------------------------------------------
@@ -336,7 +329,6 @@ NSS API Guidelines
    If you're good with tagging your releases, and then checking out (or exporting!) from the tag for
    your build, this saves you from messing around with specific files revision numbers.
 
-.. _header_files:
 
 `Header Files <#header_files>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -378,7 +370,6 @@ NSS API Guidelines
       have been "static" if we had combined separate C source files together. These header files
       have a trailing "m."
 
-.. _functions_and_types:
 
 `Functions and Types <#functions_and_types>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -427,7 +418,6 @@ NSS API Guidelines
       Body is camel case English words. For example: LAYERCapitalizedEnglishWords or
       SECKEYPrivateKey.
 
-.. _opaque_data_structures:
 
 `Opaque Data Structures <#opaque_data_structures>`__
 ----------------------------------------------------
@@ -701,8 +691,6 @@ NSS API Guidelines
 
 `Methods/Functions Design <#methodsfunctions_design>`__
 -------------------------------------------------------
-
-.. container::
 
 .. _init_shutdown_functions:
 

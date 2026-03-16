@@ -35,7 +35,6 @@ HTTP delegation
    `bug 111384 <https://bugzilla.mozilla.org/show_bug.cgi?id=111384>`__, which tracks the
    implementation in Mozilla client applications.
 
-.. _instructions_for_specifying_an_ocsp_proxy:
 
 `Specifying an OCSP proxy <#instructions_for_specifying_an_ocsp_proxy>`__
 -------------------------------------------------------------------------

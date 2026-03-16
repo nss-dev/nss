@@ -17,12 +17,9 @@ sslintro
    .. rubric:: Overview of an SSL Application
       :name: Overview_of_an_SSL_Application
 
-   --------------
 
-.. _chapter_1_overview_of_an_ssl_application:
+`Chapter 1 <#chapter_1_overview_of_an_ssl_application>`__ Overview of an SSL Application
 
-`Chapter 1
- <#chapter_1_overview_of_an_ssl_application>`__ Overview of an SSL Application
 ------------------------------------------------------------------------------
 
 .. container::
@@ -62,22 +59,31 @@ sslintro
 
    -   ``PR_Init``. Initializes NSPR. Must be called before any other NSS functions.
    -   ```PK11_SetPasswordFunc`` <pkfnc.html#1023128>`__. Sets the global callback function to
+
       obtain passwords for PKCS #11 modules. Required.
+
    -   ``NSS_Init``. Sets up configuration files and performs other tasks required to run Network
+
       Security Services. ``NSS_Init`` is *not* idempotent, so call it only once. Required.
+
    -   ``SSL_OptionSetDefault``. Changes default values for all subsequently opened sockets as long
+
       as the application is running (compare with
       :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1087792` which only configures the socket that
       is currently open). This function must be called once for each default value that needs to be
       changed. Optional.
+
    -   :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1228530`,
+
       :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1100285`,
       :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1105952`, or
       :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1104647`. These functions tell the library
       which cipher suites are permitted by policy (for example, to comply with export restrictions).
       Cipher suites disabled by policy cannot be enabled by user preference. One of these functions
       must be called before any cryptographic operations can be performed with NSS.
+
    -   :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1084747`. Enables all ciphers chosen by user
+
       preference. Optional.
 
 .. _initializing_caches:
@@ -107,11 +113,16 @@ sslintro
    sessions where the program handshakes as an SSL server.
 
    -   :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1138601`. Clears all sessions from the client
+
       session cache. Optional.
+
    -   :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1143851`. Sets up parameters for a server
+
       session cache for a single-process application. Required for single-process server
       applications.
+
    -   :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1142625`. Sets up parameters for a server
+
       cache for a multi-process application. Required for multi-process server applications. You can
       use either this function or :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1143851`, not
       both.
@@ -127,8 +138,11 @@ sslintro
    and then importing the new socket into the SSL environment:
 
    -   ``PR_NewTCPSocket``. Opens a new socket. A legal NSPR socket is required to be passed to
+
       ``SSL_ImportFD``, whether it is created with this function or by another method.
+
    -   ``SSL_ImportFD``. Makes an NSPR socket into an SSL socket. Required. Brings an ordinary NSPR
+
       socket into the SSL library, returning a new NSPR socket that can be used to make SSL calls.
       You can pass this function a *model* file descriptor to create the new SSL socket with the
       same configuration state as the model.
@@ -141,15 +155,24 @@ sslintro
    Configuration functions control the configuration of an individual socket.
 
    -   ``PR_GetSocketOption``. Retrieves the socket options currently set for a specified socket.
+
       Optional.
+
    -   ``PR_SetSocketOption``. Sets the socket options for a specified socket., including making it
+
       blocking or nonblocking. Optional.
+
    -   :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1086543`. Sets a single configuration
+
       parameter of a specified socket. This function must be called once for each parameter whose
       settings you want to change from those established with ``SSL_OptionSetDefault``. Optional.
+
    -   :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1217647`. For servers only. Configures the
+
       socket with the information needed to handshake as an SSL server. Required for servers.
+
    -   :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1087792`. For clients only. Records the
+
       target server URL for comparison with the URL specified by the server certificate. Required
       for clients.
 
@@ -157,18 +180,27 @@ sslintro
    accomplished and what happens if it fails.
 
    -   ``SSL_SetPKCS11PinArg``. Sets the argument passed to the PKCS #11 password callback function.
+
       Required.
+
    -   ``SSL_AuthCertificateHook``. Specifies a callback function used to authenticate an incoming
+
       certificate (optional for servers, necessary for clients to avoid "man-in-the-middle"
       attacks). Optional. If not specified, SSL uses the default callback function,
       :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1088888`.
+
    -   ``SSL_BadCertHook``. Specifies a callback function to deal with a situation where
+
       authentication has failed. Optional.
+
    -   ``SSL_GetClientAuthDataHook``. Specifies a callback function for SSL to use when the server
+
       asks for client authentication information. This callback is required if you want to do client
       authentication. You can set the callback function to a standard one that is provided,
       :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1106762`.
+
    -   ``SSL_HandshakeCallback``. Specifies a callback function that will be used by SSL to inform
+
       either a client application or a server application when the SSL handshake is completed.
       Optional.
 

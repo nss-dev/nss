@@ -8,8 +8,6 @@
 `Release Date: 01 April 2009 <#release_date_01_april_2009>`__
 -------------------------------------------------------------
 
-.. container::
-
 `Introduction <#introduction>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -33,6 +31,7 @@
 .. container::
 
     A list of bug fixes and enhancement requests were implemented in this release can be obtained by
+
    running this `bugzilla
    query <http://bugzilla.mozilla.org/buglist.cgi?product=JSS&target_milestone=4.2.5&target_milestone=4.3&bug_status=RESOLVED&resolution=FIXED>`__
 
@@ -98,7 +97,6 @@
       JCE provider and therefore the jss4.jar must be signed.
       https://archive.mozilla.org/pub/security/jss/releases/JSS_4_3_RTM/
 
-   --------------
 
 `Documentation <#documentation>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,7 +114,6 @@
    -  The RUN TIME behavior of JSS can be affected by the
       :ref:`mozilla_projects_nss_reference_nss_environment_variables`.
 
-.. _platform_information:
 
 `Platform Information <#platform_information>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -131,9 +128,7 @@
       higher.
    -  JSS only supports the native threading model (no green threads).
 
-   --------------
 
-.. _known_bugs_and_issues:
 
 `Known Bugs and Issues <#known_bugs_and_issues>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -144,7 +139,6 @@
       here. <http://bugzilla.mozilla.org/buglist.cgi?bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&&product=JSS>`__
       Note that some bugs may have been fixed since JSS 4.3 was released.
 
-   --------------
 
 `Compatibility <#compatibility>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -159,7 +153,6 @@
       "System.out.println(org.mozilla.jss.CryptoManager.JAR_JSS_VERSION)" and to check the shared
       library: strings libjss4.so \| grep -i header
 
-   --------------
 
 `Feedback <#feedback>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

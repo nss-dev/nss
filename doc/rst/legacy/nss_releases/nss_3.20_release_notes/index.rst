@@ -29,7 +29,6 @@ NSS 3.20 release notes
 `New in NSS 3.20 <#new_in_nss_3.20>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -39,7 +38,6 @@ NSS 3.20 release notes
    -  The TLS library has been extended to support DHE ciphersuites in server applications.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in ssl.h*
 
@@ -49,7 +47,6 @@ NSS 3.20 release notes
          smaller than default minimum size of the library.
 
    .. rubric:: New Types
-      :name: new_types
 
    -  *in sslt.h*
 
@@ -57,7 +54,6 @@ NSS 3.20 release notes
          with function SSL_DHEGroupPrefSet
 
    .. rubric:: New Macros
-      :name: new_macros
 
    -  *in ssl.h*
 

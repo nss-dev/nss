@@ -47,7 +47,6 @@ NSS 3.33 release notes
 `New in NSS 3.33 <#new_in_nss_3.33>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -61,7 +60,6 @@ NSS 3.33 release notes
       acceptable passwords will be printed.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in cert.h*
 

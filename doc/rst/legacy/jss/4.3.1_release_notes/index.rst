@@ -8,8 +8,6 @@
 `Release Date: 2009-12-02 <#release_date_2009-12-02>`__
 -------------------------------------------------------
 
-.. container::
-
 `Introduction <#introduction>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -31,13 +29,13 @@
 .. container::
 
     A list of bug fixes and enhancement requests were implemented in this release can be obtained by
+
    running this `bugzilla
    query <http://bugzilla.mozilla.org/buglist.cgi?product=JSS&target_milestone=4.3.1&target_milestone=4.3.1&bug_status=RESOLVED&resolution=FIXED>`__
 
    **JSS 4.3.1 requires :ref:`mozilla_projects_nss_3_12_5_release_notes` or higher.**
 
    .. rubric:: SSL3 & TLS Renegotiation Vulnerability
-      :name: ssl3_tls_renegotiation_vulnerability
 
    See `CVE-2009-3555 <http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2009-3555>`__ and `US-CERT
    VU#120541 <http://www.kb.cert.org/vuls/id/120541>`__ for more information about this security
@@ -114,7 +112,6 @@
    -  The RUN TIME behavior of JSS can be affected by the
       :ref:`mozilla_projects_nss_reference_nss_environment_variables`.
 
-.. _platform_information:
 
 `Platform Information <#platform_information>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -136,7 +133,6 @@
 
    -  JSS only supports the native threading model (no green threads).
 
-.. _known_bugs_and_issues:
 
 `Known Bugs and Issues <#known_bugs_and_issues>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

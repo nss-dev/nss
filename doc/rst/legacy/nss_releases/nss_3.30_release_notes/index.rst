@@ -29,7 +29,6 @@ NSS 3.30 release notes
 `New in NSS 3.30 <#new_in_nss_3.30>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,7 +42,6 @@ NSS 3.30 release notes
       received.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in cert.h*
 
@@ -66,7 +64,6 @@ NSS 3.30 release notes
          public/private key pair.
 
    .. rubric:: New Macros
-      :name: new_macros
 
    -  *in ciferfam.h*
 

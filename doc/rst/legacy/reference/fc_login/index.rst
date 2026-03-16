@@ -51,7 +51,6 @@ FC_Login
    the empty string. The NSS cryptographic module doesn't allow the SO to log in if the normal
    user's PIN is already initialized.
 
-.. _return_value:
 
 `Return value <#return_value>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -78,7 +77,6 @@ FC_Login
          password isn't initialized.
       -  ``userType`` is ``CKU_SO`` and the normal user's PIN is already initialized.
 
-.. _see_also:
 
 `See also <#see_also>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

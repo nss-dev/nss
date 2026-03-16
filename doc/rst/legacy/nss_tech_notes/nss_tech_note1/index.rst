@@ -1,4 +1,3 @@
-.. _mozilla_projects_nss_nss_tech_notes_nss_tech_note1:
 
 nss tech note1
 ==============
@@ -7,8 +6,6 @@ nss tech note1
 
 `How to use the NSS ASN.1 and QuickDER decoders <#how_to_use_the_nss_asn.1_and_quickder_decoders>`__
 ----------------------------------------------------------------------------------------------------
-
-.. container::
 
 .. _nss_technical_note_1:
 

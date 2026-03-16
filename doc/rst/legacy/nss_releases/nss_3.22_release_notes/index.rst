@@ -29,7 +29,6 @@ NSS 3.22 release notes
 `New in NSS 3.22 <#new_in_nss_3.22>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -57,7 +56,6 @@ NSS 3.22 release notes
          protocols. A complete list can be found in :ref:`mozilla_projects_nss_nss_config_options`.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in pk11pub.h*
 
@@ -75,7 +73,6 @@ NSS 3.22 release notes
       -  **SSL_SetSignedCertTimestamps** - Set signed_certificate_timestamp TLS extension data
 
    .. rubric:: New Types
-      :name: new_types
 
    -  *in secoidt.h*
 
@@ -115,7 +112,6 @@ NSS 3.22 release notes
       -  **ssl_signed_cert_timestamp_xtn** is added to ``SSLExtensionType``.
 
    .. rubric:: New Macros
-      :name: new_macros
 
    -  in nss.h
 

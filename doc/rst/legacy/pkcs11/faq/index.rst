@@ -14,7 +14,6 @@ PKCS11 FAQ
       :name: questions_and_answers
 
    .. rubric:: GENERAL QUESTIONS
-      :name: general_questions
 
    .. rubric:: After plugging in an external PKCS #11 module, how do you use the certificate
       available on the token? Does the certificate need to be imported into NSS's internal

@@ -24,12 +24,10 @@ NSS 3.36.1 release notes
    -  Source tarballs:
       https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_36_1_RTM/src/
 
-.. _new_in_nss_3.xx:
 
 `New in NSS 3.XX <#new_in_nss_3.xx>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

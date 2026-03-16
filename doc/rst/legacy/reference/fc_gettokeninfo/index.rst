@@ -69,7 +69,6 @@ FC_GetTokenInfo
 
    A user may call ``FC_GetTokenInfo`` without logging into the token (to assume the NSS User role).
 
-.. _return_value:
 
 `Return value <#return_value>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -95,7 +94,6 @@ FC_GetTokenInfo
    Note the use of the ``%.32s`` format string to print the ``label`` and ``manufacturerID`` members
    of the ``CK_TOKEN_INFO`` structure.
 
-.. _see_also:
 
 `See also <#see_also>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

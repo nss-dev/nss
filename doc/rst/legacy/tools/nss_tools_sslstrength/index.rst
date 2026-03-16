@@ -6,8 +6,6 @@ NSS Tools sslstrength
 `sslstrength <#sslstrength>`__
 ------------------------------
 
-.. container::
-
 `Summary <#summary>`__
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -38,7 +36,6 @@ NSS Tools sslstrength
    port (443).
 
    .. rubric:: Restricting Ciphers
-      :name: restricting_ciphers
 
    By default, sslstrength assumes that all the preferences are on, so it will use any preferences
    in your policy. The enabled ciphersuites will always be printed out before the connection is
@@ -57,7 +54,6 @@ NSS Tools sslstrength
    |  
 
    .. rubric:: Step-up
-      :name: step-up
 
    Step up is a mode where the connection starts out with 40-bit encryption, but due to a
    'change-cipher-spec' handshake, changes to 128-bit encryption. This is only done in 'export

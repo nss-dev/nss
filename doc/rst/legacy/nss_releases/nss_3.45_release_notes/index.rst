@@ -41,7 +41,6 @@ NSS 3.45 release notes
 `New in NSS 3.45 <#new_in_nss_3.45>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -49,7 +48,6 @@ NSS 3.45 release notes
 .. container::
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  in *pk11pub.h*:
 
@@ -102,7 +100,6 @@ NSS 3.45 release notes
       -  Note: The source package size has increased substantially due to the new FIPS test vectors.
          This will likely prompt follow-on work, but please accept our apologies in the meantime.
 
-.. _certificate_authority_changes:
 
 `Certificate Authority Changes <#certificate_authority_changes>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

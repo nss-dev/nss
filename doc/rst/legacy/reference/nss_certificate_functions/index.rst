@@ -3,7 +3,6 @@
 NSS Certificate Functions
 =========================
 
-.. _certificate_functions:
 
 `Certificate Functions <#certificate_functions>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -22,7 +21,6 @@ NSS Certificate Functions
    -  `Comparing SecItem Objects <NSS_Certificate_Functions#Comparing_SecItem_Objects>`__
 
    .. rubric:: Validating Certificates
-      :name: validating_certificates
 
    -  `CERT_VerifyCertNow <NSS_Certificate_Functions#CERT_VerifyCertNow>`__
    -  `CERT_VerifyCert <NSS_Certificate_Functions#CERT_VerifyCert>`__
@@ -31,13 +29,11 @@ NSS Certificate Functions
    -  `NSS_CmpCertChainWCANames <NSS_Certificate_Functions#NSS_CmpCertChainWCANames>`__
 
    .. rubric:: CERT_VerifyCertNow
-      :name: cert_verifycertnow
 
    Checks that the current date is within the certificate's validity period and that the CA
    signature on the certificate is valid.
 
    .. rubric:: Syntax
-      :name: syntax
 
    .. code::
 
@@ -53,7 +49,6 @@ NSS Certificate Functions
         void *wincx);
 
    .. rubric:: Parameters
-      :name: parameters
 
    This function has the following parameters:
 
@@ -83,7 +78,6 @@ NSS Certificate Functions
    information.
 
    .. rubric:: Returns
-      :name: returns
 
    The function returns one of these values:
 
@@ -91,7 +85,6 @@ NSS Certificate Functions
    -  If unsuccessful, SECFailure. Use PR_GetError to obtain the error code.
 
    .. rubric:: Description
-      :name: description
 
    The CERT_VerifyCertNow function must call one or more PK11 functions to obtain the services of a
    PKCS #11 module. Some of the PK11 functions require a PIN argument (see SSL_SetPKCS11PinArg for
@@ -108,7 +101,6 @@ NSS Certificate Functions
    certUsage, wincx).
 
    .. rubric:: Syntax
-      :name: syntax_2
 
    .. code::
 
@@ -126,7 +118,6 @@ NSS Certificate Functions
         CERTVerifyLog *log);
 
    .. rubric:: Parameters
-      :name: parameters_2
 
    This function has the following parameters:
 
@@ -161,7 +152,6 @@ NSS Certificate Functions
    chain. See :ref:`mozilla_projects_nss_certverify_log` for more information.
 
    .. rubric:: Returns
-      :name: returns_2
 
    The function returns one of these values:
 
@@ -169,7 +159,6 @@ NSS Certificate Functions
    -  If unsuccessful, SECFailure. Use PR_GetError to obtain the error code.
 
    .. rubric:: Description
-      :name: description_2
 
    The CERT_VerifyCert function must call one or more PK11 functions to obtain the services of a
    PKCS #11 module. Some of the PK11 functions require a PIN argument (see SSL_SetPKCS11PinArg for
@@ -177,12 +166,10 @@ NSS Certificate Functions
    wincx parameter, call SSL_RevealPinArg.
 
    .. rubric:: CERT_VerifyCertName
-      :name: cert_verifycertname
 
    Compares the common name specified in the subject DN for a certificate with a specified hostname.
 
    .. rubric:: Syntax
-      :name: syntax_3
 
    .. code::
 
@@ -195,7 +182,6 @@ NSS Certificate Functions
         char *hostname);
 
    .. rubric:: Parameters
-      :name: parameters_3
 
    This function has the following parameters:
 
@@ -204,7 +190,6 @@ NSS Certificate Functions
    *hostname*\ The hostname to be checked.
 
    .. rubric:: Returns
-      :name: returns_3
 
    The function returns one of these values:
 
@@ -214,7 +199,6 @@ NSS Certificate Functions
       passed in the hostname parameter, SECFailure. Use PR_GetError to obtain the error code.
 
    .. rubric:: Description
-      :name: description_3
 
    The comparison performed by CERT_VerifyCertName is not a simple string comparison. Instead, it
    takes account of the following rules governing the construction of common names in SSL server
@@ -234,12 +218,10 @@ NSS Certificate Functions
       expressions as well.
 
    .. rubric:: CERT_CheckCertValidTimes
-      :name: cert_checkcertvalidtimes
 
    Checks whether a specified time is within a certificate's validity period.
 
    .. rubric:: Syntax
-      :name: syntax_4
 
    .. code::
 
@@ -253,7 +235,6 @@ NSS Certificate Functions
         int64 t);
 
    .. rubric:: Parameters
-      :name: parameters_4
 
    This function has the following parameters:
 
@@ -263,7 +244,6 @@ NSS Certificate Functions
    NSPR header pr_time.h.
 
    .. rubric:: Returns
-      :name: returns_4
 
    The function returns an enumerator of type SECCertTimeValidity:
 
@@ -276,13 +256,11 @@ NSS Certificate Functions
       } SECCertTimeValidity;
 
    .. rubric:: NSS_CmpCertChainWCANames
-      :name: nss_cmpcertchainwcanames
 
    Determines whether any of the signers in the certificate chain for a specified certificate are on
    a specified list of CA names.
 
    .. rubric:: Syntax
-      :name: syntax_5
 
    .. code::
 
@@ -293,7 +271,6 @@ NSS Certificate Functions
         CERTDistNames *caNames);
 
    .. rubric:: Parameters
-      :name: parameters_5
 
    This function has the following parameters:
 
@@ -304,7 +281,6 @@ NSS Certificate Functions
    which to check the DNs for the signers in the certificate chain.
 
    .. rubric:: Returns
-      :name: returns_5
 
    The function returns one of these values:
 
@@ -312,18 +288,15 @@ NSS Certificate Functions
    -  If unsuccessful, SECFailure. Use PR_GetError to obtain the error code.
 
    .. rubric:: Manipulating Certificates
-      :name: manipulating_certificates
 
    -  `CERT_DupCertificate <#cert_dupcertificate>`__
    -  `CERT_DestroyCertificate <#cert_destroycertificate>`__
 
    .. rubric:: CERT_DupCertificate
-      :name: cert_dupcertificate
 
    Makes a shallow copy of a specified certificate.
 
    .. rubric:: Syntax
-      :name: syntax_6
 
    .. code::
 
@@ -334,30 +307,25 @@ NSS Certificate Functions
       CERTCertificate *CERT_DupCertificate(CERTCertificate *c)
 
    .. rubric:: Parameter
-      :name: parameter
 
    This function has the following parameter:
 
    *c*\ A pointer to the certificate object to be duplicated.
 
    .. rubric:: Returns
-      :name: returns_6
 
    If successful, the function returns a pointer to a certificate object of type CERTCertificate.
 
    .. rubric:: Description
-      :name: description_4
 
    The CERT_DupCertificate function increments the reference count for the certificate passed in the
    c parameter.
 
    .. rubric:: CERT_DestroyCertificate
-      :name: cert_destroycertificate
 
    Destroys a certificate object.
 
    .. rubric:: Syntax
-      :name: syntax_7
 
    .. code::
 
@@ -369,14 +337,12 @@ NSS Certificate Functions
       void CERT_DestroyCertificate(CERTCertificate *cert);
 
    .. rubric:: Parameters
-      :name: parameters_6
 
    This function has the following parameter:
 
    *cert*\ A pointer to the certificate to destroy.
 
    .. rubric:: Description
-      :name: description_5
 
    Certificate and key structures are shared objects. When an application makes a copy of a
    particular certificate or key structure that already exists in memory, SSL makes a shallow
@@ -390,7 +356,6 @@ NSS Certificate Functions
    affects all the shallow copies of that structure and can cause severe problems.
 
    .. rubric:: Getting Certificate Information
-      :name: getting_certificate_information
 
    -  `CERT_FindCertByName <#cert_findcertbyname>`__
    -  `CERT_GetCertNicknames <#cert_getcertnicknames>`__
@@ -399,12 +364,10 @@ NSS Certificate Functions
    -  `NSS_FindCertKEAType <#nss_findcertkeatype>`__
 
    .. rubric:: CERT_FindCertByName
-      :name: cert_findcertbyname
 
    Finds the certificate in the certificate database with a specified DN.
 
    .. rubric:: Syntax
-      :name: syntax_8
 
    .. code::
 
@@ -417,7 +380,6 @@ NSS Certificate Functions
         SECItem *name);
 
    .. rubric:: Parameters
-      :name: parameters_7
 
    This function has the following parameters:
 
@@ -426,17 +388,14 @@ NSS Certificate Functions
    *name*\ The subject DN of the certificate you wish to find.
 
    .. rubric:: Returns
-      :name: returns_7
 
    If successful, the function returns a certificate object of type CERTCertificate.
 
    .. rubric:: CERT_GetCertNicknames
-      :name: cert_getcertnicknames
 
    Returns the nicknames of the certificates in a specified certificate database.
 
    .. rubric:: Syntax
-      :name: syntax_9
 
    .. code::
 
@@ -451,7 +410,6 @@ NSS Certificate Functions
         void *wincx);
 
    .. rubric:: Parameters
-      :name: parameters_8
 
    This function has the following parameters:
 
@@ -468,12 +426,10 @@ NSS Certificate Functions
    information.
 
    .. rubric:: Returns
-      :name: returns_8
 
    The function returns a CERTCertNicknames object containing the requested nicknames.
 
    .. rubric:: Description
-      :name: description_6
 
    CERT_GetCertNicknames must call one or more PK11 functions to obtain the services of a PKCS #11
    module. Some of the PK11 functions require a PIN argument (see SSL_SetPKCS11PinArg for details),
@@ -481,12 +437,10 @@ NSS Certificate Functions
    parameter, call SSL_RevealPinArg.
 
    .. rubric:: CERT_FreeNicknames
-      :name: cert_freenicknames
 
    Frees a CERTCertNicknames structure. This structure is returned by CERT_GetCertNicknames.
 
    .. rubric:: Syntax
-      :name: syntax_10
 
    .. code::
 
@@ -497,19 +451,16 @@ NSS Certificate Functions
       void CERT_FreeNicknames(CERTCertNicknames *nicknames);
 
    .. rubric:: Parameters
-      :name: parameters_9
 
    This function has the following parameter:
 
    *nicknames*\ A pointer to the CERTCertNicknames structure to be freed.
 
    .. rubric:: CERT_GetDefaultCertDB
-      :name: cert_getdefaultcertdb
 
    Returns a handle to the default certificate database.
 
    .. rubric:: Syntax
-      :name: syntax_11
 
    .. code::
 
@@ -520,22 +471,18 @@ NSS Certificate Functions
       CERTCertDBHandle *CERT_GetDefaultCertDB(void);
 
    .. rubric:: Returns
-      :name: returns_9
 
    The function returns the CERTCertDBHandle for the default certificate database.
 
    .. rubric:: Description
-      :name: description_7
 
    This function is useful for determining whether the default certificate database has been opened.
 
    .. rubric:: NSS_FindCertKEAType
-      :name: nss_findcertkeatype
 
    Returns key exchange type of the keys in an SSL server certificate.
 
    .. rubric:: Syntax
-      :name: syntax_12
 
    .. code::
 
@@ -546,14 +493,12 @@ NSS Certificate Functions
       SSLKEAType NSS_FindCertKEAType(CERTCertificate * cert);
 
    .. rubric:: Parameter
-      :name: parameter_2
 
    This function has the following parameter:
 
    *a*\ The certificate to check.
 
    .. rubric:: Returns
-      :name: returns_10
 
    The function returns one of these values:
 
@@ -564,16 +509,13 @@ NSS Certificate Functions
    -  kt_kea_size
 
    .. rubric:: Comparing SecItem Objects
-      :name: comparing_secitem_objects
 
    .. rubric:: SECITEM_CompareItem
-      :name: secitem_compareitem
 
    Compares two SECItem objects and returns a SECComparison enumerator that shows the difference
    between them.
 
    .. rubric:: Syntax
-      :name: syntax_13
 
    .. code::
 
@@ -587,7 +529,6 @@ NSS Certificate Functions
         SECItem *b);
 
    .. rubric:: Parameters
-      :name: parameters_10
 
    This function has the following parameters:
 
@@ -596,7 +537,6 @@ NSS Certificate Functions
    *b*\ A pointer to one of the items to be compared.
 
    .. rubric:: Returns
-      :name: returns_11
 
    The function returns an enumerator of type SECComparison.
 

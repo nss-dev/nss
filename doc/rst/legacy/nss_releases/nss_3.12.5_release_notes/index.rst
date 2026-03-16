@@ -15,13 +15,10 @@ NSS 3.12.5 release_notes
       2009-12-02
       *Newsgroup:*\ `mozilla.dev.tech.crypto <news://news.mozilla.org/mozilla.dev.tech.crypto>`__
 
-      --------------
-
       .. container::
          :name: section_1
 
          .. rubric:: Introduction
-            :name: Introduction
 
          Network Security Services (NSS) 3.12.5 is a patch release for NSS 3.12. The bug fixes in
          NSS 3.12.5 are described in the "`Bugs
@@ -33,7 +30,6 @@ NSS 3.12.5 release_notes
          :name: section_2
 
          .. rubric:: Distribution Information
-            :name: Distribution_Information
 
          The CVS tag for the NSS 3.12.5 release is ``NSS_3_12_5_RTM``. 
 
@@ -215,7 +211,6 @@ NSS 3.12.5 release_notes
          :name: section_12
 
          .. rubric:: Bugs Fixed
-            :name: Bugs_Fixed
 
          The following bugs have been fixed in NSS 3.12.5.
 
@@ -250,7 +245,6 @@ NSS 3.12.5 release_notes
          :name: section_13
 
          .. rubric:: Documentation
-            :name: Documentation
 
          For a list of the primary NSS documentation pages on mozilla.org, see `NSS
          Documentation <https://www.mozilla.org/projects/security/pki/nss/#documentation>`__. New
@@ -263,7 +257,6 @@ NSS 3.12.5 release_notes
          :name: section_14
 
          .. rubric:: Compatibility
-            :name: Compatibility
 
          NSS 3.12.5 shared libraries are backward compatible with all older NSS 3.x shared
          libraries. A program linked with older NSS 3.x shared libraries will work with NSS 3.12.5
@@ -276,7 +269,6 @@ NSS 3.12.5 release_notes
          :name: section_15
 
          .. rubric:: Feedback
-            :name: Feedback
 
          Bugs discovered should be reported by filing a bug report with `mozilla.org
          Bugzilla <https://bugzilla.mozilla.org/>`__ (product NSS).

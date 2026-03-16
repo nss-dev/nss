@@ -25,7 +25,6 @@ NSS 3.17.1 release notes
    -  Source tarballs:
       https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_17_1_RTM/src/
 
-.. _security_advisories:
 
 `Security Advisories <#security_advisories>`__
 ----------------------------------------------
@@ -53,7 +52,6 @@ NSS 3.17.1 release notes
    symbols that have a leading underscore '_', this is an internal symbol for NSS use only.
    Applications that use or depend on these symbols can and will break in future NSS releases.
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -65,7 +63,6 @@ NSS 3.17.1 release notes
       fallback.
 
    .. rubric:: New Macros
-      :name: new_macros
 
    -  *in ssl.h*
 

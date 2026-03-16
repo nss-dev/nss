@@ -3,7 +3,6 @@
 NSS PKCS11 Functions
 ====================
 
-.. _pkcs_.2311_functions:
 
 `PKCS #11 Functions <#pkcs_.2311_functions>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -35,7 +34,6 @@ NSS PKCS11 Functions
    Load a new PKCS #11 module based on a moduleSpec.
 
    .. rubric:: Syntax
-      :name: syntax
 
    .. code::
 
@@ -44,7 +42,6 @@ NSS PKCS11 Functions
        extern SECMODModule *SECMOD_LoadUserModule(char *moduleSpec, SECMODModule *parent, PRBool recurse);
 
    .. rubric:: Parameters
-      :name: parameters
 
    This function has the following parameters:
 
@@ -55,7 +52,6 @@ NSS PKCS11 Functions
    :ref:`mozilla_projects_nss_pkcs11_module_specs`).
 
    .. rubric:: Returns
-      :name: returns
 
    The function returns one of these values:
 
@@ -63,7 +59,6 @@ NSS PKCS11 Functions
    -  If unsuccessful, NULL.
 
    .. rubric:: Description
-      :name: description
 
    SECMOD_LoadUserModule loads a new PKCS #11 module into NSS and connects it to the current NSS
    trust infrastructure. Once the module has been successfully loaded, other NSS calls will use it
@@ -82,7 +77,6 @@ NSS PKCS11 Functions
    Unload a PKCS #11 module.
 
    .. rubric:: Syntax
-      :name: syntax_2
 
    .. code::
 
@@ -91,14 +85,12 @@ NSS PKCS11 Functions
        extern SECStatus SECMOD_UnloadUserModule(SECMODModule *module);
 
    .. rubric:: Parameters
-      :name: parameters_2
 
    This function has the following parameters:
 
    *module* is the module to be unloaded.
 
    .. rubric:: Returns
-      :name: returns_2
 
    The function returns one of these values:
 
@@ -106,7 +98,6 @@ NSS PKCS11 Functions
    -  If unsuccessful, SECFailure.
 
    .. rubric:: Description
-      :name: description_2
 
    SECMOD_UnloadUserModule detaches a module from the nss trust domain and unloads it. The module
    should have previously been loaded by SECMOD_LoadUserModule.
@@ -119,7 +110,6 @@ NSS PKCS11 Functions
    empty slot until it's used again with SECMOD_OpenUserDB().
 
    .. rubric:: Syntax
-      :name: syntax_3
 
    .. code::
 
@@ -128,7 +118,6 @@ NSS PKCS11 Functions
        SECStatus SECMOD_CloseUserDB(PK11SlotInfo *slot)
 
    .. rubric:: Parameters
-      :name: parameters_3
 
    This function has the following parameter:
 
@@ -136,7 +125,6 @@ NSS PKCS11 Functions
    at some point in the past.
 
    .. rubric:: Returns
-      :name: returns_3
 
    The function returns one of these values:
 
@@ -149,7 +137,6 @@ NSS PKCS11 Functions
    Open a new database using the softoken.
 
    .. rubric:: Syntax
-      :name: syntax_4
 
    .. code::
 
@@ -158,7 +145,6 @@ NSS PKCS11 Functions
        PK11SlotInfo *SECMOD_OpenUserDB(const char *moduleSpec)
 
    .. rubric:: Parameters
-      :name: parameters_4
 
    This function has the following parameters:
 
@@ -166,7 +152,6 @@ NSS PKCS11 Functions
    'tokens' options.
 
    .. rubric:: Returns
-      :name: returns_4
 
    The function returns one of these values:
 
@@ -174,7 +159,6 @@ NSS PKCS11 Functions
    -  If unsuccessful, NULL.
 
    .. rubric:: Description
-      :name: description_3
 
    Open a new database using the softoken. The caller is responsible for making sure the module spec
    is correct and usable. The caller should ask for one new database per call if the caller wants to
@@ -227,12 +211,10 @@ NSS PKCS11 Functions
    called, the newly opened database will be visible to any NSS calls search for keys or certs.
 
    .. rubric:: PK11_FindCertFromNickname
-      :name: pk11_findcertfromnickname
 
    Finds a certificate from its nickname.
 
    .. rubric:: Syntax
-      :name: syntax_5
 
    .. code::
 
@@ -244,7 +226,6 @@ NSS PKCS11 Functions
          void *passwordArg);
 
    .. rubric:: Parameters
-      :name: parameters_5
 
    This function has the following parameters:
 
@@ -255,7 +236,6 @@ NSS PKCS11 Functions
    SSL_RevealPinArg.
 
    .. rubric:: Returns
-      :name: returns_5
 
    The function returns one of these values:
 
@@ -263,7 +243,6 @@ NSS PKCS11 Functions
    -  If unsuccessful, NULL.
 
    .. rubric:: Description
-      :name: description_4
 
    When you are finished with the certificate structure returned by PK11_FindCertFromNickname, you
    must free it by calling CERT_DestroyCertificate.
@@ -272,12 +251,10 @@ NSS PKCS11 Functions
    PK11_SetPasswordFunc and passes it the pointer specified by the wincx parameter.
 
    .. rubric:: PK11_FindKeyByAnyCert
-      :name: pk11_findkeybyanycert
 
    Finds the private key associated with a specified certificate in any available slot.
 
    .. rubric:: Syntax
-      :name: syntax_6
 
    .. code::
 
@@ -290,7 +267,6 @@ NSS PKCS11 Functions
          void *passwordArg);
 
    .. rubric:: Parameters
-      :name: parameters_6
 
    This function has the following parameters:
 
@@ -301,7 +277,6 @@ NSS PKCS11 Functions
    SSL_RevealPinArg.
 
    .. rubric:: Returns
-      :name: returns_6
 
    The function returns one of these values:
 
@@ -309,7 +284,6 @@ NSS PKCS11 Functions
    -  If unsuccessful, NULL.
 
    .. rubric:: Description
-      :name: description_5
 
    When you are finished with the private key structure returned by PK11_FindKeyByAnyCert, you must
    free it by calling SECKEY_DestroyPrivateKey.
@@ -318,12 +292,10 @@ NSS PKCS11 Functions
    PK11_SetPasswordFunc and passes it the pointer specified by the wincx parameter.
 
    .. rubric:: PK11_GetSlotName
-      :name: pk11_getslotname
 
    Gets the name of a slot.
 
    .. rubric:: Syntax
-      :name: syntax_7
 
    .. code::
 
@@ -332,14 +304,12 @@ NSS PKCS11 Functions
        char *PK11_GetSlotName(PK11SlotInfo *slot);
 
    .. rubric:: Parameters
-      :name: parameters_7
 
    This function has the following parameter:
 
    *slot* A pointer to a slot info structure.
 
    .. rubric:: Returns
-      :name: returns_7
 
    The function returns one of these values:
 
@@ -347,18 +317,15 @@ NSS PKCS11 Functions
    -  If unsuccessful, NULL.
 
    .. rubric:: Description
-      :name: description_6
 
    If the slot is freed, the string with the slot name may also be freed. If you want to preserve
    it, copy the string before freeing the slot. Do not try to free the string yourself.
 
    .. rubric:: PK11_GetTokenName
-      :name: pk11_gettokenname
 
    Gets the name of the token.
 
    .. rubric:: Syntax
-      :name: syntax_8
 
    .. code::
 
@@ -367,14 +334,12 @@ NSS PKCS11 Functions
        char *PK11_GetTokenName(PK11SlotInfo *slot);
 
    .. rubric:: Parameters
-      :name: parameters_8
 
    This function has the following parameter:
 
    *slot* A pointer to a slot info structure.
 
    .. rubric:: Returns
-      :name: returns_8
 
    The function returns one of these values:
 
@@ -382,18 +347,15 @@ NSS PKCS11 Functions
    -  If unsuccessful, NULL.
 
    .. rubric:: Description
-      :name: description_7
 
    If the slot is freed, the string with the token name may also be freed. If you want to preserve
    it, copy the string before freeing the slot. Do not try to free the string yourself.
 
    .. rubric:: PK11_IsHW
-      :name: pk11_ishw
 
    Finds out whether a slot is implemented in hardware or software.
 
    .. rubric:: Syntax
-      :name: syntax_9
 
    .. code::
 
@@ -403,14 +365,12 @@ NSS PKCS11 Functions
        PRBool PK11_IsHW(PK11SlotInfo *slot);
 
    .. rubric:: Parameters
-      :name: parameters_9
 
    This function has the following parameter:
 
    *slot* A pointer to a slot info structure.
 
    .. rubric:: Returns
-      :name: returns_9
 
    The function returns one of these values:
 
@@ -418,12 +378,10 @@ NSS PKCS11 Functions
    -  If the slot is implemented in software, PR_FALSE.
 
    .. rubric:: PK11_IsPresent
-      :name: pk11_ispresent
 
    Finds out whether the token for a slot is available.
 
    .. rubric:: Syntax
-      :name: syntax_10
 
    .. code::
 
@@ -433,14 +391,12 @@ NSS PKCS11 Functions
        PRBool PK11_IsPresent(PK11SlotInfo *slot);
 
    .. rubric:: Parameters
-      :name: parameters_10
 
    This function has the following parameter:
 
    *slot* A pointer to a slot info structure.
 
    .. rubric:: Returns
-      :name: returns_10
 
    The function returns one of these values:
 
@@ -448,12 +404,10 @@ NSS PKCS11 Functions
    -  If token is disabled or missing, PR_FALSE.
 
    .. rubric:: PK11_IsReadOnly
-      :name: pk11_isreadonly
 
    Finds out whether a slot is read-only.
 
    .. rubric:: Syntax
-      :name: syntax_11
 
    .. code::
 
@@ -463,14 +417,12 @@ NSS PKCS11 Functions
        PRBool PK11_IsReadOnly(PK11SlotInfo *slot);
 
    .. rubric:: Parameters
-      :name: parameters_11
 
    This function has the following parameter:
 
    *slot* A pointer to a slot info structure.
 
    .. rubric:: Returns
-      :name: returns_11
 
    The function returns one of these values:
 
@@ -478,13 +430,11 @@ NSS PKCS11 Functions
    -  Otherwise, PR_FALSE.
 
    .. rubric:: PK11_SetPasswordFunc
-      :name: pk11_setpasswordfunc
 
    Defines a callback function used by the NSS libraries whenever information protected by a
    password needs to be retrieved from the key or certificate databases.
 
    .. rubric:: Syntax
-      :name: syntax_12
 
    .. code::
 
@@ -494,14 +444,12 @@ NSS PKCS11 Functions
        void PK11_SetPasswordFunc(PK11PasswordFunc func);
 
    .. rubric:: Parameter
-      :name: parameter
 
    This function has the following parameter:
 
    *func* A pointer to the callback function to set.
 
    .. rubric:: Description
-      :name: description_8
 
    During the course of an SSL operation, it may be necessary for the user to log in to a PKCS #11
    token (either a smart card or soft token) to access protected information, such as a private key.
@@ -549,6 +497,5 @@ NSS PKCS11 Functions
    SSL_SetPKCS11PinArg.
 
    .. rubric:: See Also
-      :name: see_also
 
    For examples of password callback functions, see the samples in the Samples directory.

@@ -18,8 +18,7 @@ NSPR functions
 .. container::
 
    NSPR is automatically initialized by the first NSPR function called by the application.  Call
-   ```PR_Cleanup`` </en-US/PR_Cleanup>`__ to shut down NSPR and clean up its resources.\ `
-    </en-US/PR_Init>`__
+   ```PR_Cleanup`` </en-US/PR_Cleanup>`__ to shut down NSPR and clean up its resources.
 
    -  `PR_Cleanup </en-US/PR_Cleanup>`__
 

@@ -36,19 +36,13 @@ FC_FindObjectsFinal
 
    Clears the object search criteria for a session.
 
-.. _return_value:
 
 `Return value <#return_value>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. container::
-
 `Examples <#examples>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. container::
-
-.. _see_also:
 
 `See also <#see_also>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

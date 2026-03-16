@@ -8,8 +8,6 @@ NSS release notes template
 `DRAFT (remove line when document is finished) <#draft_(remove_line_when_document_is_finished)>`__
 --------------------------------------------------------------------------------------------------
 
-.. container::
-
 `Introduction <#introduction>`__
 --------------------------------
 
@@ -34,14 +32,10 @@ NSS release notes template
    -  Source tarballs:
       https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_XX_RTM/src/ (make a link)
 
-.. _new_in_nss_3.xx:
 
 `New in NSS 3.XX <#new_in_nss_3.xx>`__
 --------------------------------------
 
-.. container::
-
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -57,21 +51,18 @@ NSS release notes template
    -  ...
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in \___.h*
 
       -  **function** - description
 
    .. rubric:: New Types
-      :name: new_types
 
    -  *in \___.h*
 
       -  **type** - description.
 
    .. rubric:: New Macros
-      :name: new_macros
 
    -  *in \___.h*
 

@@ -1,4 +1,3 @@
-.. _mozilla_projects_nss_nss_tech_notes_nss_tech_note2:
 
 nss tech note2
 ==============

@@ -27,13 +27,12 @@ OLD SSL Reference
    Writer: Sean Cotter
    Manager: Wan-Teh Chang*
 
-   .. rubric:: `Chapter 1  Overview of an SSL Application <sslintro.html#1028068>`__
-      :name: chapter_1_overview_of_an_ssl_application
+   .. rubric:: Chapter 1  Overview of an SSL Application
 
-      SSL and related APIs allow compliant applications to configure sockets for authenticated,
-      tamper-proof, and encrypted communications. This chapter introduces some of the basic SSL
-      functions. Chapter 2, "Getting Started With SSL" illustrates their use in sample client and
-      server applications.
+   SSL and related APIs allow compliant applications to configure sockets for authenticated,
+   tamper-proof, and encrypted communications. This chapter introduces some of the basic SSL
+   functions. Chapter 2, "Getting Started With SSL" illustrates their use in sample client and
+   server applications.
 
    -  `Initialization <sslintro.html#1027662>`__
 
@@ -44,12 +43,11 @@ OLD SSL Reference
    -  `Functions Used by Callbacks <sslintro.html#1027820>`__ ` <sslintro.html#1030535>`__
    -  `Cleanup <sslintro.html#1030535>`__
 
-   .. rubric:: `Chapter 2  Getting Started With SSL <gtstd.html#1005439>`__
-      :name: chapter_2_getting_started_with_ssl
+   .. rubric:: Chapter 2  Getting Started With SSL
 
-      This chapter describes how to set up your environment, including certificate and key
-      databases, to run the NSS sample code. The sample code and makefiles are available via LXR in
-      the SSLSamples directory.
+   This chapter describes how to set up your environment, including certificate and key
+   databases, to run the NSS sample code. The sample code and makefiles are available via LXR in
+   the SSLSamples directory.
 
    -  `SSL, PKCS #11, and the Default Security Databases <gtstd.html#1011970>`__
       ` <gtstd.html#1011987>`__
@@ -62,12 +60,11 @@ OLD SSL Reference
 
    -  `Building NSS Programs <gtstd.html#1013274>`__
 
-   .. rubric:: `Chapter 3  Selected SSL Types and Structures <ssltyp.html#1029792>`__
-      :name: chapter_3_selected_ssl_types_and_structures
+   .. rubric:: Chapter 3  Selected SSL Types and Structures
 
-      This chapter describes some of the most important types and structures used with the functions
-      described in the rest of this document, and how to manage the memory used for them. Additional
-      types are described with the functions that use them or in the header files.
+   This chapter describes some of the most important types and structures used with the functions
+   described in the rest of this document, and how to manage the memory used for them. Additional
+   types are described with the functions that use them or in the header files.
 
    -  `Types and Structures <ssltyp.html#1030559>`__
 
@@ -83,10 +80,9 @@ OLD SSL Reference
       -  `SECItem_FreeItem <ssltyp.html#1030620>`__ ` <ssltyp.html#1030773>`__
       -  `SECItem_ZfreeItem <ssltyp.html#1030773>`__
 
-   .. rubric:: :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1047959`
-      :name: chapter_4_ssl_functions
+   .. rubric:: Chapter 4  SSL Functions
 
-      This chapter describes the core SSL functions.
+   This chapter describes the core SSL functions.
 
    -  :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1022864`
 
@@ -204,11 +200,10 @@ OLD SSL Reference
          :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1231825`
       -  :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1231825`
 
-   .. rubric:: `Chapter 5  Certificate Functions <sslcrt.html#1047959>`__
-      :name: chapter_5_certificate_functions
+   .. rubric:: Chapter 5  Certificate Functions
 
-      This chapter describes the functions and related types used to work with a certificate
-      database such as the cert7.db database provided with Communicator.
+   This chapter describes the functions and related types used to work with a certificate
+   database such as the cert7.db database provided with Communicator.
 
    -  `Validating Certificates <sslcrt.html#1060423>`__
 
@@ -234,21 +229,19 @@ OLD SSL Reference
 
       -  `SECITEM_CompareItem <sslcrt.html#1057028>`__
 
-   .. rubric:: `Chapter 6  Key Functions <sslkey.html#1047959>`__
-      :name: chapter_6_key_functions
+   .. rubric:: Chapter 6  Key Functions
 
-      This chapter describes two functions used to manipulate private keys and key databases such as
-      the key3.db database provided with Communicator.
+   This chapter describes two functions used to manipulate private keys and key databases such as
+   the key3.db database provided with Communicator.
 
    -  `SECKEY_GetDefaultKeyDB <sslkey.html#1051479>`__ ` <sslkey.html#1051017>`__
    -  `SECKEY_DestroyPrivateKey <sslkey.html#1051017>`__
 
-   .. rubric:: `Chapter 7  PKCS #11 Functions <pkfnc.html#1027946>`__
-      :name: chapter_7_pkcs_11_functions
+   .. rubric:: Chapter 7  PKCS #11 Functions
 
-      This chapter describes the core PKCS #11 functions that an application needs for communicating
-      with cryptographic modules. In particular, these functions are used for obtaining
-      certificates, keys, and passwords.
+   This chapter describes the core PKCS #11 functions that an application needs for communicating
+   with cryptographic modules. In particular, these functions are used for obtaining
+   certificates, keys, and passwords.
 
    -  `PK11_FindCertFromNickname <pkfnc.html#1035673>`__ ` <pkfnc.html#1026891>`__
    -  `PK11_FindKeyByAnyCert <pkfnc.html#1026891>`__ ` <pkfnc.html#1030779>`__
@@ -259,11 +252,10 @@ OLD SSL Reference
    -  `PK11_IsReadOnly <pkfnc.html#1022991>`__ ` <pkfnc.html#1023128>`__
    -  `PK11_SetPasswordFunc <pkfnc.html#1023128>`__
 
-   .. rubric:: `Chapter 8  NSS and SSL Error Codes <sslerr.html#1013897>`__
-      :name: chapter_8_nss_and_ssl_error_codes
+   .. rubric:: Chapter 8  NSS and SSL Error Codes
 
-      NSS error codes are retrieved using the NSPR function PR_GetError. In addition to the error
-      codes defined by NSPR, PR_GetError retrieves the error codes described in this chapter.
+   NSS error codes are retrieved using the NSPR function PR_GetError. In addition to the error
+   codes defined by NSPR, PR_GetError retrieves the error codes described in this chapter.
 
    -  `SSL Error Codes <sslerr.html#1040263>`__ ` <sslerr.html#1039257>`__
    -  `SEC Error Codes <sslerr.html#1039257>`__

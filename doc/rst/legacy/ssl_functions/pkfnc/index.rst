@@ -17,9 +17,6 @@ pkfnc
    .. rubric:: PKCS #11 Functions
       :name: PKCS_11_Functions
 
-   --------------
-
-.. _chapter_7_pkcs_11_functions:
 
 `Chapter 7
 PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
@@ -41,12 +38,10 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    | ```PK11_SetPasswordFunc`` <#1023128>`__
 
    .. rubric:: PK11_FindCertFromNickname
-      :name: pk11_findcertfromnickname
 
    Finds a certificate from its nickname.
 
    .. rubric:: Syntax
-      :name: syntax
 
    .. code::
 
@@ -60,16 +55,15 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
          void *wincx);
 
    .. rubric:: Parameters
-      :name: parameters
 
    This function has the following parameters:
 
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | A pointer to the nickname in the certificate    |
+   | .. code::                                       | A pointer to the nickname in the certificate    |
    |                                                 | database or to the nickname in the token.       |
    |    nickname                                     |                                                 |
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | A pointer to application data for the password  |
+   | .. code::                                       | A pointer to application data for the password  |
    |                                                 | callback function. This pointer is set with     |
    |    wincx                                        | :ref:`moz                                       |
    |                                                 | illa_projects_nss_ssl_functions_sslfnc#1088040` |
@@ -80,7 +74,6 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    +-------------------------------------------------+-------------------------------------------------+
 
    .. rubric:: Returns
-      :name: returns
 
    The function returns one of these values:
 
@@ -88,7 +81,6 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    -  If unsuccessful, ``NULL``.
 
    .. rubric:: Description
-      :name: description
 
    A nickname is an alias for a certificate subject. There may be multiple certificates with the
    same subject, and hence the same nickname. This function will return the newest certificate that
@@ -101,12 +93,10 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    parameter.
 
    .. rubric:: PK11_FindKeyByAnyCert
-      :name: pk11_findkeybyanycert
 
    Finds the private key associated with a specified certificate in any available slot.
 
    .. rubric:: Syntax
-      :name: syntax_2
 
    .. code::
 
@@ -121,16 +111,15 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
          void *wincx);
 
    .. rubric:: Parameters
-      :name: parameters_2
 
    This function has the following parameters:
 
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | A pointer to a certificate structure in the     |
+   | .. code::                                       | A pointer to a certificate structure in the     |
    |                                                 | certificate database.                           |
    |    cert                                         |                                                 |
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | A pointer to application data for the password  |
+   | .. code::                                       | A pointer to application data for the password  |
    |                                                 | callback function. This pointer is set with     |
    |    wincx                                        | :ref:`moz                                       |
    |                                                 | illa_projects_nss_ssl_functions_sslfnc#1088040` |
@@ -141,7 +130,6 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    +-------------------------------------------------+-------------------------------------------------+
 
    .. rubric:: Returns
-      :name: returns_2
 
    The function returns one of these values:
 
@@ -149,7 +137,6 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    -  If unsuccessful, ``NULL``.
 
    .. rubric:: Description
-      :name: description_2
 
    When you are finished with the private key structure returned by ``PK11_FindKeyByAnyCert``, you
    must free it by calling ```SECKEY_DestroyPrivateKey`` <sslkey.html#1051017>`__.
@@ -159,12 +146,10 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    parameter.
 
    .. rubric:: PK11_GetSlotName
-      :name: pk11_getslotname
 
    Gets the name of a slot.
 
    .. rubric:: Syntax
-      :name: syntax_3
 
    .. code::
 
@@ -175,18 +160,16 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
       char *PK11_GetSlotName(PK11SlotInfo *slot);
 
    .. rubric:: Parameters
-      :name: parameters_3
 
    This function has the following parameter:
 
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | A pointer to a slot info structure.             |
+   | .. code::                                       | A pointer to a slot info structure.             |
    |                                                 |                                                 |
    |    slot                                         |                                                 |
    +-------------------------------------------------+-------------------------------------------------+
 
    .. rubric:: Returns
-      :name: returns_3
 
    The function returns one of these values:
 
@@ -194,18 +177,15 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    -  If unsuccessful, ``NULL``.
 
    .. rubric:: Description
-      :name: description_3
 
    If the slot is freed, the string with the slot name may also be freed. If you want to preserve
    it, copy the string before freeing the slot. Do not try to free the string yourself.
 
    .. rubric:: PK11_GetTokenName
-      :name: pk11_gettokenname
 
    Gets the name of the token.
 
    .. rubric:: Syntax
-      :name: syntax_4
 
    .. code::
 
@@ -216,18 +196,16 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
       char *PK11_GetTokenName(PK11SlotInfo *slot);
 
    .. rubric:: Parameters
-      :name: parameters_4
 
    This function has the following parameter:
 
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | A pointer to a slot info structure.             |
+   | .. code::                                       | A pointer to a slot info structure.             |
    |                                                 |                                                 |
    |    slot                                         |                                                 |
    +-------------------------------------------------+-------------------------------------------------+
 
    .. rubric:: Returns
-      :name: returns_4
 
    The function returns one of these values:
 
@@ -235,18 +213,15 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    -  If unsuccessful, ``NULL``.
 
    .. rubric:: Description
-      :name: description_4
 
    If the slot is freed, the string with the token name may also be freed. If you want to preserve
    it, copy the string before freeing the slot. Do not try to free the string yourself.
 
    .. rubric:: PK11_IsHW
-      :name: pk11_ishw
 
    Finds out whether a slot is implemented in hardware or software.
 
    .. rubric:: Syntax
-      :name: syntax_5
 
    .. code::
 
@@ -258,18 +233,16 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
       PRBool PK11_IsHW(PK11SlotInfo *slot);
 
    .. rubric:: Parameters
-      :name: parameters_5
 
    This function has the following parameter:
 
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | A pointer to a slot info structure.             |
+   | .. code::                                       | A pointer to a slot info structure.             |
    |                                                 |                                                 |
    |    slot                                         |                                                 |
    +-------------------------------------------------+-------------------------------------------------+
 
    .. rubric:: Returns
-      :name: returns_5
 
    The function returns one of these values:
 
@@ -277,12 +250,10 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    -  If the slot is implemented in software, ``PR_FALSE``.
 
    .. rubric:: PK11_IsPresent
-      :name: pk11_ispresent
 
    Finds out whether the token for a slot is available.
 
    .. rubric:: Syntax
-      :name: syntax_6
 
    .. code::
 
@@ -294,18 +265,16 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
       PRBool PK11_IsPresent(PK11SlotInfo *slot);
 
    .. rubric:: Parameters
-      :name: parameters_6
 
    This function has the following parameter:
 
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | A pointer to a slot info structure.             |
+   | .. code::                                       | A pointer to a slot info structure.             |
    |                                                 |                                                 |
    |    slot                                         |                                                 |
    +-------------------------------------------------+-------------------------------------------------+
 
    .. rubric:: Returns
-      :name: returns_6
 
    The function returns one of these values:
 
@@ -313,12 +282,10 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    -  If token is disabled or missing, ``PR_FALSE``.
 
    .. rubric:: PK11_IsReadOnly
-      :name: pk11_isreadonly
 
    Finds out whether a slot is read-only.
 
    .. rubric:: Syntax
-      :name: syntax_7
 
    .. code::
 
@@ -330,18 +297,16 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
       PRBool PK11_IsReadOnly(PK11SlotInfo *slot);
 
    .. rubric:: Parameters
-      :name: parameters_7
 
    This function has the following parameter:
 
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | A pointer to a slot info structure.             |
+   | .. code::                                       | A pointer to a slot info structure.             |
    |                                                 |                                                 |
    |    slot                                         |                                                 |
    +-------------------------------------------------+-------------------------------------------------+
 
    .. rubric:: Returns
-      :name: returns_7
 
    The function returns one of these values:
 
@@ -349,13 +314,11 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    -  Otherwise, ``PR_FALSE``.
 
    .. rubric:: PK11_SetPasswordFunc
-      :name: pk11_setpasswordfunc
 
    Defines a callback function used by the NSS libraries whenever information protected by a
    password needs to be retrieved from the key or certificate databases.
 
    .. rubric:: Syntax
-      :name: syntax_8
 
    .. code::
 
@@ -367,18 +330,16 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
       void PK11_SetPasswordFunc(PK11PasswordFunc func);
 
    .. rubric:: Parameter
-      :name: parameter
 
    This function has the following parameter:
 
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | A pointer to the callback function to set.      |
+   | .. code::                                       | A pointer to the callback function to set.      |
    |                                                 |                                                 |
    |    func                                         |                                                 |
    +-------------------------------------------------+-------------------------------------------------+
 
    .. rubric:: Description
-      :name: description_5
 
    During the course of an SSL operation, it may be necessary for the user to log in to a PKCS #11
    token (either a smart card or soft token) to access protected information, such as a private key.
@@ -398,15 +359,15 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    This callback function has the following parameters:
 
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | A pointer to a slot info structure.             |
+   | .. code::                                       | A pointer to a slot info structure.             |
    |                                                 |                                                 |
    |    slot                                         |                                                 |
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | Set to ``PR_TRUE`` if this is a retry. This     |
+   | .. code::                                       | Set to ``PR_TRUE`` if this is a retry. This     |
    |                                                 | implies that the callback has previously        |
    |    retry                                        | returned the wrong password.                    |
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | A pointer supplied by the application that can  |
+   | .. code::                                       | A pointer supplied by the application that can  |
    |                                                 | be used to pass state information. Can be       |
    |    arg                                          | ``NULL``.                                       |
    +-------------------------------------------------+-------------------------------------------------+
@@ -433,7 +394,6 @@ PKCS #11 Functions <#chapter_7_pkcs_11_functions>`__
    :ref:`mozilla_projects_nss_ssl_functions_sslfnc#1088040`.
 
    .. rubric:: See Also
-      :name: see_also
 
    For examples of password callback functions, see the samples in the
    :ref:`mozilla_projects_nss_nss_sample_code` directory.

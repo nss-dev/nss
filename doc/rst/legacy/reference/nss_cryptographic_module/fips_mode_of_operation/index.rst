@@ -3,7 +3,6 @@
 FIPS mode of operation
 ======================
 
-.. _general-purpose_functions:
 
 `General-purpose functions <#general-purpose_functions>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

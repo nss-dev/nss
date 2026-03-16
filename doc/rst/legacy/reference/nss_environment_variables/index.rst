@@ -143,6 +143,7 @@ NSS environment variables
    |                        |                        |                        |                        |
    |                        |                        | -  [1|u|U]:            |                        |
    |                        |                        |    SSL_RE              |                        |
+   |                        |                        |                        |                        |
    |                        |                        | NEGOTIATE_UNRESTRICTED |                        |
    |                        |                        |                        |                        |
    |                        |                        | | Server and client    |                        |
@@ -165,6 +166,7 @@ NSS environment variables
    |                        |                        |                        |                        |
    |                        |                        | -  [3|t|T]:            |                        |
    |                        |                        |    SSL_RE              |                        |
+   |                        |                        |                        |                        |
    |                        |                        | NEGOTIATE_TRANSITIONAL |                        |
    |                        |                        |                        |                        |
    |                        |                        | Disallows unsafe       |                        |
@@ -182,7 +184,9 @@ NSS environment variables
    |                        |                        |                        |                        |
    |                        |                        | -  [2|r|R]:            |                        |
    |                        |                        |    SSL_RE              |                        |
+   |                        |                        |                        |                        |
    |                        |                        | NEGOTIATE_REQUIRES_XTN |                        |
+   |                        |                        |                        |                        |
    |                        |                        |    (default)           |                        |
    |                        |                        |                        |                        |
    |                        |                        | | Only allows          |                        |
@@ -433,7 +437,7 @@ NSS environment variables
    +------------------------+------------------------+------------------------+------------------------+
    | `N                     | Boolean                | Enable NSS support in  | 3.24                   |
    | SS_ALLOW_SSLKEYLOGFILE | (1 to enable)          | optimized builds for   |                        |
-   |  <https://dxr.mozilla. |                        | logging SSL/TLS key    |                        |
+   | <https://dxr.mozilla.  |                        | logging SSL/TLS key    |                        |
    | org/nss/search?q=NSS_A |                        | material to a logfile  |                        |
    | LLOW_SSLKEYLOGFILE>`__ |                        | if the SSLKEYLOGFILE   |                        |
    |                        |                        | environment variable.  |                        |

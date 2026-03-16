@@ -8,8 +8,6 @@ nss tech note8
 `Background Information on libSSL's Cache Functions and SIDs <#background_information_on_libssl's_cache_functions_and_sids>`__
 ------------------------------------------------------------------------------------------------------------------------------
 
-.. container::
-
 .. _nss_technical_note_8:
 
 `NSS Technical Note: 8 <#nss_technical_note_8>`__

@@ -29,7 +29,6 @@ NSS 3.16 release notes
 `New in NSS 3.16 <#new_in_nss_3.16>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,7 +39,6 @@ NSS 3.16 release notes
       set the environment variable USE_X32=1 when building NSS.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in cms.h*
 
@@ -48,7 +46,6 @@ NSS 3.16 release notes
          verifies the signature, assuming that the certificate has been verified already.
 
    .. rubric:: New Macros
-      :name: new_macros
 
    -  *in sslproto.h*
 

@@ -29,7 +29,6 @@ NSS 3.18 release notes
 `New in NSS 3.18 <#new_in_nss_3.18>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -47,7 +46,6 @@ NSS 3.18 release notes
       either be the nssckbi library provided by NSS (-b) or another compatible library (-R).
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in certdb.h*
 
@@ -66,7 +64,6 @@ NSS 3.18 release notes
          depend on these symbols can and will break in future NSS releases.
 
    .. rubric:: New Types
-      :name: new_types
 
    -  *in p12.h*
 

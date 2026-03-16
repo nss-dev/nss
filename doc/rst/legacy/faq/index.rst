@@ -3,7 +3,6 @@
 NSS FAQ
 =======
 
-.. _general_questions:
 
 `General Questions <#general_questions>`__
 ------------------------------------------

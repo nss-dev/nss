@@ -8,12 +8,8 @@ EncDecMAC using token object - sample 3
 `EncDecMAC using token object <#encdecmac_using_token_object>`__
 ----------------------------------------------------------------
 
-.. container::
-
 `Example: <#example>`__
 ~~~~~~~~~~~~~~~~~~~~~~~
-
-.. container::
 
 .. _nss_sample_code_3_hashing.:
 

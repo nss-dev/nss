@@ -51,7 +51,6 @@ FC_InitPIN
    to log in as the PKCS #11 SO. The module only allows the PKCS #11 SO to log in if the normal
    user's PIN has not yet been set or has been reset.
 
-.. _return_value:
 
 `Return value <#return_value>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -68,7 +67,6 @@ FC_InitPIN
       character types).
    -  ``CKR_DEVICE_ERROR``: normal user's PIN is already initialized.
 
-.. _see_also:
 
 `See also <#see_also>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

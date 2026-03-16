@@ -50,9 +50,6 @@ NSS 3.46 release notes
 `Notable Changes in NSS 3.46 <#notable_changes_in_nss_3.46>`__
 --------------------------------------------------------------
 
-.. container::
-
-.. _certificate_authority_changes:
 
 `Certificate Authority Changes <#certificate_authority_changes>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -81,7 +78,6 @@ NSS 3.46 release notes
 
          -  SHA-256 Fingerprint: F09B122C7114F4A09BD4EA4F4A99D558B46E4C25CD81140D29C05613914C3841
 
-.. _upcoming_changes_to_default_tls_configuration:
 
 `Upcoming changes to default TLS configuration <#upcoming_changes_to_default_tls_configuration>`__
 --------------------------------------------------------------------------------------------------

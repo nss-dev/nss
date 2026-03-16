@@ -47,19 +47,13 @@ FC_FindObjects
    previous call to ``FC_FindObjectsInit`` and sets the object count variable to their number or to
    zero if there are none.
 
-.. _return_value:
 
 `Return value <#return_value>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. container::
-
 `Examples <#examples>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. container::
-
-.. _see_also:
 
 `See also <#see_also>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

@@ -13,7 +13,6 @@ NSS Sample Code Sample_2_Initialization of NSS
    This example program demonstrates how to initialize the NSS Database.  This program illustrates
    password handling.
 
-.. _sample_code_1:
 
 `Sample Code 1 <#sample_code_1>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

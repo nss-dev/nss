@@ -48,7 +48,6 @@ NSS Tools certutil
    following section. Each command takes one option. Each option may take zero or more arguments. To
    see a usage string, issue the command without options, or with the ``-H`` option.
 
-.. _options_and_arguments:
 
 `Options and Arguments <#options_and_arguments>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -528,8 +527,6 @@ NSS Tools certutil
 
 `Examples <#examples>`__
 ------------------------
-
-.. container::
 
 .. _creating_a_new_certificate_database:
 

@@ -29,7 +29,6 @@ NSS 3.31 release notes
 `New in NSS 3.31 <#new_in_nss_3.31>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -41,7 +40,6 @@ NSS 3.31 release notes
       safe way.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in cert.h*
 
@@ -67,7 +65,6 @@ NSS 3.31 release notes
       -  **PK11URI_ParseURI** - parse PKCS#11 URI and return a new PK11URI object.
 
    .. rubric:: New Macros
-      :name: new_macros
 
    -  *in pkcs11uri.h*
 

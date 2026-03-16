@@ -44,7 +44,6 @@ FC_GetSlotInfo
 
    A user may call ``FC_GetSlotInfo`` without logging into the token (to assume the NSS User role).
 
-.. _return_value:
 
 `Return value <#return_value>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -59,9 +58,6 @@ FC_GetSlotInfo
 `Examples <#examples>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. container::
-
-.. _see_also:
 
 `See also <#see_also>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

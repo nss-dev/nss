@@ -3,7 +3,6 @@
 Encrypt Decrypt_MAC_Using Token
 ===============================
 
-.. _nss_sample_code_3_encryptiondecryption_and_mac_using_token_object.:
 
 `NSS Sample Code 3: Encryption/Decryption and MAC Using Token Object. <#nss_sample_code_3_encryptiondecryption_and_mac_using_token_object.>`__
 ----------------------------------------------------------------------------------------------------------------------------------------------

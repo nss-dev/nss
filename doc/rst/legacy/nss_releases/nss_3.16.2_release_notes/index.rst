@@ -30,7 +30,6 @@ NSS 3.16.2 release notes
 `New in NSS 3.16.2 <#new_in_nss_3.16.2>`__
 ------------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -46,7 +45,6 @@ NSS 3.16.2 release notes
       Krasnov of Intel.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in cert.h*
 
@@ -61,7 +59,6 @@ NSS 3.16.2 release notes
          CK_MECHANISM_TYPE.
 
    .. rubric:: New Macros
-      :name: new_macros
 
    -  *in sslerr.h*
 

@@ -12,7 +12,6 @@ NSS Tools signver-tasks
 
    Newsgroup: `mozilla.dev.tech.crypto <news://news.mozilla.org/mozilla.dev.tech.crypto>`__
 
-.. _task_list:
 
 `Task List <#task_list>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -37,7 +37,6 @@ FC_WaitForSlotEvent
 
    This function is not supported by the NSS cryptographic module.
 
-.. _return_value:
 
 `Return value <#return_value>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -49,9 +48,6 @@ FC_WaitForSlotEvent
 `Examples <#examples>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. container::
-
-.. _see_also:
 
 `See also <#see_also>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

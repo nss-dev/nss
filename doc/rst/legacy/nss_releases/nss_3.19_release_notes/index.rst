@@ -42,7 +42,6 @@ NSS 3.19 release notes
 `New in NSS 3.19 <#new_in_nss_3.19>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,7 +57,6 @@ NSS 3.19 release notes
       build system will look for the sqlite library.
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  *in cert.h*
 

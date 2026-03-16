@@ -32,7 +32,6 @@ PKCS11 Implement
    PKCS #11: Cryptographic Token Interface Standard, version 2.0. To understand this section, you
    should be familiar with the standard specification.
 
-.. _general-purpose_functions:
 
 `General-Purpose Functions <#general-purpose_functions>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

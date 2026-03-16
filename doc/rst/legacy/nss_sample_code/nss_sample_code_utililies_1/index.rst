@@ -18,7 +18,6 @@ NSS Sample Code Utilities_1
    -  Get the module password
    -  Print as ascii or hexadecimal
 
-.. _sample_code:
 
 `Sample Code <#sample_code>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

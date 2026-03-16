@@ -8,8 +8,6 @@ nss tech note3
 `All About Certificate Extensions <#all_about_certificate_extensions>`__
 ------------------------------------------------------------------------
 
-.. container::
-
 .. _nss_technical_note_3:
 
 `NSS Technical Note: 3 <#nss_technical_note_3>`__

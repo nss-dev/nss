@@ -12,7 +12,6 @@ Building NSS
    that builds on many different platforms and has many options, it may be complex to build. Please
    read these instructions carefully before attempting to build.
 
-.. _build_environment:
 
 `Build environment <#build_environment>`__
 ------------------------------------------
@@ -39,7 +38,6 @@ Building NSS
    You can also build NSS on the Windows Subsystem for Linux, but the resulting binaries aren't
    usable by other Windows applications.
 
-.. _get_the_source:
 
 `Get the source <#get_the_source>`__
 ------------------------------------
@@ -70,7 +68,6 @@ Building NSS
 
    This builds both NSPR and NSS.
 
-.. _build_with_make:
 
 `Build with make <#build_with_make>`__
 --------------------------------------
@@ -106,7 +103,6 @@ Building NSS
       1
          Create an AddressSanitizer build.
 
-.. _unit_testing:
 
 `Unit testing <#unit_testing>`__
 --------------------------------
@@ -120,7 +116,6 @@ Building NSS
 
       HOST=localhost DOMSUF=localdomain USE_64=1 nss/tests/all.sh
 
-.. _unit_test_configuration:
 
 `Unit test configuration <#unit_test_configuration>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -143,7 +138,6 @@ Building NSS
 
    Remove the ``USE_64=1`` override if using a 32-bit build.
 
-.. _test_results:
 
 `Test results <#test_results>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

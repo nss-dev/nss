@@ -16,7 +16,6 @@ NSS Tools pk12util
    to import certificates and keys from pkcs #12 files into NSS or export them and also list
    certificates and keys in such files.
 
-.. _availability_2:
 
 ` <#availability_2>`__ Availability
 -----------------------------------
@@ -31,12 +30,12 @@ NSS Tools pk12util
 .. container::
 
    **pk12util** ``-i p12File [-h tokenname] [-v] [common-options]``
-     or
+   or
    **pk12util**
    ``-o p12File -n certname [-c keyCipher] [-C certCipher] [-m | --key_len keyLen] [-n | --cert_key_len certKeyLen] [common-options]``
-     or
+   or
    **pk12util** ``-l p12File [-h tokenname] [-r] [common-options]``
-     where
+   where
    **[common-options]** =
    ``[-d dir] [-P dbprefix] [-k slotPasswordFile | -K slotPassword] [-w p12filePasswordFile | -W p12filePassword]``
 
@@ -51,7 +50,6 @@ NSS Tools pk12util
    invocation. Each command takes several options. Options may take zero or more arguments. To see a
    usage string, issue the pkcs12util command without any options.
 
-.. _options_and_arguments:
 
 `Options and Arguments <#options_and_arguments>`__
 --------------------------------------------------
@@ -181,7 +179,6 @@ NSS Tools pk12util
    desired algorithm can be found a "no security module can perform the requested operation" will
    appear on the error message.
 
-.. _error_codes:
 
 ` <#error_codes>`__ Error Codes
 -------------------------------

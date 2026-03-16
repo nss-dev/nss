@@ -29,7 +29,6 @@ NSS 3.40 release notes
 `New in NSS 3.40 <#new_in_nss_3.40>`__
 --------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -41,7 +40,6 @@ NSS 3.40 release notes
    -  ``tstclnt`` now takes ``-N`` option to specify encrypted SNI key
 
    .. rubric:: New Functions
-      :name: new_functions
 
    -  none
 

@@ -17,12 +17,9 @@ ssltyp
    .. rubric:: Selected SSL Types and Structures
       :name: Selected_SSL_Types_and_Structures
 
-   --------------
 
-.. _chapter_3_selected_ssl_types_and_structures:
+`Chapter 3 <#chapter_3_selected_ssl_types_and_structures>`__ Selected SSL Types and Structures
 
-`Chapter 3
- <#chapter_3_selected_ssl_types_and_structures>`__ Selected SSL Types and Structures
 ------------------------------------------------------------------------------------
 
 .. container::
@@ -66,7 +63,6 @@ ssltyp
    An opaque handle structure for open certificate databases.
 
    .. rubric:: Syntax
-      :name: syntax
 
    .. code::
 
@@ -82,7 +78,6 @@ ssltyp
    An opaque X.509 certificate object.
 
    .. rubric:: Syntax
-      :name: syntax_2
 
    .. code::
 
@@ -93,7 +88,6 @@ ssltyp
       typedef struct CERTCertificateStr CERTCertificate;
 
    .. rubric:: Description
-      :name: description
 
    Certificate structures are shared objects. When an application makes a copy of a particular
    certificate structure that already exists in memory, SSL makes a *shallow* copy--that is, it
@@ -111,7 +105,6 @@ ssltyp
    An opaque structure representing a physical or logical PKCS #11 slot.
 
    .. rubric:: Syntax
-      :name: syntax_3
 
    .. code::
 
@@ -125,7 +118,6 @@ ssltyp
    A structure that points to other structures.
 
    .. rubric:: Syntax
-      :name: syntax_4
 
    .. code::
 
@@ -161,7 +153,6 @@ ssltyp
       };
 
    .. rubric:: Description
-      :name: description_2
 
    A ``SECItem`` structure can be used to associate your own data with an SSL socket.
 
@@ -175,7 +166,6 @@ ssltyp
    An opaque, generic key structure.
 
    .. rubric:: Syntax
-      :name: syntax_5
 
    .. code::
 
@@ -186,7 +176,6 @@ ssltyp
       typedef struct SECKEYPrivateKeyStr SECKEYPrivateKey;
 
    .. rubric:: Description
-      :name: description_3
 
    Key structures are not shared objects. When an application makes a copy of a particular key
    structure that already exists in memory, SSL makes a *deep* copy--that is, it makes a whole new
@@ -201,7 +190,6 @@ ssltyp
    The return value for many SSL functions.
 
    .. rubric:: Syntax
-      :name: syntax_6
 
    .. code::
 
@@ -221,15 +209,15 @@ ssltyp
    The enum includes the following enumerators:
 
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | Reserved for internal use.                      |
+   | .. code::                                       | Reserved for internal use.                      |
    |                                                 |                                                 |
    |    SECWouldBlock                                |                                                 |
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | The operation failed. To find out why, call     |
+   | .. code::                                       | The operation failed. To find out why, call     |
    |                                                 | ``PR_GetError``.                                |
    |    SECFailure                                   |                                                 |
    +-------------------------------------------------+-------------------------------------------------+
-   | .. code::                           | The operation succeeded. In this case the value |
+   | .. code::                                       | The operation succeeded. In this case the value |
    |                                                 | returned by ``PR_GetError`` is meaningless.     |
    |    SECSuccess                                   |                                                 |
    +-------------------------------------------------+-------------------------------------------------+
@@ -253,7 +241,6 @@ ssltyp
    Frees the memory associated with a ``SECItem`` structure.
 
    .. rubric:: Syntax
-      :name: syntax_7
 
    .. code::
 
@@ -266,7 +253,6 @@ ssltyp
          PRBool freeItem)
 
    .. rubric:: Parameter
-      :name: parameter
 
    This function has the following parameter:
 
@@ -278,7 +264,6 @@ ssltyp
    +----------+--------------------------------------------------------------------------------------+
 
    .. rubric:: Returns
-      :name: returns
 
    The function returns one of these value\ ``s``:
 
@@ -288,7 +273,6 @@ ssltyp
       code.
 
    .. rubric:: Description
-      :name: description_4
 
    This function frees the memory associated with the structure to which the specified item points,
    when that structure is no longer used. When ``freeItem`` is not ``PR_FALSE``, also frees the item
@@ -300,7 +284,6 @@ ssltyp
    Zeroes and frees the memory associated with a ``SECItem`` structure.
 
    .. rubric:: Syntax
-      :name: syntax_8
 
    .. code::
 
@@ -313,7 +296,6 @@ ssltyp
          PRBool freeItem)
 
    .. rubric:: Parameter
-      :name: parameter_2
 
    This function has the following parameter:
 
@@ -325,7 +307,6 @@ ssltyp
    +----------+--------------------------------------------------------------------------------------+
 
    .. rubric:: Returns
-      :name: returns_2
 
    The function returns one of these value\ ``s``:
 
@@ -335,7 +316,6 @@ ssltyp
       code.
 
    .. rubric:: Description
-      :name: description_5
 
    This function is similar to ```SECItem_FreeItem`` <#1030620>`__, except that it overwrites the
    structures to be freed with zeroes before it frees them. Zeros and frees the memory associated

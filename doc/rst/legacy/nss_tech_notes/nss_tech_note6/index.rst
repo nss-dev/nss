@@ -5,11 +5,9 @@ nss tech note6
 
 .. _nss_.chk_files_for_the_fips_140_mode:
 
-`NSS .chk Files for the FIPS 140 Mode
- <#nss_.chk_files_for_the_fips_140_mode>`__
--------------------------------------------
+`NSS .chk Files for the FIPS 140 Mode <#nss_.chk_files_for_the_fips_140_mode>`__
 
-.. container::
+-------------------------------------------
 
 .. _nss_technical_note_6:
 

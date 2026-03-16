@@ -8,8 +8,6 @@ nss tech note7
 `RSA Signing and Encryption with NSS <#rsa_signing_and_encryption_with_nss>`__
 ------------------------------------------------------------------------------
 
-.. container::
-
 .. _nss_technical_note_7:
 
 `NSS Technical Note: 7 <#nss_technical_note_7>`__
@@ -23,7 +21,6 @@ nss tech note7
    doesn't yet support PKCS #1 v2.0 and v2.1, in particular OAEP, but OAEP support is on our `to-do
    list <https://bugzilla.mozilla.org/show_bug.cgi?id=158747>`__. Your contribution is welcome.
 
-.. _data_types:
 
 `Data Types <#data_types>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -169,7 +166,6 @@ nss tech note7
      significant 0 bits. For example, 0x00123456 is equal to 0x123456.
    | Perhaps this change made in PKCS #1 v2.0 confused many people, so it was reversed in v2.1.
 
-.. _sample_code:
 
 `Sample Code <#sample_code>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

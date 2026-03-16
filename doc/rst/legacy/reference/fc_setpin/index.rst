@@ -51,7 +51,6 @@ FC_SetPIN
    ``FC_SetPIN`` modifies the PIN of the user. The user must log into the token (to assume the NSS
    User role) before calling ``FC_SetPIN``.
 
-.. _return_value:
 
 `Return value <#return_value>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -63,9 +62,6 @@ FC_SetPIN
 `Examples <#examples>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. container::
-
-.. _see_also:
 
 `See also <#see_also>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~

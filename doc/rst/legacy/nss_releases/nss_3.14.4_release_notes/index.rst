@@ -25,7 +25,6 @@ NSS 3.14.4 release notes
    -  Source tarballs:
       https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_14_4_RTM/src/
 
-.. _security_advisories:
 
 `Security Advisories <#security_advisories>`__
 ----------------------------------------------
@@ -43,7 +42,6 @@ NSS 3.14.4 release notes
 `New in NSS 3.14.4 <#new_in_nss_3.14.4>`__
 ------------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

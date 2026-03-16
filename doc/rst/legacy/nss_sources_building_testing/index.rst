@@ -67,7 +67,6 @@ NSS sources building testing
    listed in the .def files, NSS promises that the binary function interface (ABI) will remain
    stable.
 
-.. _building_nss:
 
 `Building NSS <#building_nss>`__
 --------------------------------

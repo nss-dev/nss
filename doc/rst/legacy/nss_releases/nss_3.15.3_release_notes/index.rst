@@ -25,7 +25,6 @@ NSS 3.15.3 release notes
    -  Source tarballs:
       https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_15_3_RTM/src/
 
-.. _security_advisories:
 
 `Security Advisories <#security_advisories>`__
 ----------------------------------------------
@@ -47,7 +46,6 @@ NSS 3.15.3 release notes
 `New in NSS 3.15.3 <#new_in_nss_3.15.3>`__
 ------------------------------------------
 
-.. _new_functionality:
 
 `New Functionality <#new_functionality>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

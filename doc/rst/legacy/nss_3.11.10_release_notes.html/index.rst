@@ -8,8 +8,6 @@ NSS_3.11.10_release_notes.html
 `NSS 3.11.10 Release Notes <#nss_3.11.10_release_notes>`__
 ----------------------------------------------------------
 
-.. container::
-
 .. _2008-12-10:
 
 `2008-12-10 <#2008-12-10>`__
@@ -32,7 +30,6 @@ NSS_3.11.10_release_notes.html
    -  `Compatibility <#compatibility>`__
    -  `Feedback <#feedback>`__
 
-   --------------
 
 `Introduction <#introduction>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -42,7 +39,6 @@ NSS_3.11.10_release_notes.html
    Network Security Services (NSS) 3.11.10 is a patch release for NSS 3.11. The bug fixes in NSS
    3.11.10 are described in the "`Bugs Fixed <#bugsfixed>`__" section below.
 
-   --------------
 
 
 
@@ -74,9 +70,7 @@ NSS_3.11.10_release_notes.html
    and shared libraries, which NSS 3.11.10 requires. NSPR 4.7.1 binary distributions are in
    https://ftp.mozilla.org/pub/mozilla.org/nspr/releases/v4.7.1/.
 
-   --------------
 
-.. _bugs_fixed:
 
 `Bugs Fixed <#bugs_fixed>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -137,7 +131,6 @@ NSS_3.11.10_release_notes.html
    -  `Bug 462948 <https://bugzilla.mozilla.org/show_bug.cgi?id=462948>`__: lint warnings for source
       files that include keythi.h
 
-   --------------
 
 `Documentation <#documentation>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -150,7 +143,6 @@ NSS_3.11.10_release_notes.html
 
    -  `Build Instructions for NSS 3.11.4 and above <../nss-3.11.4/nss-3.11.4-build.html>`__
 
-   --------------
 
 `Compatibility <#compatibility>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -163,7 +155,6 @@ NSS_3.11.10_release_notes.html
    to the functions listed in `NSS Public Functions <../ref/nssfunctions.html>`__ will remain
    compatible with future versions of the NSS shared libraries.
 
-   --------------
 
 `Feedback <#feedback>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~
