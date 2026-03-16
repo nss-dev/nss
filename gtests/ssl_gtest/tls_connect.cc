@@ -448,12 +448,18 @@ void TlsConnectTestBase::ConnectWithCipherSuite(uint16_t cipher_suite) {
 }
 
 void TlsConnectTestBase::CheckConnected() {
-  // Have the client read handshake twice to make sure we get the
-  // NST and the ACK.
+  // Read until the client processes the ACK and releases its handshake cipher
+  // specs.  If the server retransmits its HS flight (e.g. due to timer expiry),
+  // out-of-epoch epoch2 records precede the NST+ACK in the client's buffer and
+  // are silently dropped one per Handshake() call.  The server flight has 5
+  // records, so 10 iterations is enough to handle one retransmit with margin.
   if (client_->version() >= SSL_LIBRARY_VERSION_TLS_1_3 &&
       variant_ == ssl_variant_datagram) {
-    client_->Handshake();
-    client_->Handshake();
+    static const int kMaxDtlsHandshakeDrainIterations = 10;
+    for (int i = 0; i < kMaxDtlsHandshakeDrainIterations; i++) {
+      client_->Handshake();
+      if (SSLInt_CountCipherSpecs(client_->ssl_fd()) == 2) break;
+    }
     auto suites = SSLInt_CountCipherSpecs(client_->ssl_fd());
     // Verify that we dropped the client's retransmission cipher suites.
     EXPECT_EQ(2, suites) << "Client has the wrong number of suites";
