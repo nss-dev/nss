@@ -330,7 +330,8 @@ cycles="standard pkix threadunsafe"
 CYCLES=${NSS_CYCLES:-$cycles}
 
 NO_INIT_SUPPORT=`certutil --build-flags |grep -cw NSS_NO_INIT_SUPPORT`
-if [ $NO_INIT_SUPPORT -eq 0 ]; then
+IS_FIPS_DISABLED=`certutil --build-flags |grep -cw NSS_FIPS_DISABLED`
+if [ $NO_INIT_SUPPORT -eq 0 ] && [ $IS_FIPS_DISABLED -eq 0 ]; then
     RUN_FIPS="fips"
 fi
 

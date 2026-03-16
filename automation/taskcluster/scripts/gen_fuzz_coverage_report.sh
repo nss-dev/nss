@@ -14,5 +14,6 @@ popd
 out=/builds/worker/artifacts
 mkdir -p $out
 
-# Generate coverage report.
-cd nss && ./mach coverage --outdir=$out ssl_gtests
+cd nss
+export PYTHONUNBUFFERED=1
+./mach fuzz-coverage --outdir=$out --base-rev="$NSS_BASE_REV"

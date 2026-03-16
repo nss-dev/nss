@@ -4,12 +4,12 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import sys
-import toml
+import tomllib
 
 
 def main():
-    with open(sys.argv[1], "r") as f:
-        data = toml.load(f)
+    with open(sys.argv[1], "rb") as f:
+        data = tomllib.load(f)
 
     for key, value in data["libfuzzer"].items():
         print(f"-{key}={value}")

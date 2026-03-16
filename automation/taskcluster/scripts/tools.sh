@@ -10,7 +10,7 @@ if [[ $(id -u) -eq 0 ]]; then
     exec su worker -c "$0 $*"
 fi
 
-export PATH="${PATH}:/home/worker/.cargo/bin/:/usr/lib/go-1.6/bin"
+export PATH="${PATH}:${HOME}/.local/bin:/home/worker/.cargo/bin/:/usr/lib/go-1.6/bin"
 
 # Usage: hg_clone repo dir [revision=@]
 hg_clone() {

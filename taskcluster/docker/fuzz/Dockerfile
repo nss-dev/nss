@@ -40,6 +40,8 @@ RUN apt-get update \
     ninja-build \
     pkg-config \
     python-is-python3 \
+    pipx \
+    python3-pip \
     python3-requests \
     python3-toml \
     unzip \
@@ -59,6 +61,8 @@ ENV DOMSUF localdomain
 
 RUN locale-gen $LANG \
  && dpkg-reconfigure locales
+
+RUN pipx install diff-cover
 
 RUN userdel ubuntu && \
     useradd -d $HOME -s $SHELL -m $USER && \
