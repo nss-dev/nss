@@ -5148,6 +5148,10 @@ tls13_AEAD(PK11Context *context, PRBool decrypt,
         PORT_Memcpy(ivOut, ivIn, ivLen);
     }
     if (decrypt) {
+        if (inLen < tagLen) {
+            PORT_SetError(SEC_ERROR_INPUT_LEN);
+            return SECFailure;
+        }
         inLen = inLen - tagLen;
         tag = (unsigned char *)in + inLen;
         /* tag is const on decrypt, but returned on encrypt */
