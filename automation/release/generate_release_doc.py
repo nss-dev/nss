@@ -17,7 +17,7 @@ import os
 import re
 import sys
 from datetime import datetime
-from subprocess import check_output
+from subprocess import call, check_call, check_output
 
 
 def exit_with_failure(message):
@@ -89,7 +89,7 @@ def generate_rst_content(version, nspr_version, bug_lines, release_date):
     rst_content = f""".. _mozilla_projects_nss_nss_{version_underscore}_release_notes:
 
 NSS {version} release notes
-========================
+{"=" * len(f"NSS {version} release notes")}
 
 `Introduction <#introduction>`__
 --------------------------------
@@ -173,6 +173,11 @@ def main():
         f.write(rst_content)
 
     print(f"Release documentation written to: {output_file}")
+    print()
+    print("Running doc-lint...")
+    rc = call(["./mach", "doc-lint"])
+    if rc != 0:
+        exit_with_failure(f"doc-lint failed with exit status {rc}")
     print()
     print("=" * 70)
     print("Preview:")
