@@ -52,6 +52,7 @@ Release Notes
    nss_3_93.rst
    nss_3_92.rst
    nss_3_91.rst
+   nss_3_90_5.rst
    nss_3_90_4.rst
    nss_3_90_3.rst
    nss_3_90_2.rst
