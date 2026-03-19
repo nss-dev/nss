@@ -1,0 +1,86 @@
+.. _mozilla_projects_nss_nss_3_122_release_notes:
+
+NSS 3.122 release notes
+===============================
+
+`Introduction <#introduction>`__
+--------------------------------
+
+.. container::
+
+   Network Security Services (NSS) 3.122 was released on *19 March 2026*.
+
+`Distribution Information <#distribution_information>`__
+--------------------------------------------------------
+
+.. container::
+
+   The HG tag is NSS_3_122_RTM. NSS 3.122 requires NSPR 4.38.2 or newer.
+
+   NSS 3.122 source distributions are available on ftp.mozilla.org for secure HTTPS download:
+
+   -  Source tarballs:
+      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_122_RTM/src/
+
+   Other releases are available :ref:`mozilla_projects_nss_releases`.
+
+.. _changes_in_nss_3.122:
+
+`Changes in NSS 3.122 <#changes_in_nss_3.122>`__
+------------------------------------------------------------------
+
+.. container::
+
+   - Bug 2023209 - ensure permittedSubtrees don't match wildcards that could be outside the permitted tree.
+   - Bug 2023664 - run mach doc-lint from generate_release_doc.py.
+   - Bug 2023207 - Fix integer underflow in tls13_AEAD when ciphertext is shorter than tag.
+   - Bug 2020614 - tls13_CopyEchConfigs uses PR_LIST_TAIL instead of loop variable.
+   - Bug 2021911 - fix cipher spec count intermittent CI failures.
+   - Bug 2021913 - fix Mlkem768x25519ShareDamager intermittent CI failures.
+   - Bug 2023437 - lint the legacy documentation.
+   - Bug 2023437 - lint the NSS 3.112.3 release notes.
+   - Bug 2023437 - add a doc-lint CI job.
+   - Bug 2020224 - Add more useful coverage reports to CI and fail if new commit isn't tested.
+   - Bug 1472747 - wrong alert for malformed TLS 1.3 Finished.
+   - Bug 1916429 - Swap order of asserts and state check.
+   - Bug 2022149 - set correct value of unused curve parameters in tls13_HandleKeyShare.
+   - Bug 2017929 - GCM needs to check for various limits in FIPS mode.
+   - Bug 2017938 - Get Key Length not working from ED and Montgomery keys.
+   - Bug 2017927 - Not all ike modes are FIPS approved. Adjust the indicators when they aren't.
+   - Bug 2020721 - fix intermittent ssl.sh test failures on windows runners.
+   - Bug 2017918 - FIPS indicators on HKDF needs to be restricted to TLS usage.
+   - Bug 2017920 - Generate keys not getting indicators.
+   - Bug 2020612 - improve error handling in smime_init_once.
+   - Bug 1987288 - Detect CPU features on OpenBSD using elf_aux_info.
+   - Bug 2019357 - RSA_EMSAEncodePSS should validate the length of mHash.
+   - Bug 2020442 - more robustly distinguish SFTKSessionObject and SFTKTokenObjects.
+   - Bug 2019194 - fix missing .S file error in Solaris Makefile builds.
+   - Bug 2020486 - fix memory leak in NSC_GenerateKey error path.
+   - Bug 2020615 - Missing SECFailure return after FATAL_ERROR in tls13_HandleEncryptedExtensions.
+   - Bug 2020613 - release xmit buf lock on dtls13_MaybeSendKeyUpdate error paths.
+   - Bug 2020849 - release 1stHandshakeLock on SSL_ResetHandshake error path.
+   - Bug 2020188 - avoid null deref in mp_div_d sign normalization.
+   - Bug 2017945 - Temp private key lifecycle is broken.
+   - Bug 1851073 - protect rwSessionCount with slotLock.
+   - Bug 2019224 - Remove invalid PORT_Free().
+   - Bug 1828713 - Fix intermittent ClientGreaseKeyShare test failure.
+   - Bug 2018200 - Fix kCtxStr len passed to tls_SignOrVerifyUpdate.
+   - Bug 2019760 - patch upstream acvp-rust during checkout to avoid build failures.
+   - Bug 2019760 - update acvp Dockerfile.
+   - Bug 2017997 - CKA_PARAM_SET missing from the CK_ULONG list in softoken.
+   - Bug 2018000 - CKA_SEED missing from isPrivate in the database.
+   - Bug 2019717 - update abicheck expectation for __nss_InitLock.
+   - Bug 2019327 - taskcluster: set NSS_DISABLE_LIBPKIX=1 in test env for static builds.
+   - Bug 2019327 - tests: fix setup_policy to use ROOTCERTSFILE for root cert module path.
+   - Bug 2019327 - tests: fix selfserv/httpserv PID handling and wait exit code for MSYS_NT.
+   - Bug 2019327 - tests: add native_path helper for cross-platform path conversion.
+   - Bug 2019327 - tstclnt, strsclnt: avoid DNS lookup for loopback addresses on Windows.
+   - Bug 2019090 - avoid platform GCM for x64 iOS emulator builds.
+   - Bug 2012002 - remove lock instrumentation feature.
+   - Bug 2017923 - Move FIPS indicator structures out of fips_algorithms.h.
+   - Bug 2018064 - all.sh is failing in FIPS SSL test in main tree.
+   - Bug 1975973 - fix memory leaks in crmf tests.
+   - Bug 2012547 - fix unsatisfiable condition in lg_getTrust.
+   - Bug 2006218 - allow selfserv makefile build to use system zlib.
+   - Bug 2002247 - Add allocation limit to pkcs12 decoding.
+   - Bug 2012406 - Add text/html single-line example emails to NSS S/SMIME CMS tests.
