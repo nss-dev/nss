@@ -8,6 +8,7 @@ Release Notes
    :glob:
    :hidden:
 
+   nss_3_122.rst
    nss_3_121.rst
    nss_3_120.rst
    nss_3_119_1.rst
