@@ -1169,6 +1169,7 @@ generate_blinding_params(RSAPrivateKey *key, mp_int *f, mp_int *g, mp_int *n,
 
     MP_DIGITS(&e) = 0;
     MP_DIGITS(&k) = 0;
+    MP_DIGITS(&res) = 0;
     CHECK_MPI_OK(mp_init(&e));
     CHECK_MPI_OK(mp_init(&k));
     CHECK_MPI_OK(mp_init(&res));
