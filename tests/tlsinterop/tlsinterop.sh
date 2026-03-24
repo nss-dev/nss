@@ -30,7 +30,7 @@ tlsinterop_init()
 
   cd ${HOSTDIR}
   TLSINTEROP=${TLSINTEROP:=tlsinterop}
-  REF="8c2eff51a86fadec3141f199b32763dd99bfb226"
+  REF="d787d1650619701113528535aec382c575cdead8"
   if [ ! -d "$TLSINTEROP" ]; then
     ${QADIR}/../fuzz/config/git-copy.sh https://gitlab.com/redhat-crypto/tests/interop/ $REF "$TLSINTEROP"
   fi
