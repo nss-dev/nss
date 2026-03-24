@@ -292,26 +292,27 @@ CERT_DecodePolicyConstraintsExtension(
         if (decodeContext.explicitPolicySkipCerts.len == 0) {
             *(PRInt32 *)decodedValue->explicitPolicySkipCerts.data = -1;
         } else {
-            *(PRInt32 *)decodedValue->explicitPolicySkipCerts.data =
-                DER_GetInteger(&decodeContext.explicitPolicySkipCerts);
+            long val;
+            PORT_SetError(0);
+            val = DER_GetInteger(&decodeContext.explicitPolicySkipCerts);
+            if (PORT_GetError() != 0 || val < 0) {
+                rv = SECFailure;
+                break;
+            }
+            *(PRInt32 *)decodedValue->explicitPolicySkipCerts.data = (PRInt32)val;
         }
 
         if (decodeContext.inhibitMappingSkipCerts.len == 0) {
             *(PRInt32 *)decodedValue->inhibitMappingSkipCerts.data = -1;
         } else {
-            *(PRInt32 *)decodedValue->inhibitMappingSkipCerts.data =
-                DER_GetInteger(&decodeContext.inhibitMappingSkipCerts);
-        }
-
-        if ((*(PRInt32 *)decodedValue->explicitPolicySkipCerts.data ==
-             PR_INT32_MIN) ||
-            (*(PRInt32 *)decodedValue->explicitPolicySkipCerts.data ==
-             PR_INT32_MAX) ||
-            (*(PRInt32 *)decodedValue->inhibitMappingSkipCerts.data ==
-             PR_INT32_MIN) ||
-            (*(PRInt32 *)decodedValue->inhibitMappingSkipCerts.data ==
-             PR_INT32_MAX)) {
-            rv = SECFailure;
+            long val;
+            PORT_SetError(0);
+            val = DER_GetInteger(&decodeContext.inhibitMappingSkipCerts);
+            if (PORT_GetError() != 0 || val < 0) {
+                rv = SECFailure;
+                break;
+            }
+            *(PRInt32 *)decodedValue->inhibitMappingSkipCerts.data = (PRInt32)val;
         }
 
     } while (0);
@@ -345,8 +346,16 @@ CERT_DecodeInhibitAnyExtension(CERTCertificateInhibitAny *decodedValue,
             break;
         }
 
-        *(PRInt32 *)decodedValue->inhibitAnySkipCerts.data =
-            DER_GetInteger(&decodeContext.inhibitAnySkipCerts);
+        {
+            long val;
+            PORT_SetError(0);
+            val = DER_GetInteger(&decodeContext.inhibitAnySkipCerts);
+            if (PORT_GetError() != 0 || val < 0) {
+                rv = SECFailure;
+                break;
+            }
+            *(PRInt32 *)decodedValue->inhibitAnySkipCerts.data = (PRInt32)val;
+        }
 
     } while (0);
 

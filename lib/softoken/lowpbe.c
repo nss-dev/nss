@@ -1152,7 +1152,12 @@ nsspkcs5_AlgidToParam(SECAlgorithmID *algid)
                 if (rv != SECSuccess) {
                     break;
                 }
+                PORT_SetError(0);
                 pbe_param->keyLen = DER_GetInteger(&pbe_param->keyLength);
+                if (PORT_GetError() != 0) {
+                    rv = SECFailure;
+                    break;
+                }
             }
             /* we we are encrypting, save any iv's */
             if (algorithm == SEC_OID_PKCS5_PBES2) {
@@ -1171,7 +1176,12 @@ nsspkcs5_AlgidToParam(SECAlgorithmID *algid)
 loser:
     PORT_Memset(&pbev2_param, 0, sizeof(pbev2_param));
     if (rv == SECSuccess) {
+        PORT_SetError(0);
         pbe_param->iter = DER_GetInteger(&pbe_param->iteration);
+        if (PORT_GetError() != 0) {
+            nsspkcs5_DestroyPBEParameter(pbe_param);
+            pbe_param = NULL;
+        }
     } else {
         nsspkcs5_DestroyPBEParameter(pbe_param);
         pbe_param = NULL;

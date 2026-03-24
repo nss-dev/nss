@@ -122,7 +122,11 @@ sec_pkcs12_integrity_key(PK11SlotInfo *slot, sec_PKCS12MacData *macData,
         goto loser;
     }
     if (macData->iter.data) {
+        PORT_SetError(0);
         iteration = (int)DER_GetInteger(&macData->iter);
+        if (PORT_GetError() != 0) {
+            return NULL;
+        }
     } else {
         iteration = 1;
     }
