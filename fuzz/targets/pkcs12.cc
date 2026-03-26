@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <algorithm>
 
 #include "nss_scoped_ptrs.h"
 #include "p12.h"
@@ -18,8 +19,15 @@
 
 static SECItem* nicknameCollision(SECItem* oldNick, PRBool* cancel,
                                   void* wincx) {
-  *cancel = true;
-  return nullptr;
+  static unsigned int counter = 0;
+
+  // Always return a unique nickname.
+  unsigned int len =
+      (counter == 0) ? 2 : (2 + (unsigned int)(log10(counter) + 1e-9));
+  SECItem* item = SECITEM_AllocItem(nullptr, nullptr, len);
+  snprintf((char*)item->data, item->len, "%d", counter++);
+
+  return item;
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
