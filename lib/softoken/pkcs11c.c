@@ -310,11 +310,8 @@ NSC_DestroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject)
     }
 
     /* don't destroy a private object if we aren't logged in */
-    PR_Lock(slot->slotLock);
-    PRBool wouldNeedToLogIn = !slot->isLoggedIn && slot->needLogin &&
-                              sftk_isTrue(object, CKA_PRIVATE);
-    PR_Unlock(slot->slotLock);
-    if (wouldNeedToLogIn) {
+    if ((!slot->isLoggedIn) && (slot->needLogin) &&
+        (sftk_isTrue(object, CKA_PRIVATE))) {
         sftk_FreeSession(session);
         sftk_FreeObject(object);
         return CKR_USER_NOT_LOGGED_IN;
