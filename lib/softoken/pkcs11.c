@@ -28,6 +28,7 @@
 #include "secder.h"
 #include "secport.h"
 #include "secrng.h"
+#include "prlock.h"
 #include "prtypes.h"
 #include "nspr.h"
 #include "softkver.h"
@@ -4858,7 +4859,10 @@ NSC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
     if (!needLogin) {
         return ulPinLen ? CKR_PIN_INCORRECT : CKR_OK;
     }
+
+    PR_Lock(slot->slotLock);
     slot->ssoLoggedIn = PR_FALSE;
+    PR_Unlock(slot->slotLock);
 
     if (ulPinLen > SFTK_MAX_PIN)
         return CKR_PIN_LEN_RANGE;
@@ -4973,8 +4977,12 @@ NSC_Logout(CK_SESSION_HANDLE hSession)
     sftk_FreeSession(session);
     session = NULL;
 
-    if (!slot->isLoggedIn)
+    PR_Lock(slot->slotLock);
+    PRBool isLoggedIn = slot->isLoggedIn;
+    PR_Unlock(slot->slotLock);
+    if (!isLoggedIn) {
         return CKR_USER_NOT_LOGGED_IN;
+    }
 
     handle = sftk_getKeyDB(slot);
     PR_Lock(slot->slotLock);
