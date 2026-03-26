@@ -66,4 +66,28 @@ TEST_F(Pkcs11PbeTest, DeriveKnown) {
   Derive(derived);
 }
 
+// Test that excessive iteration counts are rejected.
+TEST_F(Pkcs11PbeTest, ExcessiveIterationCountFails) {
+  const unsigned int kIterations = 6000000;
+  std::string pass("password");
+  std::string salt("saltsalt");
+
+  SECItem pass_item = {siBuffer, ToUcharPtr(pass),
+                       static_cast<unsigned int>(pass.length())};
+  SECItem salt_item = {siBuffer, ToUcharPtr(salt),
+                       static_cast<unsigned int>(salt.length())};
+
+  ScopedSECAlgorithmID alg_id(PK11_CreatePBEAlgorithmID(
+      SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_2KEY_TRIPLE_DES_CBC, kIterations,
+      &salt_item));
+  ASSERT_TRUE(alg_id);
+
+  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  ASSERT_TRUE(slot);
+
+  ScopedPK11SymKey sym_key(
+      PK11_PBEKeyGen(slot.get(), alg_id.get(), &pass_item, false, nullptr));
+  EXPECT_FALSE(sym_key);
+}
+
 }  // namespace nss_test

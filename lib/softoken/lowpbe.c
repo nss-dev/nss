@@ -22,6 +22,12 @@
 
 SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
 
+/* Upper bound on PBE iteration counts accepted from parsed algorithm
+ * parameters.  This prevents denial-of-service from crafted input
+ * (e.g. PKCS#12 files with extreme iteration counts).  The value
+ * matches the highest known implementation limit (Java/OpenJDK). */
+#define MAX_ITERATION_COUNT 5000000
+
 /* how much a crypto encrypt/decryption may expand a buffer */
 #define MAX_CRYPTO_EXPANSION 64
 
@@ -738,6 +744,11 @@ nsspkcs5_ComputeKeyAndIV(NSSPKCS5PBEParameter *pbe_param, SECItem *pwitem,
     PRBool getIV = PR_FALSE;
 
     if ((pbe_param == NULL) || (pwitem == NULL)) {
+        return NULL;
+    }
+
+    if (pbe_param->iter > MAX_ITERATION_COUNT) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return NULL;
     }
 
