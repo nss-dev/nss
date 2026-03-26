@@ -1951,6 +1951,7 @@ sftk_FreeSearch(SFTKSearchResults *search)
 void
 sftk_update_state(SFTKSlot *slot, SFTKSession *session)
 {
+    PR_Lock(slot->slotLock);
     if (slot->isLoggedIn) {
         if (slot->ssoLoggedIn) {
             session->info.state = CKS_RW_SO_FUNCTIONS;
@@ -1966,6 +1967,7 @@ sftk_update_state(SFTKSlot *slot, SFTKSession *session)
             session->info.state = CKS_RO_PUBLIC_SESSION;
         }
     }
+    PR_Unlock(slot->slotLock);
 }
 
 /* update the state of all the sessions on a slot */
