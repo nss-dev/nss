@@ -1341,13 +1341,14 @@ RSA_EMSAEncodePSS(unsigned char *em,
         return SECFailure;
     }
 
-    dbMaskLen = emLen - hash->length - 1;
-
     /* Step 3 */
-    if (emLen < hash->length + saltLen + 2) {
+    if ((saltLen > emLen) ||
+        (hash->length + 2 > emLen - saltLen)) {
         PORT_SetError(SEC_ERROR_OUTPUT_LEN);
         return SECFailure;
     }
+
+    dbMaskLen = emLen - hash->length - 1;
 
     /* Step 4 */
     if (salt == NULL) {
@@ -1425,14 +1426,16 @@ emsa_pss_verify(const unsigned char *mHash,
     SECStatus rv;
 
     hash = HASH_GetRawHashObject(hashAlg);
-    dbMaskLen = emLen - hash->length - 1;
 
     /* Step 3 + 4 */
-    if ((emLen < (hash->length + saltLen + 2)) ||
+    if ((saltLen > emLen) ||
+        (hash->length + 2 > emLen - saltLen) ||
         (em[emLen - 1] != 0xbc)) {
         PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
         return SECFailure;
     }
+
+    dbMaskLen = emLen - hash->length - 1;
 
     /* Step 6 */
     zeroBits = 8 * emLen - emBits;
