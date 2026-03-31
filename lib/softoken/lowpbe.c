@@ -24,9 +24,12 @@ SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
 
 /* Upper bound on PBE iteration counts accepted from parsed algorithm
  * parameters.  This prevents denial-of-service from crafted input
- * (e.g. PKCS#12 files with extreme iteration counts).  The value
- * matches the highest known implementation limit (Java/OpenJDK). */
-#define MAX_ITERATION_COUNT 5000000
+ * (e.g. PKCS#12 files with extreme iteration counts). */
+#ifdef DEBUG
+#define MAX_ITERATION_COUNT 600000
+#else
+#define MAX_ITERATION_COUNT 100000000
+#endif
 
 /* how much a crypto encrypt/decryption may expand a buffer */
 #define MAX_CRYPTO_EXPANSION 64

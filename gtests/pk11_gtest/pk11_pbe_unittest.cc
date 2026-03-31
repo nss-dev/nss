@@ -68,7 +68,7 @@ TEST_F(Pkcs11PbeTest, DeriveKnown) {
 
 // Test that excessive iteration counts are rejected.
 TEST_F(Pkcs11PbeTest, ExcessiveIterationCountFails) {
-  const unsigned int kIterations = 6000000;
+  const unsigned int kIterations = 200000000;
   std::string pass("password");
   std::string salt("saltsalt");
 
