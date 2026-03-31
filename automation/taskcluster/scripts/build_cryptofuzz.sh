@@ -11,7 +11,7 @@ set -o pipefail
 # symbol collisions with OpenSSL and therefore they can't be used together
 # in Cryptofuzz.
 export CRYPTOFUZZ_VERSION="a62fa42c0f1350203c182e88246292000c8f845b"
-export BOTAN_VERSION="3.11.0"
+export BOTAN_VERSION="3.10.0"
 
 git clone -q https://github.com/MozillaSecurity/cryptofuzz.git
 git -C cryptofuzz checkout "$CRYPTOFUZZ_VERSION"
