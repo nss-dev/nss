@@ -944,6 +944,11 @@ sec_CreateRSAPSSParameters(PLArenaPool *arena,
 
     hashLength = HASH_ResultLenByOidTag(hashAlgTag);
 
+    if (modBytes < hashLength + 2) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return NULL;
+    }
+
     if (pssParams.saltLength.data) {
         rv = SEC_ASN1DecodeInteger((SECItem *)&pssParams.saltLength,
                                    &saltLength);
