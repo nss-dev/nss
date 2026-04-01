@@ -12,7 +12,7 @@ def add_base_rev(config, tasks):
     """Inject NSS_BASE_REV into coverage tasks so they can generate
     diff coverage reports against the base revision."""
     for task in tasks:
-        if task["name"] in ("test-coverage", "fuzz-coverage"):
+        if task["name"] in ("test-coverage", "fuzz-coverage", "clang-tidy"):
             base_rev = config.params.get("base_rev", "")
             if base_rev:
                 env = task["worker"].setdefault("env", {})

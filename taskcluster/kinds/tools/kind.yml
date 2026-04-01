@@ -56,6 +56,22 @@ tasks:
         run:
             command: "bin/run.sh"
 
+    clang-tidy:
+        description: Run clang-tidy static analysis
+        treeherder:
+            symbol: clang-tidy
+        worker:
+            docker-image: {in-tree: fuzz}
+            env:
+                USE_64: "1"
+                CC: clang
+                CCC: clang++
+        run:
+            command: "${VCS_PATH}/nss/automation/taskcluster/scripts/run_clang_tidy.sh"
+            checkout:
+                nspr:
+                    path: nspr
+
     scan-build:
         description: Run scan-build
         treeherder:

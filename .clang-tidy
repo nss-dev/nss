@@ -1,0 +1,70 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+Checks: >
+  -*,
+  bugprone-argument-comment,
+  bugprone-assert-side-effect,
+  bugprone-bool-pointer-implicit-conversion,
+  bugprone-copy-constructor-init,
+  bugprone-infinite-loop,
+  bugprone-integer-division,
+  bugprone-implicit-widening-of-multiplication-result,
+  bugprone-misplaced-widening-cast,
+  bugprone-multi-level-implicit-pointer-conversion,
+  bugprone-multiple-statement-macro,
+  bugprone-narrowing-conversions,
+  bugprone-return-const-ref-from-parameter,
+  bugprone-sizeof-expression,
+  bugprone-string-constructor,
+  bugprone-suspicious-memset-usage,
+  bugprone-suspicious-missing-comma,
+  bugprone-suspicious-semicolon,
+  bugprone-swapped-arguments,
+  bugprone-terminating-continue,
+  bugprone-unused-return-value,
+  bugprone-use-after-move,
+  cert-dcl50-cpp,
+  cert-err34-c,
+  cert-flp30-c,
+  cert-str34-c,
+  clang-analyzer-alpha.core.Conversion,
+  clang-analyzer-alpha.security.ArrayBoundV2,
+  clang-analyzer-alpha.security.MallocOverflow,
+  clang-analyzer-core.*,
+  clang-analyzer-deadcode.*,
+  clang-analyzer-security.*,
+  clang-analyzer-unix.*,
+  concurrency-mt-unsafe,
+  misc-redundant-expression,
+  readability-misleading-indentation,
+  -readability-redundant-control-flow,
+  clang-diagnostic-implicit-fallthrough,
+  clang-diagnostic-integer-overflow,
+  clang-diagnostic-shift-count-negative,
+  clang-diagnostic-shift-count-overflow,
+  clang-diagnostic-shift-overflow,
+  clang-diagnostic-shorten-64-to-32,
+  clang-diagnostic-tautological-constant-out-of-range-compare,
+
+# Warnings that should fail the build in CI.
+WarningsAsErrors: >
+  bugprone-sizeof-expression,
+  bugprone-use-after-move,
+  clang-analyzer-security.*,
+  clang-analyzer-core.NullDereference,
+  clang-analyzer-core.UndefinedBinaryOperatorResult,
+
+HeaderFilterRegex: '(lib|gtests(?!/google_test))/.*'
+
+# NSS is C-heavy; suppress C++-specific noise on extern "C" headers.
+ExtraArgs:
+  - '-Wno-unused-command-line-argument'
+  - '-Wimplicit-fallthrough'
+  - '-Winteger-overflow'
+  - '-Wshift-count-negative'
+  - '-Wshift-count-overflow'
+  - '-Wshift-overflow'
+  - '-Wshorten-64-to-32'
+  - '-Wtautological-constant-out-of-range-compare'

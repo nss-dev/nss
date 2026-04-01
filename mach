@@ -875,6 +875,48 @@ class fuzzCovAction(sourceCovAction):
 
         self.generateReports(outdir, profraw_dir, args)
 
+class clangTidyAction(argparse.Action):
+
+    def __call__(self, parser, args, values, option_string=None):
+        script = os.path.join(cwd, "automation", "clang-tidy",
+                              "run_clang_tidy.py")
+
+        cmd = [sys.executable, script, "--build",
+               "--include", "lib/",
+               "--include", "gtests/",
+               "--include", "cpputil/"]
+
+        if args.diff or args.diff_base:
+            cmd.append("--diff")
+        if args.diff_base:
+            cmd += ["--diff-base", args.diff_base]
+        if args.fix:
+            cmd.append("--fix")
+        if args.checks:
+            cmd += ["--checks", args.checks]
+        if args.fail_on_warnings:
+            cmd.append("--fail-on-warnings")
+
+        if values:
+            extensions = {".c", ".cc", ".cpp", ".cxx"}
+            files = []
+            for v in values:
+                p = os.path.abspath(v)
+                if os.path.isdir(p):
+                    for root, _, names in os.walk(p):
+                        for name in names:
+                            if os.path.splitext(name)[1] in extensions:
+                                files.append(os.path.join(root, name))
+                else:
+                    files.append(p)
+            cmd += [os.path.relpath(f, start=cwd) for f in files]
+
+        try:
+            subprocess.check_call(cmd, cwd=cwd)
+        except subprocess.CalledProcessError as e:
+            sys.exit(e.returncode)
+
+
 class docLintAction(argparse.Action):
 
     def __call__(self, parser, args, values, option_string=None):
@@ -994,6 +1036,30 @@ def parse_arguments():
         'action', nargs='?', default='run',
         help="Run fuzz coverage (default action)",
         action=fuzzCovAction)
+
+    parser_ct = subparsers.add_parser(
+        'clang-tidy',
+        help='Run clang-tidy static analysis on lib/, gtests/, and cpputil/ source files.')
+    parser_ct.add_argument(
+        '--diff', action='store_true',
+        help='Only check files modified in the working directory')
+    parser_ct.add_argument(
+        '--diff-base',
+        help='Base revision for --diff (default: working-directory changes)')
+    parser_ct.add_argument(
+        '--fix', action='store_true',
+        help='Apply suggested fixes in-place')
+    parser_ct.add_argument(
+        '--checks',
+        help='Override the checks glob (passed to clang-tidy --checks)')
+    parser_ct.add_argument(
+        '--fail-on-warnings', action='store_true',
+        help='Treat all warnings as errors')
+    parser_ct.add_argument(
+        '<file>',
+        nargs='*',
+        help='Specific files to check (default: all lib/ files)',
+        action=clangTidyAction)
 
     parser_doc_lint = subparsers.add_parser(
         'doc-lint', help='Check RST documentation for lint errors using sphinx-build.')
