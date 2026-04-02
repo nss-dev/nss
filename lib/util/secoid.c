@@ -40,6 +40,7 @@ const char __nss_util_version[] = "Version: NSS " NSSUTIL_VERSION _DEBUG_STRING;
 #define AES NISTALGS, 1
 #define SHAXXX NISTALGS, 2
 #define DSA2 NISTALGS, 3
+#define KEMS NISTALGS, 4
 
 /**
  ** The Netscape OID space is allocated by Terry Hayes.  If you need
@@ -654,6 +655,14 @@ CONST_OID x25519PublicKey[] = { 0x2b, 0x65, 0x6e };
 CONST_OID mlDsa44[] = { DSA2, 17 };
 CONST_OID mlDsa65[] = { DSA2, 18 };
 CONST_OID mlDsa87[] = { DSA2, 19 };
+
+/*
+ * ML-KEM
+ * https://csrc.nist.gov/projects/computer-security-objects-register/algorithm-registration
+ */
+CONST_OID mlKem512[] = { KEMS, 1 };
+CONST_OID mlKem768[] = { KEMS, 2 };
+CONST_OID mlKem1024[] = { KEMS, 3 };
 
 #define OI(x)                                  \
     {                                          \
@@ -1916,6 +1925,9 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
         "SECP256R1+ML-KEM-768 Hybrid key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION),
     ODE(SEC_OID_SECP384R1MLKEM1024,
         "SECP384R1+ML-KEM-1024 Hybrid key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION),
+    OD(mlKem512, SEC_OID_ML_KEM_512, "ML-KEM-512", CKM_ML_KEM, INVALID_CERT_EXTENSION),
+    OD(mlKem768, SEC_OID_ML_KEM_768, "ML-KEM-768", CKM_ML_KEM, INVALID_CERT_EXTENSION),
+    OD(mlKem1024, SEC_OID_ML_KEM_1024, "ML-KEM-1024", CKM_ML_KEM, INVALID_CERT_EXTENSION),
 
 };
 

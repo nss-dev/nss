@@ -128,6 +128,13 @@ tools_init()
   cp ${QADIR}/tools/pbmac1-invalid-bad-salt.p12 ${TOOLSDIR}/data
   cp ${QADIR}/tools/pbmac1-invalid-no-length.p12 ${TOOLSDIR}/data
   cp ${QADIR}/tools/corrupted_cert_bag.p12 ${TOOLSDIR}/data
+  cp ${QADIR}/tools/openssl-ml-kem-768-seed.p12 ${TOOLSDIR}/data
+  cp ${QADIR}/tools/openssl-ml-kem-768-priv.p12 ${TOOLSDIR}/data
+  cp ${QADIR}/tools/openssl-ml-kem-768-both.p12 ${TOOLSDIR}/data
+  cp ${QADIR}/tools/openssl-ml-kem-1024-seed.p12 ${TOOLSDIR}/data
+  cp ${QADIR}/tools/openssl-ml-kem-1024-priv.p12 ${TOOLSDIR}/data
+  cp ${QADIR}/tools/openssl-ml-kem-1024-both.p12 ${TOOLSDIR}/data
+
 
   cd ${TOOLSDIR}
 }
@@ -529,6 +536,22 @@ tools_p12_import_rsa_pss_private_key()
   return $ret
 }
 
+tools_p12_ml_kem_import()
+{
+  echo "$SCRIPTNAME: Testing ml-kem compatibility with pkcs12 --------------"
+  for i in 768 1024
+  do
+    for j in 'seed' 'priv' 'both'
+    do
+       echo "${BINDIR}/pk12util -i ${TOOLSDIR}/data/openssl-ml-kem-$i-$j.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W 'test' 2>&1"
+       ${BINDIR}/pk12util -i ${TOOLSDIR}/data/openssl-ml-kem-$i-$j.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W 'test' 2>&1
+       ret=$?
+       check_tmpfile
+       html_msg $ret 0 "Importing open encoded ml-kem-$i-$j private key from PKCS#12 file"
+    done
+  done
+}
+
 tools_p12_import_pbmac1_samples()
 {
   echo "$SCRIPTNAME: Importing private key pbmac1 PKCS#12 file --------------"
@@ -593,6 +616,7 @@ tools_p12()
   tools_p12_export_with_invalid_ciphers
   tools_p12_import_old_files
   tools_p12_import_pbmac1_samples
+  tools_p12_ml_kem_import
   if using_sql; then
     tools_p12_import_rsa_pss_private_key
     tools_p12_policy

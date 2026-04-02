@@ -574,6 +574,11 @@ seckey_GetKeyType(SECOidTag tag)
         case SEC_OID_ML_DSA_87_PUBLIC_KEY:
             keyType = mldsaKey;
             break;
+        case SEC_OID_ML_KEM_512:
+        case SEC_OID_ML_KEM_768:
+        case SEC_OID_ML_KEM_1024:
+            keyType = kyberKey;
+            break;
         /* accommodate applications that hand us a signature type when they
          * should be handing us a cipher type */
         case SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION:
@@ -690,26 +695,6 @@ SECKEY_MLDSAOidParamsToLen(SECOidTag oid, SECKEYSizeType type)
     return 0;
 }
 
-/* make this function generic. multiple key types will be able to use
- * it (ml-kem, ml=dsa, shl-dsa, fn-dsa, etc. ) */
-SECOidTag
-seckey_GetParameterSet(const SECKEYPrivateKey *key)
-{
-    CK_ULONG paramSet = PK11_ReadULongAttribute(key->pkcs11Slot,
-                                                key->pkcs11ID,
-                                                CKA_PARAMETER_SET);
-    if (paramSet == CK_UNAVAILABLE_INFORMATION) {
-        return SEC_OID_UNKNOWN;
-    }
-    switch (key->keyType) {
-        case mldsaKey:
-            return SECKEY_GetMLDSAOidTagByPkcs11ParamSet(paramSet);
-        default:
-            break;
-    }
-    return SEC_OID_UNKNOWN;
-}
-
 SECOidTag
 SECKEY_MLDSAOidParamsFromLen(unsigned int len, SECKEYSizeType type)
 {
@@ -750,6 +735,176 @@ SECKEY_MLDSAOidParamsFromLen(unsigned int len, SECKEYSizeType type)
                     break;
             }
             break;
+        default:
+            break;
+    }
+    return SEC_OID_UNKNOWN;
+}
+
+KyberParams
+seckey_GetKyberParamsByOidTag(SECOidTag tag)
+{
+    switch (tag) {
+        case SEC_OID_ML_KEM_512:
+            return params_ml_kem512;
+        case SEC_OID_ML_KEM_768:
+            return params_ml_kem768;
+        case SEC_OID_ML_KEM_1024:
+            return params_ml_kem1024;
+        default:
+            return params_kyber_invalid;
+    }
+}
+
+KyberParams
+seckey_GetKyberParamsByPkcs11ParamSet(CK_ML_KEM_PARAMETER_SET_TYPE paramSet)
+{
+    switch (paramSet) {
+#ifndef NSS_DISABLE_KYBER
+        case CKP_NSS_KYBER_768_ROUND3:
+            return params_kyber768_round3;
+#endif
+        case CKP_ML_KEM_512:
+            return params_ml_kem512;
+        case CKP_ML_KEM_768:
+            return params_ml_kem768;
+        case CKP_ML_KEM_1024:
+            return params_ml_kem1024;
+        default:
+            return params_kyber_invalid;
+    }
+}
+
+CK_ML_KEM_PARAMETER_SET_TYPE
+seckey_GetMLKEMPkcs11ParamsByKyberParams(KyberParams kyberParams)
+{
+    switch (kyberParams) {
+#ifndef NSS_DISABLE_KYBER
+        case params_kyber768_round3:
+        case params_kyber768_round3_test_mode:
+            return CKP_NSS_KYBER_768_ROUND3;
+#endif
+        case params_ml_kem512:
+            return CKP_ML_KEM_512;
+        case params_ml_kem768:
+        case params_ml_kem768_test_mode:
+            return CKP_ML_KEM_768;
+        case params_ml_kem1024:
+        case params_ml_kem1024_test_mode:
+            return CKP_ML_KEM_1024;
+        default:
+            return CKP_INVALID_ID;
+    }
+}
+
+SECOidTag
+seckey_GetMLKEMOidTagByPkcs11ParamSet(CK_ML_KEM_PARAMETER_SET_TYPE paramSet)
+{
+    switch (paramSet) {
+        case CKP_ML_KEM_512:
+            return SEC_OID_ML_KEM_512;
+        case CKP_ML_KEM_768:
+            return SEC_OID_ML_KEM_768;
+        case CKP_ML_KEM_1024:
+            return SEC_OID_ML_KEM_1024;
+        default:
+            return SEC_OID_UNKNOWN;
+    }
+}
+
+unsigned int
+seckey_KyberParamsToLen(KyberParams kyberParams, SECKEYSizeType type)
+{
+    switch (type) {
+        case SECKEYPubKeyType:
+            switch (kyberParams) {
+                case params_ml_kem512:
+                    return MLKEM512_PUBLIC_KEY_BYTES;
+                case params_ml_kem768:
+                case params_ml_kem768_test_mode:
+                    return KYBER768_PUBLIC_KEY_BYTES;
+                case params_ml_kem1024:
+                case params_ml_kem1024_test_mode:
+                    return MLKEM1024_PUBLIC_KEY_BYTES;
+                default:
+                    break;
+            }
+            break;
+        case SECKEYPrivKeyType:
+            switch (kyberParams) {
+                case params_ml_kem512:
+                    return MLKEM512_PRIVATE_KEY_BYTES;
+                case params_ml_kem768:
+                case params_ml_kem768_test_mode:
+                    return KYBER768_PRIVATE_KEY_BYTES;
+                case params_ml_kem1024:
+                case params_ml_kem1024_test_mode:
+                    return MLKEM1024_PRIVATE_KEY_BYTES;
+                default:
+                    break;
+            }
+            break;
+        default:
+            break;
+    }
+    return 0;
+}
+
+KyberParams
+seckey_KyberParamsFromLen(unsigned int len, SECKEYSizeType type)
+{
+    switch (type) {
+        case SECKEYPubKeyType:
+            switch (len) {
+                case MLKEM512_PUBLIC_KEY_BYTES:
+                    return params_ml_kem512;
+                case KYBER768_PUBLIC_KEY_BYTES:
+                    return params_ml_kem768;
+                case MLKEM1024_PUBLIC_KEY_BYTES:
+                    return params_ml_kem1024;
+                default:
+                    break;
+            }
+            break;
+        case SECKEYPrivKeyType:
+            switch (len) {
+                case MLKEM512_PRIVATE_KEY_BYTES:
+                    return params_ml_kem512;
+                case KYBER768_PRIVATE_KEY_BYTES:
+                    return params_ml_kem768;
+                case MLKEM1024_PRIVATE_KEY_BYTES:
+                    return params_ml_kem1024;
+                default:
+                    break;
+            }
+            break;
+        default:
+            break;
+    }
+    return 0;
+}
+
+/* make this function generic. multiple key types will be able to use
+ * it (ml-kem, ml=dsa, shl-dsa, fn-dsa, etc. ) */
+SECOidTag
+seckey_GetParameterSet(const SECKEYPrivateKey *key)
+{
+    CK_ULONG paramSet = PK11_ReadULongAttribute(key->pkcs11Slot,
+                                                key->pkcs11ID,
+                                                CKA_PARAMETER_SET);
+    if (paramSet == CK_UNAVAILABLE_INFORMATION) {
+        paramSet = PK11_ReadULongAttribute(key->pkcs11Slot,
+                                           key->pkcs11ID,
+                                           CKA_NSS_PARAMETER_SET);
+        if (paramSet == CK_UNAVAILABLE_INFORMATION) {
+            return SEC_OID_UNKNOWN;
+        }
+    }
+    switch (key->keyType) {
+        case mldsaKey:
+            return SECKEY_GetMLDSAOidTagByPkcs11ParamSet(paramSet);
+        case kyberKey:
+            return seckey_GetMLKEMOidTagByPkcs11ParamSet(paramSet);
         default:
             break;
     }
@@ -846,6 +1001,24 @@ seckey_ExtractPublicKey(const CERTSubjectPublicKeyInfo *spki)
 
                 /* newOS is already in the arena, we can just copy the data */
                 pubk->u.mldsa.publicValue = newOs;
+                return pubk;
+            case SEC_OID_ML_KEM_512:
+            case SEC_OID_ML_KEM_768:
+            case SEC_OID_ML_KEM_1024:
+                /* A basic consistency check on inputs. */
+                if (spki->algorithm.parameters.len != 0 && newOs.len == 0) {
+                    PORT_SetError(SEC_ERROR_INPUT_LEN);
+                    break;
+                }
+
+                pubk->keyType = kyberKey;
+                pubk->u.kyber.params = seckey_GetKyberParamsByOidTag(tag);
+                if (pubk->u.kyber.params == params_kyber_invalid) {
+                    PORT_SetError(SEC_ERROR_INPUT_LEN);
+                    break;
+                }
+                /* newOS is already in the arena, we can just copy the data */
+                pubk->u.kyber.publicValue = newOs;
                 return pubk;
             case SEC_OID_X25519:
             case SEC_OID_ED25519_PUBLIC_KEY:
@@ -1298,6 +1471,11 @@ SECKEY_PublicKeyStrengthInBits(const SECKEYPublicKey *pubk)
                                                  SECKEYPubKeyType) *
                       8;
             break;
+        case kyberKey:
+            bitSize = seckey_KyberParamsToLen(pubk->u.kyber.params,
+                                              SECKEYPubKeyType) *
+                      8;
+            break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_KEY);
             break;
@@ -1312,6 +1490,7 @@ SECKEY_PrivateKeyStrengthInBits(const SECKEYPrivateKey *privk)
     SECItem params = { siBuffer, NULL, 0 };
     SECStatus rv;
     SECOidTag paramSetOid;
+    KyberParams kyberParams;
 
     if (!privk) {
         PORT_SetError(SEC_ERROR_INVALID_KEY);
@@ -1368,6 +1547,14 @@ SECKEY_PrivateKeyStrengthInBits(const SECKEYPrivateKey *privk)
             }
             return SECKEY_MLDSAOidParamsToLen(paramSetOid, SECKEYPrivKeyType) *
                    8;
+            break;
+        case kyberKey:
+            kyberParams = seckey_GetKyberParamsByOidTag(
+                seckey_GetParameterSet(privk));
+            if (kyberParams == params_kyber_invalid) {
+                break;
+            }
+            return seckey_KyberParamsToLen(kyberParams, SECKEYPrivKeyType) * 8;
             break;
         default:
             break;
@@ -1552,13 +1739,13 @@ SECKEY_CopyPublicKey(const SECKEYPublicKey *pubk)
             rv = SECITEM_CopyItem(arena, &copyk->u.mldsa.publicValue,
                                   &pubk->u.mldsa.publicValue);
             break;
-        case nullKey:
-            return copyk;
         case kyberKey:
             copyk->u.kyber.params = pubk->u.kyber.params;
             rv = SECITEM_CopyItem(arena, &copyk->u.kyber.publicValue,
                                   &pubk->u.kyber.publicValue);
             break;
+        case nullKey:
+            return copyk;
         default:
             PORT_SetError(SEC_ERROR_INVALID_KEY);
             rv = SECFailure;
@@ -1600,7 +1787,8 @@ SECKEY_EnforceKeySize(KeyType keyType, unsigned keyLength, SECErrorCodes error)
             opt = NSS_ECC_MIN_KEY_SIZE;
             break;
         case mldsaKey:
-            return SECSuccess; /* mldsa handles key size policy
+        case kyberKey:
+            return SECSuccess; /* mldsa and kyber handles key size policy
                                 * by having separate controls on
                                 * key params */
         case nullKey:
@@ -1800,10 +1988,28 @@ SECKEY_ConvertToPublicKey(SECKEYPrivateKey *privk)
             }
             pubk->u.mldsa.paramSet = seckey_GetParameterSet(privk);
             if (pubk->u.mldsa.paramSet == SEC_OID_UNKNOWN) {
+                PORT_SetError(SEC_ERROR_INVALID_KEY);
                 break;
             }
             rv = PK11_ReadAttribute(privk->pkcs11Slot, pubKeyHandle,
                                     CKA_VALUE, arena, &pubk->u.mldsa.publicValue);
+            if (rv != SECSuccess) {
+                break;
+            }
+            return pubk;
+        case kyberKey:
+            pubKeyHandle = seckey_FindPublicKeyHandle(privk, pubk);
+            if (pubKeyHandle == CK_INVALID_HANDLE) {
+                break;
+            }
+            pubk->u.kyber.params = seckey_GetKyberParamsByOidTag(
+                seckey_GetParameterSet(privk));
+            if (pubk->u.kyber.params == params_kyber_invalid) {
+                PORT_SetError(SEC_ERROR_INVALID_KEY);
+                break;
+            }
+            rv = PK11_ReadAttribute(privk->pkcs11Slot, pubKeyHandle,
+                                    CKA_VALUE, arena, &pubk->u.kyber.publicValue);
             if (rv != SECSuccess) {
                 break;
             }
@@ -1960,6 +2166,31 @@ seckey_CreateSubjectPublicKeyInfo_helper(SECKEYPublicKey *pubk)
 
                 rv = SECITEM_CopyItem(arena, &spki->subjectPublicKey,
                                       &pubk->u.mldsa.publicValue);
+
+                if (rv == SECSuccess) {
+                    /*
+                     * The stored value is supposed to be a BIT_STRING,
+                     * so convert the length.
+                     */
+                    spki->subjectPublicKey.len <<= 3;
+                    /*
+                     * We got a good one; return it.
+                     */
+                    return spki;
+                }
+                break;
+            case kyberKey:
+                tag = seckey_GetMLKEMOidTagByPkcs11ParamSet(
+                    seckey_GetMLKEMPkcs11ParamsByKyberParams(
+                        pubk->u.kyber.params));
+                rv = SECOID_SetAlgorithmID(arena, &spki->algorithm,
+                                           tag, NULL);
+                if (rv != SECSuccess) {
+                    break;
+                }
+
+                rv = SECITEM_CopyItem(arena, &spki->subjectPublicKey,
+                                      &pubk->u.kyber.publicValue);
 
                 if (rv == SECSuccess) {
                     /*
@@ -2369,6 +2600,17 @@ SECKEY_ImportDERPublicKey(const SECItem *derKey, CK_KEY_TYPE type)
             pubk->u.mldsa.paramSet = SECKEY_MLDSAOidParamsFromLen(newDerKey.len,
                                                                   SECKEYPubKeyType);
             if (pubk->u.mldsa.paramSet == SEC_OID_UNKNOWN) {
+                PORT_SetError(SEC_ERROR_BAD_KEY);
+                rv = SECFailure;
+            }
+            break;
+        case CKK_ML_KEM:
+            pubk->keyType = kyberKey;
+            /* ml_dsa has no derencoding */
+            pubk->u.kyber.publicValue = newDerKey;
+            pubk->u.kyber.params = seckey_KyberParamsFromLen(newDerKey.len,
+                                                             SECKEYPubKeyType);
+            if (pubk->u.kyber.params == params_kyber_invalid) {
                 PORT_SetError(SEC_ERROR_BAD_KEY);
                 rv = SECFailure;
             }

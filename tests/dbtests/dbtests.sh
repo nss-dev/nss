@@ -449,6 +449,15 @@ dbtest_main()
     else
       html_passed "Importing Token Private Key correctly creates the corrresponding Public Key"
     fi
+    Echo "Importing Token Private Key without explicit public key"
+    echo "pk11importtest -n ${IMPORT_OPTIONS} -d ${CONFLICT_DIR} -f ${R_PWFILE}"
+    ${BINDIR}/pk11importtest -n ${IMPORT_OPTIONS} -d ${CONFLICT_DIR} -f ${R_PWFILE}
+    ret=$?
+    if [ $ret -ne 0 ]; then
+      html_failed "Importing Token Private Key does not regenerate the corrresponding Public Key"
+    else
+      html_passed "Importing Token Private Key correctly regenerates the corrresponding Public Key"
+    fi
     #
     # If we are testing an sqlite db, make sure we detect corrupted attributes.
     # This test only runs if 1) we have sqlite3 (the command line sqlite diagnostic

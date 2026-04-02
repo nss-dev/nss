@@ -6452,9 +6452,27 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             key_type = CKK_ML_KEM;
 
         do_ml_kem:
+            sftk_DeleteAttributeType(publicKey, CKA_VALUE);
             sftk_DeleteAttributeType(privateKey, CKA_NSS_DB);
+            sftk_DeleteAttributeType(privateKey, CKA_SEED);
+            sftk_DeleteAttributeType(privateKey, CKA_VALUE);
             SECItem privKey = { siBuffer, NULL, 0 };
             SECItem pubKey = { siBuffer, NULL, 0 };
+            SECItem seed = { siBuffer, NULL, 0 };
+            unsigned char seedData[KYBER_KEYPAIR_COIN_BYTES];
+
+            /* generate the seed here so we can record it with
+             * the private key */
+            seed.data = seedData;
+            seed.len = sizeof(seedData);
+            rv = RNG_GenerateGlobalRandomBytes(seed.data, seed.len);
+            if (rv != SECSuccess) {
+                fprintf(stderr, "Generate bytes failed nbytes=%d err=%d\n",
+                        seed.len, PORT_GetError());
+                crv = sftk_MapCryptError(PORT_GetError());
+                goto kyber_done;
+            }
+
             KyberParams kyberParams = sftk_kyber_PK11ParamToInternal(genParamSet);
             if (!sftk_kyber_AllocPrivKeyItem(kyberParams, &privKey)) {
                 crv = CKR_HOST_MEMORY;
@@ -6464,8 +6482,10 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
                 crv = CKR_HOST_MEMORY;
                 goto kyber_done;
             }
-            rv = Kyber_NewKey(kyberParams, NULL, &privKey, &pubKey);
+            rv = Kyber_NewKey(kyberParams, &seed, &privKey, &pubKey);
             if (rv != SECSuccess) {
+                fprintf(stderr, "Generate Kyber_NewKey failed nbytes=%d err=%d\n",
+                        seed.len, PORT_GetError());
                 crv = sftk_MapCryptError(PORT_GetError());
                 goto kyber_done;
             }
@@ -6485,6 +6505,20 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             if (crv != CKR_OK) {
                 goto kyber_done;
             }
+            crv = sftk_AddAttributeType(privateKey, CKA_SEED,
+                                        sftk_item_expand(&seed));
+            if (crv != CKR_OK) {
+                goto kyber_done;
+            }
+            /* pseudo attribute that says the seed came with the key
+             * so don't try to regenerate the key in handleObject.
+             * it will be removed before the object sees the light of
+             * day. */
+            crv = sftk_AddAttributeType(privateKey, CKA_NSS_SEED_OK,
+                                        NULL, 0);
+            if (crv != CKR_OK) {
+                goto kyber_done;
+            }
             crv = sftk_AddAttributeType(privateKey, CKA_PARAMETER_SET,
                                         &genParamSet,
                                         sizeof(CK_ML_KEM_PARAMETER_SET_TYPE));
@@ -6494,6 +6528,7 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             crv = sftk_AddAttributeType(privateKey, CKA_NSS_DB,
                                         sftk_item_expand(&pubKey));
         kyber_done:
+            PORT_SafeZero(seed.data, seed.len);
             SECITEM_ZfreeItem(&privKey, PR_FALSE);
             SECITEM_FreeItem(&pubKey, PR_FALSE);
             break;
@@ -6896,6 +6931,55 @@ sftk_PackagePrivateKey(SFTKObject *key, CK_RV *crvp)
 
             algorithm = SEC_OID_ANSIX962_EC_PUBLIC_KEY;
             break;
+        case NSSLOWKEYMLKEMKey: {
+            SECItem seed = { siBuffer, NULL, 0 };
+            SECItem rawKey = { siBuffer, NULL, 0 };
+            dummy = NULL;
+
+            switch (lk->u.mlkem.mlkemParams) {
+                case params_ml_kem768:
+                case params_ml_kem768_test_mode:
+                    algorithm = SEC_OID_ML_KEM_768;
+                    break;
+                case params_ml_kem1024:
+                case params_ml_kem1024_test_mode:
+                    algorithm = SEC_OID_ML_KEM_1024;
+                    break;
+                default:
+                    algorithm = SEC_OID_UNKNOWN;
+                    break;
+            }
+            if (algorithm == SEC_OID_UNKNOWN) {
+                break;
+            }
+            /* save the seed and key items before they are overwritten */
+            if (lk->u.mlkem.seed.len != 0) {
+                seed = lk->u.mlkem.seed;
+            }
+            rawKey = lk->u.mlkem.key;
+            if (lk == key->objectInfo) {
+                /* we have a cached key, and we are about to
+                 * overwrite it, let's get a duplicate first */
+                lk = nsslowkey_CopyPrivateKey(lk);
+                if (lk == NULL) {
+                    break;
+                }
+            }
+            /* this overwrites the mlkem data, but we don't need it any
+             * more because we are discarding lk once we encode. This
+             * allows us to use the same template for mlkem and mldsa
+             * (and presumably other pq algorithms, though mlfn and mlshl
+             * don't have additional seeds) */
+            lk->u.genpq.seedItem = seed;
+            lk->u.genpq.keyItem = rawKey;
+            if (seed.len) {
+                dummy = SEC_ASN1EncodeItem(arena, &pki->privateKey, lk,
+                                           nsslowkey_PQBothSeedAndPrivateKeyTemplate);
+            } else {
+                dummy = SEC_ASN1EncodeItem(arena, &pki->privateKey, lk,
+                                           nsslowkey_PQPrivateKeyTemplate);
+            }
+        } break;
         case NSSLOWKEYMLDSAKey: {
             SECItem seed = { siBuffer, NULL, 0 };
             SECItem keyVal = { siBuffer, NULL, 0 };
@@ -7227,6 +7311,14 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
             prepare_low_ec_priv_key_for_asn1(lpk);
             prepare_low_ecparams_for_asn1(&lpk->u.ec.ecParams);
             break;
+        case SEC_OID_ML_KEM_768:
+            paramSet = CKP_ML_KEM_768;
+            goto mlkem_next;
+        case SEC_OID_ML_KEM_1024:
+            paramSet = CKP_ML_KEM_1024;
+        mlkem_next:
+            lpk->keyType = NSSLOWKEYMLKEMKey;
+            goto pq_next;
         case SEC_OID_ML_DSA_44_PUBLIC_KEY:
             paramSet = CKP_ML_DSA_44;
             goto mldsa_next;
@@ -7236,6 +7328,8 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
         case SEC_OID_ML_DSA_87_PUBLIC_KEY:
             paramSet = CKP_ML_DSA_87;
         mldsa_next:
+            lpk->keyType = NSSLOWKEYMLDSAKey;
+        pq_next:
             if (pki->privateKey.data == NULL || pki->privateKey.len == 0) {
                 PORT_SetError(SEC_ERROR_BAD_KEY);
                 goto loser;
@@ -7257,7 +7351,6 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
 
             paramTemplate = NULL;
             paramDest = NULL;
-            lpk->keyType = NSSLOWKEYMLDSAKey;
             /* genpq encodes ocect, not integer, so no need to prep it */
             break;
         default:
@@ -7389,6 +7482,39 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
             if (crv != CKR_OK)
                 break;
             break;
+        case NSSLOWKEYMLKEMKey:
+            keyType = CKK_ML_KEM;
+            crv = sftk_AddAttributeType(key, CKA_KEY_TYPE, &keyType,
+                                        sizeof(keyType));
+            if (crv != CKR_OK)
+                break;
+            crv = sftk_AddAttributeType(key, CKA_DECAPSULATE, &cktrue,
+                                        sizeof(CK_BBOOL));
+            if (crv != CKR_OK)
+                break;
+            crv = sftk_AddAttributeType(key, CKA_PARAMETER_SET, &paramSet,
+                                        sizeof(CK_ML_KEM_PARAMETER_SET_TYPE));
+            if (crv != CKR_OK)
+                break;
+            if (lpk->u.genpq.seedItem.len != 0) {
+                crv = sftk_AddAttributeType(key, CKA_SEED,
+                                            sftk_item_expand(&lpk->u.genpq.seedItem));
+                if (crv != CKR_OK)
+                    break;
+            }
+
+            /* if we were given just the seed, we'll regenerate the key
+             * from the seed in handleObject */
+            if (lpk->u.genpq.keyItem.len != 0) {
+                crv = sftk_AddAttributeType(key, CKA_VALUE,
+                                            sftk_item_expand(&lpk->u.genpq.keyItem));
+                /* I know,  this is redundant, but it would be too easy
+                 * for someone to add another sftk_AddAttributeType after
+                 * this without adding this check back because of the if */
+                if (crv != CKR_OK)
+                    break;
+            }
+            break;
         case NSSLOWKEYMLDSAKey:
             keyType = CKK_ML_DSA;
             crv = (sftk_hasAttribute(key, CKA_NSS_DB)) ? CKR_OK : CKR_KEY_TYPE_INCONSISTENT;
@@ -7439,9 +7565,19 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
         /* what about fortezza??? */
         case NSSLOWKEYECKey:
             keyType = CKK_EC;
-            crv = (sftk_hasAttribute(key, CKA_NSS_DB)) ? CKR_OK : CKR_KEY_TYPE_INCONSISTENT;
-            if (crv != CKR_OK)
-                break;
+            /* if we weren't passed the CKA_NSS_DB, get it
+             * from the public key */
+            if (!sftk_hasAttribute(key, CKA_NSS_DB)) {
+                if (lpk->u.ec.publicValue.len == 0) {
+                    crv = CKR_KEY_TYPE_INCONSISTENT;
+                    goto loser;
+                }
+                crv = sftk_AddAttributeType(key, CKA_NSS_DB,
+                                            sftk_item_expand(&lpk->u.ec.publicValue));
+                if (crv != CKR_OK) {
+                    goto loser;
+                }
+            }
             crv = sftk_AddAttributeType(key, CKA_KEY_TYPE, &keyType,
                                         sizeof(keyType));
             if (crv != CKR_OK)

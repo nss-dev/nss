@@ -51,7 +51,8 @@ dumpItem(const char *label, const SECItem *item)
 
 SECStatus
 handleEncryptedPrivateImportTest(char *progName, PK11SlotInfo *slot,
-                                 char *testname, CK_MECHANISM_TYPE genMech, void *params, void *pwArgs)
+                                 char *testname, CK_MECHANISM_TYPE genMech,
+                                 PRBool noPub, void *params, void *pwArgs)
 {
     SECStatus rv = SECSuccess;
     SECItem privID = { 0 };
@@ -91,28 +92,20 @@ handleEncryptedPrivateImportTest(char *progName, PK11SlotInfo *slot,
 
     /* Save the public value, which we will need on import */
     keyType = pubKey->keyType;
-    switch (keyType) {
-        case rsaKey:
-            SECITEM_CopyItem(NULL, &pubValue, &pubKey->u.rsa.modulus);
-            break;
-        case dhKey:
-            SECITEM_CopyItem(NULL, &pubValue, &pubKey->u.dh.publicValue);
-            break;
-        case dsaKey:
-            SECITEM_CopyItem(NULL, &pubValue, &pubKey->u.dsa.publicValue);
-            break;
-        case ecKey:
-            SECITEM_CopyItem(NULL, &pubValue, &pubKey->u.ec.publicValue);
-            break;
-        default:
-            fprintf(stderr, "Unknown keytype = %d\n", keyType);
+    if (!noPub) {
+        const SECItem *idValue = PK11_GetPublicValueFromPublicKey(pubKey);
+        if (!idValue) {
+            SECU_PrintError(progName, "Unable to get public value from key");
             goto cleanup;
+        }
+        /* copy the value so it doesn't disappear when we free the key */
+        SECITEM_CopyItem(NULL, &pubValue, idValue);
+        if (pubValue.data == NULL) {
+            SECU_PrintError(progName, "Unable to allocate memory");
+            goto cleanup;
+        }
+        dumpItem("pubValue", &pubValue);
     }
-    if (pubValue.data == NULL) {
-        SECU_PrintError(progName, "Unable to allocate memory");
-        goto cleanup;
-    }
-    dumpItem("pubValue", &pubValue);
 
     /* when Asymetric keys represent session keys, those session keys are
      * destroyed when we destroy the Asymetric key representations */
@@ -125,7 +118,7 @@ handleEncryptedPrivateImportTest(char *progName, PK11SlotInfo *slot,
     nickname.data = (unsigned char *)"testKey";
     nickname.len = sizeof("testKey");
     rv = PK11_ImportEncryptedPrivateKeyInfoAndReturnKey(
-        slot, epki, &pbePwItem, &nickname, &pubValue,
+        slot, epki, &pbePwItem, &nickname, noPub ? NULL : &pubValue,
         PR_TRUE, PR_TRUE, keyType, 0, &privKey, NULL);
     if (rv != SECSuccess) {
         SECU_PrintError(progName, "PK11_ImportEncryptedPrivateKeyInfo Failed");
@@ -194,10 +187,12 @@ static const char *const usageInfo[] = {
     " -C ecc_curve          ecc curve (default )",
     " -f pwFile             file to fetch the password from",
     " -p pwString           password",
+    " -n                    force pub key to be rebuilt",
     " -r                    skip rsa test",
     " -D                    skip dsa test",
     " -h                    skip dh test",
     " -e                    skip ec test",
+    " -K                    skip mk-kem test",
 };
 static int nUsageInfo = sizeof(usageInfo) / sizeof(char *);
 
@@ -217,10 +212,12 @@ enum {
     opt_ECCurve,
     opt_PWFile,
     opt_PWString,
+    opt_NoPub,
     opt_NoRSA,
     opt_NoDSA,
+    opt_NoDH,
     opt_NoEC,
-    opt_NoDH
+    opt_NoMLKEM,
 };
 
 static secuCommandFlag options[] = {
@@ -229,10 +226,12 @@ static secuCommandFlag options[] = {
     { /* opt_ECCurve          */ 'C', PR_TRUE, 0, PR_FALSE },
     { /* opt_PWFile           */ 'f', PR_TRUE, 0, PR_FALSE },
     { /* opt_PWString         */ 'p', PR_TRUE, 0, PR_FALSE },
-    { /* opt_NORSA            */ 'r', PR_TRUE, 0, PR_FALSE },
-    { /* opt_NoDSA            */ 'D', PR_TRUE, 0, PR_FALSE },
-    { /* opt_NoDH             */ 'h', PR_TRUE, 0, PR_FALSE },
-    { /* opt_NoEC             */ 'e', PR_TRUE, 0, PR_FALSE },
+    { /* opt_NoPub            */ 'n', PR_FALSE, 0, PR_FALSE },
+    { /* opt_NoRSA            */ 'r', PR_FALSE, 0, PR_FALSE },
+    { /* opt_NoDSA            */ 'D', PR_FALSE, 0, PR_FALSE },
+    { /* opt_NoDH             */ 'h', PR_FALSE, 0, PR_FALSE },
+    { /* opt_NoEC             */ 'e', PR_FALSE, 0, PR_FALSE },
+    { /* opt_NoMLKEM          */ 'K', PR_FALSE, 0, PR_FALSE },
 };
 
 int
@@ -248,6 +247,8 @@ main(int argc, char **argv)
     PRBool doDSA = PR_TRUE;
     PRBool doDH = PR_FALSE; /* NSS currently can't export wrapped DH keys */
     PRBool doEC = PR_TRUE;
+    PRBool doMLKEM = PR_TRUE;
+    PRBool noPub = PR_FALSE;
     PQGParams *pqgParams = NULL;
     int keySize;
 
@@ -288,6 +289,10 @@ main(int argc, char **argv)
         pwArgs.source = PW_PLAINTEXT;
         pwArgs.data = args.options[opt_PWString].arg;
     }
+    if (args.options[opt_NoPub].activated) {
+        noPub = PR_TRUE;
+        doDSA = PR_FALSE; /* dsa can't handle no pub */
+    }
     if (args.options[opt_NoRSA].activated) {
         doRSA = PR_FALSE;
     }
@@ -299,6 +304,9 @@ main(int argc, char **argv)
     }
     if (args.options[opt_NoEC].activated) {
         doEC = PR_FALSE;
+    }
+    if (args.options[opt_NoMLKEM].activated) {
+        doMLKEM = PR_FALSE;
     }
 
     slot = PK11_GetInternalKeySlot();
@@ -337,7 +345,8 @@ main(int argc, char **argv)
         rsaParams.keySizeInBits = keySize;
         rsaParams.pe = 0x010001;
         rv = handleEncryptedPrivateImportTest(progName, slot, "RSA",
-                                              CKM_RSA_PKCS_KEY_PAIR_GEN, &rsaParams, &pwArgs);
+                                              CKM_RSA_PKCS_KEY_PAIR_GEN,
+                                              noPub, &rsaParams, &pwArgs);
         if (rv != SECSuccess) {
             fprintf(stderr, "RSA Import Failed!\n");
             failed = PR_TRUE;
@@ -345,7 +354,8 @@ main(int argc, char **argv)
     }
     if (doDSA) {
         rv = handleEncryptedPrivateImportTest(progName, slot, "DSA",
-                                              CKM_DSA_KEY_PAIR_GEN, pqgParams, &pwArgs);
+                                              CKM_DSA_KEY_PAIR_GEN,
+                                              noPub, pqgParams, &pwArgs);
         if (rv != SECSuccess) {
             fprintf(stderr, "DSA Import Failed!\n");
             failed = PR_TRUE;
@@ -356,7 +366,8 @@ main(int argc, char **argv)
         dhParams.prime = pqgParams->prime;
         dhParams.base = pqgParams->base;
         rv = handleEncryptedPrivateImportTest(progName, slot, "DH",
-                                              CKM_DH_PKCS_KEY_PAIR_GEN, &dhParams, &pwArgs);
+                                              CKM_DH_PKCS_KEY_PAIR_GEN,
+                                              noPub, &dhParams, &pwArgs);
         if (rv != SECSuccess) {
             fprintf(stderr, "DH Import Failed!\n");
             failed = PR_TRUE;
@@ -379,11 +390,24 @@ main(int argc, char **argv)
         PORT_Memcpy(&ecParams.data[2], curve->oid.data, curve->oid.len);
         ecParams.len = curve->oid.len + 2;
         rv = handleEncryptedPrivateImportTest(progName, slot, "ECC",
-                                              CKM_EC_KEY_PAIR_GEN, &ecParams, &pwArgs);
+                                              CKM_EC_KEY_PAIR_GEN,
+                                              noPub, &ecParams, &pwArgs);
         PORT_Free(ecParams.data);
     ec_failed:
         if (rv != SECSuccess) {
             fprintf(stderr, "ECC Import Failed!\n");
+            failed = PR_TRUE;
+        }
+    }
+
+    if (doMLKEM) {
+        CK_ML_KEM_PARAMETER_SET_TYPE paramSet = CKP_ML_KEM_768;
+
+        rv = handleEncryptedPrivateImportTest(progName, slot, "MLKEM",
+                                              CKM_ML_KEM_KEY_PAIR_GEN,
+                                              noPub, &paramSet, &pwArgs);
+        if (rv != SECSuccess) {
+            fprintf(stderr, "MLKEM Import Failed!\n");
             failed = PR_TRUE;
         }
     }

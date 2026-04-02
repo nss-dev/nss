@@ -7,8 +7,10 @@
 
 #include "pkcs11.h"
 
-KyberParams sftk_kyber_PK11ParamToInternal(CK_NSS_KEM_PARAMETER_SET_TYPE pk11ParamSet);
+CK_ML_KEM_PARAMETER_SET_TYPE sftk_kyber_InternalToPK11Param(KyberParams params);
+KyberParams sftk_kyber_PK11ParamToInternal(CK_ML_KEM_PARAMETER_SET_TYPE pk11ParamSet);
 
+size_t sftk_kyber_pubKeyLen(KyberParams params);
 SECItem* sftk_kyber_AllocPubKeyItem(KyberParams params, SECItem* pubkey);
 SECItem* sftk_kyber_AllocPrivKeyItem(KyberParams params, SECItem* privkey);
 SECItem* sftk_kyber_AllocCiphertextItem(KyberParams params, SECItem* ciphertext);

@@ -149,6 +149,7 @@ PK11_IsUserCert(PK11SlotInfo *slot, CERTCertificate *cert,
     if (theClass == CKO_PUBLIC_KEY) {
         SECKEYPublicKey *pubKey = CERT_ExtractPublicKey(cert);
         CK_ATTRIBUTE theTemplate;
+        PRBool needUnsignedAdjust = PR_FALSE;
 
         if (pubKey == NULL) {
             return PR_FALSE;
@@ -161,14 +162,17 @@ PK11_IsUserCert(PK11SlotInfo *slot, CERTCertificate *cert,
             case rsaOaepKey:
                 PK11_SETATTRS(&theTemplate, CKA_MODULUS, pubKey->u.rsa.modulus.data,
                               pubKey->u.rsa.modulus.len);
+                needUnsignedAdjust = PR_TRUE;
                 break;
             case dsaKey:
                 PK11_SETATTRS(&theTemplate, CKA_VALUE, pubKey->u.dsa.publicValue.data,
                               pubKey->u.dsa.publicValue.len);
+                needUnsignedAdjust = PR_TRUE;
                 break;
             case dhKey:
                 PK11_SETATTRS(&theTemplate, CKA_VALUE, pubKey->u.dh.publicValue.data,
                               pubKey->u.dh.publicValue.len);
+                needUnsignedAdjust = PR_TRUE;
                 break;
             case ecKey:
             case edKey:
@@ -182,9 +186,13 @@ PK11_IsUserCert(PK11SlotInfo *slot, CERTCertificate *cert,
                               pubKey->u.mldsa.publicValue.data,
                               pubKey->u.mldsa.publicValue.len);
                 break;
+            case kyberKey:
+                PK11_SETATTRS(&theTemplate, CKA_VALUE,
+                              pubKey->u.kyber.publicValue.data,
+                              pubKey->u.kyber.publicValue.len);
+                break;
             case keaKey:
             case fortezzaKey:
-            case kyberKey:
             case nullKey:
                 /* fall through and return false */
                 break;
@@ -194,8 +202,7 @@ PK11_IsUserCert(PK11SlotInfo *slot, CERTCertificate *cert,
             SECKEY_DestroyPublicKey(pubKey);
             return PR_FALSE;
         }
-        if (pubKey->keyType != ecKey && pubKey->keyType != edKey &&
-            pubKey->keyType != ecMontKey && pubKey->keyType != mldsaKey) {
+        if (needUnsignedAdjust) {
             pk11_SignedToUnsigned(&theTemplate);
         }
         if (pk11_FindObjectByTemplate(slot, &theTemplate, 1) != CK_INVALID_HANDLE) {
