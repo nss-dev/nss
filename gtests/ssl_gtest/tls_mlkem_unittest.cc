@@ -216,12 +216,14 @@ static void CheckECDHShareReuse(
         hybrid_offset[nextHybrid] = 0;
         hybrid_ec_type[nextHybrid] = ssl_grp_ec_secp256r1;
         nextHybrid++;
+        break;
       case ssl_grp_ec_curve25519:
       case ssl_grp_ec_secp256r1:
         ecdh_share[nextECDH] =
             DataBuffer(ext.data() + offset + 2 + 2, named_group_len);
         ec_type[nextECDH] = (SSLNamedGroup)named_group;
         nextECDH++;
+        break;
     }
     offset += 2 + 2 + named_group_len;
     ext.Read(offset, 2, &named_group);
