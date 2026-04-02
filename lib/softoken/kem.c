@@ -14,25 +14,6 @@
 /* change to the largest KEM Secret Bytes value supported */
 #define MAX_SHARED_SECRET_BYTES KYBER_SHARED_SECRET_BYTES
 
-CK_ML_KEM_PARAMETER_SET_TYPE
-sftk_kyber_InternalToPK11Param(KyberParams params)
-{
-    switch (params) {
-#ifndef NSS_DISABLE_KYBER
-        case params_kyber768_round3:
-        case params_kyber768_round3_test_mode:
-            return CKP_NSS_KYBER_768_ROUND3;
-#endif
-        case params_ml_kem768:
-        case params_ml_kem768_test_mode:
-            return CKP_ML_KEM_768;
-        case params_ml_kem1024:
-        case params_ml_kem1024_test_mode:
-            return CKP_ML_KEM_1024;
-        default:
-            return CKP_INVALID_ID;
-    }
-}
 KyberParams
 sftk_kyber_PK11ParamToInternal(CK_ML_KEM_PARAMETER_SET_TYPE pk11ParamSet)
 {
@@ -51,8 +32,8 @@ sftk_kyber_PK11ParamToInternal(CK_ML_KEM_PARAMETER_SET_TYPE pk11ParamSet)
     }
 }
 
-size_t
-sftk_kyber_pubKeyLen(KyberParams params)
+SECItem *
+sftk_kyber_AllocPubKeyItem(KyberParams params, SECItem *pubkey)
 {
     switch (params) {
 #ifndef NSS_DISABLE_KYBER
@@ -61,23 +42,13 @@ sftk_kyber_pubKeyLen(KyberParams params)
 #endif
         case params_ml_kem768:
         case params_ml_kem768_test_mode:
-            return KYBER768_PUBLIC_KEY_BYTES;
+            return SECITEM_AllocItem(NULL, pubkey, KYBER768_PUBLIC_KEY_BYTES);
         case params_ml_kem1024:
         case params_ml_kem1024_test_mode:
-            return MLKEM1024_PUBLIC_KEY_BYTES;
+            return SECITEM_AllocItem(NULL, pubkey, MLKEM1024_PUBLIC_KEY_BYTES);
         default:
-            return 0;
+            return NULL;
     }
-}
-
-SECItem *
-sftk_kyber_AllocPubKeyItem(KyberParams params, SECItem *pubkey)
-{
-    size_t pubKeyLen = sftk_kyber_pubKeyLen(params);
-    if (pubKeyLen == 0) {
-        return NULL;
-    }
-    return SECITEM_AllocItem(NULL, pubkey, pubKeyLen);
 }
 
 SECItem *
@@ -353,7 +324,6 @@ NSC_EncapsulateKey(CK_SESSION_HANDLE hSession,
     }
 
 cleanup:
-    PORT_SafeZero(secretBuf, sizeof(secretBuf));
     if (session) {
         sftk_FreeSession(session);
     }
@@ -509,7 +479,6 @@ NSC_DecapsulateKey(CK_SESSION_HANDLE hSession,
     }
 
 cleanup:
-    PORT_SafeZero(secretBuf, sizeof(secretBuf));
     if (session) {
         sftk_FreeSession(session);
     }

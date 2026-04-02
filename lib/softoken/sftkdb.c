@@ -60,7 +60,6 @@ sftkdb_isULONGAttribute(CK_ATTRIBUTE_TYPE type)
         case CKA_VALUE_BITS:
         case CKA_VALUE_LEN:
         case CKA_PARAMETER_SET:
-        case CKA_NSS_PARAMETER_SET:
 
         case CKA_PKCS_TRUST_SERVER_AUTH:
         case CKA_PKCS_TRUST_CLIENT_AUTH:

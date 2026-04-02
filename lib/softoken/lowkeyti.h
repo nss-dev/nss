@@ -10,7 +10,6 @@
 #include "secitem.h"
 #include "secasn1t.h"
 #include "secoidt.h"
-#include "kyber.h"
 
 /*
 ** Typedef for callback to get a password "key".
@@ -68,28 +67,10 @@ typedef enum {
     NSSLOWKEYDHKey = 4,
     NSSLOWKEYECKey = 5,
     NSSLOWKEYMLDSAKey = 6,
-    NSSLOWKEYMLKEMKey = 7,
 } NSSLOWKEYType;
 
-/* ML KEM low structures packages a key with it's parameters.
- * The ML KEM freebl didn't define these because all the functions
- * take raw keys and param separately */
-typedef struct MLKEMPrivateKeyStr MLKEMPrivateKey;
-typedef struct MLKEMPublicKeyStr MLKEMPublicKey;
-
-struct MLKEMPrivateKeyStr {
-    KyberParams mlkemParams;
-    SECItem key;
-    SECItem seed;
-};
-
-struct MLKEMPublicKeyStr {
-    KyberParams mlkemParams;
-    SECItem key;
-};
-
 /*
-** A unified public key object.
+** An RSA public key object.
 */
 struct NSSLOWKEYPublicKeyStr {
     PLArenaPool *arena;
@@ -100,7 +81,6 @@ struct NSSLOWKEYPublicKeyStr {
         DHPublicKey dh;
         ECPublicKey ec;
         MLDSAPublicKey mldsa;
-        MLKEMPublicKey mlkem;
     } u;
 };
 typedef struct NSSLOWKEYPublicKeyStr NSSLOWKEYPublicKey;
@@ -126,7 +106,6 @@ struct NSSLOWKEYPrivateKeyStr {
         ECPrivateKey ec;
         GenPostQuantumPrivateKey genpq; /* used to decode post quantum keys */
         MLDSAPrivateKey mldsa;
-        MLKEMPrivateKey mlkem;
     } u;
 };
 typedef struct NSSLOWKEYPrivateKeyStr NSSLOWKEYPrivateKey;

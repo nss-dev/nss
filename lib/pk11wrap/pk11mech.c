@@ -1959,7 +1959,6 @@ PK11_MapSignKeyType(KeyType keyType)
         case mldsaKey:
             return CKM_ML_DSA;
         case dhKey:
-        case kyberKey:
         default:
             break;
     }

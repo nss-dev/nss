@@ -91,14 +91,25 @@ handleEncryptedPrivateImportTest(char *progName, PK11SlotInfo *slot,
 
     /* Save the public value, which we will need on import */
     keyType = pubKey->keyType;
-    const SECItem *pubv = PK11_GetPublicValueFromPublicKey(pubKey);
-    if (pubv == NULL) {
-        fprintf(stderr, "Unknown keytype = %d:\n", keyType);
-        goto cleanup;
+    switch (keyType) {
+        case rsaKey:
+            SECITEM_CopyItem(NULL, &pubValue, &pubKey->u.rsa.modulus);
+            break;
+        case dhKey:
+            SECITEM_CopyItem(NULL, &pubValue, &pubKey->u.dh.publicValue);
+            break;
+        case dsaKey:
+            SECITEM_CopyItem(NULL, &pubValue, &pubKey->u.dsa.publicValue);
+            break;
+        case ecKey:
+            SECITEM_CopyItem(NULL, &pubValue, &pubKey->u.ec.publicValue);
+            break;
+        default:
+            fprintf(stderr, "Unknown keytype = %d\n", keyType);
+            goto cleanup;
     }
-    rv = SECITEM_CopyItem(NULL, &pubValue, pubv);
-    if (rv != SECSuccess) {
-        SECU_PrintError(progName, "Unable to copy Public Value");
+    if (pubValue.data == NULL) {
+        SECU_PrintError(progName, "Unable to allocate memory");
         goto cleanup;
     }
     dumpItem("pubValue", &pubValue);
@@ -187,7 +198,6 @@ static const char *const usageInfo[] = {
     " -D                    skip dsa test",
     " -h                    skip dh test",
     " -e                    skip ec test",
-    " -K                    skip mk-kem test",
 };
 static int nUsageInfo = sizeof(usageInfo) / sizeof(char *);
 
@@ -209,9 +219,8 @@ enum {
     opt_PWString,
     opt_NoRSA,
     opt_NoDSA,
-    opt_NoDH,
     opt_NoEC,
-    opt_NoMLKEM,
+    opt_NoDH
 };
 
 static secuCommandFlag options[] = {
@@ -220,11 +229,10 @@ static secuCommandFlag options[] = {
     { /* opt_ECCurve          */ 'C', PR_TRUE, 0, PR_FALSE },
     { /* opt_PWFile           */ 'f', PR_TRUE, 0, PR_FALSE },
     { /* opt_PWString         */ 'p', PR_TRUE, 0, PR_FALSE },
-    { /* opt_NORSA            */ 'r', PR_FALSE, 0, PR_FALSE },
-    { /* opt_NoDSA            */ 'D', PR_FALSE, 0, PR_FALSE },
-    { /* opt_NoDH             */ 'h', PR_FALSE, 0, PR_FALSE },
-    { /* opt_NoEC             */ 'e', PR_FALSE, 0, PR_FALSE },
-    { /* opt_NoMLKEM          */ 'K', PR_FALSE, 0, PR_FALSE },
+    { /* opt_NORSA            */ 'r', PR_TRUE, 0, PR_FALSE },
+    { /* opt_NoDSA            */ 'D', PR_TRUE, 0, PR_FALSE },
+    { /* opt_NoDH             */ 'h', PR_TRUE, 0, PR_FALSE },
+    { /* opt_NoEC             */ 'e', PR_TRUE, 0, PR_FALSE },
 };
 
 int
@@ -240,7 +248,6 @@ main(int argc, char **argv)
     PRBool doDSA = PR_TRUE;
     PRBool doDH = PR_FALSE; /* NSS currently can't export wrapped DH keys */
     PRBool doEC = PR_TRUE;
-    PRBool doMLKEM = PR_TRUE;
     PQGParams *pqgParams = NULL;
     int keySize;
 
@@ -292,9 +299,6 @@ main(int argc, char **argv)
     }
     if (args.options[opt_NoEC].activated) {
         doEC = PR_FALSE;
-    }
-    if (args.options[opt_NoMLKEM].activated) {
-        doMLKEM = PR_FALSE;
     }
 
     slot = PK11_GetInternalKeySlot();
@@ -380,18 +384,6 @@ main(int argc, char **argv)
     ec_failed:
         if (rv != SECSuccess) {
             fprintf(stderr, "ECC Import Failed!\n");
-            failed = PR_TRUE;
-        }
-    }
-
-    if (doMLKEM) {
-        CK_ML_KEM_PARAMETER_SET_TYPE paramSet = CKP_ML_KEM_768;
-
-        rv = handleEncryptedPrivateImportTest(progName, slot, "MLKEM",
-                                              CKM_ML_KEM_KEY_PAIR_GEN,
-                                              &paramSet, &pwArgs);
-        if (rv != SECSuccess) {
-            fprintf(stderr, "MLKEM Import Failed!\n");
             failed = PR_TRUE;
         }
     }

@@ -10,7 +10,6 @@
 #include "secerr.h"
 #include "softoken.h"
 #include "ec.h"
-#include "kem.h"
 
 SEC_ASN1_MKSUB(SEC_AnyTemplate)
 SEC_ASN1_MKSUB(SEC_BitStringTemplate)
@@ -485,35 +484,6 @@ nsslowkey_ConvertToPublicKey(NSSLOWKEYPrivateKey *privk)
                 return pubk;
             }
             break;
-        case NSSLOWKEYMLKEMKey:
-            pubk = (NSSLOWKEYPublicKey *)PORT_ArenaZAlloc(arena,
-                                                          sizeof(NSSLOWKEYPublicKey));
-            if (pubk != NULL) {
-                size_t pubKeyLen;
-                SECItem *item = NULL;
-
-                pubk->arena = arena;
-                pubk->keyType = privk->keyType;
-                pubk->u.mlkem.mlkemParams = privk->u.mlkem.mlkemParams;
-                /* privatekey value is encoded (dPKE||ePKE||H(ePKE)||z) */
-                /* publickey value is encoded (ePKE) */
-                /* size(dPKE) = 384k and size(ePKE)=384k+32,
-                 * so size(dPKE) = size(ePKE)-32 */
-                pubKeyLen = sftk_kyber_pubKeyLen(pubk->u.mlkem.mlkemParams);
-                if (privk->u.mlkem.key.len < 2 * pubKeyLen) {
-                    PORT_SetError(CKR_KEY_SIZE_RANGE);
-                    break;
-                }
-                item = SECITEM_AllocItem(arena, &pubk->u.mlkem.key, pubKeyLen);
-                if (item == NULL) {
-                    break;
-                }
-                PORT_Memcpy(pubk->u.mlkem.key.data,
-                            privk->u.mlkem.key.data + pubKeyLen - 32,
-                            pubKeyLen);
-                return pubk;
-            }
-            break;
         /* No Fortezza in Low Key implementations (Fortezza keys aren't
          * stored in our data base */
         default:
@@ -653,17 +623,6 @@ nsslowkey_CopyPrivateKey(NSSLOWKEYPrivateKey *privKey)
         case NSSLOWKEYMLDSAKey:
             returnKey->u.mldsa = privKey->u.mldsa;
             rv = SECSuccess;
-            break;
-        case NSSLOWKEYMLKEMKey:
-            returnKey->u.mlkem.mlkemParams = privKey->u.mlkem.mlkemParams;
-            rv = SECITEM_CopyItem(poolp, &(returnKey->u.mlkem.key),
-                                  &(privKey->u.mlkem.key));
-            if (rv != SECSuccess)
-                break;
-            rv = SECITEM_CopyItem(poolp, &(returnKey->u.mlkem.seed),
-                                  &(privKey->u.mlkem.seed));
-            if (rv != SECSuccess)
-                break;
             break;
         default:
             rv = SECFailure;

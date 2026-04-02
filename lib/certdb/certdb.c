@@ -1234,7 +1234,6 @@ CERT_CheckKeyUsage(CERTCertificate *cert, unsigned int requiredUsage)
                 requiredUsage |= KU_DIGITAL_SIGNATURE;
                 break;
             case dhKey:
-            case kyberKey:
                 requiredUsage |= KU_KEY_AGREEMENT;
                 break;
             case ecKey:
