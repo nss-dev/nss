@@ -8,7 +8,6 @@
 #include "pk11_keygen.h"
 #include "pk11pub.h"
 
-#include "blapi.h"
 #include "secport.h"
 
 namespace nss_test {

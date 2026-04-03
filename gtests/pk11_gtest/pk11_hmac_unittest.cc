@@ -11,7 +11,6 @@
 #include "pk11pub.h"
 #include "secerr.h"
 #include "sechash.h"
-#include "blapi.h"
 #include "gtest/gtest.h"
 #include "nss_scoped_ptrs.h"
 #include "testvectors/hmac-sha256-vectors.h"

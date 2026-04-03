@@ -5,7 +5,6 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <memory>
-#include "blapi.h"
 #include "gtest/gtest.h"
 #include "nss.h"
 #include "nss_scoped_ptrs.h"

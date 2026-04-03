@@ -10,7 +10,7 @@
 #include "secerr.h"
 #include "sechash.h"
 
-#include "blapi.h"
+#include "blapit.h"
 
 #include "gtest/gtest.h"
 #include "nss_scoped_ptrs.h"
