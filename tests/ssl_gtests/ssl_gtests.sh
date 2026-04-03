@@ -20,45 +20,8 @@
 ########################################################################
 
 ssl_gtest_certs() {
-  mkdir -p "${SSLGTESTDIR}"
-  cd "${SSLGTESTDIR}"
-
-  PROFILEDIR=`native_path`
-
-  ${BINDIR}/certutil -N -d "${PROFILEDIR}" --empty-password 2>&1
-  html_msg $? 0 "create ssl_gtest database"
-
-  pushd "${QADIR}"
-  . common/certsetup.sh
-  popd
-
-  counter=0
-  make_cert client rsa sign
-  make_cert rsa rsa sign kex
-  make_cert rsa2048 rsa2048 sign kex
-  make_cert rsa8192 rsa8192 sign kex
-  make_cert rsa_sign rsa sign
-  make_cert rsa_pss rsapss sign
-  make_cert rsa_pss384 rsapss384 sign
-  make_cert rsa_pss512 rsapss512 sign
-  make_cert rsa_pss_noparam rsapss_noparam sign
-  make_cert rsa_decrypt rsa kex
-  make_cert ecdsa256 p256 sign
-  make_cert ecdsa384 p384 sign
-  make_cert ecdsa521 p521 sign
-  make_cert ecdh_ecdsa p256 kex
-  make_cert rsa_ca rsa_ca ca
-  make_cert rsa_chain rsa_chain sign
-  make_cert rsa_pss_ca rsapss_ca ca
-  make_cert rsa_pss_chain rsapss_chain sign
-  make_cert rsa_ca_rsa_pss_chain rsa_ca_rsapss_chain sign
-  make_cert ecdh_rsa ecdh_rsa kex
-  if [ -z "${NSS_DISABLE_DSA}" ]; then
-      make_cert dsa dsa sign
-  fi
-  make_cert delegator_ecdsa256 delegator_p256 sign
-  make_cert delegator_rsae2048 delegator_rsae2048 sign
-  make_cert delegator_rsa_pss2048 delegator_rsa_pss2048 sign
+  ./ssl_gtest_db.sh "${SSLGTESTDIR}" "${BINDIR}/certutil" "${R_NOISE_FILE}"
+  html_msg $? 0 "create ssl_gtest certificates"
 }
 
 ############################## ssl_gtest_init ##########################

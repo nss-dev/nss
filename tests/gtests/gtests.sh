@@ -56,11 +56,8 @@ gtest_start()
     DIR="${GTESTDIR}/$i"
     html_head "$i"
     if [ ! -d "$DIR" ]; then
-      mkdir -p "$DIR"
-      echo "${BINDIR}/certutil" -N -d "$DIR" --empty-password 2>&1
-      "${BINDIR}/certutil" -N -d "$DIR" --empty-password 2>&1
-
-      PROFILEDIR="$DIR" make_cert dummy p256 sign
+      "${QADIR}/gtests/gtest_db.sh" "$DIR" "${BINDIR}/certutil" "${R_NOISE_FILE}"
+      html_msg $? 0 "create gtest certificates for $i"
     fi
     pushd "$DIR"
     GTESTREPORT="$DIR/report.xml"
