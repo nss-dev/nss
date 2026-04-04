@@ -13,7 +13,8 @@
 set -e
 
 cwd=$(cd $(dirname $0); pwd -P)
-dist_dir="$cwd/../dist"
+nss_out_dir="${NSS_OUT_DIR:-$cwd/..}"
+dist_dir="$nss_out_dir/dist"
 argsfile="$dist_dir/build_args"
 source "$cwd/coreconf/nspr.sh"
 source "$cwd/coreconf/sanitizers.sh"
