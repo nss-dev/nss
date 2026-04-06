@@ -3210,6 +3210,7 @@ tls13_HandleHelloRetryRequest(sslSocket *ss, const PRUint8 *savedMsg,
     }
 
     ssl_ReleaseXmitBufLock(ss);
+    SECITEM_FreeItem(&ss->ssl3.hs.cookie, PR_FALSE);
     return SECSuccess;
 
 loser:
