@@ -156,36 +156,39 @@ SECStatus
 NSS_CMSContentInfo_SetContent(NSSCMSMessage *cmsg, NSSCMSContentInfo *cinfo,
                               SECOidTag type, void *ptr)
 {
-    SECStatus rv;
     if (cinfo == NULL || cmsg == NULL) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
 
-    cinfo->contentTypeTag = SECOID_FindOIDByTag(type);
-    if (cinfo->contentTypeTag == NULL) {
+    SECOidData *contentTypeTag = SECOID_FindOIDByTag(type);
+    if (!contentTypeTag) {
         return SECFailure;
     }
 
-    /* do not copy the oid, just create a reference */
-    rv = SECITEM_CopyItem(cmsg->poolp, &(cinfo->contentType), &(cinfo->contentTypeTag->oid));
+    SECItem contentType = { siBuffer, NULL, 0 };
+    SECStatus rv = SECITEM_CopyItem(cmsg->poolp, &contentType, &(contentTypeTag->oid));
     if (rv != SECSuccess) {
         return SECFailure;
     }
 
-    cinfo->content.pointer = ptr;
-
+    SECItem *rawContent;
     if (NSS_CMSType_IsData(type) && ptr) {
-        cinfo->rawContent = ptr;
+        rawContent = ptr;
     } else {
         /* as we always have some inner data,
          * we need to set it to something, just to fool the encoder enough to work on it
          * and get us into nss_cms_encoder_notify at that point */
-        cinfo->rawContent = SECITEM_AllocItem(cmsg->poolp, NULL, 1);
-        if (cinfo->rawContent == NULL) {
-            PORT_SetError(SEC_ERROR_NO_MEMORY);
+        rawContent = SECITEM_AllocItem(cmsg->poolp, NULL, 1);
+        if (!rawContent) {
             return SECFailure;
         }
     }
+
+    cinfo->contentType = contentType;
+    cinfo->content.pointer = ptr;
+    cinfo->contentTypeTag = contentTypeTag;
+    cinfo->rawContent = rawContent;
 
     return SECSuccess;
 }
