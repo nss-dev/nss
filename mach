@@ -29,16 +29,6 @@ from hashlib import sha256
 DEVNULL = open(os.devnull, 'wb')
 cwd = os.path.dirname(os.path.abspath(__file__))
 
-# When NSS_OUT_DIR is set, build output goes there instead of ../dist etc.
-# Set DIST and TESTDIR so that test scripts find binaries and write results
-# in the output directory rather than the source tree.
-if "NSS_OUT_DIR" in os.environ:
-    _nss_out = os.environ["NSS_OUT_DIR"]
-    if "DIST" not in os.environ:
-        os.environ["DIST"] = os.path.join(_nss_out, "dist")
-    if "TESTDIR" not in os.environ:
-        os.environ["TESTDIR"] = os.path.join(_nss_out, "tests_results")
-
 
 # --- Logging setup for coverage commands -------------------------------------
 

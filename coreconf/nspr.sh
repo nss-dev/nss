@@ -23,13 +23,7 @@ nspr_set_flags()
 
 nspr_build()
 {
-    local nspr_build_base="${NSS_OUT_DIR:-$cwd/..}"/nspr
-    local nspr_dir="$nspr_build_base"/$target
-    local nspr_src="$cwd"/../nspr
-    # In a Firefox tree, NSPR source is at nsprpub/, not security/nspr/.
-    if [ ! -f "$nspr_src/configure" ] && [ -f "$cwd"/../../nsprpub/configure ]; then
-        nspr_src="$(cd "$cwd"/../../nsprpub && pwd)"
-    fi
+    local nspr_dir="$cwd"/../nspr/$target
     mkdir -p "$nspr_dir"
 
     # These NSPR options are directory-specific, so they don't need to be
@@ -57,7 +51,7 @@ nspr_build()
 
     CFLAGS="$nspr_cflags" CXXFLAGS="$nspr_cxxflags" \
           LDFLAGS="$nspr_ldflags" HOST_CC="$HOST_CC" CC="$CC" CXX="$CCC" \
-          run_verbose "$nspr_src"/configure "${extra_params[@]}" "$@"
+          run_verbose ../configure "${extra_params[@]}" "$@"
     popd >/dev/null
     echo "NSPR [2/5] make ..."
     run_verbose make -C "$nspr_dir"
@@ -82,8 +76,7 @@ nspr_build()
 
 nspr_clean()
 {
-    local nspr_build_base="${NSS_OUT_DIR:-$cwd/..}"/nspr
-    rm -rf "$nspr_build_base"/$target
+    rm -rf "$cwd"/../nspr/$target
 }
 
 set_nspr_path()
