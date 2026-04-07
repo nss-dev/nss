@@ -1215,7 +1215,7 @@ SEC_PKCS5GetIV(SECAlgorithmID *algid, SECItem *pwitem, PRBool faulty3DES)
     CK_MECHANISM_TYPE type;
     SECItem *param = NULL;
     SECItem *iv = NULL;
-    SECItem src;
+    SECItem src = { siBuffer, NULL, 0 };
     int iv_len = 0;
     PK11SymKey *symKey;
     PK11SlotInfo *slot;
@@ -1255,7 +1255,7 @@ SEC_PKCS5GetIV(SECAlgorithmID *algid, SECItem *pwitem, PRBool faulty3DES)
     type = PK11_AlgtagToMechanism(pbeAlg);
     param = PK11_ParamFromAlgid(algid);
     if (param == NULL) {
-        goto done;
+        goto loser;
     }
     slot = PK11_GetInternalSlot();
     symKey = PK11_RawPBEKeyGen(slot, type, param, pwitem, faulty3DES, NULL);
