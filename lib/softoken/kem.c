@@ -333,14 +333,14 @@ cleanup:
             return CKR_DEVICE_ERROR;
         }
     }
+    if (encapsulationKey) {
+        sftk_FreeAttribute(encapsulationKey);
+    }
     if (encapsulationKeyObject) {
         status = sftk_FreeObject(encapsulationKeyObject);
         if (status == SFTK_DestroyFailure) {
             return CKR_DEVICE_ERROR;
         }
-    }
-    if (encapsulationKey) {
-        sftk_FreeAttribute(encapsulationKey);
     }
     return crv;
 }
@@ -488,14 +488,14 @@ cleanup:
             return CKR_DEVICE_ERROR;
         }
     }
+    if (decapsulationKey) {
+        sftk_FreeAttribute(decapsulationKey);
+    }
     if (decapsulationKeyObject) {
         status = sftk_FreeObject(decapsulationKeyObject);
         if (status == SFTK_DestroyFailure) {
             return CKR_DEVICE_ERROR;
         }
-    }
-    if (decapsulationKey) {
-        sftk_FreeAttribute(decapsulationKey);
     }
     return crv;
 }
