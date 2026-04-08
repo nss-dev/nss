@@ -747,7 +747,7 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
                 certsList = tmpCertsList;
             }
             for (i = 0; i < subjectNameListLen; i++) {
-                certsList[namesCount + i] = subjectCert;
+                certsList[namesCount + i] = CERT_DupCertificate(subjectCert);
             }
             namesCount += subjectNameListLen;
             namesList = cert_CombineNamesLists(namesList, subjectNameList);
@@ -1004,6 +1004,11 @@ loser:
     rv = SECFailure;
 done:
     if (certsList != NULL) {
+        for (int i = 0; i < namesCount; i++) {
+            if (certsList[i]) {
+                CERT_DestroyCertificate(certsList[i]);
+            }
+        }
         PORT_Free(certsList);
     }
     if (issuerCert) {
