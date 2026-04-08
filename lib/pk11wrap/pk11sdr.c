@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "seccomon.h"
-#include "secoid.h"
-#include "secasn1.h"
-#include "pkcs11.h"
 #include "pk11func.h"
 #include "pk11sdr.h"
+#include "pkcs11.h"
+#include "secasn1.h"
+#include "seccomon.h"
+#include "secerr.h"
+#include "secoid.h"
 
 /*
  * Data structure and template for encoding the result of an SDR operation
@@ -169,6 +170,12 @@ PK11SDR_EncryptWithMechanism(PK11SlotInfo *slot, SECItem *keyid, CK_MECHANISM_TY
     /* Initialize */
     paddedData.len = 0;
     paddedData.data = 0;
+
+    if (type != CKM_DES3_CBC && type != CKM_AES_CBC) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        rv = SECFailure;
+        goto loser;
+    }
 
     arena = PORT_NewArena(SEC_ASN1_DEFAULT_ARENA_SIZE);
     if (!arena) {
@@ -350,8 +357,17 @@ PK11SDR_Decrypt(SECItem *data, SECItem *result, void *cx)
     /* Decode the incoming data */
     memset(&sdrResult, 0, sizeof sdrResult);
     rv = SEC_QuickDERDecodeItem(arena, &sdrResult, template, data);
-    if (rv != SECSuccess)
+    if (rv != SECSuccess) {
         goto loser; /* Invalid format */
+    }
+
+    algtag = SECOID_GetAlgorithmTag(&sdrResult.alg);
+    type = PK11_AlgtagToMechanism(algtag);
+    if (type != CKM_DES3_CBC && type != CKM_AES_CBC) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        rv = SECFailure;
+        goto loser;
+    }
 
     /* Find the slot and key for the given keyid */
     slot = PK11_GetInternalKeySlot();
@@ -361,8 +377,9 @@ PK11SDR_Decrypt(SECItem *data, SECItem *result, void *cx)
     }
 
     rv = PK11_Authenticate(slot, PR_TRUE, cx);
-    if (rv != SECSuccess)
+    if (rv != SECSuccess) {
         goto loser;
+    }
 
     /* Get the parameter values from the data */
     params = PK11_ParamFromAlgid(&sdrResult.alg);
@@ -371,8 +388,6 @@ PK11SDR_Decrypt(SECItem *data, SECItem *result, void *cx)
         goto loser;
     }
 
-    algtag = SECOID_GetAlgorithmTag(&sdrResult.alg);
-    type = PK11_AlgtagToMechanism(algtag);
     key = PK11_FindFixedKey(slot, type, &sdrResult.keyid, cx);
     if (!key) {
         rv = SECFailure;
