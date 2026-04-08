@@ -62,14 +62,15 @@ static void
 token_destructor(void *t)
 {
     NSSToken *tok = (NSSToken *)t;
-    /* Remove the token list's reference to the token */
-    (void)nssToken_Destroy(tok);
 
     /* Signal that the slot should not give out any more references to the
-     * token. The token might still have a positive refcount after this call.
-     * The token has a reference to the slot, so the slot will not be destroyed
-     * until after the token's refcount drops to 0. */
+     * token. Do this first, while |tok| (and its reference to the slot) is
+     * still alive: the list may hold the last reference, in which case
+     * nssToken_Destroy() below frees the arena that contains |tok|. */
     PK11Slot_SetNSSToken(tok->pk11slot, NULL);
+
+    /* Remove the token list's reference to the token */
+    (void)nssToken_Destroy(tok);
 }
 
 NSS_IMPLEMENT PRStatus
