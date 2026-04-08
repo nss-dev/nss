@@ -4506,7 +4506,7 @@ tls13_SignOrVerifyHashWithContext(sslSocket *ss, const SSL3Hashes *hashes,
     return SECSuccess;
 
 loser:
-    tls_DestroySignOrVerifyContext(ctx);
+    tls_DestroySignOrVerifyContext(&ctx);
     ssl_MapLowLevelError(SSL_ERROR_SIGN_HASHES_FAILURE);
     return SECFailure;
 }

@@ -340,7 +340,7 @@ tls13_HashCredentialAndSignOrVerifyMessage(SECKEYPrivateKey *privKey,
     return SECSuccess;
 
 loser:
-    tls_DestroySignOrVerifyContext(ctx);
+    tls_DestroySignOrVerifyContext(&ctx);
     return SECFailure;
 }
 

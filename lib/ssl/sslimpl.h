@@ -1659,7 +1659,7 @@ extern tlsSignOrVerifyContext tls_CreateSignOrVerifyContext(
 SECStatus tls_SignOrVerifyUpdate(tlsSignOrVerifyContext ctx,
                                  const unsigned char *buf, int len);
 SECStatus tls_SignOrVerifyEnd(tlsSignOrVerifyContext ctx, SECItem *sig);
-void tls_DestroySignOrVerifyContext(tlsSignOrVerifyContext ctx);
+void tls_DestroySignOrVerifyContext(tlsSignOrVerifyContext *ctx);
 
 extern SECStatus ssl3_CacheWrappedSecret(sslSocket *ss, sslSessionID *sid,
                                          PK11SymKey *secret);
