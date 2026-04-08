@@ -2291,6 +2291,12 @@ sftk_CheckCBCPadding(CK_BYTE_PTR pBuf, unsigned int bufLen,
 {
     PORT_Assert(outPadSize);
 
+    /* CBC-padded plaintext is always at least one full block */
+    if (bufLen < blockSize || blockSize == 0) {
+        *outPadSize = 0;
+        return CKR_ENCRYPTED_DATA_INVALID;
+    }
+
     unsigned int padSize = (unsigned int)pBuf[bufLen - 1];
 
     /* If padSize <= blockSize, set goodPad to all-1s and all-0s otherwise.*/
