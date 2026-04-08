@@ -289,6 +289,10 @@ NSC_EncapsulateKey(CK_SESSION_HANDLE hSession,
         crv = CKR_KEY_HANDLE_INVALID;
         goto cleanup;
     }
+    if (encapsulationKeyObject->objclass != CKO_PUBLIC_KEY) {
+        crv = CKR_KEY_TYPE_INCONSISTENT;
+        goto cleanup;
+    }
     encapsulationKey = sftk_FindAttribute(encapsulationKeyObject, CKA_VALUE);
     if (encapsulationKey == NULL) {
         crv = CKR_KEY_HANDLE_INVALID;
@@ -447,6 +451,10 @@ NSC_DecapsulateKey(CK_SESSION_HANDLE hSession,
     decapsulationKeyObject = sftk_ObjectFromHandle(hPrivateKey, session);
     if (decapsulationKeyObject == NULL) {
         crv = CKR_KEY_HANDLE_INVALID;
+        goto cleanup;
+    }
+    if (decapsulationKeyObject->objclass != CKO_PRIVATE_KEY) {
+        crv = CKR_KEY_TYPE_INCONSISTENT;
         goto cleanup;
     }
     decapsulationKey = sftk_FindAttribute(decapsulationKeyObject, CKA_VALUE);

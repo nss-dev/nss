@@ -7,6 +7,8 @@
 
 #include "pk11_keygen.h"
 #include "pk11pub.h"
+#include "secmodi.h"
+#include "secmodti.h"
 
 #include "secport.h"
 
@@ -147,6 +149,42 @@ TEST_P(Pkcs11KEMTest, KemConsistencyTest) {
   NSS_DECLASSIFY(item1->data, item1->len);
   NSS_DECLASSIFY(item2->data, item2->len);
   EXPECT_EQ(0, SECITEM_CompareItem(item1, item2));
+}
+
+// Verify that C_EncapsulateKey and C_DecapsulateKey reject handles whose
+// object class does not match what is expected (CKO_PUBLIC_KEY and
+// CKO_PRIVATE_KEY respectively) with CKR_KEY_TYPE_INCONSISTENT.
+TEST_P(Pkcs11KEMTest, KemWrongObjectTypeTest) {
+  Pkcs11KeyPairGenerator generator(keyGenMech());
+  ScopedSECKEYPrivateKey priv;
+  ScopedSECKEYPublicKey pub;
+  generator.GenerateKey(&priv, &pub, false);
+  ASSERT_NE(nullptr, priv);
+  ASSERT_NE(nullptr, pub);
+
+  // Both keys are on the same slot; use its default session for both checks.
+  PK11SlotInfo *slot = priv->pkcs11Slot;
+  ASSERT_NE(nullptr, slot);
+
+  CK_MECHANISM mech = {encapsMech(), nullptr, 0};
+  CK_OBJECT_HANDLE outKey = CK_INVALID_HANDLE;
+
+  // C_EncapsulateKey: pass a CKO_PRIVATE_KEY handle where CKO_PUBLIC_KEY is
+  // expected.
+  CK_ULONG ciphertextLen = 0;
+  CK_RV crv = PK11_GETTAB(slot)->C_EncapsulateKey(
+      slot->session, &mech, priv->pkcs11ID, nullptr, 0, nullptr, &ciphertextLen,
+      &outKey);
+  EXPECT_EQ(CKR_KEY_TYPE_INCONSISTENT, crv);
+
+  // C_DecapsulateKey: pass a CKO_PUBLIC_KEY handle where CKO_PRIVATE_KEY is
+  // expected.
+  CK_BYTE dummyCiphertext[1] = {0};
+  CK_ATTRIBUTE dummyTemplate[1] = {};
+  crv = PK11_GETTAB(slot)->C_DecapsulateKey(slot->session, &mech, pub->pkcs11ID,
+                                            dummyTemplate, 0, dummyCiphertext,
+                                            sizeof(dummyCiphertext), &outKey);
+  EXPECT_EQ(CKR_KEY_TYPE_INCONSISTENT, crv);
 }
 
 #ifndef NSS_DISABLE_KYBER
