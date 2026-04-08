@@ -180,10 +180,6 @@ CERT_AddExtensionByOID(void *exthandle, SECItem *oid, SECItem *value,
         return (SECFailure);
     }
 
-    /* add to list */
-    node->next = handle->head;
-    handle->head = node;
-
     /* point to ext struct */
     node->ext = ext;
 
@@ -209,6 +205,10 @@ CERT_AddExtensionByOID(void *exthandle, SECItem *oid, SECItem *value,
         ext->value = *value;
     }
 
+    /* Link node and bump count only after all failable ops succeed,
+     * so handle->head and handle->count stay in sync on failure. */
+    node->next = handle->head;
+    handle->head = node;
     handle->count++;
 
     return (SECSuccess);
