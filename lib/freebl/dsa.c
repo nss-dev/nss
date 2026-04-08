@@ -336,7 +336,9 @@ dsa_SignDigest(DSAPrivateKey *key, SECItem *signature, const SECItem *digest,
 
     dsa_subprime_len = PQG_GetLength(&key->params.subPrime);
     dsa_signature_len = dsa_subprime_len * 2;
-    if ((signature->len < dsa_signature_len) ||
+    if ((dsa_subprime_len == 0) ||
+        (dsa_subprime_len > DSA_MAX_SUBPRIME_LEN) ||
+        (signature->len < dsa_signature_len) ||
         (digest->len > HASH_LENGTH_MAX) ||
         (digest->len < SHA1_LENGTH)) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -574,7 +576,9 @@ DSA_VerifyDigest(DSAPublicKey *key, const SECItem *signature,
 
     dsa_subprime_len = PQG_GetLength(&key->params.subPrime);
     dsa_signature_len = dsa_subprime_len * 2;
-    if ((signature->len != dsa_signature_len) ||
+    if ((dsa_subprime_len == 0) ||
+        (dsa_subprime_len > DSA_MAX_SUBPRIME_LEN) ||
+        (signature->len != dsa_signature_len) ||
         (digest->len > HASH_LENGTH_MAX) ||
         (digest->len < SHA1_LENGTH)) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
