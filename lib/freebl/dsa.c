@@ -258,7 +258,7 @@ DSA_NewRandom(PLArenaPool *arena, const SECItem *q, SECItem *seed)
     if (!good) {
         PORT_SetError(SEC_ERROR_NEED_RANDOM);
     loser:
-        if (arena != NULL) {
+        if (arena == NULL) {
             SECITEM_ZfreeItem(seed, PR_FALSE);
         }
         return SECFailure;
