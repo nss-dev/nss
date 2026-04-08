@@ -7,6 +7,7 @@
  * Implement the PKCS #11 v3.0 Message interfaces
  */
 #include "seccomon.h"
+#include "secerr.h"
 #include "pkcs11.h"
 #include "pkcs11i.h"
 #include "blapi.h"
@@ -24,6 +25,11 @@ sftk_ChaCha20_Poly1305_Message_Encrypt(void *vctx,
 {
     ChaCha20Poly1305Context *ctx = vctx;
     CK_SALSA20_CHACHA20_POLY1305_MSG_PARAMS *params = vparams;
+    if (params == NULL ||
+        paramsLen != sizeof(CK_SALSA20_CHACHA20_POLY1305_MSG_PARAMS)) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
     return ChaCha20Poly1305_Encrypt(ctx, cipherText, cipherTextLen, maxOutLen,
                                     plainText, plainTextLen, params->pNonce, params->ulNonceLen,
                                     aad, aadLen, params->pTag);
@@ -40,6 +46,11 @@ sftk_ChaCha20_Poly1305_Message_Decrypt(void *vctx,
 {
     ChaCha20Poly1305Context *ctx = vctx;
     CK_SALSA20_CHACHA20_POLY1305_MSG_PARAMS *params = vparams;
+    if (params == NULL ||
+        paramsLen != sizeof(CK_SALSA20_CHACHA20_POLY1305_MSG_PARAMS)) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
     return ChaCha20Poly1305_Decrypt(ctx, plainText, plainTextLen, maxOutLen,
                                     cipherText, cipherTextLen, params->pNonce, params->ulNonceLen,
                                     aad, aadLen, params->pTag);
