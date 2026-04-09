@@ -91,8 +91,8 @@ CTS_EncryptUpdate(CTSContext *cts, unsigned char *outbuf,
 {
     unsigned char lastBlock[MAX_BLOCK_SIZE];
     unsigned int tmp;
-    int fullblocks;
-    int written;
+    unsigned int fullblocks;
+    unsigned int written;
     unsigned char *saveout = outbuf;
     SECStatus rv;
 
