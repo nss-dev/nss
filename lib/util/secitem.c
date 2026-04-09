@@ -417,23 +417,25 @@ secitem_FreeArray(SECItemArray *array, PRBool zero_items, PRBool freeit)
 {
     unsigned int i;
 
-    if (!array || !array->len || !array->items)
+    if (!array)
         return;
 
-    for (i = 0; i < array->len; ++i) {
-        SECItem *item = &array->items[i];
+    if (array->items) {
+        for (i = 0; i < array->len; ++i) {
+            SECItem *item = &array->items[i];
 
-        if (item->data) {
-            if (zero_items) {
-                SECITEM_ZfreeItem(item, PR_FALSE);
-            } else {
-                SECITEM_FreeItem(item, PR_FALSE);
+            if (item->data) {
+                if (zero_items) {
+                    SECITEM_ZfreeItem(item, PR_FALSE);
+                } else {
+                    SECITEM_FreeItem(item, PR_FALSE);
+                }
             }
         }
+        PORT_Free(array->items);
+        array->items = NULL;
+        array->len = 0;
     }
-    PORT_Free(array->items);
-    array->items = NULL;
-    array->len = 0;
 
     if (freeit)
         PORT_Free(array);
