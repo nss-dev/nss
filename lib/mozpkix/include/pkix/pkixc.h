@@ -17,7 +17,7 @@
 // keys must be at least 2048 bits long, and EC keys must be from one of the
 // curves secp256r1, secp384r1, or secp521r1. Only SHA256, SHA384, and SHA512
 // are acceptable digest algorithms. When doing name checking, the subject
-// common name field is ignored.
+// common name field is ignored. At least one certificate must be provided.
 // certificate is an array of pointers to certificates.
 // certificateLengths is an array of the lengths of each certificate.
 // numCertificates indicates how many certificates are in certificates.

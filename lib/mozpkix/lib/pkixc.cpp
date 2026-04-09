@@ -187,7 +187,8 @@ bool VerifyCodeSigningCertificateChain(
   if (!error) {
     return false;
   }
-  if (!certificates || !certificateLengths || !rootSHA256Digest) {
+  if (!certificates || !certificateLengths || numCertificates < 1 ||
+      !rootSHA256Digest) {
     *error = SEC_ERROR_INVALID_ARGS;
     return false;
   }
