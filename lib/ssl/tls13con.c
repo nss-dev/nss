@@ -4209,6 +4209,20 @@ tls13_HandleCertificateDecode(sslSocket *ss, PRUint8 *b, PRUint32 length)
         return SECFailure;
     }
 
+    /* Cap the decompressed size to prevent memory exhaustion. The wire field
+     * is a uint24 (max 16MB) but the CompressedCertificate path bypasses the
+     * 128KB cap applied to regular handshake messages. 100KB matches the limit
+     * enforced by OpenSSL and BoringSSL. */
+#define MAX_CERT_UNCOMPRESSED_LEN (100 * 1024)
+    if (decodedCertLen > MAX_CERT_UNCOMPRESSED_LEN) {
+        SSL_TRC(50, ("%d: TLS13[%d]: %s uncompressed_length %u exceeds limit %u",
+                     SSL_GETPID(), ss->fd, SSL_ROLE(ss),
+                     decodedCertLen, MAX_CERT_UNCOMPRESSED_LEN));
+        FATAL_ERROR(ss, SSL_ERROR_RX_MALFORMED_CERTIFICATE, bad_certificate);
+        return SECFailure;
+    }
+#undef MAX_CERT_UNCOMPRESSED_LEN
+
     /* opaque compressed_certificate_message<1..2^24-1>; */
     PRUint32 compressedCertLen = 0;
     rv = ssl3_ConsumeHandshakeNumber(ss, &compressedCertLen, 3, &b, &length);
