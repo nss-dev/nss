@@ -130,14 +130,18 @@ sec_pkcs7_decoder_work_data(SEC_PKCS7DecoderContext *p7dcx,
             if (oldlen == 0) {
                 buf = (unsigned char *)PORT_ArenaAlloc(p7dcx->cinfo->poolp,
                                                        buflen);
+                plain->data = buf;
             } else {
                 buf = (unsigned char *)PORT_ArenaGrow(p7dcx->cinfo->poolp,
                                                       plain->data,
                                                       oldlen, oldlen + buflen);
+                /* Keep plain->data pointing at the start of the (possibly
+                 * relocated) buffer so that subsequent grows pass a valid
+                 * base pointer/length pair to PORT_ArenaGrow. */
+                plain->data = buf;
                 if (buf != NULL)
                     buf += oldlen;
             }
-            plain->data = buf;
         }
         if (buf == NULL) {
             p7dcx->error = SEC_ERROR_NO_MEMORY;
