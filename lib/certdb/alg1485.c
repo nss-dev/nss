@@ -845,6 +845,11 @@ get_hex_string(SECItem* data)
     static const char hex[] = { "0123456789ABCDEF" };
 
     /* '#' + 2 chars per octet + terminator */
+    /* Reject lengths that would overflow data->len * 2 + 2 in unsigned int. */
+    if (data->len > (UINT_MAX - 2) / 2) {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        return NULL;
+    }
     rv = SECITEM_AllocItem(NULL, NULL, data->len * 2 + 2);
     if (!rv) {
         return NULL;
