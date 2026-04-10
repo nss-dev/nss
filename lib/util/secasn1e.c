@@ -706,6 +706,10 @@ sec_asn1e_contents_length(const SEC_ASN1Template *theTemplate, void *src,
                 }
                 break;
 
+            case SEC_ASN1_NULL:
+                len = 0;
+                break;
+
             default:
                 len = ((SECItem *)src)->len;
                 break;
