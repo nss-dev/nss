@@ -651,13 +651,15 @@ PK11_ImportPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
 
     rv = PK11_ImportAndReturnPrivateKey(slot, lpk, nickname, publicValue, isPerm,
                                         isPrivate, keyUsage, privk, wincx);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    PORT_FreeArena(arena, PR_TRUE);
+    return SECSuccess;
 
 loser:
-    if (arena != NULL) {
-        PORT_FreeArena(arena, PR_TRUE);
-    }
-
-    return rv;
+    PORT_FreeArena(arena, PR_TRUE);
+    return SECFailure;
 }
 
 SECStatus
