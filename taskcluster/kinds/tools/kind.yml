@@ -117,9 +117,6 @@ tasks:
                 - path: /builds/worker/artifacts/diff_coverage.html
                   type: file
                   name: public/diff_coverage.html
-                - path: /builds/worker/artifacts/test_output.log
-                  type: file
-                  name: public/test_output.log
         run:
             command: "${VCS_PATH}/nss/automation/taskcluster/scripts/gen_test_coverage_report.sh"
             checkout:

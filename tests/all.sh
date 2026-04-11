@@ -38,10 +38,17 @@
 #   ssl_gtests.sh- Gtest based unit tests for ssl
 #   gtests.sh    - Gtest based unit tests for everything else
 #   policy.sh    - Crypto Policy tests
-#   bogo.sh      - Bogo interop tests (disabled by default)
+#   bogo.sh      - Bogo interop tests (needs go, git)
 #                  https://boringssl.googlesource.com/boringssl/+/master/ssl/test/PORTING.md
-#   tlsfuzzer.sh - tlsfuzzer interop tests (disabled by default)
+#   tlsfuzzer.sh - tlsfuzzer interop tests (needs python3, git)
 #                  https://github.com/tomato42/tlsfuzzer/
+#   mpi.sh       - MPI unit tests (needs mpi_tests binary)
+#   cipher-noaes.sh    - Cipher tests with hardware AES disabled
+#   cipher-noavx.sh    - Cipher tests with AVX disabled
+#   cipher-nopclmul.sh - Cipher tests with PCLMUL disabled
+#   cipher-nosha.sh    - Cipher tests with hardware SHA disabled
+#   cipher-nosse41.sh  - Cipher tests with SSE4.1 disabled
+#   cipher-nossse3.sh  - Cipher tests with SSSE3/NEON disabled
 #
 # NSS testing is now devided to 4 cycles:
 # ---------------------------------------
@@ -110,29 +117,129 @@
 
 RUN_FIPS=""
 
+########################################################################
+# Output formatting - use color when stdout is a terminal
+# Note: this check must happen before run_cycles is piped through tee,
+# since the pipe makes -t 1 return false in the subshell.
+########################################################################
+if [ -z "${NSS_TEST_COLOR+set}" ]; then
+    if [ -t 1 ]; then
+        NSS_TEST_COLOR=1
+    else
+        NSS_TEST_COLOR=0
+    fi
+fi
+export NSS_TEST_COLOR
+
+if [ "$NSS_TEST_COLOR" = "1" ]; then
+    COLOR_RED='\033[0;31m'
+    COLOR_GREEN='\033[0;32m'
+    COLOR_YELLOW='\033[0;33m'
+    COLOR_BOLD='\033[1m'
+    COLOR_RESET='\033[0m'
+else
+    COLOR_RED=''
+    COLOR_GREEN=''
+    COLOR_YELLOW=''
+    COLOR_BOLD=''
+    COLOR_RESET=''
+fi
+export COLOR_RED COLOR_GREEN COLOR_YELLOW COLOR_BOLD COLOR_RESET
+
 ############################## run_tests ###############################
 # run test suites defined in TESTS variable, skip scripts defined in
 # TESTS_SKIP variable
 ########################################################################
 run_tests()
 {
-    echo "Running test cycle: ${TEST_MODE} ----------------------"
-    echo "List of tests that will be executed: ${TESTS}"
+    echo ""
+    printf "${COLOR_BOLD}Running test cycle: ${TEST_MODE}${COLOR_RESET}\n"
+
+    # Count total runnable tests for progress indicator.
+    local total=0
+    local current=0
+    for TEST in ${TESTS}; do
+        echo " ${TESTS_SKIP} ${TESTS_SKIP_MISSING} " | grep " ${TEST} " > /dev/null
+        if [ $? -ne 0 ]; then
+            total=$((total + 1))
+        fi
+    done
+
     for TEST in ${TESTS}
     do
+        SCRIPTNAME=${TEST}.sh
+
         # NOTE: the spaces are important. If you don't include
         # the spaces, then turning off ssl_gtests will also turn off ssl
         # tests.
-        echo " ${TESTS_SKIP} " | grep " ${TEST} " > /dev/null
+
+        # Check for dependency-missing skip.
+        echo " ${TESTS_SKIP_MISSING} " | grep " ${TEST} " > /dev/null
         if [ $? -eq 0 ]; then
+            # Find the reason from the dep check output.
+            printf "  ${COLOR_YELLOW}SKIP${COLOR_RESET} ${TEST} (missing dependencies)\n"
             continue
         fi
 
-        SCRIPTNAME=${TEST}.sh
-        echo "Running tests for ${TEST}"
-        echo "TIMESTAMP ${TEST} BEGIN: `date`"
-        (cd ${QADIR}/${TEST}; . ./${SCRIPTNAME} 2>&1)
-        echo "TIMESTAMP ${TEST} END: `date`"
+        # Check for cycle skip.
+        echo " ${TESTS_SKIP} " | grep " ${TEST} " > /dev/null
+        if [ $? -eq 0 ]; then
+            printf "  ${COLOR_YELLOW}SKIP${COLOR_RESET} ${TEST} (not run in ${TEST_MODE} cycle)\n"
+            continue
+        fi
+
+        current=$((current + 1))
+
+        # Snapshot the results file line count before the test runs.
+        local fail_count_before=0
+        if [ -f "${RESULTS}" ]; then
+            fail_count_before=$(grep -c '>Failed<\|>Failed Core<' "${RESULTS}" 2>/dev/null)
+            fail_count_before=${fail_count_before:-0}
+        fi
+
+        # Buffer test output to a temp file.
+        local test_output="${HOSTDIR}/${TEST_MODE}.${TEST}.output"
+
+        printf "[%d/%d] Running ${COLOR_BOLD}${TEST}${COLOR_RESET}..." "$current" "$total"
+
+        local start_secs=$SECONDS
+        (cd ${QADIR}/${TEST}; . ./${SCRIPTNAME} 2>&1) > "${test_output}" 2>&1
+        local elapsed=$(( SECONDS - start_secs ))
+
+        # Format elapsed time.
+        local time_str
+        if [ $elapsed -ge 60 ]; then
+            time_str="$((elapsed / 60))m$((elapsed % 60))s"
+        else
+            time_str="${elapsed}s"
+        fi
+
+        # Check for new failures by comparing results file.
+        local fail_count_after=0
+        if [ -f "${RESULTS}" ]; then
+            fail_count_after=$(grep -c '>Failed<\|>Failed Core<' "${RESULTS}" 2>/dev/null)
+            fail_count_after=${fail_count_after:-0}
+        fi
+
+        local new_failures=$((fail_count_after - fail_count_before))
+
+        # Always append full test output to logfile for archival,
+        # regardless of pass/fail.
+        cat "${test_output}" >> "${LOGFILE}" 2>/dev/null
+
+        if [ $new_failures -gt 0 ]; then
+            printf " ${COLOR_RED}FAILED${COLOR_RESET} (${new_failures} failures, ${time_str})\n"
+            # Dump the full output to stderr so the user sees it
+            # without it being captured again by the tee to LOGFILE.
+            echo "--- output of ${TEST} (${TEST_MODE}) ---" >&2
+            cat "${test_output}" >&2
+            echo "--- end of ${TEST} (${TEST_MODE}) ---" >&2
+            echo "${TEST_MODE}/${TEST}" >> "${FAILED_TESTS_FILE}"
+        else
+            printf " ${COLOR_GREEN}PASSED${COLOR_RESET} (${time_str})\n"
+        fi
+
+        rm -f "${test_output}"
     done
 }
 
@@ -173,7 +280,7 @@ run_cycle_pkix()
     init_directories
 
     TESTS="${ALL_TESTS}"
-    TESTS_SKIP="cipher dbtests sdr crmf smime merge multinit"
+    TESTS_SKIP="cipher cipher-noaes cipher-noavx cipher-nopclmul cipher-nosha cipher-nosse41 cipher-nossse3 dbtests sdr crmf smime merge multinit"
 
     export -n NSS_SSL_RUN
 
@@ -220,7 +327,7 @@ run_cycle_upgrade_db()
 
     # run the subset of tests with the upgraded database
     TESTS="${ALL_TESTS}"
-    TESTS_SKIP="cipher libpkix cert dbtests sdr ocsp pkits chains"
+    TESTS_SKIP="cipher cipher-noaes cipher-noavx cipher-nopclmul cipher-nosha cipher-nosse41 cipher-nossse3 libpkix cert dbtests sdr ocsp pkits chains"
 
     run_tests
 }
@@ -326,8 +433,45 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     . ./init.sh
 fi
 
-cycles="standard pkix threadunsafe"
+# Track failed tests across all cycles for the final summary.
+# Written to a file because run_cycles may execute in a pipe subshell.
+FAILED_TESTS_FILE="${HOSTDIR}/failed_tests.lst"
+: > "${FAILED_TESTS_FILE}"
+export FAILED_TESTS_FILE
+
+########################################################################
+# Dependency checks for optional tests - warn but don't fail
+########################################################################
+check_dep()
+{
+    local test_name="$1"
+    shift
+    local missing=""
+    for cmd in "$@"; do
+        if ! command -v "$cmd" > /dev/null 2>&1; then
+            missing="$missing $cmd"
+        fi
+    done
+    if [ -n "$missing" ]; then
+        printf "${COLOR_YELLOW}WARNING:${COLOR_RESET} '${test_name}' tests will be skipped - missing:${missing}\n"
+        TESTS_SKIP_MISSING="${TESTS_SKIP_MISSING} ${test_name}"
+    fi
+}
+
+TESTS_SKIP_MISSING=""
+if [ ! -x "${BINDIR}/mpi_tests" ]; then
+    printf "${COLOR_YELLOW}WARNING:${COLOR_RESET} 'mpi' tests will be skipped - missing: ${BINDIR}/mpi_tests\n"
+    TESTS_SKIP_MISSING="${TESTS_SKIP_MISSING} mpi"
+fi
+
+cycles="standard"
 CYCLES=${NSS_CYCLES:-$cycles}
+
+printf "${COLOR_BOLD}Test cycles:${COLOR_RESET} ${CYCLES}\n"
+if [ "$CYCLES" = "standard" ]; then
+    echo "  Additional cycles available: pkix, threadunsafe, upgradedb, sharedb"
+    echo "  Enable with: NSS_CYCLES=\"standard pkix threadunsafe\""
+fi
 
 NO_INIT_SUPPORT=`certutil --build-flags |grep -cw NSS_NO_INIT_SUPPORT`
 IS_FIPS_DISABLED=`certutil --build-flags |grep -cw NSS_FIPS_DISABLED`
@@ -335,7 +479,7 @@ if [ $NO_INIT_SUPPORT -eq 0 ] && [ $IS_FIPS_DISABLED -eq 0 ]; then
     RUN_FIPS="fips"
 fi
 
-tests="cipher lowhash libpkix cert dbtests tools $RUN_FIPS sdr crmf smime ssl ocsp merge pkits ec gtests ssl_gtests policy"
+tests="cipher lowhash libpkix cert dbtests tools $RUN_FIPS sdr crmf smime ssl ocsp merge pkits ec gtests ssl_gtests policy mpi cipher-noaes cipher-noavx cipher-nopclmul cipher-nosha cipher-nosse41 cipher-nossse3"
 thread_tests="ssl ssl_gtests"
 # Don't run chains tests when we have a gyp build.
 if [ "$OBJDIR" != "Debug" -a "$OBJDIR" != "Release" ]; then
@@ -362,9 +506,13 @@ if [ $NO_INIT_SUPPORT -eq 0 ]; then
 fi
 NSS_SSL_TESTS="${NSS_SSL_TESTS:-$nss_ssl_tests}"
 
-# NOTE: 'stress' run is omitted by default
-nss_ssl_run="cov auth stapling signed_cert_timestamps scheme"
+nss_ssl_run="cov auth signed_cert_timestamps scheme"
 NSS_SSL_RUN="${NSS_SSL_RUN:-$nss_ssl_run}"
+
+printf "${COLOR_BOLD}SSL test modes:${COLOR_RESET} ${NSS_SSL_TESTS}\n"
+echo "  Override with: NSS_SSL_TESTS=\"crl iopr policy normal_normal fips_normal normal_fips\""
+printf "${COLOR_BOLD}SSL sub-tests:${COLOR_RESET}  ${NSS_SSL_RUN}\n"
+echo "  Override with: NSS_SSL_RUN=\"cov auth stapling signed_cert_timestamps stress scheme\""
 
 # NOTE:
 # Lists of enabled tests and other settings are stored to ${ENV_BACKUP}

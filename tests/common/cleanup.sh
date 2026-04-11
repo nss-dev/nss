@@ -41,22 +41,31 @@ if [ -z "${CLEANUP}" -o "${CLEANUP}" = "${SCRIPTNAME}" ]; then
     echo "NSS_DISABLE_ARM_NEON=${NSS_DISABLE_ARM_NEON}"
     echo "NSS_DISABLE_SSSE3=${NSS_DISABLE_SSSE3}"
     echo
-    echo "Tests summary:"
+    printf "${COLOR_BOLD}Tests summary:${COLOR_RESET}\n"
     echo "--------------"
-    LINES_CNT=$(cat ${RESULTS} | grep ">Passed<" | wc -l | sed s/\ *//)
+    LINES_CNT=$(grep -c ">Passed<" ${RESULTS} 2>/dev/null | sed s/\ *//)
     echo "Passed:             ${LINES_CNT}"
-    FAILED_CNT=$(cat ${RESULTS} | grep ">Failed<" | wc -l | sed s/\ *//)
+    FAILED_CNT=$(grep -c ">Failed<" ${RESULTS} 2>/dev/null | sed s/\ *//)
     echo "Failed:             ${FAILED_CNT}"
-    CORE_CNT=$(cat ${RESULTS} | grep ">Failed Core<" | wc -l | sed s/\ *//)
+    CORE_CNT=$(grep -c ">Failed Core<" ${RESULTS} 2>/dev/null | sed s/\ *//)
     echo "Failed with core:   ${CORE_CNT}"
-    ASAN_CNT=$(cat $LOGFILE | grep "SUMMARY: AddressSanitizer" | wc -l | sed s/\ *//)
+    ASAN_CNT=$(grep -c "SUMMARY: AddressSanitizer" $LOGFILE 2>/dev/null | sed s/\ *//)
     echo "ASan failures:      ${ASAN_CNT}"
-    LINES_CNT=$(cat ${RESULTS} | grep ">Unknown<" | wc -l | sed s/\ *//)
+    LINES_CNT=$(grep -c ">Unknown<" ${RESULTS} 2>/dev/null | sed s/\ *//)
     echo "Unknown status:     ${LINES_CNT}"
     if [ ${LINES_CNT} -gt 0 ]; then
         echo "TinderboxPrint:Unknown: ${LINES_CNT}"
     fi
     echo
+
+    # List which tests failed, if any.
+    if [ -s "${FAILED_TESTS_FILE}" ]; then
+        printf "${COLOR_RED}${COLOR_BOLD}Failed tests:${COLOR_RESET}\n"
+        while IFS= read -r ft; do
+            printf "  ${COLOR_RED}- ${ft}${COLOR_RESET}\n"
+        done < "${FAILED_TESTS_FILE}"
+        echo
+    fi
 
     html "END_OF_TEST<BR>"
     html "</BODY></HTML>"

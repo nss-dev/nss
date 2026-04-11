@@ -699,14 +699,10 @@ class sourceCovAction(argparse.Action):
         # Failures are logged but do not abort — we still want coverage
         # data from whichever tests did execute.
         test_suite = getattr(args, 'test_suite', None)
-        test_logfile = os.path.join(outdir, "test_output.log")
         if test_suite:
             cov_log.info("\nRunning test suite: %s...\n", test_suite)
         else:
             cov_log.info("\nRunning all test suites...\n")
-        cov_log.warning("Test output is being written to %s", test_logfile)
-        cov_log.info("This will take approximately 40 minutes. "
-                     "No output will appear until tests complete.\n")
         env = {
             "LLVM_PROFILE_FILE": os.path.join(profraw_dir, "%p-%m.profraw"),
             "GTESTFILTER": "*",  # Prevent parallel test runs.
@@ -714,8 +710,7 @@ class sourceCovAction(argparse.Action):
             "NSS_DISABLE_UNLOAD": "1",
         }
         try:
-            run_tests(test=test_suite, cycles="standard", env=env,
-                      logfile=test_logfile)
+            run_tests(test=test_suite, cycles="standard", env=env)
             cov_log.info("Done running tests.")
         except subprocess.CalledProcessError as e:
             cov_log.warning(
@@ -971,10 +966,13 @@ def parse_arguments():
     tests = [
         "cipher", "lowhash", "chains", "cert", "dbtests", "tools", "fips",
         "sdr", "crmf", "smime", "ssl", "ocsp", "merge", "pkits", "ec",
-        "gtests", "ssl_gtests", "bogo", "interop", "policy"
+        "gtests", "ssl_gtests", "bogo", "interop", "policy", "mpi",
+        "cipher-noaes", "cipher-noavx", "cipher-nopclmul", "cipher-nosha",
+        "cipher-nosse41", "cipher-nossse3",
     ]
     parser_test.add_argument(
-        'test', choices=tests, help="Available tests", action=testAction)
+        'test', nargs='?', choices=tests, default=None,
+        help="Test suite to run (default: all)", action=testAction)
 
     parser_cov = subparsers.add_parser(
         'coverage', help='Generate coverage report')

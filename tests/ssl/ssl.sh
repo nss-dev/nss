@@ -83,6 +83,16 @@ ssl_init()
     padd=$(echo $cwd | cut -d "/" -f4 | sed 's/[^0-9]//g')
     PORT=$(($PORT + $padd))
   fi
+
+  # Check if the port is already in use before starting tests.
+  if command -v ss > /dev/null 2>&1; then
+    if ss -tln 2>/dev/null | grep -q ":${PORT} "; then
+      echo "$SCRIPTNAME: ERROR: Port ${PORT} is already in use." >&2
+      echo "  Set a different port with: PORT=9443 ./all.sh" >&2
+      Exit 10 "Port ${PORT} is already in use"
+    fi
+  fi
+
   NSS_SSL_TESTS=${NSS_SSL_TESTS:-normal_normal}
   nss_ssl_run="stapling signed_cert_timestamps cov auth dtls scheme exporter"
   NSS_SSL_RUN=${NSS_SSL_RUN:-$nss_ssl_run}
