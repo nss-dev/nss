@@ -170,7 +170,6 @@ const SEC_ASN1Template SECKEY_DHPrivateKeyExportTemplate[] = {
 };
 
 const SEC_ASN1Template SECKEY_PQPrivateKeyBothExportTemplate[] = {
-    { SEC_ASN1_CHOICE, 0, NULL, sizeof(SECKEYRawPrivateKey) },
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(SECKEYRawPrivateKey) },
     { SEC_ASN1_OCTET_STRING, offsetof(SECKEYRawPrivateKey, u.pq.seed) },
     { SEC_ASN1_OCTET_STRING, offsetof(SECKEYRawPrivateKey, u.pq.privateValue) },
@@ -178,15 +177,13 @@ const SEC_ASN1Template SECKEY_PQPrivateKeyBothExportTemplate[] = {
 };
 
 const SEC_ASN1Template SECKEY_PQPrivateKeySeedExportTemplate[] = {
-    { SEC_ASN1_CHOICE, 0, NULL, sizeof(SECKEYRawPrivateKey) },
-    { SEC_ASN1_CONTEXT_SPECIFIC | 0,
+    { SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 0, // NOLINT(misc-redundant-expression)
       offsetof(SECKEYRawPrivateKey, u.pq.seed),
       SEC_ASN1_SUB(SEC_OctetStringTemplate) },
     { 0 }
 };
 
 const SEC_ASN1Template SECKEY_PQPrivateKeyKeyExportTemplate[] = {
-    { SEC_ASN1_CHOICE, 0, NULL, sizeof(SECKEYRawPrivateKey) },
     { SEC_ASN1_OCTET_STRING, offsetof(SECKEYRawPrivateKey, u.pq.privateValue) },
     { 0 }
 };
