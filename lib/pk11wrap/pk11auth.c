@@ -513,16 +513,17 @@ PK11_ChangePW(PK11SlotInfo *slot, const char *oldpw, const char *newpw)
 
     crv = PK11_GETTAB(slot)->C_SetPIN(rwsession,
                                       (unsigned char *)oldpw, oldLen, (unsigned char *)newpw, newLen);
-    if (crv == CKR_OK) {
-        rv = SECSuccess;
-    } else {
-        PORT_SetError(PK11_MapError(crv));
-    }
 
     PK11_RestoreROSession(slot, rwsession);
 
     /* update our view of the world */
     PK11_InitToken(slot, PR_TRUE);
+
+    if (crv == CKR_OK) {
+        rv = SECSuccess;
+    } else {
+        PORT_SetError(PK11_MapError(crv));
+    }
     return rv;
 }
 
