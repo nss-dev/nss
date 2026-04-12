@@ -67,7 +67,7 @@ native_key_expansion192(AESContext *cx, const unsigned char *key)
     pre_align __m128i tmp3 post_align;
     pre_align __m128i carry post_align;
     keySchedule[0] = _mm_loadu_si128((__m128i *)key);
-    keySchedule[1] = _mm_loadu_si128((__m128i *)(key + 16));
+    keySchedule[1] = _mm_loadl_epi64((__m128i *)(key + 16));
     EXPAND_KEY192(keySchedule[0], keySchedule[1], keySchedule[2],
                   keySchedule[3], carry, 0x1, 0x2);
     EXPAND_KEY192_PART2(keySchedule[4], carry, keySchedule[3]);
