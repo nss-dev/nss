@@ -456,8 +456,7 @@ tls13_ServerHandleKeyShareXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     }
 
     /* Keep track of negotiated extensions. */
-    xtnData->negotiated[xtnData->numNegotiated++] =
-        ssl_tls13_key_share_xtn;
+    ssl3_RecordExtensionNegotiated(ss, xtnData, ssl_tls13_key_share_xtn);
 
     return SECSuccess;
 
@@ -756,7 +755,7 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
         return SECSuccess;
     }
 
-    xtnData->negotiated[xtnData->numNegotiated++] = ssl_tls13_pre_shared_key_xtn;
+    ssl3_RecordExtensionNegotiated(ss, xtnData, ssl_tls13_pre_shared_key_xtn);
     return SECSuccess;
 
 alert_loser:
@@ -826,7 +825,7 @@ tls13_ClientHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
     }
 
     /* Keep track of negotiated extensions. */
-    xtnData->negotiated[xtnData->numNegotiated++] = ssl_tls13_pre_shared_key_xtn;
+    ssl3_RecordExtensionNegotiated(ss, xtnData, ssl_tls13_pre_shared_key_xtn);
     xtnData->selectedPsk = candidate;
 
     return SECSuccess;
@@ -870,7 +869,7 @@ tls13_ServerHandleEarlyDataXtn(const sslSocket *ss, TLSExtensionData *xtnData,
         return SECFailure;
     }
 
-    xtnData->negotiated[xtnData->numNegotiated++] = ssl_tls13_early_data_xtn;
+    ssl3_RecordExtensionNegotiated(ss, xtnData, ssl_tls13_early_data_xtn);
 
     return SECSuccess;
 }
@@ -895,7 +894,7 @@ tls13_ClientHandleEarlyDataXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     }
 
     /* Keep track of negotiated extensions. */
-    xtnData->negotiated[xtnData->numNegotiated++] = ssl_tls13_early_data_xtn;
+    ssl3_RecordExtensionNegotiated(ss, xtnData, ssl_tls13_early_data_xtn);
 
     return SECSuccess;
 }
@@ -1123,7 +1122,7 @@ tls13_ServerHandleCookieXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     }
 
     /* Keep track of negotiated extensions. */
-    xtnData->negotiated[xtnData->numNegotiated++] = ssl_tls13_cookie_xtn;
+    ssl3_RecordExtensionNegotiated(ss, xtnData, ssl_tls13_cookie_xtn);
 
     return SECSuccess;
 }
@@ -1160,7 +1159,7 @@ tls13_ServerHandlePostHandshakeAuthXtn(const sslSocket *ss,
      * NST immediately following the client Finished. */
     if (!IS_DTLS(ss)) {
         /* Keep track of negotiated extensions. */
-        xtnData->negotiated[xtnData->numNegotiated++] = ssl_tls13_post_handshake_auth_xtn;
+        ssl3_RecordExtensionNegotiated(ss, xtnData, ssl_tls13_post_handshake_auth_xtn);
     }
 
     return SECSuccess;
@@ -1231,8 +1230,7 @@ tls13_ServerHandlePskModesXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     }
 
     /* Keep track of negotiated extensions. */
-    xtnData->negotiated[xtnData->numNegotiated++] =
-        ssl_tls13_psk_key_exchange_modes_xtn;
+    ssl3_RecordExtensionNegotiated(ss, xtnData, ssl_tls13_psk_key_exchange_modes_xtn);
 
     return SECSuccess;
 }
@@ -1576,8 +1574,7 @@ tls13_ClientHandleDelegatedCredentialsXtn(const sslSocket *ss,
     }
 
     xtnData->peerDelegCred = dc;
-    xtnData->negotiated[xtnData->numNegotiated++] =
-        ssl_delegated_credentials_xtn;
+    ssl3_RecordExtensionNegotiated(ss, xtnData, ssl_delegated_credentials_xtn);
     return SECSuccess;
 alert_loser:
     ssl3_ExtSendAlert(ss, alert_fatal, illegal_parameter);
@@ -1641,8 +1638,7 @@ tls13_ServerHandleDelegatedCredentialsXtn(const sslSocket *ss,
 
     /* Keep track of negotiated extensions. */
     xtnData->peerRequestedDelegCred = PR_TRUE;
-    xtnData->negotiated[xtnData->numNegotiated++] =
-        ssl_delegated_credentials_xtn;
+    ssl3_RecordExtensionNegotiated(ss, xtnData, ssl_delegated_credentials_xtn);
 
     return ssl3_RegisterExtensionSender(
         ss, xtnData, ssl_delegated_credentials_xtn,
@@ -1731,7 +1727,7 @@ tls13_ServerHandleInnerEchXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     }
 
     xtnData->ech->receivedInnerXtn = PR_TRUE;
-    xtnData->negotiated[xtnData->numNegotiated++] = ssl_tls13_encrypted_client_hello_xtn;
+    ssl3_RecordExtensionNegotiated(ss, xtnData, ssl_tls13_encrypted_client_hello_xtn);
     return SECSuccess;
 
 alert_loser:
@@ -2017,7 +2013,9 @@ ssl3_HandleCertificateCompressionXtn(const sslSocket *ss,
         for (int j = 0; j < ss->ssl3.supportedCertCompressionAlgorithmsCount; j++) {
             if (ss->ssl3.supportedCertCompressionAlgorithms[j].id == alg) {
                 xtnData->compressionAlg = alg;
-                xtnData->negotiated[xtnData->numNegotiated++] = ssl_certificate_compression_xtn;
+                if (ss->sec.isServer) {
+                    ssl3_RecordExtensionNegotiated(ss, xtnData, ssl_certificate_compression_xtn);
+                }
                 algFound = SECSuccess;
                 break;
             }
