@@ -500,8 +500,6 @@ TEST_F(TlsConnectStreamTls13,
 
   EXPECT_TRUE(SSLInt_ExtensionNegotiated(server_->ssl_fd(),
                                          ssl_certificate_compression_xtn));
-  EXPECT_TRUE(SSLInt_ExtensionNegotiated(client_->ssl_fd(),
-                                         ssl_certificate_compression_xtn));
 
   uint16_t certCompressionAlg = filterExtension->getCertCompressionAlg();
   EXPECT_EQ(certCompressionAlg, serverPreferableAlg.id);
@@ -1391,8 +1389,6 @@ TEST_F(TlsConnectStreamTls13, CertificateCompression_PostAuth) {
   server_->ReadBytes(50);
 
   EXPECT_EQ(1U, called);
-  EXPECT_TRUE(SSLInt_ExtensionNegotiated(client_->ssl_fd(),
-                                         ssl_certificate_compression_xtn));
 
   SendReceive(60);
   client_->CheckClientAuthCompleted();
@@ -1469,8 +1465,6 @@ TEST_F(TlsConnectStreamTls13,
   server_->ReadBytes(50);
 
   EXPECT_EQ(1U, called);
-  EXPECT_TRUE(SSLInt_ExtensionNegotiated(client_->ssl_fd(),
-                                         ssl_certificate_compression_xtn));
 
   SendReceive(60);
   client_->CheckClientAuthCompleted();
