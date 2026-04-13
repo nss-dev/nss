@@ -38,14 +38,52 @@ static const uint8_t p7_with_multiple_hashes[] = {
     0x04, 0x30, 0x10, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01,
     0x07, 0x01, 0xa0, 0x03, 0x04, 0x01, 0x00};
 
+// Valid PKCS7 SignedData with digestAlgorithms = [unknown_oid, sha-256],
+// content "hi", and empty signerInfos. Tests that digests stay aligned with
+// digestAlgorithms when unrecognized algorithms are present.
+static const uint8_t p7_mixed_digest_algs[] = {
+    0x30, 0x3f, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01,
+    0x07, 0x02, 0xa0, 0x32, 0x30, 0x30, 0x02, 0x01, 0x01, 0x31, 0x16,
+    0x30, 0x05, 0x06, 0x03, 0x2b, 0x06, 0x01, 0x30, 0x0d, 0x06, 0x09,
+    0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00,
+    0x30, 0x11, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01,
+    0x07, 0x01, 0xa0, 0x04, 0x04, 0x02, 0x68, 0x69, 0x31, 0x00};
+
 class P7ImportTest : public ::testing::Test {};
+
+TEST_F(P7ImportTest, DigestsAlignWithDigestAlgorithms) {
+  ScopedSEC_PKCS7DecoderContext dcx(SEC_PKCS7DecoderStart(
+      nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr));
+  ASSERT_TRUE(dcx);
+  SECStatus rv = SEC_PKCS7DecoderUpdate(
+      dcx.get(), reinterpret_cast<const char *>(p7_mixed_digest_algs),
+      sizeof(p7_mixed_digest_algs));
+  ASSERT_EQ(SECSuccess, rv);
+  SEC_PKCS7ContentInfo *cinfo = SEC_PKCS7DecoderFinish(dcx.release());
+  ASSERT_TRUE(cinfo);
+  ASSERT_EQ(SEC_OID_PKCS7_SIGNED_DATA, SEC_PKCS7ContentType(cinfo));
+
+  SEC_PKCS7SignedData *sigd = cinfo->content.signedData;
+  ASSERT_TRUE(sigd);
+  ASSERT_TRUE(sigd->digestAlgorithms);
+  ASSERT_TRUE(sigd->digestAlgorithms[0]);
+  ASSERT_TRUE(sigd->digestAlgorithms[1]);
+
+  ASSERT_TRUE(sigd->digests);
+  // digests[0] corresponds to the unknown algorithm — should be NULL.
+  EXPECT_EQ(nullptr, sigd->digests[0]);
+  // digests[1] corresponds to SHA-256 — should be non-NULL.
+  EXPECT_NE(nullptr, sigd->digests[1]);
+
+  SEC_PKCS7DestroyContentInfo(cinfo);
+}
 
 TEST_F(P7ImportTest, FailSafeWithUnknownHashes) {
   ScopedSEC_PKCS7DecoderContext dcx(SEC_PKCS7DecoderStart(
       nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr));
   ASSERT_TRUE(dcx);
   SECStatus rv = SEC_PKCS7DecoderUpdate(
-      dcx.get(), reinterpret_cast<const char*>(p7_with_unknown_hashes),
+      dcx.get(), reinterpret_cast<const char *>(p7_with_unknown_hashes),
       sizeof(p7_with_unknown_hashes));
   ASSERT_EQ(SECFailure, rv);
 }
@@ -55,7 +93,7 @@ TEST_F(P7ImportTest, NoLeakWithMultipleHashes) {
       nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr));
   ASSERT_TRUE(dcx);
   SECStatus rv = SEC_PKCS7DecoderUpdate(
-      dcx.get(), reinterpret_cast<const char*>(p7_with_multiple_hashes),
+      dcx.get(), reinterpret_cast<const char *>(p7_with_multiple_hashes),
       sizeof(p7_with_multiple_hashes));
   ASSERT_EQ(SECFailure, rv);
 }
