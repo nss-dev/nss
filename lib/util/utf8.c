@@ -4,6 +4,7 @@
 
 #include "seccomon.h"
 #include "secport.h"
+#include <limits.h>
 
 /*
  * From RFC 2044:
@@ -135,6 +136,11 @@ sec_port_ucs4_utf8_conversion_function(
     if (toUnicode) {
         unsigned int i, len = 0;
 
+        if (inBufLen > UINT_MAX / 4) {
+            *outBufLen = 0;
+            return PR_FALSE;
+        }
+
         for (i = 0; i < inBufLen;) {
             if ((inBuf[i] & 0x80) == 0x00)
                 i += 1;
@@ -263,6 +269,11 @@ sec_port_ucs2_utf8_conversion_function(
     if (toUnicode) {
         unsigned int i, len = 0;
 
+        if (inBufLen > UINT_MAX / 2) {
+            *outBufLen = 0;
+            return PR_FALSE;
+        }
+
         for (i = 0; i < inBufLen;) {
             if ((inBuf[i] & 0x80) == 0x00) {
                 i += 1;
@@ -313,6 +324,11 @@ sec_port_ucs2_utf8_conversion_function(
         unsigned int i, len = 0;
         PORT_Assert((inBufLen % 2) == 0);
         if ((inBufLen % 2) != 0) {
+            *outBufLen = 0;
+            return PR_FALSE;
+        }
+
+        if (inBufLen / 2 > UINT_MAX / 3) {
             *outBufLen = 0;
             return PR_FALSE;
         }
@@ -407,6 +423,11 @@ sec_port_iso88591_utf8_conversion_function(
     unsigned int i, len = 0;
 
     PORT_Assert((unsigned int *)NULL != outBufLen);
+
+    if (inBufLen > UINT_MAX / 2) {
+        *outBufLen = 0;
+        return PR_FALSE;
+    }
 
     for (i = 0; i < inBufLen; i++) {
         if ((inBuf[i] & 0x80) == 0x00)
