@@ -274,7 +274,8 @@ static const uint8_t kTestCert[] = {
     0x5a, 0x2e,
 };
 
-static PRBool DecryptionAllowed(SECAlgorithmID* /*alg*/, PK11SymKey* /*key*/) {
+static PRBool DecryptionAllowed(SECAlgorithmID * /*alg*/,
+                                PK11SymKey * /*key*/) {
   return PR_TRUE;
 }
 
@@ -285,7 +286,7 @@ class P7EnvelopedDataTest : public ::testing::Test {
     ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
     ASSERT_NE(nullptr, slot.get());
 
-    SECItem key_item = {siBuffer, const_cast<uint8_t*>(kTestRsaKey),
+    SECItem key_item = {siBuffer, const_cast<uint8_t *>(kTestRsaKey),
                         sizeof(kTestRsaKey)};
     ASSERT_EQ(SECSuccess, PK11_ImportDERPrivateKeyInfo(
                               slot.get(), &key_item, nullptr, nullptr, PR_TRUE,
@@ -293,7 +294,7 @@ class P7EnvelopedDataTest : public ::testing::Test {
 
     // Decode the certificate DER into a CERTCertificate, then import it
     // permanently into the slot so the PKCS7 decoder can find the key.
-    SECItem cert_item = {siBuffer, const_cast<uint8_t*>(kTestCert),
+    SECItem cert_item = {siBuffer, const_cast<uint8_t *>(kTestCert),
                          sizeof(kTestCert)};
     ScopedCERTCertificate cert(CERT_NewTempCertificate(
         CERT_GetDefaultCertDB(), &cert_item, nullptr, PR_FALSE, PR_TRUE));
@@ -382,14 +383,14 @@ TEST_F(P7EnvelopedDataTest, MultiChunkDecryptPlaintextCorrect) {
   ASSERT_TRUE(dcx);
 
   ASSERT_EQ(SECSuccess,
-            SEC_PKCS7DecoderUpdate(dcx.get(),
-                                   reinterpret_cast<const char*>(envelopedData),
-                                   splitOffset));
-  ASSERT_EQ(
-      SECSuccess,
-      SEC_PKCS7DecoderUpdate(
-          dcx.get(), reinterpret_cast<const char*>(envelopedData) + splitOffset,
-          sizeof(envelopedData) - splitOffset));
+            SEC_PKCS7DecoderUpdate(
+                dcx.get(), reinterpret_cast<const char *>(envelopedData),
+                splitOffset));
+  ASSERT_EQ(SECSuccess,
+            SEC_PKCS7DecoderUpdate(
+                dcx.get(),
+                reinterpret_cast<const char *>(envelopedData) + splitOffset,
+                sizeof(envelopedData) - splitOffset));
 
   // SEC_PKCS7DecoderFinish takes ownership of dcx; release() prevents the
   // ScopedSEC_PKCS7DecoderContext destructor from calling Finish a second time.
@@ -397,7 +398,7 @@ TEST_F(P7EnvelopedDataTest, MultiChunkDecryptPlaintextCorrect) {
   ASSERT_NE(nullptr, cinfo);
   ASSERT_EQ(SEC_OID_PKCS7_ENVELOPED_DATA, SEC_PKCS7ContentType(cinfo.get()));
 
-  const SECItem* plain =
+  const SECItem *plain =
       &cinfo.get()->content.envelopedData->encContentInfo.plainContent;
   ASSERT_EQ(sizeof(kExpectedPlaintext), plain->len);
   EXPECT_EQ(
