@@ -61,6 +61,7 @@ ifeq ($(NSS_BUILD_UTIL_ONLY),1)
 
 else
   ifeq ($(NSS_BUILD_SOFTOKEN_ONLY),1)
+    MPR_SRCDIR = mpr
     FREEBL_SRCDIR = freebl
     SOFTOKEN_SRCDIR = softoken
   else
@@ -68,6 +69,7 @@ else
     # This build type uses the build results of the prior
     # NSS_BUILD_UTIL_ONLY and NSS_BUILD_SOFTOKEN_ONLY builds
     ifneq ($(NSS_BUILD_WITHOUT_SOFTOKEN),1)
+      MPR_SRCDIR = mpr
       FREEBL_SRCDIR = freebl
       SOFTOKEN_SRCDIR = softoken
       UTIL_SRCDIR = util
@@ -75,15 +77,21 @@ else
   endif
 
   SOFTOKEN_SRCDIRS = \
-	$(DBM_SRCDIR) $(FREEBL_SRCDIR) $(SOFTOKEN_SRCDIR) \
+	$(MPR_SRCDIR) $(DBM_SRCDIR) $(FREEBL_SRCDIR) $(SOFTOKEN_SRCDIR) \
 	$(SQLITE_SRCDIR) $(NULL)
 
+  # mpr has no in-tree dependencies; everything else depends on it.
+  # util links -lmpr5, so it must be built after mpr.
+  ifneq (,$(UTIL_SRCDIR))
+    $(UTIL_SRCDIR): $(MPR_SRCDIR)
+  endif
+
   ifneq (,$(FREEBL_SRCDIR))
-    $(FREEBL_SRCDIR): $(UTIL_SRCDIR)
+    $(FREEBL_SRCDIR): $(MPR_SRCDIR) $(UTIL_SRCDIR)
   endif
 
   ifneq (,$(SOFTOKEN_SRCDIR))
-    $(SOFTOKEN_SRCDIR): $(DBM_SRCDIR) $(FREEBL_SRCDIR) $(SQLITE_SRCDIR) $(UTIL_SRCDIR)
+    $(SOFTOKEN_SRCDIR): $(DBM_SRCDIR) $(MPR_SRCDIR) $(FREEBL_SRCDIR) $(SQLITE_SRCDIR) $(UTIL_SRCDIR)
   endif
 
   ifndef NSS_BUILD_SOFTOKEN_ONLY

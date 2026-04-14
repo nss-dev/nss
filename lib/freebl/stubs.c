@@ -773,7 +773,7 @@ NSS_GetSystemFIPSEnabled_stub(void)
 
 #ifdef FREEBL_NO_WEAK
 
-static const char *nsprLibName = SHLIB_PREFIX "nspr4." SHLIB_SUFFIX;
+static const char *nsprLibName = SHLIB_PREFIX "mpr5." SHLIB_SUFFIX;
 static const char *nssutilLibName = SHLIB_PREFIX "nssutil3." SHLIB_SUFFIX;
 
 static SECStatus

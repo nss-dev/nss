@@ -81,6 +81,7 @@
       'type': 'shared_library',
       'dependencies': [
         'softokn',
+        '<(DEPTH)/lib/mpr/mpr.gyp:mpr5',
       ],
       'conditions': [
         [ 'moz_fold_libs==0', {

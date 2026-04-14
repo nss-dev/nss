@@ -32,6 +32,13 @@ endif
 
 GARBAGE += core $(wildcard core.[0-9]*)
 
+# When mpr (libmpr5) is built in-tree, its headers land in dist/public/nss.
+# Set NSPR_INCLUDE_DIR to that location so modules with MODULE != nss
+# (e.g. dbm) can still find prtypes.h and friends.
+ifndef NSPR_INCLUDE_DIR
+    NSPR_INCLUDE_DIR = $(SOURCE_XP_DIR)/public/nss
+endif
+
 ifdef NSPR_INCLUDE_DIR
     INCLUDES += -I$(NSPR_INCLUDE_DIR)
 endif

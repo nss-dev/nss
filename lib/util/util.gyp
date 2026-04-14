@@ -47,7 +47,8 @@
       'target_name': 'nssutil3',
       'type': 'shared_library',
       'dependencies': [
-        'nssutil'
+        'nssutil',
+        '<(DEPTH)/lib/mpr/mpr.gyp:mpr5',
       ],
       'variables': {
         'mapfile': 'nssutil.def'

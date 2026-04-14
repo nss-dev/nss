@@ -20,18 +20,14 @@ EXTRA_SHARED_LIBS += \
 	-L$(NSSUTIL_LIB_DIR) \
 	-lnssutil3 \
 	-L$(NSPR_LIB_DIR) \
-	-lplc4 \
-	-lplds4 \
-	-lnspr4 \
+	-lmpr5 \
 	$(NULL)
 else # ! NS_USE_GCC
 
 EXTRA_SHARED_LIBS += \
 	$(SQLITE_LIB_DIR)/$(SQLITE_LIB_NAME).lib \
 	$(NSSUTIL_LIB_DIR)/nssutil3.lib \
-	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plc4.lib \
-	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)plds4.lib \
-	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)nspr4.lib \
+	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)mpr5.lib \
 	$(NULL)
 endif # NS_USE_GCC
 
@@ -45,9 +41,7 @@ EXTRA_SHARED_LIBS += \
 	-L$(NSSUTIL_LIB_DIR) \
 	-lnssutil3 \
 	-L$(NSPR_LIB_DIR) \
-	-lplc4 \
-	-lplds4 \
-	-lnspr4 \
+	-lmpr5 \
 	$(NULL)
 endif
 
@@ -62,4 +56,5 @@ endif
 ifdef NSS_FIPS_MODULE_ID
 DEFINES += -DNSS_FIPS_MODULE_ID=\"${NSS_FIPS_MODULE_ID}\"
 endif
+
 

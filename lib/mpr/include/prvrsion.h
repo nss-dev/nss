@@ -16,7 +16,7 @@ PR_BEGIN_EXTERN_C
 /* All components participating in the PR version protocol must expose
  * a structure and a function. The structure is defined below and named
  * according to the naming conventions outlined further below.  The function
- * is called MPR_libVersionPoint and returns a pointer to this structure.
+ * is called libVersionPoint and returns a pointer to this structure.
  */
 
 /* on NT, always pack the structure the same. */
@@ -58,7 +58,7 @@ typedef struct {
 #endif
 
 /*
- * All components must define an entrypoint named MPR_libVersionPoint which
+ * All components must define an entrypoint named libVersionPoint which
  * is of type versionEntryPointType.
  *
  * For example, for a library named libfoo, we would have:
@@ -68,7 +68,7 @@ typedef struct {
  *       ...
  *   };
  *
- *   PR_IMPLEMENT(const PRVersionDescription*) MPR_libVersionPoint(void)
+ *   PR_IMPLEMENT(const PRVersionDescription*) libVersionPoint(void)
  *   {
  *       return &prVersionDescription_libfoo;
  *   }
@@ -76,8 +76,8 @@ typedef struct {
 typedef const PRVersionDescription *(*versionEntryPointType)(void);
 
 /*
- * Where you declare your MPR_libVersionPoint, do it like this:
- * PR_IMPLEMENT(const PRVersionDescription *) MPR_libVersionPoint(void) {
+ * Where you declare your libVersionPoint, do it like this:
+ * PR_IMPLEMENT(const PRVersionDescription *) libVersionPoint(void) {
  *  fill it in...
  * }
  */

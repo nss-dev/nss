@@ -15,9 +15,7 @@
           '<@(nspr_libs)',
         ],
         'libraries': [
-          '<(nss_dist_obj_dir)/lib/libplds4.a',
-          '<(nss_dist_obj_dir)/lib/libnspr4.a',
-          '<(nss_dist_obj_dir)/lib/libplc4.a',
+          '<(nss_dist_obj_dir)/lib/libmpr5.a',
         ],
       }],
     ],
