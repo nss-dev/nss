@@ -279,6 +279,231 @@ ssl_FindSocket(PRFileDesc *fd)
     return ss;
 }
 
+/*
+ * Copy all model-copyable socket configuration from |src| to |dst|.
+ *
+ * This covers options, cipher suites, certificates, keys, ECH, PSK,
+ * anti-replay, trust anchors, callbacks, and protocol settings — i.e.
+ * everything that SSL_ImportFD (via ssl_DupSocket) and SSL_ReconfigFD
+ * need to transfer from a model socket.
+ *
+ * For heap-owned fields, any existing resources in |dst| are freed
+ * before replacement, so this is safe to call on both freshly-created
+ * and live sockets.
+ *
+ * If |replaceCallbacks| is true, all callbacks are copied unconditionally
+ * (appropriate for ssl_DupSocket where |dst| is freshly created).
+ * If false, each callback is only overwritten when |src| has a non-NULL
+ * value, preserving any existing callbacks on |dst| (appropriate for
+ * SSL_ReconfigFD where the application has already registered callbacks
+ * on the live socket).
+ *
+ * Connection-level state (peerID, url, timeouts, security info,
+ * handshake state) is NOT copied — callers handle those as needed.
+ */
+static SECStatus
+ssl_CopySocketConfig(sslSocket *dst, sslSocket *src, PRBool replaceCallbacks)
+{
+    SECStatus rv;
+
+    /* Options — struct copy, then deep-copy the nextProtoNego SECItem
+     * to give each socket its own buffer (avoids double-free).
+     * Zero the SECItem before the deep copy so that on allocation
+     * failure dst does not retain a shallow pointer to src's buffer
+     * (which would cause a double-free when dst is freed). */
+    SECITEM_FreeItem(&dst->opt.nextProtoNego, PR_FALSE);
+    dst->opt = src->opt;
+    dst->opt.nextProtoNego.data = NULL;
+    dst->opt.nextProtoNego.len = 0;
+    rv = SECITEM_CopyItem(NULL, &dst->opt.nextProtoNego,
+                          &src->opt.nextProtoNego);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    dst->vrange = src->vrange;
+    dst->now = src->now;
+    dst->nowArg = src->nowArg;
+
+    /* Cipher suite configuration (all fixed-size value arrays). */
+    PORT_Memcpy(dst->cipherSuites, src->cipherSuites,
+                sizeof(src->cipherSuites));
+    PORT_Memcpy(dst->ssl3.dtlsSRTPCiphers, src->ssl3.dtlsSRTPCiphers,
+                sizeof(PRUint16) * src->ssl3.dtlsSRTPCipherCount);
+    dst->ssl3.dtlsSRTPCipherCount = src->ssl3.dtlsSRTPCipherCount;
+    PORT_Memcpy(dst->ssl3.signatureSchemes, src->ssl3.signatureSchemes,
+                sizeof(dst->ssl3.signatureSchemes[0]) *
+                    src->ssl3.signatureSchemeCount);
+    dst->ssl3.signatureSchemeCount = src->ssl3.signatureSchemeCount;
+    dst->ssl3.downgradeCheckVersion = src->ssl3.downgradeCheckVersion;
+    dst->ssl3.dheWeakGroupEnabled = src->ssl3.dheWeakGroupEnabled;
+
+    PORT_Memcpy(dst->ssl3.supportedCertCompressionAlgorithms,
+                src->ssl3.supportedCertCompressionAlgorithms,
+                sizeof(dst->ssl3.supportedCertCompressionAlgorithms[0]) *
+                    src->ssl3.supportedCertCompressionAlgorithmsCount);
+    dst->ssl3.supportedCertCompressionAlgorithmsCount =
+        src->ssl3.supportedCertCompressionAlgorithmsCount;
+
+    if (dst->opt.useSecurity) {
+        PRCList *cursor;
+
+        /* Server certificates (free old, deep-copy new). */
+        while (!PR_CLIST_IS_EMPTY(&dst->serverCerts)) {
+            cursor = PR_LIST_TAIL(&dst->serverCerts);
+            PR_REMOVE_LINK(cursor);
+            ssl_FreeServerCert((sslServerCert *)cursor);
+        }
+        for (cursor = PR_NEXT_LINK(&src->serverCerts);
+             cursor != &src->serverCerts;
+             cursor = PR_NEXT_LINK(cursor)) {
+            sslServerCert *sc = ssl_CopyServerCert((sslServerCert *)cursor);
+            if (!sc) {
+                return SECFailure;
+            }
+            PR_APPEND_LINK(&sc->link, &dst->serverCerts);
+        }
+
+        /* Ephemeral key pairs (free old, deep-copy new). */
+        ssl_FreeEphemeralKeyPairs(dst);
+        for (cursor = PR_NEXT_LINK(&src->ephemeralKeyPairs);
+             cursor != &src->ephemeralKeyPairs;
+             cursor = PR_NEXT_LINK(cursor)) {
+            sslEphemeralKeyPair *skp = ssl_CopyEphemeralKeyPair(
+                (sslEphemeralKeyPair *)cursor);
+            if (!skp) {
+                return SECFailure;
+            }
+            PR_APPEND_LINK(&skp->link, &dst->ephemeralKeyPairs);
+        }
+
+        /* Extension hooks (free old, deep-copy new). */
+        while (!PR_CLIST_IS_EMPTY(&dst->extensionHooks)) {
+            cursor = PR_LIST_TAIL(&dst->extensionHooks);
+            PR_REMOVE_LINK(cursor);
+            PORT_Free(cursor);
+        }
+        for (cursor = PR_NEXT_LINK(&src->extensionHooks);
+             cursor != &src->extensionHooks;
+             cursor = PR_NEXT_LINK(cursor)) {
+            sslCustomExtensionHooks *sh = PORT_ZNew(sslCustomExtensionHooks);
+            if (!sh) {
+                return SECFailure;
+            }
+            *sh = *(sslCustomExtensionHooks *)cursor;
+            PR_APPEND_LINK(&sh->link, &dst->extensionHooks);
+        }
+
+        PORT_Memcpy((void *)dst->namedGroupPreferences,
+                    src->namedGroupPreferences,
+                    sizeof(dst->namedGroupPreferences));
+        dst->additionalShares = src->additionalShares;
+
+        /* Trust anchor names (free old, deep-copy new). */
+        if (dst->ssl3.ca_list) {
+            CERT_FreeDistNames(dst->ssl3.ca_list);
+            dst->ssl3.ca_list = NULL;
+        }
+        if (src->ssl3.ca_list) {
+            dst->ssl3.ca_list = CERT_DupDistNames(src->ssl3.ca_list);
+            if (!dst->ssl3.ca_list) {
+                return SECFailure;
+            }
+        }
+
+        /* ECH configuration (free old, deep-copy new). */
+        tls13_DestroyEchConfigs(&dst->echConfigs);
+        SECKEY_DestroyPrivateKey(dst->echPrivKey);
+        SECKEY_DestroyPublicKey(dst->echPubKey);
+        dst->echPrivKey = NULL;
+        dst->echPubKey = NULL;
+        rv = tls13_CopyEchConfigs(&src->echConfigs, &dst->echConfigs);
+        if (rv != SECSuccess) {
+            return SECFailure;
+        }
+        if (src->echPrivKey && src->echPubKey) {
+            dst->echPrivKey = SECKEY_CopyPrivateKey(src->echPrivKey);
+            dst->echPubKey = SECKEY_CopyPublicKey(src->echPubKey);
+            if (!dst->echPrivKey || !dst->echPubKey) {
+                return SECFailure;
+            }
+        }
+
+        /* Anti-replay context (refcounted). */
+        if (dst->antiReplay) {
+            tls13_ReleaseAntiReplayContext(dst->antiReplay);
+            dst->antiReplay = NULL;
+        }
+        if (src->antiReplay) {
+            dst->antiReplay = tls13_RefAntiReplayContext(src->antiReplay);
+            PORT_Assert(dst->antiReplay);
+            if (!dst->antiReplay) {
+                return SECFailure;
+            }
+        }
+
+        /* External PSK (free old, deep-copy new). */
+        if (dst->psk) {
+            tls13_DestroyPsk(dst->psk);
+            dst->psk = NULL;
+        }
+        if (src->psk) {
+            dst->psk = tls13_CopyPsk(src->psk);
+            if (!dst->psk) {
+                return SECFailure;
+            }
+        }
+
+        /* Callbacks — not owned by the socket, shallow copy.
+         * When replaceCallbacks is false (SSL_ReconfigFD), only
+         * overwrite if the model has a non-NULL value, so that the
+         * application's existing callbacks on the live socket are
+         * preserved for any callback the model does not set. */
+        if (replaceCallbacks || src->authCertificate) {
+            dst->authCertificate = src->authCertificate;
+            dst->authCertificateArg = src->authCertificateArg;
+        }
+        if (replaceCallbacks || src->getClientAuthData) {
+            dst->getClientAuthData = src->getClientAuthData;
+            dst->getClientAuthDataArg = src->getClientAuthDataArg;
+        }
+        if (replaceCallbacks || src->sniSocketConfig) {
+            dst->sniSocketConfig = src->sniSocketConfig;
+            dst->sniSocketConfigArg = src->sniSocketConfigArg;
+        }
+        if (replaceCallbacks || src->alertReceivedCallback) {
+            dst->alertReceivedCallback = src->alertReceivedCallback;
+            dst->alertReceivedCallbackArg = src->alertReceivedCallbackArg;
+        }
+        if (replaceCallbacks || src->alertSentCallback) {
+            dst->alertSentCallback = src->alertSentCallback;
+            dst->alertSentCallbackArg = src->alertSentCallbackArg;
+        }
+        if (replaceCallbacks || src->handleBadCert) {
+            dst->handleBadCert = src->handleBadCert;
+            dst->badCertArg = src->badCertArg;
+        }
+        if (replaceCallbacks || src->handshakeCallback) {
+            dst->handshakeCallback = src->handshakeCallback;
+            dst->handshakeCallbackData = src->handshakeCallbackData;
+        }
+        if (replaceCallbacks || src->pkcs11PinArg)
+            dst->pkcs11PinArg = src->pkcs11PinArg;
+
+        /* These callbacks are part of protocol configuration (set via
+         * SSL_SetNextProtoNego, SSL_SetCanFalseStartCallback, etc.)
+         * rather than event handlers, so always copy them. */
+        dst->nextProtoCallback = src->nextProtoCallback;
+        dst->nextProtoArg = src->nextProtoArg;
+        dst->canFalseStartCallback = src->canFalseStartCallback;
+        dst->canFalseStartCallbackData = src->canFalseStartCallbackData;
+        dst->resumptionTokenCallback = src->resumptionTokenCallback;
+        dst->resumptionTokenContext = src->resumptionTokenContext;
+    }
+
+    return SECSuccess;
+}
+
 static sslSocket *
 ssl_DupSocket(sslSocket *os)
 {
@@ -290,15 +515,11 @@ ssl_DupSocket(sslSocket *os)
         return NULL;
     }
 
-    ss->opt = os->opt;
-    ss->opt.useSocks = PR_FALSE;
-    rv = SECITEM_CopyItem(NULL, &ss->opt.nextProtoNego, &os->opt.nextProtoNego);
+    rv = ssl_CopySocketConfig(ss, os, PR_TRUE);
     if (rv != SECSuccess) {
         goto loser;
     }
-    ss->vrange = os->vrange;
-    ss->now = os->now;
-    ss->nowArg = os->nowArg;
+    ss->opt.useSocks = PR_FALSE;
 
     ss->peerID = !os->peerID ? NULL : PORT_Strdup(os->peerID);
     ss->url = !os->url ? NULL : PORT_Strdup(os->url);
@@ -309,117 +530,7 @@ ssl_DupSocket(sslSocket *os)
     ss->cTimeout = os->cTimeout;
     ss->dbHandle = os->dbHandle;
 
-    /* copy ssl2&3 policy & prefs, even if it's not selected (yet) */
-    PORT_Memcpy(ss->cipherSuites, os->cipherSuites, sizeof os->cipherSuites);
-    PORT_Memcpy(ss->ssl3.dtlsSRTPCiphers, os->ssl3.dtlsSRTPCiphers,
-                sizeof(PRUint16) * os->ssl3.dtlsSRTPCipherCount);
-    ss->ssl3.dtlsSRTPCipherCount = os->ssl3.dtlsSRTPCipherCount;
-    PORT_Memcpy(ss->ssl3.signatureSchemes, os->ssl3.signatureSchemes,
-                sizeof(ss->ssl3.signatureSchemes[0]) *
-                    os->ssl3.signatureSchemeCount);
-    ss->ssl3.signatureSchemeCount = os->ssl3.signatureSchemeCount;
-    ss->ssl3.downgradeCheckVersion = os->ssl3.downgradeCheckVersion;
-
-    ss->ssl3.dheWeakGroupEnabled = os->ssl3.dheWeakGroupEnabled;
-
-    PORT_Memcpy(ss->ssl3.supportedCertCompressionAlgorithms,
-                os->ssl3.supportedCertCompressionAlgorithms,
-                sizeof(ss->ssl3.supportedCertCompressionAlgorithms[0]) *
-                    os->ssl3.supportedCertCompressionAlgorithmsCount);
-    ss->ssl3.supportedCertCompressionAlgorithmsCount =
-        os->ssl3.supportedCertCompressionAlgorithmsCount;
-
     if (ss->opt.useSecurity) {
-        PRCList *cursor;
-
-        for (cursor = PR_NEXT_LINK(&os->serverCerts);
-             cursor != &os->serverCerts;
-             cursor = PR_NEXT_LINK(cursor)) {
-            sslServerCert *sc = ssl_CopyServerCert((sslServerCert *)cursor);
-            if (!sc)
-                goto loser;
-            PR_APPEND_LINK(&sc->link, &ss->serverCerts);
-        }
-
-        for (cursor = PR_NEXT_LINK(&os->ephemeralKeyPairs);
-             cursor != &os->ephemeralKeyPairs;
-             cursor = PR_NEXT_LINK(cursor)) {
-            sslEphemeralKeyPair *okp = (sslEphemeralKeyPair *)cursor;
-            sslEphemeralKeyPair *skp = ssl_CopyEphemeralKeyPair(okp);
-            if (!skp)
-                goto loser;
-            PR_APPEND_LINK(&skp->link, &ss->ephemeralKeyPairs);
-        }
-
-        for (cursor = PR_NEXT_LINK(&os->extensionHooks);
-             cursor != &os->extensionHooks;
-             cursor = PR_NEXT_LINK(cursor)) {
-            sslCustomExtensionHooks *oh = (sslCustomExtensionHooks *)cursor;
-            sslCustomExtensionHooks *sh = PORT_ZNew(sslCustomExtensionHooks);
-            if (!sh) {
-                goto loser;
-            }
-            *sh = *oh;
-            PR_APPEND_LINK(&sh->link, &ss->extensionHooks);
-        }
-
-        /*
-         * XXX the preceding CERT_ and SECKEY_ functions can fail and return NULL.
-         * XXX We should detect this, and not just march on with NULL pointers.
-         */
-        ss->authCertificate = os->authCertificate;
-        ss->authCertificateArg = os->authCertificateArg;
-        ss->getClientAuthData = os->getClientAuthData;
-        ss->getClientAuthDataArg = os->getClientAuthDataArg;
-        ss->sniSocketConfig = os->sniSocketConfig;
-        ss->sniSocketConfigArg = os->sniSocketConfigArg;
-        ss->alertReceivedCallback = os->alertReceivedCallback;
-        ss->alertReceivedCallbackArg = os->alertReceivedCallbackArg;
-        ss->alertSentCallback = os->alertSentCallback;
-        ss->alertSentCallbackArg = os->alertSentCallbackArg;
-        ss->handleBadCert = os->handleBadCert;
-        ss->badCertArg = os->badCertArg;
-        ss->handshakeCallback = os->handshakeCallback;
-        ss->handshakeCallbackData = os->handshakeCallbackData;
-        ss->canFalseStartCallback = os->canFalseStartCallback;
-        ss->canFalseStartCallbackData = os->canFalseStartCallbackData;
-        ss->pkcs11PinArg = os->pkcs11PinArg;
-        ss->nextProtoCallback = os->nextProtoCallback;
-        ss->nextProtoArg = os->nextProtoArg;
-        PORT_Memcpy((void *)ss->namedGroupPreferences,
-                    os->namedGroupPreferences,
-                    sizeof(ss->namedGroupPreferences));
-        ss->additionalShares = os->additionalShares;
-        ss->resumptionTokenCallback = os->resumptionTokenCallback;
-        ss->resumptionTokenContext = os->resumptionTokenContext;
-
-        rv = tls13_CopyEchConfigs(&os->echConfigs, &ss->echConfigs);
-        if (rv != SECSuccess) {
-            goto loser;
-        }
-        if (os->echPrivKey && os->echPubKey) {
-            ss->echPrivKey = SECKEY_CopyPrivateKey(os->echPrivKey);
-            ss->echPubKey = SECKEY_CopyPublicKey(os->echPubKey);
-            if (!ss->echPrivKey || !ss->echPubKey) {
-                goto loser;
-            }
-        }
-
-        if (os->antiReplay) {
-            ss->antiReplay = tls13_RefAntiReplayContext(os->antiReplay);
-            PORT_Assert(ss->antiReplay); /* Can't fail. */
-            if (!ss->antiReplay) {
-                goto loser;
-            }
-        }
-        if (os->psk) {
-            ss->psk = tls13_CopyPsk(os->psk);
-            if (!ss->psk) {
-                goto loser;
-            }
-        }
-
-        /* Create security data */
         rv = ssl_CopySecurityInfo(ss, os);
         if (rv != SECSuccess) {
             goto loser;
@@ -2469,7 +2580,6 @@ PRFileDesc *
 SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
 {
     sslSocket *sm = NULL, *ss = NULL;
-    PRCList *cursor;
     SECStatus rv;
 
     if (model == NULL) {
@@ -2489,144 +2599,24 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
         return NULL;
     }
 
-    ss->opt = sm->opt;
-    ss->vrange = sm->vrange;
-    ss->now = sm->now;
-    ss->nowArg = sm->nowArg;
-    PORT_Memcpy(ss->cipherSuites, sm->cipherSuites, sizeof sm->cipherSuites);
-    PORT_Memcpy(ss->ssl3.dtlsSRTPCiphers, sm->ssl3.dtlsSRTPCiphers,
-                sizeof(PRUint16) * sm->ssl3.dtlsSRTPCipherCount);
-    ss->ssl3.dtlsSRTPCipherCount = sm->ssl3.dtlsSRTPCipherCount;
-    PORT_Memcpy(ss->ssl3.signatureSchemes, sm->ssl3.signatureSchemes,
-                sizeof(ss->ssl3.signatureSchemes[0]) *
-                    sm->ssl3.signatureSchemeCount);
-    ss->ssl3.signatureSchemeCount = sm->ssl3.signatureSchemeCount;
-    ss->ssl3.downgradeCheckVersion = sm->ssl3.downgradeCheckVersion;
+    rv = ssl_CopySocketConfig(ss, sm, PR_FALSE);
+    if (rv != SECSuccess) {
+        return NULL;
+    }
 
     if (!ss->opt.useSecurity) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return NULL;
     }
-    while (!PR_CLIST_IS_EMPTY(&ss->serverCerts)) {
-        cursor = PR_LIST_TAIL(&ss->serverCerts);
-        PR_REMOVE_LINK(cursor);
-        ssl_FreeServerCert((sslServerCert *)cursor);
-    }
-    for (cursor = PR_NEXT_LINK(&sm->serverCerts);
-         cursor != &sm->serverCerts;
-         cursor = PR_NEXT_LINK(cursor)) {
-        sslServerCert *sc = ssl_CopyServerCert((sslServerCert *)cursor);
-        if (!sc)
-            return NULL;
-        PR_APPEND_LINK(&sc->link, &ss->serverCerts);
-    }
 
-    ssl_FreeEphemeralKeyPairs(ss);
-    for (cursor = PR_NEXT_LINK(&sm->ephemeralKeyPairs);
-         cursor != &sm->ephemeralKeyPairs;
-         cursor = PR_NEXT_LINK(cursor)) {
-        sslEphemeralKeyPair *mkp = (sslEphemeralKeyPair *)cursor;
-        sslEphemeralKeyPair *skp = ssl_CopyEphemeralKeyPair(mkp);
-        if (!skp)
-            return NULL;
-        PR_APPEND_LINK(&skp->link, &ss->ephemeralKeyPairs);
-    }
-
-    while (!PR_CLIST_IS_EMPTY(&ss->extensionHooks)) {
-        cursor = PR_LIST_TAIL(&ss->extensionHooks);
-        PR_REMOVE_LINK(cursor);
-        PORT_Free(cursor);
-    }
-    for (cursor = PR_NEXT_LINK(&sm->extensionHooks);
-         cursor != &sm->extensionHooks;
-         cursor = PR_NEXT_LINK(cursor)) {
-        sslCustomExtensionHooks *hook = (sslCustomExtensionHooks *)cursor;
-        rv = SSL_InstallExtensionHooks(ss->fd, hook->type,
-                                       hook->writer, hook->writerArg,
-                                       hook->handler, hook->handlerArg);
-        if (rv != SECSuccess) {
-            return NULL;
-        }
-    }
-
-    PORT_Memcpy((void *)ss->namedGroupPreferences,
-                sm->namedGroupPreferences,
-                sizeof(ss->namedGroupPreferences));
-    ss->additionalShares = sm->additionalShares;
-
-    /* copy trust anchor names */
-    if (sm->ssl3.ca_list) {
-        if (ss->ssl3.ca_list) {
-            CERT_FreeDistNames(ss->ssl3.ca_list);
-        }
-        ss->ssl3.ca_list = CERT_DupDistNames(sm->ssl3.ca_list);
-        if (!ss->ssl3.ca_list) {
-            return NULL;
-        }
-    }
-
-    /* Copy ECH. */
-    tls13_DestroyEchConfigs(&ss->echConfigs);
-    SECKEY_DestroyPrivateKey(ss->echPrivKey);
-    SECKEY_DestroyPublicKey(ss->echPubKey);
-    rv = tls13_CopyEchConfigs(&sm->echConfigs, &ss->echConfigs);
+    /* Reset handshake PSKs on the target socket, re-populating from
+     * the (newly copied) external PSK if present.  Pass |ss| (not
+     * |sm|) so that selectedPsk is cleared on the correct socket. */
+    ss->xtnData.selectedPsk = NULL;
+    rv = tls13_ResetHandshakePsks(ss, &ss->ssl3.hs.psks);
     if (rv != SECSuccess) {
         return NULL;
     }
-    if (sm->echPrivKey && sm->echPubKey) {
-        /* Might be client (no keys). */
-        ss->echPrivKey = SECKEY_CopyPrivateKey(sm->echPrivKey);
-        ss->echPubKey = SECKEY_CopyPublicKey(sm->echPubKey);
-        if (!ss->echPrivKey || !ss->echPubKey) {
-            return NULL;
-        }
-    }
-
-    /* Copy anti-replay context. */
-    if (ss->antiReplay) {
-        tls13_ReleaseAntiReplayContext(ss->antiReplay);
-        ss->antiReplay = NULL;
-    }
-    if (sm->antiReplay) {
-        ss->antiReplay = tls13_RefAntiReplayContext(sm->antiReplay);
-        PORT_Assert(ss->antiReplay);
-        if (!ss->antiReplay) {
-            return NULL;
-        }
-    }
-
-    tls13_ResetHandshakePsks(sm, &ss->ssl3.hs.psks);
-
-    if (sm->authCertificate)
-        ss->authCertificate = sm->authCertificate;
-    if (sm->authCertificateArg)
-        ss->authCertificateArg = sm->authCertificateArg;
-    if (sm->getClientAuthData)
-        ss->getClientAuthData = sm->getClientAuthData;
-    if (sm->getClientAuthDataArg)
-        ss->getClientAuthDataArg = sm->getClientAuthDataArg;
-    if (sm->sniSocketConfig)
-        ss->sniSocketConfig = sm->sniSocketConfig;
-    if (sm->sniSocketConfigArg)
-        ss->sniSocketConfigArg = sm->sniSocketConfigArg;
-    if (sm->alertReceivedCallback) {
-        ss->alertReceivedCallback = sm->alertReceivedCallback;
-        ss->alertReceivedCallbackArg = sm->alertReceivedCallbackArg;
-    }
-    if (sm->alertSentCallback) {
-        ss->alertSentCallback = sm->alertSentCallback;
-        ss->alertSentCallbackArg = sm->alertSentCallbackArg;
-    }
-    if (sm->handleBadCert)
-        ss->handleBadCert = sm->handleBadCert;
-    if (sm->badCertArg)
-        ss->badCertArg = sm->badCertArg;
-    if (sm->handshakeCallback)
-        ss->handshakeCallback = sm->handshakeCallback;
-    if (sm->handshakeCallbackData)
-        ss->handshakeCallbackData = sm->handshakeCallbackData;
-    if (sm->pkcs11PinArg)
-        ss->pkcs11PinArg = sm->pkcs11PinArg;
 
     return fd;
 }
