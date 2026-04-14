@@ -46,7 +46,9 @@ EXTRA_SHARED_LIBS += \
        -L$(NSSUTIL_LIB_DIR) \
        -lnssutil3 \
        -L$(NSPR_LIB_DIR) \
-       -lmpr5 \
+       -lplc4 \
+       -lplds4 \
+       -lnspr4 \
        $(NULL)
 
 endif

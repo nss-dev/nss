@@ -182,7 +182,9 @@ EXTRA_SHARED_LIBS += \
 	-L$(NSSUTIL_LIB_DIR) \
 	-lnssutil3 \
 	-L$(NSPR_LIB_DIR) \
-	-lmpr5 \
+	-lplc4 \
+	-lplds4 \
+	-lnspr4 \
 	$(NULL)
 endif
 
@@ -225,7 +227,9 @@ EXTRA_SHARED_LIBS += \
 	-L$(NSSUTIL_LIB_DIR) \
 	-lnssutil3 \
 	-L$(NSPR_LIB_DIR) \
-	-lmpr5 \
+	-lplc4 \
+	-lplds4 \
+	-lnspr4 \
 	$(NULL)
 ifndef NSS_BUILD_UTIL_ONLY
 ifndef NSS_BUILD_SOFTOKEN_ONLY

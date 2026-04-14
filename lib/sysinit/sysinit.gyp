@@ -22,7 +22,6 @@
       'type': 'shared_library',
       'dependencies': [
         'nsssysinit_static',
-        '<(DEPTH)/lib/mpr/mpr.gyp:mpr5',
       ],
       'variables': {
         'mapfile': 'nsssysinit.def',

@@ -37,7 +37,10 @@ publish:
 	find $(CORE_DEPTH)/../dist/$(OBJDIR)/lib -type l \
 		\( -name "*.so" -o -name "*.chk" \) \
 	-exec cp {} opt/sun/private/$(RPMLIBDIR) \;
-	rm -f opt/sun/private/$(RPMLIBDIR)/libjss*.so
+	rm -f opt/sun/private/$(RPMLIBDIR)/libnspr4.so \
+	   opt/sun/private/$(RPMLIBDIR)/libplc4.so \
+	   opt/sun/private/$(RPMLIBDIR)/libplds4.so \
+	   opt/sun/private/$(RPMLIBDIR)/libjss*.so
 	mkdir -p opt/sun/private/bin
 	(cd $(CORE_DEPTH)/../dist/$(OBJDIR)/bin && tar cphf - \
 		certutil cmsutil crlutil modutil pk12util signtool \

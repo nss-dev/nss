@@ -61,12 +61,12 @@ EXTRA_SHARED_LIBS += \
 	-L$(NSSUTIL_LIB_DIR) \
 	-lnssutil3 \
 	-L$(NSPR_LIB_DIR) \
-	-lmpr5 \
+	-lnspr4 \
 	$(NULL)
 else # ! NS_USE_GCC
 EXTRA_SHARED_LIBS += \
 	$(DIST)/lib/nssutil3.lib \
-	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)mpr5.lib \
+	$(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)nspr4.lib \
 	$(NULL)
 endif # NS_USE_GCC
 
@@ -81,13 +81,13 @@ EXTRA_SHARED_LIBS += \
 	-L$(NSSUTIL_LIB_DIR) \
 	-lnssutil3 \
 	-L$(NSPR_LIB_DIR) \
-	-lmpr5 \
+	-lnspr4 \
 	$(NULL)
 endif
 endif
 
 ifeq ($(OS_ARCH), Darwin)
-EXTRA_SHARED_LIBS += -dylib_file @executable_path/libmpr5.dylib:$(DIST)/lib/libmpr5.dylib
+EXTRA_SHARED_LIBS += -dylib_file @executable_path/libplc4.dylib:$(DIST)/lib/libplc4.dylib -dylib_file @executable_path/libplds4.dylib:$(DIST)/lib/libplds4.dylib
 endif
 
 ifdef NSS_FIPS_140_3

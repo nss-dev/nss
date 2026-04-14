@@ -35,8 +35,7 @@
       'target_name': 'nssdbm3',
       'type': 'shared_library',
       'dependencies': [
-        'nssdbm',
-        '<(DEPTH)/lib/mpr/mpr.gyp:mpr5',
+        'nssdbm'
       ],
       'conditions': [
         [ 'moz_fold_libs==0', {

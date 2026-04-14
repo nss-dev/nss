@@ -44,7 +44,7 @@
         }],
         ['OS=="win"', {
           'use_system_zlib%': 0,
-          'nspr_libs%': ['libmpr5.lib'],
+          'nspr_libs%': ['libnspr4.lib', 'libplc4.lib', 'libplds4.lib'],
           'zlib_libs%': [],
           #TODO
           'moz_debug_flags%': '',
@@ -52,7 +52,7 @@
           'dll_suffix': 'dll',
         }, {
           'use_system_zlib%': 1,
-          'nspr_libs%': ['-lmpr5'],
+          'nspr_libs%': ['-lplds4', '-lplc4', '-lnspr4'],
           'zlib_libs%': ['-lz'],
           'dll_prefix': 'lib',
           'conditions': [

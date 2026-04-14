@@ -122,8 +122,8 @@ while [ $# -gt 0 ]; do
         --nspr-test-build) build_nspr_tests=1 ;;
         --nspr-test-run) run_nspr_tests=1 ;;
         --nspr-only) exit_after_nspr=1 ;;
-        --with-nspr=?*) set_nspr_path "${1#*=}"; no_local_nspr=1 ;; # DEPRECATED: NSPR is now libmpr5, built in-tree
-        --system-nspr) set_nspr_path "/usr/include/nspr/:"; no_local_nspr=1 ;; # DEPRECATED: see above
+        --with-nspr=?*) set_nspr_path "${1#*=}"; no_local_nspr=1 ;;
+        --system-nspr) set_nspr_path "/usr/include/nspr/:"; no_local_nspr=1 ;;
         --system-sqlite) gyp_params+=(-Duse_system_sqlite=1) ;;
         --enable-fips) gyp_params+=(-Ddisable_fips=0) ;;
         --fips-module-id) gyp_params+=(-Dfips_module_id="$2"); shift ;;
@@ -230,11 +230,22 @@ check_config()
 }
 
 gyp_config="$cwd/out/gyp_config"
+nspr_config="$cwd/out/$target/nspr_config"
 
 # Now check what needs to be rebuilt.
 # If we don't have a build directory make sure that we rebuild.
 if [ ! -d "$target_dir" ]; then
+    rebuild_nspr=1
     rebuild_gyp=1
+elif [ ! -d "$dist_dir/$target" ]; then
+    rebuild_nspr=1
+fi
+
+if check_config "$nspr_config" \
+                 nspr_cflags="$(Q "$nspr_cflags")" \
+                 nspr_cxxflags="$(Q "$nspr_cxxflags")" \
+                 nspr_ldflags="$(Q "$nspr_ldflags")"; then
+    rebuild_nspr=1
 fi
 
 if check_config "$gyp_config" "$(Q "${gyp_params[@]}")"; then
@@ -246,13 +257,14 @@ echo "$target" > "$dist_dir/latest"
 for i in "${all_args[@]}"; do echo "$i"; done > "$argsfile"
 
 # Build.
-# NSPR is now built in-tree as libmpr5 (part of the GYP/ninja build).
-# The standalone nspr_build step is no longer needed.
-# --nspr, --nspr-test-build, --nspr-test-run, --nspr-only flags are
-# kept for compatibility but have no effect.
+# NSPR.
+if [[ "$rebuild_nspr" = 1 && "$no_local_nspr" = 0 ]]; then
+    nspr_clean
+    nspr_build
+    mv -f "$nspr_config.new" "$nspr_config"
+fi
 
 if [ "$exit_after_nspr" = 1 ]; then
-  echo "Note: --nspr-only has no effect; NSPR is now built in-tree as libmpr5." 1>&2
   exit 0
 fi
 
@@ -266,10 +278,7 @@ if [ "$rebuild_gyp" = 1 ]; then
     obj_dir="$dist_dir/$target"
     gyp_params+=(-Dnss_dist_obj_dir="$obj_dir")
     if [ "$no_local_nspr" = 0 ]; then
-        # MPR (libmpr5) is built in-tree. Headers are exported to
-        # dist/public/nss by the lib/mpr/exports.gyp target; the shared
-        # library lands in $obj_dir/lib alongside all other NSS libraries.
-        set_nspr_path "$dist_dir/public/nss:$obj_dir/lib"
+        set_nspr_path "$obj_dir/include/nspr:$obj_dir/lib"
     fi
 
     run_verbose run_scanbuild ${GYP} -f ninja "${gyp_params[@]}" "$cwd/nss.gyp"

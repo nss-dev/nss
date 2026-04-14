@@ -38,7 +38,9 @@ else
 
 EXTRA_SHARED_LIBS += \
 	-L$(NSPR_LIB_DIR) \
-	-lmpr5 \
+	-lplc4 \
+	-lplds4 \
+	-lnspr4 \
 	$(NULL)
 
 endif

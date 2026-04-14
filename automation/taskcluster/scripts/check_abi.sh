@@ -68,7 +68,7 @@ abi_diff()
   PREVDIST=baseline/dist
   NEWDIST=dist
   # libnssdbm3.so isn't built by default anymore, skip it.
-  ALL_SOs="libfreebl3.so libfreeblpriv3.so libmpr5.so libnss3.so libnssckbi.so libnsssysinit.so libnssutil3.so libsmime3.so libsoftokn3.so libssl3.so"
+  ALL_SOs="libfreebl3.so libfreeblpriv3.so libnspr4.so libnss3.so libnssckbi.so libnsssysinit.so libnssutil3.so libplc4.so libplds4.so libsmime3.so libsoftokn3.so libssl3.so"
   for SO in ${ALL_SOs}; do
       if [ ! -f nss/automation/abi-check/expected-report-$SO.txt ]; then
           touch nss/automation/abi-check/expected-report-$SO.txt

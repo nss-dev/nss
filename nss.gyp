@@ -12,7 +12,6 @@
           'target_name': 'nss_libs',
           'type': 'none',
           'dependencies': [
-            'lib/mpr/mpr.gyp:mpr5',
             'lib/softoken/softoken.gyp:softokn3',
           ],
           'conditions': [

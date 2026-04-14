@@ -90,7 +90,7 @@ popd
 
 # Setup NSS module.
 export NSS_NSPR_PATH="${SRC-$PWD}"
-export CXXFLAGS="$CXXFLAGS -I $NSS_NSPR_PATH/dist/public/nss -DCRYPTOFUZZ_NSS -DCRYPTOFUZZ_NO_OPENSSL"
+export CXXFLAGS="$CXXFLAGS -I $NSS_NSPR_PATH/dist/public/nss -I $NSS_NSPR_PATH/dist/Debug/include/nspr -DCRYPTOFUZZ_NSS -DCRYPTOFUZZ_NO_OPENSSL"
 export LINK_FLAGS="$LINK_FLAGS -lsqlite3"
 
 # On CI, the library lies somewhere else than what is expected by

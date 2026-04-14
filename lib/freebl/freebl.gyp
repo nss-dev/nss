@@ -383,7 +383,6 @@
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',
-        '<(DEPTH)/lib/mpr/mpr.gyp:mpr5',
         'hw-acc-crypto-avx',
         'hw-acc-crypto-avx2',
         'gcm.gyp:gcm-nodepend',
@@ -465,7 +464,6 @@
       'type': 'shared_library',
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',
-        '<(DEPTH)/lib/mpr/mpr.gyp:mpr5',
         'hw-acc-crypto-avx',
         'hw-acc-crypto-avx2',
       ],
@@ -483,7 +481,6 @@
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',
-        '<(DEPTH)/lib/mpr/mpr.gyp:mpr5',
         'hw-acc-crypto-avx',
         'hw-acc-crypto-avx2',
         'gcm.gyp:gcm',
@@ -514,8 +511,7 @@
             'lowhash_vector.c'
           ],
           'dependencies': [
-            '<(DEPTH)/exports.gyp:nss_exports',
-            '<(DEPTH)/lib/mpr/mpr.gyp:mpr5',
+            '<(DEPTH)/exports.gyp:nss_exports'
           ],
           'variables': {
             'mapfile': 'freebl_hash.def'

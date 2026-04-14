@@ -20,12 +20,14 @@ abi_base_version_file = "automation/abi-check/previous-nss-release"
 
 abi_report_files = ['automation/abi-check/expected-report-libfreebl3.so.txt',
                     'automation/abi-check/expected-report-libfreeblpriv3.so.txt',
-                    'automation/abi-check/expected-report-libmpr5.so.txt',
+                    'automation/abi-check/expected-report-libnspr4.so.txt',
                     'automation/abi-check/expected-report-libnss3.so.txt',
                     'automation/abi-check/expected-report-libnssckbi.so.txt',
                     'automation/abi-check/expected-report-libnssdbm3.so.txt',
                     'automation/abi-check/expected-report-libnsssysinit.so.txt',
                     'automation/abi-check/expected-report-libnssutil3.so.txt',
+                    'automation/abi-check/expected-report-libplc4.so.txt',
+                    'automation/abi-check/expected-report-libplds4.so.txt',
                     'automation/abi-check/expected-report-libsmime3.so.txt',
                     'automation/abi-check/expected-report-libsoftokn3.so.txt',
                     'automation/abi-check/expected-report-libssl3.so.txt']

@@ -23,7 +23,6 @@
       ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports',
-        '<(DEPTH)/lib/mpr/mpr.gyp:mpr5',
         '<(DEPTH)/lib/ckfw/ckfw.gyp:nssckfw',
         '<(DEPTH)/lib/base/base.gyp:nssb'
       ],
