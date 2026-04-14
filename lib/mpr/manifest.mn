@@ -1,0 +1,166 @@
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# manifest.mn for libmpr5 — Mozilla Portable Runtime
+#
+# This library merges the former libnspr4, libplc4, and libplds4 into a
+# single shared library. All exported symbols are renamed with an M prefix
+# (PR_ -> MPR_, PL_ -> MPL_, etc.) and versioned under MPR_5.0.
+#
+# NOTE: Platform-specific source selection (pthreads vs Windows threading,
+# md/unix/ vs md/windows/, OS-specific C file, assembly shim) is done in
+# config.mk, not here. manifest.mn is processed before coreconf/config.mk
+# sets OS_ARCH/OS_TARGET, so ifeq blocks here evaluate incorrectly.
+
+CORE_DEPTH = ../..
+
+MODULE = nss
+
+# Headers live in include/ and include/private/; VPATH lets make find them
+# by bare filename for the EXPORTS/PRIVATE_EXPORTS copy rules.
+VPATH = include include/private include/md
+
+# Local include paths needed when compiling mpr's own sources.
+# include/private houses primpl.h, pprio.h, etc. which mpr sources include
+# directly (not via "private/..." prefix).  include/md is needed for prosdep.h
+# and the platform cfg headers.
+INCLUDES += -Iinclude -Iinclude/private -Iinclude/md -Iinclude/obsolete
+
+EXPORTS = \
+    nspr.h \
+    plarena.h \
+    plbase64.h \
+    plerror.h \
+    plgetopt.h \
+    plhash.h \
+    plstr.h \
+    pratom.h \
+    prbit.h \
+    prclist.h \
+    prcmon.h \
+    prcountr.h \
+    prcvar.h \
+    prdtoa.h \
+    prenv.h \
+    prerr.h \
+    prerror.h \
+    prinet.h \
+    prinit.h \
+    prinrval.h \
+    prio.h \
+    pripcsem.h \
+    prlink.h \
+    prlock.h \
+    prlog.h \
+    prlong.h \
+    prmem.h \
+    prmon.h \
+    prmwait.h \
+    prnetdb.h \
+    prolock.h \
+    prpdce.h \
+    prprf.h \
+    prproces.h \
+    prrng.h \
+    prrwlock.h \
+    prshm.h \
+    prshma.h \
+    prsystem.h \
+    prthread.h \
+    prtime.h \
+    prtpool.h \
+    prtrace.h \
+    prtypes.h \
+    prvrsion.h \
+    $(NULL)
+
+PRIVATE_EXPORTS = \
+    pprio.h \
+    pprmwait.h \
+    pprthred.h \
+    primpl.h \
+    prpriv.h \
+    $(NULL)
+
+LIBRARY_NAME = mpr
+LIBRARY_VERSION = 5
+MAPFILE = $(OBJDIR)/$(LIBRARY_NAME).def
+
+# Core I/O
+CSRCS = \
+    io/prfdcach.c \
+    io/prmwait.c \
+    io/prmapopt.c \
+    io/priometh.c \
+    io/pripv6.c \
+    io/prlayer.c \
+    io/prlog.c \
+    io/prmmap.c \
+    io/prpolevt.c \
+    io/prprf.c \
+    io/prscanf.c \
+    io/prstdio.c \
+    linking/prlink.c \
+    malloc/prmalloc.c \
+    malloc/prmem.c \
+    md/prosdep.c \
+    memory/prshm.c \
+    memory/prshma.c \
+    memory/prseg.c \
+    misc/pralarm.c \
+    misc/pratom.c \
+    misc/prcountr.c \
+    misc/prdtoa.c \
+    misc/prenv.c \
+    misc/prerr.c \
+    misc/prerror.c \
+    misc/prerrortable.c \
+    misc/prinit.c \
+    misc/prinrval.c \
+    misc/pripc.c \
+    misc/prlog2.c \
+    misc/prlong.c \
+    misc/prnetdb.c \
+    misc/praton.c \
+    misc/prolock.c \
+    misc/prrng.c \
+    misc/prsystem.c \
+    misc/prthinfo.c \
+    misc/prtpool.c \
+    misc/prtrace.c \
+    misc/prtime.c \
+    threads/prcmon.c \
+    threads/prrwlock.c \
+    threads/prtpd.c \
+    prvrsion.c \
+    $(NULL)
+
+# Former libplds4 sources (data structures: arenas, hash tables)
+# plvrsion.c is omitted: its libVersionPoint() conflicts with prvrsion.c now
+# that libplds4/libplc4/libnspr4 are merged into one DSO.
+CSRCS += \
+    plarena.c \
+    plhash.c \
+    $(NULL)
+
+# Former libplc4 sources (string utilities, base64, getopt)
+CSRCS += \
+    base64.c \
+    plerror.c \
+    plgetopt.c \
+    strcase.c \
+    strcat.c \
+    strchr.c \
+    strcmp.c \
+    strcpy.c \
+    strdup.c \
+    strlen.c \
+    strpbrk.c \
+    strstr.c \
+    strtok.c \
+    $(NULL)
+
+# Platform-specific sources (pthreads/pt*.c, md/unix/*.c, md/windows/*.c,
+# OS-specific C file, assembly shim) are all added in config.mk.
