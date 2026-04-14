@@ -115,7 +115,7 @@ public:
 
     ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
     if (!slot) {
-      return MapPRErrorCodeToResult(PR_GetError());
+      return MapPRErrorCodeToResult(MPR_GetError());
     }
     SECItem encryptedPrivateKeyInfoItem = {
       siBuffer,
@@ -150,14 +150,14 @@ public:
           slot.get(), &encryptedPrivateKeyInfo, &passwordItem, nullptr,
           &publicValueItem, false, false, rsaKey, KU_ALL, &privateKey,
           nullptr) != SECSuccess) {
-      return MapPRErrorCodeToResult(PR_GetError());
+      return MapPRErrorCodeToResult(MPR_GetError());
     }
     ScopedSECKEYPrivateKey scopedPrivateKey(privateKey);
     SECItem signatureItem;
     if (SEC_SignData(&signatureItem, tbs.data(),
                      static_cast<int>(tbs.length()),
                      scopedPrivateKey.get(), oidTag) != SECSuccess) {
-      return MapPRErrorCodeToResult(PR_GetError());
+      return MapPRErrorCodeToResult(MPR_GetError());
     }
     signature.assign(signatureItem.data, signatureItem.len);
     SECITEM_FreeItem(&signatureItem, false);
@@ -254,7 +254,7 @@ GenerateKeyPairInner()
 
     assert(!publicKeyTemp);
 
-    if (PR_GetError() != SEC_ERROR_PKCS11_FUNCTION_FAILED) {
+    if (MPR_GetError() != SEC_ERROR_PKCS11_FUNCTION_FAILED) {
       break;
     }
 
@@ -285,7 +285,7 @@ TestKeyPair*
 CloneReusedKeyPair()
 {
   static PRCallOnceType initCallOnce;
-  if (PR_CallOnce(&initCallOnce, InitReusedKeyPair) != PR_SUCCESS) {
+  if (MPR_CallOnce(&initCallOnce, InitReusedKeyPair) != PR_SUCCESS) {
     abort();
   }
   assert(reusedKeyPair);

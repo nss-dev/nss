@@ -91,11 +91,11 @@ nss_dbm_db_get_format_version(
         dbrv = db->db->get(db->db, &k, &v, 0);
         if (dbrv == 0) {
             CK_ULONG major = 0, minor = 0;
-            (void)PR_sscanf(v.data, "%ld.%ld", &major, &minor);
+            (void)MPR_sscanf(v.data, "%ld.%ld", &major, &minor);
             rv.major = major;
             rv.minor = minor;
         } else if (dbrv > 0) {
-            (void)PR_snprintf(buffer, sizeof(buffer), "%ld.%ld", nss_dbm_db_format_version.major,
+            (void)MPR_snprintf(buffer, sizeof(buffer), "%ld.%ld", nss_dbm_db_format_version.major,
                               nss_dbm_db_format_version.minor);
             v.data = buffer;
             v.size = nssUTF8_Size((NSSUTF8 *)v.data, (PRStatus *)NULL);

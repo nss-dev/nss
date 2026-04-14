@@ -36,7 +36,7 @@ TestOpenCloseUserDB(char *progName, char *configDir, char *tokenName)
     PK11SlotInfo *userDbSlot = NULL;
 
     printf("Loading database <%s> - %s\n", configDir, tokenName);
-    modspec = PR_smprintf("configDir='%s' tokenDescription='%s'",
+    modspec = MPR_smprintf("configDir='%s' tokenDescription='%s'",
                           configDir, tokenName);
     if (!modspec) {
         rv = SECFailure;
@@ -44,7 +44,7 @@ TestOpenCloseUserDB(char *progName, char *configDir, char *tokenName)
     }
 
     userDbSlot = SECMOD_OpenUserDB(modspec);
-    PR_smprintf_free(modspec);
+    MPR_smprintf_free(modspec);
     if (!userDbSlot) {
         SECU_PrintError(progName, "couldn't open database");
         rv = SECFailure;
@@ -79,8 +79,8 @@ main(int argc, char **argv)
     }
     progName = progName ? progName + 1 : argv[0];
 
-    optstate = PL_CreateOptState(argc, argv, "d:");
-    while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = MPL_CreateOptState(argc, argv, "d:");
+    while ((optstatus = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case 'd':
                 dbDir = strdup(optstate->value);
@@ -116,7 +116,7 @@ loser:
     if (NSS_Shutdown() != SECSuccess) {
         exit(1);
     }
-    PR_Cleanup();
+    MPR_Cleanup();
 
     if (rv != SECSuccess) {
         exit(1);

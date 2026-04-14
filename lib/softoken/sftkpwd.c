@@ -659,7 +659,7 @@ sftkdb_switchKeys(SFTKDBHandle *keydb, SECItem *passKey, int iterationCount)
     }
 
     /* an atomic pointer set would be nice */
-    SKIP_AFTER_FORK(PR_Lock(keydb->passwordLock));
+    SKIP_AFTER_FORK(MPR_Lock(keydb->passwordLock));
     data = keydb->passwordKey.data;
     len = keydb->passwordKey.len;
     keydb->passwordKey.data = passKey->data;
@@ -667,7 +667,7 @@ sftkdb_switchKeys(SFTKDBHandle *keydb, SECItem *passKey, int iterationCount)
     keydb->defaultIterationCount = iterationCount;
     passKey->data = data;
     passKey->len = len;
-    SKIP_AFTER_FORK(PR_Unlock(keydb->passwordLock));
+    SKIP_AFTER_FORK(MPR_Unlock(keydb->passwordLock));
 }
 
 /*
@@ -713,11 +713,11 @@ sftkdb_GetUpdatePasswordKey(SFTKDBHandle *handle)
         return NULL;
     }
 
-    PR_Lock(handle->passwordLock);
+    MPR_Lock(handle->passwordLock);
     if (handle->updatePasswordKey) {
         key = SECITEM_DupItem(handle->updatePasswordKey);
     }
-    PR_Unlock(handle->passwordLock);
+    MPR_Unlock(handle->passwordLock);
 
     return key;
 }
@@ -740,12 +740,12 @@ sftkdb_FreeUpdatePasswordKey(SFTKDBHandle *handle)
         return;
     }
 
-    PR_Lock(handle->passwordLock);
+    MPR_Lock(handle->passwordLock);
     if (handle->updatePasswordKey) {
         key = handle->updatePasswordKey;
         handle->updatePasswordKey = NULL;
     }
-    PR_Unlock(handle->passwordLock);
+    MPR_Unlock(handle->passwordLock);
 
     if (key) {
         SECITEM_ZfreeItem(key, PR_TRUE);
@@ -1012,7 +1012,7 @@ sftkdb_finishPasswordCheck(SFTKDBHandle *keydb, SECItem *key, const char *pw,
          *         update, as we now have both required passwords.
          *
          */
-        PR_Lock(keydb->passwordLock);
+        MPR_Lock(keydb->passwordLock);
         if (sftkdb_NeedUpdateDBPassword(keydb)) {
             /* Squirrel this special key away.
              * This has the side effect of turning sftkdb_NeedLegacyPW off,
@@ -1020,7 +1020,7 @@ sftkdb_finishPasswordCheck(SFTKDBHandle *keydb, SECItem *key, const char *pw,
              * SFTK_GET_PW_DB (thus effecting both sftkdb_CheckPassword()
              * and sftkdb_HasPasswordSet()) */
             keydb->updatePasswordKey = SECITEM_DupItem(key);
-            PR_Unlock(keydb->passwordLock);
+            MPR_Unlock(keydb->passwordLock);
             if (keydb->updatePasswordKey == NULL) {
                 /* PORT_Error set by SECITEM_DupItem */
                 rv = SECFailure;
@@ -1085,7 +1085,7 @@ sftkdb_finishPasswordCheck(SFTKDBHandle *keydb, SECItem *key, const char *pw,
                  * update case. */
             }
         } else {
-            PR_Unlock(keydb->passwordLock);
+            MPR_Unlock(keydb->passwordLock);
         }
         /* load the keys, so the keydb can parse it's key set */
         sftkdb_switchKeys(keydb, key, iterationCount);
@@ -1117,9 +1117,9 @@ SECStatus
 sftkdb_PWCached(SFTKDBHandle *keydb)
 {
     SECStatus rv;
-    PR_Lock(keydb->passwordLock);
+    MPR_Lock(keydb->passwordLock);
     rv = keydb->passwordKey.data ? SECSuccess : SECFailure;
-    PR_Unlock(keydb->passwordLock);
+    MPR_Unlock(keydb->passwordLock);
     return rv;
 }
 

@@ -2041,10 +2041,10 @@ sftk_handleObject(SFTKObject *object, SFTKSession *session)
     if (crv != CKR_OK)
         return crv;
 
-    PR_Lock(slot->slotLock);
+    MPR_Lock(slot->slotLock);
     isLoggedIn = slot->isLoggedIn;
     needLogin = slot->needLogin;
-    PR_Unlock(slot->slotLock);
+    MPR_Unlock(slot->slotLock);
 
     /* don't create a private object if we aren't logged in */
     if (!isLoggedIn && needLogin && sftk_isTrue(object, CKA_PRIVATE)) {
@@ -3169,7 +3169,7 @@ sftk_SlotFromID(CK_SLOT_ID slotID, PRBool all)
 
     if (nscSlotHashTable[index] == NULL)
         return NULL;
-    slot = (SFTKSlot *)PL_HashTableLookupConst(nscSlotHashTable[index],
+    slot = (SFTKSlot *)MPL_HashTableLookupConst(nscSlotHashTable[index],
                                                (void *)(uintptr_t)slotID);
     /* cleared slots shouldn't 'show up' */
     if (slot && !all && !slot->present)
@@ -3233,14 +3233,14 @@ sftk_RegisterSlot(SFTKSlot *slot, unsigned int moduleIndex)
     }
 
     if (nscSlotHashTable[index] == NULL) {
-        nscSlotHashTable[index] = PL_NewHashTable(64, sftk_HashNumber,
-                                                  PL_CompareValues, PL_CompareValues, NULL, 0);
+        nscSlotHashTable[index] = MPL_NewHashTable(64, sftk_HashNumber,
+                                                  MPL_CompareValues, MPL_CompareValues, NULL, 0);
         if (nscSlotHashTable[index] == NULL) {
             return CKR_HOST_MEMORY;
         }
     }
 
-    entry = PL_HashTableAdd(nscSlotHashTable[index], (void *)(uintptr_t)slot->slotID, slot);
+    entry = MPL_HashTableAdd(nscSlotHashTable[index], (void *)(uintptr_t)slot->slotID, slot);
     if (entry == NULL) {
         return CKR_HOST_MEMORY;
     }
@@ -3382,21 +3382,21 @@ SFTK_SlotInit(char *configdir, char *updatedir, char *updateID,
     }
     slot->sessionLockMask = slot->numSessionLocks - 1;
 
-    slot->slotLock = PR_NewLock();
+    slot->slotLock = MPR_NewLock();
     if (slot->slotLock == NULL)
         goto mem_loser;
     slot->sessionLock = PORT_ZNewArray(PRLock *, slot->numSessionLocks);
     if (slot->sessionLock == NULL)
         goto mem_loser;
     for (i = 0; i < slot->numSessionLocks; i++) {
-        slot->sessionLock[i] = PR_NewLock();
+        slot->sessionLock[i] = MPR_NewLock();
         if (slot->sessionLock[i] == NULL)
             goto mem_loser;
     }
-    slot->objectLock = PR_NewLock();
+    slot->objectLock = MPR_NewLock();
     if (slot->objectLock == NULL)
         goto mem_loser;
-    slot->pwCheckLock = PR_NewLock();
+    slot->pwCheckLock = MPR_NewLock();
     if (slot->pwCheckLock == NULL)
         goto mem_loser;
     slot->head = PORT_ZNewArray(SFTKSession *, slot->sessHashSize);
@@ -3405,7 +3405,7 @@ SFTK_SlotInit(char *configdir, char *updatedir, char *updateID,
     slot->sessObjHashTable = PORT_ZNewArray(SFTKObject *, slot->sessObjHashSize);
     if (slot->sessObjHashTable == NULL)
         goto mem_loser;
-    slot->tokObjHashTable = PL_NewHashTable(64, sftk_HashNumber, PL_CompareValues,
+    slot->tokObjHashTable = MPL_NewHashTable(64, sftk_HashNumber, MPL_CompareValues,
                                             SECITEM_HashCompare, NULL, 0);
     if (slot->tokObjHashTable == NULL)
         goto mem_loser;
@@ -3463,12 +3463,12 @@ sftk_CloseAllSessions(SFTKSlot *slot, PRBool logout)
      */
     if (logout) {
         handle = sftk_getKeyDB(slot);
-        SKIP_AFTER_FORK(PR_Lock(slot->slotLock));
+        SKIP_AFTER_FORK(MPR_Lock(slot->slotLock));
         slot->isLoggedIn = PR_FALSE;
         if (slot->needLogin && handle) {
             sftkdb_ClearPassword(handle);
         }
-        SKIP_AFTER_FORK(PR_Unlock(slot->slotLock));
+        SKIP_AFTER_FORK(MPR_Unlock(slot->slotLock));
         if (handle) {
             sftk_freeDB(handle);
         }
@@ -3482,7 +3482,7 @@ sftk_CloseAllSessions(SFTKSlot *slot, PRBool logout)
     for (i = 0; i < slot->sessHashSize; i++) {
         PRLock *lock = SFTK_SESSION_LOCK(slot, i);
         do {
-            SKIP_AFTER_FORK(PR_Lock(lock));
+            SKIP_AFTER_FORK(MPR_Lock(lock));
             session = slot->head[i];
             /* hand deque */
             /* this duplicates function of NSC_close session functions, but
@@ -3493,15 +3493,15 @@ sftk_CloseAllSessions(SFTKSlot *slot, PRBool logout)
                 if (session->next)
                     session->next->prev = NULL;
                 session->next = session->prev = NULL;
-                SKIP_AFTER_FORK(PR_Unlock(lock));
-                SKIP_AFTER_FORK(PR_Lock(slot->slotLock));
+                SKIP_AFTER_FORK(MPR_Unlock(lock));
+                SKIP_AFTER_FORK(MPR_Lock(slot->slotLock));
                 --slot->sessionCount;
                 if (session->info.flags & CKF_RW_SESSION) {
                     --slot->rwSessionCount;
                 }
-                SKIP_AFTER_FORK(PR_Unlock(slot->slotLock));
+                SKIP_AFTER_FORK(MPR_Unlock(slot->slotLock));
             } else {
-                SKIP_AFTER_FORK(PR_Unlock(lock));
+                SKIP_AFTER_FORK(MPR_Unlock(lock));
             }
             if (session) {
                 sftk_DestroySession(session);
@@ -3526,12 +3526,12 @@ sftk_DBShutdown(SFTKSlot *slot)
 {
     SFTKDBHandle *certHandle;
     SFTKDBHandle *keyHandle;
-    SKIP_AFTER_FORK(PR_Lock(slot->slotLock));
+    SKIP_AFTER_FORK(MPR_Lock(slot->slotLock));
     certHandle = slot->certDB;
     slot->certDB = NULL;
     keyHandle = slot->keyDB;
     slot->keyDB = NULL;
-    SKIP_AFTER_FORK(PR_Unlock(slot->slotLock));
+    SKIP_AFTER_FORK(MPR_Unlock(slot->slotLock));
     if (certHandle) {
         sftk_freeDB(certHandle);
     }
@@ -3582,7 +3582,7 @@ SFTK_DestroySlotData(SFTKSlot *slot)
     sftk_ClearSession(&slot->moduleObjects);
 
     if (slot->tokObjHashTable) {
-        PL_HashTableDestroy(slot->tokObjHashTable);
+        MPL_HashTableDestroy(slot->tokObjHashTable);
         slot->tokObjHashTable = NULL;
     }
 
@@ -3600,12 +3600,12 @@ SFTK_DestroySlotData(SFTKSlot *slot)
 
     /* OK everything has been disassembled, now we can finally get rid
      * of the locks */
-    SKIP_AFTER_FORK(PR_DestroyLock(slot->slotLock));
+    SKIP_AFTER_FORK(MPR_DestroyLock(slot->slotLock));
     slot->slotLock = NULL;
     if (slot->sessionLock) {
         for (i = 0; i < slot->numSessionLocks; i++) {
             if (slot->sessionLock[i]) {
-                SKIP_AFTER_FORK(PR_DestroyLock(slot->sessionLock[i]));
+                SKIP_AFTER_FORK(MPR_DestroyLock(slot->sessionLock[i]));
                 slot->sessionLock[i] = NULL;
             }
         }
@@ -3613,11 +3613,11 @@ SFTK_DestroySlotData(SFTKSlot *slot)
         slot->sessionLock = NULL;
     }
     if (slot->objectLock) {
-        SKIP_AFTER_FORK(PR_DestroyLock(slot->objectLock));
+        SKIP_AFTER_FORK(MPR_DestroyLock(slot->objectLock));
         slot->objectLock = NULL;
     }
     if (slot->pwCheckLock) {
-        SKIP_AFTER_FORK(PR_DestroyLock(slot->pwCheckLock));
+        SKIP_AFTER_FORK(MPR_DestroyLock(slot->pwCheckLock));
         slot->pwCheckLock = NULL;
     }
     PORT_Free(slot);
@@ -3692,7 +3692,7 @@ NSC_ModuleDBFunc(unsigned long function, char *parameters, void *args)
                                                parameters, " ");
                 }
                 if (oldSecmod) {
-                    PR_smprintf_free(oldSecmod);
+                    MPR_smprintf_free(oldSecmod);
                 }
                 if (oldAppName) {
                     PORT_Free(oldAppName);
@@ -3736,7 +3736,7 @@ NSC_ModuleDBFunc(unsigned long function, char *parameters, void *args)
 
 loser:
     if (secmod)
-        PR_smprintf_free(secmod);
+        MPR_smprintf_free(secmod);
     if (appName)
         PORT_Free(appName);
     if (filename)
@@ -3773,15 +3773,15 @@ nscFreeAllSlots(unsigned int moduleIndex)
         for (i = 0; i < (int)tmpSlotCount; i++) {
             slotID = tmpSlotList[i];
             slot = (SFTKSlot *)
-                PL_HashTableLookup(tmpSlotHashTable, (void *)(uintptr_t)slotID);
+                MPL_HashTableLookup(tmpSlotHashTable, (void *)(uintptr_t)slotID);
             PORT_Assert(slot);
             if (!slot)
                 continue;
             SFTK_DestroySlotData(slot);
-            PL_HashTableRemove(tmpSlotHashTable, (void *)(uintptr_t)slotID);
+            MPL_HashTableRemove(tmpSlotHashTable, (void *)(uintptr_t)slotID);
         }
         PORT_Free(tmpSlotList);
-        PL_HashTableDestroy(tmpSlotHashTable);
+        MPL_HashTableDestroy(tmpSlotHashTable);
     }
 }
 
@@ -3793,7 +3793,7 @@ sftk_closePeer(PRBool isFIPS)
     unsigned int moduleIndex = isFIPS ? NSC_NON_FIPS_MODULE : NSC_FIPS_MODULE;
     PLHashTable *tmpSlotHashTable = nscSlotHashTable[moduleIndex];
 
-    slot = (SFTKSlot *)PL_HashTableLookup(tmpSlotHashTable, (void *)(uintptr_t)slotID);
+    slot = (SFTKSlot *)MPL_HashTableLookup(tmpSlotHashTable, (void *)(uintptr_t)slotID);
     if (slot == NULL) {
         return;
     }
@@ -3826,25 +3826,25 @@ sftk_getParameters(CK_C_INITIALIZE_ARGS *init_args, PRBool isFIPS,
         /* Library parameters were not provided via C_Initialize_args*/
 
         /* Enviromental value has precedence to configuration filename */
-        libParams = PR_GetEnvSecure("NSS_LIB_PARAMS");
+        libParams = MPR_GetEnvSecure("NSS_LIB_PARAMS");
 
         if (!libParams) {
             /* Load from config filename or use default */
-            filename = PR_GetEnvSecure("NSS_LIB_PARAMS_FILE");
+            filename = MPR_GetEnvSecure("NSS_LIB_PARAMS_FILE");
 #ifdef XP_UNIX
             /* Use default configuration file for Linux only */
             if (!filename)
                 filename = LIB_PARAM_DEFAULT_FILE_LOCATION;
 #endif
             if (filename) {
-                file_dc = PR_OpenFile(filename, PR_RDONLY, 444);
+                file_dc = MPR_OpenFile(filename, PR_RDONLY, 444);
                 if (file_dc) {
                     /* file opened */
-                    PRInt32 len = PR_Available(file_dc);
+                    PRInt32 len = MPR_Available(file_dc);
                     libParams = PORT_NewArray(char, len + 1);
                     if (libParams) {
                         /* memory allocated */
-                        if (PR_Read(file_dc, libParams, len) == -1) {
+                        if (MPR_Read(file_dc, libParams, len) == -1) {
                             PORT_Free(libParams);
                             libParams = NULL;
                         } else {
@@ -3853,7 +3853,7 @@ sftk_getParameters(CK_C_INITIALIZE_ARGS *init_args, PRBool isFIPS,
                         }
                     }
 
-                    PR_Close(file_dc);
+                    MPR_Close(file_dc);
                 }
             }
         }
@@ -3892,7 +3892,7 @@ nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
     unsigned int moduleIndex = isFIPS ? NSC_FIPS_MODULE : NSC_NON_FIPS_MODULE;
 
     if (isFIPS) {
-        loginWaitTime = PR_SecondsToInterval(1);
+        loginWaitTime = MPR_SecondsToInterval(1);
     }
 
     ENABLE_FORK_CHECK();
@@ -4286,14 +4286,14 @@ sftk_checkNeedLogin(SFTKSlot *slot, SFTKDBHandle *keyHandle)
 {
     PRBool needLogin;
     if (sftkdb_PWCached(keyHandle) == SECSuccess) {
-        PR_Lock(slot->slotLock);
+        MPR_Lock(slot->slotLock);
         needLogin = slot->needLogin;
-        PR_Unlock(slot->slotLock);
+        MPR_Unlock(slot->slotLock);
     } else {
         needLogin = (PRBool)!sftk_hasNullPassword(slot, keyHandle);
-        PR_Lock(slot->slotLock);
+        MPR_Lock(slot->slotLock);
         slot->needLogin = needLogin;
-        PR_Unlock(slot->slotLock);
+        MPR_Unlock(slot->slotLock);
     }
     return needLogin;
 }
@@ -4332,10 +4332,10 @@ NSC_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo)
     PORT_Memcpy(pInfo->utcTime, "0000000000000000", 16);
     pInfo->ulMaxSessionCount = CK_EFFECTIVELY_INFINITE;
     pInfo->ulMaxRwSessionCount = CK_EFFECTIVELY_INFINITE;
-    PR_Lock(slot->slotLock); /* Protect sessionCount / rwSessioncount */
+    MPR_Lock(slot->slotLock); /* Protect sessionCount / rwSessioncount */
     pInfo->ulSessionCount = slot->sessionCount;
     pInfo->ulRwSessionCount = slot->rwSessionCount;
-    PR_Unlock(slot->slotLock); /* Unlock before sftk_getKeyDB */
+    MPR_Unlock(slot->slotLock); /* Unlock before sftk_getKeyDB */
     pInfo->firmwareVersion.major = 0;
     pInfo->firmwareVersion.minor = 0;
     PORT_Memcpy(pInfo->label, slot->tokDescription, sizeof(pInfo->label));
@@ -4544,7 +4544,7 @@ NSC_InitToken(CK_SLOT_ID slotID, CK_CHAR_PTR pPin,
 
     /* first, delete all our loaded key and cert objects from our
      * internal list. */
-    PR_Lock(slot->objectLock);
+    MPR_Lock(slot->objectLock);
     for (i = 0; i < slot->sessObjHashSize; i++) {
         do {
             object = slot->sessObjHashTable[i];
@@ -4564,7 +4564,7 @@ NSC_InitToken(CK_SLOT_ID slotID, CK_CHAR_PTR pPin,
         } while (object != NULL);
     }
     slot->DB_loaded = PR_FALSE;
-    PR_Unlock(slot->objectLock);
+    MPR_Unlock(slot->objectLock);
 
     /* then clear out the key database */
     handle = sftk_getKeyDB(slot);
@@ -4657,9 +4657,9 @@ NSC_InitPIN(CK_SESSION_HANDLE hSession,
     /* Now update our local copy of the pin */
     if (rv == SECSuccess) {
         if (ulPinLen == 0) {
-            PR_Lock(slot->slotLock);
+            MPR_Lock(slot->slotLock);
             slot->needLogin = PR_FALSE;
-            PR_Unlock(slot->slotLock);
+            MPR_Unlock(slot->slotLock);
         }
         /* database has been initialized, now force min password in FIPS
          * mode. NOTE: if we are in level1, we may not have a password, but
@@ -4716,9 +4716,9 @@ NSC_SetPIN(CK_SESSION_HANDLE hSession, CK_CHAR_PTR pOldPin,
         return CKR_PIN_LEN_RANGE; /* XXX FIXME wrong return value */
     }
 
-    PR_Lock(slot->slotLock);
+    MPR_Lock(slot->slotLock);
     needLogin = slot->needLogin;
-    PR_Unlock(slot->slotLock);
+    MPR_Unlock(slot->slotLock);
     if (needLogin && sp->info.state != CKS_RW_USER_FUNCTIONS) {
         crv = CKR_USER_NOT_LOGGED_IN;
         goto loser;
@@ -4747,7 +4747,7 @@ NSC_SetPIN(CK_SESSION_HANDLE hSession, CK_CHAR_PTR pOldPin,
     oldPinStr[ulOldLen] = 0;
 
     /* change the data base password */
-    PR_Lock(slot->pwCheckLock);
+    MPR_Lock(slot->pwCheckLock);
     rv = sftkdb_ChangePassword(handle, oldPinStr, newPinStr, &tokenRemoved);
     PORT_Memset(newPinStr, 0, ulNewLen);
     PORT_Memset(oldPinStr, 0, ulOldLen);
@@ -4755,22 +4755,22 @@ NSC_SetPIN(CK_SESSION_HANDLE hSession, CK_CHAR_PTR pOldPin,
         sftk_CloseAllSessions(slot, PR_FALSE);
     }
     if ((rv != SECSuccess) && (sftk_isFIPS(slot->slotID))) {
-        PR_Sleep(loginWaitTime);
+        MPR_Sleep(loginWaitTime);
     }
-    PR_Unlock(slot->pwCheckLock);
+    MPR_Unlock(slot->pwCheckLock);
 
     /* Now update our local copy of the pin */
     if (rv == SECSuccess) {
-        PR_Lock(slot->slotLock);
+        MPR_Lock(slot->slotLock);
         slot->needLogin = (PRBool)(ulNewLen != 0);
         slot->isLoggedIn = (PRBool)(sftkdb_PWCached(handle) == SECSuccess);
-        PR_Unlock(slot->slotLock);
+        MPR_Unlock(slot->slotLock);
         /* Reset login flags. */
         if (ulNewLen == 0) {
-            PR_Lock(slot->slotLock);
+            MPR_Lock(slot->slotLock);
             slot->isLoggedIn = PR_FALSE;
             slot->ssoLoggedIn = PR_FALSE;
-            PR_Unlock(slot->slotLock);
+            MPR_Unlock(slot->slotLock);
 
             tokenRemoved = PR_FALSE;
             rv = sftkdb_CheckPasswordNull(handle, &tokenRemoved);
@@ -4819,12 +4819,12 @@ NSC_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags,
         /* NETSCAPE_SLOT_ID is Read ONLY */
         session->info.flags &= ~CKF_RW_SESSION;
     }
-    PR_Lock(slot->slotLock);
+    MPR_Lock(slot->slotLock);
     ++slot->sessionCount;
     if (session->info.flags & CKF_RW_SESSION) {
         ++slot->rwSessionCount;
     }
-    PR_Unlock(slot->slotLock);
+    MPR_Unlock(slot->slotLock);
 
     do {
         PRLock *lock;
@@ -4832,7 +4832,7 @@ NSC_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags,
             sessionID = (PR_ATOMIC_INCREMENT(&slot->sessionIDCount) & 0xffffff) | (slot->index << 24);
         } while (sessionID == CK_INVALID_HANDLE);
         lock = SFTK_SESSION_LOCK(slot, sessionID);
-        PR_Lock(lock);
+        MPR_Lock(lock);
         sftkqueue_find(sameID, sessionID, slot->head, slot->sessHashSize);
         if (sameID == NULL) {
             session->handle = sessionID;
@@ -4841,7 +4841,7 @@ NSC_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags,
         } else {
             slot->sessionIDConflict++; /* for debugging */
         }
-        PR_Unlock(lock);
+        MPR_Unlock(lock);
     } while (sameID != NULL);
 
     *phSession = sessionID;
@@ -4867,17 +4867,17 @@ NSC_CloseSession(CK_SESSION_HANDLE hSession)
 
     /* lock */
     lock = SFTK_SESSION_LOCK(slot, hSession);
-    PR_Lock(lock);
+    MPR_Lock(lock);
     if (sftkqueue_is_queued(session, hSession, slot->head, slot->sessHashSize)) {
         sessionFound = PR_TRUE;
         sftkqueue_delete(session, hSession, slot->head, slot->sessHashSize);
     }
-    PR_Unlock(lock);
+    MPR_Unlock(lock);
 
     if (sessionFound) {
         SFTKDBHandle *handle;
         handle = sftk_getKeyDB(slot);
-        PR_Lock(slot->slotLock);
+        MPR_Lock(slot->slotLock);
         if (--slot->sessionCount == 0) {
             slot->isLoggedIn = PR_FALSE;
             if (slot->needLogin && handle) {
@@ -4887,7 +4887,7 @@ NSC_CloseSession(CK_SESSION_HANDLE hSession)
         if (session->info.flags & CKF_RW_SESSION) {
             --slot->rwSessionCount;
         }
-        PR_Unlock(slot->slotLock);
+        MPR_Unlock(slot->slotLock);
         if (handle) {
             sftk_freeDB(handle);
         }
@@ -4974,10 +4974,10 @@ NSC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
         return CKR_USER_TYPE_INVALID;
     }
 
-    PR_Lock(slot->slotLock);
+    MPR_Lock(slot->slotLock);
     isLoggedIn = slot->isLoggedIn;
     needLogin = slot->needLogin;
-    PR_Unlock(slot->slotLock);
+    MPR_Unlock(slot->slotLock);
 
     if (isLoggedIn)
         return CKR_USER_ALREADY_LOGGED_IN;
@@ -4985,9 +4985,9 @@ NSC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
         return ulPinLen ? CKR_PIN_INCORRECT : CKR_OK;
     }
 
-    PR_Lock(slot->slotLock);
+    MPR_Lock(slot->slotLock);
     slot->ssoLoggedIn = PR_FALSE;
-    PR_Unlock(slot->slotLock);
+    MPR_Unlock(slot->slotLock);
 
     if (ulPinLen > SFTK_MAX_PIN)
         return CKR_PIN_LEN_RANGE;
@@ -5019,10 +5019,10 @@ NSC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
             /* should this be a fixed password? */
             if (ulPinLen == 0) {
                 sftkdb_ClearPassword(handle);
-                PR_Lock(slot->slotLock);
+                MPR_Lock(slot->slotLock);
                 slot->isLoggedIn = PR_TRUE;
                 slot->ssoLoggedIn = (PRBool)(userType == CKU_SO);
-                PR_Unlock(slot->slotLock);
+                MPR_Unlock(slot->slotLock);
                 sftk_update_all_states(slot);
                 crv = CKR_OK;
                 goto done;
@@ -5041,21 +5041,21 @@ NSC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
     }
 
     /* build the hashed pins which we pass around */
-    PR_Lock(slot->pwCheckLock);
+    MPR_Lock(slot->pwCheckLock);
     rv = sftkdb_CheckPassword(handle, pinStr, &tokenRemoved);
     if (tokenRemoved) {
         sftk_CloseAllSessions(slot, PR_FALSE);
     }
     if ((rv != SECSuccess) && (sftk_isFIPS(slot->slotID))) {
-        PR_Sleep(loginWaitTime);
+        MPR_Sleep(loginWaitTime);
     }
-    PR_Unlock(slot->pwCheckLock);
+    MPR_Unlock(slot->pwCheckLock);
     if (rv == SECSuccess) {
-        PR_Lock(slot->slotLock);
+        MPR_Lock(slot->slotLock);
         /* make sure the login state matches the underlying
          * database state */
         slot->isLoggedIn = sftkdb_PWCached(handle) == SECSuccess ? PR_TRUE : PR_FALSE;
-        PR_Unlock(slot->slotLock);
+        MPR_Unlock(slot->slotLock);
 
         sftk_freeDB(handle);
         handle = NULL;
@@ -5102,21 +5102,21 @@ NSC_Logout(CK_SESSION_HANDLE hSession)
     sftk_FreeSession(session);
     session = NULL;
 
-    PR_Lock(slot->slotLock);
+    MPR_Lock(slot->slotLock);
     PRBool isLoggedIn = slot->isLoggedIn;
-    PR_Unlock(slot->slotLock);
+    MPR_Unlock(slot->slotLock);
     if (!isLoggedIn) {
         return CKR_USER_NOT_LOGGED_IN;
     }
 
     handle = sftk_getKeyDB(slot);
-    PR_Lock(slot->slotLock);
+    MPR_Lock(slot->slotLock);
     slot->isLoggedIn = PR_FALSE;
     slot->ssoLoggedIn = PR_FALSE;
     if (slot->needLogin && handle) {
         sftkdb_ClearPassword(handle);
     }
-    PR_Unlock(slot->slotLock);
+    MPR_Unlock(slot->slotLock);
     if (handle) {
         sftk_freeDB(handle);
     }
@@ -5510,10 +5510,10 @@ NSC_GetAttributeValue(CK_SESSION_HANDLE hSession,
         return CKR_OBJECT_HANDLE_INVALID;
     }
 
-    PR_Lock(slot->slotLock);
+    MPR_Lock(slot->slotLock);
     isLoggedIn = slot->isLoggedIn;
     needLogin = slot->needLogin;
-    PR_Unlock(slot->slotLock);
+    MPR_Unlock(slot->slotLock);
 
     /* don't read a private object if we aren't logged in */
     if (!isLoggedIn && needLogin && sftk_isTrue(object, CKA_PRIVATE)) {
@@ -5581,10 +5581,10 @@ NSC_SetAttributeValue(CK_SESSION_HANDLE hSession,
         return CKR_OBJECT_HANDLE_INVALID;
     }
 
-    PR_Lock(slot->slotLock);
+    MPR_Lock(slot->slotLock);
     isLoggedIn = slot->isLoggedIn;
     needLogin = slot->needLogin;
-    PR_Unlock(slot->slotLock);
+    MPR_Unlock(slot->slotLock);
 
     /* don't modify a private object if we aren't logged in */
     if (!isLoggedIn && needLogin && sftk_isTrue(object, CKA_PRIVATE)) {
@@ -5866,9 +5866,9 @@ NSC_FindObjectsInit(CK_SESSION_HANDLE hSession,
     search->size = 0;
     search->array_size = NSC_SEARCH_BLOCK_SIZE;
 
-    PR_Lock(slot->slotLock);
+    MPR_Lock(slot->slotLock);
     isLoggedIn = (PRBool)((!slot->needLogin) || slot->isLoggedIn);
-    PR_Unlock(slot->slotLock);
+    MPR_Unlock(slot->slotLock);
 
     PRBool validTokenAttribute = PR_FALSE;
     PRBool tokenAttributeValue = PR_FALSE;

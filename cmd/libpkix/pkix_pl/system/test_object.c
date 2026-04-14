@@ -37,7 +37,7 @@ toStringCallback(
     errorResult = PKIX_PL_String_Create(
         PKIX_ESCASCII,
         format,
-        PL_strlen(format),
+        MPL_strlen(format),
         &formatString,
         plContext);
     if (errorResult)

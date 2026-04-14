@@ -90,7 +90,7 @@ nssCKFWMutex_Create(
     *pError = CKR_OK;
     mutex->lock = NULL;
     if (LockingState == MultiThreaded) {
-        mutex->lock = PR_NewLock();
+        mutex->lock = MPR_NewLock();
         if (!mutex->lock) {
             *pError = CKR_HOST_MEMORY; /* we couldn't get the resource */
         }
@@ -105,7 +105,7 @@ nssCKFWMutex_Create(
     *pError = mutex_add_pointer(mutex);
     if (CKR_OK != *pError) {
         if (mutex->lock) {
-            PR_DestroyLock(mutex->lock);
+            MPR_DestroyLock(mutex->lock);
         }
         (void)nss_ZFreeIf(mutex);
         return (NSSCKFWMutex *)NULL;
@@ -133,7 +133,7 @@ nssCKFWMutex_Destroy(
 #endif /* NSSDEBUG */
 
     if (mutex->lock) {
-        PR_DestroyLock(mutex->lock);
+        MPR_DestroyLock(mutex->lock);
     }
 
 #ifdef DEBUG
@@ -159,7 +159,7 @@ nssCKFWMutex_Lock(
     }
 #endif /* NSSDEBUG */
     if (mutex->lock) {
-        PR_Lock(mutex->lock);
+        MPR_Lock(mutex->lock);
     }
 
     return CKR_OK;
@@ -185,7 +185,7 @@ nssCKFWMutex_Unlock(
     if (!mutex->lock)
         return CKR_OK;
 
-    nrv = PR_Unlock(mutex->lock);
+    nrv = MPR_Unlock(mutex->lock);
 
     /* if unlock fails, either we have a programming error, or we have
      * some sort of hardware failure... in either case return CKR_DEVICE_ERROR.

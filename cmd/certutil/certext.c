@@ -867,7 +867,7 @@ AddSubjectAltNames(PLArenaPool *arena, CERTGeneralName **existingListp,
             /* types that require more processing */
             case certIPAddress:
                 /* convert the string to an ip address */
-                status = PR_StringToNetAddr(cp, &addr);
+                status = MPR_StringToNetAddr(cp, &addr);
                 if (status != PR_SUCCESS) {
                     rv = SECFailure;
                     fprintf(stderr, "Invalid IP Address (\"%s\")\n", cp);
@@ -1072,7 +1072,7 @@ AddNameConstraints(void *extHandle)
                 break;
         }
 
-        PR_snprintf(buffer, sizeof(buffer), "Add another entry to the"
+        MPR_snprintf(buffer, sizeof(buffer), "Add another entry to the"
                                             " Name Constraint Extension [y/N]");
 
         if (GetYesNo(buffer) == 0) {
@@ -1948,7 +1948,7 @@ AddInfoAccess(void *extHandle, PRBool addSIAExt, PRBool isCACert)
         infoAccArr[count] = current;
         ++count;
 
-        PR_snprintf(buffer, sizeof(buffer), "Add another location to the %s"
+        MPR_snprintf(buffer, sizeof(buffer), "Add another location to the %s"
                                             " Information Access extension [y/N]",
                     (addSIAExt) ? "Subject" : "Authority");
 
@@ -2241,24 +2241,24 @@ AddExtensions(void *extHandle, const char *emailAddrs, const char *dnsNames,
             SECU_PrintError(progName, "expected 'critical' or 'not-critical'");
             break;
         }
-        zeroTerminatedFilename = PL_strndup(filename, filenameLen);
+        zeroTerminatedFilename = MPL_strndup(filename, filenameLen);
         if (!zeroTerminatedFilename) {
             rv = SECFailure;
             SECU_PrintError(progName, "out of memory");
             break;
         }
         rv = SECFailure;
-        inFile = PR_Open(zeroTerminatedFilename, PR_RDONLY, 0);
+        inFile = MPR_Open(zeroTerminatedFilename, PR_RDONLY, 0);
         if (inFile) {
             rv = SECU_ReadDERFromFile(&value, inFile, PR_FALSE, PR_FALSE);
-            PR_Close(inFile);
+            MPR_Close(inFile);
             inFile = NULL;
         }
         if (rv != SECSuccess) {
             SECU_PrintError(progName, "unable to read file %s",
                             zeroTerminatedFilename);
         }
-        PL_strfree(zeroTerminatedFilename);
+        MPL_strfree(zeroTerminatedFilename);
         if (rv != SECSuccess) {
             break;
         }

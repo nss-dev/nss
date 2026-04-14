@@ -60,7 +60,7 @@ createCert(char *inFileName)
 
     certDER.data = NULL;
 
-    inFile = PR_Open(inFileName, PR_RDONLY, 0);
+    inFile = MPR_Open(inFileName, PR_RDONLY, 0);
 
     if (!inFile) {
         pkixTestErrorMsg = "Unable to open cert file";
@@ -85,7 +85,7 @@ createCert(char *inFileName)
 cleanup:
 
     if (inFile) {
-        PR_Close(inFile);
+        MPR_Close(inFile);
     }
 
     if (PKIX_TEST_ERROR_RECEIVED) {

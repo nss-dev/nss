@@ -158,7 +158,7 @@ wantOcspTrace(void)
 
 #ifdef NSS_HAVE_GETENV
     if (firstTime) {
-        char *ev = PR_GetEnvSecure("NSS_TRACE_OCSP");
+        char *ev = MPR_GetEnvSecure("NSS_TRACE_OCSP");
         if (ev && ev[0]) {
             wantTrace = PR_TRUE;
         }
@@ -177,9 +177,9 @@ ocsp_Trace(const char *format, ...)
     if (!wantOcspTrace())
         return;
     va_start(args, format);
-    PR_vsnprintf(buf, sizeof(buf), format, args);
+    MPR_vsnprintf(buf, sizeof(buf), format, args);
     va_end(args);
-    PR_LogPrint("%s", buf);
+    MPR_LogPrint("%s", buf);
 }
 
 static void
@@ -190,8 +190,8 @@ ocsp_dumpStringWithTime(const char *str, PRTime time)
 
     if (!wantOcspTrace())
         return;
-    PR_ExplodeTime(time, PR_GMTParameters, &timePrintable);
-    if (PR_FormatTime(timestr, 256, "%a %b %d %H:%M:%S %Y", &timePrintable)) {
+    MPR_ExplodeTime(time, MPR_GMTParameters, &timePrintable);
+    if (MPR_FormatTime(timestr, 256, "%a %b %d %H:%M:%S %Y", &timePrintable)) {
         ocsp_Trace("OCSP %s %s\n", str, timestr);
     }
 }
@@ -204,14 +204,14 @@ printHexString(const char *prefix, SECItem *hexval)
 
     for (i = 0; i < hexval->len; i++) {
         if (i != hexval->len - 1) {
-            hexbuf = PR_sprintf_append(hexbuf, "%02x:", hexval->data[i]);
+            hexbuf = MPR_sprintf_append(hexbuf, "%02x:", hexval->data[i]);
         } else {
-            hexbuf = PR_sprintf_append(hexbuf, "%02x", hexval->data[i]);
+            hexbuf = MPR_sprintf_append(hexbuf, "%02x", hexval->data[i]);
         }
     }
     if (hexbuf) {
         ocsp_Trace("%s %s\n", prefix, hexbuf);
-        PR_smprintf_free(hexbuf);
+        MPR_smprintf_free(hexbuf);
     }
 }
 
@@ -230,11 +230,11 @@ dumpCertificate(CERTCertificate *cert)
         PRStatus rv1, rv2;
         DER_DecodeTimeChoice(&timeBefore, &cert->validity.notBefore);
         DER_DecodeTimeChoice(&timeAfter, &cert->validity.notAfter);
-        PR_ExplodeTime(timeBefore, PR_GMTParameters, &beforePrintable);
-        PR_ExplodeTime(timeAfter, PR_GMTParameters, &afterPrintable);
-        rv1 = PR_FormatTime(beforestr, 256, "%a %b %d %H:%M:%S %Y",
+        MPR_ExplodeTime(timeBefore, MPR_GMTParameters, &beforePrintable);
+        MPR_ExplodeTime(timeAfter, MPR_GMTParameters, &afterPrintable);
+        rv1 = MPR_FormatTime(beforestr, 256, "%a %b %d %H:%M:%S %Y",
                             &beforePrintable);
-        rv2 = PR_FormatTime(afterstr, 256, "%a %b %d %H:%M:%S %Y",
+        rv2 = MPR_FormatTime(afterstr, 256, "%a %b %d %H:%M:%S %Y",
                             &afterPrintable);
         ocsp_Trace("OCSP ## VALIDITY:  %s to %s\n", rv1 ? beforestr : "",
                    rv2 ? afterstr : "");
@@ -262,9 +262,9 @@ SEC_RegisterDefaultHttpClient(const SEC_HttpClientFcn *fcnTable)
         return SECFailure;
     }
 
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     OCSP_Global.defaultHttpClientFcn = fcnTable;
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
 
     return SECSuccess;
 }
@@ -281,10 +281,10 @@ CERT_RegisterAlternateOCSPAIAInfoCallBack(
         return SECFailure;
     }
 
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     old = OCSP_Global.alternateOCSPAIAFcn;
     OCSP_Global.alternateOCSPAIAFcn = newCallback;
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
     if (oldCallback)
         *oldCallback = old;
     return SECSuccess;
@@ -410,7 +410,7 @@ ocsp_CopyCertStatus(PLArenaPool *arena, ocspCertStatus *dest,
 static void
 ocsp_AddCacheItemToLinkedList(OCSPCacheData *cache, OCSPCacheItem *new_most_recent)
 {
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
 
     if (!cache->LRUitem) {
         cache->LRUitem = new_most_recent;
@@ -423,13 +423,13 @@ ocsp_AddCacheItemToLinkedList(OCSPCacheData *cache, OCSPCacheItem *new_most_rece
     }
     cache->MRUitem = new_most_recent;
 
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
 }
 
 static void
 ocsp_RemoveCacheItemFromLinkedList(OCSPCacheData *cache, OCSPCacheItem *item)
 {
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
 
     if (!item->lessRecent && !item->moreRecent) {
         /*
@@ -445,7 +445,7 @@ ocsp_RemoveCacheItemFromLinkedList(OCSPCacheData *cache, OCSPCacheItem *item)
             cache->MRUitem = NULL;
             cache->LRUitem = NULL;
         }
-        PR_ExitMonitor(OCSP_Global.monitor);
+        MPR_ExitMonitor(OCSP_Global.monitor);
         return;
     }
 
@@ -477,24 +477,24 @@ ocsp_RemoveCacheItemFromLinkedList(OCSPCacheData *cache, OCSPCacheItem *item)
     item->lessRecent = NULL;
     item->moreRecent = NULL;
 
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
 }
 
 static void
 ocsp_MakeCacheEntryMostRecent(OCSPCacheData *cache, OCSPCacheItem *new_most_recent)
 {
     OCSP_TRACE(("OCSP ocsp_MakeCacheEntryMostRecent THREADID %p\n",
-                PR_GetCurrentThread()));
-    PR_EnterMonitor(OCSP_Global.monitor);
+                MPR_GetCurrentThread()));
+    MPR_EnterMonitor(OCSP_Global.monitor);
     if (cache->MRUitem == new_most_recent) {
         OCSP_TRACE(("OCSP ocsp_MakeCacheEntryMostRecent ALREADY MOST\n"));
-        PR_ExitMonitor(OCSP_Global.monitor);
+        MPR_ExitMonitor(OCSP_Global.monitor);
         return;
     }
     OCSP_TRACE(("OCSP ocsp_MakeCacheEntryMostRecent NEW entry\n"));
     ocsp_RemoveCacheItemFromLinkedList(cache, new_most_recent);
     ocsp_AddCacheItemToLinkedList(cache, new_most_recent);
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
 }
 
 static PRBool
@@ -505,9 +505,9 @@ ocsp_IsCacheDisabled(void)
      * maxCacheEntries  < 0 means cache is disabled
      */
     PRBool retval;
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     retval = (OCSP_Global.maxCacheEntries < 0);
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
     return retval;
 }
 
@@ -517,11 +517,11 @@ ocsp_FindCacheEntry(OCSPCacheData *cache, CERTOCSPCertID *certID)
     OCSPCacheItem *found_ocsp_item = NULL;
     OCSP_TRACE(("OCSP ocsp_FindCacheEntry\n"));
     OCSP_TRACE_CERTID(certID);
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     if (ocsp_IsCacheDisabled())
         goto loser;
 
-    found_ocsp_item = (OCSPCacheItem *)PL_HashTableLookup(
+    found_ocsp_item = (OCSPCacheItem *)MPL_HashTableLookup(
         cache->entries, certID);
     if (!found_ocsp_item)
         goto loser;
@@ -530,7 +530,7 @@ ocsp_FindCacheEntry(OCSPCacheData *cache, CERTOCSPCertID *certID)
     ocsp_MakeCacheEntryMostRecent(cache, found_ocsp_item);
 
 loser:
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
     return found_ocsp_item;
 }
 
@@ -555,29 +555,29 @@ ocsp_RemoveCacheItem(OCSPCacheData *cache, OCSPCacheItem *item)
      * because of an allocation failure, or it could get removed because we're
      * cleaning up.
      */
-    OCSP_TRACE(("OCSP ocsp_RemoveCacheItem, THREADID %p\n", PR_GetCurrentThread()));
-    PR_EnterMonitor(OCSP_Global.monitor);
+    OCSP_TRACE(("OCSP ocsp_RemoveCacheItem, THREADID %p\n", MPR_GetCurrentThread()));
+    MPR_EnterMonitor(OCSP_Global.monitor);
 
     ocsp_RemoveCacheItemFromLinkedList(cache, item);
 #ifdef DEBUG
     {
-        PRBool couldRemoveFromHashTable = PL_HashTableRemove(cache->entries,
+        PRBool couldRemoveFromHashTable = MPL_HashTableRemove(cache->entries,
                                                              item->certID);
         PORT_Assert(couldRemoveFromHashTable);
     }
 #else
-    PL_HashTableRemove(cache->entries, item->certID);
+    MPL_HashTableRemove(cache->entries, item->certID);
 #endif
     --cache->numberOfEntries;
     ocsp_FreeCacheItem(item);
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
 }
 
 static void
 ocsp_CheckCacheSize(OCSPCacheData *cache)
 {
     OCSP_TRACE(("OCSP ocsp_CheckCacheSize\n"));
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     if (OCSP_Global.maxCacheEntries > 0) {
         /* Cache is not disabled. Number of cache entries is limited.
          * The monitor ensures that maxCacheEntries remains positive.
@@ -587,19 +587,19 @@ ocsp_CheckCacheSize(OCSPCacheData *cache)
             ocsp_RemoveCacheItem(cache, cache->LRUitem);
         }
     }
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
 }
 
 SECStatus
 CERT_ClearOCSPCache(void)
 {
     OCSP_TRACE(("OCSP CERT_ClearOCSPCache\n"));
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     while (OCSP_Global.cache.numberOfEntries > 0) {
         ocsp_RemoveCacheItem(&OCSP_Global.cache,
                              OCSP_Global.cache.LRUitem);
     }
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
     return SECSuccess;
 }
 
@@ -616,7 +616,7 @@ ocsp_CreateCacheItemAndConsumeCertID(OCSPCacheData *cache,
     PORT_Assert(pCacheItem != NULL);
     *pCacheItem = NULL;
 
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     arena = certID->poolp;
     mark = PORT_ArenaMark(arena);
 
@@ -628,7 +628,7 @@ ocsp_CreateCacheItemAndConsumeCertID(OCSPCacheData *cache,
         goto loser;
     }
     item->certID = certID;
-    new_hash_entry = PL_HashTableAdd(cache->entries, item->certID,
+    new_hash_entry = MPL_HashTableAdd(cache->entries, item->certID,
                                      item);
     if (!new_hash_entry) {
         goto loser;
@@ -638,12 +638,12 @@ ocsp_CreateCacheItemAndConsumeCertID(OCSPCacheData *cache,
     ocsp_AddCacheItemToLinkedList(cache, item);
     *pCacheItem = item;
 
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
     return SECSuccess;
 
 loser:
     PORT_ArenaRelease(arena, mark);
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
     return SECFailure;
 }
 
@@ -693,9 +693,9 @@ ocsp_FreshenCacheItemNextFetchAttemptTime(OCSPCacheItem *cacheItem)
 
     OCSP_TRACE(("OCSP ocsp_FreshenCacheItemNextFetchAttemptTime\n"));
 
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
 
-    now = PR_Now();
+    now = MPR_Now();
     OCSP_TRACE_TIME("now:", now);
 
     if (cacheItem->haveThisUpdate) {
@@ -745,7 +745,7 @@ ocsp_FreshenCacheItemNextFetchAttemptTime(OCSPCacheItem *cacheItem)
     OCSP_TRACE_TIME("nextFetchAttemptTime",
                     latestTimeWhenResponseIsConsideredFresh);
 
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
 }
 
 static PRBool
@@ -754,7 +754,7 @@ ocsp_IsCacheItemFresh(OCSPCacheItem *cacheItem)
     PRTime now;
     PRBool fresh;
 
-    now = PR_Now();
+    now = MPR_Now();
 
     fresh = cacheItem->nextFetchAttemptTime > now;
 
@@ -791,7 +791,7 @@ ocsp_CreateOrUpdateCacheEntry(OCSPCacheData *cache,
     if (certIDWasConsumed)
         *certIDWasConsumed = PR_FALSE;
 
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     PORT_Assert(OCSP_Global.maxCacheEntries >= 0);
 
     cacheItem = ocsp_FindCacheEntry(cache, certID);
@@ -804,7 +804,7 @@ ocsp_CreateOrUpdateCacheEntry(OCSPCacheData *cache,
     if (!single && cacheItem && cacheItem->certStatusArena &&
         (cacheItem->certStatus.certStatusType == ocspCertStatus_revoked ||
          cacheItem->certStatus.certStatusType == ocspCertStatus_unknown)) {
-        PR_ExitMonitor(OCSP_Global.monitor);
+        MPR_ExitMonitor(OCSP_Global.monitor);
         return SECSuccess;
     }
 
@@ -816,7 +816,7 @@ ocsp_CreateOrUpdateCacheEntry(OCSPCacheData *cache,
         } else {
             myCertID = cert_DupOCSPCertID(certID);
             if (!myCertID) {
-                PR_ExitMonitor(OCSP_Global.monitor);
+                MPR_ExitMonitor(OCSP_Global.monitor);
                 PORT_SetError(PR_OUT_OF_MEMORY_ERROR);
                 return SECFailure;
             }
@@ -825,7 +825,7 @@ ocsp_CreateOrUpdateCacheEntry(OCSPCacheData *cache,
         rv = ocsp_CreateCacheItemAndConsumeCertID(cache, myCertID,
                                                   &cacheItem);
         if (rv != SECSuccess) {
-            PR_ExitMonitor(OCSP_Global.monitor);
+            MPR_ExitMonitor(OCSP_Global.monitor);
             return rv;
         }
     }
@@ -838,7 +838,7 @@ ocsp_CreateOrUpdateCacheEntry(OCSPCacheData *cache,
             rv = ocsp_SetCacheItemResponse(cacheItem, single);
             if (rv != SECSuccess) {
                 ocsp_RemoveCacheItem(cache, cacheItem);
-                PR_ExitMonitor(OCSP_Global.monitor);
+                MPR_ExitMonitor(OCSP_Global.monitor);
                 return rv;
             }
         } else {
@@ -855,7 +855,7 @@ ocsp_CreateOrUpdateCacheEntry(OCSPCacheData *cache,
     ocsp_FreshenCacheItemNextFetchAttemptTime(cacheItem);
     ocsp_CheckCacheSize(cache);
 
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
     return SECSuccess;
 }
 
@@ -871,9 +871,9 @@ CERT_SetOCSPFailureMode(SEC_OcspFailureMode ocspFailureMode)
             return SECFailure;
     }
 
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     OCSP_Global.ocspFailureMode = ocspFailureMode;
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
     return SECSuccess;
 }
 
@@ -888,7 +888,7 @@ CERT_OCSPCacheSettings(PRInt32 maxCacheEntries,
         return SECFailure;
     }
 
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
 
     if (maxCacheEntries < 0) {
         OCSP_Global.maxCacheEntries = -1; /* disable cache */
@@ -915,7 +915,7 @@ CERT_OCSPCacheSettings(PRInt32 maxCacheEntries,
         maximumSecondsToNextFetchAttempt;
     ocsp_CheckCacheSize(&OCSP_Global.cache);
 
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
     return SECSuccess;
 }
 
@@ -934,18 +934,18 @@ OCSP_InitGlobal(void)
     SECStatus rv = SECFailure;
 
     if (OCSP_Global.monitor == NULL) {
-        OCSP_Global.monitor = PR_NewMonitor();
+        OCSP_Global.monitor = MPR_NewMonitor();
     }
     if (!OCSP_Global.monitor)
         return SECFailure;
 
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     if (!OCSP_Global.cache.entries) {
         OCSP_Global.cache.entries =
-            PL_NewHashTable(0,
+            MPL_NewHashTable(0,
                             ocsp_CacheKeyHashFunction,
                             ocsp_CacheKeyCompareFunction,
-                            PL_CompareValues,
+                            MPL_CompareValues,
                             NULL,
                             NULL);
         OCSP_Global.ocspFailureMode = ocspMode_FailureIsVerificationFailure;
@@ -962,7 +962,7 @@ OCSP_InitGlobal(void)
     }
     if (OCSP_Global.cache.entries)
         rv = SECSuccess;
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
     return rv;
 }
 
@@ -972,10 +972,10 @@ OCSP_ShutdownGlobal(void)
     if (!OCSP_Global.monitor)
         return SECSuccess;
 
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     if (OCSP_Global.cache.entries) {
         CERT_ClearOCSPCache();
-        PL_HashTableDestroy(OCSP_Global.cache.entries);
+        MPL_HashTableDestroy(OCSP_Global.cache.entries);
         OCSP_Global.cache.entries = NULL;
     }
     PORT_Assert(OCSP_Global.cache.numberOfEntries == 0);
@@ -990,9 +990,9 @@ OCSP_ShutdownGlobal(void)
         DEFAULT_MAXIMUM_SECONDS_TO_NEXT_OCSP_FETCH_ATTEMPT;
     OCSP_Global.ocspFailureMode =
         ocspMode_FailureIsVerificationFailure;
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
 
-    PR_DestroyMonitor(OCSP_Global.monitor);
+    MPR_DestroyMonitor(OCSP_Global.monitor);
     OCSP_Global.monitor = NULL;
     return SECSuccess;
 }
@@ -1011,9 +1011,9 @@ SEC_GetRegisteredHttpClient(void)
         return NULL;
     }
 
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     retval = OCSP_Global.defaultHttpClientFcn;
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
 
     return retval;
 }
@@ -2931,12 +2931,12 @@ ocsp_ConnectToHost(const char *host, PRUint16 port)
     PRNetAddr addr;
     char *netdbbuf = NULL;
 
-    sock = PR_NewTCPSocket();
+    sock = MPR_NewTCPSocket();
     if (sock == NULL)
         goto loser;
 
     /* XXX Some day need a way to set (and get?) the following value */
-    timeout = PR_SecondsToInterval(30);
+    timeout = MPR_SecondsToInterval(30);
 
     /*
      * If the following converts an IP address string in "dot notation"
@@ -2946,7 +2946,7 @@ ocsp_ConnectToHost(const char *host, PRUint16 port)
      * means we do not have to have our own logic for distinguishing a
      * valid numerical IP address from a hostname.
      */
-    if (PR_StringToNetAddr(host, &addr) != PR_SUCCESS) {
+    if (MPR_StringToNetAddr(host, &addr) != PR_SUCCESS) {
         PRIntn hostIndex;
         PRHostEnt hostEntry;
 
@@ -2954,25 +2954,25 @@ ocsp_ConnectToHost(const char *host, PRUint16 port)
         if (netdbbuf == NULL)
             goto loser;
 
-        if (PR_GetHostByName(host, netdbbuf, PR_NETDB_BUF_SIZE,
+        if (MPR_GetHostByName(host, netdbbuf, PR_NETDB_BUF_SIZE,
                              &hostEntry) != PR_SUCCESS)
             goto loser;
 
         hostIndex = 0;
         do {
-            hostIndex = PR_EnumerateHostEnt(hostIndex, &hostEntry, port, &addr);
+            hostIndex = MPR_EnumerateHostEnt(hostIndex, &hostEntry, port, &addr);
             if (hostIndex <= 0)
                 goto loser;
-        } while (PR_Connect(sock, &addr, timeout) != PR_SUCCESS);
+        } while (MPR_Connect(sock, &addr, timeout) != PR_SUCCESS);
 
         PORT_Free(netdbbuf);
     } else {
         /*
          * First put the port into the address, then connect.
          */
-        if (PR_InitializeNetAddr(PR_IpAddrNull, port, &addr) != PR_SUCCESS)
+        if (MPR_InitializeNetAddr(PR_IpAddrNull, port, &addr) != PR_SUCCESS)
             goto loser;
-        if (PR_Connect(sock, &addr, timeout) != PR_SUCCESS)
+        if (MPR_Connect(sock, &addr, timeout) != PR_SUCCESS)
             goto loser;
     }
 
@@ -2980,7 +2980,7 @@ ocsp_ConnectToHost(const char *host, PRUint16 port)
 
 loser:
     if (sock != NULL)
-        PR_Close(sock);
+        MPR_Close(sock);
     if (netdbbuf != NULL)
         PORT_Free(netdbbuf);
     return NULL;
@@ -3028,11 +3028,11 @@ ocsp_SendEncodedRequest(const char *location, const SECItem *encodedRequest)
 
     portstr[0] = '\0';
     if (port != 80) {
-        PR_snprintf(portstr, sizeof(portstr), ":%d", port);
+        MPR_snprintf(portstr, sizeof(portstr), ":%d", port);
     }
 
     if (!encodedRequest) {
-        header = PR_smprintf("GET %s HTTP/1.0\r\n"
+        header = MPR_smprintf("GET %s HTTP/1.0\r\n"
                              "Host: %s%s\r\n\r\n",
                              path, hostname, portstr);
         if (header == NULL)
@@ -3042,10 +3042,10 @@ ocsp_SendEncodedRequest(const char *location, const SECItem *encodedRequest)
          * The NSPR documentation promises that if it can, it will write the full
          * amount; this will not return a partial value expecting us to loop.
          */
-        if (PR_Write(sock, header, (PRInt32)PORT_Strlen(header)) < 0)
+        if (MPR_Write(sock, header, (PRInt32)PORT_Strlen(header)) < 0)
             goto loser;
     } else {
-        header = PR_smprintf("POST %s HTTP/1.0\r\n"
+        header = MPR_smprintf("POST %s HTTP/1.0\r\n"
                              "Host: %s%s\r\n"
                              "Content-Type: application/ocsp-request\r\n"
                              "Content-Length: %u\r\n\r\n",
@@ -3057,10 +3057,10 @@ ocsp_SendEncodedRequest(const char *location, const SECItem *encodedRequest)
          * The NSPR documentation promises that if it can, it will write the full
          * amount; this will not return a partial value expecting us to loop.
          */
-        if (PR_Write(sock, header, (PRInt32)PORT_Strlen(header)) < 0)
+        if (MPR_Write(sock, header, (PRInt32)PORT_Strlen(header)) < 0)
             goto loser;
 
-        if (PR_Write(sock, encodedRequest->data,
+        if (MPR_Write(sock, encodedRequest->data,
                      (PRInt32)encodedRequest->len) < 0)
             goto loser;
     }
@@ -3072,7 +3072,7 @@ loser:
     if (header != NULL)
         PORT_Free(header);
     if (sock != NULL)
-        PR_Close(sock);
+        MPR_Close(sock);
     if (path != NULL)
         PORT_Free(path);
     if (hostname != NULL)
@@ -3094,7 +3094,7 @@ ocsp_read(PRFileDesc *fd, char *buf, int toread, PRIntervalTime timeout)
     while (total < toread) {
         PRInt32 got;
 
-        got = PR_Recv(fd, buf + total, (PRInt32)(toread - total), 0, timeout);
+        got = MPR_Recv(fd, buf + total, (PRInt32)(toread - total), 0, timeout);
         if (got < 0) {
             if (0 == total) {
                 total = -1; /* report the error if we didn't read anything yet */
@@ -3143,7 +3143,7 @@ ocsp_GetEncodedResponse(PLArenaPool *arena, PRFileDesc *sock)
     const char *headerEndMark = "\r\n\r\n";
     const PRInt32 markLen = strlen(headerEndMark);
     const PRIntervalTime ocsptimeout =
-        PR_SecondsToInterval(30); /* hardcoded to 30s for now */
+        MPR_SecondsToInterval(30); /* hardcoded to 30s for now */
     char *headerEnd = NULL;
     PRBool EOS = PR_FALSE;
     const char *httpprotocol = "HTTP/";
@@ -3383,7 +3383,7 @@ fetchOcspHttpClientV1(PLArenaPool *arena,
             "http",
             path,
             encodedRequest ? "POST" : "GET",
-            PR_TicksPerSecond() * OCSP_Global.timeoutSeconds,
+            MPR_TicksPerSecond() * OCSP_Global.timeoutSeconds,
             &pRequestSession) != SECSuccess) {
         PORT_SetError(SEC_ERROR_OCSP_SERVER_ERROR);
         goto loser;
@@ -3674,7 +3674,7 @@ cert_GetOCSPResponse(PLArenaPool *arena, const char *location,
         slashLengthIfNeeded = 1;
     }
 
-    /* Calculation as documented by PL_Base64Encode function.
+    /* Calculation as documented by MPL_Base64Encode function.
      * Use integer conversion to avoid having to use function ceil().
      */
     base64size = (((encodedRequest->len + 2) / 3) * 4);
@@ -3682,7 +3682,7 @@ cert_GetOCSPResponse(PLArenaPool *arena, const char *location,
         return NULL;
     }
     memset(b64ReqBuf, 0, sizeof(b64ReqBuf));
-    PL_Base64Encode((const char *)encodedRequest->data, encodedRequest->len,
+    MPL_Base64Encode((const char *)encodedRequest->data, encodedRequest->len,
                     b64ReqBuf);
 
     urlEncodedBufLength = ocsp_UrlEncodeBase64Buf(b64ReqBuf, NULL);
@@ -3743,7 +3743,7 @@ cert_FetchOCSPResponse(PLArenaPool *arena, const char *location,
         PRFileDesc *sock = ocsp_SendEncodedRequest(location, encodedRequest);
         if (sock) {
             encodedResponse = ocsp_GetEncodedResponse(arena, sock);
-            PR_Close(sock);
+            MPR_Close(sock);
         }
     }
 
@@ -4515,7 +4515,7 @@ ocsp_AuthorizedResponderForCertID(CERTCertDBHandle *handle,
 static PRBool
 ocsp_TimeIsRecent(PRTime checkTime)
 {
-    PRTime now = PR_Now();
+    PRTime now = MPR_Now();
     PRTime lapse, tmp;
 
     LL_I2L(lapse, OCSP_ALLOWABLE_LAPSE_SECONDS);
@@ -4624,7 +4624,7 @@ ocsp_VerifySingleResponse(CERTOCSPSingleResponse *single,
     /*
      * Now check the time stuff, as described above.
      */
-    now = PR_Now();
+    now = MPR_Now();
     /* allow slop time for future response */
     LL_UI2L(tmstamp, ocspsloptime); /* get slop time in seconds */
     LL_UI2L(tmp, PR_USEC_PER_SEC);
@@ -4811,9 +4811,9 @@ ocsp_GetResponderLocation(CERTCertDBHandle *handle, CERTCertificate *cert,
     if (!ocspUrl) {
         CERT_StringFromCertFcn altFcn;
 
-        PR_EnterMonitor(OCSP_Global.monitor);
+        MPR_EnterMonitor(OCSP_Global.monitor);
         altFcn = OCSP_Global.alternateOCSPAIAFcn;
-        PR_ExitMonitor(OCSP_Global.monitor);
+        MPR_ExitMonitor(OCSP_Global.monitor);
         if (altFcn) {
             ocspUrl = (*altFcn)(cert);
             if (ocspUrl)
@@ -4914,7 +4914,7 @@ ocsp_GetCachedOCSPResponseStatus(CERTOCSPCertID *certID,
     *missingResponseError = 0;
     *cacheFreshness = ocspMissing;
 
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     cacheItem = ocsp_FindCacheEntry(&OCSP_Global.cache, certID);
     if (cacheItem) {
         *cacheFreshness = ocsp_IsCacheItemFresh(cacheItem) ? ocspFresh
@@ -4941,7 +4941,7 @@ ocsp_GetCachedOCSPResponseStatus(CERTOCSPCertID *certID,
             *missingResponseError = cacheItem->missingResponseError;
         }
     }
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
     return SECSuccess;
 }
 
@@ -4950,10 +4950,10 @@ ocsp_FetchingFailureIsVerificationFailure(void)
 {
     PRBool isFailure;
 
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     isFailure =
         OCSP_Global.ocspFailureMode == ocspMode_FailureIsVerificationFailure;
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
     return isFailure;
 }
 
@@ -5231,13 +5231,13 @@ ocsp_GetOCSPStatusFromNetwork(CERTCertDBHandle *handle,
         PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
         return SECFailure;
     }
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     if (OCSP_Global.forcePost) {
         currentStage = stagePOST;
     } else {
         currentStage = stageGET;
     }
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
 
     /*
      * The first thing we need to do is find the location of the responder.
@@ -5479,13 +5479,13 @@ ocsp_CacheSingleResponse(CERTOCSPCertID *certID,
                          PRBool *certIDWasConsumed)
 {
     if (single != NULL) {
-        PR_EnterMonitor(OCSP_Global.monitor);
+        MPR_EnterMonitor(OCSP_Global.monitor);
         if (OCSP_Global.maxCacheEntries >= 0) {
             ocsp_CreateOrUpdateCacheEntry(&OCSP_Global.cache, certID, single,
                                           certIDWasConsumed);
             /* ignore cache update failures */
         }
-        PR_ExitMonitor(OCSP_Global.monitor);
+        MPR_ExitMonitor(OCSP_Global.monitor);
     }
 }
 
@@ -5602,14 +5602,14 @@ cert_ProcessOCSPResponse(CERTCertDBHandle *handle,
          * certIDWasConsumed, allowing us to return ownership status.
          */
 
-        PR_EnterMonitor(OCSP_Global.monitor);
+        MPR_EnterMonitor(OCSP_Global.monitor);
         if (OCSP_Global.maxCacheEntries >= 0) {
             /* single == NULL means: remember response failure */
             rv_cache =
                 ocsp_CreateOrUpdateCacheEntry(&OCSP_Global.cache, certID,
                                               single, certIDWasConsumed);
         }
-        PR_ExitMonitor(OCSP_Global.monitor);
+        MPR_ExitMonitor(OCSP_Global.monitor);
         if (cacheUpdateStatus) {
             *cacheUpdateStatus = rv_cache;
         }
@@ -5623,12 +5623,12 @@ cert_RememberOCSPProcessingFailure(CERTOCSPCertID *certID,
                                    PRBool *certIDWasConsumed)
 {
     SECStatus rv = SECSuccess;
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     if (OCSP_Global.maxCacheEntries >= 0) {
         rv = ocsp_CreateOrUpdateCacheEntry(&OCSP_Global.cache, certID, NULL,
                                            certIDWasConsumed);
     }
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
     return rv;
 }
 
@@ -6079,9 +6079,9 @@ CERT_ForcePostMethodForOCSP(PRBool forcePost)
         return SECFailure;
     }
 
-    PR_EnterMonitor(OCSP_Global.monitor);
+    MPR_EnterMonitor(OCSP_Global.monitor);
     OCSP_Global.forcePost = forcePost;
-    PR_ExitMonitor(OCSP_Global.monitor);
+    MPR_ExitMonitor(OCSP_Global.monitor);
 
     return SECSuccess;
 }

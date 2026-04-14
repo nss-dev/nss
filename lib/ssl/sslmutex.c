@@ -14,7 +14,7 @@ single_process_sslMutex_Init(sslMutex* pMutex)
 {
     PR_ASSERT(pMutex != 0 && pMutex->u.sslLock == 0);
 
-    pMutex->u.sslLock = PR_NewLock();
+    pMutex->u.sslLock = MPR_NewLock();
     if (!pMutex->u.sslLock) {
         return SECFailure;
     }
@@ -30,7 +30,7 @@ single_process_sslMutex_Destroy(sslMutex* pMutex)
         PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
         return SECFailure;
     }
-    PR_DestroyLock(pMutex->u.sslLock);
+    MPR_DestroyLock(pMutex->u.sslLock);
     return SECSuccess;
 }
 
@@ -43,7 +43,7 @@ single_process_sslMutex_Unlock(sslMutex* pMutex)
         PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
         return SECFailure;
     }
-    PR_Unlock(pMutex->u.sslLock);
+    MPR_Unlock(pMutex->u.sslLock);
     return SECSuccess;
 }
 
@@ -56,7 +56,7 @@ single_process_sslMutex_Lock(sslMutex* pMutex)
         PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
         return SECFailure;
     }
-    PR_Lock(pMutex->u.sslLock);
+    MPR_Lock(pMutex->u.sslLock);
     return SECSuccess;
 }
 

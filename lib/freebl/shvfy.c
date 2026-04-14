@@ -95,13 +95,13 @@ bl_OpenUnPrelink(const char *shName, int *pid)
     ret = stat(command, &statBuf);
     if (ret < 0) {
         free(command);
-        return PR_Open(shName, PR_RDONLY, 0);
+        return MPR_Open(shName, PR_RDONLY, 0);
     }
     /* file exits, make sure it's an executable */
     if (!S_ISREG(statBuf.st_mode) ||
         ((statBuf.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) == 0)) {
         free(command);
-        return PR_Open(shName, PR_RDONLY, 0);
+        return MPR_Open(shName, PR_RDONLY, 0);
     }
 
     /* OK, the prelink command exists and looks correct, use it */
@@ -196,7 +196,7 @@ bl_OpenUnPrelink(const char *shName, int *pid)
 
     *pid = child;
 
-    return PR_ImportPipe(pipefd[0]);
+    return MPR_ImportPipe(pipefd[0]);
 
 loser:
     if (pipefd[0] != -1) {
@@ -224,7 +224,7 @@ void
 bl_CloseUnPrelink(PRFileDesc *file, int pid)
 {
     /* close the file descriptor */
-    PR_Close(file);
+    MPR_Close(file);
     /* reap the child */
     if (pid) {
         waitpid(pid, NULL, 0);
@@ -267,7 +267,7 @@ readItem(PRFileDesc *fd, SECItem *item)
     unsigned char buf[4];
     int bytesRead;
 
-    bytesRead = PR_Read(fd, buf, 4);
+    bytesRead = MPR_Read(fd, buf, 4);
     if (bytesRead != 4) {
         return SECFailure;
     }
@@ -278,7 +278,7 @@ readItem(PRFileDesc *fd, SECItem *item)
         item->len = 0;
         return SECFailure;
     }
-    bytesRead = PR_Read(fd, item->data, item->len);
+    bytesRead = MPR_Read(fd, item->data, item->len);
     if (bytesRead != item->len) {
         PORT_Free(item->data);
         item->data = NULL;
@@ -296,7 +296,7 @@ blapi_SHVerify(const char *name, PRFuncPtr addr, PRBool self, PRBool rerun)
     PRBool result = PR_FALSE; /* if anything goes wrong,
                                * the signature does not verify */
     /* find our shared library name */
-    char *shName = PR_GetLibraryFilePathname(name, addr);
+    char *shName = MPR_GetLibraryFilePathname(name, addr);
     if (!shName) {
         goto loser;
     }
@@ -304,7 +304,7 @@ blapi_SHVerify(const char *name, PRFuncPtr addr, PRBool self, PRBool rerun)
 
 loser:
     if (shName != NULL) {
-        PR_Free(shName);
+        MPR_Free(shName);
     }
 
     return result;
@@ -357,7 +357,7 @@ blapi_SHVerifyDSACheck(PRFileDesc *shFD, const SECHashObject *hashObj,
     }
     hashObj->begin(hashcx);
 
-    while ((bytesRead = PR_Read(shFD, buf, sizeof(buf))) > 0) {
+    while ((bytesRead = MPR_Read(shFD, buf, sizeof(buf))) > 0) {
         hashObj->update(hashcx, buf, bytesRead);
     }
     hashObj->end(hashcx, hash.data, &hash.len, hash.len);
@@ -416,7 +416,7 @@ blapi_SHVerifyHMACCheck(PRFileDesc *shFD, const SECHashObject *hashObj,
     }
     HMAC_Begin(hmaccx);
 
-    while ((bytesRead = PR_Read(shFD, buf, sizeof(buf))) > 0) {
+    while ((bytesRead = MPR_Read(shFD, buf, sizeof(buf))) > 0) {
         HMAC_Update(hmaccx, buf, bytesRead);
     }
     rv = HMAC_Finish(hmaccx, hash.data, &hash.len, hash.len);
@@ -471,17 +471,17 @@ blapi_SHVerifyFile(const char *shName, PRBool self, PRBool rerun)
     }
 
     /* open the check File */
-    checkFD = PR_Open(checkName, PR_RDONLY, 0);
+    checkFD = MPR_Open(checkName, PR_RDONLY, 0);
     if (checkFD == NULL) {
 #ifdef DEBUG_SHVERIFY
         fprintf(stderr, "Failed to open the check file %s: (%d, %d)\n",
-                checkName, (int)PR_GetError(), (int)PR_GetOSError());
+                checkName, (int)MPR_GetError(), (int)MPR_GetOSError());
 #endif /* DEBUG_SHVERIFY */
         goto loser;
     }
 
     /* read and Verify the headerthe header */
-    bytesRead = PR_Read(checkFD, &header, sizeof(header));
+    bytesRead = MPR_Read(checkFD, &header, sizeof(header));
     if (bytesRead != sizeof(header)) {
         goto loser;
     }
@@ -501,7 +501,7 @@ blapi_SHVerifyFile(const char *shName, PRBool self, PRBool rerun)
 
     /* seek past any future header extensions */
     offset = decodeInt(header.offset);
-    if (PR_Seek(checkFD, offset, PR_SEEK_SET) < 0) {
+    if (MPR_Seek(checkFD, offset, PR_SEEK_SET) < 0) {
         goto loser;
     }
 
@@ -554,7 +554,7 @@ blapi_SHVerifyFile(const char *shName, PRBool self, PRBool rerun)
     }
 
     /* done with the check file */
-    PR_Close(checkFD);
+    MPR_Close(checkFD);
     checkFD = NULL;
 
     if (hashObj == NULL) {
@@ -565,12 +565,12 @@ blapi_SHVerifyFile(const char *shName, PRBool self, PRBool rerun)
 #ifdef FREEBL_USE_PRELINK
     shFD = bl_OpenUnPrelink(shName, &pid);
 #else
-    shFD = PR_Open(shName, PR_RDONLY, 0);
+    shFD = MPR_Open(shName, PR_RDONLY, 0);
 #endif
     if (shFD == NULL) {
 #ifdef DEBUG_SHVERIFY
         fprintf(stderr, "Failed to open the library file %s: (%d, %d)\n",
-                shName, (int)PR_GetError(), (int)PR_GetOSError());
+                shName, (int)MPR_GetError(), (int)MPR_GetOSError());
 #endif /* DEBUG_SHVERIFY */
         goto loser;
     }
@@ -592,7 +592,7 @@ blapi_SHVerifyFile(const char *shName, PRBool self, PRBool rerun)
 #ifdef FREEBL_USE_PRELINK
     bl_CloseUnPrelink(shFD, pid);
 #else
-    PR_Close(shFD);
+    MPR_Close(shFD);
 #endif
     shFD = NULL;
 
@@ -602,10 +602,10 @@ loser:
         PORT_Free(checkName);
     }
     if (checkFD != NULL) {
-        PR_Close(checkFD);
+        MPR_Close(checkFD);
     }
     if (shFD != NULL) {
-        PR_Close(shFD);
+        MPR_Close(shFD);
     }
     if (hmacKey.data != NULL) {
         SECITEM_ZfreeItem(&hmacKey, PR_FALSE);

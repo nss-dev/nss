@@ -334,7 +334,7 @@ PKIX_Cert2ASCII(PKIX_PL_Cert *cert)
         goto cleanup;
 
     numChars =
-        PR_snprintf(asciiString,
+        MPR_snprintf(asciiString,
                     200,
                     "Issuer=%s\nSubject=%s\n",
                     issuerAscii,
@@ -465,16 +465,16 @@ testToStringHelper(
 
     /*
      * If you are having trouble matching the string, uncomment the
-     * PL_strstr function to figure out what's going on.
+     * MPL_strstr function to figure out what's going on.
      */
 
     /*
-            if (PL_strstr(actual, expected) == NULL){
-                testError("PL_strstr failed");
+            if (MPL_strstr(actual, expected) == NULL){
+                testError("MPL_strstr failed");
             }
         */
 
-    if (PL_strcmp(actual, expected) != 0) {
+    if (MPL_strcmp(actual, expected) != 0) {
         testError("unexpected mismatch");
         (void)printf("Actual value:\t%s\n", actual);
         (void)printf("Expected value:\t%s\n", expected);

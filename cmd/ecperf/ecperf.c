@@ -59,9 +59,9 @@ PKCS11Thread(void *data)
     threadData->count = 0;
 
     /* get our thread's session */
-    PR_Lock(threadData->lock);
+    MPR_Lock(threadData->lock);
     crv = NSC_OpenSession(1, CKF_SERIAL_SESSION, NULL, 0, &session);
-    PR_Unlock(threadData->lock);
+    MPR_Unlock(threadData->lock);
     if (crv != CKR_OK) {
         return;
     }
@@ -152,7 +152,7 @@ M_TimeOperation(void (*threadFunc)(void *),
     threadIDs = (PRThread **)PORT_Alloc(numThreads * sizeof(PRThread *));
     threadData = (ThreadData *)PORT_Alloc(numThreads * sizeof(ThreadData));
 
-    startTime = PR_Now();
+    startTime = MPR_Now();
     if (numThreads == 1) {
         for (i = 0; i < iters; i++) {
             if (session) {
@@ -177,20 +177,20 @@ M_TimeOperation(void (*threadFunc)(void *),
             threadData[i].iters = iters;
             threadData[i].lock = lock;
             threadData[i].isSign = isSign;
-            threadIDs[i] = PR_CreateThread(PR_USER_THREAD, threadFunc,
+            threadIDs[i] = MPR_CreateThread(PR_USER_THREAD, threadFunc,
                                            (void *)&threadData[i], PR_PRIORITY_NORMAL,
                                            PR_GLOBAL_THREAD, PR_JOINABLE_THREAD, 0);
         }
 
         total = 0;
         for (i = 0; i < numThreads; i++) {
-            PR_JoinThread(threadIDs[i]);
+            MPR_JoinThread(threadIDs[i]);
             /* check the status */
             total += threadData[i].count;
         }
     }
 
-    totalTime = PR_Now() - startTime;
+    totalTime = MPR_Now() - startTime;
     /* SecondsToInterval seems to be broken here ... */
     dUserTime = (double)totalTime / (double)1000000;
     if (dUserTime) {
@@ -379,7 +379,7 @@ ectest_curve_pkcs11(ECCurveName curve, int iterations, int numThreads)
     mech.pParameter = (void *)&ecdh_params;
     mech.ulParameterLen = sizeof(ecdh_params);
 
-    lock = PR_NewLock();
+    lock = MPR_NewLock();
 
     if (ecCurve_map[curve]->usage & KU_KEY_AGREEMENT) {
         rv = M_TimeOperation(PKCS11Thread, (op_func)PKCS11_Derive, "ECDH_Derive",
@@ -413,7 +413,7 @@ ectest_curve_pkcs11(ECCurveName curve, int iterations, int numThreads)
 
 cleanup:
     if (lock) {
-        PR_DestroyLock(lock);
+        MPR_DestroyLock(lock);
     }
     return rv;
 }
@@ -547,24 +547,24 @@ main(int argv, char **argc)
 
     /* read command-line arguments */
     for (i = 1; i < argv; i++) {
-        if (PL_strcasecmp(argc[i], "-i") == 0) {
+        if (MPL_strcasecmp(argc[i], "-i") == 0) {
             i++;
             iterations = atoi(argc[i]);
-        } else if (PL_strcasecmp(argc[i], "-t") == 0) {
+        } else if (MPL_strcasecmp(argc[i], "-t") == 0) {
             i++;
             numThreads = atoi(argc[i]);
-        } else if (PL_strcasecmp(argc[i], "-A") == 0) {
+        } else if (MPL_strcasecmp(argc[i], "-A") == 0) {
             ansi = nist = secp = 1;
             usepkcs11 = usefreebl = 1;
-        } else if (PL_strcasecmp(argc[i], "-a") == 0) {
+        } else if (MPL_strcasecmp(argc[i], "-a") == 0) {
             ansi = 1;
-        } else if (PL_strcasecmp(argc[i], "-n") == 0) {
+        } else if (MPL_strcasecmp(argc[i], "-n") == 0) {
             nist = 1;
-        } else if (PL_strcasecmp(argc[i], "-s") == 0) {
+        } else if (MPL_strcasecmp(argc[i], "-s") == 0) {
             secp = 1;
-        } else if (PL_strcasecmp(argc[i], "-p") == 0) {
+        } else if (MPL_strcasecmp(argc[i], "-p") == 0) {
             usepkcs11 = 1;
-        } else if (PL_strcasecmp(argc[i], "-f") == 0) {
+        } else if (MPL_strcasecmp(argc[i], "-f") == 0) {
             usefreebl = 1;
         } else {
             printUsage(argc[0]);

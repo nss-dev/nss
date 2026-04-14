@@ -48,11 +48,11 @@ main(int argc, char **argv)
     /* Parse command line arguments */
     inFile = 0;
     outFile = 0;
-    optstate = PL_CreateOptState(argc, argv, "i:o:r");
-    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = MPL_CreateOptState(argc, argv, "i:o:r");
+    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case 'i':
-                inFile = PR_Open(optstate->value, PR_RDONLY, 0);
+                inFile = MPR_Open(optstate->value, PR_RDONLY, 0);
                 if (!inFile) {
                     fprintf(stderr, "%s: unable to open \"%s\" for reading\n",
                             progName, optstate->value);
@@ -113,13 +113,13 @@ main(int argc, char **argv)
 cleanup:
     retval |= NSS_Shutdown();
     if (inFile) {
-        PR_Close(inFile);
+        MPR_Close(inFile);
     }
     if (outFile) {
         fflush(outFile);
         fclose(outFile);
     }
-    PL_DestroyOptState(optstate);
+    MPL_DestroyOptState(optstate);
     if (der.data) {
         PORT_Free(der.data);
     }

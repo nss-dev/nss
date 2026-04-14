@@ -59,7 +59,7 @@ SSL_RevealURL(PRFileDesc *fd)
     sslsocket = ssl_FindSocket(fd);
 
     if (sslsocket && sslsocket->url)
-        url = PL_strdup(sslsocket->url);
+        url = MPL_strdup(sslsocket->url);
 
     return url;
 }

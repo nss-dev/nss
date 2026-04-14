@@ -337,8 +337,8 @@ main(int argc, char **argv)
     PRBool doForkTests = PR_TRUE;
 
     PLOptStatus os;
-    PLOptState *opt = PL_CreateOptState(argc, argv, "nvhf:Fd:p:");
-    while (PL_OPT_EOL != (os = PL_GetNextOpt(opt))) {
+    PLOptState *opt = MPL_CreateOptState(argc, argv, "nvhf:Fd:p:");
+    while (PL_OPT_EOL != (os = MPL_GetNextOpt(opt))) {
         if (PL_OPT_BAD == os)
             continue;
         switch (opt->option) {
@@ -374,7 +374,7 @@ main(int argc, char **argv)
                 break;
         }
     }
-    PL_DestroyOptState(opt);
+    MPL_DestroyOptState(opt);
 
     if (!pwd) {
         pwd = (CK_UTF8CHAR *)strdup("1Mozilla");
@@ -418,19 +418,19 @@ main(int argc, char **argv)
     {
         char *libname = NULL;
         /* Get the platform-dependent library name of the NSS cryptographic module */
-        libname = PR_GetLibraryName(NULL, "softokn3");
+        libname = MPR_GetLibraryName(NULL, "softokn3");
         assert(libname != NULL);
-        lib = PR_LoadLibrary(libname);
+        lib = MPR_LoadLibrary(libname);
         assert(lib != NULL);
-        PR_FreeLibraryName(libname);
+        MPR_FreeLibraryName(libname);
     }
     if (MODE == FIPSMODE) {
-        pC_GetFunctionList = (CK_C_GetFunctionList)PR_FindFunctionSymbol(lib,
+        pC_GetFunctionList = (CK_C_GetFunctionList)MPR_FindFunctionSymbol(lib,
                                                                          "FC_GetFunctionList");
         assert(pC_GetFunctionList != NULL);
         slotID = 0;
     } else {
-        pC_GetFunctionList = (CK_C_GetFunctionList)PR_FindFunctionSymbol(lib,
+        pC_GetFunctionList = (CK_C_GetFunctionList)MPR_FindFunctionSymbol(lib,
                                                                          "C_GetFunctionList");
         assert(pC_GetFunctionList != NULL);
         slotID = 1;
@@ -461,10 +461,10 @@ main(int argc, char **argv)
     initArgs.LockMutex = NULL;
     initArgs.UnlockMutex = NULL;
     initArgs.flags = CKF_OS_LOCKING_OK;
-    moduleSpec = PR_smprintf("configdir='%s' certPrefix='%s' "
+    moduleSpec = MPR_smprintf("configdir='%s' certPrefix='%s' "
                              "keyPrefix='%s' secmod='secmod.db' flags= ",
                              configDir, dbPrefix, dbPrefix);
-    moduleSpecRerun = PR_smprintf("configdir='%s' certPrefix='%s' "
+    moduleSpecRerun = MPR_smprintf("configdir='%s' certPrefix='%s' "
                                   "keyPrefix='%s' secmod='secmod.db' flags=forcePOST ",
                                   configDir, dbPrefix, dbPrefix);
     initArgs.LibraryParameters = (CK_CHAR_PTR *)moduleSpec;
@@ -750,18 +750,18 @@ cleanup:
         free(dbPrefix);
     }
     if (moduleSpec) {
-        PR_smprintf_free(moduleSpec);
+        MPR_smprintf_free(moduleSpec);
     }
     if (moduleSpecRerun) {
-        PR_smprintf_free(moduleSpecRerun);
+        MPR_smprintf_free(moduleSpecRerun);
     }
 
 #ifdef _WIN32
     FreeLibrary(hModule);
 #else
-    disableUnload = PR_GetEnvSecure("NSS_DISABLE_UNLOAD");
+    disableUnload = MPR_GetEnvSecure("NSS_DISABLE_UNLOAD");
     if (!disableUnload) {
-        PR_UnloadLibrary(lib);
+        MPR_UnloadLibrary(lib);
     }
 #endif
     if (CKR_OK == crv && doForkTests && !disableUnload) {
@@ -1894,7 +1894,7 @@ PKM_HybridMode(CK_UTF8CHAR_PTR pwd, CK_ULONG pwdLen,
         return crv;
     }
 #else
-    pC_GetFunctionList = (CK_C_GetFunctionList)PR_FindFunctionSymbol(lib,
+    pC_GetFunctionList = (CK_C_GetFunctionList)MPR_FindFunctionSymbol(lib,
                                                                      "C_GetFunctionList");
     assert(pC_GetFunctionList != NULL);
 #endif
@@ -1959,7 +1959,7 @@ PKM_HybridMode(CK_UTF8CHAR_PTR pwd, CK_ULONG pwdLen,
     pFC_GetFunctionList = (CK_C_GetFunctionList)
         GetProcAddress(hModule, "FC_GetFunctionList");
 #else
-    pFC_GetFunctionList = (CK_C_GetFunctionList)PR_FindFunctionSymbol(lib,
+    pFC_GetFunctionList = (CK_C_GetFunctionList)MPR_FindFunctionSymbol(lib,
                                                                       "FC_GetFunctionList");
     assert(pFC_GetFunctionList != NULL);
 #endif
@@ -5144,15 +5144,15 @@ PKM_FilePasswd(char *pwFile)
     if (!pwFile)
         return 0;
 
-    fd = PR_Open(pwFile, PR_RDONLY, 0);
+    fd = MPR_Open(pwFile, PR_RDONLY, 0);
     if (!fd) {
         fprintf(stderr, "No password file \"%s\" exists.\n", pwFile);
         return NULL;
     }
 
-    nb = PR_Read(fd, phrase, sizeof(phrase));
+    nb = MPR_Read(fd, phrase, sizeof(phrase));
 
-    PR_Close(fd);
+    MPR_Close(fd);
     /* handle the Windows EOL case */
     i = 0;
     while (phrase[i] != '\r' && phrase[i] != '\n' && i < nb)
@@ -5168,15 +5168,15 @@ PKM_FilePasswd(char *pwFile)
 void
 PKM_Help()
 {
-    PRFileDesc *debug_out = PR_GetSpecialFD(PR_StandardError);
-    PR_fprintf(debug_out, "pk11mode test program usage:\n");
-    PR_fprintf(debug_out, "\t-f <file>   Password File : echo pw > file \n");
-    PR_fprintf(debug_out, "\t-F          Disable Unix fork tests\n");
-    PR_fprintf(debug_out, "\t-n          Non Fips Mode \n");
-    PR_fprintf(debug_out, "\t-d <path>   Database path location\n");
-    PR_fprintf(debug_out, "\t-p <prefix> DataBase prefix\n");
-    PR_fprintf(debug_out, "\t-v          verbose\n");
-    PR_fprintf(debug_out, "\t-h          this help message\n");
+    PRFileDesc *debug_out = MPR_GetSpecialFD(PR_StandardError);
+    MPR_fprintf(debug_out, "pk11mode test program usage:\n");
+    MPR_fprintf(debug_out, "\t-f <file>   Password File : echo pw > file \n");
+    MPR_fprintf(debug_out, "\t-F          Disable Unix fork tests\n");
+    MPR_fprintf(debug_out, "\t-n          Non Fips Mode \n");
+    MPR_fprintf(debug_out, "\t-d <path>   Database path location\n");
+    MPR_fprintf(debug_out, "\t-p <prefix> DataBase prefix\n");
+    MPR_fprintf(debug_out, "\t-v          verbose\n");
+    MPR_fprintf(debug_out, "\t-h          this help message\n");
     exit(1);
 }
 

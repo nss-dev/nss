@@ -481,9 +481,9 @@ stringFromUserNotice(SECItem *noticeItem)
                     (*policyStringCB)(stringbuf, strnum, policyStringCBArg);
                 if (policystr != NULL) {
                     if (retstr != NULL) {
-                        retstr = PR_sprintf_append(retstr, "\n%s", policystr);
+                        retstr = MPR_sprintf_append(retstr, "\n%s", policystr);
                     } else {
-                        retstr = PR_sprintf_append(retstr, "%s", policystr);
+                        retstr = MPR_sprintf_append(retstr, "%s", policystr);
                     }
 
                     PORT_Free(policystr);

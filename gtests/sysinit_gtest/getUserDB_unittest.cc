@@ -20,11 +20,11 @@ extern "C" char *getUserDB(void);
 class Sysinit : public ::testing::Test {
  protected:
   void SetUp() {
-    home_var_ = PR_GetEnvSecure("HOME");
+    home_var_ = MPR_GetEnvSecure("HOME");
     if (home_var_) {
       old_home_dir_ = home_var_;
     }
-    xdg_data_home_var_ = PR_GetEnvSecure("XDG_DATA_HOME");
+    xdg_data_home_var_ = MPR_GetEnvSecure("XDG_DATA_HOME");
     if (xdg_data_home_var_) {
       old_xdg_data_home_ = xdg_data_home_var_;
       ASSERT_EQ(0, unsetenv("XDG_DATA_HOME"));

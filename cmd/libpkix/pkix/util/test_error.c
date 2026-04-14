@@ -31,7 +31,7 @@ createErrors(
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(
         PKIX_ESCASCII,
         infoChar,
-        PL_strlen(infoChar),
+        MPL_strlen(infoChar),
         &infoString,
         plContext));
 
@@ -132,7 +132,7 @@ testGetDescription(
     PKIX_TEST_DECREF_BC(targetString);
 
     if (temp) {
-        if (PL_strcmp(temp, descChar) != 0) {
+        if (MPL_strcmp(temp, descChar) != 0) {
             testError("Incorrect description returned");
         }
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
@@ -143,7 +143,7 @@ testGetDescription(
     PKIX_TEST_DECREF_BC(targetString);
 
     if (temp) {
-        if (PL_strcmp(temp, descChar2) != 0) {
+        if (MPL_strcmp(temp, descChar2) != 0) {
             testError("Incorrect description returned");
         }
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
@@ -154,7 +154,7 @@ testGetDescription(
     PKIX_TEST_DECREF_BC(targetString);
 
     if (temp) {
-        if (PL_strcmp(temp, descChar) != 0) {
+        if (MPL_strcmp(temp, descChar) != 0) {
             testError("Incorrect description returned");
         }
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
@@ -223,7 +223,7 @@ testGetSupplementaryInfo(PKIX_Error *error, char *infoChar)
     PKIX_TEST_DECREF_BC(targetString);
 
     if (temp) {
-        if (PL_strcmp(temp, infoChar) != 0) {
+        if (MPL_strcmp(temp, infoChar) != 0) {
             testError("Incorrect info returned");
         }
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));

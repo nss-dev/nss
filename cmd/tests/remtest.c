@@ -56,8 +56,8 @@ main(int argc, char **argv)
         progName = strrchr(argv[0], '\\');
     progName = progName ? progName + 1 : argv[0];
 
-    optstate = PL_CreateOptState(argc, argv, "rd:t:");
-    while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = MPL_CreateOptState(argc, argv, "rd:t:");
+    while ((optstatus = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
 
             case 'd':
@@ -84,7 +84,7 @@ main(int argc, char **argv)
         certDir = SECU_ConfigDirectory(certDir); /* call even if it's NULL */
     }
 
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
     PK11_SetPasswordFunc(SECU_GetModulePassword);
 
@@ -131,6 +131,6 @@ main(int argc, char **argv)
     if (NSS_Shutdown() != SECSuccess) {
         exit(1);
     }
-    PR_Cleanup();
+    MPR_Cleanup();
     return 0;
 }

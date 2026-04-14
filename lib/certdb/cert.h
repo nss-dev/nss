@@ -53,7 +53,7 @@ extern char *CERT_NameToAsciiInvertible(CERTName *name,
 extern CERTAVA *CERT_CopyAVA(PLArenaPool *arena, CERTAVA *src);
 
 /* convert an OID to dotted-decimal representation */
-/* Returns a string that must be freed with PR_smprintf_free(). */
+/* Returns a string that must be freed with MPR_smprintf_free(). */
 extern char *CERT_GetOidString(const SECItem *oid);
 
 /*

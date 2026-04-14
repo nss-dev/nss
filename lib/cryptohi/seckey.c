@@ -406,7 +406,7 @@ seckey_UpdateCertPQGChain(CERTCertificate *subjectCert, int count)
     }
 
     /* get issuer cert */
-    issuerCert = CERT_FindCertIssuer(subjectCert, PR_Now(), certUsageAnyCA);
+    issuerCert = CERT_FindCertIssuer(subjectCert, MPR_Now(), certUsageAnyCA);
     if (!issuerCert) {
         return SECFailure;
     }

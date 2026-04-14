@@ -52,7 +52,7 @@ void
 certdb_InitDBLock(NSSLOWCERTCertDBHandle *handle)
 {
     if (dbLock == NULL) {
-        dbLock = PR_NewLock();
+        dbLock = MPR_NewLock();
         PORT_Assert(dbLock != NULL);
     }
 }
@@ -61,19 +61,19 @@ SECStatus
 nsslowcert_InitLocks(void)
 {
     if (freeListLock == NULL) {
-        freeListLock = PR_NewLock();
+        freeListLock = MPR_NewLock();
         if (freeListLock == NULL) {
             return SECFailure;
         }
     }
     if (certRefCountLock == NULL) {
-        certRefCountLock = PR_NewLock();
+        certRefCountLock = MPR_NewLock();
         if (certRefCountLock == NULL) {
             return SECFailure;
         }
     }
     if (certTrustLock == NULL) {
-        certTrustLock = PR_NewLock();
+        certTrustLock = MPR_NewLock();
         if (certTrustLock == NULL) {
             return SECFailure;
         }
@@ -93,7 +93,7 @@ nsslowcert_InitLocks(void)
 static void
 nsslowcert_LockDB(NSSLOWCERTCertDBHandle *handle)
 {
-    PR_EnterMonitor(handle->dbMon);
+    MPR_EnterMonitor(handle->dbMon);
     return;
 }
 
@@ -104,10 +104,10 @@ static void
 nsslowcert_UnlockDB(NSSLOWCERTCertDBHandle *handle)
 {
 #ifdef DEBUG
-    PRStatus prstat = PR_ExitMonitor(handle->dbMon);
+    PRStatus prstat = MPR_ExitMonitor(handle->dbMon);
     PORT_Assert(prstat == PR_SUCCESS);
 #else
-    PR_ExitMonitor(handle->dbMon);
+    MPR_ExitMonitor(handle->dbMon);
 #endif
 }
 
@@ -122,7 +122,7 @@ nsslowcert_LockCertRefCount(NSSLOWCERTCertificate *cert)
 {
     PORT_Assert(certRefCountLock != NULL);
 
-    PR_Lock(certRefCountLock);
+    MPR_Lock(certRefCountLock);
     return;
 }
 
@@ -136,11 +136,11 @@ nsslowcert_UnlockCertRefCount(NSSLOWCERTCertificate *cert)
 
 #ifdef DEBUG
     {
-        PRStatus prstat = PR_Unlock(certRefCountLock);
+        PRStatus prstat = MPR_Unlock(certRefCountLock);
         PORT_Assert(prstat == PR_SUCCESS);
     }
 #else
-    PR_Unlock(certRefCountLock);
+    MPR_Unlock(certRefCountLock);
 #endif
 }
 
@@ -155,7 +155,7 @@ nsslowcert_LockCertTrust(NSSLOWCERTCertificate *cert)
 {
     PORT_Assert(certTrustLock != NULL);
 
-    PR_Lock(certTrustLock);
+    MPR_Lock(certTrustLock);
     return;
 }
 
@@ -169,11 +169,11 @@ nsslowcert_UnlockCertTrust(NSSLOWCERTCertificate *cert)
 
 #ifdef DEBUG
     {
-        PRStatus prstat = PR_Unlock(certTrustLock);
+        PRStatus prstat = MPR_Unlock(certTrustLock);
         PORT_Assert(prstat == PR_SUCCESS);
     }
 #else
-    PR_Unlock(certTrustLock);
+    MPR_Unlock(certTrustLock);
 #endif
 }
 
@@ -188,7 +188,7 @@ nsslowcert_LockFreeList(void)
 {
     PORT_Assert(freeListLock != NULL);
 
-    SKIP_AFTER_FORK(PR_Lock(freeListLock));
+    SKIP_AFTER_FORK(MPR_Lock(freeListLock));
     return;
 }
 
@@ -203,11 +203,11 @@ nsslowcert_UnlockFreeList(void)
 #ifdef DEBUG
     {
         PRStatus prstat = PR_SUCCESS;
-        SKIP_AFTER_FORK(prstat = PR_Unlock(freeListLock));
+        SKIP_AFTER_FORK(prstat = MPR_Unlock(freeListLock));
         PORT_Assert(prstat == PR_SUCCESS);
     }
 #else
-    SKIP_AFTER_FORK(PR_Unlock(freeListLock));
+    SKIP_AFTER_FORK(MPR_Unlock(freeListLock));
 #endif
 }
 
@@ -228,11 +228,11 @@ certdb_Get(DB *db, DBT *key, DBT *data, unsigned int flags)
     int ret;
 
     PORT_Assert(dbLock != NULL);
-    PR_Lock(dbLock);
+    MPR_Lock(dbLock);
 
     ret = (*db->get)(db, key, data, flags);
 
-    (void)PR_Unlock(dbLock);
+    (void)MPR_Unlock(dbLock);
 
     return (ret);
 }
@@ -243,11 +243,11 @@ certdb_Put(DB *db, DBT *key, DBT *data, unsigned int flags)
     int ret = 0;
 
     PORT_Assert(dbLock != NULL);
-    PR_Lock(dbLock);
+    MPR_Lock(dbLock);
 
     ret = (*db->put)(db, key, data, flags);
 
-    (void)PR_Unlock(dbLock);
+    (void)MPR_Unlock(dbLock);
 
     return (ret);
 }
@@ -258,11 +258,11 @@ certdb_Sync(DB *db, unsigned int flags)
     int ret;
 
     PORT_Assert(dbLock != NULL);
-    PR_Lock(dbLock);
+    MPR_Lock(dbLock);
 
     ret = (*db->sync)(db, flags);
 
-    (void)PR_Unlock(dbLock);
+    (void)MPR_Unlock(dbLock);
 
     return (ret);
 }
@@ -274,11 +274,11 @@ certdb_Del(DB *db, DBT *key, unsigned int flags)
     int ret;
 
     PORT_Assert(dbLock != NULL);
-    PR_Lock(dbLock);
+    MPR_Lock(dbLock);
 
     ret = (*db->del)(db, key, flags);
 
-    (void)PR_Unlock(dbLock);
+    (void)MPR_Unlock(dbLock);
 
     /* don't fail if the record is already deleted */
     if (ret == DB_NOT_FOUND) {
@@ -294,11 +294,11 @@ certdb_Seq(DB *db, DBT *key, DBT *data, unsigned int flags)
     int ret;
 
     PORT_Assert(dbLock != NULL);
-    PR_Lock(dbLock);
+    MPR_Lock(dbLock);
 
     ret = (*db->seq)(db, key, data, flags);
 
-    (void)PR_Unlock(dbLock);
+    (void)MPR_Unlock(dbLock);
 
     return (ret);
 }
@@ -307,11 +307,11 @@ static void
 certdb_Close(DB *db)
 {
     PORT_Assert(dbLock != NULL);
-    SKIP_AFTER_FORK(PR_Lock(dbLock));
+    SKIP_AFTER_FORK(MPR_Lock(dbLock));
 
     (*db->close)(db);
 
-    SKIP_AFTER_FORK(PR_Unlock(dbLock));
+    SKIP_AFTER_FORK(MPR_Unlock(dbLock));
 
     return;
 }
@@ -3797,14 +3797,14 @@ UpdateV5DB(NSSLOWCERTCertDBHandle *handle, DB *updatedb)
     NSSLOWCERTCertDBHandle updatehandle;
 
     updatehandle.permCertDB = updatedb;
-    updatehandle.dbMon = PR_NewMonitor();
+    updatehandle.dbMon = MPR_NewMonitor();
     updatehandle.dbVerify = 0;
     updatehandle.ref = 1; /* prevent premature close */
 
     (void)nsslowcert_TraversePermCerts(&updatehandle, updateV5Callback,
                                        (void *)handle);
 
-    PR_DestroyMonitor(updatehandle.dbMon);
+    MPR_DestroyMonitor(updatehandle.dbMon);
 
     (*updatedb->close)(updatedb);
     return (SECSuccess);
@@ -4443,7 +4443,7 @@ nsslowcert_ClosePermCertDB(NSSLOWCERTCertDBHandle *handle)
             handle->permCertDB = NULL;
         }
         if (handle->dbMon) {
-            PR_DestroyMonitor(handle->dbMon);
+            MPR_DestroyMonitor(handle->dbMon);
             handle->dbMon = NULL;
         }
         PORT_Free(handle);
@@ -4584,7 +4584,7 @@ nsslowcert_OpenCertDB(NSSLOWCERTCertDBHandle *handle, PRBool readOnly,
 
     certdb_InitDBLock(handle);
 
-    handle->dbMon = PR_NewMonitor();
+    handle->dbMon = MPR_NewMonitor();
     PORT_Assert(handle->dbMon != NULL);
     handle->dbVerify = PR_FALSE;
 
@@ -4598,7 +4598,7 @@ nsslowcert_OpenCertDB(NSSLOWCERTCertDBHandle *handle, PRBool readOnly,
 
 loser:
     if (handle->dbMon) {
-        PR_DestroyMonitor(handle->dbMon);
+        MPR_DestroyMonitor(handle->dbMon);
         handle->dbMon = NULL;
     }
     PORT_SetError(SEC_ERROR_BAD_DATABASE);
@@ -5255,7 +5255,7 @@ nsslowcert_DestroyFreeLists(void)
     DestroyCertEntryFreeList();
     DestroyTrustFreeList();
     DestroyCertFreeList();
-    SKIP_AFTER_FORK(PR_DestroyLock(freeListLock));
+    SKIP_AFTER_FORK(MPR_DestroyLock(freeListLock));
     freeListLock = NULL;
 }
 
@@ -5263,15 +5263,15 @@ void
 nsslowcert_DestroyGlobalLocks(void)
 {
     if (dbLock) {
-        SKIP_AFTER_FORK(PR_DestroyLock(dbLock));
+        SKIP_AFTER_FORK(MPR_DestroyLock(dbLock));
         dbLock = NULL;
     }
     if (certRefCountLock) {
-        SKIP_AFTER_FORK(PR_DestroyLock(certRefCountLock));
+        SKIP_AFTER_FORK(MPR_DestroyLock(certRefCountLock));
         certRefCountLock = NULL;
     }
     if (certTrustLock) {
-        SKIP_AFTER_FORK(PR_DestroyLock(certTrustLock));
+        SKIP_AFTER_FORK(MPR_DestroyLock(certTrustLock));
         certTrustLock = NULL;
     }
 }

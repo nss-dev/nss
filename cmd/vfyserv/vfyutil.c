@@ -144,12 +144,12 @@ myAuthCertificate(void *arg, PRFileDesc *socket,
     if (hostName && hostName[0]) {
         secStatus = CERT_VerifyCertName(cert, hostName);
     } else {
-        PR_SetError(SSL_ERROR_BAD_CERT_DOMAIN, 0);
+        MPR_SetError(SSL_ERROR_BAD_CERT_DOMAIN, 0);
         secStatus = SECFailure;
     }
 
     if (hostName)
-        PR_Free(hostName);
+        MPR_Free(hostName);
 
     CERT_DestroyCertList(peerChain);
     return secStatus;
@@ -258,7 +258,7 @@ myGetClientAuthData(void *arg,
                 }
 
                 /* Only check unexpired certs */
-                if (CERT_CheckCertValidTimes(cert, PR_Now(), PR_FALSE) !=
+                if (CERT_CheckCertValidTimes(cert, MPR_Now(), PR_FALSE) !=
                     secCertTimeValid) {
                     CERT_DestroyCertificate(cert);
                     continue;
@@ -351,7 +351,7 @@ disableAllSSLCiphers(void)
 void
 errWarn(char *function)
 {
-    PRErrorCode errorNumber = PR_GetError();
+    PRErrorCode errorNumber = MPR_GetError();
     const char *errorString = SECU_Strerror(errorNumber);
 
     fprintf(stderr, "Error in function %s: %d\n - %s\n",
@@ -365,7 +365,7 @@ exitErr(char *function)
     /* Exit gracefully. */
     /* ignoring return value of NSS_Shutdown as code exits with 1 anyway*/
     (void)NSS_Shutdown();
-    PR_Cleanup();
+    MPR_Cleanup();
     exit(1);
 }
 
@@ -393,9 +393,9 @@ printSecurityInfo(FILE *outfile, PRFileDesc *fd)
             "   subject DN:\n %s\n"
             "   issuer  DN:\n %s\n",
             cp, kp1, kp0, op, sp, ip);
-    PR_Free(cp);
-    PR_Free(ip);
-    PR_Free(sp);
+    MPR_Free(cp);
+    MPR_Free(ip);
+    MPR_Free(sp);
 
     fprintf(outfile,
             "   %ld cache hits; %ld cache misses, %ld cache not reusable\n",
@@ -414,18 +414,18 @@ thread_wrapper(void *arg)
     perThread *slot = &threadMGR->threads[threadMGR->index];
 
     /* wait for parent to finish launching us before proceeding. */
-    PR_Lock(threadMGR->threadLock);
-    PR_Unlock(threadMGR->threadLock);
+    MPR_Lock(threadMGR->threadLock);
+    MPR_Unlock(threadMGR->threadLock);
 
     slot->rv = (*slot->startFunc)(slot->a, slot->b);
 
-    PR_Lock(threadMGR->threadLock);
+    MPR_Lock(threadMGR->threadLock);
     slot->running = rs_zombie;
 
     /* notify the thread exit handler. */
-    PR_NotifyCondVar(threadMGR->threadEndQ);
+    MPR_NotifyCondVar(threadMGR->threadEndQ);
 
-    PR_Unlock(threadMGR->threadLock);
+    MPR_Unlock(threadMGR->threadLock);
 }
 
 SECStatus
@@ -438,13 +438,13 @@ launch_thread(GlobalThreadMgr *threadMGR,
     int i;
 
     if (!threadMGR->threadStartQ) {
-        threadMGR->threadLock = PR_NewLock();
-        threadMGR->threadStartQ = PR_NewCondVar(threadMGR->threadLock);
-        threadMGR->threadEndQ = PR_NewCondVar(threadMGR->threadLock);
+        threadMGR->threadLock = MPR_NewLock();
+        threadMGR->threadStartQ = MPR_NewCondVar(threadMGR->threadLock);
+        threadMGR->threadEndQ = MPR_NewCondVar(threadMGR->threadLock);
     }
-    PR_Lock(threadMGR->threadLock);
+    MPR_Lock(threadMGR->threadLock);
     while (threadMGR->numRunning >= MAX_THREADS) {
-        PR_WaitCondVar(threadMGR->threadStartQ, PR_INTERVAL_NO_TIMEOUT);
+        MPR_WaitCondVar(threadMGR->threadStartQ, PR_INTERVAL_NO_TIMEOUT);
     }
     for (i = 0; i < threadMGR->numUsed; ++i) {
         slot = &threadMGR->threads[i];
@@ -455,7 +455,7 @@ launch_thread(GlobalThreadMgr *threadMGR,
         if (i >= MAX_THREADS) {
             /* something's really wrong here. */
             PORT_Assert(i < MAX_THREADS);
-            PR_Unlock(threadMGR->threadLock);
+            MPR_Unlock(threadMGR->threadLock);
             return SECFailure;
         }
         ++(threadMGR->numUsed);
@@ -469,13 +469,13 @@ launch_thread(GlobalThreadMgr *threadMGR,
 
     threadMGR->index = i;
 
-    slot->prThread = PR_CreateThread(PR_USER_THREAD,
+    slot->prThread = MPR_CreateThread(PR_USER_THREAD,
                                      thread_wrapper, threadMGR,
                                      PR_PRIORITY_NORMAL, PR_GLOBAL_THREAD,
                                      PR_JOINABLE_THREAD, 0);
 
     if (slot->prThread == NULL) {
-        PR_Unlock(threadMGR->threadLock);
+        MPR_Unlock(threadMGR->threadLock);
         printf("Failed to launch thread!\n");
         return SECFailure;
     }
@@ -483,7 +483,7 @@ launch_thread(GlobalThreadMgr *threadMGR,
     slot->inUse = 1;
     slot->running = 1;
     ++(threadMGR->numRunning);
-    PR_Unlock(threadMGR->threadLock);
+    MPR_Unlock(threadMGR->threadLock);
 
     return SECSuccess;
 }
@@ -496,21 +496,21 @@ reap_threads(GlobalThreadMgr *threadMGR)
 
     if (!threadMGR->threadLock)
         return SECSuccess;
-    PR_Lock(threadMGR->threadLock);
+    MPR_Lock(threadMGR->threadLock);
     while (threadMGR->numRunning > 0) {
-        PR_WaitCondVar(threadMGR->threadEndQ, PR_INTERVAL_NO_TIMEOUT);
+        MPR_WaitCondVar(threadMGR->threadEndQ, PR_INTERVAL_NO_TIMEOUT);
         for (i = 0; i < threadMGR->numUsed; ++i) {
             slot = &threadMGR->threads[i];
             if (slot->running == rs_zombie) {
                 /* Handle cleanup of thread here. */
 
                 /* Now make sure the thread has ended OK. */
-                PR_JoinThread(slot->prThread);
+                MPR_JoinThread(slot->prThread);
                 slot->running = rs_idle;
                 --threadMGR->numRunning;
 
                 /* notify the thread launcher. */
-                PR_NotifyCondVar(threadMGR->threadStartQ);
+                MPR_NotifyCondVar(threadMGR->threadStartQ);
             }
         }
     }
@@ -523,7 +523,7 @@ reap_threads(GlobalThreadMgr *threadMGR)
                     i, slot->running);
         }
     }
-    PR_Unlock(threadMGR->threadLock);
+    MPR_Unlock(threadMGR->threadLock);
     return SECSuccess;
 }
 
@@ -533,15 +533,15 @@ destroy_thread_data(GlobalThreadMgr *threadMGR)
     PORT_Memset(threadMGR->threads, 0, sizeof(threadMGR->threads));
 
     if (threadMGR->threadEndQ) {
-        PR_DestroyCondVar(threadMGR->threadEndQ);
+        MPR_DestroyCondVar(threadMGR->threadEndQ);
         threadMGR->threadEndQ = NULL;
     }
     if (threadMGR->threadStartQ) {
-        PR_DestroyCondVar(threadMGR->threadStartQ);
+        MPR_DestroyCondVar(threadMGR->threadStartQ);
         threadMGR->threadStartQ = NULL;
     }
     if (threadMGR->threadLock) {
-        PR_DestroyLock(threadMGR->threadLock);
+        MPR_DestroyLock(threadMGR->threadLock);
         threadMGR->threadLock = NULL;
     }
 }
@@ -555,28 +555,28 @@ lockedVars_Init(lockedVars *lv)
 {
     lv->count = 0;
     lv->waiters = 0;
-    lv->lock = PR_NewLock();
-    lv->condVar = PR_NewCondVar(lv->lock);
+    lv->lock = MPR_NewLock();
+    lv->condVar = MPR_NewCondVar(lv->lock);
 }
 
 void
 lockedVars_Destroy(lockedVars *lv)
 {
-    PR_DestroyCondVar(lv->condVar);
+    MPR_DestroyCondVar(lv->condVar);
     lv->condVar = NULL;
 
-    PR_DestroyLock(lv->lock);
+    MPR_DestroyLock(lv->lock);
     lv->lock = NULL;
 }
 
 void
 lockedVars_WaitForDone(lockedVars *lv)
 {
-    PR_Lock(lv->lock);
+    MPR_Lock(lv->lock);
     while (lv->count > 0) {
-        PR_WaitCondVar(lv->condVar, PR_INTERVAL_NO_TIMEOUT);
+        MPR_WaitCondVar(lv->condVar, PR_INTERVAL_NO_TIMEOUT);
     }
-    PR_Unlock(lv->lock);
+    MPR_Unlock(lv->lock);
 }
 
 int /* returns count */
@@ -584,12 +584,12 @@ lockedVars_AddToCount(lockedVars *lv, int addend)
 {
     int rv;
 
-    PR_Lock(lv->lock);
+    MPR_Lock(lv->lock);
     rv = lv->count += addend;
     if (rv <= 0) {
-        PR_NotifyCondVar(lv->condVar);
+        MPR_NotifyCondVar(lv->condVar);
     }
-    PR_Unlock(lv->lock);
+    MPR_Unlock(lv->lock);
     return rv;
 }
 
@@ -616,18 +616,18 @@ dumpCertChain(CERTCertificate *cert, SECCertUsage usage)
         char certFileName[16];
         PRFileDesc *cfd;
 
-        PR_snprintf(certFileName, sizeof certFileName, "cert.%03d",
+        MPR_snprintf(certFileName, sizeof certFileName, "cert.%03d",
                     count);
-        cfd = PR_Open(certFileName, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
+        cfd = MPR_Open(certFileName, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
                       0664);
         if (!cfd) {
-            PR_fprintf(PR_STDOUT,
+            MPR_fprintf(PR_STDOUT,
                        "Error: couldn't save cert der in file '%s'\n",
                        certFileName);
         } else {
-            PR_Write(cfd, certList->certs[count].data, certList->certs[count].len);
-            PR_Close(cfd);
-            PR_fprintf(PR_STDOUT, "Cert file %s was created.\n", certFileName);
+            MPR_Write(cfd, certList->certs[count].data, certList->certs[count].len);
+            MPR_Close(cfd);
+            MPR_fprintf(PR_STDOUT, "Cert file %s was created.\n", certFileName);
         }
     }
     CERT_DestroyCertificateList(certList);

@@ -139,7 +139,7 @@ dbs_mkBlob(DBS *dbsp, const DBT *key, const DBT *data, DBT *blobData)
 
 /*
  * construct a path to the actual blob. The string returned must be
- * freed by the caller with PR_smprintf_free.
+ * freed by the caller with MPR_smprintf_free.
  *
  * Note: this file does lots of consistancy checks on the DBT. The
  * routines that call this depend on these checks, so they don't worry
@@ -151,19 +151,19 @@ dbs_getBlobFilePath(char *blobdir, DBT *blobData)
     const char *name;
 
     if (blobdir == NULL) {
-        PR_SetError(SEC_ERROR_BAD_DATABASE, 0);
+        MPR_SetError(SEC_ERROR_BAD_DATABASE, 0);
         return NULL;
     }
     if (!dbs_IsBlob(blobData)) {
-        PR_SetError(SEC_ERROR_BAD_DATABASE, 0);
+        MPR_SetError(SEC_ERROR_BAD_DATABASE, 0);
         return NULL;
     }
     name = dbs_getBlobFileName(blobData);
     if (!name || *name == 0) {
-        PR_SetError(SEC_ERROR_BAD_DATABASE, 0);
+        MPR_SetError(SEC_ERROR_BAD_DATABASE, 0);
         return NULL;
     }
-    return PR_smprintf("%s" PATH_SEPARATOR "%s", blobdir, name);
+    return MPR_smprintf("%s" PATH_SEPARATOR "%s", blobdir, name);
 }
 
 /*
@@ -178,8 +178,8 @@ dbs_removeBlob(DBS *dbsp, DBT *blobData)
     if (!file) {
         return;
     }
-    PR_Delete(file);
-    PR_smprintf_free(file);
+    MPR_Delete(file);
+    MPR_smprintf_free(file);
 }
 
 /*
@@ -210,33 +210,33 @@ dbs_writeBlob(DBS *dbsp, int mode, DBT *blobData, const DBT *data)
     if (!file) {
         goto loser;
     }
-    if (PR_Access(dbsp->blobdir, PR_ACCESS_EXISTS) != PR_SUCCESS) {
-        status = PR_MkDir(dbsp->blobdir, dbs_DirMode(mode));
+    if (MPR_Access(dbsp->blobdir, PR_ACCESS_EXISTS) != PR_SUCCESS) {
+        status = MPR_MkDir(dbsp->blobdir, dbs_DirMode(mode));
         if (status != PR_SUCCESS) {
             goto loser;
         }
     }
-    filed = PR_OpenFile(file, PR_CREATE_FILE | PR_TRUNCATE | PR_WRONLY, mode);
+    filed = MPR_OpenFile(file, PR_CREATE_FILE | PR_TRUNCATE | PR_WRONLY, mode);
     if (filed == NULL) {
-        error = PR_GetError();
+        error = MPR_GetError();
         goto loser;
     }
-    len = PR_Write(filed, data->data, data->size);
-    error = PR_GetError();
-    PR_Close(filed);
+    len = MPR_Write(filed, data->data, data->size);
+    error = MPR_GetError();
+    MPR_Close(filed);
     if (len < (int)data->size) {
         goto loser;
     }
-    PR_smprintf_free(file);
+    MPR_smprintf_free(file);
     return 0;
 
 loser:
     if (file) {
-        PR_Delete(file);
-        PR_smprintf_free(file);
+        MPR_Delete(file);
+        MPR_smprintf_free(file);
     }
     /* don't let close or delete reset the error */
-    PR_SetError(error, 0);
+    MPR_SetError(error, 0);
     return -1;
 }
 
@@ -254,12 +254,12 @@ dbs_EmulateMap(PRFileDesc *filed, int len)
         return NULL;
     }
 
-    dataRead = PR_Read(filed, addr, len);
+    dataRead = MPR_Read(filed, addr, len);
     if (dataRead != len) {
         PORT_Free(addr);
         if (dataRead > 0) {
-            /* PR_Read didn't set an error, we need to */
-            PR_SetError(SEC_ERROR_BAD_DATABASE, 0);
+            /* MPR_Read didn't set an error, we need to */
+            MPR_SetError(SEC_ERROR_BAD_DATABASE, 0);
         }
         return NULL;
     }
@@ -285,8 +285,8 @@ dbs_readBlob(DBS *dbsp, DBT *data)
     if (!file) {
         goto loser;
     }
-    filed = PR_OpenFile(file, PR_RDONLY, 0);
-    PR_smprintf_free(file);
+    filed = MPR_OpenFile(file, PR_RDONLY, 0);
+    MPR_smprintf_free(file);
     file = NULL;
     if (filed == NULL) {
         goto loser;
@@ -294,7 +294,7 @@ dbs_readBlob(DBS *dbsp, DBT *data)
 
     len = dbs_getBlobSize(data);
     /* Bug 1323150
-     * PR_MemMap fails on Windows for larger certificates.
+     * MPR_MemMap fails on Windows for larger certificates.
      * https://msdn.microsoft.com/en-us/library/windows/desktop/aa366761(v=vs.85).aspx
      * Let's always use the emulated map, i.e. read the file.
      */
@@ -302,7 +302,7 @@ dbs_readBlob(DBS *dbsp, DBT *data)
     if (addr == NULL) {
         goto loser;
     }
-    PR_Close(filed);
+    MPR_Close(filed);
 
     data->data = addr;
     data->size = len;
@@ -310,11 +310,11 @@ dbs_readBlob(DBS *dbsp, DBT *data)
 
 loser:
     /* preserve the error code */
-    error = PR_GetError();
+    error = MPR_GetError();
     if (filed) {
-        PR_Close(filed);
+        MPR_Close(filed);
     }
-    PR_SetError(error, 0);
+    MPR_SetError(error, 0);
     return -1;
 }
 

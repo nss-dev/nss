@@ -24,7 +24,7 @@ reader(void)
 
     (void)printf("\t[Thread #1 Read Lock #1.]\n");
     (void)printf("\t[Thread #1 Sleeplng for 1 seconds.]\n");
-    PR_Sleep(PR_SecondsToInterval(1));
+    MPR_Sleep(MPR_SecondsToInterval(1));
     PKIX_PL_ReleaseReaderLock(rwlock, NULL);
     if (errorResult)
         testError("PKIX_PL_ReleaseReaderLock failed");
@@ -48,7 +48,7 @@ writer(void)
     (void)printf("\t[Thread #2 Write Lock #2.]\n");
 
     (void)printf("\t[Thread #2 Sleeplng for 1 seconds.]\n");
-    PR_Sleep(PR_SecondsToInterval(1));
+    MPR_Sleep(MPR_SecondsToInterval(1));
 
     PKIX_PL_ReleaseWriterLock(rwlock2, NULL);
     if (errorResult)
@@ -56,14 +56,14 @@ writer(void)
     (void)printf("\t[Thread #2 Write UNLock #2.]\n");
 
     (void)printf("\t[Thread #2 Sleeplng for 1 seconds.]\n");
-    PR_Sleep(PR_SecondsToInterval(1));
+    MPR_Sleep(MPR_SecondsToInterval(1));
 
     PKIX_PL_ReleaseWriterLock(rwlock, NULL);
     if (errorResult)
         testError("PKIX_PL_ReleaseWriterLock failed");
     (void)printf("\t[Thread #2 Write UNLock #1.]\n");
 
-    PR_JoinThread(thread3);
+    MPR_JoinThread(thread3);
 }
 
 static void
@@ -84,7 +84,7 @@ reader2(void)
     (void)printf("\t[Thread #3 Read Lock #3.]\n");
 
     (void)printf("\t[Thread #3 Sleeplng for 1 seconds.]\n");
-    PR_Sleep(PR_SecondsToInterval(1));
+    MPR_Sleep(MPR_SecondsToInterval(1));
 
     PKIX_PL_ReleaseReaderLock(rwlock3, NULL);
     if (errorResult)
@@ -92,7 +92,7 @@ reader2(void)
     (void)printf("\t[Thread #3 Read UNLock #3.]\n");
 
     (void)printf("\t[Thread #3 Sleeplng for 1 seconds.]\n");
-    PR_Sleep(PR_SecondsToInterval(1));
+    MPR_Sleep(MPR_SecondsToInterval(1));
 
     PKIX_PL_ReleaseReaderLock(rwlock2, NULL);
     if (errorResult)
@@ -154,7 +154,7 @@ test_rwlock()
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_AcquireReaderLock(rwlock, plContext));
     (void)printf("\t[Main Thread Read Lock #1.]\n");
 
-    thread = PR_CreateThread(PR_USER_THREAD,
+    thread = MPR_CreateThread(PR_USER_THREAD,
                              reader,
                              NULL,
                              PR_PRIORITY_NORMAL,
@@ -162,7 +162,7 @@ test_rwlock()
                              PR_JOINABLE_THREAD,
                              0);
 
-    thread2 = PR_CreateThread(PR_USER_THREAD,
+    thread2 = MPR_CreateThread(PR_USER_THREAD,
                               writer,
                               NULL,
                               PR_PRIORITY_NORMAL,
@@ -170,7 +170,7 @@ test_rwlock()
                               PR_JOINABLE_THREAD,
                               0);
 
-    thread3 = PR_CreateThread(PR_USER_THREAD,
+    thread3 = MPR_CreateThread(PR_USER_THREAD,
                               reader2,
                               NULL,
                               PR_PRIORITY_NORMAL,
@@ -178,11 +178,11 @@ test_rwlock()
                               PR_JOINABLE_THREAD,
                               0);
 
-    PR_JoinThread(thread);
+    MPR_JoinThread(thread);
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_ReleaseReaderLock(rwlock, plContext));
     (void)printf("\t[Main Thread Read Unlock #1.]\n");
 
-    PR_JoinThread(thread2);
+    MPR_JoinThread(thread2);
 
 cleanup:
 

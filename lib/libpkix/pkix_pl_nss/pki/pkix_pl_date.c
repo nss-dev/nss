@@ -152,7 +152,7 @@ pkix_pl_Date_ToString_Helper(
                     PKIX_STRINGCREATEFAILED);
 
 cleanup:
-        PR_Free(asciiDate);
+        MPR_Free(asciiDate);
 
         PKIX_RETURN(DATE);
 }
@@ -379,8 +379,8 @@ PKIX_PL_Date_Create_UTCTime(
         PKIX_NULLCHECK_ONE(pDate);
 
         if (stringRep == NULL){
-                PKIX_DATE_DEBUG("\t\tCalling PR_Now).\n");
-                time = PR_Now();
+                PKIX_DATE_DEBUG("\t\tCalling MPR_Now).\n");
+                time = MPR_Now();
         } else {
                 /* convert the input PKIX_PL_String to PKIX_ESCASCII */
                 PKIX_CHECK(PKIX_PL_String_GetEncoded
@@ -433,7 +433,7 @@ PKIX_PL_Date_Create_CurrentOffBySeconds(
         PKIX_ENTER(DATE, "PKIX_PL_Date_Create_CurrentOffBySeconds");
         PKIX_NULLCHECK_ONE(pDate);
 
-        time = PR_Now() + PR_SecondsToInterval(secondsOffset);
+        time = MPR_Now() + MPR_SecondsToInterval(secondsOffset);
         /* create a PKIX_PL_Date object */
         PKIX_CHECK(PKIX_PL_Object_Alloc
                     (PKIX_DATE_TYPE,

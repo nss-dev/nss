@@ -161,7 +161,7 @@ class Pkcs11ModuleLoadFunctionTest : public ::testing::Test {
 
   void TearDown() override {
     if (library != NULL) {
-      PR_UnloadLibrary(library);
+      MPR_UnloadLibrary(library);
     }
   }
   PRLibrary *library;
@@ -197,11 +197,11 @@ TEST_F(Pkcs11ModuleLoadFunctionTest, LoadModuleWithEmptyFunctionList) {
 }
 
 TEST_F(Pkcs11ModuleLoadFunctionTest, SuccessLoadModuleWithFunction) {
-  library = PR_LoadLibrary(DLL_PREFIX "pkcs11testmodule." DLL_SUFFIX);
+  library = MPR_LoadLibrary(DLL_PREFIX "pkcs11testmodule." DLL_SUFFIX);
   EXPECT_NE(nullptr, library);
 
   CK_C_GetFunctionList fentry = NULL;
-  fentry = (CK_C_GetFunctionList)PR_FindSymbol(library, "C_GetFunctionList");
+  fentry = (CK_C_GetFunctionList)MPR_FindSymbol(library, "C_GetFunctionList");
   EXPECT_NE(nullptr, fentry);
 
   ScopedSECMODModule userModule(

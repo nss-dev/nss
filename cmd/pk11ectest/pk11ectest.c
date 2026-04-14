@@ -211,9 +211,9 @@ main(int argv, char **argc)
                               SEC_OID_SECG_EC_SECP521R1 };
 
     for (i = 1; i < argv; i++) {
-        if (PL_strcasecmp(argc[i], "-n") == 0) {
+        if (MPL_strcasecmp(argc[i], "-n") == 0) {
             nist = 1;
-        } else if (PL_strcasecmp(argc[i], "-d") == 0) {
+        } else if (MPL_strcasecmp(argc[i], "-d") == 0) {
             nonnist = 1;
         } else {
             printUsage(argc[0]);

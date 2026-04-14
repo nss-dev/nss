@@ -212,7 +212,7 @@ prng_getEntropy(PRUint8 *buffer, size_t requestLength)
     SHA256Context ctx;
     SECStatus rv = SECSuccess;
 
-    if (PR_CallOnce(&coRNGInitEntropy, prng_initEntropy) != PR_SUCCESS) {
+    if (MPR_CallOnce(&coRNGInitEntropy, prng_initEntropy) != PR_SUCCESS) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
     }
@@ -485,7 +485,7 @@ rng_init(void)
         globalrng = &theGlobalRng;
         PORT_Assert(NULL == globalrng->lock);
         /* create a lock for it */
-        globalrng->lock = PR_NewLock();
+        globalrng->lock = MPR_NewLock();
         if (globalrng->lock == NULL) {
             globalrng = NULL;
             PORT_SetError(PR_OUT_OF_MEMORY_ERROR);
@@ -505,7 +505,7 @@ rng_init(void)
             }
             memset(bytes, 0, sizeof(bytes));
         } else {
-            PR_DestroyLock(globalrng->lock);
+            MPR_DestroyLock(globalrng->lock);
             globalrng->lock = NULL;
             globalrng = NULL;
             return PR_FAILURE;
@@ -537,7 +537,7 @@ prng_freeRNGContext(RNGContext *rng)
     PRUint8 inputhash[VSize(rng) + (sizeof(rng->C))];
 
     /* destroy context lock */
-    SKIP_AFTER_FORK(PR_DestroyLock(globalrng->lock));
+    SKIP_AFTER_FORK(MPR_DestroyLock(globalrng->lock));
 
     /* zero global RNG context except for C & V to preserve entropy */
     prng_Hash_df(inputhash, sizeof(rng->C), rng->C, sizeof(rng->C), NULL, 0);
@@ -567,7 +567,7 @@ SECStatus
 RNG_RNGInit(void)
 {
     /* Allow only one call to initialize the context */
-    PR_CallOnce(&coRNGInit, rng_init);
+    MPR_CallOnce(&coRNGInit, rng_init);
     /* Make sure there is a context */
     return (globalrng != NULL) ? SECSuccess : SECFailure;
 }
@@ -617,7 +617,7 @@ RNG_RandomUpdate(const void *data, size_t bytes)
     PR_STATIC_ASSERT(sizeof(size_t) <= 4);
 #endif
 
-    PR_Lock(globalrng->lock);
+    MPR_Lock(globalrng->lock);
     /* if we're passed more than our additionalDataCache, simply
      * call reseed with that data */
     if (bytes > sizeof(globalrng->additionalDataCache)) {
@@ -652,7 +652,7 @@ RNG_RandomUpdate(const void *data, size_t bytes)
         globalrng->additionalAvail = (PRUint32)bytes;
     }
 
-    PR_Unlock(globalrng->lock);
+    MPR_Unlock(globalrng->lock);
     return rv;
 }
 
@@ -678,18 +678,18 @@ prng_GenerateGlobalRandomBytes(RNGContext *rng,
         return SECFailure;
     }
     /* --- LOCKED --- */
-    PR_Lock(rng->lock);
+    MPR_Lock(rng->lock);
     /* Check the amount of seed data in the generator.  If not enough,
      * don't produce any data.
      */
     if (rng->reseed_counter[0] >= RESEED_VALUE) {
         rv = prng_reseed_test(rng, NULL, 0, NULL, 0);
-        PR_Unlock(rng->lock);
+        MPR_Unlock(rng->lock);
         if (rv != SECSuccess) {
             return rv;
         }
         RNG_SystemInfoForRNG();
-        PR_Lock(rng->lock);
+        MPR_Lock(rng->lock);
     }
     /*
      * see if we have enough bytes to fulfill the request.
@@ -718,7 +718,7 @@ prng_GenerateGlobalRandomBytes(RNGContext *rng,
                                    rng->additionalAvail);
         rng->additionalAvail = 0;
     }
-    PR_Unlock(rng->lock);
+    MPR_Unlock(rng->lock);
     /* --- UNLOCKED --- */
     return rv;
 }

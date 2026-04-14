@@ -90,9 +90,9 @@ main(int argc, char **argv)
         progName = strrchr(argv[0], '\\');
     progName = progName ? progName + 1 : argv[0];
 
-    optstate = PL_CreateOptState(argc, argv, "rfip:d:h");
+    optstate = MPL_CreateOptState(argc, argv, "rfip:d:h");
 
-    while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    while ((optstatus = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case 'h':
             default:
@@ -120,7 +120,7 @@ main(int argc, char **argv)
                 break;
         }
     }
-    PL_DestroyOptState(optstate);
+    MPL_DestroyOptState(optstate);
     if (optstatus == PL_OPT_BAD)
         Usage();
 
@@ -132,42 +132,42 @@ main(int argc, char **argv)
         /* Look in $SSL_DIR */
         dbDir = SECU_ConfigDirectory(SECU_DefaultSSLDir());
     }
-    PR_fprintf(PR_STDERR, "dbdir selected is %s\n\n", dbDir);
+    MPR_fprintf(PR_STDERR, "dbdir selected is %s\n\n", dbDir);
 
     if (dbDir[0] == '\0') {
-        PR_fprintf(PR_STDERR, errStrings[DIR_DOESNT_EXIST_ERR], dbDir);
+        MPR_fprintf(PR_STDERR, errStrings[DIR_DOESNT_EXIST_ERR], dbDir);
         ret = DIR_DOESNT_EXIST_ERR;
         goto loser;
     }
 
-    PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
+    MPR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
 
     /* get the status of the directory and databases and output message */
-    if (PR_Access(dbDir, PR_ACCESS_EXISTS) != PR_SUCCESS) {
-        PR_fprintf(PR_STDERR, errStrings[DIR_DOESNT_EXIST_ERR], dbDir);
-    } else if (PR_Access(dbDir, PR_ACCESS_READ_OK) != PR_SUCCESS) {
-        PR_fprintf(PR_STDERR, errStrings[DIR_NOT_READABLE_ERR], dbDir);
+    if (MPR_Access(dbDir, PR_ACCESS_EXISTS) != PR_SUCCESS) {
+        MPR_fprintf(PR_STDERR, errStrings[DIR_DOESNT_EXIST_ERR], dbDir);
+    } else if (MPR_Access(dbDir, PR_ACCESS_READ_OK) != PR_SUCCESS) {
+        MPR_fprintf(PR_STDERR, errStrings[DIR_NOT_READABLE_ERR], dbDir);
     } else {
         if (!(flags & NSS_INIT_READONLY) &&
-            PR_Access(dbDir, PR_ACCESS_WRITE_OK) != PR_SUCCESS) {
-            PR_fprintf(PR_STDERR, errStrings[DIR_NOT_WRITEABLE_ERR], dbDir);
+            MPR_Access(dbDir, PR_ACCESS_WRITE_OK) != PR_SUCCESS) {
+            MPR_fprintf(PR_STDERR, errStrings[DIR_NOT_WRITEABLE_ERR], dbDir);
         }
         if (!doInitTest) {
             for (i = 0; i < 3; i++) {
-                dbString = PR_smprintf("%s/%s", dbDir, dbName[i]);
-                PR_fprintf(PR_STDOUT, "database checked is %s\n", dbString);
-                if (PR_Access(dbString, PR_ACCESS_EXISTS) != PR_SUCCESS) {
-                    PR_fprintf(PR_STDERR, errStrings[FILE_DOESNT_EXIST_ERR],
+                dbString = MPR_smprintf("%s/%s", dbDir, dbName[i]);
+                MPR_fprintf(PR_STDOUT, "database checked is %s\n", dbString);
+                if (MPR_Access(dbString, PR_ACCESS_EXISTS) != PR_SUCCESS) {
+                    MPR_fprintf(PR_STDERR, errStrings[FILE_DOESNT_EXIST_ERR],
                                dbString);
-                } else if (PR_Access(dbString, PR_ACCESS_READ_OK) != PR_SUCCESS) {
-                    PR_fprintf(PR_STDERR, errStrings[FILE_NOT_READABLE_ERR],
+                } else if (MPR_Access(dbString, PR_ACCESS_READ_OK) != PR_SUCCESS) {
+                    MPR_fprintf(PR_STDERR, errStrings[FILE_NOT_READABLE_ERR],
                                dbString);
                 } else if (!(flags & NSS_INIT_READONLY) &&
-                           PR_Access(dbString, PR_ACCESS_WRITE_OK) != PR_SUCCESS) {
-                    PR_fprintf(PR_STDERR, errStrings[FILE_NOT_WRITEABLE_ERR],
+                           MPR_Access(dbString, PR_ACCESS_WRITE_OK) != PR_SUCCESS) {
+                    MPR_fprintf(PR_STDERR, errStrings[FILE_NOT_WRITEABLE_ERR],
                                dbString);
                 }
-                PR_smprintf_free(dbString);
+                MPR_smprintf_free(dbString);
             }
         }
     }
@@ -193,12 +193,12 @@ main(int argc, char **argv)
             PK11_SetPasswordFunc(getPassword);
             rv = PK11_InitPin(slot, (char *)NULL, userPassword);
             if (rv != SECSuccess) {
-                PR_fprintf(PR_STDERR, "Failed to Init DB: %s\n",
+                MPR_fprintf(PR_STDERR, "Failed to Init DB: %s\n",
                            SECU_Strerror(PORT_GetError()));
                 ret = CHANGEPW_FAILED_ERR;
             }
             if (*userPassword && !PK11_IsLoggedIn(slot, &passwordSuccess)) {
-                PR_fprintf(PR_STDERR, "New DB did not log in after init\n");
+                MPR_fprintf(PR_STDERR, "New DB did not log in after init\n");
                 ret = AUTHENTICATION_FAILED_ERR;
             }
             /* generate a symetric key */
@@ -206,7 +206,7 @@ main(int argc, char **argv)
                                    PR_TRUE, &passwordSuccess);
 
             if (!key) {
-                PR_fprintf(PR_STDERR, "Could not generated symetric key: %s\n",
+                MPR_fprintf(PR_STDERR, "Could not generated symetric key: %s\n",
                            SECU_Strerror(PORT_GetError()));
                 exit(UNSPECIFIED_ERR);
             }
@@ -216,13 +216,13 @@ main(int argc, char **argv)
             PK11_Authenticate(slot, PR_TRUE, &passwordSuccess);
 
             if (*userPassword && !passwordSuccess) {
-                PR_fprintf(PR_STDERR, "New DB Did not initalize\n");
+                MPR_fprintf(PR_STDERR, "New DB Did not initalize\n");
                 ret = AUTHENTICATION_FAILED_ERR;
             }
             key = PK11_FindFixedKey(slot, type, &keyid, &passwordSuccess);
 
             if (!key) {
-                PR_fprintf(PR_STDERR, "Could not find generated key: %s\n",
+                MPR_fprintf(PR_STDERR, "Could not find generated key: %s\n",
                            SECU_Strerror(PORT_GetError()));
                 ret = UNSPECIFIED_ERR;
             } else {
@@ -232,7 +232,7 @@ main(int argc, char **argv)
         }
 
         if (NSS_Shutdown() != SECSuccess) {
-            PR_fprintf(PR_STDERR, "Could not find generated key: %s\n",
+            MPR_fprintf(PR_STDERR, "Could not find generated key: %s\n",
                        SECU_Strerror(PORT_GetError()));
             exit(1);
         }

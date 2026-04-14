@@ -11,7 +11,7 @@
 std::string g_source_dir;
 
 void usage(const char *progname) {
-  PR_fprintf(PR_STDERR, "Usage: %s [-s <dir>] [-d <dir> [-w]]\n", progname);
+  MPR_fprintf(PR_STDERR, "Usage: %s [-s <dir>] [-d <dir> [-w]]\n", progname);
   exit(2);
 }
 

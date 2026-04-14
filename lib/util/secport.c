@@ -70,7 +70,7 @@ PORTCharConversionFunc ucs4Utf8ConvertFunc;
 PORTCharConversionFunc ucs2Utf8ConvertFunc;
 PORTCharConversionWSwapFunc ucs2AsciiConvertFunc;
 
-/* NSPR memory allocation functions (PR_Malloc, PR_Calloc, and PR_Realloc)
+/* NSPR memory allocation functions (MPR_Malloc, MPR_Calloc, and MPR_Realloc)
  * use the PRUint32 type for the size parameter. Before we pass a size_t or
  * unsigned long size to these functions, we need to ensure it is <= half of
  * the maximum PRUint32 value to avoid truncation and catch a negative size.
@@ -84,7 +84,7 @@ PORT_Alloc(size_t bytes)
 
     if (bytes <= MAX_SIZE) {
         /* Always allocate a non-zero amount of bytes */
-        rv = PR_Malloc(bytes ? bytes : 1);
+        rv = MPR_Malloc(bytes ? bytes : 1);
     }
     if (!rv) {
         PORT_SetError(SEC_ERROR_NO_MEMORY);
@@ -98,7 +98,7 @@ PORT_Realloc(void *oldptr, size_t bytes)
     void *rv = NULL;
 
     if (bytes <= MAX_SIZE) {
-        rv = PR_Realloc(oldptr, bytes);
+        rv = MPR_Realloc(oldptr, bytes);
     }
     if (!rv) {
         PORT_SetError(SEC_ERROR_NO_MEMORY);
@@ -113,7 +113,7 @@ PORT_ZAlloc(size_t bytes)
 
     if (bytes <= MAX_SIZE) {
         /* Always allocate a non-zero amount of bytes */
-        rv = PR_Calloc(1, bytes ? bytes : 1);
+        rv = MPR_Calloc(1, bytes ? bytes : 1);
     }
     if (!rv) {
         PORT_SetError(SEC_ERROR_NO_MEMORY);
@@ -170,7 +170,7 @@ void
 PORT_Free(void *ptr)
 {
     if (ptr) {
-        PR_Free(ptr);
+        MPR_Free(ptr);
     }
 }
 
@@ -179,7 +179,7 @@ PORT_ZFree(void *ptr, size_t len)
 {
     if (ptr) {
         memset(ptr, 0, len);
-        PR_Free(ptr);
+        MPR_Free(ptr);
     }
 }
 
@@ -199,14 +199,14 @@ PORT_Strdup(const char *str)
 void
 PORT_SetError(int value)
 {
-    PR_SetError(value, 0);
+    MPR_SetError(value, 0);
     return;
 }
 
 int
 PORT_GetError(void)
 {
-    return (PR_GetError());
+    return (MPR_GetError());
 }
 
 void
@@ -309,12 +309,12 @@ PORT_NewArena(unsigned long chunksize)
         return NULL;
     }
     pool->magic = ARENAPOOL_MAGIC;
-    pool->lock = PR_NewLock();
+    pool->lock = MPR_NewLock();
     if (!pool->lock) {
         PORT_Free(pool);
         return NULL;
     }
-    PL_InitArenaPool(&pool->arena, "security", chunksize, sizeof(double));
+    MPL_InitArenaPool(&pool->arena, "security", chunksize, sizeof(double));
     return (&pool->arena);
 }
 
@@ -322,7 +322,7 @@ void
 PORT_InitCheapArena(PORTCheapArenaPool *pool, unsigned long chunksize)
 {
     pool->magic = CHEAP_ARENAPOOL_MAGIC;
-    PL_InitArenaPool(&pool->arena, "security", chunksize, sizeof(double));
+    MPL_InitArenaPool(&pool->arena, "security", chunksize, sizeof(double));
 }
 
 void *
@@ -341,20 +341,20 @@ PORT_ArenaAlloc(PLArenaPool *arena, size_t size)
     } else
         /* Is it one of ours?  Assume so and check the magic */
         if (ARENAPOOL_MAGIC == pool->magic) {
-            PR_Lock(pool->lock);
+            MPR_Lock(pool->lock);
 #ifdef THREADMARK
             /* Most likely one of ours.  Is there a thread id? */
             if (pool->marking_thread &&
-                pool->marking_thread != PR_GetCurrentThread()) {
+                pool->marking_thread != MPR_GetCurrentThread()) {
                 /* Another thread holds a mark in this arena */
-                PR_Unlock(pool->lock);
+                MPR_Unlock(pool->lock);
                 PORT_SetError(SEC_ERROR_NO_MEMORY);
                 PORT_Assert(0);
                 return NULL;
             } /* tid != null */
 #endif        /* THREADMARK */
             PL_ARENA_ALLOCATE(p, arena, size);
-            PR_Unlock(pool->lock);
+            MPR_Unlock(pool->lock);
         } else {
             PL_ARENA_ALLOCATE(p, arena, size);
         }
@@ -389,7 +389,7 @@ static PRBool useFreeList;
 static PRStatus
 SetupUseFreeList(void)
 {
-    useFreeList = (PR_GetEnvSecure("NSS_DISABLE_ARENA_FREE_LIST") == NULL);
+    useFreeList = (MPR_GetEnvSecure("NSS_DISABLE_ARENA_FREE_LIST") == NULL);
     return PR_SUCCESS;
 }
 
@@ -408,32 +408,32 @@ PORT_FreeArena(PLArenaPool *arena, PRBool zero)
     if (ARENAPOOL_MAGIC == pool->magic) {
         len = sizeof *pool;
         lock = pool->lock;
-        PR_Lock(lock);
+        MPR_Lock(lock);
     }
     if (zero) {
-        PL_ClearArenaPool(arena, 0);
+        MPL_ClearArenaPool(arena, 0);
     }
-    (void)PR_CallOnce(&setupUseFreeListOnce, &SetupUseFreeList);
+    (void)MPR_CallOnce(&setupUseFreeListOnce, &SetupUseFreeList);
     if (useFreeList) {
-        PL_FreeArenaPool(arena);
+        MPL_FreeArenaPool(arena);
     } else {
-        PL_FinishArenaPool(arena);
+        MPL_FinishArenaPool(arena);
     }
     PORT_ZFree(arena, len);
     if (lock) {
-        PR_Unlock(lock);
-        PR_DestroyLock(lock);
+        MPR_Unlock(lock);
+        MPR_DestroyLock(lock);
     }
 }
 
 void
 PORT_DestroyCheapArena(PORTCheapArenaPool *pool)
 {
-    (void)PR_CallOnce(&setupUseFreeListOnce, &SetupUseFreeList);
+    (void)MPR_CallOnce(&setupUseFreeListOnce, &SetupUseFreeList);
     if (useFreeList) {
-        PL_FreeArenaPool(&pool->arena);
+        MPL_FreeArenaPool(&pool->arena);
     } else {
-        PL_FinishArenaPool(&pool->arena);
+        MPL_FinishArenaPool(&pool->arena);
     }
 }
 
@@ -449,10 +449,10 @@ PORT_ArenaGrow(PLArenaPool *arena, void *ptr, size_t oldsize, size_t newsize)
     }
 
     if (ARENAPOOL_MAGIC == pool->magic) {
-        PR_Lock(pool->lock);
+        MPR_Lock(pool->lock);
         /* Do we do a THREADMARK check here? */
         PL_ARENA_GROW(ptr, arena, oldsize, (newsize - oldsize));
-        PR_Unlock(pool->lock);
+        MPR_Unlock(pool->lock);
     } else {
         PL_ARENA_GROW(ptr, arena, oldsize, (newsize - oldsize));
     }
@@ -467,17 +467,17 @@ PORT_ArenaMark(PLArenaPool *arena)
 
     PORTArenaPool *pool = (PORTArenaPool *)arena;
     if (ARENAPOOL_MAGIC == pool->magic) {
-        PR_Lock(pool->lock);
+        MPR_Lock(pool->lock);
 #ifdef THREADMARK
         {
             threadmark_mark *tm, **pw;
-            PRThread *currentThread = PR_GetCurrentThread();
+            PRThread *currentThread = MPR_GetCurrentThread();
 
             if (!pool->marking_thread) {
                 /* First mark */
                 pool->marking_thread = currentThread;
             } else if (currentThread != pool->marking_thread) {
-                PR_Unlock(pool->lock);
+                MPR_Unlock(pool->lock);
                 PORT_SetError(SEC_ERROR_NO_MEMORY);
                 PORT_Assert(0);
                 return NULL;
@@ -486,7 +486,7 @@ PORT_ArenaMark(PLArenaPool *arena)
             result = PL_ARENA_MARK(arena);
             PL_ARENA_ALLOCATE(tm, arena, sizeof(threadmark_mark));
             if (!tm) {
-                PR_Unlock(pool->lock);
+                MPR_Unlock(pool->lock);
                 PORT_SetError(SEC_ERROR_NO_MEMORY);
                 return NULL;
             }
@@ -504,7 +504,7 @@ PORT_ArenaMark(PLArenaPool *arena)
 #else  /* THREADMARK */
         result = PL_ARENA_MARK(arena);
 #endif /* THREADMARK */
-        PR_Unlock(pool->lock);
+        MPR_Unlock(pool->lock);
     } else {
         /* a "pure" NSPR arena */
         result = PL_ARENA_MARK(arena);
@@ -561,13 +561,13 @@ port_ArenaRelease(PLArenaPool *arena, void *mark, PRBool zero)
 {
     PORTArenaPool *pool = (PORTArenaPool *)arena;
     if (ARENAPOOL_MAGIC == pool->magic) {
-        PR_Lock(pool->lock);
+        MPR_Lock(pool->lock);
 #ifdef THREADMARK
         {
             threadmark_mark **pw;
 
-            if (PR_GetCurrentThread() != pool->marking_thread) {
-                PR_Unlock(pool->lock);
+            if (MPR_GetCurrentThread() != pool->marking_thread) {
+                MPR_Unlock(pool->lock);
                 PORT_SetError(SEC_ERROR_NO_MEMORY);
                 PORT_Assert(0);
                 return /* no error indication available */;
@@ -580,7 +580,7 @@ port_ArenaRelease(PLArenaPool *arena, void *mark, PRBool zero)
 
             if (!*pw) {
                 /* bad mark */
-                PR_Unlock(pool->lock);
+                MPR_Unlock(pool->lock);
                 PORT_SetError(SEC_ERROR_NO_MEMORY);
                 PORT_Assert(0);
                 return /* no error indication available */;
@@ -603,7 +603,7 @@ port_ArenaRelease(PLArenaPool *arena, void *mark, PRBool zero)
         }
         PL_ARENA_RELEASE(arena, mark);
 #endif /* THREADMARK */
-        PR_Unlock(pool->lock);
+        MPR_Unlock(pool->lock);
     } else {
         if (zero) {
             port_ArenaZeroAfterMark(arena, mark);
@@ -635,10 +635,10 @@ PORT_ArenaUnmark(PLArenaPool *arena, void *mark)
     if (ARENAPOOL_MAGIC == pool->magic) {
         threadmark_mark **pw;
 
-        PR_Lock(pool->lock);
+        MPR_Lock(pool->lock);
 
-        if (PR_GetCurrentThread() != pool->marking_thread) {
-            PR_Unlock(pool->lock);
+        if (MPR_GetCurrentThread() != pool->marking_thread) {
+            MPR_Unlock(pool->lock);
             PORT_SetError(SEC_ERROR_NO_MEMORY);
             PORT_Assert(0);
             return /* no error indication available */;
@@ -651,7 +651,7 @@ PORT_ArenaUnmark(PLArenaPool *arena, void *mark)
 
         if ((threadmark_mark *)NULL == *pw) {
             /* bad mark */
-            PR_Unlock(pool->lock);
+            MPR_Unlock(pool->lock);
             PORT_SetError(SEC_ERROR_NO_MEMORY);
             PORT_Assert(0);
             return /* no error indication available */;
@@ -663,7 +663,7 @@ PORT_ArenaUnmark(PLArenaPool *arena, void *mark)
             pool->marking_thread = (PRThread *)NULL;
         }
 
-        PR_Unlock(pool->lock);
+        MPR_Unlock(pool->lock);
     }
 #endif /* THREADMARK */
 }
@@ -929,7 +929,7 @@ NSS_GetSystemFIPSEnabled(void)
     const char *env;
 
     /* The environment variable is active for all platforms */
-    env = PR_GetEnvSecure("NSS_FIPS");
+    env = MPR_GetEnvSecure("NSS_FIPS");
     /* we generally accept y, Y, 1, FIPS, TRUE, and ON as turning on FIPS
      * mode. Anything else is considered 'off' */
     if (env && (*env == 'y' || *env == '1' || *env == 'Y' ||

@@ -33,7 +33,7 @@
 #endif
 
 #ifndef PORT_Malloc
-#define PORT_Malloc PR_Malloc
+#define PORT_Malloc MPR_Malloc
 #endif
 
 #define RD_BUF_SIZE (60 * 1024)
@@ -195,8 +195,8 @@ Usage(void)
 static void
 errWarn(char *funcString)
 {
-    PRErrorCode perr = PR_GetError();
-    PRInt32 oserr = PR_GetOSError();
+    PRErrorCode perr = MPR_GetError();
+    PRInt32 oserr = MPR_GetOSError();
     const char *errString = SECU_Strerror(perr);
 
     fprintf(stderr, "strsclnt: %s returned error %d, OS error %d: %s\n",
@@ -274,7 +274,7 @@ mySSLAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
 static SECStatus
 myBadCertHandler(void *arg, PRFileDesc *fd)
 {
-    PRErrorCode err = PR_GetError();
+    PRErrorCode err = MPR_GetError();
     if (!MakeCertOK)
         fprintf(stderr,
                 "strsclnt: -- SSL: Server Certificate Invalid, err %d.\n%s\n",
@@ -383,9 +383,9 @@ thread_wrapper(void *arg)
     do {
         PRBool doop = PR_FALSE;
         PRBool dosleep = PR_FALSE;
-        PRTime now = PR_Now();
+        PRTime now = MPR_Now();
 
-        PR_Lock(threadLock);
+        MPR_Lock(threadLock);
         if (!(slot->tid < active_threads)) {
             /* this thread isn't supposed to be running */
             if (!ThrottleUp) {
@@ -395,10 +395,10 @@ thread_wrapper(void *arg)
                 /* we may still need this thread, so just sleep for 1s */
                 dosleep = PR_TRUE;
                 /* the conditions to trigger a throttle up are :
-                ** 1. last PR_Connect failure must have happened more than
+                ** 1. last MPR_Connect failure must have happened more than
                 **    10s ago
                 ** 2. last throttling up must have happened more than 0.5s ago
-                ** 3. there must be a more recent PR_Connect success than
+                ** 3. there must be a more recent MPR_Connect success than
                 **    failure
                 */
                 if ((now - lastConnectFailure > 10 * PR_USEC_PER_SEC) &&
@@ -423,14 +423,14 @@ thread_wrapper(void *arg)
                 done = PR_TRUE;
             }
         }
-        PR_Unlock(threadLock);
+        MPR_Unlock(threadLock);
         if (doop) {
             slot->rv = (*slot->startFunc)(slot->a, slot->b, slot->tid);
             PRINTF("strsclnt: Thread in slot %d returned %d\n",
                    slot->tid, slot->rv);
         }
         if (dosleep) {
-            PR_Sleep(PR_SecondsToInterval(1));
+            MPR_Sleep(MPR_SecondsToInterval(1));
         }
     } while (!done && (!failed_already || ignoreErrors));
 }
@@ -445,11 +445,11 @@ launch_thread(
     PRUint32 i;
     perThread *slot;
 
-    PR_Lock(threadLock);
+    MPR_Lock(threadLock);
 
     PORT_Assert(numUsed < MAX_THREADS);
     if (!(numUsed < MAX_THREADS)) {
-        PR_Unlock(threadLock);
+        MPR_Unlock(threadLock);
         return SECFailure;
     }
 
@@ -461,18 +461,18 @@ launch_thread(
 
     slot->startFunc = startFunc;
 
-    slot->prThread = PR_CreateThread(PR_USER_THREAD,
+    slot->prThread = MPR_CreateThread(PR_USER_THREAD,
                                      thread_wrapper, slot,
                                      PR_PRIORITY_NORMAL, PR_GLOBAL_THREAD,
                                      PR_JOINABLE_THREAD, 0);
     if (slot->prThread == NULL) {
-        PR_Unlock(threadLock);
+        MPR_Unlock(threadLock);
         printf("strsclnt: Failed to launch thread!\n");
         return SECFailure;
     }
 
     slot->inUse = 1;
-    PR_Unlock(threadLock);
+    MPR_Unlock(threadLock);
     PRINTF("strsclnt: Launched thread in slot %d \n", i);
 
     return SECSuccess;
@@ -486,7 +486,7 @@ reap_threads(void)
 
     for (i = 0; i < MAX_THREADS; ++i) {
         if (threads[i].prThread) {
-            PR_JoinThread(threads[i].prThread);
+            MPR_JoinThread(threads[i].prThread);
             threads[i].prThread = NULL;
         }
     }
@@ -499,7 +499,7 @@ destroy_thread_data(void)
     PORT_Memset(threads, 0, sizeof threads);
 
     if (threadLock) {
-        PR_DestroyLock(threadLock);
+        MPR_DestroyLock(threadLock);
         threadLock = NULL;
     }
 }
@@ -507,7 +507,7 @@ destroy_thread_data(void)
 void
 init_thread_data(void)
 {
-    threadLock = PR_NewLock();
+    threadLock = MPR_NewLock();
 }
 
 /**************************************************************************
@@ -538,28 +538,28 @@ lockedVars_Init(lockedVars *lv)
 {
     lv->count = 0;
     lv->waiters = 0;
-    lv->lock = PR_NewLock();
-    lv->condVar = PR_NewCondVar(lv->lock);
+    lv->lock = MPR_NewLock();
+    lv->condVar = MPR_NewCondVar(lv->lock);
 }
 
 void
 lockedVars_Destroy(lockedVars *lv)
 {
-    PR_DestroyCondVar(lv->condVar);
+    MPR_DestroyCondVar(lv->condVar);
     lv->condVar = NULL;
 
-    PR_DestroyLock(lv->lock);
+    MPR_DestroyLock(lv->lock);
     lv->lock = NULL;
 }
 
 void
 lockedVars_WaitForDone(lockedVars *lv)
 {
-    PR_Lock(lv->lock);
+    MPR_Lock(lv->lock);
     while (lv->count > 0) {
-        PR_WaitCondVar(lv->condVar, PR_INTERVAL_NO_TIMEOUT);
+        MPR_WaitCondVar(lv->condVar, PR_INTERVAL_NO_TIMEOUT);
     }
-    PR_Unlock(lv->lock);
+    MPR_Unlock(lv->lock);
 }
 
 int /* returns count */
@@ -567,12 +567,12 @@ lockedVars_AddToCount(lockedVars *lv, int addend)
 {
     int rv;
 
-    PR_Lock(lv->lock);
+    MPR_Lock(lv->lock);
     rv = lv->count += addend;
     if (rv <= 0) {
-        PR_NotifyCondVar(lv->condVar);
+        MPR_NotifyCondVar(lv->condVar);
     }
-    PR_Unlock(lv->lock);
+    MPR_Unlock(lv->lock);
     return rv;
 }
 
@@ -589,18 +589,18 @@ do_writes(
 
     while (sent < bigBuf.len) {
 
-        count = PR_Send(ssl_sock, bigBuf.data + sent, bigBuf.len - sent,
+        count = MPR_Send(ssl_sock, bigBuf.data + sent, bigBuf.len - sent,
                         0, maxInterval);
         if (count < 0) {
-            errWarn("PR_Send bigBuf");
+            errWarn("MPR_Send bigBuf");
             break;
         }
-        FPRINTF(stderr, "strsclnt: PR_Send wrote %d bytes from bigBuf\n",
+        FPRINTF(stderr, "strsclnt: MPR_Send wrote %d bytes from bigBuf\n",
                 count);
         sent += count;
     }
     if (count >= 0) { /* last write didn't fail. */
-        PR_Shutdown(ssl_sock, PR_SHUTDOWN_SEND);
+        MPR_Shutdown(ssl_sock, PR_SHUTDOWN_SEND);
     }
 
     /* notify the reader that we're done. */
@@ -626,16 +626,16 @@ handle_fdx_connection(PRFileDesc *ssl_sock, int connection)
     if (result != SECSuccess)
         goto cleanup;
 
-    buf = PR_Malloc(RD_BUF_SIZE);
+    buf = MPR_Malloc(RD_BUF_SIZE);
 
     if (buf) {
         do {
             /* do reads here. */
             PRInt32 count;
 
-            count = PR_Recv(ssl_sock, buf, RD_BUF_SIZE, 0, maxInterval);
+            count = MPR_Recv(ssl_sock, buf, RD_BUF_SIZE, 0, maxInterval);
             if (count < 0) {
-                errWarn("PR_Recv");
+                errWarn("MPR_Recv");
                 break;
             }
             countRead += count;
@@ -647,7 +647,7 @@ handle_fdx_connection(PRFileDesc *ssl_sock, int connection)
                 printSecurityInfo(ssl_sock);
             }
         } while (lockedVars_AddToCount(&lv, 0) > 0);
-        PR_Free(buf);
+        MPR_Free(buf);
         buf = 0;
     }
 
@@ -674,16 +674,16 @@ handle_connection(PRFileDesc *ssl_sock, int tid)
     PRInt32 rv;
     char *buf;
 
-    buf = PR_Malloc(RD_BUF_SIZE);
+    buf = MPR_Malloc(RD_BUF_SIZE);
     if (!buf)
         return SECFailure;
 
     /* compose the http request here. */
 
-    rv = PR_Send(ssl_sock, request, strlen(request), 0, maxInterval);
+    rv = MPR_Send(ssl_sock, request, strlen(request), 0, maxInterval);
     if (rv <= 0) {
-        errWarn("PR_Send");
-        PR_Free(buf);
+        errWarn("MPR_Send");
+        MPR_Free(buf);
         buf = 0;
         failed_already = 1;
         return SECFailure;
@@ -692,12 +692,12 @@ handle_connection(PRFileDesc *ssl_sock, int tid)
 
     /* read until EOF */
     while (1) {
-        rv = PR_Recv(ssl_sock, buf, RD_BUF_SIZE, 0, maxInterval);
+        rv = MPR_Recv(ssl_sock, buf, RD_BUF_SIZE, 0, maxInterval);
         if (rv == 0) {
             break; /* EOF */
         }
         if (rv < 0) {
-            errWarn("PR_Recv");
+            errWarn("MPR_Recv");
             failed_already = 1;
             break;
         }
@@ -707,7 +707,7 @@ handle_connection(PRFileDesc *ssl_sock, int tid)
                 "strsclnt: connection on thread %d read %d bytes (%d total).\n",
                 tid, rv, countRead);
     }
-    PR_Free(buf);
+    MPR_Free(buf);
     buf = 0;
 
     /* Caller closes the socket. */
@@ -753,79 +753,79 @@ do_connects(
 
 retry:
 
-    tcp_sock = PR_OpenTCPSocket(addr->raw.family);
+    tcp_sock = MPR_OpenTCPSocket(addr->raw.family);
     if (tcp_sock == NULL) {
-        errExit("PR_OpenTCPSocket");
+        errExit("MPR_OpenTCPSocket");
     }
 
     opt.option = PR_SockOpt_Nonblocking;
     opt.value.non_blocking = PR_FALSE;
-    prStatus = PR_SetSocketOption(tcp_sock, &opt);
+    prStatus = MPR_SetSocketOption(tcp_sock, &opt);
     if (prStatus != PR_SUCCESS) {
-        errWarn("PR_SetSocketOption(PR_SockOpt_Nonblocking, PR_FALSE)");
-        PR_Close(tcp_sock);
+        errWarn("MPR_SetSocketOption(PR_SockOpt_Nonblocking, PR_FALSE)");
+        MPR_Close(tcp_sock);
         return SECSuccess;
     }
 
     if (NoDelay) {
         opt.option = PR_SockOpt_NoDelay;
         opt.value.no_delay = PR_TRUE;
-        prStatus = PR_SetSocketOption(tcp_sock, &opt);
+        prStatus = MPR_SetSocketOption(tcp_sock, &opt);
         if (prStatus != PR_SUCCESS) {
-            errWarn("PR_SetSocketOption(PR_SockOpt_NoDelay, PR_TRUE)");
-            PR_Close(tcp_sock);
+            errWarn("MPR_SetSocketOption(PR_SockOpt_NoDelay, PR_TRUE)");
+            MPR_Close(tcp_sock);
             return SECSuccess;
         }
     }
 
-    prStatus = PR_Connect(tcp_sock, addr, PR_INTERVAL_NO_TIMEOUT);
+    prStatus = MPR_Connect(tcp_sock, addr, PR_INTERVAL_NO_TIMEOUT);
     if (prStatus != PR_SUCCESS) {
-        PRErrorCode err = PR_GetError(); /* save error code */
-        PRInt32 oserr = PR_GetOSError();
+        PRErrorCode err = MPR_GetError(); /* save error code */
+        PRInt32 oserr = MPR_GetOSError();
         if (ThrottleUp) {
-            PRTime now = PR_Now();
-            PR_Lock(threadLock);
+            PRTime now = MPR_Now();
+            MPR_Lock(threadLock);
             lastConnectFailure = PR_MAX(now, lastConnectFailure);
-            PR_Unlock(threadLock);
-            PR_SetError(err, oserr); /* restore error code */
+            MPR_Unlock(threadLock);
+            MPR_SetError(err, oserr); /* restore error code */
         }
         if ((err == PR_CONNECT_REFUSED_ERROR) ||
             (err == PR_CONNECT_RESET_ERROR)) {
             int connections = numConnected;
 
-            PR_Close(tcp_sock);
-            PR_Lock(threadLock);
+            MPR_Close(tcp_sock);
+            MPR_Lock(threadLock);
             if (connections > 2 && active_threads >= connections) {
                 active_threads = connections - 1;
                 fprintf(stderr, "active_threads set down to %d\n",
                         active_threads);
             }
-            PR_Unlock(threadLock);
+            MPR_Unlock(threadLock);
 
             if (QuitOnTimeout && sleepInterval > 40000) {
                 fprintf(stderr,
                         "strsclnt: Client timed out waiting for connection to server.\n");
                 exit(1);
             }
-            PR_Sleep(PR_MillisecondsToInterval(sleepInterval));
+            MPR_Sleep(MPR_MillisecondsToInterval(sleepInterval));
             sleepInterval <<= 1;
             goto retry;
         }
-        errWarn("PR_Connect");
+        errWarn("MPR_Connect");
         goto done;
     } else {
         if (ThrottleUp) {
-            PRTime now = PR_Now();
-            PR_Lock(threadLock);
+            PRTime now = MPR_Now();
+            MPR_Lock(threadLock);
             lastConnectSuccess = PR_MAX(now, lastConnectSuccess);
-            PR_Unlock(threadLock);
+            MPR_Unlock(threadLock);
         }
     }
 
     ssl_sock = SSL_ImportFD(model_sock, tcp_sock);
     /* XXX if this import fails, close tcp_sock and return. */
     if (!ssl_sock) {
-        PR_Close(tcp_sock);
+        MPR_Close(tcp_sock);
         return SECSuccess;
     }
     if (fullhs != NO_FULLHS_PERCENTAGE) {
@@ -850,7 +850,7 @@ retry:
             /* reuse previous sockPeerID for restart handhsake */
             thisPeerID = lastFullHandshakePeerID;
         }
-        PR_snprintf(sockPeerIDString, sizeof(sockPeerIDString), "ID%d",
+        MPR_snprintf(sockPeerIDString, sizeof(sockPeerIDString), "ID%d",
                     thisPeerID);
         SSL_SetSockPeerID(ssl_sock, sockPeerIDString);
         SSL_HandshakeCallback(ssl_sock, myHandshakeCallback,
@@ -878,9 +878,9 @@ retry:
 
 done:
     if (ssl_sock) {
-        PR_Close(ssl_sock);
+        MPR_Close(ssl_sock);
     } else if (tcp_sock) {
-        PR_Close(tcp_sock);
+        MPR_Close(tcp_sock);
     }
     return rv;
 }
@@ -947,7 +947,7 @@ StressClient_GetClientAuthData(void *arg,
         while (PR_TRUE) {
             if (Cert_And_Key && Cert_And_Key->lock) {
                 int timeout = 0;
-                PR_Lock(Cert_And_Key->lock);
+                MPR_Lock(Cert_And_Key->lock);
 
                 if (Cert_And_Key->cert) {
                     *pRetCert = CERT_DupCertificate(Cert_And_Key->cert);
@@ -956,7 +956,7 @@ StressClient_GetClientAuthData(void *arg,
                 if (Cert_And_Key->key) {
                     *pRetKey = SECKEY_CopyPrivateKey(Cert_And_Key->key);
                 }
-                PR_Unlock(Cert_And_Key->lock);
+                MPR_Unlock(Cert_And_Key->lock);
                 if (!*pRetCert || !*pRetKey) {
                     /* one or both of them failed to copy. Either the source was NULL, or there was
                     ** an out of memory condition. Free any allocated copy and fail */
@@ -980,11 +980,11 @@ StressClient_GetClientAuthData(void *arg,
                     *pRetCert = NULL;
                     *pRetKey = NULL;
 
-                    PR_Lock(Cert_And_Key->lock);
+                    MPR_Lock(Cert_And_Key->lock);
                     /* check if another thread already logged back in */
                     if (PR_TRUE == LoggedIn(Cert_And_Key->cert, Cert_And_Key->key)) {
                         /* yes : try again */
-                        PR_Unlock(Cert_And_Key->lock);
+                        MPR_Unlock(Cert_And_Key->lock);
                         continue;
                     }
                     /* this is the thread to retry */
@@ -995,14 +995,14 @@ StressClient_GetClientAuthData(void *arg,
 
                     /* now look up the cert and key again */
                     while (PR_FALSE == FindCertAndKey(Cert_And_Key)) {
-                        PR_Sleep(PR_SecondsToInterval(1));
+                        MPR_Sleep(MPR_SecondsToInterval(1));
                         timeout++;
                         if (timeout >= 60) {
                             printf("\nToken pulled and not reinserted early enough : aborting.\n");
                             exit(1);
                         }
                     }
-                    PR_Unlock(Cert_And_Key->lock);
+                    MPR_Unlock(Cert_And_Key->lock);
                     continue;
                     /* try again to reduce code size */
                 }
@@ -1035,7 +1035,7 @@ StressClient_GetClientAuthData(void *arg,
                 if (!cert)
                     continue;
                 /* Only check unexpired certs */
-                if (CERT_CheckCertValidTimes(cert, PR_Now(), PR_TRUE) !=
+                if (CERT_CheckCertValidTimes(cert, MPR_Now(), PR_TRUE) !=
                     secCertTimeValid) {
                     CERT_DestroyCertificate(cert);
                     continue;
@@ -1088,9 +1088,9 @@ client_main(
     PRStatus status;
     PRNetAddr addr;
 
-    status = PR_StringToNetAddr(hostName, &addr);
+    status = MPR_StringToNetAddr(hostName, &addr);
     if (status == PR_SUCCESS) {
-        addr.inet.port = PR_htons(port);
+        addr.inet.port = MPR_htons(port);
     } else {
         PRBool gotLoopbackIP = PR_FALSE;
         /* Avoid a DNS lookup for loopback names: the name may not resolve on
@@ -1100,16 +1100,16 @@ client_main(
             !strcmp(hostName, "localhost.localdomain")) {
             if (allowIPv4 && allowIPv6) {
                 /* Both families allowed: let NSPR pick the preferred one. */
-                if (PR_GetPrefLoopbackAddrInfo(&addr, port) != PR_FAILURE) {
+                if (MPR_GetPrefLoopbackAddrInfo(&addr, port) != PR_FAILURE) {
                     gotLoopbackIP = PR_TRUE;
                 }
             }
             if (!gotLoopbackIP && (allowIPv4 || allowIPv6)) {
-                /* Only one family requested, or PR_GetPrefLoopbackAddrInfo
+                /* Only one family requested, or MPR_GetPrefLoopbackAddrInfo
                  * failed: set the loopback address directly. */
-                if (PR_StringToNetAddr(allowIPv6 && !allowIPv4 ? "::1" : "127.0.0.1",
+                if (MPR_StringToNetAddr(allowIPv6 && !allowIPv4 ? "::1" : "127.0.0.1",
                                        &addr) == PR_SUCCESS) {
-                    addr.inet.port = PR_htons(port);
+                    addr.inet.port = MPR_htons(port);
                     gotLoopbackIP = PR_TRUE;
                 }
             }
@@ -1119,14 +1119,14 @@ client_main(
             PRAddrInfo *addrInfo;
             void *enumPtr = NULL;
 
-            addrInfo = PR_GetAddrInfoByName(hostName, PR_AF_UNSPEC,
+            addrInfo = MPR_GetAddrInfoByName(hostName, PR_AF_UNSPEC,
                                             PR_AI_ADDRCONFIG | PR_AI_NOCANONNAME);
             if (!addrInfo) {
                 SECU_PrintError(progName, "error looking up host");
                 return;
             }
             for (;;) {
-                enumPtr = PR_EnumerateAddrInfo(enumPtr, addrInfo, port, &addr);
+                enumPtr = MPR_EnumerateAddrInfo(enumPtr, addrInfo, port, &addr);
                 if (enumPtr == NULL)
                     break;
                 if (addr.raw.family == PR_AF_INET && allowIPv4)
@@ -1134,7 +1134,7 @@ client_main(
                 if (addr.raw.family == PR_AF_INET6 && allowIPv6)
                     break;
             }
-            PR_FreeAddrInfo(addrInfo);
+            MPR_FreeAddrInfo(addrInfo);
             if (enumPtr == NULL) {
                 SECU_PrintError(progName, "error looking up host address");
                 return;
@@ -1197,9 +1197,9 @@ client_main(
 
     /* configure model SSL socket. */
 
-    model_sock = PR_OpenTCPSocket(addr.raw.family);
+    model_sock = MPR_OpenTCPSocket(addr.raw.family);
     if (model_sock == NULL) {
-        errExit("PR_OpenTCPSocket for model socket");
+        errExit("MPR_OpenTCPSocket for model socket");
     }
 
     model_sock = SSL_ImportFD(NULL, model_sock);
@@ -1313,7 +1313,7 @@ client_main(
     }
     destroy_thread_data();
 
-    PR_Close(model_sock);
+    MPR_Close(model_sock);
 }
 
 SECStatus
@@ -1326,12 +1326,12 @@ readBigFile(const char *fileName)
     int hdrLen;
     PRFileDesc *local_file_fd = NULL;
 
-    status = PR_GetFileInfo(fileName, &info);
+    status = MPR_GetFileInfo(fileName, &info);
 
     if (status == PR_SUCCESS &&
         info.type == PR_FILE_FILE &&
         info.size > 0 &&
-        NULL != (local_file_fd = PR_Open(fileName, PR_RDONLY, 0))) {
+        NULL != (local_file_fd = MPR_Open(fileName, PR_RDONLY, 0))) {
 
         hdrLen = PORT_Strlen(outHeader);
         bigBuf.len = hdrLen + info.size;
@@ -1343,14 +1343,14 @@ readBigFile(const char *fileName)
 
         PORT_Memcpy(bigBuf.data, outHeader, hdrLen);
 
-        count = PR_Read(local_file_fd, bigBuf.data + hdrLen, info.size);
+        count = MPR_Read(local_file_fd, bigBuf.data + hdrLen, info.size);
         if (count != info.size) {
-            errWarn("PR_Read local file");
+            errWarn("MPR_Read local file");
             goto done;
         }
         rv = SECSuccess;
     done:
-        PR_Close(local_file_fd);
+        MPR_Close(local_file_fd);
     }
     return rv;
 }
@@ -1376,7 +1376,7 @@ main(int argc, char **argv)
     char *sniHostName = NULL;
 
     /* Call the NSPR initialization routines */
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     SSL_VersionRangeGetSupported(ssl_variant_stream, &enabledVersions);
 
     tmp = strrchr(argv[0], '/');
@@ -1386,9 +1386,9 @@ main(int argc, char **argv)
 
     /* XXX: 'B' was used in the past but removed in 3.28,
      *      please leave some time before resuing it. */
-    optstate = PL_CreateOptState(argc, argv,
+    optstate = MPL_CreateOptState(argc, argv,
                                  "46C:DJ:NP:TUV:W:a:c:d:f:gin:op:qst:uvw:z");
-    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case '4':
                 if (!allowIPv4) {
@@ -1420,7 +1420,7 @@ main(int argc, char **argv)
             case 'J':
                 rv = parseSigSchemeList(optstate->value, &enabledSigSchemes, &enabledSigSchemeCount);
                 if (rv != SECSuccess) {
-                    PL_DestroyOptState(optstate);
+                    MPL_DestroyOptState(optstate);
                     fprintf(stderr, "Bad signature scheme specified.\n");
                     Usage();
                 }
@@ -1452,7 +1452,7 @@ main(int argc, char **argv)
                 break;
 
             case 'a':
-                sniHostName = PL_strdup(optstate->value);
+                sniHostName = MPL_strdup(optstate->value);
                 break;
 
             case 'c':
@@ -1476,7 +1476,7 @@ main(int argc, char **argv)
                 break;
 
             case 'n':
-                nickName = PL_strdup(optstate->value);
+                nickName = MPL_strdup(optstate->value);
                 break;
 
             case 'o':
@@ -1511,12 +1511,12 @@ main(int argc, char **argv)
 
             case 'w':
                 pwdata.source = PW_PLAINTEXT;
-                pwdata.data = PL_strdup(optstate->value);
+                pwdata.data = MPL_strdup(optstate->value);
                 break;
 
             case 'W':
                 pwdata.source = PW_FROMFILE;
-                pwdata.data = PL_strdup(optstate->value);
+                pwdata.data = MPL_strdup(optstate->value);
                 break;
 
             case 'z':
@@ -1527,7 +1527,7 @@ main(int argc, char **argv)
                 if (hostName) {
                     Usage();
                 }
-                hostName = PL_strdup(optstate->value);
+                hostName = MPL_strdup(optstate->value);
                 break;
 
             default:
@@ -1536,7 +1536,7 @@ main(int argc, char **argv)
                 break;
         }
     }
-    PL_DestroyOptState(optstate);
+    MPL_DestroyOptState(optstate);
 
     if (!hostName || status == PL_OPT_BAD)
         Usage();
@@ -1552,11 +1552,11 @@ main(int argc, char **argv)
 
     PK11_SetPasswordFunc(SECU_GetModulePassword);
 
-    tmp = PR_GetEnvSecure("NSS_DEBUG_TIMEOUT");
+    tmp = MPR_GetEnvSecure("NSS_DEBUG_TIMEOUT");
     if (tmp && tmp[0]) {
         int sec = PORT_Atoi(tmp);
         if (sec > 0) {
-            maxInterval = PR_SecondsToInterval(sec);
+            maxInterval = MPR_SecondsToInterval(sec);
         }
     }
 
@@ -1567,7 +1567,7 @@ main(int argc, char **argv)
         exit(1);
     }
     ssl3stats = SSL_GetStatistics();
-    Cert_And_Key.lock = PR_NewLock();
+    Cert_And_Key.lock = MPR_NewLock();
     Cert_And_Key.nickname = nickName;
     Cert_And_Key.wincx = &pwdata;
     Cert_And_Key.cert = NULL;
@@ -1598,19 +1598,19 @@ main(int argc, char **argv)
         SECKEY_DestroyPrivateKey(Cert_And_Key.key);
     }
 
-    PR_DestroyLock(Cert_And_Key.lock);
+    MPR_DestroyLock(Cert_And_Key.lock);
 
     if (pwdata.data) {
-        PL_strfree(pwdata.data);
+        MPL_strfree(pwdata.data);
     }
     if (Cert_And_Key.nickname) {
-        PL_strfree(Cert_And_Key.nickname);
+        MPL_strfree(Cert_And_Key.nickname);
     }
     if (sniHostName) {
-        PL_strfree(sniHostName);
+        MPL_strfree(sniHostName);
     }
 
-    PL_strfree(hostName);
+    MPL_strfree(hostName);
 
     PORT_Free((SSLSignatureScheme *)enabledSigSchemes);
 
@@ -1647,6 +1647,6 @@ main(int argc, char **argv)
         exit(1);
     }
 
-    PR_Cleanup();
+    MPR_Cleanup();
     return exitVal;
 }

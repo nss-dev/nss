@@ -22,46 +22,46 @@ FipsMode(char *arg)
 
     if (!PORT_Strcasecmp(arg, "true")) {
         if (!PK11_IsFIPS()) {
-            internal_name = PR_smprintf("%s",
+            internal_name = MPR_smprintf("%s",
                                         SECMOD_GetInternalModule()->commonName);
             if (SECMOD_DeleteInternalModule(internal_name) != SECSuccess) {
-                PR_fprintf(PR_STDERR, "%s\n", SECU_Strerror(PORT_GetError()));
-                PR_smprintf_free(internal_name);
-                PR_fprintf(PR_STDERR, errStrings[FIPS_SWITCH_FAILED_ERR]);
+                MPR_fprintf(PR_STDERR, "%s\n", SECU_Strerror(PORT_GetError()));
+                MPR_smprintf_free(internal_name);
+                MPR_fprintf(PR_STDERR, errStrings[FIPS_SWITCH_FAILED_ERR]);
                 return FIPS_SWITCH_FAILED_ERR;
             }
-            PR_smprintf_free(internal_name);
+            MPR_smprintf_free(internal_name);
             if (!PK11_IsFIPS()) {
-                PR_fprintf(PR_STDERR, errStrings[FIPS_SWITCH_FAILED_ERR]);
+                MPR_fprintf(PR_STDERR, errStrings[FIPS_SWITCH_FAILED_ERR]);
                 return FIPS_SWITCH_FAILED_ERR;
             }
-            PR_fprintf(PR_STDOUT, msgStrings[FIPS_ENABLED_MSG]);
+            MPR_fprintf(PR_STDOUT, msgStrings[FIPS_ENABLED_MSG]);
         } else {
-            PR_fprintf(PR_STDERR, errStrings[FIPS_ALREADY_ON_ERR]);
+            MPR_fprintf(PR_STDERR, errStrings[FIPS_ALREADY_ON_ERR]);
             return FIPS_ALREADY_ON_ERR;
         }
     } else if (!PORT_Strcasecmp(arg, "false")) {
         if (PK11_IsFIPS()) {
-            internal_name = PR_smprintf("%s",
+            internal_name = MPR_smprintf("%s",
                                         SECMOD_GetInternalModule()->commonName);
             if (SECMOD_DeleteInternalModule(internal_name) != SECSuccess) {
-                PR_fprintf(PR_STDERR, "%s\n", SECU_Strerror(PORT_GetError()));
-                PR_smprintf_free(internal_name);
-                PR_fprintf(PR_STDERR, errStrings[FIPS_SWITCH_FAILED_ERR]);
+                MPR_fprintf(PR_STDERR, "%s\n", SECU_Strerror(PORT_GetError()));
+                MPR_smprintf_free(internal_name);
+                MPR_fprintf(PR_STDERR, errStrings[FIPS_SWITCH_FAILED_ERR]);
                 return FIPS_SWITCH_FAILED_ERR;
             }
-            PR_smprintf_free(internal_name);
+            MPR_smprintf_free(internal_name);
             if (PK11_IsFIPS()) {
-                PR_fprintf(PR_STDERR, errStrings[FIPS_SWITCH_FAILED_ERR]);
+                MPR_fprintf(PR_STDERR, errStrings[FIPS_SWITCH_FAILED_ERR]);
                 return FIPS_SWITCH_FAILED_ERR;
             }
-            PR_fprintf(PR_STDOUT, msgStrings[FIPS_DISABLED_MSG]);
+            MPR_fprintf(PR_STDOUT, msgStrings[FIPS_DISABLED_MSG]);
         } else {
-            PR_fprintf(PR_STDERR, errStrings[FIPS_ALREADY_OFF_ERR]);
+            MPR_fprintf(PR_STDERR, errStrings[FIPS_ALREADY_OFF_ERR]);
             return FIPS_ALREADY_OFF_ERR;
         }
     } else {
-        PR_fprintf(PR_STDERR, errStrings[INVALID_FIPS_ARG]);
+        MPR_fprintf(PR_STDERR, errStrings[INVALID_FIPS_ARG]);
         return INVALID_FIPS_ARG;
     }
 
@@ -79,21 +79,21 @@ ChkFipsMode(char *arg)
 {
     if (!PORT_Strcasecmp(arg, "true")) {
         if (PK11_IsFIPS()) {
-            PR_fprintf(PR_STDOUT, msgStrings[FIPS_ENABLED_MSG]);
+            MPR_fprintf(PR_STDOUT, msgStrings[FIPS_ENABLED_MSG]);
         } else {
-            PR_fprintf(PR_STDOUT, msgStrings[FIPS_DISABLED_MSG]);
+            MPR_fprintf(PR_STDOUT, msgStrings[FIPS_DISABLED_MSG]);
             return FIPS_SWITCH_FAILED_ERR;
         }
 
     } else if (!PORT_Strcasecmp(arg, "false")) {
         if (!PK11_IsFIPS()) {
-            PR_fprintf(PR_STDOUT, msgStrings[FIPS_DISABLED_MSG]);
+            MPR_fprintf(PR_STDOUT, msgStrings[FIPS_DISABLED_MSG]);
         } else {
-            PR_fprintf(PR_STDOUT, msgStrings[FIPS_ENABLED_MSG]);
+            MPR_fprintf(PR_STDOUT, msgStrings[FIPS_ENABLED_MSG]);
             return FIPS_SWITCH_FAILED_ERR;
         }
     } else {
-        PR_fprintf(PR_STDERR, errStrings[INVALID_FIPS_ARG]);
+        MPR_fprintf(PR_STDERR, errStrings[INVALID_FIPS_ARG]);
         return INVALID_FIPS_ARG;
     }
 
@@ -200,7 +200,7 @@ getFlagsFromString(char *string, const MaskString array[], int elements)
     }
 
     /* Make a temporary copy of the string */
-    buf = PR_Malloc(strlen(string) + 1);
+    buf = MPR_Malloc(strlen(string) + 1);
     if (!buf) {
         out_of_memory();
     }
@@ -222,13 +222,13 @@ getFlagsFromString(char *string, const MaskString array[], int elements)
         }
         if (i == elements) {
             /* Skip a bogus string, but print a warning message */
-            PR_fprintf(PR_STDERR, errStrings[INVALID_CONSTANT_ERR], cp);
+            MPR_fprintf(PR_STDERR, errStrings[INVALID_CONSTANT_ERR], cp);
             continue;
         }
         ret |= array[i].mask;
     }
 
-    PR_Free(buf);
+    MPR_Free(buf);
     return ret;
 }
 
@@ -290,7 +290,7 @@ IsP11KitEnabled(void)
 
     lock = SECMOD_GetDefaultModuleListLock();
     if (!lock) {
-        PR_fprintf(PR_STDERR, errStrings[NO_LIST_LOCK_ERR]);
+        MPR_fprintf(PR_STDERR, errStrings[NO_LIST_LOCK_ERR]);
         return found;
     }
 
@@ -338,21 +338,21 @@ AddModule(char *moduleName, char *libFile, char *cipherString,
     if (status != SECSuccess) {
         char *errtxt = NULL;
         PRInt32 copied = 0;
-        if (PR_GetErrorTextLength()) {
-            errtxt = PR_Malloc(PR_GetErrorTextLength() + 1);
-            copied = PR_GetErrorText(errtxt);
+        if (MPR_GetErrorTextLength()) {
+            errtxt = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+            copied = MPR_GetErrorText(errtxt);
         }
         if (copied && errtxt) {
-            PR_fprintf(PR_STDERR, errStrings[ADD_MODULE_FAILED_ERR],
+            MPR_fprintf(PR_STDERR, errStrings[ADD_MODULE_FAILED_ERR],
                        moduleName, errtxt);
-            PR_Free(errtxt);
+            MPR_Free(errtxt);
         } else {
-            PR_fprintf(PR_STDERR, errStrings[ADD_MODULE_FAILED_ERR],
+            MPR_fprintf(PR_STDERR, errStrings[ADD_MODULE_FAILED_ERR],
                        moduleName, SECU_Strerror(PORT_GetError()));
         }
         return ADD_MODULE_FAILED_ERR;
     } else {
-        PR_fprintf(PR_STDOUT, msgStrings[ADD_MODULE_SUCCESS_MSG], moduleName);
+        MPR_fprintf(PR_STDOUT, msgStrings[ADD_MODULE_SUCCESS_MSG], moduleName);
         return SUCCESS;
     }
 }
@@ -373,15 +373,15 @@ DeleteModule(char *moduleName)
 
     if (status != SECSuccess) {
         if (type == SECMOD_FIPS || type == SECMOD_INTERNAL) {
-            PR_fprintf(PR_STDERR, errStrings[DELETE_INTERNAL_ERR]);
+            MPR_fprintf(PR_STDERR, errStrings[DELETE_INTERNAL_ERR]);
             return DELETE_INTERNAL_ERR;
         } else {
-            PR_fprintf(PR_STDERR, errStrings[DELETE_FAILED_ERR], moduleName);
+            MPR_fprintf(PR_STDERR, errStrings[DELETE_FAILED_ERR], moduleName);
             return DELETE_FAILED_ERR;
         }
     }
 
-    PR_fprintf(PR_STDOUT, msgStrings[DELETE_SUCCESS_MSG], moduleName);
+    MPR_fprintf(PR_STDOUT, msgStrings[DELETE_SUCCESS_MSG], moduleName);
     return SUCCESS;
 }
 
@@ -436,7 +436,7 @@ RawAddModule(char *dbmodulespec, char *modulespec)
     }
 
     if (SECMOD_UpdateModule(module) != SECSuccess) {
-        PR_fprintf(PR_STDERR, errStrings[UPDATE_MOD_FAILED_ERR], modulespec);
+        MPR_fprintf(PR_STDERR, errStrings[UPDATE_MOD_FAILED_ERR], modulespec);
         return UPDATE_MOD_FAILED_ERR;
     }
     return SUCCESS;
@@ -450,41 +450,41 @@ printModule(SECMODModule *module, int *count)
     int i;
 
     if ((*count)++) {
-        PR_fprintf(PR_STDOUT, "\n");
+        MPR_fprintf(PR_STDOUT, "\n");
     }
-    PR_fprintf(PR_STDOUT, "%3d. %s\n", *count, module->commonName);
+    MPR_fprintf(PR_STDOUT, "%3d. %s\n", *count, module->commonName);
 
     if (module->dllName) {
-        PR_fprintf(PR_STDOUT, "\tlibrary name: %s\n", module->dllName);
+        MPR_fprintf(PR_STDOUT, "\tlibrary name: %s\n", module->dllName);
     }
 
     modUri = PK11_GetModuleURI(module);
     if (modUri) {
-        PR_fprintf(PR_STDOUT, "\t   uri: %s\n", modUri);
+        MPR_fprintf(PR_STDOUT, "\t   uri: %s\n", modUri);
         PORT_Free(modUri);
     }
     if (slotCount == 0) {
-        PR_fprintf(PR_STDOUT,
+        MPR_fprintf(PR_STDOUT,
                    "\t slots: There are no slots attached to this module\n");
     } else {
-        PR_fprintf(PR_STDOUT, "\t slots: %d slot%s attached\n",
+        MPR_fprintf(PR_STDOUT, "\t slots: %d slot%s attached\n",
                    slotCount, (slotCount == 1 ? "" : "s"));
     }
 
     if (module->loaded == 0) {
-        PR_fprintf(PR_STDOUT, "\tstatus: Not loaded\n");
+        MPR_fprintf(PR_STDOUT, "\tstatus: Not loaded\n");
     } else {
-        PR_fprintf(PR_STDOUT, "\tstatus: loaded\n");
+        MPR_fprintf(PR_STDOUT, "\tstatus: loaded\n");
     }
 
     /* Print slot and token names */
     for (i = 0; i < slotCount; i++) {
         PK11SlotInfo *slot = module->slots[i];
         char *tokenUri = PK11_GetTokenURI(slot);
-        PR_fprintf(PR_STDOUT, "\n");
-        PR_fprintf(PR_STDOUT, "\t slot: %s\n", PK11_GetSlotName(slot));
-        PR_fprintf(PR_STDOUT, "\ttoken: %s\n", PK11_GetTokenName(slot));
-        PR_fprintf(PR_STDOUT, "\t  uri: %s\n", tokenUri);
+        MPR_fprintf(PR_STDOUT, "\n");
+        MPR_fprintf(PR_STDOUT, "\t slot: %s\n", PK11_GetSlotName(slot));
+        MPR_fprintf(PR_STDOUT, "\ttoken: %s\n", PK11_GetTokenName(slot));
+        MPR_fprintf(PR_STDOUT, "\t  uri: %s\n", tokenUri);
         PORT_Free(tokenUri);
     }
     return;
@@ -508,7 +508,7 @@ ListModules()
 
     lock = SECMOD_GetDefaultModuleListLock();
     if (!lock) {
-        PR_fprintf(PR_STDERR, errStrings[NO_LIST_LOCK_ERR]);
+        MPR_fprintf(PR_STDERR, errStrings[NO_LIST_LOCK_ERR]);
         return NO_LIST_LOCK_ERR;
     }
 
@@ -517,12 +517,12 @@ ListModules()
     list = SECMOD_GetDefaultModuleList();
     deadlist = SECMOD_GetDeadModuleList();
     if (!list && !deadlist) {
-        PR_fprintf(PR_STDERR, errStrings[NO_MODULE_LIST_ERR]);
+        MPR_fprintf(PR_STDERR, errStrings[NO_MODULE_LIST_ERR]);
         ret = NO_MODULE_LIST_ERR;
         goto loser;
     }
 
-    PR_fprintf(PR_STDOUT,
+    MPR_fprintf(PR_STDOUT,
                "\nListing of PKCS #11 Modules\n"
                "-----------------------------------------------------------\n");
 
@@ -533,7 +533,7 @@ ListModules()
         printModule(mlp->module, &count);
     }
 
-    PR_fprintf(PR_STDOUT,
+    MPR_fprintf(PR_STDOUT,
                "-----------------------------------------------------------\n");
 
     ret = SUCCESS;
@@ -579,37 +579,37 @@ ListModule(char *moduleName)
 
     module = SECMOD_FindModule(moduleName);
     if (!module) {
-        PR_fprintf(PR_STDERR, errStrings[NO_SUCH_MODULE_ERR], moduleName);
+        MPR_fprintf(PR_STDERR, errStrings[NO_SUCH_MODULE_ERR], moduleName);
         rv = NO_SUCH_MODULE_ERR;
         goto loser;
     }
 
     if ((module->loaded) &&
         (PK11_GetModInfo(module, &modinfo) != SECSuccess)) {
-        PR_fprintf(PR_STDERR, errStrings[MOD_INFO_ERR], moduleName);
+        MPR_fprintf(PR_STDERR, errStrings[MOD_INFO_ERR], moduleName);
         rv = MOD_INFO_ERR;
         goto loser;
     }
 
     /* Module info */
-    PR_fprintf(PR_STDOUT,
+    MPR_fprintf(PR_STDOUT,
                "\n-----------------------------------------------------------\n");
-    PR_fprintf(PR_STDOUT, "Name: %s\n", module->commonName);
+    MPR_fprintf(PR_STDOUT, "Name: %s\n", module->commonName);
     if (module->internal || !module->dllName) {
-        PR_fprintf(PR_STDOUT, "Library file: **Internal ONLY module**\n");
+        MPR_fprintf(PR_STDOUT, "Library file: **Internal ONLY module**\n");
     } else {
-        PR_fprintf(PR_STDOUT, "Library file: %s\n", module->dllName);
+        MPR_fprintf(PR_STDOUT, "Library file: %s\n", module->dllName);
     }
 
     if (module->loaded) {
-        PR_fprintf(PR_STDOUT, "Manufacturer: %.32s\n", modinfo.manufacturerID);
-        PR_fprintf(PR_STDOUT, "Description: %.32s\n", modinfo.libraryDescription);
-        PR_fprintf(PR_STDOUT, "PKCS #11 Version %d.%d\n",
+        MPR_fprintf(PR_STDOUT, "Manufacturer: %.32s\n", modinfo.manufacturerID);
+        MPR_fprintf(PR_STDOUT, "Description: %.32s\n", modinfo.libraryDescription);
+        MPR_fprintf(PR_STDOUT, "PKCS #11 Version %d.%d\n",
                    modinfo.cryptokiVersion.major, modinfo.cryptokiVersion.minor);
-        PR_fprintf(PR_STDOUT, "Library Version: %d.%d\n",
+        MPR_fprintf(PR_STDOUT, "Library Version: %d.%d\n",
                    modinfo.libraryVersion.major, modinfo.libraryVersion.minor);
     } else {
-        PR_fprintf(PR_STDOUT, "* Module not loaded\n");
+        MPR_fprintf(PR_STDOUT, "* Module not loaded\n");
     }
     /* Get cipher and mechanism flags */
     ciphers = getStringFromFlags(module->ssl[0], cipherStrings,
@@ -617,7 +617,7 @@ ListModule(char *moduleName)
     if (ciphers[0] == '\0') {
         ciphers = "None";
     }
-    PR_fprintf(PR_STDOUT, "Cipher Enable Flags: %s\n", ciphers);
+    MPR_fprintf(PR_STDOUT, "Cipher Enable Flags: %s\n", ciphers);
     mechanisms = NULL;
     if (module->slotCount > 0) {
         mechanisms = getStringFromFlags(
@@ -627,7 +627,7 @@ ListModule(char *moduleName)
     if ((mechanisms == NULL) || (mechanisms[0] == '\0')) {
         mechanisms = "None";
     }
-    PR_fprintf(PR_STDOUT, "Default Mechanism Flags: %s\n", mechanisms);
+    MPR_fprintf(PR_STDOUT, "Default Mechanism Flags: %s\n", mechanisms);
 
 #define PAD "  "
 
@@ -635,80 +635,80 @@ ListModule(char *moduleName)
     for (slotnum = 0; slotnum < module->slotCount; slotnum++) {
         slot = module->slots[slotnum];
         if (PK11_GetSlotInfo(slot, &slotinfo) != SECSuccess) {
-            PR_fprintf(PR_STDERR, errStrings[SLOT_INFO_ERR],
+            MPR_fprintf(PR_STDERR, errStrings[SLOT_INFO_ERR],
                        PK11_GetSlotName(slot));
             rv = SLOT_INFO_ERR;
             continue;
         }
 
         /* Slot Info */
-        PR_fprintf(PR_STDOUT, "\n" PAD "Slot: %s\n", PK11_GetSlotName(slot));
+        MPR_fprintf(PR_STDOUT, "\n" PAD "Slot: %s\n", PK11_GetSlotName(slot));
         mechanisms = getStringFromFlags(PK11_GetDefaultFlags(slot),
                                         mechanismStrings, numMechanismStrings);
         if (mechanisms[0] == '\0') {
             mechanisms = "None";
         }
-        PR_fprintf(PR_STDOUT, PAD "Slot Mechanism Flags: %s\n", mechanisms);
-        PR_fprintf(PR_STDOUT, PAD "Manufacturer: %.32s\n",
+        MPR_fprintf(PR_STDOUT, PAD "Slot Mechanism Flags: %s\n", mechanisms);
+        MPR_fprintf(PR_STDOUT, PAD "Manufacturer: %.32s\n",
                    slotinfo.manufacturerID);
         if (PK11_IsHW(slot)) {
-            PR_fprintf(PR_STDOUT, PAD "Type: Hardware\n");
+            MPR_fprintf(PR_STDOUT, PAD "Type: Hardware\n");
         } else {
-            PR_fprintf(PR_STDOUT, PAD "Type: Software\n");
+            MPR_fprintf(PR_STDOUT, PAD "Type: Software\n");
         }
-        PR_fprintf(PR_STDOUT, PAD "Version Number: %d.%d\n",
+        MPR_fprintf(PR_STDOUT, PAD "Version Number: %d.%d\n",
                    slotinfo.hardwareVersion.major, slotinfo.hardwareVersion.minor);
-        PR_fprintf(PR_STDOUT, PAD "Firmware Version: %d.%d\n",
+        MPR_fprintf(PR_STDOUT, PAD "Firmware Version: %d.%d\n",
                    slotinfo.firmwareVersion.major, slotinfo.firmwareVersion.minor);
         if (PK11_IsDisabled(slot)) {
             reasonIdx = PK11_GetDisabledReason(slot);
             if (reasonIdx < numDisableReasonStr) {
-                PR_fprintf(PR_STDOUT, PAD "Status: DISABLED (%s)\n",
+                MPR_fprintf(PR_STDOUT, PAD "Status: DISABLED (%s)\n",
                            disableReasonStr[reasonIdx]);
             } else {
-                PR_fprintf(PR_STDOUT, PAD "Status: DISABLED\n");
+                MPR_fprintf(PR_STDOUT, PAD "Status: DISABLED\n");
             }
         } else {
-            PR_fprintf(PR_STDOUT, PAD "Status: Enabled\n");
+            MPR_fprintf(PR_STDOUT, PAD "Status: Enabled\n");
         }
 
         if (PK11_GetTokenInfo(slot, &tokeninfo) != SECSuccess) {
-            PR_fprintf(PR_STDERR, errStrings[TOKEN_INFO_ERR],
+            MPR_fprintf(PR_STDERR, errStrings[TOKEN_INFO_ERR],
                        PK11_GetTokenName(slot));
             rv = TOKEN_INFO_ERR;
             continue;
         }
 
         /* Token Info */
-        PR_fprintf(PR_STDOUT, PAD "Token Name: %.32s\n",
+        MPR_fprintf(PR_STDOUT, PAD "Token Name: %.32s\n",
                    tokeninfo.label);
-        PR_fprintf(PR_STDOUT, PAD "Token Manufacturer: %.32s\n",
+        MPR_fprintf(PR_STDOUT, PAD "Token Manufacturer: %.32s\n",
                    tokeninfo.manufacturerID);
-        PR_fprintf(PR_STDOUT, PAD "Token Model: %.16s\n", tokeninfo.model);
-        PR_fprintf(PR_STDOUT, PAD "Token Serial Number: %.16s\n",
+        MPR_fprintf(PR_STDOUT, PAD "Token Model: %.16s\n", tokeninfo.model);
+        MPR_fprintf(PR_STDOUT, PAD "Token Serial Number: %.16s\n",
                    tokeninfo.serialNumber);
-        PR_fprintf(PR_STDOUT, PAD "Token Version: %d.%d\n",
+        MPR_fprintf(PR_STDOUT, PAD "Token Version: %d.%d\n",
                    tokeninfo.hardwareVersion.major, tokeninfo.hardwareVersion.minor);
-        PR_fprintf(PR_STDOUT, PAD "Token Firmware Version: %d.%d\n",
+        MPR_fprintf(PR_STDOUT, PAD "Token Firmware Version: %d.%d\n",
                    tokeninfo.firmwareVersion.major, tokeninfo.firmwareVersion.minor);
         if (tokeninfo.flags & CKF_WRITE_PROTECTED) {
-            PR_fprintf(PR_STDOUT, PAD "Access: Write Protected\n");
+            MPR_fprintf(PR_STDOUT, PAD "Access: Write Protected\n");
         } else {
-            PR_fprintf(PR_STDOUT, PAD "Access: NOT Write Protected\n");
+            MPR_fprintf(PR_STDOUT, PAD "Access: NOT Write Protected\n");
         }
         if (tokeninfo.flags & CKF_LOGIN_REQUIRED) {
-            PR_fprintf(PR_STDOUT, PAD "Login Type: Login required\n");
+            MPR_fprintf(PR_STDOUT, PAD "Login Type: Login required\n");
         } else {
-            PR_fprintf(PR_STDOUT, PAD
+            MPR_fprintf(PR_STDOUT, PAD
                        "Login Type: Public (no login required)\n");
         }
         if (tokeninfo.flags & CKF_USER_PIN_INITIALIZED) {
-            PR_fprintf(PR_STDOUT, PAD "User Pin: Initialized\n");
+            MPR_fprintf(PR_STDOUT, PAD "User Pin: Initialized\n");
         } else {
-            PR_fprintf(PR_STDOUT, PAD "User Pin: NOT Initialized\n");
+            MPR_fprintf(PR_STDOUT, PAD "User Pin: NOT Initialized\n");
         }
     }
-    PR_fprintf(PR_STDOUT,
+    MPR_fprintf(PR_STDOUT,
                "\n-----------------------------------------------------------\n");
 loser:
     if (module) {
@@ -729,14 +729,14 @@ InitPW(void)
 
     slot = PK11_GetInternalKeySlot();
     if (!slot) {
-        PR_fprintf(PR_STDERR, errStrings[NO_SUCH_TOKEN_ERR], "internal");
+        MPR_fprintf(PR_STDERR, errStrings[NO_SUCH_TOKEN_ERR], "internal");
         return NO_SUCH_TOKEN_ERR;
     }
 
     /* Set the initial password to empty */
     if (PK11_NeedUserInit(slot)) {
         if (PK11_InitPin(slot, NULL, "") != SECSuccess) {
-            PR_fprintf(PR_STDERR, errStrings[INITPW_FAILED_ERR]);
+            MPR_fprintf(PR_STDERR, errStrings[INITPW_FAILED_ERR]);
             ret = INITPW_FAILED_ERR;
             goto loser;
         }
@@ -764,7 +764,7 @@ ChangePW(char *tokenName, char *pwFile, char *newpwFile)
 
     slot = PK11_FindSlotByName(tokenName);
     if (!slot) {
-        PR_fprintf(PR_STDERR, errStrings[NO_SUCH_TOKEN_ERR], tokenName);
+        MPR_fprintf(PR_STDERR, errStrings[NO_SUCH_TOKEN_ERR], tokenName);
         return NO_SUCH_TOKEN_ERR;
     }
 
@@ -773,7 +773,7 @@ ChangePW(char *tokenName, char *pwFile, char *newpwFile)
         if (pwFile) {
             oldpw = SECU_FilePasswd(NULL, PR_FALSE, pwFile);
             if (PK11_CheckUserPassword(slot, oldpw) != SECSuccess) {
-                PR_fprintf(PR_STDERR, errStrings[BAD_PW_ERR]);
+                MPR_fprintf(PR_STDERR, errStrings[BAD_PW_ERR]);
                 ret = BAD_PW_ERR;
                 goto loser;
             }
@@ -783,7 +783,7 @@ ChangePW(char *tokenName, char *pwFile, char *newpwFile)
                 if (PK11_CheckUserPassword(slot, oldpw) == SECSuccess) {
                     matching = PR_TRUE;
                 } else {
-                    PR_fprintf(PR_STDOUT, msgStrings[BAD_PW_MSG]);
+                    MPR_fprintf(PR_STDOUT, msgStrings[BAD_PW_MSG]);
                 }
             }
         }
@@ -797,7 +797,7 @@ ChangePW(char *tokenName, char *pwFile, char *newpwFile)
             newpw = SECU_GetPasswordString(NULL, "Enter new password: ");
             newpw2 = SECU_GetPasswordString(NULL, "Re-enter new password: ");
             if (strcmp(newpw, newpw2)) {
-                PR_fprintf(PR_STDOUT, msgStrings[PW_MATCH_MSG]);
+                MPR_fprintf(PR_STDOUT, msgStrings[PW_MATCH_MSG]);
                 PORT_ZFree(newpw, strlen(newpw));
                 PORT_ZFree(newpw2, strlen(newpw2));
             } else {
@@ -809,19 +809,19 @@ ChangePW(char *tokenName, char *pwFile, char *newpwFile)
     /* Change the password */
     if (PK11_NeedUserInit(slot)) {
         if (PK11_InitPin(slot, NULL /*ssopw*/, newpw) != SECSuccess) {
-            PR_fprintf(PR_STDERR, errStrings[CHANGEPW_FAILED_ERR], tokenName);
+            MPR_fprintf(PR_STDERR, errStrings[CHANGEPW_FAILED_ERR], tokenName);
             ret = CHANGEPW_FAILED_ERR;
             goto loser;
         }
     } else {
         if (PK11_ChangePW(slot, oldpw, newpw) != SECSuccess) {
-            PR_fprintf(PR_STDERR, errStrings[CHANGEPW_FAILED_ERR], tokenName);
+            MPR_fprintf(PR_STDERR, errStrings[CHANGEPW_FAILED_ERR], tokenName);
             ret = CHANGEPW_FAILED_ERR;
             goto loser;
         }
     }
 
-    PR_fprintf(PR_STDOUT, msgStrings[CHANGEPW_SUCCESS_MSG], tokenName);
+    MPR_fprintf(PR_STDOUT, msgStrings[CHANGEPW_SUCCESS_MSG], tokenName);
     ret = SUCCESS;
 
 loser:
@@ -859,7 +859,7 @@ EnableModule(char *moduleName, char *slotName, PRBool enable)
 
     module = SECMOD_FindModule(moduleName);
     if (!module) {
-        PR_fprintf(PR_STDERR, errStrings[NO_SUCH_MODULE_ERR], moduleName);
+        MPR_fprintf(PR_STDERR, errStrings[NO_SUCH_MODULE_ERR], moduleName);
         rv = NO_SUCH_MODULE_ERR;
         goto loser;
     }
@@ -872,38 +872,38 @@ EnableModule(char *moduleName, char *slotName, PRBool enable)
         }
         if (enable) {
             if (!PK11_UserEnableSlot(slot)) {
-                PR_fprintf(PR_STDERR, errStrings[ENABLE_FAILED_ERR],
+                MPR_fprintf(PR_STDERR, errStrings[ENABLE_FAILED_ERR],
                            "enable", PK11_GetSlotName(slot));
                 rv = ENABLE_FAILED_ERR;
                 goto loser;
             } else {
                 found = PR_TRUE;
-                PR_fprintf(PR_STDOUT, msgStrings[ENABLE_SUCCESS_MSG],
+                MPR_fprintf(PR_STDOUT, msgStrings[ENABLE_SUCCESS_MSG],
                            PK11_GetSlotName(slot), "enabled");
             }
         } else {
             if (!PK11_UserDisableSlot(slot)) {
-                PR_fprintf(PR_STDERR, errStrings[ENABLE_FAILED_ERR],
+                MPR_fprintf(PR_STDERR, errStrings[ENABLE_FAILED_ERR],
                            "disable", PK11_GetSlotName(slot));
                 rv = ENABLE_FAILED_ERR;
                 goto loser;
             } else {
                 found = PR_TRUE;
-                PR_fprintf(PR_STDOUT, msgStrings[ENABLE_SUCCESS_MSG],
+                MPR_fprintf(PR_STDOUT, msgStrings[ENABLE_SUCCESS_MSG],
                            PK11_GetSlotName(slot), "disabled");
             }
         }
     }
 
     if (slotName && !found) {
-        PR_fprintf(PR_STDERR, errStrings[NO_SUCH_SLOT_ERR], slotName);
+        MPR_fprintf(PR_STDERR, errStrings[NO_SUCH_SLOT_ERR], slotName);
         rv = NO_SUCH_SLOT_ERR;
         goto loser;
     }
 
     /* Delete and re-add module to save changes */
     if (SECMOD_UpdateModule(module) != SECSuccess) {
-        PR_fprintf(PR_STDERR, errStrings[UPDATE_MOD_FAILED_ERR], moduleName);
+        MPR_fprintf(PR_STDERR, errStrings[UPDATE_MOD_FAILED_ERR], moduleName);
         rv = UPDATE_MOD_FAILED_ERR;
         goto loser;
     }
@@ -936,7 +936,7 @@ SetDefaultModule(char *moduleName, char *slotName, char *mechanisms)
 
     module = SECMOD_FindModule(moduleName);
     if (!module) {
-        PR_fprintf(PR_STDERR, errStrings[NO_SUCH_MODULE_ERR], moduleName);
+        MPR_fprintf(PR_STDERR, errStrings[NO_SUCH_MODULE_ERR], moduleName);
         errcode = NO_SUCH_MODULE_ERR;
         goto loser;
     }
@@ -964,20 +964,20 @@ SetDefaultModule(char *moduleName, char *slotName, char *mechanisms)
         }
     }
     if (slotName && !found) {
-        PR_fprintf(PR_STDERR, errStrings[NO_SUCH_SLOT_ERR], slotName);
+        MPR_fprintf(PR_STDERR, errStrings[NO_SUCH_SLOT_ERR], slotName);
         errcode = NO_SUCH_SLOT_ERR;
         goto loser;
     }
 
     /* Delete and re-add module to save changes */
     if (SECMOD_UpdateModule(module) != SECSuccess) {
-        PR_fprintf(PR_STDERR, errStrings[DEFAULT_FAILED_ERR],
+        MPR_fprintf(PR_STDERR, errStrings[DEFAULT_FAILED_ERR],
                    moduleName);
         errcode = DEFAULT_FAILED_ERR;
         goto loser;
     }
 
-    PR_fprintf(PR_STDOUT, msgStrings[DEFAULT_SUCCESS_MSG]);
+    MPR_fprintf(PR_STDOUT, msgStrings[DEFAULT_SUCCESS_MSG]);
 
     errcode = SUCCESS;
 loser:
@@ -1006,7 +1006,7 @@ UnsetDefaultModule(char *moduleName, char *slotName, char *mechanisms)
 
     module = SECMOD_FindModule(moduleName);
     if (!module) {
-        PR_fprintf(PR_STDERR, errStrings[NO_SUCH_MODULE_ERR], moduleName);
+        MPR_fprintf(PR_STDERR, errStrings[NO_SUCH_MODULE_ERR], moduleName);
         rv = NO_SUCH_MODULE_ERR;
         goto loser;
     }
@@ -1027,20 +1027,20 @@ UnsetDefaultModule(char *moduleName, char *slotName, char *mechanisms)
         }
     }
     if (slotName && !found) {
-        PR_fprintf(PR_STDERR, errStrings[NO_SUCH_SLOT_ERR], slotName);
+        MPR_fprintf(PR_STDERR, errStrings[NO_SUCH_SLOT_ERR], slotName);
         rv = NO_SUCH_SLOT_ERR;
         goto loser;
     }
 
     /* Delete and re-add module to save changes */
     if (SECMOD_UpdateModule(module) != SECSuccess) {
-        PR_fprintf(PR_STDERR, errStrings[UNDEFAULT_FAILED_ERR],
+        MPR_fprintf(PR_STDERR, errStrings[UNDEFAULT_FAILED_ERR],
                    moduleName);
         rv = UNDEFAULT_FAILED_ERR;
         goto loser;
     }
 
-    PR_fprintf(PR_STDOUT, msgStrings[UNDEFAULT_SUCCESS_MSG]);
+    MPR_fprintf(PR_STDOUT, msgStrings[UNDEFAULT_SUCCESS_MSG]);
     rv = SUCCESS;
 loser:
     if (module) {

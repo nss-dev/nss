@@ -546,7 +546,7 @@ PKIX_Error_GetDescription(
         PKIX_NULLCHECK_TWO(error, pDesc);
 
 #ifndef PKIX_ERROR_DESCRIPTION
-        PR_snprintf(errorStr, 32, "Error code: %d", error->errCode);
+        MPR_snprintf(errorStr, 32, "Error code: %d", error->errCode);
 #endif
 
         PKIX_PL_String_Create(PKIX_ESCASCII,

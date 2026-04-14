@@ -42,7 +42,7 @@
 #endif
 
 #ifndef PORT_Malloc
-#define PORT_Malloc PR_Malloc
+#define PORT_Malloc MPR_Malloc
 #endif
 
 static int handle_connection(PRFileDesc *, PRFileDesc *, int);
@@ -100,7 +100,7 @@ Usage(const char *progName)
 static const char *
 errWarn(char *funcString)
 {
-    PRErrorCode perr = PR_GetError();
+    PRErrorCode perr = MPR_GetError();
     const char *errString = SECU_Strerror(perr);
 
     fprintf(stderr, "httpserv: %s returned error %d:\n%s\n",
@@ -148,7 +148,7 @@ setupJobs(int maxJobs)
 {
     int i;
 
-    jobTable = (JOB *)PR_Calloc(maxJobs, sizeof(JOB));
+    jobTable = (JOB *)MPR_Calloc(maxJobs, sizeof(JOB));
     if (!jobTable)
         return SECFailure;
 
@@ -188,11 +188,11 @@ thread_wrapper(void *arg)
     slot->rv = (*slot->startFunc)(slot->a, slot->b, slot->c);
 
     /* notify the thread exit handler. */
-    PR_Lock(qLock);
+    MPR_Lock(qLock);
     slot->state = rs_zombie;
     --threadCount;
-    PR_NotifyAllCondVar(threadCountChangeCv);
-    PR_Unlock(qLock);
+    MPR_NotifyAllCondVar(threadCountChangeCv);
+    MPR_Unlock(qLock);
 }
 
 int
@@ -201,26 +201,26 @@ jobLoop(PRFileDesc *a, PRFileDesc *b, int c)
     PRCList *myLink = 0;
     JOB *myJob;
 
-    PR_Lock(qLock);
+    MPR_Lock(qLock);
     do {
         myLink = 0;
         while (PR_CLIST_IS_EMPTY(&jobQ) && !stopping) {
-            PR_WaitCondVar(jobQNotEmptyCv, PR_INTERVAL_NO_TIMEOUT);
+            MPR_WaitCondVar(jobQNotEmptyCv, PR_INTERVAL_NO_TIMEOUT);
         }
         if (!PR_CLIST_IS_EMPTY(&jobQ)) {
             myLink = PR_LIST_HEAD(&jobQ);
             PR_REMOVE_AND_INIT_LINK(myLink);
         }
-        PR_Unlock(qLock);
+        MPR_Unlock(qLock);
         myJob = (JOB *)myLink;
         /* myJob will be null when stopping is true and jobQ is empty */
         if (!myJob)
             break;
         handle_connection(myJob->tcp_sock, myJob->model_sock,
                           myJob->requestCert);
-        PR_Lock(qLock);
+        MPR_Lock(qLock);
         PR_APPEND_LINK(myLink, &freeJobs);
-        PR_NotifyCondVar(freeListNotEmptyCv);
+        MPR_NotifyCondVar(freeListNotEmptyCv);
     } while (PR_TRUE);
     return 0;
 }
@@ -237,16 +237,16 @@ launch_threads(
     SECStatus rv = SECSuccess;
 
     /* create the thread management serialization structs */
-    qLock = PR_NewLock();
-    jobQNotEmptyCv = PR_NewCondVar(qLock);
-    freeListNotEmptyCv = PR_NewCondVar(qLock);
-    threadCountChangeCv = PR_NewCondVar(qLock);
+    qLock = MPR_NewLock();
+    jobQNotEmptyCv = MPR_NewCondVar(qLock);
+    freeListNotEmptyCv = MPR_NewCondVar(qLock);
+    threadCountChangeCv = MPR_NewCondVar(qLock);
 
     /* create monitor for crl reload procedure */
-    lastLoadedCrlLock = PR_NewLock();
+    lastLoadedCrlLock = MPR_NewLock();
 
     /* allocate the array of thread slots */
-    threads = PR_Calloc(maxThreads, sizeof(perThread));
+    threads = MPR_Calloc(maxThreads, sizeof(perThread));
     if (NULL == threads) {
         fprintf(stderr, "Oh Drat! Can't allocate the perThread array\n");
         return SECFailure;
@@ -259,7 +259,7 @@ launch_threads(
     if (rv != SECSuccess)
         return rv;
 
-    PR_Lock(qLock);
+    MPR_Lock(qLock);
     for (i = 0; i < maxThreads; ++i) {
         perThread *slot = threads + i;
 
@@ -268,7 +268,7 @@ launch_threads(
         slot->b = b;
         slot->c = c;
         slot->startFunc = startFunc;
-        slot->prThread = PR_CreateThread(PR_USER_THREAD,
+        slot->prThread = MPR_CreateThread(PR_USER_THREAD,
                                          thread_wrapper, slot, PR_PRIORITY_NORMAL,
                                          (PR_TRUE ==
                                           local)
@@ -284,19 +284,19 @@ launch_threads(
 
         ++threadCount;
     }
-    PR_Unlock(qLock);
+    MPR_Unlock(qLock);
 
     return rv;
 }
 
 #define DESTROY_CONDVAR(name)    \
     if (name) {                  \
-        PR_DestroyCondVar(name); \
+        MPR_DestroyCondVar(name); \
         name = NULL;             \
     }
 #define DESTROY_LOCK(name)    \
     if (name) {               \
-        PR_DestroyLock(name); \
+        MPR_DestroyLock(name); \
         name = NULL;          \
     }
 
@@ -306,32 +306,32 @@ terminateWorkerThreads(void)
     int i;
 
     VLOG(("httpserv: server_thread: waiting on stopping"));
-    PR_Lock(qLock);
-    PR_NotifyAllCondVar(jobQNotEmptyCv);
-    PR_Unlock(qLock);
+    MPR_Lock(qLock);
+    MPR_NotifyAllCondVar(jobQNotEmptyCv);
+    MPR_Unlock(qLock);
 
     /* Wait for worker threads to terminate. */
     for (i = 0; i < maxThreads; ++i) {
         perThread *slot = threads + i;
         if (slot->prThread) {
-            PR_JoinThread(slot->prThread);
+            MPR_JoinThread(slot->prThread);
         }
     }
 
     /* The worker threads empty the jobQ before they terminate. */
-    PR_Lock(qLock);
+    MPR_Lock(qLock);
     PORT_Assert(threadCount == 0);
     PORT_Assert(PR_CLIST_IS_EMPTY(&jobQ));
-    PR_Unlock(qLock);
+    MPR_Unlock(qLock);
 
     DESTROY_CONDVAR(jobQNotEmptyCv);
     DESTROY_CONDVAR(freeListNotEmptyCv);
     DESTROY_CONDVAR(threadCountChangeCv);
 
-    PR_DestroyLock(lastLoadedCrlLock);
+    MPR_DestroyLock(lastLoadedCrlLock);
     DESTROY_LOCK(qLock);
-    PR_Free(jobTable);
-    PR_Free(threads);
+    MPR_Free(jobTable);
+    MPR_Free(threads);
 }
 
 /**************************************************************************
@@ -388,7 +388,7 @@ void
 stop_server()
 {
     stopping = 1;
-    PR_Interrupt(acceptorThread);
+    MPR_Interrupt(acceptorThread);
 }
 
 /* Will only work if the original input to url encoding was
@@ -412,11 +412,11 @@ urldecode_base64chars_inplace(char *buf)
 
     while (*walk) {
         if (*walk == '%') {
-            if (!PL_strncasecmp(walk, "%2B", 3)) {
+            if (!MPL_strncasecmp(walk, "%2B", 3)) {
                 *walk = '+';
-            } else if (!PL_strncasecmp(walk, "%2F", 3)) {
+            } else if (!MPL_strncasecmp(walk, "%2F", 3)) {
                 *walk = '/';
-            } else if (!PL_strncasecmp(walk, "%3D", 3)) {
+            } else if (!MPL_strncasecmp(walk, "%3D", 3)) {
                 *walk = '=';
             } else {
                 return SECFailure;
@@ -469,7 +469,7 @@ handle_connection(
     VLOG(("httpserv: handle_connection: starting"));
     opt.option = PR_SockOpt_Nonblocking;
     opt.value.non_blocking = PR_FALSE;
-    PR_SetSocketOption(tcp_sock, &opt);
+    MPR_SetSocketOption(tcp_sock, &opt);
 
     VLOG(("httpserv: handle_connection: starting\n"));
     ssl_sock = tcp_sock;
@@ -477,11 +477,11 @@ handle_connection(
     if (noDelay) {
         opt.option = PR_SockOpt_NoDelay;
         opt.value.no_delay = PR_TRUE;
-        status = PR_SetSocketOption(ssl_sock, &opt);
+        status = MPR_SetSocketOption(ssl_sock, &opt);
         if (status != PR_SUCCESS) {
-            errWarn("PR_SetSocketOption(PR_SockOpt_NoDelay, PR_TRUE)");
+            errWarn("MPR_SetSocketOption(PR_SockOpt_NoDelay, PR_TRUE)");
             if (ssl_sock) {
-                PR_Close(ssl_sock);
+                MPR_Close(ssl_sock);
             }
             return SECFailure;
         }
@@ -495,15 +495,15 @@ handle_connection(
         newln = 0;
         reqLen = 0;
 
-        rv = PR_Read(ssl_sock, pBuf, bufRem - 1);
+        rv = MPR_Read(ssl_sock, pBuf, bufRem - 1);
         if (rv == 0 ||
-            (rv < 0 && PR_END_OF_FILE_ERROR == PR_GetError())) {
+            (rv < 0 && PR_END_OF_FILE_ERROR == MPR_GetError())) {
             if (verbose)
-                errWarn("HDX PR_Read hit EOF");
+                errWarn("HDX MPR_Read hit EOF");
             break;
         }
         if (rv < 0) {
-            errWarn("HDX PR_Read");
+            errWarn("HDX MPR_Read");
             goto cleanup;
         }
         /* NULL termination */
@@ -547,7 +547,7 @@ handle_connection(
         postData.data = (void *)(buf + reqLen);
 
         tmp = "content-length: ";
-        foundStr = PL_strcasestr(buf, tmp);
+        foundStr = MPL_strcasestr(buf, tmp);
         if (foundStr) {
             int expectedPostLen;
             int havePostLen;
@@ -626,11 +626,11 @@ handle_connection(
                             /* try to open the file named.
                              * If successful, then write it to the client.
                              */
-                            status = PR_GetFileInfo(fnstart, &info);
+                            status = MPR_GetFileInfo(fnstart, &info);
                             if (status == PR_SUCCESS &&
                                 info.type == PR_FILE_FILE &&
                                 info.size >= 0) {
-                                local_file_fd = PR_Open(fnstart, PR_RDONLY, 0);
+                                local_file_fd = MPR_Open(fnstart, PR_RDONLY, 0);
                             }
                         }
                     }
@@ -659,7 +659,7 @@ handle_connection(
                 }
 
                 if (failThisRequest) {
-                    PR_Write(ssl_sock, outBadRequestHeader, strlen(outBadRequestHeader));
+                    MPR_Write(ssl_sock, outBadRequestHeader, strlen(outBadRequestHeader));
                     break;
                 }
                 /* get is base64, post is binary.
@@ -741,14 +741,14 @@ handle_connection(
                             /* else good status response */
                             if (!isPost && ocspMethodsAllowed == ocspGetUnknown) {
                                 unknown = PR_TRUE;
-                                nextUpdate = PR_Now() + (PRTime)60 * 60 * 24 * PR_USEC_PER_SEC; /*tomorrow*/
-                                revoDate = PR_Now() - (PRTime)60 * 60 * 24 * PR_USEC_PER_SEC;   /*yesterday*/
+                                nextUpdate = MPR_Now() + (PRTime)60 * 60 * 24 * PR_USEC_PER_SEC; /*tomorrow*/
+                                revoDate = MPR_Now() - (PRTime)60 * 60 * 24 * PR_USEC_PER_SEC;   /*yesterday*/
                             }
                         }
                     }
 
                     {
-                        PRTime now = PR_Now();
+                        PRTime now = MPR_Now();
                         CERTOCSPSingleResponse *sr;
                         CERTOCSPSingleResponse **singleResponses;
                         SECItem *ocspResponse;
@@ -781,8 +781,8 @@ handle_connection(
                             iovs[numIOVs].iov_len = PORT_Strlen(msgBuf);
                             numIOVs++;
                         } else {
-                            PR_Write(ssl_sock, outOcspHeader, strlen(outOcspHeader));
-                            PR_Write(ssl_sock, ocspResponse->data, ocspResponse->len);
+                            MPR_Write(ssl_sock, outOcspHeader, strlen(outOcspHeader));
+                            MPR_Write(ssl_sock, ocspResponse->data, ocspResponse->len);
                         }
                         PORT_FreeArena(arena, PR_FALSE);
                     }
@@ -792,18 +792,18 @@ handle_connection(
             } else if (local_file_fd) {
                 PRInt32 bytes;
                 int errLen;
-                bytes = PR_TransmitFile(ssl_sock, local_file_fd, outHeader,
+                bytes = MPR_TransmitFile(ssl_sock, local_file_fd, outHeader,
                                         sizeof outHeader - 1,
                                         PR_TRANSMITFILE_KEEP_OPEN,
                                         PR_INTERVAL_NO_TIMEOUT);
                 if (bytes >= 0) {
                     bytes -= sizeof outHeader - 1;
                     FPRINTF(stderr,
-                            "httpserv: PR_TransmitFile wrote %d bytes from %s\n",
+                            "httpserv: MPR_TransmitFile wrote %d bytes from %s\n",
                             bytes, fileName);
                     break;
                 }
-                errString = errWarn("PR_TransmitFile");
+                errString = errWarn("MPR_TransmitFile");
                 errLen = PORT_Strlen(errString);
                 errLen = PR_MIN(errLen, sizeof msgBuf - 1);
                 PORT_Memcpy(msgBuf, errString, errLen);
@@ -837,9 +837,9 @@ handle_connection(
                 numIOVs++;
             }
 
-            rv = PR_Writev(ssl_sock, iovs, numIOVs, PR_INTERVAL_NO_TIMEOUT);
+            rv = MPR_Writev(ssl_sock, iovs, numIOVs, PR_INTERVAL_NO_TIMEOUT);
             if (rv < 0) {
-                errWarn("PR_Writev");
+                errWarn("MPR_Writev");
                 break;
             }
 
@@ -847,12 +847,12 @@ handle_connection(
 
 cleanup:
     if (ssl_sock) {
-        PR_Close(ssl_sock);
+        MPR_Close(ssl_sock);
     } else if (tcp_sock) {
-        PR_Close(tcp_sock);
+        MPR_Close(tcp_sock);
     }
     if (local_file_fd)
-        PR_Close(local_file_fd);
+        MPR_Close(local_file_fd);
     VLOG(("httpserv: handle_connection: exiting\n"));
 
     /* do a nice shutdown if asked. */
@@ -888,9 +888,9 @@ do_accepts(
 #endif
 
     VLOG(("httpserv: do_accepts: starting"));
-    PR_SetThreadPriority(PR_GetCurrentThread(), PR_PRIORITY_HIGH);
+    MPR_SetThreadPriority(MPR_GetCurrentThread(), PR_PRIORITY_HIGH);
 
-    acceptorThread = PR_GetCurrentThread();
+    acceptorThread = MPR_GetCurrentThread();
 #ifdef XP_UNIX
     /* set up the signal handler */
     act.sa_handler = sigusr1_handler;
@@ -906,13 +906,13 @@ do_accepts(
         PRCList *myLink;
 
         FPRINTF(stderr, "\n\n\nhttpserv: About to call accept.\n");
-        tcp_sock = PR_Accept(listen_sock, &addr, PR_INTERVAL_NO_TIMEOUT);
+        tcp_sock = MPR_Accept(listen_sock, &addr, PR_INTERVAL_NO_TIMEOUT);
         if (tcp_sock == NULL) {
-            perr = PR_GetError();
+            perr = MPR_GetError();
             if ((perr != PR_CONNECT_RESET_ERROR &&
                  perr != PR_PENDING_INTERRUPT_ERROR) ||
                 verbose) {
-                errWarn("PR_Accept");
+                errWarn("MPR_Accept");
             }
             if (perr == PR_CONNECT_RESET_ERROR) {
                 FPRINTF(stderr,
@@ -925,14 +925,14 @@ do_accepts(
 
         VLOG(("httpserv: do_accept: Got connection\n"));
 
-        PR_Lock(qLock);
+        MPR_Lock(qLock);
         while (PR_CLIST_IS_EMPTY(&freeJobs) && !stopping) {
-            PR_WaitCondVar(freeListNotEmptyCv, PR_INTERVAL_NO_TIMEOUT);
+            MPR_WaitCondVar(freeListNotEmptyCv, PR_INTERVAL_NO_TIMEOUT);
         }
         if (stopping) {
-            PR_Unlock(qLock);
+            MPR_Unlock(qLock);
             if (tcp_sock) {
-                PR_Close(tcp_sock);
+                MPR_Close(tcp_sock);
             }
             break;
         }
@@ -949,14 +949,14 @@ do_accepts(
         }
 
         PR_APPEND_LINK(myLink, &jobQ);
-        PR_NotifyCondVar(jobQNotEmptyCv);
-        PR_Unlock(qLock);
+        MPR_NotifyCondVar(jobQNotEmptyCv);
+        MPR_Unlock(qLock);
     }
 
     FPRINTF(stderr, "httpserv: Closing listen socket.\n");
     VLOG(("httpserv: do_accepts: exiting"));
     if (listen_sock) {
-        PR_Close(listen_sock);
+        MPR_Close(listen_sock);
     }
     return SECSuccess;
 }
@@ -971,51 +971,51 @@ getBoundListenSocket(unsigned short port)
     PRSocketOptionData opt;
 
     addr.inet.family = PR_AF_INET;
-    addr.inet.ip = PR_htonl(PR_INADDR_ANY);
-    addr.inet.port = PR_htons(port);
+    addr.inet.ip = MPR_htonl(PR_INADDR_ANY);
+    addr.inet.port = MPR_htons(port);
 
-    listen_sock = PR_NewTCPSocket();
+    listen_sock = MPR_NewTCPSocket();
     if (listen_sock == NULL) {
-        errExit("PR_NewTCPSocket");
+        errExit("MPR_NewTCPSocket");
     }
 
     opt.option = PR_SockOpt_Nonblocking;
     opt.value.non_blocking = PR_FALSE;
-    prStatus = PR_SetSocketOption(listen_sock, &opt);
+    prStatus = MPR_SetSocketOption(listen_sock, &opt);
     if (prStatus < 0) {
-        PR_Close(listen_sock);
-        errExit("PR_SetSocketOption(PR_SockOpt_Nonblocking)");
+        MPR_Close(listen_sock);
+        errExit("MPR_SetSocketOption(PR_SockOpt_Nonblocking)");
     }
 
     opt.option = PR_SockOpt_Reuseaddr;
     opt.value.reuse_addr = PR_TRUE;
-    prStatus = PR_SetSocketOption(listen_sock, &opt);
+    prStatus = MPR_SetSocketOption(listen_sock, &opt);
     if (prStatus < 0) {
-        PR_Close(listen_sock);
-        errExit("PR_SetSocketOption(PR_SockOpt_Reuseaddr)");
+        MPR_Close(listen_sock);
+        errExit("MPR_SetSocketOption(PR_SockOpt_Reuseaddr)");
     }
 
     /* Set PR_SockOpt_Linger because it helps prevent a server bind issue
      * after clean shutdown . See bug 331413 .*/
     opt.option = PR_SockOpt_Linger;
     opt.value.linger.polarity = PR_TRUE;
-    opt.value.linger.linger = PR_SecondsToInterval(1);
-    prStatus = PR_SetSocketOption(listen_sock, &opt);
+    opt.value.linger.linger = MPR_SecondsToInterval(1);
+    prStatus = MPR_SetSocketOption(listen_sock, &opt);
     if (prStatus < 0) {
-        PR_Close(listen_sock);
-        errExit("PR_SetSocketOption(PR_SockOpt_Linger)");
+        MPR_Close(listen_sock);
+        errExit("MPR_SetSocketOption(PR_SockOpt_Linger)");
     }
 
-    prStatus = PR_Bind(listen_sock, &addr);
+    prStatus = MPR_Bind(listen_sock, &addr);
     if (prStatus < 0) {
-        PR_Close(listen_sock);
-        errExit("PR_Bind");
+        MPR_Close(listen_sock);
+        errExit("MPR_Bind");
     }
 
-    prStatus = PR_Listen(listen_sock, listenQueueDepth);
+    prStatus = MPR_Listen(listen_sock, listenQueueDepth);
     if (prStatus < 0) {
-        PR_Close(listen_sock);
-        errExit("PR_Listen");
+        MPR_Close(listen_sock);
+        errExit("MPR_Listen");
     }
     return listen_sock;
 }
@@ -1036,7 +1036,7 @@ server_main(
     terminateWorkerThreads();
 
     if (model_sock) {
-        PR_Close(model_sock);
+        MPR_Close(model_sock);
     }
 }
 
@@ -1048,7 +1048,7 @@ haveAChild(int argc, char **argv, PRProcessAttr *attr)
 {
     PRProcess *newProcess;
 
-    newProcess = PR_CreateProcess(argv[0], argv, NULL, attr);
+    newProcess = MPR_CreateProcess(argv[0], argv, NULL, attr);
     if (!newProcess) {
         errWarn("Can't create new process.");
     } else {
@@ -1167,14 +1167,14 @@ main(int argc, char **argv)
     progName = strrchr(tmp, '\\');
     progName = progName ? progName + 1 : tmp;
 
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
     /* please keep this list of options in ASCII collating sequence.
     ** numbers, then capital letters, then lower case, alphabetical.
     */
-    optstate = PL_CreateOptState(argc, argv,
+    optstate = MPL_CreateOptState(argc, argv,
                                  "A:C:DO:P:bd:f:hi:p:t:vw:");
-    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         ++optionsFound;
         switch (optstate->option) {
             /* A first, must be followed by C. Any other order is an error.
@@ -1205,15 +1205,15 @@ main(int argc, char **argv)
                 break;
 
             case 'O':
-                if (!PL_strcasecmp(optstate->value, "all")) {
+                if (!MPL_strcasecmp(optstate->value, "all")) {
                     ocspMethodsAllowed = ocspGetAndPost;
-                } else if (!PL_strcasecmp(optstate->value, "get")) {
+                } else if (!MPL_strcasecmp(optstate->value, "get")) {
                     ocspMethodsAllowed = ocspGetOnly;
-                } else if (!PL_strcasecmp(optstate->value, "post")) {
+                } else if (!MPL_strcasecmp(optstate->value, "post")) {
                     ocspMethodsAllowed = ocspPostOnly;
-                } else if (!PL_strcasecmp(optstate->value, "random")) {
+                } else if (!MPL_strcasecmp(optstate->value, "random")) {
                     ocspMethodsAllowed = ocspRandomGetFailure;
-                } else if (!PL_strcasecmp(optstate->value, "get-unknown")) {
+                } else if (!MPL_strcasecmp(optstate->value, "get-unknown")) {
                     ocspMethodsAllowed = ocspGetUnknown;
                 } else {
                     Usage(progName);
@@ -1280,7 +1280,7 @@ main(int argc, char **argv)
                 break;
         }
     }
-    PL_DestroyOptState(optstate);
+    MPL_DestroyOptState(optstate);
     if (status == PL_OPT_BAD) {
         fprintf(stderr, "Unrecognized or bad option specified.\n");
         fprintf(stderr, "Run '%s -h' for usage information.\n", progName);
@@ -1301,7 +1301,7 @@ main(int argc, char **argv)
             exit(1);
         }
         if (listen_sock) {
-            PR_Close(listen_sock);
+            MPR_Close(listen_sock);
         }
         exit(0);
     }
@@ -1320,18 +1320,18 @@ main(int argc, char **argv)
         }
     }
 
-    tmp = PR_GetEnvSecure("TMP");
+    tmp = MPR_GetEnvSecure("TMP");
     if (!tmp)
-        tmp = PR_GetEnvSecure("TMPDIR");
+        tmp = MPR_GetEnvSecure("TMPDIR");
     if (!tmp)
-        tmp = PR_GetEnvSecure("TEMP");
+        tmp = MPR_GetEnvSecure("TEMP");
     /* we're an ordinary single process server. */
     listen_sock = getBoundListenSocket(port);
-    prStatus = PR_SetFDInheritable(listen_sock, PR_FALSE);
+    prStatus = MPR_SetFDInheritable(listen_sock, PR_FALSE);
     if (prStatus != PR_SUCCESS)
-        errExit("PR_SetFDInheritable");
+        errExit("MPR_SetFDInheritable");
 
-    lm = PR_NewLogModule("TestCase");
+    lm = MPR_NewLogModule("TestCase");
 
     /* set our password function */
     PK11_SetPasswordFunc(SECU_GetModulePassword);
@@ -1359,10 +1359,10 @@ main(int argc, char **argv)
                             revoInfo->nickname);
                     exit(1);
                 }
-                inFile = PR_Open(revoInfo->crlFilename, PR_RDONLY, 0);
+                inFile = MPR_Open(revoInfo->crlFilename, PR_RDONLY, 0);
                 if (inFile) {
                     rv = SECU_ReadDERFromFile(&crlDER, inFile, PR_FALSE, PR_FALSE);
-                    PR_Close(inFile);
+                    MPR_Close(inFile);
                     inFile = NULL;
                 }
                 if (rv != SECSuccess) {
@@ -1385,7 +1385,7 @@ main(int argc, char **argv)
                             revoInfo->crlFilename, revoInfo->nickname);
                     exit(1);
                 }
-                revoInfo->id = cert_CreateSelfCAID(revoInfo->cert, PR_Now());
+                revoInfo->id = cert_CreateSelfCAID(revoInfo->cert, MPR_Now());
                 caRevoIter = PR_NEXT_LINK(caRevoIter);
             } while (caRevoIter != &caRevoInfos->link);
         }
@@ -1422,7 +1422,7 @@ main(int argc, char **argv)
         }
         if (NSS_Shutdown() != SECSuccess) {
             SECU_PrintError(progName, "NSS_Shutdown");
-            PR_Cleanup();
+            MPR_Cleanup();
             exit(1);
         }
     }
@@ -1435,7 +1435,7 @@ main(int argc, char **argv)
     if (certPrefix && certPrefix != emptyString) {
         PORT_Free(certPrefix);
     }
-    PR_Cleanup();
+    MPR_Cleanup();
     printf("httpserv: normal termination\n");
     return 0;
 }

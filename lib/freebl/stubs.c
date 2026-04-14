@@ -151,27 +151,27 @@ STUB_DECLARE(void *, PORT_ZAllocAligned_Util, (size_t bytes, size_t alignment, v
 STUB_DECLARE(void *, PORT_ZAllocAlignedOffset_Util, (size_t bytes, size_t alignment, size_t offset));
 STUB_DECLARE(void, PORT_ZFree_Util, (void *ptr, size_t len));
 
-STUB_DECLARE(void, PR_Assert, (const char *s, const char *file, PRIntn ln));
-STUB_DECLARE(PRStatus, PR_Access, (const char *name, PRAccessHow how));
-STUB_DECLARE(PRStatus, PR_CallOnce, (PRCallOnceType * once, PRCallOnceFN func));
-STUB_DECLARE(PRStatus, PR_Close, (PRFileDesc * fd));
-STUB_DECLARE(void, PR_DestroyLock, (PRLock * lock));
-STUB_DECLARE(void, PR_DestroyCondVar, (PRCondVar * cvar));
-STUB_DECLARE(void, PR_Free, (void *ptr));
-STUB_DECLARE(char *, PR_GetLibraryFilePathname, (const char *name, PRFuncPtr addr));
-STUB_DECLARE(PRFileDesc *, PR_ImportPipe, (PROsfd osfd));
-STUB_DECLARE(void, PR_Lock, (PRLock * lock));
-STUB_DECLARE(PRCondVar *, PR_NewCondVar, (PRLock * lock));
-STUB_DECLARE(PRLock *, PR_NewLock, (void));
-STUB_DECLARE(PRStatus, PR_NotifyCondVar, (PRCondVar * cvar));
-STUB_DECLARE(PRStatus, PR_NotifyAllCondVar, (PRCondVar * cvar));
-STUB_DECLARE(PRFileDesc *, PR_Open, (const char *name, PRIntn flags, PRIntn mode));
-STUB_DECLARE(PRInt32, PR_Read, (PRFileDesc * fd, void *buf, PRInt32 amount));
-STUB_DECLARE(PROffset32, PR_Seek, (PRFileDesc * fd, PROffset32 offset, PRSeekWhence whence));
-STUB_DECLARE(PRStatus, PR_Sleep, (PRIntervalTime ticks));
-STUB_DECLARE(PRStatus, PR_Unlock, (PRLock * lock));
-STUB_DECLARE(PRStatus, PR_WaitCondVar, (PRCondVar * cvar, PRIntervalTime timeout));
-STUB_DECLARE(char *, PR_GetEnvSecure, (const char *));
+STUB_DECLARE(void, MPR_Assert, (const char *s, const char *file, PRIntn ln));
+STUB_DECLARE(PRStatus, MPR_Access, (const char *name, PRAccessHow how));
+STUB_DECLARE(PRStatus, MPR_CallOnce, (PRCallOnceType * once, PRCallOnceFN func));
+STUB_DECLARE(PRStatus, MPR_Close, (PRFileDesc * fd));
+STUB_DECLARE(void, MPR_DestroyLock, (PRLock * lock));
+STUB_DECLARE(void, MPR_DestroyCondVar, (PRCondVar * cvar));
+STUB_DECLARE(void, MPR_Free, (void *ptr));
+STUB_DECLARE(char *, MPR_GetLibraryFilePathname, (const char *name, PRFuncPtr addr));
+STUB_DECLARE(PRFileDesc *, MPR_ImportPipe, (PROsfd osfd));
+STUB_DECLARE(void, MPR_Lock, (PRLock * lock));
+STUB_DECLARE(PRCondVar *, MPR_NewCondVar, (PRLock * lock));
+STUB_DECLARE(PRLock *, MPR_NewLock, (void));
+STUB_DECLARE(PRStatus, MPR_NotifyCondVar, (PRCondVar * cvar));
+STUB_DECLARE(PRStatus, MPR_NotifyAllCondVar, (PRCondVar * cvar));
+STUB_DECLARE(PRFileDesc *, MPR_Open, (const char *name, PRIntn flags, PRIntn mode));
+STUB_DECLARE(PRInt32, MPR_Read, (PRFileDesc * fd, void *buf, PRInt32 amount));
+STUB_DECLARE(PROffset32, MPR_Seek, (PRFileDesc * fd, PROffset32 offset, PRSeekWhence whence));
+STUB_DECLARE(PRStatus, MPR_Sleep, (PRIntervalTime ticks));
+STUB_DECLARE(PRStatus, MPR_Unlock, (PRLock * lock));
+STUB_DECLARE(PRStatus, MPR_WaitCondVar, (PRCondVar * cvar, PRIntervalTime timeout));
+STUB_DECLARE(char *, MPR_GetEnvSecure, (const char *));
 
 STUB_DECLARE(SECItem *, SECITEM_AllocItem_Util, (PLArenaPool * arena, SECItem *item, unsigned int len));
 STUB_DECLARE(SECComparison, SECITEM_CompareItem_Util, (const SECItem *a, const SECItem *b));
@@ -290,7 +290,7 @@ PORT_ZFree_stub(void *ptr, size_t len)
 extern void
 PR_Free_stub(void *ptr)
 {
-    STUB_SAFE_CALL1(PR_Free, ptr);
+    STUB_SAFE_CALL1(MPR_Free, ptr);
     return free(ptr);
 }
 
@@ -347,7 +347,7 @@ PR_Open_stub(const char *name, PRIntn flags, PRIntn mode)
     int fd;
     int lflags = 0;
 
-    STUB_SAFE_CALL3(PR_Open, name, flags, mode);
+    STUB_SAFE_CALL3(MPR_Open, name, flags, mode);
 
     if (flags & PR_RDWR) {
         lflags = O_RDWR;
@@ -381,7 +381,7 @@ PR_ImportPipe_stub(PROsfd fd)
 {
     int *lfd = NULL;
 
-    STUB_SAFE_CALL1(PR_ImportPipe, fd);
+    STUB_SAFE_CALL1(MPR_ImportPipe, fd);
 
     lfd = PORT_New_stub(int);
     if (lfd != NULL) {
@@ -394,7 +394,7 @@ extern PRStatus
 PR_Close_stub(PRFileDesc *fd)
 {
     int *lfd;
-    STUB_SAFE_CALL1(PR_Close, fd);
+    STUB_SAFE_CALL1(MPR_Close, fd);
 
     lfd = (int *)fd;
     close(*lfd);
@@ -407,7 +407,7 @@ extern PRInt32
 PR_Read_stub(PRFileDesc *fd, void *buf, PRInt32 amount)
 {
     int *lfd;
-    STUB_SAFE_CALL3(PR_Read, fd, buf, amount);
+    STUB_SAFE_CALL3(MPR_Read, fd, buf, amount);
 
     lfd = (int *)fd;
     return read(*lfd, buf, amount);
@@ -418,7 +418,7 @@ PR_Seek_stub(PRFileDesc *fd, PROffset32 offset, PRSeekWhence whence)
 {
     int *lfd;
     int lwhence = SEEK_SET;
-    STUB_SAFE_CALL3(PR_Seek, fd, offset, whence);
+    STUB_SAFE_CALL3(MPR_Seek, fd, offset, whence);
     lfd = (int *)fd;
     switch (whence) {
         case PR_SEEK_CUR:
@@ -439,7 +439,7 @@ PR_Access_stub(const char *name, PRAccessHow how)
 {
     int mode = F_OK;
     int rv;
-    STUB_SAFE_CALL2(PR_Access, name, how);
+    STUB_SAFE_CALL2(MPR_Access, name, how);
     switch (how) {
         case PR_ACCESS_WRITE_OK:
             mode = W_OK;
@@ -467,7 +467,7 @@ PR_GetLibraryFilePathname_stub(const char *name, PRFuncPtr addr)
     Dl_info dli;
     char *result;
 
-    STUB_SAFE_CALL2(PR_GetLibraryFilePathname, name, addr);
+    STUB_SAFE_CALL2(MPR_GetLibraryFilePathname, name, addr);
 
     if (dladdr((void *)addr, &dli) == 0) {
         return NULL;
@@ -514,7 +514,7 @@ PORT_SetError_stub(int value)
 extern void
 PR_Assert_stub(const char *s, const char *file, PRIntn ln)
 {
-    STUB_SAFE_CALL3(PR_Assert, s, file, ln);
+    STUB_SAFE_CALL3(MPR_Assert, s, file, ln);
     fprintf(stderr, "%s line %d: %s\n", file, ln, s);
     abort();
 }
@@ -523,7 +523,7 @@ PR_Assert_stub(const char *s, const char *file, PRIntn ln)
 extern PRStatus
 PR_Sleep_stub(PRIntervalTime ticks)
 {
-    STUB_SAFE_CALL1(PR_Sleep, ticks);
+    STUB_SAFE_CALL1(MPR_Sleep, ticks);
     usleep(ticks * 1000);
     return PR_SUCCESS;
 }
@@ -532,7 +532,7 @@ PR_Sleep_stub(PRIntervalTime ticks)
 extern PRLock *
 PR_NewLock_stub(void)
 {
-    STUB_SAFE_CALL0(PR_NewLock);
+    STUB_SAFE_CALL0(MPR_NewLock);
     abort();
     return NULL;
 }
@@ -540,7 +540,7 @@ PR_NewLock_stub(void)
 extern PRStatus
 PR_Unlock_stub(PRLock *lock)
 {
-    STUB_SAFE_CALL1(PR_Unlock, lock);
+    STUB_SAFE_CALL1(MPR_Unlock, lock);
     abort();
     return PR_FAILURE;
 }
@@ -548,7 +548,7 @@ PR_Unlock_stub(PRLock *lock)
 extern void
 PR_Lock_stub(PRLock *lock)
 {
-    STUB_SAFE_CALL1(PR_Lock, lock);
+    STUB_SAFE_CALL1(MPR_Lock, lock);
     abort();
     return;
 }
@@ -556,7 +556,7 @@ PR_Lock_stub(PRLock *lock)
 extern void
 PR_DestroyLock_stub(PRLock *lock)
 {
-    STUB_SAFE_CALL1(PR_DestroyLock, lock);
+    STUB_SAFE_CALL1(MPR_DestroyLock, lock);
     abort();
     return;
 }
@@ -564,7 +564,7 @@ PR_DestroyLock_stub(PRLock *lock)
 extern PRCondVar *
 PR_NewCondVar_stub(PRLock *lock)
 {
-    STUB_SAFE_CALL1(PR_NewCondVar, lock);
+    STUB_SAFE_CALL1(MPR_NewCondVar, lock);
     abort();
     return NULL;
 }
@@ -572,7 +572,7 @@ PR_NewCondVar_stub(PRLock *lock)
 extern PRStatus
 PR_NotifyCondVar_stub(PRCondVar *cvar)
 {
-    STUB_SAFE_CALL1(PR_NotifyCondVar, cvar);
+    STUB_SAFE_CALL1(MPR_NotifyCondVar, cvar);
     abort();
     return PR_FAILURE;
 }
@@ -580,7 +580,7 @@ PR_NotifyCondVar_stub(PRCondVar *cvar)
 extern PRStatus
 PR_NotifyAllCondVar_stub(PRCondVar *cvar)
 {
-    STUB_SAFE_CALL1(PR_NotifyAllCondVar, cvar);
+    STUB_SAFE_CALL1(MPR_NotifyAllCondVar, cvar);
     abort();
     return PR_FAILURE;
 }
@@ -588,7 +588,7 @@ PR_NotifyAllCondVar_stub(PRCondVar *cvar)
 extern PRStatus
 PR_WaitCondVar_stub(PRCondVar *cvar, PRIntervalTime timeout)
 {
-    STUB_SAFE_CALL2(PR_WaitCondVar, cvar, timeout);
+    STUB_SAFE_CALL2(MPR_WaitCondVar, cvar, timeout);
     abort();
     return PR_FAILURE;
 }
@@ -596,7 +596,7 @@ PR_WaitCondVar_stub(PRCondVar *cvar, PRIntervalTime timeout)
 extern char *
 PR_GetEnvSecure_stub(const char *var)
 {
-    STUB_SAFE_CALL1(PR_GetEnvSecure, var);
+    STUB_SAFE_CALL1(MPR_GetEnvSecure, var);
 #ifdef __USE_GNU
     return secure_getenv(var);
 #else
@@ -607,7 +607,7 @@ PR_GetEnvSecure_stub(const char *var)
 extern void
 PR_DestroyCondVar_stub(PRCondVar *cvar)
 {
-    STUB_SAFE_CALL1(PR_DestroyCondVar, cvar);
+    STUB_SAFE_CALL1(MPR_DestroyCondVar, cvar);
     abort();
     return;
 }
@@ -618,7 +618,7 @@ PR_DestroyCondVar_stub(PRCondVar *cvar)
 extern PRStatus
 PR_CallOnce_stub(PRCallOnceType *once, PRCallOnceFN func)
 {
-    STUB_SAFE_CALL2(PR_CallOnce, once, func);
+    STUB_SAFE_CALL2(MPR_CallOnce, once, func);
     abort();
     return PR_FAILURE;
 }
@@ -779,27 +779,27 @@ static const char *nssutilLibName = SHLIB_PREFIX "nssutil3." SHLIB_SUFFIX;
 static SECStatus
 freebl_InitNSPR(void *lib)
 {
-    STUB_FETCH_FUNCTION(PR_Free);
-    STUB_FETCH_FUNCTION(PR_Open);
-    STUB_FETCH_FUNCTION(PR_ImportPipe);
-    STUB_FETCH_FUNCTION(PR_Close);
-    STUB_FETCH_FUNCTION(PR_Read);
-    STUB_FETCH_FUNCTION(PR_Seek);
-    STUB_FETCH_FUNCTION(PR_GetLibraryFilePathname);
-    STUB_FETCH_FUNCTION(PR_Assert);
-    STUB_FETCH_FUNCTION(PR_Access);
-    STUB_FETCH_FUNCTION(PR_Sleep);
-    STUB_FETCH_FUNCTION(PR_CallOnce);
-    STUB_FETCH_FUNCTION(PR_NewCondVar);
-    STUB_FETCH_FUNCTION(PR_NotifyCondVar);
-    STUB_FETCH_FUNCTION(PR_NotifyAllCondVar);
-    STUB_FETCH_FUNCTION(PR_WaitCondVar);
-    STUB_FETCH_FUNCTION(PR_DestroyCondVar);
-    STUB_FETCH_FUNCTION(PR_NewLock);
-    STUB_FETCH_FUNCTION(PR_Unlock);
-    STUB_FETCH_FUNCTION(PR_Lock);
-    STUB_FETCH_FUNCTION(PR_DestroyLock);
-    STUB_FETCH_FUNCTION(PR_GetEnvSecure);
+    STUB_FETCH_FUNCTION(MPR_Free);
+    STUB_FETCH_FUNCTION(MPR_Open);
+    STUB_FETCH_FUNCTION(MPR_ImportPipe);
+    STUB_FETCH_FUNCTION(MPR_Close);
+    STUB_FETCH_FUNCTION(MPR_Read);
+    STUB_FETCH_FUNCTION(MPR_Seek);
+    STUB_FETCH_FUNCTION(MPR_GetLibraryFilePathname);
+    STUB_FETCH_FUNCTION(MPR_Assert);
+    STUB_FETCH_FUNCTION(MPR_Access);
+    STUB_FETCH_FUNCTION(MPR_Sleep);
+    STUB_FETCH_FUNCTION(MPR_CallOnce);
+    STUB_FETCH_FUNCTION(MPR_NewCondVar);
+    STUB_FETCH_FUNCTION(MPR_NotifyCondVar);
+    STUB_FETCH_FUNCTION(MPR_NotifyAllCondVar);
+    STUB_FETCH_FUNCTION(MPR_WaitCondVar);
+    STUB_FETCH_FUNCTION(MPR_DestroyCondVar);
+    STUB_FETCH_FUNCTION(MPR_NewLock);
+    STUB_FETCH_FUNCTION(MPR_Unlock);
+    STUB_FETCH_FUNCTION(MPR_Lock);
+    STUB_FETCH_FUNCTION(MPR_DestroyLock);
+    STUB_FETCH_FUNCTION(MPR_GetEnvSecure);
     return SECSuccess;
 }
 

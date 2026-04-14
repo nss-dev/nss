@@ -81,8 +81,8 @@ pkix_pl_Object_GetHeader(
 #ifdef PKIX_USER_OBJECT_TYPE
                 pkix_ClassTable_Entry *ctEntry = NULL;
 
-                PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
-                PR_Lock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Lock).\n");
+                MPR_Lock(classTableLock);
 
                 PKIX_CHECK(pkix_pl_PrimHashTable_Lookup
                             (classTable,
@@ -93,8 +93,8 @@ pkix_pl_Object_GetHeader(
                             plContext),
                             PKIX_ERRORGETTINGCLASSTABLEENTRY);
 
-                PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
-                PR_Unlock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Unlock).\n");
+                MPR_Unlock(classTableLock);
 
                 if (ctEntry == NULL) {
                         PKIX_ERROR_FATAL(PKIX_UNKNOWNOBJECTTYPE);
@@ -168,8 +168,8 @@ pkix_pl_Object_Destroy(
         PKIX_DECREF(objectHeader->stringRep);
 
         /* Destroy this object's lock */
-        PKIX_OBJECT_DEBUG("\tCalling PR_DestroyLock).\n");
-        PR_DestroyLock(objectHeader->lock);
+        PKIX_OBJECT_DEBUG("\tCalling MPR_DestroyLock).\n");
+        MPR_DestroyLock(objectHeader->lock);
         objectHeader->lock = NULL;
         object = NULL;
 
@@ -275,8 +275,8 @@ pkix_pl_Object_ToString_Default(
 #ifdef PKIX_USER_OBJECT_TYPE
                 pkix_ClassTable_Entry *ctEntry = NULL;
 
-                PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
-                PR_Lock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Lock).\n");
+                MPR_Lock(classTableLock);
                 pkixErrorResult = pkix_pl_PrimHashTable_Lookup
                         (classTable,
                         (void *)&objType,
@@ -284,8 +284,8 @@ pkix_pl_Object_ToString_Default(
                         NULL,
                         (void **)&ctEntry,
                         plContext);
-                PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
-                PR_Unlock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Unlock).\n");
+                MPR_Unlock(classTableLock);
                 if (pkixErrorResult){
                         PKIX_ERROR_FATAL(PKIX_ERRORGETTINGCLASSTABLEENTRY);
                 }
@@ -425,8 +425,8 @@ pkix_pl_Object_RetrieveEqualsCallback(
 #ifdef PKIX_USER_OBJECT_TYPE
                 pkix_ClassTable_Entry *ctEntry = NULL;
 
-                PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
-                PR_Lock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Lock).\n");
+                MPR_Lock(classTableLock);
                 pkixErrorResult = pkix_pl_PrimHashTable_Lookup
                         (classTable,
                         (void *)&objType,
@@ -434,8 +434,8 @@ pkix_pl_Object_RetrieveEqualsCallback(
                         NULL,
                         (void **)&ctEntry,
                         plContext);
-                PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
-                PR_Unlock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Unlock).\n");
+                MPR_Unlock(classTableLock);
                 if (pkixErrorResult){
                         PKIX_ERROR(PKIX_ERRORGETTINGCLASSTABLEENTRY);
                 }
@@ -528,8 +528,8 @@ PKIX_PL_Object_Alloc(
         if (objType >= PKIX_NUMTYPES) { /* i.e. if this is a user-defined type */
 #ifdef PKIX_USER_OBJECT_TYPE
                 PKIX_Boolean typeRegistered;
-                PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
-                PR_Lock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Lock).\n");
+                MPR_Lock(classTableLock);
                 pkixErrorResult = pkix_pl_PrimHashTable_Lookup
                         (classTable,
                         (void *)&objType,
@@ -537,8 +537,8 @@ PKIX_PL_Object_Alloc(
                         NULL,
                         (void **)&ctEntry,
                         plContext);
-                PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
-                PR_Unlock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Unlock).\n");
+                MPR_Unlock(classTableLock);
                 if (pkixErrorResult){
                         PKIX_ERROR_FATAL(PKIX_COULDNOTLOOKUPINHASHTABLE);
                 }
@@ -586,8 +586,8 @@ PKIX_PL_Object_Alloc(
 
         /* Cannot use PKIX_PL_Mutex because it depends on Object */
         /* Using NSPR Locks instead */
-        PKIX_OBJECT_DEBUG("\tCalling PR_NewLock).\n");
-        object->lock = PR_NewLock();
+        PKIX_OBJECT_DEBUG("\tCalling MPR_NewLock).\n");
+        object->lock = MPR_NewLock();
         if (object->lock == NULL) {
                 PKIX_ERROR_ALLOC_ERROR();
         }
@@ -636,8 +636,8 @@ PKIX_PL_Object_IsTypeRegistered(
         pkixErrorCode = PKIX_UNKNOWNOBJECTTYPE;
         pkixErrorClass = PKIX_FATAL_ERROR;
 #else
-        PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
-        PR_Lock(classTableLock);
+        PKIX_OBJECT_DEBUG("\tCalling MPR_Lock).\n");
+        MPR_Lock(classTableLock);
         pkixErrorResult = pkix_pl_PrimHashTable_Lookup
                 (classTable,
                 (void *)&objType,
@@ -645,8 +645,8 @@ PKIX_PL_Object_IsTypeRegistered(
                 NULL,
                 (void **)&ctEntry,
                 plContext);
-        PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
-        PR_Unlock(classTableLock);
+        PKIX_OBJECT_DEBUG("\tCalling MPR_Unlock).\n");
+        MPR_Unlock(classTableLock);
 
         if (pkixErrorResult){
                 PKIX_ERROR_FATAL(PKIX_COULDNOTLOOKUPINHASHTABLE);
@@ -690,8 +690,8 @@ PKIX_PL_Object_RegisterType(
                 PKIX_ERROR(PKIX_CANTREREGISTERSYSTEMTYPE);
         }
 
-        PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
-        PR_Lock(classTableLock);
+        PKIX_OBJECT_DEBUG("\tCalling MPR_Lock).\n");
+        MPR_Lock(classTableLock);
         PKIX_CHECK(pkix_pl_PrimHashTable_Lookup
                     (classTable,
                     (void *)&objType,
@@ -756,8 +756,8 @@ PKIX_PL_Object_RegisterType(
                     PKIX_PRIMHASHTABLEADDFAILED);
 
 cleanup:
-        PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
-        PR_Unlock(classTableLock);
+        PKIX_OBJECT_DEBUG("\tCalling MPR_Unlock).\n");
+        MPR_Unlock(classTableLock);
 
         PKIX_RETURN(OBJECT);
 }
@@ -855,8 +855,8 @@ PKIX_PL_Object_DecRef(
             /* first, special handling for system types */
             if (objType >= PKIX_NUMTYPES){
 #ifdef PKIX_USER_OBJECT_TYPE
-                PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
-                PR_Lock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Lock).\n");
+                MPR_Lock(classTableLock);
                 pkixErrorResult = pkix_pl_PrimHashTable_Lookup
                     (classTable,
                      (void *)&objType,
@@ -865,8 +865,8 @@ PKIX_PL_Object_DecRef(
                      (void **)&ctEntry,
                      plContext);
                 PKIX_OBJECT_DEBUG
-                    ("\tCalling PR_Unlock).\n");
-                PR_Unlock(classTableLock);
+                    ("\tCalling MPR_Unlock).\n");
+                MPR_Unlock(classTableLock);
                 if (pkixErrorResult){
                     PKIX_ERROR_FATAL
                         (PKIX_ERRORINGETTINGDESTRUCTOR);
@@ -958,8 +958,8 @@ PKIX_PL_Object_Equals(
         if (objType >= PKIX_NUMTYPES) {
 #ifdef PKIX_USER_OBJECT_TYPE
                 pkix_ClassTable_Entry *ctEntry = NULL;
-                PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
-                PR_Lock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Lock).\n");
+                MPR_Lock(classTableLock);
                 pkixErrorResult = pkix_pl_PrimHashTable_Lookup
                         (classTable,
                         (void *)&firstObjectHeader->type,
@@ -967,8 +967,8 @@ PKIX_PL_Object_Equals(
                         NULL,
                         (void **)&ctEntry,
                         plContext);
-                PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
-                PR_Unlock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Unlock).\n");
+                MPR_Unlock(classTableLock);
 
                 if (pkixErrorResult){
                         PKIX_ERROR_FATAL(PKIX_ERRORGETTINGCLASSTABLEENTRY);
@@ -1028,8 +1028,8 @@ PKIX_PL_Object_Duplicate(
 #ifdef PKIX_USER_OBJECT_TYPE
                 pkix_ClassTable_Entry *ctEntry = NULL;
 
-                PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
-                PR_Lock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Lock).\n");
+                MPR_Lock(classTableLock);
                 pkixErrorResult = pkix_pl_PrimHashTable_Lookup
                         (classTable,
                         (void *)&objType,
@@ -1037,8 +1037,8 @@ PKIX_PL_Object_Duplicate(
                         NULL,
                         (void **)&ctEntry,
                         plContext);
-                PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
-                PR_Unlock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Unlock).\n");
+                MPR_Unlock(classTableLock);
 
                 if (pkixErrorResult){
                         PKIX_ERROR_FATAL(PKIX_ERRORGETTINGCLASSTABLEENTRY);
@@ -1102,8 +1102,8 @@ PKIX_PL_Object_Hashcode(
 #ifdef PKIX_USER_OBJECT_TYPE            
                         pkix_ClassTable_Entry *ctEntry = NULL;
 
-                        PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
-                        PR_Lock(classTableLock);
+                        PKIX_OBJECT_DEBUG("\tCalling MPR_Lock).\n");
+                        MPR_Lock(classTableLock);
                         pkixErrorResult = pkix_pl_PrimHashTable_Lookup
                                 (classTable,
                                 (void *)&objType,
@@ -1111,8 +1111,8 @@ PKIX_PL_Object_Hashcode(
                                 NULL,
                                 (void **)&ctEntry,
                                 plContext);
-                        PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
-                        PR_Unlock(classTableLock);
+                        PKIX_OBJECT_DEBUG("\tCalling MPR_Unlock).\n");
+                        MPR_Unlock(classTableLock);
 
                         if (pkixErrorResult){
                                 PKIX_ERROR_FATAL
@@ -1195,8 +1195,8 @@ PKIX_PL_Object_ToString(
 #ifdef PKIX_USER_OBJECT_TYPE
                         pkix_ClassTable_Entry *ctEntry = NULL;
 
-                        PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
-                        PR_Lock(classTableLock);
+                        PKIX_OBJECT_DEBUG("\tCalling MPR_Lock).\n");
+                        MPR_Lock(classTableLock);
                         pkixErrorResult = pkix_pl_PrimHashTable_Lookup
                                 (classTable,
                                 (void *)&objType,
@@ -1204,8 +1204,8 @@ PKIX_PL_Object_ToString(
                                 NULL,
                                 (void **)&ctEntry,
                                 plContext);
-                        PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
-                        PR_Unlock(classTableLock);
+                        PKIX_OBJECT_DEBUG("\tCalling MPR_Unlock).\n");
+                        MPR_Unlock(classTableLock);
                         if (pkixErrorResult){
                                 PKIX_ERROR_FATAL
                                         (PKIX_ERRORGETTINGCLASSTABLEENTRY);
@@ -1332,8 +1332,8 @@ PKIX_PL_Object_Compare(
 #ifdef PKIX_USER_OBJECT_TYPE
                 pkix_ClassTable_Entry *ctEntry = NULL;
 
-                PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
-                PR_Lock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Lock).\n");
+                MPR_Lock(classTableLock);
                 pkixErrorResult = pkix_pl_PrimHashTable_Lookup
                         (classTable,
                         (void *)&objType,
@@ -1341,8 +1341,8 @@ PKIX_PL_Object_Compare(
                         NULL,
                         (void **)&ctEntry,
                         plContext);
-                PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
-                PR_Unlock(classTableLock);
+                PKIX_OBJECT_DEBUG("\tCalling MPR_Unlock).\n");
+                MPR_Unlock(classTableLock);
                 if (pkixErrorResult){
                         PKIX_ERROR_FATAL(PKIX_ERRORGETTINGCLASSTABLEENTRY);
                 }

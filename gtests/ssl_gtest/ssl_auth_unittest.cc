@@ -127,7 +127,7 @@ static void CallAuthComplete(PollTarget* target, Event event) {
   EXPECT_EQ(TIMER_EVENT, event);
   auto args = reinterpret_cast<AuthCompleteArgs*>(target);
   std::cerr << args->agent->role_str() << ": call SSL_AuthCertificateComplete "
-            << (args->code ? PR_ErrorToName(args->code) : "no error")
+            << (args->code ? MPR_ErrorToName(args->code) : "no error")
             << std::endl;
   EXPECT_EQ(SECSuccess,
             SSL_AuthCertificateComplete(args->agent->ssl_fd(), args->code));

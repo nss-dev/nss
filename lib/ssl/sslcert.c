@@ -11,7 +11,7 @@
 #include "secoid.h"        /* for SECOID_GetAlgorithmTag */
 #include "pk11func.h"      /* for PK11_ReferenceSlot */
 #include "nss.h"           /* for NSS_RegisterShutdown */
-#include "prinit.h"        /* for PR_CallOnceWithArg */
+#include "prinit.h"        /* for MPR_CallOnceWithArg */
 #include "tls13subcerts.h" /* for tls13_ReadDelegatedCredential */
 
 /* This global item is used only in servers.  It is is initialized by
@@ -49,7 +49,7 @@ ssl_SetupCAListOnce(void *arg)
 SECStatus
 ssl_SetupCAList(const sslSocket *ss)
 {
-    if (PR_SUCCESS != PR_CallOnceWithArg(&ssl_server_ca_list.setup,
+    if (PR_SUCCESS != MPR_CallOnceWithArg(&ssl_server_ca_list.setup,
                                          &ssl_SetupCAListOnce,
                                          (void *)(ss->dbHandle))) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);

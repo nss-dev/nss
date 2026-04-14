@@ -32,8 +32,8 @@ pkix_pl_Mutex_Destroy(
 
         mutex = (PKIX_PL_Mutex*) object;
 
-        PKIX_MUTEX_DEBUG("\tCalling PR_DestroyLock).\n");
-        PR_DestroyLock(mutex->lock);
+        PKIX_MUTEX_DEBUG("\tCalling MPR_DestroyLock).\n");
+        MPR_DestroyLock(mutex->lock);
         mutex->lock = NULL;
 
 cleanup:
@@ -99,8 +99,8 @@ PKIX_PL_Mutex_Create(
                     plContext),
                     PKIX_COULDNOTCREATELOCKOBJECT);
 
-        PKIX_MUTEX_DEBUG("\tCalling PR_NewLock).\n");
-        mutex->lock = PR_NewLock();
+        PKIX_MUTEX_DEBUG("\tCalling MPR_NewLock).\n");
+        mutex->lock = MPR_NewLock();
 
         /* If an error occurred in NSPR, report it here */
         if (mutex->lock == NULL) {
@@ -126,11 +126,11 @@ PKIX_PL_Mutex_Lock(
         PKIX_ENTER(MUTEX, "PKIX_PL_Mutex_Lock");
         PKIX_NULLCHECK_ONE(mutex);
 
-        PKIX_MUTEX_DEBUG("\tCalling PR_Lock).\n");
-        PR_Lock(mutex->lock);
+        PKIX_MUTEX_DEBUG("\tCalling MPR_Lock).\n");
+        MPR_Lock(mutex->lock);
 
         PKIX_MUTEX_DEBUG_ARG("(Thread %u just acquired the lock)\n",
-                        (PKIX_UInt32)PR_GetCurrentThread());
+                        (PKIX_UInt32)MPR_GetCurrentThread());
 
         PKIX_RETURN(MUTEX);
 }
@@ -148,11 +148,11 @@ PKIX_PL_Mutex_Unlock(
         PKIX_ENTER(MUTEX, "PKIX_PL_Mutex_Unlock");
         PKIX_NULLCHECK_ONE(mutex);
 
-        PKIX_MUTEX_DEBUG("\tCalling PR_Unlock).\n");
-        result = PR_Unlock(mutex->lock);
+        PKIX_MUTEX_DEBUG("\tCalling MPR_Unlock).\n");
+        result = MPR_Unlock(mutex->lock);
 
         PKIX_MUTEX_DEBUG_ARG("(Thread %u just released the lock)\n",
-                        (PKIX_UInt32)PR_GetCurrentThread());
+                        (PKIX_UInt32)MPR_GetCurrentThread());
 
         if (result == PR_FAILURE) {
                 PKIX_ERROR_FATAL(PKIX_ERRORUNLOCKINGMUTEX);

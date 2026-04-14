@@ -35,12 +35,12 @@ PKIX_PL_Malloc(
                     PKIX_MEM_DEBUG("\tCalling PORT_ArenaAlloc.\n");
                     *pMemory = PORT_ArenaAlloc(nssContext->arena, size);
                 } else {
-                    PKIX_MEM_DEBUG("\tCalling PR_Malloc.\n");
-                    result = (void *) PR_Malloc(size);
+                    PKIX_MEM_DEBUG("\tCalling MPR_Malloc.\n");
+                    result = (void *) MPR_Malloc(size);
 
                     if (result == NULL) {
                         PKIX_MEM_DEBUG("Fatal Error Occurred: "
-                                        "PR_Malloc failed.\n");
+                                        "MPR_Malloc failed.\n");
                         PKIX_ERROR_ALLOC_ERROR();
                     } else {
                         *pMemory = result;
@@ -78,12 +78,12 @@ PKIX_PL_Calloc(
                     PKIX_MEM_DEBUG("\tCalling PORT_ArenaAlloc.\n");
                     *pMemory = PORT_ArenaAlloc(nssContext->arena, elSize);
                 } else {
-                    PKIX_MEM_DEBUG("\tCalling PR_Calloc.\n");
-                    result = (void *) PR_Calloc(nElem, elSize);
+                    PKIX_MEM_DEBUG("\tCalling MPR_Calloc.\n");
+                    result = (void *) MPR_Calloc(nElem, elSize);
 
                     if (result == NULL) {
                         PKIX_MEM_DEBUG("Fatal Error Occurred: "
-                                        "PR_Calloc failed.\n");
+                                        "MPR_Calloc failed.\n");
                         PKIX_ERROR_ALLOC_ERROR();
                     } else {
                         *pMemory = result;
@@ -124,8 +124,8 @@ PKIX_PL_Realloc(
                 }
                 *pMemory = result;
         } else {
-                PKIX_MEM_DEBUG("\tCalling PR_Realloc.\n");
-                result = (void *) PR_Realloc(ptr, size);
+                PKIX_MEM_DEBUG("\tCalling MPR_Realloc.\n");
+                result = (void *) MPR_Realloc(ptr, size);
 
                 if (result == NULL) {
                         if (size == 0){
@@ -133,7 +133,7 @@ PKIX_PL_Realloc(
                         } else {
                                 PKIX_MEM_DEBUG
                                         ("Fatal Error Occurred: "
-                                        "PR_Realloc failed.\n");
+                                        "MPR_Realloc failed.\n");
                                 PKIX_ERROR_ALLOC_ERROR();
                         }
                 } else {
@@ -160,8 +160,8 @@ PKIX_PL_Free(
 
         context = (PKIX_PL_NssContext *) plContext;
         if (context == NULL || context->arena == NULL) {
-            PKIX_MEM_DEBUG("\tCalling PR_Free.\n");
-            (void) PR_Free(ptr);
+            PKIX_MEM_DEBUG("\tCalling MPR_Free.\n");
+            (void) MPR_Free(ptr);
         }
 
         PKIX_RETURN(MEM);

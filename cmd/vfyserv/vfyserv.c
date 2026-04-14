@@ -57,39 +57,39 @@ Usage(const char *progName)
 
     pr_stderr = PR_STDERR;
 
-    PR_fprintf(pr_stderr, "Usage:\n"
+    MPR_fprintf(pr_stderr, "Usage:\n"
                           "   %s  [-c ] [-o] [-p port] [-d dbdir] [-w password] [-f pwfile]\n"
                           "   \t\t[-C cipher(s)]  [-l <url> -t <nickname> ] hostname",
                progName);
-    PR_fprintf(pr_stderr, "\nWhere:\n");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr, "\nWhere:\n");
+    MPR_fprintf(pr_stderr,
                "  %-13s dump server cert chain into files\n",
                "-c");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s perform server cert OCSP check\n",
                "-o");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s server port to be used\n",
                "-p");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s use security databases in \"dbdir\"\n",
                "-d dbdir");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s key database password\n",
                "-w password");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s token password file\n",
                "-f pwfile");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s communication cipher list\n",
                "-C cipher(s)");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s OCSP responder location. This location is used to\n"
                "  %-13s check  status  of a server  certificate.  If  not \n"
                "  %-13s specified, location  will  be taken  from the AIA\n"
                "  %-13s server certificate extension.\n",
                "-l url", "", "", "");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s OCSP Trusted Responder Cert nickname\n\n",
                "-t nickname");
 
@@ -105,18 +105,18 @@ setupSSLSocket(PRNetAddr *addr)
     PRStatus prStatus;
     SECStatus secStatus;
 
-    tcpSocket = PR_NewTCPSocket();
+    tcpSocket = MPR_NewTCPSocket();
     if (tcpSocket == NULL) {
-        errWarn("PR_NewTCPSocket");
+        errWarn("MPR_NewTCPSocket");
     }
 
     /* Make the socket blocking. */
     socketOption.option = PR_SockOpt_Nonblocking;
     socketOption.value.non_blocking = PR_FALSE;
 
-    prStatus = PR_SetSocketOption(tcpSocket, &socketOption);
+    prStatus = MPR_SetSocketOption(tcpSocket, &socketOption);
     if (prStatus != PR_SUCCESS) {
-        errWarn("PR_SetSocketOption");
+        errWarn("MPR_SetSocketOption");
         goto loser;
     }
 
@@ -176,7 +176,7 @@ setupSSLSocket(PRNetAddr *addr)
 
 loser:
 
-    PR_Close(tcpSocket);
+    MPR_Close(tcpSocket);
     return NULL;
 }
 
@@ -196,22 +196,22 @@ handle_connection(PRFileDesc *sslSocket, int connection)
 
     /* compose the http request here. */
 
-    numBytes = PR_Write(sslSocket, requestString, strlen(requestString));
+    numBytes = MPR_Write(sslSocket, requestString, strlen(requestString));
     if (numBytes <= 0) {
-        errWarn("PR_Write");
-        PR_Free(readBuffer);
+        errWarn("MPR_Write");
+        MPR_Free(readBuffer);
         readBuffer = NULL;
         return SECFailure;
     }
 
     /* read until EOF */
     while (PR_TRUE) {
-        numBytes = PR_Read(sslSocket, readBuffer, RD_BUF_SIZE);
+        numBytes = MPR_Read(sslSocket, readBuffer, RD_BUF_SIZE);
         if (numBytes == 0) {
             break; /* EOF */
         }
         if (numBytes < 0) {
-            errWarn("PR_Read");
+            errWarn("MPR_Read");
             break;
         }
         countRead += numBytes;
@@ -219,7 +219,7 @@ handle_connection(PRFileDesc *sslSocket, int connection)
 
     printSecurityInfo(stderr, sslSocket);
 
-    PR_Free(readBuffer);
+    MPR_Free(readBuffer);
     readBuffer = NULL;
 
     /* Caller closes the socket. */
@@ -268,27 +268,27 @@ do_connects(void *a, int connection)
     }
 
     /* Prepare and setup network connection. */
-    prStatus = PR_GetHostByName(hostName, buffer, sizeof(buffer), &hostEntry);
+    prStatus = MPR_GetHostByName(hostName, buffer, sizeof(buffer), &hostEntry);
     if (prStatus != PR_SUCCESS) {
-        errWarn("PR_GetHostByName");
+        errWarn("MPR_GetHostByName");
         return SECFailure;
     }
 
-    hostenum = PR_EnumerateHostEnt(0, &hostEntry, port, addr);
+    hostenum = MPR_EnumerateHostEnt(0, &hostEntry, port, addr);
     if (hostenum == -1) {
-        errWarn("PR_EnumerateHostEnt");
+        errWarn("MPR_EnumerateHostEnt");
         return SECFailure;
     }
 
-    ip = PR_ntohl(addr->inet.ip);
+    ip = MPR_ntohl(addr->inet.ip);
     fprintf(stderr,
             "Connecting to host %s (addr %d.%d.%d.%d) on port %d\n",
             hostName, BYTE(3, ip), BYTE(2, ip), BYTE(1, ip),
-            BYTE(0, ip), PR_ntohs(addr->inet.port));
+            BYTE(0, ip), MPR_ntohs(addr->inet.port));
 
-    prStatus = PR_Connect(sslSocket, addr, PR_INTERVAL_NO_TIMEOUT);
+    prStatus = MPR_Connect(sslSocket, addr, PR_INTERVAL_NO_TIMEOUT);
     if (prStatus != PR_SUCCESS) {
-        errWarn("PR_Connect");
+        errWarn("MPR_Connect");
         return SECFailure;
     }
 
@@ -304,9 +304,9 @@ do_connects(void *a, int connection)
     secStatus = SSL_ResetHandshake(sslSocket, /* asServer */ PR_FALSE);
     if (secStatus != SECSuccess) {
         errWarn("SSL_ResetHandshake");
-        prStatus = PR_Close(sslSocket);
+        prStatus = MPR_Close(sslSocket);
         if (prStatus != PR_SUCCESS) {
-            errWarn("PR_Close");
+            errWarn("MPR_Close");
         }
         return secStatus;
     }
@@ -315,14 +315,14 @@ do_connects(void *a, int connection)
     if (secStatus != SECSuccess) {
         /* error already printed out in handle_connection */
         /* errWarn("handle_connection"); */
-        prStatus = PR_Close(sslSocket);
+        prStatus = MPR_Close(sslSocket);
         if (prStatus != PR_SUCCESS) {
-            errWarn("PR_Close");
+            errWarn("MPR_Close");
         }
         return secStatus;
     }
 
-    PR_Close(sslSocket);
+    MPR_Close(sslSocket);
     return SECSuccess;
 }
 
@@ -338,16 +338,16 @@ client_main(int connections)
     char buffer[PR_NETDB_BUF_SIZE];
 
     /* Setup network connection. */
-    prStatus = PR_GetHostByName(hostName, buffer, sizeof(buffer), &hostEntry);
+    prStatus = MPR_GetHostByName(hostName, buffer, sizeof(buffer), &hostEntry);
     if (prStatus != PR_SUCCESS) {
         PORT_Free(hostName);
-        exitErr("PR_GetHostByName");
+        exitErr("MPR_GetHostByName");
     }
 
-    rv = PR_EnumerateHostEnt(0, &hostEntry, port, &addr);
+    rv = MPR_EnumerateHostEnt(0, &hostEntry, port, &addr);
     if (rv < 0) {
         PORT_Free(hostName);
-        exitErr("PR_EnumerateHostEnt");
+        exitErr("MPR_EnumerateHostEnt");
     }
 
     secStatus = launch_thread(&threadMGR, do_connects, &addr, 1);
@@ -398,25 +398,25 @@ main(int argc, char **argv)
     PRBool doOcspCheck = PR_FALSE;
 
     /* Call the NSPR initialization routines */
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
     progName = PORT_Strdup(argv[0]);
 
     hostName = NULL;
-    optstate = PL_CreateOptState(argc, argv, "C:cd:f:l:n:p:ot:w:");
-    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = MPL_CreateOptState(argc, argv, "C:cd:f:l:n:p:ot:w:");
+    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case 'C':
-                cipherString = PL_strdup(optstate->value);
+                cipherString = MPL_strdup(optstate->value);
                 break;
             case 'c':
                 dumpChain = PR_TRUE;
                 break;
             case 'd':
-                certDir = PL_strdup(optstate->value);
+                certDir = MPL_strdup(optstate->value);
                 break;
             case 'l':
-                respUrl = PL_strdup(optstate->value);
+                respUrl = MPL_strdup(optstate->value);
                 break;
             case 'p':
                 port = PORT_Atoi(optstate->value);
@@ -425,7 +425,7 @@ main(int argc, char **argv)
                 doOcspCheck = PR_TRUE;
                 break;
             case 't':
-                respCertName = PL_strdup(optstate->value);
+                respCertName = MPL_strdup(optstate->value);
                 break;
             case 'w':
                 pwdata.source = PW_PLAINTEXT;
@@ -437,13 +437,13 @@ main(int argc, char **argv)
                 pwdata.data = PORT_Strdup(optstate->value);
                 break;
             case '\0':
-                hostName = PL_strdup(optstate->value);
+                hostName = MPL_strdup(optstate->value);
                 break;
             default:
                 Usage(progName);
         }
     }
-    PL_DestroyOptState(optstate);
+    MPL_DestroyOptState(optstate);
     optstate = NULL;
 
     if (port == 0) {
@@ -466,7 +466,7 @@ main(int argc, char **argv)
     /* Initialize the NSS libraries. */
     if (certDir) {
         secStatus = NSS_Init(certDir);
-        PR_Free(certDir);
+        MPR_Free(certDir);
         certDir = NULL;
     } else {
         secStatus = NSS_NoDB_Init(NULL);
@@ -576,7 +576,7 @@ cleanup:
         exit(1);
     }
 
-    PR_Cleanup();
+    MPR_Cleanup();
     PORT_Free(progName);
     return 0;
 }

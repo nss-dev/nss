@@ -73,7 +73,7 @@ appendDirAndCreate(char *path, char *dir, mode_t mode)
 char *
 getUserDB(void)
 {
-    char *userdir = PR_GetEnvSecure("HOME");
+    char *userdir = MPR_GetEnvSecure("HOME");
     char *nssdir = NULL;
 
     if (userdir == NULL) {
@@ -91,7 +91,7 @@ getUserDB(void)
         PORT_Free(nssdir);
     }
     int size = 0;
-    char *xdguserdatadir = PR_GetEnvSecure("XDG_DATA_HOME");
+    char *xdguserdatadir = MPR_GetEnvSecure("XDG_DATA_HOME");
     if (xdguserdatadir) {
         size = strlen(xdguserdatadir);
     } else {
@@ -153,7 +153,7 @@ userCanModifySystemDB()
 static PRBool
 getFIPSEnv(void)
 {
-    char *fipsEnv = PR_GetEnvSecure("NSS_FIPS");
+    char *fipsEnv = MPR_GetEnvSecure("NSS_FIPS");
     if (!fipsEnv) {
         return PR_FALSE;
     }
@@ -249,7 +249,7 @@ get_list(char *filename, char *stripped_parameters)
     /* Don't open root's user DB */
     if (userdb != NULL && !userIsRoot()) {
         /* return a list of databases to open. First the user Database */
-        module_list[next++] = PR_smprintf(
+        module_list[next++] = MPR_smprintf(
             "library= "
             "module=\"NSS User database\" "
             "parameters=\"configdir='sql:%s' %s tokenDescription='NSS user database'\" "
@@ -259,7 +259,7 @@ get_list(char *filename, char *stripped_parameters)
 
         /* now open the user's defined PKCS #11 modules */
         /* skip the local user DB entry */
-        module_list[next++] = PR_smprintf(
+        module_list[next++] = MPR_smprintf(
             "library= "
             "module=\"NSS User database\" "
             "parameters=\"configdir='sql:%s' %s\" "
@@ -270,7 +270,7 @@ get_list(char *filename, char *stripped_parameters)
     /* now the system database (always read only unless it's root) */
     if (sysdb) {
         const char *readonly = userCanModifySystemDB() ? "" : "flags=readonly";
-        module_list[next++] = PR_smprintf(
+        module_list[next++] = MPR_smprintf(
             "library= "
             "module=\"NSS system database\" "
             "parameters=\"configdir='sql:%s' tokenDescription='NSS system database' %s\" "

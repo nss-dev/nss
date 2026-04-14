@@ -116,7 +116,7 @@ encodeNumber(PRUint64 value, PRUint8 *b, size_t count)
     PRUint64 encoded;
     PORT_Assert(b && count > 0 && count <= sizeof(encoded));
 
-    encoded = PR_htonll(value);
+    encoded = MPR_htonll(value);
     PORT_Memcpy(b, ((unsigned char *)(&encoded)) + (sizeof(encoded) - count),
                 count);
     return b + count;

@@ -13,7 +13,7 @@
 #include <vector>
 
 #ifndef PORT_Malloc
-#define PORT_Malloc PR_Malloc
+#define PORT_Malloc MPR_Malloc
 #endif
 
 enum PwDataType { PW_NONE = 0, PW_FROMFILE = 1, PW_PLAINTEXT = 2 };

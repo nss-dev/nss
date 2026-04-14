@@ -223,8 +223,8 @@ lg_deleteTokenKeyByHandle(SDB *sdb, CK_OBJECT_HANDLE handle)
     PRBool rem;
     PLHashTable *hashTable = lg_GetHashTable(sdb);
 
-    item = (SECItem *)PL_HashTableLookup(hashTable, (void *)handle);
-    rem = PL_HashTableRemove(hashTable, (void *)handle);
+    item = (SECItem *)MPL_HashTableLookup(hashTable, (void *)handle);
+    rem = MPL_HashTableRemove(hashTable, (void *)handle);
     if (rem && item) {
         SECITEM_FreeItem(item, PR_TRUE);
     }
@@ -243,7 +243,7 @@ lg_addTokenKeyByHandle(SDB *sdb, CK_OBJECT_HANDLE handle, SECItem *key)
     if (item == NULL) {
         return SECFailure;
     }
-    entry = PL_HashTableAdd(hashTable, (void *)handle, item);
+    entry = MPL_HashTableAdd(hashTable, (void *)handle, item);
     if (entry == NULL) {
         SECITEM_FreeItem(item, PR_TRUE);
         return SECFailure;
@@ -256,7 +256,7 @@ const SECItem *
 lg_lookupTokenKeyByHandle(SDB *sdb, CK_OBJECT_HANDLE handle)
 {
     PLHashTable *hashTable = lg_GetHashTable(sdb);
-    return (const SECItem *)PL_HashTableLookup(hashTable, (void *)handle);
+    return (const SECItem *)MPL_HashTableLookup(hashTable, (void *)handle);
 }
 
 static PRIntn
@@ -274,7 +274,7 @@ lg_ClearTokenKeyHashTable(SDB *sdb)
     PLHashTable *hashTable;
     lg_DBLock(sdb);
     hashTable = lg_GetHashTable(sdb);
-    PL_HashTableEnumerateEntries(hashTable, lg_freeHashItem, NULL);
+    MPL_HashTableEnumerateEntries(hashTable, lg_freeHashItem, NULL);
     lg_DBUnlock(sdb);
     return CKR_OK;
 }

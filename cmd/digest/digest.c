@@ -144,8 +144,8 @@ main(int argc, char **argv)
     /*
      * Parse command line arguments
      */
-    optstate = PL_CreateOptState(argc, argv, "t:i:o:");
-    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = MPL_CreateOptState(argc, argv, "t:i:o:");
+    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
                 Usage(progName);

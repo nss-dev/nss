@@ -73,7 +73,7 @@ class DummyPrSocket : public DummyIOLayerMethods {
   static PRDescIdentity LayerId();
 
   // Create a file descriptor that will reference this object.  The fd must not
-  // live longer than this adapter; call PR_Close() before.
+  // live longer than this adapter; call MPR_Close() before.
   ScopedPRFileDesc CreateFD();
 
   std::weak_ptr<DummyPrSocket>& peer() { return peer_; }

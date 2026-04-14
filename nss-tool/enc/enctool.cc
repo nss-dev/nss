@@ -237,7 +237,7 @@ bool EncTool::DoCipher(std::string file_name, std::string out_file,
 
   ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
   if (!slot) {
-    PrintError("Unable to find security device", PR_GetError(), __LINE__);
+    PrintError("Unable to find security device", MPR_GetError(), __LINE__);
     return false;
   }
 
@@ -251,7 +251,7 @@ bool EncTool::DoCipher(std::string file_name, std::string out_file,
       PK11_ImportSymKey(slot.get(), cipher_mech_, PK11_OriginUnwrap,
                         CKA_DECRYPT | CKA_ENCRYPT, key.get(), nullptr));
   if (!symKey) {
-    PrintError("Failure to import key into NSS", PR_GetError(), __LINE__);
+    PrintError("Failure to import key into NSS", MPR_GetError(), __LINE__);
     return false;
   }
 
@@ -280,7 +280,7 @@ bool EncTool::DoCipher(std::string file_name, std::string out_file,
     }
     if (rv != SECSuccess) {
       PrintError(encrypt ? "Error encrypting" : "Error decrypting",
-                 PR_GetError(), __LINE__);
+                 MPR_GetError(), __LINE__);
       return false;
     };
     output.write(reinterpret_cast<char*>(out.data()), outLen);
@@ -315,7 +315,7 @@ bool EncTool::DoCipher(std::string file_name, std::string out_file,
     }
     if (rv != SECSuccess) {
       PrintError(encrypt ? "Error encrypting" : "Error decrypting",
-                 PR_GetError(), __LINE__);
+                 MPR_GetError(), __LINE__);
       return false;
     };
     output.write(reinterpret_cast<const char*>(out), outLen);
@@ -363,7 +363,7 @@ bool EncTool::Run(const std::vector<std::string>& arguments) {
   }
 
   if (NSS_NoDB_Init(nullptr) != SECSuccess) {
-    PrintError("NSS initialization failed", PR_GetError(), __LINE__);
+    PrintError("NSS initialization failed", MPR_GetError(), __LINE__);
     return false;
   }
 

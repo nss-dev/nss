@@ -174,8 +174,8 @@ testWithNoLeaf(
 
     while (pollDesc != NULL) {
 
-        if (PR_Poll(pollDesc, 1, 0) < 0) {
-            testError("PR_Poll failed");
+        if (MPR_Poll(pollDesc, 1, 0) < 0) {
+            testError("MPR_Poll failed");
         }
 
         pkixTestErrorResult = PKIX_BuildChain(procParams,
@@ -339,8 +339,8 @@ testWithDuplicateLeaf(
 
     while (pollDesc != NULL) {
 
-        if (PR_Poll(pollDesc, 1, 0) < 0) {
-            testError("PR_Poll failed");
+        if (MPR_Poll(pollDesc, 1, 0) < 0) {
+            testError("MPR_Poll failed");
         }
 
         pkixTestErrorResult = PKIX_BuildChain(procParams,
@@ -506,8 +506,8 @@ testWithLeafAndChain(
 
     while (pollDesc != NULL) {
 
-        if (PR_Poll(pollDesc, 1, 0) < 0) {
-            testError("PR_Poll failed");
+        if (MPR_Poll(pollDesc, 1, 0) < 0) {
+            testError("MPR_Poll failed");
         }
 
         pkixTestErrorResult = PKIX_BuildChain(procParams,

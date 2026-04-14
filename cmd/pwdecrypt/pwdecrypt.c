@@ -25,7 +25,7 @@ synopsis(char *program_name)
     PRFileDesc *pr_stderr;
 
     pr_stderr = PR_STDERR;
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "Usage:\t%s [-i <input-file>] [-o <output-file>] [-d <dir>]\n"
                "      \t[-l logfile] [-p pwd] [-f pwfile]\n",
                program_name);
@@ -34,7 +34,7 @@ synopsis(char *program_name)
 static void
 short_usage(char *program_name)
 {
-    PR_fprintf(PR_STDERR,
+    MPR_fprintf(PR_STDERR,
                "Type %s -H for more detailed descriptions\n",
                program_name);
     synopsis(program_name);
@@ -47,8 +47,8 @@ long_usage(char *program_name)
 
     pr_stderr = PR_STDERR;
     synopsis(program_name);
-    PR_fprintf(pr_stderr, "\nDecode encrypted passwords (and other data).\n");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr, "\nDecode encrypted passwords (and other data).\n");
+    MPR_fprintf(pr_stderr,
                "This program reads in standard configuration files looking\n"
                "for base 64 encoded data. Data that looks like it's base 64 encode\n"
                "is decoded an passed to the NSS SDR code. If the decode and decrypt\n"
@@ -56,23 +56,23 @@ long_usage(char *program_name)
                "original base 64 data. If the decode or decrypt fails, the original\n"
                "data is written and the reason for failure is logged to the \n"
                "optional logfile.\n");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Read stream including encrypted data from "
                "\"read_file\"\n",
                "-i read_file");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Write results to \"write_file\"\n",
                "-o write_file");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Find security databases in \"dbdir\"\n",
                "-d dbdir");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Log failed decrypt/decode attempts to \"log_file\"\n",
                "-l log_file");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Token password\n",
                "-p pwd");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Password file\n",
                "-f pwfile");
 }
@@ -205,16 +205,16 @@ main(int argc, char **argv)
     PLOptStatus optstatus;
     secuPWData pwdata = { PW_NONE, NULL };
 
-    program_name = PL_strrchr(argv[0], '/');
+    program_name = MPL_strrchr(argv[0], '/');
     program_name = program_name ? (program_name + 1) : argv[0];
 
-    optstate = PL_CreateOptState(argc, argv, "Hd:f:i:o:l:p:?");
+    optstate = MPL_CreateOptState(argc, argv, "Hd:f:i:o:l:p:?");
     if (optstate == NULL) {
-        SECU_PrintError(program_name, "PL_CreateOptState failed");
+        SECU_PrintError(program_name, "MPL_CreateOptState failed");
         return 1;
     }
 
-    while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    while ((optstatus = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
                 short_usage(program_name);
@@ -229,29 +229,29 @@ main(int argc, char **argv)
                 break;
 
             case 'i':
-                input_file = PL_strdup(optstate->value);
+                input_file = MPL_strdup(optstate->value);
                 break;
 
             case 'o':
-                output_file = PL_strdup(optstate->value);
+                output_file = MPL_strdup(optstate->value);
                 break;
 
             case 'l':
-                log_file = PL_strdup(optstate->value);
+                log_file = MPL_strdup(optstate->value);
                 break;
 
             case 'f':
                 pwdata.source = PW_FROMFILE;
-                pwdata.data = PL_strdup(optstate->value);
+                pwdata.data = MPL_strdup(optstate->value);
                 break;
 
             case 'p':
                 pwdata.source = PW_PLAINTEXT;
-                pwdata.data = PL_strdup(optstate->value);
+                pwdata.data = MPL_strdup(optstate->value);
                 break;
         }
     }
-    PL_DestroyOptState(optstate);
+    MPL_DestroyOptState(optstate);
     if (optstatus == PL_OPT_BAD) {
         short_usage(program_name);
         return 1;
@@ -263,7 +263,7 @@ main(int argc, char **argv)
             perror(input_file);
             return 1;
         }
-        PR_Free(input_file);
+        MPR_Free(input_file);
     }
     if (output_file) {
         outFile = fopen(output_file, "w+");
@@ -271,7 +271,7 @@ main(int argc, char **argv)
             perror(output_file);
             return 1;
         }
-        PR_Free(output_file);
+        MPR_Free(output_file);
     }
     if (log_file) {
         if (log_file[0] == '-')
@@ -282,7 +282,7 @@ main(int argc, char **argv)
             perror(log_file);
             return 1;
         }
-        PR_Free(log_file);
+        MPR_Free(log_file);
     }
 
     /*
@@ -311,7 +311,7 @@ main(int argc, char **argv)
         }
     }
     if (pwdata.data)
-        PR_Free(pwdata.data);
+        MPR_Free(pwdata.data);
 
     fclose(outFile);
     fclose(inFile);
@@ -325,6 +325,6 @@ main(int argc, char **argv)
     }
 
 prdone:
-    PR_Cleanup();
+    MPR_Cleanup();
     return retval;
 }

@@ -444,10 +444,10 @@ extern PRStatus nssArena_Shutdown(void);
  * nssArenaHashAllocOps
  *
  * This constant structure contains allocation callbacks designed for
- * use with the NSPL routine PL_NewHashTable.  For example:
+ * use with the NSPL routine MPL_NewHashTable.  For example:
  *
  *  NSSArena *hashTableArena = nssArena_Create();
- *  PLHashTable *t = PL_NewHashTable(n, hasher, key_compare,
+ *  PLHashTable *t = MPL_NewHashTable(n, hasher, key_compare,
  *    value_compare, nssArenaHashAllocOps, hashTableArena);
  */
 

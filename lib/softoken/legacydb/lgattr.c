@@ -569,7 +569,7 @@ lg_FindECPublicKeyAttribute(NSSLOWKEYPublicKey *key, CK_ATTRIBUTE_TYPE type,
                                           key->u.ec.ecParams.DEREncoding.data,
                                           key->u.ec.ecParams.DEREncoding.len);
         case CKA_EC_POINT:
-            if (PR_GetEnvSecure("NSS_USE_DECODED_CKA_EC_POINT")) {
+            if (MPR_GetEnvSecure("NSS_USE_DECODED_CKA_EC_POINT")) {
                 return lg_CopyAttributeSigned(attribute, type,
                                               key->u.ec.publicValue.data,
                                               key->u.ec.publicValue.len);
@@ -766,7 +766,7 @@ lg_FindSecretKeyAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type,
                 (((keyString[0] & 0x80) == 0x80) ||
                  !((keyString[1] == 0) && (keyString[2] == 0) && (keyString[3] == 0)))) {
                 PORT_Memcpy(&keyTypeStorage, keyString, sizeof(keyTypeStorage));
-                keyType = (CK_KEY_TYPE)PR_ntohl(keyTypeStorage);
+                keyType = (CK_KEY_TYPE)MPR_ntohl(keyTypeStorage);
             } else {
                 /*
                  * Now Handle:

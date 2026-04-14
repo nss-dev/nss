@@ -2198,7 +2198,7 @@ getECParams(const char *curve)
         numCurves = sizeof(nameTagPair) / sizeof(CurveNameTagPair);
         for (i = 0; ((i < numCurves) && (curveOidTag == SEC_OID_UNKNOWN));
              i++) {
-            if (PL_strcmp(curve, nameTagPair[i].curveName) == 0)
+            if (MPL_strcmp(curve, nameTagPair[i].curveName) == 0)
                 curveOidTag = nameTagPair[i].curveOidTag;
         }
     }

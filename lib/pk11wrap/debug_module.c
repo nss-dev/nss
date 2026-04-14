@@ -193,9 +193,9 @@ get_attr_type_str(CK_ATTRIBUTE_TYPE atype, char *str, int len)
             break;
     }
     if (a)
-        PR_snprintf(str, len, "%s", a);
+        MPR_snprintf(str, len, "%s", a);
     else
-        PR_snprintf(str, len, "0x%p", atype);
+        MPR_snprintf(str, len, "0x%p", atype);
 }
 
 static void
@@ -222,9 +222,9 @@ get_obj_class(CK_OBJECT_CLASS objClass, char *str, int len)
             break;
     }
     if (a)
-        PR_snprintf(str, len, "%s", a);
+        MPR_snprintf(str, len, "%s", a);
     else
-        PR_snprintf(str, len, "0x%p", objClass);
+        MPR_snprintf(str, len, "0x%p", objClass);
 }
 
 static void
@@ -243,9 +243,9 @@ get_profile_val(CK_PROFILE_ID profile, char *str, int len)
             break;
     }
     if (a)
-        PR_snprintf(str, len, "%s", a);
+        MPR_snprintf(str, len, "%s", a);
     else
-        PR_snprintf(str, len, "0x%p", profile);
+        MPR_snprintf(str, len, "0x%p", profile);
 }
 
 static void
@@ -269,9 +269,9 @@ get_trust_val(CK_TRUST trust, char *str, int len)
             break;
     }
     if (a)
-        PR_snprintf(str, len, "%s", a);
+        MPR_snprintf(str, len, "%s", a);
     else
-        PR_snprintf(str, len, "0x%p", trust);
+        MPR_snprintf(str, len, "0x%p", trust);
 }
 
 static void
@@ -411,8 +411,8 @@ log_handle(PRLogModuleLevel level, const char *format, CK_ULONG handle)
     if (handle)
         PR_LOG(modlog, level, (format, handle));
     else {
-        PL_strncpyz(fmtBuf, format, sizeof fmtBuf);
-        PL_strcatn(fmtBuf, sizeof fmtBuf, fmt_invalid_handle);
+        MPL_strncpyz(fmtBuf, format, sizeof fmtBuf);
+        MPL_strcatn(fmtBuf, sizeof fmtBuf, fmt_invalid_handle);
         PR_LOG(modlog, level, (fmtBuf, handle));
     }
 }
@@ -694,9 +694,9 @@ get_key_type(CK_KEY_TYPE keyType, char *str, int len)
             break;
     }
     if (a)
-        PR_snprintf(str, len, "%s", a);
+        MPR_snprintf(str, len, "%s", a);
     else
-        PR_snprintf(str, len, "0x%p", keyType);
+        MPR_snprintf(str, len, "0x%p", keyType);
 }
 
 static void
@@ -782,7 +782,7 @@ print_attr_value(CK_ATTRIBUTE_PTR attr)
         case CKA_NSS_URL:
             if (attr->ulValueLen > 0 && attr->pValue) {
                 len = PR_MIN(attr->ulValueLen + 1, sizeof valstr);
-                PR_snprintf(valstr, len, "%s", attr->pValue);
+                MPR_snprintf(valstr, len, "%s", attr->pValue);
                 PR_LOG(modlog, 4, (fmt_s_qsq_d, atype, valstr, attr->ulValueLen));
                 break;
             }
@@ -823,7 +823,7 @@ print_attr_value(CK_ATTRIBUTE_PTR attr)
                 }
                 if (!len) { /* entire string is printable */
                     len = PR_MIN(attr->ulValueLen + 1, sizeof valstr);
-                    PR_snprintf(valstr, len, "%s", attr->pValue);
+                    MPR_snprintf(valstr, len, "%s", attr->pValue);
                     PR_LOG(modlog, 4, (fmt_s_qsq_d, atype, valstr, attr->ulValueLen));
                     break;
                 }
@@ -1065,7 +1065,7 @@ static void
 nssdbg_finish_time(PRInt32 fun_number, PRIntervalTime start)
 {
     PRIntervalTime ival;
-    PRIntervalTime end = PR_IntervalNow();
+    PRIntervalTime end = MPR_IntervalNow();
 
     ival = end - start;
     /* sigh, lie to PRAtomic add and say we are using signed values */
@@ -1076,7 +1076,7 @@ static void
 nssdbg_start_time(PRInt32 fun_number, PRIntervalTime *start)
 {
     PR_ATOMIC_INCREMENT((PRInt32 *)&nssdbg_prof_data[fun_number].calls);
-    *start = PR_IntervalNow();
+    *start = MPR_IntervalNow();
 }
 
 #define COMMON_DEFINITIONS \
@@ -3269,7 +3269,7 @@ nss_InsertDeviceLog(
 {
     module_functions = devEPV;
     debug_functions.version = devEPV->version;
-    modlog = PR_NewLogModule("nss_mod_log");
+    modlog = MPR_NewLogModule("nss_mod_log");
     debug_functions.C_Initialize = NSSDBGC_Initialize;
     debug_functions.C_Finalize = NSSDBGC_Finalize;
     debug_functions.C_GetInfo = NSSDBGC_GetInfo;
@@ -3391,7 +3391,7 @@ getPrintTime(PRIntervalTime time, char **type)
         return 0;
     }
 
-    prTime = PR_IntervalToSeconds(time);
+    prTime = MPR_IntervalToSeconds(time);
 
     if (prTime >= 600) {
         *type = "m";
@@ -3401,13 +3401,13 @@ getPrintTime(PRIntervalTime time, char **type)
         *type = "s";
         return prTime;
     }
-    prTime = PR_IntervalToMilliseconds(time);
+    prTime = MPR_IntervalToMilliseconds(time);
     if (prTime >= 10) {
         *type = "ms";
         return prTime;
     }
     *type = "us";
-    return PR_IntervalToMicroseconds(time);
+    return MPR_IntervalToMicroseconds(time);
 }
 
 static void
@@ -3421,7 +3421,7 @@ print_final_statistics(void)
     FILE *outfile = NULL;
     int i;
 
-    fname = PR_GetEnvSecure("NSS_OUTPUT_FILE");
+    fname = MPR_GetEnvSecure("NSS_OUTPUT_FILE");
     if (fname) {
         /* need to add an optional process id to the filename */
         outfile = fopen(fname, "w+");
@@ -3439,7 +3439,7 @@ print_final_statistics(void)
     }
     for (i = 0; i < nssdbg_prof_size; i++) {
         PRIntervalTime time = nssdbg_prof_data[i].time;
-        PRUint32 usTime = PR_IntervalToMicroseconds(time);
+        PRUint32 usTime = MPR_IntervalToMicroseconds(time);
         PRUint32 prTime = 0;
         PRUint32 calls = nssdbg_prof_data[i].calls;
         /* don't print out functions that weren't even called */

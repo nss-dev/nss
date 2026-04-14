@@ -110,31 +110,31 @@ TimingGenerateString(TimingContext *ctx)
     char *buf = NULL;
 
     if (ctx->days != 0) {
-        buf = PR_sprintf_append(buf, "%d days", ctx->days);
+        buf = MPR_sprintf_append(buf, "%d days", ctx->days);
     }
     if (ctx->hours != 0) {
         if (buf != NULL)
-            buf = PR_sprintf_append(buf, ", ");
-        buf = PR_sprintf_append(buf, "%d hours", ctx->hours);
+            buf = MPR_sprintf_append(buf, ", ");
+        buf = MPR_sprintf_append(buf, "%d hours", ctx->hours);
     }
     if (ctx->minutes != 0) {
         if (buf != NULL)
-            buf = PR_sprintf_append(buf, ", ");
-        buf = PR_sprintf_append(buf, "%d minutes", ctx->minutes);
+            buf = MPR_sprintf_append(buf, ", ");
+        buf = MPR_sprintf_append(buf, "%d minutes", ctx->minutes);
     }
     if (buf != NULL)
-        buf = PR_sprintf_append(buf, ", and ");
+        buf = MPR_sprintf_append(buf, ", and ");
     if (!buf && ctx->seconds == 0) {
         int interval;
         LL_L2I(interval, ctx->interval);
         if (ctx->millisecs < 100)
-            buf = PR_sprintf_append(buf, "%d microseconds", interval);
+            buf = MPR_sprintf_append(buf, "%d microseconds", interval);
         else
-            buf = PR_sprintf_append(buf, "%d milliseconds", ctx->millisecs);
+            buf = MPR_sprintf_append(buf, "%d milliseconds", ctx->millisecs);
     } else if (ctx->millisecs == 0) {
-        buf = PR_sprintf_append(buf, "%d seconds", ctx->seconds);
+        buf = MPR_sprintf_append(buf, "%d seconds", ctx->seconds);
     } else {
-        buf = PR_sprintf_append(buf, "%d.%03d seconds",
+        buf = MPR_sprintf_append(buf, "%d.%03d seconds",
                                 ctx->seconds, ctx->millisecs);
     }
     return buf;
@@ -280,10 +280,10 @@ ThreadExecFunction(void *data)
             tdata->iterRes++;
         }
     } else {
-        PRIntervalTime total = PR_SecondsToInterval(tdata->seconds);
-        PRIntervalTime start = PR_IntervalNow();
+        PRIntervalTime total = MPR_SecondsToInterval(tdata->seconds);
+        PRIntervalTime start = MPR_IntervalNow();
         tdata->iterRes = 0;
-        while (PR_IntervalNow() - start < total) {
+        while (MPR_IntervalNow() - start < total) {
             SECStatus rv = tdata->fn((void *)tdata->rsaKey, buf2,
                                      (unsigned char *)tdata->buf);
             if (rv != SECSuccess) {
@@ -349,8 +349,8 @@ main(int argc, char **argv)
         progName = strrchr(argv[0], '\\');
     progName = progName ? progName + 1 : argv[0];
 
-    optstate = PL_CreateOptState(argc, argv, "d:ef:gh:i:k:n:p:st:w:x:");
-    while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = MPL_CreateOptState(argc, argv, "d:ef:gh:i:k:n:p:st:w:x:");
+    while ((optstatus = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
                 Usage(progName);
@@ -426,7 +426,7 @@ main(int argc, char **argv)
         doIters = PR_TRUE;
     }
 
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
     PK11_SetPasswordFunc(SECU_GetModulePassword);
     secDir = SECU_ConfigDirectory(secDir);
@@ -631,7 +631,7 @@ main(int argc, char **argv)
     threadsArr = (PRThread **)PORT_Alloc(threadNum * sizeof(PRThread *));
     runDataArr = (ThreadRunData **)PORT_Alloc(threadNum * sizeof(ThreadRunData *));
     timeCtx = CreateTimingContext();
-    TimingBegin(timeCtx, PR_Now());
+    TimingBegin(timeCtx, MPR_Now());
     for (i = 0; i < threadNum; i++) {
         runDataArr[i] = (ThreadRunData *)PORT_Alloc(sizeof(ThreadRunData));
         runDataArr[i]->fn = fn;
@@ -641,7 +641,7 @@ main(int argc, char **argv)
         runDataArr[i]->seconds = seconds;
         runDataArr[i]->iters = iters;
         threadsArr[i] =
-            PR_CreateThread(PR_USER_THREAD,
+            MPR_CreateThread(PR_USER_THREAD,
                             ThreadExecFunction,
                             (void *)runDataArr[i],
                             PR_PRIORITY_NORMAL,
@@ -651,7 +651,7 @@ main(int argc, char **argv)
     }
     iters = 0;
     for (i = 0; i < threadNum; i++) {
-        PR_JoinThread(threadsArr[i]);
+        MPR_JoinThread(threadsArr[i]);
         if (runDataArr[i]->status != SECSuccess) {
             const char *errStr = SECU_Strerror(runDataArr[i]->errNum);
             fprintf(stderr, "Thread %d: Error in RSA operation: %d : %s\n",
@@ -664,7 +664,7 @@ main(int argc, char **argv)
     PORT_Free(runDataArr);
     PORT_Free(threadsArr);
 
-    TimingEnd(timeCtx, PR_Now());
+    TimingEnd(timeCtx, MPR_Now());
 
     printf("%ld iterations in %s\n",
            iters, TimingGenerateString(timeCtx));

@@ -495,7 +495,7 @@ signed_data(struct signOptionsStr *signOptions)
         fprintf(stderr, "imported certificate\n");
     }
     if (signOptions->signingTime) {
-        if (NSS_CMSSignerInfo_AddSigningTime(signerinfo, PR_Now()) !=
+        if (NSS_CMSSignerInfo_AddSigningTime(signerinfo, MPR_Now()) !=
             SECSuccess) {
             fprintf(stderr, "ERROR: cannot add signingTime attribute.\n");
             goto loser;
@@ -563,7 +563,7 @@ signed_data(struct signOptionsStr *signOptions)
                 goto loser;
             }
         }
-    } else if (PL_strcmp(signOptions->encryptionKeyPreferenceNick, "NONE") == 0) {
+    } else if (MPL_strcmp(signOptions->encryptionKeyPreferenceNick, "NONE") == 0) {
         /* No action */
     } else {
         /* get the cert, add it to the message */
@@ -766,7 +766,7 @@ get_enc_params(struct encryptOptionsStr *encryptOptions)
         envelopeOptions.recipients = encryptOptions->recipients;
         env_cmsg = enveloped_data(&envelopeOptions);
         NSS_CMSDEREncode(env_cmsg, &dummyIn, &dummyOut, tmparena);
-        PR_Write(encryptOptions->envFile, dummyOut.data, dummyOut.len);
+        MPR_Write(encryptOptions->envFile, dummyOut.data, dummyOut.len);
         PORT_FreeArena(tmparena, PR_FALSE);
     }
     /*
@@ -977,7 +977,7 @@ pl_fgets(char *buf, int size, PRFileDesc *fd)
     ;
 
     while (size > 1) {
-        nb = PR_Read(fd, bp, 1);
+        nb = MPR_Read(fd, bp, 1);
         if (nb < 0) {
             /* deal with error */
             return NULL;
@@ -1030,7 +1030,7 @@ doBatchDecode(FILE *outFile, PRFileDesc *batchFile,
         if (str[0] == '#')
             continue; /* skip comment line */
         fprintf(outFile, "========== %s ==========\n", str);
-        inFile = PR_Open(str, PR_RDONLY, 00660);
+        inFile = MPR_Open(str, PR_RDONLY, 00660);
         if (inFile == NULL) {
             fprintf(outFile, "%s: unable to open \"%s\" for reading\n",
                     progName, str);
@@ -1038,7 +1038,7 @@ doBatchDecode(FILE *outFile, PRFileDesc *batchFile,
             continue;
         }
         rv = SECU_FileToItem(&input, inFile);
-        PR_Close(inFile);
+        MPR_Close(inFile);
         if (rv != SECSuccess) {
             SECU_PrintError(progName, "unable to read infile");
             exitStatus = 1;
@@ -1129,9 +1129,9 @@ main(int argc, char **argv)
     PRBool batch = PR_FALSE;
 
 #ifdef NISCC_TEST
-    const char *ev = PR_GetEnvSecure("NSS_DISABLE_ARENA_FREE_LIST");
+    const char *ev = MPR_GetEnvSecure("NSS_DISABLE_ARENA_FREE_LIST");
     PORT_Assert(ev);
-    ev = PR_GetEnvSecure("NSS_STRICT_SHUTDOWN");
+    ev = MPR_GetEnvSecure("NSS_STRICT_SHUTDOWN");
     PORT_Assert(ev);
 #endif
 
@@ -1171,9 +1171,9 @@ main(int argc, char **argv)
     /*
      * Parse command line arguments
      */
-    optstate = PL_CreateOptState(argc, argv,
+    optstate = MPL_CreateOptState(argc, argv,
                                  "CDEGH:N:OPSTY:bc:d:e:f:h:i:kno:p:r:s:u:v");
-    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case 'C':
                 mode = ENCRYPT;
@@ -1291,7 +1291,7 @@ main(int argc, char **argv)
                     Usage();
                     exit(1);
                 }
-                contentFile = PR_Open(optstate->value, PR_RDONLY, 006600);
+                contentFile = MPR_Open(optstate->value, PR_RDONLY, 006600);
                 if (contentFile == NULL) {
                     fprintf(stderr, "%s: unable to open \"%s\" for reading.\n",
                             progName, optstate->value);
@@ -1299,7 +1299,7 @@ main(int argc, char **argv)
                 }
 
                 rv = SECU_FileToItem(&decodeOptions.content, contentFile);
-                PR_Close(contentFile);
+                MPR_Close(contentFile);
                 if (rv != SECSuccess) {
                     SECU_PrintError(progName, "problem reading content file");
                     exit(1);
@@ -1316,7 +1316,7 @@ main(int argc, char **argv)
                 break;
             case 'e':
                 envFileName = PORT_Strdup(optstate->value);
-                encryptOptions.envFile = PR_Open(envFileName, PR_RDONLY, 00660);
+                encryptOptions.envFile = MPR_Open(envFileName, PR_RDONLY, 00660);
                 break;
 
             case 'h':
@@ -1338,7 +1338,7 @@ main(int argc, char **argv)
                     fprintf(stderr, "-i option requires filename argument\n");
                     exit(1);
                 }
-                inFile = PR_Open(optstate->value, PR_RDONLY, 00660);
+                inFile = MPR_Open(optstate->value, PR_RDONLY, 00660);
                 if (inFile == NULL) {
                     fprintf(stderr, "%s: unable to open \"%s\" for reading\n",
                             progName, optstate->value);
@@ -1432,7 +1432,7 @@ main(int argc, char **argv)
     }
     if (status == PL_OPT_BAD)
         Usage();
-    PL_DestroyOptState(optstate);
+    MPL_DestroyOptState(optstate);
 
     if (mode == UNKNOWN)
         Usage();
@@ -1449,7 +1449,7 @@ main(int argc, char **argv)
     }
 
     /* Call the NSS initialization routines */
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     rv = NSS_InitReadWrite(SECU_ConfigDirectory(NULL));
     if (SECSuccess != rv) {
         SECU_PrintError(progName, "NSS_Init failed");
@@ -1545,7 +1545,7 @@ main(int argc, char **argv)
              * a new one if neccessary)
              */
             if (!encryptOptions.envFile) {
-                encryptOptions.envFile = PR_Open(envFileName,
+                encryptOptions.envFile = MPR_Open(envFileName,
                                                  PR_WRONLY | PR_CREATE_FILE, 00660);
                 if (!encryptOptions.envFile) {
                     fprintf(stderr, "%s: failed to create file %s.\n", progName,
@@ -1674,13 +1674,13 @@ loser:
         fclose(outFile);
 
     if (inFile != PR_STDIN) {
-        PR_Close(inFile);
+        MPR_Close(inFile);
     }
     if (envFileName) {
         PORT_Free(envFileName);
     }
     if (encryptOptions.envFile) {
-        PR_Close(encryptOptions.envFile);
+        MPR_Close(encryptOptions.envFile);
     }
 
     SECITEM_FreeItem(&decodeOptions.content, PR_FALSE);
@@ -1690,6 +1690,6 @@ loser:
         SECU_PrintError(progName, "NSS_Shutdown failed");
         exitstatus = 1;
     }
-    PR_Cleanup();
+    MPR_Cleanup();
     return exitstatus;
 }

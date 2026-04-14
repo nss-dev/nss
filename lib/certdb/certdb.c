@@ -1327,7 +1327,7 @@ cert_IsIPAddr(const char *hn)
 {
     PRBool isIPaddr = PR_FALSE;
     PRNetAddr netAddr;
-    isIPaddr = (PR_SUCCESS == PR_StringToNetAddr(hn, &netAddr));
+    isIPaddr = (PR_SUCCESS == MPR_StringToNetAddr(hn, &netAddr));
     return isIPaddr;
 }
 
@@ -1375,7 +1375,7 @@ cert_TestHostName(char *cn, const char *hn)
     static int useShellExp = -1;
 
     if (useShellExp < 0) {
-        useShellExp = (NULL != PR_GetEnvSecure("NSS_USE_SHEXP_IN_CERT_NAME"));
+        useShellExp = (NULL != MPR_GetEnvSecure("NSS_USE_SHEXP_IN_CERT_NAME"));
     }
     if (useShellExp) {
         /* Backward compatible code, uses Shell Expressions (SHEXP). */
@@ -1455,7 +1455,7 @@ cert_VerifySubjectAltName(const CERTCertificate *cert, const char *hn)
     if (rv != SECSuccess) {
         goto fail;
     }
-    isIPaddr = (PR_SUCCESS == PR_StringToNetAddr(hn, &netAddr));
+    isIPaddr = (PR_SUCCESS == MPR_StringToNetAddr(hn, &netAddr));
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if (!arena)
         goto fail;
@@ -1510,7 +1510,7 @@ cert_VerifySubjectAltName(const CERTCertificate *cert, const char *hn)
                                netAddr.inet.family == PR_AF_INET) {
                         /* convert netAddr to ipv6, then compare. */
                         /* ipv4 must be in Network Byte Order on input. */
-                        PR_ConvertIPv4AddrToIPv6(netAddr.inet.ip, &v6Addr);
+                        MPR_ConvertIPv4AddrToIPv6(netAddr.inet.ip, &v6Addr);
                         match = !memcmp(&v6Addr, current->name.other.data, 16);
                     } else if (current->name.other.len == 4 && /* IP v4 address */
                                netAddr.inet.family == PR_AF_INET6) {
@@ -1520,7 +1520,7 @@ cert_VerifySubjectAltName(const CERTCertificate *cert, const char *hn)
                                         (current->name.other.data[2] << 8) |
                                         current->name.other.data[3];
                         /* ipv4 must be in Network Byte Order on input. */
-                        PR_ConvertIPv4AddrToIPv6(PR_htonl(ipv4), &v6Addr);
+                        MPR_ConvertIPv4AddrToIPv6(MPR_htonl(ipv4), &v6Addr);
                         match = !memcmp(&netAddr.ipv6.ip, &v6Addr, 16);
                     }
                     if (match) {
@@ -1676,7 +1676,7 @@ cert_GetDNSPatternsFromGeneralNames(CERTGeneralName *firstName,
                     memcpy(&addr.ipv6.ip, currentInput->name.other.data,
                            currentInput->name.other.len);
                 }
-                if (PR_NetAddrToString(&addr, ipbuf, sizeof(ipbuf)) ==
+                if (MPR_NetAddrToString(&addr, ipbuf, sizeof(ipbuf)) ==
                     PR_FAILURE)
                     return SECFailure;
                 cn = PORT_ArenaStrdup(nickNames->arena, ipbuf);
@@ -2001,15 +2001,15 @@ CERT_MakeCANickname(CERTCertificate *cert)
 
         if (firstname) {
             if (count == 1) {
-                nickname = PR_smprintf("%s - %s", firstname, org);
+                nickname = MPR_smprintf("%s - %s", firstname, org);
             } else {
-                nickname = PR_smprintf("%s - %s #%d", firstname, org, count);
+                nickname = MPR_smprintf("%s - %s #%d", firstname, org, count);
             }
         } else {
             if (count == 1) {
-                nickname = PR_smprintf("%s", org);
+                nickname = MPR_smprintf("%s", org);
             } else {
-                nickname = PR_smprintf("%s #%d", org, count);
+                nickname = MPR_smprintf("%s #%d", org, count);
             }
         }
         if (nickname == NULL) {
@@ -2251,7 +2251,7 @@ CERT_IsNewer(CERTCertificate *certa, CERTCertificate *certb)
     }
 
     /* get current time */
-    now = PR_Now();
+    now = MPR_Now();
 
     if (newerbefore) {
         /* cert A was issued after cert B, but expires sooner */
@@ -2432,7 +2432,7 @@ CERT_EncodeTrustString(CERTCertTrust *trust)
         EncodeFlags(tmpTrustEmail, trust->emailFlags);
         EncodeFlags(tmpTrustSigning, trust->objectSigningFlags);
 
-        retstr = PR_smprintf("%s,%s,%s", tmpTrustSSL, tmpTrustEmail,
+        retstr = MPR_smprintf("%s,%s,%s", tmpTrustSSL, tmpTrustEmail,
                              tmpTrustSigning);
     }
 
@@ -2964,7 +2964,7 @@ void
 CERT_LockCertRefCount(CERTCertificate *cert)
 {
     PORT_Assert(certRefCountLock != NULL);
-    PR_Lock(certRefCountLock);
+    MPR_Lock(certRefCountLock);
     return;
 }
 
@@ -2975,7 +2975,7 @@ void
 CERT_UnlockCertRefCount(CERTCertificate *cert)
 {
     PORT_Assert(certRefCountLock != NULL);
-    PRStatus prstat = PR_Unlock(certRefCountLock);
+    PRStatus prstat = MPR_Unlock(certRefCountLock);
     PORT_AssertArg(prstat == PR_SUCCESS);
 }
 
@@ -2991,7 +2991,7 @@ void
 CERT_LockCertTrust(const CERTCertificate *cert)
 {
     PORT_Assert(certTrustLock != NULL);
-    PR_Lock(certTrustLock);
+    MPR_Lock(certTrustLock);
 }
 
 static PRLock *certTempPermCertLock = NULL;
@@ -3003,7 +3003,7 @@ void
 CERT_LockCertTempPerm(const CERTCertificate *cert)
 {
     PORT_Assert(certTempPermCertLock != NULL);
-    PR_Lock(certTempPermCertLock);
+    MPR_Lock(certTempPermCertLock);
 }
 
 /* Maybe[Lock, Unlock] variants are only to be used by
@@ -3013,7 +3013,7 @@ void
 CERT_MaybeLockCertTempPerm(const CERTCertificate *cert)
 {
     if (certTempPermCertLock) {
-        PR_Lock(certTempPermCertLock);
+        MPR_Lock(certTempPermCertLock);
     }
 }
 
@@ -3021,7 +3021,7 @@ SECStatus
 cert_InitLocks(void)
 {
     if (certRefCountLock == NULL) {
-        certRefCountLock = PR_NewLock();
+        certRefCountLock = MPR_NewLock();
         PORT_Assert(certRefCountLock != NULL);
         if (!certRefCountLock) {
             return SECFailure;
@@ -3029,21 +3029,21 @@ cert_InitLocks(void)
     }
 
     if (certTrustLock == NULL) {
-        certTrustLock = PR_NewLock();
+        certTrustLock = MPR_NewLock();
         PORT_Assert(certTrustLock != NULL);
         if (!certTrustLock) {
-            PR_DestroyLock(certRefCountLock);
+            MPR_DestroyLock(certRefCountLock);
             certRefCountLock = NULL;
             return SECFailure;
         }
     }
 
     if (certTempPermCertLock == NULL) {
-        certTempPermCertLock = PR_NewLock();
+        certTempPermCertLock = MPR_NewLock();
         PORT_Assert(certTempPermCertLock != NULL);
         if (!certTempPermCertLock) {
-            PR_DestroyLock(certTrustLock);
-            PR_DestroyLock(certRefCountLock);
+            MPR_DestroyLock(certTrustLock);
+            MPR_DestroyLock(certRefCountLock);
             certRefCountLock = NULL;
             certTrustLock = NULL;
             return SECFailure;
@@ -3060,7 +3060,7 @@ cert_DestroyLocks(void)
 
     PORT_Assert(certRefCountLock != NULL);
     if (certRefCountLock) {
-        PR_DestroyLock(certRefCountLock);
+        MPR_DestroyLock(certRefCountLock);
         certRefCountLock = NULL;
     } else {
         rv = SECFailure;
@@ -3068,7 +3068,7 @@ cert_DestroyLocks(void)
 
     PORT_Assert(certTrustLock != NULL);
     if (certTrustLock) {
-        PR_DestroyLock(certTrustLock);
+        MPR_DestroyLock(certTrustLock);
         certTrustLock = NULL;
     } else {
         rv = SECFailure;
@@ -3076,7 +3076,7 @@ cert_DestroyLocks(void)
 
     PORT_Assert(certTempPermCertLock != NULL);
     if (certTempPermCertLock) {
-        PR_DestroyLock(certTempPermCertLock);
+        MPR_DestroyLock(certTempPermCertLock);
         certTempPermCertLock = NULL;
     } else {
         rv = SECFailure;
@@ -3091,7 +3091,7 @@ void
 CERT_UnlockCertTrust(const CERTCertificate *cert)
 {
     PORT_Assert(certTrustLock != NULL);
-    PRStatus prstat = PR_Unlock(certTrustLock);
+    PRStatus prstat = MPR_Unlock(certTrustLock);
     PORT_AssertArg(prstat == PR_SUCCESS);
 }
 
@@ -3102,7 +3102,7 @@ void
 CERT_UnlockCertTempPerm(const CERTCertificate *cert)
 {
     PORT_Assert(certTempPermCertLock != NULL);
-    PRStatus prstat = PR_Unlock(certTempPermCertLock);
+    PRStatus prstat = MPR_Unlock(certTempPermCertLock);
     PORT_AssertArg(prstat == PR_SUCCESS);
 }
 
@@ -3110,7 +3110,7 @@ void
 CERT_MaybeUnlockCertTempPerm(const CERTCertificate *cert)
 {
     if (certTempPermCertLock) {
-        PR_Unlock(certTempPermCertLock);
+        MPR_Unlock(certTempPermCertLock);
     }
 }
 
@@ -3182,15 +3182,15 @@ cert_CreateSubjectKeyIDSlotCheckHash(void)
      * when we last checked for user certs
      */
     gSubjKeyIDSlotCheckHash =
-        PL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
+        MPL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
                         SECITEM_HashCompare, &cert_AllocOps, NULL);
     if (!gSubjKeyIDSlotCheckHash) {
         PORT_SetError(SEC_ERROR_NO_MEMORY);
         return SECFailure;
     }
-    gSubjKeyIDSlotCheckLock = PR_NewLock();
+    gSubjKeyIDSlotCheckLock = MPR_NewLock();
     if (!gSubjKeyIDSlotCheckLock) {
-        PL_HashTableDestroy(gSubjKeyIDSlotCheckHash);
+        MPL_HashTableDestroy(gSubjKeyIDSlotCheckHash);
         gSubjKeyIDSlotCheckHash = NULL;
         PORT_SetError(SEC_ERROR_NO_MEMORY);
         return SECFailure;
@@ -3201,15 +3201,15 @@ cert_CreateSubjectKeyIDSlotCheckHash(void)
 SECStatus
 cert_CreateSubjectKeyIDHashTable(void)
 {
-    gSubjKeyIDHash = PL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
+    gSubjKeyIDHash = MPL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
                                      SECITEM_HashCompare, &cert_AllocOps, NULL);
     if (!gSubjKeyIDHash) {
         PORT_SetError(SEC_ERROR_NO_MEMORY);
         return SECFailure;
     }
-    gSubjKeyIDLock = PR_NewLock();
+    gSubjKeyIDLock = MPR_NewLock();
     if (!gSubjKeyIDLock) {
-        PL_HashTableDestroy(gSubjKeyIDHash);
+        MPL_HashTableDestroy(gSubjKeyIDHash);
         gSubjKeyIDHash = NULL;
         PORT_SetError(SEC_ERROR_NO_MEMORY);
         return SECFailure;
@@ -3245,20 +3245,20 @@ cert_AddSubjectKeyIDMapping(SECItem *subjKeyID, CERTCertificate *cert)
         goto done;
     }
 
-    PR_Lock(gSubjKeyIDLock);
+    MPR_Lock(gSubjKeyIDLock);
     /* The hash table implementation does not free up the memory
      * associated with the key of an already existing entry if we add a
      * duplicate, so we would wind up leaking the previously allocated
      * key if we don't remove before adding.
      */
-    oldVal = (SECItem *)PL_HashTableLookup(gSubjKeyIDHash, subjKeyID);
+    oldVal = (SECItem *)MPL_HashTableLookup(gSubjKeyIDHash, subjKeyID);
     if (oldVal) {
-        PL_HashTableRemove(gSubjKeyIDHash, subjKeyID);
+        MPL_HashTableRemove(gSubjKeyIDHash, subjKeyID);
     }
 
-    rv = (PL_HashTableAdd(gSubjKeyIDHash, newKeyID, newVal)) ? SECSuccess
+    rv = (MPL_HashTableAdd(gSubjKeyIDHash, newKeyID, newVal)) ? SECSuccess
                                                              : SECFailure;
-    PR_Unlock(gSubjKeyIDLock);
+    MPR_Unlock(gSubjKeyIDLock);
 done:
     return rv;
 }
@@ -3270,10 +3270,10 @@ cert_RemoveSubjectKeyIDMapping(SECItem *subjKeyID)
     if (!gSubjKeyIDLock)
         return SECFailure;
 
-    PR_Lock(gSubjKeyIDLock);
-    rv = (PL_HashTableRemove(gSubjKeyIDHash, subjKeyID)) ? SECSuccess
+    MPR_Lock(gSubjKeyIDLock);
+    rv = (MPL_HashTableRemove(gSubjKeyIDHash, subjKeyID)) ? SECSuccess
                                                          : SECFailure;
-    PR_Unlock(gSubjKeyIDLock);
+    MPR_Unlock(gSubjKeyIDLock);
     return rv;
 }
 
@@ -3295,19 +3295,19 @@ cert_UpdateSubjectKeyIDSlotCheck(SECItem *slotid, int series)
     }
     PORT_Memcpy(newSeries->data, &series, sizeof(int));
 
-    PR_Lock(gSubjKeyIDSlotCheckLock);
-    oldSeries = (SECItem *)PL_HashTableLookup(gSubjKeyIDSlotCheckHash, slotid);
+    MPR_Lock(gSubjKeyIDSlotCheckLock);
+    oldSeries = (SECItem *)MPL_HashTableLookup(gSubjKeyIDSlotCheckHash, slotid);
     if (oldSeries) {
         /*
          * make sure we don't leak the key of an existing entry
          * (similar to cert_AddSubjectKeyIDMapping, see comment there)
          */
-        PL_HashTableRemove(gSubjKeyIDSlotCheckHash, slotid);
+        MPL_HashTableRemove(gSubjKeyIDSlotCheckHash, slotid);
     }
-    rv = (PL_HashTableAdd(gSubjKeyIDSlotCheckHash, newSlotid, newSeries))
+    rv = (MPL_HashTableAdd(gSubjKeyIDSlotCheckHash, newSlotid, newSeries))
              ? SECSuccess
              : SECFailure;
-    PR_Unlock(gSubjKeyIDSlotCheckLock);
+    MPR_Unlock(gSubjKeyIDSlotCheckLock);
     if (rv == SECSuccess) {
         return rv;
     }
@@ -3333,9 +3333,9 @@ cert_SubjectKeyIDSlotCheckSeries(SECItem *slotid)
         return -1;
     }
 
-    PR_Lock(gSubjKeyIDSlotCheckLock);
-    seriesItem = (SECItem *)PL_HashTableLookup(gSubjKeyIDSlotCheckHash, slotid);
-    PR_Unlock(gSubjKeyIDSlotCheckLock);
+    MPR_Lock(gSubjKeyIDSlotCheckLock);
+    seriesItem = (SECItem *)MPL_HashTableLookup(gSubjKeyIDSlotCheckHash, slotid);
+    MPR_Unlock(gSubjKeyIDSlotCheckLock);
     /* getting a null series just means we haven't registered one yet,
      * just return 0 */
     if (seriesItem == NULL) {
@@ -3355,11 +3355,11 @@ SECStatus
 cert_DestroySubjectKeyIDSlotCheckHash(void)
 {
     if (gSubjKeyIDSlotCheckHash) {
-        PR_Lock(gSubjKeyIDSlotCheckLock);
-        PL_HashTableDestroy(gSubjKeyIDSlotCheckHash);
+        MPR_Lock(gSubjKeyIDSlotCheckLock);
+        MPL_HashTableDestroy(gSubjKeyIDSlotCheckHash);
         gSubjKeyIDSlotCheckHash = NULL;
-        PR_Unlock(gSubjKeyIDSlotCheckLock);
-        PR_DestroyLock(gSubjKeyIDSlotCheckLock);
+        MPR_Unlock(gSubjKeyIDSlotCheckLock);
+        MPR_DestroyLock(gSubjKeyIDSlotCheckLock);
         gSubjKeyIDSlotCheckLock = NULL;
     }
     return SECSuccess;
@@ -3369,11 +3369,11 @@ SECStatus
 cert_DestroySubjectKeyIDHashTable(void)
 {
     if (gSubjKeyIDHash) {
-        PR_Lock(gSubjKeyIDLock);
-        PL_HashTableDestroy(gSubjKeyIDHash);
+        MPR_Lock(gSubjKeyIDLock);
+        MPL_HashTableDestroy(gSubjKeyIDHash);
         gSubjKeyIDHash = NULL;
-        PR_Unlock(gSubjKeyIDLock);
-        PR_DestroyLock(gSubjKeyIDLock);
+        MPR_Unlock(gSubjKeyIDLock);
+        MPR_DestroyLock(gSubjKeyIDLock);
         gSubjKeyIDLock = NULL;
     }
     cert_DestroySubjectKeyIDSlotCheckHash();
@@ -3388,12 +3388,12 @@ cert_FindDERCertBySubjectKeyID(SECItem *subjKeyID)
     if (!gSubjKeyIDLock)
         return NULL;
 
-    PR_Lock(gSubjKeyIDLock);
-    val = (SECItem *)PL_HashTableLookup(gSubjKeyIDHash, subjKeyID);
+    MPR_Lock(gSubjKeyIDLock);
+    val = (SECItem *)MPL_HashTableLookup(gSubjKeyIDHash, subjKeyID);
     if (val) {
         val = SECITEM_DupItem(val);
     }
-    PR_Unlock(gSubjKeyIDLock);
+    MPR_Unlock(gSubjKeyIDLock);
     return val;
 }
 

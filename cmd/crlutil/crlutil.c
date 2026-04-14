@@ -341,7 +341,7 @@ FindSigningCert(CERTCertDBHandle *certHandle, CERTSignedCrl *signCrl,
         subject = &certTemp->derSubject;
     }
 
-    cert = SECU_FindCrlIssuer(certHandle, subject, authorityKeyID, PR_Now());
+    cert = SECU_FindCrlIssuer(certHandle, subject, authorityKeyID, MPR_Now());
     if (!cert) {
         SECU_PrintError(progName, "could not find signing certificate "
                                   "in database");
@@ -407,7 +407,7 @@ CreateModifiedCRLCopy(PLArenaPool *arena, CERTCertDBHandle *certHandle,
             }
 
             rv = CERT_VerifySignedData(&modCrl->signatureWrap, *cert,
-                                       PR_Now(), pwdata);
+                                       MPR_Now(), pwdata);
             if (rv != SECSuccess) {
                 SECU_PrintError(progName, "fail to verify signed data\n");
                 goto loser;
@@ -437,7 +437,7 @@ CreateModifiedCRLCopy(PLArenaPool *arena, CERTCertDBHandle *certHandle,
 
     /* Make sure the update time is current. It can be modified later
      * by "update <time>" command from crl generation script */
-    rv = DER_EncodeTimeChoice(arena, &signCrl->crl.lastUpdate, PR_Now());
+    rv = DER_EncodeTimeChoice(arena, &signCrl->crl.lastUpdate, MPR_Now());
     if (rv != SECSuccess) {
         SECU_PrintError(progName, "fail to encode current time\n");
         goto loser;
@@ -513,7 +513,7 @@ CreateNewCrl(PLArenaPool *arena, CERTCertDBHandle *certHandle,
         goto loser;
     }
 
-    rv = DER_EncodeTimeChoice(arena, &signCrl->crl.lastUpdate, PR_Now());
+    rv = DER_EncodeTimeChoice(arena, &signCrl->crl.lastUpdate, MPR_Now());
     if (rv != SECSuccess) {
         SECU_PrintError(progName, "fail to encode current time\n");
         goto loser;
@@ -596,7 +596,7 @@ SignAndStoreCrl(CERTSignedCrl *signCrl, CERTCertificate *cert,
         return SECFailure;
     }
 
-    if (!slotName || !PL_strcmp(slotName, "internal"))
+    if (!slotName || !MPL_strcmp(slotName, "internal"))
         slot = PK11_GetInternalKeySlot();
     else
         slot = PK11_FindSlotByName(slotName);
@@ -641,7 +641,7 @@ SignAndStoreCrl(CERTSignedCrl *signCrl, CERTCertificate *cert,
     }
 
     if (outFileName) {
-        outFile = PR_Open(outFileName, PR_WRONLY | PR_CREATE_FILE, PR_IRUSR | PR_IWUSR);
+        outFile = MPR_Open(outFileName, PR_WRONLY | PR_CREATE_FILE, PR_IRUSR | PR_IWUSR);
         if (!outFile) {
             SECU_PrintError(progName, "unable to open \"%s\" for writing\n",
                             outFileName);
@@ -656,7 +656,7 @@ SignAndStoreCrl(CERTSignedCrl *signCrl, CERTCertificate *cert,
 
 loser:
     if (outFile)
-        PR_Close(outFile);
+        MPR_Close(outFile);
     if (slot)
         PK11_FreeSlot(slot);
     return rv;
@@ -716,7 +716,7 @@ GenerateCRL(CERTCertDBHandle *certHandle, char *certNickName,
             if (!outFileName) {
                 int len = strlen(certNickName) + 5;
                 outFileName = PORT_ArenaAlloc(arena, len);
-                PR_snprintf(outFileName, len, "%s.crl", certNickName);
+                MPR_snprintf(outFileName, len, "%s.crl", certNickName);
             }
             SECU_PrintError(progName, "Will try to generate crl. "
                                       "It will be saved in file: %s",
@@ -889,8 +889,8 @@ main(int argc, char **argv)
     /*
      * Parse command line arguments
      */
-    optstate = PL_CreateOptState(argc, argv, "sqBCDGILMSTEP:f:d:i:h:n:p:t:u:r:aZ:o:c:");
-    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = MPL_CreateOptState(argc, argv, "sqBCDGILMSTEP:f:d:i:h:n:p:t:u:r:aZ:o:c:");
+    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
                 Usage();
@@ -947,9 +947,9 @@ main(int argc, char **argv)
                 break;
 
             case 'c':
-                inCrlInitFile = PR_Open(optstate->value, PR_RDONLY, 0);
+                inCrlInitFile = MPR_Open(optstate->value, PR_RDONLY, 0);
                 if (!inCrlInitFile) {
-                    PR_fprintf(PR_STDERR, "%s: unable to open \"%s\" for reading\n",
+                    MPR_fprintf(PR_STDERR, "%s: unable to open \"%s\" for reading\n",
                                progName, optstate->value);
                     rv = SECFailure;
                     goto loser;
@@ -970,9 +970,9 @@ main(int argc, char **argv)
                 break;
 
             case 'i':
-                inFile = PR_Open(optstate->value, PR_RDONLY, 0);
+                inFile = MPR_Open(optstate->value, PR_RDONLY, 0);
                 if (!inFile) {
-                    PR_fprintf(PR_STDERR, "%s: unable to open \"%s\" for reading\n",
+                    MPR_fprintf(PR_STDERR, "%s: unable to open \"%s\" for reading\n",
                                progName, optstate->value);
                     rv = SECFailure;
                     goto loser;
@@ -1000,7 +1000,7 @@ main(int argc, char **argv)
             case 't': {
                 crlType = atoi(optstate->value);
                 if (crlType != SEC_CRL_TYPE && crlType != SEC_KRL_TYPE) {
-                    PR_fprintf(PR_STDERR, "%s: invalid crl type\n", progName);
+                    MPR_fprintf(PR_STDERR, "%s: invalid crl type\n", progName);
                     rv = SECFailure;
                     goto loser;
                 }
@@ -1039,7 +1039,7 @@ main(int argc, char **argv)
         readonly = PR_TRUE;
     }
 
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
     PK11_SetPasswordFunc(SECU_GetModulePassword);
 
@@ -1110,10 +1110,10 @@ main(int argc, char **argv)
     CRLGEN_DestroyCrlGenParserLock();
 
 loser:
-    PL_DestroyOptState(optstate);
+    MPL_DestroyOptState(optstate);
 
     if (inFile) {
-        PR_Close(inFile);
+        MPR_Close(inFile);
     }
     if (alg) {
         PORT_Free(alg);

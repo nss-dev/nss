@@ -15,7 +15,7 @@
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
   static NSSDatabase db = NSSDatabase();
-  static PRDescIdentity id = PR_GetUniqueIdentity("fuzz-ech");
+  static PRDescIdentity id = MPR_GetUniqueIdentity("fuzz-ech");
 
   static TlsSocket::DummyPrSocket socket = TlsSocket::DummyPrSocket(nullptr, 0);
   static ScopedPRFileDesc prFd(DummyIOLayerMethods::CreateFD(id, &socket));

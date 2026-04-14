@@ -41,11 +41,11 @@ PRBool strictOAEP = PR_FALSE;
 #define CHECKERROR(rv, erv, ln)                                              \
     if (rv != erv) {                                                         \
         if (rv == SECFailure) {                                              \
-            PRErrorCode prerror = PR_GetError();                             \
-            PR_fprintf(PR_STDERR, "%s: ERR %d (%s) at line %d.\n", progName, \
+            PRErrorCode prerror = MPR_GetError();                             \
+            MPR_fprintf(PR_STDERR, "%s: ERR %d (%s) at line %d.\n", progName, \
                        prerror, PORT_ErrorToString(prerror), ln);            \
         } else {                                                             \
-            PR_fprintf(PR_STDERR, "%s: expected failure and got success"     \
+            MPR_fprintf(PR_STDERR, "%s: expected failure and got success"     \
                                   " at line %d.\n",                          \
                        progName, ln);                                        \
         }                                                                    \
@@ -55,15 +55,15 @@ PRBool strictOAEP = PR_FALSE;
 
 /* Macros for performance timing. */
 #define TIMESTART() \
-    time1 = PR_IntervalNow();
+    time1 = MPR_IntervalNow();
 
 #define TIMEFINISH(time, reps)                          \
-    time2 = (PRIntervalTime)(PR_IntervalNow() - time1); \
-    time1 = PR_IntervalToMilliseconds(time2);           \
+    time2 = (PRIntervalTime)(MPR_IntervalNow() - time1); \
+    time1 = MPR_IntervalToMilliseconds(time2);           \
     time = ((double)(time1)) / reps;
 
 #define TIMEMARK(seconds)                      \
-    time1 = PR_SecondsToInterval(seconds);     \
+    time1 = MPR_SecondsToInterval(seconds);     \
     {                                          \
         PRInt64 tmp;                           \
         if (time2 == 0) {                      \
@@ -81,10 +81,10 @@ PRBool strictOAEP = PR_FALSE;
         }                                      \
     }                                          \
     time2 = time1;                             \
-    time1 = PR_IntervalNow();
+    time1 = MPR_IntervalNow();
 
 #define TIMETOFINISH() \
-    PR_IntervalNow() - time1 >= time2
+    MPR_IntervalNow() - time1 >= time2
 
 static void
 Usage()
@@ -239,7 +239,7 @@ static PRInt32
 output_ascii(void *arg, const char *obuf, PRInt32 size)
 {
     PRFileDesc *outfile = arg;
-    PRInt32 nb = PR_Write(outfile, obuf, size);
+    PRInt32 nb = MPR_Write(outfile, obuf, size);
     if (nb != size) {
         PORT_SetError(SEC_ERROR_IO);
         return -1;
@@ -257,7 +257,7 @@ btoa_file(SECItem *binary, PRFileDesc *outfile)
     cx = NSSBase64Encoder_Create(output_ascii, outfile);
     status = NSSBase64Encoder_Update(cx, binary->data, binary->len);
     status = NSSBase64Encoder_Destroy(cx, PR_FALSE);
-    status = PR_Write(outfile, "\r\n", 2);
+    status = MPR_Write(outfile, "\r\n", 2);
     return status;
 }
 
@@ -316,7 +316,7 @@ serialize_key(SECItem *it, int ni, PRFileDesc *file)
         NSSBase64Encoder_Update(cx, it->data, it->len);
     }
     NSSBase64Encoder_Destroy(cx, PR_FALSE);
-    PR_Write(file, "\r\n", 2);
+    MPR_Write(file, "\r\n", 2);
 }
 
 void
@@ -498,7 +498,7 @@ getECParams(const char *curve)
         numCurves = sizeof(nameTagPair) / sizeof(CurveNameTagPair);
         for (i = 0; ((i < numCurves) && (curveOidTag == SEC_OID_UNKNOWN));
              i++) {
-            if (PL_strcmp(curve, nameTagPair[i].curveName) == 0)
+            if (MPL_strcmp(curve, nameTagPair[i].curveName) == 0)
                 curveOidTag = nameTagPair[i].curveOidTag;
         }
     }
@@ -959,7 +959,7 @@ setupIO(PLArenaPool *arena, bltestIO *input, PRFileDesc *file,
     } else if (str) {
         /* grabbing data from command line */
         fileData.data = (unsigned char *)str;
-        fileData.len = PL_strlen(str);
+        fileData.len = MPL_strlen(str);
         in = &fileData;
     } else if (file) {
         /* create nonce */
@@ -1039,7 +1039,7 @@ finishIO(bltestIO *output, PRFileDesc *file)
             rv = btoa_file(it, file);
             break;
         case bltestBinary:
-            nb = PR_Write(file, it->data, it->len);
+            nb = MPR_Write(file, it->data, it->len);
             rv = (nb == (PRInt32)it->len) ? SECSuccess : SECFailure;
             break;
         case bltestHexSpaceDelim:
@@ -1049,11 +1049,11 @@ finishIO(bltestIO *output, PRFileDesc *file)
             for (i = 0; i < it->len; i++) {
                 byteval = it->data[i];
                 rv = char2_from_hex(byteval, hexstr + 2);
-                nb = PR_Write(file, hexstr, 5);
+                nb = MPR_Write(file, hexstr, 5);
                 if (rv)
                     break;
             }
-            PR_Write(file, "\n", 1);
+            MPR_Write(file, "\n", 1);
             break;
         case bltestHexStream:
             for (i = 0; i < it->len; i++) {
@@ -1061,9 +1061,9 @@ finishIO(bltestIO *output, PRFileDesc *file)
                 rv = char2_from_hex(byteval, hexstr);
                 if (rv)
                     break;
-                nb = PR_Write(file, hexstr, 2);
+                nb = MPR_Write(file, hexstr, 2);
             }
-            PR_Write(file, "\n", 1);
+            MPR_Write(file, "\n", 1);
             break;
     }
     return rv;
@@ -1712,7 +1712,7 @@ bltest_chacha20_ctr_init(bltestCipherInfo *cipherInfo, PRBool encrypt)
                                             counter);
 
     if (cipherInfo->cx == NULL) {
-        PR_fprintf(PR_STDERR, "ChaCha20_CreateContext() returned NULL\n"
+        MPR_fprintf(PR_STDERR, "ChaCha20_CreateContext() returned NULL\n"
                               "key must be 32 bytes, iv must be 12 bytes\n");
         return SECFailure;
     }
@@ -1982,13 +1982,13 @@ md2_restart(unsigned char *dest, const unsigned char *src, PRUint32 src_length)
         MD2_Flatten(cx, cxbytes);
         cx_cpy = MD2_Resurrect(cxbytes, NULL);
         if (!cx_cpy) {
-            PR_fprintf(PR_STDERR, "%s: MD2_Resurrect failed!\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: MD2_Resurrect failed!\n", progName);
             goto finish;
         }
         rv = PORT_Memcmp(cx, cx_cpy, len);
         if (rv) {
             MD2_DestroyContext(cx_cpy, PR_TRUE);
-            PR_fprintf(PR_STDERR, "%s: MD2_restart failed!\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: MD2_restart failed!\n", progName);
             goto finish;
         }
         MD2_DestroyContext(cx_cpy, PR_TRUE);
@@ -2020,14 +2020,14 @@ md5_restart(unsigned char *dest, const unsigned char *src, PRUint32 src_length)
         MD5_Flatten(cx, cxbytes);
         cx_cpy = MD5_Resurrect(cxbytes, NULL);
         if (!cx_cpy) {
-            PR_fprintf(PR_STDERR, "%s: MD5_Resurrect failed!\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: MD5_Resurrect failed!\n", progName);
             rv = SECFailure;
             goto finish;
         }
         rv = PORT_Memcmp(cx, cx_cpy, len);
         if (rv) {
             MD5_DestroyContext(cx_cpy, PR_TRUE);
-            PR_fprintf(PR_STDERR, "%s: MD5_restart failed!\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: MD5_restart failed!\n", progName);
             goto finish;
         }
         MD5_DestroyContext(cx_cpy, PR_TRUE);
@@ -2059,14 +2059,14 @@ sha1_restart(unsigned char *dest, const unsigned char *src, PRUint32 src_length)
         SHA1_Flatten(cx, cxbytes);
         cx_cpy = SHA1_Resurrect(cxbytes, NULL);
         if (!cx_cpy) {
-            PR_fprintf(PR_STDERR, "%s: SHA1_Resurrect failed!\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: SHA1_Resurrect failed!\n", progName);
             rv = SECFailure;
             goto finish;
         }
         rv = PORT_Memcmp(cx, cx_cpy, len);
         if (rv) {
             SHA1_DestroyContext(cx_cpy, PR_TRUE);
-            PR_fprintf(PR_STDERR, "%s: SHA1_restart failed!\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: SHA1_restart failed!\n", progName);
             goto finish;
         }
         SHA1_DestroyContext(cx_cpy, PR_TRUE);
@@ -2098,14 +2098,14 @@ SHA224_restart(unsigned char *dest, const unsigned char *src, PRUint32 src_lengt
         SHA224_Flatten(cx, cxbytes);
         cx_cpy = SHA224_Resurrect(cxbytes, NULL);
         if (!cx_cpy) {
-            PR_fprintf(PR_STDERR, "%s: SHA224_Resurrect failed!\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: SHA224_Resurrect failed!\n", progName);
             rv = SECFailure;
             goto finish;
         }
         rv = PORT_Memcmp(cx, cx_cpy, len);
         if (rv) {
             SHA224_DestroyContext(cx_cpy, PR_TRUE);
-            PR_fprintf(PR_STDERR, "%s: SHA224_restart failed!\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: SHA224_restart failed!\n", progName);
             goto finish;
         }
 
@@ -2138,14 +2138,14 @@ SHA256_restart(unsigned char *dest, const unsigned char *src, PRUint32 src_lengt
         SHA256_Flatten(cx, cxbytes);
         cx_cpy = SHA256_Resurrect(cxbytes, NULL);
         if (!cx_cpy) {
-            PR_fprintf(PR_STDERR, "%s: SHA256_Resurrect failed!\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: SHA256_Resurrect failed!\n", progName);
             rv = SECFailure;
             goto finish;
         }
         rv = PORT_Memcmp(cx, cx_cpy, len);
         if (rv) {
             SHA256_DestroyContext(cx_cpy, PR_TRUE);
-            PR_fprintf(PR_STDERR, "%s: SHA256_restart failed!\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: SHA256_restart failed!\n", progName);
             goto finish;
         }
         SHA256_DestroyContext(cx_cpy, PR_TRUE);
@@ -2177,14 +2177,14 @@ SHA384_restart(unsigned char *dest, const unsigned char *src, PRUint32 src_lengt
         SHA384_Flatten(cx, cxbytes);
         cx_cpy = SHA384_Resurrect(cxbytes, NULL);
         if (!cx_cpy) {
-            PR_fprintf(PR_STDERR, "%s: SHA384_Resurrect failed!\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: SHA384_Resurrect failed!\n", progName);
             rv = SECFailure;
             goto finish;
         }
         rv = PORT_Memcmp(cx, cx_cpy, len);
         if (rv) {
             SHA384_DestroyContext(cx_cpy, PR_TRUE);
-            PR_fprintf(PR_STDERR, "%s: SHA384_restart failed!\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: SHA384_restart failed!\n", progName);
             goto finish;
         }
         SHA384_DestroyContext(cx_cpy, PR_TRUE);
@@ -2216,14 +2216,14 @@ SHA512_restart(unsigned char *dest, const unsigned char *src, PRUint32 src_lengt
         SHA512_Flatten(cx, cxbytes);
         cx_cpy = SHA512_Resurrect(cxbytes, NULL);
         if (!cx_cpy) {
-            PR_fprintf(PR_STDERR, "%s: SHA512_Resurrect failed!\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: SHA512_Resurrect failed!\n", progName);
             rv = SECFailure;
             goto finish;
         }
         rv = PORT_Memcmp(cx, cx_cpy, len);
         if (rv) {
             SHA512_DestroyContext(cx_cpy, PR_TRUE);
-            PR_fprintf(PR_STDERR, "%s: SHA512_restart failed!\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: SHA512_restart failed!\n", progName);
             goto finish;
         }
         SHA512_DestroyContext(cx_cpy, PR_TRUE);
@@ -2814,9 +2814,9 @@ getHighUnitBytes(PRInt64 res)
     }
 
     if (i == 0)
-        return PR_smprintf("%d%s", spl[i], marks[i]);
+        return MPR_smprintf("%d%s", spl[i], marks[i]);
     else
-        return PR_smprintf("%d%s %d%s", spl[i], marks[i], spl[i - 1], marks[i - 1]);
+        return MPR_smprintf("%d%s %d%s", spl[i], marks[i], spl[i - 1], marks[i - 1]);
 }
 
 static void
@@ -2825,7 +2825,7 @@ printPR_smpString(const char *sformat, char *reportStr,
 {
     if (reportStr) {
         fprintf(stdout, sformat, reportStr);
-        PR_smprintf_free(reportStr);
+        MPR_smprintf_free(reportStr);
     } else {
         fprintf(stdout, nformat, rNum);
     }
@@ -2847,7 +2847,7 @@ getHighUnitOps(PRInt64 res)
         }
     }
 
-    return PR_smprintf("%d%s", spl[i], marks[i]);
+    return MPR_smprintf("%d%s", spl[i], marks[i]);
 }
 
 void
@@ -3005,7 +3005,7 @@ get_mode(const char *modestring)
     bltestCipherMode mode;
     int nummodes = sizeof(mode_strings) / sizeof(char *);
     for (mode = 0; mode < nummodes; mode++)
-        if (PL_strcmp(modestring, mode_strings[mode]) == 0)
+        if (MPL_strcmp(modestring, mode_strings[mode]) == 0)
             return mode;
     fprintf(stderr, "%s: invalid mode: %s\n", progName, modestring);
     return bltestINVALID;
@@ -3020,10 +3020,10 @@ load_file_data(PLArenaPool *arena, bltestIO *data,
     data->file = NULL; /* don't use -- not saving anything */
     data->pBuf.data = NULL;
     data->pBuf.len = 0;
-    file = PR_Open(fn, PR_RDONLY, 00660);
+    file = MPR_Open(fn, PR_RDONLY, 00660);
     if (file) {
         setupIO(arena, data, file, NULL, 0);
-        PR_Close(file);
+        MPR_Close(file);
     }
 }
 
@@ -3130,17 +3130,17 @@ get_params(PLArenaPool *arena, bltestParams *params,
             param = malloc(100);
             len = fread(param, 1, 100, file);
             while (index < len) {
-                mark = PL_strchr(param, '=');
+                mark = MPL_strchr(param, '=');
                 *mark = '\0';
                 val = mark + 1;
-                mark = PL_strchr(val, '\n');
+                mark = MPL_strchr(val, '\n');
                 *mark = '\0';
-                if (PL_strcmp(param, "rounds") == 0) {
+                if (MPL_strcmp(param, "rounds") == 0) {
                     params->rc5.rounds = atoi(val);
-                } else if (PL_strcmp(param, "wordsize") == 0) {
+                } else if (MPL_strcmp(param, "wordsize") == 0) {
                     params->rc5.wordsize = atoi(val);
                 }
-                index += PL_strlen(param) + PL_strlen(val) + 2;
+                index += MPL_strlen(param) + MPL_strlen(val) + 2;
                 param = mark + 1;
             }
             break;
@@ -3270,14 +3270,14 @@ ReadFileToItem(PLArenaPool *arena, SECItem *dst, const char *filename)
     PRFileDesc *file;
     SECStatus rv;
 
-    file = PR_Open(filename, PR_RDONLY, 00660);
+    file = MPR_Open(filename, PR_RDONLY, 00660);
     if (!file) {
         return SECFailure;
     }
     rv = SECU_FileToItem(&tmp, file);
     rv |= SECITEM_CopyItem(arena, dst, &tmp);
     SECITEM_FreeItem(&tmp, PR_FALSE);
-    PR_Close(file);
+    MPR_Close(file);
     return rv;
 }
 
@@ -3344,7 +3344,7 @@ blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
                      "result", encrypt ? "-encrypt" : "-decrypt", strictOAEP ? "-strict" : "", j);
 
             cipherInfo.expect = SECSuccess;
-            if (PR_Access(filename, PR_ACCESS_EXISTS) == PR_SUCCESS) {
+            if (MPR_Access(filename, PR_ACCESS_EXISTS) == PR_SUCCESS) {
                 cipherInfo.expect = SECFailure;
             }
 
@@ -4133,7 +4133,7 @@ main(int argc, char **argv)
                 if (bltest.options[opt_CmdLine].activated) {
                     keystr = bltest.options[opt_Key].arg;
                 } else {
-                    file = PR_Open(bltest.options[opt_Key].arg,
+                    file = MPR_Open(bltest.options[opt_Key].arg,
                                    PR_RDONLY, 00660);
                 }
             } else {
@@ -4142,25 +4142,25 @@ main(int argc, char **argv)
                 else
                     keysize = 8; /* use 64-bit default (DES) */
                 /* save the random key for reference */
-                file = PR_Open("tmp.key", PR_WRONLY | PR_CREATE_FILE, 00660);
+                file = MPR_Open("tmp.key", PR_WRONLY | PR_CREATE_FILE, 00660);
             }
             params->key.mode = ioMode;
             setupIO(cipherInfo->arena, &params->key, file, keystr, keysize);
             if (file)
-                PR_Close(file);
+                MPR_Close(file);
         } else if (is_pubkeyCipher(cipherInfo->mode)) {
             if (bltest.options[opt_Key].activated) {
-                file = PR_Open(bltest.options[opt_Key].arg, PR_RDONLY, 00660);
+                file = MPR_Open(bltest.options[opt_Key].arg, PR_RDONLY, 00660);
             } else {
                 if (bltest.options[opt_KeySize].activated)
                     keysize = PORT_Atoi(bltest.options[opt_KeySize].arg);
                 else
                     keysize = 64; /* use 512-bit default */
-                file = PR_Open("tmp.key", PR_WRONLY | PR_CREATE_FILE, 00660);
+                file = MPR_Open("tmp.key", PR_WRONLY | PR_CREATE_FILE, 00660);
             }
             params->key.mode = bltestBase64Encoded;
             pubkeyInitKey(cipherInfo, file, keysize, exponent, curveName);
-            PR_Close(file);
+            MPR_Close(file);
         }
 
         /* set up an initialization vector. */
@@ -4178,18 +4178,18 @@ main(int argc, char **argv)
                 if (bltest.options[opt_CmdLine].activated) {
                     ivstr = bltest.options[opt_IV].arg;
                 } else {
-                    file = PR_Open(bltest.options[opt_IV].arg,
+                    file = MPR_Open(bltest.options[opt_IV].arg,
                                    PR_RDONLY, 00660);
                 }
             } else {
                 /* save the random iv for reference */
-                file = PR_Open("tmp.iv", PR_WRONLY | PR_CREATE_FILE, 00660);
+                file = MPR_Open("tmp.iv", PR_WRONLY | PR_CREATE_FILE, 00660);
             }
             memset(&skp->iv, 0, sizeof skp->iv);
             skp->iv.mode = ioMode;
             setupIO(cipherInfo->arena, &skp->iv, file, ivstr, keysize);
             if (file) {
-                PR_Close(file);
+                MPR_Close(file);
             }
         }
 
@@ -4203,7 +4203,7 @@ main(int argc, char **argv)
                 if (bltest.options[opt_CmdLine].activated) {
                     aadstr = bltest.options[opt_AAD].arg;
                 } else {
-                    file = PR_Open(bltest.options[opt_AAD].arg,
+                    file = MPR_Open(bltest.options[opt_AAD].arg,
                                    PR_RDONLY, 00660);
                 }
             } else {
@@ -4213,7 +4213,7 @@ main(int argc, char **argv)
             askp->aad.mode = ioMode;
             setupIO(cipherInfo->arena, &askp->aad, file, aadstr, 0);
             if (file) {
-                PR_Close(file);
+                MPR_Close(file);
             }
         }
         /* set up rsaoaep and pss values */
@@ -4236,10 +4236,10 @@ main(int argc, char **argv)
                 }
             } else {
                 /* save the random iv for reference */
-                file = PR_Open("tmp.hash", PR_WRONLY | PR_CREATE_FILE, 00660);
-                PR_Write(file, "sha256\n", sizeof("sha256\n") - 1);
+                file = MPR_Open("tmp.hash", PR_WRONLY | PR_CREATE_FILE, 00660);
+                MPR_Write(file, "sha256\n", sizeof("sha256\n") - 1);
                 rsakp->hashAlg = HASH_AlgSHA256;
-                PR_Close(file);
+                MPR_Close(file);
             }
             /* mask  */
             if (bltest.options[opt_RSAHash].activated) {
@@ -4254,11 +4254,11 @@ main(int argc, char **argv)
                 }
             } else {
                 /* save the random iv for reference */
-                file = PR_Open("tmp.maskhash", PR_WRONLY | PR_CREATE_FILE,
+                file = MPR_Open("tmp.maskhash", PR_WRONLY | PR_CREATE_FILE,
                                00660);
-                PR_Write(file, "sha256\n", sizeof("sha256\n") - 1);
+                MPR_Write(file, "sha256\n", sizeof("sha256\n") - 1);
                 rsakp->maskHashAlg = HASH_AlgSHA256;
-                PR_Close(file);
+                MPR_Close(file);
             }
             /* seed salt */
             file = NULL;
@@ -4266,42 +4266,42 @@ main(int argc, char **argv)
                 if (bltest.options[opt_CmdLine].activated) {
                     seedstr = bltest.options[opt_Seed].arg;
                 } else {
-                    file = PR_Open(bltest.options[opt_Seed].arg,
+                    file = MPR_Open(bltest.options[opt_Seed].arg,
                                    PR_RDONLY, 00660);
                 }
             } else {
                 /* save the random seed for reference */
-                file = PR_Open("tmp.seed", PR_WRONLY | PR_CREATE_FILE, 00660);
+                file = MPR_Open("tmp.seed", PR_WRONLY | PR_CREATE_FILE, 00660);
             }
             memset(&rsakp->seed, 0, sizeof rsakp->seed);
             rsakp->seed.mode = ioMode;
             setupIO(cipherInfo->arena, &rsakp->seed, file, seedstr,
                     HashLen(rsakp->hashAlg));
             if (file) {
-                PR_Close(file);
+                MPR_Close(file);
             }
             file = NULL;
         }
 
         if (bltest.commands[cmd_Verify].activated) {
-            file = PR_Open(bltest.options[opt_SigFile].arg, PR_RDONLY, 00660);
+            file = MPR_Open(bltest.options[opt_SigFile].arg, PR_RDONLY, 00660);
             if (is_sigCipher(cipherInfo->mode)) {
                 memset(&params->asymk.sig, 0, sizeof(bltestIO));
                 params->asymk.sig.mode = ioMode;
                 setupIO(cipherInfo->arena, &params->asymk.sig, file, NULL, 0);
             }
             if (file) {
-                PR_Close(file);
+                MPR_Close(file);
             }
         }
 
         if (bltest.options[opt_PQGFile].activated) {
-            file = PR_Open(bltest.options[opt_PQGFile].arg, PR_RDONLY, 00660);
+            file = MPR_Open(bltest.options[opt_PQGFile].arg, PR_RDONLY, 00660);
             params->asymk.cipherParams.dsa.pqgdata.mode = bltestBase64Encoded;
             setupIO(cipherInfo->arena, &params->asymk.cipherParams.dsa.pqgdata,
                     file, NULL, 0);
             if (file) {
-                PR_Close(file);
+                MPR_Close(file);
             }
         }
 
@@ -4315,7 +4315,7 @@ main(int argc, char **argv)
                 char *filename = bltest.options[opt_Input].arg;
                 if (bltest.options[opt_SelfTestDir].activated &&
                     testdir && filename && filename[0] != '/') {
-                    filename = PR_smprintf("%s/tests/%s/%s", testdir,
+                    filename = MPR_smprintf("%s/tests/%s/%s", testdir,
                                            mode_strings[cipherInfo->mode],
                                            filename);
                     if (!filename) {
@@ -4323,21 +4323,21 @@ main(int argc, char **argv)
                                 progName);
                         goto exit_point;
                     }
-                    infile = PR_Open(filename, PR_RDONLY, 00660);
-                    PR_smprintf_free(filename);
+                    infile = MPR_Open(filename, PR_RDONLY, 00660);
+                    MPR_smprintf_free(filename);
                 } else {
-                    infile = PR_Open(filename, PR_RDONLY, 00660);
+                    infile = MPR_Open(filename, PR_RDONLY, 00660);
                 }
             }
         } else if (bltest.options[opt_BufSize].activated) {
             /* save the random plaintext for reference */
-            char *tmpFName = PR_smprintf("tmp.in.%d", curThrdNum);
+            char *tmpFName = MPR_smprintf("tmp.in.%d", curThrdNum);
             if (!tmpFName) {
                 fprintf(stderr, "%s: Can not allocate memory.\n", progName);
                 goto exit_point;
             }
-            infile = PR_Open(tmpFName, PR_WRONLY | PR_CREATE_FILE, 00660);
-            PR_smprintf_free(tmpFName);
+            infile = MPR_Open(tmpFName, PR_WRONLY | PR_CREATE_FILE, 00660);
+            MPR_smprintf_free(tmpFName);
         } else {
             infile = PR_STDIN;
         }
@@ -4353,17 +4353,17 @@ main(int argc, char **argv)
             char *filename = bltest.options[opt_Output].arg;
             if (bltest.options[opt_SelfTestDir].activated &&
                 testdir && filename && filename[0] != '/') {
-                filename = PR_smprintf("%s/tests/%s/%s", testdir,
+                filename = MPR_smprintf("%s/tests/%s/%s", testdir,
                                        mode_strings[cipherInfo->mode],
                                        filename);
                 if (!filename) {
                     fprintf(stderr, "%s: Can not allocate memory.\n", progName);
                     goto exit_point;
                 }
-                outfile = PR_Open(filename, PR_WRONLY | PR_CREATE_FILE, 00660);
-                PR_smprintf_free(filename);
+                outfile = MPR_Open(filename, PR_WRONLY | PR_CREATE_FILE, 00660);
+                MPR_smprintf_free(filename);
             } else {
-                outfile = PR_Open(filename, PR_WRONLY | PR_CREATE_FILE, 00660);
+                outfile = MPR_Open(filename, PR_WRONLY | PR_CREATE_FILE, 00660);
             }
         } else {
             outfile = PR_STDOUT;
@@ -4388,7 +4388,7 @@ main(int argc, char **argv)
         /*infile = NULL;*/
         setupIO(cipherInfo->arena, &cipherInfo->input, infile, instr, bufsize);
         if (infile && infile != PR_STDIN)
-            PR_Close(infile);
+            MPR_Close(infile);
         misalignBuffer(cipherInfo->arena, &cipherInfo->input, inoff);
 
         cipherInit(cipherInfo, bltest.commands[cmd_Encrypt].activated);
@@ -4400,7 +4400,7 @@ main(int argc, char **argv)
         cipherInfo = cipherInfoListHead;
         while (cipherInfo != NULL) {
             cipherInfo->cipherThread =
-                PR_CreateThread(PR_USER_THREAD,
+                MPR_CreateThread(PR_USER_THREAD,
                                 ThreadExecTest,
                                 cipherInfo,
                                 PR_PRIORITY_NORMAL,
@@ -4412,7 +4412,7 @@ main(int argc, char **argv)
 
         cipherInfo = cipherInfoListHead;
         while (cipherInfo != NULL) {
-            PR_JoinThread(cipherInfo->cipherThread);
+            MPR_JoinThread(cipherInfo->cipherThread);
             finishIO(&cipherInfo->output, outfile);
             cipherInfo = cipherInfo->next;
         }
@@ -4430,7 +4430,7 @@ main(int argc, char **argv)
 
 exit_point:
     if (outfile && outfile != PR_STDOUT)
-        PR_Close(outfile);
+        MPR_Close(outfile);
     cipherInfo = cipherInfoListHead;
     while (cipherInfo != NULL) {
         bltestCipherInfo *tmpInfo = cipherInfo;

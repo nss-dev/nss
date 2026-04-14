@@ -683,7 +683,7 @@ JAR_get_error(int status)
                called in cases of improper initialization */
                 char *err = (char *)PORT_Alloc(40);
                 if (err)
-                    PR_snprintf(err, 39, "Error %d\n", status); /* leak me! */
+                    MPR_snprintf(err, 39, "Error %d\n", status); /* leak me! */
                 else
                     err = "Error! Bad! Out of memory!";
                 return err;

@@ -392,7 +392,7 @@ NameCacheHasFetchedCrlInfo(PKIX_PL_Cert *pkixCert,
         ((PKIX_PL_NssContext*)plContext)->badDerCrlReloadDelay *
                                                 PR_USEC_PER_SEC;
     if (!time) {
-        time = PR_Now();
+        time = MPR_Now();
     }
     /* If we already download the crl and inserted into the cache, then
      * there is no need to check for fetched crl. We have what we have. */
@@ -799,7 +799,7 @@ DownloadCrl(pkix_pl_CrlDp *dp, PKIX_PL_CRL **crl,
                 break;
             }
             uri = &genName->name.other;
-            location = (char*)PR_Malloc(1 + uri->len);
+            location = (char*)MPR_Malloc(1 + uri->len);
             if (!location) {
                 break;
             }
@@ -825,7 +825,7 @@ DownloadCrl(pkix_pl_CrlDp *dp, PKIX_PL_CRL **crl,
                    checking for certs that use big CRLs because of the timeout
                    We absolutely need code that limits our retry attempts.
                  */
-                          PR_SecondsToInterval(
+                          MPR_SecondsToInterval(
                               ((PKIX_PL_NssContext*)plContext)->timeoutSeconds),
                                    &pRequestSession) != SECSuccess) {
                 break;

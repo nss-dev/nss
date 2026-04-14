@@ -447,13 +447,13 @@ sftk_LogAuditMessage(NSSAuditSeverity severity, NSSAuditType auditType,
         int audit_fd;
         int linuxAuditType;
         int result = (severity != NSS_AUDIT_ERROR); /* 1=success; 0=failed */
-        char *message = PR_smprintf("NSS " SOFTOKEN_LIB_NAME ": %s", msg);
+        char *message = MPR_smprintf("NSS " SOFTOKEN_LIB_NAME ": %s", msg);
         if (!message) {
             return;
         }
         audit_fd = audit_open_func();
         if (audit_fd < 0) {
-            PR_smprintf_free(message);
+            MPR_smprintf_free(message);
             return;
         }
         linuxAuditType = sftk_mapLinuxAuditType(severity, auditType);
@@ -464,7 +464,7 @@ sftk_LogAuditMessage(NSSAuditSeverity severity, NSSAuditType auditType,
             audit_send_user_message_func(audit_fd, linuxAuditType, message);
         }
         audit_close_func(audit_fd);
-        PR_smprintf_free(message);
+        MPR_smprintf_free(message);
     }
 #endif /* LINUX */
 #else
@@ -537,7 +537,7 @@ fc_log_init_error(CK_RV crv)
 {
     if (sftk_audit_enabled) {
         char msg[128];
-        PR_snprintf(msg, sizeof msg,
+        MPR_snprintf(msg, sizeof msg,
                     "C_Initialize()=0x%08lX "
                     "power-up self-tests failed",
                     (PRUint32)crv);
@@ -553,7 +553,7 @@ FC_Initialize(CK_VOID_PTR pReserved)
     CK_RV crv;
     PRBool rerun;
 
-    if ((envp = PR_GetEnv("NSS_ENABLE_AUDIT")) != NULL) {
+    if ((envp = MPR_GetEnv("NSS_ENABLE_AUDIT")) != NULL) {
         sftk_audit_enabled = (atoi(envp) == 1);
     }
 
@@ -733,7 +733,7 @@ FC_InitToken(CK_SLOT_ID slotID, CK_CHAR_PTR pPin,
         char msg[128];
         NSSAuditSeverity severity = (crv == CKR_OK) ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
         /* pLabel points to a 32-byte label, which is not null-terminated */
-        PR_snprintf(msg, sizeof msg,
+        MPR_snprintf(msg, sizeof msg,
                     "C_InitToken(slotID=%lu, pLabel=\"%.32s\")=0x%08lX",
                     (PRUint32)slotID, pLabel, (PRUint32)crv);
         sftk_LogAuditMessage(severity, NSS_AUDIT_INIT_TOKEN, msg);
@@ -765,7 +765,7 @@ FC_InitPIN(CK_SESSION_HANDLE hSession,
     if (sftk_audit_enabled) {
         char msg[128];
         NSSAuditSeverity severity = (rv == CKR_OK) ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
-        PR_snprintf(msg, sizeof msg,
+        MPR_snprintf(msg, sizeof msg,
                     "C_InitPIN(hSession=0x%08lX)=0x%08lX",
                     (PRUint32)hSession, (PRUint32)rv);
         sftk_LogAuditMessage(severity, NSS_AUDIT_INIT_PIN, msg);
@@ -817,7 +817,7 @@ loser:
     if (sftk_audit_enabled) {
         char msg[128];
         NSSAuditSeverity severity = (rv == CKR_OK) ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
-        PR_snprintf(msg, sizeof msg,
+        MPR_snprintf(msg, sizeof msg,
                     "C_SetPIN(hSession=0x%08lX)=0x%08lX",
                     (PRUint32)hSession, (PRUint32)rv);
         sftk_LogAuditMessage(severity, NSS_AUDIT_SET_PIN, msg);
@@ -917,7 +917,7 @@ FC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
         char msg[128];
         NSSAuditSeverity severity;
         severity = successful ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
-        PR_snprintf(msg, sizeof msg,
+        MPR_snprintf(msg, sizeof msg,
                     "C_Login(hSession=0x%08lX, userType=%lu)=0x%08lX",
                     (PRUint32)hSession, (PRUint32)userType, (PRUint32)rv);
         sftk_LogAuditMessage(severity, NSS_AUDIT_LOGIN, msg);
@@ -947,7 +947,7 @@ FC_LoginUser(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
         user[len] = 0;
         NSSAuditSeverity severity;
         severity = successful ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
-        PR_snprintf(msg, sizeof msg,
+        MPR_snprintf(msg, sizeof msg,
                     "C_LoginUser(hSession=0x%08lX, userType=%lu username=%s)=0x%08lX",
                     (PRUint32)hSession, (PRUint32)userType, user, (PRUint32)rv);
         sftk_LogAuditMessage(severity, NSS_AUDIT_LOGIN, msg);
@@ -970,7 +970,7 @@ FC_Logout(CK_SESSION_HANDLE hSession)
     if (sftk_audit_enabled) {
         char msg[128];
         NSSAuditSeverity severity = (rv == CKR_OK) ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
-        PR_snprintf(msg, sizeof msg,
+        MPR_snprintf(msg, sizeof msg,
                     "C_Logout(hSession=0x%08lX)=0x%08lX",
                     (PRUint32)hSession, (PRUint32)rv);
         sftk_LogAuditMessage(severity, NSS_AUDIT_LOGOUT, msg);
@@ -1765,7 +1765,7 @@ FC_GenerateRandom(CK_SESSION_HANDLE hSession,
         sftk_fatalError = PR_TRUE;
         if (sftk_audit_enabled) {
             char msg[128];
-            PR_snprintf(msg, sizeof msg,
+            MPR_snprintf(msg, sizeof msg,
                         "C_GenerateRandom(hSession=0x%08lX, pRandomData=%p, "
                         "ulRandomLen=%lu)=0x%08lX "
                         "self-test: continuous RNG test failed",

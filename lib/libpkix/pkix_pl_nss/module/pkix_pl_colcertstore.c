@@ -24,7 +24,7 @@ SECU_FileToItem(SECItem *dst, PRFileDesc *src)
     PRInt32 numBytes;
     PRStatus prStatus;
 
-    prStatus = PR_GetOpenFileInfo(src, &info);
+    prStatus = MPR_GetOpenFileInfo(src, &info);
 
     if (prStatus != PR_SUCCESS) {
         PORT_SetError(SEC_ERROR_IO);
@@ -36,7 +36,7 @@ SECU_FileToItem(SECItem *dst, PRFileDesc *src)
     if (!SECITEM_AllocItem(NULL, dst, info.size))
         goto loser;
 
-    numBytes = PR_Read(src, dst->data, info.size);
+    numBytes = MPR_Read(src, dst->data, info.size);
     if (numBytes != info.size) {
         PORT_SetError(SEC_ERROR_IO);
         goto loser;
@@ -367,8 +367,8 @@ pkix_pl_CollectionCertStoreContext_CreateCert(
         *pCert = NULL;
         certDER.data = NULL;
 
-        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling PR_Open.\n");
-        inFile = PR_Open(certFileName, PR_RDONLY, 0);
+        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling MPR_Open.\n");
+        inFile = MPR_Open(certFileName, PR_RDONLY, 0);
 
         if (!inFile){
                 PKIX_ERROR(PKIX_UNABLETOOPENCERTFILE);
@@ -402,8 +402,8 @@ pkix_pl_CollectionCertStoreContext_CreateCert(
 cleanup:
         if (inFile){
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                        ("\t\t Calling PR_CloseDir.\n");
-                PR_Close(inFile);
+                        ("\t\t Calling MPR_CloseDir.\n");
+                MPR_Close(inFile);
         }
 
         if (PKIX_ERROR_RECEIVED){
@@ -459,8 +459,8 @@ pkix_pl_CollectionCertStoreContext_CreateCRL(
         *pCrl = NULL;
         crlDER.data = NULL;
 
-        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling PR_Open.\n");
-        inFile = PR_Open(crlFileName, PR_RDONLY, 0);
+        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling MPR_Open.\n");
+        inFile = MPR_Open(crlFileName, PR_RDONLY, 0);
 
         if (!inFile){
                 PKIX_ERROR(PKIX_UNABLETOOPENCRLFILE);
@@ -494,8 +494,8 @@ pkix_pl_CollectionCertStoreContext_CreateCRL(
 cleanup:
         if (inFile){
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                        ("\t\t Calling PR_CloseDir.\n");
-                PR_Close(inFile);
+                        ("\t\t Calling MPR_CloseDir.\n");
+                MPR_Close(inFile);
         }
 
         if (PKIX_ERROR_RECEIVED){
@@ -572,8 +572,8 @@ pkix_pl_CollectionCertStoreContext_PopulateCert(
 
         /* open directory and read in .crt files */
 
-        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling PR_OpenDir.\n");
-        dir = PR_OpenDir(dirName);
+        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling MPR_OpenDir.\n");
+        dir = MPR_OpenDir(dirName);
 
         if (!dir) {
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG_ARG
@@ -581,27 +581,27 @@ pkix_pl_CollectionCertStoreContext_PopulateCert(
                 PKIX_ERROR(PKIX_CANNOTOPENCOLLECTIONCERTSTORECONTEXTDIRECTORY);
         }
 
-        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling PR_ReadDir.\n");
-        dirEntry = PR_ReadDir(dir, PR_SKIP_HIDDEN | PR_SKIP_BOTH);
+        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling MPR_ReadDir.\n");
+        dirEntry = MPR_ReadDir(dir, PR_SKIP_HIDDEN | PR_SKIP_BOTH);
 
         if (!dirEntry) {
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
                         ("\t\t Empty directory.\n");
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                        ("\t\t Calling PR_GetError.\n");
-                prError = PR_GetError();
+                        ("\t\t Calling MPR_GetError.\n");
+                prError = MPR_GetError();
         }
 
-        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling PR_SetError.\n");
-        PR_SetError(0, 0);
+        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling MPR_SetError.\n");
+        MPR_SetError(0, 0);
 
         while (dirEntry != NULL && prError == 0) {
-                if (PL_strrstr(dirEntry->name, ".crt") ==
-                    dirEntry->name + PL_strlen(dirEntry->name) - 4) {
+                if (MPL_strrstr(dirEntry->name, ".crt") ==
+                    dirEntry->name + MPL_strlen(dirEntry->name) - 4) {
 
                         PKIX_CHECK_ONLY_FATAL
                                 (PKIX_PL_Malloc
-                                (dirNameLen + PL_strlen(dirEntry->name) + 2,
+                                (dirNameLen + MPL_strlen(dirEntry->name) + 2,
                                 (void **)&pathName,
                                 plContext),
                                 PKIX_MALLOCFAILED);
@@ -609,14 +609,14 @@ pkix_pl_CollectionCertStoreContext_PopulateCert(
                         if ((!PKIX_ERROR_RECEIVED) && (pathName != NULL)){
 
                                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                                    ("\t\t Calling PL_strcpy for dirName.\n");
-                                PL_strcpy(pathName, dirName);
+                                    ("\t\t Calling MPL_strcpy for dirName.\n");
+                                MPL_strcpy(pathName, dirName);
                                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                                    ("\t\t Calling PL_strcat for dirName.\n");
-                                PL_strcat(pathName, "/");
+                                    ("\t\t Calling MPL_strcat for dirName.\n");
+                                MPL_strcat(pathName, "/");
                                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                                        ("\t\t Calling PL_strcat for /.\n");
-                                PL_strcat(pathName, dirEntry->name);
+                                        ("\t\t Calling MPL_strcat for /.\n");
+                                MPL_strcat(pathName, dirEntry->name);
 
                                 PKIX_CHECK_ONLY_FATAL
                                 (pkix_pl_CollectionCertStoreContext_CreateCert
@@ -638,17 +638,17 @@ pkix_pl_CollectionCertStoreContext_PopulateCert(
                 }
 
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                        ("\t\t Calling PR_SetError.\n");
-                PR_SetError(0, 0);
+                        ("\t\t Calling MPR_SetError.\n");
+                MPR_SetError(0, 0);
 
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                        ("\t\t Calling PR_ReadDir.\n");
-                dirEntry = PR_ReadDir(dir, PR_SKIP_HIDDEN | PR_SKIP_BOTH);
+                        ("\t\t Calling MPR_ReadDir.\n");
+                dirEntry = MPR_ReadDir(dir, PR_SKIP_HIDDEN | PR_SKIP_BOTH);
 
                 if (!dirEntry) {
                     PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                        ("\t\t Calling PR_GetError.\n");
-                    prError = PR_GetError();
+                        ("\t\t Calling MPR_GetError.\n");
+                    prError = MPR_GetError();
                 }
         }
 
@@ -665,8 +665,8 @@ pkix_pl_CollectionCertStoreContext_PopulateCert(
 cleanup:
         if (dir) {
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                        ("\t\t Calling PR_CloseDir.\n");
-                PR_CloseDir(dir);
+                        ("\t\t Calling MPR_CloseDir.\n");
+                MPR_CloseDir(dir);
         }
 
         PKIX_FREE(pathName);
@@ -740,8 +740,8 @@ pkix_pl_CollectionCertStoreContext_PopulateCRL(
 
         /* open directory and read in .crl files */
 
-        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling PR_OpenDir.\n");
-        dir = PR_OpenDir(dirName);
+        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling MPR_OpenDir.\n");
+        dir = MPR_OpenDir(dirName);
 
         if (!dir) {
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG_ARG
@@ -749,27 +749,27 @@ pkix_pl_CollectionCertStoreContext_PopulateCRL(
                 PKIX_ERROR(PKIX_CANNOTOPENCOLLECTIONCERTSTORECONTEXTDIRECTORY);
         }
 
-        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling PR_ReadDir.\n");
-        dirEntry = PR_ReadDir(dir, PR_SKIP_HIDDEN | PR_SKIP_BOTH);
+        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling MPR_ReadDir.\n");
+        dirEntry = MPR_ReadDir(dir, PR_SKIP_HIDDEN | PR_SKIP_BOTH);
 
         if (!dirEntry) {
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
                         ("\t\t Empty directory.\n");
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                        ("\t\t Calling PR_GetError.\n");
-                prError = PR_GetError();
+                        ("\t\t Calling MPR_GetError.\n");
+                prError = MPR_GetError();
         }
 
-        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling PR_SetError.\n");
-        PR_SetError(0, 0);
+        PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling MPR_SetError.\n");
+        MPR_SetError(0, 0);
 
         while (dirEntry != NULL && prError == 0) {
-                if (PL_strrstr(dirEntry->name, ".crl") ==
-                    dirEntry->name + PL_strlen(dirEntry->name) - 4) {
+                if (MPL_strrstr(dirEntry->name, ".crl") ==
+                    dirEntry->name + MPL_strlen(dirEntry->name) - 4) {
 
                         PKIX_CHECK_ONLY_FATAL
                                 (PKIX_PL_Malloc
-                                (dirNameLen + PL_strlen(dirEntry->name) + 2,
+                                (dirNameLen + MPL_strlen(dirEntry->name) + 2,
                                 (void **)&pathName,
                                 plContext),
                                 PKIX_MALLOCFAILED);
@@ -777,14 +777,14 @@ pkix_pl_CollectionCertStoreContext_PopulateCRL(
                         if ((!PKIX_ERROR_RECEIVED) && (pathName != NULL)){
 
                                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                                    ("\t\t Calling PL_strcpy for dirName.\n");
-                                PL_strcpy(pathName, dirName);
+                                    ("\t\t Calling MPL_strcpy for dirName.\n");
+                                MPL_strcpy(pathName, dirName);
                                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                                    ("\t\t Calling PL_strcat for dirName.\n");
-                                PL_strcat(pathName, "/");
+                                    ("\t\t Calling MPL_strcat for dirName.\n");
+                                MPL_strcat(pathName, "/");
                                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                                        ("\t\t Calling PL_strcat for /.\n");
-                                PL_strcat(pathName, dirEntry->name);
+                                        ("\t\t Calling MPL_strcat for /.\n");
+                                MPL_strcat(pathName, dirEntry->name);
 
                         PKIX_CHECK_ONLY_FATAL
                                 (pkix_pl_CollectionCertStoreContext_CreateCRL
@@ -806,17 +806,17 @@ pkix_pl_CollectionCertStoreContext_PopulateCRL(
                 }
 
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                        ("\t\t Calling PR_SetError.\n");
-                PR_SetError(0, 0);
+                        ("\t\t Calling MPR_SetError.\n");
+                MPR_SetError(0, 0);
 
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                        ("\t\t Calling PR_ReadDir.\n");
-                dirEntry = PR_ReadDir(dir, PR_SKIP_HIDDEN | PR_SKIP_BOTH);
+                        ("\t\t Calling MPR_ReadDir.\n");
+                dirEntry = MPR_ReadDir(dir, PR_SKIP_HIDDEN | PR_SKIP_BOTH);
 
                 if (!dirEntry) {
                     PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                        ("\t\t Calling PR_GetError.\n");
-                    prError = PR_GetError();
+                        ("\t\t Calling MPR_GetError.\n");
+                    prError = MPR_GetError();
                 }
         }
 
@@ -833,8 +833,8 @@ pkix_pl_CollectionCertStoreContext_PopulateCRL(
 cleanup:
         if (dir) {
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
-                        ("\t\t Calling PR_CloseDir.\n");
-                PR_CloseDir(dir);
+                        ("\t\t Calling MPR_CloseDir.\n");
+                MPR_CloseDir(dir);
         }
 
         PKIX_FREE(pathName);

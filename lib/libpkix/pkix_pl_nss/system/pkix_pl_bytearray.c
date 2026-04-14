@@ -66,35 +66,35 @@ pkix_pl_ByteArray_ToHexString(
                 stringText[0] = 0;
                 outputLen = 0;
 
-                PKIX_BYTEARRAY_DEBUG("\tCalling PR_smprintf).\n");
-                tempText = PR_smprintf
+                PKIX_BYTEARRAY_DEBUG("\tCalling MPR_smprintf).\n");
+                tempText = MPR_smprintf
                         ("[%02X", (0x0FF&((char *)(array->array))[0]));
-                PKIX_BYTEARRAY_DEBUG("\tCalling PL_strlen).\n");
-                outputLen += PL_strlen(tempText);
+                PKIX_BYTEARRAY_DEBUG("\tCalling MPL_strlen).\n");
+                outputLen += MPL_strlen(tempText);
 
-                PKIX_BYTEARRAY_DEBUG("\tCalling PL_strcat).\n");
-                stringText = PL_strcat(stringText, tempText);
+                PKIX_BYTEARRAY_DEBUG("\tCalling MPL_strcat).\n");
+                stringText = MPL_strcat(stringText, tempText);
 
-                PKIX_BYTEARRAY_DEBUG("\tCalling PR_smprintf_free).\n");
-                PR_smprintf_free(tempText);
+                PKIX_BYTEARRAY_DEBUG("\tCalling MPR_smprintf_free).\n");
+                MPR_smprintf_free(tempText);
 
                 for (i = 1; i < array->length; i++) {
-                        PKIX_BYTEARRAY_DEBUG("\tCalling PR_smprintf).\n");
-                        tempText = PR_smprintf
+                        PKIX_BYTEARRAY_DEBUG("\tCalling MPR_smprintf).\n");
+                        tempText = MPR_smprintf
                                 (" %02X", (0x0FF&((char *)(array->array))[i]));
 
                         if (tempText == NULL){
                                 PKIX_ERROR(PKIX_PRSMPRINTFFAILED);
                         }
 
-                        PKIX_BYTEARRAY_DEBUG("\tCalling PL_strlen).\n");
-                        outputLen += PL_strlen(tempText);
+                        PKIX_BYTEARRAY_DEBUG("\tCalling MPL_strlen).\n");
+                        outputLen += MPL_strlen(tempText);
 
-                        PKIX_BYTEARRAY_DEBUG("\tCalling PL_strcat).\n");
-                        stringText = PL_strcat(stringText, tempText);
+                        PKIX_BYTEARRAY_DEBUG("\tCalling MPL_strcat).\n");
+                        stringText = MPL_strcat(stringText, tempText);
 
-                        PKIX_BYTEARRAY_DEBUG("\tCalling PR_smprintf_free).\n");
-                        PR_smprintf_free(tempText);
+                        PKIX_BYTEARRAY_DEBUG("\tCalling MPR_smprintf_free).\n");
+                        MPR_smprintf_free(tempText);
                         tempText = NULL;
                 }
 
@@ -215,22 +215,22 @@ pkix_pl_ByteArray_ToString(
                 stringText[0] = 0;
                 outputLen = 0;
 
-                PKIX_BYTEARRAY_DEBUG("\tCalling PR_smprintf).\n");
+                PKIX_BYTEARRAY_DEBUG("\tCalling MPR_smprintf).\n");
                 tempText =
-                        PR_smprintf
+                        MPR_smprintf
                             ("[%03u", (0x0FF&((char *)(array->array))[0]));
-                PKIX_BYTEARRAY_DEBUG("\tCalling PL_strlen).\n");
-                outputLen += PL_strlen(tempText);
+                PKIX_BYTEARRAY_DEBUG("\tCalling MPL_strlen).\n");
+                outputLen += MPL_strlen(tempText);
 
-                PKIX_BYTEARRAY_DEBUG("\tCalling PL_strcat).\n");
-                stringText = PL_strcat(stringText, tempText);
+                PKIX_BYTEARRAY_DEBUG("\tCalling MPL_strcat).\n");
+                stringText = MPL_strcat(stringText, tempText);
 
-                PKIX_BYTEARRAY_DEBUG("\tCalling PR_smprintf_free).\n");
-                PR_smprintf_free(tempText);
+                PKIX_BYTEARRAY_DEBUG("\tCalling MPR_smprintf_free).\n");
+                MPR_smprintf_free(tempText);
 
                 for (i = 1; i < array->length; i++) {
-                        PKIX_BYTEARRAY_DEBUG("\tCalling PR_smprintf).\n");
-                        tempText = PR_smprintf
+                        PKIX_BYTEARRAY_DEBUG("\tCalling MPR_smprintf).\n");
+                        tempText = MPR_smprintf
                                 (", %03u",
                                 (0x0FF&((char *)(array->array))[i]));
 
@@ -238,14 +238,14 @@ pkix_pl_ByteArray_ToString(
                                 PKIX_ERROR(PKIX_PRSMPRINTFFAILED);
                         }
 
-                        PKIX_BYTEARRAY_DEBUG("\tCalling PL_strlen).\n");
-                        outputLen += PL_strlen(tempText);
+                        PKIX_BYTEARRAY_DEBUG("\tCalling MPL_strlen).\n");
+                        outputLen += MPL_strlen(tempText);
 
-                        PKIX_BYTEARRAY_DEBUG("\tCalling PL_strcat).\n");
-                        stringText = PL_strcat(stringText, tempText);
+                        PKIX_BYTEARRAY_DEBUG("\tCalling MPL_strcat).\n");
+                        stringText = MPL_strcat(stringText, tempText);
 
-                        PKIX_BYTEARRAY_DEBUG("\tCalling PR_smprintf_free).\n");
-                        PR_smprintf_free(tempText);
+                        PKIX_BYTEARRAY_DEBUG("\tCalling MPR_smprintf_free).\n");
+                        MPR_smprintf_free(tempText);
                         tempText = NULL;
                 }
 

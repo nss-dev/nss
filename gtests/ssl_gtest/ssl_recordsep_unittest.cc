@@ -168,14 +168,14 @@ TEST_F(TlsConnectTest, KeyUpdateSecrets) {
 class BadPrSocket : public DummyIOLayerMethods {
  public:
   BadPrSocket(std::shared_ptr<TlsAgent>& agent) : DummyIOLayerMethods() {
-    static PRDescIdentity bad_identity = PR_GetUniqueIdentity("bad NSPR id");
+    static PRDescIdentity bad_identity = MPR_GetUniqueIdentity("bad NSPR id");
     fd_ = DummyIOLayerMethods::CreateFD(bad_identity, this);
 
     // This is terrible, but NSPR doesn't provide an easy way to replace the
     // bottom layer of an IO stack.  Take the DummyPrSocket and replace its
     // NSPR method vtable with the ones from this object.
     dummy_layer_ =
-        PR_GetIdentitiesLayer(agent->ssl_fd(), DummyPrSocket::LayerId());
+        MPR_GetIdentitiesLayer(agent->ssl_fd(), DummyPrSocket::LayerId());
     EXPECT_TRUE(dummy_layer_);
     original_methods_ = dummy_layer_->methods;
     original_secret_ = dummy_layer_->secret;
@@ -419,14 +419,14 @@ TEST_F(TlsConnectStreamTls13, ReplaceRecordLayerZeroRtt) {
   // Send some 0-RTT data, which get staged in `client_stage`.
   const char* kMsg = "EarlyData";
   const PRInt32 kMsgLen = static_cast<PRInt32>(strlen(kMsg));
-  PRInt32 rv = PR_Write(client_->ssl_fd(), kMsg, kMsgLen);
+  PRInt32 rv = MPR_Write(client_->ssl_fd(), kMsg, kMsgLen);
   EXPECT_EQ(kMsgLen, rv);
 
   client_stage.ForwardAll(server_, TlsAgent::STATE_CONNECTING);
 
   // The server should now have 0-RTT to read.
   std::vector<uint8_t> buf(kMsgLen);
-  rv = PR_Read(server_->ssl_fd(), buf.data(), kMsgLen);
+  rv = MPR_Read(server_->ssl_fd(), buf.data(), kMsgLen);
   EXPECT_EQ(kMsgLen, rv);
 
   // The handshake should happily finish.
@@ -655,14 +655,14 @@ TEST_F(TlsConnectStreamTls13, SuppressEndOfEarlyData) {
   // Send some 0-RTT data, which get staged in `client_stage`.
   const char* kMsg = "ABCDEF";
   const PRInt32 kMsgLen = static_cast<PRInt32>(strlen(kMsg));
-  PRInt32 rv = PR_Write(client_->ssl_fd(), kMsg, kMsgLen);
+  PRInt32 rv = MPR_Write(client_->ssl_fd(), kMsg, kMsgLen);
   EXPECT_EQ(kMsgLen, rv);
 
   client_stage.ForwardAll(server_, TlsAgent::STATE_CONNECTING);
 
   // The server should now have 0-RTT to read.
   std::vector<uint8_t> buf(kMsgLen);
-  rv = PR_Read(server_->ssl_fd(), buf.data(), kMsgLen);
+  rv = MPR_Read(server_->ssl_fd(), buf.data(), kMsgLen);
   EXPECT_EQ(kMsgLen, rv);
 
   // The handshake should happily finish, without the end of the early data.

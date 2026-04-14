@@ -26,7 +26,7 @@ PRBool debug = PR_FALSE;
 static void
 Usage()
 {
-#define FPS PR_fprintf(PR_STDERR,
+#define FPS MPR_fprintf(PR_STDERR,
     FPS "Usage:	 %s [-d certdir] [-P dbprefix] [-h tokenname]\n",
 				 progName);
     FPS "\t\t [-k slotpwfile | -K slotpw] [-v][-o|-p]\n");
@@ -284,7 +284,7 @@ main(int argc, char **argv)
         dbprefix = validation.options[opt_DBPrefix].arg;
     }
 
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     if (nssdir == NULL && NSS_NoDB_Init("") == SECSuccess) {
         rv = SECSuccess;
         /* if the system isn't already in FIPS mode, we need
@@ -303,7 +303,7 @@ main(int argc, char **argv)
         goto done;
     }
 
-    if (!slotname || PL_strcmp(slotname, "internal") == 0)
+    if (!slotname || MPL_strcmp(slotname, "internal") == 0)
         slot = PK11_GetInternalKeySlot();
     else
         slot = PK11_FindSlotByName(slotname);
@@ -347,9 +347,9 @@ main(int argc, char **argv)
 
 done:
     if (slotPw.data != NULL)
-        PORT_ZFree(slotPw.data, PL_strlen(slotPw.data));
+        PORT_ZFree(slotPw.data, MPL_strlen(slotPw.data));
     if (p12FilePw.data != NULL)
-        PORT_ZFree(p12FilePw.data, PL_strlen(p12FilePw.data));
+        PORT_ZFree(p12FilePw.data, MPL_strlen(p12FilePw.data));
     if (slotname) {
         PORT_Free(slotname);
     }
@@ -358,7 +358,7 @@ done:
     if (NSS_Shutdown() != SECSuccess) {
         local_errno = 1;
     }
-    PL_ArenaFinish();
-    PR_Cleanup();
+    MPL_ArenaFinish();
+    MPR_Cleanup();
     return local_errno;
 }

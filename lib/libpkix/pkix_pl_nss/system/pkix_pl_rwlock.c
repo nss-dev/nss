@@ -27,8 +27,8 @@ pkix_pl_RWLock_Destroy(
 
         rwlock = (PKIX_PL_RWLock*) object;
 
-        PKIX_RWLOCK_DEBUG("Calling PR_DestroyRWLock)\n");
-        PR_DestroyRWLock(rwlock->lock);
+        PKIX_RWLOCK_DEBUG("Calling MPR_DestroyRWLock)\n");
+        MPR_DestroyRWLock(rwlock->lock);
         rwlock->lock = NULL;
 
 cleanup:
@@ -91,8 +91,8 @@ PKIX_PL_RWLock_Create(
                     plContext),
                     PKIX_ERRORALLOCATINGRWLOCK);
 
-        PKIX_RWLOCK_DEBUG("\tCalling PR_NewRWLock)\n");
-        rwLock->lock = PR_NewRWLock(PR_RWLOCK_RANK_NONE, "PKIX RWLock");
+        PKIX_RWLOCK_DEBUG("\tCalling MPR_NewRWLock)\n");
+        rwLock->lock = MPR_NewRWLock(PR_RWLOCK_RANK_NONE, "PKIX RWLock");
 
         if (rwLock->lock == NULL) {
                 PKIX_DECREF(rwLock);
@@ -117,8 +117,8 @@ PKIX_PL_AcquireReaderLock(
         PKIX_ENTER(RWLOCK, "PKIX_PL_AcquireReaderLock");
         PKIX_NULLCHECK_ONE(lock);
 
-        PKIX_RWLOCK_DEBUG("\tCalling PR_RWLock_Rlock)\n");
-        (void) PR_RWLock_Rlock(lock->lock);
+        PKIX_RWLOCK_DEBUG("\tCalling MPR_RWLock_Rlock)\n");
+        (void) MPR_RWLock_Rlock(lock->lock);
 
         lock->readCount++;
 
@@ -133,8 +133,8 @@ PKIX_PL_ReleaseReaderLock(
         PKIX_ENTER(RWLOCK, "PKIX_PL_ReleaseReaderLock");
         PKIX_NULLCHECK_ONE(lock);
 
-        PKIX_RWLOCK_DEBUG("\tCalling PR_RWLock_Unlock)\n");
-        (void) PR_RWLock_Unlock(lock->lock);
+        PKIX_RWLOCK_DEBUG("\tCalling MPR_RWLock_Unlock)\n");
+        (void) MPR_RWLock_Unlock(lock->lock);
 
         lock->readCount--;
 
@@ -163,8 +163,8 @@ PKIX_PL_AcquireWriterLock(
         PKIX_ENTER(RWLOCK, "PKIX_PL_AcquireWriterLock");
         PKIX_NULLCHECK_ONE(lock);
 
-        PKIX_RWLOCK_DEBUG("\tCalling PR_RWLock_Wlock\n");
-        (void) PR_RWLock_Wlock(lock->lock);
+        PKIX_RWLOCK_DEBUG("\tCalling MPR_RWLock_Wlock\n");
+        (void) MPR_RWLock_Wlock(lock->lock);
 
         if (lock->readCount > 0) {
                 PKIX_ERROR(PKIX_LOCKHASNONZEROREADCOUNT);
@@ -190,8 +190,8 @@ PKIX_PL_ReleaseWriterLock(
                 PKIX_ERROR(PKIX_LOCKHASNONZEROREADCOUNT);
         }
 
-        PKIX_RWLOCK_DEBUG("\tCalling PR_RWLock_Unlock)\n");
-        (void) PR_RWLock_Unlock(lock->lock);
+        PKIX_RWLOCK_DEBUG("\tCalling MPR_RWLock_Unlock)\n");
+        (void) MPR_RWLock_Unlock(lock->lock);
 
         /* XXX Need to think about thread safety here */
         /* There should be a single lock holder  */

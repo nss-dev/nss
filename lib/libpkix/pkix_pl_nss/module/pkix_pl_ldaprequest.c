@@ -141,7 +141,7 @@ pkix_pl_LdapRequest_AttrStringToBit(
         PKIX_ENTER(LDAPREQUEST, "pkix_pl_LdapRequest_AttrStringToBit");
         PKIX_NULLCHECK_TWO(attrString, pAttrBit);
 
-        attrLen = PL_strlen(attrString);
+        attrLen = MPL_strlen(attrString);
 
         /*
          * Taking note of the fact that all of the comparand strings are
@@ -672,7 +672,7 @@ pkix_pl_LdapRequest_Create(
 
         search->baseObject.type = siAsciiString;
         search->baseObject.data = (void *)issuerDN;
-        search->baseObject.len = PL_strlen(issuerDN);
+        search->baseObject.len = MPL_strlen(issuerDN);
         scopeTypeAsChar = (char)scope;
         search->scope.type = siUnsignedInteger;
         search->scope.data = (void *)&scopeTypeAsChar;

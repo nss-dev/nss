@@ -42,16 +42,16 @@ catDirName(char *dir, char *name, void *plContext)
 
     PKIX_TEST_STD_VARS();
 
-    nameLen = PL_strlen(name);
-    dirLen = PL_strlen(dir);
+    nameLen = MPL_strlen(name);
+    dirLen = MPL_strlen(dir);
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc(dirLen + nameLen + 2,
                                              (void **)&pathName,
                                              plContext));
 
-    PL_strcpy(pathName, dir);
-    PL_strcat(pathName, "/");
-    PL_strcat(pathName, name);
+    MPL_strcpy(pathName, dir);
+    MPL_strcat(pathName, "/");
+    MPL_strcat(pathName, name);
     printf("pathName = %s\n", pathName);
 
 cleanup:
@@ -82,7 +82,7 @@ createCert(
     certDER.data = NULL;
 
     pathName = catDirName(dirName, certFileName, plContext);
-    certFile = PR_Open(pathName, PR_RDONLY, 0);
+    certFile = MPR_Open(pathName, PR_RDONLY, 0);
 
     if (!certFile) {
         pkixTestErrorMsg = "Unable to open cert file";
@@ -109,7 +109,7 @@ cleanup:
     pkixTestErrorResult = PKIX_PL_Free(pathName, plContext);
 
     if (certFile) {
-        PR_Close(certFile);
+        MPR_Close(certFile);
     }
 
     if (PKIX_TEST_ERROR_RECEIVED) {
@@ -144,7 +144,7 @@ createCRL(
     crlDER.data = NULL;
 
     pathName = catDirName(dirName, crlFileName, plContext);
-    inFile = PR_Open(pathName, PR_RDONLY, 0);
+    inFile = MPR_Open(pathName, PR_RDONLY, 0);
 
     if (!inFile) {
         pkixTestErrorMsg = "Unable to open crl file";
@@ -181,7 +181,7 @@ cleanup:
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(pathName, plContext));
 
     if (inFile) {
-        PR_Close(inFile);
+        MPR_Close(inFile);
     }
 
     if (error) {

@@ -64,11 +64,11 @@ RemoveAllArc(char *tree)
     char *archive = NULL;
     int retval = 0;
 
-    dir = PR_OpenDir(tree);
+    dir = MPR_OpenDir(tree);
     if (!dir)
         return -1;
 
-    for (entry = PR_ReadDir(dir, 0); entry; entry = PR_ReadDir(dir,
+    for (entry = MPR_ReadDir(dir, 0); entry; entry = MPR_ReadDir(dir,
                                                                0)) {
 
         if (entry->name[0] == '.') {
@@ -76,18 +76,18 @@ RemoveAllArc(char *tree)
         }
 
         if (archive)
-            PR_Free(archive);
-        archive = PR_smprintf("%s/%s", tree, entry->name);
+            MPR_Free(archive);
+        archive = MPR_smprintf("%s/%s", tree, entry->name);
 
-        if (PL_strcaserstr(entry->name, ".arc") ==
+        if (MPL_strcaserstr(entry->name, ".arc") ==
             (entry->name + strlen(entry->name) - 4)) {
 
             if (verbosity >= 0) {
-                PR_fprintf(outputFD, "removing: %s\n", archive);
+                MPR_fprintf(outputFD, "removing: %s\n", archive);
             }
 
             if (rm_dash_r(archive)) {
-                PR_fprintf(errorFD, "Error removing %s\n", archive);
+                MPR_fprintf(errorFD, "Error removing %s\n", archive);
                 errorCount++;
                 retval = -1;
                 goto finish;
@@ -101,9 +101,9 @@ RemoveAllArc(char *tree)
     }
 
 finish:
-    PR_CloseDir(dir);
+    MPR_CloseDir(dir);
     if (archive)
-        PR_Free(archive);
+        MPR_Free(archive);
 
     return retval;
 }
@@ -122,43 +122,43 @@ rm_dash_r(char *path)
     PRFileInfo fileinfo;
     char filename[FNSIZE];
 
-    if (PR_GetFileInfo(path, &fileinfo) != PR_SUCCESS) {
+    if (MPR_GetFileInfo(path, &fileinfo) != PR_SUCCESS) {
         /*fprintf(stderr, "Error: Unable to access %s\n", filename);*/
         return -1;
     }
     if (fileinfo.type == PR_FILE_DIRECTORY) {
 
-        dir = PR_OpenDir(path);
+        dir = MPR_OpenDir(path);
         if (!dir) {
-            PR_fprintf(errorFD, "Error: Unable to open directory %s.\n", path);
+            MPR_fprintf(errorFD, "Error: Unable to open directory %s.\n", path);
             errorCount++;
             return -1;
         }
 
         /* Recursively delete all entries in the directory */
-        while ((entry = PR_ReadDir(dir, PR_SKIP_BOTH)) != NULL) {
+        while ((entry = MPR_ReadDir(dir, PR_SKIP_BOTH)) != NULL) {
             snprintf(filename, sizeof(filename), "%s/%s", path, entry->name);
             if (rm_dash_r(filename)) {
-                PR_CloseDir(dir);
+                MPR_CloseDir(dir);
                 return -1;
             }
         }
 
-        if (PR_CloseDir(dir) != PR_SUCCESS) {
-            PR_fprintf(errorFD, "Error: Could not close %s.\n", path);
+        if (MPR_CloseDir(dir) != PR_SUCCESS) {
+            MPR_fprintf(errorFD, "Error: Could not close %s.\n", path);
             errorCount++;
             return -1;
         }
 
         /* Delete the directory itself */
-        if (PR_RmDir(path) != PR_SUCCESS) {
-            PR_fprintf(errorFD, "Error: Unable to delete %s\n", path);
+        if (MPR_RmDir(path) != PR_SUCCESS) {
+            MPR_fprintf(errorFD, "Error: Unable to delete %s\n", path);
             errorCount++;
             return -1;
         }
     } else {
-        if (PR_Delete(path) != PR_SUCCESS) {
-            PR_fprintf(errorFD, "Error: Unable to delete %s\n", path);
+        if (MPR_Delete(path) != PR_SUCCESS) {
+            MPR_fprintf(errorFD, "Error: Unable to delete %s\n", path);
             errorCount++;
             return -1;
         }
@@ -176,7 +176,7 @@ rm_dash_r(char *path)
 void
 Usage(void)
 {
-#define FPS PR_fprintf(outputFD,
+#define FPS MPR_fprintf(outputFD,
     FPS "%s %s -a signing tool for jar files\n", LONG_PROGRAM_NAME,NSS_VERSION);
     FPS "\n\nType %s -H for more detailed descriptions\n", PROGRAM_NAME);
     FPS "\nUsage:  %s -k keyName [-b basename] [-c Compression Level]\n"
@@ -401,7 +401,7 @@ LongUsage(void)
 void
 print_error(int err)
 {
-    PR_fprintf(errorFD, "Error %d: %s\n", err, JAR_get_error(err));
+    MPR_fprintf(errorFD, "Error %d: %s\n", err, JAR_get_error(err));
     errorCount++;
     give_help(err);
 }
@@ -415,7 +415,7 @@ print_error(int err)
 void
 out_of_memory(void)
 {
-    PR_fprintf(errorFD, "%s: out of memory\n", PROGRAM_NAME);
+    MPR_fprintf(errorFD, "%s: out of memory\n", PROGRAM_NAME);
     errorCount++;
     exit(ERRX);
 }
@@ -463,11 +463,11 @@ int foreach (char *dirname, char *prefix,
         strcat(newdir, prefix);
     }
 
-    dir = PR_OpenDir(newdir);
+    dir = MPR_OpenDir(newdir);
     if (!dir)
         return -1;
 
-    for (entry = PR_ReadDir(dir, 0); entry; entry = PR_ReadDir(dir, 0)) {
+    for (entry = MPR_ReadDir(dir, 0); entry; entry = MPR_ReadDir(dir, 0)) {
         if (strcmp(entry->name, ".") == 0 ||
             strcmp(entry->name, "..") == 0) {
             /* no infinite recursion, please */
@@ -479,7 +479,7 @@ int foreach (char *dirname, char *prefix,
             continue;
 
         /* -x option */
-        if (PL_HashTableLookup(excludeDirs, entry->name))
+        if (MPL_HashTableLookup(excludeDirs, entry->name))
             continue;
 
         strcpy(newdir, dirname);
@@ -526,7 +526,7 @@ int foreach (char *dirname, char *prefix,
         }
     }
 
-    PR_CloseDir(dir);
+    MPR_CloseDir(dir);
 
     return retval;
 }
@@ -543,7 +543,7 @@ is_dir(char *filename)
 {
     PRFileInfo finfo;
 
-    if (PR_GetFileInfo(filename, &finfo) != PR_SUCCESS) {
+    if (MPR_GetFileInfo(filename, &finfo) != PR_SUCCESS) {
         printf("Unable to get information about %s\n", filename);
         return 0;
     }
@@ -716,7 +716,7 @@ JarListModules(void)
 
     if ((moduleLock = SECMOD_GetDefaultModuleListLock()) == NULL) {
         /* this is the wrong text */
-        PR_fprintf(errorFD, "%s: unable to acquire lock on module list\n",
+        MPR_fprintf(errorFD, "%s: unable to acquire lock on module list\n",
                    PROGRAM_NAME);
         errorCount++;
         exit(ERRX);
@@ -728,51 +728,51 @@ JarListModules(void)
 
     if (modules == NULL) {
         SECMOD_ReleaseReadLock(moduleLock);
-        PR_fprintf(errorFD, "%s: Can't get module list\n", PROGRAM_NAME);
+        MPR_fprintf(errorFD, "%s: Can't get module list\n", PROGRAM_NAME);
         errorCount++;
         exit(ERRX);
     }
 
-    PR_fprintf(outputFD, "\nListing of PKCS11 modules\n");
-    PR_fprintf(outputFD, "-----------------------------------------------\n");
+    MPR_fprintf(outputFD, "\nListing of PKCS11 modules\n");
+    MPR_fprintf(outputFD, "-----------------------------------------------\n");
 
     for (mlp = modules; mlp != NULL; mlp = mlp->next) {
         count++;
-        PR_fprintf(outputFD, "%3d. %s\n", count, mlp->module->commonName);
+        MPR_fprintf(outputFD, "%3d. %s\n", count, mlp->module->commonName);
 
         if (mlp->module->internal)
-            PR_fprintf(outputFD, "          (this module is internally loaded)\n");
+            MPR_fprintf(outputFD, "          (this module is internally loaded)\n");
         else
-            PR_fprintf(outputFD, "          (this is an external module)\n");
+            MPR_fprintf(outputFD, "          (this is an external module)\n");
 
         if (mlp->module->dllName)
-            PR_fprintf(outputFD, "          DLL name: %s\n",
+            MPR_fprintf(outputFD, "          DLL name: %s\n",
                        mlp->module->dllName);
 
         if (mlp->module->slotCount == 0)
-            PR_fprintf(outputFD, "          slots: There are no slots attached to this module\n");
+            MPR_fprintf(outputFD, "          slots: There are no slots attached to this module\n");
         else
-            PR_fprintf(outputFD, "          slots: %d slots attached\n",
+            MPR_fprintf(outputFD, "          slots: %d slots attached\n",
                        mlp->module->slotCount);
 
         if (mlp->module->loaded == 0)
-            PR_fprintf(outputFD, "          status: Not loaded\n");
+            MPR_fprintf(outputFD, "          status: Not loaded\n");
         else
-            PR_fprintf(outputFD, "          status: loaded\n");
+            MPR_fprintf(outputFD, "          status: loaded\n");
 
         for (i = 0; i < mlp->module->slotCount; i++) {
             PK11SlotInfo *slot = mlp->module->slots[i];
 
-            PR_fprintf(outputFD, "\n");
-            PR_fprintf(outputFD, "    slot: %s\n", PK11_GetSlotName(slot));
-            PR_fprintf(outputFD, "   token: %s\n", PK11_GetTokenName(slot));
+            MPR_fprintf(outputFD, "\n");
+            MPR_fprintf(outputFD, "    slot: %s\n", PK11_GetSlotName(slot));
+            MPR_fprintf(outputFD, "   token: %s\n", PK11_GetTokenName(slot));
         }
     }
 
-    PR_fprintf(outputFD, "-----------------------------------------------\n");
+    MPR_fprintf(outputFD, "-----------------------------------------------\n");
 
     if (count == 0)
-        PR_fprintf(outputFD,
+        MPR_fprintf(outputFD,
                    "Warning: no modules were found (should have at least one)\n");
 
     SECMOD_ReleaseReadLock(moduleLock);
@@ -824,7 +824,7 @@ FatalError(char *msg)
     if (!msg)
         msg = "";
 
-    PR_fprintf(errorFD, "FATAL ERROR: %s\n", msg);
+    MPR_fprintf(errorFD, "FATAL ERROR: %s\n", msg);
     errorCount++;
     exit(ERRX);
 }
@@ -888,7 +888,7 @@ InitCrypto(char *cert_dir, PRBool readOnly)
             return -1;
         }
         if (PK11_NeedUserInit(slotinfo)) {
-            PR_fprintf(errorFD,
+            MPR_fprintf(errorFD,
                        "\nWARNING: No password set on internal key database.  Most operations will fail."
                        "\nYou must create a password.\n");
             warningCount++;
@@ -929,7 +929,7 @@ get_default_cert_dir(void)
     static char db[FNSIZE];
 
 #ifdef XP_UNIX
-    home = PR_GetEnvSecure("HOME");
+    home = MPR_GetEnvSecure("HOME");
 
     if (home && *home) {
         snprintf(db, sizeof(db), "%s/.netscape", home);
@@ -942,7 +942,7 @@ get_default_cert_dir(void)
 
     /* first check the environment override */
 
-    home = PR_GetEnvSecure("JAR_HOME");
+    home = MPR_GetEnvSecure("JAR_HOME");
 
     if (home && *home) {
         snprintf(db, sizeof(db), "%s/cert7.db", home);
@@ -983,9 +983,9 @@ get_default_cert_dir(void)
 #endif
 
     if (!cd) {
-        PR_fprintf(errorFD,
+        MPR_fprintf(errorFD,
                    "You must specify the location of your certificate directory\n");
-        PR_fprintf(errorFD,
+        MPR_fprintf(errorFD,
                    "with the -d option. Example: -d ~/.netscape in many cases with Unix.\n");
         errorCount++;
         exit(ERRX);
@@ -1001,13 +1001,13 @@ void
 give_help(int status)
 {
     if (status == SEC_ERROR_UNKNOWN_ISSUER) {
-        PR_fprintf(errorFD,
+        MPR_fprintf(errorFD,
                    "The Certificate Authority (CA) for this certificate\n");
-        PR_fprintf(errorFD,
+        MPR_fprintf(errorFD,
                    "does not appear to be in your database. You should contact\n");
-        PR_fprintf(errorFD,
+        MPR_fprintf(errorFD,
                    "the organization which issued this certificate to obtain\n");
-        PR_fprintf(errorFD, "a copy of its CA Certificate.\n");
+        MPR_fprintf(errorFD, "a copy of its CA Certificate.\n");
     }
 }
 
@@ -1026,7 +1026,7 @@ pr_fgets(char *buf, int size, PRFileDesc *file)
 
     i = 0;
     while (i < size - 1) {
-        status = PR_Read(file, &c, 1);
+        status = MPR_Read(file, &c, 1);
         if (status == -1) {
             return NULL;
         } else if (status == 0) {

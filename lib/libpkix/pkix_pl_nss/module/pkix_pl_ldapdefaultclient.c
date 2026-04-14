@@ -97,13 +97,13 @@ pkix_pl_LdapDefaultClient_MakeBind(
                 msg.protocolOp.op.bindMsg.bindName.type = siAsciiString;
                 msg.protocolOp.op.bindMsg.bindName.data =
                         (void *)bindAPI->chooser.simple.bindName;
-                len = PL_strlen(bindAPI->chooser.simple.bindName);
+                len = MPL_strlen(bindAPI->chooser.simple.bindName);
                 msg.protocolOp.op.bindMsg.bindName.len = len;
 
                 msg.protocolOp.op.bindMsg.authentication.type = siAsciiString;
                 msg.protocolOp.op.bindMsg.authentication.data =
                         (void *)bindAPI->chooser.simple.authentication;
-                len = PL_strlen(bindAPI->chooser.simple.authentication);
+                len = MPL_strlen(bindAPI->chooser.simple.authentication);
                 msg.protocolOp.op.bindMsg.authentication.len = len;
         }
 
@@ -1206,7 +1206,7 @@ pkix_pl_LdapDefaultClient_Bind(
                 plContext),
                 PKIX_SOCKETSENDFAILED);
 
-        client->lastIO = PR_Now();
+        client->lastIO = MPR_Now();
 
         if (bytesWritten < 0) {
                 client->connectStatus = BIND_PENDING;
@@ -1342,7 +1342,7 @@ pkix_pl_LdapDefaultClient_BindResponse(
                 plContext),
                 PKIX_SOCKETRECVFAILED);
 
-        client->lastIO = PR_Now();
+        client->lastIO = MPR_Now();
 
         if (bytesRead > 0) {
                 PKIX_CHECK(pkix_pl_LdapDefaultClient_VerifyBindResponse
@@ -1491,7 +1491,7 @@ pkix_pl_LdapDefaultClient_Send(
                         plContext),
                         PKIX_SOCKETSENDFAILED);
 
-                client->lastIO = PR_Now();
+                client->lastIO = MPR_Now();
 
                 /*
                  * If the send completed we can proceed to try for the
@@ -1667,7 +1667,7 @@ pkix_pl_LdapDefaultClient_Recv(
                 PKIX_SOCKETRECVFAILED);
 
         client->currentInPtr = client->rcvBuf;
-        client->lastIO = PR_Now();
+        client->lastIO = MPR_Now();
 
         if (bytesRead > 0) {
                 client->currentBytesAvailable = bytesRead;
@@ -1890,7 +1890,7 @@ pkix_pl_LdapDefaultClient_RecvInitial(
                         PKIX_SOCKETRECVFAILED);
 
                 client->currentInPtr = client->rcvBuf;
-                client->lastIO = PR_Now();
+                client->lastIO = MPR_Now();
 
                 if (bytesRead <= 0) {
                         client->connectStatus = RECV_PENDING;
@@ -2215,11 +2215,11 @@ pkix_pl_LdapDefaultClient_MakeAndFilter(
                 component = (*componentP)->attrType;
                 currentFilter->filter.equalFilter.attrType.data = component;
                 currentFilter->filter.equalFilter.attrType.len = 
-                        PL_strlen((const char *)component);
+                        MPL_strlen((const char *)component);
                 component = (*componentP)->attrValue;
                 currentFilter->filter.equalFilter.attrValue.data = component;
                 currentFilter->filter.equalFilter.attrValue.len =
-                        PL_strlen((const char *)component);
+                        MPL_strlen((const char *)component);
                 currentFilter++;
         }
 

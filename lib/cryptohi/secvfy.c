@@ -632,7 +632,7 @@ sec_DecodeSigAlg(const SECKEYPublicKey *key, SECOidTag sigAlg,
      * versions.
      * We know if we are signing or verifying based on the value of 'key'.
      * Since key is a public key, then it's set to NULL for signing */
-    evp = PR_GetEnvSecure("NSS_COMBO_SIGNATURES");
+    evp = MPR_GetEnvSecure("NSS_COMBO_SIGNATURES");
     if (evp && !comboRequired) {
         if (PORT_Strcasecmp(evp, "none") == 0) {
             *mechp = CKM_INVALID_MECHANISM;

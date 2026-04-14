@@ -61,7 +61,7 @@ testGetCRLEntryForSerialNumber(
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(
         PKIX_ESCASCII,
         snAscii,
-        PL_strlen(snAscii),
+        MPL_strlen(snAscii),
         &bigIntString,
         plContext));
 

@@ -674,7 +674,7 @@ TEST_P(TlsConnectTls13, DCRejectModifiedDCAuthKeyBits) {
 class DCDelegation : public ::testing::Test {};
 
 TEST_F(DCDelegation, DCDelegations) {
-  PRTime now = PR_Now();
+  PRTime now = MPR_Now();
   ScopedCERTCertificate cert;
   ScopedSECKEYPrivateKey priv;
   ASSERT_TRUE(TlsAgent::LoadCertificate(kEcdsaDelegatorId, &cert, &priv));

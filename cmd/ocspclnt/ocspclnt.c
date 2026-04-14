@@ -43,35 +43,35 @@ synopsis(char *progname)
     PRFileDesc *pr_stderr;
 
     pr_stderr = PR_STDERR;
-    PR_fprintf(pr_stderr, "Usage:");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr, "Usage:");
+    MPR_fprintf(pr_stderr,
                "\t%s -p [-d <dir>]\n",
                progname);
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "\t%s -P [-d <dir>]\n",
                progname);
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "\t%s -r <name> [-a] [-L] [-s <name>] [-d <dir>]\n",
                progname);
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "\t%s -R <name> [-a] [-l <location>] [-s <name>] [-d <dir>]\n",
                progname);
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "\t%s -S <name> [-a] [-l <location> -t <name>]\n",
                progname);
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "\t\t [-s <name>] [-w <time>] [-d <dir>]\n");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "\t%s -V <name> [-a] -u <usage> [-l <location> -t <name>]\n",
                progname);
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "\t\t [-s <name>] [-w <time>] [-d <dir>]\n");
 }
 
 static void
 short_usage(char *progname)
 {
-    PR_fprintf(PR_STDERR,
+    MPR_fprintf(PR_STDERR,
                "Type %s -H for more detailed descriptions\n",
                progname);
     synopsis(progname);
@@ -84,73 +84,73 @@ long_usage(char *progname)
 
     pr_stderr = PR_STDERR;
     synopsis(progname);
-    PR_fprintf(pr_stderr, "\nCommands (must specify exactly one):\n");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr, "\nCommands (must specify exactly one):\n");
+    MPR_fprintf(pr_stderr,
                "  %-13s Pretty-print a binary request read from stdin\n",
                "-p");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Pretty-print a binary response read from stdin\n",
                "-P");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Create a request for cert \"nickname\" on stdout\n",
                "-r nickname");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Get response for cert \"nickname\", dump to stdout\n",
                "-R nickname");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Get status for cert \"nickname\"\n",
                "-S nickname");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Fully verify cert \"nickname\", w/ status check\n",
                "-V nickname");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "\n     %-10s also can be the name of the file with DER or\n"
                "  %-13s PEM(use -a option) cert encoding\n",
                "nickname", "");
-    PR_fprintf(pr_stderr, "Options:\n");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr, "Options:\n");
+    MPR_fprintf(pr_stderr,
                "  %-13s Decode input cert from PEM format. DER is default\n",
                "-a");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Add the service locator extension to the request\n",
                "-L");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Find security databases in \"dbdir\" (default %s)\n",
                "-d dbdir", DEFAULT_DB_DIR);
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Use \"location\" as URL of responder\n",
                "-l location");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Trust cert \"nickname\" as response signer\n",
                "-t nickname");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Sign requests with cert \"nickname\"\n",
                "-s nickname");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Type of certificate usage for verification:\n",
                "-u usage");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "%-17s c   SSL Client\n", "");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "%-17s s   SSL Server\n", "");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "%-17s I   IPsec\n", "");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "%-17s e   Email Recipient\n", "");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "%-17s E   Email Signer\n", "");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "%-17s S   Object Signer\n", "");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "%-17s C   CA\n", "");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "  %-13s Validity time (default current time), one of:\n",
                "-w time");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "%-17s %-25s (GMT)\n", "", "YYMMDDhhmm[ss]Z");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "%-17s %-25s (later than GMT)\n", "", "YYMMDDhhmm[ss]+hhmm");
-    PR_fprintf(pr_stderr,
+    MPR_fprintf(pr_stderr,
                "%-17s %-25s (earlier than GMT)\n", "", "YYMMDDhhmm[ss]-hhmm");
 }
 
@@ -196,7 +196,7 @@ read_file_into_item(PRFileDesc *in_file, SECItemType si_type)
     PRFileInfo file_info;
     PRInt32 bytes_read;
 
-    prv = PR_GetOpenFileInfo(in_file, &file_info);
+    prv = MPR_GetOpenFileInfo(in_file, &file_info);
     if (prv != PR_SUCCESS)
         return NULL;
 
@@ -221,7 +221,7 @@ read_file_into_item(PRFileDesc *in_file, SECItemType si_type)
     if (item->data == NULL)
         goto loser;
 
-    bytes_read = PR_Read(in_file, item->data, (PRInt32)item->len);
+    bytes_read = MPR_Read(in_file, item->data, (PRInt32)item->len);
     if (bytes_read < 0) {
         /* Something went wrong; error is already set for us. */
         goto loser;
@@ -253,7 +253,7 @@ create_request(FILE *out_file, CERTCertDBHandle *handle, CERTCertificate *cert,
     CERTCertList *certs = NULL;
     CERTCertificate *myCert = NULL;
     CERTOCSPRequest *request = NULL;
-    PRTime now = PR_Now();
+    PRTime now = MPR_Now();
     SECItem *encoding = NULL;
     SECStatus rv = SECFailure;
 
@@ -327,7 +327,7 @@ dump_response(FILE *out_file, CERTCertDBHandle *handle, CERTCertificate *cert,
     CERTCertList *certs = NULL;
     CERTCertificate *myCert = NULL;
     char *loc = NULL;
-    PRTime now = PR_Now();
+    PRTime now = MPR_Now();
     SECItem *response = NULL;
     SECStatus rv = SECFailure;
     PRBool includeServiceLocator;
@@ -476,7 +476,7 @@ find_certificate(CERTCertDBHandle *handle, const char *name, PRBool ascii)
             return cert;
     }
 
-    certFile = PR_Open(name, PR_RDONLY, 0);
+    certFile = MPR_Open(name, PR_RDONLY, 0);
     if (certFile == NULL) {
         return NULL;
     }
@@ -485,7 +485,7 @@ find_certificate(CERTCertDBHandle *handle, const char *name, PRBool ascii)
         cert = CERT_DecodeCertFromPackage((char *)der.data, der.len);
         SECITEM_FreeItem(&der, PR_FALSE);
     }
-    PR_Close(certFile);
+    MPR_Close(certFile);
 
     return cert;
 }
@@ -955,7 +955,7 @@ main(int argc, char **argv)
 
     retval = -1; /* what we return/exit with on error */
 
-    program_name = PL_strrchr(argv[0], '/');
+    program_name = MPL_strrchr(argv[0], '/');
     program_name = program_name ? (program_name + 1) : argv[0];
 
     in_file = PR_STDIN;
@@ -979,13 +979,13 @@ main(int argc, char **argv)
     add_acceptable_responses = PR_FALSE;
     add_service_locator = PR_FALSE;
 
-    optstate = PL_CreateOptState(argc, argv, "AHLPR:S:V:d:l:pr:s:t:u:w:");
+    optstate = MPL_CreateOptState(argc, argv, "AHLPR:S:V:d:l:pr:s:t:u:w:");
     if (optstate == NULL) {
-        SECU_PrintError(program_name, "PL_CreateOptState failed");
+        SECU_PrintError(program_name, "MPL_CreateOptState failed");
         return retval;
     }
 
-    while (PL_GetNextOpt(optstate) == PL_OPT_OK) {
+    while (MPL_GetNextOpt(optstate) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
                 short_usage(program_name);
@@ -1061,10 +1061,10 @@ main(int argc, char **argv)
         }
     }
 
-    PL_DestroyOptState(optstate);
+    MPL_DestroyOptState(optstate);
 
     if ((crequest + dresponse + prequest + presponse + ccert + vcert) != 1) {
-        PR_fprintf(PR_STDERR, "%s: must specify exactly one command\n\n",
+        MPR_fprintf(PR_STDERR, "%s: must specify exactly one command\n\n",
                    program_name);
         short_usage(program_name);
         return retval;
@@ -1072,7 +1072,7 @@ main(int argc, char **argv)
 
     if (vcert) {
         if (cert_usage_str == NULL) {
-            PR_fprintf(PR_STDERR, "%s: verification requires cert usage\n\n",
+            MPR_fprintf(PR_STDERR, "%s: verification requires cert usage\n\n",
                        program_name);
             short_usage(program_name);
             return retval;
@@ -1080,7 +1080,7 @@ main(int argc, char **argv)
 
         rv = cert_usage_from_char(cert_usage_str, &cert_usage);
         if (rv != SECSuccess) {
-            PR_fprintf(PR_STDERR, "%s: invalid cert usage (\"%s\")\n\n",
+            MPR_fprintf(PR_STDERR, "%s: invalid cert usage (\"%s\")\n\n",
                        program_name, cert_usage_str);
             long_usage(program_name);
             return retval;
@@ -1095,11 +1095,11 @@ main(int argc, char **argv)
              */
             if (responder_url == NULL || responder_name == NULL) {
                 if (responder_url == NULL)
-                    PR_fprintf(PR_STDERR,
+                    MPR_fprintf(PR_STDERR,
                                "%s: must also specify responder location\n\n",
                                program_name);
                 else
-                    PR_fprintf(PR_STDERR,
+                    MPR_fprintf(PR_STDERR,
                                "%s: must also specify responder name\n\n",
                                program_name);
                 short_usage(program_name);
@@ -1111,12 +1111,12 @@ main(int argc, char **argv)
             rv = DER_AsciiToTime(&verify_time, (char *)date_str);
             if (rv != SECSuccess) {
                 SECU_PrintError(program_name, "error converting time string");
-                PR_fprintf(PR_STDERR, "\n");
+                MPR_fprintf(PR_STDERR, "\n");
                 long_usage(program_name);
                 return retval;
             }
         } else {
-            verify_time = PR_Now();
+            verify_time = MPR_Now();
         }
     }
 
@@ -1125,7 +1125,7 @@ main(int argc, char **argv)
     /*
      * Initialize the NSPR and Security libraries.
      */
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     db_dir = SECU_ConfigDirectory(db_dir);
     rv = NSS_Init(db_dir);
     if (rv != SECSuccess) {
@@ -1184,7 +1184,7 @@ main(int argc, char **argv)
 
 #define NOTYET(opt)                                         \
     {                                                       \
-        PR_fprintf(PR_STDERR, "%s not yet working\n", opt); \
+        MPR_fprintf(PR_STDERR, "%s not yet working\n", opt); \
         exit(-1);                                           \
     }
 
@@ -1243,6 +1243,6 @@ nssdone:
     }
 
 prdone:
-    PR_Cleanup();
+    MPR_Cleanup();
     return retval;
 }

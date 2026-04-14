@@ -25,7 +25,7 @@ createBigInt(
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_ESCASCII,
                                                     bigIntAscii,
-                                                    PL_strlen(bigIntAscii),
+                                                    MPL_strlen(bigIntAscii),
                                                     &bigIntString,
                                                     plContext));
 
@@ -65,7 +65,7 @@ testToString(
         goto cleanup;
     }
 
-    if (PL_strcmp(temp, expAscii) != 0) {
+    if (MPL_strcmp(temp, expAscii) != 0) {
         (void)printf("\tBigInt ToString: %s %s\n", temp, expAscii);
         testError("Output string does not match source");
     }

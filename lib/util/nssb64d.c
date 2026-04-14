@@ -73,7 +73,7 @@ struct PLBase64DecoderStr {
      * Where to write the decoded data (used when streaming, not when
      * doing all in-memory (buffer) operations).
      *
-     * Note that this definition is chosen to be compatible with PR_Write.
+     * Note that this definition is chosen to be compatible with MPR_Write.
      */
     PRInt32 (*output_fn)(void *output_arg, const unsigned char *buf,
                          PRInt32 size);
@@ -429,7 +429,7 @@ PL_CreateBase64Decoder(PRInt32 (*output_fn)(void *, const unsigned char *,
     PLBase64Decoder *data;
 
     if (output_fn == NULL) {
-        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
+        MPR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
         return NULL;
     }
 
@@ -454,7 +454,7 @@ PL_UpdateBase64Decoder(PLBase64Decoder *data, const char *buffer,
 
     /* XXX Should we do argument checking only in debug build? */
     if (data == NULL || buffer == NULL || size == 0) {
-        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
+        MPR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
         return PR_FAILURE;
     }
 
@@ -470,10 +470,10 @@ PL_UpdateBase64Decoder(PLBase64Decoder *data, const char *buffer,
         unsigned char *output_buffer = data->output_buffer;
 
         if (output_buffer != NULL)
-            output_buffer = (unsigned char *)PR_Realloc(output_buffer,
+            output_buffer = (unsigned char *)MPR_Realloc(output_buffer,
                                                         need_length);
         else
-            output_buffer = (unsigned char *)PR_Malloc(need_length);
+            output_buffer = (unsigned char *)MPR_Malloc(need_length);
 
         if (output_buffer == NULL)
             return PR_FAILURE;
@@ -517,7 +517,7 @@ PL_DestroyBase64Decoder(PLBase64Decoder *data, PRBool abort_p)
 
     /* XXX Should we do argument checking only in debug build? */
     if (data == NULL) {
-        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
+        MPR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
         return PR_FAILURE;
     }
 
@@ -526,8 +526,8 @@ PL_DestroyBase64Decoder(PLBase64Decoder *data, PRBool abort_p)
         status = pl_base64_decode_flush(data);
 
     if (data->output_buffer != NULL)
-        PR_Free(data->output_buffer);
-    PR_Free(data);
+        MPR_Free(data->output_buffer);
+    MPR_Free(data);
 
     return status;
 }
@@ -555,7 +555,7 @@ PL_Base64DecodeBuffer(const char *src, PRUint32 srclen, unsigned char *dest,
 
     PR_ASSERT(srclen > 0);
     if (srclen == 0) {
-        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
+        MPR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
         return NULL;
     }
 
@@ -571,12 +571,12 @@ PL_Base64DecodeBuffer(const char *src, PRUint32 srclen, unsigned char *dest,
     if (dest != NULL) {
         PR_ASSERT(maxdestlen >= need_length);
         if (maxdestlen < need_length) {
-            PR_SetError(PR_BUFFER_OVERFLOW_ERROR, 0);
+            MPR_SetError(PR_BUFFER_OVERFLOW_ERROR, 0);
             goto loser;
         }
         output_buffer = dest;
     } else {
-        output_buffer = (unsigned char *)PR_Malloc(need_length);
+        output_buffer = (unsigned char *)MPR_Malloc(need_length);
         if (output_buffer == NULL)
             goto loser;
         maxdestlen = need_length;
@@ -613,7 +613,7 @@ PL_Base64DecodeBuffer(const char *src, PRUint32 srclen, unsigned char *dest,
 
 loser:
     if (dest == NULL && output_buffer != NULL)
-        PR_Free(output_buffer);
+        MPR_Free(output_buffer);
     if (data != NULL)
         (void)PL_DestroyBase64Decoder(data, PR_TRUE);
     return NULL;

@@ -150,7 +150,7 @@ NSS_SMIMEMessage_CreateSigned(CERTCertificate *scert,
         goto loser;
 
     /* Add the signing time to the signerinfo.  */
-    if (NSS_CMSSignerInfo_AddSigningTime(signerinfo, PR_Now()) != SECSuccess)
+    if (NSS_CMSSignerInfo_AddSigningTime(signerinfo, MPR_Now()) != SECSuccess)
         goto loser;
 
     /* and add the SMIME profile */

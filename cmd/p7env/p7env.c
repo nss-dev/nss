@@ -149,8 +149,8 @@ main(int argc, char **argv)
      * and key sizes (or to look up algorithms and key sizes for each
      * recipient in the magic database).
      */
-    optstate = PL_CreateOptState(argc, argv, "d:i:o:r:");
-    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = MPL_CreateOptState(argc, argv, "d:i:o:r:");
+    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case '?':
                 Usage(progName);
@@ -196,7 +196,7 @@ main(int argc, char **argv)
                 break;
         }
     }
-    PL_DestroyOptState(optstate);
+    MPL_DestroyOptState(optstate);
 
     if (!recipients)
         Usage(progName);
@@ -207,7 +207,7 @@ main(int argc, char **argv)
         outFile = stdout;
 
     /* Call the NSS initialization routines */
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     rv = NSS_Init(SECU_ConfigDirectory(NULL));
     if (rv != SECSuccess) {
         SECU_PrintPRandOSError(progName);

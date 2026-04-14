@@ -28,7 +28,7 @@ JzipOpen(char *filename, char *comment)
         out_of_memory();
 
     /* Construct time and date */
-    PR_ExplodeTime(PR_Now(), PR_LocalTimeParameters, &prtime);
+    MPR_ExplodeTime(MPR_Now(), MPR_LocalTimeParameters, &prtime);
     zipfile->date = ((prtime.tm_year - 1980) << 9) |
                     ((prtime.tm_month + 1) << 5) |
                     prtime.tm_mday;
@@ -38,23 +38,23 @@ JzipOpen(char *filename, char *comment)
 
     zipfile->fp = NULL;
     if (filename &&
-        (zipfile->fp = PR_Open(filename,
+        (zipfile->fp = MPR_Open(filename,
                                PR_WRONLY |
                                    PR_CREATE_FILE |
                                    PR_TRUNCATE,
                                0777)) == NULL) {
         char *nsprErr;
-        if (PR_GetErrorTextLength()) {
-            nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-            PR_GetErrorText(nsprErr);
+        if (MPR_GetErrorTextLength()) {
+            nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+            MPR_GetErrorText(nsprErr);
         } else {
             nsprErr = NULL;
         }
-        PR_fprintf(errorFD, "%s: can't open output jar, %s.%s\n",
+        MPR_fprintf(errorFD, "%s: can't open output jar, %s.%s\n",
                    PROGRAM_NAME,
                    filename, nsprErr ? nsprErr : "");
         if (nsprErr)
-            PR_Free(nsprErr);
+            MPR_Free(nsprErr);
         errorCount++;
         exit(ERRX);
     }
@@ -99,24 +99,24 @@ handle_zerror(int err, char *msg)
 
     switch (err) {
         case Z_OK:
-            PR_fprintf(errorFD, "No error: %s\n", msg);
+            MPR_fprintf(errorFD, "No error: %s\n", msg);
             errorCount--; /* this was incremented above */
             break;
         case Z_MEM_ERROR:
-            PR_fprintf(errorFD, "Deflation ran out of memory: %s\n", msg);
+            MPR_fprintf(errorFD, "Deflation ran out of memory: %s\n", msg);
             break;
         case Z_STREAM_ERROR:
-            PR_fprintf(errorFD, "Invalid compression level: %s\n", msg);
+            MPR_fprintf(errorFD, "Invalid compression level: %s\n", msg);
             break;
         case Z_VERSION_ERROR:
-            PR_fprintf(errorFD, "Incompatible compression library version: %s\n",
+            MPR_fprintf(errorFD, "Incompatible compression library version: %s\n",
                        msg);
             break;
         case Z_DATA_ERROR:
-            PR_fprintf(errorFD, "Compression data error: %s\n", msg);
+            MPR_fprintf(errorFD, "Compression data error: %s\n", msg);
             break;
         default:
-            PR_fprintf(errorFD, "Unknown error in compression library: %s\n", msg);
+            MPR_fprintf(errorFD, "Unknown error in compression library: %s\n", msg);
             break;
     }
 }
@@ -151,18 +151,18 @@ JzipAdd(char *fullname, char *filename, ZIPfile *zipfile, int lvl)
     if (!zipfp)
         return -1;
 
-    if ((readfp = PR_Open(fullname, PR_RDONLY, 0777)) == NULL) {
+    if ((readfp = MPR_Open(fullname, PR_RDONLY, 0777)) == NULL) {
         char *nsprErr;
-        if (PR_GetErrorTextLength()) {
-            nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-            PR_GetErrorText(nsprErr);
+        if (MPR_GetErrorTextLength()) {
+            nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+            MPR_GetErrorText(nsprErr);
         } else {
             nsprErr = NULL;
         }
-        PR_fprintf(errorFD, "%s: %s\n", fullname, nsprErr ? nsprErr : "");
+        MPR_fprintf(errorFD, "%s: %s\n", fullname, nsprErr ? nsprErr : "");
         errorCount++;
         if (nsprErr)
-            PR_Free(nsprErr);
+            MPR_Free(nsprErr);
         exit(ERRX);
     }
 
@@ -176,40 +176,40 @@ JzipAdd(char *fullname, char *filename, ZIPfile *zipfile, int lvl)
         PRInt32 inputSize;
         PRBool isSame;
 
-        inputSize = PR_Available(readfp);
+        inputSize = MPR_Available(readfp);
 
-        endOfJar = PR_Seek(zipfp, 0L, PR_SEEK_CUR);
+        endOfJar = MPR_Seek(zipfp, 0L, PR_SEEK_CUR);
 
-        if (PR_Write(zipfp, "abcde", 5) < 5) {
+        if (MPR_Write(zipfp, "abcde", 5) < 5) {
             char *nsprErr;
 
-            if (PR_GetErrorTextLength()) {
-                nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-                PR_GetErrorText(nsprErr);
+            if (MPR_GetErrorTextLength()) {
+                nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+                MPR_GetErrorText(nsprErr);
             } else {
                 nsprErr = NULL;
             }
-            PR_fprintf(errorFD, "Writing to zip file: %s\n",
+            MPR_fprintf(errorFD, "Writing to zip file: %s\n",
                        nsprErr ? nsprErr : "");
             if (nsprErr)
-                PR_Free(nsprErr);
+                MPR_Free(nsprErr);
             errorCount++;
             exit(ERRX);
         }
 
-        isSame = (PR_Available(readfp) != inputSize);
+        isSame = (MPR_Available(readfp) != inputSize);
 
-        PR_Seek(zipfp, endOfJar, PR_SEEK_SET);
+        MPR_Seek(zipfp, endOfJar, PR_SEEK_SET);
 
         if (isSame) {
             /* It's the same file! Forget it! */
-            PR_Close(readfp);
+            MPR_Close(readfp);
             return 0;
         }
     }
 
     if (verbosity >= 0) {
-        PR_fprintf(outputFD, "adding %s to %s...", fullname, zipfile->filename);
+        MPR_fprintf(outputFD, "adding %s to %s...", fullname, zipfile->filename);
     }
 
     entry = PORT_ZAlloc(sizeof(ZIPentry));
@@ -232,7 +232,7 @@ JzipAdd(char *fullname, char *filename, ZIPfile *zipfile, int lvl)
     if (entry->comment) {
         inttox(strlen(entry->comment), entry->central.commentfield_len);
     }
-    longtox(PR_Seek(zipfile->fp, 0, PR_SEEK_CUR),
+    longtox(MPR_Seek(zipfile->fp, 0, PR_SEEK_CUR),
             entry->central.localhdr_offset);
     inttox(zipfile->time, entry->central.time);
     inttox(zipfile->date, entry->central.date);
@@ -240,10 +240,10 @@ JzipAdd(char *fullname, char *filename, ZIPfile *zipfile, int lvl)
 
     /* Compute crc.  Too bad we have to process the whole file to do this*/
     crc = crc32(0L, NULL, 0);
-    while ((num = PR_Read(readfp, inbuf, BUFSIZ)) > 0) {
+    while ((num = MPR_Read(readfp, inbuf, BUFSIZ)) > 0) {
         crc = crc32(crc, inbuf, num);
     }
-    PR_Seek(readfp, 0L, PR_SEEK_SET);
+    MPR_Seek(readfp, 0L, PR_SEEK_SET);
 
     /* Store CRC */
     longtox(crc, entry->local.crc32);
@@ -268,36 +268,36 @@ JzipAdd(char *fullname, char *filename, ZIPfile *zipfile, int lvl)
      * Start writing stuff out
      */
 
-    local_size_pos = PR_Seek(zipfp, 0, PR_SEEK_CUR) + 18;
+    local_size_pos = MPR_Seek(zipfp, 0, PR_SEEK_CUR) + 18;
     /* File header */
-    if (PR_Write(zipfp, &entry->local, sizeof(struct ZipLocal)) <
+    if (MPR_Write(zipfp, &entry->local, sizeof(struct ZipLocal)) <
         sizeof(struct ZipLocal)) {
         char *nsprErr;
-        if (PR_GetErrorTextLength()) {
-            nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-            PR_GetErrorText(nsprErr);
+        if (MPR_GetErrorTextLength()) {
+            nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+            MPR_GetErrorText(nsprErr);
         } else {
             nsprErr = NULL;
         }
-        PR_fprintf(errorFD, "Writing zip data: %s\n", nsprErr ? nsprErr : "");
+        MPR_fprintf(errorFD, "Writing zip data: %s\n", nsprErr ? nsprErr : "");
         if (nsprErr)
-            PR_Free(nsprErr);
+            MPR_Free(nsprErr);
         errorCount++;
         exit(ERRX);
     }
 
     /* File Name */
-    if (PR_Write(zipfp, filename, strlen(filename)) < strlen(filename)) {
+    if (MPR_Write(zipfp, filename, strlen(filename)) < strlen(filename)) {
         char *nsprErr;
-        if (PR_GetErrorTextLength()) {
-            nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-            PR_GetErrorText(nsprErr);
+        if (MPR_GetErrorTextLength()) {
+            nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+            MPR_GetErrorText(nsprErr);
         } else {
             nsprErr = NULL;
         }
-        PR_fprintf(errorFD, "Writing zip data: %s\n", nsprErr ? nsprErr : "");
+        MPR_fprintf(errorFD, "Writing zip data: %s\n", nsprErr ? nsprErr : "");
         if (nsprErr)
-            PR_Free(nsprErr);
+            MPR_Free(nsprErr);
         errorCount++;
         exit(ERRX);
     }
@@ -326,7 +326,7 @@ JzipAdd(char *fullname, char *filename, ZIPfile *zipfile, int lvl)
         exit(ERRX);
     }
 
-    while ((zstream.avail_in = PR_Read(readfp, inbuf, BUFSIZ)) > 0) {
+    while ((zstream.avail_in = MPR_Read(readfp, inbuf, BUFSIZ)) > 0) {
         zstream.next_in = inbuf;
         /* Process this chunk of data */
         while (zstream.avail_in > 0) {
@@ -336,18 +336,18 @@ JzipAdd(char *fullname, char *filename, ZIPfile *zipfile, int lvl)
                 exit(ERRX);
             }
             if (zstream.avail_out <= 0) {
-                if (PR_Write(zipfp, outbuf, BUFSIZ) < BUFSIZ) {
+                if (MPR_Write(zipfp, outbuf, BUFSIZ) < BUFSIZ) {
                     char *nsprErr;
-                    if (PR_GetErrorTextLength()) {
-                        nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-                        PR_GetErrorText(nsprErr);
+                    if (MPR_GetErrorTextLength()) {
+                        nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+                        MPR_GetErrorText(nsprErr);
                     } else {
                         nsprErr = NULL;
                     }
-                    PR_fprintf(errorFD, "Writing zip data: %s\n",
+                    MPR_fprintf(errorFD, "Writing zip data: %s\n",
                                nsprErr ? nsprErr : "");
                     if (nsprErr)
-                        PR_Free(nsprErr);
+                        MPR_Free(nsprErr);
                     errorCount++;
                     exit(ERRX);
                 }
@@ -368,18 +368,18 @@ JzipAdd(char *fullname, char *filename, ZIPfile *zipfile, int lvl)
             handle_zerror(err, zstream.msg);
             exit(ERRX);
         }
-        if (PR_Write(zipfp, outbuf, BUFSIZ) < BUFSIZ) {
+        if (MPR_Write(zipfp, outbuf, BUFSIZ) < BUFSIZ) {
             char *nsprErr;
-            if (PR_GetErrorTextLength()) {
-                nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-                PR_GetErrorText(nsprErr);
+            if (MPR_GetErrorTextLength()) {
+                nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+                MPR_GetErrorText(nsprErr);
             } else {
                 nsprErr = NULL;
             }
-            PR_fprintf(errorFD, "Writing zip data: %s\n",
+            MPR_fprintf(errorFD, "Writing zip data: %s\n",
                        nsprErr ? nsprErr : "");
             if (nsprErr)
-                PR_Free(nsprErr);
+                MPR_Free(nsprErr);
             errorCount++;
             exit(ERRX);
         }
@@ -389,19 +389,19 @@ JzipAdd(char *fullname, char *filename, ZIPfile *zipfile, int lvl)
 
     /* If there's any output left, write it out. */
     if (zstream.next_out != outbuf) {
-        if (PR_Write(zipfp, outbuf, zstream.next_out - outbuf) <
+        if (MPR_Write(zipfp, outbuf, zstream.next_out - outbuf) <
             zstream.next_out - outbuf) {
             char *nsprErr;
-            if (PR_GetErrorTextLength()) {
-                nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-                PR_GetErrorText(nsprErr);
+            if (MPR_GetErrorTextLength()) {
+                nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+                MPR_GetErrorText(nsprErr);
             } else {
                 nsprErr = NULL;
             }
-            PR_fprintf(errorFD, "Writing zip data: %s\n",
+            MPR_fprintf(errorFD, "Writing zip data: %s\n",
                        nsprErr ? nsprErr : "");
             if (nsprErr)
-                PR_Free(nsprErr);
+                MPR_Free(nsprErr);
             errorCount++;
             exit(ERRX);
         }
@@ -412,46 +412,46 @@ JzipAdd(char *fullname, char *filename, ZIPfile *zipfile, int lvl)
     /* Now that we know the compressed size, write this to the headers */
     longtox(zstream.total_in, entry->local.orglen);
     longtox(zstream.total_out, entry->local.size);
-    if (PR_Seek(zipfp, local_size_pos, PR_SEEK_SET) == -1) {
+    if (MPR_Seek(zipfp, local_size_pos, PR_SEEK_SET) == -1) {
         char *nsprErr;
-        if (PR_GetErrorTextLength()) {
-            nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-            PR_GetErrorText(nsprErr);
+        if (MPR_GetErrorTextLength()) {
+            nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+            MPR_GetErrorText(nsprErr);
         } else {
             nsprErr = NULL;
         }
-        PR_fprintf(errorFD, "Accessing zip file: %s\n", nsprErr ? nsprErr : "");
+        MPR_fprintf(errorFD, "Accessing zip file: %s\n", nsprErr ? nsprErr : "");
         if (nsprErr)
-            PR_Free(nsprErr);
+            MPR_Free(nsprErr);
         errorCount++;
         exit(ERRX);
     }
-    if (PR_Write(zipfp, entry->local.size, 8) != 8) {
+    if (MPR_Write(zipfp, entry->local.size, 8) != 8) {
         char *nsprErr;
-        if (PR_GetErrorTextLength()) {
-            nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-            PR_GetErrorText(nsprErr);
+        if (MPR_GetErrorTextLength()) {
+            nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+            MPR_GetErrorText(nsprErr);
         } else {
             nsprErr = NULL;
         }
-        PR_fprintf(errorFD, "Writing zip data: %s\n", nsprErr ? nsprErr : "");
+        MPR_fprintf(errorFD, "Writing zip data: %s\n", nsprErr ? nsprErr : "");
         if (nsprErr)
-            PR_Free(nsprErr);
+            MPR_Free(nsprErr);
         errorCount++;
         exit(ERRX);
     }
-    if (PR_Seek(zipfp, 0L, PR_SEEK_END) == -1) {
+    if (MPR_Seek(zipfp, 0L, PR_SEEK_END) == -1) {
         char *nsprErr;
-        if (PR_GetErrorTextLength()) {
-            nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-            PR_GetErrorText(nsprErr);
+        if (MPR_GetErrorTextLength()) {
+            nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+            MPR_GetErrorText(nsprErr);
         } else {
             nsprErr = NULL;
         }
-        PR_fprintf(errorFD, "Accessing zip file: %s\n",
+        MPR_fprintf(errorFD, "Accessing zip file: %s\n",
                    nsprErr ? nsprErr : "");
         if (nsprErr)
-            PR_Free(nsprErr);
+            MPR_Free(nsprErr);
         errorCount++;
         exit(ERRX);
     }
@@ -465,7 +465,7 @@ JzipAdd(char *fullname, char *filename, ZIPfile *zipfile, int lvl)
         exit(ERRX);
     }
 
-    PR_Close(readfp);
+    MPR_Close(readfp);
 
     if ((zstream.total_in > zstream.total_out) && (zstream.total_in > 0)) {
         deflate_percent = (int)((zstream.total_in -
@@ -475,7 +475,7 @@ JzipAdd(char *fullname, char *filename, ZIPfile *zipfile, int lvl)
         deflate_percent = 0;
     }
     if (verbosity >= 0) {
-        PR_fprintf(outputFD, "(deflated %d%%)\n", deflate_percent);
+        MPR_fprintf(outputFD, "(deflated %d%%)\n", deflate_percent);
     }
 
     return 0;
@@ -504,7 +504,7 @@ JzipClose(ZIPfile *zipfile)
     }
 
     zipfp = zipfile->fp;
-    zipfile->central_start = PR_Seek(zipfp, 0L, PR_SEEK_CUR);
+    zipfile->central_start = MPR_Seek(zipfp, 0L, PR_SEEK_CUR);
 
     /* Write out all the central directories */
     pe = zipfile->list;
@@ -512,56 +512,56 @@ JzipClose(ZIPfile *zipfile)
         entrycount++;
 
         /* Write central directory info */
-        if (PR_Write(zipfp, &pe->central, sizeof(struct ZipCentral)) <
+        if (MPR_Write(zipfp, &pe->central, sizeof(struct ZipCentral)) <
             sizeof(struct ZipCentral)) {
             char *nsprErr;
-            if (PR_GetErrorTextLength()) {
-                nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-                PR_GetErrorText(nsprErr);
+            if (MPR_GetErrorTextLength()) {
+                nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+                MPR_GetErrorText(nsprErr);
             } else {
                 nsprErr = NULL;
             }
-            PR_fprintf(errorFD, "Writing zip data: %s\n",
+            MPR_fprintf(errorFD, "Writing zip data: %s\n",
                        nsprErr ? nsprErr : "");
             if (nsprErr)
-                PR_Free(nsprErr);
+                MPR_Free(nsprErr);
             errorCount++;
             exit(ERRX);
         }
 
         /* Write filename */
-        if (PR_Write(zipfp, pe->filename, strlen(pe->filename)) <
+        if (MPR_Write(zipfp, pe->filename, strlen(pe->filename)) <
             strlen(pe->filename)) {
             char *nsprErr;
-            if (PR_GetErrorTextLength()) {
-                nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-                PR_GetErrorText(nsprErr);
+            if (MPR_GetErrorTextLength()) {
+                nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+                MPR_GetErrorText(nsprErr);
             } else {
                 nsprErr = NULL;
             }
-            PR_fprintf(errorFD, "Writing zip data: %s\n",
+            MPR_fprintf(errorFD, "Writing zip data: %s\n",
                        nsprErr ? nsprErr : "");
             if (nsprErr)
-                PR_Free(nsprErr);
+                MPR_Free(nsprErr);
             errorCount++;
             exit(ERRX);
         }
 
         /* Write file comment */
         if (pe->comment) {
-            if (PR_Write(zipfp, pe->comment, strlen(pe->comment)) <
+            if (MPR_Write(zipfp, pe->comment, strlen(pe->comment)) <
                 strlen(pe->comment)) {
                 char *nsprErr;
-                if (PR_GetErrorTextLength()) {
-                    nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-                    PR_GetErrorText(nsprErr);
+                if (MPR_GetErrorTextLength()) {
+                    nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+                    MPR_GetErrorText(nsprErr);
                 } else {
                     nsprErr = NULL;
                 }
-                PR_fprintf(errorFD, "Writing zip data: %s\n",
+                MPR_fprintf(errorFD, "Writing zip data: %s\n",
                            nsprErr ? nsprErr : "");
                 if (nsprErr)
-                    PR_Free(nsprErr);
+                    MPR_Free(nsprErr);
                 errorCount++;
                 exit(ERRX);
             }
@@ -578,7 +578,7 @@ JzipClose(ZIPfile *zipfile)
         }
         PORT_Free(dead);
     }
-    zipfile->central_end = PR_Seek(zipfile->fp, 0L, PR_SEEK_CUR);
+    zipfile->central_end = MPR_Seek(zipfile->fp, 0L, PR_SEEK_CUR);
 
     /* Create the ZipEnd structure */
     PORT_Memset(&zipend, 0, sizeof(zipend));
@@ -593,43 +593,43 @@ JzipClose(ZIPfile *zipfile)
     }
 
     /* Write out ZipEnd xtructure */
-    if (PR_Write(zipfp, &zipend, sizeof(zipend)) < sizeof(zipend)) {
+    if (MPR_Write(zipfp, &zipend, sizeof(zipend)) < sizeof(zipend)) {
         char *nsprErr;
-        if (PR_GetErrorTextLength()) {
-            nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-            PR_GetErrorText(nsprErr);
+        if (MPR_GetErrorTextLength()) {
+            nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+            MPR_GetErrorText(nsprErr);
         } else {
             nsprErr = NULL;
         }
-        PR_fprintf(errorFD, "Writing zip data: %s\n",
+        MPR_fprintf(errorFD, "Writing zip data: %s\n",
                    nsprErr ? nsprErr : "");
         if (nsprErr)
-            PR_Free(nsprErr);
+            MPR_Free(nsprErr);
         errorCount++;
         exit(ERRX);
     }
 
     /* Write out Zipfile comment */
     if (zipfile->comment) {
-        if (PR_Write(zipfp, zipfile->comment, strlen(zipfile->comment)) <
+        if (MPR_Write(zipfp, zipfile->comment, strlen(zipfile->comment)) <
             strlen(zipfile->comment)) {
             char *nsprErr;
-            if (PR_GetErrorTextLength()) {
-                nsprErr = PR_Malloc(PR_GetErrorTextLength() + 1);
-                PR_GetErrorText(nsprErr);
+            if (MPR_GetErrorTextLength()) {
+                nsprErr = MPR_Malloc(MPR_GetErrorTextLength() + 1);
+                MPR_GetErrorText(nsprErr);
             } else {
                 nsprErr = NULL;
             }
-            PR_fprintf(errorFD, "Writing zip data: %s\n",
+            MPR_fprintf(errorFD, "Writing zip data: %s\n",
                        nsprErr ? nsprErr : "");
             if (nsprErr)
-                PR_Free(nsprErr);
+                MPR_Free(nsprErr);
             errorCount++;
             exit(ERRX);
         }
     }
 
-    PR_Close(zipfp);
+    MPR_Close(zipfp);
 
     /* Free the memory of the zipfile structure */
     if (zipfile->filename) {

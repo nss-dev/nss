@@ -337,7 +337,7 @@ nsslowcert_IsNewer(NSSLOWCERTCertificate *certa, NSSLOWCERTCertificate *certb)
     }
 
     /* get current time */
-    now = PR_Now();
+    now = MPR_Now();
 
     if (newerbefore) {
         /* cert A was issued after cert B, but expires sooner */

@@ -293,25 +293,25 @@ getPQGString(const char *filename)
     PRStatus prStatus;
     PRFileInfo info;
 
-    src = PR_Open(filename, PR_RDONLY, 0);
+    src = MPR_Open(filename, PR_RDONLY, 0);
     if (!src) {
         fprintf(stderr, "Failed to open PQG file %s\n", filename);
         return NULL;
     }
 
-    prStatus = PR_GetOpenFileInfo(src, &info);
+    prStatus = MPR_GetOpenFileInfo(src, &info);
 
     if (prStatus == PR_SUCCESS) {
         buf = (unsigned char *)PORT_Alloc(info.size + 1);
     }
     if (!buf) {
-        PR_Close(src);
+        MPR_Close(src);
         fprintf(stderr, "Failed to read PQG file %s\n", filename);
         return NULL;
     }
 
-    numBytes = PR_Read(src, buf, info.size);
-    PR_Close(src);
+    numBytes = MPR_Read(src, buf, info.size);
+    MPR_Close(src);
     if (numBytes != info.size) {
         PORT_Free(buf);
         fprintf(stderr, "Failed to read PQG file %s\n", filename);
@@ -365,20 +365,20 @@ CERTUTIL_FileForRNG(const char *noise)
     PRFileDesc *fd;
     PRInt32 count;
 
-    fd = PR_Open(noise, PR_RDONLY, 0);
+    fd = MPR_Open(noise, PR_RDONLY, 0);
     if (!fd) {
         fprintf(stderr, "failed to open noise file.");
         return SECFailure;
     }
 
     do {
-        count = PR_Read(fd, buf, sizeof(buf));
+        count = MPR_Read(fd, buf, sizeof(buf));
         if (count > 0) {
             PK11_RandomUpdate(buf, count);
         }
     } while (count > 0);
 
-    PR_Close(fd);
+    MPR_Close(fd);
     return SECSuccess;
 }
 
@@ -481,7 +481,7 @@ getECParams(const char *curve)
         numCurves = sizeof(nameTagPair) / sizeof(CurveNameTagPair);
         for (i = 0; ((i < numCurves) && (curveOidTag == SEC_OID_UNKNOWN));
              i++) {
-            if (PL_strcmp(curve, nameTagPair[i].curveName) == 0)
+            if (MPL_strcmp(curve, nameTagPair[i].curveName) == 0)
                 curveOidTag = nameTagPair[i].curveOidTag;
         }
     }

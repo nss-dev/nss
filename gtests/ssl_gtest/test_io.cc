@@ -26,7 +26,7 @@ namespace nss_test {
   } while (false)
 
 PRDescIdentity DummyPrSocket::LayerId() {
-  static PRDescIdentity id = PR_GetUniqueIdentity("dummysocket");
+  static PRDescIdentity id = MPR_GetUniqueIdentity("dummysocket");
   return id;
 }
 
@@ -55,19 +55,19 @@ void DummyPrSocket::PacketReceived(const DataBuffer &packet) {
 int32_t DummyPrSocket::Read(PRFileDesc *f, void *data, int32_t len) {
   PR_ASSERT(variant_ == ssl_variant_stream);
   if (variant_ != ssl_variant_stream) {
-    PR_SetError(PR_INVALID_METHOD_ERROR, 0);
+    MPR_SetError(PR_INVALID_METHOD_ERROR, 0);
     return -1;
   }
 
   auto dst = peer_.lock();
   if (!dst) {
-    PR_SetError(PR_NOT_CONNECTED_ERROR, 0);
+    MPR_SetError(PR_NOT_CONNECTED_ERROR, 0);
     return -1;
   }
 
   if (input_.empty()) {
     LOGV("Read --> wouldblock " << len);
-    PR_SetError(PR_WOULD_BLOCK_ERROR, 0);
+    MPR_SetError(PR_WOULD_BLOCK_ERROR, 0);
     return -1;
   }
 
@@ -89,7 +89,7 @@ int32_t DummyPrSocket::Recv(PRFileDesc *f, void *buf, int32_t buflen,
                             int32_t flags, PRIntervalTime to) {
   PR_ASSERT(flags == 0);
   if (flags != 0) {
-    PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
+    MPR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
     return -1;
   }
 
@@ -99,18 +99,18 @@ int32_t DummyPrSocket::Recv(PRFileDesc *f, void *buf, int32_t buflen,
 
   auto dst = peer_.lock();
   if (!dst) {
-    PR_SetError(PR_NOT_CONNECTED_ERROR, 0);
+    MPR_SetError(PR_NOT_CONNECTED_ERROR, 0);
     return -1;
   }
 
   if (input_.empty()) {
-    PR_SetError(PR_WOULD_BLOCK_ERROR, 0);
+    MPR_SetError(PR_WOULD_BLOCK_ERROR, 0);
     return -1;
   }
 
   auto &front = input_.front();
   if (static_cast<size_t>(buflen) < front.len()) {
-    PR_SetError(PR_BUFFER_OVERFLOW_ERROR, 0);
+    MPR_SetError(PR_BUFFER_OVERFLOW_ERROR, 0);
     return -1;
   }
 
@@ -123,13 +123,13 @@ int32_t DummyPrSocket::Recv(PRFileDesc *f, void *buf, int32_t buflen,
 
 int32_t DummyPrSocket::Write(PRFileDesc *f, const void *buf, int32_t length) {
   if (write_error_) {
-    PR_SetError(write_error_, 0);
+    MPR_SetError(write_error_, 0);
     return -1;
   }
 
   auto dst = peer_.lock();
   if (!dst) {
-    PR_SetError(PR_NOT_CONNECTED_ERROR, 0);
+    MPR_SetError(PR_NOT_CONNECTED_ERROR, 0);
     return -1;
   }
 
@@ -209,7 +209,7 @@ void Poller::Cancel(Event event, std::shared_ptr<DummyPrSocket> &adapter) {
 
 void Poller::SetTimer(uint32_t timer_ms, PollTarget *target, PollCallback cb,
                       std::shared_ptr<Timer> *timer) {
-  auto t = std::make_shared<Timer>(PR_Now() + timer_ms * 1000, target, cb);
+  auto t = std::make_shared<Timer>(MPR_Now() + timer_ms * 1000, target, cb);
   timers_.push(t);
   if (timer) *timer = t;
 }
@@ -220,7 +220,7 @@ bool Poller::Poll() {
               << " timers = " << timers_.size() << std::endl;
   }
   PRIntervalTime timeout = PR_INTERVAL_NO_TIMEOUT;
-  PRTime now = PR_Now();
+  PRTime now = MPR_Now();
   bool fired = false;
 
   // Figure out the timer for the select.
@@ -231,7 +231,7 @@ bool Poller::Poll() {
       timeout = PR_INTERVAL_NO_WAIT;
     } else {
       timeout =
-          PR_MillisecondsToInterval((first_timer->deadline_ - now) / 1000);
+          MPR_MillisecondsToInterval((first_timer->deadline_ - now) / 1000);
     }
   }
 
@@ -257,11 +257,11 @@ bool Poller::Poll() {
 
   // Sleep.
   if (timeout != PR_INTERVAL_NO_WAIT) {
-    PR_Sleep(timeout);
+    MPR_Sleep(timeout);
   }
 
   // Now process anything that timed out.
-  now = PR_Now();
+  now = MPR_Now();
   while (!timers_.empty()) {
     if (now < timers_.top()->deadline_) break;
 

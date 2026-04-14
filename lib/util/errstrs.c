@@ -27,7 +27,7 @@ static const struct PRErrorTable sec_et = {
 static PRStatus
 nss_InitializePRErrorTableOnce(void)
 {
-    return PR_ErrorInstallTable(&sec_et);
+    return MPR_ErrorInstallTable(&sec_et);
 }
 
 static PRCallOnceType once;
@@ -35,7 +35,7 @@ static PRCallOnceType once;
 SECStatus
 NSS_InitializePRErrorTable(void)
 {
-    return (PR_SUCCESS == PR_CallOnce(&once, nss_InitializePRErrorTableOnce))
+    return (PR_SUCCESS == MPR_CallOnce(&once, nss_InitializePRErrorTableOnce))
                ? SECSuccess
                : SECFailure;
 }

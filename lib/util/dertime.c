@@ -49,13 +49,13 @@ DER_TimeToUTCTimeArena(PLArenaPool *arenaOpt, SECItem *dst, PRTime gmttime)
     }
 
     /* Convert a PRTime to a printable format.  */
-    PR_ExplodeTime(gmttime, PR_GMTParameters, &printableTime);
+    MPR_ExplodeTime(gmttime, MPR_GMTParameters, &printableTime);
 
     /* The month in UTC time is base one */
     printableTime.tm_month++;
 
     /* remove the century since it's added to the tm_year by the
-       PR_ExplodeTime routine, but is not needed for UTC time */
+       MPR_ExplodeTime routine, but is not needed for UTC time */
     printableTime.tm_year %= 100;
 
     d[0] = HIDIGIT(printableTime.tm_year);
@@ -165,7 +165,7 @@ DER_TimeToGeneralizedTimeArena(PLArenaPool *arenaOpt, SECItem *dst, PRTime gmtti
     }
 
     /* Convert a PRTime to a printable format.  */
-    PR_ExplodeTime(gmttime, PR_GMTParameters, &printableTime);
+    MPR_ExplodeTime(gmttime, MPR_GMTParameters, &printableTime);
 
     /* The month in Generalized time is base one */
     printableTime.tm_month++;
@@ -301,7 +301,7 @@ der_TimeStringToTime(PRTime *dst, const char *string, int generalized,
      * for the implode time call.
      */
     genTime.tm_params.tp_gmt_offset = (PRInt32)((hourOff * 60L + minOff) * 60L);
-    *dst = PR_ImplodeTime(&genTime);
+    *dst = MPR_ImplodeTime(&genTime);
     return SECSuccess;
 
 loser:

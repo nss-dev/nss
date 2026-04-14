@@ -53,7 +53,7 @@ createCRL(char *inFileName)
 
     crlDER.data = NULL;
 
-    inFile = PR_Open(inFileName, PR_RDONLY, 0);
+    inFile = MPR_Open(inFileName, PR_RDONLY, 0);
 
     if (!inFile) {
         printFailure("Unable to open crl file");
@@ -87,7 +87,7 @@ createCRL(char *inFileName)
 cleanup:
 
     if (inFile) {
-        PR_Close(inFile);
+        MPR_Close(inFile);
     }
 
     if (error) {

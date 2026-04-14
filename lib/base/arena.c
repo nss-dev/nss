@@ -356,7 +356,7 @@ nssArena_Create(void)
         return (NSSArena *)NULL;
     }
 
-    rv->lock = PR_NewLock();
+    rv->lock = MPR_NewLock();
     if ((PRLock *)NULL == rv->lock) {
         (void)nss_ZFreeIf(rv);
         nss_SetError(NSS_ERROR_NO_MEMORY);
@@ -380,15 +380,15 @@ nssArena_Create(void)
      * useful to us, so I'll just pick 2048.
      */
 
-    PL_InitArenaPool(&rv->pool, "NSS", 2048, sizeof(double));
+    MPL_InitArenaPool(&rv->pool, "NSS", 2048, sizeof(double));
 
 #ifdef DEBUG
     {
         PRStatus st;
         st = arena_add_pointer(rv);
         if (PR_SUCCESS != st) {
-            PL_FinishArenaPool(&rv->pool);
-            PR_DestroyLock(rv->lock);
+            MPL_FinishArenaPool(&rv->pool);
+            MPR_DestroyLock(rv->lock);
             (void)nss_ZFreeIf(rv);
             return (NSSArena *)NULL;
         }
@@ -460,11 +460,11 @@ nssArena_Destroy(NSSArena *arena)
         nss_SetError(NSS_ERROR_INVALID_ARENA);
         return PR_FAILURE;
     }
-    PR_Lock(arena->lock);
+    MPR_Lock(arena->lock);
 
 #ifdef DEBUG
     if (PR_SUCCESS != arena_remove_pointer(arena)) {
-        PR_Unlock(arena->lock);
+        MPR_Unlock(arena->lock);
         return PR_FAILURE;
     }
 #endif /* DEBUG */
@@ -474,11 +474,11 @@ nssArena_Destroy(NSSArena *arena)
     nss_arena_call_destructor_chain(arena->first_destructor);
 #endif /* ARENA_DESTRUCTOR_LIST */
 
-    PL_FinishArenaPool(&arena->pool);
+    MPL_FinishArenaPool(&arena->pool);
     lock = arena->lock;
     arena->lock = (PRLock *)NULL;
-    PR_Unlock(lock);
-    PR_DestroyLock(lock);
+    MPR_Unlock(lock);
+    MPR_DestroyLock(lock);
     (void)nss_ZFreeIf(arena);
     return PR_SUCCESS;
 }
@@ -523,17 +523,17 @@ nssArena_Mark(NSSArena *arena)
         nss_SetError(NSS_ERROR_INVALID_ARENA);
         return (nssArenaMark *)NULL;
     }
-    PR_Lock(arena->lock);
+    MPR_Lock(arena->lock);
 
 #ifdef ARENA_THREADMARK
     if ((PRThread *)NULL == arena->marking_thread) {
         /* Unmarked.  Store our thread ID */
-        arena->marking_thread = PR_GetCurrentThread();
+        arena->marking_thread = MPR_GetCurrentThread();
         /* This call never fails. */
     } else {
         /* Marked.  Verify it's the current thread */
-        if (PR_GetCurrentThread() != arena->marking_thread) {
-            PR_Unlock(arena->lock);
+        if (MPR_GetCurrentThread() != arena->marking_thread) {
+            MPR_Unlock(arena->lock);
             nss_SetError(NSS_ERROR_ARENA_MARKED_BY_ANOTHER_THREAD);
             return (nssArenaMark *)NULL;
         }
@@ -546,7 +546,7 @@ nssArena_Mark(NSSArena *arena)
     /* Do this after the mark */
     rv = (nssArenaMark *)nss_zalloc_arena_locked(arena, sizeof(nssArenaMark));
     if ((nssArenaMark *)NULL == rv) {
-        PR_Unlock(arena->lock);
+        MPR_Unlock(arena->lock);
         nss_SetError(NSS_ERROR_NO_MEMORY);
         return (nssArenaMark *)NULL;
     }
@@ -568,7 +568,7 @@ nssArena_Mark(NSSArena *arena)
     rv->prev_destructor = arena->last_destructor;
 #endif /* ARENA_DESTRUCTOR_LIST */
 
-    PR_Unlock(arena->lock);
+    MPR_Unlock(arena->lock);
 
     return rv;
 }
@@ -602,12 +602,12 @@ nss_arena_unmark_release(NSSArena *arena, nssArenaMark *arenaMark,
         nss_SetError(NSS_ERROR_INVALID_ARENA);
         return PR_FAILURE;
     }
-    PR_Lock(arena->lock);
+    MPR_Lock(arena->lock);
 
 #ifdef ARENA_THREADMARK
     if ((PRThread *)NULL != arena->marking_thread) {
-        if (PR_GetCurrentThread() != arena->marking_thread) {
-            PR_Unlock(arena->lock);
+        if (MPR_GetCurrentThread() != arena->marking_thread) {
+            MPR_Unlock(arena->lock);
             nss_SetError(NSS_ERROR_ARENA_MARKED_BY_ANOTHER_THREAD);
             return PR_FAILURE;
         }
@@ -616,7 +616,7 @@ nss_arena_unmark_release(NSSArena *arena, nssArenaMark *arenaMark,
 
     if (MARK_MAGIC != arenaMark->magic) {
         /* Just got released */
-        PR_Unlock(arena->lock);
+        MPR_Unlock(arena->lock);
         nss_SetError(NSS_ERROR_INVALID_ARENA_MARK);
         return PR_FAILURE;
     }
@@ -671,7 +671,7 @@ nss_arena_unmark_release(NSSArena *arena, nssArenaMark *arenaMark,
         /* No error return */
     }
 
-    PR_Unlock(arena->lock);
+    MPR_Unlock(arena->lock);
     return PR_SUCCESS;
 }
 
@@ -832,7 +832,7 @@ nss_ZAlloc(NSSArena *arenaOpt, PRUint32 size)
 
     if ((NSSArena *)NULL == arenaOpt) {
         /* Heap allocation, no locking required. */
-        h = (struct pointer_header *)PR_Calloc(1, my_size);
+        h = (struct pointer_header *)MPR_Calloc(1, my_size);
         if ((struct pointer_header *)NULL == h) {
             nss_SetError(NSS_ERROR_NO_MEMORY);
             return (void *)NULL;
@@ -857,13 +857,13 @@ nss_ZAlloc(NSSArena *arenaOpt, PRUint32 size)
             nss_SetError(NSS_ERROR_INVALID_ARENA);
             return (void *)NULL;
         }
-        PR_Lock(arenaOpt->lock);
+        MPR_Lock(arenaOpt->lock);
 
 #ifdef ARENA_THREADMARK
         if ((PRThread *)NULL != arenaOpt->marking_thread) {
-            if (PR_GetCurrentThread() != arenaOpt->marking_thread) {
+            if (MPR_GetCurrentThread() != arenaOpt->marking_thread) {
                 nss_SetError(NSS_ERROR_ARENA_MARKED_BY_ANOTHER_THREAD);
-                PR_Unlock(arenaOpt->lock);
+                MPR_Unlock(arenaOpt->lock);
                 return (void *)NULL;
             }
         }
@@ -871,7 +871,7 @@ nss_ZAlloc(NSSArena *arenaOpt, PRUint32 size)
 
         rv = nss_zalloc_arena_locked(arenaOpt, size);
 
-        PR_Unlock(arenaOpt->lock);
+        MPR_Unlock(arenaOpt->lock);
         return rv;
     }
     /*NOTREACHED*/
@@ -935,7 +935,7 @@ nss_ZFreeIf(void *pointer)
     if ((NSSArena *)NULL == h->arena) {
         /* Heap */
         (void)nsslibc_memset(pointer, 0, h->size);
-        PR_Free(h);
+        MPR_Free(h);
         return PR_SUCCESS;
     } else {
 /* Arena */
@@ -950,13 +950,13 @@ nss_ZFreeIf(void *pointer)
             nss_SetError(NSS_ERROR_INVALID_POINTER);
             return PR_FAILURE;
         }
-        PR_Lock(h->arena->lock);
+        MPR_Lock(h->arena->lock);
 
         (void)nsslibc_memset(pointer, 0, h->size);
 
         /* No way to "free" it within an NSPR arena. */
 
-        PR_Unlock(h->arena->lock);
+        MPR_Unlock(h->arena->lock);
         return PR_SUCCESS;
     }
     /*NOTREACHED*/
@@ -1040,7 +1040,7 @@ nss_ZRealloc(void *pointer, PRUint32 newSize)
     arena = h->arena;
     if (!arena) {
         /* Heap */
-        new_h = (struct pointer_header *)PR_Calloc(1, my_newSize);
+        new_h = (struct pointer_header *)MPR_Calloc(1, my_newSize);
         if ((struct pointer_header *)NULL == new_h) {
             nss_SetError(NSS_ERROR_NO_MEMORY);
             return (void *)NULL;
@@ -1060,7 +1060,7 @@ nss_ZRealloc(void *pointer, PRUint32 newSize)
 
         (void)nsslibc_memset(pointer, 0, h->size);
         h->size = 0;
-        PR_Free(h);
+        MPR_Free(h);
 
         return rv;
     } else {
@@ -1077,12 +1077,12 @@ nss_ZRealloc(void *pointer, PRUint32 newSize)
             nss_SetError(NSS_ERROR_INVALID_POINTER);
             return (void *)NULL;
         }
-        PR_Lock(arena->lock);
+        MPR_Lock(arena->lock);
 
 #ifdef ARENA_THREADMARK
         if (arena->marking_thread) {
-            if (PR_GetCurrentThread() != arena->marking_thread) {
-                PR_Unlock(arena->lock);
+            if (MPR_GetCurrentThread() != arena->marking_thread) {
+                MPR_Unlock(arena->lock);
                 nss_SetError(NSS_ERROR_ARENA_MARKED_BY_ANOTHER_THREAD);
                 return (void *)NULL;
             }
@@ -1104,13 +1104,13 @@ nss_ZRealloc(void *pointer, PRUint32 newSize)
              */
             char *extra = &((char *)pointer)[newSize];
             (void)nsslibc_memset(extra, 0, (h->size - newSize));
-            PR_Unlock(arena->lock);
+            MPR_Unlock(arena->lock);
             return pointer;
         }
 
         PL_ARENA_ALLOCATE(p, &arena->pool, my_newSize);
         if ((void *)NULL == p) {
-            PR_Unlock(arena->lock);
+            MPR_Unlock(arena->lock);
             nss_SetError(NSS_ERROR_NO_MEMORY);
             return (void *)NULL;
         }
@@ -1126,7 +1126,7 @@ nss_ZRealloc(void *pointer, PRUint32 newSize)
         (void)nsslibc_memset(&((char *)rv)[h->size], 0, (newSize - h->size));
         h->arena = (NSSArena *)NULL;
         h->size = 0;
-        PR_Unlock(arena->lock);
+        MPR_Unlock(arena->lock);
         return rv;
     }
     /*NOTREACHED*/

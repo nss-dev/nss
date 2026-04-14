@@ -25,7 +25,7 @@ t1(/* ARGSUSED */ void *arg)
         testError("PKIX_PL_Mutex_Lock failed");
 
     (void)printf("t1 sleeplng for 3 seconds\n");
-    PR_Sleep(PR_SecondsToInterval(3));
+    MPR_Sleep(MPR_SecondsToInterval(3));
     (void)printf("t1 releasing lock...\n");
 
     errorResult = PKIX_PL_Mutex_Unlock(mutex, plContext);
@@ -71,7 +71,7 @@ test_mutex3(int argc, char *argv[])
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Mutex_Create(&mutex, plContext));
 
     subTest("Starting thread");
-    thread = PR_CreateThread(PR_USER_THREAD,
+    thread = MPR_CreateThread(PR_USER_THREAD,
                              t1,
                              NULL,
                              PR_PRIORITY_NORMAL,
@@ -79,7 +79,7 @@ test_mutex3(int argc, char *argv[])
                              PR_JOINABLE_THREAD,
                              0);
 
-    thread2 = PR_CreateThread(PR_USER_THREAD,
+    thread2 = MPR_CreateThread(PR_USER_THREAD,
                               t2,
                               NULL,
                               PR_PRIORITY_NORMAL,
@@ -87,8 +87,8 @@ test_mutex3(int argc, char *argv[])
                               PR_JOINABLE_THREAD,
                               0);
 
-    PR_JoinThread(thread2);
-    PR_JoinThread(thread);
+    MPR_JoinThread(thread2);
+    MPR_JoinThread(thread);
 
 cleanup:
 

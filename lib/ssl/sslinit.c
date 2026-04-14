@@ -57,7 +57,7 @@ SECStatus
 ssl_Init(void)
 {
     int error;
-    PRStatus nrv = PR_CallOnceWithArg(&ssl_init, ssl_InitCallOnce, &error);
+    PRStatus nrv = MPR_CallOnceWithArg(&ssl_init, ssl_InitCallOnce, &error);
     if (nrv != PR_SUCCESS) {
         PORT_SetError(error);
         return SECFailure;

@@ -191,7 +191,7 @@ parse_args(int argc, char* argv[])
 
         /* Make sure this is an option and not some floating argument */
         if (arg[0] != '-') {
-            PR_fprintf(PR_STDERR, errStrings[UNEXPECTED_ARG_ERR], argv[i]);
+            MPR_fprintf(PR_STDERR, errStrings[UNEXPECTED_ARG_ERR], argv[i]);
             return UNEXPECTED_ARG_ERR;
         }
 
@@ -206,65 +206,65 @@ parse_args(int argc, char* argv[])
         switch (optionType) {
             case NUM_ARGS:
             default:
-                PR_fprintf(PR_STDERR, errStrings[UNKNOWN_OPTION_ERR], arg);
+                MPR_fprintf(PR_STDERR, errStrings[UNKNOWN_OPTION_ERR], arg);
                 return UNKNOWN_OPTION_ERR;
                 break;
             case ADD_ARG:
                 if (command != NO_COMMAND) {
-                    PR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
                     return MULTIPLE_COMMAND_ERR;
                 }
                 command = ADD_COMMAND;
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 moduleName = argv[i];
                 break;
             case CHANGEPW_ARG:
                 if (command != NO_COMMAND) {
-                    PR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
                     return MULTIPLE_COMMAND_ERR;
                 }
                 command = CHANGEPW_COMMAND;
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 tokenName = argv[i];
                 break;
             case CIPHERS_ARG:
                 if (ciphers != NULL) {
-                    PR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
                     return DUPLICATE_OPTION_ERR;
                 }
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 ciphers = argv[i];
                 break;
             case CREATE_ARG:
                 if (command != NO_COMMAND) {
-                    PR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
                     return MULTIPLE_COMMAND_ERR;
                 }
                 command = CREATE_COMMAND;
                 break;
             case DBDIR_ARG:
                 if (dbdir != NULL) {
-                    PR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
                     return DUPLICATE_OPTION_ERR;
                 }
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 dbdir = argv[i];
                 break;
             case DBPREFIX_ARG:
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 dbprefix = argv[i];
@@ -272,7 +272,7 @@ parse_args(int argc, char* argv[])
             case UNDEFAULT_ARG:
             case DEFAULT_ARG:
                 if (command != NO_COMMAND) {
-                    PR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
                     return MULTIPLE_COMMAND_ERR;
                 }
                 if (optionType == DEFAULT_ARG) {
@@ -281,67 +281,67 @@ parse_args(int argc, char* argv[])
                     command = UNDEFAULT_COMMAND;
                 }
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 moduleName = argv[i];
                 break;
             case DELETE_ARG:
                 if (command != NO_COMMAND) {
-                    PR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
                     return MULTIPLE_COMMAND_ERR;
                 }
                 command = DELETE_COMMAND;
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 moduleName = argv[i];
                 break;
             case DISABLE_ARG:
                 if (command != NO_COMMAND) {
-                    PR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
                     return MULTIPLE_COMMAND_ERR;
                 }
                 command = DISABLE_COMMAND;
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 moduleName = argv[i];
                 break;
             case ENABLE_ARG:
                 if (command != NO_COMMAND) {
-                    PR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
                     return MULTIPLE_COMMAND_ERR;
                 }
                 command = ENABLE_COMMAND;
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 moduleName = argv[i];
                 break;
             case FIPS_ARG:
                 if (command != NO_COMMAND) {
-                    PR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
                     return MULTIPLE_COMMAND_ERR;
                 }
                 command = FIPS_COMMAND;
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 fipsArg = argv[i];
                 break;
             case CHKFIPS_ARG:
                 if (command != NO_COMMAND) {
-                    PR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
                     return MULTIPLE_COMMAND_ERR;
                 }
                 command = CHKFIPS_COMMAND;
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 fipsArg = argv[i];
@@ -354,52 +354,52 @@ parse_args(int argc, char* argv[])
                 break;
             case INSTALLDIR_ARG:
                 if (installDir != NULL) {
-                    PR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
                     return DUPLICATE_OPTION_ERR;
                 }
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 installDir = argv[i];
                 break;
             case TEMPDIR_ARG:
                 if (tempDir != NULL) {
-                    PR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
                     return DUPLICATE_OPTION_ERR;
                 }
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 tempDir = argv[i];
                 break;
             case JAR_ARG:
                 if (command != NO_COMMAND) {
-                    PR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
                     return MULTIPLE_COMMAND_ERR;
                 }
                 command = JAR_COMMAND;
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 jarFile = argv[i];
                 break;
             case LIBFILE_ARG:
                 if (libFile != NULL) {
-                    PR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
                     return DUPLICATE_OPTION_ERR;
                 }
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 libFile = argv[i];
                 break;
             case LIST_ARG:
                 if (command != NO_COMMAND) {
-                    PR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
                     return MULTIPLE_COMMAND_ERR;
                 }
                 command = LIST_COMMAND;
@@ -410,7 +410,7 @@ parse_args(int argc, char* argv[])
                 break;
             case RAW_LIST_ARG:
                 if (command != NO_COMMAND) {
-                    PR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
                     return MULTIPLE_COMMAND_ERR;
                 }
                 command = RAW_LIST_COMMAND;
@@ -421,78 +421,78 @@ parse_args(int argc, char* argv[])
                 break;
             case RAW_ADD_ARG:
                 if (command != NO_COMMAND) {
-                    PR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[MULTIPLE_COMMAND_ERR], arg);
                     return MULTIPLE_COMMAND_ERR;
                 }
                 command = RAW_ADD_COMMAND;
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 moduleSpec = argv[i];
                 break;
             case MECHANISMS_ARG:
                 if (mechanisms != NULL) {
-                    PR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
                     return DUPLICATE_OPTION_ERR;
                 }
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 mechanisms = argv[i];
                 break;
             case NEWPWFILE_ARG:
                 if (newpwFile != NULL) {
-                    PR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
                     return DUPLICATE_OPTION_ERR;
                 }
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 newpwFile = argv[i];
                 break;
             case PWFILE_ARG:
                 if (pwFile != NULL) {
-                    PR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
                     return DUPLICATE_OPTION_ERR;
                 }
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 pwFile = argv[i];
                 break;
             case SLOT_ARG:
                 if (slotName != NULL) {
-                    PR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
                     return DUPLICATE_OPTION_ERR;
                 }
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 slotName = argv[i];
                 break;
             case SECMOD_ARG:
                 if (secmodName != NULL) {
-                    PR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
                     return DUPLICATE_OPTION_ERR;
                 }
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 secmodName = argv[i];
                 break;
             case STRING_ARG:
                 if (secmodString != NULL) {
-                    PR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
                     return DUPLICATE_OPTION_ERR;
                 }
                 if (TRY_INC(i, argc)) {
-                    PR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
+                    MPR_fprintf(PR_STDERR, errStrings[OPTION_NEEDS_ARG_ERR], arg);
                     return OPTION_NEEDS_ARG_ERR;
                 }
                 secmodString = argv[i];
@@ -512,7 +512,7 @@ verify_params()
     switch (command) {
         case ADD_COMMAND:
             if (libFile == NULL) {
-                PR_fprintf(PR_STDERR, errStrings[MISSING_PARAM_ERR],
+                MPR_fprintf(PR_STDERR, errStrings[MISSING_PARAM_ERR],
                            commandNames[ADD_COMMAND], optionStrings[LIBFILE_ARG]);
                 return MISSING_PARAM_ERR;
             }
@@ -529,15 +529,15 @@ verify_params()
             break;
         case FIPS_COMMAND:
         case CHKFIPS_COMMAND:
-            if (PL_strcasecmp(fipsArg, "true") &&
-                PL_strcasecmp(fipsArg, "false")) {
-                PR_fprintf(PR_STDERR, errStrings[INVALID_FIPS_ARG]);
+            if (MPL_strcasecmp(fipsArg, "true") &&
+                MPL_strcasecmp(fipsArg, "false")) {
+                MPR_fprintf(PR_STDERR, errStrings[INVALID_FIPS_ARG]);
                 return INVALID_FIPS_ARG;
             }
             break;
         case JAR_COMMAND:
             if (installDir == NULL) {
-                PR_fprintf(PR_STDERR, errStrings[MISSING_PARAM_ERR],
+                MPR_fprintf(PR_STDERR, errStrings[MISSING_PARAM_ERR],
                            commandNames[JAR_COMMAND], optionStrings[INSTALLDIR_ARG]);
                 return MISSING_PARAM_ERR;
             }
@@ -550,7 +550,7 @@ verify_params()
         case UNDEFAULT_COMMAND:
         case DEFAULT_COMMAND:
             if (mechanisms == NULL) {
-                PR_fprintf(PR_STDERR, errStrings[MISSING_PARAM_ERR],
+                MPR_fprintf(PR_STDERR, errStrings[MISSING_PARAM_ERR],
                            commandNames[command], optionStrings[MECHANISMS_ARG]);
                 return MISSING_PARAM_ERR;
             }
@@ -587,7 +587,7 @@ check_crypto(PRBool create, PRBool readOnly)
 
     dir = SECU_ConfigDirectory(dbdir); /* dir is never NULL */
     if (dir[0] == '\0') {
-        PR_fprintf(PR_STDERR, errStrings[NO_DBDIR_ERR]);
+        MPR_fprintf(PR_STDERR, errStrings[NO_DBDIR_ERR]);
         retval = NO_DBDIR_ERR;
         goto loser;
     }
@@ -597,12 +597,12 @@ check_crypto(PRBool create, PRBool readOnly)
     }
 #ifdef notdef
     /* Make sure db directory exists and is readable */
-    if (PR_Access(dir, PR_ACCESS_EXISTS) != PR_SUCCESS) {
-        PR_fprintf(PR_STDERR, errStrings[DIR_DOESNT_EXIST_ERR], dir);
+    if (MPR_Access(dir, PR_ACCESS_EXISTS) != PR_SUCCESS) {
+        MPR_fprintf(PR_STDERR, errStrings[DIR_DOESNT_EXIST_ERR], dir);
         retval = DIR_DOESNT_EXIST_ERR;
         goto loser;
-    } else if (PR_Access(dir, PR_ACCESS_READ_OK) != PR_SUCCESS) {
-        PR_fprintf(PR_STDERR, errStrings[DIR_NOT_READABLE_ERR], dir);
+    } else if (MPR_Access(dir, PR_ACCESS_READ_OK) != PR_SUCCESS) {
+        MPR_fprintf(PR_STDERR, errStrings[DIR_NOT_READABLE_ERR], dir);
         retval = DIR_NOT_READABLE_ERR;
         goto loser;
     }
@@ -611,7 +611,7 @@ check_crypto(PRBool create, PRBool readOnly)
         secmodName = "secmod.db";
     }
 
-    moddbname = PR_smprintf("%s/%s", dir, secmodName);
+    moddbname = MPR_smprintf("%s/%s", dir, secmodName);
     if (!moddbname)
         return OUT_OF_MEM_ERR;
 
@@ -619,41 +619,41 @@ check_crypto(PRBool create, PRBool readOnly)
     if (create) {
         /* Make sure dbs don't already exist, and the directory is
             writeable */
-        if (PR_Access(moddbname, PR_ACCESS_EXISTS) == PR_SUCCESS) {
-            PR_fprintf(PR_STDERR, errStrings[FILE_ALREADY_EXISTS_ERR],
+        if (MPR_Access(moddbname, PR_ACCESS_EXISTS) == PR_SUCCESS) {
+            MPR_fprintf(PR_STDERR, errStrings[FILE_ALREADY_EXISTS_ERR],
                        moddbname);
             retval = FILE_ALREADY_EXISTS_ERR;
             goto loser;
-        } else if (PR_Access(dir, PR_ACCESS_WRITE_OK) != PR_SUCCESS) {
-            PR_fprintf(PR_STDERR, errStrings[DIR_NOT_WRITEABLE_ERR], dir);
+        } else if (MPR_Access(dir, PR_ACCESS_WRITE_OK) != PR_SUCCESS) {
+            MPR_fprintf(PR_STDERR, errStrings[DIR_NOT_WRITEABLE_ERR], dir);
             retval = DIR_NOT_WRITEABLE_ERR;
             goto loser;
         }
     } else {
         /* Make sure dbs are readable and writeable */
-        if (PR_Access(moddbname, PR_ACCESS_READ_OK) != PR_SUCCESS) {
-            PR_fprintf(PR_STDERR, errStrings[FILE_NOT_READABLE_ERR], moddbname);
+        if (MPR_Access(moddbname, PR_ACCESS_READ_OK) != PR_SUCCESS) {
+            MPR_fprintf(PR_STDERR, errStrings[FILE_NOT_READABLE_ERR], moddbname);
             retval = FILE_NOT_READABLE_ERR;
             goto loser;
         }
 
         /* Check for write access if we'll be making changes */
         if (!readOnly) {
-            if (PR_Access(moddbname, PR_ACCESS_WRITE_OK) != PR_SUCCESS) {
-                PR_fprintf(PR_STDERR, errStrings[FILE_NOT_WRITEABLE_ERR],
+            if (MPR_Access(moddbname, PR_ACCESS_WRITE_OK) != PR_SUCCESS) {
+                MPR_fprintf(PR_STDERR, errStrings[FILE_NOT_WRITEABLE_ERR],
                            moddbname);
                 retval = FILE_NOT_WRITEABLE_ERR;
                 goto loser;
             }
         }
-        PR_fprintf(PR_STDOUT, msgStrings[USING_DBDIR_MSG],
+        MPR_fprintf(PR_STDOUT, msgStrings[USING_DBDIR_MSG],
                    SECU_ConfigDirectory(NULL));
     }
 #endif
     retval = SUCCESS;
 loser:
     if (moddbname) {
-        PR_Free(moddbname);
+        MPR_Free(moddbname);
     }
     return retval;
 }
@@ -689,7 +689,7 @@ init_crypto(PRBool create, PRBool readOnly)
 static void
 usage()
 {
-    PR_fprintf(PR_STDOUT,
+    MPR_fprintf(PR_STDOUT,
                "\nNetscape Cryptographic Module Utility\n"
                "Usage: modutil [command] [options]\n\n"
                "                            COMMANDS\n"
@@ -769,7 +769,7 @@ main(int argc, char* argv[])
     progName = strrchr(argv[0], '/');
     progName = progName ? progName + 1 : argv[0];
 
-    PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
+    MPR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
 
     if (parse_args(argc, argv) != SUCCESS) {
         usage();
@@ -784,7 +784,7 @@ main(int argc, char* argv[])
     }
 
     if (command == NO_COMMAND) {
-        PR_fprintf(PR_STDERR, errStrings[NO_COMMAND_ERR]);
+        MPR_fprintf(PR_STDERR, errStrings[NO_COMMAND_ERR]);
         usage();
         errcode = INVALID_USAGE_ERR;
         goto loser;
@@ -801,20 +801,20 @@ main(int argc, char* argv[])
     if (!readOnly && !force) {
         char* response;
 
-        PR_fprintf(PR_STDOUT, msgStrings[BROWSER_RUNNING_MSG]);
+        MPR_fprintf(PR_STDOUT, msgStrings[BROWSER_RUNNING_MSG]);
         if (!PR_fgets(stdinbuf, STDINBUF_SIZE, PR_STDIN)) {
-            PR_fprintf(PR_STDERR, errStrings[STDIN_READ_ERR]);
+            MPR_fprintf(PR_STDERR, errStrings[STDIN_READ_ERR]);
             errcode = STDIN_READ_ERR;
             goto loser;
         }
         if ((response = strtok(stdinbuf, " \r\n\t"))) {
-            if (!PL_strcasecmp(response, "q")) {
-                PR_fprintf(PR_STDOUT, msgStrings[ABORTING_MSG]);
+            if (!MPL_strcasecmp(response, "q")) {
+                MPR_fprintf(PR_STDOUT, msgStrings[ABORTING_MSG]);
                 errcode = SUCCESS;
                 goto loser;
             }
         }
-        PR_fprintf(PR_STDOUT, "\n");
+        MPR_fprintf(PR_STDOUT, "\n");
     }
 
     errcode = check_crypto(createdb, readOnly);
@@ -834,7 +834,7 @@ main(int argc, char* argv[])
             noCertDBStr = nocertdb ? "noCertDB" : "";
             SECU_ConfigDirectory(dbdir);
 
-            moduleName = PR_smprintf(
+            moduleName = MPR_smprintf(
                 "name=\"NSS default Module DB\" parameters=\"configdir=%s certPrefix=%s "
                 "keyPrefix=%s secmod=%s flags=%s%s%s\" NSS=\"flags=internal,moduleDB,"
                 "moduleDBOnly,critical\"",
@@ -866,20 +866,20 @@ main(int argc, char* argv[])
         IsP11KitEnabled()) {
         char* response;
 
-        PR_fprintf(PR_STDOUT, msgStrings[P11_KIT_ENABLED_MSG]);
+        MPR_fprintf(PR_STDOUT, msgStrings[P11_KIT_ENABLED_MSG]);
         if (!PR_fgets(stdinbuf, STDINBUF_SIZE, PR_STDIN)) {
-            PR_fprintf(PR_STDERR, errStrings[STDIN_READ_ERR]);
+            MPR_fprintf(PR_STDERR, errStrings[STDIN_READ_ERR]);
             errcode = STDIN_READ_ERR;
             goto loser;
         }
         if ((response = strtok(stdinbuf, " \r\n\t"))) {
-            if (!PL_strcasecmp(response, "q")) {
-                PR_fprintf(PR_STDOUT, msgStrings[ABORTING_MSG]);
+            if (!MPL_strcasecmp(response, "q")) {
+                MPR_fprintf(PR_STDOUT, msgStrings[ABORTING_MSG]);
                 errcode = SUCCESS;
                 goto loser;
             }
         }
-        PR_fprintf(PR_STDOUT, "\n");
+        MPR_fprintf(PR_STDOUT, "\n");
     }
 
     /* Execute the command */
@@ -927,7 +927,7 @@ main(int argc, char* argv[])
             errcode = UnsetDefaultModule(moduleName, slotName, mechanisms);
             break;
         default:
-            PR_fprintf(PR_STDERR, "This command is not supported yet.\n");
+            MPR_fprintf(PR_STDERR, "This command is not supported yet.\n");
             errcode = INVALID_USAGE_ERR;
             break;
     }
@@ -937,7 +937,7 @@ main(int argc, char* argv[])
     }
 
 loser:
-    PR_Cleanup();
+    MPR_Cleanup();
     return errcode;
 }
 
@@ -950,7 +950,7 @@ loser:
 static void
 install_error(char* message)
 {
-    PR_fprintf(PR_STDERR, "Install error: %s\n", message);
+    MPR_fprintf(PR_STDERR, "Install error: %s\n", message);
 }
 
 /*************************************************************************
@@ -960,7 +960,7 @@ install_error(char* message)
 void
 out_of_memory(void)
 {
-    PR_fprintf(PR_STDERR, errStrings[OUT_OF_MEM_ERR]);
+    MPR_fprintf(PR_STDERR, errStrings[OUT_OF_MEM_ERR]);
     exit(OUT_OF_MEM_ERR);
 }
 
@@ -979,7 +979,7 @@ PR_fgets(char* buf, int size, PRFileDesc* file)
 
     i = 0;
     while (i < size - 1) {
-        status = PR_Read(file, (void*)&c, 1);
+        status = MPR_Read(file, (void*)&c, 1);
         if (status == -1) {
             return NULL;
         } else if (status == 0) {

@@ -57,7 +57,7 @@ crlgen_FindEntry(CRLGENGeneratorData *crlGenData, SECItem *certId)
     if (!crlGenData->entryDataHashTable || !certId)
         return NULL;
     return (CRLGENEntryData *)
-        PL_HashTableLookup(crlGenData->entryDataHashTable,
+        MPL_HashTableLookup(crlGenData->entryDataHashTable,
                            certId);
 }
 
@@ -78,7 +78,7 @@ crlgen_RmEntry(CRLGENGeneratorData *crlGenData, SECItem *certId)
         return SECSuccess;
     }
 
-    if (!PL_HashTableRemove(crlGenData->entryDataHashTable, certId)) {
+    if (!MPL_HashTableRemove(crlGenData->entryDataHashTable, certId)) {
         rv = SECFailure;
     }
 
@@ -107,7 +107,7 @@ crlgen_PlaceAnEntry(CRLGENGeneratorData *crlGenData,
     }
     newData->entry = entry;
     newData->certId = certId;
-    if (!PL_HashTableAdd(crlGenData->entryDataHashTable,
+    if (!MPL_HashTableAdd(crlGenData->entryDataHashTable,
                          newData->certId, newData)) {
         crlgen_PrintError(crlGenData->parsedLineNum,
                           "Can not add entryData structure\n");
@@ -122,7 +122,7 @@ struct commitData {
     CERTCrlEntry **entries;
 };
 
-/* HT PL_HashTableEnumerateEntries callback. Sorts hashtable entries of the
+/* HT MPL_HashTableEnumerateEntries callback. Sorts hashtable entries of the
  * table he. Returns value through arg parameter*/
 static PRIntn PR_CALLBACK
 crlgen_CommitEntryData(PLHashEntry *he, PRIntn i, void *arg)
@@ -744,7 +744,7 @@ CRLGEN_CommitExtensionsAndEntries(CRLGENGeneratorData *crlGenData)
             struct commitData dt;
             dt.entries = crl->entries;
             dt.pos = 0;
-            PL_HashTableEnumerateEntries(crlGenData->entryDataHashTable,
+            MPL_HashTableEnumerateEntries(crlGenData->entryDataHashTable,
                                          &crlgen_CommitEntryData, &dt);
             /* Last should be NULL */
             crl->entries[size] = NULL;
@@ -1508,8 +1508,8 @@ CRLGEN_InitCrlGeneration(CERTSignedCrl *signCrl, PRFileDesc *src)
     }
 
     crlGenData->entryDataHashTable =
-        PL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
-                        PL_CompareValues, NULL, NULL);
+        MPL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
+                        MPL_CompareValues, NULL, NULL);
     if (!crlGenData->entryDataHashTable) {
         PORT_Free(crlGenData);
         return NULL;
@@ -1534,7 +1534,7 @@ CRLGEN_FinalizeCrlGeneration(CRLGENGeneratorData *crlGenData)
     if (!crlGenData)
         return;
     if (crlGenData->src)
-        PR_Close(crlGenData->src);
-    PL_HashTableDestroy(crlGenData->entryDataHashTable);
+        MPR_Close(crlGenData->src);
+    MPL_HashTableDestroy(crlGenData->entryDataHashTable);
     PORT_Free(crlGenData);
 }

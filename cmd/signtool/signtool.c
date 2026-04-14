@@ -143,9 +143,9 @@ ProcessCommandFile()
     int retval = -1;
     OPT_TYPE type;
 
-    fd = PR_Open(cmdFile, PR_RDONLY, 0777);
+    fd = MPR_Open(cmdFile, PR_RDONLY, 0777);
     if (!fd) {
-        PR_fprintf(errorFD, "ERROR: Unable to open command file %s.\n");
+        MPR_fprintf(errorFD, "ERROR: Unable to open command file %s.\n");
         errorCount++;
         return -1;
     }
@@ -155,14 +155,14 @@ ProcessCommandFile()
         linenum++;
 
         /* Chop off final newline */
-        eol = PL_strchr(buf, '\r');
+        eol = MPL_strchr(buf, '\r');
         if (!eol) {
-            eol = PL_strchr(buf, '\n');
+            eol = MPL_strchr(buf, '\n');
         }
         if (eol)
             *eol = '\0';
 
-        equals = PL_strchr(buf, '=');
+        equals = MPL_strchr(buf, '=');
         if (!equals) {
             continue;
         }
@@ -174,73 +174,73 @@ ProcessCommandFile()
 
         /* This is pretty straightforward, just deal with whatever attribute
          * this is */
-        if (!PL_strcasecmp(buf, "basename")) {
+        if (!MPL_strcasecmp(buf, "basename")) {
             type = BASE_OPT;
-        } else if (!PL_strcasecmp(buf, "compression")) {
+        } else if (!MPL_strcasecmp(buf, "compression")) {
             type = COMPRESSION_OPT;
-        } else if (!PL_strcasecmp(buf, "certdir")) {
+        } else if (!MPL_strcasecmp(buf, "certdir")) {
             type = CERT_DIR_OPT;
-        } else if (!PL_strcasecmp(buf, "extension")) {
+        } else if (!MPL_strcasecmp(buf, "extension")) {
             type = EXTENSION_OPT;
-        } else if (!PL_strcasecmp(buf, "generate")) {
+        } else if (!MPL_strcasecmp(buf, "generate")) {
             type = GENKEY_OPT;
-        } else if (!PL_strcasecmp(buf, "installScript")) {
+        } else if (!MPL_strcasecmp(buf, "installScript")) {
             type = INSTALL_SCRIPT_OPT;
-        } else if (!PL_strcasecmp(buf, "javascriptdir")) {
+        } else if (!MPL_strcasecmp(buf, "javascriptdir")) {
             type = SCRIPTDIR_OPT;
-        } else if (!PL_strcasecmp(buf, "htmldir")) {
+        } else if (!MPL_strcasecmp(buf, "htmldir")) {
             type = JAVASCRIPT_OPT;
             if (jartree) {
-                PR_fprintf(errorFD,
+                MPR_fprintf(errorFD,
                            "warning: directory to be signed specified more than once."
                            " Only last specification will be used.\n");
                 warningCount++;
-                PR_Free(jartree);
+                MPR_Free(jartree);
                 jartree = NULL;
             }
-            jartree = PL_strdup(equals);
-        } else if (!PL_strcasecmp(buf, "certname")) {
+            jartree = MPL_strdup(equals);
+        } else if (!MPL_strcasecmp(buf, "certname")) {
             type = CERTNAME_OPT;
-        } else if (!PL_strcasecmp(buf, "signdir")) {
+        } else if (!MPL_strcasecmp(buf, "signdir")) {
             type = SIGNDIR_OPT;
-        } else if (!PL_strcasecmp(buf, "list")) {
+        } else if (!MPL_strcasecmp(buf, "list")) {
             type = LIST_OBJSIGN_CERTS_OPT;
-        } else if (!PL_strcasecmp(buf, "listall")) {
+        } else if (!MPL_strcasecmp(buf, "listall")) {
             type = LIST_ALL_CERTS_OPT;
-        } else if (!PL_strcasecmp(buf, "metafile")) {
+        } else if (!MPL_strcasecmp(buf, "metafile")) {
             type = METAFILE_OPT;
-        } else if (!PL_strcasecmp(buf, "modules")) {
+        } else if (!MPL_strcasecmp(buf, "modules")) {
             type = MODULES_OPT;
-        } else if (!PL_strcasecmp(buf, "optimize")) {
+        } else if (!MPL_strcasecmp(buf, "optimize")) {
             type = OPTIMIZE_OPT;
-        } else if (!PL_strcasecmp(buf, "ocsp")) {
+        } else if (!MPL_strcasecmp(buf, "ocsp")) {
             type = ENABLE_OCSP_OPT;
-        } else if (!PL_strcasecmp(buf, "password")) {
+        } else if (!MPL_strcasecmp(buf, "password")) {
             type = PASSWORD_OPT;
-        } else if (!PL_strcasecmp(buf, "verify")) {
+        } else if (!MPL_strcasecmp(buf, "verify")) {
             type = VERIFY_OPT;
-        } else if (!PL_strcasecmp(buf, "who")) {
+        } else if (!MPL_strcasecmp(buf, "who")) {
             type = WHO_OPT;
-        } else if (!PL_strcasecmp(buf, "exclude")) {
+        } else if (!MPL_strcasecmp(buf, "exclude")) {
             type = EXCLUDE_OPT;
-        } else if (!PL_strcasecmp(buf, "notime")) {
+        } else if (!MPL_strcasecmp(buf, "notime")) {
             type = NO_TIME_OPT;
-        } else if (!PL_strcasecmp(buf, "jarfile")) {
+        } else if (!MPL_strcasecmp(buf, "jarfile")) {
             type = ZIPFILE_OPT;
-        } else if (!PL_strcasecmp(buf, "outfile")) {
+        } else if (!MPL_strcasecmp(buf, "outfile")) {
             type = OUTFILE_OPT;
-        } else if (!PL_strcasecmp(buf, "leavearc")) {
+        } else if (!MPL_strcasecmp(buf, "leavearc")) {
             type = LEAVE_ARC_OPT;
-        } else if (!PL_strcasecmp(buf, "verbosity")) {
+        } else if (!MPL_strcasecmp(buf, "verbosity")) {
             type = VERBOSITY_OPT;
-        } else if (!PL_strcasecmp(buf, "keysize")) {
+        } else if (!MPL_strcasecmp(buf, "keysize")) {
             type = KEYSIZE_OPT;
-        } else if (!PL_strcasecmp(buf, "token")) {
+        } else if (!MPL_strcasecmp(buf, "token")) {
             type = TOKEN_OPT;
-        } else if (!PL_strcasecmp(buf, "xpi")) {
+        } else if (!MPL_strcasecmp(buf, "xpi")) {
             type = XPI_ARC_OPT;
         } else {
-            PR_fprintf(errorFD,
+            MPR_fprintf(errorFD,
                        "warning: unknown attribute \"%s\" in command file, line %d.\n",
                        buf, linenum);
             warningCount++;
@@ -258,7 +258,7 @@ ProcessCommandFile()
     retval = 0;
 
 finish:
-    PR_Close(fd);
+    MPR_Close(fd);
     return retval;
 }
 
@@ -290,20 +290,20 @@ parse_args(int argc, char *argv[])
                     arg = NULL;
                 }
 
-                if (!PL_strcasecmp(opt + 2, "norecurse")) {
+                if (!MPL_strcasecmp(opt + 2, "norecurse")) {
                     type = NORECURSE_OPT;
-                } else if (!PL_strcasecmp(opt + 2, "leavearc")) {
+                } else if (!MPL_strcasecmp(opt + 2, "leavearc")) {
                     type = LEAVE_ARC_OPT;
-                } else if (!PL_strcasecmp(opt + 2, "verbosity")) {
+                } else if (!MPL_strcasecmp(opt + 2, "verbosity")) {
                     type = VERBOSITY_OPT;
-                } else if (!PL_strcasecmp(opt + 2, "outfile")) {
+                } else if (!MPL_strcasecmp(opt + 2, "outfile")) {
                     type = OUTFILE_OPT;
-                } else if (!PL_strcasecmp(opt + 2, "keysize")) {
+                } else if (!MPL_strcasecmp(opt + 2, "keysize")) {
                     type = KEYSIZE_OPT;
-                } else if (!PL_strcasecmp(opt + 2, "token")) {
+                } else if (!MPL_strcasecmp(opt + 2, "token")) {
                     type = TOKEN_OPT;
                 } else {
-                    PR_fprintf(errorFD, "warning: unknown option: %s\n",
+                    MPR_fprintf(errorFD, "warning: unknown option: %s\n",
                                opt);
                     warningCount++;
                     type = UNKNOWN_OPT;
@@ -403,7 +403,7 @@ parse_args(int argc, char *argv[])
                         break;
                     default:
                         type = UNKNOWN_OPT;
-                        PR_fprintf(errorFD, "warning: unrecognized option: -%c.\n",
+                        MPR_fprintf(errorFD, "warning: unrecognized option: -%c.\n",
                                    opt[1]);
                         warningCount++;
                         break;
@@ -413,16 +413,16 @@ parse_args(int argc, char *argv[])
             type = UNKNOWN_OPT;
             if (i == argc - 1) {
                 if (jartree) {
-                    PR_fprintf(errorFD,
+                    MPR_fprintf(errorFD,
                                "warning: directory to be signed specified more than once.\n"
                                " Only last specification will be used.\n");
                     warningCount++;
-                    PR_Free(jartree);
+                    MPR_Free(jartree);
                     jartree = NULL;
                 }
-                jartree = PL_strdup(opt);
+                jartree = MPL_strdup(opt);
             } else {
-                PR_fprintf(errorFD, "warning: unrecognized option: %s\n", opt);
+                MPR_fprintf(errorFD, "warning: unrecognized option: %s\n", opt);
                 warningCount++;
             }
         }
@@ -468,26 +468,26 @@ ProcessOneOpt(OPT_TYPE type, char *arg)
             break;
         case BASE_OPT:
             if (base) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR], "-b");
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR], "-b");
                 warningCount++;
-                PR_Free(base);
+                MPR_Free(base);
                 base = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR], "-b");
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR], "-b");
                 errorCount++;
                 goto loser;
             }
-            base = PL_strdup(arg);
+            base = MPL_strdup(arg);
             ate = 1;
             break;
         case COMPRESSION_OPT:
             if (compression_level_specified) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR], "-c");
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR], "-c");
                 warningCount++;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR], "-c");
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR], "-c");
                 errorCount++;
                 goto loser;
             }
@@ -497,85 +497,85 @@ ProcessOneOpt(OPT_TYPE type, char *arg)
             break;
         case CERT_DIR_OPT:
             if (cert_dir) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR], "-d");
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR], "-d");
                 warningCount++;
-                PR_Free(cert_dir);
+                MPR_Free(cert_dir);
                 cert_dir = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR], "-d");
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR], "-d");
                 errorCount++;
                 goto loser;
             }
-            cert_dir = PL_strdup(arg);
+            cert_dir = MPL_strdup(arg);
             ate = 1;
             break;
         case EXTENSION_OPT:
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "extension (-e)");
                 errorCount++;
                 goto loser;
             }
-            PL_HashTableAdd(extensions, arg, arg);
+            MPL_HashTableAdd(extensions, arg, arg);
             extensionsGiven = PR_TRUE;
             ate = 1;
             break;
         case INSTALL_SCRIPT_OPT:
             if (install_script) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
                            "installScript (-i)");
                 warningCount++;
-                PR_Free(install_script);
+                MPR_Free(install_script);
                 install_script = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "installScript (-i)");
                 errorCount++;
                 goto loser;
             }
-            install_script = PL_strdup(arg);
+            install_script = MPL_strdup(arg);
             ate = 1;
             break;
         case SCRIPTDIR_OPT:
             if (scriptdir) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
                            "javascriptdir (-j)");
                 warningCount++;
-                PR_Free(scriptdir);
+                MPR_Free(scriptdir);
                 scriptdir = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "javascriptdir (-j)");
                 errorCount++;
                 goto loser;
             }
-            scriptdir = PL_strdup(arg);
+            scriptdir = MPL_strdup(arg);
             ate = 1;
             break;
         case CERTNAME_OPT:
             if (keyName) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
                            "keyName (-k)");
                 warningCount++;
-                PR_Free(keyName);
+                MPR_Free(keyName);
                 keyName = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "keyName (-k)");
                 errorCount++;
                 goto loser;
             }
-            keyName = PL_strdup(arg);
+            keyName = MPL_strdup(arg);
             ate = 1;
             break;
         case LIST_OBJSIGN_CERTS_OPT:
         case LIST_ALL_CERTS_OPT:
             if (list_certs != 0) {
-                PR_fprintf(errorFD,
+                MPR_fprintf(errorFD,
                            "warning: only one of -l and -L may be specified.\n");
                 warningCount++;
             }
@@ -583,19 +583,19 @@ ProcessOneOpt(OPT_TYPE type, char *arg)
             break;
         case METAFILE_OPT:
             if (metafile) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
                            "metafile (-m)");
                 warningCount++;
-                PR_Free(metafile);
+                MPR_Free(metafile);
                 metafile = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "metafile (-m)");
                 errorCount++;
                 goto loser;
             }
-            metafile = PL_strdup(arg);
+            metafile = MPL_strdup(arg);
             ate = 1;
             break;
         case OPTIMIZE_OPT:
@@ -606,64 +606,64 @@ ProcessOneOpt(OPT_TYPE type, char *arg)
             break;
         case PASSWORD_OPT:
             if (pwdata.data) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
                            "password (-p)");
                 warningCount++;
-                PR_Free(pwdata.data);
+                MPR_Free(pwdata.data);
                 pwdata.data = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "password (-p)");
                 errorCount++;
                 goto loser;
             }
             pwdata.source = PW_PLAINTEXT;
-            pwdata.data = PL_strdup(arg);
+            pwdata.data = MPL_strdup(arg);
             ate = 1;
             break;
         case VERIFY_OPT:
             if (verify) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
                            "verify (-v)");
                 warningCount++;
-                PR_Free(verify);
+                MPR_Free(verify);
                 verify = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "verify (-v)");
                 errorCount++;
                 goto loser;
             }
-            verify = PL_strdup(arg);
+            verify = MPL_strdup(arg);
             ate = 1;
             break;
         case WHO_OPT:
             if (tell_who) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
                            "who (-v)");
                 warningCount++;
-                PR_Free(tell_who);
+                MPR_Free(tell_who);
                 tell_who = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "who (-w)");
                 errorCount++;
                 goto loser;
             }
-            tell_who = PL_strdup(arg);
+            tell_who = MPL_strdup(arg);
             ate = 1;
             break;
         case EXCLUDE_OPT:
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "exclude (-x)");
                 errorCount++;
                 goto loser;
             }
-            PL_HashTableAdd(excludeDirs, arg, arg);
+            MPL_HashTableAdd(excludeDirs, arg, arg);
             exclusionsGiven = PR_TRUE;
             ate = 1;
             break;
@@ -675,36 +675,36 @@ ProcessOneOpt(OPT_TYPE type, char *arg)
             break;
         case ZIPFILE_OPT:
             if (zipfile) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
                            "jarfile (-Z)");
                 warningCount++;
-                PR_Free(zipfile);
+                MPR_Free(zipfile);
                 zipfile = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "jarfile (-Z)");
                 errorCount++;
                 goto loser;
             }
-            zipfile = PL_strdup(arg);
+            zipfile = MPL_strdup(arg);
             ate = 1;
             break;
         case GENKEY_OPT:
             if (genkey) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
                            "generate (-G)");
                 warningCount++;
-                PR_Free(genkey);
+                MPR_Free(genkey);
                 genkey = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "generate (-G)");
                 errorCount++;
                 goto loser;
             }
-            genkey = PL_strdup(arg);
+            genkey = MPL_strdup(arg);
             ate = 1;
             break;
         case MODULES_OPT:
@@ -712,53 +712,53 @@ ProcessOneOpt(OPT_TYPE type, char *arg)
             break;
         case SIGNDIR_OPT:
             if (jartree) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
                            "signdir");
                 warningCount++;
-                PR_Free(jartree);
+                MPR_Free(jartree);
                 jartree = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "signdir");
                 errorCount++;
                 goto loser;
             }
-            jartree = PL_strdup(arg);
+            jartree = MPL_strdup(arg);
             ate = 1;
             break;
         case OUTFILE_OPT:
             if (outfile) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
                            "outfile");
                 warningCount++;
-                PR_Free(outfile);
+                MPR_Free(outfile);
                 outfile = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "outfile");
                 errorCount++;
                 goto loser;
             }
-            outfile = PL_strdup(arg);
+            outfile = MPL_strdup(arg);
             ate = 1;
             break;
         case COMMAND_FILE_OPT:
             if (cmdFile) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR],
                            "-f");
                 warningCount++;
-                PR_Free(cmdFile);
+                MPR_Free(cmdFile);
                 cmdFile = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "-f");
                 errorCount++;
                 goto loser;
             }
-            cmdFile = PL_strdup(arg);
+            cmdFile = MPL_strdup(arg);
             ate = 1;
             break;
         case NORECURSE_OPT:
@@ -769,7 +769,7 @@ ProcessOneOpt(OPT_TYPE type, char *arg)
             break;
         case VERBOSITY_OPT:
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR],
                            "--verbosity");
                 errorCount++;
                 goto loser;
@@ -779,36 +779,36 @@ ProcessOneOpt(OPT_TYPE type, char *arg)
             break;
         case KEYSIZE_OPT:
             if (keySize != -1) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR], "-s");
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR], "-s");
                 warningCount++;
             }
             keySize = atoi(arg);
             ate = 1;
             if (keySize < 1 || keySize > MAX_RSA_KEY_SIZE) {
-                PR_fprintf(errorFD, "Invalid key size: %d.\n", keySize);
+                MPR_fprintf(errorFD, "Invalid key size: %d.\n", keySize);
                 errorCount++;
                 goto loser;
             }
             break;
         case TOKEN_OPT:
             if (token) {
-                PR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR], "-t");
-                PR_Free(token);
+                MPR_fprintf(errorFD, errStrings[DUPLICATE_OPTION_ERR], "-t");
+                MPR_Free(token);
                 token = NULL;
             }
             if (!arg) {
-                PR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR], "-t");
+                MPR_fprintf(errorFD, errStrings[OPTION_NEEDS_ARG_ERR], "-t");
                 errorCount++;
                 goto loser;
             }
-            token = PL_strdup(arg);
+            token = MPL_strdup(arg);
             ate = 1;
             break;
         case XPI_ARC_OPT:
             xpi_arc = 1;
             break;
         default:
-            PR_fprintf(errorFD, "warning: unknown option\n");
+            MPR_fprintf(errorFD, "warning: unknown option\n");
             warningCount++;
             break;
     }
@@ -837,10 +837,10 @@ main(int argc, char *argv[])
         Usage();
     }
 
-    excludeDirs = PL_NewHashTable(10, PL_HashString, PL_CompareStrings,
-                                  PL_CompareStrings, NULL, NULL);
-    extensions = PL_NewHashTable(10, PL_HashString, PL_CompareStrings,
-                                 PL_CompareStrings, NULL, NULL);
+    excludeDirs = MPL_NewHashTable(10, MPL_HashString, MPL_CompareStrings,
+                                  MPL_CompareStrings, NULL, NULL);
+    extensions = MPL_NewHashTable(10, MPL_HashString, MPL_CompareStrings,
+                                 MPL_CompareStrings, NULL, NULL);
 
     if (parse_args(argc, argv)) {
         retval = -1;
@@ -857,24 +857,24 @@ main(int argc, char *argv[])
 
     /* Set up output redirection */
     if (outfile) {
-        if (PR_Access(outfile, PR_ACCESS_EXISTS) == PR_SUCCESS) {
+        if (MPR_Access(outfile, PR_ACCESS_EXISTS) == PR_SUCCESS) {
             /* delete the file if it is already present */
-            PR_fprintf(errorFD,
+            MPR_fprintf(errorFD,
                        "warning: %s already exists and will be overwritten.\n",
                        outfile);
             warningCount++;
-            if (PR_Delete(outfile) != PR_SUCCESS) {
-                PR_fprintf(errorFD, "ERROR: unable to delete %s.\n", outfile);
+            if (MPR_Delete(outfile) != PR_SUCCESS) {
+                MPR_fprintf(errorFD, "ERROR: unable to delete %s.\n", outfile);
                 errorCount++;
                 exit(ERRX);
             }
         }
-        outputFD = PR_Open(outfile,
+        outputFD = MPR_Open(outfile,
                            PR_WRONLY |
                                PR_CREATE_FILE | PR_TRUNCATE,
                            0777);
         if (!outputFD) {
-            PR_fprintf(errorFD, "ERROR: Unable to create %s.\n",
+            MPR_fprintf(errorFD, "ERROR: Unable to create %s.\n",
                        outfile);
             errorCount++;
             exit(ERRX);
@@ -885,7 +885,7 @@ main(int argc, char *argv[])
     /* This seems to be a fairly common user error */
 
     if (verify && list_certs > 0) {
-        PR_fprintf(errorFD, "%s: Can't use -l and -v at the same time\n",
+        MPR_fprintf(errorFD, "%s: Can't use -l and -v at the same time\n",
                    PROGRAM_NAME);
         errorCount++;
         retval = -1;
@@ -895,9 +895,9 @@ main(int argc, char *argv[])
     /* -J assumes -Z now */
 
     if (javascript && zipfile) {
-        PR_fprintf(errorFD, "%s: Can't use -J and -Z at the same time\n",
+        MPR_fprintf(errorFD, "%s: Can't use -J and -Z at the same time\n",
                    PROGRAM_NAME);
-        PR_fprintf(errorFD, "%s: -J option will create the jar files for you\n",
+        MPR_fprintf(errorFD, "%s: -J option will create the jar files for you\n",
                    PROGRAM_NAME);
         errorCount++;
         retval = -1;
@@ -907,7 +907,7 @@ main(int argc, char *argv[])
     /* -X needs -Z */
 
     if (xpi_arc && !zipfile) {
-        PR_fprintf(errorFD, "%s: option XPI (-X) requires option jarfile (-Z)\n",
+        MPR_fprintf(errorFD, "%s: option XPI (-X) requires option jarfile (-Z)\n",
                    PROGRAM_NAME);
         errorCount++;
         retval = -1;
@@ -919,7 +919,7 @@ main(int argc, char *argv[])
     if (list_certs > 0 &&
         (tell_who || zipfile || javascript ||
          scriptdir || extensionsGiven || exclusionsGiven || install_script)) {
-        PR_fprintf(errorFD, "%s: Can't use -l or -L with that option\n",
+        MPR_fprintf(errorFD, "%s: Can't use -l or -L with that option\n",
                    PROGRAM_NAME);
         errorCount++;
         retval = -1;
@@ -933,7 +933,7 @@ main(int argc, char *argv[])
 
     if (compression_level < MIN_COMPRESSION_LEVEL ||
         compression_level > MAX_COMPRESSION_LEVEL) {
-        PR_fprintf(errorFD, "Compression level must be between %d and %d.\n",
+        MPR_fprintf(errorFD, "Compression level must be between %d and %d.\n",
                    MIN_COMPRESSION_LEVEL, MAX_COMPRESSION_LEVEL);
         errorCount++;
         retval = -1;
@@ -941,7 +941,7 @@ main(int argc, char *argv[])
     }
 
     if (jartree && !keyName) {
-        PR_fprintf(errorFD, "You must specify a key with which to sign.\n");
+        MPR_fprintf(errorFD, "You must specify a key with which to sign.\n");
         errorCount++;
         retval = -1;
         goto cleanup;
@@ -949,7 +949,7 @@ main(int argc, char *argv[])
 
     readOnly = (genkey == NULL); /* only key generation requires write */
     if (InitCrypto(cert_dir, readOnly)) {
-        PR_fprintf(errorFD, "ERROR: Cryptographic initialization failed.\n");
+        MPR_fprintf(errorFD, "ERROR: Cryptographic initialization failed.\n");
         errorCount++;
         retval = -1;
         goto cleanup;
@@ -958,7 +958,7 @@ main(int argc, char *argv[])
     if (enableOCSP) {
         SECStatus rv = CERT_EnableOCSPChecking(CERT_GetDefaultCertDB());
         if (rv != SECSuccess) {
-            PR_fprintf(errorFD, "ERROR: Attempt to enable OCSP Checking failed.\n");
+            MPR_fprintf(errorFD, "ERROR: Attempt to enable OCSP Checking failed.\n");
             errorCount++;
             retval = -1;
         }
@@ -993,20 +993,20 @@ main(int argc, char *argv[])
     } else if (javascript && jartree) {
         /* make sure directory exists */
         PRDir *dir;
-        dir = PR_OpenDir(jartree);
+        dir = MPR_OpenDir(jartree);
         if (!dir) {
-            PR_fprintf(errorFD, "ERROR: unable to open directory %s.\n",
+            MPR_fprintf(errorFD, "ERROR: unable to open directory %s.\n",
                        jartree);
             errorCount++;
             retval = -1;
             goto cleanup;
         } else {
-            PR_CloseDir(dir);
+            MPR_CloseDir(dir);
         }
 
         /* undo junk from prior runs of signtool*/
         if (RemoveAllArc(jartree)) {
-            PR_fprintf(errorFD, "Error removing archive directories under %s\n",
+            MPR_fprintf(errorFD, "Error removing archive directories under %s\n",
                        jartree);
             errorCount++;
             retval = -1;
@@ -1031,11 +1031,11 @@ main(int argc, char *argv[])
         }
 
         if (errorCount > 0 || warningCount > 0) {
-            PR_fprintf(outputFD, "%d error%s, %d warning%s.\n",
+            MPR_fprintf(outputFD, "%d error%s, %d warning%s.\n",
                        errorCount,
                        errorCount == 1 ? "" : "s", warningCount, warningCount == 1 ? "" : "s");
         } else {
-            PR_fprintf(outputFD, "Directory %s signed successfully.\n",
+            MPR_fprintf(outputFD, "Directory %s signed successfully.\n",
                        jartree);
         }
     } else if (jartree) {
@@ -1046,15 +1046,15 @@ main(int argc, char *argv[])
 
 cleanup:
     if (extensions) {
-        PL_HashTableDestroy(extensions);
+        MPL_HashTableDestroy(extensions);
         extensions = NULL;
     }
     if (excludeDirs) {
-        PL_HashTableDestroy(excludeDirs);
+        MPL_HashTableDestroy(excludeDirs);
         excludeDirs = NULL;
     }
     if (outputFD != PR_STDOUT) {
-        PR_Close(outputFD);
+        MPR_Close(outputFD);
     }
     rm_dash_r(TMP_OUTPUT);
     if (retval == 0) {

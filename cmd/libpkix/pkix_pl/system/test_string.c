@@ -53,7 +53,7 @@ createStringOther(
     createString(testEscAscii,
                  PKIX_ESCASCII,
                  escAsciiString,
-                 PL_strlen(escAsciiString));
+                 MPL_strlen(escAsciiString));
 
     createString(testUtf16, PKIX_UTF16, (char *)utf16data, 12);
 
@@ -62,12 +62,12 @@ createStringOther(
     createString(testDebugAscii,
                  PKIX_ESCASCII_DEBUG,
                  debugAsciiString,
-                 PL_strlen(debugAsciiString));
+                 MPL_strlen(debugAsciiString));
 
     createString(testNullString,
                  PKIX_ESCASCII_DEBUG,
                  nullText,
-                 PL_strlen(nullText));
+                 MPL_strlen(nullText));
 
     goto cleanup;
 
@@ -142,7 +142,7 @@ testGetEncoded(
 
     temp = PKIX_String2ASCII(testDebugAscii, plContext);
     if (temp) {
-        if (PL_strcmp(plainText, temp) != 0)
+        if (MPL_strcmp(plainText, temp) != 0)
             testError("Debugged ASCII does not match "
                       "equivalent EscAscii");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
@@ -172,7 +172,7 @@ testSprintf(void)
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(
         PKIX_ESCASCII,
         plainText,
-        PL_strlen(plainText),
+        MPL_strlen(plainText),
         &testString,
         plContext));
 
@@ -189,10 +189,10 @@ testSprintf(void)
                                               testString, x, y, y));
     PKIX_TEST_DECREF_BC(testString);
 
-    temp = PR_smprintf(convertedFormat, plainText, x, y, y);
+    temp = MPR_smprintf(convertedFormat, plainText, x, y, y);
     temp2 = PKIX_String2ASCII(sprintfString, plContext);
 
-    if (PL_strcmp(temp, temp2) != 0)
+    if (MPL_strcmp(temp, temp2) != 0)
         testError("Sprintf produced incorrect output");
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(temp, plContext));
@@ -320,7 +320,7 @@ testErrorHandling(void)
     PKIX_TEST_EXPECT_ERROR(PKIX_PL_String_Create(
         PKIX_ESCASCII,
         debugAsciiString,
-        PL_strlen(debugAsciiString),
+        MPL_strlen(debugAsciiString),
         &testString,
         plContext));
 cleanup:
@@ -381,7 +381,7 @@ test_string(int argc, char *argv[])
         createString(&testString[i],
                      PKIX_ESCASCII,
                      plainText[i],
-                     PL_strlen(plainText[i]));
+                     MPL_strlen(plainText[i]));
     }
 
     subTest("PKIX_PL_String_Create <other formats>");

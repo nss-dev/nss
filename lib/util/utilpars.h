@@ -64,7 +64,7 @@ const char *_NSSUTIL_EvaluateConfigDir(const char *configdir, NSSDBType *dbType,
 wchar_t *_NSSUTIL_UTF8ToWide(const char *buf);
 PRStatus _NSSUTIL_Access(const char *path, PRAccessHow how);
 #else
-#define _NSSUTIL_Access(path, how) PR_Access((path), (how))
+#define _NSSUTIL_Access(path, how) MPR_Access((path), (how))
 #endif
 
 #endif /* _UTILPARS_H_ */

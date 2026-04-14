@@ -56,7 +56,7 @@ class Iso88591Test : public ::testing::TestWithParam<Ucs2Case> {};
 
 TEST_P(Ucs4Test, ToUtf8) {
   const Ucs4Case testCase = GetParam();
-  PRUint32 nc = PR_htonl(testCase.c);
+  PRUint32 nc = MPR_htonl(testCase.c);
   unsigned char utf8[8] = {0};
   unsigned int len = 0;
 
@@ -80,12 +80,12 @@ TEST_P(Ucs4Test, FromUtf8) {
 
   ASSERT_TRUE(result);
   ASSERT_EQ(sizeof(nc), len);
-  EXPECT_EQ(testCase.c, PR_ntohl(nc));
+  EXPECT_EQ(testCase.c, MPR_ntohl(nc));
 }
 
 TEST_P(Ucs4Test, DestTooSmall) {
   const Ucs4Case testCase = GetParam();
-  PRUint32 nc = PR_htonl(testCase.c);
+  PRUint32 nc = MPR_htonl(testCase.c);
   unsigned char utf8[8];
   unsigned char *utf8end = utf8 + sizeof(utf8);
   unsigned int len = strlen(testCase.utf8) - 1;
@@ -104,7 +104,7 @@ TEST_P(Ucs4Test, DestTooSmall) {
 
 TEST_P(Ucs2Test, ToUtf8) {
   const Ucs2Case testCase = GetParam();
-  PRUint16 nc = PR_htons(testCase.c);
+  PRUint16 nc = MPR_htons(testCase.c);
   unsigned char utf8[8] = {0};
   unsigned int len = 0;
 
@@ -128,12 +128,12 @@ TEST_P(Ucs2Test, FromUtf8) {
 
   ASSERT_EQ(PR_TRUE, result);
   ASSERT_EQ(sizeof(nc), len);
-  EXPECT_EQ(testCase.c, PR_ntohs(nc));
+  EXPECT_EQ(testCase.c, MPR_ntohs(nc));
 }
 
 TEST_P(Ucs2Test, DestTooSmall) {
   const Ucs2Case testCase = GetParam();
-  PRUint16 nc = PR_htons(testCase.c);
+  PRUint16 nc = MPR_htons(testCase.c);
   unsigned char utf8[8];
   unsigned char *utf8end = utf8 + sizeof(utf8);
   unsigned int len = strlen(testCase.utf8) - 1;
@@ -151,7 +151,7 @@ TEST_P(Ucs2Test, DestTooSmall) {
 
 TEST_P(Utf16Test, From16To32) {
   const Utf16Case testCase = GetParam();
-  PRUint16 from[2] = {PR_htons(testCase.w[0]), PR_htons(testCase.w[1])};
+  PRUint16 from[2] = {MPR_htons(testCase.w[0]), MPR_htons(testCase.w[1])};
   PRUint32 to;
   unsigned char utf8[8];
   unsigned int len = 0;
@@ -166,12 +166,12 @@ TEST_P(Utf16Test, From16To32) {
 
   ASSERT_EQ(PR_TRUE, result);
   ASSERT_EQ(sizeof(to), len);
-  EXPECT_EQ(testCase.c, PR_ntohl(to));
+  EXPECT_EQ(testCase.c, MPR_ntohl(to));
 }
 
 TEST_P(Utf16Test, From32To16) {
   const Utf16Case testCase = GetParam();
-  PRUint32 from = PR_htonl(testCase.c);
+  PRUint32 from = MPR_htonl(testCase.c);
   unsigned char utf8[8];
   unsigned int len = 0;
 
@@ -187,13 +187,13 @@ TEST_P(Utf16Test, From32To16) {
 
   ASSERT_EQ(PR_TRUE, result);
   ASSERT_EQ(sizeof(to), len);
-  EXPECT_EQ(testCase.w[0], PR_ntohs(to[0]));
-  EXPECT_EQ(testCase.w[1], PR_ntohs(to[1]));
+  EXPECT_EQ(testCase.w[0], MPR_ntohs(to[0]));
+  EXPECT_EQ(testCase.w[1], MPR_ntohs(to[1]));
 }
 
 TEST_P(Utf16Test, SameUtf8) {
   const Utf16Case testCase = GetParam();
-  PRUint32 from32 = PR_htonl(testCase.c);
+  PRUint32 from32 = MPR_htonl(testCase.c);
   unsigned char utf8from32[8];
   unsigned int lenFrom32 = 0;
 
@@ -204,7 +204,7 @@ TEST_P(Utf16Test, SameUtf8) {
   ASSERT_TRUE(result);
   ASSERT_LE(lenFrom32, sizeof(utf8from32));
 
-  PRUint16 from16[2] = {PR_htons(testCase.w[0]), PR_htons(testCase.w[1])};
+  PRUint16 from16[2] = {MPR_htons(testCase.w[0]), MPR_htons(testCase.w[1])};
   unsigned char utf8from16[8];
   unsigned int lenFrom16 = 0;
 
@@ -255,7 +255,7 @@ TEST_P(BadUtf16Test, HasNoUtf8) {
 
   size_t srcLen = 0;
   while (testCase.w[srcLen] != 0) {
-    srcBuf.w[srcLen] = PR_htons(testCase.w[srcLen]);
+    srcBuf.w[srcLen] = MPR_htons(testCase.w[srcLen]);
     srcLen++;
     ASSERT_LT(srcLen, maxLen);
   }

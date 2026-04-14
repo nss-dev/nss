@@ -48,8 +48,8 @@ pkix_LockObject(
 
         objectHeader = object-1;
 
-        PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
-        PR_Lock(objectHeader->lock);
+        PKIX_OBJECT_DEBUG("\tCalling MPR_Lock).\n");
+        MPR_Lock(objectHeader->lock);
 
 cleanup:
 
@@ -93,8 +93,8 @@ pkix_UnlockObject(
 
         objectHeader = object-1;
 
-        PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
-        result = PR_Unlock(objectHeader->lock);
+        PKIX_OBJECT_DEBUG("\tCalling MPR_Unlock).\n");
+        result = MPR_Unlock(objectHeader->lock);
 
         if (result == PR_FAILURE) {
                 PKIX_OBJECT_DEBUG("\tPR_Unlock failed.).\n");
@@ -134,8 +134,8 @@ pkix_pl_UInt32_Overflows(char *string){
 
         PKIX_DEBUG_ENTER(OID);
 
-        PKIX_OID_DEBUG("\tCalling PL_strlen).\n");
-        length = PL_strlen(string);
+        PKIX_OID_DEBUG("\tCalling MPL_strlen).\n");
+        length = MPL_strlen(string);
 
         if (length < MAX_DIGITS_32){
                 return (PKIX_FALSE);
@@ -148,14 +148,14 @@ pkix_pl_UInt32_Overflows(char *string){
                 }
         }
 
-        PKIX_OID_DEBUG("\tCalling PL_strlen).\n");
-        length = PL_strlen(firstNonZero);
+        PKIX_OID_DEBUG("\tCalling MPL_strlen).\n");
+        length = MPL_strlen(firstNonZero);
 
         if (length > MAX_DIGITS_32){
                 return (PKIX_TRUE);
         }
 
-        PKIX_OID_DEBUG("\tCalling PL_strlen).\n");
+        PKIX_OID_DEBUG("\tCalling MPL_strlen).\n");
         if (length == MAX_DIGITS_32){
                 PKIX_OID_DEBUG("\tCalling PORT_Strcmp).\n");
                 if (PORT_Strcmp(firstNonZero, MAX_UINT32_STRING) > 0){
@@ -306,8 +306,8 @@ pkix_pl_helperBytes2Ascii(
                     PKIX_MALLOCFAILED);
 
         for (i = 0; i < numTokens; i++){
-                PKIX_OBJECT_DEBUG("\tCalling PR_snprintf).\n");
-                error = PR_snprintf(tempString,
+                PKIX_OBJECT_DEBUG("\tCalling MPR_snprintf).\n");
+                error = MPR_snprintf(tempString,
                                     MAX_DIGITS_32 + 1,
                                     format,
                                     tokens[i]);
@@ -315,8 +315,8 @@ pkix_pl_helperBytes2Ascii(
                         PKIX_ERROR(PKIX_PRSNPRINTFFAILED);
                 }
 
-                PKIX_OBJECT_DEBUG("\tCalling PL_strlen).\n");
-                outputLen += PL_strlen(tempString);
+                PKIX_OBJECT_DEBUG("\tCalling MPL_strlen).\n");
+                outputLen += MPL_strlen(tempString);
 
                 /* Include a dot to separate each number */
                 outputLen++;
@@ -332,8 +332,8 @@ pkix_pl_helperBytes2Ascii(
         /* Concatenate all strings together */
         for (i = 0; i < numTokens; i++){
 
-                PKIX_OBJECT_DEBUG("\tCalling PR_snprintf).\n");
-                error = PR_snprintf(tempString,
+                PKIX_OBJECT_DEBUG("\tCalling MPR_snprintf).\n");
+                error = MPR_snprintf(tempString,
                                     MAX_DIGITS_32 + 1,
                                     format,
                                     tokens[i]);
@@ -341,13 +341,13 @@ pkix_pl_helperBytes2Ascii(
                         PKIX_ERROR(PKIX_PRSNPRINTFFAILED);
                 }
 
-                PKIX_OBJECT_DEBUG("\tCalling PL_strcat).\n");
-                (void) PL_strcat(outputString, tempString);
+                PKIX_OBJECT_DEBUG("\tCalling MPL_strcat).\n");
+                (void) MPL_strcat(outputString, tempString);
 
                 /* we don't want to put a "." at the very end */
                 if (i < (numTokens - 1)){
-                        PKIX_OBJECT_DEBUG("\tCalling PL_strcat).\n");
-                        (void) PL_strcat(outputString, ".");
+                        PKIX_OBJECT_DEBUG("\tCalling MPL_strcat).\n");
+                        (void) MPL_strcat(outputString, ".");
                 }
         }
 
@@ -690,8 +690,8 @@ pkix_UTF16_to_EscASCII(
                         z = ((x - 0xD800) * 0x400 + (y - 0xDC00)) + 0x00010000;
 
                         /* Sprintf &#xNNNNNNNN; */
-                        PKIX_STRING_DEBUG("\tCalling PR_snprintf).\n");
-                        if (PR_snprintf(destPtr, 13, "&#x%08X;", z) ==
+                        PKIX_STRING_DEBUG("\tCalling MPR_snprintf).\n");
+                        if (MPR_snprintf(destPtr, 13, "&#x%08X;", z) ==
                             (PKIX_UInt32)(-1)) {
                                 PKIX_ERROR(PKIX_PRSNPRINTFFAILED);
                         }
@@ -699,8 +699,8 @@ pkix_UTF16_to_EscASCII(
                         destPtr += 12;
                 } else {
                         /* Sprintf &#xNNNN; */
-                        PKIX_STRING_DEBUG("\tCalling PR_snprintf).\n");
-                        if (PR_snprintf
+                        PKIX_STRING_DEBUG("\tCalling MPR_snprintf).\n");
+                        if (MPR_snprintf
                             (destPtr,
                             9,
                             "&#x%02X%02X;",
@@ -785,14 +785,14 @@ pkix_EscASCII_to_UTF16(
                 if (!pkix_isPlaintext(stringData[i], debug)&&
                     (stringData[i] != '&')) {
                         PKIX_ERROR(PKIX_ILLEGALCHARACTERINESCAPEDASCII);
-                } else if (PL_strstr(escAsciiString+i, "&amp;") ==
+                } else if (MPL_strstr(escAsciiString+i, "&amp;") ==
                             escAsciiString+i) {
                         /* Convert EscAscii "&amp;" to two bytes */
                         newLen -= 8;
                         i += 4;
-                } else if ((PL_strstr(escAsciiString+i, "&#x") ==
+                } else if ((MPL_strstr(escAsciiString+i, "&#x") ==
                             escAsciiString+i)||
-                            (PL_strstr(escAsciiString+i, "&#X") ==
+                            (MPL_strstr(escAsciiString+i, "&#X") ==
                             escAsciiString+i)) {
                         if (((i+7) <= escAsciiLen)&&
                             (escAsciiString[i+7] == ';')) {
@@ -822,15 +822,15 @@ pkix_EscASCII_to_UTF16(
                 if (pkix_isPlaintext(escAsciiString[i], debug)) {
                         *destPtr++ = 0x00;
                         *destPtr++ = escAsciiString[i++];
-                } else if (PL_strstr(escAsciiString+i, "&amp;") ==
+                } else if (MPL_strstr(escAsciiString+i, "&amp;") ==
                             escAsciiString+i) {
                         /* Convert EscAscii "&amp;" to two bytes */
                         *destPtr++ = 0x00;
                         *destPtr++ = '&';
                         i += 5;
-                } else if (((PL_strstr(escAsciiString+i, "&#x") ==
+                } else if (((MPL_strstr(escAsciiString+i, "&#x") ==
                             escAsciiString+i)||
-                            (PL_strstr(escAsciiString+i, "&#X") ==
+                            (MPL_strstr(escAsciiString+i, "&#X") ==
                             escAsciiString+i))&&
                             ((i+7) <= escAsciiLen)) {
 

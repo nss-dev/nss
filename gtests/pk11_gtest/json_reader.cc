@@ -9,7 +9,7 @@
 #include "pk11pub.h"
 
 JsonReader::JsonReader(const std::string& n) : buf_(), available_(0), i_(0) {
-  f_.reset(PR_Open(n.c_str(), PR_RDONLY, 00600));
+  f_.reset(MPR_Open(n.c_str(), PR_RDONLY, 00600));
   EXPECT_TRUE(f_) << "error opening vectors from: " << n;
   buf_[0] = 0;
 }
@@ -183,7 +183,7 @@ void JsonReader::TopUp() {
   if (!f_) {
     return;
   }
-  PRInt32 res = PR_Read(f_.get(), buf_, sizeof(buf_));
+  PRInt32 res = MPR_Read(f_.get(), buf_, sizeof(buf_));
   if (res > 0) {
     available_ = static_cast<size_t>(res);
   } else {

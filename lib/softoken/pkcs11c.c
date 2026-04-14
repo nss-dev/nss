@@ -310,9 +310,9 @@ NSC_DestroyObject(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject)
     }
 
     /* don't destroy a private object if we aren't logged in */
-    PR_Lock(slot->slotLock);
+    MPR_Lock(slot->slotLock);
     PRBool wouldNeedToLogIn = !slot->isLoggedIn && slot->needLogin;
-    PR_Unlock(slot->slotLock);
+    MPR_Unlock(slot->slotLock);
     if (wouldNeedToLogIn && sftk_isTrue(object, CKA_PRIVATE)) {
         sftk_FreeSession(session);
         sftk_FreeObject(object);
@@ -5807,7 +5807,7 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession, SFTKSlot *slot,
                     return CKR_GENERAL_ERROR;
                 }
                 /* make sure it has the same encoding */
-                if (PR_GetEnvSecure("NSS_USE_DECODED_CKA_EC_POINT") ||
+                if (MPR_GetEnvSecure("NSS_USE_DECODED_CKA_EC_POINT") ||
                     lowPrivKey->u.ec.ecParams.type != ec_params_named) {
                     lowPubValue = SECITEM_DupItem(&ecPriv->publicValue);
                 } else {
@@ -6406,7 +6406,7 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
                 break;
             }
 
-            if (PR_GetEnvSecure("NSS_USE_DECODED_CKA_EC_POINT") ||
+            if (MPR_GetEnvSecure("NSS_USE_DECODED_CKA_EC_POINT") ||
                 ecParams->type != ec_params_named) {
                 PORT_FreeArena(ecParams->arena, PR_TRUE);
                 crv = sftk_AddAttributeType(publicKey, CKA_EC_POINT,
@@ -6757,7 +6757,7 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
         if (crv != CKR_OK) {
             if (sftk_audit_enabled) {
                 char msg[128];
-                PR_snprintf(msg, sizeof msg,
+                MPR_snprintf(msg, sizeof msg,
                             "C_GenerateKeyPair(hSession=0x%08lX, "
                             "pMechanism->mechanism=0x%08lX)=0x%08lX "
                             "self-test: pair-wise consistency test failed",

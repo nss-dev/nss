@@ -81,7 +81,7 @@ GetLen(PRFileDesc *fd)
 {
     PRFileInfo info;
 
-    if (PR_SUCCESS != PR_GetOpenFileInfo(fd, &info)) {
+    if (PR_SUCCESS != MPR_GetOpenFileInfo(fd, &info)) {
         return -1;
     }
 
@@ -93,15 +93,15 @@ ReadBuf(char *inFile, SECItem *item)
 {
     int len;
     int ret;
-    PRFileDesc *fd = PR_Open(inFile, PR_RDONLY, 0);
+    PRFileDesc *fd = MPR_Open(inFile, PR_RDONLY, 0);
     if (NULL == fd) {
-        SECU_PrintError("symkeyutil", "PR_Open failed");
+        SECU_PrintError("symkeyutil", "MPR_Open failed");
         return -1;
     }
 
     len = GetLen(fd);
     if (len < 0) {
-        SECU_PrintError("symkeyutil", "PR_GetOpenFileInfo failed");
+        SECU_PrintError("symkeyutil", "MPR_GetOpenFileInfo failed");
         return -1;
     }
     item->data = (unsigned char *)PORT_Alloc(len);
@@ -110,14 +110,14 @@ ReadBuf(char *inFile, SECItem *item)
         return -1;
     }
 
-    ret = PR_Read(fd, item->data, item->len);
+    ret = MPR_Read(fd, item->data, item->len);
     if (ret < 0) {
-        SECU_PrintError("symkeyutil", "PR_Read failed");
+        SECU_PrintError("symkeyutil", "MPR_Read failed");
         PORT_Free(item->data);
         item->data = NULL;
         return -1;
     }
-    PR_Close(fd);
+    MPR_Close(fd);
     item->len = len;
     return 0;
 }
@@ -126,18 +126,18 @@ int
 WriteBuf(char *inFile, SECItem *item)
 {
     int ret;
-    PRFileDesc *fd = PR_Open(inFile, PR_WRONLY | PR_CREATE_FILE, 0x200);
+    PRFileDesc *fd = MPR_Open(inFile, PR_WRONLY | PR_CREATE_FILE, 0x200);
     if (NULL == fd) {
-        SECU_PrintError("symkeyutil", "PR_Open failed");
+        SECU_PrintError("symkeyutil", "MPR_Open failed");
         return -1;
     }
 
-    ret = PR_Write(fd, item->data, item->len);
+    ret = MPR_Write(fd, item->data, item->len);
     if (ret < 0) {
-        SECU_PrintError("symkeyutil", "PR_Write failed");
+        SECU_PrintError("symkeyutil", "MPR_Write failed");
         return -1;
     }
-    PR_Close(fd);
+    MPR_Close(fd);
     return 0;
 }
 
@@ -146,7 +146,7 @@ GetKeyTypeFromString(const char *keyString)
 {
     int i;
     for (i = 0; i < keyArraySize; i++) {
-        if (PL_strcasecmp(keyString, keyArray[i].label) == 0) {
+        if (MPL_strcasecmp(keyString, keyArray[i].label) == 0) {
             return keyArray[i].keyType;
         }
     }
@@ -158,7 +158,7 @@ GetKeyMechFromString(const char *keyString)
 {
     int i;
     for (i = 0; i < keyArraySize; i++) {
-        if (PL_strcasecmp(keyString, keyArray[i].label) == 0) {
+        if (MPL_strcasecmp(keyString, keyArray[i].label) == 0) {
             return keyArray[i].mechType;
         }
     }
@@ -639,17 +639,17 @@ main(int argc, char **argv)
 
     /*  -h specify token name  */
     if (symKeyUtil.options[opt_TokenName].activated) {
-        if (PL_strcmp(symKeyUtil.options[opt_TokenName].arg, "all") == 0)
+        if (MPL_strcmp(symKeyUtil.options[opt_TokenName].arg, "all") == 0)
             slotname = NULL;
         else
-            slotname = PL_strdup(symKeyUtil.options[opt_TokenName].arg);
+            slotname = MPL_strdup(symKeyUtil.options[opt_TokenName].arg);
     }
 
     /* -t key type */
     if (symKeyUtil.options[opt_KeyType].activated) {
         keyType = GetKeyMechFromString(symKeyUtil.options[opt_KeyType].arg);
         if (keyType == (CK_MECHANISM_TYPE)-1) {
-            PR_fprintf(PR_STDERR,
+            MPR_fprintf(PR_STDERR,
                        "%s unknown key type (%s).\n",
                        progName, symKeyUtil.options[opt_KeyType].arg);
             return 255;
@@ -663,7 +663,7 @@ main(int argc, char **argv)
             symKeyUtil.commands[cmd_UnwrapKey].activated) {
             int ret = ReadBuf(symKeyUtil.options[opt_KeyFile].arg, &key);
             if (ret < 0) {
-                PR_fprintf(PR_STDERR,
+                MPR_fprintf(PR_STDERR,
                            "%s Couldn't read key file (%s).\n",
                            progName, symKeyUtil.options[opt_KeyFile].arg);
                 return 255;
@@ -675,7 +675,7 @@ main(int argc, char **argv)
     if (symKeyUtil.options[opt_KeyID].activated) {
         int ret = HexToBuf(symKeyUtil.options[opt_KeyID].arg, &keyID);
         if (ret < 0) {
-            PR_fprintf(PR_STDERR,
+            MPR_fprintf(PR_STDERR,
                        "%s invalid key ID (%s).\n",
                        progName, symKeyUtil.options[opt_KeyID].arg);
             return 255;
@@ -685,7 +685,7 @@ main(int argc, char **argv)
     /* -i & -j are mutually exclusive */
     if ((symKeyUtil.options[opt_KeyID].activated) &&
         (symKeyUtil.options[opt_KeyIDFile].activated)) {
-        PR_fprintf(PR_STDERR,
+        MPR_fprintf(PR_STDERR,
                    "%s -i and -j options are mutually exclusive.\n", progName);
         return 255;
     }
@@ -694,7 +694,7 @@ main(int argc, char **argv)
     if (symKeyUtil.options[opt_WrapKeyID].activated) {
         int ret = HexToBuf(symKeyUtil.options[opt_WrapKeyID].arg, &wrapKeyID);
         if (ret < 0) {
-            PR_fprintf(PR_STDERR,
+            MPR_fprintf(PR_STDERR,
                        "%s invalid key ID (%s).\n",
                        progName, symKeyUtil.options[opt_WrapKeyID].arg);
             return 255;
@@ -704,7 +704,7 @@ main(int argc, char **argv)
     /* -x & -y are mutually exclusive */
     if ((symKeyUtil.options[opt_KeyID].activated) &&
         (symKeyUtil.options[opt_KeyIDFile].activated)) {
-        PR_fprintf(PR_STDERR,
+        MPR_fprintf(PR_STDERR,
                    "%s -i and -j options are mutually exclusive.\n", progName);
         return 255;
     }
@@ -714,7 +714,7 @@ main(int argc, char **argv)
         int ret = ReadBuf(symKeyUtil.options[opt_WrapKeyIDFile].arg,
                           &wrapKeyID);
         if (ret < 0) {
-            PR_fprintf(PR_STDERR,
+            MPR_fprintf(PR_STDERR,
                        "%s Couldn't read key ID file (%s).\n",
                        progName, symKeyUtil.options[opt_WrapKeyIDFile].arg);
             return 255;
@@ -736,17 +736,17 @@ main(int argc, char **argv)
             break;
     }
     if (commandsEntered > 1) {
-        PR_fprintf(PR_STDERR, "%s: only one command at a time!\n", progName);
-        PR_fprintf(PR_STDERR, "You entered: ");
+        MPR_fprintf(PR_STDERR, "%s: only one command at a time!\n", progName);
+        MPR_fprintf(PR_STDERR, "You entered: ");
         for (i = 0; i < symKeyUtil.numCommands; i++) {
             if (symKeyUtil.commands[i].activated)
-                PR_fprintf(PR_STDERR, " -%c", symKeyUtil.commands[i].flag);
+                MPR_fprintf(PR_STDERR, " -%c", symKeyUtil.commands[i].flag);
         }
-        PR_fprintf(PR_STDERR, "\n");
+        MPR_fprintf(PR_STDERR, "\n");
         return 255;
     }
     if (commandsEntered == 0) {
-        PR_fprintf(PR_STDERR, "%s: you must enter a command!\n", progName);
+        MPR_fprintf(PR_STDERR, "%s: you must enter a command!\n", progName);
         Usage(progName);
     }
 
@@ -762,7 +762,7 @@ main(int argc, char **argv)
          symKeyUtil.commands[cmd_WrapKey].activated ||
          symKeyUtil.commands[cmd_UnwrapKey].activated) &&
         !symKeyUtil.options[opt_KeyFile].activated) {
-        PR_fprintf(PR_STDERR,
+        MPR_fprintf(PR_STDERR,
                    "%s -%c: keyfile is required for this command (-k).\n",
                    progName, commandToRun);
         return 255;
@@ -775,7 +775,7 @@ main(int argc, char **argv)
         !(symKeyUtil.options[opt_Nickname].activated ||
           symKeyUtil.options[opt_KeyID].activated ||
           symKeyUtil.options[opt_KeyIDFile].activated)) {
-        PR_fprintf(PR_STDERR,
+        MPR_fprintf(PR_STDERR,
                    "%s -%c: nickname or id is required for this command (-n, -i, -j).\n",
                    progName, commandToRun);
         return 255;
@@ -787,7 +787,7 @@ main(int argc, char **argv)
         !(symKeyUtil.options[opt_WrapKeyName].activated ||
           symKeyUtil.options[opt_WrapKeyID].activated ||
           symKeyUtil.options[opt_WrapKeyIDFile].activated)) {
-        PR_fprintf(PR_STDERR,
+        MPR_fprintf(PR_STDERR,
                    "%s -%c: wrap key is required for this command (-w, -x, or -y).\n",
                    progName, commandToRun);
         return 255;
@@ -796,7 +796,7 @@ main(int argc, char **argv)
     /* -M needs the target slot  (-g) */
     if (symKeyUtil.commands[cmd_MoveKey].activated &&
         !symKeyUtil.options[opt_TargetToken].activated) {
-        PR_fprintf(PR_STDERR,
+        MPR_fprintf(PR_STDERR,
                    "%s -%c: target token is required for this command (-g).\n",
                    progName, commandToRun);
         return 255;
@@ -805,7 +805,7 @@ main(int argc, char **argv)
     /*  Using slotname == NULL for listing keys and certs on all slots,
      *  but only that. */
     if (!(symKeyUtil.commands[cmd_ListKeys].activated) && slotname == NULL) {
-        PR_fprintf(PR_STDERR,
+        MPR_fprintf(PR_STDERR,
                    "%s -%c: cannot use \"-h all\" for this command.\n",
                    progName, commandToRun);
         return 255;
@@ -817,7 +817,7 @@ main(int argc, char **argv)
     PK11_SetPasswordFunc(SECU_GetModulePassword);
 
     /*  Initialize NSPR and NSS.  */
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     rv = NSS_Initialize(SECU_ConfigDirectory(NULL), certPrefix, certPrefix,
                         "secmod.db", readOnly ? NSS_INIT_READONLY : 0);
     if (rv != SECSuccess) {
@@ -826,7 +826,7 @@ main(int argc, char **argv)
     }
     rv = SECFailure;
 
-    if (PL_strcmp(slotname, "internal") == 0)
+    if (MPL_strcmp(slotname, "internal") == 0)
         slot = PK11_GetInternalKeySlot();
     else if (slotname != NULL)
         slot = PK11_FindSlotByName(slotname);
@@ -838,7 +838,7 @@ main(int argc, char **argv)
         symKey = PK11_TokenKeyGen(slot, keyType, NULL, keySize,
                                   NULL, PR_TRUE, &pwdata);
         if (!symKey) {
-            PR_fprintf(PR_STDERR, "%s: Token Key Gen Failed\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: Token Key Gen Failed\n", progName);
             goto shutdown;
         }
         if (symKeyUtil.options[opt_Nickname].activated) {
@@ -846,7 +846,7 @@ main(int argc, char **argv)
             if (rv != SECSuccess) {
                 PK11_DeleteTokenSymKey(symKey);
                 PK11_FreeSymKey(symKey);
-                PR_fprintf(PR_STDERR, "%s: Couldn't set nickname on key\n",
+                MPR_fprintf(PR_STDERR, "%s: Couldn't set nickname on key\n",
                            progName);
                 goto shutdown;
             }
@@ -860,7 +860,7 @@ main(int argc, char **argv)
 
         if (!symKey) {
             char *keyName = keyID.data ? BufToHex(&keyID) : PORT_Strdup(name);
-            PR_fprintf(PR_STDERR, "%s: Couldn't find key %s on %s\n",
+            MPR_fprintf(PR_STDERR, "%s: Couldn't find key %s on %s\n",
                        progName, keyName, PK11_GetTokenName(slot));
             PORT_Free(keyName);
             goto shutdown;
@@ -869,7 +869,7 @@ main(int argc, char **argv)
         rv = PK11_DeleteTokenSymKey(symKey);
         FreeKeyList(symKey);
         if (rv != SECSuccess) {
-            PR_fprintf(PR_STDERR, "%s: Couldn't Delete Key \n", progName);
+            MPR_fprintf(PR_STDERR, "%s: Couldn't Delete Key \n", progName);
             goto shutdown;
         }
     }
@@ -881,7 +881,7 @@ main(int argc, char **argv)
         if (!wrapKey) {
             char *keyName = wrapKeyID.data ? BufToHex(&wrapKeyID)
                                            : PORT_Strdup(wrapName);
-            PR_fprintf(PR_STDERR, "%s: Couldn't find key %s on %s\n",
+            MPR_fprintf(PR_STDERR, "%s: Couldn't find key %s on %s\n",
                        progName, keyName, PK11_GetTokenName(slot));
             PORT_Free(keyName);
             goto shutdown;
@@ -890,7 +890,7 @@ main(int argc, char **argv)
         if (mechanism == CKM_INVALID_MECHANISM) {
             char *keyName = wrapKeyID.data ? BufToHex(&wrapKeyID)
                                            : PORT_Strdup(wrapName);
-            PR_fprintf(PR_STDERR, "%s: %s on %s is an invalid wrapping key\n",
+            MPR_fprintf(PR_STDERR, "%s: %s on %s is an invalid wrapping key\n",
                        progName, keyName, PK11_GetTokenName(slot));
             PORT_Free(keyName);
             PK11_FreeSymKey(wrapKey);
@@ -901,14 +901,14 @@ main(int argc, char **argv)
                                                 &key, keyType, CKA_ENCRYPT, keySize, 0, PR_TRUE);
         PK11_FreeSymKey(wrapKey);
         if (!symKey) {
-            PR_fprintf(PR_STDERR, "%s: Unwrap Key Failed\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: Unwrap Key Failed\n", progName);
             goto shutdown;
         }
 
         if (symKeyUtil.options[opt_Nickname].activated) {
             rv = PK11_SetSymKeyNickname(symKey, name);
             if (rv != SECSuccess) {
-                PR_fprintf(PR_STDERR, "%s: Couldn't set name on key\n",
+                MPR_fprintf(PR_STDERR, "%s: Couldn't set name on key\n",
                            progName);
                 PK11_DeleteTokenSymKey(symKey);
                 PK11_FreeSymKey(symKey);
@@ -931,7 +931,7 @@ main(int argc, char **argv)
 
         if (!symKey) {
             char *keyName = keyID.data ? BufToHex(&keyID) : PORT_Strdup(name);
-            PR_fprintf(PR_STDERR, "%s: Couldn't find key %s on %s\n",
+            MPR_fprintf(PR_STDERR, "%s: Couldn't find key %s on %s\n",
                        progName, keyName, PK11_GetTokenName(slot));
             PORT_Free(keyName);
             goto shutdown;
@@ -941,7 +941,7 @@ main(int argc, char **argv)
         if (!wrapKey) {
             char *keyName = wrapKeyID.data ? BufToHex(&wrapKeyID)
                                            : PORT_Strdup(wrapName);
-            PR_fprintf(PR_STDERR, "%s: Couldn't find key %s on %s\n",
+            MPR_fprintf(PR_STDERR, "%s: Couldn't find key %s on %s\n",
                        progName, keyName, PK11_GetTokenName(slot));
             PORT_Free(keyName);
             PK11_FreeSymKey(symKey);
@@ -952,7 +952,7 @@ main(int argc, char **argv)
         if (mechanism == CKM_INVALID_MECHANISM) {
             char *keyName = wrapKeyID.data ? BufToHex(&wrapKeyID)
                                            : PORT_Strdup(wrapName);
-            PR_fprintf(PR_STDERR, "%s: %s on %s is an invalid wrapping key\n",
+            MPR_fprintf(PR_STDERR, "%s: %s on %s is an invalid wrapping key\n",
                        progName, keyName, PK11_GetTokenName(slot));
             PORT_Free(keyName);
             PK11_FreeSymKey(symKey);
@@ -966,7 +966,7 @@ main(int argc, char **argv)
         PK11_FreeSymKey(symKey);
         PK11_FreeSymKey(wrapKey);
         if (rv != SECSuccess) {
-            PR_fprintf(PR_STDERR, "%s: Couldn't wrap key\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: Couldn't wrap key\n", progName);
             goto shutdown;
         }
 
@@ -981,13 +981,13 @@ main(int argc, char **argv)
         PK11SymKey *symKey = PK11_ImportSymKey(slot, keyType,
                                                PK11_OriginUnwrap, CKA_ENCRYPT, &key, &pwdata);
         if (!symKey) {
-            PR_fprintf(PR_STDERR, "%s: Import Key Failed\n", progName);
+            MPR_fprintf(PR_STDERR, "%s: Import Key Failed\n", progName);
             goto shutdown;
         }
         if (symKeyUtil.options[opt_Nickname].activated) {
             rv = PK11_SetSymKeyNickname(symKey, name);
             if (rv != SECSuccess) {
-                PR_fprintf(PR_STDERR, "%s: Couldn't set name on key\n",
+                MPR_fprintf(PR_STDERR, "%s: Couldn't set name on key\n",
                            progName);
                 PK11_DeleteTokenSymKey(symKey);
                 PK11_FreeSymKey(symKey);
@@ -1009,7 +1009,7 @@ main(int argc, char **argv)
             PK11SlotList *slotList = PK11_GetAllTokens(CKM_INVALID_MECHANISM,
                                                        PR_FALSE, PR_FALSE, &pwdata);
             if (slotList == NULL) {
-                PR_fprintf(PR_STDERR, "%s: No tokens found\n", progName);
+                MPR_fprintf(PR_STDERR, "%s: No tokens found\n", progName);
             } else {
                 PK11SlotListElement *se;
                 for (se = PK11_GetFirstSafe(slotList); se;
@@ -1037,27 +1037,27 @@ main(int argc, char **argv)
 
         if (!symKey) {
             keyName = keyID.data ? BufToHex(&keyID) : PORT_Strdup(name);
-            PR_fprintf(PR_STDERR, "%s: Couldn't find key %s on %s\n",
+            MPR_fprintf(PR_STDERR, "%s: Couldn't find key %s on %s\n",
                        progName, keyName, PK11_GetTokenName(slot));
             PORT_Free(keyName);
             goto shutdown;
         }
         target = PK11_FindSlotByName(targetName);
         if (!target) {
-            PR_fprintf(PR_STDERR, "%s: Couldn't find slot %s\n",
+            MPR_fprintf(PR_STDERR, "%s: Couldn't find slot %s\n",
                        progName, targetName);
             goto shutdown;
         }
         rv = PK11_Authenticate(target, PR_FALSE, &pwdata);
         if (rv != SECSuccess) {
-            PR_fprintf(PR_STDERR, "%s: Failed to log into %s\n",
+            MPR_fprintf(PR_STDERR, "%s: Failed to log into %s\n",
                        progName, targetName);
             goto shutdown;
         }
         rv = SECFailure;
         newKey = PK11_MoveSymKey(target, CKA_ENCRYPT, 0, PR_TRUE, symKey);
         if (!newKey) {
-            PR_fprintf(PR_STDERR, "%s: Couldn't move the key \n", progName);
+            MPR_fprintf(PR_STDERR, "%s: Couldn't move the key \n", progName);
             goto shutdown;
         }
         keyName = PK11_GetSymKeyNickname(symKey);
@@ -1066,7 +1066,7 @@ main(int argc, char **argv)
             if (rv != SECSuccess) {
                 PK11_DeleteTokenSymKey(newKey);
                 PK11_FreeSymKey(newKey);
-                PR_fprintf(PR_STDERR, "%s: Couldn't set nickname on key\n",
+                MPR_fprintf(PR_STDERR, "%s: Couldn't set nickname on key\n",
                            progName);
                 goto shutdown;
             }
@@ -1077,7 +1077,7 @@ main(int argc, char **argv)
 
 shutdown:
     if (rv != SECSuccess) {
-        PR_fprintf(PR_STDERR, "%s: %s\n", progName,
+        MPR_fprintf(PR_STDERR, "%s: %s\n", progName,
                    SECU_Strerror(PORT_GetError()));
     }
 

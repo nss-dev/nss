@@ -8,7 +8,7 @@
 #include <prprf.h>
 #include <string.h>
 
-#define PORT_Strcasecmp PL_strcasecmp
+#define PORT_Strcasecmp MPL_strcasecmp
 
 #define MODULE_FILE_STRING "ModuleFile"
 #define MODULE_NAME_STRING "ModuleName"
@@ -100,7 +100,7 @@ Pk11Install_File*
 Pk11Install_File_new()
 {
     Pk11Install_File* new_this;
-    new_this = (Pk11Install_File*)PR_Malloc(sizeof(Pk11Install_File));
+    new_this = (Pk11Install_File*)MPR_Malloc(sizeof(Pk11Install_File));
     Pk11Install_File_init(new_this);
     return new_this;
 }
@@ -136,15 +136,15 @@ void
 Pk11Install_File_Cleanup(Pk11Install_File* _this)
 {
     if (_this->jarPath) {
-        PR_Free(_this->jarPath);
+        MPR_Free(_this->jarPath);
         _this->jarPath = NULL;
     }
     if (_this->relativePath) {
-        PR_Free(_this->relativePath);
+        MPR_Free(_this->relativePath);
         _this->relativePath = NULL;
     }
     if (_this->absolutePath) {
-        PR_Free(_this->absolutePath);
+        MPR_Free(_this->absolutePath);
         _this->absolutePath = NULL;
     }
 
@@ -193,7 +193,7 @@ Pk11Install_File_Generate(Pk11Install_File* _this,
                 subiter = Pk11Install_ListIter_new(subpair->list);
                 subval = subiter->current;
                 if (!subval || (subval->type != STRING_VALUE)) {
-                    errStr = PR_smprintf(errString[BOGUS_RELATIVE_DIR],
+                    errStr = MPR_smprintf(errString[BOGUS_RELATIVE_DIR],
                                          _this->jarPath);
                     goto loser;
                 }
@@ -205,7 +205,7 @@ Pk11Install_File_Generate(Pk11Install_File* _this,
                 subiter = Pk11Install_ListIter_new(subpair->list);
                 subval = subiter->current;
                 if (!subval || (subval->type != STRING_VALUE)) {
-                    errStr = PR_smprintf(errString[BOGUS_ABSOLUTE_DIR],
+                    errStr = MPR_smprintf(errString[BOGUS_ABSOLUTE_DIR],
                                          _this->jarPath);
                     goto loser;
                 }
@@ -219,13 +219,13 @@ Pk11Install_File_Generate(Pk11Install_File* _this,
                 subval = subiter->current;
                 if (!subval || (subval->type != STRING_VALUE) ||
                     !subval->string || !subval->string[0]) {
-                    errStr = PR_smprintf(errString[BOGUS_FILE_PERMISSIONS],
+                    errStr = MPR_smprintf(errString[BOGUS_FILE_PERMISSIONS],
                                          _this->jarPath);
                     goto loser;
                 }
                 _this->permissions = (int)strtol(subval->string, &endp, 8);
                 if (*endp != '\0') {
-                    errStr = PR_smprintf(errString[BOGUS_FILE_PERMISSIONS],
+                    errStr = MPR_smprintf(errString[BOGUS_FILE_PERMISSIONS],
                                          _this->jarPath);
                     goto loser;
                 }
@@ -246,16 +246,16 @@ Pk11Install_File_Generate(Pk11Install_File* _this,
 
     /* Make sure we got all the information */
     if (!_this->relativePath && !_this->absolutePath) {
-        errStr = PR_smprintf(errString[NO_ABSOLUTE_DIR], _this->jarPath);
+        errStr = MPR_smprintf(errString[NO_ABSOLUTE_DIR], _this->jarPath);
         goto loser;
     }
 #if 0
     if(!_this->relativePath ) {
-        errStr = PR_smprintf(errString[NO_RELATIVE_DIR], _this->jarPath);
+        errStr = MPR_smprintf(errString[NO_RELATIVE_DIR], _this->jarPath);
         goto loser;
     }
     if(!_this->absolutePath) {
-        errStr = PR_smprintf(errString[NO_ABSOLUTE_DIR], _this->jarPath);
+        errStr = MPR_smprintf(errString[NO_ABSOLUTE_DIR], _this->jarPath);
         goto loser;
     }
 #endif
@@ -296,7 +296,7 @@ Pk11Install_PlatformName_new()
 {
     Pk11Install_PlatformName* new_this;
     new_this = (Pk11Install_PlatformName*)
-        PR_Malloc(sizeof(Pk11Install_PlatformName));
+        MPR_Malloc(sizeof(Pk11Install_PlatformName));
     Pk11Install_PlatformName_init(new_this);
     return new_this;
 }
@@ -330,19 +330,19 @@ void
 Pk11Install_PlatformName_Cleanup(Pk11Install_PlatformName* _this)
 {
     if (_this->OS) {
-        PR_Free(_this->OS);
+        MPR_Free(_this->OS);
         _this->OS = NULL;
     }
     if (_this->verString) {
         int i;
         for (i = 0; i < _this->numDigits; i++) {
-            PR_Free(_this->verString[i]);
+            MPR_Free(_this->verString[i]);
         }
-        PR_Free(_this->verString);
+        MPR_Free(_this->verString);
         _this->verString = NULL;
     }
     if (_this->arch) {
-        PR_Free(_this->arch);
+        MPR_Free(_this->arch);
         _this->arch = NULL;
     }
     _this->numDigits = 0;
@@ -369,7 +369,7 @@ Pk11Install_PlatformName_Generate(Pk11Install_PlatformName* _this,
     copy = NULL;
 
     if (!str) {
-        errStr = PR_smprintf(errString[EMPTY_PLATFORM_STRING]);
+        errStr = MPR_smprintf(errString[EMPTY_PLATFORM_STRING]);
         goto loser;
     }
     copy = PR_Strdup(str);
@@ -379,7 +379,7 @@ Pk11Install_PlatformName_Generate(Pk11Install_PlatformName* _this,
     */
     end = strchr(copy, PLATFORM_SEPARATOR_CHAR);
     if (!end || end == copy) {
-        errStr = PR_smprintf(errString[BOGUS_PLATFORM_STRING], str);
+        errStr = MPR_smprintf(errString[BOGUS_PLATFORM_STRING], str);
         goto loser;
     }
     *end = '\0';
@@ -393,7 +393,7 @@ Pk11Install_PlatformName_Generate(Pk11Install_PlatformName* _this,
     start = end + 1;
     end = strchr(start, PLATFORM_SEPARATOR_CHAR);
     if (!end) {
-        errStr = PR_smprintf(errString[BOGUS_PLATFORM_STRING], str);
+        errStr = MPR_smprintf(errString[BOGUS_PLATFORM_STRING], str);
         goto loser;
     }
     *end = '\0';
@@ -407,21 +407,21 @@ Pk11Install_PlatformName_Generate(Pk11Install_PlatformName* _this,
             pstart = pend + 1;
         }
         _this->numDigits = 1 + periods;
-        _this->verString = (char**)PR_Malloc(sizeof(char*) * _this->numDigits);
+        _this->verString = (char**)MPR_Malloc(sizeof(char*) * _this->numDigits);
 
         pstart = start;
         i = 0;
         /* Get the digits before each period*/
         while ((pend = strchr(pstart, '.'))) {
             if (pend == pstart) {
-                errStr = PR_smprintf(errString[BOGUS_PLATFORM_STRING], str);
+                errStr = MPR_smprintf(errString[BOGUS_PLATFORM_STRING], str);
                 goto loser;
             }
             *pend = '\0';
             _this->verString[i] = PR_Strdup(pstart);
             endp = pend;
             if (endp == pstart || (*endp != '\0')) {
-                errStr = PR_smprintf(errString[BOGUS_PLATFORM_STRING], str);
+                errStr = MPR_smprintf(errString[BOGUS_PLATFORM_STRING], str);
                 goto loser;
             }
             pstart = pend + 1;
@@ -429,13 +429,13 @@ Pk11Install_PlatformName_Generate(Pk11Install_PlatformName* _this,
         }
         /* Last digit comes after the last period*/
         if (*pstart == '\0') {
-            errStr = PR_smprintf(errString[BOGUS_PLATFORM_STRING], str);
+            errStr = MPR_smprintf(errString[BOGUS_PLATFORM_STRING], str);
             goto loser;
         }
         _this->verString[i] = PR_Strdup(pstart);
         /*
         if(endp==pstart || (*endp != '\0')) {
-            errStr = PR_smprintf(errString[BOGUS_PLATFORM_STRING], str);
+            errStr = MPR_smprintf(errString[BOGUS_PLATFORM_STRING], str);
             goto loser;
         }
         */
@@ -449,34 +449,34 @@ Pk11Install_PlatformName_Generate(Pk11Install_PlatformName* _this,
     */
     start = end + 1;
     if (strchr(start, PLATFORM_SEPARATOR_CHAR)) {
-        errStr = PR_smprintf(errString[BOGUS_PLATFORM_STRING], str);
+        errStr = MPR_smprintf(errString[BOGUS_PLATFORM_STRING], str);
         goto loser;
     }
     _this->arch = PR_Strdup(start);
 
     if (copy) {
-        PR_Free(copy);
+        MPR_Free(copy);
     }
     return NULL;
 loser:
     if (_this->OS) {
-        PR_Free(_this->OS);
+        MPR_Free(_this->OS);
         _this->OS = NULL;
     }
     if (_this->verString) {
         for (i = 0; i < _this->numDigits; i++) {
-            PR_Free(_this->verString[i]);
+            MPR_Free(_this->verString[i]);
         }
-        PR_Free(_this->verString);
+        MPR_Free(_this->verString);
         _this->verString = NULL;
     }
     _this->numDigits = 0;
     if (_this->arch) {
-        PR_Free(_this->arch);
+        MPR_Free(_this->arch);
         _this->arch = NULL;
     }
     if (copy) {
-        PR_Free(copy);
+        MPR_Free(copy);
     }
 
     return errStr;
@@ -592,10 +592,10 @@ Pk11Install_PlatformName_GetString(Pk11Install_PlatformName* _this)
     arch_ = _this->arch ? _this->arch : "";
 
     ver = Pk11Install_PlatformName_GetVerString(_this);
-    ret = PR_smprintf("%s%c%s%c%s", OS_, PLATFORM_SEPARATOR_CHAR, ver,
+    ret = MPR_smprintf("%s%c%s%c%s", OS_, PLATFORM_SEPARATOR_CHAR, ver,
                       PLATFORM_SEPARATOR_CHAR, arch_);
 
-    PR_Free(ver);
+    MPR_Free(ver);
 
     return ret;
 }
@@ -616,7 +616,7 @@ Pk11Install_PlatformName_GetVerString(Pk11Install_PlatformName* _this)
     int i;
     char buf[80];
 
-    tmp = (char*)PR_Malloc(80 * _this->numDigits + 1);
+    tmp = (char*)MPR_Malloc(80 * _this->numDigits + 1);
     tmp[0] = '\0';
 
     for (i = 0; i < _this->numDigits - 1; i++) {
@@ -652,7 +652,7 @@ Pk11Install_PlatformName_Print(Pk11Install_PlatformName* _this, int pad)
     } else {
         str = Pk11Install_PlatformName_GetVerString(_this);
         printf("%s\n", str);
-        PR_Free(str);
+        MPR_Free(str);
     }
     PAD(pad);
     printf("arch: %s\n", _this->arch ? _this->arch : "<NULL>");
@@ -662,7 +662,7 @@ Pk11Install_Platform*
 Pk11Install_Platform_new()
 {
     Pk11Install_Platform* new_this;
-    new_this = (Pk11Install_Platform*)PR_Malloc(sizeof(Pk11Install_Platform));
+    new_this = (Pk11Install_Platform*)MPR_Malloc(sizeof(Pk11Install_Platform));
     Pk11Install_Platform_init(new_this);
     return new_this;
 }
@@ -704,18 +704,18 @@ Pk11Install_Platform_Cleanup(Pk11Install_Platform* _this)
 {
     int i;
     if (_this->moduleFile) {
-        PR_Free(_this->moduleFile);
+        MPR_Free(_this->moduleFile);
         _this->moduleFile = NULL;
     }
     if (_this->moduleName) {
-        PR_Free(_this->moduleName);
+        MPR_Free(_this->moduleName);
         _this->moduleName = NULL;
     }
     if (_this->files) {
         for (i = 0; i < _this->numFiles; i++) {
             Pk11Install_File_delete(&_this->files[i]);
         }
-        PR_Free(_this->files);
+        MPR_Free(_this->files);
         _this->files = NULL;
     }
     _this->equiv = NULL;
@@ -757,8 +757,8 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
 
     errStr = Pk11Install_PlatformName_Generate(&_this->name, pair->key);
     if (errStr) {
-        tmp = PR_smprintf("%s: %s", pair->key, errStr);
-        PR_smprintf_free(errStr);
+        tmp = MPR_smprintf("%s: %s", pair->key, errStr);
+        MPR_smprintf_free(errStr);
         errStr = tmp;
         goto loser;
     }
@@ -770,14 +770,14 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
 
             if (!PORT_Strcasecmp(subpair->key, MODULE_FILE_STRING)) {
                 if (gotModuleFile) {
-                    errStr = PR_smprintf(errString[REPEAT_MODULE_FILE],
+                    errStr = MPR_smprintf(errString[REPEAT_MODULE_FILE],
                                          Pk11Install_PlatformName_GetString(&_this->name));
                     goto loser;
                 }
                 subiter = Pk11Install_ListIter_new(subpair->list);
                 subval = subiter->current;
                 if (!subval || (subval->type != STRING_VALUE)) {
-                    errStr = PR_smprintf(errString[BOGUS_MODULE_FILE],
+                    errStr = MPR_smprintf(errString[BOGUS_MODULE_FILE],
                                          Pk11Install_PlatformName_GetString(&_this->name));
                     goto loser;
                 }
@@ -786,14 +786,14 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
                 gotModuleFile = PR_TRUE;
             } else if (!PORT_Strcasecmp(subpair->key, MODULE_NAME_STRING)) {
                 if (gotModuleName) {
-                    errStr = PR_smprintf(errString[REPEAT_MODULE_NAME],
+                    errStr = MPR_smprintf(errString[REPEAT_MODULE_NAME],
                                          Pk11Install_PlatformName_GetString(&_this->name));
                     goto loser;
                 }
                 subiter = Pk11Install_ListIter_new(subpair->list);
                 subval = subiter->current;
                 if (!subval || (subval->type != STRING_VALUE)) {
-                    errStr = PR_smprintf(errString[BOGUS_MODULE_NAME],
+                    errStr = MPR_smprintf(errString[BOGUS_MODULE_NAME],
                                          Pk11Install_PlatformName_GetString(&_this->name));
                     goto loser;
                 }
@@ -804,20 +804,20 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
                 endptr = NULL;
 
                 if (gotMech) {
-                    errStr = PR_smprintf(errString[REPEAT_MECH],
+                    errStr = MPR_smprintf(errString[REPEAT_MECH],
                                          Pk11Install_PlatformName_GetString(&_this->name));
                     goto loser;
                 }
                 subiter = Pk11Install_ListIter_new(subpair->list);
                 subval = subiter->current;
                 if (!subval || (subval->type != STRING_VALUE)) {
-                    errStr = PR_smprintf(errString[BOGUS_MECH_FLAGS],
+                    errStr = MPR_smprintf(errString[BOGUS_MECH_FLAGS],
                                          Pk11Install_PlatformName_GetString(&_this->name));
                     goto loser;
                 }
                 _this->mechFlags = strtol(subval->string, &endptr, 0);
                 if (*endptr != '\0' || (endptr == subval->string)) {
-                    errStr = PR_smprintf(errString[BOGUS_MECH_FLAGS],
+                    errStr = MPR_smprintf(errString[BOGUS_MECH_FLAGS],
                                          Pk11Install_PlatformName_GetString(&_this->name));
                     goto loser;
                 }
@@ -827,20 +827,20 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
                 endptr = NULL;
 
                 if (gotCipher) {
-                    errStr = PR_smprintf(errString[REPEAT_CIPHER],
+                    errStr = MPR_smprintf(errString[REPEAT_CIPHER],
                                          Pk11Install_PlatformName_GetString(&_this->name));
                     goto loser;
                 }
                 subiter = Pk11Install_ListIter_new(subpair->list);
                 subval = subiter->current;
                 if (!subval || (subval->type != STRING_VALUE)) {
-                    errStr = PR_smprintf(errString[BOGUS_CIPHER_FLAGS],
+                    errStr = MPR_smprintf(errString[BOGUS_CIPHER_FLAGS],
                                          Pk11Install_PlatformName_GetString(&_this->name));
                     goto loser;
                 }
                 _this->cipherFlags = strtol(subval->string, &endptr, 0);
                 if (*endptr != '\0' || (endptr == subval->string)) {
-                    errStr = PR_smprintf(errString[BOGUS_CIPHER_FLAGS],
+                    errStr = MPR_smprintf(errString[BOGUS_CIPHER_FLAGS],
                                          Pk11Install_PlatformName_GetString(&_this->name));
                     goto loser;
                 }
@@ -848,14 +848,14 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
                 gotCipher = PR_TRUE;
             } else if (!PORT_Strcasecmp(subpair->key, FILES_STRING)) {
                 if (gotFiles) {
-                    errStr = PR_smprintf(errString[REPEAT_FILES],
+                    errStr = MPR_smprintf(errString[REPEAT_FILES],
                                          Pk11Install_PlatformName_GetString(&_this->name));
                     goto loser;
                 }
                 subiter = Pk11Install_ListIter_new(subpair->list);
                 _this->numFiles = subpair->list->numPairs;
                 _this->files = (Pk11Install_File*)
-                    PR_Malloc(sizeof(Pk11Install_File) * _this->numFiles);
+                    MPR_Malloc(sizeof(Pk11Install_File) * _this->numFiles);
                 for (i = 0; i < _this->numFiles; i++,
                     Pk11Install_ListIter_nextItem(subiter)) {
                     Pk11Install_File_init(&_this->files[i]);
@@ -863,9 +863,9 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
                     if (val && (val->type == PAIR_VALUE)) {
                         errStr = Pk11Install_File_Generate(&_this->files[i], val->pair);
                         if (errStr) {
-                            tmp = PR_smprintf("%s: %s",
+                            tmp = MPR_smprintf("%s: %s",
                                               Pk11Install_PlatformName_GetString(&_this->name), errStr);
-                            PR_smprintf_free(errStr);
+                            MPR_smprintf_free(errStr);
                             errStr = tmp;
                             goto loser;
                         }
@@ -875,23 +875,23 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
             } else if (!PORT_Strcasecmp(subpair->key,
                                         EQUIVALENT_PLATFORM_STRING)) {
                 if (gotEquiv) {
-                    errStr = PR_smprintf(errString[REPEAT_EQUIV],
+                    errStr = MPR_smprintf(errString[REPEAT_EQUIV],
                                          Pk11Install_PlatformName_GetString(&_this->name));
                     goto loser;
                 }
                 subiter = Pk11Install_ListIter_new(subpair->list);
                 subval = subiter->current;
                 if (!subval || (subval->type != STRING_VALUE)) {
-                    errStr = PR_smprintf(errString[BOGUS_EQUIV],
+                    errStr = MPR_smprintf(errString[BOGUS_EQUIV],
                                          Pk11Install_PlatformName_GetString(&_this->name));
                     goto loser;
                 }
                 errStr = Pk11Install_PlatformName_Generate(&_this->equivName,
                                                            subval->string);
                 if (errStr) {
-                    tmp = PR_smprintf("%s: %s",
+                    tmp = MPR_smprintf("%s: %s",
                                       Pk11Install_PlatformName_GetString(&_this->name), errStr);
-                    PR_smprintf_free(errStr);
+                    MPR_smprintf_free(errStr);
                     errStr = tmp;
                     goto loser;
                 }
@@ -903,22 +903,22 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
     /* Make sure we either have an EquivalentPlatform or all the other info */
     if (_this->usesEquiv &&
         (gotFiles || gotModuleFile || gotModuleName || gotMech || gotCipher)) {
-        errStr = PR_smprintf(errString[EQUIV_TOO_MUCH_INFO],
+        errStr = MPR_smprintf(errString[EQUIV_TOO_MUCH_INFO],
                              Pk11Install_PlatformName_GetString(&_this->name));
         goto loser;
     }
     if (!gotFiles && !_this->usesEquiv) {
-        errStr = PR_smprintf(errString[NO_FILES],
+        errStr = MPR_smprintf(errString[NO_FILES],
                              Pk11Install_PlatformName_GetString(&_this->name));
         goto loser;
     }
     if (!gotModuleFile && !_this->usesEquiv) {
-        errStr = PR_smprintf(errString[NO_MODULE_FILE],
+        errStr = MPR_smprintf(errString[NO_MODULE_FILE],
                              Pk11Install_PlatformName_GetString(&_this->name));
         goto loser;
     }
     if (!gotModuleName && !_this->usesEquiv) {
-        errStr = PR_smprintf(errString[NO_MODULE_NAME],
+        errStr = MPR_smprintf(errString[NO_MODULE_NAME],
                              Pk11Install_PlatformName_GetString(&_this->name));
         goto loser;
     }
@@ -932,7 +932,7 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
             }
         }
         if (_this->modFile == -1) {
-            errStr = PR_smprintf(errString[UNKNOWN_MODULE_FILE],
+            errStr = MPR_smprintf(errString[UNKNOWN_MODULE_FILE],
                                  _this->moduleFile,
                                  Pk11Install_PlatformName_GetString(&_this->name));
             goto loser;
@@ -941,10 +941,10 @@ Pk11Install_Platform_Generate(Pk11Install_Platform* _this,
 
 loser:
     if (iter) {
-        PR_Free(iter);
+        MPR_Free(iter);
     }
     if (subiter) {
-        PR_Free(subiter);
+        MPR_Free(subiter);
     }
     return errStr;
 }
@@ -996,7 +996,7 @@ Pk11Install_Info*
 Pk11Install_Info_new()
 {
     Pk11Install_Info* new_this;
-    new_this = (Pk11Install_Info*)PR_Malloc(sizeof(Pk11Install_Info));
+    new_this = (Pk11Install_Info*)MPR_Malloc(sizeof(Pk11Install_Info));
     Pk11Install_Info_init(new_this);
     return new_this;
 }
@@ -1034,7 +1034,7 @@ Pk11Install_Info_Cleanup(Pk11Install_Info* _this)
         for (i = 0; i < _this->numPlatforms; i++) {
             Pk11Install_Platform_delete(&_this->platforms[i]);
         }
-        PR_Free(_this->platforms);
+        MPR_Free(_this->platforms);
         _this->platforms = NULL;
         _this->numPlatforms = 0;
     }
@@ -1043,7 +1043,7 @@ Pk11Install_Info_Cleanup(Pk11Install_Info* _this)
         for (i = 0; i < _this->numForwardCompatible; i++) {
             Pk11Install_PlatformName_delete(&_this->forwardCompatible[i]);
         }
-        PR_Free(_this->forwardCompatible);
+        MPR_Free(_this->forwardCompatible);
         _this->numForwardCompatible = 0;
     }
 }
@@ -1083,7 +1083,7 @@ Pk11Install_Info_Generate(Pk11Install_Info* _this,
                 subiter = Pk11Install_ListIter_new(pair->list);
                 _this->numForwardCompatible = pair->list->numStrings;
                 _this->forwardCompatible = (Pk11Install_PlatformName*)
-                    PR_Malloc(sizeof(Pk11Install_PlatformName) *
+                    MPR_Malloc(sizeof(Pk11Install_PlatformName) *
                               _this->numForwardCompatible);
                 for (i = 0; i < _this->numForwardCompatible; i++,
                     Pk11Install_ListIter_nextItem(subiter)) {
@@ -1101,7 +1101,7 @@ Pk11Install_Info_Generate(Pk11Install_Info* _this,
                 subiter = Pk11Install_ListIter_new(pair->list);
                 _this->numPlatforms = pair->list->numPairs;
                 _this->platforms = (Pk11Install_Platform*)
-                    PR_Malloc(sizeof(Pk11Install_Platform) *
+                    MPR_Malloc(sizeof(Pk11Install_Platform) *
                               _this->numPlatforms);
                 for (i = 0; i < _this->numPlatforms; i++,
                     Pk11Install_ListIter_nextItem(subiter)) {
@@ -1120,7 +1120,7 @@ Pk11Install_Info_Generate(Pk11Install_Info* _this,
     }
 
     if (_this->numPlatforms == 0) {
-        errStr = PR_smprintf(errString[NO_PLATFORMS]);
+        errStr = MPR_smprintf(errString[NO_PLATFORMS]);
         goto loser;
     }
 
@@ -1138,7 +1138,7 @@ Pk11Install_Info_Generate(Pk11Install_Info* _this,
                 if (Pk11Install_PlatformName_equal(&_this->platforms[i].equivName,
                                                    &_this->platforms[j].name)) {
                     if (i == j) {
-                        errStr = PR_smprintf(errString[EQUIV_LOOP],
+                        errStr = MPR_smprintf(errString[EQUIV_LOOP],
                                              Pk11Install_PlatformName_GetString(&_this->platforms[i].name));
                         goto loser;
                     }
@@ -1147,7 +1147,7 @@ Pk11Install_Info_Generate(Pk11Install_Info* _this,
                 }
             }
             if (_this->platforms[i].equiv == NULL) {
-                errStr = PR_smprintf(errString[BOGUS_EQUIV],
+                errStr = MPR_smprintf(errString[BOGUS_EQUIV],
                                      Pk11Install_PlatformName_GetString(&_this->platforms[i].name));
                 goto loser;
             }
@@ -1173,7 +1173,7 @@ Pk11Install_Info_Generate(Pk11Install_Info* _this,
             first = second->equiv;
             while (first->usesEquiv) {
                 if (first == second) {
-                    errStr = PR_smprintf(errString[EQUIV_LOOP],
+                    errStr = MPR_smprintf(errString[EQUIV_LOOP],
                                          Pk11Install_PlatformName_GetString(&_this->platforms[i].name));
                     goto loser;
                 }
@@ -1182,7 +1182,7 @@ Pk11Install_Info_Generate(Pk11Install_Info* _this,
                     break;
                 }
                 if (first == second) {
-                    errStr = PR_smprintf(errString[EQUIV_LOOP],
+                    errStr = MPR_smprintf(errString[EQUIV_LOOP],
                                          Pk11Install_PlatformName_GetString(&_this->platforms[i].name));
                     goto loser;
                 }
@@ -1221,7 +1221,7 @@ Pk11Install_Info_GetBestPlatform(Pk11Install_Info* _this, char* myPlatform)
 
     Pk11Install_PlatformName_init(&plat);
     if ((errStr = Pk11Install_PlatformName_Generate(&plat, myPlatform))) {
-        PR_smprintf_free(errStr);
+        MPR_smprintf_free(errStr);
         return NULL;
     }
 
@@ -1294,7 +1294,7 @@ static char*
 PR_Strdup(const char* str)
 {
     char* tmp;
-    tmp = (char*)PR_Malloc((unsigned int)(strlen(str) + 1));
+    tmp = (char*)MPR_Malloc((unsigned int)(strlen(str) + 1));
     strcpy(tmp, str);
     return tmp;
 }
@@ -1323,7 +1323,7 @@ Pk11Install_ListIter_new_default()
 {
     Pk11Install_ListIter* new_this;
     new_this = (Pk11Install_ListIter*)
-        PR_Malloc(sizeof(Pk11Install_ListIter));
+        MPR_Malloc(sizeof(Pk11Install_ListIter));
     Pk11Install_ListIter_init(new_this);
     return new_this;
 }
@@ -1342,7 +1342,7 @@ Pk11Install_ListIter_new(const Pk11Install_ValueList* _list)
 {
     Pk11Install_ListIter* new_this;
     new_this = (Pk11Install_ListIter*)
-        PR_Malloc(sizeof(Pk11Install_ListIter));
+        MPR_Malloc(sizeof(Pk11Install_ListIter));
     new_this->list = _list;
     new_this->current = _list->head;
     return new_this;
@@ -1354,7 +1354,7 @@ Pk11Install_ListIter_delete(Pk11Install_ListIter** _this)
 {
     (*_this)->list = NULL;
     (*_this)->current = NULL;
-    PR_Free(*_this);
+    MPR_Free(*_this);
     *_this = NULL;
 }
 
@@ -1384,7 +1384,7 @@ Pk11Install_ValueList_new()
 {
     Pk11Install_ValueList* new_this;
     new_this = (Pk11Install_ValueList*)
-        PR_Malloc(sizeof(Pk11Install_ValueList));
+        MPR_Malloc(sizeof(Pk11Install_ValueList));
     new_this->numItems = 0;
     new_this->numPairs = 0;
     new_this->numStrings = 0;
@@ -1404,9 +1404,9 @@ Pk11Install_ValueList_delete(Pk11Install_ValueList* _this)
     while (list != NULL) {
         tmp = list;
         list = list->next;
-        PR_Free(tmp);
+        MPR_Free(tmp);
     }
-    PR_Free(_this);
+    MPR_Free(_this);
 }
 
 /****************************************************************************/
@@ -1414,7 +1414,7 @@ Pk11Install_Value*
 Pk11Install_Value_new_default()
 {
     Pk11Install_Value* new_this;
-    new_this = (Pk11Install_Value*)PR_Malloc(sizeof(Pk11Install_Value));
+    new_this = (Pk11Install_Value*)MPR_Malloc(sizeof(Pk11Install_Value));
     new_this->type = STRING_VALUE;
     new_this->string = NULL;
     new_this->pair = NULL;
@@ -1444,9 +1444,9 @@ void
 Pk11Install_Value_delete(Pk11Install_Value* _this)
 {
     if (_this->type == STRING_VALUE) {
-        PR_Free(_this->string);
+        MPR_Free(_this->string);
     } else {
-        PR_Free(_this->pair);
+        MPR_Free(_this->pair);
     }
 }
 
@@ -1462,7 +1462,7 @@ Pk11Install_Pair*
 Pk11Install_Pair_new(char* _key, Pk11Install_ValueList* _list)
 {
     Pk11Install_Pair* new_this;
-    new_this = (Pk11Install_Pair*)PR_Malloc(sizeof(Pk11Install_Pair));
+    new_this = (Pk11Install_Pair*)MPR_Malloc(sizeof(Pk11Install_Pair));
     new_this->key = _key;
     new_this->list = _list;
     return new_this;
@@ -1472,7 +1472,7 @@ Pk11Install_Pair_new(char* _key, Pk11Install_ValueList* _list)
 void
 Pk11Install_Pair_delete(Pk11Install_Pair* _this)
 {
-    PR_Free(_this->key);
+    MPR_Free(_this->key);
     Pk11Install_ValueList_delete(_this->list);
 }
 

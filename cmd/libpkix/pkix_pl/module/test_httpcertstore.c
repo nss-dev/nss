@@ -53,7 +53,7 @@ printUsage(char *testname)
 static void
 do_other_work(void)
 { /* while waiting for nonblocking I/O to complete */
-    (void)PR_Sleep(2 * 60);
+    (void)MPR_Sleep(2 * 60);
 }
 
 PKIX_Error *

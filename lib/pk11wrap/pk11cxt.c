@@ -37,7 +37,7 @@ PK11_EnterContextMonitor(PK11Context *cx)
      * the Context */
     if ((cx->ownSession) && (cx->slot->isThreadSafe)) {
         /* Should this use monitors instead? */
-        PR_Lock(cx->sessionLock);
+        MPR_Lock(cx->sessionLock);
     } else {
         PK11_EnterSlotMonitor(cx->slot);
     }
@@ -50,7 +50,7 @@ PK11_ExitContextMonitor(PK11Context *cx)
      * the Context */
     if ((cx->ownSession) && (cx->slot->isThreadSafe)) {
         /* Should this use monitors instead? */
-        PR_Unlock(cx->sessionLock);
+        MPR_Unlock(cx->sessionLock);
     } else {
         PK11_ExitSlotMonitor(cx->slot);
     }
@@ -71,7 +71,7 @@ PK11_DestroyContext(PK11Context *context, PRBool freeit)
     if (context->param && context->param != &pk11_null_params)
         SECITEM_FreeItem(context->param, PR_TRUE);
     if (context->sessionLock)
-        PR_DestroyLock(context->sessionLock);
+        MPR_DestroyLock(context->sessionLock);
     PK11_FreeSlot(context->slot);
     if (freeit)
         PORT_Free(context);
@@ -426,7 +426,7 @@ pk11_CreateNewContextInSlot(CK_MECHANISM_TYPE type,
         context->param = NULL;
     }
     context->init = PR_FALSE;
-    context->sessionLock = PR_NewLock();
+    context->sessionLock = MPR_NewLock();
     if ((context->param == NULL) || (context->sessionLock == NULL)) {
         PK11_DestroyContext(context, PR_TRUE);
         return NULL;

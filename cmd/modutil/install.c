@@ -123,7 +123,7 @@ StringNode *
 StringNode_new()
 {
     StringNode *new_this;
-    new_this = (StringNode *)PR_Malloc(sizeof(StringNode));
+    new_this = (StringNode *)MPR_Malloc(sizeof(StringNode));
     PORT_Assert(new_this != NULL);
     new_this->str = NULL;
     new_this->next = NULL;
@@ -134,7 +134,7 @@ void
 StringNode_delete(StringNode *s)
 {
     if (s->str) {
-        PR_Free(s->str);
+        MPR_Free(s->str);
         s->str = NULL;
     }
 }
@@ -197,15 +197,15 @@ Pk11Install_SetErrorHandler(Pk11Install_ErrorHandler handler)
     Pk11Install_ErrorHandler old;
 
     if (!errorHandlerLock) {
-        errorHandlerLock = PR_NewLock();
+        errorHandlerLock = MPR_NewLock();
     }
 
-    PR_Lock(errorHandlerLock);
+    MPR_Lock(errorHandlerLock);
 
     old = errorHandler;
     errorHandler = handler;
 
-    PR_Unlock(errorHandlerLock);
+    MPR_Unlock(errorHandlerLock);
 
     return old;
 }
@@ -222,7 +222,7 @@ void
 Pk11Install_Init()
 {
     if (!errorHandlerLock) {
-        errorHandlerLock = PR_NewLock();
+        errorHandlerLock = MPR_NewLock();
     }
 }
 
@@ -239,7 +239,7 @@ void
 Pk11Install_Release()
 {
     if (errorHandlerLock) {
-        PR_Free(errorHandlerLock);
+        MPR_Free(errorHandlerLock);
         errorHandlerLock = NULL;
     }
 }
@@ -263,20 +263,20 @@ error(PRErrorCode errcode, ...)
     Pk11Install_ErrorHandler handler;
 
     if (!errorHandlerLock) {
-        errorHandlerLock = PR_NewLock();
+        errorHandlerLock = MPR_NewLock();
     }
 
-    PR_Lock(errorHandlerLock);
+    MPR_Lock(errorHandlerLock);
 
     handler = errorHandler;
 
-    PR_Unlock(errorHandlerLock);
+    MPR_Unlock(errorHandlerLock);
 
     if (handler) {
         va_start(ap, errcode);
-        errstr = PR_vsmprintf(errorString[errcode], ap);
+        errstr = MPR_vsmprintf(errorString[errcode], ap);
         handler(errstr);
-        PR_smprintf_free(errstr);
+        MPR_smprintf_free(errstr);
         va_end(ap);
     }
 }
@@ -291,10 +291,10 @@ jar_callback(int status, JAR *foo, const char *bar, char *pathname,
 {
     char *string;
 
-    string = PR_smprintf("JAR error %d: %s in file %s\n", status, errortext,
+    string = MPR_smprintf("JAR error %d: %s in file %s\n", status, errortext,
                          pathname);
     error(PK11_INSTALL_ERROR_STRING, string);
-    PR_smprintf_free(string);
+    MPR_smprintf_free(string);
     return 0;
 }
 
@@ -337,26 +337,26 @@ Pk11Install_DoInstall(char *jarFile, const char *installDir,
     /*
      * Check out jarFile and installDir for validity
      */
-    if (PR_Access(installDir, PR_ACCESS_EXISTS) != PR_SUCCESS) {
+    if (MPR_Access(installDir, PR_ACCESS_EXISTS) != PR_SUCCESS) {
         error(PK11_INSTALL_DIR_DOESNT_EXIST, installDir);
         return PK11_INSTALL_DIR_DOESNT_EXIST;
     }
     if (!tempDir) {
         tempDir = ".";
     }
-    if (PR_Access(tempDir, PR_ACCESS_EXISTS) != PR_SUCCESS) {
+    if (MPR_Access(tempDir, PR_ACCESS_EXISTS) != PR_SUCCESS) {
         error(PK11_INSTALL_DIR_DOESNT_EXIST, tempDir);
         return PK11_INSTALL_DIR_DOESNT_EXIST;
     }
-    if (PR_Access(tempDir, PR_ACCESS_WRITE_OK) != PR_SUCCESS) {
+    if (MPR_Access(tempDir, PR_ACCESS_WRITE_OK) != PR_SUCCESS) {
         error(PK11_INSTALL_DIR_NOT_WRITEABLE, tempDir);
         return PK11_INSTALL_DIR_NOT_WRITEABLE;
     }
-    if ((PR_Access(jarFile, PR_ACCESS_EXISTS) != PR_SUCCESS)) {
+    if ((MPR_Access(jarFile, PR_ACCESS_EXISTS) != PR_SUCCESS)) {
         error(PK11_INSTALL_FILE_DOESNT_EXIST, jarFile);
         return PK11_INSTALL_FILE_DOESNT_EXIST;
     }
-    if (PR_Access(jarFile, PR_ACCESS_READ_OK) != PR_SUCCESS) {
+    if (MPR_Access(jarFile, PR_ACCESS_READ_OK) != PR_SUCCESS) {
         error(PK11_INSTALL_FILE_NOT_READABLE, jarFile);
         return PK11_INSTALL_FILE_NOT_READABLE;
     }
@@ -392,7 +392,7 @@ Pk11Install_DoInstall(char *jarFile, const char *installDir,
                                         : PR_TRUE) &&
         !force) {
         if (feedback) {
-            PR_fprintf(feedback, msgStrings[USER_ABORT]);
+            MPR_fprintf(feedback, msgStrings[USER_ABORT]);
         }
         ret = PK11_INSTALL_USER_ABORT;
         goto loser;
@@ -408,14 +408,14 @@ Pk11Install_DoInstall(char *jarFile, const char *installDir,
         goto loser;
     }
     if (feedback) {
-        PR_fprintf(feedback, msgStrings[INSTALLER_SCRIPT_NAME], installer);
+        MPR_fprintf(feedback, msgStrings[INSTALLER_SCRIPT_NAME], installer);
     }
 
     /*
      * Extract the installation file
      */
-    if (PR_Access(SCRIPT_TEMP_FILE, PR_ACCESS_EXISTS) == PR_SUCCESS) {
-        if (PR_Delete(SCRIPT_TEMP_FILE) != PR_SUCCESS) {
+    if (MPR_Access(SCRIPT_TEMP_FILE, PR_ACCESS_EXISTS) == PR_SUCCESS) {
+        if (MPR_Delete(SCRIPT_TEMP_FILE) != PR_SUCCESS) {
             error(PK11_INSTALL_DELETE_TEMP_FILE, SCRIPT_TEMP_FILE);
             ret = PK11_INSTALL_DELETE_TEMP_FILE;
             goto loser;
@@ -442,7 +442,7 @@ Pk11Install_DoInstall(char *jarFile, const char *installDir,
     /*
      * Parse the installation file into a syntax tree
      */
-    Pk11Install_FD = PR_Open(SCRIPT_TEMP_FILE, PR_RDONLY, 0);
+    Pk11Install_FD = MPR_Open(SCRIPT_TEMP_FILE, PR_RDONLY, 0);
     if (!Pk11Install_FD) {
         error(PK11_INSTALL_OPEN_SCRIPT_FILE, SCRIPT_TEMP_FILE);
         ret = PK11_INSTALL_OPEN_SCRIPT_FILE;
@@ -474,7 +474,7 @@ Pk11Install_DoInstall(char *jarFile, const char *installDir,
 #endif
 
     if (feedback) {
-        PR_fprintf(feedback, msgStrings[PARSED_INSTALL_SCRIPT]);
+        MPR_fprintf(feedback, msgStrings[PARSED_INSTALL_SCRIPT]);
     }
 
     /*
@@ -483,30 +483,30 @@ Pk11Install_DoInstall(char *jarFile, const char *installDir,
     {
         sysname[0] = release[0] = arch[0] = '\0';
 
-        if ((PR_GetSystemInfo(PR_SI_SYSNAME, sysname, SYS_INFO_BUFFER_LENGTH) !=
+        if ((MPR_GetSystemInfo(PR_SI_SYSNAME, sysname, SYS_INFO_BUFFER_LENGTH) !=
              PR_SUCCESS) ||
-            (PR_GetSystemInfo(PR_SI_RELEASE, release, SYS_INFO_BUFFER_LENGTH) !=
+            (MPR_GetSystemInfo(PR_SI_RELEASE, release, SYS_INFO_BUFFER_LENGTH) !=
              PR_SUCCESS) ||
-            (PR_GetSystemInfo(PR_SI_ARCHITECTURE, arch, SYS_INFO_BUFFER_LENGTH) !=
+            (MPR_GetSystemInfo(PR_SI_ARCHITECTURE, arch, SYS_INFO_BUFFER_LENGTH) !=
              PR_SUCCESS)) {
             error(PK11_INSTALL_SYSINFO);
             ret = PK11_INSTALL_SYSINFO;
             goto loser;
         }
-        myPlatform = PR_smprintf("%s:%s:%s", sysname, release, arch);
+        myPlatform = MPR_smprintf("%s:%s:%s", sysname, release, arch);
         platform = Pk11Install_Info_GetBestPlatform(&installInfo, myPlatform);
         if (!platform) {
             error(PK11_INSTALL_NO_PLATFORM, myPlatform);
-            PR_smprintf_free(myPlatform);
+            MPR_smprintf_free(myPlatform);
             ret = PK11_INSTALL_NO_PLATFORM;
             goto loser;
         }
         if (feedback) {
-            PR_fprintf(feedback, msgStrings[MY_PLATFORM_IS], myPlatform);
-            PR_fprintf(feedback, msgStrings[USING_PLATFORM],
+            MPR_fprintf(feedback, msgStrings[MY_PLATFORM_IS], myPlatform);
+            MPR_fprintf(feedback, msgStrings[USING_PLATFORM],
                        Pk11Install_PlatformName_GetString(&platform->name));
         }
-        PR_smprintf_free(myPlatform);
+        MPR_smprintf_free(myPlatform);
     }
 
     /* Run the install for that platform */
@@ -525,10 +525,10 @@ loser:
         JAR_destroy(jar);
     }
     if (made_temp_file) {
-        PR_Delete(SCRIPT_TEMP_FILE);
+        MPR_Delete(SCRIPT_TEMP_FILE);
     }
     if (errMsg) {
-        PR_smprintf_free(errMsg);
+        MPR_smprintf_free(errMsg);
     }
     return ret;
 }
@@ -564,12 +564,12 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
     /*
     // Create Temporary directory
     */
-    tempname = PR_smprintf("%s/%s", tempDir, TEMPORARY_DIRECTORY_NAME);
-    if (PR_Access(tempname, PR_ACCESS_EXISTS) == PR_SUCCESS) {
+    tempname = MPR_smprintf("%s/%s", tempDir, TEMPORARY_DIRECTORY_NAME);
+    if (MPR_Access(tempname, PR_ACCESS_EXISTS) == PR_SUCCESS) {
         /* Left over from previous run?  Delete it. */
         rm_dash_r(tempname);
     }
-    if (PR_MkDir(tempname, 0700) != PR_SUCCESS) {
+    if (MPR_MkDir(tempname, 0700) != PR_SUCCESS) {
         error(PK11_INSTALL_CREATE_DIR, tempname);
         ret = PK11_INSTALL_CREATE_DIR;
         goto loser;
@@ -593,20 +593,20 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
 
             /* Replace all the markers with the directories for which they stand */
             while (1) {
-                if ((cp = PL_strcasestr(reldir, ROOT_MARKER))) {
+                if ((cp = MPL_strcasestr(reldir, ROOT_MARKER))) {
                     /* Has a %root% marker  */
                     *cp = '\0';
-                    temp = PR_smprintf("%s%s%s", reldir, installDir,
+                    temp = MPR_smprintf("%s%s%s", reldir, installDir,
                                        cp + strlen(ROOT_MARKER));
-                    PR_Free(reldir);
+                    MPR_Free(reldir);
                     reldir = temp;
                     foundMarker = PR_TRUE;
-                } else if ((cp = PL_strcasestr(reldir, TEMP_MARKER))) {
+                } else if ((cp = MPL_strcasestr(reldir, TEMP_MARKER))) {
                     /* Has a %temp% marker */
                     *cp = '\0';
-                    temp = PR_smprintf("%s%s%s", reldir, tempname,
+                    temp = MPR_smprintf("%s%s%s", reldir, tempname,
                                        cp + strlen(TEMP_MARKER));
-                    PR_Free(reldir);
+                    MPR_Free(reldir);
                     reldir = temp;
                     foundMarker = PR_TRUE;
                 } else {
@@ -617,7 +617,7 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
                 /* Has no markers...this isn't really a relative directory */
                 error(PK11_INSTALL_BOGUS_REL_DIR, file->relativePath);
                 ret = PK11_INSTALL_BOGUS_REL_DIR;
-                PR_Free(reldir);
+                MPR_Free(reldir);
                 goto loser;
             }
             dest = reldir;
@@ -663,7 +663,7 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
             goto loser;
         }
         if (feedback) {
-            PR_fprintf(feedback, msgStrings[INSTALLED_FILE_MSG],
+            MPR_fprintf(feedback, msgStrings[INSTALLED_FILE_MSG],
                        file->jarPath, dest);
         }
 
@@ -672,7 +672,7 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
         (void)chmod(dest, file->permissions);
 #endif
 
-        PR_Free(dest);
+        MPR_Free(dest);
     }
     /* Make sure we found the module file */
     if (!modDest) {
@@ -690,27 +690,27 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
         argv[1] = NULL;
         envp[0] = NULL;
         for (execNode = executables.head; execNode; execNode = execNode->next) {
-            attr = PR_NewProcessAttr();
+            attr = MPR_NewProcessAttr();
             argv[0] = PR_Strdup(execNode->str);
 
             /* Announce our intentions */
             if (feedback) {
-                PR_fprintf(feedback, msgStrings[EXEC_FILE_MSG], execNode->str);
+                MPR_fprintf(feedback, msgStrings[EXEC_FILE_MSG], execNode->str);
             }
 
             /* start the process */
-            if (!(proc = PR_CreateProcess(execNode->str, argv, envp, attr))) {
-                PR_Free(argv[0]);
-                PR_DestroyProcessAttr(attr);
+            if (!(proc = MPR_CreateProcess(execNode->str, argv, envp, attr))) {
+                MPR_Free(argv[0]);
+                MPR_DestroyProcessAttr(attr);
                 error(PK11_INSTALL_EXEC_FILE, execNode->str);
                 ret = PK11_INSTALL_EXEC_FILE;
                 goto loser;
             }
 
             /* wait for it to finish */
-            if (PR_WaitProcess(proc, &errcode) != PR_SUCCESS) {
-                PR_Free(argv[0]);
-                PR_DestroyProcessAttr(attr);
+            if (MPR_WaitProcess(proc, &errcode) != PR_SUCCESS) {
+                MPR_Free(argv[0]);
+                MPR_DestroyProcessAttr(attr);
                 error(PK11_INSTALL_WAIT_PROCESS, execNode->str);
                 ret = PK11_INSTALL_WAIT_PROCESS;
                 goto loser;
@@ -722,11 +722,11 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
                 error(PK11_INSTALL_PROC_ERROR, execNode->str, errcode);
             } else if (feedback) {
                 /* process ran successfully */
-                PR_fprintf(feedback, msgStrings[EXEC_SUCCESS], execNode->str);
+                MPR_fprintf(feedback, msgStrings[EXEC_SUCCESS], execNode->str);
             }
 
-            PR_Free(argv[0]);
-            PR_DestroyProcessAttr(attr);
+            MPR_Free(argv[0]);
+            MPR_DestroyProcessAttr(attr);
         }
     }
 
@@ -742,23 +742,23 @@ DoInstall(JAR *jar, const char *installDir, const char *tempDir,
         goto loser;
     }
     if (feedback) {
-        PR_fprintf(feedback, msgStrings[INSTALLED_MODULE_MSG],
+        MPR_fprintf(feedback, msgStrings[INSTALLED_MODULE_MSG],
                    platform->moduleName);
     }
 
     if (feedback) {
-        PR_fprintf(feedback, msgStrings[INSTALLATION_COMPLETE_MSG]);
+        MPR_fprintf(feedback, msgStrings[INSTALLATION_COMPLETE_MSG]);
     }
 
     ret = PK11_INSTALL_SUCCESS;
 
 loser:
     if (modDest) {
-        PR_Free(modDest);
+        MPR_Free(modDest);
     }
     if (tempname) {
         PRFileInfo info;
-        if (PR_GetFileInfo(tempname, &info) == PR_SUCCESS) {
+        if (MPR_GetFileInfo(tempname, &info) == PR_SUCCESS) {
             if (info.type == PR_FILE_DIRECTORY) {
                 /* Recursively remove temporary directory */
                 if (rm_dash_r(tempname)) {
@@ -768,7 +768,7 @@ loser:
                 }
             }
         }
-        PR_Free(tempname);
+        MPR_Free(tempname);
     }
     StringList_delete(&executables);
     return ret;
@@ -780,7 +780,7 @@ loser:
 static char *
 PR_Strdup(const char *str)
 {
-    char *tmp = (char *)PR_Malloc(strlen(str) + 1);
+    char *tmp = (char *)MPR_Malloc(strlen(str) + 1);
     strcpy(tmp, str);
     return tmp;
 }
@@ -799,36 +799,36 @@ rm_dash_r(char *path)
     PRFileInfo fileinfo;
     char filename[240];
 
-    if (PR_GetFileInfo(path, &fileinfo) != PR_SUCCESS) {
+    if (MPR_GetFileInfo(path, &fileinfo) != PR_SUCCESS) {
         /*fprintf(stderr, "Error: Unable to access %s\n", filename);*/
         return -1;
     }
     if (fileinfo.type == PR_FILE_DIRECTORY) {
 
-        dir = PR_OpenDir(path);
+        dir = MPR_OpenDir(path);
         if (!dir) {
             return -1;
         }
 
         /* Recursively delete all entries in the directory */
-        while ((entry = PR_ReadDir(dir, PR_SKIP_BOTH)) != NULL) {
+        while ((entry = MPR_ReadDir(dir, PR_SKIP_BOTH)) != NULL) {
             snprintf(filename, sizeof(filename), "%s/%s", path, entry->name);
             if (rm_dash_r(filename)) {
-                PR_CloseDir(dir);
+                MPR_CloseDir(dir);
                 return -1;
             }
         }
 
-        if (PR_CloseDir(dir) != PR_SUCCESS) {
+        if (MPR_CloseDir(dir) != PR_SUCCESS) {
             return -1;
         }
 
         /* Delete the directory itself */
-        if (PR_RmDir(path) != PR_SUCCESS) {
+        if (MPR_RmDir(path) != PR_SUCCESS) {
             return -1;
         }
     } else {
-        if (PR_Delete(path) != PR_SUCCESS) {
+        if (MPR_Delete(path) != PR_SUCCESS) {
             return -1;
         }
     }
@@ -866,9 +866,9 @@ make_dirs(char *path, int file_perms)
     while ((sep = strpbrk(start, "/\\"))) {
         *sep = '\0';
 
-        if (PR_GetFileInfo(Path, &info) != PR_SUCCESS) {
+        if (MPR_GetFileInfo(Path, &info) != PR_SUCCESS) {
             /* No such dir, we have to create it */
-            if (PR_MkDir(Path, dir_perms(file_perms)) != PR_SUCCESS) {
+            if (MPR_MkDir(Path, dir_perms(file_perms)) != PR_SUCCESS) {
                 error(PK11_INSTALL_CREATE_DIR, Path);
                 ret = PK11_INSTALL_CREATE_DIR;
                 goto loser;
@@ -884,7 +884,7 @@ make_dirs(char *path, int file_perms)
 
         /* If this is the lowest directory level, make sure it is writeable */
         if (!strpbrk(sep + 1, "/\\")) {
-            if (PR_Access(Path, PR_ACCESS_WRITE_OK) != PR_SUCCESS) {
+            if (MPR_Access(Path, PR_ACCESS_WRITE_OK) != PR_SUCCESS) {
                 error(PK11_INSTALL_DIR_NOT_WRITEABLE, Path);
                 ret = PK11_INSTALL_DIR_NOT_WRITEABLE;
                 goto loser;
@@ -896,7 +896,7 @@ make_dirs(char *path, int file_perms)
     }
 
 loser:
-    PR_Free(Path);
+    MPR_Free(Path);
     return ret;
 }
 

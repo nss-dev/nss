@@ -24,7 +24,7 @@ TEST_F(DecodeCertsTest, EmptyCertPackage) {
   EXPECT_EQ(nullptr, CERT_DecodeCertFromPackage(
                          reinterpret_cast<char*>(emptyCertPackage),
                          sizeof(emptyCertPackage)));
-  EXPECT_EQ(SEC_ERROR_BAD_DER, PR_GetError());
+  EXPECT_EQ(SEC_ERROR_BAD_DER, MPR_GetError());
 }
 
 TEST_F(DecodeCertsTest, EmptySignedData) {
@@ -37,5 +37,5 @@ TEST_F(DecodeCertsTest, EmptySignedData) {
   EXPECT_EQ(nullptr,
             CERT_DecodeCertFromPackage(reinterpret_cast<char*>(emptySignedData),
                                        sizeof(emptySignedData)));
-  EXPECT_EQ(SEC_ERROR_BAD_DER, PR_GetError());
+  EXPECT_EQ(SEC_ERROR_BAD_DER, MPR_GetError());
 }

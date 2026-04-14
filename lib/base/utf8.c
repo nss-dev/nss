@@ -59,7 +59,7 @@ nssUTF8_CaseIgnoreMatch(const NSSUTF8 *a, const NSSUTF8 *b, PRStatus *statusOpt)
      *
      * This is, like, so wrong!
      */
-    if (0 == PL_strcasecmp((const char *)a, (const char *)b)) {
+    if (0 == MPL_strcasecmp((const char *)a, (const char *)b)) {
         return PR_TRUE;
     } else {
         return PR_FALSE;
@@ -207,7 +207,7 @@ nssUTF8_Duplicate(const NSSUTF8 *s, NSSArena *arenaOpt)
     }
 #endif /* NSSDEBUG */
 
-    len = PL_strlen((const char *)s);
+    len = MPL_strlen((const char *)s);
 #ifdef PEDANTIC
     if ('\0' != ((const char *)s)[len]) {
         /* must have wrapped, e.g., too big for PRUint32 */
@@ -257,7 +257,7 @@ nssUTF8_Size(const NSSUTF8 *s, PRStatus *statusOpt)
     }
 #endif /* NSSDEBUG */
 
-    sv = PL_strlen((const char *)s) + 1;
+    sv = MPL_strlen((const char *)s) + 1;
 #ifdef PEDANTIC
     if ('\0' != ((const char *)s)[sv - 1]) {
         /* wrapped */

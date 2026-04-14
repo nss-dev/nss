@@ -103,7 +103,7 @@ new_cache_entry(NSSArena *arena, void *value, PRBool ownArena)
     if (ce) {
         ce->entry.value = value;
         ce->hits = 1;
-        ce->lastHit = PR_Now();
+        ce->lastHit = MPR_Now();
         if (ownArena) {
             ce->arena = arena;
         }
@@ -123,7 +123,7 @@ nssTrustDomain_InitializeCache(
     NSSArena *arena;
     nssTDCertificateCache *cache = td->cache;
 #ifdef DEBUG_CACHE
-    s_log = PR_NewLogModule("nss_cache");
+    s_log = MPR_NewLogModule("nss_cache");
     PR_ASSERT(s_log);
 #endif
     PR_ASSERT(!cache);
@@ -136,7 +136,7 @@ nssTrustDomain_InitializeCache(
         nssArena_Destroy(arena);
         return PR_FAILURE;
     }
-    cache->lock = PR_NewLock();
+    cache->lock = MPR_NewLock();
     if (!cache->lock) {
         nssArena_Destroy(arena);
         return PR_FAILURE;
@@ -168,7 +168,7 @@ nssTrustDomain_InitializeCache(
 #endif
     return PR_SUCCESS;
 loser:
-    PR_DestroyLock(cache->lock);
+    MPR_DestroyLock(cache->lock);
     nssArena_Destroy(arena);
     td->cache = NULL;
 #ifdef DEBUG_CACHE
@@ -198,7 +198,7 @@ nssTrustDomain_DestroyCache(NSSTrustDomain *td)
         nss_SetError(NSS_ERROR_BUSY);
         return PR_FAILURE;
     }
-    PR_DestroyLock(td->cache->lock);
+    MPR_DestroyLock(td->cache->lock);
     nssHash_Destroy(td->cache->issuerAndSN);
     nssHash_Destroy(td->cache->subject);
     nssHash_Destroy(td->cache->nickname);
@@ -360,13 +360,13 @@ nssTrustDomain_RemoveCertFromCacheLOCKED(
 NSS_IMPLEMENT void
 nssTrustDomain_LockCertCache(NSSTrustDomain *td)
 {
-    PR_Lock(td->cache->lock);
+    MPR_Lock(td->cache->lock);
 }
 
 NSS_IMPLEMENT void
 nssTrustDomain_UnlockCertCache(NSSTrustDomain *td)
 {
-    PR_Unlock(td->cache->lock);
+    MPR_Unlock(td->cache->lock);
 }
 
 struct token_cert_dtor {
@@ -427,7 +427,7 @@ nssTrustDomain_RemoveTokenCertsFromCache(
     dtor.certs = certs;
     dtor.numCerts = 0;
     dtor.arrSize = arrSize;
-    PR_Lock(td->cache->lock);
+    MPR_Lock(td->cache->lock);
     nssHash_Iterate(td->cache->issuerAndSN, remove_token_certs, &dtor);
     for (i = 0; i < dtor.numCerts; i++) {
         if (dtor.certs[i]->object.numInstances == 0) {
@@ -438,7 +438,7 @@ nssTrustDomain_RemoveTokenCertsFromCache(
             nssCertificate_AddRef(dtor.certs[i]);
         }
     }
-    PR_Unlock(td->cache->lock);
+    MPR_Unlock(td->cache->lock);
     for (i = 0; i < dtor.numCerts; i++) {
         if (dtor.certs[i]) {
             STAN_ForceCERTCertificateUpdate(dtor.certs[i]);
@@ -520,7 +520,7 @@ add_subject_entry(
     ce = (cache_entry *)nssHash_Lookup(cache->subject, &cert->subject);
     if (ce) {
         ce->hits++;
-        ce->lastHit = PR_Now();
+        ce->lastHit = MPR_Now();
         /* The subject is already in, add this cert to the list */
         nssrv = nssList_AddUnique(ce->entry.list, cert);
 #ifdef DEBUG_CACHE
@@ -615,7 +615,7 @@ add_email_entry(
         subjects = ce->entry.list;
         nssrv = nssList_AddUnique(subjects, subjectList);
         ce->hits++;
-        ce->lastHit = PR_Now();
+        ce->lastHit = MPR_Now();
 #ifdef DEBUG_CACHE
         log_cert_ref("added subject to email for", cert);
 #endif
@@ -727,17 +727,17 @@ add_cert_to_cache(
         (void)STAN_GetCERTCertificate(cert);
     }
 
-    PR_Lock(td->cache->lock);
+    MPR_Lock(td->cache->lock);
     /* If it exists in the issuer/serial hash, it's already in all */
     ce = (cache_entry *)nssHash_Lookup(td->cache->issuerAndSN, cert);
     if (ce) {
         ce->hits++;
-        ce->lastHit = PR_Now();
+        ce->lastHit = MPR_Now();
         rvCert = nssCertificate_AddRef(ce->entry.cert);
 #ifdef DEBUG_CACHE
         log_cert_ref("attempted to add cert already in cache", cert);
 #endif
-        PR_Unlock(td->cache->lock);
+        MPR_Unlock(td->cache->lock);
         nss_ZFreeIf(certNickname);
         /* collision - somebody else already added the cert
          * to the cache before this thread got around to it.
@@ -811,7 +811,7 @@ add_cert_to_cache(
         nssArena_Destroy(arena);
     }
     rvCert = cert;
-    PR_Unlock(td->cache->lock);
+    MPR_Unlock(td->cache->lock);
     nss_ZFreeIf(certNickname);
     return rvCert;
 loser:
@@ -839,7 +839,7 @@ loser:
     if (arena) {
         nssArena_Destroy(arena);
     }
-    PR_Unlock(td->cache->lock);
+    MPR_Unlock(td->cache->lock);
     return NULL;
 }
 
@@ -908,17 +908,17 @@ nssTrustDomain_GetCertsForSubjectFromCache(
 #ifdef DEBUG_CACHE
     log_item_dump("looking for cert by subject", subject);
 #endif
-    PR_Lock(td->cache->lock);
+    MPR_Lock(td->cache->lock);
     ce = (cache_entry *)nssHash_Lookup(td->cache->subject, subject);
     if (ce) {
         ce->hits++;
-        ce->lastHit = PR_Now();
+        ce->lastHit = MPR_Now();
 #ifdef DEBUG_CACHE
         PR_LOG(s_log, PR_LOG_DEBUG, ("... found, %d hits", ce->hits));
 #endif
         rvArray = collect_subject_certs(ce->entry.list, certListOpt);
     }
-    PR_Unlock(td->cache->lock);
+    MPR_Unlock(td->cache->lock);
     return rvArray;
 }
 
@@ -936,17 +936,17 @@ nssTrustDomain_GetCertsForNicknameFromCache(
 #ifdef DEBUG_CACHE
     PR_LOG(s_log, PR_LOG_DEBUG, ("looking for cert by nick %s", nickname));
 #endif
-    PR_Lock(td->cache->lock);
+    MPR_Lock(td->cache->lock);
     ce = (cache_entry *)nssHash_Lookup(td->cache->nickname, nickname);
     if (ce) {
         ce->hits++;
-        ce->lastHit = PR_Now();
+        ce->lastHit = MPR_Now();
 #ifdef DEBUG_CACHE
         PR_LOG(s_log, PR_LOG_DEBUG, ("... found, %d hits", ce->hits));
 #endif
         rvArray = collect_subject_certs(ce->entry.list, certListOpt);
     }
-    PR_Unlock(td->cache->lock);
+    MPR_Unlock(td->cache->lock);
     return rvArray;
 }
 
@@ -967,11 +967,11 @@ nssTrustDomain_GetCertsForEmailAddressFromCache(
 #ifdef DEBUG_CACHE
     PR_LOG(s_log, PR_LOG_DEBUG, ("looking for cert by email %s", email));
 #endif
-    PR_Lock(td->cache->lock);
+    MPR_Lock(td->cache->lock);
     ce = (cache_entry *)nssHash_Lookup(td->cache->email, email);
     if (ce) {
         ce->hits++;
-        ce->lastHit = PR_Now();
+        ce->lastHit = MPR_Now();
 #ifdef DEBUG_CACHE
         PR_LOG(s_log, PR_LOG_DEBUG, ("... found, %d hits", ce->hits));
 #endif
@@ -981,13 +981,13 @@ nssTrustDomain_GetCertsForEmailAddressFromCache(
         } else {
             collectList = nssList_Create(NULL, PR_FALSE);
             if (!collectList) {
-                PR_Unlock(td->cache->lock);
+                MPR_Unlock(td->cache->lock);
                 return NULL;
             }
         }
         iter = nssList_CreateIterator(ce->entry.list);
         if (!iter) {
-            PR_Unlock(td->cache->lock);
+            MPR_Unlock(td->cache->lock);
             if (!certListOpt) {
                 nssList_Destroy(collectList);
             }
@@ -1001,7 +1001,7 @@ nssTrustDomain_GetCertsForEmailAddressFromCache(
         nssListIterator_Finish(iter);
         nssListIterator_Destroy(iter);
     }
-    PR_Unlock(td->cache->lock);
+    MPR_Unlock(td->cache->lock);
     if (!certListOpt && collectList) {
         PRUint32 count = nssList_Count(collectList);
         rvArray = nss_ZNEWARRAY(NULL, NSSCertificate *, count);
@@ -1033,17 +1033,17 @@ nssTrustDomain_GetCertForIssuerAndSNFromCache(
     log_item_dump("looking for cert by issuer/sn, issuer", issuer);
     log_item_dump("                               serial", serial);
 #endif
-    PR_Lock(td->cache->lock);
+    MPR_Lock(td->cache->lock);
     ce = (cache_entry *)nssHash_Lookup(td->cache->issuerAndSN, &certkey);
     if (ce) {
         ce->hits++;
-        ce->lastHit = PR_Now();
+        ce->lastHit = MPR_Now();
         rvCert = nssCertificate_AddRef(ce->entry.cert);
 #ifdef DEBUG_CACHE
         PR_LOG(s_log, PR_LOG_DEBUG, ("... found, %d hits", ce->hits));
 #endif
     }
-    PR_Unlock(td->cache->lock);
+    MPR_Unlock(td->cache->lock);
     return rvCert;
 }
 
@@ -1095,9 +1095,9 @@ nssTrustDomain_GetCertsFromCache(
             return NULL;
         }
     }
-    PR_Lock(td->cache->lock);
+    MPR_Lock(td->cache->lock);
     nssHash_Iterate(td->cache->issuerAndSN, cert_iter, (void *)certList);
-    PR_Unlock(td->cache->lock);
+    MPR_Unlock(td->cache->lock);
     if (!certListOpt) {
         PRUint32 count = nssList_Count(certList);
         rvArray = nss_ZNEWARRAY(NULL, NSSCertificate *, count);
@@ -1114,7 +1114,7 @@ nssTrustDomain_DumpCacheInfo(
     void (*cert_dump_iter)(const void *, void *, void *),
     void *arg)
 {
-    PR_Lock(td->cache->lock);
+    MPR_Lock(td->cache->lock);
     nssHash_Iterate(td->cache->issuerAndSN, cert_dump_iter, arg);
-    PR_Unlock(td->cache->lock);
+    MPR_Unlock(td->cache->lock);
 }

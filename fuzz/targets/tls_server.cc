@@ -48,15 +48,15 @@ static PRStatus InitModelSocket(void* arg) {
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   static NSSDatabase db = NSSDatabase();
   static SSLServerSessionCache cache = SSLServerSessionCache();
-  static PRDescIdentity id = PR_GetUniqueIdentity("fuzz-server");
+  static PRDescIdentity id = MPR_GetUniqueIdentity("fuzz-server");
 
   // Create model socket.
-  static ScopedPRFileDesc model(ImportFD(nullptr, PR_NewTCPSocket()));
+  static ScopedPRFileDesc model(ImportFD(nullptr, MPR_NewTCPSocket()));
   assert(model);
 
   // Initialize the model socket once.
   static PRCallOnceType initModelOnce;
-  PR_CallOnceWithArg(&initModelOnce, InitModelSocket, model.get());
+  MPR_CallOnceWithArg(&initModelOnce, InitModelSocket, model.get());
 
   // Create and import dummy socket.
   TlsSocket::DummyPrSocket socket = TlsSocket::DummyPrSocket(data, size);

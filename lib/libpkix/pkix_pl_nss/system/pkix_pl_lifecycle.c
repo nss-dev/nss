@@ -96,7 +96,7 @@ pkix_pl_lifecycle_ObjectLeakCheck(int *initObjCountTable)
                 className = entry->description;
                 if (!className) {
                     className = classNameBuff;
-                    PR_snprintf(className, 128, "Unknown(ref %d)", 
+                    MPR_snprintf(className, 128, "Unknown(ref %d)", 
                             entry->objCounter);
                 }
 
@@ -130,13 +130,13 @@ PKIX_PL_Initialize(
             PKIX_RETURN(OBJECT);
         }
 
-        classTableLock = PR_NewLock();
+        classTableLock = MPR_NewLock();
         if (classTableLock == NULL) {
             return PKIX_ALLOC_ERROR();
         }
 
-        if (PR_GetEnvSecure("NSS_STRICT_SHUTDOWN")) {
-            pkixLog = PR_NewLogModule("pkix");
+        if (MPR_GetEnvSecure("NSS_STRICT_SHUTDOWN")) {
+            pkixLog = MPR_NewLogModule("pkix");
         }
         /*
          * Register Object, it is the base object of all other objects.
@@ -256,13 +256,13 @@ PKIX_PL_Shutdown(void *plContext)
             PKIX_RETURN(OBJECT);
         }
 
-        PR_DestroyLock(classTableLock);
+        MPR_DestroyLock(classTableLock);
 
         pkix_pl_HttpCertStore_Shutdown(plContext);
 
 #ifdef DEBUG
         numLeakedObjects = pkix_pl_lifecycle_ObjectLeakCheck(NULL);
-        if (PR_GetEnvSecure("NSS_STRICT_SHUTDOWN")) {
+        if (MPR_GetEnvSecure("NSS_STRICT_SHUTDOWN")) {
            PORT_Assert(numLeakedObjects == 0);
         }
 #else

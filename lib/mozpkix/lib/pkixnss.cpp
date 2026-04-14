@@ -48,11 +48,11 @@ SubjectPublicKeyInfoToSECKEYPublicKey(Input subjectPublicKeyInfo,
   ScopedCERTSubjectPublicKeyInfo spki(
       SECKEY_DecodeDERSubjectPublicKeyInfo(&subjectPublicKeyInfoSECItem));
   if (!spki) {
-    return MapPRErrorCodeToResult(PR_GetError());
+    return MapPRErrorCodeToResult(MPR_GetError());
   }
   publicKey.reset(SECKEY_ExtractPublicKey(spki.get()));
   if (!publicKey) {
-    return MapPRErrorCodeToResult(PR_GetError());
+    return MapPRErrorCodeToResult(MPR_GetError());
   }
   return Success;
 }
@@ -73,7 +73,7 @@ VerifySignedData(SECKEYPublicKey* publicKey, CK_MECHANISM_TYPE mechanism,
     SECOidTag policyTag = policyTags[i];
     uint32_t policyFlags;
     if (NSS_GetAlgorithmPolicy(policyTag, &policyFlags) != SECSuccess) {
-      return MapPRErrorCodeToResult(PR_GetError());
+      return MapPRErrorCodeToResult(MPR_GetError());
     }
     if (!(policyFlags & NSS_USE_ALG_IN_ANY_SIGNATURE)) {
       return Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED;
@@ -82,7 +82,7 @@ VerifySignedData(SECKEYPublicKey* publicKey, CK_MECHANISM_TYPE mechanism,
   SECStatus srv = PK11_VerifyWithMechanism(publicKey, mechanism, params,
       signature, data, pkcs11PinArg);
   if (srv != SECSuccess) {
-    return MapPRErrorCodeToResult(PR_GetError());
+    return MapPRErrorCodeToResult(MPR_GetError());
   }
   return Success;
 }
@@ -195,7 +195,7 @@ EncodedECDSASignatureToRawPoint(Input signature,
   }
   size_t signatureLength = SECKEY_SignatureLen(publicKey.get());
   if (signatureLength == 0) {
-    return MapPRErrorCodeToResult(PR_GetError());
+    return MapPRErrorCodeToResult(MPR_GetError());
   }
   if (signatureLength % 2 != 0) {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
@@ -298,7 +298,7 @@ DigestBufNSS(Input item,
   SECStatus srv = PK11_HashBuf(oid, digestBuf, itemSECItem.data,
                                static_cast<int32_t>(itemSECItem.len));
   if (srv != SECSuccess) {
-    return MapPRErrorCodeToResult(PR_GetError());
+    return MapPRErrorCodeToResult(MPR_GetError());
   }
   return Success;
 }
@@ -407,7 +407,7 @@ RegisterErrorTable()
     PR_ARRAY_SIZE(ErrorTableText)
   };
 
-  (void) PR_ErrorInstallTable(&ErrorTable);
+  (void) MPR_ErrorInstallTable(&ErrorTable);
 }
 
 } } // namespace mozilla::pkix

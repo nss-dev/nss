@@ -403,7 +403,7 @@ ParseRFC1485AVA(PLArenaPool* arena, const char** pbp, const char* endptr)
     }
 
     /* is this a dotted decimal OID attribute type ? */
-    if (!PL_strncasecmp("oid.", tagBuf, 4) || isdigit((unsigned char)tagBuf[0])) {
+    if (!MPL_strncasecmp("oid.", tagBuf, 4) || isdigit((unsigned char)tagBuf[0])) {
         rv = SEC_StringToOID(arena, &derOid, tagBuf, strlen(tagBuf));
         isDottedOid = (PRBool)(rv == SECSuccess);
     } else {
@@ -695,7 +695,7 @@ CERT_RFC1485_EscapeAndQuote(char* dst, int dstlen, char* src, int srclen)
 }
 
 /* convert an OID to dotted-decimal representation */
-/* Returns a string that must be freed with PR_smprintf_free(), */
+/* Returns a string that must be freed with MPR_smprintf_free(), */
 char*
 CERT_GetOidString(const SECItem* oid)
 {
@@ -727,7 +727,7 @@ CERT_GetOidString(const SECItem* oid)
      */
     if ((*first == 0x80) && (2 == oid->len)) {
         /* Funky encoding.  The second byte is the number */
-        rvString = PR_smprintf("%lu", (PRUint32)first[1]);
+        rvString = MPR_smprintf("%lu", (PRUint32)first[1]);
         if (!rvString) {
             PORT_SetError(SEC_ERROR_NO_MEMORY);
         }
@@ -778,10 +778,10 @@ CERT_GetOidString(const SECItem* oid)
                 PRUint32 one = PR_MIN(n / 40, 2); /* never > 2 */
                 PRUint32 two = n - (one * 40);
 
-                rvString = PR_smprintf("OID.%lu.%lu", one, two);
+                rvString = MPR_smprintf("OID.%lu.%lu", one, two);
             } else {
                 prefix = rvString;
-                rvString = PR_smprintf("%s.%lu", prefix, n);
+                rvString = MPR_smprintf("%s.%lu", prefix, n);
             }
         } else if (bytesBeforeLast <= 9U) { /* 29-64 bit number */
             PRUint64 n = 0;
@@ -808,24 +808,24 @@ CERT_GetOidString(const SECItem* oid)
                 PRUint64 one = PR_MIN(n / 40, 2); /* never > 2 */
                 PRUint64 two = n - (one * 40);
 
-                rvString = PR_smprintf("OID.%llu.%llu", one, two);
+                rvString = MPR_smprintf("OID.%llu.%llu", one, two);
             } else {
                 prefix = rvString;
-                rvString = PR_smprintf("%s.%llu", prefix, n);
+                rvString = MPR_smprintf("%s.%llu", prefix, n);
             }
         } else {
         /* More than a 64-bit number, or not minimal encoding. */
         unsupported:
             if (!rvString)
-                rvString = PR_smprintf("OID.UNSUPPORTED");
+                rvString = MPR_smprintf("OID.UNSUPPORTED");
             else {
                 prefix = rvString;
-                rvString = PR_smprintf("%s.UNSUPPORTED", prefix);
+                rvString = MPR_smprintf("%s.UNSUPPORTED", prefix);
             }
         }
 
         if (prefix) {
-            PR_smprintf_free(prefix);
+            MPR_smprintf_free(prefix);
             prefix = NULL;
         }
         if (!rvString) {
@@ -989,7 +989,7 @@ AppendAVA(stringBuf* bufp, CERTAVA* ava, CertStrictnessLevel strict)
         avaValue = get_hex_string(&ava->value);
         if (!avaValue) {
             if (unknownTag)
-                PR_smprintf_free(unknownTag);
+                MPR_smprintf_free(unknownTag);
             return SECFailure;
         }
     }
@@ -1022,7 +1022,7 @@ AppendAVA(stringBuf* bufp, CERTAVA* ava, CertStrictnessLevel strict)
         if (!encodedAVA) {
             SECITEM_FreeItem(avaValue, PR_TRUE);
             if (unknownTag)
-                PR_smprintf_free(unknownTag);
+                MPR_smprintf_free(unknownTag);
             return SECFailure;
         }
     } else {
@@ -1059,7 +1059,7 @@ AppendAVA(stringBuf* bufp, CERTAVA* ava, CertStrictnessLevel strict)
     }
     encodedAVA[nameLen++] = '=';
     if (unknownTag)
-        PR_smprintf_free(unknownTag);
+        MPR_smprintf_free(unknownTag);
 
     if (strict == CERT_N2A_READABLE && maxValue > maxBytes)
         maxValue = maxBytes;
@@ -1385,7 +1385,7 @@ static char*
 appendStringToBuf(char* dest, char* src, PRUint32* pRemaining)
 {
     PRUint32 len;
-    if (dest && src && src[0] && *pRemaining > (len = PL_strlen(src))) {
+    if (dest && src && src[0] && *pRemaining > (len = MPL_strlen(src))) {
         PRUint32 i;
         for (i = 0; i < len; ++i)
             dest[i] = tolower((unsigned char)src[i]);
@@ -1535,7 +1535,7 @@ const char* /* const so caller won't muck with it. */
 CERT_GetNextEmailAddress(CERTCertificate* cert, const char* prev)
 {
     if (cert && prev && prev[0]) {
-        PRUint32 len = PL_strlen(prev);
+        PRUint32 len = MPL_strlen(prev);
         prev += len + 1;
         if (prev && prev[0])
             return prev;

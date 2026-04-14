@@ -2918,7 +2918,7 @@ PKIX_PL_Cert_CheckValidity(
                         (date, &timeToCheck, plContext),
                         PKIX_DATEGETPRTIMEFAILED);
         } else {
-                timeToCheck = PR_Now();
+                timeToCheck = MPR_Now();
         }
 
         requiredUsages = ((PKIX_PL_NssContext*)plContext)->certificateUsage;

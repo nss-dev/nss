@@ -974,33 +974,33 @@ InitCRLCache(void)
 #ifdef GLOBAL_RWLOCK
         crlcache.lock = NSSRWLock_New(NSS_RWLOCK_RANK_NONE, NULL);
 #else
-        crlcache.lock = PR_NewLock();
+        crlcache.lock = MPR_NewLock();
 #endif
-        namedCRLCache.lock = PR_NewLock();
-        crlcache.issuers = PL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
-                                           PL_CompareValues, NULL, NULL);
-        namedCRLCache.entries = PL_NewHashTable(
-            0, SECITEM_Hash, SECITEM_HashCompare, PL_CompareValues, NULL, NULL);
+        namedCRLCache.lock = MPR_NewLock();
+        crlcache.issuers = MPL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
+                                           MPL_CompareValues, NULL, NULL);
+        namedCRLCache.entries = MPL_NewHashTable(
+            0, SECITEM_Hash, SECITEM_HashCompare, MPL_CompareValues, NULL, NULL);
         if (!crlcache.lock || !namedCRLCache.lock || !crlcache.issuers ||
             !namedCRLCache.entries) {
             if (crlcache.lock) {
 #ifdef GLOBAL_RWLOCK
                 NSSRWLock_Destroy(crlcache.lock);
 #else
-                PR_DestroyLock(crlcache.lock);
+                MPR_DestroyLock(crlcache.lock);
 #endif
                 crlcache.lock = NULL;
             }
             if (namedCRLCache.lock) {
-                PR_DestroyLock(namedCRLCache.lock);
+                MPR_DestroyLock(namedCRLCache.lock);
                 namedCRLCache.lock = NULL;
             }
             if (crlcache.issuers) {
-                PL_HashTableDestroy(crlcache.issuers);
+                MPL_HashTableDestroy(crlcache.issuers);
                 crlcache.issuers = NULL;
             }
             if (namedCRLCache.entries) {
-                PL_HashTableDestroy(namedCRLCache.entries);
+                MPL_HashTableDestroy(namedCRLCache.entries);
                 namedCRLCache.entries = NULL;
             }
 
@@ -1036,7 +1036,7 @@ DPCache_Destroy(CRLDPCache* cache)
 #ifdef DPC_RWLOCK
         NSSRWLock_Destroy(cache->lock);
 #else
-        PR_DestroyLock(cache->lock);
+        MPR_DestroyLock(cache->lock);
 #endif
     } else {
         PORT_Assert(0);
@@ -1215,27 +1215,27 @@ ShutdownCRLCache(void)
     }
     /* empty the CRL cache */
     /* free the issuers */
-    PL_HashTableEnumerateEntries(crlcache.issuers, &FreeIssuer, &rv);
+    MPL_HashTableEnumerateEntries(crlcache.issuers, &FreeIssuer, &rv);
     /* free the hash table of issuers */
-    PL_HashTableDestroy(crlcache.issuers);
+    MPL_HashTableDestroy(crlcache.issuers);
     crlcache.issuers = NULL;
 /* free the global lock */
 #ifdef GLOBAL_RWLOCK
     NSSRWLock_Destroy(crlcache.lock);
 #else
-    PR_DestroyLock(crlcache.lock);
+    MPR_DestroyLock(crlcache.lock);
 #endif
     crlcache.lock = NULL;
 
     /* empty the named CRL cache. This must be done after freeing the CRL
      * cache, since some CRLs in this cache are in the memory for the other  */
     /* free the entries */
-    PL_HashTableEnumerateEntries(namedCRLCache.entries, &FreeNamedEntries, &rv);
+    MPL_HashTableEnumerateEntries(namedCRLCache.entries, &FreeNamedEntries, &rv);
     /* free the hash table of issuers */
-    PL_HashTableDestroy(namedCRLCache.entries);
+    MPL_HashTableDestroy(namedCRLCache.entries);
     namedCRLCache.entries = NULL;
     /* free the global lock */
-    PR_DestroyLock(namedCRLCache.lock);
+    MPR_DestroyLock(namedCRLCache.lock);
     namedCRLCache.lock = NULL;
 
     crlcache_initialized = PR_FALSE;
@@ -1575,7 +1575,7 @@ CachedCrl_GetEntry(CachedCrl* crl, const SECItem* sn, CERTCrlEntry** returned)
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
-    acrlEntry = PL_HashTableLookup(crl->entries, (void*)sn);
+    acrlEntry = MPL_HashTableLookup(crl->entries, (void*)sn);
     if (acrlEntry) {
         *returned = acrlEntry;
     } else {
@@ -1689,7 +1689,7 @@ DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate* issuer,
     lastfetch = cache->lastfetch;
     if (PR_TRUE != forcedrefresh &&
         (!(cache->invalid & CRL_CACHE_LAST_FETCH_FAILED))) {
-        now = PR_Now();
+        now = MPR_Now();
         hastokenCRLs = DPCache_HasTokenCRLs(cache);
     }
     if ((0 == lastfetch) ||
@@ -1716,7 +1716,7 @@ DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate* issuer,
                 cache->refresh = PR_FALSE; /* clear refresh state */
             }
             dirty = PR_TRUE;
-            cache->lastfetch = PR_Now();
+            cache->lastfetch = MPR_Now();
         }
         DPCache_UnlockWrite();
     }
@@ -1726,7 +1726,7 @@ DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate* issuer,
        1) if there was a token object fetch
        2) every minute */
     if ((PR_TRUE != dirty) && (!now)) {
-        now = PR_Now();
+        now = MPR_Now();
     }
     if ((PR_TRUE == dirty) ||
         ((now - cache->lastcheck > CRLCache_ExistenceCheck_Interval) ||
@@ -1759,7 +1759,7 @@ DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate* issuer,
             }
         }
         if (PR_TRUE == mustunlock) {
-            cache->lastcheck = PR_Now();
+            cache->lastcheck = MPR_Now();
             DPCache_UnlockWrite();
             mustunlock = PR_FALSE;
         }
@@ -1999,7 +1999,7 @@ DPCache_Create(CRLDPCache** returned, CERTCertificate* issuer,
 #ifdef DPC_RWLOCK
     cache->lock = NSSRWLock_New(NSS_RWLOCK_RANK_NONE, NULL);
 #else
-    cache->lock = PR_NewLock();
+    cache->lock = MPR_NewLock();
 #endif
     if (!cache->lock) {
         PORT_Free(cache);
@@ -2096,7 +2096,7 @@ CRLCache_AddIssuer(CRLIssuerCache* issuer)
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
     }
-    if (NULL == PL_HashTableAdd(crlcache.issuers, (void*)issuer->subject,
+    if (NULL == MPL_HashTableAdd(crlcache.issuers, (void*)issuer->subject,
                                 (void*)issuer)) {
         return SECFailure;
     }
@@ -2120,7 +2120,7 @@ CRLCache_GetIssuerCache(CRLCache* cache, const SECItem* subject,
     }
 
     if (SECSuccess == rv) {
-        *returned = (CRLIssuerCache*)PL_HashTableLookup(crlcache.issuers,
+        *returned = (CRLIssuerCache*)MPL_HashTableLookup(crlcache.issuers,
                                                         (void*)subject);
     }
 
@@ -2213,14 +2213,14 @@ AcquireDPCache(CERTCertificate* issuer, const SECItem* subject,
 #ifdef GLOBAL_RWLOCK
     NSSRWLock_LockRead(crlcache.lock);
 #else
-    PR_Lock(crlcache.lock);
+    MPR_Lock(crlcache.lock);
 #endif
     rv = CRLCache_GetIssuerCache(&crlcache, subject, &issuercache);
     if (SECSuccess != rv) {
 #ifdef GLOBAL_RWLOCK
         NSSRWLock_UnlockRead(crlcache.lock);
 #else
-        PR_Unlock(crlcache.lock);
+        MPR_Unlock(crlcache.lock);
 #endif
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
@@ -2249,7 +2249,7 @@ AcquireDPCache(CERTCertificate* issuer, const SECItem* subject,
 #ifdef DPC_RWLOCK
             NSSRWLock_LockWrite((*dpcache)->lock);
 #else
-            PR_Lock((*dpcache)->lock);
+            MPR_Lock((*dpcache)->lock);
 #endif
         }
 
@@ -2291,7 +2291,7 @@ AcquireDPCache(CERTCertificate* issuer, const SECItem* subject,
             NSSRWLock_UnlockRead(crlcache.lock);
         }
 #else
-        PR_Unlock(crlcache.lock);
+        MPR_Unlock(crlcache.lock);
 #endif
 
         /* if there was a failure adding an issuer cache object, destroy it */
@@ -2300,7 +2300,7 @@ AcquireDPCache(CERTCertificate* issuer, const SECItem* subject,
 #ifdef DPC_RWLOCK
                 NSSRWLock_UnlockWrite((*dpcache)->lock);
 #else
-                PR_Unlock((*dpcache)->lock);
+                MPR_Unlock((*dpcache)->lock);
 #endif
             }
             IssuerCache_Destroy(issuercache);
@@ -2314,7 +2314,7 @@ AcquireDPCache(CERTCertificate* issuer, const SECItem* subject,
 #ifdef GLOBAL_RWLOCK
         NSSRWLock_UnlockRead(crlcache.lock);
 #else
-        PR_Unlock(crlcache.lock);
+        MPR_Unlock(crlcache.lock);
 #endif
         *dpcache = IssuerCache_GetDPCache(issuercache, dp);
     }
@@ -2324,7 +2324,7 @@ AcquireDPCache(CERTCertificate* issuer, const SECItem* subject,
 #ifdef DPC_RWLOCK
         NSSRWLock_LockRead((*dpcache)->lock);
 #else
-        PR_Lock((*dpcache)->lock);
+        MPR_Lock((*dpcache)->lock);
 #endif
     }
 
@@ -2357,7 +2357,7 @@ ReleaseDPCache(CRLDPCache* dpcache, PRBool writeLocked)
         NSSRWLock_UnlockRead(dpcache->lock);
     }
 #else
-    PR_Unlock(dpcache->lock);
+    MPR_Unlock(dpcache->lock);
 #endif
 }
 
@@ -2669,7 +2669,7 @@ cert_AcquireNamedCRLCache(NamedCRLCache** returned)
         PORT_Assert(0);
         return SECFailure;
     }
-    PR_Lock(namedCRLCache.lock);
+    MPR_Lock(namedCRLCache.lock);
     *returned = &namedCRLCache;
     return SECSuccess;
 }
@@ -2685,7 +2685,7 @@ cert_FindCRLByGeneralName(NamedCRLCache* ncc, const SECItem* canonicalizedName,
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
-    *retEntry = (NamedCRLCacheEntry*)PL_HashTableLookup(
+    *retEntry = (NamedCRLCacheEntry*)MPL_HashTableLookup(
         namedCRLCache.entries, (void*)canonicalizedName);
     return SECSuccess;
 }
@@ -2700,7 +2700,7 @@ cert_ReleaseNamedCRLCache(NamedCRLCache* ncc)
         PORT_Assert(0);
         return SECFailure;
     }
-    PR_Unlock(namedCRLCache.lock);
+    MPR_Unlock(namedCRLCache.lock);
     return SECSuccess;
 }
 
@@ -2720,7 +2720,7 @@ addCRLToCache(CERTCertDBHandle* dbhandle, SECItem* crl,
     }
     entry = *newEntry;
     entry->crl = crl; /* named CRL cache owns DER */
-    entry->lastAttemptTime = PR_Now();
+    entry->lastAttemptTime = MPR_Now();
     entry->canonicalizedName = SECITEM_DupItem(canonicalizedName);
     if (!entry->canonicalizedName) {
         rv = NamedCRLCacheEntry_Destroy(entry); /* destroys CRL too */
@@ -2732,7 +2732,7 @@ addCRLToCache(CERTCertDBHandle* dbhandle, SECItem* crl,
         entry->inCRLCache = PR_TRUE;
         entry->successfulInsertionTime = entry->lastAttemptTime;
     } else {
-        switch (PR_GetError()) {
+        switch (MPR_GetError()) {
             case SEC_ERROR_CRL_ALREADY_EXISTS:
                 entry->dupe = PR_TRUE;
                 break;
@@ -2791,7 +2791,7 @@ cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
         addCRLToCache(dbhandle, crl, canonicalizedName, &newEntry)) {
         if (!oldEntry) {
             /* add new good entry to the hash table */
-            if (NULL == PL_HashTableAdd(namedCRLCache.entries,
+            if (NULL == MPL_HashTableAdd(namedCRLCache.entries,
                                         (void*)newEntry->canonicalizedName,
                                         (void*)newEntry)) {
                 PORT_Assert(0);
@@ -2805,7 +2805,7 @@ cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
                 rv = CERT_UncacheCRL(dbhandle, oldEntry->crl);
                 PORT_Assert(SECSuccess == rv);
             }
-            removed = PL_HashTableRemove(namedCRLCache.entries,
+            removed = MPL_HashTableRemove(namedCRLCache.entries,
                                          (void*)oldEntry->canonicalizedName);
             PORT_Assert(removed);
             if (!removed) {
@@ -2815,7 +2815,7 @@ cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
             } else {
                 PORT_CheckSuccess(NamedCRLCacheEntry_Destroy(oldEntry));
             }
-            if (NULL == PL_HashTableAdd(namedCRLCache.entries,
+            if (NULL == MPL_HashTableAdd(namedCRLCache.entries,
                                         (void*)newEntry->canonicalizedName,
                                         (void*)newEntry)) {
                 PORT_Assert(0);
@@ -2829,7 +2829,7 @@ cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
             rv = SECFailure;
         } else if (!oldEntry) {
             /* no old cache entry, use the new one even though it's bad */
-            if (NULL == PL_HashTableAdd(namedCRLCache.entries,
+            if (NULL == MPL_HashTableAdd(namedCRLCache.entries,
                                         (void*)newEntry->canonicalizedName,
                                         (void*)newEntry)) {
                 PORT_Assert(0);
@@ -2844,7 +2844,7 @@ cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
                 PORT_Assert(SECSuccess == rv);
             } else {
                 /* previous cache entry was bad, just replace it */
-                PRBool removed = PL_HashTableRemove(
+                PRBool removed = MPL_HashTableRemove(
                     namedCRLCache.entries, (void*)oldEntry->canonicalizedName);
                 PORT_Assert(removed);
                 if (!removed) {
@@ -2854,7 +2854,7 @@ cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
                 } else {
                     PORT_CheckSuccess(NamedCRLCacheEntry_Destroy(oldEntry));
                 }
-                if (NULL == PL_HashTableAdd(namedCRLCache.entries,
+                if (NULL == MPL_HashTableAdd(namedCRLCache.entries,
                                             (void*)newEntry->canonicalizedName,
                                             (void*)newEntry)) {
                     PORT_Assert(0);
@@ -2896,7 +2896,7 @@ CachedCrl_Depopulate(CachedCrl* crl)
     }
     /* destroy the hash table */
     if (crl->entries) {
-        PL_HashTableDestroy(crl->entries);
+        MPL_HashTableDestroy(crl->entries);
         crl->entries = NULL;
     }
 
@@ -2959,7 +2959,7 @@ CachedCrl_Populate(CachedCrl* crlobject)
     }
     /* create a new hash table */
     crlobject->entries =
-        PL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare, PL_CompareValues,
+        MPL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare, MPL_CompareValues,
                         &preAllocOps, crlobject->prebuffer);
     PORT_Assert(crlobject->entries);
     if (!crlobject->entries) {
@@ -2968,7 +2968,7 @@ CachedCrl_Populate(CachedCrl* crlobject)
     /* add all serial numbers to the hash table */
     for (crlEntry = crlobject->crl->crl.entries; crlEntry && *crlEntry;
          crlEntry++) {
-        PL_HashTableAdd(crlobject->entries, &(*crlEntry)->serialNumber,
+        MPL_HashTableAdd(crlobject->entries, &(*crlEntry)->serialNumber,
                         *crlEntry);
     }
 

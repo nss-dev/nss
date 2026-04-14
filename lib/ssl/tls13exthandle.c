@@ -926,7 +926,7 @@ tls13_ClientHandleTicketEarlyDataXtn(const sslSocket *ss, TLSExtensionData *xtnD
         return SECFailure;
     }
 
-    xtnData->max_early_data_size = PR_ntohl(utmp);
+    xtnData->max_early_data_size = MPR_ntohl(utmp);
 
     return SECSuccess;
 }

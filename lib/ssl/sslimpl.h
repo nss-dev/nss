@@ -1392,16 +1392,16 @@ void ssl_ClearPRCList(PRCList *list, void (*f)(void *));
 
 #define SSL_LOCK_READER(ss) \
     if (ss->recvLock)       \
-    PR_Lock(ss->recvLock)
+    MPR_Lock(ss->recvLock)
 #define SSL_UNLOCK_READER(ss) \
     if (ss->recvLock)         \
-    PR_Unlock(ss->recvLock)
+    MPR_Unlock(ss->recvLock)
 #define SSL_LOCK_WRITER(ss) \
     if (ss->sendLock)       \
-    PR_Lock(ss->sendLock)
+    MPR_Lock(ss->sendLock)
 #define SSL_UNLOCK_WRITER(ss) \
     if (ss->sendLock)         \
-    PR_Unlock(ss->sendLock)
+    MPR_Unlock(ss->sendLock)
 
 PRBool ssl_HaveRecvBufLock(sslSocket *ss);
 PRBool ssl_HaveXmitBufLock(sslSocket *ss);

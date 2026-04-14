@@ -242,11 +242,11 @@ loser:
 
     /*
      * A thread's error stack is automatically destroyed when the thread
-     * terminates or, for the primordial thread, by PR_Cleanup.  On
-     * Windows with MinGW, the thread private data destructor PR_Free
-     * registered by this module is actually a thunk for PR_Free defined
+     * terminates or, for the primordial thread, by MPR_Cleanup.  On
+     * Windows with MinGW, the thread private data destructor MPR_Free
+     * registered by this module is actually a thunk for MPR_Free defined
      * in this module.  When the thread that unloads this module terminates
-     * or calls PR_Cleanup, the thunk for PR_Free is already gone with the
+     * or calls MPR_Cleanup, the thunk for MPR_Free is already gone with the
      * module.  Therefore we need to destroy the error stack before the
      * module is unloaded.
      */

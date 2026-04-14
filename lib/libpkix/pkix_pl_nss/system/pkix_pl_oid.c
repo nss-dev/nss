@@ -149,7 +149,7 @@ pkix_pl_OID_ToString(
                 (PKIX_ESCASCII, oidString , 0, pString, plContext),
                 PKIX_STRINGCREATEFAILED);
 cleanup:
-        PR_smprintf_free(oidString);
+        MPR_smprintf_free(oidString);
         
         PKIX_RETURN(OID);
 }

@@ -170,7 +170,7 @@ pkix_pl_DirectoryName_Create(
 
 cleanup:
 
-        PR_Free(utf8String);
+        MPR_Free(utf8String);
         PKIX_DECREF(pkixDNString);
 
         PKIX_RETURN(GENERALNAME);
@@ -771,8 +771,8 @@ PKIX_PL_GeneralName_Create(
                     PKIX_STRINGGETENCODEDFAILED);
 
         /* Create a temporary CERTGeneralName */
-        PKIX_GENERALNAME_DEBUG("\t\tCalling PL_strlen).\n");
-        length = PL_strlen(asciiString);
+        PKIX_GENERALNAME_DEBUG("\t\tCalling MPL_strlen).\n");
+        length = MPL_strlen(asciiString);
         PKIX_GENERALNAME_DEBUG("\t\tCalling SECITEM_AllocItem).\n");
         secItem = SECITEM_AllocItem(NULL, NULL, length);
         PKIX_GENERALNAME_DEBUG("\t\tCalling PORT_Memcpy).\n");

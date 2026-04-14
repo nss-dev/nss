@@ -4593,7 +4593,7 @@ tls13_DeriveSecretWrap(sslSocket *ss, PK11SymKey *key,
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             return SECFailure;
         }
-        (void)PR_snprintf(buf, sizeof(buf), "%s %s",
+        (void)MPR_snprintf(buf, sizeof(buf), "%s %s",
                           prefix, suffix);
         label = buf;
     } else {
@@ -6450,7 +6450,7 @@ tls13_HandleNewSessionTicket(sslSocket *ss, PRUint8 *b, PRUint32 length)
         PORT_SetError(SSL_ERROR_RX_MALFORMED_NEW_SESSION_TICKET);
         return SECFailure;
     }
-    ticket.ticket_age_add = PR_ntohl(utmp);
+    ticket.ticket_age_add = MPR_ntohl(utmp);
 
     /* The nonce. */
     rv = ssl3_ConsumeHandshakeVariable(ss, &ticket_nonce, 1, &b, &length);

@@ -193,7 +193,7 @@ pkix_pl_AiaMgr_FindLDAPClient(
                         (domainName,
                          /* Do not use NBIO until we verify, that
                           * it is working. For now use 1 min timeout. */
-                        PR_SecondsToInterval(
+                        MPR_SecondsToInterval(
                             ((PKIX_PL_NssContext*)plContext)->timeoutSeconds),
                         NULL,
                         &client,
@@ -300,7 +300,7 @@ pkix_pl_AIAMgr_GetHTTPCerts(
 
 			/* create request session */
                         rv = (*hcv1->createFcn)(serverSession, "http", path,
-                        	"GET", PR_SecondsToInterval(timeout),
+                        	"GET", MPR_SecondsToInterval(timeout),
                                  &requestSession);
                 	if (rv != SECSuccess) {
                         	PKIX_ERROR(PKIX_HTTPSERVERERROR);

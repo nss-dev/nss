@@ -428,7 +428,7 @@ test_Version_Issuer_SerialNumber(void)
     }
 
     /* Serial Number */
-    PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_ESCASCII, bigInt, PL_strlen(bigInt), &str, plContext));
+    PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(PKIX_ESCASCII, bigInt, MPL_strlen(bigInt), &str, plContext));
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_BigInt_Create(str, &setSerialNumber, plContext));
 

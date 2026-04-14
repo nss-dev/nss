@@ -20,7 +20,7 @@ ssl_EncodeUintX(PRUint8 *to, PRUint64 value, unsigned int bytes)
 
     PORT_Assert(bytes > 0 && bytes <= sizeof(encoded));
 
-    encoded = PR_htonll(value);
+    encoded = MPR_htonll(value);
     PORT_Memcpy(to, ((unsigned char *)(&encoded)) + (sizeof(encoded) - bytes),
                 bytes);
 }

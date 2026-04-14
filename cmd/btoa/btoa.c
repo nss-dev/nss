@@ -119,9 +119,9 @@ main(int argc, char **argv)
     progName = progName ? progName + 1 : argv[0];
 
     /* Parse command line arguments */
-    optstate = PL_CreateOptState(argc, argv, "i:o:w:");
+    optstate = MPL_CreateOptState(argc, argv, "i:o:w:");
     PORT_Assert(optstate);
-    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             default:
                 Usage(progName);
@@ -204,7 +204,7 @@ main(int argc, char **argv)
     }
     exitCode = 0;
 loser:
-    PL_DestroyOptState(optstate);
+    MPL_DestroyOptState(optstate);
     if (inFile && closeIn) {
         fclose(inFile);
     }

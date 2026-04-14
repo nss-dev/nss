@@ -171,7 +171,7 @@ extern PRBool sftk_fatalError;
 
 #define FORK_ASSERT()                                            \
     {                                                            \
-        char *forkAssert = PR_GetEnvSecure("NSS_STRICT_NOFORK"); \
+        char *forkAssert = MPR_GetEnvSecure("NSS_STRICT_NOFORK"); \
         if ((!forkAssert) || (0 == strcmp(forkAssert, "1"))) {   \
             PORT_Assert(0);                                      \
         }                                                        \
@@ -260,7 +260,7 @@ extern PRBool sftkForkCheckDisabled;
 
 #define ENABLE_FORK_CHECK()                                       \
     {                                                             \
-        char *doForkCheck = PR_GetEnvSecure("NSS_STRICT_NOFORK"); \
+        char *doForkCheck = MPR_GetEnvSecure("NSS_STRICT_NOFORK"); \
         if (doForkCheck && !strcmp(doForkCheck, "DISABLED")) {    \
             sftkForkCheckDisabled = PR_TRUE;                      \
         }                                                         \

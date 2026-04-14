@@ -117,7 +117,7 @@ int isV2Session = 0;
 int currentcipher = 0;
 DataBufferList clientstream, serverstream;
 
-#define PR_FPUTS(x) PR_fprintf(PR_STDOUT, x)
+#define PR_FPUTS(x) MPR_fprintf(PR_STDOUT, x)
 
 #define GET_SHORT(x) ((PRUint16)(((PRUint16)((PRUint8 *)x)[0]) << 8) + ((PRUint16)((PRUint8 *)x)[1]))
 #define GET_24(x) ((PRUint32)((((PRUint32)((PRUint8 *)x)[0]) << 16) + \
@@ -135,7 +135,7 @@ void
 myhalt(int dblsize, int collectedsize)
 {
 
-    PR_fprintf(PR_STDERR, "HALTED\n");
+    MPR_fprintf(PR_STDERR, "HALTED\n");
     PR_ASSERT(dblsize == collectedsize);
     exit(13);
 }
@@ -211,7 +211,7 @@ read_stream_bytes(unsigned char *d, DataBufferList *dbl, int length)
     DataBuffer *db = dbl->first;
 
     if (!db) {
-        PR_fprintf(PR_STDERR, "assert failed - dbl->first is null\n");
+        MPR_fprintf(PR_STDERR, "assert failed - dbl->first is null\n");
         exit(8);
     }
     while (length) {
@@ -854,15 +854,15 @@ isNULLcipher(int cs_int)
 void
 partial_packet(int thispacket, int size, int needed)
 {
-    PR_fprintf(PR_STDOUT, "(%u bytes", thispacket);
+    MPR_fprintf(PR_STDOUT, "(%u bytes", thispacket);
     if (thispacket < needed) {
-        PR_fprintf(PR_STDOUT, ", making %u", size);
+        MPR_fprintf(PR_STDOUT, ", making %u", size);
     }
-    PR_fprintf(PR_STDOUT, " of %u", needed);
+    MPR_fprintf(PR_STDOUT, " of %u", needed);
     if (size > needed) {
-        PR_fprintf(PR_STDOUT, ", with %u left over", size - needed);
+        MPR_fprintf(PR_STDOUT, ", with %u left over", size - needed);
     }
-    PR_fprintf(PR_STDOUT, ")\n");
+    MPR_fprintf(PR_STDOUT, ")\n");
 }
 
 char *
@@ -893,25 +893,25 @@ print_sslv2(DataBufferList *s, unsigned char *recordBuf, unsigned int recordLen)
     chv2 = (ClientHelloV2 *)recordBuf;
     shv2 = (ServerHelloV2 *)recordBuf;
     if (s->isEncrypted) {
-        PR_fprintf(PR_STDOUT, " [ssl2]  Encrypted {...}\n");
+        MPR_fprintf(PR_STDOUT, " [ssl2]  Encrypted {...}\n");
         return;
     }
-    PR_fprintf(PR_STDOUT, " [%s]", get_time_string());
+    MPR_fprintf(PR_STDOUT, " [%s]", get_time_string());
     switch (chv2->type) {
         case 1:
-            PR_fprintf(PR_STDOUT, " [ssl2]  ClientHelloV2 {\n");
-            PR_fprintf(PR_STDOUT, "           version = {0x%02x, 0x%02x}\n",
+            MPR_fprintf(PR_STDOUT, " [ssl2]  ClientHelloV2 {\n");
+            MPR_fprintf(PR_STDOUT, "           version = {0x%02x, 0x%02x}\n",
                        (PRUint32)chv2->version[0], (PRUint32)chv2->version[1]);
-            PR_fprintf(PR_STDOUT, "           cipher-specs-length = %d (0x%02x)\n",
+            MPR_fprintf(PR_STDOUT, "           cipher-specs-length = %d (0x%02x)\n",
                        (PRUint32)(GET_SHORT((chv2->cslength))),
                        (PRUint32)(GET_SHORT((chv2->cslength))));
-            PR_fprintf(PR_STDOUT, "           sid-length = %d (0x%02x)\n",
+            MPR_fprintf(PR_STDOUT, "           sid-length = %d (0x%02x)\n",
                        (PRUint32)(GET_SHORT((chv2->sidlength))),
                        (PRUint32)(GET_SHORT((chv2->sidlength))));
-            PR_fprintf(PR_STDOUT, "           challenge-length = %d (0x%02x)\n",
+            MPR_fprintf(PR_STDOUT, "           challenge-length = %d (0x%02x)\n",
                        (PRUint32)(GET_SHORT((chv2->rndlength))),
                        (PRUint32)(GET_SHORT((chv2->rndlength))));
-            PR_fprintf(PR_STDOUT, "           cipher-suites = { \n");
+            MPR_fprintf(PR_STDOUT, "           cipher-suites = { \n");
             for (p =
                      0;
                  p < (PRUint32)GET_SHORT((chv2->cslength)); p += 3) {
@@ -919,29 +919,29 @@ print_sslv2(DataBufferList *s, unsigned char *recordBuf, unsigned int recordLen)
                 const char *cs_str =
                     V2CipherString(cs_int);
 
-                PR_fprintf(PR_STDOUT, "                (0x%06x) %s\n",
+                MPR_fprintf(PR_STDOUT, "                (0x%06x) %s\n",
                            cs_int, cs_str);
             }
             q = p;
-            PR_fprintf(PR_STDOUT, "                }\n");
+            MPR_fprintf(PR_STDOUT, "                }\n");
             if (GET_SHORT((chv2->sidlength))) {
-                PR_fprintf(PR_STDOUT, "           session-id = { ");
+                MPR_fprintf(PR_STDOUT, "           session-id = { ");
                 for (p = 0;
                      p < (PRUint32)GET_SHORT((chv2->sidlength)); p += 2) {
-                    PR_fprintf(PR_STDOUT, "0x%04x ", (PRUint32)(GET_SHORT((&chv2->csuites[p + q]))));
+                    MPR_fprintf(PR_STDOUT, "0x%04x ", (PRUint32)(GET_SHORT((&chv2->csuites[p + q]))));
                 }
             }
             q += p;
-            PR_fprintf(PR_STDOUT, "}\n");
+            MPR_fprintf(PR_STDOUT, "}\n");
             if (GET_SHORT((chv2->rndlength))) {
-                PR_fprintf(PR_STDOUT, "           challenge = { ");
+                MPR_fprintf(PR_STDOUT, "           challenge = { ");
                 for (p = 0;
                      p < (PRUint32)GET_SHORT((chv2->rndlength)); p += 2) {
-                    PR_fprintf(PR_STDOUT, "0x%04x ", (PRUint32)(GET_SHORT((&chv2->csuites[p + q]))));
+                    MPR_fprintf(PR_STDOUT, "0x%04x ", (PRUint32)(GET_SHORT((&chv2->csuites[p + q]))));
                 }
-                PR_fprintf(PR_STDOUT, "}\n");
+                MPR_fprintf(PR_STDOUT, "}\n");
             }
-            PR_fprintf(PR_STDOUT, "}\n");
+            MPR_fprintf(PR_STDOUT, "}\n");
             break;
             /* end of V2 CLientHello Parsing */
 
@@ -955,39 +955,39 @@ print_sslv2(DataBufferList *s, unsigned char *recordBuf, unsigned int recordLen)
             cmkv2 = (ClientMasterKeyV2 *)chv2;
             isV2Session = 1;
 
-            PR_fprintf(PR_STDOUT, " [ssl2]  ClientMasterKeyV2 { \n");
+            MPR_fprintf(PR_STDOUT, " [ssl2]  ClientMasterKeyV2 { \n");
 
             cs_int = GET_24(&cmkv2->cipherkind[0]);
             cs_str = V2CipherString(cs_int);
-            PR_fprintf(PR_STDOUT, "         cipher-spec-chosen = (0x%06x) %s\n",
+            MPR_fprintf(PR_STDOUT, "         cipher-spec-chosen = (0x%06x) %s\n",
                        cs_int, cs_str);
 
-            PR_fprintf(PR_STDOUT, "         clear-portion = %d bits\n",
+            MPR_fprintf(PR_STDOUT, "         clear-portion = %d bits\n",
                        8 *
                            (PRUint32)(GET_SHORT((cmkv2->clearkey))));
 
-            PR_fprintf(PR_STDOUT, "      }\n");
+            MPR_fprintf(PR_STDOUT, "      }\n");
             clientstream.isEncrypted = 1;
             serverstream.isEncrypted = 1;
         } break;
 
         case 3:
-            PR_fprintf(PR_STDOUT, " [ssl2]  Client Finished V2 {...}\n");
+            MPR_fprintf(PR_STDOUT, " [ssl2]  Client Finished V2 {...}\n");
             isV2Session = 1;
             break;
 
         case 4: /* V2 Server Hello */
             isV2Session = 1;
 
-            PR_fprintf(PR_STDOUT, " [ssl2]  ServerHelloV2 {\n");
-            PR_fprintf(PR_STDOUT, "           sid hit = {0x%02x}\n",
+            MPR_fprintf(PR_STDOUT, " [ssl2]  ServerHelloV2 {\n");
+            MPR_fprintf(PR_STDOUT, "           sid hit = {0x%02x}\n",
                        (PRUintn)shv2->sidhit);
-            PR_fprintf(PR_STDOUT, "           version = {0x%02x, 0x%02x}\n",
+            MPR_fprintf(PR_STDOUT, "           version = {0x%02x, 0x%02x}\n",
                        (PRUint32)shv2->version[0], (PRUint32)shv2->version[1]);
-            PR_fprintf(PR_STDOUT, "           cipher-specs-length = %d (0x%02x)\n",
+            MPR_fprintf(PR_STDOUT, "           cipher-specs-length = %d (0x%02x)\n",
                        (PRUint32)(GET_SHORT((shv2->cslength))),
                        (PRUint32)(GET_SHORT((shv2->cslength))));
-            PR_fprintf(PR_STDOUT, "           sid-length = %d (0x%02x)\n",
+            MPR_fprintf(PR_STDOUT, "           sid-length = %d (0x%02x)\n",
                        (PRUint32)(GET_SHORT((shv2->cidlength))),
                        (PRUint32)(GET_SHORT((shv2->cidlength))));
 
@@ -1000,29 +1000,29 @@ print_sslv2(DataBufferList *s, unsigned char *recordBuf, unsigned int recordLen)
             }
             pos += q; /* skip certificate */
 
-            PR_fprintf(PR_STDOUT, "           cipher-suites = { ");
+            MPR_fprintf(PR_STDOUT, "           cipher-suites = { ");
             len = GET_SHORT((shv2->cslength));
             for (p = 0; p < len; p += 3) {
                 PRUint32 cs_int = GET_24((pos + p));
                 const char *cs_str =
                     V2CipherString(cs_int);
-                PR_fprintf(PR_STDOUT, "\n              ");
-                PR_fprintf(PR_STDOUT, "(0x%06x) %s", cs_int, cs_str);
+                MPR_fprintf(PR_STDOUT, "\n              ");
+                MPR_fprintf(PR_STDOUT, "(0x%06x) %s", cs_int, cs_str);
             }
             pos += len;
-            PR_fprintf(PR_STDOUT, "   }\n"); /* End of cipher suites */
+            MPR_fprintf(PR_STDOUT, "   }\n"); /* End of cipher suites */
             len = (PRUint32)GET_SHORT((shv2->cidlength));
             if (len) {
-                PR_fprintf(PR_STDOUT, "           connection-id = { ");
+                MPR_fprintf(PR_STDOUT, "           connection-id = { ");
                 for (p =
                          0;
                      p < len; p += 2) {
-                    PR_fprintf(PR_STDOUT, "0x%04x ", (PRUint32)(GET_SHORT((pos + p))));
+                    MPR_fprintf(PR_STDOUT, "0x%04x ", (PRUint32)(GET_SHORT((pos + p))));
                 }
-                PR_fprintf(PR_STDOUT, "   }\n"); /* End of connection id */
+                MPR_fprintf(PR_STDOUT, "   }\n"); /* End of connection id */
             }
         eosh:
-            PR_fprintf(PR_STDOUT, "\n              }\n"); /* end of ServerHelloV2 */
+            MPR_fprintf(PR_STDOUT, "\n              }\n"); /* end of ServerHelloV2 */
             if (shv2->sidhit) {
                 clientstream.isEncrypted =
                     1;
@@ -1032,27 +1032,27 @@ print_sslv2(DataBufferList *s, unsigned char *recordBuf, unsigned int recordLen)
             break;
 
         case 5:
-            PR_fprintf(PR_STDOUT, " [ssl2]  Server Verify V2 {...}\n");
+            MPR_fprintf(PR_STDOUT, " [ssl2]  Server Verify V2 {...}\n");
             isV2Session = 1;
             break;
 
         case 6:
-            PR_fprintf(PR_STDOUT, " [ssl2]  Server Finished V2 {...}\n");
+            MPR_fprintf(PR_STDOUT, " [ssl2]  Server Finished V2 {...}\n");
             isV2Session = 1;
             break;
 
         case 7:
-            PR_fprintf(PR_STDOUT, " [ssl2]  Request Certificate V2 {...}\n");
+            MPR_fprintf(PR_STDOUT, " [ssl2]  Request Certificate V2 {...}\n");
             isV2Session = 1;
             break;
 
         case 8:
-            PR_fprintf(PR_STDOUT, " [ssl2]  Client Certificate V2 {...}\n");
+            MPR_fprintf(PR_STDOUT, " [ssl2]  Client Certificate V2 {...}\n");
             isV2Session = 1;
             break;
 
         default:
-            PR_fprintf(PR_STDOUT, " [ssl2]  UnknownType 0x%02x {...}\n",
+            MPR_fprintf(PR_STDOUT, " [ssl2]  UnknownType 0x%02x {...}\n",
                        (PRUint32)chv2->type);
             break;
     }
@@ -1067,7 +1067,7 @@ print_hello_extension(unsigned char *hsdata,
     if (pos < length) {
         int exListLen = GET_SHORT((hsdata + pos));
         pos += 2;
-        PR_fprintf(PR_STDOUT,
+        MPR_fprintf(PR_STDOUT,
                    "            extensions[%d] = {\n", exListLen);
         while (exListLen > 0 && pos < length) {
             int exLen;
@@ -1076,20 +1076,20 @@ print_hello_extension(unsigned char *hsdata,
             exLen = GET_SHORT((hsdata + pos));
             pos += 2;
             /* dump the extension */
-            PR_fprintf(PR_STDOUT,
+            MPR_fprintf(PR_STDOUT,
                        "              extension type %s, length [%d]",
                        helloExtensionNameString(exType), exLen);
             if (exLen > 0) {
-                PR_fprintf(PR_STDOUT, " = {\n");
+                MPR_fprintf(PR_STDOUT, " = {\n");
                 print_hex(exLen, hsdata + pos);
-                PR_fprintf(PR_STDOUT, "              }\n");
+                MPR_fprintf(PR_STDOUT, "              }\n");
             } else {
-                PR_fprintf(PR_STDOUT, "\n");
+                MPR_fprintf(PR_STDOUT, "\n");
             }
             pos += exLen;
             exListLen -= 2 + exLen;
         }
-        PR_fprintf(PR_STDOUT, "            }\n");
+        MPR_fprintf(PR_STDOUT, "            }\n");
     }
     return pos;
 }
@@ -1339,7 +1339,7 @@ print_ssl3_handshake(unsigned char *recordBuf,
     unsigned char *hsdata;
     unsigned int offset = 0;
 
-    PR_fprintf(PR_STDOUT, "   handshake {\n");
+    MPR_fprintf(PR_STDOUT, "   handshake {\n");
 
     if (s->msgBufOffset && s->msgBuf) {
         /* append recordBuf to msgBuf, then use msgBuf */
@@ -1370,7 +1370,7 @@ print_ssl3_handshake(unsigned char *recordBuf,
 
         hsdata = &recordBuf[offset + 4];
 
-        PR_fprintf(PR_STDOUT, "      type = %d (", sslh.type);
+        MPR_fprintf(PR_STDOUT, "      type = %d (", sslh.type);
         switch (sslh.type) {
             case 0:
                 PR_FPUTS("hello_request)\n");
@@ -1413,7 +1413,7 @@ print_ssl3_handshake(unsigned char *recordBuf,
                 break;
         }
 
-        PR_fprintf(PR_STDOUT, "      length = %d (0x%06x)\n", sslh.length, sslh.length);
+        MPR_fprintf(PR_STDOUT, "      length = %d (0x%06x)\n", sslh.length, sslh.length);
         switch (sslh.type) {
 
             case 0: /* hello_request */ /* not much to show here. */
@@ -1426,10 +1426,10 @@ print_ssl3_handshake(unsigned char *recordBuf,
                         unsigned int pos;
                         int w;
 
-                        PR_fprintf(PR_STDOUT, "         ClientHelloV3 {\n");
-                        PR_fprintf(PR_STDOUT, "            client_version = {%d, %d}\n",
+                        MPR_fprintf(PR_STDOUT, "         ClientHelloV3 {\n");
+                        MPR_fprintf(PR_STDOUT, "            client_version = {%d, %d}\n",
                                    (PRUint8)hsdata[0], (PRUint8)hsdata[1]);
-                        PR_fprintf(PR_STDOUT, "            random = {...}\n");
+                        MPR_fprintf(PR_STDOUT, "            random = {...}\n");
                         if (sslhexparse)
                             print_hex(32, &hsdata[2]);
 
@@ -1437,12 +1437,12 @@ print_ssl3_handshake(unsigned char *recordBuf,
                         {
                             int sidlength =
                                 (int)hsdata[2 + 32];
-                            PR_fprintf(PR_STDOUT, "            session ID = {\n");
-                            PR_fprintf(PR_STDOUT, "                length = %d\n", sidlength);
-                            PR_fprintf(PR_STDOUT, "                contents = {...}\n");
+                            MPR_fprintf(PR_STDOUT, "            session ID = {\n");
+                            MPR_fprintf(PR_STDOUT, "                length = %d\n", sidlength);
+                            MPR_fprintf(PR_STDOUT, "                contents = {...}\n");
                             if (sslhexparse)
                                 print_hex(sidlength, &hsdata[2 + 32 + 1]);
-                            PR_fprintf(PR_STDOUT, "            }\n");
+                            MPR_fprintf(PR_STDOUT, "            }\n");
                             pos =
                                 2 +
                                 32 +
@@ -1454,12 +1454,12 @@ print_ssl3_handshake(unsigned char *recordBuf,
                         {
                             int csuitelength =
                                 GET_SHORT((hsdata + pos));
-                            PR_fprintf(PR_STDOUT, "            cipher_suites[%d] = {\n",
+                            MPR_fprintf(PR_STDOUT, "            cipher_suites[%d] = {\n",
                                        csuitelength /
                                            2);
                             if (csuitelength %
                                 2) {
-                                PR_fprintf(PR_STDOUT,
+                                MPR_fprintf(PR_STDOUT,
                                            "*error in protocol - csuitelength shouldn't be odd*\n");
                             }
                             for (w =
@@ -1471,20 +1471,20 @@ print_ssl3_handshake(unsigned char *recordBuf,
                                     GET_SHORT((hsdata + pos + 2 + w));
                                 const char *cs_str =
                                     V2CipherString(cs_int);
-                                PR_fprintf(PR_STDOUT,
+                                MPR_fprintf(PR_STDOUT,
                                            "                (0x%04x) %s\n", cs_int, cs_str);
                             }
                             pos +=
                                 2 +
                                 csuitelength;
-                            PR_fprintf(PR_STDOUT, "            }\n");
+                            MPR_fprintf(PR_STDOUT, "            }\n");
                         }
 
                         /* pretty print compression methods */
                         {
                             int complength =
                                 hsdata[pos];
-                            PR_fprintf(PR_STDOUT, "            compression[%d] = {\n",
+                            MPR_fprintf(PR_STDOUT, "            compression[%d] = {\n",
                                        complength);
                             for (w =
                                      0;
@@ -1495,24 +1495,24 @@ print_ssl3_handshake(unsigned char *recordBuf,
                                     hsdata[pos + 1 + w];
                                 const char *cm_str =
                                     CompressionMethodString(cm_int);
-                                PR_fprintf(PR_STDOUT,
+                                MPR_fprintf(PR_STDOUT,
                                            "                (%02x) %s\n", cm_int, cm_str);
                             }
                             pos +=
                                 1 +
                                 complength;
-                            PR_fprintf(PR_STDOUT, "            }\n");
+                            MPR_fprintf(PR_STDOUT, "            }\n");
                         }
 
                         /* pretty print extensions, if any */
                         pos =
                             print_hello_extension(hsdata, sslh.length, pos);
 
-                        PR_fprintf(PR_STDOUT, "         }\n");
+                        MPR_fprintf(PR_STDOUT, "         }\n");
                     } /* end of ssl version 3 */
                     break;
                     default:
-                        PR_fprintf(PR_STDOUT, "         UNDEFINED VERSION %d.%d {...}\n",
+                        MPR_fprintf(PR_STDOUT, "         UNDEFINED VERSION %d.%d {...}\n",
                                    sr->ver_maj, sr->ver_min);
                         if (sslhexparse)
                             print_hex(sslh.length, hsdata);
@@ -1524,21 +1524,21 @@ print_ssl3_handshake(unsigned char *recordBuf,
             {
                 unsigned int sidlength, pos;
 
-                PR_fprintf(PR_STDOUT, "         ServerHello {\n");
+                MPR_fprintf(PR_STDOUT, "         ServerHello {\n");
 
-                PR_fprintf(PR_STDOUT, "            server_version = {%d, %d}\n",
+                MPR_fprintf(PR_STDOUT, "            server_version = {%d, %d}\n",
                            (PRUint8)hsdata[0], (PRUint8)hsdata[1]);
-                PR_fprintf(PR_STDOUT, "            random = {...}\n");
+                MPR_fprintf(PR_STDOUT, "            random = {...}\n");
                 if (sslhexparse)
                     print_hex(32, &hsdata[2]);
-                PR_fprintf(PR_STDOUT, "            session ID = {\n");
+                MPR_fprintf(PR_STDOUT, "            session ID = {\n");
                 sidlength = (int)hsdata[2 +
                                         32];
-                PR_fprintf(PR_STDOUT, "                length = %d\n", sidlength);
-                PR_fprintf(PR_STDOUT, "                contents = {...}\n");
+                MPR_fprintf(PR_STDOUT, "                length = %d\n", sidlength);
+                MPR_fprintf(PR_STDOUT, "                contents = {...}\n");
                 if (sslhexparse)
                     print_hex(sidlength, &hsdata[2 + 32 + 1]);
-                PR_fprintf(PR_STDOUT, "            }\n");
+                MPR_fprintf(PR_STDOUT, "            }\n");
                 pos = 2 +
                       32 + 1 +
                       sidlength;
@@ -1548,7 +1548,7 @@ print_ssl3_handshake(unsigned char *recordBuf,
                     PRUint32 cs_int = GET_SHORT((hsdata + pos));
                     const char *cs_str =
                         V2CipherString(cs_int);
-                    PR_fprintf(PR_STDOUT, "            cipher_suite = (0x%04x) %s\n",
+                    MPR_fprintf(PR_STDOUT, "            cipher_suite = (0x%04x) %s\n",
                                cs_int, cs_str);
                     currentcipher =
                         cs_int;
@@ -1560,14 +1560,14 @@ print_ssl3_handshake(unsigned char *recordBuf,
                     PRUint32 cm_int = hsdata[pos++];
                     const char *cm_str =
                         CompressionMethodString(cm_int);
-                    PR_fprintf(PR_STDOUT, "            compression method = (%02x) %s\n",
+                    MPR_fprintf(PR_STDOUT, "            compression method = (%02x) %s\n",
                                cm_int, cm_str);
                 }
 
                 /* pretty print extensions, if any */
                 pos = print_hello_extension(hsdata, sslh.length, pos);
 
-                PR_fprintf(PR_STDOUT, "         }\n");
+                MPR_fprintf(PR_STDOUT, "         }\n");
             } break;
 
             case 4: /* new session ticket */
@@ -1582,9 +1582,9 @@ print_ssl3_handshake(unsigned char *recordBuf,
                         lifetimehint;
                     t *=
                         PR_USEC_PER_SEC;
-                    PR_ExplodeTime(t, PR_GMTParameters, &et);
+                    MPR_ExplodeTime(t, MPR_GMTParameters, &et);
                     /* use HTTP Cookie header's date format */
-                    PR_FormatTimeUSEnglish(lifetime, sizeof lifetime,
+                    MPR_FormatTimeUSEnglish(lifetime, sizeof lifetime,
                                            "%a, %d-%b-%Y %H:%M:%S GMT", &et);
                 } else {
                     /* 0 means the lifetime of the ticket is unspecified */
@@ -1592,16 +1592,16 @@ print_ssl3_handshake(unsigned char *recordBuf,
                 }
                 ticketlength = GET_SHORT((hsdata +
                                           4));
-                PR_fprintf(PR_STDOUT, "         NewSessionTicket {\n");
-                PR_fprintf(PR_STDOUT, "            ticket_lifetime_hint = %s\n",
+                MPR_fprintf(PR_STDOUT, "         NewSessionTicket {\n");
+                MPR_fprintf(PR_STDOUT, "            ticket_lifetime_hint = %s\n",
                            lifetime);
-                PR_fprintf(PR_STDOUT, "            ticket = {\n");
-                PR_fprintf(PR_STDOUT, "                length = %d\n", ticketlength);
-                PR_fprintf(PR_STDOUT, "                contents = {...}\n");
+                MPR_fprintf(PR_STDOUT, "            ticket = {\n");
+                MPR_fprintf(PR_STDOUT, "                length = %d\n", ticketlength);
+                MPR_fprintf(PR_STDOUT, "                contents = {...}\n");
                 if (sslhexparse)
                     print_hex(ticketlength, &hsdata[4 + 2]);
-                PR_fprintf(PR_STDOUT, "            }\n");
-                PR_fprintf(PR_STDOUT, "         }\n");
+                MPR_fprintf(PR_STDOUT, "            }\n");
+                MPR_fprintf(PR_STDOUT, "         }\n");
             } break;
 
             case 11: /* certificate */
@@ -1614,9 +1614,9 @@ print_ssl3_handshake(unsigned char *recordBuf,
                 static int certFileNumber;
                 char certFileName[20];
 
-                PR_fprintf(PR_STDOUT, "         CertificateChain {\n");
+                MPR_fprintf(PR_STDOUT, "         CertificateChain {\n");
                 certslength = GET_24(hsdata);
-                PR_fprintf(PR_STDOUT, "            chainlength = %d (0x%04x)\n",
+                MPR_fprintf(PR_STDOUT, "            chainlength = %d (0x%04x)\n",
                            certslength, certslength);
                 pos = 3;
                 while (certbytesread < certslength) {
@@ -1624,36 +1624,36 @@ print_ssl3_handshake(unsigned char *recordBuf,
                         GET_24((hsdata + pos));
                     pos +=
                         3;
-                    PR_fprintf(PR_STDOUT, "            Certificate {\n");
-                    PR_fprintf(PR_STDOUT, "               size = %d (0x%04x)\n",
+                    MPR_fprintf(PR_STDOUT, "            Certificate {\n");
+                    MPR_fprintf(PR_STDOUT, "               size = %d (0x%04x)\n",
                                certlength, certlength);
                     certbytesread +=
                         certlength + 3;
                     if (certbytesread <=
                         certslength) {
-                        PR_snprintf(certFileName, sizeof certFileName, "cert.%03d",
+                        MPR_snprintf(certFileName, sizeof certFileName, "cert.%03d",
                                     ++certFileNumber);
                         cfd =
-                            PR_Open(certFileName, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
+                            MPR_Open(certFileName, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
                                     0664);
                         if (!cfd) {
-                            PR_fprintf(PR_STDOUT,
+                            MPR_fprintf(PR_STDOUT,
                                        "               data = { couldn't save file '%s' }\n",
                                        certFileName);
                         } else {
-                            PR_Write(cfd, (hsdata + pos),
+                            MPR_Write(cfd, (hsdata + pos),
                                      certlength);
-                            PR_fprintf(PR_STDOUT,
+                            MPR_fprintf(PR_STDOUT,
                                        "               data = { saved in file '%s' }\n",
                                        certFileName);
-                            PR_Close(cfd);
+                            MPR_Close(cfd);
                         }
                     }
 
-                    PR_fprintf(PR_STDOUT, "            }\n");
+                    MPR_fprintf(PR_STDOUT, "            }\n");
                     pos += certlength;
                 }
-                PR_fprintf(PR_STDOUT, "         }\n");
+                MPR_fprintf(PR_STDOUT, "         }\n");
             } break;
 
             case 12: /* server_key_exchange */
@@ -1666,26 +1666,26 @@ print_ssl3_handshake(unsigned char *recordBuf,
                 unsigned int pos = 0;
                 int w, reqLength;
 
-                PR_fprintf(PR_STDOUT, "         CertificateRequest {\n");
+                MPR_fprintf(PR_STDOUT, "         CertificateRequest {\n");
 
                 /* pretty print requested certificate types */
                 reqLength = hsdata[pos];
-                PR_fprintf(PR_STDOUT, "            certificate types[%d] = {",
+                MPR_fprintf(PR_STDOUT, "            certificate types[%d] = {",
                            reqLength);
                 for (w =
                          0;
                      w < reqLength; w++) {
-                    PR_fprintf(PR_STDOUT, " %02x", hsdata[pos + 1 + w]);
+                    MPR_fprintf(PR_STDOUT, " %02x", hsdata[pos + 1 + w]);
                 }
                 pos += 1 + reqLength;
-                PR_fprintf(PR_STDOUT, " }\n");
+                MPR_fprintf(PR_STDOUT, " }\n");
 
                 /* pretty print CA names, if any */
                 if (pos < sslh.length) {
                     int exListLen =
                         GET_SHORT((hsdata + pos));
                     pos += 2;
-                    PR_fprintf(PR_STDOUT,
+                    MPR_fprintf(PR_STDOUT,
                                "            certificate_authorities[%d] = {\n",
                                exListLen);
                     while (exListLen >
@@ -1707,19 +1707,19 @@ print_ssl3_handshake(unsigned char *recordBuf,
                         ca_name =
                             CERT_DerNameToAscii(&it);
                         if (ca_name) {
-                            PR_fprintf(PR_STDOUT, "   %s\n", ca_name);
+                            MPR_fprintf(PR_STDOUT, "   %s\n", ca_name);
                             PORT_Free(ca_name);
                         } else {
-                            PR_fprintf(PR_STDOUT,
+                            MPR_fprintf(PR_STDOUT,
                                        "              distinguished name [%d]", dnLen);
                             if (dnLen >
                                     0 &&
                                 sslhexparse) {
-                                PR_fprintf(PR_STDOUT, " = {\n");
+                                MPR_fprintf(PR_STDOUT, " = {\n");
                                 print_hex(dnLen, hsdata + pos);
-                                PR_fprintf(PR_STDOUT, "              }\n");
+                                MPR_fprintf(PR_STDOUT, "              }\n");
                             } else {
-                                PR_fprintf(PR_STDOUT, "\n");
+                                MPR_fprintf(PR_STDOUT, "\n");
                             }
                         }
                         pos +=
@@ -1727,10 +1727,10 @@ print_ssl3_handshake(unsigned char *recordBuf,
                         exListLen -=
                             2 + dnLen;
                     }
-                    PR_fprintf(PR_STDOUT, "            }\n");
+                    MPR_fprintf(PR_STDOUT, "            }\n");
                 }
 
-                PR_fprintf(PR_STDOUT, "         }\n");
+                MPR_fprintf(PR_STDOUT, "         }\n");
             } break;
 
             case 14: /* server_hello_done */ /* not much to show here. */
@@ -1743,17 +1743,17 @@ print_ssl3_handshake(unsigned char *recordBuf,
 
             case 16: /* client key exchange */
             {
-                PR_fprintf(PR_STDOUT, "         ClientKeyExchange {\n");
-                PR_fprintf(PR_STDOUT, "            message = {...}\n");
-                PR_fprintf(PR_STDOUT, "         }\n");
+                MPR_fprintf(PR_STDOUT, "         ClientKeyExchange {\n");
+                MPR_fprintf(PR_STDOUT, "            message = {...}\n");
+                MPR_fprintf(PR_STDOUT, "         }\n");
             } break;
 
             case 20: /* finished */
-                PR_fprintf(PR_STDOUT, "         Finished {\n");
-                PR_fprintf(PR_STDOUT, "            verify_data = {...}\n");
+                MPR_fprintf(PR_STDOUT, "         Finished {\n");
+                MPR_fprintf(PR_STDOUT, "            verify_data = {...}\n");
                 if (sslhexparse)
                     print_hex(sslh.length, hsdata);
-                PR_fprintf(PR_STDOUT, "         }\n");
+                MPR_fprintf(PR_STDOUT, "         }\n");
 
                 if (!isNULLmac(currentcipher) &&
                     !s->hMACsize) {
@@ -1787,29 +1787,29 @@ print_ssl3_handshake(unsigned char *recordBuf,
                 data.len = sslh.length - 4;
                 print_status_response(&data);
 
-                PR_snprintf(ocspFileName, sizeof ocspFileName, "ocsp.%03d",
+                MPR_snprintf(ocspFileName, sizeof ocspFileName, "ocsp.%03d",
                             ++ocspFileNumber);
-                ofd = PR_Open(ocspFileName, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
+                ofd = MPR_Open(ocspFileName, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
                               0664);
                 if (!ofd) {
-                    PR_fprintf(PR_STDOUT,
+                    MPR_fprintf(PR_STDOUT,
                                "               data = { couldn't save file '%s' }\n",
                                ocspFileName);
                 } else {
-                    PR_Write(ofd, data.data, data.len);
-                    PR_fprintf(PR_STDOUT,
+                    MPR_Write(ofd, data.data, data.len);
+                    MPR_fprintf(PR_STDOUT,
                                "               data = { saved in file '%s' }\n",
                                ocspFileName);
-                    PR_Close(ofd);
+                    MPR_Close(ofd);
                 }
             } break;
 
             default: {
-                PR_fprintf(PR_STDOUT, "         UNKNOWN MESSAGE TYPE %d [%d] {\n",
+                MPR_fprintf(PR_STDOUT, "         UNKNOWN MESSAGE TYPE %d [%d] {\n",
                            sslh.type, sslh.length);
                 if (sslhexparse)
                     print_hex(sslh.length, hsdata);
-                PR_fprintf(PR_STDOUT, "         }\n");
+                MPR_fprintf(PR_STDOUT, "         }\n");
             }
         } /* end of switch sslh.type */
         offset += sslh.length + 4;
@@ -1838,11 +1838,11 @@ print_ssl3_handshake(unsigned char *recordBuf,
             memmove(s->msgBuf, recordBuf + offset, newMsgLen);
         }
         s->msgBufOffset = newMsgLen;
-        PR_fprintf(PR_STDOUT, "     [incomplete handshake message]\n");
+        MPR_fprintf(PR_STDOUT, "     [incomplete handshake message]\n");
     } else {
         s->msgBufOffset = 0;
     }
-    PR_fprintf(PR_STDOUT, "   }\n");
+    MPR_fprintf(PR_STDOUT, "   }\n");
 }
 
 void
@@ -1855,7 +1855,7 @@ print_ssl(DataBufferList *s, int length, unsigned char *buffer)
 
     if (s->size == 0 && length > 0 && buffer[0] >= 32 && buffer[0] < 128) {
         /* Not an SSL record, treat entire buffer as plaintext */
-        PR_Write(PR_STDOUT, buffer, length);
+        MPR_Write(PR_STDOUT, buffer, length);
         return;
     }
 
@@ -1898,7 +1898,7 @@ print_ssl(DataBufferList *s, int length, unsigned char *buffer)
         check_integrity(s);
 
         if (s->first == NULL) {
-            PR_fprintf(PR_STDOUT, "ERROR: s->first is null\n");
+            MPR_fprintf(PR_STDOUT, "ERROR: s->first is null\n");
             exit(9);
         }
 
@@ -1922,7 +1922,7 @@ print_ssl(DataBufferList *s, int length, unsigned char *buffer)
             read_stream_bytes(lenbuf, s, sizeof(lenbuf));
             recordLen = ((unsigned int)(lenbuf[0] & 0x7f) << 8) + lenbuf[1] +
                         ((lenbuf[0] & 0x80) ? 2 : 3);
-            PR_fprintf(PR_STDOUT, "recordLen = %u bytes\n", recordLen);
+            MPR_fprintf(PR_STDOUT, "recordLen = %u bytes\n", recordLen);
 
             /* put 'em back on the head of the stream. */
             db = PR_NEW(struct _DataBuffer);
@@ -1997,34 +1997,34 @@ print_ssl(DataBufferList *s, int length, unsigned char *buffer)
         }
         partial_packet(length, s->size, recordsize);
 
-        PR_fprintf(PR_STDOUT, "SSLRecord { [%s]\n", get_time_string());
+        MPR_fprintf(PR_STDOUT, "SSLRecord { [%s]\n", get_time_string());
         if (sslhexparse) {
             print_hex(5, (unsigned char *)&sr);
         }
 
         check_integrity(s);
 
-        PR_fprintf(PR_STDOUT, "   type    = %d (", sr.type);
+        MPR_fprintf(PR_STDOUT, "   type    = %d (", sr.type);
         switch (sr.type) {
             case 20:
-                PR_fprintf(PR_STDOUT, "change_cipher_spec)\n");
+                MPR_fprintf(PR_STDOUT, "change_cipher_spec)\n");
                 break;
             case 21:
-                PR_fprintf(PR_STDOUT, "alert)\n");
+                MPR_fprintf(PR_STDOUT, "alert)\n");
                 break;
             case 22:
-                PR_fprintf(PR_STDOUT, "handshake)\n");
+                MPR_fprintf(PR_STDOUT, "handshake)\n");
                 break;
             case 23:
-                PR_fprintf(PR_STDOUT, "application_data)\n");
+                MPR_fprintf(PR_STDOUT, "application_data)\n");
                 break;
             default:
-                PR_fprintf(PR_STDOUT, "unknown)\n");
+                MPR_fprintf(PR_STDOUT, "unknown)\n");
                 break;
         }
-        PR_fprintf(PR_STDOUT, "   version = { %d,%d }\n",
+        MPR_fprintf(PR_STDOUT, "   version = { %d,%d }\n",
                    (PRUint32)sr.ver_maj, (PRUint32)sr.ver_min);
-        PR_fprintf(PR_STDOUT, "   length  = %d (0x%x)\n",
+        MPR_fprintf(PR_STDOUT, "   length  = %d (0x%x)\n",
                    (PRUint32)GET_SHORT(sr.length), (PRUint32)GET_SHORT(sr.length));
 
         recordLen = recordsize;
@@ -2034,7 +2034,7 @@ print_ssl(DataBufferList *s, int length, unsigned char *buffer)
             read_stream_bytes(recordBuf, s, recordLen);
 
             if (s->isEncrypted) {
-                PR_fprintf(PR_STDOUT, "            < encrypted >\n");
+                MPR_fprintf(PR_STDOUT, "            < encrypted >\n");
             } else { /* not encrypted */
 
                 switch (sr.type) {
@@ -2050,13 +2050,13 @@ print_ssl(DataBufferList *s, int length, unsigned char *buffer)
                     case 21: /* alert */
                         switch (recordBuf[0]) {
                             case 1:
-                                PR_fprintf(PR_STDOUT, "   warning: ");
+                                MPR_fprintf(PR_STDOUT, "   warning: ");
                                 break;
                             case 2:
-                                PR_fprintf(PR_STDOUT, "   fatal: ");
+                                MPR_fprintf(PR_STDOUT, "   fatal: ");
                                 break;
                             default:
-                                PR_fprintf(PR_STDOUT, "   unknown level %d: ", recordBuf[0]);
+                                MPR_fprintf(PR_STDOUT, "   unknown level %d: ", recordBuf[0]);
                                 break;
                         }
 
@@ -2150,7 +2150,7 @@ print_ssl(DataBufferList *s, int length, unsigned char *buffer)
                                 break;
 
                             default:
-                                PR_fprintf(PR_STDOUT, "unknown alert %d\n", recordBuf[1]);
+                                MPR_fprintf(PR_STDOUT, "unknown alert %d\n", recordBuf[1]);
                                 break;
                         }
 
@@ -2176,7 +2176,7 @@ print_ssl(DataBufferList *s, int length, unsigned char *buffer)
                         break;
                 }
                 if (s->hMACsize) {
-                    PR_fprintf(PR_STDOUT, "      MAC = {...}\n");
+                    MPR_fprintf(PR_STDOUT, "      MAC = {...}\n");
                     if (sslhexparse) {
                         unsigned char *offset =
                             recordBuf + (recordLen - s->hMACsize);
@@ -2185,7 +2185,7 @@ print_ssl(DataBufferList *s, int length, unsigned char *buffer)
                 }
             } /* not encrypted */
         }
-        PR_fprintf(PR_STDOUT, "}\n");
+        MPR_fprintf(PR_STDOUT, "}\n");
         PR_FREEIF(recordBuf);
         check_integrity(s);
     }
@@ -2202,12 +2202,12 @@ print_hex(int amt, unsigned char *buf)
         t[1] = 0;
 
         if (i % 16 == 0) {                    /* if we are at the beginning of a line */
-            PR_fprintf(PR_STDOUT, "%4x:", i); /* print the line number  */
+            MPR_fprintf(PR_STDOUT, "%4x:", i); /* print the line number  */
             strcpy(string, "");
         }
 
         if (i % 4 == 0) {
-            PR_fprintf(PR_STDOUT, " ");
+            MPR_fprintf(PR_STDOUT, " ");
         }
 
         j = buf[i];
@@ -2229,11 +2229,11 @@ print_hex(int amt, unsigned char *buf)
         }
         strcat(string, t);
 
-        PR_fprintf(PR_STDOUT, "%02x ", (PRUint8)buf[i]);
+        MPR_fprintf(PR_STDOUT, "%02x ", (PRUint8)buf[i]);
 
         /* if we've reached the end of the line - add the string */
         if (i % 16 == 15)
-            PR_fprintf(PR_STDOUT, " | %s\n", string);
+            MPR_fprintf(PR_STDOUT, " | %s\n", string);
     }
     /* we reached the end of the buffer,*/
     /* do we have buffer left over? */
@@ -2244,31 +2244,31 @@ print_hex(int amt, unsigned char *buf)
              k++) {
             /* print additional space after every four bytes */
             if ((k + j) % 4 == 0) {
-                PR_fprintf(PR_STDOUT, " ");
+                MPR_fprintf(PR_STDOUT, " ");
             }
-            PR_fprintf(PR_STDOUT, "   ");
+            MPR_fprintf(PR_STDOUT, "   ");
         }
-        PR_fprintf(PR_STDOUT, " | %s\n", string);
+        MPR_fprintf(PR_STDOUT, " | %s\n", string);
     }
 }
 
 void
 Usage(void)
 {
-    PR_fprintf(PR_STDERR, "Usage: ssltap [-vhfsxl] [-p port] hostname:port\n");
-    PR_fprintf(PR_STDERR, "   -v      [prints version string]\n");
-    PR_fprintf(PR_STDERR, "   -h      [outputs hex instead of ASCII]\n");
-    PR_fprintf(PR_STDERR, "   -f      [turn on Fancy HTML coloring]\n");
-    PR_fprintf(PR_STDERR, "   -s      [turn on SSL decoding]\n");
-    PR_fprintf(PR_STDERR, "   -x      [turn on extra SSL hex dumps]\n");
-    PR_fprintf(PR_STDERR, "   -p port [specify rendezvous port (default 1924)]\n");
-    PR_fprintf(PR_STDERR, "   -l      [loop - continue to wait for more connections]\n");
+    MPR_fprintf(PR_STDERR, "Usage: ssltap [-vhfsxl] [-p port] hostname:port\n");
+    MPR_fprintf(PR_STDERR, "   -v      [prints version string]\n");
+    MPR_fprintf(PR_STDERR, "   -h      [outputs hex instead of ASCII]\n");
+    MPR_fprintf(PR_STDERR, "   -f      [turn on Fancy HTML coloring]\n");
+    MPR_fprintf(PR_STDERR, "   -s      [turn on SSL decoding]\n");
+    MPR_fprintf(PR_STDERR, "   -x      [turn on extra SSL hex dumps]\n");
+    MPR_fprintf(PR_STDERR, "   -p port [specify rendezvous port (default 1924)]\n");
+    MPR_fprintf(PR_STDERR, "   -l      [loop - continue to wait for more connections]\n");
 }
 
 void
 showErr(const char *msg)
 {
-    PRErrorCode err = PR_GetError();
+    PRErrorCode err = MPR_GetError();
     const char *errString;
 
     if (err == PR_UNKNOWN_ERROR)
@@ -2277,7 +2277,7 @@ showErr(const char *msg)
 
     if (!errString)
         errString = "(no text available)";
-    PR_fprintf(PR_STDERR, "%s: Error %d: %s: %s", progName, err, errString, msg);
+    MPR_fprintf(PR_STDERR, "%s: Error %d: %s: %s", progName, err, errString, msg);
 }
 
 int
@@ -2296,8 +2296,8 @@ main(int argc, char *argv[])
     SECStatus rv;
 
     progName = argv[0];
-    optstate = PL_CreateOptState(argc, argv, "fxhslp:");
-    while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    optstate = MPL_CreateOptState(argc, argv, "fxhslp:");
+    while ((status = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case 'f':
                 fancy++;
@@ -2320,7 +2320,7 @@ main(int argc, char *argv[])
                 break;
             case '\0':
                 hostname =
-                    PL_strdup(optstate->value);
+                    MPL_strdup(optstate->value);
         }
     }
     if (status == PL_OPT_BAD)
@@ -2328,7 +2328,7 @@ main(int argc, char *argv[])
 
     if (fancy) {
         if (!hexparse && !sslparse) {
-            PR_fprintf(PR_STDERR,
+            MPR_fprintf(PR_STDERR,
                        "Note: use of -f without -s or -h not recommended, \n"
                        "as the output looks a little strange. It may be useful, however\n");
         }
@@ -2340,7 +2340,7 @@ main(int argc, char *argv[])
     {
         char *colon = (char *)strchr(hostname, ':');
         if (!colon) {
-            PR_fprintf(PR_STDERR,
+            MPR_fprintf(PR_STDERR,
                        "You must specify the host AND port you wish to connect to\n");
             Usage(), exit(3);
         }
@@ -2348,7 +2348,7 @@ main(int argc, char *argv[])
         *colon = '\0';
 
         if (port == 0) {
-            PR_fprintf(PR_STDERR, "Port must be a nonzero number.\n");
+            MPR_fprintf(PR_STDERR, "Port must be a nonzero number.\n");
             exit(4);
         }
     }
@@ -2356,67 +2356,67 @@ main(int argc, char *argv[])
     /* find the 'server' IP address so we don't have to look it up later */
 
     if (fancy) {
-        PR_fprintf(PR_STDOUT, "<HTML><HEAD><TITLE>SSLTAP output</TITLE></HEAD>\n");
-        PR_fprintf(PR_STDOUT, "<BODY><PRE>\n");
+        MPR_fprintf(PR_STDOUT, "<HTML><HEAD><TITLE>SSLTAP output</TITLE></HEAD>\n");
+        MPR_fprintf(PR_STDOUT, "<BODY><PRE>\n");
     }
-    PR_fprintf(PR_STDERR, "Looking up \"%s\"...\n", hostname);
-    ai = PR_GetAddrInfoByName(hostname, PR_AF_UNSPEC, PR_AI_ADDRCONFIG);
+    MPR_fprintf(PR_STDERR, "Looking up \"%s\"...\n", hostname);
+    ai = MPR_GetAddrInfoByName(hostname, PR_AF_UNSPEC, PR_AI_ADDRCONFIG);
     if (!ai) {
         showErr("Host Name lookup failed\n");
         exit(5);
     }
 
     iter = NULL;
-    iter = PR_EnumerateAddrInfo(iter, ai, port, &na_server);
+    iter = MPR_EnumerateAddrInfo(iter, ai, port, &na_server);
     /* set up the port which the client will connect to */
 
-    r = PR_InitializeNetAddr(PR_IpAddrAny, rendport, &na_rend);
+    r = MPR_InitializeNetAddr(PR_IpAddrAny, rendport, &na_rend);
     if (r == PR_FAILURE) {
-        PR_fprintf(PR_STDERR,
-                   "PR_InitializeNetAddr(,%d,) failed with error %d\n", PR_GetError());
+        MPR_fprintf(PR_STDERR,
+                   "MPR_InitializeNetAddr(,%d,) failed with error %d\n", MPR_GetError());
         exit(0);
     }
 
     rv = NSS_NoDB_Init("");
     if (rv != SECSuccess) {
-        PR_fprintf(PR_STDERR,
-                   "NSS_NoDB_Init() failed with error %d\n", PR_GetError());
+        MPR_fprintf(PR_STDERR,
+                   "NSS_NoDB_Init() failed with error %d\n", MPR_GetError());
         exit(5);
     }
 
-    s_rend = PR_NewTCPSocket();
+    s_rend = MPR_NewTCPSocket();
     if (!s_rend) {
         showErr("Couldn't create socket\n");
         exit(6);
     }
 
-    if (PR_Bind(s_rend, &na_rend)) {
-        PR_fprintf(PR_STDERR, "Couldn't bind to port %d (error %d)\n", rendport, PR_GetError());
+    if (MPR_Bind(s_rend, &na_rend)) {
+        MPR_fprintf(PR_STDERR, "Couldn't bind to port %d (error %d)\n", rendport, MPR_GetError());
         exit(-1);
     }
 
-    if (PR_Listen(s_rend, 5)) {
+    if (MPR_Listen(s_rend, 5)) {
         showErr("Couldn't listen\n");
         exit(-1);
     }
 
-    PR_fprintf(PR_STDERR, "Proxy socket ready and listening\n");
+    MPR_fprintf(PR_STDERR, "Proxy socket ready and listening\n");
     do { /* accept one connection and process it. */
         PRPollDesc pds[2];
 
-        s_client = PR_Accept(s_rend, &na_client, PR_SecondsToInterval(3600));
+        s_client = MPR_Accept(s_rend, &na_client, MPR_SecondsToInterval(3600));
         if (s_client == NULL) {
             showErr("accept timed out\n");
             exit(7);
         }
 
-        s_server = PR_OpenTCPSocket(na_server.raw.family);
+        s_server = MPR_OpenTCPSocket(na_server.raw.family);
         if (s_server == NULL) {
             showErr("couldn't open new socket to connect to server \n");
             exit(8);
         }
 
-        r = PR_Connect(s_server, &na_server, PR_SecondsToInterval(5));
+        r = MPR_Connect(s_server, &na_server, MPR_SecondsToInterval(5));
 
         if (r == PR_FAILURE) {
             showErr("Couldn't connect\n");
@@ -2425,14 +2425,14 @@ main(int argc, char *argv[])
 
         if (looparound) {
             if (fancy)
-                PR_fprintf(PR_STDOUT, "<p><HR><H2>");
-            PR_fprintf(PR_STDOUT, "Connection #%d [%s]\n", c_count + 1,
+                MPR_fprintf(PR_STDOUT, "<p><HR><H2>");
+            MPR_fprintf(PR_STDOUT, "Connection #%d [%s]\n", c_count + 1,
                        get_time_string());
             if (fancy)
-                PR_fprintf(PR_STDOUT, "</H2>");
+                MPR_fprintf(PR_STDOUT, "</H2>");
         }
 
-        PR_fprintf(PR_STDOUT, "Connected to %s:%d\n", hostname, port);
+        MPR_fprintf(PR_STDOUT, "Connected to %s:%d\n", hostname, port);
 
 #define PD_C 0
 #define PD_S 1
@@ -2453,12 +2453,12 @@ main(int argc, char *argv[])
             PRInt32 wrote;
             unsigned char buffer[TAPBUFSIZ];
 
-            amt = PR_Poll(pds, 2, PR_INTERVAL_NO_TIMEOUT);
+            amt = MPR_Poll(pds, 2, PR_INTERVAL_NO_TIMEOUT);
             if (amt <= 0) {
                 if (amt)
-                    showErr("PR_Poll failed.\n");
+                    showErr("MPR_Poll failed.\n");
                 else
-                    showErr("PR_Poll timed out.\n");
+                    showErr("MPR_Poll timed out.\n");
                 break;
             }
 
@@ -2477,7 +2477,7 @@ main(int argc, char *argv[])
             if ((pds[PD_C].in_flags & PR_POLL_READ) != 0 &&
                 (pds[PD_C].out_flags & PR_POLL_READ) != 0) {
 
-                amt = PR_Read(s_client, buffer, sizeof(buffer));
+                amt = MPR_Read(s_client, buffer, sizeof(buffer));
 
                 if (amt < 0) {
                     showErr("Client socket read failed.\n");
@@ -2485,34 +2485,34 @@ main(int argc, char *argv[])
                 }
 
                 if (amt == 0) {
-                    PR_fprintf(PR_STDOUT, "Read EOF on Client socket. [%s]\n",
+                    MPR_fprintf(PR_STDOUT, "Read EOF on Client socket. [%s]\n",
                                get_time_string());
                     pds[PD_C].in_flags &= ~PR_POLL_READ;
-                    PR_Shutdown(s_server, PR_SHUTDOWN_SEND);
+                    MPR_Shutdown(s_server, PR_SHUTDOWN_SEND);
                     continue;
                 }
 
-                PR_fprintf(PR_STDOUT, "--> [\n");
+                MPR_fprintf(PR_STDOUT, "--> [\n");
                 if (fancy)
-                    PR_fprintf(PR_STDOUT, "<font color=blue>");
+                    MPR_fprintf(PR_STDOUT, "<font color=blue>");
 
                 if (hexparse)
                     print_hex(amt, buffer);
                 if (sslparse)
                     print_ssl(&clientstream, amt, buffer);
                 if (!hexparse && !sslparse)
-                    PR_Write(PR_STDOUT, buffer, amt);
+                    MPR_Write(PR_STDOUT, buffer, amt);
                 if (fancy)
-                    PR_fprintf(PR_STDOUT, "</font>");
-                PR_fprintf(PR_STDOUT, "]\n");
+                    MPR_fprintf(PR_STDOUT, "</font>");
+                MPR_fprintf(PR_STDOUT, "]\n");
 
-                wrote = PR_Write(s_server, buffer, amt);
+                wrote = MPR_Write(s_server, buffer, amt);
                 if (wrote != amt) {
                     if (wrote < 0) {
                         showErr("Write to server socket failed.\n");
                         break;
                     } else {
-                        PR_fprintf(PR_STDERR, "Short write to server socket!\n");
+                        MPR_fprintf(PR_STDERR, "Short write to server socket!\n");
                     }
                 }
             } /* end of read from client socket. */
@@ -2521,7 +2521,7 @@ main(int argc, char *argv[])
             if ((pds[PD_S].in_flags & PR_POLL_READ) != 0 &&
                 (pds[PD_S].out_flags & PR_POLL_READ) != 0) {
 
-                amt = PR_Read(s_server, buffer, sizeof(buffer));
+                amt = MPR_Read(s_server, buffer, sizeof(buffer));
 
                 if (amt < 0) {
                     showErr("error on server-side socket.\n");
@@ -2529,33 +2529,33 @@ main(int argc, char *argv[])
                 }
 
                 if (amt == 0) {
-                    PR_fprintf(PR_STDOUT, "Read EOF on Server socket. [%s]\n",
+                    MPR_fprintf(PR_STDOUT, "Read EOF on Server socket. [%s]\n",
                                get_time_string());
                     pds[PD_S].in_flags &= ~PR_POLL_READ;
-                    PR_Shutdown(s_client, PR_SHUTDOWN_SEND);
+                    MPR_Shutdown(s_client, PR_SHUTDOWN_SEND);
                     continue;
                 }
 
-                PR_fprintf(PR_STDOUT, "<-- [\n");
+                MPR_fprintf(PR_STDOUT, "<-- [\n");
                 if (fancy)
-                    PR_fprintf(PR_STDOUT, "<font color=red>");
+                    MPR_fprintf(PR_STDOUT, "<font color=red>");
                 if (hexparse)
                     print_hex(amt, (unsigned char *)buffer);
                 if (sslparse)
                     print_ssl(&serverstream, amt, (unsigned char *)buffer);
                 if (!hexparse && !sslparse)
-                    PR_Write(PR_STDOUT, buffer, amt);
+                    MPR_Write(PR_STDOUT, buffer, amt);
                 if (fancy)
-                    PR_fprintf(PR_STDOUT, "</font>");
-                PR_fprintf(PR_STDOUT, "]\n");
+                    MPR_fprintf(PR_STDOUT, "</font>");
+                MPR_fprintf(PR_STDOUT, "]\n");
 
-                wrote = PR_Write(s_client, buffer, amt);
+                wrote = MPR_Write(s_client, buffer, amt);
                 if (wrote != amt) {
                     if (wrote < 0) {
                         showErr("Write to client socket failed.\n");
                         break;
                     } else {
-                        PR_fprintf(PR_STDERR, "Short write to client socket!\n");
+                        MPR_fprintf(PR_STDERR, "Short write to client socket!\n");
                     }
                 }
 
@@ -2564,17 +2564,17 @@ main(int argc, char *argv[])
             /* Loop, handle next message. */
 
         } /* handle messages during a connection loop */
-        PR_Close(s_client);
-        PR_Close(s_server);
+        MPR_Close(s_client);
+        MPR_Close(s_server);
         flush_stream(&clientstream);
         flush_stream(&serverstream);
         /* Connection is closed, so reset the current cipher */
         currentcipher = 0;
         c_count++;
-        PR_fprintf(PR_STDERR, "Connection %d Complete [%s]\n", c_count,
+        MPR_fprintf(PR_STDERR, "Connection %d Complete [%s]\n", c_count,
                    get_time_string());
     } while (looparound); /* accept connection and process it. */
-    PR_Close(s_rend);
+    MPR_Close(s_rend);
     if (NSS_Shutdown() != SECSuccess) {
         return 1;
     }

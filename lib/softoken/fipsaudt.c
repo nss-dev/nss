@@ -28,7 +28,7 @@ sftk_PrintReturnedObjectHandle(char *out, PRUint32 outlen,
                                const char *argName, CK_OBJECT_HANDLE_PTR phObject, CK_RV rv)
 {
     if ((rv == CKR_OK) && phObject) {
-        PR_snprintf(out, outlen,
+        MPR_snprintf(out, outlen,
                     " *%s=0x%08lX", argName, (PRUint32)*phObject);
     } else {
         PORT_Assert(outlen != 0);
@@ -52,10 +52,10 @@ sftk_PrintMechanism(char *out, PRUint32 outlen,
          * MECHANISM_BUFSIZE is still large enough.  We allow
          * 20 bytes for %p on a 64-bit platform.
          */
-        PR_snprintf(out, outlen, "%p {mechanism=0x%08lX, ...}",
+        MPR_snprintf(out, outlen, "%p {mechanism=0x%08lX, ...}",
                     pMechanism, (PRUint32)pMechanism->mechanism);
     } else {
-        PR_snprintf(out, outlen, "%p", pMechanism);
+        MPR_snprintf(out, outlen, "%p", pMechanism);
     }
 }
 
@@ -70,7 +70,7 @@ sftk_AuditCreateObject(CK_SESSION_HANDLE hSession,
 
     sftk_PrintReturnedObjectHandle(shObject, sizeof shObject,
                                    "phObject", phObject, rv);
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_CreateObject(hSession=0x%08lX, pTemplate=%p, ulCount=%lu, "
                 "phObject=%p)=0x%08lX%s",
                 (PRUint32)hSession, pTemplate, (PRUint32)ulCount,
@@ -89,7 +89,7 @@ sftk_AuditCopyObject(CK_SESSION_HANDLE hSession,
 
     sftk_PrintReturnedObjectHandle(shNewObject, sizeof shNewObject,
                                    "phNewObject", phNewObject, rv);
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_CopyObject(hSession=0x%08lX, hObject=0x%08lX, "
                 "pTemplate=%p, ulCount=%lu, phNewObject=%p)=0x%08lX%s",
                 (PRUint32)hSession, (PRUint32)hObject,
@@ -105,7 +105,7 @@ sftk_AuditDestroyObject(CK_SESSION_HANDLE hSession,
     char msg[256];
     NSSAuditSeverity severity = (rv == CKR_OK) ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
 
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_DestroyObject(hSession=0x%08lX, hObject=0x%08lX)=0x%08lX",
                 (PRUint32)hSession, (PRUint32)hObject, (PRUint32)rv);
     sftk_LogAuditMessage(severity, NSS_AUDIT_DESTROY_KEY, msg);
@@ -118,7 +118,7 @@ sftk_AuditGetObjectSize(CK_SESSION_HANDLE hSession,
     char msg[256];
     NSSAuditSeverity severity = (rv == CKR_OK) ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
 
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_GetObjectSize(hSession=0x%08lX, hObject=0x%08lX, "
                 "pulSize=%p)=0x%08lX",
                 (PRUint32)hSession, (PRUint32)hObject,
@@ -134,7 +134,7 @@ sftk_AuditGetAttributeValue(CK_SESSION_HANDLE hSession,
     char msg[256];
     NSSAuditSeverity severity = (rv == CKR_OK) ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
 
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_GetAttributeValue(hSession=0x%08lX, hObject=0x%08lX, "
                 "pTemplate=%p, ulCount=%lu)=0x%08lX",
                 (PRUint32)hSession, (PRUint32)hObject,
@@ -150,7 +150,7 @@ sftk_AuditSetAttributeValue(CK_SESSION_HANDLE hSession,
     char msg[256];
     NSSAuditSeverity severity = (rv == CKR_OK) ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
 
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_SetAttributeValue(hSession=0x%08lX, hObject=0x%08lX, "
                 "pTemplate=%p, ulCount=%lu)=0x%08lX",
                 (PRUint32)hSession, (PRUint32)hObject,
@@ -167,7 +167,7 @@ sftk_AuditCryptInit(const char *opName, CK_SESSION_HANDLE hSession,
     NSSAuditSeverity severity = (rv == CKR_OK) ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
 
     sftk_PrintMechanism(mech, sizeof mech, pMechanism);
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_%sInit(hSession=0x%08lX, pMechanism=%s, "
                 "hKey=0x%08lX)=0x%08lX",
                 opName, (PRUint32)hSession, mech,
@@ -187,7 +187,7 @@ sftk_AuditGenerateKey(CK_SESSION_HANDLE hSession,
 
     sftk_PrintMechanism(mech, sizeof mech, pMechanism);
     sftk_PrintReturnedObjectHandle(shKey, sizeof shKey, "phKey", phKey, rv);
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_GenerateKey(hSession=0x%08lX, pMechanism=%s, "
                 "pTemplate=%p, ulCount=%lu, phKey=%p)=0x%08lX%s",
                 (PRUint32)hSession, mech,
@@ -213,7 +213,7 @@ sftk_AuditGenerateKeyPair(CK_SESSION_HANDLE hSession,
                                    "phPublicKey", phPublicKey, rv);
     sftk_PrintReturnedObjectHandle(shPrivateKey, sizeof shPrivateKey,
                                    "phPrivateKey", phPrivateKey, rv);
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_GenerateKeyPair(hSession=0x%08lX, pMechanism=%s, "
                 "pPublicKeyTemplate=%p, ulPublicKeyAttributeCount=%lu, "
                 "pPrivateKeyTemplate=%p, ulPrivateKeyAttributeCount=%lu, "
@@ -236,7 +236,7 @@ sftk_AuditWrapKey(CK_SESSION_HANDLE hSession,
     NSSAuditSeverity severity = (rv == CKR_OK) ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
 
     sftk_PrintMechanism(mech, sizeof mech, pMechanism);
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_WrapKey(hSession=0x%08lX, pMechanism=%s, hWrappingKey=0x%08lX, "
                 "hKey=0x%08lX, pWrappedKey=%p, pulWrappedKeyLen=%p)=0x%08lX",
                 (PRUint32)hSession, mech, (PRUint32)hWrappingKey,
@@ -258,7 +258,7 @@ sftk_AuditUnwrapKey(CK_SESSION_HANDLE hSession,
 
     sftk_PrintMechanism(mech, sizeof mech, pMechanism);
     sftk_PrintReturnedObjectHandle(shKey, sizeof shKey, "phKey", phKey, rv);
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_UnwrapKey(hSession=0x%08lX, pMechanism=%s, "
                 "hUnwrappingKey=0x%08lX, pWrappedKey=%p, ulWrappedKeyLen=%lu, "
                 "pTemplate=%p, ulAttributeCount=%lu, phKey=%p)=0x%08lX%s",
@@ -282,7 +282,7 @@ sftk_AuditEncapsulateKey(CK_SESSION_HANDLE hSession,
 
     sftk_PrintMechanism(mech, sizeof mech, pMechanism);
     sftk_PrintReturnedObjectHandle(shKey, sizeof shKey, "phKey", phKey, rv);
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_EncapsulateKey(hSession=0x%08lX, pMechanism=%s, "
                 "hPublicKey=0x%08lX, pTemplate=%p, ulAttributeCount=%lu, "
                 "pCiphertext=%p, ulCiphertestLen=%lu, "
@@ -308,7 +308,7 @@ sftk_AuditDecapsulateKey(CK_SESSION_HANDLE hSession,
 
     sftk_PrintMechanism(mech, sizeof mech, pMechanism);
     sftk_PrintReturnedObjectHandle(shKey, sizeof shKey, "phKey", phKey, rv);
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_DecapsulateKey(hSession=0x%08lX, pMechanism=%s, "
                 "hPrivateKey=0x%08lX, pTemplate=%p, ulAttributeCount=%lu, "
                 "pCiphertext=%p, ulCiphertestLen=%lu, "
@@ -339,7 +339,7 @@ sftk_AuditDeriveKey(CK_SESSION_HANDLE hSession,
         CK_SSL3_KEY_MAT_PARAMS *param =
             (CK_SSL3_KEY_MAT_PARAMS *)pMechanism->pParameter;
         CK_SSL3_KEY_MAT_OUT *keymat = param->pReturnedKeyMaterial;
-        PR_snprintf(sTlsKeys, sizeof sTlsKeys,
+        MPR_snprintf(sTlsKeys, sizeof sTlsKeys,
                     " hClientMacSecret=0x%08lX hServerMacSecret=0x%08lX"
                     " hClientKey=0x%08lX hServerKey=0x%08lX",
                     (PRUint32)keymat->hClientMacSecret,
@@ -349,7 +349,7 @@ sftk_AuditDeriveKey(CK_SESSION_HANDLE hSession,
     } else {
         sTlsKeys[0] = '\0';
     }
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_DeriveKey(hSession=0x%08lX, pMechanism=%s, "
                 "hBaseKey=0x%08lX, pTemplate=%p, ulAttributeCount=%lu, "
                 "phKey=%p)=0x%08lX%s%s",
@@ -366,7 +366,7 @@ sftk_AuditDigestKey(CK_SESSION_HANDLE hSession,
     char msg[256];
     NSSAuditSeverity severity = (rv == CKR_OK) ? NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
 
-    PR_snprintf(msg, sizeof msg,
+    MPR_snprintf(msg, sizeof msg,
                 "C_DigestKey(hSession=0x%08lX, hKey=0x%08lX)=0x%08lX",
                 (PRUint32)hSession, (PRUint32)hKey, (PRUint32)rv);
     sftk_LogAuditMessage(severity, NSS_AUDIT_DIGEST_KEY, msg);

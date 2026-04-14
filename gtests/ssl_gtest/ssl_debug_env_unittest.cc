@@ -26,7 +26,7 @@ extern FILE* ssl_keylog_iob;
 
 #ifdef DEBUG
 TEST_P(TlsConnectGeneric, DebugEnvTraceFileNotSet) {
-  char* ev = PR_GetEnvSecure("SSLDEBUGFILE");
+  char* ev = MPR_GetEnvSecure("SSLDEBUGFILE");
   if (ev && ev[0]) {
     GTEST_SKIP();
   }
@@ -38,7 +38,7 @@ TEST_P(TlsConnectGeneric, DebugEnvTraceFileNotSet) {
 
 #ifdef NSS_ALLOW_SSLKEYLOGFILE
 TEST_P(TlsConnectGeneric, DebugEnvKeylogFileNotSet) {
-  char* ev = PR_GetEnvSecure("SSLKEYLOGFILE");
+  char* ev = MPR_GetEnvSecure("SSLKEYLOGFILE");
   if (ev && ev[0]) {
     GTEST_SKIP();
   }

@@ -334,7 +334,7 @@ TEST_P(TlsConnectTls13, ZeroRttServerOnly) {
 
   // Verify that the server doesn't get data.
   uint8_t buf[100];
-  PRInt32 rv = PR_Read(server_->ssl_fd(), buf, sizeof(buf));
+  PRInt32 rv = MPR_Read(server_->ssl_fd(), buf, sizeof(buf));
   EXPECT_EQ(SECFailure, rv);
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 
@@ -587,7 +587,7 @@ TEST_P(TlsConnectTls13, TestTls13ZeroRttDowngradeEarlyData) {
   client_->Set0RttEnabled(true);
   client_->Handshake();  // Send ClientHello.
   PRInt32 rv =
-      PR_Write(client_->ssl_fd(), k0RttData, k0RttDataLen);  // 0-RTT write.
+      MPR_Write(client_->ssl_fd(), k0RttData, k0RttDataLen);  // 0-RTT write.
   EXPECT_EQ(k0RttDataLen, rv);
 
   if (variant_ == ssl_variant_stream) {
@@ -629,21 +629,21 @@ TEST_P(TlsConnectTls13, SendTooMuchEarlyData) {
   PRInt32 sent;
   // Writing more than the limit will succeed in TLS, but fail in DTLS.
   if (variant_ == ssl_variant_stream) {
-    sent = PR_Write(client_->ssl_fd(), big_message,
+    sent = MPR_Write(client_->ssl_fd(), big_message,
                     static_cast<PRInt32>(strlen(big_message)));
   } else {
-    sent = PR_Write(client_->ssl_fd(), big_message,
+    sent = MPR_Write(client_->ssl_fd(), big_message,
                     static_cast<PRInt32>(strlen(big_message)));
     EXPECT_GE(0, sent);
     EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 
     // Try an exact-sized write now.
-    sent = PR_Write(client_->ssl_fd(), big_message, short_length);
+    sent = MPR_Write(client_->ssl_fd(), big_message, short_length);
   }
   EXPECT_EQ(short_length, sent);
 
   // Even a single octet write should now fail.
-  sent = PR_Write(client_->ssl_fd(), big_message, 1);
+  sent = MPR_Write(client_->ssl_fd(), big_message, 1);
   EXPECT_GE(0, sent);
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 
@@ -652,12 +652,12 @@ TEST_P(TlsConnectTls13, SendTooMuchEarlyData) {
   CheckEarlyDataLimit(server_, short_size);
 
   std::vector<uint8_t> buf(short_size + 1);
-  PRInt32 read = PR_Read(server_->ssl_fd(), buf.data(), buf.capacity());
+  PRInt32 read = MPR_Read(server_->ssl_fd(), buf.data(), buf.capacity());
   EXPECT_EQ(short_length, read);
   EXPECT_EQ(0, memcmp(big_message, buf.data(), short_size));
 
   // Second read fails.
-  read = PR_Read(server_->ssl_fd(), buf.data(), buf.capacity());
+  read = MPR_Read(server_->ssl_fd(), buf.data(), buf.capacity());
   EXPECT_EQ(SECFailure, read);
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 
@@ -690,7 +690,7 @@ TEST_P(TlsConnectTls13, ReceiveTooMuchEarlyData) {
   // Send message
   const char* message = "0123456789abcdef";
   const PRInt32 message_len = static_cast<PRInt32>(strlen(message));
-  EXPECT_EQ(message_len, PR_Write(client_->ssl_fd(), message, message_len));
+  EXPECT_EQ(message_len, MPR_Write(client_->ssl_fd(), message, message_len));
 
   if (variant_ == ssl_variant_stream) {
     // This error isn't fatal for DTLS.
@@ -707,7 +707,7 @@ TEST_P(TlsConnectTls13, ReceiveTooMuchEarlyData) {
 
   // Attempt to read early data. This will get an error.
   std::vector<uint8_t> buf(strlen(message) + 1);
-  EXPECT_GT(0, PR_Read(server_->ssl_fd(), buf.data(), buf.capacity()));
+  EXPECT_GT(0, MPR_Read(server_->ssl_fd(), buf.data(), buf.capacity()));
   if (variant_ == ssl_variant_stream) {
     EXPECT_EQ(SSL_ERROR_HANDSHAKE_FAILED, PORT_GetError());
   } else {
@@ -760,7 +760,7 @@ TEST_P(TlsConnectTls13, ZeroRttOrdering) {
   // Send (and hold) early data.
   static const std::vector<uint8_t> early_data = {3, 2, 1};
   EXPECT_EQ(static_cast<PRInt32>(early_data.size()),
-            PR_Write(client_->ssl_fd(), early_data.data(), early_data.size()));
+            MPR_Write(client_->ssl_fd(), early_data.data(), early_data.size()));
 
   // Send (and hold) the second client handshake flight.
   // The client sends EndOfEarlyData after seeing the server Finished.
@@ -770,7 +770,7 @@ TEST_P(TlsConnectTls13, ZeroRttOrdering) {
   // Send (and hold) 1-RTT data.
   static const std::vector<uint8_t> late_data = {7, 8, 9, 10};
   EXPECT_EQ(static_cast<PRInt32>(late_data.size()),
-            PR_Write(client_->ssl_fd(), late_data.data(), late_data.size()));
+            MPR_Write(client_->ssl_fd(), late_data.data(), late_data.size()));
 
   // Now release them all at once.
   coalesce->SendCoalesced(client_);
@@ -784,7 +784,7 @@ TEST_P(TlsConnectTls13, ZeroRttOrdering) {
   });
 
   std::vector<uint8_t> buf(10);
-  PRInt32 read = PR_Read(server_->ssl_fd(), buf.data(), buf.size());
+  PRInt32 read = MPR_Read(server_->ssl_fd(), buf.data(), buf.size());
   ASSERT_EQ(static_cast<PRInt32>(early_data.size()), read);
   buf.resize(read);
   EXPECT_EQ(early_data, buf);
@@ -794,7 +794,7 @@ TEST_P(TlsConnectTls13, ZeroRttOrdering) {
   // The third read should be after the handshake callback and should return the
   // data that was sent after the handshake completed.
   buf.resize(10);
-  read = PR_Read(server_->ssl_fd(), buf.data(), buf.size());
+  read = MPR_Read(server_->ssl_fd(), buf.data(), buf.size());
   ASSERT_EQ(static_cast<PRInt32>(late_data.size()), read);
   buf.resize(read);
   EXPECT_EQ(late_data, buf);
@@ -811,7 +811,7 @@ TEST_F(TlsConnectStreamTls13, ZeroRttLateReadTls) {
 
   // Write some early data.
   const uint8_t data[] = {1, 2, 3, 4, 5, 6, 7, 8};
-  PRInt32 rv = PR_Write(client_->ssl_fd(), data, sizeof(data));
+  PRInt32 rv = MPR_Write(client_->ssl_fd(), data, sizeof(data));
   EXPECT_EQ(static_cast<PRInt32>(sizeof(data)), rv);
 
   // Consume the ClientHello and generate ServerHello..Finished.
@@ -819,7 +819,7 @@ TEST_F(TlsConnectStreamTls13, ZeroRttLateReadTls) {
 
   // Read some of the data.
   std::vector<uint8_t> small_buffer(1 + sizeof(data) / 2);
-  rv = PR_Read(server_->ssl_fd(), small_buffer.data(), small_buffer.size());
+  rv = MPR_Read(server_->ssl_fd(), small_buffer.data(), small_buffer.size());
   EXPECT_EQ(static_cast<PRInt32>(small_buffer.size()), rv);
   EXPECT_EQ(0, memcmp(data, small_buffer.data(), small_buffer.size()));
 
@@ -829,13 +829,13 @@ TEST_F(TlsConnectStreamTls13, ZeroRttLateReadTls) {
 
   // After the handshake, it should be possible to read the remainder.
   uint8_t big_buf[100];
-  rv = PR_Read(server_->ssl_fd(), big_buf, sizeof(big_buf));
+  rv = MPR_Read(server_->ssl_fd(), big_buf, sizeof(big_buf));
   EXPECT_EQ(static_cast<PRInt32>(sizeof(data) - small_buffer.size()), rv);
   EXPECT_EQ(0, memcmp(&data[small_buffer.size()], big_buf,
                       sizeof(data) - small_buffer.size()));
 
   // And that's all there is to read.
-  rv = PR_Read(server_->ssl_fd(), big_buf, sizeof(big_buf));
+  rv = MPR_Read(server_->ssl_fd(), big_buf, sizeof(big_buf));
   EXPECT_GT(0, rv);
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 }
@@ -851,7 +851,7 @@ TEST_F(TlsConnectDatagram13, ZeroRttLateReadDtls) {
 
   // Write some early data.
   const uint8_t data[] = {1, 2, 3};
-  PRInt32 written = PR_Write(client_->ssl_fd(), data, sizeof(data));
+  PRInt32 written = MPR_Write(client_->ssl_fd(), data, sizeof(data));
   EXPECT_EQ(static_cast<PRInt32>(sizeof(data)), written);
 
   Handshake();  // Complete the handshake.
@@ -860,7 +860,7 @@ TEST_F(TlsConnectDatagram13, ZeroRttLateReadDtls) {
 
   // Reading at the server should return the early data, which was buffered.
   uint8_t buf[sizeof(data) + 1] = {0};
-  PRInt32 read = PR_Read(server_->ssl_fd(), buf, sizeof(buf));
+  PRInt32 read = MPR_Read(server_->ssl_fd(), buf, sizeof(buf));
   EXPECT_EQ(static_cast<PRInt32>(sizeof(data)), read);
   EXPECT_EQ(0, memcmp(data, buf, sizeof(data)));
 }
@@ -891,13 +891,13 @@ TEST_F(TlsConnectDatagram13, ZeroRttLateArrivalDtls) {
 
   // Write some early data.  Twice, so that we can read bits of it.
   const uint8_t data[] = {1, 2, 3};
-  PRInt32 written = PR_Write(client_->ssl_fd(), data, sizeof(data));
+  PRInt32 written = MPR_Write(client_->ssl_fd(), data, sizeof(data));
   EXPECT_EQ(static_cast<PRInt32>(sizeof(data)), written);
 
   // Block and capture the next packet.
   auto holder = std::make_shared<PacketHolder>();
   client_->SetFilter(holder);
-  written = PR_Write(client_->ssl_fd(), data, sizeof(data));
+  written = MPR_Write(client_->ssl_fd(), data, sizeof(data));
   EXPECT_EQ(static_cast<PRInt32>(sizeof(data)), written);
   EXPECT_FALSE(holder->enabled()) << "the filter should disable itself";
 
@@ -907,7 +907,7 @@ TEST_F(TlsConnectDatagram13, ZeroRttLateArrivalDtls) {
   // Read some of the data.
   std::vector<uint8_t> small_buffer(sizeof(data));
   PRInt32 read =
-      PR_Read(server_->ssl_fd(), small_buffer.data(), small_buffer.size());
+      MPR_Read(server_->ssl_fd(), small_buffer.data(), small_buffer.size());
 
   EXPECT_EQ(static_cast<PRInt32>(small_buffer.size()), read);
   EXPECT_EQ(0, memcmp(data, small_buffer.data(), small_buffer.size()));
@@ -920,7 +920,7 @@ TEST_F(TlsConnectDatagram13, ZeroRttLateArrivalDtls) {
 
   // Reading now should return nothing, even though a valid packet was
   // delivered.
-  read = PR_Read(server_->ssl_fd(), small_buffer.data(), small_buffer.size());
+  read = MPR_Read(server_->ssl_fd(), small_buffer.data(), small_buffer.size());
   EXPECT_GT(0, read);
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 }
@@ -935,10 +935,10 @@ TEST_F(TlsConnectStreamTls13, ZeroRttCoalesceReadTls) {
 
   // Write some early data.  In two writes.
   const uint8_t data[] = {1, 2, 3, 4, 5, 6};
-  PRInt32 written = PR_Write(client_->ssl_fd(), data, 1);
+  PRInt32 written = MPR_Write(client_->ssl_fd(), data, 1);
   EXPECT_EQ(1, written);
 
-  written = PR_Write(client_->ssl_fd(), data + 1, sizeof(data) - 1);
+  written = MPR_Write(client_->ssl_fd(), data + 1, sizeof(data) - 1);
   EXPECT_EQ(static_cast<PRInt32>(sizeof(data) - 1), written);
 
   // Consume the ClientHello and generate ServerHello..Finished.
@@ -946,7 +946,7 @@ TEST_F(TlsConnectStreamTls13, ZeroRttCoalesceReadTls) {
 
   // Read all of the data.
   std::vector<uint8_t> buffer(sizeof(data));
-  PRInt32 read = PR_Read(server_->ssl_fd(), buffer.data(), buffer.size());
+  PRInt32 read = MPR_Read(server_->ssl_fd(), buffer.data(), buffer.size());
   EXPECT_EQ(static_cast<PRInt32>(sizeof(data)), read);
   EXPECT_EQ(0, memcmp(data, buffer.data(), sizeof(data)));
 
@@ -965,10 +965,10 @@ TEST_F(TlsConnectDatagram13, ZeroRttNoCoalesceReadDtls) {
 
   // Write some early data.  In two writes.
   const uint8_t data[] = {1, 2, 3, 4, 5, 6};
-  PRInt32 written = PR_Write(client_->ssl_fd(), data, 1);
+  PRInt32 written = MPR_Write(client_->ssl_fd(), data, 1);
   EXPECT_EQ(1, written);
 
-  written = PR_Write(client_->ssl_fd(), data + 1, sizeof(data) - 1);
+  written = MPR_Write(client_->ssl_fd(), data + 1, sizeof(data) - 1);
   EXPECT_EQ(static_cast<PRInt32>(sizeof(data) - 1), written);
 
   // Consume the ClientHello and generate ServerHello..Finished.
@@ -976,12 +976,12 @@ TEST_F(TlsConnectDatagram13, ZeroRttNoCoalesceReadDtls) {
 
   // Try to read all of the data.
   std::vector<uint8_t> buffer(sizeof(data));
-  PRInt32 read = PR_Read(server_->ssl_fd(), buffer.data(), buffer.size());
+  PRInt32 read = MPR_Read(server_->ssl_fd(), buffer.data(), buffer.size());
   EXPECT_EQ(1, read);
   EXPECT_EQ(0, memcmp(data, buffer.data(), 1));
 
   // Read the remainder.
-  read = PR_Read(server_->ssl_fd(), buffer.data(), buffer.size());
+  read = MPR_Read(server_->ssl_fd(), buffer.data(), buffer.size());
   EXPECT_EQ(static_cast<PRInt32>(sizeof(data) - 1), read);
   EXPECT_EQ(0, memcmp(data + 1, buffer.data(), sizeof(data) - 1));
 
@@ -1000,7 +1000,7 @@ TEST_F(TlsConnectDatagram13, ZeroRttShortReadDtls) {
 
   // Write some early data.  In two writes.
   const uint8_t data[] = {1, 2, 3, 4, 5, 6};
-  PRInt32 written = PR_Write(client_->ssl_fd(), data, sizeof(data));
+  PRInt32 written = MPR_Write(client_->ssl_fd(), data, sizeof(data));
   EXPECT_EQ(static_cast<PRInt32>(sizeof(data)), written);
 
   // Consume the ClientHello and generate ServerHello..Finished.
@@ -1008,12 +1008,12 @@ TEST_F(TlsConnectDatagram13, ZeroRttShortReadDtls) {
 
   // Try to read all of the data into a small buffer.
   std::vector<uint8_t> buffer(sizeof(data));
-  PRInt32 read = PR_Read(server_->ssl_fd(), buffer.data(), 1);
+  PRInt32 read = MPR_Read(server_->ssl_fd(), buffer.data(), 1);
   EXPECT_GT(0, read);
   EXPECT_EQ(SSL_ERROR_RX_SHORT_DTLS_READ, PORT_GetError());
 
   // Read again with more space.
-  read = PR_Read(server_->ssl_fd(), buffer.data(), buffer.size());
+  read = MPR_Read(server_->ssl_fd(), buffer.data(), buffer.size());
   EXPECT_EQ(static_cast<PRInt32>(sizeof(data)), read);
   EXPECT_EQ(0, memcmp(data, buffer.data(), sizeof(data)));
 
@@ -1052,7 +1052,7 @@ TEST_F(TlsConnectStreamTls13, TimePassesByDefault) {
   CheckKeys();
 
   // Clear the first window.
-  PR_Sleep(PR_MillisecondsToInterval(kTinyWindowMs));
+  MPR_Sleep(MPR_MillisecondsToInterval(kTinyWindowMs));
 
   Reset();
   client_->EnsureTlsSetup();
@@ -1068,7 +1068,7 @@ TEST_F(TlsConnectStreamTls13, TimePassesByDefault) {
     // Sleep long enough that we minimize the risk of our RTT estimation being
     // duped by stutters in test execution.  This is very long to allow for
     // flaky and low-end hardware, especially what our CI runs on.
-    PR_Sleep(PR_MillisecondsToInterval(1000));
+    MPR_Sleep(MPR_MillisecondsToInterval(1000));
     return true;
   });
   Handshake();

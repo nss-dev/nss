@@ -39,7 +39,7 @@ createCRLEntries(
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(
         PKIX_ESCASCII,
         firstSNAscii,
-        PL_strlen(firstSNAscii),
+        MPL_strlen(firstSNAscii),
         &firstSNString,
         plContext));
 
@@ -57,7 +57,7 @@ createCRLEntries(
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(
         PKIX_ESCASCII,
         secondSNAscii,
-        PL_strlen(secondSNAscii),
+        MPL_strlen(secondSNAscii),
         &secondSNString,
         plContext));
 

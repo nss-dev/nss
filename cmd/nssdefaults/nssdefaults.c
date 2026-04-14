@@ -28,7 +28,7 @@ static char *progName;
 static void
 Usage()
 {
-    PR_fprintf(PR_STDERR,
+    MPR_fprintf(PR_STDERR,
                "Usage:	 %s [-d certdir] [-P dbprefix] [--dbtype] [-p policy] [-o option] [--system-fips] [-x][-a]\n",
                progName);
     exit(ERR_USAGE);
@@ -212,7 +212,7 @@ main(int argc, char **argv)
         dbprefix = nssdefault.options[opt_DBPrefix].arg;
     }
 
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     if (nssdir == NULL) {
         rv = NSS_NoDB_Init("");
     } else {
@@ -255,7 +255,7 @@ done:
     if (NSS_Shutdown() != SECSuccess) {
         local_errno = 1;
     }
-    PL_ArenaFinish();
-    PR_Cleanup();
+    MPL_ArenaFinish();
+    MPR_Cleanup();
     return local_errno;
 }

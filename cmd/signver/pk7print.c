@@ -81,12 +81,12 @@ sv_PrintTime(FILE *out, SECItem *t, char *m)
         return rv;
 
     /* Convert to local time */
-    PR_ExplodeTime(time, PR_LocalTimeParameters, &printableTime);
+    MPR_ExplodeTime(time, MPR_LocalTimeParameters, &printableTime);
 
     timeString = (char *)PORT_Alloc(256);
 
     if (timeString) {
-        if (PR_FormatTime(timeString, 256, "%a %b %d %H:%M:%S %Y", &printableTime)) {
+        if (MPR_FormatTime(timeString, 256, "%a %b %d %H:%M:%S %Y", &printableTime)) {
             fprintf(out, "%s%s\n", m, timeString);
         }
         PORT_Free(timeString);

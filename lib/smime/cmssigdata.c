@@ -583,7 +583,7 @@ NSS_CMSSignedData_ImportCerts(NSSCMSSignedData *sigd, CERTCertDBHandle *certdb,
     /* go down the remaining list of certs and verify that they have
      * valid chains, then import them.
      */
-    now = PR_Now();
+    now = MPR_Now();
     for (node = CERT_LIST_HEAD(certList); !CERT_LIST_END(node, certList);
          node = CERT_LIST_NEXT(node)) {
         CERTCertificateList *certChain;
@@ -714,7 +714,7 @@ NSS_CMSSignedData_VerifyCertsOnly(NSSCMSSignedData *sigd,
     }
 
     count = NSS_CMSArray_Count((void **)sigd->rawCerts);
-    now = PR_Now();
+    now = MPR_Now();
     for (i = 0; i < count; i++) {
         if (sigd->certs && sigd->certs[i]) {
             cert = CERT_DupCertificate(sigd->certs[i]);

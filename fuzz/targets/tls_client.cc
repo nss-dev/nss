@@ -27,7 +27,7 @@
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   static NSSDatabase db = NSSDatabase();
-  static PRDescIdentity id = PR_GetUniqueIdentity("fuzz-client");
+  static PRDescIdentity id = MPR_GetUniqueIdentity("fuzz-client");
 
   // Create and import dummy socket.
   TlsSocket::DummyPrSocket socket = TlsSocket::DummyPrSocket(data, size);

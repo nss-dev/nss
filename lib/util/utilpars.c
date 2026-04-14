@@ -538,9 +538,9 @@ nssutil_formatPair(char *name, char *value, char quote)
             return nssutil_nullString;
     }
     if (need_quote) {
-        returnValue = PR_smprintf("%s=%c%s%c", name, openQuote, value, closeQuote);
+        returnValue = MPR_smprintf("%s=%c%s%c", name, openQuote, value, closeQuote);
     } else {
-        returnValue = PR_smprintf("%s=%s", name, value);
+        returnValue = MPR_smprintf("%s=%s", name, value);
     }
     if (returnValue == NULL)
         returnValue = nssutil_nullString;
@@ -560,7 +560,7 @@ nssutil_formatIntPair(char *name, unsigned long value,
     if (value == def)
         return nssutil_nullString;
 
-    returnValue = PR_smprintf("%s=%d", name, value);
+    returnValue = MPR_smprintf("%s=%d", name, value);
 
     return returnValue;
 }
@@ -569,7 +569,7 @@ static void
 nssutil_freePair(char *pair)
 {
     if (pair && pair != nssutil_nullString) {
-        PR_smprintf_free(pair);
+        MPR_smprintf_free(pair);
     }
 }
 
@@ -750,11 +750,11 @@ nssutil_mkSlotFlags(unsigned long defaultFlags)
             if (string) {
                 if (flags) {
                     char *tmp;
-                    tmp = PR_smprintf("%s,%s", flags, string);
-                    PR_smprintf_free(flags);
+                    tmp = MPR_smprintf("%s,%s", flags, string);
+                    MPR_smprintf_free(flags);
                     flags = tmp;
                 } else {
-                    flags = PR_smprintf("%s", string);
+                    flags = MPR_smprintf("%s", string);
                 }
             }
         }
@@ -809,15 +809,15 @@ NSSUTIL_MkSlotString(unsigned long slotID, unsigned long defaultFlags,
     flagPair = nssutil_formatPair("slotFlags", flags, '\'');
     rootFlagsPair = nssutil_formatPair("rootFlags", rootFlags, '\'');
     if (flags)
-        PR_smprintf_free(flags);
+        MPR_smprintf_free(flags);
     if (rootFlags)
         PORT_Free(rootFlags);
     if (defaultFlags & PK11_OWN_PW_DEFAULTS) {
-        slotString = PR_smprintf("0x%08lx=[%s askpw=%s timeout=%d %s]",
+        slotString = MPR_smprintf("0x%08lx=[%s askpw=%s timeout=%d %s]",
                                  (PRUint32)slotID, flagPair, askpw, timeout,
                                  rootFlagsPair);
     } else {
-        slotString = PR_smprintf("0x%08lx=[%s %s]",
+        slotString = MPR_smprintf("0x%08lx=[%s %s]",
                                  (PRUint32)slotID, flagPair, rootFlagsPair);
     }
     nssutil_freePair(flagPair);
@@ -892,10 +892,10 @@ NSSUTIL_MkModuleSpecEx(char *dllName, char *commonName, char *parameters,
     nss = nssutil_formatPair("NSS", NSS, '\"');
     if (config) {
         conf = nssutil_formatPair("config", config, '\"');
-        moduleSpec = PR_smprintf("%s %s %s %s %s", lib, name, param, nss, conf);
+        moduleSpec = MPR_smprintf("%s %s %s %s %s", lib, name, param, nss, conf);
         nssutil_freePair(conf);
     } else {
-        moduleSpec = PR_smprintf("%s %s %s %s", lib, name, param, nss);
+        moduleSpec = MPR_smprintf("%s %s %s %s", lib, name, param, nss);
     }
     nssutil_freePair(lib);
     nssutil_freePair(name);
@@ -1104,15 +1104,15 @@ nssutil_mkCipherFlags(unsigned long ssl0, unsigned long ssl1)
         if (ssl0 & (1UL << i)) {
             char *string;
             if ((1UL << i) == SECMOD_FORTEZZA_FLAG) {
-                string = PR_smprintf("%s", NSSUTIL_ARG_FORTEZZA_FLAG);
+                string = MPR_smprintf("%s", NSSUTIL_ARG_FORTEZZA_FLAG);
             } else {
-                string = PR_smprintf("0h0x%08lx", 1UL << i);
+                string = MPR_smprintf("0h0x%08lx", 1UL << i);
             }
             if (cipher) {
                 char *tmp;
-                tmp = PR_smprintf("%s,%s", cipher, string);
-                PR_smprintf_free(cipher);
-                PR_smprintf_free(string);
+                tmp = MPR_smprintf("%s,%s", cipher, string);
+                MPR_smprintf_free(cipher);
+                MPR_smprintf_free(string);
                 cipher = tmp;
             } else {
                 cipher = string;
@@ -1123,11 +1123,11 @@ nssutil_mkCipherFlags(unsigned long ssl0, unsigned long ssl1)
         if (ssl1 & (1UL << i)) {
             if (cipher) {
                 char *tmp;
-                tmp = PR_smprintf("%s,0l0x%08lx", cipher, 1UL << i);
-                PR_smprintf_free(cipher);
+                tmp = MPR_smprintf("%s,0l0x%08lx", cipher, 1UL << i);
+                MPR_smprintf_free(cipher);
                 cipher = tmp;
             } else {
-                cipher = PR_smprintf("0l0x%08lx", 1UL << i);
+                cipher = MPR_smprintf("0l0x%08lx", 1UL << i);
             }
         }
     }
@@ -1161,7 +1161,7 @@ NSSUTIL_MkNSSString(char **slotStrings, int slotCount, PRBool internal,
     for (i = 0; i < (int)slotCount; i++) {
         PORT_Strcat(slotParams, slotStrings[i]);
         PORT_Strcat(slotParams, " ");
-        PR_smprintf_free(slotStrings[i]);
+        MPR_smprintf_free(slotStrings[i]);
         slotStrings[i] = NULL;
     }
 
@@ -1182,11 +1182,11 @@ NSSUTIL_MkNSSString(char **slotStrings, int slotCount, PRBool internal,
         PORT_Free(slotParams);
     cipherPair = nssutil_formatPair("ciphers", ciphers, '\'');
     if (ciphers)
-        PR_smprintf_free(ciphers);
+        MPR_smprintf_free(ciphers);
     flagPair = nssutil_formatPair("Flags", nssFlags, '\'');
     if (nssFlags)
         PORT_Free(nssFlags);
-    nss = PR_smprintf("%s %s %s %s %s", trustOrderPair,
+    nss = MPR_smprintf("%s %s %s %s %s", trustOrderPair,
                       cipherOrderPair, slotPair, cipherPair, flagPair);
     nssutil_freePair(trustOrderPair);
     nssutil_freePair(cipherOrderPair);
@@ -1195,7 +1195,7 @@ NSSUTIL_MkNSSString(char **slotStrings, int slotCount, PRBool internal,
     nssutil_freePair(flagPair);
     tmp = NSSUTIL_ArgStrip(nss);
     if (*tmp == '\0') {
-        PR_smprintf_free(nss);
+        MPR_smprintf_free(nss);
         nss = NULL;
     }
     return nss;
@@ -1254,7 +1254,7 @@ _NSSUTIL_EvaluateConfigDir(const char *configdir,
 
     /* look up the default from the environment */
     if (checkEnvDefaultDB) {
-        char *defaultType = PR_GetEnvSecure("NSS_DEFAULT_DB_TYPE");
+        char *defaultType = MPR_GetEnvSecure("NSS_DEFAULT_DB_TYPE");
         if (defaultType != NULL) {
             if (PORT_Strncmp(defaultType, SQLDB, sizeof(SQLDB) - 2) == 0) {
                 dbType = NSS_DB_TYPE_SQL;
@@ -1324,10 +1324,10 @@ _NSSUTIL_GetSecmodName(const char *param, NSSDBType *dbType, char **appName,
     if (noModDB) {
         value = NULL;
     } else if (lconfigdir && lconfigdir[0] != '\0') {
-        value = PR_smprintf("%s" NSSUTIL_PATH_SEPARATOR "%s",
+        value = MPR_smprintf("%s" NSSUTIL_PATH_SEPARATOR "%s",
                             lconfigdir, secmodName);
     } else {
-        value = PR_smprintf("%s", secmodName);
+        value = MPR_smprintf("%s", secmodName);
     }
     if (configdir)
         PORT_Free(configdir);

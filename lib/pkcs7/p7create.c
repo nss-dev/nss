@@ -197,7 +197,7 @@ sec_pkcs7_add_signer(SEC_PKCS7ContentInfo *cinfo,
             return SECFailure; /* XXX set an error? */
     }
 
-    if (CERT_VerifyCert(certdb, cert, PR_TRUE, certusage, PR_Now(),
+    if (CERT_VerifyCert(certdb, cert, PR_TRUE, certusage, MPR_Now(),
                         cinfo->pwfn_arg, NULL) != SECSuccess) {
         /* XXX Did CERT_VerifyCert set an error? */
         return SECFailure;
@@ -581,7 +581,7 @@ SEC_PKCS7AddSigningTime(SEC_PKCS7ContentInfo *cinfo)
     if (signerinfos == NULL || signerinfos[0] == NULL)
         return SECFailure;
 
-    rv = DER_EncodeTimeChoice(NULL, &stime, PR_Now());
+    rv = DER_EncodeTimeChoice(NULL, &stime, MPR_Now());
     if (rv != SECSuccess)
         return rv;
 
@@ -1007,7 +1007,7 @@ sec_pkcs7_add_recipient(SEC_PKCS7ContentInfo *cinfo,
             return SECFailure; /* XXX set an error? */
     }
 
-    if (CERT_VerifyCert(certdb, cert, PR_TRUE, certusage, PR_Now(),
+    if (CERT_VerifyCert(certdb, cert, PR_TRUE, certusage, MPR_Now(),
                         cinfo->pwfn_arg, NULL) != SECSuccess) {
         /* XXX Did CERT_VerifyCert set an error? */
         return SECFailure;

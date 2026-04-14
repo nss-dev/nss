@@ -1995,14 +1995,14 @@ secoid_HashDynamicOiddata(const SECOidData *oid)
     PLHashEntry *entry;
 
     if (!dynOidHash) {
-        dynOidHash = PL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
-                                     PL_CompareValues, NULL, NULL);
+        dynOidHash = MPL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
+                                     MPL_CompareValues, NULL, NULL);
         if (!dynOidHash) {
             return SECFailure;
         }
     }
 
-    entry = PL_HashTableAdd(dynOidHash, &oid->oid, (void *)oid);
+    entry = MPL_HashTableAdd(dynOidHash, &oid->oid, (void *)oid);
     return entry ? SECSuccess : SECFailure;
 }
 
@@ -2018,7 +2018,7 @@ secoid_FindDynamic(const SECItem *key)
 
     NSSRWLock_LockRead(dynOidLock);
     if (dynOidHash) {
-        ret = (SECOidData *)PL_HashTableLookup(dynOidHash, key);
+        ret = (SECOidData *)MPL_HashTableLookup(dynOidHash, key);
     }
     NSSRWLock_UnlockRead(dynOidLock);
     if (ret == NULL) {
@@ -2166,7 +2166,7 @@ handleHashAlgSupport(char *envVal)
     char *arg = myVal;
 
     while (arg && *arg) {
-        char *nextArg = PL_strpbrk(arg, ";");
+        char *nextArg = MPL_strpbrk(arg, ";");
         PRUint32 notEnable;
 
         if (nextArg) {
@@ -2208,7 +2208,7 @@ SECOID_Init(void)
     /* xyber768d00 must be enabled explicitly */
     xOids[SEC_OID_XYBER768D00].notPolicyFlags = NSS_USE_ALG_IN_SSL_KX;
 
-    if (!PR_GetEnvSecure("NSS_ALLOW_WEAK_SIGNATURE_ALG")) {
+    if (!MPR_GetEnvSecure("NSS_ALLOW_WEAK_SIGNATURE_ALG")) {
         /* initialize any policy flags that are disabled by default */
         xOids[SEC_OID_MD2].notPolicyFlags = ~NSS_USE_ALG_IN_PKCS12_DECRYPT;
         xOids[SEC_OID_MD4].notPolicyFlags = ~NSS_USE_ALG_IN_PKCS12_DECRYPT;
@@ -2225,7 +2225,7 @@ SECOID_Init(void)
     /* turn off TLS REQUIRE EMS by default */
     xOids[SEC_OID_TLS_REQUIRE_EMS].notPolicyFlags = ~0;
 
-    envVal = PR_GetEnvSecure("NSS_HASH_ALG_SUPPORT");
+    envVal = MPR_GetEnvSecure("NSS_HASH_ALG_SUPPORT");
     if (envVal)
         handleHashAlgSupport(envVal);
 
@@ -2235,10 +2235,10 @@ SECOID_Init(void)
         return SECFailure;
     }
 
-    oidhash = PL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
-                              PL_CompareValues, NULL, NULL);
-    oidmechhash = PL_NewHashTable(0, secoid_HashNumber, PL_CompareValues,
-                                  PL_CompareValues, NULL, NULL);
+    oidhash = MPL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
+                              MPL_CompareValues, NULL, NULL);
+    oidmechhash = MPL_NewHashTable(0, secoid_HashNumber, MPL_CompareValues,
+                                  MPL_CompareValues, NULL, NULL);
 
     if (!oidhash || !oidmechhash) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -2249,7 +2249,7 @@ SECOID_Init(void)
     for (i = 0; i < SEC_OID_TOTAL; i++) {
         oid = &oids[i];
         PORT_Assert(oid->offset == i);
-        entry = PL_HashTableAdd(oidhash, &oid->oid, (void *)oid);
+        entry = MPL_HashTableAdd(oidhash, &oid->oid, (void *)oid);
 
         if (entry == NULL) {
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -2258,7 +2258,7 @@ SECOID_Init(void)
         }
 
         if (oid->mechanism != CKM_INVALID_MECHANISM) {
-            entry = PL_HashTableAdd(oidmechhash,
+            entry = MPL_HashTableAdd(oidmechhash,
                                     (void *)(uintptr_t)oid->mechanism, (void *)oid);
             if (entry == NULL) {
                 PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -2288,7 +2288,7 @@ SECOID_FindOIDByMechanism(unsigned long mechanism)
         return NULL;
     }
 
-    ret = PL_HashTableLookupConst(oidmechhash, (void *)(uintptr_t)mechanism);
+    ret = MPL_HashTableLookupConst(oidmechhash, (void *)(uintptr_t)mechanism);
     if (ret == NULL) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
     }
@@ -2312,7 +2312,7 @@ SECOID_FindOID(const SECItem *oid)
         return NULL;
     }
 
-    ret = PL_HashTableLookupConst(oidhash, oid);
+    ret = MPL_HashTableLookupConst(oidhash, oid);
     if (ret == NULL) {
         ret = secoid_FindDynamic(oid);
         if (ret == NULL) {
@@ -2577,11 +2577,11 @@ SECStatus
 SECOID_Shutdown(void)
 {
     if (oidhash) {
-        PL_HashTableDestroy(oidhash);
+        MPL_HashTableDestroy(oidhash);
         oidhash = NULL;
     }
     if (oidmechhash) {
-        PL_HashTableDestroy(oidmechhash);
+        MPL_HashTableDestroy(oidmechhash);
         oidmechhash = NULL;
     }
     /* Have to handle the case where the lock was created, but
@@ -2592,7 +2592,7 @@ SECOID_Shutdown(void)
     if (dynOidLock) {
         SKIP_AFTER_FORK(NSSRWLock_LockWrite(dynOidLock));
         if (dynOidHash) {
-            PL_HashTableDestroy(dynOidHash);
+            MPL_HashTableDestroy(dynOidHash);
             dynOidHash = NULL;
         }
         if (dynOidPool) {

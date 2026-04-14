@@ -1319,7 +1319,7 @@ SEC_PKCS7ContentIsSigned(SEC_PKCS7ContentInfo *cinfo)
  *      for the purpose specified by "certusage" at
  *      - "*atTime" if "atTime" is not null, or
  *      - the signing time if the signing time is available in "cinfo", or
- *      - the current time (as returned by PR_Now).
+ *      - the current time (as returned by MPR_Now).
  *
  *      In addition, if "keepcerts" is true, add any new certificates found
  *      into our local database.
@@ -1503,7 +1503,7 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
     } else if (encoded_stime != NULL) {
         verificationTime = stime;
     } else {
-        verificationTime = PR_Now();
+        verificationTime = MPR_Now();
     }
     if (CERT_VerifyCert(certdb, cert, PR_TRUE, certusage, verificationTime,
                         cinfo->pwfn_arg, NULL) != SECSuccess) {

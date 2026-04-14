@@ -513,7 +513,7 @@ main(int argc, char **argv)
     }
 
     if (addbuiltin.options[opt_Input].activated) {
-        infile = PR_Open(addbuiltin.options[opt_Input].arg, PR_RDONLY, 00660);
+        infile = MPR_Open(addbuiltin.options[opt_Input].arg, PR_RDONLY, 00660);
         if (!infile) {
             fprintf(stderr, "%s: failed to open input file.\n", progName);
             exit(1);

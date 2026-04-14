@@ -99,8 +99,8 @@ deleteAllEntriesForCert(NSSLOWCERTCertDBHandle *handle, CERTCertificate *cert,
 #endif
 
     if (outfile) {
-        PR_fprintf(outfile, "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n\n");
-        PR_fprintf(outfile, "Deleting redundant certificate:\n");
+        MPR_fprintf(outfile, "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n\n");
+        MPR_fprintf(outfile, "Deleting redundant certificate:\n");
         dumpCertificate(cert, -1, outfile);
     }
 
@@ -180,41 +180,41 @@ userSaysDeleteCert(CERTCertificate **certs, int nCerts,
         return (info->removeType[errtype]);
     switch (errtype) {
         case dbInvalidCert:
-            PR_fprintf(PR_STDOUT, "********  Expired ********\n");
-            PR_fprintf(PR_STDOUT, "Cert has expired.\n\n");
+            MPR_fprintf(PR_STDOUT, "********  Expired ********\n");
+            MPR_fprintf(PR_STDOUT, "Cert has expired.\n\n");
             dumpCertificate(certs[0], -1, PR_STDOUT);
-            PR_fprintf(PR_STDOUT,
+            MPR_fprintf(PR_STDOUT,
                        "Keep it? (y/n - this one, Y/N - all expired certs) [n] ");
             break;
         case dbNoSMimeProfile:
-            PR_fprintf(PR_STDOUT, "********  No Profile ********\n");
-            PR_fprintf(PR_STDOUT, "S/MIME cert has no profile.\n\n");
+            MPR_fprintf(PR_STDOUT, "********  No Profile ********\n");
+            MPR_fprintf(PR_STDOUT, "S/MIME cert has no profile.\n\n");
             dumpCertificate(certs[0], -1, PR_STDOUT);
-            PR_fprintf(PR_STDOUT,
+            MPR_fprintf(PR_STDOUT,
                        "Keep it? (y/n - this one, Y/N - all S/MIME w/o profile) [n] ");
             break;
         case dbOlderCert:
-            PR_fprintf(PR_STDOUT, "*******  Redundant nickname/email *******\n\n");
-            PR_fprintf(PR_STDOUT, "These certs have the same nickname/email:\n");
+            MPR_fprintf(PR_STDOUT, "*******  Redundant nickname/email *******\n\n");
+            MPR_fprintf(PR_STDOUT, "These certs have the same nickname/email:\n");
             for (i = 0; i < nCerts; i++)
                 dumpCertificate(certs[i], i, PR_STDOUT);
-            PR_fprintf(PR_STDOUT,
+            MPR_fprintf(PR_STDOUT,
                        "Enter the certs you would like to keep from those listed above.\n");
-            PR_fprintf(PR_STDOUT,
+            MPR_fprintf(PR_STDOUT,
                        "Use a comma-separated list of the cert numbers (ex. 0, 8, 12).\n");
-            PR_fprintf(PR_STDOUT,
+            MPR_fprintf(PR_STDOUT,
                        "The first cert in the list will be the primary cert\n");
-            PR_fprintf(PR_STDOUT,
+            MPR_fprintf(PR_STDOUT,
                        " accessed by the nickname/email handle.\n");
-            PR_fprintf(PR_STDOUT,
+            MPR_fprintf(PR_STDOUT,
                        "List cert numbers to keep here, or hit enter\n");
-            PR_fprintf(PR_STDOUT,
+            MPR_fprintf(PR_STDOUT,
                        " to always keep only the newest cert:  ");
             break;
         default:
     }
-    nb = PR_Read(PR_STDIN, response, sizeof(response));
-    PR_fprintf(PR_STDOUT, "\n\n");
+    nb = MPR_Read(PR_STDIN, response, sizeof(response));
+    MPR_fprintf(PR_STDOUT, "\n\n");
     if (errtype == dbOlderCert) {
         if (!isdigit((unsigned char)response[0])) {
             info->promptUser[errtype] = PR_FALSE;
@@ -271,7 +271,7 @@ addCertToDB(certDBEntryCert *certEntry, dbRestoreInfo *info,
     info->nOldCerts++;
 
     if (info->verbose)
-        PR_fprintf(info->out, "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n");
+        MPR_fprintf(info->out, "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n");
 
     if (oldCert->nickname)
         nickname = PORT_Strdup(oldCert->nickname);
@@ -290,13 +290,13 @@ addCertToDB(certDBEntryCert *certEntry, dbRestoreInfo *info,
     allowOverride = (PRBool)((oldCert->keyUsage == certUsageSSLServer) ||
                              (oldCert->keyUsage == certUsageSSLServerWithStepUp) ||
                              (oldCert->keyUsage == certUsageIPsec));
-    validity = CERT_CheckCertValidTimes(oldCert, PR_Now(), allowOverride);
+    validity = CERT_CheckCertValidTimes(oldCert, MPR_Now(), allowOverride);
     /*  If cert expired and user wants to delete it, ignore it. */
     if ((validity != secCertTimeValid) &&
         userSaysDeleteCert(&oldCert, 1, dbInvalidCert, info, 0)) {
         info->dbErrors[dbInvalidCert]++;
         if (info->verbose) {
-            PR_fprintf(info->out, "Deleting expired certificate:\n");
+            MPR_fprintf(info->out, "Deleting expired certificate:\n");
             dumpCertificate(oldCert, -1, info->out);
         }
         goto cleanup;
@@ -308,7 +308,7 @@ addCertToDB(certDBEntryCert *certEntry, dbRestoreInfo *info,
     if (dbCert) {
         info->nCerts++;
         if (info->verbose) {
-            PR_fprintf(info->out, "Added certificate to database:\n");
+            MPR_fprintf(info->out, "Added certificate to database:\n");
             dumpCertificate(oldCert, -1, info->out);
         }
         goto cleanup;
@@ -325,7 +325,7 @@ addCertToDB(certDBEntryCert *certEntry, dbRestoreInfo *info,
             userSaysDeleteCert(&oldCert, 1, dbNoSMimeProfile, info, 0)) {
             info->dbErrors[dbNoSMimeProfile]++;
             if (info->verbose) {
-                PR_fprintf(info->out,
+                MPR_fprintf(info->out,
                            "Deleted cert missing S/MIME profile.\n");
                 dumpCertificate(oldCert, -1, info->out);
             }
@@ -346,7 +346,7 @@ createcert:
     newCert = CERT_NewTempCertificate(info->handle, &oldCert->derCert,
                                       nickname, PR_FALSE, PR_TRUE);
     if (!newCert) {
-        PR_fprintf(PR_STDERR, "Unable to create new certificate.\n");
+        MPR_fprintf(PR_STDERR, "Unable to create new certificate.\n");
         dumpCertificate(oldCert, -1, PR_STDERR);
         info->dbErrors[dbBadCertificate]++;
         goto cleanup;
@@ -355,14 +355,14 @@ createcert:
     /*  Add the cert to the new database.  */
     rv = CERT_AddTempCertToPerm(newCert, nickname, oldCert->trust);
     if (rv) {
-        PR_fprintf(PR_STDERR, "Failed to write temp cert to perm database.\n");
+        MPR_fprintf(PR_STDERR, "Failed to write temp cert to perm database.\n");
         dumpCertificate(oldCert, -1, PR_STDERR);
         info->dbErrors[dbCertNotWrittenToDB]++;
         goto cleanup;
     }
 
     if (info->verbose) {
-        PR_fprintf(info->out, "Added certificate to database:\n");
+        MPR_fprintf(info->out, "Added certificate to database:\n");
         dumpCertificate(oldCert, -1, info->out);
     }
 
@@ -643,18 +643,18 @@ DBCK_ReconstructDBFromCerts(NSSLOWCERTCertDBHandle *oldhandle, char *newdbname,
                                copyDBEntry, info.handle);
 #endif
 
-    PR_fprintf(info.out, "Database had %d certificates.\n", info.nOldCerts);
+    MPR_fprintf(info.out, "Database had %d certificates.\n", info.nOldCerts);
 
-    PR_fprintf(info.out, "Reconstructed %d certificates.\n", info.nCerts);
-    PR_fprintf(info.out, "(ax) Rejected %d expired certificates.\n",
+    MPR_fprintf(info.out, "Reconstructed %d certificates.\n", info.nCerts);
+    MPR_fprintf(info.out, "(ax) Rejected %d expired certificates.\n",
                info.dbErrors[dbInvalidCert]);
-    PR_fprintf(info.out, "(as) Rejected %d S/MIME certificates missing a profile.\n",
+    MPR_fprintf(info.out, "(as) Rejected %d S/MIME certificates missing a profile.\n",
                info.dbErrors[dbNoSMimeProfile]);
-    PR_fprintf(info.out, "(ar) Rejected %d certificates for which a newer certificate was found.\n",
+    MPR_fprintf(info.out, "(ar) Rejected %d certificates for which a newer certificate was found.\n",
                info.dbErrors[dbOlderCert]);
-    PR_fprintf(info.out, "     Rejected %d corrupt certificates.\n",
+    MPR_fprintf(info.out, "     Rejected %d corrupt certificates.\n",
                info.dbErrors[dbBadCertificate]);
-    PR_fprintf(info.out, "     Rejected %d certificates which did not write to the DB.\n",
+    MPR_fprintf(info.out, "     Rejected %d certificates which did not write to the DB.\n",
                info.dbErrors[dbCertNotWrittenToDB]);
 
     if (rv)

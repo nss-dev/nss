@@ -617,7 +617,7 @@ dumpObject(CK_OBJECT_HANDLE id, SDB *db, SDB *keydb, PRBool isKey)
 
         if (crv != CKR_OK) {
             if (crv != CKR_ATTRIBUTE_TYPE_INVALID) {
-                PR_fprintf(PR_STDERR, "    "
+                MPR_fprintf(PR_STDERR, "    "
                                       "Get Attribute %s (0x%08x):FAILED\"%s\"(0x%08x)\n",
                            AttributeName(attribute), (int)attribute,
                            ErrorName(crv), (int)crv);
@@ -632,7 +632,7 @@ dumpObject(CK_OBJECT_HANDLE id, SDB *db, SDB *keydb, PRBool isKey)
             template.pValue = alloc;
         }
         if (template.pValue == NULL) {
-            PR_fprintf(PR_STDERR, "    "
+            MPR_fprintf(PR_STDERR, "    "
                                   "Could allocate %d bytes for  Attribute %s (0x%08x)\n",
                        (int)template.ulValueLen,
                        AttributeName(attribute), (int)attribute);
@@ -642,7 +642,7 @@ dumpObject(CK_OBJECT_HANDLE id, SDB *db, SDB *keydb, PRBool isKey)
 
         if (crv != CKR_OK) {
             if (crv != CKR_ATTRIBUTE_TYPE_INVALID) {
-                PR_fprintf(PR_STDERR, "    "
+                MPR_fprintf(PR_STDERR, "    "
                                       "Get Attribute %s (0x%08x):FAILED\"%s\"(0x%08x)\n",
                            AttributeName(attribute), (int)attribute,
                            ErrorName(crv), (int)crv);
@@ -689,7 +689,7 @@ dumpDB(SDB *db, const char *name, SDB *keydb, PRBool isKey)
         }
     } while (recordFound);
     if (crv != CKR_OK) {
-        PR_fprintf(PR_STDERR,
+        MPR_fprintf(PR_STDERR,
                    "Last record return PKCS #11 error = %s (0x%08x)\n",
                    ErrorName(crv), (int)crv);
     }
@@ -708,7 +708,7 @@ secu_ConfigDirectory(const char *base)
         return buf;
 
     if (base == NULL || *base == 0) {
-        home = PR_GetEnvSecure("HOME");
+        home = MPR_GetEnvSecure("HOME");
         if (!home)
             home = "";
 
@@ -745,9 +745,9 @@ main(int argc, char **argv)
         progName = strrchr(argv[0], '\\');
     progName = progName ? progName + 1 : argv[0];
 
-    optstate = PL_CreateOptState(argc, argv, "d:c:k:v:V:h");
+    optstate = MPL_CreateOptState(argc, argv, "d:c:k:v:V:h");
 
-    while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
+    while ((optstatus = MPL_GetNextOpt(optstate)) == PL_OPT_OK) {
         switch (optstate->option) {
             case 'h':
             default:
@@ -775,7 +775,7 @@ main(int argc, char **argv)
                 break;
         }
     }
-    PL_DestroyOptState(optstate);
+    MPL_DestroyOptState(optstate);
     if (optstatus == PL_OPT_BAD)
         Usage();
 
@@ -786,21 +786,21 @@ main(int argc, char **argv)
     } else {
         dbDir = secu_ConfigDirectory(NULL);
     }
-    PR_fprintf(PR_STDERR, "dbdir selected is %s\n\n", dbDir);
+    MPR_fprintf(PR_STDERR, "dbdir selected is %s\n\n", dbDir);
 
     if (dbDir[0] == '\0') {
-        PR_fprintf(PR_STDERR,
+        MPR_fprintf(PR_STDERR,
                    "ERROR: Directory \"%s\" does not exist.\n", dbDir);
         return 1;
     }
 
-    PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
+    MPR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
     SECOID_Init();
 
     crv = s_open(dbDir, certPrefix, keyPrefix, cert_version, key_version,
                  SDB_RDONLY, &certdb, &keydb, &isNew);
     if (crv != CKR_OK) {
-        PR_fprintf(PR_STDERR,
+        MPR_fprintf(PR_STDERR,
                    "Couldn't open databased in %s, error=%s (0x%08x)\n",
                    dbDir, ErrorName(crv), (int)crv);
         return 1;
@@ -812,21 +812,21 @@ main(int argc, char **argv)
 
     crv = sdb_Close(certdb);
     if (crv != CKR_OK) {
-        PR_fprintf(PR_STDERR,
+        MPR_fprintf(PR_STDERR,
                    "Couldn't close cert database in %s, error=%s (0x%08x)\n",
                    dbDir, ErrorName(crv), (int)crv);
     }
 
     crv = sdb_Close(keydb);
     if (crv != CKR_OK) {
-        PR_fprintf(PR_STDERR,
+        MPR_fprintf(PR_STDERR,
                    "Couldn't close key database in %s, error=%s (0x%08x)\n",
                    dbDir, ErrorName(crv), (int)crv);
     }
 
     crv = s_shutdown();
     if (crv != CKR_OK) {
-        PR_fprintf(PR_STDERR,
+        MPR_fprintf(PR_STDERR,
                    "Error in s_shutdown, error=%s (0x%08x)\n",
                    ErrorName(crv), (int)crv);
     }

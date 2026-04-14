@@ -102,15 +102,15 @@ CheckX86CPUSupport()
 {
     unsigned long eax, ebx, ecx, edx;
     unsigned long eax7, ebx7, ecx7, edx7;
-    char *disable_hw_aes = PR_GetEnvSecure("NSS_DISABLE_HW_AES");
-    char *disable_pclmul = PR_GetEnvSecure("NSS_DISABLE_PCLMUL");
-    char *disable_hw_sha = PR_GetEnvSecure("NSS_DISABLE_HW_SHA");
-    char *disable_avx = PR_GetEnvSecure("NSS_DISABLE_AVX");
-    char *disable_avx2 = PR_GetEnvSecure("NSS_DISABLE_AVX2");
-    char *disable_adx = PR_GetEnvSecure("NSS_DISABLE_ADX");
-    char *disable_ssse3 = PR_GetEnvSecure("NSS_DISABLE_SSSE3");
-    char *disable_sse4_1 = PR_GetEnvSecure("NSS_DISABLE_SSE4_1");
-    char *disable_sse4_2 = PR_GetEnvSecure("NSS_DISABLE_SSE4_2");
+    char *disable_hw_aes = MPR_GetEnvSecure("NSS_DISABLE_HW_AES");
+    char *disable_pclmul = MPR_GetEnvSecure("NSS_DISABLE_PCLMUL");
+    char *disable_hw_sha = MPR_GetEnvSecure("NSS_DISABLE_HW_SHA");
+    char *disable_avx = MPR_GetEnvSecure("NSS_DISABLE_AVX");
+    char *disable_avx2 = MPR_GetEnvSecure("NSS_DISABLE_AVX2");
+    char *disable_adx = MPR_GetEnvSecure("NSS_DISABLE_ADX");
+    char *disable_ssse3 = MPR_GetEnvSecure("NSS_DISABLE_SSSE3");
+    char *disable_sse4_1 = MPR_GetEnvSecure("NSS_DISABLE_SSE4_1");
+    char *disable_sse4_2 = MPR_GetEnvSecure("NSS_DISABLE_SSE4_2");
     freebl_cpuid(1, &eax, &ebx, &ecx, &edx);
     freebl_cpuid(7, &eax7, &ebx7, &ecx7, &edx7);
     aesni_support_ = (PRBool)((ecx & ECX_AESNI) != 0 && disable_hw_aes == NULL);
@@ -245,7 +245,7 @@ CheckARMSupport()
     }
 #elif defined(__FreeBSD__)
     /* qemu-user does not support register access from userspace */
-    if (PR_GetEnvSecure("QEMU_EMULATING") == NULL) {
+    if (MPR_GetEnvSecure("QEMU_EMULATING") == NULL) {
         uint64_t isar0 = READ_SPECIALREG(id_aa64isar0_el1);
         arm_aes_support_ = ID_AA64ISAR0_AES_VAL(isar0) >= ID_AA64ISAR0_AES_BASE;
         arm_pmull_support_ = ID_AA64ISAR0_AES_VAL(isar0) >= ID_AA64ISAR0_AES_PMULL;
@@ -273,11 +273,11 @@ CheckARMSupport()
     arm_sha2_support_ = PR_TRUE;
 #endif
     /* aarch64 must support NEON. */
-    arm_neon_support_ = PR_GetEnvSecure("NSS_DISABLE_ARM_NEON") == NULL;
-    arm_aes_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_AES") == NULL;
-    arm_pmull_support_ &= PR_GetEnvSecure("NSS_DISABLE_PMULL") == NULL;
-    arm_sha1_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_SHA1") == NULL;
-    arm_sha2_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_SHA2") == NULL;
+    arm_neon_support_ = MPR_GetEnvSecure("NSS_DISABLE_ARM_NEON") == NULL;
+    arm_aes_support_ &= MPR_GetEnvSecure("NSS_DISABLE_HW_AES") == NULL;
+    arm_pmull_support_ &= MPR_GetEnvSecure("NSS_DISABLE_PMULL") == NULL;
+    arm_sha1_support_ &= MPR_GetEnvSecure("NSS_DISABLE_HW_SHA1") == NULL;
+    arm_sha2_support_ &= MPR_GetEnvSecure("NSS_DISABLE_HW_SHA2") == NULL;
 }
 #endif /* defined(__aarch64__) */
 
@@ -309,7 +309,7 @@ CheckARMSupport()
 PRBool
 GetNeonSupport()
 {
-    char *disable_arm_neon = PR_GetEnvSecure("NSS_DISABLE_ARM_NEON");
+    char *disable_arm_neon = MPR_GetEnvSecure("NSS_DISABLE_ARM_NEON");
     if (disable_arm_neon) {
         return PR_FALSE;
     }
@@ -379,7 +379,7 @@ ReadCPUInfoForHWCAP2()
 void
 CheckARMSupport()
 {
-    char *disable_hw_aes = PR_GetEnvSecure("NSS_DISABLE_HW_AES");
+    char *disable_hw_aes = MPR_GetEnvSecure("NSS_DISABLE_HW_AES");
     if (getauxval) {
         // Android's cpu-features.c uses AT_HWCAP2 for newer features.
         // AT_HWCAP2 is implemented on newer devices / kernel, so we can trust
@@ -401,8 +401,8 @@ CheckARMSupport()
         arm_sha2_support_ = hwcaps & HWCAP2_SHA2;
     }
     arm_neon_support_ = GetNeonSupport();
-    arm_sha1_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_SHA1") == NULL;
-    arm_sha2_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_SHA2") == NULL;
+    arm_sha1_support_ &= MPR_GetEnvSecure("NSS_DISABLE_HW_SHA1") == NULL;
+    arm_sha2_support_ &= MPR_GetEnvSecure("NSS_DISABLE_HW_SHA2") == NULL;
 }
 #endif /* defined(__arm__) */
 
@@ -412,8 +412,8 @@ CheckARMSupport()
 // void
 // CheckARMSupport()
 // {
-//     char *disable_arm_neon = PR_GetEnvSecure("NSS_DISABLE_ARM_NEON");
-//     char *disable_hw_aes = PR_GetEnvSecure("NSS_DISABLE_HW_AES");
+//     char *disable_arm_neon = MPR_GetEnvSecure("NSS_DISABLE_ARM_NEON");
+//     char *disable_hw_aes = MPR_GetEnvSecure("NSS_DISABLE_HW_AES");
 //     AndroidCpuFamily family = android_getCpuFamily();
 //     uint64_t features = android_getCpuFeatures();
 //     if (family == ANDROID_CPU_FAMILY_ARM64) {
@@ -534,7 +534,7 @@ ppc_crypto_support()
 static void
 CheckPPCSupport()
 {
-    char *disable_hw_crypto = PR_GetEnvSecure("NSS_DISABLE_PPC_GHASH");
+    char *disable_hw_crypto = MPR_GetEnvSecure("NSS_DISABLE_PPC_GHASH");
 
     unsigned long hwcaps = 0;
 #if defined(__linux__) && __has_include(<sys/auxv.h>)
@@ -568,7 +568,7 @@ FreeblInit(void)
 SECStatus
 BL_Init(void)
 {
-    if (PR_CallOnce(&coFreeblInit, FreeblInit) != PR_SUCCESS) {
+    if (MPR_CallOnce(&coFreeblInit, FreeblInit) != PR_SUCCESS) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
     }

@@ -317,7 +317,7 @@ SSL_AuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
                                                   &certStatusArray->items[0],
                                                   ss->pkcs11PinArg) !=
             SECSuccess) {
-            PORT_Assert(PR_GetError() != 0);
+            PORT_Assert(MPR_GetError() != 0);
         }
     }
 

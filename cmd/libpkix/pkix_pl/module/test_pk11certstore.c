@@ -533,7 +533,7 @@ test_pk11certstore(int argc, char *argv[])
     crlDir = argv[j + 2];
 
     /* Two certs for prof should be valid now */
-    PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Date_CreateFromPRTime(PR_Now(), &validityDate, plContext));
+    PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Date_CreateFromPRTime(MPR_Now(), &validityDate, plContext));
 
     subTest("Searching Certs for Subject");
 

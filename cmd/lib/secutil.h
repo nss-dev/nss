@@ -117,7 +117,7 @@ extern char *SEC_ReadDongleFile(int fd);
 /* Just sticks the two strings together with a / if needed */
 char *SECU_AppendFilenameToDir(char *dir, char *filename);
 
-/* Returns result of PR_GetEnvSecure("SSL_DIR") or NULL */
+/* Returns result of MPR_GetEnvSecure("SSL_DIR") or NULL */
 extern char *SECU_DefaultSSLDir(void);
 
 /*

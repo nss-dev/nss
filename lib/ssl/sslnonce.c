@@ -32,12 +32,12 @@ static PRLock *cacheLock = NULL;
  */
 
 #define LOCK_CACHE lock_cache()
-#define UNLOCK_CACHE PR_Unlock(cacheLock)
+#define UNLOCK_CACHE MPR_Unlock(cacheLock)
 
 static SECStatus
 ssl_InitClientSessionCacheLock(void)
 {
-    cacheLock = PR_NewLock();
+    cacheLock = MPR_NewLock();
     return cacheLock ? SECSuccess : SECFailure;
 }
 
@@ -45,7 +45,7 @@ static SECStatus
 ssl_FreeClientSessionCacheLock(void)
 {
     if (cacheLock) {
-        PR_DestroyLock(cacheLock);
+        MPR_DestroyLock(cacheLock);
         cacheLock = NULL;
         return SECSuccess;
     }
@@ -140,7 +140,7 @@ ssl_InitSessionCacheLocks(PRBool lazyInit)
 
     if (lazyInit) {
         return (PR_SUCCESS ==
-                PR_CallOnce(&lockOnce, initSessionCacheLocksLazily))
+                MPR_CallOnce(&lockOnce, initSessionCacheLocksLazily))
                    ? SECSuccess
                    : SECFailure;
     }
@@ -157,7 +157,7 @@ static void
 lock_cache(void)
 {
     ssl_InitSessionCacheLocks(PR_TRUE);
-    PR_Lock(cacheLock);
+    MPR_Lock(cacheLock);
 }
 
 /* BEWARE: This function gets called for both client and server SIDs !!
@@ -182,7 +182,7 @@ ssl_DestroySID(sslSessionID *sid, PRBool freeIt)
     }
 
     if (sid->u.ssl3.lock) {
-        PR_DestroyRWLock(sid->u.ssl3.lock);
+        MPR_DestroyRWLock(sid->u.ssl3.lock);
     }
 
     PORT_Free((void *)sid->peerID);
@@ -344,7 +344,7 @@ CacheSID(sslSessionID *sid, PRTime creationTime)
     PRINT_BUF(8, (0, "sessionID:",
                   sid->u.ssl3.sessionID, sid->u.ssl3.sessionIDLength));
 
-    sid->u.ssl3.lock = PR_NewRWLock(PR_RWLOCK_RANK_NONE, NULL);
+    sid->u.ssl3.lock = MPR_NewRWLock(PR_RWLOCK_RANK_NONE, NULL);
     if (!sid->u.ssl3.lock) {
         return;
     }
@@ -1200,7 +1200,7 @@ ssl3_SetSIDSessionTicket(sslSessionID *sid,
      * anything yet, so no locking is needed.
      */
     if (sid->u.ssl3.lock) {
-        PR_RWLock_Wlock(sid->u.ssl3.lock);
+        MPR_RWLock_Wlock(sid->u.ssl3.lock);
         /* Another thread may have evicted, or it may be in external cache. */
         PORT_Assert(sid->cached != never_cached);
     }
@@ -1222,6 +1222,6 @@ ssl3_SetSIDSessionTicket(sslSessionID *sid,
     newSessionTicket->ticket.len = 0;
 
     if (sid->u.ssl3.lock) {
-        PR_RWLock_Unlock(sid->u.ssl3.lock);
+        MPR_RWLock_Unlock(sid->u.ssl3.lock);
     }
 }

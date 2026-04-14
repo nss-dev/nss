@@ -201,7 +201,7 @@ dtls_RetransmitDetected(sslSocket *ss)
          * retransmit wars after packet loss.
          * This is not in RFC 5346 but it should be.
          */
-        if ((PR_IntervalNow() - rtTimer->started) >
+        if ((MPR_IntervalNow() - rtTimer->started) >
             (rtTimer->timeout / 4)) {
             SSL_TRC(30,
                     ("%d: SSL3[%d]: Shortcutting retransmit timer",
@@ -216,7 +216,7 @@ dtls_RetransmitDetected(sslSocket *ss)
                     ("%d: SSL3[%d]: Ignoring retransmission: "
                      "last retransmission %dms ago, suppressed for %dms",
                      SSL_GETPID(), ss->fd,
-                     PR_IntervalNow() - rtTimer->started,
+                     MPR_IntervalNow() - rtTimer->started,
                      rtTimer->timeout / 4));
         }
     } else if (hdTimer->cb == dtls_FinishedTimerCb) {
@@ -628,7 +628,7 @@ dtls_RetransmitTimerExpiredCb(sslSocket *ss)
             timer->timeout = DTLS_RETRANSMIT_MAX_MS;
         }
 
-        timer->started = PR_IntervalNow();
+        timer->started = MPR_IntervalNow();
         timer->cb = dtls_RetransmitTimerExpiredCb;
 
         SSL_TRC(30,
@@ -924,7 +924,7 @@ dtls_StartTimer(sslSocket *ss, dtlsTimer *timer, PRUint32 time, DTLSTimerCb cb)
     SSL_TRC(10, ("%d: SSL3[%d]: %s dtls_StartTimer %s timeout=%d",
                  SSL_GETPID(), ss->fd, SSL_ROLE(ss), timer->label, time));
 
-    timer->started = PR_IntervalNow();
+    timer->started = MPR_IntervalNow();
     timer->timeout = time;
     timer->cb = cb;
     return SECSuccess;
@@ -933,7 +933,7 @@ dtls_StartTimer(sslSocket *ss, dtlsTimer *timer, PRUint32 time, DTLSTimerCb cb)
 SECStatus
 dtls_RestartTimer(sslSocket *ss, dtlsTimer *timer)
 {
-    timer->started = PR_IntervalNow();
+    timer->started = MPR_IntervalNow();
     return SECSuccess;
 }
 
@@ -1029,8 +1029,8 @@ dtls_CheckTimer(sslSocket *ss)
             continue;
         }
 
-        if ((PR_IntervalNow() - timer->started) >=
-            PR_MillisecondsToInterval(timer->timeout)) {
+        if ((MPR_IntervalNow() - timer->started) >=
+            MPR_MillisecondsToInterval(timer->timeout)) {
             /* Timer has expired */
             DTLSTimerCb cb = timer->cb;
 
@@ -1305,7 +1305,7 @@ DTLS_GetHandshakeTimeout(PRFileDesc *socket, PRIntervalTime *timeout)
 {
     sslSocket *ss = NULL;
     PRBool found = PR_FALSE;
-    PRIntervalTime now = PR_IntervalNow();
+    PRIntervalTime now = MPR_IntervalNow();
     PRIntervalTime to;
     unsigned int i;
 
@@ -1334,7 +1334,7 @@ DTLS_GetHandshakeTimeout(PRFileDesc *socket, PRIntervalTime *timeout)
         found = PR_TRUE;
 
         elapsed = now - timer->started;
-        desired = PR_MillisecondsToInterval(timer->timeout);
+        desired = MPR_MillisecondsToInterval(timer->timeout);
         if (elapsed > desired) {
             /* Timer expired */
             *timeout = PR_INTERVAL_NO_WAIT;

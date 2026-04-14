@@ -29,7 +29,7 @@
 #include "prmon.h"
 #include "prenv.h"
 #include "prprf.h"
-#include "prsystem.h" /* for PR_GetDirectorySeparator() */
+#include "prsystem.h" /* for MPR_GetDirectorySeparator() */
 #include <sys/stat.h>
 #if defined(_WIN32)
 #include <io.h>
@@ -52,8 +52,8 @@
  */
 static PRLock *sqlite_lock = NULL;
 
-#define LOCK_SQLITE() PR_Lock(sqlite_lock);
-#define UNLOCK_SQLITE() PR_Unlock(sqlite_lock);
+#define LOCK_SQLITE() MPR_Lock(sqlite_lock);
+#define UNLOCK_SQLITE() MPR_Unlock(sqlite_lock);
 #else
 #define LOCK_SQLITE()
 #define UNLOCK_SQLITE()
@@ -298,7 +298,7 @@ sdb_getFallbackTempDir(void)
     const char *zDir = NULL;
 
     azDirs[0] = sqlite3_temp_directory;
-    azDirs[1] = PR_GetEnvSecure("TMPDIR");
+    azDirs[1] = MPR_GetEnvSecure("TMPDIR");
 
     for (i = 0; i < PR_ARRAY_SIZE(azDirs); i++) {
         zDir = azDirs[i];
@@ -347,7 +347,7 @@ sdb_getTempDir(sqlite3 *sqlDB)
     }
 
     /* We'll extract the temporary directory from tempName */
-    foundSeparator = PORT_Strrchr(tempName, PR_GetDirectorySeparator());
+    foundSeparator = PORT_Strrchr(tempName, MPR_GetDirectorySeparator());
     if (foundSeparator) {
         /* We shorten the temp filename string to contain only
          * the directory name (including the trailing separator).
@@ -411,7 +411,7 @@ sdb_BuildFileName(const char *directory,
     char *dbname = NULL;
     /* build the full dbname */
     dbname = sqlite3_mprintf("%s%c%s%s%d.db", directory,
-                             (int)(unsigned char)PR_GetDirectorySeparator(),
+                             (int)(unsigned char)MPR_GetDirectorySeparator(),
                              prefix, type, version);
     return dbname;
 }
@@ -426,7 +426,7 @@ sdb_measureAccess(const char *directory)
     PRUint32 i;
     PRIntervalTime time;
     PRIntervalTime delta;
-    PRIntervalTime duration = PR_MillisecondsToInterval(33);
+    PRIntervalTime duration = MPR_MillisecondsToInterval(33);
     const char *doesntExistName = "_dOeSnotExist_.db";
     char *temp, *tempStartOfFilename;
     size_t maxTempLen, maxFileNameLen, directoryLength, tmpdirLength = 0;
@@ -468,8 +468,8 @@ sdb_measureAccess(const char *directory)
      * with the directory separator. */
 
     strcpy(temp, directory);
-    if (directory[directoryLength - 1] != PR_GetDirectorySeparator()) {
-        temp[directoryLength++] = PR_GetDirectorySeparator();
+    if (directory[directoryLength - 1] != MPR_GetDirectorySeparator()) {
+        temp[directoryLength++] = MPR_GetDirectorySeparator();
     }
 
 #ifdef SDB_MEASURE_USE_TEMP_DIR
@@ -491,7 +491,7 @@ sdb_measureAccess(const char *directory)
     /* measure number of Access operations that can be done in 33 milliseconds
      * (1/30'th of a second), or 10000 operations, which ever comes first.
      */
-    time = PR_IntervalNow();
+    time = MPR_IntervalNow();
     for (i = 0; i < 10000u; i++) {
         PRIntervalTime next;
 
@@ -500,10 +500,10 @@ sdb_measureAccess(const char *directory)
          * will be cut off from the constant part.
          * This code assumes the directory name at the beginning of
          * temp remains unchanged during our loop. */
-        PR_snprintf(tempStartOfFilename, maxFileNameLen,
+        MPR_snprintf(tempStartOfFilename, maxFileNameLen,
                     ".%lu%s", (PRUint32)(time + i), doesntExistName);
-        PR_Access(temp, PR_ACCESS_EXISTS);
-        next = PR_IntervalNow();
+        MPR_Access(temp, PR_ACCESS_EXISTS);
+        next = MPR_IntervalNow();
         delta = next - time;
         if (delta >= duration)
             break;
@@ -613,7 +613,7 @@ sdb_updateCache(SDBPrivate *sdb_p)
                            sdb_p->cacheTable, sdb_p->table);
     if (error == CKR_OK) {
         /* we have a new cache! */
-        sdb_p->lastUpdateTime = PR_IntervalNow();
+        sdb_p->lastUpdateTime = MPR_IntervalNow();
     }
     return error;
 }
@@ -656,17 +656,17 @@ sdb_openDBLocal(SDBPrivate *sdb_p, sqlite3 **sqlDB, const char **table)
 {
     *sqlDB = NULL;
 
-    PR_EnterMonitor(sdb_p->dbMon);
+    MPR_EnterMonitor(sdb_p->dbMon);
 
     if (table) {
         *table = sdb_p->table;
     }
 
     /* We're in a transaction, use the transaction DB */
-    if ((sdb_p->sqlXactDB) && (sdb_p->sqlXactThread == PR_GetCurrentThread())) {
+    if ((sdb_p->sqlXactDB) && (sdb_p->sqlXactThread == MPR_GetCurrentThread())) {
         *sqlDB = sdb_p->sqlXactDB;
         /* only one thread can get here, safe to unlock */
-        PR_ExitMonitor(sdb_p->dbMon);
+        MPR_ExitMonitor(sdb_p->dbMon);
         return CKR_OK;
     }
 
@@ -677,7 +677,7 @@ sdb_openDBLocal(SDBPrivate *sdb_p, sqlite3 **sqlDB, const char **table)
      * is on order of human scale, not computer scale.
      */
     if (table && sdb_p->cacheTable) {
-        PRIntervalTime now = PR_IntervalNow();
+        PRIntervalTime now = MPR_IntervalNow();
         if ((now - sdb_p->lastUpdateTime) > sdb_p->updateInterval) {
             sdb_updateCache(sdb_p);
         }
@@ -698,7 +698,7 @@ sdb_closeDBLocal(SDBPrivate *sdb_p, sqlite3 *sqlDB)
 {
     if (sdb_p->sqlXactDB != sqlDB) {
         /* if we weren't in a transaction, we got a lock */
-        PR_ExitMonitor(sdb_p->dbMon);
+        MPR_ExitMonitor(sdb_p->dbMon);
     }
     return CKR_OK;
 }
@@ -759,14 +759,14 @@ sdb_reopenDBLocal(SDBPrivate *sdb_p, sqlite3 **sqlDB)
     /* if we are in a transaction, we may not be holding the monitor.
      * grab it before we update the transaction database. This is
      * safe since are using monitors. */
-    PR_EnterMonitor(sdb_p->dbMon);
+    MPR_EnterMonitor(sdb_p->dbMon);
     /* update our view of the database */
     if (sdb_p->sqlReadDB == *sqlDB) {
         sdb_p->sqlReadDB = newDB;
     } else if (sdb_p->sqlXactDB == *sqlDB) {
         sdb_p->sqlXactDB = newDB;
     }
-    PR_ExitMonitor(sdb_p->dbMon);
+    MPR_ExitMonitor(sdb_p->dbMon);
 
     /* close the old one */
     sqlite3_close(*sqlDB);
@@ -883,7 +883,7 @@ sdb_FindObjects(SDB *sdb, SDBFind *sdbFind, CK_OBJECT_HANDLE *object,
     do {
         sqlerr = sqlite3_step(stmt);
         if (sqlerr == SQLITE_BUSY) {
-            PR_Sleep(SDB_BUSY_RETRY_TIME);
+            MPR_Sleep(SDB_BUSY_RETRY_TIME);
         }
         if (sqlerr == SQLITE_ROW) {
             /* only care about the id */
@@ -994,7 +994,7 @@ sdb_GetValidAttributeValueNoLock(SDB *sdb, CK_OBJECT_HANDLE object_id,
     do {
         sqlerr = sqlite3_step(stmt);
         if (sqlerr == SQLITE_BUSY) {
-            PR_Sleep(SDB_BUSY_RETRY_TIME);
+            MPR_Sleep(SDB_BUSY_RETRY_TIME);
         }
         if (sqlerr == SQLITE_ROW) {
             PORT_Assert(!found);
@@ -1239,7 +1239,7 @@ sdb_SetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id,
     do {
         sqlerr = sqlite3_step(stmt);
         if (sqlerr == SQLITE_BUSY) {
-            PR_Sleep(SDB_BUSY_RETRY_TIME);
+            MPR_Sleep(SDB_BUSY_RETRY_TIME);
         }
     } while (!sdb_done(sqlerr, &retry));
 
@@ -1295,7 +1295,7 @@ sdb_getObjectId(SDB *sdb)
      */
     if (next_obj == CK_INVALID_HANDLE) {
         PRTime time;
-        time = PR_Now();
+        time = MPR_Now();
 
         next_obj = (CK_OBJECT_HANDLE)(time & 0x3fffffffL);
     }
@@ -1414,7 +1414,7 @@ sdb_CreateObject(SDB *sdb, CK_OBJECT_HANDLE *object_id,
     do {
         sqlerr = sqlite3_step(stmt);
         if (sqlerr == SQLITE_BUSY) {
-            PR_Sleep(SDB_BUSY_RETRY_TIME);
+            MPR_Sleep(SDB_BUSY_RETRY_TIME);
         }
     } while (!sdb_done(sqlerr, &retry));
 
@@ -1485,7 +1485,7 @@ sdb_destroyAnyObject(SDB *sdb, const char *table,
     do {
         sqlerr = sqlite3_step(stmt);
         if (sqlerr == SQLITE_BUSY) {
-            PR_Sleep(SDB_BUSY_RETRY_TIME);
+            MPR_Sleep(SDB_BUSY_RETRY_TIME);
         }
     } while (!sdb_done(sqlerr, &retry));
 
@@ -1556,7 +1556,7 @@ sdb_Begin(SDB *sdb)
     do {
         sqlerr = sqlite3_step(stmt);
         if (sqlerr == SQLITE_BUSY) {
-            PR_Sleep(SDB_BUSY_RETRY_TIME);
+            MPR_Sleep(SDB_BUSY_RETRY_TIME);
         }
         /* don't retry BEGIN transaction*/
         retry = 0;
@@ -1576,11 +1576,11 @@ loser:
     if (error == CKR_OK) {
         /* we hold a 'BEGIN TRANSACTION' and a sdb_p->lock. At this point
          * sdb_p->sqlXactDB MUST be null */
-        PR_EnterMonitor(sdb_p->dbMon);
+        MPR_EnterMonitor(sdb_p->dbMon);
         PORT_Assert(sdb_p->sqlXactDB == NULL);
         sdb_p->sqlXactDB = sqlDB;
-        sdb_p->sqlXactThread = PR_GetCurrentThread();
-        PR_ExitMonitor(sdb_p->dbMon);
+        sdb_p->sqlXactThread = MPR_GetCurrentThread();
+        MPR_ExitMonitor(sdb_p->dbMon);
     } else {
         /* we failed to start our transaction,
          * free any databases we opened. */
@@ -1614,29 +1614,29 @@ sdb_complete(SDB *sdb, const char *cmd)
     }
 
     /* We must have a transation database, or we shouldn't have arrived here */
-    PR_EnterMonitor(sdb_p->dbMon);
+    MPR_EnterMonitor(sdb_p->dbMon);
     PORT_Assert(sdb_p->sqlXactDB);
     if (sdb_p->sqlXactDB == NULL) {
-        PR_ExitMonitor(sdb_p->dbMon);
+        MPR_ExitMonitor(sdb_p->dbMon);
         return CKR_GENERAL_ERROR; /* shouldn't happen */
     }
-    PORT_Assert(sdb_p->sqlXactThread == PR_GetCurrentThread());
-    if (sdb_p->sqlXactThread != PR_GetCurrentThread()) {
-        PR_ExitMonitor(sdb_p->dbMon);
+    PORT_Assert(sdb_p->sqlXactThread == MPR_GetCurrentThread());
+    if (sdb_p->sqlXactThread != MPR_GetCurrentThread()) {
+        MPR_ExitMonitor(sdb_p->dbMon);
         return CKR_GENERAL_ERROR; /* shouldn't happen */
     }
     sqlDB = sdb_p->sqlXactDB;
     sdb_p->sqlXactDB = NULL; /* no one else can get to this DB,
                               * safe to unlock */
     sdb_p->sqlXactThread = NULL;
-    PR_ExitMonitor(sdb_p->dbMon);
+    MPR_ExitMonitor(sdb_p->dbMon);
 
     sqlerr = sqlite3_prepare_v2(sqlDB, cmd, -1, &stmt, NULL);
 
     do {
         sqlerr = sqlite3_step(stmt);
         if (sqlerr == SQLITE_BUSY) {
-            PR_Sleep(SDB_BUSY_RETRY_TIME);
+            MPR_Sleep(SDB_BUSY_RETRY_TIME);
         }
     } while (!sdb_done(sqlerr, &retry));
 
@@ -1649,9 +1649,9 @@ sdb_complete(SDB *sdb, const char *cmd)
 
     /* we we have a cached DB image, update it as well */
     if (sdb_p->cacheTable) {
-        PR_EnterMonitor(sdb_p->dbMon);
+        MPR_EnterMonitor(sdb_p->dbMon);
         sdb_updateCache(sdb_p);
-        PR_ExitMonitor(sdb_p->dbMon);
+        MPR_ExitMonitor(sdb_p->dbMon);
     }
 
     error = sdb_mapSQLError(sdb_p->type, sqlerr);
@@ -1724,7 +1724,7 @@ sdb_GetMetaData(SDB *sdb, const char *id, SECItem *item1, SECItem *item2)
     do {
         sqlerr = sqlite3_step(stmt);
         if (sqlerr == SQLITE_BUSY) {
-            PR_Sleep(SDB_BUSY_RETRY_TIME);
+            MPR_Sleep(SDB_BUSY_RETRY_TIME);
         }
         if (sqlerr == SQLITE_ROW) {
             const char *blobData;
@@ -1828,7 +1828,7 @@ sdb_PutMetaData(SDB *sdb, const char *id, const SECItem *item1,
     do {
         sqlerr = sqlite3_step(stmt);
         if (sqlerr == SQLITE_BUSY) {
-            PR_Sleep(SDB_BUSY_RETRY_TIME);
+            MPR_Sleep(SDB_BUSY_RETRY_TIME);
         }
     } while (!sdb_done(sqlerr, &retry));
 
@@ -1917,7 +1917,7 @@ sdb_Close(SDB *sdb)
         sqlite3_free(sdb_p->cacheTable);
     }
     if (sdb_p->dbMon) {
-        PR_DestroyMonitor(sdb_p->dbMon);
+        MPR_DestroyMonitor(sdb_p->dbMon);
     }
     free(sdb_p->schemaAttrs);
     free(sdb_p);
@@ -2255,7 +2255,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
      * thus it is disabled by default.
      */
 
-    env = PR_GetEnvSecure("NSS_SDB_USE_CACHE");
+    env = MPR_GetEnvSecure("NSS_SDB_USE_CACHE");
 
     /* Variables enableCache, checkFSType, measureSpeed are PR_FALSE by default,
      * which is the expected behavior for NSS_SDB_USE_CACHE="no".
@@ -2302,7 +2302,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
         char *tempDir = NULL;
         PRUint32 tempOps = 0;
         /*
-         *  Use PR_Access to determine how expensive it
+         *  Use MPR_Access to determine how expensive it
          * is to check for the existance of a local file compared to the same
          * check in the temp directory. If the temp directory is faster, cache
          * the database there. */
@@ -2334,7 +2334,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
             goto loser;
         }
         /* initialize the last cache build time */
-        now = PR_IntervalNow();
+        now = MPR_IntervalNow();
     }
 
     sdb = (SDB *)malloc(sizeof(SDB));
@@ -2379,7 +2379,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
         do {
             sqlerr = sqlite3_step(stmt);
             if (sqlerr == SQLITE_BUSY) {
-                PR_Sleep(SDB_BUSY_RETRY_TIME);
+                MPR_Sleep(SDB_BUSY_RETRY_TIME);
             }
             if (sqlerr == SQLITE_ROW) {
                 if (backedAttrs == schemaAttrsCapacity) {
@@ -2427,8 +2427,8 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
     sdb_p->lastUpdateTime = now;
     /* set the cache delay time. This is how long we will wait before we
      * decide the existing cache is stale. Currently set to 10 sec */
-    sdb_p->updateInterval = PR_SecondsToInterval(10);
-    sdb_p->dbMon = PR_NewMonitor();
+    sdb_p->updateInterval = MPR_SecondsToInterval(10);
+    sdb_p->dbMon = MPR_NewMonitor();
     /* these fields are protected by the lock */
     sdb_p->sqlXactDB = NULL;
     sdb_p->sqlXactThread = NULL;
@@ -2512,7 +2512,7 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
 
 #ifdef SQLITE_UNSAFE_THREADS
     if (sqlite_lock == NULL) {
-        sqlite_lock = PR_NewLock();
+        sqlite_lock = MPR_NewLock();
         if (sqlite_lock == NULL) {
             error = CKR_HOST_MEMORY;
             goto loser;
@@ -2525,7 +2525,7 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
     accessOps = 1;
     {
         char *env;
-        env = PR_GetEnvSecure("NSS_SDB_USE_CACHE");
+        env = MPR_GetEnvSecure("NSS_SDB_USE_CACHE");
         /* If the environment variable is undefined or set to yes or no,
          * sdb_init() will ignore the value of accessOps, and we can skip the
          * measuring.*/
@@ -2591,7 +2591,7 @@ s_shutdown()
 {
 #ifdef SQLITE_UNSAFE_THREADS
     if (sqlite_lock) {
-        PR_DestroyLock(sqlite_lock);
+        MPR_DestroyLock(sqlite_lock);
         sqlite_lock = NULL;
     }
 #endif

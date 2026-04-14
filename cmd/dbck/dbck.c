@@ -225,12 +225,12 @@ printHexString(PRFileDesc *out, SECItem *hexval)
     unsigned int i;
     for (i = 0; i < hexval->len; i++) {
         if (i != hexval->len - 1) {
-            PR_fprintf(out, "%02x:", hexval->data[i]);
+            MPR_fprintf(out, "%02x:", hexval->data[i]);
         } else {
-            PR_fprintf(out, "%02x", hexval->data[i]);
+            MPR_fprintf(out, "%02x", hexval->data[i]);
         }
     }
-    PR_fprintf(out, "\n");
+    MPR_fprintf(out, "\n");
 }
 
 SECStatus
@@ -242,16 +242,16 @@ dumpCertificate(CERTCertificate *cert, int num, PRFileDesc *outfile)
                (SEC_GET_TRUST_FLAGS(trust, trustEmail) & CERTDB_USER) ||
                (SEC_GET_TRUST_FLAGS(trust, trustObjectSigning) & CERTDB_USER);
     if (num >= 0) {
-        PR_fprintf(outfile, "Certificate: %3d\n", num);
+        MPR_fprintf(outfile, "Certificate: %3d\n", num);
     } else {
-        PR_fprintf(outfile, "Certificate:\n");
+        MPR_fprintf(outfile, "Certificate:\n");
     }
-    PR_fprintf(outfile, "----------------\n");
+    MPR_fprintf(outfile, "----------------\n");
     if (userCert)
-        PR_fprintf(outfile, "(User Cert)\n");
-    PR_fprintf(outfile, "## SUBJECT:  %s\n", cert->subjectName);
-    PR_fprintf(outfile, "## ISSUER:  %s\n", cert->issuerName);
-    PR_fprintf(outfile, "## SERIAL NUMBER:  ");
+        MPR_fprintf(outfile, "(User Cert)\n");
+    MPR_fprintf(outfile, "## SUBJECT:  %s\n", cert->subjectName);
+    MPR_fprintf(outfile, "## ISSUER:  %s\n", cert->issuerName);
+    MPR_fprintf(outfile, "## SERIAL NUMBER:  ");
     printHexString(outfile, &cert->serialNumber);
     { /*  XXX should be separate function.  */
         PRTime timeBefore, timeAfter;
@@ -259,15 +259,15 @@ dumpCertificate(CERTCertificate *cert, int num, PRFileDesc *outfile)
         char *beforestr, *afterstr;
         DER_DecodeTimeChoice(&timeBefore, &cert->validity.notBefore);
         DER_DecodeTimeChoice(&timeAfter, &cert->validity.notAfter);
-        PR_ExplodeTime(timeBefore, PR_GMTParameters, &beforePrintable);
-        PR_ExplodeTime(timeAfter, PR_GMTParameters, &afterPrintable);
+        MPR_ExplodeTime(timeBefore, MPR_GMTParameters, &beforePrintable);
+        MPR_ExplodeTime(timeAfter, MPR_GMTParameters, &afterPrintable);
         beforestr = PORT_Alloc(100);
         afterstr = PORT_Alloc(100);
-        PR_FormatTime(beforestr, 100, "%a %b %d %H:%M:%S %Y", &beforePrintable);
-        PR_FormatTime(afterstr, 100, "%a %b %d %H:%M:%S %Y", &afterPrintable);
-        PR_fprintf(outfile, "## VALIDITY:  %s to %s\n", beforestr, afterstr);
+        MPR_FormatTime(beforestr, 100, "%a %b %d %H:%M:%S %Y", &beforePrintable);
+        MPR_FormatTime(afterstr, 100, "%a %b %d %H:%M:%S %Y", &afterPrintable);
+        MPR_fprintf(outfile, "## VALIDITY:  %s to %s\n", beforestr, afterstr);
     }
-    PR_fprintf(outfile, "\n");
+    MPR_fprintf(outfile, "\n");
     return SECSuccess;
 }
 
@@ -298,23 +298,23 @@ dumpSubjectEntry(certDBEntrySubject *entry, int num, PRFileDesc *outfile)
 {
     char *subjectName = CERT_DerNameToAscii(&entry->derSubject);
 
-    PR_fprintf(outfile, "Subject: %3d\n", num);
-    PR_fprintf(outfile, "------------\n");
-    PR_fprintf(outfile, "## %s\n", subjectName);
+    MPR_fprintf(outfile, "Subject: %3d\n", num);
+    MPR_fprintf(outfile, "------------\n");
+    MPR_fprintf(outfile, "## %s\n", subjectName);
     if (entry->nickname)
-        PR_fprintf(outfile, "## Subject nickname:  %s\n", entry->nickname);
+        MPR_fprintf(outfile, "## Subject nickname:  %s\n", entry->nickname);
     if (entry->emailAddrs) {
         unsigned int n;
         for (n = 0; n < entry->nemailAddrs && entry->emailAddrs[n]; ++n) {
             char *emailAddr = entry->emailAddrs[n];
             if (emailAddr[0]) {
-                PR_fprintf(outfile, "## Subject email address:  %s\n",
+                MPR_fprintf(outfile, "## Subject email address:  %s\n",
                            emailAddr);
             }
         }
     }
-    PR_fprintf(outfile, "## This subject has %d cert(s).\n", entry->ncerts);
-    PR_fprintf(outfile, "\n");
+    MPR_fprintf(outfile, "## This subject has %d cert(s).\n", entry->ncerts);
+    MPR_fprintf(outfile, "\n");
     PORT_Free(subjectName);
     return SECSuccess;
 }
@@ -322,31 +322,31 @@ dumpSubjectEntry(certDBEntrySubject *entry, int num, PRFileDesc *outfile)
 SECStatus
 dumpNicknameEntry(certDBEntryNickname *entry, int num, PRFileDesc *outfile)
 {
-    PR_fprintf(outfile, "Nickname: %3d\n", num);
-    PR_fprintf(outfile, "-------------\n");
-    PR_fprintf(outfile, "##  \"%s\"\n\n", entry->nickname);
+    MPR_fprintf(outfile, "Nickname: %3d\n", num);
+    MPR_fprintf(outfile, "-------------\n");
+    MPR_fprintf(outfile, "##  \"%s\"\n\n", entry->nickname);
     return SECSuccess;
 }
 
 SECStatus
 dumpSMimeEntry(certDBEntrySMime *entry, int num, PRFileDesc *outfile)
 {
-    PR_fprintf(outfile, "S/MIME Profile: %3d\n", num);
-    PR_fprintf(outfile, "-------------------\n");
-    PR_fprintf(outfile, "##  \"%s\"\n", entry->emailAddr);
+    MPR_fprintf(outfile, "S/MIME Profile: %3d\n", num);
+    MPR_fprintf(outfile, "-------------------\n");
+    MPR_fprintf(outfile, "##  \"%s\"\n", entry->emailAddr);
 #ifdef OLDWAY
-    PR_fprintf(outfile, "##  OPTIONS:  ");
+    MPR_fprintf(outfile, "##  OPTIONS:  ");
     printHexString(outfile, &entry->smimeOptions);
-    PR_fprintf(outfile, "##  TIMESTAMP:  ");
+    MPR_fprintf(outfile, "##  TIMESTAMP:  ");
     printHexString(outfile, &entry->optionsDate);
 #else
     SECU_PrintAny(stdout, &entry->smimeOptions, "##  OPTIONS  ", 0);
     fflush(stdout);
     if (entry->optionsDate.len && entry->optionsDate.data)
-        PR_fprintf(outfile, "##  TIMESTAMP: %.*s\n",
+        MPR_fprintf(outfile, "##  TIMESTAMP: %.*s\n",
                    entry->optionsDate.len, entry->optionsDate.data);
 #endif
-    PR_fprintf(outfile, "\n");
+    MPR_fprintf(outfile, "\n");
     return SECSuccess;
 }
 
@@ -442,7 +442,7 @@ mapSubjectEntries(certDBArray *dbArray)
                 /*  Look for subject's nickname in nickname entries.  */
                 nickNode = LISTNODE_CAST(nElem);
                 nicknameEntry = (certDBEntryNickname *)&nickNode->entry;
-                if (PL_strcmp(subjectEntry->nickname,
+                if (MPL_strcmp(subjectEntry->nickname,
                               nicknameEntry->nickname) == 0) {
                     /*  Found a nickname entry for subject's nickname.  */
                     if (SECITEM_ItemsAreEqual(&subjectEntry->derSubject,
@@ -476,7 +476,7 @@ mapSubjectEntries(certDBArray *dbArray)
                         /*  Look for subject's email in S/MIME entries.  */
                         smimeNode = LISTNODE_CAST(mElem);
                         smimeEntry = (certDBEntrySMime *)&smimeNode->entry;
-                        if (PL_strcmp(emailAddr,
+                        if (MPL_strcmp(emailAddr,
                                       smimeEntry->emailAddr) == 0) {
                             /*  Found a S/MIME entry for subject's email.  */
                             if (SECITEM_ItemsAreEqual(
@@ -506,9 +506,9 @@ printnode(dbDebugInfo *info, const char *str, int num)
     if (!info->dograph)
         return;
     if (num < 0) {
-        PR_fprintf(info->graphfile, str);
+        MPR_fprintf(info->graphfile, str);
     } else {
-        PR_fprintf(info->graphfile, str, num);
+        MPR_fprintf(info->graphfile, str, num);
     }
 }
 
@@ -802,9 +802,9 @@ verboseOutput(certDBArray *dbArray, dbDebugInfo *info)
         if (map_handle_is_ok(info, map->pSubject, -1)) {
             smap = (certDBSubjectEntryMap *)map->pSubject->appData;
             ref = smap->index;
-            PR_fprintf(info->out, "-->(subject %d)\n\n\n", ref);
+            MPR_fprintf(info->out, "-->(subject %d)\n\n\n", ref);
         } else {
-            PR_fprintf(info->out, "-->(MISSING SUBJECT ENTRY)\n\n\n");
+            MPR_fprintf(info->out, "-->(MISSING SUBJECT ENTRY)\n\n\n");
         }
     }
     /* List subjects */
@@ -820,9 +820,9 @@ verboseOutput(certDBArray *dbArray, dbDebugInfo *info)
             /* walk each subject handle to it's cert entries */
             if (map_handle_is_ok(info, smap->pCerts[i], -1)) {
                 ref = ((certDBEntryMap *)smap->pCerts[i]->appData)->index;
-                PR_fprintf(info->out, "-->(%d. certificate %d)\n", i, ref);
+                MPR_fprintf(info->out, "-->(%d. certificate %d)\n", i, ref);
             } else {
-                PR_fprintf(info->out, "-->(%d. MISSING CERT ENTRY)\n", i);
+                MPR_fprintf(info->out, "-->(%d. MISSING CERT ENTRY)\n", i);
             }
         }
         if (subjectEntry->nickname) {
@@ -830,9 +830,9 @@ verboseOutput(certDBArray *dbArray, dbDebugInfo *info)
             /* walk each subject handle to it's nickname entry */
             if (map_handle_is_ok(info, smap->pNickname, -1)) {
                 ref = ((certDBEntryMap *)smap->pNickname->appData)->index;
-                PR_fprintf(info->out, "-->(nickname %d)\n", ref);
+                MPR_fprintf(info->out, "-->(nickname %d)\n", ref);
             } else {
-                PR_fprintf(info->out, "-->(MISSING NICKNAME ENTRY)\n");
+                MPR_fprintf(info->out, "-->(MISSING NICKNAME ENTRY)\n");
             }
         }
         if (subjectEntry->nemailAddrs &&
@@ -843,15 +843,15 @@ verboseOutput(certDBArray *dbArray, dbDebugInfo *info)
             /* walk each subject handle to it's smime entry */
             if (map_handle_is_ok(info, smap->pSMime, -1)) {
                 ref = ((certDBEntryMap *)smap->pSMime->appData)->index;
-                PR_fprintf(info->out, "-->(s/mime %d)\n", ref);
+                MPR_fprintf(info->out, "-->(s/mime %d)\n", ref);
             } else {
-                PR_fprintf(info->out, "-->(MISSING S/MIME ENTRY)\n");
+                MPR_fprintf(info->out, "-->(MISSING S/MIME ENTRY)\n");
             }
         }
         if (!refs) {
-            PR_fprintf(info->out, "-->(NO NICKNAME+S/MIME ENTRY)\n");
+            MPR_fprintf(info->out, "-->(NO NICKNAME+S/MIME ENTRY)\n");
         }
-        PR_fprintf(info->out, "\n\n");
+        MPR_fprintf(info->out, "\n\n");
     }
     for (elem = PR_LIST_HEAD(&dbArray->nicknames.link);
          elem != &dbArray->nicknames.link; elem = PR_NEXT_LINK(elem)) {
@@ -861,9 +861,9 @@ verboseOutput(certDBArray *dbArray, dbDebugInfo *info)
                           info->out);
         if (map_handle_is_ok(info, map->pSubject, -1)) {
             ref = ((certDBEntryMap *)map->pSubject->appData)->index;
-            PR_fprintf(info->out, "-->(subject %d)\n\n\n", ref);
+            MPR_fprintf(info->out, "-->(subject %d)\n\n\n", ref);
         } else {
-            PR_fprintf(info->out, "-->(MISSING SUBJECT ENTRY)\n\n\n");
+            MPR_fprintf(info->out, "-->(MISSING SUBJECT ENTRY)\n\n\n");
         }
     }
     for (elem = PR_LIST_HEAD(&dbArray->smime.link);
@@ -873,12 +873,12 @@ verboseOutput(certDBArray *dbArray, dbDebugInfo *info)
         dumpSMimeEntry((certDBEntrySMime *)&node->entry, map->index, info->out);
         if (map_handle_is_ok(info, map->pSubject, -1)) {
             ref = ((certDBEntryMap *)map->pSubject->appData)->index;
-            PR_fprintf(info->out, "-->(subject %d)\n\n\n", ref);
+            MPR_fprintf(info->out, "-->(subject %d)\n\n\n", ref);
         } else {
-            PR_fprintf(info->out, "-->(MISSING SUBJECT ENTRY)\n\n\n");
+            MPR_fprintf(info->out, "-->(MISSING SUBJECT ENTRY)\n\n\n");
         }
     }
-    PR_fprintf(info->out, "\n\n");
+    MPR_fprintf(info->out, "\n\n");
 }
 
 /* A callback function, intended to be called from nsslowcert_TraverseDBEntries
@@ -1035,43 +1035,43 @@ DBCK_DebugDB(NSSLOWCERTCertDBHandle *handle, PRFileDesc *out,
     freeDBEntryList(&dbArray.smime.link);
     freeDBEntryList(&dbArray.revocation.link);
 
-    PR_fprintf(info.out, "\n");
-    PR_fprintf(info.out, "Database statistics:\n");
-    PR_fprintf(info.out, "N0: Found %4d Certificate entries.\n",
+    MPR_fprintf(info.out, "\n");
+    MPR_fprintf(info.out, "Database statistics:\n");
+    MPR_fprintf(info.out, "N0: Found %4d Certificate entries.\n",
                nCerts);
-    PR_fprintf(info.out, "N1: Found %4d Subject entries (unique DN's).\n",
+    MPR_fprintf(info.out, "N1: Found %4d Subject entries (unique DN's).\n",
                nSubjects);
-    PR_fprintf(info.out, "N2: Found %4d Cert keys within Subject entries.\n",
+    MPR_fprintf(info.out, "N2: Found %4d Cert keys within Subject entries.\n",
                nSubjCerts);
-    PR_fprintf(info.out, "N3: Found %4d Nickname entries.\n",
+    MPR_fprintf(info.out, "N3: Found %4d Nickname entries.\n",
                nNicknames);
-    PR_fprintf(info.out, "N4: Found %4d S/MIME entries.\n",
+    MPR_fprintf(info.out, "N4: Found %4d S/MIME entries.\n",
                nSMime);
-    PR_fprintf(info.out, "N5: Found %4d CRL entries.\n",
+    MPR_fprintf(info.out, "N5: Found %4d CRL entries.\n",
                nRevocation);
-    PR_fprintf(info.out, "\n");
+    MPR_fprintf(info.out, "\n");
 
     nErr = 0;
     for (i = 0; i < NUM_ERROR_TYPES; i++) {
-        PR_fprintf(info.out, "E%d: Found %4d %s\n",
+        MPR_fprintf(info.out, "E%d: Found %4d %s\n",
                    i, info.dbErrors[i], errResult[i]);
         nErr += info.dbErrors[i];
     }
-    PR_fprintf(info.out, "--------------\n    Found %4d errors in database.\n",
+    MPR_fprintf(info.out, "--------------\n    Found %4d errors in database.\n",
                nErr);
 
-    PR_fprintf(info.out, "\nCertificates:\n");
-    PR_fprintf(info.out, "N0 == N2 + E%d + E%d\n", NoSubjectForCert,
+    MPR_fprintf(info.out, "\nCertificates:\n");
+    MPR_fprintf(info.out, "N0 == N2 + E%d + E%d\n", NoSubjectForCert,
                SubjectHasNoKeyForCert);
     nCertsFound = nSubjCerts +
                   info.dbErrors[NoSubjectForCert] +
                   info.dbErrors[SubjectHasNoKeyForCert];
     c = (nCertsFound == nCerts) ? '=' : '!';
-    PR_fprintf(info.out, "%d %c= %d + %d + %d\n", nCerts, c, nSubjCerts,
+    MPR_fprintf(info.out, "%d %c= %d + %d + %d\n", nCerts, c, nSubjCerts,
                info.dbErrors[NoSubjectForCert],
                info.dbErrors[SubjectHasNoKeyForCert]);
-    PR_fprintf(info.out, "\nSubjects:\n");
-    PR_fprintf(info.out,
+    MPR_fprintf(info.out, "\nSubjects:\n");
+    MPR_fprintf(info.out,
                "N1 == N3 + N4 + E%d + E%d + E%d + E%d + E%d - E%d - E%d - E%d\n",
                NoNicknameOrSMimeForSubject,
                WrongNicknameForSubject,
@@ -1091,7 +1091,7 @@ DBCK_DebugDB(NSSLOWCERTCertDBHandle *handle, PRFileDesc *out,
                  info.dbErrors[NoSubjectForSMime] -
                  info.dbErrors[NicknameAndSMimeEntries];
     c = (nSubjFound == nSubjects) ? '=' : '!';
-    PR_fprintf(info.out,
+    MPR_fprintf(info.out,
                "%2d %c= %2d + %2d + %2d + %2d + %2d + %2d + %2d - %2d - %2d - %2d\n",
                nSubjects, c, nNicknames, nSMime,
                info.dbErrors[NoNicknameOrSMimeForSubject],
@@ -1102,7 +1102,7 @@ DBCK_DebugDB(NSSLOWCERTCertDBHandle *handle, PRFileDesc *out,
                info.dbErrors[NoSubjectForNickname],
                info.dbErrors[NoSubjectForSMime],
                info.dbErrors[NicknameAndSMimeEntries]);
-    PR_fprintf(info.out, "\n");
+    MPR_fprintf(info.out, "\n");
 }
 
 #ifdef DORECOVER
@@ -1180,10 +1180,10 @@ dbck_certdb_name_cb(void *arg, int dbVersion)
 
     /* make sure we return something allocated with PORT_ so we have properly
      * matched frees at the end */
-    smpname = PR_smprintf(CERT_DB_FMT, configdir, dbver);
+    smpname = MPR_smprintf(CERT_DB_FMT, configdir, dbver);
     if (smpname) {
         dbname = PORT_Strdup(smpname);
-        PR_smprintf_free(smpname);
+        MPR_smprintf_free(smpname);
     }
     return dbname;
 }
@@ -1222,7 +1222,7 @@ main(int argc, char **argv)
 
     if (!dbck.commands[cmd_Debug].activated &&
         !dbck.commands[cmd_Recover].activated) {
-        PR_fprintf(PR_STDERR, "Please specify -H, -D or -R.\n");
+        MPR_fprintf(PR_STDERR, "Please specify -H, -D or -R.\n");
         Usage(progName);
     }
 
@@ -1236,14 +1236,14 @@ main(int argc, char **argv)
                     dbck.options[opt_KeepRedundant].activated);
 
     if (dbck.options[opt_OutputDB].activated) {
-        newdbname = PL_strdup(dbck.options[opt_OutputDB].arg);
+        newdbname = MPL_strdup(dbck.options[opt_OutputDB].arg);
     } else {
-        newdbname = PL_strdup("new_cert8.db");
+        newdbname = MPL_strdup("new_cert8.db");
     }
 
     /*  Create a generic graph of the database.  */
     if (dbck.options[opt_Mailfile].activated) {
-        mailfile = PR_Open("./mailfile", PR_RDWR | PR_CREATE_FILE, 00660);
+        mailfile = MPR_Open("./mailfile", PR_RDWR | PR_CREATE_FILE, 00660);
         if (!mailfile) {
             fprintf(stderr, "Unable to create mailfile.\n");
             return -1;
@@ -1253,7 +1253,7 @@ main(int argc, char **argv)
     /*  Dump all debugging info while running.  */
     if (dbck.options[opt_Verbose].activated) {
         if (dbck.options[opt_Dumpfile].activated) {
-            dumpfile = PR_Open(dbck.options[opt_Dumpfile].arg,
+            dumpfile = MPR_Open(dbck.options[opt_Dumpfile].arg,
                                PR_RDWR | PR_CREATE_FILE, 00660);
             if (!dumpfile) {
                 fprintf(stderr, "Unable to create dumpfile.\n");
@@ -1271,7 +1271,7 @@ main(int argc, char **argv)
 
     pathname = SECU_ConfigDirectory(NULL);
 
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+    MPR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     rv = NSS_NoDB_Init(pathname);
     if (rv != SECSuccess) {
         fprintf(stderr, "NSS_NoDB_Init failed\n");
@@ -1289,9 +1289,9 @@ main(int argc, char **argv)
     /*  Open the possibly corrupt database.  */
     if (dbck.options[opt_InputDB].activated) {
         PRFileInfo fileInfo;
-        fullname = PR_smprintf("%s/%s", pathname,
+        fullname = MPR_smprintf("%s/%s", pathname,
                                dbck.options[opt_InputDB].arg);
-        if (PR_GetFileInfo(fullname, &fileInfo) != PR_SUCCESS) {
+        if (MPR_GetFileInfo(fullname, &fileInfo) != PR_SUCCESS) {
             fprintf(stderr, "Unable to read file \"%s\".\n", fullname);
             return -1;
         }
@@ -1302,7 +1302,7 @@ main(int argc, char **argv)
 /*  Use the default.  */
 #ifdef NOTYET
         fullname = SECU_CertDBNameCallback(NULL, CERT_DB_FILE_VERSION);
-        if (PR_GetFileInfo(fullname, &fileInfo) != PR_SUCCESS) {
+        if (MPR_GetFileInfo(fullname, &fileInfo) != PR_SUCCESS) {
             fprintf(stderr, "Unable to read file \"%s\".\n", fullname);
             return -1;
         }
@@ -1337,9 +1337,9 @@ main(int argc, char **argv)
 #endif
 
     if (mailfile)
-        PR_Close(mailfile);
+        MPR_Close(mailfile);
     if (dumpfile)
-        PR_Close(dumpfile);
+        MPR_Close(dumpfile);
     if (certHandle) {
         nsslowcert_ClosePermCertDB(certHandle);
         PORT_Free(certHandle);

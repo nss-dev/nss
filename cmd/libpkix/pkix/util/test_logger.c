@@ -38,7 +38,7 @@ testLoggerCallback(
     PKIX_TEST_STD_VARS();
 
     msg = PKIX_String2ASCII(message, plContext);
-    PR_snprintf(result, 100, "Logging %s (%s): %s",
+    MPR_snprintf(result, 100, "Logging %s (%s): %s",
                 levels[logLevel], PKIX_ERRORCLASSNAMES[logComponent], msg);
     subTest(result);
 
@@ -68,7 +68,7 @@ testLoggerCallback2(
     PKIX_TEST_STD_VARS();
 
     msg = PKIX_String2ASCII(message, plContext);
-    PR_snprintf(result, 100, "Logging %s (%s): %s",
+    MPR_snprintf(result, 100, "Logging %s (%s): %s",
                 levels[logLevel], PKIX_ERRORCLASSNAMES[logComponent], msg);
     subTest(result);
 

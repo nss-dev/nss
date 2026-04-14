@@ -458,21 +458,21 @@ TEST_P(Tls13PskTestWithCiphers, 0RttMaxEarlyData) {
   PRInt32 sent;
   // Writing more than the limit will succeed in TLS, but fail in DTLS.
   if (variant_ == ssl_variant_stream) {
-    sent = PR_Write(client_->ssl_fd(), big_message,
+    sent = MPR_Write(client_->ssl_fd(), big_message,
                     static_cast<PRInt32>(strlen(big_message)));
   } else {
-    sent = PR_Write(client_->ssl_fd(), big_message,
+    sent = MPR_Write(client_->ssl_fd(), big_message,
                     static_cast<PRInt32>(strlen(big_message)));
     EXPECT_GE(0, sent);
     EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 
     // Try an exact-sized write now.
-    sent = PR_Write(client_->ssl_fd(), big_message, short_length);
+    sent = MPR_Write(client_->ssl_fd(), big_message, short_length);
   }
   EXPECT_EQ(short_length, sent);
 
   // Even a single octet write should now fail.
-  sent = PR_Write(client_->ssl_fd(), big_message, 1);
+  sent = MPR_Write(client_->ssl_fd(), big_message, 1);
   EXPECT_GE(0, sent);
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 
@@ -481,12 +481,12 @@ TEST_P(Tls13PskTestWithCiphers, 0RttMaxEarlyData) {
   CheckEarlyDataLimit(server_, short_size);
 
   std::vector<uint8_t> buf(short_size + 1);
-  PRInt32 read = PR_Read(server_->ssl_fd(), buf.data(), buf.capacity());
+  PRInt32 read = MPR_Read(server_->ssl_fd(), buf.data(), buf.capacity());
   EXPECT_EQ(short_length, read);
   EXPECT_EQ(0, memcmp(big_message, buf.data(), short_size));
 
   // Second read fails.
-  read = PR_Read(server_->ssl_fd(), buf.data(), buf.capacity());
+  read = MPR_Read(server_->ssl_fd(), buf.data(), buf.capacity());
   EXPECT_EQ(SECFailure, read);
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());
 

@@ -39,13 +39,13 @@ freebl_LoadDSO(void)
     const char *name = getLibName();
 
     if (!name) {
-        PR_SetError(PR_LOAD_LIBRARY_ERROR, 0);
+        MPR_SetError(PR_LOAD_LIBRARY_ERROR, 0);
         return PR_FAILURE;
     }
 
     handle = loader_LoadLibrary(name);
     if (handle) {
-        PRFuncPtr address = PR_FindFunctionSymbol(handle, "FREEBL_GetVector");
+        PRFuncPtr address = MPR_FindFunctionSymbol(handle, "FREEBL_GetVector");
         if (address) {
             FREEBLGetVectorFn *getVector = (FREEBLGetVectorFn *)address;
             const FREEBLVector *dsoVector = getVector();
@@ -64,12 +64,12 @@ freebl_LoadDSO(void)
         }
 #ifdef DEBUG
         if (blLib) {
-            PRStatus status = PR_UnloadLibrary(blLib);
+            PRStatus status = MPR_UnloadLibrary(blLib);
             PORT_Assert(PR_SUCCESS == status);
         }
 #else
         if (blLib)
-            PR_UnloadLibrary(blLib);
+            MPR_UnloadLibrary(blLib);
 #endif
     }
     return PR_FAILURE;
@@ -83,7 +83,7 @@ freebl_RunLoaderOnce(void)
 {
     PRStatus status;
 
-    status = PR_CallOnce(&loadFreeBLOnce, &freebl_LoadDSO);
+    status = MPR_CallOnce(&loadFreeBLOnce, &freebl_LoadDSO);
     return status;
 }
 
@@ -866,13 +866,13 @@ BL_Unload(void)
      * from NSS_Shutdown. */
     char *disableUnload = NULL;
     vector = NULL;
-    disableUnload = PR_GetEnvSecure("NSS_DISABLE_UNLOAD");
+    disableUnload = MPR_GetEnvSecure("NSS_DISABLE_UNLOAD");
     if (blLib && !disableUnload) {
 #ifdef DEBUG
-        PRStatus status = PR_UnloadLibrary(blLib);
+        PRStatus status = MPR_UnloadLibrary(blLib);
         PORT_Assert(PR_SUCCESS == status);
 #else
-        PR_UnloadLibrary(blLib);
+        MPR_UnloadLibrary(blLib);
 #endif
     }
     blLib = NULL;

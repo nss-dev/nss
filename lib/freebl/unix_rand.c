@@ -657,9 +657,9 @@ RNG_SystemInfoForRNG(void)
     }
 
     /* If the user points us to a random file, pass it through the rng */
-    randfile = PR_GetEnvSecure("NSRANDFILE");
+    randfile = MPR_GetEnvSecure("NSRANDFILE");
     if ((randfile != NULL) && (randfile[0] != '\0')) {
-        char *randCountString = PR_GetEnvSecure("NSRANDCOUNT");
+        char *randCountString = MPR_GetEnvSecure("NSRANDCOUNT");
         int randCount = randCountString ? atoi(randCountString) : 0;
         if (randCount != 0) {
             RNG_FileUpdate(randfile, randCount);

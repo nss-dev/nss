@@ -86,7 +86,7 @@ loggerCallback(
            logLevels[logLevel],
            PKIX_ERRORCLASSNAMES[logComponent],
            msg);
-    PR_Free((void *)msg);
+    MPR_Free((void *)msg);
 
     return (NULL);
 }
@@ -98,7 +98,7 @@ ThreadEntry(void *data)
 {
     tData *tdata = (tData *)data;
     PRIntervalTime duration = tdata->duration;
-    PRIntervalTime start = PR_IntervalNow();
+    PRIntervalTime start = MPR_IntervalNow();
 
     PKIX_List *anchors = NULL;
     PKIX_ProcessingParams *procParams = NULL;
@@ -199,7 +199,7 @@ ThreadEntry(void *data)
         PERF_DECREF(certSelector);
         PERF_DECREF(eeCert);
 
-    } while ((PR_IntervalNow() - start) < duration);
+    } while ((MPR_IntervalNow() - start) < duration);
 }
 
 static void
@@ -225,14 +225,14 @@ Test(
 
     data.iterations = 0;
 
-    starttime = PR_IntervalNow();
-    pthreads = (PRThread **)PR_Malloc(threads * sizeof(PRThread *));
-    alldata = (tData **)PR_Malloc(threads * sizeof(tData *));
+    starttime = MPR_IntervalNow();
+    pthreads = (PRThread **)MPR_Malloc(threads * sizeof(PRThread *));
+    alldata = (tData **)MPR_Malloc(threads * sizeof(tData *));
     for (i = 0; i < threads; i++) {
-        alldata[i] = (tData *)PR_Malloc(sizeof(tData));
+        alldata[i] = (tData *)MPR_Malloc(sizeof(tData));
         *alldata[i] = data;
         pthreads[i] =
-            PR_CreateThread(PR_USER_THREAD,
+            MPR_CreateThread(PR_USER_THREAD,
                             ThreadEntry,
                             (void *)alldata[i],
                             PR_PRIORITY_NORMAL,
@@ -243,18 +243,18 @@ Test(
 
     for (i = 0; i < threads; i++) {
         tData *args = alldata[i];
-        PR_JoinThread(pthreads[i]);
+        MPR_JoinThread(pthreads[i]);
         total += args->iterations;
-        PR_Free((void *)args);
+        MPR_Free((void *)args);
     }
 
-    PR_Free((void *)pthreads);
-    PR_Free((void *)alldata);
-    endtime = PR_IntervalNow();
+    MPR_Free((void *)pthreads);
+    MPR_Free((void *)alldata);
+    endtime = MPR_IntervalNow();
 
-    endtime = PR_IntervalNow();
+    endtime = MPR_IntervalNow();
     elapsed = endtime - starttime;
-    msecs = PR_IntervalToMilliseconds(elapsed);
+    msecs = MPR_IntervalToMilliseconds(elapsed);
     total /= msecs;
     total *= 1000;
     (void)fprintf(stdout, "%f operations per second.\n", total);
@@ -281,7 +281,7 @@ libpkix_buildthreads(int argc, char **argv)
 {
     CERTCertDBHandle *handle = NULL;
     CERTCertificate *eecert = NULL;
-    PRIntervalTime duration = PR_SecondsToInterval(1);
+    PRIntervalTime duration = MPR_SecondsToInterval(1);
     PRUint32 threads = 1;
     PKIX_UInt32 actualMinorVersion;
     PKIX_UInt32 j = 0;
@@ -293,7 +293,7 @@ libpkix_buildthreads(int argc, char **argv)
         usage(argv[0]);
     }
     if (atoi(argv[1]) > 0) {
-        duration = PR_SecondsToInterval(atoi(argv[1]));
+        duration = MPR_SecondsToInterval(atoi(argv[1]));
     }
     if (atoi(argv[2]) > 0) {
         threads = atoi(argv[2]);
